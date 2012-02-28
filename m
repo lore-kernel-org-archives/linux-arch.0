@@ -1,140 +1,76 @@
-From: Will Drewry <wad@chromium.org>
-Subject: Re: [PATCH v11 10/12] ptrace,seccomp: Add PTRACE_SECCOMP support
-Date: Tue, 28 Feb 2012 12:34:43 -0600
-Message-ID: <CABqD9hZ3apFGi+BmX5UNgz=NJUbTigj6acDKG=wu9rrL0wN1Ww@mail.gmail.com>
-References: <1330140111-17201-1-git-send-email-wad@chromium.org>
-	<1330140111-17201-10-git-send-email-wad@chromium.org>
-	<20120227175407.GD10608@redhat.com>
-	<CABqD9hY1P7LfmBwQwSG7jDZmw6d_pZH4q2cZq_4ssjQUKRA32w@mail.gmail.com>
-	<20120228164335.GC3664@redhat.com>
-	<CABqD9hY7=DpxWzf3+WNsK=LuLrabf=oHxyy+CQgu0JLxZ80zPQ@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <CABqD9hY7=DpxWzf3+WNsK=LuLrabf=oHxyy+CQgu0JLxZ80zPQ@mail.gmail.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Denys Vlasenko <dvlasenk@redhat.com>
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 02/24] x86, PCI: Merge pcibios_scan_root and pci_scan_bus_on_node
+Date: Tue, 28 Feb 2012 14:07:21 -0800
+Message-ID: <1330466863-28469-3-git-send-email-yinghai@kernel.org>
+References: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
+Sender: linux-pci-owner@vger.kernel.org
+To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Feb 28, 2012 at 11:04 AM, Will Drewry <wad@chromium.org> wrote:
-> On Tue, Feb 28, 2012 at 10:43 AM, Oleg Nesterov <oleg@redhat.com> wro=
-te:
->> On 02/27, Will Drewry wrote:
->>> On Mon, Feb 27, 2012 at 11:54 AM, Oleg Nesterov <oleg@redhat.com> w=
-rote:
->>> > On 02/24, Will Drewry wrote:
->>> >>
->>> >> =A0arch/Kconfig =A0 =A0 =A0 =A0 =A0 =A0 =A0| =A0 =A01 +
->>> >> =A0include/linux/ptrace.h =A0 =A0| =A0 =A07 +++++--
->>> >> =A0include/linux/seccomp.h =A0 | =A0 =A04 +++-
->>> >> =A0include/linux/tracehook.h | =A0 =A06 ++++++
->>> >> =A0kernel/ptrace.c =A0 =A0 =A0 =A0 =A0 | =A0 =A04 ++++
->>> >> =A0kernel/seccomp.c =A0 =A0 =A0 =A0 =A0| =A0 18 ++++++++++++++++=
-++
->>> >
->>> > FYI, this conflicts with the changes -mm tree.
->>> >
->>> > The changes in ptrace.* confict with Denys's
->>> > "ptrace: simplify PTRACE_foo constants and PTRACE_SETOPTIONS code=
-"
->>> >
->>> > The change in tracehook.h conflicts with
->>> > "ptrace: the killed tracee should not enter the syscall"
->>>
->>> What's the best way to reconcile this in this day and age?
->>
->> Of course I'd prefer if you make this change on top of Denys's patch=
- ;)
->>
->> Besides, if you agree with PTRACE_EVENT_SECCOMP/PTRACE_O_SECCOMP you
->> need only one trivial change in ptrace.h.
->
-> I think that works quite well :)
->
->>> I don't see
->>> these in kernel-next yet and I can't tell if there is a public -mm
->>> anywhere anymore.
->>
->> Strange... I didn't check, but every patch in
->> http://marc.info/?l=3Dlinux-mm-commits has this note:
->>
->> =A0 =A0 =A0 =A0The -mm tree is included into linux-next and is updat=
-ed
->> =A0 =A0 =A0 =A0there every 3-4 working days
->
-> It appears to have been pulled in ~8 hours ago. =A0I'm rebasing to ne=
-xt now.
->
->>> >> --- a/kernel/seccomp.c
->>> >> +++ b/kernel/seccomp.c
->>> >> @@ -354,6 +354,24 @@ int __secure_computing_int(int this_syscall=
-)
->>> >> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 seccomp_send_sigsys(=
-this_syscall, reason_code);
->>> >> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 return -1;
->>> >> =A0 =A0 =A0 =A0 =A0 =A0 =A0 }
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 case SECCOMP_RET_TRACE: {
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 int ret;
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 struct pt_regs *regs =3D=
- task_pt_regs(current);
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (!(test_tsk_thread_=
-flag(current, TIF_SYSCALL_TRACE)) ||
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 !(current->ptr=
-ace & PT_TRACE_SECCOMP))
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 return=
- -1;
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 /*
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0* PT_TRACE_SECCOMP =
-and seccomp.trace indicate whether
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0* tracehook_report_=
-syscall_entry needs to signal the
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0* tracer. =A0This a=
-voids race conditions in hand off and
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0* the requirement f=
-or TIF_SYSCALL_TRACE ensures that
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0* we are in the sys=
-call slow path.
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0*/
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 current->seccomp.trace=
- =3D 1;
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 ret =3D tracehook_repo=
-rt_syscall_entry(regs);
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 current->seccomp.trace=
- =3D 0;
->>> >> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 return ret;
->>> >
->>> > To be honest, this interface looks a bit strange to me...
->>> >
->>> > Once again, sorry if this was already discussed. But perhaps it w=
-ould
->>> > be better to introduce PTRACE_EVENT_SECCOMP/PTRACE_O_SECCOMP inst=
-ead?
->>> >
->>> > SECCOMP_RET_TRACE: could simply do ptrace_event(PTRACE_EVENT_SECC=
-OMP)
->>> > unconditionaly. The tracer can set the option and do PTRACE_CONT =
-if it
->>> > doesn't want the system call notifications.
->>>
->>> Works for me - this also gets rid of the extra int for brief state
->>> tracking. I'll switch over to that in the next rev.
->>
->> Great. In this case this patch becomes really trivial. Just 2 define=
-s
->> in ptrace.h and the unconditional ptrace_event() under SECCOMP_RET_T=
-RACE.
+Those two almost the same.
+Let pcibios_scan_root call pci_scan_bus_on_node instead.
 
-hrm the only snag is that I can't then rely on TIF_SYSCALL_TRACE to
-ensure seccomp is in the slow-path.  Right now, on x86, seccomp is
-slow-path, but it doesn't have to be to have the syscall and args.
-However, for ptrace to behavior properly, I believed it did need to be
-in the slow path.  If SECCOMP_RET_TRACE doesn't rely on
-PTRACE_SYSCALL, then it introduces a need for seccomp to always be in
-the slow path or to flag (somehow) when it needs slow path.
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/x86/pci/common.c |   27 ++++-----------------------
+ 1 files changed, 4 insertions(+), 23 deletions(-)
 
-Any suggestions there?
-
-Thanks!
-will
+diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
+index 323481e..8e04ec5 100644
+--- a/arch/x86/pci/common.c
++++ b/arch/x86/pci/common.c
+@@ -430,9 +430,7 @@ void __init dmi_check_pciprobe(void)
+ 
+ struct pci_bus * __devinit pcibios_scan_root(int busnum)
+ {
+-	LIST_HEAD(resources);
+ 	struct pci_bus *bus = NULL;
+-	struct pci_sysdata *sd;
+ 
+ 	while ((bus = pci_find_next_bus(bus)) != NULL) {
+ 		if (bus->number == busnum) {
+@@ -441,28 +439,10 @@ struct pci_bus * __devinit pcibios_scan_root(int busnum)
+ 		}
+ 	}
+ 
+-	/* Allocate per-root-bus (not per bus) arch-specific data.
+-	 * TODO: leak; this memory is never freed.
+-	 * It's arguable whether it's worth the trouble to care.
+-	 */
+-	sd = kzalloc(sizeof(*sd), GFP_KERNEL);
+-	if (!sd) {
+-		printk(KERN_ERR "PCI: OOM, not probing PCI bus %02x\n", busnum);
+-		return NULL;
+-	}
+-
+-	sd->node = get_mp_bus_to_node(busnum);
+-
+-	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busnum);
+-	x86_pci_root_bus_resources(busnum, &resources);
+-	bus = pci_scan_root_bus(NULL, busnum, &pci_root_ops, sd, &resources);
+-	if (!bus) {
+-		pci_free_resource_list(&resources);
+-		kfree(sd);
+-	}
+-
+-	return bus;
++	return pci_scan_bus_on_node(busnum, &pci_root_ops,
++					get_mp_bus_to_node(busnum));
+ }
++
+ void __init pcibios_set_cache_line_size(void)
+ {
+ 	struct cpuinfo_x86 *c = &boot_cpu_data;
+@@ -656,6 +636,7 @@ struct pci_bus * __devinit pci_scan_bus_on_node(int busno, struct pci_ops *ops,
+ 	}
+ 	sd->node = node;
+ 	x86_pci_root_bus_resources(busno, &resources);
++	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busno);
+ 	bus = pci_scan_root_bus(NULL, busno, ops, sd, &resources);
+ 	if (!bus) {
+ 		pci_free_resource_list(&resources);
+-- 
+1.7.7
