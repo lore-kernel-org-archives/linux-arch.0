@@ -1,64 +1,60 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 14/24] PCI, powerpc: Register busn_res for root buses
-Date: Tue, 28 Feb 2012 14:07:33 -0800
-Message-ID: <1330466863-28469-15-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 15/24] PCI, parisc: Register busn_res for root buses
+Date: Tue, 28 Feb 2012 14:07:34 -0800
+Message-ID: <1330466863-28469-16-git-send-email-yinghai@kernel.org>
 References: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: linuxppc-dev@lists.ozlabs.org
+Cc: Kyle McMartin <kyle@mcmartin.ca>
+Cc: Helge Deller <deller@gmx.de>
+Cc: linux-parisc@vger.kernel.org
 ---
- arch/powerpc/include/asm/pci-bridge.h |    1 +
- arch/powerpc/kernel/pci-common.c      |   10 +++++++++-
- 2 files changed, 10 insertions(+), 1 deletions(-)
+ drivers/parisc/dino.c    |    5 +++++
+ drivers/parisc/lba_pci.c |    3 +++
+ 2 files changed, 8 insertions(+), 0 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include/asm/pci-bridge.h
-index 5d48765..11cebf0 100644
---- a/arch/powerpc/include/asm/pci-bridge.h
-+++ b/arch/powerpc/include/asm/pci-bridge.h
-@@ -30,6 +30,7 @@ struct pci_controller {
- 	int first_busno;
- 	int last_busno;
- 	int self_busno;
-+	struct resource busn;
+diff --git a/drivers/parisc/dino.c b/drivers/parisc/dino.c
+index 0610e91..def94af 100644
+--- a/drivers/parisc/dino.c
++++ b/drivers/parisc/dino.c
+@@ -984,6 +984,10 @@ static int __init dino_probe(struct parisc_device *dev)
+ 	if (dino_dev->hba.gmmio_space.flags)
+ 		pci_add_resource(&resources, &dino_dev->hba.gmmio_space);
  
- 	void __iomem *io_base_virt;
- #ifdef CONFIG_PPC64
-diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
-index 910b9de..ee8c0c9 100644
---- a/arch/powerpc/kernel/pci-common.c
-+++ b/arch/powerpc/kernel/pci-common.c
-@@ -1648,6 +1648,11 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
- 	/* Wire up PHB bus resources */
- 	pcibios_setup_phb_resources(hose, &resources);
- 
-+	hose->busn.start = hose->first_busno;
-+	hose->busn.end	 = hose->last_busno;
-+	hose->busn.flags = IORESOURCE_BUS;
-+	pci_add_resource(&resources, &hose->busn);
-+
- 	/* Create an empty bus for the toplevel */
- 	bus = pci_create_root_bus(hose->parent, hose->first_busno,
- 				  hose->ops, hose, &resources);
-@@ -1670,8 +1675,11 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
- 		of_scan_bus(node, bus);
++	dino_dev->hba.bus_num.start = dino_current_bus;
++	dino_dev->hba.bus_num.end = 255;
++	dino_dev->hba.bus_num.flags |= IORESOURCE_BUS;
++	pci_add_resource(&resources, &dino_dev->hba.bus_num);
+ 	/*
+ 	** It's not used to avoid chicken/egg problems
+ 	** with configuration accessor functions.
+@@ -999,6 +1003,7 @@ static int __init dino_probe(struct parisc_device *dev)
+ 		return 0;
  	}
  
--	if (mode == PCI_PROBE_NORMAL)
-+	if (mode == PCI_PROBE_NORMAL) {
-+		pci_bus_update_busn_res_end(bus, 255);
- 		hose->last_busno = bus->subordinate = pci_scan_child_bus(bus);
-+		pci_bus_update_busn_res_end(bus, bus->subordinate);
-+	}
++	pci_bus_update_busn_res_end(bus, bus->subordinate);
+ 	bus->subordinate = pci_scan_child_bus(bus);
  
- 	/* Platform gets a chance to do some global fixups before
- 	 * we proceed to resource allocation
+ 	/* This code *depends* on scanning being single threaded
+diff --git a/drivers/parisc/lba_pci.c b/drivers/parisc/lba_pci.c
+index e885764..df1e9f9 100644
+--- a/drivers/parisc/lba_pci.c
++++ b/drivers/parisc/lba_pci.c
+@@ -1503,6 +1503,9 @@ lba_driver_probe(struct parisc_device *dev)
+ 	if (lba_dev->hba.gmmio_space.flags)
+ 		pci_add_resource(&resources, &lba_dev->hba.gmmio_space);
+ 
++	lba_dev->hba.bus_num.flags |= IORESOURCE_BUS;
++	pci_add_resource(&resources, &lba_dev->hba.bus_num);
++
+ 	dev->dev.platform_data = lba_dev;
+ 	lba_bus = lba_dev->hba.hba_bus =
+ 		pci_create_root_bus(&dev->dev, lba_dev->hba.bus_num.start,
 -- 
 1.7.7
