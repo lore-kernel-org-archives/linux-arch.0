@@ -1,40 +1,95 @@
-From: Markus Gutschke <markus@chromium.org>
-Subject: Re: [PATCH v11 06/12] seccomp: add system call filtering using BPF
-Date: Tue, 28 Feb 2012 09:47:59 -0800
-Message-ID: <CAE6n16kLOOrAV6_7_t_-PnfYoNsJ5yJfHveWykO7qQiFYKb3nQ@mail.gmail.com>
-References: <1330140111-17201-1-git-send-email-wad@chromium.org>
- <1330140111-17201-6-git-send-email-wad@chromium.org> <b983ece9dc6209269876869188303518.squirrel@webmail.greenhost.nl>
- <CABqD9haZpe-i8kyHJDj4umCLyZ3E877aobabvW8_+aXeC+kTbg@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <CABqD9haZpe-i8kyHJDj4umCLyZ3E877aobabvW8_+aXeC+kTbg@mail.gmail.com>
-Sender: netdev-owner@vger.kernel.org
-To: Will Drewry <wad@chromium.org>
-Cc: Indan Zupancic <indan@nul.nu>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, coreyb@linux.vnet.ibm.com, keescook@chromium.org
-List-Id: linux-arch.vger.kernel.org
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: [RFC] mm: Limit pgd range freeing to TASK_SIZE
+Date: Tue, 28 Feb 2012 18:12:01 +0000
+Message-ID: <1330452721-26947-1-git-send-email-catalin.marinas@arm.com>
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from service87.mimecast.com ([91.220.42.44]:52943 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753610Ab2B1SMe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2012 13:12:34 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: Russell King <linux@arm.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Alexander Viro <viro@zeniv.linux.org.uk>
 
-On Tue, Feb 28, 2012 at 09:17, Will Drewry <wad@chromium.org> wrote:
-> On Tue, Feb 28, 2012 at 12:51 AM, Indan Zupancic <indan@nul.nu> wrote:
->> Wouldn't it make more sense to always kill with SIGSYS, also for mode 1?
->> I suppose it's too late for that now.
->
-> It would but I don't want to go and change existing ABI.
+ARM processors with LPAE enabled use 3 levels of page tables, with an
+entry in the top one (pgd/pud) covering 1GB of virtual space. Because of
+the relocation limitations on ARM, the loadable modules are mapped 16MB
+below PAGE_OFFSET, making the corresponding 1GB pgd/pud shared between
+kernel modules and user space. During fault processing, pmd entries
+corresponding to modules are populated to point to the init_mm pte
+tables.
 
-Just for the record, when this discussion came up about two years ago,
-it was established that other than Chrome, there are currently no
-users of Seccomp, as mode 1 is just too difficult to use for most
-potential applications.
+Since free_pgtables() is called with ceiling =3D=3D 0, free_pgd_range() (an=
+d
+subsequently called functions) also clears the pgd/pud entry that is
+shared between user space and kernel modules. If a module interrupt
+routine is invoked during this window, the kernel gets a translation
+fault and becomes confused.
 
-Chrome doesn't rely on the exit status of a process that violated the
-seccomp restrictions, so it is highly unlikely you would break
-existing userspace, if you changed the ABI. On the other hand, as mode
-2 is so much more powerful than mode 1, it is unlikely that we will
-see future userspace applications make use of mode 1.
+There is proposed fix for ARM (within the arch/arm/ code) but it
+wouldn't be needed if the pgd range freeing is capped at TASK_SIZE. The
+concern is that there are architectures with vmas beyond TASK_SIZE, so
+the aim of this RFC is to ask whether those architectures rely on
+free_pgtables() to free any page tables beyond TASK_SIZE.
 
-In other words, changing the ABI is unlikely to cause harm, but also
-unlikely to do any good. I don't have any strong opinion either way;
-just providing an additional data point.
+Alternatively, we can define something like LAST_USER_ADDRESS,
+defaulting to 0 for most architectures.
 
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+---
+ fs/exec.c |    4 ++--
+ mm/mmap.c |    4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
 
-Markus
+diff --git a/fs/exec.c b/fs/exec.c
+index 92ce83a..f2d66ab 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -626,7 +626,7 @@ static int shift_arg_pages(struct vm_area_struct *vma, =
+unsigned long shift)
+ =09=09 * when the old and new regions overlap clear from new_end.
+ =09=09 */
+ =09=09free_pgd_range(&tlb, new_end, old_end, new_end,
+-=09=09=09vma->vm_next ? vma->vm_next->vm_start : 0);
++=09=09=09vma->vm_next ? vma->vm_next->vm_start : TASK_SIZE);
+ =09} else {
+ =09=09/*
+ =09=09 * otherwise, clean from old_start; this is done to not touch
+@@ -635,7 +635,7 @@ static int shift_arg_pages(struct vm_area_struct *vma, =
+unsigned long shift)
+ =09=09 * for the others its just a little faster.
+ =09=09 */
+ =09=09free_pgd_range(&tlb, old_start, old_end, new_end,
+-=09=09=09vma->vm_next ? vma->vm_next->vm_start : 0);
++=09=09=09vma->vm_next ? vma->vm_next->vm_start : TASK_SIZE);
+ =09}
+ =09tlb_finish_mmu(&tlb, new_end, old_end);
+=20
+diff --git a/mm/mmap.c b/mm/mmap.c
+index 3f758c7..5e5c8a8 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -1866,7 +1866,7 @@ static void unmap_region(struct mm_struct *mm,
+ =09unmap_vmas(&tlb, vma, start, end, &nr_accounted, NULL);
+ =09vm_unacct_memory(nr_accounted);
+ =09free_pgtables(&tlb, vma, prev ? prev->vm_end : FIRST_USER_ADDRESS,
+-=09=09=09=09 next ? next->vm_start : 0);
++=09=09=09=09 next ? next->vm_start : TASK_SIZE);
+ =09tlb_finish_mmu(&tlb, start, end);
+ }
+=20
+@@ -2241,7 +2241,7 @@ void exit_mmap(struct mm_struct *mm)
+ =09end =3D unmap_vmas(&tlb, vma, 0, -1, &nr_accounted, NULL);
+ =09vm_unacct_memory(nr_accounted);
+=20
+-=09free_pgtables(&tlb, vma, FIRST_USER_ADDRESS, 0);
++=09free_pgtables(&tlb, vma, FIRST_USER_ADDRESS, TASK_SIZE);
+ =09tlb_finish_mmu(&tlb, 0, end);
+=20
+ =09/*
