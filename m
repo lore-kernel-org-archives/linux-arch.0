@@ -1,62 +1,131 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 18/24] PCI: Strict checking of valid range for bridge
-Date: Tue, 28 Feb 2012 14:07:37 -0800
-Message-ID: <1330466863-28469-19-git-send-email-yinghai@kernel.org>
-References: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:41184 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965655Ab2B1XKB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2012 18:10:01 -0500
-In-Reply-To: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH 08/18] PCI, powerpc: Register busn_res for root buses
+Date: Tue, 28 Feb 2012 16:31:04 -0700
+Message-ID: <CAErSpo72_JnUkWXrzbNdbX9wiWZtQdX2tuNjEpYrSd+sGzxfzA@mail.gmail.com>
+References: <1330395009-29260-1-git-send-email-yinghai@kernel.org>
+ <1330395009-29260-9-git-send-email-yinghai@kernel.org> <CAErSpo4bw-V=SM+h5iP4nfv3HaAnHjwvNwu+4Oz8iyQcY_3gOQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAErSpo4bw-V=SM+h5iP4nfv3HaAnHjwvNwu+4Oz8iyQcY_3gOQ@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+List-Id: linux-arch.vger.kernel.org
 
-children bridges busn range should be able to be allocated from parent bus range.
+On Mon, Feb 27, 2012 at 10:36 PM, Bjorn Helgaas <bhelgaas@google.com> w=
+rote:
+> On Mon, Feb 27, 2012 at 7:09 PM, Yinghai Lu <yinghai@kernel.org> wrot=
+e:
+>> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+>> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+>> Cc: Paul Mackerras <paulus@samba.org>
+>> Cc: linuxppc-dev@lists.ozlabs.org
+>> ---
+>> =A0arch/powerpc/kernel/pci-common.c | =A0 =A07 ++++++-
+>> =A01 files changed, 6 insertions(+), 1 deletions(-)
+>>
+>> diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/=
+pci-common.c
+>> index 910b9de..ae5ae5f 100644
+>> --- a/arch/powerpc/kernel/pci-common.c
+>> +++ b/arch/powerpc/kernel/pci-common.c
+>> @@ -1660,6 +1660,8 @@ void __devinit pcibios_scan_phb(struct pci_con=
+troller *hose)
+>> =A0 =A0 =A0 =A0bus->secondary =3D hose->first_busno;
+>> =A0 =A0 =A0 =A0hose->bus =3D bus;
+>>
+>> + =A0 =A0 =A0 pci_bus_insert_busn_res(bus, hose->first_busno, hose->=
+last_busno);
+>> +
+>> =A0 =A0 =A0 =A0/* Get probe mode and perform scan */
+>> =A0 =A0 =A0 =A0mode =3D PCI_PROBE_NORMAL;
+>> =A0 =A0 =A0 =A0if (node && ppc_md.pci_probe_mode)
+>> @@ -1670,8 +1672,11 @@ void __devinit pcibios_scan_phb(struct pci_co=
+ntroller *hose)
+>> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0of_scan_bus(node, bus);
+>> =A0 =A0 =A0 =A0}
+>>
+>> - =A0 =A0 =A0 if (mode =3D=3D PCI_PROBE_NORMAL)
+>> + =A0 =A0 =A0 if (mode =3D=3D PCI_PROBE_NORMAL) {
+>> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 pci_bus_update_busn_res_end(bus, 255);
+>> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0hose->last_busno =3D bus->subordinate=
+ =3D pci_scan_child_bus(bus);
+>> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 pci_bus_update_busn_res_end(bus, bus->=
+subordinate);
+>> + =A0 =A0 =A0 }
+>
+> There's a lot of powerpc code that does this:
+>
+> =A0 =A0bus_range =3D of_get_property(pcictrl, "bus-range", &len);
+> =A0 =A0hose->first_busno =3D bus_range[0];
+> =A0 =A0hose->last_busno =3D bus_range[1];
+>
+> That *looks* like it is discovering the bus number aperture. =A0Is it=
+?
+> If it is, why are we using the largest bus number found by
+> pci_scan_child_bus() rather than "last_busno"?
 
-to avoid overlapping between sibling bridges on same bus.
+Sorry, I missed the earlier hunk of the patch where you *do* use last_b=
+usno:
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- drivers/pci/probe.c |   24 ++++++++++++++++++++++++
- 1 files changed, 24 insertions(+), 0 deletions(-)
+>> + =A0 =A0 =A0 pci_bus_insert_busn_res(bus, hose->first_busno, hose->=
+last_busno);
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index c540022..5c031f0 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -801,6 +801,30 @@ reduce_needed_size:
- 	return ret;
- }
- 
-+static int __devinit pci_bridge_check_busn_broken(struct pci_bus *bus,
-+				struct pci_dev *dev,
-+				int secondary, int subordinate)
-+{
-+	int broken = 0;
-+
-+	struct resource busn_res;
-+	int ret;
-+
-+	memset(&busn_res, 0, sizeof(struct resource));
-+	dev_printk(KERN_DEBUG, &dev->dev,
-+		 "check if busn %02x-%02x is in busn_res: %pR\n",
-+		 secondary, subordinate, &bus->busn_res);
-+	ret = allocate_resource(&bus->busn_res, &busn_res,
-+			 (subordinate - secondary + 1),
-+			 secondary, subordinate,
-+			 1, NULL, NULL);
-+	if (ret)
-+		broken = 1;
-+	else
-+		release_resource(&busn_res);
-+
-+	return broken;
-+}
- /*
-  * If it's a bridge, configure it and scan the bus behind it.
-  * For CardBus bridges, we don't scan behind as the devices will
--- 
-1.7.7
+I still think this part is wrong:
+
++       if (mode =3D=3D PCI_PROBE_NORMAL) {
++               pci_bus_update_busn_res_end(bus, 255);
+               hose->last_busno =3D bus->subordinate =3D pci_scan_child=
+_bus(bus);
++               pci_bus_update_busn_res_end(bus, bus->subordinate);
+
+I think there are two problems:
+
+1) We can enumerate devices under the wrong PHB.  Assume this:
+
+PCI host bridge A to [bus 00]
+pci 0000:00:01.0: PCI bridge
+PCI host bridge B to [bus 01]
+pci 0000:01:01.0: PCI endpoint
+
+The P2P bridge at 00:01.0 has no devices below it, but of course we
+can't tell that until we look behind it.  To do that, we'll have to
+assign a bus number, and since we forced the bus number aperture to
+[bus 00-ff] instead of the correct [bus 00], we'll probably allocate
+bus number 01 as the secondary bus.  Then we'll generate a config
+cycle for 01:01.0, which discovers a device.  But we can't tell that
+the cycle was actually claimed by host bridge B, not A.  So now we
+wrongly think that 01:01.0 is under A, so we can't handle its
+resources correctly.
+
+I think we should have failed when allocating a secondary bus number
+for 00:01.0 and just skipped looking behind it.
+
+2) We preclude hot-add in some cases.  For example, if we scan this top=
+ology:
+
+PCI host bridge C to [bus 00-7f]
+pci 0000:00:01.0: PCI bridge to [bus 01]
+pci 0000:01:01.0: PCI endpoint
+
+we set the root bus's subordinate bus number to 01 (the highest bus
+number we discovered), so we now think host bridge C leads only to
+[bus 00-01].  Now let's remove 01:01.0 and plug in a card with a
+bridge on it, e.g.,
+
+pci 0000:01:01.0: PCI bridge to ...
+pci 0000:xx:01.0: PCI endpoint
+
+We can't allocate a bus number for 01:01.0's secondary bus because we
+think we're out of space.  But we're really not; the true bus number
+aperture for C is [bus 00-7f], not [bus 00-01].
+
+We may need mechanism to say "don't trust this info from the
+firmware," but we should be able to figure out a way that doesn't
+penalize platforms that do everything correctly.  The current patch
+breaks these scenarios even when the platform firmware is 100%
+correct.
+
+Bjorn
