@@ -1,100 +1,147 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:48885 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756588Ab2B1CLS (ORCPT
+Received: from rcsinet15.oracle.com ([148.87.113.117]:43141 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756014Ab2B1CLS (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2012 21:11:18 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 03/18] PCI: Add busn_res operation functions
-Date: Mon, 27 Feb 2012 18:09:54 -0800
-Message-ID: <1330395009-29260-4-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 05/18] PCI, x86: Register busn_res for root buses
+Date: Mon, 27 Feb 2012 18:09:56 -0800
+Message-ID: <1330395009-29260-6-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1330395009-29260-1-git-send-email-yinghai@kernel.org>
 References: <1330395009-29260-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120228020954.-Z_eXd8FzNDwAanDSXCvzpgN1V6KgRz1tBa9vaF2S-Q@z>
+Message-ID: <20120228020956.DlRdrJFeomFU8POoBtH-aHESTIAoQytcV4oP5LsjXgU@z>
 
-will use them insert/update busn res in pci_bus
+update x86_pci_root_bus_resources() to get bus_max for non-acpi case.
+
+update pci_acpi_scan_root_bus, and pci_scan_root_bus_on_node
+to insert busn_res before scan child bus.
+So could make root bus busn_res is kept the original large one.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |   47 +++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/pci.h |    3 +++
- 2 files changed, 50 insertions(+), 0 deletions(-)
+ arch/x86/include/asm/topology.h |    3 ++-
+ arch/x86/pci/acpi.c             |    8 +++++---
+ arch/x86/pci/bus_numa.c         |    9 ++++++++-
+ arch/x86/pci/common.c           |   12 +++++++++---
+ 4 files changed, 24 insertions(+), 8 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 675d7ed..3c0eecb 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -1678,6 +1678,53 @@ err_out:
+diff --git a/arch/x86/include/asm/topology.h b/arch/x86/include/asm/topology.h
+index b9676ae..8413481 100644
+--- a/arch/x86/include/asm/topology.h
++++ b/arch/x86/include/asm/topology.h
+@@ -172,7 +172,8 @@ static inline void arch_fix_phys_package_id(int num, u32 slot)
+ }
+ 
+ struct pci_bus;
+-void x86_pci_root_bus_resources(int bus, struct list_head *resources);
++void x86_pci_root_bus_resources(int bus, int *bus_max,
++				 struct list_head *resources);
+ 
+ #ifdef CONFIG_SMP
+ #define mc_capable()	((boot_cpu_data.x86_max_cores > 1) && \
+diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
+index 7538fad..7bb327f 100644
+--- a/arch/x86/pci/acpi.c
++++ b/arch/x86/pci/acpi.c
+@@ -368,6 +368,7 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 	struct pci_root_info *info = NULL;
+ 	int domain = root->segment;
+ 	int busnum = root->secondary.start;
++	int busmax = root->secondary.end;
+ 	LIST_HEAD(resources);
+ 	struct pci_bus *bus;
+ 	struct pci_sysdata *sd;
+@@ -436,14 +437,15 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 			add_resources(info, &resources);
+ 		else {
+ 			free_pci_root_info(info);
+-			x86_pci_root_bus_resources(busnum, &resources);
++			x86_pci_root_bus_resources(busnum, &busmax, &resources);
+ 		}
+ 
+ 		bus = pci_create_root_bus(NULL, busnum, &pci_root_ops, sd,
+ 					  &resources);
+-		if (bus)
++		if (bus) {
++			pci_bus_insert_busn_res(bus, busnum, busmax);
+ 			bus->subordinate = pci_scan_child_bus(bus);
+-		else
++		} else
+ 			pci_free_resource_list(&resources);
+ 
+ 		if (pci_use_crs) {
+diff --git a/arch/x86/pci/bus_numa.c b/arch/x86/pci/bus_numa.c
+index 7251011..91ce4dd 100644
+--- a/arch/x86/pci/bus_numa.c
++++ b/arch/x86/pci/bus_numa.c
+@@ -20,7 +20,8 @@ static struct pci_root_info *x86_find_pci_root_info(int bus)
  	return NULL;
  }
  
-+void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
-+{
-+	struct resource *res = &b->busn_res;
-+	struct resource *parent_res;
-+	int ret;
-+
-+	res->start = bus;
-+	res->end = bus_max;
-+	res->flags = IORESOURCE_BUS;
-+
-+	/* no parent for root bus' busn_res */
-+	if (!pci_is_root_bus(b)) {
-+		parent_res = &b->parent->busn_res;
-+
-+		ret = insert_resource(parent_res, res);
-+
-+		dev_printk(KERN_DEBUG, &b->dev,
-+			"busn_res: %pR %s inserted under %pR\n",
-+			res, ret ? "can not be" : "is", parent_res);
-+	} else
-+		dev_printk(KERN_DEBUG, &b->dev,
-+			"busn_res: %pR for root bus\n",
-+			res);
-+}
-+
-+void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
-+{
-+	struct resource *res = &b->busn_res;
-+	struct resource old_res = *res;
-+
-+	res->end = bus_max;
-+	dev_printk(KERN_DEBUG, &b->dev,
-+			"busn_res: %pR end updated to %pR\n",
-+			&old_res, res);
-+}
-+
-+void pci_bus_release_busn_res(struct pci_bus *b)
-+{
-+	struct resource *res = &b->busn_res;
-+	int ret;
-+
-+	ret = release_resource(res);
-+	dev_printk(KERN_DEBUG, &b->dev,
-+			"busn_res: %pR %s released\n",
-+			res, ret ? "can not be" : "is");
-+}
-+
- struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
- 		struct pci_ops *ops, void *sysdata, struct list_head *resources)
+-void x86_pci_root_bus_resources(int bus, struct list_head *resources)
++void x86_pci_root_bus_resources(int bus, int *bus_max,
++				struct list_head *resources)
  {
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 7c03852..e494759 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -669,6 +669,9 @@ struct pci_bus *pci_scan_bus(int bus, struct pci_ops *ops, void *sysdata);
- struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 				    struct pci_ops *ops, void *sysdata,
- 				    struct list_head *resources);
-+void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int busmax);
-+void pci_bus_update_busn_res_end(struct pci_bus *b, int busmax);
-+void pci_bus_release_busn_res(struct pci_bus *b);
- struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
- 					     struct pci_ops *ops, void *sysdata,
- 					     struct list_head *resources);
+ 	struct pci_root_info *info = x86_find_pci_root_info(bus);
+ 	struct pci_root_res *root_res;
+@@ -43,6 +44,8 @@ void x86_pci_root_bus_resources(int bus, struct list_head *resources)
+ 			root = &iomem_resource;
+ 		insert_resource(root, res);
+ 	}
++
++	*bus_max = info->bus_max;
+ 	return;
+ 
+ default_resources:
+@@ -54,6 +57,10 @@ default_resources:
+ 	printk(KERN_DEBUG "PCI: root bus %02x: using default resources\n", bus);
+ 	pci_add_resource(resources, &ioport_resource);
+ 	pci_add_resource(resources, &iomem_resource);
++	if (!bus)
++		*bus_max = 0xff;
++	else if (!*bus_max)
++		*bus_max = bus;
+ }
+ 
+ struct pci_root_info __init *alloc_pci_root_info(int bus_min, int bus_max,
+diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
+index 8e04ec5..5115606 100644
+--- a/arch/x86/pci/common.c
++++ b/arch/x86/pci/common.c
+@@ -623,6 +623,7 @@ struct pci_bus * __devinit pci_scan_bus_on_node(int busno, struct pci_ops *ops,
+ 	LIST_HEAD(resources);
+ 	struct pci_bus *bus = NULL;
+ 	struct pci_sysdata *sd;
++	int bus_max;
+ 
+ 	/*
+ 	 * Allocate per-root-bus (not per bus) arch-specific data.
+@@ -635,13 +636,18 @@ struct pci_bus * __devinit pci_scan_bus_on_node(int busno, struct pci_ops *ops,
+ 		return NULL;
+ 	}
+ 	sd->node = node;
+-	x86_pci_root_bus_resources(busno, &resources);
+-	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busno);
+-	bus = pci_scan_root_bus(NULL, busno, ops, sd, &resources);
++	x86_pci_root_bus_resources(busno, &bus_max, &resources);
++	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x-%02x)\n",
++			 busno, bus_max);
++	bus = pci_create_root_bus(NULL, busno, &pci_root_ops, sd, &resources);
+ 	if (!bus) {
+ 		pci_free_resource_list(&resources);
+ 		kfree(sd);
++		return bus;
+ 	}
++	pci_bus_insert_busn_res(bus, busno, bus_max);
++	bus->subordinate = pci_scan_child_bus(bus);
++	pci_bus_add_devices(bus);
+ 
+ 	return bus;
+ }
 -- 
 1.7.7
 
