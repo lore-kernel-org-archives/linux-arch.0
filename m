@@ -1,147 +1,153 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:43141 "EHLO
-	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756014Ab2B1CLS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2012 21:11:18 -0500
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 05/18] PCI, x86: Register busn_res for root buses
-Date: Mon, 27 Feb 2012 18:09:56 -0800
-Message-ID: <1330395009-29260-6-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1330395009-29260-1-git-send-email-yinghai@kernel.org>
-References: <1330395009-29260-1-git-send-email-yinghai@kernel.org>
+Received: from smarthost1.greenhost.nl ([195.190.28.78]:44608 "EHLO
+	smarthost1.greenhost.nl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751922Ab2B1GwS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2012 01:52:18 -0500
+Message-ID: <b983ece9dc6209269876869188303518.squirrel@webmail.greenhost.nl>
+In-Reply-To: <1330140111-17201-6-git-send-email-wad@chromium.org>
+References: <1330140111-17201-1-git-send-email-wad@chromium.org>
+    <1330140111-17201-6-git-send-email-wad@chromium.org>
+Date: Tue, 28 Feb 2012 07:51:57 +0100
+Subject: Re: [PATCH v11 06/12] seccomp: add system call filtering using BPF
+From: "Indan Zupancic" <indan@nul.nu>
+MIME-Version: 1.0
+Content-Type: text/plain;charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120228020956.DlRdrJFeomFU8POoBtH-aHESTIAoQytcV4oP5LsjXgU@z>
+To: Will Drewry <wad@chromium.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
+Message-ID: <20120228065157.uW2D4sgvIPpxXc_zXcADlnvt6neREcInzaJiWx2CifM@z>
 
-update x86_pci_root_bus_resources() to get bus_max for non-acpi case.
+Hello,
 
-update pci_acpi_scan_root_bus, and pci_scan_root_bus_on_node
-to insert busn_res before scan child bus.
-So could make root bus busn_res is kept the original large one.
+On Sat, February 25, 2012 04:21, Will Drewry wrote:
+> @@ -169,6 +170,7 @@ void free_task(struct task_struct *tsk)
+> 	free_thread_info(tsk->stack);
+> 	rt_mutex_debug_task_free(tsk);
+> 	ftrace_graph_exit_task(tsk);
+> +	put_seccomp_filter(tsk->seccomp.filter);
+> 	free_task_struct(tsk);
+> }
+> EXPORT_SYMBOL(free_task);
+> @@ -1113,6 +1115,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
+> 		goto fork_out;
+>
+> 	ftrace_graph_init_task(p);
+> +	copy_seccomp(&p->seccomp, &current->seccomp);
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+I agree it's more symmetrical when get_seccomp_filter() is used here
+directly instead of copy_seccomp(). That should put Kees at ease.
+
+> +static void seccomp_filter_log_failure(int syscall)
+> +{
+> +	int compat = 0;
+> +#ifdef CONFIG_COMPAT
+> +	compat = is_compat_task();
+> +#endif
+> +	pr_info("%s[%d]: %ssystem call %d blocked at 0x%lx\n",
+> +		current->comm, task_pid_nr(current),
+> +		(compat ? "compat " : ""),
+> +		syscall, KSTK_EIP(current));
+> +}
+
+This should be at least rate limited, but could be dropped altogether,
+as it's mostly useful for debugging filters. There is no kernel message
+when a process is killed because it exceeds a ulimit either. The death
+by SIGSYS is hopefully clear enough for users, and filter writers can
+return different errno values when debugging where it goes wrong.
+
+> +/**
+> + * bpf_load: checks and returns a pointer to the requested offset
+> + * @nr: int syscall passed as a void * to bpf_run_filter
+> + * @off: offset into struct seccomp_data to load from
+
+Must be aligned, that's worth mentioning.
+
+> + * @size: number of bytes to load (must be 4)
+> + * @buffer: temporary storage supplied by bpf_run_filter (4 bytes)
+
+'@buf'.
+
+> +/**
+> + * copy_seccomp: manages inheritance on fork
+> + * @child: forkee's seccomp
+> + * @parent: forker's seccomp
+> + *
+> + * Ensures that @child inherits filters if in use.
+> + */
+> +void copy_seccomp(struct seccomp *child, const struct seccomp *parent)
+> +{
+> +	/* Other fields are handled by dup_task_struct. */
+> +	child->filter = get_seccomp_filter(parent->filter);
+> +}
+> +#endif	/* CONFIG_SECCOMP_FILTER */
+
+Yeah, just get rid of this and use get_seccomp_filter directly, and make
+it return void instead of a pointer.
+
+>
+> /*
+>  * Secure computing mode 1 allows only read/write/exit/sigreturn.
+> @@ -34,10 +293,11 @@ static int mode1_syscalls_32[] = {
+> void __secure_computing(int this_syscall)
+> {
+> 	int mode = current->seccomp.mode;
+> -	int * syscall;
+> +	int exit_code = SIGKILL;
+> +	int *syscall;
+>
+> 	switch (mode) {
+> -	case 1:
+> +	case SECCOMP_MODE_STRICT:
+> 		syscall = mode1_syscalls;
+> #ifdef CONFIG_COMPAT
+> 		if (is_compat_task())
+> @@ -48,6 +308,14 @@ void __secure_computing(int this_syscall)
+> 				return;
+> 		} while (*++syscall);
+> 		break;
+> +#ifdef CONFIG_SECCOMP_FILTER
+> +	case SECCOMP_MODE_FILTER:
+> +		if (seccomp_run_filters(this_syscall) == SECCOMP_RET_ALLOW)
+> +			return;
+> +		seccomp_filter_log_failure(this_syscall);
+> +		exit_code = SIGSYS;
+
+Wouldn't it make more sense to always kill with SIGSYS, also for mode 1?
+I suppose it's too late for that now.
+
+> +/**
+> + * prctl_set_seccomp: configures current->seccomp.mode
+> + * @seccomp_mode: requested mode to use
+> + * @filter: optional struct sock_fprog for use with SECCOMP_MODE_FILTER
+> + *
+> + * This function may be called repeatedly with a @seccomp_mode of
+> + * SECCOMP_MODE_FILTER to install additional filters.  Every filter
+> + * successfully installed will be evaluated (in reverse order) for each system
+> + * call the task makes.
+> + *
+> + * It is not possible to transition change the current->seccomp.mode after
+> + * one has been set on a task.
+
+That reads awkwardly, do you mean the mode can't be changed once it's set?
+
 ---
- arch/x86/include/asm/topology.h |    3 ++-
- arch/x86/pci/acpi.c             |    8 +++++---
- arch/x86/pci/bus_numa.c         |    9 ++++++++-
- arch/x86/pci/common.c           |   12 +++++++++---
- 4 files changed, 24 insertions(+), 8 deletions(-)
 
-diff --git a/arch/x86/include/asm/topology.h b/arch/x86/include/asm/topology.h
-index b9676ae..8413481 100644
---- a/arch/x86/include/asm/topology.h
-+++ b/arch/x86/include/asm/topology.h
-@@ -172,7 +172,8 @@ static inline void arch_fix_phys_package_id(int num, u32 slot)
- }
- 
- struct pci_bus;
--void x86_pci_root_bus_resources(int bus, struct list_head *resources);
-+void x86_pci_root_bus_resources(int bus, int *bus_max,
-+				 struct list_head *resources);
- 
- #ifdef CONFIG_SMP
- #define mc_capable()	((boot_cpu_data.x86_max_cores > 1) && \
-diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
-index 7538fad..7bb327f 100644
---- a/arch/x86/pci/acpi.c
-+++ b/arch/x86/pci/acpi.c
-@@ -368,6 +368,7 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
- 	struct pci_root_info *info = NULL;
- 	int domain = root->segment;
- 	int busnum = root->secondary.start;
-+	int busmax = root->secondary.end;
- 	LIST_HEAD(resources);
- 	struct pci_bus *bus;
- 	struct pci_sysdata *sd;
-@@ -436,14 +437,15 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
- 			add_resources(info, &resources);
- 		else {
- 			free_pci_root_info(info);
--			x86_pci_root_bus_resources(busnum, &resources);
-+			x86_pci_root_bus_resources(busnum, &busmax, &resources);
- 		}
- 
- 		bus = pci_create_root_bus(NULL, busnum, &pci_root_ops, sd,
- 					  &resources);
--		if (bus)
-+		if (bus) {
-+			pci_bus_insert_busn_res(bus, busnum, busmax);
- 			bus->subordinate = pci_scan_child_bus(bus);
--		else
-+		} else
- 			pci_free_resource_list(&resources);
- 
- 		if (pci_use_crs) {
-diff --git a/arch/x86/pci/bus_numa.c b/arch/x86/pci/bus_numa.c
-index 7251011..91ce4dd 100644
---- a/arch/x86/pci/bus_numa.c
-+++ b/arch/x86/pci/bus_numa.c
-@@ -20,7 +20,8 @@ static struct pci_root_info *x86_find_pci_root_info(int bus)
- 	return NULL;
- }
- 
--void x86_pci_root_bus_resources(int bus, struct list_head *resources)
-+void x86_pci_root_bus_resources(int bus, int *bus_max,
-+				struct list_head *resources)
- {
- 	struct pci_root_info *info = x86_find_pci_root_info(bus);
- 	struct pci_root_res *root_res;
-@@ -43,6 +44,8 @@ void x86_pci_root_bus_resources(int bus, struct list_head *resources)
- 			root = &iomem_resource;
- 		insert_resource(root, res);
- 	}
-+
-+	*bus_max = info->bus_max;
- 	return;
- 
- default_resources:
-@@ -54,6 +57,10 @@ default_resources:
- 	printk(KERN_DEBUG "PCI: root bus %02x: using default resources\n", bus);
- 	pci_add_resource(resources, &ioport_resource);
- 	pci_add_resource(resources, &iomem_resource);
-+	if (!bus)
-+		*bus_max = 0xff;
-+	else if (!*bus_max)
-+		*bus_max = bus;
- }
- 
- struct pci_root_info __init *alloc_pci_root_info(int bus_min, int bus_max,
-diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
-index 8e04ec5..5115606 100644
---- a/arch/x86/pci/common.c
-+++ b/arch/x86/pci/common.c
-@@ -623,6 +623,7 @@ struct pci_bus * __devinit pci_scan_bus_on_node(int busno, struct pci_ops *ops,
- 	LIST_HEAD(resources);
- 	struct pci_bus *bus = NULL;
- 	struct pci_sysdata *sd;
-+	int bus_max;
- 
- 	/*
- 	 * Allocate per-root-bus (not per bus) arch-specific data.
-@@ -635,13 +636,18 @@ struct pci_bus * __devinit pci_scan_bus_on_node(int busno, struct pci_ops *ops,
- 		return NULL;
- 	}
- 	sd->node = node;
--	x86_pci_root_bus_resources(busno, &resources);
--	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busno);
--	bus = pci_scan_root_bus(NULL, busno, ops, sd, &resources);
-+	x86_pci_root_bus_resources(busno, &bus_max, &resources);
-+	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x-%02x)\n",
-+			 busno, bus_max);
-+	bus = pci_create_root_bus(NULL, busno, &pci_root_ops, sd, &resources);
- 	if (!bus) {
- 		pci_free_resource_list(&resources);
- 		kfree(sd);
-+		return bus;
- 	}
-+	pci_bus_insert_busn_res(bus, busno, bus_max);
-+	bus->subordinate = pci_scan_child_bus(bus);
-+	pci_bus_add_devices(bus);
- 
- 	return bus;
- }
--- 
-1.7.7
+Reviewed-by: Indan Zupancic <indan@nul.nu>
+
+All in all I'm quite happy with how the code is now, at least this bit.
+I'm still unsure about the networking patch and the 32-bit BPF on 64-bit
+archs mismatch.
+
+As for the unlimited filter count, I'm not sure how to fix that.
+The problem is that filters are inherited and shared. Limiting the
+list length (tree depth) helps a bit, then the total memory usage
+is limited by max number of processes. It may make sense to limit
+the total instruction count instead of the number of filters.
+
+Greetings,
+
+Indan
+
 
