@@ -1,64 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:28853 "EHLO
+Received: from acsinet15.oracle.com ([141.146.126.227]:27872 "EHLO
 	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757345Ab2B1WKb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2012 17:10:31 -0500
+	with ESMTP id S1030333Ab2B1WIm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2012 17:08:42 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 12/24] PCI, ia64: Register busn_res for root buses
-Date: Tue, 28 Feb 2012 14:07:31 -0800
-Message-ID: <1330466863-28469-13-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 20/24] PCI: kill pci_fixup_parent_subordinate_busnr()
+Date: Tue, 28 Feb 2012 14:07:39 -0800
+Message-ID: <1330466863-28469-21-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
 References: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
-Message-ID: <20120228220731.HEnsrenlj3e9C0lUDJB5sIMw2EKTn3slPxsTNhcfxDo@z>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20120228220739.DiFEqlcu6X1QGwjFx21jTEhbpc_FX3NglXuSb-nUJPU@z>
+
+Now we can safely extend parent top and shrink them according iobusn_resource tree.
+
+Don't need that any more.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-ia64@vger.kernel.org
 ---
- arch/ia64/include/asm/pci.h |    1 +
- arch/ia64/pci/pci.c         |    5 +++++
- 2 files changed, 6 insertions(+), 0 deletions(-)
+ drivers/pci/probe.c |   32 --------------------------------
+ 1 files changed, 0 insertions(+), 32 deletions(-)
 
-diff --git a/arch/ia64/include/asm/pci.h b/arch/ia64/include/asm/pci.h
-index b22e5f5..6e54220 100644
---- a/arch/ia64/include/asm/pci.h
-+++ b/arch/ia64/include/asm/pci.h
-@@ -94,6 +94,7 @@ struct pci_controller {
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index f22a209..ba51902 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -639,22 +639,6 @@ struct pci_bus *__ref pci_add_new_bus(struct pci_bus *parent, struct pci_dev *de
+ 	return child;
+ }
  
- 	unsigned int windows;
- 	struct pci_window *window;
-+	struct resource busn;
+-static void pci_fixup_parent_subordinate_busnr(struct pci_bus *child, int max)
+-{
+-	struct pci_bus *parent = child->parent;
+-
+-	/* Attempts to fix that up are really dangerous unless
+-	   we're going to re-assign all bus numbers. */
+-	if (!pcibios_assign_all_busses())
+-		return;
+-
+-	while (parent->parent && parent->subordinate < max) {
+-		parent->subordinate = max;
+-		pci_write_config_byte(parent->self, PCI_SUBORDINATE_BUS, max);
+-		parent = parent->parent;
+-	}
+-}
+-
+ static void __devinit pci_bus_update_top(struct pci_bus *parent,
+ 		 long size, struct resource *parent_res)
+ {
+@@ -990,23 +974,7 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
  
- 	void *platform_data;
- };
-diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
-index d1ce320..b250f0f 100644
---- a/arch/ia64/pci/pci.c
-+++ b/arch/ia64/pci/pci.c
-@@ -332,6 +332,7 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
- 	struct acpi_device *device = root->device;
- 	int domain = root->segment;
- 	int bus = root->secondary.start;
-+	int busmax = root->secondary.end;
- 	struct pci_controller *controller;
- 	unsigned int windows = 0;
- 	struct pci_root_info info;
-@@ -372,6 +373,10 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
- 		acpi_walk_resources(device->handle, METHOD_NAME__CRS,
- 			add_window, &info);
- 	}
-+	controller->busn.start = bus;
-+	controller->busn.end = busmax;
-+	conttoller->busn.flags = IORESOURCE_BUS;
-+	pci_add_resource(&info.resources, &controller->busn);
- 	/*
- 	 * See arch/x86/pci/acpi.c.
- 	 * The desired pci bus might already be scanned in a quirk. We
+ 		if (!is_cardbus) {
+ 			child->bridge_ctl = bctl;
+-			/*
+-			 * Adjust subordinate busnr in parent buses.
+-			 * We do this before scanning for children because
+-			 * some devices may not be detected if the bios
+-			 * was lazy.
+-			 */
+-			pci_fixup_parent_subordinate_busnr(child, max);
+-			/* Now we can scan all subordinate buses... */
+ 			max = pci_scan_child_bus(child);
+-			/*
+-			 * now fix it up again since we have found
+-			 * the real value of max.
+-			 */
+-			pci_fixup_parent_subordinate_busnr(child, max);
+-
+-		} else {
+-			pci_fixup_parent_subordinate_busnr(child, max);
+ 		}
+ 		/*
+ 		 * Set the subordinate bus number to its real value.
 -- 
 1.7.7
 
