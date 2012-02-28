@@ -1,85 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:48960 "EHLO
+Received: from acsinet15.oracle.com ([141.146.126.227]:35459 "EHLO
 	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965497Ab2B1CLc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2012 21:11:32 -0500
+	with ESMTP id S964819Ab2B1CM5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 27 Feb 2012 21:12:57 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 17/18] PCI: Double checking setting for bus register and bus struct.
-Date: Mon, 27 Feb 2012 18:10:08 -0800
-Message-ID: <1330395009-29260-18-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 08/18] PCI, powerpc: Register busn_res for root buses
+Date: Mon, 27 Feb 2012 18:09:59 -0800
+Message-ID: <1330395009-29260-9-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1330395009-29260-1-git-send-email-yinghai@kernel.org>
 References: <1330395009-29260-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120228021008.hlaLoSe_FCT9Ks27c89Mor8wlYJmJaE777fuoHjPHk4@z>
-
-User could use setpci change bridge's bus register. that could make value of register
-and struct is out of sync.
-User later will use rescan to see the devices is moving.
-
-In the rescaning, we need to double check the range and remove the old struct at first.
-
-to make thing working user may need have script to remove children devices under bridge
-at first, and then use setpci update bus register and then rescan.
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20120228020959._x45J7VuOjglQejmvt_OLfgXd-X6e4lQQ9Cojg3inX4@z>
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: linuxppc-dev@lists.ozlabs.org
 ---
- drivers/pci/probe.c |   40 ++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 40 insertions(+), 0 deletions(-)
+ arch/powerpc/kernel/pci-common.c |    7 ++++++-
+ 1 files changed, 6 insertions(+), 1 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index a4ecae0..554839e 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -843,6 +843,46 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
- 	    (primary != bus->number || secondary <= bus->number))
- 		broken = 1;
+diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
+index 910b9de..ae5ae5f 100644
+--- a/arch/powerpc/kernel/pci-common.c
++++ b/arch/powerpc/kernel/pci-common.c
+@@ -1660,6 +1660,8 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
+ 	bus->secondary = hose->first_busno;
+ 	hose->bus = bus;
  
-+	if (!pass && dev->subordinate) {
-+		child = dev->subordinate;
-+		/*
-+		 * User could change bus register in bridge manually with
-+		 * setpci and rescan. So double check the setting, and remove
-+		 * old structs.  Don't set broken yet, let following check
-+		 * to see if the new setting good.
-+		 */
-+		if (primary != child->primary ||
-+		    secondary != child->secondary ||
-+		    subordinate != child->subordinate) {
-+			dev_info(&dev->dev,
-+				"someone changed bus register from pri:%02x, sec:%02x, sub:%02x to pri:%02x, sec:%02x, sub:%02x\n",
-+				child->primary, child->secondary, child->subordinate,
-+				primary, secondary, subordinate);
-+			if (!list_empty(&dev->subordinate->devices)) {
-+				u32 old_buses;
++	pci_bus_insert_busn_res(bus, hose->first_busno, hose->last_busno);
 +
-+				dev_info(&dev->dev,
-+				 "but children devices are not removed manually before that.\n");
-+				/*
-+				 * Try best to remove left children devices
-+				 * but we need to set bus register back, otherwise
-+				 * We can not access children device and stop them
-+				 */
-+				old_buses = (buses & 0xff000000)
-+				   | ((unsigned int)(child->primary)     <<  0)
-+				   | ((unsigned int)(child->secondary)   <<  8)
-+				   | ((unsigned int)(child->subordinate) << 16);
-+				pci_write_config_dword(dev, PCI_PRIMARY_BUS,
-+							 old_buses);
-+				pci_stop_and_remove_behind_bridge(dev);
-+				pci_write_config_dword(dev, PCI_PRIMARY_BUS,
-+							 buses);
-+			}
-+			pci_remove_bus(dev->subordinate);
-+			dev->subordinate = NULL;
-+		}
+ 	/* Get probe mode and perform scan */
+ 	mode = PCI_PROBE_NORMAL;
+ 	if (node && ppc_md.pci_probe_mode)
+@@ -1670,8 +1672,11 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
+ 		of_scan_bus(node, bus);
+ 	}
+ 
+-	if (mode == PCI_PROBE_NORMAL)
++	if (mode == PCI_PROBE_NORMAL) {
++		pci_bus_update_busn_res_end(bus, 255);
+ 		hose->last_busno = bus->subordinate = pci_scan_child_bus(bus);
++		pci_bus_update_busn_res_end(bus, bus->subordinate);
 +	}
-+
- 	/* more strict checking */
- 	if (!pass && !broken && !dev->subordinate)
- 		broken = pci_bridge_check_busn_broken(bus, dev,
+ 
+ 	/* Platform gets a chance to do some global fixups before
+ 	 * we proceed to resource allocation
 -- 
 1.7.7
 
