@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 04/39] PCI: rename pci_host_bridge() to find_pci_root_bridge()
-Date: Wed, 29 Feb 2012 15:07:03 -0800
-Message-ID: <1330556858-11768-5-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 05/39] PCI: add generic device into pci_host_bridge struct
+Date: Wed, 29 Feb 2012 15:07:04 -0800
+Message-ID: <1330556858-11768-6-git-send-email-yinghai@kernel.org>
 References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
@@ -10,68 +10,221 @@ To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Separate find_pci_root_bus out.
+use that device for pci_root_bus bridge pointer.
 
--v2: according to Bjorn, remove extra null checking.
+With that make code more simple.
+
+Also we can use pci_release_bus_bridge_dev() to release allocated
+pci_host_bridge during removing path.
+
+At last, we can use root bus bridge pointer to get host bridge pointer instead
+of going over host bridge list, so could kill that host bridge list.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/host-bridge.c |   18 +++++++++++++-----
- 1 files changed, 13 insertions(+), 5 deletions(-)
+ drivers/pci/host-bridge.c |   15 +---------
+ drivers/pci/pci.h         |    2 -
+ drivers/pci/probe.c       |   65 +++++++++++++++++++++++---------------------
+ include/linux/pci.h       |    4 ++-
+ 4 files changed, 38 insertions(+), 48 deletions(-)
 
 diff --git a/drivers/pci/host-bridge.c b/drivers/pci/host-bridge.c
-index dfaff3f..b3ddcc5 100644
+index b3ddcc5..03d8db1 100644
 --- a/drivers/pci/host-bridge.c
 +++ b/drivers/pci/host-bridge.c
-@@ -16,15 +16,22 @@ void add_to_pci_host_bridges(struct pci_host_bridge *bridge)
- 	list_add_tail(&bridge->list, &pci_host_bridges);
- }
+@@ -9,13 +9,6 @@
  
--static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
-+static struct pci_bus *find_pci_root_bus(struct pci_dev *dev)
+ #include "pci.h"
+ 
+-static LIST_HEAD(pci_host_bridges);
+-
+-void add_to_pci_host_bridges(struct pci_host_bridge *bridge)
+-{
+-	list_add_tail(&bridge->list, &pci_host_bridges);
+-}
+-
+ static struct pci_bus *find_pci_root_bus(struct pci_dev *dev)
  {
  	struct pci_bus *bus;
+@@ -30,14 +23,8 @@ static struct pci_bus *find_pci_root_bus(struct pci_dev *dev)
+ static struct pci_host_bridge *find_pci_host_bridge(struct pci_dev *dev)
+ {
+ 	struct pci_bus *bus = find_pci_root_bus(dev);
 -	struct pci_host_bridge *bridge;
+-
+-	list_for_each_entry(bridge, &pci_host_bridges, list) {
+-		if (bridge->bus == bus)
+-			return bridge;
+-	}
  
- 	bus = dev->bus;
- 	while (bus->parent)
- 		bus = bus->parent;
+-	return NULL;
++	return to_pci_host_bridge(bus->bridge);
+ }
  
-+	return bus;
-+}
-+
-+static struct pci_host_bridge *find_pci_host_bridge(struct pci_dev *dev)
+ static bool resource_contains(struct resource *res1, struct resource *res2)
+diff --git a/drivers/pci/pci.h b/drivers/pci/pci.h
+index c695a92..e494347 100644
+--- a/drivers/pci/pci.h
++++ b/drivers/pci/pci.h
+@@ -231,8 +231,6 @@ static inline int pci_ari_enabled(struct pci_bus *bus)
+ void pci_reassigndev_resource_alignment(struct pci_dev *dev);
+ extern void pci_disable_bridge_window(struct pci_dev *dev);
+ 
+-void add_to_pci_host_bridges(struct pci_host_bridge *bridge);
+-
+ /* Single Root I/O Virtualization */
+ struct pci_sriov {
+ 	int pos;		/* capability position */
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index 89a82a3..fb3dd4b 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -421,6 +421,19 @@ static struct pci_bus * pci_alloc_bus(void)
+ 	return b;
+ }
+ 
++static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
 +{
-+	struct pci_bus *bus = find_pci_root_bus(dev);
 +	struct pci_host_bridge *bridge;
 +
- 	list_for_each_entry(bridge, &pci_host_bridges, list) {
- 		if (bridge->bus == bus)
- 			return bridge;
-@@ -42,7 +49,7 @@ void __weak pcibios_resource_to_bus(struct pci_dev *dev,
- 				    struct pci_bus_region *region,
- 				    struct resource *res)
- {
--	struct pci_host_bridge *bridge = pci_host_bridge(dev);
-+	struct pci_host_bridge *bridge = find_pci_host_bridge(dev);
- 	struct pci_host_bridge_window *window;
- 	resource_size_t offset = 0;
- 
-@@ -70,12 +77,13 @@ static bool region_contains(struct pci_bus_region *region1,
- void __weak pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
- 				    struct pci_bus_region *region)
- {
--	struct pci_host_bridge *bridge = pci_host_bridge(dev);
-+	struct pci_host_bridge *bridge = find_pci_host_bridge(dev);
- 	struct pci_host_bridge_window *window;
--	struct pci_bus_region bus_region;
- 	resource_size_t offset = 0;
- 
- 	list_for_each_entry(window, &bridge->windows, list) {
-+		struct pci_bus_region bus_region;
++	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
++	if (bridge) {
++		INIT_LIST_HEAD(&bridge->windows);
++		bridge->bus = b;
++	}
 +
- 		if (resource_type(res) != resource_type(window->res))
- 			continue;
++	return bridge;
++}
++
+ static unsigned char pcix_bus_speed[] = {
+ 	PCI_SPEED_UNKNOWN,		/* 0 */
+ 	PCI_SPEED_66MHz_PCIX,		/* 1 */
+@@ -1121,7 +1134,13 @@ int pci_cfg_space_size(struct pci_dev *dev)
  
+ static void pci_release_bus_bridge_dev(struct device *dev)
+ {
+-	kfree(dev);
++	struct pci_host_bridge *bridge = to_pci_host_bridge(dev);
++
++	/* TODO: need to free window->res */
++
++	pci_free_resource_list(&bridge->windows);
++
++	kfree(bridge);
+ }
+ 
+ struct pci_dev *alloc_pci_dev(void)
+@@ -1570,28 +1589,19 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 	int error;
+ 	struct pci_host_bridge *bridge;
+ 	struct pci_bus *b, *b2;
+-	struct device *dev;
+ 	struct pci_host_bridge_window *window, *n;
+ 	struct resource *res;
+ 	resource_size_t offset;
+ 	char bus_addr[64];
+ 	char *fmt;
+ 
+-	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
+-	if (!bridge)
+-		return NULL;
+ 
+ 	b = pci_alloc_bus();
+ 	if (!b)
+-		goto err_bus;
+-
+-	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+-	if (!dev)
+-		goto err_dev;
++		return NULL;
+ 
+ 	b->sysdata = sysdata;
+ 	b->ops = ops;
+-
+ 	b2 = pci_find_bus(pci_domain_nr(b), bus);
+ 	if (b2) {
+ 		/* If we already got to this bus through a different bridge, ignore it */
+@@ -1599,13 +1609,17 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 		goto err_out;
+ 	}
+ 
+-	dev->parent = parent;
+-	dev->release = pci_release_bus_bridge_dev;
+-	dev_set_name(dev, "pci%04x:%02x", pci_domain_nr(b), bus);
+-	error = device_register(dev);
++	bridge = pci_alloc_host_bridge(b);
++	if (!bridge)
++		goto err_out;
++
++	bridge->dev.parent = parent;
++	bridge->dev.release = pci_release_bus_bridge_dev;
++	dev_set_name(&bridge->dev, "pci%04x:%02x", pci_domain_nr(b), bus);
++	error = device_register(&bridge->dev);
+ 	if (error)
+-		goto dev_reg_err;
+-	b->bridge = get_device(dev);
++		goto bridge_dev_reg_err;
++	b->bridge = get_device(&bridge->dev);
+ 	device_enable_async_suspend(b->bridge);
+ 	pci_set_bus_of_node(b);
+ 
+@@ -1624,9 +1638,6 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 
+ 	b->number = b->secondary = bus;
+ 
+-	bridge->bus = b;
+-	INIT_LIST_HEAD(&bridge->windows);
+-
+ 	if (parent)
+ 		dev_info(parent, "PCI host bridge to bus %s\n", dev_name(&b->dev));
+ 	else
+@@ -1652,25 +1663,17 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 	}
+ 
+ 	down_write(&pci_bus_sem);
+-	add_to_pci_host_bridges(bridge);
+ 	list_add_tail(&b->node, &pci_root_buses);
+ 	up_write(&pci_bus_sem);
+ 
+ 	return b;
+ 
+ class_dev_reg_err:
+-	device_unregister(dev);
+-dev_reg_err:
+-	down_write(&pci_bus_sem);
+-	list_del(&bridge->list);
+-	list_del(&b->node);
+-	up_write(&pci_bus_sem);
++	device_unregister(&bridge->dev);
++bridge_dev_reg_err:
++	kfree(bridge);
+ err_out:
+-	kfree(dev);
+-err_dev:
+ 	kfree(b);
+-err_bus:
+-	kfree(bridge);
+ 	return NULL;
+ }
+ 
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 5584aac..310610e 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -375,11 +375,13 @@ struct pci_host_bridge_window {
+ };
+ 
+ struct pci_host_bridge {
+-	struct list_head list;
++	struct device dev;
+ 	struct pci_bus *bus;		/* root bus */
+ 	struct list_head windows;	/* pci_host_bridge_windows */
+ };
+ 
++#define	to_pci_host_bridge(n) container_of(n, struct pci_host_bridge, dev)
++
+ /*
+  * The first PCI_BRIDGE_RESOURCE_NUM PCI bus resources (those that correspond
+  * to P2P or CardBus bridge windows) go in a table.  Additional ones (for
 -- 
 1.7.7
