@@ -1,66 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gy0-f174.google.com ([209.85.160.174]:64153 "EHLO
+Received: from mail-gy0-f174.google.com ([209.85.160.174]:39624 "EHLO
 	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S966059Ab2B2Xyl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:54:41 -0500
-Received: by mail-gy0-f174.google.com with SMTP id r11so2586ghr.19
-        for <linux-arch@vger.kernel.org>; Wed, 29 Feb 2012 15:54:40 -0800 (PST)
+	with ESMTP id S1757601Ab2CAADP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 19:03:15 -0500
+Received: by ghrr11 with SMTP id r11so5109ghr.19
+        for <linux-arch@vger.kernel.org>; Wed, 29 Feb 2012 16:03:14 -0800 (PST)
 MIME-Version: 1.0
 From: Will Drewry <wad@chromium.org>
-Subject: [PATCH v12 04/13] asm/syscall.h: add syscall_get_arch
-Date: Wed, 29 Feb 2012 17:53:31 -0600
-Message-ID: <1330559620-23543-4-git-send-email-wad@chromium.org>
+Subject: [PATCH v12 11/13] x86: Enable HAVE_ARCH_SECCOMP_FILTER
+Date: Wed, 29 Feb 2012 17:53:38 -0600
+Message-ID: <1330559620-23543-11-git-send-email-wad@chromium.org>
 In-Reply-To: <1330559620-23543-1-git-send-email-wad@chromium.org>
 References: <1330559620-23543-1-git-send-email-wad@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Will Drewry <wad@chromium.org>
-Message-ID: <20120229235331.OH1n-F7A4lii142pPr8NTn3s_nY0VKbhAYNPmDX5C6w@z>
+Message-ID: <20120229235338.rlRh5kdgGh6QEy7IlA13ICaQCX5iSBcww7kx1QkcAJ8@z>
 
-Adds a stub for a function that will return the AUDIT_ARCH_*
-value appropriate to the supplied task based on the system
-call convention.
+Enable support for seccomp filter on x86:
+- asm/tracehook.h exists
+- syscall_get_arguments() works
+- syscall_rollback() works
+- ptrace_report_syscall() works
+- secure_computing() return value is honored (see below)
 
-For audit's use, the value can generally be hard-coded at the
-audit-site.  However, for other functionality not inlined into
-syscall entry/exit, this makes that information available.
-seccomp_filter is the first planned consumer and, as such,
-the comment indicates a tie to HAVE_ARCH_SECCOMP_FILTER.  That
-is probably an unneeded detail.
+This also adds support for honoring the return
+value from secure_computing().
 
-Suggested-by: Roland McGrath <mcgrathr@chromium.org>
+SECCOMP_RET_TRACE and SECCOMP_RET_TRAP may result in seccomp needing to
+skip a system call without killing the process.  This is done by
+returning a non-zero (-1) value from secure_computing.  This change
+makes x86 respect that return value.
+
+To ensure that minimal kernel code is exposed, a non-zero return value
+results in an immediate return to user space (with an invalid syscall
+number).
+
 Signed-off-by: Will Drewry <wad@chromium.org>
-
-v11: fixed improper return type
-v10: introduced
 ---
- include/asm-generic/syscall.h |   14 ++++++++++++++
- 1 files changed, 14 insertions(+), 0 deletions(-)
+ arch/x86/Kconfig         |    1 +
+ arch/x86/kernel/ptrace.c |    7 ++++++-
+ 2 files changed, 7 insertions(+), 1 deletions(-)
 
-diff --git a/include/asm-generic/syscall.h b/include/asm-generic/syscall.h
-index 5c122ae..a2c13dc 100644
---- a/include/asm-generic/syscall.h
-+++ b/include/asm-generic/syscall.h
-@@ -142,4 +142,18 @@ void syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
- 			   unsigned int i, unsigned int n,
- 			   const unsigned long *args);
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index f50b52a..fe35491 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -81,6 +81,7 @@ config X86
+ 	select CLKEVT_I8253
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select GENERIC_IOMAP
++	select HAVE_ARCH_SECCOMP_FILTER
  
-+/**
-+ * syscall_get_arch - return the AUDIT_ARCH for the current system call
-+ * @task:	task of interest, must be in system call entry tracing
-+ * @regs:	task_pt_regs() of @task
-+ *
-+ * Returns the AUDIT_ARCH_* based on the system call convention in use.
-+ *
-+ * It's only valid to call this when @task is stopped on entry to a system
-+ * call, due to %TIF_SYSCALL_TRACE, %TIF_SYSCALL_AUDIT, or %TIF_SECCOMP.
-+ *
-+ * Note, at present this function is only required with
-+ * CONFIG_HAVE_ARCH_SECCOMP_FILTER.
-+ */
-+int syscall_get_arch(struct task_struct *task, struct pt_regs *regs);
- #endif	/* _ASM_SYSCALL_H */
+ config INSTRUCTION_DECODER
+ 	def_bool (KPROBES || PERF_EVENTS || UPROBES)
+diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
+index 78f05e4..cdce22c 100644
+--- a/arch/x86/kernel/ptrace.c
++++ b/arch/x86/kernel/ptrace.c
+@@ -1381,7 +1381,11 @@ long syscall_trace_enter(struct pt_regs *regs)
+ 		regs->flags |= X86_EFLAGS_TF;
+ 
+ 	/* do the secure computing check first */
+-	secure_computing(regs->orig_ax);
++	if (secure_computing(regs->orig_ax)) {
++		/* seccomp failures shouldn't expose any additional code. */
++		ret = -1L;
++		goto out;
++	}
+ 
+ 	if (unlikely(test_thread_flag(TIF_SYSCALL_EMU)))
+ 		ret = -1L;
+@@ -1406,6 +1410,7 @@ long syscall_trace_enter(struct pt_regs *regs)
+ 				    regs->dx, regs->r10);
+ #endif
+ 
++out:
+ 	return ret ?: regs->orig_ax;
+ }
+ 
 -- 
 1.7.5.4
 
