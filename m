@@ -1,48 +1,91 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH 12/24] PCI, ia64: Register busn_res for root buses
-Date: Tue, 28 Feb 2012 20:26:48 -0800
-Message-ID: <CAE9FiQXiCAxtNCafBtvx2Wj6=te5ciLjbC9icaPn788xQD06kQ@mail.gmail.com>
-References: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
-	<1330466863-28469-13-git-send-email-yinghai@kernel.org>
-	<CAErSpo66PD3+E3ZFqp73XHabL+8GavpX97pUkd28T6KWTBH-aA@mail.gmail.com>
-	<CAE9FiQWBvYZO-D+Z2zwdd0a-bkatF-0YPtmxKP4Se75vccgPrA@mail.gmail.com>
-	<CAErSpo5NOqnqWxCBV+NecA34z0YJHP7FCy6mNd5GUJ8q__CZHw@mail.gmail.com>
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PATCHv7 0/9] ARM: DMA-mapping framework redesign
+Date: Wed, 29 Feb 2012 16:04:13 +0100
+Message-ID: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: TEXT/PLAIN
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:44469 "EHLO
-	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755095Ab2B2E0t convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2012 23:26:49 -0500
-In-Reply-To: <CAErSpo5NOqnqWxCBV+NecA34z0YJHP7FCy6mNd5GUJ8q__CZHw@mail.gmail.com>
+Received: from mailout4.w1.samsung.com ([210.118.77.14]:65123 "EHLO
+	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1031080Ab2B2PEr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 10:04:47 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
+To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
 
-On Tue, Feb 28, 2012 at 4:22 PM, Bjorn Helgaas <bhelgaas@google.com> wr=
-ote:
-> On Tue, Feb 28, 2012 at 5:12 PM, Yinghai Lu <yinghai@kernel.org> wrot=
-e:
->>>
->>> Why do you add a new struct resource here? =A0Can't you just use th=
-e one
->>> passed in from acpi_pci_root_add()?
->>
->> not quite sure about the life cycle for that object.
->
-> The struct acpi_pci_root is allocated in acpi_pci_root_add() and free=
-d
-> in acpi_pci_root_remove(), so it should be safe for PCI to use.
+Hello,
 
-ok will change that for ia64.
+This is yet another update on my works DMA-mapping framework redesign
+for ARM architecture. It includes a few minor cleanup and fixes reported
+by Konrad Rzeszutek Wilk and Krishna Reddy.
 
->
-> Same thing applies for x86, of course.
+This version uses vmalloc for allocating page pointers array if it is
+larger than PAGE_SIZE. The chained allocation which fits inside a set of
+PAGE_SIZE units will be added later, once the base patches are merged.
 
-for x86, will have separate addon patch.
+Like the previous version, this patchset is also based on the generic,
+cross-arch dma-mapping redesign patches posted in the "[PATCH 00/14]
+DMA-mapping framework redesign preparation" thread:
+http://www.spinics.net/lists/linux-sh/msg09777.html
 
-Thanks
+All patches have been now rebased onto v3.3-rc5 kernel.
 
-      Yinghai
+All the code has been tested on Samsung Exynos4 'UniversalC210' board
+with IOMMU driver posted by KyongHo Cho.
+
+
+History of the development:
+
+v1: (initial version of the DMA-mapping redesign patches):
+http://www.spinics.net/lists/linux-mm/msg21241.html
+
+v2:
+http://lists.linaro.org/pipermail/linaro-mm-sig/2011-September/000571.html
+http://lists.linaro.org/pipermail/linaro-mm-sig/2011-September/000577.html
+
+v3:
+http://www.spinics.net/lists/linux-mm/msg25490.html
+
+v4 and v5:
+http://www.spinics.net/lists/arm-kernel/msg151147.html
+http://www.spinics.net/lists/arm-kernel/msg154889.html
+
+v6:
+http://www.spinics.net/lists/linux-mm/msg29903.html
+
+Best regards
+--
+Marek Szyprowski
+Samsung Poland R&D Center
+
+
+Patch summary:
+
+Marek Szyprowski (9):
+  ARM: dma-mapping: introduce ARM_DMA_ERROR constant
+  ARM: dma-mapping: use pr_* instread of printk
+  ARM: dma-mapping: remove offset parameter to prepare for generic
+    dma_ops
+  ARM: dma-mapping: use asm-generic/dma-mapping-common.h
+  ARM: dma-mapping: implement dma sg methods on top of any generic dma
+    ops
+  ARM: dma-mapping: move all dma bounce code to separate dma ops
+    structure
+  ARM: dma-mapping: remove redundant code and cleanup
+  ARM: dma-mapping: use alloc, mmap, free from dma_ops
+  ARM: dma-mapping: add support for IOMMU mapper
+
+ arch/arm/Kconfig                   |    9 +
+ arch/arm/common/dmabounce.c        |   84 +++-
+ arch/arm/include/asm/device.h      |    4 +
+ arch/arm/include/asm/dma-iommu.h   |   34 ++
+ arch/arm/include/asm/dma-mapping.h |  407 ++++-----------
+ arch/arm/mm/dma-mapping.c          | 1013 ++++++++++++++++++++++++++++++------
+ arch/arm/mm/vmregion.h             |    2 +-
+ 7 files changed, 1088 insertions(+), 465 deletions(-)
+ create mode 100644 arch/arm/include/asm/dma-iommu.h
+
+-- 
+1.7.1.569.g6f426
