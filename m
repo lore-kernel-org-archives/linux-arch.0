@@ -1,82 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:26568 "EHLO
+Received: from rcsinet15.oracle.com ([148.87.113.117]:26555 "EHLO
 	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965631Ab2B2XJg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:09:36 -0500
+	with ESMTP id S965593Ab2B2XJf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:09:35 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 15/39] x86, PCI: Merge pcibios_scan_root and pci_scan_bus_on_node
-Date: Wed, 29 Feb 2012 15:07:14 -0800
-Message-ID: <1330556858-11768-16-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 14/39] x86, PCI: allocate temp range array in amd_bus pci_root_info probing
+Date: Wed, 29 Feb 2012 15:07:13 -0800
+Message-ID: <1330556858-11768-15-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120229230714.p_CM74p3GqoqYQ7etuLBbzf7AK2jQRZ3vGhyDv-rqbc@z>
-
-Those two almost the same.
-Let pcibios_scan_root call pci_scan_bus_on_node instead.
+Message-ID: <20120229230713.QmVg1rcPK5Yq-fCBetT40POhjYV-7YrPRYKSZznTNxg@z>
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/pci/common.c |   27 ++++-----------------------
- 1 files changed, 4 insertions(+), 23 deletions(-)
+ arch/x86/pci/amd_bus.c |   11 ++++++++---
+ 1 files changed, 8 insertions(+), 3 deletions(-)
 
-diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
-index 323481e..8e04ec5 100644
---- a/arch/x86/pci/common.c
-+++ b/arch/x86/pci/common.c
-@@ -430,9 +430,7 @@ void __init dmi_check_pciprobe(void)
+diff --git a/arch/x86/pci/amd_bus.c b/arch/x86/pci/amd_bus.c
+index 5f30a98..aff155d 100644
+--- a/arch/x86/pci/amd_bus.c
++++ b/arch/x86/pci/amd_bus.c
+@@ -30,7 +30,7 @@ static struct pci_hostbridge_probe pci_probes[] __initdata = {
+ 	{ 0, 0x18, PCI_VENDOR_ID_AMD, 0x1300 },
+ };
  
- struct pci_bus * __devinit pcibios_scan_root(int busnum)
+-#define RANGE_NUM 16
++#define RANGE_NUM 128
+ 
+ static struct pci_root_info __init *find_pci_root_info(int node, int link)
  {
--	LIST_HEAD(resources);
- 	struct pci_bus *bus = NULL;
--	struct pci_sysdata *sd;
+@@ -64,7 +64,7 @@ static int __init early_fill_mp_bus_info(void)
+ 	u32 reg;
+ 	u64 start;
+ 	u64 end;
+-	struct range range[RANGE_NUM];
++	struct range *range;
+ 	u64 val;
+ 	u32 address;
+ 	bool found;
+@@ -125,7 +125,10 @@ static int __init early_fill_mp_bus_info(void)
+ 	reg = read_pci_config(bus, slot, 0, 0x64);
+ 	def_link = (reg >> 8) & 0x03;
  
- 	while ((bus = pci_find_next_bus(bus)) != NULL) {
- 		if (bus->number == busnum) {
-@@ -441,28 +439,10 @@ struct pci_bus * __devinit pcibios_scan_root(int busnum)
+-	memset(range, 0, sizeof(range));
++	range = kcalloc(RANGE_NUM, sizeof(struct range), GFP_KERNEL);
++	if (!range)
++		return -ENOMEM;
++
+ 	add_range(range, RANGE_NUM, 0, 0, 0xffff + 1);
+ 	/* io port resource */
+ 	for (i = 0; i < 4; i++) {
+@@ -291,6 +294,8 @@ static int __init early_fill_mp_bus_info(void)
  		}
  	}
  
--	/* Allocate per-root-bus (not per bus) arch-specific data.
--	 * TODO: leak; this memory is never freed.
--	 * It's arguable whether it's worth the trouble to care.
--	 */
--	sd = kzalloc(sizeof(*sd), GFP_KERNEL);
--	if (!sd) {
--		printk(KERN_ERR "PCI: OOM, not probing PCI bus %02x\n", busnum);
--		return NULL;
--	}
--
--	sd->node = get_mp_bus_to_node(busnum);
--
--	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busnum);
--	x86_pci_root_bus_resources(busnum, &resources);
--	bus = pci_scan_root_bus(NULL, busnum, &pci_root_ops, sd, &resources);
--	if (!bus) {
--		pci_free_resource_list(&resources);
--		kfree(sd);
--	}
--
--	return bus;
-+	return pci_scan_bus_on_node(busnum, &pci_root_ops,
-+					get_mp_bus_to_node(busnum));
- }
++	kfree(range);
 +
- void __init pcibios_set_cache_line_size(void)
- {
- 	struct cpuinfo_x86 *c = &boot_cpu_data;
-@@ -656,6 +636,7 @@ struct pci_bus * __devinit pci_scan_bus_on_node(int busno, struct pci_ops *ops,
- 	}
- 	sd->node = node;
- 	x86_pci_root_bus_resources(busno, &resources);
-+	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busno);
- 	bus = pci_scan_root_bus(NULL, busno, ops, sd, &resources);
- 	if (!bus) {
- 		pci_free_resource_list(&resources);
+ 	print_all_pci_root_info("ht link", true);
+ 
+ 	return 0;
 -- 
 1.7.7
 
