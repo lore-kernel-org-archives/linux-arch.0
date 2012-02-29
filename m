@@ -1,92 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:38236 "EHLO
-	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965513Ab2B2Xyj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:54:39 -0500
-Received: by mail-yw0-f46.google.com with SMTP id m54so2575yhm.19
-        for <linux-arch@vger.kernel.org>; Wed, 29 Feb 2012 15:54:38 -0800 (PST)
+Received: from mail-gy0-f174.google.com ([209.85.160.174]:34220 "EHLO
+	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756590Ab2B2Xyg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:54:36 -0500
+Received: by mail-gy0-f174.google.com with SMTP id r11so2585ghr.19
+        for <linux-arch@vger.kernel.org>; Wed, 29 Feb 2012 15:54:36 -0800 (PST)
 MIME-Version: 1.0
 From: Will Drewry <wad@chromium.org>
-Subject: [PATCH v12 03/13] seccomp: kill the seccomp_t typedef
-Date: Wed, 29 Feb 2012 17:53:30 -0600
-Message-ID: <1330559620-23543-3-git-send-email-wad@chromium.org>
+Subject: [PATCH v12 02/13] net/compat.c,linux/filter.h: share compat_sock_fprog
+Date: Wed, 29 Feb 2012 17:53:29 -0600
+Message-ID: <1330559620-23543-2-git-send-email-wad@chromium.org>
 In-Reply-To: <1330559620-23543-1-git-send-email-wad@chromium.org>
 References: <1330559620-23543-1-git-send-email-wad@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Will Drewry <wad@chromium.org>
-Message-ID: <20120229235330.sGL9Bp2NFhFa4-REq-GCXlUvUlg6xOzl1tbQ4s2wvJk@z>
+Message-ID: <20120229235329.N4ItKMCjn9dKuHWp7L4yR0wugoqUfnABMUvrN4O_of0@z>
 
-Replaces the seccomp_t typedef with struct seccomp to match modern
-kernel style.
-
-v8-v10: no changes
-v7: struct seccomp_struct -> struct seccomp
-v6: original inclusion in this series.
+Any other users of bpf_*_filter that take a struct sock_fprog from
+userspace will need to be able to also accept a compat_sock_fprog
+if the arch supports compat calls.  This change let's the existing
+compat_sock_fprog be shared.
 
 Signed-off-by: Will Drewry <wad@chromium.org>
-Reviewed-by: James Morris <jmorris@namei.org>
----
- include/linux/sched.h   |    2 +-
- include/linux/seccomp.h |   10 ++++++----
- 2 files changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 7fe1083..2ee7041 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -1445,7 +1445,7 @@ struct task_struct {
- 	uid_t loginuid;
- 	unsigned int sessionid;
+v11: introduction
+---
+ include/linux/filter.h |   11 +++++++++++
+ net/compat.c           |    8 --------
+ 2 files changed, 11 insertions(+), 8 deletions(-)
+
+diff --git a/include/linux/filter.h b/include/linux/filter.h
+index bdd02f9..f052f5c 100644
+--- a/include/linux/filter.h
++++ b/include/linux/filter.h
+@@ -10,6 +10,7 @@
+ 
+ #ifdef __KERNEL__
+ #include <linux/atomic.h>
++#include <linux/compat.h>
  #endif
--	seccomp_t seccomp;
-+	struct seccomp seccomp;
  
- /* Thread group tracking */
-    	u32 parent_exec_id;
-diff --git a/include/linux/seccomp.h b/include/linux/seccomp.h
-index cc7a4e9..d61f27f 100644
---- a/include/linux/seccomp.h
-+++ b/include/linux/seccomp.h
-@@ -7,7 +7,9 @@
- #include <linux/thread_info.h>
- #include <asm/seccomp.h>
+ /*
+@@ -135,6 +136,16 @@ struct sock_fprog {	/* Required for SO_ATTACH_FILTER. */
  
--typedef struct { int mode; } seccomp_t;
-+struct seccomp {
-+	int mode;
+ #ifdef __KERNEL__
+ 
++#ifdef CONFIG_COMPAT
++/*
++ * A struct sock_filter is architecture independent.
++ */
++struct compat_sock_fprog {
++	u16		len;
++	compat_uptr_t	filter;		/* struct sock_filter * */
 +};
++#endif
++
+ struct sk_buff;
+ struct sock;
  
- extern void __secure_computing(int);
- static inline void secure_computing(int this_syscall)
-@@ -19,7 +21,7 @@ static inline void secure_computing(int this_syscall)
- extern long prctl_get_seccomp(void);
- extern long prctl_set_seccomp(unsigned long);
+diff --git a/net/compat.c b/net/compat.c
+index 73bf0e0..5ba1bdc 100644
+--- a/net/compat.c
++++ b/net/compat.c
+@@ -328,14 +328,6 @@ void scm_detach_fds_compat(struct msghdr *kmsg, struct scm_cookie *scm)
+ 	__scm_destroy(scm);
+ }
  
--static inline int seccomp_mode(seccomp_t *s)
-+static inline int seccomp_mode(struct seccomp *s)
+-/*
+- * A struct sock_filter is architecture independent.
+- */
+-struct compat_sock_fprog {
+-	u16		len;
+-	compat_uptr_t	filter;		/* struct sock_filter * */
+-};
+-
+ static int do_set_attach_filter(struct socket *sock, int level, int optname,
+ 				char __user *optval, unsigned int optlen)
  {
- 	return s->mode;
- }
-@@ -28,7 +30,7 @@ static inline int seccomp_mode(seccomp_t *s)
- 
- #include <linux/errno.h>
- 
--typedef struct { } seccomp_t;
-+struct seccomp { };
- 
- #define secure_computing(x) do { } while (0)
- 
-@@ -42,7 +44,7 @@ static inline long prctl_set_seccomp(unsigned long arg2)
- 	return -EINVAL;
- }
- 
--static inline int seccomp_mode(seccomp_t *s)
-+static inline int seccomp_mode(struct seccomp *s)
- {
- 	return 0;
- }
 -- 
 1.7.5.4
 
