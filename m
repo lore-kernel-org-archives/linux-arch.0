@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 05/39] PCI: add generic device into pci_host_bridge struct
-Date: Wed, 29 Feb 2012 15:07:04 -0800
-Message-ID: <1330556858-11768-6-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 01/39] PCI: Separate host_bridge code out from probe.c
+Date: Wed, 29 Feb 2012 15:07:00 -0800
+Message-ID: <1330556858-11768-2-git-send-email-yinghai@kernel.org>
 References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
@@ -10,221 +10,252 @@ To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-use that device for pci_root_bus bridge pointer.
-
-With that make code more simple.
-
-Also we can use pci_release_bus_bridge_dev() to release allocated
-pci_host_bridge during removing path.
-
-At last, we can use root bus bridge pointer to get host bridge pointer instead
-of going over host bridge list, so could kill that host bridge list.
+-v2: Bjorn want add_to_pci_host_bridges to pass struct pci_host_bridge *
+      instead of list head pointer.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/host-bridge.c |   15 +---------
- drivers/pci/pci.h         |    2 -
- drivers/pci/probe.c       |   65 +++++++++++++++++++++++---------------------
- include/linux/pci.h       |    4 ++-
- 4 files changed, 38 insertions(+), 48 deletions(-)
+ drivers/pci/Makefile      |    2 +-
+ drivers/pci/host-bridge.c |   93 +++++++++++++++++++++++++++++++++++++++++++++
+ drivers/pci/pci.h         |    2 +
+ drivers/pci/probe.c       |   81 +--------------------------------------
+ 4 files changed, 97 insertions(+), 81 deletions(-)
+ create mode 100644 drivers/pci/host-bridge.c
 
-diff --git a/drivers/pci/host-bridge.c b/drivers/pci/host-bridge.c
-index b3ddcc5..03d8db1 100644
---- a/drivers/pci/host-bridge.c
-+++ b/drivers/pci/host-bridge.c
-@@ -9,13 +9,6 @@
+diff --git a/drivers/pci/Makefile b/drivers/pci/Makefile
+index 083a49f..2c224ed 100644
+--- a/drivers/pci/Makefile
++++ b/drivers/pci/Makefile
+@@ -2,7 +2,7 @@
+ # Makefile for the PCI bus specific drivers.
+ #
  
- #include "pci.h"
+-obj-y		+= access.o bus.o probe.o remove.o pci.o \
++obj-y		+= access.o bus.o probe.o host-bridge.o remove.o pci.o \
+ 			pci-driver.o search.o pci-sysfs.o rom.o setup-res.o \
+ 			irq.o vpd.o
+ obj-$(CONFIG_PROC_FS) += proc.o
+diff --git a/drivers/pci/host-bridge.c b/drivers/pci/host-bridge.c
+new file mode 100644
+index 0000000..5ca4220
+--- /dev/null
++++ b/drivers/pci/host-bridge.c
+@@ -0,0 +1,93 @@
++/*
++ * host_bridge.c - host bridge related code
++ */
++
++#include <linux/kernel.h>
++#include <linux/init.h>
++#include <linux/pci.h>
++#include <linux/module.h>
++
++#include "pci.h"
++
++static LIST_HEAD(pci_host_bridges);
++
++void add_to_pci_host_bridges(struct pci_host_bridge *bridge)
++{
++	list_add_tail(&bridge->list, &pci_host_bridges);
++}
++
++static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
++{
++	struct pci_bus *bus;
++	struct pci_host_bridge *bridge;
++
++	bus = dev->bus;
++	while (bus->parent)
++		bus = bus->parent;
++
++	list_for_each_entry(bridge, &pci_host_bridges, list) {
++		if (bridge->bus == bus)
++			return bridge;
++	}
++
++	return NULL;
++}
++
++static bool resource_contains(struct resource *res1, struct resource *res2)
++{
++	return res1->start <= res2->start && res1->end >= res2->end;
++}
++
++void pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
++			     struct resource *res)
++{
++	struct pci_host_bridge *bridge = pci_host_bridge(dev);
++	struct pci_host_bridge_window *window;
++	resource_size_t offset = 0;
++
++	list_for_each_entry(window, &bridge->windows, list) {
++		if (resource_type(res) != resource_type(window->res))
++			continue;
++
++		if (resource_contains(window->res, res)) {
++			offset = window->offset;
++			break;
++		}
++	}
++
++	region->start = res->start - offset;
++	region->end = res->end - offset;
++}
++EXPORT_SYMBOL(pcibios_resource_to_bus);
++
++static bool region_contains(struct pci_bus_region *region1,
++			    struct pci_bus_region *region2)
++{
++	return region1->start <= region2->start && region1->end >= region2->end;
++}
++
++void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
++			     struct pci_bus_region *region)
++{
++	struct pci_host_bridge *bridge = pci_host_bridge(dev);
++	struct pci_host_bridge_window *window;
++	struct pci_bus_region bus_region;
++	resource_size_t offset = 0;
++
++	list_for_each_entry(window, &bridge->windows, list) {
++		if (resource_type(res) != resource_type(window->res))
++			continue;
++
++		bus_region.start = window->res->start - window->offset;
++		bus_region.end = window->res->end - window->offset;
++
++		if (region_contains(&bus_region, region)) {
++			offset = window->offset;
++			break;
++		}
++	}
++
++	res->start = region->start + offset;
++	res->end = region->end + offset;
++}
++EXPORT_SYMBOL(pcibios_bus_to_resource);
+diff --git a/drivers/pci/pci.h b/drivers/pci/pci.h
+index e494347..c695a92 100644
+--- a/drivers/pci/pci.h
++++ b/drivers/pci/pci.h
+@@ -231,6 +231,8 @@ static inline int pci_ari_enabled(struct pci_bus *bus)
+ void pci_reassigndev_resource_alignment(struct pci_dev *dev);
+ extern void pci_disable_bridge_window(struct pci_dev *dev);
+ 
++void add_to_pci_host_bridges(struct pci_host_bridge *bridge);
++
+ /* Single Root I/O Virtualization */
+ struct pci_sriov {
+ 	int pos;		/* capability position */
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index 944e05a..89a82a3 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -15,13 +15,10 @@
+ #define CARDBUS_LATENCY_TIMER	176	/* secondary latency timer */
+ #define CARDBUS_RESERVE_BUSNR	3
  
 -static LIST_HEAD(pci_host_bridges);
 -
--void add_to_pci_host_bridges(struct pci_host_bridge *bridge)
--{
--	list_add_tail(&bridge->list, &pci_host_bridges);
--}
+ /* Ugh.  Need to stop exporting this to modules. */
+ LIST_HEAD(pci_root_buses);
+ EXPORT_SYMBOL(pci_root_buses);
+ 
 -
- static struct pci_bus *find_pci_root_bus(struct pci_dev *dev)
+ static int find_anything(struct device *dev, void *data)
  {
- 	struct pci_bus *bus;
-@@ -30,14 +23,8 @@ static struct pci_bus *find_pci_root_bus(struct pci_dev *dev)
- static struct pci_host_bridge *find_pci_host_bridge(struct pci_dev *dev)
- {
- 	struct pci_bus *bus = find_pci_root_bus(dev);
+ 	return 1;
+@@ -44,82 +41,6 @@ int no_pci_devices(void)
+ }
+ EXPORT_SYMBOL(no_pci_devices);
+ 
+-static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
+-{
+-	struct pci_bus *bus;
 -	struct pci_host_bridge *bridge;
+-
+-	bus = dev->bus;
+-	while (bus->parent)
+-		bus = bus->parent;
 -
 -	list_for_each_entry(bridge, &pci_host_bridges, list) {
 -		if (bridge->bus == bus)
 -			return bridge;
 -	}
- 
+-
 -	return NULL;
-+	return to_pci_host_bridge(bus->bridge);
- }
- 
- static bool resource_contains(struct resource *res1, struct resource *res2)
-diff --git a/drivers/pci/pci.h b/drivers/pci/pci.h
-index c695a92..e494347 100644
---- a/drivers/pci/pci.h
-+++ b/drivers/pci/pci.h
-@@ -231,8 +231,6 @@ static inline int pci_ari_enabled(struct pci_bus *bus)
- void pci_reassigndev_resource_alignment(struct pci_dev *dev);
- extern void pci_disable_bridge_window(struct pci_dev *dev);
- 
--void add_to_pci_host_bridges(struct pci_host_bridge *bridge);
+-}
 -
- /* Single Root I/O Virtualization */
- struct pci_sriov {
- 	int pos;		/* capability position */
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 89a82a3..fb3dd4b 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -421,6 +421,19 @@ static struct pci_bus * pci_alloc_bus(void)
- 	return b;
- }
- 
-+static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
-+{
-+	struct pci_host_bridge *bridge;
-+
-+	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
-+	if (bridge) {
-+		INIT_LIST_HEAD(&bridge->windows);
-+		bridge->bus = b;
-+	}
-+
-+	return bridge;
-+}
-+
- static unsigned char pcix_bus_speed[] = {
- 	PCI_SPEED_UNKNOWN,		/* 0 */
- 	PCI_SPEED_66MHz_PCIX,		/* 1 */
-@@ -1121,7 +1134,13 @@ int pci_cfg_space_size(struct pci_dev *dev)
- 
- static void pci_release_bus_bridge_dev(struct device *dev)
- {
--	kfree(dev);
-+	struct pci_host_bridge *bridge = to_pci_host_bridge(dev);
-+
-+	/* TODO: need to free window->res */
-+
-+	pci_free_resource_list(&bridge->windows);
-+
-+	kfree(bridge);
- }
- 
- struct pci_dev *alloc_pci_dev(void)
-@@ -1570,28 +1589,19 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 	int error;
- 	struct pci_host_bridge *bridge;
- 	struct pci_bus *b, *b2;
--	struct device *dev;
- 	struct pci_host_bridge_window *window, *n;
- 	struct resource *res;
- 	resource_size_t offset;
- 	char bus_addr[64];
- 	char *fmt;
- 
--	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
--	if (!bridge)
--		return NULL;
- 
- 	b = pci_alloc_bus();
- 	if (!b)
--		goto err_bus;
+-static bool resource_contains(struct resource *res1, struct resource *res2)
+-{
+-	return res1->start <= res2->start && res1->end >= res2->end;
+-}
 -
--	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
--	if (!dev)
--		goto err_dev;
-+		return NULL;
- 
- 	b->sysdata = sysdata;
- 	b->ops = ops;
+-void pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
+-			     struct resource *res)
+-{
+-	struct pci_host_bridge *bridge = pci_host_bridge(dev);
+-	struct pci_host_bridge_window *window;
+-	resource_size_t offset = 0;
 -
- 	b2 = pci_find_bus(pci_domain_nr(b), bus);
- 	if (b2) {
- 		/* If we already got to this bus through a different bridge, ignore it */
-@@ -1599,13 +1609,17 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 		goto err_out;
- 	}
- 
--	dev->parent = parent;
--	dev->release = pci_release_bus_bridge_dev;
--	dev_set_name(dev, "pci%04x:%02x", pci_domain_nr(b), bus);
--	error = device_register(dev);
-+	bridge = pci_alloc_host_bridge(b);
-+	if (!bridge)
-+		goto err_out;
-+
-+	bridge->dev.parent = parent;
-+	bridge->dev.release = pci_release_bus_bridge_dev;
-+	dev_set_name(&bridge->dev, "pci%04x:%02x", pci_domain_nr(b), bus);
-+	error = device_register(&bridge->dev);
- 	if (error)
--		goto dev_reg_err;
--	b->bridge = get_device(dev);
-+		goto bridge_dev_reg_err;
-+	b->bridge = get_device(&bridge->dev);
- 	device_enable_async_suspend(b->bridge);
- 	pci_set_bus_of_node(b);
- 
-@@ -1624,9 +1638,6 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 
- 	b->number = b->secondary = bus;
- 
--	bridge->bus = b;
--	INIT_LIST_HEAD(&bridge->windows);
+-	list_for_each_entry(window, &bridge->windows, list) {
+-		if (resource_type(res) != resource_type(window->res))
+-			continue;
 -
- 	if (parent)
- 		dev_info(parent, "PCI host bridge to bus %s\n", dev_name(&b->dev));
- 	else
-@@ -1652,25 +1663,17 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+-		if (resource_contains(window->res, res)) {
+-			offset = window->offset;
+-			break;
+-		}
+-	}
+-
+-	region->start = res->start - offset;
+-	region->end = res->end - offset;
+-}
+-EXPORT_SYMBOL(pcibios_resource_to_bus);
+-
+-static bool region_contains(struct pci_bus_region *region1,
+-			    struct pci_bus_region *region2)
+-{
+-	return region1->start <= region2->start && region1->end >= region2->end;
+-}
+-
+-void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
+-			     struct pci_bus_region *region)
+-{
+-	struct pci_host_bridge *bridge = pci_host_bridge(dev);
+-	struct pci_host_bridge_window *window;
+-	struct pci_bus_region bus_region;
+-	resource_size_t offset = 0;
+-
+-	list_for_each_entry(window, &bridge->windows, list) {
+-		if (resource_type(res) != resource_type(window->res))
+-			continue;
+-
+-		bus_region.start = window->res->start - window->offset;
+-		bus_region.end = window->res->end - window->offset;
+-
+-		if (region_contains(&bus_region, region)) {
+-			offset = window->offset;
+-			break;
+-		}
+-	}
+-
+-	res->start = region->start + offset;
+-	res->end = region->end + offset;
+-}
+-EXPORT_SYMBOL(pcibios_bus_to_resource);
+-
+ /*
+  * PCI Bus Class
+  */
+@@ -1731,7 +1652,7 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
  	}
  
  	down_write(&pci_bus_sem);
--	add_to_pci_host_bridges(bridge);
+-	list_add_tail(&bridge->list, &pci_host_bridges);
++	add_to_pci_host_bridges(bridge);
  	list_add_tail(&b->node, &pci_root_buses);
  	up_write(&pci_bus_sem);
  
- 	return b;
- 
- class_dev_reg_err:
--	device_unregister(dev);
--dev_reg_err:
--	down_write(&pci_bus_sem);
--	list_del(&bridge->list);
--	list_del(&b->node);
--	up_write(&pci_bus_sem);
-+	device_unregister(&bridge->dev);
-+bridge_dev_reg_err:
-+	kfree(bridge);
- err_out:
--	kfree(dev);
--err_dev:
- 	kfree(b);
--err_bus:
--	kfree(bridge);
- 	return NULL;
- }
- 
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 5584aac..310610e 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -375,11 +375,13 @@ struct pci_host_bridge_window {
- };
- 
- struct pci_host_bridge {
--	struct list_head list;
-+	struct device dev;
- 	struct pci_bus *bus;		/* root bus */
- 	struct list_head windows;	/* pci_host_bridge_windows */
- };
- 
-+#define	to_pci_host_bridge(n) container_of(n, struct pci_host_bridge, dev)
-+
- /*
-  * The first PCI_BRIDGE_RESOURCE_NUM PCI bus resources (those that correspond
-  * to P2P or CardBus bridge windows) go in a table.  Additional ones (for
 -- 
 1.7.7
