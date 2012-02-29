@@ -1,40 +1,78 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 08/18] PCI, powerpc: Register busn_res for root buses
-Date: Wed, 29 Feb 2012 10:41:36 +1100
-Message-ID: <1330472496.11728.31.camel@pasglop>
-References: <1330395009-29260-1-git-send-email-yinghai@kernel.org>
-	 <1330395009-29260-9-git-send-email-yinghai@kernel.org>
-	 <CAErSpo4bw-V=SM+h5iP4nfv3HaAnHjwvNwu+4Oz8iyQcY_3gOQ@mail.gmail.com>
-	 <CAErSpo72_JnUkWXrzbNdbX9wiWZtQdX2tuNjEpYrSd+sGzxfzA@mail.gmail.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH 12/24] PCI, ia64: Register busn_res for root buses
+Date: Tue, 28 Feb 2012 17:01:42 -0700
+Message-ID: <CAErSpo66PD3+E3ZFqp73XHabL+8GavpX97pUkd28T6KWTBH-aA@mail.gmail.com>
+References: <1330466863-28469-1-git-send-email-yinghai@kernel.org> <1330466863-28469-13-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:42880 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757484Ab2B1XmC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 28 Feb 2012 18:42:02 -0500
-In-Reply-To: <CAErSpo72_JnUkWXrzbNdbX9wiWZtQdX2tuNjEpYrSd+sGzxfzA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Yinghai Lu <yinghai@kernel.org>, Jesse Barnes <jbarnes@virtuousgeek.org>, Tony Luck <tony.luck@intel.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <1330466863-28469-13-git-send-email-yinghai@kernel.org>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2012-02-28 at 16:31 -0700, Bjorn Helgaas wrote:
-> We may need mechanism to say "don't trust this info from the
-> firmware," but we should be able to figure out a way that doesn't
-> penalize platforms that do everything correctly.  The current patch
-> breaks these scenarios even when the platform firmware is 100%
-> correct.
+On Tue, Feb 28, 2012 at 3:07 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> Cc: Tony Luck <tony.luck@intel.com>
+> Cc: Fenghua Yu <fenghua.yu@intel.com>
+> Cc: linux-ia64@vger.kernel.org
+> ---
+> =A0arch/ia64/include/asm/pci.h | =A0 =A01 +
+> =A0arch/ia64/pci/pci.c =A0 =A0 =A0 =A0 | =A0 =A05 +++++
+> =A02 files changed, 6 insertions(+), 0 deletions(-)
+>
+> diff --git a/arch/ia64/include/asm/pci.h b/arch/ia64/include/asm/pci.=
+h
+> index b22e5f5..6e54220 100644
+> --- a/arch/ia64/include/asm/pci.h
+> +++ b/arch/ia64/include/asm/pci.h
+> @@ -94,6 +94,7 @@ struct pci_controller {
+>
+> =A0 =A0 =A0 =A0unsigned int windows;
+> =A0 =A0 =A0 =A0struct pci_window *window;
+> + =A0 =A0 =A0 struct resource busn;
 
-On the other hand, our firmwares tend not to be and the vast majority of
-our platforms have separate bus number domains (In fact I'm not sure
-whether we have one that actually splits bus numbers or not, maybe some
-ancient Apple gear, I need to double check).
+Why do you add a new struct resource here?  Can't you just use the one
+passed in from acpi_pci_root_add()?
 
-We did use to force renumbering on macs to avoid bus number collisions
-between domains because of ancient X servers that didn't do domains
-properly but I think we dropped that.
+>
+> =A0 =A0 =A0 =A0void *platform_data;
+> =A0};
+> diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
+> index d1ce320..b250f0f 100644
+> --- a/arch/ia64/pci/pci.c
+> +++ b/arch/ia64/pci/pci.c
+> @@ -332,6 +332,7 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
+> =A0 =A0 =A0 =A0struct acpi_device *device =3D root->device;
+> =A0 =A0 =A0 =A0int domain =3D root->segment;
+> =A0 =A0 =A0 =A0int bus =3D root->secondary.start;
+> + =A0 =A0 =A0 int busmax =3D root->secondary.end;
+> =A0 =A0 =A0 =A0struct pci_controller *controller;
+> =A0 =A0 =A0 =A0unsigned int windows =3D 0;
+> =A0 =A0 =A0 =A0struct pci_root_info info;
+> @@ -372,6 +373,10 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0acpi_walk_resources(device->handle, ME=
+THOD_NAME__CRS,
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0add_window, &info);
+> =A0 =A0 =A0 =A0}
+> + =A0 =A0 =A0 controller->busn.start =3D bus;
+> + =A0 =A0 =A0 controller->busn.end =3D busmax;
+> + =A0 =A0 =A0 conttoller->busn.flags =3D IORESOURCE_BUS;
 
-Cheers,
-Ben.
+Typo here - "conttoller" should be "controller".
+
+> + =A0 =A0 =A0 pci_add_resource(&info.resources, &controller->busn);
+> =A0 =A0 =A0 =A0/*
+> =A0 =A0 =A0 =A0 * See arch/x86/pci/acpi.c.
+> =A0 =A0 =A0 =A0 * The desired pci bus might already be scanned in a q=
+uirk. We
+> --
+> 1.7.7
+>
+--
+To unsubscribe from this list: send the line "unsubscribe linux-ia64" i=
+n
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
