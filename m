@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 24/39] PCI: checking busn_res in pci_scan_root_bus
-Date: Wed, 29 Feb 2012 15:07:23 -0800
-Message-ID: <1330556858-11768-25-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 22/39] PCI: release busn when removing bus
+Date: Wed, 29 Feb 2012 15:07:21 -0800
+Message-ID: <1330556858-11768-23-git-send-email-yinghai@kernel.org>
 References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
@@ -10,54 +10,22 @@ To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-some calling may not have end decided yet, and may not pass busn_res in
-resources list.
-
-try to do insert big one and shrink.
-
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |   22 ++++++++++++++++++++++
- 1 files changed, 22 insertions(+), 0 deletions(-)
+ drivers/pci/remove.c |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index e32f1b7..1149109 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -1742,12 +1742,34 @@ struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
- 		struct pci_ops *ops, void *sysdata, struct list_head *resources)
- {
- 	struct pci_bus *b;
-+	struct pci_host_bridge_window *window, *n;
-+	struct resource *res;
-+	bool found;
-+
-+	list_for_each_entry_safe(window, n, resources, list) {
-+		res = window->res;
-+		if (res->flags & IORESOURCE_BUS) {
-+			found = true;
-+			break;
-+		}
-+	}
+diff --git a/drivers/pci/remove.c b/drivers/pci/remove.c
+index fd77e2b..04a4861 100644
+--- a/drivers/pci/remove.c
++++ b/drivers/pci/remove.c
+@@ -68,6 +68,7 @@ void pci_remove_bus(struct pci_bus *pci_bus)
  
- 	b = pci_create_root_bus(parent, bus, ops, sysdata, resources);
- 	if (!b)
- 		return NULL;
- 
-+	if (!found) {
-+		dev_info(&b->dev,
-+		 "No busn resource found for root bus, will use [%02x, ff]\n",
-+			bus);
-+		pci_bus_insert_busn_res(b, bus, 255);
-+	}
-+
- 	b->subordinate = pci_scan_child_bus(b);
-+
-+	if (!found)
-+		pci_bus_update_busn_res_end(b, b->subordinate);
-+
- 	pci_bus_add_devices(b);
- 	return b;
- }
+ 	down_write(&pci_bus_sem);
+ 	list_del(&pci_bus->node);
++	pci_bus_release_busn_res(pci_bus);
+ 	up_write(&pci_bus_sem);
+ 	if (!pci_bus->is_added)
+ 		return;
 -- 
 1.7.7
