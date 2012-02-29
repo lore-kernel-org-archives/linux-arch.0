@@ -1,70 +1,61 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 30/39] PCI: Add pci_bus_extend/shrink_top()
-Date: Wed, 29 Feb 2012 15:07:29 -0800
-Message-ID: <1330556858-11768-31-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 29/39] PCI, parisc: Register busn_res for root buses
+Date: Wed, 29 Feb 2012 15:07:28 -0800
+Message-ID: <1330556858-11768-30-git-send-email-yinghai@kernel.org>
 References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-parisc-owner@vger.kernel.org>
 In-Reply-To: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-parisc-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-extend or shrink bus and parent buses top (subordinate)
-
-extended range is verified safe range, and stop at recorded parent_res.
-
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Cc: Kyle McMartin <kyle@mcmartin.ca>
+Cc: Helge Deller <deller@gmx.de>
+Cc: linux-parisc@vger.kernel.org
 ---
- drivers/pci/probe.c |   36 ++++++++++++++++++++++++++++++++++++
- 1 files changed, 36 insertions(+), 0 deletions(-)
+ drivers/parisc/dino.c    |    5 +++++
+ drivers/parisc/lba_pci.c |    3 +++
+ 2 files changed, 8 insertions(+), 0 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 1c07aba..96259f8 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -655,6 +655,42 @@ static void pci_fixup_parent_subordinate_busnr(struct pci_bus *child, int max)
- 	}
- }
+diff --git a/drivers/parisc/dino.c b/drivers/parisc/dino.c
+index 0610e91..def94af 100644
+--- a/drivers/parisc/dino.c
++++ b/drivers/parisc/dino.c
+@@ -984,6 +984,10 @@ static int __init dino_probe(struct parisc_device *dev)
+ 	if (dino_dev->hba.gmmio_space.flags)
+ 		pci_add_resource(&resources, &dino_dev->hba.gmmio_space);
  
-+static void __devinit pci_bus_update_top(struct pci_bus *parent,
-+		 long size, struct resource *parent_res)
-+{
-+	struct resource *res;
++	dino_dev->hba.bus_num.start = dino_current_bus;
++	dino_dev->hba.bus_num.end = 255;
++	dino_dev->hba.bus_num.flags |= IORESOURCE_BUS;
++	pci_add_resource(&resources, &dino_dev->hba.bus_num);
+ 	/*
+ 	** It's not used to avoid chicken/egg problems
+ 	** with configuration accessor functions.
+@@ -999,6 +1003,7 @@ static int __init dino_probe(struct parisc_device *dev)
+ 		return 0;
+ 	}
+ 
++	pci_bus_update_busn_res_end(bus, bus->subordinate);
+ 	bus->subordinate = pci_scan_child_bus(bus);
+ 
+ 	/* This code *depends* on scanning being single threaded
+diff --git a/drivers/parisc/lba_pci.c b/drivers/parisc/lba_pci.c
+index e885764..df1e9f9 100644
+--- a/drivers/parisc/lba_pci.c
++++ b/drivers/parisc/lba_pci.c
+@@ -1503,6 +1503,9 @@ lba_driver_probe(struct parisc_device *dev)
+ 	if (lba_dev->hba.gmmio_space.flags)
+ 		pci_add_resource(&resources, &lba_dev->hba.gmmio_space);
+ 
++	lba_dev->hba.bus_num.flags |= IORESOURCE_BUS;
++	pci_add_resource(&resources, &lba_dev->hba.bus_num);
 +
-+	if (!size)
-+		return;
-+
-+	while (parent) {
-+		res = &parent->busn_res;
-+		if (res == parent_res)
-+			break;
-+		res->end += size;
-+		parent->subordinate += size;
-+		pci_write_config_byte(parent->self, PCI_SUBORDINATE_BUS,
-+					 parent->subordinate);
-+		dev_printk(KERN_DEBUG, &parent->dev,
-+				"busn_res: %s %02lx to %pR\n",
-+				(size > 0) ? "extended" : "shrunk",
-+				abs(size), res);
-+		parent = parent->parent;
-+	}
-+}
-+
-+static void __devinit pci_bus_extend_top(struct pci_bus *parent,
-+		 long size, struct resource *parent_res)
-+{
-+	pci_bus_update_top(parent, size, parent_res);
-+}
-+
-+static void __devinit pci_bus_shrink_top(struct pci_bus *parent,
-+		 long size, struct resource *parent_res)
-+{
-+	pci_bus_update_top(parent, -size, parent_res);
-+}
-+
- /*
-  * If it's a bridge, configure it and scan the bus behind it.
-  * For CardBus bridges, we don't scan behind as the devices will
+ 	dev->dev.platform_data = lba_dev;
+ 	lba_bus = lba_dev->hba.hba_bus =
+ 		pci_create_root_bus(&dev->dev, lba_dev->hba.bus_num.start,
 -- 
 1.7.7
+
