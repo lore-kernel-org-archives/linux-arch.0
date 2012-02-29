@@ -1,71 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:26483 "EHLO
-	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965441Ab2B2XJ0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:09:26 -0500
+Received: from acsinet15.oracle.com ([141.146.126.227]:29195 "EHLO
+	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965631Ab2B2XLy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:11:54 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 13/39] x86, PCI: add print all root info for nocrs path
-Date: Wed, 29 Feb 2012 15:07:12 -0800
-Message-ID: <1330556858-11768-14-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 39/39] x86, PCI: kill busn in acpi pci_root_info
+Date: Wed, 29 Feb 2012 15:07:38 -0800
+Message-ID: <1330556858-11768-40-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120229230712.Gd2KFs3v_6DelVDBThG232VumUNQvw7BpIBFoKvHcv0@z>
+Message-ID: <20120229230738.MYX_yz-Ea4LxpTLgLVyZGg6JDPf0X4DKzxSXAQfjVUk@z>
 
+Bjorn thought that we should just use that in acpi_root.
+
+Suggested-by: Bjorn Helgaas <bhelgaas@google.com>
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/pci/amd_bus.c  |    2 +-
- arch/x86/pci/bus_numa.c |    8 ++++++++
- arch/x86/pci/bus_numa.h |    1 +
- 3 files changed, 10 insertions(+), 1 deletions(-)
+ arch/x86/pci/acpi.c |   19 ++++++-------------
+ 1 files changed, 6 insertions(+), 13 deletions(-)
 
-diff --git a/arch/x86/pci/amd_bus.c b/arch/x86/pci/amd_bus.c
-index 0b6abbe..5f30a98 100644
---- a/arch/x86/pci/amd_bus.c
-+++ b/arch/x86/pci/amd_bus.c
-@@ -291,7 +291,7 @@ static int __init early_fill_mp_bus_info(void)
- 		}
- 	}
+diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
+index ff5243e..5178917 100644
+--- a/arch/x86/pci/acpi.c
++++ b/arch/x86/pci/acpi.c
+@@ -12,7 +12,6 @@ struct pci_root_info {
+ 	char name[16];
+ 	unsigned int res_num;
+ 	struct resource *res;
+-	struct resource busn;
+ 	struct pci_sysdata sd;
+ };
  
--	print_pci_root_info(info, "bus:", true);
-+	print_all_pci_root_info("ht link", true);
+@@ -283,9 +282,6 @@ static void add_resources(struct pci_root_info *info,
+ 	int i;
+ 	struct resource *res, *root, *conflict;
  
- 	return 0;
- }
-diff --git a/arch/x86/pci/bus_numa.c b/arch/x86/pci/bus_numa.c
-index 7251011..772949f 100644
---- a/arch/x86/pci/bus_numa.c
-+++ b/arch/x86/pci/bus_numa.c
-@@ -94,6 +94,14 @@ void print_pci_root_info(struct pci_root_info *info, char *name, bool nodelink)
- 				 &root_res->res);
- }
+-	if (info->busn.flags & IORESOURCE_BUS)
+-		pci_add_resource(resources, &info->busn);
+-
+ 	coalesce_windows(info, IORESOURCE_MEM);
+ 	coalesce_windows(info, IORESOURCE_IO);
  
-+void print_all_pci_root_info(char *name, bool nodelink)
-+{
-+	struct pci_root_info *info;
-+
-+	list_for_each_entry(info, &pci_root_infos, list)
-+		print_pci_root_info(info, name, nodelink);
-+}
-+
- void __devinit update_res(struct pci_root_info *info, resource_size_t start,
- 			  resource_size_t end, unsigned long flags, int merge)
+@@ -346,16 +342,12 @@ static void release_pci_root_info(struct pci_host_bridge *bridge)
+ 
+ static void
+ probe_pci_root_info(struct pci_root_info *info, struct acpi_device *device,
+-		    int busnum, int busmax, int domain)
++		    int busnum, int domain)
  {
-diff --git a/arch/x86/pci/bus_numa.h b/arch/x86/pci/bus_numa.h
-index d19ac93..deada6a 100644
---- a/arch/x86/pci/bus_numa.h
-+++ b/arch/x86/pci/bus_numa.h
-@@ -23,6 +23,7 @@ extern struct list_head pci_root_infos;
- struct pci_root_info *alloc_pci_root_info(int bus_min, int bus_max,
- 						int node, int link);
- void print_pci_root_info(struct pci_root_info *info, char *name, bool nodelink);
-+void print_all_pci_root_info(char *name, bool nodelink);
- extern void update_res(struct pci_root_info *info, resource_size_t start,
- 		      resource_size_t end, unsigned long flags, int merge);
- #endif
+ 	size_t size;
+ 
+ 	sprintf(info->name, "PCI Bus %04x:%02x", domain, busnum);
+ 	info->bridge = device;
+-	info->busn.name = info->name;
+-	info->busn.start = busnum;
+-	info->busn.end = busmax;
+-	info->busn.flags = IORESOURCE_BUS;
+ 
+ 	info->res_num = 0;
+ 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_resource,
+@@ -379,7 +371,6 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 	struct pci_root_info *info = NULL;
+ 	int domain = root->segment;
+ 	int busnum = root->secondary.start;
+-	int busmax = root->secondary.end;
+ 	LIST_HEAD(resources);
+ 	struct pci_bus *bus;
+ 	struct pci_sysdata *sd;
+@@ -432,15 +423,17 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		memcpy(bus->sysdata, sd, sizeof(*sd));
+ 		kfree(info);
+ 	} else {
+-		probe_pci_root_info(info, device, busnum, busmax, domain);
++		probe_pci_root_info(info, device, busnum, domain);
+ 
+ 		/*
+ 		 * _CRS with no apertures is normal, so only fall back to
+ 		 * defaults or native bridge info if we're ignoring _CRS.
+ 		 */
+-		if (pci_use_crs)
++		if (pci_use_crs) {
++                       /* insert busn res at first */
++			pci_add_resource(&resources,  &root->secondary);
+ 			add_resources(info, &resources);
+-		else {
++		} else {
+ 			free_pci_root_info_res(info);
+ 			x86_pci_root_bus_resources(busnum, &resources);
+ 		}
 -- 
 1.7.7
 
