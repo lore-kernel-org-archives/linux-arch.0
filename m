@@ -1,178 +1,143 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gy0-f174.google.com ([209.85.160.174]:64153 "EHLO
-	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1030236Ab2B2Xy4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:54:56 -0500
-Received: by mail-gy0-f174.google.com with SMTP id r11so2586ghr.19
-        for <linux-arch@vger.kernel.org>; Wed, 29 Feb 2012 15:54:56 -0800 (PST)
+Received: from mail-gx0-f174.google.com ([209.85.161.174]:62067 "EHLO
+	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1030265Ab2B2XzF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:55:05 -0500
+Received: by ggnh1 with SMTP id h1so2234ggn.19
+        for <linux-arch@vger.kernel.org>; Wed, 29 Feb 2012 15:55:04 -0800 (PST)
 MIME-Version: 1.0
 From: Will Drewry <wad@chromium.org>
-Subject: [PATCH v12 10/13] ptrace,seccomp: Add PTRACE_SECCOMP support
-Date: Wed, 29 Feb 2012 17:53:37 -0600
-Message-ID: <1330559620-23543-10-git-send-email-wad@chromium.org>
+Subject: [PATCH v12 13/13] seccomp: remove duplicated failure logging
+Date: Wed, 29 Feb 2012 17:53:40 -0600
+Message-ID: <1330559620-23543-13-git-send-email-wad@chromium.org>
 In-Reply-To: <1330559620-23543-1-git-send-email-wad@chromium.org>
 References: <1330559620-23543-1-git-send-email-wad@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Will Drewry <wad@chromium.org>
-Message-ID: <20120229235337.LrVB1J5jXiczidUm-YuIoZolqBE5eVXILT1k-yoibJs@z>
+Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
+Message-ID: <20120229235340.p0WCtFI4--onQj4ud7-Z_L9oygiAXVVtXzcFypLiF1A@z>
 
-This change adds support for a new ptrace option, PTRACE_O_TRACESECCOMP,
-and a new return value for seccomp BPF programs, SECCOMP_RET_TRACE.
+From: Kees Cook <keescook@chromium.org>
 
-When a tracer specifies the PTRACE_O_TRACESECCOMP ptrace option, the
-tracer will be notified for any syscall that results in a BPF program
-returning SECCOMP_RET_TRACE.  The 16-bit SECCOMP_RET_DATA mask of the
-BPF program return value will be passed as the ptrace_message and may be
-retrieved using PTRACE_GETEVENTMSG.
+This consolidates the seccomp filter error logging path and adds more
+details to the audit log.
 
-If the subordinate process is not using seccomp filter, then no
-system call notifications will occur even if the option is specified.
-
-If there is no attached tracer when SECCOMP_RET_TRACE is returned,
-the system call will not be executed and an -ENOSYS errno will be
-returned to userspace.
-
-This change adds a dependency on the system call slow path.  Any future
-efforts to use the system call fast path for seccomp filter will need to
-address this restriction.
-
-v12: - rebase to linux-next
-     - use ptrace_event and update arch/Kconfig to mention slow-path dependency
-     - drop all tracehook changes and inclusion (oleg@redhat.com)
-v11: - invert the logic to just make it a PTRACE_SYSCALL accelerator
-       (indan@nul.nu)
-v10: - moved to PTRACE_O_SECCOMP / PT_TRACE_SECCOMP
-v9:  - n/a
-v8:  - guarded PTRACE_SECCOMP use with an ifdef
-v7:  - introduced
-
-Signed-off-by: Will Drewry <wad@chromium.org>
+Acked-by: Will Drewry <wad@chromium.org>
+Signed-off-by: Kees Cook <keescook@chromium.org>
 ---
- arch/Kconfig            |   11 ++++++-----
- include/linux/ptrace.h  |    5 ++++-
- include/linux/seccomp.h |    1 +
- kernel/seccomp.c        |   20 +++++++++++++++-----
- 4 files changed, 26 insertions(+), 11 deletions(-)
+ include/linux/audit.h |    8 ++++----
+ kernel/auditsc.c      |    9 +++++++--
+ kernel/seccomp.c      |   15 +--------------
+ 3 files changed, 12 insertions(+), 20 deletions(-)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 6908bf6..beb1507 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -236,15 +236,16 @@ config ARCH_WANT_OLD_COMPAT_IPC
- config HAVE_ARCH_SECCOMP_FILTER
- 	bool
- 	help
--	  This symbol should be selected by an architecure if it provides:
--	  asm/syscall.h:
-+	  An arch should select this symbol if it provides all of these things:
- 	  - syscall_get_arch()
- 	  - syscall_get_arguments()
- 	  - syscall_rollback()
- 	  - syscall_set_return_value()
--	  SIGSYS siginfo_t support must be implemented.
--	  __secure_computing_int()/secure_computing()'s return value must be
--	  checked, with -1 resulting in the syscall being skipped.
-+	  - SIGSYS siginfo_t support
-+	  - uses __secure_computing_int() or secure_computing()
-+	  - secure_computing is called from a ptrace_event()-safe context
-+	  - secure_computing return value is checked and a return value of -1
-+	    results in the system call being skipped immediately.
+diff --git a/include/linux/audit.h b/include/linux/audit.h
+index 9ff7a2c..5aac29b 100644
+--- a/include/linux/audit.h
++++ b/include/linux/audit.h
+@@ -463,7 +463,7 @@ extern void audit_putname(const char *name);
+ extern void __audit_inode(const char *name, const struct dentry *dentry);
+ extern void __audit_inode_child(const struct dentry *dentry,
+ 				const struct inode *parent);
+-extern void __audit_seccomp(unsigned long syscall);
++extern void __audit_seccomp(unsigned long syscall, long signr);
+ extern void __audit_ptrace(struct task_struct *t);
  
- config SECCOMP_FILTER
- 	def_bool y
-diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
-index 5c71962..597e4fd 100644
---- a/include/linux/ptrace.h
-+++ b/include/linux/ptrace.h
-@@ -58,6 +58,7 @@
- #define PTRACE_EVENT_EXEC	4
- #define PTRACE_EVENT_VFORK_DONE	5
- #define PTRACE_EVENT_EXIT	6
-+#define PTRACE_EVENT_SECCOMP	7
- /* Extended result codes which enabled by means other than options.  */
- #define PTRACE_EVENT_STOP	128
+ static inline int audit_dummy_context(void)
+@@ -508,10 +508,10 @@ static inline void audit_inode_child(const struct dentry *dentry,
+ }
+ void audit_core_dumps(long signr);
  
-@@ -69,8 +70,9 @@
- #define PTRACE_O_TRACEEXEC	(1 << PTRACE_EVENT_EXEC)
- #define PTRACE_O_TRACEVFORKDONE	(1 << PTRACE_EVENT_VFORK_DONE)
- #define PTRACE_O_TRACEEXIT	(1 << PTRACE_EVENT_EXIT)
-+#define PTRACE_O_TRACESECCOMP	(1 << PTRACE_EVENT_SECCOMP)
+-static inline void audit_seccomp(unsigned long syscall)
++static inline void audit_seccomp(unsigned long syscall, long signr)
+ {
+ 	if (unlikely(!audit_dummy_context()))
+-		__audit_seccomp(syscall);
++		__audit_seccomp(syscall, signr);
+ }
  
--#define PTRACE_O_MASK		0x0000007f
-+#define PTRACE_O_MASK		0x000000ff
+ static inline void audit_ptrace(struct task_struct *t)
+@@ -634,7 +634,7 @@ extern int audit_signals;
+ #define audit_inode(n,d) do { (void)(d); } while (0)
+ #define audit_inode_child(i,p) do { ; } while (0)
+ #define audit_core_dumps(i) do { ; } while (0)
+-#define audit_seccomp(i) do { ; } while (0)
++#define audit_seccomp(i, s) do { ; } while (0)
+ #define auditsc_get_stamp(c,t,s) (0)
+ #define audit_get_loginuid(t) (-1)
+ #define audit_get_sessionid(t) (-1)
+diff --git a/kernel/auditsc.c b/kernel/auditsc.c
+index af1de0f..74652fe 100644
+--- a/kernel/auditsc.c
++++ b/kernel/auditsc.c
+@@ -67,6 +67,7 @@
+ #include <linux/syscalls.h>
+ #include <linux/capability.h>
+ #include <linux/fs_struct.h>
++#include <linux/compat.h>
  
- #include <asm/ptrace.h>
+ #include "audit.h"
  
-@@ -98,6 +100,7 @@
- #define PT_TRACE_EXEC		PT_EVENT_FLAG(PTRACE_EVENT_EXEC)
- #define PT_TRACE_VFORK_DONE	PT_EVENT_FLAG(PTRACE_EVENT_VFORK_DONE)
- #define PT_TRACE_EXIT		PT_EVENT_FLAG(PTRACE_EVENT_EXIT)
-+#define PT_TRACE_SECCOMP	PT_EVENT_FLAG(PTRACE_EVENT_SECCOMP)
+@@ -2710,13 +2711,17 @@ void audit_core_dumps(long signr)
+ 	audit_log_end(ab);
+ }
  
- /* single stepping state bits (used on ARM and PA-RISC) */
- #define PT_SINGLESTEP_BIT	31
-diff --git a/include/linux/seccomp.h b/include/linux/seccomp.h
-index 3fe48fd..e183598 100644
---- a/include/linux/seccomp.h
-+++ b/include/linux/seccomp.h
-@@ -21,6 +21,7 @@
- #define SECCOMP_RET_KILL	0x00000000U /* kill the task immediately */
- #define SECCOMP_RET_TRAP	0x00020000U /* disallow and force a SIGSYS */
- #define SECCOMP_RET_ERRNO	0x00030000U /* returns an errno */
-+#define SECCOMP_RET_TRACE	0x7ffe0000U /* pass to a tracer or disallow */
- #define SECCOMP_RET_ALLOW	0x7fff0000U /* allow */
+-void __audit_seccomp(unsigned long syscall)
++void __audit_seccomp(unsigned long syscall, long signr)
+ {
+ 	struct audit_buffer *ab;
  
- /* Masks for the return value sections. */
+ 	ab = audit_log_start(NULL, GFP_KERNEL, AUDIT_ANOM_ABEND);
+-	audit_log_abend(ab, "seccomp", SIGKILL);
++	audit_log_abend(ab, "seccomp", signr);
+ 	audit_log_format(ab, " syscall=%ld", syscall);
++#ifdef CONFIG_COMPAT
++	audit_log_format(ab, " compat=%d", is_compat_task());
++#endif
++	audit_log_format(ab, " ip=0x%lx", KSTK_EIP(current));
+ 	audit_log_end(ab);
+ }
+ 
 diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index 10c6077..1064327 100644
+index 1064327..78ecd6f 100644
 --- a/kernel/seccomp.c
 +++ b/kernel/seccomp.c
-@@ -17,13 +17,13 @@
- #include <linux/audit.h>
- #include <linux/compat.h>
- #include <linux/filter.h>
-+#include <linux/ptrace.h>
- #include <linux/sched.h>
- #include <linux/seccomp.h>
- #include <linux/security.h>
- #include <linux/slab.h>
- #include <linux/uaccess.h>
+@@ -60,18 +60,6 @@ struct seccomp_filter {
+ /* Limit any path through the tree to 5 megabytes worth of instructions. */
+ #define MAX_INSNS_PER_PATH ((5 << 20) / sizeof(struct sock_filter))
  
--#include <linux/tracehook.h>
- #include <asm/syscall.h>
- 
- /* #define SECCOMP_DEBUG 1 */
-@@ -346,14 +346,24 @@ int __secure_computing_int(int this_syscall)
- 						 -(action & SECCOMP_RET_DATA),
- 						 0);
- 			return -1;
--		case SECCOMP_RET_TRAP: {
--			int reason_code = action & SECCOMP_RET_DATA;
-+		case SECCOMP_RET_TRAP:
- 			/* Show the handler the original registers. */
- 			syscall_rollback(current, task_pt_regs(current));
- 			/* Let the filter pass back 16 bits of data. */
--			seccomp_send_sigsys(this_syscall, reason_code);
-+			seccomp_send_sigsys(this_syscall,
-+					    action & SECCOMP_RET_DATA);
- 			return -1;
--		}
-+		case SECCOMP_RET_TRACE:
-+			/* Skip these calls if there is no tracer. */
-+			if (!ptrace_event_enabled(current,
-+						  PTRACE_EVENT_SECCOMP))
-+				return -1;
-+			/* Allow the BPF to provide the event message */
-+			ptrace_event(PTRACE_EVENT_SECCOMP,
-+				     action & SECCOMP_RET_DATA);
-+			if (fatal_signal_pending(current))
-+				break;
-+			return 0;
- 		case SECCOMP_RET_ALLOW:
- 			return 0;
- 		case SECCOMP_RET_KILL:
+-static void seccomp_filter_log_failure(int syscall)
+-{
+-	int compat = 0;
+-#ifdef CONFIG_COMPAT
+-	compat = is_compat_task();
+-#endif
+-	pr_info("%s[%d]: %ssystem call %d blocked at 0x%lx\n",
+-		current->comm, task_pid_nr(current),
+-		(compat ? "compat " : ""),
+-		syscall, KSTK_EIP(current));
+-}
+-
+ /**
+  * get_u32 - returns a u32 offset into data
+  * @data: a unsigned 64 bit value
+@@ -370,7 +358,6 @@ int __secure_computing_int(int this_syscall)
+ 		default:
+ 			break;
+ 		}
+-		seccomp_filter_log_failure(this_syscall);
+ 		exit_code = SIGSYS;
+ 		break;
+ 	}
+@@ -382,7 +369,7 @@ int __secure_computing_int(int this_syscall)
+ #ifdef SECCOMP_DEBUG
+ 	dump_stack();
+ #endif
+-	audit_seccomp(this_syscall);
++	audit_seccomp(this_syscall, exit_code);
+ 	do_exit(exit_code);
+ 	return -1;	/* never reached */
+ }
 -- 
 1.7.5.4
 
