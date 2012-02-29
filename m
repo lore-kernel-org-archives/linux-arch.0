@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 12/39] x86, PCI: Merge root info printing for nocrs path
-Date: Wed, 29 Feb 2012 15:07:11 -0800
-Message-ID: <1330556858-11768-13-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 17/39] x86, PCI: put busn resource in pci_root_info for acpi path
+Date: Wed, 29 Feb 2012 15:07:16 -0800
+Message-ID: <1330556858-11768-18-git-send-email-yinghai@kernel.org>
 References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
@@ -10,96 +10,80 @@ To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
+will put it in resources list and pass it for create_root_bus
+
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/pci/amd_bus.c      |   12 +-----------
- arch/x86/pci/broadcom_bus.c |    9 +--------
- arch/x86/pci/bus_numa.c     |   17 +++++++++++++++++
- arch/x86/pci/bus_numa.h     |    1 +
- 4 files changed, 20 insertions(+), 19 deletions(-)
+ arch/x86/pci/acpi.c |   18 +++++++++++++-----
+ 1 files changed, 13 insertions(+), 5 deletions(-)
 
-diff --git a/arch/x86/pci/amd_bus.c b/arch/x86/pci/amd_bus.c
-index 459a731..0b6abbe 100644
---- a/arch/x86/pci/amd_bus.c
-+++ b/arch/x86/pci/amd_bus.c
-@@ -291,17 +291,7 @@ static int __init early_fill_mp_bus_info(void)
- 		}
- 	}
+diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
+index 2331ccb..ff5243e 100644
+--- a/arch/x86/pci/acpi.c
++++ b/arch/x86/pci/acpi.c
+@@ -12,7 +12,7 @@ struct pci_root_info {
+ 	char name[16];
+ 	unsigned int res_num;
+ 	struct resource *res;
+-	int busnum;
++	struct resource busn;
+ 	struct pci_sysdata sd;
+ };
  
--	list_for_each_entry(info, &pci_root_infos, list) {
--		int busnum;
--		struct pci_root_res *root_res;
--
--		busnum = info->bus_min;
--		printk(KERN_DEBUG "bus: [%02x, %02x] on node %x link %x\n",
--		       info->bus_min, info->bus_max, info->node, info->link);
--		list_for_each_entry(root_res, &info->resources, list)
--			printk(KERN_DEBUG "bus: %02x %pR\n",
--				       busnum, &root_res->res);
--	}
-+	print_pci_root_info(info, "bus:", true);
+@@ -283,6 +283,9 @@ static void add_resources(struct pci_root_info *info,
+ 	int i;
+ 	struct resource *res, *root, *conflict;
  
- 	return 0;
- }
-diff --git a/arch/x86/pci/broadcom_bus.c b/arch/x86/pci/broadcom_bus.c
-index 614392c..a03a14a 100644
---- a/arch/x86/pci/broadcom_bus.c
-+++ b/arch/x86/pci/broadcom_bus.c
-@@ -76,14 +76,7 @@ static void __init cnb20le_res(u8 bus, u8 slot, u8 func)
- 		update_res(info, res.start, res.end, res.flags, 0);
- 	}
- 
--	/* print information about this host bridge */
--	res.start = fbus;
--	res.end   = lbus;
--	res.flags = IORESOURCE_BUS;
--	printk(KERN_INFO "CNB20LE PCI Host Bridge (domain 0000 %pR)\n", &res);
--
--	list_for_each_entry(root_res, &info->resources, list)
--		printk(KERN_INFO "host bridge window %pR\n", &root_res->res);
-+	print_pci_root_info(info, "host bridge windows: ", false);
- }
- 
- static int __init broadcom_postcore_init(void)
-diff --git a/arch/x86/pci/bus_numa.c b/arch/x86/pci/bus_numa.c
-index 306579f..7251011 100644
---- a/arch/x86/pci/bus_numa.c
-+++ b/arch/x86/pci/bus_numa.c
-@@ -77,6 +77,23 @@ struct pci_root_info __init *alloc_pci_root_info(int bus_min, int bus_max,
- 	return info;
- }
- 
-+void print_pci_root_info(struct pci_root_info *info, char *name, bool nodelink)
-+{
-+	struct pci_root_res *root_res;
-+	int busnum = info->bus_min;
++	if (info->busn.flags & IORESOURCE_BUS)
++		pci_add_resource(resources, &info->busn);
 +
-+	if (!nodelink)
-+		printk(KERN_DEBUG "%s: [%02x, %02x]\n", name,
-+				info->bus_min, info->bus_max);
-+	else
-+		printk(KERN_DEBUG "%s: [%02x, %02x] on node %x link %x\n", name,
-+			info->bus_min, info->bus_max, info->node, info->link);
-+
-+	list_for_each_entry(root_res, &info->resources, list)
-+		printk(KERN_DEBUG "%s: %02x %pR\n", name, busnum,
-+				 &root_res->res);
-+}
-+
- void __devinit update_res(struct pci_root_info *info, resource_size_t start,
- 			  resource_size_t end, unsigned long flags, int merge)
+ 	coalesce_windows(info, IORESOURCE_MEM);
+ 	coalesce_windows(info, IORESOURCE_IO);
+ 
+@@ -343,11 +346,17 @@ static void release_pci_root_info(struct pci_host_bridge *bridge)
+ 
+ static void
+ probe_pci_root_info(struct pci_root_info *info, struct acpi_device *device,
+-		    int busnum, int domain)
++		    int busnum, int busmax, int domain)
  {
-diff --git a/arch/x86/pci/bus_numa.h b/arch/x86/pci/bus_numa.h
-index 226a466..d19ac93 100644
---- a/arch/x86/pci/bus_numa.h
-+++ b/arch/x86/pci/bus_numa.h
-@@ -22,6 +22,7 @@ struct pci_root_info {
- extern struct list_head pci_root_infos;
- struct pci_root_info *alloc_pci_root_info(int bus_min, int bus_max,
- 						int node, int link);
-+void print_pci_root_info(struct pci_root_info *info, char *name, bool nodelink);
- extern void update_res(struct pci_root_info *info, resource_size_t start,
- 		      resource_size_t end, unsigned long flags, int merge);
- #endif
+ 	size_t size;
+ 
++	sprintf(info->name, "PCI Bus %04x:%02x", domain, busnum);
+ 	info->bridge = device;
++	info->busn.name = info->name;
++	info->busn.start = busnum;
++	info->busn.end = busmax;
++	info->busn.flags = IORESOURCE_BUS;
++
+ 	info->res_num = 0;
+ 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_resource,
+ 				info);
+@@ -360,8 +369,6 @@ probe_pci_root_info(struct pci_root_info *info, struct acpi_device *device,
+ 	if (!info->res)
+ 		return;
+ 
+-	sprintf(info->name, "PCI Bus %04x:%02x", domain, busnum);
+-
+ 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, setup_resource,
+ 				info);
+ }
+@@ -372,6 +379,7 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 	struct pci_root_info *info = NULL;
+ 	int domain = root->segment;
+ 	int busnum = root->secondary.start;
++	int busmax = root->secondary.end;
+ 	LIST_HEAD(resources);
+ 	struct pci_bus *bus;
+ 	struct pci_sysdata *sd;
+@@ -424,7 +432,7 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		memcpy(bus->sysdata, sd, sizeof(*sd));
+ 		kfree(info);
+ 	} else {
+-		probe_pci_root_info(info, device, busnum, domain);
++		probe_pci_root_info(info, device, busnum, busmax, domain);
+ 
+ 		/*
+ 		 * _CRS with no apertures is normal, so only fall back to
 -- 
 1.7.7
