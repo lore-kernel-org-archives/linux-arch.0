@@ -1,75 +1,133 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 28/39] PCI, powerpc: Register busn_res for root buses
-Date: Wed, 29 Feb 2012 15:07:27 -0800
-Message-ID: <1330556858-11768-29-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 36/39] pcmcia: remove workaround for fixing pci parent bus
+ subordinate
+Date: Wed, 29 Feb 2012 15:07:35 -0800
+Message-ID: <1330556858-11768-37-git-send-email-yinghai@kernel.org>
 References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
+Return-path: <linux-pcmcia-bounces+glkpd-linux-pcmcia=m.gmane.org@lists.infradead.org>
 In-Reply-To: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-pcmcia>,
+ <mailto:linux-pcmcia-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-pcmcia/>
+List-Post: <mailto:linux-pcmcia@lists.infradead.org>
+List-Help: <mailto:linux-pcmcia-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-pcmcia>,
+ <mailto:linux-pcmcia-request@lists.infradead.org?subject=subscribe>
+Sender: linux-pcmcia-bounces@lists.infradead.org
+Errors-To: linux-pcmcia-bounces+glkpd-linux-pcmcia=m.gmane.org@lists.infradead.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
-Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-kernel@vger.kernel.org, Dominik Brodowski <linux@dominikbrodowski.net>, Paul Mackerras <paulus@samba.org>, Bjorn Helgaas <bhelgaas@google.com>, Yinghai Lu <yinghai@kernel.org>
+Cc: linux-arch@vger.kernel.org, linux-pcmcia@lists.infradead.org, Mauro Carvalho Chehab <mchehab@redhat.com>, linux-pci@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, linux-kernel@vger.kernel.org, Dominik Brodowski <linux@dominikbrodowski.net>, Bjorn Helgaas <bhelgaas@google.com>, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: linuxppc-dev@lists.ozlabs.org
----
- arch/powerpc/include/asm/pci-bridge.h |    1 +
- arch/powerpc/kernel/pci-common.c      |   10 +++++++++-
- 2 files changed, 10 insertions(+), 1 deletions(-)
+Now pci busn allocation code is there, and it will preallocate bus number and it
+will make sure parent buses subordinate is right.
 
-diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include/asm/pci-bridge.h
-index 5d48765..11cebf0 100644
---- a/arch/powerpc/include/asm/pci-bridge.h
-+++ b/arch/powerpc/include/asm/pci-bridge.h
-@@ -30,6 +30,7 @@ struct pci_controller {
- 	int first_busno;
- 	int last_busno;
- 	int self_busno;
-+	struct resource busn;
+So remove workaround here.
+
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Tested-by: Dominik Brodowski <linux@dominikbrodowski.net>
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Mauro Carvalho Chehab <mchehab@redhat.com>
+Cc: linux-pcmcia@lists.infradead.org
+---
+ drivers/pcmcia/yenta_socket.c |   75 -----------------------------------------
+ 1 files changed, 0 insertions(+), 75 deletions(-)
+
+diff --git a/drivers/pcmcia/yenta_socket.c b/drivers/pcmcia/yenta_socket.c
+index 849c0c1..5757cae 100644
+--- a/drivers/pcmcia/yenta_socket.c
++++ b/drivers/pcmcia/yenta_socket.c
+@@ -1064,79 +1064,6 @@ static void yenta_config_init(struct yenta_socket *socket)
+ 	config_writew(socket, CB_BRIDGE_CONTROL, bridge);
+ }
  
- 	void __iomem *io_base_virt;
- #ifdef CONFIG_PPC64
-diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
-index 910b9de..ee8c0c9 100644
---- a/arch/powerpc/kernel/pci-common.c
-+++ b/arch/powerpc/kernel/pci-common.c
-@@ -1648,6 +1648,11 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
- 	/* Wire up PHB bus resources */
- 	pcibios_setup_phb_resources(hose, &resources);
+-/**
+- * yenta_fixup_parent_bridge - Fix subordinate bus# of the parent bridge
+- * @cardbus_bridge: The PCI bus which the CardBus bridge bridges to
+- *
+- * Checks if devices on the bus which the CardBus bridge bridges to would be
+- * invisible during PCI scans because of a misconfigured subordinate number
+- * of the parent brige - some BIOSes seem to be too lazy to set it right.
+- * Does the fixup carefully by checking how far it can go without conflicts.
+- * See http://bugzilla.kernel.org/show_bug.cgi?id=2944 for more information.
+- */
+-static void yenta_fixup_parent_bridge(struct pci_bus *cardbus_bridge)
+-{
+-	struct list_head *tmp;
+-	unsigned char upper_limit;
+-	/*
+-	 * We only check and fix the parent bridge: All systems which need
+-	 * this fixup that have been reviewed are laptops and the only bridge
+-	 * which needed fixing was the parent bridge of the CardBus bridge:
+-	 */
+-	struct pci_bus *bridge_to_fix = cardbus_bridge->parent;
+-
+-	/* Check bus numbers are already set up correctly: */
+-	if (bridge_to_fix->subordinate >= cardbus_bridge->subordinate)
+-		return; /* The subordinate number is ok, nothing to do */
+-
+-	if (!bridge_to_fix->parent)
+-		return; /* Root bridges are ok */
+-
+-	/* stay within the limits of the bus range of the parent: */
+-	upper_limit = bridge_to_fix->parent->subordinate;
+-
+-	/* check the bus ranges of all silbling bridges to prevent overlap */
+-	list_for_each(tmp, &bridge_to_fix->parent->children) {
+-		struct pci_bus *silbling = pci_bus_b(tmp);
+-		/*
+-		 * If the silbling has a higher secondary bus number
+-		 * and it's secondary is equal or smaller than our
+-		 * current upper limit, set the new upper limit to
+-		 * the bus number below the silbling's range:
+-		 */
+-		if (silbling->secondary > bridge_to_fix->subordinate
+-		    && silbling->secondary <= upper_limit)
+-			upper_limit = silbling->secondary - 1;
+-	}
+-
+-	/* Show that the wanted subordinate number is not possible: */
+-	if (cardbus_bridge->subordinate > upper_limit)
+-		dev_printk(KERN_WARNING, &cardbus_bridge->dev,
+-			   "Upper limit for fixing this "
+-			   "bridge's parent bridge: #%02x\n", upper_limit);
+-
+-	/* If we have room to increase the bridge's subordinate number, */
+-	if (bridge_to_fix->subordinate < upper_limit) {
+-
+-		/* use the highest number of the hidden bus, within limits */
+-		unsigned char subordinate_to_assign =
+-			min(cardbus_bridge->subordinate, upper_limit);
+-
+-		dev_printk(KERN_INFO, &bridge_to_fix->dev,
+-			   "Raising subordinate bus# of parent "
+-			   "bus (#%02x) from #%02x to #%02x\n",
+-			   bridge_to_fix->number,
+-			   bridge_to_fix->subordinate, subordinate_to_assign);
+-
+-		/* Save the new subordinate in the bus struct of the bridge */
+-		bridge_to_fix->subordinate = subordinate_to_assign;
+-
+-		/* and update the PCI config space with the new subordinate */
+-		pci_write_config_byte(bridge_to_fix->self,
+-			PCI_SUBORDINATE_BUS, bridge_to_fix->subordinate);
+-	}
+-}
+-
+ /*
+  * Initialize a cardbus controller. Make sure we have a usable
+  * interrupt, and that we can map the cardbus area. Fill in the
+@@ -1257,8 +1184,6 @@ static int __devinit yenta_probe(struct pci_dev *dev, const struct pci_device_id
+ 	dev_printk(KERN_INFO, &dev->dev,
+ 		   "Socket status: %08x\n", cb_readl(socket, CB_SOCKET_STATE));
  
-+	hose->busn.start = hose->first_busno;
-+	hose->busn.end	 = hose->last_busno;
-+	hose->busn.flags = IORESOURCE_BUS;
-+	pci_add_resource(&resources, &hose->busn);
-+
- 	/* Create an empty bus for the toplevel */
- 	bus = pci_create_root_bus(hose->parent, hose->first_busno,
- 				  hose->ops, hose, &resources);
-@@ -1670,8 +1675,11 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
- 		of_scan_bus(node, bus);
- 	}
- 
--	if (mode == PCI_PROBE_NORMAL)
-+	if (mode == PCI_PROBE_NORMAL) {
-+		pci_bus_update_busn_res_end(bus, 255);
- 		hose->last_busno = bus->subordinate = pci_scan_child_bus(bus);
-+		pci_bus_update_busn_res_end(bus, bus->subordinate);
-+	}
- 
- 	/* Platform gets a chance to do some global fixups before
- 	 * we proceed to resource allocation
+-	yenta_fixup_parent_bridge(dev->subordinate);
+-
+ 	/* Register it with the pcmcia layer.. */
+ 	ret = pcmcia_register_socket(&socket->socket);
+ 	if (ret == 0) {
 -- 
 1.7.7
