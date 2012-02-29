@@ -1,49 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:48362 "EHLO
-	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757503Ab2B2Rvy convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 29 Feb 2012 12:51:54 -0500
-Received: by mail-lpp01m010-f46.google.com with SMTP id j13so3836362lah.19
-        for <linux-arch@vger.kernel.org>; Wed, 29 Feb 2012 09:51:53 -0800 (PST)
-MIME-Version: 1.0
-In-Reply-To: <CAB=4xhq1CPz74LchQ32oyhR1vUKjhMiTXENYbgeh=BoaYNP9JQ@mail.gmail.com>
-References: <1330140111-17201-1-git-send-email-wad@chromium.org>
-	<1330140111-17201-10-git-send-email-wad@chromium.org>
-	<20120227175407.GD10608@redhat.com>
-	<CABqD9hY1P7LfmBwQwSG7jDZmw6d_pZH4q2cZq_4ssjQUKRA32w@mail.gmail.com>
-	<20120228164335.GC3664@redhat.com>
-	<CABqD9hY7=DpxWzf3+WNsK=LuLrabf=oHxyy+CQgu0JLxZ80zPQ@mail.gmail.com>
-	<CABqD9hZ3apFGi+BmX5UNgz=NJUbTigj6acDKG=wu9rrL0wN1Ww@mail.gmail.com>
-	<20120229161437.GA3078@redhat.com>
-	<CABqD9hZLi416irXMMPmysYohrOn1gQjhjDyKTggU80Kd7ywvcA@mail.gmail.com>
-	<20120229170933.GA6149@redhat.com>
-	<CAB=4xhq1CPz74LchQ32oyhR1vUKjhMiTXENYbgeh=BoaYNP9JQ@mail.gmail.com>
-Date: Wed, 29 Feb 2012 11:51:49 -0600
-Message-ID: <CABqD9haTSHdAcGBy4kLrhAs4UFSrMPFNsLC+X-Hf5_ud2_w19Q@mail.gmail.com>
-Subject: Re: [PATCH v11 10/12] ptrace,seccomp: Add PTRACE_SECCOMP support
-From: Will Drewry <wad@chromium.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from acsinet15.oracle.com ([141.146.126.227]:29352 "EHLO
+	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S964869Ab2B2XKG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:10:06 -0500
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 06/39] PCI: add host bridge release support
+Date: Wed, 29 Feb 2012 15:07:05 -0800
+Message-ID: <1330556858-11768-7-git-send-email-yinghai@kernel.org>
+In-Reply-To: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
+References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Roland McGrath <mcgrathr@google.com>
-Cc: Oleg Nesterov <oleg@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Denys Vlasenko <dvlasenk@redhat.com>
-Message-ID: <20120229175149.TK4RF1Izr7wsi8Rtp27XUY2vw6sxhfi6NB0H6fZdUbI@z>
+To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20120229230705.qqPr8Z6NEFGhAuw1luNV4XHDpL6ibmSyA2jwNS6dpMs@z>
 
-On Wed, Feb 29, 2012 at 11:41 AM, Roland McGrath <mcgrathr@google.com> wrote:
-> I don't think TIF_NOTIFY_RESUME is apropos here.  That only triggers on
-> returning to user mode, i.e. after syscall exit.  But regardless of the
-> exact implementation details, I don't think it will be prohibitive to add
-> some means by which the fast-path can back off before actual syscall entry
-> and go to the slow path for ptrace reporting.
->
-> Since there is no strong reason to think it can't be reorganized that way
-> later, I don't see any good rationale for constraining the seccomp-filter
-> feature definition based on a plan to optimize the implementation in the
-> future.
+We need one hook to release host bridge resource that are created for host
+bridge.
 
-Sounds good to me.   I'll move to ptrace_event and save the problem of
-code organization for the future.
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ drivers/pci/host-bridge.c |    8 ++++++++
+ drivers/pci/probe.c       |    3 ++-
+ include/linux/pci.h       |    5 +++++
+ 3 files changed, 15 insertions(+), 1 deletions(-)
 
-Thanks!
+diff --git a/drivers/pci/host-bridge.c b/drivers/pci/host-bridge.c
+index 03d8db1..a710a60 100644
+--- a/drivers/pci/host-bridge.c
++++ b/drivers/pci/host-bridge.c
+@@ -27,6 +27,14 @@ static struct pci_host_bridge *find_pci_host_bridge(struct pci_dev *dev)
+ 	return to_pci_host_bridge(bus->bridge);
+ }
+ 
++void pci_set_host_bridge_release(struct pci_host_bridge *bridge,
++				 void (*release_fn)(struct pci_host_bridge *),
++				 void *release_data)
++{
++	bridge->release_fn = release_fn;
++	bridge->release_data = release_data;
++}
++
+ static bool resource_contains(struct resource *res1, struct resource *res2)
+ {
+ 	return res1->start <= res2->start && res1->end >= res2->end;
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index fb3dd4b..675d7ed 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -1136,7 +1136,8 @@ static void pci_release_bus_bridge_dev(struct device *dev)
+ {
+ 	struct pci_host_bridge *bridge = to_pci_host_bridge(dev);
+ 
+-	/* TODO: need to free window->res */
++	if (bridge->release_fn)
++		bridge->release_fn(bridge);
+ 
+ 	pci_free_resource_list(&bridge->windows);
+ 
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 310610e..d93d3ae 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -378,9 +378,14 @@ struct pci_host_bridge {
+ 	struct device dev;
+ 	struct pci_bus *bus;		/* root bus */
+ 	struct list_head windows;	/* pci_host_bridge_windows */
++	void (*release_fn)(struct pci_host_bridge *);
++	void *release_data;
+ };
+ 
+ #define	to_pci_host_bridge(n) container_of(n, struct pci_host_bridge, dev)
++void pci_set_host_bridge_release(struct pci_host_bridge *bridge,
++		     void (*release_fn)(struct pci_host_bridge *),
++		     void *release_data);
+ 
+ /*
+  * The first PCI_BRIDGE_RESOURCE_NUM PCI bus resources (those that correspond
+-- 
+1.7.7
+
