@@ -1,236 +1,120 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:25675 "EHLO
+Received: from rcsinet15.oracle.com ([148.87.113.117]:25701 "EHLO
 	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932376Ab2B2XI2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:08:28 -0500
+	with ESMTP id S932383Ab2B2XI3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:08:29 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 05/39] PCI: add generic device into pci_host_bridge struct
-Date: Wed, 29 Feb 2012 15:07:04 -0800
-Message-ID: <1330556858-11768-6-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 19/39] x86, PCI: put busn resource in pci_root_info for no_crs path
+Date: Wed, 29 Feb 2012 15:07:18 -0800
+Message-ID: <1330556858-11768-20-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120229230704.8SM193ZK7qTPLLBIy92OXGZNlftWYyp6PJFXR9UqEMw@z>
+Message-ID: <20120229230718.BQfUxleaIq8gD76xiwO3Vs3Pmy-ZvP5_sXHxuAk94I4@z>
 
-use that device for pci_root_bus bridge pointer.
-
-With that make code more simple.
-
-Also we can use pci_release_bus_bridge_dev() to release allocated
-pci_host_bridge during removing path.
-
-At last, we can use root bus bridge pointer to get host bridge pointer instead
-of going over host bridge list, so could kill that host bridge list.
+will put it in resources list and pass it for create_root_bus
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/host-bridge.c |   15 +---------
- drivers/pci/pci.h         |    2 -
- drivers/pci/probe.c       |   65 +++++++++++++++++++++++---------------------
- include/linux/pci.h       |    4 ++-
- 4 files changed, 38 insertions(+), 48 deletions(-)
+ arch/x86/pci/amd_bus.c  |    1 -
+ arch/x86/pci/bus_numa.c |   22 ++++++++++++++--------
+ arch/x86/pci/bus_numa.h |    3 +--
+ 3 files changed, 15 insertions(+), 11 deletions(-)
 
-diff --git a/drivers/pci/host-bridge.c b/drivers/pci/host-bridge.c
-index b3ddcc5..03d8db1 100644
---- a/drivers/pci/host-bridge.c
-+++ b/drivers/pci/host-bridge.c
-@@ -9,13 +9,6 @@
+diff --git a/arch/x86/pci/amd_bus.c b/arch/x86/pci/amd_bus.c
+index aff155d..03397ea 100644
+--- a/arch/x86/pci/amd_bus.c
++++ b/arch/x86/pci/amd_bus.c
+@@ -116,7 +116,6 @@ static int __init early_fill_mp_bus_info(void)
+ 		link = (reg >> 8) & 0x03;
  
- #include "pci.h"
- 
--static LIST_HEAD(pci_host_bridges);
--
--void add_to_pci_host_bridges(struct pci_host_bridge *bridge)
--{
--	list_add_tail(&bridge->list, &pci_host_bridges);
--}
--
- static struct pci_bus *find_pci_root_bus(struct pci_dev *dev)
- {
- 	struct pci_bus *bus;
-@@ -30,14 +23,8 @@ static struct pci_bus *find_pci_root_bus(struct pci_dev *dev)
- static struct pci_host_bridge *find_pci_host_bridge(struct pci_dev *dev)
- {
- 	struct pci_bus *bus = find_pci_root_bus(dev);
--	struct pci_host_bridge *bridge;
--
--	list_for_each_entry(bridge, &pci_host_bridges, list) {
--		if (bridge->bus == bus)
--			return bridge;
--	}
- 
--	return NULL;
-+	return to_pci_host_bridge(bus->bridge);
- }
- 
- static bool resource_contains(struct resource *res1, struct resource *res2)
-diff --git a/drivers/pci/pci.h b/drivers/pci/pci.h
-index c695a92..e494347 100644
---- a/drivers/pci/pci.h
-+++ b/drivers/pci/pci.h
-@@ -231,8 +231,6 @@ static inline int pci_ari_enabled(struct pci_bus *bus)
- void pci_reassigndev_resource_alignment(struct pci_dev *dev);
- extern void pci_disable_bridge_window(struct pci_dev *dev);
- 
--void add_to_pci_host_bridges(struct pci_host_bridge *bridge);
--
- /* Single Root I/O Virtualization */
- struct pci_sriov {
- 	int pos;		/* capability position */
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 89a82a3..fb3dd4b 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -421,6 +421,19 @@ static struct pci_bus * pci_alloc_bus(void)
- 	return b;
- }
- 
-+static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
-+{
-+	struct pci_host_bridge *bridge;
-+
-+	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
-+	if (bridge) {
-+		INIT_LIST_HEAD(&bridge->windows);
-+		bridge->bus = b;
-+	}
-+
-+	return bridge;
-+}
-+
- static unsigned char pcix_bus_speed[] = {
- 	PCI_SPEED_UNKNOWN,		/* 0 */
- 	PCI_SPEED_66MHz_PCIX,		/* 1 */
-@@ -1121,7 +1134,13 @@ int pci_cfg_space_size(struct pci_dev *dev)
- 
- static void pci_release_bus_bridge_dev(struct device *dev)
- {
--	kfree(dev);
-+	struct pci_host_bridge *bridge = to_pci_host_bridge(dev);
-+
-+	/* TODO: need to free window->res */
-+
-+	pci_free_resource_list(&bridge->windows);
-+
-+	kfree(bridge);
- }
- 
- struct pci_dev *alloc_pci_dev(void)
-@@ -1570,28 +1589,19 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 	int error;
- 	struct pci_host_bridge *bridge;
- 	struct pci_bus *b, *b2;
--	struct device *dev;
- 	struct pci_host_bridge_window *window, *n;
- 	struct resource *res;
- 	resource_size_t offset;
- 	char bus_addr[64];
- 	char *fmt;
- 
--	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
--	if (!bridge)
--		return NULL;
- 
- 	b = pci_alloc_bus();
- 	if (!b)
--		goto err_bus;
--
--	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
--	if (!dev)
--		goto err_dev;
-+		return NULL;
- 
- 	b->sysdata = sysdata;
- 	b->ops = ops;
--
- 	b2 = pci_find_bus(pci_domain_nr(b), bus);
- 	if (b2) {
- 		/* If we already got to this bus through a different bridge, ignore it */
-@@ -1599,13 +1609,17 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 		goto err_out;
+ 		info = alloc_pci_root_info(min_bus, max_bus, node, link);
+-		sprintf(info->name, "PCI Bus #%02x", min_bus);
  	}
  
--	dev->parent = parent;
--	dev->release = pci_release_bus_bridge_dev;
--	dev_set_name(dev, "pci%04x:%02x", pci_domain_nr(b), bus);
--	error = device_register(dev);
-+	bridge = pci_alloc_host_bridge(b);
-+	if (!bridge)
-+		goto err_out;
-+
-+	bridge->dev.parent = parent;
-+	bridge->dev.release = pci_release_bus_bridge_dev;
-+	dev_set_name(&bridge->dev, "pci%04x:%02x", pci_domain_nr(b), bus);
-+	error = device_register(&bridge->dev);
- 	if (error)
--		goto dev_reg_err;
--	b->bridge = get_device(dev);
-+		goto bridge_dev_reg_err;
-+	b->bridge = get_device(&bridge->dev);
- 	device_enable_async_suspend(b->bridge);
- 	pci_set_bus_of_node(b);
+ 	/* get the default node and link for left over res */
+diff --git a/arch/x86/pci/bus_numa.c b/arch/x86/pci/bus_numa.c
+index 772949f..b5b9d91 100644
+--- a/arch/x86/pci/bus_numa.c
++++ b/arch/x86/pci/bus_numa.c
+@@ -14,7 +14,7 @@ static struct pci_root_info *x86_find_pci_root_info(int bus)
+ 		return NULL;
  
-@@ -1624,9 +1638,6 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 	list_for_each_entry(info, &pci_root_infos, list)
+-		if (info->bus_min == bus)
++		if (info->busn.start == bus)
+ 			return info;
  
- 	b->number = b->secondary = bus;
- 
--	bridge->bus = b;
--	INIT_LIST_HEAD(&bridge->windows);
--
- 	if (parent)
- 		dev_info(parent, "PCI host bridge to bus %s\n", dev_name(&b->dev));
- 	else
-@@ -1652,25 +1663,17 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 	}
- 
- 	down_write(&pci_bus_sem);
--	add_to_pci_host_bridges(bridge);
- 	list_add_tail(&b->node, &pci_root_buses);
- 	up_write(&pci_bus_sem);
- 
- 	return b;
- 
- class_dev_reg_err:
--	device_unregister(dev);
--dev_reg_err:
--	down_write(&pci_bus_sem);
--	list_del(&bridge->list);
--	list_del(&b->node);
--	up_write(&pci_bus_sem);
-+	device_unregister(&bridge->dev);
-+bridge_dev_reg_err:
-+	kfree(bridge);
- err_out:
--	kfree(dev);
--err_dev:
- 	kfree(b);
--err_bus:
--	kfree(bridge);
  	return NULL;
+@@ -31,6 +31,8 @@ void x86_pci_root_bus_resources(int bus, struct list_head *resources)
+ 	printk(KERN_DEBUG "PCI: root bus %02x: hardware-probed resources\n",
+ 	       bus);
+ 
++	pci_add_resource(resources, &info->busn);
++
+ 	list_for_each_entry(root_res, &info->resources, list) {
+ 		struct resource *res;
+ 		struct resource *root;
+@@ -54,6 +56,7 @@ default_resources:
+ 	printk(KERN_DEBUG "PCI: root bus %02x: using default resources\n", bus);
+ 	pci_add_resource(resources, &ioport_resource);
+ 	pci_add_resource(resources, &iomem_resource);
++	pci_add_resource(resources, &busn_resource);
  }
  
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 5584aac..310610e 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -375,11 +375,13 @@ struct pci_host_bridge_window {
- };
+ struct pci_root_info __init *alloc_pci_root_info(int bus_min, int bus_max,
+@@ -66,9 +69,13 @@ struct pci_root_info __init *alloc_pci_root_info(int bus_min, int bus_max,
+ 	if (!info)
+ 		return info;
  
- struct pci_host_bridge {
--	struct list_head list;
-+	struct device dev;
- 	struct pci_bus *bus;		/* root bus */
- 	struct list_head windows;	/* pci_host_bridge_windows */
- };
- 
-+#define	to_pci_host_bridge(n) container_of(n, struct pci_host_bridge, dev)
++	sprintf(info->name, "PCI Bus #%02x", bus_min);
 +
- /*
-  * The first PCI_BRIDGE_RESOURCE_NUM PCI bus resources (those that correspond
-  * to P2P or CardBus bridge windows) go in a table.  Additional ones (for
+ 	INIT_LIST_HEAD(&info->resources);
+-	info->bus_min = bus_min;
+-	info->bus_max = bus_max;
++	info->busn.name  = info->name;
++	info->busn.start = bus_min;
++	info->busn.end   = bus_max;
++	info->busn.flags = IORESOURCE_BUS;
+ 	info->node = node;
+ 	info->link = link;
+ 
+@@ -80,14 +87,13 @@ struct pci_root_info __init *alloc_pci_root_info(int bus_min, int bus_max,
+ void print_pci_root_info(struct pci_root_info *info, char *name, bool nodelink)
+ {
+ 	struct pci_root_res *root_res;
+-	int busnum = info->bus_min;
++	int busnum = info->busn.start;
+ 
+ 	if (!nodelink)
+-		printk(KERN_DEBUG "%s: [%02x, %02x]\n", name,
+-				info->bus_min, info->bus_max);
++		printk(KERN_DEBUG "%s: %pR\n", name, &info->busn);
+ 	else
+-		printk(KERN_DEBUG "%s: [%02x, %02x] on node %x link %x\n", name,
+-			info->bus_min, info->bus_max, info->node, info->link);
++		printk(KERN_DEBUG "%s: %pR on node %x link %x\n", name,
++			&info->busn, info->node, info->link);
+ 
+ 	list_for_each_entry(root_res, &info->resources, list)
+ 		printk(KERN_DEBUG "%s: %02x %pR\n", name, busnum,
+diff --git a/arch/x86/pci/bus_numa.h b/arch/x86/pci/bus_numa.h
+index deada6a..f9919c3 100644
+--- a/arch/x86/pci/bus_numa.h
++++ b/arch/x86/pci/bus_numa.h
+@@ -13,8 +13,7 @@ struct pci_root_info {
+ 	struct list_head list;
+ 	char name[12];
+ 	struct list_head resources;
+-	int bus_min;
+-	int bus_max;
++	struct resource busn;
+ 	int node;
+ 	int link;
+ };
 -- 
 1.7.7
 
