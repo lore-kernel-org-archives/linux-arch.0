@@ -1,49 +1,129 @@
-From: Will Drewry <wad@chromium.org>
-Subject: Re: [PATCH v11 10/12] ptrace,seccomp: Add PTRACE_SECCOMP support
-Date: Wed, 29 Feb 2012 11:51:49 -0600
-Message-ID: <CABqD9haTSHdAcGBy4kLrhAs4UFSrMPFNsLC+X-Hf5_ud2_w19Q@mail.gmail.com>
-References: <1330140111-17201-1-git-send-email-wad@chromium.org>
-	<1330140111-17201-10-git-send-email-wad@chromium.org>
-	<20120227175407.GD10608@redhat.com>
-	<CABqD9hY1P7LfmBwQwSG7jDZmw6d_pZH4q2cZq_4ssjQUKRA32w@mail.gmail.com>
-	<20120228164335.GC3664@redhat.com>
-	<CABqD9hY7=DpxWzf3+WNsK=LuLrabf=oHxyy+CQgu0JLxZ80zPQ@mail.gmail.com>
-	<CABqD9hZ3apFGi+BmX5UNgz=NJUbTigj6acDKG=wu9rrL0wN1Ww@mail.gmail.com>
-	<20120229161437.GA3078@redhat.com>
-	<CABqD9hZLi416irXMMPmysYohrOn1gQjhjDyKTggU80Kd7ywvcA@mail.gmail.com>
-	<20120229170933.GA6149@redhat.com>
-	<CAB=4xhq1CPz74LchQ32oyhR1vUKjhMiTXENYbgeh=BoaYNP9JQ@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <CAB=4xhq1CPz74LchQ32oyhR1vUKjhMiTXENYbgeh=BoaYNP9JQ@mail.gmail.com>
-Sender: netdev-owner@vger.kernel.org
-To: Roland McGrath <mcgrathr@google.com>
-Cc: Oleg Nesterov <oleg@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Denys Vlasenko <dvlasenk@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 07/39] x86, PCI: break down get_current_resource()
+Date: Wed, 29 Feb 2012 15:07:06 -0800
+Message-ID: <1330556858-11768-8-git-send-email-yinghai@kernel.org>
+References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from rcsinet15.oracle.com ([148.87.113.117]:25463 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752618Ab2B2XIR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:08:17 -0500
+In-Reply-To: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-On Wed, Feb 29, 2012 at 11:41 AM, Roland McGrath <mcgrathr@google.com> =
-wrote:
-> I don't think TIF_NOTIFY_RESUME is apropos here. =A0That only trigger=
-s on
-> returning to user mode, i.e. after syscall exit. =A0But regardless of=
- the
-> exact implementation details, I don't think it will be prohibitive to=
- add
-> some means by which the fast-path can back off before actual syscall =
-entry
-> and go to the slow path for ptrace reporting.
->
-> Since there is no strong reason to think it can't be reorganized that=
- way
-> later, I don't see any good rationale for constraining the seccomp-fi=
-lter
-> feature definition based on a plan to optimize the implementation in =
-the
-> future.
+change it to probe_pci_root_info, aka only do one thing.
 
-Sounds good to me.   I'll move to ptrace_event and save the problem of
-code organization for the future.
+1. remove resource list head from pci_root_info
+2. make get_current_resources() not pass resources
+   move out add_resources calling out of yet.
+3. rename get_current_resourcs name to probe_pci_root_info
 
-Thanks!
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/x86/pci/acpi.c |   34 +++++++++++++---------------------
+ 1 files changed, 13 insertions(+), 21 deletions(-)
+
+diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
+index 304ccf0..763f7bb 100644
+--- a/arch/x86/pci/acpi.c
++++ b/arch/x86/pci/acpi.c
+@@ -12,7 +12,6 @@ struct pci_root_info {
+ 	char *name;
+ 	unsigned int res_num;
+ 	struct resource *res;
+-	struct list_head *resources;
+ 	int busnum;
+ };
+ 
+@@ -277,7 +276,8 @@ static void coalesce_windows(struct pci_root_info *info, unsigned long type)
+ 	}
+ }
+ 
+-static void add_resources(struct pci_root_info *info)
++static void add_resources(struct pci_root_info *info,
++			  struct list_head *resources)
+ {
+ 	int i;
+ 	struct resource *res, *root, *conflict;
+@@ -301,7 +301,7 @@ static void add_resources(struct pci_root_info *info)
+ 				 "ignoring host bridge window %pR (conflicts with %s %pR)\n",
+ 				 res, conflict->name, conflict);
+ 		else
+-			pci_add_resource(info->resources, res);
++			pci_add_resource(resources, res);
+ 	}
+ }
+ 
+@@ -313,41 +313,30 @@ static void free_pci_root_info(struct pci_root_info *info)
+ }
+ 
+ static void
+-get_current_resources(struct pci_root_info *info,
+-		      struct acpi_device *device, int busnum,
+-		      int domain, struct list_head *resources)
++probe_pci_root_info(struct pci_root_info *info, struct acpi_device *device,
++		    int busnum, int domain)
+ {
+ 	size_t size;
+ 
+ 	info->bridge = device;
+ 	info->res_num = 0;
+-	info->resources = resources;
+ 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_resource,
+ 				info);
+ 	if (!info->res_num)
+ 		return;
+ 
+ 	size = sizeof(*info->res) * info->res_num;
++	info->res_num = 0;
+ 	info->res = kmalloc(size, GFP_KERNEL);
+ 	if (!info->res)
+ 		return;
+ 
+ 	info->name = kasprintf(GFP_KERNEL, "PCI Bus %04x:%02x", domain, busnum);
+ 	if (!info->name)
+-		goto name_alloc_fail;
++		return;
+ 
+-	info->res_num = 0;
+ 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, setup_resource,
+ 				info);
+-
+-	if (pci_use_crs) {
+-		add_resources(info);
+-
+-		return;
+-	}
+-
+-name_alloc_fail:
+-	free_pci_root_info(info);
+ }
+ 
+ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+@@ -412,15 +401,18 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		memcpy(bus->sysdata, sd, sizeof(*sd));
+ 		kfree(sd);
+ 	} else {
+-		get_current_resources(&info, device, busnum, domain,
+-					&resources);
++		probe_pci_root_info(&info, device, busnum, domain);
+ 
+ 		/*
+ 		 * _CRS with no apertures is normal, so only fall back to
+ 		 * defaults or native bridge info if we're ignoring _CRS.
+ 		 */
+-		if (!pci_use_crs)
++		if (pci_use_crs)
++			add_resources(&info, &resources);
++		else {
++			free_pci_root_info(&info);
+ 			x86_pci_root_bus_resources(busnum, &resources);
++		}
+ 		bus = pci_create_root_bus(NULL, busnum, &pci_root_ops, sd,
+ 					  &resources);
+ 		if (bus)
+-- 
+1.7.7
