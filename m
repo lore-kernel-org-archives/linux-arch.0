@@ -1,84 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:34309 "EHLO
-	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1030554Ab2B2AMI convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 28 Feb 2012 19:12:08 -0500
-MIME-Version: 1.0
-In-Reply-To: <CAErSpo66PD3+E3ZFqp73XHabL+8GavpX97pUkd28T6KWTBH-aA@mail.gmail.com>
-References: <1330466863-28469-1-git-send-email-yinghai@kernel.org>
-	<1330466863-28469-13-git-send-email-yinghai@kernel.org>
-	<CAErSpo66PD3+E3ZFqp73XHabL+8GavpX97pUkd28T6KWTBH-aA@mail.gmail.com>
-Date: Tue, 28 Feb 2012 16:12:07 -0800
-Message-ID: <CAE9FiQWBvYZO-D+Z2zwdd0a-bkatF-0YPtmxKP4Se75vccgPrA@mail.gmail.com>
-Subject: Re: [PATCH 12/24] PCI, ia64: Register busn_res for root buses
-From: Yinghai Lu <yinghai@kernel.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from mailout2.w1.samsung.com ([210.118.77.12]:49704 "EHLO
+	mailout2.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1031085Ab2B2PEr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 10:04:47 -0500
+Date: Wed, 29 Feb 2012 16:04:15 +0100
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PATCHv7 2/9] ARM: dma-mapping: use pr_* instread of printk
+In-reply-to: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com>
+Message-ID: <1330527862-16234-3-git-send-email-m.szyprowski@samsung.com>
+MIME-version: 1.0
+Content-type: TEXT/PLAIN
+Content-transfer-encoding: 7BIT
+References: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
-Message-ID: <20120229001207.4RxBCuXAoNOZllLTP2-ttHxTwqC6hW9b_2uDdgmANt4@z>
+To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Message-ID: <20120229150415.mhOMAM-QKlU2N8VuWgasXQidTOf9U10uSAOVS1F-UYQ@z>
 
-On Tue, Feb 28, 2012 at 4:01 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
-> On Tue, Feb 28, 2012 at 3:07 PM, Yinghai Lu <yinghai@kernel.org> wrote:
->> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
->> Cc: Tony Luck <tony.luck@intel.com>
->> Cc: Fenghua Yu <fenghua.yu@intel.com>
->> Cc: linux-ia64@vger.kernel.org
->> ---
->>  arch/ia64/include/asm/pci.h |    1 +
->>  arch/ia64/pci/pci.c         |    5 +++++
->>  2 files changed, 6 insertions(+), 0 deletions(-)
->>
->> diff --git a/arch/ia64/include/asm/pci.h b/arch/ia64/include/asm/pci.h
->> index b22e5f5..6e54220 100644
->> --- a/arch/ia64/include/asm/pci.h
->> +++ b/arch/ia64/include/asm/pci.h
->> @@ -94,6 +94,7 @@ struct pci_controller {
->>
->>        unsigned int windows;
->>        struct pci_window *window;
->> +       struct resource busn;
->
-> Why do you add a new struct resource here?  Can't you just use the one
-> passed in from acpi_pci_root_add()?
+Replace all calls to printk with pr_* functions family.
 
-not quite sure about the life cycle for that object.
+Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
+Signed-off-by: Kyungmin Park <kyungmin.park@samsung.com>
+---
+ arch/arm/mm/dma-mapping.c |   16 ++++++++--------
+ 1 files changed, 8 insertions(+), 8 deletions(-)
 
->
->>
->>        void *platform_data;
->>  };
->> diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
->> index d1ce320..b250f0f 100644
->> --- a/arch/ia64/pci/pci.c
->> +++ b/arch/ia64/pci/pci.c
->> @@ -332,6 +332,7 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
->>        struct acpi_device *device = root->device;
->>        int domain = root->segment;
->>        int bus = root->secondary.start;
->> +       int busmax = root->secondary.end;
->>        struct pci_controller *controller;
->>        unsigned int windows = 0;
->>        struct pci_root_info info;
->> @@ -372,6 +373,10 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
->>                acpi_walk_resources(device->handle, METHOD_NAME__CRS,
->>                        add_window, &info);
->>        }
->> +       controller->busn.start = bus;
->> +       controller->busn.end = busmax;
->> +       conttoller->busn.flags = IORESOURCE_BUS;
->
-> Typo here - "conttoller" should be "controller".
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index 496b453..3ca9f40 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -184,14 +184,14 @@ static int __init consistent_init(void)
+ 
+ 		pud = pud_alloc(&init_mm, pgd, base);
+ 		if (!pud) {
+-			printk(KERN_ERR "%s: no pud tables\n", __func__);
++			pr_err("%s: no pud tables\n", __func__);
+ 			ret = -ENOMEM;
+ 			break;
+ 		}
+ 
+ 		pmd = pmd_alloc(&init_mm, pud, base);
+ 		if (!pmd) {
+-			printk(KERN_ERR "%s: no pmd tables\n", __func__);
++			pr_err("%s: no pmd tables\n", __func__);
+ 			ret = -ENOMEM;
+ 			break;
+ 		}
+@@ -199,7 +199,7 @@ static int __init consistent_init(void)
+ 
+ 		pte = pte_alloc_kernel(pmd, base);
+ 		if (!pte) {
+-			printk(KERN_ERR "%s: no pte tables\n", __func__);
++			pr_err("%s: no pte tables\n", __func__);
+ 			ret = -ENOMEM;
+ 			break;
+ 		}
+@@ -221,7 +221,7 @@ __dma_alloc_remap(struct page *page, size_t size, gfp_t gfp, pgprot_t prot)
+ 	int bit;
+ 
+ 	if (!consistent_pte) {
+-		printk(KERN_ERR "%s: not initialised\n", __func__);
++		pr_err("%s: not initialised\n", __func__);
+ 		dump_stack();
+ 		return NULL;
+ 	}
+@@ -280,14 +280,14 @@ static void __dma_free_remap(void *cpu_addr, size_t size)
+ 
+ 	c = arm_vmregion_find_remove(&consistent_head, (unsigned long)cpu_addr);
+ 	if (!c) {
+-		printk(KERN_ERR "%s: trying to free invalid coherent area: %p\n",
++		pr_err("%s: trying to free invalid coherent area: %p\n",
+ 		       __func__, cpu_addr);
+ 		dump_stack();
+ 		return;
+ 	}
+ 
+ 	if ((c->vm_end - c->vm_start) != size) {
+-		printk(KERN_ERR "%s: freeing wrong coherent size (%ld != %d)\n",
++		pr_err("%s: freeing wrong coherent size (%ld != %d)\n",
+ 		       __func__, c->vm_end - c->vm_start, size);
+ 		dump_stack();
+ 		size = c->vm_end - c->vm_start;
+@@ -309,8 +309,8 @@ static void __dma_free_remap(void *cpu_addr, size_t size)
+ 		}
+ 
+ 		if (pte_none(pte) || !pte_present(pte))
+-			printk(KERN_CRIT "%s: bad page in kernel page table\n",
+-			       __func__);
++			pr_crit("%s: bad page in kernel page table\n",
++				__func__);
+ 	} while (size -= PAGE_SIZE);
+ 
+ 	flush_tlb_kernel_range(c->vm_start, c->vm_end);
+-- 
+1.7.1.569.g6f426
 
-cool, sharp eyes.
-
->
->> +       pci_add_resource(&info.resources, &controller->busn);
->>        /*
->>         * See arch/x86/pci/acpi.c.
->>         * The desired pci bus might already be scanned in a quirk. We
->> --
->> 1.7.7
->>
