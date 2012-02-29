@@ -1,98 +1,148 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout2.w1.samsung.com ([210.118.77.12]:49704 "EHLO
-	mailout2.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1031085Ab2B2PEr (ORCPT
+Received: from mailout3.w1.samsung.com ([210.118.77.13]:42788 "EHLO
+	mailout3.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1031096Ab2B2PEr (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 10:04:47 -0500
-Date: Wed, 29 Feb 2012 16:04:15 +0100
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: [PATCHv7 2/9] ARM: dma-mapping: use pr_* instread of printk
-In-reply-to: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com>
-Message-ID: <1330527862-16234-3-git-send-email-m.szyprowski@samsung.com>
 MIME-version: 1.0
-Content-type: TEXT/PLAIN
 Content-transfer-encoding: 7BIT
+Content-type: TEXT/PLAIN
+Date: Wed, 29 Feb 2012 16:04:18 +0100
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PATCHv7 5/9] ARM: dma-mapping: implement dma sg methods on top of any
+ generic dma ops
+In-reply-to: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com>
+Message-ID: <1330527862-16234-6-git-send-email-m.szyprowski@samsung.com>
 References: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org
 Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Message-ID: <20120229150415.mhOMAM-QKlU2N8VuWgasXQidTOf9U10uSAOVS1F-UYQ@z>
+Message-ID: <20120229150418.bRqFoq4dywZzmoMKGoaY18FAymEu3fnJvQnDbu-tCsE@z>
 
-Replace all calls to printk with pr_* functions family.
+This patch converts all dma_sg methods to be generic (independent of the
+current DMA mapping implementation for ARM architecture). All dma sg
+operations are now implemented on top of respective
+dma_map_page/dma_sync_single_for* operations from dma_map_ops structure.
 
 Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
 Signed-off-by: Kyungmin Park <kyungmin.park@samsung.com>
 ---
- arch/arm/mm/dma-mapping.c |   16 ++++++++--------
- 1 files changed, 8 insertions(+), 8 deletions(-)
+ arch/arm/mm/dma-mapping.c |   43 +++++++++++++++++++------------------------
+ 1 files changed, 19 insertions(+), 24 deletions(-)
 
 diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index 496b453..3ca9f40 100644
+index cd5ed8d..a5a0b5b 100644
 --- a/arch/arm/mm/dma-mapping.c
 +++ b/arch/arm/mm/dma-mapping.c
-@@ -184,14 +184,14 @@ static int __init consistent_init(void)
+@@ -616,7 +616,7 @@ void ___dma_page_dev_to_cpu(struct page *page, unsigned long off,
+ EXPORT_SYMBOL(___dma_page_dev_to_cpu);
  
- 		pud = pud_alloc(&init_mm, pgd, base);
- 		if (!pud) {
--			printk(KERN_ERR "%s: no pud tables\n", __func__);
-+			pr_err("%s: no pud tables\n", __func__);
- 			ret = -ENOMEM;
- 			break;
- 		}
+ /**
+- * dma_map_sg - map a set of SG buffers for streaming mode DMA
++ * arm_dma_map_sg - map a set of SG buffers for streaming mode DMA
+  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
+  * @sg: list of buffers
+  * @nents: number of buffers to map
+@@ -634,12 +634,13 @@ EXPORT_SYMBOL(___dma_page_dev_to_cpu);
+ int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
+ 		enum dma_data_direction dir, struct dma_attrs *attrs)
+ {
++	struct dma_map_ops *ops = get_dma_ops(dev);
+ 	struct scatterlist *s;
+ 	int i, j;
  
- 		pmd = pmd_alloc(&init_mm, pud, base);
- 		if (!pmd) {
--			printk(KERN_ERR "%s: no pmd tables\n", __func__);
-+			pr_err("%s: no pmd tables\n", __func__);
- 			ret = -ENOMEM;
- 			break;
- 		}
-@@ -199,7 +199,7 @@ static int __init consistent_init(void)
- 
- 		pte = pte_alloc_kernel(pmd, base);
- 		if (!pte) {
--			printk(KERN_ERR "%s: no pte tables\n", __func__);
-+			pr_err("%s: no pte tables\n", __func__);
- 			ret = -ENOMEM;
- 			break;
- 		}
-@@ -221,7 +221,7 @@ __dma_alloc_remap(struct page *page, size_t size, gfp_t gfp, pgprot_t prot)
- 	int bit;
- 
- 	if (!consistent_pte) {
--		printk(KERN_ERR "%s: not initialised\n", __func__);
-+		pr_err("%s: not initialised\n", __func__);
- 		dump_stack();
- 		return NULL;
+ 	for_each_sg(sg, s, nents, i) {
+-		s->dma_address = __dma_map_page(dev, sg_page(s), s->offset,
+-						s->length, dir);
++		s->dma_address = ops->map_page(dev, sg_page(s), s->offset,
++						s->length, dir, attrs);
+ 		if (dma_mapping_error(dev, s->dma_address))
+ 			goto bad_mapping;
  	}
-@@ -280,14 +280,14 @@ static void __dma_free_remap(void *cpu_addr, size_t size)
+@@ -647,12 +648,12 @@ int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
  
- 	c = arm_vmregion_find_remove(&consistent_head, (unsigned long)cpu_addr);
- 	if (!c) {
--		printk(KERN_ERR "%s: trying to free invalid coherent area: %p\n",
-+		pr_err("%s: trying to free invalid coherent area: %p\n",
- 		       __func__, cpu_addr);
- 		dump_stack();
- 		return;
- 	}
+  bad_mapping:
+ 	for_each_sg(sg, s, i, j)
+-		__dma_unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir);
++		ops->unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir, attrs);
+ 	return 0;
+ }
  
- 	if ((c->vm_end - c->vm_start) != size) {
--		printk(KERN_ERR "%s: freeing wrong coherent size (%ld != %d)\n",
-+		pr_err("%s: freeing wrong coherent size (%ld != %d)\n",
- 		       __func__, c->vm_end - c->vm_start, size);
- 		dump_stack();
- 		size = c->vm_end - c->vm_start;
-@@ -309,8 +309,8 @@ static void __dma_free_remap(void *cpu_addr, size_t size)
- 		}
+ /**
+- * dma_unmap_sg - unmap a set of SG buffers mapped by dma_map_sg
++ * arm_dma_unmap_sg - unmap a set of SG buffers mapped by dma_map_sg
+  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
+  * @sg: list of buffers
+  * @nents: number of buffers to unmap (same as was passed to dma_map_sg)
+@@ -664,15 +665,17 @@ int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
+ void arm_dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nents,
+ 		enum dma_data_direction dir, struct dma_attrs *attrs)
+ {
++	struct dma_map_ops *ops = get_dma_ops(dev);
+ 	struct scatterlist *s;
++
+ 	int i;
  
- 		if (pte_none(pte) || !pte_present(pte))
--			printk(KERN_CRIT "%s: bad page in kernel page table\n",
--			       __func__);
-+			pr_crit("%s: bad page in kernel page table\n",
-+				__func__);
- 	} while (size -= PAGE_SIZE);
+ 	for_each_sg(sg, s, nents, i)
+-		__dma_unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir);
++		ops->unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir, attrs);
+ }
  
- 	flush_tlb_kernel_range(c->vm_start, c->vm_end);
+ /**
+- * dma_sync_sg_for_cpu
++ * arm_dma_sync_sg_for_cpu
+  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
+  * @sg: list of buffers
+  * @nents: number of buffers to map (returned from dma_map_sg)
+@@ -681,21 +684,17 @@ void arm_dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nents,
+ void arm_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
+ 			int nents, enum dma_data_direction dir)
+ {
++	struct dma_map_ops *ops = get_dma_ops(dev);
+ 	struct scatterlist *s;
+ 	int i;
+ 
+-	for_each_sg(sg, s, nents, i) {
+-		if (!dmabounce_sync_for_cpu(dev, sg_dma_address(s),
+-					    sg_dma_len(s), dir))
+-			continue;
+-
+-		__dma_page_dev_to_cpu(sg_page(s), s->offset,
+-				      s->length, dir);
+-	}
++	for_each_sg(sg, s, nents, i)
++		ops->sync_single_for_cpu(dev, sg_dma_address(s), s->length,
++					 dir);
+ }
+ 
+ /**
+- * dma_sync_sg_for_device
++ * arm_dma_sync_sg_for_device
+  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
+  * @sg: list of buffers
+  * @nents: number of buffers to map (returned from dma_map_sg)
+@@ -704,17 +703,13 @@ void arm_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
+ void arm_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+ 			int nents, enum dma_data_direction dir)
+ {
++	struct dma_map_ops *ops = get_dma_ops(dev);
+ 	struct scatterlist *s;
+ 	int i;
+ 
+-	for_each_sg(sg, s, nents, i) {
+-		if (!dmabounce_sync_for_device(dev, sg_dma_address(s),
+-					sg_dma_len(s), dir))
+-			continue;
+-
+-		__dma_page_cpu_to_dev(sg_page(s), s->offset,
+-				      s->length, dir);
+-	}
++	for_each_sg(sg, s, nents, i)
++		ops->sync_single_for_device(dev, sg_dma_address(s), s->length,
++					    dir);
+ }
+ 
+ /*
 -- 
 1.7.1.569.g6f426
 
