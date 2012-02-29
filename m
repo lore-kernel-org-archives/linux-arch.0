@@ -1,129 +1,104 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 07/39] x86, PCI: break down get_current_resource()
-Date: Wed, 29 Feb 2012 15:07:06 -0800
-Message-ID: <1330556858-11768-8-git-send-email-yinghai@kernel.org>
-References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 00/39] PCI: pci_host_bridge related cleanup and busn_alloc
+Date: Wed, 29 Feb 2012 15:06:59 -0800
+Message-ID: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:25463 "EHLO
+Received: from rcsinet15.oracle.com ([148.87.113.117]:25464 "EHLO
 	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752618Ab2B2XIR (ORCPT
+	with ESMTP id S1752770Ab2B2XIR (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:08:17 -0500
-In-Reply-To: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-change it to probe_pci_root_info, aka only do one thing.
+The first 14 patches are hostbridge clean up.
+will add struct device dev into host_bridge struct.
+also will add release support to make sure allocated resource get
+freed during root bus removal including hostbridge and pci_sysdata.
 
-1. remove resource list head from pci_root_info
-2. make get_current_resources() not pass resources
-   move out add_resources calling out of yet.
-3. rename get_current_resourcs name to probe_pci_root_info
+others 25 patches are busn_alloc related.
+Set up iobusn_resource tree, and register bus number range to it.
+Later when need to find bus range, will try to allocate from the tree
+Need to test on arches other than x86. esp for ia64 and powerpc that support
+  more than on peer root buses.
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- arch/x86/pci/acpi.c |   34 +++++++++++++---------------------
- 1 files changed, 13 insertions(+), 21 deletions(-)
+The patches need to apply to pci/for-linus and pci/linux-next
+because one patch that is needed only is only in pci/for-linus
 
-diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
-index 304ccf0..763f7bb 100644
---- a/arch/x86/pci/acpi.c
-+++ b/arch/x86/pci/acpi.c
-@@ -12,7 +12,6 @@ struct pci_root_info {
- 	char *name;
- 	unsigned int res_num;
- 	struct resource *res;
--	struct list_head *resources;
- 	int busnum;
- };
- 
-@@ -277,7 +276,8 @@ static void coalesce_windows(struct pci_root_info *info, unsigned long type)
- 	}
- }
- 
--static void add_resources(struct pci_root_info *info)
-+static void add_resources(struct pci_root_info *info,
-+			  struct list_head *resources)
- {
- 	int i;
- 	struct resource *res, *root, *conflict;
-@@ -301,7 +301,7 @@ static void add_resources(struct pci_root_info *info)
- 				 "ignoring host bridge window %pR (conflicts with %s %pR)\n",
- 				 res, conflict->name, conflict);
- 		else
--			pci_add_resource(info->resources, res);
-+			pci_add_resource(resources, res);
- 	}
- }
- 
-@@ -313,41 +313,30 @@ static void free_pci_root_info(struct pci_root_info *info)
- }
- 
- static void
--get_current_resources(struct pci_root_info *info,
--		      struct acpi_device *device, int busnum,
--		      int domain, struct list_head *resources)
-+probe_pci_root_info(struct pci_root_info *info, struct acpi_device *device,
-+		    int busnum, int domain)
- {
- 	size_t size;
- 
- 	info->bridge = device;
- 	info->res_num = 0;
--	info->resources = resources;
- 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_resource,
- 				info);
- 	if (!info->res_num)
- 		return;
- 
- 	size = sizeof(*info->res) * info->res_num;
-+	info->res_num = 0;
- 	info->res = kmalloc(size, GFP_KERNEL);
- 	if (!info->res)
- 		return;
- 
- 	info->name = kasprintf(GFP_KERNEL, "PCI Bus %04x:%02x", domain, busnum);
- 	if (!info->name)
--		goto name_alloc_fail;
-+		return;
- 
--	info->res_num = 0;
- 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, setup_resource,
- 				info);
--
--	if (pci_use_crs) {
--		add_resources(info);
--
--		return;
--	}
--
--name_alloc_fail:
--	free_pci_root_info(info);
- }
- 
- struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
-@@ -412,15 +401,18 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
- 		memcpy(bus->sysdata, sd, sizeof(*sd));
- 		kfree(sd);
- 	} else {
--		get_current_resources(&info, device, busnum, domain,
--					&resources);
-+		probe_pci_root_info(&info, device, busnum, domain);
- 
- 		/*
- 		 * _CRS with no apertures is normal, so only fall back to
- 		 * defaults or native bridge info if we're ignoring _CRS.
- 		 */
--		if (!pci_use_crs)
-+		if (pci_use_crs)
-+			add_resources(&info, &resources);
-+		else {
-+			free_pci_root_info(&info);
- 			x86_pci_root_bus_resources(busnum, &resources);
-+		}
- 		bus = pci_create_root_bus(NULL, busnum, &pci_root_ops, sd,
- 					  &resources);
- 		if (bus)
+could get from
+        git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/linux-yinghai.git for-pci-next
+
+please put them into pci/linux-next branch for more testing.
+
+Thanks
+
+Yinghai
+
+Yinghai Lu (39):
+  PCI: Separate host_bridge code out from probe.c
+  x86, PCI: have own version for pcibios_bus_to_resource
+  x86, PCI: Fix memleak with get_current_resources
+  PCI: rename pci_host_bridge() to find_pci_root_bridge()
+  PCI: add generic device into pci_host_bridge struct
+  PCI: add host bridge release support
+  x86, PCI: break down get_current_resource()
+  x86, PCI: add host bridge resource release for using _CRS
+  x86, PCI: embed name acpi version pci_root_info struct
+  x86, PCI: embed pci_sysdata into pci_root_info on acpi path
+  x86, PCI: Allocating pci_root_info for not using _CRS path
+  x86, PCI: Merge root info printing for nocrs path
+  x86, PCI: add print all root info for nocrs path
+  x86, PCI: allocate temp range array in amd_bus pci_root_info probing
+  x86, PCI: Merge pcibios_scan_root and pci_scan_bus_on_node
+  PCI: skip busn resource at first.
+  x86, PCI: put busn resource in pci_root_info for acpi path
+  PCI: default busn_resource
+  x86, PCI: put busn resource in pci_root_info for no_crs path
+  PCI: Add busn_res into struct pci_bus.
+  PCI: Add busn_res operation functions
+  PCI: release busn when removing bus
+  PCI: insert busn_res in pci_create_root_bus
+  PCI: checking busn_res in pci_scan_root_bus
+  PCI: add default res for pci_scan_bus
+  PCI, ia64: Register busn_res for root buses
+  PCI, sparc: Register busn_res for root buses
+  PCI, powerpc: Register busn_res for root buses
+  PCI, parisc: Register busn_res for root buses
+  PCI: Add pci_bus_extend/shrink_top()
+  PCI: Probe safe range that we can use for unassigned bridge.
+  PCI: Strict checking of valid range for bridge
+  PCI: Allocate bus range instead of use max blindly
+  PCI: kill pci_fixup_parent_subordinate_busnr()
+  PCI: Seperate child bus scanning to two passes overall
+  pcmcia: remove workaround for fixing pci parent bus subordinate
+  PCI: Double checking setting for bus register and bus struct.
+  PCI, pciehp: Remove not needed bus number range checking
+  x86, PCI: kill busn in acpi pci_root_info
+
+ arch/ia64/pci/pci.c                   |    2 +
+ arch/powerpc/include/asm/pci-bridge.h |    1 +
+ arch/powerpc/kernel/pci-common.c      |   10 +-
+ arch/sparc/kernel/pci.c               |    4 +
+ arch/sparc/kernel/pci_impl.h          |    1 +
+ arch/x86/pci/acpi.c                   |  121 ++++---
+ arch/x86/pci/amd_bus.c                |   88 ++----
+ arch/x86/pci/broadcom_bus.c           |   17 +-
+ arch/x86/pci/bus_numa.c               |  100 +++++--
+ arch/x86/pci/bus_numa.h               |   23 +-
+ arch/x86/pci/common.c                 |   27 +--
+ arch/x86/pci/i386.c                   |   14 +
+ drivers/parisc/dino.c                 |    5 +
+ drivers/parisc/lba_pci.c              |    3 +
+ drivers/pci/Makefile                  |    2 +-
+ drivers/pci/host-bridge.c             |   97 ++++++
+ drivers/pci/hotplug/pciehp_pci.c      |   12 +-
+ drivers/pci/probe.c                   |  601 ++++++++++++++++++++++-----------
+ drivers/pci/remove.c                  |    1 +
+ drivers/pcmcia/yenta_socket.c         |   75 ----
+ include/linux/pci.h                   |   15 +-
+ 21 files changed, 767 insertions(+), 452 deletions(-)
+ create mode 100644 drivers/pci/host-bridge.c
+
 -- 
 1.7.7
