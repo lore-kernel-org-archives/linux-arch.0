@@ -1,323 +1,98 @@
-From: Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-Subject: [PATCHv7 8/9] ARM: dma-mapping: use alloc, mmap, free from dma_ops
-Date: Wed, 29 Feb 2012 16:04:21 +0100
-Message-ID: <1330527862-16234-9-git-send-email-m.szyprowski@samsung.com>
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PATCHv7 1/9] ARM: dma-mapping: introduce ARM_DMA_ERROR constant
+Date: Wed, 29 Feb 2012 16:04:14 +0100
+Message-ID: <1330527862-16234-2-git-send-email-m.szyprowski@samsung.com>
 References: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-reply-to: <1330527862-16234-1-git-send-email-m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-samsung-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Cc: Shariq Hasnain <shariq.hasnain-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Krishna Reddy <vdumpa-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, Kyungmin Park <kyungmin.park-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Andrzej Pietrasiewicz <andrzej.p-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Russell King - ARM Linux <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, KyongHo Cho <pullip.cho-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Chunsang Jeong <chunsang.jeong-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailout4.w1.samsung.com ([210.118.77.14]:65123 "EHLO
+	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1031085Ab2B2PEt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 10:04:49 -0500
+In-reply-to: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
 
-This patch converts dma_alloc/free/mmap_{coherent,writecombine}
-functions to use generic alloc/free/mmap methods from dma_map_ops
-structure. A new DMA_ATTR_WRITE_COMBINE DMA attribute have been
-introduced to implement writecombine methods.
+Replace all uses of ~0 with ARM_DMA_ERROR, what should make the code
+easier to read.
 
-Signed-off-by: Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-Signed-off-by: Kyungmin Park <kyungmin.park-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
+Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
+Signed-off-by: Kyungmin Park <kyungmin.park@samsung.com>
 ---
- arch/arm/common/dmabounce.c        |    3 +
- arch/arm/include/asm/dma-mapping.h |  107 ++++++++++++++++++++++++++----------
- arch/arm/mm/dma-mapping.c          |   53 ++++++------------
- 3 files changed, 98 insertions(+), 65 deletions(-)
+ arch/arm/common/dmabounce.c        |    6 +++---
+ arch/arm/include/asm/dma-mapping.h |    4 +++-
+ arch/arm/mm/dma-mapping.c          |    2 +-
+ 3 files changed, 7 insertions(+), 5 deletions(-)
 
 diff --git a/arch/arm/common/dmabounce.c b/arch/arm/common/dmabounce.c
-index 119f487..dbae5ad 100644
+index 595ecd29..a1abdc9 100644
 --- a/arch/arm/common/dmabounce.c
 +++ b/arch/arm/common/dmabounce.c
-@@ -449,6 +449,9 @@ static int dmabounce_set_mask(struct device *dev, u64 dma_mask)
- }
+@@ -254,7 +254,7 @@ static inline dma_addr_t map_single(struct device *dev, void *ptr, size_t size,
+ 	if (buf == NULL) {
+ 		dev_err(dev, "%s: unable to map unsafe buffer %p!\n",
+ 		       __func__, ptr);
+-		return ~0;
++		return ARM_DMA_ERROR;
+ 	}
  
- static struct dma_map_ops dmabounce_ops = {
-+	.alloc			= arm_dma_alloc,
-+	.free			= arm_dma_free,
-+	.mmap			= arm_dma_mmap,
- 	.map_page		= dmabounce_map_page,
- 	.unmap_page		= dmabounce_unmap_page,
- 	.sync_single_for_cpu	= dmabounce_sync_for_cpu,
+ 	dev_dbg(dev, "%s: unsafe buffer %p (dma=%#x) mapped to %p (dma=%#x)\n",
+@@ -320,7 +320,7 @@ dma_addr_t __dma_map_page(struct device *dev, struct page *page,
+ 
+ 	ret = needs_bounce(dev, dma_addr, size);
+ 	if (ret < 0)
+-		return ~0;
++		return ARM_DMA_ERROR;
+ 
+ 	if (ret == 0) {
+ 		__dma_page_cpu_to_dev(page, offset, size, dir);
+@@ -329,7 +329,7 @@ dma_addr_t __dma_map_page(struct device *dev, struct page *page,
+ 
+ 	if (PageHighMem(page)) {
+ 		dev_err(dev, "DMA buffer bouncing of HIGHMEM pages is not supported\n");
+-		return ~0;
++		return ARM_DMA_ERROR;
+ 	}
+ 
+ 	return map_single(dev, page_address(page) + offset, size, dir);
 diff --git a/arch/arm/include/asm/dma-mapping.h b/arch/arm/include/asm/dma-mapping.h
-index 266cba6..4342b75 100644
+index cb3b7c9..6ba92f9 100644
 --- a/arch/arm/include/asm/dma-mapping.h
 +++ b/arch/arm/include/asm/dma-mapping.h
-@@ -5,6 +5,7 @@
- 
- #include <linux/mm_types.h>
- #include <linux/scatterlist.h>
-+#include <linux/dma-attrs.h>
- #include <linux/dma-debug.h>
- 
+@@ -10,6 +10,8 @@
  #include <asm-generic/dma-coherent.h>
-@@ -110,68 +111,115 @@ static inline void dma_free_noncoherent(struct device *dev, size_t size,
- extern int dma_supported(struct device *dev, u64 mask);
+ #include <asm/memory.h>
  
- /**
-- * dma_alloc_coherent - allocate consistent memory for DMA
-+ * arm_dma_alloc - allocate consistent memory for DMA
-  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-  * @size: required memory size
-  * @handle: bus-specific DMA address
-+ * @attrs: optinal attributes that specific mapping properties
-  *
-- * Allocate some uncached, unbuffered memory for a device for
-- * performing DMA.  This function allocates pages, and will
-- * return the CPU-viewed address, and sets @handle to be the
-- * device-viewed address.
-+ * Allocate some memory for a device for performing DMA.  This function
-+ * allocates pages, and will return the CPU-viewed address, and sets @handle
-+ * to be the device-viewed address.
++#define ARM_DMA_ERROR	~0
++
+ #ifdef __arch_page_to_dma
+ #error Please update to __arch_pfn_to_dma
+ #endif
+@@ -123,7 +125,7 @@ extern int dma_set_mask(struct device *, u64);
   */
--extern void *dma_alloc_coherent(struct device *, size_t, dma_addr_t *, gfp_t);
-+extern void *arm_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
-+			   gfp_t gfp, struct dma_attrs *attrs);
-+
-+#define dma_alloc_coherent(d,s,h,f) dma_alloc_attrs(d,s,h,f,NULL)
-+
-+static inline void *dma_alloc_attrs(struct device *dev, size_t size,
-+				       dma_addr_t *dma_handle, gfp_t flag,
-+				       struct dma_attrs *attrs)
-+{
-+	struct dma_map_ops *ops = get_dma_ops(dev);
-+	void *cpu_addr;
-+	BUG_ON(!ops);
-+
-+	cpu_addr = ops->alloc(dev, size, dma_handle, flag, attrs);
-+	debug_dma_alloc_coherent(dev, size, *dma_handle, cpu_addr);
-+	return cpu_addr;
-+}
- 
- /**
-- * dma_free_coherent - free memory allocated by dma_alloc_coherent
-+ * arm_dma_free - free memory allocated by arm_dma_alloc
-  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-  * @size: size of memory originally requested in dma_alloc_coherent
-  * @cpu_addr: CPU-view address returned from dma_alloc_coherent
-  * @handle: device-view address returned from dma_alloc_coherent
-+ * @attrs: optinal attributes that specific mapping properties
-  *
-  * Free (and unmap) a DMA buffer previously allocated by
-- * dma_alloc_coherent().
-+ * arm_dma_alloc().
-  *
-  * References to memory and mappings associated with cpu_addr/handle
-  * during and after this call executing are illegal.
-  */
--extern void dma_free_coherent(struct device *, size_t, void *, dma_addr_t);
-+extern void arm_dma_free(struct device *dev, size_t size, void *cpu_addr,
-+			 dma_addr_t handle, struct dma_attrs *attrs);
-+
-+#define dma_free_coherent(d,s,c,h) dma_free_attrs(d,s,c,h,NULL)
-+
-+static inline void dma_free_attrs(struct device *dev, size_t size,
-+				     void *cpu_addr, dma_addr_t dma_handle,
-+				     struct dma_attrs *attrs)
-+{
-+	struct dma_map_ops *ops = get_dma_ops(dev);
-+	BUG_ON(!ops);
-+
-+	debug_dma_free_coherent(dev, size, cpu_addr, dma_handle);
-+	ops->free(dev, size, cpu_addr, dma_handle, attrs);
-+}
- 
- /**
-- * dma_mmap_coherent - map a coherent DMA allocation into user space
-+ * arm_dma_mmap - map a coherent DMA allocation into user space
-  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-  * @vma: vm_area_struct describing requested user mapping
-  * @cpu_addr: kernel CPU-view address returned from dma_alloc_coherent
-  * @handle: device-view address returned from dma_alloc_coherent
-  * @size: size of memory originally requested in dma_alloc_coherent
-+ * @attrs: optinal attributes that specific mapping properties
-  *
-  * Map a coherent DMA buffer previously allocated by dma_alloc_coherent
-  * into user space.  The coherent DMA buffer must not be freed by the
-  * driver until the user space mapping has been released.
-  */
--int dma_mmap_coherent(struct device *, struct vm_area_struct *,
--		void *, dma_addr_t, size_t);
-+extern int arm_dma_mmap(struct device *dev, struct vm_area_struct *vma,
-+			void *cpu_addr, dma_addr_t dma_addr, size_t size,
-+			struct dma_attrs *attrs);
- 
-+#define dma_mmap_coherent(d,v,c,h,s) dma_mmap_attrs(d,v,c,h,s,NULL)
- 
--/**
-- * dma_alloc_writecombine - allocate writecombining memory for DMA
-- * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-- * @size: required memory size
-- * @handle: bus-specific DMA address
-- *
-- * Allocate some uncached, buffered memory for a device for
-- * performing DMA.  This function allocates pages, and will
-- * return the CPU-viewed address, and sets @handle to be the
-- * device-viewed address.
-- */
--extern void *dma_alloc_writecombine(struct device *, size_t, dma_addr_t *,
--		gfp_t);
-+static inline int dma_mmap_attrs(struct device *dev, struct vm_area_struct *vma,
-+				  void *cpu_addr, dma_addr_t dma_addr,
-+				  size_t size, struct dma_attrs *attrs)
-+{
-+	struct dma_map_ops *ops = get_dma_ops(dev);
-+	BUG_ON(!ops);
-+	return ops->mmap(dev, vma, cpu_addr, dma_addr, size, attrs);
-+}
- 
--#define dma_free_writecombine(dev,size,cpu_addr,handle) \
--	dma_free_coherent(dev,size,cpu_addr,handle)
-+static inline void *dma_alloc_writecombine(struct device *dev, size_t size,
-+				       dma_addr_t *dma_handle, gfp_t flag)
-+{
-+	DEFINE_DMA_ATTRS(attrs);
-+	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
-+	return dma_alloc_attrs(dev, size, dma_handle, flag, &attrs);
-+}
- 
--int dma_mmap_writecombine(struct device *, struct vm_area_struct *,
--		void *, dma_addr_t, size_t);
-+static inline void dma_free_writecombine(struct device *dev, size_t size,
-+				     void *cpu_addr, dma_addr_t dma_handle)
-+{
-+	DEFINE_DMA_ATTRS(attrs);
-+	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
-+	return dma_free_attrs(dev, size, cpu_addr, dma_handle, &attrs);
-+}
-+
-+static inline int dma_mmap_writecombine(struct device *dev, struct vm_area_struct *vma,
-+		      void *cpu_addr, dma_addr_t dma_addr, size_t size)
-+{
-+	DEFINE_DMA_ATTRS(attrs);
-+	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
-+	return dma_mmap_attrs(dev, vma, cpu_addr, dma_addr, size, &attrs);
-+}
+ static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+ {
+-	return dma_addr == ~0;
++	return dma_addr == ARM_DMA_ERROR;
+ }
  
  /*
-  * This can be called during boot to increase the size of the consistent
-@@ -180,7 +228,6 @@ int dma_mmap_writecombine(struct device *, struct vm_area_struct *,
-  */
- extern void __init init_consistent_dma_size(unsigned long size);
- 
--
- /*
-  * For SA-1111, IXP425, and ADI systems  the dma-mapping functions are "magic"
-  * and utilize bounce buffers as needed to work around limited DMA windows.
 diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index cd54b2d..67fe7e2 100644
+index 1aa664a..496b453 100644
 --- a/arch/arm/mm/dma-mapping.c
 +++ b/arch/arm/mm/dma-mapping.c
-@@ -113,6 +113,9 @@ static void arm_dma_sync_single_for_device(struct device *dev,
- static int arm_dma_set_mask(struct device *dev, u64 dma_mask);
+@@ -341,7 +341,7 @@ __dma_alloc(struct device *dev, size_t size, dma_addr_t *handle, gfp_t gfp,
+ 	 */
+ 	gfp &= ~(__GFP_COMP);
  
- struct dma_map_ops arm_dma_ops = {
-+	.alloc			= arm_dma_alloc,
-+	.free			= arm_dma_free,
-+	.mmap			= arm_dma_mmap,
- 	.map_page		= arm_dma_map_page,
- 	.unmap_page		= arm_dma_unmap_page,
- 	.map_sg			= arm_dma_map_sg,
-@@ -461,33 +464,26 @@ __dma_alloc(struct device *dev, size_t size, dma_addr_t *handle, gfp_t gfp,
-  * Allocate DMA-coherent memory space and return both the kernel remapped
-  * virtual and bus address for that space.
-  */
--void *
--dma_alloc_coherent(struct device *dev, size_t size, dma_addr_t *handle, gfp_t gfp)
-+void *arm_dma_alloc(struct device *dev, size_t size, dma_addr_t *handle,
-+		    gfp_t gfp, struct dma_attrs *attrs)
- {
-+	pgprot_t prot = dma_get_attr(DMA_ATTR_WRITE_COMBINE, attrs) ?
-+			pgprot_writecombine(pgprot_kernel) :
-+			pgprot_dmacoherent(pgprot_kernel);
- 	void *memory;
+-	*handle = ~0;
++	*handle = ARM_DMA_ERROR;
+ 	size = PAGE_ALIGN(size);
  
- 	if (dma_alloc_from_coherent(dev, size, handle, &memory))
- 		return memory;
- 
--	return __dma_alloc(dev, size, handle, gfp,
--			   pgprot_dmacoherent(pgprot_kernel));
-+	return __dma_alloc(dev, size, handle, gfp, prot);
- }
--EXPORT_SYMBOL(dma_alloc_coherent);
- 
- /*
-- * Allocate a writecombining region, in much the same way as
-- * dma_alloc_coherent above.
-+ * Create userspace mapping for the DMA-coherent memory.
-  */
--void *
--dma_alloc_writecombine(struct device *dev, size_t size, dma_addr_t *handle, gfp_t gfp)
--{
--	return __dma_alloc(dev, size, handle, gfp,
--			   pgprot_writecombine(pgprot_kernel));
--}
--EXPORT_SYMBOL(dma_alloc_writecombine);
--
--static int dma_mmap(struct device *dev, struct vm_area_struct *vma,
--		    void *cpu_addr, dma_addr_t dma_addr, size_t size)
-+int arm_dma_mmap(struct device *dev, struct vm_area_struct *vma,
-+		 void *cpu_addr, dma_addr_t dma_addr, size_t size,
-+		 struct dma_attrs *attrs)
- {
- 	int ret = -ENXIO;
- #ifdef CONFIG_MMU
-@@ -495,6 +491,9 @@ static int dma_mmap(struct device *dev, struct vm_area_struct *vma,
- 	struct arm_vmregion *c;
- 
- 	user_size = (vma->vm_end - vma->vm_start) >> PAGE_SHIFT;
-+	vma->vm_page_prot = dma_get_attr(DMA_ATTR_WRITE_COMBINE, attrs) ?
-+			    pgprot_writecombine(vma->vm_page_prot) :
-+			    pgprot_dmacoherent(vma->vm_page_prot);
- 
- 	c = arm_vmregion_find(&consistent_head, (unsigned long)cpu_addr);
- 	if (c) {
-@@ -515,27 +514,12 @@ static int dma_mmap(struct device *dev, struct vm_area_struct *vma,
- 	return ret;
- }
- 
--int dma_mmap_coherent(struct device *dev, struct vm_area_struct *vma,
--		      void *cpu_addr, dma_addr_t dma_addr, size_t size)
--{
--	vma->vm_page_prot = pgprot_dmacoherent(vma->vm_page_prot);
--	return dma_mmap(dev, vma, cpu_addr, dma_addr, size);
--}
--EXPORT_SYMBOL(dma_mmap_coherent);
--
--int dma_mmap_writecombine(struct device *dev, struct vm_area_struct *vma,
--			  void *cpu_addr, dma_addr_t dma_addr, size_t size)
--{
--	vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
--	return dma_mmap(dev, vma, cpu_addr, dma_addr, size);
--}
--EXPORT_SYMBOL(dma_mmap_writecombine);
--
- /*
-  * free a page as defined by the above mapping.
-  * Must not be called with IRQs disabled.
-  */
--void dma_free_coherent(struct device *dev, size_t size, void *cpu_addr, dma_addr_t handle)
-+void arm_dma_free(struct device *dev, size_t size, void *cpu_addr,
-+		  dma_addr_t handle, struct dma_attrs *attrs)
- {
- 	WARN_ON(irqs_disabled());
- 
-@@ -549,7 +533,6 @@ void dma_free_coherent(struct device *dev, size_t size, void *cpu_addr, dma_addr
- 
- 	__dma_free_buffer(pfn_to_page(dma_to_pfn(dev, handle)), size);
- }
--EXPORT_SYMBOL(dma_free_coherent);
- 
- static void dma_cache_maint_page(struct page *page, unsigned long offset,
- 	size_t size, enum dma_data_direction dir,
+ 	page = __dma_alloc_buffer(dev, size, gfp);
 -- 
 1.7.1.569.g6f426
