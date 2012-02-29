@@ -1,83 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:25695 "EHLO
+Received: from rcsinet15.oracle.com ([148.87.113.117]:25500 "EHLO
 	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932381Ab2B2XI2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:08:28 -0500
+	with ESMTP id S1756889Ab2B2XIT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:08:19 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 04/39] PCI: rename pci_host_bridge() to find_pci_root_bridge()
-Date: Wed, 29 Feb 2012 15:07:03 -0800
-Message-ID: <1330556858-11768-5-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 10/39] x86, PCI: embed pci_sysdata into pci_root_info on acpi path
+Date: Wed, 29 Feb 2012 15:07:09 -0800
+Message-ID: <1330556858-11768-11-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120229230703.86PWIMpN9nfRG8doyBIkWyCVieM_1_OgCK8Y7ETijmY@z>
+Message-ID: <20120229230709.jWFY4Syr4qkvT70o3Yr92-4WM7Gaj5mOJDjCeW4VEPA@z>
 
-Separate find_pci_root_bus out.
-
--v2: according to Bjorn, remove extra null checking.
+So that part memory will be released on remove path.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/host-bridge.c |   18 +++++++++++++-----
- 1 files changed, 13 insertions(+), 5 deletions(-)
+ arch/x86/pci/acpi.c |   21 ++++-----------------
+ 1 files changed, 4 insertions(+), 17 deletions(-)
 
-diff --git a/drivers/pci/host-bridge.c b/drivers/pci/host-bridge.c
-index dfaff3f..b3ddcc5 100644
---- a/drivers/pci/host-bridge.c
-+++ b/drivers/pci/host-bridge.c
-@@ -16,15 +16,22 @@ void add_to_pci_host_bridges(struct pci_host_bridge *bridge)
- 	list_add_tail(&bridge->list, &pci_host_bridges);
- }
+diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
+index 11c3ae7..2331ccb 100644
+--- a/arch/x86/pci/acpi.c
++++ b/arch/x86/pci/acpi.c
+@@ -13,6 +13,7 @@ struct pci_root_info {
+ 	unsigned int res_num;
+ 	struct resource *res;
+ 	int busnum;
++	struct pci_sysdata sd;
+ };
  
--static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
-+static struct pci_bus *find_pci_root_bus(struct pci_dev *dev)
- {
- 	struct pci_bus *bus;
--	struct pci_host_bridge *bridge;
+ static bool pci_use_crs = true;
+@@ -400,26 +401,16 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 	if (node != -1 && !node_online(node))
+ 		node = -1;
  
- 	bus = dev->bus;
- 	while (bus->parent)
- 		bus = bus->parent;
+-	/* Allocate per-root-bus (not per bus) arch-specific data.
+-	 * TODO: leak; this memory is never freed.
+-	 * It's arguable whether it's worth the trouble to care.
+-	 */
+-	sd = kzalloc(sizeof(*sd), GFP_KERNEL);
+-	if (!sd) {
++	info = kzalloc(sizeof(*info), GFP_KERNEL);
++	if (!info) {
+ 		printk(KERN_WARNING "pci_bus %04x:%02x: "
+ 		       "ignored (out of memory)\n", domain, busnum);
+ 		return NULL;
+ 	}
  
-+	return bus;
-+}
-+
-+static struct pci_host_bridge *find_pci_host_bridge(struct pci_dev *dev)
-+{
-+	struct pci_bus *bus = find_pci_root_bus(dev);
-+	struct pci_host_bridge *bridge;
-+
- 	list_for_each_entry(bridge, &pci_host_bridges, list) {
- 		if (bridge->bus == bus)
- 			return bridge;
-@@ -42,7 +49,7 @@ void __weak pcibios_resource_to_bus(struct pci_dev *dev,
- 				    struct pci_bus_region *region,
- 				    struct resource *res)
- {
--	struct pci_host_bridge *bridge = pci_host_bridge(dev);
-+	struct pci_host_bridge *bridge = find_pci_host_bridge(dev);
- 	struct pci_host_bridge_window *window;
- 	resource_size_t offset = 0;
++	sd = &info->sd;
+ 	sd->domain = domain;
+ 	sd->node = node;
+-	info = kzalloc(sizeof(*info), GFP_KERNEL);
+-	if (!info) {
+-		kfree(sd);
+-		printk(KERN_WARNING "pci_bus %04x:%02x: "
+-		       "ignored (out of memory)\n", domain, busnum);
+-		return NULL;
+-	}
+ 	/*
+ 	 * Maybe the desired pci bus has been already scanned. In such case
+ 	 * it is unnecessary to scan the pci bus with the given domain,busnum.
+@@ -432,7 +423,6 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		 */
+ 		memcpy(bus->sysdata, sd, sizeof(*sd));
+ 		kfree(info);
+-		kfree(sd);
+ 	} else {
+ 		probe_pci_root_info(info, device, busnum, domain);
  
-@@ -70,12 +77,13 @@ static bool region_contains(struct pci_bus_region *region1,
- void __weak pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
- 				    struct pci_bus_region *region)
- {
--	struct pci_host_bridge *bridge = pci_host_bridge(dev);
-+	struct pci_host_bridge *bridge = find_pci_host_bridge(dev);
- 	struct pci_host_bridge_window *window;
--	struct pci_bus_region bus_region;
- 	resource_size_t offset = 0;
+@@ -474,9 +464,6 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		}
+ 	}
  
- 	list_for_each_entry(window, &bridge->windows, list) {
-+		struct pci_bus_region bus_region;
-+
- 		if (resource_type(res) != resource_type(window->res))
- 			continue;
- 
+-	if (!bus)
+-		kfree(sd);
+-
+ 	if (bus && node != -1) {
+ #ifdef CONFIG_ACPI_NUMA
+ 		if (pxm >= 0)
 -- 
 1.7.7
 
