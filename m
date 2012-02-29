@@ -1,64 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:29446 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S964795Ab2B2XKZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:10:25 -0500
+Received: from rcsinet15.oracle.com ([148.87.113.117]:26568 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965631Ab2B2XJg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 18:09:36 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 32/39] PCI: Strict checking of valid range for bridge
-Date: Wed, 29 Feb 2012 15:07:31 -0800
-Message-ID: <1330556858-11768-33-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 15/39] x86, PCI: Merge pcibios_scan_root and pci_scan_bus_on_node
+Date: Wed, 29 Feb 2012 15:07:14 -0800
+Message-ID: <1330556858-11768-16-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120229230731.EceqDgl2Egg6DR_37_BO2T3QaMYzqKZ-HYVGSMLDk-A@z>
+Message-ID: <20120229230714.p_CM74p3GqoqYQ7etuLBbzf7AK2jQRZ3vGhyDv-rqbc@z>
 
-children bridges busn range should be able to be allocated from parent bus range.
-
-to avoid overlapping between sibling bridges on same bus.
+Those two almost the same.
+Let pcibios_scan_root call pci_scan_bus_on_node instead.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |   24 ++++++++++++++++++++++++
- 1 files changed, 24 insertions(+), 0 deletions(-)
+ arch/x86/pci/common.c |   27 ++++-----------------------
+ 1 files changed, 4 insertions(+), 23 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index c540022..5c031f0 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -801,6 +801,30 @@ reduce_needed_size:
- 	return ret;
- }
+diff --git a/arch/x86/pci/common.c b/arch/x86/pci/common.c
+index 323481e..8e04ec5 100644
+--- a/arch/x86/pci/common.c
++++ b/arch/x86/pci/common.c
+@@ -430,9 +430,7 @@ void __init dmi_check_pciprobe(void)
  
-+static int __devinit pci_bridge_check_busn_broken(struct pci_bus *bus,
-+				struct pci_dev *dev,
-+				int secondary, int subordinate)
-+{
-+	int broken = 0;
+ struct pci_bus * __devinit pcibios_scan_root(int busnum)
+ {
+-	LIST_HEAD(resources);
+ 	struct pci_bus *bus = NULL;
+-	struct pci_sysdata *sd;
+ 
+ 	while ((bus = pci_find_next_bus(bus)) != NULL) {
+ 		if (bus->number == busnum) {
+@@ -441,28 +439,10 @@ struct pci_bus * __devinit pcibios_scan_root(int busnum)
+ 		}
+ 	}
+ 
+-	/* Allocate per-root-bus (not per bus) arch-specific data.
+-	 * TODO: leak; this memory is never freed.
+-	 * It's arguable whether it's worth the trouble to care.
+-	 */
+-	sd = kzalloc(sizeof(*sd), GFP_KERNEL);
+-	if (!sd) {
+-		printk(KERN_ERR "PCI: OOM, not probing PCI bus %02x\n", busnum);
+-		return NULL;
+-	}
+-
+-	sd->node = get_mp_bus_to_node(busnum);
+-
+-	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busnum);
+-	x86_pci_root_bus_resources(busnum, &resources);
+-	bus = pci_scan_root_bus(NULL, busnum, &pci_root_ops, sd, &resources);
+-	if (!bus) {
+-		pci_free_resource_list(&resources);
+-		kfree(sd);
+-	}
+-
+-	return bus;
++	return pci_scan_bus_on_node(busnum, &pci_root_ops,
++					get_mp_bus_to_node(busnum));
+ }
 +
-+	struct resource busn_res;
-+	int ret;
-+
-+	memset(&busn_res, 0, sizeof(struct resource));
-+	dev_printk(KERN_DEBUG, &dev->dev,
-+		 "check if busn %02x-%02x is in busn_res: %pR\n",
-+		 secondary, subordinate, &bus->busn_res);
-+	ret = allocate_resource(&bus->busn_res, &busn_res,
-+			 (subordinate - secondary + 1),
-+			 secondary, subordinate,
-+			 1, NULL, NULL);
-+	if (ret)
-+		broken = 1;
-+	else
-+		release_resource(&busn_res);
-+
-+	return broken;
-+}
- /*
-  * If it's a bridge, configure it and scan the bus behind it.
-  * For CardBus bridges, we don't scan behind as the devices will
+ void __init pcibios_set_cache_line_size(void)
+ {
+ 	struct cpuinfo_x86 *c = &boot_cpu_data;
+@@ -656,6 +636,7 @@ struct pci_bus * __devinit pci_scan_bus_on_node(int busno, struct pci_ops *ops,
+ 	}
+ 	sd->node = node;
+ 	x86_pci_root_bus_resources(busno, &resources);
++	printk(KERN_DEBUG "PCI: Probing PCI hardware (bus %02x)\n", busno);
+ 	bus = pci_scan_root_bus(NULL, busno, ops, sd, &resources);
+ 	if (!bus) {
+ 		pci_free_resource_list(&resources);
 -- 
 1.7.7
 
