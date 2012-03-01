@@ -1,139 +1,57 @@
-From: Will Drewry <wad@chromium.org>
-Subject: [PATCH v12 09/13] seccomp: Add SECCOMP_RET_TRAP
-Date: Wed, 29 Feb 2012 17:53:36 -0600
-Message-ID: <1330559620-23543-9-git-send-email-wad@chromium.org>
-References: <1330559620-23543-1-git-send-email-wad@chromium.org>
-Reply-To: kernel-hardening@lists.openwall.com
+From: Jesse Barnes <jbarnes@virtuousgeek.org>
+Subject: Re: [PATCH 39/39] x86, PCI: kill busn in acpi pci_root_info
+Date: Wed, 29 Feb 2012 16:27:43 -0800
+Message-ID: <20120229162743.49d78c21@jbarnes-x220>
+References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
+	<1330556858-11768-40-git-send-email-yinghai@kernel.org>
+	<CAErSpo63hAtPMFdSEuVCcgw5ERMkiKx2Z8pREc2PdiCwmWpvkg@mail.gmail.com>
+	<CAE9FiQUeRno4ZCy37XQ+cwrFYG-XoDq7q=XjKrOVy5E85bS-ig@mail.gmail.com>
+	<20120229235128.GA5484@kroah.com>
 Mime-Version: 1.0
-Return-path: <kernel-hardening-return-1018-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <1330559620-23543-1-git-send-email-wad@chromium.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Will Drewry <wad@chromium.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from oproxy1-pub.bluehost.com ([66.147.249.253]:33439 "HELO
+	oproxy1-pub.bluehost.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with SMTP id S1756920Ab2CAA14 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 19:27:56 -0500
+In-Reply-To: <20120229235128.GA5484@kroah.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Greg KH <gregkh@linuxfoundation.org>
+Cc: Yinghai Lu <yinghai@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Adds a new return value to seccomp filters that triggers a SIGSYS to be
-delivered with the new SYS_SECCOMP si_code.
+On Wed, 29 Feb 2012 15:51:28 -0800
+Greg KH <gregkh@linuxfoundation.org> wrote:
 
-This allows in-process system call emulation, including just specifying
-an errno or cleanly dumping core, rather than just dying.
+> On Wed, Feb 29, 2012 at 03:37:53PM -0800, Yinghai Lu wrote:
+> > On Wed, Feb 29, 2012 at 3:32 PM, Bjorn Helgaas
 
-v11: - clarify the comment (indan@nul.nu)
-     - s/sigtrap/sigsys
-v10: - use SIGSYS, syscall_get_arch, updates arch/Kconfig
-       note suggested-by (though original suggestion had other behaviors)
-v9:  - changes to SIGILL
-v8:  - clean up based on changes to dependent patches
-v7:  - introduction
+> > > You just *added* this stuff in a prior patch that hasn't been
+> > > merged yet. =C2=A0Why can't you just fix that series rather than =
+doing
+> > > the add/remove churn?
+> >=20
+> > as i said before, I'm not quite sure about the life cycle about
+> > that object.
 
-Suggested-by: Markus Gutschke <markus@chromium.org>
-Suggested-by: Julien Tinnes <jln@chromium.org>
-Signed-off-by: Will Drewry <wad@chromium.org>
----
- arch/Kconfig                  |   14 +++++++++-----
- include/asm-generic/siginfo.h |    2 +-
- include/linux/seccomp.h       |    1 +
- kernel/seccomp.c              |   28 ++++++++++++++++++++++++++++
- 4 files changed, 39 insertions(+), 6 deletions(-)
+I thought Bjorn figured that out for you in the last thread?
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index 1350d07..6908bf6 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -236,11 +236,15 @@ config ARCH_WANT_OLD_COMPAT_IPC
- config HAVE_ARCH_SECCOMP_FILTER
- 	bool
- 	help
--	  This symbol should be selected by an architecure if it provides
--	  asm/syscall.h, specifically syscall_get_arguments(),
--	  syscall_get_arch(), and syscall_set_return_value().  Additionally,
--	  its system call entry path must respect a return value of -1 from
--	  __secure_computing_int() and/or secure_computing().
-+	  This symbol should be selected by an architecure if it provides:
-+	  asm/syscall.h:
-+	  - syscall_get_arch()
-+	  - syscall_get_arguments()
-+	  - syscall_rollback()
-+	  - syscall_set_return_value()
-+	  SIGSYS siginfo_t support must be implemented.
-+	  __secure_computing_int()/secure_computing()'s return value must be
-+	  checked, with -1 resulting in the syscall being skipped.
- 
- config SECCOMP_FILTER
- 	def_bool y
-diff --git a/include/asm-generic/siginfo.h b/include/asm-generic/siginfo.h
-index 31306f5..af5d035 100644
---- a/include/asm-generic/siginfo.h
-+++ b/include/asm-generic/siginfo.h
-@@ -93,7 +93,7 @@ typedef struct siginfo {
- 
- 		/* SIGSYS */
- 		struct {
--			void __user *_call_addr; /* calling insn */
-+			void __user *_call_addr; /* calling user insn */
- 			int _syscall;	/* triggering system call number */
- 			unsigned int _arch;	/* AUDIT_ARCH_* of syscall */
- 		} _sigsys;
-diff --git a/include/linux/seccomp.h b/include/linux/seccomp.h
-index a81fccd..3fe48fd 100644
---- a/include/linux/seccomp.h
-+++ b/include/linux/seccomp.h
-@@ -19,6 +19,7 @@
-  * selects the least permissive choice.
-  */
- #define SECCOMP_RET_KILL	0x00000000U /* kill the task immediately */
-+#define SECCOMP_RET_TRAP	0x00020000U /* disallow and force a SIGSYS */
- #define SECCOMP_RET_ERRNO	0x00030000U /* returns an errno */
- #define SECCOMP_RET_ALLOW	0x7fff0000U /* allow */
- 
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index 88dd568..10c6077 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -272,6 +272,26 @@ void put_seccomp_filter(struct seccomp_filter *orig)
- 		kfree(freeme);
- 	}
- }
-+
-+/**
-+ * seccomp_send_sigsys - signals the task to allow in-process syscall emulation
-+ * @syscall: syscall number to send to userland
-+ * @reason: filter-supplied reason code to send to userland (via si_errno)
-+ *
-+ * Forces a SIGSYS with a code of SYS_SECCOMP and related sigsys info.
-+ */
-+static void seccomp_send_sigsys(int syscall, int reason)
-+{
-+	struct siginfo info;
-+	memset(&info, 0, sizeof(info));
-+	info.si_signo = SIGSYS;
-+	info.si_code = SYS_SECCOMP;
-+	info.si_call_addr = (void __user *)KSTK_EIP(current);
-+	info.si_errno = reason;
-+	info.si_arch = syscall_get_arch(current, task_pt_regs(current));
-+	info.si_syscall = syscall;
-+	force_sig_info(SIGSYS, &info, current);
-+}
- #endif	/* CONFIG_SECCOMP_FILTER */
- 
- /*
-@@ -326,6 +346,14 @@ int __secure_computing_int(int this_syscall)
- 						 -(action & SECCOMP_RET_DATA),
- 						 0);
- 			return -1;
-+		case SECCOMP_RET_TRAP: {
-+			int reason_code = action & SECCOMP_RET_DATA;
-+			/* Show the handler the original registers. */
-+			syscall_rollback(current, task_pt_regs(current));
-+			/* Let the filter pass back 16 bits of data. */
-+			seccomp_send_sigsys(this_syscall, reason_code);
-+			return -1;
-+		}
- 		case SECCOMP_RET_ALLOW:
- 			return 0;
- 		case SECCOMP_RET_KILL:
--- 
-1.7.5.4
+> >=20
+> > still need to wait some months to verify that on system that does
+> > support pci root bus hot plug etc.
+> >=20
+> > or we can just this patch for now.
+>=20
+> A statement like that would cause all of these patches to be instantl=
+y
+> deleted from any queue that I had control over, and I strongly
+> recommend that Jesse just ignore them all.
+>=20
+> If you don't know this thing, then you have no right to change it,
+> flat out.  Why do we trust these patches from you?  I sure don't.
+
+Oh don't worry, this patch set isn't going upstream anytime soon.
+Bjorn has raised several good points that Yinghai has yet to
+address...  I trust Bjorn's judgment on these, so until he's happy I
+likely won't be merging them.
