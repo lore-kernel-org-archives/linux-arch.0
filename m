@@ -1,139 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:31878 "EHLO
-	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932442Ab2CADBc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 22:01:32 -0500
+Received: from acsinet15.oracle.com ([141.146.126.227]:33337 "EHLO
+	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755687Ab2CADCb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 22:02:31 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 02/36] x86, PCI: Fix memleak with get_current_resources
-Date: Wed, 29 Feb 2012 19:00:03 -0800
-Message-ID: <1330570837-26638-3-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 11/36] x86, PCI: Merge root info printing for nocrs path
+Date: Wed, 29 Feb 2012 19:00:12 -0800
+Message-ID: <1330570837-26638-12-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
 References: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120301030003.uiNQjsSJ9DfM8MQIl-rjl3eP35MfqsRJJBKVno_RfH0@z>
-
-in pci_scan_acpi_root, when pci_use_crs is set, get_current_resources is used
-to get pci_root_info, and it will allocate name and res array.
-
-later if pci_create_root_bus can not create bus (could be already there...)
-it will only free bus res list. but the name and res array is not freed.
-
-let get_current_resource take info pointer instead have local info.
+Message-ID: <20120301030012.z3nZl6NLZbBGbNQipsUJ5TXk0khmXC3R0Ff23BZNMBc@z>
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/pci/acpi.c |   49 ++++++++++++++++++++++++++++++-------------------
- 1 files changed, 30 insertions(+), 19 deletions(-)
+ arch/x86/pci/amd_bus.c      |   12 +-----------
+ arch/x86/pci/broadcom_bus.c |    9 +--------
+ arch/x86/pci/bus_numa.c     |   17 +++++++++++++++++
+ arch/x86/pci/bus_numa.h     |    1 +
+ 4 files changed, 20 insertions(+), 19 deletions(-)
 
-diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
-index 7cc0a44..304ccf0 100644
---- a/arch/x86/pci/acpi.c
-+++ b/arch/x86/pci/acpi.c
-@@ -305,49 +305,55 @@ static void add_resources(struct pci_root_info *info)
+diff --git a/arch/x86/pci/amd_bus.c b/arch/x86/pci/amd_bus.c
+index 459a731..0b6abbe 100644
+--- a/arch/x86/pci/amd_bus.c
++++ b/arch/x86/pci/amd_bus.c
+@@ -291,17 +291,7 @@ static int __init early_fill_mp_bus_info(void)
+ 		}
  	}
+ 
+-	list_for_each_entry(info, &pci_root_infos, list) {
+-		int busnum;
+-		struct pci_root_res *root_res;
+-
+-		busnum = info->bus_min;
+-		printk(KERN_DEBUG "bus: [%02x, %02x] on node %x link %x\n",
+-		       info->bus_min, info->bus_max, info->node, info->link);
+-		list_for_each_entry(root_res, &info->resources, list)
+-			printk(KERN_DEBUG "bus: %02x %pR\n",
+-				       busnum, &root_res->res);
+-	}
++	print_pci_root_info(info, "bus:", true);
+ 
+ 	return 0;
+ }
+diff --git a/arch/x86/pci/broadcom_bus.c b/arch/x86/pci/broadcom_bus.c
+index 614392c..a03a14a 100644
+--- a/arch/x86/pci/broadcom_bus.c
++++ b/arch/x86/pci/broadcom_bus.c
+@@ -76,14 +76,7 @@ static void __init cnb20le_res(u8 bus, u8 slot, u8 func)
+ 		update_res(info, res.start, res.end, res.flags, 0);
+ 	}
+ 
+-	/* print information about this host bridge */
+-	res.start = fbus;
+-	res.end   = lbus;
+-	res.flags = IORESOURCE_BUS;
+-	printk(KERN_INFO "CNB20LE PCI Host Bridge (domain 0000 %pR)\n", &res);
+-
+-	list_for_each_entry(root_res, &info->resources, list)
+-		printk(KERN_INFO "host bridge window %pR\n", &root_res->res);
++	print_pci_root_info(info, "host bridge windows: ", false);
  }
  
-+static void free_pci_root_info(struct pci_root_info *info)
+ static int __init broadcom_postcore_init(void)
+diff --git a/arch/x86/pci/bus_numa.c b/arch/x86/pci/bus_numa.c
+index 306579f..7251011 100644
+--- a/arch/x86/pci/bus_numa.c
++++ b/arch/x86/pci/bus_numa.c
+@@ -77,6 +77,23 @@ struct pci_root_info __init *alloc_pci_root_info(int bus_min, int bus_max,
+ 	return info;
+ }
+ 
++void print_pci_root_info(struct pci_root_info *info, char *name, bool nodelink)
 +{
-+	kfree(info->name);
-+	kfree(info->res);
-+	memset(info, 0, sizeof(struct pci_root_info));
++	struct pci_root_res *root_res;
++	int busnum = info->bus_min;
++
++	if (!nodelink)
++		printk(KERN_DEBUG "%s: [%02x, %02x]\n", name,
++				info->bus_min, info->bus_max);
++	else
++		printk(KERN_DEBUG "%s: [%02x, %02x] on node %x link %x\n", name,
++			info->bus_min, info->bus_max, info->node, info->link);
++
++	list_for_each_entry(root_res, &info->resources, list)
++		printk(KERN_DEBUG "%s: %02x %pR\n", name, busnum,
++				 &root_res->res);
 +}
 +
- static void
--get_current_resources(struct acpi_device *device, int busnum,
-+get_current_resources(struct pci_root_info *info,
-+		      struct acpi_device *device, int busnum,
- 		      int domain, struct list_head *resources)
+ void __devinit update_res(struct pci_root_info *info, resource_size_t start,
+ 			  resource_size_t end, unsigned long flags, int merge)
  {
--	struct pci_root_info info;
- 	size_t size;
- 
--	info.bridge = device;
--	info.res_num = 0;
--	info.resources = resources;
-+	info->bridge = device;
-+	info->res_num = 0;
-+	info->resources = resources;
- 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_resource,
--				&info);
--	if (!info.res_num)
-+				info);
-+	if (!info->res_num)
- 		return;
- 
--	size = sizeof(*info.res) * info.res_num;
--	info.res = kmalloc(size, GFP_KERNEL);
--	if (!info.res)
-+	size = sizeof(*info->res) * info->res_num;
-+	info->res = kmalloc(size, GFP_KERNEL);
-+	if (!info->res)
- 		return;
- 
--	info.name = kasprintf(GFP_KERNEL, "PCI Bus %04x:%02x", domain, busnum);
--	if (!info.name)
-+	info->name = kasprintf(GFP_KERNEL, "PCI Bus %04x:%02x", domain, busnum);
-+	if (!info->name)
- 		goto name_alloc_fail;
- 
--	info.res_num = 0;
-+	info->res_num = 0;
- 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, setup_resource,
--				&info);
-+				info);
- 
- 	if (pci_use_crs) {
--		add_resources(&info);
-+		add_resources(info);
- 
- 		return;
- 	}
- 
--	kfree(info.name);
--
- name_alloc_fail:
--	kfree(info.res);
-+	free_pci_root_info(info);
- }
- 
- struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
- {
- 	struct acpi_device *device = root->device;
-+	struct pci_root_info info;
- 	int domain = root->segment;
- 	int busnum = root->secondary.start;
- 	LIST_HEAD(resources);
-@@ -392,6 +398,7 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
- 
- 	sd->domain = domain;
- 	sd->node = node;
-+	memset(&info, 0, sizeof(struct pci_root_info));
- 	/*
- 	 * Maybe the desired pci bus has been already scanned. In such case
- 	 * it is unnecessary to scan the pci bus with the given domain,busnum.
-@@ -405,7 +412,8 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
- 		memcpy(bus->sysdata, sd, sizeof(*sd));
- 		kfree(sd);
- 	} else {
--		get_current_resources(device, busnum, domain, &resources);
-+		get_current_resources(&info, device, busnum, domain,
-+					&resources);
- 
- 		/*
- 		 * _CRS with no apertures is normal, so only fall back to
-@@ -419,6 +427,9 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
- 			bus->subordinate = pci_scan_child_bus(bus);
- 		else
- 			pci_free_resource_list(&resources);
-+
-+		if (!bus && pci_use_crs)
-+			free_pci_root_info(&info);
- 	}
- 
- 	/* After the PCI-E bus has been walked and all devices discovered,
+diff --git a/arch/x86/pci/bus_numa.h b/arch/x86/pci/bus_numa.h
+index 226a466..d19ac93 100644
+--- a/arch/x86/pci/bus_numa.h
++++ b/arch/x86/pci/bus_numa.h
+@@ -22,6 +22,7 @@ struct pci_root_info {
+ extern struct list_head pci_root_infos;
+ struct pci_root_info *alloc_pci_root_info(int bus_min, int bus_max,
+ 						int node, int link);
++void print_pci_root_info(struct pci_root_info *info, char *name, bool nodelink);
+ extern void update_res(struct pci_root_info *info, resource_size_t start,
+ 		      resource_size_t end, unsigned long flags, int merge);
+ #endif
 -- 
 1.7.7
 
