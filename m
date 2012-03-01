@@ -1,45 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:32235 "EHLO
+Received: from rcsinet15.oracle.com ([148.87.113.117]:32222 "EHLO
 	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754177Ab2CADCJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 22:02:09 -0500
+	with ESMTP id S1754003Ab2CADCI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 22:02:08 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 21/36] PCI: add default res for pci_scan_bus
-Date: Wed, 29 Feb 2012 19:00:22 -0800
-Message-ID: <1330570837-26638-22-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 22/36] x86, PCI: add busn into resources list for acpi path
+Date: Wed, 29 Feb 2012 19:00:23 -0800
+Message-ID: <1330570837-26638-23-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
 References: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120301030022.X4_27G2RMtwZQjobAG2Vl3yrCWi7QrXqjYGypM67DjY@z>
+Message-ID: <20120301030023.B9S8WjGd83cDFfc-bWhs5gotrtYsf-CPURagqXIwpco@z>
 
+will put it in resources list and pass it for create_root_bus
+
+Bjorn thought that we should just use that in acpi_root.
+
+Suggested-by: Bjorn Helgaas <bhelgaas@google.com>
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |    2 ++
- 1 files changed, 2 insertions(+), 0 deletions(-)
+ arch/x86/pci/acpi.c |   11 ++++++-----
+ 1 files changed, 6 insertions(+), 5 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 1149109..1c07aba 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -1784,6 +1784,7 @@ struct pci_bus * __devinit pci_scan_bus_parented(struct device *parent,
+diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
+index 2331ccb..5178917 100644
+--- a/arch/x86/pci/acpi.c
++++ b/arch/x86/pci/acpi.c
+@@ -12,7 +12,6 @@ struct pci_root_info {
+ 	char name[16];
+ 	unsigned int res_num;
+ 	struct resource *res;
+-	int busnum;
+ 	struct pci_sysdata sd;
+ };
  
- 	pci_add_resource(&resources, &ioport_resource);
- 	pci_add_resource(&resources, &iomem_resource);
-+	pci_add_resource(&resources, &busn_resource);
- 	b = pci_create_root_bus(parent, bus, ops, sysdata, &resources);
- 	if (b)
- 		b->subordinate = pci_scan_child_bus(b);
-@@ -1801,6 +1802,7 @@ struct pci_bus * __devinit pci_scan_bus(int bus, struct pci_ops *ops,
+@@ -347,7 +346,9 @@ probe_pci_root_info(struct pci_root_info *info, struct acpi_device *device,
+ {
+ 	size_t size;
  
- 	pci_add_resource(&resources, &ioport_resource);
- 	pci_add_resource(&resources, &iomem_resource);
-+	pci_add_resource(&resources, &busn_resource);
- 	b = pci_create_root_bus(NULL, bus, ops, sysdata, &resources);
- 	if (b) {
- 		b->subordinate = pci_scan_child_bus(b);
++	sprintf(info->name, "PCI Bus %04x:%02x", domain, busnum);
+ 	info->bridge = device;
++
+ 	info->res_num = 0;
+ 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_resource,
+ 				info);
+@@ -360,8 +361,6 @@ probe_pci_root_info(struct pci_root_info *info, struct acpi_device *device,
+ 	if (!info->res)
+ 		return;
+ 
+-	sprintf(info->name, "PCI Bus %04x:%02x", domain, busnum);
+-
+ 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, setup_resource,
+ 				info);
+ }
+@@ -430,9 +429,11 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		 * _CRS with no apertures is normal, so only fall back to
+ 		 * defaults or native bridge info if we're ignoring _CRS.
+ 		 */
+-		if (pci_use_crs)
++		if (pci_use_crs) {
++                       /* insert busn res at first */
++			pci_add_resource(&resources,  &root->secondary);
+ 			add_resources(info, &resources);
+-		else {
++		} else {
+ 			free_pci_root_info_res(info);
+ 			x86_pci_root_bus_resources(busnum, &resources);
+ 		}
 -- 
 1.7.7
 
