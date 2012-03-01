@@ -1,125 +1,60 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 06/36] x86, PCI: break down get_current_resource()
-Date: Wed, 29 Feb 2012 19:00:07 -0800
-Message-ID: <1330570837-26638-7-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 27/36] PCI, parisc: Register busn_res for root buses
+Date: Wed, 29 Feb 2012 19:00:28 -0800
+Message-ID: <1330570837-26638-28-git-send-email-yinghai@kernel.org>
 References: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Kyle McMartin <kyle@mcmartin.ca>, Helge Deller <deller@gmx.de>, linux-parisc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-change it to probe_pci_root_info, aka only do one thing.
-
-1. remove resource list head from pci_root_info
-2. make get_current_resources() not pass resources
-   move out add_resources calling out of yet.
-3. rename get_current_resourcs name to probe_pci_root_info
-
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Cc: Kyle McMartin <kyle@mcmartin.ca>
+Cc: Helge Deller <deller@gmx.de>
+Cc: linux-parisc@vger.kernel.org
 ---
- arch/x86/pci/acpi.c |   34 +++++++++++++---------------------
- 1 files changed, 13 insertions(+), 21 deletions(-)
+ drivers/parisc/dino.c    |    5 +++++
+ drivers/parisc/lba_pci.c |    3 +++
+ 2 files changed, 8 insertions(+), 0 deletions(-)
 
-diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
-index 304ccf0..763f7bb 100644
---- a/arch/x86/pci/acpi.c
-+++ b/arch/x86/pci/acpi.c
-@@ -12,7 +12,6 @@ struct pci_root_info {
- 	char *name;
- 	unsigned int res_num;
- 	struct resource *res;
--	struct list_head *resources;
- 	int busnum;
- };
+diff --git a/drivers/parisc/dino.c b/drivers/parisc/dino.c
+index 0610e91..def94af 100644
+--- a/drivers/parisc/dino.c
++++ b/drivers/parisc/dino.c
+@@ -984,6 +984,10 @@ static int __init dino_probe(struct parisc_device *dev)
+ 	if (dino_dev->hba.gmmio_space.flags)
+ 		pci_add_resource(&resources, &dino_dev->hba.gmmio_space);
  
-@@ -277,7 +276,8 @@ static void coalesce_windows(struct pci_root_info *info, unsigned long type)
++	dino_dev->hba.bus_num.start = dino_current_bus;
++	dino_dev->hba.bus_num.end = 255;
++	dino_dev->hba.bus_num.flags |= IORESOURCE_BUS;
++	pci_add_resource(&resources, &dino_dev->hba.bus_num);
+ 	/*
+ 	** It's not used to avoid chicken/egg problems
+ 	** with configuration accessor functions.
+@@ -999,6 +1003,7 @@ static int __init dino_probe(struct parisc_device *dev)
+ 		return 0;
  	}
- }
  
--static void add_resources(struct pci_root_info *info)
-+static void add_resources(struct pci_root_info *info,
-+			  struct list_head *resources)
- {
- 	int i;
- 	struct resource *res, *root, *conflict;
-@@ -301,7 +301,7 @@ static void add_resources(struct pci_root_info *info)
- 				 "ignoring host bridge window %pR (conflicts with %s %pR)\n",
- 				 res, conflict->name, conflict);
- 		else
--			pci_add_resource(info->resources, res);
-+			pci_add_resource(resources, res);
- 	}
- }
++	pci_bus_update_busn_res_end(bus, bus->subordinate);
+ 	bus->subordinate = pci_scan_child_bus(bus);
  
-@@ -313,41 +313,30 @@ static void free_pci_root_info(struct pci_root_info *info)
- }
+ 	/* This code *depends* on scanning being single threaded
+diff --git a/drivers/parisc/lba_pci.c b/drivers/parisc/lba_pci.c
+index e885764..df1e9f9 100644
+--- a/drivers/parisc/lba_pci.c
++++ b/drivers/parisc/lba_pci.c
+@@ -1503,6 +1503,9 @@ lba_driver_probe(struct parisc_device *dev)
+ 	if (lba_dev->hba.gmmio_space.flags)
+ 		pci_add_resource(&resources, &lba_dev->hba.gmmio_space);
  
- static void
--get_current_resources(struct pci_root_info *info,
--		      struct acpi_device *device, int busnum,
--		      int domain, struct list_head *resources)
-+probe_pci_root_info(struct pci_root_info *info, struct acpi_device *device,
-+		    int busnum, int domain)
- {
- 	size_t size;
- 
- 	info->bridge = device;
- 	info->res_num = 0;
--	info->resources = resources;
- 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_resource,
- 				info);
- 	if (!info->res_num)
- 		return;
- 
- 	size = sizeof(*info->res) * info->res_num;
-+	info->res_num = 0;
- 	info->res = kmalloc(size, GFP_KERNEL);
- 	if (!info->res)
- 		return;
- 
- 	info->name = kasprintf(GFP_KERNEL, "PCI Bus %04x:%02x", domain, busnum);
- 	if (!info->name)
--		goto name_alloc_fail;
-+		return;
- 
--	info->res_num = 0;
- 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, setup_resource,
- 				info);
--
--	if (pci_use_crs) {
--		add_resources(info);
--
--		return;
--	}
--
--name_alloc_fail:
--	free_pci_root_info(info);
- }
- 
- struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
-@@ -412,15 +401,18 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
- 		memcpy(bus->sysdata, sd, sizeof(*sd));
- 		kfree(sd);
- 	} else {
--		get_current_resources(&info, device, busnum, domain,
--					&resources);
-+		probe_pci_root_info(&info, device, busnum, domain);
- 
- 		/*
- 		 * _CRS with no apertures is normal, so only fall back to
- 		 * defaults or native bridge info if we're ignoring _CRS.
- 		 */
--		if (!pci_use_crs)
-+		if (pci_use_crs)
-+			add_resources(&info, &resources);
-+		else {
-+			free_pci_root_info(&info);
- 			x86_pci_root_bus_resources(busnum, &resources);
-+		}
- 		bus = pci_create_root_bus(NULL, busnum, &pci_root_ops, sd,
- 					  &resources);
- 		if (bus)
++	lba_dev->hba.bus_num.flags |= IORESOURCE_BUS;
++	pci_add_resource(&resources, &lba_dev->hba.bus_num);
++
+ 	dev->dev.platform_data = lba_dev;
+ 	lba_bus = lba_dev->hba.hba_bus =
+ 		pci_create_root_bus(&dev->dev, lba_dev->hba.bus_num.start,
 -- 
 1.7.7
