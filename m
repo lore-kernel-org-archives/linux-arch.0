@@ -1,85 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gy0-f174.google.com ([209.85.160.174]:39624 "EHLO
-	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757601Ab2CAADP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 19:03:15 -0500
-Received: by ghrr11 with SMTP id r11so5109ghr.19
-        for <linux-arch@vger.kernel.org>; Wed, 29 Feb 2012 16:03:14 -0800 (PST)
+Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:59247 "EHLO
+	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S932319Ab2CAAm6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 29 Feb 2012 19:42:58 -0500
+Received: by lahj13 with SMTP id j13so52599lah.19
+        for <linux-arch@vger.kernel.org>; Wed, 29 Feb 2012 16:42:56 -0800 (PST)
 MIME-Version: 1.0
-From: Will Drewry <wad@chromium.org>
-Subject: [PATCH v12 11/13] x86: Enable HAVE_ARCH_SECCOMP_FILTER
-Date: Wed, 29 Feb 2012 17:53:38 -0600
-Message-ID: <1330559620-23543-11-git-send-email-wad@chromium.org>
-In-Reply-To: <1330559620-23543-1-git-send-email-wad@chromium.org>
-References: <1330559620-23543-1-git-send-email-wad@chromium.org>
+In-Reply-To: <CAE9FiQW=NXnaEY+fmUS_cyJy_BE-1+pWy8kfAoPA_s=vwDq4Mw@mail.gmail.com>
+References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
+ <1330556858-11768-3-git-send-email-yinghai@kernel.org> <CAErSpo62VuJw+3caNUhmg5moh3h4cn5z4kCsqTWZW-XqSzpk4Q@mail.gmail.com>
+ <CAE9FiQW=NXnaEY+fmUS_cyJy_BE-1+pWy8kfAoPA_s=vwDq4Mw@mail.gmail.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Wed, 29 Feb 2012 17:42:36 -0700
+Message-ID: <CAErSpo5N72zkfvvgSNg0MsKAZwcR5TOsxH+Y7BkVbOBYWbdaKQ@mail.gmail.com>
+Subject: Re: [PATCH 02/39] x86, PCI: have own version for pcibios_bus_to_resource
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Will Drewry <wad@chromium.org>
-Message-ID: <20120229235338.rlRh5kdgGh6QEy7IlA13ICaQCX5iSBcww7kx1QkcAJ8@z>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120301004236.S0zWRJOMkeOiLtR8nu0ko_1Ug1QSZ2c6HApszY9_fYA@z>
 
-Enable support for seccomp filter on x86:
-- asm/tracehook.h exists
-- syscall_get_arguments() works
-- syscall_rollback() works
-- ptrace_report_syscall() works
-- secure_computing() return value is honored (see below)
+On Wed, Feb 29, 2012 at 4:33 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+> On Wed, Feb 29, 2012 at 3:20 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+>> On Wed, Feb 29, 2012 at 4:07 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+>>> x86 does not need to offset the address. So we can skip that costing offset
+>>> searching.
+>>
+>> I tried to start a discussion about this patch (and others), but I
+>> don't think you responded:
+>> http://marc.info/?l=linux-pci&m=133036414506921&w=2
+>
+> this patch does reduce some not needed ops.
+>
+> and it does not affects your effects,
 
-This also adds support for honoring the return
-value from secure_computing().
+It does affect my efforts in that this patch adds back x86 complexity
+that I don't think is necessary.
 
-SECCOMP_RET_TRACE and SECCOMP_RET_TRAP may result in seccomp needing to
-skip a system call without killing the process.  This is done by
-returning a non-zero (-1) value from secure_computing.  This change
-makes x86 respect that return value.
+And this patch makes it so the pci_add_resource_offset() interface
+exists and appears to work on x86, but if somebody tries to use it, it
+*doesn't* work.  I don't like to write code like that.  I think it's
+poor style.
 
-To ensure that minimal kernel code is exposed, a non-zero return value
-results in an immediate return to user space (with an invalid syscall
-number).
+> and it just make x86 not get punished.
 
-Signed-off-by: Will Drewry <wad@chromium.org>
----
- arch/x86/Kconfig         |    1 +
- arch/x86/kernel/ptrace.c |    7 ++++++-
- 2 files changed, 7 insertions(+), 1 deletions(-)
+What punishment are you worried about?  I really don't think you'll be
+able to measure any performance impact.
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index f50b52a..fe35491 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -81,6 +81,7 @@ config X86
- 	select CLKEVT_I8253
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select GENERIC_IOMAP
-+	select HAVE_ARCH_SECCOMP_FILTER
- 
- config INSTRUCTION_DECODER
- 	def_bool (KPROBES || PERF_EVENTS || UPROBES)
-diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
-index 78f05e4..cdce22c 100644
---- a/arch/x86/kernel/ptrace.c
-+++ b/arch/x86/kernel/ptrace.c
-@@ -1381,7 +1381,11 @@ long syscall_trace_enter(struct pt_regs *regs)
- 		regs->flags |= X86_EFLAGS_TF;
- 
- 	/* do the secure computing check first */
--	secure_computing(regs->orig_ax);
-+	if (secure_computing(regs->orig_ax)) {
-+		/* seccomp failures shouldn't expose any additional code. */
-+		ret = -1L;
-+		goto out;
-+	}
- 
- 	if (unlikely(test_thread_flag(TIF_SYSCALL_EMU)))
- 		ret = -1L;
-@@ -1406,6 +1410,7 @@ long syscall_trace_enter(struct pt_regs *regs)
- 				    regs->dx, regs->r10);
- #endif
- 
-+out:
- 	return ret ?: regs->orig_ax;
- }
- 
--- 
-1.7.5.4
+I agree that the x86 code you add *is* simpler than the generic
+version.  But I think the *overall* complexity is higher because now
+you have to look at two versions (generic and x86) and convince
+yourself that it's safe to use the x86 version.
 
+Bjorn
