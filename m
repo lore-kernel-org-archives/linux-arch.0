@@ -1,83 +1,144 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:31640 "EHLO
+Received: from rcsinet15.oracle.com ([148.87.113.117]:31797 "EHLO
 	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932442Ab2CADBL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 22:01:11 -0500
+	with ESMTP id S932442Ab2CADBX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 22:01:23 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 03/36] PCI: rename pci_host_bridge() to find_pci_root_bridge()
-Date: Wed, 29 Feb 2012 19:00:04 -0800
-Message-ID: <1330570837-26638-4-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 07/36] x86, PCI: add host bridge resource release for using _CRS
+Date: Wed, 29 Feb 2012 19:00:08 -0800
+Message-ID: <1330570837-26638-8-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
 References: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120301030004.rV6JXRSV7UK04JI16Cmlhtp0gFz5VIIY-_5TKo7J1iQ@z>
+Message-ID: <20120301030008.W-5IuGMN5OZXlci8RlJ4Wj-2XiK9gjfqp55gBo2niY8@z>
 
-Separate find_pci_root_bus out.
-
--v2: according to Bjorn, remove extra null checking.
+1. allocate pci_root_info instead of use local stack. we need to pass around info
+   for release fn.
+2. add release_pci_root_info
+3. set x86 own host bridge release fn, so will make sure root bridge
+   related resources get freed during root bus removal.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/host-bridge.c |   18 +++++++++++++-----
- 1 files changed, 13 insertions(+), 5 deletions(-)
+ arch/x86/pci/acpi.c |   63 +++++++++++++++++++++++++++++++++++++++++---------
+ 1 files changed, 51 insertions(+), 12 deletions(-)
 
-diff --git a/drivers/pci/host-bridge.c b/drivers/pci/host-bridge.c
-index 5ca4220..78adcc0 100644
---- a/drivers/pci/host-bridge.c
-+++ b/drivers/pci/host-bridge.c
-@@ -16,15 +16,22 @@ void add_to_pci_host_bridges(struct pci_host_bridge *bridge)
- 	list_add_tail(&bridge->list, &pci_host_bridges);
+diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
+index 763f7bb..c7a230f 100644
+--- a/arch/x86/pci/acpi.c
++++ b/arch/x86/pci/acpi.c
+@@ -305,11 +305,40 @@ static void add_resources(struct pci_root_info *info,
+ 	}
  }
  
--static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
-+static struct pci_bus *find_pci_root_bus(struct pci_dev *dev)
+-static void free_pci_root_info(struct pci_root_info *info)
++static void free_pci_root_info_res(struct pci_root_info *info)
  {
- 	struct pci_bus *bus;
--	struct pci_host_bridge *bridge;
- 
- 	bus = dev->bus;
- 	while (bus->parent)
- 		bus = bus->parent;
- 
-+	return bus;
+ 	kfree(info->name);
+ 	kfree(info->res);
+-	memset(info, 0, sizeof(struct pci_root_info));
++	info->res = NULL;
++	info->res_num = 0;
 +}
 +
-+static struct pci_host_bridge *find_pci_host_bridge(struct pci_dev *dev)
++static void __release_pci_root_info(struct pci_root_info *info)
 +{
-+	struct pci_bus *bus = find_pci_root_bus(dev);
-+	struct pci_host_bridge *bridge;
++	int i;
++	struct resource *res;
 +
- 	list_for_each_entry(bridge, &pci_host_bridges, list) {
- 		if (bridge->bus == bus)
- 			return bridge;
-@@ -41,7 +48,7 @@ static bool resource_contains(struct resource *res1, struct resource *res2)
- void pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
- 			     struct resource *res)
- {
--	struct pci_host_bridge *bridge = pci_host_bridge(dev);
-+	struct pci_host_bridge *bridge = find_pci_host_bridge(dev);
- 	struct pci_host_bridge_window *window;
- 	resource_size_t offset = 0;
- 
-@@ -69,12 +76,13 @@ static bool region_contains(struct pci_bus_region *region1,
- void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
- 			     struct pci_bus_region *region)
- {
--	struct pci_host_bridge *bridge = pci_host_bridge(dev);
-+	struct pci_host_bridge *bridge = find_pci_host_bridge(dev);
- 	struct pci_host_bridge_window *window;
--	struct pci_bus_region bus_region;
- 	resource_size_t offset = 0;
- 
- 	list_for_each_entry(window, &bridge->windows, list) {
-+		struct pci_bus_region bus_region;
++	for (i = 0; i < info->res_num; i++) {
++		res = &info->res[i];
 +
- 		if (resource_type(res) != resource_type(window->res))
- 			continue;
++		if (!res->parent)
++			continue;
++
++		if (!(res->flags & (IORESOURCE_MEM | IORESOURCE_IO)))
++			continue;
++
++		release_resource(res);
++	}
++
++	free_pci_root_info_res(info);
++
++	kfree(info);
++}
++static void release_pci_root_info(struct pci_host_bridge *bridge)
++{
++	struct pci_root_info *info = bridge->release_data;
++
++	__release_pci_root_info(info);
+ }
  
+ static void
+@@ -342,7 +371,7 @@ probe_pci_root_info(struct pci_root_info *info, struct acpi_device *device,
+ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ {
+ 	struct acpi_device *device = root->device;
+-	struct pci_root_info info;
++	struct pci_root_info *info = NULL;
+ 	int domain = root->segment;
+ 	int busnum = root->secondary.start;
+ 	LIST_HEAD(resources);
+@@ -387,7 +416,13 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 
+ 	sd->domain = domain;
+ 	sd->node = node;
+-	memset(&info, 0, sizeof(struct pci_root_info));
++	info = kzalloc(sizeof(*info), GFP_KERNEL);
++	if (!info) {
++		kfree(sd);
++		printk(KERN_WARNING "pci_bus %04x:%02x: "
++		       "ignored (out of memory)\n", domain, busnum);
++		return NULL;
++	}
+ 	/*
+ 	 * Maybe the desired pci bus has been already scanned. In such case
+ 	 * it is unnecessary to scan the pci bus with the given domain,busnum.
+@@ -399,29 +434,33 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		 * be replaced by sd.
+ 		 */
+ 		memcpy(bus->sysdata, sd, sizeof(*sd));
++		kfree(info);
+ 		kfree(sd);
+ 	} else {
+-		probe_pci_root_info(&info, device, busnum, domain);
++		probe_pci_root_info(info, device, busnum, domain);
+ 
+ 		/*
+ 		 * _CRS with no apertures is normal, so only fall back to
+ 		 * defaults or native bridge info if we're ignoring _CRS.
+ 		 */
+ 		if (pci_use_crs)
+-			add_resources(&info, &resources);
++			add_resources(info, &resources);
+ 		else {
+-			free_pci_root_info(&info);
++			free_pci_root_info_res(info);
+ 			x86_pci_root_bus_resources(busnum, &resources);
+ 		}
++
+ 		bus = pci_create_root_bus(NULL, busnum, &pci_root_ops, sd,
+ 					  &resources);
+-		if (bus)
++		if (bus) {
+ 			bus->subordinate = pci_scan_child_bus(bus);
+-		else
++			pci_set_host_bridge_release(
++				to_pci_host_bridge(bus->bridge),
++				release_pci_root_info, info);
++		} else {
+ 			pci_free_resource_list(&resources);
+-
+-		if (!bus && pci_use_crs)
+-			free_pci_root_info(&info);
++			__release_pci_root_info(info);
++		}
+ 	}
+ 
+ 	/* After the PCI-E bus has been walked and all devices discovered,
 -- 
 1.7.7
 
