@@ -1,78 +1,125 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 32/36] PCI: kill pci_fixup_parent_subordinate_busnr()
-Date: Wed, 29 Feb 2012 19:00:33 -0800
-Message-ID: <1330570837-26638-33-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 06/36] x86, PCI: break down get_current_resource()
+Date: Wed, 29 Feb 2012 19:00:07 -0800
+Message-ID: <1330570837-26638-7-git-send-email-yinghai@kernel.org>
 References: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:33197 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757750Ab2CADCM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 22:02:12 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Now we can safely extend parent top and shrink them according iobusn_resource tree.
+change it to probe_pci_root_info, aka only do one thing.
 
-Don't need that any more.
+1. remove resource list head from pci_root_info
+2. make get_current_resources() not pass resources
+   move out add_resources calling out of yet.
+3. rename get_current_resourcs name to probe_pci_root_info
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |   32 --------------------------------
- 1 files changed, 0 insertions(+), 32 deletions(-)
+ arch/x86/pci/acpi.c |   34 +++++++++++++---------------------
+ 1 files changed, 13 insertions(+), 21 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index f22a209..ba51902 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -639,22 +639,6 @@ struct pci_bus *__ref pci_add_new_bus(struct pci_bus *parent, struct pci_dev *de
- 	return child;
+diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
+index 304ccf0..763f7bb 100644
+--- a/arch/x86/pci/acpi.c
++++ b/arch/x86/pci/acpi.c
+@@ -12,7 +12,6 @@ struct pci_root_info {
+ 	char *name;
+ 	unsigned int res_num;
+ 	struct resource *res;
+-	struct list_head *resources;
+ 	int busnum;
+ };
+ 
+@@ -277,7 +276,8 @@ static void coalesce_windows(struct pci_root_info *info, unsigned long type)
+ 	}
  }
  
--static void pci_fixup_parent_subordinate_busnr(struct pci_bus *child, int max)
--{
--	struct pci_bus *parent = child->parent;
--
--	/* Attempts to fix that up are really dangerous unless
--	   we're going to re-assign all bus numbers. */
--	if (!pcibios_assign_all_busses())
--		return;
--
--	while (parent->parent && parent->subordinate < max) {
--		parent->subordinate = max;
--		pci_write_config_byte(parent->self, PCI_SUBORDINATE_BUS, max);
--		parent = parent->parent;
--	}
--}
--
- static void __devinit pci_bus_update_top(struct pci_bus *parent,
- 		 long size, struct resource *parent_res)
+-static void add_resources(struct pci_root_info *info)
++static void add_resources(struct pci_root_info *info,
++			  struct list_head *resources)
  {
-@@ -990,23 +974,7 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
+ 	int i;
+ 	struct resource *res, *root, *conflict;
+@@ -301,7 +301,7 @@ static void add_resources(struct pci_root_info *info)
+ 				 "ignoring host bridge window %pR (conflicts with %s %pR)\n",
+ 				 res, conflict->name, conflict);
+ 		else
+-			pci_add_resource(info->resources, res);
++			pci_add_resource(resources, res);
+ 	}
+ }
  
- 		if (!is_cardbus) {
- 			child->bridge_ctl = bctl;
--			/*
--			 * Adjust subordinate busnr in parent buses.
--			 * We do this before scanning for children because
--			 * some devices may not be detected if the bios
--			 * was lazy.
--			 */
--			pci_fixup_parent_subordinate_busnr(child, max);
--			/* Now we can scan all subordinate buses... */
- 			max = pci_scan_child_bus(child);
--			/*
--			 * now fix it up again since we have found
--			 * the real value of max.
--			 */
--			pci_fixup_parent_subordinate_busnr(child, max);
+@@ -313,41 +313,30 @@ static void free_pci_root_info(struct pci_root_info *info)
+ }
+ 
+ static void
+-get_current_resources(struct pci_root_info *info,
+-		      struct acpi_device *device, int busnum,
+-		      int domain, struct list_head *resources)
++probe_pci_root_info(struct pci_root_info *info, struct acpi_device *device,
++		    int busnum, int domain)
+ {
+ 	size_t size;
+ 
+ 	info->bridge = device;
+ 	info->res_num = 0;
+-	info->resources = resources;
+ 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_resource,
+ 				info);
+ 	if (!info->res_num)
+ 		return;
+ 
+ 	size = sizeof(*info->res) * info->res_num;
++	info->res_num = 0;
+ 	info->res = kmalloc(size, GFP_KERNEL);
+ 	if (!info->res)
+ 		return;
+ 
+ 	info->name = kasprintf(GFP_KERNEL, "PCI Bus %04x:%02x", domain, busnum);
+ 	if (!info->name)
+-		goto name_alloc_fail;
++		return;
+ 
+-	info->res_num = 0;
+ 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, setup_resource,
+ 				info);
 -
--		} else {
--			pci_fixup_parent_subordinate_busnr(child, max);
- 		}
+-	if (pci_use_crs) {
+-		add_resources(info);
+-
+-		return;
+-	}
+-
+-name_alloc_fail:
+-	free_pci_root_info(info);
+ }
+ 
+ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+@@ -412,15 +401,18 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		memcpy(bus->sysdata, sd, sizeof(*sd));
+ 		kfree(sd);
+ 	} else {
+-		get_current_resources(&info, device, busnum, domain,
+-					&resources);
++		probe_pci_root_info(&info, device, busnum, domain);
+ 
  		/*
- 		 * Set the subordinate bus number to its real value.
+ 		 * _CRS with no apertures is normal, so only fall back to
+ 		 * defaults or native bridge info if we're ignoring _CRS.
+ 		 */
+-		if (!pci_use_crs)
++		if (pci_use_crs)
++			add_resources(&info, &resources);
++		else {
++			free_pci_root_info(&info);
+ 			x86_pci_root_bus_resources(busnum, &resources);
++		}
+ 		bus = pci_create_root_bus(NULL, busnum, &pci_root_ops, sd,
+ 					  &resources);
+ 		if (bus)
 -- 
 1.7.7
