@@ -1,57 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:55689 "EHLO
-	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755826Ab2CATDQ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Mar 2012 14:03:16 -0500
+Received: from smtp.outflux.net ([198.145.64.163]:55666 "EHLO smtp.outflux.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752645Ab2CAXiH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 1 Mar 2012 18:38:07 -0500
+Date: Thu, 1 Mar 2012 15:37:12 -0800
+From: Kees Cook <keescook@chromium.org>
+Subject: Re: [PATCH v12 01/13] sk_run_filter: add support for custom
+ load_pointer
+Message-ID: <20120301233712.GS3990@outflux.net>
+References: <1330559620-23543-1-git-send-email-wad@chromium.org>
 MIME-Version: 1.0
-In-Reply-To: <CAL-B5D0Phxhx-2ipYwoKfZCTvCfuh6bX-iqQkQS0cLmRqQHGbg@mail.gmail.com>
-References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
-	<CAL-B5D0Phxhx-2ipYwoKfZCTvCfuh6bX-iqQkQS0cLmRqQHGbg@mail.gmail.com>
-Date: Thu, 1 Mar 2012 11:03:15 -0800
-Message-ID: <CAE9FiQX57=cmfgJJv5E_rTQD1umCsmqJas0Sa22sN_xhdCSUgw@mail.gmail.com>
-Subject: Re: [PATCH 00/39] PCI: pci_host_bridge related cleanup and busn_alloc
-From: Yinghai Lu <yinghai@kernel.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1330559620-23543-1-git-send-email-wad@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Myron Stowe <myron.stowe@gmail.com>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120301190315.06k1QpqR3eQO1l_bsb-elts_fU2HXSeQ2B4bQIyfRvE@z>
+To: akpm@linux-foundation.org, sfr@canb.auug.org.au
+Cc: Will Drewry <wad@chromium.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com
+Message-ID: <20120301233712.x788-fh6iFRhf_yFb1QV9NFmSz0TburtZjA810HMr6A@z>
 
-On Thu, Mar 1, 2012 at 10:51 AM, Myron Stowe <myron.stowe@gmail.com> wrote:
-> On Wed, Feb 29, 2012 at 4:06 PM, Yinghai Lu <yinghai@kernel.org> wrote:
->> The first 14 patches are hostbridge clean up.
->> will add struct device dev into host_bridge struct.
->> also will add release support to make sure allocated resource get
->> freed during root bus removal including hostbridge and pci_sysdata.
->>
->> others 25 patches are busn_alloc related.
->> Set up iobusn_resource tree, and register bus number range to it.
->> Later when need to find bus range, will try to allocate from the tree
->> Need to test on arches other than x86. esp for ia64 and powerpc that support
->>  more than on peer root buses.
->
-> Why did you collapse these two series into one at this point?
->
-> Last I was keeping up with - there was a -v9 00/23 series related to
-> bus_num and a -v2 00/11 series for pci_host_bridge related cleanup.
+Hi,
 
-the updated busn_alloc patchset, need to be applied on top of
-pci_host_bridge related cleanup.
+So far, it looks like everyone who spoke up is satisfied with this patch
+series. Or their MUAs got caught up on a leap-year bug and missed the
+posting. ;)
 
-So i was thinking put them together would be better to be reviewed
-first 14 for hostbridge clean up. and others for busn_res_alloc.
+Is it time to pull this into -next so more people can feel it? I brought
+Andy Lutomirski's patches forward (needed to bump the prctl values), and
+updated my git tree. If we're ready, here it is in all its request-pull
+format glory:
 
->
-> As a distro maintainer I need to try and keep up with what is occurring
-> here and actions like this - coalescing multiple series - unnecessarily
-> complicates things.  It also masks the fact that the bus_num series is
-> now on -v10 within a very short time frame (which implies a lot).
+The following changes since commit 2422c8368337196594265d52cad7316c9404bfcf:
+  Stephen Rothwell (1):
+        Add linux-next specific files for 20120301
 
-I will separate them in next revision, if Jesse would not pick up
-first 14 shortly.
+are available in the git repository at:
 
-Thanks
+  git://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git seccomp
 
-Yinghai
+Andy Lutomirski (1):
+      Add PR_{GET,SET}_NO_NEW_PRIVS to prevent execve from granting privs
+
+John Johansen (1):
+      Fix apparmor for PR_{GET,SET}_NO_NEW_PRIVS
+
+Kees Cook (1):
+      seccomp: remove duplicated failure logging
+
+Will Drewry (12):
+      sk_run_filter: add support for custom load_pointer
+      net/compat.c,linux/filter.h: share compat_sock_fprog
+      seccomp: kill the seccomp_t typedef
+      asm/syscall.h: add syscall_get_arch
+      arch/x86: add syscall_get_arch to syscall.h
+      seccomp: add system call filtering using BPF
+      seccomp: add SECCOMP_RET_ERRNO
+      signal, x86: add SIGSYS info and make it synchronous.
+      seccomp: Add SECCOMP_RET_TRAP
+      ptrace,seccomp: Add PTRACE_SECCOMP support
+      x86: Enable HAVE_ARCH_SECCOMP_FILTER
+      Documentation: prctl/seccomp_filter
+
+ Documentation/prctl/seccomp_filter.txt |  156 +++++++++++++
+ arch/Kconfig                           |   24 ++
+ arch/x86/Kconfig                       |    1 +
+ arch/x86/ia32/ia32_signal.c            |    4 +
+ arch/x86/include/asm/ia32.h            |    6 +
+ arch/x86/include/asm/syscall.h         |   23 ++
+ arch/x86/kernel/ptrace.c               |    7 +-
+ fs/exec.c                              |   10 +-
+ include/asm-generic/siginfo.h          |   22 ++
+ include/asm-generic/syscall.h          |   14 ++
+ include/linux/Kbuild                   |    1 +
+ include/linux/audit.h                  |    8 +-
+ include/linux/filter.h                 |   57 +++++
+ include/linux/prctl.h                  |   15 ++
+ include/linux/ptrace.h                 |    5 +-
+ include/linux/sched.h                  |    4 +-
+ include/linux/seccomp.h                |   99 +++++++-
+ include/linux/security.h               |    1 +
+ kernel/auditsc.c                       |    9 +-
+ kernel/fork.c                          |    3 +
+ kernel/seccomp.c                       |  378 ++++++++++++++++++++++++++++++--
+ kernel/signal.c                        |    9 +-
+ kernel/sys.c                           |   12 +-
+ net/compat.c                           |    8 -
+ net/core/filter.c                      |  117 ++++++++++-
+ samples/Makefile                       |    2 +-
+ samples/seccomp/Makefile               |   38 ++++
+ samples/seccomp/bpf-direct.c           |  176 +++++++++++++++
+ samples/seccomp/bpf-fancy.c            |  102 +++++++++
+ samples/seccomp/bpf-helper.c           |   89 ++++++++
+ samples/seccomp/bpf-helper.h           |  238 ++++++++++++++++++++
+ samples/seccomp/dropper.c              |   68 ++++++
+ security/apparmor/domain.c             |   35 +++
+ security/commoncap.c                   |    7 +-
+ security/selinux/hooks.c               |   10 +-
+ 35 files changed, 1695 insertions(+), 63 deletions(-)
+ create mode 100644 Documentation/prctl/seccomp_filter.txt
+ create mode 100644 samples/seccomp/Makefile
+ create mode 100644 samples/seccomp/bpf-direct.c
+ create mode 100644 samples/seccomp/bpf-fancy.c
+ create mode 100644 samples/seccomp/bpf-helper.c
+ create mode 100644 samples/seccomp/bpf-helper.h
+ create mode 100644 samples/seccomp/dropper.c
+
+
+-- 
+Kees Cook
+ChromeOS Security
