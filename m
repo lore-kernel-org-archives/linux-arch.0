@@ -1,68 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:33193 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755233Ab2CADCL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 22:02:11 -0500
+Received: from rcsinet15.oracle.com ([148.87.113.117]:32260 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754915Ab2CADCK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 22:02:10 -0500
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 13/36] x86, PCI: allocate temp range array in amd_bus pci_root_info probing
-Date: Wed, 29 Feb 2012 19:00:14 -0800
-Message-ID: <1330570837-26638-14-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 12/36] x86, PCI: add print all root info for nocrs path
+Date: Wed, 29 Feb 2012 19:00:13 -0800
+Message-ID: <1330570837-26638-13-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
 References: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120301030014.1M-gCLhNcC6ewoMGwefNdqdjWSGtlqvGAAaIMfLbvj8@z>
+Message-ID: <20120301030013.r2RIt8kV5McRN0e1OOrz5T1xoJYB7YqTEcLs9YvqooY@z>
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/pci/amd_bus.c |   11 ++++++++---
- 1 files changed, 8 insertions(+), 3 deletions(-)
+ arch/x86/pci/amd_bus.c  |    2 +-
+ arch/x86/pci/bus_numa.c |    8 ++++++++
+ arch/x86/pci/bus_numa.h |    1 +
+ 3 files changed, 10 insertions(+), 1 deletions(-)
 
 diff --git a/arch/x86/pci/amd_bus.c b/arch/x86/pci/amd_bus.c
-index 5f30a98..aff155d 100644
+index 0b6abbe..5f30a98 100644
 --- a/arch/x86/pci/amd_bus.c
 +++ b/arch/x86/pci/amd_bus.c
-@@ -30,7 +30,7 @@ static struct pci_hostbridge_probe pci_probes[] __initdata = {
- 	{ 0, 0x18, PCI_VENDOR_ID_AMD, 0x1300 },
- };
- 
--#define RANGE_NUM 16
-+#define RANGE_NUM 128
- 
- static struct pci_root_info __init *find_pci_root_info(int node, int link)
- {
-@@ -64,7 +64,7 @@ static int __init early_fill_mp_bus_info(void)
- 	u32 reg;
- 	u64 start;
- 	u64 end;
--	struct range range[RANGE_NUM];
-+	struct range *range;
- 	u64 val;
- 	u32 address;
- 	bool found;
-@@ -125,7 +125,10 @@ static int __init early_fill_mp_bus_info(void)
- 	reg = read_pci_config(bus, slot, 0, 0x64);
- 	def_link = (reg >> 8) & 0x03;
- 
--	memset(range, 0, sizeof(range));
-+	range = kcalloc(RANGE_NUM, sizeof(struct range), GFP_KERNEL);
-+	if (!range)
-+		return -ENOMEM;
-+
- 	add_range(range, RANGE_NUM, 0, 0, 0xffff + 1);
- 	/* io port resource */
- 	for (i = 0; i < 4; i++) {
-@@ -291,6 +294,8 @@ static int __init early_fill_mp_bus_info(void)
+@@ -291,7 +291,7 @@ static int __init early_fill_mp_bus_info(void)
  		}
  	}
  
-+	kfree(range);
-+
- 	print_all_pci_root_info("ht link", true);
+-	print_pci_root_info(info, "bus:", true);
++	print_all_pci_root_info("ht link", true);
  
  	return 0;
+ }
+diff --git a/arch/x86/pci/bus_numa.c b/arch/x86/pci/bus_numa.c
+index 7251011..772949f 100644
+--- a/arch/x86/pci/bus_numa.c
++++ b/arch/x86/pci/bus_numa.c
+@@ -94,6 +94,14 @@ void print_pci_root_info(struct pci_root_info *info, char *name, bool nodelink)
+ 				 &root_res->res);
+ }
+ 
++void print_all_pci_root_info(char *name, bool nodelink)
++{
++	struct pci_root_info *info;
++
++	list_for_each_entry(info, &pci_root_infos, list)
++		print_pci_root_info(info, name, nodelink);
++}
++
+ void __devinit update_res(struct pci_root_info *info, resource_size_t start,
+ 			  resource_size_t end, unsigned long flags, int merge)
+ {
+diff --git a/arch/x86/pci/bus_numa.h b/arch/x86/pci/bus_numa.h
+index d19ac93..deada6a 100644
+--- a/arch/x86/pci/bus_numa.h
++++ b/arch/x86/pci/bus_numa.h
+@@ -23,6 +23,7 @@ extern struct list_head pci_root_infos;
+ struct pci_root_info *alloc_pci_root_info(int bus_min, int bus_max,
+ 						int node, int link);
+ void print_pci_root_info(struct pci_root_info *info, char *name, bool nodelink);
++void print_all_pci_root_info(char *name, bool nodelink);
+ extern void update_res(struct pci_root_info *info, resource_size_t start,
+ 		      resource_size_t end, unsigned long flags, int merge);
+ #endif
 -- 
 1.7.7
 
