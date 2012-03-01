@@ -1,234 +1,135 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 04/36] PCI: add generic device into pci_host_bridge struct
-Date: Wed, 29 Feb 2012 19:00:05 -0800
-Message-ID: <1330570837-26638-5-git-send-email-yinghai@kernel.org>
-References: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:31662 "EHLO
-	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932649Ab2CADBM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 22:01:12 -0500
-In-Reply-To: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+From: Myron Stowe <myron.stowe@gmail.com>
+Subject: Re: [PATCH 00/39] PCI: pci_host_bridge related cleanup and busn_alloc
+Date: Thu, 1 Mar 2012 11:51:19 -0700
+Message-ID: <CAL-B5D0Phxhx-2ipYwoKfZCTvCfuh6bX-iqQkQS0cLmRqQHGbg@mail.gmail.com>
+References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
+Sender: linux-pci-owner@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-use that device for pci_root_bus bridge pointer.
+On Wed, Feb 29, 2012 at 4:06 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+> The first 14 patches are hostbridge clean up.
+> will add struct device dev into host_bridge struct.
+> also will add release support to make sure allocated resource get
+> freed during root bus removal including hostbridge and pci_sysdata.
+>
+> others 25 patches are busn_alloc related.
+> Set up iobusn_resource tree, and register bus number range to it.
+> Later when need to find bus range, will try to allocate from the tree
+> Need to test on arches other than x86. esp for ia64 and powerpc that =
+support
+> =A0more than on peer root buses.
 
-With that make code more simple.
+Why did you collapse these two series into one at this point?
 
-Also we can use pci_release_bus_bridge_dev() to release allocated
-pci_host_bridge during removing path.
+Last I was keeping up with - there was a -v9 00/23 series related to
+bus_num and a -v2 00/11 series for pci_host_bridge related cleanup.
 
-At last, we can use root bus bridge pointer to get host bridge pointer instead
-of going over host bridge list, so could kill that host bridge list.
+As a distro maintainer I need to try and keep up with what is occurring
+here and actions like this - coalescing multiple series - unnecessarily
+complicates things.  It also masks the fact that the bus_num series is
+now on -v10 within a very short time frame (which implies a lot).
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Myron
+>
+> The patches need to apply to pci/for-linus and pci/linux-next
+> because one patch that is needed only is only in pci/for-linus
+>
+> could get from
+> =A0 =A0 =A0 =A0git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/=
+linux-yinghai.git for-pci-next
+>
+> please put them into pci/linux-next branch for more testing.
+>
+> Thanks
+>
+> Yinghai
+>
+> Yinghai Lu (39):
+> =A0PCI: Separate host_bridge code out from probe.c
+> =A0x86, PCI: have own version for pcibios_bus_to_resource
+> =A0x86, PCI: Fix memleak with get_current_resources
+> =A0PCI: rename pci_host_bridge() to find_pci_root_bridge()
+> =A0PCI: add generic device into pci_host_bridge struct
+> =A0PCI: add host bridge release support
+> =A0x86, PCI: break down get_current_resource()
+> =A0x86, PCI: add host bridge resource release for using _CRS
+> =A0x86, PCI: embed name acpi version pci_root_info struct
+> =A0x86, PCI: embed pci_sysdata into pci_root_info on acpi path
+> =A0x86, PCI: Allocating pci_root_info for not using _CRS path
+> =A0x86, PCI: Merge root info printing for nocrs path
+> =A0x86, PCI: add print all root info for nocrs path
+> =A0x86, PCI: allocate temp range array in amd_bus pci_root_info probi=
+ng
+> =A0x86, PCI: Merge pcibios_scan_root and pci_scan_bus_on_node
+> =A0PCI: skip busn resource at first.
+> =A0x86, PCI: put busn resource in pci_root_info for acpi path
+> =A0PCI: default busn_resource
+> =A0x86, PCI: put busn resource in pci_root_info for no_crs path
+> =A0PCI: Add busn_res into struct pci_bus.
+> =A0PCI: Add busn_res operation functions
+> =A0PCI: release busn when removing bus
+> =A0PCI: insert busn_res in pci_create_root_bus
+> =A0PCI: checking busn_res in pci_scan_root_bus
+> =A0PCI: add default res for pci_scan_bus
+> =A0PCI, ia64: Register busn_res for root buses
+> =A0PCI, sparc: Register busn_res for root buses
+> =A0PCI, powerpc: Register busn_res for root buses
+> =A0PCI, parisc: Register busn_res for root buses
+> =A0PCI: Add pci_bus_extend/shrink_top()
+> =A0PCI: Probe safe range that we can use for unassigned bridge.
+> =A0PCI: Strict checking of valid range for bridge
+> =A0PCI: Allocate bus range instead of use max blindly
+> =A0PCI: kill pci_fixup_parent_subordinate_busnr()
+> =A0PCI: Seperate child bus scanning to two passes overall
+> =A0pcmcia: remove workaround for fixing pci parent bus subordinate
+> =A0PCI: Double checking setting for bus register and bus struct.
+> =A0PCI, pciehp: Remove not needed bus number range checking
+> =A0x86, PCI: kill busn in acpi pci_root_info
+>
+> =A0arch/ia64/pci/pci.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 =A02=
+ +
+> =A0arch/powerpc/include/asm/pci-bridge.h | =A0 =A01 +
+> =A0arch/powerpc/kernel/pci-common.c =A0 =A0 =A0| =A0 10 +-
+> =A0arch/sparc/kernel/pci.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 =A04 +
+> =A0arch/sparc/kernel/pci_impl.h =A0 =A0 =A0 =A0 =A0| =A0 =A01 +
+> =A0arch/x86/pci/acpi.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0121 +=
++++---
+> =A0arch/x86/pci/amd_bus.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0| =A0 88 ++-=
 ---
- drivers/pci/host-bridge.c |   15 +---------
- drivers/pci/pci.h         |    2 -
- drivers/pci/probe.c       |   65 +++++++++++++++++++++++---------------------
- include/linux/pci.h       |    4 ++-
- 4 files changed, 38 insertions(+), 48 deletions(-)
-
-diff --git a/drivers/pci/host-bridge.c b/drivers/pci/host-bridge.c
-index 78adcc0..a55c3f8 100644
---- a/drivers/pci/host-bridge.c
-+++ b/drivers/pci/host-bridge.c
-@@ -9,13 +9,6 @@
- 
- #include "pci.h"
- 
--static LIST_HEAD(pci_host_bridges);
+> =A0arch/x86/pci/broadcom_bus.c =A0 =A0 =A0 =A0 =A0 | =A0 17 +-
+> =A0arch/x86/pci/bus_numa.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0100 +++++=
+--
+> =A0arch/x86/pci/bus_numa.h =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 23 +-
+> =A0arch/x86/pci/common.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 27 +--
+> =A0arch/x86/pci/i386.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 14 +
+> =A0drivers/parisc/dino.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 =A05 +
+> =A0drivers/parisc/lba_pci.c =A0 =A0 =A0 =A0 =A0 =A0 =A0| =A0 =A03 +
+> =A0drivers/pci/Makefile =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0| =A0 =A02=
+ +-
+> =A0drivers/pci/host-bridge.c =A0 =A0 =A0 =A0 =A0 =A0 | =A0 97 ++++++
+> =A0drivers/pci/hotplug/pciehp_pci.c =A0 =A0 =A0| =A0 12 +-
+> =A0drivers/pci/probe.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0601 +=
++++++++++++++++++++++-----------
+> =A0drivers/pci/remove.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0| =A0 =A01=
+ +
+> =A0drivers/pcmcia/yenta_socket.c =A0 =A0 =A0 =A0 | =A0 75 ----
+> =A0include/linux/pci.h =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 15 +=
 -
--void add_to_pci_host_bridges(struct pci_host_bridge *bridge)
--{
--	list_add_tail(&bridge->list, &pci_host_bridges);
--}
--
- static struct pci_bus *find_pci_root_bus(struct pci_dev *dev)
- {
- 	struct pci_bus *bus;
-@@ -30,14 +23,8 @@ static struct pci_bus *find_pci_root_bus(struct pci_dev *dev)
- static struct pci_host_bridge *find_pci_host_bridge(struct pci_dev *dev)
- {
- 	struct pci_bus *bus = find_pci_root_bus(dev);
--	struct pci_host_bridge *bridge;
--
--	list_for_each_entry(bridge, &pci_host_bridges, list) {
--		if (bridge->bus == bus)
--			return bridge;
--	}
- 
--	return NULL;
-+	return to_pci_host_bridge(bus->bridge);
- }
- 
- static bool resource_contains(struct resource *res1, struct resource *res2)
-diff --git a/drivers/pci/pci.h b/drivers/pci/pci.h
-index c695a92..e494347 100644
---- a/drivers/pci/pci.h
-+++ b/drivers/pci/pci.h
-@@ -231,8 +231,6 @@ static inline int pci_ari_enabled(struct pci_bus *bus)
- void pci_reassigndev_resource_alignment(struct pci_dev *dev);
- extern void pci_disable_bridge_window(struct pci_dev *dev);
- 
--void add_to_pci_host_bridges(struct pci_host_bridge *bridge);
--
- /* Single Root I/O Virtualization */
- struct pci_sriov {
- 	int pos;		/* capability position */
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 89a82a3..fb3dd4b 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -421,6 +421,19 @@ static struct pci_bus * pci_alloc_bus(void)
- 	return b;
- }
- 
-+static struct pci_host_bridge *pci_alloc_host_bridge(struct pci_bus *b)
-+{
-+	struct pci_host_bridge *bridge;
-+
-+	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
-+	if (bridge) {
-+		INIT_LIST_HEAD(&bridge->windows);
-+		bridge->bus = b;
-+	}
-+
-+	return bridge;
-+}
-+
- static unsigned char pcix_bus_speed[] = {
- 	PCI_SPEED_UNKNOWN,		/* 0 */
- 	PCI_SPEED_66MHz_PCIX,		/* 1 */
-@@ -1121,7 +1134,13 @@ int pci_cfg_space_size(struct pci_dev *dev)
- 
- static void pci_release_bus_bridge_dev(struct device *dev)
- {
--	kfree(dev);
-+	struct pci_host_bridge *bridge = to_pci_host_bridge(dev);
-+
-+	/* TODO: need to free window->res */
-+
-+	pci_free_resource_list(&bridge->windows);
-+
-+	kfree(bridge);
- }
- 
- struct pci_dev *alloc_pci_dev(void)
-@@ -1570,28 +1589,19 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 	int error;
- 	struct pci_host_bridge *bridge;
- 	struct pci_bus *b, *b2;
--	struct device *dev;
- 	struct pci_host_bridge_window *window, *n;
- 	struct resource *res;
- 	resource_size_t offset;
- 	char bus_addr[64];
- 	char *fmt;
- 
--	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
--	if (!bridge)
--		return NULL;
- 
- 	b = pci_alloc_bus();
- 	if (!b)
--		goto err_bus;
--
--	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
--	if (!dev)
--		goto err_dev;
-+		return NULL;
- 
- 	b->sysdata = sysdata;
- 	b->ops = ops;
--
- 	b2 = pci_find_bus(pci_domain_nr(b), bus);
- 	if (b2) {
- 		/* If we already got to this bus through a different bridge, ignore it */
-@@ -1599,13 +1609,17 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 		goto err_out;
- 	}
- 
--	dev->parent = parent;
--	dev->release = pci_release_bus_bridge_dev;
--	dev_set_name(dev, "pci%04x:%02x", pci_domain_nr(b), bus);
--	error = device_register(dev);
-+	bridge = pci_alloc_host_bridge(b);
-+	if (!bridge)
-+		goto err_out;
-+
-+	bridge->dev.parent = parent;
-+	bridge->dev.release = pci_release_bus_bridge_dev;
-+	dev_set_name(&bridge->dev, "pci%04x:%02x", pci_domain_nr(b), bus);
-+	error = device_register(&bridge->dev);
- 	if (error)
--		goto dev_reg_err;
--	b->bridge = get_device(dev);
-+		goto bridge_dev_reg_err;
-+	b->bridge = get_device(&bridge->dev);
- 	device_enable_async_suspend(b->bridge);
- 	pci_set_bus_of_node(b);
- 
-@@ -1624,9 +1638,6 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 
- 	b->number = b->secondary = bus;
- 
--	bridge->bus = b;
--	INIT_LIST_HEAD(&bridge->windows);
--
- 	if (parent)
- 		dev_info(parent, "PCI host bridge to bus %s\n", dev_name(&b->dev));
- 	else
-@@ -1652,25 +1663,17 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 	}
- 
- 	down_write(&pci_bus_sem);
--	add_to_pci_host_bridges(bridge);
- 	list_add_tail(&b->node, &pci_root_buses);
- 	up_write(&pci_bus_sem);
- 
- 	return b;
- 
- class_dev_reg_err:
--	device_unregister(dev);
--dev_reg_err:
--	down_write(&pci_bus_sem);
--	list_del(&bridge->list);
--	list_del(&b->node);
--	up_write(&pci_bus_sem);
-+	device_unregister(&bridge->dev);
-+bridge_dev_reg_err:
-+	kfree(bridge);
- err_out:
--	kfree(dev);
--err_dev:
- 	kfree(b);
--err_bus:
--	kfree(bridge);
- 	return NULL;
- }
- 
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 5584aac..310610e 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -375,11 +375,13 @@ struct pci_host_bridge_window {
- };
- 
- struct pci_host_bridge {
--	struct list_head list;
-+	struct device dev;
- 	struct pci_bus *bus;		/* root bus */
- 	struct list_head windows;	/* pci_host_bridge_windows */
- };
- 
-+#define	to_pci_host_bridge(n) container_of(n, struct pci_host_bridge, dev)
-+
- /*
-  * The first PCI_BRIDGE_RESOURCE_NUM PCI bus resources (those that correspond
-  * to P2P or CardBus bridge windows) go in a table.  Additional ones (for
--- 
-1.7.7
+> =A021 files changed, 767 insertions(+), 452 deletions(-)
+> =A0create mode 100644 drivers/pci/host-bridge.c
+>
+> --
+> 1.7.7
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-pci" =
+in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at =A0http://vger.kernel.org/majordomo-info.html
