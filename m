@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 36/36] PCI, pciehp: Remove not needed bus number range checking
-Date: Wed, 29 Feb 2012 19:00:37 -0800
-Message-ID: <1330570837-26638-37-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 05/36] PCI: add host bridge release support
+Date: Wed, 29 Feb 2012 19:00:06 -0800
+Message-ID: <1330570837-26638-6-git-send-email-yinghai@kernel.org>
 References: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
@@ -10,44 +10,67 @@ To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Found hotplug adding one EM with bridge fail, bios only leave one bus range
- for slot.
-
-[ 1169.621444] pciehp: No bus number available for hot-added bridge 0000:55:00.0
-[ 1169.633277] pcieport 0000:40:03.0: PCI bridge to [bus 55-55]
-
-With busn_res tracking and allocating, we don't need that checking anymore.
-
-Parent bridges' bus number will be extended safely.
+We need one hook to release host bridge resource that are created for host
+bridge.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/hotplug/pciehp_pci.c |   12 +-----------
- 1 files changed, 1 insertions(+), 11 deletions(-)
+ drivers/pci/host-bridge.c |    8 ++++++++
+ drivers/pci/probe.c       |    3 ++-
+ include/linux/pci.h       |    5 +++++
+ 3 files changed, 15 insertions(+), 1 deletions(-)
 
-diff --git a/drivers/pci/hotplug/pciehp_pci.c b/drivers/pci/hotplug/pciehp_pci.c
-index 47d9dc0..e21171c 100644
---- a/drivers/pci/hotplug/pciehp_pci.c
-+++ b/drivers/pci/hotplug/pciehp_pci.c
-@@ -37,18 +37,8 @@
- static int __ref pciehp_add_bridge(struct pci_dev *dev)
- {
- 	struct pci_bus *parent = dev->bus;
--	int pass, busnr, start = parent->secondary;
--	int end = parent->subordinate;
-+	int pass, busnr = parent->secondary;
+diff --git a/drivers/pci/host-bridge.c b/drivers/pci/host-bridge.c
+index a55c3f8..3b2cb40 100644
+--- a/drivers/pci/host-bridge.c
++++ b/drivers/pci/host-bridge.c
+@@ -27,6 +27,14 @@ static struct pci_host_bridge *find_pci_host_bridge(struct pci_dev *dev)
+ 	return to_pci_host_bridge(bus->bridge);
+ }
  
--	for (busnr = start; busnr <= end; busnr++) {
--		if (!pci_find_bus(pci_domain_nr(parent), busnr))
--			break;
--	}
--	if (busnr-- > end) {
--		err("No bus number available for hot-added bridge %s\n",
--				pci_name(dev));
--		return -1;
--	}
- 	for (pass = 0; pass < 2; pass++)
- 		busnr = pci_scan_bridge(parent, dev, busnr, pass);
- 	if (!dev->subordinate)
++void pci_set_host_bridge_release(struct pci_host_bridge *bridge,
++				 void (*release_fn)(struct pci_host_bridge *),
++				 void *release_data)
++{
++	bridge->release_fn = release_fn;
++	bridge->release_data = release_data;
++}
++
+ static bool resource_contains(struct resource *res1, struct resource *res2)
+ {
+ 	return res1->start <= res2->start && res1->end >= res2->end;
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index fb3dd4b..675d7ed 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -1136,7 +1136,8 @@ static void pci_release_bus_bridge_dev(struct device *dev)
+ {
+ 	struct pci_host_bridge *bridge = to_pci_host_bridge(dev);
+ 
+-	/* TODO: need to free window->res */
++	if (bridge->release_fn)
++		bridge->release_fn(bridge);
+ 
+ 	pci_free_resource_list(&bridge->windows);
+ 
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 310610e..d93d3ae 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -378,9 +378,14 @@ struct pci_host_bridge {
+ 	struct device dev;
+ 	struct pci_bus *bus;		/* root bus */
+ 	struct list_head windows;	/* pci_host_bridge_windows */
++	void (*release_fn)(struct pci_host_bridge *);
++	void *release_data;
+ };
+ 
+ #define	to_pci_host_bridge(n) container_of(n, struct pci_host_bridge, dev)
++void pci_set_host_bridge_release(struct pci_host_bridge *bridge,
++		     void (*release_fn)(struct pci_host_bridge *),
++		     void *release_data);
+ 
+ /*
+  * The first PCI_BRIDGE_RESOURCE_NUM PCI bus resources (those that correspond
 -- 
 1.7.7
