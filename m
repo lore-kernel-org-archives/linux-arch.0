@@ -1,62 +1,62 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 30/36] PCI: Strict checking of valid range for bridge
-Date: Wed, 29 Feb 2012 19:00:31 -0800
-Message-ID: <1330570837-26638-31-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 13/36] x86, PCI: allocate temp range array in amd_bus pci_root_info probing
+Date: Wed, 29 Feb 2012 19:00:14 -0800
+Message-ID: <1330570837-26638-14-git-send-email-yinghai@kernel.org>
 References: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:33194 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755406Ab2CADCL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 22:02:11 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-
-children bridges busn range should be able to be allocated from parent bus range.
-
-to avoid overlapping between sibling bridges on same bus.
+List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |   24 ++++++++++++++++++++++++
- 1 files changed, 24 insertions(+), 0 deletions(-)
+ arch/x86/pci/amd_bus.c |   11 ++++++++---
+ 1 files changed, 8 insertions(+), 3 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index c540022..5c031f0 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -801,6 +801,30 @@ reduce_needed_size:
- 	return ret;
- }
+diff --git a/arch/x86/pci/amd_bus.c b/arch/x86/pci/amd_bus.c
+index 5f30a98..aff155d 100644
+--- a/arch/x86/pci/amd_bus.c
++++ b/arch/x86/pci/amd_bus.c
+@@ -30,7 +30,7 @@ static struct pci_hostbridge_probe pci_probes[] __initdata = {
+ 	{ 0, 0x18, PCI_VENDOR_ID_AMD, 0x1300 },
+ };
  
-+static int __devinit pci_bridge_check_busn_broken(struct pci_bus *bus,
-+				struct pci_dev *dev,
-+				int secondary, int subordinate)
-+{
-+	int broken = 0;
+-#define RANGE_NUM 16
++#define RANGE_NUM 128
+ 
+ static struct pci_root_info __init *find_pci_root_info(int node, int link)
+ {
+@@ -64,7 +64,7 @@ static int __init early_fill_mp_bus_info(void)
+ 	u32 reg;
+ 	u64 start;
+ 	u64 end;
+-	struct range range[RANGE_NUM];
++	struct range *range;
+ 	u64 val;
+ 	u32 address;
+ 	bool found;
+@@ -125,7 +125,10 @@ static int __init early_fill_mp_bus_info(void)
+ 	reg = read_pci_config(bus, slot, 0, 0x64);
+ 	def_link = (reg >> 8) & 0x03;
+ 
+-	memset(range, 0, sizeof(range));
++	range = kcalloc(RANGE_NUM, sizeof(struct range), GFP_KERNEL);
++	if (!range)
++		return -ENOMEM;
 +
-+	struct resource busn_res;
-+	int ret;
+ 	add_range(range, RANGE_NUM, 0, 0, 0xffff + 1);
+ 	/* io port resource */
+ 	for (i = 0; i < 4; i++) {
+@@ -291,6 +294,8 @@ static int __init early_fill_mp_bus_info(void)
+ 		}
+ 	}
+ 
++	kfree(range);
 +
-+	memset(&busn_res, 0, sizeof(struct resource));
-+	dev_printk(KERN_DEBUG, &dev->dev,
-+		 "check if busn %02x-%02x is in busn_res: %pR\n",
-+		 secondary, subordinate, &bus->busn_res);
-+	ret = allocate_resource(&bus->busn_res, &busn_res,
-+			 (subordinate - secondary + 1),
-+			 secondary, subordinate,
-+			 1, NULL, NULL);
-+	if (ret)
-+		broken = 1;
-+	else
-+		release_resource(&busn_res);
-+
-+	return broken;
-+}
- /*
-  * If it's a bridge, configure it and scan the bus behind it.
-  * For CardBus bridges, we don't scan behind as the devices will
+ 	print_all_pci_root_info("ht link", true);
+ 
+ 	return 0;
 -- 
 1.7.7
