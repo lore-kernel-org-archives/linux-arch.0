@@ -1,61 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:37036 "EHLO
+Received: from mail-yw0-f46.google.com ([209.85.213.46]:57640 "EHLO
 	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756523Ab2CACyf convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 21:54:35 -0500
+	with ESMTP id S1758256Ab2CAC53 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 29 Feb 2012 21:57:29 -0500
 MIME-Version: 1.0
-In-Reply-To: <CAErSpo5N72zkfvvgSNg0MsKAZwcR5TOsxH+Y7BkVbOBYWbdaKQ@mail.gmail.com>
+In-Reply-To: <20120229162743.49d78c21@jbarnes-x220>
 References: <1330556858-11768-1-git-send-email-yinghai@kernel.org>
-	<1330556858-11768-3-git-send-email-yinghai@kernel.org>
-	<CAErSpo62VuJw+3caNUhmg5moh3h4cn5z4kCsqTWZW-XqSzpk4Q@mail.gmail.com>
-	<CAE9FiQW=NXnaEY+fmUS_cyJy_BE-1+pWy8kfAoPA_s=vwDq4Mw@mail.gmail.com>
-	<CAErSpo5N72zkfvvgSNg0MsKAZwcR5TOsxH+Y7BkVbOBYWbdaKQ@mail.gmail.com>
-Date: Wed, 29 Feb 2012 18:54:34 -0800
-Message-ID: <CAE9FiQVfm0B-7gZXLoUjAU=pmyz2E=XNHvi6vi_Q0q9rN24UKw@mail.gmail.com>
-Subject: Re: [PATCH 02/39] x86, PCI: have own version for pcibios_bus_to_resource
+	<1330556858-11768-40-git-send-email-yinghai@kernel.org>
+	<CAErSpo63hAtPMFdSEuVCcgw5ERMkiKx2Z8pREc2PdiCwmWpvkg@mail.gmail.com>
+	<CAE9FiQUeRno4ZCy37XQ+cwrFYG-XoDq7q=XjKrOVy5E85bS-ig@mail.gmail.com>
+	<20120229235128.GA5484@kroah.com>
+	<20120229162743.49d78c21@jbarnes-x220>
+Date: Wed, 29 Feb 2012 18:57:28 -0800
+Message-ID: <CAE9FiQUTVq10LpE_uqwOewxCftSu0Y9=-6gOfYg-9H4_6mW8DA@mail.gmail.com>
+Subject: Re: [PATCH 39/39] x86, PCI: kill busn in acpi pci_root_info
 From: Yinghai Lu <yinghai@kernel.org>
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120301025434.GiYSVjagRHtBLZVxFllHWSFZrCpBVbxnlD4YELdXcqE@z>
+To: Jesse Barnes <jbarnes@virtuousgeek.org>
+Cc: Greg KH <gregkh@linuxfoundation.org>, Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120301025728.omjda4_-0d-RZrkeB79Rbfs2eD8eYJ1DbpL20I9F-0Y@z>
 
-On Wed, Feb 29, 2012 at 4:42 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
-> On Wed, Feb 29, 2012 at 4:33 PM, Yinghai Lu <yinghai@kernel.org> wrote:
->> On Wed, Feb 29, 2012 at 3:20 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
->>> On Wed, Feb 29, 2012 at 4:07 PM, Yinghai Lu <yinghai@kernel.org> wrote:
->>>> x86 does not need to offset the address. So we can skip that costing offset
->>>> searching.
->>>
->>> I tried to start a discussion about this patch (and others), but I
->>> don't think you responded:
->>> http://marc.info/?l=linux-pci&m=133036414506921&w=2
+On Wed, Feb 29, 2012 at 4:27 PM, Jesse Barnes <jbarnes@virtuousgeek.org> wrote:
+> On Wed, 29 Feb 2012 15:51:28 -0800
+> Greg KH <gregkh@linuxfoundation.org> wrote:
+>
+>> On Wed, Feb 29, 2012 at 03:37:53PM -0800, Yinghai Lu wrote:
+>> > On Wed, Feb 29, 2012 at 3:32 PM, Bjorn Helgaas
+>
+>> > > You just *added* this stuff in a prior patch that hasn't been
+>> > > merged yet.  Why can't you just fix that series rather than doing
+>> > > the add/remove churn?
+>> >
+>> > as i said before, I'm not quite sure about the life cycle about
+>> > that object.
+>
+> I thought Bjorn figured that out for you in the last thread?
+>
+>> >
+>> > still need to wait some months to verify that on system that does
+>> > support pci root bus hot plug etc.
+>> >
+>> > or we can just this patch for now.
 >>
->> this patch does reduce some not needed ops.
+>> A statement like that would cause all of these patches to be instantly
+>> deleted from any queue that I had control over, and I strongly
+>> recommend that Jesse just ignore them all.
 >>
->> and it does not affects your effects,
+>> If you don't know this thing, then you have no right to change it,
+>> flat out.  Why do we trust these patches from you?  I sure don't.
 >
-> It does affect my efforts in that this patch adds back x86 complexity
-> that I don't think is necessary.
->
-> And this patch makes it so the pci_add_resource_offset() interface
-> exists and appears to work on x86, but if somebody tries to use it, it
-> *doesn't* work.  I don't like to write code like that.  I think it's
-> poor style.
->
->> and it just make x86 not get punished.
->
-> What punishment are you worried about?  I really don't think you'll be
-> able to measure any performance impact.
->
-> I agree that the x86 code you add *is* simpler than the generic
-> version.  But I think the *overall* complexity is higher because now
-> you have to look at two versions (generic and x86) and convince
-> yourself that it's safe to use the x86 version.
->
+> Oh don't worry, this patch set isn't going upstream anytime soon.
+> Bjorn has raised several good points that Yinghai has yet to
+> address...  I trust Bjorn's judgment on these, so until he's happy I
+> likely won't be merging them.
 
-fine, i will that patch.
+Sorry for upsetting Greg.
 
-Yinghai
+will reorder patch sequence to mold that patch.
+
+      Yinghai
