@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 05/36] PCI: add host bridge release support
-Date: Wed, 29 Feb 2012 19:00:06 -0800
-Message-ID: <1330570837-26638-6-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 09/36] x86, PCI: embed pci_sysdata into pci_root_info on acpi path
+Date: Wed, 29 Feb 2012 19:00:10 -0800
+Message-ID: <1330570837-26638-10-git-send-email-yinghai@kernel.org>
 References: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1330570837-26638-1-git-send-email-yinghai@kernel.org>
@@ -10,67 +10,72 @@ To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-We need one hook to release host bridge resource that are created for host
-bridge.
+So that part memory will be released on remove path.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/host-bridge.c |    8 ++++++++
- drivers/pci/probe.c       |    3 ++-
- include/linux/pci.h       |    5 +++++
- 3 files changed, 15 insertions(+), 1 deletions(-)
+ arch/x86/pci/acpi.c |   21 ++++-----------------
+ 1 files changed, 4 insertions(+), 17 deletions(-)
 
-diff --git a/drivers/pci/host-bridge.c b/drivers/pci/host-bridge.c
-index a55c3f8..3b2cb40 100644
---- a/drivers/pci/host-bridge.c
-+++ b/drivers/pci/host-bridge.c
-@@ -27,6 +27,14 @@ static struct pci_host_bridge *find_pci_host_bridge(struct pci_dev *dev)
- 	return to_pci_host_bridge(bus->bridge);
- }
- 
-+void pci_set_host_bridge_release(struct pci_host_bridge *bridge,
-+				 void (*release_fn)(struct pci_host_bridge *),
-+				 void *release_data)
-+{
-+	bridge->release_fn = release_fn;
-+	bridge->release_data = release_data;
-+}
-+
- static bool resource_contains(struct resource *res1, struct resource *res2)
- {
- 	return res1->start <= res2->start && res1->end >= res2->end;
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index fb3dd4b..675d7ed 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -1136,7 +1136,8 @@ static void pci_release_bus_bridge_dev(struct device *dev)
- {
- 	struct pci_host_bridge *bridge = to_pci_host_bridge(dev);
- 
--	/* TODO: need to free window->res */
-+	if (bridge->release_fn)
-+		bridge->release_fn(bridge);
- 
- 	pci_free_resource_list(&bridge->windows);
- 
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 310610e..d93d3ae 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -378,9 +378,14 @@ struct pci_host_bridge {
- 	struct device dev;
- 	struct pci_bus *bus;		/* root bus */
- 	struct list_head windows;	/* pci_host_bridge_windows */
-+	void (*release_fn)(struct pci_host_bridge *);
-+	void *release_data;
+diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
+index 11c3ae7..2331ccb 100644
+--- a/arch/x86/pci/acpi.c
++++ b/arch/x86/pci/acpi.c
+@@ -13,6 +13,7 @@ struct pci_root_info {
+ 	unsigned int res_num;
+ 	struct resource *res;
+ 	int busnum;
++	struct pci_sysdata sd;
  };
  
- #define	to_pci_host_bridge(n) container_of(n, struct pci_host_bridge, dev)
-+void pci_set_host_bridge_release(struct pci_host_bridge *bridge,
-+		     void (*release_fn)(struct pci_host_bridge *),
-+		     void *release_data);
+ static bool pci_use_crs = true;
+@@ -400,26 +401,16 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 	if (node != -1 && !node_online(node))
+ 		node = -1;
  
- /*
-  * The first PCI_BRIDGE_RESOURCE_NUM PCI bus resources (those that correspond
+-	/* Allocate per-root-bus (not per bus) arch-specific data.
+-	 * TODO: leak; this memory is never freed.
+-	 * It's arguable whether it's worth the trouble to care.
+-	 */
+-	sd = kzalloc(sizeof(*sd), GFP_KERNEL);
+-	if (!sd) {
++	info = kzalloc(sizeof(*info), GFP_KERNEL);
++	if (!info) {
+ 		printk(KERN_WARNING "pci_bus %04x:%02x: "
+ 		       "ignored (out of memory)\n", domain, busnum);
+ 		return NULL;
+ 	}
+ 
++	sd = &info->sd;
+ 	sd->domain = domain;
+ 	sd->node = node;
+-	info = kzalloc(sizeof(*info), GFP_KERNEL);
+-	if (!info) {
+-		kfree(sd);
+-		printk(KERN_WARNING "pci_bus %04x:%02x: "
+-		       "ignored (out of memory)\n", domain, busnum);
+-		return NULL;
+-	}
+ 	/*
+ 	 * Maybe the desired pci bus has been already scanned. In such case
+ 	 * it is unnecessary to scan the pci bus with the given domain,busnum.
+@@ -432,7 +423,6 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		 */
+ 		memcpy(bus->sysdata, sd, sizeof(*sd));
+ 		kfree(info);
+-		kfree(sd);
+ 	} else {
+ 		probe_pci_root_info(info, device, busnum, domain);
+ 
+@@ -474,9 +464,6 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		}
+ 	}
+ 
+-	if (!bus)
+-		kfree(sd);
+-
+ 	if (bus && node != -1) {
+ #ifdef CONFIG_ACPI_NUMA
+ 		if (pxm >= 0)
 -- 
 1.7.7
