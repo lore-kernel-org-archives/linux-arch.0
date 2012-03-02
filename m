@@ -1,173 +1,86 @@
-From: Will Drewry <wad@chromium.org>
-Subject: Re: [PATCH v12 01/13] sk_run_filter: add support for custom load_pointer
-Date: Fri, 2 Mar 2012 12:47:51 -0600
-Message-ID: <CABqD9hYjdv5LOUKkD7ydddCA0MwLv69rq+GWAEaPaG7=dgYoiQ@mail.gmail.com>
-References: <1330559620-23543-1-git-send-email-wad@chromium.org>
-	<26411fc25ada53b95e90b6a5fa85ad44.squirrel@webmail.greenhost.nl>
+From: Eric B Munson <emunson@mgebm.net>
+Subject: Re: [PATCH 0/4 V15] Avoid soft lockup message when KVM is stopped
+ by host
+Date: Fri, 02 Mar 2012 14:23:55 -0800
+Message-ID: <efc139eb139354cdc086c994e18e4a7f@mgebm.net>
+References: <1329704577-6329-1-git-send-email-emunson@mgebm.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <netdev-owner@vger.kernel.org>
-In-Reply-To: <26411fc25ada53b95e90b6a5fa85ad44.squirrel@webmail.greenhost.nl>
-Sender: netdev-owner@vger.kernel.org
-To: Indan Zupancic <indan@nul.nu>, Eric Dumazet <eric.dumazet@gmail.com>, netdev@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
+Content-Type: text/plain;
+ charset=UTF-8;
+ format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1329704577-6329-1-git-send-email-emunson@mgebm.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: avi@redhat.com
+Cc: mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, Mar 2, 2012 at 4:40 AM, Indan Zupancic <indan@nul.nu> wrote:
-> Hello,
->
-> On Thu, March 1, 2012 00:53, Will Drewry wrote:
->> =A0include/linux/filter.h | =A0 46 +++++++++++++++++++
->> =A0net/core/filter.c =A0 =A0 =A0| =A0117 +++++++++++++++++++++++++++=
-++++++++++++++++++---
->> =A02 files changed, 157 insertions(+), 6 deletions(-)
->
-> I propose a slightly different approach:
->
-> Instead of more or less allowing generic load instructions, do the
-> same as the ancillary data functions and only allow BPF_S_LD_W_ABS.
-> In addition to that, rewrite and check the functions ourself after
-> sk_chk_filter() has done its checks.
->
-> Diff for filter.c:
->
-> diff --git a/include/linux/filter.h b/include/linux/filter.h
-> index 8eeb205..63b728c 100644
-> --- a/include/linux/filter.h
-> +++ b/include/linux/filter.h
-> @@ -228,6 +228,7 @@ enum {
-> =A0 =A0 =A0 =A0BPF_S_ANC_HATYPE,
-> =A0 =A0 =A0 =A0BPF_S_ANC_RXHASH,
-> =A0 =A0 =A0 =A0BPF_S_ANC_CPU,
-> + =A0 =A0 =A0 BPF_S_LD_W_SECCOMP,
-> =A0};
->
-> =A0#endif /* __KERNEL__ */
-> diff --git a/net/core/filter.c b/net/core/filter.c
-> index 5dea452..7e338d6 100644
-> --- a/net/core/filter.c
-> +++ b/net/core/filter.c
-> @@ -350,6 +350,9 @@ load_b:
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0A =3D =
-0;
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0continue;
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0}
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 case BPF_S_LD_W_SECCOMP:
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 A =3D seccomp_load(fent=
-ry->k);
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 continue;
+On Sun, 19 Feb 2012 21:22:53 -0500, Eric B Munson wrote:
+> Changes from V14:
+> Update documentation for the pvclock api
 
-This is plenty nice as far as I'm concerned.  I wonder what the
-networking people think?
+... snip
 
-I proposed a generic bpf interface, but if simply scoping it down to a
-single additional seccomp instruction is okay, then we can address
-additional instruction support or other generalizations later when
-there is a motivating case.
+>
+> When a guest kernel is stopped by the host hypervisor it can look 
+> like a soft
+> lockup to the guest kernel.  This false warning can mask later soft 
+> lockup
+> warnings which may be real.  This patch series adds a method for a 
+> host
+> hypervisor to communicate to a guest kernel that it is being stopped. 
+> The
+> final patch in the series has the watchdog check this flag when it 
+> goes to
+> issue a soft lockup warning and skip the warning if the guest knows 
+> it was
+> stopped.
+>
+> It was attempted to solve this in Qemu, but the side effects of 
+> saving and
+> restoring the clock and tsc for each vcpu put the wall clock of the
+> guest behind
+> by the amount of time of the pause.  This forces a guest to have ntp 
+> running
+> in order to keep the wall clock accurate.
 
+Avi,
 
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0default:
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0WARN_RATELIMIT(1, "Unk=
-nown code:%u jt:%u tf:%u k:%u\n",
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0=
- =A0 fentry->code, fentry->jt,
-> ---
->
-> And in seccomp add something like:
->
-> /*
-> =A0* Does SECCOMP specific checks.
-> =A0* Should be called after sk_chk_filter(), as it assumes all instru=
-ctions
-> =A0* are rewritten to the kernel enum format.
-> =A0* No SKB touching instructions are allowed. Only data LD instructi=
-on allowed
-> =A0* is BPF_S_LD_W_ABS, which will be handled by seccomp_load().
-> =A0*/
-> int seccomp_check_filter(const struct sock_filter *filter, unsigned i=
-nt flen)
-> {
-> =A0 =A0 =A0 =A0int pc;
->
-> =A0 =A0 =A0 =A0/* Make sure there are no SKB using instructions */
-> =A0 =A0 =A0 =A0for (pc =3D 0; pc < flen; pc++) {
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0u16 code =3D filter->code;
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0unsigned int k =3D filter->k;
->
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0if (code <=3D BPF_S_ALU_NEG)
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0continue;
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0if (code >=3D BPF_S_LDX_IMM && code < =
-BPF_S_ANC_PROTOCOL)
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0continue;
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0switch (code) {
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0case BPF_S_LD_W_ABS:
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0filter->code =3D BPF_S=
-_LD_W_SECCOMP;
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0if (k >=3D sizeof(stru=
-ct seccomp_data) || k & 3)
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0return=
- -EINVAL;
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0continue;
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0case BPF_S_LD_W_LEN:
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0filter->code =3D BPF_S=
-_LD_IMM;
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0filter->k =3D sizeof(s=
-truct seccomp_data);
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0continue;
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0case BPF_S_LD_IMM:
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0continue;
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0case BPF_S_LDX_W_LEN:
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0filter->code =3D BPF_S=
-_LDX_IMM;
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0filter->k =3D sizeof(s=
-truct seccomp_data);
+Is this version acceptable for merging?  I'd really like this to go in 
+for the 3.4 merge window.
 
-Mapping to LD[X]_IMM is really nice.
+Thanks,
+Eric
 
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0continue;
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0default:
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0return -EINVAL;
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0}
-> =A0 =A0 =A0 =A0}
-> =A0 =A0 =A0 =A0return 0;
-> }
 >
-> u32 seccomp_load(int off)
-> {
-> =A0 =A0 =A0 =A0u32 A;
-> =A0 =A0 =A0 =A0struct pt_regs *regs =3D task_pt_regs(current);
+> Cc: mingo@redhat.com
+> Cc: hpa@zytor.com
+> Cc: ryanh@linux.vnet.ibm.com
+> Cc: aliguori@us.ibm.com
+> Cc: mtosatti@redhat.com
+> Cc: kvm@vger.kernel.org
+> Cc: linux-arch@vger.kernel.org
+> Cc: x86@kernel.org
+> Cc: linux-kernel@vger.kernel.org
 >
-> =A0 =A0 =A0 =A0if (off >=3D BPF_DATA(args[0]) && off < BPF_DATA(args[=
-6])) {
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0int arg =3D (off - BPF_DATA(args[0])) =
-/ sizeof(u64);
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0int index =3D (off % sizeof(u64)) ? 1 =
-: 0;
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0syscall_get_arguments(current, regs, a=
-rg, 1, &value);
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0A =3D get_u32(value, index);
-> =A0 =A0 =A0 =A0} else if (off =3D=3D BPF_DATA(nr)) {
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0A =3D syscall_get_nr(current, regs);
-> =A0 =A0 =A0 =A0} else if (off =3D=3D BPF_DATA(arch)) {
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0A =3D syscall_get_arch(current, regs);
-> =A0 =A0 =A0 =A0} else if (off =3D=3D BPF_DATA(instruction_pointer)) {
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0A =3D get_u32(KSTK_EIP(current), 0);
-> =A0 =A0 =A0 =A0} else if (off =3D=3D BPF_DATA(instruction_pointer) + =
-sizeof(u32)) {
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0A =3D get_u32(KSTK_EIP(current), 1);
-> =A0 =A0 =A0 =A0}
-> =A0 =A0 =A0 =A0return A;
-> }
+> Eric B Munson (4):
+>   Add flag to indicate that a vm was stopped by the host
+>   Add functions to check if the host has stopped the vm
+>   Add ioctl for KVM_KVMCLOCK_CTRL
+>   Add check for suspended vm in softlockup detector
 >
-> This way you can even add SECCOMP specific functions in the future by=
- using
-> special offsets. (E.g. 64-bit compare between an arg and scratch memo=
-ry.)
-
-Yeah this would be a nice option if a more specialized (yet less
-invasive) approach is appealing to the networking people.  Eric, Joe,
-netdev, ... any opinions?  Would a standalone version be more useful?
-
-Thanks!
-will
+>  Documentation/virtual/kvm/api.txt   |   20 ++++++++++++++++++++
+>  Documentation/virtual/kvm/msr.txt   |    4 ++++
+>  arch/ia64/include/asm/kvm_para.h    |    5 +++++
+>  arch/powerpc/include/asm/kvm_para.h |    5 +++++
+>  arch/s390/include/asm/kvm_para.h    |    5 +++++
+>  arch/x86/include/asm/kvm_para.h     |    8 ++++++++
+>  arch/x86/include/asm/pvclock-abi.h  |    1 +
+>  arch/x86/kernel/kvmclock.c          |   21 +++++++++++++++++++++
+>  arch/x86/kvm/x86.c                  |   22 ++++++++++++++++++++++
+>  include/asm-generic/kvm_para.h      |   14 ++++++++++++++
+>  include/linux/kvm.h                 |    3 +++
+>  kernel/watchdog.c                   |   12 ++++++++++++
+>  12 files changed, 120 insertions(+), 0 deletions(-)
+>  create mode 100644 include/asm-generic/kvm_para.h
