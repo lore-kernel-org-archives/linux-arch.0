@@ -1,51 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:53405 "EHLO
-	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757942Ab2CBDl4 convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 1 Mar 2012 22:41:56 -0500
-Received: by mail-lpp01m010-f46.google.com with SMTP id j13so1553030lah.19
-        for <linux-arch@vger.kernel.org>; Thu, 01 Mar 2012 19:41:55 -0800 (PST)
-MIME-Version: 1.0
-In-Reply-To: <20120302141038.aaafc42b59ac7cf95d3553ed@canb.auug.org.au>
+Received: from haggis.pcug.org.au ([203.10.76.10]:52059 "EHLO
+	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753321Ab2CBD6D (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Mar 2012 22:58:03 -0500
+Date: Fri, 2 Mar 2012 14:57:50 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH v12 01/13] sk_run_filter: add support for custom
+ load_pointer
+Message-ID: <20120302145750.41b96e8be011a9a73c4fedf7@canb.auug.org.au>
+In-Reply-To: <CABmXcB83uFMUFUuRKCtkMjU2KLv7N4JB08qzZLVDdT=CStmQjw@mail.gmail.com>
 References: <1330559620-23543-1-git-send-email-wad@chromium.org>
 	<20120301233712.GS3990@outflux.net>
 	<20120302114705.0a9542e138927897f16282ca@canb.auug.org.au>
 	<CAGXu5jL0OXR5MOePFe=GT4_X5rdH8RNjQPqYXdbqsqfijUsEqA@mail.gmail.com>
 	<20120302141038.aaafc42b59ac7cf95d3553ed@canb.auug.org.au>
-Date: Thu, 1 Mar 2012 21:41:51 -0600
-Message-ID: <CABmXcB83uFMUFUuRKCtkMjU2KLv7N4JB08qzZLVDdT=CStmQjw@mail.gmail.com>
-Subject: Re: [PATCH v12 01/13] sk_run_filter: add support for custom load_pointer
-From: Will Drewry <wad@chromium.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+	<CABmXcB83uFMUFUuRKCtkMjU2KLv7N4JB08qzZLVDdT=CStmQjw@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Fri__2_Mar_2012_14_57_50_+1100_eKb16QfO7sCCyQX9"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
+To: Will Drewry <wad@chromium.org>
 Cc: Kees Cook <keescook@chromium.org>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com
-Message-ID: <20120302034151.cYbPo2IIDTM_M6HVHLM0R06w-u8gUnbtwIL0CiCzAnQ@z>
+Message-ID: <20120302035750.-6IObmxL8O9vv0pIzvlupqlZAapt_4kJgrK36aEjIiQ@z>
 
-On Thu, Mar 1, 2012 at 9:10 PM, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
-> Hi Kees,
+--Signature=_Fri__2_Mar_2012_14_57_50_+1100_eKb16QfO7sCCyQX9
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
+
+On Thu, 1 Mar 2012 21:41:51 -0600 Will Drewry <wad@chromium.org> wrote:
 >
-> On Thu, 1 Mar 2012 16:57:49 -0800 Kees Cook <keescook@chromium.org> wrote:
->>
->> Unfortunately, yes, it does -- there were both ptrace changes and prctl changes.
->>
->> And at least the ptrace changes are, IIRC, in -mm, which has no tree.
->> :P Given that, what's the best thing for me to do for this to be easy
->> for you to pull?
->
-> Does this set of patches *depend* on functionality provided by those, or
-> just produce conflicts against the other changes?  If it is just
-> conflicts, then base your tree on Linus and I and (he when it comes to
-> it) can fix the conflicts as needed (with some hints if you think it is a
-> good idea i.e. is the conflicts are particularly complex).
+> No explicit dependency.   It's just a conflict in how ptrace options
+> are set, defined, and masked (and STOP being renumbered).  Other than
+> the ptrace changes, the whole series patches cleanly onto both trees.
+> The resolved version is less code and easier to read, so I don't
+> suspect it'll be a challenge at all.
 
-No explicit dependency.   It's just a conflict in how ptrace options
-are set, defined, and masked (and STOP being renumbered).  Other than
-the ptrace changes, the whole series patches cleanly onto both trees.
-The resolved version is less code and easier to read, so I don't
-suspect it'll be a challenge at all.
+OK, so we need a tree based on Linus' (like v3.3-rc5 or something - and
+preferably tested ;-)) and an explicit request to me to include that tree.
 
-thanks!
+I will sort out any conflicts with Andrews's tree and post the fixups I
+make so others can correct me if necessary.
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+
+--Signature=_Fri__2_Mar_2012_14_57_50_+1100_eKb16QfO7sCCyQX9
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iQIcBAEBCAAGBQJPUEU+AAoJEECxmPOUX5FEpwAP/REQHzmhoCTZS02bUk+qc0AP
+V99l9dTuhNEgQsDW23aMXy26Q6yUkoNJcsaOzcp8zxTcxLySKy8I9KYCld52fjcm
+JFdPpYR/cHUsSb0tbfDwnFEXDGHUh1OqGWp1GmS/6WoZWLd0mWioVm6FBgiDVr0k
+aj9SZmjeHzyEZco/XLaty3eA+5jRHfFLC0n9d1g2C57P8LrPzns7MfHQdXclgulm
+P4/E1AEewbx7nYwDdtzcupSWOSDPanppgqT7942uty1qSmMI/8QuqDiZFiDSGFU3
+EYzbso5Y5N2FI01ic/z0HL25jiVoO19GIS1IYRr5M0DslNxtdxTpnkXVVdcPdTXm
+IymIIN6fjQ1X7uAWRoS4ES9oHDbgUaHwkiM1KoJPCtF4k/tp7gH1W34GpCIolapt
+4hr9NiPs5MED30n/q2M6hwWFnnX6DrdgfAzgFLyHnwkoeDvJ/47Ygpf3kKE+99hk
+9JRORvSDI4pMKAig8CZmS8WOXgaRkOYrTTuJ6+fJWjBS/HMFWgY6ZwYJxX+VzRjW
+939edFtsuy+lwk1V5hUrO4PSv2KrdFBgr5fRbmEib80FMOouCRzp4oc9SOB9Cz28
+RTevmY88HpiqSFALRBaf5V9BkLbPvh1F6nfL26ASjJUjzRxWcUTBnNWBC2eqOYS4
+1avPUU5cukzYPgzs3KWK
+=g1Ug
+-----END PGP SIGNATURE-----
+
+--Signature=_Fri__2_Mar_2012_14_57_50_+1100_eKb16QfO7sCCyQX9--
