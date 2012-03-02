@@ -1,55 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:48302 "EHLO
+Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:53405 "EHLO
 	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755277Ab2CBCjp convert rfc822-to-8bit
+	by vger.kernel.org with ESMTP id S1757942Ab2CBDl4 convert rfc822-to-8bit
 	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 1 Mar 2012 21:39:45 -0500
-Received: by mail-lpp01m010-f46.google.com with SMTP id j13so1512530lah.19
-        for <linux-arch@vger.kernel.org>; Thu, 01 Mar 2012 18:39:44 -0800 (PST)
+	Thu, 1 Mar 2012 22:41:56 -0500
+Received: by mail-lpp01m010-f46.google.com with SMTP id j13so1553030lah.19
+        for <linux-arch@vger.kernel.org>; Thu, 01 Mar 2012 19:41:55 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <20120301171914.7c64f095.akpm@linux-foundation.org>
+In-Reply-To: <20120302141038.aaafc42b59ac7cf95d3553ed@canb.auug.org.au>
 References: <1330559620-23543-1-git-send-email-wad@chromium.org>
 	<20120301233712.GS3990@outflux.net>
 	<20120302114705.0a9542e138927897f16282ca@canb.auug.org.au>
 	<CAGXu5jL0OXR5MOePFe=GT4_X5rdH8RNjQPqYXdbqsqfijUsEqA@mail.gmail.com>
-	<20120301171914.7c64f095.akpm@linux-foundation.org>
-Date: Thu, 1 Mar 2012 20:39:40 -0600
-Message-ID: <CABqD9ha4ACGaVt_VDY9LFJKW1dJ3LrRm=pDyTCQwupLZQ0Ovhg@mail.gmail.com>
+	<20120302141038.aaafc42b59ac7cf95d3553ed@canb.auug.org.au>
+Date: Thu, 1 Mar 2012 21:41:51 -0600
+Message-ID: <CABmXcB83uFMUFUuRKCtkMjU2KLv7N4JB08qzZLVDdT=CStmQjw@mail.gmail.com>
 Subject: Re: [PATCH v12 01/13] sk_run_filter: add support for custom load_pointer
 From: Will Drewry <wad@chromium.org>
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Kees Cook <keescook@chromium.org>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com
-Message-ID: <20120302023940.bgWQxG0MlBUQbpEbIMHi50DM8KrKcwNYpt0Kn5xXK-s@z>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Kees Cook <keescook@chromium.org>, akpm@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com
+Message-ID: <20120302034151.cYbPo2IIDTM_M6HVHLM0R06w-u8gUnbtwIL0CiCzAnQ@z>
 
-On Thu, Mar 1, 2012 at 7:19 PM, Andrew Morton <akpm@linux-foundation.org> wrote:
-> On Thu, 1 Mar 2012 16:57:49 -0800 Kees Cook <keescook@chromium.org> wrote:
+On Thu, Mar 1, 2012 at 9:10 PM, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+> Hi Kees,
 >
->> On Thu, Mar 1, 2012 at 4:47 PM, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
->> > Hi Kees,
->> >
->> > On Thu, 1 Mar 2012 15:37:12 -0800 Kees Cook <keescook@chromium.org> wrote:
->> >>
->> >> Is it time to pull this into -next so more people can feel it? I brought
->> >> Andy Lutomirski's patches forward (needed to bump the prctl values), and
->> >> updated my git tree. If we're ready, here it is in all its request-pull
->> >> format glory:
->> >>
->> >> The following changes since commit 2422c8368337196594265d52cad7316c9404bfcf:
->> >> __ Stephen Rothwell (1):
->> >> __ __ __ __ Add linux-next specific files for 20120301
->> >
->> > OK, not commenting on anything else, but I cannot merge that into
->> > linux-next because it is based on yesterday's linux-next release and
->> > linux-next (effectively) rebases every day ...
->> >
->> > Does this work depend on anything in linux-next? __Or could it be just
->> > based off Linus' tree. __If it depends on other tree(s) merged into
->> > linux-next, then you should base your tree on those tree(s) as long as
->> > they never get rebased ...
+> On Thu, 1 Mar 2012 16:57:49 -0800 Kees Cook <keescook@chromium.org> wrote:
 >>
 >> Unfortunately, yes, it does -- there were both ptrace changes and prctl changes.
 >>
@@ -57,18 +36,16 @@ On Thu, Mar 1, 2012 at 7:19 PM, Andrew Morton <akpm@linux-foundation.org> wrote:
 >> :P Given that, what's the best thing for me to do for this to be easy
 >> for you to pull?
 >
-> Base the tree on mainline and wreck the -mm patches I guess.  I'm good
-> at unwrecking patches.
->
-> That assumes that we're going to merge this stuff into 3.4 - if we
-> don't, unwrecker gets rewrecked and grumpy.
->
-> I don't know if we're going to merge it into 3.4?  I haven't been
-> paying a lot of attention and haven't looked at the patches in a while.
->
+> Does this set of patches *depend* on functionality provided by those, or
+> just produce conflicts against the other changes?  If it is just
+> conflicts, then base your tree on Linus and I and (he when it comes to
+> it) can fix the conflicts as needed (with some hints if you think it is a
+> good idea i.e. is the conflicts are particularly complex).
 
-I'll roll a v13 which is just a rebase back onto mainline and see if I
-can just stage it in kees's tree.
+No explicit dependency.   It's just a conflict in how ptrace options
+are set, defined, and masked (and STOP being renumbered).  Other than
+the ptrace changes, the whole series patches cleanly onto both trees.
+The resolved version is less code and easier to read, so I don't
+suspect it'll be a challenge at all.
 
-Thanks!
-will
+thanks!
