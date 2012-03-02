@@ -1,69 +1,59 @@
-From: Kees Cook <keescook@chromium.org>
-Subject: Re: [PATCH v12 01/13] sk_run_filter: add support for custom load_pointer
-Date: Thu, 1 Mar 2012 16:57:49 -0800
-Message-ID: <CAGXu5jL0OXR5MOePFe=GT4_X5rdH8RNjQPqYXdbqsqfijUsEqA@mail.gmail.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v12 01/13] sk_run_filter: add support for custom
+ load_pointer
+Date: Thu, 1 Mar 2012 17:19:14 -0800
+Message-ID: <20120301171914.7c64f095.akpm@linux-foundation.org>
 References: <1330559620-23543-1-git-send-email-wad@chromium.org>
 	<20120301233712.GS3990@outflux.net>
 	<20120302114705.0a9542e138927897f16282ca@canb.auug.org.au>
+	<CAGXu5jL0OXR5MOePFe=GT4_X5rdH8RNjQPqYXdbqsqfijUsEqA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-tul01m020-f174.google.com ([209.85.214.174]:38963 "EHLO
-	mail-tul01m020-f174.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751499Ab2CBA5x convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 1 Mar 2012 19:57:53 -0500
-Received: by mail-tul01m020-f174.google.com with SMTP id uo6so1063673obb.19
-        for <linux-arch@vger.kernel.org>; Thu, 01 Mar 2012 16:57:53 -0800 (PST)
-In-Reply-To: <20120302114705.0a9542e138927897f16282ca@canb.auug.org.au>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: akpm@linux-foundation.org, Will Drewry <wad@chromium.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <CAGXu5jL0OXR5MOePFe=GT4_X5rdH8RNjQPqYXdbqsqfijUsEqA@mail.gmail.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: Kees Cook <keescook@chromium.org>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, Will Drewry <wad@chromium.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
-Hi,
+On Thu, 1 Mar 2012 16:57:49 -0800 Kees Cook <keescook@chromium.org> wrote:
 
-On Thu, Mar 1, 2012 at 4:47 PM, Stephen Rothwell <sfr@canb.auug.org.au>=
- wrote:
-> Hi Kees,
->
-> On Thu, 1 Mar 2012 15:37:12 -0800 Kees Cook <keescook@chromium.org> w=
-rote:
->>
->> Is it time to pull this into -next so more people can feel it? I bro=
-ught
->> Andy Lutomirski's patches forward (needed to bump the prctl values),=
- and
->> updated my git tree. If we're ready, here it is in all its request-p=
-ull
->> format glory:
->>
->> The following changes since commit 2422c8368337196594265d52cad7316c9=
-404bfcf:
->> =A0 Stephen Rothwell (1):
->> =A0 =A0 =A0 =A0 Add linux-next specific files for 20120301
->
-> OK, not commenting on anything else, but I cannot merge that into
-> linux-next because it is based on yesterday's linux-next release and
-> linux-next (effectively) rebases every day ...
->
-> Does this work depend on anything in linux-next? =A0Or could it be ju=
-st
-> based off Linus' tree. =A0If it depends on other tree(s) merged into
-> linux-next, then you should base your tree on those tree(s) as long a=
-s
-> they never get rebased ...
+> On Thu, Mar 1, 2012 at 4:47 PM, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+> > Hi Kees,
+> >
+> > On Thu, 1 Mar 2012 15:37:12 -0800 Kees Cook <keescook@chromium.org> wrote:
+> >>
+> >> Is it time to pull this into -next so more people can feel it? I brought
+> >> Andy Lutomirski's patches forward (needed to bump the prctl values), and
+> >> updated my git tree. If we're ready, here it is in all its request-pull
+> >> format glory:
+> >>
+> >> The following changes since commit 2422c8368337196594265d52cad7316c9404bfcf:
+> >> __ Stephen Rothwell (1):
+> >> __ __ __ __ Add linux-next specific files for 20120301
+> >
+> > OK, not commenting on anything else, but I cannot merge that into
+> > linux-next because it is based on yesterday's linux-next release and
+> > linux-next (effectively) rebases every day ...
+> >
+> > Does this work depend on anything in linux-next? __Or could it be just
+> > based off Linus' tree. __If it depends on other tree(s) merged into
+> > linux-next, then you should base your tree on those tree(s) as long as
+> > they never get rebased ...
+> 
+> Unfortunately, yes, it does -- there were both ptrace changes and prctl changes.
+> 
+> And at least the ptrace changes are, IIRC, in -mm, which has no tree.
+> :P Given that, what's the best thing for me to do for this to be easy
+> for you to pull?
 
-Unfortunately, yes, it does -- there were both ptrace changes and prctl=
- changes.
+Base the tree on mainline and wreck the -mm patches I guess.  I'm good
+at unwrecking patches.
 
-And at least the ptrace changes are, IIRC, in -mm, which has no tree.
-:P Given that, what's the best thing for me to do for this to be easy
-for you to pull?
+That assumes that we're going to merge this stuff into 3.4 - if we
+don't, unwrecker gets rewrecked and grumpy.
 
--Kees
+I don't know if we're going to merge it into 3.4?  I haven't been
+paying a lot of attention and haven't looked at the patches in a while.
 
---=20
-Kees Cook
-ChromeOS Security
