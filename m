@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from haggis.pcug.org.au ([203.10.76.10]:53974 "EHLO
-	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750753Ab2CBFDY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Mar 2012 00:03:24 -0500
-Date: Fri, 2 Mar 2012 16:03:05 +1100
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH v12 01/13] sk_run_filter: add support for custom
- load_pointer
-Message-ID: <20120302160305.c51a02c9fa5b11e191cd80e4@canb.auug.org.au>
+Received: from mail-tul01m020-f174.google.com ([209.85.214.174]:61041 "EHLO
+	mail-tul01m020-f174.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752126Ab2CBF02 convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 2 Mar 2012 00:26:28 -0500
+Received: by mail-tul01m020-f174.google.com with SMTP id uo6so1257904obb.19
+        for <linux-arch@vger.kernel.org>; Thu, 01 Mar 2012 21:26:27 -0800 (PST)
+MIME-Version: 1.0
 In-Reply-To: <eba2ab81bc32f208b8b94fd959fd7f2f.squirrel@webmail.greenhost.nl>
 References: <1330559620-23543-1-git-send-email-wad@chromium.org>
 	<20120301233712.GS3990@outflux.net>
@@ -15,60 +14,58 @@ References: <1330559620-23543-1-git-send-email-wad@chromium.org>
 	<CAGXu5jL0OXR5MOePFe=GT4_X5rdH8RNjQPqYXdbqsqfijUsEqA@mail.gmail.com>
 	<20120301171914.7c64f095.akpm@linux-foundation.org>
 	<eba2ab81bc32f208b8b94fd959fd7f2f.squirrel@webmail.greenhost.nl>
-Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Fri__2_Mar_2012_16_03_05_+1100_CYpYzrlfOzNE7AjO"
+Date: Thu, 1 Mar 2012 21:26:23 -0800
+Message-ID: <CAGXu5j+kbqc4GtAypj08T78LjK-OLuo+iudjrctcE0r+GOUDMA@mail.gmail.com>
+Subject: Re: [PATCH v12 01/13] sk_run_filter: add support for custom load_pointer
+From: Kees Cook <keescook@chromium.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Indan Zupancic <indan@nul.nu>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Will Drewry <wad@chromium.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com
-Message-ID: <20120302050305.k_7zVsn99PmtVyRFFLcZRQ7Cluh5j35zEeYYBol3Td0@z>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, Will Drewry <wad@chromium.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com
+Message-ID: <20120302052623.JyqJF47cW_TYU3CkzbajGUUmNP6ySOliCjgjnON1StM@z>
 
---Signature=_Fri__2_Mar_2012_16_03_05_+1100_CYpYzrlfOzNE7AjO
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-Just a note.
-
-On Fri, 2 Mar 2012 05:04:41 +0100 "Indan Zupancic" <indan@nul.nu> wrote:
->
+On Thu, Mar 1, 2012 at 8:04 PM, Indan Zupancic <indan@nul.nu> wrote:
 > On Fri, March 2, 2012 02:19, Andrew Morton wrote:
-> > That assumes that we're going to merge this stuff into 3.4 - if we
-> > don't, unwrecker gets rewrecked and grumpy.
-> >
-> > I don't know if we're going to merge it into 3.4?  I haven't been
-> > paying a lot of attention and haven't looked at the patches in a while.
->=20
+>> That assumes that we're going to merge this stuff into 3.4 - if we
+>> don't, unwrecker gets rewrecked and grumpy.
+>>
+>> I don't know if we're going to merge it into 3.4?  I haven't been
+>> paying a lot of attention and haven't looked at the patches in a while.
+>
 > I think it should be merged, but I think 3.5 is probably better.
+>
+> This because we haven't heard anything from the networking people
+> about the BPF changes, and I'm also unsure if the current approach
+> is the best one: It both increases the filter.o size significantly
+> while slowing down sk_run_filter, while the point was to avoid both.
+> I'm trying to think of an alternative approach with lower impact.
+>
+> The ptrace integration may need some more time to settle too, even
+> just to make sure the latest version does what needs to be done.
+>
+> Both directly affect the user space ABI, so I think it's best to
+> not be too hasty with pushing this upstream. Waiting one release
+> while having a stable final patch gives people the chance to go
+> and try to use it for their purposes and thus both test the code
+> more and get experience with the ABI.
 
-If it is going into v3.5, I don't want to add it to linux-next until after
-v3.4-rc1 is out, thanks.
+Well, IIUC, Eric Dumazet Acked the BPF changes. While I see what
+you're saying about waiting for 3.5, it seems like the best way to
+really see this stabilize is to get this into 3.4. The various
+approaches have been discussed for a while now. Having that wider
+testing sooner rather than later seems like the better approach to me.
+Waiting for 3.5 just means we'll be waiting until then to do that same
+testing. Perhaps Andrew Morton can decide?
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
+Regardless, I've updated my seccomp tree with Will's rebase to Linus's
+tree so people can pull from it as need be:
 
---Signature=_Fri__2_Mar_2012_16_03_05_+1100_CYpYzrlfOzNE7AjO
-Content-Type: application/pgp-signature
+        git://git.kernel.org/pub/scm/linux/kernel/git/kees/linux.git seccomp
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
+-Kees
 
-iQIcBAEBCAAGBQJPUFSJAAoJEECxmPOUX5FE9vcP/jYJr2Qtnk6hXT/4xWkgm9TA
-TI8RkimNlwTurTvOK4Bg4Kx7TnesHzj6IKdW0qjNkIlYTjKd08JDHrs02iLAHUjb
-cCECHc9ecZzFfCRECdMSIwJ+WvxTeJhqzBM6QUP/HQsVv+A1SJEJlN41vMclJQ3n
-W/etDwo+wehWSbyVdUPII7zyvB+WL3DEwXenroQdMpPTqiqN/nS5+uEg3KJ+kHnO
-wdFmwGLadEGfBCWLDCQR5/Z88AYaOZ6clXg1y7V+tOfM4cQ4PlS96WZcyk9yAEic
-fR9iLGZHMe+6j1TvyeqRgSai0LB3G+3oABUzsoJZ8Ruz7zSJbdK4/1Yq3P3dkdOa
-mYmk+n2QK+E7+5Nj2ywL1C0DLkLr0JTHx8RjJ2vpGS41w0VdjPza/VmYfW/8qtJG
-p1ZWWGHXCjhkIg/Im33kPWty4WHf05SgjeeucWEANTJj1LEKaizJBdTituIqX2kE
-KWf62QvRDD3QjpQrLmic9Uap3l+//Rhq2gVpZWtLG1/dQLgvGaTRreGaFyaIj2jz
-1xKtAHh5TxzK2oRAtotOhqH+8zMYG7RBh5M8y+wO6q3DP4fx48RfboBScFEPPtsy
-l8lS4JSgNOAG8XJnh8jqREpE5ASlAKB07co9nBs5g0HtfhSNlzx9pRHiHtJrhJgO
-WyIUzPaNPhKuRkE55pa6
-=OWc2
------END PGP SIGNATURE-----
-
---Signature=_Fri__2_Mar_2012_16_03_05_+1100_CYpYzrlfOzNE7AjO--
+-- 
+Kees Cook
+ChromeOS Security
