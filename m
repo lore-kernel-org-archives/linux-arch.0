@@ -1,114 +1,78 @@
-From: Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-Subject: RE: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
-Date: Mon, 05 Mar 2012 17:07:02 +0100
-Message-ID: <000001ccfaea$00c16f70$02444e50$%szyprowski@samsung.com>
-References: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com>
-	<1330527862-16234-10-git-send-email-m.szyprowski@samsung.com>
-	<20120305134721.0ab0d0e6de56fa30250059b1@nvidia.com>
+From: Marcelo Tosatti <mtosatti@redhat.com>
+Subject: Re: [PATCH 0/4 V13] Avoid soft lockup message when KVM is stopped by
+ host
+Date: Mon, 5 Mar 2012 13:39:43 -0300
+Message-ID: <20120305163943.GA10338@amt.cnet>
+References: <1328713666-11424-1-git-send-email-emunson@mgebm.net>
+ <20120214152931.GA6881@mgebm.net>
+ <20120214153836.GA21106@amt.cnet>
+ <20120214155013.GB6881@mgebm.net>
+ <20120214161009.GA21515@amt.cnet>
+ <20120214211720.GC6881@mgebm.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-reply-to: <20120305134721.0ab0d0e6de56fa30250059b1-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-Content-language: pl
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: 'Hiroshi Doyu' <hdoyu-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-samsung-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, 'Shariq Hasnain' <shariq.hasnain-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, 'Arnd Bergmann' <arnd-r2nGTMty4D4@public.gmane.org>, 'Benjamin Herrenschmidt' <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, 'Chunsang Jeong' <chunsang.jeong-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, 'Krishna Reddy' <vdumpa-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, 'Russell King - ARM Linux' <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Andrzej Pietrasiewicz <andrzej.p-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, 'Kyungmin Park' <kyungmin.park-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, 'KyongHo Cho' <pullip.cho-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20120214211720.GC6881@mgebm.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Eric B Munson <emunson@mgebm.net>
+Cc: avi@redhat.com, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hello,
+On Tue, Feb 14, 2012 at 04:17:20PM -0500, Eric B Munson wrote:
+> On Tue, 14 Feb 2012, Marcelo Tosatti wrote:
+> 
+> > On Tue, Feb 14, 2012 at 10:50:13AM -0500, Eric B Munson wrote:
+> > > On Tue, 14 Feb 2012, Marcelo Tosatti wrote:
+> > > 
+> > > > On Tue, Feb 14, 2012 at 10:29:31AM -0500, Eric B Munson wrote:
+> > > > > On Wed, 08 Feb 2012, Eric B Munson wrote:
+> > > > > 
+> > > > > > 
+> > > > > > When a guest kernel is stopped by the host hypervisor it can look like a soft
+> > > > > > lockup to the guest kernel.  This false warning can mask later soft lockup
+> > > > > > warnings which may be real.  This patch series adds a method for a host
+> > > > > > hypervisor to communicate to a guest kernel that it is being stopped.  The
+> > > > > > final patch in the series has the watchdog check this flag when it goes to
+> > > > > > issue a soft lockup warning and skip the warning if the guest knows it was
+> > > > > > stopped.
+> > > > > > 
+> > > > > > It was attempted to solve this in Qemu, but the side effects of saving and
+> > > > > > restoring the clock and tsc for each vcpu put the wall clock of the guest behind
+> > > > > > by the amount of time of the pause.  This forces a guest to have ntp running
+> > > > > > in order to keep the wall clock accurate.
+> > > > > 
+> > > > > Avi,
+> > > > > 
+> > > > > Is this set fit for merging or is there something else you want changed?
+> > > > 
+> > > > Eric,
+> > > > 
+> > > > On Message-ID: <20120210160536.GA23363@amt.cnet>, i asked:
+> > > > 
+> > > > How is the stub getting included for other architectures again?
+> > > > 
+> > > 
+> > > Marcelo,
+> > > 
+> > > Sorry, I put out V13 to answer that.  There is a stub in asm-generic that was
+> > > lost in the V11-V12 rebase.  This stub has be included in the V13 set.
+> > > 
+> > > Eric
+> > 
+> > Eric, 
+> > 
+> > I know the stub has been included in the series. But i am asking how 
+> > it is #include'ed for other architectures? (can't see that).
+> 
+> Marcelo,
+> 
+> kernel/watchdog.c now includes linux/kvm_para.h which includes asm/kvm_para.h.
+> The check_and_clear function is defined in arch include/asm/kvm_para.h or in
+> asm-generic/kvm_para.h for any arch lacking the specific header in their asm
+> include dir.  If I have misunderstood how these headers work, please let me
+> know and I will fix it.
 
-On Monday, March 05, 2012 12:47 PM Hiroshi Doyu wrote:
-
-> On Wed, 29 Feb 2012 16:04:22 +0100
-> Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org> wrote:
-> 
-> > This patch add a complete implementation of DMA-mapping API for
-> > devices that have IOMMU support. All DMA-mapping calls are supported.
-> >
-> > This patch contains some of the code kindly provided by Krishna Reddy
-> > <vdumpa-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org> and Andrzej Pietrasiewicz <andrzej.p-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-> >
-> > Signed-off-by: Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-> > Signed-off-by: Kyungmin Park <kyungmin.park-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-> > Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk-QHcLZuEGTsvQT0dZR+AlfA@public.gmane.org>
-> > ---
-
-(snipped)
-
-> > +/**
-> > + * arm_iommu_create_mapping
-> > + * @bus: pointer to the bus holding the client device (for IOMMU calls)
-> > + * @base: start address of the valid IO address space
-> > + * @size: size of the valid IO address space
-> > + * @order: accuracy of the IO addresses allocations
-> > + *
-> > + * Creates a mapping structure which holds information about used/unused
-> > + * IO address ranges, which is required to perform memory allocation and
-> > + * mapping with IOMMU aware functions.
-> > + *
-> > + * The client device need to be attached to the mapping with
-> > + * arm_iommu_attach_device function.
-> > + */
-> > +struct dma_iommu_mapping *
-> > +arm_iommu_create_mapping(struct bus_type *bus, dma_addr_t base, size_t size,
-> > +                        int order)
-> > +{
-> > +       unsigned int count = (size >> PAGE_SHIFT) - order;
-> > +       unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long);
-> > +       struct dma_iommu_mapping *mapping;
-> > +       int err = -ENOMEM;
-> > +
-> > +       mapping = kzalloc(sizeof(struct dma_iommu_mapping), GFP_KERNEL);
-> > +       if (!mapping)
-> > +               goto err;
-> > +
-> > +       mapping->bitmap = kzalloc(bitmap_size, GFP_KERNEL);
-> > +       if (!mapping->bitmap)
-> > +               goto err2;
-> > +
-> > +       mapping->base = base;
-> > +       mapping->bits = bitmap_size;
-> 
-> Shouldn't the above be as below?
-> 
-> From 093c77ac6f19899679f2f2447a9d2c684eab7b2e Mon Sep 17 00:00:00 2001
-> From: Hiroshi DOYU <hdoyu-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-> Date: Mon, 5 Mar 2012 13:04:38 +0200
-> Subject: [PATCH 1/1] dma-mapping: Fix mapping->bits size
-> 
-> Amount of bits should be mutiplied by BITS_PER_BITE.
-> 
-> Signed-off-by: Hiroshi DOYU <hdoyu-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-> ---
->  arch/arm/mm/dma-mapping.c |    2 +-
->  1 files changed, 1 insertions(+), 1 deletions(-)
-> 
-> diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-> index e55f425..5ec7747 100644
-> --- a/arch/arm/mm/dma-mapping.c
-> +++ b/arch/arm/mm/dma-mapping.c
-> @@ -1495,7 +1495,7 @@ arm_iommu_create_mapping(struct bus_type *bus, dma_addr_t base, size_t
-> size,
->  		goto err2;
-> 
->  	mapping->base = base;
-> -	mapping->bits = bitmap_size;
-> +	mapping->bits = BITS_PER_BYTE * bitmap_size;
->  	mapping->order = order;
->  	spin_lock_init(&mapping->lock);
-
-You are right, thanks for spotting this issue!
-
-Best regards
--- 
-Marek Szyprowski
-Samsung Poland R&D Center
+There is no automatic inclusion of asm-generic/ headers. You must create
+kvm_para.h in each architecture's include/asm/ directory, #including
+asm-generic/kvm_para.h.
