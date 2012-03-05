@@ -1,73 +1,38 @@
-From: Olof Johansson <olof@lixom.net>
-Subject: Re: [PATCH v1 09/11] powerpc/PCI: replace pci_probe_only with pci_flags
-Date: Sun, 4 Mar 2012 19:59:36 -0800
-Message-ID: <CAOesGMipY2fTcNOSKwtCmkcQBzc0OFZrrWEWk8D7vkfNdRTf9g@mail.gmail.com>
-References: <20120222181556.27513.9413.stgit@bhelgaas.mtv.corp.google.com>
-	<20120222181948.27513.96215.stgit@bhelgaas.mtv.corp.google.com>
-	<1329946899.20389.9.camel@pasglop>
-	<20120305035451.GB32675@quad.lixom.net>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH 2/2] device.h: audit and cleanup users in main include dir
+Date: Mon, 5 Mar 2012 11:06:36 +0100
+Message-ID: <CACRpkdYpj4mvNfsA9bSEPLrehJ-0ydiyREuX+W2fyq0vnV1wtQ@mail.gmail.com>
+References: <1330907657-2156-1-git-send-email-paul.gortmaker@windriver.com>
+	<1330907657-2156-3-git-send-email-paul.gortmaker@windriver.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f174.google.com ([74.125.82.174]:38203 "EHLO
-	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756100Ab2CED7i convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Mar 2012 22:59:38 -0500
-Received: by wejx9 with SMTP id x9so2074483wej.19
-        for <linux-arch@vger.kernel.org>; Sun, 04 Mar 2012 19:59:36 -0800 (PST)
-In-Reply-To: <20120305035451.GB32675@quad.lixom.net>
+Received: from mail-iy0-f174.google.com ([209.85.210.174]:49595 "EHLO
+	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756480Ab2CEKGh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 Mar 2012 05:06:37 -0500
+Received: by iagz16 with SMTP id z16so5325008iag.19
+        for <linux-arch@vger.kernel.org>; Mon, 05 Mar 2012 02:06:36 -0800 (PST)
+In-Reply-To: <1330907657-2156-3-git-send-email-paul.gortmaker@windriver.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, linux-pci@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+To: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Sun, Mar 4, 2012 at 7:54 PM, Olof Johansson <olof@lixom.net> wrote:
-> On Thu, Feb 23, 2012 at 08:41:39AM +1100, Benjamin Herrenschmidt wrot=
-e:
->> On Wed, 2012-02-22 at 11:19 -0700, Bjorn Helgaas wrote:
->> > =A0int maple_pci_get_legacy_ide_irq(struct pci_dev *pdev, int chan=
-nel)
->> > diff --git a/arch/powerpc/platforms/pasemi/pci.c
->> > b/arch/powerpc/platforms/pasemi/pci.c
->> > index b6a0ec4..b27d886 100644
->> > --- a/arch/powerpc/platforms/pasemi/pci.c
->> > +++ b/arch/powerpc/platforms/pasemi/pci.c
->> > @@ -231,7 +231,7 @@ void __init pas_pci_init(void)
->> > =A0 =A0 =A0 =A0 pci_devs_phb_init();
->> >
->> > =A0 =A0 =A0 =A0 /* Use the common resource allocation mechanism */
->> > - =A0 =A0 =A0 pci_probe_only =3D 1;
->> > + =A0 =A0 =A0 pci_add_flags(PCI_PROBE_ONLY);
->> > =A0}
->>
->> Olof, do you remember why you used to set that on pasemi ?
->
-> Oops, going through email backlog. Sorry for the slow response.
->
->> I would have expected it to be clear, so the kernel can re-assign th=
-ings
->> if needed. We really only want it set for pseries because of the
->> hypervisor being a PITA :-)
->
-> Well, we did have some hypervisor work done at PA Semi too, and chanc=
-es
-> are it's from there. But it's unlikely since I think we booted pserie=
-s
-> (PAPR) kernels under rHype.
->
-> I suspect we just went with it for whatever legacy reasons and didn't
-> revisit later -- since our firmware enumerated busses reliably there
-> was no reason to redo it from the kernel.
->
-> I've booted a system with pci_probe_only off here, and it seems happy
-> enough. I'll send you a patch.
->
-> Bjorn, that means you can drop this chunk of the patch, I suppose.
+On Mon, Mar 5, 2012 at 1:34 AM, Paul Gortmaker
+<paul.gortmaker@windriver.com> wrote:
 
-Sorry to comment to myself so quickly but since I just noticed that
-the patch is in -next, don't worry about rebasing your work -- we'll
-take out the flag use later.
+> The <linux/device.h> header includes a lot of stuff, and
+> it in turn gets a lot of use just for the basic "struct device"
+> which appears so often.
+(...)
+>
+> Signed-off-by: Paul Gortmaker <paul.gortmaker@windriver.com>
 
+Why not...
+Acked-by: Linus Walleij <linus.walleij@linaro.org>
 
--Olof
+(For pl022, ab5x00)
+
+Thanks,
+Linus Walleij
