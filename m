@@ -1,112 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout2.w1.samsung.com ([210.118.77.12]:52559 "EHLO
-	mailout2.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752082Ab2CEQKe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 Mar 2012 11:10:34 -0500
-Date: Mon, 05 Mar 2012 17:07:02 +0100
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
-In-reply-to: <20120305134721.0ab0d0e6de56fa30250059b1@nvidia.com>
-Message-ID: <000001ccfaea$00c16f70$02444e50$%szyprowski@samsung.com>
-MIME-version: 1.0
-Content-type: text/plain; charset=us-ascii
-Content-language: pl
-Content-transfer-encoding: 7BIT
-References: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com>
- <1330527862-16234-10-git-send-email-m.szyprowski@samsung.com>
- <20120305134721.0ab0d0e6de56fa30250059b1@nvidia.com>
+Received: from mx1.redhat.com ([209.132.183.28]:53912 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752440Ab2CEQm2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 5 Mar 2012 11:42:28 -0500
+Date: Mon, 5 Mar 2012 13:39:43 -0300
+From: Marcelo Tosatti <mtosatti@redhat.com>
+Subject: Re: [PATCH 0/4 V13] Avoid soft lockup message when KVM is stopped by
+ host
+Message-ID: <20120305163943.GA10338@amt.cnet>
+References: <1328713666-11424-1-git-send-email-emunson@mgebm.net>
+ <20120214152931.GA6881@mgebm.net>
+ <20120214153836.GA21106@amt.cnet>
+ <20120214155013.GB6881@mgebm.net>
+ <20120214161009.GA21515@amt.cnet>
+ <20120214211720.GC6881@mgebm.net>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20120214211720.GC6881@mgebm.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Hiroshi Doyu' <hdoyu@nvidia.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org, 'Shariq Hasnain' <shariq.hasnain@linaro.org>, 'Arnd Bergmann' <arnd@arndb.de>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Krishna Reddy' <vdumpa@nvidia.com>, 'Kyungmin Park' <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'KyongHo Cho' <pullip.cho@samsung.com>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>
-Message-ID: <20120305160702.v3qbk-dGU-1Fa2C0anbyIP_K5yjpaw7Rk2NVa3n1agM@z>
+To: Eric B Munson <emunson@mgebm.net>
+Cc: avi@redhat.com, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120305163943.H25fE3szfrtzgeQ_LW-dtpmpbmPQ2B-EC-NDbK5zeq0@z>
 
-Hello,
+On Tue, Feb 14, 2012 at 04:17:20PM -0500, Eric B Munson wrote:
+> On Tue, 14 Feb 2012, Marcelo Tosatti wrote:
+> 
+> > On Tue, Feb 14, 2012 at 10:50:13AM -0500, Eric B Munson wrote:
+> > > On Tue, 14 Feb 2012, Marcelo Tosatti wrote:
+> > > 
+> > > > On Tue, Feb 14, 2012 at 10:29:31AM -0500, Eric B Munson wrote:
+> > > > > On Wed, 08 Feb 2012, Eric B Munson wrote:
+> > > > > 
+> > > > > > 
+> > > > > > When a guest kernel is stopped by the host hypervisor it can look like a soft
+> > > > > > lockup to the guest kernel.  This false warning can mask later soft lockup
+> > > > > > warnings which may be real.  This patch series adds a method for a host
+> > > > > > hypervisor to communicate to a guest kernel that it is being stopped.  The
+> > > > > > final patch in the series has the watchdog check this flag when it goes to
+> > > > > > issue a soft lockup warning and skip the warning if the guest knows it was
+> > > > > > stopped.
+> > > > > > 
+> > > > > > It was attempted to solve this in Qemu, but the side effects of saving and
+> > > > > > restoring the clock and tsc for each vcpu put the wall clock of the guest behind
+> > > > > > by the amount of time of the pause.  This forces a guest to have ntp running
+> > > > > > in order to keep the wall clock accurate.
+> > > > > 
+> > > > > Avi,
+> > > > > 
+> > > > > Is this set fit for merging or is there something else you want changed?
+> > > > 
+> > > > Eric,
+> > > > 
+> > > > On Message-ID: <20120210160536.GA23363@amt.cnet>, i asked:
+> > > > 
+> > > > How is the stub getting included for other architectures again?
+> > > > 
+> > > 
+> > > Marcelo,
+> > > 
+> > > Sorry, I put out V13 to answer that.  There is a stub in asm-generic that was
+> > > lost in the V11-V12 rebase.  This stub has be included in the V13 set.
+> > > 
+> > > Eric
+> > 
+> > Eric, 
+> > 
+> > I know the stub has been included in the series. But i am asking how 
+> > it is #include'ed for other architectures? (can't see that).
+> 
+> Marcelo,
+> 
+> kernel/watchdog.c now includes linux/kvm_para.h which includes asm/kvm_para.h.
+> The check_and_clear function is defined in arch include/asm/kvm_para.h or in
+> asm-generic/kvm_para.h for any arch lacking the specific header in their asm
+> include dir.  If I have misunderstood how these headers work, please let me
+> know and I will fix it.
 
-On Monday, March 05, 2012 12:47 PM Hiroshi Doyu wrote:
-
-> On Wed, 29 Feb 2012 16:04:22 +0100
-> Marek Szyprowski <m.szyprowski@samsung.com> wrote:
-> 
-> > This patch add a complete implementation of DMA-mapping API for
-> > devices that have IOMMU support. All DMA-mapping calls are supported.
-> >
-> > This patch contains some of the code kindly provided by Krishna Reddy
-> > <vdumpa@nvidia.com> and Andrzej Pietrasiewicz <andrzej.p@samsung.com>
-> >
-> > Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
-> > Signed-off-by: Kyungmin Park <kyungmin.park@samsung.com>
-> > Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-> > ---
-
-(snipped)
-
-> > +/**
-> > + * arm_iommu_create_mapping
-> > + * @bus: pointer to the bus holding the client device (for IOMMU calls)
-> > + * @base: start address of the valid IO address space
-> > + * @size: size of the valid IO address space
-> > + * @order: accuracy of the IO addresses allocations
-> > + *
-> > + * Creates a mapping structure which holds information about used/unused
-> > + * IO address ranges, which is required to perform memory allocation and
-> > + * mapping with IOMMU aware functions.
-> > + *
-> > + * The client device need to be attached to the mapping with
-> > + * arm_iommu_attach_device function.
-> > + */
-> > +struct dma_iommu_mapping *
-> > +arm_iommu_create_mapping(struct bus_type *bus, dma_addr_t base, size_t size,
-> > +                        int order)
-> > +{
-> > +       unsigned int count = (size >> PAGE_SHIFT) - order;
-> > +       unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long);
-> > +       struct dma_iommu_mapping *mapping;
-> > +       int err = -ENOMEM;
-> > +
-> > +       mapping = kzalloc(sizeof(struct dma_iommu_mapping), GFP_KERNEL);
-> > +       if (!mapping)
-> > +               goto err;
-> > +
-> > +       mapping->bitmap = kzalloc(bitmap_size, GFP_KERNEL);
-> > +       if (!mapping->bitmap)
-> > +               goto err2;
-> > +
-> > +       mapping->base = base;
-> > +       mapping->bits = bitmap_size;
-> 
-> Shouldn't the above be as below?
-> 
-> From 093c77ac6f19899679f2f2447a9d2c684eab7b2e Mon Sep 17 00:00:00 2001
-> From: Hiroshi DOYU <hdoyu@nvidia.com>
-> Date: Mon, 5 Mar 2012 13:04:38 +0200
-> Subject: [PATCH 1/1] dma-mapping: Fix mapping->bits size
-> 
-> Amount of bits should be mutiplied by BITS_PER_BITE.
-> 
-> Signed-off-by: Hiroshi DOYU <hdoyu@nvidia.com>
-> ---
->  arch/arm/mm/dma-mapping.c |    2 +-
->  1 files changed, 1 insertions(+), 1 deletions(-)
-> 
-> diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-> index e55f425..5ec7747 100644
-> --- a/arch/arm/mm/dma-mapping.c
-> +++ b/arch/arm/mm/dma-mapping.c
-> @@ -1495,7 +1495,7 @@ arm_iommu_create_mapping(struct bus_type *bus, dma_addr_t base, size_t
-> size,
->  		goto err2;
-> 
->  	mapping->base = base;
-> -	mapping->bits = bitmap_size;
-> +	mapping->bits = BITS_PER_BYTE * bitmap_size;
->  	mapping->order = order;
->  	spin_lock_init(&mapping->lock);
-
-You are right, thanks for spotting this issue!
-
-Best regards
--- 
-Marek Szyprowski
-Samsung Poland R&D Center
+There is no automatic inclusion of asm-generic/ headers. You must create
+kvm_para.h in each architecture's include/asm/ directory, #including
+asm-generic/kvm_para.h.
 
