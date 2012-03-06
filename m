@@ -1,88 +1,43 @@
-From: Serge Hallyn <serge@hallyn.com>
-Subject: Re: [PATCH v12 07/13] seccomp: add SECCOMP_RET_ERRNO
-Date: Mon, 05 Mar 2012 15:13:08 -0600
-Message-ID: <1330981988.1484.9.camel@Nokia-N900-51-1>
-References: <1330559620-23543-1-git-send-email-wad@chromium.org>
-	 <1330559620-23543-7-git-send-email-wad@chromium.org>
-	 <20120302182455.GA11308@mail.hallyn.com>
-	  <CABqD9ha8o3JU0v0ZnKcsjqm8osjSiUfCyvc=vrxhDTHHuG_V4A@mail.gmail.com>
-Reply-To: kernel-hardening@lists.openwall.com
+From: "H. Peter Anvin" <hpa@kernel.org>
+Subject: Re: [PATCH 02/30] x86-64: Use explicit sizes in sigcontext.h, prepare
+ for x32
+Date: Mon, 05 Mar 2012 21:25:13 -0800
+Message-ID: <4F559FB9.9040008@kernel.org>
+References: <1329696488-16970-1-git-send-email-hpa@zytor.com> <201202221222.58399.arnd@arndb.de> <4F453086.8030602@zytor.com> <201202222123.38816.arnd@arndb.de> <4F46F714.6010007@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: 8bit
-Return-path: <kernel-hardening-return-1045-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-Reply-To: Serge Hallyn <serge@hallyn.com>
-In-Reply-To: <CABqD9ha8o3JU0v0ZnKcsjqm8osjSiUfCyvc=vrxhDTHHuG_V4A@mail.gmail.com>
-Content-ID: <1330981987.1484.8.camel@Nokia-N900-51-1>
-To: Will Drewry <wad@chromium.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from terminus.zytor.com ([198.137.202.10]:35940 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750814Ab2CFFZg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 6 Mar 2012 00:25:36 -0500
+In-Reply-To: <4F46F714.6010007@zytor.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, akpm@linux-foundation.org, hjl.tools@gmail.com
 
+On 02/23/2012 06:33 PM, H. Peter Anvin wrote:
+> On 02/22/2012 01:23 PM, Arnd Bergmann wrote:
+>>
+>> I'd say we should fix at least the ones that are easy to spot because
+>> they already use compat_u64 or have an #ifdef CONFIG_X86_64 in compat
+>> code. I've looked at everything I could find that fits into that category
+>> and found only two locations. My expectation is that all other data
+>> structures that would fall into this category are already broken
+>> for 32 bit emulation on x86.
+>>
+>> Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+>>
+> 
+> Would you mind sending these as patches to the respective maintainers?
+> Since they don't depend on the x32 patchset per se it's probably the
+> best way to handle this.
+> 
+> Feel free to include my Acked-by: H. Peter Anvin <hpa@zytor.com>.
+> 
 
------ Original message -----
-> On Fri, Mar 2, 2012 at 12:24 PM, Serge E. Hallyn <serge@hallyn.com>
-> wrote:
-> > Quoting Will Drewry (wad@chromium.org):
-> > > This change adds the SECCOMP_RET_ERRNO as a valid return value from a
-> > > seccomp filter.  Additionally, it makes the first use of the lower
-> > > 16-bits for storing a filter-supplied errno.  16-bits is more than
-> > > enough for the errno-base.h calls.
-> > > 
-> > > Returning errors instead of immediately terminating processes that
-> > > violate seccomp policy allow for broader use of this functionality
-> > > for kernel attack surface reduction.  For example, a linux container
-> > > could maintain a whitelist of pre-existing system calls but drop
-> > > all new ones with errnos.  This would keep a logically static attack
-> > > surface while providing errnos that may allow for graceful failure
-> > > without the downside of do_exit() on a bad call.
-> > > 
-> > > v12: - move to WARN_ON if filter is NULL
-> > >        (oleg@redhat.com, luto@mit.edu, keescook@chromium.org)
-> > >      - return immediately for filter==NULL (keescook@chromium.org)
-> > >      - change evaluation to only compare the ACTION so that layered
-> > >        errnos don't result in the lowest one being returned.
-> > >        (keeschook@chromium.org)
-> > > v11: - check for NULL filter (keescook@chromium.org)
-> > > v10: - change loaders to fn
-> > >  v9: - n/a
-> > >  v8: - update Kconfig to note new need for syscall_set_return_value.
-> > >      - reordered such that TRAP behavior follows on later.
-> > >      - made the for loop a little less indent-y
-> > >  v7: - introduced
-> > > 
-> > > Reviewed-by: Kees Cook <keescook@chromium.org>
-> > > Signed-off-by: Will Drewry <wad@chromium.org>
-> > 
-> > Clever :)
-> > 
-> > Thanks, Will.
-> > 
-> > For patches 1-7,
-> > 
-> > Acked-by: Serge Hallyn <serge.hallyn@canonical.com>
-> 
-> Thanks!
-> 
-> > The -1 return value from __secure_computing_int() seems like it
-> > could stand  #define, like
-> > 
-> > #define SECCOMP_DONTRUN -1
-> > #define SECCOMP_RUN 0
-> > 
-> > or something Maybe not, but -1 always scares me and I had to look back
-> > and forth a few times to make sure it was doing what I would want.
-> 
-> Works for me.   The -1 just matches what syscall emulation, etc does on
-> x86.   I'll add this to the tweaks for v14.
-> 
-> Thanks!
+Ping?
 
-Well, in that case maybe it's not worth it.  Sounds
-like ignorance on my part.
-
-thanks,
--serge
+	-hpa
