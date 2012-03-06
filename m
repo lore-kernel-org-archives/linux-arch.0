@@ -1,89 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 50-56-35-84.static.cloud-ips.com ([50.56.35.84]:53978 "EHLO
-	mail.hallyn.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751846Ab2CEV03 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 5 Mar 2012 16:26:29 -0500
-From: Serge Hallyn <serge@hallyn.com>
-Reply-To: Serge Hallyn <serge@hallyn.com>
-Subject: Re: [PATCH v12 07/13] seccomp: add SECCOMP_RET_ERRNO
-References: <1330559620-23543-1-git-send-email-wad@chromium.org>
-	 <1330559620-23543-7-git-send-email-wad@chromium.org>
-	 <20120302182455.GA11308@mail.hallyn.com>
-	  <CABqD9ha8o3JU0v0ZnKcsjqm8osjSiUfCyvc=vrxhDTHHuG_V4A@mail.gmail.com>
-In-Reply-To: <CABqD9ha8o3JU0v0ZnKcsjqm8osjSiUfCyvc=vrxhDTHHuG_V4A@mail.gmail.com>
-Content-Type: text/plain; charset=utf-8
-Content-ID: <1330981987.1484.8.camel@Nokia-N900-51-1>
-Date: Mon, 05 Mar 2012 15:13:08 -0600
-Message-ID: <1330981988.1484.9.camel@Nokia-N900-51-1>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Received: from mail-pw0-f46.google.com ([209.85.160.46]:38060 "EHLO
+	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965262Ab2CFVKH convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Mar 2012 16:10:07 -0500
+MIME-Version: 1.0
+In-Reply-To: <CAP=VYLpwBth3YyHQ17Gs_GbfQHBWfcJO+VHLNnD=oBXgtCK0wQ@mail.gmail.com>
+References: <1331048540.17099.9.camel@deneb.redhat.com>
+	<201203061602.23512.arnd@arndb.de>
+	<1331050578.17099.13.camel@deneb.redhat.com>
+	<CAP=VYLpwBth3YyHQ17Gs_GbfQHBWfcJO+VHLNnD=oBXgtCK0wQ@mail.gmail.com>
+Date: Tue, 6 Mar 2012 16:10:07 -0500
+Message-ID: <CAP=VYLpM6Dg0R6hjGmc0Bt=h=OZjTFWMEn7wjF0D4tGRkpF5mw@mail.gmail.com>
+Subject: Re: lib/string.h build failure in linux-next
+From: Paul Gortmaker <paul.gortmaker@windriver.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Drewry <wad@chromium.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
-Message-ID: <20120305211308.n-NFDIk_tqNKM0Ws_o2Kf18cJyFcP6r6ansyBMYx1Vo@z>
+To: Mark Salter <msalter@redhat.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel <linux-kernel@vger.kernel.org>, linux-next <linux-next@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20120306211007.gUf0bqJ7LOGLzqptDSoC5qpAA3R-6fmBMZLOg_4EbJ0@z>
+
+On Tue, Mar 6, 2012 at 2:55 PM, Paul Gortmaker
+<paul.gortmaker@windriver.com> wrote:
+> On Tue, Mar 6, 2012 at 11:16 AM, Mark Salter <msalter@redhat.com> wrote:
+>> On Tue, 2012-03-06 at 16:02 +0000, Arnd Bergmann wrote:
+>>> On Tuesday 06 March 2012, Mark Salter wrote:
+>>> > I'm seeing a build failure in lib/string.h in linux-next:
+>>> >
+>>> > /es/linux/linux-next/lib/string.c: In function 'strlcat':
+>>> > /es/linux/linux-next/lib/string.c:225:2: error: implicit declaration of function 'printk'
+>>> > /es/linux/linux-next/lib/string.c:225:2: error: implicit declaration of function 'panic'
+>>> >
+>>> > Commit e2950c2b6ecb928bfd3a13dd237df1f29f712704 removed an include of
+>>> > linux/module.h which triggered the problem for arch/c6x and probably
+>>> > other architectures using the asm-generic BUG macro.
+>>> >
+>>> > I think this needs fixing in asm-generic/bug.h which should include
+>>> > linux/kernel.h for panic and linux/printk.h for printk.
+>>>
+>>> I think you cannot do that as long as linux/kernel.h includes asm/bug.h,
+>>> or you will get a lot of other build failures.
+>>
+>> It didn't for my build, but to tell the truth, I really wasn't too keen
+>> on adding an include of kernel.h to asm/bug.h since kernel.h pulls in so
+>> much other stuff.
+>>
+>>>
+>>> The safer option is probably to add the two missing headers separately
+>>> to string.c.
+>>
+>> Okay, I can put together a patch that does that.
+>
+> I can deal with this, since it is interaction between my bug commits and my
+> module commits that trigger it. �Can you tell me what config you are using, so
+> I can double check I have it sorted properly?
+
+Never mind the config.  I missed the arch/c6x initially.  I've got a
+c6x toolchain
+now and can reproduce it with the dsk6455_defconfig.  Will be fixed for this
+evening's linux-next.
+
+Thanks for the report.
+Paul.
 
 
------ Original message -----
-> On Fri, Mar 2, 2012 at 12:24 PM, Serge E. Hallyn <serge@hallyn.com>
-> wrote:
-> > Quoting Will Drewry (wad@chromium.org):
-> > > This change adds the SECCOMP_RET_ERRNO as a valid return value from a
-> > > seccomp filter.  Additionally, it makes the first use of the lower
-> > > 16-bits for storing a filter-supplied errno.  16-bits is more than
-> > > enough for the errno-base.h calls.
-> > > 
-> > > Returning errors instead of immediately terminating processes that
-> > > violate seccomp policy allow for broader use of this functionality
-> > > for kernel attack surface reduction.  For example, a linux container
-> > > could maintain a whitelist of pre-existing system calls but drop
-> > > all new ones with errnos.  This would keep a logically static attack
-> > > surface while providing errnos that may allow for graceful failure
-> > > without the downside of do_exit() on a bad call.
-> > > 
-> > > v12: - move to WARN_ON if filter is NULL
-> > >        (oleg@redhat.com, luto@mit.edu, keescook@chromium.org)
-> > >      - return immediately for filter==NULL (keescook@chromium.org)
-> > >      - change evaluation to only compare the ACTION so that layered
-> > >        errnos don't result in the lowest one being returned.
-> > >        (keeschook@chromium.org)
-> > > v11: - check for NULL filter (keescook@chromium.org)
-> > > v10: - change loaders to fn
-> > >  v9: - n/a
-> > >  v8: - update Kconfig to note new need for syscall_set_return_value.
-> > >      - reordered such that TRAP behavior follows on later.
-> > >      - made the for loop a little less indent-y
-> > >  v7: - introduced
-> > > 
-> > > Reviewed-by: Kees Cook <keescook@chromium.org>
-> > > Signed-off-by: Will Drewry <wad@chromium.org>
-> > 
-> > Clever :)
-> > 
-> > Thanks, Will.
-> > 
-> > For patches 1-7,
-> > 
-> > Acked-by: Serge Hallyn <serge.hallyn@canonical.com>
-> 
-> Thanks!
-> 
-> > The -1 return value from __secure_computing_int() seems like it
-> > could stand  #define, like
-> > 
-> > #define SECCOMP_DONTRUN -1
-> > #define SECCOMP_RUN 0
-> > 
-> > or something Maybe not, but -1 always scares me and I had to look back
-> > and forth a few times to make sure it was doing what I would want.
-> 
-> Works for me.   The -1 just matches what syscall emulation, etc does on
-> x86.   I'll add this to the tweaks for v14.
-> 
-> Thanks!
-
-Well, in that case maybe it's not worth it.  Sounds
-like ignorance on my part.
-
-thanks,
--serge
+> Thanks.
+> Paul.
+>
+>>
+>> --Mark
+>>
+>>
+>> --
+>> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+>> the body of a message to majordomo@vger.kernel.org
+>> More majordomo info at �http://vger.kernel.org/majordomo-info.html
+>> Please read the FAQ at �http://www.tux.org/lkml/
