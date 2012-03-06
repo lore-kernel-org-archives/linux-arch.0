@@ -1,79 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pw0-f46.google.com ([209.85.160.46]:38060 "EHLO
-	mail-pw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965262Ab2CFVKH convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Mar 2012 16:10:07 -0500
-MIME-Version: 1.0
-In-Reply-To: <CAP=VYLpwBth3YyHQ17Gs_GbfQHBWfcJO+VHLNnD=oBXgtCK0wQ@mail.gmail.com>
-References: <1331048540.17099.9.camel@deneb.redhat.com>
-	<201203061602.23512.arnd@arndb.de>
-	<1331050578.17099.13.camel@deneb.redhat.com>
-	<CAP=VYLpwBth3YyHQ17Gs_GbfQHBWfcJO+VHLNnD=oBXgtCK0wQ@mail.gmail.com>
-Date: Tue, 6 Mar 2012 16:10:07 -0500
-Message-ID: <CAP=VYLpM6Dg0R6hjGmc0Bt=h=OZjTFWMEn7wjF0D4tGRkpF5mw@mail.gmail.com>
-Subject: Re: lib/string.h build failure in linux-next
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from hqemgate03.nvidia.com ([216.228.121.140]:16470 "EHLO
+	hqemgate03.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1031516Ab2CFWsy convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Mar 2012 17:48:54 -0500
+From: Krishna Reddy <vdumpa@nvidia.com>
+Date: Tue, 6 Mar 2012 14:48:42 -0800
+Subject: RE: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
+Message-ID: <401E54CE964CD94BAE1EB4A729C7087E37970113FE@HQMAIL04.nvidia.com>
+References: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com>
+ <1330527862-16234-10-git-send-email-m.szyprowski@samsung.com>
+ <20120305134721.0ab0d0e6de56fa30250059b1@nvidia.com>
+ <000001ccfaea$00c16f70$02444e50$%szyprowski@samsung.com>
+In-Reply-To: <000001ccfaea$00c16f70$02444e50$%szyprowski@samsung.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 8BIT
+MIME-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel <linux-kernel@vger.kernel.org>, linux-next <linux-next@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20120306211007.gUf0bqJ7LOGLzqptDSoC5qpAA3R-6fmBMZLOg_4EbJ0@z>
+To: Marek Szyprowski <m.szyprowski@samsung.com>, Hiroshi Doyu <hdoyu@nvidia.com>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-samsung-soc@vger.kernel.org" <linux-samsung-soc@vger.kernel.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, 'Shariq Hasnain' <shariq.hasnain@linaro.org>, 'Arnd Bergmann' <arnd@arndb.de>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Kyungmin Park' <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'KyongHo Cho' <pullip.cho@samsung.com>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>
+Message-ID: <20120306224842.p_nI-q8202FWrrYyDnIsEXjHsYq2V6lSlK8uEn8brH8@z>
 
-On Tue, Mar 6, 2012 at 2:55 PM, Paul Gortmaker
-<paul.gortmaker@windriver.com> wrote:
-> On Tue, Mar 6, 2012 at 11:16 AM, Mark Salter <msalter@redhat.com> wrote:
->> On Tue, 2012-03-06 at 16:02 +0000, Arnd Bergmann wrote:
->>> On Tuesday 06 March 2012, Mark Salter wrote:
->>> > I'm seeing a build failure in lib/string.h in linux-next:
->>> >
->>> > /es/linux/linux-next/lib/string.c: In function 'strlcat':
->>> > /es/linux/linux-next/lib/string.c:225:2: error: implicit declaration of function 'printk'
->>> > /es/linux/linux-next/lib/string.c:225:2: error: implicit declaration of function 'panic'
->>> >
->>> > Commit e2950c2b6ecb928bfd3a13dd237df1f29f712704 removed an include of
->>> > linux/module.h which triggered the problem for arch/c6x and probably
->>> > other architectures using the asm-generic BUG macro.
->>> >
->>> > I think this needs fixing in asm-generic/bug.h which should include
->>> > linux/kernel.h for panic and linux/printk.h for printk.
->>>
->>> I think you cannot do that as long as linux/kernel.h includes asm/bug.h,
->>> or you will get a lot of other build failures.
->>
->> It didn't for my build, but to tell the truth, I really wasn't too keen
->> on adding an include of kernel.h to asm/bug.h since kernel.h pulls in so
->> much other stuff.
->>
->>>
->>> The safer option is probably to add the two missing headers separately
->>> to string.c.
->>
->> Okay, I can put together a patch that does that.
->
-> I can deal with this, since it is interaction between my bug commits and my
-> module commits that trigger it.  Can you tell me what config you are using, so
-> I can double check I have it sorted properly?
+> > +struct dma_iommu_mapping *
+> > +arm_iommu_create_mapping(struct bus_type *bus, dma_addr_t base, size_t size,
+> > +                        int order)
+> > +{
+> > +       unsigned int count = (size >> PAGE_SHIFT) - order;
+> > +       unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long);
 
-Never mind the config.  I missed the arch/c6x initially.  I've got a
-c6x toolchain
-now and can reproduce it with the dsk6455_defconfig.  Will be fixed for this
-evening's linux-next.
+The count calculation doesn't seem correct. "order" is log2 number and
+ size >> PAGE_SHIFT is number of pages. 
 
-Thanks for the report.
-Paul.
+If size is passed as 64*4096(256KB) and order is 6(allocation granularity is 2^6 pages=256KB),
+ just 1 bit is enough to manage allocations.  So it should be 4 bytes or one long.
+
+But the calculation gives count = 64 - 6 = 58 and 
+Bitmap_size gets set to (58/(4*8)) * 4 = 8 bytes, which is incorrect.
+
+It should be as follows.
+unsigned int count = 1 << get_order(size) - order;
+unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long) * BITS_PER_BYTE;
+
+-KR
+
+--nvpublic
 
 
-> Thanks.
-> Paul.
->
->>
->> --Mark
->>
->>
->> --
->> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
->> the body of a message to majordomo@vger.kernel.org
->> More majordomo info at  http://vger.kernel.org/majordomo-info.html
->> Please read the FAQ at  http://www.tux.org/lkml/
