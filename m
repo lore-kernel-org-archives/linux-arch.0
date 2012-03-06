@@ -1,31 +1,41 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: lib/string.h build failure in linux-next
-Date: Tue, 06 Mar 2012 10:42:18 -0500
-Message-ID: <1331048540.17099.9.camel@deneb.redhat.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: lib/string.h build failure in linux-next
+Date: Tue, 6 Mar 2012 16:02:23 +0000
+Message-ID: <201203061602.23512.arnd@arndb.de>
+References: <1331048540.17099.9.camel@deneb.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:12749 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752078Ab2CFPmX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 6 Mar 2012 10:42:23 -0500
+Received: from moutng.kundenserver.de ([212.227.17.10]:55470 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751399Ab2CFQC0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Mar 2012 11:02:26 -0500
+In-Reply-To: <1331048540.17099.9.camel@deneb.redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel <linux-kernel@vger.kernel.org>
-Cc: linux-next <linux-next@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
+To: Mark Salter <msalter@redhat.com>
+Cc: linux-kernel <linux-kernel@vger.kernel.org>, linux-next <linux-next@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>
 
-I'm seeing a build failure in lib/string.h in linux-next:
+On Tuesday 06 March 2012, Mark Salter wrote:
+> I'm seeing a build failure in lib/string.h in linux-next:
+> 
+> /es/linux/linux-next/lib/string.c: In function 'strlcat':
+> /es/linux/linux-next/lib/string.c:225:2: error: implicit declaration of function 'printk'
+> /es/linux/linux-next/lib/string.c:225:2: error: implicit declaration of function 'panic'
+> 
+> Commit e2950c2b6ecb928bfd3a13dd237df1f29f712704 removed an include of
+> linux/module.h which triggered the problem for arch/c6x and probably
+> other architectures using the asm-generic BUG macro.
+> 
+> I think this needs fixing in asm-generic/bug.h which should include
+> linux/kernel.h for panic and linux/printk.h for printk.
 
-/es/linux/linux-next/lib/string.c: In function 'strlcat':
-/es/linux/linux-next/lib/string.c:225:2: error: implicit declaration of function 'printk'
-/es/linux/linux-next/lib/string.c:225:2: error: implicit declaration of function 'panic'
+I think you cannot do that as long as linux/kernel.h includes asm/bug.h,
+or you will get a lot of other build failures.
 
-Commit e2950c2b6ecb928bfd3a13dd237df1f29f712704 removed an include of
-linux/module.h which triggered the problem for arch/c6x and probably
-other architectures using the asm-generic BUG macro.
+The safer option is probably to add the two missing headers separately
+to string.c.
 
-I think this needs fixing in asm-generic/bug.h which should include
-linux/kernel.h for panic and linux/printk.h for printk.
-
---Mark
+	Arnd
