@@ -1,14 +1,15 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f202.google.com ([209.85.161.202]:40227 "EHLO
-	mail-gx0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965289Ab2CGWk2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 17:40:28 -0500
-Received: by ggnd2 with SMTP id d2so865538ggn.1
-        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 14:40:27 -0800 (PST)
-Subject: [PATCH v3 23/34] microblaze/PCI: get rid of device resource fixups
+Received: from mail-fa0-f74.google.com ([209.85.161.74]:63451 "EHLO
+	mail-fa0-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965026Ab2CGWkx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 17:40:53 -0500
+Received: by faaa19 with SMTP id a19so250719faa.1
+        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 14:40:50 -0800 (PST)
+Subject: [PATCH v3 15/34] PCI: add struct pci_host_bridge and a list of all
+	bridges found
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Wed, 07 Mar 2012 15:34:01 -0700
-Message-ID: <20120307223401.25669.79016.stgit@bhelgaas.mtv.corp.google.com>
+Date: Wed, 07 Mar 2012 15:33:20 -0700
+Message-ID: <20120307223320.25669.75545.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -17,148 +18,131 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Michal Simek <monstr@monstr.eu>
-Message-ID: <20120307223401.3Re_rKnwYUnaDK5r_9UkqVNnPyatH-mkGwNhtBHXpvw@z>
+Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org
+Message-ID: <20120307223320.X4PfEx0cbHVFfmzDW8gqT0VPicpq_EYcK8yvM71NZtY@z>
 
-Tell the PCI core about host bridge address translation so it can take
-care of bus-to-resource conversion for us.
+This adds a list of all PCI host bridges we find and a way to look up
+the host bridge from a pci_dev.
 
-CC: Michal Simek <monstr@monstr.eu>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/microblaze/include/asm/pci.h |    8 +---
- arch/microblaze/pci/pci-common.c  |   69 ++-----------------------------------
- 2 files changed, 4 insertions(+), 73 deletions(-)
+ drivers/pci/probe.c |   39 ++++++++++++++++++++++++++++++++++-----
+ include/linux/pci.h |    5 +++++
+ 2 files changed, 39 insertions(+), 5 deletions(-)
 
-diff --git a/arch/microblaze/include/asm/pci.h b/arch/microblaze/include/asm/pci.h
-index 0331376..8db01f7 100644
---- a/arch/microblaze/include/asm/pci.h
-+++ b/arch/microblaze/include/asm/pci.h
-@@ -94,13 +94,7 @@ extern int pci_mmap_legacy_page_range(struct pci_bus *bus,
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index e4c0d1c..3a30023 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -15,6 +15,8 @@
+ #define CARDBUS_LATENCY_TIMER	176	/* secondary latency timer */
+ #define CARDBUS_RESERVE_BUSNR	3
+ 
++static LIST_HEAD(pci_host_bridges);
++
+ /* Ugh.  Need to stop exporting this to modules. */
+ LIST_HEAD(pci_root_buses);
+ EXPORT_SYMBOL(pci_root_buses);
+@@ -42,6 +44,23 @@ int no_pci_devices(void)
+ }
+ EXPORT_SYMBOL(no_pci_devices);
+ 
++static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
++{
++	struct pci_bus *bus;
++	struct pci_host_bridge *bridge;
++
++	bus = dev->bus;
++	while (bus->parent)
++		bus = bus->parent;
++
++	list_for_each_entry(bridge, &pci_host_bridges, list) {
++		if (bridge->bus == bus)
++			return bridge;
++	}
++
++	return NULL;
++}
++
+ /*
+  * PCI Bus Class
   */
- #define PCI_DMA_BUS_IS_PHYS     (1)
+@@ -1544,20 +1563,23 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 		struct pci_ops *ops, void *sysdata, struct list_head *resources)
+ {
+ 	int error, i;
++	struct pci_host_bridge *bridge;
+ 	struct pci_bus *b, *b2;
+ 	struct device *dev;
+ 	struct pci_bus_resource *bus_res, *n;
+ 	struct resource *res;
  
--extern void pcibios_resource_to_bus(struct pci_dev *dev,
--			struct pci_bus_region *region,
--			struct resource *res);
--
--extern void pcibios_bus_to_resource(struct pci_dev *dev,
--			struct resource *res,
--			struct pci_bus_region *region);
-+#define ARCH_HAS_GENERIC_PCI_OFFSETS
++	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
++	if (!bridge)
++		return NULL;
++
+ 	b = pci_alloc_bus();
+ 	if (!b)
+-		return NULL;
++		goto err_bus;
  
- static inline struct resource *pcibios_select_root(struct pci_dev *pdev,
- 			struct resource *res)
-diff --git a/arch/microblaze/pci/pci-common.c b/arch/microblaze/pci/pci-common.c
-index 8a257a7..d10403d 100644
---- a/arch/microblaze/pci/pci-common.c
-+++ b/arch/microblaze/pci/pci-common.c
-@@ -833,59 +833,6 @@ int pci_proc_domain(struct pci_bus *bus)
- 	return 0;
+ 	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+-	if (!dev) {
+-		kfree(b);
+-		return NULL;
+-	}
++	if (!dev)
++		goto err_dev;
+ 
+ 	b->sysdata = sysdata;
+ 	b->ops = ops;
+@@ -1594,6 +1616,8 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 
+ 	b->number = b->secondary = bus;
+ 
++	bridge->bus = b;
++
+ 	/* Add initial resources to the bus */
+ 	list_for_each_entry_safe(bus_res, n, resources, list)
+ 		list_move_tail(&bus_res->list, &b->resources);
+@@ -1609,6 +1633,7 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 	}
+ 
+ 	down_write(&pci_bus_sem);
++	list_add_tail(&bridge->list, &pci_host_bridges);
+ 	list_add_tail(&b->node, &pci_root_buses);
+ 	up_write(&pci_bus_sem);
+ 
+@@ -1618,11 +1643,15 @@ class_dev_reg_err:
+ 	device_unregister(dev);
+ dev_reg_err:
+ 	down_write(&pci_bus_sem);
++	list_del(&bridge->list);
+ 	list_del(&b->node);
+ 	up_write(&pci_bus_sem);
+ err_out:
+ 	kfree(dev);
++err_dev:
+ 	kfree(b);
++err_bus:
++	kfree(bridge);
+ 	return NULL;
  }
  
--void pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
--			     struct resource *res)
--{
--	resource_size_t offset = 0, mask = (resource_size_t)-1;
--	struct pci_controller *hose = pci_bus_to_host(dev->bus);
--
--	if (!hose)
--		return;
--	if (res->flags & IORESOURCE_IO) {
--		offset = (unsigned long)hose->io_base_virt - _IO_BASE;
--		mask = 0xffffffffu;
--	} else if (res->flags & IORESOURCE_MEM)
--		offset = hose->pci_mem_offset;
--
--	region->start = (res->start - offset) & mask;
--	region->end = (res->end - offset) & mask;
--}
--EXPORT_SYMBOL(pcibios_resource_to_bus);
--
--void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
--			     struct pci_bus_region *region)
--{
--	resource_size_t offset = 0, mask = (resource_size_t)-1;
--	struct pci_controller *hose = pci_bus_to_host(dev->bus);
--
--	if (!hose)
--		return;
--	if (res->flags & IORESOURCE_IO) {
--		offset = (unsigned long)hose->io_base_virt - _IO_BASE;
--		mask = 0xffffffffu;
--	} else if (res->flags & IORESOURCE_MEM)
--		offset = hose->pci_mem_offset;
--	res->start = (region->start + offset) & mask;
--	res->end = (region->end + offset) & mask;
--}
--EXPORT_SYMBOL(pcibios_bus_to_resource);
--
--/* Fixup a bus resource into a linux resource */
--static void __devinit fixup_resource(struct resource *res, struct pci_dev *dev)
--{
--	struct pci_controller *hose = pci_bus_to_host(dev->bus);
--	resource_size_t offset = 0, mask = (resource_size_t)-1;
--
--	if (res->flags & IORESOURCE_IO) {
--		offset = (unsigned long)hose->io_base_virt - _IO_BASE;
--		mask = 0xffffffffu;
--	} else if (res->flags & IORESOURCE_MEM)
--		offset = hose->pci_mem_offset;
--
--	res->start = (res->start + offset) & mask;
--	res->end = (res->end + offset) & mask;
--}
--
- /* This header fixup will do the resource fixup for all devices as they are
-  * probed, but not for bridge ranges
-  */
-@@ -916,18 +863,11 @@ static void __devinit pcibios_fixup_resources(struct pci_dev *dev)
- 			continue;
- 		}
- 
--		pr_debug("PCI:%s Resource %d %016llx-%016llx [%x] fixup...\n",
-+		pr_debug("PCI:%s Resource %d %016llx-%016llx [%x]\n",
- 			 pci_name(dev), i,
- 			 (unsigned long long)res->start,\
- 			 (unsigned long long)res->end,
- 			 (unsigned int)res->flags);
--
--		fixup_resource(res, dev);
--
--		pr_debug("PCI:%s            %016llx-%016llx\n",
--			 pci_name(dev),
--			 (unsigned long long)res->start,
--			 (unsigned long long)res->end);
- 	}
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index bcaa51c..2c946b3 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -368,6 +368,11 @@ static inline int pci_channel_offline(struct pci_dev *pdev)
+ 	return (pdev->error_state != pci_channel_io_normal);
  }
- DECLARE_PCI_FIXUP_HEADER(PCI_ANY_ID, PCI_ANY_ID, pcibios_fixup_resources);
-@@ -1020,9 +960,6 @@ static void __devinit pcibios_fixup_bridge(struct pci_bus *bus)
- 			 (unsigned long long)res->end,
- 			 (unsigned int)res->flags);
  
--		/* Perform fixup */
--		fixup_resource(res, dev);
--
- 		/* Try to detect uninitialized P2P bridge resources,
- 		 * and clear them out so they get re-assigned later
- 		 */
-@@ -1505,7 +1442,7 @@ static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose, s
- 		res->end = res->start + IO_SPACE_LIMIT;
- 		res->flags = IORESOURCE_IO;
- 	}
--	pci_add_resource(resources, res);
-+	pci_add_resource_offset(resources, res, hose->io_base_virt - _IO_BASE);
- 
- 	pr_debug("PCI: PHB IO resource    = %016llx-%016llx [%lx]\n",
- 		 (unsigned long long)res->start,
-@@ -1528,7 +1465,7 @@ static void __devinit pcibios_setup_phb_resources(struct pci_controller *hose, s
- 			res->flags = IORESOURCE_MEM;
- 
- 		}
--		pci_add_resource(resources, res);
-+		pci_add_resource_offset(resources, res, hose->pci_mem_offset);
- 
- 		pr_debug("PCI: PHB MEM resource %d = %016llx-%016llx [%lx]\n",
- 			i, (unsigned long long)res->start,
++struct pci_host_bridge {
++	struct list_head list;
++	struct pci_bus *bus;		/* root bus */
++};
++
+ /*
+  * The first PCI_BRIDGE_RESOURCE_NUM PCI bus resources (those that correspond
+  * to P2P or CardBus bridge windows) go in a table.  Additional ones (for
 
