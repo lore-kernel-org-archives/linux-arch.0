@@ -1,29 +1,60 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: Re: [PATCH 08/29] Disintegrate asm/system.h for C6X
-Date: Wed, 07 Mar 2012 16:28:45 -0500
-Message-ID: <1331155726.12805.16.camel@deneb.redhat.com>
-References: <20120307194548.15987.36073.stgit@warthog.procyon.org.uk>
-	 <20120307194725.15987.99209.stgit@warthog.procyon.org.uk>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 2/3] Kbuild: Implement CONFIG_UIMAGE_KERNEL_NOLOAD
+Date: Wed, 7 Mar 2012 21:28:05 +0000
+Message-ID: <20120307212805.GE18787@n2100.arm.linux.org.uk>
+References: <1331080238-1524-1-git-send-email-swarren@wwwdotorg.org> <1331080238-1524-2-git-send-email-swarren@wwwdotorg.org> <20120307180815.GA27213@game.jcrosoft.org> <4F57AB92.6060907@wwwdotorg.org> <20120307183633.GB27213@game.jcrosoft.org> <4F57C4C6.2070602@wwwdotorg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:36965 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1030363Ab2CGV26 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 7 Mar 2012 16:28:58 -0500
-In-Reply-To: <20120307194725.15987.99209.stgit@warthog.procyon.org.uk>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:43908 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752636Ab2CGVbn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 16:31:43 -0500
+Content-Disposition: inline
+In-Reply-To: <4F57C4C6.2070602@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, sfr@canb.auug.org.au, mingo@redhat.com, arnd@arndb.de, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Michal Marek <mmarek@suse.cz>, linux-arch@vger.kernel.org, Michal Simek <monstr@monstr.eu>, Guan Xuetao <gxt@mprc.pku.edu.cn>, Mike Frysinger <vapier@gentoo.org>, nico@fluxnic.net, linux-sh@vger.kernel.org, microblaze-uclinux@itee.uq.edu.au, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>, uclinux-dist-devel@blackfin.uclinux.org, sparclinux@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>, "David S. Miller" <davem@davemloft.net>, linux-arm-kernel@lists.infradead.org, Hans-Christian Egtvedt <egtvedt@samfundet.no>
 
-On Wed, 2012-03-07 at 19:47 +0000, David Howells wrote:
-> Disintegrate asm/system.h for C6X.  Not compiled.  Appears to be missing
-> asm/atomic.h and asm/bug.h.
+On Wed, Mar 07, 2012 at 01:27:50PM -0700, Stephen Warren wrote:
+> Thinking more about this, I guess the reliance on AUTO_ZRELADDR is wrong
+> here; Russell, Nico, is the ARM decompressor fully position-independent
+> irrespective of the AUTO_ZRELADDR setting.
 
-Not missing. C6X uses the asm-generic versions which makes me think that
-at least the atomic.h and barrier.h bits could have reasonable generic
-versions for UP-only systems.
+The standard decompressor is fully relocatable into any part of the system
+which contains sufficient _RAM_ to contain the size of the zImage plus 64k
+malloc space (that's including the BSS for the zImage.)
 
---Mark
+AUTO_ZRELADDR controls how the _decompressed_ kernel is placed, whether
+it is placed at a fixed address controlled by the zreladdr-y symbol
+in arch/arm/mach-*/Makefile.boot, or whether it is controlled by where
+the zImage is placed - iow, (phys address & 0xf8000000) + TEXT_OFFSET.
+
+> That setting just determines
+> where the decompressor writes its output, not what address the
+> decompressor can run at, right? So, this KERNEL_NOLOAD feature could be
+> enabled in all cases on ARM, not only when AUTO_ZRELADDR is enabled.
+
+I'm not entirely sure about that - there's at least the uboot on some
+of the ARM devel platforms which relocates things like the ATAG list if
+it's loading a uImage at 0x60008000 vs 0x00008000 (and we want it to be
+at the 0x60008000 address so it can see 1GB of memory rather than just
+256MB via the low mapping.)
+
+So in some cases we do need control over where the uImage (or zImage)
+is loaded by the boot loader.
+
+> In other words:
+> 
+> We already have and need ZRELADDR no matter what, for reasons unrelated
+> to U-Boot/uImage.
+
+That's a tad icky... because a !AUTO_ZRELADDR kernel has no need for a
+load address provided it ends up in RAM.  So, uboot enforcing a specific
+load address more of an inconvenience rather than a problem.
+
+However, for AUTO_ZRELADDR, the zImage does have to be placed in the
+same 128M aligned block of RAM which you want the start of it to be
+called PHYS_OFFSET.  So in that sense, an AUTO_ZRELADDR kernel is
+more critical with its placement than a !AUTO_ZRELADDR kernel.
