@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:21270 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:48776 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1030250Ab2CGTte (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 7 Mar 2012 14:49:34 -0500
+	id S1760005Ab2CGTsN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 7 Mar 2012 14:48:13 -0500
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 18/29] Disintegrate asm/system.h for MN10300
-Date: Wed, 07 Mar 2012 19:49:15 +0000
-Message-ID: <20120307194915.15987.59544.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 11/29] Disintegrate asm/system.h for H8300
+Date: Wed, 07 Mar 2012 19:47:56 +0000
+Message-ID: <20120307194756.15987.49068.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20120307194548.15987.36073.stgit@warthog.procyon.org.uk>
 References: <20120307194548.15987.36073.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,260 +16,368 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paul.gortmaker@windriver.com, hpa@zytor.com
 Cc: torvalds@linux-foundation.org, sfr@canb.auug.org.au, mingo@redhat.com, arnd@arndb.de, dhowells@redhat.com, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120307194915.sfpYe_OqqHaR1hoz_aeh1koYJoQLkKYupYXnn0V7z6k@z>
+Message-ID: <20120307194756.QV8xasULT0iQwzZoKo75H5EEl2OtYq2eW6Krl2bgxVE@z>
 
-Disintegrate asm/system.h for MN10300.
+Disintegrate asm/system.h for H8300.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- arch/mn10300/include/asm/barrier.h   |   35 ++++++++++++
- arch/mn10300/include/asm/exec.h      |   16 +++++
- arch/mn10300/include/asm/switch_to.h |   49 ++++++++++++++++
- arch/mn10300/include/asm/system.h    |  102 ----------------------------------
- arch/mn10300/kernel/smp-low.S        |    1 
- 5 files changed, 101 insertions(+), 102 deletions(-)
- create mode 100644 arch/mn10300/include/asm/barrier.h
- create mode 100644 arch/mn10300/include/asm/exec.h
- create mode 100644 arch/mn10300/include/asm/switch_to.h
- delete mode 100644 arch/mn10300/include/asm/system.h
+ arch/h8300/include/asm/atomic.h    |   53 ++++++++++++++
+ arch/h8300/include/asm/barrier.h   |   26 +++++++
+ arch/h8300/include/asm/bug.h       |    4 +
+ arch/h8300/include/asm/exec.h      |    6 ++
+ arch/h8300/include/asm/processor.h |    5 +
+ arch/h8300/include/asm/switch_to.h |   50 +++++++++++++
+ arch/h8300/include/asm/system.h    |  140 ------------------------------------
+ 7 files changed, 144 insertions(+), 140 deletions(-)
+ create mode 100644 arch/h8300/include/asm/barrier.h
+ create mode 100644 arch/h8300/include/asm/exec.h
+ create mode 100644 arch/h8300/include/asm/switch_to.h
+ delete mode 100644 arch/h8300/include/asm/system.h
 
-diff --git a/arch/mn10300/include/asm/barrier.h b/arch/mn10300/include/asm/barrier.h
-new file mode 100644
-index 0000000..9f2e160
---- /dev/null
-+++ b/arch/mn10300/include/asm/barrier.h
-@@ -0,0 +1,35 @@
-+/* MN10300 memory barrier definitions
-+ *
-+ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public Licence
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the Licence, or (at your option) any later version.
-+ */
-+#ifndef _ASM_BARRIER_H
-+#define _ASM_BARRIER_H
+diff --git a/arch/h8300/include/asm/atomic.h b/arch/h8300/include/asm/atomic.h
+index fbc8517..62b02f1 100644
+--- a/arch/h8300/include/asm/atomic.h
++++ b/arch/h8300/include/asm/atomic.h
+@@ -2,6 +2,7 @@
+ #define __ARCH_H8300_ATOMIC__
+ 
+ #include <linux/types.h>
++#include <linux/irqflags.h>
+ 
+ /*
+  * Atomic operations that C can't guarantee us.  Useful for
+@@ -101,6 +102,58 @@ static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
+ 	return ret;
+ }
+ 
++#define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
 +
-+#define mb()	asm volatile ("": : :"memory")
-+#define rmb()	mb()
-+#define wmb()	asm volatile ("": : :"memory")
++struct __xchg_dummy { unsigned long a[100]; };
++#define __xg(x) ((volatile struct __xchg_dummy *)(x))
++
++static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
++{
++  unsigned long tmp, flags;
++
++  local_irq_save(flags);
++
++  switch (size) {
++  case 1:
++    __asm__ __volatile__
++    ("mov.b %2,%0\n\t"
++     "mov.b %1,%2"
++    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
++    break;
++  case 2:
++    __asm__ __volatile__
++    ("mov.w %2,%0\n\t"
++     "mov.w %1,%2"
++    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
++    break;
++  case 4:
++    __asm__ __volatile__
++    ("mov.l %2,%0\n\t"
++     "mov.l %1,%2"
++    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
++    break;
++  default:
++    tmp = 0;	  
++  }
++  local_irq_restore(flags);
++  return tmp;
++}
++
++#include <asm-generic/cmpxchg-local.h>
++
++/*
++ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
++ * them available.
++ */
++#define cmpxchg_local(ptr, o, n)				  	       \
++	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
++			(unsigned long)(n), sizeof(*(ptr))))
++#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
++
++#ifndef CONFIG_SMP
++#include <asm-generic/cmpxchg.h>
++#endif
++
+ #define atomic_xchg(v, new) (xchg(&((v)->counter), new))
+ 
+ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
+diff --git a/arch/h8300/include/asm/barrier.h b/arch/h8300/include/asm/barrier.h
+new file mode 100644
+index 0000000..96d7a49
+--- /dev/null
++++ b/arch/h8300/include/asm/barrier.h
+@@ -0,0 +1,26 @@
++#ifndef _H8300_BARRIER_H
++#define _H8300_BARRIER_H
++
++/*
++ * Force strict CPU ordering.
++ * Not really required on H8...
++ */
++#define nop()  asm volatile ("nop"::)
++#define mb()   asm volatile (""   : : :"memory")
++#define rmb()  asm volatile (""   : : :"memory")
++#define wmb()  asm volatile (""   : : :"memory")
++#define set_mb(var, value) do { xchg(&var, value); } while (0)
 +
 +#ifdef CONFIG_SMP
 +#define smp_mb()	mb()
 +#define smp_rmb()	rmb()
 +#define smp_wmb()	wmb()
-+#define set_mb(var, value)  do { xchg(&var, value); } while (0)
-+#else  /* CONFIG_SMP */
++#define smp_read_barrier_depends()	read_barrier_depends()
++#else
 +#define smp_mb()	barrier()
 +#define smp_rmb()	barrier()
 +#define smp_wmb()	barrier()
-+#define set_mb(var, value)  do { var = value;  mb(); } while (0)
-+#endif /* CONFIG_SMP */
++#define smp_read_barrier_depends()	do { } while(0)
++#endif
 +
-+#define set_wmb(var, value) do { var = value; wmb(); } while (0)
++#endif /* _H8300_BARRIER_H */
+diff --git a/arch/h8300/include/asm/bug.h b/arch/h8300/include/asm/bug.h
+index 887c197..1e1be81 100644
+--- a/arch/h8300/include/asm/bug.h
++++ b/arch/h8300/include/asm/bug.h
+@@ -5,4 +5,8 @@
+ #define is_valid_bugaddr(addr) (1)
+ 
+ #include <asm-generic/bug.h>
 +
-+#define read_barrier_depends()		do {} while (0)
-+#define smp_read_barrier_depends()	do {} while (0)
++struct pt_regs;
++extern void die(const char *str, struct pt_regs *fp, unsigned long err);
 +
-+#endif /* _ASM_BARRIER_H */
-diff --git a/arch/mn10300/include/asm/exec.h b/arch/mn10300/include/asm/exec.h
+ #endif
+diff --git a/arch/h8300/include/asm/exec.h b/arch/h8300/include/asm/exec.h
 new file mode 100644
-index 0000000..c74e367
+index 0000000..c01c45c
 --- /dev/null
-+++ b/arch/mn10300/include/asm/exec.h
-@@ -0,0 +1,16 @@
-+/* MN10300 process execution definitions
-+ *
-+ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public Licence
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the Licence, or (at your option) any later version.
-+ */
-+#ifndef _ASM_EXEC_H
-+#define _ASM_EXEC_H
++++ b/arch/h8300/include/asm/exec.h
+@@ -0,0 +1,6 @@
++#ifndef _H8300_EXEC_H
++#define _H8300_EXEC_H
 +
 +#define arch_align_stack(x) (x)
 +
-+#endif /* _ASM_EXEC_H */
-diff --git a/arch/mn10300/include/asm/switch_to.h b/arch/mn10300/include/asm/switch_to.h
++#endif /* _H8300_EXEC_H */
+diff --git a/arch/h8300/include/asm/processor.h b/arch/h8300/include/asm/processor.h
+index e834b60..61fabf1 100644
+--- a/arch/h8300/include/asm/processor.h
++++ b/arch/h8300/include/asm/processor.h
+@@ -135,4 +135,9 @@ unsigned long get_wchan(struct task_struct *p);
+ 
+ #define cpu_relax()    barrier()
+ 
++#define HARD_RESET_NOW() ({		\
++        local_irq_disable();		\
++        asm("jmp @@0");			\
++})
++
+ #endif
+diff --git a/arch/h8300/include/asm/switch_to.h b/arch/h8300/include/asm/switch_to.h
 new file mode 100644
-index 0000000..393d311
+index 0000000..cdd8731
 --- /dev/null
-+++ b/arch/mn10300/include/asm/switch_to.h
-@@ -0,0 +1,49 @@
-+/* MN10300 task switching definitions
-+ *
-+ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public Licence
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the Licence, or (at your option) any later version.
++++ b/arch/h8300/include/asm/switch_to.h
+@@ -0,0 +1,50 @@
++#ifndef _H8300_SWITCH_TO_H
++#define _H8300_SWITCH_TO_H
++
++/*
++ * switch_to(n) should switch tasks to task ptr, first checking that
++ * ptr isn't the current task, in which case it does nothing.  This
++ * also clears the TS-flag if the task we switched to has used the
++ * math co-processor latest.
 + */
-+#ifndef _ASM_SWITCH_TO_H
-+#define _ASM_SWITCH_TO_H
++/*
++ * switch_to() saves the extra registers, that are not saved
++ * automatically by SAVE_SWITCH_STACK in resume(), ie. d0-d5 and
++ * a0-a1. Some of these are used by schedule() and its predecessors
++ * and so we might get see unexpected behaviors when a task returns
++ * with unexpected register values.
++ *
++ * syscall stores these registers itself and none of them are used
++ * by syscall after the function in the syscall has been called.
++ *
++ * Beware that resume now expects *next to be in d1 and the offset of
++ * tss to be in a1. This saves a few instructions as we no longer have
++ * to push them onto the stack and read them back right after.
++ *
++ * 02/17/96 - Jes Sorensen (jds@kom.auc.dk)
++ *
++ * Changed 96/09/19 by Andreas Schwab
++ * pass prev in a0, next in a1, offset of tss in d1, and whether
++ * the mm structures are shared in d2 (to avoid atc flushing).
++ *
++ * H8/300 Porting 2002/09/04 Yoshinori Sato
++ */
 +
-+#include <asm/barrier.h>
++asmlinkage void resume(void);
++#define switch_to(prev,next,last) {                         \
++  void *_last;						    \
++  __asm__ __volatile__(					    \
++  			"mov.l	%1, er0\n\t"		    \
++			"mov.l	%2, er1\n\t"		    \
++                        "mov.l  %3, er2\n\t"                \
++			"jsr @_resume\n\t"                  \
++                        "mov.l  er2,%0\n\t"                 \
++		       : "=r" (_last)			    \
++		       : "r" (&(prev->thread)),		    \
++			 "r" (&(next->thread)),		    \
++                         "g" (prev)                         \
++		       : "cc", "er0", "er1", "er2", "er3"); \
++  (last) = _last; 					    \
++}
 +
-+struct task_struct;
-+struct thread_struct;
-+
-+#if !defined(CONFIG_LAZY_SAVE_FPU)
-+struct fpu_state_struct;
-+extern asmlinkage void fpu_save(struct fpu_state_struct *);
-+#define switch_fpu(prev, next)						\
-+	do {								\
-+		if ((prev)->thread.fpu_flags & THREAD_HAS_FPU) {	\
-+			(prev)->thread.fpu_flags &= ~THREAD_HAS_FPU;	\
-+			(prev)->thread.uregs->epsw &= ~EPSW_FE;		\
-+			fpu_save(&(prev)->thread.fpu_state);		\
-+		}							\
-+	} while (0)
-+#else
-+#define switch_fpu(prev, next) do {} while (0)
-+#endif
-+
-+/* context switching is now performed out-of-line in switch_to.S */
-+extern asmlinkage
-+struct task_struct *__switch_to(struct thread_struct *prev,
-+				struct thread_struct *next,
-+				struct task_struct *prev_task);
-+
-+#define switch_to(prev, next, last)					\
-+do {									\
-+	switch_fpu(prev, next);						\
-+	current->thread.wchan = (u_long) __builtin_return_address(0);	\
-+	(last) = __switch_to(&(prev)->thread, &(next)->thread, (prev));	\
-+	mb();								\
-+	current->thread.wchan = 0;					\
-+} while (0)
-+
-+#endif /* _ASM_SWITCH_TO_H */
-diff --git a/arch/mn10300/include/asm/system.h b/arch/mn10300/include/asm/system.h
++#endif /* _H8300_SWITCH_TO_H */
+diff --git a/arch/h8300/include/asm/system.h b/arch/h8300/include/asm/system.h
 deleted file mode 100644
-index 94b4c5e..0000000
---- a/arch/mn10300/include/asm/system.h
+index 2c2382e..0000000
+--- a/arch/h8300/include/asm/system.h
 +++ /dev/null
-@@ -1,102 +0,0 @@
--/* MN10300 System definitions
-- *
-- * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-- * Written by David Howells (dhowells@redhat.com)
-- *
-- * This program is free software; you can redistribute it and/or
-- * modify it under the terms of the GNU General Public Licence
-- * as published by the Free Software Foundation; either version
-- * 2 of the Licence, or (at your option) any later version.
-- */
--#ifndef _ASM_SYSTEM_H
--#define _ASM_SYSTEM_H
+@@ -1,140 +0,0 @@
+-#ifndef _H8300_SYSTEM_H
+-#define _H8300_SYSTEM_H
 -
--#include <asm/cpu-regs.h>
--#include <asm/intctl-regs.h>
--
--#ifdef __KERNEL__
--#ifndef __ASSEMBLY__
--
--#include <linux/kernel.h>
+-#include <linux/linkage.h>
 -#include <linux/irqflags.h>
--#include <linux/atomic.h>
 -
--#if !defined(CONFIG_LAZY_SAVE_FPU)
--struct fpu_state_struct;
--extern asmlinkage void fpu_save(struct fpu_state_struct *);
--#define switch_fpu(prev, next)						\
--	do {								\
--		if ((prev)->thread.fpu_flags & THREAD_HAS_FPU) {	\
--			(prev)->thread.fpu_flags &= ~THREAD_HAS_FPU;	\
--			(prev)->thread.uregs->epsw &= ~EPSW_FE;		\
--			fpu_save(&(prev)->thread.fpu_state);		\
--		}							\
--	} while (0)
--#else
--#define switch_fpu(prev, next) do {} while (0)
--#endif
+-struct pt_regs;
 -
--struct task_struct;
--struct thread_struct;
+-/*
+- * switch_to(n) should switch tasks to task ptr, first checking that
+- * ptr isn't the current task, in which case it does nothing.  This
+- * also clears the TS-flag if the task we switched to has used the
+- * math co-processor latest.
+- */
+-/*
+- * switch_to() saves the extra registers, that are not saved
+- * automatically by SAVE_SWITCH_STACK in resume(), ie. d0-d5 and
+- * a0-a1. Some of these are used by schedule() and its predecessors
+- * and so we might get see unexpected behaviors when a task returns
+- * with unexpected register values.
+- *
+- * syscall stores these registers itself and none of them are used
+- * by syscall after the function in the syscall has been called.
+- *
+- * Beware that resume now expects *next to be in d1 and the offset of
+- * tss to be in a1. This saves a few instructions as we no longer have
+- * to push them onto the stack and read them back right after.
+- *
+- * 02/17/96 - Jes Sorensen (jds@kom.auc.dk)
+- *
+- * Changed 96/09/19 by Andreas Schwab
+- * pass prev in a0, next in a1, offset of tss in d1, and whether
+- * the mm structures are shared in d2 (to avoid atc flushing).
+- *
+- * H8/300 Porting 2002/09/04 Yoshinori Sato
+- */
 -
--extern asmlinkage
--struct task_struct *__switch_to(struct thread_struct *prev,
--				struct thread_struct *next,
--				struct task_struct *prev_task);
+-asmlinkage void resume(void);
+-#define switch_to(prev,next,last) {                         \
+-  void *_last;						    \
+-  __asm__ __volatile__(					    \
+-  			"mov.l	%1, er0\n\t"		    \
+-			"mov.l	%2, er1\n\t"		    \
+-                        "mov.l  %3, er2\n\t"                \
+-			"jsr @_resume\n\t"                  \
+-                        "mov.l  er2,%0\n\t"                 \
+-		       : "=r" (_last)			    \
+-		       : "r" (&(prev->thread)),		    \
+-			 "r" (&(next->thread)),		    \
+-                         "g" (prev)                         \
+-		       : "cc", "er0", "er1", "er2", "er3"); \
+-  (last) = _last; 					    \
+-}
 -
--/* context switching is now performed out-of-line in switch_to.S */
--#define switch_to(prev, next, last)					\
--do {									\
--	switch_fpu(prev, next);						\
--	current->thread.wchan = (u_long) __builtin_return_address(0);	\
--	(last) = __switch_to(&(prev)->thread, &(next)->thread, (prev));	\
--	mb();								\
--	current->thread.wchan = 0;					\
--} while (0)
--
--#define arch_align_stack(x) (x)
--
--#define nop() asm volatile ("nop")
+-#define iret() __asm__ __volatile__ ("rte": : :"memory", "sp", "cc")
 -
 -/*
 - * Force strict CPU ordering.
-- * And yes, this is required on UP too when we're talking
-- * to devices.
-- *
-- * For now, "wmb()" doesn't actually do anything, as all
-- * Intel CPU's follow what Intel calls a *Processor Order*,
-- * in which all writes are seen in the program order even
-- * outside the CPU.
-- *
-- * I expect future Intel CPU's to have a weaker ordering,
-- * but I'd also expect them to finally get their act together
-- * and add some real memory barriers if so.
-- *
-- * Some non intel clones support out of order store. wmb() ceases to be a
-- * nop for these.
+- * Not really required on H8...
 - */
--
--#define mb()	asm volatile ("": : :"memory")
--#define rmb()	mb()
--#define wmb()	asm volatile ("": : :"memory")
+-#define nop()  asm volatile ("nop"::)
+-#define mb()   asm volatile (""   : : :"memory")
+-#define rmb()  asm volatile (""   : : :"memory")
+-#define wmb()  asm volatile (""   : : :"memory")
+-#define set_mb(var, value) do { xchg(&var, value); } while (0)
 -
 -#ifdef CONFIG_SMP
 -#define smp_mb()	mb()
 -#define smp_rmb()	rmb()
 -#define smp_wmb()	wmb()
--#define set_mb(var, value)  do { xchg(&var, value); } while (0)
--#else  /* CONFIG_SMP */
+-#define smp_read_barrier_depends()	read_barrier_depends()
+-#else
 -#define smp_mb()	barrier()
 -#define smp_rmb()	barrier()
 -#define smp_wmb()	barrier()
--#define set_mb(var, value)  do { var = value;  mb(); } while (0)
--#endif /* CONFIG_SMP */
+-#define smp_read_barrier_depends()	do { } while(0)
+-#endif
 -
--#define set_wmb(var, value) do { var = value; wmb(); } while (0)
+-#define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
 -
--#define read_barrier_depends()		do {} while (0)
--#define smp_read_barrier_depends()	do {} while (0)
+-struct __xchg_dummy { unsigned long a[100]; };
+-#define __xg(x) ((volatile struct __xchg_dummy *)(x))
 -
--#endif /* !__ASSEMBLY__ */
--#endif /* __KERNEL__ */
--#endif /* _ASM_SYSTEM_H */
-diff --git a/arch/mn10300/kernel/smp-low.S b/arch/mn10300/kernel/smp-low.S
-index f1845e9..71f1b2f 100644
---- a/arch/mn10300/kernel/smp-low.S
-+++ b/arch/mn10300/kernel/smp-low.S
-@@ -15,6 +15,7 @@
- #include <asm/smp.h>
- #include <asm/thread_info.h>
- #include <asm/cpu-regs.h>
-+#include <asm/intctl-regs.h>
- #include <proc/smp-regs.h>
- #include <asm/asm-offsets.h>
- #include <asm/frame.inc>
+-static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
+-{
+-  unsigned long tmp, flags;
+-
+-  local_irq_save(flags);
+-
+-  switch (size) {
+-  case 1:
+-    __asm__ __volatile__
+-    ("mov.b %2,%0\n\t"
+-     "mov.b %1,%2"
+-    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
+-    break;
+-  case 2:
+-    __asm__ __volatile__
+-    ("mov.w %2,%0\n\t"
+-     "mov.w %1,%2"
+-    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
+-    break;
+-  case 4:
+-    __asm__ __volatile__
+-    ("mov.l %2,%0\n\t"
+-     "mov.l %1,%2"
+-    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
+-    break;
+-  default:
+-    tmp = 0;	  
+-  }
+-  local_irq_restore(flags);
+-  return tmp;
+-}
+-
+-#define HARD_RESET_NOW() ({		\
+-        local_irq_disable();		\
+-        asm("jmp @@0");			\
+-})
+-
+-#include <asm-generic/cmpxchg-local.h>
+-
+-/*
+- * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
+- * them available.
+- */
+-#define cmpxchg_local(ptr, o, n)				  	       \
+-	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
+-			(unsigned long)(n), sizeof(*(ptr))))
+-#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+-
+-#ifndef CONFIG_SMP
+-#include <asm-generic/cmpxchg.h>
+-#endif
+-
+-#define arch_align_stack(x) (x)
+-
+-extern void die(const char *str, struct pt_regs *fp, unsigned long err);
+-
+-#endif /* _H8300_SYSTEM_H */
 
