@@ -1,7 +1,7 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 18/29] Disintegrate asm/system.h for MN10300
-Date: Wed, 07 Mar 2012 19:49:15 +0000
-Message-ID: <20120307194915.15987.59544.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 17/29] Disintegrate asm/system.h for MIPS
+Date: Wed, 07 Mar 2012 19:49:05 +0000
+Message-ID: <20120307194904.15987.55725.stgit@warthog.procyon.org.uk>
 References: <20120307194548.15987.36073.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -13,257 +13,594 @@ To: paul.gortmaker@windriver.com, hpa@zytor.com
 Cc: torvalds@linux-foundation.org, sfr@canb.auug.org.au, mingo@redhat.com, arnd@arndb.de, dhowells@redhat.com, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Disintegrate asm/system.h for MN10300.
+Disintegrate asm/system.h for MIPS.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- arch/mn10300/include/asm/barrier.h   |   35 ++++++++++++
- arch/mn10300/include/asm/exec.h      |   16 +++++
- arch/mn10300/include/asm/switch_to.h |   49 ++++++++++++++++
- arch/mn10300/include/asm/system.h    |  102 ----------------------------------
- arch/mn10300/kernel/smp-low.S        |    1 
- 5 files changed, 101 insertions(+), 102 deletions(-)
- create mode 100644 arch/mn10300/include/asm/barrier.h
- create mode 100644 arch/mn10300/include/asm/exec.h
- create mode 100644 arch/mn10300/include/asm/switch_to.h
- delete mode 100644 arch/mn10300/include/asm/system.h
+ arch/mips/include/asm/atomic.h    |  124 ++++++++++++++++++++
+ arch/mips/include/asm/exec.h      |   17 +++
+ arch/mips/include/asm/processor.h |    6 +
+ arch/mips/include/asm/setup.h     |   11 ++
+ arch/mips/include/asm/switch_to.h |   85 +++++++++++++
+ arch/mips/include/asm/system.h    |  235 -------------------------------------
+ arch/mips/kernel/signal.c         |    1 
+ arch/mips/kernel/syscall.c        |    1 
+ arch/mips/mm/tlbex.c              |    1 
+ 9 files changed, 246 insertions(+), 235 deletions(-)
+ create mode 100644 arch/mips/include/asm/exec.h
+ create mode 100644 arch/mips/include/asm/switch_to.h
+ delete mode 100644 arch/mips/include/asm/system.h
 
-diff --git a/arch/mn10300/include/asm/barrier.h b/arch/mn10300/include/asm/barrier.h
+diff --git a/arch/mips/include/asm/atomic.h b/arch/mips/include/asm/atomic.h
+index 802fa4d..bc153cb 100644
+--- a/arch/mips/include/asm/atomic.h
++++ b/arch/mips/include/asm/atomic.h
+@@ -18,6 +18,7 @@
+ #include <linux/types.h>
+ #include <asm/barrier.h>
+ #include <asm/cpu-features.h>
++#include <asm/cmpxchg.h>
+ #include <asm/war.h>
+ 
+ #define ATOMIC_INIT(i)    { (i) }
+@@ -298,6 +299,129 @@ static __inline__ int atomic_sub_if_positive(int i, atomic_t * v)
+ 	return result;
+ }
+ 
++static inline unsigned long __xchg_u32(volatile int * m, unsigned int val)
++{
++	__u32 retval;
++
++	smp_mb__before_llsc();
++
++	if (kernel_uses_llsc && R10000_LLSC_WAR) {
++		unsigned long dummy;
++
++		__asm__ __volatile__(
++		"	.set	mips3					\n"
++		"1:	ll	%0, %3			# xchg_u32	\n"
++		"	.set	mips0					\n"
++		"	move	%2, %z4					\n"
++		"	.set	mips3					\n"
++		"	sc	%2, %1					\n"
++		"	beqzl	%2, 1b					\n"
++		"	.set	mips0					\n"
++		: "=&r" (retval), "=m" (*m), "=&r" (dummy)
++		: "R" (*m), "Jr" (val)
++		: "memory");
++	} else if (kernel_uses_llsc) {
++		unsigned long dummy;
++
++		do {
++			__asm__ __volatile__(
++			"	.set	mips3				\n"
++			"	ll	%0, %3		# xchg_u32	\n"
++			"	.set	mips0				\n"
++			"	move	%2, %z4				\n"
++			"	.set	mips3				\n"
++			"	sc	%2, %1				\n"
++			"	.set	mips0				\n"
++			: "=&r" (retval), "=m" (*m), "=&r" (dummy)
++			: "R" (*m), "Jr" (val)
++			: "memory");
++		} while (unlikely(!dummy));
++	} else {
++		unsigned long flags;
++
++		raw_local_irq_save(flags);
++		retval = *m;
++		*m = val;
++		raw_local_irq_restore(flags);	/* implies memory barrier  */
++	}
++
++	smp_llsc_mb();
++
++	return retval;
++}
++
++#ifdef CONFIG_64BIT
++static inline __u64 __xchg_u64(volatile __u64 * m, __u64 val)
++{
++	__u64 retval;
++
++	smp_mb__before_llsc();
++
++	if (kernel_uses_llsc && R10000_LLSC_WAR) {
++		unsigned long dummy;
++
++		__asm__ __volatile__(
++		"	.set	mips3					\n"
++		"1:	lld	%0, %3			# xchg_u64	\n"
++		"	move	%2, %z4					\n"
++		"	scd	%2, %1					\n"
++		"	beqzl	%2, 1b					\n"
++		"	.set	mips0					\n"
++		: "=&r" (retval), "=m" (*m), "=&r" (dummy)
++		: "R" (*m), "Jr" (val)
++		: "memory");
++	} else if (kernel_uses_llsc) {
++		unsigned long dummy;
++
++		do {
++			__asm__ __volatile__(
++			"	.set	mips3				\n"
++			"	lld	%0, %3		# xchg_u64	\n"
++			"	move	%2, %z4				\n"
++			"	scd	%2, %1				\n"
++			"	.set	mips0				\n"
++			: "=&r" (retval), "=m" (*m), "=&r" (dummy)
++			: "R" (*m), "Jr" (val)
++			: "memory");
++		} while (unlikely(!dummy));
++	} else {
++		unsigned long flags;
++
++		raw_local_irq_save(flags);
++		retval = *m;
++		*m = val;
++		raw_local_irq_restore(flags);	/* implies memory barrier  */
++	}
++
++	smp_llsc_mb();
++
++	return retval;
++}
++#else
++extern __u64 __xchg_u64_unsupported_on_32bit_kernels(volatile __u64 * m, __u64 val);
++#define __xchg_u64 __xchg_u64_unsupported_on_32bit_kernels
++#endif
++
++static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
++{
++	switch (size) {
++	case 4:
++		return __xchg_u32(ptr, x);
++	case 8:
++		return __xchg_u64(ptr, x);
++	}
++
++	return x;
++}
++
++#define xchg(ptr, x)							\
++({									\
++	BUILD_BUG_ON(sizeof(*(ptr)) & ~0xc);				\
++									\
++	((__typeof__(*(ptr)))						\
++		__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))));	\
++})
++
+ #define atomic_cmpxchg(v, o, n) (cmpxchg(&((v)->counter), (o), (n)))
+ #define atomic_xchg(v, new) (xchg(&((v)->counter), (new)))
+ 
+diff --git a/arch/mips/include/asm/exec.h b/arch/mips/include/asm/exec.h
 new file mode 100644
-index 0000000..9f2e160
+index 0000000..c1f6afa
 --- /dev/null
-+++ b/arch/mn10300/include/asm/barrier.h
-@@ -0,0 +1,35 @@
-+/* MN10300 memory barrier definitions
++++ b/arch/mips/include/asm/exec.h
+@@ -0,0 +1,17 @@
++/*
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
 + *
-+ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public Licence
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the Licence, or (at your option) any later version.
-+ */
-+#ifndef _ASM_BARRIER_H
-+#define _ASM_BARRIER_H
-+
-+#define mb()	asm volatile ("": : :"memory")
-+#define rmb()	mb()
-+#define wmb()	asm volatile ("": : :"memory")
-+
-+#ifdef CONFIG_SMP
-+#define smp_mb()	mb()
-+#define smp_rmb()	rmb()
-+#define smp_wmb()	wmb()
-+#define set_mb(var, value)  do { xchg(&var, value); } while (0)
-+#else  /* CONFIG_SMP */
-+#define smp_mb()	barrier()
-+#define smp_rmb()	barrier()
-+#define smp_wmb()	barrier()
-+#define set_mb(var, value)  do { var = value;  mb(); } while (0)
-+#endif /* CONFIG_SMP */
-+
-+#define set_wmb(var, value) do { var = value; wmb(); } while (0)
-+
-+#define read_barrier_depends()		do {} while (0)
-+#define smp_read_barrier_depends()	do {} while (0)
-+
-+#endif /* _ASM_BARRIER_H */
-diff --git a/arch/mn10300/include/asm/exec.h b/arch/mn10300/include/asm/exec.h
-new file mode 100644
-index 0000000..c74e367
---- /dev/null
-+++ b/arch/mn10300/include/asm/exec.h
-@@ -0,0 +1,16 @@
-+/* MN10300 process execution definitions
-+ *
-+ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public Licence
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the Licence, or (at your option) any later version.
++ * Copyright (C) 1994, 95, 96, 97, 98, 99, 2003, 06 by Ralf Baechle
++ * Copyright (C) 1996 by Paul M. Antoine
++ * Copyright (C) 1999 Silicon Graphics
++ * Kevin D. Kissell, kevink@mips.org and Carsten Langgaard, carstenl@mips.com
++ * Copyright (C) 2000 MIPS Technologies, Inc.
 + */
 +#ifndef _ASM_EXEC_H
 +#define _ASM_EXEC_H
 +
-+#define arch_align_stack(x) (x)
++extern unsigned long arch_align_stack(unsigned long sp);
 +
 +#endif /* _ASM_EXEC_H */
-diff --git a/arch/mn10300/include/asm/switch_to.h b/arch/mn10300/include/asm/switch_to.h
+diff --git a/arch/mips/include/asm/processor.h b/arch/mips/include/asm/processor.h
+index 9903e4b..20e9dcf 100644
+--- a/arch/mips/include/asm/processor.h
++++ b/arch/mips/include/asm/processor.h
+@@ -355,6 +355,12 @@ unsigned long get_wchan(struct task_struct *p);
+ #define ARCH_HAS_PREFETCHW
+ #define prefetchw(x) __builtin_prefetch((x), 1, 1)
+ 
++/*
++ * See Documentation/scheduler/sched-arch.txt; prevents deadlock on SMP
++ * systems.
++ */
++#define __ARCH_WANT_UNLOCKED_CTXSW
++
+ #endif
+ 
+ #endif /* _ASM_PROCESSOR_H */
+diff --git a/arch/mips/include/asm/setup.h b/arch/mips/include/asm/setup.h
+index 50511aa..6dce6d8 100644
+--- a/arch/mips/include/asm/setup.h
++++ b/arch/mips/include/asm/setup.h
+@@ -5,6 +5,17 @@
+ 
+ #ifdef  __KERNEL__
+ extern void setup_early_printk(void);
++
++extern void set_handler(unsigned long offset, void *addr, unsigned long len);
++extern void set_uncached_handler(unsigned long offset, void *addr, unsigned long len);
++
++typedef void (*vi_handler_t)(void);
++extern void *set_vi_handler(int n, vi_handler_t addr);
++
++extern void *set_except_vector(int n, void *addr);
++extern unsigned long ebase;
++extern void per_cpu_trap_init(void);
++
+ #endif /* __KERNEL__ */
+ 
+ #endif /* __SETUP_H */
+diff --git a/arch/mips/include/asm/switch_to.h b/arch/mips/include/asm/switch_to.h
 new file mode 100644
-index 0000000..393d311
+index 0000000..5d33621
 --- /dev/null
-+++ b/arch/mn10300/include/asm/switch_to.h
-@@ -0,0 +1,49 @@
-+/* MN10300 task switching definitions
++++ b/arch/mips/include/asm/switch_to.h
+@@ -0,0 +1,85 @@
++/*
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
 + *
-+ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public Licence
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the Licence, or (at your option) any later version.
++ * Copyright (C) 1994, 95, 96, 97, 98, 99, 2003, 06 by Ralf Baechle
++ * Copyright (C) 1996 by Paul M. Antoine
++ * Copyright (C) 1999 Silicon Graphics
++ * Kevin D. Kissell, kevink@mips.org and Carsten Langgaard, carstenl@mips.com
++ * Copyright (C) 2000 MIPS Technologies, Inc.
 + */
 +#ifndef _ASM_SWITCH_TO_H
 +#define _ASM_SWITCH_TO_H
 +
-+#include <asm/barrier.h>
++#include <asm/cpu-features.h>
++#include <asm/watch.h>
++#include <asm/dsp.h>
 +
 +struct task_struct;
-+struct thread_struct;
 +
-+#if !defined(CONFIG_LAZY_SAVE_FPU)
-+struct fpu_state_struct;
-+extern asmlinkage void fpu_save(struct fpu_state_struct *);
-+#define switch_fpu(prev, next)						\
-+	do {								\
-+		if ((prev)->thread.fpu_flags & THREAD_HAS_FPU) {	\
-+			(prev)->thread.fpu_flags &= ~THREAD_HAS_FPU;	\
-+			(prev)->thread.uregs->epsw &= ~EPSW_FE;		\
-+			fpu_save(&(prev)->thread.fpu_state);		\
-+		}							\
-+	} while (0)
++/*
++ * switch_to(n) should switch tasks to task nr n, first
++ * checking that n isn't the current task, in which case it does nothing.
++ */
++extern asmlinkage void *resume(void *last, void *next, void *next_ti);
++
++extern unsigned int ll_bit;
++extern struct task_struct *ll_task;
++
++#ifdef CONFIG_MIPS_MT_FPAFF
++
++/*
++ * Handle the scheduler resume end of FPU affinity management.  We do this
++ * inline to try to keep the overhead down. If we have been forced to run on
++ * a "CPU" with an FPU because of a previous high level of FP computation,
++ * but did not actually use the FPU during the most recent time-slice (CU1
++ * isn't set), we undo the restriction on cpus_allowed.
++ *
++ * We're not calling set_cpus_allowed() here, because we have no need to
++ * force prompt migration - we're already switching the current CPU to a
++ * different thread.
++ */
++
++#define __mips_mt_fpaff_switch_to(prev)					\
++do {									\
++	struct thread_info *__prev_ti = task_thread_info(prev);		\
++									\
++	if (cpu_has_fpu &&						\
++	    test_ti_thread_flag(__prev_ti, TIF_FPUBOUND) &&		\
++	    (!(KSTK_STATUS(prev) & ST0_CU1))) {				\
++		clear_ti_thread_flag(__prev_ti, TIF_FPUBOUND);		\
++		prev->cpus_allowed = prev->thread.user_cpus_allowed;	\
++	}								\
++	next->thread.emulated_fp = 0;					\
++} while(0)
++
 +#else
-+#define switch_fpu(prev, next) do {} while (0)
++#define __mips_mt_fpaff_switch_to(prev) do { (void) (prev); } while (0)
 +#endif
 +
-+/* context switching is now performed out-of-line in switch_to.S */
-+extern asmlinkage
-+struct task_struct *__switch_to(struct thread_struct *prev,
-+				struct thread_struct *next,
-+				struct task_struct *prev_task);
++#define __clear_software_ll_bit()					\
++do {									\
++	if (!__builtin_constant_p(cpu_has_llsc) || !cpu_has_llsc)	\
++		ll_bit = 0;						\
++} while (0)
 +
 +#define switch_to(prev, next, last)					\
 +do {									\
-+	switch_fpu(prev, next);						\
-+	current->thread.wchan = (u_long) __builtin_return_address(0);	\
-+	(last) = __switch_to(&(prev)->thread, &(next)->thread, (prev));	\
-+	mb();								\
-+	current->thread.wchan = 0;					\
++	__mips_mt_fpaff_switch_to(prev);				\
++	if (cpu_has_dsp)						\
++		__save_dsp(prev);					\
++	__clear_software_ll_bit();					\
++	(last) = resume(prev, next, task_thread_info(next));		\
++} while (0)
++
++#define finish_arch_switch(prev)					\
++do {									\
++	if (cpu_has_dsp)						\
++		__restore_dsp(current);					\
++	if (cpu_has_userlocal)						\
++		write_c0_userlocal(current_thread_info()->tp_value);	\
++	__restore_watch();						\
 +} while (0)
 +
 +#endif /* _ASM_SWITCH_TO_H */
-diff --git a/arch/mn10300/include/asm/system.h b/arch/mn10300/include/asm/system.h
+diff --git a/arch/mips/include/asm/system.h b/arch/mips/include/asm/system.h
 deleted file mode 100644
-index 94b4c5e..0000000
---- a/arch/mn10300/include/asm/system.h
+index 6018c80..0000000
+--- a/arch/mips/include/asm/system.h
 +++ /dev/null
-@@ -1,102 +0,0 @@
--/* MN10300 System definitions
+@@ -1,235 +0,0 @@
+-/*
+- * This file is subject to the terms and conditions of the GNU General Public
+- * License.  See the file "COPYING" in the main directory of this archive
+- * for more details.
 - *
-- * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-- * Written by David Howells (dhowells@redhat.com)
-- *
-- * This program is free software; you can redistribute it and/or
-- * modify it under the terms of the GNU General Public Licence
-- * as published by the Free Software Foundation; either version
-- * 2 of the Licence, or (at your option) any later version.
+- * Copyright (C) 1994, 95, 96, 97, 98, 99, 2003, 06 by Ralf Baechle
+- * Copyright (C) 1996 by Paul M. Antoine
+- * Copyright (C) 1999 Silicon Graphics
+- * Kevin D. Kissell, kevink@mips.org and Carsten Langgaard, carstenl@mips.com
+- * Copyright (C) 2000 MIPS Technologies, Inc.
 - */
 -#ifndef _ASM_SYSTEM_H
 -#define _ASM_SYSTEM_H
 -
--#include <asm/cpu-regs.h>
--#include <asm/intctl-regs.h>
--
--#ifdef __KERNEL__
--#ifndef __ASSEMBLY__
--
 -#include <linux/kernel.h>
+-#include <linux/types.h>
 -#include <linux/irqflags.h>
--#include <linux/atomic.h>
 -
--#if !defined(CONFIG_LAZY_SAVE_FPU)
--struct fpu_state_struct;
--extern asmlinkage void fpu_save(struct fpu_state_struct *);
--#define switch_fpu(prev, next)						\
--	do {								\
--		if ((prev)->thread.fpu_flags & THREAD_HAS_FPU) {	\
--			(prev)->thread.fpu_flags &= ~THREAD_HAS_FPU;	\
--			(prev)->thread.uregs->epsw &= ~EPSW_FE;		\
--			fpu_save(&(prev)->thread.fpu_state);		\
--		}							\
--	} while (0)
--#else
--#define switch_fpu(prev, next) do {} while (0)
--#endif
+-#include <asm/addrspace.h>
+-#include <asm/barrier.h>
+-#include <asm/cmpxchg.h>
+-#include <asm/cpu-features.h>
+-#include <asm/dsp.h>
+-#include <asm/watch.h>
+-#include <asm/war.h>
 -
--struct task_struct;
--struct thread_struct;
--
--extern asmlinkage
--struct task_struct *__switch_to(struct thread_struct *prev,
--				struct thread_struct *next,
--				struct task_struct *prev_task);
--
--/* context switching is now performed out-of-line in switch_to.S */
--#define switch_to(prev, next, last)					\
--do {									\
--	switch_fpu(prev, next);						\
--	current->thread.wchan = (u_long) __builtin_return_address(0);	\
--	(last) = __switch_to(&(prev)->thread, &(next)->thread, (prev));	\
--	mb();								\
--	current->thread.wchan = 0;					\
--} while (0)
--
--#define arch_align_stack(x) (x)
--
--#define nop() asm volatile ("nop")
 -
 -/*
-- * Force strict CPU ordering.
-- * And yes, this is required on UP too when we're talking
-- * to devices.
+- * switch_to(n) should switch tasks to task nr n, first
+- * checking that n isn't the current task, in which case it does nothing.
+- */
+-extern asmlinkage void *resume(void *last, void *next, void *next_ti);
+-
+-struct task_struct;
+-
+-extern unsigned int ll_bit;
+-extern struct task_struct *ll_task;
+-
+-#ifdef CONFIG_MIPS_MT_FPAFF
+-
+-/*
+- * Handle the scheduler resume end of FPU affinity management.  We do this
+- * inline to try to keep the overhead down. If we have been forced to run on
+- * a "CPU" with an FPU because of a previous high level of FP computation,
+- * but did not actually use the FPU during the most recent time-slice (CU1
+- * isn't set), we undo the restriction on cpus_allowed.
 - *
-- * For now, "wmb()" doesn't actually do anything, as all
-- * Intel CPU's follow what Intel calls a *Processor Order*,
-- * in which all writes are seen in the program order even
-- * outside the CPU.
-- *
-- * I expect future Intel CPU's to have a weaker ordering,
-- * but I'd also expect them to finally get their act together
-- * and add some real memory barriers if so.
-- *
-- * Some non intel clones support out of order store. wmb() ceases to be a
-- * nop for these.
+- * We're not calling set_cpus_allowed() here, because we have no need to
+- * force prompt migration - we're already switching the current CPU to a
+- * different thread.
 - */
 -
--#define mb()	asm volatile ("": : :"memory")
--#define rmb()	mb()
--#define wmb()	asm volatile ("": : :"memory")
+-#define __mips_mt_fpaff_switch_to(prev)					\
+-do {									\
+-	struct thread_info *__prev_ti = task_thread_info(prev);		\
+-									\
+-	if (cpu_has_fpu &&						\
+-	    test_ti_thread_flag(__prev_ti, TIF_FPUBOUND) &&		\
+-	    (!(KSTK_STATUS(prev) & ST0_CU1))) {				\
+-		clear_ti_thread_flag(__prev_ti, TIF_FPUBOUND);		\
+-		prev->cpus_allowed = prev->thread.user_cpus_allowed;	\
+-	}								\
+-	next->thread.emulated_fp = 0;					\
+-} while(0)
 -
--#ifdef CONFIG_SMP
--#define smp_mb()	mb()
--#define smp_rmb()	rmb()
--#define smp_wmb()	wmb()
--#define set_mb(var, value)  do { xchg(&var, value); } while (0)
--#else  /* CONFIG_SMP */
--#define smp_mb()	barrier()
--#define smp_rmb()	barrier()
--#define smp_wmb()	barrier()
--#define set_mb(var, value)  do { var = value;  mb(); } while (0)
--#endif /* CONFIG_SMP */
+-#else
+-#define __mips_mt_fpaff_switch_to(prev) do { (void) (prev); } while (0)
+-#endif
 -
--#define set_wmb(var, value) do { var = value; wmb(); } while (0)
+-#define __clear_software_ll_bit()					\
+-do {									\
+-	if (!__builtin_constant_p(cpu_has_llsc) || !cpu_has_llsc)	\
+-		ll_bit = 0;						\
+-} while (0)
 -
--#define read_barrier_depends()		do {} while (0)
--#define smp_read_barrier_depends()	do {} while (0)
+-#define switch_to(prev, next, last)					\
+-do {									\
+-	__mips_mt_fpaff_switch_to(prev);				\
+-	if (cpu_has_dsp)						\
+-		__save_dsp(prev);					\
+-	__clear_software_ll_bit();					\
+-	(last) = resume(prev, next, task_thread_info(next));		\
+-} while (0)
 -
--#endif /* !__ASSEMBLY__ */
--#endif /* __KERNEL__ */
+-#define finish_arch_switch(prev)					\
+-do {									\
+-	if (cpu_has_dsp)						\
+-		__restore_dsp(current);					\
+-	if (cpu_has_userlocal)						\
+-		write_c0_userlocal(current_thread_info()->tp_value);	\
+-	__restore_watch();						\
+-} while (0)
+-
+-static inline unsigned long __xchg_u32(volatile int * m, unsigned int val)
+-{
+-	__u32 retval;
+-
+-	smp_mb__before_llsc();
+-
+-	if (kernel_uses_llsc && R10000_LLSC_WAR) {
+-		unsigned long dummy;
+-
+-		__asm__ __volatile__(
+-		"	.set	mips3					\n"
+-		"1:	ll	%0, %3			# xchg_u32	\n"
+-		"	.set	mips0					\n"
+-		"	move	%2, %z4					\n"
+-		"	.set	mips3					\n"
+-		"	sc	%2, %1					\n"
+-		"	beqzl	%2, 1b					\n"
+-		"	.set	mips0					\n"
+-		: "=&r" (retval), "=m" (*m), "=&r" (dummy)
+-		: "R" (*m), "Jr" (val)
+-		: "memory");
+-	} else if (kernel_uses_llsc) {
+-		unsigned long dummy;
+-
+-		do {
+-			__asm__ __volatile__(
+-			"	.set	mips3				\n"
+-			"	ll	%0, %3		# xchg_u32	\n"
+-			"	.set	mips0				\n"
+-			"	move	%2, %z4				\n"
+-			"	.set	mips3				\n"
+-			"	sc	%2, %1				\n"
+-			"	.set	mips0				\n"
+-			: "=&r" (retval), "=m" (*m), "=&r" (dummy)
+-			: "R" (*m), "Jr" (val)
+-			: "memory");
+-		} while (unlikely(!dummy));
+-	} else {
+-		unsigned long flags;
+-
+-		raw_local_irq_save(flags);
+-		retval = *m;
+-		*m = val;
+-		raw_local_irq_restore(flags);	/* implies memory barrier  */
+-	}
+-
+-	smp_llsc_mb();
+-
+-	return retval;
+-}
+-
+-#ifdef CONFIG_64BIT
+-static inline __u64 __xchg_u64(volatile __u64 * m, __u64 val)
+-{
+-	__u64 retval;
+-
+-	smp_mb__before_llsc();
+-
+-	if (kernel_uses_llsc && R10000_LLSC_WAR) {
+-		unsigned long dummy;
+-
+-		__asm__ __volatile__(
+-		"	.set	mips3					\n"
+-		"1:	lld	%0, %3			# xchg_u64	\n"
+-		"	move	%2, %z4					\n"
+-		"	scd	%2, %1					\n"
+-		"	beqzl	%2, 1b					\n"
+-		"	.set	mips0					\n"
+-		: "=&r" (retval), "=m" (*m), "=&r" (dummy)
+-		: "R" (*m), "Jr" (val)
+-		: "memory");
+-	} else if (kernel_uses_llsc) {
+-		unsigned long dummy;
+-
+-		do {
+-			__asm__ __volatile__(
+-			"	.set	mips3				\n"
+-			"	lld	%0, %3		# xchg_u64	\n"
+-			"	move	%2, %z4				\n"
+-			"	scd	%2, %1				\n"
+-			"	.set	mips0				\n"
+-			: "=&r" (retval), "=m" (*m), "=&r" (dummy)
+-			: "R" (*m), "Jr" (val)
+-			: "memory");
+-		} while (unlikely(!dummy));
+-	} else {
+-		unsigned long flags;
+-
+-		raw_local_irq_save(flags);
+-		retval = *m;
+-		*m = val;
+-		raw_local_irq_restore(flags);	/* implies memory barrier  */
+-	}
+-
+-	smp_llsc_mb();
+-
+-	return retval;
+-}
+-#else
+-extern __u64 __xchg_u64_unsupported_on_32bit_kernels(volatile __u64 * m, __u64 val);
+-#define __xchg_u64 __xchg_u64_unsupported_on_32bit_kernels
+-#endif
+-
+-static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
+-{
+-	switch (size) {
+-	case 4:
+-		return __xchg_u32(ptr, x);
+-	case 8:
+-		return __xchg_u64(ptr, x);
+-	}
+-
+-	return x;
+-}
+-
+-#define xchg(ptr, x)							\
+-({									\
+-	BUILD_BUG_ON(sizeof(*(ptr)) & ~0xc);				\
+-									\
+-	((__typeof__(*(ptr)))						\
+-		__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))));	\
+-})
+-
+-extern void set_handler(unsigned long offset, void *addr, unsigned long len);
+-extern void set_uncached_handler(unsigned long offset, void *addr, unsigned long len);
+-
+-typedef void (*vi_handler_t)(void);
+-extern void *set_vi_handler(int n, vi_handler_t addr);
+-
+-extern void *set_except_vector(int n, void *addr);
+-extern unsigned long ebase;
+-extern void per_cpu_trap_init(void);
+-
+-/*
+- * See include/asm-ia64/system.h; prevents deadlock on SMP
+- * systems.
+- */
+-#define __ARCH_WANT_UNLOCKED_CTXSW
+-
+-extern unsigned long arch_align_stack(unsigned long sp);
+-
 -#endif /* _ASM_SYSTEM_H */
-diff --git a/arch/mn10300/kernel/smp-low.S b/arch/mn10300/kernel/smp-low.S
-index f1845e9..71f1b2f 100644
---- a/arch/mn10300/kernel/smp-low.S
-+++ b/arch/mn10300/kernel/smp-low.S
-@@ -15,6 +15,7 @@
- #include <asm/smp.h>
- #include <asm/thread_info.h>
- #include <asm/cpu-regs.h>
-+#include <asm/intctl-regs.h>
- #include <proc/smp-regs.h>
- #include <asm/asm-offsets.h>
- #include <asm/frame.inc>
+diff --git a/arch/mips/kernel/signal.c b/arch/mips/kernel/signal.c
+index f852400..185ca00 100644
+--- a/arch/mips/kernel/signal.c
++++ b/arch/mips/kernel/signal.c
+@@ -34,6 +34,7 @@
+ #include <asm/cpu-features.h>
+ #include <asm/war.h>
+ #include <asm/vdso.h>
++#include <asm/dsp.h>
+ 
+ #include "signal-common.h"
+ 
+diff --git a/arch/mips/kernel/syscall.c b/arch/mips/kernel/syscall.c
+index d027657..b08220c 100644
+--- a/arch/mips/kernel/syscall.c
++++ b/arch/mips/kernel/syscall.c
+@@ -37,6 +37,7 @@
+ #include <asm/shmparam.h>
+ #include <asm/sysmips.h>
+ #include <asm/uaccess.h>
++#include <asm/switch_to.h>
+ 
+ /*
+  * For historic reasons the pipe(2) syscall on MIPS has an unusual calling
+diff --git a/arch/mips/mm/tlbex.c b/arch/mips/mm/tlbex.c
+index e06370f..0bc485b 100644
+--- a/arch/mips/mm/tlbex.c
++++ b/arch/mips/mm/tlbex.c
+@@ -32,6 +32,7 @@
+ #include <asm/pgtable.h>
+ #include <asm/war.h>
+ #include <asm/uasm.h>
++#include <asm/setup.h>
+ 
+ /*
+  * TLB load/store/modify handlers.
