@@ -1,15 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vx0-f202.google.com ([209.85.220.202]:47354 "EHLO
-	mail-vx0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965219Ab2CGWlL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 17:41:11 -0500
-Received: by vcbfk26 with SMTP id fk26so863488vcb.1
-        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 14:41:10 -0800 (PST)
-Subject: [PATCH v3 34/34] sparc/PCI: replace pci_cfg_fake_ranges() with
-	pci_read_bridge_bases()
+Received: from mail-we0-f202.google.com ([74.125.82.202]:64371 "EHLO
+	mail-we0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965145Ab2CGWlE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 17:41:04 -0500
+Received: by wejx9 with SMTP id x9so269959wej.1
+        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 14:41:03 -0800 (PST)
+Subject: [PATCH v3 10/34] powerpc/PCI: allow reallocation on PA Semi
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Wed, 07 Mar 2012 15:34:58 -0700
-Message-ID: <20120307223458.25669.55751.stgit@bhelgaas.mtv.corp.google.com>
+Date: Wed, 07 Mar 2012 15:32:55 -0700
+Message-ID: <20120307223255.25669.42520.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -18,127 +17,32 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, sparclinux@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20120307223458._bdQeFaBPyr0lIOZuo-T9rDgOZG_TEi18VGCGrxmElc@z>
+Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Message-ID: <20120307223255.oc0x17Ab1Z84-qfUSoGqNwd0AZP06n__GSluTYqCwy8@z>
 
-The generic code to read P2P bridge windows is functionally equivalent
-to the sparc-specific pci_cfg_fake_ranges(), so use the generic code.
+We believe there's no reason to prevent reallocation on PA Semi, so
+revert to the default of "allow reallocation if necessary."
 
-CC: "David S. Miller" <davem@davemloft.net>
-CC: sparclinux@vger.kernel.org
+CC: Olof Johansson <olof@lixom.net>
+CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+CC: linuxppc-dev@lists.ozlabs.org
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/sparc/kernel/pci.c |   92 +----------------------------------------------
- 1 files changed, 1 insertions(+), 91 deletions(-)
+ arch/powerpc/platforms/pasemi/pci.c |    3 ---
+ 1 files changed, 0 insertions(+), 3 deletions(-)
 
-diff --git a/arch/sparc/kernel/pci.c b/arch/sparc/kernel/pci.c
-index 86610de..fa53d55 100644
---- a/arch/sparc/kernel/pci.c
-+++ b/arch/sparc/kernel/pci.c
-@@ -375,96 +375,6 @@ static void __devinit apb_calc_first_last(u8 map, u32 *first_p, u32 *last_p)
- 	*last_p = last;
+diff --git a/arch/powerpc/platforms/pasemi/pci.c b/arch/powerpc/platforms/pasemi/pci.c
+index b6a0ec4..aa86271 100644
+--- a/arch/powerpc/platforms/pasemi/pci.c
++++ b/arch/powerpc/platforms/pasemi/pci.c
+@@ -229,9 +229,6 @@ void __init pas_pci_init(void)
+ 
+ 	/* Setup the linkage between OF nodes and PHBs */
+ 	pci_devs_phb_init();
+-
+-	/* Use the common resource allocation mechanism */
+-	pci_probe_only = 1;
  }
  
--/* For PCI bus devices which lack a 'ranges' property we interrogate
-- * the config space values to set the resources, just like the generic
-- * Linux PCI probing code does.
-- */
--static void __devinit pci_cfg_fake_ranges(struct pci_dev *dev,
--					  struct pci_bus *bus,
--					  struct pci_pbm_info *pbm)
--{
--	struct pci_bus_region region;
--	struct resource *res;
--	u8 io_base_lo, io_limit_lo;
--	u16 mem_base_lo, mem_limit_lo;
--	unsigned long io_mask, io_granularity, base, limit;
--
--	io_mask = PCI_IO_RANGE_MASK;
--	io_granularity = 0x1000;
--	if (dev->io_window_1k) {
--		/* Support 1K I/O space granularity */
--		io_mask = PCI_IO_1K_RANGE_MASK;
--		io_granularity = 0x400;
--	}
--
--	pci_read_config_byte(dev, PCI_IO_BASE, &io_base_lo);
--	pci_read_config_byte(dev, PCI_IO_LIMIT, &io_limit_lo);
--	base = (io_base_lo & io_mask) << 8;
--	limit = (io_limit_lo & io_mask) << 8;
--
--	if ((io_base_lo & PCI_IO_RANGE_TYPE_MASK) == PCI_IO_RANGE_TYPE_32) {
--		u16 io_base_hi, io_limit_hi;
--
--		pci_read_config_word(dev, PCI_IO_BASE_UPPER16, &io_base_hi);
--		pci_read_config_word(dev, PCI_IO_LIMIT_UPPER16, &io_limit_hi);
--		base |= (io_base_hi << 16);
--		limit |= (io_limit_hi << 16);
--	}
--
--	res = bus->resource[0];
--	if (base <= limit) {
--		res->flags = (io_base_lo & PCI_IO_RANGE_TYPE_MASK) | IORESOURCE_IO;
--		region.start = base;
--		region.end = limit + io_granularity - 1;
--		pcibios_bus_to_resource(dev, res, &region);
--	}
--
--	pci_read_config_word(dev, PCI_MEMORY_BASE, &mem_base_lo);
--	pci_read_config_word(dev, PCI_MEMORY_LIMIT, &mem_limit_lo);
--	base = (mem_base_lo & PCI_MEMORY_RANGE_MASK) << 16;
--	limit = (mem_limit_lo & PCI_MEMORY_RANGE_MASK) << 16;
--
--	res = bus->resource[1];
--	if (base <= limit) {
--		res->flags = ((mem_base_lo & PCI_MEMORY_RANGE_TYPE_MASK) |
--			      IORESOURCE_MEM);
--		region.start = base;
--		region.end = limit + 0xfffff;
--		pcibios_bus_to_resource(dev, res, &region);
--	}
--
--	pci_read_config_word(dev, PCI_PREF_MEMORY_BASE, &mem_base_lo);
--	pci_read_config_word(dev, PCI_PREF_MEMORY_LIMIT, &mem_limit_lo);
--	base = (mem_base_lo & PCI_PREF_RANGE_MASK) << 16;
--	limit = (mem_limit_lo & PCI_PREF_RANGE_MASK) << 16;
--
--	if ((mem_base_lo & PCI_PREF_RANGE_TYPE_MASK) == PCI_PREF_RANGE_TYPE_64) {
--		u32 mem_base_hi, mem_limit_hi;
--
--		pci_read_config_dword(dev, PCI_PREF_BASE_UPPER32, &mem_base_hi);
--		pci_read_config_dword(dev, PCI_PREF_LIMIT_UPPER32, &mem_limit_hi);
--
--		/*
--		 * Some bridges set the base > limit by default, and some
--		 * (broken) BIOSes do not initialize them.  If we find
--		 * this, just assume they are not being used.
--		 */
--		if (mem_base_hi <= mem_limit_hi) {
--			base |= ((long) mem_base_hi) << 32;
--			limit |= ((long) mem_limit_hi) << 32;
--		}
--	}
--
--	res = bus->resource[2];
--	if (base <= limit) {
--		res->flags = ((mem_base_lo & PCI_MEMORY_RANGE_TYPE_MASK) |
--			      IORESOURCE_MEM | IORESOURCE_PREFETCH);
--		region.start = base;
--		region.end = limit + 0xfffff;
--		pcibios_bus_to_resource(dev, res, &region);
--	}
--}
--
- /* Cook up fake bus resources for SUNW,simba PCI bridges which lack
-  * a proper 'ranges' property.
-  */
-@@ -553,7 +463,7 @@ static void __devinit of_scan_pci_bridge(struct pci_pbm_info *pbm,
- 		apb_fake_ranges(dev, bus, pbm);
- 		goto after_ranges;
- 	} else if (ranges == NULL) {
--		pci_cfg_fake_ranges(dev, bus, pbm);
-+		pci_read_bridge_bases(bus);
- 		goto after_ranges;
- 	}
- 	i = 1;
+ void __iomem *pasemi_pci_getcfgaddr(struct pci_dev *dev, int offset)
 
