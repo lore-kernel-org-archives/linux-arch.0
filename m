@@ -1,174 +1,272 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v3 16/34] PCI: add struct pci_host_bridge_window with CPU/bus
-	address offset
-Date: Wed, 07 Mar 2012 15:33:25 -0700
-Message-ID: <20120307223325.25669.86376.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v3 17/34] PCI: convert bus addresses to resource when reading
+	BARs
+Date: Wed, 07 Mar 2012 15:33:31 -0700
+Message-ID: <20120307223331.25669.11682.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-yx0-f202.google.com ([209.85.213.202]:43229 "EHLO
+	mail-yx0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1030670Ab2CGWdb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 17:33:31 -0500
+Received: by mail-yx0-f202.google.com with SMTP id q2so866724yen.1
+        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 14:33:31 -0800 (PST)
 In-Reply-To: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>
 Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-Some PCI host bridges apply an address offset, so bus addresses on PCI are
-different from CPU addresses.  This patch adds a way for architectures to
-tell the PCI core about this offset.  For example:
+Some PCI host bridges translate CPU addresses to PCI bus addresses.
+Previously, we initialized pci_dev resources with PCI bus addresses,
+then converted them to CPU addresses later in arch-specific code
+(pcibios_fixup_resources()), which leaves a window of time where the
+pci_dev resources are incorrect.
 
-    LIST_HEAD(resources);
-    pci_add_resource_offset(&resources, host->io_space, host->io_offset);
-    pci_add_resource_offset(&resources, host->mem_space, host->mem_offset);
-    pci_scan_root_bus(parent, bus, ops, sysdata, &resources);
+This patch adds support in the core for this address translation.
+When the arch creates the root bus, it can supply the host bridge
+address translation information, and the core can use it to set the
+pci_dev resources correctly from the beginning.
 
+This gives us a way to fix the problem that quirks that run between device
+discovery and pcibios_fixup_resources() fail because they use pci_dev
+resources that haven't been converted.  The reference below is to one
+such problem that affected ARM and ia64.
+
+Note that this patch has no effect until an arch starts using
+pci_add_resource_offset() with a non-zero offset: before that, all
+all host bridge windows have a zero offset and pci_bus_to_resource()
+copies the pci_bus_region directly to the struct resource.
+
+Reference: https://lkml.org/lkml/2009/10/12/405
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/pci/bus.c   |   30 +++++++++++++++++++-----------
- drivers/pci/probe.c |   32 +++++++++++++++++++++++---------
- include/linux/pci.h |    9 +++++++++
- 3 files changed, 51 insertions(+), 20 deletions(-)
+ drivers/pci/probe.c |  130 +++++++++++++++++++++++++++++++++++++++++----------
+ 1 files changed, 105 insertions(+), 25 deletions(-)
 
-diff --git a/drivers/pci/bus.c b/drivers/pci/bus.c
-index 398f5d8..4ce5ef2 100644
---- a/drivers/pci/bus.c
-+++ b/drivers/pci/bus.c
-@@ -18,28 +18,36 @@
- 
- #include "pci.h"
- 
--void pci_add_resource(struct list_head *resources, struct resource *res)
-+void pci_add_resource_offset(struct list_head *resources, struct resource *res,
-+			     resource_size_t offset)
- {
--	struct pci_bus_resource *bus_res;
-+	struct pci_host_bridge_window *window;
- 
--	bus_res = kzalloc(sizeof(struct pci_bus_resource), GFP_KERNEL);
--	if (!bus_res) {
--		printk(KERN_ERR "PCI: can't add bus resource %pR\n", res);
-+	window = kzalloc(sizeof(struct pci_host_bridge_window), GFP_KERNEL);
-+	if (!window) {
-+		printk(KERN_ERR "PCI: can't add host bridge window %pR\n", res);
- 		return;
- 	}
- 
--	bus_res->res = res;
--	list_add_tail(&bus_res->list, resources);
-+	window->res = res;
-+	window->offset = offset;
-+	list_add_tail(&window->list, resources);
-+}
-+EXPORT_SYMBOL(pci_add_resource_offset);
-+
-+void pci_add_resource(struct list_head *resources, struct resource *res)
-+{
-+	pci_add_resource_offset(resources, res, 0);
- }
- EXPORT_SYMBOL(pci_add_resource);
- 
- void pci_free_resource_list(struct list_head *resources)
- {
--	struct pci_bus_resource *bus_res, *tmp;
-+	struct pci_host_bridge_window *window, *tmp;
- 
--	list_for_each_entry_safe(bus_res, tmp, resources, list) {
--		list_del(&bus_res->list);
--		kfree(bus_res);
-+	list_for_each_entry_safe(window, tmp, resources, list) {
-+		list_del(&window->list);
-+		kfree(window);
- 	}
- }
- EXPORT_SYMBOL(pci_free_resource_list);
 diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 3a30023..3f07cb6 100644
+index 3f07cb6..6713447 100644
 --- a/drivers/pci/probe.c
 +++ b/drivers/pci/probe.c
-@@ -1562,12 +1562,15 @@ unsigned int __devinit pci_scan_child_bus(struct pci_bus *bus)
- struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 		struct pci_ops *ops, void *sysdata, struct list_head *resources)
- {
--	int error, i;
-+	int error;
- 	struct pci_host_bridge *bridge;
- 	struct pci_bus *b, *b2;
- 	struct device *dev;
--	struct pci_bus_resource *bus_res, *n;
-+	struct pci_host_bridge_window *window, *n;
- 	struct resource *res;
-+	resource_size_t offset;
-+	char bus_addr[64];
-+	char *fmt;
- 
- 	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
- 	if (!bridge)
-@@ -1617,19 +1620,30 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 	b->number = b->secondary = bus;
- 
- 	bridge->bus = b;
--
--	/* Add initial resources to the bus */
--	list_for_each_entry_safe(bus_res, n, resources, list)
--		list_move_tail(&bus_res->list, &b->resources);
-+	INIT_LIST_HEAD(&bridge->windows);
- 
- 	if (parent)
- 		dev_info(parent, "PCI host bridge to bus %s\n", dev_name(&b->dev));
- 	else
- 		printk(KERN_INFO "PCI host bridge to bus %s\n", dev_name(&b->dev));
- 
--	pci_bus_for_each_resource(b, res, i) {
--		if (res)
--			dev_info(&b->dev, "root bus resource %pR\n", res);
-+	/* Add initial resources to the bus */
-+	list_for_each_entry_safe(window, n, resources, list) {
-+		list_move_tail(&window->list, &bridge->windows);
-+		res = window->res;
-+		offset = window->offset;
-+		pci_bus_add_resource(b, res, 0);
-+		if (offset) {
-+			if (resource_type(res) == IORESOURCE_IO)
-+				fmt = " (bus address [%#06llx-%#06llx])";
-+			else
-+				fmt = " (bus address [%#010llx-%#010llx])";
-+			snprintf(bus_addr, sizeof(bus_addr), fmt,
-+				 (unsigned long long) (res->start - offset),
-+				 (unsigned long long) (res->end - offset));
-+		} else
-+			bus_addr[0] = '\0';
-+		dev_info(&b->dev, "root bus resource %pR%s\n", res, bus_addr);
- 	}
- 
- 	down_write(&pci_bus_sem);
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 2c946b3..419f78f 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -368,9 +368,16 @@ static inline int pci_channel_offline(struct pci_dev *pdev)
- 	return (pdev->error_state != pci_channel_io_normal);
+@@ -61,6 +61,63 @@ static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
+ 	return NULL;
  }
  
-+struct pci_host_bridge_window {
-+	struct list_head list;
-+	struct resource *res;		/* host bridge aperture (CPU address) */
-+	resource_size_t offset;		/* bus address + offset = CPU address */
-+};
++static bool resource_contains(struct resource *res1, struct resource *res2)
++{
++	return res1->start <= res2->start && res1->end >= res2->end;
++}
 +
- struct pci_host_bridge {
- 	struct list_head list;
- 	struct pci_bus *bus;		/* root bus */
-+	struct list_head windows;	/* pci_host_bridge_windows */
- };
- 
++void pci_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
++			struct resource *res)
++{
++	struct pci_host_bridge *bridge = pci_host_bridge(dev);
++	struct pci_host_bridge_window *window;
++	resource_size_t offset = 0;
++
++	list_for_each_entry(window, &bridge->windows, list) {
++		if (resource_type(res) != resource_type(window->res))
++			continue;
++
++		if (resource_contains(window->res, res)) {
++			offset = window->offset;
++			break;
++		}
++	}
++
++	region->start = res->start - offset;
++	region->end = res->end - offset;
++}
++
++static bool region_contains(struct pci_bus_region *region1,
++			    struct pci_bus_region *region2)
++{
++	return region1->start <= region2->start && region1->end >= region2->end;
++}
++
++void pci_bus_to_resource(struct pci_dev *dev, struct resource *res,
++			 struct pci_bus_region *region)
++{
++	struct pci_host_bridge *bridge = pci_host_bridge(dev);
++	struct pci_host_bridge_window *window;
++	struct pci_bus_region bus_region;
++	resource_size_t offset = 0;
++
++	list_for_each_entry(window, &bridge->windows, list) {
++		if (resource_type(res) != resource_type(window->res))
++			continue;
++
++		bus_region.start = window->res->start - window->offset;
++		bus_region.end = window->res->end - window->offset;
++
++		if (region_contains(&bus_region, region)) {
++			offset = window->offset;
++			break;
++		}
++	}
++
++	res->start = region->start + offset;
++	res->end = region->end + offset;
++}
++
  /*
-@@ -901,6 +908,8 @@ void pci_release_selected_regions(struct pci_dev *, int);
+  * PCI Bus Class
+  */
+@@ -154,6 +211,7 @@ int __pci_read_base(struct pci_dev *dev, enum pci_bar_type type,
+ {
+ 	u32 l, sz, mask;
+ 	u16 orig_cmd;
++	struct pci_bus_region region;
  
- /* drivers/pci/bus.c */
- void pci_add_resource(struct list_head *resources, struct resource *res);
-+void pci_add_resource_offset(struct list_head *resources, struct resource *res,
-+			     resource_size_t offset);
- void pci_free_resource_list(struct list_head *resources);
- void pci_bus_add_resource(struct pci_bus *bus, struct resource *res, unsigned int flags);
- struct resource *pci_bus_resource_n(const struct pci_bus *bus, int n);
+ 	mask = type ? PCI_ROM_ADDRESS_MASK : ~0;
+ 
+@@ -233,11 +291,13 @@ int __pci_read_base(struct pci_dev *dev, enum pci_bar_type type,
+ 			/* Address above 32-bit boundary; disable the BAR */
+ 			pci_write_config_dword(dev, pos, 0);
+ 			pci_write_config_dword(dev, pos + 4, 0);
+-			res->start = 0;
+-			res->end = sz64;
++			region.start = 0;
++			region.end = sz64;
++			pci_bus_to_resource(dev, res, &region);
+ 		} else {
+-			res->start = l64;
+-			res->end = l64 + sz64;
++			region.start = l64;
++			region.end = l64 + sz64;
++			pci_bus_to_resource(dev, res, &region);
+ 			dev_printk(KERN_DEBUG, &dev->dev, "reg %x: %pR\n",
+ 				   pos, res);
+ 		}
+@@ -247,8 +307,9 @@ int __pci_read_base(struct pci_dev *dev, enum pci_bar_type type,
+ 		if (!sz)
+ 			goto fail;
+ 
+-		res->start = l;
+-		res->end = l + sz;
++		region.start = l;
++		region.end = l + sz;
++		pci_bus_to_resource(dev, res, &region);
+ 
+ 		dev_printk(KERN_DEBUG, &dev->dev, "reg %x: %pR\n", pos, res);
+ 	}
+@@ -285,7 +346,8 @@ static void __devinit pci_read_bridge_io(struct pci_bus *child)
+ 	struct pci_dev *dev = child->self;
+ 	u8 io_base_lo, io_limit_lo;
+ 	unsigned long base, limit;
+-	struct resource *res;
++	struct pci_bus_region region;
++	struct resource *res, res2;
+ 
+ 	res = child->resource[0];
+ 	pci_read_config_byte(dev, PCI_IO_BASE, &io_base_lo);
+@@ -303,10 +365,14 @@ static void __devinit pci_read_bridge_io(struct pci_bus *child)
+ 
+ 	if (base && base <= limit) {
+ 		res->flags = (io_base_lo & PCI_IO_RANGE_TYPE_MASK) | IORESOURCE_IO;
++		res2.flags = res->flags;
++		region.start = base;
++		region.end = limit + 0xfff;
++		pci_bus_to_resource(dev, &res2, &region);
+ 		if (!res->start)
+-			res->start = base;
++			res->start = res2.start;
+ 		if (!res->end)
+-			res->end = limit + 0xfff;
++			res->end = res2.end;
+ 		dev_printk(KERN_DEBUG, &dev->dev, "  bridge window %pR\n", res);
+ 	}
+ }
+@@ -316,6 +382,7 @@ static void __devinit pci_read_bridge_mmio(struct pci_bus *child)
+ 	struct pci_dev *dev = child->self;
+ 	u16 mem_base_lo, mem_limit_lo;
+ 	unsigned long base, limit;
++	struct pci_bus_region region;
+ 	struct resource *res;
+ 
+ 	res = child->resource[1];
+@@ -325,8 +392,9 @@ static void __devinit pci_read_bridge_mmio(struct pci_bus *child)
+ 	limit = (mem_limit_lo & PCI_MEMORY_RANGE_MASK) << 16;
+ 	if (base && base <= limit) {
+ 		res->flags = (mem_base_lo & PCI_MEMORY_RANGE_TYPE_MASK) | IORESOURCE_MEM;
+-		res->start = base;
+-		res->end = limit + 0xfffff;
++		region.start = base;
++		region.end = limit + 0xfffff;
++		pci_bus_to_resource(dev, res, &region);
+ 		dev_printk(KERN_DEBUG, &dev->dev, "  bridge window %pR\n", res);
+ 	}
+ }
+@@ -336,6 +404,7 @@ static void __devinit pci_read_bridge_mmio_pref(struct pci_bus *child)
+ 	struct pci_dev *dev = child->self;
+ 	u16 mem_base_lo, mem_limit_lo;
+ 	unsigned long base, limit;
++	struct pci_bus_region region;
+ 	struct resource *res;
+ 
+ 	res = child->resource[2];
+@@ -372,8 +441,9 @@ static void __devinit pci_read_bridge_mmio_pref(struct pci_bus *child)
+ 					 IORESOURCE_MEM | IORESOURCE_PREFETCH;
+ 		if (res->flags & PCI_PREF_RANGE_TYPE_64)
+ 			res->flags |= IORESOURCE_MEM_64;
+-		res->start = base;
+-		res->end = limit + 0xfffff;
++		region.start = base;
++		region.end = limit + 0xfffff;
++		pci_bus_to_resource(dev, res, &region);
+ 		dev_printk(KERN_DEBUG, &dev->dev, "  bridge window %pR\n", res);
+ 	}
+ }
+@@ -919,6 +989,8 @@ int pci_setup_device(struct pci_dev *dev)
+ 	u8 hdr_type;
+ 	struct pci_slot *slot;
+ 	int pos = 0;
++	struct pci_bus_region region;
++	struct resource *res;
+ 
+ 	if (pci_read_config_byte(dev, PCI_HEADER_TYPE, &hdr_type))
+ 		return -EIO;
+@@ -980,20 +1052,28 @@ int pci_setup_device(struct pci_dev *dev)
+ 			u8 progif;
+ 			pci_read_config_byte(dev, PCI_CLASS_PROG, &progif);
+ 			if ((progif & 1) == 0) {
+-				dev->resource[0].start = 0x1F0;
+-				dev->resource[0].end = 0x1F7;
+-				dev->resource[0].flags = LEGACY_IO_RESOURCE;
+-				dev->resource[1].start = 0x3F6;
+-				dev->resource[1].end = 0x3F6;
+-				dev->resource[1].flags = LEGACY_IO_RESOURCE;
++				region.start = 0x1F0;
++				region.end = 0x1F7;
++				res = &dev->resource[0];
++				res->flags = LEGACY_IO_RESOURCE;
++				pci_bus_to_resource(dev, res, &region);
++				region.start = 0x3F6;
++				region.end = 0x3F6;
++				res = &dev->resource[1];
++				res->flags = LEGACY_IO_RESOURCE;
++				pci_bus_to_resource(dev, res, &region);
+ 			}
+ 			if ((progif & 4) == 0) {
+-				dev->resource[2].start = 0x170;
+-				dev->resource[2].end = 0x177;
+-				dev->resource[2].flags = LEGACY_IO_RESOURCE;
+-				dev->resource[3].start = 0x376;
+-				dev->resource[3].end = 0x376;
+-				dev->resource[3].flags = LEGACY_IO_RESOURCE;
++				region.start = 0x170;
++				region.end = 0x177;
++				res = &dev->resource[2];
++				res->flags = LEGACY_IO_RESOURCE;
++				pci_bus_to_resource(dev, res, &region);
++				region.start = 0x376;
++				region.end = 0x376;
++				res = &dev->resource[3];
++				res->flags = LEGACY_IO_RESOURCE;
++				pci_bus_to_resource(dev, res, &region);
+ 			}
+ 		}
+ 		break;
