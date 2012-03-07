@@ -1,39 +1,56 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: Re: [PATCH 08/29] Disintegrate asm/system.h for C6X
-Date: Wed, 07 Mar 2012 17:52:01 -0500
-Message-ID: <1331160723.12805.25.camel@deneb.redhat.com>
-References: <1331156636.12805.18.camel@deneb.redhat.com>
-	 <1331155726.12805.16.camel@deneb.redhat.com>
-	 <20120307194548.15987.36073.stgit@warthog.procyon.org.uk>
-	 <20120307194725.15987.99209.stgit@warthog.procyon.org.uk>
-	 <18700.1331156191@redhat.com> <20518.1331160139@redhat.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC][PATCH 00/29] Disintegrate and kill asm/system.h
+Date: Wed, 7 Mar 2012 22:59:05 +0000
+Message-ID: <201203072259.06012.arnd@arndb.de>
+References: <201203072146.51494.arnd@arndb.de> <20120307194548.15987.36073.stgit@warthog.procyon.org.uk> <20425.1331160006@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:2653 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932221Ab2CGWwT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 7 Mar 2012 17:52:19 -0500
-In-Reply-To: <20518.1331160139@redhat.com>
+Received: from moutng.kundenserver.de ([212.227.17.8]:62879 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1030246Ab2CGXAH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 18:00:07 -0500
+In-Reply-To: <20425.1331160006@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Howells <dhowells@redhat.com>
-Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, sfr@canb.auug.org.au, mingo@redhat.com, arnd@arndb.de, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, sfr@canb.auug.org.au, mingo@redhat.com, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Wed, 2012-03-07 at 22:42 +0000, David Howells wrote:
-> Mark Salter <msalter@redhat.com> wrote:
+On Wednesday 07 March 2012, David Howells wrote:
+> Arnd Bergmann <arnd@arndb.de> wrote:
 > 
-> > Kbuild takes care of it. See arch/c6x/include/Kbuild for the generic
-> > headers C6X uses as-is.
+> > One part you were missing seems to be include/asm-generic/system.h, which is
+> > used on openrisc and contains a lot of the things you move to other
+> > places. It would be helpful to split that up as well.
 > 
-> I'm still not clear on how that actually works.  Does it copy the headers to
-> asm/ from asm-generic/?
+> Hmmm...  okay.  How that is used from an arch that doesn't have an
+> asm/system.h?
 
-It creates $(obj)/arch/$(arch)/include/generated/asm/foo.h which has:
+We're migration towards using generic-y in arch/*/include/arm/Kbuild now.
+When you create header files that have reasonable defaults that can be
+shared across multiple architectures, I think you should do that for the
+new header files as well.
 
-#include <asm-generic/foo.h>
+> > >     (4) asm/atomic.h
+> > >
+> > >         Move xchg() and cmpxchg() here as they're full word atomic ops and
+> > >         frequently used by atomic_xchg() and atomic_cmpxchg().
+> > 
+> > Well, the thing with xchg and cmpxchg is that they operate on arbirary-sized
+> > integers, not atomic_t, unlike everything else in atomic.h.
+> > 
+> > Some architectures already have an asm/cmpxchg.h, which seems more appropriate
+> > here.
+> 
+> So I saw.  It might be worth making an asm/xchg.h and asm/cmpxchg.h for each
+> arch - or maybe just put both in asm/xchg.h or asm/cmpxchg.h.  Where do I
+> include it from though?  One nice thing about sticking them in asm/atomic.h is
+> that usually gets all instances, and they're frequently used from there.  How
+> about I have asm/atomic.h #include asm/{,cmp}xchg.h?
 
-See scripts/Makefile.asm-generic
+Yes, that makes sense and is probably required anyway for the obvious implementation
+of atomic_cmpxchg().
 
---Mark
+	Arnd
