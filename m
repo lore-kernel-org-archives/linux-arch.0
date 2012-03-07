@@ -1,65 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hqemgate03.nvidia.com ([216.228.121.140]:8959 "EHLO
-	hqemgate03.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750958Ab2CGGhj convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 01:37:39 -0500
-From: Hiroshi Doyu <hdoyu@nvidia.com>
-Date: Wed, 7 Mar 2012 07:37:06 +0100
-Subject: Re: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
-Message-ID: <20120307.083706.2087121294965856946.hdoyu@nvidia.com>
-References: <000001ccfaea$00c16f70$02444e50$%szyprowski@samsung.com><401E54CE964CD94BAE1EB4A729C7087E37970113FE@HQMAIL04.nvidia.com><20120307.080952.2152478004740487196.hdoyu@nvidia.com>
-In-Reply-To: <20120307.080952.2152478004740487196.hdoyu@nvidia.com>
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-MIME-Version: 1.0
+Received: from mprc.pku.edu.cn ([162.105.203.9]:55173 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750906Ab2CGHCn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 7 Mar 2012 02:02:43 -0500
+Message-ID: <1331103163.2048.33.camel@epip-laptop>
+Subject: Re: [PATCH 2/3] Kbuild: Implement CONFIG_UIMAGE_KERNEL_NOLOAD
+From: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Reply-To: gxt@mprc.pku.edu.cn
+Date: Wed, 07 Mar 2012 14:52:43 +0800
+In-Reply-To: <1331080238-1524-2-git-send-email-swarren@wwwdotorg.org>
+References: <1331080238-1524-1-git-send-email-swarren@wwwdotorg.org>
+	 <1331080238-1524-2-git-send-email-swarren@wwwdotorg.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Krishna Reddy <vdumpa@nvidia.com>
-Cc: "m.szyprowski@samsung.com" <m.szyprowski@samsung.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-samsung-soc@vger.kernel.org" <linux-samsung-soc@vger.kernel.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "shariq.hasnain@linaro.org" <shariq.hasnain@linaro.org>, "arnd@arndb.de" <arnd@arndb.de>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "kyungmin.park@samsung.com" <kyungmin.park@samsung.com>, "andrzej.p@samsung.com" <andrzej.p@samsung.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "pullip.cho@samsung.com" <pullip.cho@samsung.com>, "chunsang.jeong@linaro.org" <chunsang.jeong@linaro.org>
-Message-ID: <20120307063706.jY9eVjhXE8LFRRV5qnREJhmd9Zghy9t2vQ05iDJtRb0@z>
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Michal Marek <mmarek@suse.cz>, Russell King <linux@arm.linux.org.uk>, nico@fluxnic.net, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mike Frysinger <vapier@gentoo.org>, Michal Simek <monstr@monstr.eu>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org, uclinux-dist-devel@blackfin.uclinux.org, microblaze-uclinux@itee.uq.edu.au, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120307065243.iGL4emtq4eUyvJA00fEvsIOgjwo0970RXf3Z59FEuHY@z>
 
-From: Hiroshi DOYU <hdoyu@nvidia.com>
-Subject: Re: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
-Date: Wed, 07 Mar 2012 08:09:52 +0200 (EET)
-Message-ID: <20120307.080952.2152478004740487196.hdoyu@nvidia.com>
+On Tue, 2012-03-06 at 17:30 -0700, Stephen Warren wrote:
+> This allows the user to use U-Boot's mkimage's -T kernel_noload option
+> if their arch Kconfig allows it, and they desire.
+> 
+> Signed-off-by: Stephen Warren <swarren@wwwdotorg.org>
+> ---
+> The next patch enables this new CONFIG_ALLOW_ option for ARM. I assume
+> that some other architectures will also be able to enable it, but I'm
+> not familiar enough with any to know which.
+> 
+>  init/Kconfig         |   15 +++++++++++++++
+>  scripts/Makefile.lib |   15 ++++++++++++---
+>  2 files changed, 27 insertions(+), 3 deletions(-)
+> 
+> diff --git a/init/Kconfig b/init/Kconfig
+> index 6cfd71d..2035562 100644
+> --- a/init/Kconfig
+> +++ b/init/Kconfig
+> @@ -203,6 +203,21 @@ config KERNEL_LZO
+>  
+>  endchoice
+>  
+> +config ALLOW_UIMAGE_KERNEL_NOLOAD
+> +	bool
+> +
+> +config UIMAGE_KERNEL_NOLOAD
+> +	bool "Use mkimage's -T kernel_noload instead of -T kernel"
+> +	depends on ALLOW_UIMAGE_KERNEL_NOLOAD
+> +	help
+> +	  uImage files of type "kernel" embed an absolute load and entry point
+> +	  address. If the uImage is loaded to a different address, then the
+> +	  image must be copied the uImage file to the specified load address.
+> +	  This copy is a waste of time if the uImage is in fact completely
+> +	  relocatable. If your kernel and bootloader support it, you can build
+> +	  a "kernel_noload" uImage rather than a "kernel" uImage, which
+> +	  prevents any such copying. If unsure say N.
+> +
+>  config DEFAULT_HOSTNAME
+>  	string "Default hostname"
+>  	default "(none)"
+> diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+> index 7b0be18..d9c1c87 100644
+> --- a/scripts/Makefile.lib
+> +++ b/scripts/Makefile.lib
+> @@ -314,9 +314,18 @@ MKIMAGE := $(srctree)/scripts/mkuboot.sh
+>  UIMAGE_ARCH = $(SRCARCH)
+>  UIMAGE_COMPRESSION = $(if $(2),$(2),none)
+>  UIMAGE_OPTS-y =
+> -UIMAGE_TYPE = kernel
+> -UIMAGE_LOADADDR=arch_must_set_this
+> -UIMAGE_ENTRYADDR=$(UIMAGE_LOADADDR)
+> +ifeq ($(CONFIG_UIMAGE_KERNEL_NOLOAD),y)
+> +  UIMAGE_TYPE = kernel_noload
+> +  # Unused by bootloader:
+> +  UIMAGE_LOADADDR=0
+> +  # Entry point relative to actual load address:
+> +  UIMAGE_ENTRYADDR=0
+> +else
+> +  UIMAGE_TYPE = kernel
+> +  # Absolute addresses:
+> +  UIMAGE_LOADADDR=arch_must_set_this
+> +  UIMAGE_ENTRYADDR=$(UIMAGE_LOADADDR)
+> +endif
+>  UIMAGE_NAME = 'Linux-$(KERNELRELEASE)'
+>  UIMAGE_IN = $<
+>  UIMAGE_OUT = $@
+Hi, Stephen,
+It seems that UIMAGE_ARCH and UIMAGE_LOADADDR can't be modified from
+arch-Makefiles.
 
-> From: Krishna Reddy <vdumpa@nvidia.com>
-> Subject: RE: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
-> Date: Tue, 6 Mar 2012 23:48:42 +0100
-> Message-ID: <401E54CE964CD94BAE1EB4A729C7087E37970113FE@HQMAIL04.nvidia.com>
-> 
-> > > > +struct dma_iommu_mapping *
-> > > > +arm_iommu_create_mapping(struct bus_type *bus, dma_addr_t base, size_t size,
-> > > > +                        int order)
-> > > > +{
-> > > > +       unsigned int count = (size >> PAGE_SHIFT) - order;
-> > > > +       unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long);
-> > 
-> > The count calculation doesn't seem correct. "order" is log2 number and
-> >  size >> PAGE_SHIFT is number of pages. 
-> > 
-> > If size is passed as 64*4096(256KB) and order is 6(allocation granularity is 2^6 pages=256KB),
-> >  just 1 bit is enough to manage allocations.  So it should be 4 bytes or one long.
-> 
-> Good catch!
-> 
-> > But the calculation gives count = 64 - 6 = 58 and 
-> > Bitmap_size gets set to (58/(4*8)) * 4 = 8 bytes, which is incorrect.
-> 
-> "order" isn't the order of size passed, which is minimal *page*
-> allocation order which client decides whatever, just in case.
-> 
-> > It should be as follows.
-> > unsigned int count = 1 << get_order(size) - order;
+Regards,
 
-To be precise, as below?
+Guan Xuetao
 
- unsigned int count = 1 << (get_order(size) - order);
-
-> > unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long) * BITS_PER_BYTE;
-> > 
-> > -KR
-> > 
-> > --nvpublic
-> > 
-> > 
