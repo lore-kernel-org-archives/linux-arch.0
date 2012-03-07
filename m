@@ -1,110 +1,40 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v3 09/34] powerpc/PCI: make pci_probe_only default to 0
-Date: Wed, 07 Mar 2012 15:32:49 -0700
-Message-ID: <20120307223249.25669.73766.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v3 10/34] powerpc/PCI: allow reallocation on PA Semi
+Date: Wed, 07 Mar 2012 15:32:55 -0700
+Message-ID: <20120307223255.25669.42520.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fa0-f74.google.com ([209.85.161.74]:42753 "EHLO
-	mail-fa0-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1030745Ab2CGWcv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 17:32:51 -0500
-Received: by mail-fa0-f74.google.com with SMTP id a19so250518faa.1
-        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 14:32:51 -0800 (PST)
+Return-path: <linux-pci-owner@vger.kernel.org>
 In-Reply-To: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-pci-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Olof Johansson <olof@lixom.net>, linuxppc-dev@lists.ozlabs.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+We believe there's no reason to prevent reallocation on PA Semi, so
+revert to the default of "allow reallocation if necessary."
 
-pci_probe_only is set on ppc64 to prevent resource re-allocation
-by the core. It's meant to be used in very specific circumstances
-such as when operating under a hypervisor that may prevent such
-re-allocation.
-
-Instead of default to 1, we make it default to 0 and explicitly
-set it in the few cases where we need it.
-
-This fixes FSL PCI which wants it clear among others.
-
-Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+CC: Olof Johansson <olof@lixom.net>
+CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+CC: linuxppc-dev@lists.ozlabs.org
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/powerpc/kernel/pci_64.c           |    2 +-
- arch/powerpc/platforms/powermac/pci.c  |    3 ---
- arch/powerpc/platforms/powernv/pci.c   |    3 ---
- arch/powerpc/platforms/pseries/setup.c |    3 +++
- arch/powerpc/platforms/wsp/wsp_pci.c   |    1 -
- 5 files changed, 4 insertions(+), 8 deletions(-)
+ arch/powerpc/platforms/pasemi/pci.c |    3 ---
+ 1 files changed, 0 insertions(+), 3 deletions(-)
 
-diff --git a/arch/powerpc/kernel/pci_64.c b/arch/powerpc/kernel/pci_64.c
-index 3318d39..f627eb7 100644
---- a/arch/powerpc/kernel/pci_64.c
-+++ b/arch/powerpc/kernel/pci_64.c
-@@ -33,7 +33,7 @@
- #include <asm/machdep.h>
- #include <asm/ppc-pci.h>
+diff --git a/arch/powerpc/platforms/pasemi/pci.c b/arch/powerpc/platforms/pasemi/pci.c
+index b6a0ec4..aa86271 100644
+--- a/arch/powerpc/platforms/pasemi/pci.c
++++ b/arch/powerpc/platforms/pasemi/pci.c
+@@ -229,9 +229,6 @@ void __init pas_pci_init(void)
  
--unsigned long pci_probe_only = 1;
-+unsigned long pci_probe_only = 0;
- 
- /* pci_io_base -- the base address from which io bars are offsets.
-  * This is the lowest I/O base address (so bar values are always positive),
-diff --git a/arch/powerpc/platforms/powermac/pci.c b/arch/powerpc/platforms/powermac/pci.c
-index 31a7d3a..43bbe1b 100644
---- a/arch/powerpc/platforms/powermac/pci.c
-+++ b/arch/powerpc/platforms/powermac/pci.c
-@@ -1059,9 +1059,6 @@ void __init pmac_pci_init(void)
- 	}
- 	/* pmac_check_ht_link(); */
- 
--	/* We can allocate missing resources if any */
--	pci_probe_only = 0;
+ 	/* Setup the linkage between OF nodes and PHBs */
+ 	pci_devs_phb_init();
 -
- #else /* CONFIG_PPC64 */
- 	init_p2pbridge();
- 	init_second_ohare();
-diff --git a/arch/powerpc/platforms/powernv/pci.c b/arch/powerpc/platforms/powernv/pci.c
-index a70bc1e..a053f4f 100644
---- a/arch/powerpc/platforms/powernv/pci.c
-+++ b/arch/powerpc/platforms/powernv/pci.c
-@@ -557,9 +557,6 @@ void __init pnv_pci_init(void)
+-	/* Use the common resource allocation mechanism */
+-	pci_probe_only = 1;
+ }
  
- 	pci_set_flags(PCI_CAN_SKIP_ISA_ALIGN);
- 
--	/* We do not want to just probe */
--	pci_probe_only = 0;
--
- 	/* OPAL absent, try POPAL first then RTAS detection of PHBs */
- 	if (!firmware_has_feature(FW_FEATURE_OPAL)) {
- #ifdef CONFIG_PPC_POWERNV_RTAS
-diff --git a/arch/powerpc/platforms/pseries/setup.c b/arch/powerpc/platforms/pseries/setup.c
-index f79f127..386e265 100644
---- a/arch/powerpc/platforms/pseries/setup.c
-+++ b/arch/powerpc/platforms/pseries/setup.c
-@@ -380,6 +380,9 @@ static void __init pSeries_setup_arch(void)
- 
- 	fwnmi_init();
- 
-+	/* By default, only probe PCI (can be overriden by rtas_pci */
-+	pci_probe_only = 1;
-+
- 	/* Find and initialize PCI host bridges */
- 	init_pci_config_tokens();
- 	find_and_init_phbs();
-diff --git a/arch/powerpc/platforms/wsp/wsp_pci.c b/arch/powerpc/platforms/wsp/wsp_pci.c
-index e0262cd..299157a 100644
---- a/arch/powerpc/platforms/wsp/wsp_pci.c
-+++ b/arch/powerpc/platforms/wsp/wsp_pci.c
-@@ -682,7 +682,6 @@ static int __init wsp_setup_one_phb(struct device_node *np)
- 	/* XXX Force re-assigning of everything for now */
- 	pci_add_flags(PCI_REASSIGN_ALL_BUS | PCI_REASSIGN_ALL_RSRC |
- 		      PCI_ENABLE_PROC_DOMAINS);
--	pci_probe_only = 0;
- 
- 	/* Calculate how the TCE space is divided */
- 	phb->dma32_base		= 0;
+ void __iomem *pasemi_pci_getcfgaddr(struct pci_dev *dev, int offset)
