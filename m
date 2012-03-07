@@ -1,72 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.gentoo.org ([140.211.166.183]:57022 "EHLO smtp.gentoo.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757050Ab2CGD4O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 6 Mar 2012 22:56:14 -0500
-From: Mike Frysinger <vapier@gentoo.org>
-Subject: Re: [PATCH 1/3] Kbuild: centralize MKIMAGE and cmd_uimage definitions
-Date: Tue, 6 Mar 2012 22:56:07 -0500
-References: <1331080238-1524-1-git-send-email-swarren@wwwdotorg.org>
-In-Reply-To: <1331080238-1524-1-git-send-email-swarren@wwwdotorg.org>
+Received: from hqemgate04.nvidia.com ([216.228.121.35]:7034 "EHLO
+	hqemgate04.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751920Ab2CGGK3 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 01:10:29 -0500
+From: Hiroshi Doyu <hdoyu@nvidia.com>
+Date: Wed, 7 Mar 2012 07:09:52 +0100
+Subject: Re: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
+Message-ID: <20120307.080952.2152478004740487196.hdoyu@nvidia.com>
+References: <20120305134721.0ab0d0e6de56fa30250059b1@nvidia.com><000001ccfaea$00c16f70$02444e50$%szyprowski@samsung.com><401E54CE964CD94BAE1EB4A729C7087E37970113FE@HQMAIL04.nvidia.com>
+In-Reply-To: <401E54CE964CD94BAE1EB4A729C7087E37970113FE@HQMAIL04.nvidia.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 MIME-Version: 1.0
-Content-Type: multipart/signed;
-  boundary="nextPart1729674.9qEmhknEMN";
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1
-Content-Transfer-Encoding: 7bit
-Message-ID: <201203062256.16105.vapier@gentoo.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Michal Marek <mmarek@suse.cz>, Russell King <linux@arm.linux.org.uk>, nico@fluxnic.net, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Michal Simek <monstr@monstr.eu>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org, uclinux-dist-devel@blackfin.uclinux.org, microblaze-uclinux@itee.uq.edu.au, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120307035607.1FQpHmB94hwaIdIP91L2Dw4abKgqYos7BJn_aJ0mOUc@z>
+To: Krishna Reddy <vdumpa@nvidia.com>
+Cc: "m.szyprowski@samsung.com" <m.szyprowski@samsung.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-samsung-soc@vger.kernel.org" <linux-samsung-soc@vger.kernel.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, "shariq.hasnain@linaro.org" <shariq.hasnain@linaro.org>, "arnd@arndb.de" <arnd@arndb.de>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "kyungmin.park@samsung.com" <kyungmin.park@samsung.com>, "andrzej.p@samsung.com" <andrzej.p@samsung.com>, "linux@arm.linux.org.uk" <linux@arm.linux.org.uk>, "pullip.cho@samsung.com" <pullip.cho@samsung.com>, "chunsang.jeong@linaro.org" <chunsang.jeong@linaro.org>
+Message-ID: <20120307060952.0FaV-Bh8_T95MGNwUn6iQSQgSBeVPtAfETWFgaI-lVk@z>
 
---nextPart1729674.9qEmhknEMN
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: quoted-printable
+From: Krishna Reddy <vdumpa@nvidia.com>
+Subject: RE: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
+Date: Tue, 6 Mar 2012 23:48:42 +0100
+Message-ID: <401E54CE964CD94BAE1EB4A729C7087E37970113FE@HQMAIL04.nvidia.com>
 
-On Tuesday 06 March 2012 19:30:36 Stephen Warren wrote:
-> --- a/arch/blackfin/boot/Makefile
-> +++ b/arch/blackfin/boot/Makefile
->=20
-> +ifeq ($(CONFIG_RAMKERNEL),y)
-> +UIMAGE_LOADADDR =3D $(CONFIG_BOOT_LOAD)
-> +else # CONFIG_ROMKERNEL must be set
-> +UIMAGE_LOADADDR =3D $(CONFIG_BOOT_LOAD)
-> +endif
+> > > +struct dma_iommu_mapping *
+> > > +arm_iommu_create_mapping(struct bus_type *bus, dma_addr_t base, size_t size,
+> > > +                        int order)
+> > > +{
+> > > +       unsigned int count = (size >> PAGE_SHIFT) - order;
+> > > +       unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long);
+> 
+> The count calculation doesn't seem correct. "order" is log2 number and
+>  size >> PAGE_SHIFT is number of pages. 
+> 
+> If size is passed as 64*4096(256KB) and order is 6(allocation granularity is 2^6 pages=256KB),
+>  just 1 bit is enough to manage allocations.  So it should be 4 bytes or one long.
 
-this part is wrong :).  the else branch should be $(CONFIG_ROM_BASE).
+Good catch!
 
-> +UIMAGE_ENTRYADDR =3D $(shell $(NM) vmlinux | awk '$$NF =3D=3D "__start" =
-{print
-> $$1}')
+> But the calculation gives count = 64 - 6 = 58 and 
+> Bitmap_size gets set to (58/(4*8)) * 4 = 8 bytes, which is incorrect.
 
-i feel like if we tried harder, we could automate the -e arg for all arches=
-=2E =20
-i understand if you don't want to undertake that though.
-=2Dmike
+"order" isn't the order of size passed, which is minimal *page*
+allocation order which client decides whatever, just in case.
 
---nextPart1729674.9qEmhknEMN
-Content-Type: application/pgp-signature; name=signature.asc 
-Content-Description: This is a digitally signed message part.
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.17 (GNU/Linux)
-
-iQIcBAABAgAGBQJPVtxeAAoJEEFjO5/oN/WBSgMP/0NYD9By3hPOuA64150Lzqmz
-hrC87rAQ7WlAXE1SkOrCd8fDvM6Nej/YMVjAN0KuPM+vnRi00hQjMhvt89OPSzdL
-YSsO+DPovsxIBuHMtbMiu6USflqKhRcWQyY5dMtFuBgVH40WYsF6GgseF3TQjr2a
-++VE5TrSN/OJUjJNc4fBcrmEqOjTUqiujAordEx06Fcs4VnYgGGqVpw3wFSq8VbW
-EN316/HfWmhSKi+sNgChAS+g/0xGknhLDo387u8XNajFGKlZmm1wriSRRq75zXep
-Ck+b2K8FUZ3rwABBg2+IHWW89yketoTNY3KujV5GQ6gvFit5HiYzzWFkcRLz26t/
-gpLkU5FoO4SGRvQlXk191pgonzjdq4HEYp6A9BUdvVoCeAJ1lB3v8wufmFJwOGZe
-M78c0DtoeSZLWzcLAXsxKogFQIrueHHXh2qTqUdO25XfB1+V/EHt/fomRvpR6tje
-tnxaGRA/vSJHgR5b1BTwhdbttH6gdisJd3EKzyt+40+51JVlCZQxUVcTvnx9/8aL
-ehCxBbgEAeJ0N9nb78ALpdOo/21mxDL9SABcOLrROMmYJ5cG4Pxdvqleo88YY7EA
-DgOl+klbKDSL4MCxs2+bK0AnDQzdKKGRSqqWO4fZLyLE7sJ68g3V8SwIyouLZF1v
-M6s+4vX5Av0q9kZ+ZCVH
-=Nc9J
------END PGP SIGNATURE-----
-
---nextPart1729674.9qEmhknEMN--
+> It should be as follows.
+> unsigned int count = 1 << get_order(size) - order;
+> unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long) * BITS_PER_BYTE;
+> 
+> -KR
+> 
+> --nvpublic
+> 
+> 
