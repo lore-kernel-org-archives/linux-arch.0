@@ -1,56 +1,50 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC][PATCH 00/29] Disintegrate and kill asm/system.h
-Date: Wed, 7 Mar 2012 22:59:05 +0000
-Message-ID: <201203072259.06012.arnd@arndb.de>
-References: <201203072146.51494.arnd@arndb.de> <20120307194548.15987.36073.stgit@warthog.procyon.org.uk> <20425.1331160006@redhat.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH v3 29/34] sparc/PCI: get rid of device resource fixups
+Date: Wed, 7 Mar 2012 16:27:30 -0700
+Message-ID: <CAErSpo5Z10UrstkGLhCrEQm_vrMA0a7TNk=D256FixrG_V6n6w@mail.gmail.com>
+References: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com> <20120307223432.25669.51388.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:62879 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1030246Ab2CGXAH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 18:00:07 -0500
-In-Reply-To: <20425.1331160006@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, sfr@canb.auug.org.au, mingo@redhat.com, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <20120307223432.25669.51388.stgit@bhelgaas.mtv.corp.google.com>
+Sender: linux-pci-owner@vger.kernel.org
+To: Jesse Barnes <jbarnes@virtuousgeek.org>
+Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, sparclinux@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
+List-Id: linux-arch.vger.kernel.org
 
-On Wednesday 07 March 2012, David Howells wrote:
-> Arnd Bergmann <arnd@arndb.de> wrote:
-> 
-> > One part you were missing seems to be include/asm-generic/system.h, which is
-> > used on openrisc and contains a lot of the things you move to other
-> > places. It would be helpful to split that up as well.
-> 
-> Hmmm...  okay.  How that is used from an arch that doesn't have an
-> asm/system.h?
+On Wed, Mar 7, 2012 at 3:34 PM, Bjorn Helgaas <bhelgaas@google.com> wro=
+te:
+> Tell the PCI core about host bridge address translation so it can tak=
+e
+> care of bus-to-resource conversion for us.
+>
+> Previously, when enumerating PCI devices from the OF device tree, spa=
+rc
+> used pci_resource_adjust() to perform this address fixup for P2P brid=
+ge
+> windows in the following places:
+>
+> =A0 =A0pci_cfg_fake_ranges()
+> =A0 =A0apb_fake_ranges()
+> =A0 =A0of_scan_pci_bridge()
+>
+> This patch replaces pci_resource_adjust() with the generic
+> pcibios_bus_to_resource() and the appropriate pci_add_resource_offset=
+()
+> use to tell the PCI core about host bridge apertures and offsets.
+>
+> Resources of non-P2P bridge devices are set in pci_parse_of_addrs() a=
+nd,
+> as far as I can see, never converted to CPU addresses.
 
-We're migration towards using generic-y in arch/*/include/arm/Kbuild now.
-When you create header files that have reasonable defaults that can be
-shared across multiple architectures, I think you should do that for the
-new header files as well.
+I'm concerned about this -- the fact that we seem to do bus-to-CPU
+conversions on P2P bridge windows, but not on endpoint BARs.
 
-> > >     (4) asm/atomic.h
-> > >
-> > >         Move xchg() and cmpxchg() here as they're full word atomic ops and
-> > >         frequently used by atomic_xchg() and atomic_cmpxchg().
-> > 
-> > Well, the thing with xchg and cmpxchg is that they operate on arbirary-sized
-> > integers, not atomic_t, unlike everything else in atomic.h.
-> > 
-> > Some architectures already have an asm/cmpxchg.h, which seems more appropriate
-> > here.
-> 
-> So I saw.  It might be worth making an asm/xchg.h and asm/cmpxchg.h for each
-> arch - or maybe just put both in asm/xchg.h or asm/cmpxchg.h.  Where do I
-> include it from though?  One nice thing about sticking them in asm/atomic.h is
-> that usually gets all instances, and they're frequently used from there.  How
-> about I have asm/atomic.h #include asm/{,cmp}xchg.h?
+Is it really the case that the OF device tree has bus addresses for
+P2P windows but CPU addresses for other BARs?  That would be
+surprising to me.  Or did I miss a conversion somewhere?
 
-Yes, that makes sense and is probably required anyway for the obvious implementation
-of atomic_cmpxchg().
+Help :)  Any sparc experts want to enlighten me?
 
-	Arnd
+Bjorn
