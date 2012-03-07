@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:48776 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:30613 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1760005Ab2CGTsN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 7 Mar 2012 14:48:13 -0500
+	id S1030250Ab2CGTt7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 7 Mar 2012 14:49:59 -0500
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 11/29] Disintegrate asm/system.h for H8300
-Date: Wed, 07 Mar 2012 19:47:56 +0000
-Message-ID: <20120307194756.15987.49068.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 20/29] Disintegrate asm/system.h for PA-RISC
+Date: Wed, 07 Mar 2012 19:49:37 +0000
+Message-ID: <20120307194937.15987.16850.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20120307194548.15987.36073.stgit@warthog.procyon.org.uk>
 References: <20120307194548.15987.36073.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,368 +16,471 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paul.gortmaker@windriver.com, hpa@zytor.com
 Cc: torvalds@linux-foundation.org, sfr@canb.auug.org.au, mingo@redhat.com, arnd@arndb.de, dhowells@redhat.com, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120307194756.QV8xasULT0iQwzZoKo75H5EEl2OtYq2eW6Krl2bgxVE@z>
+Message-ID: <20120307194937.CCPMZT2lC2hAf1hKkPdwf1qD6ncBDjXTKyVwQEn10LE@z>
 
-Disintegrate asm/system.h for H8300.
+Disintegrate asm/system.h for PA-RISC.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- arch/h8300/include/asm/atomic.h    |   53 ++++++++++++++
- arch/h8300/include/asm/barrier.h   |   26 +++++++
- arch/h8300/include/asm/bug.h       |    4 +
- arch/h8300/include/asm/exec.h      |    6 ++
- arch/h8300/include/asm/processor.h |    5 +
- arch/h8300/include/asm/switch_to.h |   50 +++++++++++++
- arch/h8300/include/asm/system.h    |  140 ------------------------------------
- 7 files changed, 144 insertions(+), 140 deletions(-)
- create mode 100644 arch/h8300/include/asm/barrier.h
- create mode 100644 arch/h8300/include/asm/exec.h
- create mode 100644 arch/h8300/include/asm/switch_to.h
- delete mode 100644 arch/h8300/include/asm/system.h
+ arch/parisc/include/asm/barrier.h       |   35 +++++++
+ arch/parisc/include/asm/delay.h         |    2 
+ arch/parisc/include/asm/dma.h           |    1 
+ arch/parisc/include/asm/exec.h          |    6 +
+ arch/parisc/include/asm/ldcw.h          |   48 +++++++++
+ arch/parisc/include/asm/processor.h     |    1 
+ arch/parisc/include/asm/psw.h           |   41 ++++++++
+ arch/parisc/include/asm/special_insns.h |   40 ++++++++
+ arch/parisc/include/asm/switch_to.h     |   12 ++
+ arch/parisc/include/asm/system.h        |  165 -------------------------------
+ arch/parisc/include/asm/thread_info.h   |    1 
+ 11 files changed, 185 insertions(+), 167 deletions(-)
+ create mode 100644 arch/parisc/include/asm/barrier.h
+ create mode 100644 arch/parisc/include/asm/exec.h
+ create mode 100644 arch/parisc/include/asm/ldcw.h
+ create mode 100644 arch/parisc/include/asm/special_insns.h
+ create mode 100644 arch/parisc/include/asm/switch_to.h
+ delete mode 100644 arch/parisc/include/asm/system.h
 
-diff --git a/arch/h8300/include/asm/atomic.h b/arch/h8300/include/asm/atomic.h
-index fbc8517..62b02f1 100644
---- a/arch/h8300/include/asm/atomic.h
-+++ b/arch/h8300/include/asm/atomic.h
-@@ -2,6 +2,7 @@
- #define __ARCH_H8300_ATOMIC__
- 
- #include <linux/types.h>
-+#include <linux/irqflags.h>
- 
- /*
-  * Atomic operations that C can't guarantee us.  Useful for
-@@ -101,6 +102,58 @@ static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
- 	return ret;
- }
- 
-+#define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
-+
-+struct __xchg_dummy { unsigned long a[100]; };
-+#define __xg(x) ((volatile struct __xchg_dummy *)(x))
-+
-+static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
-+{
-+  unsigned long tmp, flags;
-+
-+  local_irq_save(flags);
-+
-+  switch (size) {
-+  case 1:
-+    __asm__ __volatile__
-+    ("mov.b %2,%0\n\t"
-+     "mov.b %1,%2"
-+    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
-+    break;
-+  case 2:
-+    __asm__ __volatile__
-+    ("mov.w %2,%0\n\t"
-+     "mov.w %1,%2"
-+    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
-+    break;
-+  case 4:
-+    __asm__ __volatile__
-+    ("mov.l %2,%0\n\t"
-+     "mov.l %1,%2"
-+    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
-+    break;
-+  default:
-+    tmp = 0;	  
-+  }
-+  local_irq_restore(flags);
-+  return tmp;
-+}
-+
-+#include <asm-generic/cmpxchg-local.h>
-+
-+/*
-+ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
-+ * them available.
-+ */
-+#define cmpxchg_local(ptr, o, n)				  	       \
-+	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
-+			(unsigned long)(n), sizeof(*(ptr))))
-+#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
-+
-+#ifndef CONFIG_SMP
-+#include <asm-generic/cmpxchg.h>
-+#endif
-+
- #define atomic_xchg(v, new) (xchg(&((v)->counter), new))
- 
- static inline int __atomic_add_unless(atomic_t *v, int a, int u)
-diff --git a/arch/h8300/include/asm/barrier.h b/arch/h8300/include/asm/barrier.h
+diff --git a/arch/parisc/include/asm/barrier.h b/arch/parisc/include/asm/barrier.h
 new file mode 100644
-index 0000000..96d7a49
+index 0000000..e77d834
 --- /dev/null
-+++ b/arch/h8300/include/asm/barrier.h
-@@ -0,0 +1,26 @@
-+#ifndef _H8300_BARRIER_H
-+#define _H8300_BARRIER_H
++++ b/arch/parisc/include/asm/barrier.h
+@@ -0,0 +1,35 @@
++#ifndef __PARISC_BARRIER_H
++#define __PARISC_BARRIER_H
 +
 +/*
-+ * Force strict CPU ordering.
-+ * Not really required on H8...
-+ */
-+#define nop()  asm volatile ("nop"::)
-+#define mb()   asm volatile (""   : : :"memory")
-+#define rmb()  asm volatile (""   : : :"memory")
-+#define wmb()  asm volatile (""   : : :"memory")
-+#define set_mb(var, value) do { xchg(&var, value); } while (0)
-+
-+#ifdef CONFIG_SMP
++** This is simply the barrier() macro from linux/kernel.h but when serial.c
++** uses tqueue.h uses smp_mb() defined using barrier(), linux/kernel.h
++** hasn't yet been included yet so it fails, thus repeating the macro here.
++**
++** PA-RISC architecture allows for weakly ordered memory accesses although
++** none of the processors use it. There is a strong ordered bit that is
++** set in the O-bit of the page directory entry. Operating systems that
++** can not tolerate out of order accesses should set this bit when mapping
++** pages. The O-bit of the PSW should also be set to 1 (I don't believe any
++** of the processor implemented the PSW O-bit). The PCX-W ERS states that
++** the TLB O-bit is not implemented so the page directory does not need to
++** have the O-bit set when mapping pages (section 3.1). This section also
++** states that the PSW Y, Z, G, and O bits are not implemented.
++** So it looks like nothing needs to be done for parisc-linux (yet).
++** (thanks to chada for the above comment -ggg)
++**
++** The __asm__ op below simple prevents gcc/ld from reordering
++** instructions across the mb() "call".
++*/
++#define mb()		__asm__ __volatile__("":::"memory")	/* barrier() */
++#define rmb()		mb()
++#define wmb()		mb()
 +#define smp_mb()	mb()
-+#define smp_rmb()	rmb()
-+#define smp_wmb()	wmb()
-+#define smp_read_barrier_depends()	read_barrier_depends()
-+#else
-+#define smp_mb()	barrier()
-+#define smp_rmb()	barrier()
-+#define smp_wmb()	barrier()
++#define smp_rmb()	mb()
++#define smp_wmb()	mb()
 +#define smp_read_barrier_depends()	do { } while(0)
-+#endif
++#define read_barrier_depends()		do { } while(0)
 +
-+#endif /* _H8300_BARRIER_H */
-diff --git a/arch/h8300/include/asm/bug.h b/arch/h8300/include/asm/bug.h
-index 887c197..1e1be81 100644
---- a/arch/h8300/include/asm/bug.h
-+++ b/arch/h8300/include/asm/bug.h
-@@ -5,4 +5,8 @@
- #define is_valid_bugaddr(addr) (1)
++#define set_mb(var, value)		do { var = value; mb(); } while (0)
++
++#endif /* __PARISC_BARRIER_H */
+diff --git a/arch/parisc/include/asm/delay.h b/arch/parisc/include/asm/delay.h
+index 7a75e98..912ee7e 100644
+--- a/arch/parisc/include/asm/delay.h
++++ b/arch/parisc/include/asm/delay.h
+@@ -1,7 +1,7 @@
+ #ifndef _PARISC_DELAY_H
+ #define _PARISC_DELAY_H
  
- #include <asm-generic/bug.h>
-+
-+struct pt_regs;
-+extern void die(const char *str, struct pt_regs *fp, unsigned long err);
-+
- #endif
-diff --git a/arch/h8300/include/asm/exec.h b/arch/h8300/include/asm/exec.h
+-#include <asm/system.h>    /* for mfctl() */
++#include <asm/special_insns.h>    /* for mfctl() */
+ #include <asm/processor.h> /* for boot_cpu_data */
+ 
+ 
+diff --git a/arch/parisc/include/asm/dma.h b/arch/parisc/include/asm/dma.h
+index f7a18f9..fd48ae2 100644
+--- a/arch/parisc/include/asm/dma.h
++++ b/arch/parisc/include/asm/dma.h
+@@ -9,7 +9,6 @@
+ #define _ASM_DMA_H
+ 
+ #include <asm/io.h>		/* need byte IO */
+-#include <asm/system.h>	
+ 
+ #define dma_outb	outb
+ #define dma_inb		inb
+diff --git a/arch/parisc/include/asm/exec.h b/arch/parisc/include/asm/exec.h
 new file mode 100644
-index 0000000..c01c45c
+index 0000000..6bb5af7
 --- /dev/null
-+++ b/arch/h8300/include/asm/exec.h
++++ b/arch/parisc/include/asm/exec.h
 @@ -0,0 +1,6 @@
-+#ifndef _H8300_EXEC_H
-+#define _H8300_EXEC_H
++#ifndef __PARISC_EXEC_H
++#define __PARISC_EXEC_H
 +
 +#define arch_align_stack(x) (x)
 +
-+#endif /* _H8300_EXEC_H */
-diff --git a/arch/h8300/include/asm/processor.h b/arch/h8300/include/asm/processor.h
-index e834b60..61fabf1 100644
---- a/arch/h8300/include/asm/processor.h
-+++ b/arch/h8300/include/asm/processor.h
-@@ -135,4 +135,9 @@ unsigned long get_wchan(struct task_struct *p);
- 
- #define cpu_relax()    barrier()
- 
-+#define HARD_RESET_NOW() ({		\
-+        local_irq_disable();		\
-+        asm("jmp @@0");			\
++#endif /* __PARISC_EXEC_H */
+diff --git a/arch/parisc/include/asm/ldcw.h b/arch/parisc/include/asm/ldcw.h
+new file mode 100644
+index 0000000..d2d11b7
+--- /dev/null
++++ b/arch/parisc/include/asm/ldcw.h
+@@ -0,0 +1,48 @@
++#ifndef __PARISC_LDCW_H
++#define __PARISC_LDCW_H
++
++#ifndef CONFIG_PA20
++/* Because kmalloc only guarantees 8-byte alignment for kmalloc'd data,
++   and GCC only guarantees 8-byte alignment for stack locals, we can't
++   be assured of 16-byte alignment for atomic lock data even if we
++   specify "__attribute ((aligned(16)))" in the type declaration.  So,
++   we use a struct containing an array of four ints for the atomic lock
++   type and dynamically select the 16-byte aligned int from the array
++   for the semaphore.  */
++
++#define __PA_LDCW_ALIGNMENT	16
++#define __ldcw_align(a) ({					\
++	unsigned long __ret = (unsigned long) &(a)->lock[0];	\
++	__ret = (__ret + __PA_LDCW_ALIGNMENT - 1)		\
++		& ~(__PA_LDCW_ALIGNMENT - 1);			\
++	(volatile unsigned int *) __ret;			\
++})
++#define __LDCW	"ldcw"
++
++#else /*CONFIG_PA20*/
++/* From: "Jim Hull" <jim.hull of hp.com>
++   I've attached a summary of the change, but basically, for PA 2.0, as
++   long as the ",CO" (coherent operation) completer is specified, then the
++   16-byte alignment requirement for ldcw and ldcd is relaxed, and instead
++   they only require "natural" alignment (4-byte for ldcw, 8-byte for
++   ldcd). */
++
++#define __PA_LDCW_ALIGNMENT	4
++#define __ldcw_align(a) (&(a)->slock)
++#define __LDCW	"ldcw,co"
++
++#endif /*!CONFIG_PA20*/
++
++/* LDCW, the only atomic read-write operation PA-RISC has. *sigh*.  */
++#define __ldcw(a) ({						\
++	unsigned __ret;						\
++	__asm__ __volatile__(__LDCW " 0(%2),%0"			\
++		: "=r" (__ret), "+m" (*(a)) : "r" (a));		\
++	__ret;							\
 +})
 +
++#ifdef CONFIG_SMP
++# define __lock_aligned __attribute__((__section__(".data..lock_aligned")))
++#endif
++
++#endif /* __PARISC_LDCW_H */
+diff --git a/arch/parisc/include/asm/processor.h b/arch/parisc/include/asm/processor.h
+index 1f9e484..acdf4ca 100644
+--- a/arch/parisc/include/asm/processor.h
++++ b/arch/parisc/include/asm/processor.h
+@@ -168,6 +168,7 @@ struct thread_struct {
+  * Return saved PC of a blocked thread.  This is used by ps mostly.
+  */
+ 
++struct task_struct;
+ unsigned long thread_saved_pc(struct task_struct *t);
+ void show_trace(struct task_struct *task, unsigned long *stack);
+ 
+diff --git a/arch/parisc/include/asm/psw.h b/arch/parisc/include/asm/psw.h
+index 5a3e23c..ad69a35 100644
+--- a/arch/parisc/include/asm/psw.h
++++ b/arch/parisc/include/asm/psw.h
+@@ -59,4 +59,45 @@
+ #define USER_PSW_MASK (WIDE_PSW | PSW_T | PSW_N | PSW_X | PSW_B | PSW_V | PSW_CB)
+ #define USER_PSW      (PSW_C | PSW_Q | PSW_P | PSW_D | PSW_I)
+ 
++#ifndef __ASSEMBLY__
++
++/* The program status word as bitfields.  */
++struct pa_psw {
++	unsigned int y:1;
++	unsigned int z:1;
++	unsigned int rv:2;
++	unsigned int w:1;
++	unsigned int e:1;
++	unsigned int s:1;
++	unsigned int t:1;
++
++	unsigned int h:1;
++	unsigned int l:1;
++	unsigned int n:1;
++	unsigned int x:1;
++	unsigned int b:1;
++	unsigned int c:1;
++	unsigned int v:1;
++	unsigned int m:1;
++
++	unsigned int cb:8;
++
++	unsigned int o:1;
++	unsigned int g:1;
++	unsigned int f:1;
++	unsigned int r:1;
++	unsigned int q:1;
++	unsigned int p:1;
++	unsigned int d:1;
++	unsigned int i:1;
++};
++
++#ifdef CONFIG_64BIT
++#define pa_psw(task) ((struct pa_psw *) ((char *) (task) + TASK_PT_PSW + 4))
++#else
++#define pa_psw(task) ((struct pa_psw *) ((char *) (task) + TASK_PT_PSW))
++#endif
++
++#endif /* !__ASSEMBLY__ */
++
  #endif
-diff --git a/arch/h8300/include/asm/switch_to.h b/arch/h8300/include/asm/switch_to.h
+diff --git a/arch/parisc/include/asm/special_insns.h b/arch/parisc/include/asm/special_insns.h
 new file mode 100644
-index 0000000..cdd8731
+index 0000000..d306b75
 --- /dev/null
-+++ b/arch/h8300/include/asm/switch_to.h
-@@ -0,0 +1,50 @@
-+#ifndef _H8300_SWITCH_TO_H
-+#define _H8300_SWITCH_TO_H
++++ b/arch/parisc/include/asm/special_insns.h
+@@ -0,0 +1,40 @@
++#ifndef __PARISC_SPECIAL_INSNS_H
++#define __PARISC_SPECIAL_INSNS_H
 +
-+/*
-+ * switch_to(n) should switch tasks to task ptr, first checking that
-+ * ptr isn't the current task, in which case it does nothing.  This
-+ * also clears the TS-flag if the task we switched to has used the
-+ * math co-processor latest.
-+ */
-+/*
-+ * switch_to() saves the extra registers, that are not saved
-+ * automatically by SAVE_SWITCH_STACK in resume(), ie. d0-d5 and
-+ * a0-a1. Some of these are used by schedule() and its predecessors
-+ * and so we might get see unexpected behaviors when a task returns
-+ * with unexpected register values.
-+ *
-+ * syscall stores these registers itself and none of them are used
-+ * by syscall after the function in the syscall has been called.
-+ *
-+ * Beware that resume now expects *next to be in d1 and the offset of
-+ * tss to be in a1. This saves a few instructions as we no longer have
-+ * to push them onto the stack and read them back right after.
-+ *
-+ * 02/17/96 - Jes Sorensen (jds@kom.auc.dk)
-+ *
-+ * Changed 96/09/19 by Andreas Schwab
-+ * pass prev in a0, next in a1, offset of tss in d1, and whether
-+ * the mm structures are shared in d2 (to avoid atc flushing).
-+ *
-+ * H8/300 Porting 2002/09/04 Yoshinori Sato
-+ */
++#define mfctl(reg)	({		\
++	unsigned long cr;		\
++	__asm__ __volatile__(		\
++		"mfctl " #reg ",%0" :	\
++		 "=r" (cr)		\
++	);				\
++	cr;				\
++})
 +
-+asmlinkage void resume(void);
-+#define switch_to(prev,next,last) {                         \
-+  void *_last;						    \
-+  __asm__ __volatile__(					    \
-+  			"mov.l	%1, er0\n\t"		    \
-+			"mov.l	%2, er1\n\t"		    \
-+                        "mov.l  %3, er2\n\t"                \
-+			"jsr @_resume\n\t"                  \
-+                        "mov.l  er2,%0\n\t"                 \
-+		       : "=r" (_last)			    \
-+		       : "r" (&(prev->thread)),		    \
-+			 "r" (&(next->thread)),		    \
-+                         "g" (prev)                         \
-+		       : "cc", "er0", "er1", "er2", "er3"); \
-+  (last) = _last; 					    \
++#define mtctl(gr, cr) \
++	__asm__ __volatile__("mtctl %0,%1" \
++		: /* no outputs */ \
++		: "r" (gr), "i" (cr) : "memory")
++
++/* these are here to de-mystefy the calling code, and to provide hooks */
++/* which I needed for debugging EIEM problems -PB */
++#define get_eiem() mfctl(15)
++static inline void set_eiem(unsigned long val)
++{
++	mtctl(val, 15);
 +}
 +
-+#endif /* _H8300_SWITCH_TO_H */
-diff --git a/arch/h8300/include/asm/system.h b/arch/h8300/include/asm/system.h
++#define mfsp(reg)	({		\
++	unsigned long cr;		\
++	__asm__ __volatile__(		\
++		"mfsp " #reg ",%0" :	\
++		 "=r" (cr)		\
++	);				\
++	cr;				\
++})
++
++#define mtsp(gr, cr) \
++	__asm__ __volatile__("mtsp %0,%1" \
++		: /* no outputs */ \
++		: "r" (gr), "i" (cr) : "memory")
++
++#endif /* __PARISC_SPECIAL_INSNS_H */
+diff --git a/arch/parisc/include/asm/switch_to.h b/arch/parisc/include/asm/switch_to.h
+new file mode 100644
+index 0000000..8ed8fea
+--- /dev/null
++++ b/arch/parisc/include/asm/switch_to.h
+@@ -0,0 +1,12 @@
++#ifndef __PARISC_SWITCH_TO_H
++#define __PARISC_SWITCH_TO_H
++
++struct task_struct;
++
++extern struct task_struct *_switch_to(struct task_struct *, struct task_struct *);
++
++#define switch_to(prev, next, last) do {			\
++	(last) = _switch_to(prev, next);			\
++} while(0)
++
++#endif /* __PARISC_SWITCH_TO_H */
+diff --git a/arch/parisc/include/asm/system.h b/arch/parisc/include/asm/system.h
 deleted file mode 100644
-index 2c2382e..0000000
---- a/arch/h8300/include/asm/system.h
+index b19e63a..0000000
+--- a/arch/parisc/include/asm/system.h
 +++ /dev/null
-@@ -1,140 +0,0 @@
--#ifndef _H8300_SYSTEM_H
--#define _H8300_SYSTEM_H
+@@ -1,165 +0,0 @@
+-#ifndef __PARISC_SYSTEM_H
+-#define __PARISC_SYSTEM_H
 -
--#include <linux/linkage.h>
 -#include <linux/irqflags.h>
 -
--struct pt_regs;
+-/* The program status word as bitfields.  */
+-struct pa_psw {
+-	unsigned int y:1;
+-	unsigned int z:1;
+-	unsigned int rv:2;
+-	unsigned int w:1;
+-	unsigned int e:1;
+-	unsigned int s:1;
+-	unsigned int t:1;
 -
--/*
-- * switch_to(n) should switch tasks to task ptr, first checking that
-- * ptr isn't the current task, in which case it does nothing.  This
-- * also clears the TS-flag if the task we switched to has used the
-- * math co-processor latest.
-- */
--/*
-- * switch_to() saves the extra registers, that are not saved
-- * automatically by SAVE_SWITCH_STACK in resume(), ie. d0-d5 and
-- * a0-a1. Some of these are used by schedule() and its predecessors
-- * and so we might get see unexpected behaviors when a task returns
-- * with unexpected register values.
-- *
-- * syscall stores these registers itself and none of them are used
-- * by syscall after the function in the syscall has been called.
-- *
-- * Beware that resume now expects *next to be in d1 and the offset of
-- * tss to be in a1. This saves a few instructions as we no longer have
-- * to push them onto the stack and read them back right after.
-- *
-- * 02/17/96 - Jes Sorensen (jds@kom.auc.dk)
-- *
-- * Changed 96/09/19 by Andreas Schwab
-- * pass prev in a0, next in a1, offset of tss in d1, and whether
-- * the mm structures are shared in d2 (to avoid atc flushing).
-- *
-- * H8/300 Porting 2002/09/04 Yoshinori Sato
-- */
+-	unsigned int h:1;
+-	unsigned int l:1;
+-	unsigned int n:1;
+-	unsigned int x:1;
+-	unsigned int b:1;
+-	unsigned int c:1;
+-	unsigned int v:1;
+-	unsigned int m:1;
 -
--asmlinkage void resume(void);
--#define switch_to(prev,next,last) {                         \
--  void *_last;						    \
--  __asm__ __volatile__(					    \
--  			"mov.l	%1, er0\n\t"		    \
--			"mov.l	%2, er1\n\t"		    \
--                        "mov.l  %3, er2\n\t"                \
--			"jsr @_resume\n\t"                  \
--                        "mov.l  er2,%0\n\t"                 \
--		       : "=r" (_last)			    \
--		       : "r" (&(prev->thread)),		    \
--			 "r" (&(next->thread)),		    \
--                         "g" (prev)                         \
--		       : "cc", "er0", "er1", "er2", "er3"); \
--  (last) = _last; 					    \
--}
+-	unsigned int cb:8;
 -
--#define iret() __asm__ __volatile__ ("rte": : :"memory", "sp", "cc")
+-	unsigned int o:1;
+-	unsigned int g:1;
+-	unsigned int f:1;
+-	unsigned int r:1;
+-	unsigned int q:1;
+-	unsigned int p:1;
+-	unsigned int d:1;
+-	unsigned int i:1;
+-};
 -
--/*
-- * Force strict CPU ordering.
-- * Not really required on H8...
-- */
--#define nop()  asm volatile ("nop"::)
--#define mb()   asm volatile (""   : : :"memory")
--#define rmb()  asm volatile (""   : : :"memory")
--#define wmb()  asm volatile (""   : : :"memory")
--#define set_mb(var, value) do { xchg(&var, value); } while (0)
--
--#ifdef CONFIG_SMP
--#define smp_mb()	mb()
--#define smp_rmb()	rmb()
--#define smp_wmb()	wmb()
--#define smp_read_barrier_depends()	read_barrier_depends()
+-#ifdef CONFIG_64BIT
+-#define pa_psw(task) ((struct pa_psw *) ((char *) (task) + TASK_PT_PSW + 4))
 -#else
--#define smp_mb()	barrier()
--#define smp_rmb()	barrier()
--#define smp_wmb()	barrier()
--#define smp_read_barrier_depends()	do { } while(0)
+-#define pa_psw(task) ((struct pa_psw *) ((char *) (task) + TASK_PT_PSW))
 -#endif
 -
--#define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
+-struct task_struct;
 -
--struct __xchg_dummy { unsigned long a[100]; };
--#define __xg(x) ((volatile struct __xchg_dummy *)(x))
+-extern struct task_struct *_switch_to(struct task_struct *, struct task_struct *);
 -
--static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
--{
--  unsigned long tmp, flags;
+-#define switch_to(prev, next, last) do {			\
+-	(last) = _switch_to(prev, next);			\
+-} while(0)
 -
--  local_irq_save(flags);
--
--  switch (size) {
--  case 1:
--    __asm__ __volatile__
--    ("mov.b %2,%0\n\t"
--     "mov.b %1,%2"
--    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
--    break;
--  case 2:
--    __asm__ __volatile__
--    ("mov.w %2,%0\n\t"
--     "mov.w %1,%2"
--    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
--    break;
--  case 4:
--    __asm__ __volatile__
--    ("mov.l %2,%0\n\t"
--     "mov.l %1,%2"
--    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
--    break;
--  default:
--    tmp = 0;	  
--  }
--  local_irq_restore(flags);
--  return tmp;
--}
--
--#define HARD_RESET_NOW() ({		\
--        local_irq_disable();		\
--        asm("jmp @@0");			\
+-#define mfctl(reg)	({		\
+-	unsigned long cr;		\
+-	__asm__ __volatile__(		\
+-		"mfctl " #reg ",%0" :	\
+-		 "=r" (cr)		\
+-	);				\
+-	cr;				\
 -})
 -
--#include <asm-generic/cmpxchg-local.h>
+-#define mtctl(gr, cr) \
+-	__asm__ __volatile__("mtctl %0,%1" \
+-		: /* no outputs */ \
+-		: "r" (gr), "i" (cr) : "memory")
+-
+-/* these are here to de-mystefy the calling code, and to provide hooks */
+-/* which I needed for debugging EIEM problems -PB */
+-#define get_eiem() mfctl(15)
+-static inline void set_eiem(unsigned long val)
+-{
+-	mtctl(val, 15);
+-}
+-
+-#define mfsp(reg)	({		\
+-	unsigned long cr;		\
+-	__asm__ __volatile__(		\
+-		"mfsp " #reg ",%0" :	\
+-		 "=r" (cr)		\
+-	);				\
+-	cr;				\
+-})
+-
+-#define mtsp(gr, cr) \
+-	__asm__ __volatile__("mtsp %0,%1" \
+-		: /* no outputs */ \
+-		: "r" (gr), "i" (cr) : "memory")
+-
 -
 -/*
-- * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
-- * them available.
-- */
--#define cmpxchg_local(ptr, o, n)				  	       \
--	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
--			(unsigned long)(n), sizeof(*(ptr))))
--#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+-** This is simply the barrier() macro from linux/kernel.h but when serial.c
+-** uses tqueue.h uses smp_mb() defined using barrier(), linux/kernel.h
+-** hasn't yet been included yet so it fails, thus repeating the macro here.
+-**
+-** PA-RISC architecture allows for weakly ordered memory accesses although
+-** none of the processors use it. There is a strong ordered bit that is
+-** set in the O-bit of the page directory entry. Operating systems that
+-** can not tolerate out of order accesses should set this bit when mapping
+-** pages. The O-bit of the PSW should also be set to 1 (I don't believe any
+-** of the processor implemented the PSW O-bit). The PCX-W ERS states that
+-** the TLB O-bit is not implemented so the page directory does not need to
+-** have the O-bit set when mapping pages (section 3.1). This section also
+-** states that the PSW Y, Z, G, and O bits are not implemented.
+-** So it looks like nothing needs to be done for parisc-linux (yet).
+-** (thanks to chada for the above comment -ggg)
+-**
+-** The __asm__ op below simple prevents gcc/ld from reordering
+-** instructions across the mb() "call".
+-*/
+-#define mb()		__asm__ __volatile__("":::"memory")	/* barrier() */
+-#define rmb()		mb()
+-#define wmb()		mb()
+-#define smp_mb()	mb()
+-#define smp_rmb()	mb()
+-#define smp_wmb()	mb()
+-#define smp_read_barrier_depends()	do { } while(0)
+-#define read_barrier_depends()		do { } while(0)
 -
--#ifndef CONFIG_SMP
--#include <asm-generic/cmpxchg.h>
+-#define set_mb(var, value)		do { var = value; mb(); } while (0)
+-
+-#ifndef CONFIG_PA20
+-/* Because kmalloc only guarantees 8-byte alignment for kmalloc'd data,
+-   and GCC only guarantees 8-byte alignment for stack locals, we can't
+-   be assured of 16-byte alignment for atomic lock data even if we
+-   specify "__attribute ((aligned(16)))" in the type declaration.  So,
+-   we use a struct containing an array of four ints for the atomic lock
+-   type and dynamically select the 16-byte aligned int from the array
+-   for the semaphore.  */
+-
+-#define __PA_LDCW_ALIGNMENT	16
+-#define __ldcw_align(a) ({					\
+-	unsigned long __ret = (unsigned long) &(a)->lock[0];	\
+-	__ret = (__ret + __PA_LDCW_ALIGNMENT - 1)		\
+-		& ~(__PA_LDCW_ALIGNMENT - 1);			\
+-	(volatile unsigned int *) __ret;			\
+-})
+-#define __LDCW	"ldcw"
+-
+-#else /*CONFIG_PA20*/
+-/* From: "Jim Hull" <jim.hull of hp.com>
+-   I've attached a summary of the change, but basically, for PA 2.0, as
+-   long as the ",CO" (coherent operation) completer is specified, then the
+-   16-byte alignment requirement for ldcw and ldcd is relaxed, and instead
+-   they only require "natural" alignment (4-byte for ldcw, 8-byte for
+-   ldcd). */
+-
+-#define __PA_LDCW_ALIGNMENT	4
+-#define __ldcw_align(a) (&(a)->slock)
+-#define __LDCW	"ldcw,co"
+-
+-#endif /*!CONFIG_PA20*/
+-
+-/* LDCW, the only atomic read-write operation PA-RISC has. *sigh*.  */
+-#define __ldcw(a) ({						\
+-	unsigned __ret;						\
+-	__asm__ __volatile__(__LDCW " 0(%2),%0"			\
+-		: "=r" (__ret), "+m" (*(a)) : "r" (a));		\
+-	__ret;							\
+-})
+-
+-#ifdef CONFIG_SMP
+-# define __lock_aligned __attribute__((__section__(".data..lock_aligned")))
 -#endif
 -
 -#define arch_align_stack(x) (x)
 -
--extern void die(const char *str, struct pt_regs *fp, unsigned long err);
--
--#endif /* _H8300_SYSTEM_H */
+-#endif
+diff --git a/arch/parisc/include/asm/thread_info.h b/arch/parisc/include/asm/thread_info.h
+index 6d9c7c7..83ae7dd 100644
+--- a/arch/parisc/include/asm/thread_info.h
++++ b/arch/parisc/include/asm/thread_info.h
+@@ -5,6 +5,7 @@
+ 
+ #ifndef __ASSEMBLY__
+ #include <asm/processor.h>
++#include <asm/special_insns.h>
+ 
+ struct thread_info {
+ 	struct task_struct *task;	/* main task structure */
 
