@@ -1,75 +1,67 @@
-From: Julian Calaby <julian.calaby@gmail.com>
-Subject: Re: [PATCH 2/3] Kbuild: Implement CONFIG_UIMAGE_KERNEL_NOLOAD
-Date: Wed, 7 Mar 2012 11:52:03 +1100
-Message-ID: <CAGRGNgWHXrQgVobz+54sFBzj=bTHCKwg+H4_CY5JoGtmETw2yA@mail.gmail.com>
-References: <1331080238-1524-1-git-send-email-swarren@wwwdotorg.org> <1331080238-1524-2-git-send-email-swarren@wwwdotorg.org>
+From: Mike Frysinger <vapier@gentoo.org>
+Subject: Re: [PATCH 1/3] Kbuild: centralize MKIMAGE and cmd_uimage definitions
+Date: Tue, 6 Mar 2012 22:56:07 -0500
+Message-ID: <201203062256.16105.vapier@gentoo.org>
+References: <1331080238-1524-1-git-send-email-swarren@wwwdotorg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <1331080238-1524-2-git-send-email-swarren@wwwdotorg.org>
-Sender: linux-kbuild-owner@vger.kernel.org
+Content-Type: multipart/signed;
+  boundary="nextPart1729674.9qEmhknEMN";
+  protocol="application/pgp-signature";
+  micalg=pgp-sha1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-sh-owner@vger.kernel.org>
+In-Reply-To: <1331080238-1524-1-git-send-email-swarren@wwwdotorg.org>
+Sender: linux-sh-owner@vger.kernel.org
 To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Michal Marek <mmarek@suse.cz>, Russell King <linux@arm.linux.org.uk>, nico@fluxnic.net, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mike Frysinger <vapier@gentoo.org>, Michal Simek <monstr@monstr.eu>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org, uclinux-dist-devel@blackfin.uclinux.org, microblaze-uclinux@itee.uq.edu.au, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Michal Marek <mmarek@suse.cz>, Russell King <linux@arm.linux.org.uk>, nico@fluxnic.net, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Michal Simek <monstr@monstr.eu>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org, uclinux-dist-devel@blackfin.uclinux.org, microblaze-uclinux@itee.uq.edu.au, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hi Stephen,
+--nextPart1729674.9qEmhknEMN
+Content-Type: Text/Plain;
+  charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Wed, Mar 7, 2012 at 11:30, Stephen Warren <swarren@wwwdotorg.org> wr=
-ote:
-> This allows the user to use U-Boot's mkimage's -T kernel_noload optio=
-n
-> if their arch Kconfig allows it, and they desire.
->
-> Signed-off-by: Stephen Warren <swarren@wwwdotorg.org>
-> ---
-> diff --git a/init/Kconfig b/init/Kconfig
-> index 6cfd71d..2035562 100644
-> --- a/init/Kconfig
-> +++ b/init/Kconfig
-> @@ -203,6 +203,21 @@ config KERNEL_LZO
->
-> =A0endchoice
->
-> +config ALLOW_UIMAGE_KERNEL_NOLOAD
-> + =A0 =A0 =A0 bool
-> +
-> +config UIMAGE_KERNEL_NOLOAD
-> + =A0 =A0 =A0 bool "Use mkimage's -T kernel_noload instead of -T kern=
-el"
-> + =A0 =A0 =A0 depends on ALLOW_UIMAGE_KERNEL_NOLOAD
-> + =A0 =A0 =A0 help
-> + =A0 =A0 =A0 =A0 uImage files of type "kernel" embed an absolute loa=
-d and entry point
-> + =A0 =A0 =A0 =A0 address. If the uImage is loaded to a different add=
-ress, then the
-> + =A0 =A0 =A0 =A0 image must be copied the uImage file to the specifi=
-ed load address.
+On Tuesday 06 March 2012 19:30:36 Stephen Warren wrote:
+> --- a/arch/blackfin/boot/Makefile
+> +++ b/arch/blackfin/boot/Makefile
+>=20
+> +ifeq ($(CONFIG_RAMKERNEL),y)
+> +UIMAGE_LOADADDR =3D $(CONFIG_BOOT_LOAD)
+> +else # CONFIG_ROMKERNEL must be set
+> +UIMAGE_LOADADDR =3D $(CONFIG_BOOT_LOAD)
+> +endif
 
-You seem to have an excess "the uImage file" in here.
+this part is wrong :).  the else branch should be $(CONFIG_ROM_BASE).
 
-> + =A0 =A0 =A0 =A0 This copy is a waste of time if the uImage is in fa=
-ct completely
-> + =A0 =A0 =A0 =A0 relocatable. If your kernel and bootloader support =
-it, you can build
-> + =A0 =A0 =A0 =A0 a "kernel_noload" uImage rather than a "kernel" uIm=
-age, which
-> + =A0 =A0 =A0 =A0 prevents any such copying. If unsure say N.
-> +
-> =A0config DEFAULT_HOSTNAME
-> =A0 =A0 =A0 =A0string "Default hostname"
-> =A0 =A0 =A0 =A0default "(none)"
+> +UIMAGE_ENTRYADDR =3D $(shell $(NM) vmlinux | awk '$$NF =3D=3D "__start" =
+{print
+> $$1}')
 
-Thanks,
+i feel like if we tried harder, we could automate the -e arg for all arches=
+=2E =20
+i understand if you don't want to undertake that though.
+=2Dmike
 
---=20
-Julian Calaby
+--nextPart1729674.9qEmhknEMN
+Content-Type: application/pgp-signature; name=signature.asc 
+Content-Description: This is a digitally signed message part.
 
-Email: julian.calaby@gmail.com
-Profile: http://www.google.com/profiles/julian.calaby/
-=2EPlan: http://sites.google.com/site/juliancalaby/
---
-To unsubscribe from this list: send the line "unsubscribe linux-kbuild"=
- in
-the body of a message to majordomo@vger.kernel.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.17 (GNU/Linux)
+
+iQIcBAABAgAGBQJPVtxeAAoJEEFjO5/oN/WBSgMP/0NYD9By3hPOuA64150Lzqmz
+hrC87rAQ7WlAXE1SkOrCd8fDvM6Nej/YMVjAN0KuPM+vnRi00hQjMhvt89OPSzdL
+YSsO+DPovsxIBuHMtbMiu6USflqKhRcWQyY5dMtFuBgVH40WYsF6GgseF3TQjr2a
+++VE5TrSN/OJUjJNc4fBcrmEqOjTUqiujAordEx06Fcs4VnYgGGqVpw3wFSq8VbW
+EN316/HfWmhSKi+sNgChAS+g/0xGknhLDo387u8XNajFGKlZmm1wriSRRq75zXep
+Ck+b2K8FUZ3rwABBg2+IHWW89yketoTNY3KujV5GQ6gvFit5HiYzzWFkcRLz26t/
+gpLkU5FoO4SGRvQlXk191pgonzjdq4HEYp6A9BUdvVoCeAJ1lB3v8wufmFJwOGZe
+M78c0DtoeSZLWzcLAXsxKogFQIrueHHXh2qTqUdO25XfB1+V/EHt/fomRvpR6tje
+tnxaGRA/vSJHgR5b1BTwhdbttH6gdisJd3EKzyt+40+51JVlCZQxUVcTvnx9/8aL
+ehCxBbgEAeJ0N9nb78ALpdOo/21mxDL9SABcOLrROMmYJ5cG4Pxdvqleo88YY7EA
+DgOl+klbKDSL4MCxs2+bK0AnDQzdKKGRSqqWO4fZLyLE7sJ68g3V8SwIyouLZF1v
+M6s+4vX5Av0q9kZ+ZCVH
+=Nc9J
+-----END PGP SIGNATURE-----
+
+--nextPart1729674.9qEmhknEMN--
