@@ -1,32 +1,54 @@
-From: Olof Johansson <olof@lixom.net>
-Subject: Re: [PATCH v3 10/34] powerpc/PCI: allow reallocation on PA Semi
-Date: Wed, 7 Mar 2012 14:35:29 -0800
-Message-ID: <CAOesGMiPJg1gbsq_iBc6_6JrOtTonSoic-gGudBNpmz2BEHv8g@mail.gmail.com>
-References: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
-	<20120307223255.25669.42520.stgit@bhelgaas.mtv.corp.google.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ww0-f44.google.com ([74.125.82.44]:61598 "EHLO
-	mail-ww0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1030794Ab2CGWfa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 17:35:30 -0500
-Received: by wgbdr13 with SMTP id dr13so6000399wgb.1
-        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 14:35:29 -0800 (PST)
-In-Reply-To: <20120307223255.25669.42520.stgit@bhelgaas.mtv.corp.google.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [RFC][PATCH 00/29] Disintegrate and kill asm/system.h
+Date: Wed, 07 Mar 2012 22:40:06 +0000
+Message-ID: <20425.1331160006@redhat.com>
+References: <201203072146.51494.arnd@arndb.de> <20120307194548.15987.36073.stgit@warthog.procyon.org.uk>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <201203072146.51494.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: dhowells@redhat.com, paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, sfr@canb.auug.org.au, mingo@redhat.com, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Mar 7, 2012 at 2:32 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
-> We believe there's no reason to prevent reallocation on PA Semi, so
-> revert to the default of "allow reallocation if necessary."
->
-> CC: Olof Johansson <olof@lixom.net>
-> CC: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> CC: linuxppc-dev@lists.ozlabs.org
-> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
+Arnd Bergmann <arnd@arndb.de> wrote:
 
-Tested-by: Olof Johansson <olof@lixom.net>
-Acked-by: Olof Johansson <olof@lixom.net>
+> One part you were missing seems to be include/asm-generic/system.h, which is
+> used on openrisc and contains a lot of the things you move to other
+> places. It would be helpful to split that up as well.
+
+Hmmm...  okay.  How that is used from an arch that doesn't have an
+asm/system.h?
+
+> >     (4) asm/atomic.h
+> >
+> >         Move xchg() and cmpxchg() here as they're full word atomic ops and
+> >         frequently used by atomic_xchg() and atomic_cmpxchg().
+> 
+> Well, the thing with xchg and cmpxchg is that they operate on arbirary-sized
+> integers, not atomic_t, unlike everything else in atomic.h.
+> 
+> Some architectures already have an asm/cmpxchg.h, which seems more appropriate
+> here.
+
+So I saw.  It might be worth making an asm/xchg.h and asm/cmpxchg.h for each
+arch - or maybe just put both in asm/xchg.h or asm/cmpxchg.h.  Where do I
+include it from though?  One nice thing about sticking them in asm/atomic.h is
+that usually gets all instances, and they're frequently used from there.  How
+about I have asm/atomic.h #include asm/{,cmp}xchg.h?
+
+> >     (6) asm/auxvec.h
+> >
+> >         Move AT_VECTOR_SIZE_ARCH here.
+> 
+> These two look suboptimal, but I don't have a better idea either.
+
+Well, AT_VECTOR_SIZE_ARCH is at least auxvec-related, so I think that's
+probably in the right place.
+
+> How about adding a '-include asm/system.h' gcc switch for each architecture
+> in one patch in the beginning, so that the header becomes included all the
+> time, but then remove that for each arch you go through?
+
+That might circularly dependerise, but it's worth a try.
+
+David
