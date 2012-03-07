@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gy0-f202.google.com ([209.85.160.202]:58163 "EHLO
-	mail-gy0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932764Ab2CGWcf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 17:32:35 -0500
-Received: by mail-gy0-f202.google.com with SMTP id z15so865477ghb.1
-        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 14:32:35 -0800 (PST)
-Subject: [PATCH v3 06/34] microblaze/PCI: remove unused pci_flags
+Received: from mail-ey0-f202.google.com ([209.85.215.202]:58185 "EHLO
+	mail-ey0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1030674Ab2CGWcl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 17:32:41 -0500
+Received: by mail-ey0-f202.google.com with SMTP id q10so249452eaa.1
+        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 14:32:40 -0800 (PST)
+Subject: [PATCH v3 07/34] mips/PCI: replace pci_probe_only with pci_flags
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Wed, 07 Mar 2012 15:32:34 -0700
-Message-ID: <20120307223234.25669.55717.stgit@bhelgaas.mtv.corp.google.com>
+Date: Wed, 07 Mar 2012 15:32:39 -0700
+Message-ID: <20120307223239.25669.48116.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -17,139 +17,158 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au
-Message-ID: <20120307223234.UC9qEiYZlj73R2-SY0eTeh7xb5PZobPQbIJRLMt920g@z>
+Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org
+Message-ID: <20120307223239.JaKAqrP6ahE1SWD5_vjr-y-hLKXd_OIAibSLT_USvGE@z>
 
-pci_flags is initialized to zero and never modified (I think this was just
-copied from powerpc).  Therefore, "(pci_flags & XX)" is always false and
-"!(pci_flags & XX)" is always true, and we can remove all references
-to pci_flags.
+Some architectures (alpha, mips, powerpc) have an arch-specific
+"pci_probe_only" flag.  Others use PCI_PROBE_ONLY in pci_flags for
+the same purpose.  This moves mips to the pci_flags approach so
+generic code can use the same test across all architectures.
 
-CC: Michal Simek <monstr@monstr.eu>
-CC: microblaze-uclinux@itee.uq.edu.au
+CC: Ralf Baechle <ralf@linux-mips.org>
+CC: linux-mips@linux-mips.org
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/microblaze/include/asm/pci-bridge.h |    1 -
- arch/microblaze/pci/pci-common.c         |   48 ++++++------------------------
- 2 files changed, 9 insertions(+), 40 deletions(-)
+ arch/mips/include/asm/pci.h |    3 +--
+ arch/mips/pci/pci-bcm1480.c |    2 +-
+ arch/mips/pci/pci-ip27.c    |    2 +-
+ arch/mips/pci/pci-lantiq.c  |    3 ++-
+ arch/mips/pci/pci-sb1250.c  |    2 +-
+ arch/mips/pci/pci-xlr.c     |    2 +-
+ arch/mips/pci/pci.c         |   13 +++++--------
+ 7 files changed, 12 insertions(+), 15 deletions(-)
 
-diff --git a/arch/microblaze/include/asm/pci-bridge.h b/arch/microblaze/include/asm/pci-bridge.h
-index e9834b2..cb5d397 100644
---- a/arch/microblaze/include/asm/pci-bridge.h
-+++ b/arch/microblaze/include/asm/pci-bridge.h
-@@ -10,7 +10,6 @@
- #include <linux/pci.h>
- #include <linux/list.h>
- #include <linux/ioport.h>
--#include <asm-generic/pci-bridge.h>
+diff --git a/arch/mips/include/asm/pci.h b/arch/mips/include/asm/pci.h
+index 576397c..1e4fa3d 100644
+--- a/arch/mips/include/asm/pci.h
++++ b/arch/mips/include/asm/pci.h
+@@ -92,6 +92,7 @@ extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
+ #include <asm/scatterlist.h>
+ #include <linux/string.h>
+ #include <asm/io.h>
++#include <asm-generic/pci-bridge.h>
  
- struct device_node;
+ struct pci_dev;
  
-diff --git a/arch/microblaze/pci/pci-common.c b/arch/microblaze/pci/pci-common.c
-index 85f2ac1..8a257a7 100644
---- a/arch/microblaze/pci/pci-common.c
-+++ b/arch/microblaze/pci/pci-common.c
-@@ -46,9 +46,6 @@ static int global_phb_number;		/* Global phb counter */
- /* ISA Memory physical address */
- resource_size_t isa_mem_base;
+@@ -145,8 +146,6 @@ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
+ #define arch_setup_msi_irqs arch_setup_msi_irqs
+ #endif
  
--/* Default PCI flags is 0 on ppc32, modified at boot on ppc64 */
--unsigned int pci_flags;
+-extern int pci_probe_only;
 -
- static struct dma_map_ops *pci_dma_ops = &dma_direct_ops;
+ extern char * (*pcibios_plat_setup)(char *str);
  
- unsigned long isa_io_base;
-@@ -833,11 +830,7 @@ int pci_proc_domain(struct pci_bus *bus)
+ #endif /* _ASM_PCI_H */
+diff --git a/arch/mips/pci/pci-bcm1480.c b/arch/mips/pci/pci-bcm1480.c
+index af8c319..37b52dc 100644
+--- a/arch/mips/pci/pci-bcm1480.c
++++ b/arch/mips/pci/pci-bcm1480.c
+@@ -204,7 +204,7 @@ static int __init bcm1480_pcibios_init(void)
+ 	uint64_t reg;
+ 
+ 	/* CFE will assign PCI resources */
+-	pci_probe_only = 1;
++	pci_set_flags(PCI_PROBE_ONLY);
+ 
+ 	/* Avoid ISA compat ranges.  */
+ 	PCIBIOS_MIN_IO = 0x00008000UL;
+diff --git a/arch/mips/pci/pci-ip27.c b/arch/mips/pci/pci-ip27.c
+index 193e949..0fbe4c0 100644
+--- a/arch/mips/pci/pci-ip27.c
++++ b/arch/mips/pci/pci-ip27.c
+@@ -50,7 +50,7 @@ int __cpuinit bridge_probe(nasid_t nasid, int widget_id, int masterwid)
+ 	bridge_t *bridge;
+ 	int slot;
+ 
+-	pci_probe_only = 1;
++	pci_set_flags(PCI_PROBE_ONLY);
+ 
+ 	printk("a bridge\n");
+ 
+diff --git a/arch/mips/pci/pci-lantiq.c b/arch/mips/pci/pci-lantiq.c
+index be1e1af..030c77e 100644
+--- a/arch/mips/pci/pci-lantiq.c
++++ b/arch/mips/pci/pci-lantiq.c
+@@ -270,7 +270,8 @@ static int __devinit ltq_pci_probe(struct platform_device *pdev)
  {
- 	struct pci_controller *hose = pci_bus_to_host(bus);
+ 	struct ltq_pci_data *ltq_pci_data =
+ 		(struct ltq_pci_data *) pdev->dev.platform_data;
+-	pci_probe_only = 0;
++
++	pci_clear_flags(PCI_PROBE_ONLY);
+ 	ltq_pci_irq_map = ltq_pci_data->irq;
+ 	ltq_pci_membase = ioremap_nocache(PCI_CR_BASE_ADDR, PCI_CR_SIZE);
+ 	ltq_pci_mapped_cfg =
+diff --git a/arch/mips/pci/pci-sb1250.c b/arch/mips/pci/pci-sb1250.c
+index 1711e8e..dd97f3a 100644
+--- a/arch/mips/pci/pci-sb1250.c
++++ b/arch/mips/pci/pci-sb1250.c
+@@ -213,7 +213,7 @@ static int __init sb1250_pcibios_init(void)
+ 	uint64_t reg;
  
--	if (!(pci_flags & PCI_ENABLE_PROC_DOMAINS))
--		return 0;
--	if (pci_flags & PCI_COMPAT_DOMAIN_0)
--		return hose->global_number != 0;
--	return 1;
-+	return 0;
- }
+ 	/* CFE will assign PCI resources */
+-	pci_probe_only = 1;
++	pci_set_flags(PCI_PROBE_ONLY);
  
- void pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
-@@ -910,13 +903,7 @@ static void __devinit pcibios_fixup_resources(struct pci_dev *dev)
- 		struct resource *res = dev->resource + i;
- 		if (!res->flags)
- 			continue;
--		/* On platforms that have PCI_PROBE_ONLY set, we don't
--		 * consider 0 as an unassigned BAR value. It's technically
--		 * a valid value, but linux doesn't like it... so when we can
--		 * re-assign things, we do so, but if we can't, we keep it
--		 * around and hope for the best...
--		 */
--		if (res->start == 0 && !(pci_flags & PCI_PROBE_ONLY)) {
-+		if (res->start == 0) {
- 			pr_debug("PCI:%s Resource %d %016llx-%016llx [%x]" \
- 							"is unassigned\n",
- 				 pci_name(dev), i,
-@@ -959,10 +946,6 @@ static int __devinit pcibios_uninitialized_bridge_resource(struct pci_bus *bus,
- 	u16 command;
- 	int i;
- 
--	/* We don't do anything if PCI_PROBE_ONLY is set */
--	if (pci_flags & PCI_PROBE_ONLY)
--		return 0;
--
- 	/* Job is a bit different between memory and IO */
- 	if (res->flags & IORESOURCE_MEM) {
- 		/* If the BAR is non-0 (res != pci_mem_offset) then it's
-@@ -1107,9 +1090,6 @@ EXPORT_SYMBOL(pcibios_fixup_bus);
- 
- static int skip_isa_ioresource_align(struct pci_dev *dev)
+ 	/* Avoid ISA compat ranges.  */
+ 	PCIBIOS_MIN_IO = 0x00008000UL;
+diff --git a/arch/mips/pci/pci-xlr.c b/arch/mips/pci/pci-xlr.c
+index 3d701a9..1644805 100644
+--- a/arch/mips/pci/pci-xlr.c
++++ b/arch/mips/pci/pci-xlr.c
+@@ -292,7 +292,7 @@ int pcibios_plat_dev_init(struct pci_dev *dev)
+ static int __init pcibios_init(void)
  {
--	if ((pci_flags & PCI_CAN_SKIP_ISA_ALIGN) &&
--	    !(dev->bus->bridge_ctl & PCI_BRIDGE_CTL_ISA))
--		return 1;
- 	return 0;
- }
+ 	/* PSB assigns PCI resources */
+-	pci_probe_only = 1;
++	pci_set_flags(PCI_PROBE_ONLY);
+ 	pci_config_base = ioremap(DEFAULT_PCI_CONFIG_BASE, 16 << 20);
  
-@@ -1236,8 +1216,6 @@ void pcibios_allocate_bus_resources(struct pci_bus *bus)
- 			 * and as such ensure proper re-allocation
- 			 * later.
- 			 */
--			if (pci_flags & PCI_REASSIGN_ALL_RSRC)
--				goto clear_resource;
- 			pr = pci_find_parent_resource(bus->self, res);
- 			if (pr == res) {
- 				/* this happens when the generic PCI
-@@ -1422,27 +1400,19 @@ void __init pcibios_resource_survey(void)
- 	list_for_each_entry(b, &pci_root_buses, node)
- 		pcibios_allocate_bus_resources(b);
+ 	/* Extend IO port for memory mapped io */
+diff --git a/arch/mips/pci/pci.c b/arch/mips/pci/pci.c
+index aec2b11..2a11045 100644
+--- a/arch/mips/pci/pci.c
++++ b/arch/mips/pci/pci.c
+@@ -20,12 +20,9 @@
+ #include <asm/cpu-info.h>
  
--	if (!(pci_flags & PCI_REASSIGN_ALL_RSRC)) {
--		pcibios_allocate_resources(0);
--		pcibios_allocate_resources(1);
--	}
-+	pcibios_allocate_resources(0);
-+	pcibios_allocate_resources(1);
+ /*
+- * Indicate whether we respect the PCI setup left by the firmware.
+- *
+- * Make this long-lived  so that we know when shutting down
+- * whether we probed only or not.
++ * If PCI_PROBE_ONLY in pci_flags is set, we don't change any PCI resource
++ * assignments.
+  */
+-int pci_probe_only;
  
- 	/* Before we start assigning unassigned resource, we try to reserve
- 	 * the low IO area and the VGA memory area if they intersect the
- 	 * bus available resources to avoid allocating things on top of them
- 	 */
--	if (!(pci_flags & PCI_PROBE_ONLY)) {
--		list_for_each_entry(b, &pci_root_buses, node)
--			pcibios_reserve_legacy_regions(b);
--	}
-+	list_for_each_entry(b, &pci_root_buses, node)
-+		pcibios_reserve_legacy_regions(b);
+ #define PCI_ASSIGN_ALL_BUSSES	1
  
--	/* Now, if the platform didn't decide to blindly trust the firmware,
--	 * we proceed to assigning things that were left unassigned
--	 */
--	if (!(pci_flags & PCI_PROBE_ONLY)) {
--		pr_debug("PCI: Assigning unassigned resources...\n");
--		pci_assign_unassigned_resources();
--	}
-+	/* Now proceed to assigning things that were left unassigned */
-+	pr_debug("PCI: Assigning unassigned resources...\n");
-+	pci_assign_unassigned_resources();
- }
+@@ -92,7 +89,7 @@ static void __devinit pcibios_scanbus(struct pci_controller *hose)
+ 	if (!hose->iommu)
+ 		PCI_DMA_BUS_IS_PHYS = 1;
  
- #ifdef CONFIG_HOTPLUG
+-	if (hose->get_busno && pci_probe_only)
++	if (hose->get_busno && pci_has_flag(PCI_PROBE_ONLY))
+ 		next_busno = (*hose->get_busno)();
+ 
+ 	pci_add_resource(&resources, hose->mem_resource);
+@@ -115,7 +112,7 @@ static void __devinit pcibios_scanbus(struct pci_controller *hose)
+ 			need_domain_info = 1;
+ 		}
+ 
+-		if (!pci_probe_only) {
++		if (!pci_has_flag(PCI_PROBE_ONLY)) {
+ 			pci_bus_size_bridges(bus);
+ 			pci_bus_assign_resources(bus);
+ 			pci_enable_bridges(bus);
+@@ -282,7 +279,7 @@ void __devinit pcibios_fixup_bus(struct pci_bus *bus)
+ 	struct list_head *ln;
+ 	struct pci_dev *dev = bus->self;
+ 
+-	if (pci_probe_only && dev &&
++	if (pci_has_flag(PCI_PROBE_ONLY) && dev &&
+ 	    (dev->class >> 8) == PCI_CLASS_BRIDGE_PCI) {
+ 		pci_read_bridge_bases(bus);
+ 		pcibios_fixup_device_resources(dev, bus);
 
