@@ -1,327 +1,78 @@
 From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: [PATCH v3 31/34] PCI: collapse pcibios_resource_to_bus
-Date: Wed, 07 Mar 2012 15:34:42 -0700
-Message-ID: <20120307223442.25669.78431.stgit@bhelgaas.mtv.corp.google.com>
+Subject: [PATCH v3 32/34] PCI: allow P2P bridge windows starting at PCI bus
+	address zero
+Date: Wed, 07 Mar 2012 15:34:47 -0700
+Message-ID: <20120307223447.25669.75889.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-gy0-f202.google.com ([209.85.160.202]:44542 "EHLO
+	mail-gy0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1030813Ab2CGWes (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 17:34:48 -0500
+Received: by ghbz15 with SMTP id z15so865810ghb.1
+        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 14:34:48 -0800 (PST)
 In-Reply-To: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-Everybody uses the generic pcibios_resource_to_bus() supplied by the core
-now, so remove the ARCH_HAS_GENERIC_PCI_OFFSETS used during conversion.
+cd81e1ea1a4c added checks that prevent us from using P2P bridge windows
+that start at PCI bus address zero.  The reason was to "prevent us from
+overwriting resources that are unassigned."
 
+But generic code should allow address zero in both BARs and bridge
+windows, so I think that commit was a mistake.
+
+Windows at bus address zero are legal and likely to exist on machines with
+an offset between bus addresses and CPU addresses.  For example, in the
+following hypothetical scenario, the bridge at 00:01.0 has a window at bus
+address zero and the device at 01:00.0 has a BAR at bus address zero, and
+I think both are perfectly valid:
+
+    PCI host bridge to bus 0000:00
+    pci_bus 0000:00: root bus resource [mem 0x100000000-0x1ffffffff] (bus address [0x00000000-0xffffffff])
+    pci 0000:00:01.0: PCI bridge to [bus 01]
+    pci 0000:00:01.0:   bridge window [mem 0x100000000-0x100ffffff]
+    pci 0000:01:00.0: reg 10: [mem 0x100000000-0x100ffffff]
+
+CC: Yinghai Lu <yinghai@kernel.org>
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/alpha/include/asm/pci.h      |    2 --
- arch/arm/include/asm/pci.h        |    2 --
- arch/ia64/include/asm/pci.h       |    2 --
- arch/microblaze/include/asm/pci.h |    2 --
- arch/mips/include/asm/pci.h       |    2 --
- arch/mn10300/include/asm/pci.h    |    2 --
- arch/parisc/include/asm/pci.h     |    2 --
- arch/powerpc/include/asm/pci.h    |    2 --
- arch/sh/include/asm/pci.h         |    2 --
- arch/sparc/include/asm/pci_32.h   |    2 --
- arch/sparc/include/asm/pci_64.h   |    2 --
- drivers/pci/probe.c               |   44 +++++++++++++------------------------
- include/asm-generic/pci.h         |    2 --
- 13 files changed, 15 insertions(+), 53 deletions(-)
+ drivers/pci/probe.c |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
 
-diff --git a/arch/alpha/include/asm/pci.h b/arch/alpha/include/asm/pci.h
-index 121c797..d01afb7 100644
---- a/arch/alpha/include/asm/pci.h
-+++ b/arch/alpha/include/asm/pci.h
-@@ -100,8 +100,6 @@ static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
- 	return channel ? 15 : 14;
- }
- 
--#define ARCH_HAS_GENERIC_PCI_OFFSETS
--
- #define pci_domain_nr(bus) ((struct pci_controller *)(bus)->sysdata)->index
- 
- static inline int pci_proc_domain(struct pci_bus *bus)
-diff --git a/arch/arm/include/asm/pci.h b/arch/arm/include/asm/pci.h
-index 4748a75..a98a2e1 100644
---- a/arch/arm/include/asm/pci.h
-+++ b/arch/arm/include/asm/pci.h
-@@ -57,8 +57,6 @@ static inline void pci_dma_burst_advice(struct pci_dev *pdev,
- extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
-                                enum pci_mmap_state mmap_state, int write_combine);
- 
--#define ARCH_HAS_GENERIC_PCI_OFFSETS
--
- /*
-  * Dummy implementation; always return 0.
-  */
-diff --git a/arch/ia64/include/asm/pci.h b/arch/ia64/include/asm/pci.h
-index 519bb5c..b22e5f5 100644
---- a/arch/ia64/include/asm/pci.h
-+++ b/arch/ia64/include/asm/pci.h
-@@ -108,8 +108,6 @@ static inline int pci_proc_domain(struct pci_bus *bus)
- 	return (pci_domain_nr(bus) != 0);
- }
- 
--#define ARCH_HAS_GENERIC_PCI_OFFSETS
--
- static inline struct resource *
- pcibios_select_root(struct pci_dev *pdev, struct resource *res)
- {
-diff --git a/arch/microblaze/include/asm/pci.h b/arch/microblaze/include/asm/pci.h
-index 8db01f7..a0da88b 100644
---- a/arch/microblaze/include/asm/pci.h
-+++ b/arch/microblaze/include/asm/pci.h
-@@ -94,8 +94,6 @@ extern int pci_mmap_legacy_page_range(struct pci_bus *bus,
-  */
- #define PCI_DMA_BUS_IS_PHYS     (1)
- 
--#define ARCH_HAS_GENERIC_PCI_OFFSETS
--
- static inline struct resource *pcibios_select_root(struct pci_dev *pdev,
- 			struct resource *res)
- {
-diff --git a/arch/mips/include/asm/pci.h b/arch/mips/include/asm/pci.h
-index 6420e8d..fcd4060 100644
---- a/arch/mips/include/asm/pci.h
-+++ b/arch/mips/include/asm/pci.h
-@@ -113,8 +113,6 @@ static inline void pci_dma_burst_advice(struct pci_dev *pdev,
- }
- #endif
- 
--#define ARCH_HAS_GENERIC_PCI_OFFSETS
--
- #define pci_domain_nr(bus) ((struct pci_controller *)(bus)->sysdata)->index
- 
- static inline int pci_proc_domain(struct pci_bus *bus)
-diff --git a/arch/mn10300/include/asm/pci.h b/arch/mn10300/include/asm/pci.h
-index dfe1581..8137c25 100644
---- a/arch/mn10300/include/asm/pci.h
-+++ b/arch/mn10300/include/asm/pci.h
-@@ -85,8 +85,6 @@ extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
- /* implement the pci_ DMA API in terms of the generic device dma_ one */
- #include <asm-generic/pci-dma-compat.h>
- 
--#define ARCH_HAS_GENERIC_PCI_OFFSETS
--
- static inline struct resource *
- pcibios_select_root(struct pci_dev *pdev, struct resource *res)
- {
-diff --git a/arch/parisc/include/asm/pci.h b/arch/parisc/include/asm/pci.h
-index a8b591f..3234f49 100644
---- a/arch/parisc/include/asm/pci.h
-+++ b/arch/parisc/include/asm/pci.h
-@@ -215,8 +215,6 @@ static inline void pci_dma_burst_advice(struct pci_dev *pdev,
- }
- #endif
- 
--#define ARCH_HAS_GENERIC_PCI_OFFSETS
--
- static inline void pcibios_penalize_isa_irq(int irq, int active)
- {
- 	/* We don't need to penalize isa irq's */
-diff --git a/arch/powerpc/include/asm/pci.h b/arch/powerpc/include/asm/pci.h
-index 21fbeeb..6653f27 100644
---- a/arch/powerpc/include/asm/pci.h
-+++ b/arch/powerpc/include/asm/pci.h
-@@ -154,8 +154,6 @@ extern int pci_mmap_legacy_page_range(struct pci_bus *bus,
- 
- #endif /* CONFIG_PPC64 */
- 
--#define ARCH_HAS_GENERIC_PCI_OFFSETS
--
- extern void pcibios_claim_one_bus(struct pci_bus *b);
- 
- extern void pcibios_finish_adding_to_bus(struct pci_bus *bus);
-diff --git a/arch/sh/include/asm/pci.h b/arch/sh/include/asm/pci.h
-index 3b5b6ab..bff96c2 100644
---- a/arch/sh/include/asm/pci.h
-+++ b/arch/sh/include/asm/pci.h
-@@ -114,8 +114,6 @@ static inline void pci_dma_burst_advice(struct pci_dev *pdev,
- /* Board-specific fixup routines. */
- int pcibios_map_platform_irq(const struct pci_dev *dev, u8 slot, u8 pin);
- 
--#define ARCH_HAS_GENERIC_PCI_OFFSETS
--
- #define pci_domain_nr(bus) ((struct pci_channel *)(bus)->sysdata)->index
- 
- static inline int pci_proc_domain(struct pci_bus *bus)
-diff --git a/arch/sparc/include/asm/pci_32.h b/arch/sparc/include/asm/pci_32.h
-index 6384f30..dc50329 100644
---- a/arch/sparc/include/asm/pci_32.h
-+++ b/arch/sparc/include/asm/pci_32.h
-@@ -52,8 +52,6 @@ static inline void pci_dma_burst_advice(struct pci_dev *pdev,
-  * 64Kbytes by the Host controller.
-  */
- 
--#define ARCH_HAS_GENERIC_PCI_OFFSETS
--
- static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
- {
- 	return PCI_IRQ_NONE;
-diff --git a/arch/sparc/include/asm/pci_64.h b/arch/sparc/include/asm/pci_64.h
-index 2918bd1..1633b71 100644
---- a/arch/sparc/include/asm/pci_64.h
-+++ b/arch/sparc/include/asm/pci_64.h
-@@ -73,8 +73,6 @@ extern int pci_mmap_page_range(struct pci_dev *dev, struct vm_area_struct *vma,
- 			       enum pci_mmap_state mmap_state,
- 			       int write_combine);
- 
--#define ARCH_HAS_GENERIC_PCI_OFFSETS
--
- static inline int pci_get_legacy_ide_irq(struct pci_dev *dev, int channel)
- {
- 	return PCI_IRQ_NONE;
 diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 13fec71..d181e48 100644
+index d181e48..b81ec1c 100644
 --- a/drivers/pci/probe.c
 +++ b/drivers/pci/probe.c
-@@ -66,8 +66,8 @@ static bool resource_contains(struct resource *res1, struct resource *res2)
- 	return res1->start <= res2->start && res1->end >= res2->end;
- }
- 
--void pci_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
--			struct resource *res)
-+void pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
-+			     struct resource *res)
- {
- 	struct pci_host_bridge *bridge = pci_host_bridge(dev);
- 	struct pci_host_bridge_window *window;
-@@ -86,6 +86,7 @@ void pci_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
- 	region->start = res->start - offset;
- 	region->end = res->end - offset;
- }
-+EXPORT_SYMBOL(pcibios_resource_to_bus);
- 
- static bool region_contains(struct pci_bus_region *region1,
- 			    struct pci_bus_region *region2)
-@@ -93,8 +94,8 @@ static bool region_contains(struct pci_bus_region *region1,
- 	return region1->start <= region2->start && region1->end >= region2->end;
- }
- 
--void pci_bus_to_resource(struct pci_dev *dev, struct resource *res,
--			 struct pci_bus_region *region)
-+void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
-+			     struct pci_bus_region *region)
- {
- 	struct pci_host_bridge *bridge = pci_host_bridge(dev);
- 	struct pci_host_bridge_window *window;
-@@ -117,22 +118,7 @@ void pci_bus_to_resource(struct pci_dev *dev, struct resource *res,
- 	res->start = region->start + offset;
- 	res->end = region->end + offset;
- }
--
--#ifdef ARCH_HAS_GENERIC_PCI_OFFSETS
--void pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
--			     struct resource *res)
--{
--	pci_resource_to_bus(dev, region, res);
--}
--EXPORT_SYMBOL(pcibios_resource_to_bus);
--
--void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
--			     struct pci_bus_region *region)
--{
--	pci_bus_to_resource(dev, res, region);
--}
- EXPORT_SYMBOL(pcibios_bus_to_resource);
--#endif
- 
- /*
-  * PCI Bus Class
-@@ -309,11 +295,11 @@ int __pci_read_base(struct pci_dev *dev, enum pci_bar_type type,
- 			pci_write_config_dword(dev, pos + 4, 0);
- 			region.start = 0;
- 			region.end = sz64;
--			pci_bus_to_resource(dev, res, &region);
-+			pcibios_bus_to_resource(dev, res, &region);
- 		} else {
- 			region.start = l64;
- 			region.end = l64 + sz64;
--			pci_bus_to_resource(dev, res, &region);
-+			pcibios_bus_to_resource(dev, res, &region);
- 			dev_printk(KERN_DEBUG, &dev->dev, "reg %x: %pR\n",
- 				   pos, res);
- 		}
-@@ -325,7 +311,7 @@ int __pci_read_base(struct pci_dev *dev, enum pci_bar_type type,
- 
- 		region.start = l;
- 		region.end = l + sz;
--		pci_bus_to_resource(dev, res, &region);
-+		pcibios_bus_to_resource(dev, res, &region);
- 
- 		dev_printk(KERN_DEBUG, &dev->dev, "reg %x: %pR\n", pos, res);
+@@ -365,7 +365,7 @@ static void __devinit pci_read_bridge_io(struct pci_bus *child)
+ 		limit |= (io_limit_hi << 16);
  	}
-@@ -384,7 +370,7 @@ static void __devinit pci_read_bridge_io(struct pci_bus *child)
+ 
+-	if (base && base <= limit) {
++	if (base <= limit) {
+ 		res->flags = (io_base_lo & PCI_IO_RANGE_TYPE_MASK) | IORESOURCE_IO;
  		res2.flags = res->flags;
  		region.start = base;
- 		region.end = limit + 0xfff;
--		pci_bus_to_resource(dev, &res2, &region);
-+		pcibios_bus_to_resource(dev, &res2, &region);
- 		if (!res->start)
- 			res->start = res2.start;
- 		if (!res->end)
-@@ -410,7 +396,7 @@ static void __devinit pci_read_bridge_mmio(struct pci_bus *child)
+@@ -392,7 +392,7 @@ static void __devinit pci_read_bridge_mmio(struct pci_bus *child)
+ 	pci_read_config_word(dev, PCI_MEMORY_LIMIT, &mem_limit_lo);
+ 	base = (mem_base_lo & PCI_MEMORY_RANGE_MASK) << 16;
+ 	limit = (mem_limit_lo & PCI_MEMORY_RANGE_MASK) << 16;
+-	if (base && base <= limit) {
++	if (base <= limit) {
  		res->flags = (mem_base_lo & PCI_MEMORY_RANGE_TYPE_MASK) | IORESOURCE_MEM;
  		region.start = base;
  		region.end = limit + 0xfffff;
--		pci_bus_to_resource(dev, res, &region);
-+		pcibios_bus_to_resource(dev, res, &region);
- 		dev_printk(KERN_DEBUG, &dev->dev, "  bridge window %pR\n", res);
- 	}
- }
-@@ -459,7 +445,7 @@ static void __devinit pci_read_bridge_mmio_pref(struct pci_bus *child)
- 			res->flags |= IORESOURCE_MEM_64;
- 		region.start = base;
- 		region.end = limit + 0xfffff;
--		pci_bus_to_resource(dev, res, &region);
-+		pcibios_bus_to_resource(dev, res, &region);
- 		dev_printk(KERN_DEBUG, &dev->dev, "  bridge window %pR\n", res);
- 	}
- }
-@@ -1072,24 +1058,24 @@ int pci_setup_device(struct pci_dev *dev)
- 				region.end = 0x1F7;
- 				res = &dev->resource[0];
- 				res->flags = LEGACY_IO_RESOURCE;
--				pci_bus_to_resource(dev, res, &region);
-+				pcibios_bus_to_resource(dev, res, &region);
- 				region.start = 0x3F6;
- 				region.end = 0x3F6;
- 				res = &dev->resource[1];
- 				res->flags = LEGACY_IO_RESOURCE;
--				pci_bus_to_resource(dev, res, &region);
-+				pcibios_bus_to_resource(dev, res, &region);
- 			}
- 			if ((progif & 4) == 0) {
- 				region.start = 0x170;
- 				region.end = 0x177;
- 				res = &dev->resource[2];
- 				res->flags = LEGACY_IO_RESOURCE;
--				pci_bus_to_resource(dev, res, &region);
-+				pcibios_bus_to_resource(dev, res, &region);
- 				region.start = 0x376;
- 				region.end = 0x376;
- 				res = &dev->resource[3];
- 				res->flags = LEGACY_IO_RESOURCE;
--				pci_bus_to_resource(dev, res, &region);
-+				pcibios_bus_to_resource(dev, res, &region);
- 			}
+@@ -438,7 +438,7 @@ static void __devinit pci_read_bridge_mmio_pref(struct pci_bus *child)
+ #endif
  		}
- 		break;
-diff --git a/include/asm-generic/pci.h b/include/asm-generic/pci.h
-index 0410346..e80a049 100644
---- a/include/asm-generic/pci.h
-+++ b/include/asm-generic/pci.h
-@@ -6,8 +6,6 @@
- #ifndef _ASM_GENERIC_PCI_H
- #define _ASM_GENERIC_PCI_H
- 
--#define ARCH_HAS_GENERIC_PCI_OFFSETS
--
- static inline struct resource *
- pcibios_select_root(struct pci_dev *pdev, struct resource *res)
- {
+ 	}
+-	if (base && base <= limit) {
++	if (base <= limit) {
+ 		res->flags = (mem_base_lo & PCI_PREF_RANGE_TYPE_MASK) |
+ 					 IORESOURCE_MEM | IORESOURCE_PREFETCH;
+ 		if (res->flags & PCI_PREF_RANGE_TYPE_64)
