@@ -1,15 +1,15 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-fa0-f74.google.com ([209.85.161.74]:63451 "EHLO
-	mail-fa0-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965026Ab2CGWkx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 17:40:53 -0500
-Received: by faaa19 with SMTP id a19so250719faa.1
-        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 14:40:50 -0800 (PST)
-Subject: [PATCH v3 15/34] PCI: add struct pci_host_bridge and a list of all
-	bridges found
+Received: from mail-vx0-f202.google.com ([209.85.220.202]:47354 "EHLO
+	mail-vx0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965219Ab2CGWlL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 17:41:11 -0500
+Received: by vcbfk26 with SMTP id fk26so863488vcb.1
+        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 14:41:10 -0800 (PST)
+Subject: [PATCH v3 34/34] sparc/PCI: replace pci_cfg_fake_ranges() with
+	pci_read_bridge_bases()
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Wed, 07 Mar 2012 15:33:20 -0700
-Message-ID: <20120307223320.25669.75545.stgit@bhelgaas.mtv.corp.google.com>
+Date: Wed, 07 Mar 2012 15:34:58 -0700
+Message-ID: <20120307223458.25669.55751.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -18,131 +18,127 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org
-Message-ID: <20120307223320.X4PfEx0cbHVFfmzDW8gqT0VPicpq_EYcK8yvM71NZtY@z>
+Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, sparclinux@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20120307223458._bdQeFaBPyr0lIOZuo-T9rDgOZG_TEi18VGCGrxmElc@z>
 
-This adds a list of all PCI host bridges we find and a way to look up
-the host bridge from a pci_dev.
+The generic code to read P2P bridge windows is functionally equivalent
+to the sparc-specific pci_cfg_fake_ranges(), so use the generic code.
 
+CC: "David S. Miller" <davem@davemloft.net>
+CC: sparclinux@vger.kernel.org
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- drivers/pci/probe.c |   39 ++++++++++++++++++++++++++++++++++-----
- include/linux/pci.h |    5 +++++
- 2 files changed, 39 insertions(+), 5 deletions(-)
+ arch/sparc/kernel/pci.c |   92 +----------------------------------------------
+ 1 files changed, 1 insertions(+), 91 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index e4c0d1c..3a30023 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -15,6 +15,8 @@
- #define CARDBUS_LATENCY_TIMER	176	/* secondary latency timer */
- #define CARDBUS_RESERVE_BUSNR	3
- 
-+static LIST_HEAD(pci_host_bridges);
-+
- /* Ugh.  Need to stop exporting this to modules. */
- LIST_HEAD(pci_root_buses);
- EXPORT_SYMBOL(pci_root_buses);
-@@ -42,6 +44,23 @@ int no_pci_devices(void)
+diff --git a/arch/sparc/kernel/pci.c b/arch/sparc/kernel/pci.c
+index 86610de..fa53d55 100644
+--- a/arch/sparc/kernel/pci.c
++++ b/arch/sparc/kernel/pci.c
+@@ -375,96 +375,6 @@ static void __devinit apb_calc_first_last(u8 map, u32 *first_p, u32 *last_p)
+ 	*last_p = last;
  }
- EXPORT_SYMBOL(no_pci_devices);
  
-+static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
-+{
-+	struct pci_bus *bus;
-+	struct pci_host_bridge *bridge;
-+
-+	bus = dev->bus;
-+	while (bus->parent)
-+		bus = bus->parent;
-+
-+	list_for_each_entry(bridge, &pci_host_bridges, list) {
-+		if (bridge->bus == bus)
-+			return bridge;
-+	}
-+
-+	return NULL;
-+}
-+
- /*
-  * PCI Bus Class
-  */
-@@ -1544,20 +1563,23 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 		struct pci_ops *ops, void *sysdata, struct list_head *resources)
- {
- 	int error, i;
-+	struct pci_host_bridge *bridge;
- 	struct pci_bus *b, *b2;
- 	struct device *dev;
- 	struct pci_bus_resource *bus_res, *n;
- 	struct resource *res;
- 
-+	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
-+	if (!bridge)
-+		return NULL;
-+
- 	b = pci_alloc_bus();
- 	if (!b)
--		return NULL;
-+		goto err_bus;
- 
- 	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
--	if (!dev) {
--		kfree(b);
--		return NULL;
+-/* For PCI bus devices which lack a 'ranges' property we interrogate
+- * the config space values to set the resources, just like the generic
+- * Linux PCI probing code does.
+- */
+-static void __devinit pci_cfg_fake_ranges(struct pci_dev *dev,
+-					  struct pci_bus *bus,
+-					  struct pci_pbm_info *pbm)
+-{
+-	struct pci_bus_region region;
+-	struct resource *res;
+-	u8 io_base_lo, io_limit_lo;
+-	u16 mem_base_lo, mem_limit_lo;
+-	unsigned long io_mask, io_granularity, base, limit;
+-
+-	io_mask = PCI_IO_RANGE_MASK;
+-	io_granularity = 0x1000;
+-	if (dev->io_window_1k) {
+-		/* Support 1K I/O space granularity */
+-		io_mask = PCI_IO_1K_RANGE_MASK;
+-		io_granularity = 0x400;
 -	}
-+	if (!dev)
-+		goto err_dev;
- 
- 	b->sysdata = sysdata;
- 	b->ops = ops;
-@@ -1594,6 +1616,8 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 
- 	b->number = b->secondary = bus;
- 
-+	bridge->bus = b;
-+
- 	/* Add initial resources to the bus */
- 	list_for_each_entry_safe(bus_res, n, resources, list)
- 		list_move_tail(&bus_res->list, &b->resources);
-@@ -1609,6 +1633,7 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+-
+-	pci_read_config_byte(dev, PCI_IO_BASE, &io_base_lo);
+-	pci_read_config_byte(dev, PCI_IO_LIMIT, &io_limit_lo);
+-	base = (io_base_lo & io_mask) << 8;
+-	limit = (io_limit_lo & io_mask) << 8;
+-
+-	if ((io_base_lo & PCI_IO_RANGE_TYPE_MASK) == PCI_IO_RANGE_TYPE_32) {
+-		u16 io_base_hi, io_limit_hi;
+-
+-		pci_read_config_word(dev, PCI_IO_BASE_UPPER16, &io_base_hi);
+-		pci_read_config_word(dev, PCI_IO_LIMIT_UPPER16, &io_limit_hi);
+-		base |= (io_base_hi << 16);
+-		limit |= (io_limit_hi << 16);
+-	}
+-
+-	res = bus->resource[0];
+-	if (base <= limit) {
+-		res->flags = (io_base_lo & PCI_IO_RANGE_TYPE_MASK) | IORESOURCE_IO;
+-		region.start = base;
+-		region.end = limit + io_granularity - 1;
+-		pcibios_bus_to_resource(dev, res, &region);
+-	}
+-
+-	pci_read_config_word(dev, PCI_MEMORY_BASE, &mem_base_lo);
+-	pci_read_config_word(dev, PCI_MEMORY_LIMIT, &mem_limit_lo);
+-	base = (mem_base_lo & PCI_MEMORY_RANGE_MASK) << 16;
+-	limit = (mem_limit_lo & PCI_MEMORY_RANGE_MASK) << 16;
+-
+-	res = bus->resource[1];
+-	if (base <= limit) {
+-		res->flags = ((mem_base_lo & PCI_MEMORY_RANGE_TYPE_MASK) |
+-			      IORESOURCE_MEM);
+-		region.start = base;
+-		region.end = limit + 0xfffff;
+-		pcibios_bus_to_resource(dev, res, &region);
+-	}
+-
+-	pci_read_config_word(dev, PCI_PREF_MEMORY_BASE, &mem_base_lo);
+-	pci_read_config_word(dev, PCI_PREF_MEMORY_LIMIT, &mem_limit_lo);
+-	base = (mem_base_lo & PCI_PREF_RANGE_MASK) << 16;
+-	limit = (mem_limit_lo & PCI_PREF_RANGE_MASK) << 16;
+-
+-	if ((mem_base_lo & PCI_PREF_RANGE_TYPE_MASK) == PCI_PREF_RANGE_TYPE_64) {
+-		u32 mem_base_hi, mem_limit_hi;
+-
+-		pci_read_config_dword(dev, PCI_PREF_BASE_UPPER32, &mem_base_hi);
+-		pci_read_config_dword(dev, PCI_PREF_LIMIT_UPPER32, &mem_limit_hi);
+-
+-		/*
+-		 * Some bridges set the base > limit by default, and some
+-		 * (broken) BIOSes do not initialize them.  If we find
+-		 * this, just assume they are not being used.
+-		 */
+-		if (mem_base_hi <= mem_limit_hi) {
+-			base |= ((long) mem_base_hi) << 32;
+-			limit |= ((long) mem_limit_hi) << 32;
+-		}
+-	}
+-
+-	res = bus->resource[2];
+-	if (base <= limit) {
+-		res->flags = ((mem_base_lo & PCI_MEMORY_RANGE_TYPE_MASK) |
+-			      IORESOURCE_MEM | IORESOURCE_PREFETCH);
+-		region.start = base;
+-		region.end = limit + 0xfffff;
+-		pcibios_bus_to_resource(dev, res, &region);
+-	}
+-}
+-
+ /* Cook up fake bus resources for SUNW,simba PCI bridges which lack
+  * a proper 'ranges' property.
+  */
+@@ -553,7 +463,7 @@ static void __devinit of_scan_pci_bridge(struct pci_pbm_info *pbm,
+ 		apb_fake_ranges(dev, bus, pbm);
+ 		goto after_ranges;
+ 	} else if (ranges == NULL) {
+-		pci_cfg_fake_ranges(dev, bus, pbm);
++		pci_read_bridge_bases(bus);
+ 		goto after_ranges;
  	}
- 
- 	down_write(&pci_bus_sem);
-+	list_add_tail(&bridge->list, &pci_host_bridges);
- 	list_add_tail(&b->node, &pci_root_buses);
- 	up_write(&pci_bus_sem);
- 
-@@ -1618,11 +1643,15 @@ class_dev_reg_err:
- 	device_unregister(dev);
- dev_reg_err:
- 	down_write(&pci_bus_sem);
-+	list_del(&bridge->list);
- 	list_del(&b->node);
- 	up_write(&pci_bus_sem);
- err_out:
- 	kfree(dev);
-+err_dev:
- 	kfree(b);
-+err_bus:
-+	kfree(bridge);
- 	return NULL;
- }
- 
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index bcaa51c..2c946b3 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -368,6 +368,11 @@ static inline int pci_channel_offline(struct pci_dev *pdev)
- 	return (pdev->error_state != pci_channel_io_normal);
- }
- 
-+struct pci_host_bridge {
-+	struct list_head list;
-+	struct pci_bus *bus;		/* root bus */
-+};
-+
- /*
-  * The first PCI_BRIDGE_RESOURCE_NUM PCI bus resources (those that correspond
-  * to P2P or CardBus bridge windows) go in a table.  Additional ones (for
+ 	i = 1;
 
