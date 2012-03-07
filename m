@@ -1,126 +1,40 @@
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
-Date: Wed, 07 Mar 2012 17:58:07 +0100
-Message-ID: <011701ccfc83$78030180$68090480$%szyprowski@samsung.com>
-References: <401E54CE964CD94BAE1EB4A729C7087E37970113FE@HQMAIL04.nvidia.com>
- <20120307.080952.2152478004740487196.hdoyu@nvidia.com>
- <20120307.083706.2087121294965856946.hdoyu@nvidia.com>
- <20120307.091601.458605132780655792.hdoyu@nvidia.com>
+From: Stephen Warren <swarren@wwwdotorg.org>
+Subject: Re: [PATCH 1/3] Kbuild: centralize MKIMAGE and cmd_uimage definitions
+Date: Wed, 07 Mar 2012 10:41:52 -0700
+Message-ID: <4F579DE0.3050400@wwwdotorg.org>
+References: <1331080238-1524-1-git-send-email-swarren@wwwdotorg.org> <201203062256.16105.vapier@gentoo.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-samsung-soc-owner@vger.kernel.org>
-In-reply-to: <20120307.091601.458605132780655792.hdoyu@nvidia.com>
-Content-language: pl
-Sender: linux-samsung-soc-owner@vger.kernel.org
-To: 'Hiroshi Doyu' <hdoyu@nvidia.com>, 'Krishna Reddy' <vdumpa@nvidia.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org, shariq.hasnain@linaro.org, arnd@arndb.de, benh@kernel.crashing.org, kyungmin.park@samsung.com, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, linux@arm.linux.org.uk, pullip.cho@samsung.com, chunsang.jeong@linaro.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-sh-owner@vger.kernel.org>
+In-Reply-To: <201203062256.16105.vapier@gentoo.org>
+Sender: linux-sh-owner@vger.kernel.org
+To: Mike Frysinger <vapier@gentoo.org>
+Cc: Michal Marek <mmarek@suse.cz>, Russell King <linux@arm.linux.org.uk>, nico@fluxnic.net, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Michal Simek <monstr@monstr.eu>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org, uclinux-dist-devel@blackfin.uclinux.org, microblaze-uclinux@itee.uq.edu.au, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Hello,
-
-On Wednesday, March 07, 2012 8:16 AM Hiroshi Doyu wrote:
-
-> From: Hiroshi DOYU <hdoyu@nvidia.com>
-> Subject: Re: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
-> Date: Wed, 07 Mar 2012 08:37:06 +0200 (EET)
-> Message-ID: <20120307.083706.2087121294965856946.hdoyu@nvidia.com>
+On 03/06/2012 08:56 PM, Mike Frysinger wrote:
+> On Tuesday 06 March 2012 19:30:36 Stephen Warren wrote:
+>> --- a/arch/blackfin/boot/Makefile
+>> +++ b/arch/blackfin/boot/Makefile
+>>
+>> +ifeq ($(CONFIG_RAMKERNEL),y)
+>> +UIMAGE_LOADADDR = $(CONFIG_BOOT_LOAD)
+>> +else # CONFIG_ROMKERNEL must be set
+>> +UIMAGE_LOADADDR = $(CONFIG_BOOT_LOAD)
+>> +endif
 > 
-> > From: Hiroshi DOYU <hdoyu@nvidia.com>
-> > Subject: Re: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
-> > Date: Wed, 07 Mar 2012 08:09:52 +0200 (EET)
-> > Message-ID: <20120307.080952.2152478004740487196.hdoyu@nvidia.com>
-> >
-> > > From: Krishna Reddy <vdumpa@nvidia.com>
-> > > Subject: RE: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
-> > > Date: Tue, 6 Mar 2012 23:48:42 +0100
-> > > Message-ID: <401E54CE964CD94BAE1EB4A729C7087E37970113FE@HQMAIL04.nvidia.com>
-> > >
-> > > > > > +struct dma_iommu_mapping *
-> > > > > > +arm_iommu_create_mapping(struct bus_type *bus, dma_addr_t base, size_t size,
-> > > > > > +                        int order)
-> > > > > > +{
-> > > > > > +       unsigned int count = (size >> PAGE_SHIFT) - order;
-> > > > > > +       unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long);
-> > > >
-> > > > The count calculation doesn't seem correct. "order" is log2 number and
-> > > >  size >> PAGE_SHIFT is number of pages.
-> > > >
-> > > > If size is passed as 64*4096(256KB) and order is 6(allocation granularity is 2^6
-> pages=256KB),
-> > > >  just 1 bit is enough to manage allocations.  So it should be 4 bytes or one long.
-> > >
-> > > Good catch!
-> > >
-> > > > But the calculation gives count = 64 - 6 = 58 and
-> > > > Bitmap_size gets set to (58/(4*8)) * 4 = 8 bytes, which is incorrect.
-> > >
-> > > "order" isn't the order of size passed, which is minimal *page*
-> > > allocation order which client decides whatever, just in case.
-> > >
-> > > > It should be as follows.
-> > > > unsigned int count = 1 << get_order(size) - order;
-> >
-> > To be precise, as below?
-> >
-> >  unsigned int count = 1 << (get_order(size) - order);
-> 
-> This could be:
-> 
-> From fd40740ef4bc4a3924fe1188ea6dd785be0fe859 Mon Sep 17 00:00:00 2001
-> From: Hiroshi DOYU <hdoyu@nvidia.com>
-> Date: Wed, 7 Mar 2012 08:14:38 +0200
-> Subject: [PATCH 1/1] dma-mapping: Fix count calculation of iova space
-> 
-> Fix count calculation of iova space.
-> Pointed by Krishna Reddy <vdumpa@nvidia.com>
-> 
-> Signed-off-by: Hiroshi DOYU <hdoyu@nvidia.com>
-> ---
->  arch/arm/mm/dma-mapping.c |   11 +++++++++--
->  1 files changed, 9 insertions(+), 2 deletions(-)
-> 
-> diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-> index 6c2f104..56f0af5 100644
-> --- a/arch/arm/mm/dma-mapping.c
-> +++ b/arch/arm/mm/dma-mapping.c
-> @@ -1483,11 +1483,18 @@ struct dma_iommu_mapping *
->  arm_iommu_create_mapping(struct bus_type *bus, dma_addr_t base, size_t size,
->  			 int order)
->  {
-> -	unsigned int count = (size >> PAGE_SHIFT) - order;
-> -	unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long);
-> +	unsigned int n, count;
-> +	unsigned int bitmap_size;
->  	struct dma_iommu_mapping *mapping;
->  	int err = -ENOMEM;
-> 
-> +	n = get_order(size);
-> +	if (n < order)
-> +		return ERR_PTR(-EINVAL);
-> +
-> +	count = 1 << (n - order);
-> +	bitmap_size = BITS_TO_LONGS(count) * sizeof(long);
-> +
->  	mapping = kzalloc(sizeof(struct dma_iommu_mapping), GFP_KERNEL);
->  	if (!mapping)
->  		goto err;
+> this part is wrong :).  the else branch should be $(CONFIG_ROM_BASE).
 
-Thanks again for finding another bug. I thought that I've checked that code more
-than twice, but it looks that I've missed something again.
+Thanks. I've fixed that locally.
 
-IMHO the size of virtual memory area doesn't need to be aligned to the power of
-two, so I will simplify it to the following code:
+>> +UIMAGE_ENTRYADDR = $(shell $(NM) vmlinux | awk '$$NF == "__start" {print
+>> $$1}')
+> 
+> i feel like if we tried harder, we could automate the -e arg for all arches.  
+> i understand if you don't want to undertake that though.
 
-unsigned int count = size >> (PAGE_SHIFT + order);
-unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long);
-
-if (!count)
-	return ERR_PTR(-EINVAL);
-
-...
-
-Best regards
--- 
-Marek Szyprowski
-Samsung Poland R&D Center
+Yes, this might be possible. I'd guess the symbol name varies between
+archs, but that can probably be taken care of. This is probably best
+left as a follow-on patch though, since it's a behavioral change,
+whereas this patch is just consolidation.
