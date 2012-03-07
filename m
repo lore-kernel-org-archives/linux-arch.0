@@ -1,40 +1,35 @@
-From: Krishna Reddy <vdumpa@nvidia.com>
-Subject: RE: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
-Date: Tue, 6 Mar 2012 15:36:32 -0800
-Message-ID: <401E54CE964CD94BAE1EB4A729C7087E3797011437@HQMAIL04.nvidia.com>
-References: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com>
- <1330527862-16234-10-git-send-email-m.szyprowski@samsung.com>
- <20120306232138.GF15201@n2100.arm.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-samsung-soc-owner@vger.kernel.org>
-In-Reply-To: <20120306232138.GF15201@n2100.arm.linux.org.uk>
-Content-Language: en-US
-Sender: linux-samsung-soc-owner@vger.kernel.org
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>, Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-samsung-soc@vger.kernel.org" <linux-samsung-soc@vger.kernel.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+From: Stephen Warren <swarren@wwwdotorg.org>
+Subject: [PATCH 3/3] ARM: Allow the user to enable UIMAGE_KERNEL_NOLOAD
+Date: Tue,  6 Mar 2012 17:30:38 -0700
+Message-ID: <1331080238-1524-3-git-send-email-swarren@wwwdotorg.org>
+References: <1331080238-1524-1-git-send-email-swarren@wwwdotorg.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1331080238-1524-1-git-send-email-swarren@wwwdotorg.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Michal Marek <mmarek@suse.cz>
+Cc: Russell King <linux@arm.linux.org.uk>, nico@fluxnic.net, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mike Frysinger <vapier@gentoo.org>, Michal Simek <monstr@monstr.eu>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org, uclinux-dist-devel@blackfin.uclinux.org, microblaze-uclinux@itee.uq.edu.au, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@wwwdotorg.org>
 List-Id: linux-arch.vger.kernel.org
 
-> On Wed, Feb 29, 2012 at 04:04:22PM +0100, Marek Szyprowski wrote:
-> > +static int arm_iommu_mmap_attrs(struct device *dev, struct
-> vm_area_struct *vma,
-> > +		    void *cpu_addr, dma_addr_t dma_addr, size_t size,
-> > +		    struct dma_attrs *attrs)
-> > +{
-> > +	struct arm_vmregion *c;
-> > +
-> > +	vma->vm_page_prot = __get_dma_pgprot(attrs, vma-
-> >vm_page_prot);
-> > +	c = arm_vmregion_find(&consistent_head, (unsigned
-> long)cpu_addr);
-> 
-> What protects this against other insertions/removals from the list?
+When AUTO_ZRELADDR is enabled, ARM zImages are relocatable, and hence
+the user may use mkimage's -T kernel_noload option if their bootloader
+supports it.
 
-arm_vmregion_find uses a spin_lock internally before accessing consistent_head.
- So, it is protected.
+Signed-off-by: Stephen Warren <swarren@wwwdotorg.org>
+---
+ arch/arm/Kconfig |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
 
-
--KR
-
---nvpublic
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 4040796..5459b2e 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -2055,6 +2055,7 @@ config CRASH_DUMP
+ 
+ config AUTO_ZRELADDR
+ 	bool "Auto calculation of the decompressed kernel image address"
++	select ALLOW_UIMAGE_KERNEL_NOLOAD
+ 	depends on !ZBOOT_ROM && !ARCH_U300
+ 	help
+ 	  ZRELADDR is the physical address where the decompressed kernel
+-- 
+1.7.0.4
