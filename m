@@ -1,47 +1,85 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hqemgate04.nvidia.com ([216.228.121.35]:5200 "EHLO
-	hqemgate04.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756346Ab2CFXgz convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Mar 2012 18:36:55 -0500
-From: Krishna Reddy <vdumpa@nvidia.com>
-Date: Tue, 6 Mar 2012 15:36:32 -0800
-Subject: RE: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
-Message-ID: <401E54CE964CD94BAE1EB4A729C7087E3797011437@HQMAIL04.nvidia.com>
-References: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com>
- <1330527862-16234-10-git-send-email-m.szyprowski@samsung.com>
- <20120306232138.GF15201@n2100.arm.linux.org.uk>
-In-Reply-To: <20120306232138.GF15201@n2100.arm.linux.org.uk>
-Content-Language: en-US
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-MIME-Version: 1.0
+Received: from avon.wwwdotorg.org ([70.85.31.133]:41027 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932688Ab2CGAhD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 6 Mar 2012 19:37:03 -0500
+From: Stephen Warren <swarren@wwwdotorg.org>
+Subject: [PATCH 2/3] Kbuild: Implement CONFIG_UIMAGE_KERNEL_NOLOAD
+Date: Tue,  6 Mar 2012 17:30:37 -0700
+Message-ID: <1331080238-1524-2-git-send-email-swarren@wwwdotorg.org>
+In-Reply-To: <1331080238-1524-1-git-send-email-swarren@wwwdotorg.org>
+References: <1331080238-1524-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>, Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-samsung-soc@vger.kernel.org" <linux-samsung-soc@vger.kernel.org>, "iommu@lists.linux-foundation.org" <iommu@lists.linux-foundation.org>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Message-ID: <20120306233632.9eNTIjdNQ3q3aA3WIjo82p7I0AWHCeUNVwCm0ZhUZRY@z>
+To: Michal Marek <mmarek@suse.cz>
+Cc: Russell King <linux@arm.linux.org.uk>, nico@fluxnic.net, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mike Frysinger <vapier@gentoo.org>, Michal Simek <monstr@monstr.eu>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org, uclinux-dist-devel@blackfin.uclinux.org, microblaze-uclinux@itee.uq.edu.au, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@wwwdotorg.org>
+Message-ID: <20120307003037.oqLmjQDpw79y9kO7NbnaHA55aT1GPcC5PfX13x8laDI@z>
 
-> On Wed, Feb 29, 2012 at 04:04:22PM +0100, Marek Szyprowski wrote:
-> > +static int arm_iommu_mmap_attrs(struct device *dev, struct
-> vm_area_struct *vma,
-> > +		    void *cpu_addr, dma_addr_t dma_addr, size_t size,
-> > +		    struct dma_attrs *attrs)
-> > +{
-> > +	struct arm_vmregion *c;
-> > +
-> > +	vma->vm_page_prot = __get_dma_pgprot(attrs, vma-
-> >vm_page_prot);
-> > +	c = arm_vmregion_find(&consistent_head, (unsigned
-> long)cpu_addr);
-> 
-> What protects this against other insertions/removals from the list?
+This allows the user to use U-Boot's mkimage's -T kernel_noload option
+if their arch Kconfig allows it, and they desire.
 
-arm_vmregion_find uses a spin_lock internally before accessing consistent_head.
- So, it is protected.
+Signed-off-by: Stephen Warren <swarren@wwwdotorg.org>
+---
+The next patch enables this new CONFIG_ALLOW_ option for ARM. I assume
+that some other architectures will also be able to enable it, but I'm
+not familiar enough with any to know which.
 
+ init/Kconfig         |   15 +++++++++++++++
+ scripts/Makefile.lib |   15 ++++++++++++---
+ 2 files changed, 27 insertions(+), 3 deletions(-)
 
--KR
-
---nvpublic
-
+diff --git a/init/Kconfig b/init/Kconfig
+index 6cfd71d..2035562 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -203,6 +203,21 @@ config KERNEL_LZO
+ 
+ endchoice
+ 
++config ALLOW_UIMAGE_KERNEL_NOLOAD
++	bool
++
++config UIMAGE_KERNEL_NOLOAD
++	bool "Use mkimage's -T kernel_noload instead of -T kernel"
++	depends on ALLOW_UIMAGE_KERNEL_NOLOAD
++	help
++	  uImage files of type "kernel" embed an absolute load and entry point
++	  address. If the uImage is loaded to a different address, then the
++	  image must be copied the uImage file to the specified load address.
++	  This copy is a waste of time if the uImage is in fact completely
++	  relocatable. If your kernel and bootloader support it, you can build
++	  a "kernel_noload" uImage rather than a "kernel" uImage, which
++	  prevents any such copying. If unsure say N.
++
+ config DEFAULT_HOSTNAME
+ 	string "Default hostname"
+ 	default "(none)"
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 7b0be18..d9c1c87 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -314,9 +314,18 @@ MKIMAGE := $(srctree)/scripts/mkuboot.sh
+ UIMAGE_ARCH = $(SRCARCH)
+ UIMAGE_COMPRESSION = $(if $(2),$(2),none)
+ UIMAGE_OPTS-y =
+-UIMAGE_TYPE = kernel
+-UIMAGE_LOADADDR=arch_must_set_this
+-UIMAGE_ENTRYADDR=$(UIMAGE_LOADADDR)
++ifeq ($(CONFIG_UIMAGE_KERNEL_NOLOAD),y)
++  UIMAGE_TYPE = kernel_noload
++  # Unused by bootloader:
++  UIMAGE_LOADADDR=0
++  # Entry point relative to actual load address:
++  UIMAGE_ENTRYADDR=0
++else
++  UIMAGE_TYPE = kernel
++  # Absolute addresses:
++  UIMAGE_LOADADDR=arch_must_set_this
++  UIMAGE_ENTRYADDR=$(UIMAGE_LOADADDR)
++endif
+ UIMAGE_NAME = 'Linux-$(KERNELRELEASE)'
+ UIMAGE_IN = $<
+ UIMAGE_OUT = $@
+-- 
+1.7.0.4
 
