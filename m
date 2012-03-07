@@ -1,14 +1,15 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yx0-f202.google.com ([209.85.213.202]:43229 "EHLO
-	mail-yx0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1030715Ab2CGWcp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 17:32:45 -0500
-Received: by yenq2 with SMTP id q2so866724yen.1
-        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 14:32:45 -0800 (PST)
-Subject: [PATCH v3 08/34] mips/PCI: removed unused pci_probe configurability
+Received: from mail-gy0-f202.google.com ([209.85.160.202]:58163 "EHLO
+	mail-gy0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1030605Ab2CGWd0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 17:33:26 -0500
+Received: by mail-gy0-f202.google.com with SMTP id z15so865477ghb.1
+        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 14:33:26 -0800 (PST)
+Subject: [PATCH v3 16/34] PCI: add struct pci_host_bridge_window with CPU/bus
+	address offset
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Wed, 07 Mar 2012 15:32:44 -0700
-Message-ID: <20120307223244.25669.85258.stgit@bhelgaas.mtv.corp.google.com>
+Date: Wed, 07 Mar 2012 15:33:25 -0700
+Message-ID: <20120307223325.25669.86376.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -17,43 +18,165 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, linux-mips@linux-mips.org
-Message-ID: <20120307223244.GSFt3YdK7jLjh-VLJMKhjyCzFpjNfrAbSFJ71VdvjlU@z>
+Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org
+Message-ID: <20120307223325.LHtTZdVgOKzq35OK_ur8j-5-Kv_Kd8rGYpBO905__M8@z>
 
-We never assign anything other than PCI_ASSIGN_ALL_BUSSES to pci_probe,
-so just remove the indirection.  If configurability is required in the
-future, please use the pci_flags/PCI_REASSIGN_ALL_BUS functionality
-as is done for powerpc.
+Some PCI host bridges apply an address offset, so bus addresses on PCI are
+different from CPU addresses.  This patch adds a way for architectures to
+tell the PCI core about this offset.  For example:
 
-CC: Ralf Baechle <ralf@linux-mips.org>
-CC: linux-mips@linux-mips.org
+    LIST_HEAD(resources);
+    pci_add_resource_offset(&resources, host->io_space, host->io_offset);
+    pci_add_resource_offset(&resources, host->mem_space, host->mem_offset);
+    pci_scan_root_bus(parent, bus, ops, sysdata, &resources);
+
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/mips/pci/pci.c |    6 +-----
- 1 files changed, 1 insertions(+), 5 deletions(-)
+ drivers/pci/bus.c   |   30 +++++++++++++++++++-----------
+ drivers/pci/probe.c |   32 +++++++++++++++++++++++---------
+ include/linux/pci.h |    9 +++++++++
+ 3 files changed, 51 insertions(+), 20 deletions(-)
 
-diff --git a/arch/mips/pci/pci.c b/arch/mips/pci/pci.c
-index 2a11045..19f6d19 100644
---- a/arch/mips/pci/pci.c
-+++ b/arch/mips/pci/pci.c
-@@ -24,10 +24,6 @@
-  * assignments.
-  */
+diff --git a/drivers/pci/bus.c b/drivers/pci/bus.c
+index 398f5d8..4ce5ef2 100644
+--- a/drivers/pci/bus.c
++++ b/drivers/pci/bus.c
+@@ -18,28 +18,36 @@
  
--#define PCI_ASSIGN_ALL_BUSSES	1
--
--unsigned int pci_probe = PCI_ASSIGN_ALL_BUSSES;
--
- /*
-  * The PCI controller list.
-  */
-@@ -238,7 +234,7 @@ static int pcibios_enable_resources(struct pci_dev *dev, int mask)
+ #include "pci.h"
  
- unsigned int pcibios_assign_all_busses(void)
+-void pci_add_resource(struct list_head *resources, struct resource *res)
++void pci_add_resource_offset(struct list_head *resources, struct resource *res,
++			     resource_size_t offset)
  {
--	return (pci_probe & PCI_ASSIGN_ALL_BUSSES) ? 1 : 0;
-+	return 1;
+-	struct pci_bus_resource *bus_res;
++	struct pci_host_bridge_window *window;
+ 
+-	bus_res = kzalloc(sizeof(struct pci_bus_resource), GFP_KERNEL);
+-	if (!bus_res) {
+-		printk(KERN_ERR "PCI: can't add bus resource %pR\n", res);
++	window = kzalloc(sizeof(struct pci_host_bridge_window), GFP_KERNEL);
++	if (!window) {
++		printk(KERN_ERR "PCI: can't add host bridge window %pR\n", res);
+ 		return;
+ 	}
+ 
+-	bus_res->res = res;
+-	list_add_tail(&bus_res->list, resources);
++	window->res = res;
++	window->offset = offset;
++	list_add_tail(&window->list, resources);
++}
++EXPORT_SYMBOL(pci_add_resource_offset);
++
++void pci_add_resource(struct list_head *resources, struct resource *res)
++{
++	pci_add_resource_offset(resources, res, 0);
+ }
+ EXPORT_SYMBOL(pci_add_resource);
+ 
+ void pci_free_resource_list(struct list_head *resources)
+ {
+-	struct pci_bus_resource *bus_res, *tmp;
++	struct pci_host_bridge_window *window, *tmp;
+ 
+-	list_for_each_entry_safe(bus_res, tmp, resources, list) {
+-		list_del(&bus_res->list);
+-		kfree(bus_res);
++	list_for_each_entry_safe(window, tmp, resources, list) {
++		list_del(&window->list);
++		kfree(window);
+ 	}
+ }
+ EXPORT_SYMBOL(pci_free_resource_list);
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index 3a30023..3f07cb6 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -1562,12 +1562,15 @@ unsigned int __devinit pci_scan_child_bus(struct pci_bus *bus)
+ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 		struct pci_ops *ops, void *sysdata, struct list_head *resources)
+ {
+-	int error, i;
++	int error;
+ 	struct pci_host_bridge *bridge;
+ 	struct pci_bus *b, *b2;
+ 	struct device *dev;
+-	struct pci_bus_resource *bus_res, *n;
++	struct pci_host_bridge_window *window, *n;
+ 	struct resource *res;
++	resource_size_t offset;
++	char bus_addr[64];
++	char *fmt;
+ 
+ 	bridge = kzalloc(sizeof(*bridge), GFP_KERNEL);
+ 	if (!bridge)
+@@ -1617,19 +1620,30 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 	b->number = b->secondary = bus;
+ 
+ 	bridge->bus = b;
+-
+-	/* Add initial resources to the bus */
+-	list_for_each_entry_safe(bus_res, n, resources, list)
+-		list_move_tail(&bus_res->list, &b->resources);
++	INIT_LIST_HEAD(&bridge->windows);
+ 
+ 	if (parent)
+ 		dev_info(parent, "PCI host bridge to bus %s\n", dev_name(&b->dev));
+ 	else
+ 		printk(KERN_INFO "PCI host bridge to bus %s\n", dev_name(&b->dev));
+ 
+-	pci_bus_for_each_resource(b, res, i) {
+-		if (res)
+-			dev_info(&b->dev, "root bus resource %pR\n", res);
++	/* Add initial resources to the bus */
++	list_for_each_entry_safe(window, n, resources, list) {
++		list_move_tail(&window->list, &bridge->windows);
++		res = window->res;
++		offset = window->offset;
++		pci_bus_add_resource(b, res, 0);
++		if (offset) {
++			if (resource_type(res) == IORESOURCE_IO)
++				fmt = " (bus address [%#06llx-%#06llx])";
++			else
++				fmt = " (bus address [%#010llx-%#010llx])";
++			snprintf(bus_addr, sizeof(bus_addr), fmt,
++				 (unsigned long long) (res->start - offset),
++				 (unsigned long long) (res->end - offset));
++		} else
++			bus_addr[0] = '\0';
++		dev_info(&b->dev, "root bus resource %pR%s\n", res, bus_addr);
+ 	}
+ 
+ 	down_write(&pci_bus_sem);
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 2c946b3..419f78f 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -368,9 +368,16 @@ static inline int pci_channel_offline(struct pci_dev *pdev)
+ 	return (pdev->error_state != pci_channel_io_normal);
  }
  
- int pcibios_enable_device(struct pci_dev *dev, int mask)
++struct pci_host_bridge_window {
++	struct list_head list;
++	struct resource *res;		/* host bridge aperture (CPU address) */
++	resource_size_t offset;		/* bus address + offset = CPU address */
++};
++
+ struct pci_host_bridge {
+ 	struct list_head list;
+ 	struct pci_bus *bus;		/* root bus */
++	struct list_head windows;	/* pci_host_bridge_windows */
+ };
+ 
+ /*
+@@ -901,6 +908,8 @@ void pci_release_selected_regions(struct pci_dev *, int);
+ 
+ /* drivers/pci/bus.c */
+ void pci_add_resource(struct list_head *resources, struct resource *res);
++void pci_add_resource_offset(struct list_head *resources, struct resource *res,
++			     resource_size_t offset);
+ void pci_free_resource_list(struct list_head *resources);
+ void pci_bus_add_resource(struct pci_bus *bus, struct resource *res, unsigned int flags);
+ struct resource *pci_bus_resource_n(const struct pci_bus *bus, int n);
 
