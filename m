@@ -1,14 +1,15 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vx0-f202.google.com ([209.85.220.202]:55541 "EHLO
-	mail-vx0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1030801Ab2CGWe2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 17:34:28 -0500
-Received: by vcbfk26 with SMTP id fk26so862746vcb.1
-        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 14:34:28 -0800 (PST)
-Subject: [PATCH v3 28/34] sh/PCI: get rid of device resource fixups
+Received: from mail-we0-f202.google.com ([74.125.82.202]:54230 "EHLO
+	mail-we0-f202.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1030758Ab2CGWez (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Mar 2012 17:34:55 -0500
+Received: by wejx9 with SMTP id x9so269810wej.1
+        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 14:34:54 -0800 (PST)
+Subject: [PATCH v3 33/34] PCI: reimplement P2P bridge 1K I/O windows (Intel
+	P64H2)
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Wed, 07 Mar 2012 15:34:27 -0700
-Message-ID: <20120307223427.25669.54492.stgit@bhelgaas.mtv.corp.google.com>
+Date: Wed, 07 Mar 2012 15:34:53 -0700
+Message-ID: <20120307223453.25669.30797.stgit@bhelgaas.mtv.corp.google.com>
 In-Reply-To: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
 References: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com>
 MIME-Version: 1.0
@@ -17,150 +18,251 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20120307223427.ZlAuqylbgWzEsvlRTCTyvXGDxoUc-XhpY6ELF6Kekyo@z>
+Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, sparclinux@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20120307223453.Mp3ZdciHx42YMf-RvygZ6FElrgtaQnTIQdWF3CAC1rg@z>
 
-Tell the PCI core about host bridge address translation so it can take
-care of bus-to-resource conversion for us.
+9d265124d051 and 15a260d53f7c added quirks for P2P bridges that support
+I/O windows that start/end at 1K boundaries, not just the 4K boundaries
+defined by the PCI spec.  For details, see the IOBL_ADR register and the
+EN1K bit in the CNF register in the Intel 82870P2 (P64H2).
 
-CC: Paul Mundt <lethal@linux-sh.org>
+These quirks complicate the code that reads P2P bridge windows
+(pci_read_bridge_io() and pci_cfg_fake_ranges()) because the bridge
+I/O resource is updated in the HEADER quirk, in pci_read_bridge_io(),
+in pci_setup_bridge(), and again in the FINAL quirk.  This is confusing
+and makes it impossible to reassign the bridge windows after FINAL
+quirks are run.
+
+This patch adds support for 1K windows in the generic paths, so the
+HEADER quirk only has to enable this support.  The FINAL quirk, which
+used to undo damage done by pci_setup_bridge(), is no longer needed.
+
+Note that the bridge window assignment code, e.g., pbus_size_io(), should
+pay attention to dev->io_window_1k, too, but I didn't fix that.
+
+CC: "David S. Miller" <davem@davemloft.net>
+CC: sparclinux@vger.kernel.org
 Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 ---
- arch/sh/drivers/pci/pci.c |   75 +++++++--------------------------------------
- arch/sh/include/asm/pci.h |    6 +---
- 2 files changed, 12 insertions(+), 69 deletions(-)
+ arch/sparc/kernel/pci.c  |   25 ++++++++++++++-----------
+ drivers/pci/probe.c      |   25 ++++++++++++++-----------
+ drivers/pci/quirks.c     |   39 +--------------------------------------
+ drivers/pci/setup-bus.c  |   11 +++++++++--
+ include/linux/pci.h      |    1 +
+ include/linux/pci_regs.h |    3 ++-
+ 6 files changed, 41 insertions(+), 63 deletions(-)
 
-diff --git a/arch/sh/drivers/pci/pci.c b/arch/sh/drivers/pci/pci.c
-index 8f18dd0..e5aacef 100644
---- a/arch/sh/drivers/pci/pci.c
-+++ b/arch/sh/drivers/pci/pci.c
-@@ -37,11 +37,20 @@ static void __devinit pcibios_scanbus(struct pci_channel *hose)
- 	static int next_busno;
- 	static int need_domain_info;
- 	LIST_HEAD(resources);
+diff --git a/arch/sparc/kernel/pci.c b/arch/sparc/kernel/pci.c
+index fdaf218..86610de 100644
+--- a/arch/sparc/kernel/pci.c
++++ b/arch/sparc/kernel/pci.c
+@@ -384,15 +384,23 @@ static void __devinit pci_cfg_fake_ranges(struct pci_dev *dev,
+ 					  struct pci_pbm_info *pbm)
+ {
+ 	struct pci_bus_region region;
+-	struct resource *res, res2;
 +	struct resource *res;
-+	resource_size_t offset;
- 	int i;
- 	struct pci_bus *bus;
- 
--	for (i = 0; i < hose->nr_resources; i++)
--		pci_add_resource(&resources, hose->resources + i);
-+	for (i = 0; i < hose->nr_resources; i++) {
-+		res = hose->resources + i;
-+		offset = 0;
-+		if (res->flags & IORESOURCE_IO)
-+			offset = hose->io_offset;
-+		else if (res->flags & IORESOURCE_MEM)
-+			offset = hose->mem_offset;
-+		pci_add_resource_offset(&resources, res, offset);
+ 	u8 io_base_lo, io_limit_lo;
+ 	u16 mem_base_lo, mem_limit_lo;
+-	unsigned long base, limit;
++	unsigned long io_mask, io_granularity, base, limit;
++
++	io_mask = PCI_IO_RANGE_MASK;
++	io_granularity = 0x1000;
++	if (dev->io_window_1k) {
++		/* Support 1K I/O space granularity */
++		io_mask = PCI_IO_1K_RANGE_MASK;
++		io_granularity = 0x400;
 +	}
  
- 	bus = pci_scan_root_bus(NULL, next_busno, hose->pci_ops, hose,
- 				&resources);
-@@ -143,42 +152,12 @@ static int __init pcibios_init(void)
- }
- subsys_initcall(pcibios_init);
+ 	pci_read_config_byte(dev, PCI_IO_BASE, &io_base_lo);
+ 	pci_read_config_byte(dev, PCI_IO_LIMIT, &io_limit_lo);
+-	base = (io_base_lo & PCI_IO_RANGE_MASK) << 8;
+-	limit = (io_limit_lo & PCI_IO_RANGE_MASK) << 8;
++	base = (io_base_lo & io_mask) << 8;
++	limit = (io_limit_lo & io_mask) << 8;
  
--static void pcibios_fixup_device_resources(struct pci_dev *dev,
--	struct pci_bus *bus)
+ 	if ((io_base_lo & PCI_IO_RANGE_TYPE_MASK) == PCI_IO_RANGE_TYPE_32) {
+ 		u16 io_base_hi, io_limit_hi;
+@@ -406,14 +414,9 @@ static void __devinit pci_cfg_fake_ranges(struct pci_dev *dev,
+ 	res = bus->resource[0];
+ 	if (base <= limit) {
+ 		res->flags = (io_base_lo & PCI_IO_RANGE_TYPE_MASK) | IORESOURCE_IO;
+-		res2.flags = res->flags;
+ 		region.start = base;
+-		region.end = limit + 0xfff;
+-		pcibios_bus_to_resource(dev, &res2, &region);
+-		if (!res->start)
+-			res->start = res2.start;
+-		if (!res->end)
+-			res->end = res2.end;
++		region.end = limit + io_granularity - 1;
++		pcibios_bus_to_resource(dev, res, &region);
+ 	}
+ 
+ 	pci_read_config_word(dev, PCI_MEMORY_BASE, &mem_base_lo);
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index b81ec1c..e3bb7a8 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -347,15 +347,23 @@ static void __devinit pci_read_bridge_io(struct pci_bus *child)
+ {
+ 	struct pci_dev *dev = child->self;
+ 	u8 io_base_lo, io_limit_lo;
+-	unsigned long base, limit;
++	unsigned long io_mask, io_granularity, base, limit;
+ 	struct pci_bus_region region;
+-	struct resource *res, res2;
++	struct resource *res;
++
++	io_mask = PCI_IO_RANGE_MASK;
++	io_granularity = 0x1000;
++	if (dev->io_window_1k) {
++		/* Support 1K I/O space granularity */
++		io_mask = PCI_IO_1K_RANGE_MASK;
++		io_granularity = 0x400;
++	}
+ 
+ 	res = child->resource[0];
+ 	pci_read_config_byte(dev, PCI_IO_BASE, &io_base_lo);
+ 	pci_read_config_byte(dev, PCI_IO_LIMIT, &io_limit_lo);
+-	base = (io_base_lo & PCI_IO_RANGE_MASK) << 8;
+-	limit = (io_limit_lo & PCI_IO_RANGE_MASK) << 8;
++	base = (io_base_lo & io_mask) << 8;
++	limit = (io_limit_lo & io_mask) << 8;
+ 
+ 	if ((io_base_lo & PCI_IO_RANGE_TYPE_MASK) == PCI_IO_RANGE_TYPE_32) {
+ 		u16 io_base_hi, io_limit_hi;
+@@ -367,14 +375,9 @@ static void __devinit pci_read_bridge_io(struct pci_bus *child)
+ 
+ 	if (base <= limit) {
+ 		res->flags = (io_base_lo & PCI_IO_RANGE_TYPE_MASK) | IORESOURCE_IO;
+-		res2.flags = res->flags;
+ 		region.start = base;
+-		region.end = limit + 0xfff;
+-		pcibios_bus_to_resource(dev, &res2, &region);
+-		if (!res->start)
+-			res->start = res2.start;
+-		if (!res->end)
+-			res->end = res2.end;
++		region.end = limit + io_granularity - 1;
++		pcibios_bus_to_resource(dev, res, &region);
+ 		dev_printk(KERN_DEBUG, &dev->dev, "  bridge window %pR\n", res);
+ 	}
+ }
+diff --git a/drivers/pci/quirks.c b/drivers/pci/quirks.c
+index fb544d6..aa4e296 100644
+--- a/drivers/pci/quirks.c
++++ b/drivers/pci/quirks.c
+@@ -1997,53 +1997,16 @@ DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_NCR, PCI_DEVICE_ID_NCR_53C810, fixup_rev1
+ static void __devinit quirk_p64h2_1k_io(struct pci_dev *dev)
+ {
+ 	u16 en1k;
+-	u8 io_base_lo, io_limit_lo;
+-	unsigned long base, limit;
+-	struct resource *res = dev->resource + PCI_BRIDGE_RESOURCES;
+ 
+ 	pci_read_config_word(dev, 0x40, &en1k);
+ 
+ 	if (en1k & 0x200) {
+ 		dev_info(&dev->dev, "Enable I/O Space to 1KB granularity\n");
+-
+-		pci_read_config_byte(dev, PCI_IO_BASE, &io_base_lo);
+-		pci_read_config_byte(dev, PCI_IO_LIMIT, &io_limit_lo);
+-		base = (io_base_lo & (PCI_IO_RANGE_MASK | 0x0c)) << 8;
+-		limit = (io_limit_lo & (PCI_IO_RANGE_MASK | 0x0c)) << 8;
+-
+-		if (base <= limit) {
+-			res->start = base;
+-			res->end = limit + 0x3ff;
+-		}
++		dev->io_window_1k = 1;
+ 	}
+ }
+ DECLARE_PCI_FIXUP_HEADER(PCI_VENDOR_ID_INTEL,	0x1460,		quirk_p64h2_1k_io);
+ 
+-/* Fix the IOBL_ADR for 1k I/O space granularity on the Intel P64H2
+- * The IOBL_ADR gets re-written to 4k boundaries in pci_setup_bridge()
+- * in drivers/pci/setup-bus.c
+- */
+-static void __devinit quirk_p64h2_1k_io_fix_iobl(struct pci_dev *dev)
 -{
--	/* Update device resources.  */
--	struct pci_channel *hose = bus->sysdata;
--	unsigned long offset = 0;
--	int i;
+-	u16 en1k, iobl_adr, iobl_adr_1k;
+-	struct resource *res = dev->resource + PCI_BRIDGE_RESOURCES;
 -
--	for (i = 0; i < PCI_NUM_RESOURCES; i++) {
--		if (!dev->resource[i].start)
--			continue;
--		if (dev->resource[i].flags & IORESOURCE_IO)
--			offset = hose->io_offset;
--		else if (dev->resource[i].flags & IORESOURCE_MEM)
--			offset = hose->mem_offset;
+-	pci_read_config_word(dev, 0x40, &en1k);
 -
--		dev->resource[i].start += offset;
--		dev->resource[i].end += offset;
+-	if (en1k & 0x200) {
+-		pci_read_config_word(dev, PCI_IO_BASE, &iobl_adr);
+-
+-		iobl_adr_1k = iobl_adr | (res->start >> 8) | (res->end & 0xfc00);
+-
+-		if (iobl_adr != iobl_adr_1k) {
+-			dev_info(&dev->dev, "Fixing P64H2 IOBL_ADR from 0x%x to 0x%x for 1KB granularity\n",
+-				iobl_adr,iobl_adr_1k);
+-			pci_write_config_word(dev, PCI_IO_BASE, iobl_adr_1k);
+-		}
 -	}
 -}
+-DECLARE_PCI_FIXUP_FINAL(PCI_VENDOR_ID_INTEL,	0x1460,		quirk_p64h2_1k_io_fix_iobl);
 -
- /*
-  *  Called after each bus is probed, but before its children
-  *  are examined.
-  */
- void __devinit pcibios_fixup_bus(struct pci_bus *bus)
- {
--	struct pci_dev *dev;
--	struct list_head *ln;
--
--	for (ln = bus->devices.next; ln != &bus->devices; ln = ln->next) {
--		dev = pci_dev_b(ln);
--
--		if ((dev->class >> 8) != PCI_CLASS_BRIDGE_PCI)
--			pcibios_fixup_device_resources(dev, bus);
--	}
- }
+ /* Under some circumstances, AER is not linked with extended capabilities.
+  * Force it to be linked by setting the corresponding control bit in the
+  * config space.
+diff --git a/drivers/pci/setup-bus.c b/drivers/pci/setup-bus.c
+index e241f2f..b2a9f3a 100644
+--- a/drivers/pci/setup-bus.c
++++ b/drivers/pci/setup-bus.c
+@@ -476,16 +476,23 @@ static void pci_setup_bridge_io(struct pci_bus *bus)
+ 	struct pci_dev *bridge = bus->self;
+ 	struct resource *res;
+ 	struct pci_bus_region region;
++	unsigned long io_mask;
++	u8 io_base_lo, io_limit_lo;
+ 	u32 l, io_upper16;
  
- /*
-@@ -208,36 +187,6 @@ resource_size_t pcibios_align_resource(void *data, const struct resource *res,
- 	return start;
- }
++	io_mask = PCI_IO_RANGE_MASK;
++	if (bridge->io_window_1k)
++		io_mask = PCI_IO_1K_RANGE_MASK;
++
+ 	/* Set up the top and bottom of the PCI I/O segment for this bus. */
+ 	res = bus->resource[0];
+ 	pcibios_resource_to_bus(bridge, &region, res);
+ 	if (res->flags & IORESOURCE_IO) {
+ 		pci_read_config_dword(bridge, PCI_IO_BASE, &l);
+ 		l &= 0xffff0000;
+-		l |= (region.start >> 8) & 0x00f0;
+-		l |= region.end & 0xf000;
++		io_base_lo = (region.start >> 8) & io_mask;
++		io_limit_lo = (region.end >> 8) & io_mask;
++		l |= ((u32) io_limit_lo << 8) | io_base_lo;
+ 		/* Set up upper 16 bits of I/O base/limit. */
+ 		io_upper16 = (region.end & 0xffff0000) | (region.start >> 16);
+ 		dev_info(&bridge->dev, "  bridge window %pR\n", res);
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index be58a51..2db3c8c 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -324,6 +324,7 @@ struct pci_dev {
+ 	unsigned int    is_hotplug_bridge:1;
+ 	unsigned int    __aer_firmware_first_valid:1;
+ 	unsigned int	__aer_firmware_first:1;
++	unsigned int	io_window_1k:1;	/* Intel P2P bridge 1K I/O windows */
+ 	pci_dev_flags_t dev_flags;
+ 	atomic_t	enable_cnt;	/* pci_enable_device has been called */
  
--void pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
--			     struct resource *res)
--{
--	struct pci_channel *hose = dev->sysdata;
--	unsigned long offset = 0;
--
--	if (res->flags & IORESOURCE_IO)
--		offset = hose->io_offset;
--	else if (res->flags & IORESOURCE_MEM)
--		offset = hose->mem_offset;
--
--	region->start = res->start - offset;
--	region->end = res->end - offset;
--}
--
--void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
--			     struct pci_bus_region *region)
--{
--	struct pci_channel *hose = dev->sysdata;
--	unsigned long offset = 0;
--
--	if (res->flags & IORESOURCE_IO)
--		offset = hose->io_offset;
--	else if (res->flags & IORESOURCE_MEM)
--		offset = hose->mem_offset;
--
--	res->start = region->start + offset;
--	res->end = region->end + offset;
--}
--
- int pcibios_enable_device(struct pci_dev *dev, int mask)
- {
- 	return pci_enable_resources(dev, mask);
-@@ -381,8 +330,6 @@ EXPORT_SYMBOL(pci_iounmap);
- #endif /* CONFIG_GENERIC_IOMAP */
- 
- #ifdef CONFIG_HOTPLUG
--EXPORT_SYMBOL(pcibios_resource_to_bus);
--EXPORT_SYMBOL(pcibios_bus_to_resource);
- EXPORT_SYMBOL(PCIBIOS_MIN_IO);
- EXPORT_SYMBOL(PCIBIOS_MIN_MEM);
- #endif
-diff --git a/arch/sh/include/asm/pci.h b/arch/sh/include/asm/pci.h
-index cb21e23..3b5b6ab 100644
---- a/arch/sh/include/asm/pci.h
-+++ b/arch/sh/include/asm/pci.h
-@@ -114,11 +114,7 @@ static inline void pci_dma_burst_advice(struct pci_dev *pdev,
- /* Board-specific fixup routines. */
- int pcibios_map_platform_irq(const struct pci_dev *dev, u8 slot, u8 pin);
- 
--extern void pcibios_resource_to_bus(struct pci_dev *dev,
--	struct pci_bus_region *region, struct resource *res);
--
--extern void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
--				    struct pci_bus_region *region);
-+#define ARCH_HAS_GENERIC_PCI_OFFSETS
- 
- #define pci_domain_nr(bus) ((struct pci_channel *)(bus)->sysdata)->index
- 
+diff --git a/include/linux/pci_regs.h b/include/linux/pci_regs.h
+index 4b608f5..88c9ea5 100644
+--- a/include/linux/pci_regs.h
++++ b/include/linux/pci_regs.h
+@@ -125,7 +125,8 @@
+ #define  PCI_IO_RANGE_TYPE_MASK	0x0fUL	/* I/O bridging type */
+ #define  PCI_IO_RANGE_TYPE_16	0x00
+ #define  PCI_IO_RANGE_TYPE_32	0x01
+-#define  PCI_IO_RANGE_MASK	(~0x0fUL)
++#define  PCI_IO_RANGE_MASK	(~0x0fUL) /* Standard 4K I/O windows */
++#define  PCI_IO_1K_RANGE_MASK	(~0x03UL) /* Intel 1K I/O windows */
+ #define PCI_SEC_STATUS		0x1e	/* Secondary status register, only bit 14 used */
+ #define PCI_MEMORY_BASE		0x20	/* Memory range behind */
+ #define PCI_MEMORY_LIMIT	0x22
 
