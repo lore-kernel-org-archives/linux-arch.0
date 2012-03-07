@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:43380 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:46173 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1030431Ab2CGTuZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 7 Mar 2012 14:50:25 -0500
+	id S1030312Ab2CGTu7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 7 Mar 2012 14:50:59 -0500
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 22/29] Disintegrate asm/system.h for S390
-Date: Wed, 07 Mar 2012 19:50:01 +0000
-Message-ID: <20120307195001.15987.31240.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 25/29] Disintegrate asm/system.h for Sparc
+Date: Wed, 07 Mar 2012 19:50:34 +0000
+Message-ID: <20120307195034.15987.13239.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20120307194548.15987.36073.stgit@warthog.procyon.org.uk>
 References: <20120307194548.15987.36073.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,995 +16,1895 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paul.gortmaker@windriver.com, hpa@zytor.com
 Cc: torvalds@linux-foundation.org, sfr@canb.auug.org.au, mingo@redhat.com, arnd@arndb.de, dhowells@redhat.com, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120307195001.AT2b_k9T7GOMo4ZBAyHslqx2fxBuctICBTMOBO46nG0@z>
+Message-ID: <20120307195034.uUmfONBWFEtPX9TIgmrHdcDRmMjlgWbu-qXbzVkekyY@z>
 
-Disintegrate asm/system.h for S390.
+Disintegrate asm/system.h for Sparc.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- arch/s390/crypto/crypt_s390.h       |    1 
- arch/s390/include/asm/atomic.h      |    1 
- arch/s390/include/asm/barrier.h     |   35 ++++
- arch/s390/include/asm/ctl_reg.h     |   76 +++++++++
- arch/s390/include/asm/elf.h         |    1 
- arch/s390/include/asm/exec.h        |   12 +
- arch/s390/include/asm/facility.h    |   29 ++++
- arch/s390/include/asm/mmu.h         |   14 ++
- arch/s390/include/asm/mmu_context.h |    1 
- arch/s390/include/asm/processor.h   |   16 ++
- arch/s390/include/asm/setup.h       |   14 ++
- arch/s390/include/asm/sigp.h        |    8 +
- arch/s390/include/asm/switch_to.h   |  100 ++++++++++++
- arch/s390/include/asm/system.h      |  281 -----------------------------------
- arch/s390/include/asm/uaccess.h     |    6 +
- arch/s390/kernel/compat_signal.c    |    1 
- arch/s390/kernel/early.c            |    1 
- arch/s390/kernel/process.c          |    1 
- arch/s390/kernel/ptrace.c           |    1 
- arch/s390/kernel/setup.c            |    1 
- arch/s390/kernel/signal.c           |    1 
- arch/s390/kernel/smp.c              |    1 
- arch/s390/kernel/suspend.c          |    1 
- arch/s390/kernel/vdso.c             |    1 
- arch/s390/kvm/kvm-s390.c            |    1 
- arch/s390/mm/fault.c                |    1 
- arch/s390/mm/init.c                 |    1 
- arch/s390/mm/maccess.c              |    1 
- arch/s390/oprofile/hwsampler.c      |    1 
- drivers/s390/char/sclp_cmd.c        |    1 
- drivers/s390/cio/crw.c              |    1 
- drivers/s390/crypto/ap_bus.c        |    1 
- 32 files changed, 330 insertions(+), 282 deletions(-)
- create mode 100644 arch/s390/include/asm/barrier.h
- create mode 100644 arch/s390/include/asm/ctl_reg.h
- create mode 100644 arch/s390/include/asm/exec.h
- create mode 100644 arch/s390/include/asm/facility.h
- create mode 100644 arch/s390/include/asm/switch_to.h
- delete mode 100644 arch/s390/include/asm/system.h
+ arch/sparc/include/asm/atomic_32.h     |   97 +++++++++
+ arch/sparc/include/asm/atomic_64.h     |  137 +++++++++++++
+ arch/sparc/include/asm/barrier.h       |    8 +
+ arch/sparc/include/asm/barrier_32.h    |   15 +
+ arch/sparc/include/asm/barrier_64.h    |   56 +++++
+ arch/sparc/include/asm/bug.h           |    3 
+ arch/sparc/include/asm/cacheflush_32.h |    9 +
+ arch/sparc/include/asm/cacheflush_64.h |   10 +
+ arch/sparc/include/asm/cpu_type.h      |   34 +++
+ arch/sparc/include/asm/exec.h          |    6 +
+ arch/sparc/include/asm/irqflags_32.h   |    1 
+ arch/sparc/include/asm/perfctr.h       |   23 ++
+ arch/sparc/include/asm/pgtable_32.h    |    1 
+ arch/sparc/include/asm/processor.h     |    3 
+ arch/sparc/include/asm/processor_64.h  |    3 
+ arch/sparc/include/asm/ptrace.h        |    2 
+ arch/sparc/include/asm/setup.h         |   16 ++
+ arch/sparc/include/asm/switch_to.h     |    8 +
+ arch/sparc/include/asm/switch_to_32.h  |  106 ++++++++++
+ arch/sparc/include/asm/switch_to_64.h  |   73 +++++++
+ arch/sparc/include/asm/system.h        |    8 -
+ arch/sparc/include/asm/system_32.h     |  284 ---------------------------
+ arch/sparc/include/asm/system_64.h     |  331 --------------------------------
+ arch/sparc/include/asm/timer_32.h      |    3 
+ arch/sparc/kernel/auxio_32.c           |    1 
+ arch/sparc/kernel/devices.c            |    1 
+ arch/sparc/kernel/irq.h                |    1 
+ arch/sparc/kernel/kgdb_32.c            |    1 
+ arch/sparc/kernel/module.c             |    1 
+ arch/sparc/kernel/nmi.c                |    1 
+ arch/sparc/kernel/pcr.c                |    1 
+ arch/sparc/kernel/perf_event.c         |    2 
+ arch/sparc/kernel/process_32.c         |    1 
+ arch/sparc/kernel/ptrace_32.c          |    1 
+ arch/sparc/kernel/reboot.c             |    1 
+ arch/sparc/kernel/setup_32.c           |    1 
+ arch/sparc/kernel/setup_64.c           |    1 
+ arch/sparc/kernel/signal32.c           |    1 
+ arch/sparc/kernel/signal_32.c          |    1 
+ arch/sparc/kernel/signal_64.c          |    2 
+ arch/sparc/kernel/sigutil_32.c         |    1 
+ arch/sparc/kernel/sigutil_64.c         |    1 
+ arch/sparc/kernel/sparc_ksyms_64.c     |    1 
+ arch/sparc/kernel/traps_64.c           |    1 
+ arch/sparc/kernel/unaligned_64.c       |    1 
+ arch/sparc/kernel/visemul.c            |    1 
+ arch/sparc/math-emu/math_64.c          |    1 
+ drivers/tty/serial/sunhv.c             |    1 
+ drivers/tty/serial/sunsab.c            |    1 
+ drivers/tty/serial/sunsu.c             |    1 
+ drivers/tty/serial/sunzilog.c          |    1 
+ kernel/signal.c                        |    2 
+ kernel/sysctl.c                        |    3 
+ 53 files changed, 646 insertions(+), 625 deletions(-)
+ create mode 100644 arch/sparc/include/asm/barrier.h
+ create mode 100644 arch/sparc/include/asm/barrier_32.h
+ create mode 100644 arch/sparc/include/asm/barrier_64.h
+ create mode 100644 arch/sparc/include/asm/cpu_type.h
+ create mode 100644 arch/sparc/include/asm/exec.h
+ create mode 100644 arch/sparc/include/asm/switch_to.h
+ create mode 100644 arch/sparc/include/asm/switch_to_32.h
+ create mode 100644 arch/sparc/include/asm/switch_to_64.h
+ delete mode 100644 arch/sparc/include/asm/system.h
+ delete mode 100644 arch/sparc/include/asm/system_32.h
+ delete mode 100644 arch/sparc/include/asm/system_64.h
 
-diff --git a/arch/s390/crypto/crypt_s390.h b/arch/s390/crypto/crypt_s390.h
-index ffd1ac2..9178db6 100644
---- a/arch/s390/crypto/crypt_s390.h
-+++ b/arch/s390/crypto/crypt_s390.h
-@@ -17,6 +17,7 @@
- #define _CRYPTO_ARCH_S390_CRYPT_S390_H
+diff --git a/arch/sparc/include/asm/atomic_32.h b/arch/sparc/include/asm/atomic_32.h
+index e6d75af..21fec1b 100644
+--- a/arch/sparc/include/asm/atomic_32.h
++++ b/arch/sparc/include/asm/atomic_32.h
+@@ -12,6 +12,7 @@
+ #define __ARCH_SPARC_ATOMIC__
  
- #include <asm/errno.h>
-+#include <asm/facility.h>
- 
- #define CRYPT_S390_OP_MASK 0xFF00
- #define CRYPT_S390_FUNC_MASK 0x00FF
-diff --git a/arch/s390/include/asm/atomic.h b/arch/s390/include/asm/atomic.h
-index 1a77c09..748347b 100644
---- a/arch/s390/include/asm/atomic.h
-+++ b/arch/s390/include/asm/atomic.h
-@@ -15,6 +15,7 @@
- 
- #include <linux/compiler.h>
  #include <linux/types.h>
-+#include <asm/cmpxchg.h>
++#include <asm/btfixup.h>
  
- #define ATOMIC_INIT(i)  { (i) }
+ #include <asm-generic/atomic64.h>
  
-diff --git a/arch/s390/include/asm/barrier.h b/arch/s390/include/asm/barrier.h
+@@ -57,4 +58,100 @@ extern void atomic_set(atomic_t *, int);
+ #define smp_mb__before_atomic_inc()	barrier()
+ #define smp_mb__after_atomic_inc()	barrier()
+ 
++/* This has special calling conventions */
++#ifndef CONFIG_SMP
++BTFIXUPDEF_CALL(void, ___xchg32, void)
++#endif
++
++static inline unsigned long xchg_u32(__volatile__ unsigned long *m, unsigned long val)
++{
++#ifdef CONFIG_SMP
++	__asm__ __volatile__("swap [%2], %0"
++			     : "=&r" (val)
++			     : "0" (val), "r" (m)
++			     : "memory");
++	return val;
++#else
++	register unsigned long *ptr asm("g1");
++	register unsigned long ret asm("g2");
++
++	ptr = (unsigned long *) m;
++	ret = val;
++
++	/* Note: this is magic and the nop there is
++	   really needed. */
++	__asm__ __volatile__(
++	"mov	%%o7, %%g4\n\t"
++	"call	___f____xchg32\n\t"
++	" nop\n\t"
++	: "=&r" (ret)
++	: "0" (ret), "r" (ptr)
++	: "g3", "g4", "g7", "memory", "cc");
++
++	return ret;
++#endif
++}
++
++extern void __xchg_called_with_bad_pointer(void);
++
++static inline unsigned long __xchg(unsigned long x, __volatile__ void * ptr, int size)
++{
++	switch (size) {
++	case 4:
++		return xchg_u32(ptr, x);
++	}
++	__xchg_called_with_bad_pointer();
++	return x;
++}
++
++#define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
++
++/* Emulate cmpxchg() the same way we emulate atomics,
++ * by hashing the object address and indexing into an array
++ * of spinlocks to get a bit of performance...
++ *
++ * See arch/sparc/lib/atomic32.c for implementation.
++ *
++ * Cribbed from <asm-parisc/atomic.h>
++ */
++#define __HAVE_ARCH_CMPXCHG	1
++
++/* bug catcher for when unsupported size is used - won't link */
++extern void __cmpxchg_called_with_bad_pointer(void);
++/* we only need to support cmpxchg of a u32 on sparc */
++extern unsigned long __cmpxchg_u32(volatile u32 *m, u32 old, u32 new_);
++
++/* don't worry...optimizer will get rid of most of this */
++static inline unsigned long
++__cmpxchg(volatile void *ptr, unsigned long old, unsigned long new_, int size)
++{
++	switch (size) {
++	case 4:
++		return __cmpxchg_u32((u32 *)ptr, (u32)old, (u32)new_);
++	default:
++		__cmpxchg_called_with_bad_pointer();
++		break;
++	}
++	return old;
++}
++
++#define cmpxchg(ptr, o, n)						\
++({									\
++	__typeof__(*(ptr)) _o_ = (o);					\
++	__typeof__(*(ptr)) _n_ = (n);					\
++	(__typeof__(*(ptr))) __cmpxchg((ptr), (unsigned long)_o_,	\
++			(unsigned long)_n_, sizeof(*(ptr)));		\
++})
++
++#include <asm-generic/cmpxchg-local.h>
++
++/*
++ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
++ * them available.
++ */
++#define cmpxchg_local(ptr, o, n)				  	       \
++	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
++			(unsigned long)(n), sizeof(*(ptr))))
++#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
++
+ #endif /* !(__ARCH_SPARC_ATOMIC__) */
+diff --git a/arch/sparc/include/asm/atomic_64.h b/arch/sparc/include/asm/atomic_64.h
+index 5ab4e89..913b45e 100644
+--- a/arch/sparc/include/asm/atomic_64.h
++++ b/arch/sparc/include/asm/atomic_64.h
+@@ -66,6 +66,142 @@ extern long atomic64_sub_ret(long, atomic64_t *);
+ #define atomic_add_negative(i, v) (atomic_add_ret(i, v) < 0)
+ #define atomic64_add_negative(i, v) (atomic64_add_ret(i, v) < 0)
+ 
++static inline unsigned long xchg32(__volatile__ unsigned int *m, unsigned int val)
++{
++	unsigned long tmp1, tmp2;
++
++	__asm__ __volatile__(
++"	mov		%0, %1\n"
++"1:	lduw		[%4], %2\n"
++"	cas		[%4], %2, %0\n"
++"	cmp		%2, %0\n"
++"	bne,a,pn	%%icc, 1b\n"
++"	 mov		%1, %0\n"
++	: "=&r" (val), "=&r" (tmp1), "=&r" (tmp2)
++	: "0" (val), "r" (m)
++	: "cc", "memory");
++	return val;
++}
++
++static inline unsigned long xchg64(__volatile__ unsigned long *m, unsigned long val)
++{
++	unsigned long tmp1, tmp2;
++
++	__asm__ __volatile__(
++"	mov		%0, %1\n"
++"1:	ldx		[%4], %2\n"
++"	casx		[%4], %2, %0\n"
++"	cmp		%2, %0\n"
++"	bne,a,pn	%%xcc, 1b\n"
++"	 mov		%1, %0\n"
++	: "=&r" (val), "=&r" (tmp1), "=&r" (tmp2)
++	: "0" (val), "r" (m)
++	: "cc", "memory");
++	return val;
++}
++
++#define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
++
++extern void __xchg_called_with_bad_pointer(void);
++
++static inline unsigned long __xchg(unsigned long x, __volatile__ void * ptr,
++				       int size)
++{
++	switch (size) {
++	case 4:
++		return xchg32(ptr, x);
++	case 8:
++		return xchg64(ptr, x);
++	}
++	__xchg_called_with_bad_pointer();
++	return x;
++}
++
++/*
++ * Atomic compare and exchange.  Compare OLD with MEM, if identical,
++ * store NEW in MEM.  Return the initial value in MEM.  Success is
++ * indicated by comparing RETURN with OLD.
++ */
++
++#include <asm-generic/cmpxchg-local.h>
++
++#define __HAVE_ARCH_CMPXCHG 1
++
++static inline unsigned long
++__cmpxchg_u32(volatile int *m, int old, int new)
++{
++	__asm__ __volatile__("cas [%2], %3, %0"
++			     : "=&r" (new)
++			     : "0" (new), "r" (m), "r" (old)
++			     : "memory");
++
++	return new;
++}
++
++static inline unsigned long
++__cmpxchg_u64(volatile long *m, unsigned long old, unsigned long new)
++{
++	__asm__ __volatile__("casx [%2], %3, %0"
++			     : "=&r" (new)
++			     : "0" (new), "r" (m), "r" (old)
++			     : "memory");
++
++	return new;
++}
++
++/* This function doesn't exist, so you'll get a linker error
++   if something tries to do an invalid cmpxchg().  */
++extern void __cmpxchg_called_with_bad_pointer(void);
++
++static inline unsigned long
++__cmpxchg(volatile void *ptr, unsigned long old, unsigned long new, int size)
++{
++	switch (size) {
++		case 4:
++			return __cmpxchg_u32(ptr, old, new);
++		case 8:
++			return __cmpxchg_u64(ptr, old, new);
++	}
++	__cmpxchg_called_with_bad_pointer();
++	return old;
++}
++
++#define cmpxchg(ptr,o,n)						 \
++  ({									 \
++     __typeof__(*(ptr)) _o_ = (o);					 \
++     __typeof__(*(ptr)) _n_ = (n);					 \
++     (__typeof__(*(ptr))) __cmpxchg((ptr), (unsigned long)_o_,		 \
++				    (unsigned long)_n_, sizeof(*(ptr))); \
++  })
++
++/*
++ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
++ * them available.
++ */
++
++static inline unsigned long __cmpxchg_local(volatile void *ptr,
++				      unsigned long old,
++				      unsigned long new, int size)
++{
++	switch (size) {
++	case 4:
++	case 8:	return __cmpxchg(ptr, old, new, size);
++	default:
++		return __cmpxchg_local_generic(ptr, old, new, size);
++	}
++
++	return old;
++}
++
++#define cmpxchg_local(ptr, o, n)				  	\
++	((__typeof__(*(ptr)))__cmpxchg_local((ptr), (unsigned long)(o),	\
++			(unsigned long)(n), sizeof(*(ptr))))
++#define cmpxchg64_local(ptr, o, n)					\
++  ({									\
++	BUILD_BUG_ON(sizeof(*(ptr)) != 8);				\
++	cmpxchg_local((ptr), (o), (n));					\
++  })
++
+ #define atomic_cmpxchg(v, o, n) (cmpxchg(&((v)->counter), (o), (n)))
+ #define atomic_xchg(v, new) (xchg(&((v)->counter), new))
+ 
+@@ -84,7 +220,6 @@ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
+ 	return c;
+ }
+ 
+-
+ #define atomic64_cmpxchg(v, o, n) \
+ 	((__typeof__((v)->counter))cmpxchg(&((v)->counter), (o), (n)))
+ #define atomic64_xchg(v, new) (xchg(&((v)->counter), new))
+diff --git a/arch/sparc/include/asm/barrier.h b/arch/sparc/include/asm/barrier.h
 new file mode 100644
-index 0000000..451273a
+index 0000000..b25f02a
 --- /dev/null
-+++ b/arch/s390/include/asm/barrier.h
-@@ -0,0 +1,35 @@
-+/*
-+ * Copyright IBM Corp. 1999, 2009
-+ *
-+ * Author(s): Martin Schwidefsky <schwidefsky@de.ibm.com>
-+ */
-+
-+#ifndef __ASM_BARRIER_H
-+#define __ASM_BARRIER_H
-+
-+/*
-+ * Force strict CPU ordering.
-+ * And yes, this is required on UP too when we're talking
-+ * to devices.
-+ *
-+ * This is very similar to the ppc eieio/sync instruction in that is
-+ * does a checkpoint syncronisation & makes sure that 
-+ * all memory ops have completed wrt other CPU's ( see 7-15 POP  DJB ).
-+ */
-+
-+#define eieio()	asm volatile("bcr 15,0" : : : "memory")
-+#define SYNC_OTHER_CORES(x)   eieio()
-+#define mb()    eieio()
-+#define rmb()   eieio()
-+#define wmb()   eieio()
-+#define read_barrier_depends() do { } while(0)
-+#define smp_mb()       mb()
-+#define smp_rmb()      rmb()
-+#define smp_wmb()      wmb()
-+#define smp_read_barrier_depends()    read_barrier_depends()
-+#define smp_mb__before_clear_bit()     smp_mb()
-+#define smp_mb__after_clear_bit()      smp_mb()
-+
-+#define set_mb(var, value)      do { var = value; mb(); } while (0)
-+
-+#endif /* __ASM_BARRIER_H */
-diff --git a/arch/s390/include/asm/ctl_reg.h b/arch/s390/include/asm/ctl_reg.h
++++ b/arch/sparc/include/asm/barrier.h
+@@ -0,0 +1,8 @@
++#ifndef ___ASM_SPARC_BARRIER_H
++#define ___ASM_SPARC_BARRIER_H
++#if defined(__sparc__) && defined(__arch64__)
++#include <asm/barrier_64.h>
++#else
++#include <asm/barrier_32.h>
++#endif
++#endif
+diff --git a/arch/sparc/include/asm/barrier_32.h b/arch/sparc/include/asm/barrier_32.h
 new file mode 100644
-index 0000000..ecde941
+index 0000000..c1b7665
 --- /dev/null
-+++ b/arch/s390/include/asm/ctl_reg.h
-@@ -0,0 +1,76 @@
-+/*
-+ * Copyright IBM Corp. 1999, 2009
++++ b/arch/sparc/include/asm/barrier_32.h
+@@ -0,0 +1,15 @@
++#ifndef __SPARC_BARRIER_H
++#define __SPARC_BARRIER_H
++
++/* XXX Change this if we ever use a PSO mode kernel. */
++#define mb()	__asm__ __volatile__ ("" : : : "memory")
++#define rmb()	mb()
++#define wmb()	mb()
++#define read_barrier_depends()	do { } while(0)
++#define set_mb(__var, __value)  do { __var = __value; mb(); } while(0)
++#define smp_mb()	__asm__ __volatile__("":::"memory")
++#define smp_rmb()	__asm__ __volatile__("":::"memory")
++#define smp_wmb()	__asm__ __volatile__("":::"memory")
++#define smp_read_barrier_depends()	do { } while(0)
++
++#endif /* !(__SPARC_BARRIER_H) */
+diff --git a/arch/sparc/include/asm/barrier_64.h b/arch/sparc/include/asm/barrier_64.h
+new file mode 100644
+index 0000000..95d4598
+--- /dev/null
++++ b/arch/sparc/include/asm/barrier_64.h
+@@ -0,0 +1,56 @@
++#ifndef __SPARC64_BARRIER_H
++#define __SPARC64_BARRIER_H
++
++/* These are here in an effort to more fully work around Spitfire Errata
++ * #51.  Essentially, if a memory barrier occurs soon after a mispredicted
++ * branch, the chip can stop executing instructions until a trap occurs.
++ * Therefore, if interrupts are disabled, the chip can hang forever.
 + *
-+ * Author(s): Martin Schwidefsky <schwidefsky@de.ibm.com>
++ * It used to be believed that the memory barrier had to be right in the
++ * delay slot, but a case has been traced recently wherein the memory barrier
++ * was one instruction after the branch delay slot and the chip still hung.
++ * The offending sequence was the following in sym_wakeup_done() of the
++ * sym53c8xx_2 driver:
++ *
++ *	call	sym_ccb_from_dsa, 0
++ *	 movge	%icc, 0, %l0
++ *	brz,pn	%o0, .LL1303
++ *	 mov	%o0, %l2
++ *	membar	#LoadLoad
++ *
++ * The branch has to be mispredicted for the bug to occur.  Therefore, we put
++ * the memory barrier explicitly into a "branch always, predicted taken"
++ * delay slot to avoid the problem case.
 + */
++#define membar_safe(type) \
++do {	__asm__ __volatile__("ba,pt	%%xcc, 1f\n\t" \
++			     " membar	" type "\n" \
++			     "1:\n" \
++			     : : : "memory"); \
++} while (0)
 +
-+#ifndef __ASM_CTL_REG_H
-+#define __ASM_CTL_REG_H
++/* The kernel always executes in TSO memory model these days,
++ * and furthermore most sparc64 chips implement more stringent
++ * memory ordering than required by the specifications.
++ */
++#define mb()	membar_safe("#StoreLoad")
++#define rmb()	__asm__ __volatile__("":::"memory")
++#define wmb()	__asm__ __volatile__("":::"memory")
 +
-+#ifdef __s390x__
-+
-+#define __ctl_load(array, low, high) ({				\
-+	typedef struct { char _[sizeof(array)]; } addrtype;	\
-+	asm volatile(						\
-+		"	lctlg	%1,%2,%0\n"			\
-+		: : "Q" (*(addrtype *)(&array)),		\
-+		    "i" (low), "i" (high));			\
-+	})
-+
-+#define __ctl_store(array, low, high) ({			\
-+	typedef struct { char _[sizeof(array)]; } addrtype;	\
-+	asm volatile(						\
-+		"	stctg	%1,%2,%0\n"			\
-+		: "=Q" (*(addrtype *)(&array))			\
-+		: "i" (low), "i" (high));			\
-+	})
-+
-+#else /* __s390x__ */
-+
-+#define __ctl_load(array, low, high) ({				\
-+	typedef struct { char _[sizeof(array)]; } addrtype;	\
-+	asm volatile(						\
-+		"	lctl	%1,%2,%0\n"			\
-+		: : "Q" (*(addrtype *)(&array)),		\
-+		    "i" (low), "i" (high));			\
-+})
-+
-+#define __ctl_store(array, low, high) ({			\
-+	typedef struct { char _[sizeof(array)]; } addrtype;	\
-+	asm volatile(						\
-+		"	stctl	%1,%2,%0\n"			\
-+		: "=Q" (*(addrtype *)(&array))			\
-+		: "i" (low), "i" (high));			\
-+	})
-+
-+#endif /* __s390x__ */
-+
-+#define __ctl_set_bit(cr, bit) ({	\
-+	unsigned long __dummy;		\
-+	__ctl_store(__dummy, cr, cr);	\
-+	__dummy |= 1UL << (bit);	\
-+	__ctl_load(__dummy, cr, cr);	\
-+})
-+
-+#define __ctl_clear_bit(cr, bit) ({	\
-+	unsigned long __dummy;		\
-+	__ctl_store(__dummy, cr, cr);	\
-+	__dummy &= ~(1UL << (bit));	\
-+	__ctl_load(__dummy, cr, cr);	\
-+})
++#define read_barrier_depends()		do { } while(0)
++#define set_mb(__var, __value) \
++	do { __var = __value; membar_safe("#StoreLoad"); } while(0)
 +
 +#ifdef CONFIG_SMP
++#define smp_mb()	mb()
++#define smp_rmb()	rmb()
++#define smp_wmb()	wmb()
++#else
++#define smp_mb()	__asm__ __volatile__("":::"memory")
++#define smp_rmb()	__asm__ __volatile__("":::"memory")
++#define smp_wmb()	__asm__ __volatile__("":::"memory")
++#endif
 +
-+extern void smp_ctl_set_bit(int cr, int bit);
-+extern void smp_ctl_clear_bit(int cr, int bit);
-+#define ctl_set_bit(cr, bit) smp_ctl_set_bit(cr, bit)
-+#define ctl_clear_bit(cr, bit) smp_ctl_clear_bit(cr, bit)
++#define smp_read_barrier_depends()	do { } while(0)
++
++#endif /* !(__SPARC64_BARRIER_H) */
+diff --git a/arch/sparc/include/asm/bug.h b/arch/sparc/include/asm/bug.h
+index 8a59e5a..6bd9f43 100644
+--- a/arch/sparc/include/asm/bug.h
++++ b/arch/sparc/include/asm/bug.h
+@@ -19,4 +19,7 @@ extern void do_BUG(const char *file, int line);
+ 
+ #include <asm-generic/bug.h>
+ 
++struct pt_regs;
++extern void die_if_kernel(char *str, struct pt_regs *regs) __attribute__ ((noreturn));
++
+ #endif
+diff --git a/arch/sparc/include/asm/cacheflush_32.h b/arch/sparc/include/asm/cacheflush_32.h
+index 2e46877..68431b4 100644
+--- a/arch/sparc/include/asm/cacheflush_32.h
++++ b/arch/sparc/include/asm/cacheflush_32.h
+@@ -83,4 +83,13 @@ extern void sparc_flush_page_to_ram(struct page *page);
+ #define flush_cache_vmap(start, end)		flush_cache_all()
+ #define flush_cache_vunmap(start, end)		flush_cache_all()
+ 
++/* When a context switch happens we must flush all user windows so that
++ * the windows of the current process are flushed onto its stack. This
++ * way the windows are all clean for the next process and the stack
++ * frames are up to date.
++ */
++extern void flush_user_windows(void);
++extern void kill_user_windows(void);
++extern void flushw_all(void);
++
+ #endif /* _SPARC_CACHEFLUSH_H */
+diff --git a/arch/sparc/include/asm/cacheflush_64.h b/arch/sparc/include/asm/cacheflush_64.h
+index b953840..2efea2f 100644
+--- a/arch/sparc/include/asm/cacheflush_64.h
++++ b/arch/sparc/include/asm/cacheflush_64.h
+@@ -9,6 +9,16 @@
+ 
+ /* Cache flush operations. */
+ 
++
++#define flushi(addr)	__asm__ __volatile__ ("flush %0" : : "r" (addr) : "memory")
++#define flushw_all()	__asm__ __volatile__("flushw")
++
++extern void __flushw_user(void);
++#define flushw_user() __flushw_user()
++
++#define flush_user_windows flushw_user
++#define flush_register_windows flushw_all
++
+ /* These are the same regardless of whether this is an SMP kernel or not. */
+ #define flush_cache_mm(__mm) \
+ 	do { if ((__mm) == current->mm) flushw_user(); } while(0)
+diff --git a/arch/sparc/include/asm/cpu_type.h b/arch/sparc/include/asm/cpu_type.h
+new file mode 100644
+index 0000000..4ca184d
+--- /dev/null
++++ b/arch/sparc/include/asm/cpu_type.h
+@@ -0,0 +1,34 @@
++#ifndef __ASM_CPU_TYPE_H
++#define __ASM_CPU_TYPE_H
++
++/*
++ * Sparc (general) CPU types
++ */
++enum sparc_cpu {
++  sun4        = 0x00,
++  sun4c       = 0x01,
++  sun4m       = 0x02,
++  sun4d       = 0x03,
++  sun4e       = 0x04,
++  sun4u       = 0x05, /* V8 ploos ploos */
++  sun_unknown = 0x06,
++  ap1000      = 0x07, /* almost a sun4m */
++  sparc_leon  = 0x08, /* Leon SoC */
++};
++
++#ifdef CONFIG_SPARC32
++extern enum sparc_cpu sparc_cpu_model;
++
++#define ARCH_SUN4C (sparc_cpu_model==sun4c)
++
++#define SUN4M_NCPUS            4              /* Architectural limit of sun4m. */
 +
 +#else
 +
-+#define ctl_set_bit(cr, bit) __ctl_set_bit(cr, bit)
-+#define ctl_clear_bit(cr, bit) __ctl_clear_bit(cr, bit)
++#define sparc_cpu_model sun4u
 +
-+#endif /* CONFIG_SMP */
++/* This cannot ever be a sun4c :) That's just history. */
++#define ARCH_SUN4C 0
++#endif
 +
-+#endif /* __ASM_CTL_REG_H */
-diff --git a/arch/s390/include/asm/elf.h b/arch/s390/include/asm/elf.h
-index 547f1a6..c4ee39f 100644
---- a/arch/s390/include/asm/elf.h
-+++ b/arch/s390/include/asm/elf.h
-@@ -129,7 +129,6 @@ typedef s390_fp_regs compat_elf_fpregset_t;
- typedef s390_compat_regs compat_elf_gregset_t;
- 
- #include <linux/sched.h>	/* for task_struct */
--#include <asm/system.h>		/* for save_access_regs */
- #include <asm/mmu_context.h>
- 
- #include <asm/vdso.h>
-diff --git a/arch/s390/include/asm/exec.h b/arch/s390/include/asm/exec.h
++#endif /* __ASM_CPU_TYPE_H */
+diff --git a/arch/sparc/include/asm/exec.h b/arch/sparc/include/asm/exec.h
 new file mode 100644
-index 0000000..c4a93d6
+index 0000000..2e08588
 --- /dev/null
-+++ b/arch/s390/include/asm/exec.h
-@@ -0,0 +1,12 @@
-+/*
-+ * Copyright IBM Corp. 1999, 2009
-+ *
-+ * Author(s): Martin Schwidefsky <schwidefsky@de.ibm.com>
-+ */
++++ b/arch/sparc/include/asm/exec.h
+@@ -0,0 +1,6 @@
++#ifndef __SPARC_EXEC_H
++#define __SPARC_EXEC_H
 +
-+#ifndef __ASM_EXEC_H
-+#define __ASM_EXEC_H
++#define arch_align_stack(x) (x)
 +
-+extern unsigned long arch_align_stack(unsigned long sp);
-+
-+#endif /* __ASM_EXEC_H */
-diff --git a/arch/s390/include/asm/facility.h b/arch/s390/include/asm/facility.h
-new file mode 100644
-index 0000000..0890581
---- /dev/null
-+++ b/arch/s390/include/asm/facility.h
-@@ -0,0 +1,29 @@
-+/*
-+ * Copyright IBM Corp. 1999, 2009
-+ *
-+ * Author(s): Martin Schwidefsky <schwidefsky@de.ibm.com>
-+ */
-+
-+#ifndef __ASM_FACILITY_H
-+#define __ASM_FACILITY_H
-+
-+#include <asm/lowcore.h>
-+
-+#define MAX_FACILITY_BIT (256*8)	/* stfle_fac_list has 256 bytes */
-+
-+/*
-+ * The test_facility function uses the bit odering where the MSB is bit 0.
-+ * That makes it easier to query facility bits with the bit number as
-+ * documented in the Principles of Operation.
-+ */
-+static inline int test_facility(unsigned long nr)
-+{
-+	unsigned char *ptr;
-+
-+	if (nr >= MAX_FACILITY_BIT)
-+		return 0;
-+	ptr = (unsigned char *) &S390_lowcore.stfle_fac_list + (nr >> 3);
-+	return (*ptr & (0x80 >> (nr & 7))) != 0;
-+}
-+
-+#endif /* __ASM_FACILITY_H */
-diff --git a/arch/s390/include/asm/mmu.h b/arch/s390/include/asm/mmu.h
-index 4506791..1c7d6ce 100644
---- a/arch/s390/include/asm/mmu.h
-+++ b/arch/s390/include/asm/mmu.h
-@@ -21,4 +21,18 @@ typedef struct {
- 	.context.pgtable_list = LIST_HEAD_INIT(name.context.pgtable_list),    \
- 	.context.gmap_list = LIST_HEAD_INIT(name.context.gmap_list),
++#endif /* __SPARC_EXEC_H */
+diff --git a/arch/sparc/include/asm/irqflags_32.h b/arch/sparc/include/asm/irqflags_32.h
+index 1484890..e414c06 100644
+--- a/arch/sparc/include/asm/irqflags_32.h
++++ b/arch/sparc/include/asm/irqflags_32.h
+@@ -13,6 +13,7 @@
+ #ifndef __ASSEMBLY__
  
-+static inline int tprot(unsigned long addr)
-+{
-+	int rc = -EFAULT;
+ #include <linux/types.h>
++#include <asm/psr.h>
+ 
+ extern void arch_local_irq_restore(unsigned long);
+ extern unsigned long arch_local_irq_save(void);
+diff --git a/arch/sparc/include/asm/perfctr.h b/arch/sparc/include/asm/perfctr.h
+index 8d8720a..3332d2c 100644
+--- a/arch/sparc/include/asm/perfctr.h
++++ b/arch/sparc/include/asm/perfctr.h
+@@ -168,6 +168,29 @@ struct vcounter_struct {
+   unsigned long long vcnt1;
+ };
+ 
++#else /* !(__KERNEL__) */
 +
-+	asm volatile(
-+		"	tprot	0(%1),0\n"
-+		"0:	ipm	%0\n"
-+		"	srl	%0,28\n"
-+		"1:\n"
-+		EX_TABLE(0b,1b)
-+		: "+d" (rc) : "a" (addr) : "cc");
-+	return rc;
-+}
++#ifndef CONFIG_SPARC32
++
++/* Performance counter register access. */
++#define read_pcr(__p)  __asm__ __volatile__("rd	%%pcr, %0" : "=r" (__p))
++#define write_pcr(__p) __asm__ __volatile__("wr	%0, 0x0, %%pcr" : : "r" (__p))
++#define read_pic(__p)  __asm__ __volatile__("rd %%pic, %0" : "=r" (__p))
++
++/* Blackbird errata workaround.  See commentary in
++ * arch/sparc64/kernel/smp.c:smp_percpu_timer_interrupt()
++ * for more information.
++ */
++#define write_pic(__p)  					\
++	__asm__ __volatile__("ba,pt	%%xcc, 99f\n\t"		\
++			     " nop\n\t"				\
++			     ".align	64\n"			\
++			  "99:wr	%0, 0x0, %%pic\n\t"	\
++			     "rd	%%pic, %%g0" : : "r" (__p))
++#define reset_pic()	write_pic(0)
++
++#endif /* !CONFIG_SPARC32 */
++
+ #endif /* !(__KERNEL__) */
+ 
+ #endif /* !(PERF_COUNTER_API) */
+diff --git a/arch/sparc/include/asm/pgtable_32.h b/arch/sparc/include/asm/pgtable_32.h
+index 496664b..3d71018 100644
+--- a/arch/sparc/include/asm/pgtable_32.h
++++ b/arch/sparc/include/asm/pgtable_32.h
+@@ -21,6 +21,7 @@
+ #include <asm/vac-ops.h>
+ #include <asm/oplib.h>
+ #include <asm/btfixup.h>
++#include <asm/cpu_type.h>
+ 
+ 
+ struct vm_area_struct;
+diff --git a/arch/sparc/include/asm/processor.h b/arch/sparc/include/asm/processor.h
+index 9da9646..2fe99e6 100644
+--- a/arch/sparc/include/asm/processor.h
++++ b/arch/sparc/include/asm/processor.h
+@@ -5,4 +5,7 @@
+ #else
+ #include <asm/processor_32.h>
+ #endif
++
++#define nop() 		__asm__ __volatile__ ("nop")
 +
  #endif
-diff --git a/arch/s390/include/asm/mmu_context.h b/arch/s390/include/asm/mmu_context.h
-index 5682f16..5d09e40 100644
---- a/arch/s390/include/asm/mmu_context.h
-+++ b/arch/s390/include/asm/mmu_context.h
-@@ -12,6 +12,7 @@
- #include <asm/pgalloc.h>
- #include <asm/uaccess.h>
- #include <asm/tlbflush.h>
-+#include <asm/ctl_reg.h>
- #include <asm-generic/mm_hooks.h>
- 
- static inline int init_new_context(struct task_struct *tsk,
-diff --git a/arch/s390/include/asm/processor.h b/arch/s390/include/asm/processor.h
-index d25843a..320aa82 100644
---- a/arch/s390/include/asm/processor.h
-+++ b/arch/s390/include/asm/processor.h
-@@ -14,6 +14,7 @@
- #define __ASM_S390_PROCESSOR_H
- 
- #include <linux/linkage.h>
-+#include <linux/irqflags.h>
- #include <asm/cpu.h>
- #include <asm/page.h>
+diff --git a/arch/sparc/include/asm/processor_64.h b/arch/sparc/include/asm/processor_64.h
+index 59fcebb..e713db2 100644
+--- a/arch/sparc/include/asm/processor_64.h
++++ b/arch/sparc/include/asm/processor_64.h
+@@ -18,6 +18,9 @@
  #include <asm/ptrace.h>
-@@ -304,6 +305,21 @@ static inline void __noreturn disabled_wait(unsigned long code)
- }
+ #include <asm/page.h>
  
- /*
-+ * Use to set psw mask except for the first byte which
-+ * won't be changed by this function.
-+ */
-+static inline void
-+__set_psw_mask(unsigned long mask)
-+{
-+	__load_psw_mask(mask | (arch_local_save_flags() & ~(-1UL >> 8)));
-+}
++/* Don't hold the runqueue lock over context switch */
++#define __ARCH_WANT_UNLOCKED_CTXSW
 +
-+#define local_mcck_enable() \
-+	__set_psw_mask(psw_kernel_bits | PSW_MASK_DAT | PSW_MASK_MCHECK)
-+#define local_mcck_disable() \
-+	__set_psw_mask(psw_kernel_bits | PSW_MASK_DAT)
-+
-+/*
-  * Basic Machine Check/Program Check Handler.
+ /* The sparc has no problems with write protection */
+ #define wp_works_ok 1
+ #define wp_works_ok__is_a_macro /* for versions in ksyms.c */
+diff --git a/arch/sparc/include/asm/ptrace.h b/arch/sparc/include/asm/ptrace.h
+index 0495388..afba9f2 100644
+--- a/arch/sparc/include/asm/ptrace.h
++++ b/arch/sparc/include/asm/ptrace.h
+@@ -98,6 +98,8 @@ struct sparc_trapf {
   */
+ #ifndef __ASSEMBLY__
  
-diff --git a/arch/s390/include/asm/setup.h b/arch/s390/include/asm/setup.h
-index 097183c..b21e46e 100644
---- a/arch/s390/include/asm/setup.h
-+++ b/arch/s390/include/asm/setup.h
-@@ -140,6 +140,20 @@ extern char vmpoff_cmd[];
- #define NSS_NAME_SIZE	8
- extern char kernel_nss_name[];
- 
-+#ifdef CONFIG_PFAULT
-+extern int pfault_init(void);
-+extern void pfault_fini(void);
-+#else /* CONFIG_PFAULT */
-+#define pfault_init()		({-1;})
-+#define pfault_fini()		do { } while (0)
-+#endif /* CONFIG_PFAULT */
++#include <linux/types.h>
 +
-+extern void cmma_init(void);
-+
-+extern void (*_machine_restart)(char *command);
-+extern void (*_machine_halt)(void);
-+extern void (*_machine_power_off)(void);
-+
- #else /* __ASSEMBLY__ */
+ struct pt_regs {
+ 	unsigned long psr;
+ 	unsigned long pc;
+diff --git a/arch/sparc/include/asm/setup.h b/arch/sparc/include/asm/setup.h
+index 64718ba..00497ab 100644
+--- a/arch/sparc/include/asm/setup.h
++++ b/arch/sparc/include/asm/setup.h
+@@ -13,14 +13,30 @@
  
- #ifndef __s390x__
-diff --git a/arch/s390/include/asm/sigp.h b/arch/s390/include/asm/sigp.h
-index 06faf6a..d7008d1 100644
---- a/arch/s390/include/asm/sigp.h
-+++ b/arch/s390/include/asm/sigp.h
-@@ -14,6 +14,14 @@
- /* Get real cpu address from logical cpu number. */
- extern unsigned short __cpu_logical_map[];
+ #ifdef __KERNEL__
  
-+static inline unsigned short stap(void)
++extern char reboot_command[];
++
+ #ifdef CONFIG_SPARC32
+ /* The CPU that was used for booting
+  * Only sun4d + leon may have boot_cpu_id != 0
+  */
+ extern unsigned char boot_cpu_id;
+ extern unsigned char boot_cpu_id4;
++
++extern unsigned long empty_bad_page;
++extern unsigned long empty_bad_page_table;
++extern unsigned long empty_zero_page;
++
++extern int serial_console;
++static inline int con_is_present(void)
 +{
-+	unsigned short cpu_address;
-+
-+	asm volatile("stap %0" : "=m" (cpu_address));
-+	return cpu_address;
++	return serial_console ? 0 : 1;
 +}
+ #endif
+ 
++extern void sun_do_break(void);
++extern int stop_a_enabled;
++extern int scons_pwroff;
 +
- static inline int cpu_logical_map(int cpu)
- {
- #ifdef CONFIG_SMP
-diff --git a/arch/s390/include/asm/switch_to.h b/arch/s390/include/asm/switch_to.h
+ #endif /* __KERNEL__ */
+ 
+ #endif /* _SPARC_SETUP_H */
+diff --git a/arch/sparc/include/asm/switch_to.h b/arch/sparc/include/asm/switch_to.h
 new file mode 100644
-index 0000000..6ad1fc7
+index 0000000..2dc4fa5
 --- /dev/null
-+++ b/arch/s390/include/asm/switch_to.h
-@@ -0,0 +1,100 @@
++++ b/arch/sparc/include/asm/switch_to.h
+@@ -0,0 +1,8 @@
++#ifndef ___ASM_SPARC_SWITCH_TO_H
++#define ___ASM_SPARC_SWITCH_TO_H
++#if defined(__sparc__) && defined(__arch64__)
++#include <asm/switch_to_64.h>
++#else
++#include <asm/switch_to_32.h>
++#endif
++#endif
+diff --git a/arch/sparc/include/asm/switch_to_32.h b/arch/sparc/include/asm/switch_to_32.h
+new file mode 100644
+index 0000000..e32e82b
+--- /dev/null
++++ b/arch/sparc/include/asm/switch_to_32.h
+@@ -0,0 +1,106 @@
++#ifndef __SPARC_SWITCH_TO_H
++#define __SPARC_SWITCH_TO_H
++
++#include <asm/smp.h>
++
++extern struct thread_info *current_set[NR_CPUS];
++
 +/*
-+ * Copyright IBM Corp. 1999, 2009
++ * Flush windows so that the VM switch which follows
++ * would not pull the stack from under us.
 + *
-+ * Author(s): Martin Schwidefsky <schwidefsky@de.ibm.com>
++ * SWITCH_ENTER and SWITH_DO_LAZY_FPU do not work yet (e.g. SMP does not work)
++ * XXX WTF is the above comment? Found in late teen 2.4.x.
 + */
++#ifdef CONFIG_SMP
++#define SWITCH_ENTER(prv) \
++	do {			\
++	if (test_tsk_thread_flag(prv, TIF_USEDFPU)) { \
++		put_psr(get_psr() | PSR_EF); \
++		fpsave(&(prv)->thread.float_regs[0], &(prv)->thread.fsr, \
++		       &(prv)->thread.fpqueue[0], &(prv)->thread.fpqdepth); \
++		clear_tsk_thread_flag(prv, TIF_USEDFPU); \
++		(prv)->thread.kregs->psr &= ~PSR_EF; \
++	} \
++	} while(0)
 +
-+#ifndef __ASM_SWITCH_TO_H
-+#define __ASM_SWITCH_TO_H
++#define SWITCH_DO_LAZY_FPU(next)	/* */
++#else
++#define SWITCH_ENTER(prv)		/* */
++#define SWITCH_DO_LAZY_FPU(nxt)	\
++	do {			\
++	if (last_task_used_math != (nxt))		\
++		(nxt)->thread.kregs->psr&=~PSR_EF;	\
++	} while(0)
++#endif
 +
-+struct task_struct;
++#define prepare_arch_switch(next) do { \
++	__asm__ __volatile__( \
++	".globl\tflush_patch_switch\nflush_patch_switch:\n\t" \
++	"save %sp, -0x40, %sp; save %sp, -0x40, %sp; save %sp, -0x40, %sp\n\t" \
++	"save %sp, -0x40, %sp; save %sp, -0x40, %sp; save %sp, -0x40, %sp\n\t" \
++	"save %sp, -0x40, %sp\n\t" \
++	"restore; restore; restore; restore; restore; restore; restore"); \
++} while(0)
 +
-+extern struct task_struct *__switch_to(void *, void *);
-+extern void update_per_regs(struct task_struct *task);
++	/* Much care has gone into this code, do not touch it.
++	 *
++	 * We need to loadup regs l0/l1 for the newly forked child
++	 * case because the trap return path relies on those registers
++	 * holding certain values, gcc is told that they are clobbered.
++	 * Gcc needs registers for 3 values in and 1 value out, so we
++	 * clobber every non-fixed-usage register besides l2/l3/o4/o5.  -DaveM
++	 *
++	 * Hey Dave, that do not touch sign is too much of an incentive
++	 * - Anton & Pete
++	 */
++#define switch_to(prev, next, last) do {						\
++	SWITCH_ENTER(prev);								\
++	SWITCH_DO_LAZY_FPU(next);							\
++	cpumask_set_cpu(smp_processor_id(), mm_cpumask(next->active_mm));		\
++	__asm__ __volatile__(								\
++	"sethi	%%hi(here - 0x8), %%o7\n\t"						\
++	"mov	%%g6, %%g3\n\t"								\
++	"or	%%o7, %%lo(here - 0x8), %%o7\n\t"					\
++	"rd	%%psr, %%g4\n\t"							\
++	"std	%%sp, [%%g6 + %4]\n\t"							\
++	"rd	%%wim, %%g5\n\t"							\
++	"wr	%%g4, 0x20, %%psr\n\t"							\
++	"nop\n\t"									\
++	"std	%%g4, [%%g6 + %3]\n\t"							\
++	"ldd	[%2 + %3], %%g4\n\t"							\
++	"mov	%2, %%g6\n\t"								\
++	".globl	patchme_store_new_current\n"						\
++"patchme_store_new_current:\n\t"							\
++	"st	%2, [%1]\n\t"								\
++	"wr	%%g4, 0x20, %%psr\n\t"							\
++	"nop\n\t"									\
++	"nop\n\t"									\
++	"nop\n\t"	/* LEON needs all 3 nops: load to %sp depends on CWP. */		\
++	"ldd	[%%g6 + %4], %%sp\n\t"							\
++	"wr	%%g5, 0x0, %%wim\n\t"							\
++	"ldd	[%%sp + 0x00], %%l0\n\t"						\
++	"ldd	[%%sp + 0x38], %%i6\n\t"						\
++	"wr	%%g4, 0x0, %%psr\n\t"							\
++	"nop\n\t"									\
++	"nop\n\t"									\
++	"jmpl	%%o7 + 0x8, %%g0\n\t"							\
++	" ld	[%%g3 + %5], %0\n\t"							\
++	"here:\n"									\
++        : "=&r" (last)									\
++        : "r" (&(current_set[hard_smp_processor_id()])),	\
++	  "r" (task_thread_info(next)),				\
++	  "i" (TI_KPSR),					\
++	  "i" (TI_KSP),						\
++	  "i" (TI_TASK)						\
++	:       "g1", "g2", "g3", "g4", "g5",       "g7",	\
++	  "l0", "l1",       "l3", "l4", "l5", "l6", "l7",	\
++	  "i0", "i1", "i2", "i3", "i4", "i5",			\
++	  "o0", "o1", "o2", "o3",                   "o7");	\
++	} while(0)
 +
-+static inline void save_fp_regs(s390_fp_regs *fpregs)
-+{
-+	asm volatile(
-+		"	std	0,%O0+8(%R0)\n"
-+		"	std	2,%O0+24(%R0)\n"
-+		"	std	4,%O0+40(%R0)\n"
-+		"	std	6,%O0+56(%R0)"
-+		: "=Q" (*fpregs) : "Q" (*fpregs));
-+	if (!MACHINE_HAS_IEEE)
-+		return;
-+	asm volatile(
-+		"	stfpc	%0\n"
-+		"	std	1,%O0+16(%R0)\n"
-+		"	std	3,%O0+32(%R0)\n"
-+		"	std	5,%O0+48(%R0)\n"
-+		"	std	7,%O0+64(%R0)\n"
-+		"	std	8,%O0+72(%R0)\n"
-+		"	std	9,%O0+80(%R0)\n"
-+		"	std	10,%O0+88(%R0)\n"
-+		"	std	11,%O0+96(%R0)\n"
-+		"	std	12,%O0+104(%R0)\n"
-+		"	std	13,%O0+112(%R0)\n"
-+		"	std	14,%O0+120(%R0)\n"
-+		"	std	15,%O0+128(%R0)\n"
-+		: "=Q" (*fpregs) : "Q" (*fpregs));
-+}
++extern void fpsave(unsigned long *fpregs, unsigned long *fsr,
++		   void *fpqueue, unsigned long *fpqdepth);
++extern void synchronize_user_stack(void);
 +
-+static inline void restore_fp_regs(s390_fp_regs *fpregs)
-+{
-+	asm volatile(
-+		"	ld	0,%O0+8(%R0)\n"
-+		"	ld	2,%O0+24(%R0)\n"
-+		"	ld	4,%O0+40(%R0)\n"
-+		"	ld	6,%O0+56(%R0)"
-+		: : "Q" (*fpregs));
-+	if (!MACHINE_HAS_IEEE)
-+		return;
-+	asm volatile(
-+		"	lfpc	%0\n"
-+		"	ld	1,%O0+16(%R0)\n"
-+		"	ld	3,%O0+32(%R0)\n"
-+		"	ld	5,%O0+48(%R0)\n"
-+		"	ld	7,%O0+64(%R0)\n"
-+		"	ld	8,%O0+72(%R0)\n"
-+		"	ld	9,%O0+80(%R0)\n"
-+		"	ld	10,%O0+88(%R0)\n"
-+		"	ld	11,%O0+96(%R0)\n"
-+		"	ld	12,%O0+104(%R0)\n"
-+		"	ld	13,%O0+112(%R0)\n"
-+		"	ld	14,%O0+120(%R0)\n"
-+		"	ld	15,%O0+128(%R0)\n"
-+		: : "Q" (*fpregs));
-+}
++#endif /* __SPARC_SWITCH_TO_H */
+diff --git a/arch/sparc/include/asm/switch_to_64.h b/arch/sparc/include/asm/switch_to_64.h
+new file mode 100644
+index 0000000..eb5121b
+--- /dev/null
++++ b/arch/sparc/include/asm/switch_to_64.h
+@@ -0,0 +1,73 @@
++#ifndef __SPARC64_SWITCH_TO_64_H
++#define __SPARC64_SWITCH_TO_64_H
 +
-+static inline void save_access_regs(unsigned int *acrs)
-+{
-+	asm volatile("stam 0,15,%0" : "=Q" (*acrs));
-+}
++#include <asm/visasm.h>
++#include <asm/cacheflush.h>
 +
-+static inline void restore_access_regs(unsigned int *acrs)
-+{
-+	asm volatile("lam 0,15,%0" : : "Q" (*acrs));
-+}
-+
-+#define switch_to(prev,next,last) do {					\
-+	if (prev->mm) {							\
-+		save_fp_regs(&prev->thread.fp_regs);			\
-+		save_access_regs(&prev->thread.acrs[0]);		\
-+	}								\
-+	if (next->mm) {							\
-+		restore_fp_regs(&next->thread.fp_regs);			\
-+		restore_access_regs(&next->thread.acrs[0]);		\
-+		update_per_regs(next);					\
-+	}								\
-+	prev = __switch_to(prev,next);					\
++#define prepare_arch_switch(next)		\
++do {						\
++	flushw_all();				\
 +} while (0)
 +
-+extern void account_vtime(struct task_struct *, struct task_struct *);
-+extern void account_tick_vtime(struct task_struct *);
++	/* See what happens when you design the chip correctly?
++	 *
++	 * We tell gcc we clobber all non-fixed-usage registers except
++	 * for l0/l1.  It will use one for 'next' and the other to hold
++	 * the output value of 'last'.  'next' is not referenced again
++	 * past the invocation of switch_to in the scheduler, so we need
++	 * not preserve it's value.  Hairy, but it lets us remove 2 loads
++	 * and 2 stores in this critical code path.  -DaveM
++	 */
++#define switch_to(prev, next, last)					\
++do {	flush_tlb_pending();						\
++	save_and_clear_fpu();						\
++	/* If you are tempted to conditionalize the following */	\
++	/* so that ASI is only written if it changes, think again. */	\
++	__asm__ __volatile__("wr %%g0, %0, %%asi"			\
++	: : "r" (__thread_flag_byte_ptr(task_thread_info(next))[TI_FLAG_BYTE_CURRENT_DS]));\
++	trap_block[current_thread_info()->cpu].thread =			\
++		task_thread_info(next);					\
++	__asm__ __volatile__(						\
++	"mov	%%g4, %%g7\n\t"						\
++	"stx	%%i6, [%%sp + 2047 + 0x70]\n\t"				\
++	"stx	%%i7, [%%sp + 2047 + 0x78]\n\t"				\
++	"rdpr	%%wstate, %%o5\n\t"					\
++	"stx	%%o6, [%%g6 + %6]\n\t"					\
++	"stb	%%o5, [%%g6 + %5]\n\t"					\
++	"rdpr	%%cwp, %%o5\n\t"					\
++	"stb	%%o5, [%%g6 + %8]\n\t"					\
++	"wrpr	%%g0, 15, %%pil\n\t"					\
++	"mov	%4, %%g6\n\t"						\
++	"ldub	[%4 + %8], %%g1\n\t"					\
++	"wrpr	%%g1, %%cwp\n\t"					\
++	"ldx	[%%g6 + %6], %%o6\n\t"					\
++	"ldub	[%%g6 + %5], %%o5\n\t"					\
++	"ldub	[%%g6 + %7], %%o7\n\t"					\
++	"wrpr	%%o5, 0x0, %%wstate\n\t"				\
++	"ldx	[%%sp + 2047 + 0x70], %%i6\n\t"				\
++	"ldx	[%%sp + 2047 + 0x78], %%i7\n\t"				\
++	"ldx	[%%g6 + %9], %%g4\n\t"					\
++	"wrpr	%%g0, 14, %%pil\n\t"					\
++	"brz,pt %%o7, switch_to_pc\n\t"					\
++	" mov	%%g7, %0\n\t"						\
++	"sethi	%%hi(ret_from_syscall), %%g1\n\t"			\
++	"jmpl	%%g1 + %%lo(ret_from_syscall), %%g0\n\t"		\
++	" nop\n\t"							\
++	".globl switch_to_pc\n\t"					\
++	"switch_to_pc:\n\t"						\
++	: "=&r" (last), "=r" (current), "=r" (current_thread_info_reg),	\
++	  "=r" (__local_per_cpu_offset)					\
++	: "0" (task_thread_info(next)),					\
++	  "i" (TI_WSTATE), "i" (TI_KSP), "i" (TI_NEW_CHILD),            \
++	  "i" (TI_CWP), "i" (TI_TASK)					\
++	: "cc",								\
++	        "g1", "g2", "g3",                   "g7",		\
++	        "l1", "l2", "l3", "l4", "l5", "l6", "l7",		\
++	  "i0", "i1", "i2", "i3", "i4", "i5",				\
++	  "o0", "o1", "o2", "o3", "o4", "o5",       "o7");		\
++} while(0)
 +
-+#define finish_arch_switch(prev) do {					     \
-+	set_fs(current->thread.mm_segment);				     \
-+	account_vtime(prev, current);					     \
-+} while (0)
++extern void synchronize_user_stack(void);
++extern void fault_in_user_windows(void);
 +
-+#endif /* __ASM_SWITCH_TO_H */
-diff --git a/arch/s390/include/asm/system.h b/arch/s390/include/asm/system.h
++#endif /* __SPARC64_SWITCH_TO_64_H */
+diff --git a/arch/sparc/include/asm/system.h b/arch/sparc/include/asm/system.h
 deleted file mode 100644
-index d73cc6b..0000000
---- a/arch/s390/include/asm/system.h
+index 7944a7c..0000000
+--- a/arch/sparc/include/asm/system.h
 +++ /dev/null
-@@ -1,281 +0,0 @@
--/*
-- * Copyright IBM Corp. 1999, 2009
-- *
-- * Author(s): Martin Schwidefsky <schwidefsky@de.ibm.com>
-- */
--
--#ifndef __ASM_SYSTEM_H
--#define __ASM_SYSTEM_H
+@@ -1,8 +0,0 @@
+-#ifndef ___ASM_SPARC_SYSTEM_H
+-#define ___ASM_SPARC_SYSTEM_H
+-#if defined(__sparc__) && defined(__arch64__)
+-#include <asm/system_64.h>
+-#else
+-#include <asm/system_32.h>
+-#endif
+-#endif
+diff --git a/arch/sparc/include/asm/system_32.h b/arch/sparc/include/asm/system_32.h
+deleted file mode 100644
+index aba1609..0000000
+--- a/arch/sparc/include/asm/system_32.h
++++ /dev/null
+@@ -1,284 +0,0 @@
+-#ifndef __SPARC_SYSTEM_H
+-#define __SPARC_SYSTEM_H
 -
 -#include <linux/kernel.h>
--#include <linux/errno.h>
--#include <asm/types.h>
--#include <asm/ptrace.h>
--#include <asm/setup.h>
--#include <asm/processor.h>
--#include <asm/lowcore.h>
--#include <asm/cmpxchg.h>
+-#include <linux/threads.h>	/* NR_CPUS */
+-#include <linux/thread_info.h>
 -
+-#include <asm/page.h>
+-#include <asm/psr.h>
+-#include <asm/ptrace.h>
+-#include <asm/btfixup.h>
+-#include <asm/smp.h>
+-
+-#ifndef __ASSEMBLY__
+-
+-#include <linux/irqflags.h>
+-
+-/*
+- * Sparc (general) CPU types
+- */
+-enum sparc_cpu {
+-  sun4        = 0x00,
+-  sun4c       = 0x01,
+-  sun4m       = 0x02,
+-  sun4d       = 0x03,
+-  sun4e       = 0x04,
+-  sun4u       = 0x05, /* V8 ploos ploos */
+-  sun_unknown = 0x06,
+-  ap1000      = 0x07, /* almost a sun4m */
+-  sparc_leon  = 0x08, /* Leon SoC */
+-};
+-
+-/* Really, userland should not be looking at any of this... */
 -#ifdef __KERNEL__
 -
--struct task_struct;
+-extern enum sparc_cpu sparc_cpu_model;
 -
--extern struct task_struct *__switch_to(void *, void *);
--extern void update_per_regs(struct task_struct *task);
+-#define ARCH_SUN4C (sparc_cpu_model==sun4c)
 -
--static inline void save_fp_regs(s390_fp_regs *fpregs)
+-#define SUN4M_NCPUS            4              /* Architectural limit of sun4m. */
+-
+-extern char reboot_command[];
+-
+-extern struct thread_info *current_set[NR_CPUS];
+-
+-extern unsigned long empty_bad_page;
+-extern unsigned long empty_bad_page_table;
+-extern unsigned long empty_zero_page;
+-
+-extern void sun_do_break(void);
+-extern int serial_console;
+-extern int stop_a_enabled;
+-extern int scons_pwroff;
+-
+-static inline int con_is_present(void)
 -{
--	asm volatile(
--		"	std	0,%O0+8(%R0)\n"
--		"	std	2,%O0+24(%R0)\n"
--		"	std	4,%O0+40(%R0)\n"
--		"	std	6,%O0+56(%R0)"
--		: "=Q" (*fpregs) : "Q" (*fpregs));
--	if (!MACHINE_HAS_IEEE)
--		return;
--	asm volatile(
--		"	stfpc	%0\n"
--		"	std	1,%O0+16(%R0)\n"
--		"	std	3,%O0+32(%R0)\n"
--		"	std	5,%O0+48(%R0)\n"
--		"	std	7,%O0+64(%R0)\n"
--		"	std	8,%O0+72(%R0)\n"
--		"	std	9,%O0+80(%R0)\n"
--		"	std	10,%O0+88(%R0)\n"
--		"	std	11,%O0+96(%R0)\n"
--		"	std	12,%O0+104(%R0)\n"
--		"	std	13,%O0+112(%R0)\n"
--		"	std	14,%O0+120(%R0)\n"
--		"	std	15,%O0+128(%R0)\n"
--		: "=Q" (*fpregs) : "Q" (*fpregs));
+-	return serial_console ? 0 : 1;
 -}
 -
--static inline void restore_fp_regs(s390_fp_regs *fpregs)
--{
--	asm volatile(
--		"	ld	0,%O0+8(%R0)\n"
--		"	ld	2,%O0+24(%R0)\n"
--		"	ld	4,%O0+40(%R0)\n"
--		"	ld	6,%O0+56(%R0)"
--		: : "Q" (*fpregs));
--	if (!MACHINE_HAS_IEEE)
--		return;
--	asm volatile(
--		"	lfpc	%0\n"
--		"	ld	1,%O0+16(%R0)\n"
--		"	ld	3,%O0+32(%R0)\n"
--		"	ld	5,%O0+48(%R0)\n"
--		"	ld	7,%O0+64(%R0)\n"
--		"	ld	8,%O0+72(%R0)\n"
--		"	ld	9,%O0+80(%R0)\n"
--		"	ld	10,%O0+88(%R0)\n"
--		"	ld	11,%O0+96(%R0)\n"
--		"	ld	12,%O0+104(%R0)\n"
--		"	ld	13,%O0+112(%R0)\n"
--		"	ld	14,%O0+120(%R0)\n"
--		"	ld	15,%O0+128(%R0)\n"
--		: : "Q" (*fpregs));
--}
--
--static inline void save_access_regs(unsigned int *acrs)
--{
--	asm volatile("stam 0,15,%0" : "=Q" (*acrs));
--}
--
--static inline void restore_access_regs(unsigned int *acrs)
--{
--	asm volatile("lam 0,15,%0" : : "Q" (*acrs));
--}
--
--#define switch_to(prev,next,last) do {					\
--	if (prev->mm) {							\
--		save_fp_regs(&prev->thread.fp_regs);			\
--		save_access_regs(&prev->thread.acrs[0]);		\
--	}								\
--	if (next->mm) {							\
--		restore_fp_regs(&next->thread.fp_regs);			\
--		restore_access_regs(&next->thread.acrs[0]);		\
--		update_per_regs(next);					\
--	}								\
--	prev = __switch_to(prev,next);					\
--} while (0)
--
--extern void account_vtime(struct task_struct *, struct task_struct *);
--extern void account_tick_vtime(struct task_struct *);
--
--#ifdef CONFIG_PFAULT
--extern int pfault_init(void);
--extern void pfault_fini(void);
--#else /* CONFIG_PFAULT */
--#define pfault_init()		({-1;})
--#define pfault_fini()		do { } while (0)
--#endif /* CONFIG_PFAULT */
--
--extern void cmma_init(void);
--extern int memcpy_real(void *, void *, size_t);
--extern void copy_to_absolute_zero(void *dest, void *src, size_t count);
--extern int copy_to_user_real(void __user *dest, void *src, size_t count);
--extern int copy_from_user_real(void *dest, void __user *src, size_t count);
--
--#define finish_arch_switch(prev) do {					     \
--	set_fs(current->thread.mm_segment);				     \
--	account_vtime(prev, current);					     \
--} while (0)
--
--#define nop() asm volatile("nop")
--
--/*
-- * Force strict CPU ordering.
-- * And yes, this is required on UP too when we're talking
-- * to devices.
-- *
-- * This is very similar to the ppc eieio/sync instruction in that is
-- * does a checkpoint syncronisation & makes sure that 
-- * all memory ops have completed wrt other CPU's ( see 7-15 POP  DJB ).
+-/* When a context switch happens we must flush all user windows so that
+- * the windows of the current process are flushed onto its stack. This
+- * way the windows are all clean for the next process and the stack
+- * frames are up to date.
 - */
--
--#define eieio()	asm volatile("bcr 15,0" : : : "memory")
--#define SYNC_OTHER_CORES(x)   eieio()
--#define mb()    eieio()
--#define rmb()   eieio()
--#define wmb()   eieio()
--#define read_barrier_depends() do { } while(0)
--#define smp_mb()       mb()
--#define smp_rmb()      rmb()
--#define smp_wmb()      wmb()
--#define smp_read_barrier_depends()    read_barrier_depends()
--#define smp_mb__before_clear_bit()     smp_mb()
--#define smp_mb__after_clear_bit()      smp_mb()
--
--
--#define set_mb(var, value)      do { var = value; mb(); } while (0)
--
--#ifdef __s390x__
--
--#define __ctl_load(array, low, high) ({				\
--	typedef struct { char _[sizeof(array)]; } addrtype;	\
--	asm volatile(						\
--		"	lctlg	%1,%2,%0\n"			\
--		: : "Q" (*(addrtype *)(&array)),		\
--		    "i" (low), "i" (high));			\
--	})
--
--#define __ctl_store(array, low, high) ({			\
--	typedef struct { char _[sizeof(array)]; } addrtype;	\
--	asm volatile(						\
--		"	stctg	%1,%2,%0\n"			\
--		: "=Q" (*(addrtype *)(&array))			\
--		: "i" (low), "i" (high));			\
--	})
--
--#else /* __s390x__ */
--
--#define __ctl_load(array, low, high) ({				\
--	typedef struct { char _[sizeof(array)]; } addrtype;	\
--	asm volatile(						\
--		"	lctl	%1,%2,%0\n"			\
--		: : "Q" (*(addrtype *)(&array)),		\
--		    "i" (low), "i" (high));			\
--})
--
--#define __ctl_store(array, low, high) ({			\
--	typedef struct { char _[sizeof(array)]; } addrtype;	\
--	asm volatile(						\
--		"	stctl	%1,%2,%0\n"			\
--		: "=Q" (*(addrtype *)(&array))			\
--		: "i" (low), "i" (high));			\
--	})
--
--#endif /* __s390x__ */
--
--#define __ctl_set_bit(cr, bit) ({	\
--	unsigned long __dummy;		\
--	__ctl_store(__dummy, cr, cr);	\
--	__dummy |= 1UL << (bit);	\
--	__ctl_load(__dummy, cr, cr);	\
--})
--
--#define __ctl_clear_bit(cr, bit) ({	\
--	unsigned long __dummy;		\
--	__ctl_store(__dummy, cr, cr);	\
--	__dummy &= ~(1UL << (bit));	\
--	__ctl_load(__dummy, cr, cr);	\
--})
--
--/*
-- * Use to set psw mask except for the first byte which
-- * won't be changed by this function.
-- */
--static inline void
--__set_psw_mask(unsigned long mask)
--{
--	__load_psw_mask(mask | (arch_local_save_flags() & ~(-1UL >> 8)));
--}
--
--#define local_mcck_enable() \
--	__set_psw_mask(psw_kernel_bits | PSW_MASK_DAT | PSW_MASK_MCHECK)
--#define local_mcck_disable() \
--	__set_psw_mask(psw_kernel_bits | PSW_MASK_DAT)
+-extern void flush_user_windows(void);
+-extern void kill_user_windows(void);
+-extern void synchronize_user_stack(void);
+-extern void fpsave(unsigned long *fpregs, unsigned long *fsr,
+-		   void *fpqueue, unsigned long *fpqdepth);
 -
 -#ifdef CONFIG_SMP
+-#define SWITCH_ENTER(prv) \
+-	do {			\
+-	if (test_tsk_thread_flag(prv, TIF_USEDFPU)) { \
+-		put_psr(get_psr() | PSR_EF); \
+-		fpsave(&(prv)->thread.float_regs[0], &(prv)->thread.fsr, \
+-		       &(prv)->thread.fpqueue[0], &(prv)->thread.fpqdepth); \
+-		clear_tsk_thread_flag(prv, TIF_USEDFPU); \
+-		(prv)->thread.kregs->psr &= ~PSR_EF; \
+-	} \
+-	} while(0)
 -
--extern void smp_ctl_set_bit(int cr, int bit);
--extern void smp_ctl_clear_bit(int cr, int bit);
--#define ctl_set_bit(cr, bit) smp_ctl_set_bit(cr, bit)
--#define ctl_clear_bit(cr, bit) smp_ctl_clear_bit(cr, bit)
--
+-#define SWITCH_DO_LAZY_FPU(next)	/* */
 -#else
+-#define SWITCH_ENTER(prv)		/* */
+-#define SWITCH_DO_LAZY_FPU(nxt)	\
+-	do {			\
+-	if (last_task_used_math != (nxt))		\
+-		(nxt)->thread.kregs->psr&=~PSR_EF;	\
+-	} while(0)
+-#endif
 -
--#define ctl_set_bit(cr, bit) __ctl_set_bit(cr, bit)
--#define ctl_clear_bit(cr, bit) __ctl_clear_bit(cr, bit)
--
--#endif /* CONFIG_SMP */
--
--#define MAX_FACILITY_BIT (256*8)	/* stfle_fac_list has 256 bytes */
+-extern void flushw_all(void);
 -
 -/*
-- * The test_facility function uses the bit odering where the MSB is bit 0.
-- * That makes it easier to query facility bits with the bit number as
-- * documented in the Principles of Operation.
+- * Flush windows so that the VM switch which follows
+- * would not pull the stack from under us.
+- *
+- * SWITCH_ENTER and SWITH_DO_LAZY_FPU do not work yet (e.g. SMP does not work)
+- * XXX WTF is the above comment? Found in late teen 2.4.x.
 - */
--static inline int test_facility(unsigned long nr)
--{
--	unsigned char *ptr;
+-#define prepare_arch_switch(next) do { \
+-	__asm__ __volatile__( \
+-	".globl\tflush_patch_switch\nflush_patch_switch:\n\t" \
+-	"save %sp, -0x40, %sp; save %sp, -0x40, %sp; save %sp, -0x40, %sp\n\t" \
+-	"save %sp, -0x40, %sp; save %sp, -0x40, %sp; save %sp, -0x40, %sp\n\t" \
+-	"save %sp, -0x40, %sp\n\t" \
+-	"restore; restore; restore; restore; restore; restore; restore"); \
+-} while(0)
 -
--	if (nr >= MAX_FACILITY_BIT)
--		return 0;
--	ptr = (unsigned char *) &S390_lowcore.stfle_fac_list + (nr >> 3);
--	return (*ptr & (0x80 >> (nr & 7))) != 0;
+-	/* Much care has gone into this code, do not touch it.
+-	 *
+-	 * We need to loadup regs l0/l1 for the newly forked child
+-	 * case because the trap return path relies on those registers
+-	 * holding certain values, gcc is told that they are clobbered.
+-	 * Gcc needs registers for 3 values in and 1 value out, so we
+-	 * clobber every non-fixed-usage register besides l2/l3/o4/o5.  -DaveM
+-	 *
+-	 * Hey Dave, that do not touch sign is too much of an incentive
+-	 * - Anton & Pete
+-	 */
+-#define switch_to(prev, next, last) do {						\
+-	SWITCH_ENTER(prev);								\
+-	SWITCH_DO_LAZY_FPU(next);							\
+-	cpumask_set_cpu(smp_processor_id(), mm_cpumask(next->active_mm));		\
+-	__asm__ __volatile__(								\
+-	"sethi	%%hi(here - 0x8), %%o7\n\t"						\
+-	"mov	%%g6, %%g3\n\t"								\
+-	"or	%%o7, %%lo(here - 0x8), %%o7\n\t"					\
+-	"rd	%%psr, %%g4\n\t"							\
+-	"std	%%sp, [%%g6 + %4]\n\t"							\
+-	"rd	%%wim, %%g5\n\t"							\
+-	"wr	%%g4, 0x20, %%psr\n\t"							\
+-	"nop\n\t"									\
+-	"std	%%g4, [%%g6 + %3]\n\t"							\
+-	"ldd	[%2 + %3], %%g4\n\t"							\
+-	"mov	%2, %%g6\n\t"								\
+-	".globl	patchme_store_new_current\n"						\
+-"patchme_store_new_current:\n\t"							\
+-	"st	%2, [%1]\n\t"								\
+-	"wr	%%g4, 0x20, %%psr\n\t"							\
+-	"nop\n\t"									\
+-	"nop\n\t"									\
+-	"nop\n\t"	/* LEON needs all 3 nops: load to %sp depends on CWP. */		\
+-	"ldd	[%%g6 + %4], %%sp\n\t"							\
+-	"wr	%%g5, 0x0, %%wim\n\t"							\
+-	"ldd	[%%sp + 0x00], %%l0\n\t"						\
+-	"ldd	[%%sp + 0x38], %%i6\n\t"						\
+-	"wr	%%g4, 0x0, %%psr\n\t"							\
+-	"nop\n\t"									\
+-	"nop\n\t"									\
+-	"jmpl	%%o7 + 0x8, %%g0\n\t"							\
+-	" ld	[%%g3 + %5], %0\n\t"							\
+-	"here:\n"									\
+-        : "=&r" (last)									\
+-        : "r" (&(current_set[hard_smp_processor_id()])),	\
+-	  "r" (task_thread_info(next)),				\
+-	  "i" (TI_KPSR),					\
+-	  "i" (TI_KSP),						\
+-	  "i" (TI_TASK)						\
+-	:       "g1", "g2", "g3", "g4", "g5",       "g7",	\
+-	  "l0", "l1",       "l3", "l4", "l5", "l6", "l7",	\
+-	  "i0", "i1", "i2", "i3", "i4", "i5",			\
+-	  "o0", "o1", "o2", "o3",                   "o7");	\
+-	} while(0)
+-
+-/* XXX Change this if we ever use a PSO mode kernel. */
+-#define mb()	__asm__ __volatile__ ("" : : : "memory")
+-#define rmb()	mb()
+-#define wmb()	mb()
+-#define read_barrier_depends()	do { } while(0)
+-#define set_mb(__var, __value)  do { __var = __value; mb(); } while(0)
+-#define smp_mb()	__asm__ __volatile__("":::"memory")
+-#define smp_rmb()	__asm__ __volatile__("":::"memory")
+-#define smp_wmb()	__asm__ __volatile__("":::"memory")
+-#define smp_read_barrier_depends()	do { } while(0)
+-
+-#define nop() __asm__ __volatile__ ("nop")
+-
+-/* This has special calling conventions */
+-#ifndef CONFIG_SMP
+-BTFIXUPDEF_CALL(void, ___xchg32, void)
+-#endif
+-
+-static inline unsigned long xchg_u32(__volatile__ unsigned long *m, unsigned long val)
+-{
+-#ifdef CONFIG_SMP
+-	__asm__ __volatile__("swap [%2], %0"
+-			     : "=&r" (val)
+-			     : "0" (val), "r" (m)
+-			     : "memory");
+-	return val;
+-#else
+-	register unsigned long *ptr asm("g1");
+-	register unsigned long ret asm("g2");
+-
+-	ptr = (unsigned long *) m;
+-	ret = val;
+-
+-	/* Note: this is magic and the nop there is
+-	   really needed. */
+-	__asm__ __volatile__(
+-	"mov	%%o7, %%g4\n\t"
+-	"call	___f____xchg32\n\t"
+-	" nop\n\t"
+-	: "=&r" (ret)
+-	: "0" (ret), "r" (ptr)
+-	: "g3", "g4", "g7", "memory", "cc");
+-
+-	return ret;
+-#endif
 -}
 -
--static inline unsigned short stap(void)
--{
--	unsigned short cpu_address;
+-#define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
 -
--	asm volatile("stap %0" : "=m" (cpu_address));
--	return cpu_address;
+-extern void __xchg_called_with_bad_pointer(void);
+-
+-static inline unsigned long __xchg(unsigned long x, __volatile__ void * ptr, int size)
+-{
+-	switch (size) {
+-	case 4:
+-		return xchg_u32(ptr, x);
+-	}
+-	__xchg_called_with_bad_pointer();
+-	return x;
 -}
 -
--extern void (*_machine_restart)(char *command);
--extern void (*_machine_halt)(void);
--extern void (*_machine_power_off)(void);
+-/* Emulate cmpxchg() the same way we emulate atomics,
+- * by hashing the object address and indexing into an array
+- * of spinlocks to get a bit of performance...
+- *
+- * See arch/sparc/lib/atomic32.c for implementation.
+- *
+- * Cribbed from <asm-parisc/atomic.h>
+- */
+-#define __HAVE_ARCH_CMPXCHG	1
 -
--extern unsigned long arch_align_stack(unsigned long sp);
+-/* bug catcher for when unsupported size is used - won't link */
+-extern void __cmpxchg_called_with_bad_pointer(void);
+-/* we only need to support cmpxchg of a u32 on sparc */
+-extern unsigned long __cmpxchg_u32(volatile u32 *m, u32 old, u32 new_);
 -
--static inline int tprot(unsigned long addr)
+-/* don't worry...optimizer will get rid of most of this */
+-static inline unsigned long
+-__cmpxchg(volatile void *ptr, unsigned long old, unsigned long new_, int size)
 -{
--	int rc = -EFAULT;
--
--	asm volatile(
--		"	tprot	0(%1),0\n"
--		"0:	ipm	%0\n"
--		"	srl	%0,28\n"
--		"1:\n"
--		EX_TABLE(0b,1b)
--		: "+d" (rc) : "a" (addr) : "cc");
--	return rc;
+-	switch (size) {
+-	case 4:
+-		return __cmpxchg_u32((u32 *)ptr, (u32)old, (u32)new_);
+-	default:
+-		__cmpxchg_called_with_bad_pointer();
+-		break;
+-	}
+-	return old;
 -}
+-
+-#define cmpxchg(ptr, o, n)						\
+-({									\
+-	__typeof__(*(ptr)) _o_ = (o);					\
+-	__typeof__(*(ptr)) _n_ = (n);					\
+-	(__typeof__(*(ptr))) __cmpxchg((ptr), (unsigned long)_o_,	\
+-			(unsigned long)_n_, sizeof(*(ptr)));		\
+-})
+-
+-#include <asm-generic/cmpxchg-local.h>
+-
+-/*
+- * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
+- * them available.
+- */
+-#define cmpxchg_local(ptr, o, n)				  	       \
+-	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
+-			(unsigned long)(n), sizeof(*(ptr))))
+-#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+-
+-extern void die_if_kernel(char *str, struct pt_regs *regs) __attribute__ ((noreturn));
 -
 -#endif /* __KERNEL__ */
 -
+-#endif /* __ASSEMBLY__ */
+-
+-#define arch_align_stack(x) (x)
+-
+-#endif /* !(__SPARC_SYSTEM_H) */
+diff --git a/arch/sparc/include/asm/system_64.h b/arch/sparc/include/asm/system_64.h
+deleted file mode 100644
+index 10bcabc..0000000
+--- a/arch/sparc/include/asm/system_64.h
++++ /dev/null
+@@ -1,331 +0,0 @@
+-#ifndef __SPARC64_SYSTEM_H
+-#define __SPARC64_SYSTEM_H
+-
+-#include <asm/ptrace.h>
+-#include <asm/processor.h>
+-#include <asm/visasm.h>
+-
+-#ifndef __ASSEMBLY__
+-
+-#include <linux/irqflags.h>
+-#include <asm-generic/cmpxchg-local.h>
+-
+-/*
+- * Sparc (general) CPU types
+- */
+-enum sparc_cpu {
+-  sun4        = 0x00,
+-  sun4c       = 0x01,
+-  sun4m       = 0x02,
+-  sun4d       = 0x03,
+-  sun4e       = 0x04,
+-  sun4u       = 0x05, /* V8 ploos ploos */
+-  sun_unknown = 0x06,
+-  ap1000      = 0x07, /* almost a sun4m */
+-};
+-
+-#define sparc_cpu_model sun4u
+-
+-/* This cannot ever be a sun4c :) That's just history. */
+-#define ARCH_SUN4C 0
+-
+-extern char reboot_command[];
+-
+-/* These are here in an effort to more fully work around Spitfire Errata
+- * #51.  Essentially, if a memory barrier occurs soon after a mispredicted
+- * branch, the chip can stop executing instructions until a trap occurs.
+- * Therefore, if interrupts are disabled, the chip can hang forever.
+- *
+- * It used to be believed that the memory barrier had to be right in the
+- * delay slot, but a case has been traced recently wherein the memory barrier
+- * was one instruction after the branch delay slot and the chip still hung.
+- * The offending sequence was the following in sym_wakeup_done() of the
+- * sym53c8xx_2 driver:
+- *
+- *	call	sym_ccb_from_dsa, 0
+- *	 movge	%icc, 0, %l0
+- *	brz,pn	%o0, .LL1303
+- *	 mov	%o0, %l2
+- *	membar	#LoadLoad
+- *
+- * The branch has to be mispredicted for the bug to occur.  Therefore, we put
+- * the memory barrier explicitly into a "branch always, predicted taken"
+- * delay slot to avoid the problem case.
+- */
+-#define membar_safe(type) \
+-do {	__asm__ __volatile__("ba,pt	%%xcc, 1f\n\t" \
+-			     " membar	" type "\n" \
+-			     "1:\n" \
+-			     : : : "memory"); \
+-} while (0)
+-
+-/* The kernel always executes in TSO memory model these days,
+- * and furthermore most sparc64 chips implement more stringent
+- * memory ordering than required by the specifications.
+- */
+-#define mb()	membar_safe("#StoreLoad")
+-#define rmb()	__asm__ __volatile__("":::"memory")
+-#define wmb()	__asm__ __volatile__("":::"memory")
+-
 -#endif
-diff --git a/arch/s390/include/asm/uaccess.h b/arch/s390/include/asm/uaccess.h
-index 2b23885..8f2cada 100644
---- a/arch/s390/include/asm/uaccess.h
-+++ b/arch/s390/include/asm/uaccess.h
-@@ -16,6 +16,7 @@
-  */
- #include <linux/sched.h>
- #include <linux/errno.h>
-+#include <asm/ctl_reg.h>
+-
+-#define nop() 		__asm__ __volatile__ ("nop")
+-
+-#define read_barrier_depends()		do { } while(0)
+-#define set_mb(__var, __value) \
+-	do { __var = __value; membar_safe("#StoreLoad"); } while(0)
+-
+-#ifdef CONFIG_SMP
+-#define smp_mb()	mb()
+-#define smp_rmb()	rmb()
+-#define smp_wmb()	wmb()
+-#else
+-#define smp_mb()	__asm__ __volatile__("":::"memory")
+-#define smp_rmb()	__asm__ __volatile__("":::"memory")
+-#define smp_wmb()	__asm__ __volatile__("":::"memory")
+-#endif
+-
+-#define smp_read_barrier_depends()	do { } while(0)
+-
+-#define flushi(addr)	__asm__ __volatile__ ("flush %0" : : "r" (addr) : "memory")
+-
+-#define flushw_all()	__asm__ __volatile__("flushw")
+-
+-/* Performance counter register access. */
+-#define read_pcr(__p)  __asm__ __volatile__("rd	%%pcr, %0" : "=r" (__p))
+-#define write_pcr(__p) __asm__ __volatile__("wr	%0, 0x0, %%pcr" : : "r" (__p))
+-#define read_pic(__p)  __asm__ __volatile__("rd %%pic, %0" : "=r" (__p))
+-
+-/* Blackbird errata workaround.  See commentary in
+- * arch/sparc64/kernel/smp.c:smp_percpu_timer_interrupt()
+- * for more information.
+- */
+-#define write_pic(__p)  					\
+-	__asm__ __volatile__("ba,pt	%%xcc, 99f\n\t"		\
+-			     " nop\n\t"				\
+-			     ".align	64\n"			\
+-			  "99:wr	%0, 0x0, %%pic\n\t"	\
+-			     "rd	%%pic, %%g0" : : "r" (__p))
+-#define reset_pic()	write_pic(0)
+-
+-#ifndef __ASSEMBLY__
+-
+-extern void sun_do_break(void);
+-extern int stop_a_enabled;
+-extern int scons_pwroff;
+-
+-extern void fault_in_user_windows(void);
+-extern void synchronize_user_stack(void);
+-
+-extern void __flushw_user(void);
+-#define flushw_user() __flushw_user()
+-
+-#define flush_user_windows flushw_user
+-#define flush_register_windows flushw_all
+-
+-/* Don't hold the runqueue lock over context switch */
+-#define __ARCH_WANT_UNLOCKED_CTXSW
+-#define prepare_arch_switch(next)		\
+-do {						\
+-	flushw_all();				\
+-} while (0)
+-
+-	/* See what happens when you design the chip correctly?
+-	 *
+-	 * We tell gcc we clobber all non-fixed-usage registers except
+-	 * for l0/l1.  It will use one for 'next' and the other to hold
+-	 * the output value of 'last'.  'next' is not referenced again
+-	 * past the invocation of switch_to in the scheduler, so we need
+-	 * not preserve it's value.  Hairy, but it lets us remove 2 loads
+-	 * and 2 stores in this critical code path.  -DaveM
+-	 */
+-#define switch_to(prev, next, last)					\
+-do {	flush_tlb_pending();						\
+-	save_and_clear_fpu();						\
+-	/* If you are tempted to conditionalize the following */	\
+-	/* so that ASI is only written if it changes, think again. */	\
+-	__asm__ __volatile__("wr %%g0, %0, %%asi"			\
+-	: : "r" (__thread_flag_byte_ptr(task_thread_info(next))[TI_FLAG_BYTE_CURRENT_DS]));\
+-	trap_block[current_thread_info()->cpu].thread =			\
+-		task_thread_info(next);					\
+-	__asm__ __volatile__(						\
+-	"mov	%%g4, %%g7\n\t"						\
+-	"stx	%%i6, [%%sp + 2047 + 0x70]\n\t"				\
+-	"stx	%%i7, [%%sp + 2047 + 0x78]\n\t"				\
+-	"rdpr	%%wstate, %%o5\n\t"					\
+-	"stx	%%o6, [%%g6 + %6]\n\t"					\
+-	"stb	%%o5, [%%g6 + %5]\n\t"					\
+-	"rdpr	%%cwp, %%o5\n\t"					\
+-	"stb	%%o5, [%%g6 + %8]\n\t"					\
+-	"wrpr	%%g0, 15, %%pil\n\t"					\
+-	"mov	%4, %%g6\n\t"						\
+-	"ldub	[%4 + %8], %%g1\n\t"					\
+-	"wrpr	%%g1, %%cwp\n\t"					\
+-	"ldx	[%%g6 + %6], %%o6\n\t"					\
+-	"ldub	[%%g6 + %5], %%o5\n\t"					\
+-	"ldub	[%%g6 + %7], %%o7\n\t"					\
+-	"wrpr	%%o5, 0x0, %%wstate\n\t"				\
+-	"ldx	[%%sp + 2047 + 0x70], %%i6\n\t"				\
+-	"ldx	[%%sp + 2047 + 0x78], %%i7\n\t"				\
+-	"ldx	[%%g6 + %9], %%g4\n\t"					\
+-	"wrpr	%%g0, 14, %%pil\n\t"					\
+-	"brz,pt %%o7, switch_to_pc\n\t"					\
+-	" mov	%%g7, %0\n\t"						\
+-	"sethi	%%hi(ret_from_syscall), %%g1\n\t"			\
+-	"jmpl	%%g1 + %%lo(ret_from_syscall), %%g0\n\t"		\
+-	" nop\n\t"							\
+-	".globl switch_to_pc\n\t"					\
+-	"switch_to_pc:\n\t"						\
+-	: "=&r" (last), "=r" (current), "=r" (current_thread_info_reg),	\
+-	  "=r" (__local_per_cpu_offset)					\
+-	: "0" (task_thread_info(next)),					\
+-	  "i" (TI_WSTATE), "i" (TI_KSP), "i" (TI_NEW_CHILD),            \
+-	  "i" (TI_CWP), "i" (TI_TASK)					\
+-	: "cc",								\
+-	        "g1", "g2", "g3",                   "g7",		\
+-	        "l1", "l2", "l3", "l4", "l5", "l6", "l7",		\
+-	  "i0", "i1", "i2", "i3", "i4", "i5",				\
+-	  "o0", "o1", "o2", "o3", "o4", "o5",       "o7");		\
+-} while(0)
+-
+-static inline unsigned long xchg32(__volatile__ unsigned int *m, unsigned int val)
+-{
+-	unsigned long tmp1, tmp2;
+-
+-	__asm__ __volatile__(
+-"	mov		%0, %1\n"
+-"1:	lduw		[%4], %2\n"
+-"	cas		[%4], %2, %0\n"
+-"	cmp		%2, %0\n"
+-"	bne,a,pn	%%icc, 1b\n"
+-"	 mov		%1, %0\n"
+-	: "=&r" (val), "=&r" (tmp1), "=&r" (tmp2)
+-	: "0" (val), "r" (m)
+-	: "cc", "memory");
+-	return val;
+-}
+-
+-static inline unsigned long xchg64(__volatile__ unsigned long *m, unsigned long val)
+-{
+-	unsigned long tmp1, tmp2;
+-
+-	__asm__ __volatile__(
+-"	mov		%0, %1\n"
+-"1:	ldx		[%4], %2\n"
+-"	casx		[%4], %2, %0\n"
+-"	cmp		%2, %0\n"
+-"	bne,a,pn	%%xcc, 1b\n"
+-"	 mov		%1, %0\n"
+-	: "=&r" (val), "=&r" (tmp1), "=&r" (tmp2)
+-	: "0" (val), "r" (m)
+-	: "cc", "memory");
+-	return val;
+-}
+-
+-#define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
+-
+-extern void __xchg_called_with_bad_pointer(void);
+-
+-static inline unsigned long __xchg(unsigned long x, __volatile__ void * ptr,
+-				       int size)
+-{
+-	switch (size) {
+-	case 4:
+-		return xchg32(ptr, x);
+-	case 8:
+-		return xchg64(ptr, x);
+-	}
+-	__xchg_called_with_bad_pointer();
+-	return x;
+-}
+-
+-extern void die_if_kernel(char *str, struct pt_regs *regs) __attribute__ ((noreturn));
+-
+-/*
+- * Atomic compare and exchange.  Compare OLD with MEM, if identical,
+- * store NEW in MEM.  Return the initial value in MEM.  Success is
+- * indicated by comparing RETURN with OLD.
+- */
+-
+-#define __HAVE_ARCH_CMPXCHG 1
+-
+-static inline unsigned long
+-__cmpxchg_u32(volatile int *m, int old, int new)
+-{
+-	__asm__ __volatile__("cas [%2], %3, %0"
+-			     : "=&r" (new)
+-			     : "0" (new), "r" (m), "r" (old)
+-			     : "memory");
+-
+-	return new;
+-}
+-
+-static inline unsigned long
+-__cmpxchg_u64(volatile long *m, unsigned long old, unsigned long new)
+-{
+-	__asm__ __volatile__("casx [%2], %3, %0"
+-			     : "=&r" (new)
+-			     : "0" (new), "r" (m), "r" (old)
+-			     : "memory");
+-
+-	return new;
+-}
+-
+-/* This function doesn't exist, so you'll get a linker error
+-   if something tries to do an invalid cmpxchg().  */
+-extern void __cmpxchg_called_with_bad_pointer(void);
+-
+-static inline unsigned long
+-__cmpxchg(volatile void *ptr, unsigned long old, unsigned long new, int size)
+-{
+-	switch (size) {
+-		case 4:
+-			return __cmpxchg_u32(ptr, old, new);
+-		case 8:
+-			return __cmpxchg_u64(ptr, old, new);
+-	}
+-	__cmpxchg_called_with_bad_pointer();
+-	return old;
+-}
+-
+-#define cmpxchg(ptr,o,n)						 \
+-  ({									 \
+-     __typeof__(*(ptr)) _o_ = (o);					 \
+-     __typeof__(*(ptr)) _n_ = (n);					 \
+-     (__typeof__(*(ptr))) __cmpxchg((ptr), (unsigned long)_o_,		 \
+-				    (unsigned long)_n_, sizeof(*(ptr))); \
+-  })
+-
+-/*
+- * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
+- * them available.
+- */
+-
+-static inline unsigned long __cmpxchg_local(volatile void *ptr,
+-				      unsigned long old,
+-				      unsigned long new, int size)
+-{
+-	switch (size) {
+-	case 4:
+-	case 8:	return __cmpxchg(ptr, old, new, size);
+-	default:
+-		return __cmpxchg_local_generic(ptr, old, new, size);
+-	}
+-
+-	return old;
+-}
+-
+-#define cmpxchg_local(ptr, o, n)				  	\
+-	((__typeof__(*(ptr)))__cmpxchg_local((ptr), (unsigned long)(o),	\
+-			(unsigned long)(n), sizeof(*(ptr))))
+-#define cmpxchg64_local(ptr, o, n)					\
+-  ({									\
+-	BUILD_BUG_ON(sizeof(*(ptr)) != 8);				\
+-	cmpxchg_local((ptr), (o), (n));					\
+-  })
+-
+-#endif /* !(__ASSEMBLY__) */
+-
+-#define arch_align_stack(x) (x)
+-
+-#endif /* !(__SPARC64_SYSTEM_H) */
+diff --git a/arch/sparc/include/asm/timer_32.h b/arch/sparc/include/asm/timer_32.h
+index 2ec030e..1a91e11 100644
+--- a/arch/sparc/include/asm/timer_32.h
++++ b/arch/sparc/include/asm/timer_32.h
+@@ -8,12 +8,13 @@
+ #ifndef _SPARC_TIMER_H
+ #define _SPARC_TIMER_H
  
- #define VERIFY_READ     0
- #define VERIFY_WRITE    1
-@@ -375,4 +376,9 @@ clear_user(void __user *to, unsigned long n)
- 	return n;
- }
+-#include <asm/system.h>  /* For SUN4M_NCPUS */
++#include <asm/cpu_type.h>  /* For SUN4M_NCPUS */
+ #include <asm/btfixup.h>
  
-+extern int memcpy_real(void *, void *, size_t);
-+extern void copy_to_absolute_zero(void *dest, void *src, size_t count);
-+extern int copy_to_user_real(void __user *dest, void *src, size_t count);
-+extern int copy_from_user_real(void *dest, void __user *src, size_t count);
-+
- #endif /* __S390_UACCESS_H */
-diff --git a/arch/s390/kernel/compat_signal.c b/arch/s390/kernel/compat_signal.c
-index 6fe78c2..9ad08ad 100644
---- a/arch/s390/kernel/compat_signal.c
-+++ b/arch/s390/kernel/compat_signal.c
-@@ -27,6 +27,7 @@
- #include <asm/ucontext.h>
- #include <asm/uaccess.h>
- #include <asm/lowcore.h>
-+#include <asm/switch_to.h>
- #include "compat_linux.h"
- #include "compat_ptrace.h"
- #include "entry.h"
-diff --git a/arch/s390/kernel/early.c b/arch/s390/kernel/early.c
-index 52098d6..7e859f2 100644
---- a/arch/s390/kernel/early.c
-+++ b/arch/s390/kernel/early.c
-@@ -29,6 +29,7 @@
- #include <asm/sysinfo.h>
- #include <asm/cpcmd.h>
- #include <asm/sclp.h>
-+#include <asm/facility.h>
- #include "entry.h"
+ extern __volatile__ unsigned int *master_l10_counter;
  
- /*
-diff --git a/arch/s390/kernel/process.c b/arch/s390/kernel/process.c
-index 9672514..ae8fdd3 100644
---- a/arch/s390/kernel/process.c
-+++ b/arch/s390/kernel/process.c
-@@ -29,6 +29,7 @@
- #include <asm/timer.h>
- #include <asm/nmi.h>
+ /* FIXME: Make do_[gs]ettimeofday btfixup calls */
++struct timespec;
+ BTFIXUPDEF_CALL(int, bus_do_settimeofday, struct timespec *tv)
+ #define bus_do_settimeofday(tv) BTFIXUP_CALL(bus_do_settimeofday)(tv)
+ 
+diff --git a/arch/sparc/kernel/auxio_32.c b/arch/sparc/kernel/auxio_32.c
+index f7ea8f0..56d0f52 100644
+--- a/arch/sparc/kernel/auxio_32.c
++++ b/arch/sparc/kernel/auxio_32.c
+@@ -13,6 +13,7 @@
+ #include <asm/io.h>
+ #include <asm/auxio.h>
+ #include <asm/string.h>		/* memset(), Linux has no bzero() */
++#include <asm/cpu_type.h>
+ 
+ /* Probe and map in the Auxiliary I/O register */
+ 
+diff --git a/arch/sparc/kernel/devices.c b/arch/sparc/kernel/devices.c
+index 876c9f6..6b2f56a 100644
+--- a/arch/sparc/kernel/devices.c
++++ b/arch/sparc/kernel/devices.c
+@@ -18,6 +18,7 @@
+ #include <asm/prom.h>
  #include <asm/smp.h>
-+#include <asm/switch_to.h>
+ #include <asm/cpudata.h>
++#include <asm/cpu_type.h>
+ 
+ extern void clock_stop_probe(void); /* tadpole.c */
+ extern void sun4c_probe_memerr_reg(void);
+diff --git a/arch/sparc/kernel/irq.h b/arch/sparc/kernel/irq.h
+index 4285112..5a021dd 100644
+--- a/arch/sparc/kernel/irq.h
++++ b/arch/sparc/kernel/irq.h
+@@ -1,6 +1,7 @@
+ #include <linux/platform_device.h>
+ 
+ #include <asm/btfixup.h>
++#include <asm/cpu_type.h>
+ 
+ struct irq_bucket {
+         struct irq_bucket *next;
+diff --git a/arch/sparc/kernel/kgdb_32.c b/arch/sparc/kernel/kgdb_32.c
+index 539243b..2e424a5 100644
+--- a/arch/sparc/kernel/kgdb_32.c
++++ b/arch/sparc/kernel/kgdb_32.c
+@@ -9,6 +9,7 @@
+ #include <asm/kdebug.h>
+ #include <asm/ptrace.h>
+ #include <asm/irq.h>
++#include <asm/cacheflush.h>
+ 
+ extern unsigned long trapbase;
+ 
+diff --git a/arch/sparc/kernel/module.c b/arch/sparc/kernel/module.c
+index e551987..276359e 100644
+--- a/arch/sparc/kernel/module.c
++++ b/arch/sparc/kernel/module.c
+@@ -16,6 +16,7 @@
+ 
+ #include <asm/processor.h>
+ #include <asm/spitfire.h>
++#include <asm/cacheflush.h>
+ 
  #include "entry.h"
  
- asmlinkage void ret_from_fork(void) asm ("ret_from_fork");
-diff --git a/arch/s390/kernel/ptrace.c b/arch/s390/kernel/ptrace.c
-index 441b5ada..02f300f 100644
---- a/arch/s390/kernel/ptrace.c
-+++ b/arch/s390/kernel/ptrace.c
+diff --git a/arch/sparc/kernel/nmi.c b/arch/sparc/kernel/nmi.c
+index c76fe0b..eb1c1f0 100644
+--- a/arch/sparc/kernel/nmi.c
++++ b/arch/sparc/kernel/nmi.c
+@@ -22,6 +22,7 @@
+ #include <asm/perf_event.h>
+ #include <asm/ptrace.h>
+ #include <asm/pcr.h>
++#include <asm/perfctr.h>
+ 
+ #include "kstack.h"
+ 
+diff --git a/arch/sparc/kernel/pcr.c b/arch/sparc/kernel/pcr.c
+index a24072a..0ce0dd2 100644
+--- a/arch/sparc/kernel/pcr.c
++++ b/arch/sparc/kernel/pcr.c
+@@ -14,6 +14,7 @@
+ #include <asm/pcr.h>
+ #include <asm/nmi.h>
+ #include <asm/spitfire.h>
++#include <asm/perfctr.h>
+ 
+ /* This code is shared between various users of the performance
+  * counters.  Users will be oprofile, pseudo-NMI watchdog, and the
+diff --git a/arch/sparc/kernel/perf_event.c b/arch/sparc/kernel/perf_event.c
+index 614da62..4361286 100644
+--- a/arch/sparc/kernel/perf_event.c
++++ b/arch/sparc/kernel/perf_event.c
+@@ -25,6 +25,8 @@
+ #include <linux/atomic.h>
+ #include <asm/nmi.h>
+ #include <asm/pcr.h>
++#include <asm/perfctr.h>
++#include <asm/cacheflush.h>
+ 
+ #include "kernel.h"
+ #include "kstack.h"
+diff --git a/arch/sparc/kernel/process_32.c b/arch/sparc/kernel/process_32.c
+index a2050b3..8a91a0c 100644
+--- a/arch/sparc/kernel/process_32.c
++++ b/arch/sparc/kernel/process_32.c
+@@ -37,6 +37,7 @@
+ #include <asm/elf.h>
+ #include <asm/prom.h>
+ #include <asm/unistd.h>
++#include <asm/setup.h>
+ 
+ /* 
+  * Power management idle function 
+diff --git a/arch/sparc/kernel/ptrace_32.c b/arch/sparc/kernel/ptrace_32.c
+index 38af4a8..896ba7c 100644
+--- a/arch/sparc/kernel/ptrace_32.c
++++ b/arch/sparc/kernel/ptrace_32.c
+@@ -24,6 +24,7 @@
+ 
+ #include <asm/pgtable.h>
+ #include <asm/uaccess.h>
++#include <asm/cacheflush.h>
+ 
+ /* #define ALLOW_INIT_TRACING */
+ 
+diff --git a/arch/sparc/kernel/reboot.c b/arch/sparc/kernel/reboot.c
+index 5384d56..eba7d91 100644
+--- a/arch/sparc/kernel/reboot.c
++++ b/arch/sparc/kernel/reboot.c
+@@ -9,6 +9,7 @@
+ 
+ #include <asm/oplib.h>
+ #include <asm/prom.h>
++#include <asm/setup.h>
+ 
+ /* sysctl - toggle power-off restriction for serial console
+  * systems in machine_power_off()
+diff --git a/arch/sparc/kernel/setup_32.c b/arch/sparc/kernel/setup_32.c
+index 010f719..d444468 100644
+--- a/arch/sparc/kernel/setup_32.c
++++ b/arch/sparc/kernel/setup_32.c
+@@ -45,6 +45,7 @@
+ #include <asm/machines.h>
+ #include <asm/cpudata.h>
+ #include <asm/setup.h>
++#include <asm/cacheflush.h>
+ 
+ #include "kernel.h"
+ 
+diff --git a/arch/sparc/kernel/setup_64.c b/arch/sparc/kernel/setup_64.c
+index 0a6b078..1414d16 100644
+--- a/arch/sparc/kernel/setup_64.c
++++ b/arch/sparc/kernel/setup_64.c
+@@ -48,6 +48,7 @@
+ #include <asm/btext.h>
+ #include <asm/elf.h>
+ #include <asm/mdesc.h>
++#include <asm/cacheflush.h>
+ 
+ #ifdef CONFIG_IP_PNP
+ #include <net/ipconfig.h>
+diff --git a/arch/sparc/kernel/signal32.c b/arch/sparc/kernel/signal32.c
+index 023b886..df3e6c8 100644
+--- a/arch/sparc/kernel/signal32.c
++++ b/arch/sparc/kernel/signal32.c
 @@ -28,6 +28,7 @@
+ #include <asm/fpumacro.h>
+ #include <asm/visasm.h>
+ #include <asm/compat_signal.h>
++#include <asm/switch_to.h>
+ 
+ #include "sigutil.h"
+ 
+diff --git a/arch/sparc/kernel/signal_32.c b/arch/sparc/kernel/signal_32.c
+index d54c6e5..d260126 100644
+--- a/arch/sparc/kernel/signal_32.c
++++ b/arch/sparc/kernel/signal_32.c
+@@ -25,6 +25,7 @@
  #include <asm/pgalloc.h>
+ #include <asm/pgtable.h>
+ #include <asm/cacheflush.h>	/* flush_sig_insns */
++#include <asm/switch_to.h>
+ 
+ #include "sigutil.h"
+ 
+diff --git a/arch/sparc/kernel/signal_64.c b/arch/sparc/kernel/signal_64.c
+index f0836cd..4e50215 100644
+--- a/arch/sparc/kernel/signal_64.c
++++ b/arch/sparc/kernel/signal_64.c
+@@ -31,6 +31,8 @@
+ #include <asm/uctx.h>
+ #include <asm/siginfo.h>
+ #include <asm/visasm.h>
++#include <asm/switch_to.h>
++#include <asm/cacheflush.h>
+ 
+ #include "entry.h"
+ #include "systbls.h"
+diff --git a/arch/sparc/kernel/sigutil_32.c b/arch/sparc/kernel/sigutil_32.c
+index 35c7897..0f6eebe 100644
+--- a/arch/sparc/kernel/sigutil_32.c
++++ b/arch/sparc/kernel/sigutil_32.c
+@@ -7,6 +7,7 @@
+ #include <asm/sigcontext.h>
+ #include <asm/fpumacro.h>
+ #include <asm/ptrace.h>
++#include <asm/switch_to.h>
+ 
+ #include "sigutil.h"
+ 
+diff --git a/arch/sparc/kernel/sigutil_64.c b/arch/sparc/kernel/sigutil_64.c
+index b19570d..387834a 100644
+--- a/arch/sparc/kernel/sigutil_64.c
++++ b/arch/sparc/kernel/sigutil_64.c
+@@ -7,6 +7,7 @@
+ #include <asm/sigcontext.h>
+ #include <asm/fpumacro.h>
+ #include <asm/ptrace.h>
++#include <asm/switch_to.h>
+ 
+ #include "sigutil.h"
+ 
+diff --git a/arch/sparc/kernel/sparc_ksyms_64.c b/arch/sparc/kernel/sparc_ksyms_64.c
+index af39e3f..9f5e24d 100644
+--- a/arch/sparc/kernel/sparc_ksyms_64.c
++++ b/arch/sparc/kernel/sparc_ksyms_64.c
+@@ -15,6 +15,7 @@
+ #include <asm/spitfire.h>
+ #include <asm/oplib.h>
+ #include <asm/hypervisor.h>
++#include <asm/cacheflush.h>
+ 
+ struct poll {
+ 	int fd;
+diff --git a/arch/sparc/kernel/traps_64.c b/arch/sparc/kernel/traps_64.c
+index bd3d285..c72fdf5 100644
+--- a/arch/sparc/kernel/traps_64.c
++++ b/arch/sparc/kernel/traps_64.c
+@@ -40,6 +40,7 @@
+ #include <asm/head.h>
+ #include <asm/prom.h>
+ #include <asm/memctrl.h>
++#include <asm/cacheflush.h>
+ 
+ #include "entry.h"
+ #include "kstack.h"
+diff --git a/arch/sparc/kernel/unaligned_64.c b/arch/sparc/kernel/unaligned_64.c
+index 622f653..dae85bc 100644
+--- a/arch/sparc/kernel/unaligned_64.c
++++ b/arch/sparc/kernel/unaligned_64.c
+@@ -23,6 +23,7 @@
+ #include <linux/ratelimit.h>
+ #include <linux/bitops.h>
+ #include <asm/fpumacro.h>
++#include <asm/cacheflush.h>
+ 
+ enum direction {
+ 	load,    /* ld, ldd, ldh, ldsh */
+diff --git a/arch/sparc/kernel/visemul.c b/arch/sparc/kernel/visemul.c
+index 8573025..08e074b7 100644
+--- a/arch/sparc/kernel/visemul.c
++++ b/arch/sparc/kernel/visemul.c
+@@ -11,6 +11,7 @@
+ #include <asm/pstate.h>
+ #include <asm/fpumacro.h>
+ #include <asm/uaccess.h>
++#include <asm/cacheflush.h>
+ 
+ /* OPF field of various VIS instructions.  */
+ 
+diff --git a/arch/sparc/math-emu/math_64.c b/arch/sparc/math-emu/math_64.c
+index e575bd2..2bbe2f2 100644
+--- a/arch/sparc/math-emu/math_64.c
++++ b/arch/sparc/math-emu/math_64.c
+@@ -16,6 +16,7 @@
+ #include <asm/fpumacro.h>
+ #include <asm/ptrace.h>
+ #include <asm/uaccess.h>
++#include <asm/cacheflush.h>
+ 
+ #include "sfp-util_64.h"
+ #include <math-emu/soft-fp.h>
+diff --git a/drivers/tty/serial/sunhv.c b/drivers/tty/serial/sunhv.c
+index c0b7246..143fb50 100644
+--- a/drivers/tty/serial/sunhv.c
++++ b/drivers/tty/serial/sunhv.c
+@@ -23,6 +23,7 @@
+ #include <asm/spitfire.h>
+ #include <asm/prom.h>
+ #include <asm/irq.h>
++#include <asm/setup.h>
+ 
+ #if defined(CONFIG_MAGIC_SYSRQ)
+ #define SUPPORT_SYSRQ
+diff --git a/drivers/tty/serial/sunsab.c b/drivers/tty/serial/sunsab.c
+index b5fa2a5..3b63165 100644
+--- a/drivers/tty/serial/sunsab.c
++++ b/drivers/tty/serial/sunsab.c
+@@ -37,6 +37,7 @@
+ #include <asm/io.h>
+ #include <asm/irq.h>
+ #include <asm/prom.h>
++#include <asm/setup.h>
+ 
+ #if defined(CONFIG_SERIAL_SUNSAB_CONSOLE) && defined(CONFIG_MAGIC_SYSRQ)
+ #define SUPPORT_SYSRQ
+diff --git a/drivers/tty/serial/sunsu.c b/drivers/tty/serial/sunsu.c
+index ad0f8f5..c53d737 100644
+--- a/drivers/tty/serial/sunsu.c
++++ b/drivers/tty/serial/sunsu.c
+@@ -41,6 +41,7 @@
+ #include <asm/io.h>
+ #include <asm/irq.h>
+ #include <asm/prom.h>
++#include <asm/setup.h>
+ 
+ #if defined(CONFIG_SERIAL_SUNSU_CONSOLE) && defined(CONFIG_MAGIC_SYSRQ)
+ #define SUPPORT_SYSRQ
+diff --git a/drivers/tty/serial/sunzilog.c b/drivers/tty/serial/sunzilog.c
+index 8e916e7..f0ca0ac 100644
+--- a/drivers/tty/serial/sunzilog.c
++++ b/drivers/tty/serial/sunzilog.c
+@@ -37,6 +37,7 @@
+ #include <asm/io.h>
+ #include <asm/irq.h>
+ #include <asm/prom.h>
++#include <asm/setup.h>
+ 
+ #if defined(CONFIG_SERIAL_SUNZILOG_CONSOLE) && defined(CONFIG_MAGIC_SYSRQ)
+ #define SUPPORT_SYSRQ
+diff --git a/kernel/signal.c b/kernel/signal.c
+index c73c428..7e41ae3 100644
+--- a/kernel/signal.c
++++ b/kernel/signal.c
+@@ -36,6 +36,8 @@
  #include <asm/uaccess.h>
  #include <asm/unistd.h>
+ #include <asm/siginfo.h>
 +#include <asm/switch_to.h>
- #include "entry.h"
- 
- #ifdef CONFIG_COMPAT
-diff --git a/arch/s390/kernel/setup.c b/arch/s390/kernel/setup.c
-index b7bcd21..1d7cbd3 100644
---- a/arch/s390/kernel/setup.c
-+++ b/arch/s390/kernel/setup.c
-@@ -61,6 +61,7 @@
- #include <asm/ebcdic.h>
- #include <asm/kvm_virtio.h>
- #include <asm/diag.h>
-+#include <asm/facility.h>
- 
- long psw_kernel_bits	= PSW_DEFAULT_KEY | PSW_MASK_BASE | PSW_ASC_PRIMARY |
- 			  PSW_MASK_EA | PSW_MASK_BA;
-diff --git a/arch/s390/kernel/signal.c b/arch/s390/kernel/signal.c
-index 2d421d9..f7abd73 100644
---- a/arch/s390/kernel/signal.c
-+++ b/arch/s390/kernel/signal.c
-@@ -30,6 +30,7 @@
- #include <asm/ucontext.h>
- #include <asm/uaccess.h>
- #include <asm/lowcore.h>
-+#include <asm/switch_to.h>
- #include "entry.h"
- 
- #define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
-diff --git a/arch/s390/kernel/smp.c b/arch/s390/kernel/smp.c
-index 2398ce6..baf1a98 100644
---- a/arch/s390/kernel/smp.c
-+++ b/arch/s390/kernel/smp.c
-@@ -53,6 +53,7 @@
- #include <asm/cputime.h>
- #include <asm/vdso.h>
- #include <asm/cpu.h>
-+#include <asm/facility.h>
- #include "entry.h"
- 
- /* logical cpu to cpu address */
-diff --git a/arch/s390/kernel/suspend.c b/arch/s390/kernel/suspend.c
-index 3d8ab80..aa1494d 100644
---- a/arch/s390/kernel/suspend.c
-+++ b/arch/s390/kernel/suspend.c
-@@ -9,6 +9,7 @@
- #include <linux/pfn.h>
- #include <linux/suspend.h>
- #include <linux/mm.h>
-+#include <asm/ctl_reg.h>
++#include <asm/cacheflush.h>
+ #include "audit.h"	/* audit_signal_info() */
  
  /*
-  * References to section boundaries
-diff --git a/arch/s390/kernel/vdso.c b/arch/s390/kernel/vdso.c
-index 8187da6..aed1e65 100644
---- a/arch/s390/kernel/vdso.c
-+++ b/arch/s390/kernel/vdso.c
-@@ -30,6 +30,7 @@
- #include <asm/mmu_context.h>
- #include <asm/sections.h>
- #include <asm/vdso.h>
-+#include <asm/facility.h>
- 
- #if defined(CONFIG_32BIT) || defined(CONFIG_COMPAT)
- extern char vdso32_start, vdso32_end;
-diff --git a/arch/s390/kvm/kvm-s390.c b/arch/s390/kvm/kvm-s390.c
-index 78d3f8a..d56de16 100644
---- a/arch/s390/kvm/kvm-s390.c
-+++ b/arch/s390/kvm/kvm-s390.c
-@@ -27,6 +27,7 @@
- #include <asm/lowcore.h>
- #include <asm/pgtable.h>
- #include <asm/nmi.h>
-+#include <asm/switch_to.h>
- #include "kvm-s390.h"
- #include "gaccess.h"
- 
-diff --git a/arch/s390/mm/fault.c b/arch/s390/mm/fault.c
-index 7620f61..3915870 100644
---- a/arch/s390/mm/fault.c
-+++ b/arch/s390/mm/fault.c
-@@ -35,6 +35,7 @@
- #include <asm/pgtable.h>
- #include <asm/irq.h>
- #include <asm/mmu_context.h>
-+#include <asm/facility.h>
- #include "../kernel/entry.h"
- 
- #ifndef CONFIG_64BIT
-diff --git a/arch/s390/mm/init.c b/arch/s390/mm/init.c
-index 2e4870e..2bea060 100644
---- a/arch/s390/mm/init.c
-+++ b/arch/s390/mm/init.c
-@@ -37,6 +37,7 @@
- #include <asm/tlb.h>
- #include <asm/tlbflush.h>
- #include <asm/sections.h>
-+#include <asm/ctl_reg.h>
- 
- pgd_t swapper_pg_dir[PTRS_PER_PGD] __attribute__((__aligned__(PAGE_SIZE)));
- 
-diff --git a/arch/s390/mm/maccess.c b/arch/s390/mm/maccess.c
-index 6ea70a0..7bb15fc 100644
---- a/arch/s390/mm/maccess.c
-+++ b/arch/s390/mm/maccess.c
-@@ -12,6 +12,7 @@
- #include <linux/types.h>
- #include <linux/errno.h>
- #include <linux/gfp.h>
-+#include <asm/ctl_reg.h>
- 
- /*
-  * This function writes to kernel memory bypassing DAT and possible
-diff --git a/arch/s390/oprofile/hwsampler.c b/arch/s390/oprofile/hwsampler.c
-index 9daee91..f9a0e5d 100644
---- a/arch/s390/oprofile/hwsampler.c
-+++ b/arch/s390/oprofile/hwsampler.c
-@@ -18,6 +18,7 @@
- #include <linux/oom.h>
- #include <linux/oprofile.h>
- 
-+#include <asm/facility.h>
- #include <asm/lowcore.h>
- #include <asm/irq.h>
- 
-diff --git a/drivers/s390/char/sclp_cmd.c b/drivers/s390/char/sclp_cmd.c
-index 0b54a91..2e58f47 100644
---- a/drivers/s390/char/sclp_cmd.c
-+++ b/drivers/s390/char/sclp_cmd.c
-@@ -21,6 +21,7 @@
- #include <asm/chpid.h>
- #include <asm/sclp.h>
- #include <asm/setup.h>
-+#include <asm/ctl_reg.h>
- 
- #include "sclp.h"
- 
-diff --git a/drivers/s390/cio/crw.c b/drivers/s390/cio/crw.c
-index 425f741..d0a2dff 100644
---- a/drivers/s390/cio/crw.c
-+++ b/drivers/s390/cio/crw.c
-@@ -13,6 +13,7 @@
- #include <linux/init.h>
- #include <linux/wait.h>
- #include <asm/crw.h>
-+#include <asm/ctl_reg.h>
- 
- static DEFINE_MUTEX(crw_handler_mutex);
- static crw_handler_t crw_handlers[NR_RSCS];
-diff --git a/drivers/s390/crypto/ap_bus.c b/drivers/s390/crypto/ap_bus.c
-index 090ea2a..be0caae 100644
---- a/drivers/s390/crypto/ap_bus.c
-+++ b/drivers/s390/crypto/ap_bus.c
-@@ -45,6 +45,7 @@
- #include <asm/isc.h>
- #include <linux/hrtimer.h>
- #include <linux/ktime.h>
-+#include <asm/facility.h>
- 
- #include "ap_bus.h"
- 
+diff --git a/kernel/sysctl.c b/kernel/sysctl.c
+index 79f799c..e739679 100644
+--- a/kernel/sysctl.c
++++ b/kernel/sysctl.c
+@@ -67,6 +67,9 @@
+ #include <asm/stacktrace.h>
+ #include <asm/io.h>
+ #endif
++#ifdef CONFIG_SPARC
++#include <asm/setup.h>
++#endif
+ #ifdef CONFIG_BSD_PROCESS_ACCT
+ #include <linux/acct.h>
+ #endif
 
