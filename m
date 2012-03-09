@@ -1,37 +1,32 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [RFC][PATCH 00/29] Disintegrate and kill asm/system.h
-Date: Thu, 08 Mar 2012 21:51:16 +0000
-Message-ID: <15564.1331243476@redhat.com>
-References: <20120308184331.GC31129@windriver.com> <20120307194548.15987.36073.stgit@warthog.procyon.org.uk>
+From: Jesper Nilsson <jesper@jni.nu>
+Subject: Re: [PATCH 09/29] Disintegrate asm/system.h for CRIS
+Date: Fri, 9 Mar 2012 13:56:55 +0100
+Message-ID: <20120309125654.GA1833@jni.nu>
+References: <20120307194548.15987.36073.stgit@warthog.procyon.org.uk>
+ <20120307194735.15987.39717.stgit@warthog.procyon.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:40986 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757682Ab2CHVvk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 8 Mar 2012 16:51:40 -0500
-In-Reply-To: <20120308184331.GC31129@windriver.com>
+Received: from ch-smtp05.sth.basefarm.net ([80.76.153.6]:55238 "EHLO
+	ch-smtp05.sth.basefarm.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753398Ab2CINCi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Mar 2012 08:02:38 -0500
+Content-Disposition: inline
+In-Reply-To: <20120307194735.15987.39717.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>, dwmw2@infradead.org
-Cc: dhowells@redhat.com, hpa@zytor.com, torvalds@linux-foundation.org, sfr@canb.auug.org.au, mingo@redhat.com, arnd@arndb.de, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, sfr@canb.auug.org.au, mingo@redhat.com, arnd@arndb.de, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Paul Gortmaker <paul.gortmaker@windriver.com> wrote:
+On Wed, Mar 07, 2012 at 07:47:35PM +0000, David Howells wrote:
+> Disintegrate asm/system.h for CRIS.
 
-> You'll want to be grabbing some of these to close the gaps then:
-> 
-> http://www.kernel.org/pub/tools/crosstool/files/bin/x86_64/
-> 
-> They have been a great help to me.
+Looks good,
 
-I have more toolchains available to me than are available there.
+> Signed-off-by: David Howells <dhowells@redhat.com>
 
-I managed to build binutils for every arch apart from unicore32 (and hexagon
-and c6x which weren't upstream at the time).
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
 
-Of those for which I have binutils, I couldn't manage to build gcc for avr32,
-ia64, microblaze and openrisc.  I'm not sure whether I need a special compiler
-for sh64, but it doesn't seem so.
-
-Hopefully at some point they'll become RPMs in Fedora.  I just need to kick
-David Woodhouse a bit to finish the review.
-
-David
+/^JN - Jesper Nilsson
+--
+                  Jesper Nilsson -- jesper_at_jni.nu
