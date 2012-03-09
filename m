@@ -1,53 +1,42 @@
-From: Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-Subject: [PATCH] ARM: dma-mapping: fix calculation of iova bitmap size
-Date: Fri, 09 Mar 2012 15:53:32 +0100
-Message-ID: <1331304812-10386-1-git-send-email-m.szyprowski@samsung.com>
-References: <011701ccfc83$78030180$68090480$%szyprowski@samsung.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [PATCH 26/29] Disintegrate asm/system.h for Tile
+Date: Fri, 9 Mar 2012 16:14:36 -0500
+Message-ID: <4F5A72BC.6090707@tilera.com>
+References: <20120307194548.15987.36073.stgit@warthog.procyon.org.uk> <20120307195046.15987.91414.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-reply-to: <011701ccfc83$78030180$68090480$%szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-samsung-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Cc: Russell King - ARM Linux <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Chunsang Jeong <chunsang.jeong-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Krishna Reddy <vdumpa-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, Kyungmin Park <kyungmin.park-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Andrzej Pietrasiewicz <andrzej.p-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, KyongHo Cho <pullip.cho-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20120307195046.15987.91414.stgit@warthog.procyon.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, sfr@canb.auug.org.au, mingo@redhat.com, arnd@arndb.de, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Fix calculation of iova address space for IOMMU-aware dma mapping.
+On 3/7/2012 2:56 PM, David Howells wrote:
+> Disintegrate asm/system.h for Tile.  Not compiled.
+> 
+> Signed-off-by: David Howells <dhowells@redhat.com>
+> ---
+> 
+>  arch/tile/include/asm/barrier.h    |  140 +++++++++++++++++++
+>  arch/tile/include/asm/cacheflush.h |   10 +
+>  arch/tile/include/asm/exec.h       |   20 +++
+>  arch/tile/include/asm/setup.h      |   21 +++
+>  arch/tile/include/asm/switch_to.h  |   72 ++++++++++
+>  arch/tile/include/asm/system.h     |  261 ------------------------------------
+>  arch/tile/include/asm/timex.h      |    2 
+>  arch/tile/include/asm/unaligned.h  |   15 ++
 
-Reported-by: Krishna Reddy <vdumpa-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-Signed-off-by: Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
----
- arch/arm/mm/dma-mapping.c |    5 ++++-
- 1 files changed, 4 insertions(+), 1 deletions(-)
+This looks approximately correct.  I suspect there may be a few functions
+that need to be moved around, or #includes added: for example some of the
+<asm/setup.h> functions are invoked from the scheduler, like
+arch_set_cpus_allowed() and hardwall_deactivate().
 
-diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index ea5a0ad..f0f600a 100644
---- a/arch/arm/mm/dma-mapping.c
-+++ b/arch/arm/mm/dma-mapping.c
-@@ -1601,11 +1601,14 @@ struct dma_iommu_mapping *
- arm_iommu_create_mapping(struct bus_type *bus, dma_addr_t base, size_t size,
- 			 int order)
- {
--	unsigned int count = (size >> PAGE_SHIFT) - order;
-+	unsigned int count = size >> (PAGE_SHIFT + order);
- 	unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long);
- 	struct dma_iommu_mapping *mapping;
- 	int err = -ENOMEM;
- 
-+	if (!count)
-+		return ERR_PTR(-EINVAL);
-+
- 	mapping = kzalloc(sizeof(struct dma_iommu_mapping), GFP_KERNEL);
- 	if (!mapping)
- 		goto err;
+If you have a tree I can pull I'm happy to test it out.
+
+Please cc me on any other tile-specific changes to make sure I see them.
+Thanks!
 -- 
-1.7.1.569.g6f426
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
