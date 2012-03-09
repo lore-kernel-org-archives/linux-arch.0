@@ -1,52 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:55540 "EHLO
-	mail-lpp01m020-f174.google.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1754075Ab2CGX1v convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 7 Mar 2012 18:27:51 -0500
-Received: by lbbgm6 with SMTP id gm6so171457lbb.19
-        for <linux-arch@vger.kernel.org>; Wed, 07 Mar 2012 15:27:50 -0800 (PST)
-MIME-Version: 1.0
-In-Reply-To: <20120307223432.25669.51388.stgit@bhelgaas.mtv.corp.google.com>
-References: <20120307222436.25669.52282.stgit@bhelgaas.mtv.corp.google.com> <20120307223432.25669.51388.stgit@bhelgaas.mtv.corp.google.com>
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Wed, 7 Mar 2012 16:27:30 -0700
-Message-ID: <CAErSpo5Z10UrstkGLhCrEQm_vrMA0a7TNk=D256FixrG_V6n6w@mail.gmail.com>
-Subject: Re: [PATCH v3 29/34] sparc/PCI: get rid of device resource fixups
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from mailout2.w1.samsung.com ([210.118.77.12]:40832 "EHLO
+	mailout2.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753161Ab2CIOyV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Mar 2012 09:54:21 -0500
+Date: Fri, 09 Mar 2012 15:53:32 +0100
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PATCH] ARM: dma-mapping: fix calculation of iova bitmap size
+In-reply-to: <011701ccfc83$78030180$68090480$%szyprowski@samsung.com>
+Message-ID: <1331304812-10386-1-git-send-email-m.szyprowski@samsung.com>
+MIME-version: 1.0
+Content-type: TEXT/PLAIN
+Content-transfer-encoding: 7BIT
+References: <011701ccfc83$78030180$68090480$%szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>
-Cc: linux-arch@vger.kernel.org, linux-pci@vger.kernel.org, sparclinux@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20120307232730.DLU_lur7CIaew5CFhjfZc7pbZzfnk2Zy3REACuP-IhY@z>
+To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Hiroshi Doyu <hdoyu@nvidia.com>
+Message-ID: <20120309145332.K1PevXKLMLks2tj0hsWqIYcu7J0k_gJhlPXMGKQbPQE@z>
 
-On Wed, Mar 7, 2012 at 3:34 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
-> Tell the PCI core about host bridge address translation so it can take
-> care of bus-to-resource conversion for us.
->
-> Previously, when enumerating PCI devices from the OF device tree, sparc
-> used pci_resource_adjust() to perform this address fixup for P2P bridge
-> windows in the following places:
->
->    pci_cfg_fake_ranges()
->    apb_fake_ranges()
->    of_scan_pci_bridge()
->
-> This patch replaces pci_resource_adjust() with the generic
-> pcibios_bus_to_resource() and the appropriate pci_add_resource_offset()
-> use to tell the PCI core about host bridge apertures and offsets.
->
-> Resources of non-P2P bridge devices are set in pci_parse_of_addrs() and,
-> as far as I can see, never converted to CPU addresses.
+Fix calculation of iova address space for IOMMU-aware dma mapping.
 
-I'm concerned about this -- the fact that we seem to do bus-to-CPU
-conversions on P2P bridge windows, but not on endpoint BARs.
+Reported-by: Krishna Reddy <vdumpa@nvidia.com>
+Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
+---
+ arch/arm/mm/dma-mapping.c |    5 ++++-
+ 1 files changed, 4 insertions(+), 1 deletions(-)
 
-Is it really the case that the OF device tree has bus addresses for
-P2P windows but CPU addresses for other BARs?  That would be
-surprising to me.  Or did I miss a conversion somewhere?
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index ea5a0ad..f0f600a 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -1601,11 +1601,14 @@ struct dma_iommu_mapping *
+ arm_iommu_create_mapping(struct bus_type *bus, dma_addr_t base, size_t size,
+ 			 int order)
+ {
+-	unsigned int count = (size >> PAGE_SHIFT) - order;
++	unsigned int count = size >> (PAGE_SHIFT + order);
+ 	unsigned int bitmap_size = BITS_TO_LONGS(count) * sizeof(long);
+ 	struct dma_iommu_mapping *mapping;
+ 	int err = -ENOMEM;
+ 
++	if (!count)
++		return ERR_PTR(-EINVAL);
++
+ 	mapping = kzalloc(sizeof(struct dma_iommu_mapping), GFP_KERNEL);
+ 	if (!mapping)
+ 		goto err;
+-- 
+1.7.1.569.g6f426
 
-Help :)  Any sparc experts want to enlighten me?
-
-Bjorn
