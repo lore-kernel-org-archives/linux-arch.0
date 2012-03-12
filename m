@@ -1,163 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:7765 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:50648 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S964963Ab2CLXlx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 12 Mar 2012 19:41:53 -0400
+	id S1758046Ab2CLXk1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 12 Mar 2012 19:40:27 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 33/35] Disintegrate asm/system.h on all arches [ver #2]
-Date: Mon, 12 Mar 2012 23:41:44 +0000
-Message-ID: <20120312234144.13888.3323.stgit@warthog.procyon.org.uk>
-In-Reply-To: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
-References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <20120308121828.2cdbdc8c@de.ibm.com>
+References: <20120308121828.2cdbdc8c@de.ibm.com> <20120307194548.15987.36073.stgit@warthog.procyon.org.uk> <20120307195001.15987.31240.stgit@warthog.procyon.org.uk>
+Subject: Re: [PATCH 22/29] Disintegrate asm/system.h for S390
+Date: Mon, 12 Mar 2012 23:40:06 +0000
+Message-ID: <14404.1331595606@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paul.gortmaker@windriver.com, hpa@zytor.com
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>
-Message-ID: <20120312234144.Ws5Bl1ApYCNrlIg8Zf6Ritw9B_-zhIH8wMDN1MXsg18@z>
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: dhowells@redhat.com, paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, sfr@canb.auug.org.au, mingo@redhat.com, arnd@arndb.de, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120312234006.nw4FcI6DWHhkz3a27QnwjMlk_O-KGGA-1R5xhqXFWrQ@z>
 
-asm/system.h is a cause of circular dependency problems because it contains
-commonly used primitive stuff like barrier definitions and uncommonly used
-stuff like switch_to() that might require MMU definitions.
+Martin Schwidefsky <schwidefsky@de.ibm.com> wrote:
 
-Disintegrate asm/system.h on all arches into the following common segments:
+> This hunk will conflict with "[PATCH] rework smp code" in the linux-next
+> tree. The sigp.h header is disintegrated as well..
+> But except for this little hiccup I like the idea to split system.h,
+> makes a lot of sense.
 
- (1) asm/barrier.h
+I've just posted a new version of my patchset that reverses the order of the
+patches to put the arch-specific bits first.  Each arch-specific bit is a
+stand-alone reduction of that asm/system.h to just a bunch of #includes which
+is deleted by the final patch (except where asm-generic/system.h is involved).
 
-     Memory barrier stuff - already done for MIPS and Alpha.
+As these are independent, it would, for example, be possible to just take the
+s390 one into your tree and merge it with your changes.
 
- (2) asm/atomic.h
-
-     Move xchg() and cmpxchg() here as they're atomic ops.
-
- (3) asm/bug.h
-
-     Move die() and similar here.
-
- (4) asm/arch_hooks.h
-
-     Move common arch hooks here (such as default_idle()).
-
- (5) asm/elf.h
-
-     Move AT_VECTOR_SIZE_ARCH here.
-
- (6) asm/switch_to.h
-
-     Move switch_to() here.
-
-Signed-off-by: David Howells <dhowells@redhat.com>
----
-
- drivers/misc/sgi-gru/gru_instructions.h |    1 +
- fs/binfmt_elf.c                         |    1 +
- fs/binfmt_elf_fdpic.c                   |    1 +
- fs/exec.c                               |    1 +
- include/asm-generic/bitops/atomic.h     |    2 +-
- include/linux/llist.h                   |    3 +--
- include/linux/spinlock.h                |    1 +
- kernel/sched/core.c                     |    1 +
- 8 files changed, 8 insertions(+), 3 deletions(-)
-
-diff --git a/drivers/misc/sgi-gru/gru_instructions.h b/drivers/misc/sgi-gru/gru_instructions.h
-index d95587c..04d5170 100644
---- a/drivers/misc/sgi-gru/gru_instructions.h
-+++ b/drivers/misc/sgi-gru/gru_instructions.h
-@@ -40,6 +40,7 @@ extern void gru_wait_abort_proc(void *cb);
- 			*((volatile unsigned long *)(p)) = v; /* force st.rel */	\
- 		} while (0)
- #elif defined(CONFIG_X86_64)
-+#include <asm/cacheflush.h>
- #define __flush_cache(p)		clflush(p)
- #define gru_ordered_store_ulong(p, v)					\
- 		do {							\
-diff --git a/fs/binfmt_elf.c b/fs/binfmt_elf.c
-index 07d096c..d104261 100644
---- a/fs/binfmt_elf.c
-+++ b/fs/binfmt_elf.c
-@@ -35,6 +35,7 @@
- #include <asm/uaccess.h>
- #include <asm/param.h>
- #include <asm/page.h>
-+#include <asm/exec.h>
- 
- static int load_elf_binary(struct linux_binprm *bprm, struct pt_regs *regs);
- static int load_elf_library(struct file *);
-diff --git a/fs/binfmt_elf_fdpic.c b/fs/binfmt_elf_fdpic.c
-index 30745f4..c7f277a 100644
---- a/fs/binfmt_elf_fdpic.c
-+++ b/fs/binfmt_elf_fdpic.c
-@@ -39,6 +39,7 @@
- #include <asm/uaccess.h>
- #include <asm/param.h>
- #include <asm/pgalloc.h>
-+#include <asm/exec.h>
- 
- typedef char *elf_caddr_t;
- 
-diff --git a/fs/exec.c b/fs/exec.c
-index 153dee1..0ce48b3 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -59,6 +59,7 @@
- #include <asm/uaccess.h>
- #include <asm/mmu_context.h>
- #include <asm/tlb.h>
-+#include <asm/exec.h>
- 
- #include <trace/events/task.h>
- #include "internal.h"
-diff --git a/include/asm-generic/bitops/atomic.h b/include/asm-generic/bitops/atomic.h
-index ecc44a8..9ae6c34 100644
---- a/include/asm-generic/bitops/atomic.h
-+++ b/include/asm-generic/bitops/atomic.h
-@@ -2,7 +2,7 @@
- #define _ASM_GENERIC_BITOPS_ATOMIC_H_
- 
- #include <asm/types.h>
--#include <asm/system.h>
-+#include <linux/irqflags.h>
- 
- #ifdef CONFIG_SMP
- #include <asm/spinlock.h>
-diff --git a/include/linux/llist.h b/include/linux/llist.h
-index 801b44b..a5199f6 100644
---- a/include/linux/llist.h
-+++ b/include/linux/llist.h
-@@ -56,8 +56,7 @@
-  */
- 
- #include <linux/kernel.h>
--#include <asm/system.h>
--#include <asm/processor.h>
-+#include <asm/cmpxchg.h>
- 
- struct llist_head {
- 	struct llist_node *first;
-diff --git a/include/linux/spinlock.h b/include/linux/spinlock.h
-index 7df6c17..fa0f93e 100644
---- a/include/linux/spinlock.h
-+++ b/include/linux/spinlock.h
-@@ -55,6 +55,7 @@
- #include <linux/kernel.h>
- #include <linux/stringify.h>
- #include <linux/bottom_half.h>
-+#include <asm/barrier.h>
- 
- #include <asm/system.h>
- 
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index b342f57..fff13cb 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -72,6 +72,7 @@
- #include <linux/slab.h>
- #include <linux/init_task.h>
- 
-+#include <asm/switch_to.h>
- #include <asm/tlb.h>
- #include <asm/irq_regs.h>
- #include <asm/mutex.h>
-
+David
