@@ -1,609 +1,410 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 07/35] Disintegrate asm/system.h for CRIS [ver #2]
-Date: Mon, 12 Mar 2012 23:37:16 +0000
-Message-ID: <20120312233716.13888.47074.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 10/35] Disintegrate asm/system.h for Hexagon [ver #2]
+Date: Mon, 12 Mar 2012 23:37:47 +0000
+Message-ID: <20120312233747.13888.75605.stgit@warthog.procyon.org.uk>
 References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-hexagon-owner@vger.kernel.org>
 In-Reply-To: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-hexagon-owner@vger.kernel.org
 To: paul.gortmaker@windriver.com, hpa@zytor.com
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>, linux-cris-kernel@axis.com
+Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>, linux-hexagon@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Disintegrate asm/system.h for CRIS.
+Disintegrate asm/system.h for Hexagon.  Not compiled.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
-cc: linux-cris-kernel@axis.com
+cc: linux-hexagon@vger.kernel.org
 ---
 
- arch/cris/arch-v10/drivers/ds1302.c          |    1 
- arch/cris/arch-v10/drivers/gpio.c            |    1 
- arch/cris/arch-v10/drivers/i2c.c             |    1 
- arch/cris/arch-v10/drivers/pcf8563.c         |    1 
- arch/cris/arch-v10/drivers/sync_serial.c     |    1 
- arch/cris/arch-v10/kernel/debugport.c        |    1 
- arch/cris/arch-v10/kernel/dma.c              |    1 
- arch/cris/arch-v10/kernel/io_interface_mux.c |    1 
- arch/cris/arch-v10/kernel/process.c          |    1 
- arch/cris/arch-v10/kernel/ptrace.c           |    1 
- arch/cris/arch-v10/kernel/setup.c            |    1 
- arch/cris/arch-v10/kernel/signal.c           |    1 
- arch/cris/arch-v10/kernel/traps.c            |    1 
- arch/cris/arch-v32/drivers/i2c.c             |    1 
- arch/cris/arch-v32/drivers/mach-a3/gpio.c    |    1 
- arch/cris/arch-v32/drivers/mach-fs/gpio.c    |    1 
- arch/cris/arch-v32/kernel/debugport.c        |    1 
- arch/cris/arch-v32/kernel/fasttimer.c        |    1 
- arch/cris/arch-v32/kernel/ptrace.c           |    1 
- arch/cris/arch-v32/mach-a3/dma.c             |    1 
- arch/cris/arch-v32/mach-fs/dma.c             |    1 
- arch/cris/include/arch-v10/arch/elf.h        |    2 +
- arch/cris/include/arch-v32/arch/elf.h        |    2 +
- arch/cris/include/asm/atomic.h               |    2 -
- arch/cris/include/asm/barrier.h              |   23 ++++++
- arch/cris/include/asm/bitops.h               |    1 
- arch/cris/include/asm/cmpxchg.h              |   51 ++++++++++++++
- arch/cris/include/asm/exec.h                 |    6 ++
- arch/cris/include/asm/processor.h            |   11 +++
- arch/cris/include/asm/switch_to.h            |   12 +++
- arch/cris/include/asm/system.h               |   94 +-------------------------
- arch/cris/kernel/irq.c                       |    1 
- arch/cris/kernel/process.c                   |    1 
- arch/cris/kernel/ptrace.c                    |    1 
- arch/cris/kernel/setup.c                     |    1 
- arch/cris/kernel/traps.c                     |    1 
- arch/cris/mm/fault.c                         |    1 
- drivers/tty/serial/crisv10.c                 |    1 
- 38 files changed, 123 insertions(+), 109 deletions(-)
- create mode 100644 arch/cris/include/asm/barrier.h
- create mode 100644 arch/cris/include/asm/cmpxchg.h
- create mode 100644 arch/cris/include/asm/exec.h
- create mode 100644 arch/cris/include/asm/switch_to.h
+ arch/hexagon/include/asm/atomic.h    |    1 
+ arch/hexagon/include/asm/barrier.h   |   41 +++++++++++
+ arch/hexagon/include/asm/bitops.h    |    1 
+ arch/hexagon/include/asm/cmpxchg.h   |   90 +++++++++++++++++++++++
+ arch/hexagon/include/asm/exec.h      |   28 +++++++
+ arch/hexagon/include/asm/switch_to.h |   34 +++++++++
+ arch/hexagon/include/asm/system.h    |  131 +---------------------------------
+ arch/hexagon/kernel/ptrace.c         |    1 
+ arch/hexagon/kernel/smp.c            |    1 
+ arch/hexagon/kernel/vm_events.c      |    1 
+ 10 files changed, 199 insertions(+), 130 deletions(-)
+ create mode 100644 arch/hexagon/include/asm/barrier.h
+ create mode 100644 arch/hexagon/include/asm/cmpxchg.h
+ create mode 100644 arch/hexagon/include/asm/exec.h
+ create mode 100644 arch/hexagon/include/asm/switch_to.h
 
-diff --git a/arch/cris/arch-v10/drivers/ds1302.c b/arch/cris/arch-v10/drivers/ds1302.c
-index 3d655dc..74f99c6 100644
---- a/arch/cris/arch-v10/drivers/ds1302.c
-+++ b/arch/cris/arch-v10/drivers/ds1302.c
-@@ -24,7 +24,6 @@
- #include <linux/capability.h>
+diff --git a/arch/hexagon/include/asm/atomic.h b/arch/hexagon/include/asm/atomic.h
+index e220f90..3e25804 100644
+--- a/arch/hexagon/include/asm/atomic.h
++++ b/arch/hexagon/include/asm/atomic.h
+@@ -23,6 +23,7 @@
+ #define _ASM_ATOMIC_H
  
- #include <asm/uaccess.h>
--#include <asm/system.h>
- #include <arch/svinto.h>
- #include <asm/io.h>
- #include <asm/rtc.h>
-diff --git a/arch/cris/arch-v10/drivers/gpio.c b/arch/cris/arch-v10/drivers/gpio.c
-index a276f08..609d551 100644
---- a/arch/cris/arch-v10/drivers/gpio.c
-+++ b/arch/cris/arch-v10/drivers/gpio.c
-@@ -24,7 +24,6 @@
- #include <asm/etraxgpio.h>
- #include <arch/svinto.h>
- #include <asm/io.h>
--#include <asm/system.h>
- #include <asm/irq.h>
- #include <arch/io_interface_mux.h>
- 
-diff --git a/arch/cris/arch-v10/drivers/i2c.c b/arch/cris/arch-v10/drivers/i2c.c
-index c413539..b3d1f9e 100644
---- a/arch/cris/arch-v10/drivers/i2c.c
-+++ b/arch/cris/arch-v10/drivers/i2c.c
-@@ -22,7 +22,6 @@
- 
- #include <asm/etraxi2c.h>
- 
--#include <asm/system.h>
- #include <arch/svinto.h>
- #include <asm/io.h>
- #include <asm/delay.h>
-diff --git a/arch/cris/arch-v10/drivers/pcf8563.c b/arch/cris/arch-v10/drivers/pcf8563.c
-index 1391b73..9da0568 100644
---- a/arch/cris/arch-v10/drivers/pcf8563.c
-+++ b/arch/cris/arch-v10/drivers/pcf8563.c
-@@ -29,7 +29,6 @@
- #include <linux/mutex.h>
- 
- #include <asm/uaccess.h>
--#include <asm/system.h>
- #include <asm/io.h>
- #include <asm/rtc.h>
- 
-diff --git a/arch/cris/arch-v10/drivers/sync_serial.c b/arch/cris/arch-v10/drivers/sync_serial.c
-index 466af40..c4b7171 100644
---- a/arch/cris/arch-v10/drivers/sync_serial.c
-+++ b/arch/cris/arch-v10/drivers/sync_serial.c
-@@ -27,7 +27,6 @@
- #include <asm/io.h>
- #include <arch/svinto.h>
- #include <asm/uaccess.h>
--#include <asm/system.h>
- #include <asm/sync_serial.h>
- #include <arch/io_interface_mux.h>
- 
-diff --git a/arch/cris/arch-v10/kernel/debugport.c b/arch/cris/arch-v10/kernel/debugport.c
-index 99851ba..f932c85 100644
---- a/arch/cris/arch-v10/kernel/debugport.c
-+++ b/arch/cris/arch-v10/kernel/debugport.c
-@@ -18,7 +18,6 @@
- #include <linux/major.h>
- #include <linux/delay.h>
- #include <linux/tty.h>
--#include <asm/system.h>
- #include <arch/svinto.h>
- #include <asm/io.h>             /* Get SIMCOUT. */
- 
-diff --git a/arch/cris/arch-v10/kernel/dma.c b/arch/cris/arch-v10/kernel/dma.c
-index d31504b..5795047 100644
---- a/arch/cris/arch-v10/kernel/dma.c
-+++ b/arch/cris/arch-v10/kernel/dma.c
-@@ -8,6 +8,7 @@
- 
- #include <asm/dma.h>
- #include <arch/svinto.h>
-+#include <arch/system.h>
- 
- /* Macro to access ETRAX 100 registers */
- #define SETS(var, reg, field, val) var = (var & ~IO_MASK_(reg##_, field##_)) | \
-diff --git a/arch/cris/arch-v10/kernel/io_interface_mux.c b/arch/cris/arch-v10/kernel/io_interface_mux.c
-index 29f97e9..ad64cd1 100644
---- a/arch/cris/arch-v10/kernel/io_interface_mux.c
-+++ b/arch/cris/arch-v10/kernel/io_interface_mux.c
-@@ -14,6 +14,7 @@
- #include <arch/svinto.h>
- #include <asm/io.h>
- #include <arch/io_interface_mux.h>
-+#include <arch/system.h>
- 
- 
- #define DBG(s)
-diff --git a/arch/cris/arch-v10/kernel/process.c b/arch/cris/arch-v10/kernel/process.c
-index 9a57db6..bee8df4 100644
---- a/arch/cris/arch-v10/kernel/process.c
-+++ b/arch/cris/arch-v10/kernel/process.c
-@@ -16,6 +16,7 @@
- #include <linux/fs.h>
- #include <arch/svinto.h>
- #include <linux/init.h>
-+#include <arch/system.h>
- 
- #ifdef CONFIG_ETRAX_GPIO
- void etrax_gpio_wake_up_check(void); /* drivers/gpio.c */
-diff --git a/arch/cris/arch-v10/kernel/ptrace.c b/arch/cris/arch-v10/kernel/ptrace.c
-index 320065f..bfddfb9 100644
---- a/arch/cris/arch-v10/kernel/ptrace.c
-+++ b/arch/cris/arch-v10/kernel/ptrace.c
-@@ -15,7 +15,6 @@
- #include <asm/uaccess.h>
- #include <asm/page.h>
- #include <asm/pgtable.h>
--#include <asm/system.h>
- #include <asm/processor.h>
- 
- /* 
-diff --git a/arch/cris/arch-v10/kernel/setup.c b/arch/cris/arch-v10/kernel/setup.c
-index de27b50..4f96d71 100644
---- a/arch/cris/arch-v10/kernel/setup.c
-+++ b/arch/cris/arch-v10/kernel/setup.c
-@@ -14,6 +14,7 @@
- #include <linux/proc_fs.h>
- #include <linux/delay.h>
- #include <linux/param.h>
-+#include <arch/system.h>
- 
- #ifdef CONFIG_PROC_FS
- #define HAS_FPU		0x0001
-diff --git a/arch/cris/arch-v10/kernel/signal.c b/arch/cris/arch-v10/kernel/signal.c
-index e78fe49..289c584 100644
---- a/arch/cris/arch-v10/kernel/signal.c
-+++ b/arch/cris/arch-v10/kernel/signal.c
-@@ -27,6 +27,7 @@
- #include <asm/processor.h>
- #include <asm/ucontext.h>
- #include <asm/uaccess.h>
-+#include <arch/system.h>
- 
- #define DEBUG_SIG 0
- 
-diff --git a/arch/cris/arch-v10/kernel/traps.c b/arch/cris/arch-v10/kernel/traps.c
-index 8bebb96..7001bed 100644
---- a/arch/cris/arch-v10/kernel/traps.c
-+++ b/arch/cris/arch-v10/kernel/traps.c
-@@ -11,6 +11,7 @@
- #include <linux/ptrace.h>
- #include <asm/uaccess.h>
- #include <arch/sv_addr_ag.h>
-+#include <arch/system.h>
- 
- void
- show_registers(struct pt_regs *regs)
-diff --git a/arch/cris/arch-v32/drivers/i2c.c b/arch/cris/arch-v32/drivers/i2c.c
-index ddb2399..3b2c82c 100644
---- a/arch/cris/arch-v32/drivers/i2c.c
-+++ b/arch/cris/arch-v32/drivers/i2c.c
-@@ -36,7 +36,6 @@
- 
- #include <asm/etraxi2c.h>
- 
--#include <asm/system.h>
- #include <asm/io.h>
- #include <asm/delay.h>
- 
-diff --git a/arch/cris/arch-v32/drivers/mach-a3/gpio.c b/arch/cris/arch-v32/drivers/mach-a3/gpio.c
-index c845831..0b86dee 100644
---- a/arch/cris/arch-v32/drivers/mach-a3/gpio.c
-+++ b/arch/cris/arch-v32/drivers/mach-a3/gpio.c
-@@ -31,7 +31,6 @@
- #include <hwregs/gio_defs.h>
- #include <hwregs/intr_vect_defs.h>
- #include <asm/io.h>
--#include <asm/system.h>
- #include <asm/irq.h>
- #include <mach/pinmux.h>
- 
-diff --git a/arch/cris/arch-v32/drivers/mach-fs/gpio.c b/arch/cris/arch-v32/drivers/mach-fs/gpio.c
-index ee90d26..a2ac091 100644
---- a/arch/cris/arch-v32/drivers/mach-fs/gpio.c
-+++ b/arch/cris/arch-v32/drivers/mach-fs/gpio.c
-@@ -30,7 +30,6 @@
- #include <hwregs/gio_defs.h>
- #include <hwregs/intr_vect_defs.h>
- #include <asm/io.h>
--#include <asm/system.h>
- #include <asm/irq.h>
- 
- #ifdef CONFIG_ETRAX_VIRTUAL_GPIO
-diff --git a/arch/cris/arch-v32/kernel/debugport.c b/arch/cris/arch-v32/kernel/debugport.c
-index 794b364..610909b 100644
---- a/arch/cris/arch-v32/kernel/debugport.c
-+++ b/arch/cris/arch-v32/kernel/debugport.c
-@@ -4,7 +4,6 @@
- 
- #include <linux/console.h>
- #include <linux/init.h>
--#include <asm/system.h>
- #include <hwregs/reg_rdwr.h>
- #include <hwregs/reg_map.h>
- #include <hwregs/ser_defs.h>
-diff --git a/arch/cris/arch-v32/kernel/fasttimer.c b/arch/cris/arch-v32/kernel/fasttimer.c
-index 111caa1..ab1551e 100644
---- a/arch/cris/arch-v32/kernel/fasttimer.c
-+++ b/arch/cris/arch-v32/kernel/fasttimer.c
-@@ -17,7 +17,6 @@
- #include <linux/delay.h>
- 
- #include <asm/irq.h>
--#include <asm/system.h>
- 
- #include <hwregs/reg_map.h>
- #include <hwregs/reg_rdwr.h>
-diff --git a/arch/cris/arch-v32/kernel/ptrace.c b/arch/cris/arch-v32/kernel/ptrace.c
-index 511ece9..f7ad9e8 100644
---- a/arch/cris/arch-v32/kernel/ptrace.c
-+++ b/arch/cris/arch-v32/kernel/ptrace.c
-@@ -15,7 +15,6 @@
- #include <asm/uaccess.h>
- #include <asm/page.h>
- #include <asm/pgtable.h>
--#include <asm/system.h>
- #include <asm/processor.h>
- #include <arch/hwregs/supp_reg.h>
- 
-diff --git a/arch/cris/arch-v32/mach-a3/dma.c b/arch/cris/arch-v32/mach-a3/dma.c
-index f35e4f6..47c64bf 100644
---- a/arch/cris/arch-v32/mach-a3/dma.c
-+++ b/arch/cris/arch-v32/mach-a3/dma.c
-@@ -9,7 +9,6 @@
- #include <hwregs/clkgen_defs.h>
- #include <hwregs/strmux_defs.h>
- #include <linux/errno.h>
--#include <asm/system.h>
- #include <arbiter.h>
- 
- static char used_dma_channels[MAX_DMA_CHANNELS];
-diff --git a/arch/cris/arch-v32/mach-fs/dma.c b/arch/cris/arch-v32/mach-fs/dma.c
-index 2d970d7..fc6416a 100644
---- a/arch/cris/arch-v32/mach-fs/dma.c
-+++ b/arch/cris/arch-v32/mach-fs/dma.c
-@@ -9,7 +9,6 @@
- #include <hwregs/config_defs.h>
- #include <hwregs/strmux_defs.h>
- #include <linux/errno.h>
--#include <asm/system.h>
- #include <mach/arbiter.h>
- 
- static char used_dma_channels[MAX_DMA_CHANNELS];
-diff --git a/arch/cris/include/arch-v10/arch/elf.h b/arch/cris/include/arch-v10/arch/elf.h
-index 1c38ee7..1eb638a 100644
---- a/arch/cris/include/arch-v10/arch/elf.h
-+++ b/arch/cris/include/arch-v10/arch/elf.h
-@@ -1,6 +1,8 @@
- #ifndef __ASMCRIS_ARCH_ELF_H
- #define __ASMCRIS_ARCH_ELF_H
- 
-+#include <arch/system.h>
-+
- #define ELF_MACH EF_CRIS_VARIANT_ANY_V0_V10
- 
- /*
-diff --git a/arch/cris/include/arch-v32/arch/elf.h b/arch/cris/include/arch-v32/arch/elf.h
-index 1324e50..c46d582 100644
---- a/arch/cris/include/arch-v32/arch/elf.h
-+++ b/arch/cris/include/arch-v32/arch/elf.h
-@@ -1,6 +1,8 @@
- #ifndef _ASM_CRIS_ELF_H
- #define _ASM_CRIS_ELF_H
- 
-+#include <arch/system.h>
-+
- #define ELF_CORE_EFLAGS EF_CRIS_VARIANT_V32
- 
- /*
-diff --git a/arch/cris/include/asm/atomic.h b/arch/cris/include/asm/atomic.h
-index bbf0938..1056a5d 100644
---- a/arch/cris/include/asm/atomic.h
-+++ b/arch/cris/include/asm/atomic.h
-@@ -5,7 +5,7 @@
- 
- #include <linux/compiler.h>
  #include <linux/types.h>
--#include <asm/system.h>
 +#include <asm/cmpxchg.h>
- #include <arch/atomic.h>
  
- /*
-diff --git a/arch/cris/include/asm/barrier.h b/arch/cris/include/asm/barrier.h
+ #define ATOMIC_INIT(i)		{ (i) }
+ #define atomic_set(v, i)	((v)->counter = (i))
+diff --git a/arch/hexagon/include/asm/barrier.h b/arch/hexagon/include/asm/barrier.h
 new file mode 100644
-index 0000000..ce0f293
+index 0000000..a4ed6e2
 --- /dev/null
-+++ b/arch/cris/include/asm/barrier.h
-@@ -0,0 +1,23 @@
-+#ifndef __ASM_CRIS_BARRIER_H
-+#define __ASM_CRIS_BARRIER_H
++++ b/arch/hexagon/include/asm/barrier.h
+@@ -0,0 +1,41 @@
++/*
++ * Memory barrier definitions for the Hexagon architecture
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
 +
-+#define barrier() __asm__ __volatile__("": : :"memory")
-+#define mb() barrier()
-+#define rmb() mb()
-+#define wmb() mb()
-+#define read_barrier_depends() do { } while(0)
-+#define set_mb(var, value)  do { var = value; mb(); } while (0)
++#ifndef _ASM_BARRIER_H
++#define _ASM_BARRIER_H
 +
-+#ifdef CONFIG_SMP
-+#define smp_mb()        mb()
-+#define smp_rmb()       rmb()
-+#define smp_wmb()       wmb()
-+#define smp_read_barrier_depends()     read_barrier_depends()
-+#else
-+#define smp_mb()        barrier()
-+#define smp_rmb()       barrier()
-+#define smp_wmb()       barrier()
-+#define smp_read_barrier_depends()     do { } while(0)
-+#endif
++#define rmb()				barrier()
++#define read_barrier_depends()		barrier()
++#define wmb()				barrier()
++#define mb()				barrier()
++#define smp_rmb()			barrier()
++#define smp_read_barrier_depends()	barrier()
++#define smp_wmb()			barrier()
++#define smp_mb()			barrier()
++#define smp_mb__before_atomic_dec()	barrier()
++#define smp_mb__after_atomic_dec()	barrier()
++#define smp_mb__before_atomic_inc()	barrier()
++#define smp_mb__after_atomic_inc()	barrier()
 +
-+#endif /* __ASM_CRIS_BARRIER_H */
-diff --git a/arch/cris/include/asm/bitops.h b/arch/cris/include/asm/bitops.h
-index a78a2d7..184066c 100644
---- a/arch/cris/include/asm/bitops.h
-+++ b/arch/cris/include/asm/bitops.h
-@@ -19,7 +19,6 @@
- #endif
++/*  Set a value and use a memory barrier.  Used by the scheduler somewhere.  */
++#define set_mb(var, value) \
++	do { var = value; mb(); } while (0)
++
++#endif /* _ASM_BARRIER_H */
+diff --git a/arch/hexagon/include/asm/bitops.h b/arch/hexagon/include/asm/bitops.h
+index d23461e..4caa649 100644
+--- a/arch/hexagon/include/asm/bitops.h
++++ b/arch/hexagon/include/asm/bitops.h
+@@ -24,7 +24,6 @@
  
- #include <arch/bitops.h>
--#include <asm/system.h>
- #include <linux/atomic.h>
  #include <linux/compiler.h>
+ #include <asm/byteorder.h>
+-#include <asm/system.h>
+ #include <asm/atomic.h>
  
-diff --git a/arch/cris/include/asm/cmpxchg.h b/arch/cris/include/asm/cmpxchg.h
+ #ifdef __KERNEL__
+diff --git a/arch/hexagon/include/asm/cmpxchg.h b/arch/hexagon/include/asm/cmpxchg.h
 new file mode 100644
-index 0000000..7ee390e
+index 0000000..c5f9527
 --- /dev/null
-+++ b/arch/cris/include/asm/cmpxchg.h
-@@ -0,0 +1,51 @@
-+#ifndef __ASM_CRIS_CMPXCHG__
-+#define __ASM_CRIS_CMPXCHG__
++++ b/arch/hexagon/include/asm/cmpxchg.h
+@@ -0,0 +1,90 @@
++/*
++ * xchg/cmpxchg operations for the Hexagon architecture
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
++ */
 +
-+#include <linux/irqflags.h>
++#ifndef _ASM_CMPXCHG_H
++#define _ASM_CMPXCHG_H
 +
-+static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
++/*
++ * __xchg - atomically exchange a register and a memory location
++ * @x: value to swap
++ * @ptr: pointer to memory
++ * @size:  size of the value
++ *
++ * Only 4 bytes supported currently.
++ *
++ * Note:  there was an errata for V2 about .new's and memw_locked.
++ *
++ */
++static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
++				   int size)
 +{
-+  /* since Etrax doesn't have any atomic xchg instructions, we need to disable
-+     irq's (if enabled) and do it with move.d's */
-+  unsigned long flags,temp;
-+  local_irq_save(flags); /* save flags, including irq enable bit and shut off irqs */
-+  switch (size) {
-+  case 1:
-+    *((unsigned char *)&temp) = x;
-+    x = *(unsigned char *)ptr;
-+    *(unsigned char *)ptr = *((unsigned char *)&temp);
-+    break;
-+  case 2:
-+    *((unsigned short *)&temp) = x;
-+    x = *(unsigned short *)ptr;
-+    *(unsigned short *)ptr = *((unsigned short *)&temp);
-+    break;
-+  case 4:
-+    temp = x;
-+    x = *(unsigned long *)ptr;
-+    *(unsigned long *)ptr = temp;
-+    break;
-+  }
-+  local_irq_restore(flags); /* restore irq enable bit */
-+  return x;
++	unsigned long retval;
++
++	/*  Can't seem to use printk or panic here, so just stop  */
++	if (size != 4) do { asm volatile("brkpt;\n"); } while (1);
++
++	__asm__ __volatile__ (
++	"1:	%0 = memw_locked(%1);\n"    /*  load into retval */
++	"	memw_locked(%1,P0) = %2;\n" /*  store into memory */
++	"	if !P0 jump 1b;\n"
++	: "=&r" (retval)
++	: "r" (ptr), "r" (x)
++	: "memory", "p0"
++	);
++	return retval;
 +}
 +
-+#define xchg(ptr,x) \
-+	((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
-+
-+#include <asm-generic/cmpxchg-local.h>
++/*
++ * Atomically swap the contents of a register with memory.  Should be atomic
++ * between multiple CPU's and within interrupts on the same CPU.
++ */
++#define xchg(ptr, v) ((__typeof__(*(ptr)))__xchg((unsigned long)(v), (ptr), \
++	sizeof(*(ptr))))
 +
 +/*
-+ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
-+ * them available.
++ *  see rt-mutex-design.txt; cmpxchg supposedly checks if *ptr == A and swaps.
++ *  looks just like atomic_cmpxchg on our arch currently with a bunch of
++ *  variable casting.
 + */
-+#define cmpxchg_local(ptr, o, n)				 	       \
-+	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
-+			(unsigned long)(n), sizeof(*(ptr))))
-+#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
++#define __HAVE_ARCH_CMPXCHG 1
 +
-+#ifndef CONFIG_SMP
-+#include <asm-generic/cmpxchg.h>
-+#endif
++#define cmpxchg(ptr, old, new)					\
++({								\
++	__typeof__(ptr) __ptr = (ptr);				\
++	__typeof__(*(ptr)) __old = (old);			\
++	__typeof__(*(ptr)) __new = (new);			\
++	__typeof__(*(ptr)) __oldval = 0;			\
++								\
++	asm volatile(						\
++		"1:	%0 = memw_locked(%1);\n"		\
++		"	{ P0 = cmp.eq(%0,%2);\n"		\
++		"	  if (!P0.new) jump:nt 2f; }\n"		\
++		"	memw_locked(%1,p0) = %3;\n"		\
++		"	if (!P0) jump 1b;\n"			\
++		"2:\n"						\
++		: "=&r" (__oldval)				\
++		: "r" (__ptr), "r" (__old), "r" (__new)		\
++		: "memory", "p0"				\
++	);							\
++	__oldval;						\
++})
 +
-+#endif /* __ASM_CRIS_CMPXCHG__ */
-diff --git a/arch/cris/include/asm/exec.h b/arch/cris/include/asm/exec.h
++#endif /* _ASM_CMPXCHG_H */
+diff --git a/arch/hexagon/include/asm/exec.h b/arch/hexagon/include/asm/exec.h
 new file mode 100644
-index 0000000..9665dab
+index 0000000..350e6d4
 --- /dev/null
-+++ b/arch/cris/include/asm/exec.h
-@@ -0,0 +1,6 @@
-+#ifndef __ASM_CRIS_EXEC_H
-+#define __ASM_CRIS_EXEC_H
-+
-+#define arch_align_stack(x) (x)
-+
-+#endif /* __ASM_CRIS_EXEC_H */
-diff --git a/arch/cris/include/asm/processor.h b/arch/cris/include/asm/processor.h
-index 3f7248f..4210d72 100644
---- a/arch/cris/include/asm/processor.h
-+++ b/arch/cris/include/asm/processor.h
-@@ -10,10 +10,10 @@
- #ifndef __ASM_CRIS_PROCESSOR_H
- #define __ASM_CRIS_PROCESSOR_H
- 
--#include <asm/system.h>
- #include <asm/page.h>
- #include <asm/ptrace.h>
- #include <arch/processor.h>
-+#include <arch/system.h>
- 
- struct task_struct;
- 
-@@ -72,4 +72,13 @@ static inline void release_thread(struct task_struct *dead_task)
- 
- #define cpu_relax()     barrier()
- 
++++ b/arch/hexagon/include/asm/exec.h
+@@ -0,0 +1,28 @@
 +/*
-+ * disable hlt during certain critical i/o operations
++ * Process execution related definitions for the Hexagon architecture
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
 + */
-+#define HAVE_DISABLE_HLT
-+void disable_hlt(void);
-+void enable_hlt(void);
 +
-+void default_idle(void);
++#ifndef _ASM_EXEC_H
++#define _ASM_EXEC_H
 +
- #endif /* __ASM_CRIS_PROCESSOR_H */
-diff --git a/arch/cris/include/asm/switch_to.h b/arch/cris/include/asm/switch_to.h
++/*  Should probably shoot for an 8-byte aligned stack pointer  */
++#define STACK_MASK (~7)
++#define arch_align_stack(x) (x & STACK_MASK)
++
++#endif /* _ASM_EXEC_H */
+diff --git a/arch/hexagon/include/asm/switch_to.h b/arch/hexagon/include/asm/switch_to.h
 new file mode 100644
-index 0000000..d842e11
+index 0000000..28ca0df
 --- /dev/null
-+++ b/arch/cris/include/asm/switch_to.h
-@@ -0,0 +1,12 @@
-+#ifndef __ASM_CRIS_SWITCH_TO_H
-+#define __ASM_CRIS_SWITCH_TO_H
-+
-+/* the switch_to macro calls resume, an asm function in entry.S which does the actual
-+ * task switching.
++++ b/arch/hexagon/include/asm/switch_to.h
+@@ -0,0 +1,34 @@
++/*
++ * Task switching definitions for the Hexagon architecture
++ *
++ * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 and
++ * only version 2 as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
++ * 02110-1301, USA.
 + */
 +
-+extern struct task_struct *resume(struct task_struct *prev, struct task_struct *next, int);
-+#define switch_to(prev,next,last) last = resume(prev,next, \
-+					 (int)&((struct task_struct *)0)->thread)
++#ifndef _ASM_SWITCH_TO_H
++#define _ASM_SWITCH_TO_H
 +
-+#endif /* __ASM_CRIS_SWITCH_TO_H */
-diff --git a/arch/cris/include/asm/system.h b/arch/cris/include/asm/system.h
-index ea10592..a7f4057 100644
---- a/arch/cris/include/asm/system.h
-+++ b/arch/cris/include/asm/system.h
-@@ -1,89 +1,5 @@
--#ifndef __ASM_CRIS_SYSTEM_H
--#define __ASM_CRIS_SYSTEM_H
--
--#include <linux/irqflags.h>
--#include <arch/system.h>
--
--/* the switch_to macro calls resume, an asm function in entry.S which does the actual
-- * task switching.
++struct thread_struct;
++
++extern struct task_struct *__switch_to(struct task_struct *,
++	struct task_struct *,
++	struct task_struct *);
++
++#define switch_to(p, n, r) do {\
++	r = __switch_to((p), (n), (r));\
++} while (0)
++
++#endif /* _ASM_SWITCH_TO_H */
+diff --git a/arch/hexagon/include/asm/system.h b/arch/hexagon/include/asm/system.h
+index 323ed1d..a7f4057 100644
+--- a/arch/hexagon/include/asm/system.h
++++ b/arch/hexagon/include/asm/system.h
+@@ -1,126 +1,5 @@
+-/*
+- * System level definitions for the Hexagon architecture
+- *
+- * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 and
+- * only version 2 as published by the Free Software Foundation.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, write to the Free Software
+- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+- * 02110-1301, USA.
 - */
 -
--extern struct task_struct *resume(struct task_struct *prev, struct task_struct *next, int);
--#define switch_to(prev,next,last) last = resume(prev,next, \
--					 (int)&((struct task_struct *)0)->thread)
+-#ifndef _ASM_SYSTEM_H
+-#define _ASM_SYSTEM_H
 -
--#define barrier() __asm__ __volatile__("": : :"memory")
--#define mb() barrier()
--#define rmb() mb()
--#define wmb() mb()
--#define read_barrier_depends() do { } while(0)
--#define set_mb(var, value)  do { var = value; mb(); } while (0)
+-#include <linux/linkage.h>
+-#include <linux/irqflags.h>
+-#include <asm/atomic.h>
+-#include <asm/hexagon_vm.h>
 -
--#ifdef CONFIG_SMP
--#define smp_mb()        mb()
--#define smp_rmb()       rmb()
--#define smp_wmb()       wmb()
--#define smp_read_barrier_depends()     read_barrier_depends()
--#else
--#define smp_mb()        barrier()
--#define smp_rmb()       barrier()
--#define smp_wmb()       barrier()
--#define smp_read_barrier_depends()     do { } while(0)
--#endif
+-struct thread_struct;
 -
--#define iret()
+-extern struct task_struct *__switch_to(struct task_struct *,
+-	struct task_struct *,
+-	struct task_struct *);
+-
+-#define switch_to(p, n, r) do {\
+-	r = __switch_to((p), (n), (r));\
+-} while (0)
+-
+-
+-#define rmb()				barrier()
+-#define read_barrier_depends()		barrier()
+-#define wmb()				barrier()
+-#define mb()				barrier()
+-#define smp_rmb()			barrier()
+-#define smp_read_barrier_depends()	barrier()
+-#define smp_wmb()			barrier()
+-#define smp_mb()			barrier()
+-#define smp_mb__before_atomic_dec()	barrier()
+-#define smp_mb__after_atomic_dec()	barrier()
+-#define smp_mb__before_atomic_inc()	barrier()
+-#define smp_mb__after_atomic_inc()	barrier()
 -
 -/*
-- * disable hlt during certain critical i/o operations
+- * __xchg - atomically exchange a register and a memory location
+- * @x: value to swap
+- * @ptr: pointer to memory
+- * @size:  size of the value
+- *
+- * Only 4 bytes supported currently.
+- *
+- * Note:  there was an errata for V2 about .new's and memw_locked.
+- *
 - */
--#define HAVE_DISABLE_HLT
--void disable_hlt(void);
--void enable_hlt(void);
--
--static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
+-static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
+-				   int size)
 -{
--  /* since Etrax doesn't have any atomic xchg instructions, we need to disable
--     irq's (if enabled) and do it with move.d's */
--  unsigned long flags,temp;
--  local_irq_save(flags); /* save flags, including irq enable bit and shut off irqs */
--  switch (size) {
--  case 1:
--    *((unsigned char *)&temp) = x;
--    x = *(unsigned char *)ptr;
--    *(unsigned char *)ptr = *((unsigned char *)&temp);
--    break;
--  case 2:
--    *((unsigned short *)&temp) = x;
--    x = *(unsigned short *)ptr;
--    *(unsigned short *)ptr = *((unsigned short *)&temp);
--    break;
--  case 4:
--    temp = x;
--    x = *(unsigned long *)ptr;
--    *(unsigned long *)ptr = temp;
--    break;
--  }
--  local_irq_restore(flags); /* restore irq enable bit */
--  return x;
+-	unsigned long retval;
+-
+-	/*  Can't seem to use printk or panic here, so just stop  */
+-	if (size != 4) do { asm volatile("brkpt;\n"); } while (1);
+-
+-	__asm__ __volatile__ (
+-	"1:	%0 = memw_locked(%1);\n"    /*  load into retval */
+-	"	memw_locked(%1,P0) = %2;\n" /*  store into memory */
+-	"	if !P0 jump 1b;\n"
+-	: "=&r" (retval)
+-	: "r" (ptr), "r" (x)
+-	: "memory", "p0"
+-	);
+-	return retval;
 -}
 -
--#include <asm-generic/cmpxchg-local.h>
+-/*
+- * Atomically swap the contents of a register with memory.  Should be atomic
+- * between multiple CPU's and within interrupts on the same CPU.
+- */
+-#define xchg(ptr, v) ((__typeof__(*(ptr)))__xchg((unsigned long)(v), (ptr), \
+-	sizeof(*(ptr))))
+-
+-/*  Set a value and use a memory barrier.  Used by the scheduler somewhere.  */
+-#define set_mb(var, value) \
+-	do { var = value; mb(); } while (0)
 -
 -/*
-- * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
-- * them available.
+- *  see rt-mutex-design.txt; cmpxchg supposedly checks if *ptr == A and swaps.
+- *  looks just like atomic_cmpxchg on our arch currently with a bunch of
+- *  variable casting.
 - */
--#define cmpxchg_local(ptr, o, n)				 	       \
--	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
--			(unsigned long)(n), sizeof(*(ptr))))
--#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+-#define __HAVE_ARCH_CMPXCHG 1
 -
--#ifndef CONFIG_SMP
--#include <asm-generic/cmpxchg.h>
--#endif
+-#define cmpxchg(ptr, old, new)					\
+-({								\
+-	__typeof__(ptr) __ptr = (ptr);				\
+-	__typeof__(*(ptr)) __old = (old);			\
+-	__typeof__(*(ptr)) __new = (new);			\
+-	__typeof__(*(ptr)) __oldval = 0;			\
+-								\
+-	asm volatile(						\
+-		"1:	%0 = memw_locked(%1);\n"		\
+-		"	{ P0 = cmp.eq(%0,%2);\n"		\
+-		"	  if (!P0.new) jump:nt 2f; }\n"		\
+-		"	memw_locked(%1,p0) = %3;\n"		\
+-		"	if (!P0) jump 1b;\n"			\
+-		"2:\n"						\
+-		: "=&r" (__oldval)				\
+-		: "r" (__ptr), "r" (__old), "r" (__new)		\
+-		: "memory", "p0"				\
+-	);							\
+-	__oldval;						\
+-})
 -
--#define arch_align_stack(x) (x)
--
--void default_idle(void);
+-/*  Should probably shoot for an 8-byte aligned stack pointer  */
+-#define STACK_MASK (~7)
+-#define arch_align_stack(x) (x & STACK_MASK)
 -
 -#endif
 +/* FILE TO BE DELETED. DO NOT ADD STUFF HERE! */
@@ -611,87 +412,39 @@ index ea10592..a7f4057 100644
 +#include <asm/cmpxchg.h>
 +#include <asm/exec.h>
 +#include <asm/switch_to.h>
-diff --git a/arch/cris/kernel/irq.c b/arch/cris/kernel/irq.c
-index 788eb22..d36836d 100644
---- a/arch/cris/kernel/irq.c
-+++ b/arch/cris/kernel/irq.c
-@@ -36,6 +36,7 @@
+diff --git a/arch/hexagon/kernel/ptrace.c b/arch/hexagon/kernel/ptrace.c
+index bea3f08..32342de 100644
+--- a/arch/hexagon/kernel/ptrace.c
++++ b/arch/hexagon/kernel/ptrace.c
+@@ -29,7 +29,6 @@
+ #include <linux/regset.h>
+ #include <linux/user.h>
+ 
+-#include <asm/system.h>
+ #include <asm/user.h>
+ 
+ static int genregs_get(struct task_struct *target,
+diff --git a/arch/hexagon/kernel/smp.c b/arch/hexagon/kernel/smp.c
+index c871a2c..96ceec6 100644
+--- a/arch/hexagon/kernel/smp.c
++++ b/arch/hexagon/kernel/smp.c
+@@ -29,7 +29,6 @@
+ #include <linux/smp.h>
  #include <linux/spinlock.h>
  
- #include <asm/io.h>
-+#include <arch/system.h>
+-#include <asm/system.h>  /*  xchg  */
+ #include <asm/time.h>    /*  timer_interrupt  */
+ #include <asm/hexagon_vm.h>
  
- /* called by the assembler IRQ entry functions defined in irq.h
-  * to dispatch the interrupts to registered handlers
-diff --git a/arch/cris/kernel/process.c b/arch/cris/kernel/process.c
-index aa585e4..41a973b 100644
---- a/arch/cris/kernel/process.c
-+++ b/arch/cris/kernel/process.c
-@@ -16,7 +16,6 @@
- #include <asm/pgtable.h>
- #include <asm/uaccess.h>
- #include <asm/irq.h>
+diff --git a/arch/hexagon/kernel/vm_events.c b/arch/hexagon/kernel/vm_events.c
+index 986a081..591fc1b 100644
+--- a/arch/hexagon/kernel/vm_events.c
++++ b/arch/hexagon/kernel/vm_events.c
+@@ -22,7 +22,6 @@
+ #include <asm/registers.h>
+ #include <linux/irq.h>
+ #include <linux/hardirq.h>
 -#include <asm/system.h>
- #include <linux/module.h>
- #include <linux/spinlock.h>
- #include <linux/init_task.h>
-diff --git a/arch/cris/kernel/ptrace.c b/arch/cris/kernel/ptrace.c
-index 48b0f39..d114ad3 100644
---- a/arch/cris/kernel/ptrace.c
-+++ b/arch/cris/kernel/ptrace.c
-@@ -21,7 +21,6 @@
- #include <asm/uaccess.h>
- #include <asm/page.h>
- #include <asm/pgtable.h>
--#include <asm/system.h>
- #include <asm/processor.h>
- 
- 
-diff --git a/arch/cris/kernel/setup.c b/arch/cris/kernel/setup.c
-index b712f49..32c3d24 100644
---- a/arch/cris/kernel/setup.c
-+++ b/arch/cris/kernel/setup.c
-@@ -20,6 +20,7 @@
- #include <linux/pfn.h>
- #include <linux/cpu.h>
- #include <asm/setup.h>
-+#include <arch/system.h>
  
  /*
-  * Setup options
-diff --git a/arch/cris/kernel/traps.c b/arch/cris/kernel/traps.c
-index 8da53f3..a11ad32 100644
---- a/arch/cris/kernel/traps.c
-+++ b/arch/cris/kernel/traps.c
-@@ -17,6 +17,7 @@
- 
- #include <asm/pgtable.h>
- #include <asm/uaccess.h>
-+#include <arch/system.h>
- 
- extern void arch_enable_nmi(void);
- extern void stop_watchdog(void);
-diff --git a/arch/cris/mm/fault.c b/arch/cris/mm/fault.c
-index 9dcac8e..b4760d8 100644
---- a/arch/cris/mm/fault.c
-+++ b/arch/cris/mm/fault.c
-@@ -9,6 +9,7 @@
- #include <linux/module.h>
- #include <linux/wait.h>
- #include <asm/uaccess.h>
-+#include <arch/system.h>
- 
- extern int find_fixup_code(struct pt_regs *);
- extern void die_if_kernel(const char *, struct pt_regs *, long);
-diff --git a/drivers/tty/serial/crisv10.c b/drivers/tty/serial/crisv10.c
-index 1dfba7b..fb13a17 100644
---- a/drivers/tty/serial/crisv10.c
-+++ b/drivers/tty/serial/crisv10.c
-@@ -37,6 +37,7 @@ static char *serial_version = "$Revision: 1.25 $";
- #include <asm/system.h>
- 
- #include <arch/svinto.h>
-+#include <arch/system.h>
- 
- /* non-arch dependent serial structures are in linux/serial.h */
- #include <linux/serial.h>
+  * show_regs - print pt_regs structure
