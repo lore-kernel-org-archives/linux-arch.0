@@ -1,198 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-gx0-f174.google.com ([209.85.161.174]:63215 "EHLO
 	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752367Ab2CLVaK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Mar 2012 17:30:10 -0400
-Received: by mail-gx0-f174.google.com with SMTP id e5so3083063ggh.19
-        for <linux-arch@vger.kernel.org>; Mon, 12 Mar 2012 14:30:09 -0700 (PDT)
+	with ESMTP id S1757394Ab2CLV3w (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Mar 2012 17:29:52 -0400
+Received: by gghe5 with SMTP id e5so3083063ggh.19
+        for <linux-arch@vger.kernel.org>; Mon, 12 Mar 2012 14:29:52 -0700 (PDT)
 From: Will Drewry <wad@chromium.org>
-Subject: [PATCH v14 10/13] ptrace,seccomp: Add PTRACE_SECCOMP support
-Date: Mon, 12 Mar 2012 16:28:32 -0500
-Message-ID: <1331587715-26069-10-git-send-email-wad@chromium.org>
+Subject: [PATCH v14 03/13] seccomp: kill the seccomp_t typedef
+Date: Mon, 12 Mar 2012 16:28:25 -0500
+Message-ID: <1331587715-26069-3-git-send-email-wad@chromium.org>
 In-Reply-To: <1331587715-26069-1-git-send-email-wad@chromium.org>
 References: <1331587715-26069-1-git-send-email-wad@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Will Drewry <wad@chromium.org>
-Message-ID: <20120312212832.DofKPEiYXAWqJRN-U1zG1qsg1nusUKsDabkiyQEJvwc@z>
+Message-ID: <20120312212825.7fdl1_ItfZt33fZ9vWOn_ooejMZxqv9LpKEQewHKuXA@z>
 
-This change adds support for a new ptrace option, PTRACE_O_TRACESECCOMP,
-and a new return value for seccomp BPF programs, SECCOMP_RET_TRACE.
+Replaces the seccomp_t typedef with struct seccomp to match modern
+kernel style.
 
-When a tracer specifies the PTRACE_O_TRACESECCOMP ptrace option, the
-tracer will be notified for any syscall that results in a BPF program
-returning SECCOMP_RET_TRACE.  The 16-bit SECCOMP_RET_DATA mask of the
-BPF program return value will be passed as the ptrace_message and may be
-retrieved using PTRACE_GETEVENTMSG.
+v14: rebase/nochanges
+v13: rebase on to 88ebdda6159ffc15699f204c33feb3e431bf9bdc
+v12: rebase on to linux-next
+v8-v11: no changes
+v7: struct seccomp_struct -> struct seccomp
+v6: original inclusion in this series.
 
-If the subordinate process is not using seccomp filter, then no
-system call notifications will occur even if the option is specified.
-
-If there is no attached tracer when SECCOMP_RET_TRACE is returned,
-the system call will not be executed and an -ENOSYS errno will be
-returned to userspace.
-
-This change adds a dependency on the system call slow path.  Any future
-efforts to use the system call fast path for seccomp filter will need to
-address this restriction.
-
-v14: - rebase/nochanges
-v13: - rebase on to 88ebdda6159ffc15699f204c33feb3e431bf9bdc
-       (Brings back a change to ptrace.c and the masks.)
-v12: - rebase to linux-next
-     - use ptrace_event and update arch/Kconfig to mention slow-path dependency
-     - drop all tracehook changes and inclusion (oleg@redhat.com)
-v11: - invert the logic to just make it a PTRACE_SYSCALL accelerator
-       (indan@nul.nu)
-v10: - moved to PTRACE_O_SECCOMP / PT_TRACE_SECCOMP
-v9:  - n/a
-v8:  - guarded PTRACE_SECCOMP use with an ifdef
-v7:  - introduced
-
+Acked-by: Serge Hallyn <serge.hallyn@canonical.com>
+Reviewed-by: James Morris <jmorris@namei.org>
 Signed-off-by: Will Drewry <wad@chromium.org>
 ---
- arch/Kconfig            |   11 ++++++-----
- include/linux/ptrace.h  |    7 +++++--
- include/linux/seccomp.h |    1 +
- kernel/ptrace.c         |    3 +++
- kernel/seccomp.c        |   20 +++++++++++++++-----
- 5 files changed, 30 insertions(+), 12 deletions(-)
+ include/linux/sched.h   |    2 +-
+ include/linux/seccomp.h |   10 ++++++----
+ 2 files changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index d92a78e..3f8132c 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -202,15 +202,16 @@ config HAVE_CMPXCHG_DOUBLE
- config HAVE_ARCH_SECCOMP_FILTER
- 	bool
- 	help
--	  This symbol should be selected by an architecure if it provides:
--	  asm/syscall.h:
-+	  An arch should select this symbol if it provides all of these things:
- 	  - syscall_get_arch()
- 	  - syscall_get_arguments()
- 	  - syscall_rollback()
- 	  - syscall_set_return_value()
--	  SIGSYS siginfo_t support must be implemented.
--	  __secure_computing_int()/secure_computing()'s return value must be
--	  checked, with -1 resulting in the syscall being skipped.
-+	  - SIGSYS siginfo_t support
-+	  - uses __secure_computing_int() or secure_computing()
-+	  - secure_computing is called from a ptrace_event()-safe context
-+	  - secure_computing return value is checked and a return value of -1
-+	    results in the system call being skipped immediately.
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index 3bcde52..6311128 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -1420,7 +1420,7 @@ struct task_struct {
+ 	uid_t loginuid;
+ 	unsigned int sessionid;
+ #endif
+-	seccomp_t seccomp;
++	struct seccomp seccomp;
  
- config SECCOMP_FILTER
- 	def_bool y
-diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
-index c2f1f6a..84b3418 100644
---- a/include/linux/ptrace.h
-+++ b/include/linux/ptrace.h
-@@ -62,8 +62,9 @@
- #define PTRACE_O_TRACEEXEC	0x00000010
- #define PTRACE_O_TRACEVFORKDONE	0x00000020
- #define PTRACE_O_TRACEEXIT	0x00000040
-+#define PTRACE_O_TRACESECCOMP	0x00000080
- 
--#define PTRACE_O_MASK		0x0000007f
-+#define PTRACE_O_MASK		0x000000ff
- 
- /* Wait extended result codes for the above trace options.  */
- #define PTRACE_EVENT_FORK	1
-@@ -73,6 +74,7 @@
- #define PTRACE_EVENT_VFORK_DONE	5
- #define PTRACE_EVENT_EXIT	6
- #define PTRACE_EVENT_STOP	7
-+#define PTRACE_EVENT_SECCOMP	8
- 
- #include <asm/ptrace.h>
- 
-@@ -101,8 +103,9 @@
- #define PT_TRACE_EXEC		PT_EVENT_FLAG(PTRACE_EVENT_EXEC)
- #define PT_TRACE_VFORK_DONE	PT_EVENT_FLAG(PTRACE_EVENT_VFORK_DONE)
- #define PT_TRACE_EXIT		PT_EVENT_FLAG(PTRACE_EVENT_EXIT)
-+#define PT_TRACE_SECCOMP	PT_EVENT_FLAG(PTRACE_EVENT_SECCOMP)
- 
--#define PT_TRACE_MASK	0x000003f4
-+#define PT_TRACE_MASK	0x00000ff4
- 
- /* single stepping state bits (used on ARM and PA-RISC) */
- #define PT_SINGLESTEP_BIT	31
+ /* Thread group tracking */
+    	u32 parent_exec_id;
 diff --git a/include/linux/seccomp.h b/include/linux/seccomp.h
-index e6d4b56..f4c1774 100644
+index cc7a4e9..d61f27f 100644
 --- a/include/linux/seccomp.h
 +++ b/include/linux/seccomp.h
-@@ -21,6 +21,7 @@
- #define SECCOMP_RET_KILL	0x00000000U /* kill the task immediately */
- #define SECCOMP_RET_TRAP	0x00020000U /* disallow and force a SIGSYS */
- #define SECCOMP_RET_ERRNO	0x00030000U /* returns an errno */
-+#define SECCOMP_RET_TRACE	0x7ffe0000U /* pass to a tracer or disallow */
- #define SECCOMP_RET_ALLOW	0x7fff0000U /* allow */
+@@ -7,7 +7,9 @@
+ #include <linux/thread_info.h>
+ #include <asm/seccomp.h>
  
- /* Masks for the return value sections. */
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index 00ab2ca..8cf6da1 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -551,6 +551,9 @@ static int ptrace_setoptions(struct task_struct *child, unsigned long data)
- 	if (data & PTRACE_O_TRACEEXIT)
- 		child->ptrace |= PT_TRACE_EXIT;
+-typedef struct { int mode; } seccomp_t;
++struct seccomp {
++	int mode;
++};
  
-+	if (data & PTRACE_O_TRACESECCOMP)
-+		child->ptrace |= PT_TRACE_SECCOMP;
-+
- 	return (data & ~PTRACE_O_MASK) ? -EINVAL : 0;
+ extern void __secure_computing(int);
+ static inline void secure_computing(int this_syscall)
+@@ -19,7 +21,7 @@ static inline void secure_computing(int this_syscall)
+ extern long prctl_get_seccomp(void);
+ extern long prctl_set_seccomp(unsigned long);
+ 
+-static inline int seccomp_mode(seccomp_t *s)
++static inline int seccomp_mode(struct seccomp *s)
+ {
+ 	return s->mode;
+ }
+@@ -28,7 +30,7 @@ static inline int seccomp_mode(seccomp_t *s)
+ 
+ #include <linux/errno.h>
+ 
+-typedef struct { } seccomp_t;
++struct seccomp { };
+ 
+ #define secure_computing(x) do { } while (0)
+ 
+@@ -42,7 +44,7 @@ static inline long prctl_set_seccomp(unsigned long arg2)
+ 	return -EINVAL;
  }
  
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index 140490a..ddacc68 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -17,13 +17,13 @@
- #include <linux/audit.h>
- #include <linux/compat.h>
- #include <linux/filter.h>
-+#include <linux/ptrace.h>
- #include <linux/sched.h>
- #include <linux/seccomp.h>
- #include <linux/security.h>
- #include <linux/slab.h>
- #include <linux/uaccess.h>
- 
--#include <linux/tracehook.h>
- #include <asm/syscall.h>
- 
- /* #define SECCOMP_DEBUG 1 */
-@@ -389,14 +389,24 @@ int __secure_computing_int(int this_syscall)
- 						 -(action & SECCOMP_RET_DATA),
- 						 0);
- 			return -1;
--		case SECCOMP_RET_TRAP: {
--			int reason_code = action & SECCOMP_RET_DATA;
-+		case SECCOMP_RET_TRAP:
- 			/* Show the handler the original registers. */
- 			syscall_rollback(current, task_pt_regs(current));
- 			/* Let the filter pass back 16 bits of data. */
--			seccomp_send_sigsys(this_syscall, reason_code);
-+			seccomp_send_sigsys(this_syscall,
-+					    action & SECCOMP_RET_DATA);
- 			return -1;
--		}
-+		case SECCOMP_RET_TRACE:
-+			/* Skip these calls if there is no tracer. */
-+			if (!ptrace_event_enabled(current,
-+						  PTRACE_EVENT_SECCOMP))
-+				return -1;
-+			/* Allow the BPF to provide the event message */
-+			ptrace_event(PTRACE_EVENT_SECCOMP,
-+				     action & SECCOMP_RET_DATA);
-+			if (fatal_signal_pending(current))
-+				break;
-+			return 0;
- 		case SECCOMP_RET_ALLOW:
- 			return 0;
- 		case SECCOMP_RET_KILL:
+-static inline int seccomp_mode(seccomp_t *s)
++static inline int seccomp_mode(struct seccomp *s)
+ {
+ 	return 0;
+ }
 -- 
 1.7.5.4
 
