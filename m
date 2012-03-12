@@ -1,30 +1,61 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 21/29] Disintegrate asm/system.h for PowerPC
-Date: Tue, 13 Mar 2012 07:38:24 +1100
-Message-ID: <1331584704.3105.89.camel@pasglop>
-References: <20120307194548.15987.36073.stgit@warthog.procyon.org.uk>
-	 <20120307194948.15987.95344.stgit@warthog.procyon.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:40052 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756383Ab2CLUi4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 12 Mar 2012 16:38:56 -0400
-In-Reply-To: <20120307194948.15987.95344.stgit@warthog.procyon.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, sfr@canb.auug.org.au, mingo@redhat.com, arnd@arndb.de, tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+From: Will Drewry <wad@chromium.org>
+Subject: [PATCH v14 01/13] sk_run_filter: add BPF_S_ANC_SECCOMP_LD_W
+Date: Mon, 12 Mar 2012 16:28:23 -0500
+Message-ID: <1331587715-26069-1-git-send-email-wad@chromium.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Will Drewry <wad@chromium.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2012-03-07 at 19:49 +0000, David Howells wrote:
-> Disintegrate asm/system.h for PowerPC.
-> 
-> Signed-off-by: David Howells <dhowells@redhat.com>
-> ---
+Introduces a new BPF ancillary instruction that all LD calls will be
+mapped through when skb_run_filter() is being used for seccomp BPF.  The
+rewriting will be done using a secondary chk_filter function that is run
+after skb_chk_filter.
 
-Not a bad idea :-) I'll run that through my compile tests.
+The code change is guarded by CONFIG_SECCOMP_FILTER which is added,
+along with the seccomp_bpf_load() function later in this series.
 
-Cheers,
-Ben.
+This is based on http://lkml.org/lkml/2012/3/2/141
+
+v14: First cut using a single additional instruction
+... v13: made bpf functions generic.
+
+
+Suggested-by: Indan Zupancic <indan@nul.nu>
+Signed-off-by: Will Drewry <wad@chromium.org>
+---
+ include/linux/filter.h |    1 +
+ net/core/filter.c      |    5 +++++
+ 2 files changed, 6 insertions(+), 0 deletions(-)
+
+diff --git a/include/linux/filter.h b/include/linux/filter.h
+index 8eeb205..aaa2e80 100644
+--- a/include/linux/filter.h
++++ b/include/linux/filter.h
+@@ -228,6 +228,7 @@ enum {
+ 	BPF_S_ANC_HATYPE,
+ 	BPF_S_ANC_RXHASH,
+ 	BPF_S_ANC_CPU,
++	BPF_S_ANC_SECCOMP_LD_W,
+ };
+ 
+ #endif /* __KERNEL__ */
+diff --git a/net/core/filter.c b/net/core/filter.c
+index 5dea452..3000931 100644
+--- a/net/core/filter.c
++++ b/net/core/filter.c
+@@ -350,6 +350,11 @@ load_b:
+ 				A = 0;
+ 			continue;
+ 		}
++#ifdef CONFIG_SECCOMP_FILTER
++		case BPF_S_ANC_SECCOMP_LD_W:
++			A = seccomp_bpf_load(fentry->k);
++			continue;
++#endif
+ 		default:
+ 			WARN_RATELIMIT(1, "Unknown code:%u jt:%u tf:%u k:%u\n",
+ 				       fentry->code, fentry->jt,
+-- 
+1.7.5.4
