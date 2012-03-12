@@ -1,7 +1,7 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 26/35] Disintegrate asm/system.h for Score [ver #2]
-Date: Mon, 12 Mar 2012 23:40:25 +0000
-Message-ID: <20120312234025.13888.22312.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 31/35] Disintegrate asm/system.h for Xtensa [ver #2]
+Date: Mon, 12 Mar 2012 23:41:21 +0000
+Message-ID: <20120312234121.13888.82919.stgit@warthog.procyon.org.uk>
 References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,278 +10,587 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
 To: paul.gortmaker@windriver.com, hpa@zytor.com
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>, Chen Liqin <liqin.chen@sunplusct.com>
+Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>, Chris Zankel <chris@zankel.net>
 List-Id: linux-arch.vger.kernel.org
 
-Disintegrate asm/system.h for Score.  Not compiled.
+Disintegrate asm/system.h for Xtensa.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
-cc: Chen Liqin <liqin.chen@sunplusct.com>
+cc: Chris Zankel <chris@zankel.net>
 ---
 
- arch/score/include/asm/atomic.h    |    1 
- arch/score/include/asm/barrier.h   |   16 ++++++
- arch/score/include/asm/bitops.h    |    1 
- arch/score/include/asm/bug.h       |   10 ++++
- arch/score/include/asm/cmpxchg.h   |   49 ++++++++++++++++++
- arch/score/include/asm/exec.h      |    6 ++
- arch/score/include/asm/switch_to.h |   13 +++++
- arch/score/include/asm/system.h    |   96 ++----------------------------------
- 8 files changed, 101 insertions(+), 91 deletions(-)
- create mode 100644 arch/score/include/asm/barrier.h
- create mode 100644 arch/score/include/asm/cmpxchg.h
- create mode 100644 arch/score/include/asm/exec.h
- create mode 100644 arch/score/include/asm/switch_to.h
+ arch/xtensa/include/asm/atomic.h    |    2 
+ arch/xtensa/include/asm/barrier.h   |   29 +++++
+ arch/xtensa/include/asm/bitops.h    |    1 
+ arch/xtensa/include/asm/cmpxchg.h   |  131 ++++++++++++++++++++++++
+ arch/xtensa/include/asm/exec.h      |   14 +++
+ arch/xtensa/include/asm/setup.h     |    2 
+ arch/xtensa/include/asm/switch_to.h |   22 ++++
+ arch/xtensa/include/asm/system.h    |  189 +----------------------------------
+ arch/xtensa/include/asm/uaccess.h   |    2 
+ arch/xtensa/kernel/process.c        |    1 
+ arch/xtensa/kernel/ptrace.c         |    1 
+ arch/xtensa/kernel/setup.c          |    1 
+ arch/xtensa/kernel/traps.c          |   19 ++++
+ arch/xtensa/mm/fault.c              |    1 
+ arch/xtensa/mm/tlb.c                |    1 
+ 15 files changed, 225 insertions(+), 191 deletions(-)
+ create mode 100644 arch/xtensa/include/asm/barrier.h
+ create mode 100644 arch/xtensa/include/asm/cmpxchg.h
+ create mode 100644 arch/xtensa/include/asm/exec.h
+ create mode 100644 arch/xtensa/include/asm/switch_to.h
 
-diff --git a/arch/score/include/asm/atomic.h b/arch/score/include/asm/atomic.h
-index 84eb8dd..edf33db 100644
---- a/arch/score/include/asm/atomic.h
-+++ b/arch/score/include/asm/atomic.h
-@@ -1,6 +1,7 @@
- #ifndef _ASM_SCORE_ATOMIC_H
- #define _ASM_SCORE_ATOMIC_H
+diff --git a/arch/xtensa/include/asm/atomic.h b/arch/xtensa/include/asm/atomic.h
+index 23592ef..b409893 100644
+--- a/arch/xtensa/include/asm/atomic.h
++++ b/arch/xtensa/include/asm/atomic.h
+@@ -18,7 +18,7 @@
  
+ #ifdef __KERNEL__
+ #include <asm/processor.h>
+-#include <asm/system.h>
 +#include <asm/cmpxchg.h>
- #include <asm-generic/atomic.h>
  
- #endif /* _ASM_SCORE_ATOMIC_H */
-diff --git a/arch/score/include/asm/barrier.h b/arch/score/include/asm/barrier.h
+ #define ATOMIC_INIT(i)	{ (i) }
+ 
+diff --git a/arch/xtensa/include/asm/barrier.h b/arch/xtensa/include/asm/barrier.h
 new file mode 100644
-index 0000000..0eacb64
+index 0000000..55707a8
 --- /dev/null
-+++ b/arch/score/include/asm/barrier.h
-@@ -0,0 +1,16 @@
-+#ifndef _ASM_SCORE_BARRIER_H
-+#define _ASM_SCORE_BARRIER_H
++++ b/arch/xtensa/include/asm/barrier.h
+@@ -0,0 +1,29 @@
++/*
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2001 - 2005 Tensilica Inc.
++ */
 +
-+#define mb()		barrier()
-+#define rmb()		barrier()
-+#define wmb()		barrier()
++#ifndef _XTENSA_SYSTEM_H
++#define _XTENSA_SYSTEM_H
++
++#define smp_read_barrier_depends() do { } while(0)
++#define read_barrier_depends() do { } while(0)
++
++#define mb()  barrier()
++#define rmb() mb()
++#define wmb() mb()
++
++#ifdef CONFIG_SMP
++#error smp_* not defined
++#else
 +#define smp_mb()	barrier()
 +#define smp_rmb()	barrier()
 +#define smp_wmb()	barrier()
++#endif
 +
-+#define read_barrier_depends()		do {} while (0)
-+#define smp_read_barrier_depends()	do {} while (0)
++#define set_mb(var, value)	do { var = value; mb(); } while (0)
 +
-+#define set_mb(var, value) 		do {var = value; wmb(); } while (0)
-+
-+#endif /* _ASM_SCORE_BARRIER_H */
-diff --git a/arch/score/include/asm/bitops.h b/arch/score/include/asm/bitops.h
-index 2763b05..a304096 100644
---- a/arch/score/include/asm/bitops.h
-+++ b/arch/score/include/asm/bitops.h
-@@ -2,7 +2,6 @@
- #define _ASM_SCORE_BITOPS_H
++#endif /* _XTENSA_SYSTEM_H */
+diff --git a/arch/xtensa/include/asm/bitops.h b/arch/xtensa/include/asm/bitops.h
+index 40aa7fe..5270197 100644
+--- a/arch/xtensa/include/asm/bitops.h
++++ b/arch/xtensa/include/asm/bitops.h
+@@ -21,7 +21,6 @@
  
- #include <asm/byteorder.h> /* swab32 */
--#include <asm/system.h> /* save_flags */
+ #include <asm/processor.h>
+ #include <asm/byteorder.h>
+-#include <asm/system.h>
  
- /*
-  * clear_bit() doesn't provide any barrier for the compiler.
-diff --git a/arch/score/include/asm/bug.h b/arch/score/include/asm/bug.h
-index bb76a33..d1ddaa4 100644
---- a/arch/score/include/asm/bug.h
-+++ b/arch/score/include/asm/bug.h
-@@ -3,4 +3,14 @@
- 
- #include <asm-generic/bug.h>
- 
-+extern void __die(const char *, struct pt_regs *, const char *,
-+	const char *, unsigned long) __attribute__((noreturn));
-+extern void __die_if_kernel(const char *, struct pt_regs *, const char *,
-+	const char *, unsigned long);
-+
-+#define die(msg, regs)							\
-+	__die(msg, regs, __FILE__ ":", __func__, __LINE__)
-+#define die_if_kernel(msg, regs)					\
-+	__die_if_kernel(msg, regs, __FILE__ ":", __func__, __LINE__)
-+
- #endif /* _ASM_SCORE_BUG_H */
-diff --git a/arch/score/include/asm/cmpxchg.h b/arch/score/include/asm/cmpxchg.h
+ #ifdef CONFIG_SMP
+ # error SMP not supported on this architecture
+diff --git a/arch/xtensa/include/asm/cmpxchg.h b/arch/xtensa/include/asm/cmpxchg.h
 new file mode 100644
-index 0000000..f384839
+index 0000000..e321490
 --- /dev/null
-+++ b/arch/score/include/asm/cmpxchg.h
-@@ -0,0 +1,49 @@
-+#ifndef _ASM_SCORE_CMPXCHG_H
-+#define _ASM_SCORE_CMPXCHG_H
++++ b/arch/xtensa/include/asm/cmpxchg.h
+@@ -0,0 +1,131 @@
++/*
++ * Atomic xchg and cmpxchg operations.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2001 - 2005 Tensilica Inc.
++ */
 +
-+#include <linux/irqflags.h>
++#ifndef _XTENSA_CMPXCHG_H
++#define _XTENSA_CMPXCHG_H
 +
-+struct __xchg_dummy { unsigned long a[100]; };
-+#define __xg(x) ((struct __xchg_dummy *)(x))
++#ifndef __ASSEMBLY__
 +
-+static inline
-+unsigned long __xchg(volatile unsigned long *m, unsigned long val)
++#include <linux/stringify.h>
++
++/*
++ * cmpxchg
++ */
++
++static inline unsigned long
++__cmpxchg_u32(volatile int *p, int old, int new)
 +{
-+	unsigned long retval;
-+	unsigned long flags;
++  __asm__ __volatile__("rsil    a15, "__stringify(LOCKLEVEL)"\n\t"
++		       "l32i    %0, %1, 0              \n\t"
++		       "bne	%0, %2, 1f             \n\t"
++		       "s32i    %3, %1, 0              \n\t"
++		       "1:                             \n\t"
++		       "wsr     a15, "__stringify(PS)" \n\t"
++		       "rsync                          \n\t"
++		       : "=&a" (old)
++		       : "a" (p), "a" (old), "r" (new)
++		       : "a15", "memory");
++  return old;
++}
++/* This function doesn't exist, so you'll get a linker error
++ * if something tries to do an invalid cmpxchg(). */
 +
-+	local_irq_save(flags);
-+	retval = *m;
-+	*m = val;
-+	local_irq_restore(flags);
-+	return retval;
++extern void __cmpxchg_called_with_bad_pointer(void);
++
++static __inline__ unsigned long
++__cmpxchg(volatile void *ptr, unsigned long old, unsigned long new, int size)
++{
++	switch (size) {
++	case 4:  return __cmpxchg_u32(ptr, old, new);
++	default: __cmpxchg_called_with_bad_pointer();
++		 return old;
++	}
 +}
 +
-+#define xchg(ptr, v)						\
-+	((__typeof__(*(ptr))) __xchg((unsigned long *)(ptr),	\
-+					(unsigned long)(v)))
-+
-+static inline unsigned long __cmpxchg(volatile unsigned long *m,
-+				unsigned long old, unsigned long new)
-+{
-+	unsigned long retval;
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	retval = *m;
-+	if (retval == old)
-+		*m = new;
-+	local_irq_restore(flags);
-+	return retval;
-+}
-+
-+#define cmpxchg(ptr, o, n)					\
-+	((__typeof__(*(ptr))) __cmpxchg((unsigned long *)(ptr),	\
-+					(unsigned long)(o),	\
-+					(unsigned long)(n)))
-+
-+#define __HAVE_ARCH_CMPXCHG	1
++#define cmpxchg(ptr,o,n)						      \
++	({ __typeof__(*(ptr)) _o_ = (o);				      \
++	   __typeof__(*(ptr)) _n_ = (n);				      \
++	   (__typeof__(*(ptr))) __cmpxchg((ptr), (unsigned long)_o_,	      \
++	   			        (unsigned long)_n_, sizeof (*(ptr))); \
++	})
 +
 +#include <asm-generic/cmpxchg-local.h>
 +
-+#endif /* _ASM_SCORE_CMPXCHG_H */
-diff --git a/arch/score/include/asm/exec.h b/arch/score/include/asm/exec.h
++static inline unsigned long __cmpxchg_local(volatile void *ptr,
++				      unsigned long old,
++				      unsigned long new, int size)
++{
++	switch (size) {
++	case 4:
++		return __cmpxchg_u32(ptr, old, new);
++	default:
++		return __cmpxchg_local_generic(ptr, old, new, size);
++	}
++
++	return old;
++}
++
++/*
++ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
++ * them available.
++ */
++#define cmpxchg_local(ptr, o, n)				  	       \
++	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
++			(unsigned long)(n), sizeof(*(ptr))))
++#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
++
++/*
++ * xchg_u32
++ *
++ * Note that a15 is used here because the register allocation
++ * done by the compiler is not guaranteed and a window overflow
++ * may not occur between the rsil and wsr instructions. By using
++ * a15 in the rsil, the machine is guaranteed to be in a state
++ * where no register reference will cause an overflow.
++ */
++
++static inline unsigned long xchg_u32(volatile int * m, unsigned long val)
++{
++  unsigned long tmp;
++  __asm__ __volatile__("rsil    a15, "__stringify(LOCKLEVEL)"\n\t"
++		       "l32i    %0, %1, 0              \n\t"
++		       "s32i    %2, %1, 0              \n\t"
++		       "wsr     a15, "__stringify(PS)" \n\t"
++		       "rsync                          \n\t"
++		       : "=&a" (tmp)
++		       : "a" (m), "a" (val)
++		       : "a15", "memory");
++  return tmp;
++}
++
++#define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
++
++/*
++ * This only works if the compiler isn't horribly bad at optimizing.
++ * gcc-2.5.8 reportedly can't handle this, but I define that one to
++ * be dead anyway.
++ */
++
++extern void __xchg_called_with_bad_pointer(void);
++
++static __inline__ unsigned long
++__xchg(unsigned long x, volatile void * ptr, int size)
++{
++	switch (size) {
++		case 4:
++			return xchg_u32(ptr, x);
++	}
++	__xchg_called_with_bad_pointer();
++	return x;
++}
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* _XTENSA_CMPXCHG_H */
+diff --git a/arch/xtensa/include/asm/exec.h b/arch/xtensa/include/asm/exec.h
 new file mode 100644
-index 0000000..f9f3cd5
+index 0000000..af949e2
 --- /dev/null
-+++ b/arch/score/include/asm/exec.h
-@@ -0,0 +1,6 @@
-+#ifndef _ASM_SCORE_EXEC_H
-+#define _ASM_SCORE_EXEC_H
++++ b/arch/xtensa/include/asm/exec.h
+@@ -0,0 +1,14 @@
++/*
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2001 - 2005 Tensilica Inc.
++ */
 +
-+extern unsigned long arch_align_stack(unsigned long sp);
++#ifndef _XTENSA_EXEC_H
++#define _XTENSA_EXEC_H
 +
-+#endif /* _ASM_SCORE_EXEC_H */
-diff --git a/arch/score/include/asm/switch_to.h b/arch/score/include/asm/switch_to.h
++#define arch_align_stack(x) (x)
++
++#endif /* _XTENSA_EXEC_H */
+diff --git a/arch/xtensa/include/asm/setup.h b/arch/xtensa/include/asm/setup.h
+index e363652..9fa8ad9 100644
+--- a/arch/xtensa/include/asm/setup.h
++++ b/arch/xtensa/include/asm/setup.h
+@@ -13,4 +13,6 @@
+ 
+ #define COMMAND_LINE_SIZE	256
+ 
++extern void set_except_vector(int n, void *addr);
++
+ #endif
+diff --git a/arch/xtensa/include/asm/switch_to.h b/arch/xtensa/include/asm/switch_to.h
 new file mode 100644
-index 0000000..031756b
+index 0000000..6b73bf0
 --- /dev/null
-+++ b/arch/score/include/asm/switch_to.h
-@@ -0,0 +1,13 @@
-+#ifndef _ASM_SCORE_SWITCH_TO_H
-+#define _ASM_SCORE_SWITCH_TO_H
++++ b/arch/xtensa/include/asm/switch_to.h
+@@ -0,0 +1,22 @@
++/*
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2001 - 2005 Tensilica Inc.
++ */
 +
-+extern void *resume(void *last, void *next, void *next_ti);
++#ifndef _XTENSA_SWITCH_TO_H
++#define _XTENSA_SWITCH_TO_H
 +
-+#define switch_to(prev, next, last)				\
-+do {								\
-+	(last) = resume(prev, next, task_thread_info(next));	\
-+} while (0)
++/* * switch_to(n) should switch tasks to task nr n, first
++ * checking that n isn't the current task, in which case it does nothing.
++ */
++extern void *_switch_to(void *last, void *next);
 +
-+#define finish_arch_switch(prev)	do {} while (0)
++#define switch_to(prev,next,last)		\
++do {						\
++	(last) = _switch_to(prev, next);	\
++} while(0)
 +
-+#endif /* _ASM_SCORE_SWITCH_TO_H */
-diff --git a/arch/score/include/asm/system.h b/arch/score/include/asm/system.h
-index 589d5c7..0d84f9e 100644
---- a/arch/score/include/asm/system.h
-+++ b/arch/score/include/asm/system.h
-@@ -1,90 +1,6 @@
--#ifndef _ASM_SCORE_SYSTEM_H
--#define _ASM_SCORE_SYSTEM_H
++#endif /* _XTENSA_SWITCH_TO_H */
+diff --git a/arch/xtensa/include/asm/system.h b/arch/xtensa/include/asm/system.h
+index 1e7e09a..a7f4057 100644
+--- a/arch/xtensa/include/asm/system.h
++++ b/arch/xtensa/include/asm/system.h
+@@ -1,184 +1,5 @@
+-/*
+- * include/asm-xtensa/system.h
+- *
+- * This file is subject to the terms and conditions of the GNU General Public
+- * License.  See the file "COPYING" in the main directory of this archive
+- * for more details.
+- *
+- * Copyright (C) 2001 - 2005 Tensilica Inc.
+- */
 -
--#include <linux/types.h>
+-#ifndef _XTENSA_SYSTEM_H
+-#define _XTENSA_SYSTEM_H
+-
+-#include <linux/stringify.h>
 -#include <linux/irqflags.h>
 -
--struct pt_regs;
--struct task_struct;
+-#include <asm/processor.h>
 -
--extern void *resume(void *last, void *next, void *next_ti);
+-#define smp_read_barrier_depends() do { } while(0)
+-#define read_barrier_depends() do { } while(0)
 -
--#define switch_to(prev, next, last)				\
--do {								\
--	(last) = resume(prev, next, task_thread_info(next));	\
--} while (0)
+-#define mb()  barrier()
+-#define rmb() mb()
+-#define wmb() mb()
 -
--#define finish_arch_switch(prev)	do {} while (0)
--
--typedef void (*vi_handler_t)(void);
--extern unsigned long arch_align_stack(unsigned long sp);
--
--#define mb()		barrier()
--#define rmb()		barrier()
--#define wmb()		barrier()
+-#ifdef CONFIG_SMP
+-#error smp_* not defined
+-#else
 -#define smp_mb()	barrier()
 -#define smp_rmb()	barrier()
 -#define smp_wmb()	barrier()
+-#endif
 -
--#define read_barrier_depends()		do {} while (0)
--#define smp_read_barrier_depends()	do {} while (0)
+-#define set_mb(var, value)	do { var = value; mb(); } while (0)
 -
--#define set_mb(var, value) 		do {var = value; wmb(); } while (0)
+-#if !defined (__ASSEMBLY__)
 -
--#define __HAVE_ARCH_CMPXCHG	1
+-/* * switch_to(n) should switch tasks to task nr n, first
+- * checking that n isn't the current task, in which case it does nothing.
+- */
+-extern void *_switch_to(void *last, void *next);
+-
+-#endif	/* __ASSEMBLY__ */
+-
+-#define switch_to(prev,next,last)		\
+-do {						\
+-	(last) = _switch_to(prev, next);	\
+-} while(0)
+-
+-/*
+- * cmpxchg
+- */
+-
+-static inline unsigned long
+-__cmpxchg_u32(volatile int *p, int old, int new)
+-{
+-  __asm__ __volatile__("rsil    a15, "__stringify(LOCKLEVEL)"\n\t"
+-		       "l32i    %0, %1, 0              \n\t"
+-		       "bne	%0, %2, 1f             \n\t"
+-		       "s32i    %3, %1, 0              \n\t"
+-		       "1:                             \n\t"
+-		       "wsr     a15, "__stringify(PS)" \n\t"
+-		       "rsync                          \n\t"
+-		       : "=&a" (old)
+-		       : "a" (p), "a" (old), "r" (new)
+-		       : "a15", "memory");
+-  return old;
+-}
+-/* This function doesn't exist, so you'll get a linker error
+- * if something tries to do an invalid cmpxchg(). */
+-
+-extern void __cmpxchg_called_with_bad_pointer(void);
+-
+-static __inline__ unsigned long
+-__cmpxchg(volatile void *ptr, unsigned long old, unsigned long new, int size)
+-{
+-	switch (size) {
+-	case 4:  return __cmpxchg_u32(ptr, old, new);
+-	default: __cmpxchg_called_with_bad_pointer();
+-		 return old;
+-	}
+-}
+-
+-#define cmpxchg(ptr,o,n)						      \
+-	({ __typeof__(*(ptr)) _o_ = (o);				      \
+-	   __typeof__(*(ptr)) _n_ = (n);				      \
+-	   (__typeof__(*(ptr))) __cmpxchg((ptr), (unsigned long)_o_,	      \
+-	   			        (unsigned long)_n_, sizeof (*(ptr))); \
+-	})
 -
 -#include <asm-generic/cmpxchg-local.h>
 -
--#ifndef __ASSEMBLY__
--
--struct __xchg_dummy { unsigned long a[100]; };
--#define __xg(x) ((struct __xchg_dummy *)(x))
--
--static inline
--unsigned long __xchg(volatile unsigned long *m, unsigned long val)
+-static inline unsigned long __cmpxchg_local(volatile void *ptr,
+-				      unsigned long old,
+-				      unsigned long new, int size)
 -{
--	unsigned long retval;
--	unsigned long flags;
+-	switch (size) {
+-	case 4:
+-		return __cmpxchg_u32(ptr, old, new);
+-	default:
+-		return __cmpxchg_local_generic(ptr, old, new, size);
+-	}
 -
--	local_irq_save(flags);
--	retval = *m;
--	*m = val;
--	local_irq_restore(flags);
--	return retval;
+-	return old;
 -}
 -
--#define xchg(ptr, v)						\
--	((__typeof__(*(ptr))) __xchg((unsigned long *)(ptr),	\
--					(unsigned long)(v)))
+-/*
+- * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
+- * them available.
+- */
+-#define cmpxchg_local(ptr, o, n)				  	       \
+-	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
+-			(unsigned long)(n), sizeof(*(ptr))))
+-#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
 -
--static inline unsigned long __cmpxchg(volatile unsigned long *m,
--				unsigned long old, unsigned long new)
+-/*
+- * xchg_u32
+- *
+- * Note that a15 is used here because the register allocation
+- * done by the compiler is not guaranteed and a window overflow
+- * may not occur between the rsil and wsr instructions. By using
+- * a15 in the rsil, the machine is guaranteed to be in a state
+- * where no register reference will cause an overflow.
+- */
+-
+-static inline unsigned long xchg_u32(volatile int * m, unsigned long val)
 -{
--	unsigned long retval;
--	unsigned long flags;
--
--	local_irq_save(flags);
--	retval = *m;
--	if (retval == old)
--		*m = new;
--	local_irq_restore(flags);
--	return retval;
+-  unsigned long tmp;
+-  __asm__ __volatile__("rsil    a15, "__stringify(LOCKLEVEL)"\n\t"
+-		       "l32i    %0, %1, 0              \n\t"
+-		       "s32i    %2, %1, 0              \n\t"
+-		       "wsr     a15, "__stringify(PS)" \n\t"
+-		       "rsync                          \n\t"
+-		       : "=&a" (tmp)
+-		       : "a" (m), "a" (val)
+-		       : "a15", "memory");
+-  return tmp;
 -}
 -
--#define cmpxchg(ptr, o, n)					\
--	((__typeof__(*(ptr))) __cmpxchg((unsigned long *)(ptr),	\
--					(unsigned long)(o),	\
--					(unsigned long)(n)))
+-#define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
 -
--extern void __die(const char *, struct pt_regs *, const char *,
--	const char *, unsigned long) __attribute__((noreturn));
--extern void __die_if_kernel(const char *, struct pt_regs *, const char *,
--	const char *, unsigned long);
+-/*
+- * This only works if the compiler isn't horribly bad at optimizing.
+- * gcc-2.5.8 reportedly can't handle this, but I define that one to
+- * be dead anyway.
+- */
 -
--#define die(msg, regs)							\
--	__die(msg, regs, __FILE__ ":", __func__, __LINE__)
--#define die_if_kernel(msg, regs)					\
--	__die_if_kernel(msg, regs, __FILE__ ":", __func__, __LINE__)
+-extern void __xchg_called_with_bad_pointer(void);
 -
--#endif /* !__ASSEMBLY__ */
--#endif /* _ASM_SCORE_SYSTEM_H */
+-static __inline__ unsigned long
+-__xchg(unsigned long x, volatile void * ptr, int size)
+-{
+-	switch (size) {
+-		case 4:
+-			return xchg_u32(ptr, x);
+-	}
+-	__xchg_called_with_bad_pointer();
+-	return x;
+-}
+-
+-extern void set_except_vector(int n, void *addr);
+-
+-static inline void spill_registers(void)
+-{
+-	unsigned int a0, ps;
+-
+-	__asm__ __volatile__ (
+-		"movi	a14," __stringify (PS_EXCM_BIT) " | 1\n\t"
+-		"mov	a12, a0\n\t"
+-		"rsr	a13," __stringify(SAR) "\n\t"
+-		"xsr	a14," __stringify(PS) "\n\t"
+-		"movi	a0, _spill_registers\n\t"
+-		"rsync\n\t"
+-		"callx0 a0\n\t"
+-		"mov	a0, a12\n\t"
+-		"wsr	a13," __stringify(SAR) "\n\t"
+-		"wsr	a14," __stringify(PS) "\n\t"
+-		:: "a" (&a0), "a" (&ps)
+-		: "a2", "a3", "a4", "a7", "a11", "a12", "a13", "a14", "a15", "memory");
+-}
+-
+-#define arch_align_stack(x) (x)
+-
+-#endif	/* _XTENSA_SYSTEM_H */
 +/* FILE TO BE DELETED. DO NOT ADD STUFF HERE! */
 +#include <asm/barrier.h>
 +#include <asm/cmpxchg.h>
 +#include <asm/exec.h>
-+#include <asm/special_insns.h>
 +#include <asm/switch_to.h>
+diff --git a/arch/xtensa/include/asm/uaccess.h b/arch/xtensa/include/asm/uaccess.h
+index 3fa526f..6e4bb3b 100644
+--- a/arch/xtensa/include/asm/uaccess.h
++++ b/arch/xtensa/include/asm/uaccess.h
+@@ -17,7 +17,9 @@
+ #define _XTENSA_UACCESS_H
+ 
+ #include <linux/errno.h>
++#ifndef __ASSEMBLY__
+ #include <linux/prefetch.h>
++#endif
+ #include <asm/types.h>
+ 
+ #define VERIFY_READ    0
+diff --git a/arch/xtensa/kernel/process.c b/arch/xtensa/kernel/process.c
+index 47041e7..c00c72c 100644
+--- a/arch/xtensa/kernel/process.c
++++ b/arch/xtensa/kernel/process.c
+@@ -34,7 +34,6 @@
+ 
+ #include <asm/pgtable.h>
+ #include <asm/uaccess.h>
+-#include <asm/system.h>
+ #include <asm/io.h>
+ #include <asm/processor.h>
+ #include <asm/platform.h>
+diff --git a/arch/xtensa/kernel/ptrace.c b/arch/xtensa/kernel/ptrace.c
+index 2dff698..33eea4c 100644
+--- a/arch/xtensa/kernel/ptrace.c
++++ b/arch/xtensa/kernel/ptrace.c
+@@ -24,7 +24,6 @@
+ 
+ #include <asm/pgtable.h>
+ #include <asm/page.h>
+-#include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/ptrace.h>
+ #include <asm/elf.h>
+diff --git a/arch/xtensa/kernel/setup.c b/arch/xtensa/kernel/setup.c
+index 1e5a034..17e746f 100644
+--- a/arch/xtensa/kernel/setup.c
++++ b/arch/xtensa/kernel/setup.c
+@@ -34,7 +34,6 @@
+ # include <linux/seq_file.h>
+ #endif
+ 
+-#include <asm/system.h>
+ #include <asm/bootparam.h>
+ #include <asm/pgtable.h>
+ #include <asm/processor.h>
+diff --git a/arch/xtensa/kernel/traps.c b/arch/xtensa/kernel/traps.c
+index e64efac..bc1e14c 100644
+--- a/arch/xtensa/kernel/traps.c
++++ b/arch/xtensa/kernel/traps.c
+@@ -381,6 +381,25 @@ static __always_inline unsigned long *stack_pointer(struct task_struct *task)
+ 	return sp;
+ }
+ 
++static inline void spill_registers(void)
++{
++	unsigned int a0, ps;
++
++	__asm__ __volatile__ (
++		"movi	a14," __stringify (PS_EXCM_BIT) " | 1\n\t"
++		"mov	a12, a0\n\t"
++		"rsr	a13," __stringify(SAR) "\n\t"
++		"xsr	a14," __stringify(PS) "\n\t"
++		"movi	a0, _spill_registers\n\t"
++		"rsync\n\t"
++		"callx0 a0\n\t"
++		"mov	a0, a12\n\t"
++		"wsr	a13," __stringify(SAR) "\n\t"
++		"wsr	a14," __stringify(PS) "\n\t"
++		:: "a" (&a0), "a" (&ps)
++		: "a2", "a3", "a4", "a7", "a11", "a12", "a13", "a14", "a15", "memory");
++}
++
+ void show_trace(struct task_struct *task, unsigned long *sp)
+ {
+ 	unsigned long a0, a1, pc;
+diff --git a/arch/xtensa/mm/fault.c b/arch/xtensa/mm/fault.c
+index e367e30..b17885a 100644
+--- a/arch/xtensa/mm/fault.c
++++ b/arch/xtensa/mm/fault.c
+@@ -19,7 +19,6 @@
+ #include <asm/cacheflush.h>
+ #include <asm/hardirq.h>
+ #include <asm/uaccess.h>
+-#include <asm/system.h>
+ #include <asm/pgalloc.h>
+ 
+ unsigned long asid_cache = ASID_USER_FIRST;
+diff --git a/arch/xtensa/mm/tlb.c b/arch/xtensa/mm/tlb.c
+index 239461d..e2700b2 100644
+--- a/arch/xtensa/mm/tlb.c
++++ b/arch/xtensa/mm/tlb.c
+@@ -18,7 +18,6 @@
+ #include <asm/processor.h>
+ #include <asm/mmu_context.h>
+ #include <asm/tlbflush.h>
+-#include <asm/system.h>
+ #include <asm/cacheflush.h>
+ 
+ 
