@@ -1,7 +1,7 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 16/35] Disintegrate asm/system.h for MN10300 [ver #2]
-Date: Mon, 12 Mar 2012 23:38:49 +0000
-Message-ID: <20120312233849.13888.3034.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 12/35] Disintegrate asm/system.h for M32R [ver #2]
+Date: Mon, 12 Mar 2012 23:38:06 +0000
+Message-ID: <20120312233806.13888.25985.stgit@warthog.procyon.org.uk>
 References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,780 +10,1056 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
 To: paul.gortmaker@windriver.com, hpa@zytor.com
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>, linux-am33-list@redhat.com
+Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>, linux-m32r@ml.linux-m32r.org
 List-Id: linux-arch.vger.kernel.org
 
-Disintegrate asm/system.h for MN10300.
+Disintegrate asm/system.h for M32R.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
-cc: linux-am33-list@redhat.com
+cc: linux-m32r@ml.linux-m32r.org
 ---
 
- arch/mn10300/include/asm/atomic.h       |  109 +----------------------------
- arch/mn10300/include/asm/barrier.h      |   37 ++++++++++
- arch/mn10300/include/asm/cmpxchg.h      |  115 +++++++++++++++++++++++++++++++
- arch/mn10300/include/asm/dma.h          |    1 
- arch/mn10300/include/asm/exec.h         |   16 ++++
- arch/mn10300/include/asm/switch_to.h    |   49 +++++++++++++
- arch/mn10300/include/asm/system.h       |  107 +----------------------------
- arch/mn10300/kernel/entry.S             |    1 
- arch/mn10300/kernel/fpu.c               |    1 
- arch/mn10300/kernel/gdb-io-serial.c     |    1 
- arch/mn10300/kernel/gdb-io-ttysm.c      |    1 
- arch/mn10300/kernel/gdb-stub.c          |    1 
- arch/mn10300/kernel/mn10300-serial.c    |    1 
- arch/mn10300/kernel/mn10300-watchdog.c  |    1 
- arch/mn10300/kernel/process.c           |    1 
- arch/mn10300/kernel/ptrace.c            |    1 
- arch/mn10300/kernel/setup.c             |    1 
- arch/mn10300/kernel/smp-low.S           |    2 -
- arch/mn10300/kernel/smp.c               |    1 
- arch/mn10300/kernel/traps.c             |    1 
- arch/mn10300/lib/bitops.c               |    1 
- arch/mn10300/mm/fault.c                 |    1 
- arch/mn10300/mm/init.c                  |    1 
- arch/mn10300/mm/misalignment.c          |    1 
- arch/mn10300/mm/pgtable.c               |    1 
- arch/mn10300/mm/tlb-smp.c               |    1 
- arch/mn10300/proc-mn2ws0050/proc-init.c |    1 
- 27 files changed, 226 insertions(+), 229 deletions(-)
- create mode 100644 arch/mn10300/include/asm/barrier.h
- create mode 100644 arch/mn10300/include/asm/cmpxchg.h
- create mode 100644 arch/mn10300/include/asm/exec.h
- create mode 100644 arch/mn10300/include/asm/switch_to.h
+ arch/m32r/include/asm/atomic.h       |    3 
+ arch/m32r/include/asm/barrier.h      |   94 +++++++++
+ arch/m32r/include/asm/bitops.h       |    3 
+ arch/m32r/include/asm/cmpxchg.h      |  221 ++++++++++++++++++++
+ arch/m32r/include/asm/dcache_clear.h |   29 +++
+ arch/m32r/include/asm/exec.h         |   14 +
+ arch/m32r/include/asm/local.h        |    1 
+ arch/m32r/include/asm/spinlock.h     |    1 
+ arch/m32r/include/asm/switch_to.h    |   51 +++++
+ arch/m32r/include/asm/system.h       |  373 +---------------------------------
+ arch/m32r/kernel/ptrace.c            |    1 
+ arch/m32r/kernel/traps.c             |    1 
+ arch/m32r/mm/fault-nommu.c           |    1 
+ arch/m32r/mm/fault.c                 |    1 
+ arch/m32r/platforms/m32104ut/setup.c |    1 
+ arch/m32r/platforms/m32700ut/setup.c |    1 
+ arch/m32r/platforms/mappi/setup.c    |    1 
+ arch/m32r/platforms/mappi2/setup.c   |    1 
+ arch/m32r/platforms/mappi3/setup.c   |    1 
+ arch/m32r/platforms/oaks32r/setup.c  |    1 
+ arch/m32r/platforms/opsput/setup.c   |    1 
+ arch/m32r/platforms/usrv/setup.c     |    1 
+ 22 files changed, 420 insertions(+), 382 deletions(-)
+ create mode 100644 arch/m32r/include/asm/barrier.h
+ create mode 100644 arch/m32r/include/asm/cmpxchg.h
+ create mode 100644 arch/m32r/include/asm/dcache_clear.h
+ create mode 100644 arch/m32r/include/asm/exec.h
+ create mode 100644 arch/m32r/include/asm/switch_to.h
 
-diff --git a/arch/mn10300/include/asm/atomic.h b/arch/mn10300/include/asm/atomic.h
-index b9a8f84..975e184 100644
---- a/arch/mn10300/include/asm/atomic.h
-+++ b/arch/mn10300/include/asm/atomic.h
-@@ -12,112 +12,7 @@
- #define _ASM_ATOMIC_H
+diff --git a/arch/m32r/include/asm/atomic.h b/arch/m32r/include/asm/atomic.h
+index 1e7f29f..0d81697 100644
+--- a/arch/m32r/include/asm/atomic.h
++++ b/arch/m32r/include/asm/atomic.h
+@@ -11,7 +11,8 @@
  
- #include <asm/irqflags.h>
--
--#ifndef __ASSEMBLY__
--
--#ifdef CONFIG_SMP
--#ifdef CONFIG_MN10300_HAS_ATOMIC_OPS_UNIT
--static inline
--unsigned long __xchg(volatile unsigned long *m, unsigned long val)
--{
--	unsigned long status;
--	unsigned long oldval;
--
--	asm volatile(
--		"1:	mov	%4,(_AAR,%3)	\n"
--		"	mov	(_ADR,%3),%1	\n"
--		"	mov	%5,(_ADR,%3)	\n"
--		"	mov	(_ADR,%3),%0	\n"	/* flush */
--		"	mov	(_ASR,%3),%0	\n"
--		"	or	%0,%0		\n"
--		"	bne	1b		\n"
--		: "=&r"(status), "=&r"(oldval), "=m"(*m)
--		: "a"(ATOMIC_OPS_BASE_ADDR), "r"(m), "r"(val)
--		: "memory", "cc");
--
--	return oldval;
--}
--
--static inline unsigned long __cmpxchg(volatile unsigned long *m,
--				      unsigned long old, unsigned long new)
--{
--	unsigned long status;
--	unsigned long oldval;
--
--	asm volatile(
--		"1:	mov	%4,(_AAR,%3)	\n"
--		"	mov	(_ADR,%3),%1	\n"
--		"	cmp	%5,%1		\n"
--		"	bne	2f		\n"
--		"	mov	%6,(_ADR,%3)	\n"
--		"2:	mov	(_ADR,%3),%0	\n"	/* flush */
--		"	mov	(_ASR,%3),%0	\n"
--		"	or	%0,%0		\n"
--		"	bne	1b		\n"
--		: "=&r"(status), "=&r"(oldval), "=m"(*m)
--		: "a"(ATOMIC_OPS_BASE_ADDR), "r"(m),
--		  "r"(old), "r"(new)
--		: "memory", "cc");
--
--	return oldval;
--}
--#else  /* CONFIG_MN10300_HAS_ATOMIC_OPS_UNIT */
--#error "No SMP atomic operation support!"
--#endif /* CONFIG_MN10300_HAS_ATOMIC_OPS_UNIT */
--
--#else  /* CONFIG_SMP */
--
--/*
-- * Emulate xchg for non-SMP MN10300
-- */
--struct __xchg_dummy { unsigned long a[100]; };
--#define __xg(x) ((struct __xchg_dummy *)(x))
--
--static inline
--unsigned long __xchg(volatile unsigned long *m, unsigned long val)
--{
--	unsigned long oldval;
--	unsigned long flags;
--
--	flags = arch_local_cli_save();
--	oldval = *m;
--	*m = val;
--	arch_local_irq_restore(flags);
--	return oldval;
--}
--
--/*
-- * Emulate cmpxchg for non-SMP MN10300
-- */
--static inline unsigned long __cmpxchg(volatile unsigned long *m,
--				      unsigned long old, unsigned long new)
--{
--	unsigned long oldval;
--	unsigned long flags;
--
--	flags = arch_local_cli_save();
--	oldval = *m;
--	if (oldval == old)
--		*m = new;
--	arch_local_irq_restore(flags);
--	return oldval;
--}
--
--#endif /* CONFIG_SMP */
--
--#define xchg(ptr, v)						\
--	((__typeof__(*(ptr))) __xchg((unsigned long *)(ptr),	\
--				     (unsigned long)(v)))
--
--#define cmpxchg(ptr, o, n)					\
--	((__typeof__(*(ptr))) __cmpxchg((unsigned long *)(ptr), \
--					(unsigned long)(o),	\
--					(unsigned long)(n)))
--
--#define atomic_xchg(ptr, v)		(xchg(&(ptr)->counter, (v)))
--#define atomic_cmpxchg(v, old, new)	(cmpxchg(&((v)->counter), (old), (new)))
--
--#endif /* !__ASSEMBLY__ */
+ #include <linux/types.h>
+ #include <asm/assembler.h>
+-#include <asm/system.h>
 +#include <asm/cmpxchg.h>
++#include <asm/dcache_clear.h>
  
- #ifndef CONFIG_SMP
- #include <asm-generic/atomic.h>
-@@ -269,6 +164,8 @@ static inline void atomic_dec(atomic_t *v)
- 	c;							\
- })
- 
-+#define atomic_xchg(ptr, v)		(xchg(&(ptr)->counter, (v)))
-+#define atomic_cmpxchg(v, old, new)	(cmpxchg(&((v)->counter), (old), (new)))
- 
- /**
-  * atomic_clear_mask - Atomically clear bits in memory
-diff --git a/arch/mn10300/include/asm/barrier.h b/arch/mn10300/include/asm/barrier.h
+ /*
+  * Atomic operations that C can't guarantee us.  Useful for
+diff --git a/arch/m32r/include/asm/barrier.h b/arch/m32r/include/asm/barrier.h
 new file mode 100644
-index 0000000..2bd97a5
+index 0000000..6976621
 --- /dev/null
-+++ b/arch/mn10300/include/asm/barrier.h
-@@ -0,0 +1,37 @@
-+/* MN10300 memory barrier definitions
++++ b/arch/m32r/include/asm/barrier.h
+@@ -0,0 +1,94 @@
++/*
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
 + *
-+ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public Licence
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the Licence, or (at your option) any later version.
++ * Copyright (C) 2001  Hiroyuki Kondo, Hirokazu Takata, and Hitoshi Yamamoto
++ * Copyright (C) 2004, 2006  Hirokazu Takata <takata at linux-m32r.org>
 + */
-+#ifndef _ASM_BARRIER_H
-+#define _ASM_BARRIER_H
++#ifndef _ASM_M32R_BARRIER_H
++#define _ASM_M32R_BARRIER_H
 +
-+#define nop()	asm volatile ("nop")
++#define nop()  __asm__ __volatile__ ("nop" : : )
 +
-+#define mb()	asm volatile ("": : :"memory")
-+#define rmb()	mb()
-+#define wmb()	asm volatile ("": : :"memory")
++/*
++ * Memory barrier.
++ *
++ * mb() prevents loads and stores being reordered across this point.
++ * rmb() prevents loads being reordered across this point.
++ * wmb() prevents stores being reordered across this point.
++ */
++#define mb()   barrier()
++#define rmb()  mb()
++#define wmb()  mb()
++
++/**
++ * read_barrier_depends - Flush all pending reads that subsequents reads
++ * depend on.
++ *
++ * No data-dependent reads from memory-like regions are ever reordered
++ * over this barrier.  All reads preceding this primitive are guaranteed
++ * to access memory (but not necessarily other CPUs' caches) before any
++ * reads following this primitive that depend on the data return by
++ * any of the preceding reads.  This primitive is much lighter weight than
++ * rmb() on most CPUs, and is never heavier weight than is
++ * rmb().
++ *
++ * These ordering constraints are respected by both the local CPU
++ * and the compiler.
++ *
++ * Ordering is not guaranteed by anything other than these primitives,
++ * not even by data dependencies.  See the documentation for
++ * memory_barrier() for examples and URLs to more information.
++ *
++ * For example, the following code would force ordering (the initial
++ * value of "a" is zero, "b" is one, and "p" is "&a"):
++ *
++ * <programlisting>
++ *      CPU 0                           CPU 1
++ *
++ *      b = 2;
++ *      memory_barrier();
++ *      p = &b;                         q = p;
++ *                                      read_barrier_depends();
++ *                                      d = *q;
++ * </programlisting>
++ *
++ *
++ * because the read of "*q" depends on the read of "p" and these
++ * two reads are separated by a read_barrier_depends().  However,
++ * the following code, with the same initial values for "a" and "b":
++ *
++ * <programlisting>
++ *      CPU 0                           CPU 1
++ *
++ *      a = 2;
++ *      memory_barrier();
++ *      b = 3;                          y = b;
++ *                                      read_barrier_depends();
++ *                                      x = a;
++ * </programlisting>
++ *
++ * does not enforce ordering, since there is no data dependency between
++ * the read of "a" and the read of "b".  Therefore, on some CPUs, such
++ * as Alpha, "y" could be set to 3 and "x" to 0.  Use rmb()
++ * in cases like this where there are no data dependencies.
++ **/
++
++#define read_barrier_depends()	do { } while (0)
 +
 +#ifdef CONFIG_SMP
 +#define smp_mb()	mb()
 +#define smp_rmb()	rmb()
 +#define smp_wmb()	wmb()
-+#define set_mb(var, value)  do { xchg(&var, value); } while (0)
-+#else  /* CONFIG_SMP */
++#define smp_read_barrier_depends()	read_barrier_depends()
++#define set_mb(var, value) do { (void) xchg(&var, value); } while (0)
++#else
 +#define smp_mb()	barrier()
 +#define smp_rmb()	barrier()
 +#define smp_wmb()	barrier()
-+#define set_mb(var, value)  do { var = value;  mb(); } while (0)
-+#endif /* CONFIG_SMP */
++#define smp_read_barrier_depends()	do { } while (0)
++#define set_mb(var, value) do { var = value; barrier(); } while (0)
++#endif
 +
-+#define set_wmb(var, value) do { var = value; wmb(); } while (0)
-+
-+#define read_barrier_depends()		do {} while (0)
-+#define smp_read_barrier_depends()	do {} while (0)
-+
-+#endif /* _ASM_BARRIER_H */
-diff --git a/arch/mn10300/include/asm/cmpxchg.h b/arch/mn10300/include/asm/cmpxchg.h
-new file mode 100644
-index 0000000..97a4aaf
---- /dev/null
-+++ b/arch/mn10300/include/asm/cmpxchg.h
-@@ -0,0 +1,115 @@
-+/* MN10300 Atomic xchg/cmpxchg operations
-+ *
-+ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public Licence
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the Licence, or (at your option) any later version.
-+ */
-+#ifndef _ASM_CMPXCHG_H
-+#define _ASM_CMPXCHG_H
-+
-+#include <asm/irqflags.h>
-+
-+#ifdef CONFIG_SMP
-+#ifdef CONFIG_MN10300_HAS_ATOMIC_OPS_UNIT
-+static inline
-+unsigned long __xchg(volatile unsigned long *m, unsigned long val)
-+{
-+	unsigned long status;
-+	unsigned long oldval;
-+
-+	asm volatile(
-+		"1:	mov	%4,(_AAR,%3)	\n"
-+		"	mov	(_ADR,%3),%1	\n"
-+		"	mov	%5,(_ADR,%3)	\n"
-+		"	mov	(_ADR,%3),%0	\n"	/* flush */
-+		"	mov	(_ASR,%3),%0	\n"
-+		"	or	%0,%0		\n"
-+		"	bne	1b		\n"
-+		: "=&r"(status), "=&r"(oldval), "=m"(*m)
-+		: "a"(ATOMIC_OPS_BASE_ADDR), "r"(m), "r"(val)
-+		: "memory", "cc");
-+
-+	return oldval;
-+}
-+
-+static inline unsigned long __cmpxchg(volatile unsigned long *m,
-+				      unsigned long old, unsigned long new)
-+{
-+	unsigned long status;
-+	unsigned long oldval;
-+
-+	asm volatile(
-+		"1:	mov	%4,(_AAR,%3)	\n"
-+		"	mov	(_ADR,%3),%1	\n"
-+		"	cmp	%5,%1		\n"
-+		"	bne	2f		\n"
-+		"	mov	%6,(_ADR,%3)	\n"
-+		"2:	mov	(_ADR,%3),%0	\n"	/* flush */
-+		"	mov	(_ASR,%3),%0	\n"
-+		"	or	%0,%0		\n"
-+		"	bne	1b		\n"
-+		: "=&r"(status), "=&r"(oldval), "=m"(*m)
-+		: "a"(ATOMIC_OPS_BASE_ADDR), "r"(m),
-+		  "r"(old), "r"(new)
-+		: "memory", "cc");
-+
-+	return oldval;
-+}
-+#else  /* CONFIG_MN10300_HAS_ATOMIC_OPS_UNIT */
-+#error "No SMP atomic operation support!"
-+#endif /* CONFIG_MN10300_HAS_ATOMIC_OPS_UNIT */
-+
-+#else  /* CONFIG_SMP */
-+
-+/*
-+ * Emulate xchg for non-SMP MN10300
-+ */
-+struct __xchg_dummy { unsigned long a[100]; };
-+#define __xg(x) ((struct __xchg_dummy *)(x))
-+
-+static inline
-+unsigned long __xchg(volatile unsigned long *m, unsigned long val)
-+{
-+	unsigned long oldval;
-+	unsigned long flags;
-+
-+	flags = arch_local_cli_save();
-+	oldval = *m;
-+	*m = val;
-+	arch_local_irq_restore(flags);
-+	return oldval;
-+}
-+
-+/*
-+ * Emulate cmpxchg for non-SMP MN10300
-+ */
-+static inline unsigned long __cmpxchg(volatile unsigned long *m,
-+				      unsigned long old, unsigned long new)
-+{
-+	unsigned long oldval;
-+	unsigned long flags;
-+
-+	flags = arch_local_cli_save();
-+	oldval = *m;
-+	if (oldval == old)
-+		*m = new;
-+	arch_local_irq_restore(flags);
-+	return oldval;
-+}
-+
-+#endif /* CONFIG_SMP */
-+
-+#define xchg(ptr, v)						\
-+	((__typeof__(*(ptr))) __xchg((unsigned long *)(ptr),	\
-+				     (unsigned long)(v)))
-+
-+#define cmpxchg(ptr, o, n)					\
-+	((__typeof__(*(ptr))) __cmpxchg((unsigned long *)(ptr), \
-+					(unsigned long)(o),	\
-+					(unsigned long)(n)))
-+
-+#endif /* _ASM_CMPXCHG_H */
-diff --git a/arch/mn10300/include/asm/dma.h b/arch/mn10300/include/asm/dma.h
-index 098df2e..10b77d4 100644
---- a/arch/mn10300/include/asm/dma.h
-+++ b/arch/mn10300/include/asm/dma.h
-@@ -11,7 +11,6 @@
- #ifndef _ASM_DMA_H
- #define _ASM_DMA_H
++#endif /* _ASM_M32R_BARRIER_H */
+diff --git a/arch/m32r/include/asm/bitops.h b/arch/m32r/include/asm/bitops.h
+index 6300f22..d3dea9a 100644
+--- a/arch/m32r/include/asm/bitops.h
++++ b/arch/m32r/include/asm/bitops.h
+@@ -16,9 +16,10 @@
+ #endif
  
+ #include <linux/compiler.h>
++#include <linux/irqflags.h>
+ #include <asm/assembler.h>
 -#include <asm/system.h>
- #include <linux/spinlock.h>
- #include <asm/io.h>
- #include <linux/delay.h>
-diff --git a/arch/mn10300/include/asm/exec.h b/arch/mn10300/include/asm/exec.h
+ #include <asm/byteorder.h>
++#include <asm/dcache_clear.h>
+ #include <asm/types.h>
+ 
+ /*
+diff --git a/arch/m32r/include/asm/cmpxchg.h b/arch/m32r/include/asm/cmpxchg.h
 new file mode 100644
-index 0000000..c74e367
+index 0000000..de651db
 --- /dev/null
-+++ b/arch/mn10300/include/asm/exec.h
-@@ -0,0 +1,16 @@
-+/* MN10300 process execution definitions
-+ *
-+ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public Licence
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the Licence, or (at your option) any later version.
++++ b/arch/m32r/include/asm/cmpxchg.h
+@@ -0,0 +1,221 @@
++#ifndef _ASM_M32R_CMPXCHG_H
++#define _ASM_M32R_CMPXCHG_H
++
++/*
++ *  M32R version:
++ *    Copyright (C) 2001, 2002  Hitoshi Yamamoto
++ *    Copyright (C) 2004  Hirokazu Takata <takata at linux-m32r.org>
 + */
-+#ifndef _ASM_EXEC_H
-+#define _ASM_EXEC_H
++
++#include <linux/irqflags.h>
++#include <asm/assembler.h>
++#include <asm/dcache_clear.h>
++
++extern void  __xchg_called_with_bad_pointer(void);
++
++static __always_inline unsigned long
++__xchg(unsigned long x, volatile void *ptr, int size)
++{
++	unsigned long flags;
++	unsigned long tmp = 0;
++
++	local_irq_save(flags);
++
++	switch (size) {
++#ifndef CONFIG_SMP
++	case 1:
++		__asm__ __volatile__ (
++			"ldb	%0, @%2 \n\t"
++			"stb	%1, @%2 \n\t"
++			: "=&r" (tmp) : "r" (x), "r" (ptr) : "memory");
++		break;
++	case 2:
++		__asm__ __volatile__ (
++			"ldh	%0, @%2 \n\t"
++			"sth	%1, @%2 \n\t"
++			: "=&r" (tmp) : "r" (x), "r" (ptr) : "memory");
++		break;
++	case 4:
++		__asm__ __volatile__ (
++			"ld	%0, @%2 \n\t"
++			"st	%1, @%2 \n\t"
++			: "=&r" (tmp) : "r" (x), "r" (ptr) : "memory");
++		break;
++#else  /* CONFIG_SMP */
++	case 4:
++		__asm__ __volatile__ (
++			DCACHE_CLEAR("%0", "r4", "%2")
++			"lock	%0, @%2;	\n\t"
++			"unlock	%1, @%2;	\n\t"
++			: "=&r" (tmp) : "r" (x), "r" (ptr)
++			: "memory"
++#ifdef CONFIG_CHIP_M32700_TS1
++			, "r4"
++#endif	/* CONFIG_CHIP_M32700_TS1 */
++		);
++		break;
++#endif  /* CONFIG_SMP */
++	default:
++		__xchg_called_with_bad_pointer();
++	}
++
++	local_irq_restore(flags);
++
++	return (tmp);
++}
++
++#define xchg(ptr, x)							\
++	((__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
++
++static __always_inline unsigned long
++__xchg_local(unsigned long x, volatile void *ptr, int size)
++{
++	unsigned long flags;
++	unsigned long tmp = 0;
++
++	local_irq_save(flags);
++
++	switch (size) {
++	case 1:
++		__asm__ __volatile__ (
++			"ldb	%0, @%2 \n\t"
++			"stb	%1, @%2 \n\t"
++			: "=&r" (tmp) : "r" (x), "r" (ptr) : "memory");
++		break;
++	case 2:
++		__asm__ __volatile__ (
++			"ldh	%0, @%2 \n\t"
++			"sth	%1, @%2 \n\t"
++			: "=&r" (tmp) : "r" (x), "r" (ptr) : "memory");
++		break;
++	case 4:
++		__asm__ __volatile__ (
++			"ld	%0, @%2 \n\t"
++			"st	%1, @%2 \n\t"
++			: "=&r" (tmp) : "r" (x), "r" (ptr) : "memory");
++		break;
++	default:
++		__xchg_called_with_bad_pointer();
++	}
++
++	local_irq_restore(flags);
++
++	return (tmp);
++}
++
++#define xchg_local(ptr, x)						\
++	((__typeof__(*(ptr)))__xchg_local((unsigned long)(x), (ptr),	\
++			sizeof(*(ptr))))
++
++#define __HAVE_ARCH_CMPXCHG	1
++
++static inline unsigned long
++__cmpxchg_u32(volatile unsigned int *p, unsigned int old, unsigned int new)
++{
++	unsigned long flags;
++	unsigned int retval;
++
++	local_irq_save(flags);
++	__asm__ __volatile__ (
++			DCACHE_CLEAR("%0", "r4", "%1")
++			M32R_LOCK" %0, @%1;	\n"
++		"	bne	%0, %2, 1f;	\n"
++			M32R_UNLOCK" %3, @%1;	\n"
++		"	bra	2f;		\n"
++                "       .fillinsn		\n"
++		"1:"
++			M32R_UNLOCK" %0, @%1;	\n"
++                "       .fillinsn		\n"
++		"2:"
++			: "=&r" (retval)
++			: "r" (p), "r" (old), "r" (new)
++			: "cbit", "memory"
++#ifdef CONFIG_CHIP_M32700_TS1
++			, "r4"
++#endif  /* CONFIG_CHIP_M32700_TS1 */
++		);
++	local_irq_restore(flags);
++
++	return retval;
++}
++
++static inline unsigned long
++__cmpxchg_local_u32(volatile unsigned int *p, unsigned int old,
++			unsigned int new)
++{
++	unsigned long flags;
++	unsigned int retval;
++
++	local_irq_save(flags);
++	__asm__ __volatile__ (
++			DCACHE_CLEAR("%0", "r4", "%1")
++			"ld %0, @%1;		\n"
++		"	bne	%0, %2, 1f;	\n"
++			"st %3, @%1;		\n"
++		"	bra	2f;		\n"
++		"       .fillinsn		\n"
++		"1:"
++			"st %0, @%1;		\n"
++		"       .fillinsn		\n"
++		"2:"
++			: "=&r" (retval)
++			: "r" (p), "r" (old), "r" (new)
++			: "cbit", "memory"
++#ifdef CONFIG_CHIP_M32700_TS1
++			, "r4"
++#endif  /* CONFIG_CHIP_M32700_TS1 */
++		);
++	local_irq_restore(flags);
++
++	return retval;
++}
++
++/* This function doesn't exist, so you'll get a linker error
++   if something tries to do an invalid cmpxchg().  */
++extern void __cmpxchg_called_with_bad_pointer(void);
++
++static inline unsigned long
++__cmpxchg(volatile void *ptr, unsigned long old, unsigned long new, int size)
++{
++	switch (size) {
++	case 4:
++		return __cmpxchg_u32(ptr, old, new);
++#if 0	/* we don't have __cmpxchg_u64 */
++	case 8:
++		return __cmpxchg_u64(ptr, old, new);
++#endif /* 0 */
++	}
++	__cmpxchg_called_with_bad_pointer();
++	return old;
++}
++
++#define cmpxchg(ptr, o, n)						 \
++	((__typeof__(*(ptr))) __cmpxchg((ptr), (unsigned long)(o),	 \
++			(unsigned long)(n), sizeof(*(ptr))))
++
++#include <asm-generic/cmpxchg-local.h>
++
++static inline unsigned long __cmpxchg_local(volatile void *ptr,
++				      unsigned long old,
++				      unsigned long new, int size)
++{
++	switch (size) {
++	case 4:
++		return __cmpxchg_local_u32(ptr, old, new);
++	default:
++		return __cmpxchg_local_generic(ptr, old, new, size);
++	}
++
++	return old;
++}
++
++/*
++ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
++ * them available.
++ */
++#define cmpxchg_local(ptr, o, n)				  	    \
++	((__typeof__(*(ptr)))__cmpxchg_local((ptr), (unsigned long)(o),	    \
++			(unsigned long)(n), sizeof(*(ptr))))
++#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
++
++#endif /* _ASM_M32R_CMPXCHG_H */
+diff --git a/arch/m32r/include/asm/dcache_clear.h b/arch/m32r/include/asm/dcache_clear.h
+new file mode 100644
+index 0000000..a0ae06c
+--- /dev/null
++++ b/arch/m32r/include/asm/dcache_clear.h
+@@ -0,0 +1,29 @@
++/*
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2001  Hiroyuki Kondo, Hirokazu Takata, and Hitoshi Yamamoto
++ * Copyright (C) 2004, 2006  Hirokazu Takata <takata at linux-m32r.org>
++ */
++#ifndef _ASM_M32R_DCACHE_CLEAR_H
++#define _ASM_M32R_DCACHE_CLEAR_H
++
++#ifdef CONFIG_CHIP_M32700_TS1
++#define DCACHE_CLEAR(reg0, reg1, addr)				\
++	"seth	"reg1", #high(dcache_dummy);		\n\t"	\
++	"or3	"reg1", "reg1", #low(dcache_dummy);	\n\t"	\
++	"lock	"reg0", @"reg1";			\n\t"	\
++	"add3	"reg0", "addr", #0x1000;		\n\t"	\
++	"ld	"reg0", @"reg0";			\n\t"	\
++	"add3	"reg0", "addr", #0x2000;		\n\t"	\
++	"ld	"reg0", @"reg0";			\n\t"	\
++	"unlock	"reg0", @"reg1";			\n\t"
++	/* FIXME: This workaround code cannot handle kernel modules
++	 * correctly under SMP environment.
++	 */
++#else	/* CONFIG_CHIP_M32700_TS1 */
++#define DCACHE_CLEAR(reg0, reg1, addr)
++#endif	/* CONFIG_CHIP_M32700_TS1 */
++
++#endif /* _ASM_M32R_DCACHE_CLEAR_H */
+diff --git a/arch/m32r/include/asm/exec.h b/arch/m32r/include/asm/exec.h
+new file mode 100644
+index 0000000..c805dbd
+--- /dev/null
++++ b/arch/m32r/include/asm/exec.h
+@@ -0,0 +1,14 @@
++/*
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ *
++ * Copyright (C) 2001  Hiroyuki Kondo, Hirokazu Takata, and Hitoshi Yamamoto
++ * Copyright (C) 2004, 2006  Hirokazu Takata <takata at linux-m32r.org>
++ */
++#ifndef _ASM_M32R_EXEC_H
++#define _ASM_M32R_EXEC_H
 +
 +#define arch_align_stack(x) (x)
 +
-+#endif /* _ASM_EXEC_H */
-diff --git a/arch/mn10300/include/asm/switch_to.h b/arch/mn10300/include/asm/switch_to.h
++#endif /* _ASM_M32R_EXEC_H */
+diff --git a/arch/m32r/include/asm/local.h b/arch/m32r/include/asm/local.h
+index 734bca8..4045db3 100644
+--- a/arch/m32r/include/asm/local.h
++++ b/arch/m32r/include/asm/local.h
+@@ -12,7 +12,6 @@
+ 
+ #include <linux/percpu.h>
+ #include <asm/assembler.h>
+-#include <asm/system.h>
+ #include <asm/local.h>
+ 
+ /*
+diff --git a/arch/m32r/include/asm/spinlock.h b/arch/m32r/include/asm/spinlock.h
+index b0ea2f2..fa13694 100644
+--- a/arch/m32r/include/asm/spinlock.h
++++ b/arch/m32r/include/asm/spinlock.h
+@@ -11,6 +11,7 @@
+ 
+ #include <linux/compiler.h>
+ #include <linux/atomic.h>
++#include <asm/dcache_clear.h>
+ #include <asm/page.h>
+ 
+ /*
+diff --git a/arch/m32r/include/asm/switch_to.h b/arch/m32r/include/asm/switch_to.h
 new file mode 100644
-index 0000000..393d311
+index 0000000..4b262f7
 --- /dev/null
-+++ b/arch/mn10300/include/asm/switch_to.h
-@@ -0,0 +1,49 @@
-+/* MN10300 task switching definitions
++++ b/arch/m32r/include/asm/switch_to.h
+@@ -0,0 +1,51 @@
++/*
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
 + *
-+ * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public Licence
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the Licence, or (at your option) any later version.
++ * Copyright (C) 2001  Hiroyuki Kondo, Hirokazu Takata, and Hitoshi Yamamoto
++ * Copyright (C) 2004, 2006  Hirokazu Takata <takata at linux-m32r.org>
 + */
-+#ifndef _ASM_SWITCH_TO_H
-+#define _ASM_SWITCH_TO_H
++#ifndef _ASM_M32R_SWITCH_TO_H
++#define _ASM_M32R_SWITCH_TO_H
 +
-+#include <asm/barrier.h>
++/*
++ * switch_to(prev, next) should switch from task `prev' to `next'
++ * `prev' will never be the same as `next'.
++ *
++ * `next' and `prev' should be struct task_struct, but it isn't always defined
++ */
 +
-+struct task_struct;
-+struct thread_struct;
-+
-+#if !defined(CONFIG_LAZY_SAVE_FPU)
-+struct fpu_state_struct;
-+extern asmlinkage void fpu_save(struct fpu_state_struct *);
-+#define switch_fpu(prev, next)						\
-+	do {								\
-+		if ((prev)->thread.fpu_flags & THREAD_HAS_FPU) {	\
-+			(prev)->thread.fpu_flags &= ~THREAD_HAS_FPU;	\
-+			(prev)->thread.uregs->epsw &= ~EPSW_FE;		\
-+			fpu_save(&(prev)->thread.fpu_state);		\
-+		}							\
-+	} while (0)
++#if defined(CONFIG_FRAME_POINTER) || \
++	!defined(CONFIG_SCHED_OMIT_FRAME_POINTER)
++#define M32R_PUSH_FP "	push fp\n"
++#define M32R_POP_FP  "	pop  fp\n"
 +#else
-+#define switch_fpu(prev, next) do {} while (0)
++#define M32R_PUSH_FP ""
++#define M32R_POP_FP  ""
 +#endif
 +
-+/* context switching is now performed out-of-line in switch_to.S */
-+extern asmlinkage
-+struct task_struct *__switch_to(struct thread_struct *prev,
-+				struct thread_struct *next,
-+				struct task_struct *prev_task);
++#define switch_to(prev, next, last)  do { \
++	__asm__ __volatile__ ( \
++		"	seth	lr, #high(1f)				\n" \
++		"	or3	lr, lr, #low(1f)			\n" \
++		"	st	lr, @%4  ; store old LR			\n" \
++		"	ld	lr, @%5  ; load new LR			\n" \
++			M32R_PUSH_FP \
++		"	st	sp, @%2  ; store old SP			\n" \
++		"	ld	sp, @%3  ; load new SP			\n" \
++		"	push	%1  ; store `prev' on new stack		\n" \
++		"	jmp	lr					\n" \
++		"	.fillinsn					\n" \
++		"1:							\n" \
++		"	pop	%0  ; restore `__last' from new stack	\n" \
++			M32R_POP_FP \
++		: "=r" (last) \
++		: "0" (prev), \
++		  "r" (&(prev->thread.sp)), "r" (&(next->thread.sp)), \
++		  "r" (&(prev->thread.lr)), "r" (&(next->thread.lr)) \
++		: "memory", "lr" \
++	); \
++} while(0)
 +
-+#define switch_to(prev, next, last)					\
-+do {									\
-+	switch_fpu(prev, next);						\
-+	current->thread.wchan = (u_long) __builtin_return_address(0);	\
-+	(last) = __switch_to(&(prev)->thread, &(next)->thread, (prev));	\
-+	mb();								\
-+	current->thread.wchan = 0;					\
-+} while (0)
-+
-+#endif /* _ASM_SWITCH_TO_H */
-diff --git a/arch/mn10300/include/asm/system.h b/arch/mn10300/include/asm/system.h
-index 94b4c5e..a7f4057 100644
---- a/arch/mn10300/include/asm/system.h
-+++ b/arch/mn10300/include/asm/system.h
-@@ -1,102 +1,5 @@
--/* MN10300 System definitions
-- *
-- * Copyright (C) 2007 Red Hat, Inc. All Rights Reserved.
-- * Written by David Howells (dhowells@redhat.com)
-- *
-- * This program is free software; you can redistribute it and/or
-- * modify it under the terms of the GNU General Public Licence
-- * as published by the Free Software Foundation; either version
-- * 2 of the Licence, or (at your option) any later version.
-- */
--#ifndef _ASM_SYSTEM_H
--#define _ASM_SYSTEM_H
--
--#include <asm/cpu-regs.h>
--#include <asm/intctl-regs.h>
--
--#ifdef __KERNEL__
--#ifndef __ASSEMBLY__
--
--#include <linux/kernel.h>
--#include <linux/irqflags.h>
--#include <linux/atomic.h>
--
--#if !defined(CONFIG_LAZY_SAVE_FPU)
--struct fpu_state_struct;
--extern asmlinkage void fpu_save(struct fpu_state_struct *);
--#define switch_fpu(prev, next)						\
--	do {								\
--		if ((prev)->thread.fpu_flags & THREAD_HAS_FPU) {	\
--			(prev)->thread.fpu_flags &= ~THREAD_HAS_FPU;	\
--			(prev)->thread.uregs->epsw &= ~EPSW_FE;		\
--			fpu_save(&(prev)->thread.fpu_state);		\
--		}							\
--	} while (0)
--#else
--#define switch_fpu(prev, next) do {} while (0)
--#endif
--
--struct task_struct;
--struct thread_struct;
--
--extern asmlinkage
--struct task_struct *__switch_to(struct thread_struct *prev,
--				struct thread_struct *next,
--				struct task_struct *prev_task);
--
--/* context switching is now performed out-of-line in switch_to.S */
--#define switch_to(prev, next, last)					\
--do {									\
--	switch_fpu(prev, next);						\
--	current->thread.wchan = (u_long) __builtin_return_address(0);	\
--	(last) = __switch_to(&(prev)->thread, &(next)->thread, (prev));	\
--	mb();								\
--	current->thread.wchan = 0;					\
--} while (0)
--
--#define arch_align_stack(x) (x)
--
--#define nop() asm volatile ("nop")
++#endif /* _ASM_M32R_SWITCH_TO_H */
+diff --git a/arch/m32r/include/asm/system.h b/arch/m32r/include/asm/system.h
+index 13c4679..a55c384 100644
+--- a/arch/m32r/include/asm/system.h
++++ b/arch/m32r/include/asm/system.h
+@@ -1,367 +1,6 @@
+-#ifndef _ASM_M32R_SYSTEM_H
+-#define _ASM_M32R_SYSTEM_H
 -
 -/*
-- * Force strict CPU ordering.
-- * And yes, this is required on UP too when we're talking
-- * to devices.
+- * This file is subject to the terms and conditions of the GNU General Public
+- * License.  See the file "COPYING" in the main directory of this archive
+- * for more details.
 - *
-- * For now, "wmb()" doesn't actually do anything, as all
-- * Intel CPU's follow what Intel calls a *Processor Order*,
-- * in which all writes are seen in the program order even
-- * outside the CPU.
-- *
-- * I expect future Intel CPU's to have a weaker ordering,
-- * but I'd also expect them to finally get their act together
-- * and add some real memory barriers if so.
-- *
-- * Some non intel clones support out of order store. wmb() ceases to be a
-- * nop for these.
+- * Copyright (C) 2001  Hiroyuki Kondo, Hirokazu Takata, and Hitoshi Yamamoto
+- * Copyright (C) 2004, 2006  Hirokazu Takata <takata at linux-m32r.org>
 - */
 -
--#define mb()	asm volatile ("": : :"memory")
--#define rmb()	mb()
--#define wmb()	asm volatile ("": : :"memory")
+-#include <linux/compiler.h>
+-#include <linux/irqflags.h>
+-#include <asm/assembler.h>
+-
+-#ifdef __KERNEL__
+-
+-/*
+- * switch_to(prev, next) should switch from task `prev' to `next'
+- * `prev' will never be the same as `next'.
+- *
+- * `next' and `prev' should be struct task_struct, but it isn't always defined
+- */
+-
+-#if defined(CONFIG_FRAME_POINTER) || \
+-	!defined(CONFIG_SCHED_OMIT_FRAME_POINTER)
+-#define M32R_PUSH_FP "	push fp\n"
+-#define M32R_POP_FP  "	pop  fp\n"
+-#else
+-#define M32R_PUSH_FP ""
+-#define M32R_POP_FP  ""
+-#endif
+-
+-#define switch_to(prev, next, last)  do { \
+-	__asm__ __volatile__ ( \
+-		"	seth	lr, #high(1f)				\n" \
+-		"	or3	lr, lr, #low(1f)			\n" \
+-		"	st	lr, @%4  ; store old LR			\n" \
+-		"	ld	lr, @%5  ; load new LR			\n" \
+-			M32R_PUSH_FP \
+-		"	st	sp, @%2  ; store old SP			\n" \
+-		"	ld	sp, @%3  ; load new SP			\n" \
+-		"	push	%1  ; store `prev' on new stack		\n" \
+-		"	jmp	lr					\n" \
+-		"	.fillinsn					\n" \
+-		"1:							\n" \
+-		"	pop	%0  ; restore `__last' from new stack	\n" \
+-			M32R_POP_FP \
+-		: "=r" (last) \
+-		: "0" (prev), \
+-		  "r" (&(prev->thread.sp)), "r" (&(next->thread.sp)), \
+-		  "r" (&(prev->thread.lr)), "r" (&(next->thread.lr)) \
+-		: "memory", "lr" \
+-	); \
+-} while(0)
+-
+-#define nop()	__asm__ __volatile__ ("nop" : : )
+-
+-#define xchg(ptr, x)							\
+-	((__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
+-#define xchg_local(ptr, x)						\
+-	((__typeof__(*(ptr)))__xchg_local((unsigned long)(x), (ptr),	\
+-			sizeof(*(ptr))))
+-
+-extern void  __xchg_called_with_bad_pointer(void);
+-
+-#ifdef CONFIG_CHIP_M32700_TS1
+-#define DCACHE_CLEAR(reg0, reg1, addr)				\
+-	"seth	"reg1", #high(dcache_dummy);		\n\t"	\
+-	"or3	"reg1", "reg1", #low(dcache_dummy);	\n\t"	\
+-	"lock	"reg0", @"reg1";			\n\t"	\
+-	"add3	"reg0", "addr", #0x1000;		\n\t"	\
+-	"ld	"reg0", @"reg0";			\n\t"	\
+-	"add3	"reg0", "addr", #0x2000;		\n\t"	\
+-	"ld	"reg0", @"reg0";			\n\t"	\
+-	"unlock	"reg0", @"reg1";			\n\t"
+-	/* FIXME: This workaround code cannot handle kernel modules
+-	 * correctly under SMP environment.
+-	 */
+-#else	/* CONFIG_CHIP_M32700_TS1 */
+-#define DCACHE_CLEAR(reg0, reg1, addr)
+-#endif	/* CONFIG_CHIP_M32700_TS1 */
+-
+-static __always_inline unsigned long
+-__xchg(unsigned long x, volatile void *ptr, int size)
+-{
+-	unsigned long flags;
+-	unsigned long tmp = 0;
+-
+-	local_irq_save(flags);
+-
+-	switch (size) {
+-#ifndef CONFIG_SMP
+-	case 1:
+-		__asm__ __volatile__ (
+-			"ldb	%0, @%2 \n\t"
+-			"stb	%1, @%2 \n\t"
+-			: "=&r" (tmp) : "r" (x), "r" (ptr) : "memory");
+-		break;
+-	case 2:
+-		__asm__ __volatile__ (
+-			"ldh	%0, @%2 \n\t"
+-			"sth	%1, @%2 \n\t"
+-			: "=&r" (tmp) : "r" (x), "r" (ptr) : "memory");
+-		break;
+-	case 4:
+-		__asm__ __volatile__ (
+-			"ld	%0, @%2 \n\t"
+-			"st	%1, @%2 \n\t"
+-			: "=&r" (tmp) : "r" (x), "r" (ptr) : "memory");
+-		break;
+-#else  /* CONFIG_SMP */
+-	case 4:
+-		__asm__ __volatile__ (
+-			DCACHE_CLEAR("%0", "r4", "%2")
+-			"lock	%0, @%2;	\n\t"
+-			"unlock	%1, @%2;	\n\t"
+-			: "=&r" (tmp) : "r" (x), "r" (ptr)
+-			: "memory"
+-#ifdef CONFIG_CHIP_M32700_TS1
+-			, "r4"
+-#endif	/* CONFIG_CHIP_M32700_TS1 */
+-		);
+-		break;
+-#endif  /* CONFIG_SMP */
+-	default:
+-		__xchg_called_with_bad_pointer();
+-	}
+-
+-	local_irq_restore(flags);
+-
+-	return (tmp);
+-}
+-
+-static __always_inline unsigned long
+-__xchg_local(unsigned long x, volatile void *ptr, int size)
+-{
+-	unsigned long flags;
+-	unsigned long tmp = 0;
+-
+-	local_irq_save(flags);
+-
+-	switch (size) {
+-	case 1:
+-		__asm__ __volatile__ (
+-			"ldb	%0, @%2 \n\t"
+-			"stb	%1, @%2 \n\t"
+-			: "=&r" (tmp) : "r" (x), "r" (ptr) : "memory");
+-		break;
+-	case 2:
+-		__asm__ __volatile__ (
+-			"ldh	%0, @%2 \n\t"
+-			"sth	%1, @%2 \n\t"
+-			: "=&r" (tmp) : "r" (x), "r" (ptr) : "memory");
+-		break;
+-	case 4:
+-		__asm__ __volatile__ (
+-			"ld	%0, @%2 \n\t"
+-			"st	%1, @%2 \n\t"
+-			: "=&r" (tmp) : "r" (x), "r" (ptr) : "memory");
+-		break;
+-	default:
+-		__xchg_called_with_bad_pointer();
+-	}
+-
+-	local_irq_restore(flags);
+-
+-	return (tmp);
+-}
+-
+-#define __HAVE_ARCH_CMPXCHG	1
+-
+-static inline unsigned long
+-__cmpxchg_u32(volatile unsigned int *p, unsigned int old, unsigned int new)
+-{
+-	unsigned long flags;
+-	unsigned int retval;
+-
+-	local_irq_save(flags);
+-	__asm__ __volatile__ (
+-			DCACHE_CLEAR("%0", "r4", "%1")
+-			M32R_LOCK" %0, @%1;	\n"
+-		"	bne	%0, %2, 1f;	\n"
+-			M32R_UNLOCK" %3, @%1;	\n"
+-		"	bra	2f;		\n"
+-                "       .fillinsn		\n"
+-		"1:"
+-			M32R_UNLOCK" %0, @%1;	\n"
+-                "       .fillinsn		\n"
+-		"2:"
+-			: "=&r" (retval)
+-			: "r" (p), "r" (old), "r" (new)
+-			: "cbit", "memory"
+-#ifdef CONFIG_CHIP_M32700_TS1
+-			, "r4"
+-#endif  /* CONFIG_CHIP_M32700_TS1 */
+-		);
+-	local_irq_restore(flags);
+-
+-	return retval;
+-}
+-
+-static inline unsigned long
+-__cmpxchg_local_u32(volatile unsigned int *p, unsigned int old,
+-			unsigned int new)
+-{
+-	unsigned long flags;
+-	unsigned int retval;
+-
+-	local_irq_save(flags);
+-	__asm__ __volatile__ (
+-			DCACHE_CLEAR("%0", "r4", "%1")
+-			"ld %0, @%1;		\n"
+-		"	bne	%0, %2, 1f;	\n"
+-			"st %3, @%1;		\n"
+-		"	bra	2f;		\n"
+-		"       .fillinsn		\n"
+-		"1:"
+-			"st %0, @%1;		\n"
+-		"       .fillinsn		\n"
+-		"2:"
+-			: "=&r" (retval)
+-			: "r" (p), "r" (old), "r" (new)
+-			: "cbit", "memory"
+-#ifdef CONFIG_CHIP_M32700_TS1
+-			, "r4"
+-#endif  /* CONFIG_CHIP_M32700_TS1 */
+-		);
+-	local_irq_restore(flags);
+-
+-	return retval;
+-}
+-
+-/* This function doesn't exist, so you'll get a linker error
+-   if something tries to do an invalid cmpxchg().  */
+-extern void __cmpxchg_called_with_bad_pointer(void);
+-
+-static inline unsigned long
+-__cmpxchg(volatile void *ptr, unsigned long old, unsigned long new, int size)
+-{
+-	switch (size) {
+-	case 4:
+-		return __cmpxchg_u32(ptr, old, new);
+-#if 0	/* we don't have __cmpxchg_u64 */
+-	case 8:
+-		return __cmpxchg_u64(ptr, old, new);
+-#endif /* 0 */
+-	}
+-	__cmpxchg_called_with_bad_pointer();
+-	return old;
+-}
+-
+-#define cmpxchg(ptr, o, n)						 \
+-	((__typeof__(*(ptr))) __cmpxchg((ptr), (unsigned long)(o),	 \
+-			(unsigned long)(n), sizeof(*(ptr))))
+-
+-#include <asm-generic/cmpxchg-local.h>
+-
+-static inline unsigned long __cmpxchg_local(volatile void *ptr,
+-				      unsigned long old,
+-				      unsigned long new, int size)
+-{
+-	switch (size) {
+-	case 4:
+-		return __cmpxchg_local_u32(ptr, old, new);
+-	default:
+-		return __cmpxchg_local_generic(ptr, old, new, size);
+-	}
+-
+-	return old;
+-}
+-
+-/*
+- * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
+- * them available.
+- */
+-#define cmpxchg_local(ptr, o, n)				  	    \
+-	((__typeof__(*(ptr)))__cmpxchg_local((ptr), (unsigned long)(o),	    \
+-			(unsigned long)(n), sizeof(*(ptr))))
+-#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+-
+-#endif  /* __KERNEL__ */
+-
+-/*
+- * Memory barrier.
+- *
+- * mb() prevents loads and stores being reordered across this point.
+- * rmb() prevents loads being reordered across this point.
+- * wmb() prevents stores being reordered across this point.
+- */
+-#define mb()   barrier()
+-#define rmb()  mb()
+-#define wmb()  mb()
+-
+-/**
+- * read_barrier_depends - Flush all pending reads that subsequents reads
+- * depend on.
+- *
+- * No data-dependent reads from memory-like regions are ever reordered
+- * over this barrier.  All reads preceding this primitive are guaranteed
+- * to access memory (but not necessarily other CPUs' caches) before any
+- * reads following this primitive that depend on the data return by
+- * any of the preceding reads.  This primitive is much lighter weight than
+- * rmb() on most CPUs, and is never heavier weight than is
+- * rmb().
+- *
+- * These ordering constraints are respected by both the local CPU
+- * and the compiler.
+- *
+- * Ordering is not guaranteed by anything other than these primitives,
+- * not even by data dependencies.  See the documentation for
+- * memory_barrier() for examples and URLs to more information.
+- *
+- * For example, the following code would force ordering (the initial
+- * value of "a" is zero, "b" is one, and "p" is "&a"):
+- *
+- * <programlisting>
+- *      CPU 0                           CPU 1
+- *
+- *      b = 2;
+- *      memory_barrier();
+- *      p = &b;                         q = p;
+- *                                      read_barrier_depends();
+- *                                      d = *q;
+- * </programlisting>
+- *
+- *
+- * because the read of "*q" depends on the read of "p" and these
+- * two reads are separated by a read_barrier_depends().  However,
+- * the following code, with the same initial values for "a" and "b":
+- *
+- * <programlisting>
+- *      CPU 0                           CPU 1
+- *
+- *      a = 2;
+- *      memory_barrier();
+- *      b = 3;                          y = b;
+- *                                      read_barrier_depends();
+- *                                      x = a;
+- * </programlisting>
+- *
+- * does not enforce ordering, since there is no data dependency between
+- * the read of "a" and the read of "b".  Therefore, on some CPUs, such
+- * as Alpha, "y" could be set to 3 and "x" to 0.  Use rmb()
+- * in cases like this where there are no data dependencies.
+- **/
+-
+-#define read_barrier_depends()	do { } while (0)
 -
 -#ifdef CONFIG_SMP
 -#define smp_mb()	mb()
 -#define smp_rmb()	rmb()
 -#define smp_wmb()	wmb()
--#define set_mb(var, value)  do { xchg(&var, value); } while (0)
--#else  /* CONFIG_SMP */
+-#define smp_read_barrier_depends()	read_barrier_depends()
+-#define set_mb(var, value) do { (void) xchg(&var, value); } while (0)
+-#else
 -#define smp_mb()	barrier()
 -#define smp_rmb()	barrier()
 -#define smp_wmb()	barrier()
--#define set_mb(var, value)  do { var = value;  mb(); } while (0)
--#endif /* CONFIG_SMP */
+-#define smp_read_barrier_depends()	do { } while (0)
+-#define set_mb(var, value) do { var = value; barrier(); } while (0)
+-#endif
 -
--#define set_wmb(var, value) do { var = value; wmb(); } while (0)
+-#define arch_align_stack(x) (x)
 -
--#define read_barrier_depends()		do {} while (0)
--#define smp_read_barrier_depends()	do {} while (0)
--
--#endif /* !__ASSEMBLY__ */
--#endif /* __KERNEL__ */
--#endif /* _ASM_SYSTEM_H */
+-#endif /* _ASM_M32R_SYSTEM_H */
 +/* FILE TO BE DELETED. DO NOT ADD STUFF HERE! */
 +#include <asm/barrier.h>
 +#include <asm/cmpxchg.h>
++#include <asm/dcache_clear.h>
 +#include <asm/exec.h>
 +#include <asm/switch_to.h>
-diff --git a/arch/mn10300/kernel/entry.S b/arch/mn10300/kernel/entry.S
-index 3e3620d..8e11f9f 100644
---- a/arch/mn10300/kernel/entry.S
-+++ b/arch/mn10300/kernel/entry.S
-@@ -15,7 +15,6 @@
- #include <linux/sys.h>
- #include <linux/linkage.h>
- #include <asm/smp.h>
--#include <asm/system.h>
- #include <asm/irqflags.h>
- #include <asm/thread_info.h>
- #include <asm/intctl-regs.h>
-diff --git a/arch/mn10300/kernel/fpu.c b/arch/mn10300/kernel/fpu.c
-index bb5fa7d..064fa19 100644
---- a/arch/mn10300/kernel/fpu.c
-+++ b/arch/mn10300/kernel/fpu.c
-@@ -12,7 +12,6 @@
- #include <asm/fpu.h>
- #include <asm/elf.h>
- #include <asm/exceptions.h>
--#include <asm/system.h>
- 
- #ifdef CONFIG_LAZY_SAVE_FPU
- struct task_struct *fpu_state_owner;
-diff --git a/arch/mn10300/kernel/gdb-io-serial.c b/arch/mn10300/kernel/gdb-io-serial.c
-index f28dc99..df51242 100644
---- a/arch/mn10300/kernel/gdb-io-serial.c
-+++ b/arch/mn10300/kernel/gdb-io-serial.c
-@@ -18,7 +18,6 @@
- #include <linux/nmi.h>
- 
- #include <asm/pgtable.h>
--#include <asm/system.h>
- #include <asm/gdb-stub.h>
- #include <asm/exceptions.h>
- #include <asm/serial-regs.h>
-diff --git a/arch/mn10300/kernel/gdb-io-ttysm.c b/arch/mn10300/kernel/gdb-io-ttysm.c
-index c859cac..caae8ca 100644
---- a/arch/mn10300/kernel/gdb-io-ttysm.c
-+++ b/arch/mn10300/kernel/gdb-io-ttysm.c
-@@ -17,7 +17,6 @@
- #include <linux/init.h>
- #include <linux/tty.h>
- #include <asm/pgtable.h>
--#include <asm/system.h>
- #include <asm/gdb-stub.h>
- #include <asm/exceptions.h>
- #include <unit/clock.h>
-diff --git a/arch/mn10300/kernel/gdb-stub.c b/arch/mn10300/kernel/gdb-stub.c
-index 522eb8a..a128c57 100644
---- a/arch/mn10300/kernel/gdb-stub.c
-+++ b/arch/mn10300/kernel/gdb-stub.c
-@@ -130,7 +130,6 @@
- #include <linux/bug.h>
- 
- #include <asm/pgtable.h>
--#include <asm/system.h>
- #include <asm/gdb-stub.h>
- #include <asm/exceptions.h>
- #include <asm/debugger.h>
-diff --git a/arch/mn10300/kernel/mn10300-serial.c b/arch/mn10300/kernel/mn10300-serial.c
-index 94901c5..339cef4 100644
---- a/arch/mn10300/kernel/mn10300-serial.c
-+++ b/arch/mn10300/kernel/mn10300-serial.c
-@@ -36,7 +36,6 @@ static const char serial_revdate[] = "2007-11-06";
- #include <linux/console.h>
- #include <linux/sysrq.h>
- 
--#include <asm/system.h>
+diff --git a/arch/m32r/kernel/ptrace.c b/arch/m32r/kernel/ptrace.c
+index 2074375..4c03361 100644
+--- a/arch/m32r/kernel/ptrace.c
++++ b/arch/m32r/kernel/ptrace.c
+@@ -29,7 +29,6 @@
  #include <asm/io.h>
- #include <asm/irq.h>
- #include <asm/bitops.h>
-diff --git a/arch/mn10300/kernel/mn10300-watchdog.c b/arch/mn10300/kernel/mn10300-watchdog.c
-index a45f0c7..db64a71 100644
---- a/arch/mn10300/kernel/mn10300-watchdog.c
-+++ b/arch/mn10300/kernel/mn10300-watchdog.c
-@@ -18,7 +18,6 @@
- #include <linux/kernel_stat.h>
- #include <linux/nmi.h>
- #include <asm/processor.h>
--#include <asm/system.h>
- #include <linux/atomic.h>
- #include <asm/intctl-regs.h>
- #include <asm/rtc-regs.h>
-diff --git a/arch/mn10300/kernel/process.c b/arch/mn10300/kernel/process.c
-index 28eec31..906cd47 100644
---- a/arch/mn10300/kernel/process.c
-+++ b/arch/mn10300/kernel/process.c
-@@ -27,7 +27,6 @@
- #include <linux/slab.h>
  #include <asm/uaccess.h>
  #include <asm/pgtable.h>
 -#include <asm/system.h>
- #include <asm/io.h>
  #include <asm/processor.h>
  #include <asm/mmu_context.h>
-diff --git a/arch/mn10300/kernel/ptrace.c b/arch/mn10300/kernel/ptrace.c
-index 5c0b07e..5bd5851 100644
---- a/arch/mn10300/kernel/ptrace.c
-+++ b/arch/mn10300/kernel/ptrace.c
-@@ -21,7 +21,6 @@
- #include <linux/tracehook.h>
- #include <asm/uaccess.h>
- #include <asm/pgtable.h>
--#include <asm/system.h>
+ 
+diff --git a/arch/m32r/kernel/traps.c b/arch/m32r/kernel/traps.c
+index ee6a919..3bcb207 100644
+--- a/arch/m32r/kernel/traps.c
++++ b/arch/m32r/kernel/traps.c
+@@ -18,7 +18,6 @@
+ #include <asm/page.h>
  #include <asm/processor.h>
- #include <asm/cacheflush.h>
- #include <asm/fpu.h>
-diff --git a/arch/mn10300/kernel/setup.c b/arch/mn10300/kernel/setup.c
-index 9e7a320..33c3bd1 100644
---- a/arch/mn10300/kernel/setup.c
-+++ b/arch/mn10300/kernel/setup.c
+ 
+-#include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/io.h>
+ #include <linux/atomic.h>
+diff --git a/arch/m32r/mm/fault-nommu.c b/arch/m32r/mm/fault-nommu.c
+index 888aab1..80f18cc 100644
+--- a/arch/m32r/mm/fault-nommu.c
++++ b/arch/m32r/mm/fault-nommu.c
+@@ -22,7 +22,6 @@
+ #include <linux/vt_kern.h>              /* For unblank_screen() */
+ 
+ #include <asm/m32r.h>
+-#include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/pgalloc.h>
+ #include <asm/pgtable.h>
+diff --git a/arch/m32r/mm/fault.c b/arch/m32r/mm/fault.c
+index 2c9aeb4..3cdfa9c 100644
+--- a/arch/m32r/mm/fault.c
++++ b/arch/m32r/mm/fault.c
 @@ -26,7 +26,6 @@
- #include <asm/processor.h>
- #include <linux/console.h>
- #include <asm/uaccess.h>
--#include <asm/system.h>
- #include <asm/setup.h>
- #include <asm/io.h>
- #include <asm/smp.h>
-diff --git a/arch/mn10300/kernel/smp-low.S b/arch/mn10300/kernel/smp-low.S
-index 72938ce..71f1b2f 100644
---- a/arch/mn10300/kernel/smp-low.S
-+++ b/arch/mn10300/kernel/smp-low.S
-@@ -13,9 +13,9 @@
- #include <linux/sys.h>
- #include <linux/linkage.h>
- #include <asm/smp.h>
--#include <asm/system.h>
- #include <asm/thread_info.h>
- #include <asm/cpu-regs.h>
-+#include <asm/intctl-regs.h>
- #include <proc/smp-regs.h>
- #include <asm/asm-offsets.h>
- #include <asm/frame.inc>
-diff --git a/arch/mn10300/kernel/smp.c b/arch/mn10300/kernel/smp.c
-index 9242e9f..910dddf 100644
---- a/arch/mn10300/kernel/smp.c
-+++ b/arch/mn10300/kernel/smp.c
-@@ -25,7 +25,6 @@
- #include <linux/profile.h>
- #include <linux/smp.h>
- #include <asm/tlbflush.h>
--#include <asm/system.h>
- #include <asm/bitops.h>
- #include <asm/processor.h>
- #include <asm/bug.h>
-diff --git a/arch/mn10300/kernel/traps.c b/arch/mn10300/kernel/traps.c
-index 9220a75..94a9c6d 100644
---- a/arch/mn10300/kernel/traps.c
-+++ b/arch/mn10300/kernel/traps.c
-@@ -27,7 +27,6 @@
- #include <linux/bug.h>
- #include <linux/irq.h>
- #include <asm/processor.h>
--#include <asm/system.h>
- #include <linux/uaccess.h>
- #include <asm/io.h>
- #include <linux/atomic.h>
-diff --git a/arch/mn10300/lib/bitops.c b/arch/mn10300/lib/bitops.c
-index a66c6cd..37309cd 100644
---- a/arch/mn10300/lib/bitops.c
-+++ b/arch/mn10300/lib/bitops.c
-@@ -10,7 +10,6 @@
-  */
  #include <linux/module.h>
- #include <asm/bitops.h>
--#include <asm/system.h>
  
- /*
-  * try flipping a bit using BSET and BCLR
-diff --git a/arch/mn10300/mm/fault.c b/arch/mn10300/mm/fault.c
-index 0945409..90f346f 100644
---- a/arch/mn10300/mm/fault.c
-+++ b/arch/mn10300/mm/fault.c
-@@ -24,7 +24,6 @@
- #include <linux/init.h>
- #include <linux/vt_kern.h>		/* For unblank_screen() */
- 
+ #include <asm/m32r.h>
 -#include <asm/system.h>
  #include <asm/uaccess.h>
- #include <asm/pgalloc.h>
  #include <asm/hardirq.h>
-diff --git a/arch/mn10300/mm/init.c b/arch/mn10300/mm/init.c
-index 1380182..e57e5bc 100644
---- a/arch/mn10300/mm/init.c
-+++ b/arch/mn10300/mm/init.c
-@@ -29,7 +29,6 @@
- #include <linux/gfp.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/m32r/platforms/m32104ut/setup.c b/arch/m32r/platforms/m32104ut/setup.c
+index 34671d3..e2dd778 100644
+--- a/arch/m32r/platforms/m32104ut/setup.c
++++ b/arch/m32r/platforms/m32104ut/setup.c
+@@ -13,7 +13,6 @@
+ #include <linux/init.h>
+ #include <linux/device.h>
  
- #include <asm/processor.h>
 -#include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/pgtable.h>
- #include <asm/pgalloc.h>
-diff --git a/arch/mn10300/mm/misalignment.c b/arch/mn10300/mm/misalignment.c
-index f9bb8cb..b9920b1 100644
---- a/arch/mn10300/mm/misalignment.c
-+++ b/arch/mn10300/mm/misalignment.c
-@@ -23,7 +23,6 @@
- #include <linux/interrupt.h>
- #include <linux/pci.h>
- #include <asm/processor.h>
--#include <asm/system.h>
- #include <asm/uaccess.h>
+ #include <asm/m32r.h>
  #include <asm/io.h>
- #include <linux/atomic.h>
-diff --git a/arch/mn10300/mm/pgtable.c b/arch/mn10300/mm/pgtable.c
-index 450f7ba..4ebf117 100644
---- a/arch/mn10300/mm/pgtable.c
-+++ b/arch/mn10300/mm/pgtable.c
-@@ -21,7 +21,6 @@
- #include <linux/spinlock.h>
- #include <linux/quicklist.h>
+ 
+diff --git a/arch/m32r/platforms/m32700ut/setup.c b/arch/m32r/platforms/m32700ut/setup.c
+index 1053e1c..9a4ba8a 100644
+--- a/arch/m32r/platforms/m32700ut/setup.c
++++ b/arch/m32r/platforms/m32700ut/setup.c
+@@ -16,7 +16,6 @@
+ #include <linux/init.h>
+ #include <linux/platform_device.h>
  
 -#include <asm/system.h>
- #include <asm/pgtable.h>
- #include <asm/pgalloc.h>
- #include <asm/tlb.h>
-diff --git a/arch/mn10300/mm/tlb-smp.c b/arch/mn10300/mm/tlb-smp.c
-index 9a77749..3e57faf 100644
---- a/arch/mn10300/mm/tlb-smp.c
-+++ b/arch/mn10300/mm/tlb-smp.c
-@@ -24,7 +24,6 @@
- #include <linux/profile.h>
- #include <linux/smp.h>
- #include <asm/tlbflush.h>
--#include <asm/system.h>
- #include <asm/bitops.h>
- #include <asm/processor.h>
- #include <asm/bug.h>
-diff --git a/arch/mn10300/proc-mn2ws0050/proc-init.c b/arch/mn10300/proc-mn2ws0050/proc-init.c
-index fe6e249..ee6d03d 100644
---- a/arch/mn10300/proc-mn2ws0050/proc-init.c
-+++ b/arch/mn10300/proc-mn2ws0050/proc-init.c
-@@ -15,7 +15,6 @@
- #include <linux/interrupt.h>
- 
- #include <asm/processor.h>
--#include <asm/system.h>
- #include <asm/uaccess.h>
+ #include <asm/m32r.h>
  #include <asm/io.h>
- #include <linux/atomic.h>
+ 
+diff --git a/arch/m32r/platforms/mappi/setup.c b/arch/m32r/platforms/mappi/setup.c
+index 35130ac..767d2f4 100644
+--- a/arch/m32r/platforms/mappi/setup.c
++++ b/arch/m32r/platforms/mappi/setup.c
+@@ -12,7 +12,6 @@
+ #include <linux/init.h>
+ #include <linux/platform_device.h>
+ 
+-#include <asm/system.h>
+ #include <asm/m32r.h>
+ #include <asm/io.h>
+ 
+diff --git a/arch/m32r/platforms/mappi2/setup.c b/arch/m32r/platforms/mappi2/setup.c
+index f3ed6b6..76d665a 100644
+--- a/arch/m32r/platforms/mappi2/setup.c
++++ b/arch/m32r/platforms/mappi2/setup.c
+@@ -12,7 +12,6 @@
+ #include <linux/init.h>
+ #include <linux/platform_device.h>
+ 
+-#include <asm/system.h>
+ #include <asm/m32r.h>
+ #include <asm/io.h>
+ 
+diff --git a/arch/m32r/platforms/mappi3/setup.c b/arch/m32r/platforms/mappi3/setup.c
+index 2408e35..a3646d4 100644
+--- a/arch/m32r/platforms/mappi3/setup.c
++++ b/arch/m32r/platforms/mappi3/setup.c
+@@ -12,7 +12,6 @@
+ #include <linux/init.h>
+ #include <linux/platform_device.h>
+ 
+-#include <asm/system.h>
+ #include <asm/m32r.h>
+ #include <asm/io.h>
+ 
+diff --git a/arch/m32r/platforms/oaks32r/setup.c b/arch/m32r/platforms/oaks32r/setup.c
+index 83b46b0..f8373c0 100644
+--- a/arch/m32r/platforms/oaks32r/setup.c
++++ b/arch/m32r/platforms/oaks32r/setup.c
+@@ -11,7 +11,6 @@
+ #include <linux/kernel.h>
+ #include <linux/init.h>
+ 
+-#include <asm/system.h>
+ #include <asm/m32r.h>
+ #include <asm/io.h>
+ 
+diff --git a/arch/m32r/platforms/opsput/setup.c b/arch/m32r/platforms/opsput/setup.c
+index 3266070..cd01704 100644
+--- a/arch/m32r/platforms/opsput/setup.c
++++ b/arch/m32r/platforms/opsput/setup.c
+@@ -17,7 +17,6 @@
+ #include <linux/init.h>
+ #include <linux/platform_device.h>
+ 
+-#include <asm/system.h>
+ #include <asm/m32r.h>
+ #include <asm/io.h>
+ 
+diff --git a/arch/m32r/platforms/usrv/setup.c b/arch/m32r/platforms/usrv/setup.c
+index 0c7a1e8..dcde0ec 100644
+--- a/arch/m32r/platforms/usrv/setup.c
++++ b/arch/m32r/platforms/usrv/setup.c
+@@ -11,7 +11,6 @@
+ #include <linux/kernel.h>
+ #include <linux/init.h>
+ 
+-#include <asm/system.h>
+ #include <asm/m32r.h>
+ #include <asm/io.h>
+ 
