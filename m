@@ -1,7 +1,7 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 08/35] Disintegrate asm/system.h for FRV [ver #2]
-Date: Mon, 12 Mar 2012 23:37:28 +0000
-Message-ID: <20120312233728.13888.42284.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 09/35] Disintegrate asm/system.h for H8300 [ver #2]
+Date: Mon, 12 Mar 2012 23:37:37 +0000
+Message-ID: <20120312233737.13888.8532.stgit@warthog.procyon.org.uk>
 References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,724 +10,516 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
 To: paul.gortmaker@windriver.com, hpa@zytor.com
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>
+Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
 List-Id: linux-arch.vger.kernel.org
 
-Disintegrate asm/system.h for FRV.
+Disintegrate asm/system.h for H8300.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
+cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
 
- arch/frv/include/asm/atomic.h    |   57 -------------
- arch/frv/include/asm/barrier.h   |   29 ++++++
- arch/frv/include/asm/bug.h       |    2 
- arch/frv/include/asm/cmpxchg.h   |  172 ++++++++++++++++++++++++++++++++++++++
- arch/frv/include/asm/exec.h      |   17 ++++
- arch/frv/include/asm/switch_to.h |   35 ++++++++
- arch/frv/include/asm/system.h    |  162 +-----------------------------------
- arch/frv/kernel/debug-stub.c     |    1 
- arch/frv/kernel/gdb-io.c         |    1 
- arch/frv/kernel/gdb-stub.c       |    1 
- arch/frv/kernel/irq-mb93091.c    |    1 
- arch/frv/kernel/irq-mb93093.c    |    1 
- arch/frv/kernel/irq-mb93493.c    |    1 
- arch/frv/kernel/irq.c            |    1 
- arch/frv/kernel/process.c        |    1 
- arch/frv/kernel/ptrace.c         |    1 
- arch/frv/kernel/traps.c          |    1 
- arch/frv/mm/fault.c              |    1 
- arch/frv/mm/init.c               |    1 
- arch/frv/mm/kmap.c               |    1 
- 20 files changed, 261 insertions(+), 226 deletions(-)
- create mode 100644 arch/frv/include/asm/barrier.h
- create mode 100644 arch/frv/include/asm/cmpxchg.h
- create mode 100644 arch/frv/include/asm/exec.h
- create mode 100644 arch/frv/include/asm/switch_to.h
+ arch/h8300/include/asm/atomic.h    |    4 -
+ arch/h8300/include/asm/barrier.h   |   27 +++++++
+ arch/h8300/include/asm/bitops.h    |    1 
+ arch/h8300/include/asm/bug.h       |    4 +
+ arch/h8300/include/asm/cmpxchg.h   |   60 +++++++++++++++
+ arch/h8300/include/asm/exec.h      |    6 +
+ arch/h8300/include/asm/processor.h |    5 +
+ arch/h8300/include/asm/switch_to.h |   50 ++++++++++++
+ arch/h8300/include/asm/system.h    |  145 +-----------------------------------
+ arch/h8300/kernel/irq.c            |    1 
+ arch/h8300/kernel/process.c        |    1 
+ arch/h8300/kernel/ptrace.c         |    1 
+ arch/h8300/kernel/traps.c          |    1 
+ arch/h8300/mm/fault.c              |    1 
+ arch/h8300/mm/init.c               |    1 
+ arch/h8300/mm/kmap.c               |    1 
+ arch/h8300/mm/memory.c             |    1 
+ 17 files changed, 158 insertions(+), 152 deletions(-)
+ create mode 100644 arch/h8300/include/asm/barrier.h
+ create mode 100644 arch/h8300/include/asm/cmpxchg.h
+ create mode 100644 arch/h8300/include/asm/exec.h
+ create mode 100644 arch/h8300/include/asm/switch_to.h
 
-diff --git a/arch/frv/include/asm/atomic.h b/arch/frv/include/asm/atomic.h
-index 0d8a7d6..b86329d 100644
---- a/arch/frv/include/asm/atomic.h
-+++ b/arch/frv/include/asm/atomic.h
-@@ -16,7 +16,7 @@
+diff --git a/arch/h8300/include/asm/atomic.h b/arch/h8300/include/asm/atomic.h
+index f5a38c1..40901e3 100644
+--- a/arch/h8300/include/asm/atomic.h
++++ b/arch/h8300/include/asm/atomic.h
+@@ -2,6 +2,7 @@
+ #define __ARCH_H8300_ATOMIC__
  
  #include <linux/types.h>
- #include <asm/spr-regs.h>
--#include <asm/system.h>
 +#include <asm/cmpxchg.h>
  
- #ifdef CONFIG_SMP
- #error not SMP safe
-@@ -181,61 +181,6 @@ static inline void atomic64_dec(atomic64_t *v)
- #define atomic64_dec_and_test(v)	(atomic64_dec_return((v)) == 0)
- #define atomic64_inc_and_test(v)	(atomic64_inc_return((v)) == 0)
+ /*
+  * Atomic operations that C can't guarantee us.  Useful for
+@@ -13,7 +14,6 @@
+ #define atomic_read(v)		(*(volatile int *)&(v)->counter)
+ #define atomic_set(v, i)	(((v)->counter) = i)
  
--/*****************************************************************************/
--/*
-- * exchange value with memory
-- */
--extern uint64_t __xchg_64(uint64_t i, volatile void *v);
+-#include <asm/system.h>
+ #include <linux/kernel.h>
+ 
+ static __inline__ int atomic_add_return(int i, atomic_t *v)
+@@ -102,8 +102,6 @@ static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
+ 	return ret;
+ }
+ 
+-#define atomic_xchg(v, new) (xchg(&((v)->counter), new))
 -
--#ifndef CONFIG_FRV_OUTOFLINE_ATOMIC_OPS
--
--#define xchg(ptr, x)								\
--({										\
--	__typeof__(ptr) __xg_ptr = (ptr);					\
--	__typeof__(*(ptr)) __xg_orig;						\
--										\
--	switch (sizeof(__xg_orig)) {						\
--	case 4:									\
--		asm volatile(							\
--			"swap%I0 %M0,%1"					\
--			: "+m"(*__xg_ptr), "=r"(__xg_orig)			\
--			: "1"(x)						\
--			: "memory"						\
--			);							\
--		break;								\
--										\
--	default:								\
--		__xg_orig = (__typeof__(__xg_orig))0;				\
--		asm volatile("break");						\
--		break;								\
--	}									\
--										\
--	__xg_orig;								\
--})
--
--#else
--
--extern uint32_t __xchg_32(uint32_t i, volatile void *v);
--
--#define xchg(ptr, x)										\
--({												\
--	__typeof__(ptr) __xg_ptr = (ptr);							\
--	__typeof__(*(ptr)) __xg_orig;								\
--												\
--	switch (sizeof(__xg_orig)) {								\
--	case 4: __xg_orig = (__typeof__(*(ptr))) __xchg_32((uint32_t) x, __xg_ptr);	break;	\
--	default:										\
--		__xg_orig = (__typeof__(__xg_orig))0;									\
--		asm volatile("break");								\
--		break;										\
--	}											\
--	__xg_orig;										\
--})
--
--#endif
--
--#define tas(ptr) (xchg((ptr), 1))
--
- #define atomic_cmpxchg(v, old, new)	(cmpxchg(&(v)->counter, old, new))
- #define atomic_xchg(v, new)		(xchg(&(v)->counter, new))
- #define atomic64_cmpxchg(v, old, new)	(__cmpxchg_64(old, new, &(v)->counter))
-diff --git a/arch/frv/include/asm/barrier.h b/arch/frv/include/asm/barrier.h
+ static inline int __atomic_add_unless(atomic_t *v, int a, int u)
+ {
+ 	int ret;
+diff --git a/arch/h8300/include/asm/barrier.h b/arch/h8300/include/asm/barrier.h
 new file mode 100644
-index 0000000..06776ad
+index 0000000..c7283c3
 --- /dev/null
-+++ b/arch/frv/include/asm/barrier.h
-@@ -0,0 +1,29 @@
-+/* FR-V CPU memory barrier definitions
-+ *
-+ * Copyright (C) 2003 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the License, or (at your option) any later version.
++++ b/arch/h8300/include/asm/barrier.h
+@@ -0,0 +1,27 @@
++#ifndef _H8300_BARRIER_H
++#define _H8300_BARRIER_H
++
++#define nop()  asm volatile ("nop"::)
++
++/*
++ * Force strict CPU ordering.
++ * Not really required on H8...
 + */
++#define mb()   asm volatile (""   : : :"memory")
++#define rmb()  asm volatile (""   : : :"memory")
++#define wmb()  asm volatile (""   : : :"memory")
++#define set_mb(var, value) do { xchg(&var, value); } while (0)
 +
-+#ifndef _ASM_BARRIER_H
-+#define _ASM_BARRIER_H
++#ifdef CONFIG_SMP
++#define smp_mb()	mb()
++#define smp_rmb()	rmb()
++#define smp_wmb()	wmb()
++#define smp_read_barrier_depends()	read_barrier_depends()
++#else
++#define smp_mb()	barrier()
++#define smp_rmb()	barrier()
++#define smp_wmb()	barrier()
++#define smp_read_barrier_depends()	do { } while(0)
++#endif
 +
-+#define nop()			asm volatile ("nop"::)
-+
-+#define mb()			asm volatile ("membar" : : :"memory")
-+#define rmb()			asm volatile ("membar" : : :"memory")
-+#define wmb()			asm volatile ("membar" : : :"memory")
-+#define read_barrier_depends()	do { } while (0)
-+
-+#define smp_mb()			barrier()
-+#define smp_rmb()			barrier()
-+#define smp_wmb()			barrier()
-+#define smp_read_barrier_depends()	do {} while(0)
-+#define set_mb(var, value) \
-+	do { var = (value); barrier(); } while (0)
-+
-+#endif /* _ASM_BARRIER_H */
-diff --git a/arch/frv/include/asm/bug.h b/arch/frv/include/asm/bug.h
-index 2e05450..dd01bcf 100644
---- a/arch/frv/include/asm/bug.h
-+++ b/arch/frv/include/asm/bug.h
-@@ -51,4 +51,6 @@ do {						\
++#endif /* _H8300_BARRIER_H */
+diff --git a/arch/h8300/include/asm/bitops.h b/arch/h8300/include/asm/bitops.h
+index e856c1b..eb34e0c 100644
+--- a/arch/h8300/include/asm/bitops.h
++++ b/arch/h8300/include/asm/bitops.h
+@@ -7,7 +7,6 @@
+  */
+ 
+ #include <linux/compiler.h>
+-#include <asm/system.h>
+ 
+ #ifdef __KERNEL__
+ 
+diff --git a/arch/h8300/include/asm/bug.h b/arch/h8300/include/asm/bug.h
+index 887c197..1e1be81 100644
+--- a/arch/h8300/include/asm/bug.h
++++ b/arch/h8300/include/asm/bug.h
+@@ -5,4 +5,8 @@
+ #define is_valid_bugaddr(addr) (1)
  
  #include <asm-generic/bug.h>
- 
-+extern void die_if_kernel(const char *, ...) __attribute__((format(printf, 1, 2)));
++
++struct pt_regs;
++extern void die(const char *str, struct pt_regs *fp, unsigned long err);
 +
  #endif
-diff --git a/arch/frv/include/asm/cmpxchg.h b/arch/frv/include/asm/cmpxchg.h
+diff --git a/arch/h8300/include/asm/cmpxchg.h b/arch/h8300/include/asm/cmpxchg.h
 new file mode 100644
-index 0000000..5b04dd0
+index 0000000..cdb203e
 --- /dev/null
-+++ b/arch/frv/include/asm/cmpxchg.h
-@@ -0,0 +1,172 @@
-+/* xchg and cmpxchg operation emulation for FR-V
-+ *
-+ * For an explanation of how atomic ops work in this arch, see:
-+ *   Documentation/frv/atomic-ops.txt
-+ *
-+ * Copyright (C) 2004 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the License, or (at your option) any later version.
-+ */
-+#ifndef _ASM_CMPXCHG_H
-+#define _ASM_CMPXCHG_H
++++ b/arch/h8300/include/asm/cmpxchg.h
+@@ -0,0 +1,60 @@
++#ifndef __ARCH_H8300_CMPXCHG__
++#define __ARCH_H8300_CMPXCHG__
 +
-+#include <linux/types.h>
++#include <linux/irqflags.h>
 +
-+/*****************************************************************************/
-+/*
-+ * exchange value with memory
-+ */
-+extern uint64_t __xchg_64(uint64_t i, volatile void *v);
++#define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
 +
-+#ifndef CONFIG_FRV_OUTOFLINE_ATOMIC_OPS
++struct __xchg_dummy { unsigned long a[100]; };
++#define __xg(x) ((volatile struct __xchg_dummy *)(x))
 +
-+#define xchg(ptr, x)								\
-+({										\
-+	__typeof__(ptr) __xg_ptr = (ptr);					\
-+	__typeof__(*(ptr)) __xg_orig;						\
-+										\
-+	switch (sizeof(__xg_orig)) {						\
-+	case 4:									\
-+		asm volatile(							\
-+			"swap%I0 %M0,%1"					\
-+			: "+m"(*__xg_ptr), "=r"(__xg_orig)			\
-+			: "1"(x)						\
-+			: "memory"						\
-+			);							\
-+		break;								\
-+										\
-+	default:								\
-+		__xg_orig = (__typeof__(__xg_orig))0;				\
-+		asm volatile("break");						\
-+		break;								\
-+	}									\
-+										\
-+	__xg_orig;								\
-+})
++static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
++{
++  unsigned long tmp, flags;
 +
-+#else
++  local_irq_save(flags);
 +
-+extern uint32_t __xchg_32(uint32_t i, volatile void *v);
-+
-+#define xchg(ptr, x)										\
-+({												\
-+	__typeof__(ptr) __xg_ptr = (ptr);							\
-+	__typeof__(*(ptr)) __xg_orig;								\
-+												\
-+	switch (sizeof(__xg_orig)) {								\
-+	case 4: __xg_orig = (__typeof__(*(ptr))) __xchg_32((uint32_t) x, __xg_ptr);	break;	\
-+	default:										\
-+		__xg_orig = (__typeof__(__xg_orig))0;									\
-+		asm volatile("break");								\
-+		break;										\
-+	}											\
-+	__xg_orig;										\
-+})
-+
-+#endif
-+
-+#define tas(ptr) (xchg((ptr), 1))
-+
-+/*****************************************************************************/
-+/*
-+ * compare and conditionally exchange value with memory
-+ * - if (*ptr == test) then orig = *ptr; *ptr = test;
-+ * - if (*ptr != test) then orig = *ptr;
-+ */
-+extern uint64_t __cmpxchg_64(uint64_t test, uint64_t new, volatile uint64_t *v);
-+
-+#ifndef CONFIG_FRV_OUTOFLINE_ATOMIC_OPS
-+
-+#define cmpxchg(ptr, test, new)							\
-+({										\
-+	__typeof__(ptr) __xg_ptr = (ptr);					\
-+	__typeof__(*(ptr)) __xg_orig, __xg_tmp;					\
-+	__typeof__(*(ptr)) __xg_test = (test);					\
-+	__typeof__(*(ptr)) __xg_new = (new);					\
-+										\
-+	switch (sizeof(__xg_orig)) {						\
-+	case 4:									\
-+		asm volatile(							\
-+			"0:						\n"	\
-+			"	orcc		gr0,gr0,gr0,icc3	\n"	\
-+			"	ckeq		icc3,cc7		\n"	\
-+			"	ld.p		%M0,%1			\n"	\
-+			"	orcr		cc7,cc7,cc3		\n"	\
-+			"	sub%I4cc	%1,%4,%2,icc0		\n"	\
-+			"	bne		icc0,#0,1f		\n"	\
-+			"	cst.p		%3,%M0		,cc3,#1	\n"	\
-+			"	corcc		gr29,gr29,gr0	,cc3,#1	\n"	\
-+			"	beq		icc3,#0,0b		\n"	\
-+			"1:						\n"	\
-+			: "+U"(*__xg_ptr), "=&r"(__xg_orig), "=&r"(__xg_tmp)	\
-+			: "r"(__xg_new), "NPr"(__xg_test)			\
-+			: "memory", "cc7", "cc3", "icc3", "icc0"		\
-+			);							\
-+		break;								\
-+										\
-+	default:								\
-+		__xg_orig = (__typeof__(__xg_orig))0;				\
-+		asm volatile("break");						\
-+		break;								\
-+	}									\
-+										\
-+	__xg_orig;								\
-+})
-+
-+#else
-+
-+extern uint32_t __cmpxchg_32(uint32_t *v, uint32_t test, uint32_t new);
-+
-+#define cmpxchg(ptr, test, new)							\
-+({										\
-+	__typeof__(ptr) __xg_ptr = (ptr);					\
-+	__typeof__(*(ptr)) __xg_orig;						\
-+	__typeof__(*(ptr)) __xg_test = (test);					\
-+	__typeof__(*(ptr)) __xg_new = (new);					\
-+										\
-+	switch (sizeof(__xg_orig)) {						\
-+	case 4: __xg_orig = (__force __typeof__(*ptr))				\
-+			__cmpxchg_32((__force uint32_t *)__xg_ptr,		\
-+					 (__force uint32_t)__xg_test,		\
-+					 (__force uint32_t)__xg_new); break;	\
-+	default:								\
-+		__xg_orig = (__typeof__(__xg_orig))0;				\
-+		asm volatile("break");						\
-+		break;								\
-+	}									\
-+										\
-+	__xg_orig;								\
-+})
-+
-+#endif
++  switch (size) {
++  case 1:
++    __asm__ __volatile__
++    ("mov.b %2,%0\n\t"
++     "mov.b %1,%2"
++    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
++    break;
++  case 2:
++    __asm__ __volatile__
++    ("mov.w %2,%0\n\t"
++     "mov.w %1,%2"
++    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
++    break;
++  case 4:
++    __asm__ __volatile__
++    ("mov.l %2,%0\n\t"
++     "mov.l %1,%2"
++    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
++    break;
++  default:
++    tmp = 0;	  
++  }
++  local_irq_restore(flags);
++  return tmp;
++}
 +
 +#include <asm-generic/cmpxchg-local.h>
-+
-+static inline unsigned long __cmpxchg_local(volatile void *ptr,
-+				      unsigned long old,
-+				      unsigned long new, int size)
-+{
-+	switch (size) {
-+	case 4:
-+		return cmpxchg((unsigned long *)ptr, old, new);
-+	default:
-+		return __cmpxchg_local_generic(ptr, old, new, size);
-+	}
-+
-+	return old;
-+}
 +
 +/*
 + * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
 + * them available.
 + */
-+#define cmpxchg_local(ptr, o, n)				  	\
-+	((__typeof__(*(ptr)))__cmpxchg_local((ptr), (unsigned long)(o),	\
++#define cmpxchg_local(ptr, o, n)				  	       \
++	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
 +			(unsigned long)(n), sizeof(*(ptr))))
 +#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
 +
-+#endif /* _ASM_CMPXCHG_H */
-diff --git a/arch/frv/include/asm/exec.h b/arch/frv/include/asm/exec.h
-new file mode 100644
-index 0000000..65c9130
---- /dev/null
-+++ b/arch/frv/include/asm/exec.h
-@@ -0,0 +1,17 @@
-+/* FR-V CPU executable handling
-+ *
-+ * Copyright (C) 2003 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the License, or (at your option) any later version.
-+ */
++#ifndef CONFIG_SMP
++#include <asm-generic/cmpxchg.h>
++#endif
 +
-+#ifndef _ASM_EXEC_H
-+#define _ASM_EXEC_H
++#define atomic_xchg(v, new) (xchg(&((v)->counter), new))
++
++#endif /* __ARCH_H8300_CMPXCHG__ */
+diff --git a/arch/h8300/include/asm/exec.h b/arch/h8300/include/asm/exec.h
+new file mode 100644
+index 0000000..c01c45c
+--- /dev/null
++++ b/arch/h8300/include/asm/exec.h
+@@ -0,0 +1,6 @@
++#ifndef _H8300_EXEC_H
++#define _H8300_EXEC_H
 +
 +#define arch_align_stack(x) (x)
 +
-+#endif /* _ASM_EXEC_H */
-diff --git a/arch/frv/include/asm/switch_to.h b/arch/frv/include/asm/switch_to.h
++#endif /* _H8300_EXEC_H */
+diff --git a/arch/h8300/include/asm/processor.h b/arch/h8300/include/asm/processor.h
+index e834b60..61fabf1 100644
+--- a/arch/h8300/include/asm/processor.h
++++ b/arch/h8300/include/asm/processor.h
+@@ -135,4 +135,9 @@ unsigned long get_wchan(struct task_struct *p);
+ 
+ #define cpu_relax()    barrier()
+ 
++#define HARD_RESET_NOW() ({		\
++        local_irq_disable();		\
++        asm("jmp @@0");			\
++})
++
+ #endif
+diff --git a/arch/h8300/include/asm/switch_to.h b/arch/h8300/include/asm/switch_to.h
 new file mode 100644
-index 0000000..2cf0f6a
+index 0000000..cdd8731
 --- /dev/null
-+++ b/arch/frv/include/asm/switch_to.h
-@@ -0,0 +1,35 @@
-+/* FR-V CPU basic task switching
-+ *
-+ * Copyright (C) 2003 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the License, or (at your option) any later version.
-+ */
-+
-+#ifndef _ASM_SWITCH_TO_H
-+#define _ASM_SWITCH_TO_H
-+
-+#include <linux/thread_info.h>
++++ b/arch/h8300/include/asm/switch_to.h
+@@ -0,0 +1,50 @@
++#ifndef _H8300_SWITCH_TO_H
++#define _H8300_SWITCH_TO_H
 +
 +/*
-+ * switch_to(prev, next) should switch from task `prev' to `next'
-+ * `prev' will never be the same as `next'.
-+ * The `mb' is to tell GCC not to cache `current' across this call.
++ * switch_to(n) should switch tasks to task ptr, first checking that
++ * ptr isn't the current task, in which case it does nothing.  This
++ * also clears the TS-flag if the task we switched to has used the
++ * math co-processor latest.
 + */
-+extern asmlinkage
-+struct task_struct *__switch_to(struct thread_struct *prev_thread,
-+				struct thread_struct *next_thread,
-+				struct task_struct *prev);
++/*
++ * switch_to() saves the extra registers, that are not saved
++ * automatically by SAVE_SWITCH_STACK in resume(), ie. d0-d5 and
++ * a0-a1. Some of these are used by schedule() and its predecessors
++ * and so we might get see unexpected behaviors when a task returns
++ * with unexpected register values.
++ *
++ * syscall stores these registers itself and none of them are used
++ * by syscall after the function in the syscall has been called.
++ *
++ * Beware that resume now expects *next to be in d1 and the offset of
++ * tss to be in a1. This saves a few instructions as we no longer have
++ * to push them onto the stack and read them back right after.
++ *
++ * 02/17/96 - Jes Sorensen (jds@kom.auc.dk)
++ *
++ * Changed 96/09/19 by Andreas Schwab
++ * pass prev in a0, next in a1, offset of tss in d1, and whether
++ * the mm structures are shared in d2 (to avoid atc flushing).
++ *
++ * H8/300 Porting 2002/09/04 Yoshinori Sato
++ */
 +
-+#define switch_to(prev, next, last)					\
-+do {									\
-+	(prev)->thread.sched_lr =					\
-+		(unsigned long) __builtin_return_address(0);		\
-+	(last) = __switch_to(&(prev)->thread, &(next)->thread, (prev));	\
-+	mb();								\
-+} while(0)
++asmlinkage void resume(void);
++#define switch_to(prev,next,last) {                         \
++  void *_last;						    \
++  __asm__ __volatile__(					    \
++  			"mov.l	%1, er0\n\t"		    \
++			"mov.l	%2, er1\n\t"		    \
++                        "mov.l  %3, er2\n\t"                \
++			"jsr @_resume\n\t"                  \
++                        "mov.l  er2,%0\n\t"                 \
++		       : "=r" (_last)			    \
++		       : "r" (&(prev->thread)),		    \
++			 "r" (&(next->thread)),		    \
++                         "g" (prev)                         \
++		       : "cc", "er0", "er1", "er2", "er3"); \
++  (last) = _last; 					    \
++}
 +
-+#endif /* _ASM_SWITCH_TO_H */
-diff --git a/arch/frv/include/asm/system.h b/arch/frv/include/asm/system.h
-index 6c10fd2..5c707a2 100644
---- a/arch/frv/include/asm/system.h
-+++ b/arch/frv/include/asm/system.h
-@@ -1,158 +1,6 @@
--/* system.h: FR-V CPU control definitions
-- *
-- * Copyright (C) 2003 Red Hat, Inc. All Rights Reserved.
-- * Written by David Howells (dhowells@redhat.com)
-- *
-- * This program is free software; you can redistribute it and/or
-- * modify it under the terms of the GNU General Public License
-- * as published by the Free Software Foundation; either version
-- * 2 of the License, or (at your option) any later version.
-- */
++#endif /* _H8300_SWITCH_TO_H */
+diff --git a/arch/h8300/include/asm/system.h b/arch/h8300/include/asm/system.h
+index 2c2382e..a7f4057 100644
+--- a/arch/h8300/include/asm/system.h
++++ b/arch/h8300/include/asm/system.h
+@@ -1,140 +1,5 @@
+-#ifndef _H8300_SYSTEM_H
+-#define _H8300_SYSTEM_H
 -
--#ifndef _ASM_SYSTEM_H
--#define _ASM_SYSTEM_H
--
--#include <linux/types.h>
 -#include <linux/linkage.h>
--#include <linux/kernel.h>
+-#include <linux/irqflags.h>
 -
--struct thread_struct;
+-struct pt_regs;
 -
 -/*
-- * switch_to(prev, next) should switch from task `prev' to `next'
-- * `prev' will never be the same as `next'.
-- * The `mb' is to tell GCC not to cache `current' across this call.
+- * switch_to(n) should switch tasks to task ptr, first checking that
+- * ptr isn't the current task, in which case it does nothing.  This
+- * also clears the TS-flag if the task we switched to has used the
+- * math co-processor latest.
 - */
--extern asmlinkage
--struct task_struct *__switch_to(struct thread_struct *prev_thread,
--				struct thread_struct *next_thread,
--				struct task_struct *prev);
+-/*
+- * switch_to() saves the extra registers, that are not saved
+- * automatically by SAVE_SWITCH_STACK in resume(), ie. d0-d5 and
+- * a0-a1. Some of these are used by schedule() and its predecessors
+- * and so we might get see unexpected behaviors when a task returns
+- * with unexpected register values.
+- *
+- * syscall stores these registers itself and none of them are used
+- * by syscall after the function in the syscall has been called.
+- *
+- * Beware that resume now expects *next to be in d1 and the offset of
+- * tss to be in a1. This saves a few instructions as we no longer have
+- * to push them onto the stack and read them back right after.
+- *
+- * 02/17/96 - Jes Sorensen (jds@kom.auc.dk)
+- *
+- * Changed 96/09/19 by Andreas Schwab
+- * pass prev in a0, next in a1, offset of tss in d1, and whether
+- * the mm structures are shared in d2 (to avoid atc flushing).
+- *
+- * H8/300 Porting 2002/09/04 Yoshinori Sato
+- */
 -
--#define switch_to(prev, next, last)					\
--do {									\
--	(prev)->thread.sched_lr =					\
--		(unsigned long) __builtin_return_address(0);		\
--	(last) = __switch_to(&(prev)->thread, &(next)->thread, (prev));	\
--	mb();								\
--} while(0)
+-asmlinkage void resume(void);
+-#define switch_to(prev,next,last) {                         \
+-  void *_last;						    \
+-  __asm__ __volatile__(					    \
+-  			"mov.l	%1, er0\n\t"		    \
+-			"mov.l	%2, er1\n\t"		    \
+-                        "mov.l  %3, er2\n\t"                \
+-			"jsr @_resume\n\t"                  \
+-                        "mov.l  er2,%0\n\t"                 \
+-		       : "=r" (_last)			    \
+-		       : "r" (&(prev->thread)),		    \
+-			 "r" (&(next->thread)),		    \
+-                         "g" (prev)                         \
+-		       : "cc", "er0", "er1", "er2", "er3"); \
+-  (last) = _last; 					    \
+-}
+-
+-#define iret() __asm__ __volatile__ ("rte": : :"memory", "sp", "cc")
 -
 -/*
 - * Force strict CPU ordering.
+- * Not really required on H8...
 - */
--#define nop()			asm volatile ("nop"::)
--#define mb()			asm volatile ("membar" : : :"memory")
--#define rmb()			asm volatile ("membar" : : :"memory")
--#define wmb()			asm volatile ("membar" : : :"memory")
--#define read_barrier_depends()	do { } while (0)
+-#define nop()  asm volatile ("nop"::)
+-#define mb()   asm volatile (""   : : :"memory")
+-#define rmb()  asm volatile (""   : : :"memory")
+-#define wmb()  asm volatile (""   : : :"memory")
+-#define set_mb(var, value) do { xchg(&var, value); } while (0)
 -
--#define smp_mb()			barrier()
--#define smp_rmb()			barrier()
--#define smp_wmb()			barrier()
--#define smp_read_barrier_depends()	do {} while(0)
--#define set_mb(var, value) \
--	do { var = (value); barrier(); } while (0)
--
--extern void die_if_kernel(const char *, ...) __attribute__((format(printf, 1, 2)));
-+/* FILE TO BE DELETED. DO NOT ADD STUFF HERE! */
-+#include <asm/barrier.h>
-+#include <asm/cmpxchg.h>
-+#include <asm/exec.h>
-+#include <asm/switch_to.h>
- extern void free_initmem(void);
--
--#define arch_align_stack(x) (x)
--
--/*****************************************************************************/
--/*
-- * compare and conditionally exchange value with memory
-- * - if (*ptr == test) then orig = *ptr; *ptr = test;
-- * - if (*ptr != test) then orig = *ptr;
-- */
--extern uint64_t __cmpxchg_64(uint64_t test, uint64_t new, volatile uint64_t *v);
--
--#ifndef CONFIG_FRV_OUTOFLINE_ATOMIC_OPS
--
--#define cmpxchg(ptr, test, new)							\
--({										\
--	__typeof__(ptr) __xg_ptr = (ptr);					\
--	__typeof__(*(ptr)) __xg_orig, __xg_tmp;					\
--	__typeof__(*(ptr)) __xg_test = (test);					\
--	__typeof__(*(ptr)) __xg_new = (new);					\
--										\
--	switch (sizeof(__xg_orig)) {						\
--	case 4:									\
--		asm volatile(							\
--			"0:						\n"	\
--			"	orcc		gr0,gr0,gr0,icc3	\n"	\
--			"	ckeq		icc3,cc7		\n"	\
--			"	ld.p		%M0,%1			\n"	\
--			"	orcr		cc7,cc7,cc3		\n"	\
--			"	sub%I4cc	%1,%4,%2,icc0		\n"	\
--			"	bne		icc0,#0,1f		\n"	\
--			"	cst.p		%3,%M0		,cc3,#1	\n"	\
--			"	corcc		gr29,gr29,gr0	,cc3,#1	\n"	\
--			"	beq		icc3,#0,0b		\n"	\
--			"1:						\n"	\
--			: "+U"(*__xg_ptr), "=&r"(__xg_orig), "=&r"(__xg_tmp)	\
--			: "r"(__xg_new), "NPr"(__xg_test)			\
--			: "memory", "cc7", "cc3", "icc3", "icc0"		\
--			);							\
--		break;								\
--										\
--	default:								\
--		__xg_orig = (__typeof__(__xg_orig))0;				\
--		asm volatile("break");						\
--		break;								\
--	}									\
--										\
--	__xg_orig;								\
--})
--
+-#ifdef CONFIG_SMP
+-#define smp_mb()	mb()
+-#define smp_rmb()	rmb()
+-#define smp_wmb()	wmb()
+-#define smp_read_barrier_depends()	read_barrier_depends()
 -#else
--
--extern uint32_t __cmpxchg_32(uint32_t *v, uint32_t test, uint32_t new);
--
--#define cmpxchg(ptr, test, new)							\
--({										\
--	__typeof__(ptr) __xg_ptr = (ptr);					\
--	__typeof__(*(ptr)) __xg_orig;						\
--	__typeof__(*(ptr)) __xg_test = (test);					\
--	__typeof__(*(ptr)) __xg_new = (new);					\
--										\
--	switch (sizeof(__xg_orig)) {						\
--	case 4: __xg_orig = (__force __typeof__(*ptr))				\
--			__cmpxchg_32((__force uint32_t *)__xg_ptr,		\
--					 (__force uint32_t)__xg_test,		\
--					 (__force uint32_t)__xg_new); break;	\
--	default:								\
--		__xg_orig = (__typeof__(__xg_orig))0;				\
--		asm volatile("break");						\
--		break;								\
--	}									\
--										\
--	__xg_orig;								\
--})
--
+-#define smp_mb()	barrier()
+-#define smp_rmb()	barrier()
+-#define smp_wmb()	barrier()
+-#define smp_read_barrier_depends()	do { } while(0)
 -#endif
 -
--#include <asm-generic/cmpxchg-local.h>
+-#define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
 -
--static inline unsigned long __cmpxchg_local(volatile void *ptr,
--				      unsigned long old,
--				      unsigned long new, int size)
+-struct __xchg_dummy { unsigned long a[100]; };
+-#define __xg(x) ((volatile struct __xchg_dummy *)(x))
+-
+-static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
 -{
--	switch (size) {
--	case 4:
--		return cmpxchg((unsigned long *)ptr, old, new);
--	default:
--		return __cmpxchg_local_generic(ptr, old, new, size);
--	}
+-  unsigned long tmp, flags;
 -
--	return old;
+-  local_irq_save(flags);
+-
+-  switch (size) {
+-  case 1:
+-    __asm__ __volatile__
+-    ("mov.b %2,%0\n\t"
+-     "mov.b %1,%2"
+-    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
+-    break;
+-  case 2:
+-    __asm__ __volatile__
+-    ("mov.w %2,%0\n\t"
+-     "mov.w %1,%2"
+-    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
+-    break;
+-  case 4:
+-    __asm__ __volatile__
+-    ("mov.l %2,%0\n\t"
+-     "mov.l %1,%2"
+-    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
+-    break;
+-  default:
+-    tmp = 0;	  
+-  }
+-  local_irq_restore(flags);
+-  return tmp;
 -}
+-
+-#define HARD_RESET_NOW() ({		\
+-        local_irq_disable();		\
+-        asm("jmp @@0");			\
+-})
+-
+-#include <asm-generic/cmpxchg-local.h>
 -
 -/*
 - * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
 - * them available.
 - */
--#define cmpxchg_local(ptr, o, n)				  	\
--	((__typeof__(*(ptr)))__cmpxchg_local((ptr), (unsigned long)(o),	\
+-#define cmpxchg_local(ptr, o, n)				  	       \
+-	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
 -			(unsigned long)(n), sizeof(*(ptr))))
 -#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
 -
--#endif /* _ASM_SYSTEM_H */
-diff --git a/arch/frv/kernel/debug-stub.c b/arch/frv/kernel/debug-stub.c
-index 2845139..a0228f7 100644
---- a/arch/frv/kernel/debug-stub.c
-+++ b/arch/frv/kernel/debug-stub.c
-@@ -17,7 +17,6 @@
- #include <linux/serial_reg.h>
- #include <linux/start_kernel.h>
+-#ifndef CONFIG_SMP
+-#include <asm-generic/cmpxchg.h>
+-#endif
+-
+-#define arch_align_stack(x) (x)
+-
+-extern void die(const char *str, struct pt_regs *fp, unsigned long err);
+-
+-#endif /* _H8300_SYSTEM_H */
++/* FILE TO BE DELETED. DO NOT ADD STUFF HERE! */
++#include <asm/barrier.h>
++#include <asm/cmpxchg.h>
++#include <asm/exec.h>
++#include <asm/switch_to.h>
+diff --git a/arch/h8300/kernel/irq.c b/arch/h8300/kernel/irq.c
+index 1f67fed..2fa8ac7 100644
+--- a/arch/h8300/kernel/irq.c
++++ b/arch/h8300/kernel/irq.c
+@@ -16,7 +16,6 @@
+ #include <linux/irq.h>
+ #include <linux/interrupt.h>
  
 -#include <asm/system.h>
- #include <asm/serial-regs.h>
- #include <asm/timer-regs.h>
- #include <asm/irc-regs.h>
-diff --git a/arch/frv/kernel/gdb-io.c b/arch/frv/kernel/gdb-io.c
-index 2ca641d..0707d35 100644
---- a/arch/frv/kernel/gdb-io.c
-+++ b/arch/frv/kernel/gdb-io.c
-@@ -19,7 +19,6 @@
- #include <linux/serial_reg.h>
- 
- #include <asm/pgtable.h>
--#include <asm/system.h>
- #include <asm/irc-regs.h>
- #include <asm/timer-regs.h>
- #include <asm/gdb-stub.h>
-diff --git a/arch/frv/kernel/gdb-stub.c b/arch/frv/kernel/gdb-stub.c
-index a6d5381..bbe78b0 100644
---- a/arch/frv/kernel/gdb-stub.c
-+++ b/arch/frv/kernel/gdb-stub.c
-@@ -126,7 +126,6 @@
- 
- #include <asm/asm-offsets.h>
- #include <asm/pgtable.h>
--#include <asm/system.h>
- #include <asm/gdb-stub.h>
- 
- #define LEDS(x) do { /* *(u32*)0xe1200004 = ~(x); mb(); */ } while(0)
-diff --git a/arch/frv/kernel/irq-mb93091.c b/arch/frv/kernel/irq-mb93091.c
-index 9afc2ea..2cc327a 100644
---- a/arch/frv/kernel/irq-mb93091.c
-+++ b/arch/frv/kernel/irq-mb93091.c
-@@ -20,7 +20,6 @@
- #include <linux/bitops.h>
- 
+ #include <asm/traps.h>
  #include <asm/io.h>
--#include <asm/system.h>
- #include <asm/delay.h>
- #include <asm/irq.h>
- #include <asm/irc-regs.h>
-diff --git a/arch/frv/kernel/irq-mb93093.c b/arch/frv/kernel/irq-mb93093.c
-index 4d4ad09..95e4eb4 100644
---- a/arch/frv/kernel/irq-mb93093.c
-+++ b/arch/frv/kernel/irq-mb93093.c
-@@ -20,7 +20,6 @@
- #include <linux/bitops.h>
+ #include <asm/setup.h>
+diff --git a/arch/h8300/kernel/process.c b/arch/h8300/kernel/process.c
+index 933bd38..c5d0ba9 100644
+--- a/arch/h8300/kernel/process.c
++++ b/arch/h8300/kernel/process.c
+@@ -38,7 +38,6 @@
+ #include <linux/slab.h>
  
- #include <asm/io.h>
--#include <asm/system.h>
- #include <asm/delay.h>
- #include <asm/irq.h>
- #include <asm/irc-regs.h>
-diff --git a/arch/frv/kernel/irq-mb93493.c b/arch/frv/kernel/irq-mb93493.c
-index 4d034c7..ba648da 100644
---- a/arch/frv/kernel/irq-mb93493.c
-+++ b/arch/frv/kernel/irq-mb93493.c
-@@ -20,7 +20,6 @@
- #include <linux/bitops.h>
- 
- #include <asm/io.h>
--#include <asm/system.h>
- #include <asm/delay.h>
- #include <asm/irq.h>
- #include <asm/irc-regs.h>
-diff --git a/arch/frv/kernel/irq.c b/arch/frv/kernel/irq.c
-index 3facbc2..2239346 100644
---- a/arch/frv/kernel/irq.c
-+++ b/arch/frv/kernel/irq.c
-@@ -28,7 +28,6 @@
- #include <linux/atomic.h>
- #include <asm/io.h>
- #include <asm/smp.h>
--#include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/pgalloc.h>
- #include <asm/delay.h>
-diff --git a/arch/frv/kernel/process.c b/arch/frv/kernel/process.c
-index 3901df1..8b6df6f 100644
---- a/arch/frv/kernel/process.c
-+++ b/arch/frv/kernel/process.c
-@@ -28,7 +28,6 @@
- 
- #include <asm/asm-offsets.h>
  #include <asm/uaccess.h>
 -#include <asm/system.h>
+ #include <asm/traps.h>
  #include <asm/setup.h>
  #include <asm/pgtable.h>
- #include <asm/tlb.h>
-diff --git a/arch/frv/kernel/ptrace.c b/arch/frv/kernel/ptrace.c
-index 9d68f7f..3987ff8 100644
---- a/arch/frv/kernel/ptrace.c
-+++ b/arch/frv/kernel/ptrace.c
-@@ -26,7 +26,6 @@
+diff --git a/arch/h8300/kernel/ptrace.c b/arch/h8300/kernel/ptrace.c
+index 497fa89..748cf65 100644
+--- a/arch/h8300/kernel/ptrace.c
++++ b/arch/h8300/kernel/ptrace.c
+@@ -27,7 +27,6 @@
  #include <asm/uaccess.h>
  #include <asm/page.h>
  #include <asm/pgtable.h>
 -#include <asm/system.h>
  #include <asm/processor.h>
- #include <asm/unistd.h>
+ #include <asm/signal.h>
  
-diff --git a/arch/frv/kernel/traps.c b/arch/frv/kernel/traps.c
-index 1d2dfe6..5cfd142 100644
---- a/arch/frv/kernel/traps.c
-+++ b/arch/frv/kernel/traps.c
-@@ -23,7 +23,6 @@
- #include <asm/asm-offsets.h>
- #include <asm/setup.h>
- #include <asm/fpu.h>
+diff --git a/arch/h8300/kernel/traps.c b/arch/h8300/kernel/traps.c
+index dfa05bd..7833aa3 100644
+--- a/arch/h8300/kernel/traps.c
++++ b/arch/h8300/kernel/traps.c
+@@ -22,7 +22,6 @@
+ #include <linux/module.h>
+ #include <linux/bug.h>
+ 
 -#include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/pgtable.h>
- #include <asm/siginfo.h>
-diff --git a/arch/frv/mm/fault.c b/arch/frv/mm/fault.c
-index a325d57..331c1e2 100644
---- a/arch/frv/mm/fault.c
-+++ b/arch/frv/mm/fault.c
-@@ -20,7 +20,6 @@
+ #include <asm/irq.h>
+ #include <asm/traps.h>
+ #include <asm/page.h>
+diff --git a/arch/h8300/mm/fault.c b/arch/h8300/mm/fault.c
+index 1d092ab..4725359 100644
+--- a/arch/h8300/mm/fault.c
++++ b/arch/h8300/mm/fault.c
+@@ -17,7 +17,6 @@
+ #include <linux/kernel.h>
  #include <linux/ptrace.h>
- #include <linux/hardirq.h>
  
 -#include <asm/system.h>
  #include <asm/pgtable.h>
- #include <asm/uaccess.h>
- #include <asm/gdb-stub.h>
-diff --git a/arch/frv/mm/init.c b/arch/frv/mm/init.c
-index fbe5f0d..a19effc 100644
---- a/arch/frv/mm/init.c
-+++ b/arch/frv/mm/init.c
-@@ -33,7 +33,6 @@
+ 
+ /*
+diff --git a/arch/h8300/mm/init.c b/arch/h8300/mm/init.c
+index 7cc3380..973369c 100644
+--- a/arch/h8300/mm/init.c
++++ b/arch/h8300/mm/init.c
+@@ -36,7 +36,6 @@
  #include <asm/segment.h>
  #include <asm/page.h>
  #include <asm/pgtable.h>
 -#include <asm/system.h>
- #include <asm/mmu_context.h>
- #include <asm/virtconvert.h>
- #include <asm/sections.h>
-diff --git a/arch/frv/mm/kmap.c b/arch/frv/mm/kmap.c
-index fb78be3..e9217e6 100644
---- a/arch/frv/mm/kmap.c
-+++ b/arch/frv/mm/kmap.c
-@@ -21,7 +21,6 @@
+ 
+ #undef DEBUG
+ 
+diff --git a/arch/h8300/mm/kmap.c b/arch/h8300/mm/kmap.c
+index 944a502..f79edcd 100644
+--- a/arch/h8300/mm/kmap.c
++++ b/arch/h8300/mm/kmap.c
+@@ -19,7 +19,6 @@
  #include <asm/page.h>
  #include <asm/pgalloc.h>
  #include <asm/io.h>
 -#include <asm/system.h>
  
  #undef DEBUG
+ 
+diff --git a/arch/h8300/mm/memory.c b/arch/h8300/mm/memory.c
+index 5552ddf..06e3646 100644
+--- a/arch/h8300/mm/memory.c
++++ b/arch/h8300/mm/memory.c
+@@ -26,7 +26,6 @@
+ #include <asm/segment.h>
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+-#include <asm/system.h>
+ #include <asm/traps.h>
+ #include <asm/io.h>
  
