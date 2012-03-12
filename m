@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:18792 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:43763 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S964858Ab2CLXjI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 12 Mar 2012 19:39:08 -0400
+	id S965028Ab2CLXk6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 12 Mar 2012 19:40:58 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 17/35] Make asm-generic/cmpxchg.h #include
- asm-generic/cmpxchg-local.h [ver #2]
-Date: Mon, 12 Mar 2012 23:38:58 +0000
-Message-ID: <20120312233858.13888.34822.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 26/35] Disintegrate asm/system.h for Score [ver #2]
+Date: Mon, 12 Mar 2012 23:40:25 +0000
+Message-ID: <20120312234025.13888.22312.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
 References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,50 +15,279 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paul.gortmaker@windriver.com, hpa@zytor.com
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20120312233858.pdlP3RLG0QRqGNaA4JYeFLVPOXjEwxzNozB31GeJe9k@z>
+Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>, Chen Liqin <liqin.chen@sunplusct.com>
+Message-ID: <20120312234025.r6yWh8T81GtH2U7g_rK8hTYMXT6qc6Imzzz2aXEr0Gg@z>
 
-Make asm-generic/cmpxchg.h #include asm-generic/cmpxchg-local.h as all arch
-files that #include the former also #include the latter.  See:
-
-	grep -rl asm-generic/cmpxchg-local[.]h arch/ | sort > b
-	grep -rl asm-generic/cmpxchg[.]h arch/ | sort > a
-	comm a b
-
-This simplifies the disintegration of asm-generic/system.h for arches that
-don't have their own.
+Disintegrate asm/system.h for Score.  Not compiled.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
-cc: Arnd Bergmann <arnd@arndb.de>
+cc: Chen Liqin <liqin.chen@sunplusct.com>
 ---
 
- include/asm-generic/cmpxchg.h |    2 ++
- include/asm-generic/system.h  |    1 -
- 2 files changed, 2 insertions(+), 1 deletions(-)
+ arch/score/include/asm/atomic.h    |    1 
+ arch/score/include/asm/barrier.h   |   16 ++++++
+ arch/score/include/asm/bitops.h    |    1 
+ arch/score/include/asm/bug.h       |   10 ++++
+ arch/score/include/asm/cmpxchg.h   |   49 ++++++++++++++++++
+ arch/score/include/asm/exec.h      |    6 ++
+ arch/score/include/asm/switch_to.h |   13 +++++
+ arch/score/include/asm/system.h    |   96 ++----------------------------------
+ 8 files changed, 101 insertions(+), 91 deletions(-)
+ create mode 100644 arch/score/include/asm/barrier.h
+ create mode 100644 arch/score/include/asm/cmpxchg.h
+ create mode 100644 arch/score/include/asm/exec.h
+ create mode 100644 arch/score/include/asm/switch_to.h
 
-diff --git a/include/asm-generic/cmpxchg.h b/include/asm-generic/cmpxchg.h
-index 213ac6e..e0449af 100644
---- a/include/asm-generic/cmpxchg.h
-+++ b/include/asm-generic/cmpxchg.h
-@@ -10,6 +10,8 @@
- #error "Cannot use generic cmpxchg on SMP"
- #endif
+diff --git a/arch/score/include/asm/atomic.h b/arch/score/include/asm/atomic.h
+index 84eb8dd..edf33db 100644
+--- a/arch/score/include/asm/atomic.h
++++ b/arch/score/include/asm/atomic.h
+@@ -1,6 +1,7 @@
+ #ifndef _ASM_SCORE_ATOMIC_H
+ #define _ASM_SCORE_ATOMIC_H
  
++#include <asm/cmpxchg.h>
+ #include <asm-generic/atomic.h>
+ 
+ #endif /* _ASM_SCORE_ATOMIC_H */
+diff --git a/arch/score/include/asm/barrier.h b/arch/score/include/asm/barrier.h
+new file mode 100644
+index 0000000..0eacb64
+--- /dev/null
++++ b/arch/score/include/asm/barrier.h
+@@ -0,0 +1,16 @@
++#ifndef _ASM_SCORE_BARRIER_H
++#define _ASM_SCORE_BARRIER_H
++
++#define mb()		barrier()
++#define rmb()		barrier()
++#define wmb()		barrier()
++#define smp_mb()	barrier()
++#define smp_rmb()	barrier()
++#define smp_wmb()	barrier()
++
++#define read_barrier_depends()		do {} while (0)
++#define smp_read_barrier_depends()	do {} while (0)
++
++#define set_mb(var, value) 		do {var = value; wmb(); } while (0)
++
++#endif /* _ASM_SCORE_BARRIER_H */
+diff --git a/arch/score/include/asm/bitops.h b/arch/score/include/asm/bitops.h
+index 2763b05..a304096 100644
+--- a/arch/score/include/asm/bitops.h
++++ b/arch/score/include/asm/bitops.h
+@@ -2,7 +2,6 @@
+ #define _ASM_SCORE_BITOPS_H
+ 
+ #include <asm/byteorder.h> /* swab32 */
+-#include <asm/system.h> /* save_flags */
+ 
+ /*
+  * clear_bit() doesn't provide any barrier for the compiler.
+diff --git a/arch/score/include/asm/bug.h b/arch/score/include/asm/bug.h
+index bb76a33..d1ddaa4 100644
+--- a/arch/score/include/asm/bug.h
++++ b/arch/score/include/asm/bug.h
+@@ -3,4 +3,14 @@
+ 
+ #include <asm-generic/bug.h>
+ 
++extern void __die(const char *, struct pt_regs *, const char *,
++	const char *, unsigned long) __attribute__((noreturn));
++extern void __die_if_kernel(const char *, struct pt_regs *, const char *,
++	const char *, unsigned long);
++
++#define die(msg, regs)							\
++	__die(msg, regs, __FILE__ ":", __func__, __LINE__)
++#define die_if_kernel(msg, regs)					\
++	__die_if_kernel(msg, regs, __FILE__ ":", __func__, __LINE__)
++
+ #endif /* _ASM_SCORE_BUG_H */
+diff --git a/arch/score/include/asm/cmpxchg.h b/arch/score/include/asm/cmpxchg.h
+new file mode 100644
+index 0000000..f384839
+--- /dev/null
++++ b/arch/score/include/asm/cmpxchg.h
+@@ -0,0 +1,49 @@
++#ifndef _ASM_SCORE_CMPXCHG_H
++#define _ASM_SCORE_CMPXCHG_H
++
++#include <linux/irqflags.h>
++
++struct __xchg_dummy { unsigned long a[100]; };
++#define __xg(x) ((struct __xchg_dummy *)(x))
++
++static inline
++unsigned long __xchg(volatile unsigned long *m, unsigned long val)
++{
++	unsigned long retval;
++	unsigned long flags;
++
++	local_irq_save(flags);
++	retval = *m;
++	*m = val;
++	local_irq_restore(flags);
++	return retval;
++}
++
++#define xchg(ptr, v)						\
++	((__typeof__(*(ptr))) __xchg((unsigned long *)(ptr),	\
++					(unsigned long)(v)))
++
++static inline unsigned long __cmpxchg(volatile unsigned long *m,
++				unsigned long old, unsigned long new)
++{
++	unsigned long retval;
++	unsigned long flags;
++
++	local_irq_save(flags);
++	retval = *m;
++	if (retval == old)
++		*m = new;
++	local_irq_restore(flags);
++	return retval;
++}
++
++#define cmpxchg(ptr, o, n)					\
++	((__typeof__(*(ptr))) __cmpxchg((unsigned long *)(ptr),	\
++					(unsigned long)(o),	\
++					(unsigned long)(n)))
++
++#define __HAVE_ARCH_CMPXCHG	1
++
 +#include <asm-generic/cmpxchg-local.h>
 +
- /*
-  * Atomic compare and exchange.
-  *
-diff --git a/include/asm-generic/system.h b/include/asm-generic/system.h
-index 215efa7..82cb53a 100644
---- a/include/asm-generic/system.h
-+++ b/include/asm-generic/system.h
-@@ -19,7 +19,6 @@
- #include <linux/types.h>
- #include <linux/irqflags.h>
- 
--#include <asm/cmpxchg-local.h>
- #include <asm/cmpxchg.h>
- 
- struct task_struct;
++#endif /* _ASM_SCORE_CMPXCHG_H */
+diff --git a/arch/score/include/asm/exec.h b/arch/score/include/asm/exec.h
+new file mode 100644
+index 0000000..f9f3cd5
+--- /dev/null
++++ b/arch/score/include/asm/exec.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_SCORE_EXEC_H
++#define _ASM_SCORE_EXEC_H
++
++extern unsigned long arch_align_stack(unsigned long sp);
++
++#endif /* _ASM_SCORE_EXEC_H */
+diff --git a/arch/score/include/asm/switch_to.h b/arch/score/include/asm/switch_to.h
+new file mode 100644
+index 0000000..031756b
+--- /dev/null
++++ b/arch/score/include/asm/switch_to.h
+@@ -0,0 +1,13 @@
++#ifndef _ASM_SCORE_SWITCH_TO_H
++#define _ASM_SCORE_SWITCH_TO_H
++
++extern void *resume(void *last, void *next, void *next_ti);
++
++#define switch_to(prev, next, last)				\
++do {								\
++	(last) = resume(prev, next, task_thread_info(next));	\
++} while (0)
++
++#define finish_arch_switch(prev)	do {} while (0)
++
++#endif /* _ASM_SCORE_SWITCH_TO_H */
+diff --git a/arch/score/include/asm/system.h b/arch/score/include/asm/system.h
+index 589d5c7..0d84f9e 100644
+--- a/arch/score/include/asm/system.h
++++ b/arch/score/include/asm/system.h
+@@ -1,90 +1,6 @@
+-#ifndef _ASM_SCORE_SYSTEM_H
+-#define _ASM_SCORE_SYSTEM_H
+-
+-#include <linux/types.h>
+-#include <linux/irqflags.h>
+-
+-struct pt_regs;
+-struct task_struct;
+-
+-extern void *resume(void *last, void *next, void *next_ti);
+-
+-#define switch_to(prev, next, last)				\
+-do {								\
+-	(last) = resume(prev, next, task_thread_info(next));	\
+-} while (0)
+-
+-#define finish_arch_switch(prev)	do {} while (0)
+-
+-typedef void (*vi_handler_t)(void);
+-extern unsigned long arch_align_stack(unsigned long sp);
+-
+-#define mb()		barrier()
+-#define rmb()		barrier()
+-#define wmb()		barrier()
+-#define smp_mb()	barrier()
+-#define smp_rmb()	barrier()
+-#define smp_wmb()	barrier()
+-
+-#define read_barrier_depends()		do {} while (0)
+-#define smp_read_barrier_depends()	do {} while (0)
+-
+-#define set_mb(var, value) 		do {var = value; wmb(); } while (0)
+-
+-#define __HAVE_ARCH_CMPXCHG	1
+-
+-#include <asm-generic/cmpxchg-local.h>
+-
+-#ifndef __ASSEMBLY__
+-
+-struct __xchg_dummy { unsigned long a[100]; };
+-#define __xg(x) ((struct __xchg_dummy *)(x))
+-
+-static inline
+-unsigned long __xchg(volatile unsigned long *m, unsigned long val)
+-{
+-	unsigned long retval;
+-	unsigned long flags;
+-
+-	local_irq_save(flags);
+-	retval = *m;
+-	*m = val;
+-	local_irq_restore(flags);
+-	return retval;
+-}
+-
+-#define xchg(ptr, v)						\
+-	((__typeof__(*(ptr))) __xchg((unsigned long *)(ptr),	\
+-					(unsigned long)(v)))
+-
+-static inline unsigned long __cmpxchg(volatile unsigned long *m,
+-				unsigned long old, unsigned long new)
+-{
+-	unsigned long retval;
+-	unsigned long flags;
+-
+-	local_irq_save(flags);
+-	retval = *m;
+-	if (retval == old)
+-		*m = new;
+-	local_irq_restore(flags);
+-	return retval;
+-}
+-
+-#define cmpxchg(ptr, o, n)					\
+-	((__typeof__(*(ptr))) __cmpxchg((unsigned long *)(ptr),	\
+-					(unsigned long)(o),	\
+-					(unsigned long)(n)))
+-
+-extern void __die(const char *, struct pt_regs *, const char *,
+-	const char *, unsigned long) __attribute__((noreturn));
+-extern void __die_if_kernel(const char *, struct pt_regs *, const char *,
+-	const char *, unsigned long);
+-
+-#define die(msg, regs)							\
+-	__die(msg, regs, __FILE__ ":", __func__, __LINE__)
+-#define die_if_kernel(msg, regs)					\
+-	__die_if_kernel(msg, regs, __FILE__ ":", __func__, __LINE__)
+-
+-#endif /* !__ASSEMBLY__ */
+-#endif /* _ASM_SCORE_SYSTEM_H */
++/* FILE TO BE DELETED. DO NOT ADD STUFF HERE! */
++#include <asm/barrier.h>
++#include <asm/cmpxchg.h>
++#include <asm/exec.h>
++#include <asm/special_insns.h>
++#include <asm/switch_to.h>
 
