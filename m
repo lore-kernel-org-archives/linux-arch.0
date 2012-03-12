@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:58505 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:5073 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S964893Ab2CLXkr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 12 Mar 2012 19:40:47 -0400
+	id S1757521Ab2CLXkY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 12 Mar 2012 19:40:24 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 27/35] Disintegrate asm/system.h for SH [ver #2]
-Date: Mon, 12 Mar 2012 23:40:35 +0000
-Message-ID: <20120312234034.13888.84230.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 24/35] Disintegrate asm/system.h for PowerPC [ver #2]
+Date: Mon, 12 Mar 2012 23:40:04 +0000
+Message-ID: <20120312234004.13888.32986.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
 References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -15,488 +15,591 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paul.gortmaker@windriver.com, hpa@zytor.com
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>, linux-sh@vger.kernel.org
-Message-ID: <20120312234035.P9v4yUxxZWcOKPzFGKcxJjNQWnceFMY295CvsFRmtYg@z>
+Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>, linuxppc-dev@lists.ozlabs.org
+Message-ID: <20120312234004.qcfBAvHVUKZNe1PAU7_SIzSXT_Be-nwZ7Ij2UiqyZTg@z>
 
-Disintegrate asm/system.h for SH.
+Disintegrate asm/system.h for PowerPC.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
-cc: linux-sh@vger.kernel.org
+cc: linuxppc-dev@lists.ozlabs.org
 ---
 
- arch/sh/boards/mach-microdev/irq.c      |    1 
- arch/sh/include/asm/atomic-irq.h        |    2 
- arch/sh/include/asm/atomic.h            |    2 
- arch/sh/include/asm/auxvec.h            |    2 
- arch/sh/include/asm/barrier.h           |   54 +++++++
- arch/sh/include/asm/bitops.h            |    1 
- arch/sh/include/asm/bl_bit.h            |   10 +
- arch/sh/include/asm/bl_bit_32.h         |   33 ++++
- arch/sh/include/asm/bl_bit_64.h         |   40 +++++
- arch/sh/include/asm/bug.h               |    5 +
- arch/sh/include/asm/cache_insns.h       |   11 +
- arch/sh/include/asm/cache_insns_32.h    |   21 +++
- arch/sh/include/asm/cache_insns_64.h    |   23 +++
- arch/sh/include/asm/cmpxchg-irq.h       |    2 
- arch/sh/include/asm/cmpxchg.h           |   70 +++++++++
- arch/sh/include/asm/exec.h              |   10 +
- arch/sh/include/asm/futex-irq.h         |    1 
- arch/sh/include/asm/io.h                |    1 
- arch/sh/include/asm/processor.h         |   15 ++
- arch/sh/include/asm/ptrace.h            |    1 
- arch/sh/include/asm/setup.h             |    1 
- arch/sh/include/asm/switch_to.h         |   19 ++
- arch/sh/include/asm/switch_to_32.h      |  134 ++++++++++++++++++
- arch/sh/include/asm/switch_to_64.h      |   35 +++++
- arch/sh/include/asm/system.h            |  191 +------------------------
- arch/sh/include/asm/system_32.h         |  236 -------------------------------
- arch/sh/include/asm/system_64.h         |   79 ----------
- arch/sh/include/asm/traps.h             |   21 +++
- arch/sh/include/asm/traps_32.h          |   68 +++++++++
- arch/sh/include/asm/traps_64.h          |   24 +++
- arch/sh/include/asm/uaccess.h           |   14 ++
- arch/sh/kernel/cpu/init.c               |    2 
- arch/sh/kernel/cpu/irq/imask.c          |    1 
- arch/sh/kernel/cpu/sh2a/opcode_helper.c |    1 
- arch/sh/kernel/cpu/sh4/fpu.c            |    1 
- arch/sh/kernel/hw_breakpoint.c          |    1 
- arch/sh/kernel/idle.c                   |    2 
- arch/sh/kernel/io_trapped.c             |    1 
- arch/sh/kernel/process_32.c             |    1 
- arch/sh/kernel/process_64.c             |    1 
- arch/sh/kernel/ptrace_32.c              |    1 
- arch/sh/kernel/ptrace_64.c              |    2 
- arch/sh/kernel/reboot.c                 |    2 
- arch/sh/kernel/signal_32.c              |    1 
- arch/sh/kernel/smp.c                    |    1 
- arch/sh/kernel/traps.c                  |    2 
- arch/sh/kernel/traps_32.c               |    3 
- arch/sh/kernel/traps_64.c               |    1 
- arch/sh/math-emu/math.c                 |    1 
- arch/sh/mm/fault_32.c                   |    2 
- arch/sh/mm/fault_64.c                   |    1 
- arch/sh/mm/flush-sh4.c                  |    1 
- arch/sh/mm/pmb.c                        |    1 
- arch/sh/mm/tlb-pteaex.c                 |    1 
- arch/sh/mm/tlb-sh3.c                    |    1 
- arch/sh/mm/tlb-sh4.c                    |    1 
- arch/sh/mm/tlbflush_64.c                |    1 
- 57 files changed, 634 insertions(+), 527 deletions(-)
- create mode 100644 arch/sh/include/asm/barrier.h
- create mode 100644 arch/sh/include/asm/bl_bit.h
- create mode 100644 arch/sh/include/asm/bl_bit_32.h
- create mode 100644 arch/sh/include/asm/bl_bit_64.h
- create mode 100644 arch/sh/include/asm/cache_insns.h
- create mode 100644 arch/sh/include/asm/cache_insns_32.h
- create mode 100644 arch/sh/include/asm/cache_insns_64.h
- create mode 100644 arch/sh/include/asm/cmpxchg.h
- create mode 100644 arch/sh/include/asm/exec.h
- create mode 100644 arch/sh/include/asm/switch_to.h
- create mode 100644 arch/sh/include/asm/switch_to_32.h
- create mode 100644 arch/sh/include/asm/switch_to_64.h
- delete mode 100644 arch/sh/include/asm/system_32.h
- delete mode 100644 arch/sh/include/asm/system_64.h
- create mode 100644 arch/sh/include/asm/traps.h
- create mode 100644 arch/sh/include/asm/traps_32.h
- create mode 100644 arch/sh/include/asm/traps_64.h
+ arch/powerpc/include/asm/atomic.h                 |    8 
+ arch/powerpc/include/asm/auxvec.h                 |    2 
+ arch/powerpc/include/asm/barrier.h                |   68 +++
+ arch/powerpc/include/asm/bug.h                    |   11 
+ arch/powerpc/include/asm/cache.h                  |   16 +
+ arch/powerpc/include/asm/cmpxchg.h                |  309 ++++++++++++
+ arch/powerpc/include/asm/debug.h                  |   56 ++
+ arch/powerpc/include/asm/dma.h                    |    1 
+ arch/powerpc/include/asm/exec.h                   |    9 
+ arch/powerpc/include/asm/hw_breakpoint.h          |    2 
+ arch/powerpc/include/asm/irq.h                    |    1 
+ arch/powerpc/include/asm/processor.h              |   30 +
+ arch/powerpc/include/asm/reg_booke.h              |    5 
+ arch/powerpc/include/asm/rtas.h                   |    2 
+ arch/powerpc/include/asm/setup.h                  |   24 +
+ arch/powerpc/include/asm/switch_to.h              |   65 ++
+ arch/powerpc/include/asm/system.h                 |  560 ---------------------
+ arch/powerpc/kernel/align.c                       |    2 
+ arch/powerpc/kernel/cputable.c                    |    1 
+ arch/powerpc/kernel/crash.c                       |    2 
+ arch/powerpc/kernel/idle.c                        |    1 
+ arch/powerpc/kernel/irq.c                         |    1 
+ arch/powerpc/kernel/kprobes.c                     |    1 
+ arch/powerpc/kernel/lparcfg.c                     |    1 
+ arch/powerpc/kernel/ppc_ksyms.c                   |    2 
+ arch/powerpc/kernel/process.c                     |    3 
+ arch/powerpc/kernel/prom.c                        |    1 
+ arch/powerpc/kernel/prom_init.c                   |    1 
+ arch/powerpc/kernel/ptrace.c                      |    2 
+ arch/powerpc/kernel/ptrace32.c                    |    2 
+ arch/powerpc/kernel/rtas.c                        |    1 
+ arch/powerpc/kernel/setup-common.c                |    1 
+ arch/powerpc/kernel/setup_32.c                    |    1 
+ arch/powerpc/kernel/setup_64.c                    |    1 
+ arch/powerpc/kernel/signal.c                      |    1 
+ arch/powerpc/kernel/signal_32.c                   |    1 
+ arch/powerpc/kernel/signal_64.c                   |    1 
+ arch/powerpc/kernel/smp.c                         |    2 
+ arch/powerpc/kernel/softemu8xx.c                  |    1 
+ arch/powerpc/kernel/swsusp.c                      |    2 
+ arch/powerpc/kernel/swsusp_64.c                   |    1 
+ arch/powerpc/kernel/sys_ppc32.c                   |    1 
+ arch/powerpc/kernel/sysfs.c                       |    1 
+ arch/powerpc/kernel/traps.c                       |    3 
+ arch/powerpc/kernel/vdso.c                        |    1 
+ arch/powerpc/kvm/book3s_hv.c                      |    1 
+ arch/powerpc/lib/alloc.c                          |    2 
+ arch/powerpc/lib/copyuser_power7_vmx.c            |    1 
+ arch/powerpc/mm/44x_mmu.c                         |    1 
+ arch/powerpc/mm/fault.c                           |    2 
+ arch/powerpc/mm/hash_utils_64.c                   |    1 
+ arch/powerpc/mm/init_32.c                         |    1 
+ arch/powerpc/mm/init_64.c                         |    1 
+ arch/powerpc/mm/numa.c                            |    2 
+ arch/powerpc/mm/pgtable_32.c                      |    1 
+ arch/powerpc/mm/pgtable_64.c                      |    1 
+ arch/powerpc/oprofile/common.c                    |    1 
+ arch/powerpc/oprofile/op_model_7450.c             |    1 
+ arch/powerpc/oprofile/op_model_cell.c             |    1 
+ arch/powerpc/oprofile/op_model_fsl_emb.c          |    1 
+ arch/powerpc/oprofile/op_model_power4.c           |    1 
+ arch/powerpc/oprofile/op_model_rs64.c             |    1 
+ arch/powerpc/platforms/82xx/pq2.c                 |    1 
+ arch/powerpc/platforms/83xx/km83xx.c              |    1 
+ arch/powerpc/platforms/83xx/mpc832x_mds.c         |    1 
+ arch/powerpc/platforms/83xx/mpc834x_itx.c         |    1 
+ arch/powerpc/platforms/83xx/mpc834x_mds.c         |    1 
+ arch/powerpc/platforms/83xx/mpc836x_mds.c         |    1 
+ arch/powerpc/platforms/83xx/sbc834x.c             |    1 
+ arch/powerpc/platforms/85xx/corenet_ds.c          |    1 
+ arch/powerpc/platforms/85xx/ksi8560.c             |    1 
+ arch/powerpc/platforms/85xx/mpc8536_ds.c          |    1 
+ arch/powerpc/platforms/85xx/mpc85xx_ads.c         |    1 
+ arch/powerpc/platforms/85xx/mpc85xx_cds.c         |    1 
+ arch/powerpc/platforms/85xx/mpc85xx_ds.c          |    1 
+ arch/powerpc/platforms/85xx/mpc85xx_mds.c         |    1 
+ arch/powerpc/platforms/85xx/mpc85xx_rdb.c         |    1 
+ arch/powerpc/platforms/85xx/p1010rdb.c            |    1 
+ arch/powerpc/platforms/85xx/p1023_rds.c           |    1 
+ arch/powerpc/platforms/85xx/p2041_rdb.c           |    1 
+ arch/powerpc/platforms/85xx/p3041_ds.c            |    1 
+ arch/powerpc/platforms/85xx/p4080_ds.c            |    1 
+ arch/powerpc/platforms/85xx/p5020_ds.c            |    1 
+ arch/powerpc/platforms/85xx/sbc8548.c             |    1 
+ arch/powerpc/platforms/85xx/sbc8560.c             |    1 
+ arch/powerpc/platforms/85xx/socrates.c            |    1 
+ arch/powerpc/platforms/85xx/stx_gp3.c             |    1 
+ arch/powerpc/platforms/85xx/tqm85xx.c             |    1 
+ arch/powerpc/platforms/85xx/xes_mpc85xx.c         |    1 
+ arch/powerpc/platforms/86xx/gef_ppc9a.c           |    1 
+ arch/powerpc/platforms/86xx/gef_sbc310.c          |    1 
+ arch/powerpc/platforms/86xx/gef_sbc610.c          |    1 
+ arch/powerpc/platforms/86xx/mpc8610_hpcd.c        |    1 
+ arch/powerpc/platforms/86xx/mpc86xx_hpcn.c        |    1 
+ arch/powerpc/platforms/86xx/pic.c                 |    1 
+ arch/powerpc/platforms/86xx/sbc8641d.c            |    1 
+ arch/powerpc/platforms/8xx/mpc86xads_setup.c      |    1 
+ arch/powerpc/platforms/8xx/mpc885ads_setup.c      |    1 
+ arch/powerpc/platforms/8xx/tqm8xx_setup.c         |    1 
+ arch/powerpc/platforms/cell/smp.c                 |    1 
+ arch/powerpc/platforms/embedded6xx/c2k.c          |    1 
+ arch/powerpc/platforms/embedded6xx/holly.c        |    1 
+ arch/powerpc/platforms/embedded6xx/mpc7448_hpc2.c |    1 
+ arch/powerpc/platforms/embedded6xx/prpmc2800.c    |    1 
+ arch/powerpc/platforms/embedded6xx/storcenter.c   |    1 
+ arch/powerpc/platforms/fsl_uli1575.c              |    1 
+ arch/powerpc/platforms/iseries/dt.c               |    1 
+ arch/powerpc/platforms/iseries/lpevents.c         |    1 
+ arch/powerpc/platforms/iseries/setup.c            |    1 
+ arch/powerpc/platforms/iseries/smp.c              |    1 
+ arch/powerpc/platforms/iseries/viopath.c          |    1 
+ arch/powerpc/platforms/maple/setup.c              |    1 
+ arch/powerpc/platforms/maple/time.c               |    1 
+ arch/powerpc/platforms/pasemi/setup.c             |    2 
+ arch/powerpc/platforms/powermac/bootx_init.c      |    1 
+ arch/powerpc/platforms/powermac/cpufreq_32.c      |    2 
+ arch/powerpc/platforms/powermac/nvram.c           |    1 
+ arch/powerpc/platforms/powermac/setup.c           |    1 
+ arch/powerpc/platforms/powermac/time.c            |    1 
+ arch/powerpc/platforms/powernv/smp.c              |    1 
+ arch/powerpc/platforms/ps3/mm.c                   |    1 
+ arch/powerpc/platforms/pseries/dtl.c              |    2 
+ arch/powerpc/platforms/pseries/hotplug-cpu.c      |    1 
+ arch/powerpc/platforms/pseries/processor_idle.c   |    1 
+ arch/powerpc/platforms/pseries/ras.c              |    1 
+ arch/powerpc/platforms/pseries/smp.c              |    1 
+ arch/powerpc/platforms/wsp/chroma.c               |    1 
+ arch/powerpc/platforms/wsp/psr2.c                 |    1 
+ arch/powerpc/sysdev/cpm_common.c                  |    1 
+ arch/powerpc/sysdev/fsl_soc.c                     |    1 
+ arch/powerpc/sysdev/msi_bitmap.c                  |    1 
+ arch/powerpc/sysdev/tsi108_dev.c                  |    1 
+ arch/powerpc/xmon/xmon.c                          |    1 
+ 133 files changed, 635 insertions(+), 667 deletions(-)
+ create mode 100644 arch/powerpc/include/asm/barrier.h
+ create mode 100644 arch/powerpc/include/asm/cmpxchg.h
+ create mode 100644 arch/powerpc/include/asm/debug.h
+ create mode 100644 arch/powerpc/include/asm/exec.h
+ create mode 100644 arch/powerpc/include/asm/switch_to.h
 
-diff --git a/arch/sh/boards/mach-microdev/irq.c b/arch/sh/boards/mach-microdev/irq.c
-index 4fb0036..9a8aff3 100644
---- a/arch/sh/boards/mach-microdev/irq.c
-+++ b/arch/sh/boards/mach-microdev/irq.c
-@@ -12,7 +12,6 @@
- #include <linux/init.h>
- #include <linux/irq.h>
- #include <linux/interrupt.h>
+diff --git a/arch/powerpc/include/asm/atomic.h b/arch/powerpc/include/asm/atomic.h
+index 02e41b5..801aaaf 100644
+--- a/arch/powerpc/include/asm/atomic.h
++++ b/arch/powerpc/include/asm/atomic.h
+@@ -5,13 +5,9 @@
+  * PowerPC atomic operations
+  */
+ 
+-#include <linux/types.h>
+-
+ #ifdef __KERNEL__
+-#include <linux/compiler.h>
+-#include <asm/synch.h>
+-#include <asm/asm-compat.h>
 -#include <asm/system.h>
- #include <asm/io.h>
- #include <mach/microdev.h>
- 
-diff --git a/arch/sh/include/asm/atomic-irq.h b/arch/sh/include/asm/atomic-irq.h
-index 467d941..9f7c566 100644
---- a/arch/sh/include/asm/atomic-irq.h
-+++ b/arch/sh/include/asm/atomic-irq.h
-@@ -1,6 +1,8 @@
- #ifndef __ASM_SH_ATOMIC_IRQ_H
- #define __ASM_SH_ATOMIC_IRQ_H
- 
-+#include <linux/irqflags.h>
-+
- /*
-  * To get proper branch prediction for the main line, we must branch
-  * forward to code at the end of this object's .text section, then
-diff --git a/arch/sh/include/asm/atomic.h b/arch/sh/include/asm/atomic.h
-index 63a27db..37f2f4a 100644
---- a/arch/sh/include/asm/atomic.h
-+++ b/arch/sh/include/asm/atomic.h
-@@ -9,7 +9,7 @@
- 
- #include <linux/compiler.h>
- #include <linux/types.h>
--#include <asm/system.h>
++#include <linux/types.h>
 +#include <asm/cmpxchg.h>
  
- #define ATOMIC_INIT(i)	( (atomic_t) { (i) } )
+ #define ATOMIC_INIT(i)		{ (i) }
  
-diff --git a/arch/sh/include/asm/auxvec.h b/arch/sh/include/asm/auxvec.h
-index 483effd..8bcc51a 100644
---- a/arch/sh/include/asm/auxvec.h
-+++ b/arch/sh/include/asm/auxvec.h
-@@ -33,4 +33,6 @@
- #define AT_L1D_CACHESHAPE	35
- #define AT_L2_CACHESHAPE	36
+diff --git a/arch/powerpc/include/asm/auxvec.h b/arch/powerpc/include/asm/auxvec.h
+index 19a099b..ce17d2c 100644
+--- a/arch/powerpc/include/asm/auxvec.h
++++ b/arch/powerpc/include/asm/auxvec.h
+@@ -16,4 +16,6 @@
+  */
+ #define AT_SYSINFO_EHDR		33
  
-+#define AT_VECTOR_SIZE_ARCH 5 /* entries in ARCH_DLINFO */
++#define AT_VECTOR_SIZE_ARCH 6 /* entries in ARCH_DLINFO */
 +
- #endif /* __ASM_SH_AUXVEC_H */
-diff --git a/arch/sh/include/asm/barrier.h b/arch/sh/include/asm/barrier.h
+ #endif
+diff --git a/arch/powerpc/include/asm/barrier.h b/arch/powerpc/include/asm/barrier.h
 new file mode 100644
-index 0000000..72c103d
+index 0000000..ae78225
 --- /dev/null
-+++ b/arch/sh/include/asm/barrier.h
-@@ -0,0 +1,54 @@
++++ b/arch/powerpc/include/asm/barrier.h
+@@ -0,0 +1,68 @@
 +/*
-+ * Copyright (C) 1999, 2000  Niibe Yutaka  &  Kaz Kojima
-+ * Copyright (C) 2002 Paul Mundt
++ * Copyright (C) 1999 Cort Dougan <cort@cs.nmt.edu>
 + */
-+#ifndef __ASM_SH_BARRIER_H
-+#define __ASM_SH_BARRIER_H
-+
-+#if defined(CONFIG_CPU_SH4A) || defined(CONFIG_CPU_SH5)
-+#include <asm/cache_insns.h>
-+#endif
++#ifndef _ASM_POWERPC_BARRIER_H
++#define _ASM_POWERPC_BARRIER_H
 +
 +/*
-+ * A brief note on ctrl_barrier(), the control register write barrier.
++ * Memory barrier.
++ * The sync instruction guarantees that all memory accesses initiated
++ * by this processor have been performed (with respect to all other
++ * mechanisms that access memory).  The eieio instruction is a barrier
++ * providing an ordering (separately) for (a) cacheable stores and (b)
++ * loads and stores to non-cacheable memory (e.g. I/O devices).
 + *
-+ * Legacy SH cores typically require a sequence of 8 nops after
-+ * modification of a control register in order for the changes to take
-+ * effect. On newer cores (like the sh4a and sh5) this is accomplished
-+ * with icbi.
++ * mb() prevents loads and stores being reordered across this point.
++ * rmb() prevents loads being reordered across this point.
++ * wmb() prevents stores being reordered across this point.
++ * read_barrier_depends() prevents data-dependent loads being reordered
++ *	across this point (nop on PPC).
 + *
-+ * Also note that on sh4a in the icbi case we can forego a synco for the
-+ * write barrier, as it's not necessary for control registers.
++ * *mb() variants without smp_ prefix must order all types of memory
++ * operations with one another. sync is the only instruction sufficient
++ * to do this.
 + *
-+ * Historically we have only done this type of barrier for the MMUCR, but
-+ * it's also necessary for the CCR, so we make it generic here instead.
++ * For the smp_ barriers, ordering is for cacheable memory operations
++ * only. We have to use the sync instruction for smp_mb(), since lwsync
++ * doesn't order loads with respect to previous stores.  Lwsync can be
++ * used for smp_rmb() and smp_wmb().
++ *
++ * However, on CPUs that don't support lwsync, lwsync actually maps to a
++ * heavy-weight sync, so smp_wmb() can be a lighter-weight eieio.
 + */
-+#if defined(CONFIG_CPU_SH4A) || defined(CONFIG_CPU_SH5)
-+#define mb()		__asm__ __volatile__ ("synco": : :"memory")
-+#define rmb()		mb()
-+#define wmb()		__asm__ __volatile__ ("synco": : :"memory")
-+#define ctrl_barrier()	__icbi(PAGE_OFFSET)
-+#define read_barrier_depends()	do { } while(0)
-+#else
-+#define mb()		__asm__ __volatile__ ("": : :"memory")
-+#define rmb()		mb()
-+#define wmb()		__asm__ __volatile__ ("": : :"memory")
-+#define ctrl_barrier()	__asm__ __volatile__ ("nop;nop;nop;nop;nop;nop;nop;nop")
-+#define read_barrier_depends()	do { } while(0)
-+#endif
++#define mb()   __asm__ __volatile__ ("sync" : : : "memory")
++#define rmb()  __asm__ __volatile__ ("sync" : : : "memory")
++#define wmb()  __asm__ __volatile__ ("sync" : : : "memory")
++#define read_barrier_depends()  do { } while(0)
++
++#define set_mb(var, value)	do { var = value; mb(); } while (0)
 +
 +#ifdef CONFIG_SMP
++
++#ifdef __SUBARCH_HAS_LWSYNC
++#    define SMPWMB      LWSYNC
++#else
++#    define SMPWMB      eieio
++#endif
++
 +#define smp_mb()	mb()
-+#define smp_rmb()	rmb()
-+#define smp_wmb()	wmb()
++#define smp_rmb()	__asm__ __volatile__ (stringify_in_c(LWSYNC) : : :"memory")
++#define smp_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
 +#define smp_read_barrier_depends()	read_barrier_depends()
 +#else
 +#define smp_mb()	barrier()
 +#define smp_rmb()	barrier()
 +#define smp_wmb()	barrier()
 +#define smp_read_barrier_depends()	do { } while(0)
-+#endif
++#endif /* CONFIG_SMP */
 +
-+#define set_mb(var, value) do { (void)xchg(&var, value); } while (0)
-+
-+#endif /* __ASM_SH_BARRIER_H */
-diff --git a/arch/sh/include/asm/bitops.h b/arch/sh/include/asm/bitops.h
-index 90fa3e4..ea8706d 100644
---- a/arch/sh/include/asm/bitops.h
-+++ b/arch/sh/include/asm/bitops.h
-@@ -7,7 +7,6 @@
- #error only <linux/bitops.h> can be included directly
- #endif
- 
--#include <asm/system.h>
- /* For __swab32 */
- #include <asm/byteorder.h>
- 
-diff --git a/arch/sh/include/asm/bl_bit.h b/arch/sh/include/asm/bl_bit.h
-new file mode 100644
-index 0000000..45e6b9f
---- /dev/null
-+++ b/arch/sh/include/asm/bl_bit.h
-@@ -0,0 +1,10 @@
-+#ifndef __ASM_SH_BL_BIT_H
-+#define __ASM_SH_BL_BIT_H
-+
-+#ifdef CONFIG_SUPERH32
-+# include "bl_bit_32.h"
-+#else
-+# include "bl_bit_64.h"
-+#endif
-+
-+#endif /* __ASM_SH_BL_BIT_H */
-diff --git a/arch/sh/include/asm/bl_bit_32.h b/arch/sh/include/asm/bl_bit_32.h
-new file mode 100644
-index 0000000..fd21eee
---- /dev/null
-+++ b/arch/sh/include/asm/bl_bit_32.h
-@@ -0,0 +1,33 @@
-+#ifndef __ASM_SH_BL_BIT_32_H
-+#define __ASM_SH_BL_BIT_32_H
-+
-+static inline void set_bl_bit(void)
-+{
-+	unsigned long __dummy0, __dummy1;
-+
-+	__asm__ __volatile__ (
-+		"stc	sr, %0\n\t"
-+		"or	%2, %0\n\t"
-+		"and	%3, %0\n\t"
-+		"ldc	%0, sr\n\t"
-+		: "=&r" (__dummy0), "=r" (__dummy1)
-+		: "r" (0x10000000), "r" (0xffffff0f)
-+		: "memory"
-+	);
-+}
-+
-+static inline void clear_bl_bit(void)
-+{
-+	unsigned long __dummy0, __dummy1;
-+
-+	__asm__ __volatile__ (
-+		"stc	sr, %0\n\t"
-+		"and	%2, %0\n\t"
-+		"ldc	%0, sr\n\t"
-+		: "=&r" (__dummy0), "=r" (__dummy1)
-+		: "1" (~0x10000000)
-+		: "memory"
-+	);
-+}
-+
-+#endif /* __ASM_SH_BL_BIT_32_H */
-diff --git a/arch/sh/include/asm/bl_bit_64.h b/arch/sh/include/asm/bl_bit_64.h
-new file mode 100644
-index 0000000..6cc8711
---- /dev/null
-+++ b/arch/sh/include/asm/bl_bit_64.h
-@@ -0,0 +1,40 @@
 +/*
-+ * Copyright (C) 2000, 2001  Paolo Alberelli
-+ * Copyright (C) 2003  Paul Mundt
-+ * Copyright (C) 2004  Richard Curnow
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * This is a barrier which prevents following instructions from being
++ * started until the value of the argument x is known.  For example, if
++ * x is a variable loaded from memory, this prevents following
++ * instructions from being executed until the load has been performed.
 + */
-+#ifndef __ASM_SH_BL_BIT_64_H
-+#define __ASM_SH_BL_BIT_64_H
++#define data_barrier(x)	\
++	asm volatile("twi 0,%0,0; isync" : : "r" (x) : "memory");
 +
-+#include <asm/processor.h>
-+
-+#define SR_BL_LL	0x0000000010000000LL
-+
-+static inline void set_bl_bit(void)
-+{
-+	unsigned long long __dummy0, __dummy1 = SR_BL_LL;
-+
-+	__asm__ __volatile__("getcon	" __SR ", %0\n\t"
-+			     "or	%0, %1, %0\n\t"
-+			     "putcon	%0, " __SR "\n\t"
-+			     : "=&r" (__dummy0)
-+			     : "r" (__dummy1));
-+
-+}
-+
-+static inline void clear_bl_bit(void)
-+{
-+	unsigned long long __dummy0, __dummy1 = ~SR_BL_LL;
-+
-+	__asm__ __volatile__("getcon	" __SR ", %0\n\t"
-+			     "and	%0, %1, %0\n\t"
-+			     "putcon	%0, " __SR "\n\t"
-+			     : "=&r" (__dummy0)
-+			     : "r" (__dummy1));
-+}
-+
-+#endif /* __ASM_SH_BL_BIT_64_H */
-diff --git a/arch/sh/include/asm/bug.h b/arch/sh/include/asm/bug.h
-index 6323f86..2b87d86 100644
---- a/arch/sh/include/asm/bug.h
-+++ b/arch/sh/include/asm/bug.h
-@@ -1,6 +1,8 @@
- #ifndef __ASM_SH_BUG_H
- #define __ASM_SH_BUG_H
- 
-+#include <linux/linkage.h>
-+
- #define TRAPA_BUG_OPCODE	0xc33e	/* trapa #0x3e */
- #define BUGFLAG_UNWINDER	(1 << 1)
- 
-@@ -107,4 +109,7 @@ do {							\
++#endif /* _ASM_POWERPC_BARRIER_H */
+diff --git a/arch/powerpc/include/asm/bug.h b/arch/powerpc/include/asm/bug.h
+index 065c590..3eb53d7 100644
+--- a/arch/powerpc/include/asm/bug.h
++++ b/arch/powerpc/include/asm/bug.h
+@@ -126,5 +126,16 @@
  
  #include <asm-generic/bug.h>
  
++#ifndef __ASSEMBLY__
++
 +struct pt_regs;
-+extern void die(const char *str, struct pt_regs *regs, long err) __attribute__ ((noreturn));
++extern int do_page_fault(struct pt_regs *, unsigned long, unsigned long);
++extern void bad_page_fault(struct pt_regs *, unsigned long, int);
++extern void _exception(int, struct pt_regs *, int, unsigned long);
++extern void die(const char *, struct pt_regs *, long);
++extern void print_backtrace(unsigned long *);
 +
- #endif /* __ASM_SH_BUG_H */
-diff --git a/arch/sh/include/asm/cache_insns.h b/arch/sh/include/asm/cache_insns.h
-new file mode 100644
-index 0000000..d25fbe5
---- /dev/null
-+++ b/arch/sh/include/asm/cache_insns.h
-@@ -0,0 +1,11 @@
-+#ifndef __ASM_SH_CACHE_INSNS_H
-+#define __ASM_SH_CACHE_INSNS_H
++#endif /* !__ASSEMBLY__ */
 +
-+
-+#ifdef CONFIG_SUPERH32
-+# include "cache_insns_32.h"
-+#else
-+# include "cache_insns_64.h"
-+#endif
-+
-+#endif /* __ASM_SH_CACHE_INSNS_H */
-diff --git a/arch/sh/include/asm/cache_insns_32.h b/arch/sh/include/asm/cache_insns_32.h
-new file mode 100644
-index 0000000..b92fe54
---- /dev/null
-+++ b/arch/sh/include/asm/cache_insns_32.h
-@@ -0,0 +1,21 @@
-+#ifndef __ASM_SH_CACHE_INSNS_32_H
-+#define __ASM_SH_CACHE_INSNS_32_H
-+
-+#include <linux/types.h>
-+
-+#if defined(CONFIG_CPU_SH4A)
-+#define __icbi(addr)	__asm__ __volatile__ ( "icbi @%0\n\t" : : "r" (addr))
-+#else
-+#define __icbi(addr)	mb()
-+#endif
-+
-+#define __ocbp(addr)	__asm__ __volatile__ ( "ocbp @%0\n\t" : : "r" (addr))
-+#define __ocbi(addr)	__asm__ __volatile__ ( "ocbi @%0\n\t" : : "r" (addr))
-+#define __ocbwb(addr)	__asm__ __volatile__ ( "ocbwb @%0\n\t" : : "r" (addr))
-+
-+static inline reg_size_t register_align(void *val)
-+{
-+	return (unsigned long)(signed long)val;
-+}
-+
-+#endif /* __ASM_SH_CACHE_INSNS_32_H */
-diff --git a/arch/sh/include/asm/cache_insns_64.h b/arch/sh/include/asm/cache_insns_64.h
-new file mode 100644
-index 0000000..70b6357
---- /dev/null
-+++ b/arch/sh/include/asm/cache_insns_64.h
-@@ -0,0 +1,23 @@
-+/*
-+ * Copyright (C) 2000, 2001  Paolo Alberelli
-+ * Copyright (C) 2003  Paul Mundt
-+ * Copyright (C) 2004  Richard Curnow
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+#ifndef __ASM_SH_CACHE_INSNS_64_H
-+#define __ASM_SH_CACHE_INSNS_64_H
-+
-+#define __icbi(addr)	__asm__ __volatile__ ( "icbi %0, 0\n\t" : : "r" (addr))
-+#define __ocbp(addr)	__asm__ __volatile__ ( "ocbp %0, 0\n\t" : : "r" (addr))
-+#define __ocbi(addr)	__asm__ __volatile__ ( "ocbi %0, 0\n\t" : : "r" (addr))
-+#define __ocbwb(addr)	__asm__ __volatile__ ( "ocbwb %0, 0\n\t" : : "r" (addr))
-+
-+static inline reg_size_t register_align(void *val)
-+{
-+	return (unsigned long long)(signed long long)(signed long)val;
-+}
-+
-+#endif /* __ASM_SH_CACHE_INSNS_64_H */
-diff --git a/arch/sh/include/asm/cmpxchg-irq.h b/arch/sh/include/asm/cmpxchg-irq.h
-index 43049ec..bd11f63 100644
---- a/arch/sh/include/asm/cmpxchg-irq.h
-+++ b/arch/sh/include/asm/cmpxchg-irq.h
-@@ -1,6 +1,8 @@
- #ifndef __ASM_SH_CMPXCHG_IRQ_H
- #define __ASM_SH_CMPXCHG_IRQ_H
+ #endif /* __KERNEL__ */
+ #endif /* _ASM_POWERPC_BUG_H */
+diff --git a/arch/powerpc/include/asm/cache.h b/arch/powerpc/include/asm/cache.h
+index 4b50941..9e495c9 100644
+--- a/arch/powerpc/include/asm/cache.h
++++ b/arch/powerpc/include/asm/cache.h
+@@ -42,8 +42,24 @@ extern struct ppc64_caches ppc64_caches;
+ #endif /* __powerpc64__ && ! __ASSEMBLY__ */
  
-+#include <linux/irqflags.h>
+ #if !defined(__ASSEMBLY__)
 +
- static inline unsigned long xchg_u32(volatile u32 *m, unsigned long val)
- {
- 	unsigned long flags, retval;
-diff --git a/arch/sh/include/asm/cmpxchg.h b/arch/sh/include/asm/cmpxchg.h
+ #define __read_mostly __attribute__((__section__(".data..read_mostly")))
++
++#ifdef CONFIG_6xx
++extern long _get_L2CR(void);
++extern long _get_L3CR(void);
++extern void _set_L2CR(unsigned long);
++extern void _set_L3CR(unsigned long);
++#else
++#define _get_L2CR()	0L
++#define _get_L3CR()	0L
++#define _set_L2CR(val)	do { } while(0)
++#define _set_L3CR(val)	do { } while(0)
+ #endif
+ 
++extern void cacheable_memzero(void *p, unsigned int nb);
++extern void *cacheable_memcpy(void *, const void *, unsigned int);
++
++#endif /* !__ASSEMBLY__ */
+ #endif /* __KERNEL__ */
+ #endif /* _ASM_POWERPC_CACHE_H */
+diff --git a/arch/powerpc/include/asm/cmpxchg.h b/arch/powerpc/include/asm/cmpxchg.h
 new file mode 100644
-index 0000000..f6bd140
+index 0000000..e245aab
 --- /dev/null
-+++ b/arch/sh/include/asm/cmpxchg.h
-@@ -0,0 +1,70 @@
-+#ifndef __ASM_SH_CMPXCHG_H
-+#define __ASM_SH_CMPXCHG_H
++++ b/arch/powerpc/include/asm/cmpxchg.h
+@@ -0,0 +1,309 @@
++#ifndef _ASM_POWERPC_CMPXCHG_H_
++#define _ASM_POWERPC_CMPXCHG_H_
++
++#ifdef __KERNEL__
++#include <linux/compiler.h>
++#include <asm/synch.h>
++#include <asm/asm-compat.h>
 +
 +/*
-+ * Atomic operations that C can't guarantee us.  Useful for
-+ * resource counting etc..
++ * Atomic exchange
++ *
++ * Changes the memory location '*ptr' to be val and returns
++ * the previous value stored there.
 + */
++static __always_inline unsigned long
++__xchg_u32(volatile void *p, unsigned long val)
++{
++	unsigned long prev;
 +
-+#include <linux/compiler.h>
-+#include <linux/types.h>
++	__asm__ __volatile__(
++	PPC_RELEASE_BARRIER
++"1:	lwarx	%0,0,%2 \n"
++	PPC405_ERR77(0,%2)
++"	stwcx.	%3,0,%2 \n\
++	bne-	1b"
++	PPC_ACQUIRE_BARRIER
++	: "=&r" (prev), "+m" (*(volatile unsigned int *)p)
++	: "r" (p), "r" (val)
++	: "cc", "memory");
 +
-+#if defined(CONFIG_GUSA_RB)
-+#include <asm/cmpxchg-grb.h>
-+#elif defined(CONFIG_CPU_SH4A)
-+#include <asm/cmpxchg-llsc.h>
-+#else
-+#include <asm/cmpxchg-irq.h>
++	return prev;
++}
++
++/*
++ * Atomic exchange
++ *
++ * Changes the memory location '*ptr' to be val and returns
++ * the previous value stored there.
++ */
++static __always_inline unsigned long
++__xchg_u32_local(volatile void *p, unsigned long val)
++{
++	unsigned long prev;
++
++	__asm__ __volatile__(
++"1:	lwarx	%0,0,%2 \n"
++	PPC405_ERR77(0,%2)
++"	stwcx.	%3,0,%2 \n\
++	bne-	1b"
++	: "=&r" (prev), "+m" (*(volatile unsigned int *)p)
++	: "r" (p), "r" (val)
++	: "cc", "memory");
++
++	return prev;
++}
++
++#ifdef CONFIG_PPC64
++static __always_inline unsigned long
++__xchg_u64(volatile void *p, unsigned long val)
++{
++	unsigned long prev;
++
++	__asm__ __volatile__(
++	PPC_RELEASE_BARRIER
++"1:	ldarx	%0,0,%2 \n"
++	PPC405_ERR77(0,%2)
++"	stdcx.	%3,0,%2 \n\
++	bne-	1b"
++	PPC_ACQUIRE_BARRIER
++	: "=&r" (prev), "+m" (*(volatile unsigned long *)p)
++	: "r" (p), "r" (val)
++	: "cc", "memory");
++
++	return prev;
++}
++
++static __always_inline unsigned long
++__xchg_u64_local(volatile void *p, unsigned long val)
++{
++	unsigned long prev;
++
++	__asm__ __volatile__(
++"1:	ldarx	%0,0,%2 \n"
++	PPC405_ERR77(0,%2)
++"	stdcx.	%3,0,%2 \n\
++	bne-	1b"
++	: "=&r" (prev), "+m" (*(volatile unsigned long *)p)
++	: "r" (p), "r" (val)
++	: "cc", "memory");
++
++	return prev;
++}
 +#endif
 +
++/*
++ * This function doesn't exist, so you'll get a linker error
++ * if something tries to do an invalid xchg().
++ */
 +extern void __xchg_called_with_bad_pointer(void);
 +
-+#define __xchg(ptr, x, size)				\
-+({							\
-+	unsigned long __xchg__res;			\
-+	volatile void *__xchg_ptr = (ptr);		\
-+	switch (size) {					\
-+	case 4:						\
-+		__xchg__res = xchg_u32(__xchg_ptr, x);	\
-+		break;					\
-+	case 1:						\
-+		__xchg__res = xchg_u8(__xchg_ptr, x);	\
-+		break;					\
-+	default:					\
-+		__xchg_called_with_bad_pointer();	\
-+		__xchg__res = x;			\
-+		break;					\
-+	}						\
-+							\
-+	__xchg__res;					\
-+})
++static __always_inline unsigned long
++__xchg(volatile void *ptr, unsigned long x, unsigned int size)
++{
++	switch (size) {
++	case 4:
++		return __xchg_u32(ptr, x);
++#ifdef CONFIG_PPC64
++	case 8:
++		return __xchg_u64(ptr, x);
++#endif
++	}
++	__xchg_called_with_bad_pointer();
++	return x;
++}
 +
-+#define xchg(ptr,x)	\
-+	((__typeof__(*(ptr)))__xchg((ptr),(unsigned long)(x), sizeof(*(ptr))))
++static __always_inline unsigned long
++__xchg_local(volatile void *ptr, unsigned long x, unsigned int size)
++{
++	switch (size) {
++	case 4:
++		return __xchg_u32_local(ptr, x);
++#ifdef CONFIG_PPC64
++	case 8:
++		return __xchg_u64_local(ptr, x);
++#endif
++	}
++	__xchg_called_with_bad_pointer();
++	return x;
++}
++#define xchg(ptr,x)							     \
++  ({									     \
++     __typeof__(*(ptr)) _x_ = (x);					     \
++     (__typeof__(*(ptr))) __xchg((ptr), (unsigned long)_x_, sizeof(*(ptr))); \
++  })
++
++#define xchg_local(ptr,x)						     \
++  ({									     \
++     __typeof__(*(ptr)) _x_ = (x);					     \
++     (__typeof__(*(ptr))) __xchg_local((ptr),				     \
++     		(unsigned long)_x_, sizeof(*(ptr))); 			     \
++  })
++
++/*
++ * Compare and exchange - if *p == old, set it to new,
++ * and return the old value of *p.
++ */
++#define __HAVE_ARCH_CMPXCHG	1
++
++static __always_inline unsigned long
++__cmpxchg_u32(volatile unsigned int *p, unsigned long old, unsigned long new)
++{
++	unsigned int prev;
++
++	__asm__ __volatile__ (
++	PPC_RELEASE_BARRIER
++"1:	lwarx	%0,0,%2		# __cmpxchg_u32\n\
++	cmpw	0,%0,%3\n\
++	bne-	2f\n"
++	PPC405_ERR77(0,%2)
++"	stwcx.	%4,0,%2\n\
++	bne-	1b"
++	PPC_ACQUIRE_BARRIER
++	"\n\
++2:"
++	: "=&r" (prev), "+m" (*p)
++	: "r" (p), "r" (old), "r" (new)
++	: "cc", "memory");
++
++	return prev;
++}
++
++static __always_inline unsigned long
++__cmpxchg_u32_local(volatile unsigned int *p, unsigned long old,
++			unsigned long new)
++{
++	unsigned int prev;
++
++	__asm__ __volatile__ (
++"1:	lwarx	%0,0,%2		# __cmpxchg_u32\n\
++	cmpw	0,%0,%3\n\
++	bne-	2f\n"
++	PPC405_ERR77(0,%2)
++"	stwcx.	%4,0,%2\n\
++	bne-	1b"
++	"\n\
++2:"
++	: "=&r" (prev), "+m" (*p)
++	: "r" (p), "r" (old), "r" (new)
++	: "cc", "memory");
++
++	return prev;
++}
++
++#ifdef CONFIG_PPC64
++static __always_inline unsigned long
++__cmpxchg_u64(volatile unsigned long *p, unsigned long old, unsigned long new)
++{
++	unsigned long prev;
++
++	__asm__ __volatile__ (
++	PPC_RELEASE_BARRIER
++"1:	ldarx	%0,0,%2		# __cmpxchg_u64\n\
++	cmpd	0,%0,%3\n\
++	bne-	2f\n\
++	stdcx.	%4,0,%2\n\
++	bne-	1b"
++	PPC_ACQUIRE_BARRIER
++	"\n\
++2:"
++	: "=&r" (prev), "+m" (*p)
++	: "r" (p), "r" (old), "r" (new)
++	: "cc", "memory");
++
++	return prev;
++}
++
++static __always_inline unsigned long
++__cmpxchg_u64_local(volatile unsigned long *p, unsigned long old,
++			unsigned long new)
++{
++	unsigned long prev;
++
++	__asm__ __volatile__ (
++"1:	ldarx	%0,0,%2		# __cmpxchg_u64\n\
++	cmpd	0,%0,%3\n\
++	bne-	2f\n\
++	stdcx.	%4,0,%2\n\
++	bne-	1b"
++	"\n\
++2:"
++	: "=&r" (prev), "+m" (*p)
++	: "r" (p), "r" (old), "r" (new)
++	: "cc", "memory");
++
++	return prev;
++}
++#endif
 +
 +/* This function doesn't exist, so you'll get a linker error
-+ * if something tries to do an invalid cmpxchg(). */
++   if something tries to do an invalid cmpxchg().  */
 +extern void __cmpxchg_called_with_bad_pointer(void);
 +
-+#define __HAVE_ARCH_CMPXCHG 1
-+
-+static inline unsigned long __cmpxchg(volatile void * ptr, unsigned long old,
-+		unsigned long new, int size)
++static __always_inline unsigned long
++__cmpxchg(volatile void *ptr, unsigned long old, unsigned long new,
++	  unsigned int size)
 +{
 +	switch (size) {
 +	case 4:
 +		return __cmpxchg_u32(ptr, old, new);
++#ifdef CONFIG_PPC64
++	case 8:
++		return __cmpxchg_u64(ptr, old, new);
++#endif
 +	}
 +	__cmpxchg_called_with_bad_pointer();
 +	return old;
 +}
 +
-+#define cmpxchg(ptr,o,n)						 \
++static __always_inline unsigned long
++__cmpxchg_local(volatile void *ptr, unsigned long old, unsigned long new,
++	  unsigned int size)
++{
++	switch (size) {
++	case 4:
++		return __cmpxchg_u32_local(ptr, old, new);
++#ifdef CONFIG_PPC64
++	case 8:
++		return __cmpxchg_u64_local(ptr, old, new);
++#endif
++	}
++	__cmpxchg_called_with_bad_pointer();
++	return old;
++}
++
++#define cmpxchg(ptr, o, n)						 \
 +  ({									 \
 +     __typeof__(*(ptr)) _o_ = (o);					 \
 +     __typeof__(*(ptr)) _n_ = (n);					 \
@@ -504,424 +607,826 @@ index 0000000..f6bd140
 +				    (unsigned long)_n_, sizeof(*(ptr))); \
 +  })
 +
-+#endif /* __ASM_SH_CMPXCHG_H */
-diff --git a/arch/sh/include/asm/exec.h b/arch/sh/include/asm/exec.h
++
++#define cmpxchg_local(ptr, o, n)					 \
++  ({									 \
++     __typeof__(*(ptr)) _o_ = (o);					 \
++     __typeof__(*(ptr)) _n_ = (n);					 \
++     (__typeof__(*(ptr))) __cmpxchg_local((ptr), (unsigned long)_o_,	 \
++				    (unsigned long)_n_, sizeof(*(ptr))); \
++  })
++
++#ifdef CONFIG_PPC64
++#define cmpxchg64(ptr, o, n)						\
++  ({									\
++	BUILD_BUG_ON(sizeof(*(ptr)) != 8);				\
++	cmpxchg((ptr), (o), (n));					\
++  })
++#define cmpxchg64_local(ptr, o, n)					\
++  ({									\
++	BUILD_BUG_ON(sizeof(*(ptr)) != 8);				\
++	cmpxchg_local((ptr), (o), (n));					\
++  })
++#else
++#include <asm-generic/cmpxchg-local.h>
++#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
++#endif
++
++#endif /* __KERNEL__ */
++#endif /* _ASM_POWERPC_CMPXCHG_H_ */
+diff --git a/arch/powerpc/include/asm/debug.h b/arch/powerpc/include/asm/debug.h
 new file mode 100644
-index 0000000..69486a9
+index 0000000..716d2f0
 --- /dev/null
-+++ b/arch/sh/include/asm/exec.h
-@@ -0,0 +1,10 @@
++++ b/arch/powerpc/include/asm/debug.h
+@@ -0,0 +1,56 @@
 +/*
-+ * Copyright (C) 1999, 2000  Niibe Yutaka  &  Kaz Kojima
-+ * Copyright (C) 2002 Paul Mundt
++ * Copyright (C) 1999 Cort Dougan <cort@cs.nmt.edu>
 + */
-+#ifndef __ASM_SH_EXEC_H
-+#define __ASM_SH_EXEC_H
++#ifndef _ASM_POWERPC_DEBUG_H
++#define _ASM_POWERPC_DEBUG_H
 +
-+#define arch_align_stack(x) (x)
++struct pt_regs;
 +
-+#endif /* __ASM_SH_EXEC_H */
-diff --git a/arch/sh/include/asm/futex-irq.h b/arch/sh/include/asm/futex-irq.h
-index 6cb9f19..63d3312 100644
---- a/arch/sh/include/asm/futex-irq.h
-+++ b/arch/sh/include/asm/futex-irq.h
-@@ -1,7 +1,6 @@
- #ifndef __ASM_SH_FUTEX_IRQ_H
- #define __ASM_SH_FUTEX_IRQ_H
++extern struct dentry *powerpc_debugfs_root;
++
++#if defined(CONFIG_DEBUGGER) || defined(CONFIG_KEXEC)
++
++extern int (*__debugger)(struct pt_regs *regs);
++extern int (*__debugger_ipi)(struct pt_regs *regs);
++extern int (*__debugger_bpt)(struct pt_regs *regs);
++extern int (*__debugger_sstep)(struct pt_regs *regs);
++extern int (*__debugger_iabr_match)(struct pt_regs *regs);
++extern int (*__debugger_dabr_match)(struct pt_regs *regs);
++extern int (*__debugger_fault_handler)(struct pt_regs *regs);
++
++#define DEBUGGER_BOILERPLATE(__NAME) \
++static inline int __NAME(struct pt_regs *regs) \
++{ \
++	if (unlikely(__ ## __NAME)) \
++		return __ ## __NAME(regs); \
++	return 0; \
++}
++
++DEBUGGER_BOILERPLATE(debugger)
++DEBUGGER_BOILERPLATE(debugger_ipi)
++DEBUGGER_BOILERPLATE(debugger_bpt)
++DEBUGGER_BOILERPLATE(debugger_sstep)
++DEBUGGER_BOILERPLATE(debugger_iabr_match)
++DEBUGGER_BOILERPLATE(debugger_dabr_match)
++DEBUGGER_BOILERPLATE(debugger_fault_handler)
++
++#else
++static inline int debugger(struct pt_regs *regs) { return 0; }
++static inline int debugger_ipi(struct pt_regs *regs) { return 0; }
++static inline int debugger_bpt(struct pt_regs *regs) { return 0; }
++static inline int debugger_sstep(struct pt_regs *regs) { return 0; }
++static inline int debugger_iabr_match(struct pt_regs *regs) { return 0; }
++static inline int debugger_dabr_match(struct pt_regs *regs) { return 0; }
++static inline int debugger_fault_handler(struct pt_regs *regs) { return 0; }
++#endif
++
++extern int set_dabr(unsigned long dabr);
++#ifdef CONFIG_PPC_ADV_DEBUG_REGS
++extern void do_send_trap(struct pt_regs *regs, unsigned long address,
++			 unsigned long error_code, int signal_code, int brkpt);
++#else
++extern void do_dabr(struct pt_regs *regs, unsigned long address,
++		    unsigned long error_code);
++#endif
++
++#endif /* _ASM_POWERPC_DEBUG_H */
+diff --git a/arch/powerpc/include/asm/dma.h b/arch/powerpc/include/asm/dma.h
+index a7e06e2..2f3511a 100644
+--- a/arch/powerpc/include/asm/dma.h
++++ b/arch/powerpc/include/asm/dma.h
+@@ -24,7 +24,6 @@
  
+ #include <asm/io.h>
+ #include <linux/spinlock.h>
 -#include <asm/system.h>
  
- static inline int atomic_futex_op_xchg_set(int oparg, u32 __user *uaddr,
- 					   int *oldval)
-diff --git a/arch/sh/include/asm/io.h b/arch/sh/include/asm/io.h
-index 28c5aa5..35fc8b0 100644
---- a/arch/sh/include/asm/io.h
-+++ b/arch/sh/include/asm/io.h
-@@ -14,7 +14,6 @@
+ #ifndef MAX_DMA_CHANNELS
+ #define MAX_DMA_CHANNELS	8
+diff --git a/arch/powerpc/include/asm/exec.h b/arch/powerpc/include/asm/exec.h
+new file mode 100644
+index 0000000..8196e9c
+--- /dev/null
++++ b/arch/powerpc/include/asm/exec.h
+@@ -0,0 +1,9 @@
++/*
++ * Copyright (C) 1999 Cort Dougan <cort@cs.nmt.edu>
++ */
++#ifndef _ASM_POWERPC_EXEC_H
++#define _ASM_POWERPC_EXEC_H
++
++extern unsigned long arch_align_stack(unsigned long sp);
++
++#endif /* _ASM_POWERPC_EXEC_H */
+diff --git a/arch/powerpc/include/asm/hw_breakpoint.h b/arch/powerpc/include/asm/hw_breakpoint.h
+index 80fd4d2..be04330 100644
+--- a/arch/powerpc/include/asm/hw_breakpoint.h
++++ b/arch/powerpc/include/asm/hw_breakpoint.h
+@@ -35,7 +35,7 @@ struct arch_hw_breakpoint {
+ 
+ #include <linux/kdebug.h>
+ #include <asm/reg.h>
+-#include <asm/system.h>
++#include <asm/debug.h>
+ 
+ struct perf_event;
+ struct pmu;
+diff --git a/arch/powerpc/include/asm/irq.h b/arch/powerpc/include/asm/irq.h
+index c0e1bc3..034c5ca 100644
+--- a/arch/powerpc/include/asm/irq.h
++++ b/arch/powerpc/include/asm/irq.h
+@@ -68,6 +68,7 @@ typedef unsigned long irq_hw_number_t;
   */
- #include <linux/errno.h>
- #include <asm/cache.h>
--#include <asm/system.h>
- #include <asm/addrspace.h>
- #include <asm/machvec.h>
- #include <asm/pgtable.h>
-diff --git a/arch/sh/include/asm/processor.h b/arch/sh/include/asm/processor.h
-index 9c7bdfc..a229c39 100644
---- a/arch/sh/include/asm/processor.h
-+++ b/arch/sh/include/asm/processor.h
-@@ -101,6 +101,10 @@ extern struct sh_cpuinfo cpu_data[];
- #define cpu_sleep()	__asm__ __volatile__ ("sleep" : : : "memory")
- #define cpu_relax()	barrier()
+ struct irq_host;
+ struct radix_tree_root;
++struct device_node;
  
-+void default_idle(void);
+ /* Functions below are provided by the host and called whenever a new mapping
+  * is created or an old mapping is disposed. The host can then proceed to
+diff --git a/arch/powerpc/include/asm/processor.h b/arch/powerpc/include/asm/processor.h
+index b585bff..8e2d037 100644
+--- a/arch/powerpc/include/asm/processor.h
++++ b/arch/powerpc/include/asm/processor.h
+@@ -385,6 +385,36 @@ static inline unsigned long get_clean_sp(struct pt_regs *regs, int is_32)
+ extern unsigned long cpuidle_disable;
+ enum idle_boot_override {IDLE_NO_OVERRIDE = 0, IDLE_POWERSAVE_OFF};
+ 
++extern int powersave_nap;	/* set if nap mode can be used in idle loop */
 +void cpu_idle_wait(void);
-+void stop_this_cpu(void *);
 +
- /* Forward decl */
- struct seq_operations;
- struct task_struct;
-@@ -161,6 +165,17 @@ int vsyscall_init(void);
- #define vsyscall_init() do { } while (0)
++#ifdef CONFIG_PSERIES_IDLE
++extern void update_smt_snooze_delay(int snooze);
++extern int pseries_notify_cpuidle_add_cpu(int cpu);
++#else
++static inline void update_smt_snooze_delay(int snooze) {}
++static inline int pseries_notify_cpuidle_add_cpu(int cpu) { return 0; }
++#endif
++
++extern void flush_instruction_cache(void);
++extern void hard_reset_now(void);
++extern void poweroff_now(void);
++extern int fix_alignment(struct pt_regs *);
++extern void cvt_fd(float *from, double *to);
++extern void cvt_df(double *from, float *to);
++extern void _nmask_and_or_msr(unsigned long nmask, unsigned long or_val);
++
++#ifdef CONFIG_PPC64
++/*
++ * We handle most unaligned accesses in hardware. On the other hand 
++ * unaligned DMA can be very expensive on some ppc64 IO chips (it does
++ * powers of 2 writes until it reaches sufficient alignment).
++ *
++ * Based on this we disable the IP header alignment in network drivers.
++ */
++#define NET_IP_ALIGN	0
++#endif
++
+ #endif /* __KERNEL__ */
+ #endif /* __ASSEMBLY__ */
+ #endif /* _ASM_POWERPC_PROCESSOR_H */
+diff --git a/arch/powerpc/include/asm/reg_booke.h b/arch/powerpc/include/asm/reg_booke.h
+index 500fe1d..0e94450 100644
+--- a/arch/powerpc/include/asm/reg_booke.h
++++ b/arch/powerpc/include/asm/reg_booke.h
+@@ -15,6 +15,11 @@
+ #ifndef __ASM_POWERPC_REG_BOOKE_H__
+ #define __ASM_POWERPC_REG_BOOKE_H__
+ 
++#ifdef CONFIG_BOOKE_WDT
++extern u32 booke_wdt_enabled;
++extern u32 booke_wdt_period;
++#endif /* CONFIG_BOOKE_WDT */
++
+ /* Machine State Register (MSR) Fields */
+ #define MSR_GS		(1<<28) /* Guest state */
+ #define MSR_UCLE	(1<<26)	/* User-mode cache lock enable */
+diff --git a/arch/powerpc/include/asm/rtas.h b/arch/powerpc/include/asm/rtas.h
+index 01c143b..9d6c37a 100644
+--- a/arch/powerpc/include/asm/rtas.h
++++ b/arch/powerpc/include/asm/rtas.h
+@@ -325,5 +325,7 @@ static inline int page_is_rtas_user_buf(unsigned long pfn)
+ static inline int page_is_rtas_user_buf(unsigned long pfn) { return 0;}
  #endif
  
-+/*
-+ * SH-2A has both 16 and 32-bit opcodes, do lame encoding checks.
-+ */
-+#ifdef CONFIG_CPU_SH2A
-+extern unsigned int instruction_size(unsigned int insn);
-+#elif defined(CONFIG_SUPERH32)
-+#define instruction_size(insn)	(2)
-+#else
-+#define instruction_size(insn)	(4)
-+#endif
++extern int call_rtas(const char *, int, int, unsigned long *, ...);
 +
- #endif /* __ASSEMBLY__ */
- 
- #ifdef CONFIG_SUPERH32
-diff --git a/arch/sh/include/asm/ptrace.h b/arch/sh/include/asm/ptrace.h
-index 2d3679b..c7b7e1e 100644
---- a/arch/sh/include/asm/ptrace.h
-+++ b/arch/sh/include/asm/ptrace.h
-@@ -37,7 +37,6 @@
- #include <linux/thread_info.h>
- #include <asm/addrspace.h>
- #include <asm/page.h>
--#include <asm/system.h>
- 
- #define user_mode(regs)			(((regs)->sr & 0x40000000)==0)
- #define kernel_stack_pointer(_regs)	((unsigned long)(_regs)->regs[15])
-diff --git a/arch/sh/include/asm/setup.h b/arch/sh/include/asm/setup.h
-index 01fa17a..465a22d 100644
---- a/arch/sh/include/asm/setup.h
-+++ b/arch/sh/include/asm/setup.h
-@@ -20,6 +20,7 @@
- 
- void sh_mv_setup(void);
- void check_for_initrd(void);
-+void per_cpu_trap_init(void);
- 
  #endif /* __KERNEL__ */
+ #endif /* _POWERPC_RTAS_H */
+diff --git a/arch/powerpc/include/asm/setup.h b/arch/powerpc/include/asm/setup.h
+index 186e0fb..d084ce1 100644
+--- a/arch/powerpc/include/asm/setup.h
++++ b/arch/powerpc/include/asm/setup.h
+@@ -5,6 +5,28 @@
  
-diff --git a/arch/sh/include/asm/switch_to.h b/arch/sh/include/asm/switch_to.h
+ #ifndef __ASSEMBLY__
+ extern void ppc_printk_progress(char *s, unsigned short hex);
+-#endif
++
++extern unsigned int rtas_data;
++extern int mem_init_done;	/* set on boot once kmalloc can be called */
++extern int init_bootmem_done;	/* set once bootmem is available */
++extern phys_addr_t memory_limit;
++extern unsigned long klimit;
++extern void *zalloc_maybe_bootmem(size_t size, gfp_t mask);
++
++extern void via_cuda_init(void);
++extern void read_rtc_time(void);
++extern void pmac_find_display(void);
++
++struct device_node;
++extern void note_scsi_host(struct device_node *, void *);
++
++/* Used in very early kernel initialization. */
++extern unsigned long reloc_offset(void);
++extern unsigned long add_reloc_offset(unsigned long);
++extern void reloc_got2(unsigned long);
++
++#define PTRRELOC(x)	((typeof(x)) add_reloc_offset((unsigned long)(x)))
++
++#endif /* !__ASSEMBLY__ */
+ 
+ #endif	/* _ASM_POWERPC_SETUP_H */
+diff --git a/arch/powerpc/include/asm/switch_to.h b/arch/powerpc/include/asm/switch_to.h
 new file mode 100644
-index 0000000..62b1941
+index 0000000..caf82d0
 --- /dev/null
-+++ b/arch/sh/include/asm/switch_to.h
-@@ -0,0 +1,19 @@
++++ b/arch/powerpc/include/asm/switch_to.h
+@@ -0,0 +1,65 @@
 +/*
-+ * Copyright (C) 2000, 2001  Paolo Alberelli
-+ * Copyright (C) 2003  Paul Mundt
-+ * Copyright (C) 2004  Richard Curnow
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
++ * Copyright (C) 1999 Cort Dougan <cort@cs.nmt.edu>
 + */
-+#ifndef __ASM_SH_SWITCH_TO_H
-+#define __ASM_SH_SWITCH_TO_H
-+
-+#ifdef CONFIG_SUPERH32
-+# include "switch_to_32.h"
-+#else
-+# include "switch_to_64.h"
-+#endif
-+
-+#endif /* __ASM_SH_SWITCH_TO_H */
-diff --git a/arch/sh/include/asm/switch_to_32.h b/arch/sh/include/asm/switch_to_32.h
-new file mode 100644
-index 0000000..0c06551
---- /dev/null
-+++ b/arch/sh/include/asm/switch_to_32.h
-@@ -0,0 +1,134 @@
-+#ifndef __ASM_SH_SWITCH_TO_32_H
-+#define __ASM_SH_SWITCH_TO_32_H
-+
-+#ifdef CONFIG_SH_DSP
-+
-+#define is_dsp_enabled(tsk)						\
-+	(!!(tsk->thread.dsp_status.status & SR_DSP))
-+
-+#define __restore_dsp(tsk)						\
-+do {									\
-+	register u32 *__ts2 __asm__ ("r2") =				\
-+			(u32 *)&tsk->thread.dsp_status;			\
-+	__asm__ __volatile__ (						\
-+		".balign 4\n\t"						\
-+		"movs.l	@r2+, a0\n\t"					\
-+		"movs.l	@r2+, a1\n\t"					\
-+		"movs.l	@r2+, a0g\n\t"					\
-+		"movs.l	@r2+, a1g\n\t"					\
-+		"movs.l	@r2+, m0\n\t"					\
-+		"movs.l	@r2+, m1\n\t"					\
-+		"movs.l	@r2+, x0\n\t"					\
-+		"movs.l	@r2+, x1\n\t"					\
-+		"movs.l	@r2+, y0\n\t"					\
-+		"movs.l	@r2+, y1\n\t"					\
-+		"lds.l	@r2+, dsr\n\t"					\
-+		"ldc.l	@r2+, rs\n\t"					\
-+		"ldc.l	@r2+, re\n\t"					\
-+		"ldc.l	@r2+, mod\n\t"					\
-+		: : "r" (__ts2));					\
-+} while (0)
-+
-+#define __save_dsp(tsk)							\
-+do {									\
-+	register u32 *__ts2 __asm__ ("r2") =				\
-+			(u32 *)&tsk->thread.dsp_status + 14;		\
-+									\
-+	__asm__ __volatile__ (						\
-+		".balign 4\n\t"						\
-+		"stc.l	mod, @-r2\n\t"					\
-+		"stc.l	re, @-r2\n\t"					\
-+		"stc.l	rs, @-r2\n\t"					\
-+		"sts.l	dsr, @-r2\n\t"					\
-+		"movs.l	y1, @-r2\n\t"					\
-+		"movs.l	y0, @-r2\n\t"					\
-+		"movs.l	x1, @-r2\n\t"					\
-+		"movs.l	x0, @-r2\n\t"					\
-+		"movs.l	m1, @-r2\n\t"					\
-+		"movs.l	m0, @-r2\n\t"					\
-+		"movs.l	a1g, @-r2\n\t"					\
-+		"movs.l	a0g, @-r2\n\t"					\
-+		"movs.l	a1, @-r2\n\t"					\
-+		"movs.l	a0, @-r2\n\t"					\
-+		: : "r" (__ts2));					\
-+} while (0)
-+
-+#else
-+
-+#define is_dsp_enabled(tsk)	(0)
-+#define __save_dsp(tsk)		do { } while (0)
-+#define __restore_dsp(tsk)	do { } while (0)
-+#endif
-+
-+struct task_struct *__switch_to(struct task_struct *prev,
-+				struct task_struct *next);
-+
-+/*
-+ *	switch_to() should switch tasks to task nr n, first
-+ */
-+#define switch_to(prev, next, last)				\
-+do {								\
-+	register u32 *__ts1 __asm__ ("r1");			\
-+	register u32 *__ts2 __asm__ ("r2");			\
-+	register u32 *__ts4 __asm__ ("r4");			\
-+	register u32 *__ts5 __asm__ ("r5");			\
-+	register u32 *__ts6 __asm__ ("r6");			\
-+	register u32 __ts7 __asm__ ("r7");			\
-+	struct task_struct *__last;				\
-+								\
-+	if (is_dsp_enabled(prev))				\
-+		__save_dsp(prev);				\
-+								\
-+	__ts1 = (u32 *)&prev->thread.sp;			\
-+	__ts2 = (u32 *)&prev->thread.pc;			\
-+	__ts4 = (u32 *)prev;					\
-+	__ts5 = (u32 *)next;					\
-+	__ts6 = (u32 *)&next->thread.sp;			\
-+	__ts7 = next->thread.pc;				\
-+								\
-+	__asm__ __volatile__ (					\
-+		".balign 4\n\t"					\
-+		"stc.l	gbr, @-r15\n\t"				\
-+		"sts.l	pr, @-r15\n\t"				\
-+		"mov.l	r8, @-r15\n\t"				\
-+		"mov.l	r9, @-r15\n\t"				\
-+		"mov.l	r10, @-r15\n\t"				\
-+		"mov.l	r11, @-r15\n\t"				\
-+		"mov.l	r12, @-r15\n\t"				\
-+		"mov.l	r13, @-r15\n\t"				\
-+		"mov.l	r14, @-r15\n\t"				\
-+		"mov.l	r15, @r1\t! save SP\n\t"		\
-+		"mov.l	@r6, r15\t! change to new stack\n\t"	\
-+		"mova	1f, %0\n\t"				\
-+		"mov.l	%0, @r2\t! save PC\n\t"			\
-+		"mov.l	2f, %0\n\t"				\
-+		"jmp	@%0\t! call __switch_to\n\t"		\
-+		" lds	r7, pr\t!  with return to new PC\n\t"	\
-+		".balign	4\n"				\
-+		"2:\n\t"					\
-+		".long	__switch_to\n"				\
-+		"1:\n\t"					\
-+		"mov.l	@r15+, r14\n\t"				\
-+		"mov.l	@r15+, r13\n\t"				\
-+		"mov.l	@r15+, r12\n\t"				\
-+		"mov.l	@r15+, r11\n\t"				\
-+		"mov.l	@r15+, r10\n\t"				\
-+		"mov.l	@r15+, r9\n\t"				\
-+		"mov.l	@r15+, r8\n\t"				\
-+		"lds.l	@r15+, pr\n\t"				\
-+		"ldc.l	@r15+, gbr\n\t"				\
-+		: "=z" (__last)					\
-+		: "r" (__ts1), "r" (__ts2), "r" (__ts4),	\
-+		  "r" (__ts5), "r" (__ts6), "r" (__ts7)		\
-+		: "r3", "t");					\
-+								\
-+	last = __last;						\
-+} while (0)
-+
-+#define finish_arch_switch(prev)				\
-+do {								\
-+	if (is_dsp_enabled(prev))				\
-+		__restore_dsp(prev);				\
-+} while (0)
-+
-+#endif /* __ASM_SH_SWITCH_TO_32_H */
-diff --git a/arch/sh/include/asm/switch_to_64.h b/arch/sh/include/asm/switch_to_64.h
-new file mode 100644
-index 0000000..ba3129d
---- /dev/null
-+++ b/arch/sh/include/asm/switch_to_64.h
-@@ -0,0 +1,35 @@
-+/*
-+ * Copyright (C) 2000, 2001  Paolo Alberelli
-+ * Copyright (C) 2003  Paul Mundt
-+ * Copyright (C) 2004  Richard Curnow
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+#ifndef __ASM_SH_SWITCH_TO_64_H
-+#define __ASM_SH_SWITCH_TO_64_H
++#ifndef _ASM_POWERPC_SWITCH_TO_H
++#define _ASM_POWERPC_SWITCH_TO_H
 +
 +struct thread_struct;
 +struct task_struct;
++struct pt_regs;
 +
-+/*
-+ *	switch_to() should switch tasks to task nr n, first
-+ */
-+struct task_struct *sh64_switch_to(struct task_struct *prev,
-+				   struct thread_struct *prev_thread,
-+				   struct task_struct *next,
-+				   struct thread_struct *next_thread);
++extern struct task_struct *__switch_to(struct task_struct *,
++	struct task_struct *);
++#define switch_to(prev, next, last)	((last) = __switch_to((prev), (next)))
 +
-+#define switch_to(prev,next,last)				\
-+do {								\
-+	if (last_task_used_math != next) {			\
-+		struct pt_regs *regs = next->thread.uregs;	\
-+		if (regs) regs->sr |= SR_FD;			\
-+	}							\
-+	last = sh64_switch_to(prev, &prev->thread, next,	\
-+			      &next->thread);			\
-+} while (0)
++struct thread_struct;
++extern struct task_struct *_switch(struct thread_struct *prev,
++				   struct thread_struct *next);
 +
++extern void giveup_fpu(struct task_struct *);
++extern void disable_kernel_fp(void);
++extern void enable_kernel_fp(void);
++extern void flush_fp_to_thread(struct task_struct *);
++extern void enable_kernel_altivec(void);
++extern void giveup_altivec(struct task_struct *);
++extern void load_up_altivec(struct task_struct *);
++extern int emulate_altivec(struct pt_regs *);
++extern void __giveup_vsx(struct task_struct *);
++extern void giveup_vsx(struct task_struct *);
++extern void enable_kernel_spe(void);
++extern void giveup_spe(struct task_struct *);
++extern void load_up_spe(struct task_struct *);
 +
-+#endif /* __ASM_SH_SWITCH_TO_64_H */
-diff --git a/arch/sh/include/asm/system.h b/arch/sh/include/asm/system.h
-index 10c8b18..e2042aa 100644
---- a/arch/sh/include/asm/system.h
-+++ b/arch/sh/include/asm/system.h
-@@ -1,184 +1,9 @@
--#ifndef __ASM_SH_SYSTEM_H
--#define __ASM_SH_SYSTEM_H
--
++#ifndef CONFIG_SMP
++extern void discard_lazy_cpu_state(void);
++#else
++static inline void discard_lazy_cpu_state(void)
++{
++}
++#endif
++
++#ifdef CONFIG_ALTIVEC
++extern void flush_altivec_to_thread(struct task_struct *);
++#else
++static inline void flush_altivec_to_thread(struct task_struct *t)
++{
++}
++#endif
++
++#ifdef CONFIG_VSX
++extern void flush_vsx_to_thread(struct task_struct *);
++#else
++static inline void flush_vsx_to_thread(struct task_struct *t)
++{
++}
++#endif
++
++#ifdef CONFIG_SPE
++extern void flush_spe_to_thread(struct task_struct *);
++#else
++static inline void flush_spe_to_thread(struct task_struct *t)
++{
++}
++#endif
++
++#endif /* _ASM_POWERPC_SWITCH_TO_H */
+diff --git a/arch/powerpc/include/asm/system.h b/arch/powerpc/include/asm/system.h
+index c377457..502c1e0 100644
+--- a/arch/powerpc/include/asm/system.h
++++ b/arch/powerpc/include/asm/system.h
+@@ -1,554 +1,6 @@
 -/*
-- * Copyright (C) 1999, 2000  Niibe Yutaka  &  Kaz Kojima
-- * Copyright (C) 2002 Paul Mundt
+- * Copyright (C) 1999 Cort Dougan <cort@cs.nmt.edu>
 - */
+-#ifndef _ASM_POWERPC_SYSTEM_H
+-#define _ASM_POWERPC_SYSTEM_H
 -
+-#include <linux/kernel.h>
 -#include <linux/irqflags.h>
--#include <linux/compiler.h>
--#include <linux/linkage.h>
--#include <asm/types.h>
--#include <asm/uncached.h>
 -
--#define AT_VECTOR_SIZE_ARCH 5 /* entries in ARCH_DLINFO */
+-#include <asm/hw_irq.h>
 -
 -/*
-- * A brief note on ctrl_barrier(), the control register write barrier.
+- * Memory barrier.
+- * The sync instruction guarantees that all memory accesses initiated
+- * by this processor have been performed (with respect to all other
+- * mechanisms that access memory).  The eieio instruction is a barrier
+- * providing an ordering (separately) for (a) cacheable stores and (b)
+- * loads and stores to non-cacheable memory (e.g. I/O devices).
 - *
-- * Legacy SH cores typically require a sequence of 8 nops after
-- * modification of a control register in order for the changes to take
-- * effect. On newer cores (like the sh4a and sh5) this is accomplished
-- * with icbi.
+- * mb() prevents loads and stores being reordered across this point.
+- * rmb() prevents loads being reordered across this point.
+- * wmb() prevents stores being reordered across this point.
+- * read_barrier_depends() prevents data-dependent loads being reordered
+- *	across this point (nop on PPC).
 - *
-- * Also note that on sh4a in the icbi case we can forego a synco for the
-- * write barrier, as it's not necessary for control registers.
+- * *mb() variants without smp_ prefix must order all types of memory
+- * operations with one another. sync is the only instruction sufficient
+- * to do this.
 - *
-- * Historically we have only done this type of barrier for the MMUCR, but
-- * it's also necessary for the CCR, so we make it generic here instead.
+- * For the smp_ barriers, ordering is for cacheable memory operations
+- * only. We have to use the sync instruction for smp_mb(), since lwsync
+- * doesn't order loads with respect to previous stores.  Lwsync can be
+- * used for smp_rmb() and smp_wmb().
+- *
+- * However, on CPUs that don't support lwsync, lwsync actually maps to a
+- * heavy-weight sync, so smp_wmb() can be a lighter-weight eieio.
 - */
--#if defined(CONFIG_CPU_SH4A) || defined(CONFIG_CPU_SH5)
--#define mb()		__asm__ __volatile__ ("synco": : :"memory")
--#define rmb()		mb()
--#define wmb()		__asm__ __volatile__ ("synco": : :"memory")
--#define ctrl_barrier()	__icbi(PAGE_OFFSET)
--#define read_barrier_depends()	do { } while(0)
+-#define mb()   __asm__ __volatile__ ("sync" : : : "memory")
+-#define rmb()  __asm__ __volatile__ ("sync" : : : "memory")
+-#define wmb()  __asm__ __volatile__ ("sync" : : : "memory")
+-#define read_barrier_depends()  do { } while(0)
+-
+-#define set_mb(var, value)	do { var = value; mb(); } while (0)
+-
+-#ifdef __KERNEL__
+-#define AT_VECTOR_SIZE_ARCH 6 /* entries in ARCH_DLINFO */
+-#ifdef CONFIG_SMP
+-
+-#ifdef __SUBARCH_HAS_LWSYNC
+-#    define SMPWMB      LWSYNC
 -#else
--#define mb()		__asm__ __volatile__ ("": : :"memory")
--#define rmb()		mb()
--#define wmb()		__asm__ __volatile__ ("": : :"memory")
--#define ctrl_barrier()	__asm__ __volatile__ ("nop;nop;nop;nop;nop;nop;nop;nop")
--#define read_barrier_depends()	do { } while(0)
+-#    define SMPWMB      eieio
 -#endif
 -
--#ifdef CONFIG_SMP
 -#define smp_mb()	mb()
--#define smp_rmb()	rmb()
--#define smp_wmb()	wmb()
+-#define smp_rmb()	__asm__ __volatile__ (stringify_in_c(LWSYNC) : : :"memory")
+-#define smp_wmb()	__asm__ __volatile__ (stringify_in_c(SMPWMB) : : :"memory")
 -#define smp_read_barrier_depends()	read_barrier_depends()
 -#else
 -#define smp_mb()	barrier()
 -#define smp_rmb()	barrier()
 -#define smp_wmb()	barrier()
 -#define smp_read_barrier_depends()	do { } while(0)
--#endif
+-#endif /* CONFIG_SMP */
 -
--#define set_mb(var, value) do { (void)xchg(&var, value); } while (0)
+-/*
+- * This is a barrier which prevents following instructions from being
+- * started until the value of the argument x is known.  For example, if
+- * x is a variable loaded from memory, this prevents following
+- * instructions from being executed until the load has been performed.
+- */
+-#define data_barrier(x)	\
+-	asm volatile("twi 0,%0,0; isync" : : "r" (x) : "memory");
 -
--#ifdef CONFIG_GUSA_RB
--#include <asm/cmpxchg-grb.h>
--#elif defined(CONFIG_CPU_SH4A)
--#include <asm/cmpxchg-llsc.h>
+-struct task_struct;
+-struct pt_regs;
+-
+-#if defined(CONFIG_DEBUGGER) || defined(CONFIG_KEXEC)
+-
+-extern int (*__debugger)(struct pt_regs *regs);
+-extern int (*__debugger_ipi)(struct pt_regs *regs);
+-extern int (*__debugger_bpt)(struct pt_regs *regs);
+-extern int (*__debugger_sstep)(struct pt_regs *regs);
+-extern int (*__debugger_iabr_match)(struct pt_regs *regs);
+-extern int (*__debugger_dabr_match)(struct pt_regs *regs);
+-extern int (*__debugger_fault_handler)(struct pt_regs *regs);
+-
+-#define DEBUGGER_BOILERPLATE(__NAME) \
+-static inline int __NAME(struct pt_regs *regs) \
+-{ \
+-	if (unlikely(__ ## __NAME)) \
+-		return __ ## __NAME(regs); \
+-	return 0; \
+-}
+-
+-DEBUGGER_BOILERPLATE(debugger)
+-DEBUGGER_BOILERPLATE(debugger_ipi)
+-DEBUGGER_BOILERPLATE(debugger_bpt)
+-DEBUGGER_BOILERPLATE(debugger_sstep)
+-DEBUGGER_BOILERPLATE(debugger_iabr_match)
+-DEBUGGER_BOILERPLATE(debugger_dabr_match)
+-DEBUGGER_BOILERPLATE(debugger_fault_handler)
+-
 -#else
--#include <asm/cmpxchg-irq.h>
+-static inline int debugger(struct pt_regs *regs) { return 0; }
+-static inline int debugger_ipi(struct pt_regs *regs) { return 0; }
+-static inline int debugger_bpt(struct pt_regs *regs) { return 0; }
+-static inline int debugger_sstep(struct pt_regs *regs) { return 0; }
+-static inline int debugger_iabr_match(struct pt_regs *regs) { return 0; }
+-static inline int debugger_dabr_match(struct pt_regs *regs) { return 0; }
+-static inline int debugger_fault_handler(struct pt_regs *regs) { return 0; }
 -#endif
 -
+-extern int set_dabr(unsigned long dabr);
+-#ifdef CONFIG_PPC_ADV_DEBUG_REGS
+-extern void do_send_trap(struct pt_regs *regs, unsigned long address,
+-			 unsigned long error_code, int signal_code, int brkpt);
+-#else
+-extern void do_dabr(struct pt_regs *regs, unsigned long address,
+-		    unsigned long error_code);
+-#endif
+-extern void print_backtrace(unsigned long *);
+-extern void flush_instruction_cache(void);
+-extern void hard_reset_now(void);
+-extern void poweroff_now(void);
+-
+-#ifdef CONFIG_6xx
+-extern long _get_L2CR(void);
+-extern long _get_L3CR(void);
+-extern void _set_L2CR(unsigned long);
+-extern void _set_L3CR(unsigned long);
+-#else
+-#define _get_L2CR()	0L
+-#define _get_L3CR()	0L
+-#define _set_L2CR(val)	do { } while(0)
+-#define _set_L3CR(val)	do { } while(0)
+-#endif
+-
+-extern void via_cuda_init(void);
+-extern void read_rtc_time(void);
+-extern void pmac_find_display(void);
+-extern void giveup_fpu(struct task_struct *);
+-extern void disable_kernel_fp(void);
+-extern void enable_kernel_fp(void);
+-extern void flush_fp_to_thread(struct task_struct *);
+-extern void enable_kernel_altivec(void);
+-extern void giveup_altivec(struct task_struct *);
+-extern void load_up_altivec(struct task_struct *);
+-extern int emulate_altivec(struct pt_regs *);
+-extern void __giveup_vsx(struct task_struct *);
+-extern void giveup_vsx(struct task_struct *);
+-extern void enable_kernel_spe(void);
+-extern void giveup_spe(struct task_struct *);
+-extern void load_up_spe(struct task_struct *);
+-extern int fix_alignment(struct pt_regs *);
+-extern void cvt_fd(float *from, double *to);
+-extern void cvt_df(double *from, float *to);
+-
+-#ifndef CONFIG_SMP
+-extern void discard_lazy_cpu_state(void);
+-#else
+-static inline void discard_lazy_cpu_state(void)
+-{
+-}
+-#endif
+-
+-#ifdef CONFIG_ALTIVEC
+-extern void flush_altivec_to_thread(struct task_struct *);
+-#else
+-static inline void flush_altivec_to_thread(struct task_struct *t)
+-{
+-}
+-#endif
+-
+-#ifdef CONFIG_VSX
+-extern void flush_vsx_to_thread(struct task_struct *);
+-#else
+-static inline void flush_vsx_to_thread(struct task_struct *t)
+-{
+-}
+-#endif
+-
+-#ifdef CONFIG_SPE
+-extern void flush_spe_to_thread(struct task_struct *);
+-#else
+-static inline void flush_spe_to_thread(struct task_struct *t)
+-{
+-}
+-#endif
+-
+-extern int call_rtas(const char *, int, int, unsigned long *, ...);
+-extern void cacheable_memzero(void *p, unsigned int nb);
+-extern void *cacheable_memcpy(void *, const void *, unsigned int);
+-extern int do_page_fault(struct pt_regs *, unsigned long, unsigned long);
+-extern void bad_page_fault(struct pt_regs *, unsigned long, int);
+-extern void _exception(int, struct pt_regs *, int, unsigned long);
+-extern void die(const char *, struct pt_regs *, long);
+-extern void _nmask_and_or_msr(unsigned long nmask, unsigned long or_val);
+-
+-#ifdef CONFIG_BOOKE_WDT
+-extern u32 booke_wdt_enabled;
+-extern u32 booke_wdt_period;
+-#endif /* CONFIG_BOOKE_WDT */
+-
+-struct device_node;
+-extern void note_scsi_host(struct device_node *, void *);
+-
+-extern struct task_struct *__switch_to(struct task_struct *,
+-	struct task_struct *);
+-#define switch_to(prev, next, last)	((last) = __switch_to((prev), (next)))
+-
+-struct thread_struct;
+-extern struct task_struct *_switch(struct thread_struct *prev,
+-				   struct thread_struct *next);
+-
+-extern unsigned int rtas_data;
+-extern int mem_init_done;	/* set on boot once kmalloc can be called */
+-extern int init_bootmem_done;	/* set once bootmem is available */
+-extern phys_addr_t memory_limit;
+-extern unsigned long klimit;
+-extern void *zalloc_maybe_bootmem(size_t size, gfp_t mask);
+-
+-extern int powersave_nap;	/* set if nap mode can be used in idle loop */
+-void cpu_idle_wait(void);
+-
+-#ifdef CONFIG_PSERIES_IDLE
+-extern void update_smt_snooze_delay(int snooze);
+-extern int pseries_notify_cpuidle_add_cpu(int cpu);
+-#else
+-static inline void update_smt_snooze_delay(int snooze) {}
+-static inline int pseries_notify_cpuidle_add_cpu(int cpu) { return 0; }
+-#endif
+-
+-/*
+- * Atomic exchange
+- *
+- * Changes the memory location '*ptr' to be val and returns
+- * the previous value stored there.
+- */
+-static __always_inline unsigned long
+-__xchg_u32(volatile void *p, unsigned long val)
+-{
+-	unsigned long prev;
+-
+-	__asm__ __volatile__(
+-	PPC_RELEASE_BARRIER
+-"1:	lwarx	%0,0,%2 \n"
+-	PPC405_ERR77(0,%2)
+-"	stwcx.	%3,0,%2 \n\
+-	bne-	1b"
+-	PPC_ACQUIRE_BARRIER
+-	: "=&r" (prev), "+m" (*(volatile unsigned int *)p)
+-	: "r" (p), "r" (val)
+-	: "cc", "memory");
+-
+-	return prev;
+-}
+-
+-/*
+- * Atomic exchange
+- *
+- * Changes the memory location '*ptr' to be val and returns
+- * the previous value stored there.
+- */
+-static __always_inline unsigned long
+-__xchg_u32_local(volatile void *p, unsigned long val)
+-{
+-	unsigned long prev;
+-
+-	__asm__ __volatile__(
+-"1:	lwarx	%0,0,%2 \n"
+-	PPC405_ERR77(0,%2)
+-"	stwcx.	%3,0,%2 \n\
+-	bne-	1b"
+-	: "=&r" (prev), "+m" (*(volatile unsigned int *)p)
+-	: "r" (p), "r" (val)
+-	: "cc", "memory");
+-
+-	return prev;
+-}
+-
+-#ifdef CONFIG_PPC64
+-static __always_inline unsigned long
+-__xchg_u64(volatile void *p, unsigned long val)
+-{
+-	unsigned long prev;
+-
+-	__asm__ __volatile__(
+-	PPC_RELEASE_BARRIER
+-"1:	ldarx	%0,0,%2 \n"
+-	PPC405_ERR77(0,%2)
+-"	stdcx.	%3,0,%2 \n\
+-	bne-	1b"
+-	PPC_ACQUIRE_BARRIER
+-	: "=&r" (prev), "+m" (*(volatile unsigned long *)p)
+-	: "r" (p), "r" (val)
+-	: "cc", "memory");
+-
+-	return prev;
+-}
+-
+-static __always_inline unsigned long
+-__xchg_u64_local(volatile void *p, unsigned long val)
+-{
+-	unsigned long prev;
+-
+-	__asm__ __volatile__(
+-"1:	ldarx	%0,0,%2 \n"
+-	PPC405_ERR77(0,%2)
+-"	stdcx.	%3,0,%2 \n\
+-	bne-	1b"
+-	: "=&r" (prev), "+m" (*(volatile unsigned long *)p)
+-	: "r" (p), "r" (val)
+-	: "cc", "memory");
+-
+-	return prev;
+-}
+-#endif
+-
+-/*
+- * This function doesn't exist, so you'll get a linker error
+- * if something tries to do an invalid xchg().
+- */
 -extern void __xchg_called_with_bad_pointer(void);
 -
--#define __xchg(ptr, x, size)				\
--({							\
--	unsigned long __xchg__res;			\
--	volatile void *__xchg_ptr = (ptr);		\
--	switch (size) {					\
--	case 4:						\
--		__xchg__res = xchg_u32(__xchg_ptr, x);	\
--		break;					\
--	case 1:						\
--		__xchg__res = xchg_u8(__xchg_ptr, x);	\
--		break;					\
--	default:					\
--		__xchg_called_with_bad_pointer();	\
--		__xchg__res = x;			\
--		break;					\
--	}						\
--							\
--	__xchg__res;					\
--})
+-static __always_inline unsigned long
+-__xchg(volatile void *ptr, unsigned long x, unsigned int size)
+-{
+-	switch (size) {
+-	case 4:
+-		return __xchg_u32(ptr, x);
+-#ifdef CONFIG_PPC64
+-	case 8:
+-		return __xchg_u64(ptr, x);
+-#endif
+-	}
+-	__xchg_called_with_bad_pointer();
+-	return x;
+-}
 -
--#define xchg(ptr,x)	\
--	((__typeof__(*(ptr)))__xchg((ptr),(unsigned long)(x), sizeof(*(ptr))))
+-static __always_inline unsigned long
+-__xchg_local(volatile void *ptr, unsigned long x, unsigned int size)
+-{
+-	switch (size) {
+-	case 4:
+-		return __xchg_u32_local(ptr, x);
+-#ifdef CONFIG_PPC64
+-	case 8:
+-		return __xchg_u64_local(ptr, x);
+-#endif
+-	}
+-	__xchg_called_with_bad_pointer();
+-	return x;
+-}
+-#define xchg(ptr,x)							     \
+-  ({									     \
+-     __typeof__(*(ptr)) _x_ = (x);					     \
+-     (__typeof__(*(ptr))) __xchg((ptr), (unsigned long)_x_, sizeof(*(ptr))); \
+-  })
+-
+-#define xchg_local(ptr,x)						     \
+-  ({									     \
+-     __typeof__(*(ptr)) _x_ = (x);					     \
+-     (__typeof__(*(ptr))) __xchg_local((ptr),				     \
+-     		(unsigned long)_x_, sizeof(*(ptr))); 			     \
+-  })
+-
+-/*
+- * Compare and exchange - if *p == old, set it to new,
+- * and return the old value of *p.
+- */
+-#define __HAVE_ARCH_CMPXCHG	1
+-
+-static __always_inline unsigned long
+-__cmpxchg_u32(volatile unsigned int *p, unsigned long old, unsigned long new)
+-{
+-	unsigned int prev;
+-
+-	__asm__ __volatile__ (
+-	PPC_RELEASE_BARRIER
+-"1:	lwarx	%0,0,%2		# __cmpxchg_u32\n\
+-	cmpw	0,%0,%3\n\
+-	bne-	2f\n"
+-	PPC405_ERR77(0,%2)
+-"	stwcx.	%4,0,%2\n\
+-	bne-	1b"
+-	PPC_ACQUIRE_BARRIER
+-	"\n\
+-2:"
+-	: "=&r" (prev), "+m" (*p)
+-	: "r" (p), "r" (old), "r" (new)
+-	: "cc", "memory");
+-
+-	return prev;
+-}
+-
+-static __always_inline unsigned long
+-__cmpxchg_u32_local(volatile unsigned int *p, unsigned long old,
+-			unsigned long new)
+-{
+-	unsigned int prev;
+-
+-	__asm__ __volatile__ (
+-"1:	lwarx	%0,0,%2		# __cmpxchg_u32\n\
+-	cmpw	0,%0,%3\n\
+-	bne-	2f\n"
+-	PPC405_ERR77(0,%2)
+-"	stwcx.	%4,0,%2\n\
+-	bne-	1b"
+-	"\n\
+-2:"
+-	: "=&r" (prev), "+m" (*p)
+-	: "r" (p), "r" (old), "r" (new)
+-	: "cc", "memory");
+-
+-	return prev;
+-}
+-
+-#ifdef CONFIG_PPC64
+-static __always_inline unsigned long
+-__cmpxchg_u64(volatile unsigned long *p, unsigned long old, unsigned long new)
+-{
+-	unsigned long prev;
+-
+-	__asm__ __volatile__ (
+-	PPC_RELEASE_BARRIER
+-"1:	ldarx	%0,0,%2		# __cmpxchg_u64\n\
+-	cmpd	0,%0,%3\n\
+-	bne-	2f\n\
+-	stdcx.	%4,0,%2\n\
+-	bne-	1b"
+-	PPC_ACQUIRE_BARRIER
+-	"\n\
+-2:"
+-	: "=&r" (prev), "+m" (*p)
+-	: "r" (p), "r" (old), "r" (new)
+-	: "cc", "memory");
+-
+-	return prev;
+-}
+-
+-static __always_inline unsigned long
+-__cmpxchg_u64_local(volatile unsigned long *p, unsigned long old,
+-			unsigned long new)
+-{
+-	unsigned long prev;
+-
+-	__asm__ __volatile__ (
+-"1:	ldarx	%0,0,%2		# __cmpxchg_u64\n\
+-	cmpd	0,%0,%3\n\
+-	bne-	2f\n\
+-	stdcx.	%4,0,%2\n\
+-	bne-	1b"
+-	"\n\
+-2:"
+-	: "=&r" (prev), "+m" (*p)
+-	: "r" (p), "r" (old), "r" (new)
+-	: "cc", "memory");
+-
+-	return prev;
+-}
+-#endif
 -
 -/* This function doesn't exist, so you'll get a linker error
-- * if something tries to do an invalid cmpxchg(). */
+-   if something tries to do an invalid cmpxchg().  */
 -extern void __cmpxchg_called_with_bad_pointer(void);
 -
--#define __HAVE_ARCH_CMPXCHG 1
--
--static inline unsigned long __cmpxchg(volatile void * ptr, unsigned long old,
--		unsigned long new, int size)
+-static __always_inline unsigned long
+-__cmpxchg(volatile void *ptr, unsigned long old, unsigned long new,
+-	  unsigned int size)
 -{
 -	switch (size) {
 -	case 4:
 -		return __cmpxchg_u32(ptr, old, new);
+-#ifdef CONFIG_PPC64
+-	case 8:
+-		return __cmpxchg_u64(ptr, old, new);
+-#endif
 -	}
 -	__cmpxchg_called_with_bad_pointer();
 -	return old;
 -}
 -
--#define cmpxchg(ptr,o,n)						 \
+-static __always_inline unsigned long
+-__cmpxchg_local(volatile void *ptr, unsigned long old, unsigned long new,
+-	  unsigned int size)
+-{
+-	switch (size) {
+-	case 4:
+-		return __cmpxchg_u32_local(ptr, old, new);
+-#ifdef CONFIG_PPC64
+-	case 8:
+-		return __cmpxchg_u64_local(ptr, old, new);
+-#endif
+-	}
+-	__cmpxchg_called_with_bad_pointer();
+-	return old;
+-}
+-
+-#define cmpxchg(ptr, o, n)						 \
 -  ({									 \
 -     __typeof__(*(ptr)) _o_ = (o);					 \
 -     __typeof__(*(ptr)) _n_ = (n);					 \
@@ -929,900 +1434,1517 @@ index 10c8b18..e2042aa 100644
 -				    (unsigned long)_n_, sizeof(*(ptr))); \
 -  })
 -
--struct pt_regs;
 -
--extern void die(const char *str, struct pt_regs *regs, long err) __attribute__ ((noreturn));
+-#define cmpxchg_local(ptr, o, n)					 \
+-  ({									 \
+-     __typeof__(*(ptr)) _o_ = (o);					 \
+-     __typeof__(*(ptr)) _n_ = (n);					 \
+-     (__typeof__(*(ptr))) __cmpxchg_local((ptr), (unsigned long)_o_,	 \
+-				    (unsigned long)_n_, sizeof(*(ptr))); \
+-  })
+-
+-#ifdef CONFIG_PPC64
+-/*
+- * We handle most unaligned accesses in hardware. On the other hand 
+- * unaligned DMA can be very expensive on some ppc64 IO chips (it does
+- * powers of 2 writes until it reaches sufficient alignment).
+- *
+- * Based on this we disable the IP header alignment in network drivers.
+- */
+-#define NET_IP_ALIGN	0
+-
+-#define cmpxchg64(ptr, o, n)						\
+-  ({									\
+-	BUILD_BUG_ON(sizeof(*(ptr)) != 8);				\
+-	cmpxchg((ptr), (o), (n));					\
+-  })
+-#define cmpxchg64_local(ptr, o, n)					\
+-  ({									\
+-	BUILD_BUG_ON(sizeof(*(ptr)) != 8);				\
+-	cmpxchg_local((ptr), (o), (n));					\
+-  })
+-#else
+-#include <asm-generic/cmpxchg-local.h>
+-#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+-#endif
+-
+-extern unsigned long arch_align_stack(unsigned long sp);
+-
+-/* Used in very early kernel initialization. */
+-extern unsigned long reloc_offset(void);
+-extern unsigned long add_reloc_offset(unsigned long);
+-extern void reloc_got2(unsigned long);
+-
+-#define PTRRELOC(x)	((typeof(x)) add_reloc_offset((unsigned long)(x)))
+-
+-extern struct dentry *powerpc_debugfs_root;
+-
+-#endif /* __KERNEL__ */
+-#endif /* _ASM_POWERPC_SYSTEM_H */
 +/* FILE TO BE DELETED. DO NOT ADD STUFF HERE! */
 +#include <asm/barrier.h>
-+#include <asm/bl_bit.h>
-+#include <asm/cache_insns.h>
 +#include <asm/cmpxchg.h>
++#include <asm/debug.h>
 +#include <asm/exec.h>
 +#include <asm/switch_to.h>
-+#include <asm/traps.h>
- void free_initmem(void);
--void free_initrd_mem(unsigned long start, unsigned long end);
--
--extern void *set_exception_table_vec(unsigned int vec, void *handler);
--
--static inline void *set_exception_table_evt(unsigned int evt, void *handler)
--{
--	return set_exception_table_vec(evt >> 5, handler);
--}
--
--/*
-- * SH-2A has both 16 and 32-bit opcodes, do lame encoding checks.
-- */
--#ifdef CONFIG_CPU_SH2A
--extern unsigned int instruction_size(unsigned int insn);
--#elif defined(CONFIG_SUPERH32)
--#define instruction_size(insn)	(2)
--#else
--#define instruction_size(insn)	(4)
--#endif
--
--void per_cpu_trap_init(void);
--void default_idle(void);
--void cpu_idle_wait(void);
--void stop_this_cpu(void *);
--
--#ifdef CONFIG_SUPERH32
--#define BUILD_TRAP_HANDLER(name)					\
--asmlinkage void name##_trap_handler(unsigned long r4, unsigned long r5,	\
--				    unsigned long r6, unsigned long r7,	\
--				    struct pt_regs __regs)
--
--#define TRAP_HANDLER_DECL				\
--	struct pt_regs *regs = RELOC_HIDE(&__regs, 0);	\
--	unsigned int vec = regs->tra;			\
--	(void)vec;
--#else
--#define BUILD_TRAP_HANDLER(name)	\
--asmlinkage void name##_trap_handler(unsigned int vec, struct pt_regs *regs)
--#define TRAP_HANDLER_DECL
--#endif
--
--BUILD_TRAP_HANDLER(address_error);
--BUILD_TRAP_HANDLER(debug);
--BUILD_TRAP_HANDLER(bug);
--BUILD_TRAP_HANDLER(breakpoint);
--BUILD_TRAP_HANDLER(singlestep);
--BUILD_TRAP_HANDLER(fpu_error);
--BUILD_TRAP_HANDLER(fpu_state_restore);
--BUILD_TRAP_HANDLER(nmi);
--
--#define arch_align_stack(x) (x)
--
--struct mem_access {
--	unsigned long (*from)(void *dst, const void __user *src, unsigned long cnt);
--	unsigned long (*to)(void __user *dst, const void *src, unsigned long cnt);
--};
--
--#ifdef CONFIG_SUPERH32
--# include "system_32.h"
--#else
--# include "system_64.h"
--#endif
--
--#endif
-diff --git a/arch/sh/include/asm/system_32.h b/arch/sh/include/asm/system_32.h
-deleted file mode 100644
-index a4ad1cd..0000000
---- a/arch/sh/include/asm/system_32.h
-+++ /dev/null
-@@ -1,236 +0,0 @@
--#ifndef __ASM_SH_SYSTEM_32_H
--#define __ASM_SH_SYSTEM_32_H
--
--#include <linux/types.h>
--#include <asm/mmu.h>
--
--#ifdef CONFIG_SH_DSP
--
--#define is_dsp_enabled(tsk)						\
--	(!!(tsk->thread.dsp_status.status & SR_DSP))
--
--#define __restore_dsp(tsk)						\
--do {									\
--	register u32 *__ts2 __asm__ ("r2") =				\
--			(u32 *)&tsk->thread.dsp_status;			\
--	__asm__ __volatile__ (						\
--		".balign 4\n\t"						\
--		"movs.l	@r2+, a0\n\t"					\
--		"movs.l	@r2+, a1\n\t"					\
--		"movs.l	@r2+, a0g\n\t"					\
--		"movs.l	@r2+, a1g\n\t"					\
--		"movs.l	@r2+, m0\n\t"					\
--		"movs.l	@r2+, m1\n\t"					\
--		"movs.l	@r2+, x0\n\t"					\
--		"movs.l	@r2+, x1\n\t"					\
--		"movs.l	@r2+, y0\n\t"					\
--		"movs.l	@r2+, y1\n\t"					\
--		"lds.l	@r2+, dsr\n\t"					\
--		"ldc.l	@r2+, rs\n\t"					\
--		"ldc.l	@r2+, re\n\t"					\
--		"ldc.l	@r2+, mod\n\t"					\
--		: : "r" (__ts2));					\
--} while (0)
--
--
--#define __save_dsp(tsk)							\
--do {									\
--	register u32 *__ts2 __asm__ ("r2") =				\
--			(u32 *)&tsk->thread.dsp_status + 14;		\
--									\
--	__asm__ __volatile__ (						\
--		".balign 4\n\t"						\
--		"stc.l	mod, @-r2\n\t"					\
--		"stc.l	re, @-r2\n\t"					\
--		"stc.l	rs, @-r2\n\t"					\
--		"sts.l	dsr, @-r2\n\t"					\
--		"movs.l	y1, @-r2\n\t"					\
--		"movs.l	y0, @-r2\n\t"					\
--		"movs.l	x1, @-r2\n\t"					\
--		"movs.l	x0, @-r2\n\t"					\
--		"movs.l	m1, @-r2\n\t"					\
--		"movs.l	m0, @-r2\n\t"					\
--		"movs.l	a1g, @-r2\n\t"					\
--		"movs.l	a0g, @-r2\n\t"					\
--		"movs.l	a1, @-r2\n\t"					\
--		"movs.l	a0, @-r2\n\t"					\
--		: : "r" (__ts2));					\
--} while (0)
--
--#else
--
--#define is_dsp_enabled(tsk)	(0)
--#define __save_dsp(tsk)		do { } while (0)
--#define __restore_dsp(tsk)	do { } while (0)
--#endif
--
--#if defined(CONFIG_CPU_SH4A)
--#define __icbi(addr)	__asm__ __volatile__ ( "icbi @%0\n\t" : : "r" (addr))
--#else
--#define __icbi(addr)	mb()
--#endif
--
--#define __ocbp(addr)	__asm__ __volatile__ ( "ocbp @%0\n\t" : : "r" (addr))
--#define __ocbi(addr)	__asm__ __volatile__ ( "ocbi @%0\n\t" : : "r" (addr))
--#define __ocbwb(addr)	__asm__ __volatile__ ( "ocbwb @%0\n\t" : : "r" (addr))
--
--struct task_struct *__switch_to(struct task_struct *prev,
--				struct task_struct *next);
--
--/*
-- *	switch_to() should switch tasks to task nr n, first
-- */
--#define switch_to(prev, next, last)				\
--do {								\
--	register u32 *__ts1 __asm__ ("r1");			\
--	register u32 *__ts2 __asm__ ("r2");			\
--	register u32 *__ts4 __asm__ ("r4");			\
--	register u32 *__ts5 __asm__ ("r5");			\
--	register u32 *__ts6 __asm__ ("r6");			\
--	register u32 __ts7 __asm__ ("r7");			\
--	struct task_struct *__last;				\
--								\
--	if (is_dsp_enabled(prev))				\
--		__save_dsp(prev);				\
--								\
--	__ts1 = (u32 *)&prev->thread.sp;			\
--	__ts2 = (u32 *)&prev->thread.pc;			\
--	__ts4 = (u32 *)prev;					\
--	__ts5 = (u32 *)next;					\
--	__ts6 = (u32 *)&next->thread.sp;			\
--	__ts7 = next->thread.pc;				\
--								\
--	__asm__ __volatile__ (					\
--		".balign 4\n\t"					\
--		"stc.l	gbr, @-r15\n\t"				\
--		"sts.l	pr, @-r15\n\t"				\
--		"mov.l	r8, @-r15\n\t"				\
--		"mov.l	r9, @-r15\n\t"				\
--		"mov.l	r10, @-r15\n\t"				\
--		"mov.l	r11, @-r15\n\t"				\
--		"mov.l	r12, @-r15\n\t"				\
--		"mov.l	r13, @-r15\n\t"				\
--		"mov.l	r14, @-r15\n\t"				\
--		"mov.l	r15, @r1\t! save SP\n\t"		\
--		"mov.l	@r6, r15\t! change to new stack\n\t"	\
--		"mova	1f, %0\n\t"				\
--		"mov.l	%0, @r2\t! save PC\n\t"			\
--		"mov.l	2f, %0\n\t"				\
--		"jmp	@%0\t! call __switch_to\n\t"		\
--		" lds	r7, pr\t!  with return to new PC\n\t"	\
--		".balign	4\n"				\
--		"2:\n\t"					\
--		".long	__switch_to\n"				\
--		"1:\n\t"					\
--		"mov.l	@r15+, r14\n\t"				\
--		"mov.l	@r15+, r13\n\t"				\
--		"mov.l	@r15+, r12\n\t"				\
--		"mov.l	@r15+, r11\n\t"				\
--		"mov.l	@r15+, r10\n\t"				\
--		"mov.l	@r15+, r9\n\t"				\
--		"mov.l	@r15+, r8\n\t"				\
--		"lds.l	@r15+, pr\n\t"				\
--		"ldc.l	@r15+, gbr\n\t"				\
--		: "=z" (__last)					\
--		: "r" (__ts1), "r" (__ts2), "r" (__ts4),	\
--		  "r" (__ts5), "r" (__ts6), "r" (__ts7)		\
--		: "r3", "t");					\
--								\
--	last = __last;						\
--} while (0)
--
--#define finish_arch_switch(prev)				\
--do {								\
--	if (is_dsp_enabled(prev))				\
--		__restore_dsp(prev);				\
--} while (0)
--
--#ifdef CONFIG_CPU_HAS_SR_RB
--#define lookup_exception_vector()	\
--({					\
--	unsigned long _vec;		\
--					\
--	__asm__ __volatile__ (		\
--		"stc r2_bank, %0\n\t"	\
--		: "=r" (_vec)		\
--	);				\
--					\
--	_vec;				\
--})
--#else
--#define lookup_exception_vector()	\
--({					\
--	unsigned long _vec;		\
--	__asm__ __volatile__ (		\
--		"mov r4, %0\n\t"	\
--		: "=r" (_vec)		\
--	);				\
--					\
--	_vec;				\
--})
--#endif
--
--static inline reg_size_t register_align(void *val)
--{
--	return (unsigned long)(signed long)val;
--}
--
--int handle_unaligned_access(insn_size_t instruction, struct pt_regs *regs,
--			    struct mem_access *ma, int, unsigned long address);
--
--static inline void trigger_address_error(void)
--{
--	__asm__ __volatile__ (
--		"ldc %0, sr\n\t"
--		"mov.l @%1, %0"
--		:
--		: "r" (0x10000000), "r" (0x80000001)
--	);
--}
--
--asmlinkage void do_address_error(struct pt_regs *regs,
--				 unsigned long writeaccess,
--				 unsigned long address);
--asmlinkage void do_divide_error(unsigned long r4, unsigned long r5,
--				unsigned long r6, unsigned long r7,
--				struct pt_regs __regs);
--asmlinkage void do_reserved_inst(unsigned long r4, unsigned long r5,
--				unsigned long r6, unsigned long r7,
--				struct pt_regs __regs);
--asmlinkage void do_illegal_slot_inst(unsigned long r4, unsigned long r5,
--				unsigned long r6, unsigned long r7,
--				struct pt_regs __regs);
--asmlinkage void do_exception_error(unsigned long r4, unsigned long r5,
--				   unsigned long r6, unsigned long r7,
--				   struct pt_regs __regs);
--
--static inline void set_bl_bit(void)
--{
--	unsigned long __dummy0, __dummy1;
--
--	__asm__ __volatile__ (
--		"stc	sr, %0\n\t"
--		"or	%2, %0\n\t"
--		"and	%3, %0\n\t"
--		"ldc	%0, sr\n\t"
--		: "=&r" (__dummy0), "=r" (__dummy1)
--		: "r" (0x10000000), "r" (0xffffff0f)
--		: "memory"
--	);
--}
--
--static inline void clear_bl_bit(void)
--{
--	unsigned long __dummy0, __dummy1;
--
--	__asm__ __volatile__ (
--		"stc	sr, %0\n\t"
--		"and	%2, %0\n\t"
--		"ldc	%0, sr\n\t"
--		: "=&r" (__dummy0), "=r" (__dummy1)
--		: "1" (~0x10000000)
--		: "memory"
--	);
--}
--
--#endif /* __ASM_SH_SYSTEM_32_H */
-diff --git a/arch/sh/include/asm/system_64.h b/arch/sh/include/asm/system_64.h
-deleted file mode 100644
-index 8593bc8d..0000000
---- a/arch/sh/include/asm/system_64.h
-+++ /dev/null
-@@ -1,79 +0,0 @@
--#ifndef __ASM_SH_SYSTEM_64_H
--#define __ASM_SH_SYSTEM_64_H
--
--/*
-- * include/asm-sh/system_64.h
-- *
-- * Copyright (C) 2000, 2001  Paolo Alberelli
-- * Copyright (C) 2003  Paul Mundt
-- * Copyright (C) 2004  Richard Curnow
-- *
-- * This file is subject to the terms and conditions of the GNU General Public
-- * License.  See the file "COPYING" in the main directory of this archive
-- * for more details.
-- */
--#include <cpu/registers.h>
--#include <asm/processor.h>
--
--/*
-- *	switch_to() should switch tasks to task nr n, first
-- */
--struct thread_struct;
--struct task_struct *sh64_switch_to(struct task_struct *prev,
--				   struct thread_struct *prev_thread,
--				   struct task_struct *next,
--				   struct thread_struct *next_thread);
--
--#define switch_to(prev,next,last)				\
--do {								\
--	if (last_task_used_math != next) {			\
--		struct pt_regs *regs = next->thread.uregs;	\
--		if (regs) regs->sr |= SR_FD;			\
--	}							\
--	last = sh64_switch_to(prev, &prev->thread, next,	\
--			      &next->thread);			\
--} while (0)
--
--#define __icbi(addr)	__asm__ __volatile__ ( "icbi %0, 0\n\t" : : "r" (addr))
--#define __ocbp(addr)	__asm__ __volatile__ ( "ocbp %0, 0\n\t" : : "r" (addr))
--#define __ocbi(addr)	__asm__ __volatile__ ( "ocbi %0, 0\n\t" : : "r" (addr))
--#define __ocbwb(addr)	__asm__ __volatile__ ( "ocbwb %0, 0\n\t" : : "r" (addr))
--
--static inline reg_size_t register_align(void *val)
--{
--	return (unsigned long long)(signed long long)(signed long)val;
--}
--
--extern void phys_stext(void);
--
--static inline void trigger_address_error(void)
--{
--	phys_stext();
--}
--
--#define SR_BL_LL	0x0000000010000000LL
--
--static inline void set_bl_bit(void)
--{
--	unsigned long long __dummy0, __dummy1 = SR_BL_LL;
--
--	__asm__ __volatile__("getcon	" __SR ", %0\n\t"
--			     "or	%0, %1, %0\n\t"
--			     "putcon	%0, " __SR "\n\t"
--			     : "=&r" (__dummy0)
--			     : "r" (__dummy1));
--
--}
--
--static inline void clear_bl_bit(void)
--{
--	unsigned long long __dummy0, __dummy1 = ~SR_BL_LL;
--
--	__asm__ __volatile__("getcon	" __SR ", %0\n\t"
--			     "and	%0, %1, %0\n\t"
--			     "putcon	%0, " __SR "\n\t"
--			     : "=&r" (__dummy0)
--			     : "r" (__dummy1));
--}
--
--#endif /* __ASM_SH_SYSTEM_64_H */
-diff --git a/arch/sh/include/asm/traps.h b/arch/sh/include/asm/traps.h
-new file mode 100644
-index 0000000..afd9df8
---- /dev/null
-+++ b/arch/sh/include/asm/traps.h
-@@ -0,0 +1,21 @@
-+#ifndef __ASM_SH_TRAPS_H
-+#define __ASM_SH_TRAPS_H
-+
-+#include <linux/compiler.h>
-+
-+#ifdef CONFIG_SUPERH32
-+# include "traps_32.h"
-+#else
-+# include "traps_64.h"
-+#endif
-+
-+BUILD_TRAP_HANDLER(address_error);
-+BUILD_TRAP_HANDLER(debug);
-+BUILD_TRAP_HANDLER(bug);
-+BUILD_TRAP_HANDLER(breakpoint);
-+BUILD_TRAP_HANDLER(singlestep);
-+BUILD_TRAP_HANDLER(fpu_error);
-+BUILD_TRAP_HANDLER(fpu_state_restore);
-+BUILD_TRAP_HANDLER(nmi);
-+
-+#endif /* __ASM_SH_TRAPS_H */
-diff --git a/arch/sh/include/asm/traps_32.h b/arch/sh/include/asm/traps_32.h
-new file mode 100644
-index 0000000..cfd55ff
---- /dev/null
-+++ b/arch/sh/include/asm/traps_32.h
-@@ -0,0 +1,68 @@
-+#ifndef __ASM_SH_TRAPS_32_H
-+#define __ASM_SH_TRAPS_32_H
-+
-+#include <linux/types.h>
-+#include <asm/mmu.h>
-+
-+#ifdef CONFIG_CPU_HAS_SR_RB
-+#define lookup_exception_vector()	\
-+({					\
-+	unsigned long _vec;		\
-+					\
-+	__asm__ __volatile__ (		\
-+		"stc r2_bank, %0\n\t"	\
-+		: "=r" (_vec)		\
-+	);				\
-+					\
-+	_vec;				\
-+})
-+#else
-+#define lookup_exception_vector()	\
-+({					\
-+	unsigned long _vec;		\
-+	__asm__ __volatile__ (		\
-+		"mov r4, %0\n\t"	\
-+		: "=r" (_vec)		\
-+	);				\
-+					\
-+	_vec;				\
-+})
-+#endif
-+
-+static inline void trigger_address_error(void)
-+{
-+	__asm__ __volatile__ (
-+		"ldc %0, sr\n\t"
-+		"mov.l @%1, %0"
-+		:
-+		: "r" (0x10000000), "r" (0x80000001)
-+	);
-+}
-+
-+asmlinkage void do_address_error(struct pt_regs *regs,
-+				 unsigned long writeaccess,
-+				 unsigned long address);
-+asmlinkage void do_divide_error(unsigned long r4, unsigned long r5,
-+				unsigned long r6, unsigned long r7,
-+				struct pt_regs __regs);
-+asmlinkage void do_reserved_inst(unsigned long r4, unsigned long r5,
-+				unsigned long r6, unsigned long r7,
-+				struct pt_regs __regs);
-+asmlinkage void do_illegal_slot_inst(unsigned long r4, unsigned long r5,
-+				unsigned long r6, unsigned long r7,
-+				struct pt_regs __regs);
-+asmlinkage void do_exception_error(unsigned long r4, unsigned long r5,
-+				   unsigned long r6, unsigned long r7,
-+				   struct pt_regs __regs);
-+
-+#define BUILD_TRAP_HANDLER(name)					\
-+asmlinkage void name##_trap_handler(unsigned long r4, unsigned long r5,	\
-+				    unsigned long r6, unsigned long r7,	\
-+				    struct pt_regs __regs)
-+
-+#define TRAP_HANDLER_DECL				\
-+	struct pt_regs *regs = RELOC_HIDE(&__regs, 0);	\
-+	unsigned int vec = regs->tra;			\
-+	(void)vec;
-+
-+#endif /* __ASM_SH_TRAPS_32_H */
-diff --git a/arch/sh/include/asm/traps_64.h b/arch/sh/include/asm/traps_64.h
-new file mode 100644
-index 0000000..c52d7f9
---- /dev/null
-+++ b/arch/sh/include/asm/traps_64.h
-@@ -0,0 +1,24 @@
-+/*
-+ * Copyright (C) 2000, 2001  Paolo Alberelli
-+ * Copyright (C) 2003  Paul Mundt
-+ * Copyright (C) 2004  Richard Curnow
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+#ifndef __ASM_SH_TRAPS_64_H
-+#define __ASM_SH_TRAPS_64_H
-+
-+extern void phys_stext(void);
-+
-+static inline void trigger_address_error(void)
-+{
-+	phys_stext();
-+}
-+
-+#define BUILD_TRAP_HANDLER(name)	\
-+asmlinkage void name##_trap_handler(unsigned int vec, struct pt_regs *regs)
-+#define TRAP_HANDLER_DECL
-+
-+#endif /* __ASM_SH_TRAPS_64_H */
-diff --git a/arch/sh/include/asm/uaccess.h b/arch/sh/include/asm/uaccess.h
-index 075848f..050f221 100644
---- a/arch/sh/include/asm/uaccess.h
-+++ b/arch/sh/include/asm/uaccess.h
-@@ -254,5 +254,19 @@ int fixup_exception(struct pt_regs *regs);
- unsigned long search_exception_table(unsigned long addr);
- const struct exception_table_entry *search_exception_tables(unsigned long addr);
- 
-+extern void *set_exception_table_vec(unsigned int vec, void *handler);
-+
-+static inline void *set_exception_table_evt(unsigned int evt, void *handler)
-+{
-+	return set_exception_table_vec(evt >> 5, handler);
-+}
-+
-+struct mem_access {
-+	unsigned long (*from)(void *dst, const void __user *src, unsigned long cnt);
-+	unsigned long (*to)(void __user *dst, const void *src, unsigned long cnt);
-+};
-+
-+int handle_unaligned_access(insn_size_t instruction, struct pt_regs *regs,
-+			    struct mem_access *ma, int, unsigned long address);
- 
- #endif /* __ASM_SH_UACCESS_H */
-diff --git a/arch/sh/kernel/cpu/init.c b/arch/sh/kernel/cpu/init.c
-index fac742e..61a07da 100644
---- a/arch/sh/kernel/cpu/init.c
-+++ b/arch/sh/kernel/cpu/init.c
-@@ -18,13 +18,13 @@
+diff --git a/arch/powerpc/kernel/align.c b/arch/powerpc/kernel/align.c
+index 8184ee9..ee5b690 100644
+--- a/arch/powerpc/kernel/align.c
++++ b/arch/powerpc/kernel/align.c
+@@ -21,10 +21,10 @@
+ #include <linux/mm.h>
  #include <asm/processor.h>
  #include <asm/uaccess.h>
- #include <asm/page.h>
 -#include <asm/system.h>
- #include <asm/cacheflush.h>
  #include <asm/cache.h>
- #include <asm/elf.h>
- #include <asm/io.h>
- #include <asm/smp.h>
- #include <asm/sh_bios.h>
-+#include <asm/setup.h>
- 
- #ifdef CONFIG_SH_FPU
- #define cpu_has_fpu	1
-diff --git a/arch/sh/kernel/cpu/irq/imask.c b/arch/sh/kernel/cpu/irq/imask.c
-index 39b6a24..e7f1745 100644
---- a/arch/sh/kernel/cpu/irq/imask.c
-+++ b/arch/sh/kernel/cpu/irq/imask.c
-@@ -19,7 +19,6 @@
- #include <linux/cache.h>
- #include <linux/irq.h>
- #include <linux/bitmap.h>
--#include <asm/system.h>
- #include <asm/irq.h>
- 
- /* Bitmap of IRQ masked */
-diff --git a/arch/sh/kernel/cpu/sh2a/opcode_helper.c b/arch/sh/kernel/cpu/sh2a/opcode_helper.c
-index 9704b79..72aa61c 100644
---- a/arch/sh/kernel/cpu/sh2a/opcode_helper.c
-+++ b/arch/sh/kernel/cpu/sh2a/opcode_helper.c
-@@ -10,7 +10,6 @@
-  * for more details.
-  */
- #include <linux/kernel.h>
--#include <asm/system.h>
- 
- /*
-  * Instructions on SH are generally fixed at 16-bits, however, SH-2A
-diff --git a/arch/sh/kernel/cpu/sh4/fpu.c b/arch/sh/kernel/cpu/sh4/fpu.c
-index 447482d..e74cd6c 100644
---- a/arch/sh/kernel/cpu/sh4/fpu.c
-+++ b/arch/sh/kernel/cpu/sh4/fpu.c
-@@ -15,7 +15,6 @@
- #include <linux/io.h>
- #include <cpu/fpu.h>
- #include <asm/processor.h>
--#include <asm/system.h>
- #include <asm/fpu.h>
- 
- /* The PR (precision) bit in the FP Status Register must be clear when
-diff --git a/arch/sh/kernel/hw_breakpoint.c b/arch/sh/kernel/hw_breakpoint.c
-index efae6ab..f917376 100644
---- a/arch/sh/kernel/hw_breakpoint.c
-+++ b/arch/sh/kernel/hw_breakpoint.c
-@@ -22,6 +22,7 @@
- #include <asm/hw_breakpoint.h>
- #include <asm/mmu_context.h>
- #include <asm/ptrace.h>
-+#include <asm/traps.h>
- 
- /*
-  * Stores the breakpoints currently in use on each breakpoint address
-diff --git a/arch/sh/kernel/idle.c b/arch/sh/kernel/idle.c
-index 406508d..b7c8f68 100644
---- a/arch/sh/kernel/idle.c
-+++ b/arch/sh/kernel/idle.c
-@@ -18,9 +18,9 @@
- #include <linux/smp.h>
- #include <linux/cpuidle.h>
- #include <asm/pgalloc.h>
--#include <asm/system.h>
- #include <linux/atomic.h>
- #include <asm/smp.h>
-+#include <asm/bl_bit.h>
- 
- void (*pm_idle)(void);
- 
-diff --git a/arch/sh/kernel/io_trapped.c b/arch/sh/kernel/io_trapped.c
-index 0f62f46..c0a9761 100644
---- a/arch/sh/kernel/io_trapped.c
-+++ b/arch/sh/kernel/io_trapped.c
-@@ -15,7 +15,6 @@
- #include <linux/vmalloc.h>
- #include <linux/module.h>
- #include <linux/init.h>
--#include <asm/system.h>
- #include <asm/mmu_context.h>
- #include <asm/uaccess.h>
- #include <asm/io.h>
-diff --git a/arch/sh/kernel/process_32.c b/arch/sh/kernel/process_32.c
-index 7ec6651..f72e3a9 100644
---- a/arch/sh/kernel/process_32.c
-+++ b/arch/sh/kernel/process_32.c
-@@ -24,7 +24,6 @@
- #include <linux/prefetch.h>
- #include <asm/uaccess.h>
- #include <asm/mmu_context.h>
--#include <asm/system.h>
- #include <asm/fpu.h>
- #include <asm/syscalls.h>
- 
-diff --git a/arch/sh/kernel/process_64.c b/arch/sh/kernel/process_64.c
-index cbd4e4b..4264583 100644
---- a/arch/sh/kernel/process_64.c
-+++ b/arch/sh/kernel/process_64.c
-@@ -30,6 +30,7 @@
- #include <asm/pgtable.h>
- #include <asm/mmu_context.h>
- #include <asm/fpu.h>
+ #include <asm/cputable.h>
+ #include <asm/emulated_ops.h>
 +#include <asm/switch_to.h>
  
- struct task_struct *last_task_used_math = NULL;
+ struct aligninfo {
+ 	unsigned char len;
+diff --git a/arch/powerpc/kernel/cputable.c b/arch/powerpc/kernel/cputable.c
+index 81db9e2..ff381f4 100644
+--- a/arch/powerpc/kernel/cputable.c
++++ b/arch/powerpc/kernel/cputable.c
+@@ -20,6 +20,7 @@
+ #include <asm/cputable.h>
+ #include <asm/prom.h>		/* for PTRRELOC on ARCH=ppc */
+ #include <asm/mmu.h>
++#include <asm/setup.h>
  
-diff --git a/arch/sh/kernel/ptrace_32.c b/arch/sh/kernel/ptrace_32.c
-index a3e6515..9698671 100644
---- a/arch/sh/kernel/ptrace_32.c
-+++ b/arch/sh/kernel/ptrace_32.c
-@@ -28,7 +28,6 @@
- #include <linux/hw_breakpoint.h>
- #include <asm/uaccess.h>
- #include <asm/pgtable.h>
+ struct cpu_spec* cur_cpu_spec = NULL;
+ EXPORT_SYMBOL(cur_cpu_spec);
+diff --git a/arch/powerpc/kernel/crash.c b/arch/powerpc/kernel/crash.c
+index abef751..fdcd8f5 100644
+--- a/arch/powerpc/kernel/crash.c
++++ b/arch/powerpc/kernel/crash.c
+@@ -27,8 +27,8 @@
+ #include <asm/kdump.h>
+ #include <asm/prom.h>
+ #include <asm/smp.h>
+-#include <asm/system.h>
+ #include <asm/setjmp.h>
++#include <asm/debug.h>
+ 
+ /*
+  * The primary CPU waits a while for all secondary CPUs to enter. This is to
+diff --git a/arch/powerpc/kernel/idle.c b/arch/powerpc/kernel/idle.c
+index 0a48bf5..b84d0a4 100644
+--- a/arch/powerpc/kernel/idle.c
++++ b/arch/powerpc/kernel/idle.c
+@@ -26,7 +26,6 @@
+ #include <linux/sysctl.h>
+ #include <linux/tick.h>
+ 
 -#include <asm/system.h>
  #include <asm/processor.h>
- #include <asm/mmu_context.h>
- #include <asm/syscalls.h>
-diff --git a/arch/sh/kernel/ptrace_64.c b/arch/sh/kernel/ptrace_64.c
-index 3d0080b..bc81e07 100644
---- a/arch/sh/kernel/ptrace_64.c
-+++ b/arch/sh/kernel/ptrace_64.c
-@@ -34,11 +34,11 @@
+ #include <asm/cputable.h>
+ #include <asm/time.h>
+diff --git a/arch/powerpc/kernel/irq.c b/arch/powerpc/kernel/irq.c
+index 01e2877..422d87c 100644
+--- a/arch/powerpc/kernel/irq.c
++++ b/arch/powerpc/kernel/irq.c
+@@ -57,7 +57,6 @@
+ #include <linux/of_irq.h>
+ 
+ #include <asm/uaccess.h>
+-#include <asm/system.h>
  #include <asm/io.h>
+ #include <asm/pgtable.h>
+ #include <asm/irq.h>
+diff --git a/arch/powerpc/kernel/kprobes.c b/arch/powerpc/kernel/kprobes.c
+index bc47352..e88c643 100644
+--- a/arch/powerpc/kernel/kprobes.c
++++ b/arch/powerpc/kernel/kprobes.c
+@@ -35,7 +35,6 @@
+ #include <asm/cacheflush.h>
+ #include <asm/sstep.h>
  #include <asm/uaccess.h>
+-#include <asm/system.h>
+ 
+ #ifdef CONFIG_PPC_ADV_DEBUG_REGS
+ #define MSR_SINGLESTEP	(MSR_DE)
+diff --git a/arch/powerpc/kernel/lparcfg.c b/arch/powerpc/kernel/lparcfg.c
+index 578f35f..4190e80 100644
+--- a/arch/powerpc/kernel/lparcfg.c
++++ b/arch/powerpc/kernel/lparcfg.c
+@@ -31,7 +31,6 @@
+ #include <asm/hvcall.h>
+ #include <asm/firmware.h>
+ #include <asm/rtas.h>
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/prom.h>
+ #include <asm/vdso_datapage.h>
+diff --git a/arch/powerpc/kernel/ppc_ksyms.c b/arch/powerpc/kernel/ppc_ksyms.c
+index d3114a7..786a270 100644
+--- a/arch/powerpc/kernel/ppc_ksyms.c
++++ b/arch/powerpc/kernel/ppc_ksyms.c
+@@ -26,7 +26,6 @@
+ #include <linux/cuda.h>
+ #include <linux/pmu.h>
+ #include <asm/prom.h>
+-#include <asm/system.h>
+ #include <asm/pci-bridge.h>
+ #include <asm/irq.h>
+ #include <asm/pmac_feature.h>
+@@ -43,6 +42,7 @@
+ #include <asm/signal.h>
+ #include <asm/dcr.h>
+ #include <asm/ftrace.h>
++#include <asm/switch_to.h>
+ 
+ #ifdef CONFIG_PPC32
+ extern void transfer_to_handler(void);
+diff --git a/arch/powerpc/kernel/process.c b/arch/powerpc/kernel/process.c
+index d817ab0..bb67db0 100644
+--- a/arch/powerpc/kernel/process.c
++++ b/arch/powerpc/kernel/process.c
+@@ -41,7 +41,6 @@
+ 
+ #include <asm/pgtable.h>
+ #include <asm/uaccess.h>
+-#include <asm/system.h>
+ #include <asm/io.h>
+ #include <asm/processor.h>
+ #include <asm/mmu.h>
+@@ -49,6 +48,8 @@
+ #include <asm/machdep.h>
+ #include <asm/time.h>
+ #include <asm/syscalls.h>
++#include <asm/switch_to.h>
++#include <asm/debug.h>
+ #ifdef CONFIG_PPC64
+ #include <asm/firmware.h>
+ #endif
+diff --git a/arch/powerpc/kernel/prom.c b/arch/powerpc/kernel/prom.c
+index abe405d..7f4eb14 100644
+--- a/arch/powerpc/kernel/prom.c
++++ b/arch/powerpc/kernel/prom.c
+@@ -41,7 +41,6 @@
+ #include <asm/io.h>
+ #include <asm/kdump.h>
+ #include <asm/smp.h>
+-#include <asm/system.h>
+ #include <asm/mmu.h>
+ #include <asm/paca.h>
+ #include <asm/pgtable.h>
+diff --git a/arch/powerpc/kernel/prom_init.c b/arch/powerpc/kernel/prom_init.c
+index eca626e..ba30059 100644
+--- a/arch/powerpc/kernel/prom_init.c
++++ b/arch/powerpc/kernel/prom_init.c
+@@ -35,7 +35,6 @@
+ #include <asm/irq.h>
+ #include <asm/io.h>
+ #include <asm/smp.h>
+-#include <asm/system.h>
+ #include <asm/mmu.h>
+ #include <asm/pgtable.h>
+ #include <asm/pci.h>
+diff --git a/arch/powerpc/kernel/ptrace.c b/arch/powerpc/kernel/ptrace.c
+index 5b43325..8d8e028 100644
+--- a/arch/powerpc/kernel/ptrace.c
++++ b/arch/powerpc/kernel/ptrace.c
+@@ -36,7 +36,7 @@
+ #include <asm/uaccess.h>
+ #include <asm/page.h>
  #include <asm/pgtable.h>
 -#include <asm/system.h>
- #include <asm/processor.h>
- #include <asm/mmu_context.h>
- #include <asm/syscalls.h>
- #include <asm/fpu.h>
-+#include <asm/traps.h>
++#include <asm/switch_to.h>
  
  #define CREATE_TRACE_POINTS
  #include <trace/events/syscalls.h>
-diff --git a/arch/sh/kernel/reboot.c b/arch/sh/kernel/reboot.c
-index ca6a5ca..04afe5b 100644
---- a/arch/sh/kernel/reboot.c
-+++ b/arch/sh/kernel/reboot.c
-@@ -8,8 +8,8 @@
- #endif
- #include <asm/addrspace.h>
- #include <asm/reboot.h>
--#include <asm/system.h>
- #include <asm/tlbflush.h>
-+#include <asm/traps.h>
- 
- void (*pm_power_off)(void);
- EXPORT_SYMBOL(pm_power_off);
-diff --git a/arch/sh/kernel/signal_32.c b/arch/sh/kernel/signal_32.c
-index a7a55ed..0bc5886 100644
---- a/arch/sh/kernel/signal_32.c
-+++ b/arch/sh/kernel/signal_32.c
-@@ -25,7 +25,6 @@
- #include <linux/freezer.h>
- #include <linux/io.h>
- #include <linux/tracehook.h>
--#include <asm/system.h>
- #include <asm/ucontext.h>
+diff --git a/arch/powerpc/kernel/ptrace32.c b/arch/powerpc/kernel/ptrace32.c
+index 69c4be9..469349d 100644
+--- a/arch/powerpc/kernel/ptrace32.c
++++ b/arch/powerpc/kernel/ptrace32.c
+@@ -32,7 +32,7 @@
  #include <asm/uaccess.h>
+ #include <asm/page.h>
  #include <asm/pgtable.h>
-diff --git a/arch/sh/kernel/smp.c b/arch/sh/kernel/smp.c
-index f624174..a17a14d 100644
---- a/arch/sh/kernel/smp.c
-+++ b/arch/sh/kernel/smp.c
-@@ -23,7 +23,6 @@
- #include <linux/sched.h>
- #include <linux/atomic.h>
- #include <asm/processor.h>
 -#include <asm/system.h>
- #include <asm/mmu_context.h>
- #include <asm/smp.h>
- #include <asm/cacheflush.h>
-diff --git a/arch/sh/kernel/traps.c b/arch/sh/kernel/traps.c
-index 0830c2a..a87e58a 100644
---- a/arch/sh/kernel/traps.c
-+++ b/arch/sh/kernel/traps.c
-@@ -7,7 +7,7 @@
- #include <linux/uaccess.h>
- #include <linux/hardirq.h>
- #include <asm/unwinder.h>
--#include <asm/system.h>
-+#include <asm/traps.h>
- 
- #ifdef CONFIG_GENERIC_BUG
- static void handle_BUG(struct pt_regs *regs)
-diff --git a/arch/sh/kernel/traps_32.c b/arch/sh/kernel/traps_32.c
-index 7bbef95..a37175d 100644
---- a/arch/sh/kernel/traps_32.c
-+++ b/arch/sh/kernel/traps_32.c
-@@ -27,10 +27,11 @@
- #include <linux/sysfs.h>
- #include <linux/uaccess.h>
- #include <linux/perf_event.h>
--#include <asm/system.h>
- #include <asm/alignment.h>
- #include <asm/fpu.h>
- #include <asm/kprobes.h>
-+#include <asm/traps.h>
-+#include <asm/bl_bit.h>
- 
- #ifdef CONFIG_CPU_SH2
- # define TRAP_RESERVED_INST	4
-diff --git a/arch/sh/kernel/traps_64.c b/arch/sh/kernel/traps_64.c
-index cd3a404..6c04860 100644
---- a/arch/sh/kernel/traps_64.c
-+++ b/arch/sh/kernel/traps_64.c
-@@ -25,7 +25,6 @@
- #include <linux/sysctl.h>
- #include <linux/module.h>
- #include <linux/perf_event.h>
--#include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/io.h>
- #include <linux/atomic.h>
-diff --git a/arch/sh/math-emu/math.c b/arch/sh/math-emu/math.c
-index 9771952..b876780 100644
---- a/arch/sh/math-emu/math.c
-+++ b/arch/sh/math-emu/math.c
-@@ -14,7 +14,6 @@
- #include <linux/signal.h>
- #include <linux/perf_event.h>
- 
--#include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/processor.h>
- #include <asm/io.h>
-diff --git a/arch/sh/mm/fault_32.c b/arch/sh/mm/fault_32.c
-index 7bebd04..324eef9 100644
---- a/arch/sh/mm/fault_32.c
-+++ b/arch/sh/mm/fault_32.c
-@@ -17,9 +17,9 @@
- #include <linux/kprobes.h>
- #include <linux/perf_event.h>
- #include <asm/io_trapped.h>
--#include <asm/system.h>
- #include <asm/mmu_context.h>
- #include <asm/tlbflush.h>
-+#include <asm/traps.h>
- 
- static inline int notify_page_fault(struct pt_regs *regs, int trap)
- {
-diff --git a/arch/sh/mm/fault_64.c b/arch/sh/mm/fault_64.c
-index 2b356ce..44a3410 100644
---- a/arch/sh/mm/fault_64.c
-+++ b/arch/sh/mm/fault_64.c
-@@ -33,7 +33,6 @@
- #include <linux/mm.h>
- #include <linux/smp.h>
- #include <linux/interrupt.h>
--#include <asm/system.h>
- #include <asm/tlb.h>
- #include <asm/io.h>
- #include <asm/uaccess.h>
-diff --git a/arch/sh/mm/flush-sh4.c b/arch/sh/mm/flush-sh4.c
-index cef4026..75a17f5 100644
---- a/arch/sh/mm/flush-sh4.c
-+++ b/arch/sh/mm/flush-sh4.c
-@@ -1,6 +1,7 @@
- #include <linux/mm.h>
- #include <asm/mmu_context.h>
- #include <asm/cacheflush.h>
-+#include <asm/traps.h>
++#include <asm/switch_to.h>
  
  /*
-  * Write back the dirty D-caches, but not invalidate them.
-diff --git a/arch/sh/mm/pmb.c b/arch/sh/mm/pmb.c
-index fad52f1..7160c9f 100644
---- a/arch/sh/mm/pmb.c
-+++ b/arch/sh/mm/pmb.c
-@@ -25,7 +25,6 @@
- #include <linux/vmalloc.h>
+  * does not yet catch signals sent when the child dies.
+diff --git a/arch/powerpc/kernel/rtas.c b/arch/powerpc/kernel/rtas.c
+index 9f843cd..3dc6799 100644
+--- a/arch/powerpc/kernel/rtas.c
++++ b/arch/powerpc/kernel/rtas.c
+@@ -33,7 +33,6 @@
+ #include <asm/firmware.h>
+ #include <asm/page.h>
+ #include <asm/param.h>
+-#include <asm/system.h>
+ #include <asm/delay.h>
+ #include <asm/uaccess.h>
+ #include <asm/udbg.h>
+diff --git a/arch/powerpc/kernel/setup-common.c b/arch/powerpc/kernel/setup-common.c
+index 77bb77d..9a25543 100644
+--- a/arch/powerpc/kernel/setup-common.c
++++ b/arch/powerpc/kernel/setup-common.c
+@@ -51,7 +51,6 @@
+ #include <asm/btext.h>
+ #include <asm/nvram.h>
+ #include <asm/setup.h>
+-#include <asm/system.h>
+ #include <asm/rtas.h>
+ #include <asm/iommu.h>
+ #include <asm/serial.h>
+diff --git a/arch/powerpc/kernel/setup_32.c b/arch/powerpc/kernel/setup_32.c
+index ac76108..9825f29 100644
+--- a/arch/powerpc/kernel/setup_32.c
++++ b/arch/powerpc/kernel/setup_32.c
+@@ -30,7 +30,6 @@
+ #include <asm/btext.h>
+ #include <asm/machdep.h>
+ #include <asm/uaccess.h>
+-#include <asm/system.h>
+ #include <asm/pmac_feature.h>
+ #include <asm/sections.h>
+ #include <asm/nvram.h>
+diff --git a/arch/powerpc/kernel/setup_64.c b/arch/powerpc/kernel/setup_64.c
+index 4cb8f1e..6d639b2 100644
+--- a/arch/powerpc/kernel/setup_64.c
++++ b/arch/powerpc/kernel/setup_64.c
+@@ -52,7 +52,6 @@
+ #include <asm/btext.h>
+ #include <asm/nvram.h>
+ #include <asm/setup.h>
+-#include <asm/system.h>
+ #include <asm/rtas.h>
+ #include <asm/iommu.h>
+ #include <asm/serial.h>
+diff --git a/arch/powerpc/kernel/signal.c b/arch/powerpc/kernel/signal.c
+index ac6e437..d9e9ca9 100644
+--- a/arch/powerpc/kernel/signal.c
++++ b/arch/powerpc/kernel/signal.c
+@@ -15,6 +15,7 @@
+ #include <asm/hw_breakpoint.h>
+ #include <asm/uaccess.h>
+ #include <asm/unistd.h>
++#include <asm/debug.h>
+ 
+ #include "signal.h"
+ 
+diff --git a/arch/powerpc/kernel/signal_32.c b/arch/powerpc/kernel/signal_32.c
+index 836a5a1..6d10f8c 100644
+--- a/arch/powerpc/kernel/signal_32.c
++++ b/arch/powerpc/kernel/signal_32.c
+@@ -43,6 +43,7 @@
+ #include <asm/syscalls.h>
+ #include <asm/sigcontext.h>
+ #include <asm/vdso.h>
++#include <asm/switch_to.h>
+ #ifdef CONFIG_PPC64
+ #include "ppc32.h"
+ #include <asm/unistd.h>
+diff --git a/arch/powerpc/kernel/signal_64.c b/arch/powerpc/kernel/signal_64.c
+index a50b5ec..2692efd 100644
+--- a/arch/powerpc/kernel/signal_64.c
++++ b/arch/powerpc/kernel/signal_64.c
+@@ -33,6 +33,7 @@
  #include <asm/cacheflush.h>
- #include <asm/sizes.h>
+ #include <asm/syscalls.h>
+ #include <asm/vdso.h>
++#include <asm/switch_to.h>
+ 
+ #include "signal.h"
+ 
+diff --git a/arch/powerpc/kernel/smp.c b/arch/powerpc/kernel/smp.c
+index 46695fe..d9f9441 100644
+--- a/arch/powerpc/kernel/smp.c
++++ b/arch/powerpc/kernel/smp.c
+@@ -43,12 +43,12 @@
+ #include <asm/machdep.h>
+ #include <asm/cputhreads.h>
+ #include <asm/cputable.h>
+-#include <asm/system.h>
+ #include <asm/mpic.h>
+ #include <asm/vdso_datapage.h>
+ #ifdef CONFIG_PPC64
+ #include <asm/paca.h>
+ #endif
++#include <asm/debug.h>
+ 
+ #ifdef DEBUG
+ #include <asm/udbg.h>
+diff --git a/arch/powerpc/kernel/softemu8xx.c b/arch/powerpc/kernel/softemu8xx.c
+index af0e829..29b2f81 100644
+--- a/arch/powerpc/kernel/softemu8xx.c
++++ b/arch/powerpc/kernel/softemu8xx.c
+@@ -26,7 +26,6 @@
+ 
+ #include <asm/pgtable.h>
+ #include <asm/uaccess.h>
+-#include <asm/system.h>
+ #include <asm/io.h>
+ 
+ /* Eventually we may need a look-up table, but this works for now.
+diff --git a/arch/powerpc/kernel/swsusp.c b/arch/powerpc/kernel/swsusp.c
+index 641f9ad..eae33e1 100644
+--- a/arch/powerpc/kernel/swsusp.c
++++ b/arch/powerpc/kernel/swsusp.c
+@@ -10,9 +10,9 @@
+  */
+ 
+ #include <linux/sched.h>
+-#include <asm/system.h>
+ #include <asm/current.h>
+ #include <asm/mmu_context.h>
++#include <asm/switch_to.h>
+ 
+ void save_processor_state(void)
+ {
+diff --git a/arch/powerpc/kernel/swsusp_64.c b/arch/powerpc/kernel/swsusp_64.c
+index 168e884..0e899e4 100644
+--- a/arch/powerpc/kernel/swsusp_64.c
++++ b/arch/powerpc/kernel/swsusp_64.c
+@@ -6,7 +6,6 @@
+  * GPLv2
+  */
+ 
+-#include <asm/system.h>
+ #include <asm/iommu.h>
+ #include <linux/irq.h>
+ #include <linux/sched.h>
+diff --git a/arch/powerpc/kernel/sys_ppc32.c b/arch/powerpc/kernel/sys_ppc32.c
+index 4e5bf1e..81c5706 100644
+--- a/arch/powerpc/kernel/sys_ppc32.c
++++ b/arch/powerpc/kernel/sys_ppc32.c
+@@ -50,6 +50,7 @@
+ #include <asm/mmu_context.h>
+ #include <asm/ppc-pci.h>
+ #include <asm/syscalls.h>
++#include <asm/switch_to.h>
+ 
+ 
+ asmlinkage long ppc32_select(u32 n, compat_ulong_t __user *inp,
+diff --git a/arch/powerpc/kernel/sysfs.c b/arch/powerpc/kernel/sysfs.c
+index 883e74c..bf6af0d 100644
+--- a/arch/powerpc/kernel/sysfs.c
++++ b/arch/powerpc/kernel/sysfs.c
+@@ -18,7 +18,6 @@
+ #include <asm/machdep.h>
+ #include <asm/smp.h>
+ #include <asm/pmc.h>
+-#include <asm/system.h>
+ 
+ #include "cacheinfo.h"
+ 
+diff --git a/arch/powerpc/kernel/traps.c b/arch/powerpc/kernel/traps.c
+index c091527..db1ede7 100644
+--- a/arch/powerpc/kernel/traps.c
++++ b/arch/powerpc/kernel/traps.c
+@@ -39,7 +39,6 @@
+ #include <asm/emulated_ops.h>
+ #include <asm/pgtable.h>
+ #include <asm/uaccess.h>
+-#include <asm/system.h>
+ #include <asm/io.h>
+ #include <asm/machdep.h>
+ #include <asm/rtas.h>
+@@ -57,6 +56,8 @@
+ #include <asm/kexec.h>
+ #include <asm/ppc-opcode.h>
+ #include <asm/rio.h>
++#include <asm/switch_to.h>
++#include <asm/debug.h>
+ 
+ #if defined(CONFIG_DEBUGGER) || defined(CONFIG_KEXEC)
+ int (*__debugger)(struct pt_regs *regs) __read_mostly;
+diff --git a/arch/powerpc/kernel/vdso.c b/arch/powerpc/kernel/vdso.c
+index 7d14bb6..1ce1ec4 100644
+--- a/arch/powerpc/kernel/vdso.c
++++ b/arch/powerpc/kernel/vdso.c
+@@ -24,7 +24,6 @@
+ #include <linux/memblock.h>
+ 
+ #include <asm/pgtable.h>
+-#include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/mmu.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/powerpc/kvm/book3s_hv.c b/arch/powerpc/kvm/book3s_hv.c
+index 336983d..6efde9c 100644
+--- a/arch/powerpc/kvm/book3s_hv.c
++++ b/arch/powerpc/kvm/book3s_hv.c
+@@ -45,6 +45,7 @@
+ #include <asm/cputhreads.h>
+ #include <asm/page.h>
+ #include <asm/hvcall.h>
++#include <asm/switch_to.h>
+ #include <linux/gfp.h>
+ #include <linux/sched.h>
+ #include <linux/vmalloc.h>
+diff --git a/arch/powerpc/lib/alloc.c b/arch/powerpc/lib/alloc.c
+index 13b676c..da22c84 100644
+--- a/arch/powerpc/lib/alloc.c
++++ b/arch/powerpc/lib/alloc.c
+@@ -3,8 +3,8 @@
+ #include <linux/slab.h>
+ #include <linux/bootmem.h>
+ #include <linux/string.h>
++#include <asm/setup.h>
+ 
+-#include <asm/system.h>
+ 
+ void * __init_refok zalloc_maybe_bootmem(size_t size, gfp_t mask)
+ {
+diff --git a/arch/powerpc/lib/copyuser_power7_vmx.c b/arch/powerpc/lib/copyuser_power7_vmx.c
+index 6e1efad..bf2654f 100644
+--- a/arch/powerpc/lib/copyuser_power7_vmx.c
++++ b/arch/powerpc/lib/copyuser_power7_vmx.c
+@@ -20,6 +20,7 @@
+  */
+ #include <linux/uaccess.h>
+ #include <linux/hardirq.h>
++#include <asm/switch_to.h>
+ 
+ int enter_vmx_copy(void)
+ {
+diff --git a/arch/powerpc/mm/44x_mmu.c b/arch/powerpc/mm/44x_mmu.c
+index 388b95e..2c9441e 100644
+--- a/arch/powerpc/mm/44x_mmu.c
++++ b/arch/powerpc/mm/44x_mmu.c
+@@ -27,7 +27,6 @@
+ #include <linux/memblock.h>
+ 
+ #include <asm/mmu.h>
+-#include <asm/system.h>
+ #include <asm/page.h>
+ #include <asm/cacheflush.h>
+ 
+diff --git a/arch/powerpc/mm/fault.c b/arch/powerpc/mm/fault.c
+index 2f0d1b0..253e6f5 100644
+--- a/arch/powerpc/mm/fault.c
++++ b/arch/powerpc/mm/fault.c
+@@ -38,10 +38,10 @@
+ #include <asm/pgtable.h>
+ #include <asm/mmu.h>
+ #include <asm/mmu_context.h>
 -#include <asm/system.h>
  #include <asm/uaccess.h>
+ #include <asm/tlbflush.h>
+ #include <asm/siginfo.h>
++#include <asm/debug.h>
+ #include <mm/mmu_decl.h>
+ 
+ #include "icswx.h"
+diff --git a/arch/powerpc/mm/hash_utils_64.c b/arch/powerpc/mm/hash_utils_64.c
+index 2d28218..e43a231 100644
+--- a/arch/powerpc/mm/hash_utils_64.c
++++ b/arch/powerpc/mm/hash_utils_64.c
+@@ -40,7 +40,6 @@
+ #include <asm/mmu_context.h>
+ #include <asm/page.h>
+ #include <asm/types.h>
+-#include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/machdep.h>
+ #include <asm/prom.h>
+diff --git a/arch/powerpc/mm/init_32.c b/arch/powerpc/mm/init_32.c
+index 6157be2..01e2db9 100644
+--- a/arch/powerpc/mm/init_32.c
++++ b/arch/powerpc/mm/init_32.c
+@@ -45,7 +45,6 @@
+ #include <asm/btext.h>
+ #include <asm/tlb.h>
+ #include <asm/sections.h>
+-#include <asm/system.h>
+ #include <asm/hugetlb.h>
+ 
+ #include "mmu_decl.h"
+diff --git a/arch/powerpc/mm/init_64.c b/arch/powerpc/mm/init_64.c
+index e94b57f..620b7ac 100644
+--- a/arch/powerpc/mm/init_64.c
++++ b/arch/powerpc/mm/init_64.c
+@@ -61,7 +61,6 @@
+ #include <asm/mmzone.h>
+ #include <asm/cputable.h>
+ #include <asm/sections.h>
+-#include <asm/system.h>
+ #include <asm/iommu.h>
+ #include <asm/abs_addr.h>
+ #include <asm/vdso.h>
+diff --git a/arch/powerpc/mm/numa.c b/arch/powerpc/mm/numa.c
+index 3feefc3..b6edbb3 100644
+--- a/arch/powerpc/mm/numa.c
++++ b/arch/powerpc/mm/numa.c
+@@ -24,11 +24,11 @@
+ #include <linux/node.h>
+ #include <asm/sparsemem.h>
+ #include <asm/prom.h>
+-#include <asm/system.h>
+ #include <asm/smp.h>
+ #include <asm/firmware.h>
+ #include <asm/paca.h>
+ #include <asm/hvcall.h>
++#include <asm/setup.h>
+ 
+ static int numa_enabled = 1;
+ 
+diff --git a/arch/powerpc/mm/pgtable_32.c b/arch/powerpc/mm/pgtable_32.c
+index 51f8795..e9c513a 100644
+--- a/arch/powerpc/mm/pgtable_32.c
++++ b/arch/powerpc/mm/pgtable_32.c
+@@ -33,6 +33,7 @@
+ #include <asm/pgalloc.h>
+ #include <asm/fixmap.h>
+ #include <asm/io.h>
++#include <asm/setup.h>
+ 
+ #include "mmu_decl.h"
+ 
+diff --git a/arch/powerpc/mm/pgtable_64.c b/arch/powerpc/mm/pgtable_64.c
+index ad36ede..249a063 100644
+--- a/arch/powerpc/mm/pgtable_64.c
++++ b/arch/powerpc/mm/pgtable_64.c
+@@ -51,7 +51,6 @@
+ #include <asm/processor.h>
+ #include <asm/cputable.h>
+ #include <asm/sections.h>
+-#include <asm/system.h>
+ #include <asm/abs_addr.h>
+ #include <asm/firmware.h>
+ 
+diff --git a/arch/powerpc/oprofile/common.c b/arch/powerpc/oprofile/common.c
+index d65e68f..7056dc9 100644
+--- a/arch/powerpc/oprofile/common.c
++++ b/arch/powerpc/oprofile/common.c
+@@ -18,7 +18,6 @@
+ #include <linux/smp.h>
+ #include <linux/errno.h>
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/pmc.h>
+ #include <asm/cputable.h>
+ #include <asm/oprofile_impl.h>
+diff --git a/arch/powerpc/oprofile/op_model_7450.c b/arch/powerpc/oprofile/op_model_7450.c
+index f8d36f9..ff61724 100644
+--- a/arch/powerpc/oprofile/op_model_7450.c
++++ b/arch/powerpc/oprofile/op_model_7450.c
+@@ -19,7 +19,6 @@
+ #include <linux/init.h>
+ #include <linux/smp.h>
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/cputable.h>
+ #include <asm/page.h>
+diff --git a/arch/powerpc/oprofile/op_model_cell.c b/arch/powerpc/oprofile/op_model_cell.c
+index cb515cf..b9589c1 100644
+--- a/arch/powerpc/oprofile/op_model_cell.c
++++ b/arch/powerpc/oprofile/op_model_cell.c
+@@ -34,7 +34,6 @@
+ #include <asm/ptrace.h>
+ #include <asm/reg.h>
+ #include <asm/rtas.h>
+-#include <asm/system.h>
+ #include <asm/cell-regs.h>
+ 
+ #include "../platforms/cell/interrupt.h"
+diff --git a/arch/powerpc/oprofile/op_model_fsl_emb.c b/arch/powerpc/oprofile/op_model_fsl_emb.c
+index d4e6507..ccc1daa 100644
+--- a/arch/powerpc/oprofile/op_model_fsl_emb.c
++++ b/arch/powerpc/oprofile/op_model_fsl_emb.c
+@@ -17,7 +17,6 @@
+ #include <linux/init.h>
+ #include <linux/smp.h>
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/cputable.h>
+ #include <asm/reg_fsl_emb.h>
+diff --git a/arch/powerpc/oprofile/op_model_power4.c b/arch/powerpc/oprofile/op_model_power4.c
+index e6bec74..95ae77d 100644
+--- a/arch/powerpc/oprofile/op_model_power4.c
++++ b/arch/powerpc/oprofile/op_model_power4.c
+@@ -14,7 +14,6 @@
+ #include <linux/smp.h>
+ #include <asm/firmware.h>
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/cputable.h>
+ #include <asm/rtas.h>
+diff --git a/arch/powerpc/oprofile/op_model_rs64.c b/arch/powerpc/oprofile/op_model_rs64.c
+index a20afe4..9b801b8 100644
+--- a/arch/powerpc/oprofile/op_model_rs64.c
++++ b/arch/powerpc/oprofile/op_model_rs64.c
+@@ -11,7 +11,6 @@
+ #include <linux/init.h>
+ #include <linux/smp.h>
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/processor.h>
+ #include <asm/cputable.h>
+ #include <asm/oprofile_impl.h>
+diff --git a/arch/powerpc/platforms/82xx/pq2.c b/arch/powerpc/platforms/82xx/pq2.c
+index d111b02..fb94d10 100644
+--- a/arch/powerpc/platforms/82xx/pq2.c
++++ b/arch/powerpc/platforms/82xx/pq2.c
+@@ -17,7 +17,6 @@
+ #include <asm/cpm2.h>
+ #include <asm/io.h>
+ #include <asm/pci-bridge.h>
+-#include <asm/system.h>
+ 
+ #include <platforms/82xx/pq2.h>
+ 
+diff --git a/arch/powerpc/platforms/83xx/km83xx.c b/arch/powerpc/platforms/83xx/km83xx.c
+index 65eb792..a266ba8 100644
+--- a/arch/powerpc/platforms/83xx/km83xx.c
++++ b/arch/powerpc/platforms/83xx/km83xx.c
+@@ -27,7 +27,6 @@
+ #include <linux/of_platform.h>
+ #include <linux/of_device.h>
+ 
+-#include <asm/system.h>
+ #include <linux/atomic.h>
+ #include <asm/time.h>
+ #include <asm/io.h>
+diff --git a/arch/powerpc/platforms/83xx/mpc832x_mds.c b/arch/powerpc/platforms/83xx/mpc832x_mds.c
+index e36bc61..d440435 100644
+--- a/arch/powerpc/platforms/83xx/mpc832x_mds.c
++++ b/arch/powerpc/platforms/83xx/mpc832x_mds.c
+@@ -26,7 +26,6 @@
+ #include <linux/of_platform.h>
+ #include <linux/of_device.h>
+ 
+-#include <asm/system.h>
+ #include <linux/atomic.h>
+ #include <asm/time.h>
+ #include <asm/io.h>
+diff --git a/arch/powerpc/platforms/83xx/mpc834x_itx.c b/arch/powerpc/platforms/83xx/mpc834x_itx.c
+index 39849dd..a494fa5 100644
+--- a/arch/powerpc/platforms/83xx/mpc834x_itx.c
++++ b/arch/powerpc/platforms/83xx/mpc834x_itx.c
+@@ -25,7 +25,6 @@
+ #include <linux/root_dev.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <linux/atomic.h>
+ #include <asm/time.h>
+ #include <asm/io.h>
+diff --git a/arch/powerpc/platforms/83xx/mpc834x_mds.c b/arch/powerpc/platforms/83xx/mpc834x_mds.c
+index 5828d8e..553e793 100644
+--- a/arch/powerpc/platforms/83xx/mpc834x_mds.c
++++ b/arch/powerpc/platforms/83xx/mpc834x_mds.c
+@@ -25,7 +25,6 @@
+ #include <linux/root_dev.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <linux/atomic.h>
+ #include <asm/time.h>
+ #include <asm/io.h>
+diff --git a/arch/powerpc/platforms/83xx/mpc836x_mds.c b/arch/powerpc/platforms/83xx/mpc836x_mds.c
+index ad8e4bc..1b1f6c8 100644
+--- a/arch/powerpc/platforms/83xx/mpc836x_mds.c
++++ b/arch/powerpc/platforms/83xx/mpc836x_mds.c
+@@ -33,7 +33,6 @@
+ #include <linux/of_platform.h>
+ #include <linux/of_device.h>
+ 
+-#include <asm/system.h>
+ #include <linux/atomic.h>
+ #include <asm/time.h>
+ #include <asm/io.h>
+diff --git a/arch/powerpc/platforms/83xx/sbc834x.c b/arch/powerpc/platforms/83xx/sbc834x.c
+index 8a81d76..26cb3e9 100644
+--- a/arch/powerpc/platforms/83xx/sbc834x.c
++++ b/arch/powerpc/platforms/83xx/sbc834x.c
+@@ -27,7 +27,6 @@
+ #include <linux/root_dev.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <linux/atomic.h>
+ #include <asm/time.h>
+ #include <asm/io.h>
+diff --git a/arch/powerpc/platforms/85xx/corenet_ds.c b/arch/powerpc/platforms/85xx/corenet_ds.c
+index 07e3e6c..d517d9e 100644
+--- a/arch/powerpc/platforms/85xx/corenet_ds.c
++++ b/arch/powerpc/platforms/85xx/corenet_ds.c
+@@ -18,7 +18,6 @@
+ #include <linux/interrupt.h>
+ #include <linux/memblock.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/85xx/ksi8560.c b/arch/powerpc/platforms/85xx/ksi8560.c
+index 20f75d7..8bc1be1 100644
+--- a/arch/powerpc/platforms/85xx/ksi8560.c
++++ b/arch/powerpc/platforms/85xx/ksi8560.c
+@@ -20,7 +20,6 @@
+ #include <linux/seq_file.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/85xx/mpc8536_ds.c b/arch/powerpc/platforms/85xx/mpc8536_ds.c
+index cf26682..77b84d9 100644
+--- a/arch/powerpc/platforms/85xx/mpc8536_ds.c
++++ b/arch/powerpc/platforms/85xx/mpc8536_ds.c
+@@ -19,7 +19,6 @@
+ #include <linux/of_platform.h>
+ #include <linux/memblock.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/85xx/mpc85xx_ads.c b/arch/powerpc/platforms/85xx/mpc85xx_ads.c
+index 3bebb51..f26aae2 100644
+--- a/arch/powerpc/platforms/85xx/mpc85xx_ads.c
++++ b/arch/powerpc/platforms/85xx/mpc85xx_ads.c
+@@ -19,7 +19,6 @@
+ #include <linux/seq_file.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/85xx/mpc85xx_cds.c b/arch/powerpc/platforms/85xx/mpc85xx_cds.c
+index 40f03da..b43c45b 100644
+--- a/arch/powerpc/platforms/85xx/mpc85xx_cds.c
++++ b/arch/powerpc/platforms/85xx/mpc85xx_cds.c
+@@ -27,7 +27,6 @@
+ #include <linux/fsl_devices.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
  #include <asm/pgtable.h>
  #include <asm/page.h>
-diff --git a/arch/sh/mm/tlb-pteaex.c b/arch/sh/mm/tlb-pteaex.c
-index b71db6a..4db21ad 100644
---- a/arch/sh/mm/tlb-pteaex.c
-+++ b/arch/sh/mm/tlb-pteaex.c
-@@ -12,7 +12,6 @@
- #include <linux/kernel.h>
- #include <linux/mm.h>
- #include <linux/io.h>
--#include <asm/system.h>
- #include <asm/mmu_context.h>
- #include <asm/cacheflush.h>
- 
-diff --git a/arch/sh/mm/tlb-sh3.c b/arch/sh/mm/tlb-sh3.c
-index 7a940db..6554fb4 100644
---- a/arch/sh/mm/tlb-sh3.c
-+++ b/arch/sh/mm/tlb-sh3.c
-@@ -20,7 +20,6 @@
- #include <linux/smp.h>
- #include <linux/interrupt.h>
- 
--#include <asm/system.h>
- #include <asm/io.h>
- #include <asm/uaccess.h>
- #include <asm/pgalloc.h>
-diff --git a/arch/sh/mm/tlb-sh4.c b/arch/sh/mm/tlb-sh4.c
-index cfdf793..d42dd7e 100644
---- a/arch/sh/mm/tlb-sh4.c
-+++ b/arch/sh/mm/tlb-sh4.c
-@@ -11,7 +11,6 @@
- #include <linux/kernel.h>
- #include <linux/mm.h>
- #include <linux/io.h>
--#include <asm/system.h>
- #include <asm/mmu_context.h>
- #include <asm/cacheflush.h>
- 
-diff --git a/arch/sh/mm/tlbflush_64.c b/arch/sh/mm/tlbflush_64.c
-index e3430e0..11c5a18 100644
---- a/arch/sh/mm/tlbflush_64.c
-+++ b/arch/sh/mm/tlbflush_64.c
+ #include <linux/atomic.h>
+diff --git a/arch/powerpc/platforms/85xx/mpc85xx_ds.c b/arch/powerpc/platforms/85xx/mpc85xx_ds.c
+index eefbb91..4fc46b4 100644
+--- a/arch/powerpc/platforms/85xx/mpc85xx_ds.c
++++ b/arch/powerpc/platforms/85xx/mpc85xx_ds.c
 @@ -22,7 +22,6 @@
- #include <linux/smp.h>
- #include <linux/perf_event.h>
+ #include <linux/of_platform.h>
+ #include <linux/memblock.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/85xx/mpc85xx_mds.c b/arch/powerpc/platforms/85xx/mpc85xx_mds.c
+index 1d15a0c..53f102c 100644
+--- a/arch/powerpc/platforms/85xx/mpc85xx_mds.c
++++ b/arch/powerpc/platforms/85xx/mpc85xx_mds.c
+@@ -34,7 +34,6 @@
+ #include <linux/phy.h>
+ #include <linux/memblock.h>
+ 
+-#include <asm/system.h>
+ #include <linux/atomic.h>
+ #include <asm/time.h>
+ #include <asm/io.h>
+diff --git a/arch/powerpc/platforms/85xx/mpc85xx_rdb.c b/arch/powerpc/platforms/85xx/mpc85xx_rdb.c
+index ccf520e..fcf3317 100644
+--- a/arch/powerpc/platforms/85xx/mpc85xx_rdb.c
++++ b/arch/powerpc/platforms/85xx/mpc85xx_rdb.c
+@@ -18,7 +18,6 @@
  #include <linux/interrupt.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/85xx/p1010rdb.c b/arch/powerpc/platforms/85xx/p1010rdb.c
+index 538bc3f..462066a 100644
+--- a/arch/powerpc/platforms/85xx/p1010rdb.c
++++ b/arch/powerpc/platforms/85xx/p1010rdb.c
+@@ -16,7 +16,6 @@
+ #include <linux/interrupt.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/85xx/p1023_rds.c b/arch/powerpc/platforms/85xx/p1023_rds.c
+index d951e70..01e8da5 100644
+--- a/arch/powerpc/platforms/85xx/p1023_rds.c
++++ b/arch/powerpc/platforms/85xx/p1023_rds.c
+@@ -22,7 +22,6 @@
+ #include <linux/of_platform.h>
+ #include <linux/of_device.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/85xx/p2041_rdb.c b/arch/powerpc/platforms/85xx/p2041_rdb.c
+index eda6ed5..6541fa2 100644
+--- a/arch/powerpc/platforms/85xx/p2041_rdb.c
++++ b/arch/powerpc/platforms/85xx/p2041_rdb.c
+@@ -16,7 +16,6 @@
+ #include <linux/interrupt.h>
+ #include <linux/phy.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/85xx/p3041_ds.c b/arch/powerpc/platforms/85xx/p3041_ds.c
+index 96d99a3..f238efa 100644
+--- a/arch/powerpc/platforms/85xx/p3041_ds.c
++++ b/arch/powerpc/platforms/85xx/p3041_ds.c
+@@ -18,7 +18,6 @@
+ #include <linux/interrupt.h>
+ #include <linux/phy.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/85xx/p4080_ds.c b/arch/powerpc/platforms/85xx/p4080_ds.c
+index d1b21d7..c92417d 100644
+--- a/arch/powerpc/platforms/85xx/p4080_ds.c
++++ b/arch/powerpc/platforms/85xx/p4080_ds.c
+@@ -17,7 +17,6 @@
+ #include <linux/delay.h>
+ #include <linux/interrupt.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/85xx/p5020_ds.c b/arch/powerpc/platforms/85xx/p5020_ds.c
+index e8cba50..17bef15 100644
+--- a/arch/powerpc/platforms/85xx/p5020_ds.c
++++ b/arch/powerpc/platforms/85xx/p5020_ds.c
+@@ -18,7 +18,6 @@
+ #include <linux/interrupt.h>
+ #include <linux/phy.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/85xx/sbc8548.c b/arch/powerpc/platforms/85xx/sbc8548.c
+index 184a507..3f6b3dc 100644
+--- a/arch/powerpc/platforms/85xx/sbc8548.c
++++ b/arch/powerpc/platforms/85xx/sbc8548.c
+@@ -30,7 +30,6 @@
+ #include <linux/fsl_devices.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <asm/pgtable.h>
+ #include <asm/page.h>
+ #include <linux/atomic.h>
+diff --git a/arch/powerpc/platforms/85xx/sbc8560.c b/arch/powerpc/platforms/85xx/sbc8560.c
+index 940752e..f863c35 100644
+--- a/arch/powerpc/platforms/85xx/sbc8560.c
++++ b/arch/powerpc/platforms/85xx/sbc8560.c
+@@ -21,7 +21,6 @@
+ #include <linux/seq_file.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/85xx/socrates.c b/arch/powerpc/platforms/85xx/socrates.c
+index 18f6359..278022a 100644
+--- a/arch/powerpc/platforms/85xx/socrates.c
++++ b/arch/powerpc/platforms/85xx/socrates.c
+@@ -29,7 +29,6 @@
+ #include <linux/seq_file.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/85xx/stx_gp3.c b/arch/powerpc/platforms/85xx/stx_gp3.c
+index e9e5234..cc681dc 100644
+--- a/arch/powerpc/platforms/85xx/stx_gp3.c
++++ b/arch/powerpc/platforms/85xx/stx_gp3.c
+@@ -28,7 +28,6 @@
+ #include <linux/seq_file.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/85xx/tqm85xx.c b/arch/powerpc/platforms/85xx/tqm85xx.c
+index bf7c89f..b451f54 100644
+--- a/arch/powerpc/platforms/85xx/tqm85xx.c
++++ b/arch/powerpc/platforms/85xx/tqm85xx.c
+@@ -26,7 +26,6 @@
+ #include <linux/seq_file.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/85xx/xes_mpc85xx.c b/arch/powerpc/platforms/85xx/xes_mpc85xx.c
+index 3a69f8b..8085d34 100644
+--- a/arch/powerpc/platforms/85xx/xes_mpc85xx.c
++++ b/arch/powerpc/platforms/85xx/xes_mpc85xx.c
+@@ -21,7 +21,6 @@
+ #include <linux/interrupt.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/86xx/gef_ppc9a.c b/arch/powerpc/platforms/86xx/gef_ppc9a.c
+index 60ce07e..09e56c3 100644
+--- a/arch/powerpc/platforms/86xx/gef_ppc9a.c
++++ b/arch/powerpc/platforms/86xx/gef_ppc9a.c
+@@ -24,7 +24,6 @@
+ #include <linux/seq_file.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/86xx/gef_sbc310.c b/arch/powerpc/platforms/86xx/gef_sbc310.c
+index 3ecee25..e49365a 100644
+--- a/arch/powerpc/platforms/86xx/gef_sbc310.c
++++ b/arch/powerpc/platforms/86xx/gef_sbc310.c
+@@ -24,7 +24,6 @@
+ #include <linux/seq_file.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/86xx/gef_sbc610.c b/arch/powerpc/platforms/86xx/gef_sbc610.c
+index 5090d60..4b34bee 100644
+--- a/arch/powerpc/platforms/86xx/gef_sbc610.c
++++ b/arch/powerpc/platforms/86xx/gef_sbc610.c
+@@ -24,7 +24,6 @@
+ #include <linux/seq_file.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/86xx/mpc8610_hpcd.c b/arch/powerpc/platforms/86xx/mpc8610_hpcd.c
+index 13fa9a6..bbc6152 100644
+--- a/arch/powerpc/platforms/86xx/mpc8610_hpcd.c
++++ b/arch/powerpc/platforms/86xx/mpc8610_hpcd.c
+@@ -25,7 +25,6 @@
+ #include <linux/seq_file.h>
+ #include <linux/of.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/86xx/mpc86xx_hpcn.c b/arch/powerpc/platforms/86xx/mpc86xx_hpcn.c
+index 569262c..3755e61 100644
+--- a/arch/powerpc/platforms/86xx/mpc86xx_hpcn.c
++++ b/arch/powerpc/platforms/86xx/mpc86xx_hpcn.c
+@@ -21,7 +21,6 @@
+ #include <linux/of_platform.h>
+ #include <linux/memblock.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/86xx/pic.c b/arch/powerpc/platforms/86xx/pic.c
+index 52bbfa0..962e6b7 100644
+--- a/arch/powerpc/platforms/86xx/pic.c
++++ b/arch/powerpc/platforms/86xx/pic.c
+@@ -12,7 +12,6 @@
+ #include <linux/interrupt.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <asm/mpic.h>
+ #include <asm/i8259.h>
+ 
+diff --git a/arch/powerpc/platforms/86xx/sbc8641d.c b/arch/powerpc/platforms/86xx/sbc8641d.c
+index 51c8f33..e7007d0 100644
+--- a/arch/powerpc/platforms/86xx/sbc8641d.c
++++ b/arch/powerpc/platforms/86xx/sbc8641d.c
+@@ -21,7 +21,6 @@
+ #include <linux/seq_file.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/8xx/mpc86xads_setup.c b/arch/powerpc/platforms/8xx/mpc86xads_setup.c
+index caaec29..866feff 100644
+--- a/arch/powerpc/platforms/8xx/mpc86xads_setup.c
++++ b/arch/powerpc/platforms/8xx/mpc86xads_setup.c
+@@ -19,7 +19,6 @@
+ 
+ #include <asm/io.h>
+ #include <asm/machdep.h>
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/8xx_immap.h>
+ #include <asm/cpm1.h>
+diff --git a/arch/powerpc/platforms/8xx/mpc885ads_setup.c b/arch/powerpc/platforms/8xx/mpc885ads_setup.c
+index 45ed6cd..5d98398 100644
+--- a/arch/powerpc/platforms/8xx/mpc885ads_setup.c
++++ b/arch/powerpc/platforms/8xx/mpc885ads_setup.c
+@@ -32,7 +32,6 @@
+ #include <asm/machdep.h>
+ #include <asm/page.h>
+ #include <asm/processor.h>
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/mpc8xx.h>
+ #include <asm/8xx_immap.h>
+diff --git a/arch/powerpc/platforms/8xx/tqm8xx_setup.c b/arch/powerpc/platforms/8xx/tqm8xx_setup.c
+index 528e00d..8d21ab7 100644
+--- a/arch/powerpc/platforms/8xx/tqm8xx_setup.c
++++ b/arch/powerpc/platforms/8xx/tqm8xx_setup.c
+@@ -35,7 +35,6 @@
+ #include <asm/machdep.h>
+ #include <asm/page.h>
+ #include <asm/processor.h>
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/mpc8xx.h>
+ #include <asm/8xx_immap.h>
+diff --git a/arch/powerpc/platforms/cell/smp.c b/arch/powerpc/platforms/cell/smp.c
+index 4a255cf..49a65e2 100644
+--- a/arch/powerpc/platforms/cell/smp.c
++++ b/arch/powerpc/platforms/cell/smp.c
+@@ -38,7 +38,6 @@
+ #include <asm/machdep.h>
+ #include <asm/cputable.h>
+ #include <asm/firmware.h>
+-#include <asm/system.h>
+ #include <asm/rtas.h>
+ #include <asm/cputhreads.h>
+ 
+diff --git a/arch/powerpc/platforms/embedded6xx/c2k.c b/arch/powerpc/platforms/embedded6xx/c2k.c
+index 8cab573..ebd3963 100644
+--- a/arch/powerpc/platforms/embedded6xx/c2k.c
++++ b/arch/powerpc/platforms/embedded6xx/c2k.c
+@@ -23,7 +23,6 @@
+ 
+ #include <asm/machdep.h>
+ #include <asm/prom.h>
+-#include <asm/system.h>
+ #include <asm/time.h>
+ 
+ #include <mm/mmu_decl.h>
+diff --git a/arch/powerpc/platforms/embedded6xx/holly.c b/arch/powerpc/platforms/embedded6xx/holly.c
+index 9cfcf20..a7cd6a2 100644
+--- a/arch/powerpc/platforms/embedded6xx/holly.c
++++ b/arch/powerpc/platforms/embedded6xx/holly.c
+@@ -28,7 +28,6 @@
+ #include <linux/of_platform.h>
+ #include <linux/module.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/prom.h>
+diff --git a/arch/powerpc/platforms/embedded6xx/mpc7448_hpc2.c b/arch/powerpc/platforms/embedded6xx/mpc7448_hpc2.c
+index f3350d7..916c6d2 100644
+--- a/arch/powerpc/platforms/embedded6xx/mpc7448_hpc2.c
++++ b/arch/powerpc/platforms/embedded6xx/mpc7448_hpc2.c
+@@ -32,7 +32,6 @@
+ #include <linux/tty.h>
+ #include <linux/serial_core.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/prom.h>
+diff --git a/arch/powerpc/platforms/embedded6xx/prpmc2800.c b/arch/powerpc/platforms/embedded6xx/prpmc2800.c
+index 670035f..d455f08 100644
+--- a/arch/powerpc/platforms/embedded6xx/prpmc2800.c
++++ b/arch/powerpc/platforms/embedded6xx/prpmc2800.c
+@@ -17,7 +17,6 @@
+ 
+ #include <asm/machdep.h>
+ #include <asm/prom.h>
+-#include <asm/system.h>
+ #include <asm/time.h>
+ 
+ #include <mm/mmu_decl.h>
+diff --git a/arch/powerpc/platforms/embedded6xx/storcenter.c b/arch/powerpc/platforms/embedded6xx/storcenter.c
+index afa6388..999b0ea 100644
+--- a/arch/powerpc/platforms/embedded6xx/storcenter.c
++++ b/arch/powerpc/platforms/embedded6xx/storcenter.c
+@@ -16,7 +16,6 @@
+ #include <linux/initrd.h>
+ #include <linux/of_platform.h>
+ 
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/prom.h>
+ #include <asm/mpic.h>
+diff --git a/arch/powerpc/platforms/fsl_uli1575.c b/arch/powerpc/platforms/fsl_uli1575.c
+index 8b0c208..64fde05 100644
+--- a/arch/powerpc/platforms/fsl_uli1575.c
++++ b/arch/powerpc/platforms/fsl_uli1575.c
+@@ -15,7 +15,6 @@
+ #include <linux/interrupt.h>
+ #include <linux/mc146818rtc.h>
+ 
+-#include <asm/system.h>
+ #include <asm/pci-bridge.h>
+ 
+ #define ULI_PIRQA	0x08
+diff --git a/arch/powerpc/platforms/iseries/dt.c b/arch/powerpc/platforms/iseries/dt.c
+index f0491cc..75adf10 100644
+--- a/arch/powerpc/platforms/iseries/dt.c
++++ b/arch/powerpc/platforms/iseries/dt.c
+@@ -30,7 +30,6 @@
+ #include <asm/lppaca.h>
+ #include <asm/cputable.h>
+ #include <asm/abs_addr.h>
+-#include <asm/system.h>
+ #include <asm/iseries/hv_types.h>
+ #include <asm/iseries/hv_lp_config.h>
+ #include <asm/iseries/hv_call_xm.h>
+diff --git a/arch/powerpc/platforms/iseries/lpevents.c b/arch/powerpc/platforms/iseries/lpevents.c
+index 202e227..e305d62 100644
+--- a/arch/powerpc/platforms/iseries/lpevents.c
++++ b/arch/powerpc/platforms/iseries/lpevents.c
+@@ -15,7 +15,6 @@
+ #include <linux/proc_fs.h>
+ #include <linux/export.h>
+ 
+-#include <asm/system.h>
+ #include <asm/paca.h>
+ #include <asm/firmware.h>
+ #include <asm/iseries/it_lp_queue.h>
+diff --git a/arch/powerpc/platforms/iseries/setup.c b/arch/powerpc/platforms/iseries/setup.c
+index 8fc6258..3799f2f 100644
+--- a/arch/powerpc/platforms/iseries/setup.c
++++ b/arch/powerpc/platforms/iseries/setup.c
+@@ -41,7 +41,6 @@
+ #include <asm/sections.h>
+ #include <asm/iommu.h>
+ #include <asm/firmware.h>
+-#include <asm/system.h>
+ #include <asm/time.h>
+ #include <asm/paca.h>
+ #include <asm/cache.h>
+diff --git a/arch/powerpc/platforms/iseries/smp.c b/arch/powerpc/platforms/iseries/smp.c
+index 02df49f..5100bc7 100644
+--- a/arch/powerpc/platforms/iseries/smp.c
++++ b/arch/powerpc/platforms/iseries/smp.c
+@@ -39,7 +39,6 @@
+ #include <asm/time.h>
+ #include <asm/machdep.h>
+ #include <asm/cputable.h>
+-#include <asm/system.h>
+ 
+ static void smp_iSeries_cause_ipi(int cpu, unsigned long data)
+ {
+diff --git a/arch/powerpc/platforms/iseries/viopath.c b/arch/powerpc/platforms/iseries/viopath.c
+index 40dad08..51c38b0 100644
+--- a/arch/powerpc/platforms/iseries/viopath.c
++++ b/arch/powerpc/platforms/iseries/viopath.c
+@@ -40,7 +40,6 @@
+ #include <linux/interrupt.h>
+ #include <linux/completion.h>
+ 
+-#include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/prom.h>
+ #include <asm/firmware.h>
+diff --git a/arch/powerpc/platforms/maple/setup.c b/arch/powerpc/platforms/maple/setup.c
+index 0bcbfe7..0d05f09 100644
+--- a/arch/powerpc/platforms/maple/setup.c
++++ b/arch/powerpc/platforms/maple/setup.c
+@@ -47,7 +47,6 @@
+ #include <asm/processor.h>
+ #include <asm/sections.h>
+ #include <asm/prom.h>
+-#include <asm/system.h>
+ #include <asm/pgtable.h>
+ #include <asm/io.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/maple/time.c b/arch/powerpc/platforms/maple/time.c
+index eac569d..b4a369d 100644
+--- a/arch/powerpc/platforms/maple/time.c
++++ b/arch/powerpc/platforms/maple/time.c
+@@ -27,7 +27,6 @@
+ 
+ #include <asm/sections.h>
+ #include <asm/prom.h>
 -#include <asm/system.h>
  #include <asm/io.h>
- #include <asm/tlb.h>
+ #include <asm/pgtable.h>
+ #include <asm/machdep.h>
+diff --git a/arch/powerpc/platforms/pasemi/setup.c b/arch/powerpc/platforms/pasemi/setup.c
+index 98b7a7c..dd981728 100644
+--- a/arch/powerpc/platforms/pasemi/setup.c
++++ b/arch/powerpc/platforms/pasemi/setup.c
+@@ -32,13 +32,13 @@
+ #include <linux/gfp.h>
+ 
+ #include <asm/prom.h>
+-#include <asm/system.h>
+ #include <asm/iommu.h>
+ #include <asm/machdep.h>
+ #include <asm/mpic.h>
+ #include <asm/smp.h>
+ #include <asm/time.h>
+ #include <asm/mmu.h>
++#include <asm/debug.h>
+ 
+ #include <pcmcia/ss.h>
+ #include <pcmcia/cistpl.h>
+diff --git a/arch/powerpc/platforms/powermac/bootx_init.c b/arch/powerpc/platforms/powermac/bootx_init.c
+index 84d7fd9..3e91ef5 100644
+--- a/arch/powerpc/platforms/powermac/bootx_init.c
++++ b/arch/powerpc/platforms/powermac/bootx_init.c
+@@ -19,6 +19,7 @@
+ #include <asm/bootx.h>
+ #include <asm/btext.h>
+ #include <asm/io.h>
++#include <asm/setup.h>
+ 
+ #undef DEBUG
+ #define SET_BOOT_BAT
+diff --git a/arch/powerpc/platforms/powermac/cpufreq_32.c b/arch/powerpc/platforms/powermac/cpufreq_32.c
+index 1fc386a..6417119 100644
+--- a/arch/powerpc/platforms/powermac/cpufreq_32.c
++++ b/arch/powerpc/platforms/powermac/cpufreq_32.c
+@@ -33,9 +33,9 @@
+ #include <asm/sections.h>
+ #include <asm/cputable.h>
+ #include <asm/time.h>
+-#include <asm/system.h>
+ #include <asm/mpic.h>
+ #include <asm/keylargo.h>
++#include <asm/switch_to.h>
+ 
+ /* WARNING !!! This will cause calibrate_delay() to be called,
+  * but this is an __init function ! So you MUST go edit
+diff --git a/arch/powerpc/platforms/powermac/nvram.c b/arch/powerpc/platforms/powermac/nvram.c
+index 54d2271..bf0a2cc 100644
+--- a/arch/powerpc/platforms/powermac/nvram.c
++++ b/arch/powerpc/platforms/powermac/nvram.c
+@@ -23,7 +23,6 @@
+ #include <linux/spinlock.h>
+ #include <asm/sections.h>
+ #include <asm/io.h>
+-#include <asm/system.h>
+ #include <asm/prom.h>
+ #include <asm/machdep.h>
+ #include <asm/nvram.h>
+diff --git a/arch/powerpc/platforms/powermac/setup.c b/arch/powerpc/platforms/powermac/setup.c
+index 970ea1d..141f889 100644
+--- a/arch/powerpc/platforms/powermac/setup.c
++++ b/arch/powerpc/platforms/powermac/setup.c
+@@ -57,7 +57,6 @@
+ #include <asm/reg.h>
+ #include <asm/sections.h>
+ #include <asm/prom.h>
+-#include <asm/system.h>
+ #include <asm/pgtable.h>
+ #include <asm/io.h>
+ #include <asm/pci-bridge.h>
+diff --git a/arch/powerpc/platforms/powermac/time.c b/arch/powerpc/platforms/powermac/time.c
+index 11c9fce..8680bb6 100644
+--- a/arch/powerpc/platforms/powermac/time.c
++++ b/arch/powerpc/platforms/powermac/time.c
+@@ -26,7 +26,6 @@
+ 
+ #include <asm/sections.h>
+ #include <asm/prom.h>
+-#include <asm/system.h>
+ #include <asm/io.h>
+ #include <asm/pgtable.h>
+ #include <asm/machdep.h>
+diff --git a/arch/powerpc/platforms/powernv/smp.c b/arch/powerpc/platforms/powernv/smp.c
+index 17210c5..3ef4625 100644
+--- a/arch/powerpc/platforms/powernv/smp.c
++++ b/arch/powerpc/platforms/powernv/smp.c
+@@ -25,7 +25,6 @@
+ #include <asm/machdep.h>
+ #include <asm/cputable.h>
+ #include <asm/firmware.h>
+-#include <asm/system.h>
+ #include <asm/rtas.h>
+ #include <asm/vdso_datapage.h>
+ #include <asm/cputhreads.h>
+diff --git a/arch/powerpc/platforms/ps3/mm.c b/arch/powerpc/platforms/ps3/mm.c
+index 8bd6ba5..de2aea4 100644
+--- a/arch/powerpc/platforms/ps3/mm.c
++++ b/arch/powerpc/platforms/ps3/mm.c
+@@ -29,6 +29,7 @@
+ #include <asm/prom.h>
+ #include <asm/udbg.h>
+ #include <asm/lv1call.h>
++#include <asm/setup.h>
+ 
+ #include "platform.h"
+ 
+diff --git a/arch/powerpc/platforms/pseries/dtl.c b/arch/powerpc/platforms/pseries/dtl.c
+index 0e86563..a764854 100644
+--- a/arch/powerpc/platforms/pseries/dtl.c
++++ b/arch/powerpc/platforms/pseries/dtl.c
+@@ -25,10 +25,10 @@
+ #include <linux/debugfs.h>
+ #include <linux/spinlock.h>
+ #include <asm/smp.h>
+-#include <asm/system.h>
  #include <asm/uaccess.h>
+ #include <asm/firmware.h>
+ #include <asm/lppaca.h>
++#include <asm/debug.h>
+ 
+ #include "plpar_wrappers.h"
+ 
+diff --git a/arch/powerpc/platforms/pseries/hotplug-cpu.c b/arch/powerpc/platforms/pseries/hotplug-cpu.c
+index c986d08..64c97d8 100644
+--- a/arch/powerpc/platforms/pseries/hotplug-cpu.c
++++ b/arch/powerpc/platforms/pseries/hotplug-cpu.c
+@@ -23,7 +23,6 @@
+ #include <linux/delay.h>
+ #include <linux/sched.h>	/* for idle_task_exit */
+ #include <linux/cpu.h>
+-#include <asm/system.h>
+ #include <asm/prom.h>
+ #include <asm/rtas.h>
+ #include <asm/firmware.h>
+diff --git a/arch/powerpc/platforms/pseries/processor_idle.c b/arch/powerpc/platforms/pseries/processor_idle.c
+index 085fd3f..f4cf675 100644
+--- a/arch/powerpc/platforms/pseries/processor_idle.c
++++ b/arch/powerpc/platforms/pseries/processor_idle.c
+@@ -14,7 +14,6 @@
+ 
+ #include <asm/paca.h>
+ #include <asm/reg.h>
+-#include <asm/system.h>
+ #include <asm/machdep.h>
+ #include <asm/firmware.h>
+ 
+diff --git a/arch/powerpc/platforms/pseries/ras.c b/arch/powerpc/platforms/pseries/ras.c
+index 086d2ae..9e248ef 100644
+--- a/arch/powerpc/platforms/pseries/ras.c
++++ b/arch/powerpc/platforms/pseries/ras.c
+@@ -37,7 +37,6 @@
+ #include <linux/bitops.h>
+ 
+ #include <asm/uaccess.h>
+-#include <asm/system.h>
+ #include <asm/io.h>
+ #include <asm/pgtable.h>
+ #include <asm/irq.h>
+diff --git a/arch/powerpc/platforms/pseries/smp.c b/arch/powerpc/platforms/pseries/smp.c
+index eadba95..e16bb8d 100644
+--- a/arch/powerpc/platforms/pseries/smp.c
++++ b/arch/powerpc/platforms/pseries/smp.c
+@@ -37,7 +37,6 @@
+ #include <asm/machdep.h>
+ #include <asm/cputable.h>
+ #include <asm/firmware.h>
+-#include <asm/system.h>
+ #include <asm/rtas.h>
+ #include <asm/pSeries_reconfig.h>
+ #include <asm/mpic.h>
+diff --git a/arch/powerpc/platforms/wsp/chroma.c b/arch/powerpc/platforms/wsp/chroma.c
+index ca6fa26..8ef53bc 100644
+--- a/arch/powerpc/platforms/wsp/chroma.c
++++ b/arch/powerpc/platforms/wsp/chroma.c
+@@ -17,7 +17,6 @@
+ #include <linux/time.h>
+ 
+ #include <asm/machdep.h>
+-#include <asm/system.h>
+ #include <asm/udbg.h>
+ 
+ #include "ics.h"
+diff --git a/arch/powerpc/platforms/wsp/psr2.c b/arch/powerpc/platforms/wsp/psr2.c
+index 0c1ae06..508ec82 100644
+--- a/arch/powerpc/platforms/wsp/psr2.c
++++ b/arch/powerpc/platforms/wsp/psr2.c
+@@ -17,7 +17,6 @@
+ #include <linux/time.h>
+ 
+ #include <asm/machdep.h>
+-#include <asm/system.h>
+ #include <asm/udbg.h>
+ 
+ #include "ics.h"
+diff --git a/arch/powerpc/sysdev/cpm_common.c b/arch/powerpc/sysdev/cpm_common.c
+index bf6c7cc..4dd5341 100644
+--- a/arch/powerpc/sysdev/cpm_common.c
++++ b/arch/powerpc/sysdev/cpm_common.c
+@@ -26,7 +26,6 @@
+ 
+ #include <asm/udbg.h>
+ #include <asm/io.h>
+-#include <asm/system.h>
+ #include <asm/rheap.h>
+ #include <asm/cpm.h>
+ 
+diff --git a/arch/powerpc/sysdev/fsl_soc.c b/arch/powerpc/sysdev/fsl_soc.c
+index e8f385f..c449dbd 100644
+--- a/arch/powerpc/sysdev/fsl_soc.c
++++ b/arch/powerpc/sysdev/fsl_soc.c
+@@ -31,7 +31,6 @@
+ #include <linux/fs_enet_pd.h>
+ #include <linux/fs_uart_pd.h>
+ 
+-#include <asm/system.h>
+ #include <linux/atomic.h>
+ #include <asm/io.h>
+ #include <asm/irq.h>
+diff --git a/arch/powerpc/sysdev/msi_bitmap.c b/arch/powerpc/sysdev/msi_bitmap.c
+index 5287e95..0968b66 100644
+--- a/arch/powerpc/sysdev/msi_bitmap.c
++++ b/arch/powerpc/sysdev/msi_bitmap.c
+@@ -12,6 +12,7 @@
+ #include <linux/kernel.h>
+ #include <linux/bitmap.h>
+ #include <asm/msi_bitmap.h>
++#include <asm/setup.h>
+ 
+ int msi_bitmap_alloc_hwirqs(struct msi_bitmap *bmp, int num)
+ {
+diff --git a/arch/powerpc/sysdev/tsi108_dev.c b/arch/powerpc/sysdev/tsi108_dev.c
+index 2370e1c..1fd0717 100644
+--- a/arch/powerpc/sysdev/tsi108_dev.c
++++ b/arch/powerpc/sysdev/tsi108_dev.c
+@@ -22,7 +22,6 @@
+ #include <linux/of_net.h>
+ #include <asm/tsi108.h>
+ 
+-#include <asm/system.h>
+ #include <linux/atomic.h>
+ #include <asm/io.h>
+ #include <asm/irq.h>
+diff --git a/arch/powerpc/xmon/xmon.c b/arch/powerpc/xmon/xmon.c
+index cb95eea..d240f0c 100644
+--- a/arch/powerpc/xmon/xmon.c
++++ b/arch/powerpc/xmon/xmon.c
+@@ -42,6 +42,7 @@
+ #include <asm/firmware.h>
+ #include <asm/setjmp.h>
+ #include <asm/reg.h>
++#include <asm/debug.h>
+ 
+ #ifdef CONFIG_PPC64
+ #include <asm/hvcall.h>
 
