@@ -1,95 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:63215 "EHLO
-	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757394Ab2CLV3w (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Mar 2012 17:29:52 -0400
-Received: by gghe5 with SMTP id e5so3083063ggh.19
-        for <linux-arch@vger.kernel.org>; Mon, 12 Mar 2012 14:29:52 -0700 (PDT)
+Received: from mail-yw0-f46.google.com ([209.85.213.46]:45620 "EHLO
+	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757425Ab2CLV34 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Mar 2012 17:29:56 -0400
+Received: by mail-yw0-f46.google.com with SMTP id m54so3065394yhm.19
+        for <linux-arch@vger.kernel.org>; Mon, 12 Mar 2012 14:29:56 -0700 (PDT)
 From: Will Drewry <wad@chromium.org>
-Subject: [PATCH v14 03/13] seccomp: kill the seccomp_t typedef
-Date: Mon, 12 Mar 2012 16:28:25 -0500
-Message-ID: <1331587715-26069-3-git-send-email-wad@chromium.org>
+Subject: [PATCH v14 05/13] asm/syscall.h: add syscall_get_arch
+Date: Mon, 12 Mar 2012 16:28:27 -0500
+Message-ID: <1331587715-26069-5-git-send-email-wad@chromium.org>
 In-Reply-To: <1331587715-26069-1-git-send-email-wad@chromium.org>
 References: <1331587715-26069-1-git-send-email-wad@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Will Drewry <wad@chromium.org>
-Message-ID: <20120312212825.7fdl1_ItfZt33fZ9vWOn_ooejMZxqv9LpKEQewHKuXA@z>
+Message-ID: <20120312212827.Iyt-SP0iOIK74-8ap4ReOFjK4nTf8jlfRKVi4GRj5aE@z>
 
-Replaces the seccomp_t typedef with struct seccomp to match modern
-kernel style.
+Adds a stub for a function that will return the AUDIT_ARCH_*
+value appropriate to the supplied task based on the system
+call convention.
+
+For audit's use, the value can generally be hard-coded at the
+audit-site.  However, for other functionality not inlined into
+syscall entry/exit, this makes that information available.
+seccomp_filter is the first planned consumer and, as such,
+the comment indicates a tie to HAVE_ARCH_SECCOMP_FILTER.  That
+is probably an unneeded detail.
+
+Acked-by: Serge Hallyn <serge.hallyn@canonical.com>
+Suggested-by: Roland McGrath <mcgrathr@chromium.org>
+Signed-off-by: Will Drewry <wad@chromium.org>
 
 v14: rebase/nochanges
 v13: rebase on to 88ebdda6159ffc15699f204c33feb3e431bf9bdc
 v12: rebase on to linux-next
-v8-v11: no changes
-v7: struct seccomp_struct -> struct seccomp
-v6: original inclusion in this series.
-
-Acked-by: Serge Hallyn <serge.hallyn@canonical.com>
-Reviewed-by: James Morris <jmorris@namei.org>
-Signed-off-by: Will Drewry <wad@chromium.org>
+v11: fixed improper return type
+v10: introduced
 ---
- include/linux/sched.h   |    2 +-
- include/linux/seccomp.h |   10 ++++++----
- 2 files changed, 7 insertions(+), 5 deletions(-)
+ include/asm-generic/syscall.h |   14 ++++++++++++++
+ 1 files changed, 14 insertions(+), 0 deletions(-)
 
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 3bcde52..6311128 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -1420,7 +1420,7 @@ struct task_struct {
- 	uid_t loginuid;
- 	unsigned int sessionid;
- #endif
--	seccomp_t seccomp;
-+	struct seccomp seccomp;
+diff --git a/include/asm-generic/syscall.h b/include/asm-generic/syscall.h
+index 5c122ae..a2c13dc 100644
+--- a/include/asm-generic/syscall.h
++++ b/include/asm-generic/syscall.h
+@@ -142,4 +142,18 @@ void syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
+ 			   unsigned int i, unsigned int n,
+ 			   const unsigned long *args);
  
- /* Thread group tracking */
-    	u32 parent_exec_id;
-diff --git a/include/linux/seccomp.h b/include/linux/seccomp.h
-index cc7a4e9..d61f27f 100644
---- a/include/linux/seccomp.h
-+++ b/include/linux/seccomp.h
-@@ -7,7 +7,9 @@
- #include <linux/thread_info.h>
- #include <asm/seccomp.h>
- 
--typedef struct { int mode; } seccomp_t;
-+struct seccomp {
-+	int mode;
-+};
- 
- extern void __secure_computing(int);
- static inline void secure_computing(int this_syscall)
-@@ -19,7 +21,7 @@ static inline void secure_computing(int this_syscall)
- extern long prctl_get_seccomp(void);
- extern long prctl_set_seccomp(unsigned long);
- 
--static inline int seccomp_mode(seccomp_t *s)
-+static inline int seccomp_mode(struct seccomp *s)
- {
- 	return s->mode;
- }
-@@ -28,7 +30,7 @@ static inline int seccomp_mode(seccomp_t *s)
- 
- #include <linux/errno.h>
- 
--typedef struct { } seccomp_t;
-+struct seccomp { };
- 
- #define secure_computing(x) do { } while (0)
- 
-@@ -42,7 +44,7 @@ static inline long prctl_set_seccomp(unsigned long arg2)
- 	return -EINVAL;
- }
- 
--static inline int seccomp_mode(seccomp_t *s)
-+static inline int seccomp_mode(struct seccomp *s)
- {
- 	return 0;
- }
++/**
++ * syscall_get_arch - return the AUDIT_ARCH for the current system call
++ * @task:	task of interest, must be in system call entry tracing
++ * @regs:	task_pt_regs() of @task
++ *
++ * Returns the AUDIT_ARCH_* based on the system call convention in use.
++ *
++ * It's only valid to call this when @task is stopped on entry to a system
++ * call, due to %TIF_SYSCALL_TRACE, %TIF_SYSCALL_AUDIT, or %TIF_SECCOMP.
++ *
++ * Note, at present this function is only required with
++ * CONFIG_HAVE_ARCH_SECCOMP_FILTER.
++ */
++int syscall_get_arch(struct task_struct *task, struct pt_regs *regs);
+ #endif	/* _ASM_SYSCALL_H */
 -- 
 1.7.5.4
 
