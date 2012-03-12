@@ -1,525 +1,466 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 09/35] Disintegrate asm/system.h for H8300 [ver #2]
-Date: Mon, 12 Mar 2012 23:37:37 +0000
-Message-ID: <20120312233737.13888.8532.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 14/35] Disintegrate asm/system.h for Microblaze [ver #2]
+Date: Mon, 12 Mar 2012 23:38:26 +0000
+Message-ID: <20120312233826.13888.43487.stgit@warthog.procyon.org.uk>
 References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:41380 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758185Ab2CLXim (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 12 Mar 2012 19:38:42 -0400
 In-Reply-To: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: paul.gortmaker@windriver.com, hpa@zytor.com
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
-List-Id: linux-arch.vger.kernel.org
+Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>, microblaze-uclinux@itee.uq.edu.au
 
-Disintegrate asm/system.h for H8300.
+Disintegrate asm/system.h for Microblaze.  Not compiled.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
-cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+cc: microblaze-uclinux@itee.uq.edu.au
 ---
 
- arch/h8300/include/asm/atomic.h    |    4 -
- arch/h8300/include/asm/barrier.h   |   27 +++++++
- arch/h8300/include/asm/bitops.h    |    1 
- arch/h8300/include/asm/bug.h       |    4 +
- arch/h8300/include/asm/cmpxchg.h   |   60 +++++++++++++++
- arch/h8300/include/asm/exec.h      |    6 +
- arch/h8300/include/asm/processor.h |    5 +
- arch/h8300/include/asm/switch_to.h |   50 ++++++++++++
- arch/h8300/include/asm/system.h    |  145 +-----------------------------------
- arch/h8300/kernel/irq.c            |    1 
- arch/h8300/kernel/process.c        |    1 
- arch/h8300/kernel/ptrace.c         |    1 
- arch/h8300/kernel/traps.c          |    1 
- arch/h8300/mm/fault.c              |    1 
- arch/h8300/mm/init.c               |    1 
- arch/h8300/mm/kmap.c               |    1 
- arch/h8300/mm/memory.c             |    1 
- 17 files changed, 158 insertions(+), 152 deletions(-)
- create mode 100644 arch/h8300/include/asm/barrier.h
- create mode 100644 arch/h8300/include/asm/cmpxchg.h
- create mode 100644 arch/h8300/include/asm/exec.h
- create mode 100644 arch/h8300/include/asm/switch_to.h
+ arch/microblaze/include/asm/atomic.h      |    1 
+ arch/microblaze/include/asm/barrier.h     |   27 ++++++++
+ arch/microblaze/include/asm/cmpxchg.h     |   40 +++++++++++
+ arch/microblaze/include/asm/exec.h        |   14 ++++
+ arch/microblaze/include/asm/processor.h   |   11 +++
+ arch/microblaze/include/asm/setup.h       |    6 ++
+ arch/microblaze/include/asm/switch_to.h   |   24 +++++++
+ arch/microblaze/include/asm/system.h      |  104 ++---------------------------
+ arch/microblaze/kernel/cpu/pvr.c          |    1 
+ arch/microblaze/kernel/microblaze_ksyms.c |    1 
+ arch/microblaze/kernel/process.c          |    1 
+ arch/microblaze/kernel/prom.c             |    1 
+ arch/microblaze/kernel/setup.c            |    1 
+ arch/microblaze/kernel/timer.c            |    1 
+ arch/microblaze/kernel/traps.c            |    1 
+ arch/microblaze/lib/memcpy.c              |    1 
+ arch/microblaze/mm/fault.c                |    1 
+ 17 files changed, 129 insertions(+), 107 deletions(-)
+ create mode 100644 arch/microblaze/include/asm/barrier.h
+ create mode 100644 arch/microblaze/include/asm/cmpxchg.h
+ create mode 100644 arch/microblaze/include/asm/exec.h
+ create mode 100644 arch/microblaze/include/asm/switch_to.h
 
-diff --git a/arch/h8300/include/asm/atomic.h b/arch/h8300/include/asm/atomic.h
-index f5a38c1..40901e3 100644
---- a/arch/h8300/include/asm/atomic.h
-+++ b/arch/h8300/include/asm/atomic.h
-@@ -2,6 +2,7 @@
- #define __ARCH_H8300_ATOMIC__
+diff --git a/arch/microblaze/include/asm/atomic.h b/arch/microblaze/include/asm/atomic.h
+index 615f539..472d8bf 100644
+--- a/arch/microblaze/include/asm/atomic.h
++++ b/arch/microblaze/include/asm/atomic.h
+@@ -1,6 +1,7 @@
+ #ifndef _ASM_MICROBLAZE_ATOMIC_H
+ #define _ASM_MICROBLAZE_ATOMIC_H
  
- #include <linux/types.h>
 +#include <asm/cmpxchg.h>
+ #include <asm-generic/atomic.h>
+ #include <asm-generic/atomic64.h>
  
- /*
-  * Atomic operations that C can't guarantee us.  Useful for
-@@ -13,7 +14,6 @@
- #define atomic_read(v)		(*(volatile int *)&(v)->counter)
- #define atomic_set(v, i)	(((v)->counter) = i)
- 
--#include <asm/system.h>
- #include <linux/kernel.h>
- 
- static __inline__ int atomic_add_return(int i, atomic_t *v)
-@@ -102,8 +102,6 @@ static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
- 	return ret;
- }
- 
--#define atomic_xchg(v, new) (xchg(&((v)->counter), new))
--
- static inline int __atomic_add_unless(atomic_t *v, int a, int u)
- {
- 	int ret;
-diff --git a/arch/h8300/include/asm/barrier.h b/arch/h8300/include/asm/barrier.h
+diff --git a/arch/microblaze/include/asm/barrier.h b/arch/microblaze/include/asm/barrier.h
 new file mode 100644
-index 0000000..c7283c3
+index 0000000..df5be3e8
 --- /dev/null
-+++ b/arch/h8300/include/asm/barrier.h
++++ b/arch/microblaze/include/asm/barrier.h
 @@ -0,0 +1,27 @@
-+#ifndef _H8300_BARRIER_H
-+#define _H8300_BARRIER_H
-+
-+#define nop()  asm volatile ("nop"::)
-+
 +/*
-+ * Force strict CPU ordering.
-+ * Not really required on H8...
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
 + */
-+#define mb()   asm volatile (""   : : :"memory")
-+#define rmb()  asm volatile (""   : : :"memory")
-+#define wmb()  asm volatile (""   : : :"memory")
-+#define set_mb(var, value) do { xchg(&var, value); } while (0)
 +
-+#ifdef CONFIG_SMP
-+#define smp_mb()	mb()
-+#define smp_rmb()	rmb()
-+#define smp_wmb()	wmb()
-+#define smp_read_barrier_depends()	read_barrier_depends()
-+#else
-+#define smp_mb()	barrier()
-+#define smp_rmb()	barrier()
-+#define smp_wmb()	barrier()
-+#define smp_read_barrier_depends()	do { } while(0)
-+#endif
++#ifndef _ASM_MICROBLAZE_BARRIER_H
++#define _ASM_MICROBLAZE_BARRIER_H
 +
-+#endif /* _H8300_BARRIER_H */
-diff --git a/arch/h8300/include/asm/bitops.h b/arch/h8300/include/asm/bitops.h
-index e856c1b..eb34e0c 100644
---- a/arch/h8300/include/asm/bitops.h
-+++ b/arch/h8300/include/asm/bitops.h
-@@ -7,7 +7,6 @@
-  */
- 
- #include <linux/compiler.h>
--#include <asm/system.h>
- 
- #ifdef __KERNEL__
- 
-diff --git a/arch/h8300/include/asm/bug.h b/arch/h8300/include/asm/bug.h
-index 887c197..1e1be81 100644
---- a/arch/h8300/include/asm/bug.h
-+++ b/arch/h8300/include/asm/bug.h
-@@ -5,4 +5,8 @@
- #define is_valid_bugaddr(addr) (1)
- 
- #include <asm-generic/bug.h>
++#define nop()                  asm volatile ("nop")
 +
-+struct pt_regs;
-+extern void die(const char *str, struct pt_regs *fp, unsigned long err);
++#define smp_read_barrier_depends()	do {} while (0)
++#define read_barrier_depends()		do {} while (0)
 +
- #endif
-diff --git a/arch/h8300/include/asm/cmpxchg.h b/arch/h8300/include/asm/cmpxchg.h
++#define mb()			barrier()
++#define rmb()			mb()
++#define wmb()			mb()
++#define set_mb(var, value)	do { var = value; mb(); } while (0)
++#define set_wmb(var, value)	do { var = value; wmb(); } while (0)
++
++#define smp_mb()		mb()
++#define smp_rmb()		rmb()
++#define smp_wmb()		wmb()
++
++#endif /* _ASM_MICROBLAZE_BARRIER_H */
+diff --git a/arch/microblaze/include/asm/cmpxchg.h b/arch/microblaze/include/asm/cmpxchg.h
 new file mode 100644
-index 0000000..cdb203e
+index 0000000..0094859
 --- /dev/null
-+++ b/arch/h8300/include/asm/cmpxchg.h
-@@ -0,0 +1,60 @@
-+#ifndef __ARCH_H8300_CMPXCHG__
-+#define __ARCH_H8300_CMPXCHG__
++++ b/arch/microblaze/include/asm/cmpxchg.h
+@@ -0,0 +1,40 @@
++#ifndef _ASM_MICROBLAZE_CMPXCHG_H
++#define _ASM_MICROBLAZE_CMPXCHG_H
 +
-+#include <linux/irqflags.h>
++void __bad_xchg(volatile void *ptr, int size);
 +
-+#define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
-+
-+struct __xchg_dummy { unsigned long a[100]; };
-+#define __xg(x) ((volatile struct __xchg_dummy *)(x))
-+
-+static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
++static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
++								int size)
 +{
-+  unsigned long tmp, flags;
++	unsigned long ret;
++	unsigned long flags;
 +
-+  local_irq_save(flags);
++	switch (size) {
++	case 1:
++		local_irq_save(flags);
++		ret = *(volatile unsigned char *)ptr;
++		*(volatile unsigned char *)ptr = x;
++		local_irq_restore(flags);
++		break;
 +
-+  switch (size) {
-+  case 1:
-+    __asm__ __volatile__
-+    ("mov.b %2,%0\n\t"
-+     "mov.b %1,%2"
-+    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
-+    break;
-+  case 2:
-+    __asm__ __volatile__
-+    ("mov.w %2,%0\n\t"
-+     "mov.w %1,%2"
-+    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
-+    break;
-+  case 4:
-+    __asm__ __volatile__
-+    ("mov.l %2,%0\n\t"
-+     "mov.l %1,%2"
-+    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
-+    break;
-+  default:
-+    tmp = 0;	  
-+  }
-+  local_irq_restore(flags);
-+  return tmp;
++	case 4:
++		local_irq_save(flags);
++		ret = *(volatile unsigned long *)ptr;
++		*(volatile unsigned long *)ptr = x;
++		local_irq_restore(flags);
++		break;
++	default:
++		__bad_xchg(ptr, size), ret = 0;
++		break;
++	}
++
++	return ret;
 +}
 +
++#define xchg(ptr, x) \
++	((__typeof__(*(ptr))) __xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
++
++#include <asm-generic/cmpxchg.h>
 +#include <asm-generic/cmpxchg-local.h>
 +
-+/*
-+ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
-+ * them available.
-+ */
-+#define cmpxchg_local(ptr, o, n)				  	       \
-+	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
-+			(unsigned long)(n), sizeof(*(ptr))))
-+#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
-+
-+#ifndef CONFIG_SMP
-+#include <asm-generic/cmpxchg.h>
-+#endif
-+
-+#define atomic_xchg(v, new) (xchg(&((v)->counter), new))
-+
-+#endif /* __ARCH_H8300_CMPXCHG__ */
-diff --git a/arch/h8300/include/asm/exec.h b/arch/h8300/include/asm/exec.h
++#endif /* _ASM_MICROBLAZE_CMPXCHG_H */
+diff --git a/arch/microblaze/include/asm/exec.h b/arch/microblaze/include/asm/exec.h
 new file mode 100644
-index 0000000..c01c45c
+index 0000000..e750de1
 --- /dev/null
-+++ b/arch/h8300/include/asm/exec.h
-@@ -0,0 +1,6 @@
-+#ifndef _H8300_EXEC_H
-+#define _H8300_EXEC_H
++++ b/arch/microblaze/include/asm/exec.h
+@@ -0,0 +1,14 @@
++/*
++ * Copyright (C) 2006 Atmark Techno, Inc.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++
++#ifndef _ASM_MICROBLAZE_EXEC_H
++#define _ASM_MICROBLAZE_EXEC_H
 +
 +#define arch_align_stack(x) (x)
 +
-+#endif /* _H8300_EXEC_H */
-diff --git a/arch/h8300/include/asm/processor.h b/arch/h8300/include/asm/processor.h
-index e834b60..61fabf1 100644
---- a/arch/h8300/include/asm/processor.h
-+++ b/arch/h8300/include/asm/processor.h
-@@ -135,4 +135,9 @@ unsigned long get_wchan(struct task_struct *p);
++#endif /* _ASM_MICROBLAZE_EXEC_H */
+diff --git a/arch/microblaze/include/asm/processor.h b/arch/microblaze/include/asm/processor.h
+index 7283bfb..510a8e1 100644
+--- a/arch/microblaze/include/asm/processor.h
++++ b/arch/microblaze/include/asm/processor.h
+@@ -125,7 +125,6 @@ struct thread_struct {
+ 	.pgdir = swapper_pg_dir, \
+ }
  
- #define cpu_relax()    barrier()
+-
+ /* Free all resources held by a thread. */
+ extern inline void release_thread(struct task_struct *dead_task)
+ {
+@@ -144,6 +143,8 @@ static inline void exit_thread(void)
  
-+#define HARD_RESET_NOW() ({		\
-+        local_irq_disable();		\
-+        asm("jmp @@0");			\
-+})
+ unsigned long get_wchan(struct task_struct *p);
+ 
++extern void ret_from_fork(void);
 +
- #endif
-diff --git a/arch/h8300/include/asm/switch_to.h b/arch/h8300/include/asm/switch_to.h
+ /* The size allocated for kernel stacks. This _must_ be a power of two! */
+ # define KERNEL_STACK_SIZE	0x2000
+ 
+@@ -166,6 +167,14 @@ unsigned long get_wchan(struct task_struct *p);
+ #  define STACK_TOP	TASK_SIZE
+ #  define STACK_TOP_MAX	STACK_TOP
+ 
++void disable_hlt(void);
++void enable_hlt(void);
++void default_idle(void);
++
++#ifdef CONFIG_DEBUG_FS
++extern struct dentry *of_debugfs_root;
++#endif
++
+ #  endif /* __ASSEMBLY__ */
+ # endif /* CONFIG_MMU */
+ #endif /* _ASM_MICROBLAZE_PROCESSOR_H */
+diff --git a/arch/microblaze/include/asm/setup.h b/arch/microblaze/include/asm/setup.h
+index 6c72ed7..aa22511 100644
+--- a/arch/microblaze/include/asm/setup.h
++++ b/arch/microblaze/include/asm/setup.h
+@@ -20,6 +20,8 @@ extern unsigned int boot_cpuid; /* move to smp.h */
+ 
+ extern char cmd_line[COMMAND_LINE_SIZE];
+ 
++extern char *klimit;
++
+ void early_printk(const char *fmt, ...);
+ 
+ int setup_early_printk(char *opt);
+@@ -46,6 +48,10 @@ void machine_shutdown(void);
+ void machine_halt(void);
+ void machine_power_off(void);
+ 
++void free_init_pages(char *what, unsigned long begin, unsigned long end);
++extern void *alloc_maybe_bootmem(size_t size, gfp_t mask);
++extern void *zalloc_maybe_bootmem(size_t size, gfp_t mask);
++
+ #  endif/* __KERNEL__ */
+ # endif /* __ASSEMBLY__ */
+ #endif /* _ASM_MICROBLAZE_SETUP_H */
+diff --git a/arch/microblaze/include/asm/switch_to.h b/arch/microblaze/include/asm/switch_to.h
 new file mode 100644
-index 0000000..cdd8731
+index 0000000..f45baa2
 --- /dev/null
-+++ b/arch/h8300/include/asm/switch_to.h
-@@ -0,0 +1,50 @@
-+#ifndef _H8300_SWITCH_TO_H
-+#define _H8300_SWITCH_TO_H
-+
++++ b/arch/microblaze/include/asm/switch_to.h
+@@ -0,0 +1,24 @@
 +/*
-+ * switch_to(n) should switch tasks to task ptr, first checking that
-+ * ptr isn't the current task, in which case it does nothing.  This
-+ * also clears the TS-flag if the task we switched to has used the
-+ * math co-processor latest.
-+ */
-+/*
-+ * switch_to() saves the extra registers, that are not saved
-+ * automatically by SAVE_SWITCH_STACK in resume(), ie. d0-d5 and
-+ * a0-a1. Some of these are used by schedule() and its predecessors
-+ * and so we might get see unexpected behaviors when a task returns
-+ * with unexpected register values.
++ * Copyright (C) 2006 Atmark Techno, Inc.
 + *
-+ * syscall stores these registers itself and none of them are used
-+ * by syscall after the function in the syscall has been called.
-+ *
-+ * Beware that resume now expects *next to be in d1 and the offset of
-+ * tss to be in a1. This saves a few instructions as we no longer have
-+ * to push them onto the stack and read them back right after.
-+ *
-+ * 02/17/96 - Jes Sorensen (jds@kom.auc.dk)
-+ *
-+ * Changed 96/09/19 by Andreas Schwab
-+ * pass prev in a0, next in a1, offset of tss in d1, and whether
-+ * the mm structures are shared in d2 (to avoid atc flushing).
-+ *
-+ * H8/300 Porting 2002/09/04 Yoshinori Sato
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License. See the file "COPYING" in the main directory of this archive
++ * for more details.
 + */
 +
-+asmlinkage void resume(void);
-+#define switch_to(prev,next,last) {                         \
-+  void *_last;						    \
-+  __asm__ __volatile__(					    \
-+  			"mov.l	%1, er0\n\t"		    \
-+			"mov.l	%2, er1\n\t"		    \
-+                        "mov.l  %3, er2\n\t"                \
-+			"jsr @_resume\n\t"                  \
-+                        "mov.l  er2,%0\n\t"                 \
-+		       : "=r" (_last)			    \
-+		       : "r" (&(prev->thread)),		    \
-+			 "r" (&(next->thread)),		    \
-+                         "g" (prev)                         \
-+		       : "cc", "er0", "er1", "er2", "er3"); \
-+  (last) = _last; 					    \
-+}
++#ifndef _ASM_MICROBLAZE_SWITCH_TO_H
++#define _ASM_MICROBLAZE_SWITCH_TO_H
 +
-+#endif /* _H8300_SWITCH_TO_H */
-diff --git a/arch/h8300/include/asm/system.h b/arch/h8300/include/asm/system.h
-index 2c2382e..a7f4057 100644
---- a/arch/h8300/include/asm/system.h
-+++ b/arch/h8300/include/asm/system.h
-@@ -1,140 +1,5 @@
--#ifndef _H8300_SYSTEM_H
--#define _H8300_SYSTEM_H
--
--#include <linux/linkage.h>
--#include <linux/irqflags.h>
--
--struct pt_regs;
--
++struct task_struct;
++struct thread_info;
++
++extern struct task_struct *_switch_to(struct thread_info *prev,
++					struct thread_info *next);
++
++#define switch_to(prev, next, last)					\
++	do {								\
++		(last) = _switch_to(task_thread_info(prev),		\
++					task_thread_info(next));	\
++	} while (0)
++
++#endif /* _ASM_MICROBLAZE_SWITCH_TO_H */
+diff --git a/arch/microblaze/include/asm/system.h b/arch/microblaze/include/asm/system.h
+index 5a433cb..ccc4f86 100644
+--- a/arch/microblaze/include/asm/system.h
++++ b/arch/microblaze/include/asm/system.h
+@@ -1,97 +1,7 @@
 -/*
-- * switch_to(n) should switch tasks to task ptr, first checking that
-- * ptr isn't the current task, in which case it does nothing.  This
-- * also clears the TS-flag if the task we switched to has used the
-- * math co-processor latest.
-- */
--/*
-- * switch_to() saves the extra registers, that are not saved
-- * automatically by SAVE_SWITCH_STACK in resume(), ie. d0-d5 and
-- * a0-a1. Some of these are used by schedule() and its predecessors
-- * and so we might get see unexpected behaviors when a task returns
-- * with unexpected register values.
+- * Copyright (C) 2006 Atmark Techno, Inc.
 - *
-- * syscall stores these registers itself and none of them are used
-- * by syscall after the function in the syscall has been called.
-- *
-- * Beware that resume now expects *next to be in d1 and the offset of
-- * tss to be in a1. This saves a few instructions as we no longer have
-- * to push them onto the stack and read them back right after.
-- *
-- * 02/17/96 - Jes Sorensen (jds@kom.auc.dk)
-- *
-- * Changed 96/09/19 by Andreas Schwab
-- * pass prev in a0, next in a1, offset of tss in d1, and whether
-- * the mm structures are shared in d2 (to avoid atc flushing).
-- *
-- * H8/300 Porting 2002/09/04 Yoshinori Sato
+- * This file is subject to the terms and conditions of the GNU General Public
+- * License. See the file "COPYING" in the main directory of this archive
+- * for more details.
 - */
 -
--asmlinkage void resume(void);
--#define switch_to(prev,next,last) {                         \
--  void *_last;						    \
--  __asm__ __volatile__(					    \
--  			"mov.l	%1, er0\n\t"		    \
--			"mov.l	%2, er1\n\t"		    \
--                        "mov.l  %3, er2\n\t"                \
--			"jsr @_resume\n\t"                  \
--                        "mov.l  er2,%0\n\t"                 \
--		       : "=r" (_last)			    \
--		       : "r" (&(prev->thread)),		    \
--			 "r" (&(next->thread)),		    \
--                         "g" (prev)                         \
--		       : "cc", "er0", "er1", "er2", "er3"); \
--  (last) = _last; 					    \
--}
+-#ifndef _ASM_MICROBLAZE_SYSTEM_H
+-#define _ASM_MICROBLAZE_SYSTEM_H
 -
--#define iret() __asm__ __volatile__ ("rte": : :"memory", "sp", "cc")
+-#include <asm/registers.h>
+-#include <asm/setup.h>
+-#include <asm/irqflags.h>
+-#include <asm/cache.h>
 -
--/*
-- * Force strict CPU ordering.
-- * Not really required on H8...
-- */
--#define nop()  asm volatile ("nop"::)
--#define mb()   asm volatile (""   : : :"memory")
--#define rmb()  asm volatile (""   : : :"memory")
--#define wmb()  asm volatile (""   : : :"memory")
--#define set_mb(var, value) do { xchg(&var, value); } while (0)
--
--#ifdef CONFIG_SMP
--#define smp_mb()	mb()
--#define smp_rmb()	rmb()
--#define smp_wmb()	wmb()
--#define smp_read_barrier_depends()	read_barrier_depends()
--#else
--#define smp_mb()	barrier()
--#define smp_rmb()	barrier()
--#define smp_wmb()	barrier()
--#define smp_read_barrier_depends()	do { } while(0)
--#endif
--
--#define xchg(ptr,x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--
--struct __xchg_dummy { unsigned long a[100]; };
--#define __xg(x) ((volatile struct __xchg_dummy *)(x))
--
--static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
--{
--  unsigned long tmp, flags;
--
--  local_irq_save(flags);
--
--  switch (size) {
--  case 1:
--    __asm__ __volatile__
--    ("mov.b %2,%0\n\t"
--     "mov.b %1,%2"
--    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
--    break;
--  case 2:
--    __asm__ __volatile__
--    ("mov.w %2,%0\n\t"
--     "mov.w %1,%2"
--    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
--    break;
--  case 4:
--    __asm__ __volatile__
--    ("mov.l %2,%0\n\t"
--     "mov.l %1,%2"
--    : "=&r" (tmp) : "r" (x), "m" (*__xg(ptr)) : "memory");
--    break;
--  default:
--    tmp = 0;	  
--  }
--  local_irq_restore(flags);
--  return tmp;
--}
--
--#define HARD_RESET_NOW() ({		\
--        local_irq_disable();		\
--        asm("jmp @@0");			\
--})
--
+-#include <asm-generic/cmpxchg.h>
 -#include <asm-generic/cmpxchg-local.h>
 -
--/*
-- * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
-- * them available.
-- */
--#define cmpxchg_local(ptr, o, n)				  	       \
--	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
--			(unsigned long)(n), sizeof(*(ptr))))
--#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+-struct task_struct;
+-struct thread_info;
 -
--#ifndef CONFIG_SMP
--#include <asm-generic/cmpxchg.h>
+-extern struct task_struct *_switch_to(struct thread_info *prev,
+-					struct thread_info *next);
+-
+-#define switch_to(prev, next, last)					\
+-	do {								\
+-		(last) = _switch_to(task_thread_info(prev),		\
+-					task_thread_info(next));	\
+-	} while (0)
+-
+-#define smp_read_barrier_depends()	do {} while (0)
+-#define read_barrier_depends()		do {} while (0)
+-
+-#define nop()			asm volatile ("nop")
+-#define mb()			barrier()
+-#define rmb()			mb()
+-#define wmb()			mb()
+-#define set_mb(var, value)	do { var = value; mb(); } while (0)
+-#define set_wmb(var, value)	do { var = value; wmb(); } while (0)
+-
+-#define smp_mb()		mb()
+-#define smp_rmb()		rmb()
+-#define smp_wmb()		wmb()
+-
+-void __bad_xchg(volatile void *ptr, int size);
+-
+-static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
+-								int size)
+-{
+-	unsigned long ret;
+-	unsigned long flags;
+-
+-	switch (size) {
+-	case 1:
+-		local_irq_save(flags);
+-		ret = *(volatile unsigned char *)ptr;
+-		*(volatile unsigned char *)ptr = x;
+-		local_irq_restore(flags);
+-		break;
+-
+-	case 4:
+-		local_irq_save(flags);
+-		ret = *(volatile unsigned long *)ptr;
+-		*(volatile unsigned long *)ptr = x;
+-		local_irq_restore(flags);
+-		break;
+-	default:
+-		__bad_xchg(ptr, size), ret = 0;
+-		break;
+-	}
+-
+-	return ret;
+-}
+-
+-void disable_hlt(void);
+-void enable_hlt(void);
+-void default_idle(void);
+-
+-#define xchg(ptr, x) \
+-	((__typeof__(*(ptr))) __xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
+-
+-void free_init_pages(char *what, unsigned long begin, unsigned long end);
+-void free_initmem(void);
+-extern char *klimit;
+-extern void ret_from_fork(void);
+-
+-extern void *alloc_maybe_bootmem(size_t size, gfp_t mask);
+-extern void *zalloc_maybe_bootmem(size_t size, gfp_t mask);
+-
+-#ifdef CONFIG_DEBUG_FS
+-extern struct dentry *of_debugfs_root;
 -#endif
 -
 -#define arch_align_stack(x) (x)
 -
--extern void die(const char *str, struct pt_regs *fp, unsigned long err);
--
--#endif /* _H8300_SYSTEM_H */
+-#endif /* _ASM_MICROBLAZE_SYSTEM_H */
 +/* FILE TO BE DELETED. DO NOT ADD STUFF HERE! */
 +#include <asm/barrier.h>
 +#include <asm/cmpxchg.h>
 +#include <asm/exec.h>
++#include <asm/special_insns.h>
 +#include <asm/switch_to.h>
-diff --git a/arch/h8300/kernel/irq.c b/arch/h8300/kernel/irq.c
-index 1f67fed..2fa8ac7 100644
---- a/arch/h8300/kernel/irq.c
-+++ b/arch/h8300/kernel/irq.c
-@@ -16,7 +16,6 @@
- #include <linux/irq.h>
- #include <linux/interrupt.h>
++extern void free_initmem(void);
+diff --git a/arch/microblaze/kernel/cpu/pvr.c b/arch/microblaze/kernel/cpu/pvr.c
+index 488c1ed..3a749d5 100644
+--- a/arch/microblaze/kernel/cpu/pvr.c
++++ b/arch/microblaze/kernel/cpu/pvr.c
+@@ -12,7 +12,6 @@
  
--#include <asm/system.h>
- #include <asm/traps.h>
- #include <asm/io.h>
- #include <asm/setup.h>
-diff --git a/arch/h8300/kernel/process.c b/arch/h8300/kernel/process.c
-index 933bd38..c5d0ba9 100644
---- a/arch/h8300/kernel/process.c
-+++ b/arch/h8300/kernel/process.c
-@@ -38,7 +38,6 @@
- #include <linux/slab.h>
- 
- #include <asm/uaccess.h>
--#include <asm/system.h>
- #include <asm/traps.h>
- #include <asm/setup.h>
- #include <asm/pgtable.h>
-diff --git a/arch/h8300/kernel/ptrace.c b/arch/h8300/kernel/ptrace.c
-index 497fa89..748cf65 100644
---- a/arch/h8300/kernel/ptrace.c
-+++ b/arch/h8300/kernel/ptrace.c
-@@ -27,7 +27,6 @@
- #include <asm/uaccess.h>
- #include <asm/page.h>
- #include <asm/pgtable.h>
--#include <asm/system.h>
- #include <asm/processor.h>
- #include <asm/signal.h>
- 
-diff --git a/arch/h8300/kernel/traps.c b/arch/h8300/kernel/traps.c
-index dfa05bd..7833aa3 100644
---- a/arch/h8300/kernel/traps.c
-+++ b/arch/h8300/kernel/traps.c
-@@ -22,7 +22,6 @@
- #include <linux/module.h>
- #include <linux/bug.h>
- 
--#include <asm/system.h>
- #include <asm/irq.h>
- #include <asm/traps.h>
- #include <asm/page.h>
-diff --git a/arch/h8300/mm/fault.c b/arch/h8300/mm/fault.c
-index 1d092ab..4725359 100644
---- a/arch/h8300/mm/fault.c
-+++ b/arch/h8300/mm/fault.c
-@@ -17,7 +17,6 @@
  #include <linux/kernel.h>
- #include <linux/ptrace.h>
- 
+ #include <linux/compiler.h>
 -#include <asm/system.h>
- #include <asm/pgtable.h>
+ #include <asm/exceptions.h>
+ #include <asm/pvr.h>
  
- /*
-diff --git a/arch/h8300/mm/init.c b/arch/h8300/mm/init.c
-index 7cc3380..973369c 100644
---- a/arch/h8300/mm/init.c
-+++ b/arch/h8300/mm/init.c
-@@ -36,7 +36,6 @@
- #include <asm/segment.h>
+diff --git a/arch/microblaze/kernel/microblaze_ksyms.c b/arch/microblaze/kernel/microblaze_ksyms.c
+index 49faeb4..bb4907c 100644
+--- a/arch/microblaze/kernel/microblaze_ksyms.c
++++ b/arch/microblaze/kernel/microblaze_ksyms.c
+@@ -18,7 +18,6 @@
+ #include <asm/cacheflush.h>
+ #include <linux/io.h>
  #include <asm/page.h>
- #include <asm/pgtable.h>
 -#include <asm/system.h>
+ #include <linux/ftrace.h>
+ #include <linux/uaccess.h>
  
- #undef DEBUG
- 
-diff --git a/arch/h8300/mm/kmap.c b/arch/h8300/mm/kmap.c
-index 944a502..f79edcd 100644
---- a/arch/h8300/mm/kmap.c
-+++ b/arch/h8300/mm/kmap.c
-@@ -19,7 +19,6 @@
- #include <asm/page.h>
+diff --git a/arch/microblaze/kernel/process.c b/arch/microblaze/kernel/process.c
+index 7dcb5bf..831c960 100644
+--- a/arch/microblaze/kernel/process.c
++++ b/arch/microblaze/kernel/process.c
+@@ -13,7 +13,6 @@
+ #include <linux/pm.h>
+ #include <linux/tick.h>
+ #include <linux/bitops.h>
+-#include <asm/system.h>
  #include <asm/pgalloc.h>
- #include <asm/io.h>
+ #include <asm/uaccess.h> /* for USER_DS macros */
+ #include <asm/cacheflush.h>
+diff --git a/arch/microblaze/kernel/prom.c b/arch/microblaze/kernel/prom.c
+index 80d314e..4a764cc 100644
+--- a/arch/microblaze/kernel/prom.c
++++ b/arch/microblaze/kernel/prom.c
+@@ -36,7 +36,6 @@
+ #include <asm/processor.h>
+ #include <asm/irq.h>
+ #include <linux/io.h>
 -#include <asm/system.h>
- 
- #undef DEBUG
- 
-diff --git a/arch/h8300/mm/memory.c b/arch/h8300/mm/memory.c
-index 5552ddf..06e3646 100644
---- a/arch/h8300/mm/memory.c
-+++ b/arch/h8300/mm/memory.c
-@@ -26,7 +26,6 @@
- #include <asm/segment.h>
- #include <asm/page.h>
+ #include <asm/mmu.h>
  #include <asm/pgtable.h>
+ #include <asm/sections.h>
+diff --git a/arch/microblaze/kernel/setup.c b/arch/microblaze/kernel/setup.c
+index 604cd9d..a953788 100644
+--- a/arch/microblaze/kernel/setup.c
++++ b/arch/microblaze/kernel/setup.c
+@@ -30,7 +30,6 @@
+ #include <asm/entry.h>
+ #include <asm/cpuinfo.h>
+ 
 -#include <asm/system.h>
- #include <asm/traps.h>
- #include <asm/io.h>
+ #include <asm/prom.h>
+ #include <asm/pgtable.h>
+ 
+diff --git a/arch/microblaze/kernel/timer.c b/arch/microblaze/kernel/timer.c
+index 3cb0bf6..d3a38ec 100644
+--- a/arch/microblaze/kernel/timer.c
++++ b/arch/microblaze/kernel/timer.c
+@@ -27,7 +27,6 @@
+ #include <asm/setup.h>
+ #include <asm/prom.h>
+ #include <asm/irq.h>
+-#include <asm/system.h>
+ #include <linux/cnt32_to_63.h>
+ 
+ #ifdef CONFIG_SELFMOD_TIMER
+diff --git a/arch/microblaze/kernel/traps.c b/arch/microblaze/kernel/traps.c
+index ba034d4..5541ac5 100644
+--- a/arch/microblaze/kernel/traps.c
++++ b/arch/microblaze/kernel/traps.c
+@@ -15,7 +15,6 @@
+ #include <linux/debug_locks.h>
+ 
+ #include <asm/exceptions.h>
+-#include <asm/system.h>
+ #include <asm/unwind.h>
+ 
+ void trap_init(void)
+diff --git a/arch/microblaze/lib/memcpy.c b/arch/microblaze/lib/memcpy.c
+index 52746e7..fe9c53f 100644
+--- a/arch/microblaze/lib/memcpy.c
++++ b/arch/microblaze/lib/memcpy.c
+@@ -30,7 +30,6 @@
+ #include <linux/module.h>
+ 
+ #include <linux/string.h>
+-#include <asm/system.h>
+ 
+ #ifdef __HAVE_ARCH_MEMCPY
+ #ifndef CONFIG_OPT_LIB_FUNCTION
+diff --git a/arch/microblaze/mm/fault.c b/arch/microblaze/mm/fault.c
+index ae97d2c..c38a265 100644
+--- a/arch/microblaze/mm/fault.c
++++ b/arch/microblaze/mm/fault.c
+@@ -33,7 +33,6 @@
+ #include <asm/pgtable.h>
+ #include <asm/mmu.h>
+ #include <asm/mmu_context.h>
+-#include <asm/system.h>
+ #include <linux/uaccess.h>
+ #include <asm/exceptions.h>
  
