@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:28072 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:15070 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932234Ab2CLXhi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 12 Mar 2012 19:37:38 -0400
+	id S932234Ab2CLXhw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 12 Mar 2012 19:37:52 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 08/35] Disintegrate asm/system.h for FRV [ver #2]
-Date: Mon, 12 Mar 2012 23:37:28 +0000
-Message-ID: <20120312233728.13888.42284.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 05/35] Disintegrate asm/system.h for Blackfin [ver #2]
+Date: Mon, 12 Mar 2012 23:36:56 +0000
+Message-ID: <20120312233656.13888.39270.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
 References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -15,725 +15,614 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paul.gortmaker@windriver.com, hpa@zytor.com
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>
-Message-ID: <20120312233728.60lT2rQp51jX9j8fW_stANHAU0gBB0-N7pCKJpu53LQ@z>
+Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>, uclinux-dist-devel@blackfin.uclinux.org
+Message-ID: <20120312233656.Olo_1g3jdv402hZ5edY0pNL1LdMas2bX6LLJgLuX_xo@z>
 
-Disintegrate asm/system.h for FRV.
+Disintegrate asm/system.h for Blackfin.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
+cc: uclinux-dist-devel@blackfin.uclinux.org
 ---
 
- arch/frv/include/asm/atomic.h    |   57 -------------
- arch/frv/include/asm/barrier.h   |   29 ++++++
- arch/frv/include/asm/bug.h       |    2 
- arch/frv/include/asm/cmpxchg.h   |  172 ++++++++++++++++++++++++++++++++++++++
- arch/frv/include/asm/exec.h      |   17 ++++
- arch/frv/include/asm/switch_to.h |   35 ++++++++
- arch/frv/include/asm/system.h    |  162 +-----------------------------------
- arch/frv/kernel/debug-stub.c     |    1 
- arch/frv/kernel/gdb-io.c         |    1 
- arch/frv/kernel/gdb-stub.c       |    1 
- arch/frv/kernel/irq-mb93091.c    |    1 
- arch/frv/kernel/irq-mb93093.c    |    1 
- arch/frv/kernel/irq-mb93493.c    |    1 
- arch/frv/kernel/irq.c            |    1 
- arch/frv/kernel/process.c        |    1 
- arch/frv/kernel/ptrace.c         |    1 
- arch/frv/kernel/traps.c          |    1 
- arch/frv/mm/fault.c              |    1 
- arch/frv/mm/init.c               |    1 
- arch/frv/mm/kmap.c               |    1 
- 20 files changed, 261 insertions(+), 226 deletions(-)
- create mode 100644 arch/frv/include/asm/barrier.h
- create mode 100644 arch/frv/include/asm/cmpxchg.h
- create mode 100644 arch/frv/include/asm/exec.h
- create mode 100644 arch/frv/include/asm/switch_to.h
+ arch/blackfin/include/asm/atomic.h      |    2 
+ arch/blackfin/include/asm/barrier.h     |   48 ++++++++
+ arch/blackfin/include/asm/cmpxchg.h     |  132 +++++++++++++++++++++
+ arch/blackfin/include/asm/exec.h        |    1 
+ arch/blackfin/include/asm/irq_handler.h |    1 
+ arch/blackfin/include/asm/switch_to.h   |   39 ++++++
+ arch/blackfin/include/asm/system.h      |  197 +------------------------------
+ arch/blackfin/kernel/asm-offsets.c      |    1 
+ arch/blackfin/kernel/ipipe.c            |    1 
+ arch/blackfin/kernel/kgdb_test.c        |    1 
+ arch/blackfin/kernel/process.c          |    1 
+ arch/blackfin/kernel/ptrace.c           |    1 
+ arch/blackfin/kernel/reboot.c           |    1 
+ arch/blackfin/kernel/setup.c            |    1 
+ arch/blackfin/kernel/trace.c            |    1 
+ arch/blackfin/kernel/traps.c            |    1 
+ 16 files changed, 233 insertions(+), 196 deletions(-)
+ create mode 100644 arch/blackfin/include/asm/barrier.h
+ create mode 100644 arch/blackfin/include/asm/cmpxchg.h
+ create mode 100644 arch/blackfin/include/asm/exec.h
+ create mode 100644 arch/blackfin/include/asm/switch_to.h
 
-diff --git a/arch/frv/include/asm/atomic.h b/arch/frv/include/asm/atomic.h
-index 0d8a7d6..b86329d 100644
---- a/arch/frv/include/asm/atomic.h
-+++ b/arch/frv/include/asm/atomic.h
-@@ -16,7 +16,7 @@
+diff --git a/arch/blackfin/include/asm/atomic.h b/arch/blackfin/include/asm/atomic.h
+index 54c6e28..c8db653 100644
+--- a/arch/blackfin/include/asm/atomic.h
++++ b/arch/blackfin/include/asm/atomic.h
+@@ -7,6 +7,8 @@
+ #ifndef __ARCH_BLACKFIN_ATOMIC__
+ #define __ARCH_BLACKFIN_ATOMIC__
  
- #include <linux/types.h>
- #include <asm/spr-regs.h>
--#include <asm/system.h>
 +#include <asm/cmpxchg.h>
- 
++
  #ifdef CONFIG_SMP
- #error not SMP safe
-@@ -181,61 +181,6 @@ static inline void atomic64_dec(atomic64_t *v)
- #define atomic64_dec_and_test(v)	(atomic64_dec_return((v)) == 0)
- #define atomic64_inc_and_test(v)	(atomic64_inc_return((v)) == 0)
  
--/*****************************************************************************/
--/*
-- * exchange value with memory
-- */
--extern uint64_t __xchg_64(uint64_t i, volatile void *v);
--
--#ifndef CONFIG_FRV_OUTOFLINE_ATOMIC_OPS
--
--#define xchg(ptr, x)								\
--({										\
--	__typeof__(ptr) __xg_ptr = (ptr);					\
--	__typeof__(*(ptr)) __xg_orig;						\
--										\
--	switch (sizeof(__xg_orig)) {						\
--	case 4:									\
--		asm volatile(							\
--			"swap%I0 %M0,%1"					\
--			: "+m"(*__xg_ptr), "=r"(__xg_orig)			\
--			: "1"(x)						\
--			: "memory"						\
--			);							\
--		break;								\
--										\
--	default:								\
--		__xg_orig = (__typeof__(__xg_orig))0;				\
--		asm volatile("break");						\
--		break;								\
--	}									\
--										\
--	__xg_orig;								\
--})
--
--#else
--
--extern uint32_t __xchg_32(uint32_t i, volatile void *v);
--
--#define xchg(ptr, x)										\
--({												\
--	__typeof__(ptr) __xg_ptr = (ptr);							\
--	__typeof__(*(ptr)) __xg_orig;								\
--												\
--	switch (sizeof(__xg_orig)) {								\
--	case 4: __xg_orig = (__typeof__(*(ptr))) __xchg_32((uint32_t) x, __xg_ptr);	break;	\
--	default:										\
--		__xg_orig = (__typeof__(__xg_orig))0;									\
--		asm volatile("break");								\
--		break;										\
--	}											\
--	__xg_orig;										\
--})
--
--#endif
--
--#define tas(ptr) (xchg((ptr), 1))
--
- #define atomic_cmpxchg(v, old, new)	(cmpxchg(&(v)->counter, old, new))
- #define atomic_xchg(v, new)		(xchg(&(v)->counter, new))
- #define atomic64_cmpxchg(v, old, new)	(__cmpxchg_64(old, new, &(v)->counter))
-diff --git a/arch/frv/include/asm/barrier.h b/arch/frv/include/asm/barrier.h
+ #include <linux/linkage.h>
+diff --git a/arch/blackfin/include/asm/barrier.h b/arch/blackfin/include/asm/barrier.h
 new file mode 100644
-index 0000000..06776ad
+index 0000000..ebb1895
 --- /dev/null
-+++ b/arch/frv/include/asm/barrier.h
-@@ -0,0 +1,29 @@
-+/* FR-V CPU memory barrier definitions
++++ b/arch/blackfin/include/asm/barrier.h
+@@ -0,0 +1,48 @@
++/*
++ * Copyright 2004-2009 Analog Devices Inc.
++ *               Tony Kou (tonyko@lineo.ca)
 + *
-+ * Copyright (C) 2003 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the License, or (at your option) any later version.
++ * Licensed under the GPL-2 or later
 + */
 +
-+#ifndef _ASM_BARRIER_H
-+#define _ASM_BARRIER_H
++#ifndef _BLACKFIN_BARRIER_H
++#define _BLACKFIN_BARRIER_H
 +
-+#define nop()			asm volatile ("nop"::)
++#include <asm/cache.h>
 +
-+#define mb()			asm volatile ("membar" : : :"memory")
-+#define rmb()			asm volatile ("membar" : : :"memory")
-+#define wmb()			asm volatile ("membar" : : :"memory")
++#define nop()  __asm__ __volatile__ ("nop;\n\t" : : )
++
++/*
++ * Force strict CPU ordering.
++ */
++#ifdef CONFIG_SMP
++
++#ifdef __ARCH_SYNC_CORE_DCACHE
++/* Force Core data cache coherence */
++# define mb()	do { barrier(); smp_check_barrier(); smp_mark_barrier(); } while (0)
++# define rmb()	do { barrier(); smp_check_barrier(); } while (0)
++# define wmb()	do { barrier(); smp_mark_barrier(); } while (0)
++# define read_barrier_depends()	do { barrier(); smp_check_barrier(); } while (0)
++#else
++# define mb()	barrier()
++# define rmb()	barrier()
++# define wmb()	barrier()
++# define read_barrier_depends()	do { } while (0)
++#endif
++
++#else /* !CONFIG_SMP */
++
++#define mb()	barrier()
++#define rmb()	barrier()
++#define wmb()	barrier()
 +#define read_barrier_depends()	do { } while (0)
 +
-+#define smp_mb()			barrier()
-+#define smp_rmb()			barrier()
-+#define smp_wmb()			barrier()
-+#define smp_read_barrier_depends()	do {} while(0)
-+#define set_mb(var, value) \
-+	do { var = (value); barrier(); } while (0)
++#endif /* !CONFIG_SMP */
 +
-+#endif /* _ASM_BARRIER_H */
-diff --git a/arch/frv/include/asm/bug.h b/arch/frv/include/asm/bug.h
-index 2e05450..dd01bcf 100644
---- a/arch/frv/include/asm/bug.h
-+++ b/arch/frv/include/asm/bug.h
-@@ -51,4 +51,6 @@ do {						\
- 
- #include <asm-generic/bug.h>
- 
-+extern void die_if_kernel(const char *, ...) __attribute__((format(printf, 1, 2)));
++#define smp_mb()  mb()
++#define smp_rmb() rmb()
++#define smp_wmb() wmb()
++#define set_mb(var, value) do { var = value; mb(); } while (0)
++#define smp_read_barrier_depends()	read_barrier_depends()
 +
- #endif
-diff --git a/arch/frv/include/asm/cmpxchg.h b/arch/frv/include/asm/cmpxchg.h
++#endif /* _BLACKFIN_BARRIER_H */
+diff --git a/arch/blackfin/include/asm/cmpxchg.h b/arch/blackfin/include/asm/cmpxchg.h
 new file mode 100644
-index 0000000..5b04dd0
+index 0000000..ba2484f
 --- /dev/null
-+++ b/arch/frv/include/asm/cmpxchg.h
-@@ -0,0 +1,172 @@
-+/* xchg and cmpxchg operation emulation for FR-V
-+ *
-+ * For an explanation of how atomic ops work in this arch, see:
-+ *   Documentation/frv/atomic-ops.txt
-+ *
-+ * Copyright (C) 2004 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the License, or (at your option) any later version.
-+ */
-+#ifndef _ASM_CMPXCHG_H
-+#define _ASM_CMPXCHG_H
-+
-+#include <linux/types.h>
-+
-+/*****************************************************************************/
++++ b/arch/blackfin/include/asm/cmpxchg.h
+@@ -0,0 +1,132 @@
 +/*
-+ * exchange value with memory
++ * Copyright 2004-2011 Analog Devices Inc.
++ *
++ * Licensed under the GPL-2 or later.
 + */
-+extern uint64_t __xchg_64(uint64_t i, volatile void *v);
 +
-+#ifndef CONFIG_FRV_OUTOFLINE_ATOMIC_OPS
++#ifndef __ARCH_BLACKFIN_CMPXCHG__
++#define __ARCH_BLACKFIN_CMPXCHG__
 +
-+#define xchg(ptr, x)								\
-+({										\
-+	__typeof__(ptr) __xg_ptr = (ptr);					\
-+	__typeof__(*(ptr)) __xg_orig;						\
-+										\
-+	switch (sizeof(__xg_orig)) {						\
-+	case 4:									\
-+		asm volatile(							\
-+			"swap%I0 %M0,%1"					\
-+			: "+m"(*__xg_ptr), "=r"(__xg_orig)			\
-+			: "1"(x)						\
-+			: "memory"						\
-+			);							\
-+		break;								\
-+										\
-+	default:								\
-+		__xg_orig = (__typeof__(__xg_orig))0;				\
-+		asm volatile("break");						\
-+		break;								\
-+	}									\
-+										\
-+	__xg_orig;								\
-+})
++#ifdef CONFIG_SMP
 +
-+#else
++#include <linux/linkage.h>
 +
-+extern uint32_t __xchg_32(uint32_t i, volatile void *v);
++asmlinkage unsigned long __raw_xchg_1_asm(volatile void *ptr, unsigned long value);
++asmlinkage unsigned long __raw_xchg_2_asm(volatile void *ptr, unsigned long value);
++asmlinkage unsigned long __raw_xchg_4_asm(volatile void *ptr, unsigned long value);
++asmlinkage unsigned long __raw_cmpxchg_1_asm(volatile void *ptr,
++					unsigned long new, unsigned long old);
++asmlinkage unsigned long __raw_cmpxchg_2_asm(volatile void *ptr,
++					unsigned long new, unsigned long old);
++asmlinkage unsigned long __raw_cmpxchg_4_asm(volatile void *ptr,
++					unsigned long new, unsigned long old);
 +
-+#define xchg(ptr, x)										\
-+({												\
-+	__typeof__(ptr) __xg_ptr = (ptr);							\
-+	__typeof__(*(ptr)) __xg_orig;								\
-+												\
-+	switch (sizeof(__xg_orig)) {								\
-+	case 4: __xg_orig = (__typeof__(*(ptr))) __xchg_32((uint32_t) x, __xg_ptr);	break;	\
-+	default:										\
-+		__xg_orig = (__typeof__(__xg_orig))0;									\
-+		asm volatile("break");								\
-+		break;										\
-+	}											\
-+	__xg_orig;										\
-+})
-+
-+#endif
-+
-+#define tas(ptr) (xchg((ptr), 1))
-+
-+/*****************************************************************************/
-+/*
-+ * compare and conditionally exchange value with memory
-+ * - if (*ptr == test) then orig = *ptr; *ptr = test;
-+ * - if (*ptr != test) then orig = *ptr;
-+ */
-+extern uint64_t __cmpxchg_64(uint64_t test, uint64_t new, volatile uint64_t *v);
-+
-+#ifndef CONFIG_FRV_OUTOFLINE_ATOMIC_OPS
-+
-+#define cmpxchg(ptr, test, new)							\
-+({										\
-+	__typeof__(ptr) __xg_ptr = (ptr);					\
-+	__typeof__(*(ptr)) __xg_orig, __xg_tmp;					\
-+	__typeof__(*(ptr)) __xg_test = (test);					\
-+	__typeof__(*(ptr)) __xg_new = (new);					\
-+										\
-+	switch (sizeof(__xg_orig)) {						\
-+	case 4:									\
-+		asm volatile(							\
-+			"0:						\n"	\
-+			"	orcc		gr0,gr0,gr0,icc3	\n"	\
-+			"	ckeq		icc3,cc7		\n"	\
-+			"	ld.p		%M0,%1			\n"	\
-+			"	orcr		cc7,cc7,cc3		\n"	\
-+			"	sub%I4cc	%1,%4,%2,icc0		\n"	\
-+			"	bne		icc0,#0,1f		\n"	\
-+			"	cst.p		%3,%M0		,cc3,#1	\n"	\
-+			"	corcc		gr29,gr29,gr0	,cc3,#1	\n"	\
-+			"	beq		icc3,#0,0b		\n"	\
-+			"1:						\n"	\
-+			: "+U"(*__xg_ptr), "=&r"(__xg_orig), "=&r"(__xg_tmp)	\
-+			: "r"(__xg_new), "NPr"(__xg_test)			\
-+			: "memory", "cc7", "cc3", "icc3", "icc0"		\
-+			);							\
-+		break;								\
-+										\
-+	default:								\
-+		__xg_orig = (__typeof__(__xg_orig))0;				\
-+		asm volatile("break");						\
-+		break;								\
-+	}									\
-+										\
-+	__xg_orig;								\
-+})
-+
-+#else
-+
-+extern uint32_t __cmpxchg_32(uint32_t *v, uint32_t test, uint32_t new);
-+
-+#define cmpxchg(ptr, test, new)							\
-+({										\
-+	__typeof__(ptr) __xg_ptr = (ptr);					\
-+	__typeof__(*(ptr)) __xg_orig;						\
-+	__typeof__(*(ptr)) __xg_test = (test);					\
-+	__typeof__(*(ptr)) __xg_new = (new);					\
-+										\
-+	switch (sizeof(__xg_orig)) {						\
-+	case 4: __xg_orig = (__force __typeof__(*ptr))				\
-+			__cmpxchg_32((__force uint32_t *)__xg_ptr,		\
-+					 (__force uint32_t)__xg_test,		\
-+					 (__force uint32_t)__xg_new); break;	\
-+	default:								\
-+		__xg_orig = (__typeof__(__xg_orig))0;				\
-+		asm volatile("break");						\
-+		break;								\
-+	}									\
-+										\
-+	__xg_orig;								\
-+})
-+
-+#endif
-+
-+#include <asm-generic/cmpxchg-local.h>
-+
-+static inline unsigned long __cmpxchg_local(volatile void *ptr,
-+				      unsigned long old,
-+				      unsigned long new, int size)
++static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
++				   int size)
 +{
++	unsigned long tmp;
++
 +	switch (size) {
++	case 1:
++		tmp = __raw_xchg_1_asm(ptr, x);
++		break;
++	case 2:
++		tmp = __raw_xchg_2_asm(ptr, x);
++		break;
 +	case 4:
-+		return cmpxchg((unsigned long *)ptr, old, new);
-+	default:
-+		return __cmpxchg_local_generic(ptr, old, new, size);
++		tmp = __raw_xchg_4_asm(ptr, x);
++		break;
 +	}
 +
-+	return old;
++	return tmp;
 +}
++
++/*
++ * Atomic compare and exchange.  Compare OLD with MEM, if identical,
++ * store NEW in MEM.  Return the initial value in MEM.  Success is
++ * indicated by comparing RETURN with OLD.
++ */
++static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
++				      unsigned long new, int size)
++{
++	unsigned long tmp;
++
++	switch (size) {
++	case 1:
++		tmp = __raw_cmpxchg_1_asm(ptr, new, old);
++		break;
++	case 2:
++		tmp = __raw_cmpxchg_2_asm(ptr, new, old);
++		break;
++	case 4:
++		tmp = __raw_cmpxchg_4_asm(ptr, new, old);
++		break;
++	}
++
++	return tmp;
++}
++#define cmpxchg(ptr, o, n) \
++	((__typeof__(*(ptr)))__cmpxchg((ptr), (unsigned long)(o), \
++		(unsigned long)(n), sizeof(*(ptr))))
++
++#else /* !CONFIG_SMP */
++
++#include <mach/blackfin.h>
++#include <asm/irqflags.h>
++
++struct __xchg_dummy {
++	unsigned long a[100];
++};
++#define __xg(x) ((volatile struct __xchg_dummy *)(x))
++
++static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
++				   int size)
++{
++	unsigned long tmp = 0;
++	unsigned long flags;
++
++	flags = hard_local_irq_save();
++
++	switch (size) {
++	case 1:
++		__asm__ __volatile__
++			("%0 = b%2 (z);\n\t"
++			 "b%2 = %1;\n\t"
++			 : "=&d" (tmp) : "d" (x), "m" (*__xg(ptr)) : "memory");
++		break;
++	case 2:
++		__asm__ __volatile__
++			("%0 = w%2 (z);\n\t"
++			 "w%2 = %1;\n\t"
++			 : "=&d" (tmp) : "d" (x), "m" (*__xg(ptr)) : "memory");
++		break;
++	case 4:
++		__asm__ __volatile__
++			("%0 = %2;\n\t"
++			 "%2 = %1;\n\t"
++			 : "=&d" (tmp) : "d" (x), "m" (*__xg(ptr)) : "memory");
++		break;
++	}
++	hard_local_irq_restore(flags);
++	return tmp;
++}
++
++#include <asm-generic/cmpxchg-local.h>
 +
 +/*
 + * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
 + * them available.
 + */
-+#define cmpxchg_local(ptr, o, n)				  	\
-+	((__typeof__(*(ptr)))__cmpxchg_local((ptr), (unsigned long)(o),	\
++#define cmpxchg_local(ptr, o, n)				  	       \
++	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
 +			(unsigned long)(n), sizeof(*(ptr))))
 +#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
 +
-+#endif /* _ASM_CMPXCHG_H */
-diff --git a/arch/frv/include/asm/exec.h b/arch/frv/include/asm/exec.h
++#include <asm-generic/cmpxchg.h>
++
++#endif /* !CONFIG_SMP */
++
++#define xchg(ptr, x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
++#define tas(ptr) ((void)xchg((ptr), 1))
++
++#endif /* __ARCH_BLACKFIN_CMPXCHG__ */
+diff --git a/arch/blackfin/include/asm/exec.h b/arch/blackfin/include/asm/exec.h
 new file mode 100644
-index 0000000..65c9130
+index 0000000..54c2e1d
 --- /dev/null
-+++ b/arch/frv/include/asm/exec.h
-@@ -0,0 +1,17 @@
-+/* FR-V CPU executable handling
++++ b/arch/blackfin/include/asm/exec.h
+@@ -0,0 +1 @@
++/* define arch_align_stack() here */
+diff --git a/arch/blackfin/include/asm/irq_handler.h b/arch/blackfin/include/asm/irq_handler.h
+index ee73f79..4fbf835 100644
+--- a/arch/blackfin/include/asm/irq_handler.h
++++ b/arch/blackfin/include/asm/irq_handler.h
+@@ -9,6 +9,7 @@
+ 
+ #include <linux/types.h>
+ #include <linux/linkage.h>
++#include <mach/irq.h>
+ 
+ /* init functions only */
+ extern int __init init_arch_irq(void);
+diff --git a/arch/blackfin/include/asm/switch_to.h b/arch/blackfin/include/asm/switch_to.h
+new file mode 100644
+index 0000000..aaf671b
+--- /dev/null
++++ b/arch/blackfin/include/asm/switch_to.h
+@@ -0,0 +1,39 @@
++/*
++ * Copyright 2004-2009 Analog Devices Inc.
++ *               Tony Kou (tonyko@lineo.ca)
 + *
-+ * Copyright (C) 2003 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the License, or (at your option) any later version.
++ * Licensed under the GPL-2 or later
 + */
 +
-+#ifndef _ASM_EXEC_H
-+#define _ASM_EXEC_H
++#ifndef _BLACKFIN_SWITCH_TO_H
++#define _BLACKFIN_SWITCH_TO_H
 +
-+#define arch_align_stack(x) (x)
-+
-+#endif /* _ASM_EXEC_H */
-diff --git a/arch/frv/include/asm/switch_to.h b/arch/frv/include/asm/switch_to.h
-new file mode 100644
-index 0000000..2cf0f6a
---- /dev/null
-+++ b/arch/frv/include/asm/switch_to.h
-@@ -0,0 +1,35 @@
-+/* FR-V CPU basic task switching
-+ *
-+ * Copyright (C) 2003 Red Hat, Inc. All Rights Reserved.
-+ * Written by David Howells (dhowells@redhat.com)
-+ *
-+ * This program is free software; you can redistribute it and/or
-+ * modify it under the terms of the GNU General Public License
-+ * as published by the Free Software Foundation; either version
-+ * 2 of the License, or (at your option) any later version.
-+ */
-+
-+#ifndef _ASM_SWITCH_TO_H
-+#define _ASM_SWITCH_TO_H
-+
-+#include <linux/thread_info.h>
++#define prepare_to_switch()     do { } while(0)
 +
 +/*
-+ * switch_to(prev, next) should switch from task `prev' to `next'
-+ * `prev' will never be the same as `next'.
-+ * The `mb' is to tell GCC not to cache `current' across this call.
++ * switch_to(n) should switch tasks to task ptr, first checking that
++ * ptr isn't the current task, in which case it does nothing.
 + */
-+extern asmlinkage
-+struct task_struct *__switch_to(struct thread_struct *prev_thread,
-+				struct thread_struct *next_thread,
-+				struct task_struct *prev);
 +
-+#define switch_to(prev, next, last)					\
-+do {									\
-+	(prev)->thread.sched_lr =					\
-+		(unsigned long) __builtin_return_address(0);		\
-+	(last) = __switch_to(&(prev)->thread, &(next)->thread, (prev));	\
-+	mb();								\
-+} while(0)
++#include <asm/l1layout.h>
++#include <asm/mem_map.h>
 +
-+#endif /* _ASM_SWITCH_TO_H */
-diff --git a/arch/frv/include/asm/system.h b/arch/frv/include/asm/system.h
-index 6c10fd2..5c707a2 100644
---- a/arch/frv/include/asm/system.h
-+++ b/arch/frv/include/asm/system.h
-@@ -1,158 +1,6 @@
--/* system.h: FR-V CPU control definitions
-- *
-- * Copyright (C) 2003 Red Hat, Inc. All Rights Reserved.
-- * Written by David Howells (dhowells@redhat.com)
-- *
-- * This program is free software; you can redistribute it and/or
-- * modify it under the terms of the GNU General Public License
-- * as published by the Free Software Foundation; either version
-- * 2 of the License, or (at your option) any later version.
-- */
--
--#ifndef _ASM_SYSTEM_H
--#define _ASM_SYSTEM_H
--
--#include <linux/types.h>
--#include <linux/linkage.h>
--#include <linux/kernel.h>
--
--struct thread_struct;
--
++asmlinkage struct task_struct *resume(struct task_struct *prev, struct task_struct *next);
++
++#ifndef CONFIG_SMP
++#define switch_to(prev,next,last) \
++do {    \
++	memcpy (&task_thread_info(prev)->l1_task_info, L1_SCRATCH_TASK_INFO, \
++		sizeof *L1_SCRATCH_TASK_INFO); \
++	memcpy (L1_SCRATCH_TASK_INFO, &task_thread_info(next)->l1_task_info, \
++		sizeof *L1_SCRATCH_TASK_INFO); \
++	(last) = resume (prev, next);   \
++} while (0)
++#else
++#define switch_to(prev, next, last) \
++do {    \
++	(last) = resume(prev, next);   \
++} while (0)
++#endif
++
++#endif /* _BLACKFIN_SWITCH_TO_H */
+diff --git a/arch/blackfin/include/asm/system.h b/arch/blackfin/include/asm/system.h
+index 44bd0cc..a7f4057 100644
+--- a/arch/blackfin/include/asm/system.h
++++ b/arch/blackfin/include/asm/system.h
+@@ -1,192 +1,5 @@
 -/*
-- * switch_to(prev, next) should switch from task `prev' to `next'
-- * `prev' will never be the same as `next'.
-- * The `mb' is to tell GCC not to cache `current' across this call.
+- * Copyright 2004-2009 Analog Devices Inc.
+- *               Tony Kou (tonyko@lineo.ca)
+- *
+- * Licensed under the GPL-2 or later
 - */
--extern asmlinkage
--struct task_struct *__switch_to(struct thread_struct *prev_thread,
--				struct thread_struct *next_thread,
--				struct task_struct *prev);
 -
--#define switch_to(prev, next, last)					\
--do {									\
--	(prev)->thread.sched_lr =					\
--		(unsigned long) __builtin_return_address(0);		\
--	(last) = __switch_to(&(prev)->thread, &(next)->thread, (prev));	\
--	mb();								\
--} while(0)
+-#ifndef _BLACKFIN_SYSTEM_H
+-#define _BLACKFIN_SYSTEM_H
+-
+-#include <linux/linkage.h>
+-#include <linux/irqflags.h>
+-#include <mach/anomaly.h>
+-#include <asm/cache.h>
+-#include <asm/pda.h>
+-#include <asm/irq.h>
 -
 -/*
 - * Force strict CPU ordering.
 - */
--#define nop()			asm volatile ("nop"::)
--#define mb()			asm volatile ("membar" : : :"memory")
--#define rmb()			asm volatile ("membar" : : :"memory")
--#define wmb()			asm volatile ("membar" : : :"memory")
--#define read_barrier_depends()	do { } while (0)
+-#define nop()  __asm__ __volatile__ ("nop;\n\t" : : )
+-#define smp_mb()  mb()
+-#define smp_rmb() rmb()
+-#define smp_wmb() wmb()
+-#define set_mb(var, value) do { var = value; mb(); } while (0)
+-#define smp_read_barrier_depends()	read_barrier_depends()
 -
--#define smp_mb()			barrier()
--#define smp_rmb()			barrier()
--#define smp_wmb()			barrier()
--#define smp_read_barrier_depends()	do {} while(0)
--#define set_mb(var, value) \
--	do { var = (value); barrier(); } while (0)
+-#ifdef CONFIG_SMP
+-asmlinkage unsigned long __raw_xchg_1_asm(volatile void *ptr, unsigned long value);
+-asmlinkage unsigned long __raw_xchg_2_asm(volatile void *ptr, unsigned long value);
+-asmlinkage unsigned long __raw_xchg_4_asm(volatile void *ptr, unsigned long value);
+-asmlinkage unsigned long __raw_cmpxchg_1_asm(volatile void *ptr,
+-					unsigned long new, unsigned long old);
+-asmlinkage unsigned long __raw_cmpxchg_2_asm(volatile void *ptr,
+-					unsigned long new, unsigned long old);
+-asmlinkage unsigned long __raw_cmpxchg_4_asm(volatile void *ptr,
+-					unsigned long new, unsigned long old);
 -
--extern void die_if_kernel(const char *, ...) __attribute__((format(printf, 1, 2)));
-+/* FILE TO BE DELETED. DO NOT ADD STUFF HERE! */
-+#include <asm/barrier.h>
-+#include <asm/cmpxchg.h>
-+#include <asm/exec.h>
-+#include <asm/switch_to.h>
- extern void free_initmem(void);
--
--#define arch_align_stack(x) (x)
--
--/*****************************************************************************/
--/*
-- * compare and conditionally exchange value with memory
-- * - if (*ptr == test) then orig = *ptr; *ptr = test;
-- * - if (*ptr != test) then orig = *ptr;
-- */
--extern uint64_t __cmpxchg_64(uint64_t test, uint64_t new, volatile uint64_t *v);
--
--#ifndef CONFIG_FRV_OUTOFLINE_ATOMIC_OPS
--
--#define cmpxchg(ptr, test, new)							\
--({										\
--	__typeof__(ptr) __xg_ptr = (ptr);					\
--	__typeof__(*(ptr)) __xg_orig, __xg_tmp;					\
--	__typeof__(*(ptr)) __xg_test = (test);					\
--	__typeof__(*(ptr)) __xg_new = (new);					\
--										\
--	switch (sizeof(__xg_orig)) {						\
--	case 4:									\
--		asm volatile(							\
--			"0:						\n"	\
--			"	orcc		gr0,gr0,gr0,icc3	\n"	\
--			"	ckeq		icc3,cc7		\n"	\
--			"	ld.p		%M0,%1			\n"	\
--			"	orcr		cc7,cc7,cc3		\n"	\
--			"	sub%I4cc	%1,%4,%2,icc0		\n"	\
--			"	bne		icc0,#0,1f		\n"	\
--			"	cst.p		%3,%M0		,cc3,#1	\n"	\
--			"	corcc		gr29,gr29,gr0	,cc3,#1	\n"	\
--			"	beq		icc3,#0,0b		\n"	\
--			"1:						\n"	\
--			: "+U"(*__xg_ptr), "=&r"(__xg_orig), "=&r"(__xg_tmp)	\
--			: "r"(__xg_new), "NPr"(__xg_test)			\
--			: "memory", "cc7", "cc3", "icc3", "icc0"		\
--			);							\
--		break;								\
--										\
--	default:								\
--		__xg_orig = (__typeof__(__xg_orig))0;				\
--		asm volatile("break");						\
--		break;								\
--	}									\
--										\
--	__xg_orig;								\
--})
--
+-#ifdef __ARCH_SYNC_CORE_DCACHE
+-/* Force Core data cache coherence */
+-# define mb()	do { barrier(); smp_check_barrier(); smp_mark_barrier(); } while (0)
+-# define rmb()	do { barrier(); smp_check_barrier(); } while (0)
+-# define wmb()	do { barrier(); smp_mark_barrier(); } while (0)
+-# define read_barrier_depends()	do { barrier(); smp_check_barrier(); } while (0)
 -#else
--
--extern uint32_t __cmpxchg_32(uint32_t *v, uint32_t test, uint32_t new);
--
--#define cmpxchg(ptr, test, new)							\
--({										\
--	__typeof__(ptr) __xg_ptr = (ptr);					\
--	__typeof__(*(ptr)) __xg_orig;						\
--	__typeof__(*(ptr)) __xg_test = (test);					\
--	__typeof__(*(ptr)) __xg_new = (new);					\
--										\
--	switch (sizeof(__xg_orig)) {						\
--	case 4: __xg_orig = (__force __typeof__(*ptr))				\
--			__cmpxchg_32((__force uint32_t *)__xg_ptr,		\
--					 (__force uint32_t)__xg_test,		\
--					 (__force uint32_t)__xg_new); break;	\
--	default:								\
--		__xg_orig = (__typeof__(__xg_orig))0;				\
--		asm volatile("break");						\
--		break;								\
--	}									\
--										\
--	__xg_orig;								\
--})
--
+-# define mb()	barrier()
+-# define rmb()	barrier()
+-# define wmb()	barrier()
+-# define read_barrier_depends()	do { } while (0)
 -#endif
 -
--#include <asm-generic/cmpxchg-local.h>
--
--static inline unsigned long __cmpxchg_local(volatile void *ptr,
--				      unsigned long old,
--				      unsigned long new, int size)
+-static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
+-				   int size)
 -{
+-	unsigned long tmp;
+-
 -	switch (size) {
+-	case 1:
+-		tmp = __raw_xchg_1_asm(ptr, x);
+-		break;
+-	case 2:
+-		tmp = __raw_xchg_2_asm(ptr, x);
+-		break;
 -	case 4:
--		return cmpxchg((unsigned long *)ptr, old, new);
--	default:
--		return __cmpxchg_local_generic(ptr, old, new, size);
+-		tmp = __raw_xchg_4_asm(ptr, x);
+-		break;
 -	}
 -
--	return old;
+-	return tmp;
 -}
+-
+-/*
+- * Atomic compare and exchange.  Compare OLD with MEM, if identical,
+- * store NEW in MEM.  Return the initial value in MEM.  Success is
+- * indicated by comparing RETURN with OLD.
+- */
+-static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
+-				      unsigned long new, int size)
+-{
+-	unsigned long tmp;
+-
+-	switch (size) {
+-	case 1:
+-		tmp = __raw_cmpxchg_1_asm(ptr, new, old);
+-		break;
+-	case 2:
+-		tmp = __raw_cmpxchg_2_asm(ptr, new, old);
+-		break;
+-	case 4:
+-		tmp = __raw_cmpxchg_4_asm(ptr, new, old);
+-		break;
+-	}
+-
+-	return tmp;
+-}
+-#define cmpxchg(ptr, o, n) \
+-	((__typeof__(*(ptr)))__cmpxchg((ptr), (unsigned long)(o), \
+-		(unsigned long)(n), sizeof(*(ptr))))
+-
+-#else /* !CONFIG_SMP */
+-
+-#define mb()	barrier()
+-#define rmb()	barrier()
+-#define wmb()	barrier()
+-#define read_barrier_depends()	do { } while (0)
+-
+-struct __xchg_dummy {
+-	unsigned long a[100];
+-};
+-#define __xg(x) ((volatile struct __xchg_dummy *)(x))
+-
+-#include <mach/blackfin.h>
+-
+-static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
+-				   int size)
+-{
+-	unsigned long tmp = 0;
+-	unsigned long flags;
+-
+-	flags = hard_local_irq_save();
+-
+-	switch (size) {
+-	case 1:
+-		__asm__ __volatile__
+-			("%0 = b%2 (z);\n\t"
+-			 "b%2 = %1;\n\t"
+-			 : "=&d" (tmp) : "d" (x), "m" (*__xg(ptr)) : "memory");
+-		break;
+-	case 2:
+-		__asm__ __volatile__
+-			("%0 = w%2 (z);\n\t"
+-			 "w%2 = %1;\n\t"
+-			 : "=&d" (tmp) : "d" (x), "m" (*__xg(ptr)) : "memory");
+-		break;
+-	case 4:
+-		__asm__ __volatile__
+-			("%0 = %2;\n\t"
+-			 "%2 = %1;\n\t"
+-			 : "=&d" (tmp) : "d" (x), "m" (*__xg(ptr)) : "memory");
+-		break;
+-	}
+-	hard_local_irq_restore(flags);
+-	return tmp;
+-}
+-
+-#include <asm-generic/cmpxchg-local.h>
 -
 -/*
 - * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
 - * them available.
 - */
--#define cmpxchg_local(ptr, o, n)				  	\
--	((__typeof__(*(ptr)))__cmpxchg_local((ptr), (unsigned long)(o),	\
+-#define cmpxchg_local(ptr, o, n)				  	       \
+-	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
 -			(unsigned long)(n), sizeof(*(ptr))))
 -#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
 -
--#endif /* _ASM_SYSTEM_H */
-diff --git a/arch/frv/kernel/debug-stub.c b/arch/frv/kernel/debug-stub.c
-index 2845139..a0228f7 100644
---- a/arch/frv/kernel/debug-stub.c
-+++ b/arch/frv/kernel/debug-stub.c
-@@ -17,7 +17,6 @@
- #include <linux/serial_reg.h>
- #include <linux/start_kernel.h>
+-#include <asm-generic/cmpxchg.h>
+-
+-#endif /* !CONFIG_SMP */
+-
+-#define xchg(ptr, x) ((__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
+-#define tas(ptr) ((void)xchg((ptr), 1))
+-
+-#define prepare_to_switch()     do { } while(0)
+-
+-/*
+- * switch_to(n) should switch tasks to task ptr, first checking that
+- * ptr isn't the current task, in which case it does nothing.
+- */
+-
+-#include <asm/l1layout.h>
+-#include <asm/mem_map.h>
+-
+-asmlinkage struct task_struct *resume(struct task_struct *prev, struct task_struct *next);
+-
+-#ifndef CONFIG_SMP
+-#define switch_to(prev,next,last) \
+-do {    \
+-	memcpy (&task_thread_info(prev)->l1_task_info, L1_SCRATCH_TASK_INFO, \
+-		sizeof *L1_SCRATCH_TASK_INFO); \
+-	memcpy (L1_SCRATCH_TASK_INFO, &task_thread_info(next)->l1_task_info, \
+-		sizeof *L1_SCRATCH_TASK_INFO); \
+-	(last) = resume (prev, next);   \
+-} while (0)
+-#else
+-#define switch_to(prev, next, last) \
+-do {    \
+-	(last) = resume(prev, next);   \
+-} while (0)
+-#endif
+-
+-#endif	/* _BLACKFIN_SYSTEM_H */
++/* FILE TO BE DELETED. DO NOT ADD STUFF HERE! */
++#include <asm/barrier.h>
++#include <asm/cmpxchg.h>
++#include <asm/exec.h>
++#include <asm/switch_to.h>
+diff --git a/arch/blackfin/kernel/asm-offsets.c b/arch/blackfin/kernel/asm-offsets.c
+index 17e3546..37fcae9 100644
+--- a/arch/blackfin/kernel/asm-offsets.c
++++ b/arch/blackfin/kernel/asm-offsets.c
+@@ -14,6 +14,7 @@
+ #include <linux/irq.h>
+ #include <linux/thread_info.h>
+ #include <linux/kbuild.h>
++#include <asm/pda.h>
  
+ int main(void)
+ {
+diff --git a/arch/blackfin/kernel/ipipe.c b/arch/blackfin/kernel/ipipe.c
+index dbe1122..f657b38 100644
+--- a/arch/blackfin/kernel/ipipe.c
++++ b/arch/blackfin/kernel/ipipe.c
+@@ -31,7 +31,6 @@
+ #include <linux/kthread.h>
+ #include <linux/unistd.h>
+ #include <linux/io.h>
 -#include <asm/system.h>
- #include <asm/serial-regs.h>
- #include <asm/timer-regs.h>
- #include <asm/irc-regs.h>
-diff --git a/arch/frv/kernel/gdb-io.c b/arch/frv/kernel/gdb-io.c
-index 2ca641d..0707d35 100644
---- a/arch/frv/kernel/gdb-io.c
-+++ b/arch/frv/kernel/gdb-io.c
-@@ -19,7 +19,6 @@
- #include <linux/serial_reg.h>
- 
- #include <asm/pgtable.h>
--#include <asm/system.h>
- #include <asm/irc-regs.h>
- #include <asm/timer-regs.h>
- #include <asm/gdb-stub.h>
-diff --git a/arch/frv/kernel/gdb-stub.c b/arch/frv/kernel/gdb-stub.c
-index a6d5381..bbe78b0 100644
---- a/arch/frv/kernel/gdb-stub.c
-+++ b/arch/frv/kernel/gdb-stub.c
-@@ -126,7 +126,6 @@
- 
- #include <asm/asm-offsets.h>
- #include <asm/pgtable.h>
--#include <asm/system.h>
- #include <asm/gdb-stub.h>
- 
- #define LEDS(x) do { /* *(u32*)0xe1200004 = ~(x); mb(); */ } while(0)
-diff --git a/arch/frv/kernel/irq-mb93091.c b/arch/frv/kernel/irq-mb93091.c
-index 9afc2ea..2cc327a 100644
---- a/arch/frv/kernel/irq-mb93091.c
-+++ b/arch/frv/kernel/irq-mb93091.c
-@@ -20,7 +20,6 @@
- #include <linux/bitops.h>
- 
- #include <asm/io.h>
--#include <asm/system.h>
- #include <asm/delay.h>
- #include <asm/irq.h>
- #include <asm/irc-regs.h>
-diff --git a/arch/frv/kernel/irq-mb93093.c b/arch/frv/kernel/irq-mb93093.c
-index 4d4ad09..95e4eb4 100644
---- a/arch/frv/kernel/irq-mb93093.c
-+++ b/arch/frv/kernel/irq-mb93093.c
-@@ -20,7 +20,6 @@
- #include <linux/bitops.h>
- 
- #include <asm/io.h>
--#include <asm/system.h>
- #include <asm/delay.h>
- #include <asm/irq.h>
- #include <asm/irc-regs.h>
-diff --git a/arch/frv/kernel/irq-mb93493.c b/arch/frv/kernel/irq-mb93493.c
-index 4d034c7..ba648da 100644
---- a/arch/frv/kernel/irq-mb93493.c
-+++ b/arch/frv/kernel/irq-mb93493.c
-@@ -20,7 +20,6 @@
- #include <linux/bitops.h>
- 
- #include <asm/io.h>
--#include <asm/system.h>
- #include <asm/delay.h>
- #include <asm/irq.h>
- #include <asm/irc-regs.h>
-diff --git a/arch/frv/kernel/irq.c b/arch/frv/kernel/irq.c
-index 3facbc2..2239346 100644
---- a/arch/frv/kernel/irq.c
-+++ b/arch/frv/kernel/irq.c
-@@ -28,7 +28,6 @@
  #include <linux/atomic.h>
- #include <asm/io.h>
- #include <asm/smp.h>
--#include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/pgalloc.h>
- #include <asm/delay.h>
-diff --git a/arch/frv/kernel/process.c b/arch/frv/kernel/process.c
-index 3901df1..8b6df6f 100644
---- a/arch/frv/kernel/process.c
-+++ b/arch/frv/kernel/process.c
-@@ -28,7 +28,6 @@
+ #include <asm/irq_handler.h>
  
- #include <asm/asm-offsets.h>
+diff --git a/arch/blackfin/kernel/kgdb_test.c b/arch/blackfin/kernel/kgdb_test.c
+index 4a7dcfe..18ab004 100644
+--- a/arch/blackfin/kernel/kgdb_test.c
++++ b/arch/blackfin/kernel/kgdb_test.c
+@@ -13,7 +13,6 @@
+ 
+ #include <asm/current.h>
  #include <asm/uaccess.h>
 -#include <asm/system.h>
- #include <asm/setup.h>
- #include <asm/pgtable.h>
- #include <asm/tlb.h>
-diff --git a/arch/frv/kernel/ptrace.c b/arch/frv/kernel/ptrace.c
-index 9d68f7f..3987ff8 100644
---- a/arch/frv/kernel/ptrace.c
-+++ b/arch/frv/kernel/ptrace.c
-@@ -26,7 +26,6 @@
- #include <asm/uaccess.h>
+ 
+ #include <asm/blackfin.h>
+ 
+diff --git a/arch/blackfin/kernel/process.c b/arch/blackfin/kernel/process.c
+index 8dd0416..8c5369c 100644
+--- a/arch/blackfin/kernel/process.c
++++ b/arch/blackfin/kernel/process.c
+@@ -19,6 +19,7 @@
+ #include <asm/blackfin.h>
+ #include <asm/fixed_code.h>
+ #include <asm/mem_map.h>
++#include <asm/irq.h>
+ 
+ asmlinkage void ret_from_fork(void);
+ 
+diff --git a/arch/blackfin/kernel/ptrace.c b/arch/blackfin/kernel/ptrace.c
+index 75089f8..e1f88e0 100644
+--- a/arch/blackfin/kernel/ptrace.c
++++ b/arch/blackfin/kernel/ptrace.c
+@@ -20,7 +20,6 @@
+ 
  #include <asm/page.h>
  #include <asm/pgtable.h>
 -#include <asm/system.h>
  #include <asm/processor.h>
- #include <asm/unistd.h>
- 
-diff --git a/arch/frv/kernel/traps.c b/arch/frv/kernel/traps.c
-index 1d2dfe6..5cfd142 100644
---- a/arch/frv/kernel/traps.c
-+++ b/arch/frv/kernel/traps.c
-@@ -23,7 +23,6 @@
  #include <asm/asm-offsets.h>
- #include <asm/setup.h>
- #include <asm/fpu.h>
+ #include <asm/dma.h>
+diff --git a/arch/blackfin/kernel/reboot.c b/arch/blackfin/kernel/reboot.c
+index c4c0081..b0434f8 100644
+--- a/arch/blackfin/kernel/reboot.c
++++ b/arch/blackfin/kernel/reboot.c
+@@ -9,7 +9,6 @@
+ #include <linux/interrupt.h>
+ #include <asm/bfin-global.h>
+ #include <asm/reboot.h>
 -#include <asm/system.h>
- #include <asm/uaccess.h>
- #include <asm/pgtable.h>
- #include <asm/siginfo.h>
-diff --git a/arch/frv/mm/fault.c b/arch/frv/mm/fault.c
-index a325d57..331c1e2 100644
---- a/arch/frv/mm/fault.c
-+++ b/arch/frv/mm/fault.c
-@@ -20,7 +20,6 @@
- #include <linux/ptrace.h>
- #include <linux/hardirq.h>
+ #include <asm/bfrom.h>
  
--#include <asm/system.h>
- #include <asm/pgtable.h>
- #include <asm/uaccess.h>
- #include <asm/gdb-stub.h>
-diff --git a/arch/frv/mm/init.c b/arch/frv/mm/init.c
-index fbe5f0d..a19effc 100644
---- a/arch/frv/mm/init.c
-+++ b/arch/frv/mm/init.c
-@@ -33,7 +33,6 @@
- #include <asm/segment.h>
- #include <asm/page.h>
- #include <asm/pgtable.h>
--#include <asm/system.h>
- #include <asm/mmu_context.h>
- #include <asm/virtconvert.h>
- #include <asm/sections.h>
-diff --git a/arch/frv/mm/kmap.c b/arch/frv/mm/kmap.c
-index fb78be3..e9217e6 100644
---- a/arch/frv/mm/kmap.c
-+++ b/arch/frv/mm/kmap.c
-@@ -21,7 +21,6 @@
- #include <asm/page.h>
- #include <asm/pgalloc.h>
- #include <asm/io.h>
--#include <asm/system.h>
+ /* A system soft reset makes external memory unusable so force
+diff --git a/arch/blackfin/kernel/setup.c b/arch/blackfin/kernel/setup.c
+index d6102c8..2aa0193 100644
+--- a/arch/blackfin/kernel/setup.c
++++ b/arch/blackfin/kernel/setup.c
+@@ -30,6 +30,7 @@
+ #include <asm/fixed_code.h>
+ #include <asm/early_printk.h>
+ #include <asm/irq_handler.h>
++#include <asm/pda.h>
  
- #undef DEBUG
+ u16 _bfin_swrst;
+ EXPORT_SYMBOL(_bfin_swrst);
+diff --git a/arch/blackfin/kernel/trace.c b/arch/blackfin/kernel/trace.c
+index 050db44..44bbf2f 100644
+--- a/arch/blackfin/kernel/trace.c
++++ b/arch/blackfin/kernel/trace.c
+@@ -21,6 +21,7 @@
+ #include <asm/fixed_code.h>
+ #include <asm/traps.h>
+ #include <asm/irq_handler.h>
++#include <asm/pda.h>
  
+ void decode_address(char *buf, unsigned long address)
+ {
+diff --git a/arch/blackfin/kernel/traps.c b/arch/blackfin/kernel/traps.c
+index 655f25d..de5c2c3 100644
+--- a/arch/blackfin/kernel/traps.c
++++ b/arch/blackfin/kernel/traps.c
+@@ -17,6 +17,7 @@
+ #include <asm/trace.h>
+ #include <asm/fixed_code.h>
+ #include <asm/pseudo_instructions.h>
++#include <asm/pda.h>
+ 
+ #ifdef CONFIG_KGDB
+ # include <linux/kgdb.h>
 
