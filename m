@@ -1,85 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smarthost1.greenhost.nl ([195.190.28.78]:39887 "EHLO
-	smarthost1.greenhost.nl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757366Ab2CMDkw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Mar 2012 23:40:52 -0400
-Message-ID: <026393583fec46a9d4401604e596b164.squirrel@webmail.greenhost.nl>
-In-Reply-To: <1331587715-26069-1-git-send-email-wad@chromium.org>
-References: <1331587715-26069-1-git-send-email-wad@chromium.org>
-Date: Tue, 13 Mar 2012 04:40:50 +0100
-Subject: Re: [PATCH v14 01/13] sk_run_filter: add BPF_S_ANC_SECCOMP_LD_W
-From: "Indan Zupancic" <indan@nul.nu>
+Received: from moutng.kundenserver.de ([212.227.17.9]:51906 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S964990Ab2CMJw5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Mar 2012 05:52:57 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 10/35] Disintegrate asm/system.h for Hexagon [ver #2]
+Date: Tue, 13 Mar 2012 09:16:14 +0000
+References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk> <20120312233747.13888.75605.stgit@warthog.procyon.org.uk>
+In-Reply-To: <20120312233747.13888.75605.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain;charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: Text/Plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201203130916.15118.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Drewry <wad@chromium.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
-Message-ID: <20120313034050.58v7yGeqNo6NZ_CUwE0wGybAR9tqOVxopQG5RxNAxCw@z>
+To: David Howells <dhowells@redhat.com>
+Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org
+Message-ID: <20120313091614.CRYBlOczlwlWR8qIVMaDdqNU8M-WZQaldZwzKdH4dsw@z>
 
-Hello,
-
-On Mon, March 12, 2012 22:28, Will Drewry wrote:
-> Introduces a new BPF ancillary instruction that all LD calls will be
-> mapped through when skb_run_filter() is being used for seccomp BPF.  The
-> rewriting will be done using a secondary chk_filter function that is run
-> after skb_chk_filter.
->
-> The code change is guarded by CONFIG_SECCOMP_FILTER which is added,
-> along with the seccomp_bpf_load() function later in this series.
->
-> This is based on http://lkml.org/lkml/2012/3/2/141
->
-> v14: First cut using a single additional instruction
-> ... v13: made bpf functions generic.
->
->
-> Suggested-by: Indan Zupancic <indan@nul.nu>
-> Signed-off-by: Will Drewry <wad@chromium.org>
+On Monday 12 March 2012, David Howells wrote:
+> Disintegrate asm/system.h for Hexagon.  Not compiled.
+> 
+> Signed-off-by: David Howells <dhowells@redhat.com>
+> cc: linux-hexagon@vger.kernel.org
 > ---
->  include/linux/filter.h |    1 +
->  net/core/filter.c      |    5 +++++
->  2 files changed, 6 insertions(+), 0 deletions(-)
->
-> diff --git a/include/linux/filter.h b/include/linux/filter.h
-> index 8eeb205..aaa2e80 100644
-> --- a/include/linux/filter.h
-> +++ b/include/linux/filter.h
-> @@ -228,6 +228,7 @@ enum {
->  	BPF_S_ANC_HATYPE,
->  	BPF_S_ANC_RXHASH,
->  	BPF_S_ANC_CPU,
-> +	BPF_S_ANC_SECCOMP_LD_W,
->  };
->
->  #endif /* __KERNEL__ */
-> diff --git a/net/core/filter.c b/net/core/filter.c
-> index 5dea452..3000931 100644
-> --- a/net/core/filter.c
-> +++ b/net/core/filter.c
-> @@ -350,6 +350,11 @@ load_b:
->  				A = 0;
->  			continue;
->  		}
-> +#ifdef CONFIG_SECCOMP_FILTER
-> +		case BPF_S_ANC_SECCOMP_LD_W:
-> +			A = seccomp_bpf_load(fentry->k);
+> 
+>  arch/hexagon/include/asm/atomic.h    |    1 
+>  arch/hexagon/include/asm/barrier.h   |   41 +++++++++++
+>  arch/hexagon/include/asm/bitops.h    |    1 
+>  arch/hexagon/include/asm/cmpxchg.h   |   90 +++++++++++++++++++++++
+>  arch/hexagon/include/asm/exec.h      |   28 +++++++
+>  arch/hexagon/include/asm/switch_to.h |   34 +++++++++
+>  arch/hexagon/include/asm/system.h    |  131 +---------------------------------
+>  arch/hexagon/kernel/ptrace.c         |    1 
+>  arch/hexagon/kernel/smp.c            |    1 
+>  arch/hexagon/kernel/vm_events.c      |    1 
+>  10 files changed, 199 insertions(+), 130 deletions(-)
+>  create mode 100644 arch/hexagon/include/asm/barrier.h
+>  create mode 100644 arch/hexagon/include/asm/cmpxchg.h
+>  create mode 100644 arch/hexagon/include/asm/exec.h
+>  create mode 100644 arch/hexagon/include/asm/switch_to.h
 
-I think you forgot to declare seccomp_bpf_load() anywhere filter.c can find.
-That is, filter.c probably needs to include seccomp.h, or maybe better, add
-"extern u32 seccomp_bpf_load(int off);" to filter.h instead.
+Looking at this example, it could easily use the asm-generic versions of
+switch_to.h and barrier.h, but that would complicate the dependency chain
+again.
 
-> +			continue;
-> +#endif
->  		default:
->  			WARN_RATELIMIT(1, "Unknown code:%u jt:%u tf:%u k:%u\n",
->  				       fentry->code, fentry->jt,
+I think the same is true for other platforms.
 
-Reviewed-by: Indan Zupancic <indan@nul.nu>
-
-Greetings,
-
-Indan
-
+	Arnd
 
