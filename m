@@ -1,50 +1,51 @@
-From: Richard Kuo <rkuo@codeaurora.org>
-Subject: Re: [PATCH 10/35] Disintegrate asm/system.h for Hexagon [ver #2]
-Date: Tue, 13 Mar 2012 11:31:02 -0500
-Message-ID: <20120313163102.GB31083@codeaurora.org>
-References: <201203130916.15118.arnd@arndb.de>
- <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
- <20120312233747.13888.75605.stgit@warthog.procyon.org.uk>
- <27808.1331632900@redhat.com>
+From: Eric Dumazet <eric.dumazet@gmail.com>
+Subject: Re: [PATCH v14 01/13] sk_run_filter: add BPF_S_ANC_SECCOMP_LD_W
+Date: Tue, 13 Mar 2012 10:13:48 -0700
+Message-ID: <1331658828.4449.16.camel@edumazet-glaptop>
+References: <1331587715-26069-1-git-send-email-wad@chromium.org>
+	 <0c55cb258e0b5bbd615923ee2a9f06b9.squirrel@webmail.greenhost.nl>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:21031 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755015Ab2CMQbU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Mar 2012 12:31:20 -0400
-Content-Disposition: inline
-In-Reply-To: <27808.1331632900@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <kernel-hardening-return-1109-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <0c55cb258e0b5bbd615923ee2a9f06b9.squirrel@webmail.greenhost.nl>
+To: Indan Zupancic <indan@nul.nu>
+Cc: Will Drewry <wad@chromium.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Mar 13, 2012 at 10:01:40AM +0000, David Howells wrote:
-> Arnd Bergmann <arnd@arndb.de> wrote:
+On Tue, 2012-03-13 at 11:04 +0100, Indan Zupancic wrote:
+> Hello,
 > 
-> > Looking at this example, it could easily use the asm-generic versions of
-> > switch_to.h and barrier.h, but that would complicate the dependency chain
-> > again.
-> 
-> Yep.  The plan is to throw more patches on to the end of the series to
-> consolidate those.
-> 
-> In fact, I wonder if we still really need the switch_to() macro wrapper, or
-> whether we could replace it with an function, inline or otherwise, that
-> returns the macro's third argument.
+> I made a quick pseudo-patch for BPF JIT support. As far as I can tell,
+> the actual code itself is very simple, just:
 > 
 
-Alrighty...  well, let me test this patch as is, and if I can, I'll see if
-I can change over to the generic versions of switch_to.h and barrier.h as
-well.
+> -	bpf_jit_compile(fp);
+> +	jit = bpf_jit_compile(fp->insns, fp->len, 1);
+> +	if (jit) {
+> +		fp->bpf_func = jit;
+> +		/* Free unused insns memory */
+> +		newfp = krealloc(fp, sizeof(*fp), GFP_KERNEL);
+> +		if (newfp)
+> +			fp = newfp;
+> +	}
+> 
+>  	old_fp = rcu_dereference_protected(sk->sk_filter,
+>  					   sock_owned_by_user(sk));
 
+Dont mix unrelated changes in a single patch.
 
-Thanks,
-Richard Kuo
+Current krealloc() doesnt alloc a new area if the current one is bigger
+than 'new_size', but this might change in next kernel versions.
 
+So this part of your patch does nothing.
 
--- 
-
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+If it did, this kind of 'optimization' can actually be not good, because
+sizeof(*fp) is small enough (less than half cache line size) to trigger
+a possible false sharing issue. (other part of the cache line could be
+used to hold a often dirtied object)
