@@ -1,33 +1,25 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 10/35] Disintegrate asm/system.h for Hexagon [ver #2]
-Date: Tue, 13 Mar 2012 11:33:32 +0000
-Message-ID: <201203131133.32241.arnd@arndb.de>
-References: <201203130916.15118.arnd@arndb.de> <20120312233747.13888.75605.stgit@warthog.procyon.org.uk> <27808.1331632900@redhat.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-In-Reply-To: <27808.1331632900@redhat.com>
-Sender: linux-hexagon-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [RFC][PATCH 00/35] Disintegrate and kill asm/system.h [ver #2]
+Date: Tue, 13 Mar 2012 14:11:45 +0000
+Message-ID: <3744.1331647905@redhat.com>
+References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:58638 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754784Ab2CMOLz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 13 Mar 2012 10:11:55 -0400
+In-Reply-To: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+Cc: dhowells@redhat.com, paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de
 
-On Tuesday 13 March 2012, David Howells wrote:
-> Arnd Bergmann <arnd@arndb.de> wrote:
-> 
-> > Looking at this example, it could easily use the asm-generic versions of
-> > switch_to.h and barrier.h, but that would complicate the dependency chain
-> > again.
-> 
-> Yep.  The plan is to throw more patches on to the end of the series to
-> consolidate those.
-> 
-> In fact, I wonder if we still really need the switch_to() macro wrapper, or
-> whether we could replace it with an function, inline or otherwise, that
-> returns the macro's third argument.
+David Howells <dhowells@redhat.com> wrote:
 
-Sounds like a great idea, yes.
+> Here are a bunch of patches to disintegrate asm/system.h into a set of
+> separate bits to relieve the problem of circular inclusion dependencies.
 
-	Arnd
+They can also be found here:
+
+	http://git.kernel.org/?p=linux/kernel/git/dhowells/linux-asm_system.git;a=shortlog;h=refs/heads/split-asm-system_h
+
+David
