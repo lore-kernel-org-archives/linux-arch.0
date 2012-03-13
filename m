@@ -1,46 +1,24 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 10/35] Disintegrate asm/system.h for Hexagon [ver #2]
-Date: Tue, 13 Mar 2012 09:16:14 +0000
-Message-ID: <201203130916.15118.arnd@arndb.de>
-References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk> <20120312233747.13888.75605.stgit@warthog.procyon.org.uk>
+Subject: Re: [PATCH 21/35] Split arch_align_stack() out from asm-generic/system.h [ver #2]
+Date: Tue, 13 Mar 2012 09:11:58 +0000
+Message-ID: <201203130911.59138.arnd@arndb.de>
+References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk> <20120312233935.13888.29261.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
   charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-hexagon-owner@vger.kernel.org>
-In-Reply-To: <20120312233747.13888.75605.stgit@warthog.procyon.org.uk>
-Sender: linux-hexagon-owner@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20120312233935.13888.29261.stgit@warthog.procyon.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
 To: David Howells <dhowells@redhat.com>
-Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org
+Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
 On Monday 12 March 2012, David Howells wrote:
-> Disintegrate asm/system.h for Hexagon.  Not compiled.
+> Split arch_align_stack() out from asm-generic/system.h into its own header of
+> asm-generic/exec.h as part of the asm/system.h disintegration.
 > 
 > Signed-off-by: David Howells <dhowells@redhat.com>
-> cc: linux-hexagon@vger.kernel.org
-> ---
-> 
->  arch/hexagon/include/asm/atomic.h    |    1 
->  arch/hexagon/include/asm/barrier.h   |   41 +++++++++++
->  arch/hexagon/include/asm/bitops.h    |    1 
->  arch/hexagon/include/asm/cmpxchg.h   |   90 +++++++++++++++++++++++
->  arch/hexagon/include/asm/exec.h      |   28 +++++++
->  arch/hexagon/include/asm/switch_to.h |   34 +++++++++
->  arch/hexagon/include/asm/system.h    |  131 +---------------------------------
->  arch/hexagon/kernel/ptrace.c         |    1 
->  arch/hexagon/kernel/smp.c            |    1 
->  arch/hexagon/kernel/vm_events.c      |    1 
->  10 files changed, 199 insertions(+), 130 deletions(-)
->  create mode 100644 arch/hexagon/include/asm/barrier.h
->  create mode 100644 arch/hexagon/include/asm/cmpxchg.h
->  create mode 100644 arch/hexagon/include/asm/exec.h
->  create mode 100644 arch/hexagon/include/asm/switch_to.h
+> cc: Arnd Bergmann <arnd@arndb.de>
 
-Looking at this example, it could easily use the asm-generic versions of
-switch_to.h and barrier.h, but that would complicate the dependency chain
-again.
-
-I think the same is true for other platforms.
-
-	Arnd
+Acked-by: Arnd Bergmann <arnd@arndb.de>
