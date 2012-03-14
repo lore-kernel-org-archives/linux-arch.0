@@ -1,103 +1,110 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: Re: [PATCH 34/35] Remove all #inclusions of asm/system.h [ver #2]
-Date: Wed, 14 Mar 2012 08:35:57 -0400
-Message-ID: <1331728558.2167.5.camel@deneb.redhat.com>
+From: "Jacquiot, Aurelien" <a-jacquiot@ti.com>
+Subject: RE: [Linux-c6x-dev] [PATCH 06/35] Disintegrate asm/system.h for C6X
+	[ver #2]
+Date: Wed, 14 Mar 2012 13:29:41 +0000
+Message-ID: <553CFBBAF1315044BC4CD328C97B0B1C17FA0A76@DNCE02.ent.ti.com>
 References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
-	 <20120312234153.13888.99296.stgit@warthog.procyon.org.uk>
+	<20120312233706.13888.5678.stgit@warthog.procyon.org.uk>
+ <1331728169.2167.2.camel@deneb.redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:14459 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1760910Ab2CNMgB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Mar 2012 08:36:01 -0400
-In-Reply-To: <20120312234153.13888.99296.stgit@warthog.procyon.org.uk>
+Received: from devils.ext.ti.com ([198.47.26.153]:48399 "EHLO
+	devils.ext.ti.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752821Ab2CNN3r convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2012 09:29:47 -0400
+In-Reply-To: <1331728169.2167.2.camel@deneb.redhat.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de
+To: Mark Salter <msalter@redhat.com>, David Howells <dhowells@redhat.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paul.gortmaker@windriver.com" <paul.gortmaker@windriver.com>, "hpa@zytor.com" <hpa@zytor.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
 
-On Mon, 2012-03-12 at 23:41 +0000, David Howells wrote:
-> Remove all #inclusions of asm/system.h preparatory to splitting and
-> killing
-> it.  Performed with the following command:
-> 
-> perl -p -i -e 's!^#\s*include\s*<asm/system[.]h>.*\n!!' `grep -Irl '^#
-> \s*include\s*<asm/system[.]h>' *`
+Mark,
 
-I needed the following to clean up C6X build errors from this one:
+Are you sure about the #define _ASM_C6X_BARRIER_H in exec.h? _ASM_C6X_EXEC_H sounds better...
 
-diff --git a/include/asm-generic/atomic.h b/include/asm-generic/atomic.h
-index 6ec0ba4..1ced641 100644
---- a/include/asm-generic/atomic.h
-+++ b/include/asm-generic/atomic.h
-@@ -15,6 +15,8 @@
- #ifndef __ASM_GENERIC_ATOMIC_H
- #define __ASM_GENERIC_ATOMIC_H
- 
-+#include <asm/cmpxchg.h>
+Aurelien
+
+
+Texas Instruments France SA, 821 Avenue Jack Kilby, 06270 Villeneuve Loubet. 036 420 040 R.C.S Antibes. Capital de EUR 753.920
+
+-----Original Message-----
+From: linux-c6x-dev-bounces@linux-c6x.org [mailto:linux-c6x-dev-bounces@linux-c6x.org] On Behalf Of Mark Salter
+Sent: Wednesday, March 14, 2012 1:29 PM
+To: David Howells
+Cc: linux-arch@vger.kernel.org; linux-c6x-dev@linux-c6x.org; linux-kernel@vger.kernel.org; paul.gortmaker@windriver.com; hpa@zytor.com; torvalds@linux-foundation.org
+Subject: Re: [Linux-c6x-dev] [PATCH 06/35] Disintegrate asm/system.h for C6X [ver #2]
+
+On Mon, 2012-03-12 at 23:37 +0000, David Howells wrote:
+> Disintegrate asm/system.h for C6X.  Not compiled.  Appears to be missing
+> asm/atomic.h and asm/bug.h.
+>
+> Signed-off-by: David Howells <dhowells@redhat.com>
+> cc: linux-c6x-dev@linux-c6x.org
+> ---
+
+I needed the following to clean up build errors from this:
+
+diff --git a/arch/c6x/include/asm/bug.h b/arch/c6x/include/asm/bug.h
+index 3df21c0..8d59933 100644
+--- a/arch/c6x/include/asm/bug.h
++++ b/arch/c6x/include/asm/bug.h
+@@ -11,11 +11,13 @@
+ #ifndef _ASM_C6X_BUG_H
+ #define _ASM_C6X_BUG_H
+
++#include <linux/linkage.h>
+ #include <asm-generic/bug.h>
+
+ struct pt_regs;
+
+ extern void die(char *str, struct pt_regs *fp, int nr);
+ extern asmlinkage int process_exception(struct pt_regs *regs);
++extern asmlinkage void enable_exception(void);
+
+ #endif /* _ASM_C6X_BUG_H */
+diff --git a/arch/c6x/include/asm/exec.h b/arch/c6x/include/asm/exec.h
+new file mode 100644
+index 0000000..646b5b7
+--- /dev/null
++++ b/arch/c6x/include/asm/exec.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_C6X_BARRIER_H
++#define _ASM_C6X_BARRIER_H
 +
- #ifdef CONFIG_SMP
- /* Force people to define core atomics */
- # if !defined(atomic_add_return) || !defined(atomic_sub_return) || \
-diff --git a/arch/c6x/kernel/irq.c b/arch/c6x/kernel/irq.c
-index 0929e4b..f8a5af2 100644
---- a/arch/c6x/kernel/irq.c
-+++ b/arch/c6x/kernel/irq.c
-@@ -27,6 +27,7 @@
- #include <linux/kernel_stat.h>
- 
- #include <asm/megamod-pic.h>
-+#include <asm/special_insns.h>
- 
- unsigned long irq_err_count;
- 
-diff --git a/arch/c6x/kernel/setup.c b/arch/c6x/kernel/setup.c
-index 0c07921..ce46186 100644
---- a/arch/c6x/kernel/setup.c
-+++ b/arch/c6x/kernel/setup.c
-@@ -34,6 +34,7 @@
- #include <asm/dscr.h>
- #include <asm/clock.h>
- #include <asm/soc.h>
-+#include <asm/special_insns.h>
- 
- static const char *c6x_soc_name;
- 
-diff --git a/arch/c6x/kernel/time.c b/arch/c6x/kernel/time.c
-index 4c9f136..356ee84 100644
---- a/arch/c6x/kernel/time.c
-+++ b/arch/c6x/kernel/time.c
-@@ -20,6 +20,7 @@
- #include <linux/timex.h>
- #include <linux/profile.h>
- 
-+#include <asm/special_insns.h>
- #include <asm/timer64.h>
- 
- static u32 sched_clock_multiplier;
-diff --git a/arch/c6x/kernel/traps.c b/arch/c6x/kernel/traps.c
-index f50e3ed..1be74e5 100644
---- a/arch/c6x/kernel/traps.c
-+++ b/arch/c6x/kernel/traps.c
-@@ -14,6 +14,7 @@
- #include <linux/bug.h>
- 
- #include <asm/soc.h>
-+#include <asm/special_insns.h>
- #include <asm/traps.h>
- 
- int (*c6x_nmi_handler)(struct pt_regs *regs);
-diff --git a/arch/c6x/platforms/timer64.c b/arch/c6x/platforms/timer64.c
-index 03c03c2..3c73d74 100644
---- a/arch/c6x/platforms/timer64.c
-+++ b/arch/c6x/platforms/timer64.c
-@@ -15,6 +15,7 @@
- #include <linux/of_address.h>
- #include <asm/soc.h>
- #include <asm/dscr.h>
-+#include <asm/special_insns.h>
- #include <asm/timer64.h>
- 
- struct timer_regs {
++#define arch_align_stack(x) (x)
++
++#endif
+diff --git a/arch/c6x/include/asm/special_insns.h b/arch/c6x/include/asm/special_insns.h
+index 3be40df..59672bc 100644
+--- a/arch/c6x/include/asm/special_insns.h
++++ b/arch/c6x/include/asm/special_insns.h
+@@ -48,7 +48,6 @@
+ /*
+  * Exception management
+  */
+-asmlinkage void enable_exception(void);
+ #define disable_exception()
+ #define get_except_type()        get_creg(EFR)
+ #define ack_exception(type)      set_creg(ECR, 1 << (type))
+diff --git a/arch/c6x/include/asm/switch_to.h b/arch/c6x/include/asm/switch_to.h
+index 83bb5a4..af6c71f 100644
+--- a/arch/c6x/include/asm/switch_to.h
++++ b/arch/c6x/include/asm/switch_to.h
+@@ -11,6 +11,8 @@
+ #ifndef _ASM_C6X_SWITCH_TO_H
+ #define _ASM_C6X_SWITCH_TO_H
+
++#include <linux/linkage.h>
++
+ #define prepare_to_switch()    do { } while (0)
+
+ struct task_struct;
+
+
+_______________________________________________
+Linux-c6x-dev mailing list
+Linux-c6x-dev@linux-c6x.org
+http://linux-c6x.org/cgi-bin/mailman/listinfo/linux-c6x-dev
