@@ -1,88 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:45294 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756084Ab2CNM3f (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Mar 2012 08:29:35 -0400
-Subject: Re: [PATCH 06/35] Disintegrate asm/system.h for C6X [ver #2]
-From: Mark Salter <msalter@redhat.com>
-Date: Wed, 14 Mar 2012 08:29:27 -0400
-In-Reply-To: <20120312233706.13888.5678.stgit@warthog.procyon.org.uk>
-References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
-	 <20120312233706.13888.5678.stgit@warthog.procyon.org.uk>
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Message-ID: <1331728169.2167.2.camel@deneb.redhat.com>
+Received: from mail.southpole.se ([193.12.106.18]:54809 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755832Ab2CNOnG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2012 10:43:06 -0400
+Message-ID: <1331736182.5104.74.camel@jerome.southpole.se>
+Subject: Re: [ORLinux] [PATCH 17/35] Make asm-generic/cmpxchg.h #include
+ asm-generic/cmpxchg-local.h [ver #2]
+From: Jonas Bonn <jonas@southpole.se>
+Date: Wed, 14 Mar 2012 15:43:02 +0100
+In-Reply-To: <11556.1331723400@redhat.com>
+References: <CACM3HyHaFqVBaALMNB9dTE+7JrT1qD0jrYtV2PzwTskv8sW4Hg@mail.gmail.com>
+	 <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
+	 <20120312233858.13888.34822.stgit@warthog.procyon.org.uk>
+	 <201203130900.41993.arnd@arndb.de> <11556.1331723400@redhat.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Howells <dhowells@redhat.com>
-Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-c6x-dev@linux-c6x.org
-Message-ID: <20120314122927.aKz8dCtEH5FfSAv27PWapSlwXi3yWlv6xcRBhrLnD3o@z>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux@openrisc.net, linux-kernel@vger.kernel.org, paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org
+Message-ID: <20120314144302.mqrQOy9vDr23OIMhRdbQ1kcgirf1CHe9KLN7rbZrfnc@z>
 
-On Mon, 2012-03-12 at 23:37 +0000, David Howells wrote:
-> Disintegrate asm/system.h for C6X.  Not compiled.  Appears to be missing
-> asm/atomic.h and asm/bug.h.
+
+On Wed, 2012-03-14 at 11:10 +0000, David Howells wrote:
+> Jonas Bonn <jonas.bonn@gmail.com> wrote:
 > 
-> Signed-off-by: David Howells <dhowells@redhat.com>
-> cc: linux-c6x-dev@linux-c6x.org
-> ---
+> > --- a/include/asm-generic/bitops/atomic.h
+> > +++ b/include/asm-generic/bitops/atomic.h
+> > @@ -2,7 +2,6 @@
+> >  #define _ASM_GENERIC_BITOPS_ATOMIC_H_
+> > 
+> >  #include <asm/types.h>
+> > -#include <asm/system.h>
+> > 
+> >  #ifdef CONFIG_SMP
+> >  #include <asm/spinlock.h>
+> 
+> That's actually done in patch 33.  I wouldn't want to remove that if I can
+> avoid it until after all the arches have been altered.
 
-I needed the following to clean up build errors from this:
+OK, fair enough.
 
-diff --git a/arch/c6x/include/asm/bug.h b/arch/c6x/include/asm/bug.h
-index 3df21c0..8d59933 100644
---- a/arch/c6x/include/asm/bug.h
-+++ b/arch/c6x/include/asm/bug.h
-@@ -11,11 +11,13 @@
- #ifndef _ASM_C6X_BUG_H
- #define _ASM_C6X_BUG_H
- 
-+#include <linux/linkage.h>
- #include <asm-generic/bug.h>
- 
- struct pt_regs;
- 
- extern void die(char *str, struct pt_regs *fp, int nr);
- extern asmlinkage int process_exception(struct pt_regs *regs);
-+extern asmlinkage void enable_exception(void);
- 
- #endif /* _ASM_C6X_BUG_H */
-diff --git a/arch/c6x/include/asm/exec.h b/arch/c6x/include/asm/exec.h
-new file mode 100644
-index 0000000..646b5b7
---- /dev/null
-+++ b/arch/c6x/include/asm/exec.h
-@@ -0,0 +1,6 @@
-+#ifndef _ASM_C6X_BARRIER_H
-+#define _ASM_C6X_BARRIER_H
-+
-+#define arch_align_stack(x) (x)
-+
-+#endif
-diff --git a/arch/c6x/include/asm/special_insns.h b/arch/c6x/include/asm/special_insns.h
-index 3be40df..59672bc 100644
---- a/arch/c6x/include/asm/special_insns.h
-+++ b/arch/c6x/include/asm/special_insns.h
-@@ -48,7 +48,6 @@
- /*
-  * Exception management
-  */
--asmlinkage void enable_exception(void);
- #define disable_exception()
- #define get_except_type()        get_creg(EFR)
- #define ack_exception(type)      set_creg(ECR, 1 << (type))
-diff --git a/arch/c6x/include/asm/switch_to.h b/arch/c6x/include/asm/switch_to.h
-index 83bb5a4..af6c71f 100644
---- a/arch/c6x/include/asm/switch_to.h
-+++ b/arch/c6x/include/asm/switch_to.h
-@@ -11,6 +11,8 @@
- #ifndef _ASM_C6X_SWITCH_TO_H
- #define _ASM_C6X_SWITCH_TO_H
- 
-+#include <linux/linkage.h>
-+
- #define prepare_to_switch()    do { } while (0)
- 
- struct task_struct;
+Am I right in thinking that OpenRISC is the only architecture the
+depends on the changes in asm-generic?  If yes, I could take this series
+and hold off on the pull request until after the rest of your changes go
+in.  Either way, it seems that OpenRISC will break for a bit...
 
+The error I get while building (if asm/system.h is included) is a
+circular dependency that I don't see that I can easily resolve:
+
+  CC      arch/openrisc/kernel/asm-offsets.s
+In file included from include/asm-generic/switch_to.h:17:0,
+                 from arch/openrisc/include/generated/asm/switch_to.h:1,
+
+from /home/jonas/openrisc/linux/arch/openrisc/include/asm/system.h:5,
+                 from include/asm-generic/bitops/atomic.h:5,
+
+from /home/jonas/openrisc/linux/arch/openrisc/include/asm/bitops.h:55,
+                 from include/linux/bitops.h:22,
+                 from include/linux/signal.h:38,
+                 from arch/openrisc/kernel/asm-offsets.c:26:
+include/linux/thread_info.h: In function ‘set_ti_thread_flag’:
+include/linux/thread_info.h:64:2: error: implicit declaration of
+function ‘set_bit’
+include/linux/thread_info.h: In function ‘clear_ti_thread_flag’:
+include/linux/thread_info.h:69:2: error: implicit declaration of
+function ‘clear_bit’
+include/linux/thread_info.h: In function ‘test_and_set_ti_thread_flag’:
+include/linux/thread_info.h:74:2: error: implicit declaration of
+function ‘test_and_set_bit’
+include/linux/thread_info.h: In function
+‘test_and_clear_ti_thread_flag’:
+include/linux/thread_info.h:79:2: error: implicit declaration of
+function ‘test_and_clear_bit’
+include/linux/thread_info.h: In function ‘test_ti_thread_flag’:
+include/linux/thread_info.h:84:2: error: implicit declaration of
+function ‘test_bit’
+In file included
+from /home/jonas/openrisc/linux/arch/openrisc/include/asm/bitops.h:55:0,
+                 from include/linux/bitops.h:22,
+                 from include/linux/signal.h:38,
+                 from arch/openrisc/kernel/asm-offsets.c:26:
+include/asm-generic/bitops/atomic.h: At top level:
+include/asm-generic/bitops/atomic.h:65:20: warning: conflicting types
+for ‘set_bit’
+include/asm-generic/bitops/atomic.h:65:20: error: static declaration of
+‘set_bit’ follows non-static declaration
+include/linux/thread_info.h:64:2: note: previous implicit declaration of
+‘set_bit’ was here
+include/asm-generic/bitops/atomic.h:86:20: warning: conflicting types
+for ‘clear_bit’
+include/asm-generic/bitops/atomic.h:86:20: error: static declaration of
+‘clear_bit’ follows non-static declaration
+include/linux/thread_info.h:69:2: note: previous implicit declaration of
+‘clear_bit’ was here
+include/asm-generic/bitops/atomic.h:127:19: error: static declaration of
+‘test_and_set_bit’ follows non-static declaration
+include/linux/thread_info.h:74:9: note: previous implicit declaration of
+‘test_and_set_bit’ was here
+include/asm-generic/bitops/atomic.h:151:19: error: static declaration of
+‘test_and_clear_bit’ follows non-static declaration
+include/linux/thread_info.h:79:9: note: previous implicit declaration of
+‘test_and_clear_bit’ was here
+In file included
+from /home/jonas/openrisc/linux/arch/openrisc/include/asm/bitops.h:56:0,
+                 from include/linux/bitops.h:22,
+                 from include/linux/signal.h:38,
+                 from arch/openrisc/kernel/asm-offsets.c:26:
+include/asm-generic/bitops/non-atomic.h:103:19: error: static
+declaration of ‘test_bit’ follows non-static declaration
+include/linux/thread_info.h:84:9: note: previous implicit declaration of
+‘test_bit’ was here
+make[1]: *** [arch/openrisc/kernel/asm-offsets.s] Error 1
+make: *** [prepare0] Error 2
+
+/Jonas
 
