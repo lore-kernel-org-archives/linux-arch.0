@@ -1,33 +1,159 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [ORLinux] [PATCH 17/35] Make asm-generic/cmpxchg.h #include asm-generic/cmpxchg-local.h [ver #2]
-Date: Wed, 14 Mar 2012 11:10:00 +0000
-Message-ID: <11556.1331723400@redhat.com>
-References: <CACM3HyHaFqVBaALMNB9dTE+7JrT1qD0jrYtV2PzwTskv8sW4Hg@mail.gmail.com> <20120312233602.13888.27659.stgit@warthog.procyon.org.uk> <20120312233858.13888.34822.stgit@warthog.procyon.org.uk> <201203130900.41993.arnd@arndb.de>
+From: Greg Ungerer <gerg@snapgear.com>
+Subject: Re: [PATCH 13/35] Disintegrate asm/system.h for M68K [ver #2]
+Date: Wed, 14 Mar 2012 22:07:49 +1000
+Message-ID: <4F608A15.9030609@snapgear.com>
+References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk> <20120312233816.13888.142.stgit@warthog.procyon.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=windows-1252;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:41532 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752002Ab2CNLKO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Mar 2012 07:10:14 -0400
-In-Reply-To: <CACM3HyHaFqVBaALMNB9dTE+7JrT1qD0jrYtV2PzwTskv8sW4Hg@mail.gmail.com>
+Received: from sncsmrelay2.nai.com ([67.97.80.206]:46412 "EHLO
+	sncsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757478Ab2CNMJn convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2012 08:09:43 -0400
+In-Reply-To: <20120312233816.13888.142.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas.bonn@gmail.com>
-Cc: dhowells@redhat.com, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux@openrisc.net, linux-kernel@vger.kernel.org, paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org
+To: David Howells <dhowells@redhat.com>
+Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-m68k@vger.kernel.org
 
-Jonas Bonn <jonas.bonn@gmail.com> wrote:
+Hi David,
 
-> --- a/include/asm-generic/bitops/atomic.h
-> +++ b/include/asm-generic/bitops/atomic.h
-> @@ -2,7 +2,6 @@
->  #define _ASM_GENERIC_BITOPS_ATOMIC_H_
-> 
->  #include <asm/types.h>
-> -#include <asm/system.h>
-> 
->  #ifdef CONFIG_SMP
->  #include <asm/spinlock.h>
+On 03/13/2012 09:38 AM, David Howells wrote:
+> Disintegrate asm/system.h for M68K.
+>
+> Signed-off-by: David Howells<dhowells@redhat.com>
+> cc: linux-m68k@lists.linux-m68k.org
+> ---
+>
+>   arch/m68k/amiga/amisound.c          |    1
+>   arch/m68k/amiga/config.c            |    1
+>   arch/m68k/apollo/config.c           |    1
+>   arch/m68k/atari/ataints.c           |    1
+>   arch/m68k/atari/atasound.c          |    1
+>   arch/m68k/atari/config.c            |    1
+>   arch/m68k/bvme6000/config.c         |    1
+>   arch/m68k/bvme6000/rtc.c            |    1
+>   arch/m68k/hp300/time.c              |    1
+>   arch/m68k/include/asm/atomic.h      |    2
+>   arch/m68k/include/asm/barrier.h     |   20 ++++
+>   arch/m68k/include/asm/cmpxchg.h     |  129 +++++++++++++++++++++++
+>   arch/m68k/include/asm/exec.h        |    6 +
+>   arch/m68k/include/asm/sun3xflop.h   |    1
+>   arch/m68k/include/asm/switch_to.h   |   41 +++++++
+>   arch/m68k/include/asm/system.h      |  198 +-----------------------=
+-----------
+>   arch/m68k/kernel/ints.c             |    1
+>   arch/m68k/kernel/irq.c              |    1
+>   arch/m68k/kernel/process_mm.c       |    1
+>   arch/m68k/kernel/process_no.c       |    1
+>   arch/m68k/kernel/ptrace_mm.c        |    1
+>   arch/m68k/kernel/ptrace_no.c        |    1
+>   arch/m68k/kernel/traps.c            |    1
+>   arch/m68k/kernel/vectors.c          |    1
+>   arch/m68k/mac/config.c              |    1
+>   arch/m68k/mac/misc.c                |    1
+>   arch/m68k/mm/fault.c                |    1
+>   arch/m68k/mm/init_mm.c              |    1
+>   arch/m68k/mm/init_no.c              |    1
+>   arch/m68k/mm/kmap.c                 |    1
+>   arch/m68k/mm/memory.c               |    1
+>   arch/m68k/mm/motorola.c             |    1
+>   arch/m68k/mm/sun3mmu.c              |    1
+>   arch/m68k/mvme147/config.c          |    1
+>   arch/m68k/mvme16x/config.c          |    1
+>   arch/m68k/mvme16x/rtc.c             |    1
+>   arch/m68k/platform/68328/config.c   |    1
+>   arch/m68k/platform/68328/timers.c   |    1
+>   arch/m68k/platform/68360/config.c   |    1
+>   arch/m68k/platform/68EZ328/config.c |    1
+>   arch/m68k/platform/68VZ328/config.c |    1
+>   arch/m68k/q40/config.c              |    1
+>   arch/m68k/q40/q40ints.c             |    1
+>   arch/m68k/sun3/intersil.c           |    1
+>   arch/m68k/sun3/mmu_emu.c            |    1
+>   arch/m68k/sun3/prom/console.c       |    1
+>   arch/m68k/sun3x/config.c            |    1
+>   arch/m68k/sun3x/time.c              |    1
+>   48 files changed, 202 insertions(+), 236 deletions(-)
+>   create mode 100644 arch/m68k/include/asm/barrier.h
+>   create mode 100644 arch/m68k/include/asm/cmpxchg.h
+>   create mode 100644 arch/m68k/include/asm/exec.h
+>   create mode 100644 arch/m68k/include/asm/switch_to.h
+>
+[snip]
+ >
+> diff --git a/arch/m68k/include/asm/cmpxchg.h b/arch/m68k/include/asm/=
+cmpxchg.h
+> new file mode 100644
+> index 0000000..f8acc0f
+> --- /dev/null
+> +++ b/arch/m68k/include/asm/cmpxchg.h
+> @@ -0,0 +1,129 @@
+> +#ifndef __ARCH_M68K_CMPXCHG__
+> +#define __ARCH_M68K_CMPXCHG__
+> +
+> +#include<linux/irqflags.h>
+> +
+> +struct __xchg_dummy { unsigned long a[100]; };
+> +#define __xg(x) ((volatile struct __xchg_dummy *)(x))
+> +
+> +#ifndef CONFIG_RMW_INSNS
+> +static inline unsigned long __xchg(unsigned long x, volatile void * =
+ptr, int size)
+> +{
+> +	unsigned long flags, tmp;
+> +
+> +	local_irq_save(flags);
+> +
+> +	switch (size) {
+> +	case 1:
+> +		tmp =3D *(u8 *)ptr;
+> +		*(u8 *)ptr =3D x;
+> +		x =3D tmp;
+> +		break;
+> +	case 2:
+> +		tmp =3D *(u16 *)ptr;
+> +		*(u16 *)ptr =3D x;
+> +		x =3D tmp;
+> +		break;
+> +	case 4:
+> +		tmp =3D *(u32 *)ptr;
+> +		*(u32 *)ptr =3D x;
+> +		x =3D tmp;
+> +		break;
+> +	default:
+> +		BUG();
 
-That's actually done in patch 33.  I wouldn't want to remove that if I can
-avoid it until after all the arches have been altered.
+This breaks compilation for m68k targets with:
 
-David
+   CC      net/ipv4/ip_input.o
+In file included from=20
+/home/gerg/new-wave.320/linux-3.x/arch/m68k/include/asm/system.h:3:0,
+                  from net/ipv4/ip_input.c:116:
+/home/gerg/new-wave.320/linux-3.x/arch/m68k/include/asm/cmpxchg.h: In=20
+function =91__xchg=92:
+/home/gerg/new-wave.320/linux-3.x/arch/m68k/include/asm/cmpxchg.h:33:3:=
+=20
+error: implicit declaration of function =91BUG=92
+
+The old system.h included linux/kernel.h which includes asm/bug.h.
+Just including asm/bug.h here in cmpxchg.h is not enough to fix it.
+If you include linux/kernel.h though it compiles cleanly.
+
+Regards
+Greg
+
+
+
+-----------------------------------------------------------------------=
+-
+Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.co=
+m
+SnapGear Group, McAfee                      PHONE:       +61 7 3435 288=
+8
+8 Gardner Close,                            FAX:         +61 7 3891 363=
+0
+Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.co=
+m
