@@ -1,159 +1,81 @@
-From: Greg Ungerer <gerg@snapgear.com>
-Subject: Re: [PATCH 13/35] Disintegrate asm/system.h for M68K [ver #2]
-Date: Wed, 14 Mar 2012 22:07:49 +1000
-Message-ID: <4F608A15.9030609@snapgear.com>
-References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk> <20120312233816.13888.142.stgit@warthog.procyon.org.uk>
+From: Mark Salter <msalter@redhat.com>
+Subject: Re: [PATCH 06/35] Disintegrate asm/system.h for C6X [ver #2]
+Date: Wed, 14 Mar 2012 08:29:27 -0400
+Message-ID: <1331728169.2167.2.camel@deneb.redhat.com>
+References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
+	 <20120312233706.13888.5678.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from sncsmrelay2.nai.com ([67.97.80.206]:46412 "EHLO
-	sncsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757478Ab2CNMJn convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2012 08:09:43 -0400
-In-Reply-To: <20120312233816.13888.142.stgit@warthog.procyon.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20120312233706.13888.5678.stgit@warthog.procyon.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
 To: David Howells <dhowells@redhat.com>
-Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-m68k@vger.kernel.org
+Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-c6x-dev@linux-c6x.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi David,
-
-On 03/13/2012 09:38 AM, David Howells wrote:
-> Disintegrate asm/system.h for M68K.
->
-> Signed-off-by: David Howells<dhowells@redhat.com>
-> cc: linux-m68k@lists.linux-m68k.org
+On Mon, 2012-03-12 at 23:37 +0000, David Howells wrote:
+> Disintegrate asm/system.h for C6X.  Not compiled.  Appears to be missing
+> asm/atomic.h and asm/bug.h.
+> 
+> Signed-off-by: David Howells <dhowells@redhat.com>
+> cc: linux-c6x-dev@linux-c6x.org
 > ---
->
->   arch/m68k/amiga/amisound.c          |    1
->   arch/m68k/amiga/config.c            |    1
->   arch/m68k/apollo/config.c           |    1
->   arch/m68k/atari/ataints.c           |    1
->   arch/m68k/atari/atasound.c          |    1
->   arch/m68k/atari/config.c            |    1
->   arch/m68k/bvme6000/config.c         |    1
->   arch/m68k/bvme6000/rtc.c            |    1
->   arch/m68k/hp300/time.c              |    1
->   arch/m68k/include/asm/atomic.h      |    2
->   arch/m68k/include/asm/barrier.h     |   20 ++++
->   arch/m68k/include/asm/cmpxchg.h     |  129 +++++++++++++++++++++++
->   arch/m68k/include/asm/exec.h        |    6 +
->   arch/m68k/include/asm/sun3xflop.h   |    1
->   arch/m68k/include/asm/switch_to.h   |   41 +++++++
->   arch/m68k/include/asm/system.h      |  198 +-----------------------=
------------
->   arch/m68k/kernel/ints.c             |    1
->   arch/m68k/kernel/irq.c              |    1
->   arch/m68k/kernel/process_mm.c       |    1
->   arch/m68k/kernel/process_no.c       |    1
->   arch/m68k/kernel/ptrace_mm.c        |    1
->   arch/m68k/kernel/ptrace_no.c        |    1
->   arch/m68k/kernel/traps.c            |    1
->   arch/m68k/kernel/vectors.c          |    1
->   arch/m68k/mac/config.c              |    1
->   arch/m68k/mac/misc.c                |    1
->   arch/m68k/mm/fault.c                |    1
->   arch/m68k/mm/init_mm.c              |    1
->   arch/m68k/mm/init_no.c              |    1
->   arch/m68k/mm/kmap.c                 |    1
->   arch/m68k/mm/memory.c               |    1
->   arch/m68k/mm/motorola.c             |    1
->   arch/m68k/mm/sun3mmu.c              |    1
->   arch/m68k/mvme147/config.c          |    1
->   arch/m68k/mvme16x/config.c          |    1
->   arch/m68k/mvme16x/rtc.c             |    1
->   arch/m68k/platform/68328/config.c   |    1
->   arch/m68k/platform/68328/timers.c   |    1
->   arch/m68k/platform/68360/config.c   |    1
->   arch/m68k/platform/68EZ328/config.c |    1
->   arch/m68k/platform/68VZ328/config.c |    1
->   arch/m68k/q40/config.c              |    1
->   arch/m68k/q40/q40ints.c             |    1
->   arch/m68k/sun3/intersil.c           |    1
->   arch/m68k/sun3/mmu_emu.c            |    1
->   arch/m68k/sun3/prom/console.c       |    1
->   arch/m68k/sun3x/config.c            |    1
->   arch/m68k/sun3x/time.c              |    1
->   48 files changed, 202 insertions(+), 236 deletions(-)
->   create mode 100644 arch/m68k/include/asm/barrier.h
->   create mode 100644 arch/m68k/include/asm/cmpxchg.h
->   create mode 100644 arch/m68k/include/asm/exec.h
->   create mode 100644 arch/m68k/include/asm/switch_to.h
->
-[snip]
- >
-> diff --git a/arch/m68k/include/asm/cmpxchg.h b/arch/m68k/include/asm/=
-cmpxchg.h
-> new file mode 100644
-> index 0000000..f8acc0f
-> --- /dev/null
-> +++ b/arch/m68k/include/asm/cmpxchg.h
-> @@ -0,0 +1,129 @@
-> +#ifndef __ARCH_M68K_CMPXCHG__
-> +#define __ARCH_M68K_CMPXCHG__
-> +
-> +#include<linux/irqflags.h>
-> +
-> +struct __xchg_dummy { unsigned long a[100]; };
-> +#define __xg(x) ((volatile struct __xchg_dummy *)(x))
-> +
-> +#ifndef CONFIG_RMW_INSNS
-> +static inline unsigned long __xchg(unsigned long x, volatile void * =
-ptr, int size)
-> +{
-> +	unsigned long flags, tmp;
-> +
-> +	local_irq_save(flags);
-> +
-> +	switch (size) {
-> +	case 1:
-> +		tmp =3D *(u8 *)ptr;
-> +		*(u8 *)ptr =3D x;
-> +		x =3D tmp;
-> +		break;
-> +	case 2:
-> +		tmp =3D *(u16 *)ptr;
-> +		*(u16 *)ptr =3D x;
-> +		x =3D tmp;
-> +		break;
-> +	case 4:
-> +		tmp =3D *(u32 *)ptr;
-> +		*(u32 *)ptr =3D x;
-> +		x =3D tmp;
-> +		break;
-> +	default:
-> +		BUG();
 
-This breaks compilation for m68k targets with:
+I needed the following to clean up build errors from this:
 
-   CC      net/ipv4/ip_input.o
-In file included from=20
-/home/gerg/new-wave.320/linux-3.x/arch/m68k/include/asm/system.h:3:0,
-                  from net/ipv4/ip_input.c:116:
-/home/gerg/new-wave.320/linux-3.x/arch/m68k/include/asm/cmpxchg.h: In=20
-function =91__xchg=92:
-/home/gerg/new-wave.320/linux-3.x/arch/m68k/include/asm/cmpxchg.h:33:3:=
-=20
-error: implicit declaration of function =91BUG=92
-
-The old system.h included linux/kernel.h which includes asm/bug.h.
-Just including asm/bug.h here in cmpxchg.h is not enough to fix it.
-If you include linux/kernel.h though it compiles cleanly.
-
-Regards
-Greg
-
-
-
------------------------------------------------------------------------=
--
-Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.co=
-m
-SnapGear Group, McAfee                      PHONE:       +61 7 3435 288=
-8
-8 Gardner Close,                            FAX:         +61 7 3891 363=
-0
-Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.co=
-m
+diff --git a/arch/c6x/include/asm/bug.h b/arch/c6x/include/asm/bug.h
+index 3df21c0..8d59933 100644
+--- a/arch/c6x/include/asm/bug.h
++++ b/arch/c6x/include/asm/bug.h
+@@ -11,11 +11,13 @@
+ #ifndef _ASM_C6X_BUG_H
+ #define _ASM_C6X_BUG_H
+ 
++#include <linux/linkage.h>
+ #include <asm-generic/bug.h>
+ 
+ struct pt_regs;
+ 
+ extern void die(char *str, struct pt_regs *fp, int nr);
+ extern asmlinkage int process_exception(struct pt_regs *regs);
++extern asmlinkage void enable_exception(void);
+ 
+ #endif /* _ASM_C6X_BUG_H */
+diff --git a/arch/c6x/include/asm/exec.h b/arch/c6x/include/asm/exec.h
+new file mode 100644
+index 0000000..646b5b7
+--- /dev/null
++++ b/arch/c6x/include/asm/exec.h
+@@ -0,0 +1,6 @@
++#ifndef _ASM_C6X_BARRIER_H
++#define _ASM_C6X_BARRIER_H
++
++#define arch_align_stack(x) (x)
++
++#endif
+diff --git a/arch/c6x/include/asm/special_insns.h b/arch/c6x/include/asm/special_insns.h
+index 3be40df..59672bc 100644
+--- a/arch/c6x/include/asm/special_insns.h
++++ b/arch/c6x/include/asm/special_insns.h
+@@ -48,7 +48,6 @@
+ /*
+  * Exception management
+  */
+-asmlinkage void enable_exception(void);
+ #define disable_exception()
+ #define get_except_type()        get_creg(EFR)
+ #define ack_exception(type)      set_creg(ECR, 1 << (type))
+diff --git a/arch/c6x/include/asm/switch_to.h b/arch/c6x/include/asm/switch_to.h
+index 83bb5a4..af6c71f 100644
+--- a/arch/c6x/include/asm/switch_to.h
++++ b/arch/c6x/include/asm/switch_to.h
+@@ -11,6 +11,8 @@
+ #ifndef _ASM_C6X_SWITCH_TO_H
+ #define _ASM_C6X_SWITCH_TO_H
+ 
++#include <linux/linkage.h>
++
+ #define prepare_to_switch()    do { } while (0)
+ 
+ struct task_struct;
