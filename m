@@ -1,177 +1,96 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:30767 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759739Ab2CNAg5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 Mar 2012 20:36:57 -0400
-Date: Tue, 13 Mar 2012 21:22:55 -0300
-From: Marcelo Tosatti <mtosatti@redhat.com>
-Subject: Re: [PATCH 0/4 V16] Avoid soft lockup message when KVM is stopped by
- host
-Message-ID: <20120314002255.GC15362@amt.cnet>
-References: <1331408248-6781-1-git-send-email-emunson@mgebm.net>
+Received: from smarthost1.greenhost.nl ([195.190.28.78]:53342 "EHLO
+	smarthost1.greenhost.nl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753208Ab2CNFNJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2012 01:13:09 -0400
+Message-ID: <3e4fc1efb5d7dbe0dd966e3192e84645.squirrel@webmail.greenhost.nl>
+In-Reply-To: <1331658828.4449.16.camel@edumazet-glaptop>
+References: <1331587715-26069-1-git-send-email-wad@chromium.org>
+    <0c55cb258e0b5bbd615923ee2a9f06b9.squirrel@webmail.greenhost.nl>
+    <1331658828.4449.16.camel@edumazet-glaptop>
+Date: Wed, 14 Mar 2012 06:12:52 +0100
+Subject: Re: [PATCH v14 01/13] sk_run_filter: add BPF_S_ANC_SECCOMP_LD_W
+From: "Indan Zupancic" <indan@nul.nu>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1331408248-6781-1-git-send-email-emunson@mgebm.net>
+Content-Type: text/plain;charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Eric B Munson <emunson@mgebm.net>
-Cc: avi@redhat.com, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20120314002255.mN9Z5OOwasXlNbM9j4gVQSpu9g-rzyl4OV0Uv_dfp3c@z>
+To: Eric Dumazet <eric.dumazet@gmail.com>
+Cc: Will Drewry <wad@chromium.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
+Message-ID: <20120314051252.kHkOdW04t7Kp9YZdYiRblm5IcQlAhUEWE-fLXiNcwws@z>
+
+Hello,
+
+On Tue, March 13, 2012 18:13, Eric Dumazet wrote:
+> On Tue, 2012-03-13 at 11:04 +0100, Indan Zupancic wrote:
+>> -	bpf_jit_compile(fp);
+>> +	jit = bpf_jit_compile(fp->insns, fp->len, 1);
+>> +	if (jit) {
+>> +		fp->bpf_func = jit;
+>> +		/* Free unused insns memory */
+>> +		newfp = krealloc(fp, sizeof(*fp), GFP_KERNEL);
+>> +		if (newfp)
+>> +			fp = newfp;
+>> +	}
+>>
+>>  	old_fp = rcu_dereference_protected(sk->sk_filter,
+>>  					   sock_owned_by_user(sk));
+>
+> Dont mix unrelated changes in a single patch.
+
+I know, but it was just a quick proof-of-concept. It just showed
+a possible advantage of the API change for the current networking
+code. The real patch would be split into an API change, the memory
+freeing change, and the seccomp support.
+
+>
+> Current krealloc() doesnt alloc a new area if the current one is bigger
+> than 'new_size', but this might change in next kernel versions.
+>
+> So this part of your patch does nothing.
+
+Problem is that 'old_size' can be up to 32kB in size and it would be nice
+if that memory could be released. If it isn't, then using JIT increases
+memory usage, while also not accounting it to the socket.
+
+>
+> If it did, this kind of 'optimization' can actually be not good, because
+> sizeof(*fp) is small enough (less than half cache line size) to trigger
+> a possible false sharing issue. (other part of the cache line could be
+> used to hold a often dirtied object)
+
+It could avoid this by allocating at least a cache size. But this is a
+problem for all small kmalloc's, isn't it?
+
+What about something like the below:
+
+@@ -625,7 +639,18 @@ int sk_attach_filter(struct sock_fprog *fprog, struct sock *sk)
+ 		return err;
+ 	}
+
+-	bpf_jit_compile(fp);
++	jit = bpf_jit_compile(fp->insns, fp->len, 1);
++	if (jit) {
++		int size = max(cache_line_size(), sizeof(*fp));
++		fp->bpf_func = jit;
++		/* Free unused insns memory */
++		newfp = kmalloc(size, GFP_KERNEL);
++		if (newfp) {
++			memcpy(newfp, fp, size);
++			kfree(fp);
++			fp = newfp;
++		}
++	}
+
+ 	old_fp = rcu_dereference_protected(sk->sk_filter,
+ 					   sock_owned_by_user(sk));
+
+Not sure whether to use cache_line_size() or just L1_CACHE_BYTES or
+something else.
+
+Greeings,
+
+Indan
 
 
-Applied, thanks.
-
-On Sat, Mar 10, 2012 at 02:37:24PM -0500, Eric B Munson wrote:
-> Changes from V15:
-> Add arch/*/include/asm/kvm_para.h that includes the asm-generic version
-> 
-> Changes from V14:
-> Update documentation for the pvclock api
-> 
-> Changes from V13:
-> Expand on KVM_KVMCLOCK_CTRL ioctl documentation
-> 
-> Changes from V12:
-> Re-add missing kvm.c code after rebase
-> Rename CAP to KVM_CAP_KVMCLOCK_CTRL
-> Rename ioctl to KVM_KVMCLOCK_CTRL
-> 
-> Changes from V11:
-> Re-add asm-generic stub
-> Correct api.txt typo
-> add kvm_make_request() call after setting PVCLOCK_GUEST_STOPPED
-> 
-> Changes from V10:
-> Return ioctl to per vcpu instead of per vm
-> 
-> Changes from V9:
-> Use kvm_for_each_vcpu to iterate online vcpu's
-> 
-> Changes from V8:
-> Make KVM_GUEST_PAUSED a per vm ioctl instead of per vcpu
-> 
-> Changes from V7:
-> Define KVM_CAP_GUEST_PAUSED and support check
-> Call mark_page_dirty () after setting PVCLOCK_GUEST_STOPPED
-> 
-> Changes from V6:
-> Use __this_cpu_and when clearing the PVCLOCK_GUEST_STOPPED flag
-> 
-> Changes from V5:
-> Collapse generic check_and_clear_guest_stopped into patch 2
-> Include check_and_clear_guest_stopped defintion to ia64, s390, and powerpc
-> Change check_and_clear_guest_stopped to use __get_cpu_var instead of taking the
->  cpuid arg.
-> Protect check_and_clear_guest_stopped declaration with CONFIG_KVM_CLOCK check
-> 
-> Changes from V4:
-> Rename KVM_GUEST_PAUSED to KVMCLOCK_GUEST_PAUSED
-> Add description of KVMCLOCK_GUEST_PAUSED ioctl to api.txt
-> 
-> Changes from V3:
-> Include CC's on patch 3
-> Drop clear flag ioctl and have the watchdog clear the flag when it is reset
-> 
-> Changes from V2:
-> A new kvm functions defined in kvm_para.h, the only change to pvclock is the
-> initial flag definition
-> 
-> Changes from V1:
-> (Thanks Marcelo)
-> Host code has all been moved to arch/x86/kvm/x86.c
-> KVM_PAUSE_GUEST was renamed to KVM_GUEST_PAUSED
-> 
-> When a guest kernel is stopped by the host hypervisor it can look like a soft
-> lockup to the guest kernel.  This false warning can mask later soft lockup
-> warnings which may be real.  This patch series adds a method for a host
-> hypervisor to communicate to a guest kernel that it is being stopped.  The
-> final patch in the series has the watchdog check this flag when it goes to
-> issue a soft lockup warning and skip the warning if the guest knows it was
-> stopped.
-> 
-> It was attempted to solve this in Qemu, but the side effects of saving and
-> restoring the clock and tsc for each vcpu put the wall clock of the guest behind
-> by the amount of time of the pause.  This forces a guest to have ntp running
-> in order to keep the wall clock accurate.
-> 
-> Cc: mingo@redhat.com
-> Cc: hpa@zytor.com
-> Cc: ryanh@linux.vnet.ibm.com
-> Cc: aliguori@us.ibm.com
-> Cc: mtosatti@redhat.com
-> Cc: kvm@vger.kernel.org
-> Cc: linux-arch@vger.kernel.org
-> Cc: x86@kernel.org
-> Cc: linux-kernel@vger.kernel.org
-> 
-> Eric B Munson (4):
->   Add flag to indicate that a vm was stopped by the host
->   Add functions to check if the host has stopped the vm
->   Add ioctl for KVM_KVMCLOCK_CTRL
->   Add check for suspended vm in softlockup detector
-> 
->  Documentation/virtual/kvm/api.txt      |   20 ++++++++++++++++++++
->  Documentation/virtual/kvm/msr.txt      |    4 ++++
->  arch/alpha/include/asm/kvm_para.h      |    1 +
->  arch/arm/include/asm/kvm_para.h        |    1 +
->  arch/avr32/include/asm/kvm_para.h      |    1 +
->  arch/blackfin/include/asm/kvm_para.h   |    1 +
->  arch/c6x/include/asm/kvm_para.h        |    1 +
->  arch/frv/include/asm/kvm_para.h        |    1 +
->  arch/h8300/include/asm/kvm_para.h      |    1 +
->  arch/hexagon/include/asm/kvm_para.h    |    1 +
->  arch/ia64/include/asm/kvm_para.h       |    5 +++++
->  arch/m68k/include/asm/kvm_para.h       |    1 +
->  arch/microblaze/include/asm/kvm_para.h |    1 +
->  arch/mips/include/asm/kvm_para.h       |    1 +
->  arch/mn10300/include/asm/kvm_para.h    |    1 +
->  arch/openrisc/include/asm/kvm_para.h   |    1 +
->  arch/parisc/include/asm/kvm_para.h     |    1 +
->  arch/powerpc/include/asm/kvm_para.h    |    5 +++++
->  arch/s390/include/asm/kvm_para.h       |    5 +++++
->  arch/score/include/asm/kvm_para.h      |    1 +
->  arch/sh/include/asm/kvm_para.h         |    1 +
->  arch/sparc/include/asm/kvm_para.h      |    1 +
->  arch/tile/include/asm/kvm_para.h       |    1 +
->  arch/um/include/asm/kvm_para.h         |    1 +
->  arch/unicore32/include/asm/kvm_para.h  |    1 +
->  arch/x86/include/asm/kvm_para.h        |    8 ++++++++
->  arch/x86/include/asm/pvclock-abi.h     |    1 +
->  arch/x86/kernel/kvmclock.c             |   21 +++++++++++++++++++++
->  arch/x86/kvm/x86.c                     |   22 ++++++++++++++++++++++
->  arch/xtensa/include/asm/kvm_para.h     |    1 +
->  include/asm-generic/kvm_para.h         |   14 ++++++++++++++
->  include/linux/kvm.h                    |    3 +++
->  kernel/watchdog.c                      |   12 ++++++++++++
->  33 files changed, 141 insertions(+), 0 deletions(-)
->  create mode 100644 arch/alpha/include/asm/kvm_para.h
->  create mode 100644 arch/arm/include/asm/kvm_para.h
->  create mode 100644 arch/avr32/include/asm/kvm_para.h
->  create mode 100644 arch/blackfin/include/asm/kvm_para.h
->  create mode 100644 arch/c6x/include/asm/kvm_para.h
->  create mode 100644 arch/frv/include/asm/kvm_para.h
->  create mode 100644 arch/h8300/include/asm/kvm_para.h
->  create mode 100644 arch/hexagon/include/asm/kvm_para.h
->  create mode 100644 arch/m68k/include/asm/kvm_para.h
->  create mode 100644 arch/microblaze/include/asm/kvm_para.h
->  create mode 100644 arch/mips/include/asm/kvm_para.h
->  create mode 100644 arch/mn10300/include/asm/kvm_para.h
->  create mode 100644 arch/openrisc/include/asm/kvm_para.h
->  create mode 100644 arch/parisc/include/asm/kvm_para.h
->  create mode 100644 arch/score/include/asm/kvm_para.h
->  create mode 100644 arch/sh/include/asm/kvm_para.h
->  create mode 100644 arch/sparc/include/asm/kvm_para.h
->  create mode 100644 arch/tile/include/asm/kvm_para.h
->  create mode 100644 arch/um/include/asm/kvm_para.h
->  create mode 100644 arch/unicore32/include/asm/kvm_para.h
->  create mode 100644 arch/xtensa/include/asm/kvm_para.h
->  create mode 100644 include/asm-generic/kvm_para.h
-> 
-> -- 
-> 1.7.5.4
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe kvm" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
