@@ -1,42 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f172.google.com ([209.85.212.172]:44738 "EHLO
-	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932374Ab2CNIGK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2012 04:06:10 -0400
-Message-ID: <1331712357.2456.58.camel@edumazet-laptop>
-Subject: Re: [PATCH v14 01/13] sk_run_filter: add BPF_S_ANC_SECCOMP_LD_W
-From: Eric Dumazet <eric.dumazet@gmail.com>
-Date: Wed, 14 Mar 2012 01:05:57 -0700
-In-Reply-To: <3f56b0860272f4ca8925c0a249a30539.squirrel@webmail.greenhost.nl>
-References: <1331587715-26069-1-git-send-email-wad@chromium.org>
-	 <0c55cb258e0b5bbd615923ee2a9f06b9.squirrel@webmail.greenhost.nl>
-	 <1331658828.4449.16.camel@edumazet-glaptop>
-	 <3e4fc1efb5d7dbe0dd966e3192e84645.squirrel@webmail.greenhost.nl>
-	 <1331704535.2456.37.camel@edumazet-laptop>
-	 <3f56b0860272f4ca8925c0a249a30539.squirrel@webmail.greenhost.nl>
-Content-Type: text/plain; charset="UTF-8"
+Received: from goliath.siemens.de ([192.35.17.28]:18970 "EHLO
+	goliath.siemens.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753992Ab2CNK6T (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2012 06:58:19 -0400
+Message-ID: <4F606F13.1040704@siemens.com>
+Date: Wed, 14 Mar 2012 11:12:35 +0100
+From: Jan Kiszka <jan.kiszka@siemens.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH 2/4 V16] Add functions to check if the host has stopped
+ the vm
+References: <1331408248-6781-1-git-send-email-emunson@mgebm.net> <1331408248-6781-3-git-send-email-emunson@mgebm.net>
+In-Reply-To: <1331408248-6781-3-git-send-email-emunson@mgebm.net>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
-Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Indan Zupancic <indan@nul.nu>
-Cc: Will Drewry <wad@chromium.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
-Message-ID: <20120314080557.nepLJstknk_EnXnSwEu5h4R2cuz5eiqNAAzco4nsoio@z>
+To: Eric B Munson <emunson@mgebm.net>
+Cc: avi@redhat.com, mingo@redhat.com, hpa@zytor.com, ryanh@linux.vnet.ibm.com, aliguori@us.ibm.com, mtosatti@redhat.com, kvm@vger.kernel.org, linux-arch@vger.kernel.org, x86@kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120314101235.lfO3xBLivfYB3wRPITUFPLQu_twg7p5WjwoHOK8ALH4@z>
 
-Le mercredi 14 mars 2012 à 08:59 +0100, Indan Zupancic a écrit :
+On 2012-03-10 20:37, Eric B Munson wrote:
+> When a host stops or suspends a VM it will set a flag to show this.  The
+> watchdog will use these functions to determine if a softlockup is real, or the
+> result of a suspended VM.
+> 
 
-> The only remaining question is, is it worth the extra code to release
-> up to 32kB of unused memory? It seems a waste to not free it, but if
-> people think it's not worth it then let's just leave it around.
+...
 
-Quite frankly its not an issue, given JIT BPF is not yet default
-enabled.
+> diff --git a/arch/x86/kernel/kvmclock.c b/arch/x86/kernel/kvmclock.c
+> index f8492da..4ba090c 100644
+> --- a/arch/x86/kernel/kvmclock.c
+> +++ b/arch/x86/kernel/kvmclock.c
+> @@ -22,6 +22,7 @@
+>  #include <asm/msr.h>
+>  #include <asm/apic.h>
+>  #include <linux/percpu.h>
+> +#include <linux/hardirq.h>
+>  
+>  #include <asm/x86_init.h>
+>  #include <asm/reboot.h>
+> @@ -114,6 +115,26 @@ static void kvm_get_preset_lpj(void)
+>  	preset_lpj = lpj;
+>  }
+>  
+> +bool kvm_check_and_clear_guest_paused(void)
+> +{
+> +	bool ret = false;
+> +	struct pvclock_vcpu_time_info *src;
+> +
+> +	/*
+> +	 * per_cpu() is safe here because this function is only called from
+> +	 * timer functions where preemption is already disabled.
+> +	 */
+> +	WARN_ON(!in_atomic());
+> +	src = &__get_cpu_var(hv_clock);
+> +	if ((src->flags & PVCLOCK_GUEST_STOPPED) != 0) {
+> +		__this_cpu_and(hv_clock.flags, ~PVCLOCK_GUEST_STOPPED);
+> +		ret = true;
+> +	}
+> +
+> +	return ret;
+> +}
+> +EXPORT_SYMBOL_GPL(kvm_check_and_clear_guest_paused);
 
-I am not sure all bugs were found and fixed. I would warn users before
-considering using it in production.
+Which module is going to use this? I failed to find it, but I may have
+missed something.
 
-If you have time, I would appreciate if you could double check and find
-last bugs in it.
+The actual reason for this reply: this patches causes a compiler warning
+here, likely due to lacking include for EXPORT_SYMBOL_GPL:
 
+  CC      arch/x86/kernel/kvmclock.o
+/data/linux-kvm/arch/x86/kernel/kvmclock.c:136:1: warning: data
+definition has no type or storage class
+/data/linux-kvm/arch/x86/kernel/kvmclock.c:136:1: warning: type defaults
+to ‘int’ in declaration of ‘EXPORT_SYMBOL_GPL’
+/data/linux-kvm/arch/x86/kernel/kvmclock.c:136:1: warning: parameter
+names (without types) in function declaration
 
+Jan
 
+-- 
+Siemens AG, Corporate Technology, CT T DE IT 1
+Corporate Competence Center Embedded Linux
