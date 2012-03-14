@@ -1,43 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:49345 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756602Ab2CNRIP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Mar 2012 13:08:15 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <1331738610.5104.84.camel@jerome.southpole.se>
-References: <1331738610.5104.84.camel@jerome.southpole.se> <1331736182.5104.74.camel@jerome.southpole.se> <CACM3HyHaFqVBaALMNB9dTE+7JrT1qD0jrYtV2PzwTskv8sW4Hg@mail.gmail.com> <20120312233602.13888.27659.stgit@warthog.procyon.org.uk> <20120312233858.13888.34822.stgit@warthog.procyon.org.uk> <201203130900.41993.arnd@arndb.de> <11556.1331723400@redhat.com> <18016.1331738258@redhat.com> 
-Subject: Re: [ORLinux] [PATCH 17/35] Make asm-generic/cmpxchg.h #include asm-generic/cmpxchg-local.h [ver #2]
-Date: Wed, 14 Mar 2012 17:07:59 +0000
-Message-ID: <21309.1331744879@redhat.com>
+Received: from mail.southpole.se ([193.12.106.18]:44681 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1761118Ab2CNRgv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Mar 2012 13:36:51 -0400
+Message-ID: <1331746607.5104.93.camel@jerome.southpole.se>
+Subject: Re: [ORLinux] [PATCH 17/35] Make asm-generic/cmpxchg.h #include
+ asm-generic/cmpxchg-local.h [ver #2]
+From: Jonas Bonn <jonas@southpole.se>
+Date: Wed, 14 Mar 2012 18:36:47 +0100
+In-Reply-To: <21309.1331744879@redhat.com>
+References: <1331738610.5104.84.camel@jerome.southpole.se>
+	 <1331736182.5104.74.camel@jerome.southpole.se>
+	 <CACM3HyHaFqVBaALMNB9dTE+7JrT1qD0jrYtV2PzwTskv8sW4Hg@mail.gmail.com>
+	 <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
+	 <20120312233858.13888.34822.stgit@warthog.procyon.org.uk>
+	 <201203130900.41993.arnd@arndb.de> <11556.1331723400@redhat.com>
+	 <18016.1331738258@redhat.com>  <21309.1331744879@redhat.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux@openrisc.net, linux-kernel@vger.kernel.org, paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org
-Message-ID: <20120314170759.ZE7kCGvvG9vV0z_qn0Zrcm_ybGCoLYhaBR_Ks9NuWOs@z>
+To: David Howells <dhowells@redhat.com>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux@openrisc.net, linux-kernel@vger.kernel.org, paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org
+Message-ID: <20120314173647.o6vjuPAXMgE0u-9l-bpo6iSm4rMvQef1NLlEpQKFc2k@z>
 
-Jonas Bonn <jonas@southpole.se> wrote:
 
-> > > The error I get while building (if asm/system.h is included) is a
-> > > circular dependency that I don't see that I can easily resolve:
+On Wed, 2012-03-14 at 17:07 +0000, David Howells wrote:
+> Jonas Bonn <jonas@southpole.se> wrote:
+> 
+> > > > The error I get while building (if asm/system.h is included) is a
+> > > > circular dependency that I don't see that I can easily resolve:
+> > > 
+> > > How do I get an openrisc toolchain?
 > > 
-> > How do I get an openrisc toolchain?
+> > http://openrisc.net/toolchain-build.html
+> > 
+> > What distro are you on?  I might be able to send you a binary version if
+> > you prefer...
 > 
-> http://openrisc.net/toolchain-build.html
+> I'd like to add it to my spec file to build the complete clutch of binutils
+> and gcc RPMs for Fedora.
 > 
-> What distro are you on?  I might be able to send you a binary version if
-> you prefer...
+> I originally tried --target=openrisc-elf, but whilst that is supported by
+> binutils, it doesn't seem to be supported by gcc.
+> 
 
-I'd like to add it to my spec file to build the complete clutch of binutils
-and gcc RPMs for Fedora.
+That openrisc-elf target in upstream binutils is ancient and has not
+worked for years... it really should be pulled out of binutils
+altogether.  The current toolchain bits are unfortunately not part of
+the upstream toolchain components.
 
-I originally tried --target=openrisc-elf, but whilst that is supported by
-binutils, it doesn't seem to be supported by gcc.
+> According to your URL above, I should be using --target=or32-linux, but
+> binutils claims not to support that:
+> 
+> 	*** ld does not support target or32-unknown-linux-gnu
+> 
 
-According to your URL above, I should be using --target=or32-linux, but
-binutils claims not to support that:
+or32-linux is supported in the toolchain from openrisc.net.  Likewise
+or32-elf... follow the instructions (the easy ones should work) on the
+link I sent you -- the submodules in the "toolchain" repo are from the
+openrisc git repo and contain everything that is needed.
 
-	*** ld does not support target or32-unknown-linux-gnu
+/Jonas
 
-Also neither or32-linux-elf nor or32-unknown-linux-elf work.
-
-David
