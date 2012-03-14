@@ -1,31 +1,104 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: RE: [Linux-c6x-dev] [PATCH 06/35] Disintegrate asm/system.h for C6X
- [ver #2]
-Date: Wed, 14 Mar 2012 09:39:45 -0400
-Message-ID: <1331732387.2167.9.camel@deneb.redhat.com>
-References: <20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
-	 <20120312233706.13888.5678.stgit@warthog.procyon.org.uk>
-	 <1331728169.2167.2.camel@deneb.redhat.com>
-	 <553CFBBAF1315044BC4CD328C97B0B1C17FA0A76@DNCE02.ent.ti.com>
+From: Jonas Bonn <jonas@southpole.se>
+Subject: Re: [PATCH 17/35] Make asm-generic/cmpxchg.h #include
+ asm-generic/cmpxchg-local.h [ver #2]
+Date: Wed, 14 Mar 2012 15:43:02 +0100
+Message-ID: <1331736182.5104.74.camel@jerome.southpole.se>
+References: <CACM3HyHaFqVBaALMNB9dTE+7JrT1qD0jrYtV2PzwTskv8sW4Hg@mail.gmail.com>
+	<20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
+	<20120312233858.13888.34822.stgit@warthog.procyon.org.uk>
+	<201203130900.41993.arnd@arndb.de> <11556.1331723400@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:46177 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752988Ab2CNNjv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Mar 2012 09:39:51 -0400
-In-Reply-To: <553CFBBAF1315044BC4CD328C97B0B1C17FA0A76@DNCE02.ent.ti.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "Jacquiot, Aurelien" <a-jacquiot@ti.com>
-Cc: David Howells <dhowells@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paul.gortmaker@windriver.com" <paul.gortmaker@windriver.com>, "hpa@zytor.com" <hpa@zytor.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-bounces@lists.openrisc.net>
+In-Reply-To: <11556.1331723400@redhat.com>
+List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
+	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
+List-Archive: <http://lists.openrisc.net/pipermail/linux>
+List-Post: <mailto:linux@lists.openrisc.net>
+List-Help: <mailto:linux-request@lists.openrisc.net?subject=help>
+List-Subscribe: <http://lists.openrisc.net/listinfo/linux>,
+	<mailto:linux-request@lists.openrisc.net?subject=subscribe>
+Sender: linux-bounces@lists.openrisc.net
+Errors-To: linux-bounces@lists.openrisc.net
+To: David Howells <dhowells@redhat.com>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux@openrisc.net, linux-kernel@vger.kernel.org, paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, 2012-03-14 at 13:29 +0000, Jacquiot, Aurelien wrote:
-> Mark,
-> 
-> Are you sure about the #define _ASM_C6X_BARRIER_H in exec.h?
-> _ASM_C6X_EXEC_H sounds better...
-
-Thanks! Copy and paste mistake. FYI, I plan on getting rid of the
-C6X version and using the generic version once it is available.
+Ck9uIFdlZCwgMjAxMi0wMy0xNCBhdCAxMToxMCArMDAwMCwgRGF2aWQgSG93ZWxscyB3cm90ZToK
+PiBKb25hcyBCb25uIDxqb25hcy5ib25uQGdtYWlsLmNvbT4gd3JvdGU6Cj4gCj4gPiAtLS0gYS9p
+bmNsdWRlL2FzbS1nZW5lcmljL2JpdG9wcy9hdG9taWMuaAo+ID4gKysrIGIvaW5jbHVkZS9hc20t
+Z2VuZXJpYy9iaXRvcHMvYXRvbWljLmgKPiA+IEBAIC0yLDcgKzIsNiBAQAo+ID4gICNkZWZpbmUg
+X0FTTV9HRU5FUklDX0JJVE9QU19BVE9NSUNfSF8KPiA+IAo+ID4gICNpbmNsdWRlIDxhc20vdHlw
+ZXMuaD4KPiA+IC0jaW5jbHVkZSA8YXNtL3N5c3RlbS5oPgo+ID4gCj4gPiAgI2lmZGVmIENPTkZJ
+R19TTVAKPiA+ICAjaW5jbHVkZSA8YXNtL3NwaW5sb2NrLmg+Cj4gCj4gVGhhdCdzIGFjdHVhbGx5
+IGRvbmUgaW4gcGF0Y2ggMzMuICBJIHdvdWxkbid0IHdhbnQgdG8gcmVtb3ZlIHRoYXQgaWYgSSBj
+YW4KPiBhdm9pZCBpdCB1bnRpbCBhZnRlciBhbGwgdGhlIGFyY2hlcyBoYXZlIGJlZW4gYWx0ZXJl
+ZC4KCk9LLCBmYWlyIGVub3VnaC4KCkFtIEkgcmlnaHQgaW4gdGhpbmtpbmcgdGhhdCBPcGVuUklT
+QyBpcyB0aGUgb25seSBhcmNoaXRlY3R1cmUgdGhlCmRlcGVuZHMgb24gdGhlIGNoYW5nZXMgaW4g
+YXNtLWdlbmVyaWM/ICBJZiB5ZXMsIEkgY291bGQgdGFrZSB0aGlzIHNlcmllcwphbmQgaG9sZCBv
+ZmYgb24gdGhlIHB1bGwgcmVxdWVzdCB1bnRpbCBhZnRlciB0aGUgcmVzdCBvZiB5b3VyIGNoYW5n
+ZXMgZ28KaW4uICBFaXRoZXIgd2F5LCBpdCBzZWVtcyB0aGF0IE9wZW5SSVNDIHdpbGwgYnJlYWsg
+Zm9yIGEgYml0Li4uCgpUaGUgZXJyb3IgSSBnZXQgd2hpbGUgYnVpbGRpbmcgKGlmIGFzbS9zeXN0
+ZW0uaCBpcyBpbmNsdWRlZCkgaXMgYQpjaXJjdWxhciBkZXBlbmRlbmN5IHRoYXQgSSBkb24ndCBz
+ZWUgdGhhdCBJIGNhbiBlYXNpbHkgcmVzb2x2ZToKCiAgQ0MgICAgICBhcmNoL29wZW5yaXNjL2tl
+cm5lbC9hc20tb2Zmc2V0cy5zCkluIGZpbGUgaW5jbHVkZWQgZnJvbSBpbmNsdWRlL2FzbS1nZW5l
+cmljL3N3aXRjaF90by5oOjE3OjAsCiAgICAgICAgICAgICAgICAgZnJvbSBhcmNoL29wZW5yaXNj
+L2luY2x1ZGUvZ2VuZXJhdGVkL2FzbS9zd2l0Y2hfdG8uaDoxLAoKZnJvbSAvaG9tZS9qb25hcy9v
+cGVucmlzYy9saW51eC9hcmNoL29wZW5yaXNjL2luY2x1ZGUvYXNtL3N5c3RlbS5oOjUsCiAgICAg
+ICAgICAgICAgICAgZnJvbSBpbmNsdWRlL2FzbS1nZW5lcmljL2JpdG9wcy9hdG9taWMuaDo1LAoK
+ZnJvbSAvaG9tZS9qb25hcy9vcGVucmlzYy9saW51eC9hcmNoL29wZW5yaXNjL2luY2x1ZGUvYXNt
+L2JpdG9wcy5oOjU1LAogICAgICAgICAgICAgICAgIGZyb20gaW5jbHVkZS9saW51eC9iaXRvcHMu
+aDoyMiwKICAgICAgICAgICAgICAgICBmcm9tIGluY2x1ZGUvbGludXgvc2lnbmFsLmg6MzgsCiAg
+ICAgICAgICAgICAgICAgZnJvbSBhcmNoL29wZW5yaXNjL2tlcm5lbC9hc20tb2Zmc2V0cy5jOjI2
+OgppbmNsdWRlL2xpbnV4L3RocmVhZF9pbmZvLmg6IEluIGZ1bmN0aW9uIOKAmHNldF90aV90aHJl
+YWRfZmxhZ+KAmToKaW5jbHVkZS9saW51eC90aHJlYWRfaW5mby5oOjY0OjI6IGVycm9yOiBpbXBs
+aWNpdCBkZWNsYXJhdGlvbiBvZgpmdW5jdGlvbiDigJhzZXRfYml04oCZCmluY2x1ZGUvbGludXgv
+dGhyZWFkX2luZm8uaDogSW4gZnVuY3Rpb24g4oCYY2xlYXJfdGlfdGhyZWFkX2ZsYWfigJk6Cmlu
+Y2x1ZGUvbGludXgvdGhyZWFkX2luZm8uaDo2OToyOiBlcnJvcjogaW1wbGljaXQgZGVjbGFyYXRp
+b24gb2YKZnVuY3Rpb24g4oCYY2xlYXJfYml04oCZCmluY2x1ZGUvbGludXgvdGhyZWFkX2luZm8u
+aDogSW4gZnVuY3Rpb24g4oCYdGVzdF9hbmRfc2V0X3RpX3RocmVhZF9mbGFn4oCZOgppbmNsdWRl
+L2xpbnV4L3RocmVhZF9pbmZvLmg6NzQ6MjogZXJyb3I6IGltcGxpY2l0IGRlY2xhcmF0aW9uIG9m
+CmZ1bmN0aW9uIOKAmHRlc3RfYW5kX3NldF9iaXTigJkKaW5jbHVkZS9saW51eC90aHJlYWRfaW5m
+by5oOiBJbiBmdW5jdGlvbgrigJh0ZXN0X2FuZF9jbGVhcl90aV90aHJlYWRfZmxhZ+KAmToKaW5j
+bHVkZS9saW51eC90aHJlYWRfaW5mby5oOjc5OjI6IGVycm9yOiBpbXBsaWNpdCBkZWNsYXJhdGlv
+biBvZgpmdW5jdGlvbiDigJh0ZXN0X2FuZF9jbGVhcl9iaXTigJkKaW5jbHVkZS9saW51eC90aHJl
+YWRfaW5mby5oOiBJbiBmdW5jdGlvbiDigJh0ZXN0X3RpX3RocmVhZF9mbGFn4oCZOgppbmNsdWRl
+L2xpbnV4L3RocmVhZF9pbmZvLmg6ODQ6MjogZXJyb3I6IGltcGxpY2l0IGRlY2xhcmF0aW9uIG9m
+CmZ1bmN0aW9uIOKAmHRlc3RfYml04oCZCkluIGZpbGUgaW5jbHVkZWQKZnJvbSAvaG9tZS9qb25h
+cy9vcGVucmlzYy9saW51eC9hcmNoL29wZW5yaXNjL2luY2x1ZGUvYXNtL2JpdG9wcy5oOjU1OjAs
+CiAgICAgICAgICAgICAgICAgZnJvbSBpbmNsdWRlL2xpbnV4L2JpdG9wcy5oOjIyLAogICAgICAg
+ICAgICAgICAgIGZyb20gaW5jbHVkZS9saW51eC9zaWduYWwuaDozOCwKICAgICAgICAgICAgICAg
+ICBmcm9tIGFyY2gvb3BlbnJpc2Mva2VybmVsL2FzbS1vZmZzZXRzLmM6MjY6CmluY2x1ZGUvYXNt
+LWdlbmVyaWMvYml0b3BzL2F0b21pYy5oOiBBdCB0b3AgbGV2ZWw6CmluY2x1ZGUvYXNtLWdlbmVy
+aWMvYml0b3BzL2F0b21pYy5oOjY1OjIwOiB3YXJuaW5nOiBjb25mbGljdGluZyB0eXBlcwpmb3Ig
+4oCYc2V0X2JpdOKAmQppbmNsdWRlL2FzbS1nZW5lcmljL2JpdG9wcy9hdG9taWMuaDo2NToyMDog
+ZXJyb3I6IHN0YXRpYyBkZWNsYXJhdGlvbiBvZgrigJhzZXRfYml04oCZIGZvbGxvd3Mgbm9uLXN0
+YXRpYyBkZWNsYXJhdGlvbgppbmNsdWRlL2xpbnV4L3RocmVhZF9pbmZvLmg6NjQ6Mjogbm90ZTog
+cHJldmlvdXMgaW1wbGljaXQgZGVjbGFyYXRpb24gb2YK4oCYc2V0X2JpdOKAmSB3YXMgaGVyZQpp
+bmNsdWRlL2FzbS1nZW5lcmljL2JpdG9wcy9hdG9taWMuaDo4NjoyMDogd2FybmluZzogY29uZmxp
+Y3RpbmcgdHlwZXMKZm9yIOKAmGNsZWFyX2JpdOKAmQppbmNsdWRlL2FzbS1nZW5lcmljL2JpdG9w
+cy9hdG9taWMuaDo4NjoyMDogZXJyb3I6IHN0YXRpYyBkZWNsYXJhdGlvbiBvZgrigJhjbGVhcl9i
+aXTigJkgZm9sbG93cyBub24tc3RhdGljIGRlY2xhcmF0aW9uCmluY2x1ZGUvbGludXgvdGhyZWFk
+X2luZm8uaDo2OToyOiBub3RlOiBwcmV2aW91cyBpbXBsaWNpdCBkZWNsYXJhdGlvbiBvZgrigJhj
+bGVhcl9iaXTigJkgd2FzIGhlcmUKaW5jbHVkZS9hc20tZ2VuZXJpYy9iaXRvcHMvYXRvbWljLmg6
+MTI3OjE5OiBlcnJvcjogc3RhdGljIGRlY2xhcmF0aW9uIG9mCuKAmHRlc3RfYW5kX3NldF9iaXTi
+gJkgZm9sbG93cyBub24tc3RhdGljIGRlY2xhcmF0aW9uCmluY2x1ZGUvbGludXgvdGhyZWFkX2lu
+Zm8uaDo3NDo5OiBub3RlOiBwcmV2aW91cyBpbXBsaWNpdCBkZWNsYXJhdGlvbiBvZgrigJh0ZXN0
+X2FuZF9zZXRfYml04oCZIHdhcyBoZXJlCmluY2x1ZGUvYXNtLWdlbmVyaWMvYml0b3BzL2F0b21p
+Yy5oOjE1MToxOTogZXJyb3I6IHN0YXRpYyBkZWNsYXJhdGlvbiBvZgrigJh0ZXN0X2FuZF9jbGVh
+cl9iaXTigJkgZm9sbG93cyBub24tc3RhdGljIGRlY2xhcmF0aW9uCmluY2x1ZGUvbGludXgvdGhy
+ZWFkX2luZm8uaDo3OTo5OiBub3RlOiBwcmV2aW91cyBpbXBsaWNpdCBkZWNsYXJhdGlvbiBvZgri
+gJh0ZXN0X2FuZF9jbGVhcl9iaXTigJkgd2FzIGhlcmUKSW4gZmlsZSBpbmNsdWRlZApmcm9tIC9o
+b21lL2pvbmFzL29wZW5yaXNjL2xpbnV4L2FyY2gvb3BlbnJpc2MvaW5jbHVkZS9hc20vYml0b3Bz
+Lmg6NTY6MCwKICAgICAgICAgICAgICAgICBmcm9tIGluY2x1ZGUvbGludXgvYml0b3BzLmg6MjIs
+CiAgICAgICAgICAgICAgICAgZnJvbSBpbmNsdWRlL2xpbnV4L3NpZ25hbC5oOjM4LAogICAgICAg
+ICAgICAgICAgIGZyb20gYXJjaC9vcGVucmlzYy9rZXJuZWwvYXNtLW9mZnNldHMuYzoyNjoKaW5j
+bHVkZS9hc20tZ2VuZXJpYy9iaXRvcHMvbm9uLWF0b21pYy5oOjEwMzoxOTogZXJyb3I6IHN0YXRp
+YwpkZWNsYXJhdGlvbiBvZiDigJh0ZXN0X2JpdOKAmSBmb2xsb3dzIG5vbi1zdGF0aWMgZGVjbGFy
+YXRpb24KaW5jbHVkZS9saW51eC90aHJlYWRfaW5mby5oOjg0Ojk6IG5vdGU6IHByZXZpb3VzIGlt
+cGxpY2l0IGRlY2xhcmF0aW9uIG9mCuKAmHRlc3RfYml04oCZIHdhcyBoZXJlCm1ha2VbMV06ICoq
+KiBbYXJjaC9vcGVucmlzYy9rZXJuZWwvYXNtLW9mZnNldHMuc10gRXJyb3IgMQptYWtlOiAqKiog
+W3ByZXBhcmUwXSBFcnJvciAyCgovSm9uYXMKCl9fX19fX19fX19fX19fX19fX19fX19fX19fX19f
+X19fX19fX19fX19fX19fX19fCkxpbnV4IG1haWxpbmcgbGlzdApMaW51eEBsaXN0cy5vcGVucmlz
+Yy5uZXQKaHR0cDovL2xpc3RzLm9wZW5yaXNjLm5ldC9saXN0aW5mby9saW51eAo=
