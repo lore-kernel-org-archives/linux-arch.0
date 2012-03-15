@@ -1,48 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smarthost1.greenhost.nl ([195.190.28.78]:33010 "EHLO
-	smarthost1.greenhost.nl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751745Ab2COEuE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2012 00:50:04 -0400
-Message-ID: <d2e03d5f063de84d1bae3c3e06296f81.squirrel@webmail.greenhost.nl>
-In-Reply-To: <1331781125-15658-12-git-send-email-wad@chromium.org>
-References: <1331781125-15658-1-git-send-email-wad@chromium.org>
-    <1331781125-15658-12-git-send-email-wad@chromium.org>
-Date: Thu, 15 Mar 2012 05:49:47 +0100
-Subject: Re: [PATCH v15 11/13] ptrace,seccomp: Add PTRACE_SECCOMP support
-From: "Indan Zupancic" <indan@nul.nu>
+Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:49308 "EHLO
+	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S932104Ab2COOkS convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Mar 2012 10:40:18 -0400
+Received: by lahj13 with SMTP id j13so2429919lah.19
+        for <linux-arch@vger.kernel.org>; Thu, 15 Mar 2012 07:40:17 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain;charset=UTF-8
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <d2e03d5f063de84d1bae3c3e06296f81.squirrel@webmail.greenhost.nl>
+References: <1331781125-15658-1-git-send-email-wad@chromium.org>
+	<1331781125-15658-12-git-send-email-wad@chromium.org>
+	<d2e03d5f063de84d1bae3c3e06296f81.squirrel@webmail.greenhost.nl>
+Date: Thu, 15 Mar 2012 09:40:13 -0500
+Message-ID: <CABqD9hZ-i-Aa5+7DTmtQ5JU4EAKQfP=HenqgJeFZ2pftQqoUcg@mail.gmail.com>
+Subject: Re: [PATCH v15 11/13] ptrace,seccomp: Add PTRACE_SECCOMP support
+From: Will Drewry <wad@chromium.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Drewry <wad@chromium.org>
+To: Indan Zupancic <indan@nul.nu>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
-Message-ID: <20120315044947.wz-sqkecwoHxSBzvqUHhkOaV_6ecnysAeCORdUZhOPE@z>
+Message-ID: <20120315144013.YXTl26ALKl7FWTAwuaeIuNPGXlmNes56COvEnryh2ww@z>
 
-Hi Will,
-
-On Thu, March 15, 2012 04:12, Will Drewry wrote:
-> @@ -73,6 +74,7 @@
->  #define PTRACE_EVENT_VFORK_DONE	5
->  #define PTRACE_EVENT_EXIT	6
->  #define PTRACE_EVENT_STOP	7
-> +#define PTRACE_EVENT_SECCOMP	8
+On Wed, Mar 14, 2012 at 11:49 PM, Indan Zupancic <indan@nul.nu> wrote:
+> Hi Will,
 >
->  #include <asm/ptrace.h>
+> On Thu, March 15, 2012 04:12, Will Drewry wrote:
+>> @@ -73,6 +74,7 @@
+>>  #define PTRACE_EVENT_VFORK_DONE      5
+>>  #define PTRACE_EVENT_EXIT    6
+>>  #define PTRACE_EVENT_STOP    7
+>> +#define PTRACE_EVENT_SECCOMP 8
+>>
+>>  #include <asm/ptrace.h>
+>>
+>> @@ -101,8 +103,9 @@
+>>  #define PT_TRACE_EXEC                PT_EVENT_FLAG(PTRACE_EVENT_EXEC)
+>>  #define PT_TRACE_VFORK_DONE  PT_EVENT_FLAG(PTRACE_EVENT_VFORK_DONE)
+>>  #define PT_TRACE_EXIT                PT_EVENT_FLAG(PTRACE_EVENT_EXIT)
+>> +#define PT_TRACE_SECCOMP     PT_EVENT_FLAG(PTRACE_EVENT_SECCOMP)
+>>
+>> -#define PT_TRACE_MASK        0x000003f4
+>> +#define PT_TRACE_MASK        0x00000ff4
 >
-> @@ -101,8 +103,9 @@
->  #define PT_TRACE_EXEC		PT_EVENT_FLAG(PTRACE_EVENT_EXEC)
->  #define PT_TRACE_VFORK_DONE	PT_EVENT_FLAG(PTRACE_EVENT_VFORK_DONE)
->  #define PT_TRACE_EXIT		PT_EVENT_FLAG(PTRACE_EVENT_EXIT)
-> +#define PT_TRACE_SECCOMP	PT_EVENT_FLAG(PTRACE_EVENT_SECCOMP)
->
-> -#define PT_TRACE_MASK	0x000003f4
-> +#define PT_TRACE_MASK	0x00000ff4
+> Did you miss this bit?
 
-Did you miss this bit?
+Kinda.  I'll go ahead and switch it to 0xbf4, but PT_TRACE_MASK
+doesn't exist in linux-next so this bit disappears on merge.  However,
+it is relevant if people are backporting this code, so I'll push a new
+rev of it in a bit if I don't get any other comments (or include it in
+the next rev if there are comments).
 
-Greetings,
-
-Indan
-
-
+Thanks!
+will
