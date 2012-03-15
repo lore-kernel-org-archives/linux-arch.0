@@ -1,3224 +1,1600 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53286 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:39128 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1161544Ab2COU4V (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 Mar 2012 16:56:21 -0400
+	id S1161490Ab2COUzw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Mar 2012 16:55:52 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 05/38] Disintegrate asm/system.h for ARM [ver #3]
-Date: Thu, 15 Mar 2012 20:56:03 +0000
-Message-ID: <20120315205603.28759.91855.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 03/38] Disintegrate asm/system.h for Alpha [ver #3]
+Date: Thu, 15 Mar 2012 20:55:43 +0000
+Message-ID: <20120315205543.28759.68109.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20120315205514.28759.58969.stgit@warthog.procyon.org.uk>
 References: <20120315205514.28759.58969.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: paul.gortmaker@windriver.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20120315205603.ew1i-498KWis73m02lHWfO28JN2xbsWNir_bmizd9nQ@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>, linux-alpha@vger.kernel.org
+Message-ID: <20120315205543._Begj7CZnbspoxY4IDgzJDBxmHi7xDoMnIBJMVviU4U@z>
+
+Disintegrate asm/system.h for Alpha.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
-cc: linux-arm-kernel@lists.infradead.org
+cc: linux-alpha@vger.kernel.org
 ---
 
- arch/arm/common/via82c505.c                  |    1 
- arch/arm/include/asm/atomic.h                |    4 
- arch/arm/include/asm/barrier.h               |   70 ++++
- arch/arm/include/asm/bitops.h                |    2 
- arch/arm/include/asm/bug.h                   |   30 ++
- arch/arm/include/asm/cmpxchg.h               |  295 ++++++++++++++++
- arch/arm/include/asm/compiler.h              |   15 +
- arch/arm/include/asm/div64.h                 |    2 
- arch/arm/include/asm/dma.h                   |    1 
- arch/arm/include/asm/domain.h                |    4 
- arch/arm/include/asm/exec.h                  |    6 
- arch/arm/include/asm/io.h                    |    2 
- arch/arm/include/asm/mmu.h                   |    7 
- arch/arm/include/asm/processor.h             |    1 
- arch/arm/include/asm/switch_to.h             |   18 +
- arch/arm/include/asm/system.h                |  474 --------------------------
- arch/arm/include/asm/system_info.h           |   27 +
- arch/arm/include/asm/system_misc.h           |   30 ++
- arch/arm/include/asm/uaccess.h               |    2 
- arch/arm/kernel/armksyms.c                   |    1 
- arch/arm/kernel/elf.c                        |    1 
- arch/arm/kernel/entry-armv.S                 |    2 
- arch/arm/kernel/hw_breakpoint.c              |    1 
- arch/arm/kernel/irq.c                        |    1 
- arch/arm/kernel/kprobes-common.c             |    1 
- arch/arm/kernel/machine_kexec.c              |    2 
- arch/arm/kernel/process.c                    |    1 
- arch/arm/kernel/ptrace.c                     |    1 
- arch/arm/kernel/setup.c                      |    2 
- arch/arm/kernel/sleep.S                      |    1 
- arch/arm/kernel/tcm.c                        |    1 
- arch/arm/kernel/thumbee.c                    |    1 
- arch/arm/kernel/traps.c                      |    2 
- arch/arm/mach-at91/at91cap9.c                |    2 
- arch/arm/mach-at91/at91rm9200.c              |    1 
- arch/arm/mach-at91/at91sam9260.c             |    1 
- arch/arm/mach-at91/at91sam9261.c             |    1 
- arch/arm/mach-at91/at91sam9263.c             |    1 
- arch/arm/mach-at91/at91sam9g45.c             |    1 
- arch/arm/mach-at91/at91sam9rl.c              |    1 
- arch/arm/mach-at91/include/mach/system_rev.h |    2 
- arch/arm/mach-clps711x/common.c              |    1 
- arch/arm/mach-clps711x/p720t-leds.c          |    1 
- arch/arm/mach-davinci/board-da850-evm.c      |    1 
- arch/arm/mach-ebsa110/core.c                 |    2 
- arch/arm/mach-ebsa110/leds.c                 |    1 
- arch/arm/mach-footbridge/common.c            |    1 
- arch/arm/mach-footbridge/dc21285-timer.c     |    1 
- arch/arm/mach-footbridge/dc21285.c           |    1 
- arch/arm/mach-footbridge/ebsa285-leds.c      |    1 
- arch/arm/mach-footbridge/netwinder-hw.c      |    1 
- arch/arm/mach-footbridge/netwinder-leds.c    |    1 
- arch/arm/mach-imx/dma-v1.c                   |    1 
- arch/arm/mach-imx/mach-imx6q.c               |    1 
- arch/arm/mach-imx/mach-mx51_efikamx.c        |    1 
- arch/arm/mach-imx/mach-mx51_efikasb.c        |    1 
- arch/arm/mach-integrator/core.c              |    1 
- arch/arm/mach-integrator/leds.c              |    1 
- arch/arm/mach-integrator/pci.c               |    1 
- arch/arm/mach-integrator/pci_v3.c            |    1 
- arch/arm/mach-iop33x/uart.c                  |    1 
- arch/arm/mach-ixp2000/core.c                 |    1 
- arch/arm/mach-ixp2000/enp2611.c              |    1 
- arch/arm/mach-ixp2000/ixdp2400.c             |    1 
- arch/arm/mach-ixp2000/ixdp2800.c             |    1 
- arch/arm/mach-ixp2000/ixdp2x00.c             |    1 
- arch/arm/mach-ixp2000/ixdp2x01.c             |    1 
- arch/arm/mach-ixp2000/pci.c                  |    1 
- arch/arm/mach-ixp23xx/core.c                 |    1 
- arch/arm/mach-ixp23xx/espresso.c             |    1 
- arch/arm/mach-ixp23xx/ixdp2351.c             |    1 
- arch/arm/mach-ixp23xx/pci.c                  |    1 
- arch/arm/mach-ixp23xx/roadrunner.c           |    1 
- arch/arm/mach-ixp4xx/common-pci.c            |    1 
- arch/arm/mach-ixp4xx/goramo_mlr.c            |    1 
- arch/arm/mach-ks8695/time.c                  |    1 
- arch/arm/mach-mmp/common.c                   |    1 
- arch/arm/mach-mmp/pxa168.c                   |    1 
- arch/arm/mach-msm/board-sapphire.c           |    1 
- arch/arm/mach-mxs/system.c                   |    2 
- arch/arm/mach-omap1/id.c                     |    1 
- arch/arm/mach-omap1/leds-h2p2-debug.c        |    1 
- arch/arm/mach-omap1/leds-innovator.c         |    1 
- arch/arm/mach-omap1/leds-osk.c               |    1 
- arch/arm/mach-omap1/mux.c                    |    1 
- arch/arm/mach-omap1/time.c                   |    1 
- arch/arm/mach-omap1/timer32k.c               |    1 
- arch/arm/mach-omap2/board-omap3touchbook.c   |    1 
- arch/arm/mach-omap2/board-rx51-peripherals.c |    1 
- arch/arm/mach-omap2/mux.c                    |    1 
- arch/arm/mach-omap2/omap-mpuss-lowpower.c    |    1 
- arch/arm/mach-omap2/pm24xx.c                 |    1 
- arch/arm/mach-omap2/pm34xx.c                 |    1 
- arch/arm/mach-omap2/pm44xx.c                 |    1 
- arch/arm/mach-omap2/sleep44xx.S              |    1 
- arch/arm/mach-orion5x/common.c               |    1 
- arch/arm/mach-orion5x/dns323-setup.c         |    1 
- arch/arm/mach-orion5x/ls-chl-setup.c         |    1 
- arch/arm/mach-orion5x/ls_hgl-setup.c         |    1 
- arch/arm/mach-orion5x/lsmini-setup.c         |    1 
- arch/arm/mach-pnx4008/core.c                 |    2 
- arch/arm/mach-pnx4008/dma.c                  |    1 
- arch/arm/mach-pnx4008/irq.c                  |    1 
- arch/arm/mach-pnx4008/time.c                 |    1 
- arch/arm/mach-pxa/cm-x300.c                  |    1 
- arch/arm/mach-pxa/colibri-pxa3xx.c           |    1 
- arch/arm/mach-pxa/corgi.c                    |    1 
- arch/arm/mach-pxa/generic.c                  |    1 
- arch/arm/mach-pxa/leds-idp.c                 |    1 
- arch/arm/mach-pxa/leds-lubbock.c             |    1 
- arch/arm/mach-pxa/leds-mainstone.c           |    1 
- arch/arm/mach-pxa/magician.c                 |    1 
- arch/arm/mach-pxa/poodle.c                   |    1 
- arch/arm/mach-pxa/reset.c                    |    1 
- arch/arm/mach-pxa/viper.c                    |    1 
- arch/arm/mach-pxa/zeus.c                     |    1 
- arch/arm/mach-realview/core.c                |    1 
- arch/arm/mach-rpc/riscpc.c                   |    1 
- arch/arm/mach-s3c2410/s3c2410.c              |    1 
- arch/arm/mach-s3c2412/s3c2412.c              |    1 
- arch/arm/mach-s3c2416/s3c2416.c              |    1 
- arch/arm/mach-s3c2440/s3c244x.c              |    1 
- arch/arm/mach-s3c2443/s3c2443.c              |    1 
- arch/arm/mach-s3c64xx/common.c               |    1 
- arch/arm/mach-s5p64x0/common.c               |    1 
- arch/arm/mach-s5pc100/common.c               |    1 
- arch/arm/mach-sa1100/dma.c                   |    1 
- arch/arm/mach-sa1100/generic.c               |    2 
- arch/arm/mach-sa1100/leds-assabet.c          |    1 
- arch/arm/mach-sa1100/leds-badge4.c           |    1 
- arch/arm/mach-sa1100/leds-cerf.c             |    1 
- arch/arm/mach-sa1100/leds-hackkit.c          |    1 
- arch/arm/mach-sa1100/leds-lart.c             |    1 
- arch/arm/mach-sa1100/pm.c                    |    1 
- arch/arm/mach-shark/leds.c                   |    1 
- arch/arm/mach-shmobile/cpuidle.c             |    1 
- arch/arm/mach-shmobile/include/mach/system.h |    2 
- arch/arm/mach-shmobile/pm-r8a7779.c          |    1 
- arch/arm/mach-shmobile/pm-sh7372.c           |    1 
- arch/arm/mach-shmobile/suspend.c             |    2 
- arch/arm/mach-tegra/cpu-tegra.c              |    1 
- arch/arm/mach-versatile/core.c               |    1 
- arch/arm/mach-versatile/pci.c                |    1 
- arch/arm/mach-w90x900/cpu.c                  |    1 
- arch/arm/mm/alignment.c                      |    1 
- arch/arm/mm/fault.c                          |    3 
- arch/arm/mm/flush.c                          |    1 
- arch/arm/mm/idmap.c                          |    1 
- arch/arm/mm/ioremap.c                        |    1 
- arch/arm/mm/mmu.c                            |    1 
- arch/arm/mm/proc-fa526.S                     |    1 
- arch/arm/nwfpe/fpa11.c                       |    1 
- arch/arm/plat-iop/i2c.c                      |    1 
- arch/arm/plat-iop/pci.c                      |    1 
- arch/arm/plat-iop/restart.c                  |    1 
- arch/arm/plat-mxc/system.c                   |    2 
- arch/arm/plat-omap/debug-leds.c              |    1 
- arch/arm/plat-omap/dma.c                     |    1 
- arch/arm/plat-omap/mux.c                     |    1 
- arch/arm/plat-pxa/dma.c                      |    1 
- arch/arm/plat-s3c24xx/cpu.c                  |    1 
- arch/arm/plat-s3c24xx/dma.c                  |    1 
- arch/arm/plat-samsung/cpu.c                  |    1 
- arch/arm/plat-samsung/time.c                 |    1 
- arch/arm/plat-spear/restart.c                |    1 
- arch/arm/vfp/vfpmodule.c                     |    1 
- drivers/cpuidle/cpuidle.c                    |    1 
- drivers/net/ethernet/8390/etherh.c           |    1 
- drivers/tty/serial/21285.c                   |    1 
- drivers/watchdog/wdt285.c                    |    1 
- include/linux/mtd/map.h                      |    2 
- 171 files changed, 594 insertions(+), 565 deletions(-)
- create mode 100644 arch/arm/include/asm/barrier.h
- create mode 100644 arch/arm/include/asm/cmpxchg.h
- create mode 100644 arch/arm/include/asm/compiler.h
- create mode 100644 arch/arm/include/asm/exec.h
- create mode 100644 arch/arm/include/asm/switch_to.h
- create mode 100644 arch/arm/include/asm/system_info.h
- create mode 100644 arch/arm/include/asm/system_misc.h
+ arch/alpha/boot/bootp.c                |    1 
+ arch/alpha/boot/bootpz.c               |    1 
+ arch/alpha/boot/head.S                 |    1 
+ arch/alpha/boot/main.c                 |    1 
+ arch/alpha/include/asm/atomic.h        |   68 ++++++
+ arch/alpha/include/asm/auxvec.h        |    2 
+ arch/alpha/include/asm/core_lca.h      |    2 
+ arch/alpha/include/asm/core_mcpcia.h   |    1 
+ arch/alpha/include/asm/core_t2.h       |    1 
+ arch/alpha/include/asm/elf.h           |    1 
+ arch/alpha/include/asm/exec.h          |    6 +
+ arch/alpha/include/asm/fpu.h           |    2 
+ arch/alpha/include/asm/io.h            |    1 
+ arch/alpha/include/asm/irqflags.h      |    2 
+ arch/alpha/include/asm/mce.h           |   83 +++++++
+ arch/alpha/include/asm/mmu_context.h   |    1 
+ arch/alpha/include/asm/pal.h           |  112 ++++++++++
+ arch/alpha/include/asm/pgtable.h       |    1 
+ arch/alpha/include/asm/setup.h         |   36 +++
+ arch/alpha/include/asm/special_insns.h |   41 ++++
+ arch/alpha/include/asm/spinlock.h      |    1 
+ arch/alpha/include/asm/switch_to.h     |   14 +
+ arch/alpha/include/asm/system.h        |  357 --------------------------------
+ arch/alpha/include/asm/xchg.h          |    2 
+ arch/alpha/kernel/core_apecs.c         |    1 
+ arch/alpha/kernel/core_cia.c           |    1 
+ arch/alpha/kernel/core_t2.c            |    1 
+ arch/alpha/kernel/err_impl.h           |    2 
+ arch/alpha/kernel/head.S               |    6 -
+ arch/alpha/kernel/irq.c                |    1 
+ arch/alpha/kernel/irq_alpha.c          |    1 
+ arch/alpha/kernel/osf_sys.c            |    1 
+ arch/alpha/kernel/process.c            |    1 
+ arch/alpha/kernel/ptrace.c             |    1 
+ arch/alpha/kernel/setup.c              |    1 
+ arch/alpha/kernel/sys_alcor.c          |    1 
+ arch/alpha/kernel/sys_cabriolet.c      |    1 
+ arch/alpha/kernel/sys_dp264.c          |    1 
+ arch/alpha/kernel/sys_eb64p.c          |    1 
+ arch/alpha/kernel/sys_eiger.c          |    1 
+ arch/alpha/kernel/sys_jensen.c         |    1 
+ arch/alpha/kernel/sys_marvel.c         |    1 
+ arch/alpha/kernel/sys_miata.c          |    1 
+ arch/alpha/kernel/sys_mikasa.c         |    2 
+ arch/alpha/kernel/sys_nautilus.c       |    1 
+ arch/alpha/kernel/sys_noritake.c       |    2 
+ arch/alpha/kernel/sys_rawhide.c        |    1 
+ arch/alpha/kernel/sys_ruffian.c        |    1 
+ arch/alpha/kernel/sys_rx164.c          |    1 
+ arch/alpha/kernel/sys_sable.c          |    1 
+ arch/alpha/kernel/sys_sio.c            |    1 
+ arch/alpha/kernel/sys_sx164.c          |    2 
+ arch/alpha/kernel/sys_takara.c         |    1 
+ arch/alpha/kernel/sys_titan.c          |    1 
+ arch/alpha/kernel/sys_wildfire.c       |    1 
+ arch/alpha/kernel/traps.c              |    1 
+ arch/alpha/kernel/vmlinux.lds.S        |    2 
+ arch/alpha/lib/stacktrace.c            |    1 
+ arch/alpha/mm/fault.c                  |    1 
+ arch/alpha/mm/init.c                   |    2 
+ arch/alpha/oprofile/common.c           |    1 
+ arch/alpha/oprofile/op_model_ev4.c     |    1 
+ arch/alpha/oprofile/op_model_ev5.c     |    1 
+ arch/alpha/oprofile/op_model_ev6.c     |    1 
+ arch/alpha/oprofile/op_model_ev67.c    |    1 
+ 65 files changed, 388 insertions(+), 402 deletions(-)
+ create mode 100644 arch/alpha/include/asm/exec.h
+ create mode 100644 arch/alpha/include/asm/mce.h
+ create mode 100644 arch/alpha/include/asm/special_insns.h
+ create mode 100644 arch/alpha/include/asm/switch_to.h
 
-diff --git a/arch/arm/common/via82c505.c b/arch/arm/common/via82c505.c
-index 67dd2af..1171a50 100644
---- a/arch/arm/common/via82c505.c
-+++ b/arch/arm/common/via82c505.c
-@@ -6,7 +6,6 @@
- #include <linux/ioport.h>
- #include <linux/io.h>
+diff --git a/arch/alpha/boot/bootp.c b/arch/alpha/boot/bootp.c
+index be61670..2a542a5 100644
+--- a/arch/alpha/boot/bootp.c
++++ b/arch/alpha/boot/bootp.c
+@@ -13,7 +13,6 @@
+ #include <generated/utsrelease.h>
+ #include <linux/mm.h>
  
 -#include <asm/system.h>
- 
- #include <asm/mach/pci.h>
- 
-diff --git a/arch/arm/include/asm/atomic.h b/arch/arm/include/asm/atomic.h
-index 86976d0..68374ba 100644
---- a/arch/arm/include/asm/atomic.h
-+++ b/arch/arm/include/asm/atomic.h
-@@ -13,7 +13,9 @@
- 
- #include <linux/compiler.h>
- #include <linux/types.h>
--#include <asm/system.h>
-+#include <linux/irqflags.h>
-+#include <asm/barrier.h>
-+#include <asm/cmpxchg.h>
- 
- #define ATOMIC_INIT(i)	{ (i) }
- 
-diff --git a/arch/arm/include/asm/barrier.h b/arch/arm/include/asm/barrier.h
-new file mode 100644
-index 0000000..408e392
---- /dev/null
-+++ b/arch/arm/include/asm/barrier.h
-@@ -0,0 +1,70 @@
-+#ifndef __ASM_BARRIER_H
-+#define __ASM_BARRIER_H
-+
-+#ifdef __ASSEMBLY__
-+#error do not include asm/barrier.h from assembly
-+#endif
-+
-+#define nop() __asm__ __volatile__("mov\tr0,r0\t@ nop\n\t");
-+
-+#if __LINUX_ARM_ARCH__ >= 7 ||		\
-+	(__LINUX_ARM_ARCH__ == 6 && defined(CONFIG_CPU_32v6K))
-+#define sev()	__asm__ __volatile__ ("sev" : : : "memory")
-+#define wfe()	__asm__ __volatile__ ("wfe" : : : "memory")
-+#define wfi()	__asm__ __volatile__ ("wfi" : : : "memory")
-+#endif
-+
-+#if __LINUX_ARM_ARCH__ >= 7
-+#define isb() __asm__ __volatile__ ("isb" : : : "memory")
-+#define dsb() __asm__ __volatile__ ("dsb" : : : "memory")
-+#define dmb() __asm__ __volatile__ ("dmb" : : : "memory")
-+#elif defined(CONFIG_CPU_XSC3) || __LINUX_ARM_ARCH__ == 6
-+#define isb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c5, 4" \
-+				    : : "r" (0) : "memory")
-+#define dsb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 4" \
-+				    : : "r" (0) : "memory")
-+#define dmb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 5" \
-+				    : : "r" (0) : "memory")
-+#elif defined(CONFIG_CPU_FA526)
-+#define isb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c5, 4" \
-+				    : : "r" (0) : "memory")
-+#define dsb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 4" \
-+				    : : "r" (0) : "memory")
-+#define dmb() __asm__ __volatile__ ("" : : : "memory")
-+#else
-+#define isb() __asm__ __volatile__ ("" : : : "memory")
-+#define dsb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 4" \
-+				    : : "r" (0) : "memory")
-+#define dmb() __asm__ __volatile__ ("" : : : "memory")
-+#endif
-+
-+#ifdef CONFIG_ARCH_HAS_BARRIERS
-+#include <mach/barriers.h>
-+#elif defined(CONFIG_ARM_DMA_MEM_BUFFERABLE) || defined(CONFIG_SMP)
-+#include <asm/outercache.h>
-+#define mb()		do { dsb(); outer_sync(); } while (0)
-+#define rmb()		dsb()
-+#define wmb()		mb()
-+#else
-+#include <asm/memory.h>
-+#define mb()	do { if (arch_is_coherent()) dmb(); else barrier(); } while (0)
-+#define rmb()	do { if (arch_is_coherent()) dmb(); else barrier(); } while (0)
-+#define wmb()	do { if (arch_is_coherent()) dmb(); else barrier(); } while (0)
-+#endif
-+
-+#ifndef CONFIG_SMP
-+#define smp_mb()	barrier()
-+#define smp_rmb()	barrier()
-+#define smp_wmb()	barrier()
-+#else
-+#define smp_mb()	dmb()
-+#define smp_rmb()	dmb()
-+#define smp_wmb()	dmb()
-+#endif
-+
-+#define read_barrier_depends()		do { } while(0)
-+#define smp_read_barrier_depends()	do { } while(0)
-+
-+#define set_mb(var, value)	do { var = value; smp_mb(); } while (0)
-+
-+#endif /* __ASM_BARRIER_H */
-diff --git a/arch/arm/include/asm/bitops.h b/arch/arm/include/asm/bitops.h
-index f7419ef..e691ec9 100644
---- a/arch/arm/include/asm/bitops.h
-+++ b/arch/arm/include/asm/bitops.h
-@@ -24,7 +24,7 @@
- #endif
- 
- #include <linux/compiler.h>
--#include <asm/system.h>
-+#include <linux/irqflags.h>
- 
- #define smp_mb__before_clear_bit()	smp_mb()
- #define smp_mb__after_clear_bit()	smp_mb()
-diff --git a/arch/arm/include/asm/bug.h b/arch/arm/include/asm/bug.h
-index fac79dc..7af5c6c 100644
---- a/arch/arm/include/asm/bug.h
-+++ b/arch/arm/include/asm/bug.h
-@@ -1,6 +1,7 @@
- #ifndef _ASMARM_BUG_H
- #define _ASMARM_BUG_H
- 
-+#include <linux/linkage.h>
- 
- #ifdef CONFIG_BUG
- 
-@@ -57,4 +58,33 @@ do {								\
- 
- #include <asm-generic/bug.h>
- 
-+struct pt_regs;
-+void die(const char *msg, struct pt_regs *regs, int err);
-+
-+struct siginfo;
-+void arm_notify_die(const char *str, struct pt_regs *regs, struct siginfo *info,
-+		unsigned long err, unsigned long trap);
-+
-+#ifdef CONFIG_ARM_LPAE
-+#define FAULT_CODE_ALIGNMENT	33
-+#define FAULT_CODE_DEBUG	34
-+#else
-+#define FAULT_CODE_ALIGNMENT	1
-+#define FAULT_CODE_DEBUG	2
-+#endif
-+
-+void hook_fault_code(int nr, int (*fn)(unsigned long, unsigned int,
-+				       struct pt_regs *),
-+		     int sig, int code, const char *name);
-+
-+void hook_ifault_code(int nr, int (*fn)(unsigned long, unsigned int,
-+				       struct pt_regs *),
-+		     int sig, int code, const char *name);
-+
-+extern asmlinkage void c_backtrace(unsigned long fp, int pmode);
-+
-+struct mm_struct;
-+extern void show_pte(struct mm_struct *mm, unsigned long addr);
-+extern void __show_regs(struct pt_regs *);
-+
- #endif
-diff --git a/arch/arm/include/asm/cmpxchg.h b/arch/arm/include/asm/cmpxchg.h
-new file mode 100644
-index 0000000..d41d7cb
---- /dev/null
-+++ b/arch/arm/include/asm/cmpxchg.h
-@@ -0,0 +1,295 @@
-+#ifndef __ASM_ARM_CMPXCHG_H
-+#define __ASM_ARM_CMPXCHG_H
-+
-+#include <linux/irqflags.h>
-+#include <asm/barrier.h>
-+
-+#if defined(CONFIG_CPU_SA1100) || defined(CONFIG_CPU_SA110)
-+/*
-+ * On the StrongARM, "swp" is terminally broken since it bypasses the
-+ * cache totally.  This means that the cache becomes inconsistent, and,
-+ * since we use normal loads/stores as well, this is really bad.
-+ * Typically, this causes oopsen in filp_close, but could have other,
-+ * more disastrous effects.  There are two work-arounds:
-+ *  1. Disable interrupts and emulate the atomic swap
-+ *  2. Clean the cache, perform atomic swap, flush the cache
-+ *
-+ * We choose (1) since its the "easiest" to achieve here and is not
-+ * dependent on the processor type.
-+ *
-+ * NOTE that this solution won't work on an SMP system, so explcitly
-+ * forbid it here.
-+ */
-+#define swp_is_buggy
-+#endif
-+
-+static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
-+{
-+	extern void __bad_xchg(volatile void *, int);
-+	unsigned long ret;
-+#ifdef swp_is_buggy
-+	unsigned long flags;
-+#endif
-+#if __LINUX_ARM_ARCH__ >= 6
-+	unsigned int tmp;
-+#endif
-+
-+	smp_mb();
-+
-+	switch (size) {
-+#if __LINUX_ARM_ARCH__ >= 6
-+	case 1:
-+		asm volatile("@	__xchg1\n"
-+		"1:	ldrexb	%0, [%3]\n"
-+		"	strexb	%1, %2, [%3]\n"
-+		"	teq	%1, #0\n"
-+		"	bne	1b"
-+			: "=&r" (ret), "=&r" (tmp)
-+			: "r" (x), "r" (ptr)
-+			: "memory", "cc");
-+		break;
-+	case 4:
-+		asm volatile("@	__xchg4\n"
-+		"1:	ldrex	%0, [%3]\n"
-+		"	strex	%1, %2, [%3]\n"
-+		"	teq	%1, #0\n"
-+		"	bne	1b"
-+			: "=&r" (ret), "=&r" (tmp)
-+			: "r" (x), "r" (ptr)
-+			: "memory", "cc");
-+		break;
-+#elif defined(swp_is_buggy)
-+#ifdef CONFIG_SMP
-+#error SMP is not supported on this platform
-+#endif
-+	case 1:
-+		raw_local_irq_save(flags);
-+		ret = *(volatile unsigned char *)ptr;
-+		*(volatile unsigned char *)ptr = x;
-+		raw_local_irq_restore(flags);
-+		break;
-+
-+	case 4:
-+		raw_local_irq_save(flags);
-+		ret = *(volatile unsigned long *)ptr;
-+		*(volatile unsigned long *)ptr = x;
-+		raw_local_irq_restore(flags);
-+		break;
-+#else
-+	case 1:
-+		asm volatile("@	__xchg1\n"
-+		"	swpb	%0, %1, [%2]"
-+			: "=&r" (ret)
-+			: "r" (x), "r" (ptr)
-+			: "memory", "cc");
-+		break;
-+	case 4:
-+		asm volatile("@	__xchg4\n"
-+		"	swp	%0, %1, [%2]"
-+			: "=&r" (ret)
-+			: "r" (x), "r" (ptr)
-+			: "memory", "cc");
-+		break;
-+#endif
-+	default:
-+		__bad_xchg(ptr, size), ret = 0;
-+		break;
-+	}
-+	smp_mb();
-+
-+	return ret;
-+}
-+
-+#define xchg(ptr,x) \
-+	((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
-+
-+#include <asm-generic/cmpxchg-local.h>
-+
-+#if __LINUX_ARM_ARCH__ < 6
-+/* min ARCH < ARMv6 */
-+
-+#ifdef CONFIG_SMP
-+#error "SMP is not supported on this platform"
-+#endif
-+
-+/*
-+ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
-+ * them available.
-+ */
-+#define cmpxchg_local(ptr, o, n)				  	       \
-+	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
-+			(unsigned long)(n), sizeof(*(ptr))))
-+#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
-+
-+#ifndef CONFIG_SMP
-+#include <asm-generic/cmpxchg.h>
-+#endif
-+
-+#else	/* min ARCH >= ARMv6 */
-+
-+extern void __bad_cmpxchg(volatile void *ptr, int size);
-+
-+/*
-+ * cmpxchg only support 32-bits operands on ARMv6.
-+ */
-+
-+static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
-+				      unsigned long new, int size)
-+{
-+	unsigned long oldval, res;
-+
-+	switch (size) {
-+#ifndef CONFIG_CPU_V6	/* min ARCH >= ARMv6K */
-+	case 1:
-+		do {
-+			asm volatile("@ __cmpxchg1\n"
-+			"	ldrexb	%1, [%2]\n"
-+			"	mov	%0, #0\n"
-+			"	teq	%1, %3\n"
-+			"	strexbeq %0, %4, [%2]\n"
-+				: "=&r" (res), "=&r" (oldval)
-+				: "r" (ptr), "Ir" (old), "r" (new)
-+				: "memory", "cc");
-+		} while (res);
-+		break;
-+	case 2:
-+		do {
-+			asm volatile("@ __cmpxchg1\n"
-+			"	ldrexh	%1, [%2]\n"
-+			"	mov	%0, #0\n"
-+			"	teq	%1, %3\n"
-+			"	strexheq %0, %4, [%2]\n"
-+				: "=&r" (res), "=&r" (oldval)
-+				: "r" (ptr), "Ir" (old), "r" (new)
-+				: "memory", "cc");
-+		} while (res);
-+		break;
-+#endif
-+	case 4:
-+		do {
-+			asm volatile("@ __cmpxchg4\n"
-+			"	ldrex	%1, [%2]\n"
-+			"	mov	%0, #0\n"
-+			"	teq	%1, %3\n"
-+			"	strexeq %0, %4, [%2]\n"
-+				: "=&r" (res), "=&r" (oldval)
-+				: "r" (ptr), "Ir" (old), "r" (new)
-+				: "memory", "cc");
-+		} while (res);
-+		break;
-+	default:
-+		__bad_cmpxchg(ptr, size);
-+		oldval = 0;
-+	}
-+
-+	return oldval;
-+}
-+
-+static inline unsigned long __cmpxchg_mb(volatile void *ptr, unsigned long old,
-+					 unsigned long new, int size)
-+{
-+	unsigned long ret;
-+
-+	smp_mb();
-+	ret = __cmpxchg(ptr, old, new, size);
-+	smp_mb();
-+
-+	return ret;
-+}
-+
-+#define cmpxchg(ptr,o,n)						\
-+	((__typeof__(*(ptr)))__cmpxchg_mb((ptr),			\
-+					  (unsigned long)(o),		\
-+					  (unsigned long)(n),		\
-+					  sizeof(*(ptr))))
-+
-+static inline unsigned long __cmpxchg_local(volatile void *ptr,
-+					    unsigned long old,
-+					    unsigned long new, int size)
-+{
-+	unsigned long ret;
-+
-+	switch (size) {
-+#ifdef CONFIG_CPU_V6	/* min ARCH == ARMv6 */
-+	case 1:
-+	case 2:
-+		ret = __cmpxchg_local_generic(ptr, old, new, size);
-+		break;
-+#endif
-+	default:
-+		ret = __cmpxchg(ptr, old, new, size);
-+	}
-+
-+	return ret;
-+}
-+
-+#define cmpxchg_local(ptr,o,n)						\
-+	((__typeof__(*(ptr)))__cmpxchg_local((ptr),			\
-+				       (unsigned long)(o),		\
-+				       (unsigned long)(n),		\
-+				       sizeof(*(ptr))))
-+
-+#ifndef CONFIG_CPU_V6	/* min ARCH >= ARMv6K */
-+
-+/*
-+ * Note : ARMv7-M (currently unsupported by Linux) does not support
-+ * ldrexd/strexd. If ARMv7-M is ever supported by the Linux kernel, it should
-+ * not be allowed to use __cmpxchg64.
-+ */
-+static inline unsigned long long __cmpxchg64(volatile void *ptr,
-+					     unsigned long long old,
-+					     unsigned long long new)
-+{
-+	register unsigned long long oldval asm("r0");
-+	register unsigned long long __old asm("r2") = old;
-+	register unsigned long long __new asm("r4") = new;
-+	unsigned long res;
-+
-+	do {
-+		asm volatile(
-+		"	@ __cmpxchg8\n"
-+		"	ldrexd	%1, %H1, [%2]\n"
-+		"	mov	%0, #0\n"
-+		"	teq	%1, %3\n"
-+		"	teqeq	%H1, %H3\n"
-+		"	strexdeq %0, %4, %H4, [%2]\n"
-+			: "=&r" (res), "=&r" (oldval)
-+			: "r" (ptr), "Ir" (__old), "r" (__new)
-+			: "memory", "cc");
-+	} while (res);
-+
-+	return oldval;
-+}
-+
-+static inline unsigned long long __cmpxchg64_mb(volatile void *ptr,
-+						unsigned long long old,
-+						unsigned long long new)
-+{
-+	unsigned long long ret;
-+
-+	smp_mb();
-+	ret = __cmpxchg64(ptr, old, new);
-+	smp_mb();
-+
-+	return ret;
-+}
-+
-+#define cmpxchg64(ptr,o,n)						\
-+	((__typeof__(*(ptr)))__cmpxchg64_mb((ptr),			\
-+					    (unsigned long long)(o),	\
-+					    (unsigned long long)(n)))
-+
-+#define cmpxchg64_local(ptr,o,n)					\
-+	((__typeof__(*(ptr)))__cmpxchg64((ptr),				\
-+					 (unsigned long long)(o),	\
-+					 (unsigned long long)(n)))
-+
-+#else /* min ARCH = ARMv6 */
-+
-+#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
-+
-+#endif
-+
-+#endif	/* __LINUX_ARM_ARCH__ >= 6 */
-+
-+#endif /* __ASM_ARM_CMPXCHG_H */
-diff --git a/arch/arm/include/asm/compiler.h b/arch/arm/include/asm/compiler.h
-new file mode 100644
-index 0000000..8155db2
---- /dev/null
-+++ b/arch/arm/include/asm/compiler.h
-@@ -0,0 +1,15 @@
-+#ifndef __ASM_ARM_COMPILER_H
-+#define __ASM_ARM_COMPILER_H
-+
-+/*
-+ * This is used to ensure the compiler did actually allocate the register we
-+ * asked it for some inline assembly sequences.  Apparently we can't trust
-+ * the compiler from one version to another so a bit of paranoia won't hurt.
-+ * This string is meant to be concatenated with the inline asm string and
-+ * will cause compilation to stop on mismatch.
-+ * (for details, see gcc PR 15089)
-+ */
-+#define __asmeq(x, y)  ".ifnc " x "," y " ; .err ; .endif\n\t"
-+
-+
-+#endif /* __ASM_ARM_COMPILER_H */
-diff --git a/arch/arm/include/asm/div64.h b/arch/arm/include/asm/div64.h
-index d3f0a9e..fe92ccf 100644
---- a/arch/arm/include/asm/div64.h
-+++ b/arch/arm/include/asm/div64.h
-@@ -1,8 +1,8 @@
- #ifndef __ASM_ARM_DIV64
- #define __ASM_ARM_DIV64
+ #include <asm/console.h>
+ #include <asm/hwrpb.h>
+ #include <asm/pgtable.h>
+diff --git a/arch/alpha/boot/bootpz.c b/arch/alpha/boot/bootpz.c
+index c98865f..d6ad191 100644
+--- a/arch/alpha/boot/bootpz.c
++++ b/arch/alpha/boot/bootpz.c
+@@ -15,7 +15,6 @@
+ #include <generated/utsrelease.h>
+ #include <linux/mm.h>
  
 -#include <asm/system.h>
- #include <linux/types.h>
-+#include <asm/compiler.h>
- 
- /*
-  * The semantics of do_div() are:
-diff --git a/arch/arm/include/asm/dma.h b/arch/arm/include/asm/dma.h
-index 69a5b0b..5694a0d 100644
---- a/arch/arm/include/asm/dma.h
-+++ b/arch/arm/include/asm/dma.h
-@@ -19,7 +19,6 @@
-  * It should not be re-used except for that purpose.
+ #include <asm/console.h>
+ #include <asm/hwrpb.h>
+ #include <asm/pgtable.h>
+diff --git a/arch/alpha/boot/head.S b/arch/alpha/boot/head.S
+index f3d9808..b06812b 100644
+--- a/arch/alpha/boot/head.S
++++ b/arch/alpha/boot/head.S
+@@ -4,7 +4,6 @@
+  * initial bootloader stuff..
   */
- #include <linux/spinlock.h>
+ 
 -#include <asm/system.h>
- #include <asm/scatterlist.h>
  
- #include <mach/isa-dma.h>
-diff --git a/arch/arm/include/asm/domain.h b/arch/arm/include/asm/domain.h
-index b5dc173..3d22204 100644
---- a/arch/arm/include/asm/domain.h
-+++ b/arch/arm/include/asm/domain.h
-@@ -10,6 +10,10 @@
- #ifndef __ASM_PROC_DOMAIN_H
- #define __ASM_PROC_DOMAIN_H
+ 	.set noreorder
+ 	.globl	__start
+diff --git a/arch/alpha/boot/main.c b/arch/alpha/boot/main.c
+index ded57d9..3baf2d1 100644
+--- a/arch/alpha/boot/main.c
++++ b/arch/alpha/boot/main.c
+@@ -11,7 +11,6 @@
+ #include <generated/utsrelease.h>
+ #include <linux/mm.h>
  
-+#ifndef __ASSEMBLY__
-+#include <asm/barrier.h>
-+#endif
-+
+-#include <asm/system.h>
+ #include <asm/console.h>
+ #include <asm/hwrpb.h>
+ #include <asm/pgtable.h>
+diff --git a/arch/alpha/include/asm/atomic.h b/arch/alpha/include/asm/atomic.h
+index 640f909..f62251e 100644
+--- a/arch/alpha/include/asm/atomic.h
++++ b/arch/alpha/include/asm/atomic.h
+@@ -3,7 +3,6 @@
+ 
+ #include <linux/types.h>
+ #include <asm/barrier.h>
+-#include <asm/system.h>
+ 
  /*
-  * Domain numbers
-  *
-diff --git a/arch/arm/include/asm/exec.h b/arch/arm/include/asm/exec.h
+  * Atomic operations that C can't guarantee us.  Useful for
+@@ -169,6 +168,73 @@ static __inline__ long atomic64_sub_return(long i, atomic64_t * v)
+ 	return result;
+ }
+ 
++/*
++ * Atomic exchange routines.
++ */
++
++#define __ASM__MB
++#define ____xchg(type, args...)		__xchg ## type ## _local(args)
++#define ____cmpxchg(type, args...)	__cmpxchg ## type ## _local(args)
++#include <asm/xchg.h>
++
++#define xchg_local(ptr,x)						\
++  ({									\
++     __typeof__(*(ptr)) _x_ = (x);					\
++     (__typeof__(*(ptr))) __xchg_local((ptr), (unsigned long)_x_,	\
++				       sizeof(*(ptr)));			\
++  })
++
++#define cmpxchg_local(ptr, o, n)					\
++  ({									\
++     __typeof__(*(ptr)) _o_ = (o);					\
++     __typeof__(*(ptr)) _n_ = (n);					\
++     (__typeof__(*(ptr))) __cmpxchg_local((ptr), (unsigned long)_o_,	\
++					  (unsigned long)_n_,		\
++					  sizeof(*(ptr)));		\
++  })
++
++#define cmpxchg64_local(ptr, o, n)					\
++  ({									\
++	BUILD_BUG_ON(sizeof(*(ptr)) != 8);				\
++	cmpxchg_local((ptr), (o), (n));					\
++  })
++
++#ifdef CONFIG_SMP
++#undef __ASM__MB
++#define __ASM__MB	"\tmb\n"
++#endif
++#undef ____xchg
++#undef ____cmpxchg
++#define ____xchg(type, args...)		__xchg ##type(args)
++#define ____cmpxchg(type, args...)	__cmpxchg ##type(args)
++#include <asm/xchg.h>
++
++#define xchg(ptr,x)							\
++  ({									\
++     __typeof__(*(ptr)) _x_ = (x);					\
++     (__typeof__(*(ptr))) __xchg((ptr), (unsigned long)_x_,		\
++				 sizeof(*(ptr)));			\
++  })
++
++#define cmpxchg(ptr, o, n)						\
++  ({									\
++     __typeof__(*(ptr)) _o_ = (o);					\
++     __typeof__(*(ptr)) _n_ = (n);					\
++     (__typeof__(*(ptr))) __cmpxchg((ptr), (unsigned long)_o_,		\
++				    (unsigned long)_n_,	sizeof(*(ptr)));\
++  })
++
++#define cmpxchg64(ptr, o, n)						\
++  ({									\
++	BUILD_BUG_ON(sizeof(*(ptr)) != 8);				\
++	cmpxchg((ptr), (o), (n));					\
++  })
++
++#undef __ASM__MB
++#undef ____cmpxchg
++
++#define __HAVE_ARCH_CMPXCHG 1
++
+ #define atomic64_cmpxchg(v, old, new) (cmpxchg(&((v)->counter), old, new))
+ #define atomic64_xchg(v, new) (xchg(&((v)->counter), new))
+ 
+diff --git a/arch/alpha/include/asm/auxvec.h b/arch/alpha/include/asm/auxvec.h
+index e96fe88..a3a579d 100644
+--- a/arch/alpha/include/asm/auxvec.h
++++ b/arch/alpha/include/asm/auxvec.h
+@@ -21,4 +21,6 @@
+ #define AT_L2_CACHESHAPE	36
+ #define AT_L3_CACHESHAPE	37
+ 
++#define AT_VECTOR_SIZE_ARCH 4 /* entries in ARCH_DLINFO */
++
+ #endif /* __ASM_ALPHA_AUXVEC_H */
+diff --git a/arch/alpha/include/asm/core_lca.h b/arch/alpha/include/asm/core_lca.h
+index f7cb4b4..8ee6c51 100644
+--- a/arch/alpha/include/asm/core_lca.h
++++ b/arch/alpha/include/asm/core_lca.h
+@@ -1,8 +1,8 @@
+ #ifndef __ALPHA_LCA__H__
+ #define __ALPHA_LCA__H__
+ 
+-#include <asm/system.h>
+ #include <asm/compiler.h>
++#include <asm/mce.h>
+ 
+ /*
+  * Low Cost Alpha (LCA) definitions (these apply to 21066 and 21068,
+diff --git a/arch/alpha/include/asm/core_mcpcia.h b/arch/alpha/include/asm/core_mcpcia.h
+index 9f67a05..ad44bef 100644
+--- a/arch/alpha/include/asm/core_mcpcia.h
++++ b/arch/alpha/include/asm/core_mcpcia.h
+@@ -7,6 +7,7 @@
+ 
+ #include <linux/types.h>
+ #include <asm/compiler.h>
++#include <asm/mce.h>
+ 
+ /*
+  * MCPCIA is the internal name for a core logic chipset which provides
+diff --git a/arch/alpha/include/asm/core_t2.h b/arch/alpha/include/asm/core_t2.h
+index 91b4680..ade9d92 100644
+--- a/arch/alpha/include/asm/core_t2.h
++++ b/arch/alpha/include/asm/core_t2.h
+@@ -7,7 +7,6 @@
+ #include <linux/types.h>
+ #include <linux/spinlock.h>
+ #include <asm/compiler.h>
+-#include <asm/system.h>
+ 
+ /*
+  * T2 is the internal name for the core logic chipset which provides
+diff --git a/arch/alpha/include/asm/elf.h b/arch/alpha/include/asm/elf.h
+index da5449e..968d999 100644
+--- a/arch/alpha/include/asm/elf.h
++++ b/arch/alpha/include/asm/elf.h
+@@ -2,6 +2,7 @@
+ #define __ASM_ALPHA_ELF_H
+ 
+ #include <asm/auxvec.h>
++#include <asm/special_insns.h>
+ 
+ /* Special values for the st_other field in the symbol table.  */
+ 
+diff --git a/arch/alpha/include/asm/exec.h b/arch/alpha/include/asm/exec.h
 new file mode 100644
-index 0000000..7c4fbef
+index 0000000..4a5a41f
 --- /dev/null
-+++ b/arch/arm/include/asm/exec.h
++++ b/arch/alpha/include/asm/exec.h
 @@ -0,0 +1,6 @@
-+#ifndef __ASM_ARM_EXEC_H
-+#define __ASM_ARM_EXEC_H
++#ifndef __ALPHA_EXEC_H
++#define __ALPHA_EXEC_H
 +
 +#define arch_align_stack(x) (x)
 +
-+#endif /* __ASM_ARM_EXEC_H */
-diff --git a/arch/arm/include/asm/io.h b/arch/arm/include/asm/io.h
-index 9275828..bae7eb6 100644
---- a/arch/arm/include/asm/io.h
-+++ b/arch/arm/include/asm/io.h
-@@ -26,7 +26,6 @@
- #include <linux/types.h>
- #include <asm/byteorder.h>
- #include <asm/memory.h>
--#include <asm/system.h>
- #include <asm-generic/pci_iomap.h>
++#endif /* __ALPHA_EXEC_H */
+diff --git a/arch/alpha/include/asm/fpu.h b/arch/alpha/include/asm/fpu.h
+index ecb17a7..db00f78 100644
+--- a/arch/alpha/include/asm/fpu.h
++++ b/arch/alpha/include/asm/fpu.h
+@@ -1,6 +1,8 @@
+ #ifndef __ASM_ALPHA_FPU_H
+ #define __ASM_ALPHA_FPU_H
  
++#include <asm/special_insns.h>
++
  /*
-@@ -99,6 +98,7 @@ static inline void __iomem *__typesafe_io(unsigned long addr)
- 
- /* IO barriers */
- #ifdef CONFIG_ARM_DMA_MEM_BUFFERABLE
-+#include <asm/barrier.h>
- #define __iormb()		rmb()
- #define __iowmb()		wmb()
- #else
-diff --git a/arch/arm/include/asm/mmu.h b/arch/arm/include/asm/mmu.h
-index 1496565..b8e580a 100644
---- a/arch/arm/include/asm/mmu.h
-+++ b/arch/arm/include/asm/mmu.h
-@@ -34,4 +34,11 @@ typedef struct {
- 
- #endif
- 
-+/*
-+ * switch_mm() may do a full cache flush over the context switch,
-+ * so enable interrupts over the context switch to avoid high
-+ * latency.
-+ */
-+#define __ARCH_WANT_INTERRUPTS_ON_CTXSW
-+
- #endif
-diff --git a/arch/arm/include/asm/processor.h b/arch/arm/include/asm/processor.h
-index cb8d638..ce280b8 100644
---- a/arch/arm/include/asm/processor.h
-+++ b/arch/arm/include/asm/processor.h
-@@ -22,7 +22,6 @@
- #include <asm/hw_breakpoint.h>
- #include <asm/ptrace.h>
- #include <asm/types.h>
+  * Alpha floating-point control register defines:
+  */
+diff --git a/arch/alpha/include/asm/io.h b/arch/alpha/include/asm/io.h
+index 56ff965..7a3d38d 100644
+--- a/arch/alpha/include/asm/io.h
++++ b/arch/alpha/include/asm/io.h
+@@ -6,7 +6,6 @@
+ #include <linux/kernel.h>
+ #include <linux/mm.h>
+ #include <asm/compiler.h>
 -#include <asm/system.h>
+ #include <asm/pgtable.h>
+ #include <asm/machvec.h>
+ #include <asm/hwrpb.h>
+diff --git a/arch/alpha/include/asm/irqflags.h b/arch/alpha/include/asm/irqflags.h
+index 299bbc7..ffb1726 100644
+--- a/arch/alpha/include/asm/irqflags.h
++++ b/arch/alpha/include/asm/irqflags.h
+@@ -1,7 +1,7 @@
+ #ifndef __ALPHA_IRQFLAGS_H
+ #define __ALPHA_IRQFLAGS_H
  
- #ifdef __KERNEL__
- #define STACK_TOP	((current->personality & ADDR_LIMIT_32BIT) ? \
-diff --git a/arch/arm/include/asm/switch_to.h b/arch/arm/include/asm/switch_to.h
+-#include <asm/system.h>
++#include <asm/pal.h>
+ 
+ #define IPL_MIN		0
+ #define IPL_SW0		1
+diff --git a/arch/alpha/include/asm/mce.h b/arch/alpha/include/asm/mce.h
 new file mode 100644
-index 0000000..fa09e6b
+index 0000000..660285b
 --- /dev/null
-+++ b/arch/arm/include/asm/switch_to.h
-@@ -0,0 +1,18 @@
-+#ifndef __ASM_ARM_SWITCH_TO_H
-+#define __ASM_ARM_SWITCH_TO_H
-+
-+#include <linux/thread_info.h>
++++ b/arch/alpha/include/asm/mce.h
+@@ -0,0 +1,83 @@
++#ifndef __ALPHA_MCE_H
++#define __ALPHA_MCE_H
 +
 +/*
-+ * switch_to(prev, next) should switch from task `prev' to `next'
-+ * `prev' will never be the same as `next'.  schedule() itself
-+ * contains the memory barrier to tell GCC not to cache `current'.
++ * This is the logout header that should be common to all platforms
++ * (assuming they are running OSF/1 PALcode, I guess).
 + */
-+extern struct task_struct *__switch_to(struct task_struct *, struct thread_info *, struct thread_info *);
++struct el_common {
++	unsigned int	size;		/* size in bytes of logout area */
++	unsigned int	sbz1	: 30;	/* should be zero */
++	unsigned int	err2	:  1;	/* second error */
++	unsigned int	retry	:  1;	/* retry flag */
++	unsigned int	proc_offset;	/* processor-specific offset */
++	unsigned int	sys_offset;	/* system-specific offset */
++	unsigned int	code;		/* machine check code */
++	unsigned int	frame_rev;	/* frame revision */
++};
 +
-+#define switch_to(prev,next,last)					\
-+do {									\
-+	last = __switch_to(prev,task_thread_info(prev), task_thread_info(next));	\
-+} while (0)
++/* Machine Check Frame for uncorrectable errors (Large format)
++ *      --- This is used to log uncorrectable errors such as
++ *          double bit ECC errors.
++ *      --- These errors are detected by both processor and systems.
++ */
++struct el_common_EV5_uncorrectable_mcheck {
++        unsigned long   shadow[8];        /* Shadow reg. 8-14, 25           */
++        unsigned long   paltemp[24];      /* PAL TEMP REGS.                 */
++        unsigned long   exc_addr;         /* Address of excepting instruction*/
++        unsigned long   exc_sum;          /* Summary of arithmetic traps.   */
++        unsigned long   exc_mask;         /* Exception mask (from exc_sum). */
++        unsigned long   pal_base;         /* Base address for PALcode.      */
++        unsigned long   isr;              /* Interrupt Status Reg.          */
++        unsigned long   icsr;             /* CURRENT SETUP OF EV5 IBOX      */
++        unsigned long   ic_perr_stat;     /* I-CACHE Reg. <11> set Data parity
++                                                         <12> set TAG parity*/
++        unsigned long   dc_perr_stat;     /* D-CACHE error Reg. Bits set to 1:
++                                                     <2> Data error in bank 0
++                                                     <3> Data error in bank 1
++                                                     <4> Tag error in bank 0
++                                                     <5> Tag error in bank 1 */
++        unsigned long   va;               /* Effective VA of fault or miss. */
++        unsigned long   mm_stat;          /* Holds the reason for D-stream 
++                                             fault or D-cache parity errors */
++        unsigned long   sc_addr;          /* Address that was being accessed
++                                             when EV5 detected Secondary cache
++                                             failure.                 */
++        unsigned long   sc_stat;          /* Helps determine if the error was
++                                             TAG/Data parity(Secondary Cache)*/
++        unsigned long   bc_tag_addr;      /* Contents of EV5 BC_TAG_ADDR    */
++        unsigned long   ei_addr;          /* Physical address of any transfer
++                                             that is logged in EV5 EI_STAT */
++        unsigned long   fill_syndrome;    /* For correcting ECC errors.     */
++        unsigned long   ei_stat;          /* Helps identify reason of any 
++                                             processor uncorrectable error
++                                             at its external interface.     */
++        unsigned long   ld_lock;          /* Contents of EV5 LD_LOCK register*/
++};
 +
-+#endif /* __ASM_ARM_SWITCH_TO_H */
-diff --git a/arch/arm/include/asm/system.h b/arch/arm/include/asm/system.h
-index 774c41e..74542c5 100644
---- a/arch/arm/include/asm/system.h
-+++ b/arch/arm/include/asm/system.h
-@@ -1,466 +1,8 @@
--#ifndef __ASM_ARM_SYSTEM_H
--#define __ASM_ARM_SYSTEM_H
++struct el_common_EV6_mcheck {
++	unsigned int FrameSize;		/* Bytes, including this field */
++	unsigned int FrameFlags;	/* <31> = Retry, <30> = Second Error */
++	unsigned int CpuOffset;		/* Offset to CPU-specific info */
++	unsigned int SystemOffset;	/* Offset to system-specific info */
++	unsigned int MCHK_Code;
++	unsigned int MCHK_Frame_Rev;
++	unsigned long I_STAT;		/* EV6 Internal Processor Registers */
++	unsigned long DC_STAT;		/* (See the 21264 Spec) */
++	unsigned long C_ADDR;
++	unsigned long DC1_SYNDROME;
++	unsigned long DC0_SYNDROME;
++	unsigned long C_STAT;
++	unsigned long C_STS;
++	unsigned long MM_STAT;
++	unsigned long EXC_ADDR;
++	unsigned long IER_CM;
++	unsigned long ISUM;
++	unsigned long RESERVED0;
++	unsigned long PAL_BASE;
++	unsigned long I_CTL;
++	unsigned long PCTX;
++};
++
++
++#endif /* __ALPHA_MCE_H */
+diff --git a/arch/alpha/include/asm/mmu_context.h b/arch/alpha/include/asm/mmu_context.h
+index 86c08a0..4c51c05 100644
+--- a/arch/alpha/include/asm/mmu_context.h
++++ b/arch/alpha/include/asm/mmu_context.h
+@@ -7,7 +7,6 @@
+  * Copyright (C) 1996, Linus Torvalds
+  */
+ 
+-#include <asm/system.h>
+ #include <asm/machvec.h>
+ #include <asm/compiler.h>
+ #include <asm-generic/mm_hooks.h>
+diff --git a/arch/alpha/include/asm/pal.h b/arch/alpha/include/asm/pal.h
+index 9b4ba0d..6699ee5 100644
+--- a/arch/alpha/include/asm/pal.h
++++ b/arch/alpha/include/asm/pal.h
+@@ -48,4 +48,116 @@
+ #define PAL_retsys	61
+ #define PAL_rti		63
+ 
++#ifdef __KERNEL__
++#ifndef __ASSEMBLY__
++
++extern void halt(void) __attribute__((noreturn));
++#define __halt() __asm__ __volatile__ ("call_pal %0 #halt" : : "i" (PAL_halt))
++
++#define imb() \
++__asm__ __volatile__ ("call_pal %0 #imb" : : "i" (PAL_imb) : "memory")
++
++#define draina() \
++__asm__ __volatile__ ("call_pal %0 #draina" : : "i" (PAL_draina) : "memory")
++
++#define __CALL_PAL_R0(NAME, TYPE)				\
++extern inline TYPE NAME(void)					\
++{								\
++	register TYPE __r0 __asm__("$0");			\
++	__asm__ __volatile__(					\
++		"call_pal %1 # " #NAME				\
++		:"=r" (__r0)					\
++		:"i" (PAL_ ## NAME)				\
++		:"$1", "$16", "$22", "$23", "$24", "$25");	\
++	return __r0;						\
++}
++
++#define __CALL_PAL_W1(NAME, TYPE0)				\
++extern inline void NAME(TYPE0 arg0)				\
++{								\
++	register TYPE0 __r16 __asm__("$16") = arg0;		\
++	__asm__ __volatile__(					\
++		"call_pal %1 # "#NAME				\
++		: "=r"(__r16)					\
++		: "i"(PAL_ ## NAME), "0"(__r16)			\
++		: "$1", "$22", "$23", "$24", "$25");		\
++}
++
++#define __CALL_PAL_W2(NAME, TYPE0, TYPE1)			\
++extern inline void NAME(TYPE0 arg0, TYPE1 arg1)			\
++{								\
++	register TYPE0 __r16 __asm__("$16") = arg0;		\
++	register TYPE1 __r17 __asm__("$17") = arg1;		\
++	__asm__ __volatile__(					\
++		"call_pal %2 # "#NAME				\
++		: "=r"(__r16), "=r"(__r17)			\
++		: "i"(PAL_ ## NAME), "0"(__r16), "1"(__r17)	\
++		: "$1", "$22", "$23", "$24", "$25");		\
++}
++
++#define __CALL_PAL_RW1(NAME, RTYPE, TYPE0)			\
++extern inline RTYPE NAME(TYPE0 arg0)				\
++{								\
++	register RTYPE __r0 __asm__("$0");			\
++	register TYPE0 __r16 __asm__("$16") = arg0;		\
++	__asm__ __volatile__(					\
++		"call_pal %2 # "#NAME				\
++		: "=r"(__r16), "=r"(__r0)			\
++		: "i"(PAL_ ## NAME), "0"(__r16)			\
++		: "$1", "$22", "$23", "$24", "$25");		\
++	return __r0;						\
++}
++
++#define __CALL_PAL_RW2(NAME, RTYPE, TYPE0, TYPE1)		\
++extern inline RTYPE NAME(TYPE0 arg0, TYPE1 arg1)		\
++{								\
++	register RTYPE __r0 __asm__("$0");			\
++	register TYPE0 __r16 __asm__("$16") = arg0;		\
++	register TYPE1 __r17 __asm__("$17") = arg1;		\
++	__asm__ __volatile__(					\
++		"call_pal %3 # "#NAME				\
++		: "=r"(__r16), "=r"(__r17), "=r"(__r0)		\
++		: "i"(PAL_ ## NAME), "0"(__r16), "1"(__r17)	\
++		: "$1", "$22", "$23", "$24", "$25");		\
++	return __r0;						\
++}
++
++__CALL_PAL_W1(cflush, unsigned long);
++__CALL_PAL_R0(rdmces, unsigned long);
++__CALL_PAL_R0(rdps, unsigned long);
++__CALL_PAL_R0(rdusp, unsigned long);
++__CALL_PAL_RW1(swpipl, unsigned long, unsigned long);
++__CALL_PAL_R0(whami, unsigned long);
++__CALL_PAL_W2(wrent, void*, unsigned long);
++__CALL_PAL_W1(wripir, unsigned long);
++__CALL_PAL_W1(wrkgp, unsigned long);
++__CALL_PAL_W1(wrmces, unsigned long);
++__CALL_PAL_RW2(wrperfmon, unsigned long, unsigned long, unsigned long);
++__CALL_PAL_W1(wrusp, unsigned long);
++__CALL_PAL_W1(wrvptptr, unsigned long);
++
++/*
++ * TB routines..
++ */
++#define __tbi(nr,arg,arg1...)					\
++({								\
++	register unsigned long __r16 __asm__("$16") = (nr);	\
++	register unsigned long __r17 __asm__("$17"); arg;	\
++	__asm__ __volatile__(					\
++		"call_pal %3 #__tbi"				\
++		:"=r" (__r16),"=r" (__r17)			\
++		:"0" (__r16),"i" (PAL_tbi) ,##arg1		\
++		:"$0", "$1", "$22", "$23", "$24", "$25");	\
++})
++
++#define tbi(x,y)	__tbi(x,__r17=(y),"1" (__r17))
++#define tbisi(x)	__tbi(1,__r17=(x),"1" (__r17))
++#define tbisd(x)	__tbi(2,__r17=(x),"1" (__r17))
++#define tbis(x)		__tbi(3,__r17=(x),"1" (__r17))
++#define tbiap()		__tbi(-1, /* no second argument */)
++#define tbia()		__tbi(-2, /* no second argument */)
++
++#endif /* !__ASSEMBLY__ */
++#endif /* __KERNEL__ */
++
+ #endif /* __ALPHA_PAL_H */
+diff --git a/arch/alpha/include/asm/pgtable.h b/arch/alpha/include/asm/pgtable.h
+index de98a73..81a4342 100644
+--- a/arch/alpha/include/asm/pgtable.h
++++ b/arch/alpha/include/asm/pgtable.h
+@@ -15,6 +15,7 @@
+ #include <asm/page.h>
+ #include <asm/processor.h>	/* For TASK_SIZE */
+ #include <asm/machvec.h>
++#include <asm/setup.h>
+ 
+ struct mm_struct;
+ struct vm_area_struct;
+diff --git a/arch/alpha/include/asm/setup.h b/arch/alpha/include/asm/setup.h
+index 2e023a4..b50014b 100644
+--- a/arch/alpha/include/asm/setup.h
++++ b/arch/alpha/include/asm/setup.h
+@@ -3,4 +3,40 @@
+ 
+ #define COMMAND_LINE_SIZE	256
+ 
++/*
++ * We leave one page for the initial stack page, and one page for
++ * the initial process structure. Also, the console eats 3 MB for
++ * the initial bootloader (one of which we can reclaim later).
++ */
++#define BOOT_PCB	0x20000000
++#define BOOT_ADDR	0x20000000
++/* Remove when official MILO sources have ELF support: */
++#define BOOT_SIZE	(16*1024)
++
++#ifdef CONFIG_ALPHA_LEGACY_START_ADDRESS
++#define KERNEL_START_PHYS	0x300000 /* Old bootloaders hardcoded this.  */
++#else
++#define KERNEL_START_PHYS	0x1000000 /* required: Wildfire/Titan/Marvel */
++#endif
++
++#define KERNEL_START	(PAGE_OFFSET+KERNEL_START_PHYS)
++#define SWAPPER_PGD	KERNEL_START
++#define INIT_STACK	(PAGE_OFFSET+KERNEL_START_PHYS+0x02000)
++#define EMPTY_PGT	(PAGE_OFFSET+KERNEL_START_PHYS+0x04000)
++#define EMPTY_PGE	(PAGE_OFFSET+KERNEL_START_PHYS+0x08000)
++#define ZERO_PGE	(PAGE_OFFSET+KERNEL_START_PHYS+0x0A000)
++
++#define START_ADDR	(PAGE_OFFSET+KERNEL_START_PHYS+0x10000)
++
++/*
++ * This is setup by the secondary bootstrap loader.  Because
++ * the zero page is zeroed out as soon as the vm system is
++ * initialized, we need to copy things out into a more permanent
++ * place.
++ */
++#define PARAM			ZERO_PGE
++#define COMMAND_LINE		((char*)(PARAM + 0x0000))
++#define INITRD_START		(*(unsigned long *) (PARAM+0x100))
++#define INITRD_SIZE		(*(unsigned long *) (PARAM+0x108))
++
+ #endif
+diff --git a/arch/alpha/include/asm/special_insns.h b/arch/alpha/include/asm/special_insns.h
+new file mode 100644
+index 0000000..88d3452
+--- /dev/null
++++ b/arch/alpha/include/asm/special_insns.h
+@@ -0,0 +1,41 @@
++#ifndef __ALPHA_SPECIAL_INSNS_H
++#define __ALPHA_SPECIAL_INSNS_H
++
++enum implver_enum {
++	IMPLVER_EV4,
++	IMPLVER_EV5,
++	IMPLVER_EV6
++};
++
++#ifdef CONFIG_ALPHA_GENERIC
++#define implver()				\
++({ unsigned long __implver;			\
++   __asm__ ("implver %0" : "=r"(__implver));	\
++   (enum implver_enum) __implver; })
++#else
++/* Try to eliminate some dead code.  */
++#ifdef CONFIG_ALPHA_EV4
++#define implver() IMPLVER_EV4
++#endif
++#ifdef CONFIG_ALPHA_EV5
++#define implver() IMPLVER_EV5
++#endif
++#if defined(CONFIG_ALPHA_EV6)
++#define implver() IMPLVER_EV6
++#endif
++#endif
++
++enum amask_enum {
++	AMASK_BWX = (1UL << 0),
++	AMASK_FIX = (1UL << 1),
++	AMASK_CIX = (1UL << 2),
++	AMASK_MAX = (1UL << 8),
++	AMASK_PRECISE_TRAP = (1UL << 9),
++};
++
++#define amask(mask)						\
++({ unsigned long __amask, __input = (mask);			\
++   __asm__ ("amask %1,%0" : "=r"(__amask) : "rI"(__input));	\
++   __amask; })
++
++#endif /* __ALPHA_SPECIAL_INSNS_H */
+diff --git a/arch/alpha/include/asm/spinlock.h b/arch/alpha/include/asm/spinlock.h
+index d0faca1..3bba21e 100644
+--- a/arch/alpha/include/asm/spinlock.h
++++ b/arch/alpha/include/asm/spinlock.h
+@@ -1,7 +1,6 @@
+ #ifndef _ALPHA_SPINLOCK_H
+ #define _ALPHA_SPINLOCK_H
+ 
+-#include <asm/system.h>
+ #include <linux/kernel.h>
+ #include <asm/current.h>
+ 
+diff --git a/arch/alpha/include/asm/switch_to.h b/arch/alpha/include/asm/switch_to.h
+new file mode 100644
+index 0000000..44c0d4f
+--- /dev/null
++++ b/arch/alpha/include/asm/switch_to.h
+@@ -0,0 +1,14 @@
++#ifndef __ALPHA_SWITCH_TO_H
++#define __ALPHA_SWITCH_TO_H
++
++
++struct task_struct;
++extern struct task_struct *alpha_switch_to(unsigned long, struct task_struct *);
++
++#define switch_to(P,N,L)						 \
++  do {									 \
++    (L) = alpha_switch_to(virt_to_phys(&task_thread_info(N)->pcb), (P)); \
++    check_mmu_context();						 \
++  } while (0)
++
++#endif /* __ALPHA_SWITCH_TO_H */
+diff --git a/arch/alpha/include/asm/system.h b/arch/alpha/include/asm/system.h
+index 9f78e69..c7270dc 100644
+--- a/arch/alpha/include/asm/system.h
++++ b/arch/alpha/include/asm/system.h
+@@ -1,354 +1,5 @@
+-#ifndef __ALPHA_SYSTEM_H
+-#define __ALPHA_SYSTEM_H
 -
--#ifdef __KERNEL__
--
--#define CPU_ARCH_UNKNOWN	0
--#define CPU_ARCH_ARMv3		1
--#define CPU_ARCH_ARMv4		2
--#define CPU_ARCH_ARMv4T		3
--#define CPU_ARCH_ARMv5		4
--#define CPU_ARCH_ARMv5T		5
--#define CPU_ARCH_ARMv5TE	6
--#define CPU_ARCH_ARMv5TEJ	7
--#define CPU_ARCH_ARMv6		8
--#define CPU_ARCH_ARMv7		9
+-#include <asm/pal.h>
+-#include <asm/page.h>
++/* FILE TO BE DELETED. DO NOT ADD STUFF HERE! */
+ #include <asm/barrier.h>
 -
 -/*
-- * This is used to ensure the compiler did actually allocate the register we
-- * asked it for some inline assembly sequences.  Apparently we can't trust
-- * the compiler from one version to another so a bit of paranoia won't hurt.
-- * This string is meant to be concatenated with the inline asm string and
-- * will cause compilation to stop on mismatch.
-- * (for details, see gcc PR 15089)
+- * System defines.. Note that this is included both from .c and .S
+- * files, so it does only defines, not any C code.
 - */
--#define __asmeq(x, y)  ".ifnc " x "," y " ; .err ; .endif\n\t"
+-
+-/*
+- * We leave one page for the initial stack page, and one page for
+- * the initial process structure. Also, the console eats 3 MB for
+- * the initial bootloader (one of which we can reclaim later).
+- */
+-#define BOOT_PCB	0x20000000
+-#define BOOT_ADDR	0x20000000
+-/* Remove when official MILO sources have ELF support: */
+-#define BOOT_SIZE	(16*1024)
+-
+-#ifdef CONFIG_ALPHA_LEGACY_START_ADDRESS
+-#define KERNEL_START_PHYS	0x300000 /* Old bootloaders hardcoded this.  */
+-#else
+-#define KERNEL_START_PHYS	0x1000000 /* required: Wildfire/Titan/Marvel */
+-#endif
+-
+-#define KERNEL_START	(PAGE_OFFSET+KERNEL_START_PHYS)
+-#define SWAPPER_PGD	KERNEL_START
+-#define INIT_STACK	(PAGE_OFFSET+KERNEL_START_PHYS+0x02000)
+-#define EMPTY_PGT	(PAGE_OFFSET+KERNEL_START_PHYS+0x04000)
+-#define EMPTY_PGE	(PAGE_OFFSET+KERNEL_START_PHYS+0x08000)
+-#define ZERO_PGE	(PAGE_OFFSET+KERNEL_START_PHYS+0x0A000)
+-
+-#define START_ADDR	(PAGE_OFFSET+KERNEL_START_PHYS+0x10000)
+-
+-/*
+- * This is setup by the secondary bootstrap loader.  Because
+- * the zero page is zeroed out as soon as the vm system is
+- * initialized, we need to copy things out into a more permanent
+- * place.
+- */
+-#define PARAM			ZERO_PGE
+-#define COMMAND_LINE		((char*)(PARAM + 0x0000))
+-#define INITRD_START		(*(unsigned long *) (PARAM+0x100))
+-#define INITRD_SIZE		(*(unsigned long *) (PARAM+0x108))
 -
 -#ifndef __ASSEMBLY__
+-#include <linux/kernel.h>
+-#define AT_VECTOR_SIZE_ARCH 4 /* entries in ARCH_DLINFO */
 -
--#include <linux/compiler.h>
--#include <linux/linkage.h>
--#include <linux/irqflags.h>
+-/*
+- * This is the logout header that should be common to all platforms
+- * (assuming they are running OSF/1 PALcode, I guess).
+- */
+-struct el_common {
+-	unsigned int	size;		/* size in bytes of logout area */
+-	unsigned int	sbz1	: 30;	/* should be zero */
+-	unsigned int	err2	:  1;	/* second error */
+-	unsigned int	retry	:  1;	/* retry flag */
+-	unsigned int	proc_offset;	/* processor-specific offset */
+-	unsigned int	sys_offset;	/* system-specific offset */
+-	unsigned int	code;		/* machine check code */
+-	unsigned int	frame_rev;	/* frame revision */
+-};
 -
--#include <asm/outercache.h>
+-/* Machine Check Frame for uncorrectable errors (Large format)
+- *      --- This is used to log uncorrectable errors such as
+- *          double bit ECC errors.
+- *      --- These errors are detected by both processor and systems.
+- */
+-struct el_common_EV5_uncorrectable_mcheck {
+-        unsigned long   shadow[8];        /* Shadow reg. 8-14, 25           */
+-        unsigned long   paltemp[24];      /* PAL TEMP REGS.                 */
+-        unsigned long   exc_addr;         /* Address of excepting instruction*/
+-        unsigned long   exc_sum;          /* Summary of arithmetic traps.   */
+-        unsigned long   exc_mask;         /* Exception mask (from exc_sum). */
+-        unsigned long   pal_base;         /* Base address for PALcode.      */
+-        unsigned long   isr;              /* Interrupt Status Reg.          */
+-        unsigned long   icsr;             /* CURRENT SETUP OF EV5 IBOX      */
+-        unsigned long   ic_perr_stat;     /* I-CACHE Reg. <11> set Data parity
+-                                                         <12> set TAG parity*/
+-        unsigned long   dc_perr_stat;     /* D-CACHE error Reg. Bits set to 1:
+-                                                     <2> Data error in bank 0
+-                                                     <3> Data error in bank 1
+-                                                     <4> Tag error in bank 0
+-                                                     <5> Tag error in bank 1 */
+-        unsigned long   va;               /* Effective VA of fault or miss. */
+-        unsigned long   mm_stat;          /* Holds the reason for D-stream 
+-                                             fault or D-cache parity errors */
+-        unsigned long   sc_addr;          /* Address that was being accessed
+-                                             when EV5 detected Secondary cache
+-                                             failure.                 */
+-        unsigned long   sc_stat;          /* Helps determine if the error was
+-                                             TAG/Data parity(Secondary Cache)*/
+-        unsigned long   bc_tag_addr;      /* Contents of EV5 BC_TAG_ADDR    */
+-        unsigned long   ei_addr;          /* Physical address of any transfer
+-                                             that is logged in EV5 EI_STAT */
+-        unsigned long   fill_syndrome;    /* For correcting ECC errors.     */
+-        unsigned long   ei_stat;          /* Helps identify reason of any 
+-                                             processor uncorrectable error
+-                                             at its external interface.     */
+-        unsigned long   ld_lock;          /* Contents of EV5 LD_LOCK register*/
+-};
 -
--struct thread_info;
+-struct el_common_EV6_mcheck {
+-	unsigned int FrameSize;		/* Bytes, including this field */
+-	unsigned int FrameFlags;	/* <31> = Retry, <30> = Second Error */
+-	unsigned int CpuOffset;		/* Offset to CPU-specific info */
+-	unsigned int SystemOffset;	/* Offset to system-specific info */
+-	unsigned int MCHK_Code;
+-	unsigned int MCHK_Frame_Rev;
+-	unsigned long I_STAT;		/* EV6 Internal Processor Registers */
+-	unsigned long DC_STAT;		/* (See the 21264 Spec) */
+-	unsigned long C_ADDR;
+-	unsigned long DC1_SYNDROME;
+-	unsigned long DC0_SYNDROME;
+-	unsigned long C_STAT;
+-	unsigned long C_STS;
+-	unsigned long MM_STAT;
+-	unsigned long EXC_ADDR;
+-	unsigned long IER_CM;
+-	unsigned long ISUM;
+-	unsigned long RESERVED0;
+-	unsigned long PAL_BASE;
+-	unsigned long I_CTL;
+-	unsigned long PCTX;
+-};
+-
+-extern void halt(void) __attribute__((noreturn));
+-#define __halt() __asm__ __volatile__ ("call_pal %0 #halt" : : "i" (PAL_halt))
+-
+-#define switch_to(P,N,L)						 \
+-  do {									 \
+-    (L) = alpha_switch_to(virt_to_phys(&task_thread_info(N)->pcb), (P)); \
+-    check_mmu_context();						 \
+-  } while (0)
+-
 -struct task_struct;
+-extern struct task_struct *alpha_switch_to(unsigned long, struct task_struct*);
 -
--/* information about the system we're running on */
--extern unsigned int system_rev;
--extern unsigned int system_serial_low;
--extern unsigned int system_serial_high;
--extern unsigned int mem_fclk_21285;
+-#define imb() \
+-__asm__ __volatile__ ("call_pal %0 #imb" : : "i" (PAL_imb) : "memory")
 -
--struct pt_regs;
+-#define draina() \
+-__asm__ __volatile__ ("call_pal %0 #draina" : : "i" (PAL_draina) : "memory")
 -
--void die(const char *msg, struct pt_regs *regs, int err);
+-enum implver_enum {
+-	IMPLVER_EV4,
+-	IMPLVER_EV5,
+-	IMPLVER_EV6
+-};
 -
--struct siginfo;
--void arm_notify_die(const char *str, struct pt_regs *regs, struct siginfo *info,
--		unsigned long err, unsigned long trap);
--
--#ifdef CONFIG_ARM_LPAE
--#define FAULT_CODE_ALIGNMENT	33
--#define FAULT_CODE_DEBUG	34
+-#ifdef CONFIG_ALPHA_GENERIC
+-#define implver()				\
+-({ unsigned long __implver;			\
+-   __asm__ ("implver %0" : "=r"(__implver));	\
+-   (enum implver_enum) __implver; })
 -#else
--#define FAULT_CODE_ALIGNMENT	1
--#define FAULT_CODE_DEBUG	2
+-/* Try to eliminate some dead code.  */
+-#ifdef CONFIG_ALPHA_EV4
+-#define implver() IMPLVER_EV4
+-#endif
+-#ifdef CONFIG_ALPHA_EV5
+-#define implver() IMPLVER_EV5
+-#endif
+-#if defined(CONFIG_ALPHA_EV6)
+-#define implver() IMPLVER_EV6
+-#endif
 -#endif
 -
--void hook_fault_code(int nr, int (*fn)(unsigned long, unsigned int,
--				       struct pt_regs *),
--		     int sig, int code, const char *name);
+-enum amask_enum {
+-	AMASK_BWX = (1UL << 0),
+-	AMASK_FIX = (1UL << 1),
+-	AMASK_CIX = (1UL << 2),
+-	AMASK_MAX = (1UL << 8),
+-	AMASK_PRECISE_TRAP = (1UL << 9),
+-};
 -
--void hook_ifault_code(int nr, int (*fn)(unsigned long, unsigned int,
--				       struct pt_regs *),
--		     int sig, int code, const char *name);
+-#define amask(mask)						\
+-({ unsigned long __amask, __input = (mask);			\
+-   __asm__ ("amask %1,%0" : "=r"(__amask) : "rI"(__input));	\
+-   __amask; })
 -
--#define xchg(ptr,x) \
--	((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
--
--extern asmlinkage void c_backtrace(unsigned long fp, int pmode);
--
--struct mm_struct;
--extern void show_pte(struct mm_struct *mm, unsigned long addr);
--extern void __show_regs(struct pt_regs *);
--
--extern int __pure cpu_architecture(void);
--extern void cpu_init(void);
--
--void soft_restart(unsigned long);
--extern void (*arm_pm_restart)(char str, const char *cmd);
--
--#define UDBG_UNDEFINED	(1 << 0)
--#define UDBG_SYSCALL	(1 << 1)
--#define UDBG_BADABORT	(1 << 2)
--#define UDBG_SEGV	(1 << 3)
--#define UDBG_BUS	(1 << 4)
--
--extern unsigned int user_debug;
--
--#if __LINUX_ARM_ARCH__ >= 7 ||		\
--	(__LINUX_ARM_ARCH__ == 6 && defined(CONFIG_CPU_32v6K))
--#define sev()	__asm__ __volatile__ ("sev" : : : "memory")
--#define wfe()	__asm__ __volatile__ ("wfe" : : : "memory")
--#define wfi()	__asm__ __volatile__ ("wfi" : : : "memory")
--#endif
--
--#if __LINUX_ARM_ARCH__ >= 7
--#define isb() __asm__ __volatile__ ("isb" : : : "memory")
--#define dsb() __asm__ __volatile__ ("dsb" : : : "memory")
--#define dmb() __asm__ __volatile__ ("dmb" : : : "memory")
--#elif defined(CONFIG_CPU_XSC3) || __LINUX_ARM_ARCH__ == 6
--#define isb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c5, 4" \
--				    : : "r" (0) : "memory")
--#define dsb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 4" \
--				    : : "r" (0) : "memory")
--#define dmb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 5" \
--				    : : "r" (0) : "memory")
--#elif defined(CONFIG_CPU_FA526)
--#define isb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c5, 4" \
--				    : : "r" (0) : "memory")
--#define dsb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 4" \
--				    : : "r" (0) : "memory")
--#define dmb() __asm__ __volatile__ ("" : : : "memory")
--#else
--#define isb() __asm__ __volatile__ ("" : : : "memory")
--#define dsb() __asm__ __volatile__ ("mcr p15, 0, %0, c7, c10, 4" \
--				    : : "r" (0) : "memory")
--#define dmb() __asm__ __volatile__ ("" : : : "memory")
--#endif
--
--#ifdef CONFIG_ARCH_HAS_BARRIERS
--#include <mach/barriers.h>
--#elif defined(CONFIG_ARM_DMA_MEM_BUFFERABLE) || defined(CONFIG_SMP)
--#define mb()		do { dsb(); outer_sync(); } while (0)
--#define rmb()		dsb()
--#define wmb()		mb()
--#else
--#include <asm/memory.h>
--#define mb()	do { if (arch_is_coherent()) dmb(); else barrier(); } while (0)
--#define rmb()	do { if (arch_is_coherent()) dmb(); else barrier(); } while (0)
--#define wmb()	do { if (arch_is_coherent()) dmb(); else barrier(); } while (0)
--#endif
--
--#ifndef CONFIG_SMP
--#define smp_mb()	barrier()
--#define smp_rmb()	barrier()
--#define smp_wmb()	barrier()
--#else
--#define smp_mb()	dmb()
--#define smp_rmb()	dmb()
--#define smp_wmb()	dmb()
--#endif
--
--#define read_barrier_depends()		do { } while(0)
--#define smp_read_barrier_depends()	do { } while(0)
--
--#define set_mb(var, value)	do { var = value; smp_mb(); } while (0)
--#define nop() __asm__ __volatile__("mov\tr0,r0\t@ nop\n\t");
--
--/*
-- * switch_mm() may do a full cache flush over the context switch,
-- * so enable interrupts over the context switch to avoid high
-- * latency.
-- */
--#define __ARCH_WANT_INTERRUPTS_ON_CTXSW
--
--/*
-- * switch_to(prev, next) should switch from task `prev' to `next'
-- * `prev' will never be the same as `next'.  schedule() itself
-- * contains the memory barrier to tell GCC not to cache `current'.
-- */
--extern struct task_struct *__switch_to(struct task_struct *, struct thread_info *, struct thread_info *);
--
--#define switch_to(prev,next,last)					\
--do {									\
--	last = __switch_to(prev,task_thread_info(prev), task_thread_info(next));	\
--} while (0)
--
--#if defined(CONFIG_CPU_SA1100) || defined(CONFIG_CPU_SA110)
--/*
-- * On the StrongARM, "swp" is terminally broken since it bypasses the
-- * cache totally.  This means that the cache becomes inconsistent, and,
-- * since we use normal loads/stores as well, this is really bad.
-- * Typically, this causes oopsen in filp_close, but could have other,
-- * more disastrous effects.  There are two work-arounds:
-- *  1. Disable interrupts and emulate the atomic swap
-- *  2. Clean the cache, perform atomic swap, flush the cache
-- *
-- * We choose (1) since its the "easiest" to achieve here and is not
-- * dependent on the processor type.
-- *
-- * NOTE that this solution won't work on an SMP system, so explcitly
-- * forbid it here.
-- */
--#define swp_is_buggy
--#endif
--
--static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
--{
--	extern void __bad_xchg(volatile void *, int);
--	unsigned long ret;
--#ifdef swp_is_buggy
--	unsigned long flags;
--#endif
--#if __LINUX_ARM_ARCH__ >= 6
--	unsigned int tmp;
--#endif
--
--	smp_mb();
--
--	switch (size) {
--#if __LINUX_ARM_ARCH__ >= 6
--	case 1:
--		asm volatile("@	__xchg1\n"
--		"1:	ldrexb	%0, [%3]\n"
--		"	strexb	%1, %2, [%3]\n"
--		"	teq	%1, #0\n"
--		"	bne	1b"
--			: "=&r" (ret), "=&r" (tmp)
--			: "r" (x), "r" (ptr)
--			: "memory", "cc");
--		break;
--	case 4:
--		asm volatile("@	__xchg4\n"
--		"1:	ldrex	%0, [%3]\n"
--		"	strex	%1, %2, [%3]\n"
--		"	teq	%1, #0\n"
--		"	bne	1b"
--			: "=&r" (ret), "=&r" (tmp)
--			: "r" (x), "r" (ptr)
--			: "memory", "cc");
--		break;
--#elif defined(swp_is_buggy)
--#ifdef CONFIG_SMP
--#error SMP is not supported on this platform
--#endif
--	case 1:
--		raw_local_irq_save(flags);
--		ret = *(volatile unsigned char *)ptr;
--		*(volatile unsigned char *)ptr = x;
--		raw_local_irq_restore(flags);
--		break;
--
--	case 4:
--		raw_local_irq_save(flags);
--		ret = *(volatile unsigned long *)ptr;
--		*(volatile unsigned long *)ptr = x;
--		raw_local_irq_restore(flags);
--		break;
--#else
--	case 1:
--		asm volatile("@	__xchg1\n"
--		"	swpb	%0, %1, [%2]"
--			: "=&r" (ret)
--			: "r" (x), "r" (ptr)
--			: "memory", "cc");
--		break;
--	case 4:
--		asm volatile("@	__xchg4\n"
--		"	swp	%0, %1, [%2]"
--			: "=&r" (ret)
--			: "r" (x), "r" (ptr)
--			: "memory", "cc");
--		break;
--#endif
--	default:
--		__bad_xchg(ptr, size), ret = 0;
--		break;
--	}
--	smp_mb();
--
--	return ret;
+-#define __CALL_PAL_R0(NAME, TYPE)				\
+-extern inline TYPE NAME(void)					\
+-{								\
+-	register TYPE __r0 __asm__("$0");			\
+-	__asm__ __volatile__(					\
+-		"call_pal %1 # " #NAME				\
+-		:"=r" (__r0)					\
+-		:"i" (PAL_ ## NAME)				\
+-		:"$1", "$16", "$22", "$23", "$24", "$25");	\
+-	return __r0;						\
 -}
 -
--extern void disable_hlt(void);
--extern void enable_hlt(void);
+-#define __CALL_PAL_W1(NAME, TYPE0)				\
+-extern inline void NAME(TYPE0 arg0)				\
+-{								\
+-	register TYPE0 __r16 __asm__("$16") = arg0;		\
+-	__asm__ __volatile__(					\
+-		"call_pal %1 # "#NAME				\
+-		: "=r"(__r16)					\
+-		: "i"(PAL_ ## NAME), "0"(__r16)			\
+-		: "$1", "$22", "$23", "$24", "$25");		\
+-}
 -
--void cpu_idle_wait(void);
+-#define __CALL_PAL_W2(NAME, TYPE0, TYPE1)			\
+-extern inline void NAME(TYPE0 arg0, TYPE1 arg1)			\
+-{								\
+-	register TYPE0 __r16 __asm__("$16") = arg0;		\
+-	register TYPE1 __r17 __asm__("$17") = arg1;		\
+-	__asm__ __volatile__(					\
+-		"call_pal %2 # "#NAME				\
+-		: "=r"(__r16), "=r"(__r17)			\
+-		: "i"(PAL_ ## NAME), "0"(__r16), "1"(__r17)	\
+-		: "$1", "$22", "$23", "$24", "$25");		\
+-}
 -
--#include <asm-generic/cmpxchg-local.h>
+-#define __CALL_PAL_RW1(NAME, RTYPE, TYPE0)			\
+-extern inline RTYPE NAME(TYPE0 arg0)				\
+-{								\
+-	register RTYPE __r0 __asm__("$0");			\
+-	register TYPE0 __r16 __asm__("$16") = arg0;		\
+-	__asm__ __volatile__(					\
+-		"call_pal %2 # "#NAME				\
+-		: "=r"(__r16), "=r"(__r0)			\
+-		: "i"(PAL_ ## NAME), "0"(__r16)			\
+-		: "$1", "$22", "$23", "$24", "$25");		\
+-	return __r0;						\
+-}
 -
--#if __LINUX_ARM_ARCH__ < 6
--/* min ARCH < ARMv6 */
+-#define __CALL_PAL_RW2(NAME, RTYPE, TYPE0, TYPE1)		\
+-extern inline RTYPE NAME(TYPE0 arg0, TYPE1 arg1)		\
+-{								\
+-	register RTYPE __r0 __asm__("$0");			\
+-	register TYPE0 __r16 __asm__("$16") = arg0;		\
+-	register TYPE1 __r17 __asm__("$17") = arg1;		\
+-	__asm__ __volatile__(					\
+-		"call_pal %3 # "#NAME				\
+-		: "=r"(__r16), "=r"(__r17), "=r"(__r0)		\
+-		: "i"(PAL_ ## NAME), "0"(__r16), "1"(__r17)	\
+-		: "$1", "$22", "$23", "$24", "$25");		\
+-	return __r0;						\
+-}
+-
+-__CALL_PAL_W1(cflush, unsigned long);
+-__CALL_PAL_R0(rdmces, unsigned long);
+-__CALL_PAL_R0(rdps, unsigned long);
+-__CALL_PAL_R0(rdusp, unsigned long);
+-__CALL_PAL_RW1(swpipl, unsigned long, unsigned long);
+-__CALL_PAL_R0(whami, unsigned long);
+-__CALL_PAL_W2(wrent, void*, unsigned long);
+-__CALL_PAL_W1(wripir, unsigned long);
+-__CALL_PAL_W1(wrkgp, unsigned long);
+-__CALL_PAL_W1(wrmces, unsigned long);
+-__CALL_PAL_RW2(wrperfmon, unsigned long, unsigned long, unsigned long);
+-__CALL_PAL_W1(wrusp, unsigned long);
+-__CALL_PAL_W1(wrvptptr, unsigned long);
+-
+-/*
+- * TB routines..
+- */
+-#define __tbi(nr,arg,arg1...)					\
+-({								\
+-	register unsigned long __r16 __asm__("$16") = (nr);	\
+-	register unsigned long __r17 __asm__("$17"); arg;	\
+-	__asm__ __volatile__(					\
+-		"call_pal %3 #__tbi"				\
+-		:"=r" (__r16),"=r" (__r17)			\
+-		:"0" (__r16),"i" (PAL_tbi) ,##arg1		\
+-		:"$0", "$1", "$22", "$23", "$24", "$25");	\
+-})
+-
+-#define tbi(x,y)	__tbi(x,__r17=(y),"1" (__r17))
+-#define tbisi(x)	__tbi(1,__r17=(x),"1" (__r17))
+-#define tbisd(x)	__tbi(2,__r17=(x),"1" (__r17))
+-#define tbis(x)		__tbi(3,__r17=(x),"1" (__r17))
+-#define tbiap()		__tbi(-1, /* no second argument */)
+-#define tbia()		__tbi(-2, /* no second argument */)
+-
+-/*
+- * Atomic exchange routines.
+- */
+-
+-#define __ASM__MB
+-#define ____xchg(type, args...)		__xchg ## type ## _local(args)
+-#define ____cmpxchg(type, args...)	__cmpxchg ## type ## _local(args)
+-#include <asm/xchg.h>
+-
+-#define xchg_local(ptr,x)						\
+-  ({									\
+-     __typeof__(*(ptr)) _x_ = (x);					\
+-     (__typeof__(*(ptr))) __xchg_local((ptr), (unsigned long)_x_,	\
+-				       sizeof(*(ptr)));			\
+-  })
+-
+-#define cmpxchg_local(ptr, o, n)					\
+-  ({									\
+-     __typeof__(*(ptr)) _o_ = (o);					\
+-     __typeof__(*(ptr)) _n_ = (n);					\
+-     (__typeof__(*(ptr))) __cmpxchg_local((ptr), (unsigned long)_o_,	\
+-					  (unsigned long)_n_,		\
+-					  sizeof(*(ptr)));		\
+-  })
+-
+-#define cmpxchg64_local(ptr, o, n)					\
+-  ({									\
+-	BUILD_BUG_ON(sizeof(*(ptr)) != 8);				\
+-	cmpxchg_local((ptr), (o), (n));					\
+-  })
 -
 -#ifdef CONFIG_SMP
--#error "SMP is not supported on this platform"
+-#undef __ASM__MB
+-#define __ASM__MB	"\tmb\n"
 -#endif
+-#undef ____xchg
+-#undef ____cmpxchg
+-#define ____xchg(type, args...)		__xchg ##type(args)
+-#define ____cmpxchg(type, args...)	__cmpxchg ##type(args)
+-#include <asm/xchg.h>
 -
--/*
-- * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
-- * them available.
-- */
--#define cmpxchg_local(ptr, o, n)				  	       \
--	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
--			(unsigned long)(n), sizeof(*(ptr))))
--#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+-#define xchg(ptr,x)							\
+-  ({									\
+-     __typeof__(*(ptr)) _x_ = (x);					\
+-     (__typeof__(*(ptr))) __xchg((ptr), (unsigned long)_x_,		\
+-				 sizeof(*(ptr)));			\
+-  })
 -
--#ifndef CONFIG_SMP
--#include <asm-generic/cmpxchg.h>
--#endif
+-#define cmpxchg(ptr, o, n)						\
+-  ({									\
+-     __typeof__(*(ptr)) _o_ = (o);					\
+-     __typeof__(*(ptr)) _n_ = (n);					\
+-     (__typeof__(*(ptr))) __cmpxchg((ptr), (unsigned long)_o_,		\
+-				    (unsigned long)_n_,	sizeof(*(ptr)));\
+-  })
 -
--#else	/* min ARCH >= ARMv6 */
+-#define cmpxchg64(ptr, o, n)						\
+-  ({									\
+-	BUILD_BUG_ON(sizeof(*(ptr)) != 8);				\
+-	cmpxchg((ptr), (o), (n));					\
+-  })
 -
--extern void __bad_cmpxchg(volatile void *ptr, int size);
+-#undef __ASM__MB
+-#undef ____cmpxchg
 -
--/*
-- * cmpxchg only support 32-bits operands on ARMv6.
-- */
--
--static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
--				      unsigned long new, int size)
--{
--	unsigned long oldval, res;
--
--	switch (size) {
--#ifndef CONFIG_CPU_V6	/* min ARCH >= ARMv6K */
--	case 1:
--		do {
--			asm volatile("@ __cmpxchg1\n"
--			"	ldrexb	%1, [%2]\n"
--			"	mov	%0, #0\n"
--			"	teq	%1, %3\n"
--			"	strexbeq %0, %4, [%2]\n"
--				: "=&r" (res), "=&r" (oldval)
--				: "r" (ptr), "Ir" (old), "r" (new)
--				: "memory", "cc");
--		} while (res);
--		break;
--	case 2:
--		do {
--			asm volatile("@ __cmpxchg1\n"
--			"	ldrexh	%1, [%2]\n"
--			"	mov	%0, #0\n"
--			"	teq	%1, %3\n"
--			"	strexheq %0, %4, [%2]\n"
--				: "=&r" (res), "=&r" (oldval)
--				: "r" (ptr), "Ir" (old), "r" (new)
--				: "memory", "cc");
--		} while (res);
--		break;
--#endif
--	case 4:
--		do {
--			asm volatile("@ __cmpxchg4\n"
--			"	ldrex	%1, [%2]\n"
--			"	mov	%0, #0\n"
--			"	teq	%1, %3\n"
--			"	strexeq %0, %4, [%2]\n"
--				: "=&r" (res), "=&r" (oldval)
--				: "r" (ptr), "Ir" (old), "r" (new)
--				: "memory", "cc");
--		} while (res);
--		break;
--	default:
--		__bad_cmpxchg(ptr, size);
--		oldval = 0;
--	}
--
--	return oldval;
--}
--
--static inline unsigned long __cmpxchg_mb(volatile void *ptr, unsigned long old,
--					 unsigned long new, int size)
--{
--	unsigned long ret;
--
--	smp_mb();
--	ret = __cmpxchg(ptr, old, new, size);
--	smp_mb();
--
--	return ret;
--}
--
--#define cmpxchg(ptr,o,n)						\
--	((__typeof__(*(ptr)))__cmpxchg_mb((ptr),			\
--					  (unsigned long)(o),		\
--					  (unsigned long)(n),		\
--					  sizeof(*(ptr))))
--
--static inline unsigned long __cmpxchg_local(volatile void *ptr,
--					    unsigned long old,
--					    unsigned long new, int size)
--{
--	unsigned long ret;
--
--	switch (size) {
--#ifdef CONFIG_CPU_V6	/* min ARCH == ARMv6 */
--	case 1:
--	case 2:
--		ret = __cmpxchg_local_generic(ptr, old, new, size);
--		break;
--#endif
--	default:
--		ret = __cmpxchg(ptr, old, new, size);
--	}
--
--	return ret;
--}
--
--#define cmpxchg_local(ptr,o,n)						\
--	((__typeof__(*(ptr)))__cmpxchg_local((ptr),			\
--				       (unsigned long)(o),		\
--				       (unsigned long)(n),		\
--				       sizeof(*(ptr))))
--
--#ifndef CONFIG_CPU_V6	/* min ARCH >= ARMv6K */
--
--/*
-- * Note : ARMv7-M (currently unsupported by Linux) does not support
-- * ldrexd/strexd. If ARMv7-M is ever supported by the Linux kernel, it should
-- * not be allowed to use __cmpxchg64.
-- */
--static inline unsigned long long __cmpxchg64(volatile void *ptr,
--					     unsigned long long old,
--					     unsigned long long new)
--{
--	register unsigned long long oldval asm("r0");
--	register unsigned long long __old asm("r2") = old;
--	register unsigned long long __new asm("r4") = new;
--	unsigned long res;
--
--	do {
--		asm volatile(
--		"	@ __cmpxchg8\n"
--		"	ldrexd	%1, %H1, [%2]\n"
--		"	mov	%0, #0\n"
--		"	teq	%1, %3\n"
--		"	teqeq	%H1, %H3\n"
--		"	strexdeq %0, %4, %H4, [%2]\n"
--			: "=&r" (res), "=&r" (oldval)
--			: "r" (ptr), "Ir" (__old), "r" (__new)
--			: "memory", "cc");
--	} while (res);
--
--	return oldval;
--}
--
--static inline unsigned long long __cmpxchg64_mb(volatile void *ptr,
--						unsigned long long old,
--						unsigned long long new)
--{
--	unsigned long long ret;
--
--	smp_mb();
--	ret = __cmpxchg64(ptr, old, new);
--	smp_mb();
--
--	return ret;
--}
--
--#define cmpxchg64(ptr,o,n)						\
--	((__typeof__(*(ptr)))__cmpxchg64_mb((ptr),			\
--					    (unsigned long long)(o),	\
--					    (unsigned long long)(n)))
--
--#define cmpxchg64_local(ptr,o,n)					\
--	((__typeof__(*(ptr)))__cmpxchg64((ptr),				\
--					 (unsigned long long)(o),	\
--					 (unsigned long long)(n)))
--
--#else /* min ARCH = ARMv6 */
--
--#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
--
--#endif
--
--#endif	/* __LINUX_ARM_ARCH__ >= 6 */
+-#define __HAVE_ARCH_CMPXCHG 1
 -
 -#endif /* __ASSEMBLY__ */
 -
 -#define arch_align_stack(x) (x)
 -
--#endif /* __KERNEL__ */
--
 -#endif
-+/* FILE TO BE DELETED. DO NOT ADD STUFF HERE! */
-+#include <asm/barrier.h>
-+#include <asm/compiler.h>
-+#include <asm/cmpxchg.h>
 +#include <asm/exec.h>
++#include <asm/special_insns.h>
 +#include <asm/switch_to.h>
-+#include <asm/system_info.h>
-+#include <asm/system_misc.h>
-diff --git a/arch/arm/include/asm/system_info.h b/arch/arm/include/asm/system_info.h
-new file mode 100644
-index 0000000..dfd386d
---- /dev/null
-+++ b/arch/arm/include/asm/system_info.h
-@@ -0,0 +1,27 @@
-+#ifndef __ASM_ARM_SYSTEM_INFO_H
-+#define __ASM_ARM_SYSTEM_INFO_H
-+
-+#define CPU_ARCH_UNKNOWN	0
-+#define CPU_ARCH_ARMv3		1
-+#define CPU_ARCH_ARMv4		2
-+#define CPU_ARCH_ARMv4T		3
-+#define CPU_ARCH_ARMv5		4
-+#define CPU_ARCH_ARMv5T		5
-+#define CPU_ARCH_ARMv5TE	6
-+#define CPU_ARCH_ARMv5TEJ	7
-+#define CPU_ARCH_ARMv6		8
-+#define CPU_ARCH_ARMv7		9
-+
-+#ifndef __ASSEMBLY__
-+
-+/* information about the system we're running on */
-+extern unsigned int system_rev;
-+extern unsigned int system_serial_low;
-+extern unsigned int system_serial_high;
-+extern unsigned int mem_fclk_21285;
-+
-+extern int __pure cpu_architecture(void);
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+#endif /* __ASM_ARM_SYSTEM_INFO_H */
-diff --git a/arch/arm/include/asm/system_misc.h b/arch/arm/include/asm/system_misc.h
-new file mode 100644
-index 0000000..ccda6c2
---- /dev/null
-+++ b/arch/arm/include/asm/system_misc.h
-@@ -0,0 +1,30 @@
-+#ifndef __ASM_ARM_SYSTEM_MISC_H
-+#define __ASM_ARM_SYSTEM_MISC_H
-+
-+#ifndef __ASSEMBLY__
-+
-+#include <linux/compiler.h>
-+#include <linux/linkage.h>
-+#include <linux/irqflags.h>
-+
-+extern void cpu_init(void);
-+
-+void soft_restart(unsigned long);
-+extern void (*arm_pm_restart)(char str, const char *cmd);
-+
-+#define UDBG_UNDEFINED	(1 << 0)
-+#define UDBG_SYSCALL	(1 << 1)
-+#define UDBG_BADABORT	(1 << 2)
-+#define UDBG_SEGV	(1 << 3)
-+#define UDBG_BUS	(1 << 4)
-+
-+extern unsigned int user_debug;
-+
-+extern void disable_hlt(void);
-+extern void enable_hlt(void);
-+
-+void cpu_idle_wait(void);
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+#endif /* __ASM_ARM_SYSTEM_MISC_H */
-diff --git a/arch/arm/include/asm/uaccess.h b/arch/arm/include/asm/uaccess.h
-index 2958976..71f6536 100644
---- a/arch/arm/include/asm/uaccess.h
-+++ b/arch/arm/include/asm/uaccess.h
-@@ -16,8 +16,8 @@
- #include <asm/errno.h>
- #include <asm/memory.h>
- #include <asm/domain.h>
--#include <asm/system.h>
- #include <asm/unified.h>
-+#include <asm/compiler.h>
- 
- #define VERIFY_READ 0
- #define VERIFY_WRITE 1
-diff --git a/arch/arm/kernel/armksyms.c b/arch/arm/kernel/armksyms.c
-index 5b0bce6..b57c75e 100644
---- a/arch/arm/kernel/armksyms.c
-+++ b/arch/arm/kernel/armksyms.c
-@@ -18,7 +18,6 @@
- #include <linux/io.h>
- 
- #include <asm/checksum.h>
--#include <asm/system.h>
- #include <asm/ftrace.h>
- 
+diff --git a/arch/alpha/include/asm/xchg.h b/arch/alpha/include/asm/xchg.h
+index beba1b8..1d1b436 100644
+--- a/arch/alpha/include/asm/xchg.h
++++ b/arch/alpha/include/asm/xchg.h
+@@ -1,4 +1,4 @@
+-#ifndef __ALPHA_SYSTEM_H
++#ifndef _ALPHA_ATOMIC_H
+ #error Do not include xchg.h directly!
+ #else
  /*
-diff --git a/arch/arm/kernel/elf.c b/arch/arm/kernel/elf.c
-index ddba41d..d0d1e83 100644
---- a/arch/arm/kernel/elf.c
-+++ b/arch/arm/kernel/elf.c
-@@ -3,6 +3,7 @@
- #include <linux/personality.h>
- #include <linux/binfmts.h>
- #include <linux/elf.h>
-+#include <asm/system_info.h>
- 
- int elf_check_arch(const struct elf32_hdr *x)
- {
-diff --git a/arch/arm/kernel/entry-armv.S b/arch/arm/kernel/entry-armv.S
-index be16a48..093a415 100644
---- a/arch/arm/kernel/entry-armv.S
-+++ b/arch/arm/kernel/entry-armv.S
-@@ -24,7 +24,7 @@
- #include <asm/unwind.h>
- #include <asm/unistd.h>
- #include <asm/tls.h>
--#include <asm/system.h>
-+#include <asm/system_info.h>
- 
- #include "entry-header.S"
- #include <asm/entry-macro-multi.S>
-diff --git a/arch/arm/kernel/hw_breakpoint.c b/arch/arm/kernel/hw_breakpoint.c
-index d6a95ef..ba386bd 100644
---- a/arch/arm/kernel/hw_breakpoint.c
-+++ b/arch/arm/kernel/hw_breakpoint.c
-@@ -34,7 +34,6 @@
- #include <asm/current.h>
- #include <asm/hw_breakpoint.h>
- #include <asm/kdebug.h>
--#include <asm/system.h>
- #include <asm/traps.h>
- 
- /* Breakpoint currently in use for each BRP. */
-diff --git a/arch/arm/kernel/irq.c b/arch/arm/kernel/irq.c
-index 3efd82c..6a6a097 100644
---- a/arch/arm/kernel/irq.c
-+++ b/arch/arm/kernel/irq.c
-@@ -36,7 +36,6 @@
- #include <linux/proc_fs.h>
- 
- #include <asm/exception.h>
--#include <asm/system.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/irq.h>
- #include <asm/mach/time.h>
-diff --git a/arch/arm/kernel/kprobes-common.c b/arch/arm/kernel/kprobes-common.c
-index a5394fb4..18a7628 100644
---- a/arch/arm/kernel/kprobes-common.c
-+++ b/arch/arm/kernel/kprobes-common.c
-@@ -13,6 +13,7 @@
- 
- #include <linux/kernel.h>
- #include <linux/kprobes.h>
-+#include <asm/system_info.h>
- 
- #include "kprobes.h"
- 
-diff --git a/arch/arm/kernel/machine_kexec.c b/arch/arm/kernel/machine_kexec.c
-index 764bd45..5699598 100644
---- a/arch/arm/kernel/machine_kexec.c
-+++ b/arch/arm/kernel/machine_kexec.c
-@@ -12,7 +12,7 @@
- #include <asm/mmu_context.h>
- #include <asm/cacheflush.h>
- #include <asm/mach-types.h>
--#include <asm/system.h>
-+#include <asm/system_misc.h>
- 
- extern const unsigned char relocate_new_kernel[];
- extern const unsigned int relocate_new_kernel_size;
-diff --git a/arch/arm/kernel/process.c b/arch/arm/kernel/process.c
-index 971d65c..784222c 100644
---- a/arch/arm/kernel/process.c
-+++ b/arch/arm/kernel/process.c
-@@ -35,7 +35,6 @@
- #include <asm/cacheflush.h>
- #include <asm/leds.h>
- #include <asm/processor.h>
--#include <asm/system.h>
- #include <asm/thread_notify.h>
- #include <asm/stacktrace.h>
- #include <asm/mach/time.h>
-diff --git a/arch/arm/kernel/ptrace.c b/arch/arm/kernel/ptrace.c
-index ede6443..45956c9 100644
---- a/arch/arm/kernel/ptrace.c
-+++ b/arch/arm/kernel/ptrace.c
-@@ -26,7 +26,6 @@
- #include <linux/audit.h>
- 
- #include <asm/pgtable.h>
--#include <asm/system.h>
- #include <asm/traps.h>
- 
- #define REG_PC	15
-diff --git a/arch/arm/kernel/setup.c b/arch/arm/kernel/setup.c
-index 615e992..9b19972 100644
---- a/arch/arm/kernel/setup.c
-+++ b/arch/arm/kernel/setup.c
-@@ -53,6 +53,8 @@
- #include <asm/traps.h>
- #include <asm/unwind.h>
- #include <asm/memblock.h>
-+#include <asm/system_info.h>
-+#include <asm/system_misc.h>
- 
- #if defined(CONFIG_DEPRECATED_PARAM_STRUCT)
- #include "compat.h"
-diff --git a/arch/arm/kernel/sleep.S b/arch/arm/kernel/sleep.S
-index 1f268bd..987dcf3 100644
---- a/arch/arm/kernel/sleep.S
-+++ b/arch/arm/kernel/sleep.S
-@@ -4,7 +4,6 @@
- #include <asm/assembler.h>
- #include <asm/glue-cache.h>
- #include <asm/glue-proc.h>
--#include <asm/system.h>
- 	.text
- 
- /*
-diff --git a/arch/arm/kernel/tcm.c b/arch/arm/kernel/tcm.c
-index 01ec453..30ae6bb 100644
---- a/arch/arm/kernel/tcm.c
-+++ b/arch/arm/kernel/tcm.c
-@@ -16,6 +16,7 @@
- #include <asm/cputype.h>
- #include <asm/mach/map.h>
- #include <asm/memory.h>
-+#include <asm/system_info.h>
- #include "tcm.h"
- 
- static struct gen_pool *tcm_pool;
-diff --git a/arch/arm/kernel/thumbee.c b/arch/arm/kernel/thumbee.c
-index 9cb7aac..37bc322 100644
---- a/arch/arm/kernel/thumbee.c
-+++ b/arch/arm/kernel/thumbee.c
+diff --git a/arch/alpha/kernel/core_apecs.c b/arch/alpha/kernel/core_apecs.c
+index ca46b2c..708c831 100644
+--- a/arch/alpha/kernel/core_apecs.c
++++ b/arch/alpha/kernel/core_apecs.c
 @@ -21,6 +21,7 @@
- #include <linux/init.h>
  
- #include <asm/thread_notify.h>
-+#include <asm/system_info.h>
+ #include <asm/ptrace.h>
+ #include <asm/smp.h>
++#include <asm/mce.h>
  
- /*
-  * Access to the ThumbEE Handler Base register
-diff --git a/arch/arm/kernel/traps.c b/arch/arm/kernel/traps.c
-index f84dfe6..cd77743 100644
---- a/arch/arm/kernel/traps.c
-+++ b/arch/arm/kernel/traps.c
-@@ -29,11 +29,11 @@
- #include <linux/atomic.h>
- #include <asm/cacheflush.h>
- #include <asm/exception.h>
--#include <asm/system.h>
- #include <asm/unistd.h>
- #include <asm/traps.h>
- #include <asm/unwind.h>
- #include <asm/tls.h>
-+#include <asm/system_misc.h>
+ #include "proto.h"
+ #include "pci_impl.h"
+diff --git a/arch/alpha/kernel/core_cia.c b/arch/alpha/kernel/core_cia.c
+index 1d6ee6c..c44339e 100644
+--- a/arch/alpha/kernel/core_cia.c
++++ b/arch/alpha/kernel/core_cia.c
+@@ -23,6 +23,7 @@
+ #include <linux/bootmem.h>
  
- #include "signal.h"
+ #include <asm/ptrace.h>
++#include <asm/mce.h>
  
-diff --git a/arch/arm/mach-at91/at91cap9.c b/arch/arm/mach-at91/at91cap9.c
-index a42edc2..fc460e9 100644
---- a/arch/arm/mach-at91/at91cap9.c
-+++ b/arch/arm/mach-at91/at91cap9.c
-@@ -17,6 +17,8 @@
- #include <asm/irq.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
-+#include <asm/system_info.h>
-+#include <asm/system_misc.h>
+ #include "proto.h"
+ #include "pci_impl.h"
+diff --git a/arch/alpha/kernel/core_t2.c b/arch/alpha/kernel/core_t2.c
+index 2f770e9..3ada4f7 100644
+--- a/arch/alpha/kernel/core_t2.c
++++ b/arch/alpha/kernel/core_t2.c
+@@ -21,6 +21,7 @@
  
- #include <mach/cpu.h>
- #include <mach/at91cap9.h>
-diff --git a/arch/arm/mach-at91/at91rm9200.c b/arch/arm/mach-at91/at91rm9200.c
-index 99c3174..413c027 100644
---- a/arch/arm/mach-at91/at91rm9200.c
-+++ b/arch/arm/mach-at91/at91rm9200.c
-@@ -15,6 +15,7 @@
- #include <asm/irq.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
-+#include <asm/system_misc.h>
- #include <mach/at91rm9200.h>
- #include <mach/at91_pmc.h>
- #include <mach/at91_st.h>
-diff --git a/arch/arm/mach-at91/at91sam9260.c b/arch/arm/mach-at91/at91sam9260.c
-index d4036ba..79f5718 100644
---- a/arch/arm/mach-at91/at91sam9260.c
-+++ b/arch/arm/mach-at91/at91sam9260.c
-@@ -15,6 +15,7 @@
- #include <asm/irq.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
-+#include <asm/system_misc.h>
- #include <mach/cpu.h>
- #include <mach/at91_dbgu.h>
- #include <mach/at91sam9260.h>
-diff --git a/arch/arm/mach-at91/at91sam9261.c b/arch/arm/mach-at91/at91sam9261.c
-index 023c2ff..62818b9 100644
---- a/arch/arm/mach-at91/at91sam9261.c
-+++ b/arch/arm/mach-at91/at91sam9261.c
-@@ -15,6 +15,7 @@
- #include <asm/irq.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
-+#include <asm/system_misc.h>
- #include <mach/cpu.h>
- #include <mach/at91sam9261.h>
- #include <mach/at91_pmc.h>
-diff --git a/arch/arm/mach-at91/at91sam9263.c b/arch/arm/mach-at91/at91sam9263.c
-index 75e876c..722ee08 100644
---- a/arch/arm/mach-at91/at91sam9263.c
-+++ b/arch/arm/mach-at91/at91sam9263.c
-@@ -15,6 +15,7 @@
- #include <asm/irq.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
-+#include <asm/system_misc.h>
- #include <mach/at91sam9263.h>
- #include <mach/at91_pmc.h>
- #include <mach/at91_rstc.h>
-diff --git a/arch/arm/mach-at91/at91sam9g45.c b/arch/arm/mach-at91/at91sam9g45.c
-index 1cb6a96..47e8fdb 100644
---- a/arch/arm/mach-at91/at91sam9g45.c
-+++ b/arch/arm/mach-at91/at91sam9g45.c
-@@ -16,6 +16,7 @@
- #include <asm/irq.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
-+#include <asm/system_misc.h>
- #include <mach/at91sam9g45.h>
- #include <mach/at91_pmc.h>
- #include <mach/cpu.h>
-diff --git a/arch/arm/mach-at91/at91sam9rl.c b/arch/arm/mach-at91/at91sam9rl.c
-index d2c91a8..7ae4993 100644
---- a/arch/arm/mach-at91/at91sam9rl.c
-+++ b/arch/arm/mach-at91/at91sam9rl.c
-@@ -14,6 +14,7 @@
- #include <asm/irq.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
-+#include <asm/system_misc.h>
- #include <mach/cpu.h>
- #include <mach/at91_dbgu.h>
- #include <mach/at91sam9rl.h>
-diff --git a/arch/arm/mach-at91/include/mach/system_rev.h b/arch/arm/mach-at91/include/mach/system_rev.h
-index ec164a4..ef79a9a 100644
---- a/arch/arm/mach-at91/include/mach/system_rev.h
-+++ b/arch/arm/mach-at91/include/mach/system_rev.h
+ #include <asm/ptrace.h>
+ #include <asm/delay.h>
++#include <asm/mce.h>
+ 
+ #include "proto.h"
+ #include "pci_impl.h"
+diff --git a/arch/alpha/kernel/err_impl.h b/arch/alpha/kernel/err_impl.h
+index 0c010ca..ae529c4 100644
+--- a/arch/alpha/kernel/err_impl.h
++++ b/arch/alpha/kernel/err_impl.h
 @@ -7,6 +7,8 @@
- #ifndef __ARCH_SYSTEM_REV_H__
- #define __ARCH_SYSTEM_REV_H__
- 
-+#include <asm/system_info.h>
-+
- /*
-  * board revision encoding
-  * mach specific
-diff --git a/arch/arm/mach-clps711x/common.c b/arch/arm/mach-clps711x/common.c
-index ab1711b..ac84f92 100644
---- a/arch/arm/mach-clps711x/common.c
-+++ b/arch/arm/mach-clps711x/common.c
-@@ -37,6 +37,7 @@
- #include <asm/mach/map.h>
- #include <asm/mach/time.h>
- #include <asm/hardware/clps7111.h>
-+#include <asm/system_misc.h>
- 
- /*
-  * This maps the generic CLPS711x registers
-diff --git a/arch/arm/mach-clps711x/p720t-leds.c b/arch/arm/mach-clps711x/p720t-leds.c
-index 1512144..dd9a6cd 100644
---- a/arch/arm/mach-clps711x/p720t-leds.c
-+++ b/arch/arm/mach-clps711x/p720t-leds.c
-@@ -25,7 +25,6 @@
- 
- #include <mach/hardware.h>
- #include <asm/leds.h>
--#include <asm/system.h>
- #include <asm/mach-types.h>
- 
- #include <asm/hardware/clps7111.h>
-diff --git a/arch/arm/mach-davinci/board-da850-evm.c b/arch/arm/mach-davinci/board-da850-evm.c
-index d508890..5d9afd8 100644
---- a/arch/arm/mach-davinci/board-da850-evm.c
-+++ b/arch/arm/mach-davinci/board-da850-evm.c
-@@ -34,6 +34,7 @@
- #include <linux/delay.h>
- #include <linux/wl12xx.h>
- 
-+#include <asm/system_info.h>
- #include <asm/mach-types.h>
- #include <asm/mach/arch.h>
- 
-diff --git a/arch/arm/mach-ebsa110/core.c b/arch/arm/mach-ebsa110/core.c
-index 294aad0..0c40e59 100644
---- a/arch/arm/mach-ebsa110/core.c
-+++ b/arch/arm/mach-ebsa110/core.c
-@@ -22,7 +22,7 @@
- #include <asm/mach-types.h>
- #include <asm/pgtable.h>
- #include <asm/page.h>
--#include <asm/system.h>
-+#include <asm/system_misc.h>
- 
- #include <asm/mach/arch.h>
- #include <asm/mach/irq.h>
-diff --git a/arch/arm/mach-ebsa110/leds.c b/arch/arm/mach-ebsa110/leds.c
-index 6a6ea57..101a320 100644
---- a/arch/arm/mach-ebsa110/leds.c
-+++ b/arch/arm/mach-ebsa110/leds.c
-@@ -17,7 +17,6 @@
- 
- #include <mach/hardware.h>
- #include <asm/leds.h>
--#include <asm/system.h>
- #include <asm/mach-types.h>
- 
- static spinlock_t leds_lock;
-diff --git a/arch/arm/mach-footbridge/common.c b/arch/arm/mach-footbridge/common.c
-index 41978ee..3e6aaa6 100644
---- a/arch/arm/mach-footbridge/common.c
-+++ b/arch/arm/mach-footbridge/common.c
-@@ -21,6 +21,7 @@
- #include <asm/irq.h>
- #include <asm/mach-types.h>
- #include <asm/setup.h>
-+#include <asm/system_misc.h>
- #include <asm/hardware/dec21285.h>
- 
- #include <asm/mach/irq.h>
-diff --git a/arch/arm/mach-footbridge/dc21285-timer.c b/arch/arm/mach-footbridge/dc21285-timer.c
-index 121ad1d..3b54196 100644
---- a/arch/arm/mach-footbridge/dc21285-timer.c
-+++ b/arch/arm/mach-footbridge/dc21285-timer.c
-@@ -14,6 +14,7 @@
- 
- #include <asm/hardware/dec21285.h>
- #include <asm/mach/time.h>
-+#include <asm/system_info.h>
- 
- #include "common.h"
- 
-diff --git a/arch/arm/mach-footbridge/dc21285.c b/arch/arm/mach-footbridge/dc21285.c
-index f685650..94a7087 100644
---- a/arch/arm/mach-footbridge/dc21285.c
-+++ b/arch/arm/mach-footbridge/dc21285.c
-@@ -21,7 +21,6 @@
- #include <video/vga.h>
- 
- #include <asm/irq.h>
--#include <asm/system.h>
- #include <asm/mach/pci.h>
- #include <asm/hardware/dec21285.h>
- 
-diff --git a/arch/arm/mach-footbridge/ebsa285-leds.c b/arch/arm/mach-footbridge/ebsa285-leds.c
-index 4e10090..5bd2667 100644
---- a/arch/arm/mach-footbridge/ebsa285-leds.c
-+++ b/arch/arm/mach-footbridge/ebsa285-leds.c
-@@ -24,7 +24,6 @@
- #include <mach/hardware.h>
- #include <asm/leds.h>
- #include <asm/mach-types.h>
--#include <asm/system.h>
- 
- #define LED_STATE_ENABLED	1
- #define LED_STATE_CLAIMED	2
-diff --git a/arch/arm/mach-footbridge/netwinder-hw.c b/arch/arm/mach-footbridge/netwinder-hw.c
-index 80a1c5c..cac9f67 100644
---- a/arch/arm/mach-footbridge/netwinder-hw.c
-+++ b/arch/arm/mach-footbridge/netwinder-hw.c
-@@ -17,6 +17,7 @@
- #include <asm/leds.h>
- #include <asm/mach-types.h>
- #include <asm/setup.h>
-+#include <asm/system_misc.h>
- 
- #include <asm/mach/arch.h>
- 
-diff --git a/arch/arm/mach-footbridge/netwinder-leds.c b/arch/arm/mach-footbridge/netwinder-leds.c
-index e57102e..5a2bd89 100644
---- a/arch/arm/mach-footbridge/netwinder-leds.c
-+++ b/arch/arm/mach-footbridge/netwinder-leds.c
-@@ -24,7 +24,6 @@
- #include <mach/hardware.h>
- #include <asm/leds.h>
- #include <asm/mach-types.h>
--#include <asm/system.h>
- 
- #define LED_STATE_ENABLED	1
- #define LED_STATE_CLAIMED	2
-diff --git a/arch/arm/mach-imx/dma-v1.c b/arch/arm/mach-imx/dma-v1.c
-index 42afc29..3189a60 100644
---- a/arch/arm/mach-imx/dma-v1.c
-+++ b/arch/arm/mach-imx/dma-v1.c
-@@ -32,7 +32,6 @@
- #include <linux/scatterlist.h>
- #include <linux/io.h>
- 
--#include <asm/system.h>
- #include <asm/irq.h>
- #include <mach/hardware.h>
- #include <mach/dma-v1.h>
-diff --git a/arch/arm/mach-imx/mach-imx6q.c b/arch/arm/mach-imx/mach-imx6q.c
-index c257281..527b697 100644
---- a/arch/arm/mach-imx/mach-imx6q.c
-+++ b/arch/arm/mach-imx/mach-imx6q.c
-@@ -21,6 +21,7 @@
- #include <linux/of_platform.h>
- #include <linux/phy.h>
- #include <linux/micrel_phy.h>
-+#include <asm/system_misc.h>
- #include <asm/hardware/cache-l2x0.h>
- #include <asm/hardware/gic.h>
- #include <asm/mach/arch.h>
-diff --git a/arch/arm/mach-imx/mach-mx51_efikamx.c b/arch/arm/mach-imx/mach-mx51_efikamx.c
-index 3a5ed2d..586e9f8 100644
---- a/arch/arm/mach-imx/mach-mx51_efikamx.c
-+++ b/arch/arm/mach-imx/mach-mx51_efikamx.c
-@@ -33,6 +33,7 @@
- #include <mach/iomux-mx51.h>
- 
- #include <asm/setup.h>
-+#include <asm/system_info.h>
- #include <asm/mach-types.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/time.h>
-diff --git a/arch/arm/mach-imx/mach-mx51_efikasb.c b/arch/arm/mach-imx/mach-mx51_efikasb.c
-index ea5f65b..24aded9 100644
---- a/arch/arm/mach-imx/mach-mx51_efikasb.c
-+++ b/arch/arm/mach-imx/mach-mx51_efikasb.c
-@@ -36,6 +36,7 @@
- #include <mach/iomux-mx51.h>
- 
- #include <asm/setup.h>
-+#include <asm/system_info.h>
- #include <asm/mach-types.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/time.h>
-diff --git a/arch/arm/mach-integrator/core.c b/arch/arm/mach-integrator/core.c
-index 019f0ab..d2fd9f3 100644
---- a/arch/arm/mach-integrator/core.c
-+++ b/arch/arm/mach-integrator/core.c
-@@ -27,7 +27,6 @@
- #include <mach/platform.h>
- #include <asm/irq.h>
- #include <mach/cm.h>
--#include <asm/system.h>
- #include <asm/leds.h>
- #include <asm/mach-types.h>
- #include <asm/mach/time.h>
-diff --git a/arch/arm/mach-integrator/leds.c b/arch/arm/mach-integrator/leds.c
-index 28be186..466defa 100644
---- a/arch/arm/mach-integrator/leds.c
-+++ b/arch/arm/mach-integrator/leds.c
-@@ -29,7 +29,6 @@
- #include <mach/hardware.h>
- #include <mach/platform.h>
- #include <asm/leds.h>
--#include <asm/system.h>
- #include <asm/mach-types.h>
- #include <mach/cm.h>
- 
-diff --git a/arch/arm/mach-integrator/pci.c b/arch/arm/mach-integrator/pci.c
-index 520b6bf..36068f4 100644
---- a/arch/arm/mach-integrator/pci.c
-+++ b/arch/arm/mach-integrator/pci.c
-@@ -27,7 +27,6 @@
- #include <linux/init.h>
- 
- #include <asm/irq.h>
--#include <asm/system.h>
- #include <asm/mach/pci.h>
- #include <asm/mach-types.h>
- 
-diff --git a/arch/arm/mach-integrator/pci_v3.c b/arch/arm/mach-integrator/pci_v3.c
-index 3c82566..9d47b4c 100644
---- a/arch/arm/mach-integrator/pci_v3.c
-+++ b/arch/arm/mach-integrator/pci_v3.c
-@@ -32,7 +32,6 @@
- #include <mach/platform.h>
- #include <asm/irq.h>
- #include <asm/signal.h>
--#include <asm/system.h>
- #include <asm/mach/pci.h>
- #include <asm/irq_regs.h>
- 
-diff --git a/arch/arm/mach-iop33x/uart.c b/arch/arm/mach-iop33x/uart.c
-index cdae24e..bbf54d7 100644
---- a/arch/arm/mach-iop33x/uart.c
-+++ b/arch/arm/mach-iop33x/uart.c
-@@ -22,7 +22,6 @@
- #include <asm/page.h>
- #include <asm/mach/map.h>
- #include <asm/setup.h>
--#include <asm/system.h>
- #include <asm/memory.h>
- #include <mach/hardware.h>
- #include <asm/hardware/iop3xx.h>
-diff --git a/arch/arm/mach-ixp2000/core.c b/arch/arm/mach-ixp2000/core.c
-index 81c4537..f214cdf 100644
---- a/arch/arm/mach-ixp2000/core.c
-+++ b/arch/arm/mach-ixp2000/core.c
-@@ -32,7 +32,6 @@
- #include <asm/memory.h>
- #include <mach/hardware.h>
- #include <asm/irq.h>
--#include <asm/system.h>
- #include <asm/tlbflush.h>
- #include <asm/pgtable.h>
- 
-diff --git a/arch/arm/mach-ixp2000/enp2611.c b/arch/arm/mach-ixp2000/enp2611.c
-index e872d23..4867f40 100644
---- a/arch/arm/mach-ixp2000/enp2611.c
-+++ b/arch/arm/mach-ixp2000/enp2611.c
-@@ -36,7 +36,6 @@
- #include <asm/irq.h>
- #include <asm/pgtable.h>
- #include <asm/page.h>
--#include <asm/system.h>
- #include <mach/hardware.h>
- #include <asm/mach-types.h>
- 
-diff --git a/arch/arm/mach-ixp2000/ixdp2400.c b/arch/arm/mach-ixp2000/ixdp2400.c
-index f53e911..558f5f8 100644
---- a/arch/arm/mach-ixp2000/ixdp2400.c
-+++ b/arch/arm/mach-ixp2000/ixdp2400.c
-@@ -29,7 +29,6 @@
- #include <asm/irq.h>
- #include <asm/pgtable.h>
- #include <asm/page.h>
--#include <asm/system.h>
- #include <mach/hardware.h>
- #include <asm/mach-types.h>
- 
-diff --git a/arch/arm/mach-ixp2000/ixdp2800.c b/arch/arm/mach-ixp2000/ixdp2800.c
-index a2e7c39..33c6d5f 100644
---- a/arch/arm/mach-ixp2000/ixdp2800.c
-+++ b/arch/arm/mach-ixp2000/ixdp2800.c
-@@ -29,7 +29,6 @@
- #include <asm/irq.h>
- #include <asm/pgtable.h>
- #include <asm/page.h>
--#include <asm/system.h>
- #include <mach/hardware.h>
- #include <asm/mach-types.h>
- 
-diff --git a/arch/arm/mach-ixp2000/ixdp2x00.c b/arch/arm/mach-ixp2000/ixdp2x00.c
-index 634b6c8..910426a 100644
---- a/arch/arm/mach-ixp2000/ixdp2x00.c
-+++ b/arch/arm/mach-ixp2000/ixdp2x00.c
-@@ -30,7 +30,6 @@
- #include <asm/irq.h>
- #include <asm/pgtable.h>
- #include <asm/page.h>
--#include <asm/system.h>
- #include <mach/hardware.h>
- #include <asm/mach-types.h>
- 
-diff --git a/arch/arm/mach-ixp2000/ixdp2x01.c b/arch/arm/mach-ixp2000/ixdp2x01.c
-index 7632bea..5196c39 100644
---- a/arch/arm/mach-ixp2000/ixdp2x01.c
-+++ b/arch/arm/mach-ixp2000/ixdp2x01.c
-@@ -34,7 +34,6 @@
- #include <asm/irq.h>
- #include <asm/pgtable.h>
- #include <asm/page.h>
--#include <asm/system.h>
- #include <mach/hardware.h>
- #include <asm/mach-types.h>
- 
-diff --git a/arch/arm/mach-ixp2000/pci.c b/arch/arm/mach-ixp2000/pci.c
-index 626fda4..7e9a1f3 100644
---- a/arch/arm/mach-ixp2000/pci.c
-+++ b/arch/arm/mach-ixp2000/pci.c
-@@ -26,7 +26,6 @@
- #include <linux/io.h>
- 
- #include <asm/irq.h>
--#include <asm/system.h>
- #include <mach/hardware.h>
- 
- #include <asm/mach/pci.h>
-diff --git a/arch/arm/mach-ixp23xx/core.c b/arch/arm/mach-ixp23xx/core.c
-index 0923bb9..ccdec42 100644
---- a/arch/arm/mach-ixp23xx/core.c
-+++ b/arch/arm/mach-ixp23xx/core.c
-@@ -34,7 +34,6 @@
- #include <asm/memory.h>
- #include <mach/hardware.h>
- #include <asm/irq.h>
--#include <asm/system.h>
- #include <asm/tlbflush.h>
- #include <asm/pgtable.h>
- 
-diff --git a/arch/arm/mach-ixp23xx/espresso.c b/arch/arm/mach-ixp23xx/espresso.c
-index 8f2487e..d142d45 100644
---- a/arch/arm/mach-ixp23xx/espresso.c
-+++ b/arch/arm/mach-ixp23xx/espresso.c
-@@ -32,7 +32,6 @@
- #include <mach/hardware.h>
- #include <asm/mach-types.h>
- #include <asm/irq.h>
--#include <asm/system.h>
- #include <asm/tlbflush.h>
- #include <asm/pgtable.h>
- 
-diff --git a/arch/arm/mach-ixp23xx/ixdp2351.c b/arch/arm/mach-ixp23xx/ixdp2351.c
-index 5d5dd3e..b0e07db 100644
---- a/arch/arm/mach-ixp23xx/ixdp2351.c
-+++ b/arch/arm/mach-ixp23xx/ixdp2351.c
-@@ -36,7 +36,6 @@
- #include <asm/memory.h>
- #include <mach/hardware.h>
- #include <asm/mach-types.h>
--#include <asm/system.h>
- #include <asm/tlbflush.h>
- #include <asm/pgtable.h>
- 
-diff --git a/arch/arm/mach-ixp23xx/pci.c b/arch/arm/mach-ixp23xx/pci.c
-index 25b5c46..bdf2866 100644
---- a/arch/arm/mach-ixp23xx/pci.c
-+++ b/arch/arm/mach-ixp23xx/pci.c
-@@ -28,7 +28,6 @@
- 
- #include <asm/irq.h>
- #include <asm/sizes.h>
--#include <asm/system.h>
- #include <asm/mach/pci.h>
- #include <mach/hardware.h>
- 
-diff --git a/arch/arm/mach-ixp23xx/roadrunner.c b/arch/arm/mach-ixp23xx/roadrunner.c
-index 377283f..eaaa3fa 100644
---- a/arch/arm/mach-ixp23xx/roadrunner.c
-+++ b/arch/arm/mach-ixp23xx/roadrunner.c
-@@ -36,7 +36,6 @@
- #include <mach/hardware.h>
- #include <asm/mach-types.h>
- #include <asm/irq.h>
--#include <asm/system.h>
- #include <asm/tlbflush.h>
- #include <asm/pgtable.h>
- 
-diff --git a/arch/arm/mach-ixp4xx/common-pci.c b/arch/arm/mach-ixp4xx/common-pci.c
-index 5eff15f..0f445d3 100644
---- a/arch/arm/mach-ixp4xx/common-pci.c
-+++ b/arch/arm/mach-ixp4xx/common-pci.c
-@@ -32,7 +32,6 @@
- #include <asm/cputype.h>
- #include <asm/irq.h>
- #include <asm/sizes.h>
--#include <asm/system.h>
- #include <asm/mach/pci.h>
- #include <mach/hardware.h>
- 
-diff --git a/arch/arm/mach-ixp4xx/goramo_mlr.c b/arch/arm/mach-ixp4xx/goramo_mlr.c
-index c0e3d69..78ae12c 100644
---- a/arch/arm/mach-ixp4xx/goramo_mlr.c
-+++ b/arch/arm/mach-ixp4xx/goramo_mlr.c
-@@ -12,7 +12,6 @@
- #include <linux/pci.h>
- #include <linux/serial_8250.h>
- #include <asm/mach-types.h>
--#include <asm/system.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/flash.h>
- #include <asm/mach/pci.h>
-diff --git a/arch/arm/mach-ks8695/time.c b/arch/arm/mach-ks8695/time.c
-index 37dfcd5..ec783a3 100644
---- a/arch/arm/mach-ks8695/time.c
-+++ b/arch/arm/mach-ks8695/time.c
-@@ -27,6 +27,7 @@
- #include <linux/io.h>
- 
- #include <asm/mach/time.h>
-+#include <asm/system_misc.h>
- 
- #include <mach/regs-timer.h>
- #include <mach/regs-irq.h>
-diff --git a/arch/arm/mach-mmp/common.c b/arch/arm/mach-mmp/common.c
-index 062b5b9..c868a6c 100644
---- a/arch/arm/mach-mmp/common.c
-+++ b/arch/arm/mach-mmp/common.c
-@@ -13,6 +13,7 @@
- #include <linux/module.h>
- 
- #include <asm/page.h>
-+#include <asm/system_misc.h>
- #include <asm/mach/map.h>
- #include <mach/addr-map.h>
- #include <mach/cputype.h>
-diff --git a/arch/arm/mach-mmp/pxa168.c b/arch/arm/mach-mmp/pxa168.c
-index ada1213..d5c9a2e 100644
---- a/arch/arm/mach-mmp/pxa168.c
-+++ b/arch/arm/mach-mmp/pxa168.c
-@@ -15,6 +15,7 @@
- #include <linux/clk.h>
- #include <linux/platform_device.h>
- 
-+#include <asm/system_misc.h>
- #include <asm/mach/time.h>
- #include <mach/addr-map.h>
- #include <mach/cputype.h>
-diff --git a/arch/arm/mach-msm/board-sapphire.c b/arch/arm/mach-msm/board-sapphire.c
-index 97b8191..4a8ea0d 100644
---- a/arch/arm/mach-msm/board-sapphire.c
-+++ b/arch/arm/mach-msm/board-sapphire.c
-@@ -27,7 +27,6 @@
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
- #include <asm/mach/flash.h>
--#include <asm/system.h>
- #include <mach/system.h>
- #include <mach/vreg.h>
- #include <mach/board.h>
-diff --git a/arch/arm/mach-mxs/system.c b/arch/arm/mach-mxs/system.c
-index 54f91ad..30042e2 100644
---- a/arch/arm/mach-mxs/system.c
-+++ b/arch/arm/mach-mxs/system.c
-@@ -25,7 +25,7 @@
- #include <linux/module.h>
- 
- #include <asm/proc-fns.h>
--#include <asm/system.h>
-+#include <asm/system_misc.h>
- 
- #include <mach/mxs.h>
- #include <mach/common.h>
-diff --git a/arch/arm/mach-omap1/id.c b/arch/arm/mach-omap1/id.c
-index a0e3560..b3f3363 100644
---- a/arch/arm/mach-omap1/id.c
-+++ b/arch/arm/mach-omap1/id.c
-@@ -15,6 +15,7 @@
- #include <linux/kernel.h>
- #include <linux/init.h>
- #include <linux/io.h>
-+#include <asm/system_info.h>
- #include <plat/cpu.h>
- 
- #define OMAP_DIE_ID_0		0xfffe1800
-diff --git a/arch/arm/mach-omap1/leds-h2p2-debug.c b/arch/arm/mach-omap1/leds-h2p2-debug.c
-index 4b818eb..f6b14a1 100644
---- a/arch/arm/mach-omap1/leds-h2p2-debug.c
-+++ b/arch/arm/mach-omap1/leds-h2p2-debug.c
-@@ -17,7 +17,6 @@
- 
- #include <mach/hardware.h>
- #include <asm/leds.h>
--#include <asm/system.h>
- #include <asm/mach-types.h>
- 
- #include <plat/fpga.h>
-diff --git a/arch/arm/mach-omap1/leds-innovator.c b/arch/arm/mach-omap1/leds-innovator.c
-index 9b99c28..3a066ee 100644
---- a/arch/arm/mach-omap1/leds-innovator.c
-+++ b/arch/arm/mach-omap1/leds-innovator.c
-@@ -5,7 +5,6 @@
- 
- #include <mach/hardware.h>
- #include <asm/leds.h>
--#include <asm/system.h>
- 
- #include "leds.h"
- 
-diff --git a/arch/arm/mach-omap1/leds-osk.c b/arch/arm/mach-omap1/leds-osk.c
-index da09f43..936ed42 100644
---- a/arch/arm/mach-omap1/leds-osk.c
-+++ b/arch/arm/mach-omap1/leds-osk.c
-@@ -8,7 +8,6 @@
- 
- #include <mach/hardware.h>
- #include <asm/leds.h>
--#include <asm/system.h>
- 
- #include "leds.h"
- 
-diff --git a/arch/arm/mach-omap1/mux.c b/arch/arm/mach-omap1/mux.c
-index 5fdef7a..087dba0 100644
---- a/arch/arm/mach-omap1/mux.c
-+++ b/arch/arm/mach-omap1/mux.c
-@@ -27,7 +27,6 @@
- #include <linux/io.h>
- #include <linux/spinlock.h>
- 
--#include <asm/system.h>
- 
- #include <plat/mux.h>
- 
-diff --git a/arch/arm/mach-omap1/time.c b/arch/arm/mach-omap1/time.c
-index b8faffa..7595e0a 100644
---- a/arch/arm/mach-omap1/time.c
-+++ b/arch/arm/mach-omap1/time.c
-@@ -44,7 +44,6 @@
- #include <linux/clockchips.h>
- #include <linux/io.h>
- 
--#include <asm/system.h>
- #include <mach/hardware.h>
- #include <asm/leds.h>
- #include <asm/irq.h>
-diff --git a/arch/arm/mach-omap1/timer32k.c b/arch/arm/mach-omap1/timer32k.c
-index 9a54ef4..10bcd13 100644
---- a/arch/arm/mach-omap1/timer32k.c
-+++ b/arch/arm/mach-omap1/timer32k.c
-@@ -46,7 +46,6 @@
- #include <linux/clockchips.h>
- #include <linux/io.h>
- 
--#include <asm/system.h>
- #include <mach/hardware.h>
- #include <asm/leds.h>
- #include <asm/irq.h>
-diff --git a/arch/arm/mach-omap2/board-omap3touchbook.c b/arch/arm/mach-omap2/board-omap3touchbook.c
-index a0b851a..c524c9d 100644
---- a/arch/arm/mach-omap2/board-omap3touchbook.c
-+++ b/arch/arm/mach-omap2/board-omap3touchbook.c
-@@ -38,6 +38,7 @@
- #include <linux/i2c/twl.h>
- 
- #include <mach/hardware.h>
-+#include <asm/system_info.h>
- #include <asm/mach-types.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
-diff --git a/arch/arm/mach-omap2/board-rx51-peripherals.c b/arch/arm/mach-omap2/board-rx51-peripherals.c
-index acb4e77..2bf84fd 100644
---- a/arch/arm/mach-omap2/board-rx51-peripherals.c
-+++ b/arch/arm/mach-omap2/board-rx51-peripherals.c
-@@ -25,6 +25,7 @@
- #include <linux/gpio_keys.h>
- #include <linux/mmc/host.h>
- #include <linux/power/isp1704_charger.h>
-+#include <asm/system_info.h>
- 
- #include <plat/mcspi.h>
- #include <plat/board.h>
-diff --git a/arch/arm/mach-omap2/mux.c b/arch/arm/mach-omap2/mux.c
-index 611a0e3..e974d33 100644
---- a/arch/arm/mach-omap2/mux.c
-+++ b/arch/arm/mach-omap2/mux.c
-@@ -35,7 +35,6 @@
- #include <linux/irq.h>
- #include <linux/interrupt.h>
- 
--#include <asm/system.h>
- 
- #include <plat/omap_hwmod.h>
- 
-diff --git a/arch/arm/mach-omap2/omap-mpuss-lowpower.c b/arch/arm/mach-omap2/omap-mpuss-lowpower.c
-index 1d5d010..069f8fc 100644
---- a/arch/arm/mach-omap2/omap-mpuss-lowpower.c
-+++ b/arch/arm/mach-omap2/omap-mpuss-lowpower.c
-@@ -46,7 +46,6 @@
- #include <asm/cacheflush.h>
- #include <asm/tlbflush.h>
- #include <asm/smp_scu.h>
--#include <asm/system.h>
- #include <asm/pgalloc.h>
- #include <asm/suspend.h>
- #include <asm/hardware/cache-l2x0.h>
-diff --git a/arch/arm/mach-omap2/pm24xx.c b/arch/arm/mach-omap2/pm24xx.c
-index 23de98d..730bb00 100644
---- a/arch/arm/mach-omap2/pm24xx.c
-+++ b/arch/arm/mach-omap2/pm24xx.c
-@@ -34,6 +34,7 @@
- #include <asm/mach/time.h>
- #include <asm/mach/irq.h>
- #include <asm/mach-types.h>
-+#include <asm/system_misc.h>
- 
- #include <mach/irqs.h>
- #include <plat/clock.h>
-diff --git a/arch/arm/mach-omap2/pm34xx.c b/arch/arm/mach-omap2/pm34xx.c
-index fc69875..64d95e6 100644
---- a/arch/arm/mach-omap2/pm34xx.c
-+++ b/arch/arm/mach-omap2/pm34xx.c
-@@ -31,6 +31,7 @@
- #include <trace/events/power.h>
- 
- #include <asm/suspend.h>
-+#include <asm/system_misc.h>
- 
- #include <plat/sram.h>
- #include "clockdomain.h"
-diff --git a/arch/arm/mach-omap2/pm44xx.c b/arch/arm/mach-omap2/pm44xx.c
-index c264ef7..a73e325 100644
---- a/arch/arm/mach-omap2/pm44xx.c
-+++ b/arch/arm/mach-omap2/pm44xx.c
-@@ -16,6 +16,7 @@
- #include <linux/list.h>
- #include <linux/err.h>
- #include <linux/slab.h>
-+#include <asm/system_misc.h>
- 
- #include "common.h"
- #include "clockdomain.h"
-diff --git a/arch/arm/mach-omap2/sleep44xx.S b/arch/arm/mach-omap2/sleep44xx.S
-index abd2834..9f6b83d 100644
---- a/arch/arm/mach-omap2/sleep44xx.S
-+++ b/arch/arm/mach-omap2/sleep44xx.S
-@@ -10,7 +10,6 @@
+  * 	implementations.
   */
  
- #include <linux/linkage.h>
--#include <asm/system.h>
- #include <asm/smp_scu.h>
- #include <asm/memory.h>
- #include <asm/hardware/cache-l2x0.h>
-diff --git a/arch/arm/mach-orion5x/common.c b/arch/arm/mach-orion5x/common.c
-index 5dad38e..2448166 100644
---- a/arch/arm/mach-orion5x/common.c
-+++ b/arch/arm/mach-orion5x/common.c
-@@ -21,6 +21,7 @@
- #include <net/dsa.h>
- #include <asm/page.h>
- #include <asm/setup.h>
-+#include <asm/system_misc.h>
- #include <asm/timex.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
-diff --git a/arch/arm/mach-orion5x/dns323-setup.c b/arch/arm/mach-orion5x/dns323-setup.c
-index 91b0f47..f4f6ad2d 100644
---- a/arch/arm/mach-orion5x/dns323-setup.c
-+++ b/arch/arm/mach-orion5x/dns323-setup.c
-@@ -29,6 +29,7 @@
- #include <linux/ata_platform.h>
- #include <linux/phy.h>
- #include <linux/marvell_phy.h>
-+#include <asm/system_info.h>
- #include <asm/mach-types.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/pci.h>
-diff --git a/arch/arm/mach-orion5x/ls-chl-setup.c b/arch/arm/mach-orion5x/ls-chl-setup.c
-index 5272131..0c9e413 100644
---- a/arch/arm/mach-orion5x/ls-chl-setup.c
-+++ b/arch/arm/mach-orion5x/ls-chl-setup.c
-@@ -22,7 +22,6 @@
- #include <linux/gpio.h>
- #include <asm/mach-types.h>
- #include <asm/mach/arch.h>
--#include <asm/system.h>
- #include <mach/orion5x.h>
- #include "common.h"
- #include "mpp.h"
-diff --git a/arch/arm/mach-orion5x/ls_hgl-setup.c b/arch/arm/mach-orion5x/ls_hgl-setup.c
-index 9a8697b..c1b5d8a 100644
---- a/arch/arm/mach-orion5x/ls_hgl-setup.c
-+++ b/arch/arm/mach-orion5x/ls_hgl-setup.c
-@@ -21,7 +21,6 @@
- #include <linux/gpio.h>
- #include <asm/mach-types.h>
- #include <asm/mach/arch.h>
--#include <asm/system.h>
- #include <mach/orion5x.h>
- #include "common.h"
- #include "mpp.h"
-diff --git a/arch/arm/mach-orion5x/lsmini-setup.c b/arch/arm/mach-orion5x/lsmini-setup.c
-index 09c7365..949eaa8 100644
---- a/arch/arm/mach-orion5x/lsmini-setup.c
-+++ b/arch/arm/mach-orion5x/lsmini-setup.c
-@@ -21,7 +21,6 @@
- #include <linux/gpio.h>
- #include <asm/mach-types.h>
- #include <asm/mach/arch.h>
--#include <asm/system.h>
- #include <mach/orion5x.h>
- #include "common.h"
- #include "mpp.h"
-diff --git a/arch/arm/mach-pnx4008/core.c b/arch/arm/mach-pnx4008/core.c
-index 4cfb40b..be4c928 100644
---- a/arch/arm/mach-pnx4008/core.c
-+++ b/arch/arm/mach-pnx4008/core.c
-@@ -32,7 +32,7 @@
- #include <asm/mach-types.h>
- #include <asm/pgtable.h>
- #include <asm/page.h>
--#include <asm/system.h>
-+#include <asm/system_misc.h>
++#include <asm/mce.h>
++
+ union el_timestamp;
+ struct el_subpacket;
+ struct ev7_lf_subpackets;
+diff --git a/arch/alpha/kernel/head.S b/arch/alpha/kernel/head.S
+index 4bdd1d2..c352499 100644
+--- a/arch/alpha/kernel/head.S
++++ b/arch/alpha/kernel/head.S
+@@ -8,14 +8,12 @@
+  */
  
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
-diff --git a/arch/arm/mach-pnx4008/dma.c b/arch/arm/mach-pnx4008/dma.c
-index 7fa4bf2..a4739e9 100644
---- a/arch/arm/mach-pnx4008/dma.c
-+++ b/arch/arm/mach-pnx4008/dma.c
-@@ -24,7 +24,6 @@
- #include <linux/io.h>
- #include <linux/gfp.h>
+ #include <linux/init.h>
+-#include <asm/system.h>
+ #include <asm/asm-offsets.h>
++#include <asm/pal.h>
++#include <asm/setup.h>
+ 
+ __HEAD
+-.globl swapper_pg_dir
+ .globl _stext
+-swapper_pg_dir=SWAPPER_PGD
+-
+ 	.set noreorder
+ 	.globl	__start
+ 	.ent	__start
+diff --git a/arch/alpha/kernel/irq.c b/arch/alpha/kernel/irq.c
+index 381431a..2872acc 100644
+--- a/arch/alpha/kernel/irq.c
++++ b/arch/alpha/kernel/irq.c
+@@ -26,7 +26,6 @@
+ #include <linux/profile.h>
+ #include <linux/bitops.h>
  
 -#include <asm/system.h>
- #include <mach/hardware.h>
- #include <mach/dma.h>
- #include <asm/dma-mapping.h>
-diff --git a/arch/arm/mach-pnx4008/irq.c b/arch/arm/mach-pnx4008/irq.c
-index 7608c7a..41e4201 100644
---- a/arch/arm/mach-pnx4008/irq.c
-+++ b/arch/arm/mach-pnx4008/irq.c
-@@ -28,7 +28,6 @@
- #include <asm/setup.h>
- #include <asm/pgtable.h>
- #include <asm/page.h>
--#include <asm/system.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/irq.h>
- #include <asm/mach/map.h>
-diff --git a/arch/arm/mach-pnx4008/time.c b/arch/arm/mach-pnx4008/time.c
-index 0c8aad4..0cfe8af 100644
---- a/arch/arm/mach-pnx4008/time.c
-+++ b/arch/arm/mach-pnx4008/time.c
-@@ -24,7 +24,6 @@
- #include <linux/irq.h>
- #include <linux/io.h>
+ #include <asm/io.h>
+ #include <asm/uaccess.h>
  
--#include <asm/system.h>
- #include <mach/hardware.h>
- #include <asm/leds.h>
- #include <asm/mach/time.h>
-diff --git a/arch/arm/mach-pxa/cm-x300.c b/arch/arm/mach-pxa/cm-x300.c
-index 4b981b8..125ae08 100644
---- a/arch/arm/mach-pxa/cm-x300.c
-+++ b/arch/arm/mach-pxa/cm-x300.c
-@@ -55,6 +55,7 @@
- #include <mach/pxa3xx-u2d.h>
+diff --git a/arch/alpha/kernel/irq_alpha.c b/arch/alpha/kernel/irq_alpha.c
+index 51b7fbd..772ddfd 100644
+--- a/arch/alpha/kernel/irq_alpha.c
++++ b/arch/alpha/kernel/irq_alpha.c
+@@ -11,6 +11,7 @@
+ #include <asm/machvec.h>
+ #include <asm/dma.h>
+ #include <asm/perf_event.h>
++#include <asm/mce.h>
  
- #include <asm/mach/map.h>
-+#include <asm/system_info.h>
- 
- #include "generic.h"
- #include "devices.h"
-diff --git a/arch/arm/mach-pxa/colibri-pxa3xx.c b/arch/arm/mach-pxa/colibri-pxa3xx.c
-index 2b8ca0d..2075a69 100644
---- a/arch/arm/mach-pxa/colibri-pxa3xx.c
-+++ b/arch/arm/mach-pxa/colibri-pxa3xx.c
-@@ -20,6 +20,7 @@
- #include <asm/sizes.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/irq.h>
-+#include <asm/system_info.h>
- #include <mach/pxa3xx-regs.h>
- #include <mach/mfp-pxa300.h>
- #include <mach/colibri.h>
-diff --git a/arch/arm/mach-pxa/corgi.c b/arch/arm/mach-pxa/corgi.c
-index 11f1e73..de9d45e 100644
---- a/arch/arm/mach-pxa/corgi.c
-+++ b/arch/arm/mach-pxa/corgi.c
+ #include "proto.h"
+ #include "irq_impl.h"
+diff --git a/arch/alpha/kernel/osf_sys.c b/arch/alpha/kernel/osf_sys.c
+index 01e8715..49ee319 100644
+--- a/arch/alpha/kernel/osf_sys.c
++++ b/arch/alpha/kernel/osf_sys.c
 @@ -40,7 +40,6 @@
- #include <asm/mach-types.h>
- #include <mach/hardware.h>
- #include <asm/irq.h>
+ #include <asm/fpu.h>
+ #include <asm/io.h>
+ #include <asm/uaccess.h>
 -#include <asm/system.h>
+ #include <asm/sysinfo.h>
+ #include <asm/thread_info.h>
+ #include <asm/hwrpb.h>
+diff --git a/arch/alpha/kernel/process.c b/arch/alpha/kernel/process.c
+index 89bbe5b..153d3fc 100644
+--- a/arch/alpha/kernel/process.c
++++ b/arch/alpha/kernel/process.c
+@@ -31,7 +31,6 @@
  
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
-diff --git a/arch/arm/mach-pxa/generic.c b/arch/arm/mach-pxa/generic.c
-index 5432ecb..4225417 100644
---- a/arch/arm/mach-pxa/generic.c
-+++ b/arch/arm/mach-pxa/generic.c
-@@ -22,7 +22,6 @@
+ #include <asm/reg.h>
+ #include <asm/uaccess.h>
+-#include <asm/system.h>
+ #include <asm/io.h>
+ #include <asm/pgtable.h>
+ #include <asm/hwrpb.h>
+diff --git a/arch/alpha/kernel/ptrace.c b/arch/alpha/kernel/ptrace.c
+index e2af5eb..54616f4 100644
+--- a/arch/alpha/kernel/ptrace.c
++++ b/arch/alpha/kernel/ptrace.c
+@@ -16,7 +16,6 @@
+ 
+ #include <asm/uaccess.h>
+ #include <asm/pgtable.h>
+-#include <asm/system.h>
+ #include <asm/fpu.h>
+ 
+ #include "proto.h"
+diff --git a/arch/alpha/kernel/setup.c b/arch/alpha/kernel/setup.c
+index 32de560..9e3107cc5 100644
+--- a/arch/alpha/kernel/setup.c
++++ b/arch/alpha/kernel/setup.c
+@@ -55,7 +55,6 @@ static struct notifier_block alpha_panic_block = {
+ 
+ #include <asm/uaccess.h>
+ #include <asm/pgtable.h>
+-#include <asm/system.h>
+ #include <asm/hwrpb.h>
+ #include <asm/dma.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_alcor.c b/arch/alpha/kernel/sys_alcor.c
+index 8606d77..118dc6a 100644
+--- a/arch/alpha/kernel/sys_alcor.c
++++ b/arch/alpha/kernel/sys_alcor.c
+@@ -18,7 +18,6 @@
+ #include <linux/bitops.h>
+ 
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/io.h>
+ #include <asm/dma.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_cabriolet.c b/arch/alpha/kernel/sys_cabriolet.c
+index 1029619..4c50f8f 100644
+--- a/arch/alpha/kernel/sys_cabriolet.c
++++ b/arch/alpha/kernel/sys_cabriolet.c
+@@ -18,7 +18,6 @@
+ #include <linux/bitops.h>
+ 
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_dp264.c b/arch/alpha/kernel/sys_dp264.c
+index bb7f0c7..1447d21 100644
+--- a/arch/alpha/kernel/sys_dp264.c
++++ b/arch/alpha/kernel/sys_dp264.c
+@@ -21,7 +21,6 @@
+ #include <linux/bitops.h>
+ 
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_eb64p.c b/arch/alpha/kernel/sys_eb64p.c
+index 3c6c13c..ad40a42 100644
+--- a/arch/alpha/kernel/sys_eb64p.c
++++ b/arch/alpha/kernel/sys_eb64p.c
+@@ -17,7 +17,6 @@
+ #include <linux/bitops.h>
+ 
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_eiger.c b/arch/alpha/kernel/sys_eiger.c
+index 35f480d..79d69d7 100644
+--- a/arch/alpha/kernel/sys_eiger.c
++++ b/arch/alpha/kernel/sys_eiger.c
+@@ -18,7 +18,6 @@
+ #include <linux/bitops.h>
+ 
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_jensen.c b/arch/alpha/kernel/sys_jensen.c
+index 7f1a87f1..5a0af11 100644
+--- a/arch/alpha/kernel/sys_jensen.c
++++ b/arch/alpha/kernel/sys_jensen.c
+@@ -15,7 +15,6 @@
  #include <linux/init.h>
  
- #include <mach/hardware.h>
--#include <asm/system.h>
- #include <asm/mach/map.h>
- #include <asm/mach-types.h>
- 
-diff --git a/arch/arm/mach-pxa/leds-idp.c b/arch/arm/mach-pxa/leds-idp.c
-index 8b9c171..06b0600 100644
---- a/arch/arm/mach-pxa/leds-idp.c
-+++ b/arch/arm/mach-pxa/leds-idp.c
-@@ -16,7 +16,6 @@
- 
- #include <mach/hardware.h>
- #include <asm/leds.h>
--#include <asm/system.h>
- 
- #include <mach/pxa25x.h>
- #include <mach/idp.h>
-diff --git a/arch/arm/mach-pxa/leds-lubbock.c b/arch/arm/mach-pxa/leds-lubbock.c
-index e26d5ef..0bd85c8 100644
---- a/arch/arm/mach-pxa/leds-lubbock.c
-+++ b/arch/arm/mach-pxa/leds-lubbock.c
-@@ -15,7 +15,6 @@
- 
- #include <mach/hardware.h>
- #include <asm/leds.h>
--#include <asm/system.h>
- #include <mach/pxa25x.h>
- #include <mach/lubbock.h>
- 
-diff --git a/arch/arm/mach-pxa/leds-mainstone.c b/arch/arm/mach-pxa/leds-mainstone.c
-index db4af5e..4058ab3 100644
---- a/arch/arm/mach-pxa/leds-mainstone.c
-+++ b/arch/arm/mach-pxa/leds-mainstone.c
-@@ -14,7 +14,6 @@
- 
- #include <mach/hardware.h>
- #include <asm/leds.h>
--#include <asm/system.h>
- 
- #include <mach/pxa27x.h>
- #include <mach/mainstone.h>
-diff --git a/arch/arm/mach-pxa/magician.c b/arch/arm/mach-pxa/magician.c
-index 3d6baf9..264cd89 100644
---- a/arch/arm/mach-pxa/magician.c
-+++ b/arch/arm/mach-pxa/magician.c
-@@ -31,6 +31,7 @@
- #include <linux/i2c/pxa-i2c.h>
- 
- #include <mach/hardware.h>
-+#include <asm/system_info.h>
- #include <asm/mach-types.h>
- #include <asm/mach/arch.h>
- 
-diff --git a/arch/arm/mach-pxa/poodle.c b/arch/arm/mach-pxa/poodle.c
-index 744baee..89d98c8 100644
---- a/arch/arm/mach-pxa/poodle.c
-+++ b/arch/arm/mach-pxa/poodle.c
-@@ -34,7 +34,6 @@
- #include <asm/mach-types.h>
- #include <asm/irq.h>
- #include <asm/setup.h>
--#include <asm/system.h>
- 
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
-diff --git a/arch/arm/mach-pxa/reset.c b/arch/arm/mach-pxa/reset.c
-index c8497b0..b452889 100644
---- a/arch/arm/mach-pxa/reset.c
-+++ b/arch/arm/mach-pxa/reset.c
-@@ -9,6 +9,7 @@
- #include <linux/gpio.h>
- #include <linux/io.h>
- #include <asm/proc-fns.h>
-+#include <asm/system_misc.h>
- 
- #include <mach/regs-ost.h>
- #include <mach/reset.h>
-diff --git a/arch/arm/mach-pxa/viper.c b/arch/arm/mach-pxa/viper.c
-index 023d6ca..7a3d342 100644
---- a/arch/arm/mach-pxa/viper.c
-+++ b/arch/arm/mach-pxa/viper.c
-@@ -57,6 +57,7 @@
- #include <asm/mach-types.h>
- #include <asm/irq.h>
- #include <asm/sizes.h>
-+#include <asm/system_info.h>
- 
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
-diff --git a/arch/arm/mach-pxa/zeus.c b/arch/arm/mach-pxa/zeus.c
-index a4dd1c3..4c5ae58 100644
---- a/arch/arm/mach-pxa/zeus.c
-+++ b/arch/arm/mach-pxa/zeus.c
-@@ -34,6 +34,7 @@
- #include <asm/suspend.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
-+#include <asm/system_info.h>
- 
- #include <mach/pxa27x.h>
- #include <mach/regs-uart.h>
-diff --git a/arch/arm/mach-realview/core.c b/arch/arm/mach-realview/core.c
-index acd329a..45868bb 100644
---- a/arch/arm/mach-realview/core.c
-+++ b/arch/arm/mach-realview/core.c
-@@ -33,7 +33,6 @@
- #include <linux/clkdev.h>
- #include <linux/mtd/physmap.h>
- 
--#include <asm/system.h>
- #include <mach/hardware.h>
- #include <asm/irq.h>
- #include <asm/leds.h>
-diff --git a/arch/arm/mach-rpc/riscpc.c b/arch/arm/mach-rpc/riscpc.c
-index 3d44a59..e958597 100644
---- a/arch/arm/mach-rpc/riscpc.c
-+++ b/arch/arm/mach-rpc/riscpc.c
-@@ -28,6 +28,7 @@
- #include <asm/page.h>
- #include <asm/domain.h>
- #include <asm/setup.h>
-+#include <asm/system_misc.h>
- 
- #include <asm/mach/map.h>
- #include <asm/mach/arch.h>
-diff --git a/arch/arm/mach-s3c2410/s3c2410.c b/arch/arm/mach-s3c2410/s3c2410.c
-index 061b6bb..a3c5cb0 100644
---- a/arch/arm/mach-s3c2410/s3c2410.c
-+++ b/arch/arm/mach-s3c2410/s3c2410.c
-@@ -30,6 +30,7 @@
- 
- #include <mach/hardware.h>
- #include <asm/irq.h>
-+#include <asm/system_misc.h>
- 
- #include <plat/cpu-freq.h>
- 
-diff --git a/arch/arm/mach-s3c2412/s3c2412.c b/arch/arm/mach-s3c2412/s3c2412.c
-index aff6e85..100ef1c 100644
---- a/arch/arm/mach-s3c2412/s3c2412.c
-+++ b/arch/arm/mach-s3c2412/s3c2412.c
-@@ -31,6 +31,7 @@
- #include <mach/hardware.h>
- #include <asm/proc-fns.h>
- #include <asm/irq.h>
-+#include <asm/system_misc.h>
- 
- #include <mach/idle.h>
- 
-diff --git a/arch/arm/mach-s3c2416/s3c2416.c b/arch/arm/mach-s3c2416/s3c2416.c
-index 5287d28..ed67ec9 100644
---- a/arch/arm/mach-s3c2416/s3c2416.c
-+++ b/arch/arm/mach-s3c2416/s3c2416.c
-@@ -43,6 +43,7 @@
- #include <mach/hardware.h>
- #include <asm/proc-fns.h>
- #include <asm/irq.h>
-+#include <asm/system_misc.h>
- 
- #include <mach/idle.h>
- #include <mach/regs-s3c2443-clock.h>
-diff --git a/arch/arm/mach-s3c2440/s3c244x.c b/arch/arm/mach-s3c2440/s3c244x.c
-index d15852f..6f74118 100644
---- a/arch/arm/mach-s3c2440/s3c244x.c
-+++ b/arch/arm/mach-s3c2440/s3c244x.c
-@@ -23,6 +23,7 @@
- #include <linux/clk.h>
- #include <linux/io.h>
- 
-+#include <asm/system_misc.h>
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
- #include <asm/mach/irq.h>
-diff --git a/arch/arm/mach-s3c2443/s3c2443.c b/arch/arm/mach-s3c2443/s3c2443.c
-index b9deaeb..9318847 100644
---- a/arch/arm/mach-s3c2443/s3c2443.c
-+++ b/arch/arm/mach-s3c2443/s3c2443.c
-@@ -29,6 +29,7 @@
- 
- #include <mach/hardware.h>
- #include <asm/irq.h>
-+#include <asm/system_misc.h>
- 
- #include <mach/regs-s3c2443-clock.h>
- 
-diff --git a/arch/arm/mach-s3c64xx/common.c b/arch/arm/mach-s3c64xx/common.c
-index bee7dcd..b313380 100644
---- a/arch/arm/mach-s3c64xx/common.c
-+++ b/arch/arm/mach-s3c64xx/common.c
-@@ -29,6 +29,7 @@
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
- #include <asm/hardware/vic.h>
-+#include <asm/system_misc.h>
- 
- #include <mach/map.h>
- #include <mach/hardware.h>
-diff --git a/arch/arm/mach-s5p64x0/common.c b/arch/arm/mach-s5p64x0/common.c
-index 52b89a3..a9d1ad4 100644
---- a/arch/arm/mach-s5p64x0/common.c
-+++ b/arch/arm/mach-s5p64x0/common.c
-@@ -30,6 +30,7 @@
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
- #include <asm/mach/irq.h>
-+#include <asm/system_misc.h>
- 
- #include <mach/map.h>
- #include <mach/hardware.h>
-diff --git a/arch/arm/mach-s5pc100/common.c b/arch/arm/mach-s5pc100/common.c
-index c909573..dff11c3 100644
---- a/arch/arm/mach-s5pc100/common.c
-+++ b/arch/arm/mach-s5pc100/common.c
-@@ -30,6 +30,7 @@
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
- #include <asm/mach/irq.h>
-+#include <asm/system_misc.h>
- 
- #include <mach/map.h>
- #include <mach/hardware.h>
-diff --git a/arch/arm/mach-sa1100/dma.c b/arch/arm/mach-sa1100/dma.c
-index ad66035..56e1333 100644
---- a/arch/arm/mach-sa1100/dma.c
-+++ b/arch/arm/mach-sa1100/dma.c
-@@ -16,7 +16,6 @@
- #include <linux/spinlock.h>
- #include <linux/errno.h>
- 
--#include <asm/system.h>
- #include <asm/irq.h>
- #include <mach/hardware.h>
- #include <mach/dma.h>
-diff --git a/arch/arm/mach-sa1100/generic.c b/arch/arm/mach-sa1100/generic.c
-index bb10ee2..9ad9469 100644
---- a/arch/arm/mach-sa1100/generic.c
-+++ b/arch/arm/mach-sa1100/generic.c
-@@ -21,10 +21,10 @@
- 
- #include <asm/div64.h>
- #include <mach/hardware.h>
--#include <asm/system.h>
- #include <asm/mach/map.h>
- #include <asm/mach/flash.h>
- #include <asm/irq.h>
-+#include <asm/system_misc.h>
- 
- #include "generic.h"
- 
-diff --git a/arch/arm/mach-sa1100/leds-assabet.c b/arch/arm/mach-sa1100/leds-assabet.c
-index 64e9b4b..3699176 100644
---- a/arch/arm/mach-sa1100/leds-assabet.c
-+++ b/arch/arm/mach-sa1100/leds-assabet.c
-@@ -13,7 +13,6 @@
- 
- #include <mach/hardware.h>
- #include <asm/leds.h>
--#include <asm/system.h>
- #include <mach/assabet.h>
- 
- #include "leds.h"
-diff --git a/arch/arm/mach-sa1100/leds-badge4.c b/arch/arm/mach-sa1100/leds-badge4.c
-index cf1e384..f99fac3 100644
---- a/arch/arm/mach-sa1100/leds-badge4.c
-+++ b/arch/arm/mach-sa1100/leds-badge4.c
-@@ -14,7 +14,6 @@
- 
- #include <mach/hardware.h>
- #include <asm/leds.h>
--#include <asm/system.h>
- 
- #include "leds.h"
- 
-diff --git a/arch/arm/mach-sa1100/leds-cerf.c b/arch/arm/mach-sa1100/leds-cerf.c
-index 259b48e..040540f 100644
---- a/arch/arm/mach-sa1100/leds-cerf.c
-+++ b/arch/arm/mach-sa1100/leds-cerf.c
-@@ -7,7 +7,6 @@
- 
- #include <mach/hardware.h>
- #include <asm/leds.h>
--#include <asm/system.h>
- 
- #include "leds.h"
- 
-diff --git a/arch/arm/mach-sa1100/leds-hackkit.c b/arch/arm/mach-sa1100/leds-hackkit.c
-index 2bce137..6a23524 100644
---- a/arch/arm/mach-sa1100/leds-hackkit.c
-+++ b/arch/arm/mach-sa1100/leds-hackkit.c
-@@ -13,7 +13,6 @@
- 
- #include <mach/hardware.h>
- #include <asm/leds.h>
--#include <asm/system.h>
- 
- #include "leds.h"
- 
-diff --git a/arch/arm/mach-sa1100/leds-lart.c b/arch/arm/mach-sa1100/leds-lart.c
-index 0505a1f..a51830c 100644
---- a/arch/arm/mach-sa1100/leds-lart.c
-+++ b/arch/arm/mach-sa1100/leds-lart.c
-@@ -13,7 +13,6 @@
- 
- #include <mach/hardware.h>
- #include <asm/leds.h>
--#include <asm/system.h>
- 
- #include "leds.h"
- 
-diff --git a/arch/arm/mach-sa1100/pm.c b/arch/arm/mach-sa1100/pm.c
-index bf85b8b..2fa499e 100644
---- a/arch/arm/mach-sa1100/pm.c
-+++ b/arch/arm/mach-sa1100/pm.c
-@@ -30,7 +30,6 @@
- #include <mach/hardware.h>
- #include <asm/memory.h>
- #include <asm/suspend.h>
--#include <asm/system.h>
- #include <asm/mach/time.h>
- 
- extern int sa1100_finish_suspend(unsigned long);
-diff --git a/arch/arm/mach-shark/leds.c b/arch/arm/mach-shark/leds.c
-index ccd4918..2560907 100644
---- a/arch/arm/mach-shark/leds.c
-+++ b/arch/arm/mach-shark/leds.c
-@@ -23,7 +23,6 @@
- #include <linux/io.h>
- 
- #include <asm/leds.h>
--#include <asm/system.h>
- 
- #define LED_STATE_ENABLED	1
- #define LED_STATE_CLAIMED	2
-diff --git a/arch/arm/mach-shmobile/cpuidle.c b/arch/arm/mach-shmobile/cpuidle.c
-index 1b23342..21b09b6 100644
---- a/arch/arm/mach-shmobile/cpuidle.c
-+++ b/arch/arm/mach-shmobile/cpuidle.c
-@@ -13,7 +13,6 @@
- #include <linux/suspend.h>
- #include <linux/module.h>
- #include <linux/err.h>
--#include <asm/system.h>
- #include <asm/io.h>
- 
- static void shmobile_enter_wfi(void)
-diff --git a/arch/arm/mach-shmobile/include/mach/system.h b/arch/arm/mach-shmobile/include/mach/system.h
-index 956ac18..9204270 100644
---- a/arch/arm/mach-shmobile/include/mach/system.h
-+++ b/arch/arm/mach-shmobile/include/mach/system.h
-@@ -1,6 +1,8 @@
- #ifndef __ASM_ARCH_SYSTEM_H
- #define __ASM_ARCH_SYSTEM_H
- 
-+#include <asm/system_misc.h>
-+
- static inline void arch_idle(void)
- {
- 	cpu_do_idle();
-diff --git a/arch/arm/mach-shmobile/pm-r8a7779.c b/arch/arm/mach-shmobile/pm-r8a7779.c
-index c38ba7b..a18a4ae 100644
---- a/arch/arm/mach-shmobile/pm-r8a7779.c
-+++ b/arch/arm/mach-shmobile/pm-r8a7779.c
-@@ -18,7 +18,6 @@
- #include <linux/irq.h>
- #include <linux/interrupt.h>
- #include <linux/console.h>
--#include <asm/system.h>
- #include <asm/io.h>
- #include <mach/common.h>
- #include <mach/r8a7779.h>
-diff --git a/arch/arm/mach-shmobile/pm-sh7372.c b/arch/arm/mach-shmobile/pm-sh7372.c
-index fcf8b17..a3bdb12 100644
---- a/arch/arm/mach-shmobile/pm-sh7372.c
-+++ b/arch/arm/mach-shmobile/pm-sh7372.c
-@@ -21,7 +21,6 @@
- #include <linux/irq.h>
- #include <linux/bitrev.h>
- #include <linux/console.h>
--#include <asm/system.h>
- #include <asm/io.h>
- #include <asm/tlbflush.h>
- #include <asm/suspend.h>
-diff --git a/arch/arm/mach-shmobile/suspend.c b/arch/arm/mach-shmobile/suspend.c
-index c1febe1..4d1b86a 100644
---- a/arch/arm/mach-shmobile/suspend.c
-+++ b/arch/arm/mach-shmobile/suspend.c
-@@ -12,8 +12,8 @@
- #include <linux/suspend.h>
- #include <linux/module.h>
- #include <linux/err.h>
--#include <asm/system.h>
- #include <asm/io.h>
-+#include <asm/system_misc.h>
- 
- static int shmobile_suspend_default_enter(suspend_state_t suspend_state)
- {
-diff --git a/arch/arm/mach-tegra/cpu-tegra.c b/arch/arm/mach-tegra/cpu-tegra.c
-index bb5ce39..7a065f0 100644
---- a/arch/arm/mach-tegra/cpu-tegra.c
-+++ b/arch/arm/mach-tegra/cpu-tegra.c
-@@ -30,7 +30,6 @@
- #include <linux/io.h>
- #include <linux/suspend.h>
- 
--#include <asm/system.h>
- 
- #include <mach/clk.h>
- 
-diff --git a/arch/arm/mach-versatile/core.c b/arch/arm/mach-versatile/core.c
-index 02b7b93..f0932b5 100644
---- a/arch/arm/mach-versatile/core.c
-+++ b/arch/arm/mach-versatile/core.c
-@@ -36,7 +36,6 @@
- #include <linux/clkdev.h>
- #include <linux/mtd/physmap.h>
- 
--#include <asm/system.h>
- #include <asm/irq.h>
- #include <asm/leds.h>
- #include <asm/hardware/arm_timer.h>
-diff --git a/arch/arm/mach-versatile/pci.c b/arch/arm/mach-versatile/pci.c
-index 90069bc..787cf5f 100644
---- a/arch/arm/mach-versatile/pci.c
-+++ b/arch/arm/mach-versatile/pci.c
-@@ -24,7 +24,6 @@
- 
- #include <mach/hardware.h>
- #include <asm/irq.h>
--#include <asm/system.h>
- #include <asm/mach/pci.h>
- 
- /*
-diff --git a/arch/arm/mach-w90x900/cpu.c b/arch/arm/mach-w90x900/cpu.c
-index 9a06619..9e4dd8b 100644
---- a/arch/arm/mach-w90x900/cpu.c
-+++ b/arch/arm/mach-w90x900/cpu.c
-@@ -28,6 +28,7 @@
- #include <asm/mach/map.h>
- #include <asm/mach/irq.h>
- #include <asm/irq.h>
-+#include <asm/system_misc.h>
- 
- #include <mach/hardware.h>
- #include <mach/regs-serial.h>
-diff --git a/arch/arm/mm/alignment.c b/arch/arm/mm/alignment.c
-index 78459b8..72c751a 100644
---- a/arch/arm/mm/alignment.c
-+++ b/arch/arm/mm/alignment.c
-@@ -24,6 +24,7 @@
- 
- #include <asm/cp15.h>
- #include <asm/unaligned.h>
-+#include <asm/system_info.h>
- 
- #include "fault.h"
- 
-diff --git a/arch/arm/mm/fault.c b/arch/arm/mm/fault.c
-index bb7eac3..2da5df7 100644
---- a/arch/arm/mm/fault.c
-+++ b/arch/arm/mm/fault.c
-@@ -21,9 +21,10 @@
- #include <linux/perf_event.h>
- 
- #include <asm/exception.h>
--#include <asm/system.h>
- #include <asm/pgtable.h>
- #include <asm/tlbflush.h>
-+#include <asm/system_misc.h>
-+#include <asm/system_info.h>
- 
- #include "fault.h"
- 
-diff --git a/arch/arm/mm/flush.c b/arch/arm/mm/flush.c
-index 1a8d4aa..062d61a 100644
---- a/arch/arm/mm/flush.c
-+++ b/arch/arm/mm/flush.c
-@@ -16,7 +16,6 @@
- #include <asm/cachetype.h>
- #include <asm/highmem.h>
- #include <asm/smp_plat.h>
--#include <asm/system.h>
- #include <asm/tlbflush.h>
- 
- #include "mm.h"
-diff --git a/arch/arm/mm/idmap.c b/arch/arm/mm/idmap.c
-index feacf4c..ab88ed4 100644
---- a/arch/arm/mm/idmap.c
-+++ b/arch/arm/mm/idmap.c
-@@ -5,6 +5,7 @@
- #include <asm/pgalloc.h>
- #include <asm/pgtable.h>
- #include <asm/sections.h>
-+#include <asm/system_info.h>
- 
- pgd_t *idmap_pgd;
- 
-diff --git a/arch/arm/mm/ioremap.c b/arch/arm/mm/ioremap.c
-index 66daf17..6780b49 100644
---- a/arch/arm/mm/ioremap.c
-+++ b/arch/arm/mm/ioremap.c
-@@ -33,6 +33,7 @@
- #include <asm/pgalloc.h>
- #include <asm/tlbflush.h>
- #include <asm/sizes.h>
-+#include <asm/system_info.h>
- 
- #include <asm/mach/map.h>
- #include "mm.h"
-diff --git a/arch/arm/mm/mmu.c b/arch/arm/mm/mmu.c
-index 163a69a..8aa1add 100644
---- a/arch/arm/mm/mmu.c
-+++ b/arch/arm/mm/mmu.c
-@@ -27,6 +27,7 @@
- #include <asm/tlb.h>
- #include <asm/highmem.h>
- #include <asm/traps.h>
-+#include <asm/system_info.h>
- 
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
-diff --git a/arch/arm/mm/proc-fa526.S b/arch/arm/mm/proc-fa526.S
-index 272558a..d217e97 100644
---- a/arch/arm/mm/proc-fa526.S
-+++ b/arch/arm/mm/proc-fa526.S
-@@ -22,7 +22,6 @@
- #include <asm/pgtable.h>
- #include <asm/page.h>
  #include <asm/ptrace.h>
 -#include <asm/system.h>
  
- #include "proc-macros.S"
- 
-diff --git a/arch/arm/nwfpe/fpa11.c b/arch/arm/nwfpe/fpa11.c
-index cc60acd..2782ebc 100644
---- a/arch/arm/nwfpe/fpa11.c
-+++ b/arch/arm/nwfpe/fpa11.c
-@@ -28,7 +28,6 @@
- 
- #include <linux/compiler.h>
- #include <linux/string.h>
--#include <asm/system.h>
- 
- /* Reset the FPA11 chip.  Called to initialize and reset the emulator. */
- static void resetFPA11(void)
-diff --git a/arch/arm/plat-iop/i2c.c b/arch/arm/plat-iop/i2c.c
-index 4efe392..88215ad 100644
---- a/arch/arm/plat-iop/i2c.c
-+++ b/arch/arm/plat-iop/i2c.c
-@@ -23,7 +23,6 @@
- #include <asm/page.h>
- #include <asm/mach/map.h>
- #include <asm/setup.h>
--#include <asm/system.h>
- #include <asm/memory.h>
- #include <mach/hardware.h>
- #include <asm/hardware/iop3xx.h>
-diff --git a/arch/arm/plat-iop/pci.c b/arch/arm/plat-iop/pci.c
-index f4d40a2..bb26981 100644
---- a/arch/arm/plat-iop/pci.c
-+++ b/arch/arm/plat-iop/pci.c
-@@ -20,7 +20,6 @@
- #include <linux/io.h>
- #include <asm/irq.h>
- #include <asm/signal.h>
--#include <asm/system.h>
- #include <mach/hardware.h>
- #include <asm/mach/pci.h>
- #include <asm/hardware/iop3xx.h>
-diff --git a/arch/arm/plat-iop/restart.c b/arch/arm/plat-iop/restart.c
-index 6a85a0c..33fa699 100644
---- a/arch/arm/plat-iop/restart.c
-+++ b/arch/arm/plat-iop/restart.c
-@@ -8,6 +8,7 @@
-  * published by the Free Software Foundation.
-  */
- #include <asm/hardware/iop3xx.h>
-+#include <asm/system_misc.h>
- #include <mach/hardware.h>
- 
- void iop3xx_restart(char mode, const char *cmd)
-diff --git a/arch/arm/plat-mxc/system.c b/arch/arm/plat-mxc/system.c
-index 3599bf2..c195d6d 100644
---- a/arch/arm/plat-mxc/system.c
-+++ b/arch/arm/plat-mxc/system.c
-@@ -25,8 +25,8 @@
- 
- #include <mach/hardware.h>
- #include <mach/common.h>
-+#include <asm/system_misc.h>
- #include <asm/proc-fns.h>
--#include <asm/system.h>
- #include <asm/mach-types.h>
- 
- void __iomem *(*imx_ioremap)(unsigned long, size_t, unsigned int) = NULL;
-diff --git a/arch/arm/plat-omap/debug-leds.c b/arch/arm/plat-omap/debug-leds.c
-index 61a1ec2..39407cb 100644
---- a/arch/arm/plat-omap/debug-leds.c
-+++ b/arch/arm/plat-omap/debug-leds.c
-@@ -15,7 +15,6 @@
- 
- #include <mach/hardware.h>
- #include <asm/leds.h>
--#include <asm/system.h>
- #include <asm/mach-types.h>
- 
- #include <plat/fpga.h>
-diff --git a/arch/arm/plat-omap/dma.c b/arch/arm/plat-omap/dma.c
-index 002fb4d..dbb1049 100644
---- a/arch/arm/plat-omap/dma.c
-+++ b/arch/arm/plat-omap/dma.c
-@@ -36,7 +36,6 @@
- #include <linux/slab.h>
- #include <linux/delay.h>
- 
--#include <asm/system.h>
- #include <mach/hardware.h>
- #include <plat/dma.h>
- 
-diff --git a/arch/arm/plat-omap/mux.c b/arch/arm/plat-omap/mux.c
-index 0d4aa0d..976fc80 100644
---- a/arch/arm/plat-omap/mux.c
-+++ b/arch/arm/plat-omap/mux.c
-@@ -26,7 +26,6 @@
- #include <linux/init.h>
- #include <linux/kernel.h>
- #include <linux/io.h>
--#include <asm/system.h>
- #include <linux/spinlock.h>
- #include <plat/mux.h>
- 
-diff --git a/arch/arm/plat-pxa/dma.c b/arch/arm/plat-pxa/dma.c
-index 2d3c19d..79ef102 100644
---- a/arch/arm/plat-pxa/dma.c
-+++ b/arch/arm/plat-pxa/dma.c
-@@ -20,7 +20,6 @@
- #include <linux/errno.h>
- #include <linux/dma-mapping.h>
- 
--#include <asm/system.h>
- #include <asm/irq.h>
- #include <asm/memory.h>
- #include <mach/hardware.h>
-diff --git a/arch/arm/plat-s3c24xx/cpu.c b/arch/arm/plat-s3c24xx/cpu.c
-index 21f1fda..ded6431 100644
---- a/arch/arm/plat-s3c24xx/cpu.c
-+++ b/arch/arm/plat-s3c24xx/cpu.c
-@@ -34,6 +34,7 @@
- #include <mach/hardware.h>
- #include <asm/irq.h>
- #include <asm/cacheflush.h>
-+#include <asm/system_info.h>
- 
- #include <asm/mach/arch.h>
- #include <asm/mach/map.h>
-diff --git a/arch/arm/plat-s3c24xx/dma.c b/arch/arm/plat-s3c24xx/dma.c
-index 2bab4c9..28f898f 100644
---- a/arch/arm/plat-s3c24xx/dma.c
-+++ b/arch/arm/plat-s3c24xx/dma.c
-@@ -27,7 +27,6 @@
- #include <linux/errno.h>
- #include <linux/io.h>
- 
--#include <asm/system.h>
- #include <asm/irq.h>
- #include <mach/hardware.h>
- #include <mach/dma.h>
-diff --git a/arch/arm/plat-samsung/cpu.c b/arch/arm/plat-samsung/cpu.c
-index 81c06d4..46b426e 100644
---- a/arch/arm/plat-samsung/cpu.c
-+++ b/arch/arm/plat-samsung/cpu.c
-@@ -15,7 +15,6 @@
- #include <linux/init.h>
- #include <linux/io.h>
- 
--#include <asm/system.h>
- 
- #include <mach/map.h>
- #include <plat/cpu.h>
-diff --git a/arch/arm/plat-samsung/time.c b/arch/arm/plat-samsung/time.c
-index e3bb806..4dcb11c 100644
---- a/arch/arm/plat-samsung/time.c
-+++ b/arch/arm/plat-samsung/time.c
-@@ -28,7 +28,6 @@
- #include <linux/io.h>
- #include <linux/platform_device.h>
- 
--#include <asm/system.h>
- #include <asm/leds.h>
- #include <asm/mach-types.h>
- 
-diff --git a/arch/arm/plat-spear/restart.c b/arch/arm/plat-spear/restart.c
-index 2b4e3d8..16f203e 100644
---- a/arch/arm/plat-spear/restart.c
-+++ b/arch/arm/plat-spear/restart.c
-@@ -11,6 +11,7 @@
-  * warranty of any kind, whether express or implied.
-  */
- #include <linux/io.h>
-+#include <asm/system_misc.h>
- #include <asm/hardware/sp810.h>
- #include <mach/hardware.h>
- #include <mach/generic.h>
-diff --git a/arch/arm/vfp/vfpmodule.c b/arch/arm/vfp/vfpmodule.c
-index d89068f..9f50997 100644
---- a/arch/arm/vfp/vfpmodule.c
-+++ b/arch/arm/vfp/vfpmodule.c
-@@ -22,6 +22,7 @@
- #include <asm/cputype.h>
- #include <asm/thread_notify.h>
- #include <asm/vfp.h>
-+#include <asm/system_info.h>
- 
- #include "vfpinstr.h"
- #include "vfp.h"
-diff --git a/drivers/cpuidle/cpuidle.c b/drivers/cpuidle/cpuidle.c
-index 59f4261..654076e 100644
---- a/drivers/cpuidle/cpuidle.c
-+++ b/drivers/cpuidle/cpuidle.c
-@@ -19,6 +19,7 @@
- #include <linux/hrtimer.h>
- #include <linux/module.h>
- #include <trace/events/power.h>
-+#include <asm/system_misc.h>
- 
- #include "cpuidle.h"
- 
-diff --git a/drivers/net/ethernet/8390/etherh.c b/drivers/net/ethernet/8390/etherh.c
-index 48c4948..a45b0d8 100644
---- a/drivers/net/ethernet/8390/etherh.c
-+++ b/drivers/net/ethernet/8390/etherh.c
-@@ -48,6 +48,7 @@
- #include <asm/system.h>
- #include <asm/ecard.h>
+ #define __EXTERN_INLINE inline
  #include <asm/io.h>
-+#include <asm/system_info.h>
+diff --git a/arch/alpha/kernel/sys_marvel.c b/arch/alpha/kernel/sys_marvel.c
+index 95cfc83..e8b4f6f 100644
+--- a/arch/alpha/kernel/sys_marvel.c
++++ b/arch/alpha/kernel/sys_marvel.c
+@@ -13,7 +13,6 @@
+ #include <linux/bitops.h>
  
- #define EI_SHIFT(x)	(ei_local->reg_offset[x])
- 
-diff --git a/drivers/tty/serial/21285.c b/drivers/tty/serial/21285.c
-index 1b37626..6d0ddbc 100644
---- a/drivers/tty/serial/21285.c
-+++ b/drivers/tty/serial/21285.c
-@@ -16,6 +16,7 @@
- 
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/dma.h>
  #include <asm/irq.h>
- #include <asm/mach-types.h>
-+#include <asm/system_info.h>
- #include <asm/hardware/dec21285.h>
- #include <mach/hardware.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_miata.c b/arch/alpha/kernel/sys_miata.c
+index 258da68..d5b9776 100644
+--- a/arch/alpha/kernel/sys_miata.c
++++ b/arch/alpha/kernel/sys_miata.c
+@@ -17,7 +17,6 @@
+ #include <linux/reboot.h>
  
-diff --git a/drivers/watchdog/wdt285.c b/drivers/watchdog/wdt285.c
-index f551356..658a36d 100644
---- a/drivers/watchdog/wdt285.c
-+++ b/drivers/watchdog/wdt285.c
-@@ -32,6 +32,7 @@
- #include <mach/hardware.h>
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_mikasa.c b/arch/alpha/kernel/sys_mikasa.c
+index c0fd728..5e82dc1 100644
+--- a/arch/alpha/kernel/sys_mikasa.c
++++ b/arch/alpha/kernel/sys_mikasa.c
+@@ -17,7 +17,7 @@
+ #include <linux/bitops.h>
  
- #include <asm/mach-types.h>
-+#include <asm/system_info.h>
- #include <asm/hardware/dec21285.h>
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
++#include <asm/mce.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_nautilus.c b/arch/alpha/kernel/sys_nautilus.c
+index 4112200..4d4c046 100644
+--- a/arch/alpha/kernel/sys_nautilus.c
++++ b/arch/alpha/kernel/sys_nautilus.c
+@@ -35,7 +35,6 @@
+ #include <linux/bitops.h>
  
- /*
-diff --git a/include/linux/mtd/map.h b/include/linux/mtd/map.h
-index 94e924e..d9072d9 100644
---- a/include/linux/mtd/map.h
-+++ b/include/linux/mtd/map.h
-@@ -1,4 +1,4 @@
--/*
-+ r/*
-  * Copyright © 2000-2010 David Woodhouse <dwmw2@infradead.org> et al.
-  *
-  * This program is free software; you can redistribute it and/or modify
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_noritake.c b/arch/alpha/kernel/sys_noritake.c
+index 2172528..063e594 100644
+--- a/arch/alpha/kernel/sys_noritake.c
++++ b/arch/alpha/kernel/sys_noritake.c
+@@ -18,7 +18,7 @@
+ #include <linux/bitops.h>
+ 
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
++#include <asm/mce.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_rawhide.c b/arch/alpha/kernel/sys_rawhide.c
+index a125d6b..dfd510a 100644
+--- a/arch/alpha/kernel/sys_rawhide.c
++++ b/arch/alpha/kernel/sys_rawhide.c
+@@ -16,7 +16,6 @@
+ #include <linux/init.h>
+ 
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_ruffian.c b/arch/alpha/kernel/sys_ruffian.c
+index 2581cbe..a3f4852 100644
+--- a/arch/alpha/kernel/sys_ruffian.c
++++ b/arch/alpha/kernel/sys_ruffian.c
+@@ -18,7 +18,6 @@
+ #include <linux/init.h>
+ 
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_rx164.c b/arch/alpha/kernel/sys_rx164.c
+index b172b27..08ee737 100644
+--- a/arch/alpha/kernel/sys_rx164.c
++++ b/arch/alpha/kernel/sys_rx164.c
+@@ -17,7 +17,6 @@
+ #include <linux/bitops.h>
+ 
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_sable.c b/arch/alpha/kernel/sys_sable.c
+index 98d1dbf..8a0aa6d 100644
+--- a/arch/alpha/kernel/sys_sable.c
++++ b/arch/alpha/kernel/sys_sable.c
+@@ -16,7 +16,6 @@
+ #include <linux/init.h>
+ 
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_sio.c b/arch/alpha/kernel/sys_sio.c
+index 47bec1e..febd24e 100644
+--- a/arch/alpha/kernel/sys_sio.c
++++ b/arch/alpha/kernel/sys_sio.c
+@@ -20,7 +20,6 @@
+ 
+ #include <asm/compiler.h>
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_sx164.c b/arch/alpha/kernel/sys_sx164.c
+index 73e1c31..d063b36 100644
+--- a/arch/alpha/kernel/sys_sx164.c
++++ b/arch/alpha/kernel/sys_sx164.c
+@@ -17,7 +17,6 @@
+ #include <linux/bitops.h>
+ 
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+@@ -26,6 +25,7 @@
+ #include <asm/core_cia.h>
+ #include <asm/hwrpb.h>
+ #include <asm/tlbflush.h>
++#include <asm/special_insns.h>
+ 
+ #include "proto.h"
+ #include "irq_impl.h"
+diff --git a/arch/alpha/kernel/sys_takara.c b/arch/alpha/kernel/sys_takara.c
+index 2ae99ad..dd0f1ea 100644
+--- a/arch/alpha/kernel/sys_takara.c
++++ b/arch/alpha/kernel/sys_takara.c
+@@ -16,7 +16,6 @@
+ #include <linux/init.h>
+ 
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_titan.c b/arch/alpha/kernel/sys_titan.c
+index f47b30a..9de928c 100644
+--- a/arch/alpha/kernel/sys_titan.c
++++ b/arch/alpha/kernel/sys_titan.c
+@@ -21,7 +21,6 @@
+ #include <linux/bitops.h>
+ 
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/sys_wildfire.c b/arch/alpha/kernel/sys_wildfire.c
+index 17c85a6..ee18748 100644
+--- a/arch/alpha/kernel/sys_wildfire.c
++++ b/arch/alpha/kernel/sys_wildfire.c
+@@ -15,7 +15,6 @@
+ #include <linux/bitops.h>
+ 
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <asm/dma.h>
+ #include <asm/irq.h>
+ #include <asm/mmu_context.h>
+diff --git a/arch/alpha/kernel/traps.c b/arch/alpha/kernel/traps.c
+index 0414e02..80d987c 100644
+--- a/arch/alpha/kernel/traps.c
++++ b/arch/alpha/kernel/traps.c
+@@ -24,6 +24,7 @@
+ #include <asm/sysinfo.h>
+ #include <asm/hwrpb.h>
+ #include <asm/mmu_context.h>
++#include <asm/special_insns.h>
+ 
+ #include "proto.h"
+ 
+diff --git a/arch/alpha/kernel/vmlinux.lds.S b/arch/alpha/kernel/vmlinux.lds.S
+index f937ad1..647b84c 100644
+--- a/arch/alpha/kernel/vmlinux.lds.S
++++ b/arch/alpha/kernel/vmlinux.lds.S
+@@ -2,6 +2,7 @@
+ #include <asm/thread_info.h>
+ #include <asm/cache.h>
+ #include <asm/page.h>
++#include <asm/setup.h>
+ 
+ OUTPUT_FORMAT("elf64-alpha")
+ OUTPUT_ARCH(alpha)
+@@ -25,6 +26,7 @@ SECTIONS
+ 		*(.fixup)
+ 		*(.gnu.warning)
+ 	} :kernel
++	swapper_pg_dir = SWAPPER_PGD;
+ 	_etext = .;	/* End of text section */
+ 
+ 	NOTES :kernel :note
+diff --git a/arch/alpha/lib/stacktrace.c b/arch/alpha/lib/stacktrace.c
+index 6d432e4..5e83216 100644
+--- a/arch/alpha/lib/stacktrace.c
++++ b/arch/alpha/lib/stacktrace.c
+@@ -1,5 +1,4 @@
+ #include <linux/kernel.h>
+-#include <asm/system.h>
+ 
+ typedef unsigned int instr;
+ 
+diff --git a/arch/alpha/mm/fault.c b/arch/alpha/mm/fault.c
+index fadd5f8..5eecab1 100644
+--- a/arch/alpha/mm/fault.c
++++ b/arch/alpha/mm/fault.c
+@@ -24,7 +24,6 @@
+ #include <linux/interrupt.h>
+ #include <linux/module.h>
+ 
+-#include <asm/system.h>
+ #include <asm/uaccess.h>
+ 
+ extern void die_if_kernel(char *,struct pt_regs *,long, unsigned long *);
+diff --git a/arch/alpha/mm/init.c b/arch/alpha/mm/init.c
+index 69d0c57..1ad6ca7 100644
+--- a/arch/alpha/mm/init.c
++++ b/arch/alpha/mm/init.c
+@@ -22,7 +22,6 @@
+ #include <linux/vmalloc.h>
+ #include <linux/gfp.h>
+ 
+-#include <asm/system.h>
+ #include <asm/uaccess.h>
+ #include <asm/pgtable.h>
+ #include <asm/pgalloc.h>
+@@ -31,6 +30,7 @@
+ #include <asm/mmu_context.h>
+ #include <asm/console.h>
+ #include <asm/tlb.h>
++#include <asm/setup.h>
+ 
+ extern void die_if_kernel(char *,struct pt_regs *,long);
+ 
+diff --git a/arch/alpha/oprofile/common.c b/arch/alpha/oprofile/common.c
+index bd8ac53..a0a5d27 100644
+--- a/arch/alpha/oprofile/common.c
++++ b/arch/alpha/oprofile/common.c
+@@ -12,7 +12,6 @@
+ #include <linux/smp.h>
+ #include <linux/errno.h>
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ 
+ #include "op_impl.h"
+ 
+diff --git a/arch/alpha/oprofile/op_model_ev4.c b/arch/alpha/oprofile/op_model_ev4.c
+index 80d764d..18aa9b4 100644
+--- a/arch/alpha/oprofile/op_model_ev4.c
++++ b/arch/alpha/oprofile/op_model_ev4.c
+@@ -11,7 +11,6 @@
+ #include <linux/init.h>
+ #include <linux/smp.h>
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ 
+ #include "op_impl.h"
+ 
+diff --git a/arch/alpha/oprofile/op_model_ev5.c b/arch/alpha/oprofile/op_model_ev5.c
+index ceea6e1..c32f8a0 100644
+--- a/arch/alpha/oprofile/op_model_ev5.c
++++ b/arch/alpha/oprofile/op_model_ev5.c
+@@ -11,7 +11,6 @@
+ #include <linux/init.h>
+ #include <linux/smp.h>
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ 
+ #include "op_impl.h"
+ 
+diff --git a/arch/alpha/oprofile/op_model_ev6.c b/arch/alpha/oprofile/op_model_ev6.c
+index 0869f85..1c84cc2 100644
+--- a/arch/alpha/oprofile/op_model_ev6.c
++++ b/arch/alpha/oprofile/op_model_ev6.c
+@@ -11,7 +11,6 @@
+ #include <linux/init.h>
+ #include <linux/smp.h>
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ 
+ #include "op_impl.h"
+ 
+diff --git a/arch/alpha/oprofile/op_model_ev67.c b/arch/alpha/oprofile/op_model_ev67.c
+index 5b9d178..34a57a1 100644
+--- a/arch/alpha/oprofile/op_model_ev67.c
++++ b/arch/alpha/oprofile/op_model_ev67.c
+@@ -12,7 +12,6 @@
+ #include <linux/init.h>
+ #include <linux/smp.h>
+ #include <asm/ptrace.h>
+-#include <asm/system.h>
+ 
+ #include "op_impl.h"
+ 
 
