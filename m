@@ -1,206 +1,704 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:64159 "EHLO
-	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1161457Ab2COUcf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2012 16:32:35 -0400
-Received: by yhmm54 with SMTP id m54so3559050yhm.19
-        for <linux-arch@vger.kernel.org>; Thu, 15 Mar 2012 13:32:34 -0700 (PDT)
-From: Will Drewry <wad@chromium.org>
-Subject: [PATCH v16 11/13] ptrace,seccomp: Add PTRACE_SECCOMP support
-Date: Thu, 15 Mar 2012 15:31:20 -0500
-Message-ID: <1331843480-6618-1-git-send-email-wad@chromium.org>
-In-Reply-To: <34b2e80343549454d6c026237f248c86.squirrel@webmail.greenhost.nl>
-References: <34b2e80343549454d6c026237f248c86.squirrel@webmail.greenhost.nl>
+Received: from mx1.redhat.com ([209.132.183.28]:5671 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1032311Ab2COU5A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Mar 2012 16:57:00 -0400
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH 10/38] Disintegrate asm/system.h for CRIS [ver #3]
+Date: Thu, 15 Mar 2012 20:56:47 +0000
+Message-ID: <20120315205647.28759.14314.stgit@warthog.procyon.org.uk>
+In-Reply-To: <20120315205514.28759.58969.stgit@warthog.procyon.org.uk>
+References: <20120315205514.28759.58969.stgit@warthog.procyon.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, Will Drewry <wad@chromium.org>
-Message-ID: <20120315203120.RkIvYMeQIzthPL8TwPnUL2pQZ7uc52i0FWsTtl8lbP0@z>
+To: paul.gortmaker@windriver.com
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>, Jesper Nilsson <jesper.nilsson@axis.com>, linux-cris-kernel@axis.com
+Message-ID: <20120315205647.aIGVKvE1Fgz32l2cQspqKFbsFgwWwdRza52m2JclYB8@z>
 
-~~
-Only this file changed from v15.  However, the whole v16 series may be
-pulled from
-  https://github.com/redpig/linux/tree/seccomp%2Fv16%2Fposted
-The seccomp/v16/posted tag is GPG-signed.
-~~
+Disintegrate asm/system.h for CRIS.
 
-This change adds support for a new ptrace option, PTRACE_O_TRACESECCOMP,
-and a new return value for seccomp BPF programs, SECCOMP_RET_TRACE.
-
-When a tracer specifies the PTRACE_O_TRACESECCOMP ptrace option, the
-tracer will be notified, via PTRACE_EVENT_SECCOMP, for any syscall that
-results in a BPF program returning SECCOMP_RET_TRACE.  The 16-bit
-SECCOMP_RET_DATA mask of the BPF program return value will be passed as
-the ptrace_message and may be retrieved using PTRACE_GETEVENTMSG.
-
-If the subordinate process is not using seccomp filter, then no
-system call notifications will occur even if the option is specified.
-
-If there is no tracer with PTRACE_O_TRACESECCOMP when SECCOMP_RET_TRACE
-is returned, the system call will not be executed and an -ENOSYS errno
-will be returned to userspace.
-
-This change adds a dependency on the system call slow path.  Any future
-efforts to use the system call fast path for seccomp filter will need to
-address this restriction.
-
-v16: - update PT_TRACE_MASK to 0xbf4 so that STOP isn't clear on
-       SETOPTIONS call (indan@nul.nu)
-       [Note, PT_TRACE_MASK disappears in linux-next]
-v15: - add audit support for non-zero return codes
-     - clean up style (indan@nul.nu)
-v14: - rebase/nochanges
-v13: - rebase on to 88ebdda6159ffc15699f204c33feb3e431bf9bdc
-       (Brings back a change to ptrace.c and the masks.)
-v12: - rebase to linux-next
-     - use ptrace_event and update arch/Kconfig to mention slow-path dependency
-     - drop all tracehook changes and inclusion (oleg@redhat.com)
-v11: - invert the logic to just make it a PTRACE_SYSCALL accelerator
-       (indan@nul.nu)
-v10: - moved to PTRACE_O_SECCOMP / PT_TRACE_SECCOMP
-v9:  - n/a
-v8:  - guarded PTRACE_SECCOMP use with an ifdef
-v7:  - introduced
-
-Signed-off-by: Will Drewry <wad@chromium.org>
+Signed-off-by: David Howells <dhowells@redhat.com>
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+cc: linux-cris-kernel@axis.com
 ---
- arch/Kconfig            |   11 ++++++-----
- include/linux/ptrace.h  |    7 +++++--
- include/linux/seccomp.h |    1 +
- kernel/ptrace.c         |    3 +++
- kernel/seccomp.c        |   13 +++++++++++--
- 5 files changed, 26 insertions(+), 9 deletions(-)
 
-diff --git a/arch/Kconfig b/arch/Kconfig
-index d92a78e..3f8132c 100644
---- a/arch/Kconfig
-+++ b/arch/Kconfig
-@@ -202,15 +202,16 @@ config HAVE_CMPXCHG_DOUBLE
- config HAVE_ARCH_SECCOMP_FILTER
- 	bool
- 	help
--	  This symbol should be selected by an architecure if it provides:
--	  asm/syscall.h:
-+	  An arch should select this symbol if it provides all of these things:
- 	  - syscall_get_arch()
- 	  - syscall_get_arguments()
- 	  - syscall_rollback()
- 	  - syscall_set_return_value()
--	  SIGSYS siginfo_t support must be implemented.
--	  __secure_computing_int()/secure_computing()'s return value must be
--	  checked, with -1 resulting in the syscall being skipped.
-+	  - SIGSYS siginfo_t support
-+	  - uses __secure_computing_int() or secure_computing()
-+	  - secure_computing is called from a ptrace_event()-safe context
-+	  - secure_computing return value is checked and a return value of -1
-+	    results in the system call being skipped immediately.
+ arch/cris/arch-v10/drivers/ds1302.c          |    1 
+ arch/cris/arch-v10/drivers/gpio.c            |    1 
+ arch/cris/arch-v10/drivers/i2c.c             |    1 
+ arch/cris/arch-v10/drivers/pcf8563.c         |    1 
+ arch/cris/arch-v10/drivers/sync_serial.c     |    1 
+ arch/cris/arch-v10/kernel/debugport.c        |    1 
+ arch/cris/arch-v10/kernel/dma.c              |    1 
+ arch/cris/arch-v10/kernel/io_interface_mux.c |    1 
+ arch/cris/arch-v10/kernel/process.c          |    1 
+ arch/cris/arch-v10/kernel/ptrace.c           |    1 
+ arch/cris/arch-v10/kernel/setup.c            |    1 
+ arch/cris/arch-v10/kernel/signal.c           |    1 
+ arch/cris/arch-v10/kernel/traps.c            |    1 
+ arch/cris/arch-v32/drivers/i2c.c             |    1 
+ arch/cris/arch-v32/drivers/mach-a3/gpio.c    |    1 
+ arch/cris/arch-v32/drivers/mach-fs/gpio.c    |    1 
+ arch/cris/arch-v32/kernel/debugport.c        |    1 
+ arch/cris/arch-v32/kernel/fasttimer.c        |    1 
+ arch/cris/arch-v32/kernel/ptrace.c           |    1 
+ arch/cris/arch-v32/mach-a3/dma.c             |    1 
+ arch/cris/arch-v32/mach-fs/dma.c             |    1 
+ arch/cris/include/arch-v10/arch/elf.h        |    2 +
+ arch/cris/include/arch-v32/arch/elf.h        |    2 +
+ arch/cris/include/asm/atomic.h               |    2 -
+ arch/cris/include/asm/barrier.h              |   23 ++++++
+ arch/cris/include/asm/bitops.h               |    1 
+ arch/cris/include/asm/cmpxchg.h              |   51 ++++++++++++++
+ arch/cris/include/asm/exec.h                 |    6 ++
+ arch/cris/include/asm/processor.h            |   11 +++
+ arch/cris/include/asm/switch_to.h            |   12 +++
+ arch/cris/include/asm/system.h               |   94 +-------------------------
+ arch/cris/kernel/irq.c                       |    1 
+ arch/cris/kernel/process.c                   |    1 
+ arch/cris/kernel/ptrace.c                    |    1 
+ arch/cris/kernel/setup.c                     |    1 
+ arch/cris/kernel/traps.c                     |    1 
+ arch/cris/mm/fault.c                         |    1 
+ drivers/tty/serial/crisv10.c                 |    1 
+ 38 files changed, 123 insertions(+), 109 deletions(-)
+ create mode 100644 arch/cris/include/asm/barrier.h
+ create mode 100644 arch/cris/include/asm/cmpxchg.h
+ create mode 100644 arch/cris/include/asm/exec.h
+ create mode 100644 arch/cris/include/asm/switch_to.h
+
+diff --git a/arch/cris/arch-v10/drivers/ds1302.c b/arch/cris/arch-v10/drivers/ds1302.c
+index 3d655dc..74f99c6 100644
+--- a/arch/cris/arch-v10/drivers/ds1302.c
++++ b/arch/cris/arch-v10/drivers/ds1302.c
+@@ -24,7 +24,6 @@
+ #include <linux/capability.h>
  
- config SECCOMP_FILTER
- 	def_bool y
-diff --git a/include/linux/ptrace.h b/include/linux/ptrace.h
-index c2f1f6a..3bf7ee9 100644
---- a/include/linux/ptrace.h
-+++ b/include/linux/ptrace.h
-@@ -62,8 +62,9 @@
- #define PTRACE_O_TRACEEXEC	0x00000010
- #define PTRACE_O_TRACEVFORKDONE	0x00000020
- #define PTRACE_O_TRACEEXIT	0x00000040
-+#define PTRACE_O_TRACESECCOMP	0x00000080
+ #include <asm/uaccess.h>
+-#include <asm/system.h>
+ #include <arch/svinto.h>
+ #include <asm/io.h>
+ #include <asm/rtc.h>
+diff --git a/arch/cris/arch-v10/drivers/gpio.c b/arch/cris/arch-v10/drivers/gpio.c
+index a276f08..609d551 100644
+--- a/arch/cris/arch-v10/drivers/gpio.c
++++ b/arch/cris/arch-v10/drivers/gpio.c
+@@ -24,7 +24,6 @@
+ #include <asm/etraxgpio.h>
+ #include <arch/svinto.h>
+ #include <asm/io.h>
+-#include <asm/system.h>
+ #include <asm/irq.h>
+ #include <arch/io_interface_mux.h>
  
--#define PTRACE_O_MASK		0x0000007f
-+#define PTRACE_O_MASK		0x000000ff
+diff --git a/arch/cris/arch-v10/drivers/i2c.c b/arch/cris/arch-v10/drivers/i2c.c
+index c413539..b3d1f9e 100644
+--- a/arch/cris/arch-v10/drivers/i2c.c
++++ b/arch/cris/arch-v10/drivers/i2c.c
+@@ -22,7 +22,6 @@
  
- /* Wait extended result codes for the above trace options.  */
- #define PTRACE_EVENT_FORK	1
-@@ -73,6 +74,7 @@
- #define PTRACE_EVENT_VFORK_DONE	5
- #define PTRACE_EVENT_EXIT	6
- #define PTRACE_EVENT_STOP	7
-+#define PTRACE_EVENT_SECCOMP	8
+ #include <asm/etraxi2c.h>
  
- #include <asm/ptrace.h>
+-#include <asm/system.h>
+ #include <arch/svinto.h>
+ #include <asm/io.h>
+ #include <asm/delay.h>
+diff --git a/arch/cris/arch-v10/drivers/pcf8563.c b/arch/cris/arch-v10/drivers/pcf8563.c
+index 1391b73..9da0568 100644
+--- a/arch/cris/arch-v10/drivers/pcf8563.c
++++ b/arch/cris/arch-v10/drivers/pcf8563.c
+@@ -29,7 +29,6 @@
+ #include <linux/mutex.h>
  
-@@ -101,8 +103,9 @@
- #define PT_TRACE_EXEC		PT_EVENT_FLAG(PTRACE_EVENT_EXEC)
- #define PT_TRACE_VFORK_DONE	PT_EVENT_FLAG(PTRACE_EVENT_VFORK_DONE)
- #define PT_TRACE_EXIT		PT_EVENT_FLAG(PTRACE_EVENT_EXIT)
-+#define PT_TRACE_SECCOMP	PT_EVENT_FLAG(PTRACE_EVENT_SECCOMP)
+ #include <asm/uaccess.h>
+-#include <asm/system.h>
+ #include <asm/io.h>
+ #include <asm/rtc.h>
  
--#define PT_TRACE_MASK	0x000003f4
-+#define PT_TRACE_MASK	0x00000bf4
+diff --git a/arch/cris/arch-v10/drivers/sync_serial.c b/arch/cris/arch-v10/drivers/sync_serial.c
+index 466af40..c4b7171 100644
+--- a/arch/cris/arch-v10/drivers/sync_serial.c
++++ b/arch/cris/arch-v10/drivers/sync_serial.c
+@@ -27,7 +27,6 @@
+ #include <asm/io.h>
+ #include <arch/svinto.h>
+ #include <asm/uaccess.h>
+-#include <asm/system.h>
+ #include <asm/sync_serial.h>
+ #include <arch/io_interface_mux.h>
  
- /* single stepping state bits (used on ARM and PA-RISC) */
- #define PT_SINGLESTEP_BIT	31
-diff --git a/include/linux/seccomp.h b/include/linux/seccomp.h
-index a5078fb..306733e 100644
---- a/include/linux/seccomp.h
-+++ b/include/linux/seccomp.h
-@@ -21,6 +21,7 @@
- #define SECCOMP_RET_KILL	0x00000000U /* kill the task immediately */
- #define SECCOMP_RET_TRAP	0x00030000U /* disallow and force a SIGSYS */
- #define SECCOMP_RET_ERRNO	0x00050000U /* returns an errno */
-+#define SECCOMP_RET_TRACE	0x7ff00000U /* pass to a tracer or disallow */
- #define SECCOMP_RET_ALLOW	0x7fff0000U /* allow */
+diff --git a/arch/cris/arch-v10/kernel/debugport.c b/arch/cris/arch-v10/kernel/debugport.c
+index 99851ba..f932c85 100644
+--- a/arch/cris/arch-v10/kernel/debugport.c
++++ b/arch/cris/arch-v10/kernel/debugport.c
+@@ -18,7 +18,6 @@
+ #include <linux/major.h>
+ #include <linux/delay.h>
+ #include <linux/tty.h>
+-#include <asm/system.h>
+ #include <arch/svinto.h>
+ #include <asm/io.h>             /* Get SIMCOUT. */
  
- /* Masks for the return value sections. */
-diff --git a/kernel/ptrace.c b/kernel/ptrace.c
-index 00ab2ca..8cf6da1 100644
---- a/kernel/ptrace.c
-+++ b/kernel/ptrace.c
-@@ -551,6 +551,9 @@ static int ptrace_setoptions(struct task_struct *child, unsigned long data)
- 	if (data & PTRACE_O_TRACEEXIT)
- 		child->ptrace |= PT_TRACE_EXIT;
+diff --git a/arch/cris/arch-v10/kernel/dma.c b/arch/cris/arch-v10/kernel/dma.c
+index d31504b..5795047 100644
+--- a/arch/cris/arch-v10/kernel/dma.c
++++ b/arch/cris/arch-v10/kernel/dma.c
+@@ -8,6 +8,7 @@
  
-+	if (data & PTRACE_O_TRACESECCOMP)
-+		child->ptrace |= PT_TRACE_SECCOMP;
+ #include <asm/dma.h>
+ #include <arch/svinto.h>
++#include <arch/system.h>
+ 
+ /* Macro to access ETRAX 100 registers */
+ #define SETS(var, reg, field, val) var = (var & ~IO_MASK_(reg##_, field##_)) | \
+diff --git a/arch/cris/arch-v10/kernel/io_interface_mux.c b/arch/cris/arch-v10/kernel/io_interface_mux.c
+index 29f97e9..ad64cd1 100644
+--- a/arch/cris/arch-v10/kernel/io_interface_mux.c
++++ b/arch/cris/arch-v10/kernel/io_interface_mux.c
+@@ -14,6 +14,7 @@
+ #include <arch/svinto.h>
+ #include <asm/io.h>
+ #include <arch/io_interface_mux.h>
++#include <arch/system.h>
+ 
+ 
+ #define DBG(s)
+diff --git a/arch/cris/arch-v10/kernel/process.c b/arch/cris/arch-v10/kernel/process.c
+index 9a57db6..bee8df4 100644
+--- a/arch/cris/arch-v10/kernel/process.c
++++ b/arch/cris/arch-v10/kernel/process.c
+@@ -16,6 +16,7 @@
+ #include <linux/fs.h>
+ #include <arch/svinto.h>
+ #include <linux/init.h>
++#include <arch/system.h>
+ 
+ #ifdef CONFIG_ETRAX_GPIO
+ void etrax_gpio_wake_up_check(void); /* drivers/gpio.c */
+diff --git a/arch/cris/arch-v10/kernel/ptrace.c b/arch/cris/arch-v10/kernel/ptrace.c
+index 320065f..bfddfb9 100644
+--- a/arch/cris/arch-v10/kernel/ptrace.c
++++ b/arch/cris/arch-v10/kernel/ptrace.c
+@@ -15,7 +15,6 @@
+ #include <asm/uaccess.h>
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+-#include <asm/system.h>
+ #include <asm/processor.h>
+ 
+ /* 
+diff --git a/arch/cris/arch-v10/kernel/setup.c b/arch/cris/arch-v10/kernel/setup.c
+index de27b50..4f96d71 100644
+--- a/arch/cris/arch-v10/kernel/setup.c
++++ b/arch/cris/arch-v10/kernel/setup.c
+@@ -14,6 +14,7 @@
+ #include <linux/proc_fs.h>
+ #include <linux/delay.h>
+ #include <linux/param.h>
++#include <arch/system.h>
+ 
+ #ifdef CONFIG_PROC_FS
+ #define HAS_FPU		0x0001
+diff --git a/arch/cris/arch-v10/kernel/signal.c b/arch/cris/arch-v10/kernel/signal.c
+index e78fe49..289c584 100644
+--- a/arch/cris/arch-v10/kernel/signal.c
++++ b/arch/cris/arch-v10/kernel/signal.c
+@@ -27,6 +27,7 @@
+ #include <asm/processor.h>
+ #include <asm/ucontext.h>
+ #include <asm/uaccess.h>
++#include <arch/system.h>
+ 
+ #define DEBUG_SIG 0
+ 
+diff --git a/arch/cris/arch-v10/kernel/traps.c b/arch/cris/arch-v10/kernel/traps.c
+index 8bebb96..7001bed 100644
+--- a/arch/cris/arch-v10/kernel/traps.c
++++ b/arch/cris/arch-v10/kernel/traps.c
+@@ -11,6 +11,7 @@
+ #include <linux/ptrace.h>
+ #include <asm/uaccess.h>
+ #include <arch/sv_addr_ag.h>
++#include <arch/system.h>
+ 
+ void
+ show_registers(struct pt_regs *regs)
+diff --git a/arch/cris/arch-v32/drivers/i2c.c b/arch/cris/arch-v32/drivers/i2c.c
+index ddb2399..3b2c82c 100644
+--- a/arch/cris/arch-v32/drivers/i2c.c
++++ b/arch/cris/arch-v32/drivers/i2c.c
+@@ -36,7 +36,6 @@
+ 
+ #include <asm/etraxi2c.h>
+ 
+-#include <asm/system.h>
+ #include <asm/io.h>
+ #include <asm/delay.h>
+ 
+diff --git a/arch/cris/arch-v32/drivers/mach-a3/gpio.c b/arch/cris/arch-v32/drivers/mach-a3/gpio.c
+index c845831..0b86dee 100644
+--- a/arch/cris/arch-v32/drivers/mach-a3/gpio.c
++++ b/arch/cris/arch-v32/drivers/mach-a3/gpio.c
+@@ -31,7 +31,6 @@
+ #include <hwregs/gio_defs.h>
+ #include <hwregs/intr_vect_defs.h>
+ #include <asm/io.h>
+-#include <asm/system.h>
+ #include <asm/irq.h>
+ #include <mach/pinmux.h>
+ 
+diff --git a/arch/cris/arch-v32/drivers/mach-fs/gpio.c b/arch/cris/arch-v32/drivers/mach-fs/gpio.c
+index ee90d26..a2ac091 100644
+--- a/arch/cris/arch-v32/drivers/mach-fs/gpio.c
++++ b/arch/cris/arch-v32/drivers/mach-fs/gpio.c
+@@ -30,7 +30,6 @@
+ #include <hwregs/gio_defs.h>
+ #include <hwregs/intr_vect_defs.h>
+ #include <asm/io.h>
+-#include <asm/system.h>
+ #include <asm/irq.h>
+ 
+ #ifdef CONFIG_ETRAX_VIRTUAL_GPIO
+diff --git a/arch/cris/arch-v32/kernel/debugport.c b/arch/cris/arch-v32/kernel/debugport.c
+index 794b364..610909b 100644
+--- a/arch/cris/arch-v32/kernel/debugport.c
++++ b/arch/cris/arch-v32/kernel/debugport.c
+@@ -4,7 +4,6 @@
+ 
+ #include <linux/console.h>
+ #include <linux/init.h>
+-#include <asm/system.h>
+ #include <hwregs/reg_rdwr.h>
+ #include <hwregs/reg_map.h>
+ #include <hwregs/ser_defs.h>
+diff --git a/arch/cris/arch-v32/kernel/fasttimer.c b/arch/cris/arch-v32/kernel/fasttimer.c
+index 111caa1..ab1551e 100644
+--- a/arch/cris/arch-v32/kernel/fasttimer.c
++++ b/arch/cris/arch-v32/kernel/fasttimer.c
+@@ -17,7 +17,6 @@
+ #include <linux/delay.h>
+ 
+ #include <asm/irq.h>
+-#include <asm/system.h>
+ 
+ #include <hwregs/reg_map.h>
+ #include <hwregs/reg_rdwr.h>
+diff --git a/arch/cris/arch-v32/kernel/ptrace.c b/arch/cris/arch-v32/kernel/ptrace.c
+index 511ece9..f7ad9e8 100644
+--- a/arch/cris/arch-v32/kernel/ptrace.c
++++ b/arch/cris/arch-v32/kernel/ptrace.c
+@@ -15,7 +15,6 @@
+ #include <asm/uaccess.h>
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+-#include <asm/system.h>
+ #include <asm/processor.h>
+ #include <arch/hwregs/supp_reg.h>
+ 
+diff --git a/arch/cris/arch-v32/mach-a3/dma.c b/arch/cris/arch-v32/mach-a3/dma.c
+index f35e4f6..47c64bf 100644
+--- a/arch/cris/arch-v32/mach-a3/dma.c
++++ b/arch/cris/arch-v32/mach-a3/dma.c
+@@ -9,7 +9,6 @@
+ #include <hwregs/clkgen_defs.h>
+ #include <hwregs/strmux_defs.h>
+ #include <linux/errno.h>
+-#include <asm/system.h>
+ #include <arbiter.h>
+ 
+ static char used_dma_channels[MAX_DMA_CHANNELS];
+diff --git a/arch/cris/arch-v32/mach-fs/dma.c b/arch/cris/arch-v32/mach-fs/dma.c
+index 2d970d7..fc6416a 100644
+--- a/arch/cris/arch-v32/mach-fs/dma.c
++++ b/arch/cris/arch-v32/mach-fs/dma.c
+@@ -9,7 +9,6 @@
+ #include <hwregs/config_defs.h>
+ #include <hwregs/strmux_defs.h>
+ #include <linux/errno.h>
+-#include <asm/system.h>
+ #include <mach/arbiter.h>
+ 
+ static char used_dma_channels[MAX_DMA_CHANNELS];
+diff --git a/arch/cris/include/arch-v10/arch/elf.h b/arch/cris/include/arch-v10/arch/elf.h
+index 1c38ee7..1eb638a 100644
+--- a/arch/cris/include/arch-v10/arch/elf.h
++++ b/arch/cris/include/arch-v10/arch/elf.h
+@@ -1,6 +1,8 @@
+ #ifndef __ASMCRIS_ARCH_ELF_H
+ #define __ASMCRIS_ARCH_ELF_H
+ 
++#include <arch/system.h>
 +
- 	return (data & ~PTRACE_O_MASK) ? -EINVAL : 0;
- }
+ #define ELF_MACH EF_CRIS_VARIANT_ANY_V0_V10
  
-diff --git a/kernel/seccomp.c b/kernel/seccomp.c
-index fb3b993..725e83e 100644
---- a/kernel/seccomp.c
-+++ b/kernel/seccomp.c
-@@ -17,13 +17,13 @@
- #include <linux/audit.h>
- #include <linux/compat.h>
- #include <linux/filter.h>
-+#include <linux/ptrace.h>
- #include <linux/sched.h>
- #include <linux/seccomp.h>
- #include <linux/security.h>
- #include <linux/slab.h>
- #include <linux/uaccess.h>
+ /*
+diff --git a/arch/cris/include/arch-v32/arch/elf.h b/arch/cris/include/arch-v32/arch/elf.h
+index 1324e50..c46d582 100644
+--- a/arch/cris/include/arch-v32/arch/elf.h
++++ b/arch/cris/include/arch-v32/arch/elf.h
+@@ -1,6 +1,8 @@
+ #ifndef _ASM_CRIS_ELF_H
+ #define _ASM_CRIS_ELF_H
  
--#include <linux/tracehook.h>
- #include <asm/syscall.h>
++#include <arch/system.h>
++
+ #define ELF_CORE_EFLAGS EF_CRIS_VARIANT_V32
  
- /* #define SECCOMP_DEBUG 1 */
-@@ -398,7 +398,7 @@ int __secure_computing_int(int this_syscall)
- 	case SECCOMP_MODE_FILTER:
- 		ret = seccomp_run_filters(this_syscall);
- 		data = ret & SECCOMP_RET_DATA;
--		switch (code & SECCOMP_RET_ACTION) {
-+		switch (ret & SECCOMP_RET_ACTION) {
- 		case SECCOMP_RET_ERRNO:
- 			/* Set the low-order 16-bits as a errno. */
- 			syscall_set_return_value(current, task_pt_regs(current),
-@@ -410,6 +410,15 @@ int __secure_computing_int(int this_syscall)
- 			/* Let the filter pass back 16 bits of data. */
- 			seccomp_send_sigsys(this_syscall, data);
- 			goto skip;
-+		case SECCOMP_RET_TRACE:
-+			/* Skip these calls if there is no tracer. */
-+			if (!ptrace_event_enabled(current, PTRACE_EVENT_SECCOMP))
-+				goto skip;
-+			/* Allow the BPF to provide the event message */
-+			ptrace_event(PTRACE_EVENT_SECCOMP, data);
-+			if (fatal_signal_pending(current))
-+				break;
-+			return 0;
- 		case SECCOMP_RET_ALLOW:
- 			return 0;
- 		case SECCOMP_RET_KILL:
--- 
-1.7.5.4
+ /*
+diff --git a/arch/cris/include/asm/atomic.h b/arch/cris/include/asm/atomic.h
+index bbf0938..1056a5d 100644
+--- a/arch/cris/include/asm/atomic.h
++++ b/arch/cris/include/asm/atomic.h
+@@ -5,7 +5,7 @@
+ 
+ #include <linux/compiler.h>
+ #include <linux/types.h>
+-#include <asm/system.h>
++#include <asm/cmpxchg.h>
+ #include <arch/atomic.h>
+ 
+ /*
+diff --git a/arch/cris/include/asm/barrier.h b/arch/cris/include/asm/barrier.h
+new file mode 100644
+index 0000000..ce0f293
+--- /dev/null
++++ b/arch/cris/include/asm/barrier.h
+@@ -0,0 +1,23 @@
++#ifndef __ASM_CRIS_BARRIER_H
++#define __ASM_CRIS_BARRIER_H
++
++#define barrier() __asm__ __volatile__("": : :"memory")
++#define mb() barrier()
++#define rmb() mb()
++#define wmb() mb()
++#define read_barrier_depends() do { } while(0)
++#define set_mb(var, value)  do { var = value; mb(); } while (0)
++
++#ifdef CONFIG_SMP
++#define smp_mb()        mb()
++#define smp_rmb()       rmb()
++#define smp_wmb()       wmb()
++#define smp_read_barrier_depends()     read_barrier_depends()
++#else
++#define smp_mb()        barrier()
++#define smp_rmb()       barrier()
++#define smp_wmb()       barrier()
++#define smp_read_barrier_depends()     do { } while(0)
++#endif
++
++#endif /* __ASM_CRIS_BARRIER_H */
+diff --git a/arch/cris/include/asm/bitops.h b/arch/cris/include/asm/bitops.h
+index a78a2d7..184066c 100644
+--- a/arch/cris/include/asm/bitops.h
++++ b/arch/cris/include/asm/bitops.h
+@@ -19,7 +19,6 @@
+ #endif
+ 
+ #include <arch/bitops.h>
+-#include <asm/system.h>
+ #include <linux/atomic.h>
+ #include <linux/compiler.h>
+ 
+diff --git a/arch/cris/include/asm/cmpxchg.h b/arch/cris/include/asm/cmpxchg.h
+new file mode 100644
+index 0000000..7ee390e
+--- /dev/null
++++ b/arch/cris/include/asm/cmpxchg.h
+@@ -0,0 +1,51 @@
++#ifndef __ASM_CRIS_CMPXCHG__
++#define __ASM_CRIS_CMPXCHG__
++
++#include <linux/irqflags.h>
++
++static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
++{
++  /* since Etrax doesn't have any atomic xchg instructions, we need to disable
++     irq's (if enabled) and do it with move.d's */
++  unsigned long flags,temp;
++  local_irq_save(flags); /* save flags, including irq enable bit and shut off irqs */
++  switch (size) {
++  case 1:
++    *((unsigned char *)&temp) = x;
++    x = *(unsigned char *)ptr;
++    *(unsigned char *)ptr = *((unsigned char *)&temp);
++    break;
++  case 2:
++    *((unsigned short *)&temp) = x;
++    x = *(unsigned short *)ptr;
++    *(unsigned short *)ptr = *((unsigned short *)&temp);
++    break;
++  case 4:
++    temp = x;
++    x = *(unsigned long *)ptr;
++    *(unsigned long *)ptr = temp;
++    break;
++  }
++  local_irq_restore(flags); /* restore irq enable bit */
++  return x;
++}
++
++#define xchg(ptr,x) \
++	((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
++
++#include <asm-generic/cmpxchg-local.h>
++
++/*
++ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
++ * them available.
++ */
++#define cmpxchg_local(ptr, o, n)				 	       \
++	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
++			(unsigned long)(n), sizeof(*(ptr))))
++#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
++
++#ifndef CONFIG_SMP
++#include <asm-generic/cmpxchg.h>
++#endif
++
++#endif /* __ASM_CRIS_CMPXCHG__ */
+diff --git a/arch/cris/include/asm/exec.h b/arch/cris/include/asm/exec.h
+new file mode 100644
+index 0000000..9665dab
+--- /dev/null
++++ b/arch/cris/include/asm/exec.h
+@@ -0,0 +1,6 @@
++#ifndef __ASM_CRIS_EXEC_H
++#define __ASM_CRIS_EXEC_H
++
++#define arch_align_stack(x) (x)
++
++#endif /* __ASM_CRIS_EXEC_H */
+diff --git a/arch/cris/include/asm/processor.h b/arch/cris/include/asm/processor.h
+index 3f7248f..4210d72 100644
+--- a/arch/cris/include/asm/processor.h
++++ b/arch/cris/include/asm/processor.h
+@@ -10,10 +10,10 @@
+ #ifndef __ASM_CRIS_PROCESSOR_H
+ #define __ASM_CRIS_PROCESSOR_H
+ 
+-#include <asm/system.h>
+ #include <asm/page.h>
+ #include <asm/ptrace.h>
+ #include <arch/processor.h>
++#include <arch/system.h>
+ 
+ struct task_struct;
+ 
+@@ -72,4 +72,13 @@ static inline void release_thread(struct task_struct *dead_task)
+ 
+ #define cpu_relax()     barrier()
+ 
++/*
++ * disable hlt during certain critical i/o operations
++ */
++#define HAVE_DISABLE_HLT
++void disable_hlt(void);
++void enable_hlt(void);
++
++void default_idle(void);
++
+ #endif /* __ASM_CRIS_PROCESSOR_H */
+diff --git a/arch/cris/include/asm/switch_to.h b/arch/cris/include/asm/switch_to.h
+new file mode 100644
+index 0000000..d842e11
+--- /dev/null
++++ b/arch/cris/include/asm/switch_to.h
+@@ -0,0 +1,12 @@
++#ifndef __ASM_CRIS_SWITCH_TO_H
++#define __ASM_CRIS_SWITCH_TO_H
++
++/* the switch_to macro calls resume, an asm function in entry.S which does the actual
++ * task switching.
++ */
++
++extern struct task_struct *resume(struct task_struct *prev, struct task_struct *next, int);
++#define switch_to(prev,next,last) last = resume(prev,next, \
++					 (int)&((struct task_struct *)0)->thread)
++
++#endif /* __ASM_CRIS_SWITCH_TO_H */
+diff --git a/arch/cris/include/asm/system.h b/arch/cris/include/asm/system.h
+index ea10592..a7f4057 100644
+--- a/arch/cris/include/asm/system.h
++++ b/arch/cris/include/asm/system.h
+@@ -1,89 +1,5 @@
+-#ifndef __ASM_CRIS_SYSTEM_H
+-#define __ASM_CRIS_SYSTEM_H
+-
+-#include <linux/irqflags.h>
+-#include <arch/system.h>
+-
+-/* the switch_to macro calls resume, an asm function in entry.S which does the actual
+- * task switching.
+- */
+-
+-extern struct task_struct *resume(struct task_struct *prev, struct task_struct *next, int);
+-#define switch_to(prev,next,last) last = resume(prev,next, \
+-					 (int)&((struct task_struct *)0)->thread)
+-
+-#define barrier() __asm__ __volatile__("": : :"memory")
+-#define mb() barrier()
+-#define rmb() mb()
+-#define wmb() mb()
+-#define read_barrier_depends() do { } while(0)
+-#define set_mb(var, value)  do { var = value; mb(); } while (0)
+-
+-#ifdef CONFIG_SMP
+-#define smp_mb()        mb()
+-#define smp_rmb()       rmb()
+-#define smp_wmb()       wmb()
+-#define smp_read_barrier_depends()     read_barrier_depends()
+-#else
+-#define smp_mb()        barrier()
+-#define smp_rmb()       barrier()
+-#define smp_wmb()       barrier()
+-#define smp_read_barrier_depends()     do { } while(0)
+-#endif
+-
+-#define iret()
+-
+-/*
+- * disable hlt during certain critical i/o operations
+- */
+-#define HAVE_DISABLE_HLT
+-void disable_hlt(void);
+-void enable_hlt(void);
+-
+-static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
+-{
+-  /* since Etrax doesn't have any atomic xchg instructions, we need to disable
+-     irq's (if enabled) and do it with move.d's */
+-  unsigned long flags,temp;
+-  local_irq_save(flags); /* save flags, including irq enable bit and shut off irqs */
+-  switch (size) {
+-  case 1:
+-    *((unsigned char *)&temp) = x;
+-    x = *(unsigned char *)ptr;
+-    *(unsigned char *)ptr = *((unsigned char *)&temp);
+-    break;
+-  case 2:
+-    *((unsigned short *)&temp) = x;
+-    x = *(unsigned short *)ptr;
+-    *(unsigned short *)ptr = *((unsigned short *)&temp);
+-    break;
+-  case 4:
+-    temp = x;
+-    x = *(unsigned long *)ptr;
+-    *(unsigned long *)ptr = temp;
+-    break;
+-  }
+-  local_irq_restore(flags); /* restore irq enable bit */
+-  return x;
+-}
+-
+-#include <asm-generic/cmpxchg-local.h>
+-
+-/*
+- * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
+- * them available.
+- */
+-#define cmpxchg_local(ptr, o, n)				 	       \
+-	((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr), (unsigned long)(o),\
+-			(unsigned long)(n), sizeof(*(ptr))))
+-#define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+-
+-#ifndef CONFIG_SMP
+-#include <asm-generic/cmpxchg.h>
+-#endif
+-
+-#define arch_align_stack(x) (x)
+-
+-void default_idle(void);
+-
+-#endif
++/* FILE TO BE DELETED. DO NOT ADD STUFF HERE! */
++#include <asm/barrier.h>
++#include <asm/cmpxchg.h>
++#include <asm/exec.h>
++#include <asm/switch_to.h>
+diff --git a/arch/cris/kernel/irq.c b/arch/cris/kernel/irq.c
+index 788eb22..d36836d 100644
+--- a/arch/cris/kernel/irq.c
++++ b/arch/cris/kernel/irq.c
+@@ -36,6 +36,7 @@
+ #include <linux/spinlock.h>
+ 
+ #include <asm/io.h>
++#include <arch/system.h>
+ 
+ /* called by the assembler IRQ entry functions defined in irq.h
+  * to dispatch the interrupts to registered handlers
+diff --git a/arch/cris/kernel/process.c b/arch/cris/kernel/process.c
+index aa585e4..41a973b 100644
+--- a/arch/cris/kernel/process.c
++++ b/arch/cris/kernel/process.c
+@@ -16,7 +16,6 @@
+ #include <asm/pgtable.h>
+ #include <asm/uaccess.h>
+ #include <asm/irq.h>
+-#include <asm/system.h>
+ #include <linux/module.h>
+ #include <linux/spinlock.h>
+ #include <linux/init_task.h>
+diff --git a/arch/cris/kernel/ptrace.c b/arch/cris/kernel/ptrace.c
+index 48b0f39..d114ad3 100644
+--- a/arch/cris/kernel/ptrace.c
++++ b/arch/cris/kernel/ptrace.c
+@@ -21,7 +21,6 @@
+ #include <asm/uaccess.h>
+ #include <asm/page.h>
+ #include <asm/pgtable.h>
+-#include <asm/system.h>
+ #include <asm/processor.h>
+ 
+ 
+diff --git a/arch/cris/kernel/setup.c b/arch/cris/kernel/setup.c
+index b712f49..32c3d24 100644
+--- a/arch/cris/kernel/setup.c
++++ b/arch/cris/kernel/setup.c
+@@ -20,6 +20,7 @@
+ #include <linux/pfn.h>
+ #include <linux/cpu.h>
+ #include <asm/setup.h>
++#include <arch/system.h>
+ 
+ /*
+  * Setup options
+diff --git a/arch/cris/kernel/traps.c b/arch/cris/kernel/traps.c
+index 8da53f3..a11ad32 100644
+--- a/arch/cris/kernel/traps.c
++++ b/arch/cris/kernel/traps.c
+@@ -17,6 +17,7 @@
+ 
+ #include <asm/pgtable.h>
+ #include <asm/uaccess.h>
++#include <arch/system.h>
+ 
+ extern void arch_enable_nmi(void);
+ extern void stop_watchdog(void);
+diff --git a/arch/cris/mm/fault.c b/arch/cris/mm/fault.c
+index 9dcac8e..b4760d8 100644
+--- a/arch/cris/mm/fault.c
++++ b/arch/cris/mm/fault.c
+@@ -9,6 +9,7 @@
+ #include <linux/module.h>
+ #include <linux/wait.h>
+ #include <asm/uaccess.h>
++#include <arch/system.h>
+ 
+ extern int find_fixup_code(struct pt_regs *);
+ extern void die_if_kernel(const char *, struct pt_regs *, long);
+diff --git a/drivers/tty/serial/crisv10.c b/drivers/tty/serial/crisv10.c
+index 1dfba7b..fb13a17 100644
+--- a/drivers/tty/serial/crisv10.c
++++ b/drivers/tty/serial/crisv10.c
+@@ -37,6 +37,7 @@ static char *serial_version = "$Revision: 1.25 $";
+ #include <asm/system.h>
+ 
+ #include <arch/svinto.h>
++#include <arch/system.h>
+ 
+ /* non-arch dependent serial structures are in linux/serial.h */
+ #include <linux/serial.h>
 
