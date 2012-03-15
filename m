@@ -1,21 +1,20 @@
 From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH 06/35] Disintegrate asm/system.h for C6X [ver #2]
-Date: Thu, 15 Mar 2012 17:41:07 +0000
-Message-ID: <20827.1331833267@redhat.com>
-References: <1331728169.2167.2.camel@deneb.redhat.com> <20120312233602.13888.27659.stgit@warthog.procyon.org.uk> <20120312233706.13888.5678.stgit@warthog.procyon.org.uk>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:26352 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1030464Ab2CORlU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 Mar 2012 13:41:20 -0400
-In-Reply-To: <1331728169.2167.2.camel@deneb.redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>
-Cc: dhowells@redhat.com, paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-c6x-dev@linux-c6x.org
+Subject: Re: [Linux-c6x-dev] [PATCH 06/35] Disintegrate asm/system.h for C6X [ver #2]
+Date: Thu, 15 Mar 2012 17:41:55 +0000
+Message-ID: <20883.1331833315@redhat.com>
+References: <553CFBBAF1315044BC4CD328C97B0B1C17FA0A76@DNCE02.ent.ti.com> <20120312233602.13888.27659.stgit@warthog.procyon.org.uk> <20120312233706.13888.5678.stgit@warthog.procyon.org.uk> <1331728169.2167.2.camel@deneb.redhat.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <553CFBBAF1315044BC4CD328C97B0B1C17FA0A76@DNCE02.ent.ti.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Jacquiot, Aurelien" <a-jacquiot@ti.com>
+Cc: dhowells@redhat.com, Mark Salter <msalter@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paul.gortmaker@windriver.com" <paul.gortmaker@windriver.com>, "hpa@zytor.com" <hpa@zytor.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-Mark Salter <msalter@redhat.com> wrote:
+Jacquiot, Aurelien <a-jacquiot@ti.com> wrote:
 
-> I needed the following to clean up build errors from this:
+> Are you sure about the #define _ASM_C6X_BARRIER_H in exec.h? _ASM_C6X_EXEC_H
+> sounds better...
 
-Applied.
+Yep.
+
+David
