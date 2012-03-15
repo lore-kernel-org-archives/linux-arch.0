@@ -1,212 +1,224 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 34/38] Disintegrate asm/system.h for OpenRISC [ver
-	#3]
-Date: Thu, 15 Mar 2012 21:00:29 +0000
-Message-ID: <20120315210029.28759.60309.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 31/38] Move the asm-generic/system.h xchg() implementation to
+ asm-generic/cmpxchg.h [ver #3]
+Date: Thu, 15 Mar 2012 21:00:05 +0000
+Message-ID: <20120315210005.28759.80206.stgit@warthog.procyon.org.uk>
 References: <20120315205514.28759.58969.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-bounces@lists.openrisc.net>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20120315205514.28759.58969.stgit@warthog.procyon.org.uk>
-List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
-	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
-List-Archive: <http://lists.openrisc.net/pipermail/linux>
-List-Post: <mailto:linux@lists.openrisc.net>
-List-Help: <mailto:linux-request@lists.openrisc.net?subject=help>
-List-Subscribe: <http://lists.openrisc.net/listinfo/linux>,
-	<mailto:linux-request@lists.openrisc.net?subject=subscribe>
-Sender: linux-bounces@lists.openrisc.net
-Errors-To: linux-bounces@lists.openrisc.net
+Sender: linux-kernel-owner@vger.kernel.org
 To: paul.gortmaker@windriver.com
-Cc: linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>, linux@openrisc.net, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, David Howells <dhowells@redhat.com>Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-Disintegrate asm/system.h for OpenRISC.  Not compiled.
+Move the asm-generic/system.h xchg() implementation to asm-generic/cmpxchg.h
+to simplify disintegration of asm/system.h.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 Acked-by: Arnd Bergmann <arnd@arndb.de>
-cc: linux@lists.openrisc.net
 ---
 
- arch/openrisc/include/asm/Kbuild   |    3 +++
- arch/openrisc/include/asm/system.h |   40 +++++-------------------------------
- arch/openrisc/kernel/idle.c        |    1 -
- arch/openrisc/kernel/process.c     |    1 -
- arch/openrisc/kernel/prom.c        |    1 -
- arch/openrisc/kernel/ptrace.c      |    1 -
- arch/openrisc/kernel/setup.c       |    1 -
- arch/openrisc/kernel/traps.c       |    1 -
- arch/openrisc/mm/init.c            |    1 -
- arch/openrisc/mm/tlb.c             |    1 -
- 10 files changed, 8 insertions(+), 43 deletions(-)
+ include/asm-generic/cmpxchg.h |   87 ++++++++++++++++++++++++++++++++++++++---
+ include/asm-generic/system.h  |   70 ---------------------------------
+ 2 files changed, 80 insertions(+), 77 deletions(-)
 
-diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
-index 11162e6..dcea5a0 100644
---- a/arch/openrisc/include/asm/Kbuild
-+++ b/arch/openrisc/include/asm/Kbuild
-@@ -4,6 +4,7 @@ header-y += spr_defs.h
+diff --git a/include/asm-generic/cmpxchg.h b/include/asm-generic/cmpxchg.h
+index e0449af..8a36183 100644
+--- a/include/asm-generic/cmpxchg.h
++++ b/include/asm-generic/cmpxchg.h
+@@ -1,16 +1,87 @@
++/*
++ * Generic UP xchg and cmpxchg using interrupt disablement.  Does not
++ * support SMP.
++ */
++
+ #ifndef __ASM_GENERIC_CMPXCHG_H
+ #define __ASM_GENERIC_CMPXCHG_H
  
- generic-y += atomic.h
- generic-y += auxvec.h
-+generic-y += barrier.h
- generic-y += bitsperlong.h
- generic-y += bug.h
- generic-y += bugs.h
-@@ -19,6 +20,7 @@ generic-y += div64.h
- generic-y += dma.h
- generic-y += emergency-restart.h
- generic-y += errno.h
-+generic-y += exec.h
- generic-y += fb.h
- generic-y += fcntl.h
- generic-y += ftrace.h
-@@ -55,6 +57,7 @@ generic-y += sockios.h
- generic-y += statfs.h
- generic-y += stat.h
- generic-y += string.h
-+generic-y += switch_to.h
- generic-y += swab.h
- generic-y += termbits.h
- generic-y += termios.h
-diff --git a/arch/openrisc/include/asm/system.h b/arch/openrisc/include/asm/system.h
-index cf65888..a7f4057 100644
---- a/arch/openrisc/include/asm/system.h
-+++ b/arch/openrisc/include/asm/system.h
-@@ -1,35 +1,5 @@
 -/*
-- * OpenRISC Linux
+- * Generic cmpxchg
 - *
-- * Linux architectural port borrowing liberally from similar works of
-- * others.  All original copyrights apply as per the original source
-- * declaration.
-- *
-- * OpenRISC implementation:
-- * Copyright (C) 2003 Matjaz Breskvar <phoenix@bsemi.com>
-- * Copyright (C) 2010-2011 Jonas Bonn <jonas@southpole.se>
-- * et al.
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License as published by
-- * the Free Software Foundation; either version 2 of the License, or
-- * (at your option) any later version.
+- * Uses the local cmpxchg. Does not support SMP.
 - */
--
--#ifndef __ASM_OPENRISC_SYSTEM_H
--#define __ASM_OPENRISC_SYSTEM_H
--
--#ifdef __KERNEL__
--#ifndef __ASSEMBLY__
--
--#include <asm/spr.h>
--#include <asm-generic/system.h>
--
--/* We probably need this definition, but the generic system.h provides it
-- * and it's not used on our arch anyway...
-- */
--/*#define nop() __asm__ __volatile__ ("l.nop"::)*/
--
--#endif /* __ASSEMBLY__ */
--#endif /* __KERNEL__ */
--#endif /* __ASM_OPENRISC_SYSTEM_H */
-+/* FILE TO BE DELETED. DO NOT ADD STUFF HERE! */
-+#include <asm/barrier.h>
-+#include <asm/cmpxchg.h>
-+#include <asm/exec.h>
-+#include <asm/switch_to.h>
-diff --git a/arch/openrisc/kernel/idle.c b/arch/openrisc/kernel/idle.c
-index e5fc7887..7d618fe 100644
---- a/arch/openrisc/kernel/idle.c
-+++ b/arch/openrisc/kernel/idle.c
-@@ -31,7 +31,6 @@
+ #ifdef CONFIG_SMP
+ #error "Cannot use generic cmpxchg on SMP"
+ #endif
  
- #include <asm/pgtable.h>
- #include <asm/uaccess.h>
--#include <asm/system.h>
- #include <asm/io.h>
- #include <asm/processor.h>
- #include <asm/mmu.h>
-diff --git a/arch/openrisc/kernel/process.c b/arch/openrisc/kernel/process.c
-index e4209af..55210f3 100644
---- a/arch/openrisc/kernel/process.c
-+++ b/arch/openrisc/kernel/process.c
-@@ -38,7 +38,6 @@
- 
- #include <asm/uaccess.h>
- #include <asm/pgtable.h>
--#include <asm/system.h>
- #include <asm/io.h>
- #include <asm/processor.h>
- #include <asm/spr_defs.h>
-diff --git a/arch/openrisc/kernel/prom.c b/arch/openrisc/kernel/prom.c
-index 3d4478f..5869e3f 100644
---- a/arch/openrisc/kernel/prom.c
-+++ b/arch/openrisc/kernel/prom.c
-@@ -42,7 +42,6 @@
- #include <asm/processor.h>
- #include <asm/irq.h>
- #include <linux/io.h>
--#include <asm/system.h>
- #include <asm/mmu.h>
- #include <asm/pgtable.h>
- #include <asm/sections.h>
-diff --git a/arch/openrisc/kernel/ptrace.c b/arch/openrisc/kernel/ptrace.c
-index 7259047..967d499 100644
---- a/arch/openrisc/kernel/ptrace.c
-+++ b/arch/openrisc/kernel/ptrace.c
-@@ -33,7 +33,6 @@
- #include <asm/segment.h>
- #include <asm/page.h>
- #include <asm/pgtable.h>
--#include <asm/system.h>
+-#include <asm-generic/cmpxchg-local.h>
++#include <linux/irqflags.h>
++
++#ifndef xchg
++
++/*
++ * This function doesn't exist, so you'll get a linker error if
++ * something tries to do an invalidly-sized xchg().
++ */
++extern void __xchg_called_with_bad_pointer(void);
++
++static inline
++unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
++{
++	unsigned long ret, flags;
++
++	switch (size) {
++	case 1:
++#ifdef __xchg_u8
++		return __xchg_u8(x, ptr);
++#else
++		local_irq_save(flags);
++		ret = *(volatile u8 *)ptr;
++		*(volatile u8 *)ptr = x;
++		local_irq_restore(flags);
++		return ret;
++#endif /* __xchg_u8 */
++
++	case 2:
++#ifdef __xchg_u16
++		return __xchg_u16(x, ptr);
++#else
++		local_irq_save(flags);
++		ret = *(volatile u16 *)ptr;
++		*(volatile u16 *)ptr = x;
++		local_irq_restore(flags);
++		return ret;
++#endif /* __xchg_u16 */
++
++	case 4:
++#ifdef __xchg_u32
++		return __xchg_u32(x, ptr);
++#else
++		local_irq_save(flags);
++		ret = *(volatile u32 *)ptr;
++		*(volatile u32 *)ptr = x;
++		local_irq_restore(flags);
++		return ret;
++#endif /* __xchg_u32 */
++
++#ifdef CONFIG_64BIT
++	case 8:
++#ifdef __xchg_u64
++		return __xchg_u64(x, ptr);
++#else
++		local_irq_save(flags);
++		ret = *(volatile u64 *)ptr;
++		*(volatile u64 *)ptr = x;
++		local_irq_restore(flags);
++		return ret;
++#endif /* __xchg_u64 */
++#endif /* CONFIG_64BIT */
++
++	default:
++		__xchg_called_with_bad_pointer();
++		return x;
++	}
++}
++
++#define xchg(ptr, x) \
++	((__typeof__(*(ptr))) __xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
++
++#endif /* xchg */
  
  /*
-  * Copy the thread state to a regset that can be interpreted by userspace.
-diff --git a/arch/openrisc/kernel/setup.c b/arch/openrisc/kernel/setup.c
-index 1422f74..ad2c290 100644
---- a/arch/openrisc/kernel/setup.c
-+++ b/arch/openrisc/kernel/setup.c
-@@ -41,7 +41,6 @@
- #include <linux/of_platform.h>
+  * Atomic compare and exchange.
+@@ -18,7 +89,9 @@
+  * Do not define __HAVE_ARCH_CMPXCHG because we want to use it to check whether
+  * a cmpxchg primitive faster than repeated local irq save/restore exists.
+  */
++#include <asm-generic/cmpxchg-local.h>
++
+ #define cmpxchg(ptr, o, n)	cmpxchg_local((ptr), (o), (n))
+ #define cmpxchg64(ptr, o, n)	cmpxchg64_local((ptr), (o), (n))
  
- #include <asm/segment.h>
--#include <asm/system.h>
- #include <asm/pgtable.h>
- #include <asm/types.h>
- #include <asm/setup.h>
-diff --git a/arch/openrisc/kernel/traps.c b/arch/openrisc/kernel/traps.c
-index a4ec44a..52ca32b 100644
---- a/arch/openrisc/kernel/traps.c
-+++ b/arch/openrisc/kernel/traps.c
-@@ -33,7 +33,6 @@
- #include <linux/kallsyms.h>
- #include <asm/uaccess.h>
+-#endif
++#endif /* __ASM_GENERIC_CMPXCHG_H */
+diff --git a/include/asm-generic/system.h b/include/asm-generic/system.h
+index f98f693..54cd124 100644
+--- a/include/asm-generic/system.h
++++ b/include/asm-generic/system.h
+@@ -17,7 +17,6 @@
+ #ifndef __ASSEMBLY__
  
--#include <asm/system.h>
- #include <asm/segment.h>
- #include <asm/io.h>
- #include <asm/pgtable.h>
-diff --git a/arch/openrisc/mm/init.c b/arch/openrisc/mm/init.c
-index 359dcb2..1cf3a8a 100644
---- a/arch/openrisc/mm/init.c
-+++ b/arch/openrisc/mm/init.c
-@@ -33,7 +33,6 @@
- #include <linux/pagemap.h>
- #include <linux/memblock.h>
+ #include <linux/types.h>
+-#include <linux/irqflags.h>
  
--#include <asm/system.h>
- #include <asm/segment.h>
- #include <asm/pgalloc.h>
- #include <asm/pgtable.h>
-diff --git a/arch/openrisc/mm/tlb.c b/arch/openrisc/mm/tlb.c
-index 56b0b89..683bd4d 100644
---- a/arch/openrisc/mm/tlb.c
-+++ b/arch/openrisc/mm/tlb.c
-@@ -26,7 +26,6 @@
- #include <linux/mm.h>
- #include <linux/init.h>
+ #include <asm/barrier.h>
+ #include <asm/cmpxchg.h>
+@@ -34,75 +33,6 @@ extern struct task_struct *__switch_to(struct task_struct *,
  
--#include <asm/system.h>
- #include <asm/segment.h>
- #include <asm/tlbflush.h>
- #include <asm/pgtable.h>
+ #define arch_align_stack(x) (x)
+ 
+-/*
+- * we make sure local_irq_enable() doesn't cause priority inversion
+- */
+-
+-/* This function doesn't exist, so you'll get a linker error
+- *    if something tries to do an invalid xchg().  */
+-extern void __xchg_called_with_bad_pointer(void);
+-
+-static inline
+-unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
+-{
+-	unsigned long ret, flags;
+-
+-	switch (size) {
+-	case 1:
+-#ifdef __xchg_u8
+-		return __xchg_u8(x, ptr);
+-#else
+-		local_irq_save(flags);
+-		ret = *(volatile u8 *)ptr;
+-		*(volatile u8 *)ptr = x;
+-		local_irq_restore(flags);
+-		return ret;
+-#endif /* __xchg_u8 */
+-
+-	case 2:
+-#ifdef __xchg_u16
+-		return __xchg_u16(x, ptr);
+-#else
+-		local_irq_save(flags);
+-		ret = *(volatile u16 *)ptr;
+-		*(volatile u16 *)ptr = x;
+-		local_irq_restore(flags);
+-		return ret;
+-#endif /* __xchg_u16 */
+-
+-	case 4:
+-#ifdef __xchg_u32
+-		return __xchg_u32(x, ptr);
+-#else
+-		local_irq_save(flags);
+-		ret = *(volatile u32 *)ptr;
+-		*(volatile u32 *)ptr = x;
+-		local_irq_restore(flags);
+-		return ret;
+-#endif /* __xchg_u32 */
+-
+-#ifdef CONFIG_64BIT
+-	case 8:
+-#ifdef __xchg_u64
+-		return __xchg_u64(x, ptr);
+-#else
+-		local_irq_save(flags);
+-		ret = *(volatile u64 *)ptr;
+-		*(volatile u64 *)ptr = x;
+-		local_irq_restore(flags);
+-		return ret;
+-#endif /* __xchg_u64 */
+-#endif /* CONFIG_64BIT */
+-
+-	default:
+-		__xchg_called_with_bad_pointer();
+-		return x;
+-	}
+-}
+-
+-#define xchg(ptr, x) \
+-	((__typeof__(*(ptr))) __xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
+-
+ #endif /* !__ASSEMBLY__ */
+ 
+ #endif /* __ASM_GENERIC_SYSTEM_H */
