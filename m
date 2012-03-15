@@ -1,56 +1,25 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:49308 "EHLO
-	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S932104Ab2COOkS convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 Mar 2012 10:40:18 -0400
-Received: by lahj13 with SMTP id j13so2429919lah.19
-        for <linux-arch@vger.kernel.org>; Thu, 15 Mar 2012 07:40:17 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <d2e03d5f063de84d1bae3c3e06296f81.squirrel@webmail.greenhost.nl>
-References: <1331781125-15658-1-git-send-email-wad@chromium.org>
-	<1331781125-15658-12-git-send-email-wad@chromium.org>
-	<d2e03d5f063de84d1bae3c3e06296f81.squirrel@webmail.greenhost.nl>
-Date: Thu, 15 Mar 2012 09:40:13 -0500
-Message-ID: <CABqD9hZ-i-Aa5+7DTmtQ5JU4EAKQfP=HenqgJeFZ2pftQqoUcg@mail.gmail.com>
-Subject: Re: [PATCH v15 11/13] ptrace,seccomp: Add PTRACE_SECCOMP support
-From: Will Drewry <wad@chromium.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from mx1.redhat.com ([209.132.183.28]:65057 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1032048Ab2CORmE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Mar 2012 13:42:04 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <553CFBBAF1315044BC4CD328C97B0B1C17FA0A76@DNCE02.ent.ti.com>
+References: <553CFBBAF1315044BC4CD328C97B0B1C17FA0A76@DNCE02.ent.ti.com> <20120312233602.13888.27659.stgit@warthog.procyon.org.uk> <20120312233706.13888.5678.stgit@warthog.procyon.org.uk> <1331728169.2167.2.camel@deneb.redhat.com>
+Subject: Re: [Linux-c6x-dev] [PATCH 06/35] Disintegrate asm/system.h for C6X [ver #2]
+Date: Thu, 15 Mar 2012 17:41:55 +0000
+Message-ID: <20883.1331833315@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Indan Zupancic <indan@nul.nu>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
-Message-ID: <20120315144013.YXTl26ALKl7FWTAwuaeIuNPGXlmNes56COvEnryh2ww@z>
+To: "Jacquiot, Aurelien" <a-jacquiot@ti.com>
+Cc: dhowells@redhat.com, Mark Salter <msalter@redhat.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "paul.gortmaker@windriver.com" <paul.gortmaker@windriver.com>, "hpa@zytor.com" <hpa@zytor.com>, "torvalds@linux-foundation.org" <torvalds@linux-foundation.org>
+Message-ID: <20120315174155.3GFV71RDqRONb4pYvc7iFEK1O_s_a-4AaJZkJ1paQkQ@z>
 
-On Wed, Mar 14, 2012 at 11:49 PM, Indan Zupancic <indan@nul.nu> wrote:
-> Hi Will,
->
-> On Thu, March 15, 2012 04:12, Will Drewry wrote:
->> @@ -73,6 +74,7 @@
->>  #define PTRACE_EVENT_VFORK_DONE      5
->>  #define PTRACE_EVENT_EXIT    6
->>  #define PTRACE_EVENT_STOP    7
->> +#define PTRACE_EVENT_SECCOMP 8
->>
->>  #include <asm/ptrace.h>
->>
->> @@ -101,8 +103,9 @@
->>  #define PT_TRACE_EXEC                PT_EVENT_FLAG(PTRACE_EVENT_EXEC)
->>  #define PT_TRACE_VFORK_DONE  PT_EVENT_FLAG(PTRACE_EVENT_VFORK_DONE)
->>  #define PT_TRACE_EXIT                PT_EVENT_FLAG(PTRACE_EVENT_EXIT)
->> +#define PT_TRACE_SECCOMP     PT_EVENT_FLAG(PTRACE_EVENT_SECCOMP)
->>
->> -#define PT_TRACE_MASK        0x000003f4
->> +#define PT_TRACE_MASK        0x00000ff4
->
-> Did you miss this bit?
+Jacquiot, Aurelien <a-jacquiot@ti.com> wrote:
 
-Kinda.  I'll go ahead and switch it to 0xbf4, but PT_TRACE_MASK
-doesn't exist in linux-next so this bit disappears on merge.  However,
-it is relevant if people are backporting this code, so I'll push a new
-rev of it in a bit if I don't get any other comments (or include it in
-the next rev if there are comments).
+> Are you sure about the #define _ASM_C6X_BARRIER_H in exec.h? _ASM_C6X_EXEC_H
+> sounds better...
 
-Thanks!
-will
+Yep.
+
+David
