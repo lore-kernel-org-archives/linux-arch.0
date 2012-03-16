@@ -1,84 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:54709 "EHLO
-	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751400Ab2CPSPl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Mar 2012 14:15:41 -0400
-Subject: Re: [PATCH v15 01/13] sk_run_filter: add BPF_S_ANC_SECCOMP_LD_W
-From: Eric Dumazet <eric.dumazet@gmail.com>
-In-Reply-To: <1331781125-15658-2-git-send-email-wad@chromium.org>
+Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:61321 "EHLO
+	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754503Ab2CPTXV convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 Mar 2012 15:23:21 -0400
+Received: by lahj13 with SMTP id j13so3506578lah.19
+        for <linux-arch@vger.kernel.org>; Fri, 16 Mar 2012 12:23:19 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <1331921799.19406.20.camel@edumazet-glaptop>
 References: <1331781125-15658-1-git-send-email-wad@chromium.org>
-	 <1331781125-15658-2-git-send-email-wad@chromium.org>
-Content-Type: text/plain; charset="UTF-8"
-Date: Fri, 16 Mar 2012 11:15:37 -0700
-Message-ID: <1331921737.19406.19.camel@edumazet-glaptop>
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+	<1331781125-15658-3-git-send-email-wad@chromium.org>
+	<1331921799.19406.20.camel@edumazet-glaptop>
+Date: Fri, 16 Mar 2012 14:23:15 -0500
+Message-ID: <CABqD9haBppbqAvcEYP_nstB7aZc-PbVvHwj+P69AQ5+Z87FofA@mail.gmail.com>
+Subject: Re: [PATCH v15 02/13] net/compat.c,linux/filter.h: share compat_sock_fprog
+From: Will Drewry <wad@chromium.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Drewry <wad@chromium.org>
+To: Eric Dumazet <eric.dumazet@gmail.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
-Message-ID: <20120316181537.hWAse8goEDKCg3nHWxZu8KWcrMfsS56aC9uS9AfEvLs@z>
+Message-ID: <20120316192315.72P1xZrZyJmkAPYTTlicTB7Km9NmUSo_5AXVFyG1eBU@z>
 
-On Wed, 2012-03-14 at 22:11 -0500, Will Drewry wrote:
-> Introduces a new BPF ancillary instruction that all LD calls will be
-> mapped through when skb_run_filter() is being used for seccomp BPF.  The
-> rewriting will be done using a secondary chk_filter function that is run
-> after skb_chk_filter.
-> 
-> The code change is guarded by CONFIG_SECCOMP_FILTER which is added,
-> along with the seccomp_bpf_load() function later in this series.
-> 
-> This is based on http://lkml.org/lkml/2012/3/2/141
-> 
-> v15: include seccomp.h explicitly for when seccomp_bpf_load exists.
-> v14: First cut using a single additional instruction
-> ... v13: made bpf functions generic.
-> 
-> Suggested-by: Indan Zupancic <indan@nul.nu>
-> Signed-off-by: Will Drewry <wad@chromium.org>
-> ---
->  include/linux/filter.h |    1 +
->  net/core/filter.c      |    6 ++++++
->  2 files changed, 7 insertions(+), 0 deletions(-)
-> 
-> diff --git a/include/linux/filter.h b/include/linux/filter.h
-> index 8eeb205..aaa2e80 100644
-> --- a/include/linux/filter.h
-> +++ b/include/linux/filter.h
-> @@ -228,6 +228,7 @@ enum {
->  	BPF_S_ANC_HATYPE,
->  	BPF_S_ANC_RXHASH,
->  	BPF_S_ANC_CPU,
-> +	BPF_S_ANC_SECCOMP_LD_W,
->  };
->  
->  #endif /* __KERNEL__ */
-> diff --git a/net/core/filter.c b/net/core/filter.c
-> index 5dea452..d775edc 100644
-> --- a/net/core/filter.c
-> +++ b/net/core/filter.c
-> @@ -39,6 +39,7 @@
->  #include <linux/filter.h>
->  #include <linux/reciprocal_div.h>
->  #include <linux/ratelimit.h>
-> +#include <linux/seccomp.h>
->  
->  /* No hurry in this branch */
->  static void *__load_pointer(const struct sk_buff *skb, int k, unsigned int size)
-> @@ -350,6 +351,11 @@ load_b:
->  				A = 0;
->  			continue;
->  		}
-> +#ifdef CONFIG_SECCOMP_FILTER
-> +		case BPF_S_ANC_SECCOMP_LD_W:
-> +			A = seccomp_bpf_load(fentry->k);
-> +			continue;
-> +#endif
->  		default:
->  			WARN_RATELIMIT(1, "Unknown code:%u jt:%u tf:%u k:%u\n",
->  				       fentry->code, fentry->jt,
+On Fri, Mar 16, 2012 at 1:16 PM, Eric Dumazet <eric.dumazet@gmail.com> wrote:
+> On Wed, 2012-03-14 at 22:11 -0500, Will Drewry wrote:
+>> Any other users of bpf_*_filter that take a struct sock_fprog from
+>> userspace will need to be able to also accept a compat_sock_fprog
+>> if the arch supports compat calls.  This change let's the existing
+>> compat_sock_fprog be shared.
+>>
+>> Acked-by: Serge Hallyn <serge.hallyn@canonical.com>
+>> Signed-off-by: Will Drewry <wad@chromium.org>
+>>
+>> v14: rebase/nochanges
+>> v13: rebase on to 88ebdda6159ffc15699f204c33feb3e431bf9bdc
+>> v12: rebase on to linux-next
+>> v11: introduction
+>> ---
+>>  include/linux/filter.h |   11 +++++++++++
+>>  net/compat.c           |    8 --------
+>>  2 files changed, 11 insertions(+), 8 deletions(-)
+>>
+>> diff --git a/include/linux/filter.h b/include/linux/filter.h
+>> index aaa2e80..f2e5315 100644
+>> --- a/include/linux/filter.h
+>> +++ b/include/linux/filter.h
+>> @@ -10,6 +10,7 @@
+>>
+>>  #ifdef __KERNEL__
+>>  #include <linux/atomic.h>
+>> +#include <linux/compat.h>
+>>  #endif
+>>
+>>  /*
+>> @@ -132,6 +133,16 @@ struct sock_fprog {      /* Required for SO_ATTACH_FILTER. */
+>>
+>>  #ifdef __KERNEL__
+>>
+>> +#ifdef CONFIG_COMPAT
+>> +/*
+>> + * A struct sock_filter is architecture independent.
+>> + */
+>> +struct compat_sock_fprog {
+>> +     u16             len;
+>> +     compat_uptr_t   filter;         /* struct sock_filter * */
+>> +};
+>> +#endif
+>> +
+>>  struct sk_buff;
+>>  struct sock;
+>>
+>> diff --git a/net/compat.c b/net/compat.c
+>> index 6def90e..c5c61c8 100644
+>> --- a/net/compat.c
+>> +++ b/net/compat.c
+>> @@ -326,14 +326,6 @@ void scm_detach_fds_compat(struct msghdr *kmsg, struct scm_cookie *scm)
+>>       __scm_destroy(scm);
+>>  }
+>>
+>> -/*
+>> - * A struct sock_filter is architecture independent.
+>> - */
+>> -struct compat_sock_fprog {
+>> -     u16             len;
+>> -     compat_uptr_t   filter;         /* struct sock_filter * */
+>> -};
+>> -
+>>  static int do_set_attach_filter(struct socket *sock, int level, int optname,
+>>                               char __user *optval, unsigned int optlen)
+>>  {
+>
+> Acked-by: Eric Dumazet <eric.dumazet@gmail.com>
 
+Added your Acked-by's to the tree at
 
-Acked-by: Eric Dumazet <eric.dumazet@gmail.com>
+  https://github.com/redpig/linux/tree/seccomp
 
-
+Thanks!
+will
