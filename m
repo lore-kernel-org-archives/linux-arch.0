@@ -1,56 +1,62 @@
-From: Mike Frysinger <vapier@gentoo.org>
-Subject: Re: [PATCH 07/38] Disintegrate asm/system.h for Blackfin [ver #3]
-Date: Thu, 15 Mar 2012 19:02:23 -0400
-Message-ID: <201203151902.25640.vapier@gentoo.org>
-References: <20120315205514.28759.58969.stgit@warthog.procyon.org.uk> <20120315205620.28759.65095.stgit@warthog.procyon.org.uk>
+From: Greg Ungerer <gerg@snapgear.com>
+Subject: Re: [PATCH 13/35] Disintegrate asm/system.h for M68K [ver #2]
+Date: Fri, 16 Mar 2012 11:05:10 +1000
+Message-ID: <4F6291C6.4040903@snapgear.com>
+References: <4F608A15.9030609@snapgear.com> <20120312233602.13888.27659.stgit@warthog.procyon.org.uk> <20120312233816.13888.142.stgit@warthog.procyon.org.uk> <7100.1331842713@redhat.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed;
-  boundary="nextPart6286657.DrAjxFpHXD";
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.gentoo.org ([140.211.166.183]:40673 "EHLO smtp.gentoo.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1030372Ab2COXCZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 Mar 2012 19:02:25 -0400
-In-Reply-To: <20120315205620.28759.65095.stgit@warthog.procyon.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: uclinux-dist-devel@blackfin.uclinux.org, lliubbo@gmail.com
-Cc: David Howells <dhowells@redhat.com>, paul.gortmaker@windriver.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
+Content-Type: text/plain; charset=windows-1252;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <7100.1331842713@redhat.com>
+Sender: linux-m68k-owner@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-m68k@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
---nextPart6286657.DrAjxFpHXD
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
 
-On Thursday 15 March 2012 16:56:21 David Howells wrote:
-> Disintegrate asm/system.h for Blackfin.
+Hi David,
 
-i think Bob found an error in this patch.  he'll have to comment though.
--mike
+On 16/03/12 06:18, David Howells wrote:
+> Greg Ungerer<gerg@snapgear.com>  wrote:
+>> This breaks compilation for m68k targets with:
+>>
+>>    CC      net/ipv4/ip_input.o
+>> In file included from
+>> /home/gerg/new-wave.320/linux-3.x/arch/m68k/include/asm/system.h:3:0=
+,
+>>                   from net/ipv4/ip_input.c:116:
+>> /home/gerg/new-wave.320/linux-3.x/arch/m68k/include/asm/cmpxchg.h: I=
+n function
+>> =C3=A6__xchg=C3=86:
+>> /home/gerg/new-wave.320/linux-3.x/arch/m68k/include/asm/cmpxchg.h:33=
+:3: error:
+>> implicit declaration of function =C3=A6BUG=C3=86
+>>
+>> The old system.h included linux/kernel.h which includes asm/bug.h.
+>> Just including asm/bug.h here in cmpxchg.h is not enough to fix it.
+>> If you include linux/kernel.h though it compiles cleanly.
+>
+> Which targets, btw?
 
---nextPart6286657.DrAjxFpHXD
-Content-Type: application/pgp-signature; name=signature.asc 
-Content-Description: This is a digitally signed message part.
+Looks to be all the non-MMU ones.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.17 (GNU/Linux)
+So that is the following defconfigs: m5208evb, m5249evb m5272c3,
+m5275evb, m5307c3 and m5407c3. For example this configure line:
 
-iQIcBAABAgAGBQJPYnUBAAoJEEFjO5/oN/WBkdUP/3dEh6jC4b58DzaRVpPEcMFt
-/H8V00XMaWHKfyv7ZWzxQOSm4XOe0/GqMe/3+AYqXvULmNaat3nrPfghnOgi2b84
-aDm0ELBXflw9AIxOwpG2aWUEk6AWg6w1oqicYs7wxPisbbcWdB+MjOVQbNpHkspK
-DvpJ9O8r9a6WZJJpLVG5K0M4dH+RYzrARaacb+B+1ffsBrPjoChQXQHdGgEnadTb
-wUCLX0uhSw1QwpQjHb6AN1lts+Vf+VycrMK7a9miGrGt+ATutwAbTeiLNgpIRywe
-Ek8FDwLquWvqJ69dpgiKfUInMlD3kYImddrKM378oCEuLUuW6Bt1pc1hRm9FAFyP
-fL2aTWOaHECiYcaOm3oebdJ5wasp1azkxO1AVg3Ng+Pu+N47wVSLN3SedFmca/g3
-7r4CVoe8MmvtWeMzEs/MeCB5mrAuGnid7if6Xv3MnQAQvdrCnSdCGmaYlrqKvj0P
-NGn3JiBiRDnamjKybgDAzU8fv7eL/i2Et10ex0Py+EnTFXNXODhaQ/2hjIt9HMvS
-57IMmrgU19iEprxu/ZC0AdOCzReBmFyk+IqfWNngYYy+zwWpddwaSBb5nq8yEgQk
-Dg7UG0IfoJulloeHY2InRDELRAApwuLMBMlMpD/JL6x/5OGUFZN3+sf/yoVsLRxb
-tSI0PWamixWrQCkc1i1N
-=7xgz
------END PGP SIGNATURE-----
+     make ARCH=3Dm68k CROSS_COMPILE=3Dm68k-uclinux- m5208evb_defconfig
 
---nextPart6286657.DrAjxFpHXD--
+Regards
+Greg
+
+
+-----------------------------------------------------------------------=
+-
+Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.co=
+m
+SnapGear Group, McAfee                      PHONE:       +61 7 3435 288=
+8
+8 Gardner Close                             FAX:         +61 7 3217 532=
+3
+Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.co=
+m
