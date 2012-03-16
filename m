@@ -1,23 +1,45 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH 27/38] Disintegrate asm/system.h for Unicore32 [ver #3]
-Date: Fri, 16 Mar 2012 14:28:43 +0000
-Message-ID: <19084.1331908123@redhat.com>
-References: <1331868043.1971.10.camel@epip-laptop> <20120315205514.28759.58969.stgit@warthog.procyon.org.uk> <20120315205931.28759.81875.stgit@warthog.procyon.org.uk>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1331868043.1971.10.camel@epip-laptop>
-Sender: linux-kernel-owner@vger.kernel.org
-To: gxt@mprc.pku.edu.cn
-Cc: dhowells@redhat.com, paul.gortmaker@windriver.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de
-List-Id: linux-arch.vger.kernel.org
+From: Mark Salter <msalter@redhat.com>
+Subject: Re: [PATCH 05/38] Disintegrate asm/system.h for ARM [ver #3]
+Date: Fri, 16 Mar 2012 10:40:06 -0400
+Message-ID: <1331908808.12353.2.camel@deneb.redhat.com>
+References: <20120315205514.28759.58969.stgit@warthog.procyon.org.uk>
+	 <20120315205603.28759.91855.stgit@warthog.procyon.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:32201 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1161069Ab2CPOkP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 Mar 2012 10:40:15 -0400
+In-Reply-To: <20120315205603.28759.91855.stgit@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: paul.gortmaker@windriver.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org
 
-Guan Xuetao <gxt@mprc.pku.edu.cn> wrote:
+On Thu, 2012-03-15 at 20:56 +0000, David Howells wrote:
+> Signed-off-by: David Howells <dhowells@redhat.com>
+> cc: linux-arm-kernel@lists.infradead.org
+> ---
 
-> Disintegrate asm/system.h for Unicore32. (Compilation successful)
-> The implementation details are not changed, but only splitted.
-> BTW, some codestyles are adjusted.
+<snip>
 
-Btw, your patch got word-wrapped by your email client.
+> diff --git a/include/linux/mtd/map.h b/include/linux/mtd/map.h
+> index 94e924e..d9072d9 100644
+> --- a/include/linux/mtd/map.h
+> +++ b/include/linux/mtd/map.h
+> @@ -1,4 +1,4 @@
+> -/*
+> + r/*
+>   * Copyright =A9 2000-2010 David Woodhouse <dwmw2@infradead.org> et =
+al.
+>   *
+>   * This program is free software; you can redistribute it and/or mod=
+ify
+>=20
 
-Is this to be applied to my patch or is it a replacement for my patch?
+Looks like this hunk was unintended. It is causing a build failure for
+me.
 
-David
+--Mark
