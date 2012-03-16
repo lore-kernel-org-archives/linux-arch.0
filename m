@@ -1,100 +1,113 @@
-From: Will Drewry <wad@chromium.org>
-Subject: Re: [PATCH v15 02/13] net/compat.c,linux/filter.h: share compat_sock_fprog
-Date: Fri, 16 Mar 2012 14:23:15 -0500
-Message-ID: <CABqD9haBppbqAvcEYP_nstB7aZc-PbVvHwj+P69AQ5+Z87FofA@mail.gmail.com>
-References: <1331781125-15658-1-git-send-email-wad@chromium.org>
-	<1331781125-15658-3-git-send-email-wad@chromium.org>
-	<1331921799.19406.20.camel@edumazet-glaptop>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH 28/36] PCI: Add pci_bus_extend/shrink_top()
+Date: Fri, 16 Mar 2012 13:36:23 -0600
+Message-ID: <CAErSpo7JS6N3XzVm=_A-oFF_VpmuQaAG_KagxAOEzpEPnhRP_g@mail.gmail.com>
+References: <1330570837-26638-1-git-send-email-yinghai@kernel.org> <1330570837-26638-29-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-doc-owner@vger.kernel.org>
-In-Reply-To: <1331921799.19406.20.camel@edumazet-glaptop>
-Sender: linux-doc-owner@vger.kernel.org
-To: Eric Dumazet <eric.dumazet@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:63518 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757326Ab2CPTgp convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Mar 2012 15:36:45 -0400
+Received: by lbbgm6 with SMTP id gm6so2265095lbb.19
+        for <linux-arch@vger.kernel.org>; Fri, 16 Mar 2012 12:36:43 -0700 (PDT)
+In-Reply-To: <1330570837-26638-29-git-send-email-yinghai@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Fri, Mar 16, 2012 at 1:16 PM, Eric Dumazet <eric.dumazet@gmail.com> =
-wrote:
-> On Wed, 2012-03-14 at 22:11 -0500, Will Drewry wrote:
->> Any other users of bpf_*_filter that take a struct sock_fprog from
->> userspace will need to be able to also accept a compat_sock_fprog
->> if the arch supports compat calls. =A0This change let's the existing
->> compat_sock_fprog be shared.
->>
->> Acked-by: Serge Hallyn <serge.hallyn@canonical.com>
->> Signed-off-by: Will Drewry <wad@chromium.org>
->>
->> v14: rebase/nochanges
->> v13: rebase on to 88ebdda6159ffc15699f204c33feb3e431bf9bdc
->> v12: rebase on to linux-next
->> v11: introduction
->> ---
->> =A0include/linux/filter.h | =A0 11 +++++++++++
->> =A0net/compat.c =A0 =A0 =A0 =A0 =A0 | =A0 =A08 --------
->> =A02 files changed, 11 insertions(+), 8 deletions(-)
->>
->> diff --git a/include/linux/filter.h b/include/linux/filter.h
->> index aaa2e80..f2e5315 100644
->> --- a/include/linux/filter.h
->> +++ b/include/linux/filter.h
->> @@ -10,6 +10,7 @@
->>
->> =A0#ifdef __KERNEL__
->> =A0#include <linux/atomic.h>
->> +#include <linux/compat.h>
->> =A0#endif
->>
->> =A0/*
->> @@ -132,6 +133,16 @@ struct sock_fprog { =A0 =A0 =A0/* Required for =
-SO_ATTACH_FILTER. */
->>
->> =A0#ifdef __KERNEL__
->>
->> +#ifdef CONFIG_COMPAT
->> +/*
->> + * A struct sock_filter is architecture independent.
->> + */
->> +struct compat_sock_fprog {
->> + =A0 =A0 u16 =A0 =A0 =A0 =A0 =A0 =A0 len;
->> + =A0 =A0 compat_uptr_t =A0 filter; =A0 =A0 =A0 =A0 /* struct sock_f=
-ilter * */
->> +};
->> +#endif
->> +
->> =A0struct sk_buff;
->> =A0struct sock;
->>
->> diff --git a/net/compat.c b/net/compat.c
->> index 6def90e..c5c61c8 100644
->> --- a/net/compat.c
->> +++ b/net/compat.c
->> @@ -326,14 +326,6 @@ void scm_detach_fds_compat(struct msghdr *kmsg,=
- struct scm_cookie *scm)
->> =A0 =A0 =A0 __scm_destroy(scm);
->> =A0}
->>
->> -/*
->> - * A struct sock_filter is architecture independent.
->> - */
->> -struct compat_sock_fprog {
->> - =A0 =A0 u16 =A0 =A0 =A0 =A0 =A0 =A0 len;
->> - =A0 =A0 compat_uptr_t =A0 filter; =A0 =A0 =A0 =A0 /* struct sock_f=
-ilter * */
->> -};
->> -
->> =A0static int do_set_attach_filter(struct socket *sock, int level, i=
-nt optname,
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 char __u=
-ser *optval, unsigned int optlen)
->> =A0{
+On Wed, Feb 29, 2012 at 8:00 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+> extend or shrink bus and parent buses top (subordinate)
 >
-> Acked-by: Eric Dumazet <eric.dumazet@gmail.com>
+> extended range is verified safe range, and stop at recorded parent_re=
+s.
+>
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> ---
+> =A0drivers/pci/probe.c | =A0 36 ++++++++++++++++++++++++++++++++++++
+> =A01 files changed, 36 insertions(+), 0 deletions(-)
+>
+> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+> index 1c07aba..96259f8 100644
+> --- a/drivers/pci/probe.c
+> +++ b/drivers/pci/probe.c
+> @@ -655,6 +655,42 @@ static void pci_fixup_parent_subordinate_busnr(s=
+truct pci_bus *child, int max)
+> =A0 =A0 =A0 =A0}
+> =A0}
+>
+> +static void __devinit pci_bus_update_top(struct pci_bus *parent,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0long size, struct resource *parent_r=
+es)
+> +{
+> + =A0 =A0 =A0 struct resource *res;
+> +
+> + =A0 =A0 =A0 if (!size)
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 return;
+> +
+> + =A0 =A0 =A0 while (parent) {
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 res =3D &parent->busn_res;
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (res =3D=3D parent_res)
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 break;
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 res->end +=3D size;
 
-Added your Acked-by's to the tree at
+I've objected to this before on the grounds that it's not safe to
+update res->end because res is already linked into the resource tree,
+but I just noticed another problem.
 
-  https://github.com/redpig/linux/tree/seccomp
+Tree updates are protected by resource_lock, but we don't hold that
+here.  I'm sure you "know" that this update can't race with any other
+conflicting resource operations, but its safety certainly is not
+obvious from the patch.
 
-Thanks!
-will
+I think a better implementation would be to add something like
+"resource_extend()" that could live in kernel/resource.c so it could
+do the appropriate locking and checking.  Such an interface could also
+be independent of the resource type, which may be useful when doing
+mem/io resource reassignment.
+
+This patch is already in Jesse's linux-next branch (commit
+c901d4c0407), so I'm leaving it up to you and Jesse to figure out
+what, if anything, to do about this.
+
+Bjorn
+
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 parent->subordinate +=3D size;
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 pci_write_config_byte(parent->self, PCI=
+_SUBORDINATE_BUS,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0=
+ =A0 =A0 =A0parent->subordinate);
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 dev_printk(KERN_DEBUG, &parent->dev,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 "busn_r=
+es: %s %02lx to %pR\n",
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 (size >=
+ 0) ? "extended" : "shrunk",
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 abs(siz=
+e), res);
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 parent =3D parent->parent;
+> + =A0 =A0 =A0 }
+> +}
+> +
+> +static void __devinit pci_bus_extend_top(struct pci_bus *parent,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0long size, struct resource *parent_r=
+es)
+> +{
+> + =A0 =A0 =A0 pci_bus_update_top(parent, size, parent_res);
+> +}
+> +
+> +static void __devinit pci_bus_shrink_top(struct pci_bus *parent,
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0long size, struct resource *parent_r=
+es)
+> +{
+> + =A0 =A0 =A0 pci_bus_update_top(parent, -size, parent_res);
+> +}
+> +
+> =A0/*
+> =A0* If it's a bridge, configure it and scan the bus behind it.
+> =A0* For CardBus bridges, we don't scan behind as the devices will
+> --
+> 1.7.7
+>
