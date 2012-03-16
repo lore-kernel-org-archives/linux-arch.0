@@ -1,58 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dalsmrelay2.nai.com ([205.227.136.216]:36517 "EHLO
-	dalsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965275Ab2CPBG1 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Mar 2012 21:06:27 -0400
-Message-ID: <4F6291C6.4040903@snapgear.com>
-Date: Fri, 16 Mar 2012 11:05:10 +1000
-From: Greg Ungerer <gerg@snapgear.com>
-MIME-Version: 1.0
+Received: from mx1.redhat.com ([209.132.183.28]:9200 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1031249Ab2CPNmi (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 16 Mar 2012 09:42:38 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <4F608A15.9030609@snapgear.com>
+References: <4F608A15.9030609@snapgear.com> <20120312233602.13888.27659.stgit@warthog.procyon.org.uk> <20120312233816.13888.142.stgit@warthog.procyon.org.uk>
 Subject: Re: [PATCH 13/35] Disintegrate asm/system.h for M68K [ver #2]
-References: <4F608A15.9030609@snapgear.com> <20120312233602.13888.27659.stgit@warthog.procyon.org.uk> <20120312233816.13888.142.stgit@warthog.procyon.org.uk> <7100.1331842713@redhat.com>
-In-Reply-To: <7100.1331842713@redhat.com>
-Content-Type: text/plain; charset="windows-1252"; format=flowed
-Content-Transfer-Encoding: 8BIT
+Date: Fri, 16 Mar 2012 13:42:23 +0000
+Message-ID: <17434.1331905343@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-m68k@vger.kernel.org
-Message-ID: <20120316010510.SXcb0q1osYyXm4SrK0vax7WIx9-mAe4XLqFFiuu6A5s@z>
+To: Greg Ungerer <gerg@snapgear.com>
+Cc: dhowells@redhat.com, paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-m68k@vger.kernel.org
+Message-ID: <20120316134223.cDxev_r5_mW89kjUN4_MwI3d4expoAF4b-tkf_ANukg@z>
 
 
-Hi David,
+How about if I insert the attached patch prior?
 
-On 16/03/12 06:18, David Howells wrote:
-> Greg Ungerer<gerg@snapgear.com>  wrote:
->> This breaks compilation for m68k targets with:
->>
->>    CC      net/ipv4/ip_input.o
->> In file included from
->> /home/gerg/new-wave.320/linux-3.x/arch/m68k/include/asm/system.h:3:0,
->>                   from net/ipv4/ip_input.c:116:
->> /home/gerg/new-wave.320/linux-3.x/arch/m68k/include/asm/cmpxchg.h: In function
->> æ__xchgÆ:
->> /home/gerg/new-wave.320/linux-3.x/arch/m68k/include/asm/cmpxchg.h:33:3: error:
->> implicit declaration of function æBUGÆ
->>
->> The old system.h included linux/kernel.h which includes asm/bug.h.
->> Just including asm/bug.h here in cmpxchg.h is not enough to fix it.
->> If you include linux/kernel.h though it compiles cleanly.
->
-> Which targets, btw?
+David
+---
+From: David Howells <dhowells@redhat.com>
 
-Looks to be all the non-MMU ones.
+m68k: Fix xchg/cmpxchg to fail to link if given an inappropriate pointer
 
-So that is the following defconfigs: m5208evb, m5249evb m5272c3,
-m5275evb, m5307c3 and m5407c3. For example this configure line:
+Fix the m68k versions of xchg() and cmpxchg() to fail to link if given an
+inappropriately sized pointer rather than BUG()'ing at runtime.
 
-     make ARCH=m68k CROSS_COMPILE=m68k-uclinux- m5208evb_defconfig
+Signed-off-by: David Howells <dhowells@redhat.com>
+---
 
-Regards
-Greg
+ arch/m68k/include/asm/system.h |   20 ++++++++++++++++----
+ 1 files changed, 16 insertions(+), 4 deletions(-)
 
 
-------------------------------------------------------------------------
-Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.com
-SnapGear Group, McAfee                      PHONE:       +61 7 3435 2888
-8 Gardner Close                             FAX:         +61 7 3217 5323
-Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.com
+diff --git a/arch/m68k/include/asm/system.h b/arch/m68k/include/asm/system.h
+index 47b01f4..a10c4d1 100644
+--- a/arch/m68k/include/asm/system.h
++++ b/arch/m68k/include/asm/system.h
+@@ -68,6 +68,8 @@ asmlinkage void resume(void);
+ struct __xchg_dummy { unsigned long a[100]; };
+ #define __xg(x) ((volatile struct __xchg_dummy *)(x))
+ 
++extern unsigned long __invalid_xchg_size(unsigned long, volatile void *, int);
++
+ #ifndef CONFIG_RMW_INSNS
+ static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
+ {
+@@ -92,7 +94,8 @@ static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int siz
+ 		x = tmp;
+ 		break;
+ 	default:
+-		BUG();
++		tmp = __invalid_xchg_size(x, ptr, size);
++		break;
+ 	}
+ 
+ 	local_irq_restore(flags);
+@@ -102,7 +105,7 @@ static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int siz
+ static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
+ {
+ 	switch (size) {
+-	    case 1:
++	case 1:
+ 		__asm__ __volatile__
+ 			("moveb %2,%0\n\t"
+ 			 "1:\n\t"
+@@ -110,7 +113,7 @@ static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int siz
+ 			 "jne 1b"
+ 			 : "=&d" (x) : "d" (x), "m" (*__xg(ptr)) : "memory");
+ 		break;
+-	    case 2:
++	case 2:
+ 		__asm__ __volatile__
+ 			("movew %2,%0\n\t"
+ 			 "1:\n\t"
+@@ -118,7 +121,7 @@ static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int siz
+ 			 "jne 1b"
+ 			 : "=&d" (x) : "d" (x), "m" (*__xg(ptr)) : "memory");
+ 		break;
+-	    case 4:
++	case 4:
+ 		__asm__ __volatile__
+ 			("movel %2,%0\n\t"
+ 			 "1:\n\t"
+@@ -126,6 +129,9 @@ static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int siz
+ 			 "jne 1b"
+ 			 : "=&d" (x) : "d" (x), "m" (*__xg(ptr)) : "memory");
+ 		break;
++	default:
++		x = __invalid_xchg_size(x, ptr, size);
++		break;
+ 	}
+ 	return x;
+ }
+@@ -135,6 +141,9 @@ static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int siz
+ 
+ #define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
+ 
++extern unsigned long __invalid_cmpxchg_size(volatile void *,
++					    unsigned long, unsigned long, int);
++
+ /*
+  * Atomic compare and exchange.  Compare OLD with MEM, if identical,
+  * store NEW in MEM.  Return the initial value in MEM.  Success is
+@@ -162,6 +171,9 @@ static inline unsigned long __cmpxchg(volatile void *p, unsigned long old,
+ 				      : "=d" (old), "=m" (*(int *)p)
+ 				      : "d" (new), "0" (old), "m" (*(int *)p));
+ 		break;
++	default:
++		old = __invalid_cmpxchg_size(p, old, new, size);
++		break;
+ 	}
+ 	return old;
+ }
