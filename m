@@ -1,40 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:26920 "EHLO
+Received: from acsinet15.oracle.com ([141.146.126.227]:26951 "EHLO
 	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756936Ab2CSFoH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2012 01:44:07 -0400
+	with ESMTP id S1030180Ab2CSFoL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2012 01:44:11 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v11 04/30] PCI: Add busn_res into struct pci_bus.
-Date: Sun, 18 Mar 2012 22:42:35 -0700
-Message-ID: <1332135781-13695-5-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v11 05/30] PCI: Add busn_res operation functions
+Date: Sun, 18 Mar 2012 22:42:36 -0700
+Message-ID: <1332135781-13695-6-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
 References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120319054235.MXM7hhKotaD34JalIodcjjqpYGwPEqdHuFhRJmdpN2I@z>
+Message-ID: <20120319054236.957pkTSb1_XXPElS88egZC3T5n-DcXivXTYYgXpeOhM@z>
 
-Will use it to track bus number resource tree.
+Will use them insert/update busn res in pci_bus struct.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>
 ---
- include/linux/pci.h |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+ drivers/pci/probe.c |   50 ++++++++++++++++++++++++++++++++++++++++++++++++++
+ include/linux/pci.h |    3 +++
+ 2 files changed, 53 insertions(+), 0 deletions(-)
 
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index d30948d..9235b16 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -1679,6 +1679,56 @@ err_out:
+ 	return NULL;
+ }
+ 
++void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
++{
++	struct resource *res = &b->busn_res;
++	struct resource *parent_res;
++	int ret;
++
++	res->start = bus;
++	res->end = bus_max;
++	res->flags = IORESOURCE_BUS;
++
++	/* no parent for root bus' busn_res */
++	if (!pci_is_root_bus(b)) {
++		parent_res = &b->parent->busn_res;
++
++		ret = insert_resource(parent_res, res);
++
++		dev_printk(KERN_DEBUG, &b->dev,
++			"busn_res: %pR %s inserted under %pR\n",
++			res, ret ? "can not be" : "is", parent_res);
++	} else
++		dev_printk(KERN_DEBUG, &b->dev,
++			"busn_res: %pR for root bus\n",
++			res);
++}
++
++void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
++{
++	struct resource *res = &b->busn_res;
++	struct resource old_res = *res;
++
++	res->end = bus_max;
++	dev_printk(KERN_DEBUG, &b->dev,
++			"busn_res: %pR end updated to %pR\n",
++			&old_res, res);
++}
++
++void pci_bus_release_busn_res(struct pci_bus *b)
++{
++	struct resource *res = &b->busn_res;
++	int ret;
++
++	if (!res->flags || !res->parent)
++		return;
++
++	ret = release_resource(res);
++	dev_printk(KERN_DEBUG, &b->dev,
++			"busn_res: %pR %s released\n",
++			res, ret ? "can not be" : "is");
++}
++
+ struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
+ 		struct pci_ops *ops, void *sysdata, struct list_head *resources)
+ {
 diff --git a/include/linux/pci.h b/include/linux/pci.h
-index d93d3ae..7c03852 100644
+index 7c03852..e494759 100644
 --- a/include/linux/pci.h
 +++ b/include/linux/pci.h
-@@ -419,6 +419,7 @@ struct pci_bus {
- 	struct list_head slots;		/* list of slots on this bus */
- 	struct resource *resource[PCI_BRIDGE_RESOURCE_NUM];
- 	struct list_head resources;	/* address space routed to this bus */
-+	struct resource busn_res;	/* track registered bus num range */
- 
- 	struct pci_ops	*ops;		/* configuration access functions */
- 	void		*sysdata;	/* hook for sys-specific extension */
+@@ -669,6 +669,9 @@ struct pci_bus *pci_scan_bus(int bus, struct pci_ops *ops, void *sysdata);
+ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
+ 				    struct pci_ops *ops, void *sysdata,
+ 				    struct list_head *resources);
++void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int busmax);
++void pci_bus_update_busn_res_end(struct pci_bus *b, int busmax);
++void pci_bus_release_busn_res(struct pci_bus *b);
+ struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
+ 					     struct pci_ops *ops, void *sysdata,
+ 					     struct list_head *resources);
 -- 
 1.7.7
 
