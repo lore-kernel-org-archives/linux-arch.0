@@ -1,84 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:26138 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755285Ab2CSFl0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2012 01:41:26 -0400
+Received: from rcsinet15.oracle.com ([148.87.113.117]:26891 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756399Ab2CSFli (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2012 01:41:38 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v3 03/11] PCI: Rename pci_host_bridge() to find_pci_root_bridge()
-Date: Sun, 18 Mar 2012 22:40:16 -0700
-Message-ID: <1332135624-13528-4-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v3 05/11] PCI: Add host bridge release support
+Date: Sun, 18 Mar 2012 22:40:18 -0700
+Message-ID: <1332135624-13528-6-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1332135624-13528-1-git-send-email-yinghai@kernel.org>
 References: <1332135624-13528-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120319054016.ve0TcxJWu7-efmmtzJ_7I0vwXrCY3oiqNGcsKhCE5GI@z>
+Message-ID: <20120319054018.N237jCP-ylmaSvZrt0CtvgZqjBmfvo9GS5LRzRT7vTE@z>
 
-pci_host_bridge() looks like C++ constructor ?
-Also separate find_pci_root_bus() out.
-
--v2: According to Bjorn, remove extra null checking.
+We need one hook to release host bridge resource that are allocated for host
+bridge during creating root bus.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/host-bridge.c |   18 +++++++++++++-----
- 1 files changed, 13 insertions(+), 5 deletions(-)
+ drivers/pci/host-bridge.c |    8 ++++++++
+ drivers/pci/probe.c       |    3 ++-
+ include/linux/pci.h       |    5 +++++
+ 3 files changed, 15 insertions(+), 1 deletions(-)
 
 diff --git a/drivers/pci/host-bridge.c b/drivers/pci/host-bridge.c
-index 5ca4220..78adcc0 100644
+index a55c3f8..3b2cb40 100644
 --- a/drivers/pci/host-bridge.c
 +++ b/drivers/pci/host-bridge.c
-@@ -16,15 +16,22 @@ void add_to_pci_host_bridges(struct pci_host_bridge *bridge)
- 	list_add_tail(&bridge->list, &pci_host_bridges);
+@@ -27,6 +27,14 @@ static struct pci_host_bridge *find_pci_host_bridge(struct pci_dev *dev)
+ 	return to_pci_host_bridge(bus->bridge);
  }
  
--static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
-+static struct pci_bus *find_pci_root_bus(struct pci_dev *dev)
- {
- 	struct pci_bus *bus;
--	struct pci_host_bridge *bridge;
- 
- 	bus = dev->bus;
- 	while (bus->parent)
- 		bus = bus->parent;
- 
-+	return bus;
++void pci_set_host_bridge_release(struct pci_host_bridge *bridge,
++				 void (*release_fn)(struct pci_host_bridge *),
++				 void *release_data)
++{
++	bridge->release_fn = release_fn;
++	bridge->release_data = release_data;
 +}
 +
-+static struct pci_host_bridge *find_pci_host_bridge(struct pci_dev *dev)
-+{
-+	struct pci_bus *bus = find_pci_root_bus(dev);
-+	struct pci_host_bridge *bridge;
-+
- 	list_for_each_entry(bridge, &pci_host_bridges, list) {
- 		if (bridge->bus == bus)
- 			return bridge;
-@@ -41,7 +48,7 @@ static bool resource_contains(struct resource *res1, struct resource *res2)
- void pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
- 			     struct resource *res)
+ static bool resource_contains(struct resource *res1, struct resource *res2)
  {
--	struct pci_host_bridge *bridge = pci_host_bridge(dev);
-+	struct pci_host_bridge *bridge = find_pci_host_bridge(dev);
- 	struct pci_host_bridge_window *window;
- 	resource_size_t offset = 0;
- 
-@@ -69,12 +76,13 @@ static bool region_contains(struct pci_bus_region *region1,
- void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
- 			     struct pci_bus_region *region)
+ 	return res1->start <= res2->start && res1->end >= res2->end;
+diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+index 903ebe5..d30948d 100644
+--- a/drivers/pci/probe.c
++++ b/drivers/pci/probe.c
+@@ -1136,7 +1136,8 @@ static void pci_release_bus_bridge_dev(struct device *dev)
  {
--	struct pci_host_bridge *bridge = pci_host_bridge(dev);
-+	struct pci_host_bridge *bridge = find_pci_host_bridge(dev);
- 	struct pci_host_bridge_window *window;
--	struct pci_bus_region bus_region;
- 	resource_size_t offset = 0;
+ 	struct pci_host_bridge *bridge = to_pci_host_bridge(dev);
  
- 	list_for_each_entry(window, &bridge->windows, list) {
-+		struct pci_bus_region bus_region;
-+
- 		if (resource_type(res) != resource_type(window->res))
- 			continue;
+-	/* TODO: need to free window->res */
++	if (bridge->release_fn)
++		bridge->release_fn(bridge);
  
+ 	pci_free_resource_list(&bridge->windows);
+ 
+diff --git a/include/linux/pci.h b/include/linux/pci.h
+index 310610e..d93d3ae 100644
+--- a/include/linux/pci.h
++++ b/include/linux/pci.h
+@@ -378,9 +378,14 @@ struct pci_host_bridge {
+ 	struct device dev;
+ 	struct pci_bus *bus;		/* root bus */
+ 	struct list_head windows;	/* pci_host_bridge_windows */
++	void (*release_fn)(struct pci_host_bridge *);
++	void *release_data;
+ };
+ 
+ #define	to_pci_host_bridge(n) container_of(n, struct pci_host_bridge, dev)
++void pci_set_host_bridge_release(struct pci_host_bridge *bridge,
++		     void (*release_fn)(struct pci_host_bridge *),
++		     void *release_data);
+ 
+ /*
+  * The first PCI_BRIDGE_RESOURCE_NUM PCI bus resources (those that correspond
 -- 
 1.7.7
 
