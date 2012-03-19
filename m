@@ -1,138 +1,58 @@
-From: Greg Ungerer <gerg@snapgear.com>
-Subject: Re: [PATCH 13/35] Disintegrate asm/system.h for M68K [ver #2]
-Date: Mon, 19 Mar 2012 12:24:01 +1000
-Message-ID: <4F6698C1.3070105@snapgear.com>
-References: <4F608A15.9030609@snapgear.com> <20120312233602.13888.27659.stgit@warthog.procyon.org.uk> <20120312233816.13888.142.stgit@warthog.procyon.org.uk> <17434.1331905343@redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH -v3 00/11] PCI: pci_host_bridge related cleanup
+Date: Sun, 18 Mar 2012 22:40:13 -0700
+Message-ID: <1332135624-13528-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from dalsmrelay2.nai.com ([205.227.136.216]:39239 "EHLO
-	dalsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757666Ab2CSC0B (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 18 Mar 2012 22:26:01 -0400
-In-Reply-To: <17434.1331905343@redhat.com>
+Received: from rcsinet15.oracle.com ([148.87.113.117]:26712 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755292Ab2CSFlJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2012 01:41:09 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, linux-m68k@vger.kernel.org
+To: Jesse Barnes <jbarnes@virtuousgeek.org>, x86 <x86@kernel.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 
-Hi David,
+will add struct device dev into host_bridge struct.
+also will add release support to make sure allocated resource get
+freed during root bus removal including hostbridge and pci_sysdata.
 
-On 16/03/12 23:42, David Howells wrote:
-> How about if I insert the attached patch prior?
+The patches need to apply to linus v3.3 plus pci/linux-next
 
-Yep, that fixes it. Builds on its own, and with the asm/system.h
-disintegration patch applied (and rejects fixed) as well.
+could get from
+        git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/linux-yinghai.git for-pci-hostbridge-cleanup
 
-Regards
-Greg
+-v2: dropped the patch that is with x86 pcibios_bus_to_resource that Bjorn objected.
+     reorder the patchesset to mold one appended patch into previous patch.
+-v3: separate the patchset.
 
+Thanks
 
+Yinghai
 
-> ---
-> From: David Howells<dhowells@redhat.com>
->
-> m68k: Fix xchg/cmpxchg to fail to link if given an inappropriate pointer
->
-> Fix the m68k versions of xchg() and cmpxchg() to fail to link if given an
-> inappropriately sized pointer rather than BUG()'ing at runtime.
->
-> Signed-off-by: David Howells<dhowells@redhat.com>
-> ---
->
->   arch/m68k/include/asm/system.h |   20 ++++++++++++++++----
->   1 files changed, 16 insertions(+), 4 deletions(-)
->
->
-> diff --git a/arch/m68k/include/asm/system.h b/arch/m68k/include/asm/system.h
-> index 47b01f4..a10c4d1 100644
-> --- a/arch/m68k/include/asm/system.h
-> +++ b/arch/m68k/include/asm/system.h
-> @@ -68,6 +68,8 @@ asmlinkage void resume(void);
->   struct __xchg_dummy { unsigned long a[100]; };
->   #define __xg(x) ((volatile struct __xchg_dummy *)(x))
->
-> +extern unsigned long __invalid_xchg_size(unsigned long, volatile void *, int);
-> +
->   #ifndef CONFIG_RMW_INSNS
->   static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
->   {
-> @@ -92,7 +94,8 @@ static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int siz
->   		x = tmp;
->   		break;
->   	default:
-> -		BUG();
-> +		tmp = __invalid_xchg_size(x, ptr, size);
-> +		break;
->   	}
->
->   	local_irq_restore(flags);
-> @@ -102,7 +105,7 @@ static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int siz
->   static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int size)
->   {
->   	switch (size) {
-> -	    case 1:
-> +	case 1:
->   		__asm__ __volatile__
->   			("moveb %2,%0\n\t"
->   			 "1:\n\t"
-> @@ -110,7 +113,7 @@ static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int siz
->   			 "jne 1b"
->   			 : "=&d" (x) : "d" (x), "m" (*__xg(ptr)) : "memory");
->   		break;
-> -	    case 2:
-> +	case 2:
->   		__asm__ __volatile__
->   			("movew %2,%0\n\t"
->   			 "1:\n\t"
-> @@ -118,7 +121,7 @@ static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int siz
->   			 "jne 1b"
->   			 : "=&d" (x) : "d" (x), "m" (*__xg(ptr)) : "memory");
->   		break;
-> -	    case 4:
-> +	case 4:
->   		__asm__ __volatile__
->   			("movel %2,%0\n\t"
->   			 "1:\n\t"
-> @@ -126,6 +129,9 @@ static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int siz
->   			 "jne 1b"
->   			 : "=&d" (x) : "d" (x), "m" (*__xg(ptr)) : "memory");
->   		break;
-> +	default:
-> +		x = __invalid_xchg_size(x, ptr, size);
-> +		break;
->   	}
->   	return x;
->   }
-> @@ -135,6 +141,9 @@ static inline unsigned long __xchg(unsigned long x, volatile void * ptr, int siz
->
->   #define cmpxchg64_local(ptr, o, n) __cmpxchg64_local_generic((ptr), (o), (n))
->
-> +extern unsigned long __invalid_cmpxchg_size(volatile void *,
-> +					    unsigned long, unsigned long, int);
-> +
->   /*
->    * Atomic compare and exchange.  Compare OLD with MEM, if identical,
->    * store NEW in MEM.  Return the initial value in MEM.  Success is
-> @@ -162,6 +171,9 @@ static inline unsigned long __cmpxchg(volatile void *p, unsigned long old,
->   				      : "=d" (old), "=m" (*(int *)p)
->   				      : "d" (new), "0" (old), "m" (*(int *)p));
->   		break;
-> +	default:
-> +		old = __invalid_cmpxchg_size(p, old, new, size);
-> +		break;
->   	}
->   	return old;
->   }
->
->
->
+Yinghai Lu (11):
+  PCI: Separate host_bridge code out from probe.c
+  x86, PCI: Fix memleak with get_current_resources()
+  PCI: Rename pci_host_bridge() to find_pci_root_bridge()
+  PCI: Add generic device into pci_host_bridge struct
+  PCI: Add host bridge release support
+  x86, PCI: Break down get_current_resource()
+  x86, PCI: Add host bridge resource release for _CRS path
+  x86, PCI: Embed name into pci_root_info struct
+  x86, PCI: Embed pci_sysdata into pci_root_info on acpi path
+  x86, PCI: Allocate pci_root_info for not using _CRS path
+  x86, PCI: Merge root info printing for not using _CRS path
 
+ arch/x86/pci/acpi.c         |  116 +++++++++++++++++++++-------------
+ arch/x86/pci/amd_bus.c      |   78 +++++++----------------
+ arch/x86/pci/broadcom_bus.c |   17 +----
+ arch/x86/pci/bus_numa.c     |   86 +++++++++++++++++++-------
+ arch/x86/pci/bus_numa.h     |   19 +++---
+ drivers/pci/Makefile        |    2 +-
+ drivers/pci/host-bridge.c   |   96 ++++++++++++++++++++++++++++
+ drivers/pci/probe.c         |  146 +++++++++++--------------------------------
+ include/linux/pci.h         |    9 +++-
+ 9 files changed, 313 insertions(+), 256 deletions(-)
+ create mode 100644 drivers/pci/host-bridge.c
 
 -- 
-------------------------------------------------------------------------
-Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.com
-SnapGear Group, McAfee                      PHONE:       +61 7 3435 2888
-8 Gardner Close                             FAX:         +61 7 3217 5323
-Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.com
+1.7.7
