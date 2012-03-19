@@ -1,51 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:28832 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1031000Ab2CSFqJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2012 01:46:09 -0400
+Received: from rcsinet15.oracle.com ([148.87.113.117]:29900 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1030702Ab2CSFpf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2012 01:45:35 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v11 30/30] PCI: Don't shrink too much for hotplug bridge
-Date: Sun, 18 Mar 2012 22:43:01 -0700
-Message-ID: <1332135781-13695-31-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v11 19/30] PCI: Add pci_bus_extend/shrink_top()
+Date: Sun, 18 Mar 2012 22:42:50 -0700
+Message-ID: <1332135781-13695-20-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
 References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120319054301.VMoweqy0CG3C40yo-a0M82S7jZIoJ5Q4tx9nlM-9i08@z>
+Message-ID: <20120319054250.h93S0NR3TdGG7LDtSJKCK48gM5jNU0CrBtzYzJhvysQ@z>
 
-Otherwise may have problem later if we plug pcie cards with bridges.
+Extend or shrink bus and parent buses top (subordinate)
+
+Extended range is verified safe range, and stop at recorded parent_res.
+
+-v2: Remove busn_res change, it is updated in other function.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |    6 ++++++
- 1 files changed, 6 insertions(+), 0 deletions(-)
+ drivers/pci/probe.c |   35 +++++++++++++++++++++++++++++++++++
+ 1 files changed, 35 insertions(+), 0 deletions(-)
 
 diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 01ba48e..38e0448 100644
+index 8a77b8b..3e32b34 100644
 --- a/drivers/pci/probe.c
 +++ b/drivers/pci/probe.c
-@@ -782,6 +782,7 @@ static int __devinit pci_bridge_check_busn_broken(struct pci_bus *bus,
+@@ -655,6 +655,41 @@ static void pci_fixup_parent_subordinate_busnr(struct pci_bus *child, int max)
+ 	}
+ }
  
- static unsigned int __devinit __pci_scan_child_bus(struct pci_bus *bus,
- 						 int pass);
-+#define HOTPLUG_BRIDGE_RESERVE_BUSNR 8
++static void __devinit pci_bus_update_top(struct pci_bus *parent,
++		 long size, struct resource *parent_res)
++{
++	struct resource *res;
++
++	if (!size)
++		return;
++
++	while (parent) {
++		res = &parent->busn_res;
++		if (res == parent_res)
++			break;
++		parent->subordinate += size;
++		pci_write_config_byte(parent->self, PCI_SUBORDINATE_BUS,
++					 parent->subordinate);
++		dev_printk(KERN_DEBUG, &parent->dev,
++				"busn_res: %s %02lx to %pR\n",
++				(size > 0) ? "extended" : "shrunk",
++				abs(size), res);
++		parent = parent->parent;
++	}
++}
++
++static void __devinit pci_bus_extend_top(struct pci_bus *parent,
++		 long size, struct resource *parent_res)
++{
++	pci_bus_update_top(parent, size, parent_res);
++}
++
++static void __devinit pci_bus_shrink_top(struct pci_bus *parent,
++		 long size, struct resource *parent_res)
++{
++	pci_bus_update_top(parent, -size, parent_res);
++}
++
  /*
   * If it's a bridge, configure it and scan the bus behind it.
   * For CardBus bridges, we don't scan behind as the devices will
-@@ -993,6 +994,11 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
- 		/*
- 		 * Set the subordinate bus number to its real value.
- 		 */
-+		if (dev->is_hotplug_bridge && child->subordinate > max &&
-+		    (max - child->secondary) < HOTPLUG_BRIDGE_RESERVE_BUSNR)
-+			max = min_t(int, child->secondary +
-+					 HOTPLUG_BRIDGE_RESERVE_BUSNR,
-+				    child->subordinate);
- 		shrink_size = child->subordinate - max;
- 		child->subordinate = max;
- 		pci_write_config_byte(dev, PCI_SUBORDINATE_BUS, max);
 -- 
 1.7.7
 
