@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v11 05/30] PCI: Add busn_res operation functions
-Date: Sun, 18 Mar 2012 22:42:36 -0700
-Message-ID: <1332135781-13695-6-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v11 08/30] PCI: Checking busn_res in pci_scan_root_bus()
+Date: Sun, 18 Mar 2012 22:42:39 -0700
+Message-ID: <1332135781-13695-9-git-send-email-yinghai@kernel.org>
 References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
@@ -10,88 +10,57 @@ To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Will use them insert/update busn res in pci_bus struct.
+Some calling may not have end decided yet, and may not pass busn_res in
+resources list.
+
+Try to do insert big one and shrink.
+
+Also print out one info about that, so we could find out which path
+does not have busn_res in resources list.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |   50 ++++++++++++++++++++++++++++++++++++++++++++++++++
- include/linux/pci.h |    3 +++
- 2 files changed, 53 insertions(+), 0 deletions(-)
+ drivers/pci/probe.c |   22 ++++++++++++++++++++++
+ 1 files changed, 22 insertions(+), 0 deletions(-)
 
 diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index d30948d..9235b16 100644
+index 3d11836..654c727 100644
 --- a/drivers/pci/probe.c
 +++ b/drivers/pci/probe.c
-@@ -1679,6 +1679,56 @@ err_out:
- 	return NULL;
- }
- 
-+void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
-+{
-+	struct resource *res = &b->busn_res;
-+	struct resource *parent_res;
-+	int ret;
-+
-+	res->start = bus;
-+	res->end = bus_max;
-+	res->flags = IORESOURCE_BUS;
-+
-+	/* no parent for root bus' busn_res */
-+	if (!pci_is_root_bus(b)) {
-+		parent_res = &b->parent->busn_res;
-+
-+		ret = insert_resource(parent_res, res);
-+
-+		dev_printk(KERN_DEBUG, &b->dev,
-+			"busn_res: %pR %s inserted under %pR\n",
-+			res, ret ? "can not be" : "is", parent_res);
-+	} else
-+		dev_printk(KERN_DEBUG, &b->dev,
-+			"busn_res: %pR for root bus\n",
-+			res);
-+}
-+
-+void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
-+{
-+	struct resource *res = &b->busn_res;
-+	struct resource old_res = *res;
-+
-+	res->end = bus_max;
-+	dev_printk(KERN_DEBUG, &b->dev,
-+			"busn_res: %pR end updated to %pR\n",
-+			&old_res, res);
-+}
-+
-+void pci_bus_release_busn_res(struct pci_bus *b)
-+{
-+	struct resource *res = &b->busn_res;
-+	int ret;
-+
-+	if (!res->flags || !res->parent)
-+		return;
-+
-+	ret = release_resource(res);
-+	dev_printk(KERN_DEBUG, &b->dev,
-+			"busn_res: %pR %s released\n",
-+			res, ret ? "can not be" : "is");
-+}
-+
- struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
+@@ -1736,12 +1736,34 @@ struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
  		struct pci_ops *ops, void *sysdata, struct list_head *resources)
  {
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 7c03852..e494759 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -669,6 +669,9 @@ struct pci_bus *pci_scan_bus(int bus, struct pci_ops *ops, void *sysdata);
- struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 				    struct pci_ops *ops, void *sysdata,
- 				    struct list_head *resources);
-+void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int busmax);
-+void pci_bus_update_busn_res_end(struct pci_bus *b, int busmax);
-+void pci_bus_release_busn_res(struct pci_bus *b);
- struct pci_bus * __devinit pci_scan_root_bus(struct device *parent, int bus,
- 					     struct pci_ops *ops, void *sysdata,
- 					     struct list_head *resources);
+ 	struct pci_bus *b;
++	struct pci_host_bridge_window *window, *n;
++	struct resource *res;
++	bool found;
++
++	list_for_each_entry_safe(window, n, resources, list) {
++		res = window->res;
++		if (res->flags & IORESOURCE_BUS) {
++			found = true;
++			break;
++		}
++	}
+ 
+ 	b = pci_create_root_bus(parent, bus, ops, sysdata, resources);
+ 	if (!b)
+ 		return NULL;
+ 
++	if (!found) {
++		dev_info(&b->dev,
++		 "No busn resource found for root bus, will use [%02x, ff]\n",
++			bus);
++		pci_bus_insert_busn_res(b, bus, 255);
++	}
++
+ 	b->subordinate = pci_scan_child_bus(b);
++
++	if (!found)
++		pci_bus_update_busn_res_end(b, b->subordinate);
++
+ 	pci_bus_add_devices(b);
+ 	return b;
+ }
 -- 
 1.7.7
