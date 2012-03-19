@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v3 08/11] x86, PCI: Embed name into pci_root_info struct
-Date: Sun, 18 Mar 2012 22:40:21 -0700
-Message-ID: <1332135624-13528-9-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v3 03/11] PCI: Rename pci_host_bridge() to find_pci_root_bridge()
+Date: Sun, 18 Mar 2012 22:40:16 -0700
+Message-ID: <1332135624-13528-4-git-send-email-yinghai@kernel.org>
 References: <1332135624-13528-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1332135624-13528-1-git-send-email-yinghai@kernel.org>
@@ -10,46 +10,69 @@ To: Jesse Barnes <jbarnes@virtuousgeek.org>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-Now we allocate info, and keep that in during whole life of host bridge.
+pci_host_bridge() looks like C++ constructor ?
+Also separate find_pci_root_bus() out.
 
-So don't allocate info->name seperately, just put name into struct.
+-v2: According to Bjorn, remove extra null checking.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- arch/x86/pci/acpi.c |    7 ++-----
- 1 files changed, 2 insertions(+), 5 deletions(-)
+ drivers/pci/host-bridge.c |   18 +++++++++++++-----
+ 1 files changed, 13 insertions(+), 5 deletions(-)
 
-diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
-index 2b74a16..23e7361 100644
---- a/arch/x86/pci/acpi.c
-+++ b/arch/x86/pci/acpi.c
-@@ -9,7 +9,7 @@
+diff --git a/drivers/pci/host-bridge.c b/drivers/pci/host-bridge.c
+index 5ca4220..78adcc0 100644
+--- a/drivers/pci/host-bridge.c
++++ b/drivers/pci/host-bridge.c
+@@ -16,15 +16,22 @@ void add_to_pci_host_bridges(struct pci_host_bridge *bridge)
+ 	list_add_tail(&bridge->list, &pci_host_bridges);
+ }
  
- struct pci_root_info {
- 	struct acpi_device *bridge;
--	char *name;
-+	char name[16];
- 	unsigned int res_num;
- 	struct resource *res;
- 	int busnum;
-@@ -317,7 +317,6 @@ static void add_resources(struct pci_root_info *info,
- 
- static void free_pci_root_info_res(struct pci_root_info *info)
+-static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
++static struct pci_bus *find_pci_root_bus(struct pci_dev *dev)
  {
--	kfree(info->name);
- 	kfree(info->res);
- 	info->res = NULL;
- 	info->res_num = 0;
-@@ -370,9 +369,7 @@ probe_pci_root_info(struct pci_root_info *info, struct acpi_device *device,
- 	if (!info->res)
- 		return;
+ 	struct pci_bus *bus;
+-	struct pci_host_bridge *bridge;
  
--	info->name = kasprintf(GFP_KERNEL, "PCI Bus %04x:%02x", domain, busnum);
--	if (!info->name)
--		return;
-+	sprintf(info->name, "PCI Bus %04x:%02x", domain, busnum);
+ 	bus = dev->bus;
+ 	while (bus->parent)
+ 		bus = bus->parent;
  
- 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, setup_resource,
- 				info);
++	return bus;
++}
++
++static struct pci_host_bridge *find_pci_host_bridge(struct pci_dev *dev)
++{
++	struct pci_bus *bus = find_pci_root_bus(dev);
++	struct pci_host_bridge *bridge;
++
+ 	list_for_each_entry(bridge, &pci_host_bridges, list) {
+ 		if (bridge->bus == bus)
+ 			return bridge;
+@@ -41,7 +48,7 @@ static bool resource_contains(struct resource *res1, struct resource *res2)
+ void pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
+ 			     struct resource *res)
+ {
+-	struct pci_host_bridge *bridge = pci_host_bridge(dev);
++	struct pci_host_bridge *bridge = find_pci_host_bridge(dev);
+ 	struct pci_host_bridge_window *window;
+ 	resource_size_t offset = 0;
+ 
+@@ -69,12 +76,13 @@ static bool region_contains(struct pci_bus_region *region1,
+ void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
+ 			     struct pci_bus_region *region)
+ {
+-	struct pci_host_bridge *bridge = pci_host_bridge(dev);
++	struct pci_host_bridge *bridge = find_pci_host_bridge(dev);
+ 	struct pci_host_bridge_window *window;
+-	struct pci_bus_region bus_region;
+ 	resource_size_t offset = 0;
+ 
+ 	list_for_each_entry(window, &bridge->windows, list) {
++		struct pci_bus_region bus_region;
++
+ 		if (resource_type(res) != resource_type(window->res))
+ 			continue;
+ 
 -- 
 1.7.7
