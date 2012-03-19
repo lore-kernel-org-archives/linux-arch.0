@@ -1,68 +1,68 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v11 20/30] PCI: Probe safe range that we can use for unassigned bridge.
-Date: Sun, 18 Mar 2012 22:42:51 -0700
-Message-ID: <1332135781-13695-21-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v11 23/30] PCI: Strict checking of valid range for bridge
+Date: Sun, 18 Mar 2012 22:42:54 -0700
+Message-ID: <1332135781-13695-24-git-send-email-yinghai@kernel.org>
 References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:28637 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1030740Ab2CSFph (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2012 01:45:37 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Try to allocate from parent bus busn_res. If we can not find any big enough,
-will try to extend parent bus top. even the extending is through allocating,
-after allocating will pad the range to parent buses top.
+Children bridges busn range should be allocated from parent bus range.
 
-When extending happens, We will record the parent_res, so could use it as
-stopper for really extend/shrink top later.
-
--v4: Use generic probe_resource()
+So we could avoid overlapping between sibling bridges on same bus.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |   25 +++++++++++++++++++++++++
- 1 files changed, 25 insertions(+), 0 deletions(-)
+ drivers/pci/probe.c |   27 +++++++++++++++++++++++++++
+ 1 files changed, 27 insertions(+), 0 deletions(-)
 
 diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 3e32b34..67cd0a7 100644
+index bf577e8..5710411 100644
 --- a/drivers/pci/probe.c
 +++ b/drivers/pci/probe.c
-@@ -690,6 +690,31 @@ static void __devinit pci_bus_shrink_top(struct pci_bus *parent,
- 	pci_bus_update_top(parent, -size, parent_res);
+@@ -730,6 +730,28 @@ static int __devinit pci_bridge_probe_busn_res(struct pci_bus *bus,
+ 	return ret;
  }
  
-+static int __devinit pci_bridge_probe_busn_res(struct pci_bus *bus,
-+			 struct pci_dev *dev, struct resource *busn_res,
-+			 resource_size_t needed_size, struct resource **p)
++static int __devinit pci_bridge_check_busn_broken(struct pci_bus *bus,
++				struct pci_dev *dev,
++				int secondary, int subordinate)
 +{
 +	int ret;
-+	int old_size = resource_size(&bus->busn_res);
++	struct resource busn_res;
 +
-+	ret = probe_resource(&bus->busn_res, &dev->dev, busn_res, needed_size,
-+			p, 1, 0xff, "busn");
-+
++	memset(&busn_res, 0, sizeof(struct resource));
++	dev_printk(KERN_DEBUG, &dev->dev,
++		 "check if busn %02x-%02x is in busn_res: %pR\n",
++		 secondary, subordinate, &bus->busn_res);
++	ret = allocate_resource(&bus->busn_res, &busn_res,
++			 (subordinate - secondary + 1),
++			 secondary, subordinate,
++			 1, NULL, NULL);
 +	if (ret)
-+		return ret;
++		return 1;
 +
-+	busn_res->flags = IORESOURCE_BUS;
++	release_resource(&busn_res);
 +
-+	if (*p) {
-+		/* extend parent bus top*/
-+		int new_size = resource_size(&bus->busn_res);
-+
-+		pci_bus_extend_top(bus, new_size - old_size, *p);
-+	}
-+
-+	return ret;
++	return 0;
 +}
-+
  /*
   * If it's a bridge, configure it and scan the bus behind it.
   * For CardBus bridges, we don't scan behind as the devices will
+@@ -768,6 +790,11 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
+ 	    (primary != bus->number || secondary <= bus->number))
+ 		broken = 1;
+ 
++	/* more strict checking */
++	if (!pass && !broken && !dev->subordinate)
++		broken = pci_bridge_check_busn_broken(bus, dev,
++						   secondary, subordinate);
++
+ 	if (broken)
+ 		dev_dbg(&dev->dev, "bus configuration invalid, reconfiguring\n");
+ 
 -- 
 1.7.7
