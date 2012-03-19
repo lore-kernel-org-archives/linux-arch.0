@@ -1,37 +1,64 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v11 13/30] PCI, ia64: Register busn_res for root buses
-Date: Sun, 18 Mar 2012 22:42:44 -0700
-Message-ID: <1332135781-13695-14-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v11 15/30] PCI, powerpc: Register busn_res for root buses
+Date: Sun, 18 Mar 2012 22:42:46 -0700
+Message-ID: <1332135781-13695-16-git-send-email-yinghai@kernel.org>
 References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-pci-owner@vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
-Sender: linux-pci-owner@vger.kernel.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org
 List-Id: linux-arch.vger.kernel.org
 
--v2: according to Bjorn, use root->secondary directly.
-
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-ia64@vger.kernel.org
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: linuxppc-dev@lists.ozlabs.org
 ---
- arch/ia64/pci/pci.c |    2 ++
- 1 files changed, 2 insertions(+), 0 deletions(-)
+ arch/powerpc/include/asm/pci-bridge.h |    1 +
+ arch/powerpc/kernel/pci-common.c      |   10 +++++++++-
+ 2 files changed, 10 insertions(+), 1 deletions(-)
 
-diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
-index d1ce320..6c7c4ae 100644
---- a/arch/ia64/pci/pci.c
-+++ b/arch/ia64/pci/pci.c
-@@ -352,6 +352,8 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
- #endif
+diff --git a/arch/powerpc/include/asm/pci-bridge.h b/arch/powerpc/include/asm/pci-bridge.h
+index 5d48765..11cebf0 100644
+--- a/arch/powerpc/include/asm/pci-bridge.h
++++ b/arch/powerpc/include/asm/pci-bridge.h
+@@ -30,6 +30,7 @@ struct pci_controller {
+ 	int first_busno;
+ 	int last_busno;
+ 	int self_busno;
++	struct resource busn;
  
- 	INIT_LIST_HEAD(&info.resources);
-+	/* insert busn resource at first */
-+	pci_add_resource(&info.resources, &root->secondary);
- 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_window,
- 			&windows);
- 	if (windows) {
+ 	void __iomem *io_base_virt;
+ #ifdef CONFIG_PPC64
+diff --git a/arch/powerpc/kernel/pci-common.c b/arch/powerpc/kernel/pci-common.c
+index 910b9de..ee8c0c9 100644
+--- a/arch/powerpc/kernel/pci-common.c
++++ b/arch/powerpc/kernel/pci-common.c
+@@ -1648,6 +1648,11 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
+ 	/* Wire up PHB bus resources */
+ 	pcibios_setup_phb_resources(hose, &resources);
+ 
++	hose->busn.start = hose->first_busno;
++	hose->busn.end	 = hose->last_busno;
++	hose->busn.flags = IORESOURCE_BUS;
++	pci_add_resource(&resources, &hose->busn);
++
+ 	/* Create an empty bus for the toplevel */
+ 	bus = pci_create_root_bus(hose->parent, hose->first_busno,
+ 				  hose->ops, hose, &resources);
+@@ -1670,8 +1675,11 @@ void __devinit pcibios_scan_phb(struct pci_controller *hose)
+ 		of_scan_bus(node, bus);
+ 	}
+ 
+-	if (mode == PCI_PROBE_NORMAL)
++	if (mode == PCI_PROBE_NORMAL) {
++		pci_bus_update_busn_res_end(bus, 255);
+ 		hose->last_busno = bus->subordinate = pci_scan_child_bus(bus);
++		pci_bus_update_busn_res_end(bus, bus->subordinate);
++	}
+ 
+ 	/* Platform gets a chance to do some global fixups before
+ 	 * we proceed to resource allocation
 -- 
 1.7.7
