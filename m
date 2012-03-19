@@ -1,80 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:30014 "EHLO
-	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1030842Ab2CSFpy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2012 01:45:54 -0400
+Received: from acsinet15.oracle.com ([141.146.126.227]:28811 "EHLO
+	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1030884Ab2CSFqF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2012 01:46:05 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v11 24/30] PCI: Kill pci_fixup_parent_subordinate_busnr()
-Date: Sun, 18 Mar 2012 22:42:55 -0700
-Message-ID: <1332135781-13695-25-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v11 29/30] PCI: More strict checking of valid range for bridge
+Date: Sun, 18 Mar 2012 22:43:00 -0700
+Message-ID: <1332135781-13695-30-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
 References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120319054255.UnRJDX_ze3aa8Dma8J1T4RNG7uwjN0IgYAv_A5zMckg@z>
+Message-ID: <20120319054300.snSD-nC1xNT2y3C9OObH41ykuLWsLTHOR2oYTlGzn0U@z>
 
-Now we can safely extend parent top and shrink them by probing them.
+Found one sick system with two sibling bridge have overlaping range from BIOS.
+00:02.1 bus range is 0x30-0x30
+00:02.2 bus range is 0x30-0x3f, and it have two children under it.
 
-Don't need that anymore.
+RHEL 6.2 kernel, will just 00:02.1 have child bus 0x30, and bridge 00:02.2 will
+not have.
+
+before this patch, this patchset will have 00:02.1 to have bus 0x30,
+and 00:02.2 will have reallocate range bus 01.
+but 00:02.1 will have scaned at first, so later it will have two fake devices.
+
+To fix the problem, We need to check with unscaned sibling bridge about range
+overlapping.
+If there is overlapping found, will mark both sides to be broken.
+So we could prevent one side take too big range.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |   32 --------------------------------
- 1 files changed, 0 insertions(+), 32 deletions(-)
+ drivers/pci/probe.c |   45 ++++++++++++++++++++++++++++++++++++++++++++-
+ 1 files changed, 44 insertions(+), 1 deletions(-)
 
 diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 5710411..6577105 100644
+index 8a4e90f..01ba48e 100644
 --- a/drivers/pci/probe.c
 +++ b/drivers/pci/probe.c
-@@ -654,22 +654,6 @@ struct pci_bus *__ref pci_add_new_bus(struct pci_bus *parent, struct pci_dev *de
- 	return child;
+@@ -714,6 +714,48 @@ static int __devinit pci_bridge_probe_busn_res(struct pci_bus *bus,
+ 	return ret;
  }
  
--static void pci_fixup_parent_subordinate_busnr(struct pci_bus *child, int max)
--{
--	struct pci_bus *parent = child->parent;
--
--	/* Attempts to fix that up are really dangerous unless
--	   we're going to re-assign all bus numbers. */
--	if (!pcibios_assign_all_busses())
--		return;
--
--	while (parent->parent && parent->subordinate < max) {
--		parent->subordinate = max;
--		pci_write_config_byte(parent->self, PCI_SUBORDINATE_BUS, max);
--		parent = parent->parent;
--	}
--}
--
- static void __devinit pci_bus_update_top(struct pci_bus *parent,
- 		 long size, struct resource *parent_res)
- {
-@@ -917,23 +901,7 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
++static int __devinit pci_bridge_check_busn_broken_with_unscaned(
++				struct pci_bus *bus,
++				struct pci_dev *dev,
++				int secondary, int subordinate)
++{
++	u32 buses2;
++	int broken = 0;
++	struct pci_dev *dev2;
++	int secondary2, subordinate2;
++	int common_start, common_end;
++
++	/* need to check with not scaned sibling bridges */
++	list_for_each_entry(dev2, &bus->devices, bus_list) {
++		if (dev2->hdr_type != PCI_HEADER_TYPE_BRIDGE &&
++		    dev2->hdr_type != PCI_HEADER_TYPE_CARDBUS)
++			continue;
++		if (dev2->subordinate)
++			continue;
++		if (dev2 == dev)
++			continue;
++
++		pci_read_config_dword(dev2, PCI_PRIMARY_BUS, &buses2);
++		secondary2 = (buses2 >> 8) & 0xFF;
++		subordinate2 = (buses2 >> 16) & 0xFF;
++
++		/* overlapping between them ? */
++		common_start = max(secondary, secondary2);
++		common_end = min(subordinate, subordinate2);
++		if (common_start <= common_end) {
++			/*
++			 * Temporarily disable forwarding of the
++			 * configuration cycles on this sibling bridge
++			 */
++			pci_write_config_dword(dev2, PCI_PRIMARY_BUS,
++					       buses2 & ~0xffffff);
++			broken = 1;
++		}
++	}
++
++	return broken;
++}
++
+ static int __devinit pci_bridge_check_busn_broken(struct pci_bus *bus,
+ 				struct pci_dev *dev,
+ 				int secondary, int subordinate)
+@@ -734,7 +776,8 @@ static int __devinit pci_bridge_check_busn_broken(struct pci_bus *bus,
  
- 		if (!is_cardbus) {
- 			child->bridge_ctl = bctl;
--			/*
--			 * Adjust subordinate busnr in parent buses.
--			 * We do this before scanning for children because
--			 * some devices may not be detected if the bios
--			 * was lazy.
--			 */
--			pci_fixup_parent_subordinate_busnr(child, max);
--			/* Now we can scan all subordinate buses... */
- 			max = pci_scan_child_bus(child);
--			/*
--			 * now fix it up again since we have found
--			 * the real value of max.
--			 */
--			pci_fixup_parent_subordinate_busnr(child, max);
--
--		} else {
--			pci_fixup_parent_subordinate_busnr(child, max);
- 		}
- 		/*
- 		 * Set the subordinate bus number to its real value.
+ 	release_resource(&busn_res);
+ 
+-	return 0;
++	return pci_bridge_check_busn_broken_with_unscaned(bus, dev,
++					secondary, subordinate);
+ }
+ 
+ static unsigned int __devinit __pci_scan_child_bus(struct pci_bus *bus,
 -- 
 1.7.7
 
