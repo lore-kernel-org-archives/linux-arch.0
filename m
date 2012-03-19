@@ -1,65 +1,57 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v11 01/30] x86, PCI: Add print all root info for not using _CRS path
-Date: Sun, 18 Mar 2012 22:42:32 -0700
-Message-ID: <1332135781-13695-2-git-send-email-yinghai@kernel.org>
-References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: [PATCH] Kbuild: centralize MKIMAGE and cmd_uimage definitions
+Date: Mon, 19 Mar 2012 07:46:10 +0100
+Message-ID: <4F66D632.5070107@monstr.eu>
+References: <1331931835-12346-1-git-send-email-swarren@wwwdotorg.org>
+Reply-To: monstr@monstr.eu
+Mime-Version: 1.0
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <1331931835-12346-1-git-send-email-swarren@wwwdotorg.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Michal Marek <mmarek@suse.cz>, Russell King <linux@arm.linux.org.uk>, nico@fluxnic.net, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mike Frysinger <vapier@gentoo.org>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org, uclinux-dist-devel@blackfin.uclinux.org, microblaze-uclinux@itee.uq.edu.au, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- arch/x86/pci/amd_bus.c  |    2 +-
- arch/x86/pci/bus_numa.c |    8 ++++++++
- arch/x86/pci/bus_numa.h |    1 +
- 3 files changed, 10 insertions(+), 1 deletions(-)
+Stephen Warren wrote:
+> All ARCHs have the same definition of MKIMAGE. Move it to Makefile.lib
+> to avoid duplication.
+> 
+> All ARCHs have similar definitions of cmd_uimage. Place a sufficiently
+> parameterized version in Makefile.lib to avoid duplication.
+> 
+> Signed-off-by: Stephen Warren <swarren@wwwdotorg.org>
+> ---
+> v2:
+> * Fix blackfin's UIMAGE_LOADADDR in the ROMKERNEL case.
+> * Fix missing ) on a variable reference in avr32 and sparc.
+> * Only set those UIMAGE_* variables that the arch-specific Makefile hasn't
+>   already set.
+> * The patch series is now just this single patch which removes duplication;
+>   I've dropped the Kconfig feature to allow use of -T kernel_noload for
+>   now, since it looks like U-Boot is gaining direct zImage support.
+> 
+>  arch/arm/boot/Makefile          |   23 +++++++++--------------
+>  arch/avr32/boot/images/Makefile |    9 +++------
+>  arch/blackfin/boot/Makefile     |   19 ++++++++-----------
+>  arch/microblaze/boot/Makefile   |   10 +++-------
+>  arch/sh/boot/Makefile           |    8 ++------
+>  arch/sparc/boot/Makefile        |    9 +++------
+>  arch/unicore32/boot/Makefile    |   12 ++----------
+>  scripts/Makefile.lib            |   24 ++++++++++++++++++++++++
+>  8 files changed, 54 insertions(+), 60 deletions(-)
 
-diff --git a/arch/x86/pci/amd_bus.c b/arch/x86/pci/amd_bus.c
-index 0b6abbe..5f30a98 100644
---- a/arch/x86/pci/amd_bus.c
-+++ b/arch/x86/pci/amd_bus.c
-@@ -291,7 +291,7 @@ static int __init early_fill_mp_bus_info(void)
- 		}
- 	}
- 
--	print_pci_root_info(info, "bus:", true);
-+	print_all_pci_root_info("ht link", true);
- 
- 	return 0;
- }
-diff --git a/arch/x86/pci/bus_numa.c b/arch/x86/pci/bus_numa.c
-index 7251011..772949f 100644
---- a/arch/x86/pci/bus_numa.c
-+++ b/arch/x86/pci/bus_numa.c
-@@ -94,6 +94,14 @@ void print_pci_root_info(struct pci_root_info *info, char *name, bool nodelink)
- 				 &root_res->res);
- }
- 
-+void print_all_pci_root_info(char *name, bool nodelink)
-+{
-+	struct pci_root_info *info;
-+
-+	list_for_each_entry(info, &pci_root_infos, list)
-+		print_pci_root_info(info, name, nodelink);
-+}
-+
- void __devinit update_res(struct pci_root_info *info, resource_size_t start,
- 			  resource_size_t end, unsigned long flags, int merge)
- {
-diff --git a/arch/x86/pci/bus_numa.h b/arch/x86/pci/bus_numa.h
-index d19ac93..deada6a 100644
---- a/arch/x86/pci/bus_numa.h
-+++ b/arch/x86/pci/bus_numa.h
-@@ -23,6 +23,7 @@ extern struct list_head pci_root_infos;
- struct pci_root_info *alloc_pci_root_info(int bus_min, int bus_max,
- 						int node, int link);
- void print_pci_root_info(struct pci_root_info *info, char *name, bool nodelink);
-+void print_all_pci_root_info(char *name, bool nodelink);
- extern void update_res(struct pci_root_info *info, resource_size_t start,
- 		      resource_size_t end, unsigned long flags, int merge);
- #endif
+No problem for Microblaze.
+
+Tested-by: Michal Simek <monstr@monstr.eu>
+
+Thanks,
+Michal
+
+
 -- 
-1.7.7
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
+Microblaze U-BOOT custodian
