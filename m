@@ -1,270 +1,101 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from rcsinet15.oracle.com ([148.87.113.117]:26735 "EHLO
+Received: from rcsinet15.oracle.com ([148.87.113.117]:27583 "EHLO
 	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755292Ab2CSFlO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2012 01:41:14 -0400
+	with ESMTP id S1756959Ab2CSFnv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2012 01:43:51 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v3 01/11] PCI: Separate host_bridge code out from probe.c
-Date: Sun, 18 Mar 2012 22:40:14 -0700
-Message-ID: <1332135624-13528-2-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1332135624-13528-1-git-send-email-yinghai@kernel.org>
-References: <1332135624-13528-1-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v11 00/30] PCI: allocate pci bus num range for unassigned bridge busn
+Date: Sun, 18 Mar 2012 22:42:31 -0700
+Message-ID: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>, x86 <x86@kernel.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120319054014.GHIsUhyLafrc4PXgEy0pZcJVPm4sSHq6Et7-BZz3NVI@z>
+To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20120319054231.TCH1jj3yo6gPt6EYTVjFG_JlBtiB_Zc8c4qpki1X1Uk@z>
 
-We could put pci host bridge related code there, So could keep probe.c
-smaller.
+Set up iobusn_resource tree, and register bus number range to it.
+Later when need to find bus range, will try to allocate from the tree
 
--v2: Bjorn want add_to_pci_host_bridges to pass struct pci_host_bridge *
-      instead of list head pointer.
+Need to test on arches other than x86. esp for ia64 and powerpc that support
+  more than on peer root buses.
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- drivers/pci/Makefile      |    2 +-
- drivers/pci/host-bridge.c |   93 +++++++++++++++++++++++++++++++++++++++++++++
- drivers/pci/pci.h         |    2 +
- drivers/pci/probe.c       |   81 +--------------------------------------
- 4 files changed, 97 insertions(+), 81 deletions(-)
- create mode 100644 drivers/pci/host-bridge.c
+The patches need to apply to linux v3.3 + pci-next and
+        [PATCH -v3] PCI: pci_host_bridge related cleanup
 
-diff --git a/drivers/pci/Makefile b/drivers/pci/Makefile
-index 083a49f..2c224ed 100644
---- a/drivers/pci/Makefile
-+++ b/drivers/pci/Makefile
-@@ -2,7 +2,7 @@
- # Makefile for the PCI bus specific drivers.
- #
- 
--obj-y		+= access.o bus.o probe.o remove.o pci.o \
-+obj-y		+= access.o bus.o probe.o host-bridge.o remove.o pci.o \
- 			pci-driver.o search.o pci-sysfs.o rom.o setup-res.o \
- 			irq.o vpd.o
- obj-$(CONFIG_PROC_FS) += proc.o
-diff --git a/drivers/pci/host-bridge.c b/drivers/pci/host-bridge.c
-new file mode 100644
-index 0000000..5ca4220
---- /dev/null
-+++ b/drivers/pci/host-bridge.c
-@@ -0,0 +1,93 @@
-+/*
-+ * host_bridge.c - host bridge related code
-+ */
-+
-+#include <linux/kernel.h>
-+#include <linux/init.h>
-+#include <linux/pci.h>
-+#include <linux/module.h>
-+
-+#include "pci.h"
-+
-+static LIST_HEAD(pci_host_bridges);
-+
-+void add_to_pci_host_bridges(struct pci_host_bridge *bridge)
-+{
-+	list_add_tail(&bridge->list, &pci_host_bridges);
-+}
-+
-+static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
-+{
-+	struct pci_bus *bus;
-+	struct pci_host_bridge *bridge;
-+
-+	bus = dev->bus;
-+	while (bus->parent)
-+		bus = bus->parent;
-+
-+	list_for_each_entry(bridge, &pci_host_bridges, list) {
-+		if (bridge->bus == bus)
-+			return bridge;
-+	}
-+
-+	return NULL;
-+}
-+
-+static bool resource_contains(struct resource *res1, struct resource *res2)
-+{
-+	return res1->start <= res2->start && res1->end >= res2->end;
-+}
-+
-+void pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
-+			     struct resource *res)
-+{
-+	struct pci_host_bridge *bridge = pci_host_bridge(dev);
-+	struct pci_host_bridge_window *window;
-+	resource_size_t offset = 0;
-+
-+	list_for_each_entry(window, &bridge->windows, list) {
-+		if (resource_type(res) != resource_type(window->res))
-+			continue;
-+
-+		if (resource_contains(window->res, res)) {
-+			offset = window->offset;
-+			break;
-+		}
-+	}
-+
-+	region->start = res->start - offset;
-+	region->end = res->end - offset;
-+}
-+EXPORT_SYMBOL(pcibios_resource_to_bus);
-+
-+static bool region_contains(struct pci_bus_region *region1,
-+			    struct pci_bus_region *region2)
-+{
-+	return region1->start <= region2->start && region1->end >= region2->end;
-+}
-+
-+void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
-+			     struct pci_bus_region *region)
-+{
-+	struct pci_host_bridge *bridge = pci_host_bridge(dev);
-+	struct pci_host_bridge_window *window;
-+	struct pci_bus_region bus_region;
-+	resource_size_t offset = 0;
-+
-+	list_for_each_entry(window, &bridge->windows, list) {
-+		if (resource_type(res) != resource_type(window->res))
-+			continue;
-+
-+		bus_region.start = window->res->start - window->offset;
-+		bus_region.end = window->res->end - window->offset;
-+
-+		if (region_contains(&bus_region, region)) {
-+			offset = window->offset;
-+			break;
-+		}
-+	}
-+
-+	res->start = region->start + offset;
-+	res->end = region->end + offset;
-+}
-+EXPORT_SYMBOL(pcibios_bus_to_resource);
-diff --git a/drivers/pci/pci.h b/drivers/pci/pci.h
-index e494347..c695a92 100644
---- a/drivers/pci/pci.h
-+++ b/drivers/pci/pci.h
-@@ -231,6 +231,8 @@ static inline int pci_ari_enabled(struct pci_bus *bus)
- void pci_reassigndev_resource_alignment(struct pci_dev *dev);
- extern void pci_disable_bridge_window(struct pci_dev *dev);
- 
-+void add_to_pci_host_bridges(struct pci_host_bridge *bridge);
-+
- /* Single Root I/O Virtualization */
- struct pci_sriov {
- 	int pos;		/* capability position */
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 944e05a..89a82a3 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -15,13 +15,10 @@
- #define CARDBUS_LATENCY_TIMER	176	/* secondary latency timer */
- #define CARDBUS_RESERVE_BUSNR	3
- 
--static LIST_HEAD(pci_host_bridges);
--
- /* Ugh.  Need to stop exporting this to modules. */
- LIST_HEAD(pci_root_buses);
- EXPORT_SYMBOL(pci_root_buses);
- 
--
- static int find_anything(struct device *dev, void *data)
- {
- 	return 1;
-@@ -44,82 +41,6 @@ int no_pci_devices(void)
- }
- EXPORT_SYMBOL(no_pci_devices);
- 
--static struct pci_host_bridge *pci_host_bridge(struct pci_dev *dev)
--{
--	struct pci_bus *bus;
--	struct pci_host_bridge *bridge;
--
--	bus = dev->bus;
--	while (bus->parent)
--		bus = bus->parent;
--
--	list_for_each_entry(bridge, &pci_host_bridges, list) {
--		if (bridge->bus == bus)
--			return bridge;
--	}
--
--	return NULL;
--}
--
--static bool resource_contains(struct resource *res1, struct resource *res2)
--{
--	return res1->start <= res2->start && res1->end >= res2->end;
--}
--
--void pcibios_resource_to_bus(struct pci_dev *dev, struct pci_bus_region *region,
--			     struct resource *res)
--{
--	struct pci_host_bridge *bridge = pci_host_bridge(dev);
--	struct pci_host_bridge_window *window;
--	resource_size_t offset = 0;
--
--	list_for_each_entry(window, &bridge->windows, list) {
--		if (resource_type(res) != resource_type(window->res))
--			continue;
--
--		if (resource_contains(window->res, res)) {
--			offset = window->offset;
--			break;
--		}
--	}
--
--	region->start = res->start - offset;
--	region->end = res->end - offset;
--}
--EXPORT_SYMBOL(pcibios_resource_to_bus);
--
--static bool region_contains(struct pci_bus_region *region1,
--			    struct pci_bus_region *region2)
--{
--	return region1->start <= region2->start && region1->end >= region2->end;
--}
--
--void pcibios_bus_to_resource(struct pci_dev *dev, struct resource *res,
--			     struct pci_bus_region *region)
--{
--	struct pci_host_bridge *bridge = pci_host_bridge(dev);
--	struct pci_host_bridge_window *window;
--	struct pci_bus_region bus_region;
--	resource_size_t offset = 0;
--
--	list_for_each_entry(window, &bridge->windows, list) {
--		if (resource_type(res) != resource_type(window->res))
--			continue;
--
--		bus_region.start = window->res->start - window->offset;
--		bus_region.end = window->res->end - window->offset;
--
--		if (region_contains(&bus_region, region)) {
--			offset = window->offset;
--			break;
--		}
--	}
--
--	res->start = region->start + offset;
--	res->end = region->end + offset;
--}
--EXPORT_SYMBOL(pcibios_bus_to_resource);
--
- /*
-  * PCI Bus Class
-  */
-@@ -1731,7 +1652,7 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 	}
- 
- 	down_write(&pci_bus_sem);
--	list_add_tail(&bridge->list, &pci_host_bridges);
-+	add_to_pci_host_bridges(bridge);
- 	list_add_tail(&b->node, &pci_root_buses);
- 	up_write(&pci_bus_sem);
- 
+could be found at:
+        git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/linux-yinghai.git for-pci-busn-alloc
+
+-v2: according to Jesse, split to more small patches.
+-v3: address some request from Bjorn. like make use %pR for busn_res debug print
+        out, and move the comment change with code change.
+-v4: fixes the problem about rescan that Bjorn found.
+-v5: add /proc/iobusn that is requested by Bjorn.
+     remove old workaround from pciehp.
+     add rescan_bridge for pci bridge in /sys
+-v6: remove global iobusn_resource, and every root bus's busn_res will be root
+     of children buses' busn_res.
+     pc cardbus change is tested by pcmcia maintainter.
+-v7: remove pci_scan_root_bus_max requested by Bjorn and Jesse.
+-v8: rebase on top other patches with arch/x86/pci/bus_numa.c changes
+     also only include busn_res related changes.
+-v9: Add busn into pci_root_info, and add it to resources list and pass it
+     to pci_create_root_bus.
+-v11: convert busn_res probe to generic probe_resource with resource lock holding
+     add more strict checking about not scaned peer bridges.
+
+Yinghai Lu (30):
+  x86, PCI: Add print all root info for not using _CRS path
+  x86, PCI: Allocate temp range array in amd_bus pci_root_info probing
+  x86, PCI: Merge pcibios_scan_root and pci_scan_bus_on_node
+  PCI: Add busn_res into struct pci_bus.
+  PCI: Add busn_res operation functions
+  PCI: Release busn_res when removing bus
+  PCI: Insert busn_res in pci_create_root_bus()
+  PCI: Checking busn_res in pci_scan_root_bus()
+  PCI: Add default busn_resource
+  PCI: Add default busn_res for pci_scan_bus()
+  x86, PCI: Add busn_res into resources list for acpi path
+  x86, PCI: Put busn resource in pci_root_info for not using _CRS path
+  PCI, ia64: Register busn_res for root buses
+  PCI, sparc: Register busn_res for root buses
+  PCI, powerpc: Register busn_res for root buses
+  PCI, parisc: Register busn_res for root buses
+  resources: Add probe_resource()
+  resources: Replace registered resource in tree.
+  PCI: Add pci_bus_extend/shrink_top()
+  PCI: Probe safe range that we can use for unassigned bridge.
+  PCI: Add pci_bus_replace_busn_res()
+  PCI: Allocate bus range instead of use max blindly
+  PCI: Strict checking of valid range for bridge
+  PCI: Kill pci_fixup_parent_subordinate_busnr()
+  PCI: Seperate child bus scanning to two passes overall
+  pcmcia: Remove workaround for fixing pci parent bus subordinate
+  PCI: Double checking setting for bus register and bus struct.
+  PCI, pciehp: Remove not needed bus number range checking
+  PCI: More strict checking of valid range for bridge
+  PCI: Don't shrink too much for hotplug bridge
+
+ arch/ia64/pci/pci.c                   |    2 +
+ arch/powerpc/include/asm/pci-bridge.h |    1 +
+ arch/powerpc/kernel/pci-common.c      |   10 +-
+ arch/sparc/kernel/pci.c               |    4 +
+ arch/sparc/kernel/pci_impl.h          |    1 +
+ arch/x86/pci/acpi.c                   |   11 +-
+ arch/x86/pci/amd_bus.c                |   14 +-
+ arch/x86/pci/bus_numa.c               |   30 ++-
+ arch/x86/pci/bus_numa.h               |    4 +-
+ arch/x86/pci/common.c                 |   27 +--
+ drivers/parisc/dino.c                 |    5 +
+ drivers/parisc/lba_pci.c              |    3 +
+ drivers/pci/hotplug/pciehp_pci.c      |   12 +-
+ drivers/pci/probe.c                   |  439 +++++++++++++++++++++++++++------
+ drivers/pci/remove.c                  |    1 +
+ drivers/pcmcia/yenta_socket.c         |   75 ------
+ include/linux/ioport.h                |    8 +
+ include/linux/pci.h                   |    6 +
+ kernel/resource.c                     |  175 +++++++++++++-
+ 19 files changed, 613 insertions(+), 215 deletions(-)
+
 -- 
 1.7.7
 
