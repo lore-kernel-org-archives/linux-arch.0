@@ -1,45 +1,42 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH 17/35] Make asm-generic/cmpxchg.h #include
-	asm-generic/cmpxchg-local.h [ver #2]
-Date: Mon, 19 Mar 2012 12:05:44 +0000
-Message-ID: <10472.1332158744@redhat.com>
-References: <1332156798.2068.11.camel@jerome.southpole.se>
-	<1331746607.5104.93.camel@jerome.southpole.se>
-	<1331738610.5104.84.camel@jerome.southpole.se>
-	<1331736182.5104.74.camel@jerome.southpole.se>
-	<CACM3HyHaFqVBaALMNB9dTE+7JrT1qD0jrYtV2PzwTskv8sW4Hg@mail.gmail.com>
-	<20120312233602.13888.27659.stgit@warthog.procyon.org.uk>
-	<20120312233858.13888.34822.stgit@warthog.procyon.org.uk>
-	<201203130900.41993.arnd@arndb.de>
-	<11556.1331723400@redhat.com> <18016.1331738258@redhat.com>
-	<21309.1331744879@redhat.com> <4913.1332154287@redhat.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH] net: bpf_jit: fix BPF_S_LDX_B_MSH compilation
+Date: Mon, 19 Mar 2012 17:42:41 -0400 (EDT)
+Message-ID: <20120319.174241.1785009482969692029.davem@davemloft.net>
+References: <1331992184.2466.45.camel@edumazet-laptop>
+	<9a0230cb8db556cc9cf5d1f6b2439fb5.squirrel@webmail.greenhost.nl>
+	<1332074448.3722.25.camel@edumazet-laptop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-bounces@lists.openrisc.net>
-In-Reply-To: <1332156798.2068.11.camel@jerome.southpole.se>
-List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
-	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
-List-Archive: <http://lists.openrisc.net/pipermail/linux>
-List-Post: <mailto:linux@lists.openrisc.net>
-List-Help: <mailto:linux-request@lists.openrisc.net?subject=help>
-List-Subscribe: <http://lists.openrisc.net/listinfo/linux>,
-	<mailto:linux-request@lists.openrisc.net?subject=subscribe>
-Sender: linux-bounces@lists.openrisc.net
-Errors-To: linux-bounces@lists.openrisc.net
-To: Jonas Bonn <jonas@southpole.se>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux@openrisc.net, linux-kernel@vger.kernel.org, dhowells@redhat.com, paul.gortmaker@windriver.com, hpa@zytor.com, torvalds@linux-foundation.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from shards.monkeyblade.net ([198.137.202.13]:39560 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756157Ab2CSVqq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2012 17:46:46 -0400
+In-Reply-To: <1332074448.3722.25.camel@edumazet-laptop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: eric.dumazet@gmail.com
+Cc: indan@nul.nu, wad@chromium.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, matt@ozlabs.org
 
-Jonas Bonn <jonas@southpole.se> wrote:
+From: Eric Dumazet <eric.dumazet@gmail.com>
+Date: Sun, 18 Mar 2012 05:40:48 -0700
 
-> I could certainly put together such patches for you.  What upstream
-> versions are you using?
+> [PATCH] net: bpf_jit: fix BPF_S_LDX_B_MSH compilation
+> 
+> Matt Evans spotted that x86 bpf_jit was incorrectly handling negative
+> constant offsets in BPF_S_LDX_B_MSH instruction.
+> 
+> We need to abort JIT compilation like we do in common_load so that
+> filter uses the interpreter code and can call __load_pointer()
+> 
+> Reference: http://lists.openwall.net/netdev/2011/07/19/11
+> 
+> Thanks to Indan Zupancic to bring back this issue.
+> 
+> Reported-by: Matt Evans <matt@ozlabs.org>
+> Reported-by: Indan Zupancic <indan@nul.nu>
+> Signed-off-by: Eric Dumazet <eric.dumazet@gmail.com>
 
-gcc-4.7 and binutils-2.22.52.0.1.
-
-My SRPMs and specfiles can be found here:
-
-	http://people.redhat.com/~dhowells/cross/
-
-David
+Applied and even though libpcap won't generate this I'll queue it up
+to -stable anyways.
