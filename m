@@ -1,139 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:26104 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755285Ab2CSFlW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2012 01:41:22 -0400
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v3 02/11] x86, PCI: Fix memleak with get_current_resources()
-Date: Sun, 18 Mar 2012 22:40:15 -0700
-Message-ID: <1332135624-13528-3-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1332135624-13528-1-git-send-email-yinghai@kernel.org>
-References: <1332135624-13528-1-git-send-email-yinghai@kernel.org>
+Received: from mail-wi0-f172.google.com ([209.85.212.172]:40624 "EHLO
+	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756416Ab2CSGqQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Mar 2012 02:46:16 -0400
+Received: by wibhj6 with SMTP id hj6so3369998wib.1
+        for <linux-arch@vger.kernel.org>; Sun, 18 Mar 2012 23:46:14 -0700 (PDT)
+Message-ID: <4F66D632.5070107@monstr.eu>
+Date: Mon, 19 Mar 2012 07:46:10 +0100
+From: Michal Simek <monstr@monstr.eu>
+Reply-To: monstr@monstr.eu
+MIME-Version: 1.0
+Subject: Re: [PATCH] Kbuild: centralize MKIMAGE and cmd_uimage definitions
+References: <1331931835-12346-1-git-send-email-swarren@wwwdotorg.org>
+In-Reply-To: <1331931835-12346-1-git-send-email-swarren@wwwdotorg.org>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jesse Barnes <jbarnes@virtuousgeek.org>, x86 <x86@kernel.org>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120319054015.7VreiSAjuSrp1BIIQ04xqkike7_LMWvp8_UzEh6oGio@z>
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Michal Marek <mmarek@suse.cz>, Russell King <linux@arm.linux.org.uk>, nico@fluxnic.net, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mike Frysinger <vapier@gentoo.org>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org, uclinux-dist-devel@blackfin.uclinux.org, microblaze-uclinux@itee.uq.edu.au, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120319064610.RFGiIebG1SjikZb0xCpupum5fSmvHPu4lE-Pe7jKWQI@z>
 
-In pci_scan_acpi_root(), when pci_use_crs is set, get_current_resources() is
-used to get pci_root_info, and it will allocate name and resource array.
+Stephen Warren wrote:
+> All ARCHs have the same definition of MKIMAGE. Move it to Makefile.lib
+> to avoid duplication.
+> 
+> All ARCHs have similar definitions of cmd_uimage. Place a sufficiently
+> parameterized version in Makefile.lib to avoid duplication.
+> 
+> Signed-off-by: Stephen Warren <swarren@wwwdotorg.org>
+> ---
+> v2:
+> * Fix blackfin's UIMAGE_LOADADDR in the ROMKERNEL case.
+> * Fix missing ) on a variable reference in avr32 and sparc.
+> * Only set those UIMAGE_* variables that the arch-specific Makefile hasn't
+>   already set.
+> * The patch series is now just this single patch which removes duplication;
+>   I've dropped the Kconfig feature to allow use of -T kernel_noload for
+>   now, since it looks like U-Boot is gaining direct zImage support.
+> 
+>  arch/arm/boot/Makefile          |   23 +++++++++--------------
+>  arch/avr32/boot/images/Makefile |    9 +++------
+>  arch/blackfin/boot/Makefile     |   19 ++++++++-----------
+>  arch/microblaze/boot/Makefile   |   10 +++-------
+>  arch/sh/boot/Makefile           |    8 ++------
+>  arch/sparc/boot/Makefile        |    9 +++------
+>  arch/unicore32/boot/Makefile    |   12 ++----------
+>  scripts/Makefile.lib            |   24 ++++++++++++++++++++++++
+>  8 files changed, 54 insertions(+), 60 deletions(-)
 
-Later if pci_create_root_bus() can not create bus (could be already there...)
-it will only free bus res list, but the name and res array is not freed.
+No problem for Microblaze.
 
-Let get_current_resource() take info pointer instead of using local info.
+Tested-by: Michal Simek <monstr@monstr.eu>
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
----
- arch/x86/pci/acpi.c |   49 ++++++++++++++++++++++++++++++-------------------
- 1 files changed, 30 insertions(+), 19 deletions(-)
+Thanks,
+Michal
 
-diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
-index ed2835e..a99b7d7 100644
---- a/arch/x86/pci/acpi.c
-+++ b/arch/x86/pci/acpi.c
-@@ -315,49 +315,55 @@ static void add_resources(struct pci_root_info *info)
- 	}
- }
- 
-+static void free_pci_root_info(struct pci_root_info *info)
-+{
-+	kfree(info->name);
-+	kfree(info->res);
-+	memset(info, 0, sizeof(struct pci_root_info));
-+}
-+
- static void
--get_current_resources(struct acpi_device *device, int busnum,
-+get_current_resources(struct pci_root_info *info,
-+		      struct acpi_device *device, int busnum,
- 		      int domain, struct list_head *resources)
- {
--	struct pci_root_info info;
- 	size_t size;
- 
--	info.bridge = device;
--	info.res_num = 0;
--	info.resources = resources;
-+	info->bridge = device;
-+	info->res_num = 0;
-+	info->resources = resources;
- 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_resource,
--				&info);
--	if (!info.res_num)
-+				info);
-+	if (!info->res_num)
- 		return;
- 
--	size = sizeof(*info.res) * info.res_num;
--	info.res = kmalloc(size, GFP_KERNEL);
--	if (!info.res)
-+	size = sizeof(*info->res) * info->res_num;
-+	info->res = kmalloc(size, GFP_KERNEL);
-+	if (!info->res)
- 		return;
- 
--	info.name = kasprintf(GFP_KERNEL, "PCI Bus %04x:%02x", domain, busnum);
--	if (!info.name)
-+	info->name = kasprintf(GFP_KERNEL, "PCI Bus %04x:%02x", domain, busnum);
-+	if (!info->name)
- 		goto name_alloc_fail;
- 
--	info.res_num = 0;
-+	info->res_num = 0;
- 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, setup_resource,
--				&info);
-+				info);
- 
- 	if (pci_use_crs) {
--		add_resources(&info);
-+		add_resources(info);
- 
- 		return;
- 	}
- 
--	kfree(info.name);
--
- name_alloc_fail:
--	kfree(info.res);
-+	free_pci_root_info(info);
- }
- 
- struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
- {
- 	struct acpi_device *device = root->device;
-+	struct pci_root_info info;
- 	int domain = root->segment;
- 	int busnum = root->secondary.start;
- 	LIST_HEAD(resources);
-@@ -402,6 +408,7 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
- 
- 	sd->domain = domain;
- 	sd->node = node;
-+	memset(&info, 0, sizeof(struct pci_root_info));
- 	/*
- 	 * Maybe the desired pci bus has been already scanned. In such case
- 	 * it is unnecessary to scan the pci bus with the given domain,busnum.
-@@ -415,7 +422,8 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
- 		memcpy(bus->sysdata, sd, sizeof(*sd));
- 		kfree(sd);
- 	} else {
--		get_current_resources(device, busnum, domain, &resources);
-+		get_current_resources(&info, device, busnum, domain,
-+					&resources);
- 
- 		/*
- 		 * _CRS with no apertures is normal, so only fall back to
-@@ -429,6 +437,9 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
- 			bus->subordinate = pci_scan_child_bus(bus);
- 		else
- 			pci_free_resource_list(&resources);
-+
-+		if (!bus && pci_use_crs)
-+			free_pci_root_info(&info);
- 	}
- 
- 	/* After the PCI-E bus has been walked and all devices discovered,
+
 -- 
-1.7.7
-
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
+Microblaze U-BOOT custodian
