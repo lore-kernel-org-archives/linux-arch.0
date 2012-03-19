@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v11 07/30] PCI: Insert busn_res in pci_create_root_bus()
-Date: Sun, 18 Mar 2012 22:42:38 -0700
-Message-ID: <1332135781-13695-8-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v11 11/30] x86, PCI: Add busn_res into resources list for acpi path
+Date: Sun, 18 Mar 2012 22:42:42 -0700
+Message-ID: <1332135781-13695-12-git-send-email-yinghai@kernel.org>
 References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
@@ -10,28 +10,61 @@ To: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel
 Cc: Bjorn Helgaas <bhelgaas@google.com>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-That busn_res is from resources list
+will put it in resources list and pass it for create_root_bus
 
+-v2: Bjorn thought that we should just use that in acpi_root instead
+     of have another one pci_root_info.
+
+Suggested-by: Bjorn Helgaas <bhelgaas@google.com>
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |    5 ++++-
- 1 files changed, 4 insertions(+), 1 deletions(-)
+ arch/x86/pci/acpi.c |   11 ++++++-----
+ 1 files changed, 6 insertions(+), 5 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 9235b16..3d11836 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -1649,7 +1649,10 @@ struct pci_bus *pci_create_root_bus(struct device *parent, int bus,
- 		list_move_tail(&window->list, &bridge->windows);
- 		res = window->res;
- 		offset = window->offset;
--		pci_bus_add_resource(b, res, 0);
-+		if (res->flags & IORESOURCE_BUS)
-+			pci_bus_insert_busn_res(b, res->start, res->end);
-+		else
-+			pci_bus_add_resource(b, res, 0);
- 		if (offset) {
- 			if (resource_type(res) == IORESOURCE_IO)
- 				fmt = " (bus address [%#06llx-%#06llx])";
+diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
+index 8a17b23..da0149d 100644
+--- a/arch/x86/pci/acpi.c
++++ b/arch/x86/pci/acpi.c
+@@ -12,7 +12,6 @@ struct pci_root_info {
+ 	char name[16];
+ 	unsigned int res_num;
+ 	struct resource *res;
+-	int busnum;
+ 	struct pci_sysdata sd;
+ };
+ 
+@@ -357,7 +356,9 @@ probe_pci_root_info(struct pci_root_info *info, struct acpi_device *device,
+ {
+ 	size_t size;
+ 
++	sprintf(info->name, "PCI Bus %04x:%02x", domain, busnum);
+ 	info->bridge = device;
++
+ 	info->res_num = 0;
+ 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_resource,
+ 				info);
+@@ -370,8 +371,6 @@ probe_pci_root_info(struct pci_root_info *info, struct acpi_device *device,
+ 	if (!info->res)
+ 		return;
+ 
+-	sprintf(info->name, "PCI Bus %04x:%02x", domain, busnum);
+-
+ 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, setup_resource,
+ 				info);
+ }
+@@ -440,9 +439,11 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		 * _CRS with no apertures is normal, so only fall back to
+ 		 * defaults or native bridge info if we're ignoring _CRS.
+ 		 */
+-		if (pci_use_crs)
++		if (pci_use_crs) {
++			/* insert busn res at first */
++			pci_add_resource(&resources,  &root->secondary);
+ 			add_resources(info, &resources);
+-		else {
++		} else {
+ 			free_pci_root_info_res(info);
+ 			x86_pci_root_bus_resources(busnum, &resources);
+ 		}
 -- 
 1.7.7
