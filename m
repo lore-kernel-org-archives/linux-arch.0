@@ -1,665 +1,109 @@
-From: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Subject: [PATCH] Disintegrate asm/system.h for Unicore32 [based on ver #3, changed by gxt]
-Date: Tue, 20 Mar 2012 11:01:54 +0800
-Message-ID: <1332212514-22071-1-git-send-email-gxt@mprc.pku.edu.cn>
-References: <7019.1332155925@redhat.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:34706 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758590Ab2CTDwm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 19 Mar 2012 23:52:42 -0400
-In-Reply-To: <7019.1332155925@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: dhowells@redhat.com
-Cc: paul.gortmaker@windriver.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, Guan Xuetao <gxt@mprc.pku.edu.cn>
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [GIT PULL] DMA-mapping framework updates for 3.4
+Date: Tue, 20 Mar 2012 08:24:43 +0100
+Message-ID: <1332228283-29077-1-git-send-email-m.szyprowski@samsung.com>
+Mime-Version: 1.0
+Content-Type: TEXT/PLAIN
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-ia64-owner@vger.kernel.org>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, Jonathan Corbet <corbet@lwn.net>, Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
+List-Id: linux-arch.vger.kernel.org
 
-Disintegrate asm/system.h for Unicore32. (Compilation successful)
-The implementation details are not changed, but only splitted.
-BTW, some codestyles are adjusted.
+Hi Linus,
 
-Signed-off-by: David Howells <dhowells@redhat.com>
-Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
----
- arch/unicore32/include/asm/Kbuild        |    1 -
- arch/unicore32/include/asm/barrier.h     |   28 +++++
- arch/unicore32/include/asm/bug.h         |   27 +++++
- arch/unicore32/include/asm/cmpxchg.h     |   58 +++++++++++
- arch/unicore32/include/asm/exec.h        |   15 +++
- arch/unicore32/include/asm/hwdef-copro.h |   48 +++++++++
- arch/unicore32/include/asm/io.h          |    1 -
- arch/unicore32/include/asm/switch_to.h   |   30 ++++++
- arch/unicore32/include/asm/system.h      |  166 +-----------------------------
- arch/unicore32/include/asm/uaccess.h     |    1 -
- arch/unicore32/kernel/dma.c              |    1 -
- arch/unicore32/kernel/head.S             |    2 +-
- arch/unicore32/kernel/hibernate.c        |    1 -
- arch/unicore32/kernel/irq.c              |    1 -
- arch/unicore32/kernel/ksyms.c            |    1 -
- arch/unicore32/kernel/process.c          |    1 -
- arch/unicore32/kernel/setup.h            |    3 +
- arch/unicore32/kernel/traps.c            |    1 -
- arch/unicore32/mm/alignment.c            |    2 +
- arch/unicore32/mm/fault.c                |    1 -
- arch/unicore32/mm/flush.c                |    1 -
- arch/unicore32/mm/mm.h                   |    5 +
- 22 files changed, 222 insertions(+), 173 deletions(-)
- create mode 100644 arch/unicore32/include/asm/barrier.h
- create mode 100644 arch/unicore32/include/asm/bug.h
- create mode 100644 arch/unicore32/include/asm/cmpxchg.h
- create mode 100644 arch/unicore32/include/asm/exec.h
- create mode 100644 arch/unicore32/include/asm/hwdef-copro.h
- create mode 100644 arch/unicore32/include/asm/switch_to.h
+Please pull the dma-mapping framework updates for v3.4 since commit
+c16fa4f2ad19908a47c63d8fa436a1178438c7e7:
 
-diff --git a/arch/unicore32/include/asm/Kbuild b/arch/unicore32/include/asm/Kbuild
-index ca113d6..34b789b 100644
---- a/arch/unicore32/include/asm/Kbuild
-+++ b/arch/unicore32/include/asm/Kbuild
-@@ -3,7 +3,6 @@ include include/asm-generic/Kbuild.asm
- generic-y += atomic.h
- generic-y += auxvec.h
- generic-y += bitsperlong.h
--generic-y += bug.h
- generic-y += bugs.h
- generic-y += cputime.h
- generic-y += current.h
-diff --git a/arch/unicore32/include/asm/barrier.h b/arch/unicore32/include/asm/barrier.h
-new file mode 100644
-index 0000000..a6620e5
---- /dev/null
-+++ b/arch/unicore32/include/asm/barrier.h
-@@ -0,0 +1,28 @@
-+/*
-+ * Memory barrier implementations for PKUnity SoC and UniCore ISA
-+ *
-+ * Copyright (C) 2001-2012 GUAN Xue-tao
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+#ifndef __UNICORE_BARRIER_H__
-+#define __UNICORE_BARRIER_H__
-+
-+#define isb() __asm__ __volatile__ ("" : : : "memory")
-+#define dsb() __asm__ __volatile__ ("" : : : "memory")
-+#define dmb() __asm__ __volatile__ ("" : : : "memory")
-+
-+#define mb()				barrier()
-+#define rmb()				barrier()
-+#define wmb()				barrier()
-+#define smp_mb()			barrier()
-+#define smp_rmb()			barrier()
-+#define smp_wmb()			barrier()
-+#define read_barrier_depends()		do { } while (0)
-+#define smp_read_barrier_depends()	do { } while (0)
-+
-+#define set_mb(var, value)		do { var = value; smp_mb(); } while (0)
-+
-+#endif /* __UNICORE_BARRIER_H__ */
-diff --git a/arch/unicore32/include/asm/bug.h b/arch/unicore32/include/asm/bug.h
-new file mode 100644
-index 0000000..b1ff8ca
---- /dev/null
-+++ b/arch/unicore32/include/asm/bug.h
-@@ -0,0 +1,27 @@
-+/*
-+ * Bug handling for PKUnity SoC and UniCore ISA
-+ *
-+ * Copyright (C) 2001-2012 GUAN Xue-tao
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+#ifndef __UNICORE_BUG_H__
-+#define __UNICORE_BUG_H__
-+
-+#include <asm-generic/bug.h>
-+
-+struct pt_regs;
-+struct siginfo;
-+
-+extern void die(const char *msg, struct pt_regs *regs, int err);
-+extern void uc32_notify_die(const char *str, struct pt_regs *regs,
-+		struct siginfo *info, unsigned long err, unsigned long trap);
-+
-+extern asmlinkage void __backtrace(void);
-+extern asmlinkage void c_backtrace(unsigned long fp, int pmode);
-+
-+extern void __show_regs(struct pt_regs *);
-+
-+#endif /* __UNICORE_BUG_H__ */
-diff --git a/arch/unicore32/include/asm/cmpxchg.h b/arch/unicore32/include/asm/cmpxchg.h
-new file mode 100644
-index 0000000..37c431d
---- /dev/null
-+++ b/arch/unicore32/include/asm/cmpxchg.h
-@@ -0,0 +1,58 @@
-+/*
-+ * Atomics xchg/cmpxchg for PKUnity SoC and UniCore ISA
-+ *
-+ * Copyright (C) 2001-2012 GUAN Xue-tao
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+#ifndef __UNICORE_CMPXCHG_H__
-+#define __UNICORE_CMPXCHG_H__
-+
-+extern void panic(const char *fmt, ...);
-+
-+static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
-+		int size)
-+{
-+	unsigned long ret;
-+
-+	switch (size) {
-+	case 1:
-+		asm volatile("swapb	%0, %1, [%2]"
-+			: "=&r" (ret)
-+			: "r" (x), "r" (ptr)
-+			: "memory", "cc");
-+		break;
-+	case 4:
-+		asm volatile("swapw	%0, %1, [%2]"
-+			: "=&r" (ret)
-+			: "r" (x), "r" (ptr)
-+			: "memory", "cc");
-+		break;
-+	default:
-+		panic("xchg: bad data size: ptr 0x%p, size %d\n",
-+			ptr, size);
-+	}
-+
-+	return ret;
-+}
-+
-+#define xchg(ptr, x) \
-+	((__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
-+
-+#include <asm-generic/cmpxchg-local.h>
-+
-+/*
-+ * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
-+ * them available.
-+ */
-+#define cmpxchg_local(ptr, o, n)					\
-+		((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr),	\
-+		(unsigned long)(o), (unsigned long)(n), sizeof(*(ptr))))
-+#define cmpxchg64_local(ptr, o, n)					\
-+		__cmpxchg64_local_generic((ptr), (o), (n))
-+
-+#include <asm-generic/cmpxchg.h>
-+
-+#endif /* __UNICORE_CMPXCHG_H__ */
-diff --git a/arch/unicore32/include/asm/exec.h b/arch/unicore32/include/asm/exec.h
-new file mode 100644
-index 0000000..06d1f0f
---- /dev/null
-+++ b/arch/unicore32/include/asm/exec.h
-@@ -0,0 +1,15 @@
-+/*
-+ * Process execution bits for PKUnity SoC and UniCore ISA
-+ *
-+ * Copyright (C) 2001-2012 GUAN Xue-tao
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+#ifndef __UNICORE_EXEC_H__
-+#define __UNICORE_EXEC_H__
-+
-+#define arch_align_stack(x)		(x)
-+
-+#endif /* __UNICORE_EXEC_H__ */
-diff --git a/arch/unicore32/include/asm/hwdef-copro.h b/arch/unicore32/include/asm/hwdef-copro.h
-new file mode 100644
-index 0000000..a3292f0
---- /dev/null
-+++ b/arch/unicore32/include/asm/hwdef-copro.h
-@@ -0,0 +1,48 @@
-+/*
-+ * Co-processor register definitions for PKUnity SoC and UniCore ISA
-+ *
-+ * Copyright (C) 2001-2012 GUAN Xue-tao
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+#ifndef __UNICORE_HWDEF_COPRO_H__
-+#define __UNICORE_HWDEF_COPRO_H__
-+
-+/*
-+ * Control Register bits (CP#0 CR1)
-+ */
-+#define CR_M	(1 << 0)	/* MMU enable				*/
-+#define CR_A	(1 << 1)	/* Alignment abort enable		*/
-+#define CR_D	(1 << 2)	/* Dcache enable			*/
-+#define CR_I	(1 << 3)	/* Icache enable			*/
-+#define CR_B	(1 << 4)	/* Dcache write mechanism: write back	*/
-+#define CR_T	(1 << 5)	/* Burst enable				*/
-+#define CR_V	(1 << 13)	/* Vectors relocated to 0xffff0000	*/
-+
-+#ifndef __ASSEMBLY__
-+
-+#define vectors_high()		(cr_alignment & CR_V)
-+
-+extern unsigned long cr_no_alignment;	/* defined in entry.S */
-+extern unsigned long cr_alignment;	/* defined in entry.S */
-+
-+static inline unsigned int get_cr(void)
-+{
-+	unsigned int val;
-+	asm("movc %0, p0.c1, #0" : "=r" (val) : : "cc");
-+	return val;
-+}
-+
-+static inline void set_cr(unsigned int val)
-+{
-+	asm volatile("movc p0.c1, %0, #0" : : "r" (val) : "cc");
-+	isb();
-+}
-+
-+extern void adjust_cr(unsigned long mask, unsigned long set);
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* __UNICORE_HWDEF_COPRO_H__ */
-diff --git a/arch/unicore32/include/asm/io.h b/arch/unicore32/include/asm/io.h
-index adddf6d..39decb6 100644
---- a/arch/unicore32/include/asm/io.h
-+++ b/arch/unicore32/include/asm/io.h
-@@ -16,7 +16,6 @@
- 
- #include <asm/byteorder.h>
- #include <asm/memory.h>
--#include <asm/system.h>
- 
- #define PCI_IOBASE	PKUNITY_PCILIO_BASE
- #include <asm-generic/io.h>
-diff --git a/arch/unicore32/include/asm/switch_to.h b/arch/unicore32/include/asm/switch_to.h
-new file mode 100644
-index 0000000..39572d2
---- /dev/null
-+++ b/arch/unicore32/include/asm/switch_to.h
-@@ -0,0 +1,30 @@
-+/*
-+ * Task switching for PKUnity SoC and UniCore ISA
-+ *
-+ * Copyright (C) 2001-2012 GUAN Xue-tao
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+#ifndef __UNICORE_SWITCH_TO_H__
-+#define __UNICORE_SWITCH_TO_H__
-+
-+struct task_struct;
-+struct thread_info;
-+
-+/*
-+ * switch_to(prev, next) should switch from task `prev' to `next'
-+ * `prev' will never be the same as `next'.  schedule() itself
-+ * contains the memory barrier to tell GCC not to cache `current'.
-+ */
-+extern struct task_struct *__switch_to(struct task_struct *,
-+		struct thread_info *, struct thread_info *);
-+
-+#define switch_to(prev, next, last)					\
-+	do {								\
-+		last = __switch_to(prev, task_thread_info(prev),	\
-+					task_thread_info(next));	\
-+	} while (0)
-+
-+#endif /* __UNICORE_SWITCH_TO_H__ */
-diff --git a/arch/unicore32/include/asm/system.h b/arch/unicore32/include/asm/system.h
-index 246b71c..a7f4057 100644
---- a/arch/unicore32/include/asm/system.h
-+++ b/arch/unicore32/include/asm/system.h
-@@ -1,161 +1,5 @@
--/*
-- * linux/arch/unicore32/include/asm/system.h
-- *
-- * Code specific to PKUnity SoC and UniCore ISA
-- *
-- * Copyright (C) 2001-2010 GUAN Xue-tao
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
-- */
--#ifndef __UNICORE_SYSTEM_H__
--#define __UNICORE_SYSTEM_H__
--
--#ifdef __KERNEL__
--
--/*
-- * CR1 bits (CP#0 CR1)
-- */
--#define CR_M	(1 << 0)	/* MMU enable				*/
--#define CR_A	(1 << 1)	/* Alignment abort enable		*/
--#define CR_D	(1 << 2)	/* Dcache enable			*/
--#define CR_I	(1 << 3)	/* Icache enable			*/
--#define CR_B	(1 << 4)	/* Dcache write mechanism: write back	*/
--#define CR_T	(1 << 5)	/* Burst enable				*/
--#define CR_V	(1 << 13)	/* Vectors relocated to 0xffff0000	*/
--
--#ifndef __ASSEMBLY__
--
--#include <linux/linkage.h>
--#include <linux/irqflags.h>
--
--struct thread_info;
--struct task_struct;
--
--struct pt_regs;
--
--void die(const char *msg, struct pt_regs *regs, int err);
--
--struct siginfo;
--void uc32_notify_die(const char *str, struct pt_regs *regs,
--		struct siginfo *info, unsigned long err, unsigned long trap);
--
--void hook_fault_code(int nr, int (*fn)(unsigned long, unsigned int,
--				       struct pt_regs *),
--		     int sig, int code, const char *name);
--
--#define xchg(ptr, x) \
--	((__typeof__(*(ptr)))__xchg((unsigned long)(x), (ptr), sizeof(*(ptr))))
--
--extern asmlinkage void __backtrace(void);
--extern asmlinkage void c_backtrace(unsigned long fp, int pmode);
--
--struct mm_struct;
--extern void show_pte(struct mm_struct *mm, unsigned long addr);
--extern void __show_regs(struct pt_regs *);
--
--extern int cpu_architecture(void);
--extern void cpu_init(void);
--
--#define vectors_high()	(cr_alignment & CR_V)
--
--#define isb() __asm__ __volatile__ ("" : : : "memory")
--#define dsb() __asm__ __volatile__ ("" : : : "memory")
--#define dmb() __asm__ __volatile__ ("" : : : "memory")
--
--#define mb()		barrier()
--#define rmb()		barrier()
--#define wmb()		barrier()
--#define smp_mb()	barrier()
--#define smp_rmb()	barrier()
--#define smp_wmb()	barrier()
--#define read_barrier_depends()		do { } while (0)
--#define smp_read_barrier_depends()	do { } while (0)
--
--#define set_mb(var, value)	do { var = value; smp_mb(); } while (0)
--#define nop() __asm__ __volatile__("mov\tr0,r0\t@ nop\n\t");
--
--extern unsigned long cr_no_alignment;	/* defined in entry-unicore.S */
--extern unsigned long cr_alignment;	/* defined in entry-unicore.S */
--
--static inline unsigned int get_cr(void)
--{
--	unsigned int val;
--	asm("movc %0, p0.c1, #0" : "=r" (val) : : "cc");
--	return val;
--}
--
--static inline void set_cr(unsigned int val)
--{
--	asm volatile("movc p0.c1, %0, #0	@set CR"
--	  : : "r" (val) : "cc");
--	isb();
--}
--
--extern void adjust_cr(unsigned long mask, unsigned long set);
--
--/*
-- * switch_to(prev, next) should switch from task `prev' to `next'
-- * `prev' will never be the same as `next'.  schedule() itself
-- * contains the memory barrier to tell GCC not to cache `current'.
-- */
--extern struct task_struct *__switch_to(struct task_struct *,
--		struct thread_info *, struct thread_info *);
--extern void panic(const char *fmt, ...);
--
--#define switch_to(prev, next, last)					\
--do {									\
--	last = __switch_to(prev,					\
--		task_thread_info(prev), task_thread_info(next));	\
--} while (0)
--
--static inline unsigned long
--__xchg(unsigned long x, volatile void *ptr, int size)
--{
--	unsigned long ret;
--
--	switch (size) {
--	case 1:
--		asm volatile("@	__xchg1\n"
--		"	swapb	%0, %1, [%2]"
--			: "=&r" (ret)
--			: "r" (x), "r" (ptr)
--			: "memory", "cc");
--		break;
--	case 4:
--		asm volatile("@	__xchg4\n"
--		"	swapw	%0, %1, [%2]"
--			: "=&r" (ret)
--			: "r" (x), "r" (ptr)
--			: "memory", "cc");
--		break;
--	default:
--		panic("xchg: bad data size: ptr 0x%p, size %d\n",
--			ptr, size);
--	}
--
--	return ret;
--}
--
--#include <asm-generic/cmpxchg-local.h>
--
--/*
-- * cmpxchg_local and cmpxchg64_local are atomic wrt current CPU. Always make
-- * them available.
-- */
--#define cmpxchg_local(ptr, o, n)					\
--		((__typeof__(*(ptr)))__cmpxchg_local_generic((ptr),	\
--		(unsigned long)(o), (unsigned long)(n), sizeof(*(ptr))))
--#define cmpxchg64_local(ptr, o, n)					\
--		__cmpxchg64_local_generic((ptr), (o), (n))
--
--#include <asm-generic/cmpxchg.h>
--
--#endif /* __ASSEMBLY__ */
--
--#define arch_align_stack(x) (x)
--
--#endif /* __KERNEL__ */
--
--#endif
-+/* FILE TO BE DELETED. DO NOT ADD STUFF HERE! */
-+#include <asm/barrier.h>
-+#include <asm/cmpxchg.h>
-+#include <asm/exec.h>
-+#include <asm/switch_to.h>
-diff --git a/arch/unicore32/include/asm/uaccess.h b/arch/unicore32/include/asm/uaccess.h
-index 2acda50..897e11a 100644
---- a/arch/unicore32/include/asm/uaccess.h
-+++ b/arch/unicore32/include/asm/uaccess.h
-@@ -16,7 +16,6 @@
- #include <linux/errno.h>
- 
- #include <asm/memory.h>
--#include <asm/system.h>
- 
- #define __copy_from_user	__copy_from_user
- #define __copy_to_user		__copy_to_user
-diff --git a/arch/unicore32/kernel/dma.c b/arch/unicore32/kernel/dma.c
-index ae441bc..ed2d4d7 100644
---- a/arch/unicore32/kernel/dma.c
-+++ b/arch/unicore32/kernel/dma.c
-@@ -18,7 +18,6 @@
- #include <linux/errno.h>
- #include <linux/io.h>
- 
--#include <asm/system.h>
- #include <asm/irq.h>
- #include <mach/hardware.h>
- #include <mach/dma.h>
-diff --git a/arch/unicore32/kernel/head.S b/arch/unicore32/kernel/head.S
-index 8caf322..e8f0b98 100644
---- a/arch/unicore32/kernel/head.S
-+++ b/arch/unicore32/kernel/head.S
-@@ -17,7 +17,7 @@
- #include <generated/asm-offsets.h>
- #include <asm/memory.h>
- #include <asm/thread_info.h>
--#include <asm/system.h>
-+#include <asm/hwdef-copro.h>
- #include <asm/pgtable-hwdef.h>
- 
- #if (PHYS_OFFSET & 0x003fffff)
-diff --git a/arch/unicore32/kernel/hibernate.c b/arch/unicore32/kernel/hibernate.c
-index 7d0f0b7..d75ef8b 100644
---- a/arch/unicore32/kernel/hibernate.c
-+++ b/arch/unicore32/kernel/hibernate.c
-@@ -15,7 +15,6 @@
- #include <linux/suspend.h>
- #include <linux/bootmem.h>
- 
--#include <asm/system.h>
- #include <asm/page.h>
- #include <asm/pgtable.h>
- #include <asm/pgalloc.h>
-diff --git a/arch/unicore32/kernel/irq.c b/arch/unicore32/kernel/irq.c
-index d4efa7d..0be5ccd 100644
---- a/arch/unicore32/kernel/irq.c
-+++ b/arch/unicore32/kernel/irq.c
-@@ -26,7 +26,6 @@
- #include <linux/syscore_ops.h>
- #include <linux/gpio.h>
- 
--#include <asm/system.h>
- #include <mach/hardware.h>
- 
- #include "setup.h"
-diff --git a/arch/unicore32/kernel/ksyms.c b/arch/unicore32/kernel/ksyms.c
-index d98bd81..d285d71 100644
---- a/arch/unicore32/kernel/ksyms.c
-+++ b/arch/unicore32/kernel/ksyms.c
-@@ -20,7 +20,6 @@
- #include <linux/io.h>
- 
- #include <asm/checksum.h>
--#include <asm/system.h>
- 
- #include "ksyms.h"
- 
-diff --git a/arch/unicore32/kernel/process.c b/arch/unicore32/kernel/process.c
-index 52edc2b..1b3f152 100644
---- a/arch/unicore32/kernel/process.c
-+++ b/arch/unicore32/kernel/process.c
-@@ -34,7 +34,6 @@
- 
- #include <asm/cacheflush.h>
- #include <asm/processor.h>
--#include <asm/system.h>
- #include <asm/stacktrace.h>
- 
- #include "setup.h"
-diff --git a/arch/unicore32/kernel/setup.h b/arch/unicore32/kernel/setup.h
-index dcd1306..f239550 100644
---- a/arch/unicore32/kernel/setup.h
-+++ b/arch/unicore32/kernel/setup.h
-@@ -12,8 +12,11 @@
- #ifndef __UNICORE_KERNEL_SETUP_H__
- #define __UNICORE_KERNEL_SETUP_H__
- 
-+#include <asm/hwdef-copro.h>
-+
- extern void paging_init(void);
- extern void puv3_core_init(void);
-+extern void cpu_init(void);
- 
- extern void puv3_ps2_init(void);
- extern void pci_puv3_preinit(void);
-diff --git a/arch/unicore32/kernel/traps.c b/arch/unicore32/kernel/traps.c
-index b9a2646..2054f0d 100644
---- a/arch/unicore32/kernel/traps.c
-+++ b/arch/unicore32/kernel/traps.c
-@@ -26,7 +26,6 @@
- #include <linux/unistd.h>
- 
- #include <asm/cacheflush.h>
--#include <asm/system.h>
- #include <asm/traps.h>
- 
- #include "setup.h"
-diff --git a/arch/unicore32/mm/alignment.c b/arch/unicore32/mm/alignment.c
-index 28f576d..de7dc5f 100644
---- a/arch/unicore32/mm/alignment.c
-+++ b/arch/unicore32/mm/alignment.c
-@@ -24,6 +24,8 @@
- #include <asm/tlbflush.h>
- #include <asm/unaligned.h>
- 
-+#include "mm.h"
-+
- #define CODING_BITS(i)	(i & 0xe0000120)
- 
- #define LDST_P_BIT(i)	(i & (1 << 28))	/* Preindex             */
-diff --git a/arch/unicore32/mm/fault.c b/arch/unicore32/mm/fault.c
-index 283aa4b..2eeb9c0 100644
---- a/arch/unicore32/mm/fault.c
-+++ b/arch/unicore32/mm/fault.c
-@@ -20,7 +20,6 @@
- #include <linux/sched.h>
- #include <linux/io.h>
- 
--#include <asm/system.h>
- #include <asm/pgtable.h>
- #include <asm/tlbflush.h>
- 
-diff --git a/arch/unicore32/mm/flush.c b/arch/unicore32/mm/flush.c
-index 93478cc..6d4c096 100644
---- a/arch/unicore32/mm/flush.c
-+++ b/arch/unicore32/mm/flush.c
-@@ -14,7 +14,6 @@
- #include <linux/pagemap.h>
- 
- #include <asm/cacheflush.h>
--#include <asm/system.h>
- #include <asm/tlbflush.h>
- 
- void flush_cache_mm(struct mm_struct *mm)
-diff --git a/arch/unicore32/mm/mm.h b/arch/unicore32/mm/mm.h
-index 3296bca..05c7f53 100644
---- a/arch/unicore32/mm/mm.h
-+++ b/arch/unicore32/mm/mm.h
-@@ -9,6 +9,8 @@
-  * it under the terms of the GNU General Public License version 2 as
-  * published by the Free Software Foundation.
-  */
-+#include <asm/hwdef-copro.h>
-+
- /* the upper-most page table pointer */
- extern pmd_t *top_pmd;
- extern int sysctl_overcommit_memory;
-@@ -34,6 +36,9 @@ struct mem_type {
- const struct mem_type *get_mem_type(unsigned int type);
- 
- extern void __flush_dcache_page(struct address_space *, struct page *);
-+extern void hook_fault_code(int nr, int (*fn)
-+		(unsigned long, unsigned int, struct pt_regs *),
-+		int sig, int code, const char *name);
- 
- void __init bootmem_init(void);
- void uc32_mm_memblock_reserve(void);
--- 
-1.7.0.4
+  Linux 3.3
+
+with the top-most commit e749a9f707f1102735e02338fa564be86be3bb69
+
+  common: DMA-mapping: add NON-CONSISTENT attribute
+
+from the git repository at:
+
+  git://git.infradead.org/users/kmpark/linux-samsung dma-mapping-next
+
+Those patches introduce a new alloc method (with support for memory
+attributes) in dma_map_ops structure, which will later replace
+dma_alloc_coherent and dma_alloc_writecombine functions.
+
+Thanks!
+
+Best regards
+Marek Szyprowski
+Samsung Poland R&D Center
+
+Patch summary:
+
+Andrzej Pietrasiewicz (9):
+      X86: adapt for dma_map_ops changes
+      MIPS: adapt for dma_map_ops changes
+      PowerPC: adapt for dma_map_ops changes
+      IA64: adapt for dma_map_ops changes
+      SPARC: adapt for dma_map_ops changes
+      Alpha: adapt for dma_map_ops changes
+      SH: adapt for dma_map_ops changes
+      Microblaze: adapt for dma_map_ops changes
+      Unicore32: adapt for dma_map_ops changes
+
+Marek Szyprowski (6):
+      common: dma-mapping: introduce alloc_attrs and free_attrs methods
+      Hexagon: adapt for dma_map_ops changes
+      common: dma-mapping: remove old alloc_coherent and free_coherent methods
+      common: dma-mapping: introduce mmap method
+      common: DMA-mapping: add WRITE_COMBINE attribute
+      common: DMA-mapping: add NON-CONSISTENT attribute
+
+ Documentation/DMA-attributes.txt          |   19 +++++++++++++++++++
+ arch/alpha/include/asm/dma-mapping.h      |   18 ++++++++++++------
+ arch/alpha/kernel/pci-noop.c              |   10 ++++++----
+ arch/alpha/kernel/pci_iommu.c             |   10 ++++++----
+ arch/hexagon/include/asm/dma-mapping.h    |   18 ++++++++++++------
+ arch/hexagon/kernel/dma.c                 |    9 +++++----
+ arch/ia64/hp/common/sba_iommu.c           |   11 ++++++-----
+ arch/ia64/include/asm/dma-mapping.h       |   18 ++++++++++++------
+ arch/ia64/kernel/pci-swiotlb.c            |    9 +++++----
+ arch/ia64/sn/pci/pci_dma.c                |    9 +++++----
+ arch/microblaze/include/asm/dma-mapping.h |   18 ++++++++++++------
+ arch/microblaze/kernel/dma.c              |   10 ++++++----
+ arch/mips/cavium-octeon/dma-octeon.c      |   16 ++++++++--------
+ arch/mips/include/asm/dma-mapping.h       |   18 ++++++++++++------
+ arch/mips/mm/dma-default.c                |    8 ++++----
+ arch/powerpc/include/asm/dma-mapping.h    |   24 ++++++++++++++++--------
+ arch/powerpc/kernel/dma-iommu.c           |   10 ++++++----
+ arch/powerpc/kernel/dma-swiotlb.c         |    4 ++--
+ arch/powerpc/kernel/dma.c                 |   10 ++++++----
+ arch/powerpc/kernel/ibmebus.c             |   10 ++++++----
+ arch/powerpc/kernel/vio.c                 |   14 ++++++++------
+ arch/powerpc/platforms/cell/iommu.c       |   16 +++++++++-------
+ arch/powerpc/platforms/ps3/system-bus.c   |   13 +++++++------
+ arch/sh/include/asm/dma-mapping.h         |   28 ++++++++++++++++++----------
+ arch/sh/kernel/dma-nommu.c                |    4 ++--
+ arch/sh/mm/consistent.c                   |    6 ++++--
+ arch/sparc/include/asm/dma-mapping.h      |   18 ++++++++++++------
+ arch/sparc/kernel/iommu.c                 |   10 ++++++----
+ arch/sparc/kernel/ioport.c                |   18 ++++++++++--------
+ arch/sparc/kernel/pci_sun4v.c             |    9 +++++----
+ arch/unicore32/include/asm/dma-mapping.h  |   18 ++++++++++++------
+ arch/unicore32/mm/dma-swiotlb.c           |    4 ++--
+ arch/x86/include/asm/dma-mapping.h        |   26 ++++++++++++++++----------
+ arch/x86/kernel/amd_gart_64.c             |   11 ++++++-----
+ arch/x86/kernel/pci-calgary_64.c          |    9 +++++----
+ arch/x86/kernel/pci-dma.c                 |    3 ++-
+ arch/x86/kernel/pci-nommu.c               |    6 +++---
+ arch/x86/kernel/pci-swiotlb.c             |   12 +++++++-----
+ arch/x86/xen/pci-swiotlb-xen.c            |    4 ++--
+ drivers/iommu/amd_iommu.c                 |   10 ++++++----
+ drivers/iommu/intel-iommu.c               |    9 +++++----
+ drivers/xen/swiotlb-xen.c                 |    5 +++--
+ include/linux/dma-attrs.h                 |    2 ++
+ include/linux/dma-mapping.h               |   13 +++++++++----
+ include/linux/swiotlb.h                   |    6 ++++--
+ include/xen/swiotlb-xen.h                 |    6 ++++--
+ lib/swiotlb.c                             |    5 +++--
+ 47 files changed, 338 insertions(+), 206 deletions(-)
+
+
