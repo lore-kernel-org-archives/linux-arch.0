@@ -1,101 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from wolverine02.qualcomm.com ([199.106.114.251]:56159 "EHLO
 	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753366Ab2DRAVJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Apr 2012 20:21:09 -0400
-Message-ID: <8675ae$5bugrc@wolverine02.qualcomm.com>
-From: Richard Kuo <rkuo@codeaurora.org>
-Date: Tue, 15 Nov 2011 16:31:48 -0600
-Subject: [PATCH 06/10] various Kconfig cleanup and old platform build code removal
+	with ESMTP id S1753959Ab2DRAVT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Apr 2012 20:21:19 -0400
+Message-ID: <8675ae$5bugs0@wolverine02.qualcomm.com>
+From: Kautuk Consul <consul.kautuk@gmail.com>
+Date: Tue, 20 Mar 2012 09:23:33 -0400
+Subject: [PATCH 05/10] hexagon/mm/vm_fault.c: Port OOM changes to do_page_fault
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111115223148.V9TB66a9Z940zAbxukU8xZW53jR9f-8KsqJ5Ec_PAU8@z>
+Message-ID: <20120320132333.UVWucZc7y6Jv-IlNW_TC6rk6hPhGIrpywaNGz9F_YZM@z>
 
+Commit d065bd810b6deb67d4897a14bfe21f8eb526ba99
+(mm: retry page fault when blocking on disk transfer) and
+commit 37b23e0525d393d48a7d59f870b3bc061a30ccdb
+(x86,mm: make pagefault killable)
+
+The above commits introduced changes into the x86 pagefault handler
+for making the page fault handler retryable as well as killable.
+
+These changes reduce the mmap_sem hold time, which is crucial
+during OOM killer invocation.
+
+Port these changes to hexagon.
+
+Signed-off-by: Kautuk Consul <consul.kautuk@gmail.com>
 Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 ---
- arch/hexagon/Kconfig  |   21 ++++-----------------
- arch/hexagon/Makefile |    5 -----
- 2 files changed, 4 insertions(+), 22 deletions(-)
+ arch/hexagon/mm/vm_fault.c |   22 +++++++++++++++++-----
+ 1 files changed, 17 insertions(+), 5 deletions(-)
 
-diff --git a/arch/hexagon/Kconfig b/arch/hexagon/Kconfig
-index 3126fc6..e00d158 100644
---- a/arch/hexagon/Kconfig
-+++ b/arch/hexagon/Kconfig
-@@ -13,8 +13,8 @@ config HEXAGON
- 	# select ARCH_REQUIRE_GPIOLIB
- 	# select HAVE_CLK
- 	# select IRQ_PER_CPU
--	select HAVE_IRQ_WORK
- 	# select GENERIC_PENDING_IRQ if SMP
-+	select HAVE_IRQ_WORK
- 	select GENERIC_ATOMIC64
- 	select HAVE_PERF_EVENTS
- 	select HAVE_GENERIC_HARDIRQS
-@@ -25,7 +25,7 @@ config HEXAGON
- 	select HAVE_ARCH_TRACEHOOK
- 	select NO_IOPORT
- 	select GENERIC_IOMAP
--	# mostly generic routines, with some accelerated ones
-+	select STACKTRACE_SUPPORT
- 	---help---
- 	  Qualcomm Hexagon is a processor architecture designed for high
- 	  performance and low power across a wide variety of applications.
-@@ -72,15 +72,6 @@ config GENERIC_CSUM
- config GENERIC_IRQ_PROBE
- 	def_bool y
+diff --git a/arch/hexagon/mm/vm_fault.c b/arch/hexagon/mm/vm_fault.c
+index c10b76f..06695cc 100644
+--- a/arch/hexagon/mm/vm_fault.c
++++ b/arch/hexagon/mm/vm_fault.c
+@@ -53,6 +53,8 @@ void do_page_fault(unsigned long address, long cause, struct pt_regs *regs)
+ 	int si_code = SEGV_MAPERR;
+ 	int fault;
+ 	const struct exception_table_entry *fixup;
++	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE |
++				 (cause > 0 ? FAULT_FLAG_WRITE : 0);
  
--#config ZONE_DMA
--#	bool
--#	default y
--
--config HAS_DMA
--	bool
--	select HAVE_DMA_ATTRS
--	default y
--
- config NEED_SG_DMA_LENGTH
- 	def_bool y
+ 	/*
+ 	 * If we're in an interrupt or have no user context,
+@@ -63,6 +65,7 @@ void do_page_fault(unsigned long address, long cause, struct pt_regs *regs)
  
-@@ -113,14 +104,11 @@ config GENERIC_BUG
- 	def_bool y
- 	depends on BUG
+ 	local_irq_enable();
  
--config BUG
--	def_bool y
--
- menu "Machine selection"
++retry:
+ 	down_read(&mm->mmap_sem);
+ 	vma = find_vma(mm, address);
+ 	if (!vma)
+@@ -96,14 +99,23 @@ good_area:
+ 		break;
+ 	}
  
- choice
- 	prompt "System type"
--	default HEXAGON_ARCH_V2
-+	default HEXAGON_COMET
+-	fault = handle_mm_fault(mm, vma, address, (cause > 0));
++	fault = handle_mm_fault(mm, vma, address, flags);
++
++	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current))
++		return;
  
- config HEXAGON_COMET
- 	bool "Comet Board"
-@@ -193,8 +181,7 @@ source "kernel/Kconfig.hz"
- source "kernel/time/Kconfig"
+ 	/* The most common case -- we are done. */
+ 	if (likely(!(fault & VM_FAULT_ERROR))) {
+-		if (fault & VM_FAULT_MAJOR)
+-			current->maj_flt++;
+-		else
+-			current->min_flt++;
++		if (flags & FAULT_FLAG_ALLOW_RETRY) {
++			if (fault & VM_FAULT_MAJOR)
++				current->maj_flt++;
++			else
++				current->min_flt++;
++			if (fault & VM_FAULT_RETRY) {
++				flags &= ~FAULT_FLAG_ALLOW_RETRY;
++				goto retry;
++			}
++		}
  
- config GENERIC_GPIO
--	bool "Generic GPIO support"
--	default n
-+	def_bool n
- 
- endmenu
- 
-diff --git a/arch/hexagon/Makefile b/arch/hexagon/Makefile
-index 0c4de87..7e32265 100644
---- a/arch/hexagon/Makefile
-+++ b/arch/hexagon/Makefile
-@@ -51,8 +51,3 @@ head-y := arch/hexagon/kernel/head.o \
- core-y += arch/hexagon/kernel/ \
- 	arch/hexagon/mm/ \
- 	arch/hexagon/lib/
--
--#	arch/hexagon/platform/common/
--#
--#core-$(CONFIG_HEXAGON_COMET)		+= arch/hexagon/platform/comet/
--#machine-$(CONFIG_HEXAGON_COMET)		:= comet
+ 		up_read(&mm->mmap_sem);
+ 		return;
 -- 
 1.7.1
 
