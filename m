@@ -1,109 +1,74 @@
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: [GIT PULL] DMA-mapping framework updates for 3.4
-Date: Tue, 20 Mar 2012 08:24:43 +0100
-Message-ID: <1332228283-29077-1-git-send-email-m.szyprowski@samsung.com>
-Mime-Version: 1.0
-Content-Type: TEXT/PLAIN
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-ia64-owner@vger.kernel.org>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, Jonathan Corbet <corbet@lwn.net>, Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
-List-Id: linux-arch.vger.kernel.org
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH] Disintegrate asm/system.h for Unicore32 [based on ver #3, changed by gxt]
+Date: Tue, 20 Mar 2012 09:33:40 +0000
+Message-ID: <14078.1332236020@redhat.com>
+References: <1332212514-22071-1-git-send-email-gxt@mprc.pku.edu.cn> <7019.1332155925@redhat.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:45777 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753443Ab2CTJdz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 20 Mar 2012 05:33:55 -0400
+In-Reply-To: <1332212514-22071-1-git-send-email-gxt@mprc.pku.edu.cn>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: dhowells@redhat.com, paul.gortmaker@windriver.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de
 
-Hi Linus,
+Guan Xuetao <gxt@mprc.pku.edu.cn> wrote:
 
-Please pull the dma-mapping framework updates for v3.4 since commit
-c16fa4f2ad19908a47c63d8fa436a1178438c7e7:
+> Disintegrate asm/system.h for Unicore32. (Compilation successful)
+> The implementation details are not changed, but only splitted.
+> BTW, some codestyles are adjusted.
+> 
+> Signed-off-by: David Howells <dhowells@redhat.com>
+> Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-  Linux 3.3
+Aha!  Much better.  It mostly looks reasonable, apart from one thing.  See the
+attached patch, which I'll roll in if you're happy with it.
 
-with the top-most commit e749a9f707f1102735e02338fa564be86be3bb69
+David
+---
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH] Fix unicore xchg() to fail at build time with an unsupported pointer
 
-  common: DMA-mapping: add NON-CONSISTENT attribute
+Fix unicore xchg() to fail at build time with an unsupported pointer rather
+then using panic().
 
-from the git repository at:
+Additionally, panic() should not be redeclared in this manner, but rather
+should be brought in by #inclusion of <linux/kernel.h>.
 
-  git://git.infradead.org/users/kmpark/linux-samsung dma-mapping-next
+Signed-off-by: David Howells <dhowells@redhat.com>
+---
 
-Those patches introduce a new alloc method (with support for memory
-attributes) in dma_map_ops structure, which will later replace
-dma_alloc_coherent and dma_alloc_writecombine functions.
-
-Thanks!
-
-Best regards
-Marek Szyprowski
-Samsung Poland R&D Center
-
-Patch summary:
-
-Andrzej Pietrasiewicz (9):
-      X86: adapt for dma_map_ops changes
-      MIPS: adapt for dma_map_ops changes
-      PowerPC: adapt for dma_map_ops changes
-      IA64: adapt for dma_map_ops changes
-      SPARC: adapt for dma_map_ops changes
-      Alpha: adapt for dma_map_ops changes
-      SH: adapt for dma_map_ops changes
-      Microblaze: adapt for dma_map_ops changes
-      Unicore32: adapt for dma_map_ops changes
-
-Marek Szyprowski (6):
-      common: dma-mapping: introduce alloc_attrs and free_attrs methods
-      Hexagon: adapt for dma_map_ops changes
-      common: dma-mapping: remove old alloc_coherent and free_coherent methods
-      common: dma-mapping: introduce mmap method
-      common: DMA-mapping: add WRITE_COMBINE attribute
-      common: DMA-mapping: add NON-CONSISTENT attribute
-
- Documentation/DMA-attributes.txt          |   19 +++++++++++++++++++
- arch/alpha/include/asm/dma-mapping.h      |   18 ++++++++++++------
- arch/alpha/kernel/pci-noop.c              |   10 ++++++----
- arch/alpha/kernel/pci_iommu.c             |   10 ++++++----
- arch/hexagon/include/asm/dma-mapping.h    |   18 ++++++++++++------
- arch/hexagon/kernel/dma.c                 |    9 +++++----
- arch/ia64/hp/common/sba_iommu.c           |   11 ++++++-----
- arch/ia64/include/asm/dma-mapping.h       |   18 ++++++++++++------
- arch/ia64/kernel/pci-swiotlb.c            |    9 +++++----
- arch/ia64/sn/pci/pci_dma.c                |    9 +++++----
- arch/microblaze/include/asm/dma-mapping.h |   18 ++++++++++++------
- arch/microblaze/kernel/dma.c              |   10 ++++++----
- arch/mips/cavium-octeon/dma-octeon.c      |   16 ++++++++--------
- arch/mips/include/asm/dma-mapping.h       |   18 ++++++++++++------
- arch/mips/mm/dma-default.c                |    8 ++++----
- arch/powerpc/include/asm/dma-mapping.h    |   24 ++++++++++++++++--------
- arch/powerpc/kernel/dma-iommu.c           |   10 ++++++----
- arch/powerpc/kernel/dma-swiotlb.c         |    4 ++--
- arch/powerpc/kernel/dma.c                 |   10 ++++++----
- arch/powerpc/kernel/ibmebus.c             |   10 ++++++----
- arch/powerpc/kernel/vio.c                 |   14 ++++++++------
- arch/powerpc/platforms/cell/iommu.c       |   16 +++++++++-------
- arch/powerpc/platforms/ps3/system-bus.c   |   13 +++++++------
- arch/sh/include/asm/dma-mapping.h         |   28 ++++++++++++++++++----------
- arch/sh/kernel/dma-nommu.c                |    4 ++--
- arch/sh/mm/consistent.c                   |    6 ++++--
- arch/sparc/include/asm/dma-mapping.h      |   18 ++++++++++++------
- arch/sparc/kernel/iommu.c                 |   10 ++++++----
- arch/sparc/kernel/ioport.c                |   18 ++++++++++--------
- arch/sparc/kernel/pci_sun4v.c             |    9 +++++----
- arch/unicore32/include/asm/dma-mapping.h  |   18 ++++++++++++------
- arch/unicore32/mm/dma-swiotlb.c           |    4 ++--
- arch/x86/include/asm/dma-mapping.h        |   26 ++++++++++++++++----------
- arch/x86/kernel/amd_gart_64.c             |   11 ++++++-----
- arch/x86/kernel/pci-calgary_64.c          |    9 +++++----
- arch/x86/kernel/pci-dma.c                 |    3 ++-
- arch/x86/kernel/pci-nommu.c               |    6 +++---
- arch/x86/kernel/pci-swiotlb.c             |   12 +++++++-----
- arch/x86/xen/pci-swiotlb-xen.c            |    4 ++--
- drivers/iommu/amd_iommu.c                 |   10 ++++++----
- drivers/iommu/intel-iommu.c               |    9 +++++----
- drivers/xen/swiotlb-xen.c                 |    5 +++--
- include/linux/dma-attrs.h                 |    2 ++
- include/linux/dma-mapping.h               |   13 +++++++++----
- include/linux/swiotlb.h                   |    6 ++++--
- include/xen/swiotlb-xen.h                 |    6 ++++--
- lib/swiotlb.c                             |    5 +++--
- 47 files changed, 338 insertions(+), 206 deletions(-)
+ arch/unicore32/include/asm/cmpxchg.h |   10 +++++++---
+ 1 files changed, 7 insertions(+), 3 deletions(-)
 
 
+diff --git a/arch/unicore32/include/asm/cmpxchg.h b/arch/unicore32/include/asm/cmpxchg.h
+index 37c431d..f39a59d 100644
+--- a/arch/unicore32/include/asm/cmpxchg.h
++++ b/arch/unicore32/include/asm/cmpxchg.h
+@@ -10,7 +10,11 @@
+ #ifndef __UNICORE_CMPXCHG_H__
+ #define __UNICORE_CMPXCHG_H__
+ 
+-extern void panic(const char *fmt, ...);
++/*
++ * Generate a link failure on undefined symbol if the pointer points to a value
++ * of unsupported size.
++ */
++extern void __xchg_bad_pointer(void)
+ 
+ static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
+ 		int size)
+@@ -31,8 +35,8 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
+ 			: "memory", "cc");
+ 		break;
+ 	default:
+-		panic("xchg: bad data size: ptr 0x%p, size %d\n",
+-			ptr, size);
++		__xchg_bad_pointer();
++		break;
+ 	}
+ 
+ 	return ret;
