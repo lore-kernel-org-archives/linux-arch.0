@@ -1,74 +1,30 @@
 From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH] Disintegrate asm/system.h for Unicore32 [based on ver #3, changed by gxt]
-Date: Tue, 20 Mar 2012 09:33:40 +0000
-Message-ID: <14078.1332236020@redhat.com>
-References: <1332212514-22071-1-git-send-email-gxt@mprc.pku.edu.cn> <7019.1332155925@redhat.com>
+Subject: Re: [PATCH 27/38] Disintegrate asm/system.h for Unicore32 [ver #3]
+Date: Tue, 20 Mar 2012 10:15:14 +0000
+Message-ID: <28091.1332238514@redhat.com>
+References: <4F66F359.4060203@pku.edu.cn> <1331868043.1971.10.camel@epip-laptop> <20120315205514.28759.58969.stgit@warthog.procyon.org.uk> <20120315205931.28759.81875.stgit@warthog.procyon.org.uk> <17897.1331889018@redhat.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:45777 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:37765 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753443Ab2CTJdz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 20 Mar 2012 05:33:55 -0400
-In-Reply-To: <1332212514-22071-1-git-send-email-gxt@mprc.pku.edu.cn>
+	id S1751910Ab2CTKP0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 20 Mar 2012 06:15:26 -0400
+In-Reply-To: <4F66F359.4060203@pku.edu.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guan Xuetao <gxt@mprc.pku.edu.cn>
+To: gxt@mprc.pku.edu.cn
 Cc: dhowells@redhat.com, paul.gortmaker@windriver.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de
 
-Guan Xuetao <gxt@mprc.pku.edu.cn> wrote:
+Guan Xueao <gxt@pku.edu.cn> wrote:
 
-> Disintegrate asm/system.h for Unicore32. (Compilation successful)
-> The implementation details are not changed, but only splitted.
-> BTW, some codestyles are adjusted.
-> 
-> Signed-off-by: David Howells <dhowells@redhat.com>
-> Signed-off-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> > Do the upstream binutils and gcc support unicore32 targets?
+> >
+> > David
+> >
+> Not yet. Sorry for the inconvenience.
 
-Aha!  Much better.  It mostly looks reasonable, apart from one thing.  See the
-attached patch, which I'll roll in if you're happy with it.
+Do you have patches I could apply to my cross-compiler RPMs?  I'm using
+gcc-4.7 and binutils-2.22.52.0.1.  See:
+
+	http://people.redhat.com/~dhowells/cross/
 
 David
----
-From: David Howells <dhowells@redhat.com>
-Subject: [PATCH] Fix unicore xchg() to fail at build time with an unsupported pointer
-
-Fix unicore xchg() to fail at build time with an unsupported pointer rather
-then using panic().
-
-Additionally, panic() should not be redeclared in this manner, but rather
-should be brought in by #inclusion of <linux/kernel.h>.
-
-Signed-off-by: David Howells <dhowells@redhat.com>
----
-
- arch/unicore32/include/asm/cmpxchg.h |   10 +++++++---
- 1 files changed, 7 insertions(+), 3 deletions(-)
-
-
-diff --git a/arch/unicore32/include/asm/cmpxchg.h b/arch/unicore32/include/asm/cmpxchg.h
-index 37c431d..f39a59d 100644
---- a/arch/unicore32/include/asm/cmpxchg.h
-+++ b/arch/unicore32/include/asm/cmpxchg.h
-@@ -10,7 +10,11 @@
- #ifndef __UNICORE_CMPXCHG_H__
- #define __UNICORE_CMPXCHG_H__
- 
--extern void panic(const char *fmt, ...);
-+/*
-+ * Generate a link failure on undefined symbol if the pointer points to a value
-+ * of unsupported size.
-+ */
-+extern void __xchg_bad_pointer(void)
- 
- static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
- 		int size)
-@@ -31,8 +35,8 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
- 			: "memory", "cc");
- 		break;
- 	default:
--		panic("xchg: bad data size: ptr 0x%p, size %d\n",
--			ptr, size);
-+		__xchg_bad_pointer();
-+		break;
- 	}
- 
- 	return ret;
