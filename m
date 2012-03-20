@@ -1,62 +1,119 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx0.aculab.com ([213.249.233.131]:44648 "HELO mx0.aculab.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with SMTP
-	id S1757273Ab2CTLnM convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Mar 2012 07:43:12 -0400
-Received: from mx0.aculab.com ([127.0.0.1])
- by localhost (mx0.aculab.com [127.0.0.1]) (amavisd-new, port 10024) with SMTP
- id 08188-08 for <linux-arch@vger.kernel.org>;
- Tue, 20 Mar 2012 11:43:06 +0000 (GMT)
-Content-class: urn:content-classes:message
+Received: from mail-yw0-f46.google.com ([209.85.213.46]:39042 "EHLO
+	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756856Ab2CTNup (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Mar 2012 09:50:45 -0400
+Message-ID: <4F688B2D.20808@gmail.com>
+Date: Tue, 20 Mar 2012 19:20:37 +0530
+From: Subash Patel <subashrp@gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain;
-	charset="us-ascii"
-Content-Transfer-Encoding: 8BIT
-Subject: RE: [PATCH] net: bpf_jit: Simplify code by always using offset8 or offset32.
-Date: Tue, 20 Mar 2012 11:41:46 -0000
-Message-ID: <AE90C24D6B3A694183C094C60CF0A2F6026B6EB0@saturn3.aculab.com>
-In-Reply-To: <cfb04c3fe59e421093f035c035c88b51.squirrel@webmail.greenhost.nl>
-From: "David Laight" <David.Laight@ACULAB.COM>
+Subject: Re: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
+References: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com> <1330527862-16234-10-git-send-email-m.szyprowski@samsung.com> <CAHQjnOO5DLOj8Fw=ZriSnXg8W3k7y8Dnu--Peqe6JJX0xGMhoQ@mail.gmail.com>
+In-Reply-To: <CAHQjnOO5DLOj8Fw=ZriSnXg8W3k7y8Dnu--Peqe6JJX0xGMhoQ@mail.gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Indan Zupancic <indan@nul.nu>, Eric Dumazet <eric.dumazet@gmail.com>
-Cc: Will Drewry <wad@chromium.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
-Message-ID: <20120320114146.i8FDDn82gBq-jruWJB42dvSNhmJ3t-U-suZf8sdLz-k@z>
+To: KyongHo Cho <pullip.cho@samsung.com>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org, Shariq Hasnain <shariq.hasnain@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Krishna Reddy <vdumpa@nvidia.com>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>
+Message-ID: <20120320135037.txxO81jwM08Yq55guV8-ESUDoT8nUa6KC82rJQvqAzk@z>
 
- 
-> On Tue, March 20, 2012 13:59, Eric Dumazet wrote:
-> > On Tue, 2012-03-20 at 13:24 +1100, Indan Zupancic wrote:
-> >
-> >> If it does then perhaps the fast path should be made faster by
-inlining
-> >> the code instead of calling a function which may not be cached.
-> >>
-> >
-> > inlining 400 times a sequence of code is waste of icache you
-probably
-> > missed this.
-> 
-> Well, according to you most filters were small, inling 26 bytes a few
-> times should be faster than calling an external function. Not 
-> all calls need to be inlined either.
+Sorry for digging this very late. But as part of integrating dma_map v7 
+& sysmmu v12 on 3.3-rc5, I am facing below issue:
 
-I wouldn't bet on it.
-If the number of arguments is small enough to fit in the registers,
-the called function doesn't to save any registers, and the call
-doesn't mean the calling code runs out of registers,
-the actual cost of the call will be minimal.
+a) By un-selecting IOMMU in menu config, I am able to allocate memory in 
+vb2-dma-contig
 
-OTOH the benefit of only having to fetch the code once,
-and the higher likelyhood that it will be in the i-cache
-from some other use, will make the version with the calls
-faster.
+b) When I enable SYSMMU support for the IP's, I am receiving below fault:
 
-You need to do real benchmarks on a real system running
-a real workload to find out which is better.
-Oh and beware that changes in which code shares cache
-lines can have a measuarable effect (typified by unrelated
-changes affecting measured performance).
+Unhandled fault: external abort on non-linefetch (0x818) at 0xb6f55000
 
-	David
+I think this has something to do with the access to the SYSMMU registers 
+for writing the page table. Has anyone of you faced this issue while 
+testing these(dma_map+iommu) patches on kernel mentioned above? This 
+must be something related to recent changes, as I didn't have issues 
+with these patches on 3.2 kernel.
+
+Regards,
+Subash
 
 
+On 03/02/2012 01:35 PM, KyongHo Cho wrote:
+> On Thu, Mar 1, 2012 at 12:04 AM, Marek Szyprowski
+> <m.szyprowski@samsung.com>  wrote:
+>> +/**
+>> + * arm_iommu_map_sg - map a set of SG buffers for streaming mode DMA
+>> + * @dev: valid struct device pointer
+>> + * @sg: list of buffers
+>> + * @nents: number of buffers to map
+>> + * @dir: DMA transfer direction
+>> + *
+>> + * Map a set of buffers described by scatterlist in streaming mode for DMA.
+>> + * The scatter gather list elements are merged together (if possible) and
+>> + * tagged with the appropriate dma address and length. They are obtained via
+>> + * sg_dma_{address,length}.
+>> + */
+>> +int arm_iommu_map_sg(struct device *dev, struct scatterlist *sg, int nents,
+>> +                    enum dma_data_direction dir, struct dma_attrs *attrs)
+>> +{
+>> +       struct scatterlist *s = sg, *dma = sg, *start = sg;
+>> +       int i, count = 0;
+>> +       unsigned int offset = s->offset;
+>> +       unsigned int size = s->offset + s->length;
+>> +       unsigned int max = dma_get_max_seg_size(dev);
+>> +
+>> +       for (i = 1; i<  nents; i++) {
+>> +               s->dma_address = ARM_DMA_ERROR;
+>> +               s->dma_length = 0;
+>> +
+>> +               s = sg_next(s);
+>> +
+>> +               if (s->offset || (size&  ~PAGE_MASK) || size + s->length>  max) {
+>> +                       if (__map_sg_chunk(dev, start, size,&dma->dma_address,
+>> +                           dir)<  0)
+>> +                               goto bad_mapping;
+>> +
+>> +                       dma->dma_address += offset;
+>> +                       dma->dma_length = size - offset;
+>> +
+>> +                       size = offset = s->offset;
+>> +                       start = s;
+>> +                       dma = sg_next(dma);
+>> +                       count += 1;
+>> +               }
+>> +               size += s->length;
+>> +       }
+>> +       if (__map_sg_chunk(dev, start, size,&dma->dma_address, dir)<  0)
+>> +               goto bad_mapping;
+>> +
+>> +       dma->dma_address += offset;
+>> +       dma->dma_length = size - offset;
+>> +
+>> +       return count+1;
+>> +
+>> +bad_mapping:
+>> +       for_each_sg(sg, s, count, i)
+>> +               __iommu_remove_mapping(dev, sg_dma_address(s), sg_dma_len(s));
+>> +       return 0;
+>> +}
+>> +
+> This looks that the given sg list specifies the list of physical
+> memory chunks and
+> the list of IO virtual memory chunks at the same time after calling
+> arm_dma_map_sg().
+> It can happen that dma_address and dma_length of a sg entry does not
+> correspond to
+> physical memory information of the sg entry.
+>
+> I think it is beneficial for handling IO virtual memory.
+>
+> However, I worry about any other problems caused by a single sg entry contains
+> information from 2 different context.
+>
+> Regards,
+>
+> Cho KyongHo.
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-samsung-soc" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
