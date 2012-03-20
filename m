@@ -1,114 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout2.w1.samsung.com ([210.118.77.12]:42491 "EHLO
-	mailout2.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755066Ab2CTHYv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Mar 2012 03:24:51 -0400
-Date: Tue, 20 Mar 2012 08:24:43 +0100
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: [GIT PULL] DMA-mapping framework updates for 3.4
-Message-ID: <1332228283-29077-1-git-send-email-m.szyprowski@samsung.com>
-MIME-version: 1.0
-Content-type: TEXT/PLAIN
-Content-transfer-encoding: 7BIT
+Received: from smarthost1.greenhost.nl ([195.190.28.78]:58433 "EHLO
+	smarthost1.greenhost.nl" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752939Ab2CTLdw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Mar 2012 07:33:52 -0400
+Message-ID: <cfb04c3fe59e421093f035c035c88b51.squirrel@webmail.greenhost.nl>
+In-Reply-To: <1332212386.22737.20.camel@edumazet-glaptop>
+References: <1331587715-26069-1-git-send-email-wad@chromium.org>
+    <0c55cb258e0b5bbd615923ee2a9f06b9.squirrel@webmail.greenhost.nl>
+    <1331658828.4449.16.camel@edumazet-glaptop>
+    <3e4fc1efb5d7dbe0dd966e3192e84645.squirrel@webmail.greenhost.nl>
+    <1331704535.2456.37.camel@edumazet-laptop>
+    <3f56b0860272f4ca8925c0a249a30539.squirrel@webmail.greenhost.nl>
+    <1331712357.2456.58.camel@edumazet-laptop>
+    <7a1c4974e8fbc3b82ead0bfb18224d5b.squirrel@webmail.greenhost.nl>
+    <1331992184.2466.45.camel@edumazet-laptop>
+    <9a0230cb8db556cc9cf5d1f6b2439fb5.squirrel@webmail.greenhost.nl>
+    <1332075121.3722.34.camel@edumazet-laptop>
+    <371a1925e68e68f873e30381e0fa60ea.squirrel@webmail.greenhost.nl>
+    <1332212386.22737.20.camel@edumazet-glaptop>
+Date: Tue, 20 Mar 2012 22:33:35 +1100
+Subject: Re: [PATCH] net: bpf_jit: Simplify code by always using offset8 or
+ offset32.
+From: "Indan Zupancic" <indan@nul.nu>
+MIME-Version: 1.0
+Content-Type: text/plain;charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, Jonathan Corbet <corbet@lwn.net>, Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
-Message-ID: <20120320072443.EXhRpfrC4C9PVUs6uWmLJI5CJqlv19ZHBnGiikI882c@z>
+To: Eric Dumazet <eric.dumazet@gmail.com>
+Cc: Will Drewry <wad@chromium.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
+Message-ID: <20120320113335.rcDJDFkllmDEjB8titMbfm7uLH17LA8yTHbOVwoUfdk@z>
 
-Hi Linus,
+On Tue, March 20, 2012 13:59, Eric Dumazet wrote:
+> On Tue, 2012-03-20 at 13:24 +1100, Indan Zupancic wrote:
+>
+>> If it does then perhaps the fast path should be made faster by inlining
+>> the code instead of calling a function which may not be cached.
+>>
+>
+> inlining 400 times a sequence of code is waste of icache, you probably
+> missed this.
 
-Please pull the dma-mapping framework updates for v3.4 since commit
-c16fa4f2ad19908a47c63d8fa436a1178438c7e7:
+Well, according to you most filters were small, inling 26 bytes a few
+times should be faster than calling an external function. Not all calls
+need to be inlined either.
 
-  Linux 3.3
+>
+> I spent a lot of time on working on this implementation, tried many
+> different strategies before choosing the one in place.
+>
+> Listen, I am tired of this thread, it seems you want to push changes
+> that have almost no value but still need lot of review.
 
-with the top-most commit e749a9f707f1102735e02338fa564be86be3bb69
+The latest patch didn't change generated code except for a few ancillary
+instructions. The one before that just added documentation. The first
+patch was indeed bad.
 
-  common: DMA-mapping: add NON-CONSISTENT attribute
+>
+> Unless you make benchmarks and can make at least 5 % improvement of the
+> speed, or improve maintainability of this code, I am not interested.
 
-from the git repository at:
+My next patch would have changed the compiler to always compile in two
+passes instead of looping till the result is stable. But never mind.
 
-  git://git.infradead.org/users/kmpark/linux-samsung dma-mapping-next
+>
+> We certainly _can_ one day have sizeof(struct sk_buff) > 256, and actual
+> code is ready for this. You want to break this for absolutely no valid
+> reason.
 
-Those patches introduce a new alloc method (with support for memory
-attributes) in dma_map_ops structure, which will later replace
-dma_alloc_coherent and dma_alloc_writecombine functions.
+I've the feeling you didn't read the latest patch, it doesn't assume
+sizeof(struct sk_buff) < 256, nor that fields aren't reordered.
 
-Thanks!
+>
+> We _can_ change fields order anytime in struct sk_buff, even if you
+> state "its very unlikely that those fields are ever moved to the end
+> of sk_buff".
 
-Best regards
-Marek Szyprowski
-Samsung Poland R&D Center
+And if the dev, len or data_len fields are really moved past the first
+127 bytes the JIT code can be changed too. The JIT code already depends
+on some of struct sk_buff's field properties anyway.
 
-Patch summary:
+Greetings,
 
-Andrzej Pietrasiewicz (9):
-      X86: adapt for dma_map_ops changes
-      MIPS: adapt for dma_map_ops changes
-      PowerPC: adapt for dma_map_ops changes
-      IA64: adapt for dma_map_ops changes
-      SPARC: adapt for dma_map_ops changes
-      Alpha: adapt for dma_map_ops changes
-      SH: adapt for dma_map_ops changes
-      Microblaze: adapt for dma_map_ops changes
-      Unicore32: adapt for dma_map_ops changes
-
-Marek Szyprowski (6):
-      common: dma-mapping: introduce alloc_attrs and free_attrs methods
-      Hexagon: adapt for dma_map_ops changes
-      common: dma-mapping: remove old alloc_coherent and free_coherent methods
-      common: dma-mapping: introduce mmap method
-      common: DMA-mapping: add WRITE_COMBINE attribute
-      common: DMA-mapping: add NON-CONSISTENT attribute
-
- Documentation/DMA-attributes.txt          |   19 +++++++++++++++++++
- arch/alpha/include/asm/dma-mapping.h      |   18 ++++++++++++------
- arch/alpha/kernel/pci-noop.c              |   10 ++++++----
- arch/alpha/kernel/pci_iommu.c             |   10 ++++++----
- arch/hexagon/include/asm/dma-mapping.h    |   18 ++++++++++++------
- arch/hexagon/kernel/dma.c                 |    9 +++++----
- arch/ia64/hp/common/sba_iommu.c           |   11 ++++++-----
- arch/ia64/include/asm/dma-mapping.h       |   18 ++++++++++++------
- arch/ia64/kernel/pci-swiotlb.c            |    9 +++++----
- arch/ia64/sn/pci/pci_dma.c                |    9 +++++----
- arch/microblaze/include/asm/dma-mapping.h |   18 ++++++++++++------
- arch/microblaze/kernel/dma.c              |   10 ++++++----
- arch/mips/cavium-octeon/dma-octeon.c      |   16 ++++++++--------
- arch/mips/include/asm/dma-mapping.h       |   18 ++++++++++++------
- arch/mips/mm/dma-default.c                |    8 ++++----
- arch/powerpc/include/asm/dma-mapping.h    |   24 ++++++++++++++++--------
- arch/powerpc/kernel/dma-iommu.c           |   10 ++++++----
- arch/powerpc/kernel/dma-swiotlb.c         |    4 ++--
- arch/powerpc/kernel/dma.c                 |   10 ++++++----
- arch/powerpc/kernel/ibmebus.c             |   10 ++++++----
- arch/powerpc/kernel/vio.c                 |   14 ++++++++------
- arch/powerpc/platforms/cell/iommu.c       |   16 +++++++++-------
- arch/powerpc/platforms/ps3/system-bus.c   |   13 +++++++------
- arch/sh/include/asm/dma-mapping.h         |   28 ++++++++++++++++++----------
- arch/sh/kernel/dma-nommu.c                |    4 ++--
- arch/sh/mm/consistent.c                   |    6 ++++--
- arch/sparc/include/asm/dma-mapping.h      |   18 ++++++++++++------
- arch/sparc/kernel/iommu.c                 |   10 ++++++----
- arch/sparc/kernel/ioport.c                |   18 ++++++++++--------
- arch/sparc/kernel/pci_sun4v.c             |    9 +++++----
- arch/unicore32/include/asm/dma-mapping.h  |   18 ++++++++++++------
- arch/unicore32/mm/dma-swiotlb.c           |    4 ++--
- arch/x86/include/asm/dma-mapping.h        |   26 ++++++++++++++++----------
- arch/x86/kernel/amd_gart_64.c             |   11 ++++++-----
- arch/x86/kernel/pci-calgary_64.c          |    9 +++++----
- arch/x86/kernel/pci-dma.c                 |    3 ++-
- arch/x86/kernel/pci-nommu.c               |    6 +++---
- arch/x86/kernel/pci-swiotlb.c             |   12 +++++++-----
- arch/x86/xen/pci-swiotlb-xen.c            |    4 ++--
- drivers/iommu/amd_iommu.c                 |   10 ++++++----
- drivers/iommu/intel-iommu.c               |    9 +++++----
- drivers/xen/swiotlb-xen.c                 |    5 +++--
- include/linux/dma-attrs.h                 |    2 ++
- include/linux/dma-mapping.h               |   13 +++++++++----
- include/linux/swiotlb.h                   |    6 ++++--
- include/xen/swiotlb-xen.h                 |    6 ++++--
- lib/swiotlb.c                             |    5 +++--
- 47 files changed, 338 insertions(+), 206 deletions(-)
+Indan
 
 
