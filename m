@@ -1,43 +1,53 @@
-From: KyongHo Cho <pullip.cho@samsung.com>
-Subject: Re: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
-Date: Wed, 21 Mar 2012 08:56:51 +0900
-Message-ID: <CAHQjnOMjSPDOymJe356AWnJszQv+X-QWrVrB7ahYDkXBr5HrQw@mail.gmail.com>
-References: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com>
-	<1330527862-16234-10-git-send-email-m.szyprowski@samsung.com>
-	<CAHQjnOO5DLOj8Fw=ZriSnXg8W3k7y8Dnu--Peqe6JJX0xGMhoQ@mail.gmail.com>
-	<4F688B2D.20808@gmail.com>
+From: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Subject: Re: [PATCH] Disintegrate asm/system.h for Unicore32 [based on ver
+ #3, changed by gxt]
+Date: Wed, 21 Mar 2012 09:33:39 +0800
+Message-ID: <4F692FF3.6090305@mprc.pku.edu.cn>
+References: <1332212514-22071-1-git-send-email-gxt@mprc.pku.edu.cn> <7019.1332155925@redhat.com> <14078.1332236020@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-samsung-soc-owner@vger.kernel.org>
-In-Reply-To: <4F688B2D.20808@gmail.com>
-Sender: linux-samsung-soc-owner@vger.kernel.org
-To: Subash Patel <subashrp@gmail.com>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org, Shariq Hasnain <shariq.hasnain@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Krishna Reddy <vdumpa@nvidia.com>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:33229 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758133Ab2CUBdA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 20 Mar 2012 21:33:00 -0400
+In-Reply-To: <14078.1332236020@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: paul.gortmaker@windriver.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de
 
-On Tue, Mar 20, 2012 at 10:50 PM, Subash Patel <subashrp@gmail.com> wrote:
-> Sorry for digging this very late. But as part of integrating dma_map v7 &
-> sysmmu v12 on 3.3-rc5, I am facing below issue:
+On 03/20/2012 05:33 PM, David Howells wrote:
+> Guan Xuetao<gxt@mprc.pku.edu.cn>  wrote:
 >
-> a) By un-selecting IOMMU in menu config, I am able to allocate memory in
-> vb2-dma-contig
->
-> b) When I enable SYSMMU support for the IP's, I am receiving below fault:
->
-> Unhandled fault: external abort on non-linefetch (0x818) at 0xb6f55000
->
-> I think this has something to do with the access to the SYSMMU registers for
-> writing the page table. Has anyone of you faced this issue while testing
-> these(dma_map+iommu) patches on kernel mentioned above? This must be
-> something related to recent changes, as I didn't have issues with these
-> patches on 3.2 kernel.
->
+>> Disintegrate asm/system.h for Unicore32. (Compilation successful)
+>> The implementation details are not changed, but only splitted.
+>> BTW, some codestyles are adjusted.
+>>
+>> Signed-off-by: David Howells<dhowells@redhat.com>
+>> Signed-off-by: Guan Xuetao<gxt@mprc.pku.edu.cn>
+> Aha!  Much better.  It mostly looks reasonable, apart from one thing.  See the
+> attached patch, which I'll roll in if you're happy with it.
+That's great. It's just what I want  to do.
+> -extern void panic(const char *fmt, ...);
+> +/*
+> + * Generate a link failure on undefined symbol if the pointer points to a value
+> + * of unsupported size.
+> + */
+> +extern void __xchg_bad_pointer(void)
+A semicolon should be added at the end.
+>   static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
+>   		int size)
+> @@ -31,8 +35,8 @@ static inline unsigned long __xchg(unsigned long x, volatile void *ptr,
+>   			: "memory", "cc");
+>   		break;
+>   	default:
+> -		panic("xchg: bad data size: ptr 0x%p, size %d\n",
+> -			ptr, size);
+> +		__xchg_bad_pointer();
+> +		break;
+I think  the 'break' sentence is redundant.
 
-0xb6f55000 is not an address of SYSMMU register if your kernel starts
-at 0xc0000000.
-
-Can you tell me any detailed information or situation?
-
-Regards,
-
-KyongHo.
+Thanks and Regards,
+Guan Xuetao
