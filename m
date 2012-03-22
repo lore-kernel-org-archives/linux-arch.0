@@ -1,49 +1,32 @@
-From: Subash Patel <subashrp@gmail.com>
-Subject: Re: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
-Date: Thu, 22 Mar 2012 19:29:42 +0530
-Message-ID: <4F6B304E.5010402@gmail.com>
-References: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com> <1330527862-16234-10-git-send-email-m.szyprowski@samsung.com> <CAHQjnOO5DLOj8Fw=ZriSnXg8W3k7y8Dnu--Peqe6JJX0xGMhoQ@mail.gmail.com> <4F688B2D.20808@gmail.com> <CAHQjnOMjSPDOymJe356AWnJszQv+X-QWrVrB7ahYDkXBr5HrQw@mail.gmail.com>
+From: Stephen Warren <swarren@wwwdotorg.org>
+Subject: Re: [PATCH] Kbuild: centralize MKIMAGE and cmd_uimage definitions
+Date: Thu, 22 Mar 2012 12:40:38 -0600
+Message-ID: <4F6B7226.8000102@wwwdotorg.org>
+References: <1331931835-12346-1-git-send-email-swarren@wwwdotorg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-samsung-soc-owner@vger.kernel.org>
-In-Reply-To: <CAHQjnOMjSPDOymJe356AWnJszQv+X-QWrVrB7ahYDkXBr5HrQw@mail.gmail.com>
-Sender: linux-samsung-soc-owner@vger.kernel.org
-To: KyongHo Cho <pullip.cho@samsung.com>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org, Shariq Hasnain <shariq.hasnain@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Krishna Reddy <vdumpa@nvidia.com>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from avon.wwwdotorg.org ([70.85.31.133]:39068 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758713Ab2CVSkn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2012 14:40:43 -0400
+In-Reply-To: <1331931835-12346-1-git-send-email-swarren@wwwdotorg.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Marek <mmarek@suse.cz>
+Cc: Russell King <linux@arm.linux.org.uk>, nico@fluxnic.net, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mike Frysinger <vapier@gentoo.org>, Michal Simek <monstr@monstr.eu>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org, uclinux-dist-devel@blackfin.uclinux.org, microblaze-uclinux@itee.uq.edu.au, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
 
-Hi KyongHo,
+On 03/16/2012 03:03 PM, Stephen Warren wrote:
+> All ARCHs have the same definition of MKIMAGE. Move it to Makefile.lib
+> to avoid duplication.
+> 
+> All ARCHs have similar definitions of cmd_uimage. Place a sufficiently
+> parameterized version in Makefile.lib to avoid duplication.
 
-On 03/21/2012 05:26 AM, KyongHo Cho wrote:
-> On Tue, Mar 20, 2012 at 10:50 PM, Subash Patel<subashrp@gmail.com>  wrote:
->> Sorry for digging this very late. But as part of integrating dma_map v7&
->> sysmmu v12 on 3.3-rc5, I am facing below issue:
->>
->> a) By un-selecting IOMMU in menu config, I am able to allocate memory in
->> vb2-dma-contig
->>
->> b) When I enable SYSMMU support for the IP's, I am receiving below fault:
->>
->> Unhandled fault: external abort on non-linefetch (0x818) at 0xb6f55000
->>
->> I think this has something to do with the access to the SYSMMU registers for
->> writing the page table. Has anyone of you faced this issue while testing
->> these(dma_map+iommu) patches on kernel mentioned above? This must be
->> something related to recent changes, as I didn't have issues with these
->> patches on 3.2 kernel.
->>
->
-> 0xb6f55000 is not an address of SYSMMU register if your kernel starts
-> at 0xc0000000.
->
-> Can you tell me any detailed information or situation?
-I hate to say this, but I am not able to catch the fault location even 
-with JTAG. Once the fault comes, the debugger looses all control over. I 
-think now possible method is reproduction at your end :)
->
-> Regards,
->
-> KyongHo.
-Regards,
-Subash
+Michal,
+
+Does this change look reasonable? It has acks from people working on 4
+of the 7 affected architectures; would you prefer acks from all?
+
+Thanks.
