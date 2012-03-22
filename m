@@ -1,77 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout3.w1.samsung.com ([210.118.77.13]:16524 "EHLO
-	mailout3.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755911Ab2CUNnw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Mar 2012 09:43:52 -0400
-MIME-version: 1.0
-Content-transfer-encoding: 7BIT
-Content-type: text/plain; charset=us-ascii
-Date: Wed, 21 Mar 2012 14:43:46 +0100
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [GIT PULL] DMA-mapping framework updates for 3.4
-In-reply-to: <1332228283-29077-1-git-send-email-m.szyprowski@samsung.com>
-Message-ID: <079801cd0768$a3623d10$ea26b730$%szyprowski@samsung.com>
-Content-language: pl
-References: <1332228283-29077-1-git-send-email-m.szyprowski@samsung.com>
+Received: from mail-gy0-f174.google.com ([209.85.160.174]:44527 "EHLO
+	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751672Ab2CVN7u (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 22 Mar 2012 09:59:50 -0400
+Message-ID: <4F6B304E.5010402@gmail.com>
+Date: Thu, 22 Mar 2012 19:29:42 +0530
+From: Subash Patel <subashrp@gmail.com>
+MIME-Version: 1.0
+Subject: Re: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
+References: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com> <1330527862-16234-10-git-send-email-m.szyprowski@samsung.com> <CAHQjnOO5DLOj8Fw=ZriSnXg8W3k7y8Dnu--Peqe6JJX0xGMhoQ@mail.gmail.com> <4F688B2D.20808@gmail.com> <CAHQjnOMjSPDOymJe356AWnJszQv+X-QWrVrB7ahYDkXBr5HrQw@mail.gmail.com>
+In-Reply-To: <CAHQjnOMjSPDOymJe356AWnJszQv+X-QWrVrB7ahYDkXBr5HrQw@mail.gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marek Szyprowski <m.szyprowski@samsung.com>, 'Linus Torvalds' <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Thomas Gleixner' <tglx@linutronix.de>, 'Andrew Morton' <akpm@linux-foundation.org>, 'Arnd Bergmann' <arnd@arndb.de>, 'FUJITA Tomonori' <fujita.tomonori@lab.ntt.co.jp>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, 'Jonathan Corbet' <corbet@lwn.net>, 'Kyungmin Park' <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
-Message-ID: <20120321134346.8xcmxHCevo8QoQBCzS3bd0qMMzWDO2b9MNQ0yMX3fQ8@z>
+To: KyongHo Cho <pullip.cho@samsung.com>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org, Shariq Hasnain <shariq.hasnain@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Krishna Reddy <vdumpa@nvidia.com>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>
+Message-ID: <20120322135942.KG0MDdsaGrFQ55ucvtma50gjSSKzzwoXdip7ZKrPrG0@z>
 
-Hello,
+Hi KyongHo,
 
-On Tuesday, March 20, 2012 8:25 AM Marek Szyprowski wrote:
-
-> Hi Linus,
-> 
-> Please pull the dma-mapping framework updates for v3.4 since commit
-> c16fa4f2ad19908a47c63d8fa436a1178438c7e7:
-> 
->   Linux 3.3
-> 
-> with the top-most commit e749a9f707f1102735e02338fa564be86be3bb69
-> 
->   common: DMA-mapping: add NON-CONSISTENT attribute
-> 
-> from the git repository at:
-> 
->   git://git.infradead.org/users/kmpark/linux-samsung dma-mapping-next
-> 
-> Those patches introduce a new alloc method (with support for memory
-> attributes) in dma_map_ops structure, which will later replace
-> dma_alloc_coherent and dma_alloc_writecombine functions.
- 
-I've been pointed out that this summary is quite short and misses the main
-rationale for the proposed changes.
-
-A few limitations have been identified in the current dma-mapping design and 
-its implementations for various architectures. There exist more than one function
-for allocating and freeing the buffers: currently these 3 are used dma_{alloc,
-free}_coherent, dma_{alloc,free}_writecombine, dma_{alloc,free}_noncoherent.
-
-For most of the systems these calls are almost equivalent and can be interchanged.
-For others, especially the truly non-coherent ones (like ARM), the difference can
-be easily noticed in overall driver performance. Sadly not all architectures 
-provide implementations for all of them, so the drivers might need to be adapted 
-and cannot be easily shared between different architectures. The provided patches
-unify all these functions and hide the differences under the already existing
-dma attributes concept. The thread with more references is available here: 
-http://www.spinics.net/lists/linux-sh/msg09777.html
-
-These patches are also a prerequisite for unifying DMA-mapping implementation
-on ARM architecture with the common one provided by dma_map_ops structure and 
-extending it with IOMMU support. More information is available in the following 
-thread: http://thread.gmane.org/gmane.linux.kernel.cross-arch/12819
-
-More works on dma-mapping framework are planned, especially in the area of buffer
-sharing and managing the shared mappings (together with the recently introduced 
-dma_buf interface: commit d15bd7ee445d0702ad801fdaece348fdb79e6581 "dma-buf: 
-Introduce dma buffer sharing mechanism" ).
-
-Best regards
--- 
-Marek Szyprowski
-Samsung Poland R&D Center
-
-
+On 03/21/2012 05:26 AM, KyongHo Cho wrote:
+> On Tue, Mar 20, 2012 at 10:50 PM, Subash Patel<subashrp@gmail.com>  wrote:
+>> Sorry for digging this very late. But as part of integrating dma_map v7&
+>> sysmmu v12 on 3.3-rc5, I am facing below issue:
+>>
+>> a) By un-selecting IOMMU in menu config, I am able to allocate memory in
+>> vb2-dma-contig
+>>
+>> b) When I enable SYSMMU support for the IP's, I am receiving below fault:
+>>
+>> Unhandled fault: external abort on non-linefetch (0x818) at 0xb6f55000
+>>
+>> I think this has something to do with the access to the SYSMMU registers for
+>> writing the page table. Has anyone of you faced this issue while testing
+>> these(dma_map+iommu) patches on kernel mentioned above? This must be
+>> something related to recent changes, as I didn't have issues with these
+>> patches on 3.2 kernel.
+>>
+>
+> 0xb6f55000 is not an address of SYSMMU register if your kernel starts
+> at 0xc0000000.
+>
+> Can you tell me any detailed information or situation?
+I hate to say this, but I am not able to catch the fault location even 
+with JTAG. Once the fault comes, the debugger looses all control over. I 
+think now possible method is reproduction at your end :)
+>
+> Regards,
+>
+> KyongHo.
+Regards,
+Subash
