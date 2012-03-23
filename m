@@ -1,47 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout4.w1.samsung.com ([210.118.77.14]:20974 "EHLO
-	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758491Ab2CWM0N (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Mar 2012 08:26:13 -0400
-MIME-version: 1.0
-Content-transfer-encoding: 7BIT
-Content-type: TEXT/PLAIN
-Date: Fri, 23 Mar 2012 13:26:03 +0100
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: [PATCH 2/2] arm: dma-mapping: use dma_mmap_from_coherent()
-In-reply-to: <1332505563-17646-1-git-send-email-m.szyprowski@samsung.com>
-Message-ID: <1332505563-17646-3-git-send-email-m.szyprowski@samsung.com>
-References: <08af01cd08ee$2fd04770$8f70d650$%szyprowski@samsung.com>
- <1332505563-17646-1-git-send-email-m.szyprowski@samsung.com>
+Received: from mail-wg0-f42.google.com ([74.125.82.42]:35162 "EHLO
+	mail-wg0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755605Ab2CWVgL convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Mar 2012 17:36:11 -0400
+MIME-Version: 1.0
+In-Reply-To: <1332228283-29077-1-git-send-email-m.szyprowski@samsung.com>
+References: <1332228283-29077-1-git-send-email-m.szyprowski@samsung.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Fri, 23 Mar 2012 14:35:48 -0700
+Message-ID: <CA+55aFy9oxMrfm-+deMqV=XnFOa98aKXqW+8PR-P-zOARtC2BQ@mail.gmail.com>
+Subject: Re: [GIT PULL] DMA-mapping framework updates for 3.4
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Hiroshi Doyu <hdoyu@nvidia.com>, Subash Patel <subashrp@gmail.com>
-Message-ID: <20120323122603.th_afwcdXVf8XDDnaVe2ljP7HZ3497v3gM1P9Vz9eRI@z>
+To: Marek Szyprowski <m.szyprowski@samsung.com>, Dave Airlie <airlied@linux.ie>
+Cc: linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, Jonathan Corbet <corbet@lwn.net>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>
+Message-ID: <20120323213548.MN6cLiIV5oQaTByGJsLVONVXuKnqEM76KMmyhXzpsf4@z>
 
-Use dma_mmap_from_coherent() to fix broken mapping of the coherent buffers
-to userspace.
+On Tue, Mar 20, 2012 at 12:24 AM, Marek Szyprowski
+<m.szyprowski@samsung.com> wrote:
+>
+>  git://git.infradead.org/users/kmpark/linux-samsung dma-mapping-next
+>
+> Those patches introduce a new alloc method (with support for memory
+> attributes) in dma_map_ops structure, which will later replace
+> dma_alloc_coherent and dma_alloc_writecombine functions.
 
-Reported-by: Subash Patel <subashrp@gmail.com>
-Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
----
- arch/arm/mm/dma-mapping.c |    3 +++
- 1 files changed, 3 insertions(+), 0 deletions(-)
+So I'm quite unhappy with these patches.
 
-diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index 6c24218..0cee054 100644
---- a/arch/arm/mm/dma-mapping.c
-+++ b/arch/arm/mm/dma-mapping.c
-@@ -511,6 +511,9 @@ int arm_dma_mmap(struct device *dev, struct vm_area_struct *vma,
- 			    pgprot_writecombine(vma->vm_page_prot) :
- 			    pgprot_dmacoherent(vma->vm_page_prot);
- 
-+	if (dma_mmap_from_coherent(dev, vma, cpu_addr, size, &ret))
-+		return ret;
-+
- 	c = arm_vmregion_find(&consistent_head, (unsigned long)cpu_addr);
- 	if (c) {
- 		unsigned long off = vma->vm_pgoff;
--- 
-1.7.1.569.g6f426
+Here's just the few problems I saw from some *very* quick look-through
+of the git tree:
 
+ - I'm not seeing ack's from the architecture maintainers for the
+patches that change some architecture.
+
+ - Even more importantly, what I really want is acks and comments from
+the people who are expected to *use* this.
+
+ - it looks like patches break compilation half-way through the
+series. Just one example I noticed: the "x86 adaptation" patch changes
+the functions in lib/swiotlb.c, but afaik ia64 *also* uses those. So
+now ia64 is broken until a couple of patches later. I suspect there
+are other examples like that.
+
+ - the sign-off chains are odd. What happened there? Several patches
+are signed off by Kyungmin Park, but he doesn't seem to be "in the
+chain" at all. Whazzup? (*)
+
+(Btw, I notice the same thing in the tree I pulled from Dave Airlie,
+btw - what the F is going on with samsung submissions - those are
+marked as committed by Dave Airlie, and don't have Dave in the
+sign-off chain at all!)
+
+ - Finally, how/why are "dma attributes" different from the per-device
+dma limits ("device_dma_parameters")
+
+Hmm?
+
+                  Linus
+
+(*) Btw, I notice the same thing in the tree I pulled from Dave
+Airlie, btw - what the F is going on with samsung submissions - those
+are marked as committed by Dave Airlie, and don't have Dave in the
+sign-off chain at all! Dave?
