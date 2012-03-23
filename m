@@ -1,48 +1,25 @@
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: [PATCH 2/2] arm: dma-mapping: use dma_mmap_from_coherent()
-Date: Fri, 23 Mar 2012 13:26:03 +0100
-Message-ID: <1332505563-17646-3-git-send-email-m.szyprowski@samsung.com>
-References: <08af01cd08ee$2fd04770$8f70d650$%szyprowski@samsung.com>
- <1332505563-17646-1-git-send-email-m.szyprowski@samsung.com>
+From: "jin mong" <amula@cartagena.uned.es>
+Subject: (unknown)
+Date: Fri, 23 Mar 2012 19:10:58 +0100
+Message-ID: <052f9821647ff482709593cc2de29cf3.squirrel@correo.uned.es>
+Reply-To: jinmong22@yahoo.com.hk
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
-Return-path: <owner-linux-mm@kvack.org>
-In-reply-to: <1332505563-17646-1-git-send-email-m.szyprowski@samsung.com>
-Sender: owner-linux-mm@kvack.org
-To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Hiroshi Doyu <hdoyu@nvidia.com>, Subash Patel <subashrp@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp-out-seis.uned.es ([62.204.192.120]:39560 "EHLO
+	smtp-out-seis.uned.es" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755607Ab2CWSLQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Mar 2012 14:11:16 -0400
+Subject: 
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-Use dma_mmap_from_coherent() to fix broken mapping of the coherent buffers
-to userspace.
+Greetings Partner,
 
-Reported-by: Subash Patel <subashrp@gmail.com>
-Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
----
- arch/arm/mm/dma-mapping.c |    3 +++
- 1 files changed, 3 insertions(+), 0 deletions(-)
+This is my second time of sending you this notice. I have finally found
+you as an approved heir to the inheritance of the deposited funds with
+same surname of the deceased depositor.
 
-diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index 6c24218..0cee054 100644
---- a/arch/arm/mm/dma-mapping.c
-+++ b/arch/arm/mm/dma-mapping.c
-@@ -511,6 +511,9 @@ int arm_dma_mmap(struct device *dev, struct vm_area_struct *vma,
- 			    pgprot_writecombine(vma->vm_page_prot) :
- 			    pgprot_dmacoherent(vma->vm_page_prot);
- 
-+	if (dma_mmap_from_coherent(dev, vma, cpu_addr, size, &ret))
-+		return ret;
-+
- 	c = arm_vmregion_find(&consistent_head, (unsigned long)cpu_addr);
- 	if (c) {
- 		unsigned long off = vma->vm_pgoff;
--- 
-1.7.1.569.g6f426
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Jin Mong
+Email: jinmong22@yahoo.com.hk
