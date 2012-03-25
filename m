@@ -1,126 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f46.google.com ([209.85.160.46]:55633 "EHLO
-	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755880Ab2CYKiM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 25 Mar 2012 06:38:12 -0400
-From: Kautuk Consul <consul.kautuk@gmail.com>
-Subject: [PATCH 08/20 v3] m68k/mm/fault.c: Port OOM changes to do_page_fault
-Date: Sun, 25 Mar 2012 06:37:48 -0400
-Message-ID: <1332671868-2739-1-git-send-email-consul.kautuk@gmail.com>
+Received: from terminus.zytor.com ([198.137.202.10]:44225 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756856Ab2CYTf5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 25 Mar 2012 15:35:57 -0400
+Message-ID: <4F6F7362.6030402@zytor.com>
+Date: Sun, 25 Mar 2012 12:34:58 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
+MIME-Version: 1.0
+Subject: Re: [PATCH v15 04/13] arch/x86: add syscall_get_arch to syscall.h
+References: <1331781125-15658-1-git-send-email-wad@chromium.org> <1331781125-15658-5-git-send-email-wad@chromium.org>
+In-Reply-To: <1331781125-15658-5-git-send-email-wad@chromium.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-m68k@lists.linux-m68k.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Kautuk Consul <consul.kautuk@gmail.com>
-Message-ID: <20120325103748.9yaqB76SHhk6IYgE6cKn1gliKDp9hJ6A8yeIaADseUs@z>
+To: Will Drewry <wad@chromium.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
+Message-ID: <20120325193458.Noliv7agJBtscQLfFbx5MvyyFMNPeJ76tT1vy7u5QeM@z>
 
-Commit d065bd810b6deb67d4897a14bfe21f8eb526ba99
-(mm: retry page fault when blocking on disk transfer) and
-commit 37b23e0525d393d48a7d59f870b3bc061a30ccdb
-(x86,mm: make pagefault killable)
+On 03/14/2012 08:11 PM, Will Drewry wrote:
+>  
+> +static inline int syscall_get_arch(struct task_struct *task,
+> +				   struct pt_regs *regs)
+> +{
+> +#ifdef CONFIG_IA32_EMULATION
+> +	/*
+> +	 * TS_COMPAT is set for 32-bit syscall entries and then
+> +	 * remains set until we return to user mode.
+> +	 *
+> +	 * TIF_IA32 tasks should always have TS_COMPAT set at
+> +	 * system call time.
+> +	 */
+> +	if (task_thread_info(task)->status & TS_COMPAT)
+> +		return AUDIT_ARCH_I386;
+> +#endif
+> +	return AUDIT_ARCH_X86_64;
+> +}
+>  #endif	/* CONFIG_X86_32 */
+>  
+>  #endif	/* _ASM_X86_SYSCALL_H */
 
-The above commits introduced changes into the x86 pagefault handler
-for making the page fault handler retryable as well as killable.
+Just one FYI on this: after the x32 changes are upstream this can be
+implemented in terms of is_ia32_task().
 
-These changes reduce the mmap_sem hold time, which is crucial
-during OOM killer invocation.
-
-Port these changes to m68k.
-
-Signed-off-by: Kautuk Consul <consul.kautuk@gmail.com>
----
- arch/m68k/mm/fault.c |   42 ++++++++++++++++++++++++++++++++++--------
- 1 files changed, 34 insertions(+), 8 deletions(-)
-
-diff --git a/arch/m68k/mm/fault.c b/arch/m68k/mm/fault.c
-index 2db6099..fc5b8c9 100644
---- a/arch/m68k/mm/fault.c
-+++ b/arch/m68k/mm/fault.c
-@@ -73,7 +73,8 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
- {
- 	struct mm_struct *mm = current->mm;
- 	struct vm_area_struct * vma;
--	int write, fault;
-+	int fault;
-+	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
- 
- #ifdef DEBUG
- 	printk ("do page fault:\nregs->sr=%#x, regs->pc=%#lx, address=%#lx, %ld, %p\n",
-@@ -88,6 +89,7 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
- 	if (in_atomic() || !mm)
- 		goto no_context;
- 
-+retry:
- 	down_read(&mm->mmap_sem);
- 
- 	vma = find_vma(mm, address);
-@@ -118,14 +120,13 @@ good_area:
- #ifdef DEBUG
- 	printk("do_page_fault: good_area\n");
- #endif
--	write = 0;
- 	switch (error_code & 3) {
- 		default:	/* 3: write, present */
- 			/* fall through */
- 		case 2:		/* write, not present */
- 			if (!(vma->vm_flags & VM_WRITE))
- 				goto acc_err;
--			write++;
-+			flags |= FAULT_FLAG_WRITE;
- 			break;
- 		case 1:		/* read, present */
- 			goto acc_err;
-@@ -140,10 +141,14 @@ good_area:
- 	 * the fault.
- 	 */
- 
--	fault = handle_mm_fault(mm, vma, address, write ? FAULT_FLAG_WRITE : 0);
-+	fault = handle_mm_fault(mm, vma, address, flags);
- #ifdef DEBUG
- 	printk("handle_mm_fault returns %d\n",fault);
- #endif
-+
-+	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current))
-+		return 0;
-+
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-@@ -151,10 +156,31 @@ good_area:
- 			goto bus_err;
- 		BUG();
- 	}
--	if (fault & VM_FAULT_MAJOR)
--		current->maj_flt++;
--	else
--		current->min_flt++;
-+
-+	/*
-+	 * Major/minor page fault accounting is only done on the
-+	 * initial attempt. If we go through a retry, it is extremely
-+	 * likely that the page will be found in page cache at that point.
-+	 */
-+	if (flags & FAULT_FLAG_ALLOW_RETRY) {
-+		if (fault & VM_FAULT_MAJOR)
-+			current->maj_flt++;
-+		else
-+			current->min_flt++;
-+		if (fault & VM_FAULT_RETRY) {
-+			/* Clear FAULT_FLAG_ALLOW_RETRY to avoid any risk
-+			 * of starvation. */
-+			flags &= ~FAULT_FLAG_ALLOW_RETRY;
-+
-+			/*
-+			 * No need to up_read(&mm->mmap_sem) as we would
-+			 * have already released it in __lock_page_or_retry
-+			 * in mm/filemap.c.
-+			 */
-+
-+			goto retry;
-+		}
-+	}
- 
- 	up_read(&mm->mmap_sem);
- 	return 0;
--- 
-1.7.5.4
-
+	-hpa
