@@ -1,148 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f42.google.com ([74.125.82.42]:33115 "EHLO
-	mail-wg0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754865Ab2CYJNO convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 25 Mar 2012 05:13:14 -0400
-Received: by wgbds11 with SMTP id ds11so1843291wgb.1
-        for <linux-arch@vger.kernel.org>; Sun, 25 Mar 2012 02:13:11 -0700 (PDT)
+Received: from mail-yx0-f174.google.com ([209.85.213.174]:63402 "EHLO
+	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755362Ab2CYKPo convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 25 Mar 2012 06:15:44 -0400
+Received: by yenl12 with SMTP id l12so3411055yen.19
+        for <linux-arch@vger.kernel.org>; Sun, 25 Mar 2012 03:15:43 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <CAFPAmTTWtZGprAxfAd_k17Bip-cwpamLjAaQWRGfxgv+dwzK8w@mail.gmail.com>
+In-Reply-To: <CAMuHMdVdhKANw2T0wQd_BXpWXWyUt-ozKoEP5GPH1zaQi6Y-dg@mail.gmail.com>
 References: <1332259546-2037-1-git-send-email-consul.kautuk@gmail.com>
 	<CAFPAmTTWtZGprAxfAd_k17Bip-cwpamLjAaQWRGfxgv+dwzK8w@mail.gmail.com>
-Date: Sun, 25 Mar 2012 11:13:11 +0200
-Message-ID: <CAMuHMdVdhKANw2T0wQd_BXpWXWyUt-ozKoEP5GPH1zaQi6Y-dg@mail.gmail.com>
+	<CAMuHMdVdhKANw2T0wQd_BXpWXWyUt-ozKoEP5GPH1zaQi6Y-dg@mail.gmail.com>
+Date: Sun, 25 Mar 2012 06:15:43 -0400
+Message-ID: <CAFPAmTTYTfBB-PZ7t0fUNp-56bFa0AZyLpSx=KwdyaQ6hUx9BA@mail.gmail.com>
 Subject: Re: [PATCH 08/20 v2] m68k/mm/fault.c: Port OOM changes to do_page_fault
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+From: Kautuk Consul <consul.kautuk@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kautuk Consul <consul.kautuk@gmail.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: linux-m68k@lists.linux-m68k.org, linux-arch@vger.kernel.org
-Message-ID: <20120325091311.7oswzvfJCwva5HeL1yu6hLoFtgzWlX-fHfwARWh-HvI@z>
+Message-ID: <20120325101543.TW2CJY6cS0WDQPy0O7jMscyaeF5fFrdpr6iafdUNm08@z>
 
-Hi Kautuk,
+On Sun, Mar 25, 2012 at 5:13 AM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> Hi Kautuk,
+>
+> On Sun, Mar 25, 2012 at 10:44, Kautuk Consul <consul.kautuk@gmail.com> wrote:
+>> did you get a chance to review this patch ?
+>
+> Yes, I've just did. Sorry it took that long.
 
-On Sun, Mar 25, 2012 at 10:44, Kautuk Consul <consul.kautuk@gmail.com> wrote:
-> did you get a chance to review this patch ?
+No problem.
 
-Yes, I've just did. Sorry it took that long.
-Looks good, so
-Acked-by: <Geert Uytterhoeven <geert@linux-m68k.org>
+> Looks good, so
+> Acked-by: <Geert Uytterhoeven <geert@linux-m68k.org>
+>
+> BTW, what's the plan with this series? Will you take care of it, or should
+> all arch maintainers take their parts?
+>
 
-BTW, what's the plan with this series? Will you take care of it, or should
-all arch maintainers take their parts?
+Uh .. I didn't really think much about that as I'm quite new to this.      :)
+It would be nice if everyone(including you) could just include their
+respective patches in their trees/branches.
 
-> can I improve this patch in any way ?
+>> can I improve this patch in any way ?
+>
+> There are a few more or less minor things:
+> �- You can remove "write" completely, as it's now superseded by
+> � �FAULT_FLAG_WRITE in "flags",
+> �- Please also port the comments that were added to x86. They make
+> � �life easier for the casual reader.
+>
 
-There are a few more or less minor things:
-  - You can remove "write" completely, as it's now superseded by
-    FAULT_FLAG_WRITE in "flags",
-  - Please also port the comments that were added to x86. They make
-    life easier for the casual reader.
+should I send another patch for this ?
+or do you want me to make a v2 of this patch and send it you today ?
 
-Thanks!
-
-> On Tue, Mar 20, 2012 at 12:05 PM, Kautuk Consul <consul.kautuk@gmail.com> wrote:
->> Commit d065bd810b6deb67d4897a14bfe21f8eb526ba99
->> (mm: retry page fault when blocking on disk transfer) and
->> commit 37b23e0525d393d48a7d59f870b3bc061a30ccdb
->> (x86,mm: make pagefault killable)
->>
->> The above commits introduced changes into the x86 pagefault handler
->> for making the page fault handler retryable as well as killable.
->>
->> These changes reduce the mmap_sem hold time, which is crucial
->> during OOM killer invocation.
->>
->> Port these changes to m68k.
->>
->> Signed-off-by: Kautuk Consul <consul.kautuk@gmail.com>
->> ---
->>  arch/m68k/mm/fault.c |   31 ++++++++++++++++++++++++++-----
->>  1 files changed, 26 insertions(+), 5 deletions(-)
->>
->> diff --git a/arch/m68k/mm/fault.c b/arch/m68k/mm/fault.c
->> index 2db6099..27879bd 100644
->> --- a/arch/m68k/mm/fault.c
->> +++ b/arch/m68k/mm/fault.c
->> @@ -74,6 +74,7 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
->>        struct mm_struct *mm = current->mm;
->>        struct vm_area_struct * vma;
->>        int write, fault;
->> +       unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
->>
->>  #ifdef DEBUG
->>        printk ("do page fault:\nregs->sr=%#x, regs->pc=%#lx, address=%#lx, %ld, %p\n",
->> @@ -88,6 +89,7 @@ int do_page_fault(struct pt_regs *regs, unsigned long address,
->>        if (in_atomic() || !mm)
->>                goto no_context;
->>
->> +retry:
->>        down_read(&mm->mmap_sem);
->>
->>        vma = find_vma(mm, address);
->> @@ -126,6 +128,7 @@ good_area:
->>                        if (!(vma->vm_flags & VM_WRITE))
->>                                goto acc_err;
->>                        write++;
->> +                       flags |= FAULT_FLAG_WRITE;
->>                        break;
->>                case 1:         /* read, present */
->>                        goto acc_err;
->> @@ -140,10 +143,14 @@ good_area:
->>         * the fault.
->>         */
->>
->> -       fault = handle_mm_fault(mm, vma, address, write ? FAULT_FLAG_WRITE : 0);
->> +       fault = handle_mm_fault(mm, vma, address, flags);
->>  #ifdef DEBUG
->>        printk("handle_mm_fault returns %d\n",fault);
->>  #endif
->> +
->> +       if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current))
->> +               return 0;
->> +
->>        if (unlikely(fault & VM_FAULT_ERROR)) {
->>                if (fault & VM_FAULT_OOM)
->>                        goto out_of_memory;
->> @@ -151,10 +158,24 @@ good_area:
->>                        goto bus_err;
->>                BUG();
->>        }
->> -       if (fault & VM_FAULT_MAJOR)
->> -               current->maj_flt++;
->> -       else
->> -               current->min_flt++;
->> +
->> +       if (flags & FAULT_FLAG_ALLOW_RETRY) {
->> +               if (fault & VM_FAULT_MAJOR)
->> +                       current->maj_flt++;
->> +               else
->> +                       current->min_flt++;
->> +               if (fault & VM_FAULT_RETRY) {
->> +                       flags &= ~FAULT_FLAG_ALLOW_RETRY;
->> +
->> +                       /*
->> +                        * No need to up_read(&mm->mmap_sem) as we would
->> +                        * have already released it in __lock_page_or_retry
->> +                        * in mm/filemap.c.
->> +                        */
->> +
->> +                       goto retry;
->> +               }
->> +       }
->>
->>        up_read(&mm->mmap_sem);
->>        return 0;
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+> Thanks!
+>
