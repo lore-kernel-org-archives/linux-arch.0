@@ -1,56 +1,157 @@
-From: Subash Patel <subashrp-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Subject: Re: [PATCH 0/2] ARM: dma-mapping: Fix mmap support for coherent
-	buffers
-Date: Mon, 26 Mar 2012 16:34:28 +0530
-Message-ID: <4F704D3C.50003@gmail.com>
-References: <08af01cd08ee$2fd04770$8f70d650$%szyprowski@samsung.com>
-	<1332505563-17646-1-git-send-email-m.szyprowski@samsung.com>
+From: Subash Patel <subashrp@gmail.com>
+Subject: Re: [PATCHv7 5/9] ARM: dma-mapping: implement dma sg methods on top
+ of any generic dma ops
+Date: Mon, 26 Mar 2012 17:08:35 +0530
+Message-ID: <4F70553B.2000100@gmail.com>
+References: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com> <1330527862-16234-6-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-Reply-To: <1332505563-17646-1-git-send-email-m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-samsung-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King - ARM Linux <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Kyungmin Park <kyungmin.park-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Krishna Reddy <vdumpa-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, Andrzej Pietrasiewicz <andrzej.p-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, KyongHo Cho <pullip.cho-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Chunsang Jeong <chunsang.jeong-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
+Return-path: <linux-samsung-soc-owner@vger.kernel.org>
+In-Reply-To: <1330527862-16234-6-git-send-email-m.szyprowski@samsung.com>
+Sender: linux-samsung-soc-owner@vger.kernel.org
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
 List-Id: linux-arch.vger.kernel.org
 
 Hi Marek,
 
-I have tested these patch series for origen board, and they mmap the 
-buffers to user-space for the coherent pool. You can add:
+As per our discussion over IRC, I would like to check with you the 
+feasibility to extend the dma operation calls for the coherent regions. 
+You said that since struct page wont be available for the buffers in 
+these regions, functions like arm_dma_map_sg() (below) will fail in the 
+cache maintenance operations. Infact, I am facing this issue when I 
+integrated dma-buf buffer sharing + v4l2/vb2 exporter patch series + 
+dma_mapping (v7) and use coherent memory.
 
-Tested-By: Subash Patel <subashrp-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+So I want to know opinion of you, others about extending the dma-mapping 
+framework for scenarios which use device coherent memory.
 
 Regards,
 Subash
 
-On 03/23/2012 05:56 PM, Marek Szyprowski wrote:
-> Hello,
+On 02/29/2012 08:34 PM, Marek Szyprowski wrote:
+> This patch converts all dma_sg methods to be generic (independent of the
+> current DMA mapping implementation for ARM architecture). All dma sg
+> operations are now implemented on top of respective
+> dma_map_page/dma_sync_single_for* operations from dma_map_ops structure.
 >
-> This patchset contains patches to fix broken mmap operation for memory
-> buffers allocated from 'dma_declare_coherent' pool after applying my dma
-> mapping redesign patches [1]. These issues have been reported by Subash
-> Patel.
+> Signed-off-by: Marek Szyprowski<m.szyprowski@samsung.com>
+> Signed-off-by: Kyungmin Park<kyungmin.park@samsung.com>
+> ---
+>   arch/arm/mm/dma-mapping.c |   43 +++++++++++++++++++------------------------
+>   1 files changed, 19 insertions(+), 24 deletions(-)
 >
-> [1] http://thread.gmane.org/gmane.linux.kernel.cross-arch/12819
+> diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+> index cd5ed8d..a5a0b5b 100644
+> --- a/arch/arm/mm/dma-mapping.c
+> +++ b/arch/arm/mm/dma-mapping.c
+> @@ -616,7 +616,7 @@ void ___dma_page_dev_to_cpu(struct page *page, unsigned long off,
+>   EXPORT_SYMBOL(___dma_page_dev_to_cpu);
 >
-> Patch summary:
+>   /**
+> - * dma_map_sg - map a set of SG buffers for streaming mode DMA
+> + * arm_dma_map_sg - map a set of SG buffers for streaming mode DMA
+>    * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
+>    * @sg: list of buffers
+>    * @nents: number of buffers to map
+> @@ -634,12 +634,13 @@ EXPORT_SYMBOL(___dma_page_dev_to_cpu);
+>   int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
+>   		enum dma_data_direction dir, struct dma_attrs *attrs)
+>   {
+> +	struct dma_map_ops *ops = get_dma_ops(dev);
+>   	struct scatterlist *s;
+>   	int i, j;
 >
-> Marek Szyprowski (2):
->    common: add dma_mmap_from_coherent() function
->    arm: dma-mapping: use dma_mmap_from_coherent()
+>   	for_each_sg(sg, s, nents, i) {
+> -		s->dma_address = __dma_map_page(dev, sg_page(s), s->offset,
+> -						s->length, dir);
+> +		s->dma_address = ops->map_page(dev, sg_page(s), s->offset,
+> +						s->length, dir, attrs);
+>   		if (dma_mapping_error(dev, s->dma_address))
+>   			goto bad_mapping;
+>   	}
+> @@ -647,12 +648,12 @@ int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
 >
->   arch/arm/mm/dma-mapping.c          |    3 ++
->   drivers/base/dma-coherent.c        |   42 ++++++++++++++++++++++++++++++++++++
->   include/asm-generic/dma-coherent.h |    4 ++-
->   3 files changed, 48 insertions(+), 1 deletions(-)
+>    bad_mapping:
+>   	for_each_sg(sg, s, i, j)
+> -		__dma_unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir);
+> +		ops->unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir, attrs);
+>   	return 0;
+>   }
 >
+>   /**
+> - * dma_unmap_sg - unmap a set of SG buffers mapped by dma_map_sg
+> + * arm_dma_unmap_sg - unmap a set of SG buffers mapped by dma_map_sg
+>    * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
+>    * @sg: list of buffers
+>    * @nents: number of buffers to unmap (same as was passed to dma_map_sg)
+> @@ -664,15 +665,17 @@ int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
+>   void arm_dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nents,
+>   		enum dma_data_direction dir, struct dma_attrs *attrs)
+>   {
+> +	struct dma_map_ops *ops = get_dma_ops(dev);
+>   	struct scatterlist *s;
+> +
+>   	int i;
+>
+>   	for_each_sg(sg, s, nents, i)
+> -		__dma_unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir);
+> +		ops->unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir, attrs);
+>   }
+>
+>   /**
+> - * dma_sync_sg_for_cpu
+> + * arm_dma_sync_sg_for_cpu
+>    * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
+>    * @sg: list of buffers
+>    * @nents: number of buffers to map (returned from dma_map_sg)
+> @@ -681,21 +684,17 @@ void arm_dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nents,
+>   void arm_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
+>   			int nents, enum dma_data_direction dir)
+>   {
+> +	struct dma_map_ops *ops = get_dma_ops(dev);
+>   	struct scatterlist *s;
+>   	int i;
+>
+> -	for_each_sg(sg, s, nents, i) {
+> -		if (!dmabounce_sync_for_cpu(dev, sg_dma_address(s),
+> -					    sg_dma_len(s), dir))
+> -			continue;
+> -
+> -		__dma_page_dev_to_cpu(sg_page(s), s->offset,
+> -				      s->length, dir);
+> -	}
+> +	for_each_sg(sg, s, nents, i)
+> +		ops->sync_single_for_cpu(dev, sg_dma_address(s), s->length,
+> +					 dir);
+>   }
+>
+>   /**
+> - * dma_sync_sg_for_device
+> + * arm_dma_sync_sg_for_device
+>    * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
+>    * @sg: list of buffers
+>    * @nents: number of buffers to map (returned from dma_map_sg)
+> @@ -704,17 +703,13 @@ void arm_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
+>   void arm_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+>   			int nents, enum dma_data_direction dir)
+>   {
+> +	struct dma_map_ops *ops = get_dma_ops(dev);
+>   	struct scatterlist *s;
+>   	int i;
+>
+> -	for_each_sg(sg, s, nents, i) {
+> -		if (!dmabounce_sync_for_device(dev, sg_dma_address(s),
+> -					sg_dma_len(s), dir))
+> -			continue;
+> -
+> -		__dma_page_cpu_to_dev(sg_page(s), s->offset,
+> -				      s->length, dir);
+> -	}
+> +	for_each_sg(sg, s, nents, i)
+> +		ops->sync_single_for_device(dev, sg_dma_address(s), s->length,
+> +					    dir);
+>   }
+>
+>   /*
