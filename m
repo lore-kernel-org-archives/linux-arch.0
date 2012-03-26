@@ -1,39 +1,58 @@
-From: Michal Marek <mmarek@suse.cz>
-Subject: Re: [PATCH] Kbuild: centralize MKIMAGE and cmd_uimage definitions
-Date: Mon, 26 Mar 2012 15:48:42 +0200
-Message-ID: <4F7073BA.6040403@suse.cz>
-References: <1331931835-12346-1-git-send-email-swarren@wwwdotorg.org> <4F6B7226.8000102@wwwdotorg.org>
+From: Will Drewry <wad@chromium.org>
+Subject: Re: [PATCH v15 00/13] seccomp_filter: syscall filtering using BPF
+Date: Mon, 26 Mar 2012 11:53:06 -0500
+Message-ID: <CABqD9hZe9t9WeMRcuhvevSb9svp5UH9ZHH4TZg753zzcrX-tnQ@mail.gmail.com>
+References: <1331781125-15658-1-git-send-email-wad@chromium.org>
+	<4F6F73B9.2000207@zytor.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:41162 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757248Ab2CZNst (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 26 Mar 2012 09:48:49 -0400
-In-Reply-To: <4F6B7226.8000102@wwwdotorg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Russell King <linux@arm.linux.org.uk>, nico@fluxnic.net, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>, Mike Frysinger <vapier@gentoo.org>, Michal Simek <monstr@monstr.eu>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Guan Xuetao <gxt@mprc.pku.edu.cn>, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arm-kernel@lists.infradead.org, uclinux-dist-devel@blackfin.uclinux.org, microblaze-uclinux@itee.uq.edu.au, linux-sh@vger.kernel.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <4F6F73B9.2000207@zytor.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: "H. Peter Anvin" <hpa@zytor.com>, akpm@linux-foundation.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
+List-Id: linux-arch.vger.kernel.org
 
-On 22.3.2012 19:40, Stephen Warren wrote:
-> On 03/16/2012 03:03 PM, Stephen Warren wrote:
->> All ARCHs have the same definition of MKIMAGE. Move it to Makefile.lib
->> to avoid duplication.
+On Sun, Mar 25, 2012 at 2:36 PM, H. Peter Anvin <hpa@zytor.com> wrote:
+> On 03/14/2012 08:11 PM, Will Drewry wrote:
+>> Please see prior revisions of this patch series for a high
+>> level blurb.
 >>
->> All ARCHs have similar definitions of cmd_uimage. Place a sufficiently
->> parameterized version in Makefile.lib to avoid duplication.
-> 
-> Michal,
-> 
-> Does this change look reasonable?
+>> This revision makes a number of refinements and tweaks. The biggest
+>> change is a slight renumbering of the return codes which will break
+>> existing code using this patch series.
+>>
+>> I believe this patch is in good shape, and I don't see the need for
+>> any more API changes at this point. =A0I plan to start using this re=
+vision
+>> more extensively, and I'd certainly appreciate any testing.
+>>
+>> Thanks!
+>> will
+>>
+>
+> x86 portions:
+>
+> Reviewed-by: H. Peter Anvin <hpa@zytor.com>
 
-Absolutely.
+Thanks!
 
-> It has acks from people working on 4
-> of the 7 affected architectures; would you prefer acks from all?
+> What is the preferred way to push this upstream? =A0(Presumably for 3=
+=2E5 at
+> this point, but we should get it into -next as soon as possible after
+> the merge window.)
 
-I will apply it now.
+A repost when rc1 has been cut is what's been suggested to me.
 
-Michal
+Additionally, two tweaks have been pointed out off list (documentation
+cruft and lack if #ifdef for asm/syscall.h), which I have fixed in my
+local and github tree but haven't yet reposted here.  I was planning
+on just posting v17 when rc1 is cut (unless I've blithely missed it
+already) and then trying to pester everyone and anyone who can merge.
+:)
+
+Maybe someone more authoritative than me will answer though.
+
+thanks!
+will
