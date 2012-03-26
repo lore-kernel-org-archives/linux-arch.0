@@ -1,63 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:59401 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932994Ab2CZQxM convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Mar 2012 12:53:12 -0400
-Received: by lbbgm6 with SMTP id gm6so4127824lbb.19
-        for <linux-arch@vger.kernel.org>; Mon, 26 Mar 2012 09:53:10 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <4F6F73B9.2000207@zytor.com>
-References: <1331781125-15658-1-git-send-email-wad@chromium.org>
-	<4F6F73B9.2000207@zytor.com>
-Date: Mon, 26 Mar 2012 11:53:06 -0500
-Message-ID: <CABqD9hZe9t9WeMRcuhvevSb9svp5UH9ZHH4TZg753zzcrX-tnQ@mail.gmail.com>
-Subject: Re: [PATCH v15 00/13] seccomp_filter: syscall filtering using BPF
-From: Will Drewry <wad@chromium.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from 206.83.70.73.ptr.us.xo.net ([206.83.70.73]:59579 "EHLO
+	king.tilera.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757024Ab2CZUut (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Mar 2012 16:50:49 -0400
+Message-ID: <201203262036.q2QKaZ7U009929@farm-0012.internal.tilera.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Date: Mon, 26 Mar 2012 16:26:12 -0400
+Subject: [PATCH] compat: use sys_sendfile64() implementation for sendfile syscall
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>, akpm@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
-Message-ID: <20120326165306.A5eBAqNT27slXygB7szKkM-hl9YQpNkJdOmmeUs57EA@z>
+To: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120326202612.QV6x7V-IEmKWxD0wO7_hGlJPLt0PdxI0w4wc0zTmymE@z>
 
-On Sun, Mar 25, 2012 at 2:36 PM, H. Peter Anvin <hpa@zytor.com> wrote:
-> On 03/14/2012 08:11 PM, Will Drewry wrote:
->> Please see prior revisions of this patch series for a high
->> level blurb.
->>
->> This revision makes a number of refinements and tweaks. The biggest
->> change is a slight renumbering of the return codes which will break
->> existing code using this patch series.
->>
->> I believe this patch is in good shape, and I don't see the need for
->> any more API changes at this point.  I plan to start using this revision
->> more extensively, and I'd certainly appreciate any testing.
->>
->> Thanks!
->> will
->>
->
-> x86 portions:
->
-> Reviewed-by: H. Peter Anvin <hpa@zytor.com>
+<asm-generic/unistd.h> was set up to use sys_sendfile() for the 32-bit
+compat API instead of sys_sendfile64(), but in fact the right thing to
+do is to use sys_sendfile64() in all cases.  The 32-bit sendfile64() API
+in glibc uses the sendfile64 syscall, so it has to be capable of doing
+full 64-bit operations.  But the sys_sendfile() kernel implementation
+has a MAX_NON_LFS test in it which explicitly limits the offset to 2^32.
+So, we need to use the sys_sendfile64() implementation in the kernel
+for this case.
 
-Thanks!
+Cc: <stable@kernel.org>
+Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
+---
+ include/asm-generic/unistd.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-> What is the preferred way to push this upstream?  (Presumably for 3.5 at
-> this point, but we should get it into -next as soon as possible after
-> the merge window.)
+diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
+index 2292d1a..991ef01 100644
+--- a/include/asm-generic/unistd.h
++++ b/include/asm-generic/unistd.h
+@@ -218,7 +218,7 @@ __SC_COMP(__NR_pwritev, sys_pwritev, compat_sys_pwritev)
+ 
+ /* fs/sendfile.c */
+ #define __NR3264_sendfile 71
+-__SC_3264(__NR3264_sendfile, sys_sendfile64, sys_sendfile)
++__SYSCALL(__NR3264_sendfile, sys_sendfile64)
+ 
+ /* fs/select.c */
+ #define __NR_pselect6 72
+-- 
+1.6.5.2
 
-A repost when rc1 has been cut is what's been suggested to me.
-
-Additionally, two tweaks have been pointed out off list (documentation
-cruft and lack if #ifdef for asm/syscall.h), which I have fixed in my
-local and github tree but haven't yet reposted here.  I was planning
-on just posting v17 when rc1 is cut (unless I've blithely missed it
-already) and then trying to pester everyone and anyone who can merge.
-:)
-
-Maybe someone more authoritative than me will answer though.
-
-thanks!
-will
