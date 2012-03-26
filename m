@@ -1,162 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f46.google.com ([209.85.160.46]:50252 "EHLO
-	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932368Ab2CZLin (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Mar 2012 07:38:43 -0400
-Message-ID: <4F70553B.2000100@gmail.com>
-Date: Mon, 26 Mar 2012 17:08:35 +0530
-From: Subash Patel <subashrp@gmail.com>
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:59401 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932994Ab2CZQxM convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Mar 2012 12:53:12 -0400
+Received: by lbbgm6 with SMTP id gm6so4127824lbb.19
+        for <linux-arch@vger.kernel.org>; Mon, 26 Mar 2012 09:53:10 -0700 (PDT)
 MIME-Version: 1.0
-Subject: Re: [PATCHv7 5/9] ARM: dma-mapping: implement dma sg methods on top
- of any generic dma ops
-References: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com> <1330527862-16234-6-git-send-email-m.szyprowski@samsung.com>
-In-Reply-To: <1330527862-16234-6-git-send-email-m.szyprowski@samsung.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <4F6F73B9.2000207@zytor.com>
+References: <1331781125-15658-1-git-send-email-wad@chromium.org>
+	<4F6F73B9.2000207@zytor.com>
+Date: Mon, 26 Mar 2012 11:53:06 -0500
+Message-ID: <CABqD9hZe9t9WeMRcuhvevSb9svp5UH9ZHH4TZg753zzcrX-tnQ@mail.gmail.com>
+Subject: Re: [PATCH v15 00/13] seccomp_filter: syscall filtering using BPF
+From: Will Drewry <wad@chromium.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Shariq Hasnain <shariq.hasnain@linaro.org>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Message-ID: <20120326113835.lLcsWcmmqKxRYCOO7g_uouMjFsBVDGwyS2r-KkKIwI4@z>
+To: "H. Peter Anvin" <hpa@zytor.com>, akpm@linux-foundation.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
+Message-ID: <20120326165306.A5eBAqNT27slXygB7szKkM-hl9YQpNkJdOmmeUs57EA@z>
 
-Hi Marek,
+On Sun, Mar 25, 2012 at 2:36 PM, H. Peter Anvin <hpa@zytor.com> wrote:
+> On 03/14/2012 08:11 PM, Will Drewry wrote:
+>> Please see prior revisions of this patch series for a high
+>> level blurb.
+>>
+>> This revision makes a number of refinements and tweaks. The biggest
+>> change is a slight renumbering of the return codes which will break
+>> existing code using this patch series.
+>>
+>> I believe this patch is in good shape, and I don't see the need for
+>> any more API changes at this point.  I plan to start using this revision
+>> more extensively, and I'd certainly appreciate any testing.
+>>
+>> Thanks!
+>> will
+>>
+>
+> x86 portions:
+>
+> Reviewed-by: H. Peter Anvin <hpa@zytor.com>
 
-As per our discussion over IRC, I would like to check with you the 
-feasibility to extend the dma operation calls for the coherent regions. 
-You said that since struct page wont be available for the buffers in 
-these regions, functions like arm_dma_map_sg() (below) will fail in the 
-cache maintenance operations. Infact, I am facing this issue when I 
-integrated dma-buf buffer sharing + v4l2/vb2 exporter patch series + 
-dma_mapping (v7) and use coherent memory.
+Thanks!
 
-So I want to know opinion of you, others about extending the dma-mapping 
-framework for scenarios which use device coherent memory.
+> What is the preferred way to push this upstream?  (Presumably for 3.5 at
+> this point, but we should get it into -next as soon as possible after
+> the merge window.)
 
-Regards,
-Subash
+A repost when rc1 has been cut is what's been suggested to me.
 
-On 02/29/2012 08:34 PM, Marek Szyprowski wrote:
-> This patch converts all dma_sg methods to be generic (independent of the
-> current DMA mapping implementation for ARM architecture). All dma sg
-> operations are now implemented on top of respective
-> dma_map_page/dma_sync_single_for* operations from dma_map_ops structure.
->
-> Signed-off-by: Marek Szyprowski<m.szyprowski@samsung.com>
-> Signed-off-by: Kyungmin Park<kyungmin.park@samsung.com>
-> ---
->   arch/arm/mm/dma-mapping.c |   43 +++++++++++++++++++------------------------
->   1 files changed, 19 insertions(+), 24 deletions(-)
->
-> diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-> index cd5ed8d..a5a0b5b 100644
-> --- a/arch/arm/mm/dma-mapping.c
-> +++ b/arch/arm/mm/dma-mapping.c
-> @@ -616,7 +616,7 @@ void ___dma_page_dev_to_cpu(struct page *page, unsigned long off,
->   EXPORT_SYMBOL(___dma_page_dev_to_cpu);
->
->   /**
-> - * dma_map_sg - map a set of SG buffers for streaming mode DMA
-> + * arm_dma_map_sg - map a set of SG buffers for streaming mode DMA
->    * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
->    * @sg: list of buffers
->    * @nents: number of buffers to map
-> @@ -634,12 +634,13 @@ EXPORT_SYMBOL(___dma_page_dev_to_cpu);
->   int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
->   		enum dma_data_direction dir, struct dma_attrs *attrs)
->   {
-> +	struct dma_map_ops *ops = get_dma_ops(dev);
->   	struct scatterlist *s;
->   	int i, j;
->
->   	for_each_sg(sg, s, nents, i) {
-> -		s->dma_address = __dma_map_page(dev, sg_page(s), s->offset,
-> -						s->length, dir);
-> +		s->dma_address = ops->map_page(dev, sg_page(s), s->offset,
-> +						s->length, dir, attrs);
->   		if (dma_mapping_error(dev, s->dma_address))
->   			goto bad_mapping;
->   	}
-> @@ -647,12 +648,12 @@ int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
->
->    bad_mapping:
->   	for_each_sg(sg, s, i, j)
-> -		__dma_unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir);
-> +		ops->unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir, attrs);
->   	return 0;
->   }
->
->   /**
-> - * dma_unmap_sg - unmap a set of SG buffers mapped by dma_map_sg
-> + * arm_dma_unmap_sg - unmap a set of SG buffers mapped by dma_map_sg
->    * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
->    * @sg: list of buffers
->    * @nents: number of buffers to unmap (same as was passed to dma_map_sg)
-> @@ -664,15 +665,17 @@ int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
->   void arm_dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nents,
->   		enum dma_data_direction dir, struct dma_attrs *attrs)
->   {
-> +	struct dma_map_ops *ops = get_dma_ops(dev);
->   	struct scatterlist *s;
-> +
->   	int i;
->
->   	for_each_sg(sg, s, nents, i)
-> -		__dma_unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir);
-> +		ops->unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir, attrs);
->   }
->
->   /**
-> - * dma_sync_sg_for_cpu
-> + * arm_dma_sync_sg_for_cpu
->    * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
->    * @sg: list of buffers
->    * @nents: number of buffers to map (returned from dma_map_sg)
-> @@ -681,21 +684,17 @@ void arm_dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nents,
->   void arm_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
->   			int nents, enum dma_data_direction dir)
->   {
-> +	struct dma_map_ops *ops = get_dma_ops(dev);
->   	struct scatterlist *s;
->   	int i;
->
-> -	for_each_sg(sg, s, nents, i) {
-> -		if (!dmabounce_sync_for_cpu(dev, sg_dma_address(s),
-> -					    sg_dma_len(s), dir))
-> -			continue;
-> -
-> -		__dma_page_dev_to_cpu(sg_page(s), s->offset,
-> -				      s->length, dir);
-> -	}
-> +	for_each_sg(sg, s, nents, i)
-> +		ops->sync_single_for_cpu(dev, sg_dma_address(s), s->length,
-> +					 dir);
->   }
->
->   /**
-> - * dma_sync_sg_for_device
-> + * arm_dma_sync_sg_for_device
->    * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
->    * @sg: list of buffers
->    * @nents: number of buffers to map (returned from dma_map_sg)
-> @@ -704,17 +703,13 @@ void arm_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
->   void arm_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
->   			int nents, enum dma_data_direction dir)
->   {
-> +	struct dma_map_ops *ops = get_dma_ops(dev);
->   	struct scatterlist *s;
->   	int i;
->
-> -	for_each_sg(sg, s, nents, i) {
-> -		if (!dmabounce_sync_for_device(dev, sg_dma_address(s),
-> -					sg_dma_len(s), dir))
-> -			continue;
-> -
-> -		__dma_page_cpu_to_dev(sg_page(s), s->offset,
-> -				      s->length, dir);
-> -	}
-> +	for_each_sg(sg, s, nents, i)
-> +		ops->sync_single_for_device(dev, sg_dma_address(s), s->length,
-> +					    dir);
->   }
->
->   /*
+Additionally, two tweaks have been pointed out off list (documentation
+cruft and lack if #ifdef for asm/syscall.h), which I have fixed in my
+local and github tree but haven't yet reposted here.  I was planning
+on just posting v17 when rc1 is cut (unless I've blithely missed it
+already) and then trying to pester everyone and anyone who can merge.
+:)
+
+Maybe someone more authoritative than me will answer though.
+
+thanks!
+will
