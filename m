@@ -1,44 +1,56 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH v15 00/13] seccomp_filter: syscall filtering using BPF
-Date: Sun, 25 Mar 2012 12:36:25 -0700
-Message-ID: <4F6F73B9.2000207@zytor.com>
-References: <1331781125-15658-1-git-send-email-wad@chromium.org>
-Reply-To: kernel-hardening@lists.openwall.com
+From: Subash Patel <subashrp-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Subject: Re: [PATCH 0/2] ARM: dma-mapping: Fix mmap support for coherent
+	buffers
+Date: Mon, 26 Mar 2012 16:34:28 +0530
+Message-ID: <4F704D3C.50003@gmail.com>
+References: <08af01cd08ee$2fd04770$8f70d650$%szyprowski@samsung.com>
+	<1332505563-17646-1-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="us-ascii"; Format="flowed"
 Content-Transfer-Encoding: 7bit
-Return-path: <kernel-hardening-return-1167-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <1331781125-15658-1-git-send-email-wad@chromium.org>
-To: Will Drewry <wad@chromium.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-Reply-To: <1332505563-17646-1-git-send-email-m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-samsung-soc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Russell King - ARM Linux <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Kyungmin Park <kyungmin.park-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, Krishna Reddy <vdumpa-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, Andrzej Pietrasiewicz <andrzej.p-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, KyongHo Cho <pullip.cho-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Chunsang Jeong <chunsang.jeong-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On 03/14/2012 08:11 PM, Will Drewry wrote:
-> Please see prior revisions of this patch series for a high
-> level blurb.
-> 
-> This revision makes a number of refinements and tweaks. The biggest
-> change is a slight renumbering of the return codes which will break
-> existing code using this patch series.
-> 
-> I believe this patch is in good shape, and I don't see the need for
-> any more API changes at this point.  I plan to start using this revision
-> more extensively, and I'd certainly appreciate any testing.
-> 
-> Thanks!
-> will
-> 
+Hi Marek,
 
-x86 portions:
+I have tested these patch series for origen board, and they mmap the 
+buffers to user-space for the coherent pool. You can add:
 
-Reviewed-by: H. Peter Anvin <hpa@zytor.com>
+Tested-By: Subash Patel <subashrp-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
 
-What is the preferred way to push this upstream?  (Presumably for 3.5 at
-this point, but we should get it into -next as soon as possible after
-the merge window.)
+Regards,
+Subash
 
-	-hpa
+On 03/23/2012 05:56 PM, Marek Szyprowski wrote:
+> Hello,
+>
+> This patchset contains patches to fix broken mmap operation for memory
+> buffers allocated from 'dma_declare_coherent' pool after applying my dma
+> mapping redesign patches [1]. These issues have been reported by Subash
+> Patel.
+>
+> [1] http://thread.gmane.org/gmane.linux.kernel.cross-arch/12819
+>
+> Patch summary:
+>
+> Marek Szyprowski (2):
+>    common: add dma_mmap_from_coherent() function
+>    arm: dma-mapping: use dma_mmap_from_coherent()
+>
+>   arch/arm/mm/dma-mapping.c          |    3 ++
+>   drivers/base/dma-coherent.c        |   42 ++++++++++++++++++++++++++++++++++++
+>   include/asm-generic/dma-coherent.h |    4 ++-
+>   3 files changed, 48 insertions(+), 1 deletions(-)
+>
