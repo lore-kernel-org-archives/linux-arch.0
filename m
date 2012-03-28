@@ -1,4071 +1,1881 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [GIT PULL] UAPI: Disintegrate User API from kernel headers
-Date: Wed, 28 Mar 2012 18:00:12 +0100
-Message-ID: <2055.1332954012@redhat.com>
+Subject: (unknown)
+Date: Wed, 28 Mar 2012 18:40:23 +0100
+Message-ID: <4263.1332956423@redhat.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+Subject: 
 Sender: linux-kernel-owner@vger.kernel.org
-To: torvalds@osdl.org
-Cc: hpa@zytor.com, matthew@wil.cx, alan@lxorguk.ukuu.org.uk, tglx@linutronix.de, dhowells@redhat.com, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: torvalds@linux-foundation.org, akpm@linux-foundation.org
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paul.gortmaker@windriver.com, arnd@arndb.de, hpa@zytor.com, sfr@canb.auug.org.au
 List-Id: linux-arch.vger.kernel.org
 
 
 Hi Linus,
 
-Could you please pull this tree at the end of this merge window?
+Here are a bunch of patches to disintegrate asm/system.h into a set of separate
+bits to relieve the problem of circular inclusion dependencies.
 
-The patches therein extract the Userspace API bits from the various header
-files named in the Kbuild files and separate them out into their own files.
-The original files are then given #includes to the new files.
+The following changes since commit 437538267b672f9320833907f1b5acbb2605f4be:
 
-Each new file appears in a subdirectory under either include/uapi/ or
-arch/x/include/uapi/ that corresponds to the subdirectory containing that file
-under include/ or arch/x/include/.
-
-This has a number of advantages:
-
- (1) It simplifies the kernel headers: The kernel API headers (the residue) now
-     no longer contain userspace bits.  The userspace API headers
-     (theoretically) do not contain any kernel-specific stuff[*].
-
-     [*] This is almost, but not quite true...  I've had to allow the odd bit
-     	 of __KERNEL__ conditionalism to remain.
-
- (2) All __KERNEL__ #ifdeffery can be eliminated from the kernel API headers -
-     ideally it should be eliminatable from the UAPI headers too, but see the
-     note in (1).
-
- (3) It makes it easier to keep track of when the userspace API is changed.
-
-I have tested this with allyesconfig against x86 and powerpc and a scattering
-of additional defconfigs of other arches.
-
-NOTE!  These patches may need regenerating if the header files change too much
-during the remainder of the merge window.  This can mostly be handled
-automatically as the disintegration procedure is scripted.
-
-David
----
-The following changes since commit 6658a6991cef75719a21441aa0b7f8d6821534ee:
-
-  Merge branch 'for-linus' of git://git.kernel.org/pub/scm/linux/kernel/git/s390/linux (2012-03-27 18:36:38 -0700)
+  Merge tag 'fbdev-updates-for-3.4' of git://github.com/schandinat/linux-2.6 (2012-03-22 20:43:40 -0700)
 
 are available in the git repository at:
 
-  git://git.infradead.org/users/dhowells/linux-headers.git uapi-split
+  git://git.kernel.org/pub/scm/linux/kernel/git/dhowells/linux-asm_system.git split-asm-system_h
 
-David Howells (73):
-      UAPI: Refer to the DRM UAPI headers with <...> and from certain headers only
-      UAPI: (Scripted) Remove redundant DRM UAPI header #inclusions from drivers/gpu/.
-      UAPI: (Scripted) Convert #include "..." to #include <path/...> in drivers/gpu/
-      UAPI: (Scripted) Convert #include "..." to #include <path/...> in kernel system headers
-      UAPI: Add include/uapi/ directories to build
-      UAPI: (Scripted) Set up UAPI Kbuild files
-      UAPI: Differentiate userspace build and kernelspace build include path sets
-      UAPI: Plumb the UAPI Kbuilds into the user header handling system
-      UAPI: Set up uapi/asm/Kbuild.asm
-      UAPI: Move linux/version.h
-      UAPI: Make UAPI headers install to usr/include/
-      UAPI: Fix the x86 test_get_len tool
-      UAPI: Fix insn_sanity build failure after UAPI split
-      UAPI: (Scripted) Disintegrate arch/alpha/include/asm
-      UAPI: (Scripted) Disintegrate arch/arm/include/asm
-      UAPI: (Scripted) Disintegrate arch/avr32/include/asm
-      UAPI: (Scripted) Disintegrate arch/blackfin/include/asm
-      UAPI: (Scripted) Disintegrate arch/c6x/include/asm
-      UAPI: (Scripted) Disintegrate arch/cris/include/arch-v10/arch
-      UAPI: (Scripted) Disintegrate arch/cris/include/arch-v32/arch
-      UAPI: (Scripted) Disintegrate arch/cris/include/asm
-      UAPI: (Scripted) Disintegrate arch/frv/include/asm
-      UAPI: (Scripted) Disintegrate arch/h8300/include/asm
-      UAPI: (Scripted) Disintegrate arch/hexagon/include/asm
-      UAPI: (Scripted) Disintegrate arch/ia64/include/asm
-      UAPI: (Scripted) Disintegrate arch/m32r/include/asm
-      UAPI: (Scripted) Disintegrate arch/m68k/include/asm
-      UAPI: (Scripted) Disintegrate arch/microblaze/include/asm
-      UAPI: (Scripted) Disintegrate arch/mips/include/asm
-      UAPI: (Scripted) Disintegrate arch/mn10300/include/asm
-      UAPI: (Scripted) Disintegrate arch/openrisc/include/asm
-      UAPI: (Scripted) Disintegrate arch/parisc/include/asm
-      UAPI: (Scripted) Disintegrate arch/powerpc/include/asm
-      UAPI: (Scripted) Disintegrate arch/s390/include/asm
-      UAPI: (Scripted) Disintegrate arch/score/include/asm
-      UAPI: (Scripted) Disintegrate arch/sh/include/asm
-      UAPI: (Scripted) Disintegrate arch/sparc/include/asm
-      UAPI: (Scripted) Disintegrate arch/tile/include/arch
-      UAPI: (Scripted) Disintegrate arch/tile/include/asm
-      UAPI: (Scripted) Disintegrate arch/unicore32/include/asm
-      UAPI: (Scripted) Disintegrate arch/x86/include/asm
-      UAPI: (Scripted) Disintegrate arch/xtensa/include/asm
-      UAPI: (Scripted) Disintegrate include/asm-generic
-      UAPI: (Scripted) Disintegrate include/drm
-      UAPI: (Scripted) Disintegrate include/linux
-      UAPI: (Scripted) Disintegrate include/linux/byteorder
-      UAPI: (Scripted) Disintegrate include/linux/caif
-      UAPI: (Scripted) Disintegrate include/linux/can
-      UAPI: (Scripted) Disintegrate include/linux/dvb
-      UAPI: (Scripted) Disintegrate include/linux/hdlc
-      UAPI: (Scripted) Disintegrate include/linux/isdn
-      UAPI: (Scripted) Disintegrate include/linux/mmc
-      UAPI: (Scripted) Disintegrate include/linux/netfilter
-      UAPI: (Scripted) Disintegrate include/linux/netfilter/ipset
-      UAPI: (Scripted) Disintegrate include/linux/netfilter_arp
-      UAPI: (Scripted) Disintegrate include/linux/netfilter_bridge
-      UAPI: (Scripted) Disintegrate include/linux/netfilter_ipv4
-      UAPI: (Scripted) Disintegrate include/linux/netfilter_ipv6
-      UAPI: (Scripted) Disintegrate include/linux/nfsd
-      UAPI: (Scripted) Disintegrate include/linux/raid
-      UAPI: (Scripted) Disintegrate include/linux/spi
-      UAPI: (Scripted) Disintegrate include/linux/sunrpc
-      UAPI: (Scripted) Disintegrate include/linux/tc_act
-      UAPI: (Scripted) Disintegrate include/linux/tc_ematch
-      UAPI: (Scripted) Disintegrate include/linux/usb
-      UAPI: (Scripted) Disintegrate include/linux/wimax
-      UAPI: (Scripted) Disintegrate include/mtd
-      UAPI: (Scripted) Disintegrate include/rdma
-      UAPI: (Scripted) Disintegrate include/scsi
-      UAPI: (Scripted) Disintegrate include/scsi/fc
-      UAPI: (Scripted) Disintegrate include/sound
-      UAPI: (Scripted) Disintegrate include/video
-      UAPI: (Scripted) Disintegrate include/xen
+A signed tag is here:
 
- Makefile                                           |   32 +-
- arch/alpha/include/asm/Kbuild                      |    8 -
- arch/alpha/include/asm/a.out.h                     |   89 +-
- arch/alpha/include/asm/compiler.h                  |  115 +-
- arch/alpha/include/asm/console.h                   |   48 +-
- arch/alpha/include/asm/fpu.h                       |  120 +-
- arch/alpha/include/asm/param.h                     |   20 +-
- arch/alpha/include/asm/posix_types.h               |   43 +-
- arch/alpha/include/asm/ptrace.h                    |   68 +-
- arch/alpha/include/asm/signal.h                    |  135 +--
- arch/alpha/include/asm/termios.h                   |   68 +-
- arch/alpha/include/asm/types.h                     |   13 +-
- arch/alpha/include/asm/unistd.h                    |  461 +----
- arch/alpha/include/uapi/asm/Kbuild                 |   42 +
- arch/alpha/include/uapi/asm/a.out.h                |   91 +
- arch/alpha/include/{ => uapi}/asm/auxvec.h         |    0
- arch/alpha/include/{ => uapi}/asm/bitsperlong.h    |    0
- arch/alpha/include/{ => uapi}/asm/byteorder.h      |    0
- arch/alpha/include/uapi/asm/compiler.h             |  117 +
- arch/alpha/include/uapi/asm/console.h              |   50 +
- arch/alpha/include/{ => uapi}/asm/errno.h          |    0
- arch/alpha/include/{ => uapi}/asm/fcntl.h          |    0
- arch/alpha/include/uapi/asm/fpu.h                  |  122 +
- arch/alpha/include/{ => uapi}/asm/gentrap.h        |    0
- arch/alpha/include/{ => uapi}/asm/ioctl.h          |    0
- arch/alpha/include/{ => uapi}/asm/ioctls.h         |    0
- arch/alpha/include/{ => uapi}/asm/ipcbuf.h         |    0
- arch/alpha/include/{ => uapi}/asm/mman.h           |    0
- arch/alpha/include/{ => uapi}/asm/msgbuf.h         |    0
- arch/alpha/include/{ => uapi}/asm/pal.h            |    0
- arch/alpha/include/uapi/asm/param.h                |   21 +
- arch/alpha/include/{ => uapi}/asm/poll.h           |    0
- arch/alpha/include/uapi/asm/posix_types.h          |   45 +
- arch/alpha/include/uapi/asm/ptrace.h               |   70 +
- arch/alpha/include/{ => uapi}/asm/reg.h            |    0
- arch/alpha/include/{ => uapi}/asm/regdef.h         |    0
- arch/alpha/include/{ => uapi}/asm/resource.h       |    0
- arch/alpha/include/{ => uapi}/asm/sembuf.h         |    0
- arch/alpha/include/{ => uapi}/asm/setup.h          |    0
- arch/alpha/include/{ => uapi}/asm/shmbuf.h         |    0
- arch/alpha/include/{ => uapi}/asm/sigcontext.h     |    0
- arch/alpha/include/{ => uapi}/asm/siginfo.h        |    0
- arch/alpha/include/uapi/asm/signal.h               |  135 ++
- arch/alpha/include/{ => uapi}/asm/socket.h         |    0
- arch/alpha/include/{ => uapi}/asm/sockios.h        |    0
- arch/alpha/include/{ => uapi}/asm/stat.h           |    0
- arch/alpha/include/{ => uapi}/asm/statfs.h         |    0
- arch/alpha/include/{ => uapi}/asm/swab.h           |    0
- arch/alpha/include/{ => uapi}/asm/sysinfo.h        |    0
- arch/alpha/include/{ => uapi}/asm/termbits.h       |    0
- arch/alpha/include/uapi/asm/termios.h              |   70 +
- arch/alpha/include/uapi/asm/types.h                |   16 +
- arch/alpha/include/uapi/asm/unistd.h               |  463 ++++
- arch/arm/include/asm/Kbuild                        |    1 -
- arch/arm/include/asm/hwcap.h                       |   27 +-
- arch/arm/include/asm/page.h                        |    2 +-
- arch/arm/include/asm/param.h                       |   17 +-
- arch/arm/include/asm/pgtable.h                     |    2 +-
- arch/arm/include/asm/posix_types.h                 |   44 +-
- arch/arm/include/asm/ptrace.h                      |  126 +-
- arch/arm/include/asm/setup.h                       |  172 +--
- arch/arm/include/asm/signal.h                      |  127 +-
- arch/arm/include/asm/swab.h                        |   37 +-
- arch/arm/include/asm/termios.h                     |   44 +-
- arch/arm/include/asm/types.h                       |    9 +-
- arch/arm/include/asm/unistd.h                      |  432 +----
- arch/arm/include/asm/vfpmacros.h                   |    2 +-
- arch/arm/include/uapi/asm/Kbuild                   |   28 +
- arch/arm/include/{ => uapi}/asm/a.out.h            |    0
- arch/arm/include/{ => uapi}/asm/byteorder.h        |    0
- arch/arm/include/{ => uapi}/asm/fcntl.h            |    0
- arch/arm/include/uapi/asm/hwcap.h                  |   29 +
- arch/arm/include/{ => uapi}/asm/ioctls.h           |    0
- arch/arm/include/{ => uapi}/asm/ipcbuf.h           |    0
- arch/arm/include/{ => uapi}/asm/mman.h             |    0
- arch/arm/include/{ => uapi}/asm/msgbuf.h           |    0
- arch/arm/include/uapi/asm/param.h                  |   27 +
- arch/arm/include/uapi/asm/posix_types.h            |   58 +
- arch/arm/include/uapi/asm/ptrace.h                 |  138 ++
- arch/arm/include/{ => uapi}/asm/sembuf.h           |    0
- arch/arm/include/uapi/asm/setup.h                  |  187 ++
- arch/arm/include/{ => uapi}/asm/shmbuf.h           |    0
- arch/arm/include/{ => uapi}/asm/sigcontext.h       |    0
- arch/arm/include/uapi/asm/signal.h                 |  127 +
- arch/arm/include/{ => uapi}/asm/socket.h           |    0
- arch/arm/include/{ => uapi}/asm/sockios.h          |    0
- arch/arm/include/{ => uapi}/asm/stat.h             |    0
- arch/arm/include/{ => uapi}/asm/statfs.h           |    0
- arch/arm/include/uapi/asm/swab.h                   |   53 +
- arch/arm/include/{ => uapi}/asm/termbits.h         |    0
- arch/arm/include/uapi/asm/termios.h                |   44 +
- arch/arm/include/uapi/asm/types.h                  |    1 +
- arch/arm/include/uapi/asm/unistd.h                 |  444 ++++
- arch/avr32/include/asm/Kbuild                      |    1 -
- arch/avr32/include/asm/param.h                     |   18 +-
- arch/avr32/include/asm/posix_types.h               |   44 +-
- arch/avr32/include/asm/ptrace.h                    |  115 +-
- arch/avr32/include/asm/setup.h                     |    5 +-
- arch/avr32/include/asm/signal.h                    |  121 +-
- arch/avr32/include/asm/termios.h                   |   41 +-
- arch/avr32/include/asm/types.h                     |    9 +-
- arch/avr32/include/asm/unistd.h                    |  296 +---
- arch/avr32/include/uapi/asm/Kbuild                 |   34 +
- arch/avr32/include/{ => uapi}/asm/auxvec.h         |    0
- arch/avr32/include/{ => uapi}/asm/bitsperlong.h    |    0
- arch/avr32/include/{ => uapi}/asm/byteorder.h      |    0
- arch/avr32/include/{ => uapi}/asm/cachectl.h       |    0
- arch/avr32/include/{ => uapi}/asm/errno.h          |    0
- arch/avr32/include/{ => uapi}/asm/fcntl.h          |    0
- arch/avr32/include/{ => uapi}/asm/ioctl.h          |    0
- arch/avr32/include/{ => uapi}/asm/ioctls.h         |    0
- arch/avr32/include/{ => uapi}/asm/ipcbuf.h         |    0
- arch/avr32/include/{ => uapi}/asm/mman.h           |    0
- arch/avr32/include/{ => uapi}/asm/msgbuf.h         |    0
- arch/avr32/include/uapi/asm/param.h                |   18 +
- arch/avr32/include/{ => uapi}/asm/poll.h           |    0
- arch/avr32/include/uapi/asm/posix_types.h          |   53 +
- arch/avr32/include/uapi/asm/ptrace.h               |  126 +
- arch/avr32/include/{ => uapi}/asm/resource.h       |    0
- arch/avr32/include/{ => uapi}/asm/sembuf.h         |    0
- arch/avr32/include/uapi/asm/setup.h                |   17 +
- arch/avr32/include/{ => uapi}/asm/shmbuf.h         |    0
- arch/avr32/include/{ => uapi}/asm/sigcontext.h     |    0
- arch/avr32/include/{ => uapi}/asm/siginfo.h        |    0
- arch/avr32/include/uapi/asm/signal.h               |  128 ++
- arch/avr32/include/{ => uapi}/asm/socket.h         |    0
- arch/avr32/include/{ => uapi}/asm/sockios.h        |    0
- arch/avr32/include/{ => uapi}/asm/stat.h           |    0
- arch/avr32/include/{ => uapi}/asm/statfs.h         |    0
- arch/avr32/include/{ => uapi}/asm/swab.h           |    0
- arch/avr32/include/{ => uapi}/asm/termbits.h       |    0
- arch/avr32/include/uapi/asm/termios.h              |   50 +
- arch/avr32/include/uapi/asm/types.h                |    1 +
- arch/avr32/include/uapi/asm/unistd.h               |  305 +++
- arch/blackfin/include/asm/Kbuild                   |    3 -
- arch/blackfin/include/asm/bfin_sport.h             |  127 +-
- arch/blackfin/include/asm/fixed_code.h             |   26 +-
- arch/blackfin/include/asm/ptrace.h                 |  161 +--
- arch/blackfin/include/asm/unistd.h                 |  430 +----
- arch/blackfin/include/uapi/asm/Kbuild              |   18 +
- arch/blackfin/include/uapi/asm/bfin_sport.h        |  135 ++
- arch/blackfin/include/{ => uapi}/asm/byteorder.h   |    0
- arch/blackfin/include/{ => uapi}/asm/cachectl.h    |    0
- arch/blackfin/include/{ => uapi}/asm/fcntl.h       |    0
- arch/blackfin/include/uapi/asm/fixed_code.h        |   34 +
- arch/blackfin/include/{ => uapi}/asm/ioctls.h      |    0
- arch/blackfin/include/{ => uapi}/asm/poll.h        |    0
- arch/blackfin/include/{ => uapi}/asm/posix_types.h |    0
- arch/blackfin/include/uapi/asm/ptrace.h            |  170 ++
- arch/blackfin/include/{ => uapi}/asm/sigcontext.h  |    0
- arch/blackfin/include/{ => uapi}/asm/siginfo.h     |    0
- arch/blackfin/include/{ => uapi}/asm/signal.h      |    0
- arch/blackfin/include/{ => uapi}/asm/stat.h        |    0
- arch/blackfin/include/{ => uapi}/asm/swab.h        |    0
- arch/blackfin/include/uapi/asm/unistd.h            |  437 ++++
- arch/c6x/include/asm/ptrace.h                      |  141 +--
- arch/c6x/include/uapi/asm/Kbuild                   |   10 +
- arch/c6x/include/{ => uapi}/asm/byteorder.h        |    0
- arch/c6x/include/uapi/asm/ptrace.h                 |  158 ++
- arch/c6x/include/{ => uapi}/asm/setup.h            |    0
- arch/c6x/include/{ => uapi}/asm/sigcontext.h       |    0
- arch/c6x/include/{ => uapi}/asm/signal.h           |    0
- arch/c6x/include/{ => uapi}/asm/swab.h             |    0
- arch/c6x/include/{ => uapi}/asm/unistd.h           |    0
- arch/cris/include/arch-v10/arch/Kbuild             |    4 -
- arch/cris/include/arch-v32/arch/Kbuild             |    2 -
- arch/cris/include/arch-v32/arch/cryptocop.h        |  116 +-
- arch/cris/include/arch-v32/arch/dma.h              |    2 +-
- arch/cris/include/arch-v32/arch/hwregs/dma.h       |    2 +-
- arch/cris/include/asm/Kbuild                       |    5 -
- arch/cris/include/asm/posix_types.h                |   48 +-
- arch/cris/include/asm/ptrace.h                     |    5 +-
- arch/cris/include/asm/signal.h                     |  122 +-
- arch/cris/include/asm/swab.h                       |    3 +-
- arch/cris/include/asm/termios.h                    |   43 +-
- arch/cris/include/asm/types.h                      |    8 +-
- arch/cris/include/asm/unistd.h                     |  342 +---
- arch/cris/include/uapi/arch-v10/arch/Kbuild        |    5 +
- .../include/{ => uapi}/arch-v10/arch/sv_addr.agh   |    0
- .../include/{ => uapi}/arch-v10/arch/sv_addr_ag.h  |    2 +-
- .../cris/include/{ => uapi}/arch-v10/arch/svinto.h |    2 +-
- arch/cris/include/{ => uapi}/arch-v10/arch/user.h  |    0
- arch/cris/include/uapi/arch-v32/arch/Kbuild        |    3 +
- arch/cris/include/uapi/arch-v32/arch/cryptocop.h   |  122 +
- arch/cris/include/{ => uapi}/arch-v32/arch/user.h  |    0
- arch/cris/include/uapi/asm/Kbuild                  |   40 +
- arch/cris/include/{ => uapi}/asm/auxvec.h          |    0
- arch/cris/include/{ => uapi}/asm/bitsperlong.h     |    0
- arch/cris/include/{ => uapi}/asm/byteorder.h       |    0
- arch/cris/include/{ => uapi}/asm/errno.h           |    0
- arch/cris/include/{ => uapi}/asm/ethernet.h        |    0
- arch/cris/include/{ => uapi}/asm/etraxgpio.h       |    0
- arch/cris/include/{ => uapi}/asm/fcntl.h           |    0
- arch/cris/include/{ => uapi}/asm/ioctl.h           |    0
- arch/cris/include/{ => uapi}/asm/ioctls.h          |    0
- arch/cris/include/{ => uapi}/asm/ipcbuf.h          |    0
- arch/cris/include/{ => uapi}/asm/mman.h            |    0
- arch/cris/include/{ => uapi}/asm/msgbuf.h          |    0
- arch/cris/include/{ => uapi}/asm/param.h           |    0
- arch/cris/include/{ => uapi}/asm/poll.h            |    0
- arch/cris/include/uapi/asm/posix_types.h           |   51 +
- arch/cris/include/uapi/asm/ptrace.h                |    1 +
- arch/cris/include/{ => uapi}/asm/resource.h        |    0
- arch/cris/include/{ => uapi}/asm/rs485.h           |    0
- arch/cris/include/{ => uapi}/asm/rtc.h             |    0
- arch/cris/include/{ => uapi}/asm/sembuf.h          |    0
- arch/cris/include/{ => uapi}/asm/setup.h           |    0
- arch/cris/include/{ => uapi}/asm/shmbuf.h          |    0
- arch/cris/include/{ => uapi}/asm/sigcontext.h      |    0
- arch/cris/include/{ => uapi}/asm/siginfo.h         |    0
- arch/cris/include/uapi/asm/signal.h                |  122 +
- arch/cris/include/{ => uapi}/asm/socket.h          |    0
- arch/cris/include/{ => uapi}/asm/sockios.h         |    0
- arch/cris/include/{ => uapi}/asm/stat.h            |    0
- arch/cris/include/{ => uapi}/asm/statfs.h          |    0
- arch/cris/include/{ => uapi}/asm/sync_serial.h     |    0
- arch/cris/include/{ => uapi}/asm/termbits.h        |    0
- arch/cris/include/uapi/asm/termios.h               |   45 +
- arch/cris/include/uapi/asm/types.h                 |    1 +
- arch/cris/include/uapi/asm/unistd.h                |  344 +++
- arch/frv/include/asm/Kbuild                        |    2 -
- arch/frv/include/asm/posix_types.h                 |   45 +-
- arch/frv/include/asm/ptrace.h                      |   51 +-
- arch/frv/include/asm/setup.h                       |    7 +-
- arch/frv/include/asm/signal.h                      |   33 +-
- arch/frv/include/asm/termios.h                     |   46 +-
- arch/frv/include/asm/types.h                       |    9 +-
- arch/frv/include/asm/unistd.h                      |  346 +---
- arch/frv/include/uapi/asm/Kbuild                   |   34 +
- arch/frv/include/{ => uapi}/asm/auxvec.h           |    0
- arch/frv/include/{ => uapi}/asm/bitsperlong.h      |    0
- arch/frv/include/{ => uapi}/asm/byteorder.h        |    0
- arch/frv/include/{ => uapi}/asm/errno.h            |    0
- arch/frv/include/{ => uapi}/asm/fcntl.h            |    0
- arch/frv/include/{ => uapi}/asm/ioctl.h            |    0
- arch/frv/include/{ => uapi}/asm/ioctls.h           |    0
- arch/frv/include/{ => uapi}/asm/ipcbuf.h           |    0
- arch/frv/include/{ => uapi}/asm/mman.h             |    0
- arch/frv/include/{ => uapi}/asm/msgbuf.h           |    0
- arch/frv/include/{ => uapi}/asm/param.h            |    0
- arch/frv/include/{ => uapi}/asm/poll.h             |    0
- arch/frv/include/uapi/asm/posix_types.h            |   47 +
- arch/frv/include/uapi/asm/ptrace.h                 |   60 +
- arch/frv/include/{ => uapi}/asm/registers.h        |    0
- arch/frv/include/{ => uapi}/asm/resource.h         |    0
- arch/frv/include/{ => uapi}/asm/sembuf.h           |    0
- arch/frv/include/uapi/asm/setup.h                  |   18 +
- arch/frv/include/{ => uapi}/asm/shmbuf.h           |    0
- arch/frv/include/{ => uapi}/asm/sigcontext.h       |    0
- arch/frv/include/{ => uapi}/asm/siginfo.h          |    0
- arch/frv/include/uapi/asm/signal.h                 |   36 +
- arch/frv/include/{ => uapi}/asm/socket.h           |    0
- arch/frv/include/{ => uapi}/asm/sockios.h          |    0
- arch/frv/include/{ => uapi}/asm/stat.h             |    0
- arch/frv/include/{ => uapi}/asm/statfs.h           |    0
- arch/frv/include/{ => uapi}/asm/swab.h             |    0
- arch/frv/include/{ => uapi}/asm/termbits.h         |    0
- arch/frv/include/uapi/asm/termios.h                |   46 +
- arch/frv/include/uapi/asm/types.h                  |    1 +
- arch/frv/include/uapi/asm/unistd.h                 |  348 +++
- arch/h8300/include/asm/param.h                     |   15 +-
- arch/h8300/include/asm/posix_types.h               |   43 +-
- arch/h8300/include/asm/ptrace.h                    |   40 +-
- arch/h8300/include/asm/signal.h                    |  121 +-
- arch/h8300/include/asm/termios.h                   |   44 +-
- arch/h8300/include/asm/types.h                     |    5 +-
- arch/h8300/include/asm/unistd.h                    |  328 +---
- arch/h8300/include/uapi/asm/Kbuild                 |   33 +
- arch/h8300/include/{ => uapi}/asm/auxvec.h         |    0
- arch/h8300/include/{ => uapi}/asm/bitsperlong.h    |    0
- arch/h8300/include/{ => uapi}/asm/byteorder.h      |    0
- arch/h8300/include/{ => uapi}/asm/errno.h          |    0
- arch/h8300/include/{ => uapi}/asm/fcntl.h          |    0
- arch/h8300/include/{ => uapi}/asm/ioctl.h          |    0
- arch/h8300/include/{ => uapi}/asm/ioctls.h         |    0
- arch/h8300/include/{ => uapi}/asm/ipcbuf.h         |    0
- arch/h8300/include/{ => uapi}/asm/mman.h           |    0
- arch/h8300/include/{ => uapi}/asm/msgbuf.h         |    0
- arch/h8300/include/uapi/asm/param.h                |   16 +
- arch/h8300/include/{ => uapi}/asm/poll.h           |    0
- arch/h8300/include/uapi/asm/posix_types.h          |   45 +
- arch/h8300/include/uapi/asm/ptrace.h               |   44 +
- arch/h8300/include/{ => uapi}/asm/resource.h       |    0
- arch/h8300/include/{ => uapi}/asm/sembuf.h         |    0
- arch/h8300/include/{ => uapi}/asm/setup.h          |    0
- arch/h8300/include/{ => uapi}/asm/shmbuf.h         |    0
- arch/h8300/include/{ => uapi}/asm/sigcontext.h     |    0
- arch/h8300/include/{ => uapi}/asm/siginfo.h        |    0
- arch/h8300/include/uapi/asm/signal.h               |  121 +
- arch/h8300/include/{ => uapi}/asm/socket.h         |    0
- arch/h8300/include/{ => uapi}/asm/sockios.h        |    0
- arch/h8300/include/{ => uapi}/asm/stat.h           |    0
- arch/h8300/include/{ => uapi}/asm/statfs.h         |    0
- arch/h8300/include/{ => uapi}/asm/swab.h           |    0
- arch/h8300/include/{ => uapi}/asm/termbits.h       |    0
- arch/h8300/include/uapi/asm/termios.h              |   44 +
- arch/h8300/include/uapi/asm/types.h                |    1 +
- arch/h8300/include/uapi/asm/unistd.h               |  330 +++
- arch/hexagon/include/asm/Kbuild                    |    2 -
- arch/hexagon/include/uapi/asm/Kbuild               |   14 +
- arch/hexagon/include/{ => uapi}/asm/bitsperlong.h  |    0
- arch/hexagon/include/{ => uapi}/asm/byteorder.h    |    0
- arch/hexagon/include/{ => uapi}/asm/param.h        |    0
- arch/hexagon/include/{ => uapi}/asm/ptrace.h       |    0
- arch/hexagon/include/{ => uapi}/asm/registers.h    |    0
- arch/hexagon/include/{ => uapi}/asm/setup.h        |    0
- arch/hexagon/include/{ => uapi}/asm/sigcontext.h   |    0
- arch/hexagon/include/{ => uapi}/asm/signal.h       |    0
- arch/hexagon/include/{ => uapi}/asm/swab.h         |    0
- arch/hexagon/include/{ => uapi}/asm/unistd.h       |    0
- arch/hexagon/include/{ => uapi}/asm/user.h         |    0
- arch/ia64/include/asm/Kbuild                       |   12 -
- arch/ia64/include/asm/gcc_intrin.h                 |  616 +-----
- arch/ia64/include/asm/intrinsics.h                 |  234 +--
- arch/ia64/include/asm/kvm_para.h                   |   21 +-
- arch/ia64/include/asm/mman.h                       |   14 +-
- arch/ia64/include/asm/param.h                      |   26 +-
- arch/ia64/include/asm/perfmon.h                    |  171 +--
- arch/ia64/include/asm/posix_types.h                |   47 +-
- arch/ia64/include/asm/ptrace.h                     |  246 +--
- arch/ia64/include/asm/siginfo.h                    |  120 +-
- arch/ia64/include/asm/signal.h                     |  125 +-
- arch/ia64/include/asm/termios.h                    |   48 +-
- arch/ia64/include/asm/types.h                      |   30 +-
- arch/ia64/include/asm/unistd.h                     |  326 +---
- arch/ia64/include/asm/ustack.h                     |   11 +-
- arch/ia64/include/uapi/asm/Kbuild                  |   47 +
- arch/ia64/include/{ => uapi}/asm/auxvec.h          |    0
- arch/ia64/include/{ => uapi}/asm/bitsperlong.h     |    0
- arch/ia64/include/{ => uapi}/asm/break.h           |    0
- arch/ia64/include/{ => uapi}/asm/byteorder.h       |    0
- arch/ia64/include/{ => uapi}/asm/errno.h           |    0
- arch/ia64/include/{ => uapi}/asm/fcntl.h           |    0
- arch/ia64/include/{ => uapi}/asm/fpu.h             |    0
- arch/ia64/include/uapi/asm/gcc_intrin.h            |  618 +++++
- arch/ia64/include/{ => uapi}/asm/ia64regs.h        |    0
- arch/ia64/include/{ => uapi}/asm/intel_intrin.h    |    0
- arch/ia64/include/uapi/asm/intrinsics.h            |  236 ++
- arch/ia64/include/{ => uapi}/asm/ioctl.h           |    0
- arch/ia64/include/{ => uapi}/asm/ioctls.h          |    0
- arch/ia64/include/{ => uapi}/asm/ipcbuf.h          |    0
- arch/ia64/include/{ => uapi}/asm/kvm.h             |    0
- arch/ia64/include/uapi/asm/mman.h                  |   16 +
- arch/ia64/include/{ => uapi}/asm/msgbuf.h          |    0
- arch/ia64/include/uapi/asm/param.h                 |   29 +
- arch/ia64/include/uapi/asm/perfmon.h               |  177 ++
- .../include/{ => uapi}/asm/perfmon_default_smpl.h  |    0
- arch/ia64/include/{ => uapi}/asm/poll.h            |    0
- arch/ia64/include/uapi/asm/posix_types.h           |   49 +
- arch/ia64/include/uapi/asm/ptrace.h                |  247 ++
- arch/ia64/include/{ => uapi}/asm/ptrace_offsets.h  |    0
- arch/ia64/include/{ => uapi}/asm/resource.h        |    0
- arch/ia64/include/{ => uapi}/asm/rse.h             |    0
- arch/ia64/include/{ => uapi}/asm/sembuf.h          |    0
- arch/ia64/include/{ => uapi}/asm/setup.h           |    0
- arch/ia64/include/{ => uapi}/asm/shmbuf.h          |    0
- arch/ia64/include/{ => uapi}/asm/sigcontext.h      |    0
- arch/ia64/include/uapi/asm/siginfo.h               |  121 +
- arch/ia64/include/uapi/asm/signal.h                |  127 +
- arch/ia64/include/{ => uapi}/asm/socket.h          |    0
- arch/ia64/include/{ => uapi}/asm/sockios.h         |    0
- arch/ia64/include/{ => uapi}/asm/stat.h            |    0
- arch/ia64/include/{ => uapi}/asm/statfs.h          |    0
- arch/ia64/include/{ => uapi}/asm/swab.h            |    0
- arch/ia64/include/{ => uapi}/asm/termbits.h        |    0
- arch/ia64/include/uapi/asm/termios.h               |   50 +
- arch/ia64/include/uapi/asm/types.h                 |   34 +
- arch/ia64/include/{ => uapi}/asm/ucontext.h        |    0
- arch/ia64/include/uapi/asm/unistd.h                |  328 +++
- arch/ia64/include/uapi/asm/ustack.h                |   12 +
- arch/m32r/include/asm/posix_types.h                |   44 +-
- arch/m32r/include/asm/ptrace.h                     |  119 +-
- arch/m32r/include/asm/setup.h                      |    9 +-
- arch/m32r/include/asm/signal.h                     |  123 +-
- arch/m32r/include/asm/termios.h                    |   42 +-
- arch/m32r/include/asm/types.h                      |    8 +-
- arch/m32r/include/asm/unistd.h                     |  333 +---
- arch/m32r/include/uapi/asm/Kbuild                  |   33 +
- arch/m32r/include/{ => uapi}/asm/auxvec.h          |    0
- arch/m32r/include/{ => uapi}/asm/bitsperlong.h     |    0
- arch/m32r/include/{ => uapi}/asm/byteorder.h       |    0
- arch/m32r/include/{ => uapi}/asm/errno.h           |    0
- arch/m32r/include/{ => uapi}/asm/fcntl.h           |    0
- arch/m32r/include/{ => uapi}/asm/ioctl.h           |    0
- arch/m32r/include/{ => uapi}/asm/ioctls.h          |    0
- arch/m32r/include/{ => uapi}/asm/ipcbuf.h          |    0
- arch/m32r/include/{ => uapi}/asm/mman.h            |    0
- arch/m32r/include/{ => uapi}/asm/msgbuf.h          |    0
- arch/m32r/include/{ => uapi}/asm/param.h           |    0
- arch/m32r/include/{ => uapi}/asm/poll.h            |    0
- arch/m32r/include/uapi/asm/posix_types.h           |   46 +
- arch/m32r/include/uapi/asm/ptrace.h                |  120 +
- arch/m32r/include/{ => uapi}/asm/resource.h        |    0
- arch/m32r/include/{ => uapi}/asm/sembuf.h          |    0
- arch/m32r/include/uapi/asm/setup.h                 |   11 +
- arch/m32r/include/{ => uapi}/asm/shmbuf.h          |    0
- arch/m32r/include/{ => uapi}/asm/sigcontext.h      |    0
- arch/m32r/include/{ => uapi}/asm/siginfo.h         |    0
- arch/m32r/include/uapi/asm/signal.h                |  123 +
- arch/m32r/include/{ => uapi}/asm/socket.h          |    0
- arch/m32r/include/{ => uapi}/asm/sockios.h         |    0
- arch/m32r/include/{ => uapi}/asm/stat.h            |    0
- arch/m32r/include/{ => uapi}/asm/statfs.h          |    0
- arch/m32r/include/{ => uapi}/asm/swab.h            |    0
- arch/m32r/include/{ => uapi}/asm/termbits.h        |    0
- arch/m32r/include/uapi/asm/termios.h               |   43 +
- arch/m32r/include/uapi/asm/types.h                 |    1 +
- arch/m32r/include/uapi/asm/unistd.h                |  335 +++
- arch/m68k/include/asm/Kbuild                       |    1 -
- arch/m68k/include/asm/cacheflush.h                 |    4 +-
- arch/m68k/include/asm/io.h                         |    4 +-
- arch/m68k/include/asm/m68360.h                     |    8 +-
- arch/m68k/include/asm/m68360_enet.h                |    2 +-
- arch/m68k/include/asm/page.h                       |    4 +-
- arch/m68k/include/asm/pgtable.h                    |    4 +-
- arch/m68k/include/asm/posix_types.h                |   44 +-
- arch/m68k/include/asm/ptrace.h                     |   72 +-
- arch/m68k/include/asm/q40_master.h                 |    2 +-
- arch/m68k/include/asm/setup.h                      |   82 +-
- arch/m68k/include/asm/signal.h                     |  118 +-
- arch/m68k/include/asm/termios.h                    |   44 +-
- arch/m68k/include/asm/types.h                      |   15 +-
- arch/m68k/include/asm/uaccess.h                    |    4 +-
- arch/m68k/include/asm/unistd.h                     |  354 +---
- arch/m68k/include/uapi/asm/Kbuild                  |   35 +
- arch/m68k/include/{ => uapi}/asm/a.out.h           |    0
- arch/m68k/include/{ => uapi}/asm/auxvec.h          |    0
- arch/m68k/include/{ => uapi}/asm/bitsperlong.h     |    0
- arch/m68k/include/{ => uapi}/asm/byteorder.h       |    0
- arch/m68k/include/{ => uapi}/asm/cachectl.h        |    0
- arch/m68k/include/{ => uapi}/asm/errno.h           |    0
- arch/m68k/include/{ => uapi}/asm/fcntl.h           |    0
- arch/m68k/include/{ => uapi}/asm/ioctl.h           |    0
- arch/m68k/include/{ => uapi}/asm/ioctls.h          |    0
- arch/m68k/include/{ => uapi}/asm/ipcbuf.h          |    0
- arch/m68k/include/{ => uapi}/asm/mman.h            |    0
- arch/m68k/include/{ => uapi}/asm/msgbuf.h          |    0
- arch/m68k/include/{ => uapi}/asm/param.h           |    0
- arch/m68k/include/{ => uapi}/asm/poll.h            |    0
- arch/m68k/include/uapi/asm/posix_types.h           |   46 +
- arch/m68k/include/uapi/asm/ptrace.h                |   79 +
- arch/m68k/include/{ => uapi}/asm/resource.h        |    0
- arch/m68k/include/{ => uapi}/asm/sembuf.h          |    0
- arch/m68k/include/uapi/asm/setup.h                 |  103 +
- arch/m68k/include/{ => uapi}/asm/shmbuf.h          |    0
- arch/m68k/include/{ => uapi}/asm/sigcontext.h      |    0
- arch/m68k/include/{ => uapi}/asm/siginfo.h         |    0
- arch/m68k/include/uapi/asm/signal.h                |  118 +
- arch/m68k/include/{ => uapi}/asm/socket.h          |    0
- arch/m68k/include/{ => uapi}/asm/sockios.h         |    0
- arch/m68k/include/{ => uapi}/asm/stat.h            |    0
- arch/m68k/include/{ => uapi}/asm/statfs.h          |    0
- arch/m68k/include/{ => uapi}/asm/swab.h            |    0
- arch/m68k/include/{ => uapi}/asm/termbits.h        |    0
- arch/m68k/include/uapi/asm/termios.h               |   44 +
- arch/m68k/include/uapi/asm/types.h                 |    1 +
- arch/m68k/include/uapi/asm/unistd.h                |  356 +++
- arch/microblaze/include/asm/Kbuild                 |    1 -
- arch/microblaze/include/asm/elf.h                  |   97 +-
- arch/microblaze/include/asm/mmu_context.h          |    2 +-
- arch/microblaze/include/asm/ptrace.h               |   62 +-
- arch/microblaze/include/asm/setup.h                |    6 +-
- arch/microblaze/include/asm/unistd.h               |  390 +----
- arch/microblaze/include/uapi/asm/Kbuild            |   34 +
- arch/microblaze/include/{ => uapi}/asm/auxvec.h    |    0
- .../include/{ => uapi}/asm/bitsperlong.h           |    0
- arch/microblaze/include/{ => uapi}/asm/byteorder.h |    0
- arch/microblaze/include/uapi/asm/elf.h             |  121 +
- arch/microblaze/include/{ => uapi}/asm/errno.h     |    0
- arch/microblaze/include/{ => uapi}/asm/fcntl.h     |    0
- arch/microblaze/include/{ => uapi}/asm/ioctl.h     |    0
- arch/microblaze/include/{ => uapi}/asm/ioctls.h    |    0
- arch/microblaze/include/{ => uapi}/asm/ipcbuf.h    |    0
- arch/microblaze/include/{ => uapi}/asm/mman.h      |    0
- arch/microblaze/include/{ => uapi}/asm/msgbuf.h    |    0
- arch/microblaze/include/{ => uapi}/asm/param.h     |    0
- arch/microblaze/include/{ => uapi}/asm/poll.h      |    0
- .../include/{ => uapi}/asm/posix_types.h           |    0
- arch/microblaze/include/uapi/asm/ptrace.h          |   72 +
- arch/microblaze/include/{ => uapi}/asm/resource.h  |    0
- arch/microblaze/include/{ => uapi}/asm/sembuf.h    |    0
- arch/microblaze/include/uapi/asm/setup.h           |   19 +
- arch/microblaze/include/{ => uapi}/asm/shmbuf.h    |    0
- .../microblaze/include/{ => uapi}/asm/sigcontext.h |    0
- arch/microblaze/include/{ => uapi}/asm/siginfo.h   |    0
- arch/microblaze/include/{ => uapi}/asm/signal.h    |    0
- arch/microblaze/include/{ => uapi}/asm/socket.h    |    0
- arch/microblaze/include/{ => uapi}/asm/sockios.h   |    0
- arch/microblaze/include/{ => uapi}/asm/stat.h      |    0
- arch/microblaze/include/{ => uapi}/asm/statfs.h    |    0
- arch/microblaze/include/{ => uapi}/asm/swab.h      |    0
- arch/microblaze/include/{ => uapi}/asm/termbits.h  |    0
- arch/microblaze/include/{ => uapi}/asm/termios.h   |    0
- arch/microblaze/include/{ => uapi}/asm/types.h     |    0
- arch/microblaze/include/uapi/asm/unistd.h          |  400 ++++
- arch/mips/include/asm/Kbuild                       |    3 -
- arch/mips/include/asm/errno.h                      |  120 +-
- arch/mips/include/asm/mach-bcm63xx/bcm63xx_io.h    |    2 +-
- arch/mips/include/asm/mach-pnx833x/gpio.h          |    2 +-
- arch/mips/include/asm/octeon/cvmx-asm.h            |    2 +-
- arch/mips/include/asm/octeon/cvmx-cmd-queue.h      |    2 +-
- arch/mips/include/asm/octeon/cvmx-fpa.h            |    4 +-
- arch/mips/include/asm/octeon/cvmx-helper-board.h   |    2 +-
- arch/mips/include/asm/octeon/cvmx-helper.h         |   22 +-
- arch/mips/include/asm/octeon/cvmx-mdio.h           |    2 +-
- arch/mips/include/asm/octeon/cvmx-pip.h            |    6 +-
- arch/mips/include/asm/octeon/cvmx-pko.h            |    8 +-
- arch/mips/include/asm/octeon/cvmx-pow.h            |    4 +-
- arch/mips/include/asm/octeon/cvmx-spi.h            |    2 +-
- arch/mips/include/asm/octeon/cvmx-spinlock.h       |    2 +-
- arch/mips/include/asm/octeon/cvmx-wqe.h            |    2 +-
- arch/mips/include/asm/octeon/cvmx.h                |   36 +-
- arch/mips/include/asm/octeon/octeon-model.h        |    2 +-
- arch/mips/include/asm/octeon/octeon.h              |    2 +-
- arch/mips/include/asm/posix_types.h                |   63 +-
- arch/mips/include/asm/ptrace.h                     |  107 +-
- arch/mips/include/asm/setup.h                      |    5 +-
- arch/mips/include/asm/sibyte/bcm1480_int.h         |    2 +-
- arch/mips/include/asm/sibyte/bcm1480_l2c.h         |    2 +-
- arch/mips/include/asm/sibyte/bcm1480_mc.h          |    2 +-
- arch/mips/include/asm/sibyte/bcm1480_regs.h        |    4 +-
- arch/mips/include/asm/sibyte/bcm1480_scd.h         |    4 +-
- arch/mips/include/asm/sibyte/sb1250_dma.h          |    2 +-
- arch/mips/include/asm/sibyte/sb1250_genbus.h       |    2 +-
- arch/mips/include/asm/sibyte/sb1250_int.h          |    2 +-
- arch/mips/include/asm/sibyte/sb1250_l2c.h          |    2 +-
- arch/mips/include/asm/sibyte/sb1250_ldt.h          |    2 +-
- arch/mips/include/asm/sibyte/sb1250_mac.h          |    2 +-
- arch/mips/include/asm/sibyte/sb1250_mc.h           |    2 +-
- arch/mips/include/asm/sibyte/sb1250_regs.h         |    2 +-
- arch/mips/include/asm/sibyte/sb1250_scd.h          |    2 +-
- arch/mips/include/asm/sibyte/sb1250_smbus.h        |    2 +-
- arch/mips/include/asm/sibyte/sb1250_syncser.h      |    2 +-
- arch/mips/include/asm/sibyte/sb1250_uart.h         |    2 +-
- arch/mips/include/asm/sigcontext.h                 |   66 +-
- arch/mips/include/asm/siginfo.h                    |  104 +-
- arch/mips/include/asm/signal.h                     |  115 +-
- arch/mips/include/asm/socket.h                     |   83 +-
- arch/mips/include/asm/termios.h                    |   73 +-
- arch/mips/include/asm/types.h                      |   19 +-
- arch/mips/include/asm/unistd.h                     | 1019 +---------
- arch/mips/include/uapi/asm/Kbuild                  |   36 +
- arch/mips/include/{ => uapi}/asm/auxvec.h          |    0
- arch/mips/include/{ => uapi}/asm/bitsperlong.h     |    0
- arch/mips/include/{ => uapi}/asm/byteorder.h       |    0
- arch/mips/include/{ => uapi}/asm/cachectl.h        |    0
- arch/mips/include/uapi/asm/errno.h                 |  129 ++
- arch/mips/include/{ => uapi}/asm/fcntl.h           |    0
- arch/mips/include/{ => uapi}/asm/ioctl.h           |    0
- arch/mips/include/{ => uapi}/asm/ioctls.h          |    0
- arch/mips/include/{ => uapi}/asm/ipcbuf.h          |    0
- arch/mips/include/{ => uapi}/asm/mman.h            |    0
- arch/mips/include/{ => uapi}/asm/msgbuf.h          |    0
- arch/mips/include/{ => uapi}/asm/param.h           |    0
- arch/mips/include/{ => uapi}/asm/poll.h            |    0
- arch/mips/include/uapi/asm/posix_types.h           |   73 +
- arch/mips/include/uapi/asm/ptrace.h                |  116 +
- arch/mips/include/{ => uapi}/asm/resource.h        |    0
- arch/mips/include/{ => uapi}/asm/sembuf.h          |    0
- arch/mips/include/uapi/asm/setup.h                 |    7 +
- arch/mips/include/{ => uapi}/asm/sgidefs.h         |    0
- arch/mips/include/{ => uapi}/asm/shmbuf.h          |    0
- arch/mips/include/uapi/asm/sigcontext.h            |   78 +
- arch/mips/include/uapi/asm/siginfo.h               |  114 +
- arch/mips/include/uapi/asm/signal.h                |  123 +
- arch/mips/include/uapi/asm/socket.h                |   93 +
- arch/mips/include/{ => uapi}/asm/sockios.h         |    0
- arch/mips/include/{ => uapi}/asm/stat.h            |    0
- arch/mips/include/{ => uapi}/asm/statfs.h          |    0
- arch/mips/include/{ => uapi}/asm/swab.h            |    0
- arch/mips/include/{ => uapi}/asm/sysmips.h         |    0
- arch/mips/include/{ => uapi}/asm/termbits.h        |    0
- arch/mips/include/uapi/asm/termios.h               |   80 +
- arch/mips/include/uapi/asm/types.h                 |   30 +
- arch/mips/include/uapi/asm/unistd.h                | 1032 +++++++++
- arch/mn10300/include/asm/ptrace.h                  |   75 +-
- arch/mn10300/include/asm/setup.h                   |    4 +-
- arch/mn10300/include/asm/signal.h                  |  121 +-
- arch/mn10300/include/asm/termios.h                 |   81 +-
- arch/mn10300/include/asm/types.h                   |    8 +-
- arch/mn10300/include/asm/unistd.h                  |  342 +---
- arch/mn10300/include/uapi/asm/Kbuild               |   33 +
- arch/mn10300/include/{ => uapi}/asm/auxvec.h       |    0
- arch/mn10300/include/{ => uapi}/asm/bitsperlong.h  |    0
- arch/mn10300/include/{ => uapi}/asm/byteorder.h    |    0
- arch/mn10300/include/{ => uapi}/asm/errno.h        |    0
- arch/mn10300/include/{ => uapi}/asm/fcntl.h        |    0
- arch/mn10300/include/{ => uapi}/asm/ioctl.h        |    0
- arch/mn10300/include/{ => uapi}/asm/ioctls.h       |    0
- arch/mn10300/include/{ => uapi}/asm/ipcbuf.h       |    0
- arch/mn10300/include/{ => uapi}/asm/mman.h         |    0
- arch/mn10300/include/{ => uapi}/asm/msgbuf.h       |    0
- arch/mn10300/include/{ => uapi}/asm/param.h        |    0
- arch/mn10300/include/{ => uapi}/asm/poll.h         |    0
- arch/mn10300/include/{ => uapi}/asm/posix_types.h  |    0
- arch/mn10300/include/uapi/asm/ptrace.h             |   87 +
- arch/mn10300/include/{ => uapi}/asm/resource.h     |    0
- arch/mn10300/include/{ => uapi}/asm/sembuf.h       |    0
- arch/mn10300/include/{ => uapi}/asm/shmbuf.h       |    0
- arch/mn10300/include/{ => uapi}/asm/sigcontext.h   |    0
- arch/mn10300/include/{ => uapi}/asm/siginfo.h      |    0
- arch/mn10300/include/uapi/asm/signal.h             |  131 ++
- arch/mn10300/include/{ => uapi}/asm/socket.h       |    0
- arch/mn10300/include/{ => uapi}/asm/sockios.h      |    0
- arch/mn10300/include/{ => uapi}/asm/stat.h         |    0
- arch/mn10300/include/{ => uapi}/asm/statfs.h       |    0
- arch/mn10300/include/{ => uapi}/asm/swab.h         |    0
- arch/mn10300/include/{ => uapi}/asm/termbits.h     |    0
- arch/mn10300/include/uapi/asm/termios.h            |   83 +
- arch/mn10300/include/uapi/asm/types.h              |    1 +
- arch/mn10300/include/uapi/asm/unistd.h             |  354 +++
- arch/openrisc/include/asm/Kbuild                   |    1 -
- arch/openrisc/include/asm/ptrace.h                 |   20 +-
- arch/openrisc/include/uapi/asm/Kbuild              |    9 +
- arch/openrisc/include/{ => uapi}/asm/byteorder.h   |    0
- arch/openrisc/include/{ => uapi}/asm/param.h       |    0
- arch/openrisc/include/uapi/asm/ptrace.h            |   39 +
- arch/openrisc/include/{ => uapi}/asm/sigcontext.h  |    0
- arch/openrisc/include/{ => uapi}/asm/spr_defs.h    |    0
- arch/openrisc/include/{ => uapi}/asm/unistd.h      |    0
- arch/parisc/include/asm/Kbuild                     |    1 -
- arch/parisc/include/asm/pdc.h                      |  428 +----
- arch/parisc/include/asm/posix_types.h              |   55 +-
- arch/parisc/include/asm/ptrace.h                   |   45 +-
- arch/parisc/include/asm/signal.h                   |  113 +-
- arch/parisc/include/asm/termios.h                  |   41 +-
- arch/parisc/include/asm/unistd.h                   |  835 +-------
- arch/parisc/include/uapi/asm/Kbuild                |   34 +
- arch/parisc/include/{ => uapi}/asm/auxvec.h        |    0
- arch/parisc/include/{ => uapi}/asm/bitsperlong.h   |    0
- arch/parisc/include/{ => uapi}/asm/byteorder.h     |    0
- arch/parisc/include/{ => uapi}/asm/errno.h         |    0
- arch/parisc/include/{ => uapi}/asm/fcntl.h         |    0
- arch/parisc/include/{ => uapi}/asm/ioctl.h         |    0
- arch/parisc/include/{ => uapi}/asm/ioctls.h        |    0
- arch/parisc/include/{ => uapi}/asm/ipcbuf.h        |    0
- arch/parisc/include/{ => uapi}/asm/mman.h          |    0
- arch/parisc/include/{ => uapi}/asm/msgbuf.h        |    0
- arch/parisc/include/{ => uapi}/asm/param.h         |    0
- arch/parisc/include/uapi/asm/pdc.h                 |  432 ++++
- arch/parisc/include/{ => uapi}/asm/poll.h          |    0
- arch/parisc/include/uapi/asm/posix_types.h         |   57 +
- arch/parisc/include/uapi/asm/ptrace.h              |   47 +
- arch/parisc/include/{ => uapi}/asm/resource.h      |    0
- arch/parisc/include/{ => uapi}/asm/sembuf.h        |    0
- arch/parisc/include/{ => uapi}/asm/setup.h         |    0
- arch/parisc/include/{ => uapi}/asm/shmbuf.h        |    0
- arch/parisc/include/{ => uapi}/asm/sigcontext.h    |    0
- arch/parisc/include/{ => uapi}/asm/siginfo.h       |    0
- arch/parisc/include/uapi/asm/signal.h              |  118 +
- arch/parisc/include/{ => uapi}/asm/socket.h        |    0
- arch/parisc/include/{ => uapi}/asm/sockios.h       |    0
- arch/parisc/include/{ => uapi}/asm/stat.h          |    0
- arch/parisc/include/{ => uapi}/asm/statfs.h        |    0
- arch/parisc/include/{ => uapi}/asm/swab.h          |    0
- arch/parisc/include/{ => uapi}/asm/termbits.h      |    0
- arch/parisc/include/uapi/asm/termios.h             |   43 +
- arch/parisc/include/{ => uapi}/asm/types.h         |    0
- arch/parisc/include/uapi/asm/unistd.h              |  837 +++++++
- arch/powerpc/include/asm/Kbuild                    |   34 -
- arch/powerpc/include/asm/bootx.h                   |  124 +-
- arch/powerpc/include/asm/cputable.h                |   35 +-
- arch/powerpc/include/asm/elf.h                     |  309 +---
- arch/powerpc/include/asm/kvm_para.h                |   35 +-
- arch/powerpc/include/asm/mman.h                    |   29 +-
- arch/powerpc/include/asm/nvram.h                   |   55 +-
- arch/powerpc/include/asm/posix_types.h             |   63 +-
- arch/powerpc/include/asm/ps3.h                     |    2 +-
- arch/powerpc/include/asm/ptrace.h                  |  266 +---
- arch/powerpc/include/asm/signal.h                  |  143 +--
- arch/powerpc/include/asm/spu_info.h                |   29 +-
- arch/powerpc/include/asm/swab.h                    |   17 +-
- arch/powerpc/include/asm/termios.h                 |   76 +-
- arch/powerpc/include/asm/types.h                   |   38 +-
- arch/powerpc/include/asm/ucc_fast.h                |    2 +-
- arch/powerpc/include/asm/ucc_slow.h                |    2 +-
- arch/powerpc/include/asm/unistd.h                  |  378 +---
- arch/powerpc/include/uapi/asm/Kbuild               |   44 +
- arch/powerpc/include/{ => uapi}/asm/auxvec.h       |    0
- arch/powerpc/include/{ => uapi}/asm/bitsperlong.h  |    0
- arch/powerpc/include/uapi/asm/bootx.h              |  132 ++
- arch/powerpc/include/{ => uapi}/asm/byteorder.h    |    0
- arch/powerpc/include/uapi/asm/cputable.h           |   36 +
- arch/powerpc/include/uapi/asm/elf.h                |  307 +++
- arch/powerpc/include/{ => uapi}/asm/errno.h        |    0
- arch/powerpc/include/{ => uapi}/asm/fcntl.h        |    0
- arch/powerpc/include/{ => uapi}/asm/ioctl.h        |    0
- arch/powerpc/include/{ => uapi}/asm/ioctls.h       |    0
- arch/powerpc/include/{ => uapi}/asm/ipcbuf.h       |    0
- arch/powerpc/include/{ => uapi}/asm/kvm.h          |    0
- arch/powerpc/include/uapi/asm/kvm_para.h           |   53 +
- arch/powerpc/include/{ => uapi}/asm/linkage.h      |    0
- arch/powerpc/include/uapi/asm/mman.h               |   31 +
- arch/powerpc/include/{ => uapi}/asm/msgbuf.h       |    0
- arch/powerpc/include/uapi/asm/nvram.h              |   62 +
- arch/powerpc/include/{ => uapi}/asm/param.h        |    0
- arch/powerpc/include/{ => uapi}/asm/poll.h         |    0
- arch/powerpc/include/uapi/asm/posix_types.h        |   68 +
- arch/powerpc/include/{ => uapi}/asm/ps3fb.h        |    0
- arch/powerpc/include/uapi/asm/ptrace.h             |  265 +++
- arch/powerpc/include/{ => uapi}/asm/resource.h     |    0
- arch/powerpc/include/{ => uapi}/asm/seccomp.h      |    0
- arch/powerpc/include/{ => uapi}/asm/sembuf.h       |    0
- arch/powerpc/include/{ => uapi}/asm/setup.h        |    0
- arch/powerpc/include/{ => uapi}/asm/shmbuf.h       |    0
- arch/powerpc/include/{ => uapi}/asm/sigcontext.h   |    0
- arch/powerpc/include/{ => uapi}/asm/siginfo.h      |    0
- arch/powerpc/include/uapi/asm/signal.h             |  145 ++
- arch/powerpc/include/{ => uapi}/asm/socket.h       |    0
- arch/powerpc/include/{ => uapi}/asm/sockios.h      |    0
- arch/powerpc/include/uapi/asm/spu_info.h           |   53 +
- arch/powerpc/include/{ => uapi}/asm/stat.h         |    0
- arch/powerpc/include/{ => uapi}/asm/statfs.h       |    0
- arch/powerpc/include/uapi/asm/swab.h               |   23 +
- arch/powerpc/include/{ => uapi}/asm/termbits.h     |    0
- arch/powerpc/include/uapi/asm/termios.h            |   76 +
- arch/powerpc/include/uapi/asm/types.h              |   40 +
- arch/powerpc/include/{ => uapi}/asm/ucontext.h     |    0
- arch/powerpc/include/uapi/asm/unistd.h             |  380 +++
- arch/s390/include/asm/Kbuild                       |   13 -
- arch/s390/include/asm/chpid.h                      |   17 +-
- arch/s390/include/asm/chsc.h                       |  120 +-
- arch/s390/include/asm/cmb.h                        |   51 +-
- arch/s390/include/asm/debug.h                      |   28 +-
- arch/s390/include/asm/kvm_para.h                   |    6 +-
- arch/s390/include/asm/mman.h                       |    6 +-
- arch/s390/include/asm/posix_types.h                |   67 +-
- arch/s390/include/asm/ptrace.h                     |  458 +----
- arch/s390/include/asm/schid.h                      |   15 +-
- arch/s390/include/asm/setup.h                      |    7 +-
- arch/s390/include/asm/signal.h                     |  128 +-
- arch/s390/include/asm/termios.h                    |   42 +-
- arch/s390/include/asm/types.h                      |   18 +-
- arch/s390/include/asm/unistd.h                     |  365 +---
- arch/s390/include/uapi/asm/Kbuild                  |   48 +
- arch/s390/include/{ => uapi}/asm/auxvec.h          |    0
- arch/s390/include/{ => uapi}/asm/bitsperlong.h     |    0
- arch/s390/include/{ => uapi}/asm/byteorder.h       |    0
- arch/s390/include/uapi/asm/chpid.h                 |   24 +
- arch/s390/include/uapi/asm/chsc.h                  |  128 ++
- arch/s390/include/uapi/asm/cmb.h                   |   53 +
- arch/s390/include/{ => uapi}/asm/dasd.h            |    0
- arch/s390/include/uapi/asm/debug.h                 |   36 +
- arch/s390/include/{ => uapi}/asm/errno.h           |    0
- arch/s390/include/{ => uapi}/asm/fcntl.h           |    0
- arch/s390/include/{ => uapi}/asm/ioctl.h           |    0
- arch/s390/include/{ => uapi}/asm/ioctls.h          |    0
- arch/s390/include/{ => uapi}/asm/ipcbuf.h          |    0
- arch/s390/include/{ => uapi}/asm/kvm.h             |    0
- arch/s390/include/{ => uapi}/asm/kvm_virtio.h      |    0
- arch/{sh/include => s390/include/uapi}/asm/mman.h  |    0
- arch/s390/include/{ => uapi}/asm/monwriter.h       |    0
- arch/s390/include/{ => uapi}/asm/msgbuf.h          |    0
- arch/s390/include/{ => uapi}/asm/param.h           |    0
- arch/s390/include/{ => uapi}/asm/poll.h            |    0
- arch/s390/include/uapi/asm/posix_types.h           |   76 +
- arch/s390/include/uapi/asm/ptrace.h                |  470 ++++
- arch/s390/include/{ => uapi}/asm/qeth.h            |    0
- arch/s390/include/{ => uapi}/asm/resource.h        |    0
- arch/s390/include/uapi/asm/schid.h                 |   16 +
- arch/s390/include/{ => uapi}/asm/sembuf.h          |    0
- arch/s390/include/uapi/asm/setup.h                 |   15 +
- arch/s390/include/{ => uapi}/asm/shmbuf.h          |    0
- arch/s390/include/{ => uapi}/asm/sigcontext.h      |    0
- arch/s390/include/{ => uapi}/asm/siginfo.h         |    0
- arch/s390/include/uapi/asm/signal.h                |  137 ++
- arch/s390/include/{ => uapi}/asm/socket.h          |    0
- arch/s390/include/{ => uapi}/asm/sockios.h         |    0
- arch/s390/include/{ => uapi}/asm/stat.h            |    0
- arch/s390/include/{ => uapi}/asm/statfs.h          |    0
- arch/s390/include/{ => uapi}/asm/swab.h            |    0
- arch/s390/include/{ => uapi}/asm/tape390.h         |    0
- arch/s390/include/{ => uapi}/asm/termbits.h        |    0
- arch/s390/include/uapi/asm/termios.h               |   51 +
- arch/s390/include/uapi/asm/types.h                 |   27 +
- arch/s390/include/{ => uapi}/asm/ucontext.h        |    0
- arch/s390/include/uapi/asm/unistd.h                |  374 +++
- arch/s390/include/{ => uapi}/asm/vtoc.h            |    0
- arch/s390/include/{ => uapi}/asm/zcrypt.h          |    0
- arch/score/include/asm/ptrace.h                    |   74 +-
- arch/score/include/asm/setup.h                     |    7 +-
- arch/score/include/uapi/asm/Kbuild                 |   33 +
- arch/score/include/{ => uapi}/asm/auxvec.h         |    0
- arch/score/include/{ => uapi}/asm/bitsperlong.h    |    0
- arch/score/include/{ => uapi}/asm/byteorder.h      |    0
- arch/score/include/{ => uapi}/asm/errno.h          |    0
- arch/score/include/{ => uapi}/asm/fcntl.h          |    0
- arch/score/include/{ => uapi}/asm/ioctl.h          |    0
- arch/score/include/{ => uapi}/asm/ioctls.h         |    0
- arch/score/include/{ => uapi}/asm/ipcbuf.h         |    0
- arch/score/include/{ => uapi}/asm/mman.h           |    0
- arch/score/include/{ => uapi}/asm/msgbuf.h         |    0
- arch/score/include/{ => uapi}/asm/param.h          |    0
- arch/score/include/{ => uapi}/asm/poll.h           |    0
- arch/score/include/{ => uapi}/asm/posix_types.h    |    0
- arch/score/include/uapi/asm/ptrace.h               |   76 +
- arch/score/include/{ => uapi}/asm/resource.h       |    0
- arch/score/include/{ => uapi}/asm/sembuf.h         |    0
- arch/score/include/uapi/asm/setup.h                |    9 +
- arch/score/include/{ => uapi}/asm/shmbuf.h         |    0
- arch/score/include/{ => uapi}/asm/sigcontext.h     |    0
- arch/score/include/{ => uapi}/asm/siginfo.h        |    0
- arch/score/include/{ => uapi}/asm/signal.h         |    0
- arch/score/include/{ => uapi}/asm/socket.h         |    0
- arch/score/include/{ => uapi}/asm/sockios.h        |    0
- arch/score/include/{ => uapi}/asm/stat.h           |    0
- arch/score/include/{ => uapi}/asm/statfs.h         |    0
- arch/score/include/{ => uapi}/asm/swab.h           |    0
- arch/score/include/{ => uapi}/asm/termbits.h       |    0
- arch/score/include/{ => uapi}/asm/termios.h        |    0
- arch/score/include/{ => uapi}/asm/types.h          |    0
- arch/score/include/{ => uapi}/asm/unistd.h         |    0
- arch/sh/include/asm/Kbuild                         |    9 -
- arch/sh/include/asm/checksum.h                     |    2 +-
- arch/sh/include/asm/hw_breakpoint.h                |    4 +-
- arch/sh/include/asm/mmu_context.h                  |    4 +-
- arch/sh/include/asm/posix_types.h                  |   12 +-
- arch/sh/include/asm/processor.h                    |    4 +-
- arch/sh/include/asm/ptrace.h                       |   33 +-
- arch/sh/include/asm/ptrace_32.h                    |   75 +-
- arch/sh/include/asm/ptrace_64.h                    |   12 +-
- arch/sh/include/asm/setup.h                        |    5 +-
- arch/sh/include/asm/string.h                       |    4 +-
- arch/sh/include/asm/syscall.h                      |    4 +-
- arch/sh/include/asm/syscalls.h                     |    4 +-
- arch/sh/include/asm/system.h                       |    4 +-
- arch/sh/include/asm/tlb.h                          |    2 +-
- arch/sh/include/asm/types.h                        |    8 +-
- arch/sh/include/asm/uaccess.h                      |    4 +-
- arch/sh/include/asm/unistd.h                       |   12 +-
- arch/sh/include/asm/unistd_32.h                    |  381 +---
- arch/sh/include/asm/unistd_64.h                    |  400 +----
- arch/sh/include/mach-ecovec24/mach/romimage.h      |    2 +-
- arch/sh/include/mach-kfr2r09/mach/romimage.h       |    2 +-
- arch/sh/include/uapi/asm/Kbuild                    |   42 +
- arch/sh/include/{ => uapi}/asm/auxvec.h            |    0
- arch/sh/include/{ => uapi}/asm/bitsperlong.h       |    0
- arch/sh/include/{ => uapi}/asm/byteorder.h         |    0
- arch/sh/include/{ => uapi}/asm/cachectl.h          |    0
- arch/sh/include/{ => uapi}/asm/cpu-features.h      |    0
- arch/sh/include/{ => uapi}/asm/errno.h             |    0
- arch/sh/include/{ => uapi}/asm/fcntl.h             |    0
- arch/sh/include/{ => uapi}/asm/ioctl.h             |    0
- arch/sh/include/{ => uapi}/asm/ioctls.h            |    0
- arch/sh/include/{ => uapi}/asm/ipcbuf.h            |    0
- arch/sh/include/uapi/asm/mman.h                    |    1 +
- arch/sh/include/{ => uapi}/asm/msgbuf.h            |    0
- arch/sh/include/{ => uapi}/asm/param.h             |    0
- arch/sh/include/{ => uapi}/asm/poll.h              |    0
- arch/sh/include/uapi/asm/posix_types.h             |    7 +
- arch/sh/include/{ => uapi}/asm/posix_types_32.h    |    0
- arch/sh/include/{ => uapi}/asm/posix_types_64.h    |    0
- arch/sh/include/uapi/asm/ptrace.h                  |   34 +
- arch/sh/include/uapi/asm/ptrace_32.h               |   77 +
- arch/sh/include/uapi/asm/ptrace_64.h               |   14 +
- arch/sh/include/{ => uapi}/asm/resource.h          |    0
- arch/sh/include/{ => uapi}/asm/sembuf.h            |    0
- arch/sh/include/uapi/asm/setup.h                   |    1 +
- arch/sh/include/{ => uapi}/asm/shmbuf.h            |    0
- arch/sh/include/{ => uapi}/asm/sigcontext.h        |    0
- arch/sh/include/{ => uapi}/asm/siginfo.h           |    0
- arch/sh/include/{ => uapi}/asm/signal.h            |    0
- arch/sh/include/{ => uapi}/asm/socket.h            |    0
- arch/sh/include/{ => uapi}/asm/sockios.h           |    0
- arch/sh/include/{ => uapi}/asm/stat.h              |    0
- arch/sh/include/{ => uapi}/asm/statfs.h            |    0
- arch/sh/include/{ => uapi}/asm/swab.h              |    0
- arch/sh/include/{ => uapi}/asm/termbits.h          |    0
- arch/sh/include/{ => uapi}/asm/termios.h           |    0
- arch/sh/include/uapi/asm/types.h                   |    1 +
- arch/sh/include/uapi/asm/unistd.h                  |    7 +
- arch/sh/include/uapi/asm/unistd_32.h               |  383 ++++
- arch/sh/include/uapi/asm/unistd_64.h               |  402 ++++
- arch/sparc/include/asm/Kbuild                      |   15 -
- arch/sparc/include/asm/fbio.h                      |  260 +---
- arch/sparc/include/asm/ioctls.h                    |  129 +--
- arch/sparc/include/asm/mman.h                      |   25 +-
- arch/sparc/include/asm/posix_types.h               |   74 +-
- arch/sparc/include/asm/psr.h                       |   28 +-
- arch/sparc/include/asm/ptrace.h                    |  345 +---
- arch/sparc/include/asm/setup.h                     |   10 +-
- arch/sparc/include/asm/sigcontext.h                |    4 +-
- arch/sparc/include/asm/siginfo.h                   |   24 +-
- arch/sparc/include/asm/signal.h                    |  185 +--
- arch/sparc/include/asm/termbits.h                  |  260 +---
- arch/sparc/include/asm/termios.h                   |   41 +-
- arch/sparc/include/asm/traps.h                     |  111 +-
- arch/sparc/include/asm/unistd.h                    |  419 +----
- arch/sparc/include/uapi/asm/Kbuild                 |   50 +
- arch/sparc/include/{ => uapi}/asm/apc.h            |    0
- arch/sparc/include/{ => uapi}/asm/asi.h            |    0
- arch/sparc/include/{ => uapi}/asm/auxvec.h         |    0
- arch/sparc/include/{ => uapi}/asm/bitsperlong.h    |    0
- arch/sparc/include/{ => uapi}/asm/byteorder.h      |    0
- arch/sparc/include/{ => uapi}/asm/display7seg.h    |    0
- arch/sparc/include/{ => uapi}/asm/envctrl.h        |    0
- arch/sparc/include/{ => uapi}/asm/errno.h          |    0
- arch/sparc/include/uapi/asm/fbio.h                 |  259 +++
- arch/sparc/include/{ => uapi}/asm/fcntl.h          |    0
- arch/sparc/include/{ => uapi}/asm/ioctl.h          |    0
- arch/sparc/include/uapi/asm/ioctls.h               |  131 ++
- arch/sparc/include/{ => uapi}/asm/ipcbuf.h         |    0
- arch/sparc/include/{ => uapi}/asm/jsflash.h        |    0
- arch/sparc/include/uapi/asm/mman.h                 |   27 +
- arch/sparc/include/{ => uapi}/asm/msgbuf.h         |    0
- arch/sparc/include/{ => uapi}/asm/openpromio.h     |    0
- arch/sparc/include/{ => uapi}/asm/param.h          |    0
- arch/sparc/include/{ => uapi}/asm/perfctr.h        |    0
- arch/sparc/include/{ => uapi}/asm/poll.h           |    0
- arch/sparc/include/uapi/asm/posix_types.h          |   81 +
- arch/sparc/include/uapi/asm/psr.h                  |   39 +
- arch/sparc/include/{ => uapi}/asm/psrcompat.h      |    0
- arch/sparc/include/{ => uapi}/asm/pstate.h         |    0
- arch/sparc/include/uapi/asm/ptrace.h               |  350 +++
- arch/sparc/include/{ => uapi}/asm/resource.h       |    0
- arch/sparc/include/{ => uapi}/asm/sembuf.h         |    0
- arch/sparc/include/uapi/asm/setup.h                |   15 +
- arch/sparc/include/{ => uapi}/asm/shmbuf.h         |    0
- arch/sparc/include/uapi/asm/siginfo.h              |   26 +
- arch/sparc/include/uapi/asm/signal.h               |  185 ++
- arch/sparc/include/{ => uapi}/asm/socket.h         |    0
- arch/sparc/include/{ => uapi}/asm/sockios.h        |    0
- arch/sparc/include/{ => uapi}/asm/stat.h           |    0
- arch/sparc/include/{ => uapi}/asm/statfs.h         |    0
- arch/sparc/include/{ => uapi}/asm/swab.h           |    0
- arch/sparc/include/uapi/asm/termbits.h             |  263 +++
- arch/sparc/include/uapi/asm/termios.h              |   43 +
- arch/sparc/include/uapi/asm/traps.h                |  120 +
- arch/sparc/include/{ => uapi}/asm/types.h          |    0
- arch/sparc/include/{ => uapi}/asm/uctx.h           |    0
- arch/sparc/include/uapi/asm/unistd.h               |  422 ++++
- arch/sparc/include/{ => uapi}/asm/utrap.h          |    0
- arch/sparc/include/{ => uapi}/asm/watchdog.h       |    0
- arch/tile/include/arch/Kbuild                      |   17 -
- arch/tile/include/arch/spr_def.h                   |   10 -
- arch/tile/include/asm/Kbuild                       |    1 -
- arch/tile/include/asm/hardwall.h                   |   36 +-
- arch/tile/include/asm/ptrace.h                     |   70 +-
- arch/tile/include/asm/setup.h                      |    7 +-
- arch/tile/include/asm/signal.h                     |   12 +-
- arch/tile/include/asm/unistd.h                     |   23 -
- arch/tile/include/uapi/arch/Kbuild                 |   18 +
- arch/tile/include/{ => uapi}/arch/abi.h            |    0
- arch/tile/include/{ => uapi}/arch/chip.h           |    0
- arch/tile/include/{ => uapi}/arch/chip_tile64.h    |    0
- arch/tile/include/{ => uapi}/arch/chip_tilegx.h    |    0
- arch/tile/include/{ => uapi}/arch/chip_tilepro.h   |    0
- arch/tile/include/{ => uapi}/arch/icache.h         |    0
- arch/tile/include/{ => uapi}/arch/interrupts.h     |    0
- arch/tile/include/{ => uapi}/arch/interrupts_32.h  |    0
- arch/tile/include/{ => uapi}/arch/interrupts_64.h  |    0
- arch/tile/include/{ => uapi}/arch/opcode.h         |    0
- arch/tile/include/{ => uapi}/arch/opcode_tilegx.h  |    0
- arch/tile/include/{ => uapi}/arch/opcode_tilepro.h |    0
- arch/tile/include/{ => uapi}/arch/sim.h            |    0
- arch/tile/include/{ => uapi}/arch/sim_def.h        |    0
- arch/tile/include/uapi/arch/spr_def.h              |   21 +
- arch/tile/include/{ => uapi}/arch/spr_def_32.h     |    0
- arch/tile/include/{ => uapi}/arch/spr_def_64.h     |    0
- arch/tile/include/uapi/asm/Kbuild                  |   16 +
- arch/tile/include/{ => uapi}/asm/auxvec.h          |    0
- arch/tile/include/{ => uapi}/asm/bitsperlong.h     |    0
- arch/tile/include/{ => uapi}/asm/byteorder.h       |    0
- arch/tile/include/uapi/asm/hardwall.h              |   54 +
- arch/tile/include/{ => uapi}/asm/mman.h            |    0
- arch/tile/include/uapi/asm/ptrace.h                |   87 +
- arch/tile/include/uapi/asm/setup.h                 |   21 +
- arch/tile/include/{ => uapi}/asm/sigcontext.h      |    0
- arch/tile/include/{ => uapi}/asm/siginfo.h         |    0
- arch/tile/include/uapi/asm/signal.h                |   27 +
- arch/tile/include/{ => uapi}/asm/stat.h            |    0
- arch/tile/include/{ => uapi}/asm/swab.h            |    0
- arch/tile/include/uapi/asm/unistd.h                |   40 +
- arch/unicore32/include/asm/ptrace.h                |   76 +-
- arch/unicore32/include/mach/PKUnity.h              |   36 +-
- arch/unicore32/include/mach/hardware.h             |    2 +-
- arch/unicore32/include/mach/uncompress.h           |    4 +-
- arch/unicore32/include/uapi/asm/Kbuild             |    7 +
- arch/unicore32/include/{ => uapi}/asm/byteorder.h  |    0
- arch/unicore32/include/uapi/asm/ptrace.h           |   91 +
- arch/unicore32/include/{ => uapi}/asm/sigcontext.h |    0
- arch/unicore32/include/{ => uapi}/asm/unistd.h     |    0
- arch/x86/boot/Makefile                             |    4 +-
- arch/x86/boot/mkcpustr.c                           |    2 +
- arch/x86/include/asm/Kbuild                        |   25 +-
- arch/x86/include/asm/atomic.h                      |    4 +-
- arch/x86/include/asm/boot.h                        |    9 +-
- arch/x86/include/asm/calling.h                     |    2 +-
- arch/x86/include/asm/checksum.h                    |    4 +-
- arch/x86/include/asm/cmpxchg.h                     |    4 +-
- arch/x86/include/asm/cpufeature.h                  |    2 +
- arch/x86/include/asm/debugreg.h                    |   79 +-
- arch/x86/include/asm/e820.h                        |   74 +-
- arch/x86/include/asm/hw_breakpoint.h               |    5 +-
- arch/x86/include/asm/ist.h                         |   27 +-
- arch/x86/include/asm/kvm_para.h                    |   92 +-
- arch/x86/include/asm/mce.h                         |  120 +-
- arch/x86/include/asm/mmzone.h                      |    4 +-
- arch/x86/include/asm/msr.h                         |   11 +-
- arch/x86/include/asm/mtrr.h                        |   85 +-
- arch/x86/include/asm/mutex.h                       |    4 +-
- arch/x86/include/asm/numa.h                        |    4 +-
- arch/x86/include/asm/pci.h                         |    2 +-
- arch/x86/include/asm/pgtable.h                     |    4 +-
- arch/x86/include/asm/pgtable_types.h               |    4 +-
- arch/x86/include/asm/posix_types.h                 |   12 +-
- arch/x86/include/asm/posix_types_32.h              |   44 +-
- arch/x86/include/asm/posix_types_64.h              |   45 +-
- arch/x86/include/asm/processor-flags.h             |   94 +-
- arch/x86/include/asm/ptrace.h                      |   75 +-
- arch/x86/include/asm/seccomp.h                     |    4 +-
- arch/x86/include/asm/setup.h                       |    5 +-
- arch/x86/include/asm/sigcontext.h                  |  213 +--
- arch/x86/include/asm/signal.h                      |  140 +--
- arch/x86/include/asm/string.h                      |    4 +-
- arch/x86/include/asm/suspend.h                     |    4 +-
- arch/x86/include/asm/uaccess.h                     |    4 +-
- arch/x86/include/asm/unistd.h                      |   11 +-
- arch/x86/include/asm/user.h                        |    4 +-
- arch/x86/include/asm/vm86.h                        |  128 +-
- arch/x86/include/asm/vsyscall.h                    |   16 +-
- arch/x86/include/asm/xen/interface.h               |    4 +-
- arch/x86/include/asm/xor.h                         |    4 +-
- arch/x86/include/uapi/asm/Kbuild                   |   59 +
- arch/x86/include/{ => uapi}/asm/a.out.h            |    0
- arch/x86/include/{ => uapi}/asm/auxvec.h           |    0
- arch/x86/include/{ => uapi}/asm/bitsperlong.h      |    0
- arch/x86/include/uapi/asm/boot.h                   |   10 +
- arch/x86/include/{ => uapi}/asm/bootparam.h        |    0
- arch/x86/include/{ => uapi}/asm/byteorder.h        |    0
- arch/x86/include/uapi/asm/debugreg.h               |   80 +
- arch/x86/include/uapi/asm/e820.h                   |   75 +
- arch/x86/include/{ => uapi}/asm/errno.h            |    0
- arch/x86/include/{ => uapi}/asm/fcntl.h            |    0
- arch/x86/include/{ => uapi}/asm/hyperv.h           |    0
- arch/x86/include/{ => uapi}/asm/ioctl.h            |    0
- arch/x86/include/{ => uapi}/asm/ioctls.h           |    0
- arch/x86/include/{ => uapi}/asm/ipcbuf.h           |    0
- arch/x86/include/uapi/asm/ist.h                    |   29 +
- arch/x86/include/{ => uapi}/asm/kvm.h              |    0
- arch/x86/include/uapi/asm/kvm_para.h               |   93 +
- arch/x86/include/{ => uapi}/asm/ldt.h              |    0
- arch/x86/include/uapi/asm/mce.h                    |  122 +
- arch/x86/include/{ => uapi}/asm/mman.h             |    0
- arch/x86/include/{ => uapi}/asm/msgbuf.h           |    0
- arch/x86/include/{ => uapi}/asm/msr-index.h        |    0
- arch/x86/include/uapi/asm/msr.h                    |   15 +
- arch/x86/include/uapi/asm/mtrr.h                   |  109 +
- arch/x86/include/{ => uapi}/asm/param.h            |    0
- arch/x86/include/{ => uapi}/asm/poll.h             |    0
- arch/x86/include/uapi/asm/posix_types.h            |    7 +
- arch/x86/include/uapi/asm/posix_types_32.h         |   46 +
- arch/x86/include/uapi/asm/posix_types_64.h         |   47 +
- arch/x86/include/{ => uapi}/asm/prctl.h            |    0
- arch/x86/include/uapi/asm/processor-flags.h        |   96 +
- arch/x86/include/{ => uapi}/asm/ptrace-abi.h       |    0
- arch/x86/include/uapi/asm/ptrace.h                 |   78 +
- arch/x86/include/{ => uapi}/asm/resource.h         |    0
- arch/x86/include/{ => uapi}/asm/sembuf.h           |    0
- arch/x86/include/{ => uapi}/asm/shmbuf.h           |    0
- arch/x86/include/uapi/asm/sigcontext.h             |  218 ++
- arch/x86/include/{ => uapi}/asm/sigcontext32.h     |    0
- arch/x86/include/{ => uapi}/asm/siginfo.h          |    0
- arch/x86/include/uapi/asm/signal.h                 |  145 ++
- arch/x86/include/{ => uapi}/asm/socket.h           |    0
- arch/x86/include/{ => uapi}/asm/sockios.h          |    0
- arch/x86/include/{ => uapi}/asm/stat.h             |    0
- arch/x86/include/{ => uapi}/asm/statfs.h           |    0
- arch/x86/include/{ => uapi}/asm/swab.h             |    0
- arch/x86/include/{ => uapi}/asm/termbits.h         |    0
- arch/x86/include/{ => uapi}/asm/termios.h          |    0
- arch/x86/include/{ => uapi}/asm/types.h            |    0
- arch/x86/include/{ => uapi}/asm/ucontext.h         |    0
- arch/x86/include/uapi/asm/unistd.h                 |   12 +
- arch/x86/include/uapi/asm/vm86.h                   |  129 ++
- arch/x86/include/uapi/asm/vsyscall.h               |   17 +
- arch/x86/kernel/cpu/mkcapflags.pl                  |    5 +-
- arch/x86/lib/insn.c                                |    4 +
- arch/x86/tools/Makefile                            |    2 +-
- arch/xtensa/include/asm/param.h                    |   20 +-
- arch/xtensa/include/asm/posix_types.h              |   52 +-
- arch/xtensa/include/asm/ptrace.h                   |   66 +-
- arch/xtensa/include/asm/signal.h                   |  134 +--
- arch/xtensa/include/asm/termios.h                  |   43 +-
- arch/xtensa/include/asm/types.h                    |   18 +-
- arch/xtensa/include/asm/unistd.h                   |  698 +------
- arch/xtensa/include/uapi/asm/Kbuild                |   33 +
- arch/xtensa/include/{ => uapi}/asm/auxvec.h        |    0
- arch/xtensa/include/{ => uapi}/asm/bitsperlong.h   |    0
- arch/xtensa/include/{ => uapi}/asm/byteorder.h     |    0
- arch/xtensa/include/{ => uapi}/asm/errno.h         |    0
- arch/xtensa/include/{ => uapi}/asm/fcntl.h         |    0
- arch/xtensa/include/{ => uapi}/asm/ioctl.h         |    0
- arch/xtensa/include/{ => uapi}/asm/ioctls.h        |    0
- arch/xtensa/include/{ => uapi}/asm/ipcbuf.h        |    0
- arch/xtensa/include/{ => uapi}/asm/mman.h          |    0
- arch/xtensa/include/{ => uapi}/asm/msgbuf.h        |    0
- arch/xtensa/include/uapi/asm/param.h               |   30 +
- arch/xtensa/include/{ => uapi}/asm/poll.h          |    0
- arch/xtensa/include/uapi/asm/posix_types.h         |   68 +
- arch/xtensa/include/uapi/asm/ptrace.h              |   77 +
- arch/xtensa/include/{ => uapi}/asm/resource.h      |    0
- arch/xtensa/include/{ => uapi}/asm/sembuf.h        |    0
- arch/xtensa/include/{ => uapi}/asm/setup.h         |    0
- arch/xtensa/include/{ => uapi}/asm/shmbuf.h        |    0
- arch/xtensa/include/{ => uapi}/asm/sigcontext.h    |    0
- arch/xtensa/include/{ => uapi}/asm/siginfo.h       |    0
- arch/xtensa/include/uapi/asm/signal.h              |  148 ++
- arch/xtensa/include/{ => uapi}/asm/socket.h        |    0
- arch/xtensa/include/{ => uapi}/asm/sockios.h       |    0
- arch/xtensa/include/{ => uapi}/asm/stat.h          |    0
- arch/xtensa/include/{ => uapi}/asm/statfs.h        |    0
- arch/xtensa/include/{ => uapi}/asm/swab.h          |    0
- arch/xtensa/include/{ => uapi}/asm/termbits.h      |    0
- arch/xtensa/include/uapi/asm/termios.h             |   56 +
- arch/xtensa/include/uapi/asm/types.h               |   31 +
- arch/xtensa/include/uapi/asm/unistd.h              |  709 ++++++
- drivers/gpu/drm/ati_pcigart.c                      |    2 +-
- drivers/gpu/drm/drm_agpsupport.c                   |    2 +-
- drivers/gpu/drm/drm_auth.c                         |    2 +-
- drivers/gpu/drm/drm_buffer.c                       |    2 +-
- drivers/gpu/drm/drm_bufs.c                         |    2 +-
- drivers/gpu/drm/drm_cache.c                        |    2 +-
- drivers/gpu/drm/drm_context.c                      |    2 +-
- drivers/gpu/drm/drm_crtc.c                         |    9 +-
- drivers/gpu/drm/drm_crtc_helper.c                  |   12 +-
- drivers/gpu/drm/drm_debugfs.c                      |    2 +-
- drivers/gpu/drm/drm_dma.c                          |    2 +-
- drivers/gpu/drm/drm_dp_i2c_helper.c                |    4 +-
- drivers/gpu/drm/drm_drv.c                          |    4 +-
- drivers/gpu/drm/drm_edid.c                         |    4 +-
- drivers/gpu/drm/drm_edid_load.c                    |    8 +-
- drivers/gpu/drm/drm_edid_modes.h                   |    4 +-
- drivers/gpu/drm/drm_encoder_slave.c                |    2 +-
- drivers/gpu/drm/drm_fb_helper.c                    |    8 +-
- drivers/gpu/drm/drm_fops.c                         |    2 +-
- drivers/gpu/drm/drm_gem.c                          |    2 +-
- drivers/gpu/drm/drm_global.c                       |    2 +-
- drivers/gpu/drm/drm_hashtab.c                      |    4 +-
- drivers/gpu/drm/drm_info.c                         |    2 +-
- drivers/gpu/drm/drm_ioc32.c                        |    4 +-
- drivers/gpu/drm/drm_ioctl.c                        |    8 +-
- drivers/gpu/drm/drm_irq.c                          |    2 +-
- drivers/gpu/drm/drm_lock.c                         |    2 +-
- drivers/gpu/drm/drm_memory.c                       |    2 +-
- drivers/gpu/drm/drm_mm.c                           |    4 +-
- drivers/gpu/drm/drm_modes.c                        |    5 +-
- drivers/gpu/drm/drm_pci.c                          |    2 +-
- drivers/gpu/drm/drm_platform.c                     |    2 +-
- drivers/gpu/drm/drm_proc.c                         |    2 +-
- drivers/gpu/drm/drm_scatter.c                      |    2 +-
- drivers/gpu/drm/drm_stub.c                         |    4 +-
- drivers/gpu/drm/drm_sysfs.c                        |    6 +-
- drivers/gpu/drm/drm_trace_points.c                 |    2 +-
- drivers/gpu/drm/drm_usb.c                          |    2 +-
- drivers/gpu/drm/drm_vm.c                           |    2 +-
- drivers/gpu/drm/exynos/exynos_ddc.c                |    2 +-
- drivers/gpu/drm/exynos/exynos_drm_buf.c            |    5 +-
- drivers/gpu/drm/exynos/exynos_drm_connector.c      |    4 +-
- drivers/gpu/drm/exynos/exynos_drm_core.c           |    2 +-
- drivers/gpu/drm/exynos/exynos_drm_crtc.c           |    4 +-
- drivers/gpu/drm/exynos/exynos_drm_drv.c            |    5 +-
- drivers/gpu/drm/exynos/exynos_drm_drv.h            |    1 -
- drivers/gpu/drm/exynos/exynos_drm_encoder.c        |    4 +-
- drivers/gpu/drm/exynos/exynos_drm_fb.c             |    8 +-
- drivers/gpu/drm/exynos/exynos_drm_fbdev.c          |    8 +-
- drivers/gpu/drm/exynos/exynos_drm_fimd.c           |    2 +-
- drivers/gpu/drm/exynos/exynos_drm_gem.c            |    3 +-
- drivers/gpu/drm/exynos/exynos_drm_hdmi.c           |    2 +-
- drivers/gpu/drm/exynos/exynos_drm_plane.c          |    4 +-
- drivers/gpu/drm/exynos/exynos_drm_vidi.c           |    6 +-
- drivers/gpu/drm/exynos/exynos_hdmi.c               |    6 +-
- drivers/gpu/drm/exynos/exynos_hdmiphy.c            |    2 +-
- drivers/gpu/drm/exynos/exynos_mixer.c              |    2 +-
- drivers/gpu/drm/gma500/cdv_device.c                |    2 +-
- drivers/gpu/drm/gma500/gem.c                       |    2 +-
- drivers/gpu/drm/gma500/intel_bios.c                |    2 +-
- drivers/gpu/drm/gma500/intel_gmbus.c               |    5 +-
- drivers/gpu/drm/gma500/mid_bios.c                  |    2 +-
- drivers/gpu/drm/gma500/oaktrail_device.c           |    2 +-
- drivers/gpu/drm/gma500/psb_device.c                |    2 +-
- drivers/gpu/drm/gma500/psb_drv.c                   |    2 +-
- drivers/gpu/drm/gma500/psb_drv.h                   |    4 +-
- drivers/gpu/drm/gma500/psb_intel_sdvo.c            |    9 +-
- drivers/gpu/drm/i2c/ch7006_priv.h                  |    8 +-
- drivers/gpu/drm/i2c/sil164_drv.c                   |    8 +-
- drivers/gpu/drm/i810/i810_dma.c                    |    5 +-
- drivers/gpu/drm/i810/i810_drv.c                    |    7 +-
- drivers/gpu/drm/i915/dvo.h                         |    5 +-
- drivers/gpu/drm/i915/i915_debugfs.c                |    5 +-
- drivers/gpu/drm/i915/i915_dma.c                    |    9 +-
- drivers/gpu/drm/i915/i915_drv.c                    |    7 +-
- drivers/gpu/drm/i915/i915_gem.c                    |    5 +-
- drivers/gpu/drm/i915/i915_gem_debug.c              |    5 +-
- drivers/gpu/drm/i915/i915_gem_evict.c              |    5 +-
- drivers/gpu/drm/i915/i915_gem_execbuffer.c         |    5 +-
- drivers/gpu/drm/i915/i915_gem_gtt.c                |    5 +-
- drivers/gpu/drm/i915/i915_gem_tiling.c             |    9 +-
- drivers/gpu/drm/i915/i915_ioc32.c                  |    5 +-
- drivers/gpu/drm/i915/i915_irq.c                    |    5 +-
- drivers/gpu/drm/i915/i915_suspend.c                |    5 +-
- drivers/gpu/drm/i915/intel_acpi.c                  |    2 +-
- drivers/gpu/drm/i915/intel_bios.c                  |    5 +-
- drivers/gpu/drm/i915/intel_bios.h                  |    2 +-
- drivers/gpu/drm/i915/intel_crt.c                   |   11 +-
- drivers/gpu/drm/i915/intel_display.c               |    8 +-
- drivers/gpu/drm/i915/intel_dp.c                    |   11 +-
- drivers/gpu/drm/i915/intel_drv.h                   |    8 +-
- drivers/gpu/drm/i915/intel_dvo.c                   |    7 +-
- drivers/gpu/drm/i915/intel_fb.c                    |    9 +-
- drivers/gpu/drm/i915/intel_hdmi.c                  |    9 +-
- drivers/gpu/drm/i915/intel_i2c.c                   |    5 +-
- drivers/gpu/drm/i915/intel_lvds.c                  |    9 +-
- drivers/gpu/drm/i915/intel_modes.c                 |    4 +-
- drivers/gpu/drm/i915/intel_opregion.c              |    4 +-
- drivers/gpu/drm/i915/intel_overlay.c               |    5 +-
- drivers/gpu/drm/i915/intel_ringbuffer.c            |    5 +-
- drivers/gpu/drm/i915/intel_sdvo.c                  |    9 +-
- drivers/gpu/drm/i915/intel_sprite.c                |    8 +-
- drivers/gpu/drm/i915/intel_tv.c                    |    9 +-
- drivers/gpu/drm/mga/mga_dma.c                      |    6 +-
- drivers/gpu/drm/mga/mga_drv.c                      |    7 +-
- drivers/gpu/drm/mga/mga_ioc32.c                    |    5 +-
- drivers/gpu/drm/mga/mga_irq.c                      |    5 +-
- drivers/gpu/drm/mga/mga_state.c                    |    5 +-
- drivers/gpu/drm/mga/mga_warp.c                     |    5 +-
- drivers/gpu/drm/nouveau/nouveau_acpi.c             |    8 +-
- drivers/gpu/drm/nouveau/nouveau_backlight.c        |    4 +-
- drivers/gpu/drm/nouveau/nouveau_bios.c             |    2 +-
- drivers/gpu/drm/nouveau/nouveau_bo.c               |    6 +-
- drivers/gpu/drm/nouveau/nouveau_calc.c             |    2 +-
- drivers/gpu/drm/nouveau/nouveau_channel.c          |    5 +-
- drivers/gpu/drm/nouveau/nouveau_connector.c        |    6 +-
- drivers/gpu/drm/nouveau/nouveau_connector.h        |    2 +-
- drivers/gpu/drm/nouveau/nouveau_debugfs.c          |    2 +-
- drivers/gpu/drm/nouveau/nouveau_display.c          |    4 +-
- drivers/gpu/drm/nouveau/nouveau_dma.c              |    3 +-
- drivers/gpu/drm/nouveau/nouveau_dp.c               |    2 +-
- drivers/gpu/drm/nouveau/nouveau_drv.c              |    7 +-
- drivers/gpu/drm/nouveau/nouveau_drv.h              |   12 +-
- drivers/gpu/drm/nouveau/nouveau_encoder.h          |    2 +-
- drivers/gpu/drm/nouveau/nouveau_fbcon.c            |   11 +-
- drivers/gpu/drm/nouveau/nouveau_fbcon.h            |    2 +-
- drivers/gpu/drm/nouveau/nouveau_fence.c            |    3 +-
- drivers/gpu/drm/nouveau/nouveau_gem.c              |    5 +-
- drivers/gpu/drm/nouveau/nouveau_gpio.c             |    2 +-
- drivers/gpu/drm/nouveau/nouveau_hdmi.c             |    2 +-
- drivers/gpu/drm/nouveau/nouveau_hw.c               |    2 +-
- drivers/gpu/drm/nouveau/nouveau_hw.h               |    2 +-
- drivers/gpu/drm/nouveau/nouveau_i2c.c              |    2 +-
- drivers/gpu/drm/nouveau/nouveau_i2c.h              |    2 +-
- drivers/gpu/drm/nouveau/nouveau_ioc32.c            |    3 +-
- drivers/gpu/drm/nouveau/nouveau_irq.c              |    5 +-
- drivers/gpu/drm/nouveau/nouveau_mem.c              |    4 +-
- drivers/gpu/drm/nouveau/nouveau_mm.c               |    2 +-
- drivers/gpu/drm/nouveau/nouveau_mxm.c              |    2 +-
- drivers/gpu/drm/nouveau/nouveau_notifier.c         |    3 +-
- drivers/gpu/drm/nouveau/nouveau_object.c           |    5 +-
- drivers/gpu/drm/nouveau/nouveau_perf.c             |    2 +-
- drivers/gpu/drm/nouveau/nouveau_pm.c               |    2 +-
- drivers/gpu/drm/nouveau/nouveau_ramht.c            |    2 +-
- drivers/gpu/drm/nouveau/nouveau_sgdma.c            |    2 +-
- drivers/gpu/drm/nouveau/nouveau_state.c            |    8 +-
- drivers/gpu/drm/nouveau/nouveau_temp.c             |    2 +-
- drivers/gpu/drm/nouveau/nouveau_ttm.c              |    2 +-
- drivers/gpu/drm/nouveau/nouveau_vm.c               |    2 +-
- drivers/gpu/drm/nouveau/nouveau_vm.h               |    2 +-
- drivers/gpu/drm/nouveau/nouveau_volt.c             |    2 +-
- drivers/gpu/drm/nouveau/nv04_crtc.c                |    4 +-
- drivers/gpu/drm/nouveau/nv04_cursor.c              |    3 +-
- drivers/gpu/drm/nouveau/nv04_dac.c                 |    4 +-
- drivers/gpu/drm/nouveau/nv04_dfp.c                 |    6 +-
- drivers/gpu/drm/nouveau/nv04_display.c             |    5 +-
- drivers/gpu/drm/nouveau/nv04_fb.c                  |    5 +-
- drivers/gpu/drm/nouveau/nv04_fbcon.c               |    2 +-
- drivers/gpu/drm/nouveau/nv04_fifo.c                |    3 +-
- drivers/gpu/drm/nouveau/nv04_graph.c               |    5 +-
- drivers/gpu/drm/nouveau/nv04_instmem.c             |    3 +-
- drivers/gpu/drm/nouveau/nv04_mc.c                  |    5 +-
- drivers/gpu/drm/nouveau/nv04_pm.c                  |    2 +-
- drivers/gpu/drm/nouveau/nv04_timer.c               |    5 +-
- drivers/gpu/drm/nouveau/nv04_tv.c                  |    6 +-
- drivers/gpu/drm/nouveau/nv10_fb.c                  |    5 +-
- drivers/gpu/drm/nouveau/nv10_fifo.c                |    3 +-
- drivers/gpu/drm/nouveau/nv10_gpio.c                |    2 +-
- drivers/gpu/drm/nouveau/nv10_graph.c               |    5 +-
- drivers/gpu/drm/nouveau/nv17_tv.c                  |    4 +-
- drivers/gpu/drm/nouveau/nv17_tv_modes.c            |    4 +-
- drivers/gpu/drm/nouveau/nv20_fb.c                  |    5 +-
- drivers/gpu/drm/nouveau/nv20_graph.c               |    5 +-
- drivers/gpu/drm/nouveau/nv30_fb.c                  |    5 +-
- drivers/gpu/drm/nouveau/nv31_mpeg.c                |    2 +-
- drivers/gpu/drm/nouveau/nv40_fb.c                  |    5 +-
- drivers/gpu/drm/nouveau/nv40_fifo.c                |    4 +-
- drivers/gpu/drm/nouveau/nv40_graph.c               |    3 +-
- drivers/gpu/drm/nouveau/nv40_grctx.c               |    2 +-
- drivers/gpu/drm/nouveau/nv40_mc.c                  |    5 +-
- drivers/gpu/drm/nouveau/nv40_pm.c                  |    2 +-
- drivers/gpu/drm/nouveau/nv50_calc.c                |    2 +-
- drivers/gpu/drm/nouveau/nv50_crtc.c                |    5 +-
- drivers/gpu/drm/nouveau/nv50_cursor.c              |    3 +-
- drivers/gpu/drm/nouveau/nv50_dac.c                 |    4 +-
- drivers/gpu/drm/nouveau/nv50_display.c             |    2 +-
- drivers/gpu/drm/nouveau/nv50_display.h             |    3 +-
- drivers/gpu/drm/nouveau/nv50_evo.c                 |    2 +-
- drivers/gpu/drm/nouveau/nv50_fb.c                  |    5 +-
- drivers/gpu/drm/nouveau/nv50_fbcon.c               |    2 +-
- drivers/gpu/drm/nouveau/nv50_fifo.c                |    3 +-
- drivers/gpu/drm/nouveau/nv50_gpio.c                |    2 +-
- drivers/gpu/drm/nouveau/nv50_graph.c               |    3 +-
- drivers/gpu/drm/nouveau/nv50_grctx.c               |    2 +-
- drivers/gpu/drm/nouveau/nv50_instmem.c             |    3 +-
- drivers/gpu/drm/nouveau/nv50_mc.c                  |    3 +-
- drivers/gpu/drm/nouveau/nv50_mpeg.c                |    2 +-
- drivers/gpu/drm/nouveau/nv50_pm.c                  |    2 +-
- drivers/gpu/drm/nouveau/nv50_sor.c                 |    4 +-
- drivers/gpu/drm/nouveau/nv50_vm.c                  |    2 +-
- drivers/gpu/drm/nouveau/nv50_vram.c                |    2 +-
- drivers/gpu/drm/nouveau/nv84_bsp.c                 |    2 +-
- drivers/gpu/drm/nouveau/nv84_crypt.c               |    2 +-
- drivers/gpu/drm/nouveau/nv84_vp.c                  |    2 +-
- drivers/gpu/drm/nouveau/nv98_crypt.c               |    2 +-
- drivers/gpu/drm/nouveau/nv98_ppp.c                 |    2 +-
- drivers/gpu/drm/nouveau/nva3_copy.c                |    2 +-
- drivers/gpu/drm/nouveau/nva3_pm.c                  |    2 +-
- drivers/gpu/drm/nouveau/nvc0_copy.c                |    2 +-
- drivers/gpu/drm/nouveau/nvc0_fb.c                  |    5 +-
- drivers/gpu/drm/nouveau/nvc0_fbcon.c               |    2 +-
- drivers/gpu/drm/nouveau/nvc0_fifo.c                |    2 +-
- drivers/gpu/drm/nouveau/nvc0_graph.c               |    2 +-
- drivers/gpu/drm/nouveau/nvc0_grctx.c               |    2 +-
- drivers/gpu/drm/nouveau/nvc0_instmem.c             |    2 +-
- drivers/gpu/drm/nouveau/nvc0_pm.c                  |    2 +-
- drivers/gpu/drm/nouveau/nvc0_vm.c                  |    2 +-
- drivers/gpu/drm/nouveau/nvc0_vram.c                |    2 +-
- drivers/gpu/drm/nouveau/nvd0_display.c             |    4 +-
- drivers/gpu/drm/r128/r128_cce.c                    |    5 +-
- drivers/gpu/drm/r128/r128_drv.c                    |    7 +-
- drivers/gpu/drm/r128/r128_ioc32.c                  |    5 +-
- drivers/gpu/drm/r128/r128_irq.c                    |    5 +-
- drivers/gpu/drm/r128/r128_state.c                  |    5 +-
- drivers/gpu/drm/radeon/atom.h                      |    2 +-
- drivers/gpu/drm/radeon/atombios_dp.c               |    6 +-
- drivers/gpu/drm/radeon/atombios_encoders.c         |    6 +-
- drivers/gpu/drm/radeon/atombios_i2c.c              |    4 +-
- drivers/gpu/drm/radeon/evergreen.c                 |    4 +-
- drivers/gpu/drm/radeon/evergreen_blit_kms.c        |    5 +-
- drivers/gpu/drm/radeon/evergreen_cs.c              |    2 +-
- drivers/gpu/drm/radeon/ni.c                        |    4 +-
- drivers/gpu/drm/radeon/r100.c                      |    5 +-
- drivers/gpu/drm/radeon/r200.c                      |    5 +-
- drivers/gpu/drm/radeon/r300.c                      |    2 +-
- drivers/gpu/drm/radeon/r300_cmdbuf.c               |    7 +-
- drivers/gpu/drm/radeon/r420.c                      |    2 +-
- drivers/gpu/drm/radeon/r520.c                      |    2 +-
- drivers/gpu/drm/radeon/r600.c                      |    4 +-
- drivers/gpu/drm/radeon/r600_audio.c                |    2 +-
- drivers/gpu/drm/radeon/r600_blit.c                 |    5 +-
- drivers/gpu/drm/radeon/r600_blit_kms.c             |    5 +-
- drivers/gpu/drm/radeon/r600_cp.c                   |    5 +-
- drivers/gpu/drm/radeon/r600_cs.c                   |    2 +-
- drivers/gpu/drm/radeon/r600_hdmi.c                 |    4 +-
- drivers/gpu/drm/radeon/radeon_acpi.c               |    6 +-
- drivers/gpu/drm/radeon/radeon_agp.c                |    5 +-
- drivers/gpu/drm/radeon/radeon_atombios.c           |    4 +-
- drivers/gpu/drm/radeon/radeon_bios.c               |    2 +-
- drivers/gpu/drm/radeon/radeon_clocks.c             |    4 +-
- drivers/gpu/drm/radeon/radeon_combios.c            |    4 +-
- drivers/gpu/drm/radeon/radeon_connectors.c         |   10 +-
- drivers/gpu/drm/radeon/radeon_cp.c                 |    6 +-
- drivers/gpu/drm/radeon/radeon_cs.c                 |    4 +-
- drivers/gpu/drm/radeon/radeon_cursor.c             |    4 +-
- drivers/gpu/drm/radeon/radeon_display.c            |    8 +-
- drivers/gpu/drm/radeon/radeon_drv.c                |    7 +-
- drivers/gpu/drm/radeon/radeon_encoders.c           |    6 +-
- drivers/gpu/drm/radeon/radeon_fb.c                 |   11 +-
- drivers/gpu/drm/radeon/radeon_fence.c              |    3 +-
- drivers/gpu/drm/radeon/radeon_gart.c               |    4 +-
- drivers/gpu/drm/radeon/radeon_gem.c                |    5 +-
- drivers/gpu/drm/radeon/radeon_i2c.c                |    6 +-
- drivers/gpu/drm/radeon/radeon_ioc32.c              |    5 +-
- drivers/gpu/drm/radeon/radeon_irq.c                |    5 +-
- drivers/gpu/drm/radeon/radeon_irq_kms.c            |    6 +-
- drivers/gpu/drm/radeon/radeon_kms.c                |    5 +-
- drivers/gpu/drm/radeon/radeon_legacy_encoders.c    |    6 +-
- drivers/gpu/drm/radeon/radeon_legacy_tv.c          |    4 +-
- drivers/gpu/drm/radeon/radeon_mem.c                |    5 +-
- drivers/gpu/drm/radeon/radeon_mode.h               |   11 +-
- drivers/gpu/drm/radeon/radeon_object.c             |    2 +-
- drivers/gpu/drm/radeon/radeon_pm.c                 |    2 +-
- drivers/gpu/drm/radeon/radeon_ring.c               |    4 +-
- drivers/gpu/drm/radeon/radeon_sa.c                 |    3 +-
- drivers/gpu/drm/radeon/radeon_semaphore.c          |    3 +-
- drivers/gpu/drm/radeon/radeon_state.c              |    8 +-
- drivers/gpu/drm/radeon/radeon_trace_points.c       |    2 +-
- drivers/gpu/drm/radeon/rs600.c                     |    2 +-
- drivers/gpu/drm/radeon/rs690.c                     |    2 +-
- drivers/gpu/drm/radeon/rv515.c                     |    2 +-
- drivers/gpu/drm/radeon/rv770.c                     |    4 +-
- drivers/gpu/drm/radeon/si.c                        |    4 +-
- drivers/gpu/drm/savage/savage_bci.c                |    4 +-
- drivers/gpu/drm/savage/savage_drv.c                |    6 +-
- drivers/gpu/drm/savage/savage_state.c              |    4 +-
- drivers/gpu/drm/sis/sis_drv.c                      |    6 +-
- drivers/gpu/drm/sis/sis_drv.h                      |    2 +-
- drivers/gpu/drm/sis/sis_mm.c                       |    4 +-
- drivers/gpu/drm/tdfx/tdfx_drv.c                    |    4 +-
- drivers/gpu/drm/ttm/ttm_agp_backend.c              |    8 +-
- drivers/gpu/drm/ttm/ttm_bo.c                       |    6 +-
- drivers/gpu/drm/ttm/ttm_bo_manager.c               |    8 +-
- drivers/gpu/drm/ttm/ttm_bo_util.c                  |    4 +-
- drivers/gpu/drm/ttm/ttm_execbuf_util.c             |    6 +-
- drivers/gpu/drm/ttm/ttm_lock.c                     |    4 +-
- drivers/gpu/drm/ttm/ttm_memory.c                   |    6 +-
- drivers/gpu/drm/ttm/ttm_module.c                   |    4 +-
- drivers/gpu/drm/ttm/ttm_object.c                   |    4 +-
- drivers/gpu/drm/ttm/ttm_page_alloc.c               |    4 +-
- drivers/gpu/drm/ttm/ttm_page_alloc_dma.c           |    4 +-
- drivers/gpu/drm/ttm/ttm_tt.c                       |   12 +-
- drivers/gpu/drm/udl/udl_connector.c                |    8 +-
- drivers/gpu/drm/udl/udl_drv.c                      |    4 +-
- drivers/gpu/drm/udl/udl_encoder.c                  |    6 +-
- drivers/gpu/drm/udl/udl_fb.c                       |    9 +-
- drivers/gpu/drm/udl/udl_gem.c                      |    2 +-
- drivers/gpu/drm/udl/udl_main.c                     |    2 +-
- drivers/gpu/drm/udl/udl_modeset.c                  |    6 +-
- drivers/gpu/drm/udl/udl_transfer.c                 |    2 +-
- drivers/gpu/drm/via/via_dma.c                      |    5 +-
- drivers/gpu/drm/via/via_dmablit.c                  |    4 +-
- drivers/gpu/drm/via/via_drv.c                      |    6 +-
- drivers/gpu/drm/via/via_drv.h                      |    2 +-
- drivers/gpu/drm/via/via_irq.c                      |    5 +-
- drivers/gpu/drm/via/via_map.c                      |    4 +-
- drivers/gpu/drm/via/via_mm.c                       |    4 +-
- drivers/gpu/drm/via/via_verifier.c                 |    5 +-
- drivers/gpu/drm/via/via_video.c                    |    4 +-
- drivers/gpu/drm/vmwgfx/vmwgfx_buffer.c             |    6 +-
- drivers/gpu/drm/vmwgfx/vmwgfx_dmabuf.c             |    4 +-
- drivers/gpu/drm/vmwgfx/vmwgfx_drv.c                |   10 +-
- drivers/gpu/drm/vmwgfx/vmwgfx_drv.h                |   18 +-
- drivers/gpu/drm/vmwgfx/vmwgfx_execbuf.c            |    4 +-
- drivers/gpu/drm/vmwgfx/vmwgfx_fb.c                 |    4 +-
- drivers/gpu/drm/vmwgfx/vmwgfx_fence.c              |    2 +-
- drivers/gpu/drm/vmwgfx/vmwgfx_fifo.c               |    4 +-
- drivers/gpu/drm/vmwgfx/vmwgfx_gmr.c                |    4 +-
- drivers/gpu/drm/vmwgfx/vmwgfx_gmrid_manager.c      |    6 +-
- drivers/gpu/drm/vmwgfx/vmwgfx_ioctl.c              |    2 +-
- drivers/gpu/drm/vmwgfx/vmwgfx_irq.c                |    2 +-
- drivers/gpu/drm/vmwgfx/vmwgfx_kms.h                |    4 +-
- drivers/gpu/drm/vmwgfx/vmwgfx_overlay.c            |    4 +-
- drivers/gpu/drm/vmwgfx/vmwgfx_resource.c           |    8 +-
- drivers/gpu/drm/vmwgfx/vmwgfx_ttm_glue.c           |    2 +-
- include/acpi/acpi.h                                |   18 +-
- include/acpi/acpiosxf.h                            |    4 +-
- include/acpi/acpixf.h                              |    4 +-
- include/acpi/platform/acenv.h                      |    2 +-
- include/acpi/platform/aclinux.h                    |    2 +-
- include/asm-generic/Kbuild                         |   34 -
- include/asm-generic/Kbuild.asm                     |   85 +-
- include/asm-generic/bitsperlong.h                  |   13 +-
- include/asm-generic/int-l64.h                      |   26 +-
- include/asm-generic/int-ll64.h                     |   31 +-
- include/asm-generic/ioctl.h                        |   95 +-
- include/asm-generic/param.h                        |   17 +-
- include/asm-generic/posix_types.h                  |   92 +-
- include/asm-generic/resource.h                     |   66 +-
- include/asm-generic/siginfo.h                      |  268 +---
- include/asm-generic/signal.h                       |  117 +-
- include/asm-generic/statfs.h                       |   81 +-
- include/asm-generic/termios.h                      |   49 +-
- include/asm-generic/unistd.h                       |  873 -------
- include/drm/Kbuild                                 |   15 -
- include/drm/drmP.h                                 |   17 +-
- include/drm/drm_buffer.h                           |    2 +-
- include/drm/drm_crtc.h                             |    1 +
- include/drm/drm_encoder_slave.h                    |    4 +-
- include/drm/drm_memory.h                           |    2 +-
- include/drm/exynos_drm.h                           |   95 +-
- include/drm/i915_drm.h                             |  853 +-------
- include/drm/ttm/ttm_bo_api.h                       |    2 +-
- include/drm/ttm/ttm_bo_driver.h                    |   16 +-
- include/drm/ttm/ttm_execbuf_util.h                 |    2 +-
- include/drm/ttm/ttm_lock.h                         |    2 +-
- include/drm/ttm/ttm_object.h                       |    2 +-
- include/drm/ttm/ttm_page_alloc.h                   |    4 +-
- include/linux/Kbuild                               |  372 ---
- include/linux/a.out.h                              |  196 +--
- include/linux/acct.h                               |  108 +-
- include/linux/adb.h                                |   39 +-
- include/linux/adfs_fs.h                            |   42 +-
- include/linux/agpgart.h                            |   86 +-
- include/linux/apm_bios.h                           |  135 +--
- include/linux/atalk.h                              |   43 +-
- include/linux/atm.h                                |  238 +--
- include/linux/atm_tcp.h                            |   57 +-
- include/linux/atmdev.h                             |  213 +--
- include/linux/audit.h                              |  379 +---
- include/linux/auto_fs.h                            |   69 +-
- include/linux/auxvec.h                             |   33 +-
- include/linux/bcma/bcma.h                          |    2 +-
- include/linux/binfmts.h                            |   19 +-
- include/linux/blktrace_api.h                       |  142 +--
- include/linux/bsg.h                                |   63 +-
- include/linux/byteorder/Kbuild                     |    2 -
- include/linux/byteorder/big_endian.h               |  103 +-
- include/linux/byteorder/little_endian.h            |  103 +-
- include/linux/caif/Kbuild                          |    2 -
- include/linux/can/Kbuild                           |    5 -
- include/linux/capability.h                         |  343 +---
- include/linux/cciss_ioctl.h                        |   86 +-
- include/linux/cdrom.h                              |  902 +--------
- include/linux/ceph/ceph_fs.h                       |    4 +-
- include/linux/ceph/debugfs.h                       |    4 +-
- include/linux/ceph/decode.h                        |    2 +-
- include/linux/ceph/libceph.h                       |   14 +-
- include/linux/ceph/mdsmap.h                        |    2 +-
- include/linux/ceph/messenger.h                     |    4 +-
- include/linux/ceph/mon_client.h                    |    2 +-
- include/linux/ceph/msgpool.h                       |    2 +-
- include/linux/ceph/osd_client.h                    |    6 +-
- include/linux/ceph/osdmap.h                        |    4 +-
- include/linux/ceph/rados.h                         |    2 +-
- include/linux/ceph/types.h                         |    6 +-
- include/linux/cm4000_cs.h                          |   60 +-
- include/linux/cn_proc.h                            |  103 +-
- include/linux/coda.h                               |  733 +------
- include/linux/coda_psdev.h                         |   26 +-
- include/linux/connector.h                          |   56 +-
- include/linux/cramfs_fs.h                          |   86 +-
- include/linux/crush/mapper.h                       |    2 +-
- include/linux/cuda.h                               |   25 +-
- include/linux/cyclades.h                           |  426 +----
- include/linux/dccp.h                               |  236 +--
- include/linux/dlm.h                                |   63 +-
- include/linux/dlm_plock.h                          |   37 +-
- include/linux/drbd_tag_magic.h                     |    8 +-
- include/linux/dvb/Kbuild                           |    8 -
- include/linux/dvb/dmx.h                            |  130 +--
- include/linux/dvb/video.h                          |  249 +--
- include/linux/edd.h                                |  158 +--
- include/linux/elf-fdpic.h                          |   50 +-
- include/linux/elf.h                                |  404 +----
- include/linux/elfcore.h                            |  102 +-
- include/linux/errno.h                              |    5 +-
- include/linux/errqueue.h                           |   25 +-
- include/linux/ethtool.h                            |  978 +--------
- include/linux/eventpoll.h                          |   40 +-
- include/linux/ext2_fs.h                            |  559 +-----
- include/linux/falloc.h                             |    6 +-
- include/linux/fanotify.h                           |  114 +-
- include/linux/fb.h                                 |  403 +----
- include/linux/fcntl.h                              |   50 +-
- include/linux/fd.h                                 |  380 +---
- include/linux/filter.h                             |  129 +--
- include/linux/flat.h                               |   50 +-
- include/linux/fs.h                                 |  377 +---
- include/linux/fsl_hypervisor.h                     |  180 +--
- include/linux/futex.h                              |  150 +--
- include/linux/gameport.h                           |   29 +-
- include/linux/generic_serial.h                     |   27 +-
- include/linux/genetlink.h                          |   82 +-
- include/linux/hdlc.h                               |   13 +-
- include/linux/hdlc/Kbuild                          |    1 -
- include/linux/hdlcdrv.h                            |  104 +-
- include/linux/hid.h                                |   66 +-
- include/linux/hiddev.h                             |  210 +--
- include/linux/hidraw.h                             |   48 +-
- include/linux/hpet.h                               |   23 +-
- include/linux/i2c-dev.h                            |   49 +-
- include/linux/i2c.h                                |  146 +--
- include/linux/icmp.h                               |   80 +-
- include/linux/icmpv6.h                             |  165 +--
- include/linux/if_arp.h                             |  134 +--
- include/linux/if_bridge.h                          |   89 +-
- include/linux/if_ec.h                              |   31 +-
- include/linux/if_eql.h                             |   36 +-
- include/linux/if_ether.h                           |  114 +-
- include/linux/if_fddi.h                            |   80 +-
- include/linux/if_frad.h                            |   98 +-
- include/linux/if_link.h                            |  380 +---
- include/linux/if_ltalk.h                           |    7 +-
- include/linux/if_phonet.h                          |    7 +-
- include/linux/if_pppol2tp.h                        |   64 +-
- include/linux/if_pppox.h                           |  131 +--
- include/linux/if_team.h                            |   96 +-
- include/linux/if_tr.h                              |   76 +-
- include/linux/if_tun.h                             |   78 +-
- include/linux/if_tunnel.h                          |   77 +-
- include/linux/if_vlan.h                            |   51 +-
- include/linux/igmp.h                               |  113 +-
- include/linux/in.h                                 |  235 +--
- include/linux/in6.h                                |  258 +---
- include/linux/inet_diag.h                          |  134 +--
- include/linux/inotify.h                            |   69 +-
- include/linux/input.h                              | 1151 +----------
- include/linux/ip.h                                 |  119 +-
- include/linux/ipc.h                                |   80 +-
- include/linux/ipmi.h                               |  422 +----
- include/linux/ipv6.h                               |  166 +--
- include/linux/ipv6_route.h                         |   45 +-
- include/linux/irqnr.h                              |    8 +-
- include/linux/isdn.h                               |  129 +--
- include/linux/isdn/Kbuild                          |    1 -
- include/linux/isdn_divertif.h                      |   18 +-
- include/linux/isdn_ppp.h                           |   55 +-
- include/linux/isdnif.h                             |   43 +-
- include/linux/joystick.h                           |  134 +--
- include/linux/kd.h                                 |  181 +--
- include/linux/kdev_t.h                             |   14 +-
- include/linux/kernel.h                             |   28 +-
- include/linux/kernelcapi.h                         |   38 +-
- include/linux/keyboard.h                           |  441 +----
- include/linux/kvm_para.h                           |   26 +-
- include/linux/l2tp.h                               |  154 +--
- include/linux/llc.h                                |   82 +-
- include/linux/loop.h                               |   95 +-
- include/linux/lp.h                                 |   99 +-
- include/linux/mdio.h                               |  267 +---
- include/linux/mempolicy.h                          |   63 +-
- include/linux/mii.h                                |  145 +--
- include/linux/mman.h                               |   12 +-
- include/linux/mmc/Kbuild                           |    1 -
- include/linux/mroute.h                             |  146 +--
- include/linux/mroute6.h                            |  138 +--
- include/linux/msdos_fs.h                           |  164 +--
- include/linux/msg.h                                |   74 +-
- include/linux/n_r3964.h                            |   56 +-
- include/linux/nbd.h                                |   54 +-
- include/linux/net.h                                |   39 +-
- include/linux/netdevice.h                          |   32 +-
- include/linux/netfilter.h                          |   72 +-
- include/linux/netfilter/Kbuild                     |   75 -
- include/linux/netfilter/ipset/Kbuild               |    4 -
- include/linux/netfilter/ipset/ip_set.h             |  228 +--
- include/linux/netfilter/ipset/ip_set_bitmap.h      |   11 +-
- include/linux/netfilter/ipset/ip_set_hash.h        |   19 +-
- include/linux/netfilter/ipset/ip_set_list.h        |   19 +-
- include/linux/netfilter/nf_conntrack_common.h      |  111 +-
- include/linux/netfilter/nf_conntrack_ftp.h         |   16 +-
- include/linux/netfilter/nf_conntrack_h323_asn1.h   |    2 +-
- include/linux/netfilter/nf_conntrack_tcp.h         |   49 +-
- include/linux/netfilter/nfnetlink.h                |   54 +-
- include/linux/netfilter/nfnetlink_acct.h           |   25 +-
- include/linux/netfilter/x_tables.h                 |  186 +--
- include/linux/netfilter/xt_physdev.h               |   21 +-
- include/linux/netfilter_arp/Kbuild                 |    2 -
- include/linux/netfilter_arp/arp_tables.h           |  200 +--
- include/linux/netfilter_bridge.h                   |   25 +-
- include/linux/netfilter_bridge/Kbuild              |   18 -
- include/linux/netfilter_bridge/ebt_802_3.h         |   61 +-
- include/linux/netfilter_bridge/ebtables.h          |  255 +--
- include/linux/netfilter_ipv4.h                     |   78 +-
- include/linux/netfilter_ipv4/Kbuild                |   12 -
- include/linux/netfilter_ipv4/ip_queue.h            |   59 +-
- include/linux/netfilter_ipv4/ip_tables.h           |  226 +--
- include/linux/netfilter_ipv6.h                     |   76 +-
- include/linux/netfilter_ipv6/Kbuild                |   11 -
- include/linux/netfilter_ipv6/ip6_tables.h          |  264 +---
- include/linux/netlink.h                            |  152 +--
- include/linux/nfs.h                                |  124 +-
- include/linux/nfs3.h                               |   92 +-
- include/linux/nfs4.h                               |  162 +--
- include/linux/nfs_fs.h                             |   53 +-
- include/linux/nfs_idmap.h                          |   28 +-
- include/linux/nfsacl.h                             |   23 +-
- include/linux/nfsd/Kbuild                          |    4 -
- include/linux/nfsd/debug.h                         |   31 +-
- include/linux/nfsd/export.h                        |   52 +-
- include/linux/nfsd/nfsfh.h                         |  111 +-
- include/linux/nfsd/stats.h                         |    8 +-
- include/linux/nubus.h                              |  234 +--
- include/linux/nvram.h                              |   14 +-
- include/linux/omapfb.h                             |  199 +--
- include/linux/oom.h                                |   21 +-
- include/linux/parport.h                            |   89 +-
- include/linux/patchkey.h                           |   24 +-
- include/linux/pci.h                                |   25 +-
- include/linux/perf_event.h                         |  503 +----
- include/linux/personality.h                        |   71 +-
- include/linux/phonet.h                             |  162 +--
- include/linux/pinctrl/consumer.h                   |    2 +-
- include/linux/pinctrl/machine.h                    |    2 +-
- include/linux/pinctrl/pinctrl.h                    |    2 +-
- include/linux/pinctrl/pinmux.h                     |    2 +-
- include/linux/pktcdvd.h                            |   99 +-
- include/linux/pmu.h                                |  130 +--
- include/linux/poll.h                               |    6 +-
- include/linux/ppp-comp.h                           |  169 +--
- include/linux/ppp_defs.h                           |  141 +--
- include/linux/ptrace.h                             |   76 +-
- include/linux/quota.h                              |  139 +--
- include/linux/raid/Kbuild                          |    2 -
- include/linux/raid/md_u.h                          |  141 +--
- include/linux/random.h                             |   43 +-
- include/linux/reboot.h                             |   38 +-
- include/linux/resource.h                           |   78 +-
- include/linux/rfkill.h                             |  105 +-
- include/linux/rtc.h                                |   93 +-
- include/linux/rtnetlink.h                          |  611 +-----
- include/linux/scc.h                                |  169 +--
- include/linux/sched.h                              |   44 +-
- include/linux/screen_info.h                        |   70 +-
- include/linux/sdla.h                               |   93 +-
- include/linux/securebits.h                         |   51 +-
- include/linux/sem.h                                |   79 +-
- include/linux/serial.h                             |  197 +--
- include/linux/serial_core.h                        |  197 +--
- include/linux/serio.h                              |   79 +-
- include/linux/shm.h                                |   81 +-
- include/linux/signal.h                             |    7 +-
- include/linux/signalfd.h                           |   44 +-
- include/linux/sock_diag.h                          |   23 +-
- include/linux/socket.h                             |   20 +-
- include/linux/sonet.h                              |   58 +-
- include/linux/sonypi.h                             |  110 +-
- include/linux/sound.h                              |   29 +-
- include/linux/soundcard.h                          | 1280 +-----------
- include/linux/spi/Kbuild                           |    1 -
- include/linux/stat.h                               |   46 +-
- include/linux/stddef.h                             |   12 +-
- include/linux/string.h                             |    7 +-
- include/linux/sunrpc/Kbuild                        |    1 -
- include/linux/sunrpc/debug.h                       |   39 +-
- include/linux/swab.h                               |  280 +---
- include/linux/synclink.h                           |  288 +---
- include/linux/sysctl.h                             |  911 +--------
- include/linux/tc_act/Kbuild                        |    7 -
- include/linux/tc_ematch/Kbuild                     |    4 -
- include/linux/tcp.h                                |  191 +--
- include/linux/time.h                               |   80 +-
- include/linux/timex.h                              |  150 +--
- include/linux/toshiba.h                            |   17 +-
- include/linux/tty.h                                |   37 +-
- include/linux/types.h                              |   50 +-
- include/linux/udp.h                                |   22 +-
- include/linux/uinput.h                             |  135 +--
- include/linux/uio.h                                |   28 +-
- include/linux/usb/Kbuild                           |   10 -
- include/linux/usb/audio.h                          |  524 +-----
- include/linux/usb/ch9.h                            |  902 +--------
- include/linux/usb/functionfs.h                     |  167 +--
- include/linux/usbdevice_fs.h                       |  155 +--
- include/linux/utsname.h                            |   33 +-
- include/linux/videodev2.h                          | 2356 +-------------------
- include/linux/virtio_config.h                      |   53 +-
- include/linux/virtio_console.h                     |   72 +-
- include/linux/virtio_ring.h                        |  163 +--
- include/linux/vt.h                                 |   88 +-
- include/linux/wait.h                               |   20 +-
- include/linux/wanrouter.h                          |  405 +----
- include/linux/watchdog.h                           |   47 +-
- include/linux/wimax/Kbuild                         |    1 -
- include/linux/wireless.h                           | 1120 +---------
- include/linux/xattr.h                              |   51 +-
- include/mtd/Kbuild                                 |    5 -
- include/rdma/Kbuild                                |    6 -
- include/rdma/rdma_netlink.h                        |   36 +-
- include/scsi/Kbuild                                |    3 -
- include/scsi/fc/Kbuild                             |    4 -
- include/scsi/osd_attributes.h                      |    2 +-
- include/scsi/osd_initiator.h                       |    4 +-
- include/scsi/osd_sec.h                             |    4 +-
- include/scsi/scsi_netlink.h                        |  103 +-
- include/sound/Kbuild                               |   10 -
- include/sound/ac97_codec.h                         |    6 +-
- include/sound/ad1816a.h                            |    6 +-
- include/sound/ak4531_codec.h                       |    4 +-
- include/sound/asequencer.h                         |  594 +-----
- include/sound/asound.h                             |  882 +-------
- include/sound/cs46xx.h                             |   10 +-
- include/sound/cs46xx_dsp_spos.h                    |    4 +-
- include/sound/cs46xx_dsp_task_types.h              |    2 +-
- include/sound/emu10k1.h                            |  372 +---
- include/sound/emu10k1_synth.h                      |    4 +-
- include/sound/emu8000.h                            |    4 +-
- include/sound/emux_legacy.h                        |    2 +-
- include/sound/emux_synth.h                         |   14 +-
- include/sound/es1688.h                             |    4 +-
- include/sound/gus.h                                |   10 +-
- include/sound/mpu401.h                             |    2 +-
- include/sound/pcm.h                                |    2 +-
- include/sound/rawmidi.h                            |    2 +-
- include/sound/sb.h                                 |    4 +-
- include/sound/sb16_csp.h                           |  125 +-
- include/sound/seq_kernel.h                         |    2 +-
- include/sound/seq_midi_emul.h                      |    2 +-
- include/sound/seq_midi_event.h                     |    2 +-
- include/sound/seq_oss.h                            |    4 +-
- include/sound/seq_virmidi.h                        |    4 +-
- include/sound/snd_wavefront.h                      |    8 +-
- include/sound/soundfont.h                          |    4 +-
- include/sound/tea6330t.h                           |    2 +-
- include/sound/trident.h                            |    8 +-
- include/sound/wss.h                                |    8 +-
- include/sound/ymfpci.h                             |    8 +-
- include/trace/events/compaction.h                  |    2 +-
- include/trace/events/kmem.h                        |    2 +-
- include/trace/events/vmscan.h                      |    2 +-
- include/uapi/Kbuild                                |   14 +
- include/uapi/asm-generic/Kbuild                    |   35 +
- include/uapi/asm-generic/Kbuild.asm                |   44 +
- include/{ => uapi}/asm-generic/auxvec.h            |    0
- include/uapi/asm-generic/bitsperlong.h             |   15 +
- include/{ => uapi}/asm-generic/errno-base.h        |    0
- include/{ => uapi}/asm-generic/errno.h             |    0
- include/{ => uapi}/asm-generic/fcntl.h             |    0
- include/uapi/asm-generic/int-l64.h                 |   34 +
- include/uapi/asm-generic/int-ll64.h                |   39 +
- include/uapi/asm-generic/ioctl.h                   |   98 +
- include/{ => uapi}/asm-generic/ioctls.h            |    0
- include/{ => uapi}/asm-generic/ipcbuf.h            |    0
- include/{ => uapi}/asm-generic/mman-common.h       |    0
- include/{ => uapi}/asm-generic/mman.h              |    0
- include/{ => uapi}/asm-generic/msgbuf.h            |    0
- include/uapi/asm-generic/param.h                   |   19 +
- include/{ => uapi}/asm-generic/poll.h              |    0
- include/uapi/asm-generic/posix_types.h             |   94 +
- include/uapi/asm-generic/resource.h                |   68 +
- include/{ => uapi}/asm-generic/sembuf.h            |    0
- include/{ => uapi}/asm-generic/setup.h             |    0
- include/{ => uapi}/asm-generic/shmbuf.h            |    0
- include/{ => uapi}/asm-generic/shmparam.h          |    0
- include/uapi/asm-generic/siginfo.h                 |  269 +++
- include/{ => uapi}/asm-generic/signal-defs.h       |    0
- include/uapi/asm-generic/signal.h                  |  123 +
- include/{ => uapi}/asm-generic/socket.h            |    0
- include/{ => uapi}/asm-generic/sockios.h           |    0
- include/{ => uapi}/asm-generic/stat.h              |    0
- include/uapi/asm-generic/statfs.h                  |   83 +
- include/{ => uapi}/asm-generic/swab.h              |    0
- include/{ => uapi}/asm-generic/termbits.h          |    0
- include/uapi/asm-generic/termios.h                 |   50 +
- include/{ => uapi}/asm-generic/types.h             |    0
- include/{ => uapi}/asm-generic/ucontext.h          |    0
- include/uapi/asm-generic/unistd.h                  |  905 ++++++++
- include/uapi/drm/Kbuild                            |   16 +
- include/{ => uapi}/drm/drm.h                       |    2 +-
- include/{ => uapi}/drm/drm_fourcc.h                |    0
- include/{ => uapi}/drm/drm_mode.h                  |    0
- include/{ => uapi}/drm/drm_sarea.h                 |    2 +-
- include/uapi/drm/exynos_drm.h                      |  124 +
- include/{ => uapi}/drm/i810_drm.h                  |    0
- include/uapi/drm/i915_drm.h                        |  880 +++++++
- include/{ => uapi}/drm/mga_drm.h                   |    2 +-
- include/{ => uapi}/drm/nouveau_drm.h               |    0
- include/{ => uapi}/drm/r128_drm.h                  |    0
- include/{ => uapi}/drm/radeon_drm.h                |    2 +-
- include/{ => uapi}/drm/savage_drm.h                |    0
- include/{ => uapi}/drm/sis_drm.h                   |    0
- include/{ => uapi}/drm/via_drm.h                   |    2 +-
- include/{ => uapi}/drm/vmwgfx_drm.h                |    0
- include/uapi/linux/Kbuild                          |  407 ++++
- include/uapi/linux/a.out.h                         |  274 +++
- include/uapi/linux/acct.h                          |  122 +
- include/uapi/linux/adb.h                           |   44 +
- include/uapi/linux/adfs_fs.h                       |   44 +
- include/{ => uapi}/linux/affs_hardblocks.h         |    0
- include/uapi/linux/agpgart.h                       |  113 +
- include/{ => uapi}/linux/aio_abi.h                 |    0
- include/uapi/linux/apm_bios.h                      |  135 ++
- include/{ => uapi}/linux/arcfb.h                   |    0
- include/uapi/linux/atalk.h                         |   44 +
- include/uapi/linux/atm.h                           |  241 ++
- include/{ => uapi}/linux/atm_eni.h                 |    0
- include/{ => uapi}/linux/atm_he.h                  |    0
- include/{ => uapi}/linux/atm_idt77105.h            |    0
- include/{ => uapi}/linux/atm_nicstar.h             |    0
- include/uapi/linux/atm_tcp.h                       |   61 +
- include/{ => uapi}/linux/atm_zatm.h                |    0
- include/{ => uapi}/linux/atmapi.h                  |    0
- include/{ => uapi}/linux/atmarp.h                  |    0
- include/{ => uapi}/linux/atmbr2684.h               |    0
- include/{ => uapi}/linux/atmclip.h                 |    0
- include/uapi/linux/atmdev.h                        |  215 ++
- include/{ => uapi}/linux/atmioc.h                  |    0
- include/{ => uapi}/linux/atmlec.h                  |    0
- include/{ => uapi}/linux/atmmpc.h                  |    0
- include/{ => uapi}/linux/atmppp.h                  |    0
- include/{ => uapi}/linux/atmsap.h                  |    0
- include/{ => uapi}/linux/atmsvc.h                  |    0
- include/uapi/linux/audit.h                         |  402 ++++
- include/uapi/linux/auto_fs.h                       |   83 +
- include/{ => uapi}/linux/auto_fs4.h                |    0
- include/uapi/linux/auxvec.h                        |   35 +
- include/{ => uapi}/linux/ax25.h                    |    0
- include/{ => uapi}/linux/b1lli.h                   |    0
- include/{ => uapi}/linux/baycom.h                  |    0
- include/{ => uapi}/linux/bfs_fs.h                  |    0
- include/uapi/linux/binfmts.h                       |   20 +
- include/{ => uapi}/linux/blk_types.h               |    0
- include/{ => uapi}/linux/blkpg.h                   |    0
- include/uapi/linux/blktrace_api.h                  |  142 ++
- include/{ => uapi}/linux/bpqether.h                |    0
- include/uapi/linux/bsg.h                           |   65 +
- include/uapi/linux/byteorder/Kbuild                |    3 +
- include/uapi/linux/byteorder/big_endian.h          |  105 +
- include/uapi/linux/byteorder/little_endian.h       |  105 +
- include/uapi/linux/caif/Kbuild                     |    3 +
- include/{ => uapi}/linux/caif/caif_socket.h        |    0
- include/{ => uapi}/linux/caif/if_caif.h            |    0
- include/{ => uapi}/linux/can.h                     |    0
- include/uapi/linux/can/Kbuild                      |    6 +
- include/{ => uapi}/linux/can/bcm.h                 |    0
- include/{ => uapi}/linux/can/error.h               |    0
- include/{ => uapi}/linux/can/gw.h                  |    0
- include/{ => uapi}/linux/can/netlink.h             |    0
- include/{ => uapi}/linux/can/raw.h                 |    0
- include/uapi/linux/capability.h                    |  355 +++
- include/{ => uapi}/linux/capi.h                    |    0
- include/{ => uapi}/linux/cciss_defs.h              |    0
- include/uapi/linux/cciss_ioctl.h                   |   88 +
- include/{ => uapi}/linux/cdk.h                     |    0
- include/uapi/linux/cdrom.h                         |  912 ++++++++
- include/{ => uapi}/linux/cgroupstats.h             |    0
- include/{ => uapi}/linux/chio.h                    |    0
- include/uapi/linux/cm4000_cs.h                     |   62 +
- include/uapi/linux/cn_proc.h                       |  121 +
- include/uapi/linux/coda.h                          |  742 ++++++
- include/uapi/linux/coda_psdev.h                    |   27 +
- include/{ => uapi}/linux/coff.h                    |    0
- include/{ => uapi}/linux/comstats.h                |    0
- include/uapi/linux/connector.h                     |   77 +
- include/{ => uapi}/linux/const.h                   |    0
- include/uapi/linux/cramfs_fs.h                     |   88 +
- include/uapi/linux/cuda.h                          |   33 +
- include/uapi/linux/cyclades.h                      |  493 ++++
- include/{ => uapi}/linux/cycx_cfm.h                |    0
- include/{ => uapi}/linux/dcbnl.h                   |    0
- include/uapi/linux/dccp.h                          |  237 ++
- include/uapi/linux/dlm.h                           |   77 +
- include/{ => uapi}/linux/dlm_device.h              |    0
- include/{ => uapi}/linux/dlm_netlink.h             |    0
- include/uapi/linux/dlm_plock.h                     |   46 +
- include/{ => uapi}/linux/dlmconstants.h            |    0
- include/{ => uapi}/linux/dm-ioctl.h                |    0
- include/{ => uapi}/linux/dm-log-userspace.h        |    0
- include/{ => uapi}/linux/dn.h                      |    0
- include/{ => uapi}/linux/dqblk_xfs.h               |    0
- include/uapi/linux/dvb/Kbuild                      |    9 +
- include/{ => uapi}/linux/dvb/audio.h               |    0
- include/{ => uapi}/linux/dvb/ca.h                  |    0
- include/uapi/linux/dvb/dmx.h                       |  155 ++
- include/{ => uapi}/linux/dvb/frontend.h            |    0
- include/{ => uapi}/linux/dvb/net.h                 |    0
- include/{ => uapi}/linux/dvb/osd.h                 |    0
- include/{ => uapi}/linux/dvb/version.h             |    0
- include/uapi/linux/dvb/video.h                     |  274 +++
- include/uapi/linux/edd.h                           |  191 ++
- include/{ => uapi}/linux/efs_fs_sb.h               |    0
- include/{ => uapi}/linux/elf-em.h                  |    0
- include/uapi/linux/elf-fdpic.h                     |   62 +
- include/uapi/linux/elf.h                           |  404 ++++
- include/uapi/linux/elfcore.h                       |  100 +
- include/uapi/linux/errno.h                         |    1 +
- include/uapi/linux/errqueue.h                      |   26 +
- include/uapi/linux/ethtool.h                       |  987 ++++++++
- include/uapi/linux/eventpoll.h                     |   54 +
- include/uapi/linux/ext2_fs.h                       |  569 +++++
- include/{ => uapi}/linux/fadvise.h                 |    0
- include/uapi/linux/falloc.h                        |    8 +
- include/uapi/linux/fanotify.h                      |  116 +
- include/uapi/linux/fb.h                            |  402 ++++
- include/uapi/linux/fcntl.h                         |   52 +
- include/uapi/linux/fd.h                            |  382 ++++
- include/{ => uapi}/linux/fdreg.h                   |    0
- include/{ => uapi}/linux/fib_rules.h               |    0
- include/{ => uapi}/linux/fiemap.h                  |    0
- include/uapi/linux/filter.h                        |  131 ++
- include/{ => uapi}/linux/firewire-cdev.h           |    0
- include/{ => uapi}/linux/firewire-constants.h      |    0
- include/uapi/linux/flat.h                          |   58 +
- include/uapi/linux/fs.h                            |  378 +++
- include/uapi/linux/fsl_hypervisor.h                |  220 ++
- include/{ => uapi}/linux/fuse.h                    |    0
- include/uapi/linux/futex.h                         |  152 ++
- include/uapi/linux/gameport.h                      |   28 +
- include/{ => uapi}/linux/gen_stats.h               |    0
- include/uapi/linux/generic_serial.h                |   36 +
- include/uapi/linux/genetlink.h                     |   84 +
- include/{ => uapi}/linux/gfs2_ondisk.h             |    0
- include/{ => uapi}/linux/gigaset_dev.h             |    0
- include/uapi/linux/hdlc.h                          |   23 +
- include/uapi/linux/hdlc/Kbuild                     |    2 +
- include/{ => uapi}/linux/hdlc/ioctl.h              |    0
- include/uapi/linux/hdlcdrv.h                       |  110 +
- include/{ => uapi}/linux/hdreg.h                   |    0
- include/uapi/linux/hid.h                           |   67 +
- include/uapi/linux/hiddev.h                        |  212 ++
- include/uapi/linux/hidraw.h                        |   50 +
- include/uapi/linux/hpet.h                          |   25 +
- include/{ => uapi}/linux/hysdn_if.h                |    0
- include/uapi/linux/i2c-dev.h                       |   71 +
- include/uapi/linux/i2c.h                           |  148 ++
- include/{ => uapi}/linux/i2o-dev.h                 |    0
- include/{ => uapi}/linux/i8k.h                     |    0
- include/uapi/linux/icmp.h                          |   97 +
- include/uapi/linux/icmpv6.h                        |  164 ++
- include/{ => uapi}/linux/if.h                      |    0
- include/{ => uapi}/linux/if_addr.h                 |    0
- include/{ => uapi}/linux/if_addrlabel.h            |    0
- include/{ => uapi}/linux/if_alg.h                  |    0
- include/{ => uapi}/linux/if_arcnet.h               |    0
- include/uapi/linux/if_arp.h                        |  157 ++
- include/{ => uapi}/linux/if_bonding.h              |    0
- include/uapi/linux/if_bridge.h                     |  101 +
- include/{ => uapi}/linux/if_cablemodem.h           |    0
- include/uapi/linux/if_ec.h                         |   34 +
- include/uapi/linux/if_eql.h                        |   54 +
- include/uapi/linux/if_ether.h                      |  134 ++
- include/{ => uapi}/linux/if_fc.h                   |    0
- include/uapi/linux/if_fddi.h                       |  104 +
- include/uapi/linux/if_frad.h                       |  122 +
- include/{ => uapi}/linux/if_hippi.h                |    0
- include/{ => uapi}/linux/if_infiniband.h           |    0
- include/uapi/linux/if_link.h                       |  382 ++++
- include/uapi/linux/if_ltalk.h                      |    9 +
- include/{ => uapi}/linux/if_packet.h               |    0
- include/uapi/linux/if_phonet.h                     |   16 +
- include/{ => uapi}/linux/if_plip.h                 |    0
- include/{ => uapi}/linux/if_ppp.h                  |    0
- include/uapi/linux/if_pppol2tp.h                   |   79 +
- include/uapi/linux/if_pppox.h                      |  144 ++
- include/{ => uapi}/linux/if_slip.h                 |    0
- include/{ => uapi}/linux/if_strip.h                |    0
- include/uapi/linux/if_team.h                       |  105 +
- include/uapi/linux/if_tr.h                         |   95 +
- include/uapi/linux/if_tun.h                        |   94 +
- include/uapi/linux/if_tunnel.h                     |   79 +
- include/uapi/linux/if_vlan.h                       |   63 +
- include/{ => uapi}/linux/if_x25.h                  |    0
- include/uapi/linux/igmp.h                          |  128 ++
- include/uapi/linux/in.h                            |  253 ++
- include/uapi/linux/in6.h                           |  279 +++
- include/{ => uapi}/linux/in_route.h                |    0
- include/uapi/linux/inet_diag.h                     |  136 ++
- include/uapi/linux/inotify.h                       |   74 +
- include/uapi/linux/input.h                         | 1150 ++++++++++
- include/{ => uapi}/linux/ioctl.h                   |    0
- include/uapi/linux/ip.h                            |  136 ++
- include/{ => uapi}/linux/ip6_tunnel.h              |    0
- include/{ => uapi}/linux/ip_vs.h                   |    0
- include/uapi/linux/ipc.h                           |   81 +
- include/uapi/linux/ipmi.h                          |  456 ++++
- include/{ => uapi}/linux/ipmi_msgdefs.h            |    0
- include/{ => uapi}/linux/ipsec.h                   |    0
- include/uapi/linux/ipv6.h                          |  164 ++
- include/uapi/linux/ipv6_route.h                    |   58 +
- include/{ => uapi}/linux/ipx.h                     |    0
- include/{ => uapi}/linux/irda.h                    |    0
- include/uapi/linux/isdn.h                          |  142 ++
- include/uapi/linux/isdn/Kbuild                     |    2 +
- include/{ => uapi}/linux/isdn/capicmd.h            |    0
- include/uapi/linux/isdn_divertif.h                 |   30 +
- include/uapi/linux/isdn_ppp.h                      |   67 +
- include/uapi/linux/isdnif.h                        |   56 +
- include/{ => uapi}/linux/iso_fs.h                  |    0
- include/{ => uapi}/linux/ivtv.h                    |    0
- include/{ => uapi}/linux/ivtvfb.h                  |    0
- include/{ => uapi}/linux/ixjuser.h                 |    0
- include/{ => uapi}/linux/jffs2.h                   |    0
- include/uapi/linux/joystick.h                      |  136 ++
- include/uapi/linux/kd.h                            |  183 ++
- include/uapi/linux/kdev_t.h                        |   13 +
- include/uapi/linux/kernel.h                        |   29 +
- include/uapi/linux/kernelcapi.h                    |   47 +
- include/uapi/linux/keyboard.h                      |  443 ++++
- include/{ => uapi}/linux/keyctl.h                  |    0
- include/{ => uapi}/linux/kvm.h                     |    0
- include/uapi/linux/kvm_para.h                      |   28 +
- include/uapi/linux/l2tp.h                          |  162 ++
- include/{ => uapi}/linux/limits.h                  |    0
- include/uapi/linux/llc.h                           |   84 +
- include/uapi/linux/loop.h                          |   94 +
- include/uapi/linux/lp.h                            |  100 +
- include/{ => uapi}/linux/magic.h                   |    0
- include/{ => uapi}/linux/major.h                   |    0
- include/{ => uapi}/linux/map_to_7segment.h         |    0
- include/{ => uapi}/linux/matroxfb.h                |    0
- include/uapi/linux/mdio.h                          |  277 +++
- include/{ => uapi}/linux/media.h                   |    0
- include/uapi/linux/mempolicy.h                     |   64 +
- include/{ => uapi}/linux/meye.h                    |    0
- include/uapi/linux/mii.h                           |  152 ++
- include/{ => uapi}/linux/minix_fs.h                |    0
- include/uapi/linux/mman.h                          |   13 +
- include/uapi/linux/mmc/Kbuild                      |    2 +
- include/{ => uapi}/linux/mmc/ioctl.h               |    0
- include/{ => uapi}/linux/mmtimer.h                 |    0
- include/{ => uapi}/linux/mqueue.h                  |    0
- include/uapi/linux/mroute.h                        |  143 ++
- include/uapi/linux/mroute6.h                       |  137 ++
- include/uapi/linux/msdos_fs.h                      |  166 ++
- include/uapi/linux/msg.h                           |   75 +
- include/{ => uapi}/linux/mtio.h                    |    0
- include/uapi/linux/n_r3964.h                       |   98 +
- include/uapi/linux/nbd.h                           |   68 +
- include/{ => uapi}/linux/ncp.h                     |    2 +-
- include/{ => uapi}/linux/ncp_fs.h                  |    0
- include/{ => uapi}/linux/ncp_mount.h               |    0
- include/{ => uapi}/linux/ncp_no.h                  |    0
- include/{ => uapi}/linux/neighbour.h               |    0
- include/uapi/linux/net.h                           |   57 +
- include/{ => uapi}/linux/net_dropmon.h             |    0
- include/{ => uapi}/linux/net_tstamp.h              |    0
- include/uapi/linux/netdevice.h                     |   53 +
- include/uapi/linux/netfilter.h                     |   72 +
- include/uapi/linux/netfilter/Kbuild                |   77 +
- include/uapi/linux/netfilter/ipset/Kbuild          |    5 +
- include/uapi/linux/netfilter/ipset/ip_set.h        |  229 ++
- include/uapi/linux/netfilter/ipset/ip_set_bitmap.h |   13 +
- include/uapi/linux/netfilter/ipset/ip_set_hash.h   |   21 +
- include/uapi/linux/netfilter/ipset/ip_set_list.h   |   21 +
- include/uapi/linux/netfilter/nf_conntrack_common.h |  113 +
- include/uapi/linux/netfilter/nf_conntrack_ftp.h    |   18 +
- .../{ => uapi}/linux/netfilter/nf_conntrack_sctp.h |    0
- include/uapi/linux/netfilter/nf_conntrack_tcp.h    |   51 +
- .../linux/netfilter/nf_conntrack_tuple_common.h    |    0
- include/{ => uapi}/linux/netfilter/nf_nat.h        |    0
- include/uapi/linux/netfilter/nfnetlink.h           |   55 +
- include/uapi/linux/netfilter/nfnetlink_acct.h      |   27 +
- .../{ => uapi}/linux/netfilter/nfnetlink_compat.h  |    0
- .../linux/netfilter/nfnetlink_conntrack.h          |    0
- .../linux/netfilter/nfnetlink_cttimeout.h          |    0
- include/{ => uapi}/linux/netfilter/nfnetlink_log.h |    0
- .../{ => uapi}/linux/netfilter/nfnetlink_queue.h   |    0
- include/uapi/linux/netfilter/x_tables.h            |  187 ++
- include/{ => uapi}/linux/netfilter/xt_AUDIT.h      |    0
- include/{ => uapi}/linux/netfilter/xt_CHECKSUM.h   |    0
- include/{ => uapi}/linux/netfilter/xt_CLASSIFY.h   |    0
- include/{ => uapi}/linux/netfilter/xt_CONNMARK.h   |    0
- .../{ => uapi}/linux/netfilter/xt_CONNSECMARK.h    |    0
- include/{ => uapi}/linux/netfilter/xt_CT.h         |    0
- include/{ => uapi}/linux/netfilter/xt_DSCP.h       |    0
- include/{ => uapi}/linux/netfilter/xt_IDLETIMER.h  |    0
- include/{ => uapi}/linux/netfilter/xt_LED.h        |    0
- include/{ => uapi}/linux/netfilter/xt_LOG.h        |    0
- include/{ => uapi}/linux/netfilter/xt_MARK.h       |    0
- include/{ => uapi}/linux/netfilter/xt_NFLOG.h      |    0
- include/{ => uapi}/linux/netfilter/xt_NFQUEUE.h    |    0
- include/{ => uapi}/linux/netfilter/xt_RATEEST.h    |    0
- include/{ => uapi}/linux/netfilter/xt_SECMARK.h    |    0
- include/{ => uapi}/linux/netfilter/xt_TCPMSS.h     |    0
- .../{ => uapi}/linux/netfilter/xt_TCPOPTSTRIP.h    |    0
- include/{ => uapi}/linux/netfilter/xt_TEE.h        |    0
- include/{ => uapi}/linux/netfilter/xt_TPROXY.h     |    0
- include/{ => uapi}/linux/netfilter/xt_addrtype.h   |    0
- include/{ => uapi}/linux/netfilter/xt_cluster.h    |    0
- include/{ => uapi}/linux/netfilter/xt_comment.h    |    0
- include/{ => uapi}/linux/netfilter/xt_connbytes.h  |    0
- include/{ => uapi}/linux/netfilter/xt_connlimit.h  |    0
- include/{ => uapi}/linux/netfilter/xt_connmark.h   |    0
- include/{ => uapi}/linux/netfilter/xt_conntrack.h  |    0
- include/{ => uapi}/linux/netfilter/xt_cpu.h        |    0
- include/{ => uapi}/linux/netfilter/xt_dccp.h       |    0
- include/{ => uapi}/linux/netfilter/xt_devgroup.h   |    0
- include/{ => uapi}/linux/netfilter/xt_dscp.h       |    0
- include/{ => uapi}/linux/netfilter/xt_ecn.h        |    0
- include/{ => uapi}/linux/netfilter/xt_esp.h        |    0
- include/{ => uapi}/linux/netfilter/xt_hashlimit.h  |    0
- include/{ => uapi}/linux/netfilter/xt_helper.h     |    0
- include/{ => uapi}/linux/netfilter/xt_iprange.h    |    0
- include/{ => uapi}/linux/netfilter/xt_ipvs.h       |    0
- include/{ => uapi}/linux/netfilter/xt_length.h     |    0
- include/{ => uapi}/linux/netfilter/xt_limit.h      |    0
- include/{ => uapi}/linux/netfilter/xt_mac.h        |    0
- include/{ => uapi}/linux/netfilter/xt_mark.h       |    0
- include/{ => uapi}/linux/netfilter/xt_multiport.h  |    0
- include/{ => uapi}/linux/netfilter/xt_nfacct.h     |    0
- include/{ => uapi}/linux/netfilter/xt_osf.h        |    0
- include/{ => uapi}/linux/netfilter/xt_owner.h      |    0
- include/uapi/linux/netfilter/xt_physdev.h          |   23 +
- include/{ => uapi}/linux/netfilter/xt_pkttype.h    |    0
- include/{ => uapi}/linux/netfilter/xt_policy.h     |    2 +-
- include/{ => uapi}/linux/netfilter/xt_quota.h      |    0
- include/{ => uapi}/linux/netfilter/xt_rateest.h    |    0
- include/{ => uapi}/linux/netfilter/xt_realm.h      |    0
- include/{ => uapi}/linux/netfilter/xt_recent.h     |    0
- include/{ => uapi}/linux/netfilter/xt_sctp.h       |    0
- include/{ => uapi}/linux/netfilter/xt_set.h        |    0
- include/{ => uapi}/linux/netfilter/xt_socket.h     |    0
- include/{ => uapi}/linux/netfilter/xt_state.h      |    0
- include/{ => uapi}/linux/netfilter/xt_statistic.h  |    0
- include/{ => uapi}/linux/netfilter/xt_string.h     |    0
- include/{ => uapi}/linux/netfilter/xt_tcpmss.h     |    0
- include/{ => uapi}/linux/netfilter/xt_tcpudp.h     |    0
- include/{ => uapi}/linux/netfilter/xt_time.h       |    0
- include/{ => uapi}/linux/netfilter/xt_u32.h        |    0
- include/{ => uapi}/linux/netfilter_arp.h           |    0
- include/uapi/linux/netfilter_arp/Kbuild            |    3 +
- include/uapi/linux/netfilter_arp/arp_tables.h      |  206 ++
- .../{ => uapi}/linux/netfilter_arp/arpt_mangle.h   |    0
- include/uapi/linux/netfilter_bridge.h              |   27 +
- include/uapi/linux/netfilter_bridge/Kbuild         |   19 +
- include/uapi/linux/netfilter_bridge/ebt_802_3.h    |   62 +
- .../{ => uapi}/linux/netfilter_bridge/ebt_among.h  |    0
- .../{ => uapi}/linux/netfilter_bridge/ebt_arp.h    |    0
- .../linux/netfilter_bridge/ebt_arpreply.h          |    0
- include/{ => uapi}/linux/netfilter_bridge/ebt_ip.h |    0
- .../{ => uapi}/linux/netfilter_bridge/ebt_ip6.h    |    0
- .../{ => uapi}/linux/netfilter_bridge/ebt_limit.h  |    0
- .../{ => uapi}/linux/netfilter_bridge/ebt_log.h    |    0
- .../{ => uapi}/linux/netfilter_bridge/ebt_mark_m.h |    0
- .../{ => uapi}/linux/netfilter_bridge/ebt_mark_t.h |    0
- .../{ => uapi}/linux/netfilter_bridge/ebt_nat.h    |    0
- .../{ => uapi}/linux/netfilter_bridge/ebt_nflog.h  |    0
- .../linux/netfilter_bridge/ebt_pkttype.h           |    0
- .../linux/netfilter_bridge/ebt_redirect.h          |    0
- .../{ => uapi}/linux/netfilter_bridge/ebt_stp.h    |    0
- .../{ => uapi}/linux/netfilter_bridge/ebt_ulog.h   |    0
- .../{ => uapi}/linux/netfilter_bridge/ebt_vlan.h   |    0
- include/uapi/linux/netfilter_bridge/ebtables.h     |  268 +++
- include/{ => uapi}/linux/netfilter_decnet.h        |    0
- include/uapi/linux/netfilter_ipv4.h                |   80 +
- include/uapi/linux/netfilter_ipv4/Kbuild           |   13 +
- include/uapi/linux/netfilter_ipv4/ip_queue.h       |   66 +
- include/uapi/linux/netfilter_ipv4/ip_tables.h      |  229 ++
- .../linux/netfilter_ipv4/ipt_CLUSTERIP.h           |    0
- include/{ => uapi}/linux/netfilter_ipv4/ipt_ECN.h  |    0
- include/{ => uapi}/linux/netfilter_ipv4/ipt_LOG.h  |    0
- .../{ => uapi}/linux/netfilter_ipv4/ipt_REJECT.h   |    0
- include/{ => uapi}/linux/netfilter_ipv4/ipt_TTL.h  |    0
- include/{ => uapi}/linux/netfilter_ipv4/ipt_ULOG.h |    0
- .../{ => uapi}/linux/netfilter_ipv4/ipt_addrtype.h |    0
- include/{ => uapi}/linux/netfilter_ipv4/ipt_ah.h   |    0
- include/{ => uapi}/linux/netfilter_ipv4/ipt_ecn.h  |    0
- include/{ => uapi}/linux/netfilter_ipv4/ipt_ttl.h  |    0
- include/uapi/linux/netfilter_ipv6.h                |   78 +
- include/uapi/linux/netfilter_ipv6/Kbuild           |   12 +
- include/uapi/linux/netfilter_ipv6/ip6_tables.h     |  267 +++
- include/{ => uapi}/linux/netfilter_ipv6/ip6t_HL.h  |    0
- include/{ => uapi}/linux/netfilter_ipv6/ip6t_LOG.h |    0
- .../{ => uapi}/linux/netfilter_ipv6/ip6t_REJECT.h  |    0
- include/{ => uapi}/linux/netfilter_ipv6/ip6t_ah.h  |    0
- .../{ => uapi}/linux/netfilter_ipv6/ip6t_frag.h    |    0
- include/{ => uapi}/linux/netfilter_ipv6/ip6t_hl.h  |    0
- .../linux/netfilter_ipv6/ip6t_ipv6header.h         |    0
- include/{ => uapi}/linux/netfilter_ipv6/ip6t_mh.h  |    0
- .../{ => uapi}/linux/netfilter_ipv6/ip6t_opts.h    |    0
- include/{ => uapi}/linux/netfilter_ipv6/ip6t_rt.h  |    0
- include/uapi/linux/netlink.h                       |  153 ++
- include/{ => uapi}/linux/netrom.h                  |    0
- include/uapi/linux/nfs.h                           |  131 ++
- include/{ => uapi}/linux/nfs2.h                    |    0
- include/uapi/linux/nfs3.h                          |   97 +
- include/uapi/linux/nfs4.h                          |  174 ++
- include/{ => uapi}/linux/nfs4_mount.h              |    0
- include/uapi/linux/nfs_fs.h                        |   60 +
- include/uapi/linux/nfs_idmap.h                     |   65 +
- include/{ => uapi}/linux/nfs_mount.h               |    0
- include/uapi/linux/nfsacl.h                        |   29 +
- include/uapi/linux/nfsd/Kbuild                     |    5 +
- include/uapi/linux/nfsd/debug.h                    |   40 +
- include/uapi/linux/nfsd/export.h                   |   59 +
- include/uapi/linux/nfsd/nfsfh.h                    |  122 +
- include/uapi/linux/nfsd/stats.h                    |   17 +
- include/{ => uapi}/linux/nl80211.h                 |    0
- include/uapi/linux/nubus.h                         |  244 ++
- include/uapi/linux/nvram.h                         |   16 +
- include/{ => uapi}/linux/omap3isp.h                |    0
- include/uapi/linux/omapfb.h                        |  222 ++
- include/uapi/linux/oom.h                           |   22 +
- include/{ => uapi}/linux/param.h                   |    0
- include/uapi/linux/parport.h                       |   95 +
- include/uapi/linux/patchkey.h                      |   37 +
- include/uapi/linux/pci.h                           |   41 +
- include/{ => uapi}/linux/pci_regs.h                |    0
- include/uapi/linux/perf_event.h                    |  518 +++++
- include/uapi/linux/personality.h                   |   69 +
- include/{ => uapi}/linux/pfkeyv2.h                 |    0
- include/{ => uapi}/linux/pg.h                      |    0
- include/{ => uapi}/linux/phantom.h                 |    0
- include/uapi/linux/phonet.h                        |  185 ++
- include/{ => uapi}/linux/pkt_cls.h                 |    0
- include/{ => uapi}/linux/pkt_sched.h               |    0
- include/uapi/linux/pktcdvd.h                       |  111 +
- include/uapi/linux/pmu.h                           |  139 ++
- include/uapi/linux/poll.h                          |    1 +
- include/{ => uapi}/linux/posix_types.h             |    0
- include/{ => uapi}/linux/ppdev.h                   |    0
- include/uapi/linux/ppp-comp.h                      |  180 ++
- include/{ => uapi}/linux/ppp-ioctl.h               |    0
- include/uapi/linux/ppp_defs.h                      |  150 ++
- include/{ => uapi}/linux/pps.h                     |    0
- include/{ => uapi}/linux/prctl.h                   |    0
- include/{ => uapi}/linux/ptp_clock.h               |    0
- include/uapi/linux/ptrace.h                        |   78 +
- include/{ => uapi}/linux/qnx4_fs.h                 |    0
- include/{ => uapi}/linux/qnxtypes.h                |    0
- include/uapi/linux/quota.h                         |  171 ++
- include/{ => uapi}/linux/radeonfb.h                |    0
- include/uapi/linux/raid/Kbuild                     |    3 +
- include/{ => uapi}/linux/raid/md_p.h               |    0
- include/uapi/linux/raid/md_u.h                     |  156 ++
- include/uapi/linux/random.h                        |   50 +
- include/{ => uapi}/linux/raw.h                     |    0
- include/{ => uapi}/linux/rds.h                     |    0
- include/uapi/linux/reboot.h                        |   39 +
- include/{ => uapi}/linux/reiserfs_fs.h             |    0
- include/{ => uapi}/linux/reiserfs_xattr.h          |    0
- include/uapi/linux/resource.h                      |   80 +
- include/uapi/linux/rfkill.h                        |  107 +
- include/{ => uapi}/linux/romfs_fs.h                |    0
- include/{ => uapi}/linux/rose.h                    |    0
- include/{ => uapi}/linux/route.h                   |    0
- include/uapi/linux/rtc.h                           |  104 +
- include/uapi/linux/rtnetlink.h                     |  612 +++++
- include/uapi/linux/scc.h                           |  172 ++
- include/uapi/linux/sched.h                         |   46 +
- include/uapi/linux/screen_info.h                   |   72 +
- include/uapi/linux/sdla.h                          |  116 +
- include/uapi/linux/securebits.h                    |   51 +
- include/{ => uapi}/linux/selinux_netlink.h         |    0
- include/uapi/linux/sem.h                           |   80 +
- include/uapi/linux/serial.h                        |  204 ++
- include/uapi/linux/serial_core.h                   |  217 ++
- include/{ => uapi}/linux/serial_reg.h              |    0
- include/uapi/linux/serio.h                         |   80 +
- include/uapi/linux/shm.h                           |   79 +
- include/uapi/linux/signal.h                        |    8 +
- include/uapi/linux/signalfd.h                      |   52 +
- include/{ => uapi}/linux/snmp.h                    |    0
- include/uapi/linux/sock_diag.h                     |   25 +
- include/uapi/linux/socket.h                        |   21 +
- include/{ => uapi}/linux/sockios.h                 |    0
- include/{ => uapi}/linux/som.h                     |    0
- include/uapi/linux/sonet.h                         |   60 +
- include/uapi/linux/sonypi.h                        |  146 ++
- include/uapi/linux/sound.h                         |   31 +
- include/uapi/linux/soundcard.h                     | 1282 +++++++++++
- include/uapi/linux/spi/Kbuild                      |    2 +
- include/{ => uapi}/linux/spi/spidev.h              |    0
- include/uapi/linux/stat.h                          |   45 +
- include/uapi/linux/stddef.h                        |   14 +
- include/uapi/linux/string.h                        |    9 +
- include/uapi/linux/sunrpc/Kbuild                   |    2 +
- include/uapi/linux/sunrpc/debug.h                  |   48 +
- include/{ => uapi}/linux/suspend_ioctls.h          |    0
- include/uapi/linux/swab.h                          |  282 +++
- include/uapi/linux/synclink.h                      |  300 +++
- include/uapi/linux/sysctl.h                        |  932 ++++++++
- include/{ => uapi}/linux/taskstats.h               |    0
- include/uapi/linux/tc_act/Kbuild                   |    8 +
- include/{ => uapi}/linux/tc_act/tc_csum.h          |    0
- include/{ => uapi}/linux/tc_act/tc_gact.h          |    0
- include/{ => uapi}/linux/tc_act/tc_ipt.h           |    0
- include/{ => uapi}/linux/tc_act/tc_mirred.h        |    0
- include/{ => uapi}/linux/tc_act/tc_nat.h           |    0
- include/{ => uapi}/linux/tc_act/tc_pedit.h         |    0
- include/{ => uapi}/linux/tc_act/tc_skbedit.h       |    0
- include/uapi/linux/tc_ematch/Kbuild                |    5 +
- include/{ => uapi}/linux/tc_ematch/tc_em_cmp.h     |    0
- include/{ => uapi}/linux/tc_ematch/tc_em_meta.h    |    0
- include/{ => uapi}/linux/tc_ematch/tc_em_nbyte.h   |    0
- include/{ => uapi}/linux/tc_ematch/tc_em_text.h    |    0
- include/uapi/linux/tcp.h                           |  208 ++
- include/{ => uapi}/linux/telephony.h               |    0
- include/{ => uapi}/linux/termios.h                 |    0
- include/uapi/linux/time.h                          |   79 +
- include/{ => uapi}/linux/times.h                   |    0
- include/uapi/linux/timex.h                         |  166 ++
- include/{ => uapi}/linux/tiocl.h                   |    0
- include/{ => uapi}/linux/tipc.h                    |    0
- include/{ => uapi}/linux/tipc_config.h             |    0
- include/uapi/linux/toshiba.h                       |   37 +
- include/uapi/linux/tty.h                           |   38 +
- include/uapi/linux/types.h                         |   56 +
- include/{ => uapi}/linux/udf_fs_i.h                |    0
- include/uapi/linux/udp.h                           |   39 +
- include/uapi/linux/uinput.h                        |  137 ++
- include/uapi/linux/uio.h                           |   30 +
- include/{ => uapi}/linux/ultrasound.h              |    0
- include/{ => uapi}/linux/un.h                      |    0
- include/{ => uapi}/linux/unistd.h                  |    0
- include/{ => uapi}/linux/unix_diag.h               |    0
- include/uapi/linux/usb/Kbuild                      |   11 +
- include/uapi/linux/usb/audio.h                     |  545 +++++
- include/{ => uapi}/linux/usb/cdc.h                 |    0
- include/{ => uapi}/linux/usb/ch11.h                |    0
- include/uapi/linux/usb/ch9.h                       |  935 ++++++++
- include/uapi/linux/usb/functionfs.h                |  169 ++
- include/{ => uapi}/linux/usb/g_printer.h           |    0
- include/{ => uapi}/linux/usb/gadgetfs.h            |    0
- include/{ => uapi}/linux/usb/midi.h                |    0
- include/{ => uapi}/linux/usb/tmc.h                 |    0
- include/{ => uapi}/linux/usb/video.h               |    0
- include/uapi/linux/usbdevice_fs.h                  |  158 ++
- include/{ => uapi}/linux/utime.h                   |    0
- include/uapi/linux/utsname.h                       |   34 +
- include/{ => uapi}/linux/uvcvideo.h                |    0
- include/{ => uapi}/linux/v4l2-mediabus.h           |    0
- include/{ => uapi}/linux/v4l2-subdev.h             |    0
- include/{ => uapi}/linux/veth.h                    |    0
- include/{ => uapi}/linux/vhost.h                   |    0
- include/uapi/linux/videodev2.h                     | 2414 ++++++++++++++++++++
- include/{ => uapi}/linux/virtio_9p.h               |    0
- include/{ => uapi}/linux/virtio_balloon.h          |    0
- include/{ => uapi}/linux/virtio_blk.h              |    0
- include/uapi/linux/virtio_config.h                 |   54 +
- include/uapi/linux/virtio_console.h                |   74 +
- include/{ => uapi}/linux/virtio_ids.h              |    0
- include/{ => uapi}/linux/virtio_net.h              |    0
- include/{ => uapi}/linux/virtio_pci.h              |    0
- include/uapi/linux/virtio_ring.h                   |  163 ++
- include/{ => uapi}/linux/virtio_rng.h              |    0
- include/uapi/linux/vt.h                            |   90 +
- include/uapi/linux/wait.h                          |   21 +
- include/uapi/linux/wanrouter.h                     |  452 ++++
- include/uapi/linux/watchdog.h                      |   55 +
- include/{ => uapi}/linux/wimax.h                   |    0
- include/uapi/linux/wimax/Kbuild                    |    2 +
- include/{ => uapi}/linux/wimax/i2400m.h            |    0
- include/uapi/linux/wireless.h                      | 1128 +++++++++
- include/{ => uapi}/linux/x25.h                     |    0
- include/uapi/linux/xattr.h                         |   61 +
- include/{ => uapi}/linux/xfrm.h                    |    0
- include/uapi/mtd/Kbuild                            |    6 +
- include/{ => uapi}/mtd/inftl-user.h                |    0
- include/{ => uapi}/mtd/mtd-abi.h                   |    0
- include/{ => uapi}/mtd/mtd-user.h                  |    0
- include/{ => uapi}/mtd/nftl-user.h                 |    0
- include/{ => uapi}/mtd/ubi-user.h                  |    0
- include/uapi/rdma/Kbuild                           |    7 +
- include/{ => uapi}/rdma/ib_user_cm.h               |    0
- include/{ => uapi}/rdma/ib_user_mad.h              |    0
- include/{ => uapi}/rdma/ib_user_sa.h               |    0
- include/{ => uapi}/rdma/ib_user_verbs.h            |    0
- include/uapi/rdma/rdma_netlink.h                   |   37 +
- include/{ => uapi}/rdma/rdma_user_cm.h             |    0
- include/uapi/scsi/Kbuild                           |    5 +
- include/uapi/scsi/fc/Kbuild                        |    5 +
- include/{ => uapi}/scsi/fc/fc_els.h                |    0
- include/{ => uapi}/scsi/fc/fc_fs.h                 |    0
- include/{ => uapi}/scsi/fc/fc_gs.h                 |    0
- include/{ => uapi}/scsi/fc/fc_ns.h                 |    0
- include/{ => uapi}/scsi/scsi_bsg_fc.h              |    0
- include/uapi/scsi/scsi_netlink.h                   |  125 +
- include/{ => uapi}/scsi/scsi_netlink_fc.h          |    0
- include/uapi/sound/Kbuild                          |   11 +
- include/uapi/sound/asequencer.h                    |  614 +++++
- include/uapi/sound/asound.h                        |  904 ++++++++
- include/{ => uapi}/sound/asound_fm.h               |    0
- include/{ => uapi}/sound/compress_offload.h        |    0
- include/{ => uapi}/sound/compress_params.h         |    0
- include/uapi/sound/emu10k1.h                       |  373 +++
- include/{ => uapi}/sound/hdsp.h                    |    0
- include/{ => uapi}/sound/hdspm.h                   |    0
- include/uapi/sound/sb16_csp.h                      |  122 +
- include/{ => uapi}/sound/sfnt_info.h               |    0
- include/uapi/video/Kbuild                          |    4 +
- include/uapi/video/edid.h                          |    9 +
- include/uapi/video/sisfb.h                         |  209 ++
- include/uapi/video/uvesafb.h                       |   60 +
- include/uapi/xen/Kbuild                            |    3 +
- include/{ => uapi}/xen/evtchn.h                    |    0
- include/{ => uapi}/xen/privcmd.h                   |    0
- include/video/Kbuild                               |    3 -
- include/video/edid.h                               |    7 +-
- include/video/sisfb.h                              |  189 +--
- include/video/uvesafb.h                            |   58 +-
- include/xen/Kbuild                                 |    2 -
- include/xen/interface/callback.h                   |    2 +-
- include/xen/interface/hvm/params.h                 |    2 +-
- include/xen/interface/io/blkif.h                   |    4 +-
- include/xen/interface/io/netif.h                   |    4 +-
- include/xen/interface/platform.h                   |    2 +-
- include/xen/interface/sched.h                      |    2 +-
- include/xen/interface/version.h                    |    2 +-
- scripts/Makefile.headersinst                       |    2 +-
- 2468 files changed, 68291 insertions(+), 63522 deletions(-)
- create mode 100644 arch/alpha/include/uapi/asm/Kbuild
- create mode 100644 arch/alpha/include/uapi/asm/a.out.h
- rename arch/alpha/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/byteorder.h (100%)
- create mode 100644 arch/alpha/include/uapi/asm/compiler.h
- create mode 100644 arch/alpha/include/uapi/asm/console.h
- rename arch/alpha/include/{ => uapi}/asm/errno.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/fcntl.h (100%)
- create mode 100644 arch/alpha/include/uapi/asm/fpu.h
- rename arch/alpha/include/{ => uapi}/asm/gentrap.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/mman.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/msgbuf.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/pal.h (100%)
- create mode 100644 arch/alpha/include/uapi/asm/param.h
- rename arch/alpha/include/{ => uapi}/asm/poll.h (100%)
- create mode 100644 arch/alpha/include/uapi/asm/posix_types.h
- create mode 100644 arch/alpha/include/uapi/asm/ptrace.h
- rename arch/alpha/include/{ => uapi}/asm/reg.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/regdef.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/resource.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/sembuf.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/setup.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/siginfo.h (100%)
- create mode 100644 arch/alpha/include/uapi/asm/signal.h
- rename arch/alpha/include/{ => uapi}/asm/socket.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/stat.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/swab.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/sysinfo.h (100%)
- rename arch/alpha/include/{ => uapi}/asm/termbits.h (100%)
- create mode 100644 arch/alpha/include/uapi/asm/termios.h
- create mode 100644 arch/alpha/include/uapi/asm/types.h
- create mode 100644 arch/alpha/include/uapi/asm/unistd.h
- create mode 100644 arch/arm/include/uapi/asm/Kbuild
- rename arch/arm/include/{ => uapi}/asm/a.out.h (100%)
- rename arch/arm/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/arm/include/{ => uapi}/asm/fcntl.h (100%)
- create mode 100644 arch/arm/include/uapi/asm/hwcap.h
- rename arch/arm/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/arm/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/arm/include/{ => uapi}/asm/mman.h (100%)
- rename arch/arm/include/{ => uapi}/asm/msgbuf.h (100%)
- create mode 100644 arch/arm/include/uapi/asm/param.h
- create mode 100644 arch/arm/include/uapi/asm/posix_types.h
- create mode 100644 arch/arm/include/uapi/asm/ptrace.h
- rename arch/arm/include/{ => uapi}/asm/sembuf.h (100%)
- create mode 100644 arch/arm/include/uapi/asm/setup.h
- rename arch/arm/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/arm/include/{ => uapi}/asm/sigcontext.h (100%)
- create mode 100644 arch/arm/include/uapi/asm/signal.h
- rename arch/arm/include/{ => uapi}/asm/socket.h (100%)
- rename arch/arm/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/arm/include/{ => uapi}/asm/stat.h (100%)
- rename arch/arm/include/{ => uapi}/asm/statfs.h (100%)
- create mode 100644 arch/arm/include/uapi/asm/swab.h
- rename arch/arm/include/{ => uapi}/asm/termbits.h (100%)
- create mode 100644 arch/arm/include/uapi/asm/termios.h
- create mode 100644 arch/arm/include/uapi/asm/types.h
- create mode 100644 arch/arm/include/uapi/asm/unistd.h
- create mode 100644 arch/avr32/include/uapi/asm/Kbuild
- rename arch/avr32/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/cachectl.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/errno.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/fcntl.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/mman.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/msgbuf.h (100%)
- create mode 100644 arch/avr32/include/uapi/asm/param.h
- rename arch/avr32/include/{ => uapi}/asm/poll.h (100%)
- create mode 100644 arch/avr32/include/uapi/asm/posix_types.h
- create mode 100644 arch/avr32/include/uapi/asm/ptrace.h
- rename arch/avr32/include/{ => uapi}/asm/resource.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/sembuf.h (100%)
- create mode 100644 arch/avr32/include/uapi/asm/setup.h
- rename arch/avr32/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/siginfo.h (100%)
- create mode 100644 arch/avr32/include/uapi/asm/signal.h
- rename arch/avr32/include/{ => uapi}/asm/socket.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/stat.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/swab.h (100%)
- rename arch/avr32/include/{ => uapi}/asm/termbits.h (100%)
- create mode 100644 arch/avr32/include/uapi/asm/termios.h
- create mode 100644 arch/avr32/include/uapi/asm/types.h
- create mode 100644 arch/avr32/include/uapi/asm/unistd.h
- create mode 100644 arch/blackfin/include/uapi/asm/Kbuild
- create mode 100644 arch/blackfin/include/uapi/asm/bfin_sport.h
- rename arch/blackfin/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/blackfin/include/{ => uapi}/asm/cachectl.h (100%)
- rename arch/blackfin/include/{ => uapi}/asm/fcntl.h (100%)
- create mode 100644 arch/blackfin/include/uapi/asm/fixed_code.h
- rename arch/blackfin/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/blackfin/include/{ => uapi}/asm/poll.h (100%)
- rename arch/blackfin/include/{ => uapi}/asm/posix_types.h (100%)
- create mode 100644 arch/blackfin/include/uapi/asm/ptrace.h
- rename arch/blackfin/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/blackfin/include/{ => uapi}/asm/siginfo.h (100%)
- rename arch/blackfin/include/{ => uapi}/asm/signal.h (100%)
- rename arch/blackfin/include/{ => uapi}/asm/stat.h (100%)
- rename arch/blackfin/include/{ => uapi}/asm/swab.h (100%)
- create mode 100644 arch/blackfin/include/uapi/asm/unistd.h
- create mode 100644 arch/c6x/include/uapi/asm/Kbuild
- rename arch/c6x/include/{ => uapi}/asm/byteorder.h (100%)
- create mode 100644 arch/c6x/include/uapi/asm/ptrace.h
- rename arch/c6x/include/{ => uapi}/asm/setup.h (100%)
- rename arch/c6x/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/c6x/include/{ => uapi}/asm/signal.h (100%)
- rename arch/c6x/include/{ => uapi}/asm/swab.h (100%)
- rename arch/c6x/include/{ => uapi}/asm/unistd.h (100%)
- create mode 100644 arch/cris/include/uapi/arch-v10/arch/Kbuild
- rename arch/cris/include/{ => uapi}/arch-v10/arch/sv_addr.agh (100%)
- rename arch/cris/include/{ => uapi}/arch-v10/arch/sv_addr_ag.h (99%)
- rename arch/cris/include/{ => uapi}/arch-v10/arch/svinto.h (98%)
- rename arch/cris/include/{ => uapi}/arch-v10/arch/user.h (100%)
- create mode 100644 arch/cris/include/uapi/arch-v32/arch/Kbuild
- create mode 100644 arch/cris/include/uapi/arch-v32/arch/cryptocop.h
- rename arch/cris/include/{ => uapi}/arch-v32/arch/user.h (100%)
- create mode 100644 arch/cris/include/uapi/asm/Kbuild
- rename arch/cris/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/cris/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/cris/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/cris/include/{ => uapi}/asm/errno.h (100%)
- rename arch/cris/include/{ => uapi}/asm/ethernet.h (100%)
- rename arch/cris/include/{ => uapi}/asm/etraxgpio.h (100%)
- rename arch/cris/include/{ => uapi}/asm/fcntl.h (100%)
- rename arch/cris/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/cris/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/cris/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/cris/include/{ => uapi}/asm/mman.h (100%)
- rename arch/cris/include/{ => uapi}/asm/msgbuf.h (100%)
- rename arch/cris/include/{ => uapi}/asm/param.h (100%)
- rename arch/cris/include/{ => uapi}/asm/poll.h (100%)
- create mode 100644 arch/cris/include/uapi/asm/posix_types.h
- create mode 100644 arch/cris/include/uapi/asm/ptrace.h
- rename arch/cris/include/{ => uapi}/asm/resource.h (100%)
- rename arch/cris/include/{ => uapi}/asm/rs485.h (100%)
- rename arch/cris/include/{ => uapi}/asm/rtc.h (100%)
- rename arch/cris/include/{ => uapi}/asm/sembuf.h (100%)
- rename arch/cris/include/{ => uapi}/asm/setup.h (100%)
- rename arch/cris/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/cris/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/cris/include/{ => uapi}/asm/siginfo.h (100%)
- create mode 100644 arch/cris/include/uapi/asm/signal.h
- rename arch/cris/include/{ => uapi}/asm/socket.h (100%)
- rename arch/cris/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/cris/include/{ => uapi}/asm/stat.h (100%)
- rename arch/cris/include/{ => uapi}/asm/statfs.h (100%)
- create mode 100644 arch/cris/include/uapi/asm/swab.h
- rename arch/cris/include/{ => uapi}/asm/sync_serial.h (100%)
- rename arch/cris/include/{ => uapi}/asm/termbits.h (100%)
- create mode 100644 arch/cris/include/uapi/asm/termios.h
- create mode 100644 arch/cris/include/uapi/asm/types.h
- create mode 100644 arch/cris/include/uapi/asm/unistd.h
- create mode 100644 arch/frv/include/uapi/asm/Kbuild
- rename arch/frv/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/frv/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/frv/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/frv/include/{ => uapi}/asm/errno.h (100%)
- rename arch/frv/include/{ => uapi}/asm/fcntl.h (100%)
- rename arch/frv/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/frv/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/frv/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/frv/include/{ => uapi}/asm/mman.h (100%)
- rename arch/frv/include/{ => uapi}/asm/msgbuf.h (100%)
- rename arch/frv/include/{ => uapi}/asm/param.h (100%)
- rename arch/frv/include/{ => uapi}/asm/poll.h (100%)
- create mode 100644 arch/frv/include/uapi/asm/posix_types.h
- create mode 100644 arch/frv/include/uapi/asm/ptrace.h
- rename arch/frv/include/{ => uapi}/asm/registers.h (100%)
- rename arch/frv/include/{ => uapi}/asm/resource.h (100%)
- rename arch/frv/include/{ => uapi}/asm/sembuf.h (100%)
- create mode 100644 arch/frv/include/uapi/asm/setup.h
- rename arch/frv/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/frv/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/frv/include/{ => uapi}/asm/siginfo.h (100%)
- create mode 100644 arch/frv/include/uapi/asm/signal.h
- rename arch/frv/include/{ => uapi}/asm/socket.h (100%)
- rename arch/frv/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/frv/include/{ => uapi}/asm/stat.h (100%)
- rename arch/frv/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/frv/include/{ => uapi}/asm/swab.h (100%)
- rename arch/frv/include/{ => uapi}/asm/termbits.h (100%)
- create mode 100644 arch/frv/include/uapi/asm/termios.h
- create mode 100644 arch/frv/include/uapi/asm/types.h
- create mode 100644 arch/frv/include/uapi/asm/unistd.h
- create mode 100644 arch/h8300/include/uapi/asm/Kbuild
- rename arch/h8300/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/errno.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/fcntl.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/mman.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/msgbuf.h (100%)
- create mode 100644 arch/h8300/include/uapi/asm/param.h
- rename arch/h8300/include/{ => uapi}/asm/poll.h (100%)
- create mode 100644 arch/h8300/include/uapi/asm/posix_types.h
- create mode 100644 arch/h8300/include/uapi/asm/ptrace.h
- rename arch/h8300/include/{ => uapi}/asm/resource.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/sembuf.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/setup.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/siginfo.h (100%)
- create mode 100644 arch/h8300/include/uapi/asm/signal.h
- rename arch/h8300/include/{ => uapi}/asm/socket.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/stat.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/swab.h (100%)
- rename arch/h8300/include/{ => uapi}/asm/termbits.h (100%)
- create mode 100644 arch/h8300/include/uapi/asm/termios.h
- create mode 100644 arch/h8300/include/uapi/asm/types.h
- create mode 100644 arch/h8300/include/uapi/asm/unistd.h
- create mode 100644 arch/hexagon/include/uapi/asm/Kbuild
- rename arch/hexagon/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/hexagon/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/hexagon/include/{ => uapi}/asm/param.h (100%)
- rename arch/hexagon/include/{ => uapi}/asm/ptrace.h (100%)
- rename arch/hexagon/include/{ => uapi}/asm/registers.h (100%)
- rename arch/hexagon/include/{ => uapi}/asm/setup.h (100%)
- rename arch/hexagon/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/hexagon/include/{ => uapi}/asm/signal.h (100%)
- rename arch/hexagon/include/{ => uapi}/asm/swab.h (100%)
- rename arch/hexagon/include/{ => uapi}/asm/unistd.h (100%)
- rename arch/hexagon/include/{ => uapi}/asm/user.h (100%)
- create mode 100644 arch/ia64/include/uapi/asm/Kbuild
- rename arch/ia64/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/break.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/errno.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/fcntl.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/fpu.h (100%)
- create mode 100644 arch/ia64/include/uapi/asm/gcc_intrin.h
- rename arch/ia64/include/{ => uapi}/asm/ia64regs.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/intel_intrin.h (100%)
- create mode 100644 arch/ia64/include/uapi/asm/intrinsics.h
- rename arch/ia64/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/kvm.h (100%)
- create mode 100644 arch/ia64/include/uapi/asm/kvm_para.h
- create mode 100644 arch/ia64/include/uapi/asm/mman.h
- rename arch/ia64/include/{ => uapi}/asm/msgbuf.h (100%)
- create mode 100644 arch/ia64/include/uapi/asm/param.h
- create mode 100644 arch/ia64/include/uapi/asm/perfmon.h
- rename arch/ia64/include/{ => uapi}/asm/perfmon_default_smpl.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/poll.h (100%)
- create mode 100644 arch/ia64/include/uapi/asm/posix_types.h
- create mode 100644 arch/ia64/include/uapi/asm/ptrace.h
- rename arch/ia64/include/{ => uapi}/asm/ptrace_offsets.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/resource.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/rse.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/sembuf.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/setup.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/sigcontext.h (100%)
- create mode 100644 arch/ia64/include/uapi/asm/siginfo.h
- create mode 100644 arch/ia64/include/uapi/asm/signal.h
- rename arch/ia64/include/{ => uapi}/asm/socket.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/stat.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/swab.h (100%)
- rename arch/ia64/include/{ => uapi}/asm/termbits.h (100%)
- create mode 100644 arch/ia64/include/uapi/asm/termios.h
- create mode 100644 arch/ia64/include/uapi/asm/types.h
- rename arch/ia64/include/{ => uapi}/asm/ucontext.h (100%)
- create mode 100644 arch/ia64/include/uapi/asm/unistd.h
- create mode 100644 arch/ia64/include/uapi/asm/ustack.h
- create mode 100644 arch/m32r/include/uapi/asm/Kbuild
- rename arch/m32r/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/errno.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/fcntl.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/mman.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/msgbuf.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/param.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/poll.h (100%)
- create mode 100644 arch/m32r/include/uapi/asm/posix_types.h
- create mode 100644 arch/m32r/include/uapi/asm/ptrace.h
- rename arch/m32r/include/{ => uapi}/asm/resource.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/sembuf.h (100%)
- create mode 100644 arch/m32r/include/uapi/asm/setup.h
- rename arch/m32r/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/siginfo.h (100%)
- create mode 100644 arch/m32r/include/uapi/asm/signal.h
- rename arch/m32r/include/{ => uapi}/asm/socket.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/stat.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/swab.h (100%)
- rename arch/m32r/include/{ => uapi}/asm/termbits.h (100%)
- create mode 100644 arch/m32r/include/uapi/asm/termios.h
- create mode 100644 arch/m32r/include/uapi/asm/types.h
- create mode 100644 arch/m32r/include/uapi/asm/unistd.h
- create mode 100644 arch/m68k/include/uapi/asm/Kbuild
- rename arch/m68k/include/{ => uapi}/asm/a.out.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/cachectl.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/errno.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/fcntl.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/mman.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/msgbuf.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/param.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/poll.h (100%)
- create mode 100644 arch/m68k/include/uapi/asm/posix_types.h
- create mode 100644 arch/m68k/include/uapi/asm/ptrace.h
- rename arch/m68k/include/{ => uapi}/asm/resource.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/sembuf.h (100%)
- create mode 100644 arch/m68k/include/uapi/asm/setup.h
- rename arch/m68k/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/siginfo.h (100%)
- create mode 100644 arch/m68k/include/uapi/asm/signal.h
- rename arch/m68k/include/{ => uapi}/asm/socket.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/stat.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/swab.h (100%)
- rename arch/m68k/include/{ => uapi}/asm/termbits.h (100%)
- create mode 100644 arch/m68k/include/uapi/asm/termios.h
- create mode 100644 arch/m68k/include/uapi/asm/types.h
- create mode 100644 arch/m68k/include/uapi/asm/unistd.h
- create mode 100644 arch/microblaze/include/uapi/asm/Kbuild
- rename arch/microblaze/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/byteorder.h (100%)
- create mode 100644 arch/microblaze/include/uapi/asm/elf.h
- rename arch/microblaze/include/{ => uapi}/asm/errno.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/fcntl.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/mman.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/msgbuf.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/param.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/poll.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/posix_types.h (100%)
- create mode 100644 arch/microblaze/include/uapi/asm/ptrace.h
- rename arch/microblaze/include/{ => uapi}/asm/resource.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/sembuf.h (100%)
- create mode 100644 arch/microblaze/include/uapi/asm/setup.h
- rename arch/microblaze/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/siginfo.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/signal.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/socket.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/stat.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/swab.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/termbits.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/termios.h (100%)
- rename arch/microblaze/include/{ => uapi}/asm/types.h (100%)
- create mode 100644 arch/microblaze/include/uapi/asm/unistd.h
- create mode 100644 arch/mips/include/uapi/asm/Kbuild
- rename arch/mips/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/mips/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/mips/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/mips/include/{ => uapi}/asm/cachectl.h (100%)
- create mode 100644 arch/mips/include/uapi/asm/errno.h
- rename arch/mips/include/{ => uapi}/asm/fcntl.h (100%)
- rename arch/mips/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/mips/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/mips/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/mips/include/{ => uapi}/asm/mman.h (100%)
- rename arch/mips/include/{ => uapi}/asm/msgbuf.h (100%)
- rename arch/mips/include/{ => uapi}/asm/param.h (100%)
- rename arch/mips/include/{ => uapi}/asm/poll.h (100%)
- create mode 100644 arch/mips/include/uapi/asm/posix_types.h
- create mode 100644 arch/mips/include/uapi/asm/ptrace.h
- rename arch/mips/include/{ => uapi}/asm/resource.h (100%)
- rename arch/mips/include/{ => uapi}/asm/sembuf.h (100%)
- create mode 100644 arch/mips/include/uapi/asm/setup.h
- rename arch/mips/include/{ => uapi}/asm/sgidefs.h (100%)
- rename arch/mips/include/{ => uapi}/asm/shmbuf.h (100%)
- create mode 100644 arch/mips/include/uapi/asm/sigcontext.h
- create mode 100644 arch/mips/include/uapi/asm/siginfo.h
- create mode 100644 arch/mips/include/uapi/asm/signal.h
- create mode 100644 arch/mips/include/uapi/asm/socket.h
- rename arch/mips/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/mips/include/{ => uapi}/asm/stat.h (100%)
- rename arch/mips/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/mips/include/{ => uapi}/asm/swab.h (100%)
- rename arch/mips/include/{ => uapi}/asm/sysmips.h (100%)
- rename arch/mips/include/{ => uapi}/asm/termbits.h (100%)
- create mode 100644 arch/mips/include/uapi/asm/termios.h
- create mode 100644 arch/mips/include/uapi/asm/types.h
- create mode 100644 arch/mips/include/uapi/asm/unistd.h
- create mode 100644 arch/mn10300/include/uapi/asm/Kbuild
- rename arch/mn10300/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/errno.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/fcntl.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/mman.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/msgbuf.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/param.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/poll.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/posix_types.h (100%)
- create mode 100644 arch/mn10300/include/uapi/asm/ptrace.h
- rename arch/mn10300/include/{ => uapi}/asm/resource.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/sembuf.h (100%)
- create mode 100644 arch/mn10300/include/uapi/asm/setup.h
- rename arch/mn10300/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/siginfo.h (100%)
- create mode 100644 arch/mn10300/include/uapi/asm/signal.h
- rename arch/mn10300/include/{ => uapi}/asm/socket.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/stat.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/swab.h (100%)
- rename arch/mn10300/include/{ => uapi}/asm/termbits.h (100%)
- create mode 100644 arch/mn10300/include/uapi/asm/termios.h
- create mode 100644 arch/mn10300/include/uapi/asm/types.h
- create mode 100644 arch/mn10300/include/uapi/asm/unistd.h
- create mode 100644 arch/openrisc/include/uapi/asm/Kbuild
- rename arch/openrisc/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/openrisc/include/{ => uapi}/asm/param.h (100%)
- create mode 100644 arch/openrisc/include/uapi/asm/ptrace.h
- rename arch/openrisc/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/openrisc/include/{ => uapi}/asm/spr_defs.h (100%)
- rename arch/openrisc/include/{ => uapi}/asm/unistd.h (100%)
- create mode 100644 arch/parisc/include/uapi/asm/Kbuild
- rename arch/parisc/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/errno.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/fcntl.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/mman.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/msgbuf.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/param.h (100%)
- create mode 100644 arch/parisc/include/uapi/asm/pdc.h
- rename arch/parisc/include/{ => uapi}/asm/poll.h (100%)
- create mode 100644 arch/parisc/include/uapi/asm/posix_types.h
- create mode 100644 arch/parisc/include/uapi/asm/ptrace.h
- rename arch/parisc/include/{ => uapi}/asm/resource.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/sembuf.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/setup.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/siginfo.h (100%)
- create mode 100644 arch/parisc/include/uapi/asm/signal.h
- rename arch/parisc/include/{ => uapi}/asm/socket.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/stat.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/swab.h (100%)
- rename arch/parisc/include/{ => uapi}/asm/termbits.h (100%)
- create mode 100644 arch/parisc/include/uapi/asm/termios.h
- rename arch/parisc/include/{ => uapi}/asm/types.h (100%)
- create mode 100644 arch/parisc/include/uapi/asm/unistd.h
- create mode 100644 arch/powerpc/include/uapi/asm/Kbuild
- rename arch/powerpc/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/powerpc/include/{ => uapi}/asm/bitsperlong.h (100%)
- create mode 100644 arch/powerpc/include/uapi/asm/bootx.h
- rename arch/powerpc/include/{ => uapi}/asm/byteorder.h (100%)
- create mode 100644 arch/powerpc/include/uapi/asm/cputable.h
- create mode 100644 arch/powerpc/include/uapi/asm/elf.h
- rename arch/powerpc/include/{ => uapi}/asm/errno.h (100%)
- rename arch/powerpc/include/{ => uapi}/asm/fcntl.h (100%)
- rename arch/powerpc/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/powerpc/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/powerpc/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/powerpc/include/{ => uapi}/asm/kvm.h (100%)
- create mode 100644 arch/powerpc/include/uapi/asm/kvm_para.h
- rename arch/powerpc/include/{ => uapi}/asm/linkage.h (100%)
- create mode 100644 arch/powerpc/include/uapi/asm/mman.h
- rename arch/powerpc/include/{ => uapi}/asm/msgbuf.h (100%)
- create mode 100644 arch/powerpc/include/uapi/asm/nvram.h
- rename arch/powerpc/include/{ => uapi}/asm/param.h (100%)
- rename arch/powerpc/include/{ => uapi}/asm/poll.h (100%)
- create mode 100644 arch/powerpc/include/uapi/asm/posix_types.h
- rename arch/powerpc/include/{ => uapi}/asm/ps3fb.h (100%)
- create mode 100644 arch/powerpc/include/uapi/asm/ptrace.h
- rename arch/powerpc/include/{ => uapi}/asm/resource.h (100%)
- rename arch/powerpc/include/{ => uapi}/asm/seccomp.h (100%)
- rename arch/powerpc/include/{ => uapi}/asm/sembuf.h (100%)
- rename arch/powerpc/include/{ => uapi}/asm/setup.h (100%)
- rename arch/powerpc/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/powerpc/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/powerpc/include/{ => uapi}/asm/siginfo.h (100%)
- create mode 100644 arch/powerpc/include/uapi/asm/signal.h
- rename arch/powerpc/include/{ => uapi}/asm/socket.h (100%)
- rename arch/powerpc/include/{ => uapi}/asm/sockios.h (100%)
- create mode 100644 arch/powerpc/include/uapi/asm/spu_info.h
- rename arch/powerpc/include/{ => uapi}/asm/stat.h (100%)
- rename arch/powerpc/include/{ => uapi}/asm/statfs.h (100%)
- create mode 100644 arch/powerpc/include/uapi/asm/swab.h
- rename arch/powerpc/include/{ => uapi}/asm/termbits.h (100%)
- create mode 100644 arch/powerpc/include/uapi/asm/termios.h
- create mode 100644 arch/powerpc/include/uapi/asm/types.h
- rename arch/powerpc/include/{ => uapi}/asm/ucontext.h (100%)
- create mode 100644 arch/powerpc/include/uapi/asm/unistd.h
- create mode 100644 arch/s390/include/uapi/asm/Kbuild
- rename arch/s390/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/s390/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/s390/include/{ => uapi}/asm/byteorder.h (100%)
- create mode 100644 arch/s390/include/uapi/asm/chpid.h
- create mode 100644 arch/s390/include/uapi/asm/chsc.h
- create mode 100644 arch/s390/include/uapi/asm/cmb.h
- rename arch/s390/include/{ => uapi}/asm/dasd.h (100%)
- create mode 100644 arch/s390/include/uapi/asm/debug.h
- rename arch/s390/include/{ => uapi}/asm/errno.h (100%)
- rename arch/s390/include/{ => uapi}/asm/fcntl.h (100%)
- rename arch/s390/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/s390/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/s390/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/s390/include/{ => uapi}/asm/kvm.h (100%)
- create mode 100644 arch/s390/include/uapi/asm/kvm_para.h
- rename arch/s390/include/{ => uapi}/asm/kvm_virtio.h (100%)
- rename arch/{sh/include => s390/include/uapi}/asm/mman.h (100%)
- rename arch/s390/include/{ => uapi}/asm/monwriter.h (100%)
- rename arch/s390/include/{ => uapi}/asm/msgbuf.h (100%)
- rename arch/s390/include/{ => uapi}/asm/param.h (100%)
- rename arch/s390/include/{ => uapi}/asm/poll.h (100%)
- create mode 100644 arch/s390/include/uapi/asm/posix_types.h
- create mode 100644 arch/s390/include/uapi/asm/ptrace.h
- rename arch/s390/include/{ => uapi}/asm/qeth.h (100%)
- rename arch/s390/include/{ => uapi}/asm/resource.h (100%)
- create mode 100644 arch/s390/include/uapi/asm/schid.h
- rename arch/s390/include/{ => uapi}/asm/sembuf.h (100%)
- create mode 100644 arch/s390/include/uapi/asm/setup.h
- rename arch/s390/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/s390/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/s390/include/{ => uapi}/asm/siginfo.h (100%)
- create mode 100644 arch/s390/include/uapi/asm/signal.h
- rename arch/s390/include/{ => uapi}/asm/socket.h (100%)
- rename arch/s390/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/s390/include/{ => uapi}/asm/stat.h (100%)
- rename arch/s390/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/s390/include/{ => uapi}/asm/swab.h (100%)
- rename arch/s390/include/{ => uapi}/asm/tape390.h (100%)
- rename arch/s390/include/{ => uapi}/asm/termbits.h (100%)
- create mode 100644 arch/s390/include/uapi/asm/termios.h
- create mode 100644 arch/s390/include/uapi/asm/types.h
- rename arch/s390/include/{ => uapi}/asm/ucontext.h (100%)
- create mode 100644 arch/s390/include/uapi/asm/unistd.h
- rename arch/s390/include/{ => uapi}/asm/vtoc.h (100%)
- rename arch/s390/include/{ => uapi}/asm/zcrypt.h (100%)
- create mode 100644 arch/score/include/uapi/asm/Kbuild
- rename arch/score/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/score/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/score/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/score/include/{ => uapi}/asm/errno.h (100%)
- rename arch/score/include/{ => uapi}/asm/fcntl.h (100%)
- rename arch/score/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/score/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/score/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/score/include/{ => uapi}/asm/mman.h (100%)
- rename arch/score/include/{ => uapi}/asm/msgbuf.h (100%)
- rename arch/score/include/{ => uapi}/asm/param.h (100%)
- rename arch/score/include/{ => uapi}/asm/poll.h (100%)
- rename arch/score/include/{ => uapi}/asm/posix_types.h (100%)
- create mode 100644 arch/score/include/uapi/asm/ptrace.h
- rename arch/score/include/{ => uapi}/asm/resource.h (100%)
- rename arch/score/include/{ => uapi}/asm/sembuf.h (100%)
- create mode 100644 arch/score/include/uapi/asm/setup.h
- rename arch/score/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/score/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/score/include/{ => uapi}/asm/siginfo.h (100%)
- rename arch/score/include/{ => uapi}/asm/signal.h (100%)
- rename arch/score/include/{ => uapi}/asm/socket.h (100%)
- rename arch/score/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/score/include/{ => uapi}/asm/stat.h (100%)
- rename arch/score/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/score/include/{ => uapi}/asm/swab.h (100%)
- rename arch/score/include/{ => uapi}/asm/termbits.h (100%)
- rename arch/score/include/{ => uapi}/asm/termios.h (100%)
- rename arch/score/include/{ => uapi}/asm/types.h (100%)
- rename arch/score/include/{ => uapi}/asm/unistd.h (100%)
- create mode 100644 arch/sh/include/uapi/asm/Kbuild
- rename arch/sh/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/sh/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/sh/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/sh/include/{ => uapi}/asm/cachectl.h (100%)
- rename arch/sh/include/{ => uapi}/asm/cpu-features.h (100%)
- rename arch/sh/include/{ => uapi}/asm/errno.h (100%)
- rename arch/sh/include/{ => uapi}/asm/fcntl.h (100%)
- create mode 100644 arch/sh/include/uapi/asm/hw_breakpoint.h
- rename arch/sh/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/sh/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/sh/include/{ => uapi}/asm/ipcbuf.h (100%)
- create mode 100644 arch/sh/include/uapi/asm/mman.h
- rename arch/sh/include/{ => uapi}/asm/msgbuf.h (100%)
- rename arch/sh/include/{ => uapi}/asm/param.h (100%)
- rename arch/sh/include/{ => uapi}/asm/poll.h (100%)
- create mode 100644 arch/sh/include/uapi/asm/posix_types.h
- rename arch/sh/include/{ => uapi}/asm/posix_types_32.h (100%)
- rename arch/sh/include/{ => uapi}/asm/posix_types_64.h (100%)
- create mode 100644 arch/sh/include/uapi/asm/ptrace.h
- create mode 100644 arch/sh/include/uapi/asm/ptrace_32.h
- create mode 100644 arch/sh/include/uapi/asm/ptrace_64.h
- rename arch/sh/include/{ => uapi}/asm/resource.h (100%)
- rename arch/sh/include/{ => uapi}/asm/sembuf.h (100%)
- create mode 100644 arch/sh/include/uapi/asm/setup.h
- rename arch/sh/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/sh/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/sh/include/{ => uapi}/asm/siginfo.h (100%)
- rename arch/sh/include/{ => uapi}/asm/signal.h (100%)
- rename arch/sh/include/{ => uapi}/asm/socket.h (100%)
- rename arch/sh/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/sh/include/{ => uapi}/asm/stat.h (100%)
- rename arch/sh/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/sh/include/{ => uapi}/asm/swab.h (100%)
- rename arch/sh/include/{ => uapi}/asm/termbits.h (100%)
- rename arch/sh/include/{ => uapi}/asm/termios.h (100%)
- create mode 100644 arch/sh/include/uapi/asm/types.h
- create mode 100644 arch/sh/include/uapi/asm/unistd.h
- create mode 100644 arch/sh/include/uapi/asm/unistd_32.h
- create mode 100644 arch/sh/include/uapi/asm/unistd_64.h
- create mode 100644 arch/sparc/include/uapi/asm/Kbuild
- rename arch/sparc/include/{ => uapi}/asm/apc.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/asi.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/display7seg.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/envctrl.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/errno.h (100%)
- create mode 100644 arch/sparc/include/uapi/asm/fbio.h
- rename arch/sparc/include/{ => uapi}/asm/fcntl.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/ioctl.h (100%)
- create mode 100644 arch/sparc/include/uapi/asm/ioctls.h
- rename arch/sparc/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/jsflash.h (100%)
- create mode 100644 arch/sparc/include/uapi/asm/mman.h
- rename arch/sparc/include/{ => uapi}/asm/msgbuf.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/openpromio.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/param.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/perfctr.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/poll.h (100%)
- create mode 100644 arch/sparc/include/uapi/asm/posix_types.h
- create mode 100644 arch/sparc/include/uapi/asm/psr.h
- rename arch/sparc/include/{ => uapi}/asm/psrcompat.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/pstate.h (100%)
- create mode 100644 arch/sparc/include/uapi/asm/ptrace.h
- rename arch/sparc/include/{ => uapi}/asm/resource.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/sembuf.h (100%)
- create mode 100644 arch/sparc/include/uapi/asm/setup.h
- rename arch/sparc/include/{ => uapi}/asm/shmbuf.h (100%)
- create mode 100644 arch/sparc/include/uapi/asm/sigcontext.h
- create mode 100644 arch/sparc/include/uapi/asm/siginfo.h
- create mode 100644 arch/sparc/include/uapi/asm/signal.h
- rename arch/sparc/include/{ => uapi}/asm/socket.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/stat.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/swab.h (100%)
- create mode 100644 arch/sparc/include/uapi/asm/termbits.h
- create mode 100644 arch/sparc/include/uapi/asm/termios.h
- create mode 100644 arch/sparc/include/uapi/asm/traps.h
- rename arch/sparc/include/{ => uapi}/asm/types.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/uctx.h (100%)
- create mode 100644 arch/sparc/include/uapi/asm/unistd.h
- rename arch/sparc/include/{ => uapi}/asm/utrap.h (100%)
- rename arch/sparc/include/{ => uapi}/asm/watchdog.h (100%)
- create mode 100644 arch/tile/include/uapi/arch/Kbuild
- rename arch/tile/include/{ => uapi}/arch/abi.h (100%)
- rename arch/tile/include/{ => uapi}/arch/chip.h (100%)
- rename arch/tile/include/{ => uapi}/arch/chip_tile64.h (100%)
- rename arch/tile/include/{ => uapi}/arch/chip_tilegx.h (100%)
- rename arch/tile/include/{ => uapi}/arch/chip_tilepro.h (100%)
- rename arch/tile/include/{ => uapi}/arch/icache.h (100%)
- rename arch/tile/include/{ => uapi}/arch/interrupts.h (100%)
- rename arch/tile/include/{ => uapi}/arch/interrupts_32.h (100%)
- rename arch/tile/include/{ => uapi}/arch/interrupts_64.h (100%)
- rename arch/tile/include/{ => uapi}/arch/opcode.h (100%)
- rename arch/tile/include/{ => uapi}/arch/opcode_tilegx.h (100%)
- rename arch/tile/include/{ => uapi}/arch/opcode_tilepro.h (100%)
- rename arch/tile/include/{ => uapi}/arch/sim.h (100%)
- rename arch/tile/include/{ => uapi}/arch/sim_def.h (100%)
- create mode 100644 arch/tile/include/uapi/arch/spr_def.h
- rename arch/tile/include/{ => uapi}/arch/spr_def_32.h (100%)
- rename arch/tile/include/{ => uapi}/arch/spr_def_64.h (100%)
- create mode 100644 arch/tile/include/uapi/asm/Kbuild
- rename arch/tile/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/tile/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/tile/include/{ => uapi}/asm/byteorder.h (100%)
- create mode 100644 arch/tile/include/uapi/asm/hardwall.h
- rename arch/tile/include/{ => uapi}/asm/mman.h (100%)
- create mode 100644 arch/tile/include/uapi/asm/ptrace.h
- create mode 100644 arch/tile/include/uapi/asm/setup.h
- rename arch/tile/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/tile/include/{ => uapi}/asm/siginfo.h (100%)
- create mode 100644 arch/tile/include/uapi/asm/signal.h
- rename arch/tile/include/{ => uapi}/asm/stat.h (100%)
- rename arch/tile/include/{ => uapi}/asm/swab.h (100%)
- create mode 100644 arch/tile/include/uapi/asm/unistd.h
- create mode 100644 arch/unicore32/include/uapi/asm/Kbuild
- rename arch/unicore32/include/{ => uapi}/asm/byteorder.h (100%)
- create mode 100644 arch/unicore32/include/uapi/asm/ptrace.h
- rename arch/unicore32/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/unicore32/include/{ => uapi}/asm/unistd.h (100%)
- create mode 100644 arch/x86/include/uapi/asm/Kbuild
- rename arch/x86/include/{ => uapi}/asm/a.out.h (100%)
- rename arch/x86/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/x86/include/{ => uapi}/asm/bitsperlong.h (100%)
- create mode 100644 arch/x86/include/uapi/asm/boot.h
- rename arch/x86/include/{ => uapi}/asm/bootparam.h (100%)
- rename arch/x86/include/{ => uapi}/asm/byteorder.h (100%)
- create mode 100644 arch/x86/include/uapi/asm/debugreg.h
- create mode 100644 arch/x86/include/uapi/asm/e820.h
- rename arch/x86/include/{ => uapi}/asm/errno.h (100%)
- rename arch/x86/include/{ => uapi}/asm/fcntl.h (100%)
- create mode 100644 arch/x86/include/uapi/asm/hw_breakpoint.h
- rename arch/x86/include/{ => uapi}/asm/hyperv.h (100%)
- rename arch/x86/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/x86/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/x86/include/{ => uapi}/asm/ipcbuf.h (100%)
- create mode 100644 arch/x86/include/uapi/asm/ist.h
- rename arch/x86/include/{ => uapi}/asm/kvm.h (100%)
- create mode 100644 arch/x86/include/uapi/asm/kvm_para.h
- rename arch/x86/include/{ => uapi}/asm/ldt.h (100%)
- create mode 100644 arch/x86/include/uapi/asm/mce.h
- rename arch/x86/include/{ => uapi}/asm/mman.h (100%)
- rename arch/x86/include/{ => uapi}/asm/msgbuf.h (100%)
- rename arch/x86/include/{ => uapi}/asm/msr-index.h (100%)
- create mode 100644 arch/x86/include/uapi/asm/msr.h
- create mode 100644 arch/x86/include/uapi/asm/mtrr.h
- rename arch/x86/include/{ => uapi}/asm/param.h (100%)
- rename arch/x86/include/{ => uapi}/asm/poll.h (100%)
- create mode 100644 arch/x86/include/uapi/asm/posix_types.h
- create mode 100644 arch/x86/include/uapi/asm/posix_types_32.h
- create mode 100644 arch/x86/include/uapi/asm/posix_types_64.h
- rename arch/x86/include/{ => uapi}/asm/prctl.h (100%)
- create mode 100644 arch/x86/include/uapi/asm/processor-flags.h
- rename arch/x86/include/{ => uapi}/asm/ptrace-abi.h (100%)
- create mode 100644 arch/x86/include/uapi/asm/ptrace.h
- rename arch/x86/include/{ => uapi}/asm/resource.h (100%)
- rename arch/x86/include/{ => uapi}/asm/sembuf.h (100%)
- create mode 100644 arch/x86/include/uapi/asm/setup.h
- rename arch/x86/include/{ => uapi}/asm/shmbuf.h (100%)
- create mode 100644 arch/x86/include/uapi/asm/sigcontext.h
- rename arch/x86/include/{ => uapi}/asm/sigcontext32.h (100%)
- rename arch/x86/include/{ => uapi}/asm/siginfo.h (100%)
- create mode 100644 arch/x86/include/uapi/asm/signal.h
- rename arch/x86/include/{ => uapi}/asm/socket.h (100%)
- rename arch/x86/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/x86/include/{ => uapi}/asm/stat.h (100%)
- rename arch/x86/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/x86/include/{ => uapi}/asm/swab.h (100%)
- rename arch/x86/include/{ => uapi}/asm/termbits.h (100%)
- rename arch/x86/include/{ => uapi}/asm/termios.h (100%)
- rename arch/x86/include/{ => uapi}/asm/types.h (100%)
- rename arch/x86/include/{ => uapi}/asm/ucontext.h (100%)
- create mode 100644 arch/x86/include/uapi/asm/unistd.h
- create mode 100644 arch/x86/include/uapi/asm/vm86.h
- create mode 100644 arch/x86/include/uapi/asm/vsyscall.h
- create mode 100644 arch/xtensa/include/uapi/asm/Kbuild
- rename arch/xtensa/include/{ => uapi}/asm/auxvec.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/bitsperlong.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/byteorder.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/errno.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/fcntl.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/ioctl.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/ioctls.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/ipcbuf.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/mman.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/msgbuf.h (100%)
- create mode 100644 arch/xtensa/include/uapi/asm/param.h
- rename arch/xtensa/include/{ => uapi}/asm/poll.h (100%)
- create mode 100644 arch/xtensa/include/uapi/asm/posix_types.h
- create mode 100644 arch/xtensa/include/uapi/asm/ptrace.h
- rename arch/xtensa/include/{ => uapi}/asm/resource.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/sembuf.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/setup.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/shmbuf.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/sigcontext.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/siginfo.h (100%)
- create mode 100644 arch/xtensa/include/uapi/asm/signal.h
- rename arch/xtensa/include/{ => uapi}/asm/socket.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/sockios.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/stat.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/statfs.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/swab.h (100%)
- rename arch/xtensa/include/{ => uapi}/asm/termbits.h (100%)
- create mode 100644 arch/xtensa/include/uapi/asm/termios.h
- create mode 100644 arch/xtensa/include/uapi/asm/types.h
- create mode 100644 arch/xtensa/include/uapi/asm/unistd.h
- create mode 100644 include/uapi/Kbuild
- create mode 100644 include/uapi/asm-generic/Kbuild
- create mode 100644 include/uapi/asm-generic/Kbuild.asm
- rename include/{ => uapi}/asm-generic/auxvec.h (100%)
- create mode 100644 include/uapi/asm-generic/bitsperlong.h
- rename include/{ => uapi}/asm-generic/errno-base.h (100%)
- rename include/{ => uapi}/asm-generic/errno.h (100%)
- rename include/{ => uapi}/asm-generic/fcntl.h (100%)
- create mode 100644 include/uapi/asm-generic/int-l64.h
- create mode 100644 include/uapi/asm-generic/int-ll64.h
- create mode 100644 include/uapi/asm-generic/ioctl.h
- rename include/{ => uapi}/asm-generic/ioctls.h (100%)
- rename include/{ => uapi}/asm-generic/ipcbuf.h (100%)
- rename include/{ => uapi}/asm-generic/mman-common.h (100%)
- rename include/{ => uapi}/asm-generic/mman.h (100%)
- rename include/{ => uapi}/asm-generic/msgbuf.h (100%)
- create mode 100644 include/uapi/asm-generic/param.h
- rename include/{ => uapi}/asm-generic/poll.h (100%)
- create mode 100644 include/uapi/asm-generic/posix_types.h
- create mode 100644 include/uapi/asm-generic/resource.h
- rename include/{ => uapi}/asm-generic/sembuf.h (100%)
- rename include/{ => uapi}/asm-generic/setup.h (100%)
- rename include/{ => uapi}/asm-generic/shmbuf.h (100%)
- rename include/{ => uapi}/asm-generic/shmparam.h (100%)
- create mode 100644 include/uapi/asm-generic/siginfo.h
- rename include/{ => uapi}/asm-generic/signal-defs.h (100%)
- create mode 100644 include/uapi/asm-generic/signal.h
- rename include/{ => uapi}/asm-generic/socket.h (100%)
- rename include/{ => uapi}/asm-generic/sockios.h (100%)
- rename include/{ => uapi}/asm-generic/stat.h (100%)
- create mode 100644 include/uapi/asm-generic/statfs.h
- rename include/{ => uapi}/asm-generic/swab.h (100%)
- rename include/{ => uapi}/asm-generic/termbits.h (100%)
- create mode 100644 include/uapi/asm-generic/termios.h
- rename include/{ => uapi}/asm-generic/types.h (100%)
- rename include/{ => uapi}/asm-generic/ucontext.h (100%)
- create mode 100644 include/uapi/asm-generic/unistd.h
- create mode 100644 include/uapi/drm/Kbuild
- rename include/{ => uapi}/drm/drm.h (99%)
- rename include/{ => uapi}/drm/drm_fourcc.h (100%)
- rename include/{ => uapi}/drm/drm_mode.h (100%)
- rename include/{ => uapi}/drm/drm_sarea.h (99%)
- create mode 100644 include/uapi/drm/exynos_drm.h
- rename include/{ => uapi}/drm/i810_drm.h (100%)
- create mode 100644 include/uapi/drm/i915_drm.h
- rename include/{ => uapi}/drm/mga_drm.h (99%)
- rename include/{ => uapi}/drm/nouveau_drm.h (100%)
- rename include/{ => uapi}/drm/r128_drm.h (100%)
- rename include/{ => uapi}/drm/radeon_drm.h (99%)
- rename include/{ => uapi}/drm/savage_drm.h (100%)
- rename include/{ => uapi}/drm/sis_drm.h (100%)
- rename include/{ => uapi}/drm/via_drm.h (99%)
- rename include/{ => uapi}/drm/vmwgfx_drm.h (100%)
- create mode 100644 include/uapi/linux/Kbuild
- create mode 100644 include/uapi/linux/a.out.h
- create mode 100644 include/uapi/linux/acct.h
- create mode 100644 include/uapi/linux/adb.h
- create mode 100644 include/uapi/linux/adfs_fs.h
- rename include/{ => uapi}/linux/affs_hardblocks.h (100%)
- create mode 100644 include/uapi/linux/agpgart.h
- rename include/{ => uapi}/linux/aio_abi.h (100%)
- create mode 100644 include/uapi/linux/apm_bios.h
- rename include/{ => uapi}/linux/arcfb.h (100%)
- create mode 100644 include/uapi/linux/atalk.h
- create mode 100644 include/uapi/linux/atm.h
- rename include/{ => uapi}/linux/atm_eni.h (100%)
- rename include/{ => uapi}/linux/atm_he.h (100%)
- rename include/{ => uapi}/linux/atm_idt77105.h (100%)
- rename include/{ => uapi}/linux/atm_nicstar.h (100%)
- create mode 100644 include/uapi/linux/atm_tcp.h
- rename include/{ => uapi}/linux/atm_zatm.h (100%)
- rename include/{ => uapi}/linux/atmapi.h (100%)
- rename include/{ => uapi}/linux/atmarp.h (100%)
- rename include/{ => uapi}/linux/atmbr2684.h (100%)
- rename include/{ => uapi}/linux/atmclip.h (100%)
- create mode 100644 include/uapi/linux/atmdev.h
- rename include/{ => uapi}/linux/atmioc.h (100%)
- rename include/{ => uapi}/linux/atmlec.h (100%)
- rename include/{ => uapi}/linux/atmmpc.h (100%)
- rename include/{ => uapi}/linux/atmppp.h (100%)
- rename include/{ => uapi}/linux/atmsap.h (100%)
- rename include/{ => uapi}/linux/atmsvc.h (100%)
- create mode 100644 include/uapi/linux/audit.h
- create mode 100644 include/uapi/linux/auto_fs.h
- rename include/{ => uapi}/linux/auto_fs4.h (100%)
- create mode 100644 include/uapi/linux/auxvec.h
- rename include/{ => uapi}/linux/ax25.h (100%)
- rename include/{ => uapi}/linux/b1lli.h (100%)
- rename include/{ => uapi}/linux/baycom.h (100%)
- rename include/{ => uapi}/linux/bfs_fs.h (100%)
- create mode 100644 include/uapi/linux/binfmts.h
- rename include/{ => uapi}/linux/blk_types.h (100%)
- rename include/{ => uapi}/linux/blkpg.h (100%)
- create mode 100644 include/uapi/linux/blktrace_api.h
- rename include/{ => uapi}/linux/bpqether.h (100%)
- create mode 100644 include/uapi/linux/bsg.h
- create mode 100644 include/uapi/linux/byteorder/Kbuild
- create mode 100644 include/uapi/linux/byteorder/big_endian.h
- create mode 100644 include/uapi/linux/byteorder/little_endian.h
- create mode 100644 include/uapi/linux/caif/Kbuild
- rename include/{ => uapi}/linux/caif/caif_socket.h (100%)
- rename include/{ => uapi}/linux/caif/if_caif.h (100%)
- rename include/{ => uapi}/linux/can.h (100%)
- create mode 100644 include/uapi/linux/can/Kbuild
- rename include/{ => uapi}/linux/can/bcm.h (100%)
- rename include/{ => uapi}/linux/can/error.h (100%)
- rename include/{ => uapi}/linux/can/gw.h (100%)
- rename include/{ => uapi}/linux/can/netlink.h (100%)
- rename include/{ => uapi}/linux/can/raw.h (100%)
- create mode 100644 include/uapi/linux/capability.h
- rename include/{ => uapi}/linux/capi.h (100%)
- rename include/{ => uapi}/linux/cciss_defs.h (100%)
- create mode 100644 include/uapi/linux/cciss_ioctl.h
- rename include/{ => uapi}/linux/cdk.h (100%)
- create mode 100644 include/uapi/linux/cdrom.h
- rename include/{ => uapi}/linux/cgroupstats.h (100%)
- rename include/{ => uapi}/linux/chio.h (100%)
- create mode 100644 include/uapi/linux/cm4000_cs.h
- create mode 100644 include/uapi/linux/cn_proc.h
- create mode 100644 include/uapi/linux/coda.h
- create mode 100644 include/uapi/linux/coda_psdev.h
- rename include/{ => uapi}/linux/coff.h (100%)
- rename include/{ => uapi}/linux/comstats.h (100%)
- create mode 100644 include/uapi/linux/connector.h
- rename include/{ => uapi}/linux/const.h (100%)
- create mode 100644 include/uapi/linux/cramfs_fs.h
- create mode 100644 include/uapi/linux/cuda.h
- create mode 100644 include/uapi/linux/cyclades.h
- rename include/{ => uapi}/linux/cycx_cfm.h (100%)
- rename include/{ => uapi}/linux/dcbnl.h (100%)
- create mode 100644 include/uapi/linux/dccp.h
- create mode 100644 include/uapi/linux/dlm.h
- rename include/{ => uapi}/linux/dlm_device.h (100%)
- rename include/{ => uapi}/linux/dlm_netlink.h (100%)
- create mode 100644 include/uapi/linux/dlm_plock.h
- rename include/{ => uapi}/linux/dlmconstants.h (100%)
- rename include/{ => uapi}/linux/dm-ioctl.h (100%)
- rename include/{ => uapi}/linux/dm-log-userspace.h (100%)
- rename include/{ => uapi}/linux/dn.h (100%)
- rename include/{ => uapi}/linux/dqblk_xfs.h (100%)
- create mode 100644 include/uapi/linux/dvb/Kbuild
- rename include/{ => uapi}/linux/dvb/audio.h (100%)
- rename include/{ => uapi}/linux/dvb/ca.h (100%)
- create mode 100644 include/uapi/linux/dvb/dmx.h
- rename include/{ => uapi}/linux/dvb/frontend.h (100%)
- rename include/{ => uapi}/linux/dvb/net.h (100%)
- rename include/{ => uapi}/linux/dvb/osd.h (100%)
- rename include/{ => uapi}/linux/dvb/version.h (100%)
- create mode 100644 include/uapi/linux/dvb/video.h
- create mode 100644 include/uapi/linux/edd.h
- rename include/{ => uapi}/linux/efs_fs_sb.h (100%)
- rename include/{ => uapi}/linux/elf-em.h (100%)
- create mode 100644 include/uapi/linux/elf-fdpic.h
- create mode 100644 include/uapi/linux/elf.h
- create mode 100644 include/uapi/linux/elfcore.h
- create mode 100644 include/uapi/linux/errno.h
- create mode 100644 include/uapi/linux/errqueue.h
- create mode 100644 include/uapi/linux/ethtool.h
- create mode 100644 include/uapi/linux/eventpoll.h
- create mode 100644 include/uapi/linux/ext2_fs.h
- rename include/{ => uapi}/linux/fadvise.h (100%)
- create mode 100644 include/uapi/linux/falloc.h
- create mode 100644 include/uapi/linux/fanotify.h
- create mode 100644 include/uapi/linux/fb.h
- create mode 100644 include/uapi/linux/fcntl.h
- create mode 100644 include/uapi/linux/fd.h
- rename include/{ => uapi}/linux/fdreg.h (100%)
- rename include/{ => uapi}/linux/fib_rules.h (100%)
- rename include/{ => uapi}/linux/fiemap.h (100%)
- create mode 100644 include/uapi/linux/filter.h
- rename include/{ => uapi}/linux/firewire-cdev.h (100%)
- rename include/{ => uapi}/linux/firewire-constants.h (100%)
- create mode 100644 include/uapi/linux/flat.h
- create mode 100644 include/uapi/linux/fs.h
- create mode 100644 include/uapi/linux/fsl_hypervisor.h
- rename include/{ => uapi}/linux/fuse.h (100%)
- create mode 100644 include/uapi/linux/futex.h
- create mode 100644 include/uapi/linux/gameport.h
- rename include/{ => uapi}/linux/gen_stats.h (100%)
- create mode 100644 include/uapi/linux/generic_serial.h
- create mode 100644 include/uapi/linux/genetlink.h
- rename include/{ => uapi}/linux/gfs2_ondisk.h (100%)
- rename include/{ => uapi}/linux/gigaset_dev.h (100%)
- create mode 100644 include/uapi/linux/hdlc.h
- create mode 100644 include/uapi/linux/hdlc/Kbuild
- rename include/{ => uapi}/linux/hdlc/ioctl.h (100%)
- create mode 100644 include/uapi/linux/hdlcdrv.h
- rename include/{ => uapi}/linux/hdreg.h (100%)
- create mode 100644 include/uapi/linux/hid.h
- create mode 100644 include/uapi/linux/hiddev.h
- create mode 100644 include/uapi/linux/hidraw.h
- create mode 100644 include/uapi/linux/hpet.h
- rename include/{ => uapi}/linux/hysdn_if.h (100%)
- create mode 100644 include/uapi/linux/i2c-dev.h
- create mode 100644 include/uapi/linux/i2c.h
- rename include/{ => uapi}/linux/i2o-dev.h (100%)
- rename include/{ => uapi}/linux/i8k.h (100%)
- create mode 100644 include/uapi/linux/icmp.h
- create mode 100644 include/uapi/linux/icmpv6.h
- rename include/{ => uapi}/linux/if.h (100%)
- rename include/{ => uapi}/linux/if_addr.h (100%)
- rename include/{ => uapi}/linux/if_addrlabel.h (100%)
- rename include/{ => uapi}/linux/if_alg.h (100%)
- rename include/{ => uapi}/linux/if_arcnet.h (100%)
- create mode 100644 include/uapi/linux/if_arp.h
- rename include/{ => uapi}/linux/if_bonding.h (100%)
- create mode 100644 include/uapi/linux/if_bridge.h
- rename include/{ => uapi}/linux/if_cablemodem.h (100%)
- create mode 100644 include/uapi/linux/if_ec.h
- create mode 100644 include/uapi/linux/if_eql.h
- create mode 100644 include/uapi/linux/if_ether.h
- rename include/{ => uapi}/linux/if_fc.h (100%)
- create mode 100644 include/uapi/linux/if_fddi.h
- create mode 100644 include/uapi/linux/if_frad.h
- rename include/{ => uapi}/linux/if_hippi.h (100%)
- rename include/{ => uapi}/linux/if_infiniband.h (100%)
- create mode 100644 include/uapi/linux/if_link.h
- create mode 100644 include/uapi/linux/if_ltalk.h
- rename include/{ => uapi}/linux/if_packet.h (100%)
- create mode 100644 include/uapi/linux/if_phonet.h
- rename include/{ => uapi}/linux/if_plip.h (100%)
- rename include/{ => uapi}/linux/if_ppp.h (100%)
- create mode 100644 include/uapi/linux/if_pppol2tp.h
- create mode 100644 include/uapi/linux/if_pppox.h
- rename include/{ => uapi}/linux/if_slip.h (100%)
- rename include/{ => uapi}/linux/if_strip.h (100%)
- create mode 100644 include/uapi/linux/if_team.h
- create mode 100644 include/uapi/linux/if_tr.h
- create mode 100644 include/uapi/linux/if_tun.h
- create mode 100644 include/uapi/linux/if_tunnel.h
- create mode 100644 include/uapi/linux/if_vlan.h
- rename include/{ => uapi}/linux/if_x25.h (100%)
- create mode 100644 include/uapi/linux/igmp.h
- create mode 100644 include/uapi/linux/in.h
- create mode 100644 include/uapi/linux/in6.h
- rename include/{ => uapi}/linux/in_route.h (100%)
- create mode 100644 include/uapi/linux/inet_diag.h
- create mode 100644 include/uapi/linux/inotify.h
- create mode 100644 include/uapi/linux/input.h
- rename include/{ => uapi}/linux/ioctl.h (100%)
- create mode 100644 include/uapi/linux/ip.h
- rename include/{ => uapi}/linux/ip6_tunnel.h (100%)
- rename include/{ => uapi}/linux/ip_vs.h (100%)
- create mode 100644 include/uapi/linux/ipc.h
- create mode 100644 include/uapi/linux/ipmi.h
- rename include/{ => uapi}/linux/ipmi_msgdefs.h (100%)
- rename include/{ => uapi}/linux/ipsec.h (100%)
- create mode 100644 include/uapi/linux/ipv6.h
- create mode 100644 include/uapi/linux/ipv6_route.h
- rename include/{ => uapi}/linux/ipx.h (100%)
- rename include/{ => uapi}/linux/irda.h (100%)
- create mode 100644 include/uapi/linux/irqnr.h
- create mode 100644 include/uapi/linux/isdn.h
- create mode 100644 include/uapi/linux/isdn/Kbuild
- rename include/{ => uapi}/linux/isdn/capicmd.h (100%)
- create mode 100644 include/uapi/linux/isdn_divertif.h
- create mode 100644 include/uapi/linux/isdn_ppp.h
- create mode 100644 include/uapi/linux/isdnif.h
- rename include/{ => uapi}/linux/iso_fs.h (100%)
- rename include/{ => uapi}/linux/ivtv.h (100%)
- rename include/{ => uapi}/linux/ivtvfb.h (100%)
- rename include/{ => uapi}/linux/ixjuser.h (100%)
- rename include/{ => uapi}/linux/jffs2.h (100%)
- create mode 100644 include/uapi/linux/joystick.h
- create mode 100644 include/uapi/linux/kd.h
- create mode 100644 include/uapi/linux/kdev_t.h
- create mode 100644 include/uapi/linux/kernel.h
- create mode 100644 include/uapi/linux/kernelcapi.h
- create mode 100644 include/uapi/linux/keyboard.h
- rename include/{ => uapi}/linux/keyctl.h (100%)
- rename include/{ => uapi}/linux/kvm.h (100%)
- create mode 100644 include/uapi/linux/kvm_para.h
- create mode 100644 include/uapi/linux/l2tp.h
- rename include/{ => uapi}/linux/limits.h (100%)
- create mode 100644 include/uapi/linux/llc.h
- create mode 100644 include/uapi/linux/loop.h
- create mode 100644 include/uapi/linux/lp.h
- rename include/{ => uapi}/linux/magic.h (100%)
- rename include/{ => uapi}/linux/major.h (100%)
- rename include/{ => uapi}/linux/map_to_7segment.h (100%)
- rename include/{ => uapi}/linux/matroxfb.h (100%)
- create mode 100644 include/uapi/linux/mdio.h
- rename include/{ => uapi}/linux/media.h (100%)
- create mode 100644 include/uapi/linux/mempolicy.h
- rename include/{ => uapi}/linux/meye.h (100%)
- create mode 100644 include/uapi/linux/mii.h
- rename include/{ => uapi}/linux/minix_fs.h (100%)
- create mode 100644 include/uapi/linux/mman.h
- create mode 100644 include/uapi/linux/mmc/Kbuild
- rename include/{ => uapi}/linux/mmc/ioctl.h (100%)
- rename include/{ => uapi}/linux/mmtimer.h (100%)
- rename include/{ => uapi}/linux/mqueue.h (100%)
- create mode 100644 include/uapi/linux/mroute.h
- create mode 100644 include/uapi/linux/mroute6.h
- create mode 100644 include/uapi/linux/msdos_fs.h
- create mode 100644 include/uapi/linux/msg.h
- rename include/{ => uapi}/linux/mtio.h (100%)
- create mode 100644 include/uapi/linux/n_r3964.h
- create mode 100644 include/uapi/linux/nbd.h
- rename include/{ => uapi}/linux/ncp.h (99%)
- rename include/{ => uapi}/linux/ncp_fs.h (100%)
- rename include/{ => uapi}/linux/ncp_mount.h (100%)
- rename include/{ => uapi}/linux/ncp_no.h (100%)
- rename include/{ => uapi}/linux/neighbour.h (100%)
- create mode 100644 include/uapi/linux/net.h
- rename include/{ => uapi}/linux/net_dropmon.h (100%)
- rename include/{ => uapi}/linux/net_tstamp.h (100%)
- create mode 100644 include/uapi/linux/netdevice.h
- create mode 100644 include/uapi/linux/netfilter.h
- create mode 100644 include/uapi/linux/netfilter/Kbuild
- create mode 100644 include/uapi/linux/netfilter/ipset/Kbuild
- create mode 100644 include/uapi/linux/netfilter/ipset/ip_set.h
- create mode 100644 include/uapi/linux/netfilter/ipset/ip_set_bitmap.h
- create mode 100644 include/uapi/linux/netfilter/ipset/ip_set_hash.h
- create mode 100644 include/uapi/linux/netfilter/ipset/ip_set_list.h
- create mode 100644 include/uapi/linux/netfilter/nf_conntrack_common.h
- create mode 100644 include/uapi/linux/netfilter/nf_conntrack_ftp.h
- rename include/{ => uapi}/linux/netfilter/nf_conntrack_sctp.h (100%)
- create mode 100644 include/uapi/linux/netfilter/nf_conntrack_tcp.h
- rename include/{ => uapi}/linux/netfilter/nf_conntrack_tuple_common.h (100%)
- rename include/{ => uapi}/linux/netfilter/nf_nat.h (100%)
- create mode 100644 include/uapi/linux/netfilter/nfnetlink.h
- create mode 100644 include/uapi/linux/netfilter/nfnetlink_acct.h
- rename include/{ => uapi}/linux/netfilter/nfnetlink_compat.h (100%)
- rename include/{ => uapi}/linux/netfilter/nfnetlink_conntrack.h (100%)
- rename include/{ => uapi}/linux/netfilter/nfnetlink_cttimeout.h (100%)
- rename include/{ => uapi}/linux/netfilter/nfnetlink_log.h (100%)
- rename include/{ => uapi}/linux/netfilter/nfnetlink_queue.h (100%)
- create mode 100644 include/uapi/linux/netfilter/x_tables.h
- rename include/{ => uapi}/linux/netfilter/xt_AUDIT.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_CHECKSUM.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_CLASSIFY.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_CONNMARK.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_CONNSECMARK.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_CT.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_DSCP.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_IDLETIMER.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_LED.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_LOG.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_MARK.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_NFLOG.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_NFQUEUE.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_RATEEST.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_SECMARK.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_TCPMSS.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_TCPOPTSTRIP.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_TEE.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_TPROXY.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_addrtype.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_cluster.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_comment.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_connbytes.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_connlimit.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_connmark.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_conntrack.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_cpu.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_dccp.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_devgroup.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_dscp.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_ecn.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_esp.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_hashlimit.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_helper.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_iprange.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_ipvs.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_length.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_limit.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_mac.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_mark.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_multiport.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_nfacct.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_osf.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_owner.h (100%)
- create mode 100644 include/uapi/linux/netfilter/xt_physdev.h
- rename include/{ => uapi}/linux/netfilter/xt_pkttype.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_policy.h (96%)
- rename include/{ => uapi}/linux/netfilter/xt_quota.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_rateest.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_realm.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_recent.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_sctp.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_set.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_socket.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_state.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_statistic.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_string.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_tcpmss.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_tcpudp.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_time.h (100%)
- rename include/{ => uapi}/linux/netfilter/xt_u32.h (100%)
- rename include/{ => uapi}/linux/netfilter_arp.h (100%)
- create mode 100644 include/uapi/linux/netfilter_arp/Kbuild
- create mode 100644 include/uapi/linux/netfilter_arp/arp_tables.h
- rename include/{ => uapi}/linux/netfilter_arp/arpt_mangle.h (100%)
- create mode 100644 include/uapi/linux/netfilter_bridge.h
- create mode 100644 include/uapi/linux/netfilter_bridge/Kbuild
- create mode 100644 include/uapi/linux/netfilter_bridge/ebt_802_3.h
- rename include/{ => uapi}/linux/netfilter_bridge/ebt_among.h (100%)
- rename include/{ => uapi}/linux/netfilter_bridge/ebt_arp.h (100%)
- rename include/{ => uapi}/linux/netfilter_bridge/ebt_arpreply.h (100%)
- rename include/{ => uapi}/linux/netfilter_bridge/ebt_ip.h (100%)
- rename include/{ => uapi}/linux/netfilter_bridge/ebt_ip6.h (100%)
- rename include/{ => uapi}/linux/netfilter_bridge/ebt_limit.h (100%)
- rename include/{ => uapi}/linux/netfilter_bridge/ebt_log.h (100%)
- rename include/{ => uapi}/linux/netfilter_bridge/ebt_mark_m.h (100%)
- rename include/{ => uapi}/linux/netfilter_bridge/ebt_mark_t.h (100%)
- rename include/{ => uapi}/linux/netfilter_bridge/ebt_nat.h (100%)
- rename include/{ => uapi}/linux/netfilter_bridge/ebt_nflog.h (100%)
- rename include/{ => uapi}/linux/netfilter_bridge/ebt_pkttype.h (100%)
- rename include/{ => uapi}/linux/netfilter_bridge/ebt_redirect.h (100%)
- rename include/{ => uapi}/linux/netfilter_bridge/ebt_stp.h (100%)
- rename include/{ => uapi}/linux/netfilter_bridge/ebt_ulog.h (100%)
- rename include/{ => uapi}/linux/netfilter_bridge/ebt_vlan.h (100%)
- create mode 100644 include/uapi/linux/netfilter_bridge/ebtables.h
- rename include/{ => uapi}/linux/netfilter_decnet.h (100%)
- create mode 100644 include/uapi/linux/netfilter_ipv4.h
- create mode 100644 include/uapi/linux/netfilter_ipv4/Kbuild
- create mode 100644 include/uapi/linux/netfilter_ipv4/ip_queue.h
- create mode 100644 include/uapi/linux/netfilter_ipv4/ip_tables.h
- rename include/{ => uapi}/linux/netfilter_ipv4/ipt_CLUSTERIP.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv4/ipt_ECN.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv4/ipt_LOG.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv4/ipt_REJECT.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv4/ipt_TTL.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv4/ipt_ULOG.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv4/ipt_addrtype.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv4/ipt_ah.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv4/ipt_ecn.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv4/ipt_ttl.h (100%)
- create mode 100644 include/uapi/linux/netfilter_ipv6.h
- create mode 100644 include/uapi/linux/netfilter_ipv6/Kbuild
- create mode 100644 include/uapi/linux/netfilter_ipv6/ip6_tables.h
- rename include/{ => uapi}/linux/netfilter_ipv6/ip6t_HL.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv6/ip6t_LOG.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv6/ip6t_REJECT.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv6/ip6t_ah.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv6/ip6t_frag.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv6/ip6t_hl.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv6/ip6t_ipv6header.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv6/ip6t_mh.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv6/ip6t_opts.h (100%)
- rename include/{ => uapi}/linux/netfilter_ipv6/ip6t_rt.h (100%)
- create mode 100644 include/uapi/linux/netlink.h
- rename include/{ => uapi}/linux/netrom.h (100%)
- create mode 100644 include/uapi/linux/nfs.h
- rename include/{ => uapi}/linux/nfs2.h (100%)
- create mode 100644 include/uapi/linux/nfs3.h
- create mode 100644 include/uapi/linux/nfs4.h
- rename include/{ => uapi}/linux/nfs4_mount.h (100%)
- create mode 100644 include/uapi/linux/nfs_fs.h
- create mode 100644 include/uapi/linux/nfs_idmap.h
- rename include/{ => uapi}/linux/nfs_mount.h (100%)
- create mode 100644 include/uapi/linux/nfsacl.h
- create mode 100644 include/uapi/linux/nfsd/Kbuild
- create mode 100644 include/uapi/linux/nfsd/debug.h
- create mode 100644 include/uapi/linux/nfsd/export.h
- create mode 100644 include/uapi/linux/nfsd/nfsfh.h
- create mode 100644 include/uapi/linux/nfsd/stats.h
- rename include/{ => uapi}/linux/nl80211.h (100%)
- create mode 100644 include/uapi/linux/nubus.h
- create mode 100644 include/uapi/linux/nvram.h
- rename include/{ => uapi}/linux/omap3isp.h (100%)
- create mode 100644 include/uapi/linux/omapfb.h
- create mode 100644 include/uapi/linux/oom.h
- rename include/{ => uapi}/linux/param.h (100%)
- create mode 100644 include/uapi/linux/parport.h
- create mode 100644 include/uapi/linux/patchkey.h
- create mode 100644 include/uapi/linux/pci.h
- rename include/{ => uapi}/linux/pci_regs.h (100%)
- create mode 100644 include/uapi/linux/perf_event.h
- create mode 100644 include/uapi/linux/personality.h
- rename include/{ => uapi}/linux/pfkeyv2.h (100%)
- rename include/{ => uapi}/linux/pg.h (100%)
- rename include/{ => uapi}/linux/phantom.h (100%)
- create mode 100644 include/uapi/linux/phonet.h
- rename include/{ => uapi}/linux/pkt_cls.h (100%)
- rename include/{ => uapi}/linux/pkt_sched.h (100%)
- create mode 100644 include/uapi/linux/pktcdvd.h
- create mode 100644 include/uapi/linux/pmu.h
- create mode 100644 include/uapi/linux/poll.h
- rename include/{ => uapi}/linux/posix_types.h (100%)
- rename include/{ => uapi}/linux/ppdev.h (100%)
- create mode 100644 include/uapi/linux/ppp-comp.h
- rename include/{ => uapi}/linux/ppp-ioctl.h (100%)
- create mode 100644 include/uapi/linux/ppp_defs.h
- rename include/{ => uapi}/linux/pps.h (100%)
- rename include/{ => uapi}/linux/prctl.h (100%)
- rename include/{ => uapi}/linux/ptp_clock.h (100%)
- create mode 100644 include/uapi/linux/ptrace.h
- rename include/{ => uapi}/linux/qnx4_fs.h (100%)
- rename include/{ => uapi}/linux/qnxtypes.h (100%)
- create mode 100644 include/uapi/linux/quota.h
- rename include/{ => uapi}/linux/radeonfb.h (100%)
- create mode 100644 include/uapi/linux/raid/Kbuild
- rename include/{ => uapi}/linux/raid/md_p.h (100%)
- create mode 100644 include/uapi/linux/raid/md_u.h
- create mode 100644 include/uapi/linux/random.h
- rename include/{ => uapi}/linux/raw.h (100%)
- rename include/{ => uapi}/linux/rds.h (100%)
- create mode 100644 include/uapi/linux/reboot.h
- rename include/{ => uapi}/linux/reiserfs_fs.h (100%)
- rename include/{ => uapi}/linux/reiserfs_xattr.h (100%)
- create mode 100644 include/uapi/linux/resource.h
- create mode 100644 include/uapi/linux/rfkill.h
- rename include/{ => uapi}/linux/romfs_fs.h (100%)
- rename include/{ => uapi}/linux/rose.h (100%)
- rename include/{ => uapi}/linux/route.h (100%)
- create mode 100644 include/uapi/linux/rtc.h
- create mode 100644 include/uapi/linux/rtnetlink.h
- create mode 100644 include/uapi/linux/scc.h
- create mode 100644 include/uapi/linux/sched.h
- create mode 100644 include/uapi/linux/screen_info.h
- create mode 100644 include/uapi/linux/sdla.h
- create mode 100644 include/uapi/linux/securebits.h
- rename include/{ => uapi}/linux/selinux_netlink.h (100%)
- create mode 100644 include/uapi/linux/sem.h
- create mode 100644 include/uapi/linux/serial.h
- create mode 100644 include/uapi/linux/serial_core.h
- rename include/{ => uapi}/linux/serial_reg.h (100%)
- create mode 100644 include/uapi/linux/serio.h
- create mode 100644 include/uapi/linux/shm.h
- create mode 100644 include/uapi/linux/signal.h
- create mode 100644 include/uapi/linux/signalfd.h
- rename include/{ => uapi}/linux/snmp.h (100%)
- create mode 100644 include/uapi/linux/sock_diag.h
- create mode 100644 include/uapi/linux/socket.h
- rename include/{ => uapi}/linux/sockios.h (100%)
- rename include/{ => uapi}/linux/som.h (100%)
- create mode 100644 include/uapi/linux/sonet.h
- create mode 100644 include/uapi/linux/sonypi.h
- create mode 100644 include/uapi/linux/sound.h
- create mode 100644 include/uapi/linux/soundcard.h
- create mode 100644 include/uapi/linux/spi/Kbuild
- rename include/{ => uapi}/linux/spi/spidev.h (100%)
- create mode 100644 include/uapi/linux/stat.h
- create mode 100644 include/uapi/linux/stddef.h
- create mode 100644 include/uapi/linux/string.h
- create mode 100644 include/uapi/linux/sunrpc/Kbuild
- create mode 100644 include/uapi/linux/sunrpc/debug.h
- rename include/{ => uapi}/linux/suspend_ioctls.h (100%)
- create mode 100644 include/uapi/linux/swab.h
- create mode 100644 include/uapi/linux/synclink.h
- create mode 100644 include/uapi/linux/sysctl.h
- rename include/{ => uapi}/linux/taskstats.h (100%)
- create mode 100644 include/uapi/linux/tc_act/Kbuild
- rename include/{ => uapi}/linux/tc_act/tc_csum.h (100%)
- rename include/{ => uapi}/linux/tc_act/tc_gact.h (100%)
- rename include/{ => uapi}/linux/tc_act/tc_ipt.h (100%)
- rename include/{ => uapi}/linux/tc_act/tc_mirred.h (100%)
- rename include/{ => uapi}/linux/tc_act/tc_nat.h (100%)
- rename include/{ => uapi}/linux/tc_act/tc_pedit.h (100%)
- rename include/{ => uapi}/linux/tc_act/tc_skbedit.h (100%)
- create mode 100644 include/uapi/linux/tc_ematch/Kbuild
- rename include/{ => uapi}/linux/tc_ematch/tc_em_cmp.h (100%)
- rename include/{ => uapi}/linux/tc_ematch/tc_em_meta.h (100%)
- rename include/{ => uapi}/linux/tc_ematch/tc_em_nbyte.h (100%)
- rename include/{ => uapi}/linux/tc_ematch/tc_em_text.h (100%)
- create mode 100644 include/uapi/linux/tcp.h
- rename include/{ => uapi}/linux/telephony.h (100%)
- rename include/{ => uapi}/linux/termios.h (100%)
- create mode 100644 include/uapi/linux/time.h
- rename include/{ => uapi}/linux/times.h (100%)
- create mode 100644 include/uapi/linux/timex.h
- rename include/{ => uapi}/linux/tiocl.h (100%)
- rename include/{ => uapi}/linux/tipc.h (100%)
- rename include/{ => uapi}/linux/tipc_config.h (100%)
- create mode 100644 include/uapi/linux/toshiba.h
- create mode 100644 include/uapi/linux/tty.h
- create mode 100644 include/uapi/linux/types.h
- rename include/{ => uapi}/linux/udf_fs_i.h (100%)
- create mode 100644 include/uapi/linux/udp.h
- create mode 100644 include/uapi/linux/uinput.h
- create mode 100644 include/uapi/linux/uio.h
- rename include/{ => uapi}/linux/ultrasound.h (100%)
- rename include/{ => uapi}/linux/un.h (100%)
- rename include/{ => uapi}/linux/unistd.h (100%)
- rename include/{ => uapi}/linux/unix_diag.h (100%)
- create mode 100644 include/uapi/linux/usb/Kbuild
- create mode 100644 include/uapi/linux/usb/audio.h
- rename include/{ => uapi}/linux/usb/cdc.h (100%)
- rename include/{ => uapi}/linux/usb/ch11.h (100%)
- create mode 100644 include/uapi/linux/usb/ch9.h
- create mode 100644 include/uapi/linux/usb/functionfs.h
- rename include/{ => uapi}/linux/usb/g_printer.h (100%)
- rename include/{ => uapi}/linux/usb/gadgetfs.h (100%)
- rename include/{ => uapi}/linux/usb/midi.h (100%)
- rename include/{ => uapi}/linux/usb/tmc.h (100%)
- rename include/{ => uapi}/linux/usb/video.h (100%)
- create mode 100644 include/uapi/linux/usbdevice_fs.h
- rename include/{ => uapi}/linux/utime.h (100%)
- create mode 100644 include/uapi/linux/utsname.h
- rename include/{ => uapi}/linux/uvcvideo.h (100%)
- rename include/{ => uapi}/linux/v4l2-mediabus.h (100%)
- rename include/{ => uapi}/linux/v4l2-subdev.h (100%)
- rename include/{ => uapi}/linux/veth.h (100%)
- rename include/{ => uapi}/linux/vhost.h (100%)
- create mode 100644 include/uapi/linux/videodev2.h
- rename include/{ => uapi}/linux/virtio_9p.h (100%)
- rename include/{ => uapi}/linux/virtio_balloon.h (100%)
- rename include/{ => uapi}/linux/virtio_blk.h (100%)
- create mode 100644 include/uapi/linux/virtio_config.h
- create mode 100644 include/uapi/linux/virtio_console.h
- rename include/{ => uapi}/linux/virtio_ids.h (100%)
- rename include/{ => uapi}/linux/virtio_net.h (100%)
- rename include/{ => uapi}/linux/virtio_pci.h (100%)
- create mode 100644 include/uapi/linux/virtio_ring.h
- rename include/{ => uapi}/linux/virtio_rng.h (100%)
- create mode 100644 include/uapi/linux/vt.h
- create mode 100644 include/uapi/linux/wait.h
- create mode 100644 include/uapi/linux/wanrouter.h
- create mode 100644 include/uapi/linux/watchdog.h
- rename include/{ => uapi}/linux/wimax.h (100%)
- create mode 100644 include/uapi/linux/wimax/Kbuild
- rename include/{ => uapi}/linux/wimax/i2400m.h (100%)
- create mode 100644 include/uapi/linux/wireless.h
- rename include/{ => uapi}/linux/x25.h (100%)
- create mode 100644 include/uapi/linux/xattr.h
- rename include/{ => uapi}/linux/xfrm.h (100%)
- create mode 100644 include/uapi/mtd/Kbuild
- rename include/{ => uapi}/mtd/inftl-user.h (100%)
- rename include/{ => uapi}/mtd/mtd-abi.h (100%)
- rename include/{ => uapi}/mtd/mtd-user.h (100%)
- rename include/{ => uapi}/mtd/nftl-user.h (100%)
- rename include/{ => uapi}/mtd/ubi-user.h (100%)
- create mode 100644 include/uapi/rdma/Kbuild
- rename include/{ => uapi}/rdma/ib_user_cm.h (100%)
- rename include/{ => uapi}/rdma/ib_user_mad.h (100%)
- rename include/{ => uapi}/rdma/ib_user_sa.h (100%)
- rename include/{ => uapi}/rdma/ib_user_verbs.h (100%)
- create mode 100644 include/uapi/rdma/rdma_netlink.h
- rename include/{ => uapi}/rdma/rdma_user_cm.h (100%)
- create mode 100644 include/uapi/scsi/Kbuild
- create mode 100644 include/uapi/scsi/fc/Kbuild
- rename include/{ => uapi}/scsi/fc/fc_els.h (100%)
- rename include/{ => uapi}/scsi/fc/fc_fs.h (100%)
- rename include/{ => uapi}/scsi/fc/fc_gs.h (100%)
- rename include/{ => uapi}/scsi/fc/fc_ns.h (100%)
- rename include/{ => uapi}/scsi/scsi_bsg_fc.h (100%)
- create mode 100644 include/uapi/scsi/scsi_netlink.h
- rename include/{ => uapi}/scsi/scsi_netlink_fc.h (100%)
- create mode 100644 include/uapi/sound/Kbuild
- create mode 100644 include/uapi/sound/asequencer.h
- create mode 100644 include/uapi/sound/asound.h
- rename include/{ => uapi}/sound/asound_fm.h (100%)
- rename include/{ => uapi}/sound/compress_offload.h (100%)
- rename include/{ => uapi}/sound/compress_params.h (100%)
- create mode 100644 include/uapi/sound/emu10k1.h
- rename include/{ => uapi}/sound/hdsp.h (100%)
- rename include/{ => uapi}/sound/hdspm.h (100%)
- create mode 100644 include/uapi/sound/sb16_csp.h
- rename include/{ => uapi}/sound/sfnt_info.h (100%)
- create mode 100644 include/uapi/video/Kbuild
- create mode 100644 include/uapi/video/edid.h
- create mode 100644 include/uapi/video/sisfb.h
- create mode 100644 include/uapi/video/uvesafb.h
- create mode 100644 include/uapi/xen/Kbuild
- rename include/{ => uapi}/xen/evtchn.h (100%)
- rename include/{ => uapi}/xen/privcmd.h (100%)
+	http://git.kernel.org/?p=linux/kernel/git/dhowells/linux-asm_system.git;a=tag;h=refs/tags/split-asm_system_h-for-linus-20120328
+
+Can you apply this after pulling the arch trees please?  Note that some of the
+arch-specific patches may well come to you via their arch trees before you
+apply this patch series (the Blackfin has, for instance, and I've eliminated it
+from my tree).  There's also a chance that the penultimate patch won't apply by
+the time you get to it - it's generated by a one-line script to simply remove
+all #inclusions of asm/system.h.
+
+I've built all the working defconfigs from all the arches that I can and made
+sure that they don't break.
+
+The reason for these patches is that I recently encountered a circular
+dependency problem that came about when I produced some patches to optimise
+get_order() by rewriting it to use ilog2().  This uses bitops - and on the SH
+arch asm/bitops.h drags in asm-generic/get_order.h by a circuituous route
+involving asm/system.h.
+
+The main difficulty seems to be asm/system.h.  It holds a number of low level
+bits with no/few dependencies that are commonly used (eg. memory barriers) and
+a number of bits with more dependencies that aren't used in many places
+(eg. switch_to()).
+
+These patches break asm/system.h up into the following core pieces:
+
+     (1) asm/barrier.h
+
+         Move memory barriers here.  This already done for MIPS and Alpha.
+
+     (2) asm/switch_to.h
+
+         Move switch_to() and related stuff here.
+
+     (3) asm/exec.h
+
+         Move arch_align_stack() here.  Other process execution related bits
+         could perhaps go here from asm/processor.h.
+
+     (4) asm/cmpxchg.h
+
+         Move xchg() and cmpxchg() here as they're full word atomic ops and
+         frequently used by atomic_xchg() and atomic_cmpxchg().
+
+     (5) asm/bug.h
+
+         Move die() and related bits.
+
+     (6) asm/auxvec.h
+
+         Move AT_VECTOR_SIZE_ARCH here.
+
+Other arch headers are created as needed on a per-arch basis.
+
+---
+David Howells (36):
+      ARM: Fix missing linux/types.h #inclusion in asm/hardware/iop3xx.h
+      SELinux: selinux/xfrm.h needs net/flow.h
+      Disintegrate asm/system.h for X86
+      Disintegrate asm/system.h for Alpha
+      Disintegrate asm/system.h for ARM
+      Disintegrate asm/system.h for AVR32
+      Disintegrate asm/system.h for C6X
+      Disintegrate asm/system.h for CRIS
+      Disintegrate asm/system.h for FRV
+      Disintegrate asm/system.h for H8300
+      Disintegrate asm/system.h for Hexagon
+      Disintegrate asm/system.h for IA64
+      Disintegrate asm/system.h for M32R
+      m68k: Fix xchg/cmpxchg to fail to link if given an inappropriate pointer
+      Disintegrate asm/system.h for M68K
+      Disintegrate asm/system.h for Microblaze
+      Disintegrate asm/system.h for MIPS
+      Disintegrate asm/system.h for MN10300
+      Disintegrate asm/system.h for PA-RISC
+      Disintegrate asm/system.h for PowerPC
+      Disintegrate asm/system.h for S390
+      Disintegrate asm/system.h for Score
+      Disintegrate asm/system.h for SH
+      Disintegrate asm/system.h for Sparc
+      Disintegrate asm/system.h for Tile
+      Disintegrate asm/system.h for Xtensa
+      Make asm-generic/cmpxchg.h #include asm-generic/cmpxchg-local.h
+      Create asm-generic/barrier.h
+      Move the asm-generic/system.h xchg() implementation to asm-generic/cmpxchg.h
+      Split the switch_to() wrapper out of asm-generic/system.h
+      Split arch_align_stack() out from asm-generic/system.h
+      Disintegrate asm/system.h for OpenRISC
+      Move all declarations of free_initmem() to linux/mm.h
+      Add #includes needed to permit the removal of asm/system.h
+      Remove all #inclusions of asm/system.h
+      Delete all instances of asm/system.h
+
+Guan Xuetao (1):
+      Disintegrate asm/system.h for Unicore32 [based on ver #3, changed by gxt]
+
+Russell King (1):
+      ARM: move CP15 definitions to separate header file
+
+ arch/alpha/boot/bootp.c                            |    1 -
+ arch/alpha/boot/bootpz.c                           |    1 -
+ arch/alpha/boot/head.S                             |    1 -
+ arch/alpha/boot/main.c                             |    1 -
+ arch/alpha/include/asm/atomic.h                    |   68 +++-
+ arch/alpha/include/asm/auxvec.h                    |    2 +
+ arch/alpha/include/asm/core_lca.h                  |    2 +-
+ arch/alpha/include/asm/core_mcpcia.h               |    1 +
+ arch/alpha/include/asm/core_t2.h                   |    1 -
+ arch/alpha/include/asm/elf.h                       |    1 +
+ arch/alpha/include/asm/exec.h                      |    6 +
+ arch/alpha/include/asm/fpu.h                       |    2 +
+ arch/alpha/include/asm/io.h                        |    1 -
+ arch/alpha/include/asm/irqflags.h                  |    2 +-
+ arch/alpha/include/asm/mce.h                       |   83 +++
+ arch/alpha/include/asm/mmu_context.h               |    1 -
+ arch/alpha/include/asm/pal.h                       |  112 ++++
+ arch/alpha/include/asm/pgtable.h                   |    1 +
+ arch/alpha/include/asm/setup.h                     |   36 ++
+ arch/alpha/include/asm/special_insns.h             |   41 ++
+ arch/alpha/include/asm/spinlock.h                  |    1 -
+ arch/alpha/include/asm/switch_to.h                 |   14 +
+ arch/alpha/include/asm/system.h                    |  354 ------------
+ arch/alpha/include/asm/xchg.h                      |    2 +-
+ arch/alpha/kernel/core_apecs.c                     |    1 +
+ arch/alpha/kernel/core_cia.c                       |    1 +
+ arch/alpha/kernel/core_t2.c                        |    1 +
+ arch/alpha/kernel/err_impl.h                       |    2 +
+ arch/alpha/kernel/head.S                           |    6 +-
+ arch/alpha/kernel/irq.c                            |    1 -
+ arch/alpha/kernel/irq_alpha.c                      |    1 +
+ arch/alpha/kernel/osf_sys.c                        |    1 -
+ arch/alpha/kernel/process.c                        |    1 -
+ arch/alpha/kernel/ptrace.c                         |    1 -
+ arch/alpha/kernel/setup.c                          |    1 -
+ arch/alpha/kernel/sys_alcor.c                      |    1 -
+ arch/alpha/kernel/sys_cabriolet.c                  |    1 -
+ arch/alpha/kernel/sys_dp264.c                      |    1 -
+ arch/alpha/kernel/sys_eb64p.c                      |    1 -
+ arch/alpha/kernel/sys_eiger.c                      |    1 -
+ arch/alpha/kernel/sys_jensen.c                     |    1 -
+ arch/alpha/kernel/sys_marvel.c                     |    1 -
+ arch/alpha/kernel/sys_miata.c                      |    1 -
+ arch/alpha/kernel/sys_mikasa.c                     |    2 +-
+ arch/alpha/kernel/sys_nautilus.c                   |    1 -
+ arch/alpha/kernel/sys_noritake.c                   |    2 +-
+ arch/alpha/kernel/sys_rawhide.c                    |    1 -
+ arch/alpha/kernel/sys_ruffian.c                    |    1 -
+ arch/alpha/kernel/sys_rx164.c                      |    1 -
+ arch/alpha/kernel/sys_sable.c                      |    1 -
+ arch/alpha/kernel/sys_sio.c                        |    1 -
+ arch/alpha/kernel/sys_sx164.c                      |    2 +-
+ arch/alpha/kernel/sys_takara.c                     |    1 -
+ arch/alpha/kernel/sys_titan.c                      |    1 -
+ arch/alpha/kernel/sys_wildfire.c                   |    1 -
+ arch/alpha/kernel/traps.c                          |    1 +
+ arch/alpha/kernel/vmlinux.lds.S                    |    2 +
+ arch/alpha/lib/stacktrace.c                        |    1 -
+ arch/alpha/mm/fault.c                              |    1 -
+ arch/alpha/mm/init.c                               |    2 +-
+ arch/alpha/oprofile/common.c                       |    1 -
+ arch/alpha/oprofile/op_model_ev4.c                 |    1 -
+ arch/alpha/oprofile/op_model_ev5.c                 |    1 -
+ arch/alpha/oprofile/op_model_ev6.c                 |    1 -
+ arch/alpha/oprofile/op_model_ev67.c                |    1 -
+ arch/arm/common/via82c505.c                        |    1 -
+ arch/arm/include/asm/atomic.h                      |    4 +-
+ arch/arm/include/asm/barrier.h                     |   69 +++
+ arch/arm/include/asm/bitops.h                      |    2 +-
+ arch/arm/include/asm/bug.h                         |   30 +
+ arch/arm/include/asm/cmpxchg.h                     |  295 ++++++++++
+ arch/arm/include/asm/compiler.h                    |   15 +
+ arch/arm/include/asm/cp15.h                        |   87 +++
+ arch/arm/include/asm/div64.h                       |    2 +-
+ arch/arm/include/asm/dma.h                         |    1 -
+ arch/arm/include/asm/domain.h                      |    4 +
+ arch/arm/include/asm/exec.h                        |    6 +
+ arch/arm/include/asm/hardware/iop3xx.h             |    3 +
+ arch/arm/include/asm/io.h                          |    2 +-
+ arch/arm/include/asm/mmu.h                         |    7 +
+ arch/arm/include/asm/processor.h                   |    3 +-
+ arch/arm/include/asm/switch_to.h                   |   18 +
+ arch/arm/include/asm/system.h                      |  551 +------------------
+ arch/arm/include/asm/system_info.h                 |   27 +
+ arch/arm/include/asm/system_misc.h                 |   28 +
+ arch/arm/include/asm/uaccess.h                     |    2 +-
+ arch/arm/kernel/armksyms.c                         |    1 -
+ arch/arm/kernel/elf.c                              |    1 +
+ arch/arm/kernel/entry-armv.S                       |    2 +-
+ arch/arm/kernel/fiq.c                              |    2 +-
+ arch/arm/kernel/head-nommu.S                       |    2 +-
+ arch/arm/kernel/head.S                             |    2 +-
+ arch/arm/kernel/hw_breakpoint.c                    |    1 -
+ arch/arm/kernel/irq.c                              |    1 -
+ arch/arm/kernel/kprobes-common.c                   |    1 +
+ arch/arm/kernel/machine_kexec.c                    |    2 +-
+ arch/arm/kernel/process.c                          |    1 -
+ arch/arm/kernel/ptrace.c                           |    1 -
+ arch/arm/kernel/setup.c                            |    4 +-
+ arch/arm/kernel/sleep.S                            |    1 -
+ arch/arm/kernel/tcm.c                              |    1 +
+ arch/arm/kernel/thumbee.c                          |    1 +
+ arch/arm/kernel/traps.c                            |    2 +-
+ arch/arm/mach-at91/at91cap9.c                      |    2 +
+ arch/arm/mach-at91/at91rm9200.c                    |    1 +
+ arch/arm/mach-at91/at91sam9260.c                   |    1 +
+ arch/arm/mach-at91/at91sam9261.c                   |    1 +
+ arch/arm/mach-at91/at91sam9263.c                   |    1 +
+ arch/arm/mach-at91/at91sam9g45.c                   |    1 +
+ arch/arm/mach-at91/at91sam9rl.c                    |    1 +
+ arch/arm/mach-at91/include/mach/system_rev.h       |    2 +
+ arch/arm/mach-clps711x/common.c                    |    1 +
+ arch/arm/mach-clps711x/p720t-leds.c                |    1 -
+ arch/arm/mach-davinci/board-da850-evm.c            |    1 +
+ arch/arm/mach-ebsa110/core.c                       |    2 +-
+ arch/arm/mach-ebsa110/leds.c                       |    1 -
+ arch/arm/mach-exynos/hotplug.c                     |    1 +
+ arch/arm/mach-footbridge/common.c                  |    1 +
+ arch/arm/mach-footbridge/dc21285-timer.c           |    1 +
+ arch/arm/mach-footbridge/dc21285.c                 |    1 -
+ arch/arm/mach-footbridge/ebsa285-leds.c            |    1 -
+ arch/arm/mach-footbridge/netwinder-hw.c            |    1 +
+ arch/arm/mach-footbridge/netwinder-leds.c          |    1 -
+ arch/arm/mach-imx/dma-v1.c                         |    1 -
+ arch/arm/mach-imx/mach-imx6q.c                     |    1 +
+ arch/arm/mach-imx/mach-mx51_efikamx.c              |    1 +
+ arch/arm/mach-imx/mach-mx51_efikasb.c              |    1 +
+ arch/arm/mach-integrator/core.c                    |    1 -
+ arch/arm/mach-integrator/leds.c                    |    1 -
+ arch/arm/mach-integrator/pci.c                     |    1 -
+ arch/arm/mach-integrator/pci_v3.c                  |    1 -
+ arch/arm/mach-iop33x/uart.c                        |    1 -
+ arch/arm/mach-ixp2000/core.c                       |    1 -
+ arch/arm/mach-ixp2000/enp2611.c                    |    1 -
+ arch/arm/mach-ixp2000/ixdp2400.c                   |    1 -
+ arch/arm/mach-ixp2000/ixdp2800.c                   |    1 -
+ arch/arm/mach-ixp2000/ixdp2x00.c                   |    1 -
+ arch/arm/mach-ixp2000/ixdp2x01.c                   |    1 -
+ arch/arm/mach-ixp2000/pci.c                        |    1 -
+ arch/arm/mach-ixp23xx/core.c                       |    1 -
+ arch/arm/mach-ixp23xx/espresso.c                   |    1 -
+ arch/arm/mach-ixp23xx/ixdp2351.c                   |    1 -
+ arch/arm/mach-ixp23xx/pci.c                        |    1 -
+ arch/arm/mach-ixp23xx/roadrunner.c                 |    1 -
+ arch/arm/mach-ixp4xx/common-pci.c                  |    1 -
+ arch/arm/mach-ixp4xx/goramo_mlr.c                  |    1 -
+ arch/arm/mach-ks8695/time.c                        |    1 +
+ arch/arm/mach-mmp/common.c                         |    1 +
+ arch/arm/mach-mmp/pxa168.c                         |    1 +
+ arch/arm/mach-msm/board-sapphire.c                 |    1 -
+ arch/arm/mach-mxs/system.c                         |    2 +-
+ arch/arm/mach-omap1/id.c                           |    1 +
+ arch/arm/mach-omap1/leds-h2p2-debug.c              |    1 -
+ arch/arm/mach-omap1/leds-innovator.c               |    1 -
+ arch/arm/mach-omap1/leds-osk.c                     |    1 -
+ arch/arm/mach-omap1/mux.c                          |    1 -
+ arch/arm/mach-omap1/time.c                         |    1 -
+ arch/arm/mach-omap1/timer32k.c                     |    1 -
+ arch/arm/mach-omap2/board-omap3touchbook.c         |    1 +
+ arch/arm/mach-omap2/board-rx51-peripherals.c       |    1 +
+ arch/arm/mach-omap2/mux.c                          |    1 -
+ arch/arm/mach-omap2/omap-mpuss-lowpower.c          |    1 -
+ arch/arm/mach-omap2/pm24xx.c                       |    1 +
+ arch/arm/mach-omap2/pm34xx.c                       |    1 +
+ arch/arm/mach-omap2/pm44xx.c                       |    1 +
+ arch/arm/mach-omap2/sleep44xx.S                    |    1 -
+ arch/arm/mach-orion5x/common.c                     |    1 +
+ arch/arm/mach-orion5x/dns323-setup.c               |    1 +
+ arch/arm/mach-orion5x/ls-chl-setup.c               |    1 -
+ arch/arm/mach-orion5x/ls_hgl-setup.c               |    1 -
+ arch/arm/mach-orion5x/lsmini-setup.c               |    1 -
+ arch/arm/mach-pnx4008/core.c                       |    2 +-
+ arch/arm/mach-pnx4008/dma.c                        |    1 -
+ arch/arm/mach-pnx4008/irq.c                        |    1 -
+ arch/arm/mach-pnx4008/time.c                       |    1 -
+ arch/arm/mach-pxa/cm-x300.c                        |    1 +
+ arch/arm/mach-pxa/colibri-pxa3xx.c                 |    1 +
+ arch/arm/mach-pxa/corgi.c                          |    1 -
+ arch/arm/mach-pxa/generic.c                        |    1 -
+ arch/arm/mach-pxa/leds-idp.c                       |    1 -
+ arch/arm/mach-pxa/leds-lubbock.c                   |    1 -
+ arch/arm/mach-pxa/leds-mainstone.c                 |    1 -
+ arch/arm/mach-pxa/magician.c                       |    1 +
+ arch/arm/mach-pxa/poodle.c                         |    1 -
+ arch/arm/mach-pxa/reset.c                          |    1 +
+ arch/arm/mach-pxa/viper.c                          |    1 +
+ arch/arm/mach-pxa/zeus.c                           |    1 +
+ arch/arm/mach-realview/core.c                      |    1 -
+ arch/arm/mach-realview/hotplug.c                   |    1 +
+ arch/arm/mach-rpc/riscpc.c                         |    1 +
+ arch/arm/mach-s3c2410/s3c2410.c                    |    1 +
+ arch/arm/mach-s3c2412/s3c2412.c                    |    1 +
+ arch/arm/mach-s3c2416/s3c2416.c                    |    1 +
+ arch/arm/mach-s3c2440/s3c244x.c                    |    1 +
+ arch/arm/mach-s3c2443/s3c2443.c                    |    1 +
+ arch/arm/mach-s3c64xx/common.c                     |    1 +
+ arch/arm/mach-s5p64x0/common.c                     |    1 +
+ arch/arm/mach-s5pc100/common.c                     |    1 +
+ arch/arm/mach-sa1100/dma.c                         |    1 -
+ arch/arm/mach-sa1100/generic.c                     |    2 +-
+ arch/arm/mach-sa1100/leds-assabet.c                |    1 -
+ arch/arm/mach-sa1100/leds-badge4.c                 |    1 -
+ arch/arm/mach-sa1100/leds-cerf.c                   |    1 -
+ arch/arm/mach-sa1100/leds-hackkit.c                |    1 -
+ arch/arm/mach-sa1100/leds-lart.c                   |    1 -
+ arch/arm/mach-sa1100/pm.c                          |    1 -
+ arch/arm/mach-shark/leds.c                         |    1 -
+ arch/arm/mach-shmobile/cpuidle.c                   |    1 -
+ arch/arm/mach-shmobile/include/mach/system.h       |    2 +
+ arch/arm/mach-shmobile/pm-r8a7779.c                |    1 -
+ arch/arm/mach-shmobile/pm-sh7372.c                 |    1 -
+ arch/arm/mach-shmobile/suspend.c                   |    2 +-
+ arch/arm/mach-tegra/cpu-tegra.c                    |    1 -
+ arch/arm/mach-tegra/hotplug.c                      |    1 +
+ arch/arm/mach-versatile/core.c                     |    1 -
+ arch/arm/mach-versatile/pci.c                      |    1 -
+ arch/arm/mach-vexpress/hotplug.c                   |    2 +-
+ arch/arm/mach-w90x900/cpu.c                        |    1 +
+ arch/arm/mm/alignment.c                            |    3 +-
+ arch/arm/mm/cache-feroceon-l2.c                    |    1 +
+ arch/arm/mm/cache-tauros2.c                        |    1 +
+ arch/arm/mm/cache-xsc3l2.c                         |    2 +-
+ arch/arm/mm/fault.c                                |    3 +-
+ arch/arm/mm/flush.c                                |    1 -
+ arch/arm/mm/idmap.c                                |    1 +
+ arch/arm/mm/ioremap.c                              |    2 +
+ arch/arm/mm/mmu.c                                  |    2 +
+ arch/arm/mm/pgd.c                                  |    1 +
+ arch/arm/mm/proc-fa526.S                           |    1 -
+ arch/arm/nwfpe/fpa11.c                             |    1 -
+ arch/arm/plat-iop/i2c.c                            |    1 -
+ arch/arm/plat-iop/pci.c                            |    1 -
+ arch/arm/plat-iop/restart.c                        |    1 +
+ arch/arm/plat-mxc/system.c                         |    2 +-
+ arch/arm/plat-omap/debug-leds.c                    |    1 -
+ arch/arm/plat-omap/dma.c                           |    1 -
+ arch/arm/plat-omap/mux.c                           |    1 -
+ arch/arm/plat-pxa/dma.c                            |    1 -
+ arch/arm/plat-s3c24xx/cpu.c                        |    1 +
+ arch/arm/plat-s3c24xx/dma.c                        |    1 -
+ arch/arm/plat-samsung/cpu.c                        |    1 -
+ arch/arm/plat-samsung/time.c                       |    1 -
+ arch/arm/plat-spear/restart.c                      |    1 +
+ arch/arm/vfp/vfpmodule.c                           |    2 +
+ arch/avr32/include/asm/atomic.h                    |    2 +-
+ arch/avr32/include/asm/barrier.h                   |   27 +
+ arch/avr32/include/asm/bitops.h                    |    1 -
+ arch/avr32/include/asm/bug.h                       |    5 +
+ arch/avr32/include/asm/{system.h => cmpxchg.h}     |   79 +---
+ arch/avr32/include/asm/exec.h                      |   13 +
+ arch/avr32/include/asm/special_insns.h             |   13 +
+ arch/avr32/include/asm/switch_to.h                 |   46 ++
+ arch/avr32/mach-at32ap/cpufreq.c                   |    1 -
+ arch/avr32/oprofile/op_model_avr32.c               |    1 -
+ arch/blackfin/include/asm/system.h                 |    5 -
+ arch/c6x/include/asm/Kbuild                        |    1 -
+ arch/c6x/include/asm/barrier.h                     |   27 +
+ arch/c6x/include/asm/bitops.h                      |    1 -
+ arch/c6x/include/asm/bug.h                         |   23 +
+ arch/c6x/include/asm/cmpxchg.h                     |   68 +++
+ arch/c6x/include/asm/exec.h                        |    6 +
+ arch/c6x/include/asm/processor.h                   |    9 +
+ arch/c6x/include/asm/setup.h                       |    1 +
+ arch/c6x/include/asm/special_insns.h               |   63 ++
+ arch/c6x/include/asm/switch_to.h                   |   33 ++
+ arch/c6x/include/asm/system.h                      |  168 ------
+ arch/c6x/kernel/irq.c                              |    1 +
+ arch/c6x/kernel/setup.c                            |    1 +
+ arch/c6x/kernel/soc.c                              |    1 -
+ arch/c6x/kernel/time.c                             |    1 +
+ arch/c6x/kernel/traps.c                            |    1 +
+ arch/c6x/platforms/timer64.c                       |    1 +
+ arch/cris/arch-v10/drivers/ds1302.c                |    1 -
+ arch/cris/arch-v10/drivers/gpio.c                  |    1 -
+ arch/cris/arch-v10/drivers/i2c.c                   |    1 -
+ arch/cris/arch-v10/drivers/pcf8563.c               |    1 -
+ arch/cris/arch-v10/drivers/sync_serial.c           |    1 -
+ arch/cris/arch-v10/kernel/debugport.c              |    1 -
+ arch/cris/arch-v10/kernel/dma.c                    |    1 +
+ arch/cris/arch-v10/kernel/io_interface_mux.c       |    1 +
+ arch/cris/arch-v10/kernel/process.c                |    1 +
+ arch/cris/arch-v10/kernel/ptrace.c                 |    1 -
+ arch/cris/arch-v10/kernel/setup.c                  |    1 +
+ arch/cris/arch-v10/kernel/signal.c                 |    1 +
+ arch/cris/arch-v10/kernel/traps.c                  |    1 +
+ arch/cris/arch-v32/drivers/i2c.c                   |    1 -
+ arch/cris/arch-v32/drivers/mach-a3/gpio.c          |    1 -
+ arch/cris/arch-v32/drivers/mach-fs/gpio.c          |    1 -
+ arch/cris/arch-v32/kernel/debugport.c              |    1 -
+ arch/cris/arch-v32/kernel/fasttimer.c              |    1 -
+ arch/cris/arch-v32/kernel/ptrace.c                 |    1 -
+ arch/cris/arch-v32/mach-a3/dma.c                   |    1 -
+ arch/cris/arch-v32/mach-fs/dma.c                   |    1 -
+ arch/cris/include/arch-v10/arch/elf.h              |    2 +
+ arch/cris/include/arch-v32/arch/elf.h              |    2 +
+ arch/cris/include/arch-v32/arch/system.h           |   10 -
+ arch/cris/include/asm/atomic.h                     |    2 +-
+ arch/cris/include/asm/barrier.h                    |   25 +
+ arch/cris/include/asm/bitops.h                     |    1 -
+ arch/cris/include/asm/{system.h => cmpxchg.h}      |   52 +--
+ arch/cris/include/asm/exec.h                       |    6 +
+ arch/cris/include/asm/processor.h                  |   11 +-
+ arch/cris/include/asm/switch_to.h                  |   12 +
+ arch/cris/kernel/irq.c                             |    1 +
+ arch/cris/kernel/process.c                         |    1 -
+ arch/cris/kernel/ptrace.c                          |    1 -
+ arch/cris/kernel/setup.c                           |    1 +
+ arch/cris/kernel/traps.c                           |    1 +
+ arch/cris/mm/fault.c                               |    1 +
+ arch/frv/include/asm/atomic.h                      |   57 +--
+ arch/frv/include/asm/barrier.h                     |   29 +
+ arch/frv/include/asm/bug.h                         |    2 +
+ arch/frv/include/asm/{system.h => cmpxchg.h}       |   98 ++--
+ arch/frv/include/asm/exec.h                        |   17 +
+ arch/frv/include/asm/switch_to.h                   |   35 ++
+ arch/frv/kernel/debug-stub.c                       |    1 -
+ arch/frv/kernel/gdb-io.c                           |    1 -
+ arch/frv/kernel/gdb-stub.c                         |    1 -
+ arch/frv/kernel/irq-mb93091.c                      |    1 -
+ arch/frv/kernel/irq-mb93093.c                      |    1 -
+ arch/frv/kernel/irq-mb93493.c                      |    1 -
+ arch/frv/kernel/irq.c                              |    1 -
+ arch/frv/kernel/process.c                          |    1 -
+ arch/frv/kernel/ptrace.c                           |    1 -
+ arch/frv/kernel/traps.c                            |    1 -
+ arch/frv/mm/fault.c                                |    1 -
+ arch/frv/mm/init.c                                 |    1 -
+ arch/frv/mm/kmap.c                                 |    1 -
+ arch/h8300/include/asm/atomic.h                    |    4 +-
+ arch/h8300/include/asm/barrier.h                   |   27 +
+ arch/h8300/include/asm/bitops.h                    |    1 -
+ arch/h8300/include/asm/bug.h                       |    4 +
+ arch/h8300/include/asm/cmpxchg.h                   |   60 ++
+ arch/h8300/include/asm/exec.h                      |    6 +
+ arch/h8300/include/asm/processor.h                 |    5 +
+ arch/h8300/include/asm/switch_to.h                 |   50 ++
+ arch/h8300/include/asm/system.h                    |  140 -----
+ arch/h8300/kernel/irq.c                            |    1 -
+ arch/h8300/kernel/process.c                        |    1 -
+ arch/h8300/kernel/ptrace.c                         |    1 -
+ arch/h8300/kernel/traps.c                          |    1 -
+ arch/h8300/mm/fault.c                              |    1 -
+ arch/h8300/mm/init.c                               |    1 -
+ arch/h8300/mm/kmap.c                               |    1 -
+ arch/h8300/mm/memory.c                             |    1 -
+ arch/hexagon/include/asm/atomic.h                  |    1 +
+ arch/hexagon/include/asm/barrier.h                 |   41 ++
+ arch/hexagon/include/asm/bitops.h                  |    1 -
+ arch/hexagon/include/asm/{system.h => cmpxchg.h}   |   46 +--
+ arch/hexagon/include/asm/exec.h                    |   28 +
+ arch/hexagon/include/asm/switch_to.h               |   34 ++
+ arch/hexagon/kernel/ptrace.c                       |    1 -
+ arch/hexagon/kernel/smp.c                          |    1 -
+ arch/hexagon/kernel/vm_events.c                    |    1 -
+ arch/ia64/dig/setup.c                              |    2 +-
+ arch/ia64/hp/common/sba_iommu.c                    |    1 -
+ arch/ia64/hp/sim/boot/bootloader.c                 |    1 -
+ arch/ia64/hp/sim/boot/fw-emu.c                     |    1 +
+ arch/ia64/hp/sim/simeth.c                          |    1 -
+ arch/ia64/include/asm/acpi.h                       |    1 -
+ arch/ia64/include/asm/atomic.h                     |    1 -
+ arch/ia64/include/asm/auxvec.h                     |    2 +
+ arch/ia64/include/asm/barrier.h                    |   68 +++
+ arch/ia64/include/asm/exec.h                       |   14 +
+ arch/ia64/include/asm/futex.h                      |    1 -
+ arch/ia64/include/asm/io.h                         |    1 -
+ arch/ia64/include/asm/irqflags.h                   |    2 +
+ arch/ia64/include/asm/kexec.h                      |    1 +
+ arch/ia64/include/asm/mca_asm.h                    |    2 +
+ arch/ia64/include/asm/page.h                       |   10 +
+ arch/ia64/include/asm/pci.h                        |    8 +
+ arch/ia64/include/asm/pgtable.h                    |    1 -
+ arch/ia64/include/asm/processor.h                  |    8 +
+ arch/ia64/include/asm/sal.h                        |    1 -
+ arch/ia64/include/asm/setup.h                      |   18 +
+ arch/ia64/include/asm/sn/pda.h                     |    1 -
+ arch/ia64/include/asm/spinlock.h                   |    1 -
+ arch/ia64/include/asm/switch_to.h                  |   87 +++
+ arch/ia64/include/asm/system.h                     |  203 -------
+ arch/ia64/include/asm/uv/uv.h                      |    1 -
+ arch/ia64/kernel/acpi.c                            |    1 -
+ arch/ia64/kernel/efi.c                             |    1 +
+ arch/ia64/kernel/fsys.S                            |    1 -
+ arch/ia64/kernel/gate.S                            |    3 +-
+ arch/ia64/kernel/gate.lds.S                        |    3 +-
+ arch/ia64/kernel/head.S                            |    1 -
+ arch/ia64/kernel/iosapic.c                         |    1 -
+ arch/ia64/kernel/irq_ia64.c                        |    1 -
+ arch/ia64/kernel/ivt.S                             |    1 -
+ arch/ia64/kernel/machvec.c                         |    1 -
+ arch/ia64/kernel/mca.c                             |    1 -
+ arch/ia64/kernel/mca_drv.c                         |    1 -
+ arch/ia64/kernel/patch.c                           |    1 -
+ arch/ia64/kernel/pci-dma.c                         |    1 -
+ arch/ia64/kernel/perfmon.c                         |    1 -
+ arch/ia64/kernel/ptrace.c                          |    1 -
+ arch/ia64/kernel/setup.c                           |    1 -
+ arch/ia64/kernel/smp.c                             |    1 -
+ arch/ia64/kernel/smpboot.c                         |    1 -
+ arch/ia64/kernel/time.c                            |    1 -
+ arch/ia64/kernel/traps.c                           |    1 +
+ arch/ia64/kernel/uncached.c                        |    1 -
+ arch/ia64/kernel/unwind.c                          |    1 -
+ arch/ia64/kernel/vmlinux.lds.S                     |    1 -
+ arch/ia64/mm/fault.c                               |    1 -
+ arch/ia64/mm/init.c                                |    1 -
+ arch/ia64/oprofile/backtrace.c                     |    1 -
+ arch/ia64/pci/pci.c                                |    1 -
+ arch/ia64/sn/kernel/setup.c                        |    2 +-
+ arch/ia64/sn/kernel/sn2/prominfo_proc.c            |    1 -
+ arch/ia64/sn/kernel/sn2/sn2_smp.c                  |    1 -
+ arch/ia64/sn/kernel/sn2/timer.c                    |    1 -
+ arch/ia64/sn/kernel/tiocx.c                        |    1 -
+ arch/ia64/xen/xensetup.S                           |    1 -
+ arch/m32r/include/asm/atomic.h                     |    3 +-
+ arch/m32r/include/asm/barrier.h                    |   94 +++
+ arch/m32r/include/asm/bitops.h                     |    3 +-
+ arch/m32r/include/asm/cmpxchg.h                    |  221 ++++++++
+ arch/m32r/include/asm/dcache_clear.h               |   29 +
+ arch/m32r/include/asm/exec.h                       |   14 +
+ arch/m32r/include/asm/local.h                      |    1 -
+ arch/m32r/include/asm/spinlock.h                   |    1 +
+ arch/m32r/include/asm/switch_to.h                  |   51 ++
+ arch/m32r/include/asm/system.h                     |  367 ------------
+ arch/m32r/kernel/ptrace.c                          |    1 -
+ arch/m32r/kernel/traps.c                           |    1 -
+ arch/m32r/mm/fault-nommu.c                         |    1 -
+ arch/m32r/mm/fault.c                               |    1 -
+ arch/m32r/platforms/m32104ut/setup.c               |    1 -
+ arch/m32r/platforms/m32700ut/setup.c               |    1 -
+ arch/m32r/platforms/mappi/setup.c                  |    1 -
+ arch/m32r/platforms/mappi2/setup.c                 |    1 -
+ arch/m32r/platforms/mappi3/setup.c                 |    1 -
+ arch/m32r/platforms/oaks32r/setup.c                |    1 -
+ arch/m32r/platforms/opsput/setup.c                 |    1 -
+ arch/m32r/platforms/usrv/setup.c                   |    1 -
+ arch/m68k/amiga/amisound.c                         |    1 -
+ arch/m68k/amiga/config.c                           |    1 -
+ arch/m68k/apollo/config.c                          |    1 -
+ arch/m68k/atari/ataints.c                          |    1 -
+ arch/m68k/atari/atasound.c                         |    1 -
+ arch/m68k/atari/config.c                           |    1 -
+ arch/m68k/bvme6000/config.c                        |    1 -
+ arch/m68k/bvme6000/rtc.c                           |    1 -
+ arch/m68k/hp300/time.c                             |    1 -
+ arch/m68k/include/asm/atomic.h                     |    2 +-
+ arch/m68k/include/asm/barrier.h                    |   20 +
+ arch/m68k/include/asm/{system.h => cmpxchg.h}      |   94 +---
+ arch/m68k/include/asm/exec.h                       |    6 +
+ arch/m68k/include/asm/sun3xflop.h                  |    1 -
+ arch/m68k/include/asm/switch_to.h                  |   41 ++
+ arch/m68k/kernel/ints.c                            |    1 -
+ arch/m68k/kernel/irq.c                             |    1 -
+ arch/m68k/kernel/process.c                         |    1 -
+ arch/m68k/kernel/ptrace.c                          |    1 -
+ arch/m68k/kernel/traps.c                           |    1 -
+ arch/m68k/kernel/vectors.c                         |    1 -
+ arch/m68k/mac/config.c                             |    1 -
+ arch/m68k/mac/misc.c                               |    1 -
+ arch/m68k/mm/fault.c                               |    1 -
+ arch/m68k/mm/init_mm.c                             |    1 -
+ arch/m68k/mm/init_no.c                             |    1 -
+ arch/m68k/mm/kmap.c                                |    1 -
+ arch/m68k/mm/memory.c                              |    1 -
+ arch/m68k/mm/motorola.c                            |    1 -
+ arch/m68k/mm/sun3mmu.c                             |    1 -
+ arch/m68k/mvme147/config.c                         |    1 -
+ arch/m68k/mvme16x/config.c                         |    1 -
+ arch/m68k/mvme16x/rtc.c                            |    1 -
+ arch/m68k/platform/68328/config.c                  |    1 -
+ arch/m68k/platform/68328/timers.c                  |    1 -
+ arch/m68k/platform/68360/config.c                  |    1 -
+ arch/m68k/platform/68EZ328/config.c                |    1 -
+ arch/m68k/platform/68VZ328/config.c                |    1 -
+ arch/m68k/q40/config.c                             |    1 -
+ arch/m68k/q40/q40ints.c                            |    1 -
+ arch/m68k/sun3/intersil.c                          |    1 -
+ arch/m68k/sun3/mmu_emu.c                           |    1 -
+ arch/m68k/sun3/prom/console.c                      |    1 -
+ arch/m68k/sun3x/config.c                           |    1 -
+ arch/m68k/sun3x/time.c                             |    1 -
+ arch/microblaze/include/asm/atomic.h               |    1 +
+ arch/microblaze/include/asm/barrier.h              |   27 +
+ arch/microblaze/include/asm/cmpxchg.h              |   40 ++
+ arch/microblaze/include/asm/exec.h                 |   14 +
+ arch/microblaze/include/asm/processor.h            |   11 +-
+ arch/microblaze/include/asm/setup.h                |    6 +
+ arch/microblaze/include/asm/switch_to.h            |   24 +
+ arch/microblaze/include/asm/system.h               |   97 ----
+ arch/microblaze/kernel/cpu/pvr.c                   |    1 -
+ arch/microblaze/kernel/microblaze_ksyms.c          |    1 -
+ arch/microblaze/kernel/process.c                   |    1 -
+ arch/microblaze/kernel/prom.c                      |    1 -
+ arch/microblaze/kernel/setup.c                     |    1 -
+ arch/microblaze/kernel/timer.c                     |    1 -
+ arch/microblaze/kernel/traps.c                     |    1 -
+ arch/microblaze/lib/memcpy.c                       |    1 -
+ arch/microblaze/mm/fault.c                         |    1 -
+ arch/mips/cavium-octeon/setup.c                    |    1 -
+ arch/mips/cavium-octeon/smp.c                      |    2 +-
+ arch/mips/dec/ecc-berr.c                           |    1 -
+ arch/mips/dec/kn01-berr.c                          |    1 -
+ arch/mips/dec/kn02xa-berr.c                        |    1 -
+ arch/mips/dec/wbflush.c                            |    2 +-
+ arch/mips/emma/markeins/irq.c                      |    1 -
+ arch/mips/fw/arc/misc.c                            |    1 -
+ arch/mips/include/asm/atomic.h                     |    2 +-
+ arch/mips/include/asm/barrier.h                    |    2 +
+ arch/mips/include/asm/cmpxchg.h                    |  124 ++++
+ arch/mips/include/asm/dma.h                        |    1 -
+ arch/mips/include/asm/exec.h                       |   17 +
+ arch/mips/include/asm/mach-au1x00/au1000_dma.h     |    1 -
+ arch/mips/include/asm/processor.h                  |    7 +-
+ arch/mips/include/asm/setup.h                      |   11 +
+ arch/mips/include/asm/switch_to.h                  |   85 +++
+ arch/mips/include/asm/system.h                     |  235 --------
+ arch/mips/include/asm/txx9/jmr3927.h               |    1 -
+ arch/mips/kernel/cpu-bugs64.c                      |    2 +-
+ arch/mips/kernel/cpu-probe.c                       |    1 -
+ arch/mips/kernel/irq-rm7000.c                      |    1 -
+ arch/mips/kernel/irq-rm9000.c                      |    1 -
+ arch/mips/kernel/irq.c                             |    1 -
+ arch/mips/kernel/irq_cpu.c                         |    1 -
+ arch/mips/kernel/mips-mt.c                         |    1 -
+ arch/mips/kernel/process.c                         |    1 -
+ arch/mips/kernel/ptrace.c                          |    1 -
+ arch/mips/kernel/ptrace32.c                        |    1 -
+ arch/mips/kernel/rtlx.c                            |    1 -
+ arch/mips/kernel/setup.c                           |    1 -
+ arch/mips/kernel/signal.c                          |    1 +
+ arch/mips/kernel/signal32.c                        |    2 +-
+ arch/mips/kernel/signal_n32.c                      |    1 -
+ arch/mips/kernel/smp-bmips.c                       |    1 -
+ arch/mips/kernel/smp-cmp.c                         |    1 -
+ arch/mips/kernel/smp-mt.c                          |    1 -
+ arch/mips/kernel/smp.c                             |    2 +-
+ arch/mips/kernel/smtc-proc.c                       |    1 -
+ arch/mips/kernel/smtc.c                            |    1 -
+ arch/mips/kernel/spram.c                           |    1 -
+ arch/mips/kernel/syscall.c                         |    1 +
+ arch/mips/kernel/traps.c                           |    1 -
+ arch/mips/kernel/unaligned.c                       |    1 -
+ arch/mips/kernel/vpe.c                             |    1 -
+ arch/mips/lasat/reset.c                            |    1 -
+ arch/mips/math-emu/dsemul.c                        |    1 -
+ arch/mips/mipssim/sim_smtc.c                       |    1 -
+ arch/mips/mipssim/sim_time.c                       |    1 +
+ arch/mips/mm/c-octeon.c                            |    1 -
+ arch/mips/mm/c-r3k.c                               |    1 -
+ arch/mips/mm/c-r4k.c                               |    1 -
+ arch/mips/mm/c-tx39.c                              |    1 -
+ arch/mips/mm/fault.c                               |    1 -
+ arch/mips/mm/page.c                                |    1 -
+ arch/mips/mm/sc-ip22.c                             |    1 -
+ arch/mips/mm/sc-mips.c                             |    1 -
+ arch/mips/mm/sc-r5k.c                              |    1 -
+ arch/mips/mm/tlb-r3k.c                             |    1 -
+ arch/mips/mm/tlb-r4k.c                             |    1 -
+ arch/mips/mm/tlb-r8k.c                             |    1 -
+ arch/mips/mm/tlbex.c                               |    1 +
+ arch/mips/mti-malta/malta-init.c                   |    1 -
+ arch/mips/mti-malta/malta-int.c                    |    1 +
+ arch/mips/mti-malta/malta-time.c                   |    1 +
+ arch/mips/netlogic/common/irq.c                    |    1 -
+ arch/mips/pmc-sierra/msp71xx/msp_irq_cic.c         |    1 -
+ arch/mips/pmc-sierra/msp71xx/msp_irq_per.c         |    1 -
+ arch/mips/pmc-sierra/msp71xx/msp_irq_slp.c         |    1 -
+ arch/mips/pmc-sierra/yosemite/irq.c                |    1 -
+ arch/mips/pmc-sierra/yosemite/prom.c               |    1 -
+ arch/mips/pnx833x/common/interrupts.c              |    1 +
+ arch/mips/powertv/asic/asic_int.c                  |    1 +
+ arch/mips/powertv/asic/irq_asic.c                  |    1 -
+ arch/mips/powertv/init.c                           |    1 -
+ arch/mips/rb532/irq.c                              |    1 -
+ arch/mips/sgi-ip22/ip22-berr.c                     |    1 -
+ arch/mips/sgi-ip22/ip22-reset.c                    |    1 -
+ arch/mips/sgi-ip22/ip28-berr.c                     |    1 -
+ arch/mips/sgi-ip27/ip27-irq.c                      |    1 -
+ arch/mips/sgi-ip27/ip27-reset.c                    |    1 -
+ arch/mips/sgi-ip32/ip32-irq.c                      |    1 -
+ arch/mips/sgi-ip32/ip32-reset.c                    |    1 -
+ arch/mips/sibyte/bcm1480/irq.c                     |    1 -
+ arch/mips/sibyte/common/sb_tbprof.c                |    1 -
+ arch/mips/sibyte/sb1250/bus_watcher.c              |    1 -
+ arch/mips/sibyte/sb1250/irq.c                      |    1 -
+ arch/mips/sni/reset.c                              |    1 -
+ arch/mips/vr41xx/common/irq.c                      |    1 -
+ arch/mips/vr41xx/common/pmu.c                      |    1 -
+ arch/mn10300/include/asm/atomic.h                  |  109 +----
+ arch/mn10300/include/asm/barrier.h                 |   37 ++
+ arch/mn10300/include/asm/cmpxchg.h                 |  115 ++++
+ arch/mn10300/include/asm/dma.h                     |    1 -
+ arch/mn10300/include/asm/exec.h                    |   16 +
+ arch/mn10300/include/asm/switch_to.h               |   49 ++
+ arch/mn10300/include/asm/system.h                  |  102 ----
+ arch/mn10300/kernel/entry.S                        |    1 -
+ arch/mn10300/kernel/fpu.c                          |    1 -
+ arch/mn10300/kernel/gdb-io-serial.c                |    1 -
+ arch/mn10300/kernel/gdb-io-ttysm.c                 |    1 -
+ arch/mn10300/kernel/gdb-stub.c                     |    1 -
+ arch/mn10300/kernel/mn10300-serial.c               |    1 -
+ arch/mn10300/kernel/mn10300-watchdog.c             |    1 -
+ arch/mn10300/kernel/process.c                      |    1 -
+ arch/mn10300/kernel/ptrace.c                       |    1 -
+ arch/mn10300/kernel/setup.c                        |    1 -
+ arch/mn10300/kernel/smp-low.S                      |    2 +-
+ arch/mn10300/kernel/smp.c                          |    1 -
+ arch/mn10300/kernel/traps.c                        |    1 -
+ arch/mn10300/lib/bitops.c                          |    1 -
+ arch/mn10300/mm/fault.c                            |    1 -
+ arch/mn10300/mm/init.c                             |    1 -
+ arch/mn10300/mm/misalignment.c                     |    1 -
+ arch/mn10300/mm/pgtable.c                          |    1 -
+ arch/mn10300/mm/tlb-smp.c                          |    1 -
+ arch/mn10300/proc-mn2ws0050/proc-init.c            |    1 -
+ arch/openrisc/include/asm/Kbuild                   |    3 +
+ arch/openrisc/include/asm/system.h                 |   35 --
+ arch/openrisc/kernel/idle.c                        |    1 -
+ arch/openrisc/kernel/process.c                     |    1 -
+ arch/openrisc/kernel/prom.c                        |    1 -
+ arch/openrisc/kernel/ptrace.c                      |    1 -
+ arch/openrisc/kernel/setup.c                       |    1 -
+ arch/openrisc/kernel/traps.c                       |    1 -
+ arch/openrisc/mm/init.c                            |    1 -
+ arch/openrisc/mm/tlb.c                             |    1 -
+ arch/parisc/include/asm/atomic.h                   |    1 -
+ arch/parisc/include/asm/barrier.h                  |   35 ++
+ arch/parisc/include/asm/delay.h                    |    2 +-
+ arch/parisc/include/asm/dma.h                      |    1 -
+ arch/parisc/include/asm/exec.h                     |    6 +
+ arch/parisc/include/asm/ldcw.h                     |   48 ++
+ arch/parisc/include/asm/processor.h                |    2 +-
+ arch/parisc/include/asm/psw.h                      |   41 ++
+ arch/parisc/include/asm/special_insns.h            |   40 ++
+ arch/parisc/include/asm/spinlock.h                 |    1 -
+ arch/parisc/include/asm/switch_to.h                |   12 +
+ arch/parisc/include/asm/system.h                   |  165 ------
+ arch/parisc/include/asm/thread_info.h              |    1 +
+ arch/parisc/include/asm/timex.h                    |    1 -
+ arch/parisc/include/asm/uaccess.h                  |    1 -
+ arch/parisc/kernel/cache.c                         |    1 -
+ arch/parisc/kernel/firmware.c                      |    1 -
+ arch/parisc/kernel/pci.c                           |    1 -
+ arch/parisc/kernel/ptrace.c                        |    1 -
+ arch/parisc/kernel/smp.c                           |    1 -
+ arch/parisc/kernel/traps.c                         |    1 -
+ arch/parisc/lib/bitops.c                           |    1 -
+ arch/powerpc/include/asm/atomic.h                  |    8 +-
+ arch/powerpc/include/asm/auxvec.h                  |    2 +
+ arch/powerpc/include/asm/barrier.h                 |   68 +++
+ arch/powerpc/include/asm/bug.h                     |   11 +
+ arch/powerpc/include/asm/cache.h                   |   16 +
+ arch/powerpc/include/asm/cmpxchg.h                 |  309 ++++++++++
+ arch/powerpc/include/asm/debug.h                   |   56 ++
+ arch/powerpc/include/asm/dma.h                     |    1 -
+ arch/powerpc/include/asm/exec.h                    |    9 +
+ arch/powerpc/include/asm/hw_breakpoint.h           |    2 +-
+ arch/powerpc/include/asm/processor.h               |   30 +
+ arch/powerpc/include/asm/reg_booke.h               |    5 +
+ arch/powerpc/include/asm/rtas.h                    |    2 +
+ arch/powerpc/include/asm/runlatch.h                |   45 ++
+ arch/powerpc/include/asm/setup.h                   |   24 +-
+ arch/powerpc/include/asm/switch_to.h               |   65 +++
+ arch/powerpc/include/asm/system.h                  |  592 --------------------
+ arch/powerpc/kernel/align.c                        |    2 +-
+ arch/powerpc/kernel/cputable.c                     |    1 +
+ arch/powerpc/kernel/crash.c                        |    2 +-
+ arch/powerpc/kernel/idle.c                         |    2 +-
+ arch/powerpc/kernel/irq.c                          |    2 +-
+ arch/powerpc/kernel/kprobes.c                      |    1 -
+ arch/powerpc/kernel/lparcfg.c                      |    1 -
+ arch/powerpc/kernel/ppc_ksyms.c                    |    2 +-
+ arch/powerpc/kernel/process.c                      |    4 +-
+ arch/powerpc/kernel/prom.c                         |    1 -
+ arch/powerpc/kernel/prom_init.c                    |    1 -
+ arch/powerpc/kernel/ptrace.c                       |    2 +-
+ arch/powerpc/kernel/ptrace32.c                     |    2 +-
+ arch/powerpc/kernel/rtas.c                         |    1 -
+ arch/powerpc/kernel/setup-common.c                 |    1 -
+ arch/powerpc/kernel/setup_32.c                     |    1 -
+ arch/powerpc/kernel/setup_64.c                     |    1 -
+ arch/powerpc/kernel/signal.c                       |    1 +
+ arch/powerpc/kernel/signal_32.c                    |    1 +
+ arch/powerpc/kernel/signal_64.c                    |    1 +
+ arch/powerpc/kernel/smp.c                          |    2 +-
+ arch/powerpc/kernel/softemu8xx.c                   |    1 -
+ arch/powerpc/kernel/swsusp.c                       |    2 +-
+ arch/powerpc/kernel/swsusp_64.c                    |    1 -
+ arch/powerpc/kernel/sys_ppc32.c                    |    1 +
+ arch/powerpc/kernel/sysfs.c                        |    1 -
+ arch/powerpc/kernel/traps.c                        |    3 +-
+ arch/powerpc/kernel/vdso.c                         |    1 -
+ arch/powerpc/kvm/book3s_hv.c                       |    1 +
+ arch/powerpc/lib/alloc.c                           |    2 +-
+ arch/powerpc/lib/copyuser_power7_vmx.c             |    1 +
+ arch/powerpc/mm/44x_mmu.c                          |    1 -
+ arch/powerpc/mm/fault.c                            |    2 +-
+ arch/powerpc/mm/hash_utils_64.c                    |    1 -
+ arch/powerpc/mm/init_32.c                          |    1 -
+ arch/powerpc/mm/init_64.c                          |    1 -
+ arch/powerpc/mm/numa.c                             |    2 +-
+ arch/powerpc/mm/pgtable_32.c                       |    1 +
+ arch/powerpc/mm/pgtable_64.c                       |    1 -
+ arch/powerpc/oprofile/common.c                     |    1 -
+ arch/powerpc/oprofile/op_model_7450.c              |    1 -
+ arch/powerpc/oprofile/op_model_cell.c              |    1 -
+ arch/powerpc/oprofile/op_model_fsl_emb.c           |    1 -
+ arch/powerpc/oprofile/op_model_power4.c            |    1 -
+ arch/powerpc/oprofile/op_model_rs64.c              |    1 -
+ arch/powerpc/platforms/52xx/lite5200_pm.c          |    1 +
+ arch/powerpc/platforms/82xx/pq2.c                  |    1 -
+ arch/powerpc/platforms/83xx/km83xx.c               |    1 -
+ arch/powerpc/platforms/83xx/mpc832x_mds.c          |    1 -
+ arch/powerpc/platforms/83xx/mpc834x_itx.c          |    1 -
+ arch/powerpc/platforms/83xx/mpc834x_mds.c          |    1 -
+ arch/powerpc/platforms/83xx/mpc836x_mds.c          |    1 -
+ arch/powerpc/platforms/83xx/sbc834x.c              |    1 -
+ arch/powerpc/platforms/83xx/suspend.c              |    1 +
+ arch/powerpc/platforms/85xx/corenet_ds.c           |    1 -
+ arch/powerpc/platforms/85xx/ge_imp3a.c             |    1 -
+ arch/powerpc/platforms/85xx/ksi8560.c              |    1 -
+ arch/powerpc/platforms/85xx/mpc8536_ds.c           |    1 -
+ arch/powerpc/platforms/85xx/mpc85xx_ads.c          |    1 -
+ arch/powerpc/platforms/85xx/mpc85xx_cds.c          |    1 -
+ arch/powerpc/platforms/85xx/mpc85xx_ds.c           |    1 -
+ arch/powerpc/platforms/85xx/mpc85xx_mds.c          |    1 -
+ arch/powerpc/platforms/85xx/mpc85xx_rdb.c          |    1 -
+ arch/powerpc/platforms/85xx/p1010rdb.c             |    1 -
+ arch/powerpc/platforms/85xx/p1023_rds.c            |    1 -
+ arch/powerpc/platforms/85xx/p2041_rdb.c            |    1 -
+ arch/powerpc/platforms/85xx/p3041_ds.c             |    1 -
+ arch/powerpc/platforms/85xx/p4080_ds.c             |    1 -
+ arch/powerpc/platforms/85xx/p5020_ds.c             |    1 -
+ arch/powerpc/platforms/85xx/sbc8548.c              |    1 -
+ arch/powerpc/platforms/85xx/sbc8560.c              |    1 -
+ arch/powerpc/platforms/85xx/socrates.c             |    1 -
+ arch/powerpc/platforms/85xx/stx_gp3.c              |    1 -
+ arch/powerpc/platforms/85xx/tqm85xx.c              |    1 -
+ arch/powerpc/platforms/85xx/xes_mpc85xx.c          |    1 -
+ arch/powerpc/platforms/86xx/gef_ppc9a.c            |    1 -
+ arch/powerpc/platforms/86xx/gef_sbc310.c           |    1 -
+ arch/powerpc/platforms/86xx/gef_sbc610.c           |    1 -
+ arch/powerpc/platforms/86xx/mpc8610_hpcd.c         |    1 -
+ arch/powerpc/platforms/86xx/mpc86xx_hpcn.c         |    1 -
+ arch/powerpc/platforms/86xx/pic.c                  |    1 -
+ arch/powerpc/platforms/86xx/sbc8641d.c             |    1 -
+ arch/powerpc/platforms/8xx/mpc86xads_setup.c       |    1 -
+ arch/powerpc/platforms/8xx/mpc885ads_setup.c       |    1 -
+ arch/powerpc/platforms/8xx/tqm8xx_setup.c          |    1 -
+ arch/powerpc/platforms/cell/smp.c                  |    1 -
+ arch/powerpc/platforms/embedded6xx/c2k.c           |    1 -
+ arch/powerpc/platforms/embedded6xx/holly.c         |    1 -
+ arch/powerpc/platforms/embedded6xx/mpc7448_hpc2.c  |    1 -
+ arch/powerpc/platforms/embedded6xx/prpmc2800.c     |    1 -
+ arch/powerpc/platforms/embedded6xx/storcenter.c    |    1 -
+ arch/powerpc/platforms/fsl_uli1575.c               |    1 -
+ arch/powerpc/platforms/maple/setup.c               |    1 -
+ arch/powerpc/platforms/maple/time.c                |    1 -
+ arch/powerpc/platforms/pasemi/setup.c              |    2 +-
+ arch/powerpc/platforms/powermac/bootx_init.c       |    1 +
+ arch/powerpc/platforms/powermac/cpufreq_32.c       |    2 +-
+ arch/powerpc/platforms/powermac/nvram.c            |    1 -
+ arch/powerpc/platforms/powermac/setup.c            |    1 -
+ arch/powerpc/platforms/powermac/time.c             |    1 -
+ arch/powerpc/platforms/powernv/smp.c               |    1 -
+ arch/powerpc/platforms/ps3/mm.c                    |    1 +
+ arch/powerpc/platforms/pseries/dtl.c               |    2 +-
+ arch/powerpc/platforms/pseries/hotplug-cpu.c       |    1 -
+ arch/powerpc/platforms/pseries/processor_idle.c    |    2 +-
+ arch/powerpc/platforms/pseries/ras.c               |    1 -
+ arch/powerpc/platforms/pseries/smp.c               |    1 -
+ arch/powerpc/platforms/wsp/chroma.c                |    1 -
+ arch/powerpc/platforms/wsp/psr2.c                  |    1 -
+ arch/powerpc/platforms/wsp/wsp_pci.c               |    1 +
+ arch/powerpc/sysdev/cpm_common.c                   |    1 -
+ arch/powerpc/sysdev/fsl_soc.c                      |    1 -
+ arch/powerpc/sysdev/msi_bitmap.c                   |    1 +
+ arch/powerpc/sysdev/tsi108_dev.c                   |    1 -
+ arch/powerpc/xmon/xmon.c                           |    1 +
+ arch/s390/crypto/crypt_s390.h                      |    1 +
+ arch/s390/include/asm/atomic.h                     |    2 +-
+ arch/s390/include/asm/barrier.h                    |   35 ++
+ arch/s390/include/asm/ctl_reg.h                    |   76 +++
+ arch/s390/include/asm/elf.h                        |    1 -
+ arch/s390/include/asm/exec.h                       |   12 +
+ arch/s390/include/asm/facility.h                   |   63 ++
+ arch/s390/include/asm/mmu.h                        |   14 +
+ arch/s390/include/asm/mmu_context.h                |    1 +
+ arch/s390/include/asm/processor.h                  |   24 +
+ arch/s390/include/asm/setup.h                      |   14 +
+ arch/s390/include/asm/smp.h                        |    2 +-
+ arch/s390/include/asm/switch_to.h                  |  100 ++++
+ arch/s390/include/asm/system.h                     |  315 -----------
+ arch/s390/include/asm/uaccess.h                    |    6 +
+ arch/s390/kernel/asm-offsets.c                     |    1 -
+ arch/s390/kernel/compat_signal.c                   |    1 +
+ arch/s390/kernel/cpcmd.c                           |    1 -
+ arch/s390/kernel/dis.c                             |    1 -
+ arch/s390/kernel/early.c                           |    2 +-
+ arch/s390/kernel/lgr.c                             |    1 -
+ arch/s390/kernel/machine_kexec.c                   |    1 -
+ arch/s390/kernel/os_info.c                         |    1 -
+ arch/s390/kernel/process.c                         |    2 +-
+ arch/s390/kernel/ptrace.c                          |    2 +-
+ arch/s390/kernel/setup.c                           |    1 -
+ arch/s390/kernel/signal.c                          |    1 +
+ arch/s390/kernel/suspend.c                         |    2 +-
+ arch/s390/kernel/traps.c                           |    1 -
+ arch/s390/kernel/vdso.c                            |    2 +-
+ arch/s390/kvm/kvm-s390.c                           |    2 +-
+ arch/s390/mm/fault.c                               |    2 +-
+ arch/s390/mm/init.c                                |    2 +-
+ arch/s390/mm/maccess.c                             |    2 +-
+ arch/s390/mm/pgtable.c                             |    1 -
+ arch/s390/oprofile/hwsampler.c                     |    1 +
+ arch/score/include/asm/atomic.h                    |    1 +
+ arch/score/include/asm/barrier.h                   |   16 +
+ arch/score/include/asm/bitops.h                    |    1 -
+ arch/score/include/asm/bug.h                       |   11 +
+ arch/score/include/asm/cmpxchg.h                   |   49 ++
+ arch/score/include/asm/exec.h                      |    6 +
+ arch/score/include/asm/switch_to.h                 |   13 +
+ arch/score/include/asm/system.h                    |   90 ---
+ arch/sh/boards/mach-microdev/irq.c                 |    1 -
+ arch/sh/include/asm/atomic-irq.h                   |    2 +
+ arch/sh/include/asm/atomic.h                       |    2 +-
+ arch/sh/include/asm/auxvec.h                       |    2 +
+ arch/sh/include/asm/barrier.h                      |   54 ++
+ arch/sh/include/asm/bitops.h                       |    1 -
+ arch/sh/include/asm/bl_bit.h                       |   10 +
+ arch/sh/include/asm/bl_bit_32.h                    |   33 ++
+ arch/sh/include/asm/bl_bit_64.h                    |   40 ++
+ arch/sh/include/asm/bug.h                          |    5 +
+ arch/sh/include/asm/cache_insns.h                  |   11 +
+ arch/sh/include/asm/cache_insns_32.h               |   21 +
+ arch/sh/include/asm/cache_insns_64.h               |   23 +
+ arch/sh/include/asm/cmpxchg-irq.h                  |    2 +
+ arch/sh/include/asm/cmpxchg.h                      |   70 +++
+ arch/sh/include/asm/exec.h                         |   10 +
+ arch/sh/include/asm/futex-irq.h                    |    1 -
+ arch/sh/include/asm/io.h                           |    1 -
+ arch/sh/include/asm/processor.h                    |   15 +
+ arch/sh/include/asm/ptrace.h                       |    1 -
+ arch/sh/include/asm/setup.h                        |    1 +
+ arch/sh/include/asm/switch_to.h                    |   19 +
+ .../sh/include/asm/{system_32.h => switch_to_32.h} |  108 +----
+ arch/sh/include/asm/switch_to_64.h                 |   35 ++
+ arch/sh/include/asm/system.h                       |  184 ------
+ arch/sh/include/asm/system_64.h                    |   79 ---
+ arch/sh/include/asm/traps.h                        |   21 +
+ arch/sh/include/asm/traps_32.h                     |   68 +++
+ arch/sh/include/asm/traps_64.h                     |   24 +
+ arch/sh/include/asm/uaccess.h                      |   14 +
+ arch/sh/kernel/cpu/init.c                          |    2 +-
+ arch/sh/kernel/cpu/irq/imask.c                     |    1 -
+ arch/sh/kernel/cpu/sh2a/opcode_helper.c            |    1 -
+ arch/sh/kernel/cpu/sh4/fpu.c                       |    1 -
+ arch/sh/kernel/hw_breakpoint.c                     |    1 +
+ arch/sh/kernel/idle.c                              |    2 +-
+ arch/sh/kernel/io_trapped.c                        |    1 -
+ arch/sh/kernel/process_32.c                        |    1 -
+ arch/sh/kernel/process_64.c                        |    1 +
+ arch/sh/kernel/ptrace_32.c                         |    1 -
+ arch/sh/kernel/ptrace_64.c                         |    2 +-
+ arch/sh/kernel/reboot.c                            |    2 +-
+ arch/sh/kernel/signal_32.c                         |    1 -
+ arch/sh/kernel/smp.c                               |    1 -
+ arch/sh/kernel/traps.c                             |    2 +-
+ arch/sh/kernel/traps_32.c                          |    3 +-
+ arch/sh/kernel/traps_64.c                          |    1 -
+ arch/sh/math-emu/math.c                            |    1 -
+ arch/sh/mm/fault_32.c                              |    2 +-
+ arch/sh/mm/fault_64.c                              |    1 -
+ arch/sh/mm/flush-sh4.c                             |    1 +
+ arch/sh/mm/pmb.c                                   |    1 -
+ arch/sh/mm/tlb-pteaex.c                            |    1 -
+ arch/sh/mm/tlb-sh3.c                               |    1 -
+ arch/sh/mm/tlb-sh4.c                               |    1 -
+ arch/sh/mm/tlbflush_64.c                           |    1 -
+ arch/sparc/include/asm/atomic_32.h                 |    2 +-
+ arch/sparc/include/asm/atomic_64.h                 |    3 +-
+ arch/sparc/include/asm/auxio_32.h                  |    1 -
+ arch/sparc/include/asm/barrier.h                   |    8 +
+ arch/sparc/include/asm/barrier_32.h                |   15 +
+ arch/sparc/include/asm/barrier_64.h                |   56 ++
+ arch/sparc/include/asm/bug.h                       |    3 +
+ arch/sparc/include/asm/cacheflush_32.h             |    9 +
+ arch/sparc/include/asm/cacheflush_64.h             |   10 +
+ arch/sparc/include/asm/cmpxchg.h                   |    8 +
+ arch/sparc/include/asm/cmpxchg_32.h                |  112 ++++
+ arch/sparc/include/asm/cmpxchg_64.h                |  145 +++++
+ arch/sparc/include/asm/cpu_type.h                  |   34 ++
+ arch/sparc/include/asm/exec.h                      |    6 +
+ arch/sparc/include/asm/floppy_32.h                 |    1 -
+ arch/sparc/include/asm/futex_64.h                  |    1 -
+ arch/sparc/include/asm/io_32.h                     |    1 -
+ arch/sparc/include/asm/io_64.h                     |    1 -
+ arch/sparc/include/asm/irqflags_32.h               |    1 +
+ arch/sparc/include/asm/mmu_context_64.h            |    1 -
+ arch/sparc/include/asm/ns87303.h                   |    1 -
+ arch/sparc/include/asm/perfctr.h                   |   23 +
+ arch/sparc/include/asm/pgtable_32.h                |    2 +-
+ arch/sparc/include/asm/pgtable_64.h                |    1 -
+ arch/sparc/include/asm/processor.h                 |    3 +
+ arch/sparc/include/asm/processor_64.h              |    3 +
+ arch/sparc/include/asm/ptrace.h                    |    5 +-
+ arch/sparc/include/asm/setup.h                     |   16 +
+ arch/sparc/include/asm/switch_to.h                 |    8 +
+ arch/sparc/include/asm/switch_to_32.h              |  106 ++++
+ arch/sparc/include/asm/switch_to_64.h              |   72 +++
+ arch/sparc/include/asm/system.h                    |    8 -
+ arch/sparc/include/asm/system_32.h                 |  284 ----------
+ arch/sparc/include/asm/system_64.h                 |  331 -----------
+ arch/sparc/include/asm/timer_32.h                  |    3 +-
+ arch/sparc/include/asm/uaccess_64.h                |    1 -
+ arch/sparc/kernel/auxio_32.c                       |    1 +
+ arch/sparc/kernel/devices.c                        |    2 +-
+ arch/sparc/kernel/irq.h                            |    1 +
+ arch/sparc/kernel/irq_64.c                         |    1 -
+ arch/sparc/kernel/kgdb_32.c                        |    1 +
+ arch/sparc/kernel/module.c                         |    1 +
+ arch/sparc/kernel/muldiv.c                         |    1 -
+ arch/sparc/kernel/nmi.c                            |    1 +
+ arch/sparc/kernel/pcr.c                            |    1 +
+ arch/sparc/kernel/perf_event.c                     |    2 +
+ arch/sparc/kernel/process_32.c                     |    2 +-
+ arch/sparc/kernel/process_64.c                     |    1 -
+ arch/sparc/kernel/ptrace_32.c                      |    2 +-
+ arch/sparc/kernel/ptrace_64.c                      |    1 -
+ arch/sparc/kernel/reboot.c                         |    2 +-
+ arch/sparc/kernel/setup_32.c                       |    2 +-
+ arch/sparc/kernel/setup_64.c                       |    2 +-
+ arch/sparc/kernel/signal32.c                       |    1 +
+ arch/sparc/kernel/signal_32.c                      |    1 +
+ arch/sparc/kernel/signal_64.c                      |    2 +
+ arch/sparc/kernel/sigutil_32.c                     |    1 +
+ arch/sparc/kernel/sigutil_64.c                     |    1 +
+ arch/sparc/kernel/sparc_ksyms_64.c                 |    2 +-
+ arch/sparc/kernel/time_32.c                        |    1 -
+ arch/sparc/kernel/traps_32.c                       |    1 -
+ arch/sparc/kernel/traps_64.c                       |    2 +-
+ arch/sparc/kernel/unaligned_32.c                   |    1 -
+ arch/sparc/kernel/unaligned_64.c                   |    2 +-
+ arch/sparc/kernel/visemul.c                        |    2 +-
+ arch/sparc/math-emu/math_64.c                      |    1 +
+ arch/sparc/mm/btfixup.c                            |    1 -
+ arch/sparc/mm/fault_32.c                           |    1 -
+ arch/sparc/mm/init_32.c                            |    1 -
+ arch/sparc/mm/init_64.c                            |    1 -
+ arch/sparc/mm/init_64.h                            |    2 -
+ arch/sparc/mm/loadmmu.c                            |    1 -
+ arch/sparc/mm/tsb.c                                |    1 -
+ arch/sparc/prom/console_32.c                       |    1 -
+ arch/sparc/prom/console_64.c                       |    1 -
+ arch/sparc/prom/misc_32.c                          |    1 -
+ arch/sparc/prom/misc_64.c                          |    1 -
+ arch/sparc/prom/p1275.c                            |    1 -
+ arch/sparc/prom/ranges.c                           |    1 -
+ arch/tile/include/asm/atomic.h                     |    2 +-
+ arch/tile/include/asm/atomic_32.h                  |    1 +
+ arch/tile/include/asm/atomic_64.h                  |    1 +
+ arch/tile/include/asm/{system.h => barrier.h}      |  121 +----
+ arch/tile/include/asm/bitops_32.h                  |    1 -
+ arch/tile/include/asm/bitops_64.h                  |    1 -
+ arch/tile/include/asm/cacheflush.h                 |   11 +-
+ arch/tile/include/asm/exec.h                       |   20 +
+ arch/tile/include/asm/pgtable.h                    |    1 -
+ arch/tile/include/asm/setup.h                      |   22 +
+ arch/tile/include/asm/spinlock_32.h                |    1 -
+ arch/tile/include/asm/switch_to.h                  |   76 +++
+ arch/tile/include/asm/timex.h                      |    2 +
+ arch/tile/include/asm/unaligned.h                  |   15 +
+ arch/tile/kernel/early_printk.c                    |    1 +
+ arch/tile/kernel/proc.c                            |    1 +
+ arch/tile/kernel/process.c                         |    3 +-
+ arch/tile/kernel/regs_32.S                         |    2 +-
+ arch/tile/kernel/regs_64.S                         |    2 +-
+ arch/tile/kernel/single_step.c                     |    1 +
+ arch/tile/kernel/traps.c                           |    1 +
+ arch/tile/mm/elf.c                                 |    1 +
+ arch/tile/mm/fault.c                               |    1 -
+ arch/tile/mm/init.c                                |    1 -
+ arch/tile/mm/pgtable.c                             |    1 -
+ arch/um/include/asm/fixmap.h                       |    1 -
+ arch/unicore32/include/asm/Kbuild                  |    1 -
+ arch/unicore32/include/asm/barrier.h               |   28 +
+ arch/unicore32/include/asm/bug.h                   |   27 +
+ arch/unicore32/include/asm/cmpxchg.h               |   61 ++
+ arch/unicore32/include/asm/exec.h                  |   15 +
+ arch/unicore32/include/asm/hwdef-copro.h           |   48 ++
+ arch/unicore32/include/asm/io.h                    |    1 -
+ arch/unicore32/include/asm/switch_to.h             |   30 +
+ arch/unicore32/include/asm/system.h                |  161 ------
+ arch/unicore32/include/asm/uaccess.h               |    1 -
+ arch/unicore32/kernel/dma.c                        |    1 -
+ arch/unicore32/kernel/head.S                       |    2 +-
+ arch/unicore32/kernel/hibernate.c                  |    1 -
+ arch/unicore32/kernel/irq.c                        |    1 -
+ arch/unicore32/kernel/ksyms.c                      |    1 -
+ arch/unicore32/kernel/process.c                    |    1 -
+ arch/unicore32/kernel/setup.h                      |    3 +
+ arch/unicore32/kernel/traps.c                      |    1 -
+ arch/unicore32/mm/alignment.c                      |    2 +
+ arch/unicore32/mm/fault.c                          |    1 -
+ arch/unicore32/mm/flush.c                          |    1 -
+ arch/unicore32/mm/mm.h                             |    5 +
+ arch/x86/ia32/ia32_aout.c                          |    1 -
+ arch/x86/include/asm/apic.h                        |    1 -
+ arch/x86/include/asm/auxvec.h                      |    7 +
+ arch/x86/include/asm/barrier.h                     |  116 ++++
+ arch/x86/include/asm/bug.h                         |    4 +
+ arch/x86/include/asm/cacheflush.h                  |    1 +
+ arch/x86/include/asm/elf.h                         |    1 -
+ arch/x86/include/asm/exec.h                        |    1 +
+ arch/x86/include/asm/futex.h                       |    1 -
+ arch/x86/include/asm/i387.h                        |    1 -
+ arch/x86/include/asm/local.h                       |    1 -
+ arch/x86/include/asm/mc146818rtc.h                 |    1 -
+ arch/x86/include/asm/page_types.h                  |    1 -
+ arch/x86/include/asm/processor.h                   |   31 +-
+ arch/x86/include/asm/segment.h                     |   58 ++-
+ arch/x86/include/asm/special_insns.h               |  199 +++++++
+ arch/x86/include/asm/stackprotector.h              |    1 -
+ arch/x86/include/asm/switch_to.h                   |  129 +++++
+ arch/x86/include/asm/system.h                      |  523 -----------------
+ arch/x86/include/asm/tlbflush.h                    |    2 +-
+ arch/x86/include/asm/virtext.h                     |    1 -
+ arch/x86/kernel/acpi/cstate.c                      |    1 +
+ arch/x86/kernel/apm_32.c                           |    1 -
+ arch/x86/kernel/cpu/mcheck/p5.c                    |    1 -
+ arch/x86/kernel/cpu/mcheck/therm_throt.c           |    1 -
+ arch/x86/kernel/cpu/mcheck/winchip.c               |    1 -
+ arch/x86/kernel/cpu/mtrr/generic.c                 |    1 -
+ arch/x86/kernel/cpuid.c                            |    1 -
+ arch/x86/kernel/i8259.c                            |    1 -
+ arch/x86/kernel/irqinit.c                          |    1 -
+ arch/x86/kernel/kgdb.c                             |    1 -
+ arch/x86/kernel/ldt.c                              |    1 -
+ arch/x86/kernel/machine_kexec_32.c                 |    1 -
+ arch/x86/kernel/mca_32.c                           |    1 -
+ arch/x86/kernel/module.c                           |    1 -
+ arch/x86/kernel/msr.c                              |    1 -
+ arch/x86/kernel/paravirt.c                         |    1 +
+ arch/x86/kernel/pci-calgary_64.c                   |    1 -
+ arch/x86/kernel/process.c                          |    1 -
+ arch/x86/kernel/process_32.c                       |    2 +-
+ arch/x86/kernel/process_64.c                       |    2 +-
+ arch/x86/kernel/ptrace.c                           |    1 -
+ arch/x86/kernel/setup.c                            |    1 -
+ arch/x86/kernel/tce_64.c                           |    1 +
+ arch/x86/kernel/tls.c                              |    1 -
+ arch/x86/kernel/traps.c                            |    1 -
+ arch/x86/mm/init.c                                 |    1 -
+ arch/x86/mm/init_32.c                              |    1 -
+ arch/x86/mm/init_64.c                              |    1 -
+ arch/x86/mm/pgtable_32.c                           |    1 -
+ arch/x86/power/hibernate_32.c                      |    1 -
+ arch/xtensa/include/asm/atomic.h                   |    2 +-
+ arch/xtensa/include/asm/barrier.h                  |   29 +
+ arch/xtensa/include/asm/bitops.h                   |    1 -
+ arch/xtensa/include/asm/{system.h => cmpxchg.h}    |   67 +--
+ arch/xtensa/include/asm/exec.h                     |   14 +
+ arch/xtensa/include/asm/setup.h                    |    2 +
+ arch/xtensa/include/asm/switch_to.h                |   22 +
+ arch/xtensa/include/asm/uaccess.h                  |    2 +
+ arch/xtensa/kernel/process.c                       |    1 -
+ arch/xtensa/kernel/ptrace.c                        |    1 -
+ arch/xtensa/kernel/setup.c                         |    1 -
+ arch/xtensa/kernel/traps.c                         |   19 +
+ arch/xtensa/mm/fault.c                             |    1 -
+ arch/xtensa/mm/tlb.c                               |    1 -
+ drivers/acpi/processor_driver.c                    |    1 -
+ drivers/atm/eni.c                                  |    1 -
+ drivers/atm/firestream.c                           |    1 -
+ drivers/atm/horizon.c                              |    1 -
+ drivers/atm/idt77105.c                             |    1 -
+ drivers/atm/iphase.c                               |    1 -
+ drivers/atm/suni.c                                 |    1 -
+ drivers/atm/zatm.c                                 |    1 -
+ drivers/block/floppy.c                             |    1 -
+ drivers/block/hd.c                                 |    1 -
+ drivers/block/nbd.c                                |    1 -
+ drivers/block/xd.c                                 |    1 -
+ drivers/bluetooth/bt3c_cs.c                        |    1 -
+ drivers/bluetooth/btuart_cs.c                      |    1 -
+ drivers/bluetooth/dtl1_cs.c                        |    1 -
+ drivers/char/apm-emulation.c                       |    1 -
+ drivers/char/ds1302.c                              |    1 -
+ drivers/char/efirtc.c                              |    1 -
+ drivers/char/genrtc.c                              |    1 -
+ drivers/char/hpet.c                                |    1 -
+ drivers/char/ipmi/ipmi_devintf.c                   |    1 -
+ drivers/char/ipmi/ipmi_msghandler.c                |    1 -
+ drivers/char/ipmi/ipmi_si_intf.c                   |    1 -
+ drivers/char/lp.c                                  |    1 -
+ drivers/char/mbcs.c                                |    1 -
+ drivers/char/mspec.c                               |    1 -
+ drivers/char/mwave/3780i.c                         |    1 -
+ drivers/char/nvram.c                               |    1 -
+ drivers/char/nwflash.c                             |    1 -
+ drivers/char/pcmcia/synclink_cs.c                  |    1 -
+ drivers/char/rtc.c                                 |    1 -
+ drivers/char/sonypi.c                              |    1 -
+ drivers/char/xilinx_hwicap/xilinx_hwicap.c         |    1 -
+ drivers/cpufreq/omap-cpufreq.c                     |    1 -
+ drivers/cpufreq/powernow-k7.c                      |    1 -
+ drivers/firewire/core-cdev.c                       |    1 -
+ drivers/firewire/core-device.c                     |    1 -
+ drivers/firewire/core-topology.c                   |    1 -
+ drivers/firewire/ohci.c                            |    1 -
+ drivers/firewire/sbp2.c                            |    1 -
+ drivers/i2c/busses/i2c-acorn.c                     |    1 -
+ drivers/ide/ide-cs.c                               |    1 -
+ drivers/ide/qd65xx.c                               |    1 -
+ drivers/infiniband/hw/ehca/ehca_reqs.c             |    1 -
+ drivers/input/joydev.c                             |    1 -
+ drivers/input/joystick/amijoy.c                    |    1 -
+ drivers/input/mouse/amimouse.c                     |    1 -
+ drivers/input/mouse/atarimouse.c                   |    1 -
+ drivers/input/serio/hp_sdc.c                       |    1 -
+ drivers/input/serio/maceps2.c                      |    1 -
+ drivers/input/serio/rpckbd.c                       |    1 -
+ drivers/input/serio/sa1111ps2.c                    |    1 -
+ drivers/isdn/hardware/avm/avm_cs.c                 |    1 -
+ drivers/isdn/hisax/avma1_cs.c                      |    1 -
+ drivers/isdn/hisax/elsa_cs.c                       |    1 -
+ drivers/isdn/hisax/sedlbauer_cs.c                  |    1 -
+ drivers/isdn/hisax/teles_cs.c                      |    1 -
+ drivers/isdn/i4l/isdn_bsdcomp.c                    |    1 -
+ drivers/isdn/pcbit/layer2.c                        |    1 -
+ drivers/macintosh/macio-adb.c                      |    1 -
+ drivers/macintosh/therm_adt746x.c                  |    1 -
+ drivers/macintosh/therm_pm72.c                     |    1 -
+ drivers/macintosh/therm_windtunnel.c               |    1 -
+ drivers/macintosh/via-cuda.c                       |    1 -
+ drivers/macintosh/via-macii.c                      |    1 -
+ drivers/macintosh/via-pmu.c                        |    1 -
+ drivers/macintosh/via-pmu68k.c                     |    1 -
+ drivers/macintosh/windfarm_lm75_sensor.c           |    1 -
+ drivers/macintosh/windfarm_pm121.c                 |    1 -
+ drivers/macintosh/windfarm_pm81.c                  |    1 -
+ drivers/macintosh/windfarm_pm91.c                  |    1 -
+ drivers/macintosh/windfarm_smu_controls.c          |    1 -
+ drivers/macintosh/windfarm_smu_sensors.c           |    1 -
+ drivers/media/dvb/dvb-core/dmxdev.c                |    1 -
+ drivers/media/dvb/firewire/firedtv-fw.c            |    1 -
+ drivers/media/dvb/ttpci/av7110.c                   |    1 -
+ drivers/media/media-devnode.c                      |    1 -
+ drivers/media/video/ivtv/ivtv-driver.h             |    1 -
+ drivers/media/video/v4l2-common.c                  |    1 -
+ drivers/media/video/v4l2-dev.c                     |    1 -
+ drivers/message/i2o/i2o_scsi.c                     |    1 -
+ drivers/mfd/mcp-core.c                             |    1 -
+ drivers/mfd/mcp-sa11x0.c                           |    1 -
+ drivers/misc/sgi-gru/gru_instructions.h            |    1 +
+ drivers/misc/sgi-xp/xp.h                           |    1 -
+ drivers/mmc/card/block.c                           |    1 -
+ drivers/mtd/devices/pmc551.c                       |    1 -
+ drivers/mtd/devices/slram.c                        |    1 -
+ drivers/mtd/maps/pcmciamtd.c                       |    1 -
+ drivers/mtd/nand/bcm_umi_nand.c                    |    1 -
+ drivers/net/appletalk/cops.c                       |    1 -
+ drivers/net/appletalk/ltpc.c                       |    1 -
+ drivers/net/arcnet/com20020_cs.c                   |    1 -
+ drivers/net/bonding/bond_main.c                    |    1 -
+ drivers/net/can/slcan.c                            |    1 -
+ drivers/net/cris/eth_v10.c                         |    1 -
+ drivers/net/ethernet/3com/3c574_cs.c               |    1 -
+ drivers/net/ethernet/3com/3c589_cs.c               |    1 -
+ drivers/net/ethernet/8390/3c503.c                  |    1 -
+ drivers/net/ethernet/8390/ac3200.c                 |    1 -
+ drivers/net/ethernet/8390/apne.c                   |    1 -
+ drivers/net/ethernet/8390/ax88796.c                |    1 -
+ drivers/net/ethernet/8390/axnet_cs.c               |    1 -
+ drivers/net/ethernet/8390/e2100.c                  |    1 -
+ drivers/net/ethernet/8390/es3210.c                 |    1 -
+ drivers/net/ethernet/8390/etherh.c                 |    2 +-
+ drivers/net/ethernet/8390/hp-plus.c                |    1 -
+ drivers/net/ethernet/8390/hp.c                     |    1 -
+ drivers/net/ethernet/8390/lib8390.c                |    1 -
+ drivers/net/ethernet/8390/lne390.c                 |    1 -
+ drivers/net/ethernet/8390/mac8390.c                |    1 -
+ drivers/net/ethernet/8390/ne-h8300.c               |    1 -
+ drivers/net/ethernet/8390/ne.c                     |    1 -
+ drivers/net/ethernet/8390/ne2.c                    |    1 -
+ drivers/net/ethernet/8390/ne2k-pci.c               |    1 -
+ drivers/net/ethernet/8390/ne3210.c                 |    1 -
+ drivers/net/ethernet/8390/pcnet_cs.c               |    1 -
+ drivers/net/ethernet/8390/smc-mca.c                |    1 -
+ drivers/net/ethernet/8390/smc-ultra.c              |    1 -
+ drivers/net/ethernet/8390/smc-ultra32.c            |    1 -
+ drivers/net/ethernet/8390/stnic.c                  |    1 -
+ drivers/net/ethernet/8390/wd.c                     |    1 -
+ drivers/net/ethernet/8390/zorro8390.c              |    1 -
+ drivers/net/ethernet/alteon/acenic.c               |    1 -
+ drivers/net/ethernet/amd/7990.c                    |    1 -
+ drivers/net/ethernet/amd/am79c961a.c               |    1 -
+ drivers/net/ethernet/amd/amd8111e.c                |    1 -
+ drivers/net/ethernet/amd/declance.c                |    1 -
+ drivers/net/ethernet/amd/hplance.c                 |    1 -
+ drivers/net/ethernet/amd/mvme147.c                 |    1 -
+ drivers/net/ethernet/amd/nmclan_cs.c               |    1 -
+ drivers/net/ethernet/amd/sunlance.c                |    1 -
+ drivers/net/ethernet/broadcom/tg3.c                |    1 -
+ drivers/net/ethernet/cirrus/cs89x0.c               |    1 -
+ drivers/net/ethernet/cirrus/mac89x0.c              |    1 -
+ drivers/net/ethernet/dlink/de600.c                 |    1 -
+ drivers/net/ethernet/dlink/de620.c                 |    1 -
+ drivers/net/ethernet/fujitsu/at1700.c              |    1 -
+ drivers/net/ethernet/fujitsu/eth16i.c              |    1 -
+ drivers/net/ethernet/fujitsu/fmvj18x_cs.c          |    1 -
+ drivers/net/ethernet/i825xx/3c507.c                |    1 -
+ drivers/net/ethernet/i825xx/3c527.c                |    1 -
+ drivers/net/ethernet/i825xx/eepro.c                |    1 -
+ drivers/net/ethernet/i825xx/eexpress.c             |    1 -
+ drivers/net/ethernet/i825xx/ether1.c               |    1 -
+ drivers/net/ethernet/i825xx/znet.c                 |    1 -
+ drivers/net/ethernet/korina.c                      |    1 -
+ drivers/net/ethernet/marvell/mv643xx_eth.c         |    1 -
+ drivers/net/ethernet/marvell/pxa168_eth.c          |    1 -
+ drivers/net/ethernet/natsemi/jazzsonic.c           |    1 -
+ drivers/net/ethernet/natsemi/macsonic.c            |    1 -
+ drivers/net/ethernet/natsemi/ns83820.c             |    1 -
+ drivers/net/ethernet/neterion/s2io.c               |    1 -
+ drivers/net/ethernet/nvidia/forcedeth.c            |    1 -
+ drivers/net/ethernet/realtek/atp.c                 |    1 -
+ drivers/net/ethernet/realtek/r8169.c               |    1 -
+ drivers/net/ethernet/seeq/ether3.c                 |    1 -
+ drivers/net/ethernet/seeq/seeq8005.c               |    1 -
+ drivers/net/ethernet/smsc/smc91c92_cs.c            |    1 -
+ drivers/net/ethernet/sun/cassini.c                 |    1 -
+ drivers/net/ethernet/sun/sunbmac.c                 |    1 -
+ drivers/net/ethernet/sun/sungem.c                  |    1 -
+ drivers/net/ethernet/sun/sunhme.c                  |    1 -
+ drivers/net/ethernet/sun/sunqe.c                   |    1 -
+ drivers/net/ethernet/tundra/tsi108_eth.c           |    1 -
+ drivers/net/ethernet/xircom/xirc2ps_cs.c           |    1 -
+ drivers/net/hamradio/6pack.c                       |    1 -
+ drivers/net/hamradio/baycom_par.c                  |    1 -
+ drivers/net/hamradio/bpqether.c                    |    1 -
+ drivers/net/hamradio/mkiss.c                       |    1 -
+ drivers/net/hamradio/scc.c                         |    1 -
+ drivers/net/hamradio/yam.c                         |    1 -
+ drivers/net/hippi/rrunner.c                        |    1 -
+ drivers/net/irda/donauboe.c                        |    1 -
+ drivers/net/loopback.c                             |    1 -
+ drivers/net/plip/plip.c                            |    1 -
+ drivers/net/slip/slhc.c                            |    1 -
+ drivers/net/slip/slip.c                            |    1 -
+ drivers/net/tokenring/3c359.c                      |    1 -
+ drivers/net/tokenring/abyss.c                      |    1 -
+ drivers/net/tokenring/ibmtr_cs.c                   |    1 -
+ drivers/net/tokenring/lanstreamer.c                |    1 -
+ drivers/net/tokenring/madgemc.c                    |    1 -
+ drivers/net/tokenring/olympic.c                    |    1 -
+ drivers/net/tokenring/proteon.c                    |    1 -
+ drivers/net/tokenring/skisa.c                      |    1 -
+ drivers/net/tokenring/smctr.c                      |    1 -
+ drivers/net/tokenring/tms380tr.c                   |    1 -
+ drivers/net/tokenring/tmspci.c                     |    1 -
+ drivers/net/tun.c                                  |    1 -
+ drivers/net/wan/dlci.c                             |    1 -
+ drivers/net/wan/dscc4.c                            |    1 -
+ drivers/net/wan/hd64570.c                          |    1 -
+ drivers/net/wan/hd64572.c                          |    1 -
+ drivers/net/wan/lapbether.c                        |    1 -
+ drivers/net/wan/sdla.c                             |    1 -
+ drivers/net/wan/x25_asy.c                          |    1 -
+ drivers/net/wireless/airo.c                        |    1 -
+ drivers/net/wireless/airo_cs.c                     |    1 -
+ drivers/net/wireless/atmel.c                       |    1 -
+ drivers/net/wireless/atmel_cs.c                    |    1 -
+ drivers/net/wireless/prism54/islpci_mgt.c          |    1 -
+ drivers/net/wireless/ray_cs.c                      |    1 -
+ drivers/net/wireless/wl3501_cs.c                   |    1 -
+ drivers/nubus/nubus.c                              |    1 -
+ drivers/parisc/dino.c                              |    1 -
+ drivers/parisc/iosapic.c                           |    1 -
+ drivers/parisc/lba_pci.c                           |    1 -
+ drivers/pcmcia/cs.c                                |    1 -
+ drivers/pcmcia/i82092.c                            |    1 -
+ drivers/pcmcia/i82365.c                            |    1 -
+ drivers/pcmcia/m32r_cfc.c                          |    1 -
+ drivers/pcmcia/m32r_pcc.c                          |    1 -
+ drivers/pcmcia/m8xx_pcmcia.c                       |    1 -
+ drivers/pcmcia/pd6729.c                            |    1 -
+ drivers/pcmcia/pxa2xx_base.c                       |    1 -
+ drivers/pcmcia/sa11xx_base.c                       |    1 -
+ drivers/pcmcia/soc_common.c                        |    1 -
+ drivers/pcmcia/socket_sysfs.c                      |    1 -
+ drivers/pcmcia/tcic.c                              |    1 -
+ drivers/pcmcia/xxs1500_ss.c                        |    1 -
+ drivers/pnp/pnpbios/bioscalls.c                    |    1 -
+ drivers/pnp/pnpbios/core.c                         |    1 -
+ drivers/s390/char/sclp_cmd.c                       |    1 +
+ drivers/s390/cio/crw.c                             |    1 +
+ drivers/s390/crypto/ap_bus.c                       |    2 +-
+ drivers/sbus/char/flash.c                          |    1 -
+ drivers/sbus/char/openprom.c                       |    1 -
+ drivers/sbus/char/uctrl.c                          |    1 -
+ drivers/scsi/53c700.c                              |    1 -
+ drivers/scsi/BusLogic.c                            |    1 -
+ drivers/scsi/advansys.c                            |    1 -
+ drivers/scsi/aha152x.c                             |    1 -
+ drivers/scsi/aha1542.c                             |    1 -
+ drivers/scsi/aha1740.c                             |    1 -
+ drivers/scsi/arcmsr/arcmsr_hba.c                   |    1 -
+ drivers/scsi/arm/acornscsi.c                       |    1 -
+ drivers/scsi/arm/cumana_1.c                        |    1 -
+ drivers/scsi/arm/oak.c                             |    1 -
+ drivers/scsi/atp870u.c                             |    1 -
+ drivers/scsi/dtc.c                                 |    1 -
+ drivers/scsi/fd_mcs.c                              |    1 -
+ drivers/scsi/fdomain.c                             |    1 -
+ drivers/scsi/g_NCR5380.c                           |    1 -
+ drivers/scsi/gdth.c                                |    1 -
+ drivers/scsi/ibmmca.c                              |    1 -
+ drivers/scsi/in2000.c                              |    1 -
+ drivers/scsi/mac53c94.c                            |    1 -
+ drivers/scsi/mac_scsi.c                            |    1 -
+ drivers/scsi/mesh.c                                |    1 -
+ drivers/scsi/ncr53c8xx.c                           |    1 -
+ drivers/scsi/nsp32.c                               |    1 -
+ drivers/scsi/osst.c                                |    1 -
+ drivers/scsi/pas16.c                               |    1 -
+ drivers/scsi/qla1280.c                             |    1 -
+ drivers/scsi/qlogicpti.c                           |    1 -
+ drivers/scsi/st.c                                  |    1 -
+ drivers/scsi/sun3_scsi.c                           |    1 -
+ drivers/scsi/sun3_scsi_vme.c                       |    1 -
+ drivers/scsi/sym53c416.c                           |    1 -
+ drivers/scsi/t128.c                                |    1 -
+ drivers/scsi/u14-34f.c                             |    1 -
+ drivers/scsi/ultrastor.c                           |    1 -
+ drivers/scsi/wd7000.c                              |    1 -
+ drivers/spi/spi-omap-uwire.c                       |    1 -
+ drivers/staging/comedi/drivers.c                   |    1 -
+ drivers/staging/comedi/drivers/cb_pcidas64.c       |    1 -
+ drivers/staging/comedi/drivers/mite.c              |    1 -
+ drivers/staging/crystalhd/bc_dts_defs.h            |    2 +
+ drivers/staging/crystalhd/crystalhd.h              |    1 -
+ drivers/staging/crystalhd/crystalhd_lnx.h          |    1 -
+ drivers/staging/crystalhd/crystalhd_misc.h         |    1 +
+ drivers/staging/et131x/et131x.c                    |    1 -
+ drivers/staging/ft1000/ft1000-pcmcia/ft1000_hw.c   |    1 -
+ drivers/staging/media/go7007/go7007-driver.c       |    1 -
+ drivers/staging/media/go7007/go7007-i2c.c          |    1 -
+ drivers/staging/media/go7007/go7007-v4l2.c         |    1 -
+ drivers/staging/media/go7007/snd-go7007.c          |    1 -
+ drivers/staging/media/lirc/lirc_serial.c           |    1 -
+ drivers/staging/media/lirc/lirc_sir.c              |    1 -
+ drivers/staging/panel/panel.c                      |    1 -
+ drivers/staging/sbe-2t3e3/io.c                     |    1 -
+ drivers/staging/telephony/phonedev.c               |    1 -
+ .../tidspbridge/include/dspbridge/host_os.h        |    1 -
+ drivers/staging/wlags49_h2/wl_cs.c                 |    1 -
+ drivers/staging/wlags49_h2/wl_main.c               |    3 +-
+ drivers/staging/wlags49_h2/wl_netdev.c             |    3 +-
+ drivers/staging/wlags49_h2/wl_pci.c                |    1 -
+ drivers/staging/wlags49_h2/wl_util.c               |    3 +-
+ drivers/tty/amiserial.c                            |    1 -
+ drivers/tty/isicom.c                               |    1 -
+ drivers/tty/moxa.c                                 |    1 -
+ drivers/tty/mxser.c                                |    1 -
+ drivers/tty/n_hdlc.c                               |    1 -
+ drivers/tty/n_tty.c                                |    1 -
+ drivers/tty/pty.c                                  |    1 -
+ drivers/tty/serial/21285.c                         |    1 +
+ drivers/tty/serial/68328serial.c                   |    1 -
+ drivers/tty/serial/8250/serial_cs.c                |    1 -
+ drivers/tty/serial/crisv10.c                       |    2 +-
+ drivers/tty/serial/dz.c                            |    1 -
+ drivers/tty/serial/icom.c                          |    1 -
+ drivers/tty/serial/msm_serial_hs.c                 |    1 -
+ drivers/tty/serial/sunhv.c                         |    1 +
+ drivers/tty/serial/sunsab.c                        |    1 +
+ drivers/tty/serial/sunsu.c                         |    1 +
+ drivers/tty/serial/sunzilog.c                      |    1 +
+ drivers/tty/serial/zs.c                            |    1 -
+ drivers/tty/synclink.c                             |    1 -
+ drivers/tty/synclink_gt.c                          |    1 -
+ drivers/tty/synclinkmp.c                           |    1 -
+ drivers/tty/tty_io.c                               |    1 -
+ drivers/tty/tty_ioctl.c                            |    1 -
+ drivers/tty/vt/vt.c                                |    1 -
+ drivers/usb/gadget/amd5536udc.c                    |    1 -
+ drivers/usb/gadget/at91_udc.c                      |    1 -
+ drivers/usb/gadget/dummy_hcd.c                     |    1 -
+ drivers/usb/gadget/fsl_udc_core.c                  |    1 -
+ drivers/usb/gadget/goku_udc.c                      |    1 -
+ drivers/usb/gadget/langwell_udc.c                  |    1 -
+ drivers/usb/gadget/mv_udc_core.c                   |    1 -
+ drivers/usb/gadget/net2272.c                       |    1 -
+ drivers/usb/gadget/net2280.c                       |    1 -
+ drivers/usb/gadget/omap_udc.c                      |    1 -
+ drivers/usb/gadget/printer.c                       |    1 -
+ drivers/usb/gadget/pxa25x_udc.c                    |    1 -
+ drivers/usb/gadget/rndis.c                         |    1 -
+ drivers/usb/gadget/s3c2410_udc.c                   |    1 -
+ drivers/usb/host/ehci-hcd.c                        |    1 -
+ drivers/usb/host/isp116x-hcd.c                     |    1 -
+ drivers/usb/host/isp1362-hcd.c                     |    1 -
+ drivers/usb/host/ohci-hcd.c                        |    1 -
+ drivers/usb/host/oxu210hp-hcd.c                    |    1 -
+ drivers/usb/host/sl811-hcd.c                       |    1 -
+ drivers/usb/host/u132-hcd.c                        |    1 -
+ drivers/usb/host/uhci-hcd.c                        |    1 -
+ drivers/video/amifb.c                              |    1 -
+ drivers/video/bt431.h                              |    1 -
+ drivers/video/bt455.h                              |    1 -
+ drivers/video/console/fbcon.c                      |    1 -
+ drivers/video/console/newport_con.c                |    1 -
+ drivers/video/cyber2000fb.c                        |    1 -
+ drivers/video/dnfb.c                               |    1 -
+ drivers/video/neofb.c                              |    1 -
+ drivers/video/pmag-ba-fb.c                         |    1 -
+ drivers/video/pmagb-b-fb.c                         |    1 -
+ drivers/video/q40fb.c                              |    1 -
+ drivers/video/savage/savagefb_driver.c             |    1 -
+ drivers/virtio/config.c                            |    1 -
+ drivers/watchdog/advantechwdt.c                    |    1 -
+ drivers/watchdog/alim7101_wdt.c                    |    1 -
+ drivers/watchdog/booke_wdt.c                       |    1 -
+ drivers/watchdog/eurotechwdt.c                     |    1 -
+ drivers/watchdog/ib700wdt.c                        |    1 -
+ drivers/watchdog/it87_wdt.c                        |    1 -
+ drivers/watchdog/machzwd.c                         |    1 -
+ drivers/watchdog/pc87413_wdt.c                     |    1 -
+ drivers/watchdog/sbc60xxwdt.c                      |    1 -
+ drivers/watchdog/sbc7240_wdt.c                     |    1 -
+ drivers/watchdog/sbc8360.c                         |    1 -
+ drivers/watchdog/sbc_fitpc2_wdt.c                  |    1 -
+ drivers/watchdog/sc520_wdt.c                       |    1 -
+ drivers/watchdog/smsc37b787_wdt.c                  |    1 -
+ drivers/watchdog/w83627hf_wdt.c                    |    1 -
+ drivers/watchdog/w83697hf_wdt.c                    |    1 -
+ drivers/watchdog/w83697ug_wdt.c                    |    1 -
+ drivers/watchdog/w83877f_wdt.c                     |    1 -
+ drivers/watchdog/w83977f_wdt.c                     |    1 -
+ drivers/watchdog/wdt.c                             |    1 -
+ drivers/watchdog/wdt285.c                          |    1 +
+ drivers/watchdog/wdt977.c                          |    1 -
+ drivers/watchdog/wdt_pci.c                         |    1 -
+ fs/binfmt_aout.c                                   |    1 -
+ fs/binfmt_elf.c                                    |    1 +
+ fs/binfmt_elf_fdpic.c                              |    1 +
+ fs/binfmt_flat.c                                   |    1 -
+ fs/coda/inode.c                                    |    1 -
+ fs/coda/psdev.c                                    |    1 -
+ fs/coda/upcall.c                                   |    1 -
+ fs/eventpoll.c                                     |    1 -
+ fs/exec.c                                          |    1 +
+ fs/jbd2/commit.c                                   |    1 -
+ fs/jbd2/journal.c                                  |    1 -
+ fs/ncpfs/file.c                                    |    1 -
+ fs/ncpfs/inode.c                                   |    1 -
+ fs/ncpfs/mmap.c                                    |    1 -
+ fs/nfs/client.c                                    |    1 -
+ fs/nfs/direct.c                                    |    1 -
+ fs/nfs/file.c                                      |    1 -
+ fs/nfs/getroot.c                                   |    1 -
+ fs/nfs/inode.c                                     |    1 -
+ fs/nfs/read.c                                      |    1 -
+ fs/nfs/super.c                                     |    1 -
+ fs/proc/inode.c                                    |    1 -
+ fs/reiserfs/journal.c                              |    1 -
+ fs/ufs/inode.c                                     |    1 -
+ fs/ufs/super.c                                     |    1 -
+ fs/xfs/xfs_buf.h                                   |    1 -
+ include/acpi/platform/aclinux.h                    |    1 -
+ include/asm-generic/atomic.h                       |    3 +-
+ include/asm-generic/barrier.h                      |   50 ++
+ include/asm-generic/bitops/atomic.h                |    2 +-
+ include/asm-generic/cmpxchg.h                      |   87 +++-
+ include/asm-generic/exec.h                         |   19 +
+ include/asm-generic/switch_to.h                    |   30 +
+ include/asm-generic/system.h                       |  141 -----
+ include/linux/cnt32_to_63.h                        |    1 -
+ include/linux/debug_locks.h                        |    1 -
+ include/linux/efi.h                                |    1 -
+ include/linux/ide.h                                |    1 -
+ include/linux/interrupt.h                          |    1 -
+ include/linux/llist.h                              |    3 +-
+ include/linux/lsm_audit.h                          |    1 -
+ include/linux/mm.h                                 |    2 +
+ include/linux/mtd/map.h                            |    2 +-
+ include/linux/parport.h                            |    1 -
+ include/linux/rwsem.h                              |    1 -
+ include/linux/sched.h                              |    1 -
+ include/linux/skbuff.h                             |    1 -
+ include/linux/spinlock.h                           |    2 +-
+ include/linux/stop_machine.h                       |    1 -
+ include/linux/tty.h                                |    1 -
+ include/linux/wait.h                               |    1 -
+ include/xen/xen-ops.h                              |    1 +
+ init/main.c                                        |    1 -
+ kernel/debug/debug_core.c                          |    1 -
+ kernel/debug/kdb/kdb_bt.c                          |    1 -
+ kernel/dma.c                                       |    1 -
+ kernel/kexec.c                                     |    1 -
+ kernel/rwsem.c                                     |    1 -
+ kernel/sched/core.c                                |    1 +
+ kernel/signal.c                                    |    1 +
+ kernel/sysctl.c                                    |    4 +-
+ lib/llist.c                                        |    1 -
+ lib/raid6/altivec.uc                               |    2 +-
+ net/802/fc.c                                       |    1 -
+ net/802/fddi.c                                     |    1 -
+ net/802/hippi.c                                    |    1 -
+ net/802/tr.c                                       |    1 -
+ net/atm/clip.c                                     |    1 -
+ net/ax25/af_ax25.c                                 |    1 -
+ net/ax25/ax25_addr.c                               |    1 -
+ net/ax25/ax25_dev.c                                |    1 -
+ net/ax25/ax25_ds_in.c                              |    1 -
+ net/ax25/ax25_ds_subr.c                            |    1 -
+ net/ax25/ax25_ds_timer.c                           |    1 -
+ net/ax25/ax25_iface.c                              |    1 -
+ net/ax25/ax25_in.c                                 |    1 -
+ net/ax25/ax25_ip.c                                 |    1 -
+ net/ax25/ax25_out.c                                |    1 -
+ net/ax25/ax25_route.c                              |    1 -
+ net/ax25/ax25_std_in.c                             |    1 -
+ net/ax25/ax25_std_subr.c                           |    1 -
+ net/ax25/ax25_std_timer.c                          |    1 -
+ net/ax25/ax25_subr.c                               |    1 -
+ net/ax25/ax25_timer.c                              |    1 -
+ net/ax25/ax25_uid.c                                |    1 -
+ net/bluetooth/bnep/sock.c                          |    1 -
+ net/bluetooth/cmtp/sock.c                          |    1 -
+ net/bluetooth/hci_conn.c                           |    1 -
+ net/bluetooth/hci_core.c                           |    1 -
+ net/bluetooth/hci_event.c                          |    1 -
+ net/bluetooth/hci_sock.c                           |    1 -
+ net/bluetooth/l2cap_core.c                         |    1 -
+ net/bluetooth/rfcomm/sock.c                        |    1 -
+ net/bluetooth/sco.c                                |    1 -
+ net/core/datagram.c                                |    1 -
+ net/core/dev.c                                     |    1 -
+ net/core/filter.c                                  |    1 -
+ net/core/gen_estimator.c                           |    1 -
+ net/core/rtnetlink.c                               |    1 -
+ net/core/scm.c                                     |    1 -
+ net/core/skbuff.c                                  |    1 -
+ net/core/sock.c                                    |    1 -
+ net/core/utils.c                                   |    1 -
+ net/decnet/af_decnet.c                             |    1 -
+ net/decnet/dn_dev.c                                |    1 -
+ net/decnet/dn_nsp_in.c                             |    1 -
+ net/decnet/dn_nsp_out.c                            |    1 -
+ net/econet/af_econet.c                             |    1 -
+ net/ethernet/eth.c                                 |    1 -
+ net/ipv4/af_inet.c                                 |    1 -
+ net/ipv4/arp.c                                     |    1 -
+ net/ipv4/devinet.c                                 |    1 -
+ net/ipv4/fib_frontend.c                            |    1 -
+ net/ipv4/fib_semantics.c                           |    1 -
+ net/ipv4/fib_trie.c                                |    1 -
+ net/ipv4/icmp.c                                    |    1 -
+ net/ipv4/igmp.c                                    |    1 -
+ net/ipv4/ip_input.c                                |    1 -
+ net/ipv4/ip_output.c                               |    1 -
+ net/ipv4/ipmr.c                                    |    1 -
+ net/ipv4/ping.c                                    |    1 -
+ net/ipv4/route.c                                   |    1 -
+ net/ipv4/udp.c                                     |    1 -
+ net/ipv6/af_inet6.c                                |    1 -
+ net/ipv6/icmp.c                                    |    1 -
+ net/ipv6/ip6mr.c                                   |    1 -
+ net/irda/irlan/irlan_client.c                      |    1 -
+ net/irda/irlan/irlan_common.c                      |    1 -
+ net/irda/irlan/irlan_provider.c                    |    1 -
+ net/irda/timer.c                                   |    1 -
+ net/lapb/lapb_iface.c                              |    1 -
+ net/lapb/lapb_in.c                                 |    1 -
+ net/lapb/lapb_out.c                                |    1 -
+ net/lapb/lapb_subr.c                               |    1 -
+ net/lapb/lapb_timer.c                              |    1 -
+ net/netfilter/ipvs/ip_vs_app.c                     |    1 -
+ net/netfilter/ipvs/ip_vs_proto.c                   |    1 -
+ net/netfilter/nfnetlink.c                          |    1 -
+ net/netrom/af_netrom.c                             |    1 -
+ net/netrom/nr_dev.c                                |    1 -
+ net/netrom/nr_in.c                                 |    1 -
+ net/netrom/nr_out.c                                |    1 -
+ net/netrom/nr_route.c                              |    1 -
+ net/netrom/nr_subr.c                               |    1 -
+ net/netrom/nr_timer.c                              |    1 -
+ net/openvswitch/datapath.c                         |    1 -
+ net/packet/af_packet.c                             |    1 -
+ net/rose/af_rose.c                                 |    1 -
+ net/rose/rose_dev.c                                |    1 -
+ net/rose/rose_in.c                                 |    1 -
+ net/rose/rose_link.c                               |    1 -
+ net/rose/rose_out.c                                |    1 -
+ net/rose/rose_route.c                              |    1 -
+ net/rose/rose_subr.c                               |    1 -
+ net/rose/rose_timer.c                              |    1 -
+ net/sunrpc/clnt.c                                  |    1 -
+ security/selinux/include/avc.h                     |    1 -
+ security/selinux/include/xfrm.h                    |    2 +
+ sound/oss/os.h                                     |    1 -
+ sound/oss/vidc.c                                   |    1 -
+ sound/oss/waveartist.c                             |    1 -
+ sound/pci/asihpi/hpios.h                           |    1 -
+ sound/pci/aw2/aw2-saa7146.c                        |    1 -
+ 1606 files changed, 6971 insertions(+), 7089 deletions(-)
+ create mode 100644 arch/alpha/include/asm/exec.h
+ create mode 100644 arch/alpha/include/asm/mce.h
+ create mode 100644 arch/alpha/include/asm/special_insns.h
+ create mode 100644 arch/alpha/include/asm/switch_to.h
+ delete mode 100644 arch/alpha/include/asm/system.h
+ create mode 100644 arch/arm/include/asm/barrier.h
+ create mode 100644 arch/arm/include/asm/cmpxchg.h
+ create mode 100644 arch/arm/include/asm/compiler.h
+ create mode 100644 arch/arm/include/asm/cp15.h
+ create mode 100644 arch/arm/include/asm/exec.h
+ create mode 100644 arch/arm/include/asm/switch_to.h
+ create mode 100644 arch/arm/include/asm/system_info.h
+ create mode 100644 arch/arm/include/asm/system_misc.h
+ create mode 100644 arch/avr32/include/asm/barrier.h
+ rename arch/avr32/include/asm/{system.h => cmpxchg.h} (57%)
+ create mode 100644 arch/avr32/include/asm/exec.h
+ create mode 100644 arch/avr32/include/asm/special_insns.h
+ create mode 100644 arch/avr32/include/asm/switch_to.h
+ delete mode 100644 arch/blackfin/include/asm/system.h
+ create mode 100644 arch/c6x/include/asm/barrier.h
+ create mode 100644 arch/c6x/include/asm/bug.h
+ create mode 100644 arch/c6x/include/asm/cmpxchg.h
+ create mode 100644 arch/c6x/include/asm/exec.h
+ create mode 100644 arch/c6x/include/asm/special_insns.h
+ create mode 100644 arch/c6x/include/asm/switch_to.h
+ delete mode 100644 arch/c6x/include/asm/system.h
+ create mode 100644 arch/cris/include/asm/barrier.h
+ rename arch/cris/include/asm/{system.h => cmpxchg.h} (52%)
+ create mode 100644 arch/cris/include/asm/exec.h
+ create mode 100644 arch/cris/include/asm/switch_to.h
+ create mode 100644 arch/frv/include/asm/barrier.h
+ rename arch/frv/include/asm/{system.h => cmpxchg.h} (66%)
+ create mode 100644 arch/frv/include/asm/exec.h
+ create mode 100644 arch/frv/include/asm/switch_to.h
+ create mode 100644 arch/h8300/include/asm/barrier.h
+ create mode 100644 arch/h8300/include/asm/cmpxchg.h
+ create mode 100644 arch/h8300/include/asm/exec.h
+ create mode 100644 arch/h8300/include/asm/switch_to.h
+ delete mode 100644 arch/h8300/include/asm/system.h
+ create mode 100644 arch/hexagon/include/asm/barrier.h
+ rename arch/hexagon/include/asm/{system.h => cmpxchg.h} (68%)
+ create mode 100644 arch/hexagon/include/asm/exec.h
+ create mode 100644 arch/hexagon/include/asm/switch_to.h
+ create mode 100644 arch/ia64/include/asm/barrier.h
+ create mode 100644 arch/ia64/include/asm/exec.h
+ create mode 100644 arch/ia64/include/asm/switch_to.h
+ delete mode 100644 arch/ia64/include/asm/system.h
+ create mode 100644 arch/m32r/include/asm/barrier.h
+ create mode 100644 arch/m32r/include/asm/cmpxchg.h
+ create mode 100644 arch/m32r/include/asm/dcache_clear.h
+ create mode 100644 arch/m32r/include/asm/exec.h
+ create mode 100644 arch/m32r/include/asm/switch_to.h
+ delete mode 100644 arch/m32r/include/asm/system.h
+ create mode 100644 arch/m68k/include/asm/barrier.h
+ rename arch/m68k/include/asm/{system.h => cmpxchg.h} (56%)
+ create mode 100644 arch/m68k/include/asm/exec.h
+ create mode 100644 arch/m68k/include/asm/switch_to.h
+ create mode 100644 arch/microblaze/include/asm/barrier.h
+ create mode 100644 arch/microblaze/include/asm/cmpxchg.h
+ create mode 100644 arch/microblaze/include/asm/exec.h
+ create mode 100644 arch/microblaze/include/asm/switch_to.h
+ delete mode 100644 arch/microblaze/include/asm/system.h
+ create mode 100644 arch/mips/include/asm/exec.h
+ create mode 100644 arch/mips/include/asm/switch_to.h
+ delete mode 100644 arch/mips/include/asm/system.h
+ create mode 100644 arch/mn10300/include/asm/barrier.h
+ create mode 100644 arch/mn10300/include/asm/cmpxchg.h
+ create mode 100644 arch/mn10300/include/asm/exec.h
+ create mode 100644 arch/mn10300/include/asm/switch_to.h
+ delete mode 100644 arch/mn10300/include/asm/system.h
+ delete mode 100644 arch/openrisc/include/asm/system.h
+ create mode 100644 arch/parisc/include/asm/barrier.h
+ create mode 100644 arch/parisc/include/asm/exec.h
+ create mode 100644 arch/parisc/include/asm/ldcw.h
+ create mode 100644 arch/parisc/include/asm/special_insns.h
+ create mode 100644 arch/parisc/include/asm/switch_to.h
+ delete mode 100644 arch/parisc/include/asm/system.h
+ create mode 100644 arch/powerpc/include/asm/barrier.h
+ create mode 100644 arch/powerpc/include/asm/cmpxchg.h
+ create mode 100644 arch/powerpc/include/asm/debug.h
+ create mode 100644 arch/powerpc/include/asm/exec.h
+ create mode 100644 arch/powerpc/include/asm/runlatch.h
+ create mode 100644 arch/powerpc/include/asm/switch_to.h
+ delete mode 100644 arch/powerpc/include/asm/system.h
+ create mode 100644 arch/s390/include/asm/barrier.h
+ create mode 100644 arch/s390/include/asm/ctl_reg.h
+ create mode 100644 arch/s390/include/asm/exec.h
+ create mode 100644 arch/s390/include/asm/facility.h
+ create mode 100644 arch/s390/include/asm/switch_to.h
+ delete mode 100644 arch/s390/include/asm/system.h
+ create mode 100644 arch/score/include/asm/barrier.h
+ create mode 100644 arch/score/include/asm/cmpxchg.h
+ create mode 100644 arch/score/include/asm/exec.h
+ create mode 100644 arch/score/include/asm/switch_to.h
+ delete mode 100644 arch/score/include/asm/system.h
+ create mode 100644 arch/sh/include/asm/barrier.h
+ create mode 100644 arch/sh/include/asm/bl_bit.h
+ create mode 100644 arch/sh/include/asm/bl_bit_32.h
+ create mode 100644 arch/sh/include/asm/bl_bit_64.h
+ create mode 100644 arch/sh/include/asm/cache_insns.h
+ create mode 100644 arch/sh/include/asm/cache_insns_32.h
+ create mode 100644 arch/sh/include/asm/cache_insns_64.h
+ create mode 100644 arch/sh/include/asm/cmpxchg.h
+ create mode 100644 arch/sh/include/asm/exec.h
+ create mode 100644 arch/sh/include/asm/switch_to.h
+ rename arch/sh/include/asm/{system_32.h => switch_to_32.h} (58%)
+ create mode 100644 arch/sh/include/asm/switch_to_64.h
+ delete mode 100644 arch/sh/include/asm/system.h
+ delete mode 100644 arch/sh/include/asm/system_64.h
+ create mode 100644 arch/sh/include/asm/traps.h
+ create mode 100644 arch/sh/include/asm/traps_32.h
+ create mode 100644 arch/sh/include/asm/traps_64.h
+ create mode 100644 arch/sparc/include/asm/barrier.h
+ create mode 100644 arch/sparc/include/asm/barrier_32.h
+ create mode 100644 arch/sparc/include/asm/barrier_64.h
+ create mode 100644 arch/sparc/include/asm/cmpxchg.h
+ create mode 100644 arch/sparc/include/asm/cmpxchg_32.h
+ create mode 100644 arch/sparc/include/asm/cmpxchg_64.h
+ create mode 100644 arch/sparc/include/asm/cpu_type.h
+ create mode 100644 arch/sparc/include/asm/exec.h
+ create mode 100644 arch/sparc/include/asm/switch_to.h
+ create mode 100644 arch/sparc/include/asm/switch_to_32.h
+ create mode 100644 arch/sparc/include/asm/switch_to_64.h
+ delete mode 100644 arch/sparc/include/asm/system.h
+ delete mode 100644 arch/sparc/include/asm/system_32.h
+ delete mode 100644 arch/sparc/include/asm/system_64.h
+ rename arch/tile/include/asm/{system.h => barrier.h} (51%)
+ create mode 100644 arch/tile/include/asm/exec.h
+ create mode 100644 arch/tile/include/asm/switch_to.h
+ create mode 100644 arch/unicore32/include/asm/barrier.h
+ create mode 100644 arch/unicore32/include/asm/bug.h
+ create mode 100644 arch/unicore32/include/asm/cmpxchg.h
+ create mode 100644 arch/unicore32/include/asm/exec.h
+ create mode 100644 arch/unicore32/include/asm/hwdef-copro.h
+ create mode 100644 arch/unicore32/include/asm/switch_to.h
+ delete mode 100644 arch/unicore32/include/asm/system.h
+ create mode 100644 arch/x86/include/asm/barrier.h
+ create mode 100644 arch/x86/include/asm/exec.h
+ create mode 100644 arch/x86/include/asm/special_insns.h
+ create mode 100644 arch/x86/include/asm/switch_to.h
+ delete mode 100644 arch/x86/include/asm/system.h
+ create mode 100644 arch/xtensa/include/asm/barrier.h
+ rename arch/xtensa/include/asm/{system.h => cmpxchg.h} (70%)
+ create mode 100644 arch/xtensa/include/asm/exec.h
+ create mode 100644 arch/xtensa/include/asm/switch_to.h
+ create mode 100644 include/asm-generic/barrier.h
+ create mode 100644 include/asm-generic/exec.h
+ create mode 100644 include/asm-generic/switch_to.h
+ delete mode 100644 include/asm-generic/system.h
