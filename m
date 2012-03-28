@@ -1,54 +1,41 @@
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [PATCHv2 09/14] Unicore32: adapt for dma_map_ops changes
-Date: Wed, 28 Mar 2012 08:10:20 +0200
-Message-ID: <00ac01cd0ca9$7508f4e0$5f1adea0$%szyprowski@samsung.com>
-References: <1332855768-32583-1-git-send-email-m.szyprowski@samsung.com>
- <1332855768-32583-10-git-send-email-m.szyprowski@samsung.com>
- <4F7275FE.8000100@mprc.pku.edu.cn>
+From: Sergei Shtylyov <sshtylyov@mvista.com>
+Subject: Re: [PATCHv2 01/14] common: dma-mapping: introduce alloc_attrs and
+ free_attrs methods
+Date: Wed, 28 Mar 2012 15:29:07 +0400
+Message-ID: <4F72F603.2000803@mvista.com>
+References: <1332855768-32583-1-git-send-email-m.szyprowski@samsung.com> <1332855768-32583-2-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-reply-to: <4F7275FE.8000100@mprc.pku.edu.cn>
-Content-language: pl
+In-Reply-To: <1332855768-32583-2-git-send-email-m.szyprowski@samsung.com>
 Sender: owner-linux-mm@kvack.org
-To: 'Guan Xuetao' <gxt@mprc.pku.edu.cn>
-Cc: linux-kernel@vger.kernel.org, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Thomas Gleixner' <tglx@linutronix.de>, 'Andrew Morton' <akpm@linux-foundation.org>, 'Arnd Bergmann' <arnd@arndb.de>, 'Stephen Rothwell' <sfr@canb.auug.org.au>, 'FUJITA Tomonori' <fujita.tomonori@lab.ntt.co.jp>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, 'Jonathan Corbet' <corbet@lwn.net>, 'Kyungmin Park' <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Kevin Cernekee' <cernekee@gmail.com>, 'Dezhong Diao' <dediao@cisco.com>, 'Richard Kuo' <rkuo@codeau>
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Thomas Gleixner <tglx@linutronix.de>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Stephen Rothwell <sfr@canb.auug.org.au>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, Jonathan Corbet <corbet@lwn.net>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Kevin Cernekee <cernekee@gmail.com>, Dezhong Diao <dediao@cisco.com>, Richard Kuo <rkuo@codeaurora.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hello,
+Hello.
 
-On Wednesday, March 28, 2012 4:23 AM Guan Xuetao wrote:
+On 27-03-2012 17:42, Marek Szyprowski wrote:
 
-> On 03/27/2012 09:42 PM, Marek Szyprowski wrote:
-> > diff --git a/arch/unicore32/mm/dma-swiotlb.c b/arch/unicore32/mm/dma-swiotlb.c
-> > index bfa9fbb..4cf5f0c 100644
-> > --- a/arch/unicore32/mm/dma-swiotlb.c
-> > +++ b/arch/unicore32/mm/dma-swiotlb.c
-> > @@ -17,9 +17,23 @@
-> >
-> >   #include<asm/dma.h>
-> >
-> > +static void *unicore_swiotlb_alloc_coherent(struct device *dev, size_t size,
-> > +					    dma_addr_t *dma_handle, gfp_t flags,
-> > +					    struct dma_attrs *attrs)
-> > +{
-> > +	return swiotlb_alloc_coherent(dev, size, dma_handle, flags);
-> > +}
-> > +
-> > +static void unicode_swiotlb_free_coherent(struct device *dev, size_t size,
-> The bit is ok for me. Only a typo here, please change unicode to unicore.
+> Introduce new generic alloc and free methods with attributes argument.
 
-Ups, I'm sorry for that typo. I've fixed it on my git tree:
+    The method names don't match the ones in the subject.
 
-http://git.linaro.org/gitweb?p=people/mszyprowski/linux-dma-mapping.git;a=commitdiff;h=bbe43c05b0653
-9c09f89e07bcaf61ea0fca8d67f
+> Existing alloc_coherent and free_coherent can be implemented on top of the
+> new calls with NULL attributes argument. Later also dma_alloc_non_coherent
+> can be implemented using DMA_ATTR_NONCOHERENT attribute as well as
+> dma_alloc_writecombine with separate DMA_ATTR_WRITECOMBINE attribute.
 
-Best regards
--- 
-Marek Szyprowski
-Samsung Poland R&D Center
+> This way the drivers will get more generic, platform independent way of
+> allocating dma buffers with specific parameters.
 
+> Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
+> Acked-by: Kyungmin Park <kyungmin.park@samsung.com>
+> Reviewed-by: David Gibson <david@gibson.dropbear.ud.au>
+> Reviewed-by: Arnd Bergmann <arnd@arndb.de>
+
+WBR, Sergei
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
