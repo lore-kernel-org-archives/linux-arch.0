@@ -1,113 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gy0-f174.google.com ([209.85.160.174]:60415 "EHLO
-	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759570Ab2C2UCT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2012 16:02:19 -0400
-Received: by ghrr11 with SMTP id r11so1824021ghr.19
-        for <linux-arch@vger.kernel.org>; Thu, 29 Mar 2012 13:02:18 -0700 (PDT)
+Received: from mail-yx0-f174.google.com ([209.85.213.174]:53505 "EHLO
+	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759441Ab2C2UCf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2012 16:02:35 -0400
+Received: by mail-yx0-f174.google.com with SMTP id l12so1800889yen.19
+        for <linux-arch@vger.kernel.org>; Thu, 29 Mar 2012 13:02:34 -0700 (PDT)
 From: Will Drewry <wad@chromium.org>
-Subject: [PATCH v17 00/15] seccomp_filter: BPF-based syscall filtering
-Date: Thu, 29 Mar 2012 15:01:45 -0500
-Message-ID: <1333051320-30872-1-git-send-email-wad@chromium.org>
+Subject: [PATCH v17 06/15] arch/x86: add syscall_get_arch to syscall.h
+Date: Thu, 29 Mar 2012 15:01:51 -0500
+Message-ID: <1333051320-30872-7-git-send-email-wad@chromium.org>
+In-Reply-To: <1333051320-30872-1-git-send-email-wad@chromium.org>
+References: <1333051320-30872-1-git-send-email-wad@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org, Will Drewry <wad@chromium.org>
-Message-ID: <20120329200145.9mqrazddztxIkq2O20ayYFFKk6bqAuBsN0pmIQE_TcE@z>
+Message-ID: <20120329200151.S9Ftnvqk4oL-oureUJqry1pFrrW9Vh-pO50KUcR3Ykk@z>
 
-Please see prior revisions for a detailed discussion of this patch
-series.
+Add syscall_get_arch() to export the current AUDIT_ARCH_* based on system call
+entry path.
 
-This series is a rebase on to:
-  b5174fa3a7f4f8f150bfa3b917c92608953dfa0f
-with very minor changes due to rebasing and tweaks noticed by a few
-initial users.  (I will rebase again for v3.4-rc1 when that time comes.)
+Reviewed-by: H. Peter Anvin <hpa@zytor.com>
+Acked-by: Serge Hallyn <serge.hallyn@canonical.com>
+Signed-off-by: Will Drewry <wad@chromium.org>
 
-I realize now is a noisy time, but I wanted to get the most current
-revision on the list.
+v17: rebase and reviewed-by
+v14: rebase/nochanges
+v13: rebase on to 88ebdda6159ffc15699f204c33feb3e431bf9bdc
+---
+ arch/x86/include/asm/syscall.h |   23 +++++++++++++++++++++++
+ 1 files changed, 23 insertions(+), 0 deletions(-)
 
-As per prior posts, I am now including luto@'s PR_SET_NO_NEW_PRIVS
-changes in the series for clarity and ease of testing.  This latest
-rebased required required bumping the prctl() numbers for the
-NO_NEW_PRIVS work due to the new reaper options.
-
-For those inclined, the whole series can be found here too:
-   https://github.com/redpig/linux/tree/seccomp
-
-At this point, I'm not aware of any outstanding concerns, complaints,
-etc. If there are any, I'd love to know.
-
-Thanks!
-will
-
-
-Andy Lutomirski (1):
-  Add PR_{GET,SET}_NO_NEW_PRIVS to prevent execve from granting privs
-
-John Johansen (1):
-  Fix apparmor for PR_{GET,SET}_NO_NEW_PRIVS
-
-Kees Cook (1):
-  seccomp: remove duplicated failure logging
-
-Will Drewry (12):
-  sk_run_filter: add BPF_S_ANC_SECCOMP_LD_W
-  net/compat.c,linux/filter.h: share compat_sock_fprog
-  seccomp: kill the seccomp_t typedef
-  arch/x86: add syscall_get_arch to syscall.h
-  asm/syscall.h: add syscall_get_arch
-  seccomp: add system call filtering using BPF
-  seccomp: add SECCOMP_RET_ERRNO
-  signal, x86: add SIGSYS info and make it synchronous.
-  seccomp: Add SECCOMP_RET_TRAP
-  ptrace,seccomp: Add PTRACE_SECCOMP support
-  x86: Enable HAVE_ARCH_SECCOMP_FILTER
-  Documentation: prctl/seccomp_filter
-
- Documentation/prctl/seccomp_filter.txt |  163 ++++++++++++
- arch/Kconfig                           |   24 ++
- arch/x86/Kconfig                       |    1 +
- arch/x86/ia32/ia32_signal.c            |    4 +
- arch/x86/include/asm/ia32.h            |    6 +
- arch/x86/include/asm/syscall.h         |   23 ++
- arch/x86/kernel/ptrace.c               |    7 +-
- fs/exec.c                              |   10 +-
- include/asm-generic/siginfo.h          |   22 ++
- include/asm-generic/syscall.h          |   14 +
- include/linux/Kbuild                   |    1 +
- include/linux/audit.h                  |    8 +-
- include/linux/filter.h                 |   12 +
- include/linux/prctl.h                  |   15 +
- include/linux/ptrace.h                 |    5 +-
- include/linux/sched.h                  |    4 +-
- include/linux/seccomp.h                |  105 +++++++-
- include/linux/security.h               |    1 +
- kernel/auditsc.c                       |   10 +-
- kernel/fork.c                          |    3 +
- kernel/seccomp.c                       |  447 ++++++++++++++++++++++++++++++--
- kernel/signal.c                        |    9 +-
- kernel/sys.c                           |   12 +-
- net/compat.c                           |    8 -
- net/core/filter.c                      |    6 +
- samples/Makefile                       |    2 +-
- samples/seccomp/Makefile               |   38 +++
- samples/seccomp/bpf-direct.c           |  176 +++++++++++++
- samples/seccomp/bpf-fancy.c            |  102 ++++++++
- samples/seccomp/bpf-helper.c           |   89 +++++++
- samples/seccomp/bpf-helper.h           |  238 +++++++++++++++++
- samples/seccomp/dropper.c              |   68 +++++
- security/apparmor/domain.c             |   35 +++
- security/commoncap.c                   |    7 +-
- security/selinux/hooks.c               |   10 +-
- 35 files changed, 1628 insertions(+), 57 deletions(-)
- create mode 100644 Documentation/prctl/seccomp_filter.txt
- create mode 100644 samples/seccomp/Makefile
- create mode 100644 samples/seccomp/bpf-direct.c
- create mode 100644 samples/seccomp/bpf-fancy.c
- create mode 100644 samples/seccomp/bpf-helper.c
- create mode 100644 samples/seccomp/bpf-helper.h
- create mode 100644 samples/seccomp/dropper.c
-
+diff --git a/arch/x86/include/asm/syscall.h b/arch/x86/include/asm/syscall.h
+index d962e56..1d713e4 100644
+--- a/arch/x86/include/asm/syscall.h
++++ b/arch/x86/include/asm/syscall.h
+@@ -13,6 +13,7 @@
+ #ifndef _ASM_X86_SYSCALL_H
+ #define _ASM_X86_SYSCALL_H
+ 
++#include <linux/audit.h>
+ #include <linux/sched.h>
+ #include <linux/err.h>
+ #include <asm/asm-offsets.h>	/* For NR_syscalls */
+@@ -87,6 +88,12 @@ static inline void syscall_set_arguments(struct task_struct *task,
+ 	memcpy(&regs->bx + i, args, n * sizeof(args[0]));
+ }
+ 
++static inline int syscall_get_arch(struct task_struct *task,
++				   struct pt_regs *regs)
++{
++	return AUDIT_ARCH_I386;
++}
++
+ #else	 /* CONFIG_X86_64 */
+ 
+ static inline void syscall_get_arguments(struct task_struct *task,
+@@ -211,6 +218,22 @@ static inline void syscall_set_arguments(struct task_struct *task,
+ 		}
+ }
+ 
++static inline int syscall_get_arch(struct task_struct *task,
++				   struct pt_regs *regs)
++{
++#ifdef CONFIG_IA32_EMULATION
++	/*
++	 * TS_COMPAT is set for 32-bit syscall entries and then
++	 * remains set until we return to user mode.
++	 *
++	 * TIF_IA32 tasks should always have TS_COMPAT set at
++	 * system call time.
++	 */
++	if (task_thread_info(task)->status & TS_COMPAT)
++		return AUDIT_ARCH_I386;
++#endif
++	return AUDIT_ARCH_X86_64;
++}
+ #endif	/* CONFIG_X86_32 */
+ 
+ #endif	/* _ASM_X86_SYSCALL_H */
 -- 
 1.7.5.4
 
