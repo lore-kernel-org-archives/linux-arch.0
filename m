@@ -1,155 +1,65 @@
 From: Grant Likely <grant.likely@secretlab.ca>
 Subject: Re: [GIT PULL] Disintegrate and kill asm/system.h
-Date: Thu, 29 Mar 2012 15:01:17 -0600
-Message-ID: <20120329210117.A9A073E06B4@localhost>
-References: <5599.1332958811@redhat.com> <30702.1332989444@neuling.org> <1332994469.3010.7.camel@pasglop>
+Date: Thu, 29 Mar 2012 15:14:42 -0600
+Message-ID: <CACxGe6v+nMMuEM+bBMdYf_OeuaXb+NsS0qz-+puRtdzHLPH2hA@mail.gmail.com>
+References: <5599.1332958811@redhat.com> <30702.1332989444@neuling.org>
+ <20120329135555.06593144b65bf81cc9191f8a@canb.auug.org.au>
+ <20120329151544.ef2117821dfb459e8b52af48@canb.auug.org.au>
+ <CA+55aFzn=bsH76hPDUgS-FBP=RVu51gwmRdqjkw5RJO=Q_cRfA@mail.gmail.com>
+ <20120329154238.1ce219f7c998da45452af4b2@canb.auug.org.au>
+ <CA+55aFzjQ7qb=bPAj_gGoGLPXOGweTaqtmOBZH4mUt8E_KQwsg@mail.gmail.com> <1333008684.3010.9.camel@pasglop>
 Mime-Version: 1.0
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f46.google.com ([209.85.160.46]:51008 "EHLO
-	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933086Ab2C2VBW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2012 17:01:22 -0400
-Received: by pbcun15 with SMTP id un15so620212pbc.19
-        for <linux-arch@vger.kernel.org>; Thu, 29 Mar 2012 14:01:22 -0700 (PDT)
-In-Reply-To: <1332994469.3010.7.camel@pasglop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Neuling <mikey@neuling.org>
-Cc: David Howells <dhowells@redhat.com>, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paul.gortmaker@windriver.com, arnd@arndb.de, hpa@zytor.com, sfr@canb.auug.org.au
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1333008684.3010.9.camel@pasglop>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org, Michael Neuling <mikey@neuling.org>, arnd@arndb.de, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, paul.gortmaker@windriver.com, hpa@zytor.com, akpm@linux-foundation.org, ppc-dev <linuxppc-dev@lists.ozlabs.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 29 Mar 2012 15:14:29 +1100, Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
-> On Thu, 2012-03-29 at 13:50 +1100, Michael Neuling wrote:
-> > Grant: why does powerpc_debugfs_root appear in generic code?  This seems
-> > very bogus.
-> 
-> Yes, Grant, you should move that to a different (generic) debugfs file,
-> the mapping information is valuable debug data for all architectures
-> that use the remapper, not just powerpc and it's not an ABI (no tool I
-> know of rely on the location of that debugfs file) so feel free to move
-> it around.
+On Thu, Mar 29, 2012 at 2:11 AM, Benjamin Herrenschmidt
+<benh@kernel.crashing.org> wrote:
+> On Wed, 2012-03-28 at 22:02 -0700, Linus Torvalds wrote:
+>> On Wed, Mar 28, 2012 at 9:42 PM, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+>> >
+>> > How about this (build tested on powerpc allyesconfig):
+>>
+>> Looks better.
+>>
+>> Grant - what's the plan about that CONFIG_VIRQ_DEBUG thing? In theory
+>> something like it could be useful as a generic thing, but at least
+>> right now it is clearly powerpc-specific (not just that the config
+>> option only exists for powerpc: it has that whole
+>> 'powerpc_debugfs_root' thing in it)?
+>>
+>> Stephen's patch very much looks like the right thing, but if there was
+>> some plan to actually make this generic ...
+>
+> Yes, as I said earlier I think Grant should make it generic, there's
+> no reason to keep that powerpc specific, it's fairly useful and nothing
+> in userspace relies on the existing location of the debugfs file that I
+> know about.
+>
+> Another option is to put the mapping information in /proc/interrupts but
+> worry that changing anything in there (like adding a column) will break
+> countless userspace tools.
 
-I could simply drop the powerpc_debugfs_root argument from
-debugfs_create_file() and replace it with NULL.  As you say, this is
-not an ABI and this will solve the problem.
+I posted an RFC patch that does exactly that, but I'm similarly
+nervous for the same reason:
 
-On Wed, 28 Mar 2012 22:02:41 -0700, Linus Torvalds <torvalds@linux-foundation.org> wrote:
-> Grant - what's the plan about that CONFIG_VIRQ_DEBUG thing? In theory
-> something like it could be useful as a generic thing, but at least
-> right now it is clearly powerpc-specific (not just that the config
-> option only exists for powerpc: it has that whole
-> 'powerpc_debugfs_root' thing in it)?
-> 
-> Stephen's patch very much looks like the right thing, but if there was
-> some plan to actually make this generic ...
+http://www.mail-archive.com/linuxppc-dev@lists.ozlabs.org/msg56368.html
 
-The plan is to make it generic.  I just ran out of time for this
-cycle to generalize it.  I moved all of irqdomain out of arch/powerpc
-wholesale, which included the debug bits, and then generalized it in
-place.  That was the safest way to transition without causing
-breakage.
+The rightmost fields of /proc/interrupts are a weird set of
+conditional outputs that don't really have any parsable formatting to
+them.  It may be safe to apply my patch because it adds another field
+in the middle of a section of conditional outputs* anyway so tools
+already won't know what those fields mean.  But, regardless, I'm not
+going to take responsibility for applying that patch unless encouraged
+by several other maintainers to do so.
 
-Moving it back into powerpc land is a step backwards. I've attached a
-patch that makes it generic instead.  It has been tested on ARM.
+*It's added to the middle instead of the end purely for aesthetic
+reasons.  The rightmost field is a freeform string without a field
+width, so if put at the end they would never line up.  Suggestions for
+a better layout are welcome.
 
-I've pushed it out to the following branch:
-
-git://git.secretlab.ca/git/linux-2.6 irqdomain/merge
-
----
-
-[PATCH] irqdomain: Remove powerpc dependency from debugfs file
-
-The debugfs code is really generic for all platforms.  This patch removes the
-powerpc-specific directory reference and makes it available to all
-architectures.
-
-Signed-off-by: Grant Likely <grant.likely@secretlab.ca>
----
- arch/powerpc/Kconfig.debug |   10 ----------
- kernel/irq/Kconfig         |   10 ++++++++++
- kernel/irq/irqdomain.c     |    8 ++++----
- 3 files changed, 14 insertions(+), 14 deletions(-)
-
-diff --git a/arch/powerpc/Kconfig.debug b/arch/powerpc/Kconfig.debug
-index 72d55db..e5f2689 100644
---- a/arch/powerpc/Kconfig.debug
-+++ b/arch/powerpc/Kconfig.debug
-@@ -114,16 +114,6 @@ config DEBUGGER
- 	depends on KGDB || XMON
- 	default y
- 
--config VIRQ_DEBUG
--	bool "Expose hardware/virtual IRQ mapping via debugfs"
--	depends on DEBUG_FS
--	help
--	  This option will show the mapping relationship between hardware irq
--	  numbers and virtual irq numbers. The mapping is exposed via debugfs
--	  in the file powerpc/virq_mapping.
--
--	  If you don't know what this means you don't need it.
--
- config BDI_SWITCH
- 	bool "Include BDI-2000 user context switcher"
- 	depends on DEBUG_KERNEL && PPC32
-diff --git a/kernel/irq/Kconfig b/kernel/irq/Kconfig
-index 5a38bf4..d8e323d 100644
---- a/kernel/irq/Kconfig
-+++ b/kernel/irq/Kconfig
-@@ -56,6 +56,16 @@ config GENERIC_IRQ_CHIP
- config IRQ_DOMAIN
- 	bool
- 
-+config IRQ_DOMAIN_DEBUG
-+	bool "Expose hardware/virtual IRQ mapping via debugfs"
-+	depends on IRQ_DOMAIN && DEBUG_FS
-+	help
-+	  This option will show the mapping relationship between hardware irq
-+	  numbers and Linux irq numbers. The mapping is exposed via debugfs
-+	  in the file "virq_mapping".
-+
-+	  If you don't know what this means you don't need it.
-+
- # Support forced irq threading
- config IRQ_FORCED_THREADING
-        bool
-diff --git a/kernel/irq/irqdomain.c b/kernel/irq/irqdomain.c
-index af48e59..3601f3f 100644
---- a/kernel/irq/irqdomain.c
-+++ b/kernel/irq/irqdomain.c
-@@ -632,7 +632,7 @@ unsigned int irq_linear_revmap(struct irq_domain *domain,
- 	return revmap[hwirq];
- }
- 
--#ifdef CONFIG_VIRQ_DEBUG
-+#ifdef CONFIG_IRQ_DOMAIN_DEBUG
- static int virq_debug_show(struct seq_file *m, void *private)
- {
- 	unsigned long flags;
-@@ -668,7 +668,7 @@ static int virq_debug_show(struct seq_file *m, void *private)
- 			data = irq_desc_get_chip_data(desc);
- 			seq_printf(m, "0x%16p  ", data);
- 
--			if (desc->irq_data.domain->of_node)
-+			if (desc->irq_data.domain && desc->irq_data.domain->of_node)
- 				p = desc->irq_data.domain->of_node->full_name;
- 			else
- 				p = none;
-@@ -695,14 +695,14 @@ static const struct file_operations virq_debug_fops = {
- 
- static int __init irq_debugfs_init(void)
- {
--	if (debugfs_create_file("virq_mapping", S_IRUGO, powerpc_debugfs_root,
-+	if (debugfs_create_file("irq_domain_mapping", S_IRUGO, NULL,
- 				 NULL, &virq_debug_fops) == NULL)
- 		return -ENOMEM;
- 
- 	return 0;
- }
- __initcall(irq_debugfs_init);
--#endif /* CONFIG_VIRQ_DEBUG */
-+#endif /* CONFIG_IRQ_DOMAIN_DEBUG */
- 
- int irq_domain_simple_map(struct irq_domain *d, unsigned int irq,
- 			  irq_hw_number_t hwirq)
--- 
-1.7.9.1
+g.
