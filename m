@@ -1,82 +1,108 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:42003 "EHLO
+Received: from mail-gx0-f174.google.com ([209.85.161.174]:62589 "EHLO
 	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759216Ab2C2UC0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2012 16:02:26 -0400
-Received: by mail-gx0-f174.google.com with SMTP id e5so1819403ggh.19
-        for <linux-arch@vger.kernel.org>; Thu, 29 Mar 2012 13:02:26 -0700 (PDT)
+	with ESMTP id S1759619Ab2C2UCY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2012 16:02:24 -0400
+Received: by mail-gx0-f174.google.com with SMTP id e5so1819381ggh.19
+        for <linux-arch@vger.kernel.org>; Thu, 29 Mar 2012 13:02:23 -0700 (PDT)
 From: Will Drewry <wad@chromium.org>
-Subject: [PATCH v17 03/15] sk_run_filter: add BPF_S_ANC_SECCOMP_LD_W
-Date: Thu, 29 Mar 2012 15:01:48 -0500
-Message-ID: <1333051320-30872-4-git-send-email-wad@chromium.org>
+Subject: [PATCH v17 02/15] Fix apparmor for PR_{GET,SET}_NO_NEW_PRIVS
+Date: Thu, 29 Mar 2012 15:01:47 -0500
+Message-ID: <1333051320-30872-3-git-send-email-wad@chromium.org>
 In-Reply-To: <1333051320-30872-1-git-send-email-wad@chromium.org>
 References: <1333051320-30872-1-git-send-email-wad@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org, Will Drewry <wad@chromium.org>
-Message-ID: <20120329200148.U4_xJKrADFmG6oaovhhA1Xm2ZIfULGJLy9PasxkHuYs@z>
+Cc: linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org, John Johansen <john.johansen@canonical.com>, Andy Lutomirski <luto@amacapital.net>
+Message-ID: <20120329200147.vlBOdw1o4KjcKSsL2PZ9ImBrGjoyFNf6bL9oBY0ZAcQ@z>
 
-Introduces a new BPF ancillary instruction that all LD calls will be
-mapped through when skb_run_filter() is being used for seccomp BPF.  The
-rewriting will be done using a secondary chk_filter function that is run
-after skb_chk_filter.
+From: John Johansen <john.johansen@canonical.com>
 
-The code change is guarded by CONFIG_SECCOMP_FILTER which is added,
-along with the seccomp_bpf_load() function later in this series.
-
-This is based on http://lkml.org/lkml/2012/3/2/141
-
-v17: rebase
-v16: -
-v15: include seccomp.h explicitly for when seccomp_bpf_load exists.
-v14: First cut using a single additional instruction
-... v13: made bpf functions generic.
-
-Suggested-by: Indan Zupancic <indan@nul.nu>
-Signed-off-by: Will Drewry <wad@chromium.org>
-Acked-by: Eric Dumazet <eric.dumazet@gmail.com>
+Signed-off-by: John Johansen <john.johansen@canonical.com>
+Signed-off-by: Andy Lutomirski <luto@amacapital.net>
 ---
- include/linux/filter.h |    1 +
- net/core/filter.c      |    6 ++++++
- 2 files changed, 7 insertions(+), 0 deletions(-)
+ security/apparmor/domain.c |   39 +++++++++++++++++++++++++++++++++++----
+ 1 files changed, 35 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/filter.h b/include/linux/filter.h
-index 8eeb205..aaa2e80 100644
---- a/include/linux/filter.h
-+++ b/include/linux/filter.h
-@@ -228,6 +228,7 @@ enum {
- 	BPF_S_ANC_HATYPE,
- 	BPF_S_ANC_RXHASH,
- 	BPF_S_ANC_CPU,
-+	BPF_S_ANC_SECCOMP_LD_W,
- };
+diff --git a/security/apparmor/domain.c b/security/apparmor/domain.c
+index 18c88d0..b81ea10 100644
+--- a/security/apparmor/domain.c
++++ b/security/apparmor/domain.c
+@@ -360,10 +360,6 @@ int apparmor_bprm_set_creds(struct linux_binprm *bprm)
+ 	if (bprm->cred_prepared)
+ 		return 0;
  
- #endif /* __KERNEL__ */
-diff --git a/net/core/filter.c b/net/core/filter.c
-index cf4989a..b6caa49 100644
---- a/net/core/filter.c
-+++ b/net/core/filter.c
-@@ -38,6 +38,7 @@
- #include <linux/filter.h>
- #include <linux/reciprocal_div.h>
- #include <linux/ratelimit.h>
-+#include <linux/seccomp.h>
+-	/* XXX: no_new_privs is not usable with AppArmor yet */
+-	if (bprm->unsafe & LSM_UNSAFE_NO_NEW_PRIVS)
+-		return -EPERM;
+-
+ 	cxt = bprm->cred->security;
+ 	BUG_ON(!cxt);
  
- /* No hurry in this branch */
- static void *__load_pointer(const struct sk_buff *skb, int k, unsigned int size)
-@@ -349,6 +350,11 @@ load_b:
- 				A = 0;
- 			continue;
- 		}
-+#ifdef CONFIG_SECCOMP_FILTER
-+		case BPF_S_ANC_SECCOMP_LD_W:
-+			A = seccomp_bpf_load(fentry->k);
-+			continue;
-+#endif
- 		default:
- 			WARN_RATELIMIT(1, "Unknown code:%u jt:%u tf:%u k:%u\n",
- 				       fentry->code, fentry->jt,
+@@ -398,6 +394,11 @@ int apparmor_bprm_set_creds(struct linux_binprm *bprm)
+ 			new_profile = find_attach(ns, &ns->base.profiles, name);
+ 		if (!new_profile)
+ 			goto cleanup;
++		/*
++		 * NOTE: Domain transitions from unconfined are allowed
++		 * even when no_new_privs is set because this aways results
++		 * in a further reduction of permissions.
++		 */
+ 		goto apply;
+ 	}
+ 
+@@ -459,6 +460,16 @@ int apparmor_bprm_set_creds(struct linux_binprm *bprm)
+ 		/* fail exec */
+ 		error = -EACCES;
+ 
++	/*
++	 * Policy has specified a domain transition, if no_new_privs then
++	 * fail the exec.
++	 */
++	if (bprm->unsafe & LSM_UNSAFE_NO_NEW_PRIVS) {
++		aa_put_profile(new_profile);
++		error = -EPERM;
++		goto cleanup;
++	}
++
+ 	if (!new_profile)
+ 		goto audit;
+ 
+@@ -613,6 +624,14 @@ int aa_change_hat(const char *hats[], int count, u64 token, bool permtest)
+ 	const char *target = NULL, *info = NULL;
+ 	int error = 0;
+ 
++	/*
++	 * Fail explicitly requested domain transitions if no_new_privs.
++	 * There is no exception for unconfined as change_hat is not
++	 * available.
++	 */
++	if (current->no_new_privs)
++		return -EPERM;
++
+ 	/* released below */
+ 	cred = get_current_cred();
+ 	cxt = cred->security;
+@@ -754,6 +773,18 @@ int aa_change_profile(const char *ns_name, const char *hname, bool onexec,
+ 	cxt = cred->security;
+ 	profile = aa_cred_profile(cred);
+ 
++	/*
++	 * Fail explicitly requested domain transitions if no_new_privs
++	 * and not unconfined.
++	 * Domain transitions from unconfined are allowed even when
++	 * no_new_privs is set because this aways results in a reduction
++	 * of permissions.
++	 */
++	if (current->no_new_privs && !unconfined(profile)) {
++		put_cred(cred);
++		return -EPERM;
++	}
++
+ 	if (ns_name) {
+ 		/* released below */
+ 		ns = aa_find_namespace(profile->ns, ns_name);
 -- 
 1.7.5.4
 
