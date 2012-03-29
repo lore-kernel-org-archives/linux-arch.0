@@ -1,75 +1,65 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Subject: Re: [GIT PULL] Disintegrate and kill asm/system.h
-Date: Thu, 29 Mar 2012 13:55:55 +1100
-Message-ID: <20120329135555.06593144b65bf81cc9191f8a@canb.auug.org.au>
-References: <5599.1332958811@redhat.com>
-	<30702.1332989444@neuling.org>
+Date: Thu, 29 Mar 2012 15:14:29 +1100
+Message-ID: <1332994469.3010.7.camel@pasglop>
+References: <5599.1332958811@redhat.com> <30702.1332989444@neuling.org>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Thu__29_Mar_2012_13_55_55_+1100_+Sz8x5i=ERevKuqy"
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from haggis.pcug.org.au ([203.10.76.10]:35451 "EHLO
-	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752457Ab2C2C4M (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Mar 2012 22:56:12 -0400
+Received: from gate.crashing.org ([63.228.1.57]:35919 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750859Ab2C2EOq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 29 Mar 2012 00:14:46 -0400
 In-Reply-To: <30702.1332989444@neuling.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Michael Neuling <mikey@neuling.org>
-Cc: David Howells <dhowells@redhat.com>, Grant Likely <grant.likely@secretlab.ca>, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paul.gortmaker@windriver.com, arnd@arndb.de, hpa@zytor.com
+Cc: David Howells <dhowells@redhat.com>, Grant Likely <grant.likely@secretlab.ca>, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paul.gortmaker@windriver.com, arnd@arndb.de, hpa@zytor.com, sfr@canb.auug.org.au
 
---Signature=_Thu__29_Mar_2012_13_55_55_+1100_+Sz8x5i=ERevKuqy
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-On Thu, 29 Mar 2012 13:50:44 +1100 Michael Neuling <mikey@neuling.org> wrot=
-e:
->
-> > Here are a bunch of patches to disintegrate asm/system.h into a set of =
-separate
+On Thu, 2012-03-29 at 13:50 +1100, Michael Neuling wrote:
+> > Here are a bunch of patches to disintegrate asm/system.h into a set of separate
 > > bits to relieve the problem of circular inclusion dependencies.
-> >=20
-> > The following changes since commit 437538267b672f9320833907f1b5acbb2605=
-f4be:
-> >=20
-> >   Merge tag 'fbdev-updates-for-3.4' of git://github.com/schandinat/linu=
-x-2.6 (2012-03-22 20:43:40 -0700)
-> >=20
+> > 
+> > The following changes since commit 437538267b672f9320833907f1b5acbb2605f4be:
+> > 
+> >   Merge tag 'fbdev-updates-for-3.4' of git://github.com/schandinat/linux-2.6 (2012-03-22 20:43:40 -0700)
+> > 
 > > are available in the git repository at:
-> >=20
-> >   git://git.kernel.org/pub/scm/linux/kernel/git/dhowells/linux-asm_syst=
-em.git split-asm-system_h
->=20
+> > 
+> >   git://git.kernel.org/pub/scm/linux/kernel/git/dhowells/linux-asm_system.git split-asm-system_h
+> 
 > It would have been nice to have this in linux-next for a day or two to
 > sort out the merge issues,  hence....
+> 
+> This seems to have broken linus tree when compiling a pseries_defconfig
 
-Um, what can I say but "yeah, it would have been nice" :-(
+Ah yes, I also saw that, I was hoping you would give me today to run
+through my test builds.
 
---=20
+> We are currently getting:
+> kernel/irq/irqdomain.c: In function 'irq_debugfs_init':
+> kernel/irq/irqdomain.c:698:63: error: 'powerpc_debugfs_root' undeclared (first use in this function)
+> kernel/irq/irqdomain.c:698:63: note: each undeclared identifier is reported only once for each function it appears in
+> 
+>   ae3a197 Disintegrate asm/system.h for PowerPC
+> is conflicting with 
+>   cc79ca6 irq_domain: Move irq_domain code from powerpc to kernel/irq
+> from Grant's tree.
+> 
+> Adding the following patch fixes it for pseries_defconfig, although I'm
+> not sure it's the right fix.
+
+That will do as a quick fix (Linus, can you take it now ?), however..
+
+> Grant: why does powerpc_debugfs_root appear in generic code?  This seems
+> very bogus.
+
+Yes, Grant, you should move that to a different (generic) debugfs file,
+the mapping information is valuable debug data for all architectures
+that use the remapper, not just powerpc and it's not an ABI (no tool I
+know of rely on the location of that debugfs file) so feel free to move
+it around.
+
 Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-
---Signature=_Thu__29_Mar_2012_13_55_55_+1100_+Sz8x5i=ERevKuqy
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
-
-iQIcBAEBCAAGBQJPc887AAoJEECxmPOUX5FEU/AQAI1Zwtb8A5CcTf5Z7DizPGKc
-O1MxOCC+eORfajR/iGpGNrRjHxlQL/LEf7a2dNyHazyBPq8s2+OrGctLMLTMis+y
-VBtqSX4sAUYRxScEY4WaLJ51Zh2R4YF5w0qO2L4pLhPp2e2t9lGC/5kG/xO+9Adc
-sBPf3zPAzYEh4scJSOjjBc7tlws+gnEBRm0o7ws4kRXC/Mj6uIQDZsxNYX/tBOS1
-h8ERrgTWo0s6LzAz+VViLx/QoAH58W2u0YVQfPD7bItAYgs+6nyl3LOXa0JXKGM+
-ABeuO90gMwZ2BGlf5QRvKvRfQIc331jQyasGUxuHYQ36+rpzsoTNGAz4GrU1RDX2
-NrgHdlrM1WiJX/Pjig5yqoz2n+NnIt3p5fbAL5VkbvrDKQtkuprM3A/WOVL6uekT
-kXPtntNpNxGwAxgdpsJriZvXLiZ3ltgL9o2HFKHNx9t6jeUb1Lg2MfBv+Sc7o+bX
-ikUJ8EsjaXDkK2zMV2dkjMIXZvE6fbX5HTLX5D9MI3Gq8iasuBFkaQ8smXGV1kiG
-bGjH+Hu9EtKjZgjiqGRUHzhzHB2WzXbbo5Y0pp0MgpGrSmUeuvs/Qflr9mnI4Lxh
-K2cIoRk3wFZUM66AQ8rOETlf8MkXn4a53JhB+e8RlxAosIMKGi80MwgLIqlonRrn
-YgD8ntFAJtiBazHU6/x5
-=RtUV
------END PGP SIGNATURE-----
-
---Signature=_Thu__29_Mar_2012_13_55_55_+1100_+Sz8x5i=ERevKuqy--
+Ben.
