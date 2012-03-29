@@ -1,46 +1,34 @@
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [GIT PULL] Disintegrate and kill asm/system.h
-Date: Thu, 29 Mar 2012 16:52:25 -0600
-Message-ID: <CACxGe6sokpFa_KEi+jxPX3caF4CpfxzZ4f53S1Y_+caXVLBNtg@mail.gmail.com>
-References: <5599.1332958811@redhat.com> <30702.1332989444@neuling.org>
- <1332994469.3010.7.camel@pasglop> <20120329210117.A9A073E06B4@localhost> <20120330095020.a2e01d86c2d09f186c53d63d@canb.auug.org.au>
+From: James Morris <jmorris@namei.org>
+Subject: Re: [PATCH v17 00/15] seccomp_filter: BPF-based syscall filtering
+Date: Fri, 30 Mar 2012 10:11:32 +1100 (EST)
+Message-ID: <alpine.LRH.2.02.1203301010310.11201@tundra.namei.org>
+References: <1333051320-30872-1-git-send-email-wad@chromium.org>
+Reply-To: kernel-hardening@lists.openwall.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f174.google.com ([209.85.214.174]:41446 "EHLO
-	mail-ob0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760168Ab2C2Wwr convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2012 18:52:47 -0400
-Received: by obbeh20 with SMTP id eh20so74619obb.19
-        for <linux-arch@vger.kernel.org>; Thu, 29 Mar 2012 15:52:47 -0700 (PDT)
-In-Reply-To: <20120330095020.a2e01d86c2d09f186c53d63d@canb.auug.org.au>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Neuling <mikey@neuling.org>, David Howells <dhowells@redhat.com>, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paul.gortmaker@windriver.com, arnd@arndb.de, hpa@zytor.com
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <kernel-hardening-return-1189-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+In-Reply-To: <1333051320-30872-1-git-send-email-wad@chromium.org>
+To: Will Drewry <wad@chromium.org>
+Cc: linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 29, 2012 at 4:50 PM, Stephen Rothwell <sfr@canb.auug.org.au=
-> wrote:
-> Hi Grant,
->
-> On Thu, 29 Mar 2012 15:01:17 -0600 Grant Likely <grant.likely@secretl=
-ab.ca> wrote:
->>
->> Moving it back into powerpc land is a step backwards. I've attached =
-a
->> patch that makes it generic instead. =A0It has been tested on ARM.
->>
->> I've pushed it out to the following branch:
->>
->> git://git.secretlab.ca/git/linux-2.6 irqdomain/merge
->
-> I have pulled that into my fixes tree for today (since otherwise my
-> builds will break).
+On Thu, 29 Mar 2012, Will Drewry wrote:
 
-Cool.  If that checks out in linux-next, then I'll ask Linus to pull.
+> Please see prior revisions for a detailed discussion of this patch
+> series.
+> 
+> This series is a rebase on to:
+>   b5174fa3a7f4f8f150bfa3b917c92608953dfa0f
+> with very minor changes due to rebasing and tweaks noticed by a few
+> initial users.  (I will rebase again for v3.4-rc1 when that time comes.)
 
-BTW, can you add that branch permanently to linux-next?  That's the
-branch I'll use when queuing up irqdomain fixes for mainline.
+I've offered to take this via my tree -- if anyone else wants to merge it 
+via theirs instead, holler.
 
-g.
+-- 
+James Morris
+<jmorris@namei.org>
