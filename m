@@ -1,69 +1,95 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gy0-f174.google.com ([209.85.160.174]:60000 "EHLO
-	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759885Ab2C2UCh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2012 16:02:37 -0400
-Received: by ghrr11 with SMTP id r11so1824276ghr.19
-        for <linux-arch@vger.kernel.org>; Thu, 29 Mar 2012 13:02:36 -0700 (PDT)
+Received: from mail-yx0-f174.google.com ([209.85.213.174]:65024 "EHLO
+	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757682Ab2C2UCd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2012 16:02:33 -0400
+Received: by yenl12 with SMTP id l12so1801016yen.19
+        for <linux-arch@vger.kernel.org>; Thu, 29 Mar 2012 13:02:32 -0700 (PDT)
 From: Will Drewry <wad@chromium.org>
-Subject: [PATCH v17 07/15] asm/syscall.h: add syscall_get_arch
-Date: Thu, 29 Mar 2012 15:01:52 -0500
-Message-ID: <1333051320-30872-8-git-send-email-wad@chromium.org>
+Subject: [PATCH v17 05/15] seccomp: kill the seccomp_t typedef
+Date: Thu, 29 Mar 2012 15:01:50 -0500
+Message-ID: <1333051320-30872-6-git-send-email-wad@chromium.org>
 In-Reply-To: <1333051320-30872-1-git-send-email-wad@chromium.org>
 References: <1333051320-30872-1-git-send-email-wad@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org, Will Drewry <wad@chromium.org>
-Message-ID: <20120329200152.Jkw38KzMY1rkFEGoJT1tLU6VgPAiJfOSti7Imz9kqic@z>
+Message-ID: <20120329200150.W3zM-5p2Ib8Bg1pZmGBeEW3o5TuoisOkd5pGKHMtA-0@z>
 
-Adds a stub for a function that will return the AUDIT_ARCH_*
-value appropriate to the supplied task based on the system
-call convention.
-
-For audit's use, the value can generally be hard-coded at the
-audit-site.  However, for other functionality not inlined into
-syscall entry/exit, this makes that information available.
-seccomp_filter is the first planned consumer and, as such,
-the comment indicates a tie to HAVE_ARCH_SECCOMP_FILTER.  That
-is probably an unneeded detail.
-
-Acked-by: Serge Hallyn <serge.hallyn@canonical.com>
-Suggested-by: Roland McGrath <mcgrathr@chromium.org>
-Signed-off-by: Will Drewry <wad@chromium.org>
+Replaces the seccomp_t typedef with struct seccomp to match modern
+kernel style.
 
 v14..v17: rebase/nochanges
 v13: rebase on to 88ebdda6159ffc15699f204c33feb3e431bf9bdc
 v12: rebase on to linux-next
-v11: fixed improper return type
-v10: introduced
----
- include/asm-generic/syscall.h |   14 ++++++++++++++
- 1 files changed, 14 insertions(+), 0 deletions(-)
+v8-v11: no changes
+v7: struct seccomp_struct -> struct seccomp
+v6: original inclusion in this series.
 
-diff --git a/include/asm-generic/syscall.h b/include/asm-generic/syscall.h
-index 5c122ae..a2c13dc 100644
---- a/include/asm-generic/syscall.h
-+++ b/include/asm-generic/syscall.h
-@@ -142,4 +142,18 @@ void syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
- 			   unsigned int i, unsigned int n,
- 			   const unsigned long *args);
+Acked-by: Serge Hallyn <serge.hallyn@canonical.com>
+Reviewed-by: James Morris <jmorris@namei.org>
+Signed-off-by: Will Drewry <wad@chromium.org>
+---
+ include/linux/sched.h   |    2 +-
+ include/linux/seccomp.h |   10 ++++++----
+ 2 files changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index ba60897..cad1502 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -1452,7 +1452,7 @@ struct task_struct {
+ 	uid_t loginuid;
+ 	unsigned int sessionid;
+ #endif
+-	seccomp_t seccomp;
++	struct seccomp seccomp;
  
-+/**
-+ * syscall_get_arch - return the AUDIT_ARCH for the current system call
-+ * @task:	task of interest, must be in system call entry tracing
-+ * @regs:	task_pt_regs() of @task
-+ *
-+ * Returns the AUDIT_ARCH_* based on the system call convention in use.
-+ *
-+ * It's only valid to call this when @task is stopped on entry to a system
-+ * call, due to %TIF_SYSCALL_TRACE, %TIF_SYSCALL_AUDIT, or %TIF_SECCOMP.
-+ *
-+ * Note, at present this function is only required with
-+ * CONFIG_HAVE_ARCH_SECCOMP_FILTER.
-+ */
-+int syscall_get_arch(struct task_struct *task, struct pt_regs *regs);
- #endif	/* _ASM_SYSCALL_H */
+ /* Thread group tracking */
+    	u32 parent_exec_id;
+diff --git a/include/linux/seccomp.h b/include/linux/seccomp.h
+index cc7a4e9..d61f27f 100644
+--- a/include/linux/seccomp.h
++++ b/include/linux/seccomp.h
+@@ -7,7 +7,9 @@
+ #include <linux/thread_info.h>
+ #include <asm/seccomp.h>
+ 
+-typedef struct { int mode; } seccomp_t;
++struct seccomp {
++	int mode;
++};
+ 
+ extern void __secure_computing(int);
+ static inline void secure_computing(int this_syscall)
+@@ -19,7 +21,7 @@ static inline void secure_computing(int this_syscall)
+ extern long prctl_get_seccomp(void);
+ extern long prctl_set_seccomp(unsigned long);
+ 
+-static inline int seccomp_mode(seccomp_t *s)
++static inline int seccomp_mode(struct seccomp *s)
+ {
+ 	return s->mode;
+ }
+@@ -28,7 +30,7 @@ static inline int seccomp_mode(seccomp_t *s)
+ 
+ #include <linux/errno.h>
+ 
+-typedef struct { } seccomp_t;
++struct seccomp { };
+ 
+ #define secure_computing(x) do { } while (0)
+ 
+@@ -42,7 +44,7 @@ static inline long prctl_set_seccomp(unsigned long arg2)
+ 	return -EINVAL;
+ }
+ 
+-static inline int seccomp_mode(seccomp_t *s)
++static inline int seccomp_mode(struct seccomp *s)
+ {
+ 	return 0;
+ }
 -- 
 1.7.5.4
 
