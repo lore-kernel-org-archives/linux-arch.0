@@ -1,34 +1,70 @@
-From: James Morris <jmorris@namei.org>
-Subject: Re: [PATCH v17 00/15] seccomp_filter: BPF-based syscall filtering
-Date: Fri, 30 Mar 2012 10:11:32 +1100 (EST)
-Message-ID: <alpine.LRH.2.02.1203301010310.11201@tundra.namei.org>
-References: <1333051320-30872-1-git-send-email-wad@chromium.org>
-Reply-To: kernel-hardening@lists.openwall.com
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [GIT PULL] Disintegrate and kill asm/system.h
+Date: Fri, 30 Mar 2012 10:38:40 +1100
+Message-ID: <20120330103840.790c6486dbe71e5ff901321e@canb.auug.org.au>
+References: <5599.1332958811@redhat.com>
+	<30702.1332989444@neuling.org>
+	<1332994469.3010.7.camel@pasglop>
+	<20120329210117.A9A073E06B4@localhost>
+	<20120330095020.a2e01d86c2d09f186c53d63d@canb.auug.org.au>
+	<CACxGe6sokpFa_KEi+jxPX3caF4CpfxzZ4f53S1Y_+caXVLBNtg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <kernel-hardening-return-1189-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <1333051320-30872-1-git-send-email-wad@chromium.org>
-To: Will Drewry <wad@chromium.org>
-Cc: linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Fri__30_Mar_2012_10_38_40_+1100_ZVyG4WeEOZB/1FkN"
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from haggis.pcug.org.au ([203.10.76.10]:55724 "EHLO
+	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760346Ab2C2Xiu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2012 19:38:50 -0400
+In-Reply-To: <CACxGe6sokpFa_KEi+jxPX3caF4CpfxzZ4f53S1Y_+caXVLBNtg@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Grant Likely <grant.likely@secretlab.ca>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Neuling <mikey@neuling.org>, David Howells <dhowells@redhat.com>, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paul.gortmaker@windriver.com, arnd@arndb.de, hpa@zytor.com
 
-On Thu, 29 Mar 2012, Will Drewry wrote:
+--Signature=_Fri__30_Mar_2012_10_38_40_+1100_ZVyG4WeEOZB/1FkN
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> Please see prior revisions for a detailed discussion of this patch
-> series.
-> 
-> This series is a rebase on to:
->   b5174fa3a7f4f8f150bfa3b917c92608953dfa0f
-> with very minor changes due to rebasing and tweaks noticed by a few
-> initial users.  (I will rebase again for v3.4-rc1 when that time comes.)
+Hi Grant,
 
-I've offered to take this via my tree -- if anyone else wants to merge it 
-via theirs instead, holler.
+On Thu, 29 Mar 2012 16:52:25 -0600 Grant Likely <grant.likely@secretlab.ca>=
+ wrote:
+>
+> Cool.  If that checks out in linux-next, then I'll ask Linus to pull.
+>=20
+> BTW, can you add that branch permanently to linux-next?  That's the
+> branch I'll use when queuing up irqdomain fixes for mainline.
 
--- 
-James Morris
-<jmorris@namei.org>
+OK, I have added that branch.   Meanwhile, Linus has merged that branch
+as well, so I will remove it from my fixes tree again :-)
+
+I *may* get linux-next for today started soon :-)
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+
+--Signature=_Fri__30_Mar_2012_10_38_40_+1100_ZVyG4WeEOZB/1FkN
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+iQIcBAEBCAAGBQJPdPKAAAoJEECxmPOUX5FENgYP/3AcM4jCtROCqhyrdPDyVQBu
+tpkGp+a2QJS71vJ0uE1gUZ77i1sIrdMVMuSxZ0OOCBj9Lml/cHQocT56cgHUIRCm
+ZJMzzD1VFqKgCOIB2Rwquilwb6kXeDQPqzJaTEBYftiimJ7t000omwkQn2GSW45r
+c768/jLZni54AYjKKIyNVLLQ+oZPjrrpW4wI6RqbHCyqNXsV2TZCkm16gllWGcPc
+RNdJDdCJY3RoWYBApgvn3VGvyp5abieNbpRfnW2h3oSOn5bw26zj2JlbtnucVxWa
+4B5rH9DTfjJMIuMXkkP3DFIsJA9AtMSm1q1+X+pkZm7VTyKz6eeus+HDbhHYKczx
+/6QNachzI1SeXDMW30SMuftL8/3Oq3w9/cbs71DDGBjc/yt0oRd2518y6Z+LLmpg
+5s+wolFafsrTxFYVkw46O50Lgy3m4wyxIa38p7+ZFgZ8MCJsAyXr0ZxI0YwlzyiO
+cGO/CgIcRZU1N8ZwXZRskNboIypKwo/abRvWlKi+fo8NTLUgl7R60T0JR4fntSHH
+EqRREoIKQnNCYTbXq7BuS5dQfm9TYkMFVKZJz3XtEa+0FLYs499OV9U0aY4V4rM1
+wZ46sqvFS4AoAZYxG4atxD5TThrbI3KA5BFStuvPUaCVPM/f7Y9pm+of7Z4vGnkK
+q9pPoez/b82tG9vU1+GV
+=oc4z
+-----END PGP SIGNATURE-----
+
+--Signature=_Fri__30_Mar_2012_10_38_40_+1100_ZVyG4WeEOZB/1FkN--
