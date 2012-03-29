@@ -1,84 +1,155 @@
-From: Will Drewry <wad@chromium.org>
-Subject: [PATCH v17 14/15] x86: Enable HAVE_ARCH_SECCOMP_FILTER
-Date: Thu, 29 Mar 2012 15:01:59 -0500
-Message-ID: <1333051320-30872-15-git-send-email-wad@chromium.org>
-References: <1333051320-30872-1-git-send-email-wad@chromium.org>
-Reply-To: kernel-hardening@lists.openwall.com
-Return-path: <kernel-hardening-return-1188-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <1333051320-30872-1-git-send-email-wad@chromium.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org, Will Drewry <wad@chromium.org>
-List-Id: linux-arch.vger.kernel.org
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: [GIT PULL] Disintegrate and kill asm/system.h
+Date: Thu, 29 Mar 2012 15:01:17 -0600
+Message-ID: <20120329210117.A9A073E06B4@localhost>
+References: <5599.1332958811@redhat.com> <30702.1332989444@neuling.org> <1332994469.3010.7.camel@pasglop>
+Mime-Version: 1.0
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pb0-f46.google.com ([209.85.160.46]:51008 "EHLO
+	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933086Ab2C2VBW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2012 17:01:22 -0400
+Received: by pbcun15 with SMTP id un15so620212pbc.19
+        for <linux-arch@vger.kernel.org>; Thu, 29 Mar 2012 14:01:22 -0700 (PDT)
+In-Reply-To: <1332994469.3010.7.camel@pasglop>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michael Neuling <mikey@neuling.org>
+Cc: David Howells <dhowells@redhat.com>, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paul.gortmaker@windriver.com, arnd@arndb.de, hpa@zytor.com, sfr@canb.auug.org.au
 
-Enable support for seccomp filter on x86:
-- asm/tracehook.h exists
-- syscall_get_arguments() works
-- syscall_rollback() works
-- ptrace_report_syscall() works
-- secure_computing() return value is honored (see below)
+On Thu, 29 Mar 2012 15:14:29 +1100, Benjamin Herrenschmidt <benh@kernel.crashing.org> wrote:
+> On Thu, 2012-03-29 at 13:50 +1100, Michael Neuling wrote:
+> > Grant: why does powerpc_debugfs_root appear in generic code?  This seems
+> > very bogus.
+> 
+> Yes, Grant, you should move that to a different (generic) debugfs file,
+> the mapping information is valuable debug data for all architectures
+> that use the remapper, not just powerpc and it's not an ABI (no tool I
+> know of rely on the location of that debugfs file) so feel free to move
+> it around.
 
-This also adds support for honoring the return
-value from secure_computing().
+I could simply drop the powerpc_debugfs_root argument from
+debugfs_create_file() and replace it with NULL.  As you say, this is
+not an ABI and this will solve the problem.
 
-SECCOMP_RET_TRACE and SECCOMP_RET_TRAP may result in seccomp needing to
-skip a system call without killing the process.  This is done by
-returning a non-zero (-1) value from secure_computing.  This change
-makes x86 respect that return value.
+On Wed, 28 Mar 2012 22:02:41 -0700, Linus Torvalds <torvalds@linux-foundation.org> wrote:
+> Grant - what's the plan about that CONFIG_VIRQ_DEBUG thing? In theory
+> something like it could be useful as a generic thing, but at least
+> right now it is clearly powerpc-specific (not just that the config
+> option only exists for powerpc: it has that whole
+> 'powerpc_debugfs_root' thing in it)?
+> 
+> Stephen's patch very much looks like the right thing, but if there was
+> some plan to actually make this generic ...
 
-To ensure that minimal kernel code is exposed, a non-zero return value
-results in an immediate return to user space (with an invalid syscall
-number).
+The plan is to make it generic.  I just ran out of time for this
+cycle to generalize it.  I moved all of irqdomain out of arch/powerpc
+wholesale, which included the debug bits, and then generalized it in
+place.  That was the safest way to transition without causing
+breakage.
 
-v17: added reviewed by and rebased
-v..: all rebases since original introduction.
+Moving it back into powerpc land is a step backwards. I've attached a
+patch that makes it generic instead.  It has been tested on ARM.
 
-Reviewed-by: H. Peter Anvin <hpa@zytor.com>
-Signed-off-by: Will Drewry <wad@chromium.org>
+I've pushed it out to the following branch:
+
+git://git.secretlab.ca/git/linux-2.6 irqdomain/merge
+
 ---
- arch/x86/Kconfig         |    1 +
- arch/x86/kernel/ptrace.c |    7 ++++++-
- 2 files changed, 7 insertions(+), 1 deletions(-)
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 3ad653d..1f23136 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -83,6 +83,7 @@ config X86
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select GENERIC_IOMAP
- 	select DCACHE_WORD_ACCESS if !DEBUG_PAGEALLOC
-+	select HAVE_ARCH_SECCOMP_FILTER
+[PATCH] irqdomain: Remove powerpc dependency from debugfs file
+
+The debugfs code is really generic for all platforms.  This patch removes the
+powerpc-specific directory reference and makes it available to all
+architectures.
+
+Signed-off-by: Grant Likely <grant.likely@secretlab.ca>
+---
+ arch/powerpc/Kconfig.debug |   10 ----------
+ kernel/irq/Kconfig         |   10 ++++++++++
+ kernel/irq/irqdomain.c     |    8 ++++----
+ 3 files changed, 14 insertions(+), 14 deletions(-)
+
+diff --git a/arch/powerpc/Kconfig.debug b/arch/powerpc/Kconfig.debug
+index 72d55db..e5f2689 100644
+--- a/arch/powerpc/Kconfig.debug
++++ b/arch/powerpc/Kconfig.debug
+@@ -114,16 +114,6 @@ config DEBUGGER
+ 	depends on KGDB || XMON
+ 	default y
  
- config INSTRUCTION_DECODER
- 	def_bool (KPROBES || PERF_EVENTS)
-diff --git a/arch/x86/kernel/ptrace.c b/arch/x86/kernel/ptrace.c
-index 8a634c8..a8d3cf9 100644
---- a/arch/x86/kernel/ptrace.c
-+++ b/arch/x86/kernel/ptrace.c
-@@ -1380,7 +1380,11 @@ long syscall_trace_enter(struct pt_regs *regs)
- 		regs->flags |= X86_EFLAGS_TF;
+-config VIRQ_DEBUG
+-	bool "Expose hardware/virtual IRQ mapping via debugfs"
+-	depends on DEBUG_FS
+-	help
+-	  This option will show the mapping relationship between hardware irq
+-	  numbers and virtual irq numbers. The mapping is exposed via debugfs
+-	  in the file powerpc/virq_mapping.
+-
+-	  If you don't know what this means you don't need it.
+-
+ config BDI_SWITCH
+ 	bool "Include BDI-2000 user context switcher"
+ 	depends on DEBUG_KERNEL && PPC32
+diff --git a/kernel/irq/Kconfig b/kernel/irq/Kconfig
+index 5a38bf4..d8e323d 100644
+--- a/kernel/irq/Kconfig
++++ b/kernel/irq/Kconfig
+@@ -56,6 +56,16 @@ config GENERIC_IRQ_CHIP
+ config IRQ_DOMAIN
+ 	bool
  
- 	/* do the secure computing check first */
--	secure_computing(regs->orig_ax);
-+	if (secure_computing(regs->orig_ax)) {
-+		/* seccomp failures shouldn't expose any additional code. */
-+		ret = -1L;
-+		goto out;
-+	}
- 
- 	if (unlikely(test_thread_flag(TIF_SYSCALL_EMU)))
- 		ret = -1L;
-@@ -1405,6 +1409,7 @@ long syscall_trace_enter(struct pt_regs *regs)
- 				    regs->dx, regs->r10);
- #endif
- 
-+out:
- 	return ret ?: regs->orig_ax;
++config IRQ_DOMAIN_DEBUG
++	bool "Expose hardware/virtual IRQ mapping via debugfs"
++	depends on IRQ_DOMAIN && DEBUG_FS
++	help
++	  This option will show the mapping relationship between hardware irq
++	  numbers and Linux irq numbers. The mapping is exposed via debugfs
++	  in the file "virq_mapping".
++
++	  If you don't know what this means you don't need it.
++
+ # Support forced irq threading
+ config IRQ_FORCED_THREADING
+        bool
+diff --git a/kernel/irq/irqdomain.c b/kernel/irq/irqdomain.c
+index af48e59..3601f3f 100644
+--- a/kernel/irq/irqdomain.c
++++ b/kernel/irq/irqdomain.c
+@@ -632,7 +632,7 @@ unsigned int irq_linear_revmap(struct irq_domain *domain,
+ 	return revmap[hwirq];
  }
  
+-#ifdef CONFIG_VIRQ_DEBUG
++#ifdef CONFIG_IRQ_DOMAIN_DEBUG
+ static int virq_debug_show(struct seq_file *m, void *private)
+ {
+ 	unsigned long flags;
+@@ -668,7 +668,7 @@ static int virq_debug_show(struct seq_file *m, void *private)
+ 			data = irq_desc_get_chip_data(desc);
+ 			seq_printf(m, "0x%16p  ", data);
+ 
+-			if (desc->irq_data.domain->of_node)
++			if (desc->irq_data.domain && desc->irq_data.domain->of_node)
+ 				p = desc->irq_data.domain->of_node->full_name;
+ 			else
+ 				p = none;
+@@ -695,14 +695,14 @@ static const struct file_operations virq_debug_fops = {
+ 
+ static int __init irq_debugfs_init(void)
+ {
+-	if (debugfs_create_file("virq_mapping", S_IRUGO, powerpc_debugfs_root,
++	if (debugfs_create_file("irq_domain_mapping", S_IRUGO, NULL,
+ 				 NULL, &virq_debug_fops) == NULL)
+ 		return -ENOMEM;
+ 
+ 	return 0;
+ }
+ __initcall(irq_debugfs_init);
+-#endif /* CONFIG_VIRQ_DEBUG */
++#endif /* CONFIG_IRQ_DOMAIN_DEBUG */
+ 
+ int irq_domain_simple_map(struct irq_domain *d, unsigned int irq,
+ 			  irq_hw_number_t hwirq)
 -- 
-1.7.5.4
+1.7.9.1
