@@ -1,52 +1,42 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [GIT PULL] Disintegrate and kill asm/system.h
-Date: Thu, 29 Mar 2012 19:11:24 +1100
-Message-ID: <1333008684.3010.9.camel@pasglop>
-References: <5599.1332958811@redhat.com> <30702.1332989444@neuling.org>
-	 <20120329135555.06593144b65bf81cc9191f8a@canb.auug.org.au>
-	 <20120329151544.ef2117821dfb459e8b52af48@canb.auug.org.au>
-	 <CA+55aFzn=bsH76hPDUgS-FBP=RVu51gwmRdqjkw5RJO=Q_cRfA@mail.gmail.com>
-	 <20120329154238.1ce219f7c998da45452af4b2@canb.auug.org.au>
-	 <CA+55aFzjQ7qb=bPAj_gGoGLPXOGweTaqtmOBZH4mUt8E_KQwsg@mail.gmail.com>
+From: Cho KyongHo <pullip.cho@samsung.com>
+Subject: arm: mm: fix faulty calculation of area to perform cache operation
+Date: Thu, 29 Mar 2012 18:55:32 +0900
+Message-ID: <002c01cd0d92$14acd5f0$3e0681d0$%cho@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:48366 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751734Ab2C2ILu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 29 Mar 2012 04:11:50 -0400
-In-Reply-To: <CA+55aFzjQ7qb=bPAj_gGoGLPXOGweTaqtmOBZH4mUt8E_KQwsg@mail.gmail.com>
+Received: from mailout1.samsung.com ([203.254.224.24]:30936 "EHLO
+	mailout1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758860Ab2C2Jze (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2012 05:55:34 -0400
+Content-language: ko
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org, Michael Neuling <mikey@neuling.org>, arnd@arndb.de, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, paul.gortmaker@windriver.com, hpa@zytor.com, akpm@linux-foundation.org, ppc-dev <linuxppc-dev@lists.ozlabs.org>
+To: linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, kgene.kim@samsung.com, 'Younglak Kim' <younglak1004.kim@samsung.com>, 'Sanghyun Lee' <sanghyun75.lee@samsung.com>, wooki.min@samsung.com
 
-On Wed, 2012-03-28 at 22:02 -0700, Linus Torvalds wrote:
-> On Wed, Mar 28, 2012 at 9:42 PM, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
-> >
-> > How about this (build tested on powerpc allyesconfig):
-> 
-> Looks better.
-> 
-> Grant - what's the plan about that CONFIG_VIRQ_DEBUG thing? In theory
-> something like it could be useful as a generic thing, but at least
-> right now it is clearly powerpc-specific (not just that the config
-> option only exists for powerpc: it has that whole
-> 'powerpc_debugfs_root' thing in it)?
-> 
-> Stephen's patch very much looks like the right thing, but if there was
-> some plan to actually make this generic ...
+In dma_cache_maint_page(), if offset is larger than PAGE_SIZE,
+len becomes PAGE_SIZE - offset. If size is smaller than
+PAGE_SIZE - offset, next calcuation of left cause overflow.
 
-Yes, as I said earlier I think Grant should make it generic, there's
-no reason to keep that powerpc specific, it's fairly useful and nothing
-in userspace relies on the existing location of the debugfs file that I
-know about.
+Signed-off-by: KyongHo Cho <pullip.cho@samsung.com>
+---
+ arch/arm/mm/dma-mapping.c |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
-Another option is to put the mapping information in /proc/interrupts but
-worry that changing anything in there (like adding a column) will break
-countless userspace tools.
-
-Cheers,
-Ben.
- 
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index 1aa664a..14f53b6 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -517,7 +517,7 @@ static void dma_cache_maint_page(struct page *page, unsigned long offset,
+ 					page += offset / PAGE_SIZE;
+ 					offset %= PAGE_SIZE;
+ 				}
+-				len = PAGE_SIZE - offset;
++				len = min_t(size_t, PAGE_SIZE - offset, len);
+ 			}
+ 			vaddr = kmap_high_get(page);
+ 			if (vaddr) {
+-- 
+1.7.1
