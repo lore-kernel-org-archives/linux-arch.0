@@ -1,45 +1,109 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCHv2 02/14] X86 & IA64: adapt for dma_map_ops changes
-Date: Thu, 29 Mar 2012 15:51:36 +0200 (CEST)
-Message-ID: <alpine.LFD.2.02.1203291545520.2542@ionos>
-References: <1332855768-32583-1-git-send-email-m.szyprowski@samsung.com> <1332855768-32583-3-git-send-email-m.szyprowski@samsung.com>
-Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1332855768-32583-3-git-send-email-m.szyprowski@samsung.com>
-Sender: owner-linux-mm@kvack.org
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Andrew Morton <akpm@linux-foundation.org>, Arnd Bergmann <arnd@arndb.de>, Stephen Rothwell <sfr@canb.auug.org.au>, FUJITA Tomonori <fujita.tomonori@lab.ntt.co.jp>, microblaze-uclinux@itee.uq.edu.au, linux-arch@vger.kernel.org, x86@kernel.org, linux-sh@vger.kernel.org, linux-alpha@vger.kernel.org, sparclinux@vger.kernel.org, linux-ia64@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-mips@linux-mips.org, discuss@x86-64.org, linux-arm-kernel@lists.infradead.org, linux-mm@kvack.org, linaro-mm-sig@lists.linaro.org, Jonathan Corbet <corbet@lwn.net>, Kyungmin Park <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Kevin Cernekee <cernekee@gmail.com>, Dezhong Diao <dediao@cisco.com>, Richard Kuo <rkuo@codeau>
+From: Will Drewry <wad@chromium.org>
+Subject: [PATCH v17 00/15] seccomp_filter: BPF-based syscall filtering
+Date: Thu, 29 Mar 2012 15:01:45 -0500
+Message-ID: <1333051320-30872-1-git-send-email-wad@chromium.org>
+Reply-To: kernel-hardening@lists.openwall.com
+Return-path: <kernel-hardening-return-1173-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
+List-Post: <mailto:kernel-hardening@lists.openwall.com>
+List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
+List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
+List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
+To: linux-kernel@vger.kernel.org
+Cc: linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org, Will Drewry <wad@chromium.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, 27 Mar 2012, Marek Szyprowski wrote:
-> From: Andrzej Pietrasiewicz <andrzej.p@samsung.com>
-> -static inline void *dma_alloc_coherent(struct device *dev, size_t size,
-> -				       dma_addr_t *daddr, gfp_t gfp)
-> +#define dma_alloc_coherent(d,s,h,f)	dma_alloc_attrs(d,s,h,f,NULL)
+Please see prior revisions for a detailed discussion of this patch
+series.
 
-Please make this an inline function.
+This series is a rebase on to:
+  b5174fa3a7f4f8f150bfa3b917c92608953dfa0f
+with very minor changes due to rebasing and tweaks noticed by a few
+initial users.  (I will rebase again for v3.4-rc1 when that time comes.)
 
->  
-> +#define dma_alloc_coherent(d,s,h,f)	dma_alloc_attrs(d,s,h,f,NULL)
+I realize now is a noisy time, but I wanted to get the most current
+revision on the list.
 
-Inline please.
+As per prior posts, I am now including luto@'s PR_SET_NO_NEW_PRIVS
+changes in the series for clarity and ease of testing.  This latest
+rebased required required bumping the prctl() numbers for the
+NO_NEW_PRIVS work due to the new reaper options.
 
-> -static inline void dma_free_coherent(struct device *dev, size_t size,
-> -				     void *vaddr, dma_addr_t bus)
-> +#define dma_free_coherent(d,s,c,h) dma_free_attrs(d,s,c,h,NULL)
+For those inclined, the whole series can be found here too:
+   https://github.com/redpig/linux/tree/seccomp
 
-Ditto
+At this point, I'm not aware of any outstanding concerns, complaints,
+etc. If there are any, I'd love to know.
 
-Reviewed-by: Thomas Gleixner <tglx@linutronix.de>
+Thanks!
+will
 
-Thanks,
 
-	tglx
+Andy Lutomirski (1):
+  Add PR_{GET,SET}_NO_NEW_PRIVS to prevent execve from granting privs
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+John Johansen (1):
+  Fix apparmor for PR_{GET,SET}_NO_NEW_PRIVS
+
+Kees Cook (1):
+  seccomp: remove duplicated failure logging
+
+Will Drewry (12):
+  sk_run_filter: add BPF_S_ANC_SECCOMP_LD_W
+  net/compat.c,linux/filter.h: share compat_sock_fprog
+  seccomp: kill the seccomp_t typedef
+  arch/x86: add syscall_get_arch to syscall.h
+  asm/syscall.h: add syscall_get_arch
+  seccomp: add system call filtering using BPF
+  seccomp: add SECCOMP_RET_ERRNO
+  signal, x86: add SIGSYS info and make it synchronous.
+  seccomp: Add SECCOMP_RET_TRAP
+  ptrace,seccomp: Add PTRACE_SECCOMP support
+  x86: Enable HAVE_ARCH_SECCOMP_FILTER
+  Documentation: prctl/seccomp_filter
+
+ Documentation/prctl/seccomp_filter.txt |  163 ++++++++++++
+ arch/Kconfig                           |   24 ++
+ arch/x86/Kconfig                       |    1 +
+ arch/x86/ia32/ia32_signal.c            |    4 +
+ arch/x86/include/asm/ia32.h            |    6 +
+ arch/x86/include/asm/syscall.h         |   23 ++
+ arch/x86/kernel/ptrace.c               |    7 +-
+ fs/exec.c                              |   10 +-
+ include/asm-generic/siginfo.h          |   22 ++
+ include/asm-generic/syscall.h          |   14 +
+ include/linux/Kbuild                   |    1 +
+ include/linux/audit.h                  |    8 +-
+ include/linux/filter.h                 |   12 +
+ include/linux/prctl.h                  |   15 +
+ include/linux/ptrace.h                 |    5 +-
+ include/linux/sched.h                  |    4 +-
+ include/linux/seccomp.h                |  105 +++++++-
+ include/linux/security.h               |    1 +
+ kernel/auditsc.c                       |   10 +-
+ kernel/fork.c                          |    3 +
+ kernel/seccomp.c                       |  447 ++++++++++++++++++++++++++++++--
+ kernel/signal.c                        |    9 +-
+ kernel/sys.c                           |   12 +-
+ net/compat.c                           |    8 -
+ net/core/filter.c                      |    6 +
+ samples/Makefile                       |    2 +-
+ samples/seccomp/Makefile               |   38 +++
+ samples/seccomp/bpf-direct.c           |  176 +++++++++++++
+ samples/seccomp/bpf-fancy.c            |  102 ++++++++
+ samples/seccomp/bpf-helper.c           |   89 +++++++
+ samples/seccomp/bpf-helper.h           |  238 +++++++++++++++++
+ samples/seccomp/dropper.c              |   68 +++++
+ security/apparmor/domain.c             |   35 +++
+ security/commoncap.c                   |    7 +-
+ security/selinux/hooks.c               |   10 +-
+ 35 files changed, 1628 insertions(+), 57 deletions(-)
+ create mode 100644 Documentation/prctl/seccomp_filter.txt
+ create mode 100644 samples/seccomp/Makefile
+ create mode 100644 samples/seccomp/bpf-direct.c
+ create mode 100644 samples/seccomp/bpf-fancy.c
+ create mode 100644 samples/seccomp/bpf-helper.c
+ create mode 100644 samples/seccomp/bpf-helper.h
+ create mode 100644 samples/seccomp/dropper.c
+
+-- 
+1.7.5.4
