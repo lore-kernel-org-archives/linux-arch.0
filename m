@@ -1,145 +1,113 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout4.w1.samsung.com ([210.118.77.14]:35030 "EHLO
-	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750796Ab2C2IAV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2012 04:00:21 -0400
-MIME-version: 1.0
-Content-transfer-encoding: 7BIT
-Content-type: text/plain; charset=us-ascii
-Date: Thu, 29 Mar 2012 10:00:14 +0200
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [PATCHv7 9/9] ARM: dma-mapping: add support for IOMMU mapper
-In-reply-to: <20120329101927.8ab6b1993475b7e16ae2258f@nvidia.com>
-Message-ID: <01b301cd0d81$f935d750$eba185f0$%szyprowski@samsung.com>
-Content-language: pl
-References: <1330527862-16234-1-git-send-email-m.szyprowski@samsung.com>
- <1330527862-16234-10-git-send-email-m.szyprowski@samsung.com>
- <20120329101927.8ab6b1993475b7e16ae2258f@nvidia.com>
+Received: from mail-gy0-f174.google.com ([209.85.160.174]:60415 "EHLO
+	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759570Ab2C2UCT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Mar 2012 16:02:19 -0400
+Received: by ghrr11 with SMTP id r11so1824021ghr.19
+        for <linux-arch@vger.kernel.org>; Thu, 29 Mar 2012 13:02:18 -0700 (PDT)
+From: Will Drewry <wad@chromium.org>
+Subject: [PATCH v17 00/15] seccomp_filter: BPF-based syscall filtering
+Date: Thu, 29 Mar 2012 15:01:45 -0500
+Message-ID: <1333051320-30872-1-git-send-email-wad@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Hiroshi Doyu' <hdoyu@nvidia.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-samsung-soc@vger.kernel.org, iommu@lists.linux-foundation.org, 'Shariq Hasnain' <shariq.hasnain@linaro.org>, 'Arnd Bergmann' <arnd@arndb.de>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Krishna Reddy' <vdumpa@nvidia.com>, 'Kyungmin Park' <kyungmin.park@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'KyongHo Cho' <pullip.cho@samsung.com>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>
-Message-ID: <20120329080014.DcjusO46gsom3X2mBs6qdvegq49aMK_ClZff_olHf_c@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org, Will Drewry <wad@chromium.org>
+Message-ID: <20120329200145.9mqrazddztxIkq2O20ayYFFKk6bqAuBsN0pmIQE_TcE@z>
 
-Hello,
+Please see prior revisions for a detailed discussion of this patch
+series.
 
-On Thursday, March 29, 2012 9:19 AM Hiroshi Doyu wrote:
+This series is a rebase on to:
+  b5174fa3a7f4f8f150bfa3b917c92608953dfa0f
+with very minor changes due to rebasing and tweaks noticed by a few
+initial users.  (I will rebase again for v3.4-rc1 when that time comes.)
 
-> On Wed, 29 Feb 2012 16:04:22 +0100
-> Marek Szyprowski <m.szyprowski@samsung.com> wrote:
-> 
-> > This patch add a complete implementation of DMA-mapping API for
-> > devices that have IOMMU support. All DMA-mapping calls are supported.
-> >
-> > This patch contains some of the code kindly provided by Krishna Reddy
-> > <vdumpa@nvidia.com> and Andrzej Pietrasiewicz <andrzej.p@samsung.com>
-> >
-> > Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
-> > Signed-off-by: Kyungmin Park <kyungmin.park@samsung.com>
-> > Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-> > ---
-> >  arch/arm/Kconfig                 |    8 +
-> >  arch/arm/include/asm/device.h    |    3 +
-> >  arch/arm/include/asm/dma-iommu.h |   34 ++
-> >  arch/arm/mm/dma-mapping.c        |  726 +++++++++++++++++++++++++++++++++++++-
-> >  arch/arm/mm/vmregion.h           |    2 +-
-> >  5 files changed, 758 insertions(+), 15 deletions(-)
-> >  create mode 100644 arch/arm/include/asm/dma-iommu.h
-> >
-> 
-> <snip>
-> 
-> > +/*
-> > + * Map a part of the scatter-gather list into contiguous io address space
-> > + */
-> > +static int __map_sg_chunk(struct device *dev, struct scatterlist *sg,
-> > +                         size_t size, dma_addr_t *handle,
-> > +                         enum dma_data_direction dir)
-> > +{
-> > +       struct dma_iommu_mapping *mapping = dev->archdata.mapping;
-> > +       dma_addr_t iova, iova_base;
-> > +       int ret = 0;
-> > +       unsigned int count;
-> > +       struct scatterlist *s;
-> > +
-> > +       size = PAGE_ALIGN(size);
-> > +       *handle = ARM_DMA_ERROR;
-> > +
-> > +       iova_base = iova = __alloc_iova(mapping, size);
-> > +       if (iova == ARM_DMA_ERROR)
-> > +               return -ENOMEM;
-> > +
-> > +       for (count = 0, s = sg; count < (size >> PAGE_SHIFT); s = sg_next(s))
-> > +       {
-> > +               phys_addr_t phys = page_to_phys(sg_page(s));
-> > +               unsigned int len = PAGE_ALIGN(s->offset + s->length);
-> > +
-> > +               if (!arch_is_coherent())
-> > +                       __dma_page_cpu_to_dev(sg_page(s), s->offset, s->length, dir);
-> > +
-> > +               ret = iommu_map(mapping->domain, iova, phys, len, 0);
-> > +               if (ret < 0)
-> > +                       goto fail;
-> > +               count += len >> PAGE_SHIFT;
-> > +               iova += len;
-> > +       }
-> > +       *handle = iova_base;
-> > +
-> > +       return 0;
-> > +fail:
-> > +       iommu_unmap(mapping->domain, iova_base, count * PAGE_SIZE);
-> > +       __free_iova(mapping, iova_base, size);
-> > +       return ret;
-> > +}
-> 
-> Do we need to set dma_address as below?
+I realize now is a noisy time, but I wanted to get the most current
+revision on the list.
 
-Nope, this one is not correct. Please check the arm_iommu_map_sg() function. It calls 
-__map_sg_chunk() and gives it &dma->dma_address as one of the arguments, so the dma 
-address is correctly stored in the scatter list. Please note that scatterlist is really
-non-trivial structure and information about physical memory pages/chunks is disjoint 
-from the information about dma address space chunks, although both are stored on the 
-same list. In arm_iommu_map_sg() 's' pointer is used for physical memory chunks and 
-'dma' pointer is used for dma address space chunks. 
+As per prior posts, I am now including luto@'s PR_SET_NO_NEW_PRIVS
+changes in the series for clarity and ease of testing.  This latest
+rebased required required bumping the prctl() numbers for the
+NO_NEW_PRIVS work due to the new reaper options.
 
-The number of dma address space chunks (returned by arm_iommu_map_sq) can be lower 
-than the number of physical memory chunks (given as nents argument).
+For those inclined, the whole series can be found here too:
+   https://github.com/redpig/linux/tree/seccomp
 
-In case of IOMMU you usually construct the scatter list in such a way, that you get
-only one dma address chunk (so in fact you get a buffer mapped contiguously in 
-virtual io address space).
+At this point, I'm not aware of any outstanding concerns, complaints,
+etc. If there are any, I'd love to know.
 
-> From e8bcc3cdac5375b5d7f5ac5b3f716a11c1008f38 Mon Sep 17 00:00:00 2001
-> From: Hiroshi DOYU <hdoyu@nvidia.com>
-> Date: Thu, 29 Mar 2012 09:59:04 +0300
-> Subject: [PATCH 1/1] ARM: dma-mapping: Fix dma_address in sglist
-> 
-> s->dma_address wasn't set at mapping.
-> 
-> Signed-off-by: Hiroshi DOYU <hdoyu@nvidia.com>
-> ---
->  arch/arm/mm/dma-mapping.c |    2 ++
->  1 files changed, 2 insertions(+), 0 deletions(-)
-> 
-> diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-> index 3347c37..11a9d65 100644
-> --- a/arch/arm/mm/dma-mapping.c
-> +++ b/arch/arm/mm/dma-mapping.c
-> @@ -1111,6 +1111,8 @@ static int __map_sg_chunk(struct device *dev, struct scatterlist *sg,
->  		ret = iommu_map(mapping->domain, iova, phys, len, 0);
->  		if (ret < 0)
->  			goto fail;
-> +		s->dma_address = iova;
-> +
->  		count += len >> PAGE_SHIFT;
->  		iova += len;
->  	}
+Thanks!
+will
 
-The above patch is not needed at all.
 
-Best regards
+Andy Lutomirski (1):
+  Add PR_{GET,SET}_NO_NEW_PRIVS to prevent execve from granting privs
+
+John Johansen (1):
+  Fix apparmor for PR_{GET,SET}_NO_NEW_PRIVS
+
+Kees Cook (1):
+  seccomp: remove duplicated failure logging
+
+Will Drewry (12):
+  sk_run_filter: add BPF_S_ANC_SECCOMP_LD_W
+  net/compat.c,linux/filter.h: share compat_sock_fprog
+  seccomp: kill the seccomp_t typedef
+  arch/x86: add syscall_get_arch to syscall.h
+  asm/syscall.h: add syscall_get_arch
+  seccomp: add system call filtering using BPF
+  seccomp: add SECCOMP_RET_ERRNO
+  signal, x86: add SIGSYS info and make it synchronous.
+  seccomp: Add SECCOMP_RET_TRAP
+  ptrace,seccomp: Add PTRACE_SECCOMP support
+  x86: Enable HAVE_ARCH_SECCOMP_FILTER
+  Documentation: prctl/seccomp_filter
+
+ Documentation/prctl/seccomp_filter.txt |  163 ++++++++++++
+ arch/Kconfig                           |   24 ++
+ arch/x86/Kconfig                       |    1 +
+ arch/x86/ia32/ia32_signal.c            |    4 +
+ arch/x86/include/asm/ia32.h            |    6 +
+ arch/x86/include/asm/syscall.h         |   23 ++
+ arch/x86/kernel/ptrace.c               |    7 +-
+ fs/exec.c                              |   10 +-
+ include/asm-generic/siginfo.h          |   22 ++
+ include/asm-generic/syscall.h          |   14 +
+ include/linux/Kbuild                   |    1 +
+ include/linux/audit.h                  |    8 +-
+ include/linux/filter.h                 |   12 +
+ include/linux/prctl.h                  |   15 +
+ include/linux/ptrace.h                 |    5 +-
+ include/linux/sched.h                  |    4 +-
+ include/linux/seccomp.h                |  105 +++++++-
+ include/linux/security.h               |    1 +
+ kernel/auditsc.c                       |   10 +-
+ kernel/fork.c                          |    3 +
+ kernel/seccomp.c                       |  447 ++++++++++++++++++++++++++++++--
+ kernel/signal.c                        |    9 +-
+ kernel/sys.c                           |   12 +-
+ net/compat.c                           |    8 -
+ net/core/filter.c                      |    6 +
+ samples/Makefile                       |    2 +-
+ samples/seccomp/Makefile               |   38 +++
+ samples/seccomp/bpf-direct.c           |  176 +++++++++++++
+ samples/seccomp/bpf-fancy.c            |  102 ++++++++
+ samples/seccomp/bpf-helper.c           |   89 +++++++
+ samples/seccomp/bpf-helper.h           |  238 +++++++++++++++++
+ samples/seccomp/dropper.c              |   68 +++++
+ security/apparmor/domain.c             |   35 +++
+ security/commoncap.c                   |    7 +-
+ security/selinux/hooks.c               |   10 +-
+ 35 files changed, 1628 insertions(+), 57 deletions(-)
+ create mode 100644 Documentation/prctl/seccomp_filter.txt
+ create mode 100644 samples/seccomp/Makefile
+ create mode 100644 samples/seccomp/bpf-direct.c
+ create mode 100644 samples/seccomp/bpf-fancy.c
+ create mode 100644 samples/seccomp/bpf-helper.c
+ create mode 100644 samples/seccomp/bpf-helper.h
+ create mode 100644 samples/seccomp/dropper.c
+
 -- 
-Marek Szyprowski
-Samsung Poland R&D Center
-
+1.7.5.4
 
