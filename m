@@ -1,23 +1,51 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH summary] arch/tile changes for 3.4
-Date: Fri, 30 Mar 2012 23:40:11 +0100
-Message-ID: <13853.1333147211@redhat.com>
-References: <4F761E1C.80808@tilera.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53125 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S935279Ab2C3WkR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 Mar 2012 18:40:17 -0400
-In-Reply-To: <4F761E1C.80808@tilera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: dhowells@redhat.com, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: [GIT PULL] Disintegrate and kill asm/system.h
+Date: Fri, 30 Mar 2012 15:46:17 -0600
+Message-ID: <20120330214617.B97523E04A4@localhost>
+References: <5599.1332958811@redhat.com> <30702.1332989444@neuling.org> <1332994469.3010.7.camel@pasglop> <20120330074851.GD26543@linux-sh.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20120330074851.GD26543@linux-sh.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Paul Mundt <lethal@linux-sh.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Michael Neuling <mikey@neuling.org>, David Howells <dhowells@redhat.com>, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paul.gortmaker@windriver.com, arnd@arndb.de, hpa@zytor.com, sfr@canb.auug.org.au
+List-Id: linux-arch.vger.kernel.org
 
-Chris Metcalf <cmetcalf@tilera.com> wrote:
+On Fri, 30 Mar 2012 16:48:52 +0900, Paul Mundt <lethal@linux-sh.org> wrote:
+> On Thu, Mar 29, 2012 at 03:14:29PM +1100, Benjamin Herrenschmidt wrote:
+> > > We are currently getting:
+> > > kernel/irq/irqdomain.c: In function 'irq_debugfs_init':
+> > > kernel/irq/irqdomain.c:698:63: error: 'powerpc_debugfs_root' undeclared (first use in this function)
+> > > kernel/irq/irqdomain.c:698:63: note: each undeclared identifier is reported only once for each function it appears in
+> > > 
+> > >   ae3a197 Disintegrate asm/system.h for PowerPC
+> > > is conflicting with 
+> > >   cc79ca6 irq_domain: Move irq_domain code from powerpc to kernel/irq
+> > > from Grant's tree.
+> > > 
+> > > Adding the following patch fixes it for pseries_defconfig, although I'm
+> > > not sure it's the right fix.
+> > 
+> > That will do as a quick fix (Linus, can you take it now ?), however..
+> > 
+> > > Grant: why does powerpc_debugfs_root appear in generic code?  This seems
+> > > very bogus.
+> > 
+> > Yes, Grant, you should move that to a different (generic) debugfs file,
+> > the mapping information is valuable debug data for all architectures
+> > that use the remapper, not just powerpc and it's not an ABI (no tool I
+> > know of rely on the location of that debugfs file) so feel free to move
+> > it around.
+> > 
+> There is a arch_debugfs_dir defined by linux/debugfs.h, but at the moment
+> it's only provided by x86 and sh.
 
->  arch/tile/include/asm/system.h                     |   10 +-
+Since this data can be used by any arch now, it doesn't make much
+sense to put it in arch_debugfs_dir.  I've put it in
+/debug/irq_domain_mapping which should be fine.
 
-asm/system.h is no more.
+g.
 
-David
+
+-- 
+Grant Likely, B.Sc, P.Eng.
+Secret Lab Technologies,Ltd.
