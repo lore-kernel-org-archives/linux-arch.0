@@ -1,46 +1,88 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [GIT PULL] Disintegrate and kill asm/system.h
-Date: Fri, 30 Mar 2012 16:48:52 +0900
-Message-ID: <20120330074851.GD26543@linux-sh.org>
-References: <5599.1332958811@redhat.com> <30702.1332989444@neuling.org> <1332994469.3010.7.camel@pasglop>
+From: Michal Simek <michal.simek-g5w7nrANp4BDPfheJLI6IQ@public.gmane.org>
+Subject: Re: [microblaze-linux] [PATCH 17/38] Disintegrate asm/system.h for Microblaze [ver #3]
+Date: Fri, 30 Mar 2012 11:58:22 +0200
+Message-ID: <CAE=Ag5==ZSdQR4VtWyNVRu4NrM2B55WL5sukA8AVKmNLvd1F-Q@mail.gmail.com>
+References: <20120315205514.28759.58969.stgit@warthog.procyon.org.uk>
+	<20120315205754.28759.56543.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from linux-sh.org ([111.68.239.195]:39777 "EHLO linux-sh.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759331Ab2C3Hta (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 30 Mar 2012 03:49:30 -0400
-Content-Disposition: inline
-In-Reply-To: <1332994469.3010.7.camel@pasglop>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Michael Neuling <mikey@neuling.org>, David Howells <dhowells@redhat.com>, Grant Likely <grant.likely@secretlab.ca>, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paul.gortmaker@windriver.com, arnd@arndb.de, hpa@zytor.com, sfr@canb.auug.org.au
+Content-Type: multipart/mixed; boundary="===============1943313747=="
+Return-path: <microblaze-linux-bounces-FR6EJeJVuqfA6Z3fQjNZrN9u6TNh0Fb7@public.gmane.org>
+In-Reply-To: <20120315205754.28759.56543.stgit-S6HVgzuS8uM4Awkfq6JHfwNdhmdF6hFW@public.gmane.org>
+List-Unsubscribe: <https://lists.eait.uq.edu.au/mailman/listinfo/microblaze-linux>,
+	<mailto:microblaze-linux-request-FR6EJeJVuqfA6Z3fQjNZrN9u6TNh0Fb7@public.gmane.org?subject=unsubscribe>
+List-Archive: <https://lists.eait.uq.edu.au/pipermail/microblaze-linux>
+List-Post: <mailto:microblaze-linux-FR6EJeJVuqfA6Z3fQjNZrN9u6TNh0Fb7@public.gmane.org>
+List-Help: <mailto:microblaze-linux-request-FR6EJeJVuqfA6Z3fQjNZrN9u6TNh0Fb7@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.eait.uq.edu.au/mailman/listinfo/microblaze-linux>,
+	<mailto:microblaze-linux-request-FR6EJeJVuqfA6Z3fQjNZrN9u6TNh0Fb7@public.gmane.org?subject=subscribe>
+Errors-To: microblaze-linux-bounces-FR6EJeJVuqfA6Z3fQjNZrN9u6TNh0Fb7@public.gmane.org
+To: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, paul.gortmaker-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, arnd-r2nGTMty4D4@public.gmane.org, microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Mar 29, 2012 at 03:14:29PM +1100, Benjamin Herrenschmidt wrote:
-> > We are currently getting:
-> > kernel/irq/irqdomain.c: In function 'irq_debugfs_init':
-> > kernel/irq/irqdomain.c:698:63: error: 'powerpc_debugfs_root' undeclared (first use in this function)
-> > kernel/irq/irqdomain.c:698:63: note: each undeclared identifier is reported only once for each function it appears in
-> > 
-> >   ae3a197 Disintegrate asm/system.h for PowerPC
-> > is conflicting with 
-> >   cc79ca6 irq_domain: Move irq_domain code from powerpc to kernel/irq
-> > from Grant's tree.
-> > 
-> > Adding the following patch fixes it for pseries_defconfig, although I'm
-> > not sure it's the right fix.
-> 
-> That will do as a quick fix (Linus, can you take it now ?), however..
-> 
-> > Grant: why does powerpc_debugfs_root appear in generic code?  This seems
-> > very bogus.
-> 
-> Yes, Grant, you should move that to a different (generic) debugfs file,
-> the mapping information is valuable debug data for all architectures
-> that use the remapper, not just powerpc and it's not an ABI (no tool I
-> know of rely on the location of that debugfs file) so feel free to move
-> it around.
-> 
-There is a arch_debugfs_dir defined by linux/debugfs.h, but at the moment
-it's only provided by x86 and sh.
+--===============1943313747==
+Content-Type: multipart/alternative; boundary="001636eee35a84362c04bc72e1fb"
+
+--001636eee35a84362c04bc72e1fb
+Content-Type: text/plain; charset="ISO-8859-1"
+
+HI David,
+
+On 15 March 2012 21:57, David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org> wrote:
+
+> Disintegrate asm/system.h for Microblaze.  Not compiled.
+>
+> Signed-off-by: David Howells <dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org>
+> cc: microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org
+>
+
+There are two compilation errors. I have created patch to fix it. Will add
+it to mainline through
+my microblaze repo.
+Next time please copy directly me <monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org> instead of mailng list.
+
+Thanks,
+Michal
+
+-- 
+Michal Simek, Ing. (M.Eng)
+PetaLogix - Linux Solutions for a Reconfigurable World
+w: www.petalogix.com p: +61-7-30090663,+42-0-721842854 f: +61-7-30090663
+
+--001636eee35a84362c04bc72e1fb
+Content-Type: text/html; charset="ISO-8859-1"
+Content-Transfer-Encoding: quoted-printable
+
+HI David,<br><br><div class=3D"gmail_quote">On 15 March 2012 21:57, David H=
+owells <span dir=3D"ltr">&lt;<a href=3D"mailto:dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org">dhowell=
+s@redhat.com</a>&gt;</span> wrote:<br><blockquote class=3D"gmail_quote" sty=
+le=3D"margin:0pt 0pt 0pt 0.8ex;border-left:1px solid rgb(204,204,204);paddi=
+ng-left:1ex">
+Disintegrate asm/system.h for Microblaze. =A0Not compiled.<br>
+<br>
+Signed-off-by: David Howells &lt;<a href=3D"mailto:dhowells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org">dho=
+wells-H+wXaHxf7aLQT0dZR+AlfA@public.gmane.org</a>&gt;<br>
+cc: <a href=3D"mailto:microblaze-uclinux-rVRm/Wmeqae7NGdpmJTKYQ@public.gmane.org">microblaze-uclinux=
+@itee.uq.edu.au</a><br></blockquote></div><br>There are two compilation err=
+ors. I have created patch to fix it. Will add it to mainline through<br>
+my microblaze repo. <br>Next time please copy directly me &lt;<a href=3D"ma=
+ilto:monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org">monstr-pSz03upnqPeHXe+LvDLADg@public.gmane.org</a>&gt; instead of mailng list.<br>=
+<br>Thanks,<br>Michal<br><br>-- <br>Michal Simek, Ing. (M.Eng)<br>PetaLogix=
+ - Linux Solutions for a Reconfigurable World<br>
+w: <a href=3D"http://www.petalogix.com">www.petalogix.com</a> p: +61-7-3009=
+0663,+42-0-721842854 f: +61-7-30090663<br>
+
+--001636eee35a84362c04bc72e1fb--
+
+--===============1943313747==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+_______________________________________________
+microblaze-linux mailing list
+microblaze-linux-FR6EJeJVuqfA6Z3fQjNZrN9u6TNh0Fb7@public.gmane.org
+https://lists.eait.uq.edu.au/mailman/listinfo/microblaze-linux
+
+--===============1943313747==--
