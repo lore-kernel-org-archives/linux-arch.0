@@ -1,51 +1,78 @@
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [GIT PULL] Disintegrate and kill asm/system.h
-Date: Fri, 30 Mar 2012 15:46:17 -0600
-Message-ID: <20120330214617.B97523E04A4@localhost>
-References: <5599.1332958811@redhat.com> <30702.1332989444@neuling.org> <1332994469.3010.7.camel@pasglop> <20120330074851.GD26543@linux-sh.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20120330074851.GD26543@linux-sh.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Mundt <lethal@linux-sh.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Michael Neuling <mikey@neuling.org>, David Howells <dhowells@redhat.com>, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paul.gortmaker@windriver.com, arnd@arndb.de, hpa@zytor.com, sfr@canb.auug.org.au
-List-Id: linux-arch.vger.kernel.org
+From: Vladimir Murzin <murzin.v@gmail.com>
+Subject: Re: [PATCH v17 08/15] seccomp: add system call filtering using BPF
+Date: Sat, 31 Mar 2012 08:40:33 +0400
+Message-ID: <20120331044030.GB3077@pinguin>
+References: <1333051320-30872-1-git-send-email-wad@chromium.org>
+ <1333051320-30872-9-git-send-email-wad@chromium.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=koi8-r
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-bk0-f46.google.com ([209.85.214.46]:62200 "EHLO
+	mail-bk0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750748Ab2CaEl7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 Mar 2012 00:41:59 -0400
+Content-Disposition: inline
+In-Reply-To: <1333051320-30872-9-git-send-email-wad@chromium.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Drewry <wad@chromium.org>
+Cc: linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org
 
-On Fri, 30 Mar 2012 16:48:52 +0900, Paul Mundt <lethal@linux-sh.org> wrote:
-> On Thu, Mar 29, 2012 at 03:14:29PM +1100, Benjamin Herrenschmidt wrote:
-> > > We are currently getting:
-> > > kernel/irq/irqdomain.c: In function 'irq_debugfs_init':
-> > > kernel/irq/irqdomain.c:698:63: error: 'powerpc_debugfs_root' undeclared (first use in this function)
-> > > kernel/irq/irqdomain.c:698:63: note: each undeclared identifier is reported only once for each function it appears in
-> > > 
-> > >   ae3a197 Disintegrate asm/system.h for PowerPC
-> > > is conflicting with 
-> > >   cc79ca6 irq_domain: Move irq_domain code from powerpc to kernel/irq
-> > > from Grant's tree.
-> > > 
-> > > Adding the following patch fixes it for pseries_defconfig, although I'm
-> > > not sure it's the right fix.
-> > 
-> > That will do as a quick fix (Linus, can you take it now ?), however..
-> > 
-> > > Grant: why does powerpc_debugfs_root appear in generic code?  This seems
-> > > very bogus.
-> > 
-> > Yes, Grant, you should move that to a different (generic) debugfs file,
-> > the mapping information is valuable debug data for all architectures
-> > that use the remapper, not just powerpc and it's not an ABI (no tool I
-> > know of rely on the location of that debugfs file) so feel free to move
-> > it around.
-> > 
-> There is a arch_debugfs_dir defined by linux/debugfs.h, but at the moment
-> it's only provided by x86 and sh.
+Hi Will,
 
-Since this data can be used by any arch now, it doesn't make much
-sense to put it in arch_debugfs_dir.  I've put it in
-/debug/irq_domain_mapping which should be fine.
+On Thu, Mar 29, 2012 at 03:01:53PM -0500, Will Drewry wrote:
 
-g.
+snipped
 
+> +
+> +/* Limit any path through the tree to 256KB worth of instructions. */
+> +#define MAX_INSNS_PER_PATH ((1 << 18) / sizeof(struct sock_filter))
+> +
+> +static void seccomp_filter_log_failure(int syscall)
+> +{
+> +	int compat = 0;
+> +#ifdef CONFIG_COMPAT
+> +	compat = is_compat_task();
+> +#endif
+> +	pr_info("%s[%d]: %ssystem call %d blocked at 0x%lx\n",
+> +		current->comm, task_pid_nr(current),
+> +		(compat ? "compat " : ""),
+> +		syscall, KSTK_EIP(current));
+> +}
 
--- 
-Grant Likely, B.Sc, P.Eng.
-Secret Lab Technologies,Ltd.
+snipped
+
+> +/**
+> + * seccomp_attach_user_filter - attaches a user-supplied sock_fprog
+> + * @user_filter: pointer to the user data containing a sock_fprog.
+> + *
+> + * Returns 0 on success and non-zero otherwise.
+> + */
+> +long seccomp_attach_user_filter(char __user *user_filter)
+> +{
+> +	struct sock_fprog fprog;
+> +	long ret = -EFAULT;
+> +
+> +#ifdef CONFIG_COMPAT
+> +	if (is_compat_task()) {
+> +		struct compat_sock_fprog fprog32;
+> +		if (copy_from_user(&fprog32, user_filter, sizeof(fprog32)))
+> +			goto out;
+> +		fprog.len = fprog32.len;
+> +		fprog.filter = compat_ptr(fprog32.filter);
+> +	} else /* falls through to the if below. */
+> +#endif
+> +	if (copy_from_user(&fprog, user_filter, sizeof(fprog)))
+> +		goto out;
+> +	ret = seccomp_attach_filter(&fprog);
+> +out:
+> +	return ret;
+> +}
+
+Do we really need to surround is_compat_task() with CNFIG_COMPAT?
+It seems that this case has already handled in compat.h [1]
+
+[1] http://lxr.linux.no/#linux+v3.3/include/linux/compat.h#L566
+
+Best wishes
+Vladimir Murzin
