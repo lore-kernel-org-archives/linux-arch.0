@@ -1,32 +1,55 @@
-From: "Mr.Vincent Cheng" <vperez@uady.mx>
-Subject: (unknown)
-Date: Sat, 31 Mar 2012 05:32:16 -0600
-Message-ID: <71dbf0fd51bcc7b2f811525d55714da6.squirrel@webmail.uady.mx>
-Reply-To: vincentcheng049@yahoo.co.jp
+From: Kautuk Consul <consul.kautuk@gmail.com>
+Subject: [PATCH 0/19 v2] mmu: arch/mm: Port OOM changes to arch page fault handlers.
+Date: Sat, 31 Mar 2012 07:58:04 -0400
+Message-ID: <CAFPAmTT19hFymnFftLkV1jQjYmJgyk3y4b-kTXO3VP1YCR-_fQ@mail.gmail.com>
+References: <CAFPAmTQs9dOpQTaXU=6Or66YU+my_CnPw33TE4h++YArBNa38g@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.uady.mx ([148.209.1.59]:58422 "EHLO mail.uady.mx"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757118Ab2CaL5r (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 31 Mar 2012 07:57:47 -0400
-Subject: 
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <CAFPAmTQs9dOpQTaXU=6Or66YU+my_CnPw33TE4h++YArBNa38g@mail.gmail.com>
+Sender: linux-m68k-owner@vger.kernel.org
+To: linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux@lists.openrisc.net, linux-am33-list@redhat.com, microblaze-uclinux@itee.uq.edu.au, linux-m68k@lists.linux-m68k.org, linux-m32r-ja@ml.linux-m32r.org, linux-ia64@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-cris-kernel@axis.com, linux-sh@vger.kernel.org, linux-parisc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
+Commit d065bd810b6deb67d4897a14bfe21f8eb526ba99
+(mm: retry page fault when blocking on disk transfer) and
+commit 37b23e0525d393d48a7d59f870b3bc061a30ccdb
+(x86,mm: make pagefault killable)
 
+The above commits introduced changes into the x86 pagefault handler
+for making the page fault handler retryable as well as killable.
 
+These changes reduce the mmap_sem hold time, which is crucial
+during OOM killer invocation.
 
-i want to discuss an important issue with you . I write to know if this=
- is
-your valid email. Please, let me know if your email is still valid. My
-valid Email: vincentcheng049@yahoo.co.jp
+I was facing hang and livelock problems on my ARM and MIPS boards when
+I invoked OOM by running the stress_32k.c test-case attached to this email.
 
-Regards
-Mr.Vincent Cheng
+Since both the ARM and MIPS porting changes were accepted, me and my
+co-worker decided to take the initiative to port these changes to all other
+MMU based architectures.
 
+This is v2 of this patch set as there were some problems with the v1 of this
+patchset:
+- Whitespace issues as reported by David Miller and Joe Perches
+- In 2 of the patches, the write(or equivalent) local variable has
+been removed from the
+  page fault handler because it is not really needed anymore with the
+advent of the "flags"
+  local variable. Thanks to Geert Uytterhoeven for that.
+- The powerpc patch for this has been removed as this has already been
+done by someone
+  else for powerpc.
 
------------------------------------------
-   "Universidad Aut=F3noma de Yucat=E1n"
-http://www.uady.mx/
+At the moment, 8 of these patches have Acked these patches as valid.
+I have included their ACKed-By headers for them in their respective
+arch patches.
+
+And thanks to Guan Xuetao for actually testing this out on unicore32.
+
+Rest of the arch owners: Please review these patches.
+
+Signed-off-by: Mohd. Faris <mohdfarisq2010@gmail.com>
+Signed-off-by: Kautuk Consul <consul.kautuk@gmail.com>
+---
