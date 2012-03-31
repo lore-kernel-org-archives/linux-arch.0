@@ -1,58 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pz0-f52.google.com ([209.85.210.52]:56852 "EHLO
-	mail-pz0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759265Ab2CaAe1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 Mar 2012 20:34:27 -0400
-Received: by dake40 with SMTP id e40so106458dak.11
-        for <linux-arch@vger.kernel.org>; Fri, 30 Mar 2012 17:34:27 -0700 (PDT)
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [GIT PULL] Disintegrate and kill asm/system.h
-In-Reply-To: <20120330074851.GD26543@linux-sh.org>
-References: <5599.1332958811@redhat.com> <30702.1332989444@neuling.org> <1332994469.3010.7.camel@pasglop> <20120330074851.GD26543@linux-sh.org>
-Date: Fri, 30 Mar 2012 15:46:17 -0600
-Message-ID: <20120330214617.B97523E04A4@localhost>
+Received: from mail-yw0-f46.google.com ([209.85.213.46]:42864 "EHLO
+	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757118Ab2CaL6G (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 31 Mar 2012 07:58:06 -0400
+MIME-Version: 1.0
+In-Reply-To: <CAFPAmTQs9dOpQTaXU=6Or66YU+my_CnPw33TE4h++YArBNa38g@mail.gmail.com>
+References: <CAFPAmTQs9dOpQTaXU=6Or66YU+my_CnPw33TE4h++YArBNa38g@mail.gmail.com>
+Date: Sat, 31 Mar 2012 07:58:04 -0400
+Message-ID: <CAFPAmTT19hFymnFftLkV1jQjYmJgyk3y4b-kTXO3VP1YCR-_fQ@mail.gmail.com>
+Subject: [PATCH 0/19 v2] mmu: arch/mm: Port OOM changes to arch page fault handlers.
+From: Kautuk Consul <consul.kautuk@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mundt <lethal@linux-sh.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Michael Neuling <mikey@neuling.org>, David Howells <dhowells@redhat.com>, torvalds@linux-foundation.org, akpm@linux-foundation.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, paul.gortmaker@windriver.com, arnd@arndb.de, hpa@zytor.com, sfr@canb.auug.org.au
-Message-ID: <20120330214617.ydKHKF2aeUVOLfWQFkEGyrwKYjYfALllOTXNfXFUk40@z>
+To: linux-alpha@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux@lists.openrisc.net, linux-am33-list@redhat.com, microblaze-uclinux@itee.uq.edu.au, linux-m68k@lists.linux-m68k.org, linux-m32r-ja@ml.linux-m32r.org, linux-ia64@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-cris-kernel@axis.com, linux-sh@vger.kernel.org, linux-parisc@vger.kernel.org, linux-mm@kvack.org, linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org
+Message-ID: <20120331115804.GxZM-Zvagjt5ePykNccFej7b_vcSSXnaNo6S6T04zek@z>
 
-On Fri, 30 Mar 2012 16:48:52 +0900, Paul Mundt <lethal@linux-sh.org> wrote:
-> On Thu, Mar 29, 2012 at 03:14:29PM +1100, Benjamin Herrenschmidt wrote:
-> > > We are currently getting:
-> > > kernel/irq/irqdomain.c: In function 'irq_debugfs_init':
-> > > kernel/irq/irqdomain.c:698:63: error: 'powerpc_debugfs_root' undeclared (first use in this function)
-> > > kernel/irq/irqdomain.c:698:63: note: each undeclared identifier is reported only once for each function it appears in
-> > > 
-> > >   ae3a197 Disintegrate asm/system.h for PowerPC
-> > > is conflicting with 
-> > >   cc79ca6 irq_domain: Move irq_domain code from powerpc to kernel/irq
-> > > from Grant's tree.
-> > > 
-> > > Adding the following patch fixes it for pseries_defconfig, although I'm
-> > > not sure it's the right fix.
-> > 
-> > That will do as a quick fix (Linus, can you take it now ?), however..
-> > 
-> > > Grant: why does powerpc_debugfs_root appear in generic code?  This seems
-> > > very bogus.
-> > 
-> > Yes, Grant, you should move that to a different (generic) debugfs file,
-> > the mapping information is valuable debug data for all architectures
-> > that use the remapper, not just powerpc and it's not an ABI (no tool I
-> > know of rely on the location of that debugfs file) so feel free to move
-> > it around.
-> > 
-> There is a arch_debugfs_dir defined by linux/debugfs.h, but at the moment
-> it's only provided by x86 and sh.
+Commit d065bd810b6deb67d4897a14bfe21f8eb526ba99
+(mm: retry page fault when blocking on disk transfer) and
+commit 37b23e0525d393d48a7d59f870b3bc061a30ccdb
+(x86,mm: make pagefault killable)
 
-Since this data can be used by any arch now, it doesn't make much
-sense to put it in arch_debugfs_dir.  I've put it in
-/debug/irq_domain_mapping which should be fine.
+The above commits introduced changes into the x86 pagefault handler
+for making the page fault handler retryable as well as killable.
 
-g.
+These changes reduce the mmap_sem hold time, which is crucial
+during OOM killer invocation.
 
+I was facing hang and livelock problems on my ARM and MIPS boards when
+I invoked OOM by running the stress_32k.c test-case attached to this email.
 
--- 
-Grant Likely, B.Sc, P.Eng.
-Secret Lab Technologies,Ltd.
+Since both the ARM and MIPS porting changes were accepted, me and my
+co-worker decided to take the initiative to port these changes to all other
+MMU based architectures.
+
+This is v2 of this patch set as there were some problems with the v1 of this
+patchset:
+- Whitespace issues as reported by David Miller and Joe Perches
+- In 2 of the patches, the write(or equivalent) local variable has
+been removed from the
+  page fault handler because it is not really needed anymore with the
+advent of the "flags"
+  local variable. Thanks to Geert Uytterhoeven for that.
+- The powerpc patch for this has been removed as this has already been
+done by someone
+  else for powerpc.
+
+At the moment, 8 of these patches have Acked these patches as valid.
+I have included their ACKed-By headers for them in their respective
+arch patches.
+
+And thanks to Guan Xuetao for actually testing this out on unicore32.
+
+Rest of the arch owners: Please review these patches.
+
+Signed-off-by: Mohd. Faris <mohdfarisq2010@gmail.com>
+Signed-off-by: Kautuk Consul <consul.kautuk@gmail.com>
+---
