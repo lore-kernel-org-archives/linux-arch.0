@@ -1,211 +1,232 @@
-From: "Waekow" <coloncdraveri@yahoo.com>
-Subject: linux390@de.ibm.com
-Date: Wed, 4 Apr 2012 15:38:02 +0800
-Message-ID: <201204041538022961357@yahoo.com>
+From: Richard Henderson <rth@redhat.com>
+Subject: Re: [PATCH V1 1/1] NET: add a bpf jit for Alpha
+Date: Wed, 04 Apr 2012 10:27:49 -0400
+Message-ID: <4F7C5A65.7090504@redhat.com>
+References: <4F75CA89.4010709@googlemail.com> <4F7A033D.4040901@googlemail.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="----=glq867_8075_331104485.179863"
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from nm6-vm10.bullet.mail.sg3.yahoo.com ([106.10.148.169]:28950 "HELO
-	nm6-vm10.bullet.mail.sg3.yahoo.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with SMTP id S1751546Ab2DDHoP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Apr 2012 03:44:15 -0400
+Received: from mx1.redhat.com ([209.132.183.28]:32490 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756415Ab2DDO14 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 4 Apr 2012 10:27:56 -0400
+In-Reply-To: <4F7A033D.4040901@googlemail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux390 <linux390@de.ibm.com>
+To: Jan Seiffert <kaffeemonster@googlemail.com>
+Cc: netdev@vger.kernel.org, linux-kernel@vger.kernel.org, Matt Evans <matt@ozlabs.org>, Eric Dumazet <eric.dumazet@gmail.com>, "David S. Miller" <davem@davemloft.net>, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org
 
-This is a multi-part message in MIME format.
+On 04/02/2012 03:51 PM, Jan Seiffert wrote:
+> +#define ALPHA_NEGL(ra, rb)     ALPHA_SUBL(r_zero, ra, rb)
+> +#define ALPHA_NEGLI(imm8, rb)  ALPHA_SUBLI(r_zero, imm8, rb)
+> +#define ALPHA_ZEXTL(ra, rb)    ALPHA_ZAPNOTI(ra, 15, rb)
+> +#define ALPHA_ZEXTW(ra, rb)    ALPHA_ZAPNOTI(ra, 3, rb)
+> +#define ALPHA_ZEXTB(ra, rb)    ALPHA_ZAPNOTI(ra, 1, rb)
+> +#define ALPHA_SEXTL(ra, rb)    ALPHA_ADDL(r_zero, ra, rb)
+> +#define ALPHA_SEXTLI(imm8, rb) ALPHA_ADDLI(r_zero, imm8, rb)
 
-------=glq867_8075_331104485.179863
-Content-Type: text/plain;
-	charset="GB2312"
-Content-Transfer-Encoding: base64
+You will never need NEGLI or SEXTLI, as both results can be had with LDA.
 
-bGludXgzOTBAZGUuaWJtLmNvbQ0KxOO6w6Ohx+uy6dTEuL28/qOhDQo4Ni4xMS40OC4xOTU=
+> +static void load_complex_constant(u32 *image, struct codegen_context *ctx,
+> +				  unsigned int i, int K, int r)
+> +
+> +{
+> +	if (K == 0) {
+> +		ALPHA_CLR(r);
+> +		return;
+> +	}
+> +	if (optimize_size == 0 || constant_needs(K) < 2 ||
+> +	    i > (0x7fff/sizeof(struct sock_filter))) {
+> +		add_constant(image, ctx, K, r_zero, r);
+> +	} else {
+> +		/* load the constant from the filter program */
+> +		ALPHA_LDL(r_sf, (i * sizeof(struct sock_filter)) +
+> +			  offsetof(struct sock_filter, k), r);
 
-------=glq867_8075_331104485.179863
-Content-Type: image/gif;
-	name="Glqk8882.gif"
-Content-Transfer-Encoding: base64
-Content-Disposition: attachment;
-	filename="Glqk8882.gif"
+Worst case for constant loading is 3.  That's the same as the delay for
+loading from memory.  Unless you're very concerned about translated size
+of the filter, I'd drop this condition and make your compiler run faster.
 
-R0lGODdh2AHmAXcAACwAAAAA2AHmAYcAAAAAADMAAGYAAJkAAMwAAP8AMwAAMzMAM2YAM5kAM8wA
-M/8AZgAAZjMAZmYAZpkAZswAZv8AmQAAmTMAmWYAmZkAmcwAmf8AzAAAzDMAzGYAzJkAzMwAzP8A
-/wAA/zMA/2YA/5kA/8wA//8zAAAzADMzAGYzAJkzAMwzAP8zMwAzMzMzM2YzM5kzM8wzM/8zZgAz
-ZjMzZmYzZpkzZswzZv8zmQAzmTMzmWYzmZkzmcwzmf8zzAAzzDMzzGYzzJkzzMwzzP8z/wAz/zMz
-/2Yz/5kz/8wz//9mAABmADNmAGZmAJlmAMxmAP9mMwBmMzNmM2ZmM5lmM8xmM/9mZgBmZjNmZmZm
-ZplmZsxmZv9mmQBmmTNmmWZmmZlmmcxmmf9mzABmzDNmzGZmzJlmzMxmzP9m/wBm/zNm/2Zm/5lm
-/8xm//+ZAACZADOZAGaZAJmZAMyZAP+ZMwCZMzOZM2aZM5mZM8yZM/+ZZgCZZjOZZmaZZpmZZsyZ
-Zv+ZmQCZmTOZmWaZmZmZmcyZmf+ZzACZzDOZzGaZzJmZzMyZzP+Z/wCZ/zOZ/2aZ/5mZ/8yZ///M
-AADMADPMAGbMAJnMAMzMAP/MMwDMMzPMM2bMM5nMM8zMM//MZgDMZjPMZmbMZpnMZszMZv/MmQDM
-mTPMmWbMmZnMmczMmf/MzADMzDPMzGbMzJnMzMzMzP/M/wDM/zPM/2bM/5nM/8zM////AAD/ADP/
-AGb/AJn/AMz/AP//MwD/MzP/M2b/M5n/M8z/M///ZgD/ZjP/Zmb/Zpn/Zsz/Zv//mQD/mTP/mWb/
-mZn/mcz/mf//zAD/zDP/zGb/zJn/zMz/zP///wD//zP//2b//5n//8z///8AAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAB6OFB6QXd6TXp6WTJ6azV6dzh6OC96QWdqWgptWnpwWnpzWnp2WnpR
-bXpUbXpXbXpabXpjbXpmbXpBenpEenpHenpKenpNenpQenp3L3p6L3oKDXp6WTJ6azUI/wATCRxI
-sKDBgwgTKlzIsKHDhxAjSpxIsaLFixgzatzIsaPHjyBDihxJsqTJkyhTqlzJsqXLlzBjypxJEyWA
-mzgBGLzJMCdOgj8d8izo8+DQhUV36qzJtKnTp1BDDj06MKjCqUsF8qSKMCfRrFytJjwalmvUs2jT
-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
-ZkN2JLp0NlqYrbE5onVc8pXVeD8rzE1+VLLK/BJ5NapJus51ZirVqGrzGuUKS2dfdk23ZVgrSnej
-kZbdZZ71JuvMaqd0xfq8aUGj6yyWXeupHP7nxeJstpMGGKwN5TG58XtfX8rSqQ7/tfaVRdxsfPEJ
-urKNqe8GKdamPlO0C0a3vsXIxFil+KV3Le/IN1ryO65cZDGv7cI3SyyJ0Qymt414mSc8UiqOMpQs
-77bPG/vxqZYb5zNNMr1dA92K6Hfi0zTdq44bxXPP8mcdrme8S1zjbB+cmCutG6+GfDQi0xWPaNPb
-KQXOmsSuG3lRnq4lTR654nr36XvX+SRljvN5sZ06+p3LYdFU85NGO7kdhmYsM3/k6aqlygotO+K5
-7nWM/VQ2ugL86GS7UPYuXqmOvXyDmzzl2z/7mmAHuth5bnSLx96iRa+a3a2VYdwP6+VbL3CMCe/4
-6JPUdfJOt8yk7Ng47lKXdk0t/7+ki92C43TEKj572wheHc2GFmxFVTeJpTh9tYeU/gd1l7UT1+Kx
-M/75QaNZJFZ1sHRgQRZw0gRxZtVZwZUZQ/d9z/NNeYcp7fRJAGd/6zRYiNMtzHeB4oURqLN591Ib
-Egg1H0hbKoZkAPhyUMdk+RcYLUhh7ZdwQPNdRzZtLlZJjrR69uWCNgNP7td8E1dScPZFQaiDV5WD
-Reg0SKh/ktSCe7M2O6N0AQhmQ2VNIEaD5MdfsPdPwceEWehaEDWASqZ7o1U0ITdbvVVW6jc8FphU
-0OY9BPhihGRjZ8ZJoHJ9thR+YZMpN7dtagcc40d5eLd47OVJdheFoSdhLsZSb/9jRvdWeXKoeyP1
-d2QniRSFWA2og9VnZjHzbBCmeBcneTr1cYSncKrETnFTH9zmZAkWZtn1fqLXbueHge1hhdE2YmaW
-fNQlhpMHgty2EWwGjCn3HTEzdMjGEcqWjHZ2bMy4Q8v4jMEWatKIbNFYjSfkjNgoQte4jRikjd5Y
-a+AYjrE2juT4P+Z4jvvTjerYatTYjs2YjvBYau84j9NYj/bYa/iYj9woj/x4Puz4j+zjjwJJE0t3
-ElpGcUuGXBBxQQXpF4LEkLm1gCGWZQzWhcL1kOqxivDGYVqYkWZ4kd6mkBq5GzFXiyTIcUqGeaVU
-THxXkm2ykmg4YGXINJ33gtL/Z3IZCZMOeCwciWDihogtaVhuFl95xJOX0YEVyXAhCYAqp4kshn3z
-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
 
-------=glq867_8075_331104485.179863--
+> +	if (optimize_size == 0 || constant_needs(K) < 2 ||
+> +	    i > (0x7fff/sizeof(struct sock_filter))) {
+> +		add_constant(image, ctx, K, r_A, r_t);
+> +		ALPHA_SEXTL(r_t, r_t);
+
+OTOH, this test should be simply is_imm8 and use ADDLI,
+else is_imm8(-K) use SUBLI, else load_constant ADDL.
+
+> +	mask = 0xff; bit = 1;
+> +	for (j = 0; j < 4; j++, mask <<= 8, bit <<= 1) {
+> +		if (K == mask) {
+> +			ALPHA_ZAPNOTI(r_A,  bit, r_t);
+> +			return;
+> +		}
+> +	}
+> +	mask = 0xff00ff; bit = 5;
+> +	for (j = 0; j < 2; j++, mask <<= 8, bit <<= 1) {
+> +		if (K == mask) {
+> +			ALPHA_ZAPNOTI(r_A,  bit, r_t);
+> +			return;
+> +		}
+> +	}
+> +	mask = 0xffffff; bit = 7;
+> +	for (j = 0; j < 4; j++, mask = rol32(mask, 8), bit = rol8(bit, 1)) {
+> +		if (K == mask) {
+> +			ALPHA_ZAPNOTI(r_A,  bit, r_t);
+> +			return;
+> +		}
+> +	}
+> +	mask = 0xffff; bit = 3;
+> +	for (j = 0; j < 4; j++, mask = rol32(mask, 8), bit = rol8(bit, 1)) {
+> +		if (K == mask) {
+> +			ALPHA_ZAPNOTI(r_A,  bit, r_t);
+> +			return;
+> +		}
+> +	}
+
+Really?  This ought to be as simple as
+
+  mask = 0;
+  for (j = 0; j < 4; j++) {
+    int b = (K >> i*8) & 0xff;
+    if (b == 0xff)
+      mask |= 1 << i;
+    else if (b != 0)
+      mask = -1;
+  }
+  if (mask != -1) {
+    ALPHA_ZAPNOTI(r_A, mask, r_t);
+    return;
+  }
+
+> +static void optimize_or(u32 *image, struct codegen_context *ctx,
+> +			unsigned int i, unsigned int K)
+> +{
+> +	if (K == 0xffffffff) {
+> +		ALPHA_SUBLI(r_zero, 1, r_A);
+> +		ALPHA_ZEXTL(r_A, r_A);
+> +		return;
+> +	}
+
+Really?  Think about what you're doing here.  LDA(r_A, -1)
+
+> +	} else if ((off & -4) != 3) {
+> +		ALPHA_LDL(r_p, off & -4, r);
+> +		off &= 4-1;
+> +		if (off == 0)
+> +			ALPHA_ZEXTW(r, r);
+> +		else
+> +			ALPHA_EXTWLI(r, off, r);
+
+No point in the off==0 special case.
+
+> +static void emit_call(u32 *image, struct codegen_context *ctx,
+> +		      void *func, int r)
+> +{
+> +	ptrdiff_t disp = (char *)func - (char *)&image[ctx->idx + 1];
+> +	if (disp >= -2147483648 && disp <= 2147483647) {
+> +		if (is_imm_jdisp(disp)) {
+> +			ALPHA_BSR(r, disp);
+> +			return;
+> +		}
+
+Is this known to be calling another BPF function, and not back into C?
+Otherwise you've got an error in PV handling for the calling convention.
+
+> +		case BPF_S_ALU_DIV_X: /* A /= X; */
+> +			ctx->seen |= SEEN_XREG|SEEN_DIV;
+> +			if (ctx->pc_ret0 != -1) {
+> +				emit_cjmp(image, ctx, addrs[ctx->pc_ret0],
+> +					  COND_EQ, r_X);
+> +			} else {
+> +				/* Exit, returning 0 */
+> +				emit_cjmp(image, ctx, (ctx->idx*4)+8,
+> +					  COND_NE, r_X);
+> +				ctx->pc_ret0 = i;
+> +				ALPHA_CLR(r_ret);
+> +				emit_jmp(image, ctx, exit_addr);
+> +			}
+> +			ALPHA_MOV(r_pv, r_scratch1);
+> +			ALPHA_MOV(r_A, 24);
+> +			ALPHA_MOV(r_X, 25);
+> +			emit_call(image, ctx, __divlu, r_div_link);
+
+Re-order these to clear r_ret before the cjmp and you don't need
+the branch-around branch.
+
+> +		case BPF_S_ALU_LSH_X: /* A <<= X; */
+> +			ctx->seen |= SEEN_XREG;
+> +			ALPHA_SLL(r_A, r_X, r_A);
+> +			ALPHA_ZEXTL(r_A, r_A);
+
+So... are you attempting to have canonical zero-extended values,
+or canonical sign-extended values?  Because at the moment you have
+a mix of both.
+
+Either drop the canonicalization and consider high-32 bits as
+garbage (and then explicitly extend whereever necessary) or pick
+one and stick with it.  Of course, the sign-extending of addl etc
+will force you to choose sign-extend not zero-extend as canonical.
+
+> +		case BPF_S_ALU_RSH_X: /* A >>= X; */
+> +			ctx->seen |= SEEN_XREG;
+> +			ALPHA_SRL(r_A, r_X, r_A);
+> +			ALPHA_ZEXTL(r_A, r_A);
+> +			break;
+
+Like here.  You must zero-extend first to avoid shifting in
+garbage.  Afterward you can reason that the value is already
+zero-extended.
+
+> +static inline void bpf_flush_icache(void *start, void *end)
+> +{
+> +	mb();
+> +/*
+> + * TODO: alpha is so loosly ordered, do we need to give it more
+> + * whacks over the head?
+> + */
+> +	flush_icache_range((unsigned long)start, (unsigned long)end);
+> +}
+
+imb() is all that is needed.
+
+> +	/*
+> +	 * There are multiple assembly passes as the generated code will change
+> +	 * size as it settles down, figuring out the max branch offsets/exit
+> +	 * paths required.
+> +	 *
+> +	 * The range of standard conditional branches is 21 bit, which is good
+> +	 * for +/- 1M instructions. This should be enough for
+> +	 * BPF_MAXINSNS = 4096.
+> +	 *
+> +	 * Current:
+> +	 *
+> +	 * First pass: No code buffer; Program is "faux-generated" -- no code
+> +	 * emitted but maximum size of output determined (and addrs[] filled
+> +	 * in). Also, we note whether we use M[], whether we use skb data, etc.
+> +	 * All generation choices assumed to be 'worst-case', return path code
+> +	 * reduction not available, etc.
+> +	 *
+> +	 * Second pass: Again no code buffer; addrs[] is filled and jumps
+> +	 * should settle, since the exit points are set. This should get
+> +	 * it mostly stable so no suprise growth happens. addrs[] is set agian.
+> +	 *
+> +	 * Other passes: Code buffer allocated with size determined previously.
+> +	 * Prologue generated to support features we have seen used. addrs[]
+> +	 * is filled in again, as code may be slightly smaller as a result.
+> +	 *
+> +	 */
+
+I should think you could do this in exactly one pass, given that there's
+absolutely no need for ultra-long branches.  If you're going to scan the
+body for SEEN_MEM etc, you might as well look for your A and X initialization
+at the same time and clean up that hack in the prologue.
+
+> +++ b/arch/alpha/net/bpf_jit_helper.S
+
+It would be helpful to use '$' prefixes here for local variables.
+
+
+r~
