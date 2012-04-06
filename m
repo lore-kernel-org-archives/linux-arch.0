@@ -1,319 +1,61 @@
 From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: x86: faster strncpy_from_user()
-Date: Fri, 6 Apr 2012 14:32:32 -0700
-Message-ID: <CA+55aFy8J5Ns4P514g7Ow4WhJXO+pjPBozYuCinYB+FQUKjZ6A@mail.gmail.com>
+Subject: Re: x86: faster strncpy_from_user()
+Date: Fri, 6 Apr 2012 14:49:17 -0700
+Message-ID: <CA+55aFxiL_qm=a7qb2FiEojx81BOpmmNraN84zXh-vpFLwJSVA@mail.gmail.com>
+References: <CA+55aFy8J5Ns4P514g7Ow4WhJXO+pjPBozYuCinYB+FQUKjZ6A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary=f46d044306502f2e9104bd096623
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f44.google.com ([74.125.82.44]:63279 "EHLO
+Received: from mail-wg0-f44.google.com ([74.125.82.44]:57809 "EHLO
 	mail-wg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754230Ab2DFVcz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Apr 2012 17:32:55 -0400
-Received: by wgbdr13 with SMTP id dr13so2480690wgb.1
-        for <linux-arch@vger.kernel.org>; Fri, 06 Apr 2012 14:32:53 -0700 (PDT)
+	with ESMTP id S1754247Ab2DFVtj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Apr 2012 17:49:39 -0400
+Received: by wgbdr13 with SMTP id dr13so2487340wgb.1
+        for <linux-arch@vger.kernel.org>; Fri, 06 Apr 2012 14:49:38 -0700 (PDT)
+In-Reply-To: <CA+55aFy8J5Ns4P514g7Ow4WhJXO+pjPBozYuCinYB+FQUKjZ6A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, linux-arch@vger.kernel.org
 
---f46d044306502f2e9104bd096623
-Content-Type: text/plain; charset=ISO-8859-1
+On Fri, Apr 6, 2012 at 2:32 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+>
+> Anyway, this works for me on x86 (you need current tip-of-git for the
+> <asm/word-at-a-time.h> thing) and is quite noticeable in profiles
+> (well, if you have loads that do a lot of pathname lookups: I use a
+> microbenchmarks that does ten million lookups of a filename with
+> multiple components, but I also do "make -j" profiles of a fully build
+> tree).
 
-Ok, as some of you are aware, one of the things that got merged very
-early in the 3.4 merge window was the "word-at-a-time" filename lookup
-patches I had been working on. They only get enabled on x86, but when
-they do, they do speed things up by quite a noticeable bit (mainly on
-x86-64, which ends up doing things 8 bytes at a time - it's much less
-noticeable on x86-32).
+Some actual numbers: my microbenchmark used to take just over 9s
+(best-of-six:9.053s) back before the dcache lookup optimizations
 
-Now that the name lookup itself is quite lean, that ended up showing
-some serious problems in selinux and the security wrappers, some of
-which were largely solved a few days ago (the recent "Merge branch
-'selinux'" thing got rid of the most annoying cases).
+With some of the __d_lookup_rcu cleanups, and doing dentry_cmp() a
+word at a time, that best-of-six dropped to 8.504s, and then
+eventually with the full word-wide hashing it dropped to 8.013s. Some
+more optimization got it consistently into the mid-sevens, which is
+roughly where 3.4-rc1 was.
 
-I have a few more selinux fixes to really get the worst stupidity out
-of the way, but I suspect they are for next merge window.  But with
-those, the path lookup is fast, and selinux isn't eating up *too* much
-time either.
+Today, my "best-of-six" numbers are 6.301s for that same binary, on
+the same machine. Now, the numbers aren't hugely stable, and I didn't
+do the same pre-population of the dcache that I did with the earlier
+numbers, so it's not entirely comparable. But it's basically
+approaching almost 30% better than the original code.
 
-And the next thing that shows up is "strncpy_from_user()".
+Admittedly just on a silly micro-benchmark, but still: all that
+benchmark does is just "stat()" the same path over and over - which is
+not a totally unrealistic thing to do. The "same path" means that it
+doesn't show the cache effects as much (and the profiles are much
+"sharper"). And while the "make -j" thing clearly shows different
+profiles, the top five kernel functions have actually been pretty
+consistent between the two cases, even if the details change.
 
-It's not all that surprising - the function really isn't particularly
-smart, and using lodsb/stosb is just legacy cruft. But realistically,
-while it hasn't been a piece of wonderful engineering, it also never
-really showed up very high on profiles. Now with all the other
-improvements I have a few loads where it really does show up pretty
-well - the only real users of strncpy_from_user() are the pathname
-copy code (sure, there's stuff elsewhere, but it's just not that
-important).
+Note: extra good numbers are with all my (uncommitted) selinux fixes
+too, and there is a fair amounf of fluctuation in the numbers (lots
+and lots of cache effects), but the strncpy change did make a
+noticeable difference. Earlier today, I had a hard time getting the
+number under 7s. Getting to 6.3 was partly strncpy, but about half of
+it was my very experimental selinux stuff. Some of which might never
+end up being committed, who knows..
 
-Anyway, that function uses asms and is duplicated across x86-32 and
-x86-64 for no real good reason except it was never a priority.
-
-Here's a patch that actually removes more lines than it adds, because
-it removes that duplication, and replaces the asm with some fairly
-optimal C code. So we have
-
- 6 files changed, 105 insertions(+), 145 deletions(-)
-
-but what is perhaps more interesting (and the reason linux-arch is
-cc'd) is that not only is it noticeably faster, it should also
-actually get all the error cases right.
-
-What do I mean by that?
-
-I mean that in my tree (but not committed), I have actually removed
-this nasty piece of code from fs/namei.c:
-
-  diff --git a/fs/namei.c b/fs/namei.c
-  index 0062dd17eb55..2b7d691523bb 100644
-  --- a/fs/namei.c
-  +++ b/fs/namei.c
-  @@ -119,14 +119,7 @@
-   static int do_getname(const char __user *filename, char *page)
-   {
-          int retval;
-  -       unsigned long len = PATH_MAX;
-  -
-  -       if (!segment_eq(get_fs(), KERNEL_DS)) {
-  -               if ((unsigned long) filename >= TASK_SIZE)
-  -                       return -EFAULT;
-  -               if (TASK_SIZE - (unsigned long) filename < PATH_MAX)
-  -                       len = TASK_SIZE - (unsigned long) filename;
-  -       }
-  +       const unsigned long len = PATH_MAX;
-
-          retval = strncpy_from_user(page, filename, len);
-          if (retval > 0) {
-
-which worked around the fact that strncpy_from_user() didn't really
-get the end conditions quite right, and it really just did an
-access_ok() on the first byte. The new x86 implementation should get
-all of that right without any need for any ugly hacks.
-
-Now, I haven't committed that change to do_getname(), but it *will*
-get committed at some point. Probably not until the next merge window,
-but I did want to let architecture maintainers know: you need to look
-at your strncpy_from_userspace(), and make sure they get the "end of
-address space" case right, because the pathname code won't hack around
-it for you any more if you don't.
-
-The x86-"specific" strncpy_from_user() attached in the patch is
-actually fairly generic. It does do the word-at-a-time tricks, but if
-you don't want to bother with those, you can just remove that loop
-entirely, and it should all work in general (the x86 code has a
-fall-back to the byte-at-a-time case, so if you remove the "while (max
->= sizeof(unsigned long))" loop, it should all "just work".
-
-And the word-at-a-time tricks it does do are actually simpler than the
-ones the dcache does - just a subset of them - so you may decide that
-you'll do that part too, even if the dcache ones are more complicated.
-
-(For example, if you just implement the "has_zero()" function, you can
-make it do
-
-    if (has_zero(a))
-        break;
-
-to fall back to the byte-at-a-time model - that's what I did
-originally in this patch too, but quite frankly, it does mean that the
-word-at-a-time logic isn't as efficient).
-
-Anyway, this works for me on x86 (you need current tip-of-git for the
-<asm/word-at-a-time.h> thing) and is quite noticeable in profiles
-(well, if you have loads that do a lot of pathname lookups: I use a
-microbenchmarks that does ten million lookups of a filename with
-multiple components, but I also do "make -j" profiles of a fully build
-tree).
-
-And considering that the old x86 strncpy_to_user() code was so ugly,
-it's pretty much a no-brainer there. But on other architectures, I'd
-still like to point out the problem with the end-of-address-space,
-which you may or may not actually have on other architectures.
-
-Comments?
-
-                         Linus
-
---f46d044306502f2e9104bd096623
-Content-Type: application/octet-stream; name="x86-strncpy_from_user.patch"
-Content-Disposition: attachment; filename="x86-strncpy_from_user.patch"
-Content-Transfer-Encoding: base64
-X-Attachment-Id: f_h0pq7hd30
-
-IGFyY2gveDg2L2luY2x1ZGUvYXNtL3VhY2Nlc3MuaCAgICB8ICAgIDIgKwogYXJjaC94ODYvaW5j
-bHVkZS9hc20vdWFjY2Vzc18zMi5oIHwgICAgNSAtLQogYXJjaC94ODYvaW5jbHVkZS9hc20vdWFj
-Y2Vzc182NC5oIHwgICAgNCAtLQogYXJjaC94ODYvbGliL3VzZXJjb3B5LmMgICAgICAgICAgIHwg
-IDEwMyArKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrCiBhcmNoL3g4Ni9saWIv
-dXNlcmNvcHlfMzIuYyAgICAgICAgfCAgIDg3IC0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0t
-LS0KIGFyY2gveDg2L2xpYi91c2VyY29weV82NC5jICAgICAgICB8ICAgNDkgLS0tLS0tLS0tLS0t
-LS0tLS0tCiA2IGZpbGVzIGNoYW5nZWQsIDEwNSBpbnNlcnRpb25zKCspLCAxNDUgZGVsZXRpb25z
-KC0pCgpkaWZmIC0tZ2l0IGEvYXJjaC94ODYvaW5jbHVkZS9hc20vdWFjY2Vzcy5oIGIvYXJjaC94
-ODYvaW5jbHVkZS9hc20vdWFjY2Vzcy5oCmluZGV4IDhiZTVmNTRkOTM2MC4uZTA1NDQ1OTdjZmU3
-IDEwMDY0NAotLS0gYS9hcmNoL3g4Ni9pbmNsdWRlL2FzbS91YWNjZXNzLmgKKysrIGIvYXJjaC94
-ODYvaW5jbHVkZS9hc20vdWFjY2Vzcy5oCkBAIC01NTcsNiArNTU3LDggQEAgc3RydWN0IF9fbGFy
-Z2Vfc3RydWN0IHsgdW5zaWduZWQgbG9uZyBidWZbMTAwXTsgfTsKIAogZXh0ZXJuIHVuc2lnbmVk
-IGxvbmcKIGNvcHlfZnJvbV91c2VyX25taSh2b2lkICp0bywgY29uc3Qgdm9pZCBfX3VzZXIgKmZy
-b20sIHVuc2lnbmVkIGxvbmcgbik7CitleHRlcm4gX19tdXN0X2NoZWNrIGxvbmcKK3N0cm5jcHlf
-ZnJvbV91c2VyKGNoYXIgKmRzdCwgY29uc3QgY2hhciBfX3VzZXIgKnNyYywgbG9uZyBjb3VudCk7
-CiAKIC8qCiAgKiBtb3ZzbCBjYW4gYmUgc2xvdyB3aGVuIHNvdXJjZSBhbmQgZGVzdCBhcmUgbm90
-IGJvdGggOC1ieXRlIGFsaWduZWQKZGlmZiAtLWdpdCBhL2FyY2gveDg2L2luY2x1ZGUvYXNtL3Vh
-Y2Nlc3NfMzIuaCBiL2FyY2gveDg2L2luY2x1ZGUvYXNtL3VhY2Nlc3NfMzIuaAppbmRleCA1NjZl
-ODAzY2M2MDIuLjgwODRiYzczYjE4YyAxMDA2NDQKLS0tIGEvYXJjaC94ODYvaW5jbHVkZS9hc20v
-dWFjY2Vzc18zMi5oCisrKyBiL2FyY2gveDg2L2luY2x1ZGUvYXNtL3VhY2Nlc3NfMzIuaApAQCAt
-MjEzLDExICsyMTMsNiBAQCBzdGF0aWMgaW5saW5lIHVuc2lnbmVkIGxvbmcgX19tdXN0X2NoZWNr
-IGNvcHlfZnJvbV91c2VyKHZvaWQgKnRvLAogCXJldHVybiBuOwogfQogCi1sb25nIF9fbXVzdF9j
-aGVjayBzdHJuY3B5X2Zyb21fdXNlcihjaGFyICpkc3QsIGNvbnN0IGNoYXIgX191c2VyICpzcmMs
-Ci0JCQkJICAgIGxvbmcgY291bnQpOwotbG9uZyBfX211c3RfY2hlY2sgX19zdHJuY3B5X2Zyb21f
-dXNlcihjaGFyICpkc3QsCi0JCQkJICAgICAgY29uc3QgY2hhciBfX3VzZXIgKnNyYywgbG9uZyBj
-b3VudCk7Ci0KIC8qKgogICogc3RybGVuX3VzZXI6IC0gR2V0IHRoZSBzaXplIG9mIGEgc3RyaW5n
-IGluIHVzZXIgc3BhY2UuCiAgKiBAc3RyOiBUaGUgc3RyaW5nIHRvIG1lYXN1cmUuCmRpZmYgLS1n
-aXQgYS9hcmNoL3g4Ni9pbmNsdWRlL2FzbS91YWNjZXNzXzY0LmggYi9hcmNoL3g4Ni9pbmNsdWRl
-L2FzbS91YWNjZXNzXzY0LmgKaW5kZXggMWM2NmQzMDk3MWFkLi5mY2Q0YjZmM2VmMDIgMTAwNjQ0
-Ci0tLSBhL2FyY2gveDg2L2luY2x1ZGUvYXNtL3VhY2Nlc3NfNjQuaAorKysgYi9hcmNoL3g4Ni9p
-bmNsdWRlL2FzbS91YWNjZXNzXzY0LmgKQEAgLTIwOCwxMCArMjA4LDYgQEAgaW50IF9fY29weV9p
-bl91c2VyKHZvaWQgX191c2VyICpkc3QsIGNvbnN0IHZvaWQgX191c2VyICpzcmMsIHVuc2lnbmVk
-IHNpemUpCiAJfQogfQogCi1fX211c3RfY2hlY2sgbG9uZwotc3RybmNweV9mcm9tX3VzZXIoY2hh
-ciAqZHN0LCBjb25zdCBjaGFyIF9fdXNlciAqc3JjLCBsb25nIGNvdW50KTsKLV9fbXVzdF9jaGVj
-ayBsb25nCi1fX3N0cm5jcHlfZnJvbV91c2VyKGNoYXIgKmRzdCwgY29uc3QgY2hhciBfX3VzZXIg
-KnNyYywgbG9uZyBjb3VudCk7CiBfX211c3RfY2hlY2sgbG9uZyBzdHJubGVuX3VzZXIoY29uc3Qg
-Y2hhciBfX3VzZXIgKnN0ciwgbG9uZyBuKTsKIF9fbXVzdF9jaGVjayBsb25nIF9fc3Rybmxlbl91
-c2VyKGNvbnN0IGNoYXIgX191c2VyICpzdHIsIGxvbmcgbik7CiBfX211c3RfY2hlY2sgbG9uZyBz
-dHJsZW5fdXNlcihjb25zdCBjaGFyIF9fdXNlciAqc3RyKTsKZGlmZiAtLWdpdCBhL2FyY2gveDg2
-L2xpYi91c2VyY29weS5jIGIvYXJjaC94ODYvbGliL3VzZXJjb3B5LmMKaW5kZXggOTdiZTljYjU0
-NDgzLi41NzI1MmM5MjhmNTYgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L2xpYi91c2VyY29weS5jCisr
-KyBiL2FyY2gveDg2L2xpYi91c2VyY29weS5jCkBAIC03LDYgKzcsOCBAQAogI2luY2x1ZGUgPGxp
-bnV4L2hpZ2htZW0uaD4KICNpbmNsdWRlIDxsaW51eC9tb2R1bGUuaD4KIAorI2luY2x1ZGUgPGFz
-bS93b3JkLWF0LWEtdGltZS5oPgorCiAvKgogICogYmVzdCBlZmZvcnQsIEdVUCBiYXNlZCBjb3B5
-X2Zyb21fdXNlcigpIHRoYXQgaXMgTk1JLXNhZmUKICAqLwpAQCAtNDEsMyArNDMsMTA0IEBAIGNv
-cHlfZnJvbV91c2VyX25taSh2b2lkICp0bywgY29uc3Qgdm9pZCBfX3VzZXIgKmZyb20sIHVuc2ln
-bmVkIGxvbmcgbikKIAlyZXR1cm4gbGVuOwogfQogRVhQT1JUX1NZTUJPTF9HUEwoY29weV9mcm9t
-X3VzZXJfbm1pKTsKKworc3RhdGljIGlubGluZSB1bnNpZ25lZCBsb25nIGNvdW50X2J5dGVzKHVu
-c2lnbmVkIGxvbmcgbWFzaykKK3sKKwltYXNrID0gKG1hc2sgLSAxKSAmIH5tYXNrOworCW1hc2sg
-Pj49IDc7CisJcmV0dXJuIGNvdW50X21hc2tlZF9ieXRlcyhtYXNrKTsKK30KKworLyoKKyAqIERv
-IGEgc3RybmNweSwgcmV0dXJuIGxlbmd0aCBvZiBzdHJpbmcgd2l0aG91dCBmaW5hbCAnXDAnLgor
-ICogJ2NvdW50JyBpcyB0aGUgdXNlci1zdXBwbGllZCBjb3VudCAocmV0dXJuICdjb3VudCcgaWYg
-d2UKKyAqIGhpdCBpdCksICdtYXgnIGlzIHRoZSBhZGRyZXNzIHNwYWNlIG1heGltdW0gKGFuZCB3
-ZSByZXR1cm4KKyAqIC1FRkFVTFQgaWYgd2UgaGl0IGl0KS4KKyAqLworc3RhdGljIGlubGluZSBs
-b25nIGRvX3N0cm5jcHlfZnJvbV91c2VyKGNoYXIgKmRzdCwgY29uc3QgY2hhciBfX3VzZXIgKnNy
-YywgbG9uZyBjb3VudCwgbG9uZyBtYXgpCit7CisJbG9uZyByZXMgPSAwOworCisJLyoKKwkgKiBU
-cnVuY2F0ZSAnbWF4JyB0byB0aGUgdXNlci1zcGVjaWZpZWQgbGltaXQsIHNvIHRoYXQKKwkgKiB3
-ZSBvbmx5IGhhdmUgb25lIGxpbWl0IHdlIG5lZWQgdG8gY2hlY2sgaW4gdGhlIGxvb3AKKwkgKi8K
-KwlpZiAobWF4ID4gY291bnQpCisJCW1heCA9IGNvdW50OworCisJd2hpbGUgKG1heCA+PSBzaXpl
-b2YodW5zaWduZWQgbG9uZykpIHsKKwkJdW5zaWduZWQgbG9uZyBjOworCisJCS8qIEZhbGwgYmFj
-ayB0byBieXRlLWF0LWEtdGltZSBpZiB3ZSBnZXQgYSBwYWdlIGZhdWx0ICovCisJCWlmICh1bmxp
-a2VseShfX2dldF91c2VyKGMsKHVuc2lnbmVkIGxvbmcgX191c2VyICopKHNyYytyZXMpKSkpCisJ
-CQlicmVhazsKKwkJLyogVGhpcyBjYW4gd3JpdGUgYSBmZXcgYnl0ZXMgcGFzdCB0aGUgTlVMIGNo
-YXJhY3RlciwgYnV0IHRoYXQncyBvayAqLworCQkqKHVuc2lnbmVkIGxvbmcgKikoZHN0K3Jlcykg
-PSBjOworCQljID0gaGFzX3plcm8oYyk7CisJCWlmIChjKQorCQkJcmV0dXJuIHJlcyArIGNvdW50
-X2J5dGVzKGMpOworCQlyZXMgKz0gc2l6ZW9mKHVuc2lnbmVkIGxvbmcpOworCQltYXggLT0gc2l6
-ZW9mKHVuc2lnbmVkIGxvbmcpOworCX0KKworCXdoaWxlIChtYXgpIHsKKwkJY2hhciBjOworCisJ
-CWlmICh1bmxpa2VseShfX2dldF91c2VyKGMsc3JjK3JlcykpKQorCQkJcmV0dXJuIC1FRkFVTFQ7
-CisJCWRzdFtyZXNdID0gYzsKKwkJaWYgKCFjKQorCQkJcmV0dXJuIHJlczsKKwkJcmVzKys7CisJ
-CW1heC0tOworCX0KKworCS8qCisJICogVWhodWguIFdlIGhpdCAnbWF4Jy4gQnV0IHdhcyB0aGF0
-IHRoZSB1c2VyLXNwZWNpZmllZCBtYXhpbXVtCisJICogdG9vPyBJZiBzbywgdGhhdCdzIG9rIC0g
-d2UgZ290IGFzIG11Y2ggYXMgdGhlIHVzZXIgYXNrZWQgZm9yLgorCSAqLworCWlmIChyZXMgPj0g
-Y291bnQpCisJCXJldHVybiBjb3VudDsKKworCS8qCisJICogTm9wZTogd2UgaGl0IHRoZSBhZGRy
-ZXNzIHNwYWNlIGxpbWl0LCBhbmQgd2Ugc3RpbGwgaGFkIG1vcmUKKwkgKiBjaGFyYWN0ZXJzIHRo
-ZSBjYWxsZXIgd291bGQgaGF2ZSB3YW50ZWQuIFRoYXQncyBhbiBFRkFVTFQuCisJICovCisJcmV0
-dXJuIC1FRkFVTFQ7Cit9CisKKy8qKgorICogc3RybmNweV9mcm9tX3VzZXI6IC0gQ29weSBhIE5V
-TCB0ZXJtaW5hdGVkIHN0cmluZyBmcm9tIHVzZXJzcGFjZS4KKyAqIEBkc3Q6ICAgRGVzdGluYXRp
-b24gYWRkcmVzcywgaW4ga2VybmVsIHNwYWNlLiAgVGhpcyBidWZmZXIgbXVzdCBiZSBhdAorICog
-ICAgICAgICBsZWFzdCBAY291bnQgYnl0ZXMgbG9uZy4KKyAqIEBzcmM6ICAgU291cmNlIGFkZHJl
-c3MsIGluIHVzZXIgc3BhY2UuCisgKiBAY291bnQ6IE1heGltdW0gbnVtYmVyIG9mIGJ5dGVzIHRv
-IGNvcHksIGluY2x1ZGluZyB0aGUgdHJhaWxpbmcgTlVMLgorICoKKyAqIENvcGllcyBhIE5VTC10
-ZXJtaW5hdGVkIHN0cmluZyBmcm9tIHVzZXJzcGFjZSB0byBrZXJuZWwgc3BhY2UuCisgKgorICog
-T24gc3VjY2VzcywgcmV0dXJucyB0aGUgbGVuZ3RoIG9mIHRoZSBzdHJpbmcgKG5vdCBpbmNsdWRp
-bmcgdGhlIHRyYWlsaW5nCisgKiBOVUwpLgorICoKKyAqIElmIGFjY2VzcyB0byB1c2Vyc3BhY2Ug
-ZmFpbHMsIHJldHVybnMgLUVGQVVMVCAoc29tZSBkYXRhIG1heSBoYXZlIGJlZW4KKyAqIGNvcGll
-ZCkuCisgKgorICogSWYgQGNvdW50IGlzIHNtYWxsZXIgdGhhbiB0aGUgbGVuZ3RoIG9mIHRoZSBz
-dHJpbmcsIGNvcGllcyBAY291bnQgYnl0ZXMKKyAqIGFuZCByZXR1cm5zIEBjb3VudC4KKyAqLwor
-bG9uZworc3RybmNweV9mcm9tX3VzZXIoY2hhciAqZHN0LCBjb25zdCBjaGFyIF9fdXNlciAqc3Jj
-LCBsb25nIGNvdW50KQoreworCXVuc2lnbmVkIGxvbmcgbWF4X2FkZHIsIHNyY19hZGRyOworCisJ
-aWYgKHVubGlrZWx5KGNvdW50IDw9IDApKQorCQlyZXR1cm4gMDsKKworCW1heF9hZGRyID0gY3Vy
-cmVudF90aHJlYWRfaW5mbygpLT5hZGRyX2xpbWl0LnNlZzsKKwlzcmNfYWRkciA9ICh1bnNpZ25l
-ZCBsb25nKXNyYzsKKwlpZiAobGlrZWx5KHNyY19hZGRyIDwgbWF4X2FkZHIpKSB7CisJCXVuc2ln
-bmVkIGxvbmcgbWF4ID0gbWF4X2FkZHIgLSBzcmNfYWRkcjsKKwkJcmV0dXJuIGRvX3N0cm5jcHlf
-ZnJvbV91c2VyKGRzdCwgc3JjLCBjb3VudCwgbWF4KTsKKwl9CisJcmV0dXJuIC1FRkFVTFQ7Cit9
-CitFWFBPUlRfU1lNQk9MKHN0cm5jcHlfZnJvbV91c2VyKTsKZGlmZiAtLWdpdCBhL2FyY2gveDg2
-L2xpYi91c2VyY29weV8zMi5jIGIvYXJjaC94ODYvbGliL3VzZXJjb3B5XzMyLmMKaW5kZXggZDli
-MDk0Y2E3YWFhLi5lZjJhNmE1ZDc4ZTMgMTAwNjQ0Ci0tLSBhL2FyY2gveDg2L2xpYi91c2VyY29w
-eV8zMi5jCisrKyBiL2FyY2gveDg2L2xpYi91c2VyY29weV8zMi5jCkBAIC0zMyw5MyArMzMsNiBA
-QCBzdGF0aWMgaW5saW5lIGludCBfX21vdnNsX2lzX29rKHVuc2lnbmVkIGxvbmcgYTEsIHVuc2ln
-bmVkIGxvbmcgYTIsIHVuc2lnbmVkIGxvbgogCV9fbW92c2xfaXNfb2soKHVuc2lnbmVkIGxvbmcp
-KGExKSwgKHVuc2lnbmVkIGxvbmcpKGEyKSwgKG4pKQogCiAvKgotICogQ29weSBhIG51bGwgdGVy
-bWluYXRlZCBzdHJpbmcgZnJvbSB1c2Vyc3BhY2UuCi0gKi8KLQotI2RlZmluZSBfX2RvX3N0cm5j
-cHlfZnJvbV91c2VyKGRzdCwgc3JjLCBjb3VudCwgcmVzKQkJCSAgIFwKLWRvIHsJCQkJCQkJCQkg
-ICBcCi0JaW50IF9fZDAsIF9fZDEsIF9fZDI7CQkJCQkJICAgXAotCW1pZ2h0X2ZhdWx0KCk7CQkJ
-CQkJCSAgIFwKLQlfX2FzbV9fIF9fdm9sYXRpbGVfXygJCQkJCQkgICBcCi0JCSIJdGVzdGwgJTEs
-JTFcbiIJCQkJCSAgIFwKLQkJIglqeiAyZlxuIgkJCQkJICAgXAotCQkiMDoJbG9kc2JcbiIJCQkJ
-CSAgIFwKLQkJIglzdG9zYlxuIgkJCQkJICAgXAotCQkiCXRlc3RiICUlYWwsJSVhbFxuIgkJCQkg
-ICBcCi0JCSIJanogMWZcbiIJCQkJCSAgIFwKLQkJIglkZWNsICUxXG4iCQkJCQkgICBcCi0JCSIJ
-am56IDBiXG4iCQkJCQkgICBcCi0JCSIxOglzdWJsICUxLCUwXG4iCQkJCQkgICBcCi0JCSIyOlxu
-IgkJCQkJCQkgICBcCi0JCSIuc2VjdGlvbiAuZml4dXAsXCJheFwiXG4iCQkJCSAgIFwKLQkJIjM6
-CW1vdmwgJTUsJTBcbiIJCQkJCSAgIFwKLQkJIglqbXAgMmJcbiIJCQkJCSAgIFwKLQkJIi5wcmV2
-aW91c1xuIgkJCQkJCSAgIFwKLQkJX0FTTV9FWFRBQkxFKDBiLDNiKQkJCQkJICAgXAotCQk6ICI9
-JmQiKHJlcyksICI9JmMiKGNvdW50KSwgIj0mYSIgKF9fZDApLCAiPSZTIiAoX19kMSksCSAgIFwK
-LQkJICAiPSZEIiAoX19kMikJCQkJCQkgICBcCi0JCTogImkiKC1FRkFVTFQpLCAiMCIoY291bnQp
-LCAiMSIoY291bnQpLCAiMyIoc3JjKSwgIjQiKGRzdCkgXAotCQk6ICJtZW1vcnkiKTsJCQkJCQkg
-ICBcCi19IHdoaWxlICgwKQotCi0vKioKLSAqIF9fc3RybmNweV9mcm9tX3VzZXI6IC0gQ29weSBh
-IE5VTCB0ZXJtaW5hdGVkIHN0cmluZyBmcm9tIHVzZXJzcGFjZSwgd2l0aCBsZXNzIGNoZWNraW5n
-LgotICogQGRzdDogICBEZXN0aW5hdGlvbiBhZGRyZXNzLCBpbiBrZXJuZWwgc3BhY2UuICBUaGlz
-IGJ1ZmZlciBtdXN0IGJlIGF0Ci0gKiAgICAgICAgIGxlYXN0IEBjb3VudCBieXRlcyBsb25nLgot
-ICogQHNyYzogICBTb3VyY2UgYWRkcmVzcywgaW4gdXNlciBzcGFjZS4KLSAqIEBjb3VudDogTWF4
-aW11bSBudW1iZXIgb2YgYnl0ZXMgdG8gY29weSwgaW5jbHVkaW5nIHRoZSB0cmFpbGluZyBOVUwu
-Ci0gKgotICogQ29waWVzIGEgTlVMLXRlcm1pbmF0ZWQgc3RyaW5nIGZyb20gdXNlcnNwYWNlIHRv
-IGtlcm5lbCBzcGFjZS4KLSAqIENhbGxlciBtdXN0IGNoZWNrIHRoZSBzcGVjaWZpZWQgYmxvY2sg
-d2l0aCBhY2Nlc3Nfb2soKSBiZWZvcmUgY2FsbGluZwotICogdGhpcyBmdW5jdGlvbi4KLSAqCi0g
-KiBPbiBzdWNjZXNzLCByZXR1cm5zIHRoZSBsZW5ndGggb2YgdGhlIHN0cmluZyAobm90IGluY2x1
-ZGluZyB0aGUgdHJhaWxpbmcKLSAqIE5VTCkuCi0gKgotICogSWYgYWNjZXNzIHRvIHVzZXJzcGFj
-ZSBmYWlscywgcmV0dXJucyAtRUZBVUxUIChzb21lIGRhdGEgbWF5IGhhdmUgYmVlbgotICogY29w
-aWVkKS4KLSAqCi0gKiBJZiBAY291bnQgaXMgc21hbGxlciB0aGFuIHRoZSBsZW5ndGggb2YgdGhl
-IHN0cmluZywgY29waWVzIEBjb3VudCBieXRlcwotICogYW5kIHJldHVybnMgQGNvdW50LgotICov
-Ci1sb25nCi1fX3N0cm5jcHlfZnJvbV91c2VyKGNoYXIgKmRzdCwgY29uc3QgY2hhciBfX3VzZXIg
-KnNyYywgbG9uZyBjb3VudCkKLXsKLQlsb25nIHJlczsKLQlfX2RvX3N0cm5jcHlfZnJvbV91c2Vy
-KGRzdCwgc3JjLCBjb3VudCwgcmVzKTsKLQlyZXR1cm4gcmVzOwotfQotRVhQT1JUX1NZTUJPTChf
-X3N0cm5jcHlfZnJvbV91c2VyKTsKLQotLyoqCi0gKiBzdHJuY3B5X2Zyb21fdXNlcjogLSBDb3B5
-IGEgTlVMIHRlcm1pbmF0ZWQgc3RyaW5nIGZyb20gdXNlcnNwYWNlLgotICogQGRzdDogICBEZXN0
-aW5hdGlvbiBhZGRyZXNzLCBpbiBrZXJuZWwgc3BhY2UuICBUaGlzIGJ1ZmZlciBtdXN0IGJlIGF0
-Ci0gKiAgICAgICAgIGxlYXN0IEBjb3VudCBieXRlcyBsb25nLgotICogQHNyYzogICBTb3VyY2Ug
-YWRkcmVzcywgaW4gdXNlciBzcGFjZS4KLSAqIEBjb3VudDogTWF4aW11bSBudW1iZXIgb2YgYnl0
-ZXMgdG8gY29weSwgaW5jbHVkaW5nIHRoZSB0cmFpbGluZyBOVUwuCi0gKgotICogQ29waWVzIGEg
-TlVMLXRlcm1pbmF0ZWQgc3RyaW5nIGZyb20gdXNlcnNwYWNlIHRvIGtlcm5lbCBzcGFjZS4KLSAq
-Ci0gKiBPbiBzdWNjZXNzLCByZXR1cm5zIHRoZSBsZW5ndGggb2YgdGhlIHN0cmluZyAobm90IGlu
-Y2x1ZGluZyB0aGUgdHJhaWxpbmcKLSAqIE5VTCkuCi0gKgotICogSWYgYWNjZXNzIHRvIHVzZXJz
-cGFjZSBmYWlscywgcmV0dXJucyAtRUZBVUxUIChzb21lIGRhdGEgbWF5IGhhdmUgYmVlbgotICog
-Y29waWVkKS4KLSAqCi0gKiBJZiBAY291bnQgaXMgc21hbGxlciB0aGFuIHRoZSBsZW5ndGggb2Yg
-dGhlIHN0cmluZywgY29waWVzIEBjb3VudCBieXRlcwotICogYW5kIHJldHVybnMgQGNvdW50Lgot
-ICovCi1sb25nCi1zdHJuY3B5X2Zyb21fdXNlcihjaGFyICpkc3QsIGNvbnN0IGNoYXIgX191c2Vy
-ICpzcmMsIGxvbmcgY291bnQpCi17Ci0JbG9uZyByZXMgPSAtRUZBVUxUOwotCWlmIChhY2Nlc3Nf
-b2soVkVSSUZZX1JFQUQsIHNyYywgMSkpCi0JCV9fZG9fc3RybmNweV9mcm9tX3VzZXIoZHN0LCBz
-cmMsIGNvdW50LCByZXMpOwotCXJldHVybiByZXM7Ci19Ci1FWFBPUlRfU1lNQk9MKHN0cm5jcHlf
-ZnJvbV91c2VyKTsKLQotLyoKICAqIFplcm8gVXNlcnNwYWNlCiAgKi8KIApkaWZmIC0tZ2l0IGEv
-YXJjaC94ODYvbGliL3VzZXJjb3B5XzY0LmMgYi9hcmNoL3g4Ni9saWIvdXNlcmNvcHlfNjQuYwpp
-bmRleCBiN2MyODQ5ZmZiNjYuLjBkMDMyNmYzODhjMCAxMDA2NDQKLS0tIGEvYXJjaC94ODYvbGli
-L3VzZXJjb3B5XzY0LmMKKysrIGIvYXJjaC94ODYvbGliL3VzZXJjb3B5XzY0LmMKQEAgLTksNTUg
-KzksNiBAQAogI2luY2x1ZGUgPGFzbS91YWNjZXNzLmg+CiAKIC8qCi0gKiBDb3B5IGEgbnVsbCB0
-ZXJtaW5hdGVkIHN0cmluZyBmcm9tIHVzZXJzcGFjZS4KLSAqLwotCi0jZGVmaW5lIF9fZG9fc3Ry
-bmNweV9mcm9tX3VzZXIoZHN0LHNyYyxjb3VudCxyZXMpCQkJICAgXAotZG8gewkJCQkJCQkJCSAg
-IFwKLQlsb25nIF9fZDAsIF9fZDEsIF9fZDI7CQkJCQkJICAgXAotCW1pZ2h0X2ZhdWx0KCk7CQkJ
-CQkJCSAgIFwKLQlfX2FzbV9fIF9fdm9sYXRpbGVfXygJCQkJCQkgICBcCi0JCSIJdGVzdHEgJTEs
-JTFcbiIJCQkJCSAgIFwKLQkJIglqeiAyZlxuIgkJCQkJICAgXAotCQkiMDoJbG9kc2JcbiIJCQkJ
-CSAgIFwKLQkJIglzdG9zYlxuIgkJCQkJICAgXAotCQkiCXRlc3RiICUlYWwsJSVhbFxuIgkJCQkg
-ICBcCi0JCSIJanogMWZcbiIJCQkJCSAgIFwKLQkJIglkZWNxICUxXG4iCQkJCQkgICBcCi0JCSIJ
-am56IDBiXG4iCQkJCQkgICBcCi0JCSIxOglzdWJxICUxLCUwXG4iCQkJCQkgICBcCi0JCSIyOlxu
-IgkJCQkJCQkgICBcCi0JCSIuc2VjdGlvbiAuZml4dXAsXCJheFwiXG4iCQkJCSAgIFwKLQkJIjM6
-CW1vdnEgJTUsJTBcbiIJCQkJCSAgIFwKLQkJIglqbXAgMmJcbiIJCQkJCSAgIFwKLQkJIi5wcmV2
-aW91c1xuIgkJCQkJCSAgIFwKLQkJX0FTTV9FWFRBQkxFKDBiLDNiKQkJCQkJICAgXAotCQk6ICI9
-JnIiKHJlcyksICI9JmMiKGNvdW50KSwgIj0mYSIgKF9fZDApLCAiPSZTIiAoX19kMSksCSAgIFwK
-LQkJICAiPSZEIiAoX19kMikJCQkJCQkgICBcCi0JCTogImkiKC1FRkFVTFQpLCAiMCIoY291bnQp
-LCAiMSIoY291bnQpLCAiMyIoc3JjKSwgIjQiKGRzdCkgXAotCQk6ICJtZW1vcnkiKTsJCQkJCQkg
-ICBcCi19IHdoaWxlICgwKQotCi1sb25nCi1fX3N0cm5jcHlfZnJvbV91c2VyKGNoYXIgKmRzdCwg
-Y29uc3QgY2hhciBfX3VzZXIgKnNyYywgbG9uZyBjb3VudCkKLXsKLQlsb25nIHJlczsKLQlfX2Rv
-X3N0cm5jcHlfZnJvbV91c2VyKGRzdCwgc3JjLCBjb3VudCwgcmVzKTsKLQlyZXR1cm4gcmVzOwot
-fQotRVhQT1JUX1NZTUJPTChfX3N0cm5jcHlfZnJvbV91c2VyKTsKLQotbG9uZwotc3RybmNweV9m
-cm9tX3VzZXIoY2hhciAqZHN0LCBjb25zdCBjaGFyIF9fdXNlciAqc3JjLCBsb25nIGNvdW50KQot
-ewotCWxvbmcgcmVzID0gLUVGQVVMVDsKLQlpZiAoYWNjZXNzX29rKFZFUklGWV9SRUFELCBzcmMs
-IDEpKQotCQlyZXR1cm4gX19zdHJuY3B5X2Zyb21fdXNlcihkc3QsIHNyYywgY291bnQpOwotCXJl
-dHVybiByZXM7Ci19Ci1FWFBPUlRfU1lNQk9MKHN0cm5jcHlfZnJvbV91c2VyKTsKLQotLyoKICAq
-IFplcm8gVXNlcnNwYWNlCiAgKi8KIAo=
---f46d044306502f2e9104bd096623--
+                     Linus
