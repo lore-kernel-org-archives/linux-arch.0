@@ -1,17 +1,15 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f46.google.com ([209.85.160.46]:55193 "EHLO
-	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932388Ab2DFTzj convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Apr 2012 15:55:39 -0400
-Received: by mail-pb0-f46.google.com with SMTP id un15so2933847pbc.19
-        for <linux-arch@vger.kernel.org>; Fri, 06 Apr 2012 12:55:39 -0700 (PDT)
+Received: from mail-ob0-f174.google.com ([209.85.214.174]:48036 "EHLO
+	mail-ob0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753569Ab2DFUBk convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Apr 2012 16:01:40 -0400
 MIME-Version: 1.0
-In-Reply-To: <20120406124921.5754e941.akpm@linux-foundation.org>
+In-Reply-To: <20120406125517.77133b4e.akpm@linux-foundation.org>
 References: <1333051320-30872-1-git-send-email-wad@chromium.org>
- <1333051320-30872-2-git-send-email-wad@chromium.org> <20120406124921.5754e941.akpm@linux-foundation.org>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Fri, 6 Apr 2012 12:55:14 -0700
-Message-ID: <CALCETrWJc83uy6Y+mLLMPKtxkBW2cWf4g1D+3M-0qgTfcnV1Bg@mail.gmail.com>
+ <1333051320-30872-2-git-send-email-wad@chromium.org> <20120406125517.77133b4e.akpm@linux-foundation.org>
+From: Andrew Lutomirski <luto@mit.edu>
+Date: Fri, 6 Apr 2012 13:01:17 -0700
+Message-ID: <CAObL_7EYb62o=a0ekzcDx=0TuN55A7aTYhLJbMNu2r8F0V77EA@mail.gmail.com>
 Subject: Re: [PATCH v17 01/15] Add PR_{GET,SET}_NO_NEW_PRIVS to prevent execve
  from granting privs
 Content-Type: text/plain; charset=ISO-8859-1
@@ -19,10 +17,10 @@ Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Will Drewry <wad@chromium.org>, linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org
-Message-ID: <20120406195514.Sf7l-MdKX50HerSn-7fxRwLYq9xll4JDTgEuoZl37g4@z>
+Cc: Will Drewry <wad@chromium.org>, linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org, Andy Lutomirski <luto@amacapital.net>, linux-man@vger.kernel.org
+Message-ID: <20120406200117.O4oRCW5sC9x2-6P54BiPPJtLWjWXRRaoyngscFTTmto@z>
 
-On Fri, Apr 6, 2012 at 12:49 PM, Andrew Morton
+On Fri, Apr 6, 2012 at 12:55 PM, Andrew Morton
 <akpm@linux-foundation.org> wrote:
 > On Thu, 29 Mar 2012 15:01:46 -0500
 > Will Drewry <wad@chromium.org> wrote:
@@ -32,18 +30,24 @@ On Fri, Apr 6, 2012 at 12:49 PM, Andrew Morton
 >> With this set, a lot of dangerous operations (chroot, unshare, etc)
 >> become a lot less dangerous because there is no possibility of
 >> subverting privileged binaries.
->>
->> This patch completely breaks apparmor.  Someone who understands (and
->> uses) apparmor should fix it or at least give me a hint.
 >
-> So [patch 2/15] fixes all this up?
+> The changelog doesn't explain the semantics of the new syscall.
+> There's a comment way-down-there which I guess suffices, if you hunt
+> for it.
 >
-> I guess we should join the two patches into one, to avoid a silly
-> breakage window.  That means that John loses a brownie point, but we
-> can mention him in the changelog, include his signed-off-by:
+> And the changelog doesn't explain why this is being added.  Presumably
+> seccomp_filter wants/needs this feature but whowhatwherewhenwhy?  Spell
+> it all out, please.
+>
+> The new syscall mode will be documented in the prctl manpage.  Please
+> cc linux-man@vger.kernel.org and work with Michael on getting this
+> done?
 
-Or just fix the commit message.  It no longer completely breaks
-AppArmor.  It just causes execve to fail when PR_SET_NO_NEW_PRIVS is
-set and AppArmor is in use.
+This has been bugging me for awhile.  Is there any interest in moving
+the manpages into the kernel source tree?  Then there could be a
+general requirement that new APIs get documented when they're written.
+
+(There are plenty of barely- or incompletely-documented syscalls.
+futex and relatives come to mind.)
 
 --Andy
