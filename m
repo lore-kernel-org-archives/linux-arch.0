@@ -1,61 +1,201 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: x86: faster strncpy_from_user()
-Date: Fri, 6 Apr 2012 14:49:17 -0700
-Message-ID: <CA+55aFxiL_qm=a7qb2FiEojx81BOpmmNraN84zXh-vpFLwJSVA@mail.gmail.com>
-References: <CA+55aFy8J5Ns4P514g7Ow4WhJXO+pjPBozYuCinYB+FQUKjZ6A@mail.gmail.com>
+From: "Indan Zupancic" <indan@nul.nu>
+Subject: Re: [PATCH v17 08/15] seccomp: add system call filtering using BPF
+Date: Mon, 9 Apr 2012 04:22:40 +1000
+Message-ID: <67e30a0c8655fc53a92e8138bba9de66.squirrel@webmail.greenhost.nl>
+References: <1333051320-30872-1-git-send-email-wad@chromium.org>
+    <1333051320-30872-9-git-send-email-wad@chromium.org>
+    <20120406132330.457a05cf.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f44.google.com ([74.125.82.44]:57809 "EHLO
-	mail-wg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754247Ab2DFVtj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Apr 2012 17:49:39 -0400
-Received: by wgbdr13 with SMTP id dr13so2487340wgb.1
-        for <linux-arch@vger.kernel.org>; Fri, 06 Apr 2012 14:49:38 -0700 (PDT)
-In-Reply-To: <CA+55aFy8J5Ns4P514g7Ow4WhJXO+pjPBozYuCinYB+FQUKjZ6A@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>, "H. Peter Anvin" <hpa@zytor.com>, the arch/x86 maintainers <x86@kernel.org>, linux-arch@vger.kernel.org
+Content-Type: text/plain;charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <20120406132330.457a05cf.akpm@linux-foundation.org>
+Sender: linux-doc-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Will Drewry <wad@chromium.org>, linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Apr 6, 2012 at 2:32 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
+On Sat, April 7, 2012 06:23, Andrew Morton wrote:
+> hm, I'm surprised that we don't have a zero-returning implementation of
+> is_compat_task() when CONFIG_COMPAT=n.  Seems silly.  Blames Arnd.
+
+It's sneakily hidden at the end of compat.h.
+
+>> +/**
+>> + * get_u32 - returns a u32 offset into data
+>> + * @data: a unsigned 64 bit value
+>> + * @index: 0 or 1 to return the first or second 32-bits
+>> + *
+>> + * This inline exists to hide the length of unsigned long.
+>> + * If a 32-bit unsigned long is passed in, it will be extended
+>> + * and the top 32-bits will be 0. If it is a 64-bit unsigned
+>> + * long, then whatever data is resident will be properly returned.
+>> + */
+>> +static inline u32 get_u32(u64 data, int index)
+>> +{
+>> +	return ((u32 *)&data)[index];
+>> +}
 >
-> Anyway, this works for me on x86 (you need current tip-of-git for the
-> <asm/word-at-a-time.h> thing) and is quite noticeable in profiles
-> (well, if you have loads that do a lot of pathname lookups: I use a
-> microbenchmarks that does ten million lookups of a filename with
-> multiple components, but I also do "make -j" profiles of a fully build
-> tree).
+> This seems utterly broken on big-endian machines.  If so: fix.  If not:
+> add comment explaining why?
 
-Some actual numbers: my microbenchmark used to take just over 9s
-(best-of-six:9.053s) back before the dcache lookup optimizations
+It's not a bug, it's intentional.
 
-With some of the __d_lookup_rcu cleanups, and doing dentry_cmp() a
-word at a time, that best-of-six dropped to 8.504s, and then
-eventually with the full word-wide hashing it dropped to 8.013s. Some
-more optimization got it consistently into the mid-sevens, which is
-roughly where 3.4-rc1 was.
+I tried to convince them to have a stable ABI for all archs, but they
+didn't want to make the ABI endianness independent, because it looks
+uglier. The argument being that system call numbers are arch dependent
+anyway.
 
-Today, my "best-of-six" numbers are 6.301s for that same binary, on
-the same machine. Now, the numbers aren't hugely stable, and I didn't
-do the same pre-population of the dcache that I did with the earlier
-numbers, so it's not entirely comparable. But it's basically
-approaching almost 30% better than the original code.
+So a filter for a little endian arch needs to check a different offset
+than one for a big endian archs.
 
-Admittedly just on a silly micro-benchmark, but still: all that
-benchmark does is just "stat()" the same path over and over - which is
-not a totally unrealistic thing to do. The "same path" means that it
-doesn't show the cache effects as much (and the profiles are much
-"sharper"). And while the "make -j" thing clearly shows different
-profiles, the top five kernel functions have actually been pretty
-consistent between the two cases, even if the details change.
+>> +static u32 seccomp_run_filters(int syscall)
+>> +{
+>> +	struct seccomp_filter *f;
+>> +	u32 ret = SECCOMP_RET_KILL;
+>> +	/*
+>> +	 * All filters are evaluated in order of youngest to oldest. The lowest
+>> +	 * BPF return value always takes priority.
+>> +	 */
+>
+> The youngest-first design surprised me.  It wasn't mentioned at all in
+> the changelog.  Thinking about it, I guess it just doesn't matter.  But
+> some description of the reasons for and implications of this decision
+> for the uninitiated would be welcome.
 
-Note: extra good numbers are with all my (uncommitted) selinux fixes
-too, and there is a fair amounf of fluctuation in the numbers (lots
-and lots of cache effects), but the strncpy change did make a
-noticeable difference. Earlier today, I had a hard time getting the
-number under 7s. Getting to 6.3 was partly strncpy, but about half of
-it was my very experimental selinux stuff. Some of which might never
-end up being committed, who knows..
+I think it's less confusing to not mention the order at all, exactly
+because it doesn't matter. It has been like this from the start, so
+that's why it's not mentioned in the changelog I guess.
 
-                     Linus
+The reason to check the youngest first is because the filters are shared
+between processes: childs inherit it. If later on additional filters are
+added, the only way of adding them without modifying an older filter is
+by adding them to the head of the list. This way no locking is needed,
+because filters are only added and removed single-threadedly, and never
+modified when being shared.
+
+>> +/**
+>> + * seccomp_attach_filter: Attaches a seccomp filter to current.
+>> + * @fprog: BPF program to install
+>> + *
+>> + * Returns 0 on success or an errno on failure.
+>> + */
+>> +static long seccomp_attach_filter(struct sock_fprog *fprog)
+>> +{
+>> +	struct seccomp_filter *filter;
+>> +	unsigned long fp_size = fprog->len * sizeof(struct sock_filter);
+>> +	unsigned long total_insns = fprog->len;
+>> +	long ret;
+>> +
+>> +	if (fprog->len == 0 || fprog->len > BPF_MAXINSNS)
+>> +		return -EINVAL;
+>> +
+>> +	for (filter = current->seccomp.filter; filter; filter = filter->prev)
+>> +		total_insns += filter->len + 4;  /* include a 4 instr penalty */
+>
+> So tasks don't share filters?  We copy them by value at fork?  Do we do
+> this at vfork() too?
+
+Yes they do. But shared filters are never modified, except for the refcount.
+
+>
+>> +	if (total_insns > MAX_INSNS_PER_PATH)
+>> +		return -ENOMEM;
+>> +
+>> +	/*
+>> +	 * Installing a seccomp filter requires that the task have
+>> +	 * CAP_SYS_ADMIN in its namespace or be running with no_new_privs.
+>> +	 * This avoids scenarios where unprivileged tasks can affect the
+>> +	 * behavior of privileged children.
+>> +	 */
+>> +	if (!current->no_new_privs &&
+>> +	    security_capable_noaudit(current_cred(), current_user_ns(),
+>> +				     CAP_SYS_ADMIN) != 0)
+>> +		return -EACCES;
+>> +
+>> +	/* Allocate a new seccomp_filter */
+>> +	filter = kzalloc(sizeof(struct seccomp_filter) + fp_size, GFP_KERNEL);
+>
+> I think this gives userspace an easy way of causing page allocation
+> failure warnings, by permitting large kmalloc() attempts.  Add
+> __GFP_NOWARN?
+
+Max is 32kb. sk_attach_filter() in net/core/filter.c is worse,
+it allocates up to 512kb before even checking the length.
+
+What about using GFP_USER (and adding __GFP_NOWARN to GFP_USER) instead?
+
+>> +	/* Check and rewrite the fprog via the skb checker */
+>> +	ret = sk_chk_filter(filter->insns, filter->len);
+>> +	if (ret)
+>> +		goto fail;
+>> +
+>> +	/* Check and rewrite the fprog for seccomp use */
+>> +	ret = seccomp_chk_filter(filter->insns, filter->len);
+>
+> "check" is spelled "check"!
+
+Yes, it is and he did spell "check" as "Check".
+
+seccomp_chk_filter() mirrors sk_chk_filter(). So it refers to
+"chk", not "check".
+
+>
+>> +	if (ret)
+>> +		goto fail;
+>> +
+>> +	/*
+>> +	 * If there is an existing filter, make it the prev and don't drop its
+>> +	 * task reference.
+>> +	 */
+>> +	filter->prev = current->seccomp.filter;
+>> +	current->seccomp.filter = filter;
+>> +	return 0;
+>> +fail:
+>> +	kfree(filter);
+>> +	return ret;
+>> +}
+>> +
+>>
+>> ...
+>>
+>> +/* put_seccomp_filter - decrements the ref count of tsk->seccomp.filter */
+>> +void put_seccomp_filter(struct task_struct *tsk)
+>> +{
+>> +	struct seccomp_filter *orig = tsk->seccomp.filter;
+>> +	/* Clean up single-reference branches iteratively. */
+>> +	while (orig && atomic_dec_and_test(&orig->usage)) {
+>> +		struct seccomp_filter *freeme = orig;
+>> +		orig = orig->prev;
+>> +		kfree(freeme);
+>> +	}
+>> +}
+>
+> So if one of the filters in the list has an elevated refcount, we bail
+> out on the remainder of the list.  Seems odd.
+
+A bit odd yes, but fiddling with the other refcounts makes no functional
+difference. You can see it as a tree of filters, with a fork at each
+point any process forked, and the filters between forks having the same
+life-time (added by the same process). Every process's filter list is
+a path from a leaf filter to the root.
+
+Only leaf filters get their refcount incremented at fork time, so their
+refcount is always the same or higher than the refcount of the filters
+before them, up to the previous fork. The intermediate filters always
+have a refcount of 1, real refcounting only happens on the fork filters.
+A refcount of 1 means it's an intermediate or a leaf filter, a higher
+refcount means it's a fork filter.
+
+With "proper" refcounting all the filters from the new leaf up to the
+root would get their refcount incremented at fork time, but that is
+wasted work, because they can be guarded by the last filter instead.
+
+So the code bails when reaching a fork point, as it means that filter
+and hence the rest of the list is shared and used by other processes.
+
+Greetings,
+
+Indan
+
+
