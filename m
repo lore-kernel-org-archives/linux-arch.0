@@ -1,37 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from tundra.namei.org ([65.99.196.166]:60575 "EHLO tundra.namei.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752860Ab2DIDtb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 8 Apr 2012 23:49:31 -0400
-Date: Mon, 9 Apr 2012 13:48:37 +1000 (EST)
-From: James Morris <jmorris@namei.org>
-Subject: Re: [PATCH v17 00/15] seccomp_filter: BPF-based syscall filtering
-In-Reply-To: <20120406142846.fd8dea70.akpm@linux-foundation.org>
-Message-ID: <alpine.LRH.2.02.1204091348060.16214@tundra.namei.org>
-References: <1333051320-30872-1-git-send-email-wad@chromium.org> <alpine.LRH.2.02.1203301010310.11201@tundra.namei.org> <20120406142846.fd8dea70.akpm@linux-foundation.org>
+Received: from mail-yw0-f46.google.com ([209.85.213.46]:50806 "EHLO
+	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757900Ab2DITYF convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Apr 2012 15:24:05 -0400
+Received: by mail-yw0-f46.google.com with SMTP id m54so1992061yhm.19
+        for <linux-arch@vger.kernel.org>; Mon, 09 Apr 2012 12:24:04 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+In-Reply-To: <20120406130544.3d317192.akpm@linux-foundation.org>
+References: <1333051320-30872-1-git-send-email-wad@chromium.org>
+	<1333051320-30872-8-git-send-email-wad@chromium.org>
+	<20120406130544.3d317192.akpm@linux-foundation.org>
+Date: Mon, 9 Apr 2012 14:24:00 -0500
+Message-ID: <CABqD9hYKSGk4BiwcDstd8xVmGmTRPdBE-LMUq0oP_1ydcv3-VQ@mail.gmail.com>
+Subject: Re: [PATCH v17 07/15] asm/syscall.h: add syscall_get_arch
+From: Will Drewry <wad@chromium.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Will Drewry <wad@chromium.org>, linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, Oleg Nesterov <oleg@redhat.com>, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.orgOleg Nesterov <oleg@redhat.com>
-Message-ID: <20120409034837.HSX2ZGIVWhEWSNy1PaLs1D53Rp9qg2B2VyEujkV237c@z>
+Cc: linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org
+Message-ID: <20120409192400.OaROjJDWrSfkk45s7oDq3CEQSvMgMzX76Rn8k5wiXwY@z>
 
-On Fri, 6 Apr 2012, Andrew Morton wrote:
+On Fri, Apr 6, 2012 at 3:05 PM, Andrew Morton <akpm@linux-foundation.org> wrote:
+> On Thu, 29 Mar 2012 15:01:52 -0500
+> Will Drewry <wad@chromium.org> wrote:
+>
+>> Adds a stub for a function that will return the AUDIT_ARCH_*
+>> value appropriate to the supplied task based on the system
+>> call convention.
+>>
+>> For audit's use, the value can generally be hard-coded at the
+>> audit-site.  However, for other functionality not inlined into
+>> syscall entry/exit, this makes that information available.
+>> seccomp_filter is the first planned consumer and, as such,
+>> the comment indicates a tie to HAVE_ARCH_SECCOMP_FILTER.  That
+>
+> Should be "CONFIG_HAVE_ARCH_SECCOMP_FILTER", I hope.
 
-> > I've offered to take this via my tree -- if anyone else wants to merge it 
-> > via theirs instead, holler.
-> 
-> OK by me, especially if it means that you'll carefully (re)review it!  I
-> had some minor quibbles with v17.
+yes!
 
-Sure.
+>
+>> is probably an unneeded detail.
+>>
+>> ...
+>>
+>> --- a/include/asm-generic/syscall.h
+>> +++ b/include/asm-generic/syscall.h
+>> @@ -142,4 +142,18 @@ void syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
+>>                          unsigned int i, unsigned int n,
+>>                          const unsigned long *args);
+>>
+>> +/**
+>> + * syscall_get_arch - return the AUDIT_ARCH for the current system call
+>> + * @task:    task of interest, must be in system call entry tracing
+>> + * @regs:    task_pt_regs() of @task
+>> + *
+>> + * Returns the AUDIT_ARCH_* based on the system call convention in use.
+>> + *
+>> + * It's only valid to call this when @task is stopped on entry to a system
+>> + * call, due to %TIF_SYSCALL_TRACE, %TIF_SYSCALL_AUDIT, or %TIF_SECCOMP.
+>> + *
+>> + * Note, at present this function is only required with
+>> + * CONFIG_HAVE_ARCH_SECCOMP_FILTER.
+>> + */
+>> +int syscall_get_arch(struct task_struct *task, struct pt_regs *regs);
+>>  #endif       /* _ASM_SYSCALL_H */
+>
+> So architectures which permit CONFIG_HAVE_ARCH_SECCOMP_FILTER must
+> provide an implementation of this.
 
-> 
-> It would be good if Oleg could take a look at the signal changes, if he
-> has not yet done so?
-> 
+Much better wording.
 
--- 
-James Morris
-<jmorris@namei.org>
+In practice, many of the existing places that audit arch is needed
+already know the calling convention because they happen in asm or have
+hardcoded values.  It may be that other consumers may want this
+information later, like ftrace, but I'm not sure of any that will
+immediately benefit from it right now.
