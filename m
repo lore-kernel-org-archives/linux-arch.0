@@ -1,79 +1,90 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:50806 "EHLO
-	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757900Ab2DITYF convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Apr 2012 15:24:05 -0400
-Received: by mail-yw0-f46.google.com with SMTP id m54so1992061yhm.19
-        for <linux-arch@vger.kernel.org>; Mon, 09 Apr 2012 12:24:04 -0700 (PDT)
+Received: from mail-iy0-f174.google.com ([209.85.210.174]:45683 "EHLO
+	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757926Ab2DIT0B convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Apr 2012 15:26:01 -0400
+Received: by iagz16 with SMTP id z16so6255283iag.19
+        for <linux-arch@vger.kernel.org>; Mon, 09 Apr 2012 12:26:01 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20120406130544.3d317192.akpm@linux-foundation.org>
+In-Reply-To: <20120406141415.93f46bc6.akpm@linux-foundation.org>
 References: <1333051320-30872-1-git-send-email-wad@chromium.org>
-	<1333051320-30872-8-git-send-email-wad@chromium.org>
-	<20120406130544.3d317192.akpm@linux-foundation.org>
-Date: Mon, 9 Apr 2012 14:24:00 -0500
-Message-ID: <CABqD9hYKSGk4BiwcDstd8xVmGmTRPdBE-LMUq0oP_1ydcv3-VQ@mail.gmail.com>
-Subject: Re: [PATCH v17 07/15] asm/syscall.h: add syscall_get_arch
+	<1333051320-30872-10-git-send-email-wad@chromium.org>
+	<20120406141415.93f46bc6.akpm@linux-foundation.org>
+Date: Mon, 9 Apr 2012 14:26:01 -0500
+Message-ID: <CABqD9hZVZQXA5cyufwWirWVUYZwSkjRxHR2CBKW5V62qD-DGtA@mail.gmail.com>
+Subject: Re: [PATCH v17 09/15] seccomp: remove duplicated failure logging
 From: Will Drewry <wad@chromium.org>
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org
-Message-ID: <20120409192400.OaROjJDWrSfkk45s7oDq3CEQSvMgMzX76Rn8k5wiXwY@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Kees Cook <keescook@chromium.org>, Eric Paris <eparis@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, jmorris@namei.org
+Message-ID: <20120409192601.ZSww2hPWMHgL13G2S1gne3NcjHODeFkYS8I31hvAfGI@z>
 
-On Fri, Apr 6, 2012 at 3:05 PM, Andrew Morton <akpm@linux-foundation.org> wrote:
-> On Thu, 29 Mar 2012 15:01:52 -0500
+On Fri, Apr 6, 2012 at 4:14 PM, Andrew Morton <akpm@linux-foundation.org> wrote:
+> On Thu, 29 Mar 2012 15:01:54 -0500
 > Will Drewry <wad@chromium.org> wrote:
 >
->> Adds a stub for a function that will return the AUDIT_ARCH_*
->> value appropriate to the supplied task based on the system
->> call convention.
+>> From: Kees Cook <keescook@chromium.org>
 >>
->> For audit's use, the value can generally be hard-coded at the
->> audit-site.  However, for other functionality not inlined into
->> syscall entry/exit, this makes that information available.
->> seccomp_filter is the first planned consumer and, as such,
->> the comment indicates a tie to HAVE_ARCH_SECCOMP_FILTER.  That
->
-> Should be "CONFIG_HAVE_ARCH_SECCOMP_FILTER", I hope.
-
-yes!
-
->
->> is probably an unneeded detail.
+>> This consolidates the seccomp filter error logging path and adds more
+>> details to the audit log.
 >>
 >> ...
 >>
->> --- a/include/asm-generic/syscall.h
->> +++ b/include/asm-generic/syscall.h
->> @@ -142,4 +142,18 @@ void syscall_set_arguments(struct task_struct *task, struct pt_regs *regs,
->>                          unsigned int i, unsigned int n,
->>                          const unsigned long *args);
+>> --- a/include/linux/audit.h
+>> +++ b/include/linux/audit.h
 >>
->> +/**
->> + * syscall_get_arch - return the AUDIT_ARCH for the current system call
->> + * @task:    task of interest, must be in system call entry tracing
->> + * @regs:    task_pt_regs() of @task
->> + *
->> + * Returns the AUDIT_ARCH_* based on the system call convention in use.
->> + *
->> + * It's only valid to call this when @task is stopped on entry to a system
->> + * call, due to %TIF_SYSCALL_TRACE, %TIF_SYSCALL_AUDIT, or %TIF_SECCOMP.
->> + *
->> + * Note, at present this function is only required with
->> + * CONFIG_HAVE_ARCH_SECCOMP_FILTER.
->> + */
->> +int syscall_get_arch(struct task_struct *task, struct pt_regs *regs);
->>  #endif       /* _ASM_SYSCALL_H */
+>> ...
+>>
+>>  #define audit_inode(n,d) do { (void)(d); } while (0)
+>>  #define audit_inode_child(i,p) do { ; } while (0)
+>>  #define audit_core_dumps(i) do { ; } while (0)
+>> -#define audit_seccomp(i) do { ; } while (0)
+>> +#define audit_seccomp(i,s,c) do { ; } while (0)
 >
-> So architectures which permit CONFIG_HAVE_ARCH_SECCOMP_FILTER must
-> provide an implementation of this.
+> Sigh.  Someone please convert all these to C.  That way we get
+> typechecking and don't need dopey party tricks like that "(void)(d)" to
+> squish compilation warnings.
+>
+>> ...
+>> --- a/kernel/auditsc.c
+>> +++ b/kernel/auditsc.c
+>> @@ -67,6 +67,7 @@
+>>  #include <linux/syscalls.h>
+>>  #include <linux/capability.h>
+>>  #include <linux/fs_struct.h>
+>> +#include <linux/compat.h>
+>>
+>>  #include "audit.h"
+>>
+>> @@ -2710,13 +2711,18 @@ void audit_core_dumps(long signr)
+>>       audit_log_end(ab);
+>>  }
+>>
+>> -void __audit_seccomp(unsigned long syscall)
+>> +void __audit_seccomp(unsigned long syscall, long signr, int code)
+>>  {
+>>       struct audit_buffer *ab;
+>>
+>>       ab = audit_log_start(NULL, GFP_KERNEL, AUDIT_ANOM_ABEND);
+>> -     audit_log_abend(ab, "seccomp", SIGKILL);
+>> +     audit_log_abend(ab, "seccomp", signr);
+>>       audit_log_format(ab, " syscall=%ld", syscall);
+>> +#ifdef CONFIG_COMPAT
+>> +     audit_log_format(ab, " compat=%d", is_compat_task());
+>> +#endif
+>
+> We don't need the ifdef for compilation reasons now.
+>
+> The question is: should we emit the compat= record on
+> non-compat-capable architectures?  Doing so would be safer - making it
+> conditional invites people to write x86-only usersapce.
 
-Much better wording.
+I'd certainly prefer it always being there for exactly that reason.
 
-In practice, many of the existing places that audit arch is needed
-already know the calling convention because they happen in asm or have
-hardcoded values.  It may be that other consumers may want this
-information later, like ftrace, but I'm not sure of any that will
-immediately benefit from it right now.
+Kees, Eric, any preferences?  Unless I hear one, I'll just drop the
+ifdefs in the next revision.
+
+thanks!
