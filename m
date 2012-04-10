@@ -1,90 +1,93 @@
 From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: [PATCHv8 00/10] ARM: DMA-mapping framework redesign
-Date: Tue, 10 Apr 2012 13:04:02 +0200
-Message-ID: <1334055852-19500-1-git-send-email-m.szyprowski@samsung.com>
+Subject: [PATCHv8 02/10] ARM: dma-mapping: use pr_* instread of printk
+Date: Tue, 10 Apr 2012 13:04:04 +0200
+Message-ID: <1334055852-19500-3-git-send-email-m.szyprowski@samsung.com>
+References: <1334055852-19500-1-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN
 Content-Transfer-Encoding: 7BIT
 Return-path: <owner-linux-mm@kvack.org>
+In-reply-to: <1334055852-19500-1-git-send-email-m.szyprowski@samsung.com>
 Sender: owner-linux-mm@kvack.org
 To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org
 Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Hiroshi Doyu <hdoyu@nvidia.com>, Subash Patel <subashrp@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hello,
+Replace all calls to printk with pr_* functions family.
 
-Linux v3.4-rc2, which include dma-mapping preparation patches, has been
-released two days ago, now it's time for the next spin of ARM
-dma-mapping redesign patches. This version includes various fixes posted
-separately to v7, mainly related to incorrect io address space bitmap
-setup and a major issue with broken mmap for memory which comes from
-dma_declare_coherent(). The patches have been also rebased onto Linux
-v3.4-rc2 which comes with dma_map_ops related changes.
+Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
+Acked-by: Kyungmin Park <kyungmin.park@samsung.com>
+---
+ arch/arm/mm/dma-mapping.c |   16 ++++++++--------
+ 1 files changed, 8 insertions(+), 8 deletions(-)
 
-The code has been tested on Samsung Exynos4 'UniversalC210' and NURI
-boards with IOMMU driver posted by KyongHo Cho, I will put separate
-branch which shows how to integrate this driver with this patchset.
-
-The patches are also available on my git repository at:
-git://git.linaro.org/people/mszyprowski/linux-dma-mapping.git 3.4-rc2-arm-dma-v8
-
-
-History of the development:
-
-v1: (initial version of the DMA-mapping redesign patches):
-http://www.spinics.net/lists/linux-mm/msg21241.html
-
-v2:
-http://lists.linaro.org/pipermail/linaro-mm-sig/2011-September/000571.html
-http://lists.linaro.org/pipermail/linaro-mm-sig/2011-September/000577.html
-
-v3:
-http://www.spinics.net/lists/linux-mm/msg25490.html
-
-v4 and v5:
-http://www.spinics.net/lists/arm-kernel/msg151147.html
-http://www.spinics.net/lists/arm-kernel/msg154889.html
-
-v6:
-http://www.spinics.net/lists/linux-mm/msg29903.html
-
-v7:
-http://www.spinics.net/lists/arm-kernel/msg162149.html
-
-Best regards
-Marek Szyprowski
-Samsung Poland R&D Center
-
-
-Patch summary:
-
-Marek Szyprowski (10):
-  common: add dma_mmap_from_coherent() function
-  ARM: dma-mapping: use pr_* instread of printk
-  ARM: dma-mapping: introduce ARM_DMA_ERROR constant
-  ARM: dma-mapping: remove offset parameter to prepare for generic
-    dma_ops
-  ARM: dma-mapping: use asm-generic/dma-mapping-common.h
-  ARM: dma-mapping: implement dma sg methods on top of any generic dma
-    ops
-  ARM: dma-mapping: move all dma bounce code to separate dma ops
-    structure
-  ARM: dma-mapping: remove redundant code and cleanup
-  ARM: dma-mapping: use alloc, mmap, free from dma_ops
-  ARM: dma-mapping: add support for IOMMU mapper
-
- arch/arm/Kconfig                   |    9 +
- arch/arm/common/dmabounce.c        |   84 +++-
- arch/arm/include/asm/device.h      |    4 +
- arch/arm/include/asm/dma-iommu.h   |   34 ++
- arch/arm/include/asm/dma-mapping.h |  407 ++++-----------
- arch/arm/mm/dma-mapping.c          | 1019 ++++++++++++++++++++++++++++++------
- arch/arm/mm/vmregion.h             |    2 +-
- drivers/base/dma-coherent.c        |   42 ++
- include/asm-generic/dma-coherent.h |    4 +-
- 9 files changed, 1138 insertions(+), 467 deletions(-)
- create mode 100644 arch/arm/include/asm/dma-iommu.h
-
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index db23ae4..366f3a2 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -184,14 +184,14 @@ static int __init consistent_init(void)
+ 
+ 		pud = pud_alloc(&init_mm, pgd, base);
+ 		if (!pud) {
+-			printk(KERN_ERR "%s: no pud tables\n", __func__);
++			pr_err("%s: no pud tables\n", __func__);
+ 			ret = -ENOMEM;
+ 			break;
+ 		}
+ 
+ 		pmd = pmd_alloc(&init_mm, pud, base);
+ 		if (!pmd) {
+-			printk(KERN_ERR "%s: no pmd tables\n", __func__);
++			pr_err("%s: no pmd tables\n", __func__);
+ 			ret = -ENOMEM;
+ 			break;
+ 		}
+@@ -199,7 +199,7 @@ static int __init consistent_init(void)
+ 
+ 		pte = pte_alloc_kernel(pmd, base);
+ 		if (!pte) {
+-			printk(KERN_ERR "%s: no pte tables\n", __func__);
++			pr_err("%s: no pte tables\n", __func__);
+ 			ret = -ENOMEM;
+ 			break;
+ 		}
+@@ -222,7 +222,7 @@ __dma_alloc_remap(struct page *page, size_t size, gfp_t gfp, pgprot_t prot,
+ 	int bit;
+ 
+ 	if (!consistent_pte) {
+-		printk(KERN_ERR "%s: not initialised\n", __func__);
++		pr_err("%s: not initialised\n", __func__);
+ 		dump_stack();
+ 		return NULL;
+ 	}
+@@ -281,14 +281,14 @@ static void __dma_free_remap(void *cpu_addr, size_t size)
+ 
+ 	c = arm_vmregion_find_remove(&consistent_head, (unsigned long)cpu_addr);
+ 	if (!c) {
+-		printk(KERN_ERR "%s: trying to free invalid coherent area: %p\n",
++		pr_err("%s: trying to free invalid coherent area: %p\n",
+ 		       __func__, cpu_addr);
+ 		dump_stack();
+ 		return;
+ 	}
+ 
+ 	if ((c->vm_end - c->vm_start) != size) {
+-		printk(KERN_ERR "%s: freeing wrong coherent size (%ld != %d)\n",
++		pr_err("%s: freeing wrong coherent size (%ld != %d)\n",
+ 		       __func__, c->vm_end - c->vm_start, size);
+ 		dump_stack();
+ 		size = c->vm_end - c->vm_start;
+@@ -310,8 +310,8 @@ static void __dma_free_remap(void *cpu_addr, size_t size)
+ 		}
+ 
+ 		if (pte_none(pte) || !pte_present(pte))
+-			printk(KERN_CRIT "%s: bad page in kernel page table\n",
+-			       __func__);
++			pr_crit("%s: bad page in kernel page table\n",
++				__func__);
+ 	} while (size -= PAGE_SIZE);
+ 
+ 	flush_tlb_kernel_range(c->vm_start, c->vm_end);
 -- 
 1.7.1.569.g6f426
 
