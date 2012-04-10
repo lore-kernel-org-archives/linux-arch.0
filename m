@@ -1,55 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:1025 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754455Ab2DJRun (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Apr 2012 13:50:43 -0400
-Date: Tue, 10 Apr 2012 10:49:41 -0700
-Subject: Re: [PATCH v17 15/15] Documentation: prctl/seccomp_filter
-From: Ryan Ware <ware@linux.intel.com>
-Message-ID: <CBA9C094.3CC91%ware@linux.intel.com>
-In-Reply-To: <CABqD9hYQPDmNadkPw9O6fRXHpWDxh=MVPf7VB_3fz_X72dNz4w@mail.gmail.com>
-Mime-version: 1.0
-Content-type: text/plain;
-	charset="US-ASCII"
-Content-transfer-encoding: 7bit
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:42262 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758922Ab2DJTDz convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Apr 2012 15:03:55 -0400
+Received: by lbbgm6 with SMTP id gm6so120348lbb.19
+        for <linux-arch@vger.kernel.org>; Tue, 10 Apr 2012 12:03:54 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <20120406125517.77133b4e.akpm@linux-foundation.org>
+References: <1333051320-30872-1-git-send-email-wad@chromium.org>
+	<1333051320-30872-2-git-send-email-wad@chromium.org>
+	<20120406125517.77133b4e.akpm@linux-foundation.org>
+Date: Tue, 10 Apr 2012 14:03:49 -0500
+Message-ID: <CABqD9hbTWQ6uBn_jZ7WdbaAMtAcTHz3hWSer_tnAFU9iV-4GSQ@mail.gmail.com>
+Subject: Re: [PATCH v17 01/15] Add PR_{GET,SET}_NO_NEW_PRIVS to prevent execve
+ from granting privs
+From: Will Drewry <wad@chromium.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Drewry <wad@chromium.org>, Markus Gutschke <markus@chromium.org>, Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org
-Message-ID: <20120410174941.0YSVzPPzEa5sHwzHLW3xgJ6oaHnkHukyj4GNtmtiyaU@z>
+To: Andrew Morton <akpm@linux-foundation.org>, Andrew Lutomirski <luto@mit.edu>
+Cc: linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org, Andy Lutomirski <luto@amacapital.net>, linux-man@vger.kernel.org
+Message-ID: <20120410190349.CXCiYHkL-ZC0kLJiBM1mNV8PylsmFK5ObpgcJXAsd_Y@z>
 
-
-
-On 4/9/12 3:47 PM, "Will Drewry" <wad@chromium.org> wrote:
-
->On Mon, Apr 9, 2012 at 3:58 PM, Ryan Ware <ware@linux.intel.com> wrote:
->>
->> On 4/9/12 1:47 PM, "Markus Gutschke" <markus@chromium.org> wrote:
->>
->>>No matter what you do, please leave the samples accessible somewhere.
->>>They proved incredibly useful in figuring out how the API works. I am
->>>sure, other developers are going to appreciate them as well.
->>>
->>>Alternatively, if you don't want to include the samples with the
->>>kernel sources, figure out how you can include a sample in the
->>>official manual page for prctl().
->>>
->>
->> I second this!  They are extremely useful.
->>
->> Ryan
+On Fri, Apr 6, 2012 at 2:55 PM, Andrew Morton <akpm@linux-foundation.org> wrote:
+> On Thu, 29 Mar 2012 15:01:46 -0500
+> Will Drewry <wad@chromium.org> wrote:
 >
->In that case, would it make sense to put up a separate tools/testing
->patch and leave samples where they lie? (I'd _love_ to keep this patch
->series from acquiring another 1000 lines, but either way works :)
+>> From: Andy Lutomirski <luto@amacapital.net>
+>>
+>> With this set, a lot of dangerous operations (chroot, unshare, etc)
+>> become a lot less dangerous because there is no possibility of
+>> subverting privileged binaries.
 >
->My current tester and harness lives here:
->  https://github.com/redpig/seccomp/blob/master/tests/
->and the licensing can be sorted out prior to a patch mail.
+> The changelog doesn't explain the semantics of the new syscall.
+> There's a comment way-down-there which I guess suffices, if you hunt
+> for it.
 
-I have absolutely no problems with that solution.  Availability is the
-important thing.
+I'll bubble up luto's comment into the changelog when I resend the
+grand-unified-patchset.
 
-Ryan
+> And the changelog doesn't explain why this is being added.  Presumably
+> seccomp_filter wants/needs this feature but whowhatwherewhenwhy?  Spell
+> it all out, please.
 
+I'll try my hand at that and luto@ can yell at me if I misrepresent.
+Seem reasonable?
 
+> The new syscall mode will be documented in the prctl manpage.  Please
+> cc linux-man@vger.kernel.org and work with Michael on getting this
+> done?
+
+I'll add linux-man to the patch series since this applies to both
+no_new_privs and seccomp filter.
+
+Thanks!
+
+>>
+>> ...
+>>
