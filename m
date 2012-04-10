@@ -1,40 +1,41 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCHv8 04/10] ARM: dma-mapping: remove offset parameter to
- prepare for generic dma_ops
-Date: Tue, 10 Apr 2012 11:43:27 +0000
-Message-ID: <201204101143.27915.arnd@arndb.de>
-References: <1334055852-19500-1-git-send-email-m.szyprowski@samsung.com>
- <1334055852-19500-5-git-send-email-m.szyprowski@samsung.com>
+Subject: Re: [PATCHv8 05/10] ARM: dma-mapping: use asm-generic/dma-mapping-common.h
+Date: Tue, 10 Apr 2012 11:47:20 +0000
+Message-ID: <201204101147.20733.arnd@arndb.de>
+References: <1334055852-19500-1-git-send-email-m.szyprowski@samsung.com> <1334055852-19500-6-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1334055852-19500-5-git-send-email-m.szyprowski@samsung.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: linux-arm-kernel-bounces@lists.infradead.org
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1334055852-19500-6-git-send-email-m.szyprowski@samsung.com>
+Sender: owner-linux-mm@kvack.org
 To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-arch@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Joerg Roedel <joro@8bytes.org>, Kyungmin Park <kyungmin.park@samsung.com>, Subash Patel <subashrp@gmail.com>, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, iommu@lists.linux-foundation.org, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, KyongHo Cho <pullip.cho@samsung.com>, Chunsang Jeong <chunsang.jeong@linaro.org>, linux-arm-kernel@lists.infradead.org, Hiroshi Doyu <hdoyu@nvidia.com>
+Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org, Kyungmin Park <kyungmin.park@samsung.com>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Hiroshi Doyu <hdoyu@nvidia.com>, Subash Patel <subashrp@gmail.com>
 List-Id: linux-arch.vger.kernel.org
 
 On Tuesday 10 April 2012, Marek Szyprowski wrote:
-> This patch removes the need for offset parameter in dma bounce
-> functions. This is required to let dma-mapping framework on ARM
-> architecture use common, generic dma-mapping helpers.
+> This patch modifies dma-mapping implementation on ARM architecture to
+> use common dma_map_ops structure and asm-generic/dma-mapping-common.h
+> helpers.
 > 
 > Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
 > Acked-by: Kyungmin Park <kyungmin.park@samsung.com>
+> ---
+>  arch/arm/Kconfig                   |    1 +
+>  arch/arm/include/asm/device.h      |    1 +
+>  arch/arm/include/asm/dma-mapping.h |  196 +++++-------------------------------
+>  arch/arm/mm/dma-mapping.c          |  148 ++++++++++++++++-----------
+>  4 files changed, 115 insertions(+), 231 deletions(-)
 
-This one worries me a little. I always thought that the range sync 
-functions were specifically needed for the dmabounce code. At the
-very least, I would expect the changeset comment to have an explanation
-of why this was initially done this way and why it's now safe to do
-do it otherwise.
+Looks good in principle. One question: Now that many of the functions are only
+used in the dma_map_ops, can you make them 'static' instead?
 
 	Arnd
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
