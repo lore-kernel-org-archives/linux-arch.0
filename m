@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:42262 "EHLO
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:61156 "EHLO
 	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758922Ab2DJTDz convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Apr 2012 15:03:55 -0400
-Received: by lbbgm6 with SMTP id gm6so120348lbb.19
-        for <linux-arch@vger.kernel.org>; Tue, 10 Apr 2012 12:03:54 -0700 (PDT)
+	with ESMTP id S1758851Ab2DJTNB convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Apr 2012 15:13:01 -0400
+Received: by mail-lb0-f174.google.com with SMTP id gm6so127192lbb.19
+        for <linux-arch@vger.kernel.org>; Tue, 10 Apr 2012 12:13:00 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20120406125517.77133b4e.akpm@linux-foundation.org>
+In-Reply-To: <20120406124921.5754e941.akpm@linux-foundation.org>
 References: <1333051320-30872-1-git-send-email-wad@chromium.org>
 	<1333051320-30872-2-git-send-email-wad@chromium.org>
-	<20120406125517.77133b4e.akpm@linux-foundation.org>
-Date: Tue, 10 Apr 2012 14:03:49 -0500
-Message-ID: <CABqD9hbTWQ6uBn_jZ7WdbaAMtAcTHz3hWSer_tnAFU9iV-4GSQ@mail.gmail.com>
+	<20120406124921.5754e941.akpm@linux-foundation.org>
+Date: Tue, 10 Apr 2012 14:12:55 -0500
+Message-ID: <CABqD9hYOJZ5ZZ-8W03d=_BQ2mkdNLbrC2=r6qUrnqsaub3kPCA@mail.gmail.com>
 Subject: Re: [PATCH v17 01/15] Add PR_{GET,SET}_NO_NEW_PRIVS to prevent execve
  from granting privs
 From: Will Drewry <wad@chromium.org>
@@ -19,11 +19,11 @@ Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Andrew Lutomirski <luto@mit.edu>
-Cc: linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org, Andy Lutomirski <luto@amacapital.net>, linux-man@vger.kernel.org
-Message-ID: <20120410190349.CXCiYHkL-ZC0kLJiBM1mNV8PylsmFK5ObpgcJXAsd_Y@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org, Andy Lutomirski <luto@amacapital.net>
+Message-ID: <20120410191255.5a2O007yFZGi6NfsZW2VRG773DLZ1hMsEbab4cM45Yk@z>
 
-On Fri, Apr 6, 2012 at 2:55 PM, Andrew Morton <akpm@linux-foundation.org> wrote:
+On Fri, Apr 6, 2012 at 2:49 PM, Andrew Morton <akpm@linux-foundation.org> wrote:
 > On Thu, 29 Mar 2012 15:01:46 -0500
 > Will Drewry <wad@chromium.org> wrote:
 >
@@ -32,30 +32,39 @@ On Fri, Apr 6, 2012 at 2:55 PM, Andrew Morton <akpm@linux-foundation.org> wrote:
 >> With this set, a lot of dangerous operations (chroot, unshare, etc)
 >> become a lot less dangerous because there is no possibility of
 >> subverting privileged binaries.
+>>
+>> This patch completely breaks apparmor.  Someone who understands (and
+>> uses) apparmor should fix it or at least give me a hint.
 >
-> The changelog doesn't explain the semantics of the new syscall.
-> There's a comment way-down-there which I guess suffices, if you hunt
-> for it.
+> So [patch 2/15] fixes all this up?
+>
+> I guess we should join the two patches into one, to avoid a silly
+> breakage window.  That means that John loses a brownie point, but we
+> can mention him in the changelog, include his signed-off-by:
+>
+>> Signed-off-by: Andy Lutomirski <luto@amacapital.net>
+>
+> Several of these patches are missing your signed-off-by:.  They should
+> all have your SOB, because you sent them.
+> Documentation/SubmittingPatches explains this.
 
-I'll bubble up luto's comment into the changelog when I resend the
-grand-unified-patchset.
+Oops - I'll add them!
 
-> And the changelog doesn't explain why this is being added.  Presumably
-> seccomp_filter wants/needs this feature but whowhatwherewhenwhy?  Spell
-> it all out, please.
+> I'm trying to find a way to merge all this code without reviewing it ;)
+> Alas, this is against my rules.  Given the length of time for which
+> this patchset has been floating around, I'm a little surprised by the
+> lack of acked-by's and reviewed-by's.  Have you been gathering them all
+> up?  Are the networking guys all happy about this patchset?
 
-I'll try my hand at that and luto@ can yell at me if I misrepresent.
-Seem reasonable?
+eric.dumazet@gmail.com acked the networking ones, and I have a
+smattering of others for the other patches. Given the review and
+feedback, I don't have a huge number of acked/reviewed-bys. I tried
+not to lose any after the first couple of revs, but I know I did some
+things wrong early on.
 
-> The new syscall mode will be documented in the prctl manpage.  Please
-> cc linux-man@vger.kernel.org and work with Michael on getting this
-> done?
+I can prod some others who've contributed to add their tags, unless
+there is a good reason for them not too.  I suspect it was just
+because of partial/drive-by reviewing, but I don't know.
 
-I'll add linux-man to the patch series since this applies to both
-no_new_privs and seccomp filter.
-
-Thanks!
-
->>
->> ...
->>
+thanks!
+will
