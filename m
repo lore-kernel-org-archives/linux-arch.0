@@ -1,49 +1,56 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: x86: faster strncpy_from_user()
-Date: Wed, 11 Apr 2012 11:25:01 +1000
-Message-ID: <1334107501.2984.19.camel@pasglop>
-References: <1334097321.3040.62.camel@pasglop>
-	 <20120410.192550.1904257005034151185.davem@davemloft.net>
-	 <CA+55aFwAQ13t6HwPVmvntwPvDq_kK6=W9e8KLahtfGwKr=2YCQ@mail.gmail.com>
-	 <20120410.204322.1625218582933057448.davem@davemloft.net>
-	 <CA+55aFwVbGzk1Nwj1uk=R_XPPEkF2wZ_K8zhbmPZjy39r4rYDQ@mail.gmail.com>
-	 <CA+55aFw9-cVKP4MUpO6pCLbpHavrB1qbJ1NeiXEBbNupZ0iYKA@mail.gmail.com>
+From: Will Drewry <wad@chromium.org>
+Subject: Re: [PATCH v15 04/13] arch/x86: add syscall_get_arch to syscall.h
+Date: Tue, 10 Apr 2012 22:13:52 -0500
+Message-ID: <CABqD9hZgnrKFY_Wei-ysU=Dy7Og2iEemnqPvcQ14M0+vL65gHQ@mail.gmail.com>
+References: <1331781125-15658-1-git-send-email-wad@chromium.org>
+	<1331781125-15658-5-git-send-email-wad@chromium.org>
+	<4F6F7362.6030402@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:35938 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754747Ab2DKBZE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Apr 2012 21:25:04 -0400
-In-Reply-To: <CA+55aFw9-cVKP4MUpO6pCLbpHavrB1qbJ1NeiXEBbNupZ0iYKA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: David Miller <davem@davemloft.net>, mingo@kernel.org, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <4F6F7362.6030402@zytor.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2012-04-10 at 17:57 -0700, Linus Torvalds wrote:
-> On Tue, Apr 10, 2012 at 5:50 PM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
-> >
-> > .. and you don't have a double shift, right? So you'd need to do two
-> > shifts and the or for each word.
-> 
-> Actually, if sparc has a "rotate" instruction, you can do with a
-> single shift (rotate) per word loop.
-> 
-> You need to set up a mask register based on the alignment, and
-> pre-load the first word, but if you do have a rotate you can rotate
-> and then use "and mask" first to generate the "high bits" of the
-> current word, and then use the "andn mask" to generate the low bits of
-> the next word. So then you just need a single rotate per loop, and
-> some (very minor) loop prep.
-> 
-> Of course, RISC people tended to throw out rotate too, so maybe you
-> don't have even that.
+On Sun, Mar 25, 2012 at 2:34 PM, H. Peter Anvin <hpa@zytor.com> wrote:
+> On 03/14/2012 08:11 PM, Will Drewry wrote:
+>>
+>> +static inline int syscall_get_arch(struct task_struct *task,
+>> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0str=
+uct pt_regs *regs)
+>> +{
+>> +#ifdef CONFIG_IA32_EMULATION
+>> + =A0 =A0 /*
+>> + =A0 =A0 =A0* TS_COMPAT is set for 32-bit syscall entries and then
+>> + =A0 =A0 =A0* remains set until we return to user mode.
+>> + =A0 =A0 =A0*
+>> + =A0 =A0 =A0* TIF_IA32 tasks should always have TS_COMPAT set at
+>> + =A0 =A0 =A0* system call time.
+>> + =A0 =A0 =A0*/
+>> + =A0 =A0 if (task_thread_info(task)->status & TS_COMPAT)
+>> + =A0 =A0 =A0 =A0 =A0 =A0 return AUDIT_ARCH_I386;
+>> +#endif
+>> + =A0 =A0 return AUDIT_ARCH_X86_64;
+>> +}
+>> =A0#endif =A0 =A0 =A0 /* CONFIG_X86_32 */
+>>
+>> =A0#endif =A0 =A0 =A0 /* _ASM_X86_SYSCALL_H */
+>
+> Just one FYI on this: after the x32 changes are upstream this can be
+> implemented in terms of is_ia32_task().
 
-Well, we do have a very nice & flexible rotate & mask on ppc at
-least :-)
+Now that I've seen is_ia32_task(), it appears to be exactly the same as=
+ above:
+(1)  If we're x86_32, it's ia32
+(2)  If we're x86_64, ia32 =3D=3D !!(status & TS_COMPAT)
+(3)  Otherwise, it's x86_64, including x32
 
-Cheers,
-Ben.
+Am I missing something? Should is_ia32_task(void) take a task_struct?
+Right now, I don't see any reason to change the code, as posted, but
+maybe I am mis-reading?
+
+thanks!
+will
