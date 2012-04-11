@@ -1,63 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:53395 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756018Ab2DKDVg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Apr 2012 23:21:36 -0400
-Message-ID: <4F84F895.4080101@zytor.com>
-Date: Tue, 10 Apr 2012 20:20:53 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH v15 04/13] arch/x86: add syscall_get_arch to syscall.h
-References: <1331781125-15658-1-git-send-email-wad@chromium.org> <1331781125-15658-5-git-send-email-wad@chromium.org> <4F6F7362.6030402@zytor.com> <CABqD9hZgnrKFY_Wei-ysU=Dy7Og2iEemnqPvcQ14M0+vL65gHQ@mail.gmail.com>
-In-Reply-To: <CABqD9hZgnrKFY_Wei-ysU=Dy7Og2iEemnqPvcQ14M0+vL65gHQ@mail.gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Received: from mailout3.w1.samsung.com ([210.118.77.13]:49027 "EHLO
+	mailout3.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753057Ab2DKNGF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Apr 2012 09:06:05 -0400
+MIME-version: 1.0
+Content-transfer-encoding: 7BIT
+Content-type: text/plain; charset=us-ascii
+Received: from euspt1 ([210.118.77.13]) by mailout3.w1.samsung.com
+ (Sun Java(tm) System Messaging Server 6.3-8.04 (built Jul 29 2009; 32bit))
+ with ESMTP id <0M2B001UXGDIP300@mailout3.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Wed, 11 Apr 2012 14:05:42 +0100 (BST)
+Received: from linux.samsung.com ([106.116.38.10])
+ by spt1.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
+ 2004)) with ESMTPA id <0M2B00G9WGE28X@spt1.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Wed, 11 Apr 2012 14:06:02 +0100 (BST)
+Date: Wed, 11 Apr 2012 15:05:58 +0200
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: RE: [PATCHv8 04/10] ARM: dma-mapping: remove offset parameter to
+ prepare for generic dma_ops
+In-reply-to: <201204111218.39800.arnd@arndb.de>
+Message-ID: <014901cd17e3$d67d18b0$83774a10$%szyprowski@samsung.com>
+Content-language: pl
+References: <1334055852-19500-1-git-send-email-m.szyprowski@samsung.com>
+ <201204101143.27915.arnd@arndb.de>
+ <012e01cd17db$5f165c30$1d431490$%szyprowski@samsung.com>
+ <201204111218.39800.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Drewry <wad@chromium.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org
-Message-ID: <20120411032053.UzubUhtHrCGIay2ohRDGZtoRh8_B_1tPlekmurWqXDg@z>
+To: 'Arnd Bergmann' <arnd@arndb.de>
+Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Joerg Roedel' <joro@8bytes.org>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>, 'Krishna Reddy' <vdumpa@nvidia.com>, 'KyongHo Cho' <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Konrad Rzeszutek Wilk' <konrad.wilk@oracle.com>, 'Hiroshi Doyu' <hdoyu@nvidia.com>, 'Subash Patel' <subashrp@gmail.com>
+Message-ID: <20120411130558.N2IOLC00jiY_hnBftMhGIPSk7AG-qL4MZGvYrmB0OY8@z>
 
-On 04/10/2012 08:13 PM, Will Drewry wrote:
-> On Sun, Mar 25, 2012 at 2:34 PM, H. Peter Anvin <hpa@zytor.com> wrote:
->> On 03/14/2012 08:11 PM, Will Drewry wrote:
->>>
->>> +static inline int syscall_get_arch(struct task_struct *task,
->>> +                                struct pt_regs *regs)
->>> +{
->>> +#ifdef CONFIG_IA32_EMULATION
->>> +     /*
->>> +      * TS_COMPAT is set for 32-bit syscall entries and then
->>> +      * remains set until we return to user mode.
->>> +      *
->>> +      * TIF_IA32 tasks should always have TS_COMPAT set at
->>> +      * system call time.
->>> +      */
->>> +     if (task_thread_info(task)->status & TS_COMPAT)
->>> +             return AUDIT_ARCH_I386;
->>> +#endif
->>> +     return AUDIT_ARCH_X86_64;
->>> +}
->>>  #endif       /* CONFIG_X86_32 */
->>>
->>>  #endif       /* _ASM_X86_SYSCALL_H */
->>
->> Just one FYI on this: after the x32 changes are upstream this can be
->> implemented in terms of is_ia32_task().
-> 
-> Now that I've seen is_ia32_task(), it appears to be exactly the same as above:
-> (1)  If we're x86_32, it's ia32
-> (2)  If we're x86_64, ia32 == !!(status & TS_COMPAT)
-> (3)  Otherwise, it's x86_64, including x32
-> 
-> Am I missing something? Should is_ia32_task(void) take a task_struct?
-> Right now, I don't see any reason to change the code, as posted, but
-> maybe I am mis-reading?
-> 
+Hi Arnd,
 
-Sorry, answered the wrong question.  Yes, it is the same as above...
-just wandered if we could centralize this test.  It might indeed make
-sense to provide general predicates which take a task pointer.
+On Wednesday, April 11, 2012 2:19 PM Arnd Bergmann wrote:
 
-	-hpa
+> On Wednesday 11 April 2012, Marek Szyprowski wrote:
+> > Well, range sync functions are available from the early days of the dma
+> > mapping api (at least that's what I've found reading the change log and
+> > old patches). They are the correct way of doing a partial syncs on the
+> > buffer (usually used by the network device drivers). This patch changes
+> > only the internal implementation of the dma bounce functions to let
+> > them tunnel through dma_map_ops structure. The driver api stays
+> > unchanged, so driver are obliged to call dma_*_range_* functions to
+> > keep code clean and easy to understand.
+> >
+> > The only drawback I can see from this patch is reduced detection of
+> > the dma api abuse. Let us consider the following code:
+> >
+> > dma_addr = dma_map_single(dev, ptr, 64, DMA_TO_DEVICE);
+> > dma_sync_single_range_for_cpu(dev, dma_addr+16, 0, 32, DMA_TO_DEVICE);
+> >
+> > Without the patch such code fails, because dma bounce code is unable
+> > to find the bounce buffer for the given dma_address. After the patch
+> > the sync call will be equivalent to:
+> >
+> >         dma_sync_single_range_for_cpu(dev, dma_addr, 16, 32, DMA_TO_DEVICE);
+> >
+> > which succeeds.
+> >
+> > I don't consider this as a real problem. DMA API abuse should be caught
+> > by debug_dma_* function family, so we can simplify the internal low-level
+> > implementation without losing anything.
+> >
+> 
+> Ok, fair enough. Can you put the above text into the changelog?
+
+Yes, I will update it in the next release.
+
+Best regards
+-- 
+Marek Szyprowski
+Samsung Poland R&D Center
+
 
