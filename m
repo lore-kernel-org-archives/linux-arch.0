@@ -1,56 +1,80 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: x86: faster strncpy_from_user()
-Date: Wed, 11 Apr 2012 10:22:38 +0200
-Message-ID: <CAMuHMdXqiydN5GmnksyJ3ThSUtq9CSeop_BQhyVqcTVAugBJAA@mail.gmail.com>
-References: <1334097321.3040.62.camel@pasglop>
-	<20120410.192550.1904257005034151185.davem@davemloft.net>
-	<CA+55aFwAQ13t6HwPVmvntwPvDq_kK6=W9e8KLahtfGwKr=2YCQ@mail.gmail.com>
-	<20120410.204322.1625218582933057448.davem@davemloft.net>
-	<CA+55aFwVbGzk1Nwj1uk=R_XPPEkF2wZ_K8zhbmPZjy39r4rYDQ@mail.gmail.com>
-	<CA+55aFw9-cVKP4MUpO6pCLbpHavrB1qbJ1NeiXEBbNupZ0iYKA@mail.gmail.com>
-	<1334107501.2984.19.camel@pasglop>
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: RE: [PATCHv8 04/10] ARM: dma-mapping: remove offset parameter to
+ prepare for generic dma_ops
+Date: Wed, 11 Apr 2012 14:05:21 +0200
+Message-ID: <012e01cd17db$5f165c30$1d431490$%szyprowski@samsung.com>
+References: <1334055852-19500-1-git-send-email-m.szyprowski@samsung.com>
+ <1334055852-19500-5-git-send-email-m.szyprowski@samsung.com>
+ <201204101143.27915.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iy0-f174.google.com ([209.85.210.174]:55844 "EHLO
-	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752748Ab2DKIWi convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Apr 2012 04:22:38 -0400
-Received: by iagz16 with SMTP id z16so957518iag.19
-        for <linux-arch@vger.kernel.org>; Wed, 11 Apr 2012 01:22:38 -0700 (PDT)
-In-Reply-To: <1334107501.2984.19.camel@pasglop>
+Received: from mailout4.w1.samsung.com ([210.118.77.14]:45455 "EHLO
+	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755365Ab2DKMF3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Apr 2012 08:05:29 -0400
+Received: from euspt2 ([210.118.77.14]) by mailout4.w1.samsung.com
+ (Sun Java(tm) System Messaging Server 6.3-8.04 (built Jul 29 2009; 32bit))
+ with ESMTP id <0M2B003Q3DL97R50@mailout4.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Wed, 11 Apr 2012 13:05:33 +0100 (BST)
+Received: from linux.samsung.com ([106.116.38.10])
+ by spt2.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
+ 2004)) with ESMTPA id <0M2B00HMPDL0Q9@spt2.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Wed, 11 Apr 2012 13:05:24 +0100 (BST)
+In-reply-to: <201204101143.27915.arnd@arndb.de>
+Content-language: pl
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, David Miller <davem@davemloft.net>, mingo@kernel.org, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org
+To: 'Arnd Bergmann' <arnd@arndb.de>
+Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Joerg Roedel' <joro@8bytes.org>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>, 'Krishna Reddy' <vdumpa@nvidia.com>, 'KyongHo Cho' <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Konrad Rzeszutek Wilk' <konrad.wilk@oracle.com>, 'Hiroshi Doyu' <hdoyu@nvidia.com>, 'Subash Patel' <subashrp@gmail.com>
 
-On Wed, Apr 11, 2012 at 03:25, Benjamin Herrenschmidt
-<benh@kernel.crashing.org> wrote:
->> Of course, RISC people tended to throw out rotate too, so maybe you
->> don't have even that.
->
-> Well, we do have a very nice & flexible rotate & mask on ppc at
-> least :-)
+Hi Arnd,
 
-PPC is not RISC. It's LSWNOWCITCSCIOC.
+On Tuesday, April 10, 2012 1:43 PM Arnd Bergmann wrote:
 
-(let-see-which-new-operations-we-can-invent-that-can-still-complete-in-=
-one-cycle
-;-)
+> On Tuesday 10 April 2012, Marek Szyprowski wrote:
+> > This patch removes the need for offset parameter in dma bounce
+> > functions. This is required to let dma-mapping framework on ARM
+> > architecture use common, generic dma-mapping helpers.
+> >
+> > Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
+> > Acked-by: Kyungmin Park <kyungmin.park@samsung.com>
+> 
+> This one worries me a little. I always thought that the range sync
+> functions were specifically needed for the dmabounce code. At the
+> very least, I would expect the changeset comment to have an explanation
+> of why this was initially done this way and why it's now safe to do
+> do it otherwise.
 
-Gr{oetje,eeting}s,
+Well, range sync functions are available from the early days of the dma 
+mapping api (at least that's what I've found reading the change log and
+old patches). They are the correct way of doing a partial syncs on the 
+buffer (usually used by the network device drivers). This patch changes
+only the internal implementation of the dma bounce functions to let 
+them tunnel through dma_map_ops structure. The driver api stays
+unchanged, so driver are obliged to call dma_*_range_* functions to
+keep code clean and easy to understand. 
 
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 Geert
+The only drawback I can see from this patch is reduced detection of
+the dma api abuse. Let us consider the following code:
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
+dma_addr = dma_map_single(dev, ptr, 64, DMA_TO_DEVICE);
+dma_sync_single_range_for_cpu(dev, dma_addr+16, 0, 32, DMA_TO_DEVICE);
 
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
-=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
+Without the patch such code fails, because dma bounce code is unable
+to find the bounce buffer for the given dma_address. After the patch
+the sync call will be equivalent to: 
+
+	dma_sync_single_range_for_cpu(dev, dma_addr, 16, 32, DMA_TO_DEVICE);
+
+which succeeds.
+
+I don't consider this as a real problem. DMA API abuse should be caught
+by debug_dma_* function family, so we can simplify the internal low-level
+implementation without losing anything.
+
+Best regards
+-- 
+Marek Szyprowski
+Samsung Poland R&D Center
