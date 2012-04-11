@@ -1,60 +1,44 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: x86: faster strncpy_from_user()
-Date: Wed, 11 Apr 2012 09:56:51 +1000
-Message-ID: <1334102211.2984.4.camel@pasglop>
+Date: Tue, 10 Apr 2012 17:34:14 -0700
+Message-ID: <CA+55aFwAQ13t6HwPVmvntwPvDq_kK6=W9e8KLahtfGwKr=2YCQ@mail.gmail.com>
 References: <CA+55aFy8J5Ns4P514g7Ow4WhJXO+pjPBozYuCinYB+FQUKjZ6A@mail.gmail.com>
-	 <1334097321.3040.62.camel@pasglop>
-	 <CA+55aFwpX=SG6ECoi958+huLJ=egi3FDLxEeFpFtR8Hn8BJMDg@mail.gmail.com>
-	 <20120410.192935.289591767950787447.davem@davemloft.net>
-	 <4F84C35C.1020803@zytor.com>
+ <1334097321.3040.62.camel@pasglop> <20120410.192550.1904257005034151185.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:55474 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752997Ab2DJX4x (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Apr 2012 19:56:53 -0400
-In-Reply-To: <4F84C35C.1020803@zytor.com>
+Received: from mail-we0-f174.google.com ([74.125.82.174]:51836 "EHLO
+	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759830Ab2DKAeg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Apr 2012 20:34:36 -0400
+Received: by wejx9 with SMTP id x9so223912wej.19
+        for <linux-arch@vger.kernel.org>; Tue, 10 Apr 2012 17:34:34 -0700 (PDT)
+In-Reply-To: <20120410.192550.1904257005034151185.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: David Miller <davem@davemloft.net>, torvalds@linux-foundation.org, mingo@kernel.org, x86@kernel.org, linux-arch@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: benh@kernel.crashing.org, mingo@kernel.org, hpa@zytor.com, x86@kernel.org, linux-arch@vger.kernel.org
 
-On Tue, 2012-04-10 at 16:33 -0700, H. Peter Anvin wrote:
-> > Just wanted to mention that handling the detect zeroes operations on
-> > cpus that require alignment is easy, just rewind the pointer at the
-> > beginning to be aligned and "or" in a mask of 0xff for each alignment
-> > pad byte into the initially loaded word.
-> > 
-> 
-> Even on machines which don't require alignment it will still be faster
-> to do aligned memory references only, not counting the startup cost
-> (which is substantial in this case, of course, since the average length
-> is so short.)  However, it also neatly avoids the page overrun problem.
+On Tue, Apr 10, 2012 at 4:25 PM, David Miller <davem@davemloft.net> wrote:
+>
+> Although that would be a neat trick, making the hashing function work
+> in a way such that if we simply rewound the initial pointer to be
+> aligned, put 0xff into the alignment bytes, and the hash would still
+> compute properly.
 
-I'm leaning toward that too, but I want to do some benches. The main
-issues for me are:
+I cannot imagine any worthwhile hash that works like that.
 
-  - I have to deal with a reasonably wide range of different cores which
-will handle unaligned accesses very differently. Almost all will do it
-in HW but with very varying degree of performances and some will
-occasionally trap (SW emulation kicks in but that's extremely slow). The
-trapping case is generally rare though, depending on the core it will
-happen on things like page boundaries or segment boundaries. I also
-suspect that the byte-reverse load/store instructions will suck more at
-unaligned.
+Any hash that magically works with aligned data implies basically
+throwing away all the actual real bits of information in a file name,
+notably all the "where are the letters" information.
 
- - The page overrun is an issue. On 64-bit we don't have anything mapped
-past the end of the linear mapping and on 32-bit we fall into ioremap
-space. That's fixable with a quick hack to add one more page to the
-linear mapping, creating a double mapping of either page 0 or any random
-page of memory, I don't have cache aliases or anything like that to
-worry about but it's gross.
+So the hashing really *does* need unaligned loads (or the
+shift-things-by-hand to emulate it).
 
-Anyways, I'll try to play around if I get time, might have to wait for
-next week tho, I have some more urgent stuff to sort out and I'm off
-friday to tuesday.
+Sparc has "faligndata", no? Power generally does unaligned loads
+"reasonably ok", although I seem to recall some horrible 7-cycle
+micro-trap on at least some micro-architecture (and a page-crossing
+fault fixup in software, but that's not going to happen in practice:
+the pathname is allocated from a page in getname())
 
-Cheers,
-Ben.
+                      Linus
