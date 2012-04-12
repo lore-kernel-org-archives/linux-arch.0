@@ -1,35 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bk0-f46.google.com ([209.85.214.46]:44418 "EHLO
+Received: from mail-bk0-f46.google.com ([209.85.214.46]:38211 "EHLO
 	mail-bk0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934927Ab2DLWSk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Apr 2012 18:18:40 -0400
-Received: by mail-bk0-f46.google.com with SMTP id ik5so1886493bkc.19
-        for <linux-arch@vger.kernel.org>; Thu, 12 Apr 2012 15:18:39 -0700 (PDT)
+	with ESMTP id S934957Ab2DLWTY convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Apr 2012 18:19:24 -0400
+Received: by bkcik5 with SMTP id ik5so1886856bkc.19
+        for <linux-arch@vger.kernel.org>; Thu, 12 Apr 2012 15:19:23 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <1334267284-19166-7-git-send-email-wad@chromium.org>
+In-Reply-To: <1334267284-19166-8-git-send-email-wad@chromium.org>
 References: <1334267284-19166-1-git-send-email-wad@chromium.org>
-	<1334267284-19166-7-git-send-email-wad@chromium.org>
-Date: Thu, 12 Apr 2012 15:18:34 -0700
-Message-ID: <CAGXu5j+8eyZTUUaWPPOy0s6s1PFjfpT3HjNODWdDear9ALfROg@mail.gmail.com>
-Subject: Re: [PATCH v18 07/15] arch/x86: add syscall_get_arch to syscall.h
+	<1334267284-19166-8-git-send-email-wad@chromium.org>
+Date: Thu, 12 Apr 2012 15:19:19 -0700
+Message-ID: <CAGXu5jKbZ2O0ryrvUVbem7sy6wBVMcbgn_qPWrKss040Rqsi6Q@mail.gmail.com>
+Subject: Re: [PATCH v18 08/15] seccomp: add system call filtering using BPF
 From: Kees Cook <keescook@chromium.org>
 Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Will Drewry <wad@chromium.org>
 Cc: linux-kernel@vger.kernel.org, linux-man@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, jmorris@namei.org
-Message-ID: <20120412221834.ZTtyy6MMiZ6Zl3GiACWT7yB4OQJWkBi-9t2G-XvEOkA@z>
+Message-ID: <20120412221919.Yk3EifrIDrqptpSFq0V9Ce_86evsV1Bwj3BPnRFrR2o@z>
 
 On Thu, Apr 12, 2012 at 2:47 PM, Will Drewry <wad@chromium.org> wrote:
-> Add syscall_get_arch() to export the current AUDIT_ARCH_* based on system call
-> entry path.
+> This patch adds support for seccomp mode 2.  Mode 2 introduces the
+> ability for unprivileged processes to install system call filtering
+> policy expressed in terms of a Berkeley Packet Filter (BPF) program.
+> This program will be evaluated in the kernel for each system call
+> the task makes and computes a result based on data in the format
+> of struct seccomp_data.
+>
+> A filter program may be installed by calling:
+>  struct sock_fprog fprog = { ... };
+>  ...
+>  prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &fprog);
+>
+> The return value of the filter program determines if the system call is
+> allowed to proceed or denied.  If the first filter program installed
+> allows prctl(2) calls, then the above call may be made repeatedly
+> by a task to further reduce its access to the kernel.  All attached
+> programs must be evaluated before a system call will be allowed to
+> proceed.
+>
+> Filter programs will be inherited across fork/clone and execve.
+> However, if the task attaching the filter is unprivileged
+> (!CAP_SYS_ADMIN) the no_new_privs bit will be set on the task.  This
+> ensures that unprivileged tasks cannot attach filters that affect
+> privileged tasks (e.g., setuid binary).
+>
+> There are a number of benefits to this approach. A few of which are
+> as follows:
+> - BPF has been exposed to userland for a long time
+> - BPF optimization (and JIT'ing) are well understood
+> - Userland already knows its ABI: system call numbers and desired
+>  arguments
+> - No time-of-check-time-of-use vulnerable data accesses are possible.
+> - system call arguments are loaded on access only to minimize copying
+>  required for system call policy decisions.
+>
+> Mode 2 support is restricted to architectures that enable
+> HAVE_ARCH_SECCOMP_FILTER.  In this patch, the primary dependency is on
+> syscall_get_arguments().  The full desired scope of this feature will
+> add a few minor additional requirements expressed later in this series.
+> Based on discussion, SECCOMP_RET_ERRNO and SECCOMP_RET_TRACE seem to be
+> the desired additional functionality.
+>
+> No architectures are enabled in this patch.
 >
 > Signed-off-by: Will Drewry <wad@chromium.org>
 > Acked-by: Serge Hallyn <serge.hallyn@canonical.com>
-> Reviewed-by: H. Peter Anvin <hpa@zytor.com>
+> Reviewed-by: Indan Zupancic <indan@nul.nu>
 > Acked-by: Eric Paris <eparis@redhat.com>
 
-Reviewed-by: Kees Cook <keescook@chromium.org>
+Acked-by: Kees Cook <keescook@chromium.org>
 
 -- 
 Kees Cook
