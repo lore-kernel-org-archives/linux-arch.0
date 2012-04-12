@@ -1,279 +1,166 @@
 From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [PATCH] ARM: Exynos4: integrate SYSMMU driver with DMA-mapping
- interface
-Date: Thu, 12 Apr 2012 11:18:17 +0200
-Message-ID: <026301cd188d$32613860$9723a920$%szyprowski@samsung.com>
-References: <1334155004-5700-1-git-send-email-m.szyprowski@samsung.com>
- <1334155004-5700-2-git-send-email-m.szyprowski@samsung.com>
- <4F869AF4.3080402@gmail.com>
+Subject: RE: [PATCHv8 10/10] ARM: dma-mapping: add support for IOMMU mapper
+Date: Thu, 12 Apr 2012 11:49:23 +0200
+Message-ID: <026f01cd1891$8a2f1b80$9e8d5280$%szyprowski@samsung.com>
+References: <1334055852-19500-1-git-send-email-m.szyprowski@samsung.com>
+ <1334055852-19500-11-git-send-email-m.szyprowski@samsung.com>
+ <201204101158.29590.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=iso-8859-2
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout4.w1.samsung.com ([210.118.77.14]:61072 "EHLO
-	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1762232Ab2DLJSY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Apr 2012 05:18:24 -0400
-Received: from euspt2 ([210.118.77.14]) by mailout4.w1.samsung.com
+Received: from mailout3.w1.samsung.com ([210.118.77.13]:64760 "EHLO
+	mailout3.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755844Ab2DLJt3 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Apr 2012 05:49:29 -0400
+Received: from euspt2 ([210.118.77.13]) by mailout3.w1.samsung.com
  (Sun Java(tm) System Messaging Server 6.3-8.04 (built Jul 29 2009; 32bit))
- with ESMTP id <0M2D0016G0ISRW70@mailout4.w1.samsung.com> for
- linux-arch@vger.kernel.org; Thu, 12 Apr 2012 10:18:28 +0100 (BST)
+ with ESMTP id <0M2D00N7V1XT3940@mailout3.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Thu, 12 Apr 2012 10:49:05 +0100 (BST)
 Received: from linux.samsung.com ([106.116.38.10])
  by spt2.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
- 2004)) with ESMTPA id <0M2D00BG10IJI0@spt2.w1.samsung.com> for
- linux-arch@vger.kernel.org; Thu, 12 Apr 2012 10:18:20 +0100 (BST)
-In-reply-to: <4F869AF4.3080402@gmail.com>
+ 2004)) with ESMTPA id <0M2D00BD01YCI0@spt2.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Thu, 12 Apr 2012 10:49:25 +0100 (BST)
+In-reply-to: <201204101158.29590.arnd@arndb.de>
 Content-language: pl
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Subash Patel' <subashrp@gmail.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Arnd Bergmann' <arnd@arndb.de>, 'Joerg Roedel' <joro@8bytes.org>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>, 'Krishna Reddy' <vdumpa@nvidia.com>, 'KyongHo Cho' <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Konrad Rzeszutek Wilk' <konrad.wilk@oracle.com>, 'Hiroshi Doyu' <hdoyu@nvidia.com>
+To: 'Arnd Bergmann' <arnd@arndb.de>
+Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Joerg Roedel' <joro@8bytes.org>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>, 'Krishna Reddy' <vdumpa@nvidia.com>, 'KyongHo Cho' <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Konrad Rzeszutek Wilk' <konrad.wilk@oracle.com>, 'Hiroshi Doyu' <hdoyu@nvidia.com>, 'Subash Patel' <subashrp@gmail.com>
 
-Hi Subash,
+Hi Arnd,
 
-On Thursday, April 12, 2012 11:06 AM Subash Patel wrote:
+On Tuesday, April 10, 2012 1:58 PM Arnd Bergmann wrote:
 
-> On 04/11/2012 08:06 PM, Marek Szyprowski wrote:
-> > This patch provides an provides setup code which assigns IOMMU controllers
-> > to FIMC and MFC devices and enables IOMMU aware DMA-mapping for them.
-> > It has been tested on Samsung Exynos4 platform, NURI board.
-> >
-> > Most of the work is done in the s5p_sysmmu_late_init() function, which
-> > first assigns SYSMMU controller to respective client device and then
-> > creates IO address space mapping structures. In this example 128 MiB of
-> > address space is created at 0x20000000 for most of the devices. IO address
-> > allocation precision is set to 2^4 pages, so all small allocations will be
-> > aligned to 64 pages. This reduces the size of the io address space bitmap
-> > to 4 KiB.
-> >
-> > To solve the clock dependency issues, parent clocks have been added to each
-> > SYSMMU controller bus clock. This models the true hardware behavior,
-> > because client's device bus clock also gates the respective sysmmu bus
-> > clock.
-> >
-> > Signed-off-by: Marek Szyprowski<m.szyprowski@samsung.com>
-> > Acked-by: Kyungmin Park<kyungmin.park@samsung.com>
-> > ---
-> >   arch/arm/mach-exynos/Kconfig               |    1 +
-> >   arch/arm/mach-exynos/clock-exynos4.c       |   64 +++++++++++++++-------------
-> >   arch/arm/mach-exynos/dev-sysmmu.c          |   44 +++++++++++++++++++
-> >   arch/arm/mach-exynos/include/mach/sysmmu.h |    3 +
-> >   drivers/iommu/Kconfig                      |    1 +
-> >   5 files changed, 84 insertions(+), 29 deletions(-)
-> >
-> > diff --git a/arch/arm/mach-exynos/Kconfig b/arch/arm/mach-exynos/Kconfig
-> > index 801c738..25b9ba5 100644
-> > --- a/arch/arm/mach-exynos/Kconfig
-> > +++ b/arch/arm/mach-exynos/Kconfig
-> > @@ -288,6 +288,7 @@ config MACH_NURI
-> >   	select S5P_DEV_USB_EHCI
-> >   	select S5P_SETUP_MIPIPHY
-> >   	select EXYNOS4_DEV_DMA
-> > +	select EXYNOS_DEV_SYSMMU
-> >   	select EXYNOS4_SETUP_FIMC
-> >   	select EXYNOS4_SETUP_FIMD0
-> >   	select EXYNOS4_SETUP_I2C1
-> > diff --git a/arch/arm/mach-exynos/clock-exynos4.c b/arch/arm/mach-exynos/clock-exynos4.c
-> > index 29ae4df..fe459a3 100644
-> > --- a/arch/arm/mach-exynos/clock-exynos4.c
-> > +++ b/arch/arm/mach-exynos/clock-exynos4.c
-> > @@ -497,29 +497,6 @@ static struct clk *exynos4_gate_clocks[] = {
-> >
-> >   static struct clk exynos4_init_clocks_off[] = {
-> >   	{
-> > -		.name		= "timers",
-> > -		.parent		=&exynos4_clk_aclk_100.clk,
-> > -		.enable		= exynos4_clk_ip_peril_ctrl,
-> > -		.ctrlbit	= (1<<24),
-> > -	}, {
-> > -		.name		= "csis",
-> > -		.devname	= "s5p-mipi-csis.0",
-> > -		.enable		= exynos4_clk_ip_cam_ctrl,
-> > -		.ctrlbit	= (1<<  4),
-> > -		.parent		=&exynos4_clk_gate_cam,
-> > -	}, {
-> > -		.name		= "csis",
-> > -		.devname	= "s5p-mipi-csis.1",
-> > -		.enable		= exynos4_clk_ip_cam_ctrl,
-> > -		.ctrlbit	= (1<<  5),
-> > -		.parent		=&exynos4_clk_gate_cam,
-> > -	}, {
-> > -		.name		= "jpeg",
-> > -		.id		= 0,
-> > -		.enable		= exynos4_clk_ip_cam_ctrl,
-> > -		.ctrlbit	= (1<<  6),
-> > -		.parent		=&exynos4_clk_gate_cam,
-> > -	}, {
-> >   		.name		= "fimc",
-> >   		.devname	= "exynos4-fimc.0",
-> >   		.enable		= exynos4_clk_ip_cam_ctrl,
-> > @@ -544,6 +521,35 @@ static struct clk exynos4_init_clocks_off[] = {
-> >   		.ctrlbit	= (1<<  3),
-> >   		.parent		=&exynos4_clk_gate_cam,
-> >   	}, {
-> > +		.name		= "mfc",
-> > +		.devname	= "s5p-mfc",
-> > +		.enable		= exynos4_clk_ip_mfc_ctrl,
-> > +		.ctrlbit	= (1<<  0),
-> > +		.parent		=&exynos4_clk_gate_mfc,
-> > +	}, {
-> > +		.name		= "timers",
-> > +		.parent		=&exynos4_clk_aclk_100.clk,
-> > +		.enable		= exynos4_clk_ip_peril_ctrl,
-> > +		.ctrlbit	= (1<<24),
-> > +	}, {
-> > +		.name		= "csis",
-> > +		.devname	= "s5p-mipi-csis.0",
-> > +		.enable		= exynos4_clk_ip_cam_ctrl,
-> > +		.ctrlbit	= (1<<  4),
-> > +		.parent		=&exynos4_clk_gate_cam,
-> > +	}, {
-> > +		.name		= "csis",
-> > +		.devname	= "s5p-mipi-csis.1",
-> > +		.enable		= exynos4_clk_ip_cam_ctrl,
-> > +		.ctrlbit	= (1<<  5),
-> > +		.parent		=&exynos4_clk_gate_cam,
-> > +	}, {
-> > +		.name		= "jpeg",
-> > +		.id		= 0,
-> > +		.enable		= exynos4_clk_ip_cam_ctrl,
-> > +		.ctrlbit	= (1<<  6),
-> > +		.parent		=&exynos4_clk_gate_cam,
-> > +	}, {
-> >   		.name		= "hsmmc",
-> >   		.devname	= "exynos4-sdhci.0",
-> >   		.parent		=&exynos4_clk_aclk_133.clk,
-> > @@ -674,12 +680,6 @@ static struct clk exynos4_init_clocks_off[] = {
-> >   		.ctrlbit	= (1<<  0),
-> >   		.parent		=&exynos4_clk_gate_lcd0,
-> >   	}, {
-> > -		.name		= "mfc",
-> > -		.devname	= "s5p-mfc",
-> > -		.enable		= exynos4_clk_ip_mfc_ctrl,
-> > -		.ctrlbit	= (1<<  0),
-> > -		.parent		=&exynos4_clk_gate_mfc,
-> > -	}, {
-> >   		.name		= "i2c",
-> >   		.devname	= "s3c2440-i2c.0",
-> >   		.parent		=&exynos4_clk_aclk_100.clk,
-> > @@ -738,11 +738,13 @@ static struct clk exynos4_init_clocks_off[] = {
-> >   		.devname	= SYSMMU_CLOCK_DEVNAME(mfc_l, 0),
-> >   		.enable		= exynos4_clk_ip_mfc_ctrl,
-> >   		.ctrlbit	= (1<<  1),
-> > +		.parent		=&exynos4_init_clocks_off[4],
-> >   	}, {
-> >   		.name		= SYSMMU_CLOCK_NAME,
-> >   		.devname	= SYSMMU_CLOCK_DEVNAME(mfc_r, 1),
-> >   		.enable		= exynos4_clk_ip_mfc_ctrl,
-> >   		.ctrlbit	= (1<<  2),
-> > +		.parent		=&exynos4_init_clocks_off[4],
-> >   	}, {
-> >   		.name		= SYSMMU_CLOCK_NAME,
-> >   		.devname	= SYSMMU_CLOCK_DEVNAME(tv, 2),
-> > @@ -763,21 +765,25 @@ static struct clk exynos4_init_clocks_off[] = {
-> >   		.devname	= SYSMMU_CLOCK_DEVNAME(fimc0, 5),
-> >   		.enable		= exynos4_clk_ip_cam_ctrl,
-> >   		.ctrlbit	= (1<<  7),
-> > +		.parent		=&exynos4_init_clocks_off[0],
-> >   	}, {
-> >   		.name		= SYSMMU_CLOCK_NAME,
-> >   		.devname	= SYSMMU_CLOCK_DEVNAME(fimc1, 6),
-> >   		.enable		= exynos4_clk_ip_cam_ctrl,
-> >   		.ctrlbit	= (1<<  8),
-> > +		.parent		=&exynos4_init_clocks_off[1],
-> >   	}, {
-> >   		.name		= SYSMMU_CLOCK_NAME,
-> >   		.devname	= SYSMMU_CLOCK_DEVNAME(fimc2, 7),
-> >   		.enable		= exynos4_clk_ip_cam_ctrl,
-> >   		.ctrlbit	= (1<<  9),
-> > +		.parent		=&exynos4_init_clocks_off[2],
-> >   	}, {
-> >   		.name		= SYSMMU_CLOCK_NAME,
-> >   		.devname	= SYSMMU_CLOCK_DEVNAME(fimc3, 8),
-> >   		.enable		= exynos4_clk_ip_cam_ctrl,
-> >   		.ctrlbit	= (1<<  10),
-> > +		.parent		=&exynos4_init_clocks_off[3],
-> >   	}, {
-> >   		.name		= SYSMMU_CLOCK_NAME,
-> >   		.devname	= SYSMMU_CLOCK_DEVNAME(fimd0, 10),
-> > diff --git a/arch/arm/mach-exynos/dev-sysmmu.c b/arch/arm/mach-exynos/dev-sysmmu.c
-> > index 3544638..31f2d6ca 100644
-> > --- a/arch/arm/mach-exynos/dev-sysmmu.c
-> > +++ b/arch/arm/mach-exynos/dev-sysmmu.c
-> > @@ -12,12 +12,15 @@
-> >
-> >   #include<linux/platform_device.h>
-> >   #include<linux/dma-mapping.h>
-> > +#include<linux/slab.h>
-> >
-> >   #include<plat/cpu.h>
-> > +#include<plat/devs.h>
-> >
-> >   #include<mach/map.h>
-> >   #include<mach/irqs.h>
-> >   #include<mach/sysmmu.h>
-> > +#include<asm/dma-iommu.h>
-> >
-> >   static u64 exynos_sysmmu_dma_mask = DMA_BIT_MASK(32);
-> >
-> > @@ -276,3 +279,44 @@ static int __init init_sysmmu_platform_device(void)
-> >    * see pm_domain.c, which use arch_initcall()
-> >    */
-> >   core_initcall(init_sysmmu_platform_device);
-> > +#ifdef CONFIG_ARM_DMA_USE_IOMMU
-> > +int __init s5p_create_iommu_mapping(struct device *client, dma_addr_t base,
-> > +				    unsigned int size, int order)
-> > +{
-> > +	struct dma_iommu_mapping *mapping;
-> > +	if (!client)
-> > +		return 0;
-> > +	mapping = arm_iommu_create_mapping(&platform_bus_type, base, size, order);
-> > +	if (!mapping)
-> > +		return -ENOMEM;
-> > +	client->dma_parms = kzalloc(sizeof(*client->dma_parms), GFP_KERNEL);
-> > +	dma_set_max_seg_size(client, 0xffffffffu);
-> > +	arm_iommu_attach_device(client, mapping);
-> > +	return 0;
-> > +}
-> > +
-> > +/*
-> > + * s5p_sysmmu_late_init
-> > + * Create DMA-mapping IOMMU context for specified devices. This function must
-> > + * be called later, once SYSMMU driver gets registered and probed.
+> On Tuesday 10 April 2012, Marek Szyprowski wrote:
+> > +/**
+> > + * arm_iommu_create_mapping
+> > + * @bus: pointer to the bus holding the client device (for IOMMU c=
+alls)
+> > + * @base: start address of the valid IO address space
+> > + * @size: size of the valid IO address space
+> > + * @order: accuracy of the IO addresses allocations
+> > + *
+> > + * Creates a mapping structure which holds information about used/=
+unused
+> > + * IO address ranges, which is required to perform memory allocati=
+on and
+> > + * mapping with IOMMU aware functions.
+> > + *
+> > + * The client device need to be attached to the mapping with
+> > + * arm_iommu_attach_device function.
 > > + */
-> > +static int __init s5p_sysmmu_late_init(void)
+> > +struct dma_iommu_mapping *
+> > +arm_iommu_create_mapping(struct bus_type *bus, dma_addr_t base, si=
+ze_t size,
+> > +                        int order)
 > > +{
-> > +	platform_set_sysmmu(&SYSMMU_PLATDEV(fimc0).dev,&s5p_device_fimc0.dev);
-> > +	platform_set_sysmmu(&SYSMMU_PLATDEV(fimc1).dev,&s5p_device_fimc1.dev);
-> > +	platform_set_sysmmu(&SYSMMU_PLATDEV(fimc2).dev,&s5p_device_fimc2.dev);
-> > +	platform_set_sysmmu(&SYSMMU_PLATDEV(fimc3).dev,&s5p_device_fimc3.dev);
-> > +	platform_set_sysmmu(&SYSMMU_PLATDEV(mfc_l).dev,&s5p_device_mfc_l.dev);
-> > +	platform_set_sysmmu(&SYSMMU_PLATDEV(mfc_r).dev,&s5p_device_mfc_r.dev);
+> > +       unsigned int count =3D size >> (PAGE_SHIFT + order);
+> > +       unsigned int bitmap_size =3D BITS_TO_LONGS(count) * sizeof(=
+long);
+> > +       struct dma_iommu_mapping *mapping;
+> > +       int err =3D -ENOMEM;
 > > +
-> > +	s5p_create_iommu_mapping(&s5p_device_fimc0.dev, 0x20000000, SZ_128M, 4);
-> > +	s5p_create_iommu_mapping(&s5p_device_fimc1.dev, 0x20000000, SZ_128M, 4);
-> > +	s5p_create_iommu_mapping(&s5p_device_fimc2.dev, 0x20000000, SZ_128M, 4);
-> > +	s5p_create_iommu_mapping(&s5p_device_fimc3.dev, 0x20000000, SZ_128M, 4);
-> > +	s5p_create_iommu_mapping(&s5p_device_mfc_l.dev, 0x20000000, SZ_128M, 4);
-> > +	s5p_create_iommu_mapping(&s5p_device_mfc_r.dev, 0x40000000, SZ_128M, 4);
+> > +       if (!count)
+> > +               return ERR_PTR(-EINVAL);
 > > +
-> > +	return 0;
+> > +       mapping =3D kzalloc(sizeof(struct dma_iommu_mapping), GFP_K=
+ERNEL);
+> > +       if (!mapping)
+> > +               goto err;
+> > +
+> > +       mapping->bitmap =3D kzalloc(bitmap_size, GFP_KERNEL);
+> > +       if (!mapping->bitmap)
+> > +               goto err2;
+> > +
+> > +       mapping->base =3D base;
+> > +       mapping->bits =3D BITS_PER_BYTE * bitmap_size;
+> > +       mapping->order =3D order;
+> > +       spin_lock_init(&mapping->lock);
+> > +
+> > +       mapping->domain =3D iommu_domain_alloc(bus);
+> > +       if (!mapping->domain)
+> > +               goto err3;
+> > +
+> > +       kref_init(&mapping->kref);
+> > +       return mapping;
+> > +err3:
+> > +       kfree(mapping->bitmap);
+> > +err2:
+> > +       kfree(mapping);
+> > +err:
+> > +       return ERR_PTR(err);
 > > +}
-> > +device_initcall(s5p_sysmmu_late_init);
-> 
-> Shouldn't these things be specific to a SoC? With this RFC, it happens
-> that you will predefine the IOMMU attachment and mapping information for
-> devices in common location (dev-sysmmu.c)? This may lead to problems
-> because there are some IP's with SYSMMU support in exynos5, but not
-> available in exynos4 (eg: GSC, FIMC-LITE, FIMC-ISP) Previously we used
-> to do above declaration in individual machine file, which I think was
-> more meaningful.
+> > +EXPORT_SYMBOL(arm_iommu_create_mapping);
+>=20
+> I don't understand this function, mostly I guess because you have not
+> provided any users. A few questions here:
+>=20
+> * What is ARM specific about it that it is named arm_iommu_create_map=
+ping?
+>   Isn't this completely generic, at least on the interface side?
 
-Right, I simplified the code too much. Keeping these definitions inside machine 
-files was a better idea. I completely forgot that Exynos sub-platform now covers
-both Exynos4 and Exynos5 SoC families.
+This function is quite generic. It creates 'struct dma_iommu_mapping' o=
+bject,
+which is stored in the client's device arch data. This object mainly st=
+ores
+information about io/dma address space: base address, allocation bitmap=
+ and
+respective iommu domain. Please note that more than one device can be a=
+ssigned
+to the given dma_iommu_mapping to match different hardware topologies.
 
+This function is called by the board/(sub-)platform startup code to ini=
+tialize
+iommu based dma-mapping. For the example usage please refer to=20
+s5p_create_iommu_mapping() function in arch/arm/mach-exynos/dev-sysmmu.=
+c on=20
+3.4-rc2-arm-dma-v8-samsung branch in=20
+git://git.linaro.org/people/mszyprowski/linux-dma-mapping.git
+
+GITWeb shortcut:=20
+http://git.linaro.org/gitweb?p=3Dpeople/mszyprowski/linux-dma-mapping.g=
+it;a=3Dblob;f=3Darch/arm/mach-exyno
+s/dev-sysmmu.c;h=3D31f2d6caf0e9949def18abd18af3f9d16737ae19;hb=3D602509=
+3750d41f88406042e6486e331b806dc87
+5#l283
+
+> * Why is this exported to modules? Which device drivers do you expect
+>   to call it?
+
+I thought it might be useful to use modules for registering devices, bu=
+t=20
+now I see that no platform use such approach. I will drop these exports=
+=20
+unless someone finds a real use case for them.
+
+> * Why do you pass the bus_type in here? That seems like the completel=
+y
+>   wrong thing to do when all devices are on the same bus type (e.g.
+>   amba or platform) but are connected to different instances that eac=
+h
+>   have their own iommu. I guess this is a question for J=F6rg, becaus=
+e the
+>   base iommu interface provides iommu_domain_alloc().
+
+That's only a consequence of the iommu api. I would also prefer to use =
+client=20
+device pointer here instead of the bus id, but maybe I don't have enoug=
+h=20
+knowledge about desktop IOMMUs. I suspect that there is also a need to =
+assign
+one IOMMU driver to the whole bus (like pci bus) and it originates from=
+ such
+systems. In embedded world we usually have only one iommu driver which=20
+operates on the platform bus devices. On Samsung Exynos4 we have over a=
+ dozen
+SYSMMU controllers for various multimedia blocks, but they are all exac=
+tly=20
+the same. We use one iommu ops structure and store a pointer to the rea=
+l=20
+iommu controller instance inside arch data of the client struct device.
+=20
 Best regards
--- 
+--=20
 Marek Szyprowski
 Samsung Poland R&D Center
