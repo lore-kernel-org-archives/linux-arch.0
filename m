@@ -1,83 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gx0-f174.google.com ([209.85.161.174]:52923 "EHLO
-	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934815Ab2DLVsp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Apr 2012 17:48:45 -0400
-Received: by gghe5 with SMTP id e5so1393446ggh.19
-        for <linux-arch@vger.kernel.org>; Thu, 12 Apr 2012 14:48:45 -0700 (PDT)
+Received: from mail-yx0-f174.google.com ([209.85.213.174]:35805 "EHLO
+	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934812Ab2DLVsu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 12 Apr 2012 17:48:50 -0400
+Received: by mail-yx0-f174.google.com with SMTP id l12so1396147yen.19
+        for <linux-arch@vger.kernel.org>; Thu, 12 Apr 2012 14:48:50 -0700 (PDT)
 From: Will Drewry <wad@chromium.org>
-Subject: [PATCH v18 03/15] sk_run_filter: add BPF_S_ANC_SECCOMP_LD_W
-Date: Thu, 12 Apr 2012 16:47:52 -0500
-Message-ID: <1334267284-19166-3-git-send-email-wad@chromium.org>
+Subject: [PATCH v18 05/15] seccomp: kill the seccomp_t typedef
+Date: Thu, 12 Apr 2012 16:47:54 -0500
+Message-ID: <1334267284-19166-5-git-send-email-wad@chromium.org>
 In-Reply-To: <1334267284-19166-1-git-send-email-wad@chromium.org>
 References: <1334267284-19166-1-git-send-email-wad@chromium.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: linux-man@vger.kernel.org, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, netdev@vger.kernel.org, x86@kernel.org, arnd@arndb.de, davem@davemloft.net, hpa@zytor.com, mingo@redhat.com, oleg@redhat.com, peterz@infradead.org, rdunlap@xenotime.net, mcgrathr@chromium.org, tglx@linutronix.de, luto@mit.edu, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, akpm@linux-foundation.org, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org, Will Drewry <wad@chromium.org>
-Message-ID: <20120412214752.2wuon7FL-P2X6nAlpyHmFavvpWdwyen3guQKK7osgsI@z>
+Message-ID: <20120412214754.N44ogkEXGqy35fmZaSjYP7v4s8OvwgaTaIsJ4efNJbg@z>
 
-Introduces a new BPF ancillary instruction that all LD calls will be
-mapped through when skb_run_filter() is being used for seccomp BPF.  The
-rewriting will be done using a secondary chk_filter function that is run
-after skb_chk_filter.
+Replaces the seccomp_t typedef with struct seccomp to match modern
+kernel style.
 
-The code change is guarded by CONFIG_SECCOMP_FILTER which is added,
-along with the seccomp_bpf_load() function later in this series.
-
-This is based on http://lkml.org/lkml/2012/3/2/141
-
-Suggested-by: Indan Zupancic <indan@nul.nu>
 Signed-off-by: Will Drewry <wad@chromium.org>
-Acked-by: Eric Dumazet <eric.dumazet@gmail.com>
+Reviewed-by: James Morris <jmorris@namei.org>
+Acked-by: Serge Hallyn <serge.hallyn@canonical.com>
 Acked-by: Eric Paris <eparis@redhat.com>
 
 v18: rebase
 ...
-v15: include seccomp.h explicitly for when seccomp_bpf_load exists.
-v14: First cut using a single additional instruction
-... v13: made bpf functions generic.
+v14: rebase/nochanges
+v13: rebase on to 88ebdda6159ffc15699f204c33feb3e431bf9bdc
+v12: rebase on to linux-next
+v8-v11: no changes
+v7: struct seccomp_struct -> struct seccomp
+v6: original inclusion in this series.
 ---
- include/linux/filter.h |    1 +
- net/core/filter.c      |    6 ++++++
- 2 files changed, 7 insertions(+), 0 deletions(-)
+ include/linux/sched.h   |    2 +-
+ include/linux/seccomp.h |   10 ++++++----
+ 2 files changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/include/linux/filter.h b/include/linux/filter.h
-index 8eeb205..aaa2e80 100644
---- a/include/linux/filter.h
-+++ b/include/linux/filter.h
-@@ -228,6 +228,7 @@ enum {
- 	BPF_S_ANC_HATYPE,
- 	BPF_S_ANC_RXHASH,
- 	BPF_S_ANC_CPU,
-+	BPF_S_ANC_SECCOMP_LD_W,
- };
+diff --git a/include/linux/sched.h b/include/linux/sched.h
+index ba60897..cad1502 100644
+--- a/include/linux/sched.h
++++ b/include/linux/sched.h
+@@ -1452,7 +1452,7 @@ struct task_struct {
+ 	uid_t loginuid;
+ 	unsigned int sessionid;
+ #endif
+-	seccomp_t seccomp;
++	struct seccomp seccomp;
  
- #endif /* __KERNEL__ */
-diff --git a/net/core/filter.c b/net/core/filter.c
-index 6f755cc..491e2e1 100644
---- a/net/core/filter.c
-+++ b/net/core/filter.c
-@@ -38,6 +38,7 @@
- #include <linux/filter.h>
- #include <linux/reciprocal_div.h>
- #include <linux/ratelimit.h>
-+#include <linux/seccomp.h>
+ /* Thread group tracking */
+    	u32 parent_exec_id;
+diff --git a/include/linux/seccomp.h b/include/linux/seccomp.h
+index cc7a4e9..d61f27f 100644
+--- a/include/linux/seccomp.h
++++ b/include/linux/seccomp.h
+@@ -7,7 +7,9 @@
+ #include <linux/thread_info.h>
+ #include <asm/seccomp.h>
  
- /* No hurry in this branch
-  *
-@@ -352,6 +353,11 @@ load_b:
- 				A = 0;
- 			continue;
- 		}
-+#ifdef CONFIG_SECCOMP_FILTER
-+		case BPF_S_ANC_SECCOMP_LD_W:
-+			A = seccomp_bpf_load(fentry->k);
-+			continue;
-+#endif
- 		default:
- 			WARN_RATELIMIT(1, "Unknown code:%u jt:%u tf:%u k:%u\n",
- 				       fentry->code, fentry->jt,
+-typedef struct { int mode; } seccomp_t;
++struct seccomp {
++	int mode;
++};
+ 
+ extern void __secure_computing(int);
+ static inline void secure_computing(int this_syscall)
+@@ -19,7 +21,7 @@ static inline void secure_computing(int this_syscall)
+ extern long prctl_get_seccomp(void);
+ extern long prctl_set_seccomp(unsigned long);
+ 
+-static inline int seccomp_mode(seccomp_t *s)
++static inline int seccomp_mode(struct seccomp *s)
+ {
+ 	return s->mode;
+ }
+@@ -28,7 +30,7 @@ static inline int seccomp_mode(seccomp_t *s)
+ 
+ #include <linux/errno.h>
+ 
+-typedef struct { } seccomp_t;
++struct seccomp { };
+ 
+ #define secure_computing(x) do { } while (0)
+ 
+@@ -42,7 +44,7 @@ static inline long prctl_set_seccomp(unsigned long arg2)
+ 	return -EINVAL;
+ }
+ 
+-static inline int seccomp_mode(seccomp_t *s)
++static inline int seccomp_mode(struct seccomp *s)
+ {
+ 	return 0;
+ }
 -- 
 1.7.5.4
 
