@@ -1,59 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from opensource.wolfsonmicro.com ([80.75.67.52]:50624 "EHLO
-	opensource.wolfsonmicro.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752180Ab2DPIPi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 16 Apr 2012 04:15:38 -0400
-Date: Mon, 16 Apr 2012 09:15:32 +0100
-From: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Subject: Re: [PATCH] gpiolib/arches: Centralise bolierplate asm/gpio.h
-Message-ID: <20120416081532.GA3238@opensource.wolfsonmicro.com>
-References: <1334483574-3997-1-git-send-email-broonie@opensource.wolfsonmicro.com>
- <CACRpkdZ8yH1ZSG-nQ9dLm0TipHS-jZDuxwqohUC=LGH9V-5q4w@mail.gmail.com>
+Received: from mail-gx0-f174.google.com ([209.85.161.174]:63988 "EHLO
+	mail-gx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751193Ab2DPI0D convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 16 Apr 2012 04:26:03 -0400
+Received: by gghe5 with SMTP id e5so2298977ggh.19
+        for <linux-arch@vger.kernel.org>; Mon, 16 Apr 2012 01:26:02 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="SLDf9lqlvOQaIe6s"
-Content-Disposition: inline
-In-Reply-To: <CACRpkdZ8yH1ZSG-nQ9dLm0TipHS-jZDuxwqohUC=LGH9V-5q4w@mail.gmail.com>
+In-Reply-To: <20120416081532.GA3238@opensource.wolfsonmicro.com>
+References: <1334483574-3997-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+	<CACRpkdZ8yH1ZSG-nQ9dLm0TipHS-jZDuxwqohUC=LGH9V-5q4w@mail.gmail.com>
+	<20120416081532.GA3238@opensource.wolfsonmicro.com>
+Date: Mon, 16 Apr 2012 10:26:02 +0200
+Message-ID: <CACRpkdb8q4bKSBctBV0V5KrbS-r-P_b_+N75UV58ryxK+jz+8A@mail.gmail.com>
+Subject: Re: [PATCH] gpiolib/arches: Centralise bolierplate asm/gpio.h
+From: Linus Walleij <linus.walleij@linaro.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>
+To: Mark Brown <broonie@opensource.wolfsonmicro.com>
 Cc: Grant Likely <grant@secretlab.ca>, Linus Walleij <linus.walleij@stericsson.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, microblaze-uclinux@itee.uq.edu.au, linux@lists.openrisc.net, "linuxppc-dev@lists.ozlabs.org list" <linuxppc-dev@lists.ozlabs.org>, sparclinux@vger.kernel.org, Chris Zankel <chris@zankel.net>
-Message-ID: <20120416081532.gO2TYPYlRlF2l9MadnTwdBk7zhaO9uO8tyUnahE6Sbw@z>
+Message-ID: <20120416082602.UwDIIYkWFt6ABZYMkWhDAsYF3SA5XYZGnzuG4Wv83Gs@z>
 
+On Mon, Apr 16, 2012 at 10:15 AM, Mark Brown
+<broonie@opensource.wolfsonmicro.com> wrote:
+> On Mon, Apr 16, 2012 at 09:21:58AM +0200, Linus Walleij wrote:
+>
+>> This looks good but I think we need to page the alpha, ia64, m68k, microblaze,
+>> openrisc etc subarch maintainers on this patch so they have their say.
+>
+> That's why I CCed linux-arch, to get all the architecture maintainers
+> included.  vger would get upset if I CCed everyone individually.
 
---SLDf9lqlvOQaIe6s
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Oh I missed it. I looped in a few maintainers and arch lists anyway.
+Acked-by: Linus Walleij <linus.walleij@linaro.org>
 
-On Mon, Apr 16, 2012 at 09:21:58AM +0200, Linus Walleij wrote:
-
-> This looks good but I think we need to page the alpha, ia64, m68k, microblaze,
-> openrisc etc subarch maintainers on this patch so they have their say.
-
-That's why I CCed linux-arch, to get all the architecture maintainers
-included.  vger would get upset if I CCed everyone individually.
-
---SLDf9lqlvOQaIe6s
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.11 (GNU/Linux)
-
-iQIcBAEBAgAGBQJPi9UcAAoJEBus8iNuMP3dwnAP/2dv6D/vCKCnVow62FY69z5M
-6VwwMtgSOYJ68+/oGt/n45g/bTZoF2+eZAgN9Tljjdn/aVWj7YxWSvrNMnSIk3sP
-Lr0QYsbTaD+TNA1I39DUrENH/hA0sm4XDIxlE1swMs3stcqt+SrNT8i9bcZTG9bV
-71Y2Dsrwg4uyU2Sq0szL6S0fTgSe5c8bz9LlVInrSpiSoqkUB+D0UAyRQBHTlYnl
-GqmpyVmh938NjZT8tDeCtQ9VhTabsxtzP359JsshSbXpSYrsV/epKY83b1OzTPFw
-tG8gPANoy2N6CSNvdC60y6ZXF+WtIZsooQXDWK/rd2pDQgShQxkXknDHYvnZC2L6
-W2a4abHw99U9kT7pUzpWSKhkcFYbwEhbWD54beMN5UwEao1YhLmL0OOxs9hU3n7X
-96xZL6Pk/4Gv8qFtuJndHEwY0kt0VAujFLiz01ZUbrzZp8Ea30yQnF2ZoZTCVsWx
-GvG99k6EIfke/Jx+/iwU1xuTZUXqas/2jZ8gHpbvD9Njd6FqToJzm8lE2FDxfUip
-+KnOSqrkPf4X5v/ycWmJpzcYJ1RgwXfRAG5UbcpWQqGEwTyaXmzqkmIoe4vMbidl
-yHSF9Va4ptGrMrETzdNAe2NEB1GTJAdrIpzxAPV0a2xBMN/E9vje2BjCkfp3iMqf
-JWhB4suNDfmlpLGNPLm4
-=BiWD
------END PGP SIGNATURE-----
-
---SLDf9lqlvOQaIe6s--
+Thanks!
+Linus Walleij
