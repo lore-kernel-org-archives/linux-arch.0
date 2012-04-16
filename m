@@ -1,78 +1,75 @@
-From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [PATCH] gpiolib/arches: Centralise bolierplate asm/gpio.h
-Date: Mon, 16 Apr 2012 09:21:58 +0200
-Message-ID: <CACRpkdZ8yH1ZSG-nQ9dLm0TipHS-jZDuxwqohUC=LGH9V-5q4w@mail.gmail.com>
+From: Jonas Bonn <jonas@southpole.se>
+Subject: Re: [PATCH] gpiolib/arches: Centralise bolierplate
+ asm/gpio.h
+Date: Mon, 16 Apr 2012 09:53:42 +0200
+Message-ID: <1334562822.2953.45.camel@crucifix>
 References: <1334483574-3997-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+	<CACRpkdZ8yH1ZSG-nQ9dLm0TipHS-jZDuxwqohUC=LGH9V-5q4w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <sparclinux-owner@vger.kernel.org>
-In-Reply-To: <1334483574-3997-1-git-send-email-broonie@opensource.wolfsonmicro.com>
-Sender: sparclinux-owner@vger.kernel.org
-To: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Cc: Grant Likely <grant@secretlab.ca>, Linus Walleij <linus.walleij@stericsson.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, microblaze-uclinux@itee.uq.edu.au, linux@lists.openrisc.net, "linuxppc-dev@lists.ozlabs.org list" <linuxppc-dev@lists.ozlabs.org>, sparclinux@vger.kernel.org, Chris Zankel <chris@zankel.net>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-bounces@lists.openrisc.net>
+In-Reply-To: <CACRpkdZ8yH1ZSG-nQ9dLm0TipHS-jZDuxwqohUC=LGH9V-5q4w@mail.gmail.com>
+List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
+	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
+List-Archive: <http://lists.openrisc.net/pipermail/linux>
+List-Post: <mailto:linux@lists.openrisc.net>
+List-Help: <mailto:linux-request@lists.openrisc.net?subject=help>
+List-Subscribe: <http://lists.openrisc.net/listinfo/linux>,
+	<mailto:linux-request@lists.openrisc.net?subject=subscribe>
+Sender: linux-bounces@lists.openrisc.net
+Errors-To: linux-bounces@lists.openrisc.net
+To: Linus Walleij <linus.walleij@linaro.org>
+Cc: linux-arch@vger.kernel.org, Grant Likely <grant@secretlab.ca>, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, Linus Walleij <linus.walleij@stericsson.com>, Chris Zankel <chris@zankel.net>, microblaze-uclinux@itee.uq.edu.au, Mark Brown <broonie@opensource.wolfsonmicro.com>, linux-kernel@vger.kernel.org, linux@lists.openrisc.net, sparclinux@vger.kernel.org, "linuxppc-dev@lists.ozlabs.org list" <linuxppc-dev@lists.ozlabs.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Apr 15, 2012 at 11:52 AM, Mark Brown
-<broonie@opensource.wolfsonmicro.com> wrote:
 
-> Rather than requiring architectures that use gpiolib but don't have a=
-ny
-> need to define anything custom to copy an asm/gpio.h provide a Kconfi=
-g
-> symbol which architectures must select in order to include gpio.h and
-> for other architectures just provide the trivial implementation direc=
-tly.
->
-> This makes it much easier to do gpiolib updates and is also a step to=
-wards
-> making gpiolib APIs available on every architecture.
->
-> For architectures with existing boilerplate code leave a stub header =
-in
-> place which warns on direct inclusion of asm/gpio.h and includes
-> linux/gpio.h to catch code that's doing this. =A0Direct inclusion of
-> asm/gpio.h has long been deprecated.
->
-> Signed-off-by: Mark Brown <broonie@opensource.wolfsonmicro.com>
-> ---
-> =A0arch/alpha/include/asm/gpio.h =A0 =A0 =A0| =A0 59 ++--------------=
---------------
-> =A0arch/arm/Kconfig =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 =A01 +
-> =A0arch/avr32/Kconfig =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 =A01 +
-> =A0arch/blackfin/Kconfig =A0 =A0 =A0 =A0 =A0 =A0 =A0| =A0 =A01 +
-> =A0arch/ia64/include/asm/gpio.h =A0 =A0 =A0 | =A0 59 ++--------------=
---------------
-> =A0arch/m68k/Kconfig.cpu =A0 =A0 =A0 =A0 =A0 =A0 =A0| =A0 =A01 +
-> =A0arch/microblaze/include/asm/gpio.h | =A0 57 ++--------------------=
--------
-> =A0arch/mips/Kconfig =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0| =A0 =A01 +
-> =A0arch/openrisc/include/asm/gpio.h =A0 | =A0 69 ++------------------=
----------------
-> =A0arch/powerpc/include/asm/gpio.h =A0 =A0| =A0 57 ++----------------=
------------
-> =A0arch/sh/Kconfig =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0| =A0 =A01 =
-+
-> =A0arch/sparc/include/asm/gpio.h =A0 =A0 =A0| =A0 40 ++--------------=
------
-> =A0arch/unicore32/Kconfig =A0 =A0 =A0 =A0 =A0 =A0 | =A0 =A01 +
-> =A0arch/x86/include/asm/gpio.h =A0 =A0 =A0 =A0| =A0 57 ++------------=
----------------
-> =A0arch/xtensa/include/asm/gpio.h =A0 =A0 | =A0 60 ++----------------=
--------------
-> =A0drivers/gpio/Kconfig =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 =A08 ++++
-> =A0include/linux/gpio.h =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 34 ++++++++=
-+++++++++
-> =A017 files changed, 81 insertions(+), 426 deletions(-)
+Acked-by: Jonas Bonn <jonas@southpole.se> (for OpenRISC)
 
-This looks good but I think we need to page the alpha, ia64, m68k, micr=
-oblaze,
-openrisc etc subarch maintainers on this patch so they have their say.
-
-Yours,
-Linus Walleij
---
-To unsubscribe from this list: send the line "unsubscribe sparclinux" i=
-n
-the body of a message to majordomo@vger.kernel.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+On Mon, 2012-04-16 at 09:21 +0200, Linus Walleij wrote:
+> On Sun, Apr 15, 2012 at 11:52 AM, Mark Brown
+> <broonie@opensource.wolfsonmicro.com> wrote:
+> 
+> > Rather than requiring architectures that use gpiolib but don't have any
+> > need to define anything custom to copy an asm/gpio.h provide a Kconfig
+> > symbol which architectures must select in order to include gpio.h and
+> > for other architectures just provide the trivial implementation directly.
+> >
+> > This makes it much easier to do gpiolib updates and is also a step towards
+> > making gpiolib APIs available on every architecture.
+> >
+> > For architectures with existing boilerplate code leave a stub header in
+> > place which warns on direct inclusion of asm/gpio.h and includes
+> > linux/gpio.h to catch code that's doing this.  Direct inclusion of
+> > asm/gpio.h has long been deprecated.
+> >
+> > Signed-off-by: Mark Brown <broonie@opensource.wolfsonmicro.com>
+> > ---
+> >  arch/alpha/include/asm/gpio.h      |   59 ++----------------------------
+> >  arch/arm/Kconfig                   |    1 +
+> >  arch/avr32/Kconfig                 |    1 +
+> >  arch/blackfin/Kconfig              |    1 +
+> >  arch/ia64/include/asm/gpio.h       |   59 ++----------------------------
+> >  arch/m68k/Kconfig.cpu              |    1 +
+> >  arch/microblaze/include/asm/gpio.h |   57 ++---------------------------
+> >  arch/mips/Kconfig                  |    1 +
+> >  arch/openrisc/include/asm/gpio.h   |   69 ++---------------------------------
+> >  arch/powerpc/include/asm/gpio.h    |   57 ++---------------------------
+> >  arch/sh/Kconfig                    |    1 +
+> >  arch/sparc/include/asm/gpio.h      |   40 ++-------------------
+> >  arch/unicore32/Kconfig             |    1 +
+> >  arch/x86/include/asm/gpio.h        |   57 ++---------------------------
+> >  arch/xtensa/include/asm/gpio.h     |   60 ++-----------------------------
+> >  drivers/gpio/Kconfig               |    8 ++++
+> >  include/linux/gpio.h               |   34 +++++++++++++++++
+> >  17 files changed, 81 insertions(+), 426 deletions(-)
+> 
+> This looks good but I think we need to page the alpha, ia64, m68k, microblaze,
+> openrisc etc subarch maintainers on this patch so they have their say.
+> 
+> Yours,
+> Linus Walleij
+> _______________________________________________
+> Linux mailing list
+> Linux@lists.openrisc.net
+> http://lists.openrisc.net/listinfo/linux
