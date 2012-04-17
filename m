@@ -1,53 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:19276 "EHLO
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:14961 "EHLO
 	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751816Ab2DRAVG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Apr 2012 20:21:06 -0400
-Message-ID: <6e201a$5e4isk@wolverine01.qualcomm.com>
-From: Thomas Meyer <thomas@m3y3r.de>
-Date: Tue, 8 Nov 2011 19:49:30 +0100
-Subject: [PATCH 01/10] Hexagon: Use resource_size function
+	with ESMTP id S1754024Ab2DRAVY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Apr 2012 20:21:24 -0400
+Message-ID: <6e201a$5e4ium@wolverine01.qualcomm.com>
+From: Richard Kuo <rkuo@codeaurora.org>
+Date: Tue, 17 Apr 2012 18:56:01 -0500
+Subject: [PATCH 00/10] Hexagon cleanup and misc patches
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20111108184930.DX63NYCZQ9UL2tRDog8Y4J3sLjbLMpXFmw8eF2QBVKo@z>
+Message-ID: <20120417235601.QHn7meYPtX7AhU4kuC7XMeIH3iMZI8LghhGO4l7AJ3c@z>
 
- Use resource_size function on resource object
- instead of explicit computation.
+This is a small collection of patches that I've been sitting on for probably
+too long that I'm getting ready to make a pull request for.  It's largely
+cleanup and fixes from the original Hexagon upstreaming, with a few
+additional enhancements to do_page_fault and SMP startup which have already
+been on the mailing lists for some time.
 
- The semantic patch that makes this change is available
- in scripts/coccinelle/api/resource_size.cocci.
+Please let me know if there are any issues, and thanks to everyone who sent
+patches.
 
- More information about semantic patching is available at
- http://coccinelle.lip6.fr/
 
-Signed-off-by: Thomas Meyer <thomas@m3y3r.de>
-Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
----
- arch/hexagon/kernel/time.c |    6 ++----
- 1 files changed, 2 insertions(+), 4 deletions(-)
 
-diff --git a/arch/hexagon/kernel/time.c b/arch/hexagon/kernel/time.c
-index 6bee15c..ea9e34f 100644
---- a/arch/hexagon/kernel/time.c
-+++ b/arch/hexagon/kernel/time.c
-@@ -200,12 +200,10 @@ void __init time_init_deferred(void)
- 		resource = rtos_timer_device.resource;
- 
- 	/*  ioremap here means this has to run later, after paging init  */
--	rtos_timer = ioremap(resource->start, resource->end
--		- resource->start + 1);
-+	rtos_timer = ioremap(resource->start, resource_size(resource));
- 
- 	if (!rtos_timer) {
--		release_mem_region(resource->start, resource->end
--			- resource->start + 1);
-+		release_mem_region(resource->start, resource_size(resource));
- 	}
- 	clocksource_register_khz(&hexagon_clocksource, pcycle_freq_mhz * 1000);
- 
--- 
-1.7.1
+Jesper Juhl (1):
+  Remove unneeded include of version.h from
+    arch/hexagon/include/asm/spinlock_types.h
+
+Julia Lawall (1):
+  arch/hexagon/kernel/dma.c: make function static
+
+Kautuk Consul (1):
+  hexagon/mm/vm_fault.c: Port OOM changes to do_page_fault
+
+Paul Bolle (1):
+  hexagon: drop selects of bogus Kconfig symbols
+
+Richard Kuo (4):
+  various Kconfig cleanup and old platform build code removal
+  Hexagon: misc compile warning/error cleanup due to missing headers
+  hexagon:  use renamed tick_nohz_idle_* functions
+  hexagon: add missing cpu.h include
+
+Srivatsa S. Bhat (1):
+  hexagon/CPU hotplug: Add missing call to notify_cpu_starting()
+
+Thomas Meyer (1):
+  Hexagon: Use resource_size function
+
+ arch/hexagon/Kconfig                      |   23 ++++-------------------
+ arch/hexagon/Makefile                     |    5 -----
+ arch/hexagon/include/asm/spinlock_types.h |    2 --
+ arch/hexagon/kernel/dma.c                 |    3 ++-
+ arch/hexagon/kernel/process.c             |    6 +++---
+ arch/hexagon/kernel/ptrace.c              |    1 +
+ arch/hexagon/kernel/smp.c                 |    8 +++++++-
+ arch/hexagon/kernel/time.c                |    7 +++----
+ arch/hexagon/kernel/vdso.c                |    1 +
+ arch/hexagon/mm/vm_fault.c                |   22 +++++++++++++++++-----
+ 10 files changed, 38 insertions(+), 40 deletions(-)
 
 
 --
