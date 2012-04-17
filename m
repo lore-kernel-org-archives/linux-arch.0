@@ -1,37 +1,59 @@
-From: Julia Lawall <Julia.Lawall@lip6.fr>
-Subject: [PATCH 04/10] arch/hexagon/kernel/dma.c: make function static
-Date: Tue, 24 Jan 2012 14:31:36 +0100
-Message-ID: <8675ae$5bugro@wolverine02.qualcomm.com>
+From: Richard Kuo <rkuo@codeaurora.org>
+Subject: [PATCH 00/10] Hexagon cleanup and misc patches
+Date: Tue, 17 Apr 2012 18:56:01 -0500
+Message-ID: <6e201a$5e4ium@wolverine01.qualcomm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-This function is only used in the same file, and the other similar
-functions in this file are also static.
+This is a small collection of patches that I've been sitting on for probably
+too long that I'm getting ready to make a pull request for.  It's largely
+cleanup and fixes from the original Hexagon upstreaming, with a few
+additional enhancements to do_page_fault and SMP startup which have already
+been on the mailing lists for some time.
 
-Signed-off-by: Julia Lawall <Julia.Lawall@lip6.fr>
-[rkuo@codeaurora.org: adjusted patch to apply to latest]
-Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
----
- arch/hexagon/kernel/dma.c |    2 +-
- 1 files changed, 1 insertions(+), 1 deletions(-)
+Please let me know if there are any issues, and thanks to everyone who sent
+patches.
 
-diff --git a/arch/hexagon/kernel/dma.c b/arch/hexagon/kernel/dma.c
-index 3730221..e8d52cc 100644
---- a/arch/hexagon/kernel/dma.c
-+++ b/arch/hexagon/kernel/dma.c
-@@ -53,7 +53,7 @@ static struct gen_pool *coherent_pool;
- 
- /* Allocates from a pool of uncached memory that was reserved at boot time */
- 
--void *hexagon_dma_alloc_coherent(struct device *dev, size_t size,
-+static void *hexagon_dma_alloc_coherent(struct device *dev, size_t size,
- 				 dma_addr_t *dma_addr, gfp_t flag,
- 				 struct dma_attrs *attrs)
- {
--- 
-1.7.1
+
+
+Jesper Juhl (1):
+  Remove unneeded include of version.h from
+    arch/hexagon/include/asm/spinlock_types.h
+
+Julia Lawall (1):
+  arch/hexagon/kernel/dma.c: make function static
+
+Kautuk Consul (1):
+  hexagon/mm/vm_fault.c: Port OOM changes to do_page_fault
+
+Paul Bolle (1):
+  hexagon: drop selects of bogus Kconfig symbols
+
+Richard Kuo (4):
+  various Kconfig cleanup and old platform build code removal
+  Hexagon: misc compile warning/error cleanup due to missing headers
+  hexagon:  use renamed tick_nohz_idle_* functions
+  hexagon: add missing cpu.h include
+
+Srivatsa S. Bhat (1):
+  hexagon/CPU hotplug: Add missing call to notify_cpu_starting()
+
+Thomas Meyer (1):
+  Hexagon: Use resource_size function
+
+ arch/hexagon/Kconfig                      |   23 ++++-------------------
+ arch/hexagon/Makefile                     |    5 -----
+ arch/hexagon/include/asm/spinlock_types.h |    2 --
+ arch/hexagon/kernel/dma.c                 |    3 ++-
+ arch/hexagon/kernel/process.c             |    6 +++---
+ arch/hexagon/kernel/ptrace.c              |    1 +
+ arch/hexagon/kernel/smp.c                 |    8 +++++++-
+ arch/hexagon/kernel/time.c                |    7 +++----
+ arch/hexagon/kernel/vdso.c                |    1 +
+ arch/hexagon/mm/vm_fault.c                |   22 +++++++++++++++++-----
+ 10 files changed, 38 insertions(+), 40 deletions(-)
 
 
 --
