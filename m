@@ -1,7 +1,8 @@
 From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: [PATCHv9 08/10] ARM: dma-mapping: remove redundant code and cleanup
-Date: Wed, 18 Apr 2012 15:44:10 +0200
-Message-ID: <1334756652-30830-9-git-send-email-m.szyprowski@samsung.com>
+Subject: [PATCHv9 04/10] ARM: dma-mapping: remove offset parameter to prepare
+ for generic dma_ops
+Date: Wed, 18 Apr 2012 15:44:06 +0200
+Message-ID: <1334756652-30830-5-git-send-email-m.szyprowski@samsung.com>
 References: <1334756652-30830-1-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN
@@ -9,183 +10,248 @@ Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
 Received: from mailout1.w1.samsung.com ([210.118.77.11]:55441 "EHLO
 	mailout1.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753692Ab2DRNoe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Apr 2012 09:44:34 -0400
-Received: from euspt2 (mailout1.w1.samsung.com [210.118.77.11])
+	with ESMTP id S1753780Ab2DRNoa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Apr 2012 09:44:30 -0400
+Received: from euspt1 (mailout1.w1.samsung.com [210.118.77.11])
  by mailout1.w1.samsung.com
  (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14 2004))
- with ESMTP id <0M2O00806GS2TN@mailout1.w1.samsung.com> for
- linux-arch@vger.kernel.org; Wed, 18 Apr 2012 14:43:14 +0100 (BST)
+ with ESMTP id <0M2O0086QGS0HS@mailout1.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Wed, 18 Apr 2012 14:43:13 +0100 (BST)
 Received: from linux.samsung.com ([106.116.38.10])
- by spt2.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
- 2004)) with ESMTPA id <0M2O003MEGU1X7@spt2.w1.samsung.com> for
- linux-arch@vger.kernel.org; Wed, 18 Apr 2012 14:44:26 +0100 (BST)
+ by spt1.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
+ 2004)) with ESMTPA id <0M2O008QTGU1AE@spt1.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Wed, 18 Apr 2012 14:44:27 +0100 (BST)
 In-reply-to: <1334756652-30830-1-git-send-email-m.szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org
 Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Hiroshi Doyu <hdoyu@nvidia.com>, Subash Patel <subashrp@gmail.com>
 
-This patch just performs a global cleanup in DMA mapping implementation
-for ARM architecture. Some of the tiny helper functions have been moved
-to the caller code, some have been merged together.
+This patch removes the need for the offset parameter in dma bounce
+functions. This is required to let dma-mapping framework on ARM
+architecture to use common, generic dma_map_ops based dma-mapping
+helpers.
+
+Background and more detailed explaination:
+
+dma_*_range_* functions are available from the early days of the dma
+mapping api. They are the correct way of doing a partial syncs on the
+buffer (usually used by the network device drivers). This patch changes
+only the internal implementation of the dma bounce functions to let
+them tunnel through dma_map_ops structure. The driver api stays
+unchanged, so driver are obliged to call dma_*_range_* functions to
+keep code clean and easy to understand.
+
+The only drawback from this patch is reduced detection of the dma api
+abuse. Let us consider the following code:
+
+dma_addr = dma_map_single(dev, ptr, 64, DMA_TO_DEVICE);
+dma_sync_single_range_for_cpu(dev, dma_addr+16, 0, 32, DMA_TO_DEVICE);
+
+Without the patch such code fails, because dma bounce code is unable
+to find the bounce buffer for the given dma_address. After the patch
+the above sync call will be equivalent to:
+
+dma_sync_single_range_for_cpu(dev, dma_addr, 16, 32, DMA_TO_DEVICE);
+
+which succeeds.
+
+I don't consider this as a real problem, because DMA API abuse should be
+caught by debug_dma_* function family. This patch lets us to simplify
+the internal low-level implementation without chaning the driver visible
+API.
 
 Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
 Acked-by: Kyungmin Park <kyungmin.park@samsung.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
 Tested-By: Subash Patel <subash.ramaswamy@linaro.org>
 ---
- arch/arm/mm/dma-mapping.c |   88 ++++++++++++--------------------------------
- 1 files changed, 24 insertions(+), 64 deletions(-)
+ arch/arm/common/dmabounce.c        |   13 +++++--
+ arch/arm/include/asm/dma-mapping.h |   67 +++++++++++++++++------------------
+ arch/arm/mm/dma-mapping.c          |    4 +-
+ 3 files changed, 45 insertions(+), 39 deletions(-)
 
+diff --git a/arch/arm/common/dmabounce.c b/arch/arm/common/dmabounce.c
+index 210ad1b..32e9cc6 100644
+--- a/arch/arm/common/dmabounce.c
++++ b/arch/arm/common/dmabounce.c
+@@ -173,7 +173,8 @@ find_safe_buffer(struct dmabounce_device_info *device_info, dma_addr_t safe_dma_
+ 	read_lock_irqsave(&device_info->lock, flags);
+ 
+ 	list_for_each_entry(b, &device_info->safe_buffers, node)
+-		if (b->safe_dma_addr == safe_dma_addr) {
++		if (b->safe_dma_addr <= safe_dma_addr &&
++		    b->safe_dma_addr + b->size > safe_dma_addr) {
+ 			rb = b;
+ 			break;
+ 		}
+@@ -362,9 +363,10 @@ void __dma_unmap_page(struct device *dev, dma_addr_t dma_addr, size_t size,
+ EXPORT_SYMBOL(__dma_unmap_page);
+ 
+ int dmabounce_sync_for_cpu(struct device *dev, dma_addr_t addr,
+-		unsigned long off, size_t sz, enum dma_data_direction dir)
++		size_t sz, enum dma_data_direction dir)
+ {
+ 	struct safe_buffer *buf;
++	unsigned long off;
+ 
+ 	dev_dbg(dev, "%s(dma=%#x,off=%#lx,sz=%zx,dir=%x)\n",
+ 		__func__, addr, off, sz, dir);
+@@ -373,6 +375,8 @@ int dmabounce_sync_for_cpu(struct device *dev, dma_addr_t addr,
+ 	if (!buf)
+ 		return 1;
+ 
++	off = addr - buf->safe_dma_addr;
++
+ 	BUG_ON(buf->direction != dir);
+ 
+ 	dev_dbg(dev, "%s: unsafe buffer %p (dma=%#x) mapped to %p (dma=%#x)\n",
+@@ -391,9 +395,10 @@ int dmabounce_sync_for_cpu(struct device *dev, dma_addr_t addr,
+ EXPORT_SYMBOL(dmabounce_sync_for_cpu);
+ 
+ int dmabounce_sync_for_device(struct device *dev, dma_addr_t addr,
+-		unsigned long off, size_t sz, enum dma_data_direction dir)
++		size_t sz, enum dma_data_direction dir)
+ {
+ 	struct safe_buffer *buf;
++	unsigned long off;
+ 
+ 	dev_dbg(dev, "%s(dma=%#x,off=%#lx,sz=%zx,dir=%x)\n",
+ 		__func__, addr, off, sz, dir);
+@@ -402,6 +407,8 @@ int dmabounce_sync_for_device(struct device *dev, dma_addr_t addr,
+ 	if (!buf)
+ 		return 1;
+ 
++	off = addr - buf->safe_dma_addr;
++
+ 	BUG_ON(buf->direction != dir);
+ 
+ 	dev_dbg(dev, "%s: unsafe buffer %p (dma=%#x) mapped to %p (dma=%#x)\n",
+diff --git a/arch/arm/include/asm/dma-mapping.h b/arch/arm/include/asm/dma-mapping.h
+index 6a838da..eeddbe2 100644
+--- a/arch/arm/include/asm/dma-mapping.h
++++ b/arch/arm/include/asm/dma-mapping.h
+@@ -266,19 +266,17 @@ extern void __dma_unmap_page(struct device *, dma_addr_t, size_t,
+ /*
+  * Private functions
+  */
+-int dmabounce_sync_for_cpu(struct device *, dma_addr_t, unsigned long,
+-		size_t, enum dma_data_direction);
+-int dmabounce_sync_for_device(struct device *, dma_addr_t, unsigned long,
+-		size_t, enum dma_data_direction);
++int dmabounce_sync_for_cpu(struct device *, dma_addr_t, size_t, enum dma_data_direction);
++int dmabounce_sync_for_device(struct device *, dma_addr_t, size_t, enum dma_data_direction);
+ #else
+ static inline int dmabounce_sync_for_cpu(struct device *d, dma_addr_t addr,
+-	unsigned long offset, size_t size, enum dma_data_direction dir)
++	size_t size, enum dma_data_direction dir)
+ {
+ 	return 1;
+ }
+ 
+ static inline int dmabounce_sync_for_device(struct device *d, dma_addr_t addr,
+-	unsigned long offset, size_t size, enum dma_data_direction dir)
++	size_t size, enum dma_data_direction dir)
+ {
+ 	return 1;
+ }
+@@ -401,6 +399,33 @@ static inline void dma_unmap_page(struct device *dev, dma_addr_t handle,
+ 	__dma_unmap_page(dev, handle, size, dir);
+ }
+ 
++
++static inline void dma_sync_single_for_cpu(struct device *dev,
++		dma_addr_t handle, size_t size, enum dma_data_direction dir)
++{
++	BUG_ON(!valid_dma_direction(dir));
++
++	debug_dma_sync_single_for_cpu(dev, handle, size, dir);
++
++	if (!dmabounce_sync_for_cpu(dev, handle, size, dir))
++		return;
++
++	__dma_single_dev_to_cpu(dma_to_virt(dev, handle), size, dir);
++}
++
++static inline void dma_sync_single_for_device(struct device *dev,
++		dma_addr_t handle, size_t size, enum dma_data_direction dir)
++{
++	BUG_ON(!valid_dma_direction(dir));
++
++	debug_dma_sync_single_for_device(dev, handle, size, dir);
++
++	if (!dmabounce_sync_for_device(dev, handle, size, dir))
++		return;
++
++	__dma_single_cpu_to_dev(dma_to_virt(dev, handle), size, dir);
++}
++
+ /**
+  * dma_sync_single_range_for_cpu
+  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
+@@ -423,40 +448,14 @@ static inline void dma_sync_single_range_for_cpu(struct device *dev,
+ 		dma_addr_t handle, unsigned long offset, size_t size,
+ 		enum dma_data_direction dir)
+ {
+-	BUG_ON(!valid_dma_direction(dir));
+-
+-	debug_dma_sync_single_for_cpu(dev, handle + offset, size, dir);
+-
+-	if (!dmabounce_sync_for_cpu(dev, handle, offset, size, dir))
+-		return;
+-
+-	__dma_single_dev_to_cpu(dma_to_virt(dev, handle) + offset, size, dir);
++	dma_sync_single_for_cpu(dev, handle + offset, size, dir);
+ }
+ 
+ static inline void dma_sync_single_range_for_device(struct device *dev,
+ 		dma_addr_t handle, unsigned long offset, size_t size,
+ 		enum dma_data_direction dir)
+ {
+-	BUG_ON(!valid_dma_direction(dir));
+-
+-	debug_dma_sync_single_for_device(dev, handle + offset, size, dir);
+-
+-	if (!dmabounce_sync_for_device(dev, handle, offset, size, dir))
+-		return;
+-
+-	__dma_single_cpu_to_dev(dma_to_virt(dev, handle) + offset, size, dir);
+-}
+-
+-static inline void dma_sync_single_for_cpu(struct device *dev,
+-		dma_addr_t handle, size_t size, enum dma_data_direction dir)
+-{
+-	dma_sync_single_range_for_cpu(dev, handle, 0, size, dir);
+-}
+-
+-static inline void dma_sync_single_for_device(struct device *dev,
+-		dma_addr_t handle, size_t size, enum dma_data_direction dir)
+-{
+-	dma_sync_single_range_for_device(dev, handle, 0, size, dir);
++	dma_sync_single_for_device(dev, handle + offset, size, dir);
+ }
+ 
+ /*
 diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index a4db5ec..615fabd 100644
+index 0d6e203..cd228c6 100644
 --- a/arch/arm/mm/dma-mapping.c
 +++ b/arch/arm/mm/dma-mapping.c
-@@ -40,64 +40,12 @@
-  * the CPU does do speculative prefetches, which means we clean caches
-  * before transfers and delay cache invalidation until transfer completion.
-  *
-- * Private support functions: these are not part of the API and are
-- * liable to change.  Drivers must not use these.
-  */
--static inline void __dma_single_cpu_to_dev(const void *kaddr, size_t size,
--	enum dma_data_direction dir)
--{
--	extern void ___dma_single_cpu_to_dev(const void *, size_t,
--		enum dma_data_direction);
--
--	if (!arch_is_coherent())
--		___dma_single_cpu_to_dev(kaddr, size, dir);
--}
--
--static inline void __dma_single_dev_to_cpu(const void *kaddr, size_t size,
--	enum dma_data_direction dir)
--{
--	extern void ___dma_single_dev_to_cpu(const void *, size_t,
--		enum dma_data_direction);
--
--	if (!arch_is_coherent())
--		___dma_single_dev_to_cpu(kaddr, size, dir);
--}
--
--static inline void __dma_page_cpu_to_dev(struct page *page, unsigned long off,
--	size_t size, enum dma_data_direction dir)
--{
--	extern void ___dma_page_cpu_to_dev(struct page *, unsigned long,
-+static void __dma_page_cpu_to_dev(struct page *, unsigned long,
- 		size_t, enum dma_data_direction);
--
--	if (!arch_is_coherent())
--		___dma_page_cpu_to_dev(page, off, size, dir);
--}
--
--static inline void __dma_page_dev_to_cpu(struct page *page, unsigned long off,
--	size_t size, enum dma_data_direction dir)
--{
--	extern void ___dma_page_dev_to_cpu(struct page *, unsigned long,
-+static void __dma_page_dev_to_cpu(struct page *, unsigned long,
- 		size_t, enum dma_data_direction);
+@@ -657,7 +657,7 @@ void dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
+ 	int i;
  
--	if (!arch_is_coherent())
--		___dma_page_dev_to_cpu(page, off, size, dir);
--}
--
--
--static inline dma_addr_t __dma_map_page(struct device *dev, struct page *page,
--	     unsigned long offset, size_t size, enum dma_data_direction dir)
--{
--	__dma_page_cpu_to_dev(page, offset, size, dir);
--	return pfn_to_dma(dev, page_to_pfn(page)) + offset;
--}
--
--static inline void __dma_unmap_page(struct device *dev, dma_addr_t handle,
--		size_t size, enum dma_data_direction dir)
--{
--	__dma_page_dev_to_cpu(pfn_to_page(dma_to_pfn(dev, handle)),
--		handle & ~PAGE_MASK, size, dir);
--}
--
- /**
-  * arm_dma_map_page - map a portion of a page for streaming DMA
-  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
-@@ -112,11 +60,13 @@ static inline void __dma_unmap_page(struct device *dev, dma_addr_t handle,
-  * The device owns this memory once this call has completed.  The CPU
-  * can regain ownership by calling dma_unmap_page().
-  */
--static inline dma_addr_t arm_dma_map_page(struct device *dev, struct page *page,
-+static dma_addr_t arm_dma_map_page(struct device *dev, struct page *page,
- 	     unsigned long offset, size_t size, enum dma_data_direction dir,
- 	     struct dma_attrs *attrs)
- {
--	return __dma_map_page(dev, page, offset, size, dir);
-+	if (!arch_is_coherent())
-+		__dma_page_cpu_to_dev(page, offset, size, dir);
-+	return pfn_to_dma(dev, page_to_pfn(page)) + offset;
- }
+ 	for_each_sg(sg, s, nents, i) {
+-		if (!dmabounce_sync_for_cpu(dev, sg_dma_address(s), 0,
++		if (!dmabounce_sync_for_cpu(dev, sg_dma_address(s),
+ 					    sg_dma_len(s), dir))
+ 			continue;
  
- /**
-@@ -133,27 +83,31 @@ static inline dma_addr_t arm_dma_map_page(struct device *dev, struct page *page,
-  * After this call, reads by the CPU to the buffer are guaranteed to see
-  * whatever the device wrote there.
-  */
--static inline void arm_dma_unmap_page(struct device *dev, dma_addr_t handle,
-+static void arm_dma_unmap_page(struct device *dev, dma_addr_t handle,
- 		size_t size, enum dma_data_direction dir,
- 		struct dma_attrs *attrs)
- {
--	__dma_unmap_page(dev, handle, size, dir);
-+	if (!arch_is_coherent())
-+		__dma_page_dev_to_cpu(pfn_to_page(dma_to_pfn(dev, handle)),
-+				      handle & ~PAGE_MASK, size, dir);
- }
+@@ -683,7 +683,7 @@ void dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+ 	int i;
  
--static inline void arm_dma_sync_single_for_cpu(struct device *dev,
-+static void arm_dma_sync_single_for_cpu(struct device *dev,
- 		dma_addr_t handle, size_t size, enum dma_data_direction dir)
- {
- 	unsigned int offset = handle & (PAGE_SIZE - 1);
- 	struct page *page = pfn_to_page(dma_to_pfn(dev, handle-offset));
--	__dma_page_dev_to_cpu(page, offset, size, dir);
-+	if (!arch_is_coherent())
-+		__dma_page_dev_to_cpu(page, offset, size, dir);
- }
+ 	for_each_sg(sg, s, nents, i) {
+-		if (!dmabounce_sync_for_device(dev, sg_dma_address(s), 0,
++		if (!dmabounce_sync_for_device(dev, sg_dma_address(s),
+ 					sg_dma_len(s), dir))
+ 			continue;
  
--static inline void arm_dma_sync_single_for_device(struct device *dev,
-+static void arm_dma_sync_single_for_device(struct device *dev,
- 		dma_addr_t handle, size_t size, enum dma_data_direction dir)
- {
- 	unsigned int offset = handle & (PAGE_SIZE - 1);
- 	struct page *page = pfn_to_page(dma_to_pfn(dev, handle-offset));
--	__dma_page_cpu_to_dev(page, offset, size, dir);
-+	if (!arch_is_coherent())
-+		__dma_page_cpu_to_dev(page, offset, size, dir);
- }
- 
- static int arm_dma_set_mask(struct device *dev, u64 dma_mask);
-@@ -644,7 +598,13 @@ static void dma_cache_maint_page(struct page *page, unsigned long offset,
- 	} while (left);
- }
- 
--void ___dma_page_cpu_to_dev(struct page *page, unsigned long off,
-+/*
-+ * Make an area consistent for devices.
-+ * Note: Drivers should NOT use this function directly, as it will break
-+ * platforms with CONFIG_DMABOUNCE.
-+ * Use the driver DMA support - see dma-mapping.h (dma_sync_*)
-+ */
-+static void __dma_page_cpu_to_dev(struct page *page, unsigned long off,
- 	size_t size, enum dma_data_direction dir)
- {
- 	unsigned long paddr;
-@@ -660,7 +620,7 @@ void ___dma_page_cpu_to_dev(struct page *page, unsigned long off,
- 	/* FIXME: non-speculating: flush on bidirectional mappings? */
- }
- 
--void ___dma_page_dev_to_cpu(struct page *page, unsigned long off,
-+static void __dma_page_dev_to_cpu(struct page *page, unsigned long off,
- 	size_t size, enum dma_data_direction dir)
- {
- 	unsigned long paddr = page_to_phys(page) + off;
 -- 
 1.7.1.569.g6f426
