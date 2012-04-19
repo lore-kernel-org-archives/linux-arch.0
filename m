@@ -1,109 +1,369 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout2.w1.samsung.com ([210.118.77.12]:57058 "EHLO
-	mailout2.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753649Ab2DRNo2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Apr 2012 09:44:28 -0400
-Received: from euspt2 (mailout2.w1.samsung.com [210.118.77.12])
- by mailout2.w1.samsung.com
- (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14 2004))
- with ESMTP id <0M2O00H2DGTY4B@mailout2.w1.samsung.com> for
- linux-arch@vger.kernel.org; Wed, 18 Apr 2012 14:44:22 +0100 (BST)
-Received: from linux.samsung.com ([106.116.38.10])
- by spt2.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
- 2004)) with ESMTPA id <0M2O000BSGTZFT@spt2.w1.samsung.com> for
- linux-arch@vger.kernel.org; Wed, 18 Apr 2012 14:44:24 +0100 (BST)
-Date: Wed, 18 Apr 2012 15:44:04 +0200
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: [PATCHv9 02/10] ARM: dma-mapping: use pr_* instread of printk
-In-reply-to: <1334756652-30830-1-git-send-email-m.szyprowski@samsung.com>
-Message-ID: <1334756652-30830-3-git-send-email-m.szyprowski@samsung.com>
-MIME-version: 1.0
-Content-type: TEXT/PLAIN
-Content-transfer-encoding: 7BIT
-References: <1334756652-30830-1-git-send-email-m.szyprowski@samsung.com>
+Received: from mx1.redhat.com ([209.132.183.28]:12784 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754454Ab2DSXQu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Apr 2012 19:16:50 -0400
+Date: Fri, 20 Apr 2012 01:16:00 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: [PATCH v6 5/6] keys: kill the dummy key_replace_session_keyring()
+Message-ID: <20120419231600.GE15828@redhat.com>
+References: <20120419231431.GA15820@redhat.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20120419231431.GA15820@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Hiroshi Doyu <hdoyu@nvidia.com>, Subash Patel <subashrp@gmail.com>
-Message-ID: <20120418134404.h3DZVZkEZY1h2xicSkNGnxcg5kZUIZDt0hA7gp9kq90@z>
+To: Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>
+Cc: Alexander Gordeev <agordeev@redhat.com>, Chris Zankel <chris@zankel.net>, David Smith <dsmith@redhat.com>, "Frank Ch. Eigler" <fche@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Larry Woodman <lwoodman@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Richard Kuo <rkuo@codeaurora.org>, Tejun Heo <tj@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120419231600.YdrFjmx7rkZZGTI_mbDAEt2TEVABhLdWTSKVjHKqW3s@z>
 
-Replace all calls to printk with pr_* functions family.
+After the previouse change key_replace_session_keyring() becomes
+a nop. Remove the dummy definition in key.h and update the callers
+in arch/*/kernel/signal.c.
 
-Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
-Acked-by: Kyungmin Park <kyungmin.park@samsung.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Tested-By: Subash Patel <subash.ramaswamy@linaro.org>
+Signed-off-by: Oleg Nesterov <oleg@redhat.com>
 ---
- arch/arm/mm/dma-mapping.c |   16 ++++++++--------
- 1 files changed, 8 insertions(+), 8 deletions(-)
+ arch/alpha/kernel/signal.c     |    2 --
+ arch/arm/kernel/signal.c       |    2 --
+ arch/avr32/kernel/signal.c     |    2 --
+ arch/blackfin/kernel/signal.c  |    2 --
+ arch/c6x/kernel/signal.c       |    2 --
+ arch/cris/kernel/ptrace.c      |    2 --
+ arch/frv/kernel/signal.c       |    2 --
+ arch/h8300/kernel/signal.c     |    2 --
+ arch/hexagon/kernel/signal.c   |    2 --
+ arch/ia64/kernel/process.c     |    2 --
+ arch/m32r/kernel/signal.c      |    2 --
+ arch/mips/kernel/signal.c      |    2 --
+ arch/mn10300/kernel/signal.c   |    2 --
+ arch/openrisc/kernel/signal.c  |    2 --
+ arch/parisc/kernel/signal.c    |    2 --
+ arch/powerpc/kernel/signal.c   |    2 --
+ arch/s390/kernel/signal.c      |    2 --
+ arch/sh/kernel/signal_32.c     |    2 --
+ arch/sh/kernel/signal_64.c     |    2 --
+ arch/sparc/kernel/signal_32.c  |    2 --
+ arch/sparc/kernel/signal_64.c  |    2 --
+ arch/tile/kernel/process.c     |    2 --
+ arch/unicore32/kernel/signal.c |    2 --
+ arch/x86/kernel/signal.c       |    2 --
+ include/linux/key.h            |    2 --
+ 25 files changed, 0 insertions(+), 50 deletions(-)
 
-diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index db23ae4..366f3a2 100644
---- a/arch/arm/mm/dma-mapping.c
-+++ b/arch/arm/mm/dma-mapping.c
-@@ -184,14 +184,14 @@ static int __init consistent_init(void)
- 
- 		pud = pud_alloc(&init_mm, pgd, base);
- 		if (!pud) {
--			printk(KERN_ERR "%s: no pud tables\n", __func__);
-+			pr_err("%s: no pud tables\n", __func__);
- 			ret = -ENOMEM;
- 			break;
- 		}
- 
- 		pmd = pmd_alloc(&init_mm, pud, base);
- 		if (!pmd) {
--			printk(KERN_ERR "%s: no pmd tables\n", __func__);
-+			pr_err("%s: no pmd tables\n", __func__);
- 			ret = -ENOMEM;
- 			break;
- 		}
-@@ -199,7 +199,7 @@ static int __init consistent_init(void)
- 
- 		pte = pte_alloc_kernel(pmd, base);
- 		if (!pte) {
--			printk(KERN_ERR "%s: no pte tables\n", __func__);
-+			pr_err("%s: no pte tables\n", __func__);
- 			ret = -ENOMEM;
- 			break;
- 		}
-@@ -222,7 +222,7 @@ __dma_alloc_remap(struct page *page, size_t size, gfp_t gfp, pgprot_t prot,
- 	int bit;
- 
- 	if (!consistent_pte) {
--		printk(KERN_ERR "%s: not initialised\n", __func__);
-+		pr_err("%s: not initialised\n", __func__);
- 		dump_stack();
- 		return NULL;
+diff --git a/arch/alpha/kernel/signal.c b/arch/alpha/kernel/signal.c
+index 35f2ef4..bb61c58 100644
+--- a/arch/alpha/kernel/signal.c
++++ b/arch/alpha/kernel/signal.c
+@@ -616,7 +616,5 @@ do_notify_resume(struct pt_regs *regs, struct switch_stack *sw,
+ 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
  	}
-@@ -281,14 +281,14 @@ static void __dma_free_remap(void *cpu_addr, size_t size)
+ }
+diff --git a/arch/arm/kernel/signal.c b/arch/arm/kernel/signal.c
+index 7cb532f..5c34754 100644
+--- a/arch/arm/kernel/signal.c
++++ b/arch/arm/kernel/signal.c
+@@ -782,7 +782,5 @@ do_notify_resume(struct pt_regs *regs, unsigned int thread_flags, int syscall)
+ 	if (thread_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
+diff --git a/arch/avr32/kernel/signal.c b/arch/avr32/kernel/signal.c
+index 64f886f..0d512c5 100644
+--- a/arch/avr32/kernel/signal.c
++++ b/arch/avr32/kernel/signal.c
+@@ -327,7 +327,5 @@ asmlinkage void do_notify_resume(struct pt_regs *regs, struct thread_info *ti)
+ 	if (ti->flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
+diff --git a/arch/blackfin/kernel/signal.c b/arch/blackfin/kernel/signal.c
+index d536f35..0af1a1b 100644
+--- a/arch/blackfin/kernel/signal.c
++++ b/arch/blackfin/kernel/signal.c
+@@ -347,8 +347,6 @@ asmlinkage void do_notify_resume(struct pt_regs *regs)
+ 	if (test_thread_flag(TIF_NOTIFY_RESUME)) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
  
- 	c = arm_vmregion_find_remove(&consistent_head, (unsigned long)cpu_addr);
- 	if (!c) {
--		printk(KERN_ERR "%s: trying to free invalid coherent area: %p\n",
-+		pr_err("%s: trying to free invalid coherent area: %p\n",
- 		       __func__, cpu_addr);
- 		dump_stack();
- 		return;
+diff --git a/arch/c6x/kernel/signal.c b/arch/c6x/kernel/signal.c
+index 3b5a050..ee7beae 100644
+--- a/arch/c6x/kernel/signal.c
++++ b/arch/c6x/kernel/signal.c
+@@ -361,7 +361,5 @@ asmlinkage void do_notify_resume(struct pt_regs *regs, u32 thread_info_flags,
+ 	if (thread_info_flags & (1 << TIF_NOTIFY_RESUME)) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
+diff --git a/arch/cris/kernel/ptrace.c b/arch/cris/kernel/ptrace.c
+index d114ad3..58d44ee 100644
+--- a/arch/cris/kernel/ptrace.c
++++ b/arch/cris/kernel/ptrace.c
+@@ -40,7 +40,5 @@ void do_notify_resume(int canrestart, struct pt_regs *regs,
+ 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
+diff --git a/arch/frv/kernel/signal.c b/arch/frv/kernel/signal.c
+index bab0129..151a3fd 100644
+--- a/arch/frv/kernel/signal.c
++++ b/arch/frv/kernel/signal.c
+@@ -583,8 +583,6 @@ asmlinkage void do_notify_resume(__u32 thread_info_flags)
+ 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(__frame);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
  	}
  
- 	if ((c->vm_end - c->vm_start) != size) {
--		printk(KERN_ERR "%s: freeing wrong coherent size (%ld != %d)\n",
-+		pr_err("%s: freeing wrong coherent size (%ld != %d)\n",
- 		       __func__, c->vm_end - c->vm_start, size);
- 		dump_stack();
- 		size = c->vm_end - c->vm_start;
-@@ -310,8 +310,8 @@ static void __dma_free_remap(void *cpu_addr, size_t size)
- 		}
+ } /* end do_notify_resume() */
+diff --git a/arch/h8300/kernel/signal.c b/arch/h8300/kernel/signal.c
+index af842c3..14c46e8 100644
+--- a/arch/h8300/kernel/signal.c
++++ b/arch/h8300/kernel/signal.c
+@@ -557,7 +557,5 @@ asmlinkage void do_notify_resume(struct pt_regs *regs, u32 thread_info_flags)
+ 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
+diff --git a/arch/hexagon/kernel/signal.c b/arch/hexagon/kernel/signal.c
+index ab5f5ad..f16152e 100644
+--- a/arch/hexagon/kernel/signal.c
++++ b/arch/hexagon/kernel/signal.c
+@@ -273,8 +273,6 @@ void do_notify_resume(struct pt_regs *regs, unsigned long thread_info_flags)
+ 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
  
- 		if (pte_none(pte) || !pte_present(pte))
--			printk(KERN_CRIT "%s: bad page in kernel page table\n",
--			       __func__);
-+			pr_crit("%s: bad page in kernel page table\n",
-+				__func__);
- 	} while (size -= PAGE_SIZE);
+diff --git a/arch/ia64/kernel/process.c b/arch/ia64/kernel/process.c
+index ce74e14..99f34a8 100644
+--- a/arch/ia64/kernel/process.c
++++ b/arch/ia64/kernel/process.c
+@@ -199,8 +199,6 @@ do_notify_resume_user(sigset_t *unused, struct sigscratch *scr, long in_syscall)
+ 	if (test_thread_flag(TIF_NOTIFY_RESUME)) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(&scr->pt);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
  
- 	flush_tlb_kernel_range(c->vm_start, c->vm_end);
+ 	/* copy user rbs to kernel rbs */
+diff --git a/arch/m32r/kernel/signal.c b/arch/m32r/kernel/signal.c
+index a08697f..d0a24f4 100644
+--- a/arch/m32r/kernel/signal.c
++++ b/arch/m32r/kernel/signal.c
+@@ -391,8 +391,6 @@ void do_notify_resume(struct pt_regs *regs, __u32 thread_info_flags)
+ 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ 
+ 	clear_thread_flag(TIF_IRET);
+diff --git a/arch/mips/kernel/signal.c b/arch/mips/kernel/signal.c
+index 185ca00..cebed39 100644
+--- a/arch/mips/kernel/signal.c
++++ b/arch/mips/kernel/signal.c
+@@ -669,8 +669,6 @@ asmlinkage void do_notify_resume(struct pt_regs *regs, void *unused,
+ 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
+ 
+diff --git a/arch/mn10300/kernel/signal.c b/arch/mn10300/kernel/signal.c
+index 690f4e9..909059e 100644
+--- a/arch/mn10300/kernel/signal.c
++++ b/arch/mn10300/kernel/signal.c
+@@ -575,7 +575,5 @@ asmlinkage void do_notify_resume(struct pt_regs *regs, u32 thread_info_flags)
+ 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(current_frame());
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
+diff --git a/arch/openrisc/kernel/signal.c b/arch/openrisc/kernel/signal.c
+index e970743..9ae6115 100644
+--- a/arch/openrisc/kernel/signal.c
++++ b/arch/openrisc/kernel/signal.c
+@@ -376,7 +376,5 @@ asmlinkage void do_notify_resume(struct pt_regs *regs)
+ 	if (current_thread_info()->flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
+diff --git a/arch/parisc/kernel/signal.c b/arch/parisc/kernel/signal.c
+index 12c1ed3..c3102c4 100644
+--- a/arch/parisc/kernel/signal.c
++++ b/arch/parisc/kernel/signal.c
+@@ -647,7 +647,5 @@ void do_notify_resume(struct pt_regs *regs, long in_syscall)
+ 	if (test_thread_flag(TIF_NOTIFY_RESUME)) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
+diff --git a/arch/powerpc/kernel/signal.c b/arch/powerpc/kernel/signal.c
+index 651c596..bfc3ec1 100644
+--- a/arch/powerpc/kernel/signal.c
++++ b/arch/powerpc/kernel/signal.c
+@@ -193,8 +193,6 @@ void do_notify_resume(struct pt_regs *regs, unsigned long thread_info_flags)
+ 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
+ 
+diff --git a/arch/s390/kernel/signal.c b/arch/s390/kernel/signal.c
+index f7582b2..fbf2495 100644
+--- a/arch/s390/kernel/signal.c
++++ b/arch/s390/kernel/signal.c
+@@ -517,6 +517,4 @@ void do_notify_resume(struct pt_regs *regs)
+ {
+ 	clear_thread_flag(TIF_NOTIFY_RESUME);
+ 	tracehook_notify_resume(regs);
+-	if (current->replacement_session_keyring)
+-		key_replace_session_keyring();
+ }
+diff --git a/arch/sh/kernel/signal_32.c b/arch/sh/kernel/signal_32.c
+index 5901fba..a6b74c3 100644
+--- a/arch/sh/kernel/signal_32.c
++++ b/arch/sh/kernel/signal_32.c
+@@ -633,7 +633,5 @@ asmlinkage void do_notify_resume(struct pt_regs *regs, unsigned int save_r0,
+ 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
+diff --git a/arch/sh/kernel/signal_64.c b/arch/sh/kernel/signal_64.c
+index 3c9a6f7..52bdfb0 100644
+--- a/arch/sh/kernel/signal_64.c
++++ b/arch/sh/kernel/signal_64.c
+@@ -737,7 +737,5 @@ asmlinkage void do_notify_resume(struct pt_regs *regs, unsigned long thread_info
+ 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
+diff --git a/arch/sparc/kernel/signal_32.c b/arch/sparc/kernel/signal_32.c
+index 1e750e4..72bd0f7 100644
+--- a/arch/sparc/kernel/signal_32.c
++++ b/arch/sparc/kernel/signal_32.c
+@@ -603,8 +603,6 @@ void do_notify_resume(struct pt_regs *regs, unsigned long orig_i0,
+ 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
+ 
+diff --git a/arch/sparc/kernel/signal_64.c b/arch/sparc/kernel/signal_64.c
+index 48b0f57..f2dcaab 100644
+--- a/arch/sparc/kernel/signal_64.c
++++ b/arch/sparc/kernel/signal_64.c
+@@ -618,8 +618,6 @@ void do_notify_resume(struct pt_regs *regs, unsigned long orig_i0, unsigned long
+ 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
+ 
+diff --git a/arch/tile/kernel/process.c b/arch/tile/kernel/process.c
+index 2d5ef61..ff15527 100644
+--- a/arch/tile/kernel/process.c
++++ b/arch/tile/kernel/process.c
+@@ -584,8 +584,6 @@ int do_work_pending(struct pt_regs *regs, u32 thread_info_flags)
+ 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 		return 1;
+ 	}
+ 	if (thread_info_flags & _TIF_SINGLESTEP) {
+diff --git a/arch/unicore32/kernel/signal.c b/arch/unicore32/kernel/signal.c
+index 911b549..b1e5cd5 100644
+--- a/arch/unicore32/kernel/signal.c
++++ b/arch/unicore32/kernel/signal.c
+@@ -470,8 +470,6 @@ asmlinkage void do_notify_resume(struct pt_regs *regs,
+ 	if (thread_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ }
+ 
+diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+index 115eac4..d727de0 100644
+--- a/arch/x86/kernel/signal.c
++++ b/arch/x86/kernel/signal.c
+@@ -831,8 +831,6 @@ do_notify_resume(struct pt_regs *regs, void *unused, __u32 thread_info_flags)
+ 	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
+ 		clear_thread_flag(TIF_NOTIFY_RESUME);
+ 		tracehook_notify_resume(regs);
+-		if (current->replacement_session_keyring)
+-			key_replace_session_keyring();
+ 	}
+ 	if (thread_info_flags & _TIF_USER_RETURN_NOTIFY)
+ 		fire_user_return_notifiers();
+diff --git a/include/linux/key.h b/include/linux/key.h
+index 0c263d6..16cbdb0 100644
+--- a/include/linux/key.h
++++ b/include/linux/key.h
+@@ -33,8 +33,6 @@ typedef uint32_t key_perm_t;
+ 
+ struct key;
+ 
+-#define key_replace_session_keyring()	do { } while (0)
+-
+ #ifdef CONFIG_KEYS
+ 
+ #undef KEY_DEBUGGING
 -- 
-1.7.1.569.g6f426
+1.5.5.1
+
 
