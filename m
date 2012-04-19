@@ -1,36 +1,33 @@
-From: Richard Kuo <rkuo@codeaurora.org>
-Subject: Re: [PATCH 00/10] Hexagon cleanup and misc patches
-Date: Wed, 18 Apr 2012 18:57:47 -0500
-Message-ID: <20120418235747.GC5074@codeaurora.org>
-References: <6e201a$5e4ium@wolverine01.qualcomm.com>
- <20120418045456.GA32374@merkur.ravnborg.org>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: [PATCH v6 0/6] task_work_add: generic process-context callbacks
+Date: Fri, 20 Apr 2012 01:14:31 +0200
+Message-ID: <20120419231431.GA15820@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:3350 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751605Ab2DRX5t (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Apr 2012 19:57:49 -0400
+Received: from mx1.redhat.com ([209.132.183.28]:54245 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751577Ab2DSXPZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Apr 2012 19:15:25 -0400
 Content-Disposition: inline
-In-Reply-To: <20120418045456.GA32374@merkur.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>
+Cc: Alexander Gordeev <agordeev@redhat.com>, Chris Zankel <chris@zankel.net>, David Smith <dsmith@redhat.com>, "Frank Ch. Eigler" <fche@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Larry Woodman <lwoodman@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Richard Kuo <rkuo@codeaurora.org>, Tejun Heo <tj@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Wed, Apr 18, 2012 at 06:54:56AM +0200, Sam Ravnborg wrote:
-> You need to fix how the mails are sent out.
-> They appear to come from the author of the patch, and they are timestamped in the past.
+Hello.
 
-Sorry about that to everone; used the wrong git command to send those out.
-I'll use git send-email next time.
+The final-final-final version. Andrew, I hope you can take it.
 
+Compared to v5 this series has the new patches which remove the
+dead code, 5/6 and 6/6.
 
-Thanks,
-Richard Kuo
+And, while doing 5/6 I noticed that arch/hexagon/kernel/signal.c
+lacks tracehook_notify_resume(), this one-liner comes as 3/6.
 
+The patches from v5 were not changed.
 
--- 
+To all: sorry for this endless spam. It seems that nobody objects,
+I'll trim CC if I need to send v7.
 
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+Oleg.
