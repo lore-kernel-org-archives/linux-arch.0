@@ -1,106 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:44754 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:44785 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751040Ab2DTNFy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 09:05:54 -0400
-Message-ID: <20120420124557.512158271@linutronix.de>
-Date: Fri, 20 Apr 2012 13:05:51 -0000
+	with ESMTP id S1752300Ab2DTNF4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 09:05:56 -0400
+Message-ID: <20120420124557.914631081@linutronix.de>
+Date: Fri, 20 Apr 2012 13:05:55 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 10/18] mips: Use generic idle thread allocation
+Subject: [patch 16/18] alpha: Use generic idle thread allocation
 References: <20120420122120.097464672@linutronix.de>
 Content-Disposition: inline;
- filename=mips-use-generic-idle-thread-allocation.patch
+ filename=alpha-use-generic-idle-thread-allocation.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20120420130551.97tjIf6pCupsdK5IGI9wy46L8Ma1I35_4YR9d5cwZYY@z>
+Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Matt Turner <mattst88@gmail.com>
+Message-ID: <20120420130555.TwdsM39uq8R6AMx6C6sy5tf5pbJLs66G-19DRNZwPRs@z>
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Matt Turner <mattst88@gmail.com>
 ---
- arch/mips/Kconfig      |    1 
- arch/mips/kernel/smp.c |   54 -------------------------------------------------
- 2 files changed, 2 insertions(+), 53 deletions(-)
+ arch/alpha/Kconfig      |    1 +
+ arch/alpha/kernel/smp.c |   18 ++----------------
+ 2 files changed, 3 insertions(+), 16 deletions(-)
 
-Index: linux-2.6/arch/mips/Kconfig
+Index: linux-2.6/arch/alpha/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/mips/Kconfig
-+++ linux-2.6/arch/mips/Kconfig
-@@ -29,6 +29,7 @@ config MIPS
- 	select HAVE_MEMBLOCK
- 	select HAVE_MEMBLOCK_NODE_MAP
- 	select ARCH_DISCARD_MEMBLOCK
+--- linux-2.6.orig/arch/alpha/Kconfig
++++ linux-2.6/arch/alpha/Kconfig
+@@ -15,6 +15,7 @@ config ALPHA
+ 	select GENERIC_IRQ_SHOW
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
 +	select GENERIC_SMP_IDLE_THREAD
- 
- menu "Machine selection"
- 
-Index: linux-2.6/arch/mips/kernel/smp.c
+ 	help
+ 	  The Alpha is a 64-bit general-purpose processor designed and
+ 	  marketed by the Digital Equipment Corporation of blessed memory,
+Index: linux-2.6/arch/alpha/kernel/smp.c
 ===================================================================
---- linux-2.6.orig/arch/mips/kernel/smp.c
-+++ linux-2.6/arch/mips/kernel/smp.c
-@@ -186,61 +186,9 @@ void __devinit smp_prepare_boot_cpu(void
- 	cpu_set(0, cpu_callin_map);
- }
- 
--/*
-- * Called once for each "cpu_possible(cpu)".  Needs to spin up the cpu
-- * and keep control until "cpu_online(cpu)" is set.  Note: cpu is
-- * physical, not logical.
-- */
--static struct task_struct *cpu_idle_thread[NR_CPUS];
--
--struct create_idle {
--	struct work_struct work;
--	struct task_struct *idle;
--	struct completion done;
--	int cpu;
--};
--
--static void __cpuinit do_fork_idle(struct work_struct *work)
--{
--	struct create_idle *c_idle =
--		container_of(work, struct create_idle, work);
--
--	c_idle->idle = fork_idle(c_idle->cpu);
--	complete(&c_idle->done);
--}
--
- int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
+--- linux-2.6.orig/arch/alpha/kernel/smp.c
++++ linux-2.6/arch/alpha/kernel/smp.c
+@@ -357,24 +357,10 @@ secondary_cpu_start(int cpuid, struct ta
+  * Bring one cpu online.
+  */
+ static int __cpuinit
+-smp_boot_one_cpu(int cpuid)
++smp_boot_one_cpu(int cpuid, struct task_struct *idle)
  {
 -	struct task_struct *idle;
--
--	/*
--	 * Processor goes to start_secondary(), sets online flag
--	 * The following code is purely to make sure
--	 * Linux can schedule processes on this slave.
--	 */
--	if (!cpu_idle_thread[cpu]) {
--		/*
--		 * Schedule work item to avoid forking user task
--		 * Ported from arch/x86/kernel/smpboot.c
--		 */
--		struct create_idle c_idle = {
--			.cpu    = cpu,
--			.done   = COMPLETION_INITIALIZER_ONSTACK(c_idle.done),
--		};
--
--		INIT_WORK_ONSTACK(&c_idle.work, do_fork_idle);
--		schedule_work(&c_idle.work);
--		wait_for_completion(&c_idle.done);
--		idle = cpu_idle_thread[cpu] = c_idle.idle;
--
--		if (IS_ERR(idle))
--			panic(KERN_ERR "Fork failed for CPU %d", cpu);
--	} else {
--		idle = cpu_idle_thread[cpu];
--		init_idle(idle, cpu);
--	}
--
--	mp_ops->boot_secondary(cpu, idle);
-+	mp_ops->boot_secondary(cpu, tidle);
+ 	unsigned long timeout;
  
- 	/*
- 	 * Trust is futile.  We should really have timeouts ...
+-	/* Cook up an idler for this guy.  Note that the address we
+-	   give to kernel_thread is irrelevant -- it's going to start
+-	   where HWRPB.CPU_restart says to start.  But this gets all
+-	   the other task-y sort of data structures set up like we
+-	   wish.  We can't use kernel_thread since we must avoid
+-	   rescheduling the child.  */
+-	idle = fork_idle(cpuid);
+-	if (IS_ERR(idle))
+-		panic("failed fork for CPU %d", cpuid);
+-
+-	DBGS(("smp_boot_one_cpu: CPU %d state 0x%lx flags 0x%lx\n",
+-	      cpuid, idle->state, idle->flags));
+-
+ 	/* Signal the secondary to wait a moment.  */
+ 	smp_secondary_alive = -1;
+ 
+@@ -489,7 +475,7 @@ smp_prepare_boot_cpu(void)
+ int __cpuinit
+ __cpu_up(unsigned int cpu, struct task_struct *tidle)
+ {
+-	smp_boot_one_cpu(cpu);
++	smp_boot_one_cpu(cpu, tidle);
+ 
+ 	return cpu_online(cpu) ? 0 : -ENOSYS;
+ }
 
 
