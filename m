@@ -1,78 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:44785 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:44768 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752300Ab2DTNF4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 09:05:56 -0400
-Message-ID: <20120420124557.914631081@linutronix.de>
-Date: Fri, 20 Apr 2012 13:05:55 -0000
+	with ESMTP id S1751807Ab2DTNFy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 09:05:54 -0400
+Message-ID: <20120420124557.652574928@linutronix.de>
+Date: Fri, 20 Apr 2012 13:05:52 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 16/18] alpha: Use generic idle thread allocation
+Subject: [patch 12/18] s390: Use generic idle thread allocation
 References: <20120420122120.097464672@linutronix.de>
 Content-Disposition: inline;
- filename=alpha-use-generic-idle-thread-allocation.patch
+ filename=s390-use-generic-idle-thread-allocation.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Matt Turner <mattst88@gmail.com>
-Message-ID: <20120420130555.TwdsM39uq8R6AMx6C6sy5tf5pbJLs66G-19DRNZwPRs@z>
+Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+Message-ID: <20120420130552.NEsyvEIkUyFZIXPaXjFcYTIZZjvckgl29qW84U9EKj0@z>
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Matt Turner <mattst88@gmail.com>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
 ---
- arch/alpha/Kconfig      |    1 +
- arch/alpha/kernel/smp.c |   18 ++----------------
- 2 files changed, 3 insertions(+), 16 deletions(-)
+ arch/s390/Kconfig      |    1 +
+ arch/s390/kernel/smp.c |   33 ++-------------------------------
+ 2 files changed, 3 insertions(+), 31 deletions(-)
 
-Index: linux-2.6/arch/alpha/Kconfig
+Index: linux-2.6/arch/s390/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/alpha/Kconfig
-+++ linux-2.6/arch/alpha/Kconfig
-@@ -15,6 +15,7 @@ config ALPHA
- 	select GENERIC_IRQ_SHOW
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+--- linux-2.6.orig/arch/s390/Kconfig
++++ linux-2.6/arch/s390/Kconfig
+@@ -122,6 +122,7 @@ config S390
+ 	select ARCH_INLINE_WRITE_UNLOCK_BH
+ 	select ARCH_INLINE_WRITE_UNLOCK_IRQ
+ 	select ARCH_INLINE_WRITE_UNLOCK_IRQRESTORE
 +	select GENERIC_SMP_IDLE_THREAD
- 	help
- 	  The Alpha is a 64-bit general-purpose processor designed and
- 	  marketed by the Digital Equipment Corporation of blessed memory,
-Index: linux-2.6/arch/alpha/kernel/smp.c
+ 
+ config SCHED_OMIT_FRAME_POINTER
+ 	def_bool y
+Index: linux-2.6/arch/s390/kernel/smp.c
 ===================================================================
---- linux-2.6.orig/arch/alpha/kernel/smp.c
-+++ linux-2.6/arch/alpha/kernel/smp.c
-@@ -357,24 +357,10 @@ secondary_cpu_start(int cpuid, struct ta
-  * Bring one cpu online.
-  */
- static int __cpuinit
--smp_boot_one_cpu(int cpuid)
-+smp_boot_one_cpu(int cpuid, struct task_struct *idle)
- {
--	struct task_struct *idle;
- 	unsigned long timeout;
+--- linux-2.6.orig/arch/s390/kernel/smp.c
++++ linux-2.6/arch/s390/kernel/smp.c
+@@ -85,7 +85,6 @@ enum {
  
--	/* Cook up an idler for this guy.  Note that the address we
--	   give to kernel_thread is irrelevant -- it's going to start
--	   where HWRPB.CPU_restart says to start.  But this gets all
--	   the other task-y sort of data structures set up like we
--	   wish.  We can't use kernel_thread since we must avoid
--	   rescheduling the child.  */
--	idle = fork_idle(cpuid);
--	if (IS_ERR(idle))
--		panic("failed fork for CPU %d", cpuid);
--
--	DBGS(("smp_boot_one_cpu: CPU %d state 0x%lx flags 0x%lx\n",
--	      cpuid, idle->state, idle->flags));
--
- 	/* Signal the secondary to wait a moment.  */
- 	smp_secondary_alive = -1;
- 
-@@ -489,7 +475,7 @@ smp_prepare_boot_cpu(void)
- int __cpuinit
- __cpu_up(unsigned int cpu, struct task_struct *tidle)
- {
--	smp_boot_one_cpu(cpu);
-+	smp_boot_one_cpu(cpu, tidle);
- 
- 	return cpu_online(cpu) ? 0 : -ENOSYS;
+ struct pcpu {
+ 	struct cpu cpu;
+-	struct task_struct *idle;	/* idle process for the cpu */
+ 	struct _lowcore *lowcore;	/* lowcore page(s) for the cpu */
+ 	unsigned long async_stack;	/* async stack for the cpu */
+ 	unsigned long panic_stack;	/* panic stack for the cpu */
+@@ -721,26 +720,9 @@ static void __cpuinit smp_start_secondar
+ 	cpu_idle();
  }
+ 
+-struct create_idle {
+-	struct work_struct work;
+-	struct task_struct *idle;
+-	struct completion done;
+-	int cpu;
+-};
+-
+-static void __cpuinit smp_fork_idle(struct work_struct *work)
+-{
+-	struct create_idle *c_idle;
+-
+-	c_idle = container_of(work, struct create_idle, work);
+-	c_idle->idle = fork_idle(c_idle->cpu);
+-	complete(&c_idle->done);
+-}
+-
+ /* Upping and downing of CPUs */
+ int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
+ {
+-	struct create_idle c_idle;
+ 	struct pcpu *pcpu;
+ 	int rc;
+ 
+@@ -750,22 +732,12 @@ int __cpuinit __cpu_up(unsigned int cpu,
+ 	if (pcpu_sigp_retry(pcpu, sigp_initial_cpu_reset, 0) !=
+ 	    sigp_order_code_accepted)
+ 		return -EIO;
+-	if (!pcpu->idle) {
+-		c_idle.done = COMPLETION_INITIALIZER_ONSTACK(c_idle.done);
+-		INIT_WORK_ONSTACK(&c_idle.work, smp_fork_idle);
+-		c_idle.cpu = cpu;
+-		schedule_work(&c_idle.work);
+-		wait_for_completion(&c_idle.done);
+-		if (IS_ERR(c_idle.idle))
+-			return PTR_ERR(c_idle.idle);
+-		pcpu->idle = c_idle.idle;
+-	}
+-	init_idle(pcpu->idle, cpu);
++
+ 	rc = pcpu_alloc_lowcore(pcpu, cpu);
+ 	if (rc)
+ 		return rc;
+ 	pcpu_prepare_secondary(pcpu, cpu);
+-	pcpu_attach_task(pcpu, pcpu->idle);
++	pcpu_attach_task(pcpu, tidle);
+ 	pcpu_start_fn(pcpu, smp_start_secondary, NULL);
+ 	while (!cpu_online(cpu))
+ 		cpu_relax();
+@@ -852,7 +824,6 @@ void __init smp_prepare_boot_cpu(void)
+ 	struct pcpu *pcpu = pcpu_devices;
+ 
+ 	boot_cpu_address = stap();
+-	pcpu->idle = current;
+ 	pcpu->state = CPU_STATE_CONFIGURED;
+ 	pcpu->address = boot_cpu_address;
+ 	pcpu->lowcore = (struct _lowcore *)(unsigned long) store_prefix();
 
 
