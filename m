@@ -1,120 +1,216 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:44821 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:44813 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752821Ab2DTNGA (ORCPT
+	with ESMTP id S1752676Ab2DTNGA (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 09:06:00 -0400
-Message-ID: <20120420124557.035417523@linutronix.de>
-Date: Fri, 20 Apr 2012 13:05:44 -0000
+Message-ID: <20120420124558.055198736@linutronix.de>
+Date: Fri, 20 Apr 2012 13:05:56 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 03/18] smp: Add generic smpboot facility
+Subject: [patch 18/18] sparc: Use generic idle thread allocation
 References: <20120420122120.097464672@linutronix.de>
-Content-Disposition: inline; filename=smp-add-generic-smpboot-facility.patch
+Content-Disposition: inline;
+ filename=sparc-use-generic-idle-thread-allocation.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Matt Turner <mattst88@gmail.com>, Russell King <linux@arm.linux.org.uk>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Hirokazu Takata <takata@linux-m32r.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Richard Weinberger <richard@nod.at>, x86@kernel.org
-Message-ID: <20120420130544.yhVhHCThS7X_1SW5f56Dn8wyldCrIpzLBgkwakW9Qzk@z>
-
-Start a new file, which will hold SMP and CPU hotplug related generic
-infrastructure.
+Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20120420130556.gYjt4NSqTJuN_8dbhJcF14tt7dCAxsm-V_1ku_B9dKs@z>
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Matt Turner <mattst88@gmail.com>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: Jesper Nilsson <jesper.nilsson@axis.com>
-Cc: Richard Kuo <rkuo@codeaurora.org>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: David Howells <dhowells@redhat.com>
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Paul Mundt <lethal@linux-sh.org>
 Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Richard Weinberger <richard@nod.at>
-Cc: x86@kernel.org
 ---
- kernel/Makefile  |    1 +
- kernel/cpu.c     |    8 ++++++++
- kernel/smpboot.c |   12 ++++++++++++
- kernel/smpboot.h |    6 ++++++
- 4 files changed, 27 insertions(+)
+ arch/sparc/Kconfig            |    1 +
+ arch/sparc/include/asm/leon.h |    5 +++--
+ arch/sparc/kernel/leon_smp.c  |    9 ++-------
+ arch/sparc/kernel/smp_32.c    |   10 +++++-----
+ arch/sparc/kernel/smp_64.c    |   10 +++-------
+ arch/sparc/kernel/sun4d_smp.c |    8 ++------
+ arch/sparc/kernel/sun4m_smp.c |    7 ++-----
+ 7 files changed, 18 insertions(+), 32 deletions(-)
 
-Index: linux-2.6/kernel/Makefile
+Index: linux-2.6/arch/sparc/Kconfig
 ===================================================================
---- linux-2.6.orig/kernel/Makefile
-+++ linux-2.6/kernel/Makefile
-@@ -43,6 +43,7 @@ obj-$(CONFIG_DEBUG_RT_MUTEXES) += rtmute
- obj-$(CONFIG_RT_MUTEX_TESTER) += rtmutex-tester.o
- obj-$(CONFIG_GENERIC_ISA_DMA) += dma.o
- obj-$(CONFIG_SMP) += smp.o
-+obj-$(CONFIG_SMP) += smpboot.o
- ifneq ($(CONFIG_SMP),y)
- obj-y += up.o
- endif
-Index: linux-2.6/kernel/cpu.c
-===================================================================
---- linux-2.6.orig/kernel/cpu.c
-+++ linux-2.6/kernel/cpu.c
-@@ -17,6 +17,8 @@
- #include <linux/gfp.h>
- #include <linux/suspend.h>
+--- linux-2.6.orig/arch/sparc/Kconfig
++++ linux-2.6/arch/sparc/Kconfig
+@@ -30,6 +30,7 @@ config SPARC
+ 	select USE_GENERIC_SMP_HELPERS if SMP
+ 	select GENERIC_PCI_IOMAP
+ 	select HAVE_NMI_WATCHDOG if SPARC64
++	select GENERIC_SMP_IDLE_THREAD
  
-+#include "smpboot.h"
-+
- #ifdef CONFIG_SMP
- /* Serializes the updates to cpu_online_mask, cpu_present_mask */
- static DEFINE_MUTEX(cpu_add_remove_lock);
-@@ -300,6 +302,11 @@ static int __cpuinit _cpu_up(unsigned in
- 		return -EINVAL;
- 
- 	cpu_hotplug_begin();
-+
-+	ret = smpboot_prepare(cpu);
-+	if (ret)
-+		goto out;
-+
- 	ret = __cpu_notify(CPU_UP_PREPARE | mod, hcpu, -1, &nr_calls);
- 	if (ret) {
- 		nr_calls--;
-@@ -320,6 +327,7 @@ static int __cpuinit _cpu_up(unsigned in
- out_notify:
- 	if (ret != 0)
- 		__cpu_notify(CPU_UP_CANCELED | mod, hcpu, nr_calls, NULL);
-+out:
- 	cpu_hotplug_done();
- 
- 	return ret;
-Index: linux-2.6/kernel/smpboot.c
+ config SPARC32
+ 	def_bool !64BIT
+Index: linux-2.6/arch/sparc/include/asm/leon.h
 ===================================================================
---- /dev/null
-+++ linux-2.6/kernel/smpboot.c
-@@ -0,0 +1,12 @@
-+/*
-+ * Common SMP CPU bringup/teardown functions
-+ */
-+
-+#include "smpboot.h"
-+
-+/**
-+ * smpboot_prepare - generic smpboot preparation
-+ */
-+int __cpuinit smpboot_prepare(unsigned int cpu)
-+{
-+}
-Index: linux-2.6/kernel/smpboot.h
+--- linux-2.6.orig/arch/sparc/include/asm/leon.h
++++ linux-2.6/arch/sparc/include/asm/leon.h
+@@ -315,6 +315,7 @@ struct leon2_cacheregs {
+ #include <linux/interrupt.h>
+ 
+ struct device_node;
++struct task_struct;
+ extern unsigned int leon_build_device_irq(unsigned int real_irq,
+ 					   irq_flow_handler_t flow_handler,
+ 					   const char *name, int do_ack);
+@@ -344,7 +345,7 @@ extern int leon_smp_nrcpus(void);
+ extern void leon_clear_profile_irq(int cpu);
+ extern void leon_smp_done(void);
+ extern void leon_boot_cpus(void);
+-extern int leon_boot_one_cpu(int i);
++extern int leon_boot_one_cpu(int i, struct task_struct *);
+ void leon_init_smp(void);
+ extern void cpu_idle(void);
+ extern void init_IRQ(void);
+@@ -380,7 +381,7 @@ extern int leon_ipi_irq;
+ #define init_leon() do {} while (0)
+ #define leon_smp_done() do {} while (0)
+ #define leon_boot_cpus() do {} while (0)
+-#define leon_boot_one_cpu(i) 1
++#define leon_boot_one_cpu(i, t) 1
+ #define leon_init_smp() do {} while (0)
+ 
+ #endif /* !defined(CONFIG_SPARC_LEON) */
+Index: linux-2.6/arch/sparc/kernel/leon_smp.c
 ===================================================================
---- /dev/null
-+++ linux-2.6/kernel/smpboot.h
-@@ -0,0 +1,6 @@
-+#ifndef SMPBOOT_H
-+#define SMPBOOT_H
-+
-+int smpboot_prepare(unsigned int cpu);
-+
-+#endif
+--- linux-2.6.orig/arch/sparc/kernel/leon_smp.c
++++ linux-2.6/arch/sparc/kernel/leon_smp.c
+@@ -201,16 +201,11 @@ void __init leon_boot_cpus(void)
+ 
+ }
+ 
+-int __cpuinit leon_boot_one_cpu(int i)
++int __cpuinit leon_boot_one_cpu(int i, struct task_struct *idle)
+ {
+-
+-	struct task_struct *p;
+ 	int timeout;
+ 
+-	/* Cook up an idler for this guy. */
+-	p = fork_idle(i);
+-
+-	current_set[i] = task_thread_info(p);
++	current_set[i] = task_thread_info(idle);
+ 
+ 	/* See trampoline.S:leon_smp_cpu_startup for details...
+ 	 * Initialize the contexts table
+Index: linux-2.6/arch/sparc/kernel/smp_32.c
+===================================================================
+--- linux-2.6.orig/arch/sparc/kernel/smp_32.c
++++ linux-2.6/arch/sparc/kernel/smp_32.c
+@@ -413,8 +413,8 @@ void __init smp_prepare_boot_cpu(void)
+ 
+ int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
+ {
+-	extern int __cpuinit smp4m_boot_one_cpu(int);
+-	extern int __cpuinit smp4d_boot_one_cpu(int);
++	extern int __cpuinit smp4m_boot_one_cpu(int, struct task_struct *);
++	extern int __cpuinit smp4d_boot_one_cpu(int, struct task_struct *);
+ 	int ret=0;
+ 
+ 	switch(sparc_cpu_model) {
+@@ -427,13 +427,13 @@ int __cpuinit __cpu_up(unsigned int cpu,
+ 		BUG();
+ 		break;
+ 	case sun4m:
+-		ret = smp4m_boot_one_cpu(cpu);
++		ret = smp4m_boot_one_cpu(cpu, tidle);
+ 		break;
+ 	case sun4d:
+-		ret = smp4d_boot_one_cpu(cpu);
++		ret = smp4d_boot_one_cpu(cpu, tidle);
+ 		break;
+ 	case sparc_leon:
+-		ret = leon_boot_one_cpu(cpu);
++		ret = leon_boot_one_cpu(cpu, tidle);
+ 		break;
+ 	case sun4e:
+ 		printk("SUN4E\n");
+Index: linux-2.6/arch/sparc/kernel/smp_64.c
+===================================================================
+--- linux-2.6.orig/arch/sparc/kernel/smp_64.c
++++ linux-2.6/arch/sparc/kernel/smp_64.c
+@@ -343,21 +343,17 @@ extern unsigned long sparc64_cpu_startup
+  */
+ static struct thread_info *cpu_new_thread = NULL;
+ 
+-static int __cpuinit smp_boot_one_cpu(unsigned int cpu)
++static int __cpuinit smp_boot_one_cpu(unsigned int cpu, struct task_struct *idle)
+ {
+ 	unsigned long entry =
+ 		(unsigned long)(&sparc64_cpu_startup);
+ 	unsigned long cookie =
+ 		(unsigned long)(&cpu_new_thread);
+-	struct task_struct *p;
+ 	void *descr = NULL;
+ 	int timeout, ret;
+ 
+-	p = fork_idle(cpu);
+-	if (IS_ERR(p))
+-		return PTR_ERR(p);
+ 	callin_flag = 0;
+-	cpu_new_thread = task_thread_info(p);
++	cpu_new_thread = task_thread_info(idle);
+ 
+ 	if (tlb_type == hypervisor) {
+ #if defined(CONFIG_SUN_LDOMS) && defined(CONFIG_HOTPLUG_CPU)
+@@ -1229,7 +1225,7 @@ void __devinit smp_fill_in_sib_core_maps
+ 
+ int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
+ {
+-	int ret = smp_boot_one_cpu(cpu);
++	int ret = smp_boot_one_cpu(cpu, tidle);
+ 
+ 	if (!ret) {
+ 		cpumask_set_cpu(cpu, &smp_commenced_mask);
+Index: linux-2.6/arch/sparc/kernel/sun4d_smp.c
+===================================================================
+--- linux-2.6.orig/arch/sparc/kernel/sun4d_smp.c
++++ linux-2.6/arch/sparc/kernel/sun4d_smp.c
+@@ -127,18 +127,14 @@ void __init smp4d_boot_cpus(void)
+ 	local_flush_cache_all();
+ }
+ 
+-int __cpuinit smp4d_boot_one_cpu(int i)
++int __cpuinit smp4d_boot_one_cpu(int i, struct task_struct *idle)
+ {
+ 	unsigned long *entry = &sun4d_cpu_startup;
+-	struct task_struct *p;
+ 	int timeout;
+ 	int cpu_node;
+ 
+ 	cpu_find_by_instance(i, &cpu_node, NULL);
+-	/* Cook up an idler for this guy. */
+-	p = fork_idle(i);
+-	current_set[i] = task_thread_info(p);
+-
++	current_set[i] = task_thread_info(idle);
+ 	/*
+ 	 * Initialize the contexts table
+ 	 * Since the call to prom_startcpu() trashes the structure,
+Index: linux-2.6/arch/sparc/kernel/sun4m_smp.c
+===================================================================
+--- linux-2.6.orig/arch/sparc/kernel/sun4m_smp.c
++++ linux-2.6/arch/sparc/kernel/sun4m_smp.c
+@@ -91,18 +91,15 @@ void __init smp4m_boot_cpus(void)
+ 	local_flush_cache_all();
+ }
+ 
+-int __cpuinit smp4m_boot_one_cpu(int i)
++int __cpuinit smp4m_boot_one_cpu(int i, struct task_struct *idle)
+ {
+ 	unsigned long *entry = &sun4m_cpu_startup;
+-	struct task_struct *p;
+ 	int timeout;
+ 	int cpu_node;
+ 
+ 	cpu_find_by_mid(i, &cpu_node);
++	current_set[i] = task_thread_info(idle);
+ 
+-	/* Cook up an idler for this guy. */
+-	p = fork_idle(i);
+-	current_set[i] = task_thread_info(p);
+ 	/* See trampoline.S for details... */
+ 	entry += ((i - 1) * 3);
+ 
 
 
