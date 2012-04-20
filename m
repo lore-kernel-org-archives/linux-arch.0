@@ -1,38 +1,79 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 00/18] SMP: Boot and CPU hotplug refactoring - Part 1
-Date: Fri, 20 Apr 2012 17:56:25 +0200 (CEST)
-Message-ID: <alpine.LFD.2.02.1204201755580.2542@ionos>
-References: <20120420122120.097464672@linutronix.de>  <1334928098.2463.56.camel@laptop>  <20120420154202.GB32324@google.com> <1334936964.2463.66.camel@laptop>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [patch 04/18] smp: Provide generic idle thread allocation
+Date: Fri, 20 Apr 2012 18:21:03 +0200
+Message-ID: <20120420162103.GA3065@merkur.ravnborg.org>
+References: <20120420122120.097464672@linutronix.de> <20120420124557.102478630@linutronix.de>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:45755 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754959Ab2DTP4c (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 11:56:32 -0400
-In-Reply-To: <1334936964.2463.66.camel@laptop>
+Received: from smtp.snhosting.dk ([87.238.248.203]:18390 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751648Ab2DTQVH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 12:21:07 -0400
+Content-Disposition: inline
+In-Reply-To: <20120420124557.102478630@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Tejun Heo <tj@kernel.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, David Rientjes <rientjes@google.com>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Matt Turner <mattst88@gmail.com>, Russell King <linux@arm.linux.org.uk>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Hirokazu Takata <takata@linux-m32r.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>Richard
 
-On Fri, 20 Apr 2012, Peter Zijlstra wrote:
+On Fri, Apr 20, 2012 at 01:05:45PM -0000, Thomas Gleixner wrote:
+> All SMP architectures have magic to fork the idle task and to store it
+> for reusage when cpu hotplug is enabled. Provide a generic
+> infrastructure for it.
+> 
+> Create/reinit the idle thread for the cpu which is brought up in the
+> generic code and hand the thread pointer to the architecture code via
+> __cpu_up().
+> 
+> Note, that fork_idle() is called via a workqueue, because this
+> guarantees that the idle thread does not get a reference to a user
+> space VM. This can happen when the boot process did not bring up all
+> possible cpus and a later cpu_up() is initiated via the sysfs
+> interface. In that case fork_idle() would be called in the context of
+> the user space task and take a reference on the user space VM.
+> 
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Matt Turner <mattst88@gmail.com>
+> Cc: Russell King <linux@arm.linux.org.uk>
+> Cc: Mike Frysinger <vapier@gentoo.org>
+> Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+> Cc: Richard Kuo <rkuo@codeaurora.org>
+> Cc: Tony Luck <tony.luck@intel.com>
+> Cc: Hirokazu Takata <takata@linux-m32r.org>
+> Cc: Ralf Baechle <ralf@linux-mips.org>
+> Cc: David Howells <dhowells@redhat.com>
+> Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
+> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> Cc: Paul Mundt <lethal@linux-sh.org>
+> Cc: "David S. Miller" <davem@davemloft.net>
+> Cc: Chris Metcalf <cmetcalf@tilera.com>
+> Cc: Richard Weinberger <richard@nod.at>
+> Cc: x86@kernel.org
+> ---
+>  arch/Kconfig        |    3 +
+>  kernel/cpu.c        |    2 -
+>  kernel/sched/core.c |    2 +
+>  kernel/smpboot.c    |   83 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+>  kernel/smpboot.h    |   10 ++++++
+>  5 files changed, 99 insertions(+), 1 deletion(-)
+> 
+> Index: linux-2.6/arch/Kconfig
+> ===================================================================
+> --- linux-2.6.orig/arch/Kconfig
+> +++ linux-2.6/arch/Kconfig
+> @@ -145,6 +145,9 @@ config HAVE_DMA_ATTRS
+>  config USE_GENERIC_SMP_HELPERS
+>  	bool
+>  
+> +config GENERIC_SMP_IDLE_THREAD
+> +       bool
+> +
 
-> On Fri, 2012-04-20 at 08:42 -0700, Tejun Heo wrote:
-> > I'm still leaning towards restricting kthreadd and any PF_THREAD_BOUND
-> > threads in the root cgroup.  
-> 
-> I'd definitely agree with restricting those. 
-> 
-> > I'm not sure about !BOUND kthreads tho.
-> > It doesn't make sense for the most part but there are cases
-> > (e.g. crypto kthreads) which might make some sense.
-> > 
-> Agreed as well. There are a few nasty corner cases with unbound
-> workqueues vs allowing cgroups (as how to place new worker threads
-> correctly etc..). Sorting that is a 'fun' next problem.
-> 
-> Could we merge the kthreadd/PF_THREAD_BOUND restriction? You've got my
-> ACK and I'm fairly sure tglx will ACK it as well.
+Symbols we select in arch Kconfig files are often named HAVE_*
+And no matter the name - a comment preceeding the definition of the symbol
+would be nice so it is possible to deduct the use of the symbol
+in a few years time when this thread is long forgotten.
 
-Acked-and-appreciated-by-me
+	Sam
