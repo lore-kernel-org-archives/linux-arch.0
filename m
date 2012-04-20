@@ -1,44 +1,74 @@
-From: Thomas Gleixner <tglx@linutronix.de>
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 Subject: Re: [patch 00/18] SMP: Boot and CPU hotplug refactoring - Part 1
-Date: Fri, 20 Apr 2012 15:47:17 +0200 (CEST)
-Message-ID: <alpine.LFD.2.02.1204201540400.2542@ionos>
-References: <20120420122120.097464672@linutronix.de> <1334928098.2463.56.camel@laptop>
+Date: Fri, 20 Apr 2012 19:26:03 +0530
+Message-ID: <4F916AF3.7020301@linux.vnet.ibm.com>
+References: <20120420122120.097464672@linutronix.de>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:45147 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751543Ab2DTNr2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 09:47:28 -0400
-In-Reply-To: <1334928098.2463.56.camel@laptop>
+Received: from e23smtp05.au.ibm.com ([202.81.31.147]:57596 "EHLO
+	e23smtp05.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753150Ab2DTN4e (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 09:56:34 -0400
+Received: from /spool/local
+	by e23smtp05.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Fri, 20 Apr 2012 13:51:52 +1000
+In-Reply-To: <20120420122120.097464672@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Tejun Heo <tj@kernel.org>, David Rientjes <rientjes@google.com>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Nikunj A Dadhania <nikunj@linux.vnet.ibm.com>, Steven Rostedt <rostedt@goodmis.org>
 
-On Fri, 20 Apr 2012, Peter Zijlstra wrote:
+Hi Thomas,
 
-> On Fri, 2012-04-20 at 13:05 +0000, Thomas Gleixner wrote:
-> > This first part moves the idle thread management for non-boot cpus
-> > into the core. fork_idle() is called in a workqueue as it is
-> > implemented in a few architectures already. This is necessary when not
-> > all cpus are brought up by the early boot code as otherwise we would
-> > take a ref on the user task VM of the thread which brings the cpu up
-> > via the sysfs interface. 
+On 04/20/2012 06:35 PM, Thomas Gleixner wrote:
+
+> Dear all,
 > 
-> So I was thinking about this and I think we should make that kthreadd
-> instead of a random workqueue thread due to all that cgroup crap. People
-> are wanting to place all sorts of kernel threads in cgroups and I'm
-> still arguing that kthreadd should not be allowed in cgroups.
+> I'm working on refactoring the SMP boot and CPU hotplug implementation.
+>
 
-So your fear is that the idle_thread will end up in some random cgroup
-because some illdesigned user space code decided to stick kernel
-threads into cgroups.
 
-Can we please have some sanity restrictions on this cgroup muck? I
-don't care when user space creates cgroups in circles, but holding the
-whole kernel hostage of this madness is going too far.
+Awesome!
 
-Thanks,
+[Unfortunately I got stuck with some other issues recently and couldn't
+dedicate enough time (to come up with working code) so far :-( ]
 
-	tglx
+ 
+> The current code has evolved over time into a conglomerate of
+> warts. My main goals are to:
+> 
+>  - reduce the architecture code by moving repeating constructs to the
+>    core
+> 
+>  - redesigning the handling of per cpu threads. There is no point to
+>    tear down the threads just to create them again.
+> 
+>  - restructuring the notifier facility into a proper tree with
+>    dependencies to avoid the gazillion of callbacks and moving
+>    setup/teardown code into the context of the upcoming/dying cpu
+> 
+> The motivation behind this work is the cpu hotplug nightmare which we
+> are facing in the RT kernel and the requests from several groups
+> (e.g. ARM) to make hotplug more lightweight and faster.
+> 
+> This first part moves the idle thread management for non-boot cpus
+> into the core. fork_idle() is called in a workqueue as it is
+> implemented in a few architectures already. This is necessary when not
+> all cpus are brought up by the early boot code as otherwise we would
+> take a ref on the user task VM of the thread which brings the cpu up
+> via the sysfs interface.
+> 
+
+
+Do you have a git tree where you have made these patches available?
+That would be pretty useful, so that we can build on whatever you have
+already done.. Myself and Nikunj had some initial design/ideas on reducing
+the duplication in architecture code, related to managing the setting
+of the cpu in the online mask, sending out CPU_STARTING notifiers etc
+from generic code..
+
+Regards,
+Srivatsa S. Bhat 
