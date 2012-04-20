@@ -1,66 +1,41 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: [PATCH v6 6/6] keys: kill task_struct->replacement_session_keyring
-Date: Fri, 20 Apr 2012 01:16:16 +0200
-Message-ID: <20120419231616.GF15828@redhat.com>
+From: Richard Kuo <rkuo@codeaurora.org>
+Subject: Re: [PATCH v6 3/6] hexagon: do_notify_resume() needs
+ tracehook_notify_resume()
+Date: Thu, 19 Apr 2012 19:24:12 -0500
+Message-ID: <20120420002412.GF5074@codeaurora.org>
 References: <20120419231431.GA15820@redhat.com>
+ <20120419231527.GC15828@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:29793 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751388Ab2DTAYQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Apr 2012 20:24:16 -0400
 Content-Disposition: inline
-In-Reply-To: <20120419231431.GA15820@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>
-Cc: Alexander Gordeev <agordeev@redhat.com>, Chris Zankel <chris@zankel.net>, David Smith <dsmith@redhat.com>, "Frank Ch. Eigler" <fche@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Larry Woodman <lwoodman@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Richard Kuo <rkuo@codeaurora.org>, Tejun Heo <tj@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20120419231527.GC15828@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Alexander Gordeev <agordeev@redhat.com>, Chris Zankel <chris@zankel.net>, David Smith <dsmith@redhat.com>, "Frank Ch. Eigler" <fche@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Larry Woodman <lwoodman@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Tejun Heo <tj@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Kill the no longer used task_struct->replacement_session_keyring,
-update copy_creds() and exit_creds().
+On Fri, Apr 20, 2012 at 01:15:27AM +0200, Oleg Nesterov wrote:
+> arch/hexagon/kernel/signal.c:do_notify_resume() forgets to call
+> tracehook_notify_resume() if TIF_NOTIFY_RESUME is set.
+> 
+> Cc: Richard Kuo <rkuo@codeaurora.org>
+> Signed-off-by: Oleg Nesterov <oleg@redhat.com>
+> ---
+>  arch/hexagon/kernel/signal.c |    1 +
+>  1 files changed, 1 insertions(+), 0 deletions(-)
+> 
 
-Signed-off-by: Oleg Nesterov <oleg@redhat.com>
----
- include/linux/sched.h |    2 --
- kernel/cred.c         |    9 ---------
- 2 files changed, 0 insertions(+), 11 deletions(-)
+Thanks for catching that!
 
-diff --git a/include/linux/sched.h b/include/linux/sched.h
-index e36edfb..ac04a02 100644
---- a/include/linux/sched.h
-+++ b/include/linux/sched.h
-@@ -1402,8 +1402,6 @@ struct task_struct {
- 					 * credentials (COW) */
- 	const struct cred __rcu *cred;	/* effective (overridable) subjective task
- 					 * credentials (COW) */
--	struct cred *replacement_session_keyring; /* for KEYCTL_SESSION_TO_PARENT */
--
- 	char comm[TASK_COMM_LEN]; /* executable name excluding path
- 				     - access with [gs]et_task_comm (which lock
- 				       it with task_lock())
-diff --git a/kernel/cred.c b/kernel/cred.c
-index e70683d..9570736 100644
---- a/kernel/cred.c
-+++ b/kernel/cred.c
-@@ -198,13 +198,6 @@ void exit_creds(struct task_struct *tsk)
- 	validate_creds(cred);
- 	alter_cred_subscribers(cred, -1);
- 	put_cred(cred);
--
--	cred = (struct cred *) tsk->replacement_session_keyring;
--	if (cred) {
--		tsk->replacement_session_keyring = NULL;
--		validate_creds(cred);
--		put_cred(cred);
--	}
- }
- 
- /**
-@@ -386,8 +379,6 @@ int copy_creds(struct task_struct *p, unsigned long clone_flags)
- 	struct cred *new;
- 	int ret;
- 
--	p->replacement_session_keyring = NULL;
--
- 	if (
- #ifdef CONFIG_KEYS
- 		!p->cred->thread_keyring &&
+Acked-by: Richard Kuo <rkuo@codeaurora.org>
+
+
 -- 
-1.5.5.1
+
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
