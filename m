@@ -1,222 +1,209 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 04/18] smp: Provide generic idle thread allocation
-Date: Fri, 20 Apr 2012 13:05:45 -0000
-Message-ID: <20120420124557.102478630@linutronix.de>
+Subject: [patch 18/18] sparc: Use generic idle thread allocation
+Date: Fri, 20 Apr 2012 13:05:56 -0000
+Message-ID: <20120420124558.055198736@linutronix.de>
 References: <20120420122120.097464672@linutronix.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline;
- filename=smp-provide-generic-idle-thread-allocation.patch
+ filename=sparc-use-generic-idle-thread-allocation.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Matt Turner <mattst88@gmail.com>, Russell King <linux@arm.linux.org.uk>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, Richard Kuo <rkuo@codeaurora.org>, Tony Luck <tony.luck@intel.com>, Hirokazu Takata <takata@linux-m32r.org>, Ralf Baechle <ralf@linux-mips.org>, David Howells <dhowells@redhat.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Richard Weinberger <richard@nod.at>, x86@kern
+Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, "David S. Miller" <davem@davemloft.net>
 List-Id: linux-arch.vger.kernel.org
 
-All SMP architectures have magic to fork the idle task and to store it
-for reusage when cpu hotplug is enabled. Provide a generic
-infrastructure for it.
-
-Create/reinit the idle thread for the cpu which is brought up in the
-generic code and hand the thread pointer to the architecture code via
-__cpu_up().
-
-Note, that fork_idle() is called via a workqueue, because this
-guarantees that the idle thread does not get a reference to a user
-space VM. This can happen when the boot process did not bring up all
-possible cpus and a later cpu_up() is initiated via the sysfs
-interface. In that case fork_idle() would be called in the context of
-the user space task and take a reference on the user space VM.
-
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Matt Turner <mattst88@gmail.com>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: Jesper Nilsson <jesper.nilsson@axis.com>
-Cc: Richard Kuo <rkuo@codeaurora.org>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>
-Cc: David Howells <dhowells@redhat.com>
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Paul Mundt <lethal@linux-sh.org>
 Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Richard Weinberger <richard@nod.at>
-Cc: x86@kernel.org
 ---
- arch/Kconfig        |    3 +
- kernel/cpu.c        |    2 -
- kernel/sched/core.c |    2 +
- kernel/smpboot.c    |   83 ++++++++++++++++++++++++++++++++++++++++++++++++++++
- kernel/smpboot.h    |   10 ++++++
- 5 files changed, 99 insertions(+), 1 deletion(-)
+ arch/sparc/Kconfig            |    1 +
+ arch/sparc/include/asm/leon.h |    5 +++--
+ arch/sparc/kernel/leon_smp.c  |    9 ++-------
+ arch/sparc/kernel/smp_32.c    |   10 +++++-----
+ arch/sparc/kernel/smp_64.c    |   10 +++-------
+ arch/sparc/kernel/sun4d_smp.c |    8 ++------
+ arch/sparc/kernel/sun4m_smp.c |    7 ++-----
+ 7 files changed, 18 insertions(+), 32 deletions(-)
 
-Index: linux-2.6/arch/Kconfig
+Index: linux-2.6/arch/sparc/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/Kconfig
-+++ linux-2.6/arch/Kconfig
-@@ -145,6 +145,9 @@ config HAVE_DMA_ATTRS
- config USE_GENERIC_SMP_HELPERS
- 	bool
+--- linux-2.6.orig/arch/sparc/Kconfig
++++ linux-2.6/arch/sparc/Kconfig
+@@ -30,6 +30,7 @@ config SPARC
+ 	select USE_GENERIC_SMP_HELPERS if SMP
+ 	select GENERIC_PCI_IOMAP
+ 	select HAVE_NMI_WATCHDOG if SPARC64
++	select GENERIC_SMP_IDLE_THREAD
  
-+config GENERIC_SMP_IDLE_THREAD
-+       bool
-+
- config HAVE_REGS_AND_STACK_ACCESS_API
- 	bool
- 	help
-Index: linux-2.6/kernel/cpu.c
+ config SPARC32
+ 	def_bool !64BIT
+Index: linux-2.6/arch/sparc/include/asm/leon.h
 ===================================================================
---- linux-2.6.orig/kernel/cpu.c
-+++ linux-2.6/kernel/cpu.c
-@@ -316,7 +316,7 @@ static int __cpuinit _cpu_up(unsigned in
- 	}
+--- linux-2.6.orig/arch/sparc/include/asm/leon.h
++++ linux-2.6/arch/sparc/include/asm/leon.h
+@@ -315,6 +315,7 @@ struct leon2_cacheregs {
+ #include <linux/interrupt.h>
  
- 	/* Arch-specific enabling code. */
--	ret = __cpu_up(cpu, NULL);
-+	ret = __cpu_up(cpu, idle_thread_get(cpu));
- 	if (ret != 0)
- 		goto out_notify;
- 	BUG_ON(!cpu_online(cpu));
-Index: linux-2.6/kernel/sched/core.c
-===================================================================
---- linux-2.6.orig/kernel/sched/core.c
-+++ linux-2.6/kernel/sched/core.c
-@@ -83,6 +83,7 @@
- 
- #include "sched.h"
- #include "../workqueue_sched.h"
-+#include "../smpboot.h"
- 
- #define CREATE_TRACE_POINTS
- #include <trace/events/sched.h>
-@@ -7049,6 +7050,7 @@ void __init sched_init(void)
- 	/* May be allocated at isolcpus cmdline parse time */
- 	if (cpu_isolated_map == NULL)
- 		zalloc_cpumask_var(&cpu_isolated_map, GFP_NOWAIT);
-+	idle_thread_set_boot_cpu();
- #endif
- 	init_sched_fair_class();
- 
-Index: linux-2.6/kernel/smpboot.c
-===================================================================
---- linux-2.6.orig/kernel/smpboot.c
-+++ linux-2.6/kernel/smpboot.c
-@@ -1,12 +1,95 @@
- /*
-  * Common SMP CPU bringup/teardown functions
-  */
-+#include <linux/err.h>
-+#include <linux/smp.h>
-+#include <linux/sched.h>
-+#include <linux/percpu.h>
-+#include <linux/workqueue.h>
- 
- #include "smpboot.h"
- 
-+#ifdef CONFIG_GENERIC_SMP_IDLE_THREAD
-+struct create_idle {
-+	struct work_struct	work;
-+	struct task_struct	*idle;
-+	struct completion	done;
-+	unsigned int cpu;
-+};
-+
-+static void __cpuinit do_fork_idle(struct work_struct *work)
-+{
-+	struct create_idle *c = container_of(work, struct create_idle, work);
-+
-+	c->idle = fork_idle(c->cpu);
-+	complete(&c->done);
-+}
-+
-+static struct task_struct * __cpuinit idle_thread_create(unsigned int cpu)
-+{
-+	struct create_idle c_idle = {
-+		.cpu	= cpu,
-+		.done	= COMPLETION_INITIALIZER_ONSTACK(c_idle.done),
-+	};
-+
-+	INIT_WORK_ONSTACK(&c_idle.work, do_fork_idle);
-+	schedule_work(&c_idle.work);
-+	wait_for_completion(&c_idle.done);
-+	destroy_work_on_stack(&c_idle.work);
-+	return c_idle.idle;
-+}
-+
-+/*
-+ * For the hotplug case we keep the task structs around and reuse
-+ * them.
-+ */
-+static DEFINE_PER_CPU(struct task_struct *, idle_threads);
-+
-+static inline struct task_struct *get_idle_for_cpu(unsigned int cpu)
-+{
-+	struct task_struct *tsk = per_cpu(idle_threads, cpu);
-+
-+	if (!tsk)
-+		return idle_thread_create(cpu);
-+	init_idle(tsk, cpu);
-+	return tsk;
-+}
-+
-+struct task_struct * __cpuinit idle_thread_get(unsigned int cpu)
-+{
-+	return per_cpu(idle_threads, cpu);
-+}
-+
-+void __init idle_thread_set_boot_cpu(void)
-+{
-+	per_cpu(idle_threads, smp_processor_id()) = current;
-+}
-+
-+/**
-+ * idle_thread_init - Initialize the idle thread for a cpu
-+ * @cpu:	The cpu for which the idle thread should be initialized
-+ *
-+ * Creates the thread if it does not exist.
-+ */
-+static int __cpuinit idle_thread_init(unsigned int cpu)
-+{
-+	struct task_struct *idle = get_idle_for_cpu(cpu);
-+
-+	if (IS_ERR(idle)) {
-+		printk(KERN_ERR "failed fork for CPU %u\n", cpu);
-+		return PTR_ERR(idle);
-+	}
-+	per_cpu(idle_threads, cpu) = idle;
-+	return 0;
-+}
-+#else
-+static inline int idle_thread_init(unsigned int cpu) { return 0; }
-+#endif
-+
- /**
-  * smpboot_prepare - generic smpboot preparation
-  */
- int __cpuinit smpboot_prepare(unsigned int cpu)
- {
-+	return idle_thread_init(cpu);
- }
-Index: linux-2.6/kernel/smpboot.h
-===================================================================
---- linux-2.6.orig/kernel/smpboot.h
-+++ linux-2.6/kernel/smpboot.h
-@@ -1,6 +1,16 @@
- #ifndef SMPBOOT_H
- #define SMPBOOT_H
- 
+ struct device_node;
 +struct task_struct;
-+
- int smpboot_prepare(unsigned int cpu);
+ extern unsigned int leon_build_device_irq(unsigned int real_irq,
+ 					   irq_flow_handler_t flow_handler,
+ 					   const char *name, int do_ack);
+@@ -344,7 +345,7 @@ extern int leon_smp_nrcpus(void);
+ extern void leon_clear_profile_irq(int cpu);
+ extern void leon_smp_done(void);
+ extern void leon_boot_cpus(void);
+-extern int leon_boot_one_cpu(int i);
++extern int leon_boot_one_cpu(int i, struct task_struct *);
+ void leon_init_smp(void);
+ extern void cpu_idle(void);
+ extern void init_IRQ(void);
+@@ -380,7 +381,7 @@ extern int leon_ipi_irq;
+ #define init_leon() do {} while (0)
+ #define leon_smp_done() do {} while (0)
+ #define leon_boot_cpus() do {} while (0)
+-#define leon_boot_one_cpu(i) 1
++#define leon_boot_one_cpu(i, t) 1
+ #define leon_init_smp() do {} while (0)
  
-+#ifdef CONFIG_GENERIC_SMP_IDLE_THREAD
-+struct task_struct *idle_thread_get(unsigned int cpu);
-+void idle_thread_set_boot_cpu(void);
-+#else
-+static inline struct task_struct *idle_thread_get(unsigned int cpu) { return NULL; }
-+static inline void idle_thread_set_boot_cpu(void) { }
-+#endif
-+
- #endif
+ #endif /* !defined(CONFIG_SPARC_LEON) */
+Index: linux-2.6/arch/sparc/kernel/leon_smp.c
+===================================================================
+--- linux-2.6.orig/arch/sparc/kernel/leon_smp.c
++++ linux-2.6/arch/sparc/kernel/leon_smp.c
+@@ -201,16 +201,11 @@ void __init leon_boot_cpus(void)
+ 
+ }
+ 
+-int __cpuinit leon_boot_one_cpu(int i)
++int __cpuinit leon_boot_one_cpu(int i, struct task_struct *idle)
+ {
+-
+-	struct task_struct *p;
+ 	int timeout;
+ 
+-	/* Cook up an idler for this guy. */
+-	p = fork_idle(i);
+-
+-	current_set[i] = task_thread_info(p);
++	current_set[i] = task_thread_info(idle);
+ 
+ 	/* See trampoline.S:leon_smp_cpu_startup for details...
+ 	 * Initialize the contexts table
+Index: linux-2.6/arch/sparc/kernel/smp_32.c
+===================================================================
+--- linux-2.6.orig/arch/sparc/kernel/smp_32.c
++++ linux-2.6/arch/sparc/kernel/smp_32.c
+@@ -413,8 +413,8 @@ void __init smp_prepare_boot_cpu(void)
+ 
+ int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
+ {
+-	extern int __cpuinit smp4m_boot_one_cpu(int);
+-	extern int __cpuinit smp4d_boot_one_cpu(int);
++	extern int __cpuinit smp4m_boot_one_cpu(int, struct task_struct *);
++	extern int __cpuinit smp4d_boot_one_cpu(int, struct task_struct *);
+ 	int ret=0;
+ 
+ 	switch(sparc_cpu_model) {
+@@ -427,13 +427,13 @@ int __cpuinit __cpu_up(unsigned int cpu,
+ 		BUG();
+ 		break;
+ 	case sun4m:
+-		ret = smp4m_boot_one_cpu(cpu);
++		ret = smp4m_boot_one_cpu(cpu, tidle);
+ 		break;
+ 	case sun4d:
+-		ret = smp4d_boot_one_cpu(cpu);
++		ret = smp4d_boot_one_cpu(cpu, tidle);
+ 		break;
+ 	case sparc_leon:
+-		ret = leon_boot_one_cpu(cpu);
++		ret = leon_boot_one_cpu(cpu, tidle);
+ 		break;
+ 	case sun4e:
+ 		printk("SUN4E\n");
+Index: linux-2.6/arch/sparc/kernel/smp_64.c
+===================================================================
+--- linux-2.6.orig/arch/sparc/kernel/smp_64.c
++++ linux-2.6/arch/sparc/kernel/smp_64.c
+@@ -343,21 +343,17 @@ extern unsigned long sparc64_cpu_startup
+  */
+ static struct thread_info *cpu_new_thread = NULL;
+ 
+-static int __cpuinit smp_boot_one_cpu(unsigned int cpu)
++static int __cpuinit smp_boot_one_cpu(unsigned int cpu, struct task_struct *idle)
+ {
+ 	unsigned long entry =
+ 		(unsigned long)(&sparc64_cpu_startup);
+ 	unsigned long cookie =
+ 		(unsigned long)(&cpu_new_thread);
+-	struct task_struct *p;
+ 	void *descr = NULL;
+ 	int timeout, ret;
+ 
+-	p = fork_idle(cpu);
+-	if (IS_ERR(p))
+-		return PTR_ERR(p);
+ 	callin_flag = 0;
+-	cpu_new_thread = task_thread_info(p);
++	cpu_new_thread = task_thread_info(idle);
+ 
+ 	if (tlb_type == hypervisor) {
+ #if defined(CONFIG_SUN_LDOMS) && defined(CONFIG_HOTPLUG_CPU)
+@@ -1229,7 +1225,7 @@ void __devinit smp_fill_in_sib_core_maps
+ 
+ int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
+ {
+-	int ret = smp_boot_one_cpu(cpu);
++	int ret = smp_boot_one_cpu(cpu, tidle);
+ 
+ 	if (!ret) {
+ 		cpumask_set_cpu(cpu, &smp_commenced_mask);
+Index: linux-2.6/arch/sparc/kernel/sun4d_smp.c
+===================================================================
+--- linux-2.6.orig/arch/sparc/kernel/sun4d_smp.c
++++ linux-2.6/arch/sparc/kernel/sun4d_smp.c
+@@ -127,18 +127,14 @@ void __init smp4d_boot_cpus(void)
+ 	local_flush_cache_all();
+ }
+ 
+-int __cpuinit smp4d_boot_one_cpu(int i)
++int __cpuinit smp4d_boot_one_cpu(int i, struct task_struct *idle)
+ {
+ 	unsigned long *entry = &sun4d_cpu_startup;
+-	struct task_struct *p;
+ 	int timeout;
+ 	int cpu_node;
+ 
+ 	cpu_find_by_instance(i, &cpu_node, NULL);
+-	/* Cook up an idler for this guy. */
+-	p = fork_idle(i);
+-	current_set[i] = task_thread_info(p);
+-
++	current_set[i] = task_thread_info(idle);
+ 	/*
+ 	 * Initialize the contexts table
+ 	 * Since the call to prom_startcpu() trashes the structure,
+Index: linux-2.6/arch/sparc/kernel/sun4m_smp.c
+===================================================================
+--- linux-2.6.orig/arch/sparc/kernel/sun4m_smp.c
++++ linux-2.6/arch/sparc/kernel/sun4m_smp.c
+@@ -91,18 +91,15 @@ void __init smp4m_boot_cpus(void)
+ 	local_flush_cache_all();
+ }
+ 
+-int __cpuinit smp4m_boot_one_cpu(int i)
++int __cpuinit smp4m_boot_one_cpu(int i, struct task_struct *idle)
+ {
+ 	unsigned long *entry = &sun4m_cpu_startup;
+-	struct task_struct *p;
+ 	int timeout;
+ 	int cpu_node;
+ 
+ 	cpu_find_by_mid(i, &cpu_node);
++	current_set[i] = task_thread_info(idle);
+ 
+-	/* Cook up an idler for this guy. */
+-	p = fork_idle(i);
+-	current_set[i] = task_thread_info(p);
+ 	/* See trampoline.S for details... */
+ 	entry += ((i - 1) * 3);
+ 
