@@ -1,71 +1,78 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 16/18] alpha: Use generic idle thread allocation
-Date: Fri, 20 Apr 2012 13:05:55 -0000
-Message-ID: <20120420124557.914631081@linutronix.de>
+Subject: [patch 14/18] cris: Use generic idle thread allocation
+Date: Fri, 20 Apr 2012 13:05:53 -0000
+Message-ID: <20120420124557.789657793@linutronix.de>
 References: <20120420122120.097464672@linutronix.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.linutronix.de ([62.245.132.108]:44776 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752009Ab2DTNFz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 09:05:55 -0400
 Content-Disposition: inline;
- filename=alpha-use-generic-idle-thread-allocation.patch
-Sender: linux-kernel-owner@vger.kernel.org
+ filename=cris-use-generic-idle-thread-allocation.patch
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Matt Turner <mattst88@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Jesper Nilsson <jesper.nilsson@axis.com>
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Matt Turner <mattst88@gmail.com>
+Cc: Jesper Nilsson <jesper.nilsson@axis.com>
 ---
- arch/alpha/Kconfig      |    1 +
- arch/alpha/kernel/smp.c |   18 ++----------------
- 2 files changed, 3 insertions(+), 16 deletions(-)
+ arch/cris/Kconfig               |    1 +
+ arch/cris/arch-v32/kernel/smp.c |   12 ++----------
+ 2 files changed, 3 insertions(+), 10 deletions(-)
 
-Index: linux-2.6/arch/alpha/Kconfig
+Index: linux-2.6/arch/cris/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/alpha/Kconfig
-+++ linux-2.6/arch/alpha/Kconfig
-@@ -15,6 +15,7 @@ config ALPHA
+--- linux-2.6.orig/arch/cris/Kconfig
++++ linux-2.6/arch/cris/Kconfig
+@@ -49,6 +49,7 @@ config CRIS
+ 	select HAVE_GENERIC_HARDIRQS
  	select GENERIC_IRQ_SHOW
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
-+	select GENERIC_SMP_IDLE_THREAD
- 	help
- 	  The Alpha is a 64-bit general-purpose processor designed and
- 	  marketed by the Digital Equipment Corporation of blessed memory,
-Index: linux-2.6/arch/alpha/kernel/smp.c
-===================================================================
---- linux-2.6.orig/arch/alpha/kernel/smp.c
-+++ linux-2.6/arch/alpha/kernel/smp.c
-@@ -357,24 +357,10 @@ secondary_cpu_start(int cpuid, struct ta
-  * Bring one cpu online.
-  */
- static int __cpuinit
--smp_boot_one_cpu(int cpuid)
-+smp_boot_one_cpu(int cpuid, struct task_struct *idle)
- {
--	struct task_struct *idle;
- 	unsigned long timeout;
+ 	select GENERIC_IOMAP
++	select GENERIC_SMP_IDLE_THREAD if ETRAX_ARCH_V32
  
--	/* Cook up an idler for this guy.  Note that the address we
--	   give to kernel_thread is irrelevant -- it's going to start
--	   where HWRPB.CPU_restart says to start.  But this gets all
--	   the other task-y sort of data structures set up like we
--	   wish.  We can't use kernel_thread since we must avoid
--	   rescheduling the child.  */
+ config HZ
+ 	int
+Index: linux-2.6/arch/cris/arch-v32/kernel/smp.c
+===================================================================
+--- linux-2.6.orig/arch/cris/arch-v32/kernel/smp.c
++++ linux-2.6/arch/cris/arch-v32/kernel/smp.c
+@@ -108,17 +108,12 @@ void __init smp_cpus_done(unsigned int m
+ 
+ /* Bring one cpu online.*/
+ static int __init
+-smp_boot_one_cpu(int cpuid)
++smp_boot_one_cpu(int cpuid, struct task_struct idle)
+ {
+ 	unsigned timeout;
+-	struct task_struct *idle;
+ 	cpumask_t cpu_mask;
+ 
+ 	cpumask_clear(&cpu_mask);
 -	idle = fork_idle(cpuid);
 -	if (IS_ERR(idle))
--		panic("failed fork for CPU %d", cpuid);
+-		panic("SMP: fork failed for CPU:%d", cpuid);
 -
--	DBGS(("smp_boot_one_cpu: CPU %d state 0x%lx flags 0x%lx\n",
--	      cpuid, idle->state, idle->flags));
--
- 	/* Signal the secondary to wait a moment.  */
- 	smp_secondary_alive = -1;
+ 	task_thread_info(idle)->cpu = cpuid;
  
-@@ -489,7 +475,7 @@ smp_prepare_boot_cpu(void)
- int __cpuinit
- __cpu_up(unsigned int cpu, struct task_struct *tidle)
+ 	/* Information to the CPU that is about to boot */
+@@ -142,9 +137,6 @@ smp_boot_one_cpu(int cpuid)
+ 		barrier();
+ 	}
+ 
+-	put_task_struct(idle);
+-	idle = NULL;
+-
+ 	printk(KERN_CRIT "SMP: CPU:%d is stuck.\n", cpuid);
+ 	return -1;
+ }
+@@ -209,7 +201,7 @@ unsigned long cache_decay_ticks = 1;
+ 
+ int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
  {
 -	smp_boot_one_cpu(cpu);
 +	smp_boot_one_cpu(cpu, tidle);
- 
  	return cpu_online(cpu) ? 0 : -ENOSYS;
  }
+ 
