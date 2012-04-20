@@ -1,64 +1,100 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:44765 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:44747 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751725Ab2DTNFy (ORCPT
+	with ESMTP id S1751718Ab2DTNFy (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 09:05:54 -0400
-Message-ID: <20120420124557.581762105@linutronix.de>
-Date: Fri, 20 Apr 2012 13:05:51 -0000
+Message-ID: <20120420124557.448826362@linutronix.de>
+Date: Fri, 20 Apr 2012 13:05:50 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 11/18] hexagon: Use generic idle thread allocation
+Subject: [patch 09/18] arm: Use generic idle thread allocation
 References: <20120420122120.097464672@linutronix.de>
 Content-Disposition: inline;
- filename=hexagon-use-generic-idle-thread-allocation.patch
+ filename=arm-use-generic-idle-thread-allocation.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Richard Kuo <rkuo@codeaurora.org>
-Message-ID: <20120420130551.z22bZ_gE9XI4mpnMMv97vDmT_w7uod3PEJa1mklYAD0@z>
+Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Russell King <linux@arm.linux.org.uk>
+Message-ID: <20120420130550.dDsgRRSBg9A1yDRTm2Zw8hYZhdh7IV2f8FrRZRxyjHs@z>
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Richard Kuo <rkuo@codeaurora.org>
+Cc: Russell King <linux@arm.linux.org.uk>
 ---
- arch/hexagon/Kconfig      |    1 +
- arch/hexagon/kernel/smp.c |   11 ++---------
- 2 files changed, 3 insertions(+), 9 deletions(-)
+ arch/arm/Kconfig           |    1 +
+ arch/arm/include/asm/cpu.h |    1 -
+ arch/arm/kernel/smp.c      |   26 +-------------------------
+ 3 files changed, 2 insertions(+), 26 deletions(-)
 
-Index: linux-2.6/arch/hexagon/Kconfig
+Index: linux-2.6/arch/arm/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/hexagon/Kconfig
-+++ linux-2.6/arch/hexagon/Kconfig
-@@ -27,6 +27,7 @@ config HEXAGON
- 	select HAVE_ARCH_TRACEHOOK
- 	select NO_IOPORT
- 	select GENERIC_IOMAP
+--- linux-2.6.orig/arch/arm/Kconfig
++++ linux-2.6/arch/arm/Kconfig
+@@ -34,6 +34,7 @@ config ARM
+ 	select CPU_PM if (SUSPEND || CPU_IDLE)
+ 	select GENERIC_PCI_IOMAP
+ 	select HAVE_BPF_JIT if NET
 +	select GENERIC_SMP_IDLE_THREAD
- 	# mostly generic routines, with some accelerated ones
- 	---help---
- 	  Qualcomm Hexagon is a processor architecture designed for high
-Index: linux-2.6/arch/hexagon/kernel/smp.c
+ 	help
+ 	  The ARM series is a line of low-power-consumption RISC chip designs
+ 	  licensed by ARM Ltd and targeted at embedded applications and
+Index: linux-2.6/arch/arm/include/asm/cpu.h
 ===================================================================
---- linux-2.6.orig/arch/hexagon/kernel/smp.c
-+++ linux-2.6/arch/hexagon/kernel/smp.c
-@@ -190,18 +190,11 @@ void __cpuinit start_secondary(void)
-  * maintains control until "cpu_online(cpu)" is set.
-  */
+--- linux-2.6.orig/arch/arm/include/asm/cpu.h
++++ linux-2.6/arch/arm/include/asm/cpu.h
+@@ -16,7 +16,6 @@
+ struct cpuinfo_arm {
+ 	struct cpu	cpu;
+ #ifdef CONFIG_SMP
+-	struct task_struct *idle;
+ 	unsigned int	loops_per_jiffy;
+ #endif
+ };
+Index: linux-2.6/arch/arm/kernel/smp.c
+===================================================================
+--- linux-2.6.orig/arch/arm/kernel/smp.c
++++ linux-2.6/arch/arm/kernel/smp.c
+@@ -60,32 +60,11 @@ enum ipi_msg_type {
+ 
+ static DECLARE_COMPLETION(cpu_running);
  
 -int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
 +int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *idle)
  {
--	struct task_struct *idle;
--	struct thread_info *thread;
-+	struct thread_info *thread = (struct thread_info *)idle->stack;
- 	void *stack_start;
+-	struct cpuinfo_arm *ci = &per_cpu(cpu_data, cpu);
+-	struct task_struct *idle = ci->idle;
+ 	int ret;
  
--	/*  Create new init task for the CPU  */
--	idle = fork_idle(cpu);
--	if (IS_ERR(idle))
--		panic(KERN_ERR "fork_idle failed\n");
+ 	/*
+-	 * Spawn a new process manually, if not already done.
+-	 * Grab a pointer to its task struct so we can mess with it
+-	 */
+-	if (!idle) {
+-		idle = fork_idle(cpu);
+-		if (IS_ERR(idle)) {
+-			printk(KERN_ERR "CPU%u: fork() failed\n", cpu);
+-			return PTR_ERR(idle);
+-		}
+-		ci->idle = idle;
+-	} else {
+-		/*
+-		 * Since this idle thread is being re-used, call
+-		 * init_idle() to reinitialize the thread structure.
+-		 */
+-		init_idle(idle, cpu);
+-	}
 -
--	thread = (struct thread_info *)idle->stack;
- 	thread->cpu = cpu;
+-	/*
+ 	 * We need to tell the secondary core where to find
+ 	 * its stack and the page tables.
+ 	 */
+@@ -318,9 +297,6 @@ void __init smp_cpus_done(unsigned int m
  
- 	/*  Boot to the head.  */
+ void __init smp_prepare_boot_cpu(void)
+ {
+-	unsigned int cpu = smp_processor_id();
+-
+-	per_cpu(cpu_data, cpu).idle = current;
+ }
+ 
+ void __init smp_prepare_cpus(unsigned int max_cpus)
 
 
