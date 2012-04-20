@@ -1,91 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:44795 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752473Ab2DTNF6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 09:05:58 -0400
-Message-ID: <20120420124557.988947805@linutronix.de>
-Date: Fri, 20 Apr 2012 13:05:56 -0000
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 17/18] parisc: Use generic idle thread allocation
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:45076 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751433Ab2DTOGG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 10:06:06 -0400
+MIME-Version: 1.0
+In-Reply-To: <20120420122120.097464672@linutronix.de>
 References: <20120420122120.097464672@linutronix.de>
-Content-Disposition: inline;
- filename=parisc-use-generic-idle-thread-allocation.patch
+Date: Fri, 20 Apr 2012 16:06:04 +0200
+Message-ID: <CAFLxGvzgRpJq_BRrfgGh-V-k9XQmSvSN6hmK+6jm86Vy7v3EVg@mail.gmail.com>
+Subject: Re: [patch 00/18] SMP: Boot and CPU hotplug refactoring - Part 1
+From: richard -rw- weinberger <richard.weinberger@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>
-Message-ID: <20120420130556.vfZV_L3NWkemtU0qjUSvmR0IKnFZ2bWNO4wll7m7rJY@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20120420140604.z4yx2gGkkQFmlhy9wCfcEHzjWTik_BlS5cdfBqG35Q8@z>
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
----
- arch/parisc/Kconfig      |    1 +
- arch/parisc/kernel/smp.c |   23 ++---------------------
- 2 files changed, 3 insertions(+), 21 deletions(-)
+On Fri, Apr 20, 2012 at 3:05 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> This converts all architectures except m32r, mn10300, tile and UM to
+> the new core facility. These architecture are calling fork_idle() in
+> the very early boot code in smp_prepare_cpus() for unknown reasons.
+> I haven't analyzed yet, whether this is on purpose or can be moved
+> over to the generic facility. It'd be nice if the responsible maintainers
+> could look into that as well.
 
-Index: linux-2.6/arch/parisc/Kconfig
-===================================================================
---- linux-2.6.orig/arch/parisc/Kconfig
-+++ linux-2.6/arch/parisc/Kconfig
-@@ -17,6 +17,7 @@ config PARISC
- 	select GENERIC_PCI_IOMAP
- 	select IRQ_PER_CPU
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
-+	select GENERIC_SMP_IDLE_THREAD
- 
- 	help
- 	  The PA-RISC microprocessor is designed by Hewlett-Packard and used
-Index: linux-2.6/arch/parisc/kernel/smp.c
-===================================================================
---- linux-2.6.orig/arch/parisc/kernel/smp.c
-+++ linux-2.6/arch/parisc/kernel/smp.c
-@@ -334,26 +334,11 @@ void __init smp_callin(void)
- /*
-  * Bring one cpu online.
-  */
--int __cpuinit smp_boot_one_cpu(int cpuid)
-+int __cpuinit smp_boot_one_cpu(int cpuid, struct task_struct *idle)
- {
- 	const struct cpuinfo_parisc *p = &per_cpu(cpu_data, cpuid);
--	struct task_struct *idle;
- 	long timeout;
- 
--	/* 
--	 * Create an idle task for this CPU.  Note the address wed* give 
--	 * to kernel_thread is irrelevant -- it's going to start
--	 * where OS_BOOT_RENDEVZ vector in SAL says to start.  But
--	 * this gets all the other task-y sort of data structures set
--	 * up like we wish.   We need to pull the just created idle task 
--	 * off the run queue and stuff it into the init_tasks[] array.  
--	 * Sheesh . . .
--	 */
--
--	idle = fork_idle(cpuid);
--	if (IS_ERR(idle))
--		panic("SMP: fork failed for CPU:%d", cpuid);
--
- 	task_thread_info(idle)->cpu = cpuid;
- 
- 	/* Let _start know what logical CPU we're booting
-@@ -397,10 +382,6 @@ int __cpuinit smp_boot_one_cpu(int cpuid
- 		udelay(100);
- 		barrier();
- 	}
--
--	put_task_struct(idle);
--	idle = NULL;
--
- 	printk(KERN_CRIT "SMP: CPU:%d is stuck.\n", cpuid);
- 	return -1;
- 
-@@ -452,7 +433,7 @@ void smp_cpus_done(unsigned int cpu_max)
- int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
- {
- 	if (cpu != 0 && cpu < parisc_max_cpus)
--		smp_boot_one_cpu(cpu);
-+		smp_boot_one_cpu(cpu, tidle);
- 
- 	return cpu_online(cpu) ? 0 : -ENOSYS;
- }
+SMP is marked as broken on UM, so I don't have any objections. :-)
 
-
+-- 
+Thanks,
+//richard
