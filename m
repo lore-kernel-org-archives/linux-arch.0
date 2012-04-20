@@ -1,100 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:44747 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:44795 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751718Ab2DTNFy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 09:05:54 -0400
-Message-ID: <20120420124557.448826362@linutronix.de>
-Date: Fri, 20 Apr 2012 13:05:50 -0000
+	with ESMTP id S1752473Ab2DTNF6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 09:05:58 -0400
+Message-ID: <20120420124557.988947805@linutronix.de>
+Date: Fri, 20 Apr 2012 13:05:56 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 09/18] arm: Use generic idle thread allocation
+Subject: [patch 17/18] parisc: Use generic idle thread allocation
 References: <20120420122120.097464672@linutronix.de>
 Content-Disposition: inline;
- filename=arm-use-generic-idle-thread-allocation.patch
+ filename=parisc-use-generic-idle-thread-allocation.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Russell King <linux@arm.linux.org.uk>
-Message-ID: <20120420130550.dDsgRRSBg9A1yDRTm2Zw8hYZhdh7IV2f8FrRZRxyjHs@z>
+Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>
+Message-ID: <20120420130556.vfZV_L3NWkemtU0qjUSvmR0IKnFZ2bWNO4wll7m7rJY@z>
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Russell King <linux@arm.linux.org.uk>
+Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
 ---
- arch/arm/Kconfig           |    1 +
- arch/arm/include/asm/cpu.h |    1 -
- arch/arm/kernel/smp.c      |   26 +-------------------------
- 3 files changed, 2 insertions(+), 26 deletions(-)
+ arch/parisc/Kconfig      |    1 +
+ arch/parisc/kernel/smp.c |   23 ++---------------------
+ 2 files changed, 3 insertions(+), 21 deletions(-)
 
-Index: linux-2.6/arch/arm/Kconfig
+Index: linux-2.6/arch/parisc/Kconfig
 ===================================================================
---- linux-2.6.orig/arch/arm/Kconfig
-+++ linux-2.6/arch/arm/Kconfig
-@@ -34,6 +34,7 @@ config ARM
- 	select CPU_PM if (SUSPEND || CPU_IDLE)
+--- linux-2.6.orig/arch/parisc/Kconfig
++++ linux-2.6/arch/parisc/Kconfig
+@@ -17,6 +17,7 @@ config PARISC
  	select GENERIC_PCI_IOMAP
- 	select HAVE_BPF_JIT if NET
+ 	select IRQ_PER_CPU
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
 +	select GENERIC_SMP_IDLE_THREAD
+ 
  	help
- 	  The ARM series is a line of low-power-consumption RISC chip designs
- 	  licensed by ARM Ltd and targeted at embedded applications and
-Index: linux-2.6/arch/arm/include/asm/cpu.h
+ 	  The PA-RISC microprocessor is designed by Hewlett-Packard and used
+Index: linux-2.6/arch/parisc/kernel/smp.c
 ===================================================================
---- linux-2.6.orig/arch/arm/include/asm/cpu.h
-+++ linux-2.6/arch/arm/include/asm/cpu.h
-@@ -16,7 +16,6 @@
- struct cpuinfo_arm {
- 	struct cpu	cpu;
- #ifdef CONFIG_SMP
+--- linux-2.6.orig/arch/parisc/kernel/smp.c
++++ linux-2.6/arch/parisc/kernel/smp.c
+@@ -334,26 +334,11 @@ void __init smp_callin(void)
+ /*
+  * Bring one cpu online.
+  */
+-int __cpuinit smp_boot_one_cpu(int cpuid)
++int __cpuinit smp_boot_one_cpu(int cpuid, struct task_struct *idle)
+ {
+ 	const struct cpuinfo_parisc *p = &per_cpu(cpu_data, cpuid);
 -	struct task_struct *idle;
- 	unsigned int	loops_per_jiffy;
- #endif
- };
-Index: linux-2.6/arch/arm/kernel/smp.c
-===================================================================
---- linux-2.6.orig/arch/arm/kernel/smp.c
-+++ linux-2.6/arch/arm/kernel/smp.c
-@@ -60,32 +60,11 @@ enum ipi_msg_type {
+ 	long timeout;
  
- static DECLARE_COMPLETION(cpu_running);
- 
--int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
-+int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *idle)
- {
--	struct cpuinfo_arm *ci = &per_cpu(cpu_data, cpu);
--	struct task_struct *idle = ci->idle;
- 	int ret;
- 
- 	/*
--	 * Spawn a new process manually, if not already done.
--	 * Grab a pointer to its task struct so we can mess with it
+-	/* 
+-	 * Create an idle task for this CPU.  Note the address wed* give 
+-	 * to kernel_thread is irrelevant -- it's going to start
+-	 * where OS_BOOT_RENDEVZ vector in SAL says to start.  But
+-	 * this gets all the other task-y sort of data structures set
+-	 * up like we wish.   We need to pull the just created idle task 
+-	 * off the run queue and stuff it into the init_tasks[] array.  
+-	 * Sheesh . . .
 -	 */
--	if (!idle) {
--		idle = fork_idle(cpu);
--		if (IS_ERR(idle)) {
--			printk(KERN_ERR "CPU%u: fork() failed\n", cpu);
--			return PTR_ERR(idle);
--		}
--		ci->idle = idle;
--	} else {
--		/*
--		 * Since this idle thread is being re-used, call
--		 * init_idle() to reinitialize the thread structure.
--		 */
--		init_idle(idle, cpu);
--	}
 -
--	/*
- 	 * We need to tell the secondary core where to find
- 	 * its stack and the page tables.
- 	 */
-@@ -318,9 +297,6 @@ void __init smp_cpus_done(unsigned int m
+-	idle = fork_idle(cpuid);
+-	if (IS_ERR(idle))
+-		panic("SMP: fork failed for CPU:%d", cpuid);
+-
+ 	task_thread_info(idle)->cpu = cpuid;
  
- void __init smp_prepare_boot_cpu(void)
+ 	/* Let _start know what logical CPU we're booting
+@@ -397,10 +382,6 @@ int __cpuinit smp_boot_one_cpu(int cpuid
+ 		udelay(100);
+ 		barrier();
+ 	}
+-
+-	put_task_struct(idle);
+-	idle = NULL;
+-
+ 	printk(KERN_CRIT "SMP: CPU:%d is stuck.\n", cpuid);
+ 	return -1;
+ 
+@@ -452,7 +433,7 @@ void smp_cpus_done(unsigned int cpu_max)
+ int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
  {
--	unsigned int cpu = smp_processor_id();
--
--	per_cpu(cpu_data, cpu).idle = current;
- }
+ 	if (cpu != 0 && cpu < parisc_max_cpus)
+-		smp_boot_one_cpu(cpu);
++		smp_boot_one_cpu(cpu, tidle);
  
- void __init smp_prepare_cpus(unsigned int max_cpus)
+ 	return cpu_online(cpu) ? 0 : -ENOSYS;
+ }
 
 
