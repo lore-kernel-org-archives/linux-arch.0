@@ -1,104 +1,76 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 12/18] s390: Use generic idle thread allocation
-Date: Fri, 20 Apr 2012 13:05:52 -0000
-Message-ID: <20120420124557.652574928@linutronix.de>
+Subject: Re: [patch 00/18] SMP: Boot and CPU hotplug refactoring - Part 1
+Date: Fri, 20 Apr 2012 15:16:52 +0200 (CEST)
+Message-ID: <alpine.LFD.2.02.1204201516130.2542@ionos>
 References: <20120420122120.097464672@linutronix.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline;
- filename=s390-use-generic-idle-thread-allocation.patch
-Sender: linux-kernel-owner@vger.kernel.org
+Mime-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.linutronix.de ([62.245.132.108]:45029 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752421Ab2DTNRB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 09:17:01 -0400
+In-Reply-To: <20120420122120.097464672@linutronix.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 
-Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
----
- arch/s390/Kconfig      |    1 +
- arch/s390/kernel/smp.c |   33 ++-------------------------------
- 2 files changed, 3 insertions(+), 31 deletions(-)
+On Fri, 20 Apr 2012, Thomas Gleixner wrote:
+> This converts all architectures except m32r, mn10300, tile and UM to
+> the new core facility. These architecture are calling fork_idle() in
+> the very early boot code in smp_prepare_cpus() for unknown reasons.
+> I haven't analyzed yet, whether this is on purpose or can be moved
+> over to the generic facility. It'd be nice if the responsible maintainers
+> could look into that as well.
 
-Index: linux-2.6/arch/s390/Kconfig
-===================================================================
---- linux-2.6.orig/arch/s390/Kconfig
-+++ linux-2.6/arch/s390/Kconfig
-@@ -122,6 +122,7 @@ config S390
- 	select ARCH_INLINE_WRITE_UNLOCK_BH
- 	select ARCH_INLINE_WRITE_UNLOCK_IRQ
- 	select ARCH_INLINE_WRITE_UNLOCK_IRQRESTORE
-+	select GENERIC_SMP_IDLE_THREAD
- 
- config SCHED_OMIT_FRAME_POINTER
- 	def_bool y
-Index: linux-2.6/arch/s390/kernel/smp.c
-===================================================================
---- linux-2.6.orig/arch/s390/kernel/smp.c
-+++ linux-2.6/arch/s390/kernel/smp.c
-@@ -85,7 +85,6 @@ enum {
- 
- struct pcpu {
- 	struct cpu cpu;
--	struct task_struct *idle;	/* idle process for the cpu */
- 	struct _lowcore *lowcore;	/* lowcore page(s) for the cpu */
- 	unsigned long async_stack;	/* async stack for the cpu */
- 	unsigned long panic_stack;	/* panic stack for the cpu */
-@@ -721,26 +720,9 @@ static void __cpuinit smp_start_secondar
- 	cpu_idle();
- }
- 
--struct create_idle {
--	struct work_struct work;
--	struct task_struct *idle;
--	struct completion done;
--	int cpu;
--};
--
--static void __cpuinit smp_fork_idle(struct work_struct *work)
--{
--	struct create_idle *c_idle;
--
--	c_idle = container_of(work, struct create_idle, work);
--	c_idle->idle = fork_idle(c_idle->cpu);
--	complete(&c_idle->done);
--}
--
- /* Upping and downing of CPUs */
- int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
- {
--	struct create_idle c_idle;
- 	struct pcpu *pcpu;
- 	int rc;
- 
-@@ -750,22 +732,12 @@ int __cpuinit __cpu_up(unsigned int cpu,
- 	if (pcpu_sigp_retry(pcpu, sigp_initial_cpu_reset, 0) !=
- 	    sigp_order_code_accepted)
- 		return -EIO;
--	if (!pcpu->idle) {
--		c_idle.done = COMPLETION_INITIALIZER_ONSTACK(c_idle.done);
--		INIT_WORK_ONSTACK(&c_idle.work, smp_fork_idle);
--		c_idle.cpu = cpu;
--		schedule_work(&c_idle.work);
--		wait_for_completion(&c_idle.done);
--		if (IS_ERR(c_idle.idle))
--			return PTR_ERR(c_idle.idle);
--		pcpu->idle = c_idle.idle;
--	}
--	init_idle(pcpu->idle, cpu);
-+
- 	rc = pcpu_alloc_lowcore(pcpu, cpu);
- 	if (rc)
- 		return rc;
- 	pcpu_prepare_secondary(pcpu, cpu);
--	pcpu_attach_task(pcpu, pcpu->idle);
-+	pcpu_attach_task(pcpu, tidle);
- 	pcpu_start_fn(pcpu, smp_start_secondary, NULL);
- 	while (!cpu_online(cpu))
- 		cpu_relax();
-@@ -852,7 +824,6 @@ void __init smp_prepare_boot_cpu(void)
- 	struct pcpu *pcpu = pcpu_devices;
- 
- 	boot_cpu_address = stap();
--	pcpu->idle = current;
- 	pcpu->state = CPU_STATE_CONFIGURED;
- 	pcpu->address = boot_cpu_address;
- 	pcpu->lowcore = (struct _lowcore *)(unsigned long) store_prefix();
+Forgot to add a diffstat for the full series.
+
+ arch/Kconfig                    |    3 +
+ arch/alpha/Kconfig              |    1 
+ arch/alpha/kernel/smp.c         |   20 +-------
+ arch/arm/Kconfig                |    1 
+ arch/arm/include/asm/cpu.h      |    1 
+ arch/arm/kernel/smp.c           |   26 ----------
+ arch/blackfin/Kconfig           |    1 
+ arch/blackfin/mach-common/smp.c |   19 --------
+ arch/cris/Kconfig               |    1 
+ arch/cris/arch-v32/kernel/smp.c |   14 +----
+ arch/hexagon/Kconfig            |    1 
+ arch/hexagon/kernel/smp.c       |   11 ----
+ arch/ia64/Kconfig               |    1 
+ arch/ia64/kernel/smpboot.c      |   63 +-------------------------
+ arch/m32r/kernel/smpboot.c      |    6 --
+ arch/mips/Kconfig               |    1 
+ arch/mips/kernel/smp.c          |   56 -----------------------
+ arch/mn10300/kernel/smp.c       |    2 
+ arch/parisc/Kconfig             |    1 
+ arch/parisc/kernel/smp.c        |   25 +---------
+ arch/powerpc/Kconfig            |    1 
+ arch/powerpc/kernel/smp.c       |   76 ++------------------------------
+ arch/s390/Kconfig               |    1 
+ arch/s390/include/asm/smp.h     |    2 
+ arch/s390/kernel/smp.c          |   35 +-------------
+ arch/sh/Kconfig                 |    1 
+ arch/sh/include/asm/processor.h |    4 -
+ arch/sh/kernel/smp.c            |   14 -----
+ arch/sparc/Kconfig              |    1 
+ arch/sparc/include/asm/leon.h   |    5 +-
+ arch/sparc/kernel/leon_smp.c    |    9 ---
+ arch/sparc/kernel/smp_32.c      |   12 ++---
+ arch/sparc/kernel/smp_64.c      |   12 +----
+ arch/sparc/kernel/sun4d_smp.c   |    8 ---
+ arch/sparc/kernel/sun4m_smp.c   |    7 --
+ arch/tile/kernel/smpboot.c      |    2 
+ arch/um/kernel/smp.c            |    2 
+ arch/x86/Kconfig                |    1 
+ arch/x86/include/asm/smp.h      |   11 ++--
+ arch/x86/kernel/smpboot.c       |   83 ++++------------------------------
+ arch/x86/xen/smp.c              |   19 +-------
+ include/linux/smp.h             |    2 
+ kernel/Makefile                 |    1 
+ kernel/cpu.c                    |   10 +++-
+ kernel/sched/core.c             |    2 
+ kernel/smpboot.c                |   95 ++++++++++++++++++++++++++++++++++++++++
+ kernel/smpboot.h                |   16 ++++++
+ 47 files changed, 215 insertions(+), 471 deletions(-)
