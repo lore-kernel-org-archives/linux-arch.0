@@ -1,52 +1,99 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 00/18] SMP: Boot and CPU hotplug refactoring - Part 1
-Date: Fri, 20 Apr 2012 13:05:41 -0000
-Message-ID: <20120420122120.097464672@linutronix.de>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:44753 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751648Ab2DTNFy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 09:05:54 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [patch 10/18] mips: Use generic idle thread allocation
+Date: Fri, 20 Apr 2012 13:05:51 -0000
+Message-ID: <20120420124557.512158271@linutronix.de>
+References: <20120420122120.097464672@linutronix.de>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline;
+ filename=mips-use-generic-idle-thread-allocation.patch
+Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Ralf Baechle <ralf@linux-mips.org>
+List-Id: linux-arch.vger.kernel.org
 
-Dear all,
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+---
+ arch/mips/Kconfig      |    1 
+ arch/mips/kernel/smp.c |   54 -------------------------------------------------
+ 2 files changed, 2 insertions(+), 53 deletions(-)
 
-I'm working on refactoring the SMP boot and CPU hotplug implementation.
-
-The current code has evolved over time into a conglomerate of
-warts. My main goals are to:
-
- - reduce the architecture code by moving repeating constructs to the
-   core
-
- - redesigning the handling of per cpu threads. There is no point to
-   tear down the threads just to create them again.
-
- - restructuring the notifier facility into a proper tree with
-   dependencies to avoid the gazillion of callbacks and moving
-   setup/teardown code into the context of the upcoming/dying cpu
-
-The motivation behind this work is the cpu hotplug nightmare which we
-are facing in the RT kernel and the requests from several groups
-(e.g. ARM) to make hotplug more lightweight and faster.
-
-This first part moves the idle thread management for non-boot cpus
-into the core. fork_idle() is called in a workqueue as it is
-implemented in a few architectures already. This is necessary when not
-all cpus are brought up by the early boot code as otherwise we would
-take a ref on the user task VM of the thread which brings the cpu up
-via the sysfs interface.
-
-This converts all architectures except m32r, mn10300, tile and UM to
-the new core facility. These architecture are calling fork_idle() in
-the very early boot code in smp_prepare_cpus() for unknown reasons.
-I haven't analyzed yet, whether this is on purpose or can be moved
-over to the generic facility. It'd be nice if the responsible maintainers
-could look into that as well.
-
-Thanks,
-
-	tglx
+Index: linux-2.6/arch/mips/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/mips/Kconfig
++++ linux-2.6/arch/mips/Kconfig
+@@ -29,6 +29,7 @@ config MIPS
+ 	select HAVE_MEMBLOCK
+ 	select HAVE_MEMBLOCK_NODE_MAP
+ 	select ARCH_DISCARD_MEMBLOCK
++	select GENERIC_SMP_IDLE_THREAD
+ 
+ menu "Machine selection"
+ 
+Index: linux-2.6/arch/mips/kernel/smp.c
+===================================================================
+--- linux-2.6.orig/arch/mips/kernel/smp.c
++++ linux-2.6/arch/mips/kernel/smp.c
+@@ -186,61 +186,9 @@ void __devinit smp_prepare_boot_cpu(void
+ 	cpu_set(0, cpu_callin_map);
+ }
+ 
+-/*
+- * Called once for each "cpu_possible(cpu)".  Needs to spin up the cpu
+- * and keep control until "cpu_online(cpu)" is set.  Note: cpu is
+- * physical, not logical.
+- */
+-static struct task_struct *cpu_idle_thread[NR_CPUS];
+-
+-struct create_idle {
+-	struct work_struct work;
+-	struct task_struct *idle;
+-	struct completion done;
+-	int cpu;
+-};
+-
+-static void __cpuinit do_fork_idle(struct work_struct *work)
+-{
+-	struct create_idle *c_idle =
+-		container_of(work, struct create_idle, work);
+-
+-	c_idle->idle = fork_idle(c_idle->cpu);
+-	complete(&c_idle->done);
+-}
+-
+ int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
+ {
+-	struct task_struct *idle;
+-
+-	/*
+-	 * Processor goes to start_secondary(), sets online flag
+-	 * The following code is purely to make sure
+-	 * Linux can schedule processes on this slave.
+-	 */
+-	if (!cpu_idle_thread[cpu]) {
+-		/*
+-		 * Schedule work item to avoid forking user task
+-		 * Ported from arch/x86/kernel/smpboot.c
+-		 */
+-		struct create_idle c_idle = {
+-			.cpu    = cpu,
+-			.done   = COMPLETION_INITIALIZER_ONSTACK(c_idle.done),
+-		};
+-
+-		INIT_WORK_ONSTACK(&c_idle.work, do_fork_idle);
+-		schedule_work(&c_idle.work);
+-		wait_for_completion(&c_idle.done);
+-		idle = cpu_idle_thread[cpu] = c_idle.idle;
+-
+-		if (IS_ERR(idle))
+-			panic(KERN_ERR "Fork failed for CPU %d", cpu);
+-	} else {
+-		idle = cpu_idle_thread[cpu];
+-		init_idle(idle, cpu);
+-	}
+-
+-	mp_ops->boot_secondary(cpu, idle);
++	mp_ops->boot_secondary(cpu, tidle);
+ 
+ 	/*
+ 	 * Trust is futile.  We should really have timeouts ...
