@@ -1,71 +1,134 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH v6 1/6] task_work_add: generic process-context callbacks
-Date: Fri, 20 Apr 2012 09:48:58 +0100
-Message-ID: <10341.1334911738@redhat.com>
-References: <20120419231455.GA15828@redhat.com> <20120419231431.GA15820@redhat.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20120419231455.GA15828@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: dhowells@redhat.com, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Thomas Gleixner <tglx@linutronix.de>, Alexander Gordeev <agordeev@redhat.com>, Chris Zankel <chris@zankel.net>, David Smith <dsmith@redhat.com>, "Frank Ch. Eigler" <fche@redhat.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Larry Woodman <lwoodman@redhat.com>, Peter Zijlstra <peterz@infradead.org>, Richard Kuo <rkuo@codeaurora.org>, Tejun Heo <tj@kernel.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: [patch 08/18] ia64: Use generic idle thread allocation
+Date: Fri, 20 Apr 2012 13:05:49 -0000
+Message-ID: <20120420124557.380965133@linutronix.de>
+References: <20120420122120.097464672@linutronix.de>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.linutronix.de ([62.245.132.108]:44752 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750709Ab2DTNFy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 20 Apr 2012 09:05:54 -0400
+Content-Disposition: inline;
+ filename=ia64-use-generic-idle-thread-allocation.patch
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: LKML <linux-kernel@vger.kernel.org>
+Cc: linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Tony Luck <tony.luck@intel.com>
 
-Oleg Nesterov <oleg@redhat.com> wrote:
+Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+Cc: Tony Luck <tony.luck@intel.com>
+---
+ arch/ia64/Kconfig          |    1 
+ arch/ia64/kernel/smpboot.c |   61 ++-------------------------------------------
+ 2 files changed, 4 insertions(+), 58 deletions(-)
 
-> Provide a simple mechanism that allows running code in the
-> (nonatomic) context of the arbitrary task.
-> 
-> The caller does task_work_add(task, task_work) and this task
-> executes task_work->func() either from do_notify_resume() or
-> from do_exit(). The callback can rely on PF_EXITING to detect
-> the latter case.
-> 
-> "struct task_work" can be embedded in another struct, still it
-> has "void *data" to handle the most common/simple case.
-> 
-> This allows us to kill the ->replacement_session_keyring hack,
-> and potentially this can have more users.
-> 
-> Performance-wise, this adds 2 "unlikely(!hlist_empty())" checks
-> into tracehook_notify_resume() and do_exit(). But at the same
-> time we can remove the "replacement_session_keyring != NULL"
-> checks from arch/*/signal.c and exit_creds().
-> 
-> Note: task_work_add/task_work_run abuses ->pi_lock. This is
-> only because this lock is already used by lookup_pi_state() to
-> synchronize with do_exit() setting PF_EXITING. Fortunately the
-> scope of this lock in task_work.c is really tiny, and the code
-> is unlikely anyway.
-> 
-> v2:
-> 	- implement task_work_cancel(func), it removes the first
-> 	  task_work with the same callback.
-> v3:
-> 	- task_work_add() gets the new arg, "bool notify" to
-> 	  conditionalize set_notify_resume(), this makes it useable
-> 	  for kthreads and task_work_add(notify => false) can
-> 	  work without TIF_NOTIFY_RESUME.
-> 
-> 	- don't add the dummy "ifndef TIF_NOTIFY_RESUME" inlines,
-> 	  just add the simple check in task_work_add().
-> v4:
-> 	- s/task_work_queue/task_work_add/
-> v5:
-> 	- task_work_run() uses current explicitely
-> 
-> Todo:
-> 	- move clear_thread_flag(TIF_NOTIFY_RESUME) from arch/
-> 	  to tracehook_notify_resume()
-> 
-> 	- rename tracehook_notify_resume() and move it into
-> 	  linux/task_work.h
-> 
-> 	- m68k and xtensa don't have TIF_NOTIFY_RESUME and thus
-> 	  task_work_add(notify => true) fails with -ENOTSUPP.
-> 
-> 	  However, ->replacement_session_keyring equally needs
-> 	  this flag, task_work_add() is not worse.
-> 
-> Signed-off-by: Oleg Nesterov <oleg@redhat.com>
-
-Acked-by: David Howells <dhowells@redhat.com>
+Index: linux-2.6/arch/ia64/Kconfig
+===================================================================
+--- linux-2.6.orig/arch/ia64/Kconfig
++++ linux-2.6/arch/ia64/Kconfig
+@@ -33,6 +33,7 @@ config IA64
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select GENERIC_IOMAP
++	select GENERIC_SMP_IDLE_THREAD
+ 	default y
+ 	help
+ 	  The Itanium Processor Family is Intel's 64-bit successor to
+Index: linux-2.6/arch/ia64/kernel/smpboot.c
+===================================================================
+--- linux-2.6.orig/arch/ia64/kernel/smpboot.c
++++ linux-2.6/arch/ia64/kernel/smpboot.c
+@@ -75,13 +75,6 @@
+ #endif
+ 
+ /*
+- * Store all idle threads, this can be reused instead of creating
+- * a new thread. Also avoids complicated thread destroy functionality
+- * for idle threads.
+- */
+-struct task_struct *idle_thread_array[NR_CPUS];
+-
+-/*
+  * Global array allocated for NR_CPUS at boot time
+  */
+ struct sal_to_os_boot sal_boot_rendez_state[NR_CPUS];
+@@ -94,13 +87,7 @@ struct sal_to_os_boot *sal_state_for_boo
+ 
+ #define set_brendez_area(x) (sal_state_for_booting_cpu = &sal_boot_rendez_state[(x)]);
+ 
+-#define get_idle_for_cpu(x)		(idle_thread_array[(x)])
+-#define set_idle_for_cpu(x,p)	(idle_thread_array[(x)] = (p))
+-
+ #else
+-
+-#define get_idle_for_cpu(x)		(NULL)
+-#define set_idle_for_cpu(x,p)
+ #define set_brendez_area(x)
+ #endif
+ 
+@@ -480,54 +467,12 @@ struct pt_regs * __cpuinit idle_regs(str
+ 	return NULL;
+ }
+ 
+-struct create_idle {
+-	struct work_struct work;
+-	struct task_struct *idle;
+-	struct completion done;
+-	int cpu;
+-};
+-
+-void __cpuinit
+-do_fork_idle(struct work_struct *work)
+-{
+-	struct create_idle *c_idle =
+-		container_of(work, struct create_idle, work);
+-
+-	c_idle->idle = fork_idle(c_idle->cpu);
+-	complete(&c_idle->done);
+-}
+-
+ static int __cpuinit
+-do_boot_cpu (int sapicid, int cpu)
++do_boot_cpu (int sapicid, int cpu, struct task_struct *idle)
+ {
+ 	int timeout;
+-	struct create_idle c_idle = {
+-		.work = __WORK_INITIALIZER(c_idle.work, do_fork_idle),
+-		.cpu	= cpu,
+-		.done	= COMPLETION_INITIALIZER(c_idle.done),
+-	};
+-
+-	/*
+-	 * We can't use kernel_thread since we must avoid to
+-	 * reschedule the child.
+-	 */
+- 	c_idle.idle = get_idle_for_cpu(cpu);
+- 	if (c_idle.idle) {
+-		init_idle(c_idle.idle, cpu);
+- 		goto do_rest;
+-	}
+-
+-	schedule_work(&c_idle.work);
+-	wait_for_completion(&c_idle.done);
+-
+-	if (IS_ERR(c_idle.idle))
+-		panic("failed fork for CPU %d", cpu);
+-
+-	set_idle_for_cpu(cpu, c_idle.idle);
+-
+-do_rest:
+-	task_for_booting_cpu = c_idle.idle;
+ 
++	task_for_booting_cpu = idle;
+ 	Dprintk("Sending wakeup vector %lu to AP 0x%x/0x%x.\n", ap_wakeup_vector, cpu, sapicid);
+ 
+ 	set_brendez_area(cpu);
+@@ -811,7 +756,7 @@ __cpu_up(unsigned int cpu, struct task_s
+ 
+ 	per_cpu(cpu_state, cpu) = CPU_UP_PREPARE;
+ 	/* Processor goes to start_secondary(), sets online flag */
+-	ret = do_boot_cpu(sapicid, cpu);
++	ret = do_boot_cpu(sapicid, cpu, tidle);
+ 	if (ret < 0)
+ 		return ret;
+ 
