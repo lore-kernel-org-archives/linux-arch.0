@@ -1,28 +1,42 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [patch 18/18] sparc: Use generic idle thread allocation
-Date: Sun, 22 Apr 2012 15:52:36 -0400 (EDT)
-Message-ID: <20120422.155236.157167853813534336.davem@davemloft.net>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [patch 00/18] SMP: Boot and CPU hotplug refactoring - Part 1
+Date: Sun, 22 Apr 2012 23:01:45 +0200
+Message-ID: <4F9471B9.5050007@tilera.com>
 References: <20120420122120.097464672@linutronix.de>
-	<20120420124558.055198736@linutronix.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([198.137.202.13]:50100 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751997Ab2DVTzG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Apr 2012 15:55:06 -0400
-In-Reply-To: <20120420124558.055198736@linutronix.de>
+Received: from usmamail.tilera.com ([206.83.70.75]:48292 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752476Ab2DVVCD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Apr 2012 17:02:03 -0400
+In-Reply-To: <20120420122120.097464672@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, peterz@infradead.org, rusty@rustcorp.com.au, paulmck@linux.vnet.ibm.com, mingo@kernel.org, srivatsa.bhat@linux.vnet.ibm.com
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 
-From: Thomas Gleixner <tglx@linutronix.de>
-Date: Fri, 20 Apr 2012 13:05:56 -0000
+On Fri, 2012-04-20 at 13:05 +0000, Thomas Gleixner wrote:
+> [...]
+> This first part moves the idle thread management for non-boot cpus
+> into the core. fork_idle() is called in a workqueue as it is
+> implemented in a few architectures already. This is necessary when not
+> all cpus are brought up by the early boot code as otherwise we would
+> take a ref on the user task VM of the thread which brings the cpu up
+> via the sysfs interface.
+> 
+> This converts all architectures except m32r, mn10300, tile and UM to
+> the new core facility. These architecture are calling fork_idle() in
+> the very early boot code in smp_prepare_cpus() for unknown reasons.
+> I haven't analyzed yet, whether this is on purpose or can be moved
+> over to the generic facility. It'd be nice if the responsible maintainers
+> could look into that as well.
 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: "David S. Miller" <davem@davemloft.net>
+I will take a look at this for the tile architecture later this week; I'm
+out on vacation until Wednesday.
 
-Tested-by: David S. Miller <davem@davemloft.net>
-Signed-off-by: David S. Miller <davem@davemloft.net>
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
+
