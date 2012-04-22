@@ -1,32 +1,28 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [patch 15/18] sh: Use generic idle thread allocation
-Date: Sat, 21 Apr 2012 12:18:20 +0900
-Message-ID: <20120421031819.GF22189@linux-sh.org>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [patch 18/18] sparc: Use generic idle thread allocation
+Date: Sun, 22 Apr 2012 15:52:36 -0400 (EDT)
+Message-ID: <20120422.155236.157167853813534336.davem@davemloft.net>
 References: <20120420122120.097464672@linutronix.de>
- <20120420124557.855203626@linutronix.de>
+	<20120420124558.055198736@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from linux-sh.org ([111.68.239.195]:49633 "EHLO linux-sh.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753448Ab2DUDTY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Apr 2012 23:19:24 -0400
-Content-Disposition: inline
-In-Reply-To: <20120420124557.855203626@linutronix.de>
+Received: from shards.monkeyblade.net ([198.137.202.13]:50100 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751997Ab2DVTzG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 22 Apr 2012 15:55:06 -0400
+In-Reply-To: <20120420124558.055198736@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+To: tglx@linutronix.de
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, peterz@infradead.org, rusty@rustcorp.com.au, paulmck@linux.vnet.ibm.com, mingo@kernel.org, srivatsa.bhat@linux.vnet.ibm.com
 
-On Fri, Apr 20, 2012 at 01:05:54PM -0000, Thomas Gleixner wrote:
+From: Thomas Gleixner <tglx@linutronix.de>
+Date: Fri, 20 Apr 2012 13:05:56 -0000
+
 > Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Paul Mundt <lethal@linux-sh.org>
-> ---
->  arch/sh/Kconfig                 |    1 +
->  arch/sh/include/asm/processor.h |    4 ----
->  arch/sh/kernel/smp.c            |   14 +-------------
->  3 files changed, 2 insertions(+), 17 deletions(-)
-> 
-Looks good to me.
+> Cc: "David S. Miller" <davem@davemloft.net>
 
-Acked-by: Paul Mundt <lethal@linux-sh.org>
+Tested-by: David S. Miller <davem@davemloft.net>
+Signed-off-by: David S. Miller <davem@davemloft.net>
