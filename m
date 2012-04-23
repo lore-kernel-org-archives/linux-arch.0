@@ -1,84 +1,35 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [RFC] move link of vmlinux to a script
-Date: Mon, 23 Apr 2012 07:10:41 +0200
-Message-ID: <20120423051041.GA6709@merkur.ravnborg.org>
-References: <20120422212220.GA6537@merkur.ravnborg.org> <CACqU3MU7MS7MjpyiSx-tUJ6c3rSexUB5=vTGy6gPv_OJevuOqw@mail.gmail.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [patch 12/18] s390: Use generic idle thread allocation
+Date: Mon, 23 Apr 2012 09:09:58 +0200
+Message-ID: <20120423090958.6904ae7b@de.ibm.com>
+References: <20120420122120.097464672@linutronix.de>
+	<20120420124557.652574928@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CACqU3MU7MS7MjpyiSx-tUJ6c3rSexUB5=vTGy6gPv_OJevuOqw@mail.gmail.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Arnaud Lacombe <lacombar@gmail.com>
-Cc: linux arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Michal Marek <mmarek@suse.cz>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20120420124557.652574928@linutronix.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Arnaud.
+On Fri, 20 Apr 2012 13:05:52 -0000
+Thomas Gleixner <tglx@linutronix.de> wrote:
 
-Thanks for the comments.
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+> ---
+>  arch/s390/Kconfig      |    1 +
+>  arch/s390/kernel/smp.c |   33 ++-------------------------------
+>  2 files changed, 3 insertions(+), 31 deletions(-)
 
-> > +# Link of vmlinux
-> > +# $1 - optional extra .o files
-> > +# $2 output file
-> > +vmlinux_link()
-> > +{
-> > + =A0 =A0 =A0 local lds=3D${srctree}/arch/${SRCARCH}/kernel/vmlinux=
-=2Elds
-> > +echo srcarch=3D${SRCARCH} CF=3D${CFLAGS_vmlinux}
-> debugging leftover ?
-yes - will be deleted.
+Compile, boots & survives a few rounds of cpu hotplug stress.
+Looks good.
+Acked-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
 
-> > +
-> > + =A0 =A0 =A0 local aflags=3D"${KBUILD_AFLAGS} ${AFLAGS_KERNEL} ${N=
-OSTDINC_FLAGS} ${LINUXINCLUDE} ${KBUILD_CPPFLAGS} ${modkern_aflags}"
-> might be worse splitting that line.
+-- 
+blue skies,
+   Martin.
 
-I may be able to drop several of the variables,
-otherwise yes.
-
-> > +mksysmap()
-> > +{
-> > + =A0 =A0 =A0 $NM -n $1 | \
-> > + =A0 =A0 =A0 =A0 =A0 =A0 =A0 grep -v '\( [aNUw] \)\|\(__crc_\)\|\(=
- \$[adt]\)' > $2
-> > +}
-> > +
-> you don't seem to consistently use #{FOO} vs. $FOO.
-
-=46or arguments I use $FOO for the rest ${FOO}
-I will fix this up to be consistent.
-
-> > +# Update version
-> > +info GEN .version
-> > +if [ ! -r .version ]; then
-> why '-r' specifically ? '-e' might be just enough.
-
-I was so before - this part is a copy from the kernel.
-And there is already enough changes..
-
-> > +# final build of init/
-> > +${MAKE} -f ${srctree}/scripts/Makefile.build obj=3Dinit
-> > +
-> are spaces allowed in `srctree' ? if so, this will break here.
-Good catch.
-Sticking "" around should do the trick? I will try to do so.
-I should also try if it works with spaces - I think not.
-
-
-> > +kallsymso=3D""
-> > +kallsyms_vmlinux=3D""
-> > +
-> > +if [ "${CONFIG_KALLSYMS}" !=3D "" ]; then
-> > +
-> [ -n "${CONFIG_KALLSYMS}" ] would work too, as well as the other
-> places where you use the [ "${FOO}" !=3D "" ] syntax.
-
-Much more readable - will change.
-
-	Sam
---
-To unsubscribe from this list: send the line "unsubscribe linux-kbuild"=
- in
-the body of a message to majordomo@vger.kernel.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+"Reality continues to ruin my life." - Calvin.
