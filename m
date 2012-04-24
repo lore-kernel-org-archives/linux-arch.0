@@ -1,29 +1,64 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
 Subject: Re: [RFC][PATCH 0/3] gcc work-around and math128
-Date: Tue, 24 Apr 2012 14:18:09 -0700
-Message-ID: <CA+55aFxJHHnEf4nuB5VEKa5OLJ38nY1-tN8oA2JkoYoO6nRUAQ@mail.gmail.com>
-References: <20120424161039.293018424@chello.nl> <4F9717E6.8030506@amacapital.net>
+Date: Tue, 24 Apr 2012 23:32:57 +0200
+Message-ID: <1335303177.28150.235.camel@twins>
+References: <20120424161039.293018424@chello.nl>
+	 <4F9717E6.8030506@amacapital.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f174.google.com ([74.125.82.174]:49623 "EHLO
-	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756379Ab2DXVSc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2012 17:18:32 -0400
+Received: from merlin.infradead.org ([205.233.59.134]:39193 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757075Ab2DXVdK convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2012 17:33:10 -0400
 In-Reply-To: <4F9717E6.8030506@amacapital.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Andy Lutomirski <luto@amacapital.net>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>
 
-On Tue, Apr 24, 2012 at 2:15 PM, Andy Lutomirski <luto@amacapital.net> wrote:
->
+On Tue, 2012-04-24 at 14:15 -0700, Andy Lutomirski wrote:
+> > The second two implement a few u128 operations so we can do 128bit math.. I
+> > know a few people will die a little inside, but having nanosecond granularity
+> > time accounting leads to very big numbers very quickly and when you need to
+> > multiply them 64bit really isn't that much.
+> 
 > I played with some of this stuff awhile ago, and for timekeeping, it
 > seemed like a 64x32->96 bit multiply followed by a right shift was
 > enough, and that operation is a lot faster on 32-bit architectures than
-> a full 64x64->128 multiply.
+> a full 64x64->128 multiply. 
 
-Ack. That may sound like odd numbers, but 64x32->96 sounds sane. And I
-think it avoids a multiply even on 64-bit, no?
+The SCHED_DEADLINE use case is not that, it multiplies two time
+intervals. Basically it needs to evaluate if a task activation still
+fits in the old period or if it needs to shift the deadline and start a
+new period.
 
-              Linus
+It needs to do: runtime / (deadline - t) < budget / period
+which transforms into: (deadline - t) * period < budget * runtime
+
+hence the 64x64->128 mult and 128 compare.
+
+> Something like:
+> 
+> uint64_t mul_64_32_shift(uint64_t a, uint32_t mult, uint32_t shift)
+> {
+>   return (uint64_t)( ((__uint128_t)a * (__uint128_t)mult) >> shift );
+> }
+
+That looks a lot like what we grew mult_frac() for, it does:
+
+/*              
+ * Multiplies an integer by a fraction, while avoiding unnecessary
+ * overflow or loss of precision.
+ */
+#define mult_frac(x, numer, denom)(                     \
+{                                                       \
+        typeof(x) quot = (x) / (denom);                 \
+        typeof(x) rem  = (x) % (denom);                 \
+        (quot * (numer)) + ((rem * (numer)) / (denom)); \
+}                                                       \
+)
+
+
+and is used in __cycles_2_ns() and friends.
