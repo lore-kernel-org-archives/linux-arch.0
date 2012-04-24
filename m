@@ -1,38 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:11678 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756746Ab2DXQsC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2012 12:48:02 -0400
-Date: Tue, 24 Apr 2012 11:47:59 -0500
-From: Richard Kuo <rkuo@codeaurora.org>
-Subject: Re: [patch 11/18] hexagon: Use generic idle thread allocation
-Message-ID: <20120424164759.GD3221@codeaurora.org>
-References: <20120420122120.097464672@linutronix.de>
- <20120420124557.581762105@linutronix.de>
+Received: from smtp.snhosting.dk ([87.238.248.203]:61784 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757253Ab2DXTlv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2012 15:41:51 -0400
+Date: Tue, 24 Apr 2012 21:41:48 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: [PATCH 0/4] kbuild: Move vmlinux link out of top-level Makefile
+Message-ID: <20120424194148.GA2216@merkur.ravnborg.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20120420124557.581762105@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, linux-hexagon@vger.kernel.org
-Message-ID: <20120424164759.F-UgxB__jzgLfv75e7PgpWka1wGQTUjICO05QyYRnTs@z>
+To: linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.cz>
+Cc: Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20120424194148.0waMkDFz2NLeUeYURK6CUeQQ_EyaGUFOiDu32AHlBLI@z>
 
-On Fri, Apr 20, 2012 at 01:05:51PM -0000, Thomas Gleixner wrote:
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Richard Kuo <rkuo@codeaurora.org>
-> ---
->  arch/hexagon/Kconfig      |    1 +
->  arch/hexagon/kernel/smp.c |   11 ++---------
->  2 files changed, 3 insertions(+), 9 deletions(-)
+The following patchset moves all the magic used
+to deal with the final link of vmlinux from the
+top-level Makefile to a shell script.
 
-Tested; works for me.
+The main motivation was to convert the almost
+unreadable mess in the top-level Makefile to
+an easy to read/maintain shell script.
 
-Acked-by: Richard Kuo <rkuo@codeaurora.org>
+The final link stages are serialized
+anyway - so there were nothing gained by using
+the Makefile logic to handle this.
 
+What we gain:
+- A readable final link of vmlinux
+- Less junk in the top-level Makefile
 
--- 
+What we loose by the conversion:
+- We no longer rebuild if options to ld changes.
+- We no logner rebuild if one of the .tmp_kallsyms
+  files are deleted.
+- We no longer rebuild if vmlinux.o is deleted
 
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+None of the above cases are hit by a typical
+kernel developer so the drawbacks are acceptable.
+
+I had to implement special handling of um in the
+link-vmlinux script. It is not pretty by any means,
+but I could not come up with something better.
+My previous attempts to use ld for um linking has failed,
+so this kludge was introduced.
+
+There is no outstanding issues to my knowledge,
+and the patchset is ready to be applied.
+I assume this should go in via the kbuild#misc tree.
+
+	Sam
+
+ Documentation/kbuild/kbuild.txt |   15 +++
+ Makefile                        |  213 ++------------------------------------
+ arch/sparc/Makefile             |   11 --
+ arch/sparc/boot/Makefile        |   14 ++-
+ arch/um/Makefile                |   11 +--
+ scripts/link-vmlinux.sh         |  204 +++++++++++++++++++++++++++++++++++++
+ 6 files changed, 242 insertions(+), 226 deletions(-)
+
+Sam Ravnborg (4):
+      kbuild: drop unused KBUILD_VMLINUX_OBJS from top-level Makefile
+      kbuild: refactor final link of sparc32
+      kbuild: link of vmlinux moved to a script
+      kbuild: document KBUILD_LDS, KBUILD_VMLINUX_INIT and KBUILD_VMLINUX_MAIN
+
