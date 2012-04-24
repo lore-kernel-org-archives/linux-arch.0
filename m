@@ -1,29 +1,33 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [RFC][PATCH 3/3] math128, x86_64: Implement {mult,add}_u128 in
- 64bit asm
-Date: Tue, 24 Apr 2012 18:36:35 +0200
-Message-ID: <1335285395.28150.204.camel@twins>
-References: <20120424161039.293018424@chello.nl>
-	 <20120424162224.588822231@chello.nl> <4F96D604.5050709@zytor.com>
+From: Richard Kuo <rkuo@codeaurora.org>
+Subject: Re: [patch 11/18] hexagon: Use generic idle thread allocation
+Date: Tue, 24 Apr 2012 11:47:59 -0500
+Message-ID: <20120424164759.GD3221@codeaurora.org>
+References: <20120420122120.097464672@linutronix.de>
+ <20120420124557.581762105@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:47906 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755481Ab2DXQgr convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2012 12:36:47 -0400
-In-Reply-To: <4F96D604.5050709@zytor.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-hexagon-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20120420124557.581762105@linutronix.de>
+Sender: linux-hexagon-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, linux-hexagon@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 2012-04-24 at 09:34 -0700, H. Peter Anvin wrote:
-> On 04/24/2012 09:10 AM, Peter Zijlstra wrote:
-> 
-> Are you sure that gcc won't simply generate this code already if given
-> "unsigned __int128"?
+On Fri, Apr 20, 2012 at 01:05:51PM -0000, Thomas Gleixner wrote:
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Richard Kuo <rkuo@codeaurora.org>
+> ---
+>  arch/hexagon/Kconfig      |    1 +
+>  arch/hexagon/kernel/smp.c |   11 ++---------
+>  2 files changed, 3 insertions(+), 9 deletions(-)
 
-It might, but I've been told some GCC versions had issues, also lots of
-archs fall back to libgcc functions.
+Tested; works for me.
+
+Acked-by: Richard Kuo <rkuo@codeaurora.org>
+
+
+-- 
+
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
