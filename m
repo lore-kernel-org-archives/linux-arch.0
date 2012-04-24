@@ -1,72 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from unicorn.mansr.com ([78.86.181.103]:55388 "EHLO
-	unicorn.mansr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757296Ab2DXUSp convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2012 16:18:45 -0400
-From: =?iso-8859-1?Q?M=E5ns_Rullg=E5rd?= <mans@mansr.com>
-Subject: Re: [RFC][PATCH 2/3] math128: Introduce {mult,add,cmp}_u128
-References: <20120424161039.293018424@chello.nl>
-	<20120424162224.526249106@chello.nl>
-	<CA+55aFyvBTDh_DkXs6Z6zFmjyYxvWaAEm9-rJDXhvPx8CpDiKA@mail.gmail.com>
-Date: Tue, 24 Apr 2012 21:12:20 +0100
-In-Reply-To: <CA+55aFyvBTDh_DkXs6Z6zFmjyYxvWaAEm9-rJDXhvPx8CpDiKA@mail.gmail.com>
-	(Linus Torvalds's message of "Tue, 24 Apr 2012 12:37:53 -0700")
-Message-ID: <yw1xy5pkj3dn.fsf@unicorn.mansr.com>
+Received: from mail-pz0-f51.google.com ([209.85.210.51]:58556 "EHLO
+	mail-pz0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757834Ab2DXVgK convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2012 17:36:10 -0400
+Received: by mail-pz0-f51.google.com with SMTP id z8so1437322dad.10
+        for <linux-arch@vger.kernel.org>; Tue, 24 Apr 2012 14:36:09 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
+In-Reply-To: <1335303177.28150.235.camel@twins>
+References: <20120424161039.293018424@chello.nl> <4F9717E6.8030506@amacapital.net>
+ <1335303177.28150.235.camel@twins>
+From: Andy Lutomirski <luto@amacapital.net>
+Date: Tue, 24 Apr 2012 14:35:49 -0700
+Message-ID: <CALCETrWJvQ6h=YaPX20pTGLQ39m1aFNEuubTb9f3cJczDPWy-g@mail.gmail.com>
+Subject: Re: [RFC][PATCH 0/3] gcc work-around and math128
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
-Message-ID: <20120424201220.8QKjahMQPcZEZ9zmhx29rIevvSgLPGDfD0Qreb9m3Og@z>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>
+Message-ID: <20120424213549.elAWguAjiFMGihvpRgIwiBYe0zCn0PPixbqi7-6oIoI@z>
 
-Linus Torvalds <torvalds@linux-foundation.org> writes:
-
-> On Tue, Apr 24, 2012 at 9:10 AM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
->> Grow rudimentary u128 support without relying on gcc/libgcc.
+On Tue, Apr 24, 2012 at 2:32 PM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+> On Tue, 2012-04-24 at 14:15 -0700, Andy Lutomirski wrote:
+>> > The second two implement a few u128 operations so we can do 128bit math.. I
+>> > know a few people will die a little inside, but having nanosecond granularity
+>> > time accounting leads to very big numbers very quickly and when you need to
+>> > multiply them 64bit really isn't that much.
 >>
->> +#ifndef add_u128
->> +static inline u128 add_u128(u128 a, u128 b)
->> +{
->> +       u128 res;
->> +
->> +       res.hi = a.hi + b.hi;
->> +       res.lo = a.lo + b.lo;
->> +
->> +       if (res.lo < a.lo || res.lo < b.lo)
->> +               res.hi++;
+>> I played with some of this stuff awhile ago, and for timekeeping, it
+>> seemed like a 64x32->96 bit multiply followed by a right shift was
+>> enough, and that operation is a lot faster on 32-bit architectures than
+>> a full 64x64->128 multiply.
 >
-> This is wrong. Or at least stupid.
+> The SCHED_DEADLINE use case is not that, it multiplies two time
+> intervals. Basically it needs to evaluate if a task activation still
+> fits in the old period or if it needs to shift the deadline and start a
+> new period.
 >
-> Just do one of the comparisons, not both. If overflow occurs, the
-> result will be smaller than *either* of the added numbers, so
-> comparing both is just silly and confused.
+> It needs to do: runtime / (deadline - t) < budget / period
+> which transforms into: (deadline - t) * period < budget * runtime
 >
-> So just pick one.
->
-> Also, it might be worth looking at code generation, to see if it's
-> better to just do
->
->    a.hi += b.hi;
->    a.low += b.low;
->    if (a.low < b.low)
->       a.hi++;
->    return a;
+> hence the 64x64->128 mult and 128 compare.
 
-I have no idea if it makes a difference, but that if statement can be
-written as a.hi += a.low < b.low.  Just an observation.
+Fair enough.
 
-> because that might make it clear that there are fewer actual values
-> live at any particular time. But gcc may not care. Try it.
 >
-> Also, for the multiply, please make sure gcc knows to do a "32x32->64"
-> multiplication, rather than thinking it needs to do full 64x64
-> multiplies..
+>> Something like:
+>>
+>> uint64_t mul_64_32_shift(uint64_t a, uint32_t mult, uint32_t shift)
+>> {
+>>   return (uint64_t)( ((__uint128_t)a * (__uint128_t)mult) >> shift );
+>> }
+>
+> That looks a lot like what we grew mult_frac() for, it does:
+>
+> /*
+>  * Multiplies an integer by a fraction, while avoiding unnecessary
+>  * overflow or loss of precision.
+>  */
+> #define mult_frac(x, numer, denom)(                     \
+> {                                                       \
+>        typeof(x) quot = (x) / (denom);                 \
+>        typeof(x) rem  = (x) % (denom);                 \
+>        (quot * (numer)) + ((rem * (numer)) / (denom)); \
+> }                                                       \
+> )
+>
+>
+> and is used in __cycles_2_ns() and friends.
 
-On ARM it does the right thing at least since 4.3, which is the oldest
-ARM compiler I have at hand.
+Yeesh.  That looks way slower, and IIRC __cycles_2_ns overflows every
+few seconds on modern machines.
 
--- 
-Måns Rullgård
-mans@mansr.com
+gcc 4.6 generates this code:
+
+mul_64_32_shift:
+        pushq   %rbp
+        movq    %rsp, %rbp
+        movl    %edx, %ecx
+        movl    %esi, %eax
+        mulq    %rdi
+        movq    %rdx, %rsi
+        shrq    %cl, %rsi
+        shrdq   %cl, %rdx, %rax
+        testb   $64, %cl
+        cmovneq %rsi, %rax
+        popq    %rbp
+        ret
+
+which is a bit dumb if you can make assumptions about the shift.  See
+http://gcc.gnu.org/PR46514.  Some use cases might be able to guarantee
+that the shift is less than 32 bits, in which case hand-written
+assembly would be a few cycles faster.
+
+--Andy
