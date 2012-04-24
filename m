@@ -1,73 +1,63 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [RFC][PATCH 2/3] math128: Introduce {mult,add,cmp}_u128
-Date: Tue, 24 Apr 2012 23:54:57 +0200
-Message-ID: <1335304497.28150.243.camel@twins>
+Subject: Re: [RFC][PATCH 3/3] math128, x86_64: Implement {mult,add}_u128 in
+ 64bit asm
+Date: Wed, 25 Apr 2012 00:00:43 +0200
+Message-ID: <1335304843.28150.246.camel@twins>
 References: <20120424161039.293018424@chello.nl>
-	 <20120424162224.526249106@chello.nl>
-	 <CA+55aFyvBTDh_DkXs6Z6zFmjyYxvWaAEm9-rJDXhvPx8CpDiKA@mail.gmail.com>
+	   <20120424162224.588822231@chello.nl> <4F96D604.5050709@zytor.com>
+	  <1335285395.28150.204.camel@twins> <4F96E01E.6040109@zytor.com>
+	 <1335287973.28150.213.camel@twins> <4F96E0EB.7030904@zytor.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:40406 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:40853 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757143Ab2DXVzJ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2012 17:55:09 -0400
-In-Reply-To: <CA+55aFyvBTDh_DkXs6Z6zFmjyYxvWaAEm9-rJDXhvPx8CpDiKA@mail.gmail.com>
+	with ESMTP id S1757282Ab2DXWAy convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2012 18:00:54 -0400
+In-Reply-To: <4F96E0EB.7030904@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
 
-On Tue, 2012-04-24 at 12:37 -0700, Linus Torvalds wrote:
-> Also, it might be worth looking at code generation, to see if it's
-> better to just do
-> 
->    a.hi += b.hi;
->    a.low += b.low;
->    if (a.low < b.low)
->       a.hi++;
->    return a;
-> 
-> because that might make it clear that there are fewer actual values
-> live at any particular time. But gcc may not care. Try it.
+On Tue, 2012-04-24 at 10:20 -0700, H. Peter Anvin wrote:
+> I have been told __int128 works for all versions of gcc which support
+> x86-64, but I haven't verified it myself, no. 
 
-It does indeed generate tons better code. FWIW, Mans' suggestion of: 
-  a.hi += a.lo < b.lo;
-horribly confuses gcc.
+The gcc version I have seems to grok it:
 
-> Also, for the multiply, please make sure gcc knows to do a "32x32->64"
-> multiplication, rather than thinking it needs to do full 64x64
-> multiplies..
-> 
-> I'm not sure gcc understands that as you wrote it.
+u128 mult_u64_u128(u64 a, u64 b)                                                             
+{                                                                                            
+        unsigned __int128 t = a;                                                             
+        t *= b;                                                                              
+        return U128_INIT(t >> 64, t);                                                        
+}
+#define mult_u64_u128 mult_u64_u128
 
-It does indeed grok it (as Mans also confirmed for ARM), however:
+generates:
 
->  You are probably
-> better off actually using 32-bit values, and then an explicit cast, ie
-> 
->   u32 a32_0 = .. low 32 bits of a ..
->   u32 b32_0 = .. low 32 bits of b ..
->   u64 res64_0 = (u64) a32_0 * (u64) b32_0;
-> 
-> but if gcc understands it from the shifts and masks, I guess it doesn't matter.
-
-that does generate slightly better code in that it avoids some masks on
-64bit:
-
-@@ -7,12 +7,11 @@
- .LFB38:
+        .p2align 4,,15
+        .globl  mult_u64_u128
+        .type   mult_u64_u128, @function
+mult_u64_u128:
+.LFB38:
         .cfi_startproc
-        movq    %rdi, %r8
--       movq    %rdi, %rdx
-        movq    %rsi, %rcx
-+       mov     %edi, %edx
-        shrq    $32, %r8
--       andl    $4294967295, %edx
-        shrq    $32, %rcx
--       andl    $4294967295, %esi
-+       mov     %esi, %esi
-        movq    %rcx, %rax
-        imulq   %rdx, %rcx
-        imulq   %rsi, %rdx
+        movq    %rsi, %rax
+        pushq   %rbp
+        .cfi_def_cfa_offset 16
+        .cfi_offset 6, -16
+        mulq    %rdi
+        popq    %rbp
+        .cfi_def_cfa_offset 8
+        movq    %rax, %rdi
+        movq    %rdx, %rax
+        movq    %rdi, %rdx
+        ret
+        .cfi_endproc
+.LFE38:
+        .size   mult_u64_u128, .-mult_u64_u128
+
+I haven't been able to make add_u128 generate sane code using __int128,
+the conversion between my struct and the __int128 layout makes a horrid
+mess.
