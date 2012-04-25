@@ -1,30 +1,70 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [RFC][PATCH 2/3] math128: Introduce {mult,add,cmp}_u128
-Date: Tue, 24 Apr 2012 17:09:41 -0700
-Message-ID: <4F9740C5.6050306@zytor.com>
-References: <20120424161039.293018424@chello.nl>  <20120424162224.526249106@chello.nl>  <CA+55aFyvBTDh_DkXs6Z6zFmjyYxvWaAEm9-rJDXhvPx8CpDiKA@mail.gmail.com> <1335304497.28150.243.camel@twins>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [RFC][PATCH 1/3] kernel,sched,time: Clean up gcc work-arounds
+Date: Wed, 25 Apr 2012 10:14:02 +1000
+Message-ID: <20120425101402.509a00996f5f1c0d0f228569@canb.auug.org.au>
+References: <20120424161039.293018424@chello.nl>
+	<20120424162224.454623618@chello.nl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:38915 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756888Ab2DYAJ7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 24 Apr 2012 20:09:59 -0400
-In-Reply-To: <1335304497.28150.243.camel@twins>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Wed__25_Apr_2012_10_14_02_+1000_h4F_m7pEw+GgchLg"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20120424162224.454623618@chello.nl>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+List-Id: linux-arch.vger.kernel.org
 
-On 04/24/2012 02:54 PM, Peter Zijlstra wrote:
-> -       andl    $4294967295, %edx
->         shrq    $32, %rcx
-> -       andl    $4294967295, %esi
-> +       mov     %esi, %esi
+--Signature=_Wed__25_Apr_2012_10_14_02_+1000_h4F_m7pEw+GgchLg
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-If you can *ever* get gcc to generate those andl instructions on x86,
-then please file a gcc bug report: the constant is 0xffffffff and those
-are plain zero-extension instructions which is much better done with mov.
+Hi Peter,
 
-	-hpa
+On Tue, 24 Apr 2012 18:10:40 +0200 Peter Zijlstra <a.p.zijlstra@chello.nl> =
+wrote:
+>
+> We've grown various copies of a particular gcc work-around,
+> consolidate them into one and add a larger comment.
+>=20
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> ---
+>  include/linux/compiler.h |   12 ++++++++++++
+>  include/linux/math64.h   |    4 +---
+>  kernel/sched/core.c      |    8 ++------
+>  kernel/sched/fair.c      |    8 ++------
+>  kernel/time.c            |   11 ++++-------
+
+You should, of course, include linux/compiler.h into those last 4 files ...
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+
+--Signature=_Wed__25_Apr_2012_10_14_02_+1000_h4F_m7pEw+GgchLg
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+iQIcBAEBCAAGBQJPl0HKAAoJEECxmPOUX5FE3h8P/2Wak+q5fppvUfz9fWnIyZW7
+LrT+Jy6DEYrvtO/W7aNNq/+7Mtk2oM7pZ5Q7RUFfPG1Rd3zmaO/1GHE04UzMBDgy
+1Kqj0G5E6ei4vnllTRvFPl72AipqTLRUI7zwf3gyI47UyPP2gGKDXyVGHGh9HlMN
+EKw9nS28fh0CPm3ShOAqyRwSbIu4VToSqhjs3Y2AbhSA7tJubWWR4ruiEga2eLFh
+XlRD4Sc2xcvKGdU79NLo0zD+WfSfQ8P9a+WDbF2v5QNItm29RhCcC6t7MONiylEx
+QbbGfr5+rR2MSCAj6TKPM948MNXZ+9RYSMSQgxtuYrB6WvXs2ojBZm0cTJSLFwaV
+D7U6bbg5V8kpyGLHLFdgm+lwiUZQaK1FXwPjoP+NSGrv/cCFO4jMv5vCnM8rcR1m
+DWXvLy8UuhObCwdzzARzBXnQGrn1hA/DLoOnMuL1ld40Gu8fx9RM47maNDvfyT0G
+Dl4UQ0qoqw5DgDbdOms0AmVF8T1+7JkZln4w6w/dOivC+ImmlI03UomyYfqdnoNW
+Sw7onRsIzMrtj5ylx0SRhuKflgG9FZevhaeUa76FRcECCL/QAWH0P+v241m028uF
+4EACCSsEFNX0IBwV73nWMsVeVRtLI4R9Rch0qwOmyn3gffYn+9Z6GyUbgBHPPQBO
+IGCXuYCOmdoFSAwKmmmq
+=Hvyw
+-----END PGP SIGNATURE-----
+
+--Signature=_Wed__25_Apr_2012_10_14_02_+1000_h4F_m7pEw+GgchLg--
