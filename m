@@ -1,97 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pz0-f51.google.com ([209.85.210.51]:58556 "EHLO
-	mail-pz0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757834Ab2DXVgK convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2012 17:36:10 -0400
-Received: by mail-pz0-f51.google.com with SMTP id z8so1437322dad.10
-        for <linux-arch@vger.kernel.org>; Tue, 24 Apr 2012 14:36:09 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <1335303177.28150.235.camel@twins>
-References: <20120424161039.293018424@chello.nl> <4F9717E6.8030506@amacapital.net>
- <1335303177.28150.235.camel@twins>
-From: Andy Lutomirski <luto@amacapital.net>
-Date: Tue, 24 Apr 2012 14:35:49 -0700
-Message-ID: <CALCETrWJvQ6h=YaPX20pTGLQ39m1aFNEuubTb9f3cJczDPWy-g@mail.gmail.com>
-Subject: Re: [RFC][PATCH 0/3] gcc work-around and math128
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from haggis.pcug.org.au ([203.10.76.10]:56723 "EHLO
+	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757566Ab2DYAON (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2012 20:14:13 -0400
+Date: Wed, 25 Apr 2012 10:14:02 +1000
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [RFC][PATCH 1/3] kernel,sched,time: Clean up gcc work-arounds
+Message-ID: <20120425101402.509a00996f5f1c0d0f228569@canb.auug.org.au>
+In-Reply-To: <20120424162224.454623618@chello.nl>
+References: <20120424161039.293018424@chello.nl>
+	<20120424162224.454623618@chello.nl>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Wed__25_Apr_2012_10_14_02_+1000_h4F_m7pEw+GgchLg"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>
-Message-ID: <20120424213549.elAWguAjiFMGihvpRgIwiBYe0zCn0PPixbqi7-6oIoI@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Message-ID: <20120425001402.9Rpy0-dyfjgHOVAnsh9PqUxuWIgJKWRbA89xntdhLR8@z>
 
-On Tue, Apr 24, 2012 at 2:32 PM, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
-> On Tue, 2012-04-24 at 14:15 -0700, Andy Lutomirski wrote:
->> > The second two implement a few u128 operations so we can do 128bit math.. I
->> > know a few people will die a little inside, but having nanosecond granularity
->> > time accounting leads to very big numbers very quickly and when you need to
->> > multiply them 64bit really isn't that much.
->>
->> I played with some of this stuff awhile ago, and for timekeeping, it
->> seemed like a 64x32->96 bit multiply followed by a right shift was
->> enough, and that operation is a lot faster on 32-bit architectures than
->> a full 64x64->128 multiply.
->
-> The SCHED_DEADLINE use case is not that, it multiplies two time
-> intervals. Basically it needs to evaluate if a task activation still
-> fits in the old period or if it needs to shift the deadline and start a
-> new period.
->
-> It needs to do: runtime / (deadline - t) < budget / period
-> which transforms into: (deadline - t) * period < budget * runtime
->
-> hence the 64x64->128 mult and 128 compare.
+--Signature=_Wed__25_Apr_2012_10_14_02_+1000_h4F_m7pEw+GgchLg
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Fair enough.
+Hi Peter,
 
+On Tue, 24 Apr 2012 18:10:40 +0200 Peter Zijlstra <a.p.zijlstra@chello.nl> =
+wrote:
 >
->> Something like:
->>
->> uint64_t mul_64_32_shift(uint64_t a, uint32_t mult, uint32_t shift)
->> {
->>   return (uint64_t)( ((__uint128_t)a * (__uint128_t)mult) >> shift );
->> }
->
-> That looks a lot like what we grew mult_frac() for, it does:
->
-> /*
->  * Multiplies an integer by a fraction, while avoiding unnecessary
->  * overflow or loss of precision.
->  */
-> #define mult_frac(x, numer, denom)(                     \
-> {                                                       \
->        typeof(x) quot = (x) / (denom);                 \
->        typeof(x) rem  = (x) % (denom);                 \
->        (quot * (numer)) + ((rem * (numer)) / (denom)); \
-> }                                                       \
-> )
->
->
-> and is used in __cycles_2_ns() and friends.
+> We've grown various copies of a particular gcc work-around,
+> consolidate them into one and add a larger comment.
+>=20
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> ---
+>  include/linux/compiler.h |   12 ++++++++++++
+>  include/linux/math64.h   |    4 +---
+>  kernel/sched/core.c      |    8 ++------
+>  kernel/sched/fair.c      |    8 ++------
+>  kernel/time.c            |   11 ++++-------
 
-Yeesh.  That looks way slower, and IIRC __cycles_2_ns overflows every
-few seconds on modern machines.
+You should, of course, include linux/compiler.h into those last 4 files ...
 
-gcc 4.6 generates this code:
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
 
-mul_64_32_shift:
-        pushq   %rbp
-        movq    %rsp, %rbp
-        movl    %edx, %ecx
-        movl    %esi, %eax
-        mulq    %rdi
-        movq    %rdx, %rsi
-        shrq    %cl, %rsi
-        shrdq   %cl, %rdx, %rax
-        testb   $64, %cl
-        cmovneq %rsi, %rax
-        popq    %rbp
-        ret
+--Signature=_Wed__25_Apr_2012_10_14_02_+1000_h4F_m7pEw+GgchLg
+Content-Type: application/pgp-signature
 
-which is a bit dumb if you can make assumptions about the shift.  See
-http://gcc.gnu.org/PR46514.  Some use cases might be able to guarantee
-that the shift is less than 32 bits, in which case hand-written
-assembly would be a few cycles faster.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
 
---Andy
+iQIcBAEBCAAGBQJPl0HKAAoJEECxmPOUX5FE3h8P/2Wak+q5fppvUfz9fWnIyZW7
+LrT+Jy6DEYrvtO/W7aNNq/+7Mtk2oM7pZ5Q7RUFfPG1Rd3zmaO/1GHE04UzMBDgy
+1Kqj0G5E6ei4vnllTRvFPl72AipqTLRUI7zwf3gyI47UyPP2gGKDXyVGHGh9HlMN
+EKw9nS28fh0CPm3ShOAqyRwSbIu4VToSqhjs3Y2AbhSA7tJubWWR4ruiEga2eLFh
+XlRD4Sc2xcvKGdU79NLo0zD+WfSfQ8P9a+WDbF2v5QNItm29RhCcC6t7MONiylEx
+QbbGfr5+rR2MSCAj6TKPM948MNXZ+9RYSMSQgxtuYrB6WvXs2ojBZm0cTJSLFwaV
+D7U6bbg5V8kpyGLHLFdgm+lwiUZQaK1FXwPjoP+NSGrv/cCFO4jMv5vCnM8rcR1m
+DWXvLy8UuhObCwdzzARzBXnQGrn1hA/DLoOnMuL1ld40Gu8fx9RM47maNDvfyT0G
+Dl4UQ0qoqw5DgDbdOms0AmVF8T1+7JkZln4w6w/dOivC+ImmlI03UomyYfqdnoNW
+Sw7onRsIzMrtj5ylx0SRhuKflgG9FZevhaeUa76FRcECCL/QAWH0P+v241m028uF
+4EACCSsEFNX0IBwV73nWMsVeVRtLI4R9Rch0qwOmyn3gffYn+9Z6GyUbgBHPPQBO
+IGCXuYCOmdoFSAwKmmmq
+=Hvyw
+-----END PGP SIGNATURE-----
+
+--Signature=_Wed__25_Apr_2012_10_14_02_+1000_h4F_m7pEw+GgchLg--
