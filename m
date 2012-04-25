@@ -1,42 +1,74 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [RFC][PATCH 2/3] math128: Introduce {mult,add,cmp}_u128
-Date: Wed, 25 Apr 2012 17:09:42 +0200
-Message-ID: <1335366582.28150.270.camel@twins>
-References: <20120424161039.293018424@chello.nl>
-	 <20120424162224.526249106@chello.nl>
-	 <20120425102342.45cf5c5e81e8aeb3bec67d0b@canb.auug.org.au>
-	 <1335341466.28150.248.camel@twins>
-	 <CAMuHMdUqgR8Z8wtBjm=-g9ff6CVmEd=FpbC2tk-CMU7B3XVVDg@mail.gmail.com>
-	 <1335355106.28150.254.camel@twins>
-	 <CAMuHMdVSjX1ZRc_Q0cuL+U_f+zzuD+1cjW-OBdn1c3mC8Ya_Rg@mail.gmail.com>
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
+Date: Wed, 25 Apr 2012 17:46:11 +0200
+Message-ID: <20120425154611.GA23672@redhat.com>
+References: <CA+55aFzuTspDyyLaOA-g-dTWydaUeeWo9uVGR+rZ=ZJzPW_Ocw@mail.gmail.com> <20120420180748.GI6871@ZenIV.linux.org.uk> <20120423180150.GA6871@ZenIV.linux.org.uk> <20120424072617.GB6871@ZenIV.linux.org.uk> <20120425030659.GE6871@ZenIV.linux.org.uk> <20120425123746.GA15560@redhat.com> <20120425125042.GF6871@ZenIV.linux.org.uk> <20120425130329.GA16413@redhat.com> <20120425133238.GG6871@ZenIV.linux.org.uk> <20120425145239.GA21386@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:37726 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751413Ab2DYPJ7 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2012 11:09:59 -0400
-In-Reply-To: <CAMuHMdVSjX1ZRc_Q0cuL+U_f+zzuD+1cjW-OBdn1c3mC8Ya_Rg@mail.gmail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:16064 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751997Ab2DYPrF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 Apr 2012 11:47:05 -0400
+Content-Disposition: inline
+In-Reply-To: <20120425145239.GA21386@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Tejun Heo <tj@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Roland McGrath <roland@hack.frob.com>
 
-On Wed, 2012-04-25 at 16:35 +0200, Geert Uytterhoeven wrote:
-> On Wed, Apr 25, 2012 at 13:58, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
-> >> Still using quilt? I didn't regret ditching it in favor of git (yummy,
-> >> git rebase ;-).
+On 04/25, Oleg Nesterov wrote:
+>
+> On 04/25, Al Viro wrote:
 > >
-> > Yeah, I can't seem to deal with git, I edit my patches by hand way too
-> > often, also quilt is a _LOT_ faster pushing/popping patches than git is
-> > (and yes I use an SSD).
-> >
-> > Not using git also means I don't have to deal with the trainwreck that
-> > is git-merge,.. /me runs like hell.
-> 
-> But you have to deal with the quilt-oh-no-the-patch-no-longer-applies
-> trainwreck...
+> > Point...  Still, since we are talking about an arbitrary wide window (the
+> > damn thing is waiting for signals to arrive, after all) this doesn't
+> > sound good;
+> > ...
+> > IMO it's
+> > a QoI problem at the very least.
+>
+> and looks confusing, agreed.
 
-Yeah, but I find it much easier to deal with .rej files than with the
-stuff left behind by git.
+OK, I didn't really try to think, and somehow I simply can't wake up today.
+But perhaps we can do something the following? We add the new syscall
+
+	sys_eintr(void)
+	{
+		return -EINTR;
+	}
+
+(perhaps not strictly needed, perhaps we can reuse sys_restart_syscal)
+
+Now,
+
+	--- x/arch/x86/kernel/signal.c
+	+++ x/arch/x86/kernel/signal.c
+	@@ -711,6 +711,13 @@ handle_signal(unsigned long sig, siginfo
+				regs->ax = regs->orig_ax;
+				regs->ip -= 2;
+				break;
+	+
+	+		case -EINTR:
+	+			break;
+	+
+	+		default:
+	+			if (regs->orig_ax == NR_eintr)
+	+				regs->ax = NR_eintr;
+			}
+		}
+	 
+	@@ -791,6 +798,7 @@ static void do_signal(struct pt_regs *re
+			case -ERESTARTSYS:
+			case -ERESTARTNOINTR:
+				regs->ax = regs->orig_ax;
+	+			regs->orig_ax = NR_eintr;
+				regs->ip -= 2;
+				break;
+	 
+
+this ignores ERESTART_RESTARTBLOCK for simplicity.
+
+And I am not sure this can't confuse the tools like strace...
+
+Oleg.
