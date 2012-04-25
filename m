@@ -1,141 +1,58 @@
-From: Nick Bowler <nbowler@elliptictech.com>
-Subject: Re: [PATCH 3/4] kbuild: link of vmlinux moved to a script
-Date: Wed, 25 Apr 2012 10:24:52 -0400
-Message-ID: <20120425142452.GA13682@elliptictech.com>
-References: <20120424194148.GA2216@merkur.ravnborg.org>
- <20120424194431.GC2311@merkur.ravnborg.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [RFC][PATCH 2/3] math128: Introduce {mult,add,cmp}_u128
+Date: Wed, 25 Apr 2012 16:35:47 +0200
+Message-ID: <CAMuHMdVSjX1ZRc_Q0cuL+U_f+zzuD+1cjW-OBdn1c3mC8Ya_Rg@mail.gmail.com>
+References: <20120424161039.293018424@chello.nl>
+	<20120424162224.526249106@chello.nl>
+	<20120425102342.45cf5c5e81e8aeb3bec67d0b@canb.auug.org.au>
+	<1335341466.28150.248.camel@twins>
+	<CAMuHMdUqgR8Z8wtBjm=-g9ff6CVmEd=FpbC2tk-CMU7B3XVVDg@mail.gmail.com>
+	<1335355106.28150.254.camel@twins>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx.scalarmail.ca ([98.158.95.75]:19095 "EHLO
-	ironport-01.sms.scalar.ca" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1753059Ab2DYOZj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Apr 2012 10:25:39 -0400
-Content-Disposition: inline
-In-Reply-To: <20120424194431.GC2311@merkur.ravnborg.org>
+Received: from mail-wg0-f44.google.com ([74.125.82.44]:62186 "EHLO
+	mail-wg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751413Ab2DYOft convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2012 10:35:49 -0400
+In-Reply-To: <1335355106.28150.254.camel@twins>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.cz>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
 
-Hi Sam,
+On Wed, Apr 25, 2012 at 13:58, Peter Zijlstra <a.p.zijlstra@chello.nl> =
+wrote:
+>> Still using quilt? I didn't regret ditching it in favor of git (yumm=
+y,
+>> git rebase ;-).
+>
+> Yeah, I can't seem to deal with git, I edit my patches by hand way to=
+o
+> often, also quilt is a _LOT_ faster pushing/popping patches than git =
+is
+> (and yes I use an SSD).
+>
+> Not using git also means I don't have to deal with the trainwreck tha=
+t
+> is git-merge,.. /me runs like hell.
 
-Without actually running it, a few comments on the shell script itself.
+But you have to deal with the quilt-oh-no-the-patch-no-longer-applies
+trainwreck...
 
-On 2012-04-24 21:44 +0200, Sam Ravnborg wrote:
-> +++ b/scripts/link-vmlinux.sh
-[...]
-> +# We need access to CONFIG_ symbols
-> +source ./.config
+Gr{oetje,eeting}s,
 
-source is non-standard and not widely supported.  In particular, this
-will not work on systems using dash for /bin/sh.  In this instance,
-simply replacing source with the portable dot builtin will be exactly
-equivalent, as in:
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 Geert
 
-   . ./.config
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
 
-> +# Error out on error
-> +set -e
-
-While a valiant effort, using set -e to handle errors is just asking
-for surprises down the road.  Ignoring the fact that "set -e" has been
-historically underspecified (and there is thus some variety in how
-different shells handle it), consider the following:
-
-  set -e
-  foo() {
-    false
-    echo oops
-  }
-  foo || echo foo failed
-
-Because the _call_ to foo appears on the left side of ||, the commands
-_within_ foo are not subject to the effects of set -e.  In bash, the
-above script therefore prints "oops", and does not normally print "foo
-failed".
-
-> +# Delete output files in case of error
-> +trap cleanup SIGHUP SIGINT SIGQUIT SIGTERM ERR
-
-This is another ksh-ism, which will again fail on systems with /bin/sh
-being dash.  More portable:
-
-  trap cleanup HUP INT QUIT TERM
-  trap '(exit $?) || cleanup' EXIT
-
-However, the Autoconf shell portability manual documents some confusion
-regarding what $? should be in an exit trap when it is entered by using
-the exit command:
-
-  "Bash considers exit to be the last command, while Zsh and Solaris
-  /bin/sh consider that when the trap is run it is still in the exit,
-  hence it is the previous exit status that the trap receives".
-
-The manual subsequently recommends that "exit 42" therefore be written
-as "(exit 42); exit 42".  Fortunately, in this script, the only call to
-exit immediately follows an explicit call to cleanup, so it won't
-actually matter whether or not the exit trap calls cleanup again.
-
-Nevertheless, I cannot reproduce the described trap behaviour with
-current versions of Zsh, so maybe all this information is out of date.
-That being said ...
-
-> +cleanup()
-> +{
-> +	rm -f vmlinux.o
-> +	rm -f .old_version
-> +	rm -f .tmp_vmlinux*
-> +	rm -f .tmp_kallsyms*
-> +	rm -f vmlinux
-> +	rm -f .tmp_System.map
-> +	rm -f System.map
-> +}
-
-... this whole ad-hoc cleanup mechanism looks prone to failure.
-Basically, if something goes really wrong and files get left behind, a
-subsequent "make" is going to see up-to-date files and proceed with
-garbage.  A more robust approach is, for filenames used in the Makefile,
-to output to "dummy" files (e.g., write to vmlinux.tmp).  Only after
-everything was successful (either at the very end of the script or in
-the makefile rule which calls it), rename the dummy files to their
-actual filename.
-
-That way, the cleanup becomes "best effort" and, from a build
-correctness point of view, won't matter if it misses removing
-files for whatever reason.
-
-[...]
-> +# step a (see comment above)
-> +if [ -n "${CONFIG_KALLSYMS}" ]; then
-> +	mksysmap ${kallsyms_vmlinux} .tmp_System.map
-> +
-> +	if [ $(cmp -s System.map .tmp_System.map) ]; then
-
-This test is wrong: it is passing the output of cmp to the [ builtin.
-Aside from not being properly quoted (so the output of cmp is subject to
-word splitting, which will make [ unhappy if it actually happens),
-you've asked cmp to produce no output by giving it the -s option so
-this test will always be false.
-
-Presumably this should be:
-
-        if ! cmp -s System.map .tmp_System.map; then
-
-which actually tests the exit status of cmp instead of its output, and
-executes the branch if cmp failed.  (Aside: some older shells don't
-support the "if ! cmd; then stuff; fi" pattern, so you sometimes see it
-written as: "if cmd; then :; else stuff; fi".  We probably don't care
-too much about such shells here).
-
-> +		echo Inconsistent kallsyms data
-> +		echo echo Try "make KALLSYMS_EXTRA_PASS=1" as a workaround
-> +		cleanup
-> +		exit 1
-> +	fi
-> +fi
-
-Cheers,
--- 
-Nick Bowler, Elliptic Technologies (http://www.elliptictech.com/)
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
