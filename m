@@ -1,86 +1,70 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Date: Wed, 25 Apr 2012 18:51:13 +0100
-Message-ID: <20120425175113.GI6871@ZenIV.linux.org.uk>
-References: <20120424072617.GB6871@ZenIV.linux.org.uk>
- <20120425030659.GE6871@ZenIV.linux.org.uk>
- <20120425123746.GA15560@redhat.com>
- <20120425125042.GF6871@ZenIV.linux.org.uk>
- <20120425130329.GA16413@redhat.com>
- <20120425133238.GG6871@ZenIV.linux.org.uk>
- <20120425145239.GA21386@redhat.com>
- <20120425154611.GA23672@redhat.com>
- <20120425161002.GH6871@ZenIV.linux.org.uk>
- <20120425170230.GA24977@redhat.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Re: [PATCH 2/2] math128, x86_64: Implement {mult,add}_u128 in 64bit asm
+Date: Wed, 25 Apr 2012 11:02:41 -0700
+Message-ID: <CALCETrWBMUzG9KYVOQxwCLqnEQjRizz5k4tQW2=emfx1t8TgvA@mail.gmail.com>
+References: <20120425111552.665217867@chello.nl> <20120425112244.953956269@chello.nl>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:37336 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751363Ab2DYRvW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2012 13:51:22 -0400
-Content-Disposition: inline
-In-Reply-To: <20120425170230.GA24977@redhat.com>
+Received: from mail-pb0-f46.google.com ([209.85.160.46]:48880 "EHLO
+	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752536Ab2DYSDC convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2012 14:03:02 -0400
+Received: by pbbro12 with SMTP id ro12so1745568pbb.19
+        for <linux-arch@vger.kernel.org>; Wed, 25 Apr 2012 11:03:01 -0700 (PDT)
+In-Reply-To: <20120425112244.953956269@chello.nl>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Tejun Heo <tj@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Roland McGrath <roland@hack.frob.com>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
 
-On Wed, Apr 25, 2012 at 07:02:30PM +0200, Oleg Nesterov wrote:
+On Wed, Apr 25, 2012 at 4:15 AM, Peter Zijlstra <a.p.zijlstra@chello.nl=
+> wrote:
+> Cc: Ingo Molnar <mingo@kernel.org>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: H. Peter Anvin <hpa@zytor.com>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Linus Torvalds <torvalds@linux-foundation.org>
+> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+> ---
+> =A0arch/x86/include/asm/Kbuild =A0 =A0| =A0 =A01 -
+> =A0arch/x86/include/asm/math128.h | =A0 39 ++++++++++++++++++++++++++=
++++++++++++++
+> =A02 files changed, 39 insertions(+), 1 deletion(-)
 
-> And there is another case:
-> 
-> 	syscall interrupted, it returns ERESTARTSYS.
-> 
-> 	do_signal() sees no signal, restarts the syscall
-> 
-> 	!SA_RESTART comes before we return to user-mode
-> 
-> This doesn't really differ from sigsuspend/ERESTARTNOHAND we discussed
-> before.
+> --- /dev/null
+> +++ b/arch/x86/include/asm/math128.h
+> @@ -0,0 +1,39 @@
+> +#ifndef _ASM_MATH128_H
+> +#define _ASM_MATH128_H
+> +
+> +#ifdef CONFIG_X86_64
+> +
+> +#ifdef __SIZEOF_INT128__
+> +#define ARCH_HAS_INT128
+> +#endif
+> +
+> +#ifndef ARCH_HAS_INT128
+> +
+> +static inline mul_u64_u64(u64 a, u64 b)
 
-... and dealt with the same way:
-	NEED_RESTART flag is set the first time around
-	no handler for the first signal, so we do nothing else
-	handler is found for the second signal
-	NEED_RESTART flag is present, so
-		we clear NEED_RESTART
-		we look at errno and see ERESTARTSYS
-		we check sa_flags and see !SA_RESTART
-		we set return value to -EINTR and proceed to set sigframe up
-	on the exit to userland we see NEED_RESTART not set, so off we go
-I think I hadn't been clear enough; here's pseudocode for what I meant
+I think you're missing a return type and a 't'.
 
-do_signal()
-{
-	if (we have any business doing restarts)
-		// note: we won't get here on subsequent calls of do_signal()
-		// due to the checks above; same logics that currently prevents
-		// double restarts
-		set NEED_RESTART flag
-	sig = get_signal_to_deliver(...)
-	if (sig) {
-		if (NEED_RESTART set) {
-			clear NEED_RESTART
-			same thing we do at that spot now - restart or EINTR
-			handle_signal(...)
-			...
-			return;
-		}
-	}
-	/* no handler */
-	if (test_and_clear_...(RESTORE_SIGMASK))
-		set_current_blocked(&current->saved_sigmask);
-}
-and in asm glue, *after* checking for SIGPENDING/NOTIFY_RESUME, check
-NEED_RESTART and if it's set do what we currently do for restarts on
-handlerless signal.
+> +{
+> + =A0 =A0 =A0 u128 res;
+> +
+> + =A0 =A0 =A0 asm("mulq %2"
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 : "=3Da" (res.lo), "=3Dd" (res.hi)
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 : =A0"rm" (b), "0" (a));
+> +
+> + =A0 =A0 =A0 return res;
+> +}
+> +#define mult_u64_u64 mult_u64_u64
+> +
+> +static inline add_u128(u128 a, u128 b)
 
-BTW, if we combine that with ERESTART_RESTARTBLOCK trick on arm/parisc/unicore,
-there won't be much work to do for restarts in that case; in x86ese it
-would be simply
-	if (regs->ax == -ERESTART_RESTARTBLOCK)
-		set_thread_flag(TIF_EMULATE_RESTART_SYSCALL)
-	regs->ax = regs->orig_ax;
-	regs->ip -= 2;
-all of that conditional on TS_NEED_RESTART...
+Return type here, too.
+
+
+--Andy
