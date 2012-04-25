@@ -1,40 +1,41 @@
 From: Konstantin Khlebnikov <khlebnikov@openvz.org>
-Subject: [PATCH 1/4] compiler.h: introduce unused_expression() macro
-Date: Wed, 25 Apr 2012 15:26:23 +0400
-Message-ID: <20120425112623.26927.43229.stgit@zurg>
+Subject: [PATCH 2/4] bug: completely remove code of disabled VM_BUG_ON()
+Date: Wed, 25 Apr 2012 15:26:29 +0400
+Message-ID: <20120425112629.26927.21609.stgit@zurg>
+References: <20120425112623.26927.43229.stgit@zurg>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:32866 "EHLO
-	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758671Ab2DYL0a (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Apr 2012 07:26:30 -0400
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:50237 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758690Ab2DYL0d (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2012 07:26:33 -0400
+In-Reply-To: <20120425112623.26927.43229.stgit@zurg>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org
 Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-Sometimes we want to check some expressions correctness in compile-time without
-generating extra code. "(void)(e)" does not work if expression has side-effects.
-This patch introduces macro unused_expression() which helps in this situation.
+Even if CONFIG_DEBUG_VM=n gcc genereates code for some VM_BUG_ON()
 
-Cast to "long" required because sizeof does not work for bit-fields.
+bloat-o-meter: add/remove: 0/1 grow/shrink: 10/120 up/down: 185/-1889 (-1704)
 
 Signed-off-by: Konstantin Khlebnikov <khlebnikov@openvz.org>
 ---
- include/linux/compiler.h |    2 ++
- 1 file changed, 2 insertions(+)
+ include/linux/mmdebug.h |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/include/linux/compiler.h b/include/linux/compiler.h
-index 923d093..46fbda3 100644
---- a/include/linux/compiler.h
-+++ b/include/linux/compiler.h
-@@ -310,4 +310,6 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
-  */
- #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
+diff --git a/include/linux/mmdebug.h b/include/linux/mmdebug.h
+index c04ecfe..9c9a2a0 100644
+--- a/include/linux/mmdebug.h
++++ b/include/linux/mmdebug.h
+@@ -4,7 +4,7 @@
+ #ifdef CONFIG_DEBUG_VM
+ #define VM_BUG_ON(cond) BUG_ON(cond)
+ #else
+-#define VM_BUG_ON(cond) do { (void)(cond); } while (0)
++#define VM_BUG_ON(cond) unused_expression(cond)
+ #endif
  
-+#define unused_expression(e) ((void)(sizeof((__force long)(e))))
-+
- #endif /* __LINUX_COMPILER_H */
+ #ifdef CONFIG_DEBUG_VIRTUAL
