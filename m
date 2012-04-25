@@ -1,72 +1,27 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 2/2] math128, x86_64: Implement {mult,add}_u128 in 64bit asm
-Date: Wed, 25 Apr 2012 13:15:54 +0200
-Message-ID: <20120425112244.953956269@chello.nl>
-References: <20120425111552.665217867@chello.nl>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=math128-x86_64.patch
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
-List-Id: linux-arch.vger.kernel.org
+From: Cong Wang <xiyou.wangcong@gmail.com>
+Subject: Re: [PATCH 1/4] compiler.h: introduce unused_expression() macro
+Date: Wed, 25 Apr 2012 19:51:44 +0800
+Message-ID: <4F97E550.4060208@gmail.com>
+References: <20120425112623.26927.43229.stgit@zurg>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pz0-f51.google.com ([209.85.210.51]:53374 "EHLO
+	mail-pz0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758114Ab2DYLvw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2012 07:51:52 -0400
+In-Reply-To: <20120425112623.26927.43229.stgit@zurg>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Konstantin Khlebnikov <khlebnikov@openvz.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
----
- arch/x86/include/asm/Kbuild    |    1 -
- arch/x86/include/asm/math128.h |   39 +++++++++++++++++++++++++++++++++++++++
- 2 files changed, 39 insertions(+), 1 deletion(-)
+On 04/25/2012 07:26 PM, Konstantin Khlebnikov wrote:
+> Sometimes we want to check some expressions correctness in compile-time without
+> generating extra code. "(void)(e)" does not work if expression has side-effects.
+> This patch introduces macro unused_expression() which helps in this situation.
+>
 
---- a/arch/x86/include/asm/Kbuild
-+++ b/arch/x86/include/asm/Kbuild
-@@ -26,4 +26,3 @@ header-y += vsyscall.h
- genhdr-y += unistd_32.h
- genhdr-y += unistd_64.h
- genhdr-y += unistd_x32.h
--generic-y += math128.h
---- /dev/null
-+++ b/arch/x86/include/asm/math128.h
-@@ -0,0 +1,39 @@
-+#ifndef _ASM_MATH128_H
-+#define _ASM_MATH128_H
-+
-+#ifdef CONFIG_X86_64
-+
-+#ifdef __SIZEOF_INT128__
-+#define ARCH_HAS_INT128
-+#endif
-+
-+#ifndef ARCH_HAS_INT128
-+
-+static inline mul_u64_u64(u64 a, u64 b)
-+{
-+       u128 res;
-+
-+       asm("mulq %2"
-+               : "=a" (res.lo), "=d" (res.hi)
-+               :  "rm" (b), "0" (a));
-+
-+       return res;
-+}
-+#define mult_u64_u64 mult_u64_u64
-+
-+static inline add_u128(u128 a, u128 b)
-+{
-+       u128 res;
-+
-+       asm("addq %2,%0;\n"
-+           "adcq %3,%1;\n"
-+               : "=rm" (res.lo), "=rm" (res.hi)
-+               : "r" (b.lo), "r" (b.hi), "0" (a.lo), "1" (a.hi));
-+
-+       return res;
-+}
-+#define add_u128 add_u128
-+
-+#endif /* ARCH_HAS_INT128 */
-+#endif /* CONFIG_X86_64 */
-+#endif /* _ASM_MATH128_H */
+Interesting, I am wondering why gcc doesn't eliminate the code as we 
+pass either -O2 or -Os to it.
