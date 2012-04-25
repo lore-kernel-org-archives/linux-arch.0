@@ -1,100 +1,54 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [RFC][PATCH 2/3] math128: Introduce {mult,add,cmp}_u128
-Date: Wed, 25 Apr 2012 10:23:42 +1000
-Message-ID: <20120425102342.45cf5c5e81e8aeb3bec67d0b@canb.auug.org.au>
-References: <20120424161039.293018424@chello.nl>
-	<20120424162224.526249106@chello.nl>
+Date: Tue, 24 Apr 2012 18:46:14 -0700
+Message-ID: <CA+55aFx_efN7A2H2VuRGZiyh2xcV=p6uoDLcVAW2JOqmJJNd1Q@mail.gmail.com>
+References: <20120424161039.293018424@chello.nl> <20120424162224.526249106@chello.nl>
+ <CA+55aFyvBTDh_DkXs6Z6zFmjyYxvWaAEm9-rJDXhvPx8CpDiKA@mail.gmail.com> <1335304497.28150.243.camel@twins>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Wed__25_Apr_2012_10_23_42_+1000_CWhLpARWOjpb46q0"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from haggis.pcug.org.au ([203.10.76.10]:57561 "EHLO
-	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755432Ab2DYAXz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2012 20:23:55 -0400
-In-Reply-To: <20120424162224.526249106@chello.nl>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1335304497.28150.243.camel@twins>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+List-Id: linux-arch.vger.kernel.org
 
---Signature=_Wed__25_Apr_2012_10_23_42_+1000_CWhLpARWOjpb46q0
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-
-Hi Peter,
-
-On Tue, 24 Apr 2012 18:10:41 +0200 Peter Zijlstra <a.p.zijlstra@chello.nl> =
-wrote:
+On Tue, Apr 24, 2012 at 2:54 PM, Peter Zijlstra <a.p.zijlstra@chello.nl=
+> wrote:
 >
-> Grow rudimentary u128 support without relying on gcc/libgcc.
->=20
-> Cc: Ingo Molnar <mingo@kernel.org>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Linus Torvalds <torvalds@linux-foundation.org>
-> Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> ---
->  arch/alpha/include/asm/math128.h      |    4 ++
->  arch/arm/include/asm/math128.h        |    4 ++
->  arch/avr32/include/asm/math128.h      |    4 ++
->  arch/blackfin/include/asm/math128.h   |    4 ++
->  arch/c6x/include/asm/math128.h        |    4 ++
->  arch/cris/include/asm/math128.h       |    4 ++
->  arch/frv/include/asm/math128.h        |    4 ++
->  arch/h8300/include/asm/math128.h      |    4 ++
->  arch/hexagon/include/asm/math128.h    |    4 ++
->  arch/ia64/include/asm/math128.h       |    4 ++
->  arch/m32r/include/asm/math128.h       |    4 ++
->  arch/m68k/include/asm/math128.h       |    4 ++
->  arch/microblaze/include/asm/math128.h |    4 ++
->  arch/mips/include/asm/math128.h       |    4 ++
->  arch/mn10300/include/asm/math128.h    |    4 ++
->  arch/openrisc/include/asm/math128.h   |    4 ++
->  arch/parisc/include/asm/math128.h     |    4 ++
->  arch/powerpc/include/asm/math128.h    |    4 ++
->  arch/s390/include/asm/math128.h       |    4 ++
->  arch/score/include/asm/math128.h      |    4 ++
->  arch/sh/include/asm/math128.h         |    4 ++
->  arch/sparc/include/asm/math128.h      |    4 ++
->  arch/tile/include/asm/math128.h       |    4 ++
->  arch/um/include/asm/math128.h         |    4 ++
->  arch/unicore32/include/asm/math128.h  |    4 ++
->  arch/x86/include/asm/math128.h        |    4 ++
->  arch/xtensa/include/asm/math128.h     |    4 ++
->  include/linux/math128.h               |   47 +++++++++++++++++++++++++++=
-+++++++
+> that does generate slightly better code in that it avoids some masks =
+on
+> 64bit:
+>
+> @@ -7,12 +7,11 @@
+> =A0.LFB38:
+> =A0 =A0 =A0 =A0.cfi_startproc
+> =A0 =A0 =A0 =A0movq =A0 =A0%rdi, %r8
+> - =A0 =A0 =A0 movq =A0 =A0%rdi, %rdx
+> =A0 =A0 =A0 =A0movq =A0 =A0%rsi, %rcx
+> + =A0 =A0 =A0 mov =A0 =A0 %edi, %edx
+> =A0 =A0 =A0 =A0shrq =A0 =A0$32, %r8
+> - =A0 =A0 =A0 andl =A0 =A0$4294967295, %edx
+> =A0 =A0 =A0 =A0shrq =A0 =A0$32, %rcx
+> - =A0 =A0 =A0 andl =A0 =A0$4294967295, %esi
+> + =A0 =A0 =A0 mov =A0 =A0 %esi, %esi
 
-Isn't this what asm-generic is for?  You put the generic version in
-asm-generic/math128.h and then add "generic-y +=3D math128.h" to
-arch/*/include/asm/Kbuild for each arch that wants the generic version.
-Then just include asm/math128.h in linux/math128.h.  Any arch that wants
-to optimise these can then just provide its own math128.h.
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
+Oh christ.
 
---Signature=_Wed__25_Apr_2012_10_23_42_+1000_CWhLpARWOjpb46q0
-Content-Type: application/pgp-signature
+What insane version of gcc is that? Can you please make a gcc bug-repor=
+t?
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
+Because a compiler that generates an instruction sequence like
 
-iQIcBAEBCAAGBQJPl0QOAAoJEECxmPOUX5FELGcP/2Q0mXijapkUQ1T7HbmT8ZXn
-KxwHFpBT7WRx1FQk6PRrs9V4H10KAwUC259GcbYG+Aj/n41xXnS5l8Zs5ZAfQndj
-myGqOD+WBeHeEVwuMTr4tXJV4olI+1Dc68/rBEvsikimh9cXQvuBHeoW/Tnnt3+0
-PbZT+Xgw3NvEXgp2N8vQid/a36eJxziqSqjlD527sbzUzgkjwFRNGxGuE7lg0DUB
-yUSiBAlD6H+nDJqRCQVChDa626p6GKseXRRvcJm6vOrQMHmUV/jkJJWbSMQiUKTX
-Rspox30YOK6cOE8RK6W6Y7j9a13jDItpZXYu13F0LG+ZFyBmH3URcSmjHfvor6R4
-qQU+MGpl+CDIY7wiYj2HHVJiRGZU+B5engdWQ6XEgv7vCbSVWVEj5RzwlMW/kwmU
-J3G6rcFHL8SujD8lJpA/uveOYb2WGT7AWFMtDACibS6s2/NkkZfK549PnNgK4FXv
-259kpR6L4y8M81Og5Ko48ZB0KXUF2mEx7CQsco9h//gAx8Rb5+gP1Aq5AN0i0X20
-6KrB5vRfdrBTalDG/czWiJPCinrl65DSdjvNHZx15ApYR4L9OpFigMsIAgehyqqs
-iDVQO3POBBdVGrleGG1MbcZMe9eU3LvFju1/S6w6xLdxjQFY8pdzXrQrY+oGUcV6
-8mL2adTrnm+ds9ifhZBg
-=EFrt
------END PGP SIGNATURE-----
+    movq %rdi,%rsi
+    andl $4294967295, %esi
 
---Signature=_Wed__25_Apr_2012_10_23_42_+1000_CWhLpARWOjpb46q0--
+is just so fricking stupid that it's outright buggy. That's just
+crazy. It's demented. It's an "and" with all bits set.
+
+But yeah, I do think that in general using a cast to 32-bit instead of
+a mask to 32-bit is easier for the compiler. Although that still is a
+particularly stupid code sequence to use.
+
+                     Linus
