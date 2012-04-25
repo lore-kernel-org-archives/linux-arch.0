@@ -1,39 +1,29 @@
-From: Konstantin Khlebnikov <khlebnikov@openvz.org>
-Subject: [PATCH 4/4] bug: mark disabled BUG() as unreachable() code
-Date: Wed, 25 Apr 2012 15:26:36 +0400
-Message-ID: <20120425112636.26927.27124.stgit@zurg>
-References: <20120425112623.26927.43229.stgit@zurg>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20120425112623.26927.43229.stgit@zurg>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [PATCH 0/2] math128 - v2
+Date: Wed, 25 Apr 2012 13:15:52 +0200
+Message-ID: <20120425111552.665217867@chello.nl>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from casper.infradead.org ([85.118.1.10]:33051 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758678Ab2DYL2p (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2012 07:28:45 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Andy Lutomirski <luto@amacapital.net>
 
-This patch suppress some compiler warnings (if CONFIG_BUG=n)
-"warning: control reaches end of non-void function"
+Take two of the math128 bits.. 
 
-Plus now gcc can throw out some dead code.
-bloat-o-meter: add/remove: 1/1 grow/shrink: 68/173 up/down: 1569/-5607 (-4038)
+Changes since last time:
+ - Added gcc __int128 versions for where it works
+ - Added Andy's mul_u64_u32_shr() due to popular demand :-)
+ - Added {shl,shr}_u128 as requested by hpa (although I suspect he'll
+   use Andy's fancy function).
+ - Added a U128_INIT() constant initializer.
+ - Renamed mult_u128 to mul_u64_u64, hpa complaned the name was
+   misleading
+ - Fixed some of the code generation issues with add_u128 and
+   mul_u64_64.
 
-Signed-off-by: Konstantin Khlebnikov <khlebnikov@openvz.org>
----
- include/asm-generic/bug.h |    2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
-diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-index aadb6fc..0b08199 100644
---- a/include/asm-generic/bug.h
-+++ b/include/asm-generic/bug.h
-@@ -108,7 +108,7 @@ extern void warn_slowpath_null(const char *file, const int line);
- 
- #else /* !CONFIG_BUG */
- #ifndef HAVE_ARCH_BUG
--#define BUG() do {} while(0)
-+#define BUG() unreachable()
- #endif
- 
- #ifndef HAVE_ARCH_BUG_ON
+I've also assumed we're all actually ok with adding this functionality,
+so unless someone hollers I'll push this for inclusion.
