@@ -1,79 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:55781 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758732Ab2DYL2t (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2012 07:28:49 -0400
-Message-ID: <20120425112244.953956269@chello.nl>
-Date: Wed, 25 Apr 2012 13:15:54 +0200
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 2/2] math128, x86_64: Implement {mult,add}_u128 in 64bit asm
-References: <20120425111552.665217867@chello.nl>
-Content-Disposition: inline; filename=math128-x86_64.patch
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:60224 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759140Ab2DYLyi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2012 07:54:38 -0400
+Message-ID: <4F97E5F7.9030305@openvz.org>
+Date: Wed, 25 Apr 2012 15:54:31 +0400
+From: Konstantin Khlebnikov <khlebnikov@openvz.org>
+MIME-Version: 1.0
+Subject: Re: [PATCH 1/4] compiler.h: introduce unused_expression() macro
+References: <20120425112623.26927.43229.stgit@zurg> <4F97E550.4060208@gmail.com>
+In-Reply-To: <4F97E550.4060208@gmail.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Andy Lutomirski <luto@amacapital.net>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
-Message-ID: <20120425111554.jmlh1BxoHM2heFKuI_PxPlYmX0jeP6r35qZPcVg030U@z>
+To: Cong Wang <xiyou.wangcong@gmail.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20120425115431.CkApb_3SKgCO_OkhD7hxd5AIp5_pef8DhjqtVH74i0M@z>
 
-Cc: Ingo Molnar <mingo@kernel.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>
-Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
----
- arch/x86/include/asm/Kbuild    |    1 -
- arch/x86/include/asm/math128.h |   39 +++++++++++++++++++++++++++++++++++++++
- 2 files changed, 39 insertions(+), 1 deletion(-)
+Cong Wang wrote:
+> On 04/25/2012 07:26 PM, Konstantin Khlebnikov wrote:
+>> Sometimes we want to check some expressions correctness in compile-time without
+>> generating extra code. "(void)(e)" does not work if expression has side-effects.
+>> This patch introduces macro unused_expression() which helps in this situation.
+>>
+>
+> Interesting, I am wondering why gcc doesn't eliminate the code as we
+> pass either -O2 or -Os to it.
 
---- a/arch/x86/include/asm/Kbuild
-+++ b/arch/x86/include/asm/Kbuild
-@@ -26,4 +26,3 @@ header-y += vsyscall.h
- genhdr-y += unistd_32.h
- genhdr-y += unistd_64.h
- genhdr-y += unistd_x32.h
--generic-y += math128.h
---- /dev/null
-+++ b/arch/x86/include/asm/math128.h
-@@ -0,0 +1,39 @@
-+#ifndef _ASM_MATH128_H
-+#define _ASM_MATH128_H
-+
-+#ifdef CONFIG_X86_64
-+
-+#ifdef __SIZEOF_INT128__
-+#define ARCH_HAS_INT128
-+#endif
-+
-+#ifndef ARCH_HAS_INT128
-+
-+static inline mul_u64_u64(u64 a, u64 b)
-+{
-+       u128 res;
-+
-+       asm("mulq %2"
-+               : "=a" (res.lo), "=d" (res.hi)
-+               :  "rm" (b), "0" (a));
-+
-+       return res;
-+}
-+#define mult_u64_u64 mult_u64_u64
-+
-+static inline add_u128(u128 a, u128 b)
-+{
-+       u128 res;
-+
-+       asm("addq %2,%0;\n"
-+           "adcq %3,%1;\n"
-+               : "=rm" (res.lo), "=rm" (res.hi)
-+               : "r" (b.lo), "r" (b.hi), "0" (a.lo), "1" (a.hi));
-+
-+       return res;
-+}
-+#define add_u128 add_u128
-+
-+#endif /* ARCH_HAS_INT128 */
-+#endif /* CONFIG_X86_64 */
-+#endif /* _ASM_MATH128_H */
-
-
+It cannot do this if expression has some side-effects, for example if it contains BUG().
