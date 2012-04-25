@@ -1,110 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:35824 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757157Ab2DYDHD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Apr 2012 23:07:03 -0400
-Date: Wed, 25 Apr 2012 04:06:59 +0100
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Message-ID: <20120425030659.GE6871@ZenIV.linux.org.uk>
-References: <20120420025438.GD6871@ZenIV.linux.org.uk>
- <CA+55aFzinX_6DVvDTyxrsP6VEHVY2Q+Y=e+qksnAjR+oT3GZew@mail.gmail.com>
- <20120420080914.GF6871@ZenIV.linux.org.uk>
- <CA+55aFxia+u3VAf0qN-2wv7DyAQZK-Z8=n=cqUvo--+C905aFg@mail.gmail.com>
- <20120420160848.GG6871@ZenIV.linux.org.uk>
- <20120420164239.GH6871@ZenIV.linux.org.uk>
- <CA+55aFzuTspDyyLaOA-g-dTWydaUeeWo9uVGR+rZ=ZJzPW_Ocw@mail.gmail.com>
- <20120420180748.GI6871@ZenIV.linux.org.uk>
- <20120423180150.GA6871@ZenIV.linux.org.uk>
- <20120424072617.GB6871@ZenIV.linux.org.uk>
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:50237 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758764Ab2DYL0k (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2012 07:26:40 -0400
+Subject: [PATCH 4/4] bug: mark disabled BUG() as unreachable() code
+From: Konstantin Khlebnikov <khlebnikov@openvz.org>
+Date: Wed, 25 Apr 2012 15:26:36 +0400
+Message-ID: <20120425112636.26927.27124.stgit@zurg>
+In-Reply-To: <20120425112623.26927.43229.stgit@zurg>
+References: <20120425112623.26927.43229.stgit@zurg>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20120424072617.GB6871@ZenIV.linux.org.uk>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Tejun Heo <tj@kernel.org>, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20120425030659.lGsiiiFPg6aBWwYYQmImm5TBWOY8JHTZEz2roQY9-DY@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20120425112636.yWlNRMZrbC3aZMJ3F6RYN_nZhPGwiHjL3FS34xqEelw@z>
 
+This patch suppress some compiler warnings (if CONFIG_BUG=n)
+"warning: control reaches end of non-void function"
 
-> And then there's a lovely issue of what syscall restarts - both on multiple
-> arriving signals (we want the restart to apply on the _first_ signal being
-> processed, TYVM, since the rest of those signals are not interrupting
-> a syscall - conceptually, they are interrupting the previous signal handlers
-> at the point of entry) and on {rt_,}sigreturn(2) (where we might get a value
-> in the register normally used to return sys_whatever() value that would look
-> like one of restart-related special errors, except that it's simply what that
-> register used to have when e.g. a timer interrupt had hit while we had a signal
-> pending; hell to debug, since it looks e.g. like one register in userland
-> process getting its value randomly replaced with -EINTR if it happened to
-> contain -ERESTARTSYS when an interrupt had happened).  I'd fixed one like
-> that on arm a couple of years ago, but AFAICS we still have several on
-> other architectures ;-/
+Plus now gcc can throw out some dead code.
+bloat-o-meter: add/remove: 1/1 grow/shrink: 68/173 up/down: 1569/-5607 (-4038)
 
-FWIW, there's an interesting question rmk has brought up.  Consider the
-following scenario (on any architecture):
-	sigsuspend(2) sees a signal and returns ERESTARTNOHAND.
-	do_signal() is called and calls get_signal_to_deliver() and gets 0,
-for whatever reason.
-	We decide to restart, return address adjusted, syscall number
-returned to the right register in pt_regs.  In the meanwhile, no matter what
-state interrupts used to have before, get_signal_to_deliver() has enabled
-them when returning, so we'll need to reload thread flags.  And we find that
-another signal has arrived in the meanwhile.
-	OK, do_signal() is called again, and this time we have a handler for
-the arrived signal.  We form a stack frame and return to userland, into the
-beginning of the handler.  We don't even look at the restart-related logics
-this time around, due to the usual logics protecting us from double restarts.
-	Handler is executed, up to rt_sigreturn(2).
-	We decode the sigcontext, restore pt_regs and return to userland.
-	Right into the beginning of interrupted sigsuspend()
+Signed-off-by: Konstantin Khlebnikov <khlebnikov@openvz.org>
+---
+ include/asm-generic/bug.h |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-So we have sigsuspend() hit by a signal we have a handler for.  Handler is
-executed and we are stuck is sigsuspend() again, all because a signal without
-a handler has arrived just before that one - close enough for our signal to
-come right after get_signal_to_deliver() has returned zero to do_signal().
+diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+index aadb6fc..0b08199 100644
+--- a/include/asm-generic/bug.h
++++ b/include/asm-generic/bug.h
+@@ -108,7 +108,7 @@ extern void warn_slowpath_null(const char *file, const int line);
+ 
+ #else /* !CONFIG_BUG */
+ #ifndef HAVE_ARCH_BUG
+-#define BUG() do {} while(0)
++#define BUG() unreachable()
+ #endif
+ 
+ #ifndef HAVE_ARCH_BUG_ON
 
-AFAICS, that's a clear bug.  Arrival of a signal that has userland handler
-and that isn't blocked by the mask given to sigsuspend() should terminate
-sigsuspend().  Sure, we can weasel around the wording in POSIX (it says
-"sigsuspend() will return after the signal-catching function returns" without
-explicitly saying that it shouldn't sit around waiting for another signals
-to arrive), but it's obviously against the intent of standard (as well as
-expectations of any programmer).  Note that if the handler-less signal had
-arrived a bit earlier, we would've returned to userland and reenter the
-kernel before the arrival of our signal.  Then it *would* terminate
-sigsuspend() - handler would be executed and we would've returned to caller
-of sigsuspend() with EINTR as return value.  If they came simultaneously,
-the same thing would've happened - get_signal_to_deliver() would have
-returned non-zero the first time around and that would be it.  It's just the
-right timing for the second signal that triggers that race.
-
-Solution proposed last summer when that had been noticed by arm folks was
-more or less along the lines of
-	* new thread flag, checked after we'd seen that no SIGPENDING et.al.
-is there.  If it's set, we clear it, do syscall restart work as we would for
-handlerless signal and recheck the flags if we had to do something like
-__put_user() in process (arm might have to do that for ERESTART_RESTARTBLOCK)[1]
-	* do_signal() would set that flag if
-		+ anti double-restart logics would not have prevented
-		  restarts
-		+ error value was ERESTART_...
-	* no restart work on "no signal" path in do_signal()
-	* if we have a handler and the flag is set, clear it and do what
-we normally do for restarts (including the "has ptrace mangled registers
-in a way that would prevent restarts in the current code" logics for
-architectures that have such logics - arm and sparc, at least).
-
-I would've probably made that TS_... instead of TIF_... at least for something
-like x86 - it's obviously thread-synchronous.
-
-[1] it wasn't covered in that thread, but if a signal arrives during that
-__put_user() we really won't care - the usual logics in sigreturn() will
-make sure that when we return from handler into the resulting restart_syscall(2)
-we'll have it immediately fail with -EINTR.
-
-Comments?  AFAICS, the bug is arch-independent; it's not just arm and it's
-worse than the example mentioned last year - sigsuspend() is a lot more
-common than ppoll() and behaviour clearly goes against what sigsuspend()
-exists for.
