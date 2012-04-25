@@ -1,45 +1,54 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [RFC][PATCH 2/3] math128: Introduce {mult,add,cmp}_u128
-Date: Wed, 25 Apr 2012 16:35:47 +0200
-Message-ID: <CAMuHMdVSjX1ZRc_Q0cuL+U_f+zzuD+1cjW-OBdn1c3mC8Ya_Rg@mail.gmail.com>
-References: <20120424161039.293018424@chello.nl>
-	<20120424162224.526249106@chello.nl>
-	<20120425102342.45cf5c5e81e8aeb3bec67d0b@canb.auug.org.au>
-	<1335341466.28150.248.camel@twins>
-	<CAMuHMdUqgR8Z8wtBjm=-g9ff6CVmEd=FpbC2tk-CMU7B3XVVDg@mail.gmail.com>
-	<1335355106.28150.254.camel@twins>
+Subject: Re: [PATCH 2/4] bug: completely remove code of disabled VM_BUG_ON()
+Date: Wed, 25 Apr 2012 16:40:32 +0200
+Message-ID: <CAMuHMdW7eQh8eaNZrwRHqduPYCjNXv+LriZoH6-ERdkHH2qL8g@mail.gmail.com>
+References: <20120425112623.26927.43229.stgit@zurg>
+	<20120425112629.26927.21609.stgit@zurg>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f44.google.com ([74.125.82.44]:62186 "EHLO
-	mail-wg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751413Ab2DYOft convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2012 10:35:49 -0400
-In-Reply-To: <1335355106.28150.254.camel@twins>
+Received: from mail-we0-f174.google.com ([74.125.82.174]:40318 "EHLO
+	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751798Ab2DYOke convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2012 10:40:34 -0400
+In-Reply-To: <20120425112629.26927.21609.stgit@zurg>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>
+To: Konstantin Khlebnikov <khlebnikov@openvz.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-On Wed, Apr 25, 2012 at 13:58, Peter Zijlstra <a.p.zijlstra@chello.nl> =
-wrote:
->> Still using quilt? I didn't regret ditching it in favor of git (yumm=
-y,
->> git rebase ;-).
->
-> Yeah, I can't seem to deal with git, I edit my patches by hand way to=
-o
-> often, also quilt is a _LOT_ faster pushing/popping patches than git =
-is
-> (and yes I use an SSD).
->
-> Not using git also means I don't have to deal with the trainwreck tha=
-t
-> is git-merge,.. /me runs like hell.
+On Wed, Apr 25, 2012 at 13:26, Konstantin Khlebnikov
+<khlebnikov@openvz.org> wrote:
+> Even if CONFIG_DEBUG_VM=3Dn gcc genereates code for some VM_BUG_ON()
 
-But you have to deal with the quilt-oh-no-the-patch-no-longer-applies
-trainwreck...
+That's because of the side effects of the expression
+
+https://lkml.org/lkml/2012/4/25/146
+
+But IRIC, we do want them here?
+
+> bloat-o-meter: add/remove: 0/1 grow/shrink: 10/120 up/down: 185/-1889=
+ (-1704)
+>
+> Signed-off-by: Konstantin Khlebnikov <khlebnikov@openvz.org>
+> ---
+> =C2=A0include/linux/mmdebug.h | =C2=A0 =C2=A02 +-
+> =C2=A01 file changed, 1 insertion(+), 1 deletion(-)
+>
+> diff --git a/include/linux/mmdebug.h b/include/linux/mmdebug.h
+> index c04ecfe..9c9a2a0 100644
+> --- a/include/linux/mmdebug.h
+> +++ b/include/linux/mmdebug.h
+> @@ -4,7 +4,7 @@
+> =C2=A0#ifdef CONFIG_DEBUG_VM
+> =C2=A0#define VM_BUG_ON(cond) BUG_ON(cond)
+> =C2=A0#else
+> -#define VM_BUG_ON(cond) do { (void)(cond); } while (0)
+> +#define VM_BUG_ON(cond) unused_expression(cond)
+> =C2=A0#endif
+>
+> =C2=A0#ifdef CONFIG_DEBUG_VIRTUAL
 
 Gr{oetje,eeting}s,
 
