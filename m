@@ -1,53 +1,141 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Date: Wed, 25 Apr 2012 15:32:09 +0200
-Message-ID: <20120425133209.GA17900@redhat.com>
-References: <20120420160848.GG6871@ZenIV.linux.org.uk> <20120420164239.GH6871@ZenIV.linux.org.uk> <CA+55aFzuTspDyyLaOA-g-dTWydaUeeWo9uVGR+rZ=ZJzPW_Ocw@mail.gmail.com> <20120420180748.GI6871@ZenIV.linux.org.uk> <20120423180150.GA6871@ZenIV.linux.org.uk> <20120424072617.GB6871@ZenIV.linux.org.uk> <20120425030659.GE6871@ZenIV.linux.org.uk> <20120425123746.GA15560@redhat.com> <20120425125042.GF6871@ZenIV.linux.org.uk> <20120425130329.GA16413@redhat.com>
+From: Nick Bowler <nbowler@elliptictech.com>
+Subject: Re: [PATCH 3/4] kbuild: link of vmlinux moved to a script
+Date: Wed, 25 Apr 2012 10:24:52 -0400
+Message-ID: <20120425142452.GA13682@elliptictech.com>
+References: <20120424194148.GA2216@merkur.ravnborg.org>
+ <20120424194431.GC2311@merkur.ravnborg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:52692 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757501Ab2DYNdA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Apr 2012 09:33:00 -0400
+Received: from mx.scalarmail.ca ([98.158.95.75]:19095 "EHLO
+	ironport-01.sms.scalar.ca" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1753059Ab2DYOZj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 Apr 2012 10:25:39 -0400
 Content-Disposition: inline
-In-Reply-To: <20120425130329.GA16413@redhat.com>
+In-Reply-To: <20120424194431.GC2311@merkur.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Tejun Heo <tj@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Roland McGrath <roland@hack.frob.com>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.cz>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>
 
-On 04/25, Oleg Nesterov wrote:
->
-> On 04/25, Al Viro wrote:
-> >
-> > On Wed, Apr 25, 2012 at 02:37:46PM +0200, Oleg Nesterov wrote:
-> > > As for sys_sigsuspend() and this race in particular:
-> > >
-> > > > Arrival of a signal that has userland handler
-> > > > and that isn't blocked by the mask given to sigsuspend() should terminate
-> > > > sigsuspend().
-> > >
-> > > Yes. But note that do_signal() restores the old sigmask. This means that
-> > > the signal we get after the first do_signal() was not blocked before
-> > > sigsuspend() was called. So, to some extent, we can pretend that the
-> > > handler was executed before sigsuspend() and it was never restarted.
-> >
-> > Signal might have already arrived by the time we restore sigmask.
->
-> Yes, and it sets TIF_SIGPENDING, but unless I missed something this doesn't
-> matter.
->
-> > So no,
-> > it might have been blocked prior to sigsuspend().
->
-> If it was not blocked,
-        ^^^^^^^
-I meant, If it WAS blocked.
+Hi Sam,
 
-> then the next do_signal()->get_signal_to_deliver()
-> returns 0 and clears TIF_SIGPENDING. After that we finally re-enter
-> sys_sigsuspend() and (assuming it unblocks this sig) notice this pending
-> signal again and return -EINTR eventually.
->
-> Oleg.
+Without actually running it, a few comments on the shell script itself.
+
+On 2012-04-24 21:44 +0200, Sam Ravnborg wrote:
+> +++ b/scripts/link-vmlinux.sh
+[...]
+> +# We need access to CONFIG_ symbols
+> +source ./.config
+
+source is non-standard and not widely supported.  In particular, this
+will not work on systems using dash for /bin/sh.  In this instance,
+simply replacing source with the portable dot builtin will be exactly
+equivalent, as in:
+
+   . ./.config
+
+> +# Error out on error
+> +set -e
+
+While a valiant effort, using set -e to handle errors is just asking
+for surprises down the road.  Ignoring the fact that "set -e" has been
+historically underspecified (and there is thus some variety in how
+different shells handle it), consider the following:
+
+  set -e
+  foo() {
+    false
+    echo oops
+  }
+  foo || echo foo failed
+
+Because the _call_ to foo appears on the left side of ||, the commands
+_within_ foo are not subject to the effects of set -e.  In bash, the
+above script therefore prints "oops", and does not normally print "foo
+failed".
+
+> +# Delete output files in case of error
+> +trap cleanup SIGHUP SIGINT SIGQUIT SIGTERM ERR
+
+This is another ksh-ism, which will again fail on systems with /bin/sh
+being dash.  More portable:
+
+  trap cleanup HUP INT QUIT TERM
+  trap '(exit $?) || cleanup' EXIT
+
+However, the Autoconf shell portability manual documents some confusion
+regarding what $? should be in an exit trap when it is entered by using
+the exit command:
+
+  "Bash considers exit to be the last command, while Zsh and Solaris
+  /bin/sh consider that when the trap is run it is still in the exit,
+  hence it is the previous exit status that the trap receives".
+
+The manual subsequently recommends that "exit 42" therefore be written
+as "(exit 42); exit 42".  Fortunately, in this script, the only call to
+exit immediately follows an explicit call to cleanup, so it won't
+actually matter whether or not the exit trap calls cleanup again.
+
+Nevertheless, I cannot reproduce the described trap behaviour with
+current versions of Zsh, so maybe all this information is out of date.
+That being said ...
+
+> +cleanup()
+> +{
+> +	rm -f vmlinux.o
+> +	rm -f .old_version
+> +	rm -f .tmp_vmlinux*
+> +	rm -f .tmp_kallsyms*
+> +	rm -f vmlinux
+> +	rm -f .tmp_System.map
+> +	rm -f System.map
+> +}
+
+... this whole ad-hoc cleanup mechanism looks prone to failure.
+Basically, if something goes really wrong and files get left behind, a
+subsequent "make" is going to see up-to-date files and proceed with
+garbage.  A more robust approach is, for filenames used in the Makefile,
+to output to "dummy" files (e.g., write to vmlinux.tmp).  Only after
+everything was successful (either at the very end of the script or in
+the makefile rule which calls it), rename the dummy files to their
+actual filename.
+
+That way, the cleanup becomes "best effort" and, from a build
+correctness point of view, won't matter if it misses removing
+files for whatever reason.
+
+[...]
+> +# step a (see comment above)
+> +if [ -n "${CONFIG_KALLSYMS}" ]; then
+> +	mksysmap ${kallsyms_vmlinux} .tmp_System.map
+> +
+> +	if [ $(cmp -s System.map .tmp_System.map) ]; then
+
+This test is wrong: it is passing the output of cmp to the [ builtin.
+Aside from not being properly quoted (so the output of cmp is subject to
+word splitting, which will make [ unhappy if it actually happens),
+you've asked cmp to produce no output by giving it the -s option so
+this test will always be false.
+
+Presumably this should be:
+
+        if ! cmp -s System.map .tmp_System.map; then
+
+which actually tests the exit status of cmp instead of its output, and
+executes the branch if cmp failed.  (Aside: some older shells don't
+support the "if ! cmd; then stuff; fi" pattern, so you sometimes see it
+written as: "if cmd; then :; else stuff; fi".  We probably don't care
+too much about such shells here).
+
+> +		echo Inconsistent kallsyms data
+> +		echo echo Try "make KALLSYMS_EXTRA_PASS=1" as a workaround
+> +		cleanup
+> +		exit 1
+> +	fi
+> +fi
+
+Cheers,
+-- 
+Nick Bowler, Elliptic Technologies (http://www.elliptictech.com/)
