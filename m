@@ -1,31 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:60224 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759140Ab2DYLyi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2012 07:54:38 -0400
-Message-ID: <4F97E5F7.9030305@openvz.org>
-Date: Wed, 25 Apr 2012 15:54:31 +0400
-From: Konstantin Khlebnikov <khlebnikov@openvz.org>
-MIME-Version: 1.0
-Subject: Re: [PATCH 1/4] compiler.h: introduce unused_expression() macro
-References: <20120425112623.26927.43229.stgit@zurg> <4F97E550.4060208@gmail.com>
-In-Reply-To: <4F97E550.4060208@gmail.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
+Received: from e06smtp10.uk.ibm.com ([195.75.94.106]:57198 "EHLO
+	e06smtp10.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757214Ab2DZObZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Apr 2012 10:31:25 -0400
+Received: from /spool/local
+	by e06smtp10.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+	Thu, 26 Apr 2012 15:31:24 +0100
+Date: Thu, 26 Apr 2012 16:31:19 +0200
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
+Message-ID: <20120426163119.6c245d5e@de.ibm.com>
+In-Reply-To: <20120426135255.GA15600@redhat.com>
+References: <20120425123746.GA15560@redhat.com>
+	<20120425125042.GF6871@ZenIV.linux.org.uk>
+	<20120425130329.GA16413@redhat.com>
+	<20120425133238.GG6871@ZenIV.linux.org.uk>
+	<20120425145239.GA21386@redhat.com>
+	<20120425154611.GA23672@redhat.com>
+	<20120425161002.GH6871@ZenIV.linux.org.uk>
+	<20120425170230.GA24977@redhat.com>
+	<20120425175113.GI6871@ZenIV.linux.org.uk>
+	<20120426091519.49eef9aa@de.ibm.com>
+	<20120426135255.GA15600@redhat.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Cong Wang <xiyou.wangcong@gmail.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20120425115431.CkApb_3SKgCO_OkhD7hxd5AIp5_pef8DhjqtVH74i0M@z>
+To: Oleg Nesterov <oleg@redhat.com>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Tejun Heo <tj@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Roland McGrath <roland@hack.frob.com>
+Message-ID: <20120426143119.zxc1lT6gh6KqM4nYqr3A_r3pCRaqbTZSl5Iu_9PEH7k@z>
 
-Cong Wang wrote:
-> On 04/25/2012 07:26 PM, Konstantin Khlebnikov wrote:
->> Sometimes we want to check some expressions correctness in compile-time without
->> generating extra code. "(void)(e)" does not work if expression has side-effects.
->> This patch introduces macro unused_expression() which helps in this situation.
->>
->
-> Interesting, I am wondering why gcc doesn't eliminate the code as we
-> pass either -O2 or -Os to it.
+On Thu, 26 Apr 2012 15:52:55 +0200
+Oleg Nesterov <oleg@redhat.com> wrote:
 
-It cannot do this if expression has some side-effects, for example if it contains BUG().
+> On 04/26, Martin Schwidefsky wrote:
+> > You need to be careful with inferior calls there. gdb likes to play games
+> > with the registers inside the get_signal_to_deliver call, it wants to be
+> > able to jump out of an interrupted system call, do its inferior call in
+> > the debugee and then return to the interrupted system call.
+> 
+> Ah.
+> 
+> > You would have to to read, modify & restore the NEED_RESTART flag in gdb
+> > over an inferior call.
+> 
+> I am not sure, but perhaps this is not really needed...
+> 
+> But at least this means that "if (we have any business doing restarts)"
+> above is meaningless before get_signal_to_deliver().
+> 
+> 
+> And I am confused, off-topic question... How it is possible to
+> "then return to the interrupted system call" if that system call
+> returned -ERESTART_RESTARTBLOCK but the inferior call in turn
+> does the system call which changes restart_block->fn/etc ?
+
+Returning from an inferior gdb call to a system call that needs to be
+restarted with -ERESTART_RESTARTBLOCK is broken on all architectures
+as far as I can tell. And it would be hard to fix it, basically you
+have to save and restore the restart block.
+
+-- 
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
+
