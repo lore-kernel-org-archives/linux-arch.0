@@ -1,32 +1,73 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [PATCH 2/2] math128, x86_64: Implement {mult,add}_u128 in 64bit
- asm
-Date: Wed, 25 Apr 2012 20:10:39 +0200
-Message-ID: <1335377439.28150.272.camel@twins>
-References: <20120425111552.665217867@chello.nl>
-	 <20120425112244.953956269@chello.nl>
-	 <CALCETrWBMUzG9KYVOQxwCLqnEQjRizz5k4tQW2=emfx1t8TgvA@mail.gmail.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
+Date: Thu, 26 Apr 2012 09:15:19 +0200
+Message-ID: <20120426091519.49eef9aa@de.ibm.com>
+References: <20120424072617.GB6871@ZenIV.linux.org.uk>
+	<20120425030659.GE6871@ZenIV.linux.org.uk>
+	<20120425123746.GA15560@redhat.com>
+	<20120425125042.GF6871@ZenIV.linux.org.uk>
+	<20120425130329.GA16413@redhat.com>
+	<20120425133238.GG6871@ZenIV.linux.org.uk>
+	<20120425145239.GA21386@redhat.com>
+	<20120425154611.GA23672@redhat.com>
+	<20120425161002.GH6871@ZenIV.linux.org.uk>
+	<20120425170230.GA24977@redhat.com>
+	<20120425175113.GI6871@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:40500 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754243Ab2DYSKy convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Apr 2012 14:10:54 -0400
-In-Reply-To: <CALCETrWBMUzG9KYVOQxwCLqnEQjRizz5k4tQW2=emfx1t8TgvA@mail.gmail.com>
+Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:52950 "EHLO
+	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753184Ab2DZHPa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Apr 2012 03:15:30 -0400
+Received: from /spool/local
+	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+	Thu, 26 Apr 2012 08:15:28 +0100
+In-Reply-To: <20120425175113.GI6871@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andy Lutomirski <luto@amacapital.net>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Andrew Morton <akpm@linux-foundation.org>, Juri Lelli <juri.lelli@gmail.com>, Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Tejun Heo <tj@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Roland McGrath <roland@hack.frob.com>
 
-On Wed, 2012-04-25 at 11:02 -0700, Andy Lutomirski wrote:
-> 
-> > +static inline mul_u64_u64(u64 a, u64 b)
-> 
-> I think you're missing a return type and a 't'. 
+On Wed, 25 Apr 2012 18:51:13 +0100
+Al Viro <viro@ZenIV.linux.org.uk> wrote:
 
-argh, that's what you get for not actually compiling with an old enough
-gcc :/
+> do_signal()
+> {
+> 	if (we have any business doing restarts)
+> 		// note: we won't get here on subsequent calls of do_signal()
+> 		// due to the checks above; same logics that currently prevents
+> 		// double restarts
+> 		set NEED_RESTART flag
+> 	sig = get_signal_to_deliver(...)
+> 	if (sig) {
+> 		if (NEED_RESTART set) {
+> 			clear NEED_RESTART
+> 			same thing we do at that spot now - restart or EINTR
+> 			handle_signal(...)
+> 			...
+> 			return;
+> 		}
+> 	}
+> 	/* no handler */
+> 	if (test_and_clear_...(RESTORE_SIGMASK))
+> 		set_current_blocked(&current->saved_sigmask);
+> }
+> and in asm glue, *after* checking for SIGPENDING/NOTIFY_RESUME, check
+> NEED_RESTART and if it's set do what we currently do for restarts on
+> handlerless signal.
 
-Fixed, thanks!
+You need to be careful with inferior calls there. gdb likes to play games
+with the registers inside the get_signal_to_deliver call, it wants to be
+able to jump out of an interrupted system call, do its inferior call in
+the debugee and then return to the interrupted system call.
+You would have to to read, modify & restore the NEED_RESTART flag in gdb
+over an inferior call.
+
+-- 
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
