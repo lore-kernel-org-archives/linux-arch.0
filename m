@@ -1,70 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp10.uk.ibm.com ([195.75.94.106]:57198 "EHLO
-	e06smtp10.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757214Ab2DZObZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Apr 2012 10:31:25 -0400
-Received: from /spool/local
-	by e06smtp10.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-	Thu, 26 Apr 2012 15:31:24 +0100
-Date: Thu, 26 Apr 2012 16:31:19 +0200
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Message-ID: <20120426163119.6c245d5e@de.ibm.com>
-In-Reply-To: <20120426135255.GA15600@redhat.com>
-References: <20120425123746.GA15560@redhat.com>
-	<20120425125042.GF6871@ZenIV.linux.org.uk>
-	<20120425130329.GA16413@redhat.com>
-	<20120425133238.GG6871@ZenIV.linux.org.uk>
-	<20120425145239.GA21386@redhat.com>
-	<20120425154611.GA23672@redhat.com>
-	<20120425161002.GH6871@ZenIV.linux.org.uk>
-	<20120425170230.GA24977@redhat.com>
-	<20120425175113.GI6871@ZenIV.linux.org.uk>
-	<20120426091519.49eef9aa@de.ibm.com>
-	<20120426135255.GA15600@redhat.com>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:45762 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752077Ab2DZWeM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Apr 2012 18:34:12 -0400
+Date: Thu, 26 Apr 2012 15:34:11 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 1/4] compiler.h: introduce unused_expression() macro
+Message-ID: <20120426153411.8686e0f9.akpm@linux-foundation.org>
+In-Reply-To: <20120425112623.26927.43229.stgit@zurg>
+References: <20120425112623.26927.43229.stgit@zurg>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Tejun Heo <tj@kernel.org>, Arnd Bergmann <arnd@arndb.de>, Roland McGrath <roland@hack.frob.com>
-Message-ID: <20120426143119.zxc1lT6gh6KqM4nYqr3A_r3pCRaqbTZSl5Iu_9PEH7k@z>
+To: Konstantin Khlebnikov <khlebnikov@openvz.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120426223411.MXkHguTbwsZBod0RIs-zypuAs5VALP1_rb6cz5YwwXo@z>
 
-On Thu, 26 Apr 2012 15:52:55 +0200
-Oleg Nesterov <oleg@redhat.com> wrote:
+On Wed, 25 Apr 2012 15:26:23 +0400
+Konstantin Khlebnikov <khlebnikov@openvz.org> wrote:
 
-> On 04/26, Martin Schwidefsky wrote:
-> > You need to be careful with inferior calls there. gdb likes to play games
-> > with the registers inside the get_signal_to_deliver call, it wants to be
-> > able to jump out of an interrupted system call, do its inferior call in
-> > the debugee and then return to the interrupted system call.
+> Sometimes we want to check some expressions correctness in compile-time without
+> generating extra code. "(void)(e)" does not work if expression has side-effects.
+> This patch introduces macro unused_expression() which helps in this situation.
 > 
-> Ah.
+> Cast to "long" required because sizeof does not work for bit-fields.
 > 
-> > You would have to to read, modify & restore the NEED_RESTART flag in gdb
-> > over an inferior call.
+> Signed-off-by: Konstantin Khlebnikov <khlebnikov@openvz.org>
+> ---
+>  include/linux/compiler.h |    2 ++
+>  1 file changed, 2 insertions(+)
 > 
-> I am not sure, but perhaps this is not really needed...
-> 
-> But at least this means that "if (we have any business doing restarts)"
-> above is meaningless before get_signal_to_deliver().
-> 
-> 
-> And I am confused, off-topic question... How it is possible to
-> "then return to the interrupted system call" if that system call
-> returned -ERESTART_RESTARTBLOCK but the inferior call in turn
-> does the system call which changes restart_block->fn/etc ?
+> diff --git a/include/linux/compiler.h b/include/linux/compiler.h
+> index 923d093..46fbda3 100644
+> --- a/include/linux/compiler.h
+> +++ b/include/linux/compiler.h
+> @@ -310,4 +310,6 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
+>   */
+>  #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
+>  
+> +#define unused_expression(e) ((void)(sizeof((__force long)(e))))
+> +
 
-Returning from an inferior gdb call to a system call that needs to be
-restarted with -ERESTART_RESTARTBLOCK is broken on all architectures
-as far as I can tell. And it would be hard to fix it, basically you
-have to save and restore the restart block.
+btw, please let's not add undocumented stuff, particularly obscure
+undocumented stuff.
 
--- 
-blue skies,
-   Martin.
+I typed this in:
 
-"Reality continues to ruin my life." - Calvin.
+--- a/include/linux/compiler.h~compilerh-introduce-unused_expression-macro-fix
++++ a/include/linux/compiler.h
+@@ -310,6 +310,11 @@ void ftrace_likely_update(struct ftrace_
+  */
+ #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
+ 
++/*
++ * unused_expression() permits the compiler to check the validity of the
++ * expression but avoids the generation of any code, even if that expression
++ * has side-effects.
++ */
+ #define unused_expression(e) ((void)(sizeof((__force long)(e))))
+ 
+ #endif /* __LINUX_COMPILER_H */
 
+but then decided I didn't want to apply the patches (yet?).
