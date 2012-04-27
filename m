@@ -1,108 +1,64 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Date: Fri, 27 Apr 2012 00:19:42 +0100
-Message-ID: <20120426231942.GJ6871@ZenIV.linux.org.uk>
-References: <CA+55aFzinX_6DVvDTyxrsP6VEHVY2Q+Y=e+qksnAjR+oT3GZew@mail.gmail.com>
- <20120420080914.GF6871@ZenIV.linux.org.uk>
- <CA+55aFxia+u3VAf0qN-2wv7DyAQZK-Z8=n=cqUvo--+C905aFg@mail.gmail.com>
- <20120420160848.GG6871@ZenIV.linux.org.uk>
- <20120420164239.GH6871@ZenIV.linux.org.uk>
- <CA+55aFzuTspDyyLaOA-g-dTWydaUeeWo9uVGR+rZ=ZJzPW_Ocw@mail.gmail.com>
- <20120420180748.GI6871@ZenIV.linux.org.uk>
- <20120423180150.GA6871@ZenIV.linux.org.uk>
- <20120424072617.GB6871@ZenIV.linux.org.uk>
- <20120426183742.GA324@redhat.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 2/4] bug: completely remove code of disabled VM_BUG_ON()
+Date: Fri, 27 Apr 2012 07:17:50 +0200
+Message-ID: <CAMuHMdXzLaPoGinwG9EAL5VYAbMdmx+U5m1Fg+53DAQgdi1hxg@mail.gmail.com>
+References: <20120425112623.26927.43229.stgit@zurg>
+	<20120425112629.26927.21609.stgit@zurg>
+	<CAMuHMdW7eQh8eaNZrwRHqduPYCjNXv+LriZoH6-ERdkHH2qL8g@mail.gmail.com>
+	<20120426153241.6d4762a2.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:56059 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750864Ab2DZXTp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Apr 2012 19:19:45 -0400
-Content-Disposition: inline
-In-Reply-To: <20120426183742.GA324@redhat.com>
+Received: from mail-wi0-f172.google.com ([209.85.212.172]:51460 "EHLO
+	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751112Ab2D0FRw convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Apr 2012 01:17:52 -0400
+In-Reply-To: <20120426153241.6d4762a2.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Konstantin Khlebnikov <khlebnikov@openvz.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, Apr 26, 2012 at 08:37:42PM +0200, Oleg Nesterov wrote:
-> b4b620b87fd2f388cf4c13fea21f31bed7c9a1b0 new helper: sigsuspend()
-> 
-> Looks obviously correct but I do not understand this chunk in kernel.c,
-> 
-> 	+ #ifndef __ARCH_HAS_SYS_RT_SIGSUSPEND
-> 	+ /**
-> 	+  *  sys_rt_sigsuspend - replace the signal mask for a value with the
-> 	+
-> 	 #ifdef __ARCH_WANT_SYS_RT_SIGSUSPEND
-> 
-> So this checks the (never used/defined?) __ARCH_HAS_SYS_RT_SIGSUSPEND
-> but comments out __ARCH_WANT_SYS_RT_SIGSUSPEND. Looks like a typo.
+On Fri, Apr 27, 2012 at 00:32, Andrew Morton <akpm@linux-foundation.org=
+> wrote:
+> On Wed, 25 Apr 2012 16:40:32 +0200
+> Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+>
+>> On Wed, Apr 25, 2012 at 13:26, Konstantin Khlebnikov
+>> <khlebnikov@openvz.org> wrote:
+>> > Even if CONFIG_DEBUG_VM=3Dn gcc genereates code for some VM_BUG_ON=
+()
+>>
+>> That's because of the side effects of the expression
+>>
+>> https://lkml.org/lkml/2012/4/25/146
+>>
+>> But IRIC, we do want them here?
+>>
+>
+> AFAICT (lkml.org appears to be having a meltdown), you've gone and
+> linked to this very thread.
+>
+> Please try again, this time avoiding hyperlinks ;)
 
-	Buggered manual cherry-pick - earlier there was a patch inverting
-__ARCH_WANT_SYS_RT_SIGSUSPEND (only mips did _not_ have it after the
-whole series, and only because it has sys_rt_sigsuspend() of its own
-with unusual prototype).  I ended up dropping it and mishandled conflict
-resolution.  Fixed.
+Yeah, I noticed after the fact. I wanted to look up the definition of
+unused_expression(), which obviously wasn't in my tree yet ;-)
 
-> 6b78370886e4f61187404b7737a831281bde35e8 xtensa: switch to generic rt_sigsuspend(2)
-> and
-> d978bf9dd41728dd60fe2269493fe8f21d28eef3 h8300: switch to saved_sigmask-based sigsuspend/rt_sigsuspend
-> 
-> (off-topic, but do_signal()->try_to_freeze() looks unneeded and wrong)
+Still, I think people started relyong on the side effects, didn't they?
 
-Yes, get_signal_to_deliver() will do it.  I'd killed some instances in the
-last round of signal fixes (2010), but never got around to doing that for
-all architectures.
+Gr{oetje,eeting}s,
 
-> 	+       /* If there's no signal to deliver, we just restore the saved mask.  */
-> 	+       if (test_thread_flag(TIF_RESTORE_SIGMASK)) {
-> 	+               clear_thread_flag(TIF_RESTORE_SIGMASK);
-> 	+               sigprocmask(SIG_SETMASK, &current->saved_sigmask, NULL);
-> 			^^^^^^^^^^^
-> 
-> set_current_blocked(&current->saved_sigmask) looks better.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 Geert
 
-In principle, yes.  FWIW, I think that the entire thing should be a helper
-to go along with set_restore_sigmask().  With
-	if (test_and_clear_thread_flag(TIF_RESTORE_SIGMASK))
-		set_current_blocked(&current->saved_sigmask);
-as default implementation.  The only question is where should it go -
-asm/thread_info.h is not a good place due to header dependencies.
-Kinda-sorta solution - in thread_info.h
-{set,clear,test,test_and_clear}_restore_sigmask()
-and in linux/signal.h
-#ifdef HAVE_SET_RESTORE_SIGMASK
-static inline void restore_saved_sigmask(void)
-{
-	if (test_and_clear_restore_sigmask())
-		set_current_blocked(&current->saved_mask);
-}
-static inline sigset_t *sigmask_to_save(void)
-{
-	struct sigset *res = &current->blocked;
-	if (unlikely(test_restore_sigmask()))
-		res = current->saved_sigmask;
-	return res;
-}
-#endif
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
 
-Speaking of other helpers, pulling ppc restore_sigmask() into signal.h
-(as static inline) might be a good idea.  Every sigreturn instance is
-open-coding it...  We need saner names, though; this set is too easy to
-confuse with each other.
-
-> f1fcb14721b4f1e65387d4563311f15f0bd33684 alpha: tidy signal delivery up
-> 
-> Everything looks fine, but I have the off-topic question. The changelog
-> says:
-> 
-> 	* checking for TIF_SIGPENDING is enough; set_restart_sigmask() sets this
-> 	one as well.
-> 
-> Agreed, but why set_restore_sigmask() sets TIF_SIGPENDING? It should be
-> never used without signal_pending() == T.
-
-Umm...  Probably, and as far as I can see all callers are only reached if
-we have SIGPENDING, but that requires at least documenting what's going on.
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
