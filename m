@@ -1,46 +1,54 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 1/4] compiler.h: introduce unused_expression() macro
-Date: Fri, 27 Apr 2012 14:53:02 -0700
-Message-ID: <20120427145302.64f50e5c.akpm@linux-foundation.org>
-References: <20120425112623.26927.43229.stgit@zurg>
-	<20120426152909.b1e653bf.akpm@linux-foundation.org>
-	<4F9A6CFA.8040805@openvz.org>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
+Date: Sat, 28 Apr 2012 00:15:26 +0100
+Message-ID: <20120427231526.GP6871@ZenIV.linux.org.uk>
+References: <20120420180748.GI6871@ZenIV.linux.org.uk>
+ <20120423180150.GA6871@ZenIV.linux.org.uk>
+ <20120424072617.GB6871@ZenIV.linux.org.uk>
+ <20120426183742.GA324@redhat.com>
+ <20120426231942.GJ6871@ZenIV.linux.org.uk>
+ <20120427172444.GA30267@redhat.com>
+ <20120427184528.GL6871@ZenIV.linux.org.uk>
+ <20120427202002.8ED632C0BF@topped-with-meat.com>
+ <20120427211244.GO6871@ZenIV.linux.org.uk>
+ <20120427212729.652542C0AF@topped-with-meat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:58481 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753059Ab2D0VxE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Apr 2012 17:53:04 -0400
-In-Reply-To: <4F9A6CFA.8040805@openvz.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:33450 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751565Ab2D0XPa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Apr 2012 19:15:30 -0400
+Content-Disposition: inline
+In-Reply-To: <20120427212729.652542C0AF@topped-with-meat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Konstantin Khlebnikov <khlebnikov@openvz.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: Roland McGrath <roland@hack.frob.com>
+Cc: Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, 27 Apr 2012 13:55:06 +0400
-Konstantin Khlebnikov <khlebnikov@openvz.org> wrote:
+On Fri, Apr 27, 2012 at 02:27:29PM -0700, Roland McGrath wrote:
+> The expectation was that every arch would eventually switch on
+> CORE_DUMP_USE_REGSET.  (Looks like so far 12 do and so ~16 don't.)
+> Certainly avoiding the overhead of user_regset for core dumping is not
+> worth any new code complexity or extra arch hooks, since that overhead
+> even on the worst-case arch (ia64) has got to be marginal in comparison
+> to all the memory-copying and i/o going on.  For imagined potential
+> tracing/fancier-debugging cases that might be used in high-throughput
+> ways the question would be different, but such uses still remain to be
+> implemented.
 
-> Andrew Morton wrote:
-> > On Wed, 25 Apr 2012 15:26:23 +0400
-> > Konstantin Khlebnikov<khlebnikov@openvz.org>  wrote:
-> 
-> for example  VM_BUG_ON(!PageCompound(page) || !PageHead(page)); in
-> do_huge_pmd_wp_page() generates 114 bytes.
-> 
-> But they mostly disappears if I replace it with
-> -VM_BUG_ON(!PageCompound(page) || !PageHead(page));
-> +VM_BUG_ON(!PageCompound(page));
-> +VM_BUG_ON(!PageHead(page));
-> weird...
-> 
-> add/remove: 0/0 grow/shrink: 7/97 up/down: 135/-1784 (-1649)
+BTW, speaking of tracehook - you do realize that there are some
+architectures where check for user_mode() in do_signal() is not
+useless?  I.e. there do_notify_resume() _can_ be called when
+returning to kernel mode.  And that'll get you tracehook_notify_resume()
+called when you probably wouldn't want it to be; key_replace_session_keyring()
+call is not desirable in that situation and the stuff Oleg wants
+to add in tracehook_notify_resume() won't be happy with that either...
 
-OK, thanks.  I'm inclined to apply the patchset as-is.  If the
-apparently mythical use of side-effects in VM_BUG_ON() really exist
-then we deserve everything which happens to us as a result ;)
-
-Please update the changelogs so they cover all the points which have been
-discussed, add my little code comment then send out a v2, being sure to
-cc everyone who has been involved in the discussion?
+I think all such architectures need that check lifted to do_notify_resume()
+(and the rest needs it killed, of course).  Including x86, by the look
+of it - we _probably_ can't get there with TIF_NOTIFY_RESUME and
+!user_mode(regs), but I'm not entirely sure of that.  arm is in about the
+same situation; alpha, ppc{32,64}, sparc{32,64} and m68k really can't get
+there like that (they all check it in the asm glue).  mips probably might,
+unless I'm misreading their ret_from_fork()...  Fun.
