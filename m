@@ -1,85 +1,58 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
 Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Date: Fri, 27 Apr 2012 19:45:29 +0100
-Message-ID: <20120427184528.GL6871@ZenIV.linux.org.uk>
+Date: Fri, 27 Apr 2012 21:14:53 +0200
+Message-ID: <CAMuHMdXTR1ug3sOyJ_PA0Yub2GsO5NCdAd71EX0Y9osq1ei5KQ@mail.gmail.com>
 References: <CA+55aFxia+u3VAf0qN-2wv7DyAQZK-Z8=n=cqUvo--+C905aFg@mail.gmail.com>
- <20120420160848.GG6871@ZenIV.linux.org.uk>
- <20120420164239.GH6871@ZenIV.linux.org.uk>
- <CA+55aFzuTspDyyLaOA-g-dTWydaUeeWo9uVGR+rZ=ZJzPW_Ocw@mail.gmail.com>
- <20120420180748.GI6871@ZenIV.linux.org.uk>
- <20120423180150.GA6871@ZenIV.linux.org.uk>
- <20120424072617.GB6871@ZenIV.linux.org.uk>
- <20120426183742.GA324@redhat.com>
- <20120426231942.GJ6871@ZenIV.linux.org.uk>
- <20120427172444.GA30267@redhat.com>
+	<20120420160848.GG6871@ZenIV.linux.org.uk>
+	<20120420164239.GH6871@ZenIV.linux.org.uk>
+	<CA+55aFzuTspDyyLaOA-g-dTWydaUeeWo9uVGR+rZ=ZJzPW_Ocw@mail.gmail.com>
+	<20120420180748.GI6871@ZenIV.linux.org.uk>
+	<20120423180150.GA6871@ZenIV.linux.org.uk>
+	<20120424072617.GB6871@ZenIV.linux.org.uk>
+	<20120426183742.GA324@redhat.com>
+	<20120426231942.GJ6871@ZenIV.linux.org.uk>
+	<20120427172444.GA30267@redhat.com>
+	<20120427184528.GL6871@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:35160 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757624Ab2D0Spe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Apr 2012 14:45:34 -0400
-Content-Disposition: inline
-In-Reply-To: <20120427172444.GA30267@redhat.com>
+Received: from mail-iy0-f174.google.com ([209.85.210.174]:51359 "EHLO
+	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760475Ab2D0TOy convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Apr 2012 15:14:54 -0400
+In-Reply-To: <20120427184528.GL6871@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Roland McGrath <roland@hack.frob.com>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Roland McGrath <roland@hack.frob.com>, Greg Ungerer <gerg@uclinux.org>
 
-On Fri, Apr 27, 2012 at 07:24:44PM +0200, Oleg Nesterov wrote:
-> > static inline sigset_t *sigmask_to_save(void)
-> > {
-> > 	struct sigset *res = &current->blocked;
-> > 	if (unlikely(test_restore_sigmask()))
-> > 		res = current->saved_sigmask;
-> > 	return res;
-> > }
-> 
-> Perhaps... but test_*_restore_sigmask() depends on TIF_ or TS_
+On Fri, Apr 27, 2012 at 20:45, Al Viro <viro@zeniv.linux.org.uk> wrote:
+>> The only comment I have,
+>> 38671a3e831ed7327affb24d715f98bb99c80e56 m68k: add TIF_NOTIFY_RESUME=
+ and handle it
+>> forgets to unexport do_signal().
+>
+> Meh... =C2=A0The thing is, there are _two_ of them. =C2=A0signal_mm.c=
+ and signal_no.c
+> badly need merging, with common stuff moved to signal.c. =C2=A0I real=
+ly hate
 
-... and is in thread_info.h; you might want to pull it again ;-)
-Right now the signal.git#master is at 349b4565ad9e9b891245590319567c0a042046d9
+Greg recently posted a patch to merge them:
+http://www.spinics.net/lists/linux-m68k/msg04995.html
 
-> > Umm...  Probably, and as far as I can see all callers are only reached if
-> > we have SIGPENDING, but that requires at least documenting what's going on.
-> 
-> WARN_ON(!test_bit(TIF_SIGPENDING)) looks like the perfect documentation ;)
+Gr{oetje,eeting}s,
 
-OK, I'm convinced.  Done.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 Geert
 
-BTW, I've a better name than set_current_blocked_carefully(); the thing
-is, only 3 callers out of 63 are _not_ immediately preceded by excluding
-SIGKILL/SIGSTOP out of the set.  So I've copied the existing variant
-to __set_current_blocked() and folded that sigdelsetmask(...) into the
-set_current_blocked().
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
 
-> The only comment I have,
-> 38671a3e831ed7327affb24d715f98bb99c80e56 m68k: add TIF_NOTIFY_RESUME and handle it
-> forgets to unexport do_signal().
-
-Meh...  The thing is, there are _two_ of them.  signal_mm.c and signal_no.c
-badly need merging, with common stuff moved to signal.c.  I really hate
-to see static function that isn't called anywhere in file it's defined in,
-leaving one to trace what happens to include that file.  Running into that
-in USB code is bloody annoying and I'd rather not add to that pile.  It's
-certainly a valid C, but it's hell on casual reader...
-
-	BTW, I'm somewhat tempted to do the following: *ALL* calls of
-tracehook_signal_handler() are now immediately preceded by block_signals().
-Moreover, tracehook_signal_handler(...., 0) is currently a no-op, so
-it could be painlessly added after the remaining block_signals() instances.
-How about *folding* block_signals() (along with clear_restore_sigmask())
-into tracehook_signal_handler()?  I don't know if anyone has conflicting
-plans for that sucker; Roland?
-
-	Even more ambitious variant: take the "setting sigframe up has
-failed, send ourselves SIGSEGV" in there as well (adding an extra argument
-to tell which one it is).  Hell knows; I know at least one place where
-such failure does _not_ lead to SIGSEGV, but there we do do_exit(SIGILL)
-right in setup_..._frame() and do_exit() never returns.  There might be
-other such suckers...
- 
-> The last thing. Matt, could you please look at
-> git://git.kernel.org/pub/scm/linux/kernel/git/viro/signal.git ? It seems to me
-> you already sent some of these changes (use set_current_blocked/block_sigmask).
-> Perhaps there are alreay in -mm or linux-next?
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
