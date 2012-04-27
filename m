@@ -1,7 +1,7 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
 Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Date: Sat, 28 Apr 2012 00:32:35 +0100
-Message-ID: <20120427233235.GQ6871@ZenIV.linux.org.uk>
+Date: Sat, 28 Apr 2012 00:50:23 +0100
+Message-ID: <20120427235023.GR6871@ZenIV.linux.org.uk>
 References: <20120423180150.GA6871@ZenIV.linux.org.uk>
  <20120424072617.GB6871@ZenIV.linux.org.uk>
  <20120426183742.GA324@redhat.com>
@@ -15,15 +15,15 @@ References: <20120423180150.GA6871@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:51605 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:48640 "EHLO
 	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757409Ab2D0Xci (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Apr 2012 19:32:38 -0400
+	with ESMTP id S1757451Ab2D0Xu3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Apr 2012 19:50:29 -0400
 Content-Disposition: inline
 In-Reply-To: <20120427231526.GP6871@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+To: Chris Metcalf <cmetcalf@tilera.com>
 Cc: Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
 On Sat, Apr 28, 2012 at 12:15:26AM +0100, Al Viro wrote:
@@ -36,22 +36,13 @@ On Sat, Apr 28, 2012 at 12:15:26AM +0100, Al Viro wrote:
 > there like that (they all check it in the asm glue).  mips probably might,
 > unless I'm misreading their ret_from_fork()...  Fun.
 
-	Speaking of user_mode() oddities - may I politely inquire what had
-been smoked to inspire this (in arch/s390/kernel/signal.c):
-        /* This is the legacy signal stack switching. */
-        else if (!user_mode(regs) &&
-                 !(ka->sa.sa_flags & SA_RESTORER) &&
-                 ka->sa.sa_restorer) {
-                sp = (unsigned long) ka->sa.sa_restorer;
-        }
-especially when all paths leading to that come through do_signal() that does
-        if (!user_mode(regs))
-                return;
-on the same regs.  It had been like that since 2.3.99pre8 when s390 went
-into the tree...  It looks vaguely similar to i386
-                        /* This is the legacy signal stack switching. */
-                        if ((regs->ss & 0xffff) != __USER_DS &&
-                                !(ka->sa.sa_flags & SA_RESTORER) &&
-                                        ka->sa.sa_restorer)
-                                sp = (unsigned long) ka->sa.sa_restorer;
-but there the code is at least not unreachable...
+I'm completely unfamiliar with tile assembler, so I might be missing something
+there, but AFAICS the following sequence can lead to do_signal() being
+called for a kernel thread:
+	kernel_thread()
+		ret_from_fork() in child
+			.Lresume_userspace
+				do_work_pending()
+					do_signal()
+and unlike many other, tile does _not_ check for !user_mode() anywhere
+relevant...  Broken?
