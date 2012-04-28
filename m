@@ -1,57 +1,51 @@
-From: Konstantin Khlebnikov <khlebnikov@openvz.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: [PATCH 4/4] bug: mark disabled BUG() as unreachable() code
-Date: Sat, 28 Apr 2012 09:10:18 +0400
-Message-ID: <4F9B7BBA.7030504@openvz.org>
+Date: Fri, 27 Apr 2012 22:21:04 -0700
+Message-ID: <CA+55aFw98ncQu0psXNCKoBkp1XK37QPdHPNJmtA_N7j9-O0jKQ@mail.gmail.com>
 References: <20120425112623.26927.43229.stgit@zurg> <20120425112636.26927.27124.stgit@zurg>
+ <4F9B7BBA.7030504@openvz.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:47532 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750847Ab2D1FKY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Apr 2012 01:10:24 -0400
-In-Reply-To: <20120425112636.26927.27124.stgit@zurg>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <4F9B7BBA.7030504@openvz.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Konstantin Khlebnikov <khlebnikov@openvz.org>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-Konstantin Khlebnikov wrote:
-> This patch suppress some compiler warnings (if CONFIG_BUG=n)
-> "warning: control reaches end of non-void function"
+On Fri, Apr 27, 2012 at 10:10 PM, Konstantin Khlebnikov
+<khlebnikov@openvz.org> wrote:
+>
+> With this patch gcc throw out loop at the end of do_exit():
 
-With this patch gcc throw out loop at the end of do_exit():
+I think that's the least of our problems - that loop only exists to
+get rid of a warning, and the return from that schedule() really is
+supposed to be unreachable().
 
-	schedule();
-	BUG();
-	/* Avoid "noreturn function does return".  */
-	for (;;)
-		cpu_relax();	/* For when BUG is null */
+What makes me much more worried is that iirc, gcc will use
+"unreachable()" to also get rid of function epilogues etc, which is
+perfectly fine if it really is something entirely unreachable. But the
+kernel use of BUG() is often as a kind of "assert()", and if gcc
+generates actively bad code for it (and it does, with unreachable()),
+it turns the turned-off BUG() into something *really* horrible that
+makes for a debugging disaster.
 
-Is this ok? Probably not, and we need here some BUG_NORETURN() which
-really never returns even if CONFIG_BUG=n.
+So some pattern like
 
->
-> Plus now gcc can throw out some dead code.
-> bloat-o-meter: add/remove: 1/1 grow/shrink: 68/173 up/down: 1569/-5607 (-4038)
->
-> Signed-off-by: Konstantin Khlebnikov<khlebnikov@openvz.org>
-> ---
->   include/asm-generic/bug.h |    2 +-
->   1 file changed, 1 insertion(+), 1 deletion(-)
->
-> diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
-> index aadb6fc..0b08199 100644
-> --- a/include/asm-generic/bug.h
-> +++ b/include/asm-generic/bug.h
-> @@ -108,7 +108,7 @@ extern void warn_slowpath_null(const char *file, const int line);
->
->   #else /* !CONFIG_BUG */
->   #ifndef HAVE_ARCH_BUG
-> -#define BUG() do {} while(0)
-> +#define BUG() unreachable()
->   #endif
->
->   #ifndef HAVE_ARCH_BUG_ON
->
+   if (badness)
+      BUG();
+
+would generate code that is actively insane, instead of (like now)
+generating basically a no-op.
+
+And THAT makes me go "Eww". "unreachable()" should only be used in
+situations that really are very very unreachable() (eg after an "asm"
+that goes off to la-la-land or a call to "exit()" in user land etc).
+
+The kernel kinds of "assert" is *hopefully* not reachable, but if we
+ever reach it, we don't want to make things worse. The BUG() was there
+to give us a nicer debug message about what went wrong, and I think
+your patch actively destroys that whole thing and makes for something
+*worse*.
+
+                    Linus
