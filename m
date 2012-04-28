@@ -1,49 +1,57 @@
 From: Konstantin Khlebnikov <khlebnikov@openvz.org>
-Subject: Re: [PATCH 1/4] compiler.h: introduce unused_expression() macro
-Date: Sat, 28 Apr 2012 07:50:10 +0400
-Message-ID: <4F9B68F2.2030205@openvz.org>
-References: <20120425112623.26927.43229.stgit@zurg> <4F9A55EC.20804@zytor.com>
+Subject: Re: [PATCH 4/4] bug: mark disabled BUG() as unreachable() code
+Date: Sat, 28 Apr 2012 09:10:18 +0400
+Message-ID: <4F9B7BBA.7030504@openvz.org>
+References: <20120425112623.26927.43229.stgit@zurg> <20120425112636.26927.27124.stgit@zurg>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <4F9A55EC.20804@zytor.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:47532 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750847Ab2D1FKY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Apr 2012 01:10:24 -0400
+In-Reply-To: <20120425112636.26927.27124.stgit@zurg>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>
 
-H. Peter Anvin wrote:
-> On 04/25/2012 04:26 AM, Konstantin Khlebnikov wrote:
->> Sometimes we want to check some expressions correctness in compile-time without
->> generating extra code. "(void)(e)" does not work if expression has side-effects.
->> This patch introduces macro unused_expression() which helps in this situation.
->>
->> Cast to "long" required because sizeof does not work for bit-fields.
->>
->> Signed-off-by: Konstantin Khlebnikov<khlebnikov@openvz.org>
->> ---
->>   include/linux/compiler.h |    2 ++
->>   1 file changed, 2 insertions(+)
->>
->> diff --git a/include/linux/compiler.h b/include/linux/compiler.h
->> index 923d093..46fbda3 100644
->> --- a/include/linux/compiler.h
->> +++ b/include/linux/compiler.h
->> @@ -310,4 +310,6 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
->>    */
->>   #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
->>
->> +#define unused_expression(e) ((void)(sizeof((__force long)(e))))
->> +
->
-> OK, bikeshedding a bit:
->
-> "unused_expression()" doesn't sound like something that inhibits side
-> effects, especially since "unused" applied to an argument or variable
-> means "don't make a fuss over this not being used."
->
-> 	-hpa
->
+Konstantin Khlebnikov wrote:
+> This patch suppress some compiler warnings (if CONFIG_BUG=n)
+> "warning: control reaches end of non-void function"
 
-Ok, in v2 I'll rename it into BUILD_BUG_ON_INVALID()
+With this patch gcc throw out loop at the end of do_exit():
+
+	schedule();
+	BUG();
+	/* Avoid "noreturn function does return".  */
+	for (;;)
+		cpu_relax();	/* For when BUG is null */
+
+Is this ok? Probably not, and we need here some BUG_NORETURN() which
+really never returns even if CONFIG_BUG=n.
+
+>
+> Plus now gcc can throw out some dead code.
+> bloat-o-meter: add/remove: 1/1 grow/shrink: 68/173 up/down: 1569/-5607 (-4038)
+>
+> Signed-off-by: Konstantin Khlebnikov<khlebnikov@openvz.org>
+> ---
+>   include/asm-generic/bug.h |    2 +-
+>   1 file changed, 1 insertion(+), 1 deletion(-)
+>
+> diff --git a/include/asm-generic/bug.h b/include/asm-generic/bug.h
+> index aadb6fc..0b08199 100644
+> --- a/include/asm-generic/bug.h
+> +++ b/include/asm-generic/bug.h
+> @@ -108,7 +108,7 @@ extern void warn_slowpath_null(const char *file, const int line);
+>
+>   #else /* !CONFIG_BUG */
+>   #ifndef HAVE_ARCH_BUG
+> -#define BUG() do {} while(0)
+> +#define BUG() unreachable()
+>   #endif
+>
+>   #ifndef HAVE_ARCH_BUG_ON
+>
