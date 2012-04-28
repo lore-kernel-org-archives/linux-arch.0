@@ -1,74 +1,107 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.snhosting.dk ([87.238.248.203]:17130 "EHLO
+Received: from smtp.snhosting.dk ([87.238.248.203]:10077 "EHLO
 	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751480Ab2D1U4x (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Apr 2012 16:56:53 -0400
-Date: Sat, 28 Apr 2012 22:56:51 +0200
+	with ESMTP id S1754753Ab2D1U6l (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Apr 2012 16:58:41 -0400
+Date: Sat, 28 Apr 2012 22:58:39 +0200
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH v2 0/4] kbuild: Move vmlinux link out of top-level Makefile
-Message-ID: <20120428205651.GA7426@merkur.ravnborg.org>
+Subject: [PATCH 2/4] kbuild: refactor final link of sparc32
+Message-ID: <20120428205839.GB7442@merkur.ravnborg.org>
+References: <20120428205651.GA7426@merkur.ravnborg.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
+In-Reply-To: <20120428205651.GA7426@merkur.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.cz>
 Cc: Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>
-Message-ID: <20120428205651.38iacdBntyfbxx0OxBwZbtVdV_eJifFQ3VPRcMMcAGI@z>
+Message-ID: <20120428205839.fE2o17Wsg8XsQHZPFG35Hinl5F5AjNmpwz4hMzdj93w@z>
 
-The following patchset moves all the magic used
-to deal with the final link of vmlinux from the
-top-level Makefile to a shell script.
+From 8716c7f473ec65c57811bb21095354b813b48898 Mon Sep 17 00:00:00 2001
+From: Sam Ravnborg <sam@ravnborg.org>
+Date: Mon, 23 Apr 2012 20:29:07 +0200
+Subject: [PATCH 2/4] kbuild: refactor final link of sparc32
 
-The main motivation was to convert the almost
-unreadable mess in the top-level Makefile to
-an easy to read/maintain shell script.
+sparc32 uses an additional final link to support btfix.
+Introduce a new set of exported variables in the top-level Makefile
+to make the extra linking step simpler.
 
-The final link stages are serialized
-anyway - so there where nothing gained by using
-the Makefile logic to handle this.
+sparc32 have hardcoded knowledge of kallsyms support. This fix
+include support for EXTRA_KALLSYM_PASS=1.
+The ugly part is that it is hardcoded in the arch/sparc/boot
+Makefile.
 
-What we gain:
-- A readable final link of vmlinux
-- Less junk in the top-level Makefile
+Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+---
+ Makefile                 |    5 +++++
+ arch/sparc/Makefile      |   11 -----------
+ arch/sparc/boot/Makefile |   14 +++++++++-----
+ 3 files changed, 14 insertions(+), 16 deletions(-)
 
-What we loose by the conversion:
-- We no logner rebuild if one of the .tmp_kallsyms
-  files are deleted.
-- We no longer rebuild if vmlinux.o is deleted
-
-None of the above cases are hit by a typical
-kernel developer so the drawbacks are acceptable.
-
-I had to implement special handling of um in the
-link-vmlinux script. It is not pretty by any means,
-but I could not come up with something better.
-My previous attempts to use ld for um linking has failed,
-so this kludge was introduced.
-
-There is no outstanding issues to my knowledge,
-and the patchset is ready to be applied.
-I assume this should go in via the kbuild#misc tree.
-
-v2:
-- rebuild if options to ld changes (Andi Kleen)
-- shell script improvements from Nick Bowler
-- clean target calls script to clean up after link
-- include documentation of LDFLAGS_vmlinux
-
-	Sam
-
- Documentation/kbuild/kbuild.txt |   19 +++++
- Makefile                        |  217 ++++----------------------------------------------
- arch/sparc/Makefile             |   11 ---
- arch/sparc/boot/Makefile        |   14 ++--
- arch/um/Makefile                |   11 +--
- scripts/link-vmlinux.sh         |  211 ++++++++++++++++++++++++++++++++++++++++++++++++
- 6 files changed, 256 insertions(+), 227 deletions(-)
-
-Sam Ravnborg (4):
-      kbuild: drop unused KBUILD_VMLINUX_OBJS from top-level Makefile
-      kbuild: refactor final link of sparc32
-      kbuild: link of vmlinux moved to a script
-      kbuild: document KBUILD_LDS, KBUILD_VMLINUX_{INIT,MAIN} and LDFLAGS_vmlinux
+diff --git a/Makefile b/Makefile
+index 287aee4..00bf5b1 100644
+--- a/Makefile
++++ b/Makefile
+@@ -727,6 +727,11 @@ libs-y1		:= $(patsubst %/, %/lib.a, $(libs-y))
+ libs-y2		:= $(patsubst %/, %/built-in.o, $(libs-y))
+ libs-y		:= $(libs-y1) $(libs-y2)
+ 
++# externally visible symbols
++export KBUILD_VMLINUX_INIT := $(head-y) $(init-y)
++export KBUILD_VMLINUX_MAIN := $(core-y) $(libs-y) $(drivers-y) $(net-y)
++export KBUILD_LDS          := arch/$(SRCARCH)/kernel/vmlinux.lds
++
+ # Build vmlinux
+ # ---------------------------------------------------------------------------
+ # vmlinux is built from the objects selected by $(vmlinux-init) and
+diff --git a/arch/sparc/Makefile b/arch/sparc/Makefile
+index eddcfb3..3195f77 100644
+--- a/arch/sparc/Makefile
++++ b/arch/sparc/Makefile
+@@ -72,17 +72,6 @@ libs-y                 += arch/sparc/lib/
+ 
+ drivers-$(CONFIG_OPROFILE)	+= arch/sparc/oprofile/
+ 
+-# Export what is needed by arch/sparc/boot/Makefile
+-export VMLINUX_INIT VMLINUX_MAIN
+-VMLINUX_INIT := $(head-y) $(init-y)
+-VMLINUX_MAIN := $(core-y) kernel/ mm/ fs/ ipc/ security/ crypto/ block/
+-VMLINUX_MAIN += $(patsubst %/, %/lib.a, $(libs-y)) $(libs-y)
+-VMLINUX_MAIN += $(drivers-y) $(net-y)
+-
+-ifdef CONFIG_KALLSYMS
+-export kallsyms.o := .tmp_kallsyms2.o
+-endif
+-
+ boot := arch/sparc/boot
+ 
+ # Default target
+diff --git a/arch/sparc/boot/Makefile b/arch/sparc/boot/Makefile
+index d56d199..78f1994 100644
+--- a/arch/sparc/boot/Makefile
++++ b/arch/sparc/boot/Makefile
+@@ -39,11 +39,15 @@ define rule_image
+ 	echo 'cmd_$@ := $(cmd_image)' > $(@D)/.$(@F).cmd
+ endef
+ 
+-BTOBJS := $(patsubst %/, %/built-in.o, $(VMLINUX_INIT))
+-BTLIBS := $(patsubst %/, %/built-in.o, $(VMLINUX_MAIN))
+-LDFLAGS_image := -T arch/sparc/kernel/vmlinux.lds $(BTOBJS) \
+-                  --start-group $(BTLIBS) --end-group \
+-                  $(kallsyms.o) $(obj)/btfix.o
++# Support for kallsyms
++kallsyms-$(CONFIG_KALLSYMS) := .tmp_kallsyms2.o
++ifdef KALLSYMS_EXTRA_PASS
++        kallsyms-$(CONFIG_KALLSYMS) := .tmp_kallsyms3.o
++endif
++
++LDFLAGS_image := -T $(KBUILD_LDS) $(KBUILD_VMLINUX_INIT)           \
++                  --start-group $(KBUILD_VMLINUX_MAIN) --end-group \
++                  $(kallsyms-y) $(obj)/btfix.o
+ 
+ # Link the final image including btfixup'ed symbols.
+ # This is a replacement for the link done in the top-level Makefile.
+-- 
+1.7.10
 
