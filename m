@@ -1,50 +1,54 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 4/4] bug: mark disabled BUG() as unreachable() code
-Date: Fri, 27 Apr 2012 23:14:52 -0700
-Message-ID: <20120427231452.21afc293.akpm@linux-foundation.org>
+From: Konstantin Khlebnikov <khlebnikov@openvz.org>
+Subject: [PATCH v2 1/2] bug: introduce BUILD_BUG_ON_INVALID() macro
+Date: Sat, 28 Apr 2012 11:06:54 +0400
+Message-ID: <20120428070654.21258.25380.stgit@zurg>
 References: <20120425112623.26927.43229.stgit@zurg>
-	<20120425112636.26927.27124.stgit@zurg>
-	<4F9B7BBA.7030504@openvz.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:60579 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750895Ab2D1GM6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Apr 2012 02:12:58 -0400
-In-Reply-To: <4F9B7BBA.7030504@openvz.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Konstantin Khlebnikov <khlebnikov@openvz.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20120425112623.26927.43229.stgit@zurg>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Geert Uytterhoeven <geert@linux-m68k.org>, "H. Peter Anvin" <hpa@zytor.com>, Cong Wang <xiyou.wangcong@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, 28 Apr 2012 09:10:18 +0400 Konstantin Khlebnikov <khlebnikov@openvz.org> wrote:
+Sometimes we want to check some expressions correctness in compile-time.
+"(void)(e);" or "if (e);" can be dangerous if expression has side-effects, and
+gcc sometimes generates a lot of code, even if the expression has no effect.
 
-> Konstantin Khlebnikov wrote:
-> > This patch suppress some compiler warnings (if CONFIG_BUG=n)
-> > "warning: control reaches end of non-void function"
-> 
-> With this patch gcc throw out loop at the end of do_exit():
-> 
-> 	schedule();
-> 	BUG();
-> 	/* Avoid "noreturn function does return".  */
-> 	for (;;)
-> 		cpu_relax();	/* For when BUG is null */
-> 
-> Is this ok? Probably not, and we need here some BUG_NORETURN() which
-> really never returns even if CONFIG_BUG=n.
+This patch introduces macro BUILD_BUG_ON_INVALID() for such checks,
+it forces a compilation error if expression is invalid without any extra code.
 
-Probably we should do away with CONFIG_BUG.
+[Cast to "long" required because sizeof does not work for bit-fields.]
 
-CONFIG_BUG=n causes various compile-time warnings to come out when the
-execution proceeds into places where we didn't intend and these aren't
-worth fixing.
+Signed-off-by: Konstantin Khlebnikov <khlebnikov@openvz.org>
+---
+ include/linux/bug.h |    7 +++++++
+ 1 file changed, 7 insertions(+)
 
-More seriously, I rather doubt that anyone ever sets it to n.  And it
-would be a pretty dumb thing to do - if your kernel has seriously
-malfunctioned and it *knows* that it malfunctioned, it will just
-blunder on anyway not telling anyone about it.
+diff --git a/include/linux/bug.h b/include/linux/bug.h
+index 72961c3..aaac4bb 100644
+--- a/include/linux/bug.h
++++ b/include/linux/bug.h
+@@ -30,6 +30,13 @@ struct pt_regs;
+ #define BUILD_BUG_ON_ZERO(e) (sizeof(struct { int:-!!(e); }))
+ #define BUILD_BUG_ON_NULL(e) ((void *)sizeof(struct { int:-!!(e); }))
+ 
++/*
++ * BUILD_BUG_ON_INVALID() permits the compiler to check the validity of the
++ * expression but avoids the generation of any code, even if that expression
++ * has side-effects.
++ */
++#define BUILD_BUG_ON_INVALID(e) ((void)(sizeof((__force long)(e))))
++
+ /**
+  * BUILD_BUG_ON - break compile if a condition is true.
+  * @condition: the condition which the compiler should know is false.
 
-It doesn't seem worth any effort to support this thing.
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
