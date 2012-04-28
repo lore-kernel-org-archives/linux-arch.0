@@ -1,7 +1,7 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
 Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Date: Sat, 28 Apr 2012 00:50:23 +0100
-Message-ID: <20120427235023.GR6871@ZenIV.linux.org.uk>
+Date: Sat, 28 Apr 2012 03:42:08 +0100
+Message-ID: <20120428024208.GS6871@ZenIV.linux.org.uk>
 References: <20120423180150.GA6871@ZenIV.linux.org.uk>
  <20120424072617.GB6871@ZenIV.linux.org.uk>
  <20120426183742.GA324@redhat.com>
@@ -15,16 +15,16 @@ References: <20120423180150.GA6871@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:48640 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:42347 "EHLO
 	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757451Ab2D0Xu3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Apr 2012 19:50:29 -0400
+	with ESMTP id S1751752Ab2D1CmM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Apr 2012 22:42:12 -0400
 Content-Disposition: inline
 In-Reply-To: <20120427231526.GP6871@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Oleg Nesterov <oleg@redhat.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
 On Sat, Apr 28, 2012 at 12:15:26AM +0100, Al Viro wrote:
 
@@ -36,13 +36,34 @@ On Sat, Apr 28, 2012 at 12:15:26AM +0100, Al Viro wrote:
 > there like that (they all check it in the asm glue).  mips probably might,
 > unless I'm misreading their ret_from_fork()...  Fun.
 
-I'm completely unfamiliar with tile assembler, so I might be missing something
-there, but AFAICS the following sequence can lead to do_signal() being
-called for a kernel thread:
-	kernel_thread()
-		ret_from_fork() in child
-			.Lresume_userspace
-				do_work_pending()
-					do_signal()
-and unlike many other, tile does _not_ check for !user_mode() anywhere
-relevant...  Broken?
+It's actually worse than I thought - we can't just lift that check
+to do_notify_resume() and be done with that.  Suppose do_signal() does
+get called on e.g. i386 or arm with !user_mode(regs).  What'll happen next?
+
+We have TIF_SIGPENDING set in thread flags - otherwise we wouldn't get
+there at all.  OK, do_signal() doesn't do anything and returns.  So does
+do_notify_resume().  And we are back into the loop in asm glue, rereading
+the thread flags (still unchanged), checking if anything is to be done
+(yes, it is - TIF_SIGPENDING is still set), calling do_notify_resume(),
+ad infinitum.
+
+Lifting the check into do_notify_resume() will not help at all, obviously.
+
+AFAICS we can get hit by that.  At least i386, arm and mips have
+ret_from_fork going straight to "return from syscall" path, no checks for
+return to user mode done.  And process created by kernel_thread() will
+go there.  It's a narrow race, but AFAICS it's not impossible to hit -
+guess the PID of kernel thread to be launched, send it a signal and hit
+the moment before it gets to executing the payload.
+
+It's probably not exploitable unless you are root, since most of the
+threads are spawned either by kthreadd or by khelper, both running as
+root.  OTOH, there might be other places leading to the same fun - e.g.
+kernel_execve() goes through the normal syscall return path almost on
+everything and in case of failure it returns to kernel mode.  Again,
+that one is unlikely to be exploitable (it only happens from root-owned
+threads), but I'm not sure if anything else gets there; IIRC, there had
+been an effort to get rid of issuing syscalls via int/syscall/trap/whatnot,
+but I don't remember how far did it go, especially under arch...
+
+Comments?
