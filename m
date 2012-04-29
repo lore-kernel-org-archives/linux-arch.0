@@ -1,38 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-iy0-f174.google.com ([209.85.210.174]:36964 "EHLO
-	mail-iy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753225Ab2D2I3S convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 29 Apr 2012 04:29:18 -0400
+Received: from smtp.snhosting.dk ([87.238.248.203]:55908 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751818Ab2D2LDX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 29 Apr 2012 07:03:23 -0400
+Date: Sun, 29 Apr 2012 13:03:21 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH v2 0/4] kbuild: Move vmlinux link out of top-level
+	Makefile
+Message-ID: <20120429110321.GA7925@merkur.ravnborg.org>
+References: <20120428205651.GA7426@merkur.ravnborg.org> <CAMuHMdXsSva4U+-dnyGYOEPGcFWaTSBwkfs_b9JNjW=gxUiQXQ@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20120428210005.GD7442@merkur.ravnborg.org>
-References: <20120428205651.GA7426@merkur.ravnborg.org>
-	<20120428210005.GD7442@merkur.ravnborg.org>
-Date: Sun, 29 Apr 2012 10:29:17 +0200
-Message-ID: <CAMuHMdXLs3VvGc-=h03QgWBy0coEaiRZT-c+RvDZ3wekCkz=uA@mail.gmail.com>
-Subject: Re: [PATCH 4/4] kbuild: document KBUILD_LDS, KBUILD_VMLINUX_{INIT,MAIN}
- and LDFLAGS_vmlinux
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAMuHMdXsSva4U+-dnyGYOEPGcFWaTSBwkfs_b9JNjW=gxUiQXQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.cz>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>
-Message-ID: <20120429082917.33avtKG43PGpceMnLQhGMbRgqrsUTtWk4us3O7zNo1g@z>
+Message-ID: <20120429110321.FpTXh5Fvw0JE-SjuNs_yg9NdcGegGQf3EO3qzt-Fe0E@z>
 
-On Sat, Apr 28, 2012 at 23:00, Sam Ravnborg <sam@ravnborg.org> wrote:
-> +All objects files for the init (first) part of vmlinux.
-> +All objects files for the main part of vmlinux.
+On Sun, Apr 29, 2012 at 10:26:25AM +0200, Geert Uytterhoeven wrote:
+> On Sat, Apr 28, 2012 at 22:56, Sam Ravnborg <sam@ravnborg.org> wrote:
+> > anyway - so there where nothing gained by using
+> 
+> ... there was ...
+> 
+> > - We no logner rebuild if one of the .tmp_kallsyms
+> 
+> longer
+> 
+> > �files are deleted.
+> 
+> ... is deleted
+> 
+> > - rebuild if options to ld changes (Andi Kleen)
+> 
+> change
 
-... object ...
+Thanks for all the grammatic corrections. I will await until tonight and
+submit a v3 with these corrected and any other comments that may show up until then.
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+	Sam
