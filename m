@@ -1,44 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.snhosting.dk ([87.238.248.203]:55908 "EHLO
-	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751818Ab2D2LDX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 29 Apr 2012 07:03:23 -0400
-Date: Sun, 29 Apr 2012 13:03:21 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH v2 0/4] kbuild: Move vmlinux link out of top-level
-	Makefile
-Message-ID: <20120429110321.GA7925@merkur.ravnborg.org>
-References: <20120428205651.GA7426@merkur.ravnborg.org> <CAMuHMdXsSva4U+-dnyGYOEPGcFWaTSBwkfs_b9JNjW=gxUiQXQ@mail.gmail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:18917 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753217Ab2D2Qmp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 29 Apr 2012 12:42:45 -0400
+Date: Sun, 29 Apr 2012 18:41:55 +0200
+From: Oleg Nesterov <oleg@redhat.com>
+Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
+Message-ID: <20120429164155.GC15792@redhat.com>
+References: <20120420160848.GG6871@ZenIV.linux.org.uk> <20120420164239.GH6871@ZenIV.linux.org.uk> <CA+55aFzuTspDyyLaOA-g-dTWydaUeeWo9uVGR+rZ=ZJzPW_Ocw@mail.gmail.com> <20120420180748.GI6871@ZenIV.linux.org.uk> <20120423180150.GA6871@ZenIV.linux.org.uk> <20120424072617.GB6871@ZenIV.linux.org.uk> <20120426183742.GA324@redhat.com> <20120426231942.GJ6871@ZenIV.linux.org.uk> <20120427172444.GA30267@redhat.com> <20120427184528.GL6871@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CAMuHMdXsSva4U+-dnyGYOEPGcFWaTSBwkfs_b9JNjW=gxUiQXQ@mail.gmail.com>
+In-Reply-To: <20120427184528.GL6871@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.cz>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>
-Message-ID: <20120429110321.FpTXh5Fvw0JE-SjuNs_yg9NdcGegGQf3EO3qzt-Fe0E@z>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Roland McGrath <roland@hack.frob.com>
+Message-ID: <20120429164155.174jmCxjnL_BPNTLpDBEfJekzs5ZEMAO-7xS2S-1O4s@z>
 
-On Sun, Apr 29, 2012 at 10:26:25AM +0200, Geert Uytterhoeven wrote:
-> On Sat, Apr 28, 2012 at 22:56, Sam Ravnborg <sam@ravnborg.org> wrote:
-> > anyway - so there where nothing gained by using
-> 
-> ... there was ...
-> 
-> > - We no logner rebuild if one of the .tmp_kallsyms
-> 
-> longer
-> 
-> >  files are deleted.
-> 
-> ... is deleted
-> 
-> > - rebuild if options to ld changes (Andi Kleen)
-> 
-> change
+On 04/27, Al Viro wrote:
+>
+> 	BTW, I'm somewhat tempted to do the following: *ALL* calls of
+> tracehook_signal_handler() are now immediately preceded by block_signals().
+> Moreover, tracehook_signal_handler(...., 0) is currently a no-op, so
+> it could be painlessly added after the remaining block_signals() instances.
+> How about *folding* block_signals() (along with clear_restore_sigmask())
+> into tracehook_signal_handler()?
 
-Thanks for all the grammatic corrections. I will await until tonight and
-submit a v3 with these corrected and any other comments that may show up until then.
+Oh, please no. Imho, these two have nothing to do with each other.
 
-	Sam
+Besides, at least on x86 tracehook_signal_handler's logic is not exactly
+right and should be fixed.
+
+And we are going to kill tracehook.h. While personally I do not think
+this is the good idea, but the matter of fact is that tracehooks are
+already destroyed.
+
+Oleg.
+
