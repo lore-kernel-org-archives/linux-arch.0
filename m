@@ -1,45 +1,73 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH] arch/tile: avoid calling do_signal() after fork from
- a kernel thread
-Date: Sat, 28 Apr 2012 23:49:21 -0400
-Message-ID: <4F9CBA41.6000900@tilera.com>
-References: <20120427172444.GA30267@redhat.com> <20120427184528.GL6871@ZenIV.linux.org.uk> <20120427202002.8ED632C0BF@topped-with-meat.com> <20120427211244.GO6871@ZenIV.linux.org.uk> <20120427212729.652542C0AF@topped-with-meat.com> <20120427231526.GP6871@ZenIV.linux.org.uk> <20120427235023.GR6871@ZenIV.linux.org.uk> <201204281858.q3SIwC7H014319@farm-0027.internal.tilera.com> <20120428205517.GW6871@ZenIV.linux.org.uk> <4F9C6525.3050405@tilera.com> <20120429005505.GX6871@ZenIV.linux.org.uk>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
+Date: Sun, 29 Apr 2012 05:12:05 +0100
+Message-ID: <20120429041205.GY6871@ZenIV.linux.org.uk>
+References: <20120424072617.GB6871@ZenIV.linux.org.uk>
+ <20120426183742.GA324@redhat.com>
+ <20120426231942.GJ6871@ZenIV.linux.org.uk>
+ <20120427172444.GA30267@redhat.com>
+ <20120427184528.GL6871@ZenIV.linux.org.uk>
+ <20120427202002.8ED632C0BF@topped-with-meat.com>
+ <20120427211244.GO6871@ZenIV.linux.org.uk>
+ <20120427212729.652542C0AF@topped-with-meat.com>
+ <20120427231526.GP6871@ZenIV.linux.org.uk>
+ <20120427233235.GQ6871@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20120429005505.GX6871@ZenIV.linux.org.uk>
+Content-Disposition: inline
+In-Reply-To: <20120427233235.GQ6871@ZenIV.linux.org.uk>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Al Viro <viro@ZenIV.linux.org.uk>
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Cc: Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 4/28/2012 8:55 PM, Al Viro wrote:
-> On Sat, Apr 28, 2012 at 05:46:13PM -0400, Chris Metcalf wrote:
->>> For another,
->>> there's kernel_execve() and if it fails (binary doesn't exist/has wrong
->>> format/etc.) you'll get to .Lresume_userspace with EX1_PL(regs->ex1)
->>> unchanged, i.e. the kernel one...
->> This is a good point.  The current syscall return path goes directly to
->> .Lresume_userspace, which will screw up kernel syscalls.  I think the right
->> answer is still to jump to interrupt_return from those cases, though.  In
->> particular, this gets rid of the existing cruftiness where we have to
->> document that a local label (.Lresume_userspace) can be the target of jumps
->> from outside the containing function.
-> Point, but...  Are you sure you want to add extra work to a very hot path?
-> Leaving the "we don't have any pending work to do" unburdened by that check
-> would reduce the overhead a lot.
+On Sat, Apr 28, 2012 at 12:32:35AM +0100, Al Viro wrote:
+> On Sat, Apr 28, 2012 at 12:15:26AM +0100, Al Viro wrote:
+> 
+> > I think all such architectures need that check lifted to do_notify_resume()
+> > (and the rest needs it killed, of course).  Including x86, by the look
+> > of it - we _probably_ can't get there with TIF_NOTIFY_RESUME and
+> > !user_mode(regs), but I'm not entirely sure of that.  arm is in about the
+> > same situation; alpha, ppc{32,64}, sparc{32,64} and m68k really can't get
+> > there like that (they all check it in the asm glue).  mips probably might,
+> > unless I'm misreading their ret_from_fork()...  Fun.
+> 
+> 	Speaking of user_mode() oddities - may I politely inquire what had
+> been smoked to inspire this (in arch/s390/kernel/signal.c):
+>         /* This is the legacy signal stack switching. */
+>         else if (!user_mode(regs) &&
+>                  !(ka->sa.sa_flags & SA_RESTORER) &&
+>                  ka->sa.sa_restorer) {
+>                 sp = (unsigned long) ka->sa.sa_restorer;
+>         }
+> especially when all paths leading to that come through do_signal() that does
+>         if (!user_mode(regs))
+>                 return;
+> on the same regs.  It had been like that since 2.3.99pre8 when s390 went
+> into the tree...  It looks vaguely similar to i386
+>                         /* This is the legacy signal stack switching. */
+>                         if ((regs->ss & 0xffff) != __USER_DS &&
+>                                 !(ka->sa.sa_flags & SA_RESTORER) &&
+>                                         ka->sa.sa_restorer)
+>                                 sp = (unsigned long) ka->sa.sa_restorer;
+> but there the code is at least not unreachable...
 
-I suppose that's plausible; it's only 5 cycles of work (including the one
-cache-hot load), but might also be an extra icache line load, which could
-be quite a bit slower.
+While we are at it, can we *ever* reach do_signal() (nevermind deep in its
+guts) with !user_mode(regs)?
+AFAICS, for 31bit possible paths are:
+do_signal()
+	<- sysc_sigpending
+		<- sysc_work
+			<- sysc_tif, having checked for user_mode(%r11)
+	<- io_sigpending
+		<- io_work_tif
+			<- io_work_user
+				<- io_work, having checked for user_mode(%r11)
 
-I think the way to do this may be to both take your suggestion about
-checking user_mode() in do_work_pending(), and also handle the looping over
-the flag bits there as well.  Then we can load the caller-saves once, prior
-to calling do_work_pending(), and when we return we're guaranteed to have
-interrupts disabled and TIF_ALLWORK clear.
+and identical for 64bit.  *All* paths into do_signal() go through
+        tm      __PT_PSW+1(%r11),0x01   # returning to user ?
+and proceed towards do_signal() only if the bit is set.  Which is precisely
+what user_mode(%r11) is...
 
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+What the hell is going on in that code?
