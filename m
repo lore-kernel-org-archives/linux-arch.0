@@ -1,73 +1,105 @@
 From: Oleg Nesterov <oleg@redhat.com>
 Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Date: Sun, 29 Apr 2012 18:18:18 +0200
-Message-ID: <20120429161818.GA15792@redhat.com>
-References: <20120424072617.GB6871@ZenIV.linux.org.uk> <20120426183742.GA324@redhat.com> <20120426231942.GJ6871@ZenIV.linux.org.uk> <20120427172444.GA30267@redhat.com> <20120427184528.GL6871@ZenIV.linux.org.uk> <20120427202002.8ED632C0BF@topped-with-meat.com> <20120427211244.GO6871@ZenIV.linux.org.uk> <20120427212729.652542C0AF@topped-with-meat.com> <20120427231526.GP6871@ZenIV.linux.org.uk> <20120428024208.GS6871@ZenIV.linux.org.uk>
+Date: Sun, 29 Apr 2012 18:33:10 +0200
+Message-ID: <20120429163310.GB15792@redhat.com>
+References: <20120426183742.GA324@redhat.com> <20120426231942.GJ6871@ZenIV.linux.org.uk> <20120427172444.GA30267@redhat.com> <20120427184528.GL6871@ZenIV.linux.org.uk> <20120427202002.8ED632C0BF@topped-with-meat.com> <20120427211244.GO6871@ZenIV.linux.org.uk> <20120427212729.652542C0AF@topped-with-meat.com> <20120427231526.GP6871@ZenIV.linux.org.uk> <20120428024208.GS6871@ZenIV.linux.org.uk> <20120428033245.GT6871@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:8167 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:52068 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752918Ab2D2QTH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 29 Apr 2012 12:19:07 -0400
+	id S1752867Ab2D2Qd6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 29 Apr 2012 12:33:58 -0400
 Content-Disposition: inline
-In-Reply-To: <20120428024208.GS6871@ZenIV.linux.org.uk>
+In-Reply-To: <20120428033245.GT6871@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Al Viro <viro@ZenIV.linux.org.uk>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-First of all, let me repeat I am useless when it comes to the low-level
-or asm code. I can be easily wrong, and I am going to ask the questions.
+Ah, I didn't notice this email...
 
 On 04/28, Al Viro wrote:
 >
-> It's actually worse than I thought - we can't just lift that check
-> to do_notify_resume() and be done with that.  Suppose do_signal() does
-> get called on e.g. i386 or arm with !user_mode(regs).  What'll happen next?
->
-> We have TIF_SIGPENDING set in thread flags - otherwise we wouldn't get
-> there at all.  OK, do_signal() doesn't do anything and returns.  So does
-> do_notify_resume().  And we are back into the loop in asm glue, rereading
-> the thread flags (still unchanged), checking if anything is to be done
-> (yes, it is - TIF_SIGPENDING is still set), calling do_notify_resume(),
-> ad infinitum.
->
-> Lifting the check into do_notify_resume() will not help at all, obviously.
->
-> AFAICS we can get hit by that.
+> Actually, it looks like on i386 the loop will be broken by checks in
+> resume_userspace_sig,
 
-Please look at 29a2e2836ff9ea65a603c89df217f4198973a74f
-x86-32: Fix endless loop when processing signals for kernel tasks
+Yes,
 
-> At least i386, arm and mips have
-> ret_from_fork going straight to "return from syscall" path, no checks for
-> return to user mode done.  And process created by kernel_thread() will
-> go there.
+> so the worst thing that might happen would be
+> a bogus call of tracehook_notify_resume() if it's possible to get there
+> with TIF_NOTIFY_RESUME for kernel thread.
 
-Looks like, the patch above fixes that.
+Afaics, the kernel should never have TIF_NOTIFY_RESUME. Except (afaics!)
+a user-space task with TIF_NOTIFY_RESUME does kernel_thread(), and this
+flag is copied by setup_thread_stack(). But this should be forbidden and
+we are going to kill daemonize(), probably it already has no callers.
 
-But, we call do_notify_resume() first, it would be nice to avoid this
-and remove the user_mode() check in do_signal() or lift into
-do_notify_resume().
+> To be honest, I'd rather check for user_mode() before calling
+> do_notify_resume() and go away to no_work_pending if it's true.
 
-> It's a narrow race, but AFAICS it's not impossible to hit -
-> guess the PID of kernel thread to be launched, send it a signal and hit
-> the moment before it gets to executing the payload.
+Agreed! I tried to suggest this when 29a2e283 was discussed, but my asm
+skills are close to zero.
 
-Yes. But note that the kernel threads run with all signals ignored.
+> --- a/arch/x86/kernel/entry_32.S
+> +++ b/arch/x86/kernel/entry_32.S
+> @@ -321,7 +321,6 @@ ret_from_exception:
+>  	preempt_stop(CLBR_ANY)
+>  ret_from_intr:
+>  	GET_THREAD_INFO(%ebp)
+> -resume_userspace_sig:
+>  #ifdef CONFIG_VM86
+>  	movl PT_EFLAGS(%esp), %eax	# mix EFLAGS and CS
+>  	movb PT_CS(%esp), %al
+> @@ -628,9 +627,13 @@ work_notifysig:				# deal with pending signals and
+>  					# vm86-space
+>  	TRACE_IRQS_ON
+>  	ENABLE_INTERRUPTS(CLBR_NONE)
+> +	movb PT_CS(%esp), %bl
+> +	andl $SEGMENT_RPL_MASK, %ebx
+> +	cmpl $USER_RPL, %ebx
+> +	jb resume_kernel
+>  	xorl %edx, %edx
+>  	call do_notify_resume
+> -	jmp resume_userspace_sig
+> +	jmp resume_userspace
+>  
+>  	ALIGN
+>  work_notifysig_v86:
+> @@ -643,9 +646,13 @@ work_notifysig_v86:
+>  #endif
+>  	TRACE_IRQS_ON
+>  	ENABLE_INTERRUPTS(CLBR_NONE)
+> +	movb PT_CS(%esp), %bl
+> +	andl $SEGMENT_RPL_MASK, %ebx
+> +	cmpl $USER_RPL, %ebx
+> +	jb resume_kernel
+>  	xorl %edx, %edx
+>  	call do_notify_resume
+> -	jmp resume_userspace_sig
+> +	jmp resume_userspace
+>  END(work_pending)
+>  
+>  	# perform syscall exit tracing
+> diff --git a/arch/x86/kernel/signal.c b/arch/x86/kernel/signal.c
+> index 595969f..c4aa7c5 100644
+> --- a/arch/x86/kernel/signal.c
+> +++ b/arch/x86/kernel/signal.c
+> @@ -738,16 +738,6 @@ static void do_signal(struct pt_regs *regs)
+>  	siginfo_t info;
+>  	int signr;
+>  
+> -	/*
+> -	 * We want the common case to go fast, which is why we may in certain
+> -	 * cases get here from kernel mode. Just return without doing anything
+> -	 * if so.
+> -	 * X86_32: vm86 regs switched out by assembly code before reaching
+> -	 * here, so testing against kernel CS suffices.
+> -	 */
+> -	if (!user_mode(regs))
+> -		return;
+> -
 
-This is still possible, but a kernel thread should do allow_signal()
-and then call kernel_thread() (not kthread_create).
-
-
-
-Question. So far I know that on x86 do_notify_resume() && !user_mode()
-is only possible on 32bit system, and the possible callers are
-ret_from_fork or kernel_execve (if it fails).
-
-Plus, perhaps CONFIG_VM86 makes a difference?
-
-Could you please clarify?
+Can't review, but like very much ;)
 
 Oleg.
