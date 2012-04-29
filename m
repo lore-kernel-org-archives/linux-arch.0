@@ -1,107 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.snhosting.dk ([87.238.248.203]:10077 "EHLO
-	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754753Ab2D1U6l (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Apr 2012 16:58:41 -0400
-Date: Sat, 28 Apr 2012 22:58:39 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: [PATCH 2/4] kbuild: refactor final link of sparc32
-Message-ID: <20120428205839.GB7442@merkur.ravnborg.org>
-References: <20120428205651.GA7426@merkur.ravnborg.org>
+Received: from [12.216.194.151] ([12.216.194.151]:45611 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-FAIL-FAIL-OK-OK) by vger.kernel.org
+	with ESMTP id S1755590Ab2D2DtX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 28 Apr 2012 23:49:23 -0400
+Message-ID: <4F9CBA41.6000900@tilera.com>
+Date: Sat, 28 Apr 2012 23:49:21 -0400
+From: Chris Metcalf <cmetcalf@tilera.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20120428205651.GA7426@merkur.ravnborg.org>
+Subject: Re: [PATCH] arch/tile: avoid calling do_signal() after fork from
+ a kernel thread
+References: <20120427172444.GA30267@redhat.com> <20120427184528.GL6871@ZenIV.linux.org.uk> <20120427202002.8ED632C0BF@topped-with-meat.com> <20120427211244.GO6871@ZenIV.linux.org.uk> <20120427212729.652542C0AF@topped-with-meat.com> <20120427231526.GP6871@ZenIV.linux.org.uk> <20120427235023.GR6871@ZenIV.linux.org.uk> <201204281858.q3SIwC7H014319@farm-0027.internal.tilera.com> <20120428205517.GW6871@ZenIV.linux.org.uk> <4F9C6525.3050405@tilera.com> <20120429005505.GX6871@ZenIV.linux.org.uk>
+In-Reply-To: <20120429005505.GX6871@ZenIV.linux.org.uk>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.cz>
-Cc: Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>
-Message-ID: <20120428205839.fE2o17Wsg8XsQHZPFG35Hinl5F5AjNmpwz4hMzdj93w@z>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120429034921.unLKyjdIsFYnsu3iibPFD1le6M6w-07fDaRmZnCB5CQ@z>
 
-From 8716c7f473ec65c57811bb21095354b813b48898 Mon Sep 17 00:00:00 2001
-From: Sam Ravnborg <sam@ravnborg.org>
-Date: Mon, 23 Apr 2012 20:29:07 +0200
-Subject: [PATCH 2/4] kbuild: refactor final link of sparc32
+On 4/28/2012 8:55 PM, Al Viro wrote:
+> On Sat, Apr 28, 2012 at 05:46:13PM -0400, Chris Metcalf wrote:
+>>> For another,
+>>> there's kernel_execve() and if it fails (binary doesn't exist/has wrong
+>>> format/etc.) you'll get to .Lresume_userspace with EX1_PL(regs->ex1)
+>>> unchanged, i.e. the kernel one...
+>> This is a good point.  The current syscall return path goes directly to
+>> .Lresume_userspace, which will screw up kernel syscalls.  I think the right
+>> answer is still to jump to interrupt_return from those cases, though.  In
+>> particular, this gets rid of the existing cruftiness where we have to
+>> document that a local label (.Lresume_userspace) can be the target of jumps
+>> from outside the containing function.
+> Point, but...  Are you sure you want to add extra work to a very hot path?
+> Leaving the "we don't have any pending work to do" unburdened by that check
+> would reduce the overhead a lot.
 
-sparc32 uses an additional final link to support btfix.
-Introduce a new set of exported variables in the top-level Makefile
-to make the extra linking step simpler.
+I suppose that's plausible; it's only 5 cycles of work (including the one
+cache-hot load), but might also be an extra icache line load, which could
+be quite a bit slower.
 
-sparc32 have hardcoded knowledge of kallsyms support. This fix
-include support for EXTRA_KALLSYM_PASS=1.
-The ugly part is that it is hardcoded in the arch/sparc/boot
-Makefile.
+I think the way to do this may be to both take your suggestion about
+checking user_mode() in do_work_pending(), and also handle the looping over
+the flag bits there as well.  Then we can load the caller-saves once, prior
+to calling do_work_pending(), and when we return we're guaranteed to have
+interrupts disabled and TIF_ALLWORK clear.
 
-Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
----
- Makefile                 |    5 +++++
- arch/sparc/Makefile      |   11 -----------
- arch/sparc/boot/Makefile |   14 +++++++++-----
- 3 files changed, 14 insertions(+), 16 deletions(-)
-
-diff --git a/Makefile b/Makefile
-index 287aee4..00bf5b1 100644
---- a/Makefile
-+++ b/Makefile
-@@ -727,6 +727,11 @@ libs-y1		:= $(patsubst %/, %/lib.a, $(libs-y))
- libs-y2		:= $(patsubst %/, %/built-in.o, $(libs-y))
- libs-y		:= $(libs-y1) $(libs-y2)
- 
-+# externally visible symbols
-+export KBUILD_VMLINUX_INIT := $(head-y) $(init-y)
-+export KBUILD_VMLINUX_MAIN := $(core-y) $(libs-y) $(drivers-y) $(net-y)
-+export KBUILD_LDS          := arch/$(SRCARCH)/kernel/vmlinux.lds
-+
- # Build vmlinux
- # ---------------------------------------------------------------------------
- # vmlinux is built from the objects selected by $(vmlinux-init) and
-diff --git a/arch/sparc/Makefile b/arch/sparc/Makefile
-index eddcfb3..3195f77 100644
---- a/arch/sparc/Makefile
-+++ b/arch/sparc/Makefile
-@@ -72,17 +72,6 @@ libs-y                 += arch/sparc/lib/
- 
- drivers-$(CONFIG_OPROFILE)	+= arch/sparc/oprofile/
- 
--# Export what is needed by arch/sparc/boot/Makefile
--export VMLINUX_INIT VMLINUX_MAIN
--VMLINUX_INIT := $(head-y) $(init-y)
--VMLINUX_MAIN := $(core-y) kernel/ mm/ fs/ ipc/ security/ crypto/ block/
--VMLINUX_MAIN += $(patsubst %/, %/lib.a, $(libs-y)) $(libs-y)
--VMLINUX_MAIN += $(drivers-y) $(net-y)
--
--ifdef CONFIG_KALLSYMS
--export kallsyms.o := .tmp_kallsyms2.o
--endif
--
- boot := arch/sparc/boot
- 
- # Default target
-diff --git a/arch/sparc/boot/Makefile b/arch/sparc/boot/Makefile
-index d56d199..78f1994 100644
---- a/arch/sparc/boot/Makefile
-+++ b/arch/sparc/boot/Makefile
-@@ -39,11 +39,15 @@ define rule_image
- 	echo 'cmd_$@ := $(cmd_image)' > $(@D)/.$(@F).cmd
- endef
- 
--BTOBJS := $(patsubst %/, %/built-in.o, $(VMLINUX_INIT))
--BTLIBS := $(patsubst %/, %/built-in.o, $(VMLINUX_MAIN))
--LDFLAGS_image := -T arch/sparc/kernel/vmlinux.lds $(BTOBJS) \
--                  --start-group $(BTLIBS) --end-group \
--                  $(kallsyms.o) $(obj)/btfix.o
-+# Support for kallsyms
-+kallsyms-$(CONFIG_KALLSYMS) := .tmp_kallsyms2.o
-+ifdef KALLSYMS_EXTRA_PASS
-+        kallsyms-$(CONFIG_KALLSYMS) := .tmp_kallsyms3.o
-+endif
-+
-+LDFLAGS_image := -T $(KBUILD_LDS) $(KBUILD_VMLINUX_INIT)           \
-+                  --start-group $(KBUILD_VMLINUX_MAIN) --end-group \
-+                  $(kallsyms-y) $(obj)/btfix.o
- 
- # Link the final image including btfixup'ed symbols.
- # This is a replacement for the link done in the top-level Makefile.
 -- 
-1.7.10
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
 
