@@ -1,73 +1,52 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Date: Sun, 29 Apr 2012 05:12:05 +0100
-Message-ID: <20120429041205.GY6871@ZenIV.linux.org.uk>
-References: <20120424072617.GB6871@ZenIV.linux.org.uk>
- <20120426183742.GA324@redhat.com>
- <20120426231942.GJ6871@ZenIV.linux.org.uk>
- <20120427172444.GA30267@redhat.com>
- <20120427184528.GL6871@ZenIV.linux.org.uk>
- <20120427202002.8ED632C0BF@topped-with-meat.com>
- <20120427211244.GO6871@ZenIV.linux.org.uk>
- <20120427212729.652542C0AF@topped-with-meat.com>
- <20120427231526.GP6871@ZenIV.linux.org.uk>
- <20120427233235.GQ6871@ZenIV.linux.org.uk>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH v2 0/4] kbuild: Move vmlinux link out of top-level Makefile
+Date: Sun, 29 Apr 2012 10:26:25 +0200
+Message-ID: <CAMuHMdXsSva4U+-dnyGYOEPGcFWaTSBwkfs_b9JNjW=gxUiQXQ@mail.gmail.com>
+References: <20120428205651.GA7426@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20120427233235.GQ6871@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20120428205651.GA7426@merkur.ravnborg.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Michal Marek <mmarek@suse.cz>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Apr 28, 2012 at 12:32:35AM +0100, Al Viro wrote:
-> On Sat, Apr 28, 2012 at 12:15:26AM +0100, Al Viro wrote:
-> 
-> > I think all such architectures need that check lifted to do_notify_resume()
-> > (and the rest needs it killed, of course).  Including x86, by the look
-> > of it - we _probably_ can't get there with TIF_NOTIFY_RESUME and
-> > !user_mode(regs), but I'm not entirely sure of that.  arm is in about the
-> > same situation; alpha, ppc{32,64}, sparc{32,64} and m68k really can't get
-> > there like that (they all check it in the asm glue).  mips probably might,
-> > unless I'm misreading their ret_from_fork()...  Fun.
-> 
-> 	Speaking of user_mode() oddities - may I politely inquire what had
-> been smoked to inspire this (in arch/s390/kernel/signal.c):
->         /* This is the legacy signal stack switching. */
->         else if (!user_mode(regs) &&
->                  !(ka->sa.sa_flags & SA_RESTORER) &&
->                  ka->sa.sa_restorer) {
->                 sp = (unsigned long) ka->sa.sa_restorer;
->         }
-> especially when all paths leading to that come through do_signal() that does
->         if (!user_mode(regs))
->                 return;
-> on the same regs.  It had been like that since 2.3.99pre8 when s390 went
-> into the tree...  It looks vaguely similar to i386
->                         /* This is the legacy signal stack switching. */
->                         if ((regs->ss & 0xffff) != __USER_DS &&
->                                 !(ka->sa.sa_flags & SA_RESTORER) &&
->                                         ka->sa.sa_restorer)
->                                 sp = (unsigned long) ka->sa.sa_restorer;
-> but there the code is at least not unreachable...
+On Sat, Apr 28, 2012 at 22:56, Sam Ravnborg <sam@ravnborg.org> wrote:
+> anyway - so there where nothing gained by using
 
-While we are at it, can we *ever* reach do_signal() (nevermind deep in its
-guts) with !user_mode(regs)?
-AFAICS, for 31bit possible paths are:
-do_signal()
-	<- sysc_sigpending
-		<- sysc_work
-			<- sysc_tif, having checked for user_mode(%r11)
-	<- io_sigpending
-		<- io_work_tif
-			<- io_work_user
-				<- io_work, having checked for user_mode(%r11)
+=2E.. there was ...
 
-and identical for 64bit.  *All* paths into do_signal() go through
-        tm      __PT_PSW+1(%r11),0x01   # returning to user ?
-and proceed towards do_signal() only if the bit is set.  Which is precisely
-what user_mode(%r11) is...
+> - We no logner rebuild if one of the .tmp_kallsyms
 
-What the hell is going on in that code?
+longer
+
+> =C2=A0files are deleted.
+
+=2E.. is deleted
+
+> - rebuild if options to ld changes (Andi Kleen)
+
+change
+
+Gr{oetje,eeting}s,
+
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+=C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=A0 =C2=
+=A0 =C2=A0 =C2=A0 =C2=A0=C2=A0 =C2=A0=C2=A0 -- Linus Torvalds
+--
+To unsubscribe from this list: send the line "unsubscribe linux-kbuild"=
+ in
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
