@@ -1,57 +1,57 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 13/29] m68k: Use generic init_task
-Date: Mon, 30 Apr 2012 20:15:58 -0000
-Message-ID: <20120430194846.352679965@linutronix.de>
+Subject: [patch 09/29] h8300: Use generic init_task
+Date: Mon, 30 Apr 2012 20:15:56 -0000
+Message-ID: <20120430194846.102079052@linutronix.de>
 References: <20120430194725.763322463@linutronix.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=m68k-use-generic-init-task.patch
+Content-Disposition: inline; filename=h8300-use-generic-idle-task.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-arch@vger.kernel.org, Yoshinori Sato <ysato@users.sourceforge.jp>
 List-Id: linux-arch.vger.kernel.org
 
 Same code. Use the generic version.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
 ---
- arch/m68k/Kconfig            |    1 +
- arch/m68k/kernel/Makefile    |    2 +-
- arch/m68k/kernel/init_task.c |   35 -----------------------------------
- 3 files changed, 2 insertions(+), 36 deletions(-)
+ arch/h8300/Kconfig            |    1 +
+ arch/h8300/kernel/Makefile    |    2 +-
+ arch/h8300/kernel/init_task.c |   36 ------------------------------------
+ 3 files changed, 2 insertions(+), 37 deletions(-)
 
-Index: tip/arch/m68k/Kconfig
+Index: tip/arch/h8300/Kconfig
 ===================================================================
---- tip.orig/arch/m68k/Kconfig
-+++ tip/arch/m68k/Kconfig
-@@ -8,6 +8,7 @@ config M68K
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG if RMW_INSNS
+--- tip.orig/arch/h8300/Kconfig
++++ tip/arch/h8300/Kconfig
+@@ -5,6 +5,7 @@ config H8300
+ 	select HAVE_GENERIC_HARDIRQS
+ 	select GENERIC_IRQ_SHOW
  	select GENERIC_CPU_DEVICES
- 	select FPU if MMU
 +	select HAVE_GENERIC_INIT_TASK
  
- config RWSEM_GENERIC_SPINLOCK
- 	bool
-Index: tip/arch/m68k/kernel/Makefile
+ config SYMBOL_PREFIX
+ 	string
+Index: tip/arch/h8300/kernel/Makefile
 ===================================================================
---- tip.orig/arch/m68k/kernel/Makefile
-+++ tip/arch/m68k/kernel/Makefile
-@@ -13,7 +13,7 @@ extra-$(CONFIG_SUN3X)	:= head.o
- extra-$(CONFIG_SUN3)	:= sun3-head.o
- extra-y			+= vmlinux.lds
+--- tip.orig/arch/h8300/kernel/Makefile
++++ tip/arch/h8300/kernel/Makefile
+@@ -6,7 +6,7 @@ extra-y := vmlinux.lds
  
--obj-y	:= entry.o init_task.o irq.o m68k_ksyms.o module.o process.o ptrace.o
-+obj-y	:= entry.o irq.o m68k_ksyms.o module.o process.o ptrace.o
- obj-y	+= setup.o signal.o sys_m68k.o syscalltable.o time.o traps.o
+ obj-y := process.o traps.o ptrace.o irq.o \
+ 	 sys_h8300.o time.o signal.o \
+-         setup.o gpio.o init_task.o syscalls.o \
++         setup.o gpio.o syscalls.o \
+ 	 entry.o timer/
  
- obj-$(CONFIG_MMU_MOTOROLA) += ints.o vectors.o
-Index: tip/arch/m68k/kernel/init_task.c
+ obj-$(CONFIG_MODULES) += module.o h8300_ksyms.o 
+Index: tip/arch/h8300/kernel/init_task.c
 ===================================================================
---- tip.orig/arch/m68k/kernel/init_task.c
+--- tip.orig/arch/h8300/kernel/init_task.c
 +++ /dev/null
-@@ -1,35 +0,0 @@
+@@ -1,36 +0,0 @@
 -/*
-- *  linux/arch/m68knommu/kernel/init_task.c
+- *  linux/arch/h8300/kernel/init_task.c
 - */
 -#include <linux/mm.h>
 -#include <linux/module.h>
@@ -71,6 +71,7 @@ Index: tip/arch/m68k/kernel/init_task.c
 - *
 - * All other task structs will be allocated on slabs in fork.c
 - */
+-__asm__(".align 4");
 -struct task_struct init_task = INIT_TASK(init_task);
 -
 -EXPORT_SYMBOL(init_task);
@@ -78,7 +79,7 @@ Index: tip/arch/m68k/kernel/init_task.c
 -/*
 - * Initial thread structure.
 - *
-- * We need to make sure that this is THREAD size aligned due to the
+- * We need to make sure that this is 8192-byte aligned due to the
 - * way process stacks are handled. This is done by having a special
 - * "init_task" linker map entry..
 - */
