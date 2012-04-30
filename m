@@ -1,13 +1,13 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 20/29] s390: Use generic init_task
-Date: Mon, 30 Apr 2012 20:16:01 -0000
-Message-ID: <20120430194846.801327557@linutronix.de>
+Subject: [patch 17/29] openrisc: Use generic init_task
+Date: Mon, 30 Apr 2012 20:16:00 -0000
+Message-ID: <20120430194846.596835207@linutronix.de>
 References: <20120430194725.763322463@linutronix.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=s390-use-generic-init-task.patch
+Content-Disposition: inline; filename=openrisc-use-generic-init-task.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: linux-arch@vger.kernel.org, Jonas Bonn <jonas@southpole.se>
 List-Id: linux-arch.vger.kernel.org
 
 Same code. Use the generic version. The special Makefile treatment is
@@ -15,76 +15,81 @@ pointless anyway as init_task.o contains only data which is handled by
 the linker script. So no point on being treated like head text.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Jonas Bonn <jonas@southpole.se>
 ---
- arch/s390/Kconfig            |    1 +
- arch/s390/Makefile           |    1 -
- arch/s390/kernel/Makefile    |    2 +-
- arch/s390/kernel/init_task.c |   38 --------------------------------------
- 4 files changed, 2 insertions(+), 40 deletions(-)
+ arch/openrisc/Kconfig            |    1 
+ arch/openrisc/Makefile           |    2 -
+ arch/openrisc/kernel/Makefile    |    2 -
+ arch/openrisc/kernel/init_task.c |   42 ---------------------------------------
+ 4 files changed, 3 insertions(+), 44 deletions(-)
 
-Index: tip/arch/s390/Kconfig
+Index: tip/arch/openrisc/Kconfig
 ===================================================================
---- tip.orig/arch/s390/Kconfig
-+++ tip/arch/s390/Kconfig
-@@ -123,6 +123,7 @@ config S390
- 	select ARCH_INLINE_WRITE_UNLOCK_IRQ
- 	select ARCH_INLINE_WRITE_UNLOCK_IRQRESTORE
- 	select GENERIC_SMP_IDLE_THREAD
+--- tip.orig/arch/openrisc/Kconfig
++++ tip/arch/openrisc/Kconfig
+@@ -17,6 +17,7 @@ config OPENRISC
+ 	select GENERIC_IOMAP
+ 	select GENERIC_CPU_DEVICES
+ 	select GENERIC_ATOMIC64
 +	select HAVE_GENERIC_INIT_TASK
  
- config SCHED_OMIT_FRAME_POINTER
+ config MMU
  	def_bool y
-Index: tip/arch/s390/Makefile
+Index: tip/arch/openrisc/Makefile
 ===================================================================
---- tip.orig/arch/s390/Makefile
-+++ tip/arch/s390/Makefile
-@@ -91,7 +91,6 @@ OBJCOPYFLAGS	:= -O binary
+--- tip.orig/arch/openrisc/Makefile
++++ tip/arch/openrisc/Makefile
+@@ -38,7 +38,7 @@ else
+ 	KBUILD_CFLAGS += $(call cc-option,-msoft-div)
+ endif
  
- head-y		:= arch/s390/kernel/head.o
- head-y		+= arch/s390/kernel/$(if $(CONFIG_64BIT),head64.o,head31.o)
--head-y		+= arch/s390/kernel/init_task.o
+-head-y 		:= arch/openrisc/kernel/head.o arch/openrisc/kernel/init_task.o
++head-y 		:= arch/openrisc/kernel/head.o
  
- # See arch/s390/Kbuild for content of core part of the kernel
- core-y		+= arch/s390/
-Index: tip/arch/s390/kernel/Makefile
+ core-y		+= arch/openrisc/lib/ \
+ 		   arch/openrisc/kernel/ \
+Index: tip/arch/openrisc/kernel/Makefile
 ===================================================================
---- tip.orig/arch/s390/kernel/Makefile
-+++ tip/arch/s390/kernel/Makefile
-@@ -28,7 +28,7 @@ obj-y	:=  bitmap.o traps.o time.o proces
- obj-y	+= $(if $(CONFIG_64BIT),entry64.o,entry.o)
- obj-y	+= $(if $(CONFIG_64BIT),reipl64.o,reipl.o)
+--- tip.orig/arch/openrisc/kernel/Makefile
++++ tip/arch/openrisc/kernel/Makefile
+@@ -2,7 +2,7 @@
+ # Makefile for the linux kernel.
+ #
  
--extra-y				+= head.o init_task.o vmlinux.lds
-+extra-y				+= head.o vmlinux.lds
- extra-y				+= $(if $(CONFIG_64BIT),head64.o,head31.o)
+-extra-y	:= head.o vmlinux.lds init_task.o
++extra-y	:= head.o vmlinux.lds
  
- obj-$(CONFIG_MODULES)		+= s390_ksyms.o module.o
-Index: tip/arch/s390/kernel/init_task.c
+ obj-y	:= setup.o idle.o or32_ksyms.o process.o dma.o \
+ 	   traps.o time.o irq.o entry.o ptrace.o signal.o sys_or32.o \
+Index: tip/arch/openrisc/kernel/init_task.c
 ===================================================================
---- tip.orig/arch/s390/kernel/init_task.c
+--- tip.orig/arch/openrisc/kernel/init_task.c
 +++ /dev/null
-@@ -1,38 +0,0 @@
+@@ -1,42 +0,0 @@
 -/*
-- *  arch/s390/kernel/init_task.c
+- * OpenRISC init_task.c
 - *
-- *  S390 version
+- * Linux architectural port borrowing liberally from similar works of
+- * others.  All original copyrights apply as per the original source
+- * declaration.
 - *
-- *  Derived from "arch/i386/kernel/init_task.c"
+- * Modifications for the OpenRISC architecture:
+- * Copyright (C) 2003 Matjaz Breskvar <phoenix@bsemi.com>
+- * Copyright (C) 2010-2011 Jonas Bonn <jonas@southpole.se>
+- *
+- *      This program is free software; you can redistribute it and/or
+- *      modify it under the terms of the GNU General Public License
+- *      as published by the Free Software Foundation; either version
+- *      2 of the License, or (at your option) any later version.
 - */
 -
--#include <linux/mm.h>
--#include <linux/fs.h>
--#include <linux/module.h>
--#include <linux/sched.h>
 -#include <linux/init_task.h>
 -#include <linux/mqueue.h>
--
--#include <asm/uaccess.h>
--#include <asm/pgtable.h>
+-#include <linux/export.h>
 -
 -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
 -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
+-
 -/*
 - * Initial thread structure.
 - *
@@ -92,8 +97,9 @@ Index: tip/arch/s390/kernel/init_task.c
 - * way process stacks are handled. This is done by having a special
 - * "init_task" linker map entry..
 - */
--union thread_union init_thread_union __init_task_data =
--	{ INIT_THREAD_INFO(init_task) };
+-union thread_union init_thread_union __init_task_data = {
+-	INIT_THREAD_INFO(init_task)
+-};
 -
 -/*
 - * Initial task structure.
@@ -101,5 +107,4 @@ Index: tip/arch/s390/kernel/init_task.c
 - * All other task structs will be allocated on slabs in fork.c
 - */
 -struct task_struct init_task = INIT_TASK(init_task);
--
 -EXPORT_SYMBOL(init_task);
