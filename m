@@ -1,87 +1,108 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 28/29] xtensa: Use generic init_task
-Date: Mon, 30 Apr 2012 20:16:05 -0000
-Message-ID: <20120430194847.291193314@linutronix.de>
+Subject: [patch 26/29] unicore32: Use generic init_task
+Date: Mon, 30 Apr 2012 20:16:04 -0000
+Message-ID: <20120430194847.171921818@linutronix.de>
 References: <20120430194725.763322463@linutronix.de>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:35815 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756922Ab2D3UQH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:16:07 -0400
-Content-Disposition: inline; filename=xtensa-use-generic-init-task.patch
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline; filename=unicore-use-generic-init-task.patch
+Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Chris Zankel <chris@zankel.net>
+Cc: linux-arch@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>
+List-Id: linux-arch.vger.kernel.org
 
-Same code. Use the generic version.
+Same code. Use the generic version. The special Makefile treatment is
+pointless anyway as init_task.o contains only data which is handled by
+the linker script. So no point on being treated like head text.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Chris Zankel <chris@zankel.net>
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
 ---
- arch/xtensa/Kconfig            |    1 +
- arch/xtensa/kernel/Makefile    |    2 +-
- arch/xtensa/kernel/init_task.c |   31 -------------------------------
- 3 files changed, 2 insertions(+), 32 deletions(-)
+ arch/unicore32/Kconfig            |    1 
+ arch/unicore32/Makefile           |    1 
+ arch/unicore32/kernel/Makefile    |    2 -
+ arch/unicore32/kernel/init_task.c |   44 --------------------------------------
+ 4 files changed, 2 insertions(+), 46 deletions(-)
 
-Index: tip/arch/xtensa/Kconfig
+Index: tip/arch/unicore32/Kconfig
 ===================================================================
---- tip.orig/arch/xtensa/Kconfig
-+++ tip/arch/xtensa/Kconfig
-@@ -10,6 +10,7 @@ config XTENSA
- 	select HAVE_GENERIC_HARDIRQS
+--- tip.orig/arch/unicore32/Kconfig
++++ tip/arch/unicore32/Kconfig
+@@ -13,6 +13,7 @@ config UNICORE32
  	select GENERIC_IRQ_SHOW
- 	select GENERIC_CPU_DEVICES
+ 	select ARCH_WANT_FRAME_POINTERS
+ 	select GENERIC_IOMAP
 +	select HAVE_GENERIC_INIT_TASK
  	help
- 	  Xtensa processors are 32-bit RISC machines designed by Tensilica
- 	  primarily for embedded systems.  These processors are both
-Index: tip/arch/xtensa/kernel/Makefile
+ 	  UniCore-32 is 32-bit Instruction Set Architecture,
+ 	  including a series of low-power-consumption RISC chip
+Index: tip/arch/unicore32/Makefile
 ===================================================================
---- tip.orig/arch/xtensa/kernel/Makefile
-+++ tip/arch/xtensa/kernel/Makefile
-@@ -6,7 +6,7 @@ extra-y := head.o vmlinux.lds
+--- tip.orig/arch/unicore32/Makefile
++++ tip/arch/unicore32/Makefile
+@@ -33,7 +33,6 @@ endif
+ CHECKFLAGS		+= -D__unicore32__
  
- obj-y := align.o entry.o irq.o coprocessor.o process.o ptrace.o \
- 	 setup.o signal.o syscall.o time.o traps.o vectors.o platform.o  \
--	 pci-dma.o init_task.o io.o
-+	 pci-dma.o io.o
+ head-y			:= arch/unicore32/kernel/head.o
+-head-y			+= arch/unicore32/kernel/init_task.o
  
- obj-$(CONFIG_KGDB) += xtensa-stub.o
- obj-$(CONFIG_PCI) += pci.o
-Index: tip/arch/xtensa/kernel/init_task.c
+ core-y			+= arch/unicore32/kernel/
+ core-y			+= arch/unicore32/mm/
+Index: tip/arch/unicore32/kernel/Makefile
 ===================================================================
---- tip.orig/arch/xtensa/kernel/init_task.c
+--- tip.orig/arch/unicore32/kernel/Makefile
++++ tip/arch/unicore32/kernel/Makefile
+@@ -29,4 +29,4 @@ obj-$(CONFIG_PUV3_NB0916)	+= puv3-nb0916
+ head-y				:= head.o
+ obj-$(CONFIG_DEBUG_LL)		+= debug.o
+ 
+-extra-y				:= $(head-y) init_task.o vmlinux.lds
++extra-y				:= $(head-y) vmlinux.lds
+Index: tip/arch/unicore32/kernel/init_task.c
+===================================================================
+--- tip.orig/arch/unicore32/kernel/init_task.c
 +++ /dev/null
-@@ -1,31 +0,0 @@
+@@ -1,44 +0,0 @@
 -/*
-- * arch/xtensa/kernel/init_task.c
+- * linux/arch/unicore32/kernel/init_task.c
 - *
-- * Xtensa Processor version.
+- * Code specific to PKUnity SoC and UniCore ISA
 - *
-- * This file is subject to the terms and conditions of the GNU General Public
-- * License.  See the file "COPYING" in the main directory of this archive
-- * for more details.
+- * Copyright (C) 2001-2010 GUAN Xue-tao
 - *
-- * Copyright (C) 2007 Tensilica Inc.
-- *
-- * Chris Zankel <chris@zankel.net>
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 as
+- * published by the Free Software Foundation.
 - */
--
 -#include <linux/mm.h>
+-#include <linux/module.h>
 -#include <linux/fs.h>
+-#include <linux/sched.h>
 -#include <linux/init.h>
 -#include <linux/init_task.h>
--#include <linux/module.h>
 -#include <linux/mqueue.h>
+-#include <linux/uaccess.h>
 -
--#include <asm/uaccess.h>
+-#include <asm/pgtable.h>
 -
 -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
 -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
--union thread_union init_thread_union __init_task_data =
--	{ INIT_THREAD_INFO(init_task) };
+-/*
+- * Initial thread structure.
+- *
+- * We need to make sure that this is 8192-byte aligned due to the
+- * way process stacks are handled. This is done by making sure
+- * the linker maps this in the .text segment right after head.S,
+- * and making head.S ensure the proper alignment.
+- *
+- * The things we do for performance..
+- */
+-union thread_union init_thread_union __init_task_data = {
+-	INIT_THREAD_INFO(init_task) };
 -
+-/*
+- * Initial task structure.
+- *
+- * All other task structs will be allocated on slabs in fork.c
+- */
 -struct task_struct init_task = INIT_TASK(init_task);
--
 -EXPORT_SYMBOL(init_task);
