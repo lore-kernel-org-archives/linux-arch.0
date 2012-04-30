@@ -1,88 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:35747 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:35726 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756674Ab2D3UP7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:15:59 -0400
-Message-ID: <20120430194846.289226985@linutronix.de>
-Date: Mon, 30 Apr 2012 20:15:57 -0000
+	with ESMTP id S1756581Ab2D3UP4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:15:56 -0400
+Message-ID: <20120430194845.972721401@linutronix.de>
+Date: Mon, 30 Apr 2012 20:15:55 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 12/29] m32r: Use generic init_task
+Subject: [patch 07/29] cris: Use generic init_task
 References: <20120430194725.763322463@linutronix.de>
-Content-Disposition: inline; filename=m32r-use-generic-init-task.patch
+Content-Disposition: inline; filename=cris-use-generic-idle-task.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Hirokazu Takata <takata@linux-m32r.org>
-Message-ID: <20120430201557.5jok4mvoV3zscae3Xq5H8OzYqG89YSR1it77eK370dM@z>
+Cc: linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>
+Message-ID: <20120430201555.vnWEbHJXtGfs11bpl5H3iauj0BTR5YkFhNpaI1o3P6o@z>
 
-Same code. Use the generic version. The special Makefile treatment is
-pointless anyway as init_task.o contains only data which is handled by
-the linker script. So no point on being treated like head text.
+Same code. Use the generic version.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: Jesper Nilsson <jesper.nilsson@axis.com>
 ---
- arch/m32r/Kconfig            |    1 +
- arch/m32r/Makefile           |    2 +-
- arch/m32r/kernel/Makefile    |    2 +-
- arch/m32r/kernel/init_task.c |   34 ----------------------------------
- 4 files changed, 3 insertions(+), 36 deletions(-)
+ arch/cris/Kconfig          |    1 +
+ arch/cris/kernel/process.c |   28 ----------------------------
+ 2 files changed, 1 insertion(+), 28 deletions(-)
 
-Index: tip/arch/m32r/Kconfig
+Index: tip/arch/cris/Kconfig
 ===================================================================
---- tip.orig/arch/m32r/Kconfig
-+++ tip/arch/m32r/Kconfig
-@@ -11,6 +11,7 @@ config M32R
- 	select GENERIC_IRQ_PROBE
+--- tip.orig/arch/cris/Kconfig
++++ tip/arch/cris/Kconfig
+@@ -50,6 +50,7 @@ config CRIS
  	select GENERIC_IRQ_SHOW
- 	select GENERIC_ATOMIC64
+ 	select GENERIC_IOMAP
+ 	select GENERIC_SMP_IDLE_THREAD if ETRAX_ARCH_V32
 +	select HAVE_GENERIC_INIT_TASK
  
- config SBUS
- 	bool
-Index: tip/arch/m32r/Makefile
+ config HZ
+ 	int
+Index: tip/arch/cris/kernel/process.c
 ===================================================================
---- tip.orig/arch/m32r/Makefile
-+++ tip/arch/m32r/Makefile
-@@ -31,7 +31,7 @@ KBUILD_AFLAGS += $(aflags-y)
+--- tip.orig/arch/cris/kernel/process.c
++++ tip/arch/cris/kernel/process.c
+@@ -29,34 +29,6 @@
+ //#define DEBUG
  
- CHECKFLAGS	+= -D__m32r__ -D__BIG_ENDIAN__=1
- 
--head-y	:= arch/m32r/kernel/head.o arch/m32r/kernel/init_task.o
-+head-y	:= arch/m32r/kernel/head.o
- 
- LIBGCC	:= $(shell $(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
- 
-Index: tip/arch/m32r/kernel/Makefile
-===================================================================
---- tip.orig/arch/m32r/kernel/Makefile
-+++ tip/arch/m32r/kernel/Makefile
-@@ -2,7 +2,7 @@
- # Makefile for the Linux/M32R kernel.
- #
- 
--extra-y	:= head.o init_task.o vmlinux.lds
-+extra-y	:= head.o vmlinux.lds
- 
- obj-y	:= process.o entry.o traps.o align.o irq.o setup.o time.o \
- 	m32r_ksyms.o sys_m32r.o signal.o ptrace.o
-Index: tip/arch/m32r/kernel/init_task.c
-===================================================================
---- tip.orig/arch/m32r/kernel/init_task.c
-+++ /dev/null
-@@ -1,34 +0,0 @@
--/* orig : i386 init_task.c */
--
--#include <linux/mm.h>
--#include <linux/module.h>
--#include <linux/sched.h>
--#include <linux/init.h>
--#include <linux/init_task.h>
--#include <linux/fs.h>
--#include <linux/mqueue.h>
--
--#include <asm/uaccess.h>
--#include <asm/pgtable.h>
+ /*
+- * Initial task structure. Make this a per-architecture thing,
+- * because different architectures tend to have different
+- * alignment requirements and potentially different initial
+- * setup.
+- */
 -
 -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
 -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
@@ -105,5 +71,9 @@ Index: tip/arch/m32r/kernel/init_task.c
 -
 -EXPORT_SYMBOL(init_task);
 -
+-/*
+  * The hlt_counter, disable_hlt and enable_hlt is just here as a hook if
+  * there would ever be a halt sequence (for power save when idle) with
+  * some largish delay when halting or resuming *and* a driver that can't
 
 
