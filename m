@@ -1,67 +1,34 @@
-From: Stephen Boyd <sboyd@codeaurora.org>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH] Move most arches to asm-generic/current.h
-Date: Mon, 30 Apr 2012 09:35:10 -0700
-Message-ID: <4F9EBF3E.8060401@codeaurora.org>
-References: <1335237509-17113-1-git-send-email-sboyd@codeaurora.org> <201204301415.56690.arnd@arndb.de>
+Date: Mon, 30 Apr 2012 16:38:29 +0000
+Message-ID: <201204301638.29398.arnd@arndb.de>
+References: <1335237509-17113-1-git-send-email-sboyd@codeaurora.org> <201204301415.56690.arnd@arndb.de> <4F9EBF3E.8060401@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:41272 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754109Ab2D3QfL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 12:35:11 -0400
-In-Reply-To: <201204301415.56690.arnd@arndb.de>
+Received: from moutng.kundenserver.de ([212.227.126.186]:53449 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756192Ab2D3Qif (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 12:38:35 -0400
+In-Reply-To: <4F9EBF3E.8060401@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+To: Stephen Boyd <sboyd@codeaurora.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 04/30/12 07:15, Arnd Bergmann wrote:
-> On Tuesday 24 April 2012, Stephen Boyd wrote:
->> diff --git a/include/asm-generic/current.h b/include/asm-generic/current.h
->> index 5e86f6a..bbfb795 100644
->> --- a/include/asm-generic/current.h
->> +++ b/include/asm-generic/current.h
->> @@ -1,9 +1,16 @@
->>  #ifndef __ASM_GENERIC_CURRENT_H
->>  #define __ASM_GENERIC_CURRENT_H
->>  
->> +#include <linux/compiler.h>
->>  #include <linux/thread_info.h>
->>  
->> -#define get_current() (current_thread_info()->task)
->> +struct task_struct;
->> +
->> +static __always_inline struct task_struct *get_current(void)
->> +{
->> +       return current_thread_info()->task;
->> +}
->> +
->>  #define current get_current()
->>  
->>  #endif /* __ASM_GENERIC_CURRENT_H */
-> Does this need to be an inline function rather than a macro? I think I
-> remember having trouble with header file dependencies when I tried making
-> it an inline function initially and I don't know if those have been
-> resolved.
->
-> I realize that the macro is ugly, but if you don't mind keeping it,
-> that would be the safer option in terms of breaking some architecture
-> in the process. If course if you can prove that all architectures using
-> the generic implementation can use the inline function, I'm all for
-> the change.
->
+On Monday 30 April 2012, Stephen Boyd wrote:
+> I admit I haven't compile tested this on all the affected architectures.
+> Looking at the architectures that are migrated here I don't see any that
+> are defining get_current() as a macro except for alpha. Should I drop
+> alpha from the patch? Or would it be easier if someone threw this into
+> linux-next and see if it blows up?
+> 
+> In the meantime I can scrounge around for those kernel.org
+> cross-compilers and see if I can compile alpha.
 
-I admit I haven't compile tested this on all the affected architectures.
-Looking at the architectures that are migrated here I don't see any that
-are defining get_current() as a macro except for alpha. Should I drop
-alpha from the patch? Or would it be easier if someone threw this into
-linux-next and see if it blows up?
+I'd say either get an Ack from the Alpha maintainers or drop that
+hunk from your patch.
 
-In the meantime I can scrounge around for those kernel.org
-cross-compilers and see if I can compile alpha.
-
--- 
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+	Arnd
