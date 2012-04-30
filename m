@@ -1,80 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from na3sys009aog123.obsmtp.com ([74.125.149.149]:52573 "EHLO
-	na3sys009aog123.obsmtp.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751962Ab2D3IFQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 30 Apr 2012 04:05:16 -0400
-Received: by obcni5 with SMTP id ni5so4791247obc.13
-        for <linux-arch@vger.kernel.org>; Mon, 30 Apr 2012 01:05:14 -0700 (PDT)
-Message-ID: <4F9E47B4.3000004@ti.com>
-Date: Mon, 30 Apr 2012 13:35:08 +0530
-From: Santosh Shilimkar <santosh.shilimkar@ti.com>
+Received: from wolverine01.qualcomm.com ([199.106.114.254]:33834 "EHLO
+	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755797Ab2D3RHy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 13:07:54 -0400
+Message-ID: <4F9EC6E9.9000102@codeaurora.org>
+Date: Mon, 30 Apr 2012 10:07:53 -0700
+From: Stephen Boyd <sboyd@codeaurora.org>
 MIME-Version: 1.0
-Subject: Re: [patch 00/18] SMP: Boot and CPU hotplug refactoring - Part 1
-References: <20120420122120.097464672@linutronix.de>
-In-Reply-To: <20120420122120.097464672@linutronix.de>
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [PATCH] Move most arches to asm-generic/current.h
+References: <1335237509-17113-1-git-send-email-sboyd@codeaurora.org> <201204301415.56690.arnd@arndb.de> <4F9EBF3E.8060401@codeaurora.org> <201204301638.29398.arnd@arndb.de>
+In-Reply-To: <201204301638.29398.arnd@arndb.de>
+Content-Type: text/plain; charset=ISO-8859-15
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Message-ID: <20120430080508.PFqkJI9KdZfdDrW21uH8FtzaGhfiFKAkbWZowzk5Er8@z>
+To: linux-alpha@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
+Message-ID: <20120430170753.HwyutXcf_mgpT89V0AhiOhHxPicGcB_tQJVP3LGka_U@z>
 
-On Friday 20 April 2012 06:35 PM, Thomas Gleixner wrote:
-> Dear all,
-> 
-> I'm working on refactoring the SMP boot and CPU hotplug implementation.
-> 
-> The current code has evolved over time into a conglomerate of
-> warts. My main goals are to:
-> 
->  - reduce the architecture code by moving repeating constructs to the
->    core
-> 
->  - redesigning the handling of per cpu threads. There is no point to
->    tear down the threads just to create them again.
-> 
->  - restructuring the notifier facility into a proper tree with
->    dependencies to avoid the gazillion of callbacks and moving
->    setup/teardown code into the context of the upcoming/dying cpu
-> 
-> The motivation behind this work is the cpu hotplug nightmare which we
-> are facing in the RT kernel and the requests from several groups
-> (e.g. ARM) to make hotplug more lightweight and faster.
-> 
-> This first part moves the idle thread management for non-boot cpus
-> into the core. fork_idle() is called in a workqueue as it is
-> implemented in a few architectures already. This is necessary when not
-> all cpus are brought up by the early boot code as otherwise we would
-> take a ref on the user task VM of the thread which brings the cpu up
-> via the sysfs interface.
-> 
-> This converts all architectures except m32r, mn10300, tile and UM to
-> the new core facility. These architecture are calling fork_idle() in
-> the very early boot code in smp_prepare_cpus() for unknown reasons.
-> I haven't analyzed yet, whether this is on purpose or can be moved
-> over to the generic facility. It'd be nice if the responsible maintainers
-> could look into that as well.
-> 
+On 04/30/12 09:38, Arnd Bergmann wrote:
 
-Tried this series on OMAP4 (Dual Core ARM machine) and did some
-some testing with CPU hot-plug by creating variable CPU loads and
-running CPU hot-plug script in the background.
-No issue observed in 2 hours of testing.
+> On Monday 30 April 2012, Stephen Boyd wrote:
+>> I admit I haven't compile tested this on all the affected architectures.
+>> Looking at the architectures that are migrated here I don't see any that
+>> are defining get_current() as a macro except for alpha. Should I drop
+>> alpha from the patch? Or would it be easier if someone threw this into
+>> linux-next and see if it blows up?
+>>
+>> In the meantime I can scrounge around for those kernel.org
+>> cross-compilers and see if I can compile alpha.
+> I'd say either get an Ack from the Alpha maintainers or drop that
+> hunk from your patch.
+>
 
-Not sure your stand on Suresh's patch[1], but I did another
-round of testing with [1] included. I thought this patch
-might be considered since it eliminate the need for work-queue
-based idle thread allocation which can be a problem as
-discussed on this thread.
+Ok. Alpha maintainers, do you see any problem with a static inline
+function for get_current() instead of the current macro? My compile of
+alpha with the kernel.org 4.6.3 compilers doesn't show any new build
+failures than what is already there:
 
-Regards
-Santosh
-
-[1] https://lkml.org/lkml/2012/4/20/524
+  LD      .tmp_vmlinux1
+drivers/built-in.o: In function `ide_set_disk_chs':
+drivers/ide/ide.c:269:(.text+0x732a8): relocation truncated to fit: GPREL16 against `.sbss'
+drivers/ide/ide.c:269:(.text+0x732b0): relocation truncated to fit: GPREL16 against `.sbss'
+drivers/ide/ide.c:267:(.text+0x73310): relocation truncated to fit: GPREL16 against `.sbss'
+drivers/ide/ide.c:267:(.text+0x73318): relocation truncated to fit: GPREL16 against `.sbss'
+drivers/built-in.o: In function `ide_dev_apply_params':
+drivers/ide/ide.c:299:(.text+0x73714): relocation truncated to fit: GPREL16 against `.sbss'
+drivers/ide/ide.c:303:(.text+0x73724): relocation truncated to fit: GPREL16 against `.sbss'
+drivers/ide/ide.c:308:(.text+0x73734): relocation truncated to fit: GPREL16 against `.sbss'
+drivers/ide/ide.c:315:(.text+0x73744): relocation truncated to fit: GPREL16 against `.sbss'
+drivers/built-in.o: In function `unexpected_intr':
+drivers/ide/ide-io.c:734:(.text+0x74dfc): relocation truncated to fit: GPREL16 against `.sbss'
+drivers/ide/ide-io.c:736:(.text+0x74e00): relocation truncated to fit: GPREL16 against `.sbss'
+drivers/ide/ide-io.c:734:(.text+0x74e10): additional relocation overflows omitted from the output
+make[1]: *** [.tmp_vmlinux1] Error 1
+make: *** [sub-make] Error 2
 
 
 
-
+-- 
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
 
