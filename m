@@ -1,99 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:35777 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:35774 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756887Ab2D3UQD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:16:03 -0400
-Message-ID: <20120430194846.801327557@linutronix.de>
+	with ESMTP id S1756886Ab2D3UQC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:16:02 -0400
+Message-ID: <20120430194846.731265237@linutronix.de>
 Date: Mon, 30 Apr 2012 20:16:01 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 20/29] s390: Use generic init_task
+Subject: [patch 19/29] powerpc: Use generic init_task
 References: <20120430194725.763322463@linutronix.de>
-Content-Disposition: inline; filename=s390-use-generic-init-task.patch
+Content-Disposition: inline; filename=powerpc-use-generic-init-task.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
-Message-ID: <20120430201601.C005M-IDgLrupmrcbavgu_b1I3w7caDDwFvXhPKqSEw@z>
+Cc: linux-arch@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Message-ID: <20120430201601.ap0nhBPN44G0MQPhBZWDmC8UYGPqmhUGulYFSTQr72E@z>
 
-Same code. Use the generic version. The special Makefile treatment is
-pointless anyway as init_task.o contains only data which is handled by
-the linker script. So no point on being treated like head text.
+Same code. Use the generic version.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- arch/s390/Kconfig            |    1 +
- arch/s390/Makefile           |    1 -
- arch/s390/kernel/Makefile    |    2 +-
- arch/s390/kernel/init_task.c |   38 --------------------------------------
- 4 files changed, 2 insertions(+), 40 deletions(-)
+ arch/powerpc/Kconfig            |    1 +
+ arch/powerpc/kernel/Makefile    |    2 +-
+ arch/powerpc/kernel/init_task.c |   29 -----------------------------
+ 3 files changed, 2 insertions(+), 30 deletions(-)
 
-Index: tip/arch/s390/Kconfig
+Index: tip/arch/powerpc/Kconfig
 ===================================================================
---- tip.orig/arch/s390/Kconfig
-+++ tip/arch/s390/Kconfig
-@@ -123,6 +123,7 @@ config S390
- 	select ARCH_INLINE_WRITE_UNLOCK_IRQ
- 	select ARCH_INLINE_WRITE_UNLOCK_IRQRESTORE
+--- tip.orig/arch/powerpc/Kconfig
++++ tip/arch/powerpc/Kconfig
+@@ -145,6 +145,7 @@ config PPC
+ 	select HAVE_ARCH_JUMP_LABEL
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
  	select GENERIC_SMP_IDLE_THREAD
 +	select HAVE_GENERIC_INIT_TASK
  
- config SCHED_OMIT_FRAME_POINTER
- 	def_bool y
-Index: tip/arch/s390/Makefile
+ config EARLY_PRINTK
+ 	bool
+Index: tip/arch/powerpc/kernel/Makefile
 ===================================================================
---- tip.orig/arch/s390/Makefile
-+++ tip/arch/s390/Makefile
-@@ -91,7 +91,6 @@ OBJCOPYFLAGS	:= -O binary
+--- tip.orig/arch/powerpc/kernel/Makefile
++++ tip/arch/powerpc/kernel/Makefile
+@@ -28,7 +28,7 @@ endif
  
- head-y		:= arch/s390/kernel/head.o
- head-y		+= arch/s390/kernel/$(if $(CONFIG_64BIT),head64.o,head31.o)
--head-y		+= arch/s390/kernel/init_task.o
- 
- # See arch/s390/Kbuild for content of core part of the kernel
- core-y		+= arch/s390/
-Index: tip/arch/s390/kernel/Makefile
+ obj-y				:= cputable.o ptrace.o syscalls.o \
+ 				   irq.o align.o signal_32.o pmc.o vdso.o \
+-				   init_task.o process.o systbl.o idle.o \
++				   process.o systbl.o idle.o \
+ 				   signal.o sysfs.o cacheinfo.o time.o \
+ 				   prom.o traps.o setup-common.o \
+ 				   udbg.o misc.o io.o dma.o \
+Index: tip/arch/powerpc/kernel/init_task.c
 ===================================================================
---- tip.orig/arch/s390/kernel/Makefile
-+++ tip/arch/s390/kernel/Makefile
-@@ -28,7 +28,7 @@ obj-y	:=  bitmap.o traps.o time.o proces
- obj-y	+= $(if $(CONFIG_64BIT),entry64.o,entry.o)
- obj-y	+= $(if $(CONFIG_64BIT),reipl64.o,reipl.o)
- 
--extra-y				+= head.o init_task.o vmlinux.lds
-+extra-y				+= head.o vmlinux.lds
- extra-y				+= $(if $(CONFIG_64BIT),head64.o,head31.o)
- 
- obj-$(CONFIG_MODULES)		+= s390_ksyms.o module.o
-Index: tip/arch/s390/kernel/init_task.c
-===================================================================
---- tip.orig/arch/s390/kernel/init_task.c
+--- tip.orig/arch/powerpc/kernel/init_task.c
 +++ /dev/null
-@@ -1,38 +0,0 @@
--/*
-- *  arch/s390/kernel/init_task.c
-- *
-- *  S390 version
-- *
-- *  Derived from "arch/i386/kernel/init_task.c"
-- */
--
+@@ -1,29 +0,0 @@
 -#include <linux/mm.h>
--#include <linux/fs.h>
--#include <linux/module.h>
+-#include <linux/export.h>
 -#include <linux/sched.h>
+-#include <linux/init.h>
 -#include <linux/init_task.h>
+-#include <linux/fs.h>
 -#include <linux/mqueue.h>
--
 -#include <asm/uaccess.h>
--#include <asm/pgtable.h>
 -
 -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
 -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
 -/*
 - * Initial thread structure.
 - *
-- * We need to make sure that this is THREAD_SIZE aligned due to the
+- * We need to make sure that this is 16384-byte aligned due to the
 - * way process stacks are handled. This is done by having a special
 - * "init_task" linker map entry..
 - */
