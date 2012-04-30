@@ -1,84 +1,103 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:35797 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:35742 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756829Ab2D3UQF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:16:05 -0400
-Message-ID: <20120430194847.050759845@linutronix.de>
-Date: Mon, 30 Apr 2012 20:16:03 -0000
+	with ESMTP id S1756858Ab2D3UP6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:15:58 -0400
+Message-ID: <20120430194846.162247700@linutronix.de>
+Date: Mon, 30 Apr 2012 20:15:56 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 24/29] tile: Use generic init_task
+Subject: [patch 10/29] hexagon: Use generic idle_task
 References: <20120430194725.763322463@linutronix.de>
-Content-Disposition: inline; filename=tile-use-generic-init-task.patch
+Content-Disposition: inline; filename=hexagon-use-generic-idle-task.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>
-Message-ID: <20120430201603.YFvXkY0aKq6ZrfICYkz97XmEhdxTwXWmE0KRjA4belw@z>
+Cc: linux-arch@vger.kernel.org, Richard Kuo <rkuo@codeaurora.org>
+Message-ID: <20120430201556.oMFQ26YSxBjIDwMcm6El8TTQfcKtG4n6nR5F4EQN4as@z>
 
 Same code. Use the generic version. The special Makefile treatment is
 pointless anyway as init_task.o contains only data which is handled by
 the linker script. So no point on being treated like head text.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Richard Kuo <rkuo@codeaurora.org>
 ---
- arch/tile/Kconfig            |    1 
- arch/tile/kernel/Makefile    |    2 -
- arch/tile/kernel/init_task.c |   59 -------------------------------------------
- arch/tile/kernel/setup.c     |   16 +++++++++++
- 4 files changed, 18 insertions(+), 60 deletions(-)
+ arch/hexagon/Kconfig            |    1 
+ arch/hexagon/Makefile           |    3 --
+ arch/hexagon/kernel/Makefile    |    2 -
+ arch/hexagon/kernel/init_task.c |   54 ----------------------------------------
+ 4 files changed, 3 insertions(+), 57 deletions(-)
 
-Index: tip/arch/tile/Kconfig
+Index: tip/arch/hexagon/Kconfig
 ===================================================================
---- tip.orig/arch/tile/Kconfig
-+++ tip/arch/tile/Kconfig
-@@ -13,6 +13,7 @@ config TILE
- 	select GENERIC_IRQ_SHOW
- 	select SYS_HYPERVISOR
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+--- tip.orig/arch/hexagon/Kconfig
++++ tip/arch/hexagon/Kconfig
+@@ -28,6 +28,7 @@ config HEXAGON
+ 	select NO_IOPORT
+ 	select GENERIC_IOMAP
+ 	select GENERIC_SMP_IDLE_THREAD
 +	select HAVE_GENERIC_INIT_TASK
- 
- # FIXME: investigate whether we need/want these options.
- #	select HAVE_IOREMAP_PROT
-Index: tip/arch/tile/kernel/Makefile
+ 	# mostly generic routines, with some accelerated ones
+ 	---help---
+ 	  Qualcomm Hexagon is a processor architecture designed for high
+Index: tip/arch/hexagon/Makefile
 ===================================================================
---- tip.orig/arch/tile/kernel/Makefile
-+++ tip/arch/tile/kernel/Makefile
-@@ -3,7 +3,7 @@
- #
+--- tip.orig/arch/hexagon/Makefile
++++ tip/arch/hexagon/Makefile
+@@ -45,8 +45,7 @@ KBUILD_AFLAGS += -DTHREADINFO_REG=$(TIR_
+ LIBGCC := $(shell $(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
+ libs-y += $(LIBGCC)
  
- extra-y := vmlinux.lds head_$(BITS).o
--obj-y := backtrace.o entry.o init_task.o irq.o messaging.o \
-+obj-y := backtrace.o entry.o irq.o messaging.o \
- 	pci-dma.o proc.o process.o ptrace.o reboot.o \
- 	setup.o signal.o single_step.o stack.o sys.o sysfs.o time.o traps.o \
- 	intvec_$(BITS).o regs_$(BITS).o tile-desc_$(BITS).o
-Index: tip/arch/tile/kernel/init_task.c
+-head-y := arch/hexagon/kernel/head.o \
+-	arch/hexagon/kernel/init_task.o
++head-y := arch/hexagon/kernel/head.o
+ 
+ core-y += arch/hexagon/kernel/ \
+ 	arch/hexagon/mm/ \
+Index: tip/arch/hexagon/kernel/Makefile
 ===================================================================
---- tip.orig/arch/tile/kernel/init_task.c
+--- tip.orig/arch/hexagon/kernel/Makefile
++++ tip/arch/hexagon/kernel/Makefile
+@@ -1,4 +1,4 @@
+-extra-y := head.o vmlinux.lds init_task.o
++extra-y := head.o vmlinux.lds
+ 
+ obj-$(CONFIG_SMP) += smp.o topology.o
+ 
+Index: tip/arch/hexagon/kernel/init_task.c
+===================================================================
+--- tip.orig/arch/hexagon/kernel/init_task.c
 +++ /dev/null
-@@ -1,59 +0,0 @@
+@@ -1,54 +0,0 @@
 -/*
-- * Copyright 2010 Tilera Corporation. All Rights Reserved.
+- * Init task definition
 - *
-- *   This program is free software; you can redistribute it and/or
-- *   modify it under the terms of the GNU General Public License
-- *   as published by the Free Software Foundation, version 2.
+- * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
 - *
-- *   This program is distributed in the hope that it will be useful, but
-- *   WITHOUT ANY WARRANTY; without even the implied warranty of
-- *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
-- *   NON INFRINGEMENT.  See the GNU General Public License for
-- *   more details.
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 and
+- * only version 2 as published by the Free Software Foundation.
+- *
+- * This program is distributed in the hope that it will be useful,
+- * but WITHOUT ANY WARRANTY; without even the implied warranty of
+- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+- * GNU General Public License for more details.
+- *
+- * You should have received a copy of the GNU General Public License
+- * along with this program; if not, write to the Free Software
+- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+- * 02110-1301, USA.
 - */
 -
 -#include <linux/mm.h>
--#include <linux/fs.h>
--#include <linux/init_task.h>
--#include <linux/mqueue.h>
 -#include <linux/module.h>
--#include <linux/start_kernel.h>
--#include <linux/uaccess.h>
+-#include <linux/sched.h>
+-#include <linux/init_task.h>
+-#include <linux/fs.h>
+-#include <linux/mqueue.h>
+-#include <asm/thread_info.h>
+-#include <asm/uaccess.h>
+-#include <asm/pgtable.h>
 -
 -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
 -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
@@ -86,13 +105,16 @@ Index: tip/arch/tile/kernel/init_task.c
 -/*
 - * Initial thread structure.
 - *
-- * We need to make sure that this is THREAD_SIZE aligned due to the
-- * way process stacks are handled. This is done by having a special
-- * "init_task" linker map entry..
+- * We need to make sure that this is 8192-byte aligned due to the
+- * way process stacks are handled. This is done by making sure
+- * the linker maps this in the .text segment right after head.S,
+- * and making head.S ensure the proper alignment.
 - */
--union thread_union init_thread_union __init_task_data = {
--	INIT_THREAD_INFO(init_task)
--};
+-union thread_union init_thread_union
+-	__attribute__((__section__(".data.init_task"),
+-		__aligned__(THREAD_SIZE))) = {
+-			INIT_THREAD_INFO(init_task)
+-		};
 -
 -/*
 - * Initial task structure.
@@ -101,48 +123,5 @@ Index: tip/arch/tile/kernel/init_task.c
 - */
 -struct task_struct init_task = INIT_TASK(init_task);
 -EXPORT_SYMBOL(init_task);
--
--/*
-- * per-CPU stack and boot info.
-- */
--DEFINE_PER_CPU(unsigned long, boot_sp) =
--	(unsigned long)init_stack + THREAD_SIZE;
--
--#ifdef CONFIG_SMP
--DEFINE_PER_CPU(unsigned long, boot_pc) = (unsigned long)start_kernel;
--#else
--/*
-- * The variable must be __initdata since it references __init code.
-- * With CONFIG_SMP it is per-cpu data, which is exempt from validation.
-- */
--unsigned long __initdata boot_pc = (unsigned long)start_kernel;
--#endif
-Index: tip/arch/tile/kernel/setup.c
-===================================================================
---- tip.orig/arch/tile/kernel/setup.c
-+++ tip/arch/tile/kernel/setup.c
-@@ -61,6 +61,22 @@ unsigned long __initdata node_free_pfn[M
- 
- static unsigned long __initdata node_percpu[MAX_NUMNODES];
- 
-+/*
-+ * per-CPU stack and boot info.
-+ */
-+DEFINE_PER_CPU(unsigned long, boot_sp) =
-+	(unsigned long)init_stack + THREAD_SIZE;
-+
-+#ifdef CONFIG_SMP
-+DEFINE_PER_CPU(unsigned long, boot_pc) = (unsigned long)start_kernel;
-+#else
-+/*
-+ * The variable must be __initdata since it references __init code.
-+ * With CONFIG_SMP it is per-cpu data, which is exempt from validation.
-+ */
-+unsigned long __initdata boot_pc = (unsigned long)start_kernel;
-+#endif
-+
- #ifdef CONFIG_HIGHMEM
- /* Page frame index of end of lowmem on each controller. */
- unsigned long __cpuinitdata node_lowmem_end_pfn[MAX_NUMNODES];
 
 
