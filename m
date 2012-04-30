@@ -1,120 +1,104 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:35742 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:35777 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756858Ab2D3UP6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:15:58 -0400
-Message-ID: <20120430194846.162247700@linutronix.de>
-Date: Mon, 30 Apr 2012 20:15:56 -0000
+	with ESMTP id S1756887Ab2D3UQD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:16:03 -0400
+Message-ID: <20120430194846.801327557@linutronix.de>
+Date: Mon, 30 Apr 2012 20:16:01 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 10/29] hexagon: Use generic idle_task
+Subject: [patch 20/29] s390: Use generic init_task
 References: <20120430194725.763322463@linutronix.de>
-Content-Disposition: inline; filename=hexagon-use-generic-idle-task.patch
+Content-Disposition: inline; filename=s390-use-generic-init-task.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Richard Kuo <rkuo@codeaurora.org>
-Message-ID: <20120430201556.oMFQ26YSxBjIDwMcm6El8TTQfcKtG4n6nR5F4EQN4as@z>
+Cc: linux-arch@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>
+Message-ID: <20120430201601.C005M-IDgLrupmrcbavgu_b1I3w7caDDwFvXhPKqSEw@z>
 
 Same code. Use the generic version. The special Makefile treatment is
 pointless anyway as init_task.o contains only data which is handled by
 the linker script. So no point on being treated like head text.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Richard Kuo <rkuo@codeaurora.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
 ---
- arch/hexagon/Kconfig            |    1 
- arch/hexagon/Makefile           |    3 --
- arch/hexagon/kernel/Makefile    |    2 -
- arch/hexagon/kernel/init_task.c |   54 ----------------------------------------
- 4 files changed, 3 insertions(+), 57 deletions(-)
+ arch/s390/Kconfig            |    1 +
+ arch/s390/Makefile           |    1 -
+ arch/s390/kernel/Makefile    |    2 +-
+ arch/s390/kernel/init_task.c |   38 --------------------------------------
+ 4 files changed, 2 insertions(+), 40 deletions(-)
 
-Index: tip/arch/hexagon/Kconfig
+Index: tip/arch/s390/Kconfig
 ===================================================================
---- tip.orig/arch/hexagon/Kconfig
-+++ tip/arch/hexagon/Kconfig
-@@ -28,6 +28,7 @@ config HEXAGON
- 	select NO_IOPORT
- 	select GENERIC_IOMAP
+--- tip.orig/arch/s390/Kconfig
++++ tip/arch/s390/Kconfig
+@@ -123,6 +123,7 @@ config S390
+ 	select ARCH_INLINE_WRITE_UNLOCK_IRQ
+ 	select ARCH_INLINE_WRITE_UNLOCK_IRQRESTORE
  	select GENERIC_SMP_IDLE_THREAD
 +	select HAVE_GENERIC_INIT_TASK
- 	# mostly generic routines, with some accelerated ones
- 	---help---
- 	  Qualcomm Hexagon is a processor architecture designed for high
-Index: tip/arch/hexagon/Makefile
+ 
+ config SCHED_OMIT_FRAME_POINTER
+ 	def_bool y
+Index: tip/arch/s390/Makefile
 ===================================================================
---- tip.orig/arch/hexagon/Makefile
-+++ tip/arch/hexagon/Makefile
-@@ -45,8 +45,7 @@ KBUILD_AFLAGS += -DTHREADINFO_REG=$(TIR_
- LIBGCC := $(shell $(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
- libs-y += $(LIBGCC)
+--- tip.orig/arch/s390/Makefile
++++ tip/arch/s390/Makefile
+@@ -91,7 +91,6 @@ OBJCOPYFLAGS	:= -O binary
  
--head-y := arch/hexagon/kernel/head.o \
--	arch/hexagon/kernel/init_task.o
-+head-y := arch/hexagon/kernel/head.o
+ head-y		:= arch/s390/kernel/head.o
+ head-y		+= arch/s390/kernel/$(if $(CONFIG_64BIT),head64.o,head31.o)
+-head-y		+= arch/s390/kernel/init_task.o
  
- core-y += arch/hexagon/kernel/ \
- 	arch/hexagon/mm/ \
-Index: tip/arch/hexagon/kernel/Makefile
+ # See arch/s390/Kbuild for content of core part of the kernel
+ core-y		+= arch/s390/
+Index: tip/arch/s390/kernel/Makefile
 ===================================================================
---- tip.orig/arch/hexagon/kernel/Makefile
-+++ tip/arch/hexagon/kernel/Makefile
-@@ -1,4 +1,4 @@
--extra-y := head.o vmlinux.lds init_task.o
-+extra-y := head.o vmlinux.lds
+--- tip.orig/arch/s390/kernel/Makefile
++++ tip/arch/s390/kernel/Makefile
+@@ -28,7 +28,7 @@ obj-y	:=  bitmap.o traps.o time.o proces
+ obj-y	+= $(if $(CONFIG_64BIT),entry64.o,entry.o)
+ obj-y	+= $(if $(CONFIG_64BIT),reipl64.o,reipl.o)
  
- obj-$(CONFIG_SMP) += smp.o topology.o
+-extra-y				+= head.o init_task.o vmlinux.lds
++extra-y				+= head.o vmlinux.lds
+ extra-y				+= $(if $(CONFIG_64BIT),head64.o,head31.o)
  
-Index: tip/arch/hexagon/kernel/init_task.c
+ obj-$(CONFIG_MODULES)		+= s390_ksyms.o module.o
+Index: tip/arch/s390/kernel/init_task.c
 ===================================================================
---- tip.orig/arch/hexagon/kernel/init_task.c
+--- tip.orig/arch/s390/kernel/init_task.c
 +++ /dev/null
-@@ -1,54 +0,0 @@
+@@ -1,38 +0,0 @@
 -/*
-- * Init task definition
+- *  arch/s390/kernel/init_task.c
 - *
-- * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
+- *  S390 version
 - *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 and
-- * only version 2 as published by the Free Software Foundation.
-- *
-- * This program is distributed in the hope that it will be useful,
-- * but WITHOUT ANY WARRANTY; without even the implied warranty of
-- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-- * GNU General Public License for more details.
-- *
-- * You should have received a copy of the GNU General Public License
-- * along with this program; if not, write to the Free Software
-- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-- * 02110-1301, USA.
+- *  Derived from "arch/i386/kernel/init_task.c"
 - */
 -
 -#include <linux/mm.h>
+-#include <linux/fs.h>
 -#include <linux/module.h>
 -#include <linux/sched.h>
 -#include <linux/init_task.h>
--#include <linux/fs.h>
 -#include <linux/mqueue.h>
--#include <asm/thread_info.h>
+-
 -#include <asm/uaccess.h>
 -#include <asm/pgtable.h>
 -
 -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
 -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
--
 -/*
 - * Initial thread structure.
 - *
-- * We need to make sure that this is 8192-byte aligned due to the
-- * way process stacks are handled. This is done by making sure
-- * the linker maps this in the .text segment right after head.S,
-- * and making head.S ensure the proper alignment.
+- * We need to make sure that this is THREAD_SIZE aligned due to the
+- * way process stacks are handled. This is done by having a special
+- * "init_task" linker map entry..
 - */
--union thread_union init_thread_union
--	__attribute__((__section__(".data.init_task"),
--		__aligned__(THREAD_SIZE))) = {
--			INIT_THREAD_INFO(init_task)
--		};
+-union thread_union init_thread_union __init_task_data =
+-	{ INIT_THREAD_INFO(init_task) };
 -
 -/*
 - * Initial task structure.
@@ -122,6 +106,7 @@ Index: tip/arch/hexagon/kernel/init_task.c
 - * All other task structs will be allocated on slabs in fork.c
 - */
 -struct task_struct init_task = INIT_TASK(init_task);
+-
 -EXPORT_SYMBOL(init_task);
 
 
