@@ -1,60 +1,102 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 06/29] cx6: Use generic init_task
-Date: Mon, 30 Apr 2012 20:15:54 -0000
-Message-ID: <20120430194845.911487654@linutronix.de>
+Subject: [patch 12/29] m32r: Use generic init_task
+Date: Mon, 30 Apr 2012 20:15:57 -0000
+Message-ID: <20120430194846.289226985@linutronix.de>
 References: <20120430194725.763322463@linutronix.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=cx6-use-generic-idle-task.patch
+Content-Disposition: inline; filename=m32r-use-generic-init-task.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
+Cc: linux-arch@vger.kernel.org, Hirokazu Takata <takata@linux-m32r.org>
 List-Id: linux-arch.vger.kernel.org
 
-Same code. Use the generic version.
+Same code. Use the generic version. The special Makefile treatment is
+pointless anyway as init_task.o contains only data which is handled by
+the linker script. So no point on being treated like head text.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Mark Salter <msalter@redhat.com>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
 ---
- arch/c6x/Kconfig          |    1 +
- arch/c6x/kernel/process.c |   16 ----------------
- 2 files changed, 1 insertion(+), 16 deletions(-)
+ arch/m32r/Kconfig            |    1 +
+ arch/m32r/Makefile           |    2 +-
+ arch/m32r/kernel/Makefile    |    2 +-
+ arch/m32r/kernel/init_task.c |   34 ----------------------------------
+ 4 files changed, 3 insertions(+), 36 deletions(-)
 
-Index: tip/arch/c6x/Kconfig
+Index: tip/arch/m32r/Kconfig
 ===================================================================
---- tip.orig/arch/c6x/Kconfig
-+++ tip/arch/c6x/Kconfig
-@@ -15,6 +15,7 @@ config TMS320C6X
- 	select IRQ_DOMAIN
- 	select OF
- 	select OF_EARLY_FLATTREE
+--- tip.orig/arch/m32r/Kconfig
++++ tip/arch/m32r/Kconfig
+@@ -11,6 +11,7 @@ config M32R
+ 	select GENERIC_IRQ_PROBE
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_ATOMIC64
 +	select HAVE_GENERIC_INIT_TASK
  
- config MMU
- 	def_bool n
-Index: tip/arch/c6x/kernel/process.c
+ config SBUS
+ 	bool
+Index: tip/arch/m32r/Makefile
 ===================================================================
---- tip.orig/arch/c6x/kernel/process.c
-+++ tip/arch/c6x/kernel/process.c
-@@ -26,22 +26,6 @@ void	(*c6x_halt)(void);
+--- tip.orig/arch/m32r/Makefile
++++ tip/arch/m32r/Makefile
+@@ -31,7 +31,7 @@ KBUILD_AFLAGS += $(aflags-y)
  
- extern asmlinkage void ret_from_fork(void);
+ CHECKFLAGS	+= -D__m32r__ -D__BIG_ENDIAN__=1
  
+-head-y	:= arch/m32r/kernel/head.o arch/m32r/kernel/init_task.o
++head-y	:= arch/m32r/kernel/head.o
+ 
+ LIBGCC	:= $(shell $(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
+ 
+Index: tip/arch/m32r/kernel/Makefile
+===================================================================
+--- tip.orig/arch/m32r/kernel/Makefile
++++ tip/arch/m32r/kernel/Makefile
+@@ -2,7 +2,7 @@
+ # Makefile for the Linux/M32R kernel.
+ #
+ 
+-extra-y	:= head.o init_task.o vmlinux.lds
++extra-y	:= head.o vmlinux.lds
+ 
+ obj-y	:= process.o entry.o traps.o align.o irq.o setup.o time.o \
+ 	m32r_ksyms.o sys_m32r.o signal.o ptrace.o
+Index: tip/arch/m32r/kernel/init_task.c
+===================================================================
+--- tip.orig/arch/m32r/kernel/init_task.c
++++ /dev/null
+@@ -1,34 +0,0 @@
+-/* orig : i386 init_task.c */
+-
+-#include <linux/mm.h>
+-#include <linux/module.h>
+-#include <linux/sched.h>
+-#include <linux/init.h>
+-#include <linux/init_task.h>
+-#include <linux/fs.h>
+-#include <linux/mqueue.h>
+-
+-#include <asm/uaccess.h>
+-#include <asm/pgtable.h>
+-
 -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
 -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
--
 -/*
 - * Initial thread structure.
+- *
+- * We need to make sure that this is 8192-byte aligned due to the
+- * way process stacks are handled. This is done by having a special
+- * "init_task" linker map entry..
 - */
--union thread_union init_thread_union __init_task_data =	{
--	INIT_THREAD_INFO(init_task)
--};
+-union thread_union init_thread_union __init_task_data =
+-	{ INIT_THREAD_INFO(init_task) };
 -
 -/*
 - * Initial task structure.
+- *
+- * All other task structs will be allocated on slabs in fork.c
 - */
 -struct task_struct init_task = INIT_TASK(init_task);
+-
 -EXPORT_SYMBOL(init_task);
 -
- /*
-  * power off function, if any
-  */
