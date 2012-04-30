@@ -1,100 +1,106 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 05/29] blackfin: Use generic init_task
-Date: Mon, 30 Apr 2012 20:15:54 -0000
-Message-ID: <20120430194845.850346878@linutronix.de>
+Subject: [patch 03/29] arm: Use generic init_task
+Date: Mon, 30 Apr 2012 20:15:53 -0000
+Message-ID: <20120430194845.737060696@linutronix.de>
 References: <20120430194725.763322463@linutronix.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=blackfin-use-generic-init-task.patch
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.linutronix.de ([62.245.132.108]:35708 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756791Ab2D3UPy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:15:54 -0400
+Content-Disposition: inline; filename=arm-use-generic-init-task.patch
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>
 
 Same code. Use the generic version. The special Makefile treatment is
 pointless anyway as init_task.o contains only data which is handled by
 the linker script. So no point on being treated like head text.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Mike Frysinger <vapier@gentoo.org>
+Cc: Russell King <linux@arm.linux.org.uk>
 ---
- arch/blackfin/Kconfig            |    1 +
- arch/blackfin/Makefile           |    2 --
- arch/blackfin/kernel/Makefile    |    2 +-
- arch/blackfin/kernel/init_task.c |   32 --------------------------------
- 4 files changed, 2 insertions(+), 35 deletions(-)
+ arch/arm/Kconfig            |    1 +
+ arch/arm/Makefile           |    2 +-
+ arch/arm/kernel/Makefile    |    2 +-
+ arch/arm/kernel/init_task.c |   37 -------------------------------------
+ 4 files changed, 3 insertions(+), 39 deletions(-)
 
-Index: tip/arch/blackfin/Kconfig
+Index: tip/arch/arm/Kconfig
 ===================================================================
---- tip.orig/arch/blackfin/Kconfig
-+++ tip/arch/blackfin/Kconfig
-@@ -38,6 +38,7 @@ config BLACKFIN
- 	select IRQ_PER_CPU if SMP
- 	select HAVE_NMI_WATCHDOG if NMI_WATCHDOG
+--- tip.orig/arch/arm/Kconfig
++++ tip/arch/arm/Kconfig
+@@ -35,6 +35,7 @@ config ARM
+ 	select GENERIC_PCI_IOMAP
+ 	select HAVE_BPF_JIT if NET
  	select GENERIC_SMP_IDLE_THREAD
 +	select HAVE_GENERIC_INIT_TASK
- 
- config GENERIC_CSUM
- 	def_bool y
-Index: tip/arch/blackfin/Makefile
+ 	help
+ 	  The ARM series is a line of low-power-consumption RISC chip designs
+ 	  licensed by ARM Ltd and targeted at embedded applications and
+Index: tip/arch/arm/Makefile
 ===================================================================
---- tip.orig/arch/blackfin/Makefile
-+++ tip/arch/blackfin/Makefile
-@@ -107,8 +107,6 @@ KBUILD_AFLAGS += -mcpu=$(CPU_REV)
- CHECKFLAGS_SILICON = $(shell echo "" | $(CPP) $(KBUILD_CFLAGS) -dD - 2>/dev/null | awk '$$2 == "__SILICON_REVISION__" { print $$3 }')
- CHECKFLAGS += -D__SILICON_REVISION__=$(CHECKFLAGS_SILICON) -D__bfin__
+--- tip.orig/arch/arm/Makefile
++++ tip/arch/arm/Makefile
+@@ -119,7 +119,7 @@ KBUILD_AFLAGS	+=$(CFLAGS_ABI) $(AFLAGS_T
+ CHECKFLAGS	+= -D__arm__
  
--head-y   := arch/$(ARCH)/kernel/init_task.o
--
- core-y   += arch/$(ARCH)/kernel/ arch/$(ARCH)/mm/ arch/$(ARCH)/mach-common/
- 
- # If we have a machine-specific directory, then include it in the build.
-Index: tip/arch/blackfin/kernel/Makefile
+ #Default value
+-head-y		:= arch/arm/kernel/head$(MMUEXT).o arch/arm/kernel/init_task.o
++head-y		:= arch/arm/kernel/head$(MMUEXT).o
+ textofs-y	:= 0x00008000
+ textofs-$(CONFIG_ARCH_CLPS711X) := 0x00028000
+ # We don't want the htc bootloader to corrupt kernel during resume
+Index: tip/arch/arm/kernel/Makefile
 ===================================================================
---- tip.orig/arch/blackfin/kernel/Makefile
-+++ tip/arch/blackfin/kernel/Makefile
-@@ -2,7 +2,7 @@
- # arch/blackfin/kernel/Makefile
- #
+--- tip.orig/arch/arm/kernel/Makefile
++++ tip/arch/arm/kernel/Makefile
+@@ -81,4 +81,4 @@ head-y			:= head$(MMUEXT).o
+ obj-$(CONFIG_DEBUG_LL)	+= debug.o
+ obj-$(CONFIG_EARLY_PRINTK)	+= early_printk.o
  
--extra-y := init_task.o vmlinux.lds
-+extra-y := vmlinux.lds
- 
- obj-y := \
- 	entry.o process.o bfin_ksyms.o ptrace.o setup.o signal.o \
-Index: tip/arch/blackfin/kernel/init_task.c
+-extra-y := $(head-y) init_task.o vmlinux.lds
++extra-y := $(head-y) vmlinux.lds
+Index: tip/arch/arm/kernel/init_task.c
 ===================================================================
---- tip.orig/arch/blackfin/kernel/init_task.c
+--- tip.orig/arch/arm/kernel/init_task.c
 +++ /dev/null
-@@ -1,32 +0,0 @@
+@@ -1,37 +0,0 @@
 -/*
-- * Copyright 2004-2009 Analog Devices Inc.
-- *
-- * Licensed under the GPL-2 or later
+- *  linux/arch/arm/kernel/init_task.c
 - */
--
 -#include <linux/mm.h>
 -#include <linux/module.h>
+-#include <linux/fs.h>
+-#include <linux/sched.h>
+-#include <linux/init.h>
 -#include <linux/init_task.h>
 -#include <linux/mqueue.h>
--#include <linux/fs.h>
+-#include <linux/uaccess.h>
+-
+-#include <asm/pgtable.h>
 -
 -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
 -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
+-/*
+- * Initial thread structure.
+- *
+- * We need to make sure that this is 8192-byte aligned due to the
+- * way process stacks are handled. This is done by making sure
+- * the linker maps this in the .text segment right after head.S,
+- * and making head.S ensure the proper alignment.
+- *
+- * The things we do for performance..
+- */
+-union thread_union init_thread_union __init_task_data =
+-	{ INIT_THREAD_INFO(init_task) };
+-
 -/*
 - * Initial task structure.
 - *
 - * All other task structs will be allocated on slabs in fork.c
 - */
 -struct task_struct init_task = INIT_TASK(init_task);
--EXPORT_SYMBOL(init_task);
 -
--/*
-- * Initial thread structure.
-- *
-- * We need to make sure that this is 8192-byte aligned due to the
-- * way process stacks are handled. This is done by having a special
-- * "init_task" linker map entry.
-- */
--union thread_union init_thread_union
--    __init_task_data = {
--INIT_THREAD_INFO(init_task)};
+-EXPORT_SYMBOL(init_task);
