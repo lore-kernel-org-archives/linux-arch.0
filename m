@@ -1,90 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:35712 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:35722 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756793Ab2D3UPz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:15:55 -0400
-Message-ID: <20120430194845.793312898@linutronix.de>
-Date: Mon, 30 Apr 2012 20:15:53 -0000
+	with ESMTP id S1756829Ab2D3UP4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:15:56 -0400
+Message-ID: <20120430194845.911487654@linutronix.de>
+Date: Mon, 30 Apr 2012 20:15:54 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 04/29] avr32: Use generic init_task
+Subject: [patch 06/29] cx6: Use generic init_task
 References: <20120430194725.763322463@linutronix.de>
-Content-Disposition: inline; filename=avr32-use-generic-init-task.patch
+Content-Disposition: inline; filename=cx6-use-generic-idle-task.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Haavard Skinnemoen <hskinnemoen@gmail.com>
-Message-ID: <20120430201553.D0cbRhy6p7c92yIAKfr2ar9R5YOXAuXHzZitQ3Hkajs@z>
+Cc: linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
+Message-ID: <20120430201554.L7-64qEOxShhEb-Y1QgZOBSl9wMPKps3qgmOBE5pf-E@z>
 
 Same code. Use the generic version.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
+Cc: Mark Salter <msalter@redhat.com>
 ---
- arch/avr32/Kconfig            |    1 +
- arch/avr32/kernel/Makefile    |    2 +-
- arch/avr32/kernel/init_task.c |   31 -------------------------------
- 3 files changed, 2 insertions(+), 32 deletions(-)
+ arch/c6x/Kconfig          |    1 +
+ arch/c6x/kernel/process.c |   16 ----------------
+ 2 files changed, 1 insertion(+), 16 deletions(-)
 
-Index: tip/arch/avr32/Kconfig
+Index: tip/arch/c6x/Kconfig
 ===================================================================
---- tip.orig/arch/avr32/Kconfig
-+++ tip/arch/avr32/Kconfig
-@@ -12,6 +12,7 @@ config AVR32
- 	select HARDIRQS_SW_RESEND
- 	select GENERIC_IRQ_SHOW
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+--- tip.orig/arch/c6x/Kconfig
++++ tip/arch/c6x/Kconfig
+@@ -15,6 +15,7 @@ config TMS320C6X
+ 	select IRQ_DOMAIN
+ 	select OF
+ 	select OF_EARLY_FLATTREE
 +	select HAVE_GENERIC_INIT_TASK
- 	help
- 	  AVR32 is a high-performance 32-bit RISC microprocessor core,
- 	  designed for cost-sensitive embedded applications, with particular
-Index: tip/arch/avr32/kernel/Makefile
+ 
+ config MMU
+ 	def_bool n
+Index: tip/arch/c6x/kernel/process.c
 ===================================================================
---- tip.orig/arch/avr32/kernel/Makefile
-+++ tip/arch/avr32/kernel/Makefile
-@@ -8,7 +8,7 @@ obj-$(CONFIG_SUBARCH_AVR32B)	+= entry-av
- obj-y				+= syscall_table.o syscall-stubs.o irq.o
- obj-y				+= setup.o traps.o ocd.o ptrace.o
- obj-y				+= signal.o sys_avr32.o process.o time.o
--obj-y				+= init_task.o switch_to.o cpu.o
-+obj-y				+= switch_to.o cpu.o
- obj-$(CONFIG_MODULES)		+= module.o avr32_ksyms.o
- obj-$(CONFIG_KPROBES)		+= kprobes.o
- obj-$(CONFIG_STACKTRACE)	+= stacktrace.o
-Index: tip/arch/avr32/kernel/init_task.c
-===================================================================
---- tip.orig/arch/avr32/kernel/init_task.c
-+++ /dev/null
-@@ -1,31 +0,0 @@
--/*
-- * Copyright (C) 2004-2006 Atmel Corporation
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
-- */
--#include <linux/module.h>
--#include <linux/fs.h>
--#include <linux/sched.h>
--#include <linux/init_task.h>
--#include <linux/mqueue.h>
--
--#include <asm/pgtable.h>
--
+--- tip.orig/arch/c6x/kernel/process.c
++++ tip/arch/c6x/kernel/process.c
+@@ -26,22 +26,6 @@ void	(*c6x_halt)(void);
+ 
+ extern asmlinkage void ret_from_fork(void);
+ 
 -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
 -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
+-
 -/*
-- * Initial thread structure. Must be aligned on an 8192-byte boundary.
+- * Initial thread structure.
 - */
--union thread_union init_thread_union __init_task_data =
--	{ INIT_THREAD_INFO(init_task) };
+-union thread_union init_thread_union __init_task_data =	{
+-	INIT_THREAD_INFO(init_task)
+-};
 -
 -/*
 - * Initial task structure.
-- *
-- * All other task structs will be allocated on slabs in fork.c
 - */
 -struct task_struct init_task = INIT_TASK(init_task);
--
 -EXPORT_SYMBOL(init_task);
+-
+ /*
+  * power off function, if any
+  */
 
 
