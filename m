@@ -1,54 +1,44 @@
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [patch 23/29] sparc: Use generic init_task
-Date: Mon, 30 Apr 2012 22:35:39 +0200
-Message-ID: <20120430203538.GA8876@merkur.ravnborg.org>
-References: <20120430194725.763322463@linutronix.de> <20120430194846.989528598@linutronix.de>
+Subject: Re: [patch 00/29] init_task: Use a generic init_task variant
+Date: Mon, 30 Apr 2012 22:37:43 +0200
+Message-ID: <20120430203743.GA8934@merkur.ravnborg.org>
+References: <20120430194725.763322463@linutronix.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.snhosting.dk ([87.238.248.203]:31333 "EHLO
-	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756581Ab2D3Ufl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:35:41 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20120430194846.989528598@linutronix.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <20120430194725.763322463@linutronix.de>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "David S. Miller" <davem@davemloft.net>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 30, 2012 at 08:16:03PM -0000, Thomas Gleixner wrote:
-> Same code. Use the generic version.
+On Mon, Apr 30, 2012 at 08:15:50PM -0000, Thomas Gleixner wrote:
+> All architectures do roughly the same to initialize init_task. The
+> only architecture which deviates is ia64, but I could not figure out
+> why it couldn't use the same setup as all other architectures.
 > 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: "David S. Miller" <davem@davemloft.net>
+> The following series converts all archs to a generic version.
+> 
+> Thanks,
+> 
+> 	tglx
 > ---
->  arch/sparc/Kconfig            |    1 +
->  arch/sparc/kernel/init_task.c |   22 ----------------------
->  2 files changed, 1 insertion(+), 22 deletions(-)
-> 
-> Index: tip/arch/sparc/Kconfig
-> ===================================================================
-> --- tip.orig/arch/sparc/Kconfig
-> +++ tip/arch/sparc/Kconfig
-> @@ -31,6 +31,7 @@ config SPARC
->  	select GENERIC_PCI_IOMAP
->  	select HAVE_NMI_WATCHDOG if SPARC64
->  	select GENERIC_SMP_IDLE_THREAD
-> +	select HAVE_GENERIC_INIT_TASK
->  
->  config SPARC32
->  	def_bool !64BIT
-> Index: tip/arch/sparc/kernel/init_task.c
-> ===================================================================
-> --- tip.orig/arch/sparc/kernel/init_task.c
-> +++ /dev/null
+>  arch/um/kernel/init_task.c          |   38 -------------------
+>  arch/unicore32/kernel/init_task.c   |   44 ----------------------
+>  arch/x86/kernel/init_task.c         |   42 ---------------------
+>  arch/xtensa/kernel/init_task.c      |   31 ---------------
+>  tip/arch/um/kernel/um_arch.c        |    5 ++
+>  tip/arch/unicore32/Makefile         |    1 
+>  tip/arch/unicore32/kernel/Makefile  |    2 -
+>  tip/arch/x86/Makefile               |    1 
+>  tip/arch/x86/kernel/Makefile        |    2 -
+>  tip/arch/x86/kernel/process.c       |    9 ++++
+>  tip/arch/xtensa/kernel/Makefile     |    2 -
+>  tip/kernel/sched/Makefile           |    4 --
+>  tip/kernel/sched/init_task.c        |   24 ++++++++++++
 
-This breaks sparc build as it has the following in arch/sparc/Makefile:
-
-    head-y                 += arch/sparc/kernel/init_task.o
-
-And this patch deletes that file.
-So at least you need to delete said line in this patch too.
+Diffstat looks funny. Some tip stuff sneaked in.
+Also I am missing patch 1..
 
 	Sam
