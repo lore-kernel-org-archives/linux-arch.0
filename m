@@ -1,108 +1,98 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:35806 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:35797 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756916Ab2D3UQG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:16:06 -0400
-Message-ID: <20120430194847.171921818@linutronix.de>
-Date: Mon, 30 Apr 2012 20:16:04 -0000
+	with ESMTP id S1756829Ab2D3UQF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:16:05 -0400
+Message-ID: <20120430194847.050759845@linutronix.de>
+Date: Mon, 30 Apr 2012 20:16:03 -0000
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 26/29] unicore32: Use generic init_task
+Subject: [patch 24/29] tile: Use generic init_task
 References: <20120430194725.763322463@linutronix.de>
-Content-Disposition: inline; filename=unicore-use-generic-init-task.patch
+Content-Disposition: inline; filename=tile-use-generic-init-task.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>
-Message-ID: <20120430201604.OCxT3sWuDzRLIy3bDwAbM-OtwqaKniHeF9AcHvRefTs@z>
+Cc: linux-arch@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>
+Message-ID: <20120430201603.YFvXkY0aKq6ZrfICYkz97XmEhdxTwXWmE0KRjA4belw@z>
 
 Same code. Use the generic version. The special Makefile treatment is
 pointless anyway as init_task.o contains only data which is handled by
 the linker script. So no point on being treated like head text.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: Chris Metcalf <cmetcalf@tilera.com>
 ---
- arch/unicore32/Kconfig            |    1 
- arch/unicore32/Makefile           |    1 
- arch/unicore32/kernel/Makefile    |    2 -
- arch/unicore32/kernel/init_task.c |   44 --------------------------------------
- 4 files changed, 2 insertions(+), 46 deletions(-)
+ arch/tile/Kconfig            |    1 
+ arch/tile/kernel/Makefile    |    2 -
+ arch/tile/kernel/init_task.c |   59 -------------------------------------------
+ arch/tile/kernel/setup.c     |   16 +++++++++++
+ 4 files changed, 18 insertions(+), 60 deletions(-)
 
-Index: tip/arch/unicore32/Kconfig
+Index: tip/arch/tile/Kconfig
 ===================================================================
---- tip.orig/arch/unicore32/Kconfig
-+++ tip/arch/unicore32/Kconfig
-@@ -13,6 +13,7 @@ config UNICORE32
+--- tip.orig/arch/tile/Kconfig
++++ tip/arch/tile/Kconfig
+@@ -13,6 +13,7 @@ config TILE
  	select GENERIC_IRQ_SHOW
- 	select ARCH_WANT_FRAME_POINTERS
- 	select GENERIC_IOMAP
+ 	select SYS_HYPERVISOR
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
 +	select HAVE_GENERIC_INIT_TASK
- 	help
- 	  UniCore-32 is 32-bit Instruction Set Architecture,
- 	  including a series of low-power-consumption RISC chip
-Index: tip/arch/unicore32/Makefile
-===================================================================
---- tip.orig/arch/unicore32/Makefile
-+++ tip/arch/unicore32/Makefile
-@@ -33,7 +33,6 @@ endif
- CHECKFLAGS		+= -D__unicore32__
  
- head-y			:= arch/unicore32/kernel/head.o
--head-y			+= arch/unicore32/kernel/init_task.o
- 
- core-y			+= arch/unicore32/kernel/
- core-y			+= arch/unicore32/mm/
-Index: tip/arch/unicore32/kernel/Makefile
+ # FIXME: investigate whether we need/want these options.
+ #	select HAVE_IOREMAP_PROT
+Index: tip/arch/tile/kernel/Makefile
 ===================================================================
---- tip.orig/arch/unicore32/kernel/Makefile
-+++ tip/arch/unicore32/kernel/Makefile
-@@ -29,4 +29,4 @@ obj-$(CONFIG_PUV3_NB0916)	+= puv3-nb0916
- head-y				:= head.o
- obj-$(CONFIG_DEBUG_LL)		+= debug.o
+--- tip.orig/arch/tile/kernel/Makefile
++++ tip/arch/tile/kernel/Makefile
+@@ -3,7 +3,7 @@
+ #
  
--extra-y				:= $(head-y) init_task.o vmlinux.lds
-+extra-y				:= $(head-y) vmlinux.lds
-Index: tip/arch/unicore32/kernel/init_task.c
+ extra-y := vmlinux.lds head_$(BITS).o
+-obj-y := backtrace.o entry.o init_task.o irq.o messaging.o \
++obj-y := backtrace.o entry.o irq.o messaging.o \
+ 	pci-dma.o proc.o process.o ptrace.o reboot.o \
+ 	setup.o signal.o single_step.o stack.o sys.o sysfs.o time.o traps.o \
+ 	intvec_$(BITS).o regs_$(BITS).o tile-desc_$(BITS).o
+Index: tip/arch/tile/kernel/init_task.c
 ===================================================================
---- tip.orig/arch/unicore32/kernel/init_task.c
+--- tip.orig/arch/tile/kernel/init_task.c
 +++ /dev/null
-@@ -1,44 +0,0 @@
+@@ -1,59 +0,0 @@
 -/*
-- * linux/arch/unicore32/kernel/init_task.c
+- * Copyright 2010 Tilera Corporation. All Rights Reserved.
 - *
-- * Code specific to PKUnity SoC and UniCore ISA
+- *   This program is free software; you can redistribute it and/or
+- *   modify it under the terms of the GNU General Public License
+- *   as published by the Free Software Foundation, version 2.
 - *
-- * Copyright (C) 2001-2010 GUAN Xue-tao
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
+- *   This program is distributed in the hope that it will be useful, but
+- *   WITHOUT ANY WARRANTY; without even the implied warranty of
+- *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
+- *   NON INFRINGEMENT.  See the GNU General Public License for
+- *   more details.
 - */
+-
 -#include <linux/mm.h>
--#include <linux/module.h>
 -#include <linux/fs.h>
--#include <linux/sched.h>
--#include <linux/init.h>
 -#include <linux/init_task.h>
 -#include <linux/mqueue.h>
+-#include <linux/module.h>
+-#include <linux/start_kernel.h>
 -#include <linux/uaccess.h>
--
--#include <asm/pgtable.h>
 -
 -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
 -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
+-
 -/*
 - * Initial thread structure.
 - *
-- * We need to make sure that this is 8192-byte aligned due to the
-- * way process stacks are handled. This is done by making sure
-- * the linker maps this in the .text segment right after head.S,
-- * and making head.S ensure the proper alignment.
-- *
-- * The things we do for performance..
+- * We need to make sure that this is THREAD_SIZE aligned due to the
+- * way process stacks are handled. This is done by having a special
+- * "init_task" linker map entry..
 - */
 -union thread_union init_thread_union __init_task_data = {
--	INIT_THREAD_INFO(init_task) };
+-	INIT_THREAD_INFO(init_task)
+-};
 -
 -/*
 - * Initial task structure.
@@ -111,5 +101,48 @@ Index: tip/arch/unicore32/kernel/init_task.c
 - */
 -struct task_struct init_task = INIT_TASK(init_task);
 -EXPORT_SYMBOL(init_task);
+-
+-/*
+- * per-CPU stack and boot info.
+- */
+-DEFINE_PER_CPU(unsigned long, boot_sp) =
+-	(unsigned long)init_stack + THREAD_SIZE;
+-
+-#ifdef CONFIG_SMP
+-DEFINE_PER_CPU(unsigned long, boot_pc) = (unsigned long)start_kernel;
+-#else
+-/*
+- * The variable must be __initdata since it references __init code.
+- * With CONFIG_SMP it is per-cpu data, which is exempt from validation.
+- */
+-unsigned long __initdata boot_pc = (unsigned long)start_kernel;
+-#endif
+Index: tip/arch/tile/kernel/setup.c
+===================================================================
+--- tip.orig/arch/tile/kernel/setup.c
++++ tip/arch/tile/kernel/setup.c
+@@ -61,6 +61,22 @@ unsigned long __initdata node_free_pfn[M
+ 
+ static unsigned long __initdata node_percpu[MAX_NUMNODES];
+ 
++/*
++ * per-CPU stack and boot info.
++ */
++DEFINE_PER_CPU(unsigned long, boot_sp) =
++	(unsigned long)init_stack + THREAD_SIZE;
++
++#ifdef CONFIG_SMP
++DEFINE_PER_CPU(unsigned long, boot_pc) = (unsigned long)start_kernel;
++#else
++/*
++ * The variable must be __initdata since it references __init code.
++ * With CONFIG_SMP it is per-cpu data, which is exempt from validation.
++ */
++unsigned long __initdata boot_pc = (unsigned long)start_kernel;
++#endif
++
+ #ifdef CONFIG_HIGHMEM
+ /* Page frame index of end of lowmem on each controller. */
+ unsigned long __cpuinitdata node_lowmem_end_pfn[MAX_NUMNODES];
 
 
