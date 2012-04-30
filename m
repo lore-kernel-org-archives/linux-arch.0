@@ -1,69 +1,100 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 02/29] alpha: Use generic init_task
-Date: Mon, 30 Apr 2012 20:15:52 -0000
-Message-ID: <20120430194845.673400007@linutronix.de>
+Subject: [patch 05/29] blackfin: Use generic init_task
+Date: Mon, 30 Apr 2012 20:15:54 -0000
+Message-ID: <20120430194845.850346878@linutronix.de>
 References: <20120430194725.763322463@linutronix.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=alpha-use-generic-init-task.patch
+Content-Disposition: inline; filename=blackfin-use-generic-init-task.patch
 Sender: linux-kernel-owner@vger.kernel.org
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Matt Turner <mattst88@gmail.com>
+Cc: linux-arch@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>
 List-Id: linux-arch.vger.kernel.org
 
-Identical code. Use the generic version.
+Same code. Use the generic version. The special Makefile treatment is
+pointless anyway as init_task.o contains only data which is handled by
+the linker script. So no point on being treated like head text.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Matt Turner <mattst88@gmail.com>
+Cc: Mike Frysinger <vapier@gentoo.org>
 ---
- arch/alpha/Kconfig            |    1 +
- arch/alpha/kernel/Makefile    |    2 +-
- arch/alpha/kernel/init_task.c |   17 -----------------
- 3 files changed, 2 insertions(+), 18 deletions(-)
+ arch/blackfin/Kconfig            |    1 +
+ arch/blackfin/Makefile           |    2 --
+ arch/blackfin/kernel/Makefile    |    2 +-
+ arch/blackfin/kernel/init_task.c |   32 --------------------------------
+ 4 files changed, 2 insertions(+), 35 deletions(-)
 
-Index: tip/arch/alpha/Kconfig
+Index: tip/arch/blackfin/Kconfig
 ===================================================================
---- tip.orig/arch/alpha/Kconfig
-+++ tip/arch/alpha/Kconfig
-@@ -16,6 +16,7 @@ config ALPHA
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+--- tip.orig/arch/blackfin/Kconfig
++++ tip/arch/blackfin/Kconfig
+@@ -38,6 +38,7 @@ config BLACKFIN
+ 	select IRQ_PER_CPU if SMP
+ 	select HAVE_NMI_WATCHDOG if NMI_WATCHDOG
  	select GENERIC_SMP_IDLE_THREAD
 +	select HAVE_GENERIC_INIT_TASK
- 	help
- 	  The Alpha is a 64-bit general-purpose processor designed and
- 	  marketed by the Digital Equipment Corporation of blessed memory,
-Index: tip/arch/alpha/kernel/Makefile
-===================================================================
---- tip.orig/arch/alpha/kernel/Makefile
-+++ tip/arch/alpha/kernel/Makefile
-@@ -6,7 +6,7 @@ extra-y		:= head.o vmlinux.lds
- asflags-y	:= $(KBUILD_CFLAGS)
- ccflags-y	:= -Wno-sign-compare
  
--obj-y    := entry.o traps.o process.o init_task.o osf_sys.o irq.o \
-+obj-y    := entry.o traps.o process.o osf_sys.o irq.o \
- 	    irq_alpha.o signal.o setup.o ptrace.o time.o \
- 	    alpha_ksyms.o systbls.o err_common.o io.o
- 
-Index: tip/arch/alpha/kernel/init_task.c
+ config GENERIC_CSUM
+ 	def_bool y
+Index: tip/arch/blackfin/Makefile
 ===================================================================
---- tip.orig/arch/alpha/kernel/init_task.c
+--- tip.orig/arch/blackfin/Makefile
++++ tip/arch/blackfin/Makefile
+@@ -107,8 +107,6 @@ KBUILD_AFLAGS += -mcpu=$(CPU_REV)
+ CHECKFLAGS_SILICON = $(shell echo "" | $(CPP) $(KBUILD_CFLAGS) -dD - 2>/dev/null | awk '$$2 == "__SILICON_REVISION__" { print $$3 }')
+ CHECKFLAGS += -D__SILICON_REVISION__=$(CHECKFLAGS_SILICON) -D__bfin__
+ 
+-head-y   := arch/$(ARCH)/kernel/init_task.o
+-
+ core-y   += arch/$(ARCH)/kernel/ arch/$(ARCH)/mm/ arch/$(ARCH)/mach-common/
+ 
+ # If we have a machine-specific directory, then include it in the build.
+Index: tip/arch/blackfin/kernel/Makefile
+===================================================================
+--- tip.orig/arch/blackfin/kernel/Makefile
++++ tip/arch/blackfin/kernel/Makefile
+@@ -2,7 +2,7 @@
+ # arch/blackfin/kernel/Makefile
+ #
+ 
+-extra-y := init_task.o vmlinux.lds
++extra-y := vmlinux.lds
+ 
+ obj-y := \
+ 	entry.o process.o bfin_ksyms.o ptrace.o setup.o signal.o \
+Index: tip/arch/blackfin/kernel/init_task.c
+===================================================================
+--- tip.orig/arch/blackfin/kernel/init_task.c
 +++ /dev/null
-@@ -1,17 +0,0 @@
+@@ -1,32 +0,0 @@
+-/*
+- * Copyright 2004-2009 Analog Devices Inc.
+- *
+- * Licensed under the GPL-2 or later
+- */
+-
 -#include <linux/mm.h>
 -#include <linux/module.h>
--#include <linux/sched.h>
--#include <linux/init.h>
 -#include <linux/init_task.h>
--#include <linux/fs.h>
 -#include <linux/mqueue.h>
--#include <asm/uaccess.h>
--
+-#include <linux/fs.h>
 -
 -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
 -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
+-/*
+- * Initial task structure.
+- *
+- * All other task structs will be allocated on slabs in fork.c
+- */
 -struct task_struct init_task = INIT_TASK(init_task);
 -EXPORT_SYMBOL(init_task);
 -
--union thread_union init_thread_union __init_task_data =
--	{ INIT_THREAD_INFO(init_task) };
+-/*
+- * Initial thread structure.
+- *
+- * We need to make sure that this is 8192-byte aligned due to the
+- * way process stacks are handled. This is done by having a special
+- * "init_task" linker map entry.
+- */
+-union thread_union init_thread_union
+-    __init_task_data = {
+-INIT_THREAD_INFO(init_task)};
