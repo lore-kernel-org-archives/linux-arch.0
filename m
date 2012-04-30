@@ -1,93 +1,96 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 24/29] tile: Use generic init_task
-Date: Mon, 30 Apr 2012 20:16:03 -0000
-Message-ID: <20120430194847.050759845@linutronix.de>
+Subject: [patch 22/29] sh: Use generic init_task
+Date: Mon, 30 Apr 2012 20:16:02 -0000
+Message-ID: <20120430194846.924135890@linutronix.de>
 References: <20120430194725.763322463@linutronix.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline; filename=tile-use-generic-init-task.patch
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from www.linutronix.de ([62.245.132.108]:35787 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756900Ab2D3UQE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:16:04 -0400
+Content-Disposition: inline; filename=sh-use-generic-init-task.patch
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, Chris Metcalf <cmetcalf@tilera.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>
 
 Same code. Use the generic version. The special Makefile treatment is
 pointless anyway as init_task.o contains only data which is handled by
 the linker script. So no point on being treated like head text.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Paul Mundt <lethal@linux-sh.org>
 ---
- arch/tile/Kconfig            |    1 
- arch/tile/kernel/Makefile    |    2 -
- arch/tile/kernel/init_task.c |   59 -------------------------------------------
- arch/tile/kernel/setup.c     |   16 +++++++++++
- 4 files changed, 18 insertions(+), 60 deletions(-)
+ arch/sh/Kconfig            |    1 +
+ arch/sh/Makefile           |    2 +-
+ arch/sh/kernel/Makefile    |    2 +-
+ arch/sh/kernel/init_task.c |   30 ------------------------------
+ 4 files changed, 3 insertions(+), 32 deletions(-)
 
-Index: tip/arch/tile/Kconfig
+Index: tip/arch/sh/Kconfig
 ===================================================================
---- tip.orig/arch/tile/Kconfig
-+++ tip/arch/tile/Kconfig
-@@ -13,6 +13,7 @@ config TILE
+--- tip.orig/arch/sh/Kconfig
++++ tip/arch/sh/Kconfig
+@@ -29,6 +29,7 @@ config SUPERH
+ 	select GENERIC_ATOMIC64
  	select GENERIC_IRQ_SHOW
- 	select SYS_HYPERVISOR
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select GENERIC_SMP_IDLE_THREAD
 +	select HAVE_GENERIC_INIT_TASK
- 
- # FIXME: investigate whether we need/want these options.
- #	select HAVE_IOREMAP_PROT
-Index: tip/arch/tile/kernel/Makefile
+ 	help
+ 	  The SuperH is a RISC processor targeted for use in embedded systems
+ 	  and consumer electronics; it was also used in the Sega Dreamcast
+Index: tip/arch/sh/Makefile
 ===================================================================
---- tip.orig/arch/tile/kernel/Makefile
-+++ tip/arch/tile/kernel/Makefile
-@@ -3,7 +3,7 @@
+--- tip.orig/arch/sh/Makefile
++++ tip/arch/sh/Makefile
+@@ -124,7 +124,7 @@ endif
+ 
+ export ld-bfd BITS
+ 
+-head-y	:= arch/sh/kernel/init_task.o arch/sh/kernel/head_$(BITS).o
++head-y	:= arch/sh/kernel/head_$(BITS).o
+ 
+ core-y				+= arch/sh/kernel/ arch/sh/mm/ arch/sh/boards/
+ core-$(CONFIG_SH_FPU_EMU)	+= arch/sh/math-emu/
+Index: tip/arch/sh/kernel/Makefile
+===================================================================
+--- tip.orig/arch/sh/kernel/Makefile
++++ tip/arch/sh/kernel/Makefile
+@@ -2,7 +2,7 @@
+ # Makefile for the Linux/SuperH kernel.
  #
  
- extra-y := vmlinux.lds head_$(BITS).o
--obj-y := backtrace.o entry.o init_task.o irq.o messaging.o \
-+obj-y := backtrace.o entry.o irq.o messaging.o \
- 	pci-dma.o proc.o process.o ptrace.o reboot.o \
- 	setup.o signal.o single_step.o stack.o sys.o sysfs.o time.o traps.o \
- 	intvec_$(BITS).o regs_$(BITS).o tile-desc_$(BITS).o
-Index: tip/arch/tile/kernel/init_task.c
+-extra-y	:= head_$(BITS).o init_task.o vmlinux.lds
++extra-y	:= head_$(BITS).o vmlinux.lds
+ 
+ ifdef CONFIG_FUNCTION_TRACER
+ # Do not profile debug and lowlevel utilities
+Index: tip/arch/sh/kernel/init_task.c
 ===================================================================
---- tip.orig/arch/tile/kernel/init_task.c
+--- tip.orig/arch/sh/kernel/init_task.c
 +++ /dev/null
-@@ -1,59 +0,0 @@
--/*
-- * Copyright 2010 Tilera Corporation. All Rights Reserved.
-- *
-- *   This program is free software; you can redistribute it and/or
-- *   modify it under the terms of the GNU General Public License
-- *   as published by the Free Software Foundation, version 2.
-- *
-- *   This program is distributed in the hope that it will be useful, but
-- *   WITHOUT ANY WARRANTY; without even the implied warranty of
-- *   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, GOOD TITLE or
-- *   NON INFRINGEMENT.  See the GNU General Public License for
-- *   more details.
-- */
--
+@@ -1,30 +0,0 @@
 -#include <linux/mm.h>
--#include <linux/fs.h>
+-#include <linux/module.h>
+-#include <linux/sched.h>
 -#include <linux/init_task.h>
 -#include <linux/mqueue.h>
--#include <linux/module.h>
--#include <linux/start_kernel.h>
--#include <linux/uaccess.h>
+-#include <linux/fs.h>
+-#include <asm/uaccess.h>
+-#include <asm/pgtable.h>
 -
 -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
 -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
--
+-struct pt_regs fake_swapper_regs;
 -/*
 - * Initial thread structure.
 - *
-- * We need to make sure that this is THREAD_SIZE aligned due to the
+- * We need to make sure that this is 8192-byte aligned due to the
 - * way process stacks are handled. This is done by having a special
 - * "init_task" linker map entry..
 - */
--union thread_union init_thread_union __init_task_data = {
--	INIT_THREAD_INFO(init_task)
--};
+-union thread_union init_thread_union __init_task_data =
+-	{ INIT_THREAD_INFO(init_task) };
 -
 -/*
 - * Initial task structure.
@@ -95,47 +98,5 @@ Index: tip/arch/tile/kernel/init_task.c
 - * All other task structs will be allocated on slabs in fork.c
 - */
 -struct task_struct init_task = INIT_TASK(init_task);
+-
 -EXPORT_SYMBOL(init_task);
--
--/*
-- * per-CPU stack and boot info.
-- */
--DEFINE_PER_CPU(unsigned long, boot_sp) =
--	(unsigned long)init_stack + THREAD_SIZE;
--
--#ifdef CONFIG_SMP
--DEFINE_PER_CPU(unsigned long, boot_pc) = (unsigned long)start_kernel;
--#else
--/*
-- * The variable must be __initdata since it references __init code.
-- * With CONFIG_SMP it is per-cpu data, which is exempt from validation.
-- */
--unsigned long __initdata boot_pc = (unsigned long)start_kernel;
--#endif
-Index: tip/arch/tile/kernel/setup.c
-===================================================================
---- tip.orig/arch/tile/kernel/setup.c
-+++ tip/arch/tile/kernel/setup.c
-@@ -61,6 +61,22 @@ unsigned long __initdata node_free_pfn[M
- 
- static unsigned long __initdata node_percpu[MAX_NUMNODES];
- 
-+/*
-+ * per-CPU stack and boot info.
-+ */
-+DEFINE_PER_CPU(unsigned long, boot_sp) =
-+	(unsigned long)init_stack + THREAD_SIZE;
-+
-+#ifdef CONFIG_SMP
-+DEFINE_PER_CPU(unsigned long, boot_pc) = (unsigned long)start_kernel;
-+#else
-+/*
-+ * The variable must be __initdata since it references __init code.
-+ * With CONFIG_SMP it is per-cpu data, which is exempt from validation.
-+ */
-+unsigned long __initdata boot_pc = (unsigned long)start_kernel;
-+#endif
-+
- #ifdef CONFIG_HIGHMEM
- /* Page frame index of end of lowmem on each controller. */
- unsigned long __cpuinitdata node_lowmem_end_pfn[MAX_NUMNODES];
