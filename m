@@ -1,60 +1,67 @@
-From: Greg Ungerer <gerg@snapgear.com>
-Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Date: Mon, 30 Apr 2012 16:39:15 +1000
-Message-ID: <4F9E3393.2020805@snapgear.com>
-References: <CA+55aFzuTspDyyLaOA-g-dTWydaUeeWo9uVGR+rZ=ZJzPW_Ocw@mail.gmail.com> <20120420180748.GI6871@ZenIV.linux.org.uk> <20120423180150.GA6871@ZenIV.linux.org.uk> <20120424072617.GB6871@ZenIV.linux.org.uk> <20120426183742.GA324@redhat.com> <20120426231942.GJ6871@ZenIV.linux.org.uk> <20120427172444.GA30267@redhat.com> <20120427184528.GL6871@ZenIV.linux.org.uk> <CAMuHMdXTR1ug3sOyJ_PA0Yub2GsO5NCdAd71EX0Y9osq1ei5KQ@mail.gmail.com> <20120427193413.GM6871@ZenIV.linux.org.uk> <20120429225100.GB6871@ZenIV.linux.org.uk>
+From: Santosh Shilimkar <santosh.shilimkar@ti.com>
+Subject: Re: [patch 00/18] SMP: Boot and CPU hotplug refactoring - Part 1
+Date: Mon, 30 Apr 2012 13:35:08 +0530
+Message-ID: <4F9E47B4.3000004@ti.com>
+References: <20120420122120.097464672@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from dalsmrelay2.nai.com ([205.227.136.216]:12148 "EHLO
-	dalsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751515Ab2D3Glt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 02:41:49 -0400
-In-Reply-To: <20120429225100.GB6871@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Roland McGrath <roland@hack.frob.com>, Greg Ungerer <gerg@uclinux.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20120420122120.097464672@linutronix.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 30/04/12 08:51, Al Viro wrote:
-> On Fri, Apr 27, 2012 at 08:34:13PM +0100, Al Viro wrote:
->> On Fri, Apr 27, 2012 at 09:14:53PM +0200, Geert Uytterhoeven wrote:
->>> On Fri, Apr 27, 2012 at 20:45, Al Viro<viro@zeniv.linux.org.uk>  wrote:
->>>>> The only comment I have,
->>>>> 38671a3e831ed7327affb24d715f98bb99c80e56 m68k: add TIF_NOTIFY_RESUME and handle it
->>>>> forgets to unexport do_signal().
->>>>
->>>> Meh... ??The thing is, there are _two_ of them. ??signal_mm.c and signal_no.c
->>>> badly need merging, with common stuff moved to signal.c. ??I really hate
->>>
->>> Greg recently posted a patch to merge them:
->>> http://www.spinics.net/lists/linux-m68k/msg04995.html
->>
->> Nice...  BTW, could you comment on
->>      m68k: don't open-code block_sigmask()
->>      m68k: use set_current_blocked in sigreturn/rt_sigreturn
->>      m68k-nommu: do_signal() is only called when returning to user mode
->>      m68k: add TIF_NOTIFY_RESUME and handle it.
->> in signal.git tree?  The last one is really interesting...
->>
->> Just pick the current tree - one that was there yesterday had a dumb typo
->> in thread_info.h part, so it wouldn't even compile (TIF_NOTIFE_RESUME
->> defined instead of TIF_NOTIFY_RESUME ;-/)
->
-> BTW, Greg's patch put into the queue in the very beginning, everything rebased
-> on top of it.
+On Friday 20 April 2012 06:35 PM, Thomas Gleixner wrote:
+> Dear all,
+> 
+> I'm working on refactoring the SMP boot and CPU hotplug implementation.
+> 
+> The current code has evolved over time into a conglomerate of
+> warts. My main goals are to:
+> 
+>  - reduce the architecture code by moving repeating constructs to the
+>    core
+> 
+>  - redesigning the handling of per cpu threads. There is no point to
+>    tear down the threads just to create them again.
+> 
+>  - restructuring the notifier facility into a proper tree with
+>    dependencies to avoid the gazillion of callbacks and moving
+>    setup/teardown code into the context of the upcoming/dying cpu
+> 
+> The motivation behind this work is the cpu hotplug nightmare which we
+> are facing in the RT kernel and the requests from several groups
+> (e.g. ARM) to make hotplug more lightweight and faster.
+> 
+> This first part moves the idle thread management for non-boot cpus
+> into the core. fork_idle() is called in a workqueue as it is
+> implemented in a few architectures already. This is necessary when not
+> all cpus are brought up by the early boot code as otherwise we would
+> take a ref on the user task VM of the thread which brings the cpu up
+> via the sysfs interface.
+> 
+> This converts all architectures except m32r, mn10300, tile and UM to
+> the new core facility. These architecture are calling fork_idle() in
+> the very early boot code in smp_prepare_cpus() for unknown reasons.
+> I haven't analyzed yet, whether this is on purpose or can be moved
+> over to the generic facility. It'd be nice if the responsible maintainers
+> could look into that as well.
+> 
 
-Those changes currently sitting in your signal tree look ok to me.
+Tried this series on OMAP4 (Dual Core ARM machine) and did some
+some testing with CPU hot-plug by creating variable CPU loads and
+running CPU hot-plug script in the background.
+No issue observed in 2 hours of testing.
 
-Acked-by: Greg Ungerer <gerg@uclinux.org>
+Not sure your stand on Suresh's patch[1], but I did another
+round of testing with [1] included. I thought this patch
+might be considered since it eliminate the need for work-queue
+based idle thread allocation which can be a problem as
+discussed on this thread.
 
 Regards
-Greg
+Santosh
 
-
-------------------------------------------------------------------------
-Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.com
-SnapGear Group, McAfee                      PHONE:       +61 7 3435 2888
-8 Gardner Close                             FAX:         +61 7 3217 5323
-Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.com
+[1] https://lkml.org/lkml/2012/4/20/524
