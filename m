@@ -1,49 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.snhosting.dk ([87.238.248.203]:37362 "EHLO
-	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756803Ab2D3Uho (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:37:44 -0400
-Date: Mon, 30 Apr 2012 22:37:43 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [patch 00/29] init_task: Use a generic init_task variant
-Message-ID: <20120430203743.GA8934@merkur.ravnborg.org>
-References: <20120430194725.763322463@linutronix.de>
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:63120 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757423Ab2D3X3X convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 19:29:23 -0400
+Received: by lbbgm6 with SMTP id gm6so584137lbb.19
+        for <linux-arch@vger.kernel.org>; Mon, 30 Apr 2012 16:29:22 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20120430194725.763322463@linutronix.de>
+In-Reply-To: <1332135781-13695-6-git-send-email-yinghai@kernel.org>
+References: <1332135781-13695-1-git-send-email-yinghai@kernel.org> <1332135781-13695-6-git-send-email-yinghai@kernel.org>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Mon, 30 Apr 2012 17:29:01 -0600
+Message-ID: <CAErSpo5AnsmfQs4oa3P7AQyPTJ+YqCVVh5p2L=bmDY=A+BO9PQ@mail.gmail.com>
+Subject: Re: [PATCH -v11 05/30] PCI: Add busn_res operation functions
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20120430203743.Vx0plmPQnLSRsBw8bvUkkd_rW2j6LnX7YGVW0HDSceM@z>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120430232901.WgANOnUsiEu3Bnz4AEZ_6wgS2GpLR6ItkXANpyGZ7ew@z>
 
-On Mon, Apr 30, 2012 at 08:15:50PM -0000, Thomas Gleixner wrote:
-> All architectures do roughly the same to initialize init_task. The
-> only architecture which deviates is ia64, but I could not figure out
-> why it couldn't use the same setup as all other architectures.
-> 
-> The following series converts all archs to a generic version.
-> 
-> Thanks,
-> 
-> 	tglx
+On Sun, Mar 18, 2012 at 11:42 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+> Will use them insert/update busn res in pci_bus struct.
+>
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 > ---
->  arch/um/kernel/init_task.c          |   38 -------------------
->  arch/unicore32/kernel/init_task.c   |   44 ----------------------
->  arch/x86/kernel/init_task.c         |   42 ---------------------
->  arch/xtensa/kernel/init_task.c      |   31 ---------------
->  tip/arch/um/kernel/um_arch.c        |    5 ++
->  tip/arch/unicore32/Makefile         |    1 
->  tip/arch/unicore32/kernel/Makefile  |    2 -
->  tip/arch/x86/Makefile               |    1 
->  tip/arch/x86/kernel/Makefile        |    2 -
->  tip/arch/x86/kernel/process.c       |    9 ++++
->  tip/arch/xtensa/kernel/Makefile     |    2 -
->  tip/kernel/sched/Makefile           |    4 --
->  tip/kernel/sched/init_task.c        |   24 ++++++++++++
+>  drivers/pci/probe.c |   50 ++++++++++++++++++++++++++++++++++++++++++++++++++
+>  include/linux/pci.h |    3 +++
+>  2 files changed, 53 insertions(+), 0 deletions(-)
+>
+> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
+> index d30948d..9235b16 100644
+> --- a/drivers/pci/probe.c
+> +++ b/drivers/pci/probe.c
+> @@ -1679,6 +1679,56 @@ err_out:
+>        return NULL;
+>  }
+>
+> +void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
+> +{
+> +       struct resource *res = &b->busn_res;
+> +       struct resource *parent_res;
+> +       int ret;
+> +
+> +       res->start = bus;
+> +       res->end = bus_max;
+> +       res->flags = IORESOURCE_BUS;
+> +
+> +       /* no parent for root bus' busn_res */
+> +       if (!pci_is_root_bus(b)) {
+> +               parent_res = &b->parent->busn_res;
+> +
+> +               ret = insert_resource(parent_res, res);
+> +
+> +               dev_printk(KERN_DEBUG, &b->dev,
+> +                       "busn_res: %pR %s inserted under %pR\n",
+> +                       res, ret ? "can not be" : "is", parent_res);
+> +       } else
+> +               dev_printk(KERN_DEBUG, &b->dev,
+> +                       "busn_res: %pR for root bus\n",
+> +                       res);
+> +}
+> +
+> +void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
+> +{
+> +       struct resource *res = &b->busn_res;
+> +       struct resource old_res = *res;
+> +
+> +       res->end = bus_max;
 
-Diffstat looks funny. Some tip stuff sneaked in.
-Also I am missing patch 1..
-
-	Sam
+I've mentioned before that I'm not comfortable with updating the
+struct resource after it's been inserted into the tree.  If you want
+to do an in-place update, I think you need to add a new interface in
+kernel/resource.c so it can make sure the resource tree remains
+consistent.
