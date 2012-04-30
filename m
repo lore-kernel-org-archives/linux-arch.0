@@ -1,134 +1,118 @@
 From: Thomas Gleixner <tglx@linutronix.de>
-Subject: [patch 27/29] x86: Use generic init_task
-Date: Mon, 30 Apr 2012 20:16:05 -0000
-Message-ID: <20120430194847.232480749@linutronix.de>
+Subject: [patch 25/29] um: Use generic init_task
+Date: Mon, 30 Apr 2012 20:16:04 -0000
+Message-ID: <20120430194847.111422607@linutronix.de>
 References: <20120430194725.763322463@linutronix.de>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:35811 "EHLO
+Received: from www.linutronix.de ([62.245.132.108]:35802 "EHLO
 	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756917Ab2D3UQG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:16:06 -0400
-Content-Disposition: inline; filename=x86-use-common-init-task.patch
+	with ESMTP id S1756915Ab2D3UQF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 16:16:05 -0400
+Content-Disposition: inline; filename=um-use-generic-init-task.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: LKML <linux-kernel@vger.kernel.org>
-Cc: linux-arch@vger.kernel.org, x86@kernel.org
+Cc: linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>
 
-Same code. Use the generic version. The special Makefile treatment is
-pointless anyway as init_task.o contains only data which is handled by
-the linker script. So no point on being treated like head text.
+Same code. Use the generic version.
 
 Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-Cc: x86@kernel.org
+Cc: Richard Weinberger <richard@nod.at>
 ---
- arch/x86/Kconfig            |    1 +
- arch/x86/Makefile           |    1 -
- arch/x86/kernel/Makefile    |    2 +-
- arch/x86/kernel/init_task.c |   42 ------------------------------------------
- arch/x86/kernel/process.c   |    9 +++++++++
- 5 files changed, 11 insertions(+), 44 deletions(-)
+ arch/um/Kconfig.common     |    1 +
+ arch/um/kernel/Makefile    |    2 +-
+ arch/um/kernel/init_task.c |   38 --------------------------------------
+ arch/um/kernel/um_arch.c   |    5 +++++
+ 4 files changed, 7 insertions(+), 39 deletions(-)
 
-Index: tip/arch/x86/Kconfig
+Index: tip/arch/um/Kconfig.common
 ===================================================================
---- tip.orig/arch/x86/Kconfig
-+++ tip/arch/x86/Kconfig
-@@ -83,6 +83,7 @@ config X86
- 	select GENERIC_IOMAP
- 	select DCACHE_WORD_ACCESS if !DEBUG_PAGEALLOC
- 	select GENERIC_SMP_IDLE_THREAD
+--- tip.orig/arch/um/Kconfig.common
++++ tip/arch/um/Kconfig.common
+@@ -10,6 +10,7 @@ config UML
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_CPU_DEVICES
+ 	select GENERIC_IO
 +	select HAVE_GENERIC_INIT_TASK
  
- config INSTRUCTION_DECODER
- 	def_bool (KPROBES || PERF_EVENTS)
-Index: tip/arch/x86/Makefile
+ config MMU
+ 	bool
+Index: tip/arch/um/kernel/Makefile
 ===================================================================
---- tip.orig/arch/x86/Makefile
-+++ tip/arch/x86/Makefile
-@@ -146,7 +146,6 @@ archheaders:
- head-y := arch/x86/kernel/head_$(BITS).o
- head-y += arch/x86/kernel/head$(BITS).o
- head-y += arch/x86/kernel/head.o
--head-y += arch/x86/kernel/init_task.o
+--- tip.orig/arch/um/kernel/Makefile
++++ tip/arch/um/kernel/Makefile
+@@ -10,7 +10,7 @@ CPPFLAGS_vmlinux.lds := -DSTART=$(LDS_ST
+ extra-y := vmlinux.lds
+ clean-files :=
  
- libs-y  += arch/x86/lib/
- 
-Index: tip/arch/x86/kernel/Makefile
+-obj-y = config.o exec.o exitcode.o init_task.o irq.o ksyms.o mem.o \
++obj-y = config.o exec.o exitcode.o irq.o ksyms.o mem.o \
+ 	physmem.o process.o ptrace.o reboot.o sigio.o \
+ 	signal.o smp.o syscall.o sysrq.o time.o tlb.o trap.o \
+ 	um_arch.o umid.o skas/
+Index: tip/arch/um/kernel/init_task.c
 ===================================================================
---- tip.orig/arch/x86/kernel/Makefile
-+++ tip/arch/x86/kernel/Makefile
-@@ -2,7 +2,7 @@
- # Makefile for the linux kernel.
- #
- 
--extra-y                := head_$(BITS).o head$(BITS).o head.o init_task.o vmlinux.lds
-+extra-y                := head_$(BITS).o head$(BITS).o head.o vmlinux.lds
- 
- CPPFLAGS_vmlinux.lds += -U$(UTS_MACHINE)
- 
-Index: tip/arch/x86/kernel/init_task.c
-===================================================================
---- tip.orig/arch/x86/kernel/init_task.c
+--- tip.orig/arch/um/kernel/init_task.c
 +++ /dev/null
-@@ -1,42 +0,0 @@
--#include <linux/mm.h>
--#include <linux/module.h>
--#include <linux/sched.h>
--#include <linux/init.h>
--#include <linux/init_task.h>
--#include <linux/fs.h>
--#include <linux/mqueue.h>
+@@ -1,38 +0,0 @@
+-/*
+- * Copyright (C) 2000 - 2007 Jeff Dike (jdike@{addtoit,intel.linux}.com)
+- * Licensed under the GPL
+- */
 -
--#include <asm/uaccess.h>
--#include <asm/pgtable.h>
--#include <asm/desc.h>
+-#include "linux/sched.h"
+-#include "linux/init_task.h"
+-#include "linux/fs.h"
+-#include "linux/module.h"
+-#include "linux/mqueue.h"
+-#include "asm/uaccess.h"
 -
 -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
 -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
--
--/*
-- * Initial thread structure.
-- *
-- * We need to make sure that this is THREAD_SIZE aligned due to the
-- * way process stacks are handled. This is done by having a special
-- * "init_task" linker map entry..
-- */
--union thread_union init_thread_union __init_task_data =
--	{ INIT_THREAD_INFO(init_task) };
--
 -/*
 - * Initial task structure.
 - *
 - * All other task structs will be allocated on slabs in fork.c
 - */
+-
 -struct task_struct init_task = INIT_TASK(init_task);
+-
 -EXPORT_SYMBOL(init_task);
 -
 -/*
-- * per-CPU TSS segments. Threads are completely 'soft' on Linux,
-- * no more per-task TSS's. The TSS size is kept cacheline-aligned
-- * so they are allowed to end up in the .data..cacheline_aligned
-- * section. Since TSS's are completely CPU-local, we want them
-- * on exact cacheline boundaries, to eliminate cacheline ping-pong.
+- * Initial thread structure.
+- *
+- * We need to make sure that this is aligned due to the
+- * way process stacks are handled. This is done by having a special
+- * "init_task" linker map entry..
 - */
--DEFINE_PER_CPU_SHARED_ALIGNED(struct tss_struct, init_tss) = INIT_TSS;
 -
-Index: tip/arch/x86/kernel/process.c
+-union thread_union init_thread_union __init_task_data =
+-	{ INIT_THREAD_INFO(init_task) };
+-
+-union thread_union cpu0_irqstack
+-	__attribute__((__section__(".data..init_irqstack"))) =
+-		{ INIT_THREAD_INFO(init_task) };
+Index: tip/arch/um/kernel/um_arch.c
 ===================================================================
---- tip.orig/arch/x86/kernel/process.c
-+++ tip/arch/x86/kernel/process.c
-@@ -27,6 +27,15 @@
- #include <asm/debugreg.h>
- #include <asm/nmi.h>
+--- tip.orig/arch/um/kernel/um_arch.c
++++ tip/arch/um/kernel/um_arch.c
+@@ -10,6 +10,7 @@
+ #include <linux/seq_file.h>
+ #include <linux/string.h>
+ #include <linux/utsname.h>
++#include <linux/sched.h>
+ #include <asm/pgtable.h>
+ #include <asm/processor.h>
+ #include <asm/setup.h>
+@@ -47,6 +48,10 @@ struct cpuinfo_um boot_cpu_data = {
+ 	.ipi_pipe		= { -1, -1 }
+ };
  
-+/*
-+ * per-CPU TSS segments. Threads are completely 'soft' on Linux,
-+ * no more per-task TSS's. The TSS size is kept cacheline-aligned
-+ * so they are allowed to end up in the .data..cacheline_aligned
-+ * section. Since TSS's are completely CPU-local, we want them
-+ * on exact cacheline boundaries, to eliminate cacheline ping-pong.
-+ */
-+DEFINE_PER_CPU_SHARED_ALIGNED(struct tss_struct, init_tss) = INIT_TSS;
++union thread_union cpu0_irqstack
++	__attribute__((__section__(".data..init_irqstack"))) =
++		{ INIT_THREAD_INFO(init_task) };
 +
- #ifdef CONFIG_X86_64
- static DEFINE_PER_CPU(unsigned char, is_idle);
- static ATOMIC_NOTIFIER_HEAD(idle_notifier);
+ unsigned long thread_saved_pc(struct task_struct *task)
+ {
+ 	/* FIXME: Need to look up userspace_pid by cpu */
