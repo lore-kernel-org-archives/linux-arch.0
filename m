@@ -1,40 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:18917 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753217Ab2D2Qmp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 29 Apr 2012 12:42:45 -0400
-Date: Sun, 29 Apr 2012 18:41:55 +0200
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Message-ID: <20120429164155.GC15792@redhat.com>
-References: <20120420160848.GG6871@ZenIV.linux.org.uk> <20120420164239.GH6871@ZenIV.linux.org.uk> <CA+55aFzuTspDyyLaOA-g-dTWydaUeeWo9uVGR+rZ=ZJzPW_Ocw@mail.gmail.com> <20120420180748.GI6871@ZenIV.linux.org.uk> <20120423180150.GA6871@ZenIV.linux.org.uk> <20120424072617.GB6871@ZenIV.linux.org.uk> <20120426183742.GA324@redhat.com> <20120426231942.GJ6871@ZenIV.linux.org.uk> <20120427172444.GA30267@redhat.com> <20120427184528.GL6871@ZenIV.linux.org.uk>
+Received: from na3sys009aog123.obsmtp.com ([74.125.149.149]:52573 "EHLO
+	na3sys009aog123.obsmtp.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751962Ab2D3IFQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 30 Apr 2012 04:05:16 -0400
+Received: by obcni5 with SMTP id ni5so4791247obc.13
+        for <linux-arch@vger.kernel.org>; Mon, 30 Apr 2012 01:05:14 -0700 (PDT)
+Message-ID: <4F9E47B4.3000004@ti.com>
+Date: Mon, 30 Apr 2012 13:35:08 +0530
+From: Santosh Shilimkar <santosh.shilimkar@ti.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20120427184528.GL6871@ZenIV.linux.org.uk>
+Subject: Re: [patch 00/18] SMP: Boot and CPU hotplug refactoring - Part 1
+References: <20120420122120.097464672@linutronix.de>
+In-Reply-To: <20120420122120.097464672@linutronix.de>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Roland McGrath <roland@hack.frob.com>
-Message-ID: <20120429164155.174jmCxjnL_BPNTLpDBEfJekzs5ZEMAO-7xS2S-1O4s@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Message-ID: <20120430080508.PFqkJI9KdZfdDrW21uH8FtzaGhfiFKAkbWZowzk5Er8@z>
 
-On 04/27, Al Viro wrote:
->
-> 	BTW, I'm somewhat tempted to do the following: *ALL* calls of
-> tracehook_signal_handler() are now immediately preceded by block_signals().
-> Moreover, tracehook_signal_handler(...., 0) is currently a no-op, so
-> it could be painlessly added after the remaining block_signals() instances.
-> How about *folding* block_signals() (along with clear_restore_sigmask())
-> into tracehook_signal_handler()?
+On Friday 20 April 2012 06:35 PM, Thomas Gleixner wrote:
+> Dear all,
+> 
+> I'm working on refactoring the SMP boot and CPU hotplug implementation.
+> 
+> The current code has evolved over time into a conglomerate of
+> warts. My main goals are to:
+> 
+>  - reduce the architecture code by moving repeating constructs to the
+>    core
+> 
+>  - redesigning the handling of per cpu threads. There is no point to
+>    tear down the threads just to create them again.
+> 
+>  - restructuring the notifier facility into a proper tree with
+>    dependencies to avoid the gazillion of callbacks and moving
+>    setup/teardown code into the context of the upcoming/dying cpu
+> 
+> The motivation behind this work is the cpu hotplug nightmare which we
+> are facing in the RT kernel and the requests from several groups
+> (e.g. ARM) to make hotplug more lightweight and faster.
+> 
+> This first part moves the idle thread management for non-boot cpus
+> into the core. fork_idle() is called in a workqueue as it is
+> implemented in a few architectures already. This is necessary when not
+> all cpus are brought up by the early boot code as otherwise we would
+> take a ref on the user task VM of the thread which brings the cpu up
+> via the sysfs interface.
+> 
+> This converts all architectures except m32r, mn10300, tile and UM to
+> the new core facility. These architecture are calling fork_idle() in
+> the very early boot code in smp_prepare_cpus() for unknown reasons.
+> I haven't analyzed yet, whether this is on purpose or can be moved
+> over to the generic facility. It'd be nice if the responsible maintainers
+> could look into that as well.
+> 
 
-Oh, please no. Imho, these two have nothing to do with each other.
+Tried this series on OMAP4 (Dual Core ARM machine) and did some
+some testing with CPU hot-plug by creating variable CPU loads and
+running CPU hot-plug script in the background.
+No issue observed in 2 hours of testing.
 
-Besides, at least on x86 tracehook_signal_handler's logic is not exactly
-right and should be fixed.
+Not sure your stand on Suresh's patch[1], but I did another
+round of testing with [1] included. I thought this patch
+might be considered since it eliminate the need for work-queue
+based idle thread allocation which can be a problem as
+discussed on this thread.
 
-And we are going to kill tracehook.h. While personally I do not think
-this is the good idea, but the matter of fact is that tracehooks are
-already destroyed.
+Regards
+Santosh
 
-Oleg.
+[1] https://lkml.org/lkml/2012/4/20/524
+
+
+
+
 
