@@ -1,104 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pz0-f51.google.com ([209.85.210.51]:44218 "EHLO
-	mail-pz0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750917Ab2EAHTe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 May 2012 03:19:34 -0400
+Received: from mail-gy0-f174.google.com ([209.85.160.174]:46563 "EHLO
+	mail-gy0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758107Ab2EANqj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 May 2012 09:46:39 -0400
 MIME-Version: 1.0
-In-Reply-To: <CAE9FiQUH1SiToMBanL7brzem920rCoq70hh3KKxH-ps190=51w@mail.gmail.com>
-References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
-	<1332135781-13695-6-git-send-email-yinghai@kernel.org>
-	<CAErSpo5AnsmfQs4oa3P7AQyPTJ+YqCVVh5p2L=bmDY=A+BO9PQ@mail.gmail.com>
-	<CAE9FiQUH1SiToMBanL7brzem920rCoq70hh3KKxH-ps190=51w@mail.gmail.com>
-Date: Tue, 1 May 2012 00:19:33 -0700
-Message-ID: <CAE9FiQW=BLxjHGKzKQvm15PSyESh+H_rrPkTEZGE-8uWboJWVg@mail.gmail.com>
-Subject: Re: [PATCH -v11 05/30] PCI: Add busn_res operation functions
-From: Yinghai Lu <yinghai@kernel.org>
-Content-Type: multipart/mixed; boundary=047d7b2ee18b72388704bef4647d
+In-Reply-To: <alpine.LFD.2.02.1204302248310.6271@ionos>
+References: <20120430194725.763322463@linutronix.de> <20120430194846.862605948@linutronix.de>
+ <4F9EF43C.3090608@gmail.com> <alpine.LFD.2.02.1204302238120.6271@ionos> <alpine.LFD.2.02.1204302248310.6271@ionos>
+From: KOSAKI Motohiro <kosaki.motohiro@gmail.com>
+Date: Tue, 1 May 2012 09:46:17 -0400
+Message-ID: <CAHGf_=p4+fBgZZh4v7-rou1h3kx12b6=uwtjdnh0PvA+R5WVaA@mail.gmail.com>
+Subject: Re: [patch 21/29] score: Use generic init_task
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120501071933.MphOh6k-lrR8Na7YogjMBzb2lbVP5ueDJz0PNLoKJmg@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Chen Liqin <liqin.chen@sunplusct.com>
+Message-ID: <20120501134617.ZYYg8A8OmE_iJFFcrNvUrRIOCLhCc-u4HuSt-Vxm_RQ@z>
 
---047d7b2ee18b72388704bef4647d
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
-
-On Mon, Apr 30, 2012 at 5:34 PM, Yinghai Lu <yinghai@kernel.org> wrote:
-> On Mon, Apr 30, 2012 at 4:29 PM, Bjorn Helgaas <bhelgaas@google.com> wrot=
-e:
->> On Sun, Mar 18, 2012 at 11:42 PM, Yinghai Lu <yinghai@kernel.org> wrote:
->>> +void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
->>> +{
->>> + =A0 =A0 =A0 struct resource *res =3D &b->busn_res;
->>> + =A0 =A0 =A0 struct resource old_res =3D *res;
->>> +
->>> + =A0 =A0 =A0 res->end =3D bus_max;
+On Mon, Apr 30, 2012 at 4:49 PM, Thomas Gleixner <tglx@linutronix.de> wrote:
+> On Mon, 30 Apr 2012, Thomas Gleixner wrote:
+>> On Mon, 30 Apr 2012, KOSAKI Motohiro wrote:
+>> > Almost patches delete arch specific init-task. But this patch doesn't.
+>> > Is this really intentional?
 >>
->> I've mentioned before that I'm not comfortable with updating the
->> struct resource after it's been inserted into the tree. =A0If you want
->> to do an in-place update, I think you need to add a new interface in
->> kernel/resource.c so it can make sure the resource tree remains
->> consistent.
+>> Not really. I missed it :( Will fix.
 >
-> ok, will add one function in kernel/resource.c to make sure that end
-> could be updated safely
-> by checking parent and children.
+> Here is the updated one.
+>
+> Thanks,
 
-Rebased busn_alloc branch and added attached patch into that.
+Seems good. (but obviously I'm not score expert, don't believe me).
 
-as for removing bus->subordinate and bus->secondary, like to do that later.
-
-Thanks
-
-Yinghai
-
---047d7b2ee18b72388704bef4647d
-Content-Type: application/octet-stream; name="resource_update.patch"
-Content-Disposition: attachment; filename="resource_update.patch"
-Content-Transfer-Encoding: base64
-X-Attachment-Id: f_h1omimxk0
-
-U3ViamVjdDogW1BBVENIXSByZXNvdXJjZXM6IFVwZGF0ZSByZWdpc3RlcmVkIHJlc291cmNlIHN0
-YXJ0L2VuZCBpbiB0cmVlLgoKTmVlZCB0byBjaGVjayBpZiB0aGUgbmV3IHJhbmdlIGlzCjEuIGZ1
-bGx5IGNvdmVyZWQgYnkgcGFyZW50IHJlc291cmNlIGlmIGl0IGV4aXN0cwoyLiBub3Qgb3Zlcmxh
-cHBlZCB3aXRoIHNpYmxpbmcgcmVzb3VyY2VzIGlmIHRoZXkgZXhpc3QuCjMuIGZ1bGx5IGNvdmVy
-aW5nIGNoaWxyZW4gcmVzb3VyY2VzIGlmIHRoZXkgZXhpc3QuCgpTaWduZWQtb2ZmLWJ5OiBZaW5n
-aGFpIEx1IDx5aW5naGFpQGtlcm5lbC5vcmc+CkNjOiBBbmRyZXcgTW9ydG9uIDxha3BtQGxpbnV4
-LWZvdW5kYXRpb24ub3JnPgoKLS0tCiBpbmNsdWRlL2xpbnV4L2lvcG9ydC5oIHwgICAgMiArKwog
-a2VybmVsL3Jlc291cmNlLmMgICAgICB8ICAgNDkgKysrKysrKysrKysrKysrKysrKysrKysrKysr
-KysrKysrKysrKysrKysrKysrKysrKwogMiBmaWxlcyBjaGFuZ2VkLCA1MSBpbnNlcnRpb25zKCsp
-CgpJbmRleDogbGludXgtMi42L2luY2x1ZGUvbGludXgvaW9wb3J0LmgKPT09PT09PT09PT09PT09
-PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PQotLS0g
-bGludXgtMi42Lm9yaWcvaW5jbHVkZS9saW51eC9pb3BvcnQuaAorKysgbGludXgtMi42L2luY2x1
-ZGUvbGludXgvaW9wb3J0LmgKQEAgLTE0MSw2ICsxNDEsOCBAQCBleHRlcm4gc3RydWN0IHJlc291
-cmNlICpyZXF1ZXN0X3Jlc291cmNlCiBleHRlcm4gaW50IHJlcXVlc3RfcmVzb3VyY2Uoc3RydWN0
-IHJlc291cmNlICpyb290LCBzdHJ1Y3QgcmVzb3VyY2UgKm5ldyk7CiBleHRlcm4gaW50IHJlbGVh
-c2VfcmVzb3VyY2Uoc3RydWN0IHJlc291cmNlICpuZXcpOwogdm9pZCByZWxlYXNlX2NoaWxkX3Jl
-c291cmNlcyhzdHJ1Y3QgcmVzb3VyY2UgKm5ldyk7CitpbnQgdXBkYXRlX3Jlc291cmNlKHN0cnVj
-dCByZXNvdXJjZSAqciwgcmVzb3VyY2Vfc2l6ZV90IHN0YXJ0LAorCQkJIHJlc291cmNlX3NpemVf
-dCBlbmQpOwogZXh0ZXJuIHZvaWQgcmVzZXJ2ZV9yZWdpb25fd2l0aF9zcGxpdChzdHJ1Y3QgcmVz
-b3VyY2UgKnJvb3QsCiAJCQkgICAgIHJlc291cmNlX3NpemVfdCBzdGFydCwgcmVzb3VyY2Vfc2l6
-ZV90IGVuZCwKIAkJCSAgICAgY29uc3QgY2hhciAqbmFtZSk7CkluZGV4OiBsaW51eC0yLjYva2Vy
-bmVsL3Jlc291cmNlLmMKPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
-PT09PT09PT09PT09PT09PT09PT09PT09PQotLS0gbGludXgtMi42Lm9yaWcva2VybmVsL3Jlc291
-cmNlLmMKKysrIGxpbnV4LTIuNi9rZXJuZWwvcmVzb3VyY2UuYwpAQCAtMjI3LDYgKzIyNyw1NSBA
-QCB2b2lkIHJlbGVhc2VfY2hpbGRfcmVzb3VyY2VzKHN0cnVjdCByZXNvCiAJd3JpdGVfdW5sb2Nr
-KCZyZXNvdXJjZV9sb2NrKTsKIH0KIAoraW50IHVwZGF0ZV9yZXNvdXJjZShzdHJ1Y3QgcmVzb3Vy
-Y2UgKnIsIHJlc291cmNlX3NpemVfdCBzdGFydCwKKwkJCXJlc291cmNlX3NpemVfdCBlbmQpCit7
-CisJaW50IHJldCA9IDA7CisJc3RydWN0IHJlc291cmNlICpwYXJlbnQ7CisJc3RydWN0IHJlc291
-cmNlICpwOworCisJaWYgKHN0YXJ0ID4gZW5kKQorCQlyZXR1cm4gLUVJTlZBTDsKKworCXdyaXRl
-X2xvY2soJnJlc291cmNlX2xvY2spOworCXBhcmVudCA9IHItPnBhcmVudDsKKwlpZiAocGFyZW50
-KSB7CisJCWlmIChzdGFydCA8IHBhcmVudC0+c3RhcnQgfHwKKwkJICAgIGVuZCA+IHBhcmVudC0+
-ZW5kKSB7CisJCQlyZXQgPSAtRUlOVkFMOworCQkJZ290byBvdXQ7CisJCX0KKworCQlwID0gcGFy
-ZW50LT5jaGlsZDsKKwkJd2hpbGUgKHApIHsKKwkJCWlmIChwICE9IHIgJiYKKwkJCSAgICBtYXhf
-dChyZXNvdXJjZV9zaXplX3QsIHAtPnN0YXJ0LCBzdGFydCkgPD0KKwkJCSAgICBtaW5fdChyZXNv
-dXJjZV9zaXplX3QsIHAtPmVuZCwgZW5kKSkgeworCQkJCXJldCA9IC1FSU5WQUw7CisJCQkJZ290
-byBvdXQ7CisJCQl9CisJCQlwID0gcC0+c2libGluZzsKKwkJfQorCX0KKworCXAgPSByLT5jaGls
-ZDsKKwl3aGlsZSAocCkgeworCQlpZiAocC0+c3RhcnQgPCBzdGFydCB8fCBwLT5lbmQgPiBlbmQp
-IHsKKwkJCXJldCA9IC1FSU5WQUw7CisJCQlnb3RvIG91dDsKKwkJfQorCQlwID0gcC0+c2libGlu
-ZzsKKwl9CisKKwlyLT5zdGFydCA9IHN0YXJ0OworCXItPmVuZCA9IGVuZDsKKworb3V0OgorCXdy
-aXRlX3VubG9jaygmcmVzb3VyY2VfbG9jayk7CisKKwlyZXR1cm4gcmV0OworfQorCiAvKioKICAq
-IHJlcXVlc3RfcmVzb3VyY2VfY29uZmxpY3QgLSByZXF1ZXN0IGFuZCByZXNlcnZlIGFuIEkvTyBv
-ciBtZW1vcnkgcmVzb3VyY2UKICAqIEByb290OiByb290IHJlc291cmNlIGRlc2NyaXB0b3IK
---047d7b2ee18b72388704bef4647d--
+Thanks.
