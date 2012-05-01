@@ -1,112 +1,292 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:45169 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756193Ab2EAPkc convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 May 2012 11:40:32 -0400
-Received: by lbbgm6 with SMTP id gm6so940139lbb.19
-        for <linux-arch@vger.kernel.org>; Tue, 01 May 2012 08:40:30 -0700 (PDT)
+Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:46416 "EHLO
+	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755315Ab2EAX6V convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 1 May 2012 19:58:21 -0400
+Received: by lahj13 with SMTP id j13so41802lah.19
+        for <linux-arch@vger.kernel.org>; Tue, 01 May 2012 16:58:19 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <CAE9FiQUOsMOQgZXCuPHpc6ZSEGnY3nv+uy1o0xvrW8-LKwNZrg@mail.gmail.com>
-References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
- <1332135781-13695-5-git-send-email-yinghai@kernel.org> <CAErSpo6Wbjh_pzDOkGRoog2WeJQET9UT0fiaanV0r15pq7hT6Q@mail.gmail.com>
- <CAE9FiQV0XTd_1Ujz=tb6BSuwJvJ9nbT_GbE2PREtgMGv=yG0+g@mail.gmail.com>
- <CAErSpo57pH81KtUbYZ3j6y4kC+ka33Lzr4rfcywVWf8OTmH_5Q@mail.gmail.com> <CAE9FiQUOsMOQgZXCuPHpc6ZSEGnY3nv+uy1o0xvrW8-LKwNZrg@mail.gmail.com>
+In-Reply-To: <1332135781-13695-18-git-send-email-yinghai@kernel.org>
+References: <1332135781-13695-1-git-send-email-yinghai@kernel.org> <1332135781-13695-18-git-send-email-yinghai@kernel.org>
 From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Tue, 1 May 2012 09:40:05 -0600
-Message-ID: <CAErSpo5EdBY-8M5FnQaGHOAvhaGO7qLHdDkmYGyDRN9de4umNw@mail.gmail.com>
-Subject: Re: [PATCH -v11 04/30] PCI: Add busn_res into struct pci_bus.
+Date: Tue, 1 May 2012 17:57:58 -0600
+Message-ID: <CAErSpo4BZAf_i3ojXpg5WSFJ00G5i_vscVTu2va_Z3WJ0UHg=g@mail.gmail.com>
+Subject: Re: [PATCH -v11 17/30] resources: Add probe_resource()
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Yinghai Lu <yinghai@kernel.org>
 Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120501154005.OwET6kFbx4IOPSXj3H0xy2FS7efAP90tZH8k2GjOX0c@z>
+Message-ID: <20120501235758.HSxc-KzDQystGPe3_EbpYbCI9JZXZ4YqYDpq9GporLo@z>
 
-On Tue, May 1, 2012 at 12:27 AM, Yinghai Lu <yinghai@kernel.org> wrote:
-> On Mon, Apr 30, 2012 at 9:02 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
->> On Mon, Apr 30, 2012 at 6:32 PM, Yinghai Lu <yinghai@kernel.org> wrote:
->>> On Mon, Apr 30, 2012 at 4:25 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
->>>>> --- a/include/linux/pci.h
->>>>> +++ b/include/linux/pci.h
->>>>> @@ -419,6 +419,7 @@ struct pci_bus {
->>>>>        struct list_head slots;         /* list of slots on this bus */
->>>>>        struct resource *resource[PCI_BRIDGE_RESOURCE_NUM];
->>>>>        struct list_head resources;     /* address space routed to this bus */
->>>>> +       struct resource busn_res;       /* track registered bus num range */
->>>>>
->>>>>        struct pci_ops  *ops;           /* configuration access functions */
->>>>>        void            *sysdata;       /* hook for sys-specific extension */
->>>>
->>>> struct pci_bus already includes "secondary" and "subordinate".    This
->>>> new "busn_res" looks like it will contain the same information.  Why
->>>> do we need both?
->>>
->>> In some case the could be different.
->>> for root bus from _CRS, busn_res could bigger than subordinate,
->>> because scan_childbus will update subordinate.
->>
->> For a bus below a P2P bridge, I think it's always the case that the
->> bridge's Subordinate Bus Number in config space == bus->subordinate ==
->> bus->busn_res.end (correct me if I'm wrong).  I don't like the
->> redundancy in this case.
+On Sun, Mar 18, 2012 at 11:42 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+> It is changed from busn_res only version, because Bjorn found that version
+> was not holding resource_lock.
+> Even it may be ok for busn_res not holding resource_lock.
+> It would be better to have it to be generic and use lock and we would
+> use it for other resources.
 >
-> there are about 70 bus->subordinate reference and 40 bus->secondary reference.
+> probe_resource() will try to find specified size or more in parent bus.
+> If can not find current parent resource, and it will try to expand parents
+> top.
+> If still can not find that specified on top, it will try to reduce target size
+> until find one.
 >
-> could try to update them in following patch set.
-
-If you're proposing this:
-  1. add bus->busn_res
-  2. remove bus->subordinate and bus->secondary
-I fully support that, and I'd like to merge both pieces at the same
-time (different patches is fine; I just want to make sure both pieces
-actually happen).
-
->> For a root bus where you set bus->busn_res from _CRS and
->> bus->subordinate = pci_scan_child_bus(), bus->busn_res.end will
->> generally be different from bus->subordinate, but there's no point in
->> keeping track of bus->subordinate.
->>
->> The reason we care about secondary and subordinate is so we can
->> allocate bus numbers when enumerating devices behind a bridge.  The
->> only thing we need for that is the aperture of the upstream bridge and
->> the apertures of any peer bridges on the same bus.  Let's say we have
->> this:
->>
->>        pci 00:00.0 bridge to [bus a-b]
->>        pci a:01.0 bridge to [bus c-d]  (already enumerated)
->>        pci a:02.0 bridge to [bus e-f]  (already enumerated)
->>        pci a:03.0 bridge to [bus x-y]  (enumerating now)
->>
->> We know [c-d] is contained in [a-b]; [e-f] is contained in [a-b]; a <
->> c; and a < e.  To enumerate behind a:03.0, we need to assign x & y
->> such that a < x; [x-y] is contained in [a-b]; and [x-y] does not
->> overlap [c-d] or [e-f].  The value from pci_scan_child_bus() is
->> probably useful for setting y, but we don't have to save it in the
->> struct pci_bus for that.
+> It will return 0, if it find any resource that it could use.
 >
-> busn alloc will try to solve x-y may need big range than [a,b], it
-> will extend top of b and parents of bus a.
-> instead of just b+1 blindly.
+> Returned resource already register in the tree.
 >
-> and will have more strict checking to avoid overlapping.
-
-Obviously the completely general problem of allocating bus numbers may
-require traversing up the tree.  My point is that I don't think it's
-necessary to keep both busn_res.end and subordinate to do that.
-
->>> and also we have one resource to insert it into the resource tree, so
->>> later could probe/allocate bus num range.
->>
->> Sorry, I didn't understand this.
+> So caller may still need call resource_replace to put real resource in
+> the tree.
 >
-> Using busn_res to track and allocate busn range, by put them in the
-> resource tree could reuse resource allocating code.
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> ---
+>  include/linux/ioport.h |    7 ++
+>  kernel/resource.c      |  160 ++++++++++++++++++++++++++++++++++++++++++++++--
+>  2 files changed, 162 insertions(+), 5 deletions(-)
+>
+> diff --git a/include/linux/ioport.h b/include/linux/ioport.h
+> index e885ba2..20a30df 100644
+> --- a/include/linux/ioport.h
+> +++ b/include/linux/ioport.h
+> @@ -156,6 +156,13 @@ extern int allocate_resource(struct resource *root, struct resource *new,
+>                                                       resource_size_t,
+>                                                       resource_size_t),
+>                             void *alignf_data);
+> +void resource_shrink_parents_top(struct resource *b_res,
+> +                                long size, struct resource *parent_res);
+> +struct device;
+> +int probe_resource(struct resource *b_res,
+> +                       struct device *dev, struct resource *busn_res,
+> +                       resource_size_t needed_size, struct resource **p,
+> +                       int skip_nr, int limit, char *name);
 
-Yes, I agree that replacing secondary & subordinate with a struct
-resource is a good idea.  That will allow a resource tree of bus
-numbers, as well as other useful things like the ability to "%pR".
+This interface is a mess.  I have a vague impression that this is
+supposed to figure out whether a resource can be expanded, but why
+does it need a struct device *?  (I can read the code and see how you
+use it, but it just doesn't fit in the resource abstraction.)
+Supplying one struct resource * makes sense, but you have three.  A
+char * name?  What's skip_nr?  This just doesn't make sense to me.
 
-I just don't want *both* busn_resource and secondary & subordinate.
+I think you need a simpler, more general interface.  update_resource()
+seems OK to me -- it's pretty straightforward and has an obvious
+meaning.  Maybe you can make a resource_expand() or something that
+just expands a resource in both directions as far as possible (until
+it hits a sibling or the parent limits).  Then you would know the
+maximum possible size, and you could use update_resource() to shrink
+it again and give up anything you don't need.
 
-Bjorn
+I spent most of the day merging the patches up to this point, and they
+mostly make sense, but this one and the following ones are beyond my
+ken, so I gave up.
+
+>  struct resource *lookup_resource(struct resource *root, resource_size_t start);
+>  int adjust_resource(struct resource *res, resource_size_t start,
+>                    resource_size_t size);
+> diff --git a/kernel/resource.c b/kernel/resource.c
+> index 7640b3a..0c9616f 100644
+> --- a/kernel/resource.c
+> +++ b/kernel/resource.c
+> @@ -521,14 +521,14 @@ out:
+>  * @alignf: alignment function, optional, called if not NULL
+>  * @alignf_data: arbitrary data to pass to the @alignf function
+>  */
+> -int allocate_resource(struct resource *root, struct resource *new,
+> +static int __allocate_resource(struct resource *root, struct resource *new,
+>                      resource_size_t size, resource_size_t min,
+>                      resource_size_t max, resource_size_t align,
+>                      resource_size_t (*alignf)(void *,
+>                                                const struct resource *,
+>                                                resource_size_t,
+>                                                resource_size_t),
+> -                     void *alignf_data)
+> +                     void *alignf_data, bool lock)
+>  {
+>        int err;
+>        struct resource_constraint constraint;
+> @@ -542,19 +542,33 @@ int allocate_resource(struct resource *root, struct resource *new,
+>        constraint.alignf = alignf;
+>        constraint.alignf_data = alignf_data;
+>
+> -       if ( new->parent ) {
+> +       if (new->parent && lock) {
+>                /* resource is already allocated, try reallocating with
+>                   the new constraints */
+>                return reallocate_resource(root, new, size, &constraint);
+>        }
+>
+> -       write_lock(&resource_lock);
+> +       if (lock)
+> +               write_lock(&resource_lock);
+>        err = find_resource(root, new, size, &constraint);
+>        if (err >= 0 && __request_resource(root, new))
+>                err = -EBUSY;
+> -       write_unlock(&resource_lock);
+> +       if (lock)
+> +               write_unlock(&resource_lock);
+>        return err;
+>  }
+> +int allocate_resource(struct resource *root, struct resource *new,
+> +                     resource_size_t size, resource_size_t min,
+> +                     resource_size_t max, resource_size_t align,
+> +                     resource_size_t (*alignf)(void *,
+> +                                               const struct resource *,
+> +                                               resource_size_t,
+> +                                               resource_size_t),
+> +                     void *alignf_data)
+> +{
+> +       return __allocate_resource(root, new, size, min, max, align,
+> +                                  alignf, alignf_data, true);
+> +}
+>
+>  EXPORT_SYMBOL(allocate_resource);
+>
+> @@ -962,6 +976,142 @@ void __release_region(struct resource *parent, resource_size_t start,
+>  }
+>  EXPORT_SYMBOL(__release_region);
+>
+> +static void __resource_update_parents_top(struct resource *b_res,
+> +                long size, struct resource *parent_res)
+> +{
+> +       struct resource *res = b_res;
+> +
+> +       if (!size)
+> +               return;
+> +
+> +       while (res) {
+> +               if (res == parent_res)
+> +                       break;
+> +               res->end += size;
+> +               res = res->parent;
+> +       }
+> +}
+> +
+> +static void __resource_extend_parents_top(struct resource *b_res,
+> +                long size, struct resource *parent_res)
+> +{
+> +       __resource_update_parents_top(b_res, size, parent_res);
+> +}
+> +
+> +void resource_shrink_parents_top(struct resource *b_res,
+> +                long size, struct resource *parent_res)
+> +{
+> +       write_lock(&resource_lock);
+> +       __resource_update_parents_top(b_res, -size, parent_res);
+> +       write_unlock(&resource_lock);
+> +}
+> +
+> +static resource_size_t __find_res_top_free_size(struct resource *res)
+> +{
+> +       resource_size_t n_size;
+> +       struct resource tmp_res;
+> +
+> +       /*
+> +        *   find out number below res->end, that we can use at first
+> +        *      res->start can not be used.
+> +        */
+> +       n_size = resource_size(res) - 1;
+> +       memset(&tmp_res, 0, sizeof(struct resource));
+> +       while (n_size > 0) {
+> +               int ret;
+> +
+> +               ret = __allocate_resource(res, &tmp_res, n_size,
+> +                       res->end - n_size + 1, res->end,
+> +                       1, NULL, NULL, false);
+> +               if (ret == 0) {
+> +                       __release_resource(&tmp_res);
+> +                       break;
+> +               }
+> +               n_size--;
+> +       }
+> +
+> +       return n_size;
+> +}
+> +
+> +int probe_resource(struct resource *b_res,
+> +                        struct device *dev, struct resource *busn_res,
+> +                        resource_size_t needed_size, struct resource **p,
+> +                        int skip_nr, int limit, char *name)
+> +{
+> +       int ret = -ENOMEM;
+> +       resource_size_t n_size;
+> +       struct resource *parent_res = NULL;
+> +       resource_size_t tmp = b_res->end + 1;
+> +
+> +again:
+> +       /*
+> +        * find biggest range in b_res that we can use in the middle
+> +        *  and we can not use some spots from start of b_res.
+> +        */
+> +       n_size = resource_size(b_res);
+> +       if (n_size > skip_nr)
+> +               n_size -= skip_nr;
+> +       else
+> +               n_size = 0;
+> +
+> +       memset(busn_res, 0, sizeof(struct resource));
+> +       dev_printk(KERN_DEBUG, dev, "find free %s in res: %pR\n", name, b_res);
+> +       while (n_size >= needed_size) {
+> +               ret = allocate_resource(b_res, busn_res, n_size,
+> +                               b_res->start + skip_nr, b_res->end,
+> +                               1, NULL, NULL);
+> +               if (!ret)
+> +                       return ret;
+> +               n_size--;
+> +       }
+> +
+> +       /* try extend the top of parent bus, find free under top at first */
+> +       write_lock(&resource_lock);
+> +       n_size = __find_res_top_free_size(b_res);
+> +       dev_printk(KERN_DEBUG, dev, "found free %s %ld in res: %pR top\n",
+> +                       name, (unsigned long)n_size, b_res);
+> +
+> +       /* can not extend cross local boundary */
+> +       if ((limit - b_res->end) < (needed_size - n_size))
+> +               goto reduce_needed_size;
+> +
+> +       /* find extended range */
+> +       memset(busn_res, 0, sizeof(struct resource));
+> +       parent_res = b_res;
+> +       while (parent_res) {
+> +               ret = __allocate_resource(parent_res, busn_res,
+> +                        needed_size - n_size,
+> +                        tmp, tmp + needed_size - n_size - 1,
+> +                        1, NULL, NULL, false);
+> +               if (!ret) {
+> +                       /* save parent_res, we need it as stopper later */
+> +                       *p = parent_res;
+> +
+> +                       /* prepare busn_res for return */
+> +                       __release_resource(busn_res);
+> +                       busn_res->start -= n_size;
+> +
+> +                       /* extend parent bus top*/
+> +                       __resource_extend_parents_top(b_res,
+> +                                        needed_size - n_size, parent_res);
+> +                       __request_resource(b_res, busn_res);
+> +
+> +                       write_unlock(&resource_lock);
+> +                       return ret;
+> +               }
+> +               parent_res = parent_res->parent;
+> +       }
+> +
+> +reduce_needed_size:
+> +       write_unlock(&resource_lock);
+> +       /* ret must not be 0 here */
+> +       needed_size--;
+> +       if (needed_size)
+> +               goto again;
+> +
+> +       return ret;
+> +}
+> +
+>  /*
+>  * Managed region resource
+>  */
+> --
+> 1.7.7
+>
