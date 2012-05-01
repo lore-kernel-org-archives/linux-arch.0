@@ -1,65 +1,49 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH -v3 00/11] PCI: pci_host_bridge related cleanup
-Date: Mon, 30 Apr 2012 17:28:36 -0700
-Message-ID: <CAE9FiQVrq8dsFADs7JRuousV7Ckc9DnS95iTKp_-UEJA1j8CFA@mail.gmail.com>
-References: <1332135624-13528-1-git-send-email-yinghai@kernel.org>
-	<CAErSpo4sYW9juTsJbuow7OzQH3Q-7tuQT1OdnVvGD-b5Gtfb1Q@mail.gmail.com>
+Subject: Re: [PATCH -v11 04/30] PCI: Add busn_res into struct pci_bus.
+Date: Mon, 30 Apr 2012 17:32:18 -0700
+Message-ID: <CAE9FiQV0XTd_1Ujz=tb6BSuwJvJ9nbT_GbE2PREtgMGv=yG0+g@mail.gmail.com>
+References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
+	<1332135781-13695-5-git-send-email-yinghai@kernel.org>
+	<CAErSpo6Wbjh_pzDOkGRoog2WeJQET9UT0fiaanV0r15pq7hT6Q@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f46.google.com ([209.85.160.46]:37148 "EHLO
-	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756896Ab2EAA2h convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 20:28:37 -0400
-In-Reply-To: <CAErSpo4sYW9juTsJbuow7OzQH3Q-7tuQT1OdnVvGD-b5Gtfb1Q@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <CAErSpo6Wbjh_pzDOkGRoog2WeJQET9UT0fiaanV0r15pq7hT6Q@mail.gmail.com>
+Sender: linux-pci-owner@vger.kernel.org
 To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, x86 <x86@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 30, 2012 at 3:59 PM, Bjorn Helgaas <bhelgaas@google.com> wr=
+On Mon, Apr 30, 2012 at 4:25 PM, Bjorn Helgaas <bhelgaas@google.com> wr=
 ote:
-> On Sun, Mar 18, 2012 at 11:40 PM, Yinghai Lu <yinghai@kernel.org> wro=
-te:
->> will add struct device dev into host_bridge struct.
->> also will add release support to make sure allocated resource get
->> freed during root bus removal including hostbridge and pci_sysdata.
+>> --- a/include/linux/pci.h
+>> +++ b/include/linux/pci.h
+>> @@ -419,6 +419,7 @@ struct pci_bus {
+>> =A0 =A0 =A0 =A0struct list_head slots; =A0 =A0 =A0 =A0 /* list of sl=
+ots on this bus */
+>> =A0 =A0 =A0 =A0struct resource *resource[PCI_BRIDGE_RESOURCE_NUM];
+>> =A0 =A0 =A0 =A0struct list_head resources; =A0 =A0 /* address space =
+routed to this bus */
+>> + =A0 =A0 =A0 struct resource busn_res; =A0 =A0 =A0 /* track registe=
+red bus num range */
 >>
->> The patches need to apply to linus v3.3 plus pci/linux-next
->>
->> could get from
->> =A0 =A0 =A0 =A0git://git.kernel.org/pub/scm/linux/kernel/git/yinghai=
-/linux-yinghai.git for-pci-hostbridge-cleanup
+>> =A0 =A0 =A0 =A0struct pci_ops =A0*ops; =A0 =A0 =A0 =A0 =A0 /* config=
+uration access functions */
+>> =A0 =A0 =A0 =A0void =A0 =A0 =A0 =A0 =A0 =A0*sysdata; =A0 =A0 =A0 /* =
+hook for sys-specific extension */
 >
-> I applied the patches from this branch to my "next" branch, with the
-> exception of the following. =A0Please take a look and make sure my
-> "next" branch has what you expect.
-
-Yes, these 11 patches are correct in your -next tree.
-
-Thanks for updating subject and changelog.
-
->
->> =A0x86, PCI: Merge root info printing for not using _CRS path
->
-> This changes from printing info for all HT links to just one (probabl=
+> struct pci_bus already includes "secondary" and "subordinate". =A0 =A0=
+This
+> new "busn_res" looks like it will contain the same information. =A0Wh=
 y
-> unintentional). =A0It should also use the "[bus %02x-%02x]" format as=
- we
-> do elsewhere.
->
->> x86, PCI: Add print all root info for not using _CRS path
->
-> This fixes the unintentional "only print one HT link info" change fro=
-m above.
->
->> x86, PCI: Allocate temp range array in amd_bus pci_root_info probing
->
-> This had no changelog, so I don't know why we want this.
+> do we need both?
 
-let drop those three patches now. only for printing out etc.
+In some case the could be different.
+for root bus from _CRS, busn_res could bigger than subordinate,
+because scan_childbus will update subordinate.
 
-Thanks
+and also we have one resource to insert it into the resource tree, so
+later could probe/allocate bus num range.
 
 Yinghai
