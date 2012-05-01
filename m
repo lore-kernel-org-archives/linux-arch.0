@@ -1,76 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:63120 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757423Ab2D3X3X convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 19:29:23 -0400
-Received: by lbbgm6 with SMTP id gm6so584137lbb.19
-        for <linux-arch@vger.kernel.org>; Mon, 30 Apr 2012 16:29:22 -0700 (PDT)
+Received: from mail-pb0-f46.google.com ([209.85.160.46]:50643 "EHLO
+	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757798Ab2EAAcT convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 20:32:19 -0400
 MIME-Version: 1.0
-In-Reply-To: <1332135781-13695-6-git-send-email-yinghai@kernel.org>
-References: <1332135781-13695-1-git-send-email-yinghai@kernel.org> <1332135781-13695-6-git-send-email-yinghai@kernel.org>
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Mon, 30 Apr 2012 17:29:01 -0600
-Message-ID: <CAErSpo5AnsmfQs4oa3P7AQyPTJ+YqCVVh5p2L=bmDY=A+BO9PQ@mail.gmail.com>
-Subject: Re: [PATCH -v11 05/30] PCI: Add busn_res operation functions
+In-Reply-To: <CAErSpo6Wbjh_pzDOkGRoog2WeJQET9UT0fiaanV0r15pq7hT6Q@mail.gmail.com>
+References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
+	<1332135781-13695-5-git-send-email-yinghai@kernel.org>
+	<CAErSpo6Wbjh_pzDOkGRoog2WeJQET9UT0fiaanV0r15pq7hT6Q@mail.gmail.com>
+Date: Mon, 30 Apr 2012 17:32:18 -0700
+Message-ID: <CAE9FiQV0XTd_1Ujz=tb6BSuwJvJ9nbT_GbE2PREtgMGv=yG0+g@mail.gmail.com>
+Subject: Re: [PATCH -v11 04/30] PCI: Add busn_res into struct pci_bus.
+From: Yinghai Lu <yinghai@kernel.org>
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
+To: Bjorn Helgaas <bhelgaas@google.com>
 Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120430232901.WgANOnUsiEu3Bnz4AEZ_6wgS2GpLR6ItkXANpyGZ7ew@z>
+Message-ID: <20120501003218.FAgkoM3xZlWIbFTNtqeNFb9CbM8KY6_9bJtdBDc95CI@z>
 
-On Sun, Mar 18, 2012 at 11:42 PM, Yinghai Lu <yinghai@kernel.org> wrote:
-> Will use them insert/update busn res in pci_bus struct.
+On Mon, Apr 30, 2012 at 4:25 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+>> --- a/include/linux/pci.h
+>> +++ b/include/linux/pci.h
+>> @@ -419,6 +419,7 @@ struct pci_bus {
+>>        struct list_head slots;         /* list of slots on this bus */
+>>        struct resource *resource[PCI_BRIDGE_RESOURCE_NUM];
+>>        struct list_head resources;     /* address space routed to this bus */
+>> +       struct resource busn_res;       /* track registered bus num range */
+>>
+>>        struct pci_ops  *ops;           /* configuration access functions */
+>>        void            *sysdata;       /* hook for sys-specific extension */
 >
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> ---
->  drivers/pci/probe.c |   50 ++++++++++++++++++++++++++++++++++++++++++++++++++
->  include/linux/pci.h |    3 +++
->  2 files changed, 53 insertions(+), 0 deletions(-)
->
-> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-> index d30948d..9235b16 100644
-> --- a/drivers/pci/probe.c
-> +++ b/drivers/pci/probe.c
-> @@ -1679,6 +1679,56 @@ err_out:
->        return NULL;
->  }
->
-> +void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
-> +{
-> +       struct resource *res = &b->busn_res;
-> +       struct resource *parent_res;
-> +       int ret;
-> +
-> +       res->start = bus;
-> +       res->end = bus_max;
-> +       res->flags = IORESOURCE_BUS;
-> +
-> +       /* no parent for root bus' busn_res */
-> +       if (!pci_is_root_bus(b)) {
-> +               parent_res = &b->parent->busn_res;
-> +
-> +               ret = insert_resource(parent_res, res);
-> +
-> +               dev_printk(KERN_DEBUG, &b->dev,
-> +                       "busn_res: %pR %s inserted under %pR\n",
-> +                       res, ret ? "can not be" : "is", parent_res);
-> +       } else
-> +               dev_printk(KERN_DEBUG, &b->dev,
-> +                       "busn_res: %pR for root bus\n",
-> +                       res);
-> +}
-> +
-> +void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
-> +{
-> +       struct resource *res = &b->busn_res;
-> +       struct resource old_res = *res;
-> +
-> +       res->end = bus_max;
+> struct pci_bus already includes "secondary" and "subordinate".    This
+> new "busn_res" looks like it will contain the same information.  Why
+> do we need both?
 
-I've mentioned before that I'm not comfortable with updating the
-struct resource after it's been inserted into the tree.  If you want
-to do an in-place update, I think you need to add a new interface in
-kernel/resource.c so it can make sure the resource tree remains
-consistent.
+In some case the could be different.
+for root bus from _CRS, busn_res could bigger than subordinate,
+because scan_childbus will update subordinate.
+
+and also we have one resource to insert it into the resource tree, so
+later could probe/allocate bus num range.
+
+Yinghai
