@@ -1,76 +1,65 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH -v11 05/30] PCI: Add busn_res operation functions
-Date: Mon, 30 Apr 2012 17:29:01 -0600
-Message-ID: <CAErSpo5AnsmfQs4oa3P7AQyPTJ+YqCVVh5p2L=bmDY=A+BO9PQ@mail.gmail.com>
-References: <1332135781-13695-1-git-send-email-yinghai@kernel.org> <1332135781-13695-6-git-send-email-yinghai@kernel.org>
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: Re: [PATCH -v3 00/11] PCI: pci_host_bridge related cleanup
+Date: Mon, 30 Apr 2012 17:28:36 -0700
+Message-ID: <CAE9FiQVrq8dsFADs7JRuousV7Ckc9DnS95iTKp_-UEJA1j8CFA@mail.gmail.com>
+References: <1332135624-13528-1-git-send-email-yinghai@kernel.org>
+	<CAErSpo4sYW9juTsJbuow7OzQH3Q-7tuQT1OdnVvGD-b5Gtfb1Q@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <1332135781-13695-6-git-send-email-yinghai@kernel.org>
-Sender: linux-pci-owner@vger.kernel.org
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pb0-f46.google.com ([209.85.160.46]:37148 "EHLO
+	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756896Ab2EAA2h convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 20:28:37 -0400
+In-Reply-To: <CAErSpo4sYW9juTsJbuow7OzQH3Q-7tuQT1OdnVvGD-b5Gtfb1Q@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, x86 <x86@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Sun, Mar 18, 2012 at 11:42 PM, Yinghai Lu <yinghai@kernel.org> wrote=
-:
-> Will use them insert/update busn res in pci_bus struct.
+On Mon, Apr 30, 2012 at 3:59 PM, Bjorn Helgaas <bhelgaas@google.com> wr=
+ote:
+> On Sun, Mar 18, 2012 at 11:40 PM, Yinghai Lu <yinghai@kernel.org> wro=
+te:
+>> will add struct device dev into host_bridge struct.
+>> also will add release support to make sure allocated resource get
+>> freed during root bus removal including hostbridge and pci_sysdata.
+>>
+>> The patches need to apply to linus v3.3 plus pci/linux-next
+>>
+>> could get from
+>> =A0 =A0 =A0 =A0git://git.kernel.org/pub/scm/linux/kernel/git/yinghai=
+/linux-yinghai.git for-pci-hostbridge-cleanup
 >
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> ---
-> =A0drivers/pci/probe.c | =A0 50 +++++++++++++++++++++++++++++++++++++=
-+++++++++++++
-> =A0include/linux/pci.h | =A0 =A03 +++
-> =A02 files changed, 53 insertions(+), 0 deletions(-)
->
-> diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-> index d30948d..9235b16 100644
-> --- a/drivers/pci/probe.c
-> +++ b/drivers/pci/probe.c
-> @@ -1679,6 +1679,56 @@ err_out:
-> =A0 =A0 =A0 =A0return NULL;
-> =A0}
->
-> +void pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max=
-)
-> +{
-> + =A0 =A0 =A0 struct resource *res =3D &b->busn_res;
-> + =A0 =A0 =A0 struct resource *parent_res;
-> + =A0 =A0 =A0 int ret;
-> +
-> + =A0 =A0 =A0 res->start =3D bus;
-> + =A0 =A0 =A0 res->end =3D bus_max;
-> + =A0 =A0 =A0 res->flags =3D IORESOURCE_BUS;
-> +
-> + =A0 =A0 =A0 /* no parent for root bus' busn_res */
-> + =A0 =A0 =A0 if (!pci_is_root_bus(b)) {
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 parent_res =3D &b->parent->busn_res;
-> +
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 ret =3D insert_resource(parent_res, res=
-);
-> +
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 dev_printk(KERN_DEBUG, &b->dev,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 "busn_res: %pR %s inser=
-ted under %pR\n",
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 res, ret ? "can not be"=
- : "is", parent_res);
-> + =A0 =A0 =A0 } else
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 dev_printk(KERN_DEBUG, &b->dev,
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 "busn_res: %pR for root=
- bus\n",
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 res);
-> +}
-> +
-> +void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
-> +{
-> + =A0 =A0 =A0 struct resource *res =3D &b->busn_res;
-> + =A0 =A0 =A0 struct resource old_res =3D *res;
-> +
-> + =A0 =A0 =A0 res->end =3D bus_max;
+> I applied the patches from this branch to my "next" branch, with the
+> exception of the following. =A0Please take a look and make sure my
+> "next" branch has what you expect.
 
-I've mentioned before that I'm not comfortable with updating the
-struct resource after it's been inserted into the tree.  If you want
-to do an in-place update, I think you need to add a new interface in
-kernel/resource.c so it can make sure the resource tree remains
-consistent.
+Yes, these 11 patches are correct in your -next tree.
+
+Thanks for updating subject and changelog.
+
+>
+>> =A0x86, PCI: Merge root info printing for not using _CRS path
+>
+> This changes from printing info for all HT links to just one (probabl=
+y
+> unintentional). =A0It should also use the "[bus %02x-%02x]" format as=
+ we
+> do elsewhere.
+>
+>> x86, PCI: Add print all root info for not using _CRS path
+>
+> This fixes the unintentional "only print one HT link info" change fro=
+m above.
+>
+>> x86, PCI: Allocate temp range array in amd_bus pci_root_info probing
+>
+> This had no changelog, so I don't know why we want this.
+
+let drop those three patches now. only for printing out etc.
+
+Thanks
+
+Yinghai
