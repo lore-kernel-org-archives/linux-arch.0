@@ -1,49 +1,42 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH -v11 04/30] PCI: Add busn_res into struct pci_bus.
-Date: Mon, 30 Apr 2012 17:32:18 -0700
-Message-ID: <CAE9FiQV0XTd_1Ujz=tb6BSuwJvJ9nbT_GbE2PREtgMGv=yG0+g@mail.gmail.com>
+Subject: Re: [PATCH -v11 05/30] PCI: Add busn_res operation functions
+Date: Mon, 30 Apr 2012 17:34:45 -0700
+Message-ID: <CAE9FiQUH1SiToMBanL7brzem920rCoq70hh3KKxH-ps190=51w@mail.gmail.com>
 References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
-	<1332135781-13695-5-git-send-email-yinghai@kernel.org>
-	<CAErSpo6Wbjh_pzDOkGRoog2WeJQET9UT0fiaanV0r15pq7hT6Q@mail.gmail.com>
+	<1332135781-13695-6-git-send-email-yinghai@kernel.org>
+	<CAErSpo5AnsmfQs4oa3P7AQyPTJ+YqCVVh5p2L=bmDY=A+BO9PQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <CAErSpo6Wbjh_pzDOkGRoog2WeJQET9UT0fiaanV0r15pq7hT6Q@mail.gmail.com>
-Sender: linux-pci-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pb0-f46.google.com ([209.85.160.46]:38048 "EHLO
+	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754956Ab2EAAep convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 20:34:45 -0400
+In-Reply-To: <CAErSpo5AnsmfQs4oa3P7AQyPTJ+YqCVVh5p2L=bmDY=A+BO9PQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>
 Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-On Mon, Apr 30, 2012 at 4:25 PM, Bjorn Helgaas <bhelgaas@google.com> wr=
+On Mon, Apr 30, 2012 at 4:29 PM, Bjorn Helgaas <bhelgaas@google.com> wr=
 ote:
->> --- a/include/linux/pci.h
->> +++ b/include/linux/pci.h
->> @@ -419,6 +419,7 @@ struct pci_bus {
->> =A0 =A0 =A0 =A0struct list_head slots; =A0 =A0 =A0 =A0 /* list of sl=
-ots on this bus */
->> =A0 =A0 =A0 =A0struct resource *resource[PCI_BRIDGE_RESOURCE_NUM];
->> =A0 =A0 =A0 =A0struct list_head resources; =A0 =A0 /* address space =
-routed to this bus */
->> + =A0 =A0 =A0 struct resource busn_res; =A0 =A0 =A0 /* track registe=
-red bus num range */
->>
->> =A0 =A0 =A0 =A0struct pci_ops =A0*ops; =A0 =A0 =A0 =A0 =A0 /* config=
-uration access functions */
->> =A0 =A0 =A0 =A0void =A0 =A0 =A0 =A0 =A0 =A0*sysdata; =A0 =A0 =A0 /* =
-hook for sys-specific extension */
+> On Sun, Mar 18, 2012 at 11:42 PM, Yinghai Lu <yinghai@kernel.org> wro=
+te:
+>> +void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
+>> +{
+>> + =A0 =A0 =A0 struct resource *res =3D &b->busn_res;
+>> + =A0 =A0 =A0 struct resource old_res =3D *res;
+>> +
+>> + =A0 =A0 =A0 res->end =3D bus_max;
 >
-> struct pci_bus already includes "secondary" and "subordinate". =A0 =A0=
-This
-> new "busn_res" looks like it will contain the same information. =A0Wh=
-y
-> do we need both?
+> I've mentioned before that I'm not comfortable with updating the
+> struct resource after it's been inserted into the tree. =A0If you wan=
+t
+> to do an in-place update, I think you need to add a new interface in
+> kernel/resource.c so it can make sure the resource tree remains
+> consistent.
 
-In some case the could be different.
-for root bus from _CRS, busn_res could bigger than subordinate,
-because scan_childbus will update subordinate.
-
-and also we have one resource to insert it into the resource tree, so
-later could probe/allocate bus num range.
-
-Yinghai
+ok, will add one function in kernel/resource.c to make sure that end
+could be updated safely
+by checking parent and children.
