@@ -1,111 +1,109 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Date: Tue, 1 May 2012 06:52:26 +0100
-Message-ID: <20120501055226.GH6871@ZenIV.linux.org.uk>
-References: <20120426231942.GJ6871@ZenIV.linux.org.uk>
- <20120429180535.GZ6871@ZenIV.linux.org.uk>
- <20120501043129.GF6871@ZenIV.linux.org.uk>
- <201205010106.38495.vapier@gentoo.org>
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: Re: [PATCH -v11 04/30] PCI: Add busn_res into struct pci_bus.
+Date: Mon, 30 Apr 2012 23:27:58 -0700
+Message-ID: <CAE9FiQUOsMOQgZXCuPHpc6ZSEGnY3nv+uy1o0xvrW8-LKwNZrg@mail.gmail.com>
+References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
+	<1332135781-13695-5-git-send-email-yinghai@kernel.org>
+	<CAErSpo6Wbjh_pzDOkGRoog2WeJQET9UT0fiaanV0r15pq7hT6Q@mail.gmail.com>
+	<CAE9FiQV0XTd_1Ujz=tb6BSuwJvJ9nbT_GbE2PREtgMGv=yG0+g@mail.gmail.com>
+	<CAErSpo57pH81KtUbYZ3j6y4kC+ka33Lzr4rfcywVWf8OTmH_5Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:41974 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750817Ab2EAFwa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 May 2012 01:52:30 -0400
-Content-Disposition: inline
-In-Reply-To: <201205010106.38495.vapier@gentoo.org>
+Received: from mail-pz0-f51.google.com ([209.85.210.51]:40134 "EHLO
+	mail-pz0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753051Ab2EAG16 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 May 2012 02:27:58 -0400
+In-Reply-To: <CAErSpo57pH81KtUbYZ3j6y4kC+ka33Lzr4rfcywVWf8OTmH_5Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Frysinger <vapier@gentoo.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, May 01, 2012 at 01:06:36AM -0400, Mike Frysinger wrote:
-> > blackfin: no loop (== multiple signals handling is fucked); no check either
-> >         ret_from_fork doesn't handle signals, etc., userland or not.
-> >         kernel_execve doesn't handle signals, etc., success or no success
-> >         conclusion: check is probably not needed, multiple pending signals
-> > are screwed
-> 
-> to be honest, i haven't been following this thread as Blackfin wasn't mentioned 
-> in the initial summary.  now it seems we have ;).  i tried going back through 
-> this TIF_NOTIFY_RESUME thread but haven't quite got a bead on what needs to be 
-> done.
-> 
-> seems like you're only referring to ret_from_fork here and not the normal 
-> syscall return path ?  in the Blackfin case, we don't have a fork(), so we only 
-> have to handle the supervisor mode case (spawning kthreads), so i don't think 
-> we're quite as fucked as you might think :).
+On Mon, Apr 30, 2012 at 9:02 PM, Bjorn Helgaas <bhelgaas@google.com> wr=
+ote:
+> On Mon, Apr 30, 2012 at 6:32 PM, Yinghai Lu <yinghai@kernel.org> wrot=
+e:
+>> On Mon, Apr 30, 2012 at 4:25 PM, Bjorn Helgaas <bhelgaas@google.com>=
+ wrote:
+>>>> --- a/include/linux/pci.h
+>>>> +++ b/include/linux/pci.h
+>>>> @@ -419,6 +419,7 @@ struct pci_bus {
+>>>> =A0 =A0 =A0 =A0struct list_head slots; =A0 =A0 =A0 =A0 /* list of =
+slots on this bus */
+>>>> =A0 =A0 =A0 =A0struct resource *resource[PCI_BRIDGE_RESOURCE_NUM];
+>>>> =A0 =A0 =A0 =A0struct list_head resources; =A0 =A0 /* address spac=
+e routed to this bus */
+>>>> + =A0 =A0 =A0 struct resource busn_res; =A0 =A0 =A0 /* track regis=
+tered bus num range */
+>>>>
+>>>> =A0 =A0 =A0 =A0struct pci_ops =A0*ops; =A0 =A0 =A0 =A0 =A0 /* conf=
+iguration access functions */
+>>>> =A0 =A0 =A0 =A0void =A0 =A0 =A0 =A0 =A0 =A0*sysdata; =A0 =A0 =A0 /=
+* hook for sys-specific extension */
+>>>
+>>> struct pci_bus already includes "secondary" and "subordinate". =A0 =
+=A0This
+>>> new "busn_res" looks like it will contain the same information. =A0=
+Why
+>>> do we need both?
+>>
+>> In some case the could be different.
+>> for root bus from _CRS, busn_res could bigger than subordinate,
+>> because scan_childbus will update subordinate.
+>
+> For a bus below a P2P bridge, I think it's always the case that the
+> bridge's Subordinate Bus Number in config space =3D=3D bus->subordina=
+te =3D=3D
+> bus->busn_res.end (correct me if I'm wrong). =A0I don't like the
+> redundancy in this case.
 
-*anything* that goes through do_fork() (fork(2), clone(2), vfork(2)) will
-hit ret_from_fork.  And kernel_execve() in case of success returns into
-userland (on failure it stays in kernel).  So handling signals et.al.
-on those would be nice.
+there are about 70 bus->subordinate reference and 40 bus->secondary ref=
+erence.
 
-In any case, the fucked up part is about handling of multiple pending
-signals.
+could try to update them in following patch set.
 
-> what is it you're suggesting we add ?  in the past, i found documentation on 
-> the arch TIF_*/notify requirements to be pretty much non-existent.  so some 
-> parts of the Blackfin paths are what i found from my eyes bleeding x86 asm 
+>
+> For a root bus where you set bus->busn_res from _CRS and
+> bus->subordinate =3D pci_scan_child_bus(), bus->busn_res.end will
+> generally be different from bus->subordinate, but there's no point in
+> keeping track of bus->subordinate.
+>
+> The reason we care about secondary and subordinate is so we can
+> allocate bus numbers when enumerating devices behind a bridge. =A0The
+> only thing we need for that is the aperture of the upstream bridge an=
+d
+> the apertures of any peer bridges on the same bus. =A0Let's say we ha=
+ve
+> this:
+>
+> =A0 =A0 =A0 =A0pci 00:00.0 bridge to [bus a-b]
+> =A0 =A0 =A0 =A0pci a:01.0 bridge to [bus c-d] =A0(already enumerated)
+> =A0 =A0 =A0 =A0pci a:02.0 bridge to [bus e-f] =A0(already enumerated)
+> =A0 =A0 =A0 =A0pci a:03.0 bridge to [bus x-y] =A0(enumerating now)
+>
+> We know [c-d] is contained in [a-b]; [e-f] is contained in [a-b]; a <
+> c; and a < e. =A0To enumerate behind a:03.0, we need to assign x & y
+> such that a < x; [x-y] is contained in [a-b]; and [x-y] does not
+> overlap [c-d] or [e-f]. =A0The value from pci_scan_child_bus() is
+> probably useful for setting y, but we don't have to save it in the
+> struct pci_bus for that.
 
-Tell me about that...  I've spent the last couple of weeks sniffing the
-asm glue all over arch/* ;-/
+busn alloc will try to solve x-y may need big range than [a,b], it
+will extend top of b and parents of bus a.
+instead of just b+1 blindly.
 
-> paths, and from single testing some random tests (like strace or gdb).  things 
-> seem to run & be debugable, and no one has complained thus far, so we ship it!
-> -mike
+and will have more strict checking to avoid overlapping.
 
-The main issue with blackfin, AFAICS, is that if you get several signals
-pending, you need to build sigframes for all of them.  Especially since
-you might have generated one yourself (SIGSEGV on failure to create a userland
-stack frame for signal handler).  Leaving that SIGSEGV to be picked at
-more or less random moment when you enter the kernel next time (e.g. the
-next timer interrupt) is Not Nice(tm)...
+>
+>> and also we have one resource to insert it into the resource tree, s=
+o
+>> later could probe/allocate bus num range.
+>
+> Sorry, I didn't understand this.
 
-So the normal logics looks like this:
-loop:
-	disable interrupts
-	read thread flags
-	if nothing had been set, you are done.  Restore registers and return
-wherever your pt_regs would have you return.
-	if NEED_RESCHED is set
-		enable interrupts unless your context switch does that for you
-		schedule();
-		goto loop;
-	at that point you don't need interrupts anymore; enable them
-	if SIGPENDING or NOTIFY_RESUME is set
-		do_notify_resume();
-		goto loop;
-	// maybe arch-specific flags handled the same way - before or
-	// after SIGPENDING/NOTIFY_RESUME, also jumping back to the
-	// beginning of the loop
+Using busn_res to track and allocate busn range, by put them in the
+resource tree could reuse resource allocating code.
 
-The trouble is, you *really* don't want to get into that loop when
-returning to kernel mode.  You can't process signals in that case,
-so SIGPENDING will stay there and you'll loop forever.  One way to
-deal with that one is to avoid going there if you are returning to
-kernel mode; I think it'll be the easiest variant in case of blackfin.
-Another way would be to check that just before we'd call do_notify_resume() -
-again, buggering off if we are returning to the kernel.
-
-Another thing you'll need is regs->orig_p0 = -1; in handle_restart() -
-with multiple signals being handled you want restarts happening only
-with the first one.  In your case the "I don't need to bother
-with restarts" check is simple - something like arm has it much more
-painfully...
-
-IOW, here's what I'd suggest doing:
-
-* add that regs->orig_p0 = -1; to handle_restart()
-* add jump .Lresume_userspace_1 after the call of do_notify_resume()
-* instead of RESTORE_CONTEXT/rti in ret_from_fork and kernel_execve()
-have them jump to .Lresume_userspace.
-
-and that'll be it.  BTW, 
- do_restart:   
-                regs->p0 = regs->orig_p0;
-                regs->r0 = regs->orig_r0;
-                regs->pc -= 2;
-in handle_restart() looks excessive, so you might want to trim it a bit
-while you are there ;-)
+Yinghai
