@@ -1,94 +1,85 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
+From: Mike Frysinger <vapier@gentoo.org>
 Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Date: Tue, 1 May 2012 05:31:29 +0100
-Message-ID: <20120501043129.GF6871@ZenIV.linux.org.uk>
-References: <20120426231942.GJ6871@ZenIV.linux.org.uk>
- <20120427172444.GA30267@redhat.com>
- <20120427184528.GL6871@ZenIV.linux.org.uk>
- <20120427202002.8ED632C0BF@topped-with-meat.com>
- <20120427211244.GO6871@ZenIV.linux.org.uk>
- <20120427212729.652542C0AF@topped-with-meat.com>
- <20120427231526.GP6871@ZenIV.linux.org.uk>
- <20120428024208.GS6871@ZenIV.linux.org.uk>
- <20120429161818.GA15792@redhat.com>
- <20120429180535.GZ6871@ZenIV.linux.org.uk>
+Date: Tue, 1 May 2012 01:06:36 -0400
+Message-ID: <201205010106.38495.vapier@gentoo.org>
+References: <20120426231942.GJ6871@ZenIV.linux.org.uk> <20120429180535.GZ6871@ZenIV.linux.org.uk> <20120501043129.GF6871@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: multipart/signed;
+  boundary="nextPart1839395.1EfDY8gLil";
+  protocol="application/pgp-signature";
+  micalg=pgp-sha1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:53439 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751204Ab2EAEbf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 May 2012 00:31:35 -0400
-Content-Disposition: inline
-In-Reply-To: <20120429180535.GZ6871@ZenIV.linux.org.uk>
+Received: from smtp.gentoo.org ([140.211.166.183]:56179 "EHLO smtp.gentoo.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751881Ab2EAFGF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 1 May 2012 01:06:05 -0400
+In-Reply-To: <20120501043129.GF6871@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chen Liqin <liqin.chen@sunplusct.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: Chen Liqin <liqin.chen@sunplusct.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>
 
-On Sun, Apr 29, 2012 at 07:05:35PM +0100, Al Viro wrote:
-> > Looks like, the patch above fixes that.
-> 
-> Yes, found that shortly after posting.  No such luck for arm, though...
+--nextPart1839395.1EfDY8gLil
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: quoted-printable
 
-And for a bunch of other platforms too.  Situation right now:
+On Tuesday 01 May 2012 00:31:29 Al Viro wrote:
+> blackfin: no loop (=3D=3D multiple signals handling is fucked); no check =
+either
+>         ret_from_fork doesn't handle signals, etc., userland or not.
+>         kernel_execve doesn't handle signals, etc., success or no success
+>         conclusion: check is probably not needed, multiple pending signals
+> are screwed
 
-alpha m68k powerpc sparc: do_notify_resume() reached only when returning to
-user mode, no check
+to be honest, i haven't been following this thread as Blackfin wasn't menti=
+oned=20
+in the initial summary.  now it seems we have ;).  i tried going back throu=
+gh=20
+this TIF_NOTIFY_RESUME thread but haven't quite got a bead on what needs to=
+ be=20
+done.
 
-arm frv x86 mn10300: in current signal.git reached only when returning to
-user mode, check removed
+seems like you're only referring to ret_from_fork here and not the normal=20
+syscall return path ?  in the Blackfin case, we don't have a fork(), so we =
+only=20
+have to handle the supervisor mode case (spawning kthreads), so i don't thi=
+nk=20
+we're quite as fucked as you might think :).
 
-xtensa s390: reached only when returning to user mode, check removed
+what is it you're suggesting we add ?  in the past, i found documentation o=
+n=20
+the arch TIF_*/notify requirements to be pretty much non-existent.  so some=
+=20
+parts of the Blackfin paths are what i found from my eyes bleeding x86 asm=
+=20
+paths, and from single testing some random tests (like strace or gdb).  thi=
+ngs=20
+seem to run & be debugable, and no one has complained thus far, so we ship =
+it!
+=2Dmike
 
-microblaze: in current signal.git reached only when returning to user mode,
-check removed; also fixed bogus restart on sigreturn (a-la what had been
-fixed on arm a couple of years ago) along with handling of multiple signal
-arrivals.
+--nextPart1839395.1EfDY8gLil
+Content-Type: application/pgp-signature; name=signature.asc 
+Content-Description: This is a digitally signed message part.
 
-blackfin: no loop (== multiple signals handling is fucked); no check either
-        ret_from_fork doesn't handle signals, etc., userland or not.
-        kernel_execve doesn't handle signals, etc., success or no success
-        conclusion: check is probably not needed, multiple pending signals are
-screwed
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.17 (GNU/Linux)
 
-score: something very fishy there; fixing bogus restart on sigreturn is
-simple, but what exactly clears regs->is_syscall on interrupts et.al.?
-I don't see anything similar in there.  Looks like interrupts could be
-confused for syscalls wrt restart logics.  And if happens when signal is
-pending *and* %r4 contains e.g. -514, we'll get that -514 silently replaced
-with -4.  Or cp0_epc gets decremented by 8, resulting in a couple of insns
-getting repeated...  And regs->in_syscall is fairly deep in the stack,
-so it doesn't look like it was something zeroed by hardware on interrupt...
-What am I missing here?
+iQIcBAABAgAGBQJPn29eAAoJEEFjO5/oN/WBIuQP/3MgORCglH6V6U8MiDn7LOaY
+3X0M6QFTu0Sl+p1b7H2IHqZgGdohGr7QaotebkxCNrACkUY4axKeUxJcWE+aQs5C
+LP478XspH/a+XdCunvSlmezL8dY4eLlmi1dyHCAzOoKZ2e0YECGm+NkRwENHPI8N
+SAZo9rljjEYkvKjOO1+25jjkkAsmad3YiynXshDPco0km4winwdjrt0Vk1wlkgJz
+EFRNPvKmIAVDb9d2GvkhnNuX5A2pP5DJIlLT7afJ/JCexdfAS72U1+HhLczgl1ZY
+cx7vw/IgpRjLeTR0JA6L3yFxcNkiv111MJmJuITWMwBKO3B0X/FqHo0IRf9gy+fv
+p4SuQslugavmtMK8z+jO0E2f3+fLwxrnCneCu3FhqU2vYzIdTMJsDCT6S0fBrrp4
+jFaFSCgDDZ2bEMAHbXjBh+RkVfq+ECkIoMV12odPDHNdC0lTX76FJBzLTNIxYrlu
+Ieh5SSnyL5QtceEwtJR0IxGyq88uId6cFGVj0vQkDo7xxfK/nUnXAo1UPly+Ocd8
+yr4QryS0SWtEzGt9kDJ07Su2CBmKiHZMS9JUjfo2KBczkv2RMODYPnOFS9j2rczB
+A6KJcThKxO3Y9N/wK9ZT+ISIFiNOgq4hOM7Jcx5w4SgnmobhtZEtDYN5YhB1cr8V
+6tLw10yi/PBYnTBX1XZf
+=5XkO
+-----END PGP SIGNATURE-----
 
-It gets even funnier - in syscall_trace_enter, after we'd
-done do_syscall_trace() we have this:
-        brl     r8
-(i.e. the actual call of sys_whatever_it_was()) followed by
-        li      r8, -MAX_ERRNO - 1
-        sw      r8, [r0, PT_R7]         # set error flag
-
-        neg     r4, r4                  # error
-        sw      r4, [r0, PT_R0]         # set flag for syscall
-                                        # restarting
-1:      sw      r4, [r0, PT_R2]         # result
-        j       syscall_exit
-which looks like a result of severe bitrot.  For one thing, regs->regs[0]
-is *not* used anywhere in syscall restart logics in arch/score/kernel/signal.c;
-for another, the whole thing looks like severely mangled remnants of
-	if ((unsigned long)r4 >= (unsigned long)-MAX_ERRNO) {
-		regs->regs[7] = 1;
-		r4 = -r4;
-	}
-	regs->regs[4] = r4;
-we do on normal (non-traced) syscall path.  Unconverted bits and pieces of
-mips?  There return value does go into regs->regs[2] (and regs->regs[0] is
-involved in syscall restart logics, while we are at it).  Overall, this
-area looks very rotten.  BTW, what's the purpose of syscall_exit: there
-and why is it different from syscall_return?  They seem to be identical
-except for stray nop in the beginning of the former.  And unless something
-very subtle is going on there, that nop *is* a stray one - namely, the
-delay slot of immediately preceding "bl schedule_tail"...
-
-Could the maintainers of arch/score tell what's going on?
+--nextPart1839395.1EfDY8gLil--
