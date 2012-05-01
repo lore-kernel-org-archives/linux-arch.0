@@ -1,42 +1,53 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH -v11 05/30] PCI: Add busn_res operation functions
-Date: Mon, 30 Apr 2012 17:34:45 -0700
-Message-ID: <CAE9FiQUH1SiToMBanL7brzem920rCoq70hh3KKxH-ps190=51w@mail.gmail.com>
-References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
-	<1332135781-13695-6-git-send-email-yinghai@kernel.org>
-	<CAErSpo5AnsmfQs4oa3P7AQyPTJ+YqCVVh5p2L=bmDY=A+BO9PQ@mail.gmail.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [patch 23/29] sparc: Use generic init_task
+Date: Mon, 30 Apr 2012 21:46:01 -0400 (EDT)
+Message-ID: <20120430.214601.539803492818231876.davem@davemloft.net>
+References: <alpine.LFD.2.02.1204302239000.6271@ionos>
+	<alpine.LFD.2.02.1204302303390.6271@ionos>
+	<20120430211054.GA8986@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f46.google.com ([209.85.160.46]:38048 "EHLO
-	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754956Ab2EAAep convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 20:34:45 -0400
-In-Reply-To: <CAErSpo5AnsmfQs4oa3P7AQyPTJ+YqCVVh5p2L=bmDY=A+BO9PQ@mail.gmail.com>
+Received: from shards.monkeyblade.net ([198.137.202.13]:44895 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757717Ab2EABrM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 30 Apr 2012 21:47:12 -0400
+In-Reply-To: <20120430211054.GA8986@merkur.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: sam@ravnborg.org
+Cc: tglx@linutronix.de, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, Apr 30, 2012 at 4:29 PM, Bjorn Helgaas <bhelgaas@google.com> wr=
-ote:
-> On Sun, Mar 18, 2012 at 11:42 PM, Yinghai Lu <yinghai@kernel.org> wro=
-te:
->> +void pci_bus_update_busn_res_end(struct pci_bus *b, int bus_max)
->> +{
->> + =A0 =A0 =A0 struct resource *res =3D &b->busn_res;
->> + =A0 =A0 =A0 struct resource old_res =3D *res;
->> +
->> + =A0 =A0 =A0 res->end =3D bus_max;
->
-> I've mentioned before that I'm not comfortable with updating the
-> struct resource after it's been inserted into the tree. =A0If you wan=
-t
-> to do an in-place update, I think you need to add a new interface in
-> kernel/resource.c so it can make sure the resource tree remains
-> consistent.
+From: Sam Ravnborg <sam@ravnborg.org>
+Date: Mon, 30 Apr 2012 23:10:54 +0200
 
-ok, will add one function in kernel/resource.c to make sure that end
-could be updated safely
-by checking parent and children.
+> On Mon, Apr 30, 2012 at 11:04:39PM +0200, Thomas Gleixner wrote:
+>> On Mon, 30 Apr 2012, Thomas Gleixner wrote:
+>> > On Mon, 30 Apr 2012, Sam Ravnborg wrote:
+>> > > This breaks sparc build as it has the following in arch/sparc/Makefile:
+>> > > 
+>> > >     head-y                 += arch/sparc/kernel/init_task.o
+>> > 
+>> > Hrmm, I thought I had catched all of this nonsense.
+>> 
+>> Updated version below.
+>> 
+>> Thanks,
+>> 
+>> 	tglx
+>> 
+>> -------------------->
+>> Subject: sparc: Use generic init_task
+>> From: Thomas Gleixner <tglx@linutronix.de>
+>> Date: Mon, 30 Apr 2012 16:48:55 +0200
+>> 
+>> Same code. Use the generic version. The special Makefile treatment is
+>> pointless anyway as init_task.o contains only data which is handled by
+>> the linker script. So no point on being treated like head text.
+>> 
+>> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+>> Cc: "David S. Miller" <davem@davemloft.net>
+> Acked-by: Sam Ravnborg <sam@ravnborg.org>
+
+Acked-by: David S. Miller <davem@davemloft.net>
