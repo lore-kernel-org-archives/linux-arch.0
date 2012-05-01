@@ -1,81 +1,94 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH -v11 04/30] PCI: Add busn_res into struct pci_bus.
-Date: Mon, 30 Apr 2012 22:02:05 -0600
-Message-ID: <CAErSpo57pH81KtUbYZ3j6y4kC+ka33Lzr4rfcywVWf8OTmH_5Q@mail.gmail.com>
-References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
- <1332135781-13695-5-git-send-email-yinghai@kernel.org> <CAErSpo6Wbjh_pzDOkGRoog2WeJQET9UT0fiaanV0r15pq7hT6Q@mail.gmail.com>
- <CAE9FiQV0XTd_1Ujz=tb6BSuwJvJ9nbT_GbE2PREtgMGv=yG0+g@mail.gmail.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
+Date: Tue, 1 May 2012 05:31:29 +0100
+Message-ID: <20120501043129.GF6871@ZenIV.linux.org.uk>
+References: <20120426231942.GJ6871@ZenIV.linux.org.uk>
+ <20120427172444.GA30267@redhat.com>
+ <20120427184528.GL6871@ZenIV.linux.org.uk>
+ <20120427202002.8ED632C0BF@topped-with-meat.com>
+ <20120427211244.GO6871@ZenIV.linux.org.uk>
+ <20120427212729.652542C0AF@topped-with-meat.com>
+ <20120427231526.GP6871@ZenIV.linux.org.uk>
+ <20120428024208.GS6871@ZenIV.linux.org.uk>
+ <20120429161818.GA15792@redhat.com>
+ <20120429180535.GZ6871@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <CAE9FiQV0XTd_1Ujz=tb6BSuwJvJ9nbT_GbE2PREtgMGv=yG0+g@mail.gmail.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:53439 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751204Ab2EAEbf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 May 2012 00:31:35 -0400
+Content-Disposition: inline
+In-Reply-To: <20120429180535.GZ6871@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chen Liqin <liqin.chen@sunplusct.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>
 
-On Mon, Apr 30, 2012 at 6:32 PM, Yinghai Lu <yinghai@kernel.org> wrote:
-> On Mon, Apr 30, 2012 at 4:25 PM, Bjorn Helgaas <bhelgaas@google.com> =
-wrote:
->>> --- a/include/linux/pci.h
->>> +++ b/include/linux/pci.h
->>> @@ -419,6 +419,7 @@ struct pci_bus {
->>> =A0 =A0 =A0 =A0struct list_head slots; =A0 =A0 =A0 =A0 /* list of s=
-lots on this bus */
->>> =A0 =A0 =A0 =A0struct resource *resource[PCI_BRIDGE_RESOURCE_NUM];
->>> =A0 =A0 =A0 =A0struct list_head resources; =A0 =A0 /* address space=
- routed to this bus */
->>> + =A0 =A0 =A0 struct resource busn_res; =A0 =A0 =A0 /* track regist=
-ered bus num range */
->>>
->>> =A0 =A0 =A0 =A0struct pci_ops =A0*ops; =A0 =A0 =A0 =A0 =A0 /* confi=
-guration access functions */
->>> =A0 =A0 =A0 =A0void =A0 =A0 =A0 =A0 =A0 =A0*sysdata; =A0 =A0 =A0 /*=
- hook for sys-specific extension */
->>
->> struct pci_bus already includes "secondary" and "subordinate". =A0 =A0=
-This
->> new "busn_res" looks like it will contain the same information. =A0W=
-hy
->> do we need both?
->
-> In some case the could be different.
-> for root bus from _CRS, busn_res could bigger than subordinate,
-> because scan_childbus will update subordinate.
+On Sun, Apr 29, 2012 at 07:05:35PM +0100, Al Viro wrote:
+> > Looks like, the patch above fixes that.
+> 
+> Yes, found that shortly after posting.  No such luck for arm, though...
 
-=46or a bus below a P2P bridge, I think it's always the case that the
-bridge's Subordinate Bus Number in config space =3D=3D bus->subordinate=
- =3D=3D
-bus->busn_res.end (correct me if I'm wrong).  I don't like the
-redundancy in this case.
+And for a bunch of other platforms too.  Situation right now:
 
-=46or a root bus where you set bus->busn_res from _CRS and
-bus->subordinate =3D pci_scan_child_bus(), bus->busn_res.end will
-generally be different from bus->subordinate, but there's no point in
-keeping track of bus->subordinate.
+alpha m68k powerpc sparc: do_notify_resume() reached only when returning to
+user mode, no check
 
-The reason we care about secondary and subordinate is so we can
-allocate bus numbers when enumerating devices behind a bridge.  The
-only thing we need for that is the aperture of the upstream bridge and
-the apertures of any peer bridges on the same bus.  Let's say we have
-this:
+arm frv x86 mn10300: in current signal.git reached only when returning to
+user mode, check removed
 
-        pci 00:00.0 bridge to [bus a-b]
-        pci a:01.0 bridge to [bus c-d]  (already enumerated)
-        pci a:02.0 bridge to [bus e-f]  (already enumerated)
-        pci a:03.0 bridge to [bus x-y]  (enumerating now)
+xtensa s390: reached only when returning to user mode, check removed
 
-We know [c-d] is contained in [a-b]; [e-f] is contained in [a-b]; a <
-c; and a < e.  To enumerate behind a:03.0, we need to assign x & y
-such that a < x; [x-y] is contained in [a-b]; and [x-y] does not
-overlap [c-d] or [e-f].  The value from pci_scan_child_bus() is
-probably useful for setting y, but we don't have to save it in the
-struct pci_bus for that.
+microblaze: in current signal.git reached only when returning to user mode,
+check removed; also fixed bogus restart on sigreturn (a-la what had been
+fixed on arm a couple of years ago) along with handling of multiple signal
+arrivals.
 
-> and also we have one resource to insert it into the resource tree, so
-> later could probe/allocate bus num range.
+blackfin: no loop (== multiple signals handling is fucked); no check either
+        ret_from_fork doesn't handle signals, etc., userland or not.
+        kernel_execve doesn't handle signals, etc., success or no success
+        conclusion: check is probably not needed, multiple pending signals are
+screwed
 
-Sorry, I didn't understand this.
+score: something very fishy there; fixing bogus restart on sigreturn is
+simple, but what exactly clears regs->is_syscall on interrupts et.al.?
+I don't see anything similar in there.  Looks like interrupts could be
+confused for syscalls wrt restart logics.  And if happens when signal is
+pending *and* %r4 contains e.g. -514, we'll get that -514 silently replaced
+with -4.  Or cp0_epc gets decremented by 8, resulting in a couple of insns
+getting repeated...  And regs->in_syscall is fairly deep in the stack,
+so it doesn't look like it was something zeroed by hardware on interrupt...
+What am I missing here?
 
-Bjorn
+It gets even funnier - in syscall_trace_enter, after we'd
+done do_syscall_trace() we have this:
+        brl     r8
+(i.e. the actual call of sys_whatever_it_was()) followed by
+        li      r8, -MAX_ERRNO - 1
+        sw      r8, [r0, PT_R7]         # set error flag
+
+        neg     r4, r4                  # error
+        sw      r4, [r0, PT_R0]         # set flag for syscall
+                                        # restarting
+1:      sw      r4, [r0, PT_R2]         # result
+        j       syscall_exit
+which looks like a result of severe bitrot.  For one thing, regs->regs[0]
+is *not* used anywhere in syscall restart logics in arch/score/kernel/signal.c;
+for another, the whole thing looks like severely mangled remnants of
+	if ((unsigned long)r4 >= (unsigned long)-MAX_ERRNO) {
+		regs->regs[7] = 1;
+		r4 = -r4;
+	}
+	regs->regs[4] = r4;
+we do on normal (non-traced) syscall path.  Unconverted bits and pieces of
+mips?  There return value does go into regs->regs[2] (and regs->regs[0] is
+involved in syscall restart logics, while we are at it).  Overall, this
+area looks very rotten.  BTW, what's the purpose of syscall_exit: there
+and why is it different from syscall_return?  They seem to be identical
+except for stray nop in the beginning of the former.  And unless something
+very subtle is going on there, that nop *is* a stray one - namely, the
+delay slot of immediately preceding "bl schedule_tail"...
+
+Could the maintainers of arch/score tell what's going on?
