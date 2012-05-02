@@ -1,88 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ra.se.axis.com ([195.60.68.13]:51150 "EHLO ra.se.axis.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753791Ab2EBLZB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 2 May 2012 07:25:01 -0400
-Date: Wed, 2 May 2012 13:24:58 +0200
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [patch 07/29] cris: Use generic init_task
-Message-ID: <20120502112458.GB19174@axis.com>
-References: <20120430194725.763322463@linutronix.de> <20120430194845.972721401@linutronix.de>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:55989 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754616Ab2EBOOF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 May 2012 10:14:05 -0400
+Date: Wed, 2 May 2012 15:14:01 +0100
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
+Message-ID: <20120502141401.GK6871@ZenIV.linux.org.uk>
+References: <20120420164239.GH6871@ZenIV.linux.org.uk>
+ <CA+55aFzuTspDyyLaOA-g-dTWydaUeeWo9uVGR+rZ=ZJzPW_Ocw@mail.gmail.com>
+ <20120420180748.GI6871@ZenIV.linux.org.uk>
+ <20120423180150.GA6871@ZenIV.linux.org.uk>
+ <20120424072617.GB6871@ZenIV.linux.org.uk>
+ <20120426183742.GA324@redhat.com>
+ <20120426231942.GJ6871@ZenIV.linux.org.uk>
+ <20120427172444.GA30267@redhat.com>
+ <20120427175434.GA31524@redhat.com>
+ <1335955070.18999.37.camel@mfleming-mobl1.ger.corp.intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20120430194845.972721401@linutronix.de>
+In-Reply-To: <1335955070.18999.37.camel@mfleming-mobl1.ger.corp.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20120502112458.k_9PmvtMUfU6OwaXw3cDgfjKqfh4mLZCl2R-Nl5L7Uk@z>
+To: Matt Fleming <matt@console-pimps.org>
+Cc: Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20120502141401.Lqi9VooAAnR9eGGkdle193EMagyICLC4EVgECTqbvx8@z>
 
-On Mon, Apr 30, 2012 at 10:15:55PM +0200, Thomas Gleixner wrote:
-> Same code. Use the generic version.
+On Wed, May 02, 2012 at 11:37:50AM +0100, Matt Fleming wrote:
+> > > The last thing. Matt, could you please look at
+> > > git://git.kernel.org/pub/scm/linux/kernel/git/viro/signal.git ? It seems to me
+> > > you already sent some of these changes (use set_current_blocked/block_sigmask).
+> > > Perhaps there are alreay in -mm or linux-next?
+> > 
+> > Forgot to add Matt, sorry for noise...
 > 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
-
-> ---
->  arch/cris/Kconfig          |    1 +
->  arch/cris/kernel/process.c |   28 ----------------------------
->  2 files changed, 1 insertion(+), 28 deletions(-)
+> Any of the changes that aren't in Linus' tree will be in -mm and
+> linux-next. The ones currently in linux-next are,
 > 
-> Index: tip/arch/cris/Kconfig
-> ===================================================================
-> --- tip.orig/arch/cris/Kconfig
-> +++ tip/arch/cris/Kconfig
-> @@ -50,6 +50,7 @@ config CRIS
->  	select GENERIC_IRQ_SHOW
->  	select GENERIC_IOMAP
->  	select GENERIC_SMP_IDLE_THREAD if ETRAX_ARCH_V32
-> +	select HAVE_GENERIC_INIT_TASK
->  
->  config HZ
->  	int
-> Index: tip/arch/cris/kernel/process.c
-> ===================================================================
-> --- tip.orig/arch/cris/kernel/process.c
-> +++ tip/arch/cris/kernel/process.c
-> @@ -29,34 +29,6 @@
->  //#define DEBUG
->  
->  /*
-> - * Initial task structure. Make this a per-architecture thing,
-> - * because different architectures tend to have different
-> - * alignment requirements and potentially different initial
-> - * setup.
-> - */
-> -
-> -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
-> -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
-> -/*
-> - * Initial thread structure.
-> - *
-> - * We need to make sure that this is 8192-byte aligned due to the
-> - * way process stacks are handled. This is done by having a special
-> - * "init_task" linker map entry..
-> - */
-> -union thread_union init_thread_union __init_task_data =
-> -	{ INIT_THREAD_INFO(init_task) };
-> -
-> -/*
-> - * Initial task structure.
-> - *
-> - * All other task structs will be allocated on slabs in fork.c
-> - */
-> -struct task_struct init_task = INIT_TASK(init_task);
-> -
-> -EXPORT_SYMBOL(init_task);
-> -
-> -/*
->   * The hlt_counter, disable_hlt and enable_hlt is just here as a hook if
->   * there would ever be a halt sequence (for power save when idle) with
->   * some largish delay when halting or resuming *and* a driver that can't
+> 07d969a parisc: use set_current_blocked() and block_sigmask()
+> 5becb45 frv: use set_current_blocked() and block_sigmask()
+> 3608417 blackfin: use set_current_blocked() and block_sigmask()
+> cd21f1a unicore32: use block_sigmask()
+> 2bb36fd h8300: use set_current_blocked() and block_sigmask()
+> a624f4f score: use set_current_blocked() and block_sigmask()
+> 2326e2e score: don't mask signals if we fail to setup signal stack
+> b2f6181 microblaze: use set_current_blocked() and block_sigmask()
+> f557a56 microblaze: fix signal masking
+> 9ff7b4a microblaze: no need to reset handler if SA_ONESHOT
+> 6cb49f5 microblaze: don't reimplement force_sigsegv()
+> bd9767f ia64: use set_current_blocked() and block_sigmask()
+> cdbc96c cris: use set_current_blocked() and block_sigmask()
+> 295f127 mn10300: use set_current_blocked() and block_sigmask()
+> 524987e m68k: use set_current_blocked() and block_sigmask()
+> f0c96a3 m32r: use set_current_blocked() and block_sigmask()
+> f0f0acd avr32: use block_sigmask()
+> ef64059 avr32: don't mask signals in the error path
 > 
+> ... and this one from you, Oleg, that was sent as part of my series,
+> 
+> 3e6c120 avr32: use set_current_blocked() in handle_signal/sys_rt_sigreturn
 
-/^JN - Jesper Nilsson
--- 
-               Jesper Nilsson -- jesper.nilsson@axis.com
+OK, those commits cherry-picked into the beginning of the queue, the
+rest rebased on top of them, dropping my duplicates.
