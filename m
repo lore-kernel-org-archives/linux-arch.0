@@ -1,39 +1,35 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH -v11 17/30] resources: Add probe_resource()
-Date: Wed, 2 May 2012 09:14:02 -0600
-Message-ID: <CAErSpo4Wmfsfw+iPs19BxF0y_CF6YjGg+p8OBJmwGuNBy3OrmA@mail.gmail.com>
-References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
- <1332135781-13695-18-git-send-email-yinghai@kernel.org> <CAErSpo4BZAf_i3ojXpg5WSFJ00G5i_vscVTu2va_Z3WJ0UHg=g@mail.gmail.com>
- <CAE9FiQURuG9z655PZgP-QR3w7LoSFondt4fhioO0whP=Q7+2rA@mail.gmail.com> <CAE9FiQWa7fZsXXqch5HqQHjEz_HKHK3Oq7+2JPADqS2RwmMEOw@mail.gmail.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
+Date: Wed, 2 May 2012 18:24:53 +0100
+Message-ID: <20120502172453.GL6871@ZenIV.linux.org.uk>
+References: <20120426231942.GJ6871@ZenIV.linux.org.uk>
+ <20120429180535.GZ6871@ZenIV.linux.org.uk>
+ <20120501043129.GF6871@ZenIV.linux.org.uk>
+ <201205010106.38495.vapier@gentoo.org>
+ <20120501055226.GH6871@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <CAE9FiQWa7fZsXXqch5HqQHjEz_HKHK3Oq7+2JPADqS2RwmMEOw@mail.gmail.com>
-Sender: linux-pci-owner@vger.kernel.org
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:51851 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755269Ab2EBRY4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 May 2012 13:24:56 -0400
+Content-Disposition: inline
+In-Reply-To: <20120501055226.GH6871@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mike Frysinger <vapier@gentoo.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Oleg Nesterov <oleg@redhat.com>
 
-On Wed, May 2, 2012 at 1:01 AM, Yinghai Lu <yinghai@kernel.org> wrote:
-> On Tue, May 1, 2012 at 10:19 PM, Yinghai Lu <yinghai@kernel.org> wrote:
->> On Tue, May 1, 2012 at 4:57 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
->>> I spent most of the day merging the patches up to this point, and they
->>> mostly make sense, but this one and the following ones are beyond my
->>> ken, so I gave up.
->>
->> ok, let me check if i could simplify that code more.
+On Tue, May 01, 2012 at 06:52:26AM +0100, Al Viro wrote:
+> IOW, here's what I'd suggest doing:
+> 
+> * add that regs->orig_p0 = -1; to handle_restart()
+> * add jump .Lresume_userspace_1 after the call of do_notify_resume()
+> * instead of RESTORE_CONTEXT/rti in ret_from_fork and kernel_execve()
+> have them jump to .Lresume_userspace.
 
-I suggested that you need a simpler *interface*, not just smaller
-patches and more comments.  If the interfaces make sense and the code
-is good, you don't need many comments.
-
-> Split this one into two patches, and add more comments.
->
-> Please check if it is readable.
-
-Nope, sorry, I'm not putting my name on that.  If you still think
-that's the only reasonable way to do it, you might be able to find
-somebody else to merge the resource.c changes, and I'll just worry
-about the drivers/pci parts.
-
-Bjorn
+arrrgh...  The last one is unfortunately not so simple - you have that
+in the guts of _system_call, which is called via pseudo_long_call,
+so it would ought to be a call into the middle of _system_call, followed
+by that RESTORE_CONTEXT/rti...
