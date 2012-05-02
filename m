@@ -1,110 +1,129 @@
-From: Oleg Nesterov <oleg@redhat.com>
-Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Date: Wed, 2 May 2012 20:30:57 +0200
-Message-ID: <20120502183057.GA25166@redhat.com>
-References: <20120426231942.GJ6871@ZenIV.linux.org.uk> <20120427172444.GA30267@redhat.com> <20120427184528.GL6871@ZenIV.linux.org.uk> <20120427202002.8ED632C0BF@topped-with-meat.com> <20120427211244.GO6871@ZenIV.linux.org.uk> <20120427212729.652542C0AF@topped-with-meat.com> <20120427231526.GP6871@ZenIV.linux.org.uk> <20120428024208.GS6871@ZenIV.linux.org.uk> <20120429161818.GA15792@redhat.com> <20120429180535.GZ6871@ZenIV.linux.org.uk>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH -v11 00/30] PCI: allocate pci bus num range for unassigned
+ bridge busn
+Date: Wed, 2 May 2012 15:22:00 -0600
+Message-ID: <CAErSpo7RNLdP4sRfg_3NE78rbvKM5HyRrApmLSLJOA8ggX=VvQ@mail.gmail.com>
+References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:57912 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753405Ab2EBSb5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 2 May 2012 14:31:57 -0400
-Content-Disposition: inline
-In-Reply-To: <20120429180535.GZ6871@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
+Sender: linux-pci-owner@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 04/29, Al Viro wrote:
+On Sun, Mar 18, 2012 at 11:42 PM, Yinghai Lu <yinghai@kernel.org> wrote=
+:
+> Set up iobusn_resource tree, and register bus number range to it.
+> Later when need to find bus range, will try to allocate from the tree
 >
-> 	* Now, if do_notify_resume() does nothing in case !user_mode(regs),
-> let's lift that check to (32bit) caller.  What we have right now is
-> 	do_notify_resume(%esp, NULL, %ecx)
-> 	goto resume_userspace_sig;
-> resume_userspace_sig:
-> 	if (!user_mode_vm(%esp))
-> 		goto resume_kernel;
-> resume_userspace:
-> So after lifting the check we get
-> 	if (user_mode(%esp))
-> 		do_notify_resume(%esp, NULL, %ecx)
-> 	goto resume_userspace_sig;
-> resume_userspace_sig:
-> 	if (!user_mode_vm(%esp))
-> 		goto resume_kernel;
-> resume_userspace:
-> but user_mode(regs) being true means that user_mode_vm(regs) is also true,
-> so this code is equivalent to
-> 	if (!user_mode(%esp))
-> 		goto resume_kernel;
-> 	do_notify_resume(%esp, NULL, %ecx)
-> 	goto resume_userspace;
-> (with stuff around resume_userspace_sig left without changes).
+> Need to test on arches other than x86. esp for ia64 and powerpc that =
+support
+> =A0more than on peer root buses.
+>
+> The patches need to apply to linux v3.3 + pci-next and
+> =A0 =A0 =A0 =A0[PATCH -v3] PCI: pci_host_bridge related cleanup
+>
+> could be found at:
+> =A0 =A0 =A0 =A0git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/=
+linux-yinghai.git for-pci-busn-alloc
 
-Yes, thanks, this looks correct.
+I started merging this series, but I didn't get very far.  I stopped
+at the "resources: Add probe_resource()" patch because I don't think
+that interface makes sense yet.  My work-in-progress is at
+git://git.kernel.org/pub/scm/linux/kernel/git/helgaas/pci.git on the
+topic/yinghai-busn-alloc branch.
 
-I've read the new patches in your tree. Again, I do not have any
-useful comment, but a couple of questions.
+I *could* merge that branch, but I don't think they fix anything (that
+would come in the later patches), and there are still some issues in
+my mind.
 
-And just in case... I will be completely offline till May 9.
+  - I think we really want a [bus 00-ff] resource for each *domain*,
+with each host bridge in the domain requesting part of that range.  I
+think these patches only track bus number usage within each host
+bridge, and I'm not sure there's any place we would detect conflicts
+between host bridges.
+
+  - I think I made a mistake in the pci_create_root_bus() and
+pci_scan_root_bus() interfaces.  They currently take a bus number and
+a list of resources, and we expect the arch to include the bus number
+aperture in the list.  The bus number argument should have been
+replaced with a bus number aperture resource.  The bus number aperture
+is essential, while the MMIO/IO aperture list may be empty.  And it's
+stupid to pass both the starting bus number and a bus resource that
+contains the starting bus number.  Fixing this would make some of
+these patches quite a bit simpler.
+
+  - In some of the arches (sparc, powerpc), you added a bus number
+resource right next to existing first_busno, last_busno fields.  So
+now that data lives two places, which will bite us later.
+
+Bjorn
 
 
-----------------------------------------
-046a099ad7b3791a7f9dfbe56ac1263bda8b1974 arm: if there's no handler we need to restore sigmask, syscall or no syscall
-
-with or without this patch, set_current_blocked(->saved_sigmask) doesn't
-look exactly right after force_sigsegv(), this can block SIGSEGV.
-
-And force_sigsegv(sig => 0) looks strange, but this is off-topic.
-
-And the question, I am just curious...
-
-OTOH. I am not sure I understand the "int syscall" argument correctly,
-I'll assume it means the same as "regs->orig_ax > 0" on x86. In this
-case it is not clear to me how "!syscall && TIF_RESTORE_SIGMASK" is
-possible.
-
-x86 does this outside of the "if (syscall_get_nr(current, regs)" block
-too. Probably this makes sense because debugger can change orig_ax in
-between?
-
-(The same for the next db7fddb9574c175aabdbcaa74b736bb3d1665a8e change
- in unicore32)
-
-----------------------------------------
-415a12e79ebfa703a5ec91c85cb29f6ecc844aa1 most of set_current_blocked() callers want SIGKILL/SIGSTOP removed from set
-
-Cosmetic nit. With this patch we have
-
-	void set_current_blocked(sigset_t *newset)
-	{
-		struct task_struct *tsk = current;
-		sigdelsetmask(newset, sigmask(SIGKILL) | sigmask(SIGSTOP));
-		spin_lock_irq(&tsk->sighand->siglock);
-		__set_task_blocked(tsk, newset);
-		spin_unlock_irq(&tsk->sighand->siglock);
-	}
-
-but it could simply do
-
-	void set_current_blocked(sigset_t *newset)
-	{
-		sigdelsetmask(newset, sigmask(SIGKILL) | sigmask(SIGSTOP));
-		__set_current_blocked(newset);
-	}
-
------------------------------------------
-fa04e22b239aa035f3ae77151e26b03400303245 FRV: Shrink TIF_WORK_MASK [ver #2]
-
-Off-topic/stupid question. Even if I know nothing about arch/frv, this looks
-like a nice change to me because
-
-	#define _TIF_WORK_MASK         0x0000FFFE
-	#define _TIF_ALLWORK_MASK      0x0000FFFF
-
-looks very confusing imho. I mean, it is not clear which bits do we actually
-want to check.
-
-Can't we (cough, you ;) also cleanup _TIF_WORK_MASK/_TIF_ALLWORK_MASK on x86?
+> Yinghai Lu (30):
+> =A0x86, PCI: Add print all root info for not using _CRS path
+> =A0x86, PCI: Allocate temp range array in amd_bus pci_root_info probi=
+ng
+> =A0x86, PCI: Merge pcibios_scan_root and pci_scan_bus_on_node
+> =A0PCI: Add busn_res into struct pci_bus.
+> =A0PCI: Add busn_res operation functions
+> =A0PCI: Release busn_res when removing bus
+> =A0PCI: Insert busn_res in pci_create_root_bus()
+> =A0PCI: Checking busn_res in pci_scan_root_bus()
+> =A0PCI: Add default busn_resource
+> =A0PCI: Add default busn_res for pci_scan_bus()
+> =A0x86, PCI: Add busn_res into resources list for acpi path
+> =A0x86, PCI: Put busn resource in pci_root_info for not using _CRS pa=
+th
+> =A0PCI, ia64: Register busn_res for root buses
+> =A0PCI, sparc: Register busn_res for root buses
+> =A0PCI, powerpc: Register busn_res for root buses
+> =A0PCI, parisc: Register busn_res for root buses
+> =A0resources: Add probe_resource()
+> =A0resources: Replace registered resource in tree.
+> =A0PCI: Add pci_bus_extend/shrink_top()
+> =A0PCI: Probe safe range that we can use for unassigned bridge.
+> =A0PCI: Add pci_bus_replace_busn_res()
+> =A0PCI: Allocate bus range instead of use max blindly
+> =A0PCI: Strict checking of valid range for bridge
+> =A0PCI: Kill pci_fixup_parent_subordinate_busnr()
+> =A0PCI: Seperate child bus scanning to two passes overall
+> =A0pcmcia: Remove workaround for fixing pci parent bus subordinate
+> =A0PCI: Double checking setting for bus register and bus struct.
+> =A0PCI, pciehp: Remove not needed bus number range checking
+> =A0PCI: More strict checking of valid range for bridge
+> =A0PCI: Don't shrink too much for hotplug bridge
+>
+> =A0arch/ia64/pci/pci.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 =A02=
+ +
+> =A0arch/powerpc/include/asm/pci-bridge.h | =A0 =A01 +
+> =A0arch/powerpc/kernel/pci-common.c =A0 =A0 =A0| =A0 10 +-
+> =A0arch/sparc/kernel/pci.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 =A04 +
+> =A0arch/sparc/kernel/pci_impl.h =A0 =A0 =A0 =A0 =A0| =A0 =A01 +
+> =A0arch/x86/pci/acpi.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 11 +=
+-
+> =A0arch/x86/pci/amd_bus.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0| =A0 14 +-
+> =A0arch/x86/pci/bus_numa.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 30 ++-
+> =A0arch/x86/pci/bus_numa.h =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 =A04 +-
+> =A0arch/x86/pci/common.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 27 +--
+> =A0drivers/parisc/dino.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 =A05 +
+> =A0drivers/parisc/lba_pci.c =A0 =A0 =A0 =A0 =A0 =A0 =A0| =A0 =A03 +
+> =A0drivers/pci/hotplug/pciehp_pci.c =A0 =A0 =A0| =A0 12 +-
+> =A0drivers/pci/probe.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0439 +=
+++++++++++++++++++++++++++------
+> =A0drivers/pci/remove.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0| =A0 =A01=
+ +
+> =A0drivers/pcmcia/yenta_socket.c =A0 =A0 =A0 =A0 | =A0 75 ------
+> =A0include/linux/ioport.h =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0| =A0 =A08 +
+> =A0include/linux/pci.h =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 =A06=
+ +
+> =A0kernel/resource.c =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0175=
+ +++++++++++++-
+> =A019 files changed, 613 insertions(+), 215 deletions(-)
+>
+> --
+> 1.7.7
+>
