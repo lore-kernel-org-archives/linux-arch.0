@@ -1,71 +1,83 @@
-From: Matt Fleming <matt@console-pimps.org>
-Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Date: Wed, 02 May 2012 11:37:50 +0100
-Message-ID: <1335955070.18999.37.camel@mfleming-mobl1.ger.corp.intel.com>
-References: <CA+55aFxia+u3VAf0qN-2wv7DyAQZK-Z8=n=cqUvo--+C905aFg@mail.gmail.com>
-	 <20120420160848.GG6871@ZenIV.linux.org.uk>
-	 <20120420164239.GH6871@ZenIV.linux.org.uk>
-	 <CA+55aFzuTspDyyLaOA-g-dTWydaUeeWo9uVGR+rZ=ZJzPW_Ocw@mail.gmail.com>
-	 <20120420180748.GI6871@ZenIV.linux.org.uk>
-	 <20120423180150.GA6871@ZenIV.linux.org.uk>
-	 <20120424072617.GB6871@ZenIV.linux.org.uk>
-	 <20120426183742.GA324@redhat.com>
-	 <20120426231942.GJ6871@ZenIV.linux.org.uk>
-	 <20120427172444.GA30267@redhat.com>  <20120427175434.GA31524@redhat.com>
+From: Jesper Nilsson <jesper.nilsson@axis.com>
+Subject: Re: [patch 07/29] cris: Use generic init_task
+Date: Wed, 2 May 2012 13:24:58 +0200
+Message-ID: <20120502112458.GB19174@axis.com>
+References: <20120430194725.763322463@linutronix.de> <20120430194845.972721401@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from arkanian.console-pimps.org ([212.110.184.194]:38474 "EHLO
-	arkanian.console-pimps.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751634Ab2EBKrS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 May 2012 06:47:18 -0400
-In-Reply-To: <20120427175434.GA31524@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Oleg Nesterov <oleg@redhat.com>
-Cc: Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20120430194845.972721401@linutronix.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2012-04-27 at 19:54 +0200, Oleg Nesterov wrote:
-> On 04/27, Oleg Nesterov wrote:
-> >
-> > Not only sigreturn. Just look at sigprocmask(SIG_SETMASK) callers, almost
-> > all should be converted to use set_current_blocked(). For example, pselect.
+On Mon, Apr 30, 2012 at 10:15:55PM +0200, Thomas Gleixner wrote:
+> Same code. Use the generic version.
 > 
-> which btw doesn't need sigsaved.
+> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
+
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+
+> ---
+>  arch/cris/Kconfig          |    1 +
+>  arch/cris/kernel/process.c |   28 ----------------------------
+>  2 files changed, 1 insertion(+), 28 deletions(-)
 > 
-> > The last thing. Matt, could you please look at
-> > git://git.kernel.org/pub/scm/linux/kernel/git/viro/signal.git ? It seems to me
-> > you already sent some of these changes (use set_current_blocked/block_sigmask).
-> > Perhaps there are alreay in -mm or linux-next?
+> Index: tip/arch/cris/Kconfig
+> ===================================================================
+> --- tip.orig/arch/cris/Kconfig
+> +++ tip/arch/cris/Kconfig
+> @@ -50,6 +50,7 @@ config CRIS
+>  	select GENERIC_IRQ_SHOW
+>  	select GENERIC_IOMAP
+>  	select GENERIC_SMP_IDLE_THREAD if ETRAX_ARCH_V32
+> +	select HAVE_GENERIC_INIT_TASK
+>  
+>  config HZ
+>  	int
+> Index: tip/arch/cris/kernel/process.c
+> ===================================================================
+> --- tip.orig/arch/cris/kernel/process.c
+> +++ tip/arch/cris/kernel/process.c
+> @@ -29,34 +29,6 @@
+>  //#define DEBUG
+>  
+>  /*
+> - * Initial task structure. Make this a per-architecture thing,
+> - * because different architectures tend to have different
+> - * alignment requirements and potentially different initial
+> - * setup.
+> - */
+> -
+> -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
+> -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
+> -/*
+> - * Initial thread structure.
+> - *
+> - * We need to make sure that this is 8192-byte aligned due to the
+> - * way process stacks are handled. This is done by having a special
+> - * "init_task" linker map entry..
+> - */
+> -union thread_union init_thread_union __init_task_data =
+> -	{ INIT_THREAD_INFO(init_task) };
+> -
+> -/*
+> - * Initial task structure.
+> - *
+> - * All other task structs will be allocated on slabs in fork.c
+> - */
+> -struct task_struct init_task = INIT_TASK(init_task);
+> -
+> -EXPORT_SYMBOL(init_task);
+> -
+> -/*
+>   * The hlt_counter, disable_hlt and enable_hlt is just here as a hook if
+>   * there would ever be a halt sequence (for power save when idle) with
+>   * some largish delay when halting or resuming *and* a driver that can't
 > 
-> Forgot to add Matt, sorry for noise...
 
-Any of the changes that aren't in Linus' tree will be in -mm and
-linux-next. The ones currently in linux-next are,
-
-07d969a parisc: use set_current_blocked() and block_sigmask()
-5becb45 frv: use set_current_blocked() and block_sigmask()
-3608417 blackfin: use set_current_blocked() and block_sigmask()
-cd21f1a unicore32: use block_sigmask()
-2bb36fd h8300: use set_current_blocked() and block_sigmask()
-a624f4f score: use set_current_blocked() and block_sigmask()
-2326e2e score: don't mask signals if we fail to setup signal stack
-b2f6181 microblaze: use set_current_blocked() and block_sigmask()
-f557a56 microblaze: fix signal masking
-9ff7b4a microblaze: no need to reset handler if SA_ONESHOT
-6cb49f5 microblaze: don't reimplement force_sigsegv()
-bd9767f ia64: use set_current_blocked() and block_sigmask()
-cdbc96c cris: use set_current_blocked() and block_sigmask()
-295f127 mn10300: use set_current_blocked() and block_sigmask()
-524987e m68k: use set_current_blocked() and block_sigmask()
-f0c96a3 m32r: use set_current_blocked() and block_sigmask()
-f0f0acd avr32: use block_sigmask()
-ef64059 avr32: don't mask signals in the error path
-
-... and this one from you, Oleg, that was sent as part of my series,
-
-3e6c120 avr32: use set_current_blocked() in handle_signal/sys_rt_sigreturn
-
+/^JN - Jesper Nilsson
 -- 
-Matt Fleming, Intel Open Source Technology Center
+               Jesper Nilsson -- jesper.nilsson@axis.com
