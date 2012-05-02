@@ -1,65 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:55989 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754616Ab2EBOOF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 May 2012 10:14:05 -0400
-Date: Wed, 2 May 2012 15:14:01 +0100
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC] TIF_NOTIFY_RESUME, arch/*/*/*signal*.c and all such
-Message-ID: <20120502141401.GK6871@ZenIV.linux.org.uk>
-References: <20120420164239.GH6871@ZenIV.linux.org.uk>
- <CA+55aFzuTspDyyLaOA-g-dTWydaUeeWo9uVGR+rZ=ZJzPW_Ocw@mail.gmail.com>
- <20120420180748.GI6871@ZenIV.linux.org.uk>
- <20120423180150.GA6871@ZenIV.linux.org.uk>
- <20120424072617.GB6871@ZenIV.linux.org.uk>
- <20120426183742.GA324@redhat.com>
- <20120426231942.GJ6871@ZenIV.linux.org.uk>
- <20120427172444.GA30267@redhat.com>
- <20120427175434.GA31524@redhat.com>
- <1335955070.18999.37.camel@mfleming-mobl1.ger.corp.intel.com>
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:34571 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754573Ab2EBPO0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 May 2012 11:14:26 -0400
+Received: by lbbgm6 with SMTP id gm6so519308lbb.19
+        for <linux-arch@vger.kernel.org>; Wed, 02 May 2012 08:14:24 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1335955070.18999.37.camel@mfleming-mobl1.ger.corp.intel.com>
+In-Reply-To: <CAE9FiQWa7fZsXXqch5HqQHjEz_HKHK3Oq7+2JPADqS2RwmMEOw@mail.gmail.com>
+References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
+ <1332135781-13695-18-git-send-email-yinghai@kernel.org> <CAErSpo4BZAf_i3ojXpg5WSFJ00G5i_vscVTu2va_Z3WJ0UHg=g@mail.gmail.com>
+ <CAE9FiQURuG9z655PZgP-QR3w7LoSFondt4fhioO0whP=Q7+2rA@mail.gmail.com> <CAE9FiQWa7fZsXXqch5HqQHjEz_HKHK3Oq7+2JPADqS2RwmMEOw@mail.gmail.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Wed, 2 May 2012 09:14:02 -0600
+Message-ID: <CAErSpo4Wmfsfw+iPs19BxF0y_CF6YjGg+p8OBJmwGuNBy3OrmA@mail.gmail.com>
+Subject: Re: [PATCH -v11 17/30] resources: Add probe_resource()
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Matt Fleming <matt@console-pimps.org>
-Cc: Oleg Nesterov <oleg@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20120502141401.Lqi9VooAAnR9eGGkdle193EMagyICLC4EVgECTqbvx8@z>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120502151402.Zy8qHL0YsQtmWq0VlQJmd1aAwYJ53PoyveFqDgfmo6s@z>
 
-On Wed, May 02, 2012 at 11:37:50AM +0100, Matt Fleming wrote:
-> > > The last thing. Matt, could you please look at
-> > > git://git.kernel.org/pub/scm/linux/kernel/git/viro/signal.git ? It seems to me
-> > > you already sent some of these changes (use set_current_blocked/block_sigmask).
-> > > Perhaps there are alreay in -mm or linux-next?
-> > 
-> > Forgot to add Matt, sorry for noise...
-> 
-> Any of the changes that aren't in Linus' tree will be in -mm and
-> linux-next. The ones currently in linux-next are,
-> 
-> 07d969a parisc: use set_current_blocked() and block_sigmask()
-> 5becb45 frv: use set_current_blocked() and block_sigmask()
-> 3608417 blackfin: use set_current_blocked() and block_sigmask()
-> cd21f1a unicore32: use block_sigmask()
-> 2bb36fd h8300: use set_current_blocked() and block_sigmask()
-> a624f4f score: use set_current_blocked() and block_sigmask()
-> 2326e2e score: don't mask signals if we fail to setup signal stack
-> b2f6181 microblaze: use set_current_blocked() and block_sigmask()
-> f557a56 microblaze: fix signal masking
-> 9ff7b4a microblaze: no need to reset handler if SA_ONESHOT
-> 6cb49f5 microblaze: don't reimplement force_sigsegv()
-> bd9767f ia64: use set_current_blocked() and block_sigmask()
-> cdbc96c cris: use set_current_blocked() and block_sigmask()
-> 295f127 mn10300: use set_current_blocked() and block_sigmask()
-> 524987e m68k: use set_current_blocked() and block_sigmask()
-> f0c96a3 m32r: use set_current_blocked() and block_sigmask()
-> f0f0acd avr32: use block_sigmask()
-> ef64059 avr32: don't mask signals in the error path
-> 
-> ... and this one from you, Oleg, that was sent as part of my series,
-> 
-> 3e6c120 avr32: use set_current_blocked() in handle_signal/sys_rt_sigreturn
+On Wed, May 2, 2012 at 1:01 AM, Yinghai Lu <yinghai@kernel.org> wrote:
+> On Tue, May 1, 2012 at 10:19 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+>> On Tue, May 1, 2012 at 4:57 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+>>> I spent most of the day merging the patches up to this point, and they
+>>> mostly make sense, but this one and the following ones are beyond my
+>>> ken, so I gave up.
+>>
+>> ok, let me check if i could simplify that code more.
 
-OK, those commits cherry-picked into the beginning of the queue, the
-rest rebased on top of them, dropping my duplicates.
+I suggested that you need a simpler *interface*, not just smaller
+patches and more comments.  If the interfaces make sense and the code
+is good, you don't need many comments.
+
+> Split this one into two patches, and add more comments.
+>
+> Please check if it is readable.
+
+Nope, sorry, I'm not putting my name on that.  If you still think
+that's the only reasonable way to do it, you might be able to find
+somebody else to merge the resource.c changes, and I'll just worry
+about the drivers/pci parts.
+
+Bjorn
