@@ -1,233 +1,118 @@
-From: Suresh Siddha <suresh.b.siddha@intel.com>
-Subject: Re: [patch 00/18] SMP: Boot and CPU hotplug refactoring - Part 1
-Date: Thu, 03 May 2012 16:42:32 -0700
-Message-ID: <1336088552.28674.457.camel@sbsiddha-desk.sc.intel.com>
-References: <20120420122120.097464672@linutronix.de>
-	  <1334928098.2463.56.camel@laptop>
-	  <alpine.LFD.2.02.1204201540400.2542@ionos>
-	 <1334966930.28674.245.camel@sbsiddha-desk.sc.intel.com>
-	 <alpine.LFD.2.02.1205031137270.6271@ionos>
-Reply-To: Suresh Siddha <suresh.b.siddha@intel.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH -v11 00/30] PCI: allocate pci bus num range for unassigned
+ bridge busn
+Date: Thu, 3 May 2012 17:47:16 -0600
+Message-ID: <CAErSpo6Mtt2E=3Uc5CO9oxqsVL-EALAsWq5wv-wT8ei6ZXrX3w@mail.gmail.com>
+References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
+ <CAErSpo7RNLdP4sRfg_3NE78rbvKM5HyRrApmLSLJOA8ggX=VvQ@mail.gmail.com> <CAE9FiQWEdsB4YEs+oueyGm99Umi0p4jYaEDEnwsHi5mgYGXBJA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:23960 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1759063Ab2ECXjS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 3 May 2012 19:39:18 -0400
-In-Reply-To: <alpine.LFD.2.02.1205031137270.6271@ionos>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Tejun Heo <tj@kernel.org>, David Rientjes <rientjes@google.com>, venki@google.com
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAE9FiQWEdsB4YEs+oueyGm99Umi0p4jYaEDEnwsHi5mgYGXBJA@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2012-05-03 at 11:41 +0200, Thomas Gleixner wrote:
-> On Fri, 20 Apr 2012, Suresh Siddha wrote:
-> > Also, do we really need the workqueue/kthreadd based allocation? Just
-> > like the percpu areas getting allocated for each possible cpu during
-> > boot, shouldn't we extend this to the per-cpu idle threads too? So
-> > something like the appended should be ok to?
-> 
-> The idea is correct, there are just a few problems :)
->  
-> > Signed-off-by: Suresh Siddha <suresh.b.siddha@intel.com>
-> > ---
-> > diff --git a/kernel/cpu.c b/kernel/cpu.c
-> > index 05c46ba..a5144ab 100644
-> > --- a/kernel/cpu.c
-> > +++ b/kernel/cpu.c
-> > @@ -303,10 +303,6 @@ static int __cpuinit _cpu_up(unsigned int cpu, int tasks_frozen)
-> >  
-> >  	cpu_hotplug_begin();
-> >  
-> > -	ret = smpboot_prepare(cpu);
-> > -	if (ret)
-> > -		goto out;
-> > -
-> 
-> If we failed to allocate an idle_thread for this cpu in smp_init()
-> then we unconditionally call __cpu_up() with a NULL pointer. That
-> might surprise the arch code :)
-> 
-> Aside of that, we now miss to reinitialize the idle thread. We call
-> init_idle() once when we allocate the thread, but not after a cpu
-> offline operation. That might leave stuff in weird state.
+On Thu, May 3, 2012 at 3:08 AM, Yinghai Lu <yinghai@kernel.org> wrote:
+> On Wed, May 2, 2012 at 2:22 PM, Bjorn Helgaas <bhelgaas@google.com> w=
+rote:
+>> On Sun, Mar 18, 2012 at 11:42 PM, Yinghai Lu <yinghai@kernel.org> wr=
+ote:
+>>> Set up iobusn_resource tree, and register bus number range to it.
+>>> Later when need to find bus range, will try to allocate from the tr=
+ee
+>>>
+>>> Need to test on arches other than x86. esp for ia64 and powerpc tha=
+t support
+>>> =A0more than on peer root buses.
 
-Second one slipped through and wasn't intentional. Anyways your
-modifications look good.
+>> =A0- I think we really want a [bus 00-ff] resource for each *domain*=
+,
+>> with each host bridge in the domain requesting part of that range. =A0=
+I
+>> think these patches only track bus number usage within each host
+>> bridge, and I'm not sure there's any place we would detect conflicts
+>> between host bridges.
+>
+> I updated the patch set a bit. now it have domain busn_res.
 
-While I am here, noticed that we could do 'node' aware idle task struct
-allocations. Appended the patch for this. Thanks.
----
+I like the domain bus range stuff ("Add busn_res for pci domain").
+I'd like it better if we centralized more of the PCI domain support in
+the core, e.g., supply the domain directly to pci_scan_root_bus() and
+get rid of the arch-specific pci_domain_nr() implementations.  But
+that can be done later.
 
-From: Suresh Siddha <suresh.b.siddha@intel.com>
-Subject: idle: allocate percpu idle taks from the local node
+> It could detect the conflicts. later could add code to resolve the co=
+nflicts.
 
-Use the arch specific early_cpu_to_node() to find out the local node for a
-given 'cpu' and use that info while allocating memory for that cpu's idle task.
+This is in "Add busn_res operation functions".  I think this makes
+sense, too.  If you look at the branch I started merging
+(topic/yinghai-busn-alloc), I tweaked it to print the conflicting
+resource when the insertion fails.  That information is almost always
+useful when debugging, so it'd be nice if you picked that up, too.
 
-Signed-off-by: Suresh Siddha <suresh.b.siddha@intel.com>
----
- arch/x86/include/asm/topology.h |    8 +++++---
- arch/x86/mm/numa.c              |    2 +-
- include/asm-generic/topology.h  |    4 ++++
- include/linux/kthread.h         |    9 ++++++++-
- kernel/fork.c                   |    9 ++++++---
- kernel/kthread.c                |    8 +++-----
- 6 files changed, 27 insertions(+), 13 deletions(-)
+>> =A0- In some of the arches (sparc, powerpc), you added a bus number
+>> resource right next to existing first_busno, last_busno fields. =A0S=
+o
+>> now that data lives two places, which will bite us later.
+>
+> then later we should kill first_busno and last_busno in those arches.
 
-diff --git a/arch/x86/include/asm/topology.h b/arch/x86/include/asm/topology.h
-index b9676ae..bdbcee2 100644
---- a/arch/x86/include/asm/topology.h
-+++ b/arch/x86/include/asm/topology.h
-@@ -57,12 +57,12 @@ DECLARE_EARLY_PER_CPU(int, x86_cpu_to_node_map);
- extern int __cpu_to_node(int cpu);
- #define cpu_to_node __cpu_to_node
- 
--extern int early_cpu_to_node(int cpu);
-+extern int __early_cpu_to_node(int cpu);
- 
- #else	/* !CONFIG_DEBUG_PER_CPU_MAPS */
- 
- /* Same function but used if called before per_cpu areas are setup */
--static inline int early_cpu_to_node(int cpu)
-+static inline int __early_cpu_to_node(int cpu)
- {
- 	return early_per_cpu(x86_cpu_to_node_map, cpu);
- }
-@@ -144,7 +144,7 @@ static inline int numa_node_id(void)
-  */
- #define numa_node_id numa_node_id
- 
--static inline int early_cpu_to_node(int cpu)
-+static inline int __early_cpu_to_node(int cpu)
- {
- 	return 0;
- }
-@@ -153,6 +153,8 @@ static inline void setup_node_to_cpumask_map(void) { }
- 
- #endif
- 
-+#define early_cpu_to_node(cpu)	__early_cpu_to_node(cpu)
-+
- #include <asm-generic/topology.h>
- 
- extern const struct cpumask *cpu_coregroup_mask(int cpu);
-diff --git a/arch/x86/mm/numa.c b/arch/x86/mm/numa.c
-index 19d3fa0..142738e 100644
---- a/arch/x86/mm/numa.c
-+++ b/arch/x86/mm/numa.c
-@@ -734,7 +734,7 @@ EXPORT_SYMBOL(__cpu_to_node);
-  * Same function as cpu_to_node() but used if called before the
-  * per_cpu areas are setup.
-  */
--int early_cpu_to_node(int cpu)
-+int __early_cpu_to_node(int cpu)
- {
- 	if (early_per_cpu_ptr(x86_cpu_to_node_map))
- 		return early_per_cpu_ptr(x86_cpu_to_node_map)[cpu];
-diff --git a/include/asm-generic/topology.h b/include/asm-generic/topology.h
-index fc824e2..9ace6da 100644
---- a/include/asm-generic/topology.h
-+++ b/include/asm-generic/topology.h
-@@ -73,4 +73,8 @@
- 
- #endif	/* !CONFIG_NUMA || !CONFIG_HAVE_MEMORYLESS_NODES */
- 
-+#ifndef early_cpu_to_node
-+#define early_cpu_to_node(cpu)	((void)(cpu), -1)
-+#endif
-+
- #endif /* _ASM_GENERIC_TOPOLOGY_H */
-diff --git a/include/linux/kthread.h b/include/linux/kthread.h
-index 0714b24..c1f05e3 100644
---- a/include/linux/kthread.h
-+++ b/include/linux/kthread.h
-@@ -40,7 +40,7 @@ void *kthread_data(struct task_struct *k);
- 
- int kthreadd(void *unused);
- extern struct task_struct *kthreadd_task;
--extern int tsk_fork_get_node(struct task_struct *tsk);
-+extern int tsk_fork_get_node(struct task_struct *tsk, int idle_tsk);
- 
- /*
-  * Simple work processor based on kthread.
-@@ -131,4 +131,11 @@ bool queue_kthread_work(struct kthread_worker *worker,
- void flush_kthread_work(struct kthread_work *work);
- void flush_kthread_worker(struct kthread_worker *worker);
- 
-+static inline void set_fork_pref_node(int node)
-+{
-+#ifdef CONFIG_NUMA
-+	current->pref_node_fork = node;
-+#endif
-+}
-+
- #endif /* _LINUX_KTHREAD_H */
-diff --git a/kernel/fork.c b/kernel/fork.c
-index ca9a384..108d566 100644
---- a/kernel/fork.c
-+++ b/kernel/fork.c
-@@ -253,12 +253,13 @@ int __attribute__((weak)) arch_dup_task_struct(struct task_struct *dst,
- 	return 0;
- }
- 
--static struct task_struct *dup_task_struct(struct task_struct *orig)
-+static struct task_struct *dup_task_struct(struct task_struct *orig,
-+					   int idle_tsk)
- {
- 	struct task_struct *tsk;
- 	struct thread_info *ti;
- 	unsigned long *stackend;
--	int node = tsk_fork_get_node(orig);
-+	int node = tsk_fork_get_node(orig, idle_tsk);
- 	int err;
- 
- 	prepare_to_copy(orig);
-@@ -1165,7 +1166,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
- 		goto fork_out;
- 
- 	retval = -ENOMEM;
--	p = dup_task_struct(current);
-+	p = dup_task_struct(current, pid == &init_struct_pid);
- 	if (!p)
- 		goto fork_out;
- 
-@@ -1531,6 +1532,8 @@ struct task_struct * __cpuinit fork_idle(int cpu)
- 	struct task_struct *task;
- 	struct pt_regs regs;
- 
-+	set_fork_pref_node(early_cpu_to_node(cpu));
-+
- 	task = copy_process(CLONE_VM, 0, idle_regs(&regs), 0, NULL,
- 			    &init_struct_pid, 0);
- 	if (!IS_ERR(task)) {
-diff --git a/kernel/kthread.c b/kernel/kthread.c
-index 3d3de63..3d74ab1 100644
---- a/kernel/kthread.c
-+++ b/kernel/kthread.c
-@@ -125,10 +125,10 @@ static int kthread(void *_create)
- }
- 
- /* called from do_fork() to get node information for about to be created task */
--int tsk_fork_get_node(struct task_struct *tsk)
-+int tsk_fork_get_node(struct task_struct *tsk, int idle_tsk)
- {
- #ifdef CONFIG_NUMA
--	if (tsk == kthreadd_task)
-+	if (tsk == kthreadd_task || idle_tsk)
- 		return tsk->pref_node_fork;
- #endif
- 	return numa_node_id();
-@@ -138,9 +138,7 @@ static void create_kthread(struct kthread_create_info *create)
- {
- 	int pid;
- 
--#ifdef CONFIG_NUMA
--	current->pref_node_fork = create->node;
--#endif
-+	set_fork_pref_node(create->node);
- 	/* We want our own signal handler (we take no signals by default). */
- 	pid = kernel_thread(kthread, create, CLONE_FS | CLONE_FILES | SIGCHLD);
- 	if (pid < 0) {
+I want to be sensitive to the arch maintainers by doing our homework,
+minimizing the number of patches we ask them to review, and grouping
+related changes all at one time.  I propose the following, using
+powerpc as an example:
+
+  - Add "struct resource busn_res" to struct pci_bus.
+  - powerpc: Replace pci_controller.first_busno/last_busno by "struct
+resource busno" everywhere.  This will touch many places, but should
+be completely mechanical and obvious.
+  - powerpc: Replace all pci_bus.secondary/subordinate references with
+busn_res.  This also be only obvious changes.
+  - powerpc: Add the pci_add_resource() and pci_bus_update_busn_res_end=
+() calls.
+  - powerpc: Add pci_bus_insert_busn_res() call in
+of_scan_pci_bridge().  (This is currently buried in the "Remove
+secondary/subordinate in pci_bus" patch, but it doesn't fit there.)
+  - Replace all non-arch pci_bus.secondary/subordinate references with
+busn_res.  Obvious changes only.
+  - Remove secondary/subordinate from struct pci_bus.
+  - Add pci_bus_insert_busn_res() calls.  Again, this is logically
+separate from "Remove secondary/subordinate in pci_bus".
+
+I would split up the "Remove secondary/subordinate in pci_bus" patch,
+which currently touches 30 files across 11 arches, so an arch
+maintainer doesn't have to read the whole patch.
+
+Ben, Dave, feel free to chime in if I'm going astray.
+
+I did a fair amount of work updating changelogs and tweaking the code
+in my topic/yinghai-busn-alloc branch.  I know I'm currently a
+bottleneck here, and it's worse because I'm a bit obsessive.  It would
+save me time if you picked up those tweaks so I don't have to re-do
+them.
+
+You have over 100 patches outstanding, and I'm having a hard time
+making forward progress.  I think we need to focus on just replacing
+secondary/subordinate with busn_res, doing the corresponding
+arch-specific replacements, and adding the insert_resource() stuff to
+build the resource trees for bus numbers.  I'm not going to merge the
+probe_resource() stuff, so let's defer that and the resource
+assignment stuff for later.  Also defer the unrelated
+pci_hp_add_bridge() stuff that crept into your for-pci-busn-alloc
+branch.  If you defer all that stuff and split out the arch stuff,
+that should leave us with around 30 patches that deal *only* with
+adding busn_res and building the resource trees.  I don't think this
+will fix any bugs or add any new functionality, but at least it's a
+manageable step towards getting the infrastructure in place, so it's
+reasonable to consider merging it.
+
+These patches need to appear on the mailing list.  In general, people
+aren't going to pull your git tree and review them as I've been doing.
+ But *only* post the stuff mentioned above (busn_res and related
+things).  I'm not ready to consider the rest yet, so they would only
+confuse things.
+
+Bjorn
