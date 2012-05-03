@@ -1,116 +1,73 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH -v11 00/30] PCI: allocate pci bus num range for unassigned
- bridge busn
-Date: Thu, 3 May 2012 02:08:29 -0700
-Message-ID: <CAE9FiQWEdsB4YEs+oueyGm99Umi0p4jYaEDEnwsHi5mgYGXBJA@mail.gmail.com>
-References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
-	<CAErSpo7RNLdP4sRfg_3NE78rbvKM5HyRrApmLSLJOA8ggX=VvQ@mail.gmail.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 00/18] SMP: Boot and CPU hotplug refactoring - Part 1
+Date: Thu, 3 May 2012 11:41:45 +0200 (CEST)
+Message-ID: <alpine.LFD.2.02.1205031137270.6271@ionos>
+References: <20120420122120.097464672@linutronix.de>  <1334928098.2463.56.camel@laptop>  <alpine.LFD.2.02.1204201540400.2542@ionos> <1334966930.28674.245.camel@sbsiddha-desk.sc.intel.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vx0-f174.google.com ([209.85.220.174]:37125 "EHLO
-	mail-vx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756616Ab2ECJIa convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 May 2012 05:08:30 -0400
-In-Reply-To: <CAErSpo7RNLdP4sRfg_3NE78rbvKM5HyRrApmLSLJOA8ggX=VvQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1334966930.28674.245.camel@sbsiddha-desk.sc.intel.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Suresh Siddha <suresh.b.siddha@intel.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Rusty Russell <rusty@rustcorp.com.au>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, Tejun Heo <tj@kernel.org>, David Rientjes <rientjes@google.com>, venki@google.com
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 2, 2012 at 2:22 PM, Bjorn Helgaas <bhelgaas@google.com> wro=
-te:
-> On Sun, Mar 18, 2012 at 11:42 PM, Yinghai Lu <yinghai@kernel.org> wro=
-te:
->> Set up iobusn_resource tree, and register bus number range to it.
->> Later when need to find bus range, will try to allocate from the tre=
-e
->>
->> Need to test on arches other than x86. esp for ia64 and powerpc that=
- support
->> =A0more than on peer root buses.
->>
->> The patches need to apply to linux v3.3 + pci-next and
->> =A0 =A0 =A0 =A0[PATCH -v3] PCI: pci_host_bridge related cleanup
->>
->> could be found at:
->> =A0 =A0 =A0 =A0git://git.kernel.org/pub/scm/linux/kernel/git/yinghai=
-/linux-yinghai.git for-pci-busn-alloc
->
-> I started merging this series, but I didn't get very far. =A0I stoppe=
-d
-> at the "resources: Add probe_resource()" patch because I don't think
-> that interface makes sense yet. =A0My work-in-progress is at
-> git://git.kernel.org/pub/scm/linux/kernel/git/helgaas/pci.git on the
-> topic/yinghai-busn-alloc branch.
->
-> I *could* merge that branch, but I don't think they fix anything (tha=
-t
-> would come in the later patches), and there are still some issues in
-> my mind.
->
-> =A0- I think we really want a [bus 00-ff] resource for each *domain*,
-> with each host bridge in the domain requesting part of that range. =A0=
-I
-> think these patches only track bus number usage within each host
-> bridge, and I'm not sure there's any place we would detect conflicts
-> between host bridges.
+On Fri, 20 Apr 2012, Suresh Siddha wrote:
+> On Fri, 2012-04-20 at 15:47 +0200, Thomas Gleixner wrote:
+> > On Fri, 20 Apr 2012, Peter Zijlstra wrote:
+> > 
+> > > On Fri, 2012-04-20 at 13:05 +0000, Thomas Gleixner wrote:
+> > > > This first part moves the idle thread management for non-boot cpus
+> > > > into the core. fork_idle() is called in a workqueue as it is
+> > > > implemented in a few architectures already. This is necessary when not
+> > > > all cpus are brought up by the early boot code as otherwise we would
+> > > > take a ref on the user task VM of the thread which brings the cpu up
+> > > > via the sysfs interface. 
+> > > 
+> > > So I was thinking about this and I think we should make that kthreadd
+> > > instead of a random workqueue thread due to all that cgroup crap. People
+> > > are wanting to place all sorts of kernel threads in cgroups and I'm
+> > > still arguing that kthreadd should not be allowed in cgroups.
+> > 
+> > So your fear is that the idle_thread will end up in some random cgroup
+> > because some illdesigned user space code decided to stick kernel
+> > threads into cgroups.
+> > 
+> > Can we please have some sanity restrictions on this cgroup muck? I
+> > don't care when user space creates cgroups in circles, but holding the
+> > whole kernel hostage of this madness is going too far.
+> > 
+> 
+> Also, do we really need the workqueue/kthreadd based allocation? Just
+> like the percpu areas getting allocated for each possible cpu during
+> boot, shouldn't we extend this to the per-cpu idle threads too? So
+> something like the appended should be ok to?
 
-I updated the patch set a bit. now it have domain busn_res.
+The idea is correct, there are just a few problems :)
+ 
+> Signed-off-by: Suresh Siddha <suresh.b.siddha@intel.com>
+> ---
+> diff --git a/kernel/cpu.c b/kernel/cpu.c
+> index 05c46ba..a5144ab 100644
+> --- a/kernel/cpu.c
+> +++ b/kernel/cpu.c
+> @@ -303,10 +303,6 @@ static int __cpuinit _cpu_up(unsigned int cpu, int tasks_frozen)
+>  
+>  	cpu_hotplug_begin();
+>  
+> -	ret = smpboot_prepare(cpu);
+> -	if (ret)
+> -		goto out;
+> -
 
-It could detect the conflicts. later could add code to resolve the conf=
-licts.
+If we failed to allocate an idle_thread for this cpu in smp_init()
+then we unconditionally call __cpu_up() with a NULL pointer. That
+might surprise the arch code :)
 
-int pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
-{
-        struct resource *res =3D &b->busn_res;
-        struct resource *parent_res;
-        int ret;
+Aside of that, we now miss to reinitialize the idle thread. We call
+init_idle() once when we allocate the thread, but not after a cpu
+offline operation. That might leave stuff in weird state.
 
-        res->start =3D bus;
-        res->end =3D bus_max;
-        res->flags =3D IORESOURCE_BUS;
+Thanks,
 
-        if (!pci_is_root_bus(b))
-                parent_res =3D &b->parent->busn_res;
-        else {
-                parent_res =3D get_pci_domain_busn_res(pci_domain_nr(b)=
-);
-                res->flags |=3D IORESOURCE_PCI_FIXED;
-        }
-
-        ret =3D insert_resource(parent_res, res);
-
-        dev_printk(KERN_DEBUG, &b->dev,
-                        "busn_res: %pR %s inserted under %s %pR\n",
-                        res, ret ? "can not be" : "is",
-                        pci_is_root_bus(b) ? "domain":"", parent_res);
-
-        return ret;
-}
-
-
->
-> =A0- I think I made a mistake in the pci_create_root_bus() and
-> pci_scan_root_bus() interfaces. =A0They currently take a bus number a=
-nd
-> a list of resources, and we expect the arch to include the bus number
-> aperture in the list. =A0The bus number argument should have been
-> replaced with a bus number aperture resource. =A0The bus number apert=
-ure
-> is essential, while the MMIO/IO aperture list may be empty. =A0And it=
-'s
-> stupid to pass both the starting bus number and a bus resource that
-> contains the starting bus number. =A0Fixing this would make some of
-> these patches quite a bit simpler.
-
-Yes, could try to address that later to make it more clean.
-
-> =A0- In some of the arches (sparc, powerpc), you added a bus number
-> resource right next to existing first_busno, last_busno fields. =A0So
-> now that data lives two places, which will bite us later.
-
-then later we should kill first_busno and last_busno in those arches.
-
-Yinghai
+	tglx
