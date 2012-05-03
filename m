@@ -1,139 +1,116 @@
-From: Richard Kuo <rkuo@codeaurora.org>
-Subject: Re: [patch 10/29] hexagon: Use generic idle_task
-Date: Wed, 2 May 2012 19:46:38 -0500
-Message-ID: <20120503004638.GA3541@codeaurora.org>
-References: <20120430194725.763322463@linutronix.de>
- <20120430194846.162247700@linutronix.de>
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: Re: [PATCH -v11 00/30] PCI: allocate pci bus num range for unassigned
+ bridge busn
+Date: Thu, 3 May 2012 02:08:29 -0700
+Message-ID: <CAE9FiQWEdsB4YEs+oueyGm99Umi0p4jYaEDEnwsHi5mgYGXBJA@mail.gmail.com>
+References: <1332135781-13695-1-git-send-email-yinghai@kernel.org>
+	<CAErSpo7RNLdP4sRfg_3NE78rbvKM5HyRrApmLSLJOA8ggX=VvQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:22568 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751939Ab2ECAql (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 May 2012 20:46:41 -0400
-Content-Disposition: inline
-In-Reply-To: <20120430194846.162247700@linutronix.de>
+Received: from mail-vx0-f174.google.com ([209.85.220.174]:37125 "EHLO
+	mail-vx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756616Ab2ECJIa convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 May 2012 05:08:30 -0400
+In-Reply-To: <CAErSpo7RNLdP4sRfg_3NE78rbvKM5HyRrApmLSLJOA8ggX=VvQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org
+To: Bjorn Helgaas <bhelgaas@google.com>
+Cc: Jesse Barnes <jbarnes@virtuousgeek.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Mon, Apr 30, 2012 at 08:15:56PM -0000, Thomas Gleixner wrote:
-> Same code. Use the generic version. The special Makefile treatment is
-> pointless anyway as init_task.o contains only data which is handled by
-> the linker script. So no point on being treated like head text.
-> 
-> Signed-off-by: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Richard Kuo <rkuo@codeaurora.org>
-> ---
->  arch/hexagon/Kconfig            |    1 
->  arch/hexagon/Makefile           |    3 --
->  arch/hexagon/kernel/Makefile    |    2 -
->  arch/hexagon/kernel/init_task.c |   54 ----------------------------------------
->  4 files changed, 3 insertions(+), 57 deletions(-)
-> 
-> Index: tip/arch/hexagon/Kconfig
-> ===================================================================
-> --- tip.orig/arch/hexagon/Kconfig
-> +++ tip/arch/hexagon/Kconfig
-> @@ -28,6 +28,7 @@ config HEXAGON
->  	select NO_IOPORT
->  	select GENERIC_IOMAP
->  	select GENERIC_SMP_IDLE_THREAD
-> +	select HAVE_GENERIC_INIT_TASK
->  	# mostly generic routines, with some accelerated ones
->  	---help---
->  	  Qualcomm Hexagon is a processor architecture designed for high
-> Index: tip/arch/hexagon/Makefile
-> ===================================================================
-> --- tip.orig/arch/hexagon/Makefile
-> +++ tip/arch/hexagon/Makefile
-> @@ -45,8 +45,7 @@ KBUILD_AFLAGS += -DTHREADINFO_REG=$(TIR_
->  LIBGCC := $(shell $(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
->  libs-y += $(LIBGCC)
->  
-> -head-y := arch/hexagon/kernel/head.o \
-> -	arch/hexagon/kernel/init_task.o
-> +head-y := arch/hexagon/kernel/head.o
->  
->  core-y += arch/hexagon/kernel/ \
->  	arch/hexagon/mm/ \
-> Index: tip/arch/hexagon/kernel/Makefile
-> ===================================================================
-> --- tip.orig/arch/hexagon/kernel/Makefile
-> +++ tip/arch/hexagon/kernel/Makefile
-> @@ -1,4 +1,4 @@
-> -extra-y := head.o vmlinux.lds init_task.o
-> +extra-y := head.o vmlinux.lds
->  
->  obj-$(CONFIG_SMP) += smp.o topology.o
->  
-> Index: tip/arch/hexagon/kernel/init_task.c
-> ===================================================================
-> --- tip.orig/arch/hexagon/kernel/init_task.c
-> +++ /dev/null
-> @@ -1,54 +0,0 @@
-> -/*
-> - * Init task definition
-> - *
-> - * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
-> - *
-> - * This program is free software; you can redistribute it and/or modify
-> - * it under the terms of the GNU General Public License version 2 and
-> - * only version 2 as published by the Free Software Foundation.
-> - *
-> - * This program is distributed in the hope that it will be useful,
-> - * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> - * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> - * GNU General Public License for more details.
-> - *
-> - * You should have received a copy of the GNU General Public License
-> - * along with this program; if not, write to the Free Software
-> - * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
-> - * 02110-1301, USA.
-> - */
-> -
-> -#include <linux/mm.h>
-> -#include <linux/module.h>
-> -#include <linux/sched.h>
-> -#include <linux/init_task.h>
-> -#include <linux/fs.h>
-> -#include <linux/mqueue.h>
-> -#include <asm/thread_info.h>
-> -#include <asm/uaccess.h>
-> -#include <asm/pgtable.h>
-> -
-> -static struct signal_struct init_signals = INIT_SIGNALS(init_signals);
-> -static struct sighand_struct init_sighand = INIT_SIGHAND(init_sighand);
-> -
-> -/*
-> - * Initial thread structure.
-> - *
-> - * We need to make sure that this is 8192-byte aligned due to the
-> - * way process stacks are handled. This is done by making sure
-> - * the linker maps this in the .text segment right after head.S,
-> - * and making head.S ensure the proper alignment.
-> - */
-> -union thread_union init_thread_union
-> -	__attribute__((__section__(".data.init_task"),
-> -		__aligned__(THREAD_SIZE))) = {
-> -			INIT_THREAD_INFO(init_task)
-> -		};
-> -
-> -/*
-> - * Initial task structure.
-> - *
-> - * All other task structs will be allocated on slabs in fork.c
-> - */
-> -struct task_struct init_task = INIT_TASK(init_task);
-> -EXPORT_SYMBOL(init_task);
-> 
-> 
+On Wed, May 2, 2012 at 2:22 PM, Bjorn Helgaas <bhelgaas@google.com> wro=
+te:
+> On Sun, Mar 18, 2012 at 11:42 PM, Yinghai Lu <yinghai@kernel.org> wro=
+te:
+>> Set up iobusn_resource tree, and register bus number range to it.
+>> Later when need to find bus range, will try to allocate from the tre=
+e
+>>
+>> Need to test on arches other than x86. esp for ia64 and powerpc that=
+ support
+>> =A0more than on peer root buses.
+>>
+>> The patches need to apply to linux v3.3 + pci-next and
+>> =A0 =A0 =A0 =A0[PATCH -v3] PCI: pci_host_bridge related cleanup
+>>
+>> could be found at:
+>> =A0 =A0 =A0 =A0git://git.kernel.org/pub/scm/linux/kernel/git/yinghai=
+/linux-yinghai.git for-pci-busn-alloc
+>
+> I started merging this series, but I didn't get very far. =A0I stoppe=
+d
+> at the "resources: Add probe_resource()" patch because I don't think
+> that interface makes sense yet. =A0My work-in-progress is at
+> git://git.kernel.org/pub/scm/linux/kernel/git/helgaas/pci.git on the
+> topic/yinghai-busn-alloc branch.
+>
+> I *could* merge that branch, but I don't think they fix anything (tha=
+t
+> would come in the later patches), and there are still some issues in
+> my mind.
+>
+> =A0- I think we really want a [bus 00-ff] resource for each *domain*,
+> with each host bridge in the domain requesting part of that range. =A0=
+I
+> think these patches only track bus number usage within each host
+> bridge, and I'm not sure there's any place we would detect conflicts
+> between host bridges.
 
-Acked-and-tested-by: Richard Kuo <rkuo@codeaurora.org>
+I updated the patch set a bit. now it have domain busn_res.
+
+It could detect the conflicts. later could add code to resolve the conf=
+licts.
+
+int pci_bus_insert_busn_res(struct pci_bus *b, int bus, int bus_max)
+{
+        struct resource *res =3D &b->busn_res;
+        struct resource *parent_res;
+        int ret;
+
+        res->start =3D bus;
+        res->end =3D bus_max;
+        res->flags =3D IORESOURCE_BUS;
+
+        if (!pci_is_root_bus(b))
+                parent_res =3D &b->parent->busn_res;
+        else {
+                parent_res =3D get_pci_domain_busn_res(pci_domain_nr(b)=
+);
+                res->flags |=3D IORESOURCE_PCI_FIXED;
+        }
+
+        ret =3D insert_resource(parent_res, res);
+
+        dev_printk(KERN_DEBUG, &b->dev,
+                        "busn_res: %pR %s inserted under %s %pR\n",
+                        res, ret ? "can not be" : "is",
+                        pci_is_root_bus(b) ? "domain":"", parent_res);
+
+        return ret;
+}
 
 
--- 
+>
+> =A0- I think I made a mistake in the pci_create_root_bus() and
+> pci_scan_root_bus() interfaces. =A0They currently take a bus number a=
+nd
+> a list of resources, and we expect the arch to include the bus number
+> aperture in the list. =A0The bus number argument should have been
+> replaced with a bus number aperture resource. =A0The bus number apert=
+ure
+> is essential, while the MMIO/IO aperture list may be empty. =A0And it=
+'s
+> stupid to pass both the starting bus number and a bus resource that
+> contains the starting bus number. =A0Fixing this would make some of
+> these patches quite a bit simpler.
 
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
+Yes, could try to address that later to make it more clean.
+
+> =A0- In some of the arches (sparc, powerpc), you added a bus number
+> resource right next to existing first_busno, last_busno fields. =A0So
+> now that data lives two places, which will bite us later.
+
+then later we should kill first_busno and last_busno in those arches.
+
+Yinghai
