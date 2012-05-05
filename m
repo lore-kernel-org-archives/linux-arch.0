@@ -1,29 +1,48 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [RFC] move link of vmlinux to a script
-Date: Sat, 5 May 2012 10:30:00 +0200
-Message-ID: <20120505083000.GB14006@merkur.ravnborg.org>
-References: <20120422212220.GA6537@merkur.ravnborg.org> <21193.1335776659@redhat.com>
+From: " Gracias de leer y me responde (via Multiply) "
+	<multiply@multiply.com>
+Subject: An invitation to Multiply
+Date: Sat, 05 May 2012 16:46:01 -0400
+Message-ID: <201205052047.q45Kl0R8015396@px537-fe.Multiply.com>
+Reply-To: Gracias de leer y me responde <qsdnfgqsh@yahoo.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.snhosting.dk ([87.238.248.203]:52970 "EHLO
-	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753823Ab2EEIaB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 May 2012 04:30:01 -0400
-Content-Disposition: inline
-In-Reply-To: <21193.1335776659@redhat.com>
+Received: from px537-fe.multiply.com ([38.126.198.24]:54523 "EHLO
+	px537-fe.Multiply.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752221Ab2EEUr1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 May 2012 16:47:27 -0400
+Received: from localhost.localdomain (ws554-fe.pn.pezarisdesign.com [38.126.199.54])
+	by px537-fe.Multiply.com (8.13.8/8.12.8) with ESMTP id q45Kl0R8015396
+	for <linux-arch@vger.kernel.org>; Sat, 5 May 2012 16:47:00 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Michal Marek <mmarek@suse.cz>
+To: linux-arch@vger.kernel.org
 
-On Mon, Apr 30, 2012 at 10:04:19AM +0100, David Howells wrote:
-> Sam Ravnborg <sam@ravnborg.org> wrote:
-> 
-> > +#   C = Comon symbol
-> 
-> Should be "Common" I presume.  Could you fix it whilst you're at it?
 
-I ended up not touching this file.
+Check out my Multiply site
 
-	Sam
+I set up a Multiply site with my pictures, videos and blog and I want 
+to add you as my friend so you can see it. First, you need to join 
+Multiply! Once you join, you can also create your own site and share 
+anything you want, with anyone you want.
+
+Here's the link:
+http://multiply.com/si/hTCRezMd03moqDWw+PQ06A
+
+Gracias de leer y me responde
+
+Thanks,
+Gracias de leer
+
+
+
+
+
+
+
+Stop e-mails, view our privacy policy, or report abuse: 
+http://multiply.com/bl/hTCRezMd03moqDWw+PQ06A
+We haven't added your email address to any lists, nor will we share it
+with anyone at any time.
+Copyright 2012 Multiply
+6001 Park of Commerce Blvd, Boca Raton, FL
