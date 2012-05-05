@@ -1,58 +1,29 @@
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 3/4] kbuild: link of vmlinux moved to a script
-Date: Sat, 5 May 2012 10:29:17 +0200
-Message-ID: <20120505082916.GA14006@merkur.ravnborg.org>
-References: <20120428205651.GA7426@merkur.ravnborg.org> <20120428205919.GC7442@merkur.ravnborg.org> <4FA460AB.6060309@suse.cz>
+Subject: Re: [RFC] move link of vmlinux to a script
+Date: Sat, 5 May 2012 10:30:00 +0200
+Message-ID: <20120505083000.GB14006@merkur.ravnborg.org>
+References: <20120422212220.GA6537@merkur.ravnborg.org> <21193.1335776659@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kbuild-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp.snhosting.dk ([87.238.248.203]:52970 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753823Ab2EEIaB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 May 2012 04:30:01 -0400
 Content-Disposition: inline
-In-Reply-To: <4FA460AB.6060309@suse.cz>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Michal Marek <mmarek@suse.cz>
-Cc: linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <21193.1335776659@redhat.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: linux arch <linux-arch@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, Michal Marek <mmarek@suse.cz>
 
-On Sat, May 05, 2012 at 01:05:15AM +0200, Michal Marek wrote:
-> Hi Sam,
+On Mon, Apr 30, 2012 at 10:04:19AM +0100, David Howells wrote:
+> Sam Ravnborg <sam@ravnborg.org> wrote:
 > 
-> Thanks a lot for this work and sorry for the delay.
+> > +#   C = Comon symbol
 > 
-> Dne 28.4.2012 22:59, Sam Ravnborg napsal(a):
-> > +kallsymso=""
-> > +kallsyms_vmlinux=""
-> > +if [ -n "${CONFIG_KALLSYMS}" ]; then
-> > +
-> [...]
-> > +
-> > +	kallsymso=.tmp_kallsyms2.o
-> > +	kallsyms_vmlinux=.tmp_vmlinux2
-> > +
-> > +	# step 1
-> > +	vmlinux_link "" .tmp_vmlinux1
-> > +	kallsyms .tmp_vmlinux1 .tmp_kallsyms1.o
-> > +
-> > +	# step 2
-> > +	vmlinux_link .tmp_kallsyms1.o .tmp_vmlinux2
-> > +	kallsyms .tmp_vmlinux2 .tmp_kallsyms2.o
-> > +
-> > +	# step 2a
-> > +	if [ -n "${KALLSYMS_EXTRA_PASS}" ]; then
-> > +		kallsymso=.tmp_kallsyms3.o
-> > +		kallsyms_vmlinux=.tmp_vmlinux2
-> 
-> This should read ".tmp_vmlinux3".
-Well spotted!
+> Should be "Common" I presume.  Could you fix it whilst you're at it?
 
-> Also, how about storing these two
-> variables in the kallsyms() function instead? That way, you have the
-> assignment in one place only and this block becomes a little simpler.
-I kep them as is - as the current version is more explicit.
-Hiding this inside kallsyms() is fewer lines but less obvious.
+I ended up not touching this file.
 
-And part of this was to increase readability.
-
-Updated patch-set sent out.
-
-Thanks,
 	Sam
