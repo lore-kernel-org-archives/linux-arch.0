@@ -1,48 +1,60 @@
-From: " Gracias de leer y me responde (via Multiply) "
-	<multiply@multiply.com>
-Subject: An invitation to Multiply
-Date: Sat, 05 May 2012 16:45:38 -0400
-Message-ID: <201205052047.q45Kl018008830@px543-fe.Multiply.com>
-Reply-To: Gracias de leer y me responde <qsdnfgqsh@yahoo.com>
+From: Mike Frysinger <vapier@gentoo.org>
+Subject: Re: [patch 05/29] blackfin: Use generic init_task
+Date: Sun, 6 May 2012 04:16:26 -0400
+Message-ID: <201205060416.28085.vapier@gentoo.org>
+References: <20120430194725.763322463@linutronix.de> <20120430194845.850346878@linutronix.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: multipart/signed;
+  boundary="nextPart3417189.oGjxHQfq1C";
+  protocol="application/pgp-signature";
+  micalg=pgp-sha1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from px543-fe.multiply.com ([38.126.198.29]:55759 "EHLO
-	px543-fe.Multiply.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752230Ab2EEUr5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 May 2012 16:47:57 -0400
-Received: from localhost.localdomain (ws554-fe.pn.pezarisdesign.com [38.126.199.54])
-	by px543-fe.Multiply.com (8.13.8/8.12.8) with ESMTP id q45Kl018008830
-	for <linux-arch@vger.kernel.org>; Sat, 5 May 2012 16:47:00 -0400
+Received: from smtp.gentoo.org ([140.211.166.183]:56343 "EHLO smtp.gentoo.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752148Ab2EFIPR (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 6 May 2012 04:15:17 -0400
+In-Reply-To: <20120430194845.850346878@linutronix.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
 
+--nextPart3417189.oGjxHQfq1C
+Content-Type: Text/Plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 7bit
 
-Check out my Multiply site
+On Monday 30 April 2012 16:15:54 Thomas Gleixner wrote:
+> Same code. Use the generic version. The special Makefile treatment is
+> pointless anyway as init_task.o contains only data which is handled by
+> the linker script. So no point on being treated like head text.
 
-I set up a Multiply site with my pictures, videos and blog and I want 
-to add you as my friend so you can see it. First, you need to join 
-Multiply! Once you join, you can also create your own site and share 
-anything you want, with anyone you want.
+thanks !
 
-Here's the link:
-http://multiply.com/si/PlknC3ZfVkZFzocsLwdi+A
+Acked-by: Mike Frysinger <vapier@gentoo.org>
+-mike
 
-Gracias de leer y me responde
+--nextPart3417189.oGjxHQfq1C
+Content-Type: application/pgp-signature; name=signature.asc 
+Content-Description: This is a digitally signed message part.
 
-Thanks,
-Gracias de leer
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.17 (GNU/Linux)
 
+iQIcBAABAgAGBQJPpjNcAAoJEEFjO5/oN/WBfUIP/0au5BWIuaXvwuaVK01tmZGt
+lnJLTIdl9OOlQ2+Ij/f8YQHOe82dZCp8fWiw8ytWQhUt4A1aEhghIu41lrA+MC2j
+V8sSo1AjcjGbv5KHuDgMt+pLSuIeZSTMKe4qZEkQDfWYDiUN/lMdwvEsu7fhum75
+iJgPHWz87YuYDFFvHh7PXLbz2wQ4zkroSdNGcTel7PegT0t3MLiqSCeyB/ojRiXc
+OA6APCgwI8/1sEdz6whfMZJUkMEnuyRILqhdgeYUF8SXhCwMcP6w+475y60fmZFz
+YfSKkud4k2hdjifmhgm8EK+U0h0CL5f+HyR2QD9mcVSUyhdOQeZOiq7Cfu5C5T2R
+3ZkZ56RZLRr4RwB2B/g+rprC9XSbsvku9kSmmEPhSahOs8e9NJWgH7ikUTw9WDwF
+xEw7zvI3l/atCfX3JnFVEPtFDhtch3yR8HGpyM9QBsIH7Me+TJTVyMZOEliJp5kz
+c3BGU2LONw7Z7y9FTTcbLvwkqH00lhI7t0HpvBeDJ1WjKf5xq3KDLpEJUCohKNOs
+k86ri5yLVcmZvlk2PfVGCpJHPJNii2pVEx7CGWtW4EjiW18BRHRyFecP4IIlYuBG
+kWjoYCIn5sLtlj3+gfU041S8QQlaQZzudAAN8AOLxKV0frMLBH6TtDGXIarBni69
+2Ci44C95h8ukO5Mf/y9v
+=zfPU
+-----END PGP SIGNATURE-----
 
-
-
-
-
-
-Stop e-mails, view our privacy policy, or report abuse: 
-http://multiply.com/bl/PlknC3ZfVkZFzocsLwdi+A
-We haven't added your email address to any lists, nor will we share it
-with anyone at any time.
-Copyright 2012 Multiply
-6001 Park of Commerce Blvd, Boca Raton, FL
+--nextPart3417189.oGjxHQfq1C--
