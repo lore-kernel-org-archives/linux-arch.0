@@ -1,34 +1,31 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 01/21] PCI: add busn_res into struct pci_bus.
-Date: Mon,  7 May 2012 13:29:46 -0700
-Message-ID: <1336422606-4244-2-git-send-email-yinghai@kernel.org>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 16/21] sparc/PCI: register busn_res for root buses
+Date: Mon, 07 May 2012 16:43:43 -0400 (EDT)
+Message-ID: <20120507.164343.229555682968117237.davem@davemloft.net>
 References: <1336422606-4244-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-pci-owner@vger.kernel.org>
-In-Reply-To: <1336422606-4244-1-git-send-email-yinghai@kernel.org>
-Sender: linux-pci-owner@vger.kernel.org
-To: Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
-Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-List-Id: linux-arch.vger.kernel.org
+	<1336422606-4244-17-git-send-email-yinghai@kernel.org>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from shards.monkeyblade.net ([198.137.202.13]:51302 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932189Ab2EGUn4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 May 2012 16:43:56 -0400
+In-Reply-To: <1336422606-4244-17-git-send-email-yinghai@kernel.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: yinghai@kernel.org
+Cc: bhelgaas@google.com, benh@kernel.crashing.org, tony.luck@intel.com, x86@kernel.org, linux@dominikbrodowski.net, akpm@linux-foundation.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org
 
-Will use it to track bus number resource tree.
+From: Yinghai Lu <yinghai@kernel.org>
+Date: Mon,  7 May 2012 13:30:01 -0700
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>
----
- include/linux/pci.h |    1 +
- 1 files changed, 1 insertions(+), 0 deletions(-)
+> Add the host bridge bus number aperture to the resource list.
+> Like the MMIO and I/O port apertures, this is used when assigning
+> resources to hot-added devices or in the case of conflicts.
+> 
+> [bhelgaas: write changelog]
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index 17b7b5b..2b91da0 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -419,6 +419,7 @@ struct pci_bus {
- 	struct list_head slots;		/* list of slots on this bus */
- 	struct resource *resource[PCI_BRIDGE_RESOURCE_NUM];
- 	struct list_head resources;	/* address space routed to this bus */
-+	struct resource busn_res;	/* track registered bus num range */
- 
- 	struct pci_ops	*ops;		/* configuration access functions */
- 	void		*sysdata;	/* hook for sys-specific extension */
--- 
-1.7.7
+Acked-by: David S. Miller <davem@davemloft.net>
