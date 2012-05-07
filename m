@@ -1,31 +1,31 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 16/21] sparc/PCI: register busn_res for root buses
-Date: Mon, 07 May 2012 16:43:43 -0400 (EDT)
-Message-ID: <20120507.164343.229555682968117237.davem@davemloft.net>
-References: <1336422606-4244-1-git-send-email-yinghai@kernel.org>
-	<1336422606-4244-17-git-send-email-yinghai@kernel.org>
+From: Tony Luck <tony.luck@gmail.com>
+Subject: Re: [PATCH 3/4] kbuild: link of vmlinux moved to a script
+Date: Mon, 7 May 2012 16:15:44 -0700
+Message-ID: <CA+8MBbKd9zAouJy5JvUnLwUHMJ65HsYgCTfBgv42nm32EnMPFA@mail.gmail.com>
+References: <20120428205651.GA7426@merkur.ravnborg.org>
+	<20120428205919.GC7442@merkur.ravnborg.org>
+	<4FA460AB.6060309@suse.cz>
+	<20120505082916.GA14006@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([198.137.202.13]:51302 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932189Ab2EGUn4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 May 2012 16:43:56 -0400
-In-Reply-To: <1336422606-4244-17-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: yinghai@kernel.org
-Cc: bhelgaas@google.com, benh@kernel.crashing.org, tony.luck@intel.com, x86@kernel.org, linux@dominikbrodowski.net, akpm@linux-foundation.org, torvalds@linux-foundation.org, gregkh@linuxfoundation.org, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, sparclinux@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20120505082916.GA14006@merkur.ravnborg.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Michal Marek <mmarek@suse.cz>, linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: Yinghai Lu <yinghai@kernel.org>
-Date: Mon,  7 May 2012 13:30:01 -0700
+This patch is now in linux-next (tag next-20120507). But it looks to have
+broken the ia64 build. I see this error:
 
-> Add the host bridge bus number aperture to the resource list.
-> Like the MMIO and I/O port apertures, this is used when assigning
-> resources to hot-added devices or in the case of conflicts.
-> 
-> [bhelgaas: write changelog]
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+  CC      init/version.o
+  LD      init/built-in.o
+  KSYM    .tmp_kallsyms1.o
+ld: .tmp_kallsyms1.o: linking constant-gp files with non-constant-gp files
+ld: failed to merge target specific data of file .tmp_kallsyms1.o
+make: *** [vmlinux] Error 1
 
-Acked-by: David S. Miller <davem@davemloft.net>
+which looks like we used the wrong compile options when building
+.tmp_kallsyms1.o
+
+-Tony
