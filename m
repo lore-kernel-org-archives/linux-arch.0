@@ -1,57 +1,49 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH 11/21] PCI: Add default busn_resource
-Date: Mon,  7 May 2012 13:29:56 -0700
-Message-ID: <1336422606-4244-12-git-send-email-yinghai@kernel.org>
+Subject: [PATCH 15/21] ia64/PCI: register busn_res for root buses
+Date: Mon,  7 May 2012 13:30:00 -0700
+Message-ID: <1336422606-4244-16-git-send-email-yinghai@kernel.org>
 References: <1336422606-4244-1-git-send-email-yinghai@kernel.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:18545 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932261Ab2EGUaf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 May 2012 16:30:35 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1336422606-4244-1-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
-Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>, Fenghua Yu <fenghua.yu@intel.com>, linux-ia64@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-We need to put into the resources list for legacy system.
+Add the host bridge bus number aperture from _CRS to the resource list.
+Like the MMIO and I/O port apertures, this is used when assigning
+resources to hot-added devices or in the case of conflicts.
 
+[bhelgaas: write changelog]
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: linux-ia64@vger.kernel.org
 ---
- drivers/pci/probe.c |    7 +++++++
- include/linux/pci.h |    2 ++
- 2 files changed, 9 insertions(+), 0 deletions(-)
+ arch/ia64/pci/pci.c |    4 +++-
+ 1 files changed, 3 insertions(+), 1 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 6258f6f..68e75cb 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -16,6 +16,13 @@
- #define CARDBUS_LATENCY_TIMER	176	/* secondary latency timer */
- #define CARDBUS_RESERVE_BUSNR	3
+diff --git a/arch/ia64/pci/pci.c b/arch/ia64/pci/pci.c
+index 3ca9bed..d173a88 100644
+--- a/arch/ia64/pci/pci.c
++++ b/arch/ia64/pci/pci.c
+@@ -351,6 +351,8 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
+ #endif
  
-+struct resource busn_resource = {
-+	.name	= "PCI busn",
-+	.start	= 0,
-+	.end	= 255,
-+	.flags	= IORESOURCE_BUS,
-+};
-+
- /* Ugh.  Need to stop exporting this to modules. */
- LIST_HEAD(pci_root_buses);
- EXPORT_SYMBOL(pci_root_buses);
-diff --git a/include/linux/pci.h b/include/linux/pci.h
-index b5f2cc7..84ce6da 100644
---- a/include/linux/pci.h
-+++ b/include/linux/pci.h
-@@ -368,6 +368,8 @@ static inline int pci_channel_offline(struct pci_dev *pdev)
- 	return (pdev->error_state != pci_channel_io_normal);
- }
+ 	INIT_LIST_HEAD(&info.resources);
++	/* insert busn resource at first */
++	pci_add_resource(&info.resources, &root->secondary);
+ 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_window,
+ 			&windows);
+ 	if (windows) {
+@@ -384,7 +386,7 @@ pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		return NULL;
+ 	}
  
-+extern struct resource busn_resource;
-+
- struct pci_host_bridge_window {
- 	struct list_head list;
- 	struct resource *res;		/* host bridge aperture (CPU address) */
+-	pbus->busn_res.end = pci_scan_child_bus(pbus);
++	pci_scan_child_bus(pbus);
+ 	return pbus;
+ 
+ out3:
 -- 
 1.7.7
