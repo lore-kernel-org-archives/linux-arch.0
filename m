@@ -1,63 +1,82 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.snhosting.dk ([87.238.248.203]:37149 "EHLO
-	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753823Ab2EEI3S (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 5 May 2012 04:29:18 -0400
-Date: Sat, 5 May 2012 10:29:17 +0200
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 3/4] kbuild: link of vmlinux moved to a script
-Message-ID: <20120505082916.GA14006@merkur.ravnborg.org>
-References: <20120428205651.GA7426@merkur.ravnborg.org> <20120428205919.GC7442@merkur.ravnborg.org> <4FA460AB.6060309@suse.cz>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <4FA460AB.6060309@suse.cz>
+Received: from rcsinet15.oracle.com ([148.87.113.117]:51068 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932255Ab2EGUaf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 May 2012 16:30:35 -0400
+From: Yinghai Lu <yinghai@kernel.org>
+Subject: [PATCH 13/21] x86/PCI: add busn_res into resources list for ACPI path
+Date: Mon,  7 May 2012 13:29:58 -0700
+Message-ID: <1336422606-4244-14-git-send-email-yinghai@kernel.org>
+In-Reply-To: <1336422606-4244-1-git-send-email-yinghai@kernel.org>
+References: <1336422606-4244-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Marek <mmarek@suse.cz>
-Cc: linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>
-Message-ID: <20120505082917.rX48h45j9kp6dJG2_11mHRM5KkJ7hQwUpkV6ATn9ZRw@z>
+To: Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
+Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+Message-ID: <20120507202958.dWzYIJoLJalaUeVk2FEEdYlhuLTgu7j_uL0exU-Y_oM@z>
 
-On Sat, May 05, 2012 at 01:05:15AM +0200, Michal Marek wrote:
-> Hi Sam,
-> 
-> Thanks a lot for this work and sorry for the delay.
-> 
-> Dne 28.4.2012 22:59, Sam Ravnborg napsal(a):
-> > +kallsymso=""
-> > +kallsyms_vmlinux=""
-> > +if [ -n "${CONFIG_KALLSYMS}" ]; then
-> > +
-> [...]
-> > +
-> > +	kallsymso=.tmp_kallsyms2.o
-> > +	kallsyms_vmlinux=.tmp_vmlinux2
-> > +
-> > +	# step 1
-> > +	vmlinux_link "" .tmp_vmlinux1
-> > +	kallsyms .tmp_vmlinux1 .tmp_kallsyms1.o
-> > +
-> > +	# step 2
-> > +	vmlinux_link .tmp_kallsyms1.o .tmp_vmlinux2
-> > +	kallsyms .tmp_vmlinux2 .tmp_kallsyms2.o
-> > +
-> > +	# step 2a
-> > +	if [ -n "${KALLSYMS_EXTRA_PASS}" ]; then
-> > +		kallsymso=.tmp_kallsyms3.o
-> > +		kallsyms_vmlinux=.tmp_vmlinux2
-> 
-> This should read ".tmp_vmlinux3".
-Well spotted!
+Add the host bridge bus number aperture from _CRS to the resource list.
+Like the MMIO and I/O port apertures, this will be used when assigning
+resources to hot-added devices or in the case of conflicts.
 
-> Also, how about storing these two
-> variables in the kallsyms() function instead? That way, you have the
-> assignment in one place only and this block becomes a little simpler.
-I kep them as is - as the current version is more explicit.
-Hiding this inside kallsyms() is fewer lines but less obvious.
+Always insert that even pci_use_crs is not used.
 
-And part of this was to increase readability.
+[bhelgaas: rewrite changelog]
+Suggested-by: Bjorn Helgaas <bhelgaas@google.com>
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+---
+ arch/x86/pci/acpi.c |    9 +++++----
+ 1 files changed, 5 insertions(+), 4 deletions(-)
 
-Updated patch-set sent out.
+diff --git a/arch/x86/pci/acpi.c b/arch/x86/pci/acpi.c
+index 350fe63..2bb885a 100644
+--- a/arch/x86/pci/acpi.c
++++ b/arch/x86/pci/acpi.c
+@@ -12,7 +12,6 @@ struct pci_root_info {
+ 	char name[16];
+ 	unsigned int res_num;
+ 	struct resource *res;
+-	int busnum;
+ 	struct pci_sysdata sd;
+ };
+ 
+@@ -347,7 +346,9 @@ probe_pci_root_info(struct pci_root_info *info, struct acpi_device *device,
+ {
+ 	size_t size;
+ 
++	sprintf(info->name, "PCI Bus %04x:%02x", domain, busnum);
+ 	info->bridge = device;
++
+ 	info->res_num = 0;
+ 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, count_resource,
+ 				info);
+@@ -360,8 +361,6 @@ probe_pci_root_info(struct pci_root_info *info, struct acpi_device *device,
+ 	if (!info->res)
+ 		return;
+ 
+-	sprintf(info->name, "PCI Bus %04x:%02x", domain, busnum);
+-
+ 	acpi_walk_resources(device->handle, METHOD_NAME__CRS, setup_resource,
+ 				info);
+ }
+@@ -426,6 +425,8 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 	} else {
+ 		probe_pci_root_info(info, device, busnum, domain);
+ 
++		/* insert busn res at first */
++		pci_add_resource(&resources,  &root->secondary);
+ 		/*
+ 		 * _CRS with no apertures is normal, so only fall back to
+ 		 * defaults or native bridge info if we're ignoring _CRS.
+@@ -440,7 +441,7 @@ struct pci_bus * __devinit pci_acpi_scan_root(struct acpi_pci_root *root)
+ 		bus = pci_create_root_bus(NULL, busnum, &pci_root_ops, sd,
+ 					  &resources);
+ 		if (bus) {
+-			bus->busn_res.end = pci_scan_child_bus(bus);
++			pci_scan_child_bus(bus);
+ 			pci_set_host_bridge_release(
+ 				to_pci_host_bridge(bus->bridge),
+ 				release_pci_root_info, info);
+-- 
+1.7.7
 
-Thanks,
-	Sam
