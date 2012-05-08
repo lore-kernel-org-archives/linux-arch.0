@@ -1,36 +1,164 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gg0-f174.google.com ([209.85.161.174]:40647 "EHLO
-	mail-gg0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757019Ab2EGXPp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 May 2012 19:15:45 -0400
-MIME-Version: 1.0
-In-Reply-To: <20120505082916.GA14006@merkur.ravnborg.org>
-References: <20120428205651.GA7426@merkur.ravnborg.org>
-	<20120428205919.GC7442@merkur.ravnborg.org>
-	<4FA460AB.6060309@suse.cz>
-	<20120505082916.GA14006@merkur.ravnborg.org>
-Date: Mon, 7 May 2012 16:15:44 -0700
-Message-ID: <CA+8MBbKd9zAouJy5JvUnLwUHMJ65HsYgCTfBgv42nm32EnMPFA@mail.gmail.com>
-Subject: Re: [PATCH 3/4] kbuild: link of vmlinux moved to a script
-From: Tony Luck <tony.luck@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from mail.southpole.se ([193.12.106.18]:56638 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751509Ab2EHJyB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2012 05:54:01 -0400
+From: Jonas Bonn <jonas@southpole.se>
+Subject: [PATCH 1/6] openrisc: implement irqdomains
+Date: Tue,  8 May 2012 11:54:00 +0200
+Message-ID: <1336470845-13859-2-git-send-email-jonas@southpole.se>
+In-Reply-To: <1336470845-13859-1-git-send-email-jonas@southpole.se>
+References: <1336470845-13859-1-git-send-email-jonas@southpole.se>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Michal Marek <mmarek@suse.cz>, linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>
-Message-ID: <20120507231544.t1mYKSe32C_w0cN-C_KfKL7anLHokqan1y1FpvZrcfg@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Jonas Bonn <jonas@southpole.se>
+Message-ID: <20120508095400.DKxH0qN5kE_DBE0atBtcM4haaeBIqG9b4agnZwbXzwk@z>
 
-This patch is now in linux-next (tag next-20120507). But it looks to have
-broken the ia64 build. I see this error:
 
-  CC      init/version.o
-  LD      init/built-in.o
-  KSYM    .tmp_kallsyms1.o
-ld: .tmp_kallsyms1.o: linking constant-gp files with non-constant-gp files
-ld: failed to merge target specific data of file .tmp_kallsyms1.o
-make: *** [vmlinux] Error 1
+This moves OpenRISC to using the irqdomain infrastructure.  This doesn't
+fundamentally change anything other than that it will be easier to have
+multiple interrupt controllers in the future.
 
-which looks like we used the wrong compile options when building
-.tmp_kallsyms1.o
+Signed-off-by: Jonas Bonn <jonas@southpole.se>
+---
+ arch/openrisc/Kconfig      |    1 +
+ arch/openrisc/kernel/irq.c |   79 ++++++++++++++++++++++++++------------------
+ 2 files changed, 48 insertions(+), 32 deletions(-)
 
--Tony
+diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
+index a478719..7589051 100644
+--- a/arch/openrisc/Kconfig
++++ b/arch/openrisc/Kconfig
+@@ -7,6 +7,7 @@ config OPENRISC
+ 	def_bool y
+ 	select OF
+ 	select OF_EARLY_FLATTREE
++	select IRQ_DOMAIN
+ 	select HAVE_MEMBLOCK
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
+         select HAVE_ARCH_TRACEHOOK
+diff --git a/arch/openrisc/kernel/irq.c b/arch/openrisc/kernel/irq.c
+index 4bfead2..15c5ea3 100644
+--- a/arch/openrisc/kernel/irq.c
++++ b/arch/openrisc/kernel/irq.c
+@@ -24,7 +24,7 @@
+ #include <linux/seq_file.h>
+ #include <linux/kernel_stat.h>
+ #include <linux/export.h>
+-
++#include <linux/irqdomain.h>
+ #include <linux/irqflags.h>
+ 
+ /* read interrupt enabled status */
+@@ -98,6 +98,7 @@ static void or1k_pic_mask_ack(struct irq_data *data)
+ #endif
+ }
+ 
++#if 0
+ static int or1k_pic_set_type(struct irq_data *data, unsigned int flow_type)
+ {
+ 	/* There's nothing to do in the PIC configuration when changing
+@@ -107,43 +108,64 @@ static int or1k_pic_set_type(struct irq_data *data, unsigned int flow_type)
+ 
+ 	return irq_setup_alt_chip(data, flow_type);
+ }
++#endif
++
++static struct irq_chip or1k_dev = {
++	.name = "or1k-PIC",
++	.irq_unmask = or1k_pic_unmask,
++	.irq_mask = or1k_pic_mask,
++	.irq_ack = or1k_pic_ack,
++	.irq_mask_ack = or1k_pic_mask_ack,
++};
++
++static struct irq_domain *root_domain;
+ 
+ static inline int pic_get_irq(int first)
+ {
+-	int irq;
++	int hwirq;
+ 
+-	irq = ffs(mfspr(SPR_PICSR) >> first);
++	hwirq = ffs(mfspr(SPR_PICSR) >> first);
++	if (!hwirq)
++		return NO_IRQ;
++	else
++		hwirq = hwirq + first -1;
+ 
+-	return irq ? irq + first - 1 : NO_IRQ;
++	return irq_find_mapping(root_domain, hwirq);
+ }
+ 
+-static void __init or1k_irq_init(void)
++
++static int or1k_map(struct irq_domain *d, unsigned int irq, irq_hw_number_t hw)
+ {
+-	struct irq_chip_generic *gc;
+-	struct irq_chip_type *ct;
++	irq_set_chip_and_handler_name(irq, &or1k_dev,
++				      handle_level_irq, "level");
++	irq_set_status_flags(irq, IRQ_LEVEL | IRQ_NOPROBE);
+ 
+-	/* Disable all interrupts until explicitly requested */
+-	mtspr(SPR_PICMR, (0UL));
++	return 0;
++}
+ 
+-	gc = irq_alloc_generic_chip("or1k-PIC", 1, 0, 0, handle_level_irq);
+-	ct = gc->chip_types;
++static const struct irq_domain_ops or1k_irq_domain_ops = {
++	.xlate = irq_domain_xlate_onecell,
++	.map = or1k_map,
++};
+ 
+-	ct->chip.irq_unmask = or1k_pic_unmask;
+-	ct->chip.irq_mask = or1k_pic_mask;
+-	ct->chip.irq_ack = or1k_pic_ack;
+-	ct->chip.irq_mask_ack = or1k_pic_mask_ack;
+-	ct->chip.irq_set_type = or1k_pic_set_type;
++/*
++ * This sets up the IRQ domain for the PIC built in to the OpenRISC
++ * 1000 CPU.  This is the "root" domain as these are the interrupts
++ * that directly trigger an exception in the CPU.
++ */
++static void __init or1k_irq_init(void)
++{
++	struct device_node *intc = NULL;
+ 
+-	/* The OR1K PIC can handle both level and edge trigged
+-	 * interrupts in roughly the same manner
+-	 */
+-#if 0
+-	/* FIXME: chip.type??? */
+-	ct->chip.type = IRQ_TYPE_EDGE_BOTH | IRQ_TYPE_LEVEL_MASK;
+-#endif
++	/* The interrupt controller device node is mandatory */
++	intc = of_find_compatible_node(NULL, NULL, "opencores,or1k-pic");
++	BUG_ON(!intc);
+ 
+-	irq_setup_generic_chip(gc, IRQ_MSK(NR_IRQS), 0,
+-			       IRQ_NOREQUEST, IRQ_LEVEL | IRQ_NOPROBE);
++	/* Disable all interrupts until explicitly requested */
++	mtspr(SPR_PICMR, (0UL));
++
++	root_domain = irq_domain_add_linear(intc, 32,
++					    &or1k_irq_domain_ops, NULL);
+ }
+ 
+ void __init init_IRQ(void)
+@@ -164,10 +186,3 @@ void __irq_entry do_IRQ(struct pt_regs *regs)
+ 	irq_exit();
+ 	set_irq_regs(old_regs);
+ }
+-
+-unsigned int irq_create_of_mapping(struct device_node *controller,
+-				   const u32 *intspec, unsigned int intsize)
+-{
+-	return intspec[0];
+-}
+-EXPORT_SYMBOL_GPL(irq_create_of_mapping);
+-- 
+1.7.0.4
+
