@@ -1,52 +1,30 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 3/4] kbuild: link of vmlinux moved to a script
-Date: Tue, 8 May 2012 18:51:18 +0200
-Message-ID: <20120508165118.GA11750@merkur.ravnborg.org>
-References: <20120428205651.GA7426@merkur.ravnborg.org> <20120428205919.GC7442@merkur.ravnborg.org> <4FA460AB.6060309@suse.cz> <20120505082916.GA14006@merkur.ravnborg.org> <CA+8MBbKd9zAouJy5JvUnLwUHMJ65HsYgCTfBgv42nm32EnMPFA@mail.gmail.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 4/6] get_unmapped_area checks for TASK_SIZE before
+ MAP_FIXED on sparc64
+Date: Tue, 08 May 2012 13:00:32 -0400 (EDT)
+Message-ID: <20120508.130032.416753327609206678.davem@davemloft.net>
+References: <1336488022-3723-1-git-send-email-murzin.v@gmail.com>
+	<1336488022-3723-5-git-send-email-murzin.v@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CA+8MBbKd9zAouJy5JvUnLwUHMJ65HsYgCTfBgv42nm32EnMPFA@mail.gmail.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Tony Luck <tony.luck@gmail.com>
-Cc: Michal Marek <mmarek@suse.cz>, linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from shards.monkeyblade.net ([198.137.202.13]:59566 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756772Ab2EHRCq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2012 13:02:46 -0400
+In-Reply-To: <1336488022-3723-5-git-send-email-murzin.v@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: murzin.v@gmail.com
+Cc: linux-arch@vger.kernel.org, tglx@linutronix.de, lethal@linux-sh.org, linux@arm.linux.org.uk
 
-Hi Tony.
+From: Vladimir Murzin <murzin.v@gmail.com>
+Date: Tue,  8 May 2012 18:40:20 +0400
 
-On Mon, May 07, 2012 at 04:15:44PM -0700, Tony Luck wrote:
-> This patch is now in linux-next (tag next-20120507). But it looks to have
-> broken the ia64 build. I see this error:
+> Move check for TASK_SIZE before MAP_FIXED in sparc64's
+> arch_get_unmapped_area() and arch_get_unmapped_area_topdown().
 > 
->   CC      init/version.o
->   LD      init/built-in.o
->   KSYM    .tmp_kallsyms1.o
-> ld: .tmp_kallsyms1.o: linking constant-gp files with non-constant-gp files
-> ld: failed to merge target specific data of file .tmp_kallsyms1.o
-> make: *** [vmlinux] Error 1
-> 
-> which looks like we used the wrong compile options when building
-> .tmp_kallsyms1.o
+> Signed-off-by: Vladimir Murzin <murzin.v@gmail.com>
 
-Thanks for testing!
-
-Could you try if this helps.
-
-	Sam
-
-diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
-index 26c5b65..1f4c27b 100644
---- a/scripts/link-vmlinux.sh
-+++ b/scripts/link-vmlinux.sh
-@@ -78,8 +78,8 @@ kallsyms()
- 		kallsymopt=--all-symbols
- 	fi
- 
--	local aflags="${KBUILD_AFLAGS} ${NOSTDINC_FLAGS}                     \
--		      ${LINUXINCLUDE} ${KBUILD_CPPFLAGS}"
-+	local aflags="${KBUILD_AFLAGS} ${KBUILD_AFLAGS_KERNEL}               \
-+		      ${NOSTDINC_FLAGS} ${LINUXINCLUDE} ${KBUILD_CPPFLAGS}"
- 
- 	${NM} -n ${1} | \
- 		scripts/kallsyms ${kallsymopt} | \
+Acked-by: David S. Miller <davem@davemloft.net>
