@@ -1,29 +1,47 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 3/6] get_unmapped_area checks for TASK_SIZE before
- MAP_FIXED on sparc32
-Date: Tue, 08 May 2012 13:00:27 -0400 (EDT)
-Message-ID: <20120508.130027.500445016743665805.davem@davemloft.net>
-References: <1336488022-3723-1-git-send-email-murzin.v@gmail.com>
-	<1336488022-3723-4-git-send-email-murzin.v@gmail.com>
+From: Tony Luck <tony.luck@gmail.com>
+Subject: Re: [PATCH 3/4] kbuild: link of vmlinux moved to a script
+Date: Tue, 8 May 2012 10:39:03 -0700
+Message-ID: <CA+8MBbJHH1niHHR7md844UwphmeYczYQBJOB3huGFaxU9AXMTA@mail.gmail.com>
+References: <20120428205651.GA7426@merkur.ravnborg.org>
+	<20120428205919.GC7442@merkur.ravnborg.org>
+	<4FA460AB.6060309@suse.cz>
+	<20120505082916.GA14006@merkur.ravnborg.org>
+	<CA+8MBbKd9zAouJy5JvUnLwUHMJ65HsYgCTfBgv42nm32EnMPFA@mail.gmail.com>
+	<20120508165118.GA11750@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([198.137.202.13]:59567 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757393Ab2EHRCq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2012 13:02:46 -0400
-In-Reply-To: <1336488022-3723-4-git-send-email-murzin.v@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: murzin.v@gmail.com
-Cc: linux-arch@vger.kernel.org, tglx@linutronix.de, lethal@linux-sh.org, linux@arm.linux.org.uk
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20120508165118.GA11750@merkur.ravnborg.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: Michal Marek <mmarek@suse.cz>, linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>
+List-Id: linux-arch.vger.kernel.org
 
-From: Vladimir Murzin <murzin.v@gmail.com>
-Date: Tue,  8 May 2012 18:40:19 +0400
+On Tue, May 8, 2012 at 9:51 AM, Sam Ravnborg <sam@ravnborg.org> wrote:
+> - =A0 =A0 =A0 local aflags=3D"${KBUILD_AFLAGS} ${NOSTDINC_FLAGS} =A0 =
+=A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 \
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 ${LINUXINCLUDE} ${KBUILD_CP=
+PFLAGS}"
+> + =A0 =A0 =A0 local aflags=3D"${KBUILD_AFLAGS} ${KBUILD_AFLAGS_KERNEL=
+} =A0 =A0 =A0 =A0 =A0 =A0 =A0 \
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 ${NOSTDINC_FLAGS} ${LINUXIN=
+CLUDE} ${KBUILD_CPPFLAGS}"
 
-> Move check for TASK_SIZE before MAP_FIXED in sparc32's arch_get_unmapped_area().
-> 
-> Signed-off-by: Vladimir Murzin <murzin.v@gmail.com>
+Heh. When I first got in this morning your e-mail hadn't arrived yet.
+So I ran some make V=3D1 on the old and latest tree and saw the problem
+was missing KBUILD_AFLAGS_KERNEL. I was just about to send this
+exact patch to you.
 
-Acked-by: David S. Miller <davem@davemloft.net>
+So yes ... it works.
+
+Tested-by: Tony Luck <tony.luck@intel.com>
+
+Thanks
+
+-Tony
+--
+To unsubscribe from this list: send the line "unsubscribe linux-kbuild"=
+ in
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
