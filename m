@@ -1,31 +1,47 @@
-From: Tony Luck <tony.luck@gmail.com>
-Subject: Re: [PATCH 3/4] kbuild: link of vmlinux moved to a script
-Date: Mon, 7 May 2012 16:15:44 -0700
-Message-ID: <CA+8MBbKd9zAouJy5JvUnLwUHMJ65HsYgCTfBgv42nm32EnMPFA@mail.gmail.com>
-References: <20120428205651.GA7426@merkur.ravnborg.org>
-	<20120428205919.GC7442@merkur.ravnborg.org>
-	<4FA460AB.6060309@suse.cz>
-	<20120505082916.GA14006@merkur.ravnborg.org>
+From: Jonas Bonn <jonas@southpole.se>
+Subject: [PATCH 0/6] OpenRISC patches for review
+Date: Tue,  8 May 2012 11:53:59 +0200
+Message-ID: <1336470845-13859-1-git-send-email-jonas@southpole.se>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20120505082916.GA14006@merkur.ravnborg.org>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Michal Marek <mmarek@suse.cz>, linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.southpole.se ([193.12.106.18]:56637 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751225Ab2EHJyB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2012 05:54:01 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Jonas Bonn <jonas@southpole.se>
 
-This patch is now in linux-next (tag next-20120507). But it looks to have
-broken the ia64 build. I see this error:
 
-  CC      init/version.o
-  LD      init/built-in.o
-  KSYM    .tmp_kallsyms1.o
-ld: .tmp_kallsyms1.o: linking constant-gp files with non-constant-gp files
-ld: failed to merge target specific data of file .tmp_kallsyms1.o
-make: *** [vmlinux] Error 1
+Here's a couple of patches that I'm planning on queuing up for 3.5.  These
+have been through the openrisc mailing list, but there's not much response
+on that channel, so I thought I'd run these once by the "big" list.
 
-which looks like we used the wrong compile options when building
-.tmp_kallsyms1.o
+Comments welcome, otherwise these will go into 3.5.
 
--Tony
+Thanks,
+Jonas
+
+Jonas Bonn (5):
+  openrisc: implement irqdomains
+  openrisc: remove unnecessary includes
+  openrisc: header file cleanups
+  openrisc: provide dma_map_ops
+  openrisc: use scratch regs in atomic syscall
+
+Kautuk Consul (1):
+  openrisc/mm/fault.c: Port OOM changes to do_page_fault
+
+ arch/openrisc/Kconfig                   |    1 +
+ arch/openrisc/include/asm/Kbuild        |    3 +-
+ arch/openrisc/include/asm/dma-mapping.h |  147 +++++++------------------------
+ arch/openrisc/include/asm/elf.h         |   12 ++-
+ arch/openrisc/include/asm/ptrace.h      |    6 +-
+ arch/openrisc/kernel/dma.c              |  109 +++++++++++++++--------
+ arch/openrisc/kernel/entry.S            |    8 +-
+ arch/openrisc/kernel/irq.c              |   83 ++++++++++--------
+ arch/openrisc/mm/fault.c                |   32 ++++++--
+ 9 files changed, 199 insertions(+), 202 deletions(-)
