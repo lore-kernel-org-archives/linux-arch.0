@@ -1,46 +1,52 @@
 From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH 3/6] get_unmapped_area checks for TASK_SIZE before
-	MAP_FIXED on sparc32
-Date: Tue, 8 May 2012 18:27:22 +0200
-Message-ID: <20120508162722.GA11624@merkur.ravnborg.org>
-References: <1336488022-3723-1-git-send-email-murzin.v@gmail.com> <1336488022-3723-4-git-send-email-murzin.v@gmail.com>
+Subject: Re: [PATCH 3/4] kbuild: link of vmlinux moved to a script
+Date: Tue, 8 May 2012 18:51:18 +0200
+Message-ID: <20120508165118.GA11750@merkur.ravnborg.org>
+References: <20120428205651.GA7426@merkur.ravnborg.org> <20120428205919.GC7442@merkur.ravnborg.org> <4FA460AB.6060309@suse.cz> <20120505082916.GA14006@merkur.ravnborg.org> <CA+8MBbKd9zAouJy5JvUnLwUHMJ65HsYgCTfBgv42nm32EnMPFA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.snhosting.dk ([87.238.248.203]:25872 "EHLO
-	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755223Ab2EHQ1Y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2012 12:27:24 -0400
+Return-path: <linux-kbuild-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1336488022-3723-4-git-send-email-murzin.v@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Vladimir Murzin <murzin.v@gmail.com>
-Cc: linux-arch@vger.kernel.org, tglx@linutronix.de, davem@davemloft.net, lethal@linux-sh.org, linux@arm.linux.org.uk
+In-Reply-To: <CA+8MBbKd9zAouJy5JvUnLwUHMJ65HsYgCTfBgv42nm32EnMPFA@mail.gmail.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Tony Luck <tony.luck@gmail.com>
+Cc: Michal Marek <mmarek@suse.cz>, linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, May 08, 2012 at 06:40:19PM +0400, Vladimir Murzin wrote:
-> Move check for TASK_SIZE before MAP_FIXED in sparc32's arch_get_unmapped_area().
+Hi Tony.
 
-I would be good to copy relevant parts of your cover letter into each patch.
-when the patches are applied we looses the cover letter...
-
-
+On Mon, May 07, 2012 at 04:15:44PM -0700, Tony Luck wrote:
+> This patch is now in linux-next (tag next-20120507). But it looks to have
+> broken the ia64 build. I see this error:
 > 
-> Signed-off-by: Vladimir Murzin <murzin.v@gmail.com>
-> ---
->  arch/sparc/kernel/sys_sparc_32.c |    9 +++++----
->  1 files changed, 5 insertions(+), 4 deletions(-)
+>   CC      init/version.o
+>   LD      init/built-in.o
+>   KSYM    .tmp_kallsyms1.o
+> ld: .tmp_kallsyms1.o: linking constant-gp files with non-constant-gp files
+> ld: failed to merge target specific data of file .tmp_kallsyms1.o
+> make: *** [vmlinux] Error 1
 > 
-> diff --git a/arch/sparc/kernel/sys_sparc_32.c b/arch/sparc/kernel/sys_sparc_32.c
-> index 42b282f..7bf30de 100644
-> --- a/arch/sparc/kernel/sys_sparc_32.c
-> +++ b/arch/sparc/kernel/sys_sparc_32.c
-> @@ -40,6 +40,11 @@ unsigned long arch_get_unmapped_area(struct file *filp, unsigned long addr, unsi
->  {
->  	struct vm_area_struct * vmm;
->  
-> +	if (len > TASK_SIZE - PAGE_SIZE)
-> +		return -ENOMEM;
-This is not the same as the check it replaces - what is going on here?
+> which looks like we used the wrong compile options when building
+> .tmp_kallsyms1.o
+
+Thanks for testing!
+
+Could you try if this helps.
 
 	Sam
+
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index 26c5b65..1f4c27b 100644
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -78,8 +78,8 @@ kallsyms()
+ 		kallsymopt=--all-symbols
+ 	fi
+ 
+-	local aflags="${KBUILD_AFLAGS} ${NOSTDINC_FLAGS}                     \
+-		      ${LINUXINCLUDE} ${KBUILD_CPPFLAGS}"
++	local aflags="${KBUILD_AFLAGS} ${KBUILD_AFLAGS_KERNEL}               \
++		      ${NOSTDINC_FLAGS} ${LINUXINCLUDE} ${KBUILD_CPPFLAGS}"
+ 
+ 	${NM} -n ${1} | \
+ 		scripts/kallsyms ${kallsymopt} | \
