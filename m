@@ -1,43 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pz0-f46.google.com ([209.85.210.46]:49502 "EHLO
-	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750706Ab2EHRjE convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2012 13:39:04 -0400
+Received: from smtp.snhosting.dk ([87.238.248.203]:58959 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751184Ab2EHRxs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2012 13:53:48 -0400
+Date: Tue, 8 May 2012 19:53:46 +0200
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: [PATCH] kbuild: fix ia64 link
+Message-ID: <20120508175346.GA11887@merkur.ravnborg.org>
+References: <20120428205651.GA7426@merkur.ravnborg.org> <20120428205919.GC7442@merkur.ravnborg.org> <4FA460AB.6060309@suse.cz> <20120505082916.GA14006@merkur.ravnborg.org> <CA+8MBbKd9zAouJy5JvUnLwUHMJ65HsYgCTfBgv42nm32EnMPFA@mail.gmail.com> <20120508165118.GA11750@merkur.ravnborg.org> <CA+8MBbJHH1niHHR7md844UwphmeYczYQBJOB3huGFaxU9AXMTA@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <20120508165118.GA11750@merkur.ravnborg.org>
-References: <20120428205651.GA7426@merkur.ravnborg.org>
-	<20120428205919.GC7442@merkur.ravnborg.org>
-	<4FA460AB.6060309@suse.cz>
-	<20120505082916.GA14006@merkur.ravnborg.org>
-	<CA+8MBbKd9zAouJy5JvUnLwUHMJ65HsYgCTfBgv42nm32EnMPFA@mail.gmail.com>
-	<20120508165118.GA11750@merkur.ravnborg.org>
-Date: Tue, 8 May 2012 10:39:03 -0700
-Message-ID: <CA+8MBbJHH1niHHR7md844UwphmeYczYQBJOB3huGFaxU9AXMTA@mail.gmail.com>
-Subject: Re: [PATCH 3/4] kbuild: link of vmlinux moved to a script
-From: Tony Luck <tony.luck@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CA+8MBbJHH1niHHR7md844UwphmeYczYQBJOB3huGFaxU9AXMTA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Michal Marek <mmarek@suse.cz>, linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>
-Message-ID: <20120508173903.OWuaR4AOaoCneYg-ms_BMMIttUIosOiHPmb7nLlXeto@z>
+To: Tony Luck <tony.luck@gmail.com>, Michal Marek <mmarek@suse.cz>
+Cc: linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>
+Message-ID: <20120508175346.bMhHjhFq-IHVeyEZ1br2euGqyUvUPadLO6_CUA9Ds0k@z>
 
-On Tue, May 8, 2012 at 9:51 AM, Sam Ravnborg <sam@ravnborg.org> wrote:
-> -       local aflags="${KBUILD_AFLAGS} ${NOSTDINC_FLAGS}                     \
-> -                     ${LINUXINCLUDE} ${KBUILD_CPPFLAGS}"
-> +       local aflags="${KBUILD_AFLAGS} ${KBUILD_AFLAGS_KERNEL}               \
-> +                     ${NOSTDINC_FLAGS} ${LINUXINCLUDE} ${KBUILD_CPPFLAGS}"
+From aca8f5bd71797534ea220b193772946f59ee8125 Mon Sep 17 00:00:00 2001
+From: Sam Ravnborg <sam@ravnborg.org>
+Date: Tue, 8 May 2012 19:49:59 +0200
+Subject: [PATCH] kbuild: fix ia64 link
 
-Heh. When I first got in this morning your e-mail hadn't arrived yet.
-So I ran some make V=1 on the old and latest tree and saw the problem
-was missing KBUILD_AFLAGS_KERNEL. I was just about to send this
-exact patch to you.
+ia64 build failed like this:
 
-So yes ... it works.
+  CC      init/version.o
+  LD      init/built-in.o
+  KSYM    .tmp_kallsyms1.o
+ld: .tmp_kallsyms1.o: linking constant-gp files with non-constant-gp files
+ld: failed to merge target specific data of file .tmp_kallsyms1.o
+make: *** [vmlinux] Error 1
 
-Tested-by: Tony Luck <tony.luck@intel.com>
+This was introduced when link of vmlinux was migrated to a script.
+Add missing option to as to fix this.
 
-Thanks
+Reported-by: Tony Luck <tony.luck@gmail.com>
+Tested-by: Tony Luck <tony.luck@gmail.com>
+Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+---
 
--Tony
+Hi Michal - please apply.
+
+	Sam
+
+ scripts/link-vmlinux.sh |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+index 26c5b65..1f4c27b 100644
+--- a/scripts/link-vmlinux.sh
++++ b/scripts/link-vmlinux.sh
+@@ -78,8 +78,8 @@ kallsyms()
+ 		kallsymopt=--all-symbols
+ 	fi
+ 
+-	local aflags="${KBUILD_AFLAGS} ${NOSTDINC_FLAGS}                     \
+-		      ${LINUXINCLUDE} ${KBUILD_CPPFLAGS}"
++	local aflags="${KBUILD_AFLAGS} ${KBUILD_AFLAGS_KERNEL}               \
++		      ${NOSTDINC_FLAGS} ${LINUXINCLUDE} ${KBUILD_CPPFLAGS}"
+ 
+ 	${NM} -n ${1} | \
+ 		scripts/kallsyms ${kallsymopt} | \
+-- 
+1.6.0.6
+
