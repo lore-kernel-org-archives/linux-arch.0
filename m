@@ -1,47 +1,40 @@
 From: Jonas Bonn <jonas@southpole.se>
-Subject: [PATCH 0/6] OpenRISC patches for review
-Date: Tue,  8 May 2012 11:53:59 +0200
-Message-ID: <1336470845-13859-1-git-send-email-jonas@southpole.se>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:56637 "EHLO
-	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751225Ab2EHJyB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2012 05:54:01 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH 2/6] openrisc: remove unnecessary includes
+Date: Tue,  8 May 2012 11:54:01 +0200
+Message-ID: <1336470845-13859-3-git-send-email-jonas@southpole.se>
+References: <1336470845-13859-1-git-send-email-jonas@southpole.se>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1336470845-13859-1-git-send-email-jonas@southpole.se>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Jonas Bonn <jonas@southpole.se>
+List-Id: linux-arch.vger.kernel.org
 
 
-Here's a couple of patches that I'm planning on queuing up for 3.5.  These
-have been through the openrisc mailing list, but there's not much response
-on that channel, so I thought I'd run these once by the "big" list.
+Signed-off-by: Jonas Bonn <jonas@southpole.se>
+---
+ arch/openrisc/kernel/irq.c |    4 ----
+ 1 files changed, 0 insertions(+), 4 deletions(-)
 
-Comments welcome, otherwise these will go into 3.5.
-
-Thanks,
-Jonas
-
-Jonas Bonn (5):
-  openrisc: implement irqdomains
-  openrisc: remove unnecessary includes
-  openrisc: header file cleanups
-  openrisc: provide dma_map_ops
-  openrisc: use scratch regs in atomic syscall
-
-Kautuk Consul (1):
-  openrisc/mm/fault.c: Port OOM changes to do_page_fault
-
- arch/openrisc/Kconfig                   |    1 +
- arch/openrisc/include/asm/Kbuild        |    3 +-
- arch/openrisc/include/asm/dma-mapping.h |  147 +++++++------------------------
- arch/openrisc/include/asm/elf.h         |   12 ++-
- arch/openrisc/include/asm/ptrace.h      |    6 +-
- arch/openrisc/kernel/dma.c              |  109 +++++++++++++++--------
- arch/openrisc/kernel/entry.S            |    8 +-
- arch/openrisc/kernel/irq.c              |   83 ++++++++++--------
- arch/openrisc/mm/fault.c                |   32 ++++++--
- 9 files changed, 199 insertions(+), 202 deletions(-)
+diff --git a/arch/openrisc/kernel/irq.c b/arch/openrisc/kernel/irq.c
+index 15c5ea3..e935b9d 100644
+--- a/arch/openrisc/kernel/irq.c
++++ b/arch/openrisc/kernel/irq.c
+@@ -14,15 +14,11 @@
+  *      2 of the License, or (at your option) any later version.
+  */
+ 
+-#include <linux/ptrace.h>
+-#include <linux/errno.h>
+ #include <linux/interrupt.h>
+ #include <linux/init.h>
+ #include <linux/of.h>
+ #include <linux/ftrace.h>
+ #include <linux/irq.h>
+-#include <linux/seq_file.h>
+-#include <linux/kernel_stat.h>
+ #include <linux/export.h>
+ #include <linux/irqdomain.h>
+ #include <linux/irqflags.h>
+-- 
+1.7.0.4
