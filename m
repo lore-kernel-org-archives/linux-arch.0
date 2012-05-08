@@ -1,164 +1,111 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:56638 "EHLO
+Received: from mail.southpole.se ([193.12.106.18]:56642 "EHLO
 	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751509Ab2EHJyB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2012 05:54:01 -0400
+	with ESMTP id S1753498Ab2EHJyJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2012 05:54:09 -0400
 From: Jonas Bonn <jonas@southpole.se>
-Subject: [PATCH 1/6] openrisc: implement irqdomains
-Date: Tue,  8 May 2012 11:54:00 +0200
-Message-ID: <1336470845-13859-2-git-send-email-jonas@southpole.se>
+Subject: [PATCH 4/6] openrisc: header file cleanups
+Date: Tue,  8 May 2012 11:54:03 +0200
+Message-ID: <1336470845-13859-5-git-send-email-jonas@southpole.se>
 In-Reply-To: <1336470845-13859-1-git-send-email-jonas@southpole.se>
 References: <1336470845-13859-1-git-send-email-jonas@southpole.se>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Jonas Bonn <jonas@southpole.se>
-Message-ID: <20120508095400.DKxH0qN5kE_DBE0atBtcM4haaeBIqG9b4agnZwbXzwk@z>
+Message-ID: <20120508095403.1WV6Zu5Q7CXGDbzEQMo3kOBRHmSAOHy15gqD1ocDgNI@z>
 
 
-This moves OpenRISC to using the irqdomain infrastructure.  This doesn't
-fundamentally change anything other than that it will be easier to have
-multiple interrupt controllers in the future.
+elf.h: We can export some of these symbols to userspace.  libc needs them
+and we just as well provide them as asm/elf.h as copying them into separate
+libc headers.
+
+ptrace.h: Having padding in the user_regs_struct isn't of any particular
+value and just confuses GDB.  spr_defs isn't needed in userspace; libc
+has its own copy anyway.
 
 Signed-off-by: Jonas Bonn <jonas@southpole.se>
 ---
- arch/openrisc/Kconfig      |    1 +
- arch/openrisc/kernel/irq.c |   79 ++++++++++++++++++++++++++------------------
- 2 files changed, 48 insertions(+), 32 deletions(-)
+ arch/openrisc/include/asm/Kbuild   |    3 ++-
+ arch/openrisc/include/asm/elf.h    |   12 ++++++++++--
+ arch/openrisc/include/asm/ptrace.h |    6 ++----
+ 3 files changed, 14 insertions(+), 7 deletions(-)
 
-diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
-index a478719..7589051 100644
---- a/arch/openrisc/Kconfig
-+++ b/arch/openrisc/Kconfig
-@@ -7,6 +7,7 @@ config OPENRISC
- 	def_bool y
- 	select OF
- 	select OF_EARLY_FLATTREE
-+	select IRQ_DOMAIN
- 	select HAVE_MEMBLOCK
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
-         select HAVE_ARCH_TRACEHOOK
-diff --git a/arch/openrisc/kernel/irq.c b/arch/openrisc/kernel/irq.c
-index 4bfead2..15c5ea3 100644
---- a/arch/openrisc/kernel/irq.c
-+++ b/arch/openrisc/kernel/irq.c
-@@ -24,7 +24,7 @@
- #include <linux/seq_file.h>
- #include <linux/kernel_stat.h>
- #include <linux/export.h>
--
-+#include <linux/irqdomain.h>
- #include <linux/irqflags.h>
+diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
+index dcea5a0..c936483 100644
+--- a/arch/openrisc/include/asm/Kbuild
++++ b/arch/openrisc/include/asm/Kbuild
+@@ -1,6 +1,7 @@
+ include include/asm-generic/Kbuild.asm
  
- /* read interrupt enabled status */
-@@ -98,6 +98,7 @@ static void or1k_pic_mask_ack(struct irq_data *data)
- #endif
- }
+-header-y += spr_defs.h
++header-y += elf.h
++header-y += ucontext.h
  
-+#if 0
- static int or1k_pic_set_type(struct irq_data *data, unsigned int flow_type)
- {
- 	/* There's nothing to do in the PIC configuration when changing
-@@ -107,43 +108,64 @@ static int or1k_pic_set_type(struct irq_data *data, unsigned int flow_type)
+ generic-y += atomic.h
+ generic-y += auxvec.h
+diff --git a/arch/openrisc/include/asm/elf.h b/arch/openrisc/include/asm/elf.h
+index 2ce603b..a8fe2c5 100644
+--- a/arch/openrisc/include/asm/elf.h
++++ b/arch/openrisc/include/asm/elf.h
+@@ -20,11 +20,17 @@
+ #define __ASM_OPENRISC_ELF_H
  
- 	return irq_setup_alt_chip(data, flow_type);
- }
-+#endif
-+
-+static struct irq_chip or1k_dev = {
-+	.name = "or1k-PIC",
-+	.irq_unmask = or1k_pic_unmask,
-+	.irq_mask = or1k_pic_mask,
-+	.irq_ack = or1k_pic_ack,
-+	.irq_mask_ack = or1k_pic_mask_ack,
-+};
-+
-+static struct irq_domain *root_domain;
- 
- static inline int pic_get_irq(int first)
- {
--	int irq;
-+	int hwirq;
- 
--	irq = ffs(mfspr(SPR_PICSR) >> first);
-+	hwirq = ffs(mfspr(SPR_PICSR) >> first);
-+	if (!hwirq)
-+		return NO_IRQ;
-+	else
-+		hwirq = hwirq + first -1;
- 
--	return irq ? irq + first - 1 : NO_IRQ;
-+	return irq_find_mapping(root_domain, hwirq);
- }
- 
--static void __init or1k_irq_init(void)
-+
-+static int or1k_map(struct irq_domain *d, unsigned int irq, irq_hw_number_t hw)
- {
--	struct irq_chip_generic *gc;
--	struct irq_chip_type *ct;
-+	irq_set_chip_and_handler_name(irq, &or1k_dev,
-+				      handle_level_irq, "level");
-+	irq_set_status_flags(irq, IRQ_LEVEL | IRQ_NOPROBE);
- 
--	/* Disable all interrupts until explicitly requested */
--	mtspr(SPR_PICMR, (0UL));
-+	return 0;
-+}
- 
--	gc = irq_alloc_generic_chip("or1k-PIC", 1, 0, 0, handle_level_irq);
--	ct = gc->chip_types;
-+static const struct irq_domain_ops or1k_irq_domain_ops = {
-+	.xlate = irq_domain_xlate_onecell,
-+	.map = or1k_map,
-+};
- 
--	ct->chip.irq_unmask = or1k_pic_unmask;
--	ct->chip.irq_mask = or1k_pic_mask;
--	ct->chip.irq_ack = or1k_pic_ack;
--	ct->chip.irq_mask_ack = or1k_pic_mask_ack;
--	ct->chip.irq_set_type = or1k_pic_set_type;
-+/*
-+ * This sets up the IRQ domain for the PIC built in to the OpenRISC
-+ * 1000 CPU.  This is the "root" domain as these are the interrupts
-+ * that directly trigger an exception in the CPU.
+ /*
++ * This files is partially exported to userspace.  This allows us to keep
++ * the ELF bits in one place which should assist in keeping the kernel and
++ * userspace in sync.
 + */
-+static void __init or1k_irq_init(void)
-+{
-+	struct device_node *intc = NULL;
- 
--	/* The OR1K PIC can handle both level and edge trigged
--	 * interrupts in roughly the same manner
--	 */
--#if 0
--	/* FIXME: chip.type??? */
--	ct->chip.type = IRQ_TYPE_EDGE_BOTH | IRQ_TYPE_LEVEL_MASK;
--#endif
-+	/* The interrupt controller device node is mandatory */
-+	intc = of_find_compatible_node(NULL, NULL, "opencores,or1k-pic");
-+	BUG_ON(!intc);
- 
--	irq_setup_generic_chip(gc, IRQ_MSK(NR_IRQS), 0,
--			       IRQ_NOREQUEST, IRQ_LEVEL | IRQ_NOPROBE);
-+	/* Disable all interrupts until explicitly requested */
-+	mtspr(SPR_PICMR, (0UL));
 +
-+	root_domain = irq_domain_add_linear(intc, 32,
-+					    &or1k_irq_domain_ops, NULL);
- }
++/*
+  * ELF register definitions..
+  */
+-#include <linux/types.h>
+-#include <linux/ptrace.h>
  
- void __init init_IRQ(void)
-@@ -164,10 +186,3 @@ void __irq_entry do_IRQ(struct pt_regs *regs)
- 	irq_exit();
- 	set_irq_regs(old_regs);
- }
++/* for struct user_regs_struct definition */
++#include <asm/ptrace.h>
+ 
+ /* The OR1K relocation types... not all relevant for module loader */
+ #define R_OR32_NONE	0
+@@ -62,6 +68,8 @@ typedef unsigned long elf_fpregset_t;
+ 
+ #ifdef __KERNEL__
+ 
++#include <linux/types.h>
++
+ /*
+  * This is used to ensure we don't load something for the wrong architecture.
+  */
+diff --git a/arch/openrisc/include/asm/ptrace.h b/arch/openrisc/include/asm/ptrace.h
+index 4651a73..8555c0c 100644
+--- a/arch/openrisc/include/asm/ptrace.h
++++ b/arch/openrisc/include/asm/ptrace.h
+@@ -19,8 +19,6 @@
+ #ifndef __ASM_OPENRISC_PTRACE_H
+ #define __ASM_OPENRISC_PTRACE_H
+ 
+-#include <asm/spr_defs.h>
 -
--unsigned int irq_create_of_mapping(struct device_node *controller,
--				   const u32 *intspec, unsigned int intsize)
--{
--	return intspec[0];
--}
--EXPORT_SYMBOL_GPL(irq_create_of_mapping);
+ #ifndef __ASSEMBLY__
+ /*
+  * This is the layout of the regset returned by the GETREGSET ptrace call
+@@ -30,13 +28,13 @@ struct user_regs_struct {
+ 	unsigned long gpr[32];
+ 	unsigned long pc;
+ 	unsigned long sr;
+-	unsigned long pad1;
+-	unsigned long pad2;
+ };
+ #endif
+ 
+ #ifdef __KERNEL__
+ 
++#include <asm/spr_defs.h>
++
+ /*
+  * Make kernel PTrace/register structures opaque to userspace... userspace can
+  * access thread state via the regset mechanism.  This allows us a bit of
 -- 
 1.7.0.4
 
