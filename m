@@ -1,114 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:56640 "EHLO
+Received: from mail.southpole.se ([193.12.106.18]:56644 "EHLO
 	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753197Ab2EHJyH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2012 05:54:07 -0400
+	with ESMTP id S1753520Ab2EHJyM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 May 2012 05:54:12 -0400
 From: Jonas Bonn <jonas@southpole.se>
-Subject: [PATCH 3/6] openrisc/mm/fault.c: Port OOM changes to do_page_fault
-Date: Tue,  8 May 2012 11:54:02 +0200
-Message-ID: <1336470845-13859-4-git-send-email-jonas@southpole.se>
+Subject: [PATCH 6/6] openrisc: use scratch regs in atomic syscall
+Date: Tue,  8 May 2012 11:54:05 +0200
+Message-ID: <1336470845-13859-7-git-send-email-jonas@southpole.se>
 In-Reply-To: <1336470845-13859-1-git-send-email-jonas@southpole.se>
 References: <1336470845-13859-1-git-send-email-jonas@southpole.se>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Kautuk Consul <consul.kautuk@gmail.com>, "Mohd. Faris" <mohdfarisq2010@gmail.com>, Jonas Bonn <jonas@southpole.se>
-Message-ID: <20120508095402.nuJHTD_HH9yLgF-oxwlqPvAVrL8Jei_cpYCLOYgNRLg@z>
+Cc: Jonas Bonn <jonas@southpole.se>
+Message-ID: <20120508095405.8kjO_lPWTBouqOYaKhPUmcexhNM4LOQYo8aHbCGSt-g@z>
 
 
-From: Kautuk Consul <consul.kautuk@gmail.com>
+The function sys_or1k_atomic was using call-saved registers without
+restoring their value before returning.  This is a faux pas: either
+we need to restore their values or use scratch regs; the latter is
+less code so that's the route this patch takes.
 
-Commit d065bd810b6deb67d4897a14bfe21f8eb526ba99
-(mm: retry page fault when blocking on disk transfer) and
-commit 37b23e0525d393d48a7d59f870b3bc061a30ccdb
-(x86,mm: make pagefault killable)
+Thanks to David Hennerström for doing most of the heavy-lifting in
+tracking this one down.
 
-The above commits introduced changes into the x86 pagefault handler
-for making the page fault handler retryable as well as killable.
-
-These changes reduce the mmap_sem hold time, which is crucial
-during OOM killer invocation.
-
-Port these changes to openrisc.
-
-Signed-off-by: Mohd. Faris <mohdfarisq2010@gmail.com>
-Signed-off-by: Kautuk Consul <consul.kautuk@gmail.com>
+Reported-by: Davd Hennerström <david.hennerstrom@aacmicrotec.com>
 Signed-off-by: Jonas Bonn <jonas@southpole.se>
 ---
- arch/openrisc/mm/fault.c |   32 ++++++++++++++++++++++++++------
- 1 files changed, 26 insertions(+), 6 deletions(-)
+ arch/openrisc/kernel/entry.S |    8 ++++----
+ 1 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/arch/openrisc/mm/fault.c b/arch/openrisc/mm/fault.c
-index a5dce82..40f850e 100644
---- a/arch/openrisc/mm/fault.c
-+++ b/arch/openrisc/mm/fault.c
-@@ -54,6 +54,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
- 	struct vm_area_struct *vma;
- 	siginfo_t info;
- 	int fault;
-+	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE;
- 
- 	tsk = current;
- 
-@@ -105,6 +106,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long address,
- 	if (in_interrupt() || !mm)
- 		goto no_context;
- 
-+retry:
- 	down_read(&mm->mmap_sem);
- 	vma = find_vma(mm, address);
- 
-@@ -143,6 +145,7 @@ good_area:
- 	if (write_acc) {
- 		if (!(vma->vm_flags & VM_WRITE))
- 			goto bad_area;
-+		flags |= FAULT_FLAG_WRITE;
- 	} else {
- 		/* not present */
- 		if (!(vma->vm_flags & (VM_READ | VM_EXEC)))
-@@ -159,7 +162,11 @@ good_area:
- 	 * the fault.
- 	 */
- 
--	fault = handle_mm_fault(mm, vma, address, write_acc);
-+	fault = handle_mm_fault(mm, vma, address, flags);
-+
-+	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current))
-+		return;
-+
- 	if (unlikely(fault & VM_FAULT_ERROR)) {
- 		if (fault & VM_FAULT_OOM)
- 			goto out_of_memory;
-@@ -167,11 +174,24 @@ good_area:
- 			goto do_sigbus;
- 		BUG();
- 	}
--	/*RGD modeled on Cris */
--	if (fault & VM_FAULT_MAJOR)
--		tsk->maj_flt++;
--	else
--		tsk->min_flt++;
-+
-+	if (flags & FAULT_FLAG_ALLOW_RETRY) {
-+		/*RGD modeled on Cris */
-+		if (fault & VM_FAULT_MAJOR)
-+			tsk->maj_flt++;
-+		else
-+			tsk->min_flt++;
-+		if (fault & VM_FAULT_RETRY) {
-+			flags &= ~FAULT_FLAG_ALLOW_RETRY;
-+
-+			 /* No need to up_read(&mm->mmap_sem) as we would
-+			 * have already released it in __lock_page_or_retry
-+			 * in mm/filemap.c.
-+			 */
-+
-+			goto retry;
-+		}
-+	}
- 
- 	up_read(&mm->mmap_sem);
- 	return;
+diff --git a/arch/openrisc/kernel/entry.S b/arch/openrisc/kernel/entry.S
+index 6e61af8..ddfcaa8 100644
+--- a/arch/openrisc/kernel/entry.S
++++ b/arch/openrisc/kernel/entry.S
+@@ -1117,10 +1117,10 @@ ENTRY(sys_rt_sigreturn)
+ ENTRY(sys_or1k_atomic)
+ 	/* FIXME: This ignores r3 and always does an XCHG */
+ 	DISABLE_INTERRUPTS(r17,r19)
+-	l.lwz	r30,0(r4)
+-	l.lwz	r28,0(r5)
+-	l.sw	0(r4),r28
+-	l.sw	0(r5),r30
++	l.lwz	r29,0(r4)
++	l.lwz	r27,0(r5)
++	l.sw	0(r4),r27
++	l.sw	0(r5),r29
+ 	ENABLE_INTERRUPTS(r17)
+ 	l.jr	r9
+ 	 l.or	r11,r0,r0
 -- 
 1.7.0.4
 
