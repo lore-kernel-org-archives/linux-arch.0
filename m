@@ -1,90 +1,68 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH 19/21] tile/PCI: Use pci_scan_root_bus instead pci_scan_bus
-Date: Wed, 9 May 2012 12:45:50 -0700
-Message-ID: <CAE9FiQXLriREi1m==3-yXrQja3Qi+HNfnvvq_0Sr7Rpiu_JKTg@mail.gmail.com>
-References: <1336422606-4244-1-git-send-email-yinghai@kernel.org>
-	<1336422606-4244-20-git-send-email-yinghai@kernel.org>
-	<4FAAC652.4060502@tilera.com>
+From: "Michael S. Tsirkin" <mst@redhat.com>
+Subject: Re: [PATCH] bitops: add _local bitops
+Date: Wed, 9 May 2012 23:07:36 +0300
+Message-ID: <20120509200735.GA22743@redhat.com>
+References: <20120509134528.GA18044@redhat.com>
+ <20120509121940.459e93ba.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pz0-f46.google.com ([209.85.210.46]:56864 "EHLO
-	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756718Ab2EITpv convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2012 15:45:51 -0400
-In-Reply-To: <4FAAC652.4060502@tilera.com>
+Received: from mx1.redhat.com ([209.132.183.28]:1253 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758037Ab2EIUH6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 9 May 2012 16:07:58 -0400
+Content-Disposition: inline
+In-Reply-To: <20120509121940.459e93ba.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Rob Landley <rob@landley.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Akinobu Mita <akinobu.mita@gmail.com>, Alexey Dobriyan <adobriyan@gmail.com>, Herbert Xu <herbert@gondor.hengli.com.au>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Avi Kivity <avi@redhat.com>, Marcelo Tosatti <mtosatti@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Wed, May 9, 2012 at 12:32 PM, Chris Metcalf <cmetcalf@tilera.com> wr=
-ote:
-> On 5/7/2012 4:30 PM, Yinghai Lu wrote:
->> It will update busn_res accordingly, so we get that for last_busno.
->>
->> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
->> Cc: Chris Metcalf <cmetcalf@tilera.com>
->> ---
->> =A0arch/tile/kernel/pci.c | =A0 =A05 ++++-
->> =A01 files changed, 4 insertions(+), 1 deletions(-)
->>
->> diff --git a/arch/tile/kernel/pci.c b/arch/tile/kernel/pci.c
->> index 7aa2743..4a951b87 100644
->> --- a/arch/tile/kernel/pci.c
->> +++ b/arch/tile/kernel/pci.c
->> @@ -310,6 +310,7 @@ int __devinit pcibios_init(void)
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (pci_scan_flags[i] =3D=3D 0 && contro=
-llers[i].ops !=3D NULL) {
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 struct pci_controller *c=
-ontroller =3D &controllers[i];
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 struct pci_bus *bus;
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 LIST_HEAD(resources);
->>
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (tile_init_irqs(i, co=
-ntroller)) {
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 pr_err("=
-PCI: Could not initialize IRQs\n");
->> @@ -327,7 +328,9 @@ int __devinit pcibios_init(void)
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0* This is inlined in =
-linux/pci.h and calls into
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0* pci_scan_bus_parent=
-ed() in probe.c.
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0*/
->> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 bus =3D pci_scan_bus(0, co=
-ntroller->ops, controller);
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 pci_add_resource(&resource=
-s, &ioport_resource);
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 pci_add_resource(&resource=
-s, &iomem_resource);
->> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 bus =3D pci_scan_root_bus(=
-NULL, 0, controller->ops, controller, &resources);
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 controller->root_bus =3D=
- bus;
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 controller->last_busno =3D=
- bus->busn_res.end;
->> =A0 =A0 =A0 =A0 =A0 =A0 =A0 }
->
-> We don't want ioport_resource on tilepro, since we don't support acce=
-ssing
-> I/O port space.
->
-> With that one line removed:
->
-> Acked-by: Chris Metcalf <cmetcalf@tilera.com>
+On Wed, May 09, 2012 at 12:19:40PM -0700, Andrew Morton wrote:
+> On Wed, 9 May 2012 16:45:29 +0300
+> "Michael S. Tsirkin" <mst@redhat.com> wrote:
+> 
+> > kvm needs to update some hypervisor variables atomically
+> > in a sense that the operation can't be interrupted
+> > in the middle. However the hypervisor always runs
+> > on the same CPU so it does not need any memory
+> > barrier or lock prefix.
+> 
+> Well.  It adds more complexity, makes the kernel harder to understand
+> and maintain and introduces more opportunities for developers to add
+> bugs.  So from that point of view, the best way of handling this patch
+> is to delete it.
+> 
+> Presumably the patch offers some benefit to offest all those costs. 
+> But you didn't tell us what that benefit is, so we cannot make
+> a decision.
+> 
+> IOW: numbers, please.  Convincing ones, for realistic test cases.
 
-Thanks.
+I can try but in practice it's not an optimization.
+What kvm needs is a guarantee that a memory update will be done in a
+single instruction.
 
->
-> Or, I can queue this change to take through the tile tree when the me=
-rge
-> window opens. =A0Which would you prefer?
+> Secondly: can KVM just use __set_bit() and friends?  I suspect those
+> interfaces happen to meet your requirements.  At least on architectures
+> you care about.
 
-have to go through pci-next tree. because other change like
+Sigh. I started with this, but then Avi Kivity said that he's worried
+about someone changing __test_and_clear_bit on x86
+such that the change won't be atomic (single instruction) anymore.
+So I put inline asm into kvm.c. This drew comment from Peter
+that maintaining separate asm code in kvm.c adds too much
+maintainance overhead so I should implement _local, add
+asm-generic fallback and put it all in generic code.
 
- controller->last_busno =3D bus->busn_res.end;
+In practice ATM any of the above will work. We probably don't even need
+to add barrier() calls since what we do afterwards is apic access which
+has an optimization barrier anyway.  But I'm fine with adding them in
+there just in case if that's what people want.
 
-is in pci-next.
+However, since we've come full circle, I'd like to have a discussion
+on what, exactly, is acceptable to all maintainers.
+Avi, Andrew, Peter, could you please comment?
 
-Yinghai
+-- 
+MST
