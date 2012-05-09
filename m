@@ -1,68 +1,28 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
 Subject: Re: [PATCH] bitops: add _local bitops
-Date: Wed, 9 May 2012 23:07:36 +0300
-Message-ID: <20120509200735.GA22743@redhat.com>
-References: <20120509134528.GA18044@redhat.com>
- <20120509121940.459e93ba.akpm@linux-foundation.org>
+Date: Wed, 09 May 2012 13:10:04 -0700
+Message-ID: <4FAACF1C.2060504@zytor.com>
+References: <20120509134528.GA18044@redhat.com> <20120509121940.459e93ba.akpm@linux-foundation.org> <20120509200735.GA22743@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:1253 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1758037Ab2EIUH6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 9 May 2012 16:07:58 -0400
-Content-Disposition: inline
-In-Reply-To: <20120509121940.459e93ba.akpm@linux-foundation.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Rob Landley <rob@landley.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Akinobu Mita <akinobu.mita@gmail.com>, Alexey Dobriyan <adobriyan@gmail.com>, Herbert Xu <herbert@gondor.hengli.com.au>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Avi Kivity <avi@redhat.com>, Marcelo Tosatti <mtosatti@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-doc-owner@vger.kernel.org>
+In-Reply-To: <20120509200735.GA22743@redhat.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Rob Landley <rob@landley.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Akinobu Mita <akinobu.mita@gmail.com>, Alexey Dobriyan <adobriyan@gmail.com>, Herbert Xu <herbert@gondor.hengli.com.au>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Avi Kivity <avi@redhat.com>, Marcelo Tosatti <mtosatti@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 09, 2012 at 12:19:40PM -0700, Andrew Morton wrote:
-> On Wed, 9 May 2012 16:45:29 +0300
-> "Michael S. Tsirkin" <mst@redhat.com> wrote:
+On 05/09/2012 01:07 PM, Michael S. Tsirkin wrote:
 > 
-> > kvm needs to update some hypervisor variables atomically
-> > in a sense that the operation can't be interrupted
-> > in the middle. However the hypervisor always runs
-> > on the same CPU so it does not need any memory
-> > barrier or lock prefix.
+> In practice ATM any of the above will work. We probably don't even need
+> to add barrier() calls since what we do afterwards is apic access which
+> has an optimization barrier anyway.  But I'm fine with adding them in
+> there just in case if that's what people want.
 > 
-> Well.  It adds more complexity, makes the kernel harder to understand
-> and maintain and introduces more opportunities for developers to add
-> bugs.  So from that point of view, the best way of handling this patch
-> is to delete it.
-> 
-> Presumably the patch offers some benefit to offest all those costs. 
-> But you didn't tell us what that benefit is, so we cannot make
-> a decision.
-> 
-> IOW: numbers, please.  Convincing ones, for realistic test cases.
 
-I can try but in practice it's not an optimization.
-What kvm needs is a guarantee that a memory update will be done in a
-single instruction.
+If you have the optimization barrier anyway, then I'd be fine with you
+just using __test_and_clear_bit() and add to a comment in
+arch/x86/include/asm/bitops.h that KVM needs it to be locally atomic.
 
-> Secondly: can KVM just use __set_bit() and friends?  I suspect those
-> interfaces happen to meet your requirements.  At least on architectures
-> you care about.
-
-Sigh. I started with this, but then Avi Kivity said that he's worried
-about someone changing __test_and_clear_bit on x86
-such that the change won't be atomic (single instruction) anymore.
-So I put inline asm into kvm.c. This drew comment from Peter
-that maintaining separate asm code in kvm.c adds too much
-maintainance overhead so I should implement _local, add
-asm-generic fallback and put it all in generic code.
-
-In practice ATM any of the above will work. We probably don't even need
-to add barrier() calls since what we do afterwards is apic access which
-has an optimization barrier anyway.  But I'm fine with adding them in
-there just in case if that's what people want.
-
-However, since we've come full circle, I'd like to have a discussion
-on what, exactly, is acceptable to all maintainers.
-Avi, Andrew, Peter, could you please comment?
-
--- 
-MST
+	-hpa
