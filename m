@@ -1,27 +1,42 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH] bitops: add _local bitops
-Date: Wed, 09 May 2012 08:44:29 -0700
-Message-ID: <4FAA90DD.4090705@zytor.com>
-References: <20120509134528.GA18044@redhat.com> <4FAA7939.6040706@zytor.com> <20120509154330.GA20867@redhat.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 3/6] get_unmapped_area checks for TASK_SIZE before
+	MAP_FIXED on sparc32
+Date: Wed, 9 May 2012 18:18:34 +0200
+Message-ID: <20120509161834.GA13133@merkur.ravnborg.org>
+References: <1336488022-3723-1-git-send-email-murzin.v@gmail.com> <1336488022-3723-4-git-send-email-murzin.v@gmail.com> <20120508162722.GA11624@merkur.ravnborg.org> <20120509080705.GA3516@pinguin>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20120509154330.GA20867@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: Rob Landley <rob@landley.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, Akinobu Mita <akinobu.mita@gmail.com>, Alexey Dobriyan <adobriyan@gmail.com>, Herbert Xu <herbert@gondor.hengli.com.au>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Avi Kivity <avi@redhat.com>, Marcelo Tosatti <mtosatti@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp.snhosting.dk ([87.238.248.203]:63720 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751644Ab2EIQSj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2012 12:18:39 -0400
+Content-Disposition: inline
+In-Reply-To: <20120509080705.GA3516@pinguin>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vladimir Murzin <murzin.v@gmail.com>
+Cc: linux-arch@vger.kernel.org, tglx@linutronix.de, davem@davemloft.net, lethal@linux-sh.org, linux@arm.linux.org.uk
 
-On 05/09/2012 08:43 AM, Michael S. Tsirkin wrote:
+On Wed, May 09, 2012 at 12:07:08PM +0400, Vladimir Murzin wrote:
+> On Tue, May 08, 2012 at 06:27:22PM +0200, Sam Ravnborg wrote:
+> > On Tue, May 08, 2012 at 06:40:19PM +0400, Vladimir Murzin wrote:
+> > > Move check for TASK_SIZE before MAP_FIXED in sparc32's arch_get_unmapped_area().
+> > 
+> > I would be good to copy relevant parts of your cover letter into each patch.
+> > when the patches are applied we looses the cover letter...
+> > 
 > 
-> Just adding a memory clobber to asm will be enough, right?
-> 
+> In my opinion patches are quite trivial and self-explained. However,
+> if there are requests to update patches in this way I'll do it in v2. 
 
-Yes.
+The cahngelog say this:
 
-	-hpa
+    Move check for TASK_SIZE before MAP_FIXED in sparc32's arch_get_unmapped_area().
 
--- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
+And this is exactly what the code does.
+
+But neither say anything WHY this is done.
+And if that WHY is not explained then the changelog is not good.
+
+	Sam
