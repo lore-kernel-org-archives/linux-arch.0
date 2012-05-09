@@ -1,37 +1,67 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
+From: "Michael S. Tsirkin" <mst@redhat.com>
 Subject: Re: [PATCH] bitops: add _local bitops
-Date: Wed, 09 May 2012 09:45:57 -0700
-Message-ID: <4FAA9F45.1080608@zytor.com>
-References: <20120509134528.GA18044@redhat.com> <4FAA7939.6040706@zytor.com> <20120509154734.GB20867@redhat.com> <4FAA9A49.8080900@zytor.com> <20120509163641.GA21344@redhat.com>
+Date: Wed, 9 May 2012 19:55:16 +0300
+Message-ID: <20120509165515.GA21461@redhat.com>
+References: <20120509134528.GA18044@redhat.com>
+ <4FAA7939.6040706@zytor.com>
+ <20120509154734.GB20867@redhat.com>
+ <4FAA9A49.8080900@zytor.com>
+ <20120509163641.GA21344@redhat.com>
+ <4FAA9F45.1080608@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20120509163641.GA21344@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Michael S. Tsirkin" <mst@redhat.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <4FAA9F45.1080608@zytor.com>
+Sender: linux-doc-owner@vger.kernel.org
+To: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Rob Landley <rob@landley.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, Akinobu Mita <akinobu.mita@gmail.com>, Alexey Dobriyan <adobriyan@gmail.com>, Herbert Xu <herbert@gondor.hengli.com.au>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Avi Kivity <avi@redhat.com>, Marcelo Tosatti <mtosatti@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 05/09/2012 09:36 AM, Michael S. Tsirkin wrote:
+On Wed, May 09, 2012 at 09:45:57AM -0700, H. Peter Anvin wrote:
+> On 05/09/2012 09:36 AM, Michael S. Tsirkin wrote:
+> > 
+> > Well it talks about a memory barrier, not an
+> > optimization barrier.
+> > 
 > 
-> Well it talks about a memory barrier, not an
-> optimization barrier.
+> Same thing.
+
+I see. So it really should say 'any barrier', right?
+Documentation/atomic_ops.txt goes to great length
+to distinguish between the two and we probably
+should not confuse things.
+
+> > If compiler reorders code, changes will appear in
+> > the wrong order on the current processor,
+> > not just on other processors, no?
 > 
+> Yes.
 
-Same thing.
+So this seems to contradict what the comment says:
 
-> If compiler reorders code, changes will appear in
-> the wrong order on the current processor,
-> not just on other processors, no?
+	clear_bit() is atomic and may not be reordered.
+and you say compiler *can* reorder it, and below
 
-Yes.
+ you should call smp_mb__before_clear_bit() and/or * smp_mb__after_clear_bit()
+ in order to ensure changes are visible on other processors.
 
-For your _local I would just copy the atomic bitops but remote the locks
-in most cases.
+and in fact this is not enough, you also need to call
+barrier() to ensure changes are visible on the same
+processor in the correct order.
 
-	-hpa
+> For your _local I would just copy the atomic bitops but remote the locks
+> in most cases.
+> 
+> 	-hpa
 
--- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
+Right, I sent v2 that does exactly this.
+
+My question about documentation for change_bit
+is an unrelated one: to me, it looks like the documentation for
+change_bit does not match the implementation, or at least is somewhat
+confusing.
+
+> -- 
+> H. Peter Anvin, Intel Open Source Technology Center
+> I work for Intel.  I don't speak on their behalf.
