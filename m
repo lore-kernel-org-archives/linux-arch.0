@@ -1,67 +1,115 @@
-From: "Michael S. Tsirkin" <mst@redhat.com>
-Subject: Re: [PATCH] bitops: add _local bitops
-Date: Wed, 9 May 2012 19:55:16 +0300
-Message-ID: <20120509165515.GA21461@redhat.com>
-References: <20120509134528.GA18044@redhat.com>
- <4FAA7939.6040706@zytor.com>
- <20120509154734.GB20867@redhat.com>
- <4FAA9A49.8080900@zytor.com>
- <20120509163641.GA21344@redhat.com>
- <4FAA9F45.1080608@zytor.com>
+From: Vladimir Murzin <murzin.v@gmail.com>
+Subject: Re: [PATCH 0/6] get rid of extra check for TASK_SIZE in
+ get_unmapped_area
+Date: Wed, 9 May 2012 21:56:03 +0400
+Message-ID: <20120509175557.GA2823@pinguin>
+References: <1336488022-3723-1-git-send-email-murzin.v@gmail.com>
+ <20120509162657.GC10241@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-doc-owner@vger.kernel.org>
+Content-Type: text/plain; charset=koi8-r
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:56583 "EHLO
+	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754027Ab2EIR63 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2012 13:58:29 -0400
+Received: by lahd3 with SMTP id d3so428091lah.19
+        for <linux-arch@vger.kernel.org>; Wed, 09 May 2012 10:58:27 -0700 (PDT)
 Content-Disposition: inline
-In-Reply-To: <4FAA9F45.1080608@zytor.com>
-Sender: linux-doc-owner@vger.kernel.org
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Rob Landley <rob@landley.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, Akinobu Mita <akinobu.mita@gmail.com>, Alexey Dobriyan <adobriyan@gmail.com>, Herbert Xu <herbert@gondor.hengli.com.au>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Avi Kivity <avi@redhat.com>, Marcelo Tosatti <mtosatti@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20120509162657.GC10241@n2100.arm.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, tglx@linutronix.de, davem@davemloft.net, lethal@linux-sh.org
 
-On Wed, May 09, 2012 at 09:45:57AM -0700, H. Peter Anvin wrote:
-> On 05/09/2012 09:36 AM, Michael S. Tsirkin wrote:
+On Wed, May 09, 2012 at 05:26:57PM +0100, Russell King - ARM Linux wrote:
+> On Tue, May 08, 2012 at 06:40:16PM +0400, Vladimir Murzin wrote:
+> > From: Vladimir Murzin <murzin.v@gmail>
 > > 
-> > Well it talks about a memory barrier, not an
-> > optimization barrier.
+> > The current get_unmapped_area code calls the f_ops->get_unmapped_area or
+> > the arch's one (via the mm) only when check for TASK_SIZE is passed. However,
+> > generic code and some arches do the same check in their a_g_u_a implementation.
 > > 
+> > This series of patches fix the check order for TASK_SIZE in archs'
+> > get_unmapped_area() implementations, and then removes extra check in
+> > high-level get_unmapped_area().
 > 
-> Same thing.
-
-I see. So it really should say 'any barrier', right?
-Documentation/atomic_ops.txt goes to great length
-to distinguish between the two and we probably
-should not confuse things.
-
-> > If compiler reorders code, changes will appear in
-> > the wrong order on the current processor,
-> > not just on other processors, no?
+> Do we even need this check in arch code?  AFAICS it's already checked in
+> get_unmapped_area(), and this will be called prior to any
+> arch_get_unmapped_area() implementation.  Given that this is a potential
+> security issue, please check my analysis of this.
 > 
-> Yes.
-
-So this seems to contradict what the comment says:
-
-	clear_bit() is atomic and may not be reordered.
-and you say compiler *can* reorder it, and below
-
- you should call smp_mb__before_clear_bit() and/or * smp_mb__after_clear_bit()
- in order to ensure changes are visible on other processors.
-
-and in fact this is not enough, you also need to call
-barrier() to ensure changes are visible on the same
-processor in the correct order.
-
-> For your _local I would just copy the atomic bitops but remote the locks
-> in most cases.
+> unsigned long
+> get_unmapped_area(struct file *file, unsigned long addr, unsigned long len,
+> 		unsigned long pgoff, unsigned long flags)
+> {
+> 	...
+> 	/* Careful about overflows.. */
+> 	if (len > TASK_SIZE)
+> 		return -ENOMEM;
 > 
-> 	-hpa
+> 	get_area = current->mm->get_unmapped_area;
+> 	if (file && file->f_op && file->f_op->get_unmapped_area)
+> 		get_area = file->f_op->get_unmapped_area;
 
-Right, I sent v2 that does exactly this.
+Thanks for analysis.
 
-My question about documentation for change_bit
-is an unrelated one: to me, it looks like the documentation for
-change_bit does not match the implementation, or at least is somewhat
-confusing.
+Most of arches do checking for (len > TASK_SIZE) in their a_g_u_a or in
+generic one. However, mips, alpha, sparc and ia64 at least do this
+checking in a slightly different way.
 
-> -- 
-> H. Peter Anvin, Intel Open Source Technology Center
-> I work for Intel.  I don't speak on their behalf.
+So, for arches which use generic implementation or have no any special
+case
+
+ 	/* Careful about overflows.. */
+	if (len > TASK_SIZE)
+ 		return -ENOMEM;
+ 
+ 	get_area = current->mm->get_unmapped_area;
+
+is expanded into
+
+ 	/* Careful about overflows.. */
+	if (len > TASK_SIZE)
+ 		return -ENOMEM;
+ 
+ 	/* there is arch_get_unmapped_area started */
+
+	if (len > TASK_SIZE)
+ 		return -ENOMEM;
+
+ 	/* other stuff in arch_get_unmapped_area */
+
+On the other hand, for arches which have to handle special case for
+length checking test for (len > TASK_SIZE) has no sense.
+
+To avoid security issue checking for length should be done
+first. Unfortunately, not all arches follow this rule and test in
+get_unmapped_area() doesn't cover some cases. For instanse, sparc32 do
+checking like
+
+unsigned long arch_get_unmapped_area(struct file *filp, unsigned long
+ addr, unsigned long len, unsigned long pgoff, unsigned long flags)
+{
+        struct vm_area_struct * vmm;
+
+        if (flags & MAP_FIXED) {
+                /* We do not accept a shared mapping if it would violate
+                 * cache aliasing constraints.
+                 */
+                if ((flags & MAP_SHARED) &&
+                    ((addr - (pgoff << PAGE_SHIFT)) & (SHMLBA - 1)))
+                        return -EINVAL;
+                return addr;
+        }
+
+        /* See asm-sparc/uaccess.h */
+        if (len > TASK_SIZE - PAGE_SIZE)
+                return -ENOMEM;
+
+...
+
+It seems we could be successful in request a page at fixed address
+(TASK_SIZE - PAGE_SIZE) despite the fact that it isn't desirable.
+
+Best wishes
+Vladimir Murzin
