@@ -1,31 +1,33 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Avi Kivity <avi@redhat.com>
 Subject: Re: [PATCH] bitops: add _local bitops
-Date: Wed, 9 May 2012 14:06:15 +0000
-Message-ID: <201205091406.15627.arnd@arndb.de>
+Date: Wed, 09 May 2012 17:17:21 +0300
+Message-ID: <4FAA7C71.3040501@redhat.com>
 References: <20120509134528.GA18044@redhat.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-doc-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:51525 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757213Ab2EIORy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 9 May 2012 10:17:54 -0400
 In-Reply-To: <20120509134528.GA18044@redhat.com>
-Sender: linux-doc-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Rob Landley <rob@landley.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, Akinobu Mita <akinobu.mita@gmail.com>, Alexey Dobriyan <adobriyan@gmail.com>, Herbert Xu <herbert@gondor.hengli.com.au>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Avi Kivity <avi@redhat.com>, Marcelo Tosatti <mtosatti@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Rob Landley <rob@landley.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, Akinobu Mita <akinobu.mita@gmail.com>, Alexey Dobriyan <adobriyan@gmail.com>, Herbert Xu <herbert@gondor.hengli.com.au>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Marcelo Tosatti <mtosatti@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Wednesday 09 May 2012, Michael S. Tsirkin wrote:
->  Documentation/atomic_ops.txt              |   19 ++++++
->  arch/x86/include/asm/bitops.h             |    1 +
->  include/asm-generic/bitops.h              |    1 +
->  include/asm-generic/bitops/local-atomic.h |   92 +++++++++++++++++++++++++++++
->  include/asm-generic/bitops/local.h        |   85 ++++++++++++++++++++++++++
->  include/linux/bitops.h                    |    8 +++
->  6 files changed, 206 insertions(+), 0 deletions(-)
+On 05/09/2012 04:45 PM, Michael S. Tsirkin wrote:
+>  
+> +Local versions of the bitmask operations are also provided.  They are used in
+> +contexts where the operations need to be performed atomically with respect to
+> +the local CPU, but no other CPU accesses the bitmask.  This assumption makes it
+> +possible to avoid the need for SMP protection and use less expensive atomic
+> +operations in the implementation.
+> +They have names similar to the above bitmask operation interfaces,
+> +except that _local is sufficed to the interface name.
 
-Unless I'm misreading the patch, you have two versions of the same file here,
-where one version should be enough.
+suffixed (better: appended)
 
-Both versions look fine to me though, so if you remove one of them:
-
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+-- 
+error compiling committee.c: too many arguments to function
