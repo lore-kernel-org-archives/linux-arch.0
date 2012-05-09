@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:18365 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:38716 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755449Ab2EIPH1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 9 May 2012 11:07:27 -0400
-Date: Wed, 9 May 2012 18:06:35 +0300
+	id S1757038Ab2EIPns (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 9 May 2012 11:43:48 -0400
+Date: Wed, 9 May 2012 18:43:30 +0300
 From: "Michael S. Tsirkin" <mst@redhat.com>
 Subject: Re: [PATCH] bitops: add _local bitops
-Message-ID: <20120509150635.GA20474@redhat.com>
+Message-ID: <20120509154330.GA20867@redhat.com>
 References: <20120509134528.GA18044@redhat.com>
  <4FAA7939.6040706@zytor.com>
 MIME-Version: 1.0
@@ -17,7 +17,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "H. Peter Anvin" <hpa@zytor.com>
 Cc: Rob Landley <rob@landley.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, Akinobu Mita <akinobu.mita@gmail.com>, Alexey Dobriyan <adobriyan@gmail.com>, Herbert Xu <herbert@gondor.hengli.com.au>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Avi Kivity <avi@redhat.com>, Marcelo Tosatti <mtosatti@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20120509150635.up3bk6WJBaY8jJA7wity4wFAI-G-Xl1m7i7C8Fk4y-k@z>
+Message-ID: <20120509154330.3yEutoC2tPSfee9SOQtpJnbI99kamVShn4d57q7GLUM@z>
 
 On Wed, May 09, 2012 at 07:03:37AM -0700, H. Peter Anvin wrote:
 > On 05/09/2012 06:45 AM, Michael S. Tsirkin wrote:
@@ -42,8 +42,7 @@ On Wed, May 09, 2012 at 07:03:37AM -0700, H. Peter Anvin wrote:
 > 
 > 	-hpa
 
-You are right of course. So I'll remove bitops/local.h
-move the code to x86/ and open-code.
+Just adding a memory clobber to asm will be enough, right?
 
 -- 
 MST
