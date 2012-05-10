@@ -1,39 +1,62 @@
-From: Jan Kiszka <jan.kiszka@siemens.com>
-Subject: Re: [PATCH v2] compat: Fix RT signal mask corruption via sigprocmask
-Date: Thu, 10 May 2012 14:38:50 -0300
-Message-ID: <4FABFD2A.3020706@siemens.com>
-References: <4FAAEB37.1080001@siemens.com> <CA+55aFz-z6F=ynvTZp2xrSyq+Ar7huT92_S9e8Wuxepyppq5ZQ@mail.gmail.com> <4FABBCE4.3050503@siemens.com> <CA+55aFyOsPY-RNwedb3NnbKbj=iAc7L6YuSSEZYy5_Sczmqd4A@mail.gmail.com> <CA+55aFyr4_3MN4yZdNMnDr+nKm+VTONiP6SQnAGXoaQ1egr7zQ@mail.gmail.com>
+From: Vladimir Murzin <murzin.v@gmail.com>
+Subject: Re: [PATCH 0/6] get rid of extra check for TASK_SIZE in
+ get_unmapped_area
+Date: Thu, 10 May 2012 22:08:49 +0400
+Message-ID: <20120510180842.GA3808@pinguin>
+References: <1336488022-3723-1-git-send-email-murzin.v@gmail.com>
+ <20120509162657.GC10241@n2100.arm.linux.org.uk>
+ <20120509175557.GA2823@pinguin>
+ <20120509180701.GE10241@n2100.arm.linux.org.uk>
+ <20120510030136.GA2665@pinguin>
+ <20120510075504.GB3190@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=koi8-r
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from david.siemens.de ([192.35.17.14]:18287 "EHLO david.siemens.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757380Ab2EJRjc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 May 2012 13:39:32 -0400
-In-Reply-To: <CA+55aFyr4_3MN4yZdNMnDr+nKm+VTONiP6SQnAGXoaQ1egr7zQ@mail.gmail.com>
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:45520 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756890Ab2EJSLP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 May 2012 14:11:15 -0400
+Received: by lbbgm6 with SMTP id gm6so1295631lbb.19
+        for <linux-arch@vger.kernel.org>; Thu, 10 May 2012 11:11:13 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <20120510075504.GB3190@n2100.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Michael Tokarev <mjt@tls.msk.ru>, Anthony Liguori <aliguori@us.ibm.com>, Kevin Wolf <kwolf@redhat.com>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, tglx@linutronix.de, davem@davemloft.net, lethal@linux-sh.org
 
-On 2012-05-10 12:58, Linus Torvalds wrote:
-> On Thu, May 10, 2012 at 8:44 AM, Linus Torvalds
-> <torvalds@linux-foundation.org> wrote:
->>
->> I think I'll just edit your patch directly, no need to send me a new version.
+On Thu, May 10, 2012 at 08:55:04AM +0100, Russell King - ARM Linux wrote:
+> On Thu, May 10, 2012 at 07:01:46AM +0400, Vladimir Murzin wrote:
+> > I was thinking about your suggestion. We are speaking about the same
+> > problem but different solutions. Let me summarize shortly why I came
+> > up with current solution:
 > 
-> Ok, just FYI, this is the incremental diff I ended up with. I'll
-> commit it as this, but I'm sending it out for people to verify before
-> I do. Although just from looking at the code generation, it really
-> does just change those four instructions that do a mask to a single
-> 'movl', so I think it's pretty safe even though I haven't tested it.
+> I don't think there is a problem here.  I think there's just redundant
+> code in every arch apart from Sparc.
+> 
+> >    * leaving check in arches make them isolated, so
+> >      mm->get_unmapped_area could be called safely anywhere (currently it
+> >      is done in hugetlb and get_fb_unmapped_area stuff)
+> 
+> Right.  So is get_fb_unmapped_area() called without first going through
+> get_unmapped_area() ?  As far as I can see, it isn't.  Same for hugetlbfs.
 
-I did, and it looks and works fine.
+D'0h I've missed f_op there.. Thanks for pointing that.
 
-Thanks,
-Jan
+> 
+> I don't think you've analysed the issue you are trying to address correctly.
+> As such I will *not* be giving you an ACK for your current changes to
+> arch/arm.
 
--- 
-Siemens AG, Corporate Technology, CT T DE IT 1
-Corporate Competence Center Embedded Linux
+I should have analysed this more carefully. By now I can see even more
+redundant code. Actually, for some arches test for length has already
+done in arch_mmap_check(). For instance, sparc32 and sparc64 do the
+same check in sparc_mmap_check() as in arch_get_unmapped_area(). The
+only one difference in return value: -EINVAL in lieu of -ENOMEM.
+The same case for ia64.
+
+Hmmm... What about extending generic arch_mmap_check with check (len >
+TASK_SIZE) and updating arches which are coping with special cases?
+
+Best wishes
+Vladimir Murzin
