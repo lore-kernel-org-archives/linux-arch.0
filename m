@@ -1,88 +1,83 @@
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: Re: [PATCH 3/4] kbuild: link of vmlinux moved to a script
-Date: Thu, 10 May 2012 10:44:06 -0400
-Message-ID: <4FABD436.7070402@windriver.com>
-References: <20120428205651.GA7426@merkur.ravnborg.org> <20120428205919.GC7442@merkur.ravnborg.org> <4FA460AB.6060309@suse.cz> <20120505082916.GA14006@merkur.ravnborg.org> <CA+8MBbKd9zAouJy5JvUnLwUHMJ65HsYgCTfBgv42nm32EnMPFA@mail.gmail.com> <20120508165118.GA11750@merkur.ravnborg.org> <CAP=VYLobO--uwxv_hiMYBnjD-AU_0fqyQJD6argQygnkHnm5Vg@mail.gmail.com> <20120510122210.GA17550@sepie.suse.cz>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH v2] compat: Fix RT signal mask corruption via sigprocmask
+Date: Thu, 10 May 2012 08:44:51 -0700
+Message-ID: <CA+55aFyOsPY-RNwedb3NnbKbj=iAc7L6YuSSEZYy5_Sczmqd4A@mail.gmail.com>
+References: <4FAAEB37.1080001@siemens.com> <CA+55aFz-z6F=ynvTZp2xrSyq+Ar7huT92_S9e8Wuxepyppq5ZQ@mail.gmail.com>
+ <4FABBCE4.3050503@siemens.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-mips-bounce@linux-mips.org>
-In-Reply-To: <20120510122210.GA17550@sepie.suse.cz>
-Sender: linux-mips-bounce@linux-mips.org
-Errors-to: linux-mips-bounce@linux-mips.org
-To: Michal Marek <mmarek@suse.cz>
-Cc: Sam Ravnborg <sam@ravnborg.org>, Tony Luck <tony.luck@gmail.com>, linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>, ralf@linux-mips.org, linux-mips@linux-mips.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wi0-f172.google.com ([209.85.212.172]:51365 "EHLO
+	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751773Ab2EJPpR convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 May 2012 11:45:17 -0400
+In-Reply-To: <4FABBCE4.3050503@siemens.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jan Kiszka <jan.kiszka@siemens.com>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Michael Tokarev <mjt@tls.msk.ru>, Anthony Liguori <aliguori@us.ibm.com>, Kevin Wolf <kwolf@redhat.com>
 
-On 12-05-10 08:22 AM, Michal Marek wrote:
-> On Wed, May 09, 2012 at 06:58:16PM -0400, Paul Gortmaker wrote:
->> On Tue, May 8, 2012 at 12:51 PM, Sam Ravnborg <sam@ravnborg.org> wrote:
->>> diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
->>> index 26c5b65..1f4c27b 100644
->>> --- a/scripts/link-vmlinux.sh
->>> +++ b/scripts/link-vmlinux.sh
->>> @@ -78,8 +78,8 @@ kallsyms()
->>>                kallsymopt=--all-symbols
->>>        fi
->>>
->>> -       local aflags="${KBUILD_AFLAGS} ${NOSTDINC_FLAGS}                     \
->>> -                     ${LINUXINCLUDE} ${KBUILD_CPPFLAGS}"
->>> +       local aflags="${KBUILD_AFLAGS} ${KBUILD_AFLAGS_KERNEL}               \
->>> +                     ${NOSTDINC_FLAGS} ${LINUXINCLUDE} ${KBUILD_CPPFLAGS}"
->>
->> All the linux-next builds for mips are failing, which I tracked down to this.
->> Applying the above update doesn't help.  What is happening is that MIPS
->> gets KBUILD_CPPFLAGS double-quoted, and then you get:
->>
->> + mips-wrs-linux-gnu-nm -n .tmp_vmlinux1
->> + scripts/kallsyms
->> + mips-wrs-linux-gnu-gcc -D__ASSEMBLY__ <..snip..>  -D__KERNEL__
->> '-D"VMLINUX_LOAD_ADDRESS=0xffffffff81100000"' '-D"DATAOFFSET=0"' -c -o
->> .tmp_kallsyms1.o -x assembler-with-cpp -
->> <command-line>:0: error: macro names must be identifiers
->> <command-line>:0: error: macro names must be identifiers
->> make[1]: *** [vmlinux] Error 1
->>
->> Note the  '-D"VMLINUX_LOAD_ADDRESS=0xffffffff81100000"' '-D"DATAOFFSET=0"'
->> part -- that is what triggers the two above errors.
-> 
-> I think it should be as simple as the below patch. But I have no mips
-> machine to verify myself.
+On Thu, May 10, 2012 at 6:04 AM, Jan Kiszka <jan.kiszka@siemens.com> wr=
+ote:
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 case SIG_BLOCK:
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 sigaddsetmask(&new_bloc=
+ked, new_set);
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 break;
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 case SIG_UNBLOCK:
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 sigdelsetmask(&new_bloc=
+ked, new_set);
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 break;
 
-Well I haven't boot tested it on anything either, but it does
-seem to resolve the double quoting that caused the compile failure.
+Ok, I think SIG_[UN]BLOCK are now clearly right. However:
 
-Thanks,
-Paul.
---
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 case SIG_SETMASK:
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 new_blocked.sig[0] &=3D
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 ~((old_=
+sigset_t)(compat_old_sigset_t)-1);
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 new_blocked.sig[0] |=3D=
+ new_set;
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 break;
 
-> 
-> Michal
-> 
-> From d801533d5e6e509d5e115d2fb47655267c4c5ed4 Mon Sep 17 00:00:00 2001
-> From: Michal Marek <mmarek@suse.cz>
-> Date: Thu, 10 May 2012 14:15:49 +0200
-> Subject: [PATCH] mips: Fix KBUILD_CPPFLAGS definition
-> 
-> The KBUILD_CPPFLAGS variable is no longer passed to sh -c 'gcc ...',
-> but exported and used by the link-vmlinux.sh script. This means that the
-> double-quotes will not be evaluated by the shell.
-> 
-> Reported-by: Paul Gortmaker <paul.gortmaker@windriver.com>
-> Signed-off-by: Michal Marek <mmarek@suse.cz>
-> 
-> diff --git a/arch/mips/Makefile b/arch/mips/Makefile
-> index 4fedf5a..722e04a 100644
-> --- a/arch/mips/Makefile
-> +++ b/arch/mips/Makefile
-> @@ -219,8 +219,8 @@ endif
->  
->  KBUILD_AFLAGS	+= $(cflags-y)
->  KBUILD_CFLAGS	+= $(cflags-y)
-> -KBUILD_CPPFLAGS += -D"VMLINUX_LOAD_ADDRESS=$(load-y)"
-> -KBUILD_CPPFLAGS += -D"DATAOFFSET=$(if $(dataoffset-y),$(dataoffset-y),0)"
-> +KBUILD_CPPFLAGS += -DVMLINUX_LOAD_ADDRESS=$(load-y)
-> +KBUILD_CPPFLAGS += -DDATAOFFSET=$(if $(dataoffset-y),$(dataoffset-y),0)
->  
->  LDFLAGS			+= -m $(ld-emul)
->  
+I don't think this is clear.
+
+The semantics for the *native* SIG_SETMASK has been to only change the
+lower word of the sigset_t.
+
+And that was actually defined in terms of "compat_sigset_word", not
+"compat_old_sigset_t".
+
+Now, they are both generally the same, and so I think your code does
+the right thing, but I have to say that I really had to look closely
+to make sure that yes, your code was right.
+
+Anyway, my *gut* feel is that it would be much clearer to write the abo=
+ve as
+
+    compat_sigset_word x =3D new_set;
+    memcpy(new_blocked.sig, &x, sizeof(x));
+
+together with a comment to the effect that sigprocmask(SIG_SETMASK..)
+only changes the first word of the structure.
+
+That said, I think your patch does look technically correct, so maybe
+it's just me who thinks it is very non-obvious and hard to read.
+
+The memcpy approach will also generate better code. This is the "mask-a=
+nd-set":
+
+        movabsq $-4294967296, %rax      #, tmp89
+        andq    -32(%rbp), %rax # new_blocked.sig, tmp89
+        orq     %rdx, %rax      # new_set, tmp89
+        movq    %rax, -32(%rbp) # tmp89, new_blocked.sig
+
+and this is the memcpy:
+
+        movl    %edx, -32(%rbp) # new_set,
+
+ie it is done as a simple 32-bit store.
+
+I think I'll just edit your patch directly, no need to send me a new ve=
+rsion.
+
+                               Linus
