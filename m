@@ -1,159 +1,90 @@
-From: Vladimir Murzin <murzin.v@gmail.com>
-Subject: Re: [PATCH 0/6] get rid of extra check for TASK_SIZE in
- get_unmapped_area
-Date: Thu, 10 May 2012 07:01:46 +0400
-Message-ID: <20120510030136.GA2665@pinguin>
-References: <1336488022-3723-1-git-send-email-murzin.v@gmail.com>
- <20120509162657.GC10241@n2100.arm.linux.org.uk>
- <20120509175557.GA2823@pinguin>
- <20120509180701.GE10241@n2100.arm.linux.org.uk>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 3/4] kbuild: link of vmlinux moved to a script
+Date: Thu, 10 May 2012 07:16:46 +0200
+Message-ID: <20120510051646.GA14138@merkur.ravnborg.org>
+References: <20120428205651.GA7426@merkur.ravnborg.org> <20120428205919.GC7442@merkur.ravnborg.org> <4FA460AB.6060309@suse.cz> <20120505082916.GA14006@merkur.ravnborg.org> <CA+8MBbKd9zAouJy5JvUnLwUHMJ65HsYgCTfBgv42nm32EnMPFA@mail.gmail.com> <20120508165118.GA11750@merkur.ravnborg.org> <CAP=VYLobO--uwxv_hiMYBnjD-AU_0fqyQJD6argQygnkHnm5Vg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=koi8-r
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:45476 "EHLO
-	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753271Ab2EJDEL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2012 23:04:11 -0400
-Received: by lahd3 with SMTP id d3so734238lah.19
-        for <linux-arch@vger.kernel.org>; Wed, 09 May 2012 20:04:09 -0700 (PDT)
+Content-Type: text/plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kbuild-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20120509180701.GE10241@n2100.arm.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, tglx@linutronix.de, davem@davemloft.net, lethal@linux-sh.org
+In-Reply-To: <CAP=VYLobO--uwxv_hiMYBnjD-AU_0fqyQJD6argQygnkHnm5Vg@mail.gmail.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: Tony Luck <tony.luck@gmail.com>, Michal Marek <mmarek@suse.cz>, linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>, ralf@linux-mips.org, linux-mips@linux-mips.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, May 09, 2012 at 07:07:01PM +0100, Russell King - ARM Linux wrote:
-> On Wed, May 09, 2012 at 09:56:03PM +0400, Vladimir Murzin wrote:
-> > On Wed, May 09, 2012 at 05:26:57PM +0100, Russell King - ARM Linux wrote:
-> > > On Tue, May 08, 2012 at 06:40:16PM +0400, Vladimir Murzin wrote:
-> > > > From: Vladimir Murzin <murzin.v@gmail>
-> > > > 
-> > > > The current get_unmapped_area code calls the f_ops->get_unmapped_area or
-> > > > the arch's one (via the mm) only when check for TASK_SIZE is passed. However,
-> > > > generic code and some arches do the same check in their a_g_u_a implementation.
-> > > > 
-> > > > This series of patches fix the check order for TASK_SIZE in archs'
-> > > > get_unmapped_area() implementations, and then removes extra check in
-> > > > high-level get_unmapped_area().
-> > > 
-> > > Do we even need this check in arch code?  AFAICS it's already checked in
-> > > get_unmapped_area(), and this will be called prior to any
-> > > arch_get_unmapped_area() implementation.  Given that this is a potential
-> > > security issue, please check my analysis of this.
-> > > 
-> > > unsigned long
-> > > get_unmapped_area(struct file *file, unsigned long addr, unsigned long len,
-> > > 		unsigned long pgoff, unsigned long flags)
-> > > {
-> > > 	...
-> > > 	/* Careful about overflows.. */
-> > > 	if (len > TASK_SIZE)
-> > > 		return -ENOMEM;
-> > > 
-> > > 	get_area = current->mm->get_unmapped_area;
-> > > 	if (file && file->f_op && file->f_op->get_unmapped_area)
-> > > 		get_area = file->f_op->get_unmapped_area;
-> > 
-> > Thanks for analysis.
-> > 
-> > Most of arches do checking for (len > TASK_SIZE) in their a_g_u_a or in
-> > generic one. However, mips, alpha, sparc and ia64 at least do this
-> > checking in a slightly different way.
-> 
-> I think you missed what I said above.  I think get_unmapped_area() gets
-> called, which _then_ calls into arch_get_unmapped_area() or some alternative
-> replacement.  I also think that nothing other than get_unmapped_area()
-> ultimately calls through to arch_get_unmapped_area().
-> 
-> So if get_unmapped_area() is doing:
-> 
-> 	/* Careful about overflows.. */
-> 	if (len > TASK_SIZE)
-> 		return -ENOMEM;
-> 
-> _before_ it passes control to arch_get_unmapped_area(), is there any point
-> arch_get_unmapped_area() duplicating this exact same check?
-> 
-> Can't we just delete all these duplicate checks in arch_get_unmapped_area()
-> and be done with it, because...
-> 
-> > So, for arches which use generic implementation or have no any special
-> > case
-> > 
-> >  	/* Careful about overflows.. */
-> > 	if (len > TASK_SIZE)
-> >  		return -ENOMEM;
-> >  
-> >  	get_area = current->mm->get_unmapped_area;
-> > 
-> > is expanded into
-> > 
-> >  	/* Careful about overflows.. */
-> > 	if (len > TASK_SIZE)
-> >  		return -ENOMEM;
-> >  
-> >  	/* there is arch_get_unmapped_area started */
-> > 
-> > 	if (len > TASK_SIZE)
-> >  		return -ENOMEM;
-> > 
-> >  	/* other stuff in arch_get_unmapped_area */
-> 
-> ... having that second check there is pointless.
-> 
-> > On the other hand, for arches which have to handle special case for
-> > length checking test for (len > TASK_SIZE) has no sense.
-> > 
-> > To avoid security issue checking for length should be done
-> > first. Unfortunately, not all arches follow this rule and test in
-> > get_unmapped_area() doesn't cover some cases.
-> 
-> But does it matter?  get_unmapped_area() has already checked 'len' and
-> would have failed if this was larger than TASK_SIZE already.
-> 
-> > For instanse, sparc32 do checking like
-> > 
-> > unsigned long arch_get_unmapped_area(struct file *filp, unsigned long
-> >  addr, unsigned long len, unsigned long pgoff, unsigned long flags)
-> > {
-> >         struct vm_area_struct * vmm;
-> > 
-> >         if (flags & MAP_FIXED) {
-> >                 /* We do not accept a shared mapping if it would violate
-> >                  * cache aliasing constraints.
-> >                  */
-> >                 if ((flags & MAP_SHARED) &&
-> >                     ((addr - (pgoff << PAGE_SHIFT)) & (SHMLBA - 1)))
-> >                         return -EINVAL;
-> >                 return addr;
-> >         }
-> > 
-> >         /* See asm-sparc/uaccess.h */
-> >         if (len > TASK_SIZE - PAGE_SIZE)
-> >                 return -ENOMEM;
-> 
-> Where an arch does a different check (eg, and it is a smaller size) then
-> yes, there could be a problem.
-> 
-> But for all those which duplicate the:
-> 
-> 	if (len > TASK_SIZE)
-> 		return -ENOMEM;
-> 
-> check, it seems totally pointless to have that code in the arch function,
-> and I think we should be deleting that from the arch functions.
+On Wed, May 09, 2012 at 06:58:16PM -0400, Paul Gortmaker wrote:
+> On Tue, May 8, 2012 at 12:51 PM, Sam Ravnborg <sam@ravnborg.org> wrot=
+e:
+> > Hi Tony.
+> >
+> > On Mon, May 07, 2012 at 04:15:44PM -0700, Tony Luck wrote:
+> >> This patch is now in linux-next (tag next-20120507). But it looks =
+to have
+> >> broken the ia64 build. I see this error:
+> >>
+> >> =A0 CC =A0 =A0 =A0init/version.o
+> >> =A0 LD =A0 =A0 =A0init/built-in.o
+> >> =A0 KSYM =A0 =A0.tmp_kallsyms1.o
+> >> ld: .tmp_kallsyms1.o: linking constant-gp files with non-constant-=
+gp files
+> >> ld: failed to merge target specific data of file .tmp_kallsyms1.o
+> >> make: *** [vmlinux] Error 1
+> >>
+> >> which looks like we used the wrong compile options when building
+> >> .tmp_kallsyms1.o
+> >
+> > Thanks for testing!
+> >
+> > Could you try if this helps.
+> >
+> > =A0 =A0 =A0 =A0Sam
+> >
+> > diff --git a/scripts/link-vmlinux.sh b/scripts/link-vmlinux.sh
+> > index 26c5b65..1f4c27b 100644
+> > --- a/scripts/link-vmlinux.sh
+> > +++ b/scripts/link-vmlinux.sh
+> > @@ -78,8 +78,8 @@ kallsyms()
+> > =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0kallsymopt=3D--all-symbols
+> > =A0 =A0 =A0 =A0fi
+> >
+> > - =A0 =A0 =A0 local aflags=3D"${KBUILD_AFLAGS} ${NOSTDINC_FLAGS} =A0=
+ =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 \
+> > - =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 ${LINUXINCLUDE} ${KBUILD_=
+CPPFLAGS}"
+> > + =A0 =A0 =A0 local aflags=3D"${KBUILD_AFLAGS} ${KBUILD_AFLAGS_KERN=
+EL} =A0 =A0 =A0 =A0 =A0 =A0 =A0 \
+> > + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 ${NOSTDINC_FLAGS} ${LINUX=
+INCLUDE} ${KBUILD_CPPFLAGS}"
+>=20
+> All the linux-next builds for mips are failing, which I tracked down =
+to this.
+> Applying the above update doesn't help.  What is happening is that MI=
+PS
+> gets KBUILD_CPPFLAGS double-quoted, and then you get:
+>=20
+> + mips-wrs-linux-gnu-nm -n .tmp_vmlinux1
+> + scripts/kallsyms
+> + mips-wrs-linux-gnu-gcc -D__ASSEMBLY__ <..snip..>  -D__KERNEL__
+> '-D"VMLINUX_LOAD_ADDRESS=3D0xffffffff81100000"' '-D"DATAOFFSET=3D0"' =
+-c -o
+> .tmp_kallsyms1.o -x assembler-with-cpp -
+> <command-line>:0: error: macro names must be identifiers
+> <command-line>:0: error: macro names must be identifiers
+> make[1]: *** [vmlinux] Error 1
+>=20
+> Note the  '-D"VMLINUX_LOAD_ADDRESS=3D0xffffffff81100000"' '-D"DATAOFF=
+SET=3D0"'
+> part -- that is what triggers the two above errors.
 
-I was thinking about your suggestion. We are speaking about the same
-problem but different solutions. Let me summarize shortly why I came
-up with current solution:
-   * leaving check in arches make them isolated, so
-     mm->get_unmapped_area could be called safely anywhere (currently it
-     is done in hugetlb and get_fb_unmapped_area stuff)
-   * we have no any extra (pointless?) checks for arches which has
-     stricter test for length
-   * we have no any duplicating checks for arches which follows generic
-     implementation for get_ynmapped_area
+Hi Paul.
 
-Best wishes
-Vladimir Murzin
+I will take a look at this tonight. Thanks for the report!
+
+	Sam
+--
+To unsubscribe from this list: send the line "unsubscribe linux-kbuild"=
+ in
+the body of a message to majordomo@vger.kernel.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
