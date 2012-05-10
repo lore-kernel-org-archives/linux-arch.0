@@ -1,62 +1,55 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH v2] compat: Fix RT signal mask corruption via sigprocmask
-Date: Thu, 10 May 2012 08:58:21 -0700
-Message-ID: <CA+55aFyr4_3MN4yZdNMnDr+nKm+VTONiP6SQnAGXoaQ1egr7zQ@mail.gmail.com>
-References: <4FAAEB37.1080001@siemens.com> <CA+55aFz-z6F=ynvTZp2xrSyq+Ar7huT92_S9e8Wuxepyppq5ZQ@mail.gmail.com>
- <4FABBCE4.3050503@siemens.com> <CA+55aFyOsPY-RNwedb3NnbKbj=iAc7L6YuSSEZYy5_Sczmqd4A@mail.gmail.com>
+From: Rob Landley <rob@landley.net>
+Subject: Re: [PATCH] bitops: add _local bitops
+Date: Thu, 10 May 2012 12:38:06 -0500
+Message-ID: <4FABFCFE.8010307@landley.net>
+References: <20120509134528.GA18044@redhat.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary=f46d041824ee9e606704bfb0b1ce
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f170.google.com ([209.85.212.170]:44289 "EHLO
-	mail-wi0-f170.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756305Ab2EJP6n (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 May 2012 11:58:43 -0400
-In-Reply-To: <CA+55aFyOsPY-RNwedb3NnbKbj=iAc7L6YuSSEZYy5_Sczmqd4A@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Jan Kiszka <jan.kiszka@siemens.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Michael Tokarev <mjt@tls.msk.ru>, Anthony Liguori <aliguori@us.ibm.com>, Kevin Wolf <kwolf@redhat.com>
-
---f46d041824ee9e606704bfb0b1ce
 Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20120509134528.GA18044@redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 10, 2012 at 8:44 AM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->
-> I think I'll just edit your patch directly, no need to send me a new version.
+On 05/09/2012 08:45 AM, Michael S. Tsirkin wrote:
+> diff --git a/Documentation/atomic_ops.txt b/Documentation/atomic_ops.txt
+> index 27f2b21..b7e3b67 100644
+> --- a/Documentation/atomic_ops.txt
+> +++ b/Documentation/atomic_ops.txt
+> @@ -520,6 +520,25 @@ The __clear_bit_unlock version is non-atomic, however it still implements
+>  unlock barrier semantics. This can be useful if the lock itself is protecting
+>  the other bits in the word.
+>  
+> +Local versions of the bitmask operations are also provided.  They are used in
+> +contexts where the operations need to be performed atomically with respect to
+> +the local CPU, but no other CPU accesses the bitmask.  This assumption makes it
+> +possible to avoid the need for SMP protection and use less expensive atomic
+> +operations in the implementation.
+> +They have names similar to the above bitmask operation interfaces,
+> +except that _local is sufficed to the interface name.
+> +
+> +	void set_bit_local(unsigned long nr, volatile unsigned long *addr);
+> +	void clear_bit_local(unsigned long nr, volatile unsigned long *addr);
+> +	void change_bit_local(unsigned long nr, volatile unsigned long *addr);
+> +	int test_and_set_bit_local(unsigned long nr, volatile unsigned long *addr);
+> +	int test_and_clear_bit_local(unsigned long nr, volatile unsigned long *addr);
+> +	int test_and_change_bit_local(unsigned long nr, volatile unsigned long *addr);
+> +
+> +These local variants are useful for example if the bitmask may be accessed from
+> +a local intrerrupt, or from a hypervisor on the same CPU if running in a VM.
+> +These local variants also do not have any special memory barrier semantics.
+> +
+>  Finally, there are non-atomic versions of the bitmask operations
+>  provided.  They are used in contexts where some other higher-level SMP
+>  locking scheme is being used to protect the bitmask, and thus less
 
-Ok, just FYI, this is the incremental diff I ended up with. I'll
-commit it as this, but I'm sending it out for people to verify before
-I do. Although just from looking at the code generation, it really
-does just change those four instructions that do a mask to a single
-'movl', so I think it's pretty safe even though I haven't tested it.
+For this bit:
 
-                       Linus
+Acked-by: Rob Landley <rob@landley.net>
 
---f46d041824ee9e606704bfb0b1ce
-Content-Type: application/octet-stream; name="patch.diff"
-Content-Disposition: attachment; filename="patch.diff"
-Content-Transfer-Encoding: base64
-X-Attachment-Id: f_h2204h510
-
-IGtlcm5lbC9jb21wYXQuYyB8ICAgMTMgKysrKysrKysrKy0tLQogMSBmaWxlIGNoYW5nZWQsIDEw
-IGluc2VydGlvbnMoKyksIDMgZGVsZXRpb25zKC0pCgpkaWZmIC0tZ2l0IGEva2VybmVsL2NvbXBh
-dC5jIGIva2VybmVsL2NvbXBhdC5jCmluZGV4IDM5YzE2NGUwMmQwNS4uZDJjNjdhYTQ5YWU2IDEw
-MDY0NAotLS0gYS9rZXJuZWwvY29tcGF0LmMKKysrIGIva2VybmVsL2NvbXBhdC5jCkBAIC0zNzIs
-NiArMzcyLDE1IEBAIGFzbWxpbmthZ2UgbG9uZyBjb21wYXRfc3lzX3NpZ3BlbmRpbmcoY29tcGF0
-X29sZF9zaWdzZXRfdCBfX3VzZXIgKnNldCkKIAogI2lmZGVmIF9fQVJDSF9XQU5UX1NZU19TSUdQ
-Uk9DTUFTSwogCisvKgorICogc3lzX3NpZ3Byb2NtYXNrIFNJR19TRVRNQVNLIHNldHMgdGhlIGZp
-cnN0IChjb21wYXQpIHdvcmQgb2YgdGhlCisgKiBibG9ja2VkIHNldCBvZiBzaWduYWxzIHRvIHRo
-ZSBzdXBwbGllZCBzaWduYWwgc2V0CisgKi8KK3N0YXRpYyBpbmxpbmUgdm9pZCBjb21wYXRfc2ln
-X3NldG1hc2soc2lnc2V0X3QgKmJsb2NrZWQsIGNvbXBhdF9zaWdzZXRfd29yZCBzZXQpCit7CisJ
-bWVtY3B5KGJsb2NrZWQtPnNpZywgJnNldCwgc2l6ZW9mKHNldCkpOworfQorCiBhc21saW5rYWdl
-IGxvbmcgY29tcGF0X3N5c19zaWdwcm9jbWFzayhpbnQgaG93LAogCQkJCSAgICAgICBjb21wYXRf
-b2xkX3NpZ3NldF90IF9fdXNlciAqbnNldCwKIAkJCQkgICAgICAgY29tcGF0X29sZF9zaWdzZXRf
-dCBfX3VzZXIgKm9zZXQpCkBAIC0zOTYsOSArNDA1LDcgQEAgYXNtbGlua2FnZSBsb25nIGNvbXBh
-dF9zeXNfc2lncHJvY21hc2soaW50IGhvdywKIAkJCXNpZ2RlbHNldG1hc2soJm5ld19ibG9ja2Vk
-LCBuZXdfc2V0KTsKIAkJCWJyZWFrOwogCQljYXNlIFNJR19TRVRNQVNLOgotCQkJbmV3X2Jsb2Nr
-ZWQuc2lnWzBdICY9Ci0JCQkJfigob2xkX3NpZ3NldF90KShjb21wYXRfb2xkX3NpZ3NldF90KS0x
-KTsKLQkJCW5ld19ibG9ja2VkLnNpZ1swXSB8PSBuZXdfc2V0OworCQkJY29tcGF0X3NpZ19zZXRt
-YXNrKCZuZXdfYmxvY2tlZCwgbmV3X3NldCk7CiAJCQlicmVhazsKIAkJZGVmYXVsdDoKIAkJCXJl
-dHVybiAtRUlOVkFMOwo=
---f46d041824ee9e606704bfb0b1ce--
+Rob
+-- 
+GNU/Linux isn't: Linux=GPLv2, GNU=GPLv3+, they can't share code.
+Either it's "mere aggregation", or a license violation.  Pick one.
