@@ -1,55 +1,39 @@
-From: Rob Landley <rob@landley.net>
-Subject: Re: [PATCH] bitops: add _local bitops
-Date: Thu, 10 May 2012 12:38:06 -0500
-Message-ID: <4FABFCFE.8010307@landley.net>
-References: <20120509134528.GA18044@redhat.com>
+From: Jan Kiszka <jan.kiszka@siemens.com>
+Subject: Re: [PATCH v2] compat: Fix RT signal mask corruption via sigprocmask
+Date: Thu, 10 May 2012 14:38:50 -0300
+Message-ID: <4FABFD2A.3020706@siemens.com>
+References: <4FAAEB37.1080001@siemens.com> <CA+55aFz-z6F=ynvTZp2xrSyq+Ar7huT92_S9e8Wuxepyppq5ZQ@mail.gmail.com> <4FABBCE4.3050503@siemens.com> <CA+55aFyOsPY-RNwedb3NnbKbj=iAc7L6YuSSEZYy5_Sczmqd4A@mail.gmail.com> <CA+55aFyr4_3MN4yZdNMnDr+nKm+VTONiP6SQnAGXoaQ1egr7zQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20120509134528.GA18044@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from david.siemens.de ([192.35.17.14]:18287 "EHLO david.siemens.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757380Ab2EJRjc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 May 2012 13:39:32 -0400
+In-Reply-To: <CA+55aFyr4_3MN4yZdNMnDr+nKm+VTONiP6SQnAGXoaQ1egr7zQ@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Michael Tokarev <mjt@tls.msk.ru>, Anthony Liguori <aliguori@us.ibm.com>, Kevin Wolf <kwolf@redhat.com>
 
-On 05/09/2012 08:45 AM, Michael S. Tsirkin wrote:
-> diff --git a/Documentation/atomic_ops.txt b/Documentation/atomic_ops.txt
-> index 27f2b21..b7e3b67 100644
-> --- a/Documentation/atomic_ops.txt
-> +++ b/Documentation/atomic_ops.txt
-> @@ -520,6 +520,25 @@ The __clear_bit_unlock version is non-atomic, however it still implements
->  unlock barrier semantics. This can be useful if the lock itself is protecting
->  the other bits in the word.
->  
-> +Local versions of the bitmask operations are also provided.  They are used in
-> +contexts where the operations need to be performed atomically with respect to
-> +the local CPU, but no other CPU accesses the bitmask.  This assumption makes it
-> +possible to avoid the need for SMP protection and use less expensive atomic
-> +operations in the implementation.
-> +They have names similar to the above bitmask operation interfaces,
-> +except that _local is sufficed to the interface name.
-> +
-> +	void set_bit_local(unsigned long nr, volatile unsigned long *addr);
-> +	void clear_bit_local(unsigned long nr, volatile unsigned long *addr);
-> +	void change_bit_local(unsigned long nr, volatile unsigned long *addr);
-> +	int test_and_set_bit_local(unsigned long nr, volatile unsigned long *addr);
-> +	int test_and_clear_bit_local(unsigned long nr, volatile unsigned long *addr);
-> +	int test_and_change_bit_local(unsigned long nr, volatile unsigned long *addr);
-> +
-> +These local variants are useful for example if the bitmask may be accessed from
-> +a local intrerrupt, or from a hypervisor on the same CPU if running in a VM.
-> +These local variants also do not have any special memory barrier semantics.
-> +
->  Finally, there are non-atomic versions of the bitmask operations
->  provided.  They are used in contexts where some other higher-level SMP
->  locking scheme is being used to protect the bitmask, and thus less
+On 2012-05-10 12:58, Linus Torvalds wrote:
+> On Thu, May 10, 2012 at 8:44 AM, Linus Torvalds
+> <torvalds@linux-foundation.org> wrote:
+>>
+>> I think I'll just edit your patch directly, no need to send me a new version.
+> 
+> Ok, just FYI, this is the incremental diff I ended up with. I'll
+> commit it as this, but I'm sending it out for people to verify before
+> I do. Although just from looking at the code generation, it really
+> does just change those four instructions that do a mask to a single
+> 'movl', so I think it's pretty safe even though I haven't tested it.
 
-For this bit:
+I did, and it looks and works fine.
 
-Acked-by: Rob Landley <rob@landley.net>
+Thanks,
+Jan
 
-Rob
 -- 
-GNU/Linux isn't: Linux=GPLv2, GNU=GPLv3+, they can't share code.
-Either it's "mere aggregation", or a license violation.  Pick one.
+Siemens AG, Corporate Technology, CT T DE IT 1
+Corporate Competence Center Embedded Linux
