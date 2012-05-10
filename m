@@ -1,55 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:57363 "EHLO mx2.suse.de"
+Received: from david.siemens.de ([192.35.17.14]:30348 "EHLO david.siemens.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755015Ab2EJMW2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 May 2012 08:22:28 -0400
-Date: Thu, 10 May 2012 14:22:27 +0200
-From: Michal Marek <mmarek@suse.cz>
-Subject: Re: [PATCH] kbuild: fix ia64 link
-Message-ID: <20120510122227.GB17550@sepie.suse.cz>
-References: <20120428205651.GA7426@merkur.ravnborg.org>
- <20120428205919.GC7442@merkur.ravnborg.org>
- <4FA460AB.6060309@suse.cz>
- <20120505082916.GA14006@merkur.ravnborg.org>
- <CA+8MBbKd9zAouJy5JvUnLwUHMJ65HsYgCTfBgv42nm32EnMPFA@mail.gmail.com>
- <20120508165118.GA11750@merkur.ravnborg.org>
- <CA+8MBbJHH1niHHR7md844UwphmeYczYQBJOB3huGFaxU9AXMTA@mail.gmail.com>
- <20120508175346.GA11887@merkur.ravnborg.org>
+	id S1753090Ab2EJNFN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 May 2012 09:05:13 -0400
+Message-ID: <4FABBCE4.3050503@siemens.com>
+Date: Thu, 10 May 2012 10:04:36 -0300
+From: Jan Kiszka <jan.kiszka@siemens.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20120508175346.GA11887@merkur.ravnborg.org>
+Subject: [PATCH v2] compat: Fix RT signal mask corruption via sigprocmask
+References: <4FAAEB37.1080001@siemens.com> <CA+55aFz-z6F=ynvTZp2xrSyq+Ar7huT92_S9e8Wuxepyppq5ZQ@mail.gmail.com>
+In-Reply-To: <CA+55aFz-z6F=ynvTZp2xrSyq+Ar7huT92_S9e8Wuxepyppq5ZQ@mail.gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Tony Luck <tony.luck@gmail.com>, linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>
-Message-ID: <20120510122227.sGUXZuRhFR7dw-zVnAmYwCSX6ZZSNl4Ywx54sEQhAls@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Cc: Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Michael Tokarev <mjt@tls.msk.ru>, Anthony Liguori <aliguori@us.ibm.com>, Kevin Wolf <kwolf@redhat.com>
+Message-ID: <20120510130436.Qp0wiERui-pLoTQeF_GhhmCxJlCHeqnXQs8s10ZHqzc@z>
 
-On Tue, May 08, 2012 at 07:53:46PM +0200, Sam Ravnborg wrote:
-> From aca8f5bd71797534ea220b193772946f59ee8125 Mon Sep 17 00:00:00 2001
-> From: Sam Ravnborg <sam@ravnborg.org>
-> Date: Tue, 8 May 2012 19:49:59 +0200
-> Subject: [PATCH] kbuild: fix ia64 link
-> 
-> ia64 build failed like this:
-> 
->   CC      init/version.o
->   LD      init/built-in.o
->   KSYM    .tmp_kallsyms1.o
-> ld: .tmp_kallsyms1.o: linking constant-gp files with non-constant-gp files
-> ld: failed to merge target specific data of file .tmp_kallsyms1.o
-> make: *** [vmlinux] Error 1
-> 
-> This was introduced when link of vmlinux was migrated to a script.
-> Add missing option to as to fix this.
-> 
-> Reported-by: Tony Luck <tony.luck@gmail.com>
-> Tested-by: Tony Luck <tony.luck@gmail.com>
-> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-> ---
-> 
-> Hi Michal - please apply.
+compat_sys_sigprocmask reads a smaller signal mask from userspace than
+sigprogmask accepts for setting. So the high word of blocked.sig[0] will
+be cleared, releasing any potentially blocked RT signal.
 
-Done, thanks.
+This was discovered via userspace code that relies on get/setcontext.
+glibc's i386 versions of those functions use sigprogmask instead of
+rt_sigprogmask to save/restore signal mask and caused RT signal
+unblocking this way.
 
-Michal
+As suggested by Linus, this replaces the sys_sigprocmask based compat
+version with one that open-codes the required logic, including the merge
+of the existing blocked set with the new one provided on SIG_SETMASK.
+
+Signed-off-by: Jan Kiszka <jan.kiszka@siemens.com>
+---
+ kernel/compat.c |   56 ++++++++++++++++++++++++++++++++++++++----------------
+ 1 files changed, 39 insertions(+), 17 deletions(-)
+
+diff --git a/kernel/compat.c b/kernel/compat.c
+index 74ff849..39c164e 100644
+--- a/kernel/compat.c
++++ b/kernel/compat.c
+@@ -372,25 +372,47 @@ asmlinkage long compat_sys_sigpending(compat_old_sigset_t __user *set)
+ 
+ #ifdef __ARCH_WANT_SYS_SIGPROCMASK
+ 
+-asmlinkage long compat_sys_sigprocmask(int how, compat_old_sigset_t __user *set,
+-		compat_old_sigset_t __user *oset)
++asmlinkage long compat_sys_sigprocmask(int how,
++				       compat_old_sigset_t __user *nset,
++				       compat_old_sigset_t __user *oset)
+ {
+-	old_sigset_t s;
+-	long ret;
+-	mm_segment_t old_fs;
++	old_sigset_t old_set, new_set;
++	sigset_t new_blocked;
+ 
+-	if (set && get_user(s, set))
+-		return -EFAULT;
+-	old_fs = get_fs();
+-	set_fs(KERNEL_DS);
+-	ret = sys_sigprocmask(how,
+-			      set ? (old_sigset_t __user *) &s : NULL,
+-			      oset ? (old_sigset_t __user *) &s : NULL);
+-	set_fs(old_fs);
+-	if (ret == 0)
+-		if (oset)
+-			ret = put_user(s, oset);
+-	return ret;
++	old_set = current->blocked.sig[0];
++
++	if (nset) {
++		if (get_user(new_set, nset))
++			return -EFAULT;
++		new_set &= ~(sigmask(SIGKILL) | sigmask(SIGSTOP));
++
++		new_blocked = current->blocked;
++
++		switch (how) {
++		case SIG_BLOCK:
++			sigaddsetmask(&new_blocked, new_set);
++			break;
++		case SIG_UNBLOCK:
++			sigdelsetmask(&new_blocked, new_set);
++			break;
++		case SIG_SETMASK:
++			new_blocked.sig[0] &=
++				~((old_sigset_t)(compat_old_sigset_t)-1);
++			new_blocked.sig[0] |= new_set;
++			break;
++		default:
++			return -EINVAL;
++		}
++
++		set_current_blocked(&new_blocked);
++	}
++
++	if (oset) {
++		if (put_user(old_set, oset))
++			return -EFAULT;
++	}
++
++	return 0;
+ }
+ 
+ #endif
+-- 
+1.7.3.4
