@@ -1,33 +1,39 @@
-From: Christoph Lameter <cl@linux.com>
-Subject: Re: [PATCHv2] bitops: add _local bitops
-Date: Thu, 10 May 2012 14:04:00 -0500 (CDT)
-Message-ID: <alpine.DEB.2.00.1205101401010.18664@router.home>
-References: <20120509162819.GA21328@redhat.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH] bitops: add _local bitops
+Date: Fri, 11 May 2012 09:02:34 +1000
+Message-ID: <1336690954.3881.66.camel@pasglop>
+References: <20120509134528.GA18044@redhat.com>
+	 <20120509121940.459e93ba.akpm@linux-foundation.org>
+	 <20120509200735.GA22743@redhat.com> <4FAACF1C.2060504@zytor.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20120509162819.GA21328@redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Michael S. Tsirkin" <mst@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Rob Landley <rob@landley.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, Akinobu Mita <akinobu.mita@gmail.com>, Alexey Dobriyan <adobriyan@gmail.com>, Herbert Xu <herbert@gondor.hengli.com.au>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Avi Kivity <avi@redhat.com>, Marcelo Tosatti <mtosatti@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:52425 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932800Ab2EJXDK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 May 2012 19:03:10 -0400
+In-Reply-To: <4FAACF1C.2060504@zytor.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: "Michael S. Tsirkin" <mst@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Rob Landley <rob@landley.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, David Howells <dhowells@redhat.com>, Akinobu Mita <akinobu.mita@gmail.com>, Alexey Dobriyan <adobriyan@gmail.com>, Herbert Xu <herbert@gondor.hengli.com.au>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Avi Kivity <avi@redhat.com>, Marcelo Tosatti <mtosatti@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Wed, 9 May 2012, Michael S. Tsirkin wrote:
+On Wed, 2012-05-09 at 13:10 -0700, H. Peter Anvin wrote:
+> On 05/09/2012 01:07 PM, Michael S. Tsirkin wrote:
+> > 
+> > In practice ATM any of the above will work. We probably don't even need
+> > to add barrier() calls since what we do afterwards is apic access which
+> > has an optimization barrier anyway.  But I'm fine with adding them in
+> > there just in case if that's what people want.
+> > 
+> 
+> If you have the optimization barrier anyway, then I'd be fine with you
+> just using __test_and_clear_bit() and add to a comment in
+> arch/x86/include/asm/bitops.h that KVM needs it to be locally atomic.
+> 
+> 	
+What is it used for ? IE. Is this strictly a requirement of x86 KVM ?
 
-> kvm needs to update some hypervisor variables atomically
-> in a sense that the operation can't be interrupted
-> in the middle. However the hypervisor always runs
-> on the same CPU so it does not need any memory
-> barrier or lock prefix.
->
-> Add _local bitops for this purpose: define them
-> as non-atomics for x86 and (for now) atomics for
-> everyone else.
-
-Have you tried to use the this_cpu_ops for that purpose? They create the
-per cpu atomic instructions that you want without a lock prefix and can
-also relocate the per cpu pointer to the correct processor via a
-segment register prefix.
-
-There are no bit operations provided right now but those can either be
-improvised using this_cpu_cmpxchg or added.
+Cheers,
+Ben.
