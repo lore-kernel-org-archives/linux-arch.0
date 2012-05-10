@@ -1,37 +1,159 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH] compat: Fix RT signal mask corruption via sigprocmask
-Date: Wed, 9 May 2012 17:00:16 -0700
-Message-ID: <CA+55aFz-z6F=ynvTZp2xrSyq+Ar7huT92_S9e8Wuxepyppq5ZQ@mail.gmail.com>
-References: <4FAAEB37.1080001@siemens.com>
+From: Vladimir Murzin <murzin.v@gmail.com>
+Subject: Re: [PATCH 0/6] get rid of extra check for TASK_SIZE in
+ get_unmapped_area
+Date: Thu, 10 May 2012 07:01:46 +0400
+Message-ID: <20120510030136.GA2665@pinguin>
+References: <1336488022-3723-1-git-send-email-murzin.v@gmail.com>
+ <20120509162657.GC10241@n2100.arm.linux.org.uk>
+ <20120509175557.GA2823@pinguin>
+ <20120509180701.GE10241@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=koi8-r
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f172.google.com ([209.85.212.172]:50328 "EHLO
-	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760488Ab2EJAAi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2012 20:00:38 -0400
-In-Reply-To: <4FAAEB37.1080001@siemens.com>
+Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:45476 "EHLO
+	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753271Ab2EJDEL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 May 2012 23:04:11 -0400
+Received: by lahd3 with SMTP id d3so734238lah.19
+        for <linux-arch@vger.kernel.org>; Wed, 09 May 2012 20:04:09 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <20120509180701.GE10241@n2100.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jan Kiszka <jan.kiszka@siemens.com>
-Cc: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Ingo Molnar <mingo@elte.hu>, Thomas Gleixner <tglx@linutronix.de>, "H. Peter Anvin" <hpa@zytor.com>, Andrew Morton <akpm@linux-foundation.org>, Michael Tokarev <mjt@tls.msk.ru>, Anthony Liguori <aliguori@us.ibm.com>, Kevin Wolf <kwolf@redhat.com>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, tglx@linutronix.de, davem@davemloft.net, lethal@linux-sh.org
 
-On Wed, May 9, 2012 at 3:09 PM, Jan Kiszka <jan.kiszka@siemens.com> wrote:
-> compat_sys_sigprocmask reads a smaller signal mask from userspace than
-> sigprogmask accepts for setting. So the high word of blocked.sig[0] will
-> be cleared, releasing any potentially blocked RT signal.
+On Wed, May 09, 2012 at 07:07:01PM +0100, Russell King - ARM Linux wrote:
+> On Wed, May 09, 2012 at 09:56:03PM +0400, Vladimir Murzin wrote:
+> > On Wed, May 09, 2012 at 05:26:57PM +0100, Russell King - ARM Linux wrote:
+> > > On Tue, May 08, 2012 at 06:40:16PM +0400, Vladimir Murzin wrote:
+> > > > From: Vladimir Murzin <murzin.v@gmail>
+> > > > 
+> > > > The current get_unmapped_area code calls the f_ops->get_unmapped_area or
+> > > > the arch's one (via the mm) only when check for TASK_SIZE is passed. However,
+> > > > generic code and some arches do the same check in their a_g_u_a implementation.
+> > > > 
+> > > > This series of patches fix the check order for TASK_SIZE in archs'
+> > > > get_unmapped_area() implementations, and then removes extra check in
+> > > > high-level get_unmapped_area().
+> > > 
+> > > Do we even need this check in arch code?  AFAICS it's already checked in
+> > > get_unmapped_area(), and this will be called prior to any
+> > > arch_get_unmapped_area() implementation.  Given that this is a potential
+> > > security issue, please check my analysis of this.
+> > > 
+> > > unsigned long
+> > > get_unmapped_area(struct file *file, unsigned long addr, unsigned long len,
+> > > 		unsigned long pgoff, unsigned long flags)
+> > > {
+> > > 	...
+> > > 	/* Careful about overflows.. */
+> > > 	if (len > TASK_SIZE)
+> > > 		return -ENOMEM;
+> > > 
+> > > 	get_area = current->mm->get_unmapped_area;
+> > > 	if (file && file->f_op && file->f_op->get_unmapped_area)
+> > > 		get_area = file->f_op->get_unmapped_area;
+> > 
+> > Thanks for analysis.
+> > 
+> > Most of arches do checking for (len > TASK_SIZE) in their a_g_u_a or in
+> > generic one. However, mips, alpha, sparc and ia64 at least do this
+> > checking in a slightly different way.
+> 
+> I think you missed what I said above.  I think get_unmapped_area() gets
+> called, which _then_ calls into arch_get_unmapped_area() or some alternative
+> replacement.  I also think that nothing other than get_unmapped_area()
+> ultimately calls through to arch_get_unmapped_area().
+> 
+> So if get_unmapped_area() is doing:
+> 
+> 	/* Careful about overflows.. */
+> 	if (len > TASK_SIZE)
+> 		return -ENOMEM;
+> 
+> _before_ it passes control to arch_get_unmapped_area(), is there any point
+> arch_get_unmapped_area() duplicating this exact same check?
+> 
+> Can't we just delete all these duplicate checks in arch_get_unmapped_area()
+> and be done with it, because...
+> 
+> > So, for arches which use generic implementation or have no any special
+> > case
+> > 
+> >  	/* Careful about overflows.. */
+> > 	if (len > TASK_SIZE)
+> >  		return -ENOMEM;
+> >  
+> >  	get_area = current->mm->get_unmapped_area;
+> > 
+> > is expanded into
+> > 
+> >  	/* Careful about overflows.. */
+> > 	if (len > TASK_SIZE)
+> >  		return -ENOMEM;
+> >  
+> >  	/* there is arch_get_unmapped_area started */
+> > 
+> > 	if (len > TASK_SIZE)
+> >  		return -ENOMEM;
+> > 
+> >  	/* other stuff in arch_get_unmapped_area */
+> 
+> ... having that second check there is pointless.
+> 
+> > On the other hand, for arches which have to handle special case for
+> > length checking test for (len > TASK_SIZE) has no sense.
+> > 
+> > To avoid security issue checking for length should be done
+> > first. Unfortunately, not all arches follow this rule and test in
+> > get_unmapped_area() doesn't cover some cases.
+> 
+> But does it matter?  get_unmapped_area() has already checked 'len' and
+> would have failed if this was larger than TASK_SIZE already.
+> 
+> > For instanse, sparc32 do checking like
+> > 
+> > unsigned long arch_get_unmapped_area(struct file *filp, unsigned long
+> >  addr, unsigned long len, unsigned long pgoff, unsigned long flags)
+> > {
+> >         struct vm_area_struct * vmm;
+> > 
+> >         if (flags & MAP_FIXED) {
+> >                 /* We do not accept a shared mapping if it would violate
+> >                  * cache aliasing constraints.
+> >                  */
+> >                 if ((flags & MAP_SHARED) &&
+> >                     ((addr - (pgoff << PAGE_SHIFT)) & (SHMLBA - 1)))
+> >                         return -EINVAL;
+> >                 return addr;
+> >         }
+> > 
+> >         /* See asm-sparc/uaccess.h */
+> >         if (len > TASK_SIZE - PAGE_SIZE)
+> >                 return -ENOMEM;
+> 
+> Where an arch does a different check (eg, and it is a smaller size) then
+> yes, there could be a problem.
+> 
+> But for all those which duplicate the:
+> 
+> 	if (len > TASK_SIZE)
+> 		return -ENOMEM;
+> 
+> check, it seems totally pointless to have that code in the arch function,
+> and I think we should be deleting that from the arch functions.
 
-I see what you're trying to do, but I think your patch is wrong.
+I was thinking about your suggestion. We are speaking about the same
+problem but different solutions. Let me summarize shortly why I came
+up with current solution:
+   * leaving check in arches make them isolated, so
+     mm->get_unmapped_area could be called safely anywhere (currently it
+     is done in hugetlb and get_fb_unmapped_area stuff)
+   * we have no any extra (pointless?) checks for arches which has
+     stricter test for length
+   * we have no any duplicating checks for arches which follows generic
+     implementation for get_ynmapped_area
 
-It may work for SIG_BLOCK and SIG_SETMASK to use the current blocked
-bits in the high bits, but I'm pretty sure it doesn't work at all for
-SIG_UNBLOCK.
-
-I suspect that compat_sys_sigprocmask() should simply be rewritten to
-*not* use sys_sigprocmask() at all, but simply open-code the three
-cases directly. IOW, copy the code from sys_sigprocmask(), and modify
-it for an incoming/outgoing compat_old_sigset_t.
-
-Hmm?
-
-                    Linus
+Best wishes
+Vladimir Murzin
