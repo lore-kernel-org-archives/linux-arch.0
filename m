@@ -1,94 +1,54 @@
-From: Paul Gortmaker <paul.gortmaker@windriver.com>
-Subject: Re: [PATCHv9 10/10] ARM: dma-mapping: add support for IOMMU mapper
-Date: Thu, 10 May 2012 22:08:39 -0400
-Message-ID: <CAP=VYLr=NeGvppR4ONpnRh=gjCSPdKxYj1HYh_FvadAeUzcbBQ@mail.gmail.com>
-References: <1334756652-30830-1-git-send-email-m.szyprowski@samsung.com> <1334756652-30830-11-git-send-email-m.szyprowski@samsung.com>
+From: Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
+Subject: RE: [PATCHv9 10/10] ARM: dma-mapping: add support for IOMMU mapper
+Date: Fri, 11 May 2012 09:52:53 +0200
+Message-ID: <02e301cd2f4b$11e02f90$35a08eb0$%szyprowski@samsung.com>
+References: <1334756652-30830-1-git-send-email-m.szyprowski@samsung.com>
+	<1334756652-30830-11-git-send-email-m.szyprowski@samsung.com>
+	<CAP=VYLr=NeGvppR4ONpnRh=gjCSPdKxYj1HYh_FvadAeUzcbBQ@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1334756652-30830-11-git-send-email-m.szyprowski@samsung.com>
-Sender: owner-linux-mm@kvack.org
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Hiroshi Doyu <hdoyu@nvidia.com>, Subash Patel <subashrp@gmail.com>, linux-next@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-reply-to: <CAP=VYLr=NeGvppR4ONpnRh=gjCSPdKxYj1HYh_FvadAeUzcbBQ-JsoAwUIsXosN+BqQ9rBEUg@public.gmane.org>
+Content-language: pl
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: 'Paul Gortmaker' <paul.gortmaker-CWA4WttNNZF54TAoqtyWWQ@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, 'Russell King - ARM Linux' <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, 'Arnd Bergmann' <arnd-r2nGTMty4D4@public.gmane.org>, 'Benjamin Herrenschmidt' <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, 'Kyungmin Park' <kyungmin.park-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, 'Subash Patel' <subashrp-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org, linux-next-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, 'Krishna Reddy' <vdumpa-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, Andrzej Pietrasiewicz <andrzej.p-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, 'KyongHo Cho' <pullip.cho-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, 'Chunsang Jeong' <chunsang.jeong-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, Apr 18, 2012 at 9:44 AM, Marek Szyprowski
-<m.szyprowski@samsung.com> wrote:
-> This patch add a complete implementation of DMA-mapping API for
-> devices which have IOMMU support.
+Hello,
 
-Hi Marek,
+On Friday, May 11, 2012 4:09 AM Paul Gortmaker wrote:
 
-It looks like this patch breaks no-MMU builds on ARM, at least
-according to git bisect.  Here is a link to a linux-next failure:
+> On Wed, Apr 18, 2012 at 9:44 AM, Marek Szyprowski
+> <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org> wrote:
+> > This patch add a complete implementation of DMA-mapping API for
+> > devices which have IOMMU support.
+> 
+> Hi Marek,
+> 
+> It looks like this patch breaks no-MMU builds on ARM, at least
+> according to git bisect.  Here is a link to a linux-next failure:
+> 
+> http://kisskb.ellerman.id.au/kisskb/buildresult/6291233/
+> 
+> arch/arm/mm/dma-mapping.c:726:42: error: 'pgprot_kernel' undeclared
+> (first use in this function)
+> make[2]: *** [arch/arm/mm/dma-mapping.o] Error 1
+> 
+> Please have a look, thanks.
 
-http://kisskb.ellerman.id.au/kisskb/buildresult/6291233/
+Thanks for reporting this issue, I will send a fix in a minute.
 
-arch/arm/mm/dma-mapping.c:726:42: error: 'pgprot_kernel' undeclared
-(first use in this function)
-make[2]: *** [arch/arm/mm/dma-mapping.o] Error 1
-
-Please have a look, thanks.
-
-Paul.
----
-
-
->
-> This implementation tries to optimize dma address space usage by remappin=
-g
-> all possible physical memory chunks into a single dma address space chunk=
-.
->
-> DMA address space is managed on top of the bitmap stored in the
-> dma_iommu_mapping structure stored in device->archdata. Platform setup
-> code has to initialize parameters of the dma address space (base address,
-> size, allocation precision order) with arm_iommu_create_mapping()
-> function.
-> To reduce the size of the bitmap, all allocations are aligned to the
-> specified order of base 4 KiB pages.
->
-> dma_alloc_* functions allocate physical memory in chunks, each with
-> alloc_pages() function to avoid failing if the physical memory gets
-> fragmented. In worst case the allocated buffer is composed of 4 KiB page
-> chunks.
->
-> dma_map_sg() function minimizes the total number of dma address space
-> chunks by merging of physical memory chunks into one larger dma address
-> space chunk. If requested chunk (scatter list entry) boundaries
-> match physical page boundaries, most calls to dma_map_sg() requests will
-> result in creating only one chunk in dma address space.
->
-> dma_map_page() simply creates a mapping for the given page(s) in the dma
-> address space.
->
-> All dma functions also perform required cache operation like their
-> counterparts from the arm linear physical memory mapping version.
->
-> This patch contains code and fixes kindly provided by:
-> - Krishna Reddy <vdumpa@nvidia.com>,
-> - Andrzej Pietrasiewicz <andrzej.p@samsung.com>,
-> - Hiroshi DOYU <hdoyu@nvidia.com>
->
-> Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
-> Acked-by: Kyungmin Park <kyungmin.park@samsung.com>
-> Reviewed-by: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-> Tested-By: Subash Patel <subash.ramaswamy@linaro.org>
-> ---
-> =A0arch/arm/Kconfig =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 | =A0 =A08 +
-> =A0arch/arm/include/asm/device.h =A0 =A0| =A0 =A03 +
-> =A0arch/arm/include/asm/dma-iommu.h | =A0 34 ++
-> =A0arch/arm/mm/dma-mapping.c =A0 =A0 =A0 =A0| =A0727
-> +++++++++++++++++++++++++++++++++++++-
-> =A0arch/arm/mm/vmregion.h =A0 =A0 =A0 =A0 =A0 | =A0 =A02 +-
-> =A05 files changed, 759 insertions(+), 15 deletions(-)
-> =A0create mode 100644 arch/arm/include/asm/dma-iommu.h
->
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Best regards
+-- 
+Marek Szyprowski
+Samsung Poland R&D Center
