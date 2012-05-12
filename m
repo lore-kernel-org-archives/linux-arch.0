@@ -1,61 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gerard.telenet-ops.be ([195.130.132.48]:50581 "EHLO
-	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756018Ab2ELUjR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 12 May 2012 16:39:17 -0400
+Received: from georges.telenet-ops.be ([195.130.137.68]:48262 "EHLO
+	georges.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756239Ab2ELUjX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 12 May 2012 16:39:23 -0400
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 1/4] [-next] Makefile: Do not call cc-option before including the arch's Makefile
-Date: Sat, 12 May 2012 22:39:05 +0200
-Message-ID: <1336855148-18817-1-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 4/4] xtensa: Setup CROSS_COMPILE at the top
+Date: Sat, 12 May 2012 22:39:08 +0200
+Message-ID: <1336855148-18817-4-git-send-email-geert@linux-m68k.org>
+In-Reply-To: <1336855148-18817-1-git-send-email-geert@linux-m68k.org>
+References: <1336855148-18817-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Andi Kleen <ak@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Michal Marek <mmarek@suse.cz>, linux-kbuild@vger.kernel.org
-Message-ID: <20120512203905.fQ48NkKnO7Rvo7y4Pk3xMaMfSu7RmbAgqhwXDGa2vl0@z>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Chris Zankel <chris@zankel.net>
+Message-ID: <20120512203908.Ga18nx9VT5MoeIxttC5F0i46F94iRDxl1aBnGxyrUys@z>
 
-On architectures that setup CROSS_COMPILE in their arch/*/Makefile
-(blackfin, h8300, m68k, mips, parisc, score, sh, tile, unicore32, xtensa),
-cc-option may check against the wrong compiler, causing errors like
-
-cc1: error: unrecognized command line option "-fno-ipa-cp-clone"
-
-if the host gcc supports -fno-ipa-cp-clone, while the cross compiler
-doesn't support that option.
-
-Move the CONFIG_READABLE_ASM section below the inclusion of the arch's
-Makefile to fix this.
+CROSS_COMPILE must be setup before using e.g. cc-option (and a few other
+as-*, cc-*, ld-* macros), else they will check against the wrong compiler
+when cross-compiling, and may invoke the cross compiler with wrong or
+suboptimal compiler options.
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Andi Kleen <ak@linux.intel.com>
-Cc: H. Peter Anvin <hpa@zytor.com>
-Cc: Michal Marek <mmarek@suse.cz>
-Cc: linux-kbuild@vger.kernel.org
+Cc: Chris Zankel <chris@zankel.net>
 ---
- Makefile |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ arch/xtensa/Makefile |   24 ++++++++++++------------
+ 1 files changed, 12 insertions(+), 12 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index d17a616..77355ba 100644
---- a/Makefile
-+++ b/Makefile
-@@ -561,6 +561,8 @@ else
- KBUILD_CFLAGS	+= -O2
- endif
+diff --git a/arch/xtensa/Makefile b/arch/xtensa/Makefile
+index 7608559..d41f9ed 100644
+--- a/arch/xtensa/Makefile
++++ b/arch/xtensa/Makefile
+@@ -21,6 +21,18 @@ variant-$(CONFIG_XTENSA_VARIANT_LINUX_CUSTOM)	:= custom
+ VARIANT = $(variant-y)
+ export VARIANT
  
-+include $(srctree)/arch/$(SRCARCH)/Makefile
++# Test for cross compiling
 +
- ifdef CONFIG_READABLE_ASM
- # Disable optimizations that make assembler listings hard to read.
- # reorder blocks reorders the control in the function
-@@ -571,8 +573,6 @@ KBUILD_CFLAGS += $(call cc-option,-fno-reorder-blocks,) \
-                  $(call cc-option,-fno-partial-inlining)
- endif
++ifneq ($(VARIANT),)
++  COMPILE_ARCH = $(shell uname -m)
++
++  ifneq ($(COMPILE_ARCH), xtensa)
++    ifndef CROSS_COMPILE
++      CROSS_COMPILE = xtensa_$(VARIANT)-
++    endif
++  endif
++endif
++
+ # Platform configuration
  
--include $(srctree)/arch/$(SRCARCH)/Makefile
+ platform-$(CONFIG_XTENSA_PLATFORM_XT2000)	:= xt2000
+@@ -54,18 +66,6 @@ KBUILD_DEFCONFIG := iss_defconfig
+ 
+ core-$(CONFIG_EMBEDDED_RAMDISK)	+= arch/xtensa/boot/ramdisk/
+ 
+-# Test for cross compiling
 -
- ifneq ($(CONFIG_FRAME_WARN),0)
- KBUILD_CFLAGS += $(call cc-option,-Wframe-larger-than=${CONFIG_FRAME_WARN})
- endif
+-ifneq ($(VARIANT),)
+-  COMPILE_ARCH = $(shell uname -m)
+-
+-  ifneq ($(COMPILE_ARCH), xtensa)
+-    ifndef CROSS_COMPILE
+-      CROSS_COMPILE = xtensa_$(VARIANT)-
+-    endif
+-  endif
+-endif
+-
+ # Only build variant and/or platform if it includes a Makefile
+ 
+ buildvar := $(shell test -a $(srctree)/arch/xtensa/variants/$(VARIANT)/Makefile && echo arch/xtensa/variants/$(VARIANT)/)
 -- 
 1.7.0.4
 
