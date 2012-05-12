@@ -1,35 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pz0-f46.google.com ([209.85.210.46]:36844 "EHLO
-	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1761340Ab2ELAJA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 May 2012 20:09:00 -0400
-Received: by dady13 with SMTP id y13so3683593dad.19
-        for <linux-arch@vger.kernel.org>; Fri, 11 May 2012 17:08:59 -0700 (PDT)
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [PATCH] gpiolib/arches: Centralise bolierplate asm/gpio.h
-In-Reply-To: <20120416081532.GA3238@opensource.wolfsonmicro.com>
-References: <1334483574-3997-1-git-send-email-broonie@opensource.wolfsonmicro.com> <CACRpkdZ8yH1ZSG-nQ9dLm0TipHS-jZDuxwqohUC=LGH9V-5q4w@mail.gmail.com> <20120416081532.GA3238@opensource.wolfsonmicro.com>
-Date: Fri, 11 May 2012 18:08:53 -0600
-Message-ID: <20120512000853.A96353E0791@localhost>
+Received: from gerard.telenet-ops.be ([195.130.132.48]:50581 "EHLO
+	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756018Ab2ELUjR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 12 May 2012 16:39:17 -0400
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: [PATCH 1/4] [-next] Makefile: Do not call cc-option before including the arch's Makefile
+Date: Sat, 12 May 2012 22:39:05 +0200
+Message-ID: <1336855148-18817-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@opensource.wolfsonmicro.com>, Linus Walleij <linus.walleij@linaro.org>
-Cc: Grant Likely <grant@secretlab.ca>, Linus Walleij <linus.walleij@stericsson.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-alpha@vger.kernel.org, linux-ia64@vger.kernel.org, microblaze-uclinux@itee.uq.edu.au, linux@lists.openrisc.net, "linuxppc-dev@lists.ozlabs.org list" <linuxppc-dev@lists.ozlabs.org>, sparclinux@vger.kernel.org, Chris Zankel <chris@zankel.net>
-Message-ID: <20120512000853.i5369RTPdBtc2h_DV8_6OXLHi9ybcIU0MxPa8ZGFQBs@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Andi Kleen <ak@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, Michal Marek <mmarek@suse.cz>, linux-kbuild@vger.kernel.org
+Message-ID: <20120512203905.fQ48NkKnO7Rvo7y4Pk3xMaMfSu7RmbAgqhwXDGa2vl0@z>
 
-On Mon, 16 Apr 2012 09:15:32 +0100, Mark Brown <broonie@opensource.wolfsonmicro.com> wrote:
-> On Mon, Apr 16, 2012 at 09:21:58AM +0200, Linus Walleij wrote:
-> 
-> > This looks good but I think we need to page the alpha, ia64, m68k, microblaze,
-> > openrisc etc subarch maintainers on this patch so they have their say.
-> 
-> That's why I CCed linux-arch, to get all the architecture maintainers
-> included.  vger would get upset if I CCed everyone individually.
+On architectures that setup CROSS_COMPILE in their arch/*/Makefile
+(blackfin, h8300, m68k, mips, parisc, score, sh, tile, unicore32, xtensa),
+cc-option may check against the wrong compiler, causing errors like
 
-Meh; it's been long enough.  I'll build the major ones and then throw it into linux-next.
+cc1: error: unrecognized command line option "-fno-ipa-cp-clone"
 
-g.
+if the host gcc supports -fno-ipa-cp-clone, while the cross compiler
+doesn't support that option.
 
+Move the CONFIG_READABLE_ASM section below the inclusion of the arch's
+Makefile to fix this.
+
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Andi Kleen <ak@linux.intel.com>
+Cc: H. Peter Anvin <hpa@zytor.com>
+Cc: Michal Marek <mmarek@suse.cz>
+Cc: linux-kbuild@vger.kernel.org
+---
+ Makefile |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index d17a616..77355ba 100644
+--- a/Makefile
++++ b/Makefile
+@@ -561,6 +561,8 @@ else
+ KBUILD_CFLAGS	+= -O2
+ endif
+ 
++include $(srctree)/arch/$(SRCARCH)/Makefile
++
+ ifdef CONFIG_READABLE_ASM
+ # Disable optimizations that make assembler listings hard to read.
+ # reorder blocks reorders the control in the function
+@@ -571,8 +573,6 @@ KBUILD_CFLAGS += $(call cc-option,-fno-reorder-blocks,) \
+                  $(call cc-option,-fno-partial-inlining)
+ endif
+ 
+-include $(srctree)/arch/$(SRCARCH)/Makefile
+-
+ ifneq ($(CONFIG_FRAME_WARN),0)
+ KBUILD_CFLAGS += $(call cc-option,-Wframe-larger-than=${CONFIG_FRAME_WARN})
+ endif
 -- 
-Grant Likely, B.Sc, P.Eng.
-Secret Lab Technologies, Ltd.
+1.7.0.4
+
