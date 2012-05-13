@@ -1,74 +1,43 @@
-From: Greg Ungerer <gerg@snapgear.com>
-Subject: Re: [PATCH 2/4] m68k: Setup CROSS_COMPILE at the top
-Date: Sun, 13 May 2012 21:38:39 +1000
-Message-ID: <4FAF9D3F.4010804@snapgear.com>
-References: <1336855148-18817-1-git-send-email-geert@linux-m68k.org> <1336855148-18817-2-git-send-email-geert@linux-m68k.org>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Do we use runtime patching of function calls somewhere?
+Date: Sun, 13 May 2012 14:16:00 +0200
+Message-ID: <20120513121600.GA15708@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1336855148-18817-2-git-send-email-geert@linux-m68k.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Greg Ungerer <gerg@uclinux.org>, linux-m68k@lists.linux-m68k.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp.snhosting.dk ([87.238.248.203]:46247 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751421Ab2EMMQB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 13 May 2012 08:16:01 -0400
+Content-Disposition: inline
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux arch <linux-arch@vger.kernel.org>
+Cc: "David S. Miller" <davem@davemloft.net>
 
-On 05/13/2012 06:39 AM, Geert Uytterhoeven wrote:
-> CROSS_COMPILE must be setup before using e.g. cc-option (and a few other
-> as-*, cc-*, ld-* macros), else they will check against the wrong compiler
-> when cross-compiling, and may invoke the cross compiler with wrong or
-> suboptimal compiler options.
->
-> Signed-off-by: Geert Uytterhoeven<geert@linux-m68k.org>
-> Cc: Greg Ungerer<gerg@uclinux.org>
+Do we have any archs that does runtime patching of function calls?
 
-Acked-by: Greg Ungerer<gerg@uclinux.org>
+On sparc32 we have infrastructure to do so but this
+requires an additional step after the final link
+that I like to get rid of.
 
-Regards
-Greg
+Basically what is required is to locate all
+call-sites that for example call:
 
+     cache_flush_all();
 
-> Cc: linux-m68k@lists.linux-m68k.org
-> ---
->   arch/m68k/Makefile |   13 +++++++------
->   1 files changed, 7 insertions(+), 6 deletions(-)
->
-> diff --git a/arch/m68k/Makefile b/arch/m68k/Makefile
-> index 804f139..b7f2e2d 100644
-> --- a/arch/m68k/Makefile
-> +++ b/arch/m68k/Makefile
-> @@ -16,6 +16,13 @@
->
->   KBUILD_DEFCONFIG := multi_defconfig
->
-> +ifneq ($(SUBARCH),$(ARCH))
-> +	ifeq ($(CROSS_COMPILE),)
-> +		CROSS_COMPILE := $(call cc-cross-prefix, \
-> +			m68k-linux-gnu- m68k-linux- m68k-unknown-linux-gnu-)
-> +	endif
-> +endif
-> +
->   #
->   #	Enable processor type. Ordering of these is important - we want to
->   #	use the minimum processor type of the range we support. The logic
-> @@ -62,12 +69,6 @@ endif
->
->   LDFLAGS := -m m68kelf
->   KBUILD_LDFLAGS_MODULE += -T $(srctree)/arch/m68k/kernel/module.lds
-> -ifneq ($(SUBARCH),$(ARCH))
-> -	ifeq ($(CROSS_COMPILE),)
-> -		CROSS_COMPILE := $(call cc-cross-prefix, \
-> -			m68k-linux-gnu- m68k-linux- m68k-unknown-linux-gnu-)
-> -	endif
-> -endif
->
->   ifdef CONFIG_SUN3
->   LDFLAGS_vmlinux = -N
+and replace this with a
 
+    srmmu_cache_flush_all();
 
--- 
-------------------------------------------------------------------------
-Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.com
-SnapGear Group, McAfee                      PHONE:       +61 7 3435 2888
-8 Gardner Close,                            FAX:         +61 7 3891 3630
-Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.com
+sparc32 has ~30 calls that is eligble for runtime patching.
+sparc-next has seen some nice cleanup in this area,
+so your regular kernel has much more.
+
+We know early on the what to patch with as the only
+paramters involved are platform and MMU type.
+
+I could try to come up with something myself - but if we already
+have it somewhere maybe there is something to be inspired by.
+
+	Sam
