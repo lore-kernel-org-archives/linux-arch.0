@@ -1,67 +1,38 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 4/4] xtensa: Setup CROSS_COMPILE at the top
-Date: Sat, 12 May 2012 22:39:08 +0200
-Message-ID: <1336855148-18817-4-git-send-email-geert@linux-m68k.org>
+From: Andi Kleen <ak@linux.intel.com>
+Subject: Re: [PATCH 1/4] [-next] Makefile: Do not call cc-option before
+ including the arch's Makefile
+Date: Sat, 12 May 2012 18:01:08 -0700
+Message-ID: <20120513010108.GD27196@tassilo.jf.intel.com>
 References: <1336855148-18817-1-git-send-email-geert@linux-m68k.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga01.intel.com ([192.55.52.88]:45571 "EHLO mga01.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1756544Ab2EMBBJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 12 May 2012 21:01:09 -0400
+Content-Disposition: inline
 In-Reply-To: <1336855148-18817-1-git-send-email-geert@linux-m68k.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Chris Zankel <chris@zankel.net>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Michal Marek <mmarek@suse.cz>, linux-kbuild@vger.kernel.org
 
-CROSS_COMPILE must be setup before using e.g. cc-option (and a few other
-as-*, cc-*, ld-* macros), else they will check against the wrong compiler
-when cross-compiling, and may invoke the cross compiler with wrong or
-suboptimal compiler options.
+On Sat, May 12, 2012 at 10:39:05PM +0200, Geert Uytterhoeven wrote:
+> On architectures that setup CROSS_COMPILE in their arch/*/Makefile
+> (blackfin, h8300, m68k, mips, parisc, score, sh, tile, unicore32, xtensa),
+> cc-option may check against the wrong compiler, causing errors like
+> 
+> cc1: error: unrecognized command line option "-fno-ipa-cp-clone"
+> 
+> if the host gcc supports -fno-ipa-cp-clone, while the cross compiler
+> doesn't support that option.
+> 
+> Move the CONFIG_READABLE_ASM section below the inclusion of the arch's
+> Makefile to fix this.
 
-Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Chris Zankel <chris@zankel.net>
----
- arch/xtensa/Makefile |   24 ++++++++++++------------
- 1 files changed, 12 insertions(+), 12 deletions(-)
+Thanks Geert for tracking that down.
 
-diff --git a/arch/xtensa/Makefile b/arch/xtensa/Makefile
-index 7608559..d41f9ed 100644
---- a/arch/xtensa/Makefile
-+++ b/arch/xtensa/Makefile
-@@ -21,6 +21,18 @@ variant-$(CONFIG_XTENSA_VARIANT_LINUX_CUSTOM)	:= custom
- VARIANT = $(variant-y)
- export VARIANT
- 
-+# Test for cross compiling
-+
-+ifneq ($(VARIANT),)
-+  COMPILE_ARCH = $(shell uname -m)
-+
-+  ifneq ($(COMPILE_ARCH), xtensa)
-+    ifndef CROSS_COMPILE
-+      CROSS_COMPILE = xtensa_$(VARIANT)-
-+    endif
-+  endif
-+endif
-+
- # Platform configuration
- 
- platform-$(CONFIG_XTENSA_PLATFORM_XT2000)	:= xt2000
-@@ -54,18 +66,6 @@ KBUILD_DEFCONFIG := iss_defconfig
- 
- core-$(CONFIG_EMBEDDED_RAMDISK)	+= arch/xtensa/boot/ramdisk/
- 
--# Test for cross compiling
--
--ifneq ($(VARIANT),)
--  COMPILE_ARCH = $(shell uname -m)
--
--  ifneq ($(COMPILE_ARCH), xtensa)
--    ifndef CROSS_COMPILE
--      CROSS_COMPILE = xtensa_$(VARIANT)-
--    endif
--  endif
--endif
--
- # Only build variant and/or platform if it includes a Makefile
- 
- buildvar := $(shell test -a $(srctree)/arch/xtensa/variants/$(VARIANT)/Makefile && echo arch/xtensa/variants/$(VARIANT)/)
--- 
-1.7.0.4
+Michael, are the patches already in the queue or should I resubmit them?
+
+-Andi
