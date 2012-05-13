@@ -1,38 +1,47 @@
-From: Andi Kleen <ak@linux.intel.com>
-Subject: Re: [PATCH 1/4] [-next] Makefile: Do not call cc-option before
- including the arch's Makefile
-Date: Sat, 12 May 2012 18:01:08 -0700
-Message-ID: <20120513010108.GD27196@tassilo.jf.intel.com>
-References: <1336855148-18817-1-git-send-email-geert@linux-m68k.org>
+From: Avi Kivity <avi@redhat.com>
+Subject: Re: [PATCHv2] bitops: add _local bitops
+Date: Sun, 13 May 2012 13:13:21 +0300
+Message-ID: <4FAF8941.2010308@redhat.com>
+References: <20120509162819.GA21328@redhat.com> <alpine.DEB.2.00.1205101401010.18664@router.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:45571 "EHLO mga01.intel.com"
+Received: from mx1.redhat.com ([209.132.183.28]:47724 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756544Ab2EMBBJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 12 May 2012 21:01:09 -0400
-Content-Disposition: inline
-In-Reply-To: <1336855148-18817-1-git-send-email-geert@linux-m68k.org>
+	id S1751722Ab2EMKNv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 13 May 2012 06:13:51 -0400
+In-Reply-To: <alpine.DEB.2.00.1205101401010.18664@router.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, Michal Marek <mmarek@suse.cz>, linux-kbuild@vger.kernel.org
+To: Christoph Lameter <cl@linux.com>
+Cc: "Michael S. Tsirkin" <mst@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Rob Landley <rob@landley.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, Akinobu Mita <akinobu.mita@gmail.com>, Alexey Dobriyan <adobriyan@gmail.com>, Herbert Xu <herbert@gondor.hengli.com.au>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Marcelo Tosatti <mtosatti@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Sat, May 12, 2012 at 10:39:05PM +0200, Geert Uytterhoeven wrote:
-> On architectures that setup CROSS_COMPILE in their arch/*/Makefile
-> (blackfin, h8300, m68k, mips, parisc, score, sh, tile, unicore32, xtensa),
-> cc-option may check against the wrong compiler, causing errors like
-> 
-> cc1: error: unrecognized command line option "-fno-ipa-cp-clone"
-> 
-> if the host gcc supports -fno-ipa-cp-clone, while the cross compiler
-> doesn't support that option.
-> 
-> Move the CONFIG_READABLE_ASM section below the inclusion of the arch's
-> Makefile to fix this.
+On 05/10/2012 10:04 PM, Christoph Lameter wrote:
+> On Wed, 9 May 2012, Michael S. Tsirkin wrote:
+>
+> > kvm needs to update some hypervisor variables atomically
+> > in a sense that the operation can't be interrupted
+> > in the middle. However the hypervisor always runs
+> > on the same CPU so it does not need any memory
+> > barrier or lock prefix.
+> >
+> > Add _local bitops for this purpose: define them
+> > as non-atomics for x86 and (for now) atomics for
+> > everyone else.
+>
+> Have you tried to use the this_cpu_ops for that purpose? They create the
+> per cpu atomic instructions that you want without a lock prefix and can
+> also relocate the per cpu pointer to the correct processor via a
+> segment register prefix.
+>
+> There are no bit operations provided right now but those can either be
+> improvised using this_cpu_cmpxchg or added.
 
-Thanks Geert for tracking that down.
+this_cpu_xchg() should be sufficient, since only bit zero has any
+meaning in our use case (so xchg with zero is equivalent to
+test_and_clear_bit).
 
-Michael, are the patches already in the queue or should I resubmit them?
 
--Andi
+-- 
+error compiling committee.c: too many arguments to function
