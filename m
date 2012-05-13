@@ -1,73 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from georges.telenet-ops.be ([195.130.137.68]:48262 "EHLO
-	georges.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756239Ab2ELUjX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 12 May 2012 16:39:23 -0400
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 4/4] xtensa: Setup CROSS_COMPILE at the top
-Date: Sat, 12 May 2012 22:39:08 +0200
-Message-ID: <1336855148-18817-4-git-send-email-geert@linux-m68k.org>
-In-Reply-To: <1336855148-18817-1-git-send-email-geert@linux-m68k.org>
-References: <1336855148-18817-1-git-send-email-geert@linux-m68k.org>
+Received: from mx1.redhat.com ([209.132.183.28]:1026 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751739Ab2EMKsq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 13 May 2012 06:48:46 -0400
+Message-ID: <4FAF917A.1080904@redhat.com>
+Date: Sun, 13 May 2012 13:48:26 +0300
+From: Avi Kivity <avi@redhat.com>
+MIME-Version: 1.0
+Subject: Re: [PATCHv2] bitops: add _local bitops
+References: <20120509162819.GA21328@redhat.com> <alpine.DEB.2.00.1205101401010.18664@router.home> <4FAF8941.2010308@redhat.com> <20120513104502.GD23273@redhat.com>
+In-Reply-To: <20120513104502.GD23273@redhat.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Chris Zankel <chris@zankel.net>
-Message-ID: <20120512203908.Ga18nx9VT5MoeIxttC5F0i46F94iRDxl1aBnGxyrUys@z>
+To: "Michael S. Tsirkin" <mst@redhat.com>
+Cc: Christoph Lameter <cl@linux.com>, "H. Peter Anvin" <hpa@zytor.com>, Rob Landley <rob@landley.net>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, x86@kernel.org, Arnd Bergmann <arnd@arndb.de>, Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, Akinobu Mita <akinobu.mita@gmail.com>, Alexey Dobriyan <adobriyan@gmail.com>, Herbert Xu <herbert@gondor.hengli.com.au>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Gleb Natapov <gleb@redhat.com>, Paolo Bonzini <pbonzini@redhat.com>, kvm@vger.kernel.org, Marcelo Tosatti <mtosatti@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20120513104826.WJiptFP5F-cW9113EOd5KT_DEEOCh9qNWDTzCqjDhUQ@z>
 
-CROSS_COMPILE must be setup before using e.g. cc-option (and a few other
-as-*, cc-*, ld-* macros), else they will check against the wrong compiler
-when cross-compiling, and may invoke the cross compiler with wrong or
-suboptimal compiler options.
+On 05/13/2012 01:45 PM, Michael S. Tsirkin wrote:
+> On Sun, May 13, 2012 at 01:13:21PM +0300, Avi Kivity wrote:
+> > On 05/10/2012 10:04 PM, Christoph Lameter wrote:
+> > > On Wed, 9 May 2012, Michael S. Tsirkin wrote:
+> > >
+> > > > kvm needs to update some hypervisor variables atomically
+> > > > in a sense that the operation can't be interrupted
+> > > > in the middle. However the hypervisor always runs
+> > > > on the same CPU so it does not need any memory
+> > > > barrier or lock prefix.
+> > > >
+> > > > Add _local bitops for this purpose: define them
+> > > > as non-atomics for x86 and (for now) atomics for
+> > > > everyone else.
+> > >
+> > > Have you tried to use the this_cpu_ops for that purpose? They create the
+> > > per cpu atomic instructions that you want without a lock prefix and can
+> > > also relocate the per cpu pointer to the correct processor via a
+> > > segment register prefix.
+> > >
+> > > There are no bit operations provided right now but those can either be
+> > > improvised using this_cpu_cmpxchg or added.
+> > 
+> > this_cpu_xchg() should be sufficient, since only bit zero has any
+> > meaning in our use case (so xchg with zero is equivalent to
+> > test_and_clear_bit).
+>
+> Yes it should work. No idea how it'd perform:
+> arch/x86/include/asm/percpu.h implies it's expensive.  
 
-Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Chris Zankel <chris@zankel.net>
----
- arch/xtensa/Makefile |   24 ++++++++++++------------
- 1 files changed, 12 insertions(+), 12 deletions(-)
+It says a naive implementation is expensive, whereas the implementation
+actually used (a cmpxchg loop) is better.
 
-diff --git a/arch/xtensa/Makefile b/arch/xtensa/Makefile
-index 7608559..d41f9ed 100644
---- a/arch/xtensa/Makefile
-+++ b/arch/xtensa/Makefile
-@@ -21,6 +21,18 @@ variant-$(CONFIG_XTENSA_VARIANT_LINUX_CUSTOM)	:= custom
- VARIANT = $(variant-y)
- export VARIANT
- 
-+# Test for cross compiling
-+
-+ifneq ($(VARIANT),)
-+  COMPILE_ARCH = $(shell uname -m)
-+
-+  ifneq ($(COMPILE_ARCH), xtensa)
-+    ifndef CROSS_COMPILE
-+      CROSS_COMPILE = xtensa_$(VARIANT)-
-+    endif
-+  endif
-+endif
-+
- # Platform configuration
- 
- platform-$(CONFIG_XTENSA_PLATFORM_XT2000)	:= xt2000
-@@ -54,18 +66,6 @@ KBUILD_DEFCONFIG := iss_defconfig
- 
- core-$(CONFIG_EMBEDDED_RAMDISK)	+= arch/xtensa/boot/ramdisk/
- 
--# Test for cross compiling
--
--ifneq ($(VARIANT),)
--  COMPILE_ARCH = $(shell uname -m)
--
--  ifneq ($(COMPILE_ARCH), xtensa)
--    ifndef CROSS_COMPILE
--      CROSS_COMPILE = xtensa_$(VARIANT)-
--    endif
--  endif
--endif
--
- # Only build variant and/or platform if it includes a Makefile
- 
- buildvar := $(shell test -a $(srctree)/arch/xtensa/variants/$(VARIANT)/Makefile && echo arch/xtensa/variants/$(VARIANT)/)
+> My latest version
+> simply documents what __test_and_clear does anyway.
+> Which was indicated is acceptable ...
+> Did you change your mind?
+
+No.
+
 -- 
-1.7.0.4
+error compiling committee.c: too many arguments to function
 
