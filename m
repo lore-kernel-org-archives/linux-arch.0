@@ -1,56 +1,58 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: Do we use runtime patching of function calls somewhere?
-Date: Mon, 14 May 2012 18:56:15 +0200
-Message-ID: <20120514165615.GB14426@merkur.ravnborg.org>
-References: <20120513121600.GA15708@merkur.ravnborg.org>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] clkdev: Add default clkdev.h
+Date: Mon, 14 May 2012 19:03:03 +0000
+Message-ID: <201205141903.04121.arnd@arndb.de>
+References: <1337005167-22628-1-git-send-email-broonie@opensource.wolfsonmicro.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.snhosting.dk ([87.238.248.203]:52405 "EHLO
-	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755831Ab2ENQ4Q (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 May 2012 12:56:16 -0400
-Content-Disposition: inline
-In-Reply-To: <20120513121600.GA15708@merkur.ravnborg.org>
+Received: from moutng.kundenserver.de ([212.227.17.9]:60855 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757208Ab2ENTDI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 May 2012 15:03:08 -0400
+In-Reply-To: <1337005167-22628-1-git-send-email-broonie@opensource.wolfsonmicro.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux arch <linux-arch@vger.kernel.org>
-Cc: "David S. Miller" <davem@davemloft.net>
+To: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Cc: Russell King <linux@arm.linux.org.uk>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
-On Sun, May 13, 2012 at 02:16:00PM +0200, Sam Ravnborg wrote:
-> Do we have any archs that does runtime patching of function calls?
+On Monday 14 May 2012, Mark Brown wrote:
+> Ease the deployment of clkdev by providing a default asm/clkdev.h which
+> will be used if the arch does not have an include/asm/clkdev.h.
 > 
-> On sparc32 we have infrastructure to do so but this
-> requires an additional step after the final link
-> that I like to get rid of.
+> Signed-off-by: Mark Brown <broonie@opensource.wolfsonmicro.com>
+> ---
+>  include/asm-generic/Kbuild.asm |    4 ++++
+>  include/asm-generic/clkdev.h   |   26 ++++++++++++++++++++++++++
+>  2 files changed, 30 insertions(+)
+>  create mode 100644 include/asm-generic/clkdev.h
 > 
-> Basically what is required is to locate all
-> call-sites that for example call:
-> 
->      cache_flush_all();
-> 
-> and replace this with a
-> 
->     srmmu_cache_flush_all();
-> 
-> sparc32 has ~30 calls that is eligble for runtime patching.
-> sparc-next has seen some nice cleanup in this area,
-> so your regular kernel has much more.
-> 
-> We know early on the what to patch with as the only
-> paramters involved are platform and MMU type.
-> 
-> I could try to come up with something myself - but if we already
-> have it somewhere maybe there is something to be inspired by.
 
-Just a follow-up to all.
-We decided to go for _ops structures for sparc32.
+Good idea!
 
-In one case we do runtime patching where we replace the
-implementation depending on the platform.
+>diff --git a/include/asm-generic/Kbuild.asm b/include/asm-generic/Kbuild.asm
+>index c5d2e5d..da121e0 100644
+>--- a/include/asm-generic/Kbuild.asm
+>+++ b/include/asm-generic/Kbuild.asm
+>@@ -13,6 +13,10 @@ ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/a.out.h \
+> header-y += a.out.h
+> endif
+> 
+>+ifeq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/clkdev.h),)
+>+generic-y += clkdev.h
+>+endif
+>+
+> header-y += auxvec.h
+> header-y += bitsperlong.h
+> header-y += byteorder.h
 
-It it 2 times 3 instructions - so nothing big and fancy.
+I'm not completely sure about this part. It should work just fine, but we haven't
+done this for any of the other asm/* headers. If we decide to list generic header
+files  in Kconfig.asm that automatically get added to architectures, I would prefer
+doing it with a nicer syntax so we can do it for a lot of the other header files
+too. For now, I'd prefer to just add the file manually to the asm/Kbuild files
+in the architectures where it makes sense (e.g. all but s390).
 
-Thanks for the feedback anyway!
-
-	Sam
+	Arnd
