@@ -1,79 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dalsmrelay2.nai.com ([205.227.136.216]:32013 "EHLO
-	dalsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752657Ab2EMLi5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 13 May 2012 07:38:57 -0400
-Message-ID: <4FAF9D3F.4010804@snapgear.com>
-Date: Sun, 13 May 2012 21:38:39 +1000
-From: Greg Ungerer <gerg@snapgear.com>
+Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:46026 "EHLO
+	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1758090Ab2EONID convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 15 May 2012 09:08:03 -0400
 MIME-Version: 1.0
-Subject: Re: [PATCH 2/4] m68k: Setup CROSS_COMPILE at the top
-References: <1336855148-18817-1-git-send-email-geert@linux-m68k.org> <1336855148-18817-2-git-send-email-geert@linux-m68k.org>
-In-Reply-To: <1336855148-18817-2-git-send-email-geert@linux-m68k.org>
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <CAJRGBZy0S_fg3GY4S5CG-2SWv5AG1jMrcMMqCiTg=7xyD1mrzQ@mail.gmail.com>
+References: <1337072138-8323-1-git-send-email-alex.shi@intel.com>
+	<1337072138-8323-7-git-send-email-alex.shi@intel.com>
+	<CAPa8GCDsSOrzQwX2qRJyocYAZdGbwjD4t4fjxmWXV6=EoXjXZw@mail.gmail.com>
+	<CAPa8GCADw7cn+cGukfy6=gEJAqV2Ef3=YFcPriuPmhpE-xvX7A@mail.gmail.com>
+	<CAJRGBZy0S_fg3GY4S5CG-2SWv5AG1jMrcMMqCiTg=7xyD1mrzQ@mail.gmail.com>
+Date: Tue, 15 May 2012 21:08:01 +0800
+Message-ID: <CAJRGBZx671JtMSeyEV1rOzdRzzGWhLUVNiZhmN1b5ahSkh-UHQ@mail.gmail.com>
+Subject: Re: [PATCH v5 6/7] x86/tlb: optimizing flush_tlb_mm
+From: Luming Yu <luming.yu@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Greg Ungerer <gerg@uclinux.org>, linux-m68k@lists.linux-m68k.org
-Message-ID: <20120513113839.-vo-qdOiY5tqyWFNdIlJ1mVRJJSf-_bcUMui6HTbxfI@z>
+To: Nick Piggin <npiggin@gmail.com>
+Cc: Alex Shi <alex.shi@intel.com>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, rostedt@goodmis.org, fweisbec@gmail.com, jeremy@goop.org, riel@redhat.com, luto@mit.edu, avi@redhat.com, len.brown@intel.com, dhowells@redhat.com, fenghua.yu@intel.com, borislav.petkov@amd.com, yinghai@kernel.org, ak@linux.intel.com, cpw@sgi.com, steiner@sgi.com, akpm@linux-foundation.org, penberg@kernel.org, hughd@google.com, rientjes@google.com, kosaki.motohiro@jp.fujitsu.com, n-horiguchi@ah.jp.nec.com, tj@kernel.org, oleg@redhat.com, axboe@kernel.dk, jmorris@namei.org, a.p.zijlstra@chello.nl, kamezawa.hiroyu@jp.fujitsu.com, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, yongjie.ren@intel.com, linux-arch@vger.kernel.org, jcm@jonmasters.org
+Message-ID: <20120515130801.yN2lNO1BhalzftmQDmlmgPCQxZqFkyyR1Fg87DfQTqE@z>
 
-On 05/13/2012 06:39 AM, Geert Uytterhoeven wrote:
-> CROSS_COMPILE must be setup before using e.g. cc-option (and a few other
-> as-*, cc-*, ld-* macros), else they will check against the wrong compiler
-> when cross-compiling, and may invoke the cross compiler with wrong or
-> suboptimal compiler options.
+On Tue, May 15, 2012 at 8:58 PM, Luming Yu <luming.yu@gmail.com> wrote:
+> On Tue, May 15, 2012 at 5:17 PM, Nick Piggin <npiggin@gmail.com> wrote:
+>> On 15 May 2012 19:15, Nick Piggin <npiggin@gmail.com> wrote:
+>>> So this should go to linux-arch...
+>>>
+>>> On 15 May 2012 18:55, Alex Shi <alex.shi@intel.com> wrote:
+>>>> Not every flush_tlb_mm execution moment is really need to evacuate all
+>>>> TLB entries, like in munmap, just few 'invlpg' is better for whole
+>>>> process performance, since it leaves most of TLB entries for later
+>>>> accessing.
+>>
+>> Did you have microbenchmarks for this like your mprotect numbers,
+>> by the way? Test munmap numbers and see how that looks. Also,
 >
-> Signed-off-by: Geert Uytterhoeven<geert@linux-m68k.org>
-> Cc: Greg Ungerer<gerg@uclinux.org>
-
-Acked-by: Greg Ungerer<gerg@uclinux.org>
-
-Regards
-Greg
-
-
-> Cc: linux-m68k@lists.linux-m68k.org
-> ---
->   arch/m68k/Makefile |   13 +++++++------
->   1 files changed, 7 insertions(+), 6 deletions(-)
+> Might be off topic, but I just spent few minutes to test out the difference
+> between write CR3 vs. invlpg on a pretty old but still reliable P4 desktop
+> with my simple hardware latency and bandwidth test tool I posted for
+> RFC several weeks ago on LKML.
 >
-> diff --git a/arch/m68k/Makefile b/arch/m68k/Makefile
-> index 804f139..b7f2e2d 100644
-> --- a/arch/m68k/Makefile
-> +++ b/arch/m68k/Makefile
-> @@ -16,6 +16,13 @@
->
->   KBUILD_DEFCONFIG := multi_defconfig
->
-> +ifneq ($(SUBARCH),$(ARCH))
-> +	ifeq ($(CROSS_COMPILE),)
-> +		CROSS_COMPILE := $(call cc-cross-prefix, \
-> +			m68k-linux-gnu- m68k-linux- m68k-unknown-linux-gnu-)
-> +	endif
-> +endif
-> +
->   #
->   #	Enable processor type. Ordering of these is important - we want to
->   #	use the minimum processor type of the range we support. The logic
-> @@ -62,12 +69,6 @@ endif
->
->   LDFLAGS := -m m68kelf
->   KBUILD_LDFLAGS_MODULE += -T $(srctree)/arch/m68k/kernel/module.lds
-> -ifneq ($(SUBARCH),$(ARCH))
-> -	ifeq ($(CROSS_COMPILE),)
-> -		CROSS_COMPILE := $(call cc-cross-prefix, \
-> -			m68k-linux-gnu- m68k-linux- m68k-unknown-linux-gnu-)
-> -	endif
-> -endif
->
->   ifdef CONFIG_SUN3
->   LDFLAGS_vmlinux = -N
+> Both __native_flush_tlb() and __native_flush_tlb_single(...)
+> introduced roughly 1 ns  latency to tsc sampling executed in
 
+sorry, typo, 1us.. but I should capture nanosecond data. :-(
 
--- 
-------------------------------------------------------------------------
-Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.com
-SnapGear Group, McAfee                      PHONE:       +61 7 3435 2888
-8 Gardner Close,                            FAX:         +61 7 3891 3630
-Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.com
+> stop_machine_context in two logical CPUs
+>
+> Just to fuel the discussion. :-)
+>
+> Cheers,
+> /l
