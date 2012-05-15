@@ -1,57 +1,26 @@
-From: Alex Shi <alex.shi@intel.com>
-Subject: Re: [PATCH v5 6/7] x86/tlb: optimizing flush_tlb_mm
-Date: Tue, 15 May 2012 23:01:16 +0800
-Message-ID: <4FB26FBC.7040209@intel.com>
-References: <1337072138-8323-1-git-send-email-alex.shi@intel.com>  <1337072138-8323-7-git-send-email-alex.shi@intel.com>  <CAPa8GCDsSOrzQwX2qRJyocYAZdGbwjD4t4fjxmWXV6=EoXjXZw@mail.gmail.com>  <4FB2590C.1050303@intel.com> <1337092577.27694.45.camel@twins> <1337093840.27694.56.camel@twins>
+From: Michal Marek <mmarek@suse.cz>
+Subject: Re: [PATCH 3/4] kbuild: link of vmlinux moved to a script
+Date: Wed, 16 May 2012 00:20:10 +0200
+Message-ID: <20120515222010.GB9277@pobox.suse.cz>
+References: <20120428205651.GA7426@merkur.ravnborg.org> <20120428205919.GC7442@merkur.ravnborg.org> <4FA460AB.6060309@suse.cz> <20120505082916.GA14006@merkur.ravnborg.org> <CA+8MBbKd9zAouJy5JvUnLwUHMJ65HsYgCTfBgv42nm32EnMPFA@mail.gmail.com> <20120508165118.GA11750@merkur.ravnborg.org> <CAP=VYLobO--uwxv_hiMYBnjD-AU_0fqyQJD6argQygnkHnm5Vg@mail.gmail.com> <20120510122210.GA17550@sepie.suse.cz> <4FABD436.7070402@windriver.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:13015 "EHLO mga02.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756104Ab2EOPBp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 15 May 2012 11:01:45 -0400
-In-Reply-To: <1337093840.27694.56.camel@twins>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Nick Piggin <npiggin@gmail.com>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, rostedt@goodmis.org, fweisbec@gmail.com, jeremy@goop.org, riel@redhat.com, luto@mit.edu, avi@redhat.com, len.brown@intel.com, dhowells@redhat.com, fenghua.yu@intel.com, borislav.petkov@amd.com, yinghai@kernel.org, ak@linux.intel.com, cpw@sgi.com, steiner@sgi.com, akpm@linux-foundation.org, penberg@kernel.org, hughd@google.com, rientjes@google.com, kosaki.motohiro@jp.fujitsu.com, n-horiguchi@ah.jp.nec.com, tj@kernel.org, oleg@redhat.com, axboe@kernel.dk, jmorris@namei.org, kamezawa.hiroyu@jp.fujitsu.com, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, yongjie.ren@intel.com, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <4FABD436.7070402@windriver.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: Sam Ravnborg <sam@ravnborg.org>, Tony Luck <tony.luck@gmail.com>, linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>, ralf@linux-mips.org, linux-mips@linux-mips.org
+List-Id: linux-arch.vger.kernel.org
 
-On 05/15/2012 10:57 PM, Peter Zijlstra wrote:
-
-> On Tue, 2012-05-15 at 16:36 +0200, Peter Zijlstra wrote:
->> On Tue, 2012-05-15 at 21:24 +0800, Alex Shi wrote:
->>
->>> Sorry. I don't understand what's the comments Peter's made days ago. I should ask for more details originally. 
->>>
->>> So, Peter, the correct change should like following, am I right?
->>>
->>> -#define tlb_flush(tlb) flush_tlb_mm((tlb)->mm)
->>> +#define tlb_flush(tlb, start, end) __flush_tlb_range((tlb)->mm, start, end)
->>
->> No.. the correct change is to do range tracking like the other archs
->> that support flush_tlb_range() do.
->>
->> You do not modify the tlb interface.
->>
->> Again, see: http://marc.info/?l=linux-arch&m=129952026504268&w=2
-
-
-this code is for multiple architecture, but x86 still need implement
-'flush tlb range' with 'invlpg'.
-
+On Thu, May 10, 2012 at 10:44:06AM -0400, Paul Gortmaker wrote:
+> On 12-05-10 08:22 AM, Michal Marek wrote:
+> > I think it should be as simple as the below patch. But I have no mips
+> > machine to verify myself.
 > 
-> Just to be _very_ clear, you do not modify:
-> 
->  mm/memory.c                     |    9 ++--
->  kernel/fork.c                   |    2 +-   
->  fs/proc/task_mmu.c              |    2 +-
-> 
+> Well I haven't boot tested it on anything either, but it does
+> seem to resolve the double quoting that caused the compile failure.
 
+I applied it to kbuild.git#kbuild now.
 
-Thanks a lot. I see.
-
-> As it stands your patch breaks compilation on a whole bunch of
-> architectures.
-> 
-> If you touch the TLB interface, you get to touch _ALL_ architectures.
+Michal
