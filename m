@@ -1,31 +1,34 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from nat.scz.novell.com ([213.151.88.252]:1040 "EHLO pobox.suse.cz"
-	rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org with ESMTP
-	id S964944Ab2EOWao (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 15 May 2012 18:30:44 -0400
-Date: Wed, 16 May 2012 00:20:10 +0200
-From: Michal Marek <mmarek@suse.cz>
-Subject: Re: [PATCH 3/4] kbuild: link of vmlinux moved to a script
-Message-ID: <20120515222010.GB9277@pobox.suse.cz>
-References: <20120428205651.GA7426@merkur.ravnborg.org> <20120428205919.GC7442@merkur.ravnborg.org> <4FA460AB.6060309@suse.cz> <20120505082916.GA14006@merkur.ravnborg.org> <CA+8MBbKd9zAouJy5JvUnLwUHMJ65HsYgCTfBgv42nm32EnMPFA@mail.gmail.com> <20120508165118.GA11750@merkur.ravnborg.org> <CAP=VYLobO--uwxv_hiMYBnjD-AU_0fqyQJD6argQygnkHnm5Vg@mail.gmail.com> <20120510122210.GA17550@sepie.suse.cz> <4FABD436.7070402@windriver.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <4FABD436.7070402@windriver.com>
+Received: from casper.infradead.org ([85.118.1.10]:40638 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S966046Ab2EPI7A convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 16 May 2012 04:59:00 -0400
+Message-ID: <1337158712.27694.134.camel@twins>
+Subject: Re: [PATCH v5 6/7] x86/tlb: optimizing flush_tlb_mm
+From: Peter Zijlstra <peterz@infradead.org>
+Date: Wed, 16 May 2012 10:58:32 +0200
+In-Reply-To: <4FB36B12.9000705@intel.com>
+References: <1337072138-8323-1-git-send-email-alex.shi@intel.com>
+	  <1337072138-8323-7-git-send-email-alex.shi@intel.com>
+	  <CAPa8GCDsSOrzQwX2qRJyocYAZdGbwjD4t4fjxmWXV6=EoXjXZw@mail.gmail.com>
+	  <4FB2590C.1050303@intel.com> <1337092577.27694.45.camel@twins>
+	  <1337093840.27694.56.camel@twins> <4FB34D49.1060809@intel.com>
+	  <1337155239.27694.131.camel@twins> <1337155464.27694.132.camel@twins>
+	 <4FB36B12.9000705@intel.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: Sam Ravnborg <sam@ravnborg.org>, Tony Luck <tony.luck@gmail.com>, linux arch <linux-arch@vger.kernel.org>, lkml <linux-kernel@vger.kernel.org>, linux-kbuild <linux-kbuild@vger.kernel.org>, Richard Weinberger <richard@nod.at>, "David S. Miller" <davem@davemloft.net>, Arnaud Lacombe <lacombar@gmail.com>, Andi Kleen <andi@firstfloor.org>, ralf@linux-mips.org, linux-mips@linux-mips.org
-Message-ID: <20120515222010.6xSxwqbiflmr0SHCuzpnK9LhRyGh_UIes3NL4q2BZBw@z>
+To: Alex Shi <alex.shi@intel.com>
+Cc: Nick Piggin <npiggin@gmail.com>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, rostedt@goodmis.org, fweisbec@gmail.com, jeremy@goop.org, riel@redhat.com, luto@mit.edu, avi@redhat.com, len.brown@intel.com, dhowells@redhat.com, fenghua.yu@intel.com, borislav.petkov@amd.com, yinghai@kernel.org, ak@linux.intel.com, cpw@sgi.com, steiner@sgi.com, akpm@linux-foundation.org, penberg@kernel.org, hughd@google.com, rientjes@google.com, kosaki.motohiro@jp.fujitsu.com, n-horiguchi@ah.jp.nec.com, tj@kernel.org, oleg@redhat.com, axboe@kernel.dk, jmorris@namei.org, kamezawa.hiroyu@jp.fujitsu.com, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, yongjie.ren@intel.com, linux-arch@vger.kernel.org
+Message-ID: <20120516085832.Z6alX8fNHhbACB7aEVENrt-9rv-8qXG4aG41dJ7ZQKU@z>
 
-On Thu, May 10, 2012 at 10:44:06AM -0400, Paul Gortmaker wrote:
-> On 12-05-10 08:22 AM, Michal Marek wrote:
-> > I think it should be as simple as the below patch. But I have no mips
-> > machine to verify myself.
+On Wed, 2012-05-16 at 16:53 +0800, Alex Shi wrote:
 > 
-> Well I haven't boot tested it on anything either, but it does
-> seem to resolve the double quoting that caused the compile failure.
-
-I applied it to kbuild.git#kbuild now.
-
-Michal
+> Sorry. Do you mean not every archs use 'include/asm-generic/tlb.h', so
+> the assignment of tlb->start in tlb_gather_mmu make trouble?
+> 
+Yes exactly. I know you work for Intel, but surely its not forbidden by
+contract to look outside of arch/x86/ ? I know!, look at arch/ia64/
+that's still Intel.
