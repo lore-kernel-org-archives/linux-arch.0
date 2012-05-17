@@ -1,88 +1,39 @@
 From: "H.J. Lu" <hjl.tools@gmail.com>
-Subject: [PATCH 10/10] Use __kernel_[u]long_t in x86-64 struct stat
-Date: Thu, 17 May 2012 15:13:36 -0700
-Message-ID: <1337292816-10839-11-git-send-email-hjl.tools@gmail.com>
+Subject: [PATCH 09/10] Use __kernel_ulong_t in struct ipc64_perm
+Date: Thu, 17 May 2012 15:13:35 -0700
+Message-ID: <1337292816-10839-10-git-send-email-hjl.tools@gmail.com>
 References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:65435 "EHLO mga02.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S967777Ab2EQWOF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 May 2012 18:14:05 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: torvalds@linux-foundation.org, hpa@zytor.com, mingo@kernel.org, tglx@linutronix.de, "H.J. Lu" <hjl.tools@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
 From: "H.J. Lu" <hjl.tools@gmail.com>
 
-Include <linux/types.h>.  Replace unsigned long/long with
-__kernel_ulong_t/__kernel_long_t in x86-64 struct stat for user space.
+Replace unsigned long with __kernel_ulong_t in struct ipc64_perm for
+user space.
 
 Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
 ---
- arch/x86/include/asm/stat.h |   42 ++++++++++++++++++++++--------------------
- 1 files changed, 22 insertions(+), 20 deletions(-)
+ include/asm-generic/ipcbuf.h |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/stat.h b/arch/x86/include/asm/stat.h
-index e0b1d9b..6d99f66 100644
---- a/arch/x86/include/asm/stat.h
-+++ b/arch/x86/include/asm/stat.h
-@@ -3,6 +3,8 @@
- 
- #define STAT_HAVE_NSEC 1
- 
-+#include <linux/types.h>
-+
- #ifdef __i386__
- struct stat {
- 	unsigned long  st_dev;
-@@ -66,26 +68,26 @@ struct stat64 {
- #else /* __i386__ */
- 
- struct stat {
--	unsigned long	st_dev;
--	unsigned long	st_ino;
--	unsigned long	st_nlink;
--
--	unsigned int	st_mode;
--	unsigned int	st_uid;
--	unsigned int	st_gid;
--	unsigned int	__pad0;
--	unsigned long	st_rdev;
--	long		st_size;
--	long		st_blksize;
--	long		st_blocks;	/* Number 512-byte blocks allocated. */
--
--	unsigned long	st_atime;
--	unsigned long	st_atime_nsec;
--	unsigned long	st_mtime;
--	unsigned long	st_mtime_nsec;
--	unsigned long	st_ctime;
--	unsigned long   st_ctime_nsec;
--	long		__unused[3];
-+	__kernel_ulong_t st_dev;
-+	__kernel_ulong_t st_ino;
-+	__kernel_ulong_t st_nlink;
-+
-+	unsigned int	 st_mode;
-+	unsigned int	 st_uid;
-+	unsigned int	 st_gid;
-+	unsigned int	 __pad0;
-+	__kernel_ulong_t st_rdev;
-+	__kernel_long_t  st_size;
-+	__kernel_long_t  st_blksize;
-+	__kernel_long_t  st_blocks;	/* Number 512-byte blocks allocated. */
-+
-+	__kernel_ulong_t st_atime;
-+	__kernel_ulong_t st_atime_nsec;
-+	__kernel_ulong_t st_mtime;
-+	__kernel_ulong_t st_mtime_nsec;
-+	__kernel_ulong_t st_ctime;
-+	__kernel_ulong_t st_ctime_nsec;
-+	__kernel_long_t  __unused[3];
+diff --git a/include/asm-generic/ipcbuf.h b/include/asm-generic/ipcbuf.h
+index 76982b2..3dbcc1e 100644
+--- a/include/asm-generic/ipcbuf.h
++++ b/include/asm-generic/ipcbuf.h
+@@ -27,8 +27,8 @@ struct ipc64_perm {
+ 	unsigned char		__pad1[4 - sizeof(__kernel_mode_t)];
+ 	unsigned short		seq;
+ 	unsigned short		__pad2;
+-	unsigned long		__unused1;
+-	unsigned long		__unused2;
++	__kernel_ulong_t	__unused1;
++	__kernel_ulong_t	__unused2;
  };
- #endif
  
+ #endif /* __ASM_GENERIC_IPCBUF_H */
 -- 
 1.7.6.5
