@@ -1,101 +1,103 @@
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: [PATCHv10 03/11] ARM: dma-mapping: use pr_* instread of printk
-Date: Thu, 17 May 2012 15:13:53 +0200
-Message-ID: <1337260441-8121-4-git-send-email-m.szyprowski@samsung.com>
+From: Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
+Subject: [PATCHv10 04/11] ARM: dma-mapping: introduce DMA_ERROR_CODE constant
+Date: Thu, 17 May 2012 15:13:54 +0200
+Message-ID: <1337260441-8121-5-git-send-email-m.szyprowski@samsung.com>
 References: <1337260441-8121-1-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN
-Content-Transfer-Encoding: 7BIT
-Return-path: <owner-linux-mm@kvack.org>
-In-reply-to: <1337260441-8121-1-git-send-email-m.szyprowski@samsung.com>
-Sender: owner-linux-mm@kvack.org
-To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Hiroshi Doyu <hdoyu@nvidia.com>, Subash Patel <subashrp@gmail.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+In-reply-to: <1337260441-8121-1-git-send-email-m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
+List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
+List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
+	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
+Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+To: linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
+Cc: Russell King - ARM Linux <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Chunsang Jeong <chunsang.jeong-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Krishna Reddy <vdumpa-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, Subash Patel <subashrp-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Kyungmin Park <kyungmin.park-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Andrzej Pietrasiewicz <andrzej.p-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, KyongHo Cho <pullip.cho-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-Replace all calls to printk with pr_* functions family.
+Replace all uses of ~0 with DMA_ERROR_CODE, what should make the code
+easier to read.
 
-Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
-Acked-by: Kyungmin Park <kyungmin.park@samsung.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Tested-By: Subash Patel <subash.ramaswamy@linaro.org>
+Signed-off-by: Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
+Acked-by: Kyungmin Park <kyungmin.park-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
+Tested-By: Subash Patel <subash.ramaswamy-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
 ---
- arch/arm/mm/dma-mapping.c |   16 ++++++++--------
- 1 file changed, 8 insertions(+), 8 deletions(-)
+ arch/arm/common/dmabounce.c        |    6 +++---
+ arch/arm/include/asm/dma-mapping.h |    4 +++-
+ arch/arm/mm/dma-mapping.c          |    2 +-
+ 3 files changed, 7 insertions(+), 5 deletions(-)
 
+diff --git a/arch/arm/common/dmabounce.c b/arch/arm/common/dmabounce.c
+index 595ecd29..210ad1b 100644
+--- a/arch/arm/common/dmabounce.c
++++ b/arch/arm/common/dmabounce.c
+@@ -254,7 +254,7 @@ static inline dma_addr_t map_single(struct device *dev, void *ptr, size_t size,
+ 	if (buf == NULL) {
+ 		dev_err(dev, "%s: unable to map unsafe buffer %p!\n",
+ 		       __func__, ptr);
+-		return ~0;
++		return DMA_ERROR_CODE;
+ 	}
+ 
+ 	dev_dbg(dev, "%s: unsafe buffer %p (dma=%#x) mapped to %p (dma=%#x)\n",
+@@ -320,7 +320,7 @@ dma_addr_t __dma_map_page(struct device *dev, struct page *page,
+ 
+ 	ret = needs_bounce(dev, dma_addr, size);
+ 	if (ret < 0)
+-		return ~0;
++		return DMA_ERROR_CODE;
+ 
+ 	if (ret == 0) {
+ 		__dma_page_cpu_to_dev(page, offset, size, dir);
+@@ -329,7 +329,7 @@ dma_addr_t __dma_map_page(struct device *dev, struct page *page,
+ 
+ 	if (PageHighMem(page)) {
+ 		dev_err(dev, "DMA buffer bouncing of HIGHMEM pages is not supported\n");
+-		return ~0;
++		return DMA_ERROR_CODE;
+ 	}
+ 
+ 	return map_single(dev, page_address(page) + offset, size, dir);
+diff --git a/arch/arm/include/asm/dma-mapping.h b/arch/arm/include/asm/dma-mapping.h
+index cb3b7c9..6a838da 100644
+--- a/arch/arm/include/asm/dma-mapping.h
++++ b/arch/arm/include/asm/dma-mapping.h
+@@ -10,6 +10,8 @@
+ #include <asm-generic/dma-coherent.h>
+ #include <asm/memory.h>
+ 
++#define DMA_ERROR_CODE	(~0)
++
+ #ifdef __arch_page_to_dma
+ #error Please update to __arch_pfn_to_dma
+ #endif
+@@ -123,7 +125,7 @@ extern int dma_set_mask(struct device *, u64);
+  */
+ static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+ {
+-	return dma_addr == ~0;
++	return dma_addr == DMA_ERROR_CODE;
+ }
+ 
+ /*
 diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index 7ec0863..322c70a 100644
+index 322c70a..e4ac5fc 100644
 --- a/arch/arm/mm/dma-mapping.c
 +++ b/arch/arm/mm/dma-mapping.c
-@@ -184,14 +184,14 @@ static int __init consistent_init(void)
+@@ -342,7 +342,7 @@ __dma_alloc(struct device *dev, size_t size, dma_addr_t *handle, gfp_t gfp,
+ 	 */
+ 	gfp &= ~(__GFP_COMP);
  
- 		pud = pud_alloc(&init_mm, pgd, base);
- 		if (!pud) {
--			printk(KERN_ERR "%s: no pud tables\n", __func__);
-+			pr_err("%s: no pud tables\n", __func__);
- 			ret = -ENOMEM;
- 			break;
- 		}
+-	*handle = ~0;
++	*handle = DMA_ERROR_CODE;
+ 	size = PAGE_ALIGN(size);
  
- 		pmd = pmd_alloc(&init_mm, pud, base);
- 		if (!pmd) {
--			printk(KERN_ERR "%s: no pmd tables\n", __func__);
-+			pr_err("%s: no pmd tables\n", __func__);
- 			ret = -ENOMEM;
- 			break;
- 		}
-@@ -199,7 +199,7 @@ static int __init consistent_init(void)
- 
- 		pte = pte_alloc_kernel(pmd, base);
- 		if (!pte) {
--			printk(KERN_ERR "%s: no pte tables\n", __func__);
-+			pr_err("%s: no pte tables\n", __func__);
- 			ret = -ENOMEM;
- 			break;
- 		}
-@@ -222,7 +222,7 @@ __dma_alloc_remap(struct page *page, size_t size, gfp_t gfp, pgprot_t prot,
- 	int bit;
- 
- 	if (!consistent_pte) {
--		printk(KERN_ERR "%s: not initialised\n", __func__);
-+		pr_err("%s: not initialised\n", __func__);
- 		dump_stack();
- 		return NULL;
- 	}
-@@ -281,14 +281,14 @@ static void __dma_free_remap(void *cpu_addr, size_t size)
- 
- 	c = arm_vmregion_find_remove(&consistent_head, (unsigned long)cpu_addr);
- 	if (!c) {
--		printk(KERN_ERR "%s: trying to free invalid coherent area: %p\n",
-+		pr_err("%s: trying to free invalid coherent area: %p\n",
- 		       __func__, cpu_addr);
- 		dump_stack();
- 		return;
- 	}
- 
- 	if ((c->vm_end - c->vm_start) != size) {
--		printk(KERN_ERR "%s: freeing wrong coherent size (%ld != %d)\n",
-+		pr_err("%s: freeing wrong coherent size (%ld != %d)\n",
- 		       __func__, c->vm_end - c->vm_start, size);
- 		dump_stack();
- 		size = c->vm_end - c->vm_start;
-@@ -310,8 +310,8 @@ static void __dma_free_remap(void *cpu_addr, size_t size)
- 		}
- 
- 		if (pte_none(pte) || !pte_present(pte))
--			printk(KERN_CRIT "%s: bad page in kernel page table\n",
--			       __func__);
-+			pr_crit("%s: bad page in kernel page table\n",
-+				__func__);
- 	} while (size -= PAGE_SIZE);
- 
- 	flush_tlb_kernel_range(c->vm_start, c->vm_end);
+ 	page = __dma_alloc_buffer(dev, size, gfp);
 -- 
 1.7.10.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
