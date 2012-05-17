@@ -1,34 +1,48 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH 01/10] Use __kernel_long_t in struct timex
-Date: Thu, 17 May 2012 15:58:26 -0700
-Message-ID: <CA+55aFzVpx94YyC3N2rJaNYLnwUmgNDvzSJnbq1ByNhETY4q9g@mail.gmail.com>
+From: David Daney <ddaney.cavm@gmail.com>
+Subject: Re: [RFC PATCH 00/10] Use __kernel_[u]long_t for x32 user space compatibility
+Date: Thu, 17 May 2012 16:07:44 -0700
+Message-ID: <4FB584C0.6080807@gmail.com>
 References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
- <1337292816-10839-2-git-send-email-hjl.tools@gmail.com> <CA+55aFx98qvVg1JhMV0JjgNGb++xtir5ocseY3xgQNc3qAtWdQ@mail.gmail.com>
- <4FB57EB2.4050208@zytor.com> <CA+55aFzztct_HzmGiit=9SwwM4_YPuXbjwMdJpM1JHMXGBNqaA@mail.gmail.com>
- <4FB581D5.9010606@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f178.google.com ([209.85.212.178]:51041 "EHLO
-	mail-wi0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760557Ab2EQW6s (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 May 2012 18:58:48 -0400
-In-Reply-To: <4FB581D5.9010606@zytor.com>
+Received: from mail-pb0-f46.google.com ([209.85.160.46]:54390 "EHLO
+	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759429Ab2EQXHs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 May 2012 19:07:48 -0400
+In-Reply-To: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: "H.J. Lu" <hjl.tools@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de
+To: "H.J. Lu" <hjl.tools@gmail.com>, Ralf Baechle <ralf@linux-mips.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, hpa@zytor.com, mingo@kernel.org, tglx@linutronix.de
 
-On Thu, May 17, 2012 at 3:55 PM, H. Peter Anvin <hpa@zytor.com> wrote:
+On 05/17/2012 03:13 PM, H.J. Lu wrote:
+> From: H.J. Lu<hjl.tools@gmail.com>
 >
-> I would suggest __slong and __ulong then, to keep with the __[su]*
-> namespace, or does the extra "s" look too much like crap?
+> This patch set changes a number of places where the kernel headers are
+> exported to user space and currently use explicit "long" or "unsigned
+> long" to use __kernel_[u]long_t in order to be compatible with the x32
+> user space ABI.  These location are places where x32 uses the x86-64
+> ABI.
+>
 
-I do think I could live with it. Maybe we can make x32 do
+Has anybody checked how this affects MIPS n32 userspace?
 
-   typedef __s64 __slong;
-   typedef __u64 __ulong;
+I think it totally breaks it.
 
-and at least not make the "we're declaring a 'long' as a 'long long'"?
+In addition, 109a1f32 (sysinfo: Use explicit types in <linux/sysinfo.h>) 
+is probably bad.  I think it may need to be reverted, or somebody should 
+fix all the __kernel_{,u}long_t definitions for the ABI that may have 
+been broken by the change.
 
-                     Linus
+> It is quite possible that some, or even all, of these locations should
+> really use dedicated types, but in the meantime this gives the correct
+> results which the current headers do not.
+>
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
+>
