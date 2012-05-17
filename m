@@ -1,52 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:47464 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933238Ab2EQQop convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 May 2012 12:44:45 -0400
-Message-ID: <1337273053.4281.50.camel@twins>
-Subject: Re: [RFC][PATCH 4/6] arm, mm: Convert arm to generic tlb
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Thu, 17 May 2012 18:44:13 +0200
-In-Reply-To: <1337272396.4281.48.camel@twins>
-References: <20110302175928.022902359@chello.nl>
-	 <20110302180259.109909335@chello.nl> <20120517030551.GA11623@linux-sh.org>
-	 <20120517093022.GA14666@arm.com>
-	 <20120517095124.GN23420@flint.arm.linux.org.uk>
-	 <1337254086.4281.26.camel@twins> <20120517160012.GB18593@arm.com>
-	 <1337271884.4281.46.camel@twins> <1337272396.4281.48.camel@twins>
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Mime-Version: 1.0
+Received: from mailout4.w1.samsung.com ([210.118.77.14]:26780 "EHLO
+	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759612Ab2EQQx1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 May 2012 12:53:27 -0400
+MIME-version: 1.0
+Content-transfer-encoding: 7BIT
+Content-type: TEXT/PLAIN
+Date: Thu, 17 May 2012 18:53:03 +0200
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PATCH/RFC 0/3] ARM: DMA-mapping: new extensions for buffer sharing
+Message-ID: <1337273586-11089-1-git-send-email-m.szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>, Andrea Arcangeli <aarcange@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
-Message-ID: <20120517164413.detGNTbrsO3EsBcySPQilEhFGNmcvKPYzgtC4iWdr6k@z>
+To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Hiroshi Doyu <hdoyu@nvidia.com>, Subash Patel <subash.ramaswamy@linaro.org>, Sumit Semwal <sumit.semwal@linaro.org>, Abhinav Kochhar <abhinav.k@samsung.com>, Tomasz Stanislawski <t.stanislaws@samsung.com>
+Message-ID: <20120517165303.gxvk2T7wjoETSpGeIU7ZDhZgdVoiOL_fp0ueu-QRF_k@z>
 
-On Thu, 2012-05-17 at 18:33 +0200, Peter Zijlstra wrote:
-> On Thu, 2012-05-17 at 18:24 +0200, Peter Zijlstra wrote:
-> > On Thu, 2012-05-17 at 17:00 +0100, Catalin Marinas wrote:
-> > 
-> > > BTW, looking at your tlb-unify branch, does tlb_remove_table() call
-> > > tlb_flush/tlb_flush_mmu before freeing the tables?  I can only see
-> > > tlb_remove_page() doing this. On ARM, even UP, we need the TLB flushing
-> > > after clearing the pmd and before freeing the pte page table (and
-> > > ideally doing it less often than at every pte_free_tlb() call).
-> > 
-> > No I don't think it does, so far the only archs using the RCU stuff are
-> > ppc,sparc and s390 and none of those needed that (Xen might join them
-> > soon though). But I will have to look and consider this more carefully.
-> > I 'lost' most of the ppc/sparc/s390 details from memory to say this with
-> > any certainty.
-> 
-> 
-> Hmm, no, thinking more that does indeed sounds strange, I'll still have
-> to consider it more carefully, but I think you might have found a bug
-> there.
+Hello,
 
-So the RCU code can from ppc in commit
-267239116987d64850ad2037d8e0f3071dc3b5ce, which has similar behaviour.
-Also I suspect the mm_users < 2 test will be incorrect for ARM since
-even the one user can be concurrent with your speculation engine.
+This patch series introduces a new features to DMA mapping subsystem
+to let drivers share the allocated buffers (preferably using recently
+introduced dma_buf framework) easy and efficient.
 
+The first extension is DMA_ATTR_NO_KERNEL_MAPPING attribute. It is
+intended for use with dma_{alloc, mmap, free}_attrs functions. It can be
+used to notify dma-mapping core that the driver will not use kernel
+mapping for the allocated buffer at all, so the core can skip creating
+it. This saves precious kernel virtual address space. Such buffer can be
+accessed from userspace, after calling dma_mmap_attrs() for it (a
+typical use case for multimedia buffers). The value returned by
+dma_alloc_attrs() with this attribute should be considered as a DMA
+cookie, which needs to be passed to dma_mmap_attrs() and
+dma_free_attrs() funtions.
+
+The second extension is required to let drivers to share the buffers
+allocated by DMA-mapping subsystem. Right now the driver gets a dma
+address of the allocated buffer and the kernel virtual mapping for it.
+If it wants to share it with other device (= map into its dma address
+space) it usually hacks around kernel virtual addresses to get pointers
+to pages or assumes that both devices share the DMA address space. Both
+solutions are just hacks for the special cases, which should be avoided
+in the final version of buffer sharing. To solve this issue in a generic
+way, a new call to DMA mapping has been introduced - dma_get_sgtable().
+It allocates a scatter-list which describes the allocated buffer and
+lets the driver(s) to use it with other device(s) by calling
+dma_map_sg() on it.
+
+The proposed patches have been generated on top of the ARM DMA-mapping
+redesign patch series on Linux v3.4-rc7. They are also available on the
+following GIT branch:
+
+git://git.linaro.org/people/mszyprowski/linux-dma-mapping.git 3.4-rc7-arm-dma-v10-ext
+
+with all require patches on top of vanilla v3.4-rc7 kernel.
+
+Best regards
+Marek Szyprowski
+Samsung Poland R&D Center
+
+
+Patch summary:
+
+Marek Szyprowski (3):
+  common: DMA-mapping: add DMA_ATTR_NO_KERNEL_MAPPING attribute
+  ARM: dma-mapping: add support for DMA_ATTR_NO_KERNEL_MAPPING
+    attribute
+  ARM: dma-mapping: add support for dma_get_sgtable()
+
+ Documentation/DMA-attributes.txt   |   18 +++++++++++++
+ arch/arm/include/asm/dma-mapping.h |   12 +++++++++
+ arch/arm/mm/dma-mapping.c          |   51 ++++++++++++++++++++++++++++++++----
+ include/linux/dma-attrs.h          |    1 +
+ include/linux/dma-mapping.h        |    3 +++
+ 5 files changed, 80 insertions(+), 5 deletions(-)
+
+-- 
+1.7.10.1
 
