@@ -1,7 +1,7 @@
 From: "H.J. Lu" <hjl.tools@gmail.com>
-Subject: [PATCH 05/10] Use __kernel_long_t in struct mq_attr
-Date: Thu, 17 May 2012 15:13:31 -0700
-Message-ID: <1337292816-10839-6-git-send-email-hjl.tools@gmail.com>
+Subject: [PATCH 03/10] Use __kernel_[u]long_t in linux/resource.h
+Date: Thu, 17 May 2012 15:13:29 -0700
+Message-ID: <1337292816-10839-4-git-send-email-hjl.tools@gmail.com>
 References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
@@ -12,33 +12,59 @@ List-Id: linux-arch.vger.kernel.org
 
 From: "H.J. Lu" <hjl.tools@gmail.com>
 
-Replace long with __kernel_long_t in struct mq_attr for user space.
+Replace long with __kernel_long_t in struct rusage and replace
+unsigned long with __kernel_ulong_t in struct rlimit for usr space.
 
 Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
 ---
- include/linux/mqueue.h |   10 +++++-----
- 1 files changed, 5 insertions(+), 5 deletions(-)
+ include/linux/resource.h |   32 ++++++++++++++++----------------
+ 1 files changed, 16 insertions(+), 16 deletions(-)
 
-diff --git a/include/linux/mqueue.h b/include/linux/mqueue.h
-index 8b5a796..d89a735 100644
---- a/include/linux/mqueue.h
-+++ b/include/linux/mqueue.h
-@@ -23,11 +23,11 @@
- #define MQ_BYTES_MAX	819200
- 
- struct mq_attr {
--	long	mq_flags;	/* message queue flags			*/
--	long	mq_maxmsg;	/* maximum number of messages		*/
--	long	mq_msgsize;	/* maximum message size			*/
--	long	mq_curmsgs;	/* number of messages currently queued	*/
--	long	__reserved[4];	/* ignored for input, zeroed for output */
-+	__kernel_long_t mq_flags;	/* message queue flags			*/
-+	__kernel_long_t mq_maxmsg;	/* maximum number of messages		*/
-+	__kernel_long_t mq_msgsize;	/* maximum message size			*/
-+	__kernel_long_t mq_curmsgs;	/* number of messages currently queued	*/
-+	__kernel_long_t __reserved[4];	/* ignored for input, zeroed for output */
+diff --git a/include/linux/resource.h b/include/linux/resource.h
+index d01c96c..38bbb6a 100644
+--- a/include/linux/resource.h
++++ b/include/linux/resource.h
+@@ -23,25 +23,25 @@
+ struct	rusage {
+ 	struct timeval ru_utime;	/* user time used */
+ 	struct timeval ru_stime;	/* system time used */
+-	long	ru_maxrss;		/* maximum resident set size */
+-	long	ru_ixrss;		/* integral shared memory size */
+-	long	ru_idrss;		/* integral unshared data size */
+-	long	ru_isrss;		/* integral unshared stack size */
+-	long	ru_minflt;		/* page reclaims */
+-	long	ru_majflt;		/* page faults */
+-	long	ru_nswap;		/* swaps */
+-	long	ru_inblock;		/* block input operations */
+-	long	ru_oublock;		/* block output operations */
+-	long	ru_msgsnd;		/* messages sent */
+-	long	ru_msgrcv;		/* messages received */
+-	long	ru_nsignals;		/* signals received */
+-	long	ru_nvcsw;		/* voluntary context switches */
+-	long	ru_nivcsw;		/* involuntary " */
++	__kernel_long_t ru_maxrss;	/* maximum resident set size */
++	__kernel_long_t ru_ixrss;	/* integral shared memory size */
++	__kernel_long_t ru_idrss;	/* integral unshared data size */
++	__kernel_long_t ru_isrss;	/* integral unshared stack size */
++	__kernel_long_t ru_minflt;	/* page reclaims */
++	__kernel_long_t ru_majflt;	/* page faults */
++	__kernel_long_t ru_nswap;	/* swaps */
++	__kernel_long_t ru_inblock;	/* block input operations */
++	__kernel_long_t ru_oublock;	/* block output operations */
++	__kernel_long_t ru_msgsnd;	/* messages sent */
++	__kernel_long_t ru_msgrcv;	/* messages received */
++	__kernel_long_t ru_nsignals;	/* signals received */
++	__kernel_long_t ru_nvcsw;	/* voluntary context switches */
++	__kernel_long_t ru_nivcsw;	/* involuntary " */
  };
  
- /*
+ struct rlimit {
+-	unsigned long	rlim_cur;
+-	unsigned long	rlim_max;
++	__kernel_ulong_t rlim_cur;
++	__kernel_ulong_t rlim_max;
+ };
+ 
+ #define RLIM64_INFINITY		(~0ULL)
 -- 
 1.7.6.5
