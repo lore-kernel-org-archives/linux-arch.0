@@ -1,103 +1,165 @@
-From: Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-Subject: [PATCHv10 04/11] ARM: dma-mapping: introduce DMA_ERROR_CODE constant
-Date: Thu, 17 May 2012 15:13:54 +0200
-Message-ID: <1337260441-8121-5-git-send-email-m.szyprowski@samsung.com>
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PATCHv10 07/11] ARM: dma-mapping: implement dma sg methods on top of
+ any generic dma ops
+Date: Thu, 17 May 2012 15:13:57 +0200
+Message-ID: <1337260441-8121-8-git-send-email-m.szyprowski@samsung.com>
 References: <1337260441-8121-1-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-In-reply-to: <1337260441-8121-1-git-send-email-m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/iommu/>
-List-Post: <mailto:iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org>
-List-Help: <mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/iommu>,
-	<mailto:iommu-request-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org?subject=subscribe>
-Sender: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Errors-To: iommu-bounces-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-To: linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org, linaro-mm-sig-cunTk1MwBs8s++Sfvej+rw@public.gmane.org, linux-mm-Bw31MaZKKs3YtjvyW6yDsg@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, iommu-cunTk1MwBs9QetFLy7KEm3xJsTq8ys+cHZ5vskTnxNA@public.gmane.org
-Cc: Russell King - ARM Linux <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>, Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>, Benjamin Herrenschmidt <benh-XVmvHMARGAS8U2dJNN8I7kB+6BGkLq7r@public.gmane.org>, Chunsang Jeong <chunsang.jeong-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Krishna Reddy <vdumpa-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, Subash Patel <subashrp-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>, Kyungmin Park <kyungmin.park-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, Andrzej Pietrasiewicz <andrzej.p-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>, KyongHo Cho <pullip.cho-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: TEXT/PLAIN
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailout3.w1.samsung.com ([210.118.77.13]:11783 "EHLO
+	mailout3.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965820Ab2EQNQO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 May 2012 09:16:14 -0400
+Received: from euspt2 ([210.118.77.13]) by mailout3.w1.samsung.com
+ (Sun Java(tm) System Messaging Server 6.3-8.04 (built Jul 29 2009; 32bit))
+ with ESMTP id <0M46006PH4TQ7U50@mailout3.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Thu, 17 May 2012 14:15:26 +0100 (BST)
+Received: from ubuntu.arm.acom ([106.210.236.191])
+ by spt2.w1.samsung.com (iPlanet Messaging Server 5.2 Patch 2 (built Jul 14
+ 2004)) with ESMTPA id <0M46005864TPC2@spt2.w1.samsung.com> for
+ linux-arch@vger.kernel.org; Thu, 17 May 2012 14:16:10 +0100 (BST)
+In-reply-to: <1337260441-8121-1-git-send-email-m.szyprowski@samsung.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Hiroshi Doyu <hdoyu@nvidia.com>, Subash Patel <subashrp@gmail.com>
 
-Replace all uses of ~0 with DMA_ERROR_CODE, what should make the code
-easier to read.
+This patch converts all dma_sg methods to be generic (independent of the
+current DMA mapping implementation for ARM architecture). All dma sg
+operations are now implemented on top of respective
+dma_map_page/dma_sync_single_for* operations from dma_map_ops structure.
 
-Signed-off-by: Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-Acked-by: Kyungmin Park <kyungmin.park-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
-Tested-By: Subash Patel <subash.ramaswamy-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
+Before this patch there were custom methods for all scatter/gather
+related operations. They iterated over the whole scatter list and called
+cache related operations directly (which in turn checked if we use dma
+bounce code or not and called respective version). This patch changes
+them not to use such shortcut. Instead it provides similar loop over
+scatter list and calls methods from the device's dma_map_ops structure.
+This enables us to use device dependent implementations of cache related
+operations (direct linear or dma bounce) depending on the provided
+dma_map_ops structure.
+
+Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
+Acked-by: Kyungmin Park <kyungmin.park@samsung.com>
+Tested-By: Subash Patel <subash.ramaswamy@linaro.org>
 ---
- arch/arm/common/dmabounce.c        |    6 +++---
- arch/arm/include/asm/dma-mapping.h |    4 +++-
- arch/arm/mm/dma-mapping.c          |    2 +-
- 3 files changed, 7 insertions(+), 5 deletions(-)
+ arch/arm/mm/dma-mapping.c |   43 +++++++++++++++++++------------------------
+ 1 file changed, 19 insertions(+), 24 deletions(-)
 
-diff --git a/arch/arm/common/dmabounce.c b/arch/arm/common/dmabounce.c
-index 595ecd29..210ad1b 100644
---- a/arch/arm/common/dmabounce.c
-+++ b/arch/arm/common/dmabounce.c
-@@ -254,7 +254,7 @@ static inline dma_addr_t map_single(struct device *dev, void *ptr, size_t size,
- 	if (buf == NULL) {
- 		dev_err(dev, "%s: unable to map unsafe buffer %p!\n",
- 		       __func__, ptr);
--		return ~0;
-+		return DMA_ERROR_CODE;
- 	}
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index 70be6e1..b50fa57 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -622,7 +622,7 @@ void ___dma_page_dev_to_cpu(struct page *page, unsigned long off,
+ EXPORT_SYMBOL(___dma_page_dev_to_cpu);
  
- 	dev_dbg(dev, "%s: unsafe buffer %p (dma=%#x) mapped to %p (dma=%#x)\n",
-@@ -320,7 +320,7 @@ dma_addr_t __dma_map_page(struct device *dev, struct page *page,
- 
- 	ret = needs_bounce(dev, dma_addr, size);
- 	if (ret < 0)
--		return ~0;
-+		return DMA_ERROR_CODE;
- 
- 	if (ret == 0) {
- 		__dma_page_cpu_to_dev(page, offset, size, dir);
-@@ -329,7 +329,7 @@ dma_addr_t __dma_map_page(struct device *dev, struct page *page,
- 
- 	if (PageHighMem(page)) {
- 		dev_err(dev, "DMA buffer bouncing of HIGHMEM pages is not supported\n");
--		return ~0;
-+		return DMA_ERROR_CODE;
- 	}
- 
- 	return map_single(dev, page_address(page) + offset, size, dir);
-diff --git a/arch/arm/include/asm/dma-mapping.h b/arch/arm/include/asm/dma-mapping.h
-index cb3b7c9..6a838da 100644
---- a/arch/arm/include/asm/dma-mapping.h
-+++ b/arch/arm/include/asm/dma-mapping.h
-@@ -10,6 +10,8 @@
- #include <asm-generic/dma-coherent.h>
- #include <asm/memory.h>
- 
-+#define DMA_ERROR_CODE	(~0)
-+
- #ifdef __arch_page_to_dma
- #error Please update to __arch_pfn_to_dma
- #endif
-@@ -123,7 +125,7 @@ extern int dma_set_mask(struct device *, u64);
-  */
- static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
+ /**
+- * dma_map_sg - map a set of SG buffers for streaming mode DMA
++ * arm_dma_map_sg - map a set of SG buffers for streaming mode DMA
+  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
+  * @sg: list of buffers
+  * @nents: number of buffers to map
+@@ -640,12 +640,13 @@ EXPORT_SYMBOL(___dma_page_dev_to_cpu);
+ int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
+ 		enum dma_data_direction dir, struct dma_attrs *attrs)
  {
--	return dma_addr == ~0;
-+	return dma_addr == DMA_ERROR_CODE;
++	struct dma_map_ops *ops = get_dma_ops(dev);
+ 	struct scatterlist *s;
+ 	int i, j;
+ 
+ 	for_each_sg(sg, s, nents, i) {
+-		s->dma_address = __dma_map_page(dev, sg_page(s), s->offset,
+-						s->length, dir);
++		s->dma_address = ops->map_page(dev, sg_page(s), s->offset,
++						s->length, dir, attrs);
+ 		if (dma_mapping_error(dev, s->dma_address))
+ 			goto bad_mapping;
+ 	}
+@@ -653,12 +654,12 @@ int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
+ 
+  bad_mapping:
+ 	for_each_sg(sg, s, i, j)
+-		__dma_unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir);
++		ops->unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir, attrs);
+ 	return 0;
+ }
+ 
+ /**
+- * dma_unmap_sg - unmap a set of SG buffers mapped by dma_map_sg
++ * arm_dma_unmap_sg - unmap a set of SG buffers mapped by dma_map_sg
+  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
+  * @sg: list of buffers
+  * @nents: number of buffers to unmap (same as was passed to dma_map_sg)
+@@ -670,15 +671,17 @@ int arm_dma_map_sg(struct device *dev, struct scatterlist *sg, int nents,
+ void arm_dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nents,
+ 		enum dma_data_direction dir, struct dma_attrs *attrs)
+ {
++	struct dma_map_ops *ops = get_dma_ops(dev);
+ 	struct scatterlist *s;
++
+ 	int i;
+ 
+ 	for_each_sg(sg, s, nents, i)
+-		__dma_unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir);
++		ops->unmap_page(dev, sg_dma_address(s), sg_dma_len(s), dir, attrs);
+ }
+ 
+ /**
+- * dma_sync_sg_for_cpu
++ * arm_dma_sync_sg_for_cpu
+  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
+  * @sg: list of buffers
+  * @nents: number of buffers to map (returned from dma_map_sg)
+@@ -687,21 +690,17 @@ void arm_dma_unmap_sg(struct device *dev, struct scatterlist *sg, int nents,
+ void arm_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
+ 			int nents, enum dma_data_direction dir)
+ {
++	struct dma_map_ops *ops = get_dma_ops(dev);
+ 	struct scatterlist *s;
+ 	int i;
+ 
+-	for_each_sg(sg, s, nents, i) {
+-		if (!dmabounce_sync_for_cpu(dev, sg_dma_address(s),
+-					    sg_dma_len(s), dir))
+-			continue;
+-
+-		__dma_page_dev_to_cpu(sg_page(s), s->offset,
+-				      s->length, dir);
+-	}
++	for_each_sg(sg, s, nents, i)
++		ops->sync_single_for_cpu(dev, sg_dma_address(s), s->length,
++					 dir);
+ }
+ 
+ /**
+- * dma_sync_sg_for_device
++ * arm_dma_sync_sg_for_device
+  * @dev: valid struct device pointer, or NULL for ISA and EISA-like devices
+  * @sg: list of buffers
+  * @nents: number of buffers to map (returned from dma_map_sg)
+@@ -710,17 +709,13 @@ void arm_dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
+ void arm_dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+ 			int nents, enum dma_data_direction dir)
+ {
++	struct dma_map_ops *ops = get_dma_ops(dev);
+ 	struct scatterlist *s;
+ 	int i;
+ 
+-	for_each_sg(sg, s, nents, i) {
+-		if (!dmabounce_sync_for_device(dev, sg_dma_address(s),
+-					sg_dma_len(s), dir))
+-			continue;
+-
+-		__dma_page_cpu_to_dev(sg_page(s), s->offset,
+-				      s->length, dir);
+-	}
++	for_each_sg(sg, s, nents, i)
++		ops->sync_single_for_device(dev, sg_dma_address(s), s->length,
++					    dir);
  }
  
  /*
-diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index 322c70a..e4ac5fc 100644
---- a/arch/arm/mm/dma-mapping.c
-+++ b/arch/arm/mm/dma-mapping.c
-@@ -342,7 +342,7 @@ __dma_alloc(struct device *dev, size_t size, dma_addr_t *handle, gfp_t gfp,
- 	 */
- 	gfp &= ~(__GFP_COMP);
- 
--	*handle = ~0;
-+	*handle = DMA_ERROR_CODE;
- 	size = PAGE_ALIGN(size);
- 
- 	page = __dma_alloc_buffer(dev, size, gfp);
 -- 
 1.7.10.1
