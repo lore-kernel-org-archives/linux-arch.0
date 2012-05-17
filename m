@@ -1,68 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:65435 "EHLO mga02.intel.com"
+Received: from mga02.intel.com ([134.134.136.20]:46382 "EHLO mga02.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S967771Ab2EQWOE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 May 2012 18:14:04 -0400
+	id S966116Ab2EQWOD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 May 2012 18:14:03 -0400
 From: "H.J. Lu" <hjl.tools@gmail.com>
-Subject: [PATCH 07/10] Use __kernel_ulong_t in struct shmid64_ds/shminfo64
-Date: Thu, 17 May 2012 15:13:33 -0700
-Message-ID: <1337292816-10839-8-git-send-email-hjl.tools@gmail.com>
+Subject: [PATCH 03/10] Use __kernel_[u]long_t in linux/resource.h
+Date: Thu, 17 May 2012 15:13:29 -0700
+Message-ID: <1337292816-10839-4-git-send-email-hjl.tools@gmail.com>
 In-Reply-To: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
 References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: torvalds@linux-foundation.org, hpa@zytor.com, mingo@kernel.org, tglx@linutronix.de, "H.J. Lu" <hjl.tools@gmail.com>
-Message-ID: <20120517221333.0TAU4lsRvZIyQ8dWViHXOQNcrSZBIX-ZfWdcRQGZieM@z>
+Message-ID: <20120517221329.X10E_wss_LJyQibTjcVV63jkT_8jEDLZLPtF35Iclqk@z>
 
 From: "H.J. Lu" <hjl.tools@gmail.com>
 
-Replace unsigned long with __kernel_ulong_t in struct shmid64_ds and
-struct shminfo64 for user space.
+Replace long with __kernel_long_t in struct rusage and replace
+unsigned long with __kernel_ulong_t in struct rlimit for usr space.
 
 Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
 ---
- include/asm-generic/shmbuf.h |   24 ++++++++++++------------
- 1 files changed, 12 insertions(+), 12 deletions(-)
+ include/linux/resource.h |   32 ++++++++++++++++----------------
+ 1 files changed, 16 insertions(+), 16 deletions(-)
 
-diff --git a/include/asm-generic/shmbuf.h b/include/asm-generic/shmbuf.h
-index 5768fa6..7e9fb2f 100644
---- a/include/asm-generic/shmbuf.h
-+++ b/include/asm-generic/shmbuf.h
-@@ -39,21 +39,21 @@ struct shmid64_ds {
- #endif
- 	__kernel_pid_t		shm_cpid;	/* pid of creator */
- 	__kernel_pid_t		shm_lpid;	/* pid of last operator */
--	unsigned long		shm_nattch;	/* no. of current attaches */
--	unsigned long		__unused4;
--	unsigned long		__unused5;
-+	__kernel_ulong_t	shm_nattch;	/* no. of current attaches */
-+	__kernel_ulong_t	__unused4;
-+	__kernel_ulong_t	__unused5;
+diff --git a/include/linux/resource.h b/include/linux/resource.h
+index d01c96c..38bbb6a 100644
+--- a/include/linux/resource.h
++++ b/include/linux/resource.h
+@@ -23,25 +23,25 @@
+ struct	rusage {
+ 	struct timeval ru_utime;	/* user time used */
+ 	struct timeval ru_stime;	/* system time used */
+-	long	ru_maxrss;		/* maximum resident set size */
+-	long	ru_ixrss;		/* integral shared memory size */
+-	long	ru_idrss;		/* integral unshared data size */
+-	long	ru_isrss;		/* integral unshared stack size */
+-	long	ru_minflt;		/* page reclaims */
+-	long	ru_majflt;		/* page faults */
+-	long	ru_nswap;		/* swaps */
+-	long	ru_inblock;		/* block input operations */
+-	long	ru_oublock;		/* block output operations */
+-	long	ru_msgsnd;		/* messages sent */
+-	long	ru_msgrcv;		/* messages received */
+-	long	ru_nsignals;		/* signals received */
+-	long	ru_nvcsw;		/* voluntary context switches */
+-	long	ru_nivcsw;		/* involuntary " */
++	__kernel_long_t ru_maxrss;	/* maximum resident set size */
++	__kernel_long_t ru_ixrss;	/* integral shared memory size */
++	__kernel_long_t ru_idrss;	/* integral unshared data size */
++	__kernel_long_t ru_isrss;	/* integral unshared stack size */
++	__kernel_long_t ru_minflt;	/* page reclaims */
++	__kernel_long_t ru_majflt;	/* page faults */
++	__kernel_long_t ru_nswap;	/* swaps */
++	__kernel_long_t ru_inblock;	/* block input operations */
++	__kernel_long_t ru_oublock;	/* block output operations */
++	__kernel_long_t ru_msgsnd;	/* messages sent */
++	__kernel_long_t ru_msgrcv;	/* messages received */
++	__kernel_long_t ru_nsignals;	/* signals received */
++	__kernel_long_t ru_nvcsw;	/* voluntary context switches */
++	__kernel_long_t ru_nivcsw;	/* involuntary " */
  };
  
- struct shminfo64 {
--	unsigned long	shmmax;
--	unsigned long	shmmin;
--	unsigned long	shmmni;
--	unsigned long	shmseg;
--	unsigned long	shmall;
--	unsigned long	__unused1;
--	unsigned long	__unused2;
--	unsigned long	__unused3;
--	unsigned long	__unused4;
-+	__kernel_ulong_t	shmmax;
-+	__kernel_ulong_t	shmmin;
-+	__kernel_ulong_t	shmmni;
-+	__kernel_ulong_t	shmseg;
-+	__kernel_ulong_t	shmall;
-+	__kernel_ulong_t	__unused1;
-+	__kernel_ulong_t	__unused2;
-+	__kernel_ulong_t	__unused3;
-+	__kernel_ulong_t	__unused4;
+ struct rlimit {
+-	unsigned long	rlim_cur;
+-	unsigned long	rlim_max;
++	__kernel_ulong_t rlim_cur;
++	__kernel_ulong_t rlim_max;
  };
  
- #endif /* __ASM_GENERIC_SHMBUF_H */
+ #define RLIM64_INFINITY		(~0ULL)
 -- 
 1.7.6.5
 
