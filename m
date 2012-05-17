@@ -1,64 +1,121 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC][PATCH 4/6] arm, mm: Convert arm to generic tlb
-Date: Thu, 17 May 2012 13:14:59 +0100
-Message-ID: <20120517121459.GA18593@arm.com>
-References: <20110302175928.022902359@chello.nl>
- <20110302180259.109909335@chello.nl>
- <20120517030551.GA11623@linux-sh.org>
- <20120517093022.GA14666@arm.com>
- <20120517095124.GN23420@flint.arm.linux.org.uk>
- <1337254086.4281.26.camel@twins>
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PATCHv10 01/11] common: add dma_mmap_from_coherent() function
+Date: Thu, 17 May 2012 15:13:51 +0200
+Message-ID: <1337260441-8121-2-git-send-email-m.szyprowski@samsung.com>
+References: <1337260441-8121-1-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:45654 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754098Ab2EQMPS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 May 2012 08:15:18 -0400
-Content-Disposition: inline
-In-Reply-To: <1337254086.4281.26.camel@twins>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>, Andrea Arcangeli <aarcange@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>
+Content-Type: TEXT/PLAIN
+Content-Transfer-Encoding: 7BIT
+Return-path: <owner-linux-mm@kvack.org>
+In-reply-to: <1337260441-8121-1-git-send-email-m.szyprowski@samsung.com>
+Sender: owner-linux-mm@kvack.org
+To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, iommu@lists.linux-foundation.org
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Joerg Roedel <joro@8bytes.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, KyongHo Cho <pullip.cho@samsung.com>, Andrzej Pietrasiewicz <andrzej.p@samsung.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Hiroshi Doyu <hdoyu@nvidia.com>, Subash Patel <subashrp@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, May 17, 2012 at 12:28:06PM +0100, Peter Zijlstra wrote:
-> On Thu, 2012-05-17 at 10:51 +0100, Russell King wrote:
-> > On Thu, May 17, 2012 at 10:30:23AM +0100, Catalin Marinas wrote:
-> > > Another minor thing is that on newer ARM processors (Cortex-A15) we
-> > > need the TLB shootdown even on UP systems, so tlb_fast_mode should
-> > > always return 0. Something like below (untested):
-> > 
-> > No Catalin, we need this for virtually all ARMv7 CPUs whether they're UP
-> > or SMP, not just for A15, because of the speculative prefetch which can
-> > re-load TLB entries from the page tables at _any_ time.
-> 
-> Hmm,. so this is mostly because of the confusion/coupling between
-> tlb_remove_page() and tlb_remove_table() I guess. Since I don't see the
-> freeing of the actual pages being a problem with speculative TLB
-> reloads, just the page-tables.
+Add a common helper for dma-mapping core for mapping a coherent buffer
+to userspace.
 
-The TLB on newer ARM cores can cache intermediate entries (e.g. pmd) as
-long as they are valid, even if the full translation is not possible
-(e.g. because the pte entry is 0). With fast_mode, this could lead to
-the MMU reading the already freed pte page as it was pointed at by the
-old pmd.
+Reported-by: Subash Patel <subashrp@gmail.com>
+Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
+Acked-by: Kyungmin Park <kyungmin.park@samsung.com>
+Tested-By: Subash Patel <subash.ramaswamy@linaro.org>
+---
+ drivers/base/dma-coherent.c        |   42 ++++++++++++++++++++++++++++++++++++
+ include/asm-generic/dma-coherent.h |    4 +++-
+ 2 files changed, 45 insertions(+), 1 deletion(-)
 
-Older ARMv7 CPUs (Cortex-A8), don't do this intermediate caching and UP
-should be fine with fast_mode==1 as we already track the pte range via
-tlb_remove_tlb_entry(). The MMU on ARM is treated like any another agent
-that accesses the memory, so standard memory ordering issues apply In
-theory Linux can clear the pmd, free the page and it is re-used shortly
-after while the MMU hasn't observed the pmd_clear() yet (we don't have a
-barrier in this function).
-
-> Should we introduce a tlb_remove_table() regardless of
-> HAVE_RCU_TABLE_FREE which always queues the tables regardless of
-> tlb_fast_mode()? 
-
-This would probably work as well (or we just add support for
-HAVE_RCU_TABLE_FREE on ARM).
-
+diff --git a/drivers/base/dma-coherent.c b/drivers/base/dma-coherent.c
+index bb0025c..1b85949 100644
+--- a/drivers/base/dma-coherent.c
++++ b/drivers/base/dma-coherent.c
+@@ -10,6 +10,7 @@
+ struct dma_coherent_mem {
+ 	void		*virt_base;
+ 	dma_addr_t	device_base;
++	phys_addr_t	pfn_base;
+ 	int		size;
+ 	int		flags;
+ 	unsigned long	*bitmap;
+@@ -44,6 +45,7 @@ int dma_declare_coherent_memory(struct device *dev, dma_addr_t bus_addr,
+ 
+ 	dev->dma_mem->virt_base = mem_base;
+ 	dev->dma_mem->device_base = device_addr;
++	dev->dma_mem->pfn_base = PFN_DOWN(bus_addr);
+ 	dev->dma_mem->size = pages;
+ 	dev->dma_mem->flags = flags;
+ 
+@@ -176,3 +178,43 @@ int dma_release_from_coherent(struct device *dev, int order, void *vaddr)
+ 	return 0;
+ }
+ EXPORT_SYMBOL(dma_release_from_coherent);
++
++/**
++ * dma_mmap_from_coherent() - try to mmap the memory allocated from
++ * per-device coherent memory pool to userspace
++ * @dev:	device from which the memory was allocated
++ * @vma:	vm_area for the userspace memory
++ * @vaddr:	cpu address returned by dma_alloc_from_coherent
++ * @size:	size of the memory buffer allocated by dma_alloc_from_coherent
++ *
++ * This checks whether the memory was allocated from the per-device
++ * coherent memory pool and if so, maps that memory to the provided vma.
++ *
++ * Returns 1 if we correctly mapped the memory, or 0 if
++ * dma_release_coherent() should proceed with mapping memory from
++ * generic pools.
++ */
++int dma_mmap_from_coherent(struct device *dev, struct vm_area_struct *vma,
++			   void *vaddr, size_t size, int *ret)
++{
++	struct dma_coherent_mem *mem = dev ? dev->dma_mem : NULL;
++
++	if (mem && vaddr >= mem->virt_base && vaddr + size <=
++		   (mem->virt_base + (mem->size << PAGE_SHIFT))) {
++		unsigned long off = vma->vm_pgoff;
++		int start = (vaddr - mem->virt_base) >> PAGE_SHIFT;
++		int user_count = (vma->vm_end - vma->vm_start) >> PAGE_SHIFT;
++		int count = size >> PAGE_SHIFT;
++
++		*ret = -ENXIO;
++		if (off < count && user_count <= count - off) {
++			unsigned pfn = mem->pfn_base + start + off;
++			*ret = remap_pfn_range(vma, vma->vm_start, pfn,
++					       user_count << PAGE_SHIFT,
++					       vma->vm_page_prot);
++		}
++		return 1;
++	}
++	return 0;
++}
++EXPORT_SYMBOL(dma_mmap_from_coherent);
+diff --git a/include/asm-generic/dma-coherent.h b/include/asm-generic/dma-coherent.h
+index 85a3ffa..abfb268 100644
+--- a/include/asm-generic/dma-coherent.h
++++ b/include/asm-generic/dma-coherent.h
+@@ -3,13 +3,15 @@
+ 
+ #ifdef CONFIG_HAVE_GENERIC_DMA_COHERENT
+ /*
+- * These two functions are only for dma allocator.
++ * These three functions are only for dma allocator.
+  * Don't use them in device drivers.
+  */
+ int dma_alloc_from_coherent(struct device *dev, ssize_t size,
+ 				       dma_addr_t *dma_handle, void **ret);
+ int dma_release_from_coherent(struct device *dev, int order, void *vaddr);
+ 
++int dma_mmap_from_coherent(struct device *dev, struct vm_area_struct *vma,
++			    void *cpu_addr, size_t size, int *ret);
+ /*
+  * Standard interface
+  */
 -- 
-Catalin
+1.7.10.1
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Fight unfair telecom internet charges in Canada: sign http://stopthemeter.ca/
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
