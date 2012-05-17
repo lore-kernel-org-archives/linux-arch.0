@@ -1,7 +1,7 @@
 From: "H.J. Lu" <hjl.tools@gmail.com>
-Subject: [PATCH 09/10] Use __kernel_ulong_t in struct ipc64_perm
-Date: Thu, 17 May 2012 15:13:35 -0700
-Message-ID: <1337292816-10839-10-git-send-email-hjl.tools@gmail.com>
+Subject: [PATCH 07/10] Use __kernel_ulong_t in struct shmid64_ds/shminfo64
+Date: Thu, 17 May 2012 15:13:33 -0700
+Message-ID: <1337292816-10839-8-git-send-email-hjl.tools@gmail.com>
 References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
@@ -12,28 +12,51 @@ List-Id: linux-arch.vger.kernel.org
 
 From: "H.J. Lu" <hjl.tools@gmail.com>
 
-Replace unsigned long with __kernel_ulong_t in struct ipc64_perm for
-user space.
+Replace unsigned long with __kernel_ulong_t in struct shmid64_ds and
+struct shminfo64 for user space.
 
 Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
 ---
- include/asm-generic/ipcbuf.h |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ include/asm-generic/shmbuf.h |   24 ++++++++++++------------
+ 1 files changed, 12 insertions(+), 12 deletions(-)
 
-diff --git a/include/asm-generic/ipcbuf.h b/include/asm-generic/ipcbuf.h
-index 76982b2..3dbcc1e 100644
---- a/include/asm-generic/ipcbuf.h
-+++ b/include/asm-generic/ipcbuf.h
-@@ -27,8 +27,8 @@ struct ipc64_perm {
- 	unsigned char		__pad1[4 - sizeof(__kernel_mode_t)];
- 	unsigned short		seq;
- 	unsigned short		__pad2;
--	unsigned long		__unused1;
--	unsigned long		__unused2;
-+	__kernel_ulong_t	__unused1;
-+	__kernel_ulong_t	__unused2;
+diff --git a/include/asm-generic/shmbuf.h b/include/asm-generic/shmbuf.h
+index 5768fa6..7e9fb2f 100644
+--- a/include/asm-generic/shmbuf.h
++++ b/include/asm-generic/shmbuf.h
+@@ -39,21 +39,21 @@ struct shmid64_ds {
+ #endif
+ 	__kernel_pid_t		shm_cpid;	/* pid of creator */
+ 	__kernel_pid_t		shm_lpid;	/* pid of last operator */
+-	unsigned long		shm_nattch;	/* no. of current attaches */
+-	unsigned long		__unused4;
+-	unsigned long		__unused5;
++	__kernel_ulong_t	shm_nattch;	/* no. of current attaches */
++	__kernel_ulong_t	__unused4;
++	__kernel_ulong_t	__unused5;
  };
  
- #endif /* __ASM_GENERIC_IPCBUF_H */
+ struct shminfo64 {
+-	unsigned long	shmmax;
+-	unsigned long	shmmin;
+-	unsigned long	shmmni;
+-	unsigned long	shmseg;
+-	unsigned long	shmall;
+-	unsigned long	__unused1;
+-	unsigned long	__unused2;
+-	unsigned long	__unused3;
+-	unsigned long	__unused4;
++	__kernel_ulong_t	shmmax;
++	__kernel_ulong_t	shmmin;
++	__kernel_ulong_t	shmmni;
++	__kernel_ulong_t	shmseg;
++	__kernel_ulong_t	shmall;
++	__kernel_ulong_t	__unused1;
++	__kernel_ulong_t	__unused2;
++	__kernel_ulong_t	__unused3;
++	__kernel_ulong_t	__unused4;
+ };
+ 
+ #endif /* __ASM_GENERIC_SHMBUF_H */
 -- 
 1.7.6.5
