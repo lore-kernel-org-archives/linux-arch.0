@@ -1,78 +1,31 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:65435 "EHLO mga02.intel.com"
+Received: from terminus.zytor.com ([198.137.202.10]:38148 "EHLO mail.zytor.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S967760Ab2EQWOB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 May 2012 18:14:01 -0400
-From: "H.J. Lu" <hjl.tools@gmail.com>
-Subject: [PATCH 01/10] Use __kernel_long_t in struct timex
-Date: Thu, 17 May 2012 15:13:27 -0700
-Message-ID: <1337292816-10839-2-git-send-email-hjl.tools@gmail.com>
-In-Reply-To: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
-References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
+	id S1030523Ab2EQWu0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 May 2012 18:50:26 -0400
+Message-ID: <4FB580A3.5010909@kernel.org>
+Date: Thu, 17 May 2012 15:50:11 -0700
+From: "H. Peter Anvin" <hpa@kernel.org>
+MIME-Version: 1.0
+Subject: Re: [PATCH 01/10] Use __kernel_long_t in struct timex
+References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com> <1337292816-10839-2-git-send-email-hjl.tools@gmail.com> <CA+55aFx98qvVg1JhMV0JjgNGb++xtir5ocseY3xgQNc3qAtWdQ@mail.gmail.com> <4FB57EB2.4050208@zytor.com>
+In-Reply-To: <4FB57EB2.4050208@zytor.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: torvalds@linux-foundation.org, hpa@zytor.com, mingo@kernel.org, tglx@linutronix.de, "H.J. Lu" <hjl.tools@gmail.com>
-Message-ID: <20120517221327.r8ZW_lXhlzkDLETzLcthI8A4YTx43VDha4KPH7hf8O4@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "H.J. Lu" <hjl.tools@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de
+Message-ID: <20120517225011.f8Z2ROi7C5RrlaU30wI4ldxkwPGY1iuAavwA6oZaZHo@z>
 
-From: "H.J. Lu" <hjl.tools@gmail.com>
+On 05/17/2012 03:41 PM, H. Peter Anvin wrote:
+> 
+> That being said, this is a lot like the __u* and __s* types which we use
+> instead of <stdint.h> for similar reasons.  I don't know if
+> __ulong/__slong or __uword/__sword would be better here?
+> 
 
-Replace long with __kernel_long_t in struct timex for user space.
+Anyway - Linus, if you have a specific preference let me know and can
+fix up these patches as well as the existing users in the kernel.
 
-Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
----
- include/linux/timex.h |   34 +++++++++++++++++-----------------
- 1 files changed, 17 insertions(+), 17 deletions(-)
-
-diff --git a/include/linux/timex.h b/include/linux/timex.h
-index 99bc88b..22c57ac 100644
---- a/include/linux/timex.h
-+++ b/include/linux/timex.h
-@@ -63,27 +63,27 @@
-  */
- struct timex {
- 	unsigned int modes;	/* mode selector */
--	long offset;		/* time offset (usec) */
--	long freq;		/* frequency offset (scaled ppm) */
--	long maxerror;		/* maximum error (usec) */
--	long esterror;		/* estimated error (usec) */
-+	__kernel_long_t offset;	/* time offset (usec) */
-+	__kernel_long_t freq;	/* frequency offset (scaled ppm) */
-+	__kernel_long_t maxerror; /* maximum error (usec) */
-+	__kernel_long_t esterror; /* estimated error (usec) */
- 	int status;		/* clock command/status */
--	long constant;		/* pll time constant */
--	long precision;		/* clock precision (usec) (read only) */
--	long tolerance;		/* clock frequency tolerance (ppm)
--				 * (read only)
--				 */
-+	__kernel_long_t constant; /* pll time constant */
-+	__kernel_long_t precision; /* clock precision (usec) (read only) */
-+	__kernel_long_t tolerance; /* clock frequency tolerance (ppm)
-+				    * (read only)
-+				    */
- 	struct timeval time;	/* (read only, except for ADJ_SETOFFSET) */
--	long tick;		/* (modified) usecs between clock ticks */
-+	__kernel_long_t tick;	/* (modified) usecs between clock ticks */
- 
--	long ppsfreq;           /* pps frequency (scaled ppm) (ro) */
--	long jitter;            /* pps jitter (us) (ro) */
-+	__kernel_long_t ppsfreq; /* pps frequency (scaled ppm) (ro) */
-+	__kernel_long_t jitter; /* pps jitter (us) (ro) */
- 	int shift;              /* interval duration (s) (shift) (ro) */
--	long stabil;            /* pps stability (scaled ppm) (ro) */
--	long jitcnt;            /* jitter limit exceeded (ro) */
--	long calcnt;            /* calibration intervals (ro) */
--	long errcnt;            /* calibration errors (ro) */
--	long stbcnt;            /* stability limit exceeded (ro) */
-+	__kernel_long_t stabil; /* pps stability (scaled ppm) (ro) */
-+	__kernel_long_t jitcnt; /* jitter limit exceeded (ro) */
-+	__kernel_long_t calcnt; /* calibration intervals (ro) */
-+	__kernel_long_t errcnt; /* calibration errors (ro) */
-+	__kernel_long_t stbcnt; /* stability limit exceeded (ro) */
- 
- 	int tai;		/* TAI offset (ro) */
- 
--- 
-1.7.6.5
-
+	-hpa
