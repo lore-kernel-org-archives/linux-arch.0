@@ -1,37 +1,46 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [RFC PATCH 00/10] Use __kernel_[u]long_t for x32 user space compatibility
-Date: Thu, 17 May 2012 16:31:54 -0700
-Message-ID: <4FB58A6A.6020601@zytor.com>
-References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com> <4FB584C0.6080807@gmail.com> <4FB585B8.2010607@zytor.com> <4FB58901.5060604@gmail.com>
+From: David Daney <ddaney.cavm@gmail.com>
+Subject: Re: [PATCH 01/10] Use __kernel_long_t in struct timex
+Date: Thu, 17 May 2012 16:51:17 -0700
+Message-ID: <4FB58EF5.2090306@gmail.com>
+References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com> <1337292816-10839-2-git-send-email-hjl.tools@gmail.com> <CA+55aFx98qvVg1JhMV0JjgNGb++xtir5ocseY3xgQNc3qAtWdQ@mail.gmail.com> <4FB57EB2.4050208@zytor.com> <CA+55aFzztct_HzmGiit=9SwwM4_YPuXbjwMdJpM1JHMXGBNqaA@mail.gmail.com> <CA+55aFxAY5FvJOjr9=W=g7WDj_gNwKrEeCFAiY2L2YmpaDx1cw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:38498 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S965781Ab2EQXcH (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 May 2012 19:32:07 -0400
-In-Reply-To: <4FB58901.5060604@gmail.com>
+Received: from mail-pz0-f46.google.com ([209.85.210.46]:64490 "EHLO
+	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753709Ab2EQXvT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 May 2012 19:51:19 -0400
+In-Reply-To: <CA+55aFxAY5FvJOjr9=W=g7WDj_gNwKrEeCFAiY2L2YmpaDx1cw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Daney <ddaney.cavm@gmail.com>
-Cc: "H.J. Lu" <hjl.tools@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, "H.J. Lu" <hjl.tools@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de
 
-On 05/17/2012 04:25 PM, David Daney wrote:
+On 05/17/2012 03:56 PM, Linus Torvalds wrote:
+> On Thu, May 17, 2012 at 3:50 PM, Linus Torvalds
+> <torvalds@linux-foundation.org>  wrote:
 >>
->> Do you have any basis whatsoever for that statement?
-> 
-> You should have asked for a 'solid basis'.
-> 
-> My basis is that the name '__kernel_ulong_t' implies, in my mind, that
-> it would have the width of a kernel unsigned long.
+>> I think __word would be good too, *except* for the fact that
+>> especially in x86 land, I think there's the legacy confusion with
+>> "word" being 16-bit. Ugh.
+>
+> Looking at the x32 case, I have to say that "long" in general looks
+> horrible. Especially when we have things like
+>
+>    typedef long long __kernel_long_t;
+>
+> (and __long really wouldn't look any nicer). Any sane person would go
+> "Eww" at looking at that - we're using 'long long' to typedef a type
+> that is named 'long'.
+>
+> It would make much more sense to use "__word" for reasons like that.
+> But I really don't think that works well in a x86 context.
+>
+> Other ideas? Maybe "__wordsize" would be less associated with x86 16-bit words?
+>
 
-The namespace __kernel_* doesn't mean "as used in the kernel" but rather
-"exported by the kernel".  But yes, see also Linus' criticism.
+FWIW: "__abi_wordsize" to indicate that it is not really a property of 
+the machine itself, but rather the ABI in use.
 
-	-hpa
-
-
--- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
+David Daney
