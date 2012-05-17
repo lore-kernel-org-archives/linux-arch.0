@@ -1,50 +1,21 @@
 From: "H.J. Lu" <hjl.tools@gmail.com>
-Subject: [PATCH 06/10] Use __kernel_ulong_t in x86 struct semid64_ds
-Date: Thu, 17 May 2012 15:13:32 -0700
-Message-ID: <1337292816-10839-7-git-send-email-hjl.tools@gmail.com>
-References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:46382 "EHLO mga02.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S967770Ab2EQWOE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 May 2012 18:14:04 -0400
-In-Reply-To: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [RFC PATCH 00/10] Use __kernel_[u]long_t for x32 user space compatibility
+Date: Thu, 17 May 2012 15:13:26 -0700
+Message-ID: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: torvalds@linux-foundation.org, hpa@zytor.com, mingo@kernel.org, tglx@linutronix.de, "H.J. Lu" <hjl.tools@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-From: "H.J. Lu" <hjl.tools@gmail.com>
+From: H.J. Lu <hjl.tools@gmail.com>
 
-Replace unsigned long with __kernel_ulong_t in x86 struct semid64_ds
-for user space.
+This patch set changes a number of places where the kernel headers are
+exported to user space and currently use explicit "long" or "unsigned
+long" to use __kernel_[u]long_t in order to be compatible with the x32
+user space ABI.  These location are places where x32 uses the x86-64
+ABI.
 
-Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
----
- arch/x86/include/asm/sembuf.h |   10 +++++-----
- 1 files changed, 5 insertions(+), 5 deletions(-)
-
-diff --git a/arch/x86/include/asm/sembuf.h b/arch/x86/include/asm/sembuf.h
-index ee50c80..cc2d6a3 100644
---- a/arch/x86/include/asm/sembuf.h
-+++ b/arch/x86/include/asm/sembuf.h
-@@ -13,12 +13,12 @@
- struct semid64_ds {
- 	struct ipc64_perm sem_perm;	/* permissions .. see ipc.h */
- 	__kernel_time_t	sem_otime;	/* last semop time */
--	unsigned long	__unused1;
-+	__kernel_ulong_t __unused1;
- 	__kernel_time_t	sem_ctime;	/* last change time */
--	unsigned long	__unused2;
--	unsigned long	sem_nsems;	/* no. of semaphores in array */
--	unsigned long	__unused3;
--	unsigned long	__unused4;
-+	__kernel_ulong_t __unused2;
-+	__kernel_ulong_t sem_nsems;	/* no. of semaphores in array */
-+	__kernel_ulong_t __unused3;
-+	__kernel_ulong_t __unused4;
- };
- 
- #endif /* _ASM_X86_SEMBUF_H */
--- 
-1.7.6.5
+It is quite possible that some, or even all, of these locations should
+really use dedicated types, but in the meantime this gives the correct
+results which the current headers do not.
