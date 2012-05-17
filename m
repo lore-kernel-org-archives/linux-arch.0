@@ -1,316 +1,134 @@
-From: Steven Rostedt <rostedt@goodmis.org>
+From: Paul Mundt <lethal@linux-sh.org>
 Subject: Re: [PATCH v5 6/7] x86/tlb: optimizing flush_tlb_mm
-Date: Wed, 16 May 2012 22:07:08 -0400
-Message-ID: <1337220428.6724.87.camel@gandalf.stny.rr.com>
+Date: Thu, 17 May 2012 11:14:30 +0900
+Message-ID: <20120517021430.GC16069@linux-sh.org>
 References: <1337072138-8323-1-git-send-email-alex.shi@intel.com>
-	    <1337072138-8323-7-git-send-email-alex.shi@intel.com>
-	    <CAPa8GCDsSOrzQwX2qRJyocYAZdGbwjD4t4fjxmWXV6=EoXjXZw@mail.gmail.com>
-	    <4FB2590C.1050303@intel.com> <1337092577.27694.45.camel@twins>
-	   <1337093840.27694.56.camel@twins> <4FB34D49.1060809@intel.com>
-	  <1337155239.27694.131.camel@twins> <4FB3ACD2.5010900@intel.com>
-	 <1337202569.4281.13.camel@twins> <4FB449C1.2020603@intel.com>
+ <1337072138-8323-7-git-send-email-alex.shi@intel.com>
+ <CAPa8GCDsSOrzQwX2qRJyocYAZdGbwjD4t4fjxmWXV6=EoXjXZw@mail.gmail.com>
+ <4FB2590C.1050303@intel.com>
+ <1337092577.27694.45.camel@twins>
+ <1337093840.27694.56.camel@twins>
+ <4FB34D49.1060809@intel.com>
+ <1337155239.27694.131.camel@twins>
+ <4FB3ACD2.5010900@intel.com>
+ <1337202569.4281.13.camel@twins>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="=-8qGVCY1VH4LhVrgi42O5"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <4FB449C1.2020603@intel.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Alex Shi <alex.shi@intel.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Nick Piggin <npiggin@gmail.com>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, fweisbec@gmail.com, jeremy@goop.org, riel@redhat.com, luto@mit.edu, avi@redhat.com, len.brown@intel.com, dhowells@redhat.com, fenghua.yu@intel.com, borislav.petkov@amd.com, yinghai@kernel.org, ak@linux.intel.com, cpw@sgi.com, steiner@sgi.com, akpm@linux-foundation.org, penberg@kernel.org, hughd@google.com, rientjes@google.com, kosaki.motohiro@jp.fujitsu.com, n-horiguchi@ah.jp.nec.com, tj@kernel.org, oleg@redhat.com, axboe@kernel.dk, jmorris@namei.org, kamezawa.hiroyu@jp.fujitsu.com, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, yongjie.ren@intel.com, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from linux-sh.org ([111.68.239.195]:51895 "EHLO linux-sh.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1760826Ab2EQCQ2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 16 May 2012 22:16:28 -0400
+Content-Disposition: inline
+In-Reply-To: <1337202569.4281.13.camel@twins>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Alex Shi <alex.shi@intel.com>, Nick Piggin <npiggin@gmail.com>, tglx@linutronix.de, mingo@redhat.com, hpa@zytor.com, arnd@arndb.de, rostedt@goodmis.org, fweisbec@gmail.com, jeremy@goop.org, riel@redhat.com, luto@mit.edu, avi@redhat.com, len.brown@intel.com, dhowells@redhat.com, fenghua.yu@intel.com, borislav.petkov@amd.com, yinghai@kernel.org, ak@linux.intel.com, cpw@sgi.com, steiner@sgi.com, akpm@linux-foundation.org, penberg@kernel.org, hughd@google.com, rientjes@google.com, kosaki.motohiro@jp.fujitsu.com, n-horiguchi@ah.jp.nec.com, tj@kernel.org, oleg@redhat.com, axboe@kernel.dk, jmorris@namei.org, kamezawa.hiroyu@jp.fujitsu.com, viro@zeniv.linux.org.uk, linux-kernel@vger.kernel.org, yongjie.ren@intel.com, linux-arch@vger.kernel.org
 
-
---=-8qGVCY1VH4LhVrgi42O5
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: 7bit
-
-On Thu, 2012-05-17 at 08:43 +0800, Alex Shi wrote:
-
-> > I've seem to have misplaced my cross-compiler set, so I've only compiled
-> > x86-64 for now.
+On Wed, May 16, 2012 at 11:09:29PM +0200, Peter Zijlstra wrote:
+> On Wed, 2012-05-16 at 21:34 +0800, Alex Shi wrote:
+> > 
+> > So, if the minimum change of tlb->start/end can be protected by
+> > HAVE_GENERIC_MMU_GATHER, it is safe and harmless, am I right?
+> > 
+> safe yes, but not entirely harmless. A quick look seems to suggest you
+> fail for VM_HUGETLB. If your mmu_gather spans a vma with VM_HUGETLB
+> you'll do a regular range flush not a full mm flush like the other paths
+> do.
 > 
+> Anyway, I did a quick refresh of my series on a recent -tip tree:
 > 
-> Oh, I also need a cross-compiler for other archs. Thanks reminder!
-
-Here:
-
-http://kernel.org/pub/tools/crosstool/
-
-Oh, and if you want to automate this. I attached a ktest.pl config that
-does it for you. I'll be pushing this config and others into a examples
-directory come the next merge window.
-
-Ktest is located in the Linux tree under tools/testing/ktest/
-
-You can run a bunch of cross compiles by doing:
-
-ktest.pl crosstests.conf
-
--- Steve
-
-
-
-
-
---=-8qGVCY1VH4LhVrgi42O5
-Content-Disposition: attachment; filename="crosstests.conf"
-Content-Type: text/plain; name="crosstests.conf"; charset="ISO-8859-15"
-Content-Transfer-Encoding: 7bit
-
-#
-# Example config for cross compiling
-#
-# In this config, it is expected that the tool chains from:
-#
-#   http://kernel.org/pub/tools/crosstool/files/bin/x86_64/
-#
-# running on a x86_64 system have been downloaded and installed into:
-#
-#   /usr/local/
-#
-# such that the compiler binaries are something like:
-#
-#   /usr/local/gcc-4.5.2-nolibc/mips-linux/bin/mips-linux-gcc
-#
-# Some of the archs will use gcc-4.5.1 instead of gcc-4.5.2
-# this config uses variables to differentiate them.
-# 
-# Comments will be described for some areas, but the opitons are
-# all documented in the samples.conf file.
-
-# ${PWD} is defined by ktest.pl to be the directory that the user
-# was in when they executed ktest.pl. It may be better to hardcode the
-# path name here. THIS_DIR is the variable used through out the config file
-# in case you want to change it.
-
-THIS_DIR := ${PWD}
-
-# Update the BUILD_DIR option to the location of your git repo you want to test.
-BUILD_DIR = ${THIS_DIR}/linux.git
-
-# The build will go into this directory. It will be created when you run the test.
-OUTPUT_DIR = ${THIS_DIR}/cross-compile
-
-# The build will be compiled with -j8
-BUILD_OPTIONS = -j8
-
-# The test will not stop when it hits a failure.
-DIE_ON_FAILURE = 0
-
-# If you want to have ktest.pl store the failure somewhere, uncomment this option
-# and change the directory where ktest should store the failures.
-#STORE_FAILURES = ${THIS_DIR}/failures
-
-# The log file is stored in the OUTPUT_DIR called cross.log
-# If you enable this, you need to create the OUTPUT_DIR. It wont be created for you.
-#LOG_FILE = ${OUTPUT_DIR}/cross.log
-
-# The log file will be cleared each time you run ktest.
-CLEAR_LOG = 1
-
-# As some archs do not build with the defconfig, they have been marked
-# to be ignored. If you want to test them anyway, change DO_FAILED to one.
-# If a test that has been marked as DO_FAILED passes, then you should change
-# that test to be DO_DEFAULT
-
-DO_FAILED := 0
-DO_DEFAULT := 1
-
-# By setting both DO_FAILED and DO_DEFAULT to zero, you can pick a single
-# arch that you want to test. (uncomment RUN and chose your arch)
-#RUN := m32r
-
-# At the bottom of the config file exists a bisect test. You can update that
-# test and set DO_FAILED and DO_DEFAULT to zero, and uncomment this variable
-# to run the bisect on the arch.
-#RUN := bisect
-
-# By default all tests will be running gcc 4.5.2. Some tests are using 4.5.1
-# and they select that in the test.
-# Note: GCC_VER is declared as on option and not a variable ('=' istead of ':=')
-# This is important. A variable is used only in the config file and if it is set
-# it stays that way for the rest of the config file until it is change again.
-# Here we want GCC_VER to remain persistent throughout the tests, as it is used in
-# the MAKE_CMD. By using '=' instead of ':=' we achieve our goal.
-
-GCC_VER = 4.5.2
-MAKE_CMD = PATH=/usr/local/gcc-${GCC_VER}-nolibc/${CROSS}/bin:$PATH CROSS_COMPILE=${CROSS}- make ARCH=${ARCH}
-
-# all tests are only doing builds.
-TEST_TYPE = build
-
-# If you want to add configs on top of the defconfig, you can add those configs into
-# the add-config file and uncomment this option. This is useful if you want to test
-# all cross compiles with PREEMPT set, or TRACING on, etc.
-#ADD_CONFIG = ${THIS_DIR}/add-config
-
-# All tests are using defconfig
-BUILD_TYPE = defconfig
-
-# The test names will have the arch and cross compiler used. This will be shown in
-# the results.
-TEST_NAME = ${ARCH} ${CROSS}
-
-# alpha
-TEST_START IF ${RUN} == alpha || ${DO_DEFAULT}
-CROSS = alpha-linux
-ARCH = alpha
-
-# arm
-TEST_START IF ${RUN} == arm || ${DO_DEFAULT}
-CROSS = arm-unknown-linux-gnueabi
-ARCH = arm
-
-# black fin
-TEST_START IF ${RUN} == bfin || ${DO_DEFAULT}
-CROSS = bfin-uclinux
-ARCH = blackfin
-BUILD_OPTIONS = -j8 vmlinux
-
-# cris - FAILS?
-TEST_START IF ${RUN} == cris || ${RUN} == cris64 || ${DO_FAILED}
-CROSS = cris-linux
-ARCH = cris
-
-# cris32 - not right arch?
-TEST_START IF ${RUN} == cris || ${RUN} == cris32 || ${DO_FAILED}
-CROSS = crisv32-linux
-ARCH = cris
-
-# ia64
-TEST_START IF ${RUN} == ia64 || ${DO_DEFAULT}
-CROSS = ia64-linux
-ARCH = ia64
-
-# frv
-TEST_START IF ${RUN} == frv || ${DO_FAILED}
-CROSS = frv-linux
-ARCH = frv
-GCC_VER = 4.5.1
-
-# h8300 - failed make defconfig??
-TEST_START IF ${RUN} == h8300 || ${DO_FAILED}
-CROSS = h8300-elf
-ARCH = h8300
-GCC_VER = 4.5.1
-
-# m68k fails with error?
-TEST_START IF ${RUN} == m68k || ${DO_DEFAULT}
-CROSS = m68k-linux
-ARCH = m68k
-
-# mips64
-TEST_START IF ${RUN} == mips || ${RUN} == mips64 || ${DO_DEFAULT}
-CROSS = mips64-linux
-ARCH = mips
-
-# mips32
-TEST_START IF ${RUN} == mips || ${RUN} == mips32 || ${DO_DEFAULT}
-CROSS = mips-linux
-ARCH = mips
-
-# m32r
-TEST_START IF ${RUN} == m32r || ${DO_FAILED}
-CROSS = m32r-linux
-ARCH = m32r
-GCC_VER = 4.5.1
-BUILD_OPTIONS = -j8 vmlinux
-
-# parisc64 failed?
-TEST_START IF ${RUN} == hppa || ${RUN} == hppa64 || ${DO_FAILED}
-CROSS = hppa64-linux
-ARCH = parisc
-
-# parisc
-TEST_START IF ${RUN} == hppa || ${RUN} == hppa32 || ${DO_FAILED}
-CROSS = hppa-linux
-ARCH = parisc
-
-# ppc
-TEST_START IF ${RUN} == ppc || ${RUN} == ppc32 || ${DO_DEFAULT}
-CROSS = powerpc-linux
-ARCH = powerpc
-
-# ppc64
-TEST_START IF ${RUN} == ppc || ${RUN} == ppc64 || ${DO_DEFAULT}
-CROSS = powerpc64-linux
-ARCH = powerpc
-
-# s390
-TEST_START IF ${RUN} == s390 || ${DO_DEFAULT}
-CROSS = s390x-linux
-ARCH = s390
-
-# sh
-TEST_START IF ${RUN} == sh || ${DO_DEFAULT}
-CROSS = sh4-linux
-ARCH = sh
-
-# sparc64
-TEST_START IF ${RUN} == sparc || ${RUN} == sparc64 || ${DO_DEFAULT}
-CROSS = sparc64-linux
-ARCH = sparc64
-
-# sparc
-TEST_START IF ${RUN} == sparc || ${RUN} == sparc32 || ${DO_DEFAULT}
-CROSS = sparc-linux
-ARCH = sparc
-
-# xtensa failed
-TEST_START IF ${RUN} == xtensa || ${DO_FAILED}
-CROSS = xtensa-linux
-ARCH = xtensa
-
-# UML
-TEST_START IF ${RUN} == uml || ${DO_DEFAULT}
-MAKE_CMD = make ARCH=um SUBARCH=x86_64
-ARCH = uml
-CROSS =
-
-TEST_START IF ${RUN} == x86 || ${RUN} == i386 || ${DO_DEFAULT}
-MAKE_CMD = make ARCH=i386
-ARCH = i386
-CROSS = 
-
-TEST_START IF ${RUN} == x86 || ${RUN} == x86_64 || ${DO_DEFAULT}
-MAKE_CMD = make ARCH=x86_64
-ARCH = x86_64
-CROSS = 
-
-#################################
-
-# This is a bisect if needed. You need to give it a MIN_CONFIG that
-# will be the config file it uses. Basically, just copy the created defconfig
-# for the arch someplace and point MIN_CONFIG to it.
-TEST_START IF ${RUN} == bisect
-MIN_CONFIG = ${THIS_DIR}/min-config
-CROSS = s390x-linux
-ARCH = s390
-TEST_TYPE = bisect
-BISECT_TYPE = build
-BISECT_GOOD = v3.1
-BISECT_BAD = v3.2
-CHECKOUT = v3.2
-
-#################################
-
-# These defaults are needed to keep ktest.pl from complaining. They are
-# ignored because the test does not go pass the build. No install or
-# booting of the target images.
-
-DEFAULTS
-MACHINE = crosstest
-SSH_USER = root
-BUILD_TARGET = cross
-TARGET_IMAGE = image
-POWER_CYCLE = cycle
-CONSOLE = console
-LOCALVERSION = version
-GRUB_MENU = grub
-
-REBOOT_ON_ERROR = 0
-POWEROFF_ON_ERROR = 0
-POWEROFF_ON_SUCCESS = 0
-REBOOT_ON_SUCCESS = 0
-
-
---=-8qGVCY1VH4LhVrgi42O5--
+>  git://git.kernel.org/pub/scm/linux/kernel/git/peterz/mmu.git tlb-unify
+> 
+> With that all you need is to "select HAVE_MMU_GATHER_RANGE" for x86 and
+> implement a useful flush_tlb_range().
+> 
+> In particular, see:
+> http://git.kernel.org/?p=linux/kernel/git/peterz/mmu.git;a=commitdiff;h=05e53144177e6242fda404045f50f48114bcf185;hp=2cd7dc710652127522392f4b7ecb5fa6e954941e
+> 
+> I've slightly changed the code to address an open issue with the
+> vm_flags tracking. We now force flush the mmu_gather whenever VM_HUGETLB
+> flips because most (all?) archs that look at that flag expect pure huge
+> pages and not a mixture.
+> 
+> I've seem to have misplaced my cross-compiler set, so I've only compiled
+> x86-64 for now.
+
+It was on my list to test when you sent out the series initially, but
+seems to have slipped my mind until I saw this thread. Here's a patch on
+top of your tlb-unify branch that gets sh working (tested on all of
+2-level, 3-level, and nommu).
+
+I opted to shove the asm/cacheflush.h include in to tlb.h directly since
+it is calling flush_cache_range() openly now, and the rest of the
+architectures are just getting at it through various whimsical means. sh
+was getting it through pagemap.h -> highmem.h, while ARM presently can't
+seem to make up its mind and includes pagemap.h for nommu only as well as
+cacheflush.h explicitly.
+
+With the reworked interface we don't seem to actually need to stub out
+the interface for the nommu case anymore anyways, all of the users are
+insular to mm/memory.c which we don't build for nommu.
+
+Signed-off-by: Paul Mundt <lethal@linux-sh.org>
+
+---
+
+diff --git a/arch/sh/include/asm/pgalloc.h b/arch/sh/include/asm/pgalloc.h
+index 8c00785..bedc2ed 100644
+--- a/arch/sh/include/asm/pgalloc.h
++++ b/arch/sh/include/asm/pgalloc.h
+@@ -13,6 +13,8 @@ extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
+ extern void pud_populate(struct mm_struct *mm, pud_t *pudp, pmd_t *pmd);
+ extern pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long address);
+ extern void pmd_free(struct mm_struct *mm, pmd_t *pmd);
++
++#define __pmd_free_tlb(tlb, pmdp, addr)	pmd_free((tlb)->mm, pmdp)
+ #endif
+ 
+ static inline void pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd,
+diff --git a/arch/sh/include/asm/tlb.h b/arch/sh/include/asm/tlb.h
+index 45e5925..71af915 100644
+--- a/arch/sh/include/asm/tlb.h
++++ b/arch/sh/include/asm/tlb.h
+@@ -6,18 +6,7 @@
+ #endif
+ 
+ #ifndef __ASSEMBLY__
+-#include <linux/pagemap.h>
+-
+ #ifdef CONFIG_MMU
+-#include <linux/swap.h>
+-
+-#define __tlb_remove_tlb_entry(tlb, ptep, addr) do { } while (0)
+-
+-#define __pte_free_tlb(tlb, ptep, addr)	pte_free((tlb)->mm, ptep)
+-#define __pmd_free_tlb(tlb, pmdp, addr)	pmd_free((tlb)->mm, pmdp)
+-#define __pud_free_tlb(tlb, pudp, addr)	pud_free((tlb)->mm, pudp)
+-
+-#include <asm-generic/tlb.h>
+ 
+ #if defined(CONFIG_CPU_SH4) || defined(CONFIG_SUPERH64)
+ extern void tlb_wire_entry(struct vm_area_struct *, unsigned long, pte_t);
+@@ -35,8 +24,6 @@ static inline void tlb_unwire_entry(void)
+ }
+ #endif
+ 
+-#else /* CONFIG_MMU */
+-
+ #define __tlb_remove_tlb_entry(tlb, pte, address)	do { } while (0)
+ 
+ #include <asm-generic/tlb.h>
+diff --git a/include/asm-generic/tlb.h b/include/asm-generic/tlb.h
+index 90a725c..571e2cf 100644
+--- a/include/asm-generic/tlb.h
++++ b/include/asm-generic/tlb.h
+@@ -18,6 +18,7 @@
+ #include <linux/swap.h>
+ #include <asm/pgalloc.h>
+ #include <asm/tlbflush.h>
++#include <asm/cacheflush.h>
+ 
+ static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page);
+ 
