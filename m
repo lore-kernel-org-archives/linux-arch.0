@@ -1,49 +1,38 @@
 From: "H.J. Lu" <hjl.tools@gmail.com>
-Subject: [PATCH 02/10] Use __kernel_ulong_t in struct shm_info
-Date: Thu, 17 May 2012 15:13:28 -0700
-Message-ID: <1337292816-10839-3-git-send-email-hjl.tools@gmail.com>
+Subject: [PATCH 04/10] Use __kernel_long_t in struct msgbuf
+Date: Thu, 17 May 2012 15:13:30 -0700
+Message-ID: <1337292816-10839-5-git-send-email-hjl.tools@gmail.com>
 References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga02.intel.com ([134.134.136.20]:53202 "EHLO mga02.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S967766Ab2EQWOC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 May 2012 18:14:02 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: torvalds@linux-foundation.org, hpa@zytor.com, mingo@kernel.org, tglx@linutronix.de, "H.J. Lu" <hjl.tools@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
 From: "H.J. Lu" <hjl.tools@gmail.com>
 
-Replace unsigned long with __kernel_ulong_t in struct shm_info for
-user space.
+Replace long with __kernel_long_t in struct msgbuf for user space.
 
 Signed-off-by: H.J. Lu <hjl.tools@gmail.com>
 ---
- include/linux/shm.h |   10 +++++-----
- 1 files changed, 5 insertions(+), 5 deletions(-)
+ include/linux/msg.h |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/include/linux/shm.h b/include/linux/shm.h
-index 92808b8..6cd9510 100644
---- a/include/linux/shm.h
-+++ b/include/linux/shm.h
-@@ -75,11 +75,11 @@ struct	shminfo {
+diff --git a/include/linux/msg.h b/include/linux/msg.h
+index 56abf15..c5d21c1 100644
+--- a/include/linux/msg.h
++++ b/include/linux/msg.h
+@@ -33,8 +33,8 @@ struct msqid_ds {
  
- struct shm_info {
- 	int used_ids;
--	unsigned long shm_tot;	/* total allocated shm */
--	unsigned long shm_rss;	/* total resident shm */
--	unsigned long shm_swp;	/* total swapped shm */
--	unsigned long swap_attempts;
--	unsigned long swap_successes;
-+	__kernel_ulong_t shm_tot;	/* total allocated shm */
-+	__kernel_ulong_t shm_rss;	/* total resident shm */
-+	__kernel_ulong_t shm_swp;	/* total swapped shm */
-+	__kernel_ulong_t swap_attempts;
-+	__kernel_ulong_t swap_successes;
+ /* message buffer for msgsnd and msgrcv calls */
+ struct msgbuf {
+-	long mtype;         /* type of message */
+-	char mtext[1];      /* message text */
++	__kernel_long_t mtype;	/* type of message */
++	char mtext[1];		/* message text */
  };
  
- #ifdef __KERNEL__
+ /* buffer for msgctl calls IPC_INFO, MSG_INFO */
 -- 
 1.7.6.5
