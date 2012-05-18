@@ -1,95 +1,70 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH 08/10] Use __kernel_ulong_t in struct msqid64_ds
-Date: Fri, 18 May 2012 11:03:15 -0400
-Message-ID: <4FB664B3.7090100@tilera.com>
-References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com> <1337292816-10839-9-git-send-email-hjl.tools@gmail.com> <4FB58EFD.7010302@zytor.com> <CA+55aFy+XOc350sVuLKDHAaKtz9GdLcVmjxs98N8XLTK4zmMYg@mail.gmail.com> <4FB59474.2020505@zytor.com> <4FB597F3.3060909@gmail.com> <4FB599AC.1010807@zytor.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH 05/21] resource: adjust_resource handle resource without parent
+Date: Fri, 18 May 2012 11:12:07 -0600
+Message-ID: <CAErSpo71rKrZ7ptJjE5Lb6YnrqXVe1eGhn3pyF2Qjp=o8JHQmg@mail.gmail.com>
+References: <1336422606-4244-1-git-send-email-yinghai@kernel.org> <1336422606-4244-6-git-send-email-yinghai@kernel.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:17892 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751409Ab2ERPDS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2012 11:03:18 -0400
-In-Reply-To: <4FB599AC.1010807@zytor.com>
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:50981 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757221Ab2ERRM3 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2012 13:12:29 -0400
+Received: by lbbgm6 with SMTP id gm6so2220194lbb.19
+        for <linux-arch@vger.kernel.org>; Fri, 18 May 2012 10:12:27 -0700 (PDT)
+In-Reply-To: <1336422606-4244-6-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, libc-ports@sourceware.org
-Cc: David Daney <ddaney.cavm@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, "H.J. Lu" <hjl.tools@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, Arnd Bergmann <arnd@arndb.de>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-(Cc'ing libc-ports and Arnd Bergmann.)
+On Mon, May 7, 2012 at 2:29 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+> for no parent no siling case.
+>
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> ---
+> =A0kernel/resource.c | =A0 13 ++++++++-----
+> =A01 files changed, 8 insertions(+), 5 deletions(-)
+>
+> diff --git a/kernel/resource.c b/kernel/resource.c
+> index 7e8ea66..51ade23 100644
+> --- a/kernel/resource.c
+> +++ b/kernel/resource.c
+> @@ -722,14 +722,12 @@ int adjust_resource(struct resource *res, resou=
+rce_size_t start, resource_size_t
+>
+> =A0 =A0 =A0 =A0write_lock(&resource_lock);
+>
+> + =A0 =A0 =A0 if (!parent)
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 goto skip;
+> +
+> =A0 =A0 =A0 =A0if ((start < parent->start) || (end > parent->end))
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0goto out;
+>
+> - =A0 =A0 =A0 for (tmp =3D res->child; tmp; tmp =3D tmp->sibling) {
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 if ((tmp->start < start) || (tmp->end >=
+ end))
+> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 goto out;
+> - =A0 =A0 =A0 }
+> -
+> =A0 =A0 =A0 =A0if (res->sibling && (res->sibling->start <=3D end))
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0goto out;
+>
+> @@ -741,6 +739,11 @@ int adjust_resource(struct resource *res, resour=
+ce_size_t start, resource_size_t
+> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0goto out;
+> =A0 =A0 =A0 =A0}
+>
+> +skip:
+> + =A0 =A0 =A0 for (tmp =3D res->child; tmp; tmp =3D tmp->sibling)
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 if ((tmp->start < start) || (tmp->end >=
+ end))
+> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 goto out;
+> +
+> =A0 =A0 =A0 =A0res->start =3D start;
+> =A0 =A0 =A0 =A0res->end =3D end;
+> =A0 =A0 =A0 =A0result =3D 0;
 
-On 5/17/2012 8:37 PM, H. Peter Anvin wrote:
-> It looks like MIPS has a private definition of struct msqid64_ds, as do
-> most other architectures; the MIPS one is completely broken for user
-> space usages as it uses CONFIG_* macros:
-> 
-> #if defined(CONFIG_32BIT) && !defined(CONFIG_CPU_LITTLE_ENDIAN)
->         unsigned long   __unused2;
-> #endif
->         __kernel_time_t msg_rtime;      /* last msgrcv time */
-> #if defined(CONFIG_32BIT) && defined(CONFIG_CPU_LITTLE_ENDIAN)
->         unsigned long   __unused2;
-> #endif
-> 
-> It looks like the only users of asm-generic here are:
-> 
-> arch/microblaze/include/asm/msgbuf.h:#include <asm-generic/msgbuf.h>
-> arch/score/include/asm/msgbuf.h:#include <asm-generic/msgbuf.h>
-> arch/sh/include/asm/msgbuf.h:#include <asm-generic/msgbuf.h>
-> arch/x86/include/asm/msgbuf.h:#include <asm-generic/msgbuf.h>
-> 
-> ... and unless I'm mistaken, x86 is the only one of those which isn't 32
-> bits only, which explains the reason it "works"...
-
-Don't forget the newer architectures that use generic-y:
-
-arch/blackfin/include/asm/Kbuild:generic-y += msgbuf.h
-arch/c6x/include/asm/Kbuild:generic-y += msgbuf.h
-arch/hexagon/include/asm/Kbuild:generic-y += msgbuf.h
-arch/openrisc/include/asm/Kbuild:generic-y += msgbuf.h
-arch/tile/include/asm/Kbuild:generic-y += msgbuf.h
-arch/unicore32/include/asm/Kbuild:generic-y += msgbuf.h
-
-On 5/17/2012 8:22 PM, Linus Torvalds wrote:
-> That's why I think it's unfixable. It started out broken, and I
-> presume that 32-bit user land on a 64-bit MIPS/PPC thing either do not
-> work, or there's some compat crap (like special user-land headers)
-> fixing things up. Or they just don't use that buggered msqid64_ds
-> thing at all.
-
-Yes, it's compat crap.  Each architecture defines its own compat_msqid64_ds
-that carefully places the padding in the same place as the corresponding
-native 32-bit kernel puts it, and glibc doesn't use <asm/msgbuf.h> at all,
-but instead provides a hand-rolled <bits/msq.h>.
-
-I added a glibc <bits/msq.h> that targets the asm-generic version of the
-header, so it puts the padding after the time_t, even on big-endian
-platforms.  This is of course crazy, but it's what you need to do to use
-the current asm-generic header.
-
-However, now is a good time to ask whether this is the right thing to do
-going forward.  The tile architecture is the only one that currently offers
-a 32-bit big-endian userspace (only in linux-next, queued for 3.5) and also
-uses <asm-generic> for the SysV stuff, so if someone wants to advocate for
-changing this, now is definitely a good time for it.
-
-We could modify asm-generic so that it puts the padding where it "ought" to
-go, easily enough.  This would then allow three of the four big-endian
-32-bit architectures (sparc, parisc, powerpc) to use the generic headers,
-if they wished.  (The fourth one, s390, puts the padding after, like
-asm-generic currently does.)
-
-This might then allow us to consider making "struct compat_msqid64_ds" and
-friends something that is defined in <linux/compat.h> rather than
-per-architecture, though we'd need a hook to allow architectures like s390
-to override and provide their own definition.
-
-As far as x32 goes, this should all be largely irrelevant, since it likely
-won't use the compat structures anyway, and since we're not proposing
-breaking the little-endian layout.  But future x32-style compat big-endian
-architectures would benefit from having a msqid64_ds structure that
-actually lays out the same in 32- or 64-bit mode.
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+Where does this case occur?  When do you need to adjust a resource
+that has no parent?
