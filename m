@@ -1,7 +1,7 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
 Subject: Re: [parisc] double restarts on multiple signal arrivals
-Date: Fri, 18 May 2012 19:57:12 +0100
-Message-ID: <20120518185712.GT22082@ZenIV.linux.org.uk>
+Date: Fri, 18 May 2012 20:56:10 +0100
+Message-ID: <20120518195610.GV22082@ZenIV.linux.org.uk>
 References: <20120518175833.GQ22082@ZenIV.linux.org.uk>
  <CAP6odjiS+oH7ajnHcyBJwm9bCTZxDJ7w02JeCuWW_UF3Fm49xw@mail.gmail.com>
 Mime-Version: 1.0
@@ -25,15 +25,28 @@ On Fri, May 18, 2012 at 11:05:46AM -0700, Grant Grundler wrote:
 > years ago. Since HP didn't care, no one else did either.  So no need
 > to consider it now.
 
-In any case, it doesn't look like something that might be HPUX-related -
-there r28 is not used for arguments or syscall number either, as far
-as I can tell...
+BTW, what should we put into the trampolines of subsequent sigframes
+when we are building more that one?  I.e. suppose we are in a syscall
+and see two signals.  We build a sigframe for the first one, with
+r25 = 1, call rt_sigreturn() in it.  Return address of original syscall
+is stored into sigcontext of that frame, our return address set to the
+entry point of handler1.  Now we see the second signal and build another
+sigframe.  That one will have the entry point of the first handler stored
+in sigframe and we'll set the things up so that return to userland will
+land us in the entry of handler2.  Fine, but... what should we have in r25
+for rt_sigreturn() in the second trampoline?
 
-That's a side story, in any case; whatever the reason for restoring
-r28, it only masks the bug with double restarts.  If you enter syscall
-with r28 equal to e.g. -ERESTARTNOINTR, get the same value from sys_whatever()
-and have a couple of pending signals, you will have syscall_restart()
-called twice, each time seeing regs->gr[28] == -ERESTARTNOINTR and leaving
-it unchanged.  regs->gr[31] will be decremented by 8 on each of those
-calls, first time back to your syscall (correctly), then to the entry point
-of the first handler minus 8.
+We return to userland and find ourselves in the beginning of handler2.
+It's executed and eventually we return from it.  We are at the beginning
+of the second trampoline now.  rt_sigreturn() is called, restores the
+registers from the second sigcontext and returns to userland.  We are at
+the beginning of handler1.  It is executed and returns.  We are at the
+beginning of the first trampoline.  rt_sigreturn() _there_ restores the
+original registers from the first sigcontext and we finally return to the
+insn right after the original syscall (or to the syscall itself if we
+took a syscall restart).
+
+That final rt_sigreturn() will go through syscall_exit; OK, no problem
+with that.  But should the earlier one (done after return from handler2()
+and landing us at the entry of handler1) go through syscall_exit or
+through syscall_exit_rfi?
