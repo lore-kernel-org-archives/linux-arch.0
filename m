@@ -1,74 +1,62 @@
-From: Mike Frysinger <vapier@gentoo.org>
-Subject: Re: [RFC PATCH 00/10] Use __kernel_[u]long_t for x32 user space compatibility
-Date: Thu, 17 May 2012 20:38:46 -0400
-Message-ID: <201205172038.48371.vapier@gentoo.org>
-References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com> <201205172019.27462.vapier@gentoo.org> <4FB5960E.6070205@zytor.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH 08/10] Use __kernel_ulong_t in struct msqid64_ds
+Date: Thu, 17 May 2012 17:41:42 -0700
+Message-ID: <CA+55aFx4sEQT=U4DBULeo9=3piOx_pQUws92ovKV5bKsu3hQQQ@mail.gmail.com>
+References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
+ <1337292816-10839-9-git-send-email-hjl.tools@gmail.com> <4FB58EFD.7010302@zytor.com>
+ <CA+55aFy+XOc350sVuLKDHAaKtz9GdLcVmjxs98N8XLTK4zmMYg@mail.gmail.com>
+ <4FB59474.2020505@zytor.com> <CA+55aFwyem9KoPMhYkE-vcaUDqgP9g7arHbmD-mMHMSKXaRBOw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed;
-  boundary="nextPart4978962.d8zlrftm2Z";
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.gentoo.org ([140.211.166.183]:43026 "EHLO smtp.gentoo.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1761734Ab2ERAiS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 May 2012 20:38:18 -0400
-In-Reply-To: <4FB5960E.6070205@zytor.com>
+Received: from mail-we0-f174.google.com ([74.125.82.174]:62883 "EHLO
+	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932973Ab2ERAmF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 May 2012 20:42:05 -0400
+In-Reply-To: <CA+55aFwyem9KoPMhYkE-vcaUDqgP9g7arHbmD-mMHMSKXaRBOw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: "H.J. Lu" <hjl.tools@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de
+Cc: David Daney <ddaney.cavm@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, "H.J. Lu" <hjl.tools@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de
 
---nextPart4978962.d8zlrftm2Z
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: quoted-printable
+On Thu, May 17, 2012 at 5:22 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+>
+> That's why I think it's unfixable. It started out broken, and I
+> presume that 32-bit user land on a 64-bit MIPS/PPC thing either do not
+> work, or there's some compat crap (like special user-land headers)
+> fixing things up. Or they just don't use that buggered msqid64_ds
+> thing at all.
 
-On Thursday 17 May 2012 20:21:34 H. Peter Anvin wrote:
-> On 05/17/2012 05:19 PM, Mike Frysinger wrote:
-> > On Thursday 17 May 2012 18:13:26 H.J. Lu wrote:
-> >> From: H.J. Lu <hjl.tools@gmail.com>
-> >>=20
-> >> This patch set changes a number of places where the kernel
-> >> headers are exported to user space and currently use explicit
-> >> "long" or "unsigned long" to use __kernel_[u]long_t in order to
-> >> be compatible with the x32 user space ABI.  These location are
-> >> places where x32 uses the x86-64 ABI.
-> >>=20
-> >> It is quite possible that some, or even all, of these locations
-> >> should really use dedicated types, but in the meantime this gives
-> >> the correct results which the current headers do not.
-> >=20
-> > tangentially related, but what happened to the x86 asm/ptrace.h
-> > patch i sent that changed all the registers from unsigned long to
-> > u64 ?  e.g. struct pt_regs { -	unsigned long r15; +	__u64 r15;
->=20
-> Link please?
+Btw, even if it's unfixable, that doesn't necessarily mean that we
+can't make it *prettier*.
 
-https://groups.google.com/group/x32-abi/msg/b0b5be30d7aab1f8
-=2Dmike
+For example, instead of this horrible crap:
 
---nextPart4978962.d8zlrftm2Z
-Content-Type: application/pgp-signature; name=signature.asc 
-Content-Description: This is a digitally signed message part.
+          __kernel_time_t msg_stime;      /* last msgsnd time */
+  #if __BITS_PER_LONG != 64
+          unsigned long   __unused1;
+  #endif
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.17 (GNU/Linux)
+which is just nasty, we *could* have something much cleaner like this:
 
-iQIcBAABAgAGBQJPtZoYAAoJEEFjO5/oN/WBMygP+gO1rJfkE3Y9WEobAJVirip1
-KXgfTeslXcjJNA+b5D5QnGoTvrjhq0BOTlt5EBw55N0Dfke0LOprWc2E8AywVe57
-1Yagw+nF6XWfOHt55fwlcEKsU8IoNfEWPGWO1K1bLz7uB3dlSJUDrhzpljsanV6d
-xDKmrVGqrKqDZddY/6KEhm+tV1Dek+PwMhpA+vdrH6uJmEMo3kA53BPTiazhdVs1
-JcTHeaYOM8Jhzy9aFLSxN+7Alj6oLIrzS+C+3AGmixJhlvB72jyMPPnCzONrbyOz
-FSBkyjoM8ssBz4cGnD3HuQXo5+N8KvnP3aNHmahHX5xKtRBJLkT6xllcqk5Z9MJT
-qqn6AyZ2lUWa9zSSbmJx+K8oZoLvDVCXVyRFcANWCEyy38KcJ1LyXrx4UgQUn7WT
-GWMrOjYr2FXBqZe2bdhEaz5B/AlAoDd91KMWkrkb2r+QiS49rIuPzK9Nl33v+8pv
-WuWwvkntLfik6XKyWh+kCXJJx2zkdpe7T3fssEglKa9kEQdSewu583U0MIy2oHSd
-SboixACbRAdn0/rJ9TRNFU6Rg+Y7xZzzeM0nOp2xlRkGjKHEX3cUJjEMyQ3vJ1LK
-9qUvbkOrjB6QbVr8Y5NCJVYBmwd3wIcXQAdpe/N2paE9BXTQAYskO0OtU7pAPVAs
-LzxH1hzWBfPdVV/wn3bB
-=0JPu
------END PGP SIGNATURE-----
+  #define align_64_entry(type,name) \
+              union { type name; __u64 __align_##name; }
 
---nextPart4978962.d8zlrftm2Z--
+and then just use
+
+           align_64_entry(__kernel_time_t msg_stime);
+
+without any preprocessor #if/#ifdef crap anywhere.
+
+It would keep the current state for the (apparently broken) case of
+64-bit kernel and 32-bit user space with big-endian architectures, but
+it would *also* just magically work if __kernel_time_t is 64-bit
+despite "long" being 32-bit.
+
+So it would fix the x32 case, as far as I can tell.
+
+Note: totally untested. Maybe there's some reason why my anonymous
+union trick wouldn't work.
+
+                    Linus
