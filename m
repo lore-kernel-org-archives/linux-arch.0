@@ -1,49 +1,71 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: [PATCH 08/10] Use __kernel_ulong_t in struct msqid64_ds
-Date: Thu, 17 May 2012 17:14:44 -0700
-Message-ID: <4FB59474.2020505@zytor.com>
-References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com> <1337292816-10839-9-git-send-email-hjl.tools@gmail.com> <4FB58EFD.7010302@zytor.com> <CA+55aFy+XOc350sVuLKDHAaKtz9GdLcVmjxs98N8XLTK4zmMYg@mail.gmail.com>
+From: Mike Frysinger <vapier@gentoo.org>
+Subject: Re: [RFC PATCH 00/10] Use __kernel_[u]long_t for x32 user space compatibility
+Date: Thu, 17 May 2012 20:19:25 -0400
+Message-ID: <201205172019.27462.vapier@gentoo.org>
+References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: multipart/signed;
+  boundary="nextPart2889693.7f6ImIrxb0";
+  protocol="application/pgp-signature";
+  micalg=pgp-sha1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CA+55aFy+XOc350sVuLKDHAaKtz9GdLcVmjxs98N8XLTK4zmMYg@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Linus Torvalds <torvalds@linux-foundation.org>, David Daney <ddaney.cavm@gmail.com>, Ralf Baechle <ralf@linux-mips.org>
-Cc: "H.J. Lu" <hjl.tools@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp.gentoo.org ([140.211.166.183]:42124 "EHLO smtp.gentoo.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S965781Ab2ERAS5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 17 May 2012 20:18:57 -0400
+In-Reply-To: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "H.J. Lu" <hjl.tools@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, hpa@zytor.com, mingo@kernel.org, tglx@linutronix.de
 
-On 05/17/2012 05:07 PM, Linus Torvalds wrote:
-> On Thu, May 17, 2012 at 4:51 PM, H. Peter Anvin <hpa@zytor.com> wrote:
->>
->> The sane thing would seem to be to change __BITS_PER_LONG to 32 on x32
->> and fix the padding hacks in struct shmid64_ds; H.J., would you agree?
-> 
-> Ugh. That looks like a disaster.
-> 
-> The padding hacks that depend on __BITS_PER_LONG seem pretty damn broken anyway.
-> 
-> They only work if the kernel agrees with the value (which is against
-> the whole point of making __BITS_PER_LONG be about some user-level ABI
-> thing) or for little-endian machines.
-> 
-> IOW, all the __BITS_PER_LONG games look totally broken to me. I can't
-> see how they could possibly even be fixed.
-> 
+--nextPart2889693.7f6ImIrxb0
+Content-Type: Text/Plain;
+  charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
 
-Well, on existing compat (e.g. i386) __BITS_PER_LONG is definitely not
-the same as kernel.  And yes, I don't see how the heck this was ever
-correct on bigendian machines or even for compat in any form (if the
-kernel tries to interpret the extra bits and user space didn't
-initialize them we're lost.)
+On Thursday 17 May 2012 18:13:26 H.J. Lu wrote:
+> From: H.J. Lu <hjl.tools@gmail.com>
+>=20
+> This patch set changes a number of places where the kernel headers are
+> exported to user space and currently use explicit "long" or "unsigned
+> long" to use __kernel_[u]long_t in order to be compatible with the x32
+> user space ABI.  These location are places where x32 uses the x86-64
+> ABI.
+>=20
+> It is quite possible that some, or even all, of these locations should
+> really use dedicated types, but in the meantime this gives the correct
+> results which the current headers do not.
 
-The "logical" thing to do here seems to just use __s64, but I have no
-idea if that would suddenly break bigendian architectures...
+tangentially related, but what happened to the x86 asm/ptrace.h patch i sen=
+t=20
+that changed all the registers from unsigned long to u64 ?  e.g.
+ struct pt_regs { =20
+=2D	unsigned long r15;
++	__u64 r15;
+=2Dmike
 
-David, Ralf, do you have any idea what e.g. MIPS does here?
+--nextPart2889693.7f6ImIrxb0
+Content-Type: application/pgp-signature; name=signature.asc 
+Content-Description: This is a digitally signed message part.
 
-	-hpa
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v2.0.17 (GNU/Linux)
 
--- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
+iQIcBAABAgAGBQJPtZWPAAoJEEFjO5/oN/WBp8UQALXBLbD5MbPIUNJ45zXHvJhu
+JfdPC52uwij1dU33+/Aoq6VuSVkTdOMlGy9QuzbeV2fr8CQZDIh7CtJGMtyJlp+G
+u8Qs/QP83P5y/urrJvuEgQddonE/pZaVLWEQvk3RMcoObDbzIzYWzPb/z7JMSH2k
+Gm8ZXsL4s3gHVmVHvK7lfvnNbfxA1SKbacGXfZUUKgicZpJiDd6L+OxNPjywWa1G
+qThmyQrAzD+67BZGFS7Ir76wzjis30NvvOS4pm4jvnACX64lK7XvACZCN1DBeSZH
+7Oasa25C0rfCWuuzGUl78/ex3k7Vdvo9kyZmJzqhHo8pILCsTvar6DKc0JylbV+t
+BQiZw0WdzdVB1j3f2LACpn4FECq/VhM4lTXy5TfDbPeSq06bbcfkW9SEpZ2thbX4
+WQcEIbe8wScqzhrHg7CBCDk+U9k8Z9JxEHaU5ZrEDqoG+t4aX+jV3rB8MviZwuRg
+cWGkBMm2RBgm4wJc7x1UT8E8xorwTZvW9iAIcq1rI7muaQkvPMCdY965TJoUfwaV
+thRoYfFxuwQK4gISY8ZMlB+nUTFu/6X8ak+iPM0y5mQNN210hZO2myah64kL0jjD
+IdBOH0R+UBesTn1BErbhziFRoB9cKZWwRTUjTDi2Cb32f6jUzxbK3xobRHlSbCBQ
+W6pU4F64kQ9fdZyOqWZh
+=IhTu
+-----END PGP SIGNATURE-----
+
+--nextPart2889693.7f6ImIrxb0--
