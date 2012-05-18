@@ -1,40 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:35997 "EHLO
-	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758621Ab2ERSHE convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 18 May 2012 14:07:04 -0400
-Received: by lahd3 with SMTP id d3so2274033lah.19
-        for <linux-arch@vger.kernel.org>; Fri, 18 May 2012 11:07:03 -0700 (PDT)
+Received: from zeniv.linux.org.uk ([195.92.253.2]:34111 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752029Ab2ERS5N (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2012 14:57:13 -0400
+Date: Fri, 18 May 2012 19:57:12 +0100
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [parisc] double restarts on multiple signal arrivals
+Message-ID: <20120518185712.GT22082@ZenIV.linux.org.uk>
+References: <20120518175833.GQ22082@ZenIV.linux.org.uk>
+ <CAP6odjiS+oH7ajnHcyBJwm9bCTZxDJ7w02JeCuWW_UF3Fm49xw@mail.gmail.com>
 MIME-Version: 1.0
-In-Reply-To: <CAE9FiQUebVR_AdhQVE_Hq-RhB7h5AfH0Z20WaZh=ky5vHEt5BQ@mail.gmail.com>
-References: <1336422606-4244-1-git-send-email-yinghai@kernel.org>
- <1336422606-4244-6-git-send-email-yinghai@kernel.org> <CAErSpo71rKrZ7ptJjE5Lb6YnrqXVe1eGhn3pyF2Qjp=o8JHQmg@mail.gmail.com>
- <CAE9FiQUebVR_AdhQVE_Hq-RhB7h5AfH0Z20WaZh=ky5vHEt5BQ@mail.gmail.com>
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Fri, 18 May 2012 12:06:42 -0600
-Message-ID: <CAErSpo79gZFGOGdA201r1aAPzE9a1=CtFK7XPbsOjVvRLfNJ3A@mail.gmail.com>
-Subject: Re: [PATCH 05/21] resource: adjust_resource handle resource without parent
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAP6odjiS+oH7ajnHcyBJwm9bCTZxDJ7w02JeCuWW_UF3Fm49xw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120518180642.EXZyG_Tys9N1AsLLfkK51R6DsVYxn08B-FMm7d-K7wA@z>
+To: Grant Grundler <grantgrundler@gmail.com>
+Cc: linux-parisc@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
+Message-ID: <20120518185712.Fe0e1LqQRG4R4SW4pwmYCxZAruUCMQy0D3_rNNTS_Ac@z>
 
-On Fri, May 18, 2012 at 11:54 AM, Yinghai Lu <yinghai@kernel.org> wrote:
-> On Fri, May 18, 2012 at 10:12 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
->> On Mon, May 7, 2012 at 2:29 PM, Yinghai Lu <yinghai@kernel.org> wrote:
->
->> Where does this case occur?  When do you need to adjust a resource
->> that has no parent?
->
-> for unassigned pci bridge from BIOS, before scan busn_res.end is 0xff,
-> so you can not insert them, because the bridge could in the middle.
-> Have to update the busn_res.end and insert after the bridge is scanned
+On Fri, May 18, 2012 at 11:05:46AM -0700, Grant Grundler wrote:
+> On Fri, May 18, 2012 at 10:58 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> ...
+> >?Except for that mess with multiple
+> > pending signals, the value we have in r28 on syscall entry doesn't
+> > seem to affect the syscall behaviour... ?Some HPUX compat fun?
+> 
+> We stopped trying to support HPUX compat support probably 8 or so
+> years ago. Since HP didn't care, no one else did either.  So no need
+> to consider it now.
 
-Does the resource have children in this case?  If it has no parent,
-it's not in the resource tree at all, is it?  Is there any reason to
-use adjust_resource() rather than just updating res->start and
-res->end directly?
+In any case, it doesn't look like something that might be HPUX-related -
+there r28 is not used for arguments or syscall number either, as far
+as I can tell...
+
+That's a side story, in any case; whatever the reason for restoring
+r28, it only masks the bug with double restarts.  If you enter syscall
+with r28 equal to e.g. -ERESTARTNOINTR, get the same value from sys_whatever()
+and have a couple of pending signals, you will have syscall_restart()
+called twice, each time seeing regs->gr[28] == -ERESTARTNOINTR and leaving
+it unchanged.  regs->gr[31] will be decremented by 8 on each of those
+calls, first time back to your syscall (correctly), then to the entry point
+of the first handler minus 8.
