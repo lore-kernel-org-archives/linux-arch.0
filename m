@@ -1,50 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f174.google.com ([209.85.216.174]:55241 "EHLO
-	mail-qc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755432Ab2ERMGg convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2012 08:06:36 -0400
+Received: from zeniv.linux.org.uk ([195.92.253.2]:50911 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965576Ab2ERR6f (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2012 13:58:35 -0400
+Date: Fri, 18 May 2012 18:58:33 +0100
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [parisc] double restarts on multiple signal arrivals
+Message-ID: <20120518175833.GQ22082@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-In-Reply-To: <29366.1337341984@redhat.com>
-References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
-	<1337292816-10839-9-git-send-email-hjl.tools@gmail.com>
-	<4FB58EFD.7010302@zytor.com>
-	<4FB5C050.9070805@kernel.org>
-	<CAMe9rOrKq8Ait8wKudRF535J5c=dDTKekmUN_=HOs5BBLtsoGQ@mail.gmail.com>
-	<CA+55aFxtejaM8ecOw8VYk74OaXfGY7=LO3JSyz3rdHEv2r9goQ@mail.gmail.com>
-	<4FB5C843.9070002@kernel.org>
-	<29366.1337341984@redhat.com>
-Date: Fri, 18 May 2012 05:06:35 -0700
-Message-ID: <CAMe9rOoU=2ma7e+sbfCV1Ca10_XCRY44DS7OJgFq79sNuXoo0A@mail.gmail.com>
-Subject: Re: [PATCH 08/10] Use __kernel_ulong_t in struct msqid64_ds
-From: "H.J. Lu" <hjl.tools@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: "H. Peter Anvin" <hpa@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20120518120635.k-n1KoIk07dB-d6dkC96YJsGjul9JW09GyeukNiXwPg@z>
+To: linux-parisc@vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
+Message-ID: <20120518175833.TWL5BdwuXNEbEY-gnqTjiD_uL6FB_wLC9-q-u6iwu_Q@z>
 
-On Fri, May 18, 2012 at 4:53 AM, David Howells <dhowells@redhat.com> wrote:
-> H. Peter Anvin <hpa@kernel.org> wrote:
->
->> User mode can, and should, be able to use the exported headers.  David
->> Howells have been doing even more work to distill out the actual
->> exported ABIs from the kernel and remove remaining chaff.
->
-> See:
->
->        http://git.infradead.org/users/dhowells/linux-headers.git/shortlog/refs/heads/uapi-split
->
-> Linus: Any chance of this being pulled at the end of the next merge window?  I
-> know you said you didn't want to do another big header file cleanup for a
-> while after pulling the system.h disintegration, but I'm wondering if your
-> distaste has expired yet.
->
+	Since "[PATCH] PA-RISC assembler cleanups and fixes" back in 2005,
+(commit b6181a0a1999c7d4dd937d7f5234fb62eca68e89 in historical tree),
+we do loop until all pending signals are dealt with.  Which is fine,
+except that now we need to deal with syscall restart logics in all of
+them.
 
-As shown by x32, the kernel interface types are really arch-dependent.
-Any generic types based on long won't work for x32.
+	What happens if we have r28 containing e.g. -ERESTARTNOINTR
+when we do a syscall?  Note that x86 analog of the code in parisc
+syscall_restart() differs in one respect - the same register is used
+for return value and syscall number.  So once we'd copied ->orig_ax
+to ->ax, that's it - it *can't* be a restart-worthy value anymore,
+since then we would've been in a syscall with negative syscall number
+and ->ax before the assignment would've been -ENOSYS.  I.e. not a
+restart-worthy value, so we wouldn't have hit that regs->ax = regs->orig_ax
+in the first place.
 
+	On parisc the counterpart of the above doesn't work; AFAICS,
+we might have whatever we bloody please in r28 when we make a syscall.
+Syscall number goes in r20, arguments are apparently in r26..r21.
+Return value goes into r28.  Incidentally, why do we bother restoring
+r28 on syscall restart at all?  Except for that mess with multiple
+pending signals, the value we have in r28 on syscall entry doesn't
+seem to affect the syscall behaviour...  Some HPUX compat fun?  But
+AFAICS there calling conventions are also such that r28 on entry
+doesn't affect anything...[1]
 
--- 
-H.J.
+	Another fun question: what prevents syscall restarts on
+rt_sigreturn()?  If original signal had been taken in syscall handler
+we go through syscall_exit and that'll pass 1 as in_syscall to do_signal().
+Are we relying on r28 in saved sigcontext never being restart-worthy,
+seeing that we'd done syscall_restart()?  But that again relies on
+->orig_r28 never containing such values; if it *did* contain one,
+we are really screwed since on the path from rt_sigreturn() we'll have
+->orig_r28 equal to r28 at the end of signal handler (not to mention
+having moved back by twice the required amount - one time when we took
+the original signal, another - now).
+
+[1] FWIW, on other architectures the situation with restoring registers on
+restarts looks so:
+alpha		r0 (syscall number), r19 (arg4)
+arm		r0 (arg1)
+avr32		r12 (arg1)
+bfin		p0 (syscall number), r0 (arg1)
+c6x		a4 (arg1)
+cris		r10 (arg1)
+frv		gr8 (arg1)
+h8300		er0 (syscall number)
+hexagon		r06 (syscall number), r00 (arg1)
+ia64		nothing
+m32r		r0 (arg1)
+m68k		d0 (syscall number)
+microblaze	nothing
+mips		r2 (syscall number), r7 (arg1)
+mn10300		d0 (syscall number)
+openrisc	r11 (syscall number)
+parisc		r28
+ppc		r3 (arg1)
+s390		r2 (arg1)
+score		r4 (syscall number), r7 (arg1)
+sh		r0 or r9, depending on whether it's sh32 or sh4
+sparc		i0 (arg1)
+tile		r0 (arg1)
+unicore32	r00 (arg1)
+x86		[er]ax (syscall number)
+xtensa		a2 (syscall number)
