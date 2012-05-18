@@ -1,50 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f46.google.com ([209.85.160.46]:54390 "EHLO
-	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759429Ab2EQXHs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 May 2012 19:07:48 -0400
-Message-ID: <4FB584C0.6080807@gmail.com>
-Date: Thu, 17 May 2012 16:07:44 -0700
-From: David Daney <ddaney.cavm@gmail.com>
+Received: from mail-wg0-f44.google.com ([74.125.82.44]:57679 "EHLO
+	mail-wg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932585Ab2ERAIE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 May 2012 20:08:04 -0400
 MIME-Version: 1.0
-Subject: Re: [RFC PATCH 00/10] Use __kernel_[u]long_t for x32 user space compatibility
+In-Reply-To: <4FB58EFD.7010302@zytor.com>
 References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
-In-Reply-To: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
+ <1337292816-10839-9-git-send-email-hjl.tools@gmail.com> <4FB58EFD.7010302@zytor.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 17 May 2012 17:07:42 -0700
+Message-ID: <CA+55aFy+XOc350sVuLKDHAaKtz9GdLcVmjxs98N8XLTK4zmMYg@mail.gmail.com>
+Subject: Re: [PATCH 08/10] Use __kernel_ulong_t in struct msqid64_ds
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H.J. Lu" <hjl.tools@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, torvalds@linux-foundation.org, mingo@kernel.org, tglx@linutronix.de
-Message-ID: <20120517230744.ZkzDgdI6dRYntj7jiWKJNgLRsFz3LAFhpB56kLJW4m0@z>
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: "H.J. Lu" <hjl.tools@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de
+Message-ID: <20120518000742.uZh4yG-7yFZqMwjobskfTrfqmoinund04CV0MY5r4NM@z>
 
-On 05/17/2012 03:13 PM, H.J. Lu wrote:
-> From: H.J. Lu<hjl.tools@gmail.com>
+On Thu, May 17, 2012 at 4:51 PM, H. Peter Anvin <hpa@zytor.com> wrote:
 >
-> This patch set changes a number of places where the kernel headers are
-> exported to user space and currently use explicit "long" or "unsigned
-> long" to use __kernel_[u]long_t in order to be compatible with the x32
-> user space ABI.  These location are places where x32 uses the x86-64
-> ABI.
->
+> The sane thing would seem to be to change __BITS_PER_LONG to 32 on x32
+> and fix the padding hacks in struct shmid64_ds; H.J., would you agree?
 
-Has anybody checked how this affects MIPS n32 userspace?
+Ugh. That looks like a disaster.
 
-I think it totally breaks it.
+The padding hacks that depend on __BITS_PER_LONG seem pretty damn broken anyway.
 
-In addition, 109a1f32 (sysinfo: Use explicit types in <linux/sysinfo.h>) 
-is probably bad.  I think it may need to be reverted, or somebody should 
-fix all the __kernel_{,u}long_t definitions for the ABI that may have 
-been broken by the change.
+They only work if the kernel agrees with the value (which is against
+the whole point of making __BITS_PER_LONG be about some user-level ABI
+thing) or for little-endian machines.
 
-> It is quite possible that some, or even all, of these locations should
-> really use dedicated types, but in the meantime this gives the correct
-> results which the current headers do not.
->
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
->
+IOW, all the __BITS_PER_LONG games look totally broken to me. I can't
+see how they could possibly even be fixed.
 
+
+                           Linus
