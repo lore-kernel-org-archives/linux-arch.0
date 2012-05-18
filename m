@@ -1,83 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:50911 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965576Ab2ERR6f (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2012 13:58:35 -0400
-Date: Fri, 18 May 2012 18:58:33 +0100
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [parisc] double restarts on multiple signal arrivals
-Message-ID: <20120518175833.GQ22082@ZenIV.linux.org.uk>
+Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:35997 "EHLO
+	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1758621Ab2ERSHE convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 May 2012 14:07:04 -0400
+Received: by lahd3 with SMTP id d3so2274033lah.19
+        for <linux-arch@vger.kernel.org>; Fri, 18 May 2012 11:07:03 -0700 (PDT)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+In-Reply-To: <CAE9FiQUebVR_AdhQVE_Hq-RhB7h5AfH0Z20WaZh=ky5vHEt5BQ@mail.gmail.com>
+References: <1336422606-4244-1-git-send-email-yinghai@kernel.org>
+ <1336422606-4244-6-git-send-email-yinghai@kernel.org> <CAErSpo71rKrZ7ptJjE5Lb6YnrqXVe1eGhn3pyF2Qjp=o8JHQmg@mail.gmail.com>
+ <CAE9FiQUebVR_AdhQVE_Hq-RhB7h5AfH0Z20WaZh=ky5vHEt5BQ@mail.gmail.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Fri, 18 May 2012 12:06:42 -0600
+Message-ID: <CAErSpo79gZFGOGdA201r1aAPzE9a1=CtFK7XPbsOjVvRLfNJ3A@mail.gmail.com>
+Subject: Re: [PATCH 05/21] resource: adjust_resource handle resource without parent
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-parisc@vger.kernel.org
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
-Message-ID: <20120518175833.TWL5BdwuXNEbEY-gnqTjiD_uL6FB_wLC9-q-u6iwu_Q@z>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120518180642.EXZyG_Tys9N1AsLLfkK51R6DsVYxn08B-FMm7d-K7wA@z>
 
-	Since "[PATCH] PA-RISC assembler cleanups and fixes" back in 2005,
-(commit b6181a0a1999c7d4dd937d7f5234fb62eca68e89 in historical tree),
-we do loop until all pending signals are dealt with.  Which is fine,
-except that now we need to deal with syscall restart logics in all of
-them.
+On Fri, May 18, 2012 at 11:54 AM, Yinghai Lu <yinghai@kernel.org> wrote:
+> On Fri, May 18, 2012 at 10:12 AM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+>> On Mon, May 7, 2012 at 2:29 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+>
+>> Where does this case occur?  When do you need to adjust a resource
+>> that has no parent?
+>
+> for unassigned pci bridge from BIOS, before scan busn_res.end is 0xff,
+> so you can not insert them, because the bridge could in the middle.
+> Have to update the busn_res.end and insert after the bridge is scanned
 
-	What happens if we have r28 containing e.g. -ERESTARTNOINTR
-when we do a syscall?  Note that x86 analog of the code in parisc
-syscall_restart() differs in one respect - the same register is used
-for return value and syscall number.  So once we'd copied ->orig_ax
-to ->ax, that's it - it *can't* be a restart-worthy value anymore,
-since then we would've been in a syscall with negative syscall number
-and ->ax before the assignment would've been -ENOSYS.  I.e. not a
-restart-worthy value, so we wouldn't have hit that regs->ax = regs->orig_ax
-in the first place.
-
-	On parisc the counterpart of the above doesn't work; AFAICS,
-we might have whatever we bloody please in r28 when we make a syscall.
-Syscall number goes in r20, arguments are apparently in r26..r21.
-Return value goes into r28.  Incidentally, why do we bother restoring
-r28 on syscall restart at all?  Except for that mess with multiple
-pending signals, the value we have in r28 on syscall entry doesn't
-seem to affect the syscall behaviour...  Some HPUX compat fun?  But
-AFAICS there calling conventions are also such that r28 on entry
-doesn't affect anything...[1]
-
-	Another fun question: what prevents syscall restarts on
-rt_sigreturn()?  If original signal had been taken in syscall handler
-we go through syscall_exit and that'll pass 1 as in_syscall to do_signal().
-Are we relying on r28 in saved sigcontext never being restart-worthy,
-seeing that we'd done syscall_restart()?  But that again relies on
-->orig_r28 never containing such values; if it *did* contain one,
-we are really screwed since on the path from rt_sigreturn() we'll have
-->orig_r28 equal to r28 at the end of signal handler (not to mention
-having moved back by twice the required amount - one time when we took
-the original signal, another - now).
-
-[1] FWIW, on other architectures the situation with restoring registers on
-restarts looks so:
-alpha		r0 (syscall number), r19 (arg4)
-arm		r0 (arg1)
-avr32		r12 (arg1)
-bfin		p0 (syscall number), r0 (arg1)
-c6x		a4 (arg1)
-cris		r10 (arg1)
-frv		gr8 (arg1)
-h8300		er0 (syscall number)
-hexagon		r06 (syscall number), r00 (arg1)
-ia64		nothing
-m32r		r0 (arg1)
-m68k		d0 (syscall number)
-microblaze	nothing
-mips		r2 (syscall number), r7 (arg1)
-mn10300		d0 (syscall number)
-openrisc	r11 (syscall number)
-parisc		r28
-ppc		r3 (arg1)
-s390		r2 (arg1)
-score		r4 (syscall number), r7 (arg1)
-sh		r0 or r9, depending on whether it's sh32 or sh4
-sparc		i0 (arg1)
-tile		r0 (arg1)
-unicore32	r00 (arg1)
-x86		[er]ax (syscall number)
-xtensa		a2 (syscall number)
+Does the resource have children in this case?  If it has no parent,
+it's not in the resource tree at all, is it?  Is there any reason to
+use adjust_resource() rather than just updating res->start and
+res->end directly?
