@@ -1,55 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:38726 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1761133Ab2ERAO5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 17 May 2012 20:14:57 -0400
-Message-ID: <4FB59474.2020505@zytor.com>
-Date: Thu, 17 May 2012 17:14:44 -0700
-From: "H. Peter Anvin" <hpa@zytor.com>
+Received: from mail-qc0-f174.google.com ([209.85.216.174]:55241 "EHLO
+	mail-qc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755432Ab2ERMGg convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2012 08:06:36 -0400
 MIME-Version: 1.0
+In-Reply-To: <29366.1337341984@redhat.com>
+References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
+	<1337292816-10839-9-git-send-email-hjl.tools@gmail.com>
+	<4FB58EFD.7010302@zytor.com>
+	<4FB5C050.9070805@kernel.org>
+	<CAMe9rOrKq8Ait8wKudRF535J5c=dDTKekmUN_=HOs5BBLtsoGQ@mail.gmail.com>
+	<CA+55aFxtejaM8ecOw8VYk74OaXfGY7=LO3JSyz3rdHEv2r9goQ@mail.gmail.com>
+	<4FB5C843.9070002@kernel.org>
+	<29366.1337341984@redhat.com>
+Date: Fri, 18 May 2012 05:06:35 -0700
+Message-ID: <CAMe9rOoU=2ma7e+sbfCV1Ca10_XCRY44DS7OJgFq79sNuXoo0A@mail.gmail.com>
 Subject: Re: [PATCH 08/10] Use __kernel_ulong_t in struct msqid64_ds
-References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com> <1337292816-10839-9-git-send-email-hjl.tools@gmail.com> <4FB58EFD.7010302@zytor.com> <CA+55aFy+XOc350sVuLKDHAaKtz9GdLcVmjxs98N8XLTK4zmMYg@mail.gmail.com>
-In-Reply-To: <CA+55aFy+XOc350sVuLKDHAaKtz9GdLcVmjxs98N8XLTK4zmMYg@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+From: "H.J. Lu" <hjl.tools@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, David Daney <ddaney.cavm@gmail.com>, Ralf Baechle <ralf@linux-mips.org>
-Cc: "H.J. Lu" <hjl.tools@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de
-Message-ID: <20120518001444.szDdga0asOOsxYuMk9YSdxCsUjXUqcf9NaMFUvRwTr4@z>
+To: David Howells <dhowells@redhat.com>
+Cc: "H. Peter Anvin" <hpa@kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, Paul Mundt <lethal@linux-sh.org>
+Message-ID: <20120518120635.k-n1KoIk07dB-d6dkC96YJsGjul9JW09GyeukNiXwPg@z>
 
-On 05/17/2012 05:07 PM, Linus Torvalds wrote:
-> On Thu, May 17, 2012 at 4:51 PM, H. Peter Anvin <hpa@zytor.com> wrote:
->>
->> The sane thing would seem to be to change __BITS_PER_LONG to 32 on x32
->> and fix the padding hacks in struct shmid64_ds; H.J., would you agree?
-> 
-> Ugh. That looks like a disaster.
-> 
-> The padding hacks that depend on __BITS_PER_LONG seem pretty damn broken anyway.
-> 
-> They only work if the kernel agrees with the value (which is against
-> the whole point of making __BITS_PER_LONG be about some user-level ABI
-> thing) or for little-endian machines.
-> 
-> IOW, all the __BITS_PER_LONG games look totally broken to me. I can't
-> see how they could possibly even be fixed.
-> 
+On Fri, May 18, 2012 at 4:53 AM, David Howells <dhowells@redhat.com> wrote:
+> H. Peter Anvin <hpa@kernel.org> wrote:
+>
+>> User mode can, and should, be able to use the exported headers.  David
+>> Howells have been doing even more work to distill out the actual
+>> exported ABIs from the kernel and remove remaining chaff.
+>
+> See:
+>
+>        http://git.infradead.org/users/dhowells/linux-headers.git/shortlog/refs/heads/uapi-split
+>
+> Linus: Any chance of this being pulled at the end of the next merge window?  I
+> know you said you didn't want to do another big header file cleanup for a
+> while after pulling the system.h disintegration, but I'm wondering if your
+> distaste has expired yet.
+>
 
-Well, on existing compat (e.g. i386) __BITS_PER_LONG is definitely not
-the same as kernel.  And yes, I don't see how the heck this was ever
-correct on bigendian machines or even for compat in any form (if the
-kernel tries to interpret the extra bits and user space didn't
-initialize them we're lost.)
+As shown by x32, the kernel interface types are really arch-dependent.
+Any generic types based on long won't work for x32.
 
-The "logical" thing to do here seems to just use __s64, but I have no
-idea if that would suddenly break bigendian architectures...
-
-David, Ralf, do you have any idea what e.g. MIPS does here?
-
-	-hpa
 
 -- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
-
+H.J.
