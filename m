@@ -1,57 +1,55 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: hexagon: signal bugs
-Date: Sat, 19 May 2012 22:09:11 +0100
-Message-ID: <20120519210911.GB11775@ZenIV.linux.org.uk>
+From: "H. Peter Anvin" <hpa@zytor.com>
+Subject: Re: [PATCH 08/10] Use __kernel_ulong_t in struct msqid64_ds
+Date: Sat, 19 May 2012 16:47:47 -0700
+Message-ID: <4FB83123.3020402@zytor.com>
+References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com> <CA+55aFzfku-5qgVPahu27DLz-y8MUmh7Mw9sq_TyO49Zb0tg=A@mail.gmail.com> <CAMe9rOr883q0OAsh+JGA83ww603y6QSbQJKx+wk2YJfkYcaEdQ@mail.gmail.com> <201205182121.02706.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:38454 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757477Ab2ESVJN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 May 2012 17:09:13 -0400
-Content-Disposition: inline
+Received: from terminus.zytor.com ([198.137.202.10]:56115 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752538Ab2ESXsX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 19 May 2012 19:48:23 -0400
+In-Reply-To: <201205182121.02706.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Kuo <rkuo@codeaurora.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "H.J. Lu" <hjl.tools@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, "H. Peter Anvin" <hpa@kernel.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de, Paul Mundt <lethal@linux-sh.org>, David Howells <dhowells@redhat.com>
 
-	1) spot the braino:
-void do_trap0(struct pt_regs *regs)
-...
-        unsigned long syscallret = 0;
-	...
-                if ((unsigned long) regs->syscall_nr >= __NR_syscalls) {
-                        regs->r00 = -1;
-                } else {
-                        syscall = (syscall_fn)
-                                  (sys_call_table[regs->syscall_nr]);
-                        syscallret = syscall(regs->r00, regs->r01,
-                                   regs->r02, regs->r03,
-                                   regs->r04, regs->r05);
-                }
+On 05/18/2012 02:21 PM, Arnd Bergmann wrote:
+> On Friday 18 May 2012, H.J. Lu wrote:
+>> Since x32 uses the same kernel interface as x86-64 with a few
+>> exceptions.  The current kernel header files with
+>>
+>> #ifdef __x86_64__
+>> # define __BITS_PER_LONG 64
+>> #else
+>> # define __BITS_PER_LONG 32
+>> #endif
+>>
+>> #if __BITS_PER_LONG == 64
+>> Define x86-64 types
+>> #endif
+>>
+>> work fine for x32 even if long for x32 is 32 bits.  If __BITS_PER_LONG
+>> is changed to 32 for x32, many types in kernel header files will be
+>> wrong for x32.
+>>
+> 
+> A lot of things are broken if __BITS_PER_LONG is set to 64 in x32 user
+> space. It was specifically introduced to get around places in exported
+> headers that incorrectly used '#ifdef CONFIG_64BIT' to define a user
+> space structure, so that we can depend on whatever the user sees
+> in bitmasks and other data structures.
+> 
 
-                if (regs->syscall_nr != __NR_rt_sigreturn)
-                        regs->r00 = syscallret;
-IOW, the last if () should've been inside the "syscall_nr is not too high"
-branch of the if () just above...
+I'm not entirely sure I follow the above statement, as it seems
+contradict itself.  Either way, I would agree, __BITS_PER_LONG should be
+32 in x32 space and if there are places where that is wrong then we need
+to fix them.
 
-	2) you do _not_ want syscall restarts to happen on sigreturn().
-Whatever adjustment needed to be done had already been done back before
-we'd saved the registers into sigcontext.  So doing
-        regs->syscall_nr = __NR_rt_sigreturn;
-in sys_rt_sigreturn() is exactly the wrong thing - for syscall restart
-purposes you want it to look like a non-syscall (i.e. it should be
-regs->syscall_nr = -1 to make your check in handle_signal() work).
-Incidentally, I would suggest just having that thing return regs->r00;
-then you can avoid all special-casing for "do we want to put the
-return value of sys_...() into regs->r00?" in do_trap0().
+Fortunately x32 is littleendian, so no "littleendian bitmask on a
+bigendian architecture" drain bamage...
 
-	3) if you have multiple pending signals, you need to handle all
-of them before returning to userland.  And you need to make sure that
-syscall restart logics does not trigger on anything past the first time
-around.
-
-	4) checking for !user_mode(regs) needs to be done in the loop (created
-while fixing #3) in vm_entry.S where you are calling do_notify_resume();
-you need to leave the loop if it's true (if you can get there on return
-to kernel in the first place).
+	-hpa
