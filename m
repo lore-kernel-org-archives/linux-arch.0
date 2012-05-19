@@ -1,91 +1,131 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f46.google.com ([209.85.160.46]:35617 "EHLO
-	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750827Ab2ESEiQ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 May 2012 00:38:16 -0400
+Received: from zeniv.linux.org.uk ([195.92.253.2]:36593 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757156Ab2ESNhT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 May 2012 09:37:19 -0400
+Date: Sat, 19 May 2012 14:37:12 +0100
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [parisc] double restarts on multiple signal arrivals
+Message-ID: <20120519133712.GA11514@ZenIV.linux.org.uk>
+References: <20120518175833.GQ22082@ZenIV.linux.org.uk>
+ <CAP6odjiS+oH7ajnHcyBJwm9bCTZxDJ7w02JeCuWW_UF3Fm49xw@mail.gmail.com>
+ <20120518195610.GV22082@ZenIV.linux.org.uk>
+ <CAP6odjgyK3af7yqHAFTTs38SSNM9H49oWiH=a4byp4MerirE0g@mail.gmail.com>
+ <CADZpyixTTcNd0GekBg=UeWMf3eR+Casn6r7cLkcfnaH1Mihk=w@mail.gmail.com>
+ <20120518222422.GX22082@ZenIV.linux.org.uk>
+ <20120519052622.GA20945@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-In-Reply-To: <CAErSpo71805jTs1qVMx+9ghzUub77r47VqpXF0sVOFuDSq6pmg@mail.gmail.com>
-References: <1336422606-4244-1-git-send-email-yinghai@kernel.org>
-	<CAErSpo6OZYXz-M=C9r154MY7kwC7LRR3ZnQe3pnmVJY2uoWeRw@mail.gmail.com>
-	<CAE9FiQXN5z0riswyECKw5OKe+nPUBN2yZ1d4=Asb3kqaj770NA@mail.gmail.com>
-	<CAErSpo71805jTs1qVMx+9ghzUub77r47VqpXF0sVOFuDSq6pmg@mail.gmail.com>
-Date: Fri, 18 May 2012 21:38:15 -0700
-Message-ID: <CAE9FiQX-Ut3=WfjeKVBBO55NMQTXZdCC2NbsrX=p3MHVWLahtQ@mail.gmail.com>
-Subject: Re: [PATCH 00/21] PCI: use busn_res to replace bus secondary/subordinate
-From: Yinghai Lu <yinghai@kernel.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20120519052622.GA20945@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120519043815.fqJmSP7buGcHO3WVVGiQ4-EPlVlRstvSCs25LV4rp_k@z>
+To: Carlos O'Donell <carlos@systemhalted.org>
+Cc: Grant Grundler <grantgrundler@gmail.com>, John David Anglin <dave.anglin@bell.net>, linux-parisc@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
+Message-ID: <20120519133712.y8BeFLZJ8FDf-16FWUSH7cNm4teARgdmODvpFkZxiag@z>
 
-On Fri, May 18, 2012 at 4:32 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
-> On Thu, May 17, 2012 at 8:13 PM, Yinghai Lu <yinghai@kernel.org> wrote:
->> On Thu, May 17, 2012 at 3:19 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
->>> Sigh.  You previously said we should do this order:
->>>
->>>        for-pci-hostbridge-cleanup
->>>        for-pci-busn-alloc
->>>        for-pci-res-alloc
->>>        for-pci-root-bus-hotplug
->>>        for-pci-for-each-res-addon
->>>
->>> I merged for-pci-hostbridge-cleanup already.  I was about to start
->>> merging for-pci-busn-alloc.
->>>
->>> But now you added for-pci-hotplug-cleanup and made for-pci-busn-alloc
->>> depend on it.  I have some comments on for-pci-hotplug-cleanup, so I'm
->>> not ready to merge it quite yet.  Can you please just go back to the
->>> original order and put the new hotplug cleanup stuff at the *end*?
->>
->> ok, update for-pci-busn_res branch, now it is based on your next branch.
->>
->> git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/linux-yinghai.git
->> for-pci-busn_res
->
-> OK.  You just incorporated the hotplug-cleanup stuff into that branch,
-> which isn't what I had in mind.  But in the interest of making forward
-> progress, I merged as much as I could.  The result is at:
->
->  git://git.kernel.org/pub/scm/linux/kernel/git/helgaas/pci.git next-3.5
->
-> After Linus pulls my current "next" branch during the merge window,
-> I'll put the "next-3.5" stuff into the "next" branch.
+On Sat, May 19, 2012 at 06:26:23AM +0100, Al Viro wrote:
+> diff --git a/arch/parisc/kernel/signal.c b/arch/parisc/kernel/signal.c
+> index 12c1ed3..b4dd2c1 100644
+> --- a/arch/parisc/kernel/signal.c
+> +++ b/arch/parisc/kernel/signal.c
+> @@ -88,6 +88,7 @@ restore_sigcontext(struct sigcontext __user *sc, struct pt_regs *regs)
+>  	err |= __copy_from_user(regs->iaoq, sc->sc_iaoq, sizeof(regs->iaoq));
+>  	err |= __copy_from_user(regs->iasq, sc->sc_iasq, sizeof(regs->iasq));
+>  	err |= __get_user(regs->sar, &sc->sc_sar);
+> +	regs->orig_r28 = 1; /* no restarts for sigreturn */
+>  	DBG(2,"restore_sigcontext: iaoq is 0x%#lx / 0x%#lx\n", 
+>  			regs->iaoq[0],regs->iaoq[1]);
+>  	DBG(2,"restore_sigcontext: r28 is %ld\n", regs->gr[28]);
 
-Great! Thanks a lot.
+... only that part should be done in sys_rt_sigreturn() instead, or we'll miss
+it for 32bit-on-64bit case.
 
-looks one of commit author is messed up.
-
-http://git.kernel.org/?p=linux/kernel/git/helgaas/pci.git;a=commitdiff;h=b20238f05059818de8edd76cb5523b6bf8e26527
-
-author	Bjorn Helgaas <bhelgaas@google.com>	
-	Fri, 18 May 2012 17:35:50 +0000 (11:35 -0600)
-committer	Bjorn Helgaas <bhelgaas@google.com>	
-	Fri, 18 May 2012 20:00:35 +0000 (14:00 -0600)
-Will use them insert/update busn res in pci_bus struct.
-
-[bhelgaas: print conflicting entry if insertion fails]
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
-
-but if changing it would take you too much time, just leave it as is.
-
->
-> Note that I stopped at your probe_resource() patch -- I already told
-> you I won't merge that in its current form because I think the
-> interface you propose is too complicated.
-
-ok, let me check if i could simplify it more.
-
->
-> Let me know what series you'd like me to work on next, and send the
-> current patches to the list.
-
-Maybe for-pci-res-alloc could be moved forwarded, then
-for-pci-busn-alloc
-for-pci-root-bus-hotplug
-for-pci-for-each-res-addon
-
-Yinghai
+diff --git a/arch/parisc/hpux/gate.S b/arch/parisc/hpux/gate.S
+index 38a1c1b..0114688 100644
+--- a/arch/parisc/hpux/gate.S
++++ b/arch/parisc/hpux/gate.S
+@@ -71,7 +71,7 @@ ENTRY(hpux_gateway_page)
+ 	STREG	%r26, TASK_PT_GR26(%r1)	 	/* 1st argument */
+ 	STREG	%r27, TASK_PT_GR27(%r1)		/* user dp */
+ 	STREG   %r28, TASK_PT_GR28(%r1)         /* return value 0 */
+-	STREG   %r28, TASK_PT_ORIG_R28(%r1)     /* return value 0 (saved for signals) */
++	STREG   %r0, TASK_PT_ORIG_R28(%r1)     /* don't prohibit restarts */
+ 	STREG   %r29, TASK_PT_GR29(%r1)         /* 8th argument */
+ 	STREG	%r31, TASK_PT_GR31(%r1)		/* preserve syscall return ptr */
+ 	
+diff --git a/arch/parisc/kernel/signal.c b/arch/parisc/kernel/signal.c
+index 12c1ed3..369b1c4 100644
+--- a/arch/parisc/kernel/signal.c
++++ b/arch/parisc/kernel/signal.c
+@@ -115,6 +115,8 @@ sys_rt_sigreturn(struct pt_regs *regs, int in_syscall)
+ 		(usp - sigframe_size);
+ 	DBG(2,"sys_rt_sigreturn: frame is %p\n", frame);
+ 
++	regs->orig_r28 = 1; /* no restarts for sigreturn */
++
+ #ifdef CONFIG_64BIT
+ 	compat_frame = (struct compat_rt_sigframe __user *)frame;
+ 	
+@@ -471,6 +473,9 @@ handle_signal(unsigned long sig, siginfo_t *info, struct k_sigaction *ka,
+ static inline void
+ syscall_restart(struct pt_regs *regs, struct k_sigaction *ka)
+ {
++	if (regs->orig_r28)
++		return;
++	regs->orig_r28 = 1; /* no more restarts */
+ 	/* Check the return code */
+ 	switch (regs->gr[28]) {
+ 	case -ERESTART_RESTARTBLOCK:
+@@ -493,8 +498,6 @@ syscall_restart(struct pt_regs *regs, struct k_sigaction *ka)
+ 		 * we have to do is fiddle the return pointer.
+ 		 */
+ 		regs->gr[31] -= 8; /* delayed branching */
+-		/* Preserve original r28. */
+-		regs->gr[28] = regs->orig_r28;
+ 		break;
+ 	}
+ }
+@@ -502,6 +505,9 @@ syscall_restart(struct pt_regs *regs, struct k_sigaction *ka)
+ static inline void
+ insert_restart_trampoline(struct pt_regs *regs)
+ {
++	if (regs->orig_r28)
++		return;
++	regs->orig_r28 = 1; /* no more restarts */
+ 	switch(regs->gr[28]) {
+ 	case -ERESTART_RESTARTBLOCK: {
+ 		/* Restart the system call - no handlers present */
+@@ -536,9 +542,6 @@ insert_restart_trampoline(struct pt_regs *regs)
+ 		flush_user_icache_range(regs->gr[30], regs->gr[30] + 4);
+ 
+ 		regs->gr[31] = regs->gr[30] + 8;
+-		/* Preserve original r28. */
+-		regs->gr[28] = regs->orig_r28;
+-
+ 		return;
+ 	}
+ 	case -ERESTARTNOHAND:
+@@ -550,9 +553,6 @@ insert_restart_trampoline(struct pt_regs *regs)
+ 		 * slot of the branch external instruction.
+ 		 */
+ 		regs->gr[31] -= 8;
+-		/* Preserve original r28. */
+-		regs->gr[28] = regs->orig_r28;
+-
+ 		return;
+ 	}
+ 	default:
+diff --git a/arch/parisc/kernel/syscall.S b/arch/parisc/kernel/syscall.S
+index 82a52b2..54a9cbf 100644
+--- a/arch/parisc/kernel/syscall.S
++++ b/arch/parisc/kernel/syscall.S
+@@ -156,7 +156,7 @@ linux_gateway_entry:
+ 	STREG	%r26, TASK_PT_GR26(%r1)	 	/* 1st argument */
+ 	STREG	%r27, TASK_PT_GR27(%r1)		/* user dp */
+ 	STREG   %r28, TASK_PT_GR28(%r1)         /* return value 0 */
+-	STREG   %r28, TASK_PT_ORIG_R28(%r1)     /* return value 0 (saved for signals) */
++	STREG   %r0, TASK_PT_ORIG_R28(%r1)      /* don't prohibit restarts */
+ 	STREG	%r29, TASK_PT_GR29(%r1)		/* return value 1 */
+ 	STREG	%r31, TASK_PT_GR31(%r1)		/* preserve syscall return ptr */
+ 	
