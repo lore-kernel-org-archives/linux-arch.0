@@ -1,63 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:48762 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1946306Ab2ERXck convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 May 2012 19:32:40 -0400
-Received: by lbbgm6 with SMTP id gm6so2424953lbb.19
-        for <linux-arch@vger.kernel.org>; Fri, 18 May 2012 16:32:38 -0700 (PDT)
+Received: from mail-pb0-f46.google.com ([209.85.160.46]:35617 "EHLO
+	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750827Ab2ESEiQ convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 May 2012 00:38:16 -0400
 MIME-Version: 1.0
-In-Reply-To: <CAE9FiQXN5z0riswyECKw5OKe+nPUBN2yZ1d4=Asb3kqaj770NA@mail.gmail.com>
+In-Reply-To: <CAErSpo71805jTs1qVMx+9ghzUub77r47VqpXF0sVOFuDSq6pmg@mail.gmail.com>
 References: <1336422606-4244-1-git-send-email-yinghai@kernel.org>
- <CAErSpo6OZYXz-M=C9r154MY7kwC7LRR3ZnQe3pnmVJY2uoWeRw@mail.gmail.com> <CAE9FiQXN5z0riswyECKw5OKe+nPUBN2yZ1d4=Asb3kqaj770NA@mail.gmail.com>
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Fri, 18 May 2012 17:32:17 -0600
-Message-ID: <CAErSpo71805jTs1qVMx+9ghzUub77r47VqpXF0sVOFuDSq6pmg@mail.gmail.com>
+	<CAErSpo6OZYXz-M=C9r154MY7kwC7LRR3ZnQe3pnmVJY2uoWeRw@mail.gmail.com>
+	<CAE9FiQXN5z0riswyECKw5OKe+nPUBN2yZ1d4=Asb3kqaj770NA@mail.gmail.com>
+	<CAErSpo71805jTs1qVMx+9ghzUub77r47VqpXF0sVOFuDSq6pmg@mail.gmail.com>
+Date: Fri, 18 May 2012 21:38:15 -0700
+Message-ID: <CAE9FiQX-Ut3=WfjeKVBBO55NMQTXZdCC2NbsrX=p3MHVWLahtQ@mail.gmail.com>
 Subject: Re: [PATCH 00/21] PCI: use busn_res to replace bus secondary/subordinate
+From: Yinghai Lu <yinghai@kernel.org>
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
+To: Bjorn Helgaas <bhelgaas@google.com>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120518233217.SwpSJhnM7ypGNgoi8dFCcLZSXK_jf0qJLjlwMAuPVAg@z>
+Message-ID: <20120519043815.fqJmSP7buGcHO3WVVGiQ4-EPlVlRstvSCs25LV4rp_k@z>
 
-On Thu, May 17, 2012 at 8:13 PM, Yinghai Lu <yinghai@kernel.org> wrote:
-> On Thu, May 17, 2012 at 3:19 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
->> Sigh.  You previously said we should do this order:
+On Fri, May 18, 2012 at 4:32 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+> On Thu, May 17, 2012 at 8:13 PM, Yinghai Lu <yinghai@kernel.org> wrote:
+>> On Thu, May 17, 2012 at 3:19 PM, Bjorn Helgaas <bhelgaas@google.com> wrote:
+>>> Sigh.  You previously said we should do this order:
+>>>
+>>>        for-pci-hostbridge-cleanup
+>>>        for-pci-busn-alloc
+>>>        for-pci-res-alloc
+>>>        for-pci-root-bus-hotplug
+>>>        for-pci-for-each-res-addon
+>>>
+>>> I merged for-pci-hostbridge-cleanup already.  I was about to start
+>>> merging for-pci-busn-alloc.
+>>>
+>>> But now you added for-pci-hotplug-cleanup and made for-pci-busn-alloc
+>>> depend on it.  I have some comments on for-pci-hotplug-cleanup, so I'm
+>>> not ready to merge it quite yet.  Can you please just go back to the
+>>> original order and put the new hotplug cleanup stuff at the *end*?
 >>
->>        for-pci-hostbridge-cleanup
->>        for-pci-busn-alloc
->>        for-pci-res-alloc
->>        for-pci-root-bus-hotplug
->>        for-pci-for-each-res-addon
+>> ok, update for-pci-busn_res branch, now it is based on your next branch.
 >>
->> I merged for-pci-hostbridge-cleanup already.  I was about to start
->> merging for-pci-busn-alloc.
->>
->> But now you added for-pci-hotplug-cleanup and made for-pci-busn-alloc
->> depend on it.  I have some comments on for-pci-hotplug-cleanup, so I'm
->> not ready to merge it quite yet.  Can you please just go back to the
->> original order and put the new hotplug cleanup stuff at the *end*?
+>> git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/linux-yinghai.git
+>> for-pci-busn_res
 >
-> ok, update for-pci-busn_res branch, now it is based on your next branch.
+> OK.  You just incorporated the hotplug-cleanup stuff into that branch,
+> which isn't what I had in mind.  But in the interest of making forward
+> progress, I merged as much as I could.  The result is at:
 >
-> git://git.kernel.org/pub/scm/linux/kernel/git/yinghai/linux-yinghai.git
-> for-pci-busn_res
+>  git://git.kernel.org/pub/scm/linux/kernel/git/helgaas/pci.git next-3.5
+>
+> After Linus pulls my current "next" branch during the merge window,
+> I'll put the "next-3.5" stuff into the "next" branch.
 
-OK.  You just incorporated the hotplug-cleanup stuff into that branch,
-which isn't what I had in mind.  But in the interest of making forward
-progress, I merged as much as I could.  The result is at:
+Great! Thanks a lot.
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/helgaas/pci.git next-3.5
+looks one of commit author is messed up.
 
-After Linus pulls my current "next" branch during the merge window,
-I'll put the "next-3.5" stuff into the "next" branch.
+http://git.kernel.org/?p=linux/kernel/git/helgaas/pci.git;a=commitdiff;h=b20238f05059818de8edd76cb5523b6bf8e26527
 
-Note that I stopped at your probe_resource() patch -- I already told
-you I won't merge that in its current form because I think the
-interface you propose is too complicated.
+author	Bjorn Helgaas <bhelgaas@google.com>	
+	Fri, 18 May 2012 17:35:50 +0000 (11:35 -0600)
+committer	Bjorn Helgaas <bhelgaas@google.com>	
+	Fri, 18 May 2012 20:00:35 +0000 (14:00 -0600)
+Will use them insert/update busn res in pci_bus struct.
 
-Let me know what series you'd like me to work on next, and send the
-current patches to the list.
+[bhelgaas: print conflicting entry if insertion fails]
+Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 
-Bjorn
+but if changing it would take you too much time, just leave it as is.
+
+>
+> Note that I stopped at your probe_resource() patch -- I already told
+> you I won't merge that in its current form because I think the
+> interface you propose is too complicated.
+
+ok, let me check if i could simplify it more.
+
+>
+> Let me know what series you'd like me to work on next, and send the
+> current patches to the list.
+
+Maybe for-pci-res-alloc could be moved forwarded, then
+for-pci-busn-alloc
+for-pci-root-bus-hotplug
+for-pci-for-each-res-addon
+
+Yinghai
