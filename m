@@ -1,51 +1,57 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH 08/10] Use __kernel_ulong_t in struct msqid64_ds
-Date: Sat, 19 May 2012 15:35:19 +0100
-Message-ID: <20120519143519.GA11775@ZenIV.linux.org.uk>
-References: <1337292816-10839-1-git-send-email-hjl.tools@gmail.com>
- <201205182158.59616.arnd@arndb.de>
- <4FB6C862.5060401@zytor.com>
- <201205190756.30492.arnd@arndb.de>
+Subject: hexagon: signal bugs
+Date: Sat, 19 May 2012 22:09:11 +0100
+Message-ID: <20120519210911.GB11775@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:34191 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:38454 "EHLO
 	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754905Ab2ESOfa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 May 2012 10:35:30 -0400
+	with ESMTP id S1757477Ab2ESVJN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 May 2012 17:09:13 -0400
 Content-Disposition: inline
-In-Reply-To: <201205190756.30492.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, Linus Torvalds <torvalds@linux-foundation.org>, David Daney <ddaney.cavm@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, "H.J. Lu" <hjl.tools@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mingo@kernel.org, tglx@linutronix.de
+To: Richard Kuo <rkuo@codeaurora.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Sat, May 19, 2012 at 07:56:30AM +0000, Arnd Bergmann wrote:
+	1) spot the braino:
+void do_trap0(struct pt_regs *regs)
+...
+        unsigned long syscallret = 0;
+	...
+                if ((unsigned long) regs->syscall_nr >= __NR_syscalls) {
+                        regs->r00 = -1;
+                } else {
+                        syscall = (syscall_fn)
+                                  (sys_call_table[regs->syscall_nr]);
+                        syscallret = syscall(regs->r00, regs->r01,
+                                   regs->r02, regs->r03,
+                                   regs->r04, regs->r05);
+                }
 
-> * __kernel_time_t is not the only type that differs between 32 and 64
->   bit platforms: the structures also include a __kernel_mode_t, which
->   is different between 32/64 bit on at least s390, x86, arm and sparc.
+                if (regs->syscall_nr != __NR_rt_sigreturn)
+                        regs->r00 = syscallret;
+IOW, the last if () should've been inside the "syscall_nr is not too high"
+branch of the if () just above...
 
-... and said __kernel_mode_t needs to die.  Along with all remaining
-instances of mode_t kernel-side.
+	2) you do _not_ want syscall restarts to happen on sigreturn().
+Whatever adjustment needed to be done had already been done back before
+we'd saved the registers into sigcontext.  So doing
+        regs->syscall_nr = __NR_rt_sigreturn;
+in sys_rt_sigreturn() is exactly the wrong thing - for syscall restart
+purposes you want it to look like a non-syscall (i.e. it should be
+regs->syscall_nr = -1 to make your check in handle_signal() work).
+Incidentally, I would suggest just having that thing return regs->r00;
+then you can avoid all special-casing for "do we want to put the
+return value of sys_...() into regs->r00?" in do_trap0().
 
-BTW, ncp_mount_data (i.e. ncp mount with version less than 4) needs to be
-added to feature-removal-schedule.txt.  That'll bury one of the few places
-where we have that crap in public headers.
+	3) if you have multiple pending signals, you need to handle all
+of them before returning to userland.  And you need to make sure that
+syscall restart logics does not trigger on anything past the first time
+around.
 
-And no, assorted struct stat do not need that thing at all.  They should
-use explicit types, TYVM.
-
-BTW, why do we have __kernel_uid32_t?  As an invitation for some architecture
-to come up with 64bit "32bit UID" type?  What's wrong with __u32, or
-at least moving the default (== only, fortunately) definitions to
-linux/posix_types.h and making them unconditional?  Same for gid32_t
-stuff, of course...
-
-__kernel_nlink_t is also a bad idea (and an invitation to bugs in the kernel,
-while we are at it).  BTW, now that I look at it...  ulong_t as default is
-also wrong; there's no point making the internal nlink_t different on different
-platforms.  Fortunately, that one is really easy to kill; mips/parisc/ppc
-stat.h instances switch to corresponding explictly-sized types, at which point
-nothing in userland needs to see it and we can simply switch nlink_t
-kernel-side to __u32 and be done with that...
+	4) checking for !user_mode(regs) needs to be done in the loop (created
+while fixing #3) in vm_entry.S where you are calling do_notify_resume();
+you need to leave the loop if it's true (if you can get there on return
+to kernel in the first place).
