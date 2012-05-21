@@ -1,79 +1,36 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 00/18] SMP: Boot and CPU hotplug refactoring - Part 1
-Date: Mon, 21 May 2012 10:25:21 +0200 (CEST)
-Message-ID: <alpine.LFD.2.02.1205211013440.3231@ionos>
-References: <20120420122120.097464672@linutronix.de> <4F916AF3.7020301@linux.vnet.ibm.com> <alpine.LFD.2.02.1204201602330.2542@ionos> <871ume48ds.fsf@rustcorp.com.au>
+From: =?utf-8?B?5bmz5rCR5YyW55qE5Ye65Zu955WZ5a2m5pyN5Yqh?=
+	<admin@4008844442.net>
+Subject: =?utf-8?B?5YWN5LqkNDDkuIfnlZnlrabkv53or4Hph5HvvIzmiZPpgKDlubPmsJHljJbnmoTlh7rlm73nlZk=?=
+	=?utf-8?B?5a2m5pyN5Yqh77yM54ix5bCU5YWw5ZCN5qCh562J5oKo5p2l5rex6YCg?=
+Date: Mon, 21 May 2012 13:09:13 +0000 (UTC)
+Message-ID: <A03E7D04654F1DB8AA172C0D49CDEA94@qqze>
+Reply-To: <2636882155@qq.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <871ume48ds.fsf@rustcorp.com.au>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Nikunj A Dadhania <nikunj@linux.vnet.ibm.com>, Steven Rostedt <rostedt@goodmis.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain;
+	charset="utf-8"
+Content-Transfer-Encoding: base64
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from [124.172.234.197] ([124.172.234.197]:4688 "HELO 4008844442.net"
+	rhost-flags-FAIL-FAIL-OK-FAIL) by vger.kernel.org with SMTP
+	id S1755594Ab2EUNJE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 21 May 2012 09:09:04 -0400
+Date: Sat, 21 May 2016 19:04:07 +0800
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, 0787600147Rsk@swjtu.edu.cn, outbacktaxidermy@hotmail.com, dfafwerw@tom.com, atayazici@gmail.com, yakthai@hotmail.com, hoby@marocagz.com, qdmxscn@126.com, wyjojob@163.com, johnsonn33@yahoo.com
 
-On Mon, 21 May 2012, Rusty Russell wrote:
-
-> On Fri, 20 Apr 2012 16:18:04 +0200 (CEST), Thomas Gleixner <tglx@linutronix.de> wrote:
-> > On Fri, 20 Apr 2012, Srivatsa S. Bhat wrote:
-> > The whole notifier business needs a redesign as well, because we don't
-> > have a way to express proper dependencies, we add random notifier
-> > points and the teardown path is ass backwards. The whole thing wants
-> > to be a tree which can be walked in either direction and from any
-> > point. Right now we cut the trunk first and keep the single limb up
-> > with a helicopter and start dismantling it.
-> 
-> But there are two ways to do it.  One is to eliminate the need for
-> callbacks.  The other is to make a full dependency-based callback
-
-What do you mean with fully eliminating the need for callbacks. Do you
-want to put the necessary bringup/shutdown function calls just in the
-core code so we get rid of the notifiers or do you have something
-different in mind ?
-
-> system.
-> 
-> Let's try the first before the second.  I implemented a full dep-based
-> system for initcalls once, and it was not as nice as I'd hoped.
-
-Yeah, a full dependency thing might be overkill.
-
-> > Flat notifiers are not working for this as they do not allow a tree
-> > structure and prevent us to do things in parallel.
-> 
-> Not sure whether calling notifiers in parallel is going to be a big win:
-> they'll end up fighting over the cpu we're taking down.  But I could be
-> wrong.
-
-I'm not going to aim for parallel in the first place. That was just an
-idea and if we chose the right implementation then parallelism can be
-added later.
- 
-> > That really needs to be completely reworked. There is also a lot of
-> > stuff which wants to be moved into the starting/dying CPU
-> > context. Right now we kinda do that by trampling on the CPU with a
-> > high prio stomper thread, but that's really just a bandaid and steady
-> > cause of trouble.
-> > 
-> > If you look at facilities which use kthreads, then there is lots other
-> > setup which does not need a notifier at all, as it can be done in the
-> > context of the thread when we have a way to start/park those threads
-> > at the right time in the up/down process.
-> 
-> That's a very nice idea.  Should be simpler for kthreads park/unpark
-> themselves, rather than having some notifier to kill them.
-
-Well, something needs to tell them to park/unpark, but what should
-move into the thread is the setup/teardown of context.
- 
-> The original concept of stopping the machine for cpu hotplug and trying
-> not to effect any other kernel code has jumped the shark: I think we
-> need to look seriously at a complete rewrite where we don't use
-> stop_machine.
-
-Yep. Working on it. :)
-
-Thanks,
-
-	tglx
- 
+5oKo6L+Y5Zyo5Li65a625bqt5LiN5aSf5a+M6KOV77yM6ICM5LiN6IO96K6p5ZOB5a2m5YW85LyY
+55qE5a2p5a2Q5Ye65Zu95rex6YCg6ICM6Ium5oG85ZCX77yfDQrmgqjov5jlnKjkuLrlm73lhoXm
+lZnogrLotYTmupDliIbphY3kuKXph43kuI3lnYfvvIzogIzkuI3og73orqnoh6rlt7HnmoTlranl
+rZDojrflvpfnkIbmg7PnmoTmlZnogrLnjq/looPogIzlj5HmhIHlkJfvvJ8NCg0K5YWN5LqkNDDk
+uIfnlZnlrabkv53or4Hph5HvvIzmiZPpgKDlubPmsJHljJbnmoTlh7rlm73nlZnlrabmnI3liqHv
+vIENCuiuqeW3peiWquWutuW6reWtqeWtkOS5n+WPr+S7peS4gOWchuWHuuWbveeVmeWtpuaipu+8
+gQ0KDQrniLHlsJTlhbDlkI3moKHnrYnmgqjmnaXmt7HpgKDvvIENCuaDs+S6huino+ivpuaDheea
+hOivt+iBlOezu1FROiAyNjM2ODgyMTU1ICAg5oiW6ICF56uL5Y2z5Zue5aSN6YKu566xOiAyNjM2
+ODgyMTU1QHFxLmNvbQ0K5oOz5LqG6Kej6K+m5oOF55qE6K+36IGU57O7UVE6IDI2MzY4ODIxNTUg
+ICDmiJbogIXnq4vljbPlm57lpI3pgq7nrrE6IDI2MzY4ODIxNTVAcXEuY29tDQrmg7Pkuobop6Po
+r6bmg4XnmoTor7fogZTns7tRUTogMjYzNjg4MjE1NSAgIOaIluiAheeri+WNs+WbnuWkjemCrueu
+sTogMjYzNjg4MjE1NUBxcS5jb20NCiANCiANCueOsOivmuaLm+WFqOWbveWQhOWcsOWHuuWbveeV
+meWtpumhvumXruOAgg0K6Zu26aOO6Zmp77yB6auY5Zue5oql77yB5YWx5Lqr5pyd6Ziz6Iis55qE
+5pWZ6IKy5Lqn5Lia5aSn6JuL57OV77yBDQror7fogZTns7tRUTogMjYzNjg4MjE1NQ0K6K+36IGU
+57O7UVE6IDI2MzY4ODIxNTUNCuivt+iBlOezu1FROiAyNjM2ODgyMTU1DQo=
