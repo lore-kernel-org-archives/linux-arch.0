@@ -1,102 +1,68 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Arch maintainers Ahoy! (was Re: x86: faster strncpy_from_user())
-Date: Mon, 21 May 2012 09:50:34 -0700
-Message-ID: <CA+55aFzm5v2JXNOEp=VmJ22FOdo77L_TsDKbou6S=AtAJB-+Hg@mail.gmail.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Subject: Re: [PATCH 00/21] PCI: use busn_res to replace bus secondary/subordinate
+Date: Mon, 21 May 2012 14:06:23 -0600
+Message-ID: <CAErSpo4zxo+A-uLNCGj1Fe25t2TD+0cjgpdncV9kykTe0pd0CQ@mail.gmail.com>
+References: <1336422606-4244-1-git-send-email-yinghai@kernel.org>
+ <CAErSpo6OZYXz-M=C9r154MY7kwC7LRR3ZnQe3pnmVJY2uoWeRw@mail.gmail.com>
+ <CAE9FiQXN5z0riswyECKw5OKe+nPUBN2yZ1d4=Asb3kqaj770NA@mail.gmail.com>
+ <CAErSpo71805jTs1qVMx+9ghzUub77r47VqpXF0sVOFuDSq6pmg@mail.gmail.com> <CAE9FiQX-Ut3=WfjeKVBBO55NMQTXZdCC2NbsrX=p3MHVWLahtQ@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f174.google.com ([74.125.82.174]:47151 "EHLO
-	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754002Ab2EUQu4 convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 May 2012 12:50:56 -0400
-Received: by weyu7 with SMTP id u7so3315984wey.19
-        for <linux-arch@vger.kernel.org>; Mon, 21 May 2012 09:50:55 -0700 (PDT)
+Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:56457 "EHLO
+	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752420Ab2EUUGp convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 21 May 2012 16:06:45 -0400
+Received: by lahd3 with SMTP id d3so3777510lah.19
+        for <linux-arch@vger.kernel.org>; Mon, 21 May 2012 13:06:44 -0700 (PDT)
+In-Reply-To: <CAE9FiQX-Ut3=WfjeKVBBO55NMQTXZdCC2NbsrX=p3MHVWLahtQ@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Ok, several weeks ago I sent out an email about the x86
-strncpy_from_user() patch I did, and cc'd linux-arch because the
-second stage might well affect other architectures.
+On Fri, May 18, 2012 at 10:38 PM, Yinghai Lu <yinghai@kernel.org> wrote=
+:
+> On Fri, May 18, 2012 at 4:32 PM, Bjorn Helgaas <bhelgaas@google.com> =
+wrote:
 
-Nobody reacted to it, and today that second stage was merged into
-mainline, so I thought I'd re-do the notice. The relevant part of the
-original explanation is appended, but I'll explain once more..
-
-On x86, we *used* to be very lazy about strncpy_from_user(), and not
-actually do the full proper error handling: the code was (for
-historical reasons) using inline asms where it was very inconvenient
-to actually check the proper end of the address space. And nobody had
-really ever bothered to fix it up. As a result, the main user
-(getname()) had its own special magic workarounds for this.
-
-Until 3.4. We now do strncpy_from_user() properly, with all the
-appropriate error cases of hitting the end of the user address space
-etc handled.
-
-And now that the 3.5 merge window is open, some of the first merging I
-did was my own branches that had been pending. Including the one that
-removes all the hackery from getname(), and expects
-strncpy_from_user() to just work right.
-
-If any architecture copied the lazy x86 strncpy_from_user(), they
-really do need to fix themselves now. You can actually take the new
-all-C x86 implementation, and just strip away the word-at-a-time
-optimizations, and it should be pretty generic (if perhaps not
-optimal).
-
-The thing to really look out for is when the top of the user address
-space abuts the kernel address space. If you *only* rely on page
-faults, the user can read kernel addresses by mapping the very last
-page and then putting a non-terminated string at the end of that page,
-and trying to open a file using that name. So you need to either have
-a guard page (guaranteeing a fault), or you need to take TASK_SIZE or
-similar into account. Because getname() no longer does the TASK_SIZE
-games for you.
-
-                       Linus
-
-On Fri, Apr 6, 2012 at 2:32 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
+> looks one of commit author is messed up.
 >
-> but what is perhaps more interesting (and the reason linux-arch is
-> cc'd) is that not only is it noticeably faster, it should also
-> actually get all the error cases right.
+> http://git.kernel.org/?p=3Dlinux/kernel/git/helgaas/pci.git;a=3Dcommi=
+tdiff;h=3Db20238f05059818de8edd76cb5523b6bf8e26527
 >
-> What do I mean by that?
+> author =A0Bjorn Helgaas <bhelgaas@google.com>
+> =A0 =A0 =A0 =A0Fri, 18 May 2012 17:35:50 +0000 (11:35 -0600)
+> committer =A0 =A0 =A0 Bjorn Helgaas <bhelgaas@google.com>
+> =A0 =A0 =A0 =A0Fri, 18 May 2012 20:00:35 +0000 (14:00 -0600)
+> Will use them insert/update busn res in pci_bus struct.
 >
-> I mean that in my tree (but not committed), I have actually removed
-> this nasty piece of code from fs/namei.c:
+> [bhelgaas: print conflicting entry if insertion fails]
+> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
+> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
 >
-> =A0diff --git a/fs/namei.c b/fs/namei.c
-> =A0index 0062dd17eb55..2b7d691523bb 100644
-> =A0--- a/fs/namei.c
-> =A0+++ b/fs/namei.c
-> =A0@@ -119,14 +119,7 @@
-> =A0 static int do_getname(const char __user *filename, char *page)
-> =A0 {
-> =A0 =A0 =A0 =A0 =A0int retval;
-> =A0- =A0 =A0 =A0 unsigned long len =3D PATH_MAX;
-> =A0-
-> =A0- =A0 =A0 =A0 if (!segment_eq(get_fs(), KERNEL_DS)) {
-> =A0- =A0 =A0 =A0 =A0 =A0 =A0 =A0 if ((unsigned long) filename >=3D TA=
-SK_SIZE)
-> =A0- =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 return -EFAULT;
-> =A0- =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (TASK_SIZE - (unsigned long) file=
-name < PATH_MAX)
-> =A0- =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 len =3D TASK_SIZE - =
-(unsigned long) filename;
-> =A0- =A0 =A0 =A0 }
-> =A0+ =A0 =A0 =A0 const unsigned long len =3D PATH_MAX;
+> but if changing it would take you too much time, just leave it as is.
+
+Oops, sorry, I squashed two patches into one (no point in two patches
+that (1) add A and (2) clean up A), and I must have screwed up the
+author then.  I fixed it in my tree.
+
+I also changed the branch name to "for-3.6" to make it more obvious
+that the changes there are targeted for the 3.6 merge window, not for
+3.5.  After Linus pulls my current "next" branch into 3.5-rcX, I'll
+move the for-3.6 stuff to the "next" branch as usual.
+
+>> Let me know what series you'd like me to work on next, and send the
+>> current patches to the list.
 >
-> =A0 =A0 =A0 =A0 =A0retval =3D strncpy_from_user(page, filename, len);
-> =A0 =A0 =A0 =A0 =A0if (retval > 0) {
->
-> which worked around the fact that strncpy_from_user() didn't really
-> get the end conditions quite right, and it really just did an
-> access_ok() on the first byte. The new x86 implementation should get
-> all of that right without any need for any ugly hacks.
->
-> Now, I haven't committed that change to do_getname(), but it *will*
-> get committed at some point.
+> Maybe for-pci-res-alloc could be moved forwarded, then
+> for-pci-busn-alloc
+> for-pci-root-bus-hotplug
+> for-pci-for-each-res-addon
+
+OK, just send your current patches to the list so everybody has a
+chance to see them.
+
+Bjorn
