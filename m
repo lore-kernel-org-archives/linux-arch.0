@@ -1,55 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from blu0-omc4-s10.blu0.hotmail.com ([65.55.111.149]:2696 "EHLO
-	blu0-omc4-s10.blu0.hotmail.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756741Ab2ETSqb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 20 May 2012 14:46:31 -0400
-Message-ID: <BLU0-SMTP98435C9101767076C00E7A971C0@phx.gbl>
-From: John David Anglin <dave.anglin@bell.net>
-In-Reply-To: <20120520090444.GA26841@ZenIV.linux.org.uk>
-Subject: Re: [parisc] double restarts on multiple signal arrivals
-References: <20120518175833.GQ22082@ZenIV.linux.org.uk> <CAP6odjiS+oH7ajnHcyBJwm9bCTZxDJ7w02JeCuWW_UF3Fm49xw@mail.gmail.com> <20120518195610.GV22082@ZenIV.linux.org.uk> <CAP6odjgyK3af7yqHAFTTs38SSNM9H49oWiH=a4byp4MerirE0g@mail.gmail.com> <CADZpyixTTcNd0GekBg=UeWMf3eR+Casn6r7cLkcfnaH1Mihk=w@mail.gmail.com> <20120518222422.GX22082@ZenIV.linux.org.uk> <20120520084042.GA25447@ZenIV.linux.org.uk> <20120520090444.GA26841@ZenIV.linux.org.uk>
-Content-Type: text/plain; charset="US-ASCII"; format=flowed; delsp=yes
+Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:53152 "EHLO
+	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751959Ab2EUHrr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 May 2012 03:47:47 -0400
+Received: from /spool/local
+	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+	Mon, 21 May 2012 08:47:42 +0100
+Date: Mon, 21 May 2012 09:47:09 +0200
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [RFC][PATCH 4/6] arm, mm: Convert arm to generic tlb
+Message-ID: <20120521094709.6036d868@de.ibm.com>
+In-Reply-To: <1337271884.4281.46.camel@twins>
+References: <20110302175928.022902359@chello.nl>
+	<20110302180259.109909335@chello.nl>
+	<20120517030551.GA11623@linux-sh.org>
+	<20120517093022.GA14666@arm.com>
+	<20120517095124.GN23420@flint.arm.linux.org.uk>
+	<1337254086.4281.26.camel@twins>
+	<20120517160012.GB18593@arm.com>
+	<1337271884.4281.46.camel@twins>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-MIME-Version: 1.0 (Apple Message framework v936)
-Date: Sun, 20 May 2012 14:46:21 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Carlos O'Donell <carlos@systemhalted.org>, Grant Grundler <grantgrundler@gmail.com>, linux-parisc@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org
-Message-ID: <20120520184621.tjQ63UQIGH8aU0JnwpQ6GjFEFzFCM4sGndCKJdESTjw@z>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>, Andrea Arcangeli <aarcange@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Chris Metcalf <cmetcalf@tilera.com>
+Message-ID: <20120521074709.EP8He2zNC2jh3BZh0qYAOs2adR7VvNLfhTfO9AVNSyM@z>
 
-On 20-May-12, at 5:04 AM, Al Viro wrote:
+On Thu, 17 May 2012 18:24:44 +0200
+Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
 
-> Actually, looks like I am missing something, but it's not  
-> particulary subtle.
-> SYSCALL_TRACE is needed for do_syscall_trace_enter() to do anything;
-> any of SYSCALL_TRACE/SINGLESTEP/BLOCKSTEP is makes  
-> do_syscall_trace_leave()
-> do things.  So checking one bit in flags is not enough - any of  
-> those 3 is
-> a reason for taking the slow path.  The point still stands, though -
-> 	mfctl   %cr30, %r1
-> 	LDREG   TI_FLAGS(%r1),%r1
-> 	ldi	(_TIF_SYSCALL_TRACE | _TIF_SINGLESTEP | _TIF_BLOCKSTEP), %r19
->        and,COND(=) %r19, %r1, %r0
-> 	b,n	.Ltracesys
-> would still be no worse on the fast path and would not hit the slow  
-> path in
-> a lot of cases when the current code does it for no apparent reason.
->
-> Comments?
+> On Thu, 2012-05-17 at 17:00 +0100, Catalin Marinas wrote:
+> 
+> > BTW, looking at your tlb-unify branch, does tlb_remove_table() call
+> > tlb_flush/tlb_flush_mmu before freeing the tables?  I can only see
+> > tlb_remove_page() doing this. On ARM, even UP, we need the TLB flushing
+> > after clearing the pmd and before freeing the pte page table (and
+> > ideally doing it less often than at every pte_free_tlb() call).
+> 
+> No I don't think it does, so far the only archs using the RCU stuff are
+> ppc,sparc and s390 and none of those needed that (Xen might join them
+> soon though). But I will have to look and consider this more carefully.
+> I 'lost' most of the ppc/sparc/s390 details from memory to say this with
+> any certainty.
+ 
+s390 needs a TLB flush for the pgd, pud and pmd tables. See git commit
+cd94154cc6a28dd9dc271042c1a59c08d26da886 for the sad details.
 
-This looks good to me.  There is similar code in entry.S.
+-- 
+blue skies,
+   Martin.
 
-I added the above change to my patch set for stable 3.3.6.  System still
-boots.  I singled stepped /bin/ls through a directory listing and it  
-seemed
-to work.
-
-Dave
---
-John David Anglin	dave.anglin@bell.net
-
-
+"Reality continues to ruin my life." - Calvin.
 
