@@ -1,36 +1,102 @@
-From: =?utf-8?B?5bmz5rCR5YyW55qE5Ye65Zu955WZ5a2m5pyN5Yqh?=
-	<admin@4008844442.net>
-Subject: =?utf-8?B?5YWN5LqkNDDkuIfnlZnlrabkv53or4Hph5HvvIzmiZPpgKDlubPmsJHljJbnmoTlh7rlm73nlZk=?=
-	=?utf-8?B?5a2m5pyN5Yqh77yM54ix5bCU5YWw5ZCN5qCh562J5oKo5p2l5rex6YCg?=
-Date: Mon, 21 May 2012 13:09:13 +0000 (UTC)
-Message-ID: <A03E7D04654F1DB8AA172C0D49CDEA94@qqze>
-Reply-To: <2636882155@qq.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Arch maintainers Ahoy! (was Re: x86: faster strncpy_from_user())
+Date: Mon, 21 May 2012 09:50:34 -0700
+Message-ID: <CA+55aFzm5v2JXNOEp=VmJ22FOdo77L_TsDKbou6S=AtAJB-+Hg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain;
-	charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [124.172.234.197] ([124.172.234.197]:4688 "HELO 4008844442.net"
-	rhost-flags-FAIL-FAIL-OK-FAIL) by vger.kernel.org with SMTP
-	id S1755594Ab2EUNJE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 21 May 2012 09:09:04 -0400
-Date: Sat, 21 May 2016 19:04:07 +0800
+Received: from mail-we0-f174.google.com ([74.125.82.174]:47151 "EHLO
+	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754002Ab2EUQu4 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 May 2012 12:50:56 -0400
+Received: by weyu7 with SMTP id u7so3315984wey.19
+        for <linux-arch@vger.kernel.org>; Mon, 21 May 2012 09:50:55 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, 0787600147Rsk@swjtu.edu.cn, outbacktaxidermy@hotmail.com, dfafwerw@tom.com, atayazici@gmail.com, yakthai@hotmail.com, hoby@marocagz.com, qdmxscn@126.com, wyjojob@163.com, johnsonn33@yahoo.com
+To: linux-arch@vger.kernel.org
 
-5oKo6L+Y5Zyo5Li65a625bqt5LiN5aSf5a+M6KOV77yM6ICM5LiN6IO96K6p5ZOB5a2m5YW85LyY
-55qE5a2p5a2Q5Ye65Zu95rex6YCg6ICM6Ium5oG85ZCX77yfDQrmgqjov5jlnKjkuLrlm73lhoXm
-lZnogrLotYTmupDliIbphY3kuKXph43kuI3lnYfvvIzogIzkuI3og73orqnoh6rlt7HnmoTlranl
-rZDojrflvpfnkIbmg7PnmoTmlZnogrLnjq/looPogIzlj5HmhIHlkJfvvJ8NCg0K5YWN5LqkNDDk
-uIfnlZnlrabkv53or4Hph5HvvIzmiZPpgKDlubPmsJHljJbnmoTlh7rlm73nlZnlrabmnI3liqHv
-vIENCuiuqeW3peiWquWutuW6reWtqeWtkOS5n+WPr+S7peS4gOWchuWHuuWbveeVmeWtpuaipu+8
-gQ0KDQrniLHlsJTlhbDlkI3moKHnrYnmgqjmnaXmt7HpgKDvvIENCuaDs+S6huino+ivpuaDheea
-hOivt+iBlOezu1FROiAyNjM2ODgyMTU1ICAg5oiW6ICF56uL5Y2z5Zue5aSN6YKu566xOiAyNjM2
-ODgyMTU1QHFxLmNvbQ0K5oOz5LqG6Kej6K+m5oOF55qE6K+36IGU57O7UVE6IDI2MzY4ODIxNTUg
-ICDmiJbogIXnq4vljbPlm57lpI3pgq7nrrE6IDI2MzY4ODIxNTVAcXEuY29tDQrmg7Pkuobop6Po
-r6bmg4XnmoTor7fogZTns7tRUTogMjYzNjg4MjE1NSAgIOaIluiAheeri+WNs+WbnuWkjemCrueu
-sTogMjYzNjg4MjE1NUBxcS5jb20NCiANCiANCueOsOivmuaLm+WFqOWbveWQhOWcsOWHuuWbveeV
-meWtpumhvumXruOAgg0K6Zu26aOO6Zmp77yB6auY5Zue5oql77yB5YWx5Lqr5pyd6Ziz6Iis55qE
-5pWZ6IKy5Lqn5Lia5aSn6JuL57OV77yBDQror7fogZTns7tRUTogMjYzNjg4MjE1NQ0K6K+36IGU
-57O7UVE6IDI2MzY4ODIxNTUNCuivt+iBlOezu1FROiAyNjM2ODgyMTU1DQo=
+Ok, several weeks ago I sent out an email about the x86
+strncpy_from_user() patch I did, and cc'd linux-arch because the
+second stage might well affect other architectures.
+
+Nobody reacted to it, and today that second stage was merged into
+mainline, so I thought I'd re-do the notice. The relevant part of the
+original explanation is appended, but I'll explain once more..
+
+On x86, we *used* to be very lazy about strncpy_from_user(), and not
+actually do the full proper error handling: the code was (for
+historical reasons) using inline asms where it was very inconvenient
+to actually check the proper end of the address space. And nobody had
+really ever bothered to fix it up. As a result, the main user
+(getname()) had its own special magic workarounds for this.
+
+Until 3.4. We now do strncpy_from_user() properly, with all the
+appropriate error cases of hitting the end of the user address space
+etc handled.
+
+And now that the 3.5 merge window is open, some of the first merging I
+did was my own branches that had been pending. Including the one that
+removes all the hackery from getname(), and expects
+strncpy_from_user() to just work right.
+
+If any architecture copied the lazy x86 strncpy_from_user(), they
+really do need to fix themselves now. You can actually take the new
+all-C x86 implementation, and just strip away the word-at-a-time
+optimizations, and it should be pretty generic (if perhaps not
+optimal).
+
+The thing to really look out for is when the top of the user address
+space abuts the kernel address space. If you *only* rely on page
+faults, the user can read kernel addresses by mapping the very last
+page and then putting a non-terminated string at the end of that page,
+and trying to open a file using that name. So you need to either have
+a guard page (guaranteeing a fault), or you need to take TASK_SIZE or
+similar into account. Because getname() no longer does the TASK_SIZE
+games for you.
+
+                       Linus
+
+On Fri, Apr 6, 2012 at 2:32 PM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+>
+> but what is perhaps more interesting (and the reason linux-arch is
+> cc'd) is that not only is it noticeably faster, it should also
+> actually get all the error cases right.
+>
+> What do I mean by that?
+>
+> I mean that in my tree (but not committed), I have actually removed
+> this nasty piece of code from fs/namei.c:
+>
+> =A0diff --git a/fs/namei.c b/fs/namei.c
+> =A0index 0062dd17eb55..2b7d691523bb 100644
+> =A0--- a/fs/namei.c
+> =A0+++ b/fs/namei.c
+> =A0@@ -119,14 +119,7 @@
+> =A0 static int do_getname(const char __user *filename, char *page)
+> =A0 {
+> =A0 =A0 =A0 =A0 =A0int retval;
+> =A0- =A0 =A0 =A0 unsigned long len =3D PATH_MAX;
+> =A0-
+> =A0- =A0 =A0 =A0 if (!segment_eq(get_fs(), KERNEL_DS)) {
+> =A0- =A0 =A0 =A0 =A0 =A0 =A0 =A0 if ((unsigned long) filename >=3D TA=
+SK_SIZE)
+> =A0- =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 return -EFAULT;
+> =A0- =A0 =A0 =A0 =A0 =A0 =A0 =A0 if (TASK_SIZE - (unsigned long) file=
+name < PATH_MAX)
+> =A0- =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0 len =3D TASK_SIZE - =
+(unsigned long) filename;
+> =A0- =A0 =A0 =A0 }
+> =A0+ =A0 =A0 =A0 const unsigned long len =3D PATH_MAX;
+>
+> =A0 =A0 =A0 =A0 =A0retval =3D strncpy_from_user(page, filename, len);
+> =A0 =A0 =A0 =A0 =A0if (retval > 0) {
+>
+> which worked around the fact that strncpy_from_user() didn't really
+> get the end conditions quite right, and it really just did an
+> access_ok() on the first byte. The new x86 implementation should get
+> all of that right without any need for any ugly hacks.
+>
+> Now, I haven't committed that change to do_getname(), but it *will*
+> get committed at some point.
