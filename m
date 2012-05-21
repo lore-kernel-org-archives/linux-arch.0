@@ -1,57 +1,84 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:53152 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751959Ab2EUHrr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 May 2012 03:47:47 -0400
-Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-	Mon, 21 May 2012 08:47:42 +0100
-Date: Mon, 21 May 2012 09:47:09 +0200
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [RFC][PATCH 4/6] arm, mm: Convert arm to generic tlb
-Message-ID: <20120521094709.6036d868@de.ibm.com>
-In-Reply-To: <1337271884.4281.46.camel@twins>
-References: <20110302175928.022902359@chello.nl>
-	<20110302180259.109909335@chello.nl>
-	<20120517030551.GA11623@linux-sh.org>
-	<20120517093022.GA14666@arm.com>
-	<20120517095124.GN23420@flint.arm.linux.org.uk>
-	<1337254086.4281.26.camel@twins>
-	<20120517160012.GB18593@arm.com>
-	<1337271884.4281.46.camel@twins>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from www.linutronix.de ([62.245.132.108]:58028 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751805Ab2EUIZ1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 May 2012 04:25:27 -0400
+Date: Mon, 21 May 2012 10:25:21 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [patch 00/18] SMP: Boot and CPU hotplug refactoring - Part 1
+In-Reply-To: <871ume48ds.fsf@rustcorp.com.au>
+Message-ID: <alpine.LFD.2.02.1205211013440.3231@ionos>
+References: <20120420122120.097464672@linutronix.de> <4F916AF3.7020301@linux.vnet.ibm.com> <alpine.LFD.2.02.1204201602330.2542@ionos> <871ume48ds.fsf@rustcorp.com.au>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Russell King <rmk@arm.linux.org.uk>, Paul Mundt <lethal@linux-sh.org>, Andrea Arcangeli <aarcange@redhat.com>, Thomas Gleixner <tglx@linutronix.de>, Rik van Riel <riel@redhat.com>, Ingo Molnar <mingo@elte.hu>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Chris Metcalf <cmetcalf@tilera.com>
-Message-ID: <20120521074709.EP8He2zNC2jh3BZh0qYAOs2adR7VvNLfhTfO9AVNSyM@z>
+To: Rusty Russell <rusty@rustcorp.com.au>
+Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Nikunj A Dadhania <nikunj@linux.vnet.ibm.com>, Steven Rostedt <rostedt@goodmis.org>
+Message-ID: <20120521082521.xah-0yh54xrFvQaKVcLisrLVwd0Y3Tzxs1srTsX_tes@z>
 
-On Thu, 17 May 2012 18:24:44 +0200
-Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+On Mon, 21 May 2012, Rusty Russell wrote:
 
-> On Thu, 2012-05-17 at 17:00 +0100, Catalin Marinas wrote:
+> On Fri, 20 Apr 2012 16:18:04 +0200 (CEST), Thomas Gleixner <tglx@linutronix.de> wrote:
+> > On Fri, 20 Apr 2012, Srivatsa S. Bhat wrote:
+> > The whole notifier business needs a redesign as well, because we don't
+> > have a way to express proper dependencies, we add random notifier
+> > points and the teardown path is ass backwards. The whole thing wants
+> > to be a tree which can be walked in either direction and from any
+> > point. Right now we cut the trunk first and keep the single limb up
+> > with a helicopter and start dismantling it.
 > 
-> > BTW, looking at your tlb-unify branch, does tlb_remove_table() call
-> > tlb_flush/tlb_flush_mmu before freeing the tables?  I can only see
-> > tlb_remove_page() doing this. On ARM, even UP, we need the TLB flushing
-> > after clearing the pmd and before freeing the pte page table (and
-> > ideally doing it less often than at every pte_free_tlb() call).
+> But there are two ways to do it.  One is to eliminate the need for
+> callbacks.  The other is to make a full dependency-based callback
+
+What do you mean with fully eliminating the need for callbacks. Do you
+want to put the necessary bringup/shutdown function calls just in the
+core code so we get rid of the notifiers or do you have something
+different in mind ?
+
+> system.
 > 
-> No I don't think it does, so far the only archs using the RCU stuff are
-> ppc,sparc and s390 and none of those needed that (Xen might join them
-> soon though). But I will have to look and consider this more carefully.
-> I 'lost' most of the ppc/sparc/s390 details from memory to say this with
-> any certainty.
+> Let's try the first before the second.  I implemented a full dep-based
+> system for initcalls once, and it was not as nice as I'd hoped.
+
+Yeah, a full dependency thing might be overkill.
+
+> > Flat notifiers are not working for this as they do not allow a tree
+> > structure and prevent us to do things in parallel.
+> 
+> Not sure whether calling notifiers in parallel is going to be a big win:
+> they'll end up fighting over the cpu we're taking down.  But I could be
+> wrong.
+
+I'm not going to aim for parallel in the first place. That was just an
+idea and if we chose the right implementation then parallelism can be
+added later.
  
-s390 needs a TLB flush for the pgd, pud and pmd tables. See git commit
-cd94154cc6a28dd9dc271042c1a59c08d26da886 for the sad details.
+> > That really needs to be completely reworked. There is also a lot of
+> > stuff which wants to be moved into the starting/dying CPU
+> > context. Right now we kinda do that by trampling on the CPU with a
+> > high prio stomper thread, but that's really just a bandaid and steady
+> > cause of trouble.
+> > 
+> > If you look at facilities which use kthreads, then there is lots other
+> > setup which does not need a notifier at all, as it can be done in the
+> > context of the thread when we have a way to start/park those threads
+> > at the right time in the up/down process.
+> 
+> That's a very nice idea.  Should be simpler for kthreads park/unpark
+> themselves, rather than having some notifier to kill them.
 
--- 
-blue skies,
-   Martin.
+Well, something needs to tell them to park/unpark, but what should
+move into the thread is the setup/teardown of context.
+ 
+> The original concept of stopping the machine for cpu hotplug and trying
+> not to effect any other kernel code has jumped the shark: I think we
+> need to look seriously at a complete rewrite where we don't use
+> stop_machine.
 
-"Reality continues to ruin my life." - Calvin.
+Yep. Working on it. :)
 
+Thanks,
+
+	tglx
+ 
