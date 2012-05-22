@@ -1,84 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:58028 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751805Ab2EUIZ1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 May 2012 04:25:27 -0400
-Date: Mon, 21 May 2012 10:25:21 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [patch 00/18] SMP: Boot and CPU hotplug refactoring - Part 1
-In-Reply-To: <871ume48ds.fsf@rustcorp.com.au>
-Message-ID: <alpine.LFD.2.02.1205211013440.3231@ionos>
-References: <20120420122120.097464672@linutronix.de> <4F916AF3.7020301@linux.vnet.ibm.com> <alpine.LFD.2.02.1204201602330.2542@ionos> <871ume48ds.fsf@rustcorp.com.au>
-MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Received: from haggis.pcug.org.au ([203.10.76.10]:58477 "EHLO
+	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752268Ab2EVIGm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 May 2012 04:06:42 -0400
+Date: Tue, 22 May 2012 18:06:35 +1000
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [git pull] signals, the first series
+Message-ID: <20120522180635.93ba83a63481b2364bd8f425@canb.auug.org.au>
+In-Reply-To: <20120522043525.GI11775@ZenIV.linux.org.uk>
+References: <20120522043525.GI11775@ZenIV.linux.org.uk>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Tue__22_May_2012_18_06_35_+1000_Ynd5BABzdoEZjyFn"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rusty Russell <rusty@rustcorp.com.au>
-Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Nikunj A Dadhania <nikunj@linux.vnet.ibm.com>, Steven Rostedt <rostedt@goodmis.org>
-Message-ID: <20120521082521.xah-0yh54xrFvQaKVcLisrLVwd0Y3Tzxs1srTsX_tes@z>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20120522080635.Ymzj4NBUMvHZvFHWY2SxqXn3kiDser-qiwvDEfbmL_A@z>
 
-On Mon, 21 May 2012, Rusty Russell wrote:
+--Signature=_Tue__22_May_2012_18_06_35_+1000_Ynd5BABzdoEZjyFn
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-> On Fri, 20 Apr 2012 16:18:04 +0200 (CEST), Thomas Gleixner <tglx@linutronix.de> wrote:
-> > On Fri, 20 Apr 2012, Srivatsa S. Bhat wrote:
-> > The whole notifier business needs a redesign as well, because we don't
-> > have a way to express proper dependencies, we add random notifier
-> > points and the teardown path is ass backwards. The whole thing wants
-> > to be a tree which can be walked in either direction and from any
-> > point. Right now we cut the trunk first and keep the single limb up
-> > with a helicopter and start dismantling it.
-> 
-> But there are two ways to do it.  One is to eliminate the need for
-> callbacks.  The other is to make a full dependency-based callback
+Hi Al,, Linus,
 
-What do you mean with fully eliminating the need for callbacks. Do you
-want to put the necessary bringup/shutdown function calls just in the
-core code so we get rid of the notifiers or do you have something
-different in mind ?
+On Tue, 22 May 2012 05:35:25 +0100 Al Viro <viro@ZenIV.linux.org.uk> wrote:
+>
+> 	This is just the first part of the queue (about a half of it);
+> assorted fixes all over the place in signals' handling.  This one ends
+> with all sigsuspend() implementations switched to generic one
+> (->saved_sigmask-based), a bunch of assorted old buglets fixed and most
+> of the missing bits of NOTIFY_RESUME hookup in place (two more sit in
+> arm and um trees resp. and there's a couple of broken ones that need
+> obvious fixes - parisc and avr32 check TIF_NOTIFY_RESUME only on one of
+> two codepaths; that'll go in the next series).  Please, pull from
+> git://git.kernel.org/pub/scm/linux/kernel/git/viro/signal.git for-linus
 
-> system.
-> 
-> Let's try the first before the second.  I implemented a full dep-based
-> system for initcalls once, and it was not as nice as I'd hoped.
+I am pretty sure that none of this has been in linux-next ... I have no
+idea what sort of conflicts it will produce with the rest of the code in
+there or what issues that giving it some time in linux-next may discover.
 
-Yeah, a full dependency thing might be overkill.
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
 
-> > Flat notifiers are not working for this as they do not allow a tree
-> > structure and prevent us to do things in parallel.
-> 
-> Not sure whether calling notifiers in parallel is going to be a big win:
-> they'll end up fighting over the cpu we're taking down.  But I could be
-> wrong.
+--Signature=_Tue__22_May_2012_18_06_35_+1000_Ynd5BABzdoEZjyFn
+Content-Type: application/pgp-signature
 
-I'm not going to aim for parallel in the first place. That was just an
-idea and if we chose the right implementation then parallelism can be
-added later.
- 
-> > That really needs to be completely reworked. There is also a lot of
-> > stuff which wants to be moved into the starting/dying CPU
-> > context. Right now we kinda do that by trampling on the CPU with a
-> > high prio stomper thread, but that's really just a bandaid and steady
-> > cause of trouble.
-> > 
-> > If you look at facilities which use kthreads, then there is lots other
-> > setup which does not need a notifier at all, as it can be done in the
-> > context of the thread when we have a way to start/park those threads
-> > at the right time in the up/down process.
-> 
-> That's a very nice idea.  Should be simpler for kthreads park/unpark
-> themselves, rather than having some notifier to kill them.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
 
-Well, something needs to tell them to park/unpark, but what should
-move into the thread is the setup/teardown of context.
- 
-> The original concept of stopping the machine for cpu hotplug and trying
-> not to effect any other kernel code has jumped the shark: I think we
-> need to look seriously at a complete rewrite where we don't use
-> stop_machine.
+iQIcBAEBCAAGBQJPu0kLAAoJEECxmPOUX5FElvUP/RScUgSHnSML+gbHLEHdCw6r
+qnLFN9LmXTGHuZSD79/0JfFANV4sy9Jwe0ZIewiD/ZaEVkN1XPYQQxi8iLrPaPvG
+l0wevPzekoCTj9XThW5DACtxEDMNJobJ5pjuMzcyDVVQg1ieUeA3YjHufSj0pPV6
+uctf5Kd7C4d66KDdP1iijcNVMoJXgHdMlgyBLlQlQlY3CRq0ybhJ6g7ajDvJcsg+
+4/d7GRCbDWeJgH1ZJDdqqRsjhU8LFesLZr5/f6Kf/f7ctpy8hmJ8jd4MGZpQ+lup
+03AKzQZctzhTxwUGh5bcxsrjGx3wfgMTSaIZHZGLC51uGH1rwSr02+wyvkwQs77S
+fICv6zIUm1AN8N7IQXzR6RblIdGNC1mAHuN3+5MahHzcVp9qnkuCRAsR2hNikAJY
+EGl8uwBVRcEZs+1QwZXYeRiUTR25BYNKJhH/DByF2KWeMCjgRAl314pmMS1WSnva
+UFou4pSrItYLONa6OETFYrKI6PLYBhHku5gRHRZ6Sw7zAEsd8WFkXFXorG+2IwUA
+2yVZ3DQYnsaKmgMjOzCoNkXacBATHareQKYx9Ki+ySMEpmG6wN5MCMzKmRBGrIm/
+ABqJgqYeyacfMPCgnl8uzJJAl9oqPF4Gvp3DFW2BgENjaVFHmhS6reS0C6ArBLcK
+mrzCsHZKLuuGe6UewXAt
+=jWyu
+-----END PGP SIGNATURE-----
 
-Yep. Working on it. :)
-
-Thanks,
-
-	tglx
- 
+--Signature=_Tue__22_May_2012_18_06_35_+1000_Ynd5BABzdoEZjyFn--
