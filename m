@@ -1,68 +1,65 @@
-From: Bjorn Helgaas <bhelgaas@google.com>
-Subject: Re: [PATCH 00/21] PCI: use busn_res to replace bus secondary/subordinate
-Date: Mon, 21 May 2012 14:06:23 -0600
-Message-ID: <CAErSpo4zxo+A-uLNCGj1Fe25t2TD+0cjgpdncV9kykTe0pd0CQ@mail.gmail.com>
-References: <1336422606-4244-1-git-send-email-yinghai@kernel.org>
- <CAErSpo6OZYXz-M=C9r154MY7kwC7LRR3ZnQe3pnmVJY2uoWeRw@mail.gmail.com>
- <CAE9FiQXN5z0riswyECKw5OKe+nPUBN2yZ1d4=Asb3kqaj770NA@mail.gmail.com>
- <CAErSpo71805jTs1qVMx+9ghzUub77r47VqpXF0sVOFuDSq6pmg@mail.gmail.com> <CAE9FiQX-Ut3=WfjeKVBBO55NMQTXZdCC2NbsrX=p3MHVWLahtQ@mail.gmail.com>
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [patch 00/18] SMP: Boot and CPU hotplug refactoring - Part 1
+Date: Tue, 22 May 2012 10:23:47 +0930
+Message-ID: <87mx512fz8.fsf@rustcorp.com.au>
+References: <20120420122120.097464672@linutronix.de> <4F916AF3.7020301@linux.vnet.ibm.com> <alpine.LFD.2.02.1204201602330.2542@ionos> <871ume48ds.fsf@rustcorp.com.au> <alpine.LFD.2.02.1205211013440.3231@ionos>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:56457 "EHLO
-	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752420Ab2EUUGp convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 21 May 2012 16:06:45 -0400
-Received: by lahd3 with SMTP id d3so3777510lah.19
-        for <linux-arch@vger.kernel.org>; Mon, 21 May 2012 13:06:44 -0700 (PDT)
-In-Reply-To: <CAE9FiQX-Ut3=WfjeKVBBO55NMQTXZdCC2NbsrX=p3MHVWLahtQ@mail.gmail.com>
+Received: from ozlabs.org ([203.10.76.45]:48759 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752889Ab2EVDD0 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 21 May 2012 23:03:26 -0400
+In-Reply-To: <alpine.LFD.2.02.1205211013440.3231@ionos>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Yinghai Lu <yinghai@kernel.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Peter Zijlstra <peterz@infradead.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Ingo Molnar <mingo@kernel.org>, Nikunj A Dadhania <nikunj@linux.vnet.ibm.com>, Steven Rostedt <rostedt@goodmis.org>
 
-On Fri, May 18, 2012 at 10:38 PM, Yinghai Lu <yinghai@kernel.org> wrote=
-:
-> On Fri, May 18, 2012 at 4:32 PM, Bjorn Helgaas <bhelgaas@google.com> =
-wrote:
+On Mon, 21 May 2012 10:25:21 +0200 (CEST), Thomas Gleixner <tglx@linutronix.de> wrote:
+> On Mon, 21 May 2012, Rusty Russell wrote:
+> 
+> > On Fri, 20 Apr 2012 16:18:04 +0200 (CEST), Thomas Gleixner <tglx@linutronix.de> wrote:
+> > > On Fri, 20 Apr 2012, Srivatsa S. Bhat wrote:
+> > > The whole notifier business needs a redesign as well, because we don't
+> > > have a way to express proper dependencies, we add random notifier
+> > > points and the teardown path is ass backwards. The whole thing wants
+> > > to be a tree which can be walked in either direction and from any
+> > > point. Right now we cut the trunk first and keep the single limb up
+> > > with a helicopter and start dismantling it.
+> > 
+> > But there are two ways to do it.  One is to eliminate the need for
+> > callbacks.  The other is to make a full dependency-based callback
+> 
+> What do you mean with fully eliminating the need for callbacks. Do you
+> want to put the necessary bringup/shutdown function calls just in the
+> core code so we get rid of the notifiers or do you have something
+> different in mind ?
 
-> looks one of commit author is messed up.
->
-> http://git.kernel.org/?p=3Dlinux/kernel/git/helgaas/pci.git;a=3Dcommi=
-tdiff;h=3Db20238f05059818de8edd76cb5523b6bf8e26527
->
-> author =A0Bjorn Helgaas <bhelgaas@google.com>
-> =A0 =A0 =A0 =A0Fri, 18 May 2012 17:35:50 +0000 (11:35 -0600)
-> committer =A0 =A0 =A0 Bjorn Helgaas <bhelgaas@google.com>
-> =A0 =A0 =A0 =A0Fri, 18 May 2012 20:00:35 +0000 (14:00 -0600)
-> Will use them insert/update busn res in pci_bus struct.
->
-> [bhelgaas: print conflicting entry if insertion fails]
-> Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-> Signed-off-by: Bjorn Helgaas <bhelgaas@google.com>
->
-> but if changing it would take you too much time, just leave it as is.
+Eliminate is probably too hard, but with park/unpark I can see it
+getting less common.  Maybe few enough that we can simplify.
 
-Oops, sorry, I squashed two patches into one (no point in two patches
-that (1) add A and (2) clean up A), and I must have screwed up the
-author then.  I fixed it in my tree.
+> > Not sure whether calling notifiers in parallel is going to be a big win:
+> > they'll end up fighting over the cpu we're taking down.  But I could be
+> > wrong.
+> 
+> I'm not going to aim for parallel in the first place. That was just an
+> idea and if we chose the right implementation then parallelism can be
+> added later.
 
-I also changed the branch name to "for-3.6" to make it more obvious
-that the changes there are targeted for the 3.6 merge window, not for
-3.5.  After Linus pulls my current "next" branch into 3.5-rcX, I'll
-move the for-3.6 stuff to the "next" branch as usual.
+Parallel CPUs going offline/online is probably a bigger win.  Both for
+suspend/resume and powersaving.
 
->> Let me know what series you'd like me to work on next, and send the
->> current patches to the list.
->
-> Maybe for-pci-res-alloc could be moved forwarded, then
-> for-pci-busn-alloc
-> for-pci-root-bus-hotplug
-> for-pci-for-each-res-addon
+> > The original concept of stopping the machine for cpu hotplug and trying
+> > not to effect any other kernel code has jumped the shark: I think we
+> > need to look seriously at a complete rewrite where we don't use
+> > stop_machine.
+> 
+> Yep. Working on it. :)
 
-OK, just send your current patches to the list so everybody has a
-chance to see them.
+I thought you might be :)
 
-Bjorn
+I'd love to review once you've got something.
+
+Cheers,
+Rusty.
