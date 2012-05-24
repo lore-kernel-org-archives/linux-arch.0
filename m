@@ -1,35 +1,45 @@
-From: David Miller <davem@davemloft.net>
+From: David Howells <dhowells@redhat.com>
 Subject: Re: Arch maintainers Ahoy!
-Date: Thu, 24 May 2012 01:56:40 -0400 (EDT)
-Message-ID: <20120524.015640.40302347663199346.davem@davemloft.net>
-References: <CA+55aFx1HNC5rd5dzuKpNiHKWvkhoc=-y6hsAW-L_X7sz5Taog@mail.gmail.com>
-	<20120523.221150.620846999543569983.davem@davemloft.net>
-	<20120524052545.GB9492@drongo>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Date: Thu, 24 May 2012 10:40:16 +0100
+Message-ID: <32064.1337852416@redhat.com>
+References: <CA+55aFxcRc_zR9HtFAtrT1exGP2DspP0aA6T49Ph3kZEHHyQWw@mail.gmail.com> <CA+55aFy675A7qH+5GUZ_C_aN+Um0o70Zq=SVXYZxbM93ft50mg@mail.gmail.com> <20120523.132109.1153947222019508621.davem@davemloft.net> <CA+55aFxWaB4eeYgdvhTJ2RegM53WxJZFC4HfV=shNn7ZDdG9CQ@mail.gmail.com> <20120523.141647.2252460119413470634.davem@davemloft.net>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([198.137.202.13]:37010 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752816Ab2EXF5s (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 May 2012 01:57:48 -0400
-In-Reply-To: <20120524052545.GB9492@drongo>
+Received: from mx1.redhat.com ([209.132.183.28]:43677 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751161Ab2EXJlA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 24 May 2012 05:41:00 -0400
+In-Reply-To: <CA+55aFxcRc_zR9HtFAtrT1exGP2DspP0aA6T49Ph3kZEHHyQWw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: paulus@samba.org
-Cc: torvalds@linux-foundation.org, James.Bottomley@hansenpartnership.com, geert@linux-m68k.org, linux-arch@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: dhowells@redhat.com, David Miller <davem@davemloft.net>, James.Bottomley@hansenpartnership.com, geert@linux-m68k.org, linux-arch@vger.kernel.org
 
-From: Paul Mackerras <paulus@samba.org>
-Date: Thu, 24 May 2012 15:25:45 +1000
 
-> On PowerPC we have the "count leading zeroes" instructions we could
-> use to find the position of the leftmost zero byte,
+Linus Torvalds <torvalds@linux-foundation.org> wrote:
 
-I know, guess whose glibc strlen asm I got these formulas from?
-:-)
+> It's not faster to just do something like
+> 
+>    int byte = 4;
+> 
+> #if CONFIG_64BIT
+>    byte = 8;
+>    if (has_zero_32bit(value >> 32)) {
+>        value >>= 32;
+>        byte = 4;
+>    }
+> #endif
+>    if (has_zero_16(value >> 16)) {
+>       value >>= 16;
+>       byte -= 2;
+>    }
+>    if (!value & 0xff00)
+>       byte--;
+>    return byte;
 
-> so if you can conveniently make the find_zero() function
-> overridable, that would be good.
 
-I'm sure a powerpc person can cons up a patch that does that once
-my stuff goes in, and test it too.
+Could you use cpu_to_be32/64() and then ffs()?  That ought to work for both
+variants of endianness.  The cpu_to_beXX() should be a noop on BE and is
+likely to be a single instruction on LE.  The meat of ffs() is usually a
+single instruction, though it may have to have zero-detect logic added.
+
+David
