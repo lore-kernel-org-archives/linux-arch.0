@@ -1,32 +1,31 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH 3/3] lib: Sparc's strncpy_from_user is generic enough, move under lib/
-Date: Thu, 24 May 2012 18:17:52 +0100
-Message-ID: <14863.1337879872@redhat.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 3/3] lib: Sparc's strncpy_from_user is generic enough,
+ move under lib/
+Date: Thu, 24 May 2012 15:53:22 -0400 (EDT)
+Message-ID: <20120524.155322.2148951495051745756.davem@davemloft.net>
 References: <20120523.233440.1152363385537335796.davem@davemloft.net>
+	<7607.1337875848@redhat.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:9198 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932167Ab2EXRR6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 24 May 2012 13:17:58 -0400
-In-Reply-To: <20120523.233440.1152363385537335796.davem@davemloft.net>
+Received: from shards.monkeyblade.net ([198.137.202.13]:42441 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932105Ab2EXTxZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 May 2012 15:53:25 -0400
+In-Reply-To: <7607.1337875848@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, torvalds@linux-foundation.org
+To: dhowells@redhat.com
+Cc: linux-arch@vger.kernel.org, torvalds@linux-foundation.org
 
-David Miller <davem@davemloft.net> wrote:
+From: David Howells <dhowells@redhat.com>
+Date: Thu, 24 May 2012 17:10:48 +0100
 
-> To use this, an architecture simply needs to:
+> David Miller <davem@davemloft.net> wrote:
 > 
-> 1) Provide a user_addr_max() implementation via asm/uaccess.h
+>> +			v = (c & low_bits) + low_bits;;
 > 
-> 2) Add "select GENERIC_STRNCPY_FROM_USER" to their arch Kcnfig
-> 
-> 3) Remove the existing strncpy_from_user() implementation and symbol
->    exports their architecture had.
-> 
-> Signed-off-by: David S. Miller <davem@davemloft.net>
+> You've an extra semicolon there.
 
-Contingent on removing the extraneous semicolon:
-
-Acked-by: David Howells <dhowells@redhat.com>
+Thanks I'll fix that up.
