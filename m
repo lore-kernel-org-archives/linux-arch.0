@@ -1,128 +1,99 @@
 From: David Miller <davem@davemloft.net>
-Subject: [PATCH 1/3 v2] sparc: Increase portability of strncpy_from_user()
- implementation.
-Date: Thu, 24 May 2012 16:26:13 -0400 (EDT)
-Message-ID: <20120524.162613.256050233513717246.davem@davemloft.net>
+Subject: [PATCH 2/3 v2] kernel: Move REPEAT_BYTE definition into
+ linux/kernel.h
+Date: Thu, 24 May 2012 16:26:19 -0400 (EDT)
+Message-ID: <20120524.162619.664806190601525554.davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <sparclinux-owner@vger.kernel.org>
-Sender: sparclinux-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from shards.monkeyblade.net ([198.137.202.13]:42686 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755036Ab2EXU0U (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 May 2012 16:26:20 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: sparclinux@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
 
 
-Hide details of maximum user address calculation in a new
-asm/uaccess.h interface named user_addr_max().
-
-Provide little-endian implementation in find_zero(), which should work
-but can probably be improved.
-
-Abstrace alignment check behind IS_UNALIGNED() macro.
-
-Kill double-semicolon, noticed by David Howells.
+And make sure that everything using it explicitly includes
+that header file.
 
 Signed-off-by: David S. Miller <davem@davemloft.net>
 ---
- arch/sparc/include/asm/uaccess.h |    3 +++
- arch/sparc/lib/usercopy.c        |   32 +++++++++++++++++++++++++++-----
- 2 files changed, 30 insertions(+), 5 deletions(-)
+ arch/sparc/lib/usercopy.c             |    3 +--
+ arch/x86/include/asm/word-at-a-time.h |    4 ++--
+ fs/namei.c                            |    1 +
+ include/linux/kernel.h                |    2 ++
+ 4 files changed, 6 insertions(+), 4 deletions(-)
 
-diff --git a/arch/sparc/include/asm/uaccess.h b/arch/sparc/include/asm/uaccess.h
-index 42a28cf..20c2acb 100644
---- a/arch/sparc/include/asm/uaccess.h
-+++ b/arch/sparc/include/asm/uaccess.h
-@@ -6,6 +6,9 @@
- #include <asm/uaccess_32.h>
- #endif
- 
-+#define user_addr_max() \
-+	(segment_eq(get_fs(), USER_DS) ? STACK_TOP : ~0UL)
-+
- extern long strncpy_from_user(char *dest, const char __user *src, long count);
- 
- #endif
 diff --git a/arch/sparc/lib/usercopy.c b/arch/sparc/lib/usercopy.c
-index 87f9645..f61ed82 100644
+index f61ed82..0b12e91 100644
 --- a/arch/sparc/lib/usercopy.c
 +++ b/arch/sparc/lib/usercopy.c
-@@ -3,6 +3,8 @@
+@@ -1,5 +1,6 @@
+ #include <linux/module.h>
+ #include <linux/uaccess.h>
++#include <linux/kernel.h>
  #include <linux/errno.h>
  #include <linux/bug.h>
  
-+#include <asm/byteorder.h>
-+
- void copy_from_user_overflow(void)
- {
- 	WARN(1, "Buffer overflow detected!\n");
-@@ -14,6 +16,8 @@ EXPORT_SYMBOL(copy_from_user_overflow);
+@@ -11,8 +12,6 @@ void copy_from_user_overflow(void)
+ }
+ EXPORT_SYMBOL(copy_from_user_overflow);
+ 
+-#define REPEAT_BYTE(x)	((~0ul / 0xff) * (x))
+-
  static inline long find_zero(unsigned long mask)
  {
  	long byte = 0;
-+
-+#ifdef __BIG_ENDIAN
- #ifdef CONFIG_64BIT
- 	if (mask >> 32)
- 		mask >>= 32;
-@@ -25,8 +29,28 @@ static inline long find_zero(unsigned long mask)
- 	else
- 		byte += 2;
- 	return (mask >> 8) ? byte : byte + 1;
-+#else
-+#ifdef CONFIG_64BIT
-+	if (!((unsigned int) mask)) {
-+		mask >>= 32;
-+		byte = 4;
-+	}
-+#endif
-+	if (!(mask & 0xffff)) {
-+		mask >>= 16;
-+		byte += 2;
-+	}
-+	return (mask & 0xff) ? byte : byte + 1;
-+#endif
- }
+diff --git a/arch/x86/include/asm/word-at-a-time.h b/arch/x86/include/asm/word-at-a-time.h
+index e58f03b..ae03fac 100644
+--- a/arch/x86/include/asm/word-at-a-time.h
++++ b/arch/x86/include/asm/word-at-a-time.h
+@@ -1,6 +1,8 @@
+ #ifndef _ASM_WORD_AT_A_TIME_H
+ #define _ASM_WORD_AT_A_TIME_H
  
-+#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
-+#define IS_UNALIGNED(src, dst)	0
-+#else
-+#define IS_UNALIGNED(src, dst)	\
-+	(((long) dst | (long) src) & (sizeof(long) - 1))
-+#endif
++#include <linux/kernel.h>
 +
  /*
-  * Do a strncpy, return length of string without final '\0'.
-  * 'count' is the user-supplied count (return 'count' if we
-@@ -46,7 +70,7 @@ static inline long do_strncpy_from_user(char *dst, const char __user *src, long
- 	if (max > count)
- 		max = count;
+  * This is largely generic for little-endian machines, but the
+  * optimal byte mask counting is probably going to be something
+@@ -35,8 +37,6 @@ static inline long count_masked_bytes(long mask)
  
--	if (((long) dst | (long) src) & (sizeof(long) - 1))
-+	if (IS_UNALIGNED(src, dst))
- 		goto byte_at_a_time;
+ #endif
  
- 	while (max >= sizeof(unsigned long)) {
-@@ -59,7 +83,7 @@ static inline long do_strncpy_from_user(char *dst, const char __user *src, long
- 		v = (c + high_bits) & ~rhs;
- 		*(unsigned long *)(dst+res) = c;
- 		if (v) {
--			v = (c & low_bits) + low_bits;;
-+			v = (c & low_bits) + low_bits;
- 			v = ~(v | rhs);
- 			return res + find_zero(v);
- 		}
-@@ -119,9 +143,7 @@ long strncpy_from_user(char *dst, const char __user *src, long count)
- 	if (unlikely(count <= 0))
- 		return 0;
+-#define REPEAT_BYTE(x)	((~0ul / 0xff) * (x))
+-
+ /* Return the high bit set in the first byte that is a zero */
+ static inline unsigned long has_zero(unsigned long a)
+ {
+diff --git a/fs/namei.c b/fs/namei.c
+index f9e883c..8d2ba42 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -16,6 +16,7 @@
  
--	max_addr = ~0UL;
--	if (likely(segment_eq(get_fs(), USER_DS)))
--		max_addr = STACK_TOP;
-+	max_addr = user_addr_max();
- 	src_addr = (unsigned long)src;
- 	if (likely(src_addr < max_addr)) {
- 		unsigned long max = max_addr - src_addr;
+ #include <linux/init.h>
+ #include <linux/export.h>
++#include <linux/kernel.h>
+ #include <linux/slab.h>
+ #include <linux/fs.h>
+ #include <linux/namei.h>
+diff --git a/include/linux/kernel.h b/include/linux/kernel.h
+index 645231c..fbe9bfa 100644
+--- a/include/linux/kernel.h
++++ b/include/linux/kernel.h
+@@ -38,6 +38,8 @@
+ 
+ #define STACK_MAGIC	0xdeadbeef
+ 
++#define REPEAT_BYTE(x)	((~0ul / 0xff) * (x))
++
+ #define ALIGN(x, a)		__ALIGN_KERNEL((x), (a))
+ #define __ALIGN_MASK(x, mask)	__ALIGN_KERNEL_MASK((x), (mask))
+ #define PTR_ALIGN(p, a)		((typeof(p))ALIGN((unsigned long)(p), (a)))
 -- 
 1.7.10
-
