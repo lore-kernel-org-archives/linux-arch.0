@@ -1,31 +1,39 @@
 From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 3/3] lib: Sparc's strncpy_from_user is generic enough,
- move under lib/
-Date: Thu, 24 May 2012 15:53:22 -0400 (EDT)
-Message-ID: <20120524.155322.2148951495051745756.davem@davemloft.net>
-References: <20120523.233440.1152363385537335796.davem@davemloft.net>
-	<7607.1337875848@redhat.com>
+Subject: Re: [PATCH 1/3] sparc: Increase portability of strncpy_from_user()
+ implementation.
+Date: Thu, 24 May 2012 16:04:36 -0400 (EDT)
+Message-ID: <20120524.160436.1964884992253662536.davem@davemloft.net>
+References: <20120523.233430.1084831063018998232.davem@davemloft.net>
+	<CA+55aFw8jsrqipdKq9-EiA5a+Y-HKMQmpBsirs9ojfk1yUSxww@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([198.137.202.13]:42441 "EHLO
+Received: from shards.monkeyblade.net ([198.137.202.13]:42514 "EHLO
 	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932105Ab2EXTxZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 May 2012 15:53:25 -0400
-In-Reply-To: <7607.1337875848@redhat.com>
+	with ESMTP id S933776Ab2EXUEi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 May 2012 16:04:38 -0400
+In-Reply-To: <CA+55aFw8jsrqipdKq9-EiA5a+Y-HKMQmpBsirs9ojfk1yUSxww@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: dhowells@redhat.com
-Cc: linux-arch@vger.kernel.org, torvalds@linux-foundation.org
+To: torvalds@linux-foundation.org
+Cc: linux-arch@vger.kernel.org
 
-From: David Howells <dhowells@redhat.com>
-Date: Thu, 24 May 2012 17:10:48 +0100
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Thu, 24 May 2012 09:04:27 -0700
 
-> David Miller <davem@davemloft.net> wrote:
+> Btw, this would have been much cleaner with something like
 > 
->> +			v = (c & low_bits) + low_bits;;
+>    #ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
+>       #define IS_UNALIGNED(src,dst) 0
+>    #else
+>       #define IS_UNALIGNED(src,dst) (((long)(src) | (long)(dst)) &
+> (sizeof(long) - 1))
+>    #endif
 > 
-> You've an extra semicolon there.
+> and then just
+> 
+>      if (IS_UNALIGNED(src,dst))
+>         goto byte_at_a_time;
 
-Thanks I'll fix that up.
+Ok, I'll make this adjustment.
