@@ -1,392 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([198.137.202.13]:42691 "EHLO
+Received: from shards.monkeyblade.net ([198.137.202.13]:43485 "EHLO
 	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755036Ab2EXU0d (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 May 2012 16:26:33 -0400
-Date: Thu, 24 May 2012 16:26:31 -0400 (EDT)
-Message-ID: <20120524.162631.2253252012139157291.davem@davemloft.net>
-Subject: [PATCH 3/3 v2] lib: Sparc's strncpy_from_user is generic enough,
- move under lib/
+	with ESMTP id S965535Ab2EXVcn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 May 2012 17:32:43 -0400
+Date: Thu, 24 May 2012 17:32:39 -0400 (EDT)
+Message-ID: <20120524.173239.1413482842035447647.davem@davemloft.net>
+Subject: [GIT] Sparc
 From: David Miller <davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: sparclinux@vger.kernel.org
-Message-ID: <20120524202631.HJ1M9gCvtExVS7GqV6VxJfd3t3LI9X_TLFzYHh3EHiA@z>
+To: torvalds@linux-foundation.org
+Cc: akpm@linux-foundation.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120524213239.rHYoccUspBGaX4D0jWb-f5ZuPACfdYzHQxXkw9cGuns@z>
 
 
-To use this, an architecture simply needs to:
+This has the generic strncpy_from_user() implementation architectures
+can now use, which we've been developing on linux-arch over the past
+few days.
 
-1) Provide a user_addr_max() implementation via asm/uaccess.h
+For good measure I ran both a 32-bit and a 64-bit glibc testsuite
+run, and the latter of which pointed out an adjustment I needed to
+make to sparc's user_addr_max() definition.  Linus, you were right,
+STACK_TOP was not the right thing to use, even on sparc itself :-)
 
-2) Add "select GENERIC_STRNCPY_FROM_USER" to their arch Kcnfig
+From Sam Ravnborg, we have a conversion of sparc32 over to the common
+alloc_thread_info_node(), since the aspect which originally blocked
+our doing so (sun4c) has been removed.
 
-3) Remove the existing strncpy_from_user() implementation and symbol
-   exports their architecture had.
+Please pull, thanks a lot.
 
-Signed-off-by: David S. Miller <davem@davemloft.net>
-Acked-by: David Howells <dhowells@redhat.com>
----
- arch/sparc/Kconfig        |    1 +
- arch/sparc/lib/usercopy.c |  144 --------------------------------------------
- lib/Kconfig               |    3 +
- lib/Makefile              |    2 +
- lib/strncpy_from_user.c   |  146 +++++++++++++++++++++++++++++++++++++++++++++
- 5 files changed, 152 insertions(+), 144 deletions(-)
+The following changes since commit 72c04af9a2d57b7945cf3de8e71461bd80695d50:
+
+  fbdev: sh_mobile_lcdc: Don't confuse line size with pitch (2012-05-21 20:59:32 -0700)
+
+are available in the git repository at:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/davem/sparc.git master
+
+for you to fetch changes up to c5389831cda3b38a56606a348a537a1332f2d729:
+
+  sparc: Fix user_addr_max() definition. (2012-05-24 13:41:58 -0700)
+
+----------------------------------------------------------------
+David S. Miller (6):
+      sparc: Add full proper error handling to strncpy_from_user().
+      sparc: Optimize strncpy_from_user() zero byte search.
+      sparc: Increase portability of strncpy_from_user() implementation.
+      kernel: Move REPEAT_BYTE definition into linux/kernel.h
+      lib: Sparc's strncpy_from_user is generic enough, move under lib/
+      sparc: Fix user_addr_max() definition.
+
+Sam Ravnborg (1):
+      sparc32: use the common implementation of alloc_thread_info_node()
+
+ arch/sparc/Kconfig                      |    2 +-
+ arch/sparc/include/asm/processor_64.h   |    4 +-
+ arch/sparc/include/asm/thread_info_32.h |   11 +--
+ arch/sparc/include/asm/uaccess.h        |    6 ++
+ arch/sparc/include/asm/uaccess_32.h     |   10 ---
+ arch/sparc/include/asm/uaccess_64.h     |    4 -
+ arch/sparc/lib/Makefile                 |    2 +-
+ arch/sparc/lib/ksyms.c                  |    3 -
+ arch/sparc/lib/strncpy_from_user_32.S   |   47 ----------
+ arch/sparc/lib/strncpy_from_user_64.S   |  133 ----------------------------
+ arch/sparc/lib/usercopy.c               |    1 +
+ arch/sparc/mm/srmmu.c                   |   27 ------
+ arch/x86/include/asm/word-at-a-time.h   |    4 +-
+ fs/namei.c                              |    1 +
+ include/linux/kernel.h                  |    2 +
+ lib/Kconfig                             |    3 +
+ lib/Makefile                            |    2 +
+ lib/strncpy_from_user.c                 |  146 +++++++++++++++++++++++++++++++
+ 18 files changed, 170 insertions(+), 238 deletions(-)
+ delete mode 100644 arch/sparc/lib/strncpy_from_user_32.S
+ delete mode 100644 arch/sparc/lib/strncpy_from_user_64.S
  create mode 100644 lib/strncpy_from_user.c
-
-diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index 051af37..2247423 100644
---- a/arch/sparc/Kconfig
-+++ b/arch/sparc/Kconfig
-@@ -32,6 +32,7 @@ config SPARC
- 	select HAVE_NMI_WATCHDOG if SPARC64
- 	select HAVE_BPF_JIT
- 	select GENERIC_SMP_IDLE_THREAD
-+	select GENERIC_STRNCPY_FROM_USER
- 
- config SPARC32
- 	def_bool !64BIT
-diff --git a/arch/sparc/lib/usercopy.c b/arch/sparc/lib/usercopy.c
-index 0b12e91..5c4284c 100644
---- a/arch/sparc/lib/usercopy.c
-+++ b/arch/sparc/lib/usercopy.c
-@@ -1,153 +1,9 @@
- #include <linux/module.h>
--#include <linux/uaccess.h>
- #include <linux/kernel.h>
--#include <linux/errno.h>
- #include <linux/bug.h>
- 
--#include <asm/byteorder.h>
--
- void copy_from_user_overflow(void)
- {
- 	WARN(1, "Buffer overflow detected!\n");
- }
- EXPORT_SYMBOL(copy_from_user_overflow);
--
--static inline long find_zero(unsigned long mask)
--{
--	long byte = 0;
--
--#ifdef __BIG_ENDIAN
--#ifdef CONFIG_64BIT
--	if (mask >> 32)
--		mask >>= 32;
--	else
--		byte = 4;
--#endif
--	if (mask >> 16)
--		mask >>= 16;
--	else
--		byte += 2;
--	return (mask >> 8) ? byte : byte + 1;
--#else
--#ifdef CONFIG_64BIT
--	if (!((unsigned int) mask)) {
--		mask >>= 32;
--		byte = 4;
--	}
--#endif
--	if (!(mask & 0xffff)) {
--		mask >>= 16;
--		byte += 2;
--	}
--	return (mask & 0xff) ? byte : byte + 1;
--#endif
--}
--
--#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
--#define IS_UNALIGNED(src, dst)	0
--#else
--#define IS_UNALIGNED(src, dst)	\
--	(((long) dst | (long) src) & (sizeof(long) - 1))
--#endif
--
--/*
-- * Do a strncpy, return length of string without final '\0'.
-- * 'count' is the user-supplied count (return 'count' if we
-- * hit it), 'max' is the address space maximum (and we return
-- * -EFAULT if we hit it).
-- */
--static inline long do_strncpy_from_user(char *dst, const char __user *src, long count, unsigned long max)
--{
--	const unsigned long high_bits = REPEAT_BYTE(0xfe) + 1;
--	const unsigned long low_bits = REPEAT_BYTE(0x7f);
--	long res = 0;
--
--	/*
--	 * Truncate 'max' to the user-specified limit, so that
--	 * we only have one limit we need to check in the loop
--	 */
--	if (max > count)
--		max = count;
--
--	if (IS_UNALIGNED(src, dst))
--		goto byte_at_a_time;
--
--	while (max >= sizeof(unsigned long)) {
--		unsigned long c, v, rhs;
--
--		/* Fall back to byte-at-a-time if we get a page fault */
--		if (unlikely(__get_user(c,(unsigned long __user *)(src+res))))
--			break;
--		rhs = c | low_bits;
--		v = (c + high_bits) & ~rhs;
--		*(unsigned long *)(dst+res) = c;
--		if (v) {
--			v = (c & low_bits) + low_bits;
--			v = ~(v | rhs);
--			return res + find_zero(v);
--		}
--		res += sizeof(unsigned long);
--		max -= sizeof(unsigned long);
--	}
--
--byte_at_a_time:
--	while (max) {
--		char c;
--
--		if (unlikely(__get_user(c,src+res)))
--			return -EFAULT;
--		dst[res] = c;
--		if (!c)
--			return res;
--		res++;
--		max--;
--	}
--
--	/*
--	 * Uhhuh. We hit 'max'. But was that the user-specified maximum
--	 * too? If so, that's ok - we got as much as the user asked for.
--	 */
--	if (res >= count)
--		return res;
--
--	/*
--	 * Nope: we hit the address space limit, and we still had more
--	 * characters the caller would have wanted. That's an EFAULT.
--	 */
--	return -EFAULT;
--}
--
--/**
-- * strncpy_from_user: - Copy a NUL terminated string from userspace.
-- * @dst:   Destination address, in kernel space.  This buffer must be at
-- *         least @count bytes long.
-- * @src:   Source address, in user space.
-- * @count: Maximum number of bytes to copy, including the trailing NUL.
-- *
-- * Copies a NUL-terminated string from userspace to kernel space.
-- *
-- * On success, returns the length of the string (not including the trailing
-- * NUL).
-- *
-- * If access to userspace fails, returns -EFAULT (some data may have been
-- * copied).
-- *
-- * If @count is smaller than the length of the string, copies @count bytes
-- * and returns @count.
-- */
--long strncpy_from_user(char *dst, const char __user *src, long count)
--{
--	unsigned long max_addr, src_addr;
--
--	if (unlikely(count <= 0))
--		return 0;
--
--	max_addr = user_addr_max();
--	src_addr = (unsigned long)src;
--	if (likely(src_addr < max_addr)) {
--		unsigned long max = max_addr - src_addr;
--		return do_strncpy_from_user(dst, src, count, max);
--	}
--	return -EFAULT;
--}
--EXPORT_SYMBOL(strncpy_from_user);
-diff --git a/lib/Kconfig b/lib/Kconfig
-index 4a8aba2..49cb463 100644
---- a/lib/Kconfig
-+++ b/lib/Kconfig
-@@ -16,6 +16,9 @@ config BITREVERSE
- config RATIONAL
- 	boolean
- 
-+config GENERIC_STRNCPY_FROM_USER
-+	bool
-+
- config GENERIC_FIND_FIRST_BIT
- 	bool
- 
-diff --git a/lib/Makefile b/lib/Makefile
-index 18515f0..57538b4 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -123,6 +123,8 @@ obj-$(CONFIG_SIGNATURE) += digsig.o
- 
- obj-$(CONFIG_CLZ_TAB) += clz_tab.o
- 
-+obj-$(CONFIG_GENERIC_STRNCPY_FROM_USER) += strncpy_from_user.o
-+
- hostprogs-y	:= gen_crc32table
- clean-files	:= crc32table.h
- 
-diff --git a/lib/strncpy_from_user.c b/lib/strncpy_from_user.c
-new file mode 100644
-index 0000000..c4c09b0
---- /dev/null
-+++ b/lib/strncpy_from_user.c
-@@ -0,0 +1,146 @@
-+#include <linux/module.h>
-+#include <linux/uaccess.h>
-+#include <linux/kernel.h>
-+#include <linux/errno.h>
-+
-+#include <asm/byteorder.h>
-+
-+static inline long find_zero(unsigned long mask)
-+{
-+	long byte = 0;
-+
-+#ifdef __BIG_ENDIAN
-+#ifdef CONFIG_64BIT
-+	if (mask >> 32)
-+		mask >>= 32;
-+	else
-+		byte = 4;
-+#endif
-+	if (mask >> 16)
-+		mask >>= 16;
-+	else
-+		byte += 2;
-+	return (mask >> 8) ? byte : byte + 1;
-+#else
-+#ifdef CONFIG_64BIT
-+	if (!((unsigned int) mask)) {
-+		mask >>= 32;
-+		byte = 4;
-+	}
-+#endif
-+	if (!(mask & 0xffff)) {
-+		mask >>= 16;
-+		byte += 2;
-+	}
-+	return (mask & 0xff) ? byte : byte + 1;
-+#endif
-+}
-+
-+#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
-+#define IS_UNALIGNED(src, dst)	0
-+#else
-+#define IS_UNALIGNED(src, dst)	\
-+	(((long) dst | (long) src) & (sizeof(long) - 1))
-+#endif
-+
-+/*
-+ * Do a strncpy, return length of string without final '\0'.
-+ * 'count' is the user-supplied count (return 'count' if we
-+ * hit it), 'max' is the address space maximum (and we return
-+ * -EFAULT if we hit it).
-+ */
-+static inline long do_strncpy_from_user(char *dst, const char __user *src, long count, unsigned long max)
-+{
-+	const unsigned long high_bits = REPEAT_BYTE(0xfe) + 1;
-+	const unsigned long low_bits = REPEAT_BYTE(0x7f);
-+	long res = 0;
-+
-+	/*
-+	 * Truncate 'max' to the user-specified limit, so that
-+	 * we only have one limit we need to check in the loop
-+	 */
-+	if (max > count)
-+		max = count;
-+
-+	if (IS_UNALIGNED(src, dst))
-+		goto byte_at_a_time;
-+
-+	while (max >= sizeof(unsigned long)) {
-+		unsigned long c, v, rhs;
-+
-+		/* Fall back to byte-at-a-time if we get a page fault */
-+		if (unlikely(__get_user(c,(unsigned long __user *)(src+res))))
-+			break;
-+		rhs = c | low_bits;
-+		v = (c + high_bits) & ~rhs;
-+		*(unsigned long *)(dst+res) = c;
-+		if (v) {
-+			v = (c & low_bits) + low_bits;
-+			v = ~(v | rhs);
-+			return res + find_zero(v);
-+		}
-+		res += sizeof(unsigned long);
-+		max -= sizeof(unsigned long);
-+	}
-+
-+byte_at_a_time:
-+	while (max) {
-+		char c;
-+
-+		if (unlikely(__get_user(c,src+res)))
-+			return -EFAULT;
-+		dst[res] = c;
-+		if (!c)
-+			return res;
-+		res++;
-+		max--;
-+	}
-+
-+	/*
-+	 * Uhhuh. We hit 'max'. But was that the user-specified maximum
-+	 * too? If so, that's ok - we got as much as the user asked for.
-+	 */
-+	if (res >= count)
-+		return res;
-+
-+	/*
-+	 * Nope: we hit the address space limit, and we still had more
-+	 * characters the caller would have wanted. That's an EFAULT.
-+	 */
-+	return -EFAULT;
-+}
-+
-+/**
-+ * strncpy_from_user: - Copy a NUL terminated string from userspace.
-+ * @dst:   Destination address, in kernel space.  This buffer must be at
-+ *         least @count bytes long.
-+ * @src:   Source address, in user space.
-+ * @count: Maximum number of bytes to copy, including the trailing NUL.
-+ *
-+ * Copies a NUL-terminated string from userspace to kernel space.
-+ *
-+ * On success, returns the length of the string (not including the trailing
-+ * NUL).
-+ *
-+ * If access to userspace fails, returns -EFAULT (some data may have been
-+ * copied).
-+ *
-+ * If @count is smaller than the length of the string, copies @count bytes
-+ * and returns @count.
-+ */
-+long strncpy_from_user(char *dst, const char __user *src, long count)
-+{
-+	unsigned long max_addr, src_addr;
-+
-+	if (unlikely(count <= 0))
-+		return 0;
-+
-+	max_addr = user_addr_max();
-+	src_addr = (unsigned long)src;
-+	if (likely(src_addr < max_addr)) {
-+		unsigned long max = max_addr - src_addr;
-+		return do_strncpy_from_user(dst, src, count, max);
-+	}
-+	return -EFAULT;
-+}
-+EXPORT_SYMBOL(strncpy_from_user);
--- 
-1.7.10
-
