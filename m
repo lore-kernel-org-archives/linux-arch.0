@@ -1,46 +1,58 @@
-From: David Howells <dhowells@redhat.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
 Subject: Re: Arch maintainers Ahoy!
-Date: Thu, 24 May 2012 17:45:29 +0100
-Message-ID: <14266.1337877929@redhat.com>
-References: <CA+55aFzwZ3mCeALQx7fXX_HO4GZF03q4gtZOFGmdWkJrvwjrJg@mail.gmail.com> <CA+55aFy675A7qH+5GUZ_C_aN+Um0o70Zq=SVXYZxbM93ft50mg@mail.gmail.com> <20120523.132109.1153947222019508621.davem@davemloft.net> <CA+55aFxWaB4eeYgdvhTJ2RegM53WxJZFC4HfV=shNn7ZDdG9CQ@mail.gmail.com> <20120523.141647.2252460119413470634.davem@davemloft.net> <CA+55aFxcRc_zR9HtFAtrT1exGP2DspP0aA6T49Ph3kZEHHyQWw@mail.gmail.com> <32064.1337852416@redhat.com>
+Date: Thu, 24 May 2012 09:56:34 -0700
+Message-ID: <CA+55aFwziHq8XZsD_N6sNHNfOoCjhE7AyuakXU0yeWVnk0v1LQ@mail.gmail.com>
+References: <CA+55aFy675A7qH+5GUZ_C_aN+Um0o70Zq=SVXYZxbM93ft50mg@mail.gmail.com>
+ <20120523.132109.1153947222019508621.davem@davemloft.net> <CA+55aFxWaB4eeYgdvhTJ2RegM53WxJZFC4HfV=shNn7ZDdG9CQ@mail.gmail.com>
+ <20120523.141647.2252460119413470634.davem@davemloft.net> <CA+55aFxcRc_zR9HtFAtrT1exGP2DspP0aA6T49Ph3kZEHHyQWw@mail.gmail.com>
+ <32064.1337852416@redhat.com> <CA+55aFzwZ3mCeALQx7fXX_HO4GZF03q4gtZOFGmdWkJrvwjrJg@mail.gmail.com>
+ <14266.1337877929@redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:17018 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933508Ab2EXQpj convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 May 2012 12:45:39 -0400
-In-Reply-To: <CA+55aFzwZ3mCeALQx7fXX_HO4GZF03q4gtZOFGmdWkJrvwjrJg@mail.gmail.com>
+Received: from mail-wi0-f172.google.com ([209.85.212.172]:34116 "EHLO
+	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755926Ab2EXQ44 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 24 May 2012 12:56:56 -0400
+Received: by wibhj8 with SMTP id hj8so6025144wib.1
+        for <linux-arch@vger.kernel.org>; Thu, 24 May 2012 09:56:55 -0700 (PDT)
+In-Reply-To: <14266.1337877929@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: dhowells@redhat.com, David Miller <davem@davemloft.net>, James.Bottomley@hansenpartnership.com, geert@linux-m68k.org, linux-arch@vger.kernel.org
+To: David Howells <dhowells@redhat.com>
+Cc: David Miller <davem@davemloft.net>, James.Bottomley@hansenpartnership.com, geert@linux-m68k.org, linux-arch@vger.kernel.org
 
-Linus Torvalds <torvalds@linux-foundation.org> wrote:
+On Thu, May 24, 2012 at 9:45 AM, David Howells <dhowells@redhat.com> wr=
+ote:
+>
+> I didn't suggest it was free, but it might be cheaper. =A0Besides x86=
+/x86_64 has
+> BSF/BSR instructions - though having played with Dave's algorithm som=
+e, I
+> don't think they're usable for this.
 
-> > Could you use cpu_to_be32/64() and then ffs()? =C2=A0That ought to =
-work for both
-> > variants of endianness. =C2=A0The cpu_to_beXX() should be a noop on=
- BE and is
-> > likely to be a single instruction on LE. =C2=A0The meat of ffs() is=
- usually a
-> > single instruction, though it may have to have zero-detect logic ad=
-ded.
->=20
-> First off, the *last* thing you want to do is go to big-endian mode.
-> All the bit counting gets *much* more complicated, and your argument
-> that it's "free" on some architectures is pointless, since it is only
-> free on the architectures that have the *least* users.
+David, I don't think you've followed this saga very well.
 
-I didn't suggest it was free, but it might be cheaper.  Besides x86/x86=
-_64 has
-BSF/BSR instructions - though having played with Dave's algorithm some,=
- I
-don't think they're usable for this.
+That word-at-a-time algorithm *comes* from x86. Literally. The code is
+90% pure copies from arch/x86/lib/usercopy.c.
 
-My suggestion assumes that there would be zeros beyond the terminal NUL=
-, which
-isn't something you can rely on.
+We *know* how the code should be written on little-endian, AND IT IS
+BOTH BETTER AND FASTER there.
 
-David
+Seriously. Little-endian is *superior* for string handling. No
+questions. In fact, anybody who thinks that big-endian is better for
+*anything* is seriously deluded these days.
+
+Also, BSF is too damn slow. It's slow as hell on most older x86 chips,
+and it's pointless. You can do clever tricks (again - only on
+little-endian) that do it portably without it. Grep for
+count_masked_bytes in the current tree, which does need a fast
+multiplier on 64-bit, but fast multipliers are way more common than
+the fast bit scan instructions.
+
+I'd love to use a population count instruction, but efficient popc
+instructions are simply not widely enough available. And the bsf
+instruction is very slow on old x86 microarchitectures.
+
+                  Linus
