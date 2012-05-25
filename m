@@ -1,44 +1,48 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 09/20] score: Do not call do_signal() with irqs disabled
-Date: Sat, 26 May 2012 00:04:25 +0200
-Message-ID: <1337983476-22081-9-git-send-email-richard@nod.at>
+Subject: [PATCH 06/20] m32r: Do not call do_signal() with irqs disabled
+Date: Sat, 26 May 2012 00:04:22 +0200
+Message-ID: <1337983476-22081-6-git-send-email-richard@nod.at>
 References: <1337983476-22081-1-git-send-email-richard@nod.at>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from a.ns.miles-group.at ([95.130.255.143]:47846 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932634Ab2EYWEz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 25 May 2012 18:04:55 -0400
 In-Reply-To: <1337983476-22081-1-git-send-email-richard@nod.at>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, Hirokazu Takata <takata@linux-m32r.org>, linux-m32r@ml.linux-m32r.org
 
 get_signal_to_deliver() calls try_to_freeze() which might sleep.
 
-Cc: Chen Liqin <liqin.chen@sunplusct.com>
-Cc: Lennox Wu <lennox.wu@gmail.com>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: linux-m32r@ml.linux-m32r.org
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/score/kernel/signal.c |    3 +++
+ arch/m32r/kernel/signal.c |    3 +++
  1 files changed, 3 insertions(+), 0 deletions(-)
 
-diff --git a/arch/score/kernel/signal.c b/arch/score/kernel/signal.c
-index d4a4901..452c1fa 100644
---- a/arch/score/kernel/signal.c
-+++ b/arch/score/kernel/signal.c
-@@ -29,6 +29,7 @@
- #include <linux/unistd.h>
- #include <linux/uaccess.h>
+diff --git a/arch/m32r/kernel/signal.c b/arch/m32r/kernel/signal.c
+index f54d969..0521e19 100644
+--- a/arch/m32r/kernel/signal.c
++++ b/arch/m32r/kernel/signal.c
+@@ -22,6 +22,7 @@
+ #include <linux/personality.h>
+ #include <linux/freezer.h>
  #include <linux/tracehook.h>
 +#include <linux/irqflags.h>
- 
  #include <asm/cacheflush.h>
- #include <asm/syscalls.h>
-@@ -350,6 +351,8 @@ static void do_signal(struct pt_regs *regs)
- asmlinkage void do_notify_resume(struct pt_regs *regs, void *unused,
- 				__u32 thread_info_flags)
+ #include <asm/ucontext.h>
+ #include <asm/uaccess.h>
+@@ -372,6 +373,8 @@ static void do_signal(struct pt_regs *regs)
+  */
+ void do_notify_resume(struct pt_regs *regs, __u32 thread_info_flags)
  {
 +	local_irq_enable();
 +
- 	/* deal with pending signal delivery */
- 	if (thread_info_flags & _TIF_SIGPENDING)
- 		do_signal(regs);
+ 	/* Pending single-step? */
+ 	if (thread_info_flags & _TIF_SINGLESTEP)
+ 		clear_thread_flag(TIF_SINGLESTEP);
 -- 
 1.7.7.3
