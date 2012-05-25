@@ -1,41 +1,46 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH] update parisc to use generic strncpy_from_user()
-Date: Fri, 25 May 2012 16:16:51 -0400 (EDT)
-Message-ID: <20120525.161651.2289094861181984680.davem@davemloft.net>
-References: <1337954392.2932.36.camel@dabdike.int.hansenpartnership.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH 1/4] [-next] Makefile: Do not call cc-option before
+	including the arch's Makefile
+Date: Fri, 25 May 2012 22:29:37 +0200
+Message-ID: <20120525202937.GA22903@merkur.ravnborg.org>
+References: <1336855148-18817-1-git-send-email-geert@linux-m68k.org> <20120520092744.GA21341@merkur.ravnborg.org> <4FBF7B34.2080506@suse.cz>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <1337954392.2932.36.camel@dabdike.int.hansenpartnership.com>
-Sender: linux-parisc-owner@vger.kernel.org
-To: James.Bottomley@HansenPartnership.com
-Cc: linux-parisc@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <4FBF7B34.2080506@suse.cz>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Michal Marek <mmarek@suse.cz>, Ingo Molnar <mingo@redhat.com>, Thomas Gleixner <tglx@linutronix.de>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, "H. Peter Anvin" <hpa@zytor.com>, linux-kbuild@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Date: Fri, 25 May 2012 14:59:52 +0100
-
-> I'll queue this patch in our git repo.  It seems to work fine for us,
-> thanks, Dave!
+On Fri, May 25, 2012 at 02:29:40PM +0200, Michal Marek wrote:
+> Dne 20.5.2012 11:27, Sam Ravnborg napsal(a):
+> > On Sat, May 12, 2012 at 10:39:05PM +0200, Geert Uytterhoeven wrote:
+> >> On architectures that setup CROSS_COMPILE in their arch/*/Makefile
+> >> (blackfin, h8300, m68k, mips, parisc, score, sh, tile, unicore32, xtensa),
+> >> cc-option may check against the wrong compiler, causing errors like
+> >>
+> >> cc1: error: unrecognized command line option "-fno-ipa-cp-clone"
+> >>
+> >> if the host gcc supports -fno-ipa-cp-clone, while the cross compiler
+> >> doesn't support that option.
+> >>
+> >> Move the CONFIG_READABLE_ASM section below the inclusion of the arch's
+> >> Makefile to fix this.
+> >>
+> >> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> >> Cc: Andi Kleen <ak@linux.intel.com>
+> >> Cc: H. Peter Anvin <hpa@zytor.com>
+> >> Cc: Michal Marek <mmarek@suse.cz>
+> >> Cc: linux-kbuild@vger.kernel.org
+> > 
+> > Michal - was this serie ever applied to kbuild?
 > 
-> Parisc people, I'm a bit worried about the #include <linux/sched.h> in
-> asm/uaccess.h ... I'm sure that's going to lead to complications later.
-> It's needed to get the dynamic TASK_SIZE, which expands through the task
-> structure to fill in user_addr_max() ... I'm thinking though that the
-> top of address space doesn't provide much protection on pa (since our
-> stack grows up towards it anyway, so we could just replace that with
-> ~0UL ... what do people think?
+> The first patch has to go to the tip tree, where the CONFIG_READABLE_ASM
+> option is introduced.
+OK - I had not seen this.
 
-Do what I did on Sparc wrt. TASK_SIZE, that way you won't need to
-include linux/sched.h
+So tip-folks - please apply this.
 
-The only reason you need linux/sched.h is to get
-test_tsk_thread_flag(), for your TASK_SIZE_OF().
-
-But that's completely pointless for TASK_SIZE which only needs to look
-at the current thread's settings.
-
-Thus if you use test_thread_flag() for TASK_SIZE, instead of trying to
-borrow TASK_SIZE_OF()'s implementation, you'll no longer have this
-linux/sched.h dependency.
+	Sam
