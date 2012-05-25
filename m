@@ -1,75 +1,137 @@
-From: David Miller <davem@davemloft.net>
-Subject: [GIT] Sparc
-Date: Thu, 24 May 2012 17:32:39 -0400 (EDT)
-Message-ID: <20120524.173239.1413482842035447647.davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <sparclinux-owner@vger.kernel.org>
-Sender: sparclinux-owner@vger.kernel.org
-To: torvalds@linux-foundation.org
-Cc: akpm@linux-foundation.org, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Jonas Bonn <jonas@southpole.se>
+Subject: [PATCH 1/1] openrisc: use generic strncpy_from_user
+Date: Fri, 25 May 2012 08:24:49 +0200
+Message-ID: <1337927089-17836-1-git-send-email-jonas@southpole.se>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail.southpole.se ([193.12.106.18]:48208 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751423Ab2EYGYQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 May 2012 02:24:16 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Jonas Bonn <jonas@southpole.se>
 
 
-This has the generic strncpy_from_user() implementation architectures
-can now use, which we've been developing on linux-arch over the past
-few days.
+As per commits 2922585b93294d47172a765115e0dbc1bfe1be19
+("lib: Sparc's strncpy_from_user is generic enough, move under lib/"),
+92ae03f2ef99fbc23bfa9080d6b58f25227bd7ef ("x86: merge 32/64-bit versions
+of 'strncpy_from_user()' and speed it up"), and corresponding
+discussion on linux-arch.
 
-For good measure I ran both a 32-bit and a 64-bit glibc testsuite
-run, and the latter of which pointed out an adjustment I needed to
-make to sparc's user_addr_max() definition.  Linus, you were right,
-STACK_TOP was not the right thing to use, even on sparc itself :-)
+Signed-off-by: Jonas Bonn <jonas@southpole.se>
+---
 
-From Sam Ravnborg, we have a conversion of sparc32 over to the common
-alloc_thread_info_node(), since the aspect which originally blocked
-our doing so (sun4c) has been removed.
+Hi Linus,
 
-Please pull, thanks a lot.
+Here's a single patch update to the OpenRISC arch to use the new
+strncpy_from_user implementation.  Hope it's ok to send it as a
+single patch and not as a pull request; let me know otherwise.
 
-The following changes since commit 72c04af9a2d57b7945cf3de8e71461bd80695d50:
+Thanks,
+Jonas
 
-  fbdev: sh_mobile_lcdc: Don't confuse line size with pitch (2012-05-21 20:59:32 -0700)
+ arch/openrisc/Kconfig               |    1 +
+ arch/openrisc/include/asm/uaccess.h |   10 ++-----
+ arch/openrisc/lib/string.S          |   52 -----------------------------------
+ 3 files changed, 4 insertions(+), 59 deletions(-)
 
-are available in the git repository at:
-
-  git://git.kernel.org/pub/scm/linux/kernel/git/davem/sparc.git master
-
-for you to fetch changes up to c5389831cda3b38a56606a348a537a1332f2d729:
-
-  sparc: Fix user_addr_max() definition. (2012-05-24 13:41:58 -0700)
-
-----------------------------------------------------------------
-David S. Miller (6):
-      sparc: Add full proper error handling to strncpy_from_user().
-      sparc: Optimize strncpy_from_user() zero byte search.
-      sparc: Increase portability of strncpy_from_user() implementation.
-      kernel: Move REPEAT_BYTE definition into linux/kernel.h
-      lib: Sparc's strncpy_from_user is generic enough, move under lib/
-      sparc: Fix user_addr_max() definition.
-
-Sam Ravnborg (1):
-      sparc32: use the common implementation of alloc_thread_info_node()
-
- arch/sparc/Kconfig                      |    2 +-
- arch/sparc/include/asm/processor_64.h   |    4 +-
- arch/sparc/include/asm/thread_info_32.h |   11 +--
- arch/sparc/include/asm/uaccess.h        |    6 ++
- arch/sparc/include/asm/uaccess_32.h     |   10 ---
- arch/sparc/include/asm/uaccess_64.h     |    4 -
- arch/sparc/lib/Makefile                 |    2 +-
- arch/sparc/lib/ksyms.c                  |    3 -
- arch/sparc/lib/strncpy_from_user_32.S   |   47 ----------
- arch/sparc/lib/strncpy_from_user_64.S   |  133 ----------------------------
- arch/sparc/lib/usercopy.c               |    1 +
- arch/sparc/mm/srmmu.c                   |   27 ------
- arch/x86/include/asm/word-at-a-time.h   |    4 +-
- fs/namei.c                              |    1 +
- include/linux/kernel.h                  |    2 +
- lib/Kconfig                             |    3 +
- lib/Makefile                            |    2 +
- lib/strncpy_from_user.c                 |  146 +++++++++++++++++++++++++++++++
- 18 files changed, 170 insertions(+), 238 deletions(-)
- delete mode 100644 arch/sparc/lib/strncpy_from_user_32.S
- delete mode 100644 arch/sparc/lib/strncpy_from_user_64.S
- create mode 100644 lib/strncpy_from_user.c
+diff --git a/arch/openrisc/Kconfig b/arch/openrisc/Kconfig
+index da4ccd1..ee4d124 100644
+--- a/arch/openrisc/Kconfig
++++ b/arch/openrisc/Kconfig
+@@ -19,6 +19,7 @@ config OPENRISC
+ 	select GENERIC_CPU_DEVICES
+ 	select GENERIC_ATOMIC64
+ 	select GENERIC_CLOCKEVENTS
++	select GENERIC_STRNCPY_FROM_USER
+ 
+ config MMU
+ 	def_bool y
+diff --git a/arch/openrisc/include/asm/uaccess.h b/arch/openrisc/include/asm/uaccess.h
+index f5abaa0..04b93de 100644
+--- a/arch/openrisc/include/asm/uaccess.h
++++ b/arch/openrisc/include/asm/uaccess.h
+@@ -313,14 +313,10 @@ clear_user(void *addr, unsigned long size)
+ 	return size;
+ }
+ 
+-extern int __strncpy_from_user(char *dst, const char *src, long count);
++#define user_addr_max() \
++	(segment_eq(get_fs(), USER_DS) ? TASK_SIZE : ~0UL)
+ 
+-static inline long strncpy_from_user(char *dst, const char *src, long count)
+-{
+-	if (access_ok(VERIFY_READ, src, 1))
+-		return __strncpy_from_user(dst, src, count);
+-	return -EFAULT;
+-}
++extern long strncpy_from_user(char *dest, const char __user *src, long count);
+ 
+ /*
+  * Return the size of a string (including the ending 0)
+diff --git a/arch/openrisc/lib/string.S b/arch/openrisc/lib/string.S
+index 465f04b..8ceb11e 100644
+--- a/arch/openrisc/lib/string.S
++++ b/arch/openrisc/lib/string.S
+@@ -104,58 +104,6 @@ __clear_user:
+ 		.long 9b, 99b		// write fault
+ 	.previous
+ 
+-/*
+- * long strncpy_from_user(char *dst, const char *src, long count)
+- *
+- *
+- */
+-	.global	__strncpy_from_user
+-__strncpy_from_user:
+-	l.addi  r1,r1,-16
+-	l.sw    0(r1),r6
+-	l.sw    4(r1),r5
+-	l.sw    8(r1),r4
+-	l.sw    12(r1),r3
+-
+-	l.addi  r11,r5,0
+-2:  	l.sfeq  r5,r0
+-	l.bf    1f
+-	l.addi  r5,r5,-1
+-8:    	l.lbz   r6,0(r4)
+-	l.sfeq  r6,r0
+-	l.bf    1f
+-9:    	l.sb    0(r3),r6
+-	l.addi  r3,r3,1
+-	l.j     2b
+-	l.addi  r4,r4,1
+-1:
+-	l.lwz   r6,0(r1)
+-	l.addi  r5,r5,1
+-	l.sub   r11,r11,r5              // r11 holds the return value
+-
+-	l.lwz   r6,0(r1)
+-	l.lwz   r5,4(r1)
+-	l.lwz   r4,8(r1)
+-	l.lwz   r3,12(r1)
+-	l.jr    r9
+-	l.addi  r1,r1,16
+-
+-	.section .fixup, "ax"
+-99:
+-		l.movhi r11,hi(-EFAULT)
+-		l.ori   r11,r11,lo(-EFAULT)
+-
+-		l.lwz   r6,0(r1)
+-		l.lwz   r5,4(r1)
+-		l.lwz   r4,8(r1)
+-		l.lwz   r3,12(r1)
+-		l.jr	r9
+-		l.addi  r1,r1,16
+-	.previous
+-
+-	.section __ex_table, "a"
+-		.long 8b, 99b		// read fault
+-	.previous
+ 
+ /*
+  * extern int __strnlen_user(const char *str, long len, unsigned long top);
+-- 
+1.7.0.4
