@@ -1,43 +1,53 @@
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 12/20] unicore32: Do not call do_signal() with irqs disabled
-Date: Sat, 26 May 2012 00:04:28 +0200
-Message-ID: <1337983476-22081-12-git-send-email-richard@nod.at>
+Subject: [PATCH 20/20] xtensa: Do not call try_to_freeze() in do_signal()
+Date: Sat, 26 May 2012 00:04:36 +0200
+Message-ID: <1337983476-22081-20-git-send-email-richard@nod.at>
 References: <1337983476-22081-1-git-send-email-richard@nod.at>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1337983476-22081-1-git-send-email-richard@nod.at>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, Chris Zankel <chris@zankel.net>
 List-Id: linux-arch.vger.kernel.org
 
-get_signal_to_deliver() calls try_to_freeze() which might sleep.
+get_signal_to_deliver() already calls try_to_freeze(), there is no
+need to call it directly.
 
-Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: Chris Zankel <chris@zankel.net>
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/unicore32/kernel/signal.c |    3 +++
- 1 files changed, 3 insertions(+), 0 deletions(-)
+ arch/xtensa/kernel/signal.c |    5 -----
+ 1 files changed, 0 insertions(+), 5 deletions(-)
 
-diff --git a/arch/unicore32/kernel/signal.c b/arch/unicore32/kernel/signal.c
-index 7754df6..d25ddd8 100644
---- a/arch/unicore32/kernel/signal.c
-+++ b/arch/unicore32/kernel/signal.c
-@@ -17,6 +17,7 @@
+diff --git a/arch/xtensa/kernel/signal.c b/arch/xtensa/kernel/signal.c
+index c5e4ec0..f14ef4e 100644
+--- a/arch/xtensa/kernel/signal.c
++++ b/arch/xtensa/kernel/signal.c
+@@ -19,7 +19,6 @@
+ #include <linux/errno.h>
+ #include <linux/ptrace.h>
+ #include <linux/personality.h>
+-#include <linux/freezer.h>
  #include <linux/tracehook.h>
- #include <linux/elf.h>
- #include <linux/unistd.h>
-+#include <linux/irqflags.h>
  
- #include <asm/cacheflush.h>
  #include <asm/ucontext.h>
-@@ -458,6 +459,8 @@ static void do_signal(struct pt_regs *regs, int syscall)
- asmlinkage void do_notify_resume(struct pt_regs *regs,
- 		unsigned int thread_flags, int syscall)
- {
-+	local_irq_enable();
-+
- 	if (thread_flags & _TIF_SIGPENDING)
- 		do_signal(regs, syscall);
+@@ -454,9 +453,6 @@ static void do_signal(struct pt_regs *regs)
+ 	struct k_sigaction ka;
+ 	sigset_t oldset;
  
+-	if (try_to_freeze())
+-		goto no_signal;
+-
+ 	if (test_thread_flag(TIF_RESTORE_SIGMASK))
+ 		oldset = &current->saved_sigmask;
+ 	else
+@@ -513,7 +509,6 @@ static void do_signal(struct pt_regs *regs)
+ 		return;
+ 	}
+ 
+-no_signal:
+ 	/* Did we come from a system call? */
+ 	if ((signed) regs->syscall >= 0) {
+ 		/* Restart the system call - no handlers present */
 -- 
 1.7.7.3
