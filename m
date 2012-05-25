@@ -1,49 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:47841 "EHLO radon.swed.at"
+Received: from a.ns.miles-group.at ([95.130.255.143]:47837 "EHLO radon.swed.at"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757508Ab2EYWEu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 May 2012 18:04:50 -0400
+	id S1755683Ab2EYWEr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 25 May 2012 18:04:47 -0400
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 04/20] h8300: Do not call do_signal() with irqs disabled
-Date: Sat, 26 May 2012 00:04:20 +0200
-Message-ID: <1337983476-22081-4-git-send-email-richard@nod.at>
+Subject: [PATCH 02/20] c6x: Do not call do_signal() with irqs disabled
+Date: Sat, 26 May 2012 00:04:18 +0200
+Message-ID: <1337983476-22081-2-git-send-email-richard@nod.at>
 In-Reply-To: <1337983476-22081-1-git-send-email-richard@nod.at>
 References: <1337983476-22081-1-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, Yoshinori Sato <ysato@users.sourceforge.jp>
-Message-ID: <20120525220420.UXVFf78F68J16ukdQrjdygkfzC-t9IxpARI-mmTCja8@z>
+Cc: linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org
+Message-ID: <20120525220418.kpQmbqZd2NywFPzBIb6NM79y51RUer7Cf9bN1vJSQ3A@z>
 
 get_signal_to_deliver() calls try_to_freeze() which might sleep.
 
-Cc: Yoshinori Sato <ysato@users.sourceforge.jp>
+Cc: Mark Salter <msalter@redhat.com>
+Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+Cc: linux-c6x-dev@linux-c6x.org
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/h8300/kernel/signal.c |    3 +++
+ arch/c6x/kernel/signal.c |    3 +++
  1 files changed, 3 insertions(+), 0 deletions(-)
 
-diff --git a/arch/h8300/kernel/signal.c b/arch/h8300/kernel/signal.c
-index d4b0555..b3e03a7 100644
---- a/arch/h8300/kernel/signal.c
-+++ b/arch/h8300/kernel/signal.c
-@@ -40,6 +40,7 @@
- #include <linux/binfmts.h>
- #include <linux/freezer.h>
+diff --git a/arch/c6x/kernel/signal.c b/arch/c6x/kernel/signal.c
+index cf37478..80e91bf 100644
+--- a/arch/c6x/kernel/signal.c
++++ b/arch/c6x/kernel/signal.c
+@@ -15,6 +15,7 @@
+ #include <linux/uaccess.h>
+ #include <linux/syscalls.h>
  #include <linux/tracehook.h>
 +#include <linux/irqflags.h>
  
- #include <asm/setup.h>
- #include <asm/uaccess.h>
-@@ -507,6 +508,8 @@ statis void do_signal(struct pt_regs *regs)
- 
- asmlinkage void do_notify_resume(struct pt_regs *regs, u32 thread_info_flags)
+ #include <asm/ucontext.h>
+ #include <asm/cacheflush.h>
+@@ -356,6 +357,8 @@ static void do_signal(struct pt_regs *regs, int syscall)
+ asmlinkage void do_notify_resume(struct pt_regs *regs, u32 thread_info_flags,
+ 				 int syscall)
  {
 +	local_irq_enable();
 +
- 	if (thread_info_flags & _TIF_SIGPENDING)
- 		do_signal(regs);
- 
+ 	/* deal with pending signal delivery */
+ 	if (thread_info_flags & ((1 << TIF_SIGPENDING) |
+ 				 (1 << TIF_RESTORE_SIGMASK)))
 -- 
 1.7.7.3
 
