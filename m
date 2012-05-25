@@ -1,60 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:47850 "EHLO radon.swed.at"
+Received: from a.ns.miles-group.at ([95.130.255.143]:47835 "EHLO radon.swed.at"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933551Ab2EYWFE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 May 2012 18:05:04 -0400
+	id S933556Ab2EYWE7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 25 May 2012 18:04:59 -0400
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 13/20] arm: Do not call try_to_freeze() in do_signal()
-Date: Sat, 26 May 2012 00:04:29 +0200
-Message-ID: <1337983476-22081-13-git-send-email-richard@nod.at>
+Subject: [PATCH 08/20] openrisc: Do not call do_signal() with irqs disabled
+Date: Sat, 26 May 2012 00:04:24 +0200
+Message-ID: <1337983476-22081-8-git-send-email-richard@nod.at>
 In-Reply-To: <1337983476-22081-1-git-send-email-richard@nod.at>
 References: <1337983476-22081-1-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20120525220429.OSwa1nSVu-Agnyru03r8mS96BTJXhCr7fSopnfXRzJo@z>
+Cc: linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, Jonas Bonn <jonas@southpole.se>, linux@lists.openrisc.net
+Message-ID: <20120525220424.0tPZ0TD1zvgAbUT8WrJyicIMxZAUUSoxuPyTx95Y8Dg@z>
 
-get_signal_to_deliver() already calls try_to_freeze(), there is no
-need to call it directly.
+get_signal_to_deliver() calls try_to_freeze() which might sleep.
 
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: linux-arm-kernel@lists.infradead.org
+Cc: Jonas Bonn <jonas@southpole.se>
+Cc: linux@lists.openrisc.net
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/arm/kernel/signal.c |    5 -----
- 1 files changed, 0 insertions(+), 5 deletions(-)
+ arch/openrisc/kernel/signal.c |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
 
-diff --git a/arch/arm/kernel/signal.c b/arch/arm/kernel/signal.c
-index 434a1f3..aeebb46 100644
---- a/arch/arm/kernel/signal.c
-+++ b/arch/arm/kernel/signal.c
-@@ -10,7 +10,6 @@
- #include <linux/errno.h>
- #include <linux/signal.h>
- #include <linux/personality.h>
--#include <linux/freezer.h>
- #include <linux/uaccess.h>
+diff --git a/arch/openrisc/kernel/signal.c b/arch/openrisc/kernel/signal.c
+index e970743..f2ae7ac 100644
+--- a/arch/openrisc/kernel/signal.c
++++ b/arch/openrisc/kernel/signal.c
+@@ -26,6 +26,7 @@
+ #include <linux/unistd.h>
+ #include <linux/stddef.h>
  #include <linux/tracehook.h>
- #include <linux/irqflags.h>
-@@ -636,9 +635,6 @@ static void do_signal(struct pt_regs *regs, int syscall)
- 		}
- 	}
++#include <linux/irqflags.h>
  
--	if (try_to_freeze())
--		goto no_signal;
--
- 	/*
- 	 * Get the signal to deliver.  When running under ptrace, at this
- 	 * point the debugger may change all our registers ...
-@@ -678,7 +674,6 @@ static void do_signal(struct pt_regs *regs, int syscall)
- 		return;
- 	}
+ #include <asm/processor.h>
+ #include <asm/ucontext.h>
+@@ -370,6 +371,8 @@ void do_signal(struct pt_regs *regs)
  
-- no_signal:
- 	if (syscall) {
- 		/*
- 		 * Handle restarting a different system call.  As above,
+ asmlinkage void do_notify_resume(struct pt_regs *regs)
+ {
++	local_irq_enable();
++
+ 	if (current_thread_info()->flags & _TIF_SIGPENDING)
+ 		do_signal(regs);
+ 
 -- 
 1.7.7.3
 
