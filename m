@@ -1,51 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:47837 "EHLO radon.swed.at"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755683Ab2EYWEr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 May 2012 18:04:47 -0400
-From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 02/20] c6x: Do not call do_signal() with irqs disabled
-Date: Sat, 26 May 2012 00:04:18 +0200
-Message-ID: <1337983476-22081-2-git-send-email-richard@nod.at>
-In-Reply-To: <1337983476-22081-1-git-send-email-richard@nod.at>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:45680 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759086Ab2EYXpr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 May 2012 19:45:47 -0400
+Date: Sat, 26 May 2012 00:45:38 +0100
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 01/20] arm: Do not call do_signal() with irqs disabled
+Message-ID: <20120525234538.GB32000@n2100.arm.linux.org.uk>
 References: <1337983476-22081-1-git-send-email-richard@nod.at>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1337983476-22081-1-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org
-Message-ID: <20120525220418.kpQmbqZd2NywFPzBIb6NM79y51RUer7Cf9bN1vJSQ3A@z>
+To: Richard Weinberger <richard@nod.at>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20120525234538.kwu1gDx8ic6SAF52PwDOYCyEsefixR362mi8I_7vSIk@z>
 
-get_signal_to_deliver() calls try_to_freeze() which might sleep.
+On Sat, May 26, 2012 at 12:04:17AM +0200, Richard Weinberger wrote:
+> get_signal_to_deliver() calls try_to_freeze() which might sleep.
 
-Cc: Mark Salter <msalter@redhat.com>
-Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
-Cc: linux-c6x-dev@linux-c6x.org
-Signed-off-by: Richard Weinberger <richard@nod.at>
----
- arch/c6x/kernel/signal.c |    3 +++
- 1 files changed, 3 insertions(+), 0 deletions(-)
+True enough, and this problem has been around for some time, and it's
+not as simple to fix as "lets just ignore everything else and enable
+interrupts to shutup the warning".
 
-diff --git a/arch/c6x/kernel/signal.c b/arch/c6x/kernel/signal.c
-index cf37478..80e91bf 100644
---- a/arch/c6x/kernel/signal.c
-+++ b/arch/c6x/kernel/signal.c
-@@ -15,6 +15,7 @@
- #include <linux/uaccess.h>
- #include <linux/syscalls.h>
- #include <linux/tracehook.h>
-+#include <linux/irqflags.h>
- 
- #include <asm/ucontext.h>
- #include <asm/cacheflush.h>
-@@ -356,6 +357,8 @@ static void do_signal(struct pt_regs *regs, int syscall)
- asmlinkage void do_notify_resume(struct pt_regs *regs, u32 thread_info_flags,
- 				 int syscall)
- {
-+	local_irq_enable();
-+
- 	/* deal with pending signal delivery */
- 	if (thread_info_flags & ((1 << TIF_SIGPENDING) |
- 				 (1 << TIF_RESTORE_SIGMASK)))
--- 
-1.7.7.3
-
+There's bigger issues here with syscall restarting that should be
+resolved first, and there's work in progress to do that.  Again,
+like I said in my previous email, Al's done a great deal of work
+in this area and I get the impression that you're redoing some of
+that.
