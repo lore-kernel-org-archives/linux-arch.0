@@ -1,60 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:47852 "EHLO radon.swed.at"
+Received: from a.ns.miles-group.at ([95.130.255.143]:47843 "EHLO radon.swed.at"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S934088Ab2EYWFF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 May 2012 18:05:05 -0400
+	id S934083Ab2EYWFE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 25 May 2012 18:05:04 -0400
 From: Richard Weinberger <richard@nod.at>
-Subject: [PATCH 14/20] blackfin: Do not call try_to_freeze() in do_signal()
-Date: Sat, 26 May 2012 00:04:30 +0200
-Message-ID: <1337983476-22081-14-git-send-email-richard@nod.at>
+Subject: [PATCH 12/20] unicore32: Do not call do_signal() with irqs disabled
+Date: Sat, 26 May 2012 00:04:28 +0200
+Message-ID: <1337983476-22081-12-git-send-email-richard@nod.at>
 In-Reply-To: <1337983476-22081-1-git-send-email-richard@nod.at>
 References: <1337983476-22081-1-git-send-email-richard@nod.at>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, Mike Frysinger <vapier@gentoo.org>, uclinux-dist-devel@blackfin.uclinux.org
-Message-ID: <20120525220430.0x9jWJwy2W6SNSoXMwT6-KV8aTFhVktHrJpQ9tHFoW4@z>
+Cc: linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, Guan Xuetao <gxt@mprc.pku.edu.cn>
+Message-ID: <20120525220428.pauauqAyYOe9D4Y3lIIIplR3rbcLo15L-ewrj9mo0tM@z>
 
-get_signal_to_deliver() already calls try_to_freeze(), there is no
-need to call it directly.
+get_signal_to_deliver() calls try_to_freeze() which might sleep.
 
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: uclinux-dist-devel@blackfin.uclinux.org
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
 Signed-off-by: Richard Weinberger <richard@nod.at>
 ---
- arch/blackfin/kernel/signal.c |    5 -----
- 1 files changed, 0 insertions(+), 5 deletions(-)
+ arch/unicore32/kernel/signal.c |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
 
-diff --git a/arch/blackfin/kernel/signal.c b/arch/blackfin/kernel/signal.c
-index e5bbc1a..cea3873 100644
---- a/arch/blackfin/kernel/signal.c
-+++ b/arch/blackfin/kernel/signal.c
-@@ -10,7 +10,6 @@
- #include <linux/tty.h>
- #include <linux/personality.h>
- #include <linux/binfmts.h>
--#include <linux/freezer.h>
- #include <linux/uaccess.h>
+diff --git a/arch/unicore32/kernel/signal.c b/arch/unicore32/kernel/signal.c
+index 7754df6..d25ddd8 100644
+--- a/arch/unicore32/kernel/signal.c
++++ b/arch/unicore32/kernel/signal.c
+@@ -17,6 +17,7 @@
  #include <linux/tracehook.h>
+ #include <linux/elf.h>
+ #include <linux/unistd.h>
++#include <linux/irqflags.h>
  
-@@ -285,9 +284,6 @@ asmlinkage void do_signal(struct pt_regs *regs)
+ #include <asm/cacheflush.h>
+ #include <asm/ucontext.h>
+@@ -458,6 +459,8 @@ static void do_signal(struct pt_regs *regs, int syscall)
+ asmlinkage void do_notify_resume(struct pt_regs *regs,
+ 		unsigned int thread_flags, int syscall)
+ {
++	local_irq_enable();
++
+ 	if (thread_flags & _TIF_SIGPENDING)
+ 		do_signal(regs, syscall);
  
- 	current->thread.esp0 = (unsigned long)regs;
- 
--	if (try_to_freeze())
--		goto no_signal;
--
- 	if (test_thread_flag(TIF_RESTORE_SIGMASK))
- 		oldset = &current->saved_sigmask;
- 	else
-@@ -311,7 +307,6 @@ asmlinkage void do_signal(struct pt_regs *regs)
- 		return;
- 	}
- 
-- no_signal:
- 	/* Did we come from a system call? */
- 	if (regs->orig_p0 >= 0)
- 		/* Restart the system call - no handlers present */
 -- 
 1.7.7.3
 
