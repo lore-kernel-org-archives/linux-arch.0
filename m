@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.gnudd.com ([213.203.150.91]:51510 "EHLO mail.gnudd.com"
+Received: from mail2.gnudd.com ([213.203.150.91]:51476 "EHLO mail.gnudd.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932558Ab2EYPtP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 May 2012 11:49:15 -0400
-Date: Fri, 25 May 2012 17:48:57 +0200
+	id S932577Ab2EYPsb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 25 May 2012 11:48:31 -0400
+Date: Fri, 25 May 2012 17:48:00 +0200
 From: Alessandro Rubini <rubini@gnudd.com>
-Subject: [PATCH 6/6] serial: add amba-pl011-pci
-Message-ID: <b166cb0fce2a67b24da5808604553b4196258f45.1337959750.git.rubini@gnudd.com>
+Subject: [PATCH 1/6] sizes.h: move from asm-generic to <linux/sizes.h>
+Message-ID: <1ae7f300a5cd23f89007e06e68713bb7075146de.1337959750.git.rubini@gnudd.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
@@ -16,169 +16,132 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Giancarlo Asnaghi <giancarlo.asnaghi@st.com>, Alan Cox <alan@linux.intel.com>, Russell King <linux@arm.linux.org.uk>, x86@kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120525154857.E0ucUDla6NWtyyyL4sv6qexdRBNGJBX3LpHvyaivIOA@z>
+Message-ID: <20120525154800.CkwOoUj9Mdnm75SZpoenEpJhKiW_Rc8OzasccAjwdIg@z>
 
-This is a simple PCI driver that registers an amba device
-in its probe function. It successfully drives the 4 serial
-ports of the sta2x11 I/O Hub.
+sizes.h is used throughout the AMBA code and drivers, so the header
+should be available to everyone in order to driver AMBA/PrimeCell
+peripherals behind a PCI bridge where the host can be any platform
+(I'm doing it under x86).
+
+At this step <asm-generic/sizes.h> includes <linux/sizes.h>,
+to allow a grace period for both in-tree and out-of-tree drivers.
 
 Signed-off-by: Alessandro Rubini <rubini@gnudd.com>
 Acked-by: Giancarlo Asnaghi <giancarlo.asnaghi@st.com>
 Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- drivers/tty/serial/Kconfig          |   10 +++-
- drivers/tty/serial/Makefile         |    1 +
- drivers/tty/serial/amba-pl011-pci.c |  101 +++++++++++++++++++++++++++++++++++
- 3 files changed, 111 insertions(+), 1 deletions(-)
- create mode 100644 drivers/tty/serial/amba-pl011-pci.c
+ include/asm-generic/sizes.h |   49 +-----------------------------------------
+ include/linux/sizes.h       |   47 +++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 49 insertions(+), 47 deletions(-)
+ create mode 100644 include/linux/sizes.h
 
-diff --git a/drivers/tty/serial/Kconfig b/drivers/tty/serial/Kconfig
-index 070b442..e5e5ef6 100644
---- a/drivers/tty/serial/Kconfig
-+++ b/drivers/tty/serial/Kconfig
-@@ -39,14 +39,22 @@ config SERIAL_AMBA_PL010_CONSOLE
- config SERIAL_AMBA_PL011
- 	tristate "ARM AMBA PL011 serial port support"
- 	depends on ARM_AMBA
-+	default y if STA2X11
- 	select SERIAL_CORE
- 	help
- 	  This selects the ARM(R) AMBA(R) PrimeCell PL011 UART.  If you have
- 	  an Integrator/PP2, Integrator/CP or Versatile platform, say Y or M
--	  here.
-+	  here. This is also needed to use the sta2x11 I/O Hub for Atom.
- 
- 	  If unsure, say N.
- 
-+config SERIAL_AMBA_PL011_PCI
-+	tristate "ARM AMBA PL011 behind a PCI-to-AMBA bridge"
-+	depends on SERIAL_AMBA_PL011 && PCI
-+	default y if STA2X11
-+	help
-+	  Say Y if your AMBA bus is behind a PCI bridge (e.g.: sta2x11)
-+
- config SERIAL_AMBA_PL011_CONSOLE
- 	bool "Support for console on AMBA serial port"
- 	depends on SERIAL_AMBA_PL011=y
-diff --git a/drivers/tty/serial/Makefile b/drivers/tty/serial/Makefile
-index 7257c5d..b8cd14b 100644
---- a/drivers/tty/serial/Makefile
-+++ b/drivers/tty/serial/Makefile
-@@ -19,6 +19,7 @@ obj-$(CONFIG_SERIAL_8250) += 8250/
- 
- obj-$(CONFIG_SERIAL_AMBA_PL010) += amba-pl010.o
- obj-$(CONFIG_SERIAL_AMBA_PL011) += amba-pl011.o
-+obj-$(CONFIG_SERIAL_AMBA_PL011_PCI) += amba-pl011-pci.o
- obj-$(CONFIG_SERIAL_CLPS711X) += clps711x.o
- obj-$(CONFIG_SERIAL_PXA) += pxa.o
- obj-$(CONFIG_SERIAL_PNX8XXX) += pnx8xxx_uart.o
-diff --git a/drivers/tty/serial/amba-pl011-pci.c b/drivers/tty/serial/amba-pl011-pci.c
-new file mode 100644
-index 0000000..b3aa0f1
---- /dev/null
-+++ b/drivers/tty/serial/amba-pl011-pci.c
-@@ -0,0 +1,101 @@
-+/*
-+ * Support for AMBA pl011 uart behind a PCI bridge
-+ * Copyright 2012 ST Microelectronics (Alessandro Rubini)
-+ * GNU GPL version 2.
-+ */
-+#include <linux/kernel.h>
-+#include <linux/module.h>
-+#include <linux/init.h>
-+#include <linux/amba/bus.h>
-+#include <linux/pci.h>
-+#include <linux/pci_ids.h>
-+#include <linux/slab.h>
-+#include <linux/irq.h>
+diff --git a/include/asm-generic/sizes.h b/include/asm-generic/sizes.h
+index ea5d4ef..1dcfad9 100644
+--- a/include/asm-generic/sizes.h
++++ b/include/asm-generic/sizes.h
+@@ -1,47 +1,2 @@
+-/*
+- * linux/include/asm-generic/sizes.h
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 as
+- * published by the Free Software Foundation.
+- */
+-#ifndef __ASM_GENERIC_SIZES_H__
+-#define __ASM_GENERIC_SIZES_H__
+-
+-#define SZ_1				0x00000001
+-#define SZ_2				0x00000002
+-#define SZ_4				0x00000004
+-#define SZ_8				0x00000008
+-#define SZ_16				0x00000010
+-#define SZ_32				0x00000020
+-#define SZ_64				0x00000040
+-#define SZ_128				0x00000080
+-#define SZ_256				0x00000100
+-#define SZ_512				0x00000200
+-
+-#define SZ_1K				0x00000400
+-#define SZ_2K				0x00000800
+-#define SZ_4K				0x00001000
+-#define SZ_8K				0x00002000
+-#define SZ_16K				0x00004000
+-#define SZ_32K				0x00008000
+-#define SZ_64K				0x00010000
+-#define SZ_128K				0x00020000
+-#define SZ_256K				0x00040000
+-#define SZ_512K				0x00080000
+-
+-#define SZ_1M				0x00100000
+-#define SZ_2M				0x00200000
+-#define SZ_4M				0x00400000
+-#define SZ_8M				0x00800000
+-#define SZ_16M				0x01000000
+-#define SZ_32M				0x02000000
+-#define SZ_64M				0x04000000
+-#define SZ_128M				0x08000000
+-#define SZ_256M				0x10000000
+-#define SZ_512M				0x20000000
+-
+-#define SZ_1G				0x40000000
+-#define SZ_2G				0x80000000
+-
+-#endif /* __ASM_GENERIC_SIZES_H__ */
++/* This is a placeholder, to be removed over time */
 +#include <linux/sizes.h>
-+#include <linux/amba/serial.h>
+diff --git a/include/linux/sizes.h b/include/linux/sizes.h
+new file mode 100644
+index 0000000..ce3e815
+--- /dev/null
++++ b/include/linux/sizes.h
+@@ -0,0 +1,47 @@
++/*
++ * include/linux/sizes.h
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++#ifndef __LINUX_SIZES_H__
++#define __LINUX_SIZES_H__
 +
-+/* This is a template, copied every time a new pci device appears */
-+static AMBA_APB_DEVICE(pl011_pci_template, "pl011-pci", 0,
-+		       0 /* base */, {0} /* irqs */, NULL /* data */);
++#define SZ_1				0x00000001
++#define SZ_2				0x00000002
++#define SZ_4				0x00000004
++#define SZ_8				0x00000008
++#define SZ_16				0x00000010
++#define SZ_32				0x00000020
++#define SZ_64				0x00000040
++#define SZ_128				0x00000080
++#define SZ_256				0x00000100
++#define SZ_512				0x00000200
 +
-+static int __devinit pl011_pci_probe(struct pci_dev *pdev,
-+				     const struct pci_device_id *id)
-+{
-+	struct amba_device *adev;
-+	struct amba_pl011_data *data;
-+	int ret;
++#define SZ_1K				0x00000400
++#define SZ_2K				0x00000800
++#define SZ_4K				0x00001000
++#define SZ_8K				0x00002000
++#define SZ_16K				0x00004000
++#define SZ_32K				0x00008000
++#define SZ_64K				0x00010000
++#define SZ_128K				0x00020000
++#define SZ_256K				0x00040000
++#define SZ_512K				0x00080000
 +
-+	/* Simply build an amba device and register it */
-+	adev = kmemdup(&pl011_pci_template_device,
-+			 sizeof(pl011_pci_template_device), GFP_KERNEL);
-+	data = kzalloc(sizeof(*data), GFP_KERNEL);
-+	if (!adev || !data) {
-+		kfree(adev);
-+		kfree(data);
-+		return -ENOMEM;
-+	}
-+	pci_set_master(pdev);
-+	pci_enable_msi(pdev);
-+	adev->irq[0] = pdev->irq;
-+	if (pdev->vendor == PCI_VENDOR_ID_STMICRO) {
-+		/* Under sta2x11, DMA is there but limited to 512M */
-+		adev->dma_mask = SZ_512M - 1;
-+		adev->dev.coherent_dma_mask = SZ_512M - 1;
-+	}
++#define SZ_1M				0x00100000
++#define SZ_2M				0x00200000
++#define SZ_4M				0x00400000
++#define SZ_8M				0x00800000
++#define SZ_16M				0x01000000
++#define SZ_32M				0x02000000
++#define SZ_64M				0x04000000
++#define SZ_128M				0x08000000
++#define SZ_256M				0x10000000
++#define SZ_512M				0x20000000
 +
-+	/* Link the pci to amba and the amba to pci */
-+	adev->dev.platform_data = data;
-+	//data->pdev = pdev;
-+	pci_set_drvdata(pdev, adev);
++#define SZ_1G				0x40000000
++#define SZ_2G				0x80000000
 +
-+	/* Create a new resource, to be registered as child of the PCI one */
-+	adev->res.flags = pdev->resource[0].flags;
-+	adev->res.start = pdev->resource[0].start;
-+	adev->res.end = adev->res.start + SZ_4K - 1;
-+
-+	/* change name */
-+	adev->dev.init_name = kasprintf(GFP_ATOMIC, "pl011-pci-%02x:%04x",
-+				       pdev->bus->number, pdev->devfn);
-+
-+	printk(KERN_INFO "%s %i\n", __func__, __LINE__);
-+	if ((ret = amba_device_register(adev, &pdev->resource[0])) < 0) {
-+		kfree(adev);
-+		return ret;
-+	}
-+	return 0;
-+};
-+
-+static void __devexit pl011_pci_remove(struct pci_dev *pdev)
-+{
-+	struct amba_device *adev = pci_get_drvdata(pdev);
-+	amba_device_unregister(adev);
-+	kfree(adev->dev.platform_data);
-+	kfree(adev);
-+}
-+
-+static DEFINE_PCI_DEVICE_TABLE(pl011_pci_table) = {
-+	{PCI_VDEVICE(STMICRO, PCI_DEVICE_ID_STMICRO_UART_HWFC)},
-+	{PCI_VDEVICE(STMICRO, PCI_DEVICE_ID_STMICRO_UART_NO_HWFC)},
-+	{0,}
-+};
-+
-+static struct pci_driver pl011_pci_driver = {
-+	.name		= "pl011-pci",
-+	.id_table	= pl011_pci_table,
-+	.probe		= pl011_pci_probe,
-+	.remove		= __devexit_p(pl011_pci_remove),
-+};
-+
-+static int __init pl011_pci_init(void)
-+{
-+	return pci_register_driver(&pl011_pci_driver);
-+}
-+
-+static void __exit pl011_pci_exit(void)
-+{
-+	pci_unregister_driver(&pl011_pci_driver);
-+}
-+
-+module_init(pl011_pci_init);
-+module_exit(pl011_pci_exit);
-+
++#endif /* __LINUX_SIZES_H__ */
 -- 
 1.7.7.2
