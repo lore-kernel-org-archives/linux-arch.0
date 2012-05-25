@@ -1,61 +1,46 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [git pull] signals, the first series
-Date: Fri, 25 May 2012 22:48:45 +0100
-Message-ID: <20120525214845.GQ11775@ZenIV.linux.org.uk>
-References: <20120522043525.GI11775@ZenIV.linux.org.uk>
- <20120522180635.93ba83a63481b2364bd8f425@canb.auug.org.au>
- <20120523151405.f264a88ca4edf8d22c08c86c@canb.auug.org.au>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Richard Weinberger <richard@nod.at>
+Subject: [PATCH 01/20] arm: Do not call do_signal() with irqs disabled
+Date: Sat, 26 May 2012 00:04:17 +0200
+Message-ID: <1337983476-22081-1-git-send-email-richard@nod.at>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:49381 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752517Ab2EYVsv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 May 2012 17:48:51 -0400
-Content-Disposition: inline
-In-Reply-To: <20120523151405.f264a88ca4edf8d22c08c86c@canb.auug.org.au>
+Received: from a.ns.miles-group.at ([95.130.255.143]:47835 "EHLO radon.swed.at"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755270Ab2EYWEq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 25 May 2012 18:04:46 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linuxppc-dev@lists.ozlabs.org
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Richard Weinberger <richard@nod.at>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
 
-On Wed, May 23, 2012 at 03:14:05PM +1000, Stephen Rothwell wrote:
-> OK, it seem that most of this has been in Andrew's tree for a while,
-> sorry about that.
+get_signal_to_deliver() calls try_to_freeze() which might sleep.
 
-Grr...  *Another* missing prereq for task_work_add() series, this time on
-ppc64.  Could somebody familiar with that beast take a look at this and
-tell if the change is sane?  What we want is
-	r0 = r3 & MSR_PR ?
-		_TIF_NEED_RESCHED | _TIF_NOTIFY_RESUME | _TIF_SIGPENDING :
-		_TIF_NEED_RESCHED;
-and when Roland re-added NOTIFY_RESUME he'd missed that hack (non-PREEMPT
-variant and 32bit code all just check _TIF_USER_WORK_MASK, so updating
-it had been enough in those cases).  I don't have the hardware in
-question; the same instructions in userland on ppc32 box produce the
-right value.  Unless NAKed I'm going to throw that one into the second
-pull request from signal.git, so if anyone has objections, please yell.
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: linux-arm-kernel@lists.infradead.org
+Signed-off-by: Richard Weinberger <richard@nod.at>
+---
+ arch/arm/kernel/signal.c |    3 +++
+ 1 files changed, 3 insertions(+), 0 deletions(-)
 
-I'll gladly replace that with better solution if one shows up (or, better
-yet, goes via ppc tree).  AFAICS the diff below should work, but whether
-it's the best variant or not... No idea.
-
-Back to massaging VFS queue for pull...
-
-diff --git a/arch/powerpc/kernel/entry_64.S b/arch/powerpc/kernel/entry_64.S
-index ed1718f..e4fd9bb 100644
---- a/arch/powerpc/kernel/entry_64.S
-+++ b/arch/powerpc/kernel/entry_64.S
-@@ -563,9 +563,10 @@ _GLOBAL(ret_from_except_lite)
- 	li	r0,_TIF_NEED_RESCHED	/* bits to check */
- 	ld	r3,_MSR(r1)
- 	ld	r4,TI_FLAGS(r9)
--	/* Move MSR_PR bit in r3 to _TIF_SIGPENDING position in r0 */
-+	/* Add MSR_PR bit in r3 in _TIF_SIGPENDING and _TIF_NOTIFY_RESUME positions in r0 */
- 	rlwimi	r0,r3,32+TIF_SIGPENDING-MSR_PR_LG,_TIF_SIGPENDING
--	and.	r0,r4,r0	/* check NEED_RESCHED and maybe SIGPENDING */
-+	rlwimi	r0,r3,32+TIF_NOTIFY_RESUME-MSR_PR_LG,_TIF_NOTIFY_RESUME
-+	and.	r0,r4,r0	/* check NEED_RESCHED and maybe SIGPENDING/NOTIFY_RESUME */
- 	bne	do_work
+diff --git a/arch/arm/kernel/signal.c b/arch/arm/kernel/signal.c
+index 4e5fdd9..434a1f3 100644
+--- a/arch/arm/kernel/signal.c
++++ b/arch/arm/kernel/signal.c
+@@ -13,6 +13,7 @@
+ #include <linux/freezer.h>
+ #include <linux/uaccess.h>
+ #include <linux/tracehook.h>
++#include <linux/irqflags.h>
  
- #else /* !CONFIG_PREEMPT */
+ #include <asm/elf.h>
+ #include <asm/cacheflush.h>
+@@ -722,6 +723,8 @@ static void do_signal(struct pt_regs *regs, int syscall)
+ asmlinkage void
+ do_notify_resume(struct pt_regs *regs, unsigned int thread_flags, int syscall)
+ {
++	local_irq_enable();
++
+ 	if (thread_flags & _TIF_SIGPENDING)
+ 		do_signal(regs, syscall);
+ 
+-- 
+1.7.7.3
