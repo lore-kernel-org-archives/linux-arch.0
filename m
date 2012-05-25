@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.gnudd.com ([213.203.150.91]:51476 "EHLO mail.gnudd.com"
+Received: from mail2.gnudd.com ([213.203.150.91]:51487 "EHLO mail.gnudd.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932577Ab2EYPsb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 25 May 2012 11:48:31 -0400
-Date: Fri, 25 May 2012 17:48:00 +0200
+	id S1757423Ab2EYPsl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 25 May 2012 11:48:41 -0400
+Date: Fri, 25 May 2012 17:48:23 +0200
 From: Alessandro Rubini <rubini@gnudd.com>
-Subject: [PATCH 1/6] sizes.h: move from asm-generic to <linux/sizes.h>
-Message-ID: <1ae7f300a5cd23f89007e06e68713bb7075146de.1337959750.git.rubini@gnudd.com>
+Subject: [PATCH 3/6] ARM: use the new linux/sizes.h
+Message-ID: <178b211f0a8f255dc14488224948384f478c0d2c.1337959750.git.rubini@gnudd.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
@@ -16,132 +16,107 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
 Cc: Giancarlo Asnaghi <giancarlo.asnaghi@st.com>, Alan Cox <alan@linux.intel.com>, Russell King <linux@arm.linux.org.uk>, x86@kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120525154800.CkwOoUj9Mdnm75SZpoenEpJhKiW_Rc8OzasccAjwdIg@z>
-
-sizes.h is used throughout the AMBA code and drivers, so the header
-should be available to everyone in order to driver AMBA/PrimeCell
-peripherals behind a PCI bridge where the host can be any platform
-(I'm doing it under x86).
-
-At this step <asm-generic/sizes.h> includes <linux/sizes.h>,
-to allow a grace period for both in-tree and out-of-tree drivers.
+Message-ID: <20120525154823.E2A69vfFy0oXeEBzME8YqWGyf08BgYsgM-C71Koxeow@z>
 
 Signed-off-by: Alessandro Rubini <rubini@gnudd.com>
 Acked-by: Giancarlo Asnaghi <giancarlo.asnaghi@st.com>
 Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- include/asm-generic/sizes.h |   49 +-----------------------------------------
- include/linux/sizes.h       |   47 +++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 49 insertions(+), 47 deletions(-)
- create mode 100644 include/linux/sizes.h
+ arch/arm/include/asm/memory.h |    2 +-
+ arch/arm/mm/dma-mapping.c     |    2 +-
+ arch/arm/mm/init.c            |    2 +-
+ arch/arm/mm/ioremap.c         |    2 +-
+ arch/arm/mm/mmu.c             |    2 +-
+ 5 files changed, 5 insertions(+), 5 deletions(-)
 
-diff --git a/include/asm-generic/sizes.h b/include/asm-generic/sizes.h
-index ea5d4ef..1dcfad9 100644
---- a/include/asm-generic/sizes.h
-+++ b/include/asm-generic/sizes.h
-@@ -1,47 +1,2 @@
--/*
-- * linux/include/asm-generic/sizes.h
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
-- */
--#ifndef __ASM_GENERIC_SIZES_H__
--#define __ASM_GENERIC_SIZES_H__
--
--#define SZ_1				0x00000001
--#define SZ_2				0x00000002
--#define SZ_4				0x00000004
--#define SZ_8				0x00000008
--#define SZ_16				0x00000010
--#define SZ_32				0x00000020
--#define SZ_64				0x00000040
--#define SZ_128				0x00000080
--#define SZ_256				0x00000100
--#define SZ_512				0x00000200
--
--#define SZ_1K				0x00000400
--#define SZ_2K				0x00000800
--#define SZ_4K				0x00001000
--#define SZ_8K				0x00002000
--#define SZ_16K				0x00004000
--#define SZ_32K				0x00008000
--#define SZ_64K				0x00010000
--#define SZ_128K				0x00020000
--#define SZ_256K				0x00040000
--#define SZ_512K				0x00080000
--
--#define SZ_1M				0x00100000
--#define SZ_2M				0x00200000
--#define SZ_4M				0x00400000
--#define SZ_8M				0x00800000
--#define SZ_16M				0x01000000
--#define SZ_32M				0x02000000
--#define SZ_64M				0x04000000
--#define SZ_128M				0x08000000
--#define SZ_256M				0x10000000
--#define SZ_512M				0x20000000
--
--#define SZ_1G				0x40000000
--#define SZ_2G				0x80000000
--
--#endif /* __ASM_GENERIC_SIZES_H__ */
-+/* This is a placeholder, to be removed over time */
+diff --git a/arch/arm/include/asm/memory.h b/arch/arm/include/asm/memory.h
+index fcb5757..e965f1b 100644
+--- a/arch/arm/include/asm/memory.h
++++ b/arch/arm/include/asm/memory.h
+@@ -16,7 +16,7 @@
+ #include <linux/compiler.h>
+ #include <linux/const.h>
+ #include <linux/types.h>
+-#include <asm/sizes.h>
 +#include <linux/sizes.h>
-diff --git a/include/linux/sizes.h b/include/linux/sizes.h
-new file mode 100644
-index 0000000..ce3e815
---- /dev/null
-+++ b/include/linux/sizes.h
-@@ -0,0 +1,47 @@
-+/*
-+ * include/linux/sizes.h
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+#ifndef __LINUX_SIZES_H__
-+#define __LINUX_SIZES_H__
-+
-+#define SZ_1				0x00000001
-+#define SZ_2				0x00000002
-+#define SZ_4				0x00000004
-+#define SZ_8				0x00000008
-+#define SZ_16				0x00000010
-+#define SZ_32				0x00000020
-+#define SZ_64				0x00000040
-+#define SZ_128				0x00000080
-+#define SZ_256				0x00000100
-+#define SZ_512				0x00000200
-+
-+#define SZ_1K				0x00000400
-+#define SZ_2K				0x00000800
-+#define SZ_4K				0x00001000
-+#define SZ_8K				0x00002000
-+#define SZ_16K				0x00004000
-+#define SZ_32K				0x00008000
-+#define SZ_64K				0x00010000
-+#define SZ_128K				0x00020000
-+#define SZ_256K				0x00040000
-+#define SZ_512K				0x00080000
-+
-+#define SZ_1M				0x00100000
-+#define SZ_2M				0x00200000
-+#define SZ_4M				0x00400000
-+#define SZ_8M				0x00800000
-+#define SZ_16M				0x01000000
-+#define SZ_32M				0x02000000
-+#define SZ_64M				0x04000000
-+#define SZ_128M				0x08000000
-+#define SZ_256M				0x10000000
-+#define SZ_512M				0x20000000
-+
-+#define SZ_1G				0x40000000
-+#define SZ_2G				0x80000000
-+
-+#endif /* __LINUX_SIZES_H__ */
+ 
+ #ifdef CONFIG_NEED_MACH_MEMORY_H
+ #include <mach/memory.h>
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index ea6b431..30a031c 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -23,12 +23,12 @@
+ #include <linux/slab.h>
+ #include <linux/iommu.h>
+ #include <linux/vmalloc.h>
++#include <linux/sizes.h>
+ 
+ #include <asm/memory.h>
+ #include <asm/highmem.h>
+ #include <asm/cacheflush.h>
+ #include <asm/tlbflush.h>
+-#include <asm/sizes.h>
+ #include <asm/mach/arch.h>
+ #include <asm/dma-iommu.h>
+ #include <asm/mach/map.h>
+diff --git a/arch/arm/mm/init.c b/arch/arm/mm/init.c
+index c21d06c..ad7fd8a 100644
+--- a/arch/arm/mm/init.c
++++ b/arch/arm/mm/init.c
+@@ -21,13 +21,13 @@
+ #include <linux/gfp.h>
+ #include <linux/memblock.h>
+ #include <linux/dma-contiguous.h>
++#include <linux/sizes.h>
+ 
+ #include <asm/mach-types.h>
+ #include <asm/memblock.h>
+ #include <asm/prom.h>
+ #include <asm/sections.h>
+ #include <asm/setup.h>
+-#include <asm/sizes.h>
+ #include <asm/tlb.h>
+ #include <asm/fixmap.h>
+ 
+diff --git a/arch/arm/mm/ioremap.c b/arch/arm/mm/ioremap.c
+index 4f55f50..566750f 100644
+--- a/arch/arm/mm/ioremap.c
++++ b/arch/arm/mm/ioremap.c
+@@ -25,6 +25,7 @@
+ #include <linux/mm.h>
+ #include <linux/vmalloc.h>
+ #include <linux/io.h>
++#include <linux/sizes.h>
+ 
+ #include <asm/cp15.h>
+ #include <asm/cputype.h>
+@@ -32,7 +33,6 @@
+ #include <asm/mmu_context.h>
+ #include <asm/pgalloc.h>
+ #include <asm/tlbflush.h>
+-#include <asm/sizes.h>
+ #include <asm/system_info.h>
+ 
+ #include <asm/mach/map.h>
+diff --git a/arch/arm/mm/mmu.c b/arch/arm/mm/mmu.c
+index e5dad60..2196116 100644
+--- a/arch/arm/mm/mmu.c
++++ b/arch/arm/mm/mmu.c
+@@ -16,13 +16,13 @@
+ #include <linux/memblock.h>
+ #include <linux/fs.h>
+ #include <linux/vmalloc.h>
++#include <linux/sizes.h>
+ 
+ #include <asm/cp15.h>
+ #include <asm/cputype.h>
+ #include <asm/sections.h>
+ #include <asm/cachetype.h>
+ #include <asm/setup.h>
+-#include <asm/sizes.h>
+ #include <asm/smp_plat.h>
+ #include <asm/tlb.h>
+ #include <asm/highmem.h>
 -- 
 1.7.7.2
