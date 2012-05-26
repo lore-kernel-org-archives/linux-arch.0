@@ -1,32 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:45680 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759086Ab2EYXpr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 25 May 2012 19:45:47 -0400
-Date: Sat, 26 May 2012 00:45:38 +0100
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [PATCH 01/20] arm: Do not call do_signal() with irqs disabled
-Message-ID: <20120525234538.GB32000@n2100.arm.linux.org.uk>
-References: <1337983476-22081-1-git-send-email-richard@nod.at>
+Received: from moutng.kundenserver.de ([212.227.126.171]:55541 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750930Ab2EZHkL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 26 May 2012 03:40:11 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 6/6] serial: add amba-pl011-pci
+Date: Sat, 26 May 2012 07:39:31 +0000
+References: <cover.1337959750.git.rubini@gnudd.com> <b166cb0fce2a67b24da5808604553b4196258f45.1337959750.git.rubini@gnudd.com>
+In-Reply-To: <b166cb0fce2a67b24da5808604553b4196258f45.1337959750.git.rubini@gnudd.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1337983476-22081-1-git-send-email-richard@nod.at>
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201205260739.31653.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Richard Weinberger <richard@nod.at>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Message-ID: <20120525234538.kwu1gDx8ic6SAF52PwDOYCyEsefixR362mi8I_7vSIk@z>
+To: Alessandro Rubini <rubini@gnudd.com>
+Cc: linux-kernel@vger.kernel.org, Giancarlo Asnaghi <giancarlo.asnaghi@st.com>, Alan Cox <alan@linux.intel.com>, Russell King <linux@arm.linux.org.uk>, x86@kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120526073931.obXLTc8yYFwpIrzeNaOPUOVO6ShIeficqR73EnX6Qz0@z>
 
-On Sat, May 26, 2012 at 12:04:17AM +0200, Richard Weinberger wrote:
-> get_signal_to_deliver() calls try_to_freeze() which might sleep.
+On Friday 25 May 2012, Alessandro Rubini wrote:
+> 
+> This is a simple PCI driver that registers an amba device
+> in its probe function. It successfully drives the 4 serial
+> ports of the sta2x11 I/O Hub.
+> 
+> Signed-off-by: Alessandro Rubini <rubini@gnudd.com>
+> Acked-by: Giancarlo Asnaghi <giancarlo.asnaghi@st.com>
 
-True enough, and this problem has been around for some time, and it's
-not as simple to fix as "lets just ignore everything else and enable
-interrupts to shutup the warning".
+Aside from the dma mask, this looks almost entirely generic. Would it
+be possible to make this a generic pci-amba driver that lives under
+drivers/amba/ and does not care about the type of device behind it?
 
-There's bigger issues here with syscall restarting that should be
-resolved first, and there's work in progress to do that.  Again,
-like I said in my previous email, Al's done a great deal of work
-in this area and I get the impression that you're redoing some of
-that.
+	Arnd
