@@ -1,49 +1,39 @@
-From: Alessandro Rubini <rubini@gnudd.com>
-Subject: Re: [PATCH 6/6] serial: add amba-pl011-pci
-Date: Sat, 26 May 2012 11:27:12 +0200
-Message-ID: <20120526092712.GA4092@mail.gnudd.com>
-References: <20120526084328.GE24149@n2100.arm.linux.org.uk>
-  <cover.1337959750.git.rubini@gnudd.com>
- <b166cb0fce2a67b24da5808604553b4196258f45.1337959750.git.rubini@gnudd.com>
+From: Michal Marek <mmarek@suse.cz>
+Subject: Re: [PATCH 1/4] [-next] Makefile: Do not call cc-option before including the arch's Makefile
+Date: Sat, 26 May 2012 12:41:35 +0200
+Message-ID: <a62d9c3d-9792-443a-aab1-4e2af6604dbd@email.android.com>
+References: <1336855148-18817-1-git-send-email-geert@linux-m68k.org> <20120520092744.GA21341@merkur.ravnborg.org> <4FBF7B34.2080506@suse.cz> <4FBFEC74.7090602@zytor.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain;
+ charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.gnudd.com ([213.203.150.91]:50372 "EHLO mail.gnudd.com"
+Received: from cantor2.suse.de ([195.135.220.15]:33823 "EHLO mx2.suse.de"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751921Ab2EZJ3j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 26 May 2012 05:29:39 -0400
-Content-Disposition: inline
-In-Reply-To: <20120526084328.GE24149@n2100.arm.linux.org.uk>
+	id S1752440Ab2EZKly (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 26 May 2012 06:41:54 -0400
+In-Reply-To: <4FBFEC74.7090602@zytor.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux@arm.linux.org.uk
-Cc: linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, x86@kernel.org, gregkh@linuxfoundation.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+To: "H. Peter Anvin" <hpa@zytor.com>
+Cc: Sam Ravnborg <sam@ravnborg.org>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, linux-kbuild@vger.kernel.org
 
->> +	default y if STA2X11
-> 
-> I don't think we want to encourage an ever growing list of platforms
-> here.  If we did this on ARM, this would be hellishly long.
+"H. Peter Anvin" <hpa@zytor.com> wrote:
 
-Ok.
+>On 05/25/2012 05:29 AM, Michal Marek wrote:
+>>>
+>>> Michal - was this serie ever applied to kbuild?
+>> 
+>> The first patch has to go to the tip tree, where the
+>CONFIG_READABLE_ASM
+>> option is introduced. The remaining patches can go to the individual
+>> arch trees, I see Geert already pushed the m68k one.
+>> 
+>
+>OK, can you ack it, please?
+>
+>	-hpa
 
-> NAK.  We have interfaces in the AMBA code for dynamically allocating
-> AMBA devices now - please use them instead of coding your own.  They
-> avoid bugs.
-
-Sure. Thanks for noting. Maybe it wasn't there when I coded this
-initially. Will do.
-
->> +	printk(KERN_INFO "%s %i\n", __func__, __LINE__);
-> 
-> This looks like debugging.
-
-Yes. After sending I noted this and another point. I apologize.
-Version 2 will be fixed in all respects.
-
-> This comes nowhere close to being sane with the driver model. [...]
-> In other words, save off the platform data pointer, unregister the struct
-> device, and then free the platform data (it will not be used at that point.)
-
-Thanks a lot for this and also the comments on APB/AHB in the other message.
-
-/alessandro
+Acked-by: Michal Marek <mmarek@suse.cz>
+-- 
+Sent from my phone. Please excuse my brevity.
