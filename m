@@ -1,38 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.9]:62059 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751237Ab2EZI3g (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 26 May 2012 04:29:36 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 6/6] serial: add amba-pl011-pci
-Date: Sat, 26 May 2012 08:29:19 +0000
-References: <201205260739.31653.arnd@arndb.de> <b166cb0fce2a67b24da5808604553b4196258f45.1337959750.git.rubini@gnudd.com> <20120526075855.GA1702@mail.gnudd.com>
-In-Reply-To: <20120526075855.GA1702@mail.gnudd.com>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:45791 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752070Ab2EZIec (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 26 May 2012 04:34:32 -0400
+Date: Sat, 26 May 2012 09:33:56 +0100
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 2/6] amba: use the new linux/sizes.h
+Message-ID: <20120526083356.GD24149@n2100.arm.linux.org.uk>
+References: <cover.1337959750.git.rubini@gnudd.com> <0e1b40d651ffbc654616173f2c3bf89888db21a5.1337959750.git.rubini@gnudd.com>
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201205260829.19232.arnd@arndb.de>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <0e1b40d651ffbc654616173f2c3bf89888db21a5.1337959750.git.rubini@gnudd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Alessandro Rubini <rubini@gnudd.com>
-Cc: linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, linux@arm.linux.org.uk, x86@kernel.org, gregkh@linuxfoundation.org, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120526082919.LIwTOam_iBGuX_Yci-JK93LIqi8VoKsIfO5sXQ-7Yq8@z>
+Cc: linux-kernel@vger.kernel.org, Giancarlo Asnaghi <giancarlo.asnaghi@st.com>, Alan Cox <alan@linux.intel.com>, x86@kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120526083356.O3fi6OpWF5qEOUD8lap3OjkXkaZpVPztneFnPODNRZc@z>
 
-On Saturday 26 May 2012, Alessandro Rubini wrote:
-> > Aside from the dma mask, this looks almost entirely generic. Would it
-> > be possible to make this a generic pci-amba driver that lives under
-> > drivers/amba/ and does not care about the type of device behind it?
+On Fri, May 25, 2012 at 05:48:12PM +0200, Alessandro Rubini wrote:
+> Signed-off-by: Alessandro Rubini <rubini@gnudd.com>
+> Acked-by: Giancarlo Asnaghi <giancarlo.asnaghi@st.com>
+> Cc: Russell King <linux@arm.linux.org.uk>
+> ---
+>  drivers/amba/bus.c |    2 +-
+>  1 files changed, 1 insertions(+), 1 deletions(-)
 > 
-> Yes, it's possible. Actually, this was my longer-time plan: propose a
-> factorization when more of those were ready.  So I'll remove the
-> special name in the device and offer an implementation as generic
-> as possible.
-> 
-> BTW, are the prerequisite patches of with you?
-> 
+> diff --git a/drivers/amba/bus.c b/drivers/amba/bus.c
+> index b7e7285..e29bfa7 100644
+> --- a/drivers/amba/bus.c
+> +++ b/drivers/amba/bus.c
+> @@ -18,7 +18,7 @@
+>  #include <linux/amba/bus.h>
+>  
+>  #include <asm/irq.h>
+> -#include <asm/sizes.h>
+> +#include <linux/sizes.h>
 
-Yes, they all look good to me, although patch 5 would have to change
-if you do patch 6 the way we discussed here.
-
-	Arnd
+Please move this up alongside the other linux/ includes.
