@@ -1,39 +1,30 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: Mostly portable strnlen_user()
-Date: Sat, 26 May 2012 01:59:18 -0400 (EDT)
-Message-ID: <20120526.015918.1684150862174101826.davem@davemloft.net>
-References: <CA+55aFxukJSo7srOcfedqCSz1wiZhjz4=F8Tj96=uOqWxYqq+A@mail.gmail.com>
-	<20120526.004459.1494543364832806830.davem@davemloft.net>
-	<CA+55aFxLLDuUK+Pde_F=gweYgyLzJQLrgU-2iZAo+FbXus+Njw@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 6/6] serial: add amba-pl011-pci
+Date: Sat, 26 May 2012 07:39:31 +0000
+Message-ID: <201205260739.31653.arnd@arndb.de>
+References: <cover.1337959750.git.rubini@gnudd.com> <b166cb0fce2a67b24da5808604553b4196258f45.1337959750.git.rubini@gnudd.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([198.137.202.13]:55657 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751104Ab2EZF7W (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 26 May 2012 01:59:22 -0400
-In-Reply-To: <CA+55aFxLLDuUK+Pde_F=gweYgyLzJQLrgU-2iZAo+FbXus+Njw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@linux-foundation.org
-Cc: linux-arch@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <b166cb0fce2a67b24da5808604553b4196258f45.1337959750.git.rubini@gnudd.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alessandro Rubini <rubini@gnudd.com>
+Cc: linux-kernel@vger.kernel.org, Giancarlo Asnaghi <giancarlo.asnaghi@st.com>, Alan Cox <alan@linux.intel.com>, Russell King <linux@arm.linux.org.uk>, x86@kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Fri, 25 May 2012 22:06:31 -0700
+On Friday 25 May 2012, Alessandro Rubini wrote:
+> 
+> This is a simple PCI driver that registers an amba device
+> in its probe function. It successfully drives the 4 serial
+> ports of the sta2x11 I/O Hub.
+> 
+> Signed-off-by: Alessandro Rubini <rubini@gnudd.com>
+> Acked-by: Giancarlo Asnaghi <giancarlo.asnaghi@st.com>
 
->> diff --git a/arch/sparc/include/asm/word-at-a-time.h b/arch/sparc/include/asm/word-at-a-time.h
->> new file mode 100644
->> index 0000000..b522cc3
->> --- /dev/null
->> +++ b/arch/sparc/include/asm/word-at-a-time.h
->> @@ -0,0 +1 @@
->> +#include <asm-generic/word-at-a-time.h>
-> 
-> This part *should* be unnecessary, I already did the
-> 
->    generic-y += word-at-a-time.h
-> 
-> in arch/sparc/include/asm/Kbuild. Can you verify? Or did something go wrong?
+Aside from the dma mask, this looks almost entirely generic. Would it
+be possible to make this a generic pci-amba driver that lives under
+drivers/amba/ and does not care about the type of device behind it?
 
-Aha, I see, yes it does work without adding the sparc header.
+	Arnd
