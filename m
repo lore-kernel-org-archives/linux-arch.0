@@ -1,60 +1,49 @@
-From: Richard Weinberger <richard@nod.at>
-Subject: Re: [PATCH 13/20] arm: Do not call try_to_freeze() in do_signal()
-Date: Sat, 26 May 2012 10:55:09 +0200
-Message-ID: <4FC09A6D.4060602@nod.at>
-References: <1337983476-22081-1-git-send-email-richard@nod.at> <1337983476-22081-13-git-send-email-richard@nod.at> <20120525234345.GA32000@n2100.arm.linux.org.uk>
+From: Alessandro Rubini <rubini@gnudd.com>
+Subject: Re: [PATCH 6/6] serial: add amba-pl011-pci
+Date: Sat, 26 May 2012 11:27:12 +0200
+Message-ID: <20120526092712.GA4092@mail.gnudd.com>
+References: <20120526084328.GE24149@n2100.arm.linux.org.uk>
+  <cover.1337959750.git.rubini@gnudd.com>
+ <b166cb0fce2a67b24da5808604553b4196258f45.1337959750.git.rubini@gnudd.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
- protocol="application/pgp-signature";
- boundary="------------enigE49C3C89FFDA6F43D086FA3D"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from a.ns.miles-group.at ([95.130.255.143]:47835 "EHLO radon.swed.at"
+Received: from mail2.gnudd.com ([213.203.150.91]:50372 "EHLO mail.gnudd.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751921Ab2EZIzO (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 26 May 2012 04:55:14 -0400
-In-Reply-To: <20120525234345.GA32000@n2100.arm.linux.org.uk>
+	id S1751921Ab2EZJ3j (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 26 May 2012 05:29:39 -0400
+Content-Disposition: inline
+In-Reply-To: <20120526084328.GE24149@n2100.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+To: linux@arm.linux.org.uk
+Cc: linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, x86@kernel.org, gregkh@linuxfoundation.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
 
-This is an OpenPGP/MIME signed message (RFC 2440 and 3156)
---------------enigE49C3C89FFDA6F43D086FA3D
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
+>> +	default y if STA2X11
+> 
+> I don't think we want to encourage an ever growing list of platforms
+> here.  If we did this on ARM, this would be hellishly long.
 
-Am 26.05.2012 01:43, schrieb Russell King - ARM Linux:
-> On Sat, May 26, 2012 at 12:04:29AM +0200, Richard Weinberger wrote:
->> get_signal_to_deliver() already calls try_to_freeze(), there is no
->> need to call it directly.
->=20
-> NAK.  Please check linux-next (okay, viro's patches haven't appeared
-> there yet) but a lot of this stuff is covered by a truckload of work
-> that Al's done.
->=20
+Ok.
 
-Okay.
-I've rebased my patches to Al's signal tree to avoid further conflicts.
+> NAK.  We have interfaces in the AMBA code for dynamically allocating
+> AMBA devices now - please use them instead of coding your own.  They
+> avoid bugs.
 
-Thanks,
-//richard
+Sure. Thanks for noting. Maybe it wasn't there when I coded this
+initially. Will do.
 
+>> +	printk(KERN_INFO "%s %i\n", __func__, __LINE__);
+> 
+> This looks like debugging.
 
---------------enigE49C3C89FFDA6F43D086FA3D
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
+Yes. After sending I noted this and another point. I apologize.
+Version 2 will be fixed in all respects.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.18 (GNU/Linux)
+> This comes nowhere close to being sane with the driver model. [...]
+> In other words, save off the platform data pointer, unregister the struct
+> device, and then free the platform data (it will not be used at that point.)
 
-iQEcBAEBAgAGBQJPwJptAAoJEN9758yqZn9eJhoH/ihMt+Lrt3ESe3o451LBsPna
-uT1O7ufXeTnk0fAX8QPVKyBkHZHDapplXmfMdCZfbI08b03iSscUUW7vkQx6mmU0
-1irNzWW9qJcOELPACSzYUQBJcUV8FGZUY8VwFD3QHO+t3wahNEHw62G9Qp4Hh4p9
-OCeMRrtz+g87n7naZmCJBsrZxZTkR6DwgUKIHPxsWnTYUnIBZMelZ+aTW8qZwDc2
-rrqPoxXPmTN78zmJpOG0BLBP0yyrlNG/jtUM/kMqOqVb7h+kWXa5dO5JSyigBYVt
-GvHyQ1xbn/7Qrq9ttWgHIWkmjL8FO/hjufzGbbZPRk9ntIr4dVpOqTmpffkahCc=
-=W/BZ
------END PGP SIGNATURE-----
+Thanks a lot for this and also the comments on APB/AHB in the other message.
 
---------------enigE49C3C89FFDA6F43D086FA3D--
+/alessandro
