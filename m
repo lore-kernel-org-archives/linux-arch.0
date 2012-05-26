@@ -1,146 +1,42 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: [PATCH v2] update parisc to use generic strncpy_from_user()
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 6/6] serial: add amba-pl011-pci
 Date: Sat, 26 May 2012 09:48:19 +0100
-Message-ID: <1338022099.3087.2.camel@dabdike.int.hansenpartnership.com>
+Message-ID: <20120526084819.GF24149@n2100.arm.linux.org.uk>
+References: <cover.1337959750.git.rubini@gnudd.com> <b166cb0fce2a67b24da5808604553b4196258f45.1337959750.git.rubini@gnudd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-parisc-owner@vger.kernel.org>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org
-Cc: David Miller <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:45818 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752013Ab2EZIsp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 26 May 2012 04:48:45 -0400
+Content-Disposition: inline
+In-Reply-To: <b166cb0fce2a67b24da5808604553b4196258f45.1337959750.git.rubini@gnudd.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alessandro Rubini <rubini@gnudd.com>
+Cc: linux-kernel@vger.kernel.org, Giancarlo Asnaghi <giancarlo.asnaghi@st.com>, Alan Cox <alan@linux.intel.com>, x86@kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
 
-I'll queue this patch in our git repo.  It seems to work fine for us,
-thanks, Dave!
+One other point.
 
-v2: use test_thread_flag() for max addr determination instead of
-tsk->thread.task_size
+On Fri, May 25, 2012 at 05:48:57PM +0200, Alessandro Rubini wrote:
+> +/* This is a template, copied every time a new pci device appears */
+> +static AMBA_APB_DEVICE(pl011_pci_template, "pl011-pci", 0,
+> +		       0 /* base */, {0} /* irqs */, NULL /* data */);
 
-James
+APB device.  It's a _peripheral_, it only has a _slave_ port which can't
+initiate DMA, so:
 
----
+> +	if (pdev->vendor == PCI_VENDOR_ID_STMICRO) {
+> +		/* Under sta2x11, DMA is there but limited to 512M */
+> +		adev->dma_mask = SZ_512M - 1;
+> +		adev->dev.coherent_dma_mask = SZ_512M - 1;
+> +	}
 
-diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
-index ddb8b24..3ff21b5 100644
---- a/arch/parisc/Kconfig
-+++ b/arch/parisc/Kconfig
-@@ -18,6 +18,7 @@ config PARISC
- 	select IRQ_PER_CPU
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select GENERIC_SMP_IDLE_THREAD
-+	select GENERIC_STRNCPY_FROM_USER
- 
- 	help
- 	  The PA-RISC microprocessor is designed by Hewlett-Packard and used
-diff --git a/arch/parisc/include/asm/processor.h b/arch/parisc/include/asm/processor.h
-index 0e8b7b8..1419924 100644
---- a/arch/parisc/include/asm/processor.h
-+++ b/arch/parisc/include/asm/processor.h
-@@ -40,12 +40,16 @@
- #define DEFAULT_TASK_SIZE32	(0xFFF00000UL)
- #define DEFAULT_MAP_BASE32	(0x40000000UL)
- 
-+/* FIXME: remove task_size from current->thread and remove TMP_TASK_SIZE */
- #ifdef CONFIG_64BIT
- #define DEFAULT_TASK_SIZE       (MAX_ADDRESS-0xf000000)
- #define DEFAULT_MAP_BASE        (0x200000000UL)
-+#define TMP_TASK_SIZE		(test_thread_flag(TIF_32BIT) ? \
-+					DEFAULT_TASK_SIZE32 : DEFAULT_TASK_SIZE)
- #else
- #define DEFAULT_TASK_SIZE	DEFAULT_TASK_SIZE32
- #define DEFAULT_MAP_BASE	DEFAULT_MAP_BASE32
-+#define TMP_TASK_SIZE		DEFAULT_TASK_SIZE32
- #endif
- 
- #ifdef __KERNEL__
-diff --git a/arch/parisc/include/asm/uaccess.h b/arch/parisc/include/asm/uaccess.h
-index 9ac0660..95e656b 100644
---- a/arch/parisc/include/asm/uaccess.h
-+++ b/arch/parisc/include/asm/uaccess.h
-@@ -5,6 +5,7 @@
-  * User space memory access functions
-  */
- #include <asm/page.h>
-+#include <asm/pgtable.h>	/* for MAX_ADDRESS */
- #include <asm/cache.h>
- #include <asm/errno.h>
- #include <asm-generic/uaccess-unaligned.h>
-@@ -218,15 +219,15 @@ struct exception_data {
- extern unsigned long lcopy_to_user(void __user *, const void *, unsigned long);
- extern unsigned long lcopy_from_user(void *, const void __user *, unsigned long);
- extern unsigned long lcopy_in_user(void __user *, const void __user *, unsigned long);
--extern long lstrncpy_from_user(char *, const char __user *, long);
-+extern long strncpy_from_user(char *, const char __user *, long);
- extern unsigned lclear_user(void __user *,unsigned long);
- extern long lstrnlen_user(const char __user *,long);
--
- /*
-  * Complex access routines -- macros
-  */
-+#define user_addr_max() \
-+	(segment_eq(get_fs(), USER_DS) ? TMP_TASK_SIZE : ~0UL)
- 
--#define strncpy_from_user lstrncpy_from_user
- #define strnlen_user lstrnlen_user
- #define strlen_user(str) lstrnlen_user(str, 0x7fffffffL)
- #define clear_user lclear_user
-diff --git a/arch/parisc/kernel/parisc_ksyms.c b/arch/parisc/kernel/parisc_ksyms.c
-index a7bb757..ceec85d 100644
---- a/arch/parisc/kernel/parisc_ksyms.c
-+++ b/arch/parisc/kernel/parisc_ksyms.c
-@@ -44,7 +44,6 @@ EXPORT_SYMBOL(__cmpxchg_u64);
- #endif
- 
- #include <asm/uaccess.h>
--EXPORT_SYMBOL(lstrncpy_from_user);
- EXPORT_SYMBOL(lclear_user);
- EXPORT_SYMBOL(lstrnlen_user);
- 
-diff --git a/arch/parisc/lib/lusercopy.S b/arch/parisc/lib/lusercopy.S
-index 1bd23cc..6f2d935 100644
---- a/arch/parisc/lib/lusercopy.S
-+++ b/arch/parisc/lib/lusercopy.S
-@@ -61,47 +61,6 @@
- 	.endm
- 
- 	/*
--	 * long lstrncpy_from_user(char *dst, const char *src, long n)
--	 *
--	 * Returns -EFAULT if exception before terminator,
--	 *         N if the entire buffer filled,
--	 *         otherwise strlen (i.e. excludes zero byte)
--	 */
--
--ENTRY(lstrncpy_from_user)
--	.proc
--	.callinfo NO_CALLS
--	.entry
--	comib,=     0,%r24,$lsfu_done
--	copy        %r24,%r23
--	get_sr
--1:      ldbs,ma     1(%sr1,%r25),%r1
--$lsfu_loop:
--	stbs,ma     %r1,1(%r26)
--	comib,=,n   0,%r1,$lsfu_done
--	addib,<>,n  -1,%r24,$lsfu_loop
--2:      ldbs,ma     1(%sr1,%r25),%r1
--$lsfu_done:
--	sub         %r23,%r24,%r28
--$lsfu_exit:
--	bv          %r0(%r2)
--	nop
--	.exit
--ENDPROC(lstrncpy_from_user)
--
--	.section .fixup,"ax"
--3:      fixup_branch $lsfu_exit
--	ldi         -EFAULT,%r28
--	.previous
--
--	.section __ex_table,"aw"
--	ASM_ULONG_INSN 1b,3b
--	ASM_ULONG_INSN 2b,3b
--	.previous
--
--	.procend
+This is pointless and unnecessary.  The PL011 driver itself doesn't use
+_this_ struct device for anything to do with DMA at all.  That's all
+handled by the DMA engine's struct device.
+
+That's true of all APB devices.  Only AHB devices with a master port can
+initiate bus transactions, and hence cause accesses to other parts of the
+system.
