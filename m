@@ -1,43 +1,41 @@
-From: Jonas Bonn <jonas@southpole.se>
+From: Paul Mackerras <paulus@samba.org>
 Subject: Re: Mostly portable strnlen_user()
-Date: Sun, 27 May 2012 10:28:05 +0200
-Message-ID: <1338107285.3557.64.camel@jerome.southpole.se>
+Date: Mon, 28 May 2012 13:07:26 +1000
+Message-ID: <20120528030726.GC6822@bloggs.ozlabs.ibm.com>
 References: <CA+55aFxYO-fb9K-_g8X85tK8-sGxUHy1R8X3Hes3fb-+0bhXLw@mail.gmail.com>
-	 <20120525.224318.1418525735588086513.davem@davemloft.net>
-	 <CA+55aFxDyPCEFbOFaPbXF556NbtakuC0RcoUKhCa5k2EsqJ8CQ@mail.gmail.com>
-	 <20120526.001552.1171433126500742038.davem@davemloft.net>
-	 <CA+55aFxukJSo7srOcfedqCSz1wiZhjz4=F8Tj96=uOqWxYqq+A@mail.gmail.com>
-	 <CACM3HyFDY96F5kfsVCRQbx+8J+BUDCWXPqQVuLwOXRefS0Gcvg@mail.gmail.com>
-	 <CA+55aFxpEnd2efoU9S208L9HaOD8cvRZ38uCXr=nrhLmwgHZuw@mail.gmail.com>
+ <20120525.224318.1418525735588086513.davem@davemloft.net>
+ <CA+55aFxDyPCEFbOFaPbXF556NbtakuC0RcoUKhCa5k2EsqJ8CQ@mail.gmail.com>
+ <20120526.001552.1171433126500742038.davem@davemloft.net>
+ <CA+55aFxukJSo7srOcfedqCSz1wiZhjz4=F8Tj96=uOqWxYqq+A@mail.gmail.com>
+ <CACM3HyFDY96F5kfsVCRQbx+8J+BUDCWXPqQVuLwOXRefS0Gcvg@mail.gmail.com>
+ <CA+55aFxpEnd2efoU9S208L9HaOD8cvRZ38uCXr=nrhLmwgHZuw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([193.12.106.18]:51715 "EHLO
-	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751927Ab2E0I2N (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 May 2012 04:28:13 -0400
+Received: from ozlabs.org ([203.10.76.45]:53356 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751582Ab2E1DH4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 27 May 2012 23:07:56 -0400
+Content-Disposition: inline
 In-Reply-To: <CA+55aFxpEnd2efoU9S208L9HaOD8cvRZ38uCXr=nrhLmwgHZuw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org
+Cc: Jonas Bonn <jonas@southpole.se>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org
 
+On Sat, May 26, 2012 at 11:39:10AM -0700, Linus Torvalds wrote:
 
-On Sat, 2012-05-26 at 11:39 -0700, Linus Torvalds wrote:
-> On Sat, May 26, 2012 at 1:32 AM, Jonas Bonn <jonas@southpole.se> wrote:
-> >
-> > I gave this a try on OpenRISC... works fine here, too.
-> 
+> Further testing would be good, but I feel pretty comfy about it. It
+> looks fine, and when I once tried to boot a kernel with a broken
+> strnlen (due to incorrect byte-endian-testing, not actually incorrect
+> code otherwise), it didn't get very far at all. So this is actually
+> code that gets a fair amount of coverage testing from not even doing
+> anything special.
 
-> Can you guys double-check that everything looks good, and Jonas, I
-> assume you could just do a patch to remove the openrisc
-> str[n]len_user() functions, and then add the "select
-> GENERIC_STRNLEN_USER". Quite frankly, I could probably do it for you,
-> but I'm not going to generate a random patch for some architecture
-> I've never in my life compiled anything for.
+Apart from a thinko in the aligned_byte_mask definition (it's wrong
+for 32-bit big-endian), it looks fine.  You're right about it not
+getting very far at all; my 32-bit powerbook couldn't even mount
+root.  I have sent a patch for that and one to use this stuff on
+powerpc - without Ben's ack since he is off sick at the moment.
 
-Yes, all tested and looks good.  I'll send you a patch for OpenRISC.
-
-Thanks,
-Jonas
+Paul.
