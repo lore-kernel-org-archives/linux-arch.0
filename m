@@ -1,33 +1,92 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: Mostly portable strnlen_user()
-Date: Sun, 27 May 2012 20:53:47 -0700
-Message-ID: <CA+55aFzTTNM+v7R8ZScizZoeMisNa9D9BngEysZphUthXr4h+A@mail.gmail.com>
-References: <CA+55aFxYO-fb9K-_g8X85tK8-sGxUHy1R8X3Hes3fb-+0bhXLw@mail.gmail.com>
- <20120525.224318.1418525735588086513.davem@davemloft.net> <CA+55aFxDyPCEFbOFaPbXF556NbtakuC0RcoUKhCa5k2EsqJ8CQ@mail.gmail.com>
- <20120526.001552.1171433126500742038.davem@davemloft.net> <CA+55aFxukJSo7srOcfedqCSz1wiZhjz4=F8Tj96=uOqWxYqq+A@mail.gmail.com>
- <CACM3HyFDY96F5kfsVCRQbx+8J+BUDCWXPqQVuLwOXRefS0Gcvg@mail.gmail.com>
- <CA+55aFxpEnd2efoU9S208L9HaOD8cvRZ38uCXr=nrhLmwgHZuw@mail.gmail.com>
- <20120528030726.GC6822@bloggs.ozlabs.ibm.com> <CA+55aFyKG15oS4pMMTPTNjberaeXjhbXZr9RnszNJb-5sjtKZQ@mail.gmail.com>
+From: Alessandro Rubini <rubini@gnudd.com>
+Subject: [PATCH V2 0/6] Bridging PCI to amba
+Date: Mon, 28 May 2012 18:36:59 +0200
+Message-ID: <cover.1338220457.git.rubini@gnudd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f42.google.com ([74.125.82.42]:45305 "EHLO
-	mail-wg0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754568Ab2E1DyJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 27 May 2012 23:54:09 -0400
-Received: by wgbds11 with SMTP id ds11so1098860wgb.1
-        for <linux-arch@vger.kernel.org>; Sun, 27 May 2012 20:54:07 -0700 (PDT)
-In-Reply-To: <CA+55aFyKG15oS4pMMTPTNjberaeXjhbXZr9RnszNJb-5sjtKZQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mackerras <paulus@samba.org>
-Cc: Jonas Bonn <jonas@southpole.se>, David Miller <davem@davemloft.net>, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-serial-owner@vger.kernel.org>
+Content-Disposition: inline
+Sender: linux-serial-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org
+Cc: Giancarlo Asnaghi <giancarlo.asnaghi@st.com>, Alan Cox <alan@linux.intel.com>, Russell King <linux@arm.linux.org.uk>, x86@kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, May 27, 2012 at 8:47 PM, Linus Torvalds
-<torvalds@linux-foundation.org> wrote:
->
-> Ahh. OpenRISC is 64-bit
+V2: accepted comments I got on V1; rewritten the driver to be generic;
+    made it tristate instead of boolean. Rebased on new next.
 
-oops, no it isn't. But apparently the test coverage is crap ;_)
 
-            Linus
+This patch set introduces use of AMBA devices under a PCI bridge.
+The device table in the driver include all the devices that we'll be
+able to run using AMBA drivers.
+
+To compile AMBA under x86, though I need <asm/sizes.h>,
+which is moved to <linux/sizes.h> as suggested earlier.
+
+I'm hereby volunteering to handle the moving of the various users
+of <asm/sizes.h> to <linux/sizes.h>; this set only moves the ARM core
+files and the ones that I need under x86.
+
+The whole patch set is sent to the same set of recipients:
+all relevant lists, Russell King (for arm), Greg-KH (for uart) and
+Arnd Bergmann (for generic include).
+
+With this set in place (plus a clok API not included here) I have
+4 serial ports working.
+
+Success strings:
+   spusa.root# uname -r
+   3.4.0-next-20120528-00016-g1e5853d
+
+   spusa.root# dmesg | grep ttyA
+   amba-0000:03:00.5: ttyAMA0 at MMIO 0xcf400000 (irq = 64) is a PL011 rev3
+   amba-0000:03:00.6: ttyAMA1 at MMIO 0xcec00000 (irq = 65) is a PL011 rev3
+   amba-0000:03:00.7: ttyAMA2 at MMIO 0xce400000 (irq = 66) is a PL011 rev3
+   amba-0000:04:00.5: ttyAMA3 at MMIO 0xd3400000 (irq = 71) is a PL011 rev3
+
+   spusa.root# grep -B2 pl011 /proc/iomem
+           ce400000-ce7fffff : 0000:03:00.7
+             ce400000-ce400fff : amba-0000:03:00.7
+             ce400000-ce400fff : uart-pl011
+   --
+           cec00000-ceffffff : 0000:03:00.6
+             cec00000-cec00fff : amba-0000:03:00.6
+             cec00000-cec00fff : uart-pl011
+   --
+           cf400000-cf7fffff : 0000:03:00.5
+             cf400000-cf400fff : amba-0000:03:00.5
+             cf400000-cf400fff : uart-pl011
+   --
+           d3400000-d37fffff : 0000:04:00.5
+             d3400000-d3400fff : amba-0000:04:00.5
+             d3400000-d3400fff : uart-pl011
+
+
+Alessandro Rubini (6):
+  sizes.h: move from asm-generic to <linux/sizes.h>
+  amba: use the new linux/sizes.h
+  ARM: use the new linux/sizes.h
+  serial: use the new linux/sizes.h
+  x86: add CONFIG_ARM_AMBA, selected by STA2X11
+  drivers/amba: add support for a PCI bridge
+
+ arch/arm/include/asm/memory.h   |    2 +-
+ arch/arm/mm/dma-mapping.c       |    2 +-
+ arch/arm/mm/init.c              |    2 +-
+ arch/arm/mm/ioremap.c           |    2 +-
+ arch/arm/mm/mmu.c               |    2 +-
+ arch/x86/Kconfig                |    4 ++
+ drivers/Kconfig                 |    2 +
+ drivers/amba/Kconfig            |   10 ++++
+ drivers/amba/Makefile           |    1 +
+ drivers/amba/bus.c              |    2 +-
+ drivers/amba/pci-amba.c         |   95 +++++++++++++++++++++++++++++++++++++++
+ drivers/tty/serial/amba-pl011.c |    2 +-
+ include/asm-generic/sizes.h     |   49 +-------------------
+ include/linux/sizes.h           |   47 +++++++++++++++++++
+ 14 files changed, 168 insertions(+), 54 deletions(-)
+ create mode 100644 drivers/amba/Kconfig
+ create mode 100644 drivers/amba/pci-amba.c
+ create mode 100644 include/linux/sizes.h
+
+-- 
+1.7.7.2
