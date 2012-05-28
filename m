@@ -1,159 +1,97 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:58779 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751411Ab2EZIsX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 26 May 2012 04:48:23 -0400
-Message-ID: <1338022099.3087.2.camel@dabdike.int.hansenpartnership.com>
-Subject: [PATCH v2] update parisc to use generic strncpy_from_user()
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Date: Sat, 26 May 2012 09:48:19 +0100
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Mime-Version: 1.0
+Received: from mail2.gnudd.com ([213.203.150.91]:43087 "EHLO mail.gnudd.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750892Ab2E1Qhb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 28 May 2012 12:37:31 -0400
+Date: Mon, 28 May 2012 18:36:59 +0200
+From: Alessandro Rubini <rubini@gnudd.com>
+Subject: [PATCH V2 0/6] Bridging PCI to amba
+Message-ID: <cover.1338220457.git.rubini@gnudd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org
-Cc: David Miller <davem@davemloft.net>
-Message-ID: <20120526084819.YJRkGvqZII-1U36qrsKSaJOp7vM2qWv9xOkzcfiwuXM@z>
+To: linux-kernel@vger.kernel.org
+Cc: Giancarlo Asnaghi <giancarlo.asnaghi@st.com>, Alan Cox <alan@linux.intel.com>, Russell King <linux@arm.linux.org.uk>, x86@kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120528163659.DcRlYzK7czjbV2xMj46633kmCvxEXb4OKVoWIZ8mJek@z>
 
-I'll queue this patch in our git repo.  It seems to work fine for us,
-thanks, Dave!
-
-v2: use test_thread_flag() for max addr determination instead of
-tsk->thread.task_size
-
-James
-
----
-
-diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
-index ddb8b24..3ff21b5 100644
---- a/arch/parisc/Kconfig
-+++ b/arch/parisc/Kconfig
-@@ -18,6 +18,7 @@ config PARISC
- 	select IRQ_PER_CPU
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select GENERIC_SMP_IDLE_THREAD
-+	select GENERIC_STRNCPY_FROM_USER
- 
- 	help
- 	  The PA-RISC microprocessor is designed by Hewlett-Packard and used
-diff --git a/arch/parisc/include/asm/processor.h b/arch/parisc/include/asm/processor.h
-index 0e8b7b8..1419924 100644
---- a/arch/parisc/include/asm/processor.h
-+++ b/arch/parisc/include/asm/processor.h
-@@ -40,12 +40,16 @@
- #define DEFAULT_TASK_SIZE32	(0xFFF00000UL)
- #define DEFAULT_MAP_BASE32	(0x40000000UL)
- 
-+/* FIXME: remove task_size from current->thread and remove TMP_TASK_SIZE */
- #ifdef CONFIG_64BIT
- #define DEFAULT_TASK_SIZE       (MAX_ADDRESS-0xf000000)
- #define DEFAULT_MAP_BASE        (0x200000000UL)
-+#define TMP_TASK_SIZE		(test_thread_flag(TIF_32BIT) ? \
-+					DEFAULT_TASK_SIZE32 : DEFAULT_TASK_SIZE)
- #else
- #define DEFAULT_TASK_SIZE	DEFAULT_TASK_SIZE32
- #define DEFAULT_MAP_BASE	DEFAULT_MAP_BASE32
-+#define TMP_TASK_SIZE		DEFAULT_TASK_SIZE32
- #endif
- 
- #ifdef __KERNEL__
-diff --git a/arch/parisc/include/asm/uaccess.h b/arch/parisc/include/asm/uaccess.h
-index 9ac0660..95e656b 100644
---- a/arch/parisc/include/asm/uaccess.h
-+++ b/arch/parisc/include/asm/uaccess.h
-@@ -5,6 +5,7 @@
-  * User space memory access functions
-  */
- #include <asm/page.h>
-+#include <asm/pgtable.h>	/* for MAX_ADDRESS */
- #include <asm/cache.h>
- #include <asm/errno.h>
- #include <asm-generic/uaccess-unaligned.h>
-@@ -218,15 +219,15 @@ struct exception_data {
- extern unsigned long lcopy_to_user(void __user *, const void *, unsigned long);
- extern unsigned long lcopy_from_user(void *, const void __user *, unsigned long);
- extern unsigned long lcopy_in_user(void __user *, const void __user *, unsigned long);
--extern long lstrncpy_from_user(char *, const char __user *, long);
-+extern long strncpy_from_user(char *, const char __user *, long);
- extern unsigned lclear_user(void __user *,unsigned long);
- extern long lstrnlen_user(const char __user *,long);
--
- /*
-  * Complex access routines -- macros
-  */
-+#define user_addr_max() \
-+	(segment_eq(get_fs(), USER_DS) ? TMP_TASK_SIZE : ~0UL)
- 
--#define strncpy_from_user lstrncpy_from_user
- #define strnlen_user lstrnlen_user
- #define strlen_user(str) lstrnlen_user(str, 0x7fffffffL)
- #define clear_user lclear_user
-diff --git a/arch/parisc/kernel/parisc_ksyms.c b/arch/parisc/kernel/parisc_ksyms.c
-index a7bb757..ceec85d 100644
---- a/arch/parisc/kernel/parisc_ksyms.c
-+++ b/arch/parisc/kernel/parisc_ksyms.c
-@@ -44,7 +44,6 @@ EXPORT_SYMBOL(__cmpxchg_u64);
- #endif
- 
- #include <asm/uaccess.h>
--EXPORT_SYMBOL(lstrncpy_from_user);
- EXPORT_SYMBOL(lclear_user);
- EXPORT_SYMBOL(lstrnlen_user);
- 
-diff --git a/arch/parisc/lib/lusercopy.S b/arch/parisc/lib/lusercopy.S
-index 1bd23cc..6f2d935 100644
---- a/arch/parisc/lib/lusercopy.S
-+++ b/arch/parisc/lib/lusercopy.S
-@@ -61,47 +61,6 @@
- 	.endm
- 
- 	/*
--	 * long lstrncpy_from_user(char *dst, const char *src, long n)
--	 *
--	 * Returns -EFAULT if exception before terminator,
--	 *         N if the entire buffer filled,
--	 *         otherwise strlen (i.e. excludes zero byte)
--	 */
--
--ENTRY(lstrncpy_from_user)
--	.proc
--	.callinfo NO_CALLS
--	.entry
--	comib,=     0,%r24,$lsfu_done
--	copy        %r24,%r23
--	get_sr
--1:      ldbs,ma     1(%sr1,%r25),%r1
--$lsfu_loop:
--	stbs,ma     %r1,1(%r26)
--	comib,=,n   0,%r1,$lsfu_done
--	addib,<>,n  -1,%r24,$lsfu_loop
--2:      ldbs,ma     1(%sr1,%r25),%r1
--$lsfu_done:
--	sub         %r23,%r24,%r28
--$lsfu_exit:
--	bv          %r0(%r2)
--	nop
--	.exit
--ENDPROC(lstrncpy_from_user)
--
--	.section .fixup,"ax"
--3:      fixup_branch $lsfu_exit
--	ldi         -EFAULT,%r28
--	.previous
--
--	.section __ex_table,"aw"
--	ASM_ULONG_INSN 1b,3b
--	ASM_ULONG_INSN 2b,3b
--	.previous
--
--	.procend
--
--	/*
- 	 * unsigned long lclear_user(void *to, unsigned long n)
- 	 *
- 	 * Returns 0 for success.
+V2: accepted comments I got on V1; rewritten the driver to be generic;
+    made it tristate instead of boolean. Rebased on new next.
 
 
+This patch set introduces use of AMBA devices under a PCI bridge.
+The device table in the driver include all the devices that we'll be
+able to run using AMBA drivers.
+
+To compile AMBA under x86, though I need <asm/sizes.h>,
+which is moved to <linux/sizes.h> as suggested earlier.
+
+I'm hereby volunteering to handle the moving of the various users
+of <asm/sizes.h> to <linux/sizes.h>; this set only moves the ARM core
+files and the ones that I need under x86.
+
+The whole patch set is sent to the same set of recipients:
+all relevant lists, Russell King (for arm), Greg-KH (for uart) and
+Arnd Bergmann (for generic include).
+
+With this set in place (plus a clok API not included here) I have
+4 serial ports working.
+
+Success strings:
+   spusa.root# uname -r
+   3.4.0-next-20120528-00016-g1e5853d
+
+   spusa.root# dmesg | grep ttyA
+   amba-0000:03:00.5: ttyAMA0 at MMIO 0xcf400000 (irq = 64) is a PL011 rev3
+   amba-0000:03:00.6: ttyAMA1 at MMIO 0xcec00000 (irq = 65) is a PL011 rev3
+   amba-0000:03:00.7: ttyAMA2 at MMIO 0xce400000 (irq = 66) is a PL011 rev3
+   amba-0000:04:00.5: ttyAMA3 at MMIO 0xd3400000 (irq = 71) is a PL011 rev3
+
+   spusa.root# grep -B2 pl011 /proc/iomem
+           ce400000-ce7fffff : 0000:03:00.7
+             ce400000-ce400fff : amba-0000:03:00.7
+             ce400000-ce400fff : uart-pl011
+   --
+           cec00000-ceffffff : 0000:03:00.6
+             cec00000-cec00fff : amba-0000:03:00.6
+             cec00000-cec00fff : uart-pl011
+   --
+           cf400000-cf7fffff : 0000:03:00.5
+             cf400000-cf400fff : amba-0000:03:00.5
+             cf400000-cf400fff : uart-pl011
+   --
+           d3400000-d37fffff : 0000:04:00.5
+             d3400000-d3400fff : amba-0000:04:00.5
+             d3400000-d3400fff : uart-pl011
+
+
+Alessandro Rubini (6):
+  sizes.h: move from asm-generic to <linux/sizes.h>
+  amba: use the new linux/sizes.h
+  ARM: use the new linux/sizes.h
+  serial: use the new linux/sizes.h
+  x86: add CONFIG_ARM_AMBA, selected by STA2X11
+  drivers/amba: add support for a PCI bridge
+
+ arch/arm/include/asm/memory.h   |    2 +-
+ arch/arm/mm/dma-mapping.c       |    2 +-
+ arch/arm/mm/init.c              |    2 +-
+ arch/arm/mm/ioremap.c           |    2 +-
+ arch/arm/mm/mmu.c               |    2 +-
+ arch/x86/Kconfig                |    4 ++
+ drivers/Kconfig                 |    2 +
+ drivers/amba/Kconfig            |   10 ++++
+ drivers/amba/Makefile           |    1 +
+ drivers/amba/bus.c              |    2 +-
+ drivers/amba/pci-amba.c         |   95 +++++++++++++++++++++++++++++++++++++++
+ drivers/tty/serial/amba-pl011.c |    2 +-
+ include/asm-generic/sizes.h     |   49 +-------------------
+ include/linux/sizes.h           |   47 +++++++++++++++++++
+ 14 files changed, 168 insertions(+), 54 deletions(-)
+ create mode 100644 drivers/amba/Kconfig
+ create mode 100644 drivers/amba/pci-amba.c
+ create mode 100644 include/linux/sizes.h
+
+-- 
+1.7.7.2
