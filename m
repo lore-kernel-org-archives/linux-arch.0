@@ -1,147 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.gnudd.com ([213.203.150.91]:43093 "EHLO mail.gnudd.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750892Ab2E1Qhh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 28 May 2012 12:37:37 -0400
-Date: Mon, 28 May 2012 18:37:14 +0200
-From: Alessandro Rubini <rubini@gnudd.com>
-Subject: [PATCH V2 1/6] sizes.h: move from asm-generic to <linux/sizes.h>
-Message-ID: <3c8248fcd1d73fa0a070a673b83a4772bb3ca0c1.1338222461.git.rubini@gnudd.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-References: <cover.1338222460.git.rubini@gnudd.com>
-In-Reply-To: <cover.1338222460.git.rubini@gnudd.com>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:37210 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750742Ab2EaKLx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 31 May 2012 06:11:53 -0400
+Message-ID: <1338459109.3073.13.camel@dabdike.int.hansenpartnership.com>
+Subject: Re: [PATCH v2] update parisc to use generic strncpy_from_user()
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Date: Thu, 31 May 2012 11:11:49 +0100
+In-Reply-To: <CADZpyiyZX8QNDzWhpJfQS4YWYh24uG37AZYEP4gW63uqCW+W_A@mail.gmail.com>
+References: <1338022099.3087.2.camel@dabdike.int.hansenpartnership.com>
+	 <CADZpyiyZX8QNDzWhpJfQS4YWYh24uG37AZYEP4gW63uqCW+W_A@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: Giancarlo Asnaghi <giancarlo.asnaghi@st.com>, Alan Cox <alan@linux.intel.com>, Russell King <linux@arm.linux.org.uk>, x86@kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120528163714.xBwS-MXnUfBgvyI3baPE-BNQrMLeyyG0W5uBqOdjkRA@z>
+To: Carlos O'Donell <carlos@systemhalted.org>
+Cc: Parisc List <linux-parisc@vger.kernel.org>, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>
+Message-ID: <20120531101149.RVG9WjNYYzIOeeV-eBrpUehoL2yMxG7kUfKAOnOEN9A@z>
 
-sizes.h is used throughout the AMBA code and drivers, so the header
-should be available to everyone in order to driver AMBA/PrimeCell
-peripherals behind a PCI bridge where the host can be any platform
-(I'm doing it under x86).
+On Mon, 2012-05-28 at 13:57 -0400, Carlos O'Donell wrote:
+> On Sat, May 26, 2012 at 4:48 AM, James Bottomley
+> <James.Bottomley@hansenpartnership.com> wrote:
+> > I'll queue this patch in our git repo.  It seems to work fine for us,
+> > thanks, Dave!
+> >
+> > v2: use test_thread_flag() for max addr determination instead of
+> > tsk->thread.task_size
+> >
+> 
+> Doesn't this seems like wasted instructions on the hot path? I fully
+> agree with you that on PA, where the stack grows up, there isn't
+> anything to run into up there.
+> 
+> On PA the failure case is still likely going to be one where you copy
+> all the way through the stack (which would appear valid to the kernel)
+> and fault on the first unmapped page and return -EFAULT.
+> 
+> I'd rather see a compile-time constant like you originally suggested.
 
-At this step <asm-generic/sizes.h> includes <linux/sizes.h>,
-to allow a grace period for both in-tree and out-of-tree drivers.
+OK, I'll modify it just to be ~0UL.
 
-Signed-off-by: Alessandro Rubini <rubini@gnudd.com>
-Acked-by: Giancarlo Asnaghi <giancarlo.asnaghi@st.com>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Alan Cox <alan@linux.intel.com>
----
- include/asm-generic/sizes.h |   49 +-----------------------------------------
- include/linux/sizes.h       |   47 +++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 49 insertions(+), 47 deletions(-)
- create mode 100644 include/linux/sizes.h
+James
 
-diff --git a/include/asm-generic/sizes.h b/include/asm-generic/sizes.h
-index ea5d4ef..1dcfad9 100644
---- a/include/asm-generic/sizes.h
-+++ b/include/asm-generic/sizes.h
-@@ -1,47 +1,2 @@
--/*
-- * linux/include/asm-generic/sizes.h
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
-- */
--#ifndef __ASM_GENERIC_SIZES_H__
--#define __ASM_GENERIC_SIZES_H__
--
--#define SZ_1				0x00000001
--#define SZ_2				0x00000002
--#define SZ_4				0x00000004
--#define SZ_8				0x00000008
--#define SZ_16				0x00000010
--#define SZ_32				0x00000020
--#define SZ_64				0x00000040
--#define SZ_128				0x00000080
--#define SZ_256				0x00000100
--#define SZ_512				0x00000200
--
--#define SZ_1K				0x00000400
--#define SZ_2K				0x00000800
--#define SZ_4K				0x00001000
--#define SZ_8K				0x00002000
--#define SZ_16K				0x00004000
--#define SZ_32K				0x00008000
--#define SZ_64K				0x00010000
--#define SZ_128K				0x00020000
--#define SZ_256K				0x00040000
--#define SZ_512K				0x00080000
--
--#define SZ_1M				0x00100000
--#define SZ_2M				0x00200000
--#define SZ_4M				0x00400000
--#define SZ_8M				0x00800000
--#define SZ_16M				0x01000000
--#define SZ_32M				0x02000000
--#define SZ_64M				0x04000000
--#define SZ_128M				0x08000000
--#define SZ_256M				0x10000000
--#define SZ_512M				0x20000000
--
--#define SZ_1G				0x40000000
--#define SZ_2G				0x80000000
--
--#endif /* __ASM_GENERIC_SIZES_H__ */
-+/* This is a placeholder, to be removed over time */
-+#include <linux/sizes.h>
-diff --git a/include/linux/sizes.h b/include/linux/sizes.h
-new file mode 100644
-index 0000000..ce3e815
---- /dev/null
-+++ b/include/linux/sizes.h
-@@ -0,0 +1,47 @@
-+/*
-+ * include/linux/sizes.h
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+#ifndef __LINUX_SIZES_H__
-+#define __LINUX_SIZES_H__
-+
-+#define SZ_1				0x00000001
-+#define SZ_2				0x00000002
-+#define SZ_4				0x00000004
-+#define SZ_8				0x00000008
-+#define SZ_16				0x00000010
-+#define SZ_32				0x00000020
-+#define SZ_64				0x00000040
-+#define SZ_128				0x00000080
-+#define SZ_256				0x00000100
-+#define SZ_512				0x00000200
-+
-+#define SZ_1K				0x00000400
-+#define SZ_2K				0x00000800
-+#define SZ_4K				0x00001000
-+#define SZ_8K				0x00002000
-+#define SZ_16K				0x00004000
-+#define SZ_32K				0x00008000
-+#define SZ_64K				0x00010000
-+#define SZ_128K				0x00020000
-+#define SZ_256K				0x00040000
-+#define SZ_512K				0x00080000
-+
-+#define SZ_1M				0x00100000
-+#define SZ_2M				0x00200000
-+#define SZ_4M				0x00400000
-+#define SZ_8M				0x00800000
-+#define SZ_16M				0x01000000
-+#define SZ_32M				0x02000000
-+#define SZ_64M				0x04000000
-+#define SZ_128M				0x08000000
-+#define SZ_256M				0x10000000
-+#define SZ_512M				0x20000000
-+
-+#define SZ_1G				0x40000000
-+#define SZ_2G				0x80000000
-+
-+#endif /* __LINUX_SIZES_H__ */
--- 
-1.7.7.2
+
