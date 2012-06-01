@@ -1,7 +1,7 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 26/27] arm, smpboot: Use generic SMP booting infrastructure
-Date: Fri, 01 Jun 2012 14:46:20 +0530
-Message-ID: <20120601091614.31979.39272.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 09/27] m32r, smpboot: Use generic SMP booting infrastructure
+Date: Fri, 01 Jun 2012 14:42:21 +0530
+Message-ID: <20120601091216.31979.43892.stgit@srivatsabhat.in.ibm.com>
 References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,98 +10,109 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: peterz@infradead.org, paulmck@linux.vnet.ibm.com
-Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, Russell King <linux@arm.linux.org.uk>, Marc Zyngier <marc.zyngier@arm.com>, Will Deacon <will.deacon@arm.com>, Thomas Gleixner <tglx@linutronix.de>, David Brown <davidb@codeaurora.org>, linux-arm-kernel@lists.infradead.org
+Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, Hirokazu Takata <takata@linux-m32r.org>, Thomas Gleixner <tglx@linutronix.de>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org
 List-Id: linux-arch.vger.kernel.org
 
-Convert arm to use the generic framework to boot secondary CPUs.
+Convert m32r to use the generic framework to boot secondary CPUs.
 
 Notes:
-The calls to local_irq_enable() and local_fiq_enable() which were there
-in secondary_start_kernel() originally, are retained in __cpu_post_online()
-since the generic code only calls local_irq_enable().
-Also, we were anyway going to enable interrupts in the generic code
-immediately after __cpu_post_online(), so its not like we enabled interrupts
-way too early.
+Postpone enabling interrupts to after booting the secondary CPU fully.
 
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Marc Zyngier <marc.zyngier@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: David Brown <davidb@codeaurora.org>
-Cc: linux-arm-kernel@lists.infradead.org
+Cc: linux-m32r@ml.linux-m32r.org
+Cc: linux-m32r-ja@ml.linux-m32r.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/arm/kernel/smp.c |   26 +++++++++++++-------------
- 1 files changed, 13 insertions(+), 13 deletions(-)
+ arch/m32r/kernel/smpboot.c |   46 ++++++++++++++++++++++----------------------
+ 1 files changed, 23 insertions(+), 23 deletions(-)
 
-diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
-index b735521..460b7e7 100644
---- a/arch/arm/kernel/smp.c
-+++ b/arch/arm/kernel/smp.c
-@@ -25,6 +25,7 @@
- #include <linux/percpu.h>
- #include <linux/clockchips.h>
- #include <linux/completion.h>
+diff --git a/arch/m32r/kernel/smpboot.c b/arch/m32r/kernel/smpboot.c
+index 6ddc51a..cf3fc0c 100644
+--- a/arch/m32r/kernel/smpboot.c
++++ b/arch/m32r/kernel/smpboot.c
+@@ -49,6 +49,7 @@
+ #include <linux/irq.h>
+ #include <linux/bootmem.h>
+ #include <linux/delay.h>
 +#include <linux/smpboot.h>
  
- #include <linux/atomic.h>
- #include <asm/cacheflush.h>
-@@ -227,6 +228,11 @@ static void percpu_timer_setup(void);
-  */
- asmlinkage void __cpuinit secondary_start_kernel(void)
+ #include <asm/io.h>
+ #include <asm/pgalloc.h>
+@@ -114,7 +115,6 @@ static void do_boot_cpu(int);
+ 
+ int start_secondary(void *);
+ static void smp_callin(void);
+-static void smp_online(void);
+ 
+ static void show_mp_info(int);
+ static void smp_store_cpu_info(int);
+@@ -418,22 +418,38 @@ void __init smp_cpus_done(unsigned int max_cpus)
+  *==========================================================================*/
+ int __init start_secondary(void *unused)
  {
-+	smpboot_start_secondary(NULL);
++	smpboot_start_secondary(unused);
++	return 0;
 +}
 +
 +void __cpuinit __cpu_pre_starting(void *unused)
 +{
- 	struct mm_struct *mm = &init_mm;
- 	unsigned int cpu = smp_processor_id();
- 
-@@ -244,26 +250,25 @@ asmlinkage void __cpuinit secondary_start_kernel(void)
- 	printk("CPU%u: Booted secondary processor\n", cpu);
- 
++	unsigned int cpu;
++
  	cpu_init();
 -	preempt_disable();
- 	trace_hardirqs_off();
- 
- 	/*
- 	 * Give the platform a chance to do its own initialisation.
- 	 */
- 	platform_secondary_init(cpu);
+ 	smp_callin();
+-	while (!cpumask_test_cpu(smp_processor_id(), &smp_commenced_mask))
++
++	cpu = smp_processor_id();
++	while (!cpumask_test_cpu(cpu, &smp_commenced_mask))
+ 		cpu_relax();
 +}
  
--	notify_cpu_starting(cpu);
+-	smp_online();
 +void __cpuinit __cpu_pre_online(void *unused)
 +{
-+	unsigned int cpu = smp_processor_id();
++	/* Get our bogomips. */
++	calibrate_delay();
  
- 	calibrate_delay();
- 
- 	smp_store_cpu_info(cpu);
++	/* Save our processor parameters */
++	smp_store_cpu_info(smp_processor_id());
 +}
- 
--	/*
--	 * OK, now it's safe to let the boot CPU continue.  Wait for
--	 * the CPU migration code to notice that the CPU is online
--	 * before we continue - which happens after __cpu_up returns.
--	 */
--	set_cpu_online(cpu, true);
++
 +void __cpuinit __cpu_post_online(void *unused)
 +{
- 	complete(&cpu_running);
- 
  	/*
-@@ -273,11 +278,6 @@ asmlinkage void __cpuinit secondary_start_kernel(void)
- 
- 	local_irq_enable();
- 	local_fiq_enable();
+ 	 * low-memory mappings have been cleared, flush them from
+ 	 * the local TLBs too.
+ 	 */
+ 	local_flush_tlb_all();
 -
--	/*
--	 * OK, it's off to the idle thread for us
--	 */
 -	cpu_idle();
+-	return 0;
  }
  
- void __init smp_cpus_done(unsigned int max_cpus)
+ /*==========================================================================*
+@@ -485,22 +501,6 @@ static void __init smp_callin(void)
+ 	cpumask_set_cpu(cpu_id, &cpu_callin_map);
+ }
+ 
+-static void __init smp_online(void)
+-{
+-	int cpu_id = smp_processor_id();
+-
+-	notify_cpu_starting(cpu_id);
+-
+-	local_irq_enable();
+-
+-	/* Get our bogomips. */
+-	calibrate_delay();
+-
+-	/* Save our processor parameters */
+- 	smp_store_cpu_info(cpu_id);
+-
+-	set_cpu_online(cpu_id, true);
+-}
+ 
+ /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
+ /* Boot up CPUs common Routines                                              */
