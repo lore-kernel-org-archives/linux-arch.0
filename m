@@ -1,16 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp05.au.ibm.com ([202.81.31.147]:54887 "EHLO
-	e23smtp05.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758790Ab2FAJ6G (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jun 2012 05:58:06 -0400
+Received: from e23smtp07.au.ibm.com ([202.81.31.140]:47733 "EHLO
+	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932710Ab2FAKD6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jun 2012 06:03:58 -0400
 Received: from /spool/local
-	by e23smtp05.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 1 Jun 2012 09:16:27 +1000
+	Fri, 1 Jun 2012 09:04:23 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 24/27] parisc, smpboot: Use generic SMP booting infrastructure
-Date: Fri, 01 Jun 2012 14:45:54 +0530
-Message-ID: <20120601091549.31979.6082.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 02/27] smpboot: Add provisions for arch-specific locking
+ around cpu_online_mask
+Date: Fri, 01 Jun 2012 14:40:30 +0530
+Message-ID: <20120601091024.31979.23253.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,100 +20,55 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, paulmck@linux.vnet.ibm.com
-Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>Andrew Morton <akpm@linux-foundation.org>Rusty Russell <rusty@rustcorp.com.au>, Mike Frysinger <vapier@gentoo.org>, David Howells <dhowells@redhat.com>, linux-parisc@vger.kernel.org
-Message-ID: <20120601091554.jKh8PvT4WVmauizddBDdH6QoE39yWXqhFF1VwUy7T3c@z>
+Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, Suresh Siddha <suresh.b.siddha@intel.com>, Venkatesh Pallipadi <venki@google.com>
+Message-ID: <20120601091030.S4QZpr86ZXjsqTsl3tCqRJTIsVJJUJ4jYmUDT_IFeO8@z>
 
-Convert parisc to use the generic framework to boot secondary CPUs.
+We want to make smp booting as generic as possible and remove code
+duplication in arch/ directories.
 
-Notes:
-1. The secondary cpu was being set in the cpu_online_mask way too early
-when things aren't initialized fully yet. Postpone that.
+While manipulating the cpu_online_mask, x86 uses an additional lock, i.e.,
+'vector_lock'. So provide a generic way to implement such arch-specific
+extra locking, by providing weakly defined functions arch_vector_lock()
+and arch_vector_unlock() which can be overriden by different architectures
+suitably.
 
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-Cc: Helge Deller <deller@gmx.de>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: David Howells <dhowells@redhat.com>
-Cc: linux-parisc@vger.kernel.org
+Cc: Suresh Siddha <suresh.b.siddha@intel.com>
+Cc: Venkatesh Pallipadi <venki@google.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/parisc/kernel/smp.c |   30 ++++++++++++++----------------
- 1 files changed, 14 insertions(+), 16 deletions(-)
+ kernel/smpboot.c |   11 ++++++++++-
+ 1 files changed, 10 insertions(+), 1 deletions(-)
 
-diff --git a/arch/parisc/kernel/smp.c b/arch/parisc/kernel/smp.c
-index 6266730..a6199e2 100644
---- a/arch/parisc/kernel/smp.c
-+++ b/arch/parisc/kernel/smp.c
-@@ -32,6 +32,7 @@
- #include <linux/bitops.h>
- #include <linux/ftrace.h>
- #include <linux/cpu.h>
-+#include <linux/smpboot.h>
+diff --git a/kernel/smpboot.c b/kernel/smpboot.c
+index 6c26133..5ae1805 100644
+--- a/kernel/smpboot.c
++++ b/kernel/smpboot.c
+@@ -107,6 +107,13 @@ void __weak __cpu_pre_online(void *arg) {}
+ void __weak __cpu_post_online(void *arg) {}
+ #endif
  
- #include <linux/atomic.h>
- #include <asm/current.h>
-@@ -280,8 +281,6 @@ static void __init
- smp_cpu_init(int cpunum)
- {
- 	extern int init_per_cpu(int);  /* arch/parisc/kernel/processor.c */
--	extern void init_IRQ(void);    /* arch/parisc/kernel/irq.c */
--	extern void start_cpu_itimer(void); /* arch/parisc/kernel/time.c */
- 
- 	/* Set modes and Enable floating point coprocessor */
- 	(void) init_per_cpu(cpunum);
-@@ -297,10 +296,12 @@ smp_cpu_init(int cpunum)
- 		printk(KERN_CRIT "CPU#%d already initialized!\n", cpunum);
- 		machine_halt();
- 	}
-+}
- 
--	notify_cpu_starting(cpunum);
--
--	set_cpu_online(cpunum, true);
-+void __cpuinit __cpu_pre_online(void *unused)
-+{
-+	extern void init_IRQ(void);    /* arch/parisc/kernel/irq.c */
-+	extern void start_cpu_itimer(void); /* arch/parisc/kernel/time.c */
- 
- 	/* Initialise the idle task for this CPU */
- 	atomic_inc(&init_mm.mm_count);
-@@ -310,6 +311,9 @@ smp_cpu_init(int cpunum)
- 
- 	init_IRQ();   /* make sure no IRQs are enabled or pending */
- 	start_cpu_itimer();
++/*
++ * Optional arch-specific locking for manipulating cpu_online_mask while
++ * bringing up secondary CPUs.
++ */
++void __weak arch_vector_lock(void) {}
++void __weak arch_vector_unlock(void) {}
 +
-+	flush_cache_all_local(); /* start with known state */
-+	flush_tlb_all_local(NULL);
- }
  
+ /**
+  * smpboot_start_secondary - Generic way to boot secondary processors
+@@ -129,8 +136,10 @@ void __cpuinit smpboot_start_secondary(void *arg)
  
-@@ -319,20 +323,14 @@ smp_cpu_init(int cpunum)
-  */
- void __init smp_callin(void)
- {
-+	smpboot_start_secondary(NULL);
-+}
-+
-+void __cpuinit __cpu_pre_starting(void *unused)
-+{
- 	int slave_id = cpu_now_booting;
+ 	__cpu_pre_online(arg);
  
- 	smp_cpu_init(slave_id);
--	preempt_disable();
--
--	flush_cache_all_local(); /* start with known state */
--	flush_tlb_all_local(NULL);
--
--	local_irq_enable();  /* Interrupts have been off until now */
--
--	cpu_idle();      /* Wait for timer to schedule some work */
--
--	/* NOTREACHED */
--	panic("smp_callin() AAAAaaaaahhhh....\n");
- }
+-	/* Set the CPU in the cpu_online_mask */
++	/* Set the CPU in the cpu_online_mask with required locks held */
++	arch_vector_lock();
+ 	set_cpu_online(cpu, true);
++	arch_vector_unlock();
  
- /*
+ 	__cpu_post_online(arg);
+ 
 
