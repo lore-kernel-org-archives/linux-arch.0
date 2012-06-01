@@ -1,139 +1,167 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 00/27] Generic framework for SMP booting/CPU hotplug related
- code
-Date: Fri, 01 Jun 2012 14:40:03 +0530
-Message-ID: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 01/27] smpboot: Provide a generic method to boot secondary
+ processors
+Date: Fri, 01 Jun 2012 14:40:18 +0530
+Message-ID: <20120601091008.31979.93586.stgit@srivatsabhat.in.ibm.com>
+References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp03.in.ibm.com ([122.248.162.3]:42142 "EHLO
-	e28smtp03.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751669Ab2FAJKw (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jun 2012 05:10:52 -0400
+Received: from e28smtp08.in.ibm.com ([122.248.162.8]:43310 "EHLO
+	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752635Ab2FAJLI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jun 2012 05:11:08 -0400
 Received: from /spool/local
-	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp08.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 1 Jun 2012 14:40:49 +0530
+	Fri, 1 Jun 2012 14:41:06 +0530
+In-Reply-To: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, peterz@infradead.org, paulmck@linux.vnet.ibm.com
-Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com
+To: peterz@infradead.org, paulmck@linux.vnet.ibm.com
+Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com"Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Suresh Siddha <suresh.b.siddha@intel.com>, Venkatesh Pallipadi <venki@google.com>
 
-This patchset is an effort to reduce the SMP booting/CPU hotplug related code
-duplication in various architectures and pull them out into core code.
-Consolidating the code at one place makes it more maintainable and less
-error-prone.
+From: Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
 
-There is still a lot of opportunity to pull out more stuff from the arch/
-directories into core code than what this patchset does, but this does the
-ground-work on top of which we can make more and more code generic.
+The smp booting and cpu hotplug related code is heavily duplicated in various
+architectures. To solve that problem, provide a generic framework to boot
+secondary CPUs which can then be used by the architecture code.
 
-This applies on top of tip tree's smp/hotplug branch + Yong's ipi_call_lock
-cleanup patches[1].
+For now, there is no functional change in the smp boot or hotplug sequence.
+Just plain consolidation of common code from various architectures.
 
-The patch descriptions of some of the arch/ patches contain a section called
-"Notes" which documents some of the non-trivial changes implemented in that
-patch. This section is to help bring maintainer attention to those code
-pieces so that if its wrong for that arch, they can point it out and I'll
-work on fixing it.
+Signed-off-by: Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Suresh Siddha <suresh.b.siddha@intel.com>
+Cc: Venkatesh Pallipadi <venki@google.com>
+Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+---
 
-
-Acknowledgements:
-----------------
-
-Thanks a lot to Paul McKenney for his guidance and for consolidating a
-comprehensive list of what needs to be done to make CPU Hotplug better [2]
-and [3]. Many thanks to Peter Zijlstra for complaining about the code
-duplication in various architectures and pointing out what is missing and
-what needs to be worked on.
-
-Also, many thanks to Thomas Gleixner for his initiative to make smp booting
-generic and sane, and for his whole bunch of cleanups in that direction.
-I hope this patchset can contribute to that effort :-)
-
-References:
-[1]. http://marc.info/?l=linux-kernel&m=133827595625509&w=2
-[2]. https://lkml.org/lkml/2012/4/9/198
-[3]. https://lkml.org/lkml/2012/4/5/379
---
- Nikunj A. Dadhania (9):
-      um, smpboot: Use generic SMP booting infrastructure
-      sparc64, smpboot: Use generic SMP booting infrastructure
-      blackfin, smpboot: Use generic SMP booting infrastructure
-      powerpc, smpboot: Use generic SMP booting infrastructure
-      mn10300, smpboot: Use generic SMP booting infrastructure
-      ia64, smpboot: Use generic SMP booting infrastructure
-      hexagon, smpboot: Use generic SMP booting infrastructure
-      x86, smpboot: Use generic SMP booting infrastructure
-      smpboot: Provide a generic method to boot secondary processors
-
-Srivatsa S. Bhat (18):
-      alpha, smpboot: Use generic SMP booting infrastructure
-      arm, smpboot: Use generic SMP booting infrastructure
-      s390, smpboot: Use generic SMP booting infrastructure
-      parisc, smpboot: Use generic SMP booting infrastructure
-      cris, smpboot: Use generic SMP booting infrastructure
-      sparc32, smpboot: Use generic SMP booting infrastructure
-      mn10300: Fix horrible logic in smp_prepare_cpus()
-      ia64: Move holding of vector_lock to __setup_vector_irq()
-      tile, smpboot: Use generic SMP booting infrastructure
-      sh, smpboot: Use generic SMP booting infrastructure
-      mips, smpboot: Use generic SMP booting infrastructure
-      m32r, smpboot: Use generic SMP booting infrastructure
-      m32r: Fix horrible logic in smp_prepare_cpus()
-      xen, smpboot: Use generic SMP booting infrastructure
-      xen, cpu hotplug: Don't call cpu_bringup() in xen_play_dead()
-      smpboot, x86, xen: Determine smp booting implementations at run-time
-      smpboot: Define and use cpu_state per-cpu variable in generic code
-      smpboot: Add provisions for arch-specific locking around cpu_online_mask
-
-
-  arch/alpha/kernel/smp.c           |   27 ++++++-----
- arch/arm/kernel/smp.c             |   26 +++++------
- arch/blackfin/mach-bf561/smp.c    |    1 
- arch/blackfin/mach-common/smp.c   |   16 ++++---
- arch/cris/arch-v32/kernel/smp.c   |   14 ++----
- arch/hexagon/kernel/smp.c         |   18 +++----
- arch/ia64/include/asm/cpu.h       |    2 -
- arch/ia64/kernel/irq_ia64.c       |   21 ++++++++-
- arch/ia64/kernel/process.c        |    1 
- arch/ia64/kernel/smpboot.c        |   46 +++++++++----------
- arch/m32r/kernel/smpboot.c        |   50 ++++++++++----------
- arch/mips/cavium-octeon/smp.c     |    4 --
- arch/mips/kernel/smp-cmp.c        |    8 ++-
- arch/mips/kernel/smp-mt.c         |    2 -
- arch/mips/kernel/smp.c            |   23 ++++++---
- arch/mips/kernel/sync-r4k.c       |    3 +
- arch/mn10300/kernel/smp.c         |   36 +++++----------
- arch/parisc/kernel/smp.c          |   30 ++++++------
- arch/powerpc/kernel/smp.c         |   32 +++++++------
- arch/s390/kernel/smp.c            |   12 ++---
- arch/sh/include/asm/smp.h         |    2 -
- arch/sh/kernel/smp.c              |   23 ++++-----
- arch/sparc/kernel/hvtramp.S       |    1 
- arch/sparc/kernel/leon_smp.c      |   25 ++++++----
- arch/sparc/kernel/smp_64.c        |   18 ++++---
- arch/sparc/kernel/sun4d_smp.c     |   26 +++++------
- arch/sparc/kernel/sun4m_smp.c     |   26 ++++++-----
- arch/sparc/kernel/trampoline_32.S |    1 
- arch/sparc/kernel/trampoline_64.S |    1 
- arch/tile/kernel/smpboot.c        |   26 ++++-------
- arch/um/kernel/smp.c              |   12 +++--
- arch/x86/include/asm/cpu.h        |    2 -
- arch/x86/include/asm/smp.h        |   25 ++++++++++
- arch/x86/kernel/apic/io_apic.c    |   15 ++++++
- arch/x86/kernel/smp.c             |    4 ++
- arch/x86/kernel/smpboot.c         |   43 ++++++-----------
- arch/x86/xen/smp.c                |   30 ++----------
- include/linux/smpboot.h           |   11 ++++
- kernel/smpboot.c                  |   91 +++++++++++++++++++++++++++++++++++++
- kernel/smpboot.h                  |    4 +-
- 40 files changed, 437 insertions(+), 321 deletions(-)
+ include/linux/smpboot.h |   10 ++++++
+ kernel/smpboot.c        |   78 +++++++++++++++++++++++++++++++++++++++++++++++
+ kernel/smpboot.h        |    4 +-
+ 3 files changed, 90 insertions(+), 2 deletions(-)
  create mode 100644 include/linux/smpboot.h
 
-
-
-Thanks,
-Srivatsa S. Bhat
-IBM Linux Technology Center
+diff --git a/include/linux/smpboot.h b/include/linux/smpboot.h
+new file mode 100644
+index 0000000..63bbedd
+--- /dev/null
++++ b/include/linux/smpboot.h
+@@ -0,0 +1,10 @@
++/*
++ * Generic SMP CPU booting framework
++ */
++
++#ifndef SMPBOOT_H
++#define SMPBOOT_H
++
++extern void smpboot_start_secondary(void *arg);
++
++#endif
+diff --git a/kernel/smpboot.c b/kernel/smpboot.c
+index 98f60c5..6c26133 100644
+--- a/kernel/smpboot.c
++++ b/kernel/smpboot.c
+@@ -6,6 +6,7 @@
+ #include <linux/init.h>
+ #include <linux/sched.h>
+ #include <linux/percpu.h>
++#include <linux/cpu.h>
+ 
+ #include "smpboot.h"
+ 
+@@ -65,3 +66,80 @@ void __init idle_threads_init(void)
+ 	}
+ }
+ #endif
++
++
++/* Implement the following functions in your architecture, as appropriate. */
++
++/**
++ * __cpu_pre_starting()
++ *
++ * Implement whatever you need to do before the CPU_STARTING notifiers are
++ * invoked. Note that the CPU_STARTING callbacks run *on* the cpu that is
++ * coming up. So that cpu better be prepared! IOW, implement all the early
++ * boot/init code for the cpu here. And do NOT enable interrupts.
++ */
++#ifndef __cpu_pre_starting
++void __weak __cpu_pre_starting(void *arg) {}
++#endif
++
++/**
++ *  __cpu_pre_online()
++ *
++ * Implement whatever you need to do before the upcoming CPU is set in the
++ * cpu_online_mask. (Setting the cpu in the cpu_online_mask is like an
++ * announcement that the cpu has come up, because it would be publicly
++ * visible now). Again, don't enable interrupts.
++ */
++#ifndef __cpu_pre_online
++void __weak __cpu_pre_online(void *arg) {}
++#endif
++
++/**
++ * __cpu_post_online()
++ *
++ * Implement whatever you need to do after the CPU has been set in the
++ * cpu_online_mask, and before enabling interrupts and calling cpu_idle().
++ * Ideally, it is preferable if you don't have anything to do here.
++ * We want to move to a model where setting cpu_online_mask is pretty
++ * much the final step. Again, don't enable interrupts.
++ */
++#ifndef __cpu_post_online
++void __weak __cpu_post_online(void *arg) {}
++#endif
++
++
++/**
++ * smpboot_start_secondary - Generic way to boot secondary processors
++ */
++void __cpuinit smpboot_start_secondary(void *arg)
++{
++	unsigned int cpu;
++
++	/*
++	 * SMP booting is extremely fragile in some architectures. So run
++	 * the cpu initialization code first before anything else.
++	 */
++	__cpu_pre_starting(arg);
++
++	preempt_disable();
++	cpu = smp_processor_id();
++
++	/* Invoke the CPU_STARTING notifier callbacks */
++	notify_cpu_starting(cpu);
++
++	__cpu_pre_online(arg);
++
++	/* Set the CPU in the cpu_online_mask */
++	set_cpu_online(cpu, true);
++
++	__cpu_post_online(arg);
++
++	/* Enable local interrupts now */
++	local_irq_enable();
++
++	wmb();
++	cpu_idle();
++
++	/* We should never reach here! */
++	BUG();
++}
+diff --git a/kernel/smpboot.h b/kernel/smpboot.h
+index 80c0acf..9753cc0 100644
+--- a/kernel/smpboot.h
++++ b/kernel/smpboot.h
+@@ -1,5 +1,5 @@
+-#ifndef SMPBOOT_H
+-#define SMPBOOT_H
++#ifndef __SMPBOOT_H
++#define __SMPBOOT_H
+ 
+ struct task_struct;
+ 
