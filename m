@@ -1,102 +1,59 @@
-From: David Daney <ddaney.cavm@gmail.com>
-Subject: Re: [PATCH 03/27] smpboot: Define and use cpu_state per-cpu variable
- in generic code
-Date: Fri, 01 Jun 2012 09:59:07 -0700
-Message-ID: <4FC8F4DB.2070906@gmail.com>
-References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
- <20120601091038.31979.67878.stgit@srivatsabhat.in.ibm.com>
+From: Richard Kuo <rkuo@codeaurora.org>
+Subject: Re: [PATCH 05/20] hexagon: Do not call do_signal() with irqs
+ disabled
+Date: Fri, 1 Jun 2012 12:54:59 -0500
+Message-ID: <20120601175459.GA23541@codeaurora.org>
+References: <1337983476-22081-1-git-send-email-richard@nod.at>
+ <1337983476-22081-5-git-send-email-richard@nod.at>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
-Content-Transfer-Encoding: 7bit
-Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
-In-Reply-To: <20120601091038.31979.67878.stgit@srivatsabhat.in.ibm.com>
-List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
-List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
-List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
- <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
-Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-Sender: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: Venkatesh Pallipadi <venki@google.com>, Jeremy Fitzhardinge <jeremy@goop.org>, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, peterz@infradead.org, linux-kernel@vger.kernel.org, "H. Peter Anvin" <hpa@zytor.com>, mingo@kernel.org, linux-arch@vger.kernel.org, xen-devel@lists.xensource.com, Suresh Siddha <suresh.b.siddha@intel.com>, linux-sh@vger.kernel.org, x86@kernel.org, Ingo Molnar <mingo@redhat.com>, paulmck@linux.vnet.ibm.com, Fenghua Yu <fenghua.yu@intel.com>, Mike Frysinger <vapier@gentoo.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, nikunj@linux.vnet.ibm.com, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, rusty@rustcorp.com.au, Chris Metcalf <cmetcalf@tilera.com>, rjw@sisk.pl, yong.zhang0@gmail.com, tglx@linutronix.de, virtualization@lists.linux-foundation.org, Tony Luck <tony.luck@intel.com>, vatsa@linux.vnet.ibm.com, Ralf Baechle <ralf@linux-mips.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1337983476-22081-5-git-send-email-richard@nod.at>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Richard Weinberger <richard@nod.at>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-hexagon@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 06/01/2012 02:10 AM, Srivatsa S. Bhat wrote:
-> The per-cpu variable cpu_state is used in x86 and also used in other
-> architectures, to track the state of the cpu during bringup and hotplug.
-> Pull it out into generic code.
->
-> Cc: Tony Luck<tony.luck@intel.com>
-> Cc: Fenghua Yu<fenghua.yu@intel.com>
-> Cc: Ralf Baechle<ralf@linux-mips.org>
-> Cc: Benjamin Herrenschmidt<benh@kernel.crashing.org>
-> Cc: Paul Mundt<lethal@linux-sh.org>
-> Cc: Chris Metcalf<cmetcalf@tilera.com>
-> Cc: Thomas Gleixner<tglx@linutronix.de>
-> Cc: Ingo Molnar<mingo@redhat.com>
-> Cc: "H. Peter Anvin"<hpa@zytor.com>
-> Cc: x86@kernel.org
-> Cc: Konrad Rzeszutek Wilk<konrad.wilk@oracle.com>
-> Cc: Jeremy Fitzhardinge<jeremy@goop.org>
-> Cc: Peter Zijlstra<a.p.zijlstra@chello.nl>
-> Cc: Andrew Morton<akpm@linux-foundation.org>
-> Cc: Mike Frysinger<vapier@gentoo.org>
-> Cc: Yong Zhang<yong.zhang0@gmail.com>
-> Cc: Venkatesh Pallipadi<venki@google.com>
-> Cc: Suresh Siddha<suresh.b.siddha@intel.com>
-> Cc: linux-ia64@vger.kernel.org
-> Cc: linux-mips@linux-mips.org
-> Cc: linuxppc-dev@lists.ozlabs.org
-> Cc: linux-sh@vger.kernel.org
-> Cc: xen-devel@lists.xensource.com
-> Cc: virtualization@lists.linux-foundation.org
-> Signed-off-by: Srivatsa S. Bhat<srivatsa.bhat@linux.vnet.ibm.com>
+On Sat, May 26, 2012 at 12:04:21AM +0200, Richard Weinberger wrote:
+> get_signal_to_deliver() calls try_to_freeze() which might sleep.
+> 
+> Cc: Richard Kuo <rkuo@codeaurora.org>
+> Cc: linux-hexagon@vger.kernel.org
+> Signed-off-by: Richard Weinberger <richard@nod.at>
 > ---
->
->   arch/ia64/include/asm/cpu.h   |    2 --
->   arch/ia64/kernel/process.c    |    1 +
->   arch/ia64/kernel/smpboot.c    |    6 +-----
->   arch/mips/cavium-octeon/smp.c |    4 +---
->   arch/powerpc/kernel/smp.c     |    6 +-----
->   arch/sh/include/asm/smp.h     |    2 --
->   arch/sh/kernel/smp.c          |    4 +---
->   arch/tile/kernel/smpboot.c    |    4 +---
->   arch/x86/include/asm/cpu.h    |    2 --
->   arch/x86/kernel/smpboot.c     |    4 +---
->   arch/x86/xen/smp.c            |    1 +
->   include/linux/smpboot.h       |    1 +
->   kernel/smpboot.c              |    4 ++++
->   13 files changed, 13 insertions(+), 28 deletions(-)
->
-[...]
-> diff --git a/arch/mips/cavium-octeon/smp.c b/arch/mips/cavium-octeon/smp.c
-> index 97e7ce9..93cd4b0 100644
-> --- a/arch/mips/cavium-octeon/smp.c
-> +++ b/arch/mips/cavium-octeon/smp.c
-> @@ -13,6 +13,7 @@
->   #include<linux/kernel_stat.h>
->   #include<linux/sched.h>
->   #include<linux/module.h>
-> +#include<linux/smpboot.h>
->
->   #include<asm/mmu_context.h>
->   #include<asm/time.h>
-> @@ -252,9 +253,6 @@ static void octeon_cpus_done(void)
->
->   #ifdef CONFIG_HOTPLUG_CPU
->
-> -/* State of each CPU. */
-> -DEFINE_PER_CPU(int, cpu_state);
-> -
->   extern void fixup_irqs(void);
->
->   static DEFINE_SPINLOCK(smp_reserve_lock);
+>  arch/hexagon/kernel/signal.c |    3 +++
+>  1 files changed, 3 insertions(+), 0 deletions(-)
+> 
+> diff --git a/arch/hexagon/kernel/signal.c b/arch/hexagon/kernel/signal.c
+> index 434866e..8403bfd 100644
+> --- a/arch/hexagon/kernel/signal.c
+> +++ b/arch/hexagon/kernel/signal.c
+> @@ -22,6 +22,7 @@
+>  #include <linux/syscalls.h>
+>  #include <linux/freezer.h>
+>  #include <linux/tracehook.h>
+> +#include <linux/irqflags.h>
+>  #include <asm/registers.h>
+>  #include <asm/thread_info.h>
+>  #include <asm/unistd.h>
+> @@ -267,6 +268,8 @@ no_restart:
+>  
+>  void do_notify_resume(struct pt_regs *regs, unsigned long thread_info_flags)
+>  {
+> +	local_irq_enable();
+> +
+>  	if (thread_info_flags & _TIF_SIGPENDING)
+>  		do_signal(regs);
+>  
+> -- 
+> 1.7.7.3
+> 
 
-The Octeon bit:
-
-Acked-by: David Daney <david.daney@cavium.com>
+Signed-off-by: Richard Kuo <rkuo@codeaurora.org>
 
 
-FWIW, the rest looks good too.
+-- 
+
+Sent by an employee of the Qualcomm Innovation Center, Inc.
+The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum.
