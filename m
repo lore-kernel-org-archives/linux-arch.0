@@ -1,7 +1,7 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 25/27] s390, smpboot: Use generic SMP booting infrastructure
-Date: Fri, 01 Jun 2012 14:46:09 +0530
-Message-ID: <20120601091604.31979.71351.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 27/27] alpha, smpboot: Use generic SMP booting infrastructure
+Date: Fri, 01 Jun 2012 14:46:30 +0530
+Message-ID: <20120601091625.31979.49911.stgit@srivatsabhat.in.ibm.com>
 References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,61 +10,97 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: peterz@infradead.org, paulmck@linux.vnet.ibm.com
-Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "supporter:S390" <linux390@de.ibm.com>, Michael Holzheu <holzheu@linux.vnet.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Jan Glauber <jang@linux.vnet.ibm.com>, linux-s390@vger.kernel.org
+Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>, Thomas Gleixner <tglx@linutronix.de>Andrew Morton <akpm@linux-foundation.org>, Eric Dumazet <eric.dumazet@gmail.com>Rusty Russell <rusty@rustcorp.com.au>, Mike Frysinger <vapier@gentoo.org>, linux-alpha@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Convert s390 to use the generic framework to boot secondary CPUs.
+Convert alpha to use the generic framework to boot secondary CPUs.
 
-Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: linux390@de.ibm.com (supporter:S390)
-Cc: Michael Holzheu <holzheu@linux.vnet.ibm.com>
+Notes:
+1. The secondary cpu was being set in the cpu_online_mask way too early.
+Postpone it.
+
+2. The original code was enabling interrupts before calling
+wait_boot_cpu_to_stop(). Instead postpone the enabling of interrupts
+to after the cpu_online_mask is set.
+
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Jan Glauber <jang@linux.vnet.ibm.com>
-Cc: linux-s390@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Eric Dumazet <eric.dumazet@gmail.com>
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Mike Frysinger <vapier@gentoo.org>
+Cc: linux-alpha@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/s390/kernel/smp.c |   12 ++++++------
- 1 files changed, 6 insertions(+), 6 deletions(-)
+ arch/alpha/kernel/smp.c |   27 +++++++++++++++------------
+ 1 files changed, 15 insertions(+), 12 deletions(-)
 
-diff --git a/arch/s390/kernel/smp.c b/arch/s390/kernel/smp.c
-index 14c8a08..3eb12e6 100644
---- a/arch/s390/kernel/smp.c
-+++ b/arch/s390/kernel/smp.c
-@@ -29,6 +29,7 @@
- #include <linux/interrupt.h>
- #include <linux/irqflags.h>
+diff --git a/arch/alpha/kernel/smp.c b/arch/alpha/kernel/smp.c
+index 35ddc02..2547431 100644
+--- a/arch/alpha/kernel/smp.c
++++ b/arch/alpha/kernel/smp.c
+@@ -28,6 +28,7 @@
+ #include <linux/profile.h>
+ #include <linux/bitops.h>
  #include <linux/cpu.h>
 +#include <linux/smpboot.h>
- #include <linux/slab.h>
- #include <linux/crash_dump.h>
- #include <asm/asm-offsets.h>
-@@ -702,6 +703,11 @@ static void __init smp_detect_cpus(void)
-  */
- static void __cpuinit smp_start_secondary(void *cpuvoid)
+ 
+ #include <asm/hwrpb.h>
+ #include <asm/ptrace.h>
+@@ -119,13 +120,17 @@ wait_boot_cpu_to_stop(int cpuid)
+ void __cpuinit
+ smp_callin(void)
  {
-+	smpboot_start_secondary(cpuvoid);
+-	int cpuid = hard_smp_processor_id();
++	smpboot_start_secondary(NULL);
 +}
 +
 +void __cpuinit __cpu_pre_starting(void *unused)
 +{
- 	S390_lowcore.last_update_clock = get_clock();
- 	S390_lowcore.restart_stack = (unsigned long) restart_stack;
- 	S390_lowcore.restart_fn = (unsigned long) do_restart;
-@@ -711,15 +717,9 @@ static void __cpuinit smp_start_secondary(void *cpuvoid)
- 	__ctl_load(S390_lowcore.cregs_save_area, 0, 15);
- 	__load_psw_mask(psw_kernel_bits | PSW_MASK_DAT);
- 	cpu_init();
--	preempt_disable();
- 	init_cpu_timer();
- 	init_cpu_vtimer();
- 	pfault_init();
--	notify_cpu_starting(smp_processor_id());
--	set_cpu_online(smp_processor_id(), true);
++	unsigned int cpuid = hard_smp_processor_id();
+ 
+ 	if (cpu_online(cpuid)) {
+ 		printk("??, cpu 0x%x already present??\n", cpuid);
+ 		BUG();
+ 	}
+-	set_cpu_online(cpuid, true);
+ 
+ 	/* Turn on machine checks.  */
+ 	wrmces(7);
+@@ -145,15 +150,16 @@ smp_callin(void)
+ 	/* All kernel threads share the same mm context.  */
+ 	atomic_inc(&init_mm.mm_count);
+ 	current->active_mm = &init_mm;
++}
+ 
+-	/* inform the notifiers about the new cpu */
+-	notify_cpu_starting(cpuid);
+-
+-	/* Must have completely accurate bogos.  */
 -	local_irq_enable();
--	/* cpu_idle will call schedule for us */
++void __cpuinit __cpu_pre_online(void *unused)
++{
++	unsigned int cpuid = hard_smp_processor_id();
+ 
+-	/* Wait boot CPU to stop with irq enabled before running
+-	   calibrate_delay. */
++	/*
++	 * Wait boot CPU to stop with irq disabled before running
++	 * calibrate_delay.
++	 */
+ 	wait_boot_cpu_to_stop(cpuid);
+ 	mb();
+ 	calibrate_delay();
+@@ -165,9 +171,6 @@ smp_callin(void)
+ 
+ 	DBGS(("smp_callin: commencing CPU %d current %p active_mm %p\n",
+ 	      cpuid, current, current->active_mm));
+-
+-	/* Do nothing.  */
 -	cpu_idle();
  }
  
- /* Upping and downing of CPUs */
+ /* Wait until hwrpb->txrdy is clear for cpu.  Return -1 on timeout.  */
