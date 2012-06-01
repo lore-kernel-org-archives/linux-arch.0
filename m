@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp06.au.ibm.com ([202.81.31.148]:33018 "EHLO
-	e23smtp06.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932788Ab2FAKSV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jun 2012 06:18:21 -0400
+Received: from e23smtp08.au.ibm.com ([202.81.31.141]:39140 "EHLO
+	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752696Ab2FAKVm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jun 2012 06:21:42 -0400
 Received: from /spool/local
-	by e23smtp06.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 1 Jun 2012 09:12:06 +1000
+	Fri, 1 Jun 2012 09:13:52 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 21/27] sparc32, smpboot: Use generic SMP booting infrastructure
-Date: Fri, 01 Jun 2012 14:45:09 +0530
-Message-ID: <20120601091503.31979.52537.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 17/27] mn10300, smpboot: Use generic SMP booting infrastructure
+Date: Fri, 01 Jun 2012 14:44:08 +0530
+Message-ID: <20120601091403.31979.12717.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,228 +19,109 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, paulmck@linux.vnet.ibm.com
-Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, "David S. Miller" <davem@davemloft.net>, Sam Ravnborg <sam@ravnborg.org>Andrew Morton <akpm@linux-foundation.org>, Mike Frysinger <vapier@gentoo.org>, Konrad Eisele <konrad@gaisler.com>, Tkhai Kirill <tkhai@yandex.ru>, sparclinux@vger.kernel.org
-Message-ID: <20120601091509.Y4IR2NHuYzCyIp4zVHB5wrJAC_5rZMU28tcOe7KJ9FY@z>
+Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com"Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>Yong Zhang <yong.zhang0@gmail.com>, linux-am33-list@redhat.com
+Message-ID: <20120601091408.C-kqq7-onBVqBAM_FZEnHHdFXMXUYCHLvMUQXm3tb-o@z>
 
-Convert sparc32 to use the generic framework to boot secondary CPUs.
+From: Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
 
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: Sam Ravnborg <sam@ravnborg.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: Konrad Eisele <konrad@gaisler.com>
-Cc: Tkhai Kirill <tkhai@yandex.ru>
+Convert mn10300 to use the generic framework to boot secondary CPUs.
+
+Notes:
+1. In order to avoid enabling interrupts very early during secondary CPU
+bringup (in smp_cpu_init()), use arch_local_save_flags() instead of
+arch_local_cli_save().
+
+Signed-off-by: Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: sparclinux@vger.kernel.org
+Cc: Yong Zhang <yong.zhang0@gmail.com>
+Cc: linux-am33-list@redhat.com
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/sparc/kernel/leon_smp.c      |   25 +++++++++++++++----------
- arch/sparc/kernel/sun4d_smp.c     |   26 +++++++++++++-------------
- arch/sparc/kernel/sun4m_smp.c     |   26 +++++++++++++++-----------
- arch/sparc/kernel/trampoline_32.S |    1 -
- 4 files changed, 43 insertions(+), 35 deletions(-)
+ arch/mn10300/kernel/smp.c |   32 +++++++++++---------------------
+ 1 files changed, 11 insertions(+), 21 deletions(-)
 
-diff --git a/arch/sparc/kernel/leon_smp.c b/arch/sparc/kernel/leon_smp.c
-index a469090..498ca9b 100644
---- a/arch/sparc/kernel/leon_smp.c
-+++ b/arch/sparc/kernel/leon_smp.c
+diff --git a/arch/mn10300/kernel/smp.c b/arch/mn10300/kernel/smp.c
+index b19e75d2..9c4e35e 100644
+--- a/arch/mn10300/kernel/smp.c
++++ b/arch/mn10300/kernel/smp.c
 @@ -25,6 +25,7 @@
- #include <linux/gfp.h>
+ #include <linux/profile.h>
+ #include <linux/smp.h>
  #include <linux/cpu.h>
- #include <linux/clockchips.h>
 +#include <linux/smpboot.h>
- 
- #include <asm/cacheflush.h>
  #include <asm/tlbflush.h>
-@@ -73,13 +74,21 @@ static inline unsigned long do_swap(volatile unsigned long *ptr,
+ #include <asm/bitops.h>
+ #include <asm/processor.h>
+@@ -100,7 +101,6 @@ cpumask_t cpu_initialized __initdata = CPU_MASK_NONE;
+ static int do_boot_cpu(int);
+ static void smp_show_cpu_info(int cpu_id);
+ static void smp_callin(void);
+-static void smp_online(void);
+ static void smp_store_cpu_info(int);
+ static void smp_cpu_init(void);
+ static void smp_tune_scheduling(void);
+@@ -607,7 +607,7 @@ static void __init smp_cpu_init(void)
+ 	mn10300_ipi_shutdown(SMP_BOOT_IRQ);
  
- void __cpuinit leon_callin(void)
+ 	/* Set up the non-maskable call function IPI */
+-	flags = arch_local_cli_save();
++	flags = arch_local_save_flags();
+ 	GxICR(CALL_FUNCTION_NMI_IPI) = GxICR_NMI | GxICR_ENABLE | GxICR_DETECT;
+ 	tmp16 = GxICR(CALL_FUNCTION_NMI_IPI);
+ 	arch_local_irq_restore(flags);
+@@ -655,20 +655,25 @@ void smp_prepare_cpu_init(void)
+  */
+ int __init start_secondary(void *unused)
  {
--	int cpuid = hard_smp_processor_id();
-+	smpboot_start_secondary(NULL);
++	smpboot_start_secondary(unused);
++	return 0;
 +}
 +
 +void __cpuinit __cpu_pre_starting(void *unused)
 +{
-+	unsigned int cpuid = hard_smp_processor_id();
+ 	smp_cpu_init();
+ 	smp_callin();
+ 	while (!cpumask_test_cpu(smp_processor_id(), &smp_commenced_mask))
+ 		cpu_relax();
  
- 	local_ops->cache_all();
- 	local_ops->tlb_all();
- 	leon_configure_cache_smp();
+ 	local_flush_tlb();
+-	preempt_disable();
+-	smp_online();
 +}
  
--	notify_cpu_starting(cpuid);
-+void __cpuinit __cpu_pre_online(void *unused)
++void __cpuinit __cpu_post_online(void *unused)
 +{
-+	unsigned int cpuid = hard_smp_processor_id();
+ #ifdef CONFIG_GENERIC_CLOCKEVENTS
+ 	init_clockevents();
+ #endif
+-	cpu_idle();
+-	return 0;
+ }
  
- 	/* Get our local ticker going. */
- 	register_percpu_ce(cpuid);
-@@ -91,11 +100,10 @@ void __cpuinit leon_callin(void)
- 	local_ops->tlb_all();
+ /**
+@@ -865,21 +870,6 @@ static void __init smp_callin(void)
+ 	cpumask_set_cpu(cpu, &cpu_callin_map);
+ }
  
- 	/*
--	 * Unblock the master CPU _only_ when the scheduler state
--	 * of all secondary CPUs will be up-to-date, so after
--	 * the SMP initialization the master will be just allowed
--	 * to call the scheduler code.
--	 * Allow master to continue.
-+	 * Allow master to continue. The master will then give us the
-+	 * go-ahead by setting the smp_commenced_mask and will wait without
-+	 * timeouts until our setup is completed fully (signified by
-+	 * our bit being set in the cpu_online_mask).
- 	 */
- 	do_swap(&cpu_callin_map[cpuid], 1);
- 
-@@ -112,9 +120,6 @@ void __cpuinit leon_callin(void)
- 
- 	while (!cpumask_test_cpu(cpuid, &smp_commenced_mask))
- 		mb();
+-/**
+- * smp_online - Set cpu_online_mask
+- */
+-static void __init smp_online(void)
+-{
+-	int cpu;
+-
+-	cpu = smp_processor_id();
+-
+-	notify_cpu_starting(cpu);
+-
+-	set_cpu_online(cpu, true);
 -
 -	local_irq_enable();
--	set_cpu_online(cpuid, true);
- }
+-}
  
- /*
-diff --git a/arch/sparc/kernel/sun4d_smp.c b/arch/sparc/kernel/sun4d_smp.c
-index ddaea31..cd5367a 100644
---- a/arch/sparc/kernel/sun4d_smp.c
-+++ b/arch/sparc/kernel/sun4d_smp.c
-@@ -12,6 +12,7 @@
- #include <linux/delay.h>
- #include <linux/sched.h>
- #include <linux/cpu.h>
-+#include <linux/smpboot.h>
- 
- #include <asm/cacheflush.h>
- #include <asm/switch_to.h>
-@@ -52,8 +53,12 @@ static inline void show_leds(int cpuid)
- 
- void __cpuinit smp4d_callin(void)
- {
--	int cpuid = hard_smp_processor_id();
--	unsigned long flags;
-+	smpboot_start_secondary(NULL);
-+}
-+
-+void __cpuinit __cpu_pre_starting(void *unused)
-+{
-+	unsigned int cpuid = hard_smp_processor_id();
- 
- 	/* Show we are alive */
- 	cpu_leds[cpuid] = 0x6;
-@@ -64,14 +69,13 @@ void __cpuinit smp4d_callin(void)
- 
- 	local_ops->cache_all();
- 	local_ops->tlb_all();
-+}
-+
-+void __cpuinit __cpu_pre_online(void *unused)
-+{
-+	unsigned int cpuid = hard_smp_processor_id();
-+	unsigned long flags;
- 
--	notify_cpu_starting(cpuid);
--	/*
--	 * Unblock the master CPU _only_ when the scheduler state
--	 * of all secondary CPUs will be up-to-date, so after
--	 * the SMP initialization the master will be just allowed
--	 * to call the scheduler code.
--	 */
- 	/* Get our local ticker going. */
- 	register_percpu_ce(cpuid);
- 
-@@ -106,16 +110,12 @@ void __cpuinit smp4d_callin(void)
- 	local_ops->cache_all();
- 	local_ops->tlb_all();
- 
--	local_irq_enable();	/* We don't allow PIL 14 yet */
--
- 	while (!cpumask_test_cpu(cpuid, &smp_commenced_mask))
- 		barrier();
- 
- 	spin_lock_irqsave(&sun4d_imsk_lock, flags);
- 	cc_set_imsk(cc_get_imsk() & ~0x4000); /* Allow PIL 14 as well */
- 	spin_unlock_irqrestore(&sun4d_imsk_lock, flags);
--	set_cpu_online(cpuid, true);
--
- }
- 
- /*
-diff --git a/arch/sparc/kernel/sun4m_smp.c b/arch/sparc/kernel/sun4m_smp.c
-index 128af73..ed05f54 100644
---- a/arch/sparc/kernel/sun4m_smp.c
-+++ b/arch/sparc/kernel/sun4m_smp.c
-@@ -10,6 +10,7 @@
- #include <linux/delay.h>
- #include <linux/sched.h>
- #include <linux/cpu.h>
-+#include <linux/smpboot.h>
- 
- #include <asm/cacheflush.h>
- #include <asm/switch_to.h>
-@@ -36,12 +37,20 @@ swap_ulong(volatile unsigned long *ptr, unsigned long val)
- 
- void __cpuinit smp4m_callin(void)
- {
--	int cpuid = hard_smp_processor_id();
-+	smpboot_start_secondary(NULL);
-+}
-+
-+void __cpuinit __cpu_pre_starting(void *unused)
-+{
-+	unsigned int cpuid = hard_smp_processor_id();
- 
- 	local_ops->cache_all();
- 	local_ops->tlb_all();
-+}
- 
--	notify_cpu_starting(cpuid);
-+void __cpuinit __cpu_pre_online(void *unused)
-+{
-+	unsigned int cpuid = hard_smp_processor_id();
- 
- 	register_percpu_ce(cpuid);
- 
-@@ -52,12 +61,11 @@ void __cpuinit smp4m_callin(void)
- 	local_ops->tlb_all();
- 
- 	/*
--	 * Unblock the master CPU _only_ when the scheduler state
--	 * of all secondary CPUs will be up-to-date, so after
--	 * the SMP initialization the master will be just allowed
--	 * to call the scheduler code.
-+	 * Allow master to continue. The master will then give us the
-+	 * go-ahead by setting the smp_commenced_mask and will wait without
-+	 * timeouts until our setup is completed fully (signified by
-+	 * our bit being set in the cpu_online_mask).
- 	 */
--	/* Allow master to continue. */
- 	swap_ulong(&cpu_callin_map[cpuid], 1);
- 
- 	/* XXX: What's up with all the flushes? */
-@@ -75,10 +83,6 @@ void __cpuinit smp4m_callin(void)
- 
- 	while (!cpumask_test_cpu(cpuid, &smp_commenced_mask))
- 		mb();
--
--	local_irq_enable();
--
--	set_cpu_online(cpuid, true);
- }
- 
- /*
-diff --git a/arch/sparc/kernel/trampoline_32.S b/arch/sparc/kernel/trampoline_32.S
-index 7364ddc..20e90ba 100644
---- a/arch/sparc/kernel/trampoline_32.S
-+++ b/arch/sparc/kernel/trampoline_32.S
-@@ -88,7 +88,6 @@ cpu3_startup:
- 	.align	4
- 
- smp_do_cpu_idle:
--	call	cpu_idle
- 	 mov	0, %o0
- 
- 	call	cpu_panic
+ /**
+  * smp_cpus_done -
 
