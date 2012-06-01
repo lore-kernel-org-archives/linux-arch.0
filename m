@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp09.au.ibm.com ([202.81.31.142]:42565 "EHLO
+Received: from e23smtp09.au.ibm.com ([202.81.31.142]:42628 "EHLO
 	e23smtp09.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932418Ab2FAJ4p (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jun 2012 05:56:45 -0400
+	with ESMTP id S932418Ab2FAJ5N (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jun 2012 05:57:13 -0400
 Received: from /spool/local
 	by e23smtp09.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 1 Jun 2012 10:02:48 +1000
+	Fri, 1 Jun 2012 10:03:27 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 12/27] tile, smpboot: Use generic SMP booting infrastructure
-Date: Fri, 01 Jun 2012 14:42:56 +0530
-Message-ID: <20120601091248.31979.59256.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 16/27] mn10300: Fix horrible logic in smp_prepare_cpus()
+Date: Fri, 01 Jun 2012 14:43:54 +0530
+Message-ID: <20120601091348.31979.97139.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,96 +19,44 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, paulmck@linux.vnet.ibm.com
-Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, Chris Metcalf <cmetcalf@tilera.com>Yong Zhang <yong.zhang0@gmail.com>
-Message-ID: <20120601091256.4-gAJvgi-GCCPkvPUIvpQ25KraznTqkiiETKzcW4tUw@z>
+Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>Yong Zhang <yong.zhang0@gmail.com>, linux-am33-list@redhat.com
+Message-ID: <20120601091354.3svIBBL91hxcHMyWWh9ofw4J85n8fyVZLHh0c_V_Qiw@z>
 
-Convert tile to use the generic framework to boot secondary CPUs.
+In smp_prepare_cpus(), after max_cpus are booted, instead of breaking
+from the loop, the 'continue' statement is used which results in
+unnecessarily wasting time by looping NR_CPUS times!
 
-Notes:
-1. Don't enable interrupts in start_secondary().
-2. Remove the unnecessary calls to local_irq_enable() in __cpu_up().
-3. cpu_idle() was being called after doing a preempt_enable() instead
-of a preempt_disable()! Fix it.
+Many things around this could be pulled into generic code in the future, but
+for now, fix this particular piece of code locally (because I am unable to
+convince myself to ignore it even temporarily, given that it is such a gem!).
 
-Cc: Chris Metcalf <cmetcalf@tilera.com>
+And also rewrite the 'if' statement in a more natural way.
+
+Cc: David Howells <dhowells@redhat.com>
+Cc: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
 Cc: Yong Zhang <yong.zhang0@gmail.com>
+Cc: linux-am33-list@redhat.com
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/tile/kernel/smpboot.c |   22 ++++++++--------------
- 1 files changed, 8 insertions(+), 14 deletions(-)
+ arch/mn10300/kernel/smp.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/tile/kernel/smpboot.c b/arch/tile/kernel/smpboot.c
-index 24a9c06..8558824 100644
---- a/arch/tile/kernel/smpboot.c
-+++ b/arch/tile/kernel/smpboot.c
-@@ -145,8 +145,6 @@ static void __cpuinit start_secondary(void)
- 	/* Set our thread pointer appropriately. */
- 	set_my_cpu_offset(__per_cpu_offset[cpuid]);
+diff --git a/arch/mn10300/kernel/smp.c b/arch/mn10300/kernel/smp.c
+index e62c223..b19e75d2 100644
+--- a/arch/mn10300/kernel/smp.c
++++ b/arch/mn10300/kernel/smp.c
+@@ -695,9 +695,9 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
  
--	preempt_disable();
--
- 	/*
- 	 * In large machines even this will slow us down, since we
- 	 * will be contending for for the printk spinlock.
-@@ -165,7 +163,6 @@ static void __cpuinit start_secondary(void)
- 
- 	/* Allow hypervisor messages to be received */
- 	init_messaging();
--	local_irq_enable();
- 
- 	/* Indicate that we're ready to come up. */
- 	/* Must not do this before we're ready to receive messages */
-@@ -183,6 +180,11 @@ static void __cpuinit start_secondary(void)
-  */
- void __cpuinit online_secondary(void)
- {
-+	smpboot_start_secondary(NULL);
-+}
-+
-+void __cpuinit __cpu_pre_starting(void *unused)
-+{
- 	/*
- 	 * low-memory mappings have been cleared, flush them from
- 	 * the local TLBs too.
-@@ -193,21 +195,15 @@ void __cpuinit online_secondary(void)
- 
- 	/* This must be done before setting cpu_online_mask */
- 	wmb();
-+}
- 
--	notify_cpu_starting(smp_processor_id());
--
--	set_cpu_online(smp_processor_id(), 1);
--	__get_cpu_var(cpu_state) = CPU_ONLINE;
--
-+void __cpuinit __cpu_post_online(void *unused)
-+{
- 	/* Set up tile-specific state for this cpu. */
- 	setup_cpu(0);
- 
- 	/* Set up tile-timer clock-event device on this cpu */
- 	setup_tile_timer();
--
--	preempt_enable();
--
--	cpu_idle();
- }
- 
- int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
-@@ -217,13 +213,11 @@ int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
- 	for (; !cpumask_test_cpu(cpu, &cpu_started); timeout++) {
- 		if (timeout >= 50000) {
- 			pr_info("skipping unresponsive cpu%d\n", cpu);
--			local_irq_enable();
- 			return -EIO;
- 		}
- 		udelay(100);
- 	}
- 
--	local_irq_enable();
- 	per_cpu(cpu_state, cpu) = CPU_UP_PREPARE;
- 
- 	/* Unleash the CPU! */
+ 	/* Boot secondary CPUs (for which phy_id > 0) */
+ 	for (phy_id = 0; phy_id < NR_CPUS; phy_id++) {
++		if (cpucount + 1 >= max_cpus)
++			break;
+ 		/* Don't boot primary CPU */
+-		if (max_cpus <= cpucount + 1)
+-			continue;
+ 		if (phy_id != 0)
+ 			do_boot_cpu(phy_id);
+ 		set_cpu_possible(phy_id, true);
 
