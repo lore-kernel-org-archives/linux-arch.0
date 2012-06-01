@@ -1,118 +1,98 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 09/27] m32r, smpboot: Use generic SMP booting infrastructure
-Date: Fri, 01 Jun 2012 14:42:21 +0530
-Message-ID: <20120601091216.31979.43892.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 18/27] powerpc, smpboot: Use generic SMP booting infrastructure
+Date: Fri, 01 Jun 2012 14:44:23 +0530
+Message-ID: <20120601091417.31979.6433.stgit@srivatsabhat.in.ibm.com>
 References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org>
 In-Reply-To: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <https://lists.ozlabs.org/options/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/linuxppc-dev>
+List-Post: <mailto:linuxppc-dev@lists.ozlabs.org>
+List-Help: <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/linuxppc-dev>,
+ <mailto:linuxppc-dev-request@lists.ozlabs.org?subject=subscribe>
+Errors-To: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
+Sender: linuxppc-dev-bounces+glppe-linuxppc-embedded-2=m.gmane.org@lists.ozlabs.org
 To: peterz@infradead.org, paulmck@linux.vnet.ibm.com
-Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, Hirokazu Takata <takata@linux-m32r.org>, Thomas Gleixner <tglx@linutronix.de>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org
+Cc: linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, "Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, rusty@rustcorp.com.au, vatsa@linux.vnet.ibm.com, linux-kernel@vger.kernel.org, rjw@sisk.pl, Yong Zhang <yong.zhang0@gmail.com>, Paul Mackerras <paulus@samba.org>, srivatsa.bhat@linux.vnet.ibm.com, akpm@linux-foundation.org, linuxppc-dev@lists.ozlabs.org, mingo@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Convert m32r to use the generic framework to boot secondary CPUs.
+From: Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
 
-Notes:
-Postpone enabling interrupts to after booting the secondary CPU fully.
+Convert powerpc to use the generic framework to boot secondary CPUs.
 
-Cc: Hirokazu Takata <takata@linux-m32r.org>
+Signed-off-by: Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-m32r@ml.linux-m32r.org
-Cc: linux-m32r-ja@ml.linux-m32r.org
+Cc: Yong Zhang <yong.zhang0@gmail.com>
+Cc: Paul Gortmaker <paul.gortmaker@windriver.com>
+Cc: linuxppc-dev@lists.ozlabs.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/m32r/kernel/smpboot.c |   46 ++++++++++++++++++++++----------------------
- 1 files changed, 23 insertions(+), 23 deletions(-)
+ arch/powerpc/kernel/smp.c |   26 +++++++++++++++-----------
+ 1 files changed, 15 insertions(+), 11 deletions(-)
 
-diff --git a/arch/m32r/kernel/smpboot.c b/arch/m32r/kernel/smpboot.c
-index 6ddc51a..cf3fc0c 100644
---- a/arch/m32r/kernel/smpboot.c
-+++ b/arch/m32r/kernel/smpboot.c
-@@ -49,6 +49,7 @@
- #include <linux/irq.h>
- #include <linux/bootmem.h>
- #include <linux/delay.h>
-+#include <linux/smpboot.h>
- 
- #include <asm/io.h>
- #include <asm/pgalloc.h>
-@@ -114,7 +115,6 @@ static void do_boot_cpu(int);
- 
- int start_secondary(void *);
- static void smp_callin(void);
--static void smp_online(void);
- 
- static void show_mp_info(int);
- static void smp_store_cpu_info(int);
-@@ -418,22 +418,38 @@ void __init smp_cpus_done(unsigned int max_cpus)
-  *==========================================================================*/
- int __init start_secondary(void *unused)
+diff --git a/arch/powerpc/kernel/smp.c b/arch/powerpc/kernel/smp.c
+index 1928058a..96c3718 100644
+--- a/arch/powerpc/kernel/smp.c
++++ b/arch/powerpc/kernel/smp.c
+@@ -544,16 +544,18 @@ static struct device_node *cpu_to_l2cache(int cpu)
+ /* Activate a secondary processor. */
+ void __devinit start_secondary(void *unused)
  {
 +	smpboot_start_secondary(unused);
-+	return 0;
 +}
 +
 +void __cpuinit __cpu_pre_starting(void *unused)
 +{
-+	unsigned int cpu;
-+
- 	cpu_init();
+ 	unsigned int cpu = smp_processor_id();
+-	struct device_node *l2_cache;
+-	int i, base;
+ 
+ 	atomic_inc(&init_mm.mm_count);
+ 	current->active_mm = &init_mm;
+ 
+ 	smp_store_cpu_info(cpu);
+ 	set_dec(tb_ticks_per_jiffy);
 -	preempt_disable();
- 	smp_callin();
--	while (!cpumask_test_cpu(smp_processor_id(), &smp_commenced_mask))
-+
-+	cpu = smp_processor_id();
-+	while (!cpumask_test_cpu(cpu, &smp_commenced_mask))
- 		cpu_relax();
-+}
+ 	cpu_callin_map[cpu] = 1;
  
--	smp_online();
-+void __cpuinit __cpu_pre_online(void *unused)
-+{
-+	/* Get our bogomips. */
-+	calibrate_delay();
- 
-+	/* Save our processor parameters */
-+	smp_store_cpu_info(smp_processor_id());
+ 	if (smp_ops->setup_cpu)
+@@ -567,8 +569,16 @@ void __devinit start_secondary(void *unused)
+ 	if (system_state == SYSTEM_RUNNING)
+ 		vdso_data->processorCount++;
+ #endif
+-	notify_cpu_starting(cpu);
+-	set_cpu_online(cpu, true);
 +}
 +
 +void __cpuinit __cpu_post_online(void *unused)
 +{
- 	/*
- 	 * low-memory mappings have been cleared, flush them from
- 	 * the local TLBs too.
- 	 */
- 	local_flush_tlb_all();
--
--	cpu_idle();
--	return 0;
- }
- 
- /*==========================================================================*
-@@ -485,22 +501,6 @@ static void __init smp_callin(void)
- 	cpumask_set_cpu(cpu_id, &cpu_callin_map);
- }
- 
--static void __init smp_online(void)
--{
--	int cpu_id = smp_processor_id();
--
--	notify_cpu_starting(cpu_id);
++	unsigned int cpu;
++	struct device_node *l2_cache;
++	int i, base;
++
++	cpu = smp_processor_id();
++
+ 	/* Update sibling maps */
+ 	base = cpu_first_thread_sibling(cpu);
+ 	for (i = 0; i < threads_per_core; i++) {
+@@ -596,12 +606,6 @@ void __devinit start_secondary(void *unused)
+ 		of_node_put(np);
+ 	}
+ 	of_node_put(l2_cache);
 -
 -	local_irq_enable();
 -
--	/* Get our bogomips. */
--	calibrate_delay();
+-	cpu_idle();
 -
--	/* Save our processor parameters */
-- 	smp_store_cpu_info(cpu_id);
--
--	set_cpu_online(cpu_id, true);
--}
+-	BUG();
+ }
  
- /*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*=*/
- /* Boot up CPUs common Routines                                              */
+ int setup_profiling_timer(unsigned int multiplier)
