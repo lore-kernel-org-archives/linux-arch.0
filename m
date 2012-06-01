@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp07.au.ibm.com ([202.81.31.140]:42609 "EHLO
-	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758850Ab2FAKIr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jun 2012 06:08:47 -0400
+Received: from e23smtp06.au.ibm.com ([202.81.31.148]:32794 "EHLO
+	e23smtp06.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758867Ab2FAKQO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jun 2012 06:16:14 -0400
 Received: from /spool/local
-	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp06.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 1 Jun 2012 09:09:06 +1000
+	Fri, 1 Jun 2012 09:10:11 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 20/27] sparc64, smpboot: Use generic SMP booting infrastructure
-Date: Fri, 01 Jun 2012 14:44:54 +0530
-Message-ID: <20120601091449.31979.67743.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 13/27] hexagon, smpboot: Use generic SMP booting infrastructure
+Date: Fri, 01 Jun 2012 14:43:10 +0530
+Message-ID: <20120601091304.31979.39256.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,102 +19,76 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, paulmck@linux.vnet.ibm.com
-Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com"Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, "David S. Miller" <davem@davemloft.net>, Paul Gortmaker <paul.gortmaker@windriver.com>Andrew Morton <akpm@linux-foundation.org>, Mike Frysinger <vapier@gentoo.org>, Jiri Kosina <jkosina@suse.cz>, sparclinux@vger.kernel.org
-Message-ID: <20120601091454.LRJZ_329yve_iXd6szdIVNkilzQtJqlvUwHTBXd2K_k@z>
+Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com"Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, Richard Kuo <rkuo@codeaurora.org>Rusty Russell <rusty@rustcorp.com.au>, David Howells <dhowells@redhat.com>, Chris Metcalf <cmetcalf@tilera.com>, linux-hexagon@vger.kernel.org
+Message-ID: <20120601091310.tGJGYWvii-6y2xpANOVdbCBFlJxjOXScjaGTMkxizk4@z>
 
 From: Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
 
-Convert sparc64 to use the generic framework to boot secondary CPUs.
-
-Notes:
-Remove the calls to cpu_idle() from assembly files because we will invoke
-cpu_idle() in generic code.
+Convert hexagon to use the generic framework to boot secondary CPUs.
 
 Signed-off-by: Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
-Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Richard Kuo <rkuo@codeaurora.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: Jiri Kosina <jkosina@suse.cz>
-Cc: sparclinux@vger.kernel.org
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-hexagon@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/sparc/kernel/hvtramp.S       |    1 -
- arch/sparc/kernel/smp_64.c        |   18 ++++++++++--------
- arch/sparc/kernel/trampoline_64.S |    1 -
- 3 files changed, 10 insertions(+), 10 deletions(-)
+ arch/hexagon/kernel/smp.c |   18 ++++++++----------
+ 1 files changed, 8 insertions(+), 10 deletions(-)
 
-diff --git a/arch/sparc/kernel/hvtramp.S b/arch/sparc/kernel/hvtramp.S
-index 9365432..3eb7e0b 100644
---- a/arch/sparc/kernel/hvtramp.S
-+++ b/arch/sparc/kernel/hvtramp.S
-@@ -128,7 +128,6 @@ hv_cpu_startup:
- 
- 	call		smp_callin
- 	 nop
--	call		cpu_idle
- 	 mov		0, %o0
- 	call		cpu_panic
- 	 nop
-diff --git a/arch/sparc/kernel/smp_64.c b/arch/sparc/kernel/smp_64.c
-index 781bcb1..3c45538 100644
---- a/arch/sparc/kernel/smp_64.c
-+++ b/arch/sparc/kernel/smp_64.c
-@@ -25,6 +25,7 @@
- #include <linux/ftrace.h>
+diff --git a/arch/hexagon/kernel/smp.c b/arch/hexagon/kernel/smp.c
+index 149fbef..0a679a4 100644
+--- a/arch/hexagon/kernel/smp.c
++++ b/arch/hexagon/kernel/smp.c
+@@ -29,6 +29,7 @@
+ #include <linux/smp.h>
+ #include <linux/spinlock.h>
  #include <linux/cpu.h>
- #include <linux/slab.h>
 +#include <linux/smpboot.h>
  
- #include <asm/head.h>
- #include <asm/ptrace.h>
-@@ -89,6 +90,11 @@ static volatile unsigned long callin_flag = 0;
+ #include <asm/time.h>    /*  timer_interrupt  */
+ #include <asm/hexagon_vm.h>
+@@ -148,7 +149,6 @@ void __init smp_prepare_boot_cpu(void)
  
- void __cpuinit smp_callin(void)
+ void __cpuinit start_secondary(void)
  {
+-	unsigned int cpu;
+ 	unsigned long thread_ptr;
+ 
+ 	/*  Calculate thread_info pointer from stack pointer  */
+@@ -165,6 +165,13 @@ void __cpuinit start_secondary(void)
+ 		: "r" (thread_ptr)
+ 	);
+ 
 +	smpboot_start_secondary(NULL);
 +}
 +
-+void __cpuinit __cpu_pre_starting(void *unused)
++void __cpuinit __cpu_pre_starting(void *arg)
 +{
- 	int cpuid = hard_smp_processor_id();
- 
- 	__local_per_cpu_offset = __per_cpu_offset(cpuid);
-@@ -115,18 +121,14 @@ void __cpuinit smp_callin(void)
- 	/* Attach to the address space of init_task. */
++	unsigned int cpu;
++
+ 	/*  Set the memory struct  */
  	atomic_inc(&init_mm.mm_count);
  	current->active_mm = &init_mm;
-+}
+@@ -177,17 +184,8 @@ void __cpuinit start_secondary(void)
+ 	setup_percpu_clockdev();
  
--	/* inform the notifiers about the new cpu */
--	notify_cpu_starting(cpuid);
-+void __cpuinit __cpu_pre_online(void *unused)
-+{
-+	unsigned int cpuid = hard_smp_processor_id();
- 
- 	while (!cpumask_test_cpu(cpuid, &smp_commenced_mask))
- 		rmb();
+ 	printk(KERN_INFO "%s cpu %d\n", __func__, current_thread_info()->cpu);
 -
--	set_cpu_online(cpuid, true);
+-	notify_cpu_starting(cpu);
+-
+-	set_cpu_online(cpu, true);
+-
 -	local_irq_enable();
 -
--	/* idle thread is expected to have preempt disabled */
--	preempt_disable();
+-	cpu_idle();
  }
  
- void cpu_panic(void)
-diff --git a/arch/sparc/kernel/trampoline_64.S b/arch/sparc/kernel/trampoline_64.S
-index da1b781..379b464 100644
---- a/arch/sparc/kernel/trampoline_64.S
-+++ b/arch/sparc/kernel/trampoline_64.S
-@@ -407,7 +407,6 @@ after_lock_tlb:
- 
- 	call		smp_callin
- 	 nop
--	call		cpu_idle
- 	 mov		0, %o0
- 	call		cpu_panic
- 	 nop
+-
+ /*
+  * called once for each present cpu
+  * apparently starts up the CPU and then
 
