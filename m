@@ -1,7 +1,7 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 08/27] m32r: Fix horrible logic in smp_prepare_cpus()
-Date: Fri, 01 Jun 2012 14:42:11 +0530
-Message-ID: <20120601091201.31979.37258.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 25/27] s390, smpboot: Use generic SMP booting infrastructure
+Date: Fri, 01 Jun 2012 14:46:09 +0530
+Message-ID: <20120601091604.31979.71351.stgit@srivatsabhat.in.ibm.com>
 References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,41 +10,61 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: peterz@infradead.org, paulmck@linux.vnet.ibm.com
-Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, Hirokazu Takata <takata@linux-m32r.org>, Thomas Gleixner <tglx@linutronix.de>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org
+Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "supporter:S390" <linux390@de.ibm.com>, Michael Holzheu <holzheu@linux.vnet.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Jan Glauber <jang@linux.vnet.ibm.com>, linux-s390@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-In smp_prepare_cpus(), after max_cpus are booted, instead of breaking
-from the loop, the 'continue' statement is used which results in unnecessarily
-wasting time by looping NR_CPUS times!
+Convert s390 to use the generic framework to boot secondary CPUs.
 
-Many things around this could be pulled into generic code in the future, but
-for now, fix this particular piece of code locally (because I am unable to
-convince myself to ignore it even temporarily, given that it is such a gem!).
-
-And also rewrite the 'if' statement in a more natural way.
-
-Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: linux390@de.ibm.com (supporter:S390)
+Cc: Michael Holzheu <holzheu@linux.vnet.ibm.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-m32r@ml.linux-m32r.org
-Cc: linux-m32r-ja@ml.linux-m32r.org
+Cc: Jan Glauber <jang@linux.vnet.ibm.com>
+Cc: linux-s390@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/m32r/kernel/smpboot.c |    4 ++--
- 1 files changed, 2 insertions(+), 2 deletions(-)
+ arch/s390/kernel/smp.c |   12 ++++++------
+ 1 files changed, 6 insertions(+), 6 deletions(-)
 
-diff --git a/arch/m32r/kernel/smpboot.c b/arch/m32r/kernel/smpboot.c
-index a2cfc0a..6ddc51a 100644
---- a/arch/m32r/kernel/smpboot.c
-+++ b/arch/m32r/kernel/smpboot.c
-@@ -209,8 +209,8 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
- 		if (!physid_isset(phys_id, phys_cpu_present_map))
- 			continue;
+diff --git a/arch/s390/kernel/smp.c b/arch/s390/kernel/smp.c
+index 14c8a08..3eb12e6 100644
+--- a/arch/s390/kernel/smp.c
++++ b/arch/s390/kernel/smp.c
+@@ -29,6 +29,7 @@
+ #include <linux/interrupt.h>
+ #include <linux/irqflags.h>
+ #include <linux/cpu.h>
++#include <linux/smpboot.h>
+ #include <linux/slab.h>
+ #include <linux/crash_dump.h>
+ #include <asm/asm-offsets.h>
+@@ -702,6 +703,11 @@ static void __init smp_detect_cpus(void)
+  */
+ static void __cpuinit smp_start_secondary(void *cpuvoid)
+ {
++	smpboot_start_secondary(cpuvoid);
++}
++
++void __cpuinit __cpu_pre_starting(void *unused)
++{
+ 	S390_lowcore.last_update_clock = get_clock();
+ 	S390_lowcore.restart_stack = (unsigned long) restart_stack;
+ 	S390_lowcore.restart_fn = (unsigned long) do_restart;
+@@ -711,15 +717,9 @@ static void __cpuinit smp_start_secondary(void *cpuvoid)
+ 	__ctl_load(S390_lowcore.cregs_save_area, 0, 15);
+ 	__load_psw_mask(psw_kernel_bits | PSW_MASK_DAT);
+ 	cpu_init();
+-	preempt_disable();
+ 	init_cpu_timer();
+ 	init_cpu_vtimer();
+ 	pfault_init();
+-	notify_cpu_starting(smp_processor_id());
+-	set_cpu_online(smp_processor_id(), true);
+-	local_irq_enable();
+-	/* cpu_idle will call schedule for us */
+-	cpu_idle();
+ }
  
--		if (max_cpus <= cpucount + 1)
--			continue;
-+		if (cpucount + 1 >= max_cpus)
-+			break;
- 
- 		do_boot_cpu(phys_id);
- 
+ /* Upping and downing of CPUs */
