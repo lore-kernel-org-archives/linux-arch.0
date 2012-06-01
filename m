@@ -1,7 +1,7 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 07/27] x86, smpboot: Use generic SMP booting infrastructure
-Date: Fri, 01 Jun 2012 14:41:56 +0530
-Message-ID: <20120601091148.31979.53116.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 10/27] mips, smpboot: Use generic SMP booting infrastructure
+Date: Fri, 01 Jun 2012 14:42:32 +0530
+Message-ID: <20120601091226.31979.62223.stgit@srivatsabhat.in.ibm.com>
 References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -10,206 +10,158 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: peterz@infradead.org, paulmck@linux.vnet.ibm.com
-Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com"Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Suresh Siddha <suresh.b.siddha@intel.com>, Joerg Roedel <joerg.roedel@amd.com>, Yinghai Lu <yinghai@kernel.org>, Naga Chumbalkar <nagananda.chumbalkar@hp.com>, Don Zickus <dzickus@redhat.com>, Paul Gortmaker <paul.gortmaker@windriver.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, Ralf Baechle <ralf@linux-mips.org>Andrew Morton <akpm@linux-foundation.org>, Eric Dumazet <eric.dumazet@gmail.com>, Mike Frysinger <vapier@gentoo.org>, David Howells <dhowells@redhat.com>, Arun Sharma <asharma@fb.com>, Thomas Gleixner <tglx@linutronix.de>Rusty Russell <rusty@rustcorp.com.au>, linux-mips@linux-mips.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
-
-Convert x86 to use the generic framework to boot secondary CPUs.
+Convert mips to use the generic framework to boot secondary CPUs.
 
 Notes:
-1. x86 manipulates the cpu_online_mask under vector_lock. So, while
-converting over to the generic smp booting code, override arch_vector_lock()
-and arch_vector_unlock() to lock_vector_lock() and unlock_vector_lock()
-respectively.
+1. The boot processor was setting the secondary cpu in cpu_online_mask!
+Instead, leave it up to the secondary cpu (... and it will be done by the
+generic code now).
 
-2. In smp_callin(), we allow the master to continue as soon as the physical
-booting of the secondary processor is done. That is, we don't wait till the
-CPU_STARTING notifications are sent.
+2. Make the boot cpu wait for the secondary cpu to be set in cpu_online_mask
+before returning.
 
-Implications:
- - This does not alter the order in which the notifications are sent (i.e.,
-   still CPU_STARTING is followed by CPU_ONLINE) because the master waits till
-   the new cpu is set in the cpu_online_mask before returning to generic code.
+3. Don't enable interrupts in cmp_smp_finish() and vsmp_smp_finish().
+Do it much later, in generic code.
 
- - This approach is better because of 2 reasons:
-   a. It makes more sense: the master has a timeout for waiting on the
-      cpu_callin_map - which means we should report back as soon as possible.
-      The whole idea of having a timeout is to estimate the maximum time that
-      could be taken for physical booting. This approach separates out the
-      physical booting vs running CPU hotplug callbacks and reports back to
-      the master as soon as physical booting is done.
+4. In synchronise_count_slave(), use local_save_flags() instead of
+local_irq_save() because irqs are still disabled.
 
-   b. Because we send out CPU_STARTING notifications *after* reporting to the
-      master, we don't risk the chance of the master wrongly concluding a boot
-      failure if we happen to add more callbacks to the CPU_STARTING
-      notification.
-
-Signed-off-by: Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Eric Dumazet <eric.dumazet@gmail.com>
+Cc: Mike Frysinger <vapier@gentoo.org>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Arun Sharma <asharma@fb.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>
-Cc: x86@kernel.org
-Cc: Suresh Siddha <suresh.b.siddha@intel.com>
-Cc: Joerg Roedel <joerg.roedel@amd.com>
-Cc: Yinghai Lu <yinghai@kernel.org>
-Cc: Naga Chumbalkar <nagananda.chumbalkar@hp.com>
-Cc: Don Zickus <dzickus@redhat.com>
-Cc: Paul Gortmaker <paul.gortmaker@windriver.com>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Cc: linux-mips@linux-mips.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/x86/include/asm/smp.h     |    3 +++
- arch/x86/kernel/apic/io_apic.c |   15 +++++++++++++++
- arch/x86/kernel/smp.c          |    4 ++++
- arch/x86/kernel/smpboot.c      |   39 ++++++++++++++-------------------------
- 4 files changed, 36 insertions(+), 25 deletions(-)
+ arch/mips/kernel/smp-cmp.c  |    8 ++++----
+ arch/mips/kernel/smp-mt.c   |    2 --
+ arch/mips/kernel/smp.c      |   23 +++++++++++++++--------
+ arch/mips/kernel/sync-r4k.c |    3 ++-
+ 4 files changed, 21 insertions(+), 15 deletions(-)
 
-diff --git a/arch/x86/include/asm/smp.h b/arch/x86/include/asm/smp.h
-index ac1f3eb..b081b90 100644
---- a/arch/x86/include/asm/smp.h
-+++ b/arch/x86/include/asm/smp.h
-@@ -176,6 +176,9 @@ void cpu_disable_common(void);
- void native_smp_prepare_boot_cpu(void);
- void native_smp_prepare_cpus(unsigned int max_cpus);
- void native_smp_cpus_done(unsigned int max_cpus);
-+void native_cpu_pre_starting(void *arg);
-+void native_cpu_pre_online(void *arg);
-+void native_cpu_post_online(void *arg);
- int native_cpu_up(unsigned int cpunum, struct task_struct *tidle);
- int native_cpu_disable(void);
- void native_cpu_die(unsigned int cpu);
-diff --git a/arch/x86/kernel/apic/io_apic.c b/arch/x86/kernel/apic/io_apic.c
-index ac96561..a7d0037 100644
---- a/arch/x86/kernel/apic/io_apic.c
-+++ b/arch/x86/kernel/apic/io_apic.c
-@@ -1084,6 +1084,21 @@ int IO_APIC_get_PCI_irq_vector(int bus, int slot, int pin,
- }
- EXPORT_SYMBOL(IO_APIC_get_PCI_irq_vector);
+diff --git a/arch/mips/kernel/smp-cmp.c b/arch/mips/kernel/smp-cmp.c
+index e7e03ec..7ecd6db 100644
+--- a/arch/mips/kernel/smp-cmp.c
++++ b/arch/mips/kernel/smp-cmp.c
+@@ -108,7 +108,9 @@ static void cmp_init_secondary(void)
  
-+/*
-+ * We need to hold vector_lock while manipulating cpu_online_mask so that the
-+ * set of online cpus does not change while we are assigning vectors to cpus.
-+ * Holding this lock ensures we don't half assign or remove an irq from a cpu.
-+ */
-+void arch_vector_lock(void)
-+{
-+	lock_vector_lock();
-+}
-+
-+void arch_vector_unlock(void)
-+{
-+	unlock_vector_lock();
-+}
-+
- void lock_vector_lock(void)
+ static void cmp_smp_finish(void)
  {
- 	/* Used to the online set of cpus does not change
-diff --git a/arch/x86/kernel/smp.c b/arch/x86/kernel/smp.c
-index 48d2b7d..4a9748e 100644
---- a/arch/x86/kernel/smp.c
-+++ b/arch/x86/kernel/smp.c
-@@ -293,6 +293,10 @@ struct smp_ops smp_ops = {
- 	.stop_other_cpus	= native_stop_other_cpus,
- 	.smp_send_reschedule	= native_smp_send_reschedule,
- 
-+	.cpu_pre_starting	= native_cpu_pre_starting,
-+	.cpu_pre_online		= native_cpu_pre_online,
-+	.cpu_post_online	= native_cpu_post_online,
+-	pr_debug("SMPCMP: CPU%d: %s\n", smp_processor_id(), __func__);
++	unsigned int cpu = smp_processor_id();
 +
- 	.cpu_up			= native_cpu_up,
- 	.cpu_die		= native_cpu_die,
- 	.cpu_disable		= native_cpu_disable,
-diff --git a/arch/x86/kernel/smpboot.c b/arch/x86/kernel/smpboot.c
-index 269bc1f..202be43 100644
---- a/arch/x86/kernel/smpboot.c
-+++ b/arch/x86/kernel/smpboot.c
-@@ -189,7 +189,7 @@ static void __cpuinit smp_callin(void)
- 	/*
- 	 * Need to setup vector mappings before we enable interrupts.
- 	 */
--	setup_vector_irq(smp_processor_id());
-+	setup_vector_irq(cpuid);
++	pr_debug("SMPCMP: CPU%d: %s\n", cpu, __func__);
  
- 	/*
- 	 * Save our processor parameters. Note: this information
-@@ -211,14 +211,10 @@ static void __cpuinit smp_callin(void)
- 	 * This must be done before setting cpu_online_mask
- 	 * or calling notify_cpu_starting.
- 	 */
--	set_cpu_sibling_map(raw_smp_processor_id());
-+	set_cpu_sibling_map(cpuid);
- 	wmb();
- 
--	notify_cpu_starting(cpuid);
+ 	/* CDFIXME: remove this? */
+ 	write_c0_compare(read_c0_count() + (8 * mips_hpt_frequency / HZ));
+@@ -116,10 +118,8 @@ static void cmp_smp_finish(void)
+ #ifdef CONFIG_MIPS_MT_FPAFF
+ 	/* If we have an FPU, enroll ourselves in the FPU-full mask */
+ 	if (cpu_has_fpu)
+-		cpu_set(smp_processor_id(), mt_fpu_cpumask);
++		cpumask_set_cpu(cpu, &mt_fpu_cpumask);
+ #endif /* CONFIG_MIPS_MT_FPAFF */
 -
--	/*
--	 * Allow the master to continue.
--	 */
-+	/* Allow the master to continue. */
- 	cpumask_set_cpu(cpuid, cpu_callin_mask);
- }
- 
-@@ -227,6 +223,11 @@ static void __cpuinit smp_callin(void)
-  */
- notrace static void __cpuinit start_secondary(void *unused)
- {
-+	smpboot_start_secondary(unused);
-+}
-+
-+void __cpuinit native_cpu_pre_starting(void *unused)
-+{
- 	/*
- 	 * Don't put *anything* before cpu_init(), SMP booting is too
- 	 * fragile that we want to limit the things done here to the
-@@ -234,43 +235,31 @@ notrace static void __cpuinit start_secondary(void *unused)
- 	 */
- 	cpu_init();
- 	x86_cpuinit.early_percpu_clock_init();
--	preempt_disable();
- 	smp_callin();
-+}
- 
-+void __cpuinit native_cpu_pre_online(void *unused)
-+{
- #ifdef CONFIG_X86_32
- 	/* switch away from the initial page table */
- 	load_cr3(swapper_pg_dir);
- 	__flush_tlb_all();
- #endif
- 
--	/* otherwise gcc will move up smp_processor_id before the cpu_init */
--	barrier();
- 	/*
- 	 * Check TSC synchronization with the BP:
- 	 */
- 	check_tsc_sync_target();
-+}
- 
--	/*
--	 * We need to hold vector_lock so there the set of online cpus
--	 * does not change while we are assigning vectors to cpus.  Holding
--	 * this lock ensures we don't half assign or remove an irq from a cpu.
--	 */
--	lock_vector_lock();
--	set_cpu_online(smp_processor_id(), true);
--	unlock_vector_lock();
--	per_cpu(cpu_state, smp_processor_id()) = CPU_ONLINE;
-+void __cpuinit native_cpu_post_online(void *unused)
-+{
- 	x86_platform.nmi_init();
- 
--	/* enable local interrupts */
 -	local_irq_enable();
--
- 	/* to prevent fake stack check failure in clock setup */
- 	boot_init_stack_canary();
+ }
  
- 	x86_cpuinit.setup_percpu_clockev();
+ static void cmp_cpus_done(void)
+diff --git a/arch/mips/kernel/smp-mt.c b/arch/mips/kernel/smp-mt.c
+index ff17868..25f7b09 100644
+--- a/arch/mips/kernel/smp-mt.c
++++ b/arch/mips/kernel/smp-mt.c
+@@ -171,8 +171,6 @@ static void __cpuinit vsmp_smp_finish(void)
+ 	if (cpu_has_fpu)
+ 		cpu_set(smp_processor_id(), mt_fpu_cpumask);
+ #endif /* CONFIG_MIPS_MT_FPAFF */
 -
--	wmb();
+-	local_irq_enable();
+ }
+ 
+ static void vsmp_cpus_done(void)
+diff --git a/arch/mips/kernel/smp.c b/arch/mips/kernel/smp.c
+index 71a95f5..4453d4d 100644
+--- a/arch/mips/kernel/smp.c
++++ b/arch/mips/kernel/smp.c
+@@ -33,6 +33,7 @@
+ #include <linux/cpu.h>
+ #include <linux/err.h>
+ #include <linux/ftrace.h>
++#include <linux/smpboot.h>
+ 
+ #include <linux/atomic.h>
+ #include <asm/cpu.h>
+@@ -98,8 +99,11 @@ __cpuinit void register_smp_ops(struct plat_smp_ops *ops)
+  */
+ asmlinkage __cpuinit void start_secondary(void)
+ {
+-	unsigned int cpu;
++	smpboot_start_secondary(NULL);
++}
+ 
++void __cpuinit __cpu_pre_starting(void *unused)
++{
+ #ifdef CONFIG_MIPS_MT_SMTC
+ 	/* Only do cpu_probe for first TC of CPU */
+ 	if ((read_c0_tcbind() & TCBIND_CURTC) == 0)
+@@ -116,20 +120,22 @@ asmlinkage __cpuinit void start_secondary(void)
+ 	 */
+ 
+ 	calibrate_delay();
+-	preempt_disable();
+-	cpu = smp_processor_id();
+-	cpu_data[cpu].udelay_val = loops_per_jiffy;
++	cpu_data[smp_processor_id()].udelay_val = loops_per_jiffy;
++}
+ 
+-	notify_cpu_starting(cpu);
++void __cpuinit __cpu_pre_online(void *unused)
++{
++	unsigned int cpu = smp_processor_id();
+ 
+ 	mp_ops->smp_finish();
+ 	set_cpu_sibling_map(cpu);
+ 
+ 	cpu_set(cpu, cpu_callin_map);
++}
+ 
++void __cpuinit __cpu_post_online(void *unused)
++{
+ 	synchronise_count_slave();
+-
 -	cpu_idle();
  }
  
  /*
+@@ -196,7 +202,8 @@ int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *tidle)
+ 	while (!cpu_isset(cpu, cpu_callin_map))
+ 		udelay(100);
+ 
+-	set_cpu_online(cpu, true);
++	while (!cpu_online(cpu))
++		udelay(100);
+ 
+ 	return 0;
+ }
+diff --git a/arch/mips/kernel/sync-r4k.c b/arch/mips/kernel/sync-r4k.c
+index 99f913c..7f43069 100644
+--- a/arch/mips/kernel/sync-r4k.c
++++ b/arch/mips/kernel/sync-r4k.c
+@@ -46,7 +46,8 @@ void __cpuinit synchronise_count_master(void)
+ 	printk(KERN_INFO "Synchronize counters across %u CPUs: ",
+ 	       num_online_cpus());
+ 
+-	local_irq_save(flags);
++	/* IRQs are already disabled. So just save the flags */
++	local_save_flags(flags);
+ 
+ 	/*
+ 	 * Notify the slaves that it's time to start
