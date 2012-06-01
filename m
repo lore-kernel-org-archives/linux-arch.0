@@ -1,16 +1,16 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp03.in.ibm.com ([122.248.162.3]:46482 "EHLO
-	e28smtp03.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759197Ab2FAJRM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jun 2012 05:17:12 -0400
+Received: from e28smtp05.in.ibm.com ([122.248.162.5]:39453 "EHLO
+	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759212Ab2FAJRT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jun 2012 05:17:19 -0400
 Received: from /spool/local
-	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 1 Jun 2012 14:47:09 +0530
+	Fri, 1 Jun 2012 14:47:17 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 26/27] arm, smpboot: Use generic SMP booting infrastructure
-Date: Fri, 01 Jun 2012 14:46:20 +0530
-Message-ID: <20120601091614.31979.39272.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 27/27] alpha, smpboot: Use generic SMP booting infrastructure
+Date: Fri, 01 Jun 2012 14:46:30 +0530
+Message-ID: <20120601091625.31979.49911.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -19,99 +19,98 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, paulmck@linux.vnet.ibm.com
-Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, Russell King <linux@arm.linux.org.uk>, Marc Zyngier <marc.zyngier@arm.com>, Will Deacon <will.deacon@arm.com>, David Brown <davidb@codeaurora.org>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20120601091620.shSz_AiH4NmV88hAf8DbWNlTZfd1nzq61u1NTE-iI0Y@z>
+Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>Andrew Morton <akpm@linux-foundation.org>, Eric Dumazet <eric.dumazet@gmail.com>Rusty Russell <rusty@rustcorp.com.au>, Mike Frysinger <vapier@gentoo.org>, linux-alpha@vger.kernel.org
+Message-ID: <20120601091630.NvculRlhpY7kIQ_u-j-XrUyB0wj1vFGK8mbF71Xsm1k@z>
 
-Convert arm to use the generic framework to boot secondary CPUs.
+Convert alpha to use the generic framework to boot secondary CPUs.
 
 Notes:
-The calls to local_irq_enable() and local_fiq_enable() which were there
-in secondary_start_kernel() originally, are retained in __cpu_post_online()
-since the generic code only calls local_irq_enable().
-Also, we were anyway going to enable interrupts in the generic code
-immediately after __cpu_post_online(), so its not like we enabled interrupts
-way too early.
+1. The secondary cpu was being set in the cpu_online_mask way too early.
+Postpone it.
 
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Marc Zyngier <marc.zyngier@arm.com>
-Cc: Will Deacon <will.deacon@arm.com>
+2. The original code was enabling interrupts before calling
+wait_boot_cpu_to_stop(). Instead postpone the enabling of interrupts
+to after the cpu_online_mask is set.
+
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: David Brown <davidb@codeaurora.org>
-Cc: linux-arm-kernel@lists.infradead.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Eric Dumazet <eric.dumazet@gmail.com>
+Cc: Rusty Russell <rusty@rustcorp.com.au>
+Cc: Mike Frysinger <vapier@gentoo.org>
+Cc: linux-alpha@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/arm/kernel/smp.c |   26 +++++++++++++-------------
- 1 files changed, 13 insertions(+), 13 deletions(-)
+ arch/alpha/kernel/smp.c |   27 +++++++++++++++------------
+ 1 files changed, 15 insertions(+), 12 deletions(-)
 
-diff --git a/arch/arm/kernel/smp.c b/arch/arm/kernel/smp.c
-index b735521..460b7e7 100644
---- a/arch/arm/kernel/smp.c
-+++ b/arch/arm/kernel/smp.c
-@@ -25,6 +25,7 @@
- #include <linux/percpu.h>
- #include <linux/clockchips.h>
- #include <linux/completion.h>
+diff --git a/arch/alpha/kernel/smp.c b/arch/alpha/kernel/smp.c
+index 35ddc02..2547431 100644
+--- a/arch/alpha/kernel/smp.c
++++ b/arch/alpha/kernel/smp.c
+@@ -28,6 +28,7 @@
+ #include <linux/profile.h>
+ #include <linux/bitops.h>
+ #include <linux/cpu.h>
 +#include <linux/smpboot.h>
  
- #include <linux/atomic.h>
- #include <asm/cacheflush.h>
-@@ -227,6 +228,11 @@ static void percpu_timer_setup(void);
-  */
- asmlinkage void __cpuinit secondary_start_kernel(void)
+ #include <asm/hwrpb.h>
+ #include <asm/ptrace.h>
+@@ -119,13 +120,17 @@ wait_boot_cpu_to_stop(int cpuid)
+ void __cpuinit
+ smp_callin(void)
  {
+-	int cpuid = hard_smp_processor_id();
 +	smpboot_start_secondary(NULL);
 +}
 +
 +void __cpuinit __cpu_pre_starting(void *unused)
 +{
- 	struct mm_struct *mm = &init_mm;
- 	unsigned int cpu = smp_processor_id();
++	unsigned int cpuid = hard_smp_processor_id();
  
-@@ -244,26 +250,25 @@ asmlinkage void __cpuinit secondary_start_kernel(void)
- 	printk("CPU%u: Booted secondary processor\n", cpu);
+ 	if (cpu_online(cpuid)) {
+ 		printk("??, cpu 0x%x already present??\n", cpuid);
+ 		BUG();
+ 	}
+-	set_cpu_online(cpuid, true);
  
- 	cpu_init();
--	preempt_disable();
- 	trace_hardirqs_off();
- 
- 	/*
- 	 * Give the platform a chance to do its own initialisation.
- 	 */
- 	platform_secondary_init(cpu);
+ 	/* Turn on machine checks.  */
+ 	wrmces(7);
+@@ -145,15 +150,16 @@ smp_callin(void)
+ 	/* All kernel threads share the same mm context.  */
+ 	atomic_inc(&init_mm.mm_count);
+ 	current->active_mm = &init_mm;
 +}
  
--	notify_cpu_starting(cpu);
+-	/* inform the notifiers about the new cpu */
+-	notify_cpu_starting(cpuid);
+-
+-	/* Must have completely accurate bogos.  */
+-	local_irq_enable();
 +void __cpuinit __cpu_pre_online(void *unused)
 +{
-+	unsigned int cpu = smp_processor_id();
++	unsigned int cpuid = hard_smp_processor_id();
  
+-	/* Wait boot CPU to stop with irq enabled before running
+-	   calibrate_delay. */
++	/*
++	 * Wait boot CPU to stop with irq disabled before running
++	 * calibrate_delay.
++	 */
+ 	wait_boot_cpu_to_stop(cpuid);
+ 	mb();
  	calibrate_delay();
+@@ -165,9 +171,6 @@ smp_callin(void)
  
- 	smp_store_cpu_info(cpu);
-+}
- 
--	/*
--	 * OK, now it's safe to let the boot CPU continue.  Wait for
--	 * the CPU migration code to notice that the CPU is online
--	 * before we continue - which happens after __cpu_up returns.
--	 */
--	set_cpu_online(cpu, true);
-+void __cpuinit __cpu_post_online(void *unused)
-+{
- 	complete(&cpu_running);
- 
- 	/*
-@@ -273,11 +278,6 @@ asmlinkage void __cpuinit secondary_start_kernel(void)
- 
- 	local_irq_enable();
- 	local_fiq_enable();
+ 	DBGS(("smp_callin: commencing CPU %d current %p active_mm %p\n",
+ 	      cpuid, current, current->active_mm));
 -
--	/*
--	 * OK, it's off to the idle thread for us
--	 */
+-	/* Do nothing.  */
 -	cpu_idle();
  }
  
- void __init smp_cpus_done(unsigned int max_cpus)
+ /* Wait until hwrpb->txrdy is clear for cpu.  Return -1 on timeout.  */
 
