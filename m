@@ -1,85 +1,50 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 11/27] sh, smpboot: Use generic SMP booting infrastructure
-Date: Fri, 01 Jun 2012 14:42:43 +0530
-Message-ID: <20120601091238.31979.80347.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 08/27] m32r: Fix horrible logic in smp_prepare_cpus()
+Date: Fri, 01 Jun 2012 14:42:11 +0530
+Message-ID: <20120601091201.31979.37258.stgit@srivatsabhat.in.ibm.com>
 References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp09.in.ibm.com ([122.248.162.9]:35083 "EHLO
-	e28smtp09.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759130Ab2FAJNl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jun 2012 05:13:41 -0400
-Received: from /spool/local
-	by e28smtp09.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 1 Jun 2012 14:43:39 +0530
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: peterz@infradead.org, paulmck@linux.vnet.ibm.com
-Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, Paul Mundt <lethal@linux-sh.org>, Thomas Gleixner <tglx@linutronix.de>Andrew Morton <akpm@linux-foundation.org>Rusty Russell <rusty@rustcorp.com.au>, Mike Frysinger <vapier@gentoo.org>, linux-sh@vger.kernel.org
+Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, Hirokazu Takata <takata@linux-m32r.org>, Thomas Gleixner <tglx@linutronix.de>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org
+List-Id: linux-arch.vger.kernel.org
 
-Convert sh to use the generic framework to boot secondary CPUs.
+In smp_prepare_cpus(), after max_cpus are booted, instead of breaking
+from the loop, the 'continue' statement is used which results in unnecessarily
+wasting time by looping NR_CPUS times!
 
-Notes:
-Postpone enabling local interrupts to after completing bringup of
-secondary CPU.
+Many things around this could be pulled into generic code in the future, but
+for now, fix this particular piece of code locally (because I am unable to
+convince myself to ignore it even temporarily, given that it is such a gem!).
 
-Cc: Paul Mundt <lethal@linux-sh.org>
+And also rewrite the 'if' statement in a more natural way.
+
+Cc: Hirokazu Takata <takata@linux-m32r.org>
 Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Rusty Russell <rusty@rustcorp.com.au>
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: linux-sh@vger.kernel.org
+Cc: linux-m32r@ml.linux-m32r.org
+Cc: linux-m32r-ja@ml.linux-m32r.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/sh/kernel/smp.c |   19 +++++++++----------
- 1 files changed, 9 insertions(+), 10 deletions(-)
+ arch/m32r/kernel/smpboot.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/sh/kernel/smp.c b/arch/sh/kernel/smp.c
-index 8e0fde0..d7f7faf 100644
---- a/arch/sh/kernel/smp.c
-+++ b/arch/sh/kernel/smp.c
-@@ -179,6 +179,11 @@ void native_play_dead(void)
+diff --git a/arch/m32r/kernel/smpboot.c b/arch/m32r/kernel/smpboot.c
+index a2cfc0a..6ddc51a 100644
+--- a/arch/m32r/kernel/smpboot.c
++++ b/arch/m32r/kernel/smpboot.c
+@@ -209,8 +209,8 @@ void __init smp_prepare_cpus(unsigned int max_cpus)
+ 		if (!physid_isset(phys_id, phys_cpu_present_map))
+ 			continue;
  
- asmlinkage void __cpuinit start_secondary(void)
- {
-+	smpboot_start_secondary(NULL);
-+}
-+
-+void __cpuinit __cpu_pre_starting(void *unused)
-+{
- 	unsigned int cpu = smp_processor_id();
- 	struct mm_struct *mm = &init_mm;
+-		if (max_cpus <= cpucount + 1)
+-			continue;
++		if (cpucount + 1 >= max_cpus)
++			break;
  
-@@ -190,23 +195,17 @@ asmlinkage void __cpuinit start_secondary(void)
- 	local_flush_tlb_all();
+ 		do_boot_cpu(phys_id);
  
- 	per_cpu_trap_init();
-+}
- 
--	preempt_disable();
--
--	notify_cpu_starting(cpu);
--
--	local_irq_enable();
-+void __cpuinit __cpu_pre_online(void *unused)
-+{
-+	unsigned int cpu = smp_processor_id();
- 
- 	/* Enable local timers */
- 	local_timer_setup(cpu);
- 	calibrate_delay();
- 
- 	smp_store_cpu_info(cpu);
--
--	set_cpu_online(cpu, true);
--	per_cpu(cpu_state, cpu) = CPU_ONLINE;
--
--	cpu_idle();
- }
- 
- extern struct {
