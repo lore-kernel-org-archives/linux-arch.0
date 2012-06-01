@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp05.au.ibm.com ([202.81.31.147]:41700 "EHLO
-	e23smtp05.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758807Ab2FAJww (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jun 2012 05:52:52 -0400
+Received: from e23smtp03.au.ibm.com ([202.81.31.145]:38090 "EHLO
+	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758790Ab2FAJzo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 1 Jun 2012 05:55:44 -0400
 Received: from /spool/local
-	by e23smtp05.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Fri, 1 Jun 2012 09:10:30 +1000
+	Fri, 1 Jun 2012 09:04:51 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH 19/27] blackfin,
- smpboot: Use generic SMP booting infrastructure
-Date: Fri, 01 Jun 2012 14:44:40 +0530
-Message-ID: <20120601091433.31979.19214.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH 14/27] ia64: Move holding of vector_lock to
+ __setup_vector_irq()
+Date: Fri, 01 Jun 2012 14:43:28 +0530
+Message-ID: <20120601091319.31979.93871.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -20,98 +20,71 @@ Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, paulmck@linux.vnet.ibm.com
-Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com"Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, Mike Frysinger <vapier@gentoo.org>, Bob Liu <lliubbo@gmail.com>, Steven Miao <realmz6@gmail.com>Yong Zhang <yong.zhang0@gmail.com>Andrew Morton <akpm@linux-foundation.org>, uclinux-dist-devel@blackfin.uclinux.org
-Message-ID: <20120601091440.ReKYQhaMe3c6ETjAGXPDn0Le9P3-4_ph2vIChsrw4eQ@z>
+Cc: rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, srivatsa.bhat@linux.vnet.ibm.com, nikunj@linux.vnet.ibm.com, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>, Mike Frysinger <vapier@gentoo.org>, linux-ia64@vger.kernel.org
+Message-ID: <20120601091328.0YiRhDwnEaXYZWey-vHaoHws_8QTUS2w7KUrIm63xlk@z>
 
-From: Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
+__setup_vector_irq() expects that its caller holds the vector_lock.
+As of now there is only one caller - smp_callin(); and acquiring the lock
+in smp_callin() around the call to __setup_vector_irq() obstructs the
+conversion of ia64 to generic smp booting code. So move the lock acquisition
+to __setup_vector_irq() itself (mimicking what x86 does).
 
-Convert blackfin to use the generic framework to boot secondary CPUs.
-
-Notes:
-The call to set_cpu_online() is removed from platform_secondary_init(), since
-it will now be done by generic SMP booting code.
-
-Signed-off-by: Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: Bob Liu <lliubbo@gmail.com>
-Cc: Steven Miao <realmz6@gmail.com>
-Cc: Yong Zhang <yong.zhang0@gmail.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: uclinux-dist-devel@blackfin.uclinux.org
+Cc: David Howells <dhowells@redhat.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Mike Frysinger <vapier@gentoo.org>
+Cc: linux-ia64@vger.kernel.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- arch/blackfin/mach-bf561/smp.c  |    1 -
- arch/blackfin/mach-common/smp.c |   16 +++++++++-------
- 2 files changed, 9 insertions(+), 8 deletions(-)
+ arch/ia64/kernel/irq_ia64.c |    5 +++--
+ arch/ia64/kernel/smpboot.c  |    2 +-
+ 2 files changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/arch/blackfin/mach-bf561/smp.c b/arch/blackfin/mach-bf561/smp.c
-index ab1c617..e7e2e50 100644
---- a/arch/blackfin/mach-bf561/smp.c
-+++ b/arch/blackfin/mach-bf561/smp.c
-@@ -69,7 +69,6 @@ void __cpuinit platform_secondary_init(unsigned int cpu)
- 	SSYNC();
- 
- 	/* We are done with local CPU inits, unblock the boot CPU. */
--	set_cpu_online(cpu, true);
- 	spin_lock(&boot_lock);
- 	spin_unlock(&boot_lock);
+diff --git a/arch/ia64/kernel/irq_ia64.c b/arch/ia64/kernel/irq_ia64.c
+index 5c3e088..6ac99c8 100644
+--- a/arch/ia64/kernel/irq_ia64.c
++++ b/arch/ia64/kernel/irq_ia64.c
+@@ -241,13 +241,13 @@ reserve_irq_vector (int vector)
  }
-diff --git a/arch/blackfin/mach-common/smp.c b/arch/blackfin/mach-common/smp.c
-index 00bbe67..9ee6f2f 100644
---- a/arch/blackfin/mach-common/smp.c
-+++ b/arch/blackfin/mach-common/smp.c
-@@ -25,6 +25,7 @@
- #include <linux/irq.h>
- #include <linux/slab.h>
- #include <linux/atomic.h>
-+#include <linux/smpboot.h>
- #include <asm/cacheflush.h>
- #include <asm/irq_handler.h>
- #include <asm/mmu_context.h>
-@@ -373,6 +374,11 @@ static void __cpuinit setup_secondary(unsigned int cpu)
  
- void __cpuinit secondary_start_kernel(void)
+ /*
+- * Initialize vector_irq on a new cpu. This function must be called
+- * with vector_lock held.
++ * Initialize vector_irq on a new cpu.
+  */
+ void __setup_vector_irq(int cpu)
  {
-+	smpboot_start_secondary(NULL);
-+}
-+
-+void __cpuinit __cpu_pre_starting(void *unused)
-+{
- 	unsigned int cpu = smp_processor_id();
- 	struct mm_struct *mm = &init_mm;
+ 	int irq, vector;
  
-@@ -405,8 +411,6 @@ void __cpuinit secondary_start_kernel(void)
- 	atomic_inc(&mm->mm_count);
- 	current->active_mm = mm;
- 
--	preempt_disable();
--
- 	setup_secondary(cpu);
- 
- 	platform_secondary_init(cpu);
-@@ -414,19 +418,17 @@ void __cpuinit secondary_start_kernel(void)
- 	/* setup local core timer */
- 	bfin_local_timer_setup();
- 
--	local_irq_enable();
--
- 	bfin_setup_caches(cpu);
-+}
- 
--	notify_cpu_starting(cpu);
-+void __cpuinit __cpu_pre_online(void *unused)
-+{
- 	/*
- 	 * Calibrate loops per jiffy value.
- 	 * IRQs need to be enabled here - D-cache can be invalidated
- 	 * in timer irq handler, so core B can read correct jiffies.
- 	 */
- 	calibrate_delay();
--
--	cpu_idle();
++	spin_lock(&vector_lock);
+ 	/* Clear vector_irq */
+ 	for (vector = 0; vector < IA64_NUM_VECTORS; ++vector)
+ 		per_cpu(vector_irq, cpu)[vector] = -1;
+@@ -258,6 +258,7 @@ void __setup_vector_irq(int cpu)
+ 		vector = irq_to_vector(irq);
+ 		per_cpu(vector_irq, cpu)[vector] = irq;
+ 	}
++	spin_unlock(&vector_lock);
  }
  
- void __init smp_prepare_boot_cpu(void)
+ #if defined(CONFIG_SMP) && (defined(CONFIG_IA64_GENERIC) || defined(CONFIG_IA64_DIG))
+diff --git a/arch/ia64/kernel/smpboot.c b/arch/ia64/kernel/smpboot.c
+index df00a3c..709ce07 100644
+--- a/arch/ia64/kernel/smpboot.c
++++ b/arch/ia64/kernel/smpboot.c
+@@ -378,10 +378,10 @@ smp_callin (void)
+ 	set_numa_node(cpu_to_node_map[cpuid]);
+ 	set_numa_mem(local_memory_node(cpu_to_node_map[cpuid]));
+ 
+-	spin_lock(&vector_lock);
+ 	/* Setup the per cpu irq handling data structures */
+ 	__setup_vector_irq(cpuid);
+ 	notify_cpu_starting(cpuid);
++	spin_lock(&vector_lock);
+ 	set_cpu_online(cpuid, true);
+ 	per_cpu(cpu_state, cpuid) = CPU_ONLINE;
+ 	spin_unlock(&vector_lock);
 
