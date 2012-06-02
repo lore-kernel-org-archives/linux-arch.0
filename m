@@ -1,85 +1,82 @@
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: Re: [UPDATED PATCH 21/27] sparc32, smpboot: Use generic SMP	booting
- infrastructure
-Date: Sat, 02 Jun 2012 22:04:45 +0530
-Message-ID: <4FCA40A5.3060409@linux.vnet.ibm.com>
-References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com> <20120601091503.31979.52537.stgit@srivatsabhat.in.ibm.com> <20120601.135612.699120609738854050.davem@davemloft.net> <20120601185448.GA19148@merkur.ravnborg.org> <4FC94693.5050707@linux.vnet.ibm.com> <20120602065249.GA19558@merkur.ravnborg.org> <20120602074424.GA19690@merkur.ravnborg.org> <4FC9C871.60902@linux.vnet.ibm.com> <20120602151348.GA17409@merkur.ravnborg.org> <4FCA382B.6050601@linux.vnet.ibm.com> <20120602162340.GA27530@merkur.ravnborg.org>
+Subject: Re: [Xen-devel] [PATCH 05/27] xen,
+	cpu hotplug: Don't call cpu_bringup() in xen_play_dead()
+Date: Sat, 02 Jun 2012 23:36:00 +0530
+Message-ID: <4FCA5608.2010404@linux.vnet.ibm.com>
+References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
+	<20120601091124.31979.91984.stgit@srivatsabhat.in.ibm.com>
+	<4FC8D8E30200007800087D2B@nat28.tlf.novell.com>
+	<4FC8DC19.4000007@linux.vnet.ibm.com>
+	<4FC8FD9C0200007800087DF5@nat28.tlf.novell.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp01.au.ibm.com ([202.81.31.143]:37907 "EHLO
-	e23smtp01.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758995Ab2FBQfn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jun 2012 12:35:43 -0400
-Received: from /spool/local
-	by e23smtp01.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Sat, 2 Jun 2012 16:26:51 +1000
-In-Reply-To: <20120602162340.GA27530@merkur.ravnborg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: David Miller <davem@davemloft.net>, tglx@linutronix.de, peterz@infradead.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, nikunj@linux.vnet.ibm.com, vapier@gentoo.org, konrad@gaisler.com, tkhai@yandex.ru, sparclinux@vger.kernel.org
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+In-Reply-To: <4FC8FD9C0200007800087DF5@nat28.tlf.novell.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: Jan Beulich <JBeulich@suse.com>
+Cc: linux-arch@vger.kernel.org, Jeremy Fitzhardinge <jeremy@goop.org>, xen-devel@lists.xensource.com, Russell King <linux@arm.linux.org.uk>, akpm@linux-foundation.org, nikunj@linux.vnet.ibm.com, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, peterz@infradead.org, linux-kernel@vger.kernel.org, x86@kernel.org, vatsa@linux.vnet.ibm.com, virtualization@lists.linux-foundation.org, rjw@sisk.pl, yong.zhang0@gmail.com, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Keir Fraser <keir@xen.org>, Thomas Gleixner <tglx@linutronix.de>, paulmck@linux.vnet.ibm.com, mingo@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 06/02/2012 09:53 PM, Sam Ravnborg wrote:
+On 06/01/2012 09:06 PM, Jan Beulich wrote:
 
+>>>> On 01.06.12 at 17:13, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+> wrote:
+>> On 06/01/2012 06:29 PM, Jan Beulich wrote:
 >>
->> As I mentioned in my other mail, I am thinking of changing them to
->> arch_cpu_pre_starting(), arch_cpu_pre_online() and arch_cpu_post_online().
->> Let me know what you think of those names.
-> Much better than "__" - so if none of the guys that excel in core
-> code objects go for that.
-> 
-
-
-Ok..
-
->> Would you kindly add a changelog and your sign-off to this patch?
-> Will do in next revision.
-> 
-
-
-Great!
-
-> ...
-> 
-> Thanks for the throughfull review.
-> I will address all points - including passing the pointer down,
-> as I assume you have some future plans with that pointer.
-> 
+>>>>>> On 01.06.12 at 11:11, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+>>> wrote:
+>>>> xen_play_dead calls cpu_bringup() which looks weird, because xen_play_dead()
+>>>> is invoked in the cpu down path, whereas cpu_bringup() (as the name 
+>>>> suggests) is useful in the cpu bringup path.
+>>>
+>>> This might not be correct - the code as it is without this change is
+>>> safe even when the vCPU gets onlined back later by an external
+>>> entity (e.g. the Xen tool stack), and it would in that case resume
+>>> at the return point of the VCPUOP_down hypercall. That might
+>>> be a heritage from the original XenoLinux tree though, and be
+>>> meaningless in pv-ops context - Jeremy, Konrad?
+>>>
+>>> Possibly it was bogus/unused even in that original tree - Keir?
+>>>
 >>
->> I still didn't get how this solves the original problem of
->> not having sparc_cpu_model set to sparc_leon. You mentioned
->> that by the time we reach leon_smp_cpu_startup, that variable
->> is not set. Even inside leon_smp_cpu_startup, I don't immediately
->> see where it is set. Am I missing something?
+>>
+>> Thanks for your comments Jan!
+>>
+>> In case this change is wrong, the other method I had in mind was to call
+>> cpu_bringup_and_idle() in xen_play_dead(). (Even ARM does something similar,
+>> in the sense that it runs the cpu bringup code including cpu_idle(), in the
+>> cpu offline path, namely the cpu_die() function). Would that approach work
+>> for xen as well? If yes, then we wouldn't have any issues to convert xen to
+>> generic code.
 > 
-> After looking more closely at the code it is my understanding
-> that a leon CPU when started will actually jump to the reset
-> vector and start from there.
-> So the secondary CPU's will run long time after
-> sparc_cpu_model is set so we can safely use it.
-> 
-> The sun based cpu will in comparsion jump to
-> an address supplied to a prom call - so they do not
-> jump to the reset vector.
-> But they also have sparc_cpu_model set so no problem there
-> either.
+> No, that wouldn't work either afaict - the function is expected
+> to return.
 > 
 
 
-Ok..
+Ok.. So, I would love to hear a confirmation about whether this patch (which
+removes cpu_bringup() in xen_play_dead()) will break things or it is good as is.
 
-> All this are my deductions from reading the code - but this
-> is not an area I have looked at otherwise..
-> 
-> I may not find time today to cook up a new version of
-> the patch - but then you will have it tomorrow.
-> 
+If its not correct, then we can probably make __cpu_post_online() return an int,
+with the meaning:
 
+0 => success, go ahead and call cpu_idle()
+non-zero => stop here, thanks for your services so far.. now leave the rest to me.
 
-Sure! Once again, thanks a lot for your time and efforts :-)
+So all other archs will return 0, Xen will return non-zero, and it will handle
+when to call cpu_idle() and when not to do so.
+
+Might sound a bit ugly, but I don't see much other option. Suggestions are
+appreciated!
 
 Regards,
 Srivatsa S. Bhat
