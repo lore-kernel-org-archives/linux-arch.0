@@ -1,80 +1,138 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp01.in.ibm.com ([122.248.162.1]:45265 "EHLO
-	e28smtp01.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933558Ab2FBSG6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 2 Jun 2012 14:06:58 -0400
-Received: from /spool/local
-	by e28smtp01.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Sat, 2 Jun 2012 23:36:55 +0530
-Message-ID: <4FCA5608.2010404@linux.vnet.ibm.com>
-Date: Sat, 02 Jun 2012 23:36:00 +0530
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Received: from mail-pz0-f46.google.com ([209.85.210.46]:63406 "EHLO
+	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752285Ab2FCIeG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 Jun 2012 04:34:06 -0400
+Date: Sun, 3 Jun 2012 16:33:47 +0800
+From: Yong Zhang <yong.zhang0@gmail.com>
+Subject: Re: [PATCH 17/27] mn10300, smpboot: Use generic SMP booting
+ infrastructure
+Message-ID: <20120603083346.GB16829@zhy>
+Reply-To: Yong Zhang <yong.zhang0@gmail.com>
+References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
+ <20120601091403.31979.12717.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
-Subject: Re: [Xen-devel] [PATCH 05/27] xen, cpu hotplug: Don't call cpu_bringup()
- in xen_play_dead()
-References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com> <20120601091124.31979.91984.stgit@srivatsabhat.in.ibm.com> <4FC8D8E30200007800087D2B@nat28.tlf.novell.com> <4FC8DC19.4000007@linux.vnet.ibm.com> <4FC8FD9C0200007800087DF5@nat28.tlf.novell.com>
-In-Reply-To: <4FC8FD9C0200007800087DF5@nat28.tlf.novell.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20120601091403.31979.12717.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jan Beulich <JBeulich@suse.com>
-Cc: Russell King <linux@arm.linux.org.uk>, yong.zhang0@gmail.com, Jeremy Fitzhardinge <jeremy@goop.org>, peterz@infradead.org, mingo@kernel.org, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, akpm@linux-foundation.org, nikunj@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, vatsa@linux.vnet.ibm.com, virtualization@lists.linux-foundation.org, xen-devel@lists.xensource.com, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Ingo Molnar <mingo@redhat.com>, rusty@rustcorp.com.au, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Keir Fraser <keir@xen.org>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20120602180600.bquJoF-267jPUvMBWcEZgjwbP69c-LSDRr16CXspSos@z>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: tglx@linutronix.de, peterz@infradead.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, nikunj@linux.vnet.ibm.com, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, linux-am33-list@redhat.com
+Message-ID: <20120603083347.BXESLQT4wmlndNH2e3cT0W6ZDqvPZveGKI7ebQV7fcI@z>
 
-On 06/01/2012 09:06 PM, Jan Beulich wrote:
-
->>>> On 01.06.12 at 17:13, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-> wrote:
->> On 06/01/2012 06:29 PM, Jan Beulich wrote:
->>
->>>>>> On 01.06.12 at 11:11, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
->>> wrote:
->>>> xen_play_dead calls cpu_bringup() which looks weird, because xen_play_dead()
->>>> is invoked in the cpu down path, whereas cpu_bringup() (as the name 
->>>> suggests) is useful in the cpu bringup path.
->>>
->>> This might not be correct - the code as it is without this change is
->>> safe even when the vCPU gets onlined back later by an external
->>> entity (e.g. the Xen tool stack), and it would in that case resume
->>> at the return point of the VCPUOP_down hypercall. That might
->>> be a heritage from the original XenoLinux tree though, and be
->>> meaningless in pv-ops context - Jeremy, Konrad?
->>>
->>> Possibly it was bogus/unused even in that original tree - Keir?
->>>
->>
->>
->> Thanks for your comments Jan!
->>
->> In case this change is wrong, the other method I had in mind was to call
->> cpu_bringup_and_idle() in xen_play_dead(). (Even ARM does something similar,
->> in the sense that it runs the cpu bringup code including cpu_idle(), in the
->> cpu offline path, namely the cpu_die() function). Would that approach work
->> for xen as well? If yes, then we wouldn't have any issues to convert xen to
->> generic code.
+On Fri, Jun 01, 2012 at 02:44:08PM +0530, Srivatsa S. Bhat wrote:
+> From: Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
 > 
-> No, that wouldn't work either afaict - the function is expected
-> to return.
+> Convert mn10300 to use the generic framework to boot secondary CPUs.
 > 
+> Notes:
+> 1. In order to avoid enabling interrupts very early during secondary CPU
+> bringup (in smp_cpu_init()), use arch_local_save_flags() instead of
+> arch_local_cli_save().
 
+We can just remove arch_local_cli_save()/arch_local_irq_restore() IMHO.
 
-Ok.. So, I would love to hear a confirmation about whether this patch (which
-removes cpu_bringup() in xen_play_dead()) will break things or it is good as is.
+Thanks,
+Yong
 
-If its not correct, then we can probably make __cpu_post_online() return an int,
-with the meaning:
-
-0 => success, go ahead and call cpu_idle()
-non-zero => stop here, thanks for your services so far.. now leave the rest to me.
-
-So all other archs will return 0, Xen will return non-zero, and it will handle
-when to call cpu_idle() and when not to do so.
-
-Might sound a bit ugly, but I don't see much other option. Suggestions are
-appreciated!
-
-Regards,
-Srivatsa S. Bhat
-
+> 
+> Signed-off-by: Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
+> Cc: David Howells <dhowells@redhat.com>
+> Cc: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Yong Zhang <yong.zhang0@gmail.com>
+> Cc: linux-am33-list@redhat.com
+> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+> ---
+> 
+>  arch/mn10300/kernel/smp.c |   32 +++++++++++---------------------
+>  1 files changed, 11 insertions(+), 21 deletions(-)
+> 
+> diff --git a/arch/mn10300/kernel/smp.c b/arch/mn10300/kernel/smp.c
+> index b19e75d2..9c4e35e 100644
+> --- a/arch/mn10300/kernel/smp.c
+> +++ b/arch/mn10300/kernel/smp.c
+> @@ -25,6 +25,7 @@
+>  #include <linux/profile.h>
+>  #include <linux/smp.h>
+>  #include <linux/cpu.h>
+> +#include <linux/smpboot.h>
+>  #include <asm/tlbflush.h>
+>  #include <asm/bitops.h>
+>  #include <asm/processor.h>
+> @@ -100,7 +101,6 @@ cpumask_t cpu_initialized __initdata = CPU_MASK_NONE;
+>  static int do_boot_cpu(int);
+>  static void smp_show_cpu_info(int cpu_id);
+>  static void smp_callin(void);
+> -static void smp_online(void);
+>  static void smp_store_cpu_info(int);
+>  static void smp_cpu_init(void);
+>  static void smp_tune_scheduling(void);
+> @@ -607,7 +607,7 @@ static void __init smp_cpu_init(void)
+>  	mn10300_ipi_shutdown(SMP_BOOT_IRQ);
+>  
+>  	/* Set up the non-maskable call function IPI */
+> -	flags = arch_local_cli_save();
+> +	flags = arch_local_save_flags();
+>  	GxICR(CALL_FUNCTION_NMI_IPI) = GxICR_NMI | GxICR_ENABLE | GxICR_DETECT;
+>  	tmp16 = GxICR(CALL_FUNCTION_NMI_IPI);
+>  	arch_local_irq_restore(flags);
+> @@ -655,20 +655,25 @@ void smp_prepare_cpu_init(void)
+>   */
+>  int __init start_secondary(void *unused)
+>  {
+> +	smpboot_start_secondary(unused);
+> +	return 0;
+> +}
+> +
+> +void __cpuinit __cpu_pre_starting(void *unused)
+> +{
+>  	smp_cpu_init();
+>  	smp_callin();
+>  	while (!cpumask_test_cpu(smp_processor_id(), &smp_commenced_mask))
+>  		cpu_relax();
+>  
+>  	local_flush_tlb();
+> -	preempt_disable();
+> -	smp_online();
+> +}
+>  
+> +void __cpuinit __cpu_post_online(void *unused)
+> +{
+>  #ifdef CONFIG_GENERIC_CLOCKEVENTS
+>  	init_clockevents();
+>  #endif
+> -	cpu_idle();
+> -	return 0;
+>  }
+>  
+>  /**
+> @@ -865,21 +870,6 @@ static void __init smp_callin(void)
+>  	cpumask_set_cpu(cpu, &cpu_callin_map);
+>  }
+>  
+> -/**
+> - * smp_online - Set cpu_online_mask
+> - */
+> -static void __init smp_online(void)
+> -{
+> -	int cpu;
+> -
+> -	cpu = smp_processor_id();
+> -
+> -	notify_cpu_starting(cpu);
+> -
+> -	set_cpu_online(cpu, true);
+> -
+> -	local_irq_enable();
+> -}
+>  
+>  /**
+>   * smp_cpus_done -
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
