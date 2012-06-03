@@ -1,138 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pz0-f46.google.com ([209.85.210.46]:63406 "EHLO
-	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752285Ab2FCIeG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 Jun 2012 04:34:06 -0400
-Date: Sun, 3 Jun 2012 16:33:47 +0800
+Received: from mail-pb0-f46.google.com ([209.85.160.46]:44838 "EHLO
+	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752812Ab2FCImG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 Jun 2012 04:42:06 -0400
+Date: Sun, 3 Jun 2012 16:41:46 +0800
 From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: Re: [PATCH 17/27] mn10300, smpboot: Use generic SMP booting
+Subject: Re: [PATCH 23/27] cris, smpboot: Use generic SMP booting
  infrastructure
-Message-ID: <20120603083346.GB16829@zhy>
+Message-ID: <20120603084145.GC16829@zhy>
 Reply-To: Yong Zhang <yong.zhang0@gmail.com>
 References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
- <20120601091403.31979.12717.stgit@srivatsabhat.in.ibm.com>
+ <20120601091534.31979.34403.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20120601091403.31979.12717.stgit@srivatsabhat.in.ibm.com>
+In-Reply-To: <20120601091534.31979.34403.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: tglx@linutronix.de, peterz@infradead.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, nikunj@linux.vnet.ibm.com, David Howells <dhowells@redhat.com>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, linux-am33-list@redhat.com
-Message-ID: <20120603083347.BXESLQT4wmlndNH2e3cT0W6ZDqvPZveGKI7ebQV7fcI@z>
+Cc: tglx@linutronix.de, peterz@infradead.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, nikunj@linux.vnet.ibm.com, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Eric Dumazet <eric.dumazet@gmail.com>, Mike Frysinger <vapier@gentoo.org>, linux-cris-kernel@axis.com
+Message-ID: <20120603084146.7ZUQYGeVv0BCRSY15V8GBdeY5FTvRsYInalOjSzPdzc@z>
 
-On Fri, Jun 01, 2012 at 02:44:08PM +0530, Srivatsa S. Bhat wrote:
-> From: Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
+On Fri, Jun 01, 2012 at 02:45:40PM +0530, Srivatsa S. Bhat wrote:
+> Convert cris to use the generic framework to boot secondary CPUs.
 > 
-> Convert mn10300 to use the generic framework to boot secondary CPUs.
+> Cc: Mikael Starvik <starvik@axis.com>
+> Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Cc: Andrew Morton <akpm@linux-foundation.org>
+> Cc: Eric Dumazet <eric.dumazet@gmail.com>
+> Cc: Mike Frysinger <vapier@gentoo.org>
+> Cc: linux-cris-kernel@axis.com
+> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+> ---
 > 
-> Notes:
-> 1. In order to avoid enabling interrupts very early during secondary CPU
-> bringup (in smp_cpu_init()), use arch_local_save_flags() instead of
-> arch_local_cli_save().
+>  arch/cris/arch-v32/kernel/smp.c |   14 ++++++--------
+>  1 files changed, 6 insertions(+), 8 deletions(-)
+> 
+> diff --git a/arch/cris/arch-v32/kernel/smp.c b/arch/cris/arch-v32/kernel/smp.c
+> index ebe2cb3..357114a 100644
+> --- a/arch/cris/arch-v32/kernel/smp.c
+> +++ b/arch/cris/arch-v32/kernel/smp.c
+> @@ -17,6 +17,7 @@
+>  #include <linux/cpumask.h>
+>  #include <linux/interrupt.h>
+>  #include <linux/module.h>
+> +#include <linux/smpboot.h>
+>  
+>  #define IPI_SCHEDULE 1
+>  #define IPI_CALL 2
+> @@ -145,8 +146,11 @@ smp_boot_one_cpu(int cpuid, struct task_struct idle)
+>   * specific stuff such as the local timer and the MMU. */
+>  void __init smp_callin(void)
+>  {
+> -	extern void cpu_idle(void);
+> +	smpboot_start_secondary(NULL);
+> +}
+>  
+> +void __cpuinit __cpu_pre_starting(void *unused)
+> +{
+>  	int cpu = cpu_now_booting;
+>  	reg_intr_vect_rw_mask vect_mask = {0};
+>  
+> @@ -161,16 +165,10 @@ void __init smp_callin(void)
+>  	/* Setup local timer. */
+>  	cris_timer_init();
+>  
+> -	/* Enable IRQ and idle */
+> +	/* Enable IRQ */
 
-We can just remove arch_local_cli_save()/arch_local_irq_restore() IMHO.
+I don't know cris; is the comments right?
+
+>  	REG_WR(intr_vect, irq_regs[cpu], rw_mask, vect_mask);
+>  	crisv32_unmask_irq(IPI_INTR_VECT);
+>  	crisv32_unmask_irq(TIMER0_INTR_VECT);
+> -	preempt_disable();
+> -	notify_cpu_starting(cpu);
+> -	local_irq_enable();
+> -
+> -	set_cpu_online(cpu, true);
+> -	cpu_idle();
+
+Before your patch, the comments seems end here.
 
 Thanks,
 Yong
 
-> 
-> Signed-off-by: Nikunj A. Dadhania <nikunj@linux.vnet.ibm.com>
-> Cc: David Howells <dhowells@redhat.com>
-> Cc: Koichi Yasutake <yasutake.koichi@jp.panasonic.com>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Yong Zhang <yong.zhang0@gmail.com>
-> Cc: linux-am33-list@redhat.com
-> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
-> ---
-> 
->  arch/mn10300/kernel/smp.c |   32 +++++++++++---------------------
->  1 files changed, 11 insertions(+), 21 deletions(-)
-> 
-> diff --git a/arch/mn10300/kernel/smp.c b/arch/mn10300/kernel/smp.c
-> index b19e75d2..9c4e35e 100644
-> --- a/arch/mn10300/kernel/smp.c
-> +++ b/arch/mn10300/kernel/smp.c
-> @@ -25,6 +25,7 @@
->  #include <linux/profile.h>
->  #include <linux/smp.h>
->  #include <linux/cpu.h>
-> +#include <linux/smpboot.h>
->  #include <asm/tlbflush.h>
->  #include <asm/bitops.h>
->  #include <asm/processor.h>
-> @@ -100,7 +101,6 @@ cpumask_t cpu_initialized __initdata = CPU_MASK_NONE;
->  static int do_boot_cpu(int);
->  static void smp_show_cpu_info(int cpu_id);
->  static void smp_callin(void);
-> -static void smp_online(void);
->  static void smp_store_cpu_info(int);
->  static void smp_cpu_init(void);
->  static void smp_tune_scheduling(void);
-> @@ -607,7 +607,7 @@ static void __init smp_cpu_init(void)
->  	mn10300_ipi_shutdown(SMP_BOOT_IRQ);
->  
->  	/* Set up the non-maskable call function IPI */
-> -	flags = arch_local_cli_save();
-> +	flags = arch_local_save_flags();
->  	GxICR(CALL_FUNCTION_NMI_IPI) = GxICR_NMI | GxICR_ENABLE | GxICR_DETECT;
->  	tmp16 = GxICR(CALL_FUNCTION_NMI_IPI);
->  	arch_local_irq_restore(flags);
-> @@ -655,20 +655,25 @@ void smp_prepare_cpu_init(void)
->   */
->  int __init start_secondary(void *unused)
->  {
-> +	smpboot_start_secondary(unused);
-> +	return 0;
-> +}
-> +
-> +void __cpuinit __cpu_pre_starting(void *unused)
-> +{
->  	smp_cpu_init();
->  	smp_callin();
->  	while (!cpumask_test_cpu(smp_processor_id(), &smp_commenced_mask))
->  		cpu_relax();
->  
->  	local_flush_tlb();
-> -	preempt_disable();
-> -	smp_online();
-> +}
->  
-> +void __cpuinit __cpu_post_online(void *unused)
-> +{
->  #ifdef CONFIG_GENERIC_CLOCKEVENTS
->  	init_clockevents();
->  #endif
-> -	cpu_idle();
-> -	return 0;
 >  }
 >  
->  /**
-> @@ -865,21 +870,6 @@ static void __init smp_callin(void)
->  	cpumask_set_cpu(cpu, &cpu_callin_map);
->  }
->  
-> -/**
-> - * smp_online - Set cpu_online_mask
-> - */
-> -static void __init smp_online(void)
-> -{
-> -	int cpu;
-> -
-> -	cpu = smp_processor_id();
-> -
-> -	notify_cpu_starting(cpu);
-> -
-> -	set_cpu_online(cpu, true);
-> -
-> -	local_irq_enable();
-> -}
->  
->  /**
->   * smp_cpus_done -
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+>  /* Stop execution on this CPU.*/
