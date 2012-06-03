@@ -1,86 +1,80 @@
-From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: Re: [PATCH 23/27] cris, smpboot: Use generic SMP booting
- infrastructure
-Date: Sun, 3 Jun 2012 16:41:46 +0800
-Message-ID: <20120603084145.GC16829@zhy>
-References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
- <20120601091534.31979.34403.stgit@srivatsabhat.in.ibm.com>
-Reply-To: Yong Zhang <yong.zhang0@gmail.com>
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: Re: [PATCH 10/27] mips, smpboot: Use generic SMP booting infrastructure
+Date: Sun, 03 Jun 2012 17:18:16 +0530
+Message-ID: <4FCB4F00.8080202@linux.vnet.ibm.com>
+References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com> <20120601091226.31979.62223.stgit@srivatsabhat.in.ibm.com> <20120603082507.GA16829@zhy>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20120601091534.31979.34403.stgit@srivatsabhat.in.ibm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: tglx@linutronix.de, peterz@infradead.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, nikunj@linux.vnet.ibm.com, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Eric Dumazet <eric.dumazet@gmail.com>, Mike Frysinger <vapier@gentoo.org>, linux-cris-kernel@axis.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e28smtp05.in.ibm.com ([122.248.162.5]:38392 "EHLO
+	e28smtp05.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753598Ab2FCLtL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 Jun 2012 07:49:11 -0400
+Received: from /spool/local
+	by e28smtp05.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Sun, 3 Jun 2012 17:19:09 +0530
+In-Reply-To: <20120603082507.GA16829@zhy>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Yong Zhang <yong.zhang0@gmail.com>
+Cc: tglx@linutronix.de, peterz@infradead.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, nikunj@linux.vnet.ibm.com, Ralf Baechle <ralf@linux-mips.org>, Eric Dumazet <eric.dumazet@gmail.com>, Mike Frysinger <vapier@gentoo.org>, David Howells <dhowells@redhat.com>, Arun Sharma <asharma@fb.com>, linux-mips@linux-mips.org
 
-On Fri, Jun 01, 2012 at 02:45:40PM +0530, Srivatsa S. Bhat wrote:
-> Convert cris to use the generic framework to boot secondary CPUs.
+On 06/03/2012 01:55 PM, Yong Zhang wrote:
+
+> On Fri, Jun 01, 2012 at 02:42:32PM +0530, Srivatsa S. Bhat wrote:
+>> Convert mips to use the generic framework to boot secondary CPUs.
+>>
+>> Notes:
+>> 1. The boot processor was setting the secondary cpu in cpu_online_mask!
+>> Instead, leave it up to the secondary cpu (... and it will be done by the
+>> generic code now).
+>>
+>> 2. Make the boot cpu wait for the secondary cpu to be set in cpu_online_mask
+>> before returning.
 > 
-> Cc: Mikael Starvik <starvik@axis.com>
-> Cc: Jesper Nilsson <jesper.nilsson@axis.com>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Andrew Morton <akpm@linux-foundation.org>
-> Cc: Eric Dumazet <eric.dumazet@gmail.com>
-> Cc: Mike Frysinger <vapier@gentoo.org>
-> Cc: linux-cris-kernel@axis.com
-> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
-> ---
+> We don't need to wait for both cpu_callin_map (The code above yours)
+> any more.
+
+
+Yes, I noticed that while writing the patch. But then, I thought of cleaning
+up the hundreds of callin/callout/commenced maps in various architectures and
+bringing them out into core code in a later series, and clean this up at that time..
+I didn't want to do too many invasive changes all at one-shot.
+
+But I guess for this particular case of mips, I can get rid of the wait for
+cpu_callin_map in this patchset itself. I'll update this patch with that change.
+
+Thanks!
+
 > 
->  arch/cris/arch-v32/kernel/smp.c |   14 ++++++--------
->  1 files changed, 6 insertions(+), 8 deletions(-)
+>>
+>> 3. Don't enable interrupts in cmp_smp_finish() and vsmp_smp_finish().
+>> Do it much later, in generic code.
 > 
-> diff --git a/arch/cris/arch-v32/kernel/smp.c b/arch/cris/arch-v32/kernel/smp.c
-> index ebe2cb3..357114a 100644
-> --- a/arch/cris/arch-v32/kernel/smp.c
-> +++ b/arch/cris/arch-v32/kernel/smp.c
-> @@ -17,6 +17,7 @@
->  #include <linux/cpumask.h>
->  #include <linux/interrupt.h>
->  #include <linux/module.h>
-> +#include <linux/smpboot.h>
->  
->  #define IPI_SCHEDULE 1
->  #define IPI_CALL 2
-> @@ -145,8 +146,11 @@ smp_boot_one_cpu(int cpuid, struct task_struct idle)
->   * specific stuff such as the local timer and the MMU. */
->  void __init smp_callin(void)
->  {
-> -	extern void cpu_idle(void);
-> +	smpboot_start_secondary(NULL);
-> +}
->  
-> +void __cpuinit __cpu_pre_starting(void *unused)
-> +{
->  	int cpu = cpu_now_booting;
->  	reg_intr_vect_rw_mask vect_mask = {0};
->  
-> @@ -161,16 +165,10 @@ void __init smp_callin(void)
->  	/* Setup local timer. */
->  	cris_timer_init();
->  
-> -	/* Enable IRQ and idle */
-> +	/* Enable IRQ */
+> Hmmm... the bad thing is that some board enable irq more early than
+> ->smp_finish(), I have sent patches for that (by moving irq enable
+> to smp_finish() and delaying smp_finish()).
+> Please check patch#0001~patch#0004 in
+> http://marc.info/?l=linux-mips&m=133758022710973&w=2
+> 
+>>
+>> 4. In synchronise_count_slave(), use local_save_flags() instead of
+>> local_irq_save() because irqs are still disabled.
+> 
+> We can just remove local_irq_save()/local_irq_restore() like:
+> http://marc.info/?l=linux-mips&m=133758046211043&w=2
+> 
 
-I don't know cris; is the comments right?
 
->  	REG_WR(intr_vect, irq_regs[cpu], rw_mask, vect_mask);
->  	crisv32_unmask_irq(IPI_INTR_VECT);
->  	crisv32_unmask_irq(TIMER0_INTR_VECT);
-> -	preempt_disable();
-> -	notify_cpu_starting(cpu);
-> -	local_irq_enable();
-> -
-> -	set_cpu_online(cpu, true);
-> -	cpu_idle();
+So what is the status of those patches? Has anyone picked them up?
 
-Before your patch, the comments seems end here.
+I could rebase this patch on top of yours, or better yet, if your
+patches haven't been picked up yet, I could include them in this
+patchset itself to avoid too many dependencies on external patches.
 
-Thanks,
-Yong
+What do you say?
 
->  }
->  
->  /* Stop execution on this CPU.*/
+Regards,
+Srivatsa S. Bhat
