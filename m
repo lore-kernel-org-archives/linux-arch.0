@@ -1,51 +1,132 @@
-From: Yong Zhang <yong.zhang0@gmail.com>
-Subject: Re: [PATCH 10/27] mips, smpboot: Use generic SMP booting
- infrastructure
-Date: Mon, 4 Jun 2012 10:17:17 +0800
-Message-ID: <20120604021717.GA26319@zhy>
-References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
- <20120601091226.31979.62223.stgit@srivatsabhat.in.ibm.com>
- <20120603082507.GA16829@zhy>
- <4FCB4F00.8080202@linux.vnet.ibm.com>
-Reply-To: Yong Zhang <yong.zhang0@gmail.com>
+From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Subject: Re: [PATCH] sparc32: refactor smp boot
+Date: Mon, 04 Jun 2012 12:18:12 +0530
+Message-ID: <4FCC5A2C.1030004@linux.vnet.ibm.com>
+References: <20120601.135612.699120609738854050.davem@davemloft.net> <20120601185448.GA19148@merkur.ravnborg.org> <4FC94693.5050707@linux.vnet.ibm.com> <20120602065249.GA19558@merkur.ravnborg.org> <20120602074424.GA19690@merkur.ravnborg.org> <4FC9C871.60902@linux.vnet.ibm.com> <20120602151348.GA17409@merkur.ravnborg.org> <4FCA382B.6050601@linux.vnet.ibm.com> <20120602162340.GA27530@merkur.ravnborg.org> <4FCA40A5.3060409@linux.vnet.ibm.com> <20120603211752.GA7594@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f44.google.com ([74.125.82.44]:40000 "EHLO
-	mail-wg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755009Ab2FDCRt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 3 Jun 2012 22:17:49 -0400
-Content-Disposition: inline
-In-Reply-To: <4FCB4F00.8080202@linux.vnet.ibm.com>
+Received: from e28smtp01.in.ibm.com ([122.248.162.1]:49045 "EHLO
+	e28smtp01.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753618Ab2FDGtW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jun 2012 02:49:22 -0400
+Received: from /spool/local
+	by e28smtp01.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
+	Mon, 4 Jun 2012 12:19:19 +0530
+In-Reply-To: <20120603211752.GA7594@merkur.ravnborg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: tglx@linutronix.de, peterz@infradead.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, nikunj@linux.vnet.ibm.com, Ralf Baechle <ralf@linux-mips.org>, Eric Dumazet <eric.dumazet@gmail.com>, Mike Frysinger <vapier@gentoo.org>, David Howells <dhowells@redhat.com>, Arun Sharma <asharma@fb.com>, linux-mips@linux-mips.org
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: "David S. Miller" <davem@davemloft.net>, tglx@linutronix.de, peterz@infradead.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, nikunj@linux.vnet.ibm.com, vapier@gentoo.org, konrad@gaisler.com, tkhai@yandex.ru, sparclinux@vger.kernel.org
 
-On Sun, Jun 03, 2012 at 05:18:16PM +0530, Srivatsa S. Bhat wrote:
-> Yes, I noticed that while writing the patch. But then, I thought of cleaning
-> up the hundreds of callin/callout/commenced maps in various architectures and
-> bringing them out into core code in a later series, and clean this up at that time..
-> I didn't want to do too many invasive changes all at one-shot.
+On 06/04/2012 02:47 AM, Sam Ravnborg wrote:
 
-OK.
-
-> But I guess for this particular case of mips, I can get rid of the wait for
-> cpu_callin_map in this patchset itself. I'll update this patch with that change.
-
-:-)
-
-> So what is the status of those patches? Has anyone picked them up?
+> From 531d9c538fc60c15363890768ea416897853d6af Mon Sep 17 00:00:00 2001
+> From: Sam Ravnborg <sam@ravnborg.org>
+> Date: Sun, 3 Jun 2012 23:08:18 +0200
+> Subject: [PATCH] sparc32: refactor smp boot
 > 
-> I could rebase this patch on top of yours, or better yet, if your
-> patches haven't been picked up yet, I could include them in this
-> patchset itself to avoid too many dependencies on external patches.
+> Introduce a common smp_callin() function to call
+> from trampoline_32.S.
+> Add platform specific functions to handle the
+> platform details.
 > 
-> What do you say?
+> This is in preparation for a patch that will
+> unify the smp boot stuff for all architectures.
+> sparc32 was significantly different to warrant
+> this patch in preparation.
+> 
+> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
+> ---
+> 
+> Hi Srivatsa.
+> 
+> This should address all your comemnts (thanks!).
+> I assume you will include this patch in your serie.
+> 
 
-Ralf has pushed it to http://git.linux-mips.org/?p=ralf/linux.git;a=summary
 
-I guess you can see it soon.
+Of course, thanks for your work!
 
-Thanks,
-Yong
+As soon as the Xen problem gets sorted out (patch 5), I will send out
+a v2 including your patch and addressing all the comments received
+so far.
+
+> diff --git a/arch/sparc/kernel/sun4d_smp.c b/arch/sparc/kernel/sun4d_smp.c
+
+> index ddaea31..c9eb82f 100644
+> --- a/arch/sparc/kernel/sun4d_smp.c
+> +++ b/arch/sparc/kernel/sun4d_smp.c
+> @@ -50,10 +50,9 @@ static inline void show_leds(int cpuid)
+>  			      "i" (ASI_M_CTL));
+>  }
+> 
+> -void __cpuinit smp4d_callin(void)
+> +void __cpuinit sun4d_cpu_pre_starting(void *arg)
+>  {
+>  	int cpuid = hard_smp_processor_id();
+> -	unsigned long flags;
+> 
+>  	/* Show we are alive */
+>  	cpu_leds[cpuid] = 0x6;
+> @@ -61,26 +60,20 @@ void __cpuinit smp4d_callin(void)
+> 
+>  	/* Enable level15 interrupt, disable level14 interrupt for now */
+>  	cc_set_imsk((cc_get_imsk() & ~0x8000) | 0x4000);
+> +}
+> 
+> -	local_ops->cache_all();
+> -	local_ops->tlb_all();
+> +void __cpuinit sun4d_cpu_pre_online(void *arg)
+> +{
+> +	unsigned long flags;
+> +	int cpuid;
+> 
+> -	notify_cpu_starting(cpuid);
+> -	/*
+> -	 * Unblock the master CPU _only_ when the scheduler state
+> +	cpuid = hard_smp_processor_id();
+> +
+> +	/* Unblock the master CPU _only_ when the scheduler state
+>  	 * of all secondary CPUs will be up-to-date, so after
+>  	 * the SMP initialization the master will be just allowed
+>  	 * to call the scheduler code.
+>  	 */
+
+
+Looks like you forgot to update this comment.
+Its ok, I'll update your patch and include it in the series.
+
+Regards,
+Srivatsa S. Bhat
+
+> -	/* Get our local ticker going. */
+> -	register_percpu_ce(cpuid);
+> -
+> -	calibrate_delay();
+> -	smp_store_cpu_info(cpuid);
+> -	local_ops->cache_all();
+> -	local_ops->tlb_all();
+> -
+> -	/* Allow master to continue. */
+>  	sun4d_swap((unsigned long *)&cpu_callin_map[cpuid], 1);
+>  	local_ops->cache_all();
+>  	local_ops->tlb_all();
+> @@ -106,16 +99,12 @@ void __cpuinit smp4d_callin(void)
+>  	local_ops->cache_all();
+>  	local_ops->tlb_all();
+> 
+> -	local_irq_enable();	/* We don't allow PIL 14 yet */
+> -
+>  	while (!cpumask_test_cpu(cpuid, &smp_commenced_mask))
+>  		barrier();
+> 
+>  	spin_lock_irqsave(&sun4d_imsk_lock, flags);
+>  	cc_set_imsk(cc_get_imsk() & ~0x4000); /* Allow PIL 14 as well */
+>  	spin_unlock_irqrestore(&sun4d_imsk_lock, flags);
+> -	set_cpu_online(cpuid, true);
+> -
+>  }
+> 
