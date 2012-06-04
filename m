@@ -1,132 +1,66 @@
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: Re: [PATCH] sparc32: refactor smp boot
-Date: Mon, 04 Jun 2012 12:18:12 +0530
-Message-ID: <4FCC5A2C.1030004@linux.vnet.ibm.com>
-References: <20120601.135612.699120609738854050.davem@davemloft.net> <20120601185448.GA19148@merkur.ravnborg.org> <4FC94693.5050707@linux.vnet.ibm.com> <20120602065249.GA19558@merkur.ravnborg.org> <20120602074424.GA19690@merkur.ravnborg.org> <4FC9C871.60902@linux.vnet.ibm.com> <20120602151348.GA17409@merkur.ravnborg.org> <4FCA382B.6050601@linux.vnet.ibm.com> <20120602162340.GA27530@merkur.ravnborg.org> <4FCA40A5.3060409@linux.vnet.ibm.com> <20120603211752.GA7594@merkur.ravnborg.org>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [PATCH 01/27] smpboot: Provide a generic method to boot secondary
+ processors
+Date: Mon, 4 Jun 2012 12:32:50 +0200 (CEST)
+Message-ID: <alpine.LFD.2.02.1206041228330.3086@ionos>
+References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com> <20120601091008.31979.93586.stgit@srivatsabhat.in.ibm.com> <20120601165113.GA18870@merkur.ravnborg.org> <4FC9424E.9060009@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp01.in.ibm.com ([122.248.162.1]:49045 "EHLO
-	e28smtp01.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753618Ab2FDGtW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jun 2012 02:49:22 -0400
-Received: from /spool/local
-	by e28smtp01.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Mon, 4 Jun 2012 12:19:19 +0530
-In-Reply-To: <20120603211752.GA7594@merkur.ravnborg.org>
+Received: from www.linutronix.de ([62.245.132.108]:40644 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751846Ab2FDKdK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jun 2012 06:33:10 -0400
+In-Reply-To: <4FC9424E.9060009@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: "David S. Miller" <davem@davemloft.net>, tglx@linutronix.de, peterz@infradead.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, nikunj@linux.vnet.ibm.com, vapier@gentoo.org, konrad@gaisler.com, tkhai@yandex.ru, sparclinux@vger.kernel.org
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: Sam Ravnborg <sam@ravnborg.org>, peterz@infradead.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, nikunj@linux.vnet.ibm.com, Suresh Siddha <suresh.b.siddha@intel.com>, Venkatesh Pallipadi <venki@google.com>
 
-On 06/04/2012 02:47 AM, Sam Ravnborg wrote:
+On Sat, 2 Jun 2012, Srivatsa S. Bhat wrote:
 
-> From 531d9c538fc60c15363890768ea416897853d6af Mon Sep 17 00:00:00 2001
-> From: Sam Ravnborg <sam@ravnborg.org>
-> Date: Sun, 3 Jun 2012 23:08:18 +0200
-> Subject: [PATCH] sparc32: refactor smp boot
+> On 06/01/2012 10:21 PM, Sam Ravnborg wrote:
 > 
-> Introduce a common smp_callin() function to call
-> from trampoline_32.S.
-> Add platform specific functions to handle the
-> platform details.
-> 
-> This is in preparation for a patch that will
-> unify the smp boot stuff for all architectures.
-> sparc32 was significantly different to warrant
-> this patch in preparation.
-> 
-> Signed-off-by: Sam Ravnborg <sam@ravnborg.org>
-> ---
-> 
-> Hi Srivatsa.
-> 
-> This should address all your comemnts (thanks!).
-> I assume you will include this patch in your serie.
-> 
+> >> +/* Implement the following functions in your architecture, as appropriate. */
+> >> +
+> >> +/**
+> >> + * __cpu_pre_starting()
+> >> + *
+> >> + * Implement whatever you need to do before the CPU_STARTING notifiers are
+> >> + * invoked. Note that the CPU_STARTING callbacks run *on* the cpu that is
+> >> + * coming up. So that cpu better be prepared! IOW, implement all the early
+> >> + * boot/init code for the cpu here. And do NOT enable interrupts.
+> >> + */
+> >> +#ifndef __cpu_pre_starting
+> >> +void __weak __cpu_pre_starting(void *arg) {}
+> >> +#endif
 
+This wants to be a prototype w/o the __weak prefix and the #ifndef
+magic and the weak default implementation should be in kernel/smpboot.c
 
-Of course, thanks for your work!
+> > __What __is __the __purpose __of __all __these __underscaores __used
+> > __as __function __prefix? __It __does __not __help __readability.
+> 
+> > 
+> 
+> 
+> We had used "__" as the function prefix to emphasize that these functions are
+> implemented/overriden in the depths of architecture-specific code.
+> 
+> But now that you mention it, I see that we don't really have something like an
+> arch-independent variant without the "__" prefix. So adding the "__" prefix
+> might not be really necessary, since there is nothing to distinguish name-wise.
+> 
+> However, I do want to emphasize that this isn't generic code. So how about
+> an "arch_" prefix instead? Something like:
+> arch_cpu_pre_starting(), arch_cpu_pre_online() and arch_cpu_post_online()?
 
-As soon as the Xen problem gets sorted out (patch 5), I will send out
-a v2 including your patch and addressing all the comments received
-so far.
+Yes, please.
 
-> diff --git a/arch/sparc/kernel/sun4d_smp.c b/arch/sparc/kernel/sun4d_smp.c
+Otherwise, thanks for that work! From the first glance, it's not
+colliding much with the changes I have in the pipeline, but I will
+have a closer look.
 
-> index ddaea31..c9eb82f 100644
-> --- a/arch/sparc/kernel/sun4d_smp.c
-> +++ b/arch/sparc/kernel/sun4d_smp.c
-> @@ -50,10 +50,9 @@ static inline void show_leds(int cpuid)
->  			      "i" (ASI_M_CTL));
->  }
-> 
-> -void __cpuinit smp4d_callin(void)
-> +void __cpuinit sun4d_cpu_pre_starting(void *arg)
->  {
->  	int cpuid = hard_smp_processor_id();
-> -	unsigned long flags;
-> 
->  	/* Show we are alive */
->  	cpu_leds[cpuid] = 0x6;
-> @@ -61,26 +60,20 @@ void __cpuinit smp4d_callin(void)
-> 
->  	/* Enable level15 interrupt, disable level14 interrupt for now */
->  	cc_set_imsk((cc_get_imsk() & ~0x8000) | 0x4000);
-> +}
-> 
-> -	local_ops->cache_all();
-> -	local_ops->tlb_all();
-> +void __cpuinit sun4d_cpu_pre_online(void *arg)
-> +{
-> +	unsigned long flags;
-> +	int cpuid;
-> 
-> -	notify_cpu_starting(cpuid);
-> -	/*
-> -	 * Unblock the master CPU _only_ when the scheduler state
-> +	cpuid = hard_smp_processor_id();
-> +
-> +	/* Unblock the master CPU _only_ when the scheduler state
->  	 * of all secondary CPUs will be up-to-date, so after
->  	 * the SMP initialization the master will be just allowed
->  	 * to call the scheduler code.
->  	 */
+Thanks,
 
-
-Looks like you forgot to update this comment.
-Its ok, I'll update your patch and include it in the series.
-
-Regards,
-Srivatsa S. Bhat
-
-> -	/* Get our local ticker going. */
-> -	register_percpu_ce(cpuid);
-> -
-> -	calibrate_delay();
-> -	smp_store_cpu_info(cpuid);
-> -	local_ops->cache_all();
-> -	local_ops->tlb_all();
-> -
-> -	/* Allow master to continue. */
->  	sun4d_swap((unsigned long *)&cpu_callin_map[cpuid], 1);
->  	local_ops->cache_all();
->  	local_ops->tlb_all();
-> @@ -106,16 +99,12 @@ void __cpuinit smp4d_callin(void)
->  	local_ops->cache_all();
->  	local_ops->tlb_all();
-> 
-> -	local_irq_enable();	/* We don't allow PIL 14 yet */
-> -
->  	while (!cpumask_test_cpu(cpuid, &smp_commenced_mask))
->  		barrier();
-> 
->  	spin_lock_irqsave(&sun4d_imsk_lock, flags);
->  	cc_set_imsk(cc_get_imsk() & ~0x4000); /* Allow PIL 14 as well */
->  	spin_unlock_irqrestore(&sun4d_imsk_lock, flags);
-> -	set_cpu_online(cpuid, true);
-> -
->  }
-> 
+	tglx
