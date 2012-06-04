@@ -1,97 +1,43 @@
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+From: Thomas Gleixner <tglx@linutronix.de>
 Subject: Re: [PATCH 01/27] smpboot: Provide a generic method to boot secondary
  processors
-Date: Mon, 04 Jun 2012 18:37:39 +0530
-Message-ID: <4FCCB31B.6060302@linux.vnet.ibm.com>
+Date: Mon, 4 Jun 2012 15:18:56 +0200 (CEST)
+Message-ID: <alpine.LFD.2.02.1206041513000.3086@ionos>
 References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com> <20120601091008.31979.93586.stgit@srivatsabhat.in.ibm.com> <20120601165113.GA18870@merkur.ravnborg.org> <4FC9424E.9060009@linux.vnet.ibm.com> <alpine.LFD.2.02.1206041228330.3086@ionos>
+ <4FCCB31B.6060302@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp01.au.ibm.com ([202.81.31.143]:37377 "EHLO
-	e23smtp01.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753705Ab2FDNI5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jun 2012 09:08:57 -0400
-Received: from /spool/local
-	by e23smtp01.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Mon, 4 Jun 2012 12:59:45 +1000
-In-Reply-To: <alpine.LFD.2.02.1206041228330.3086@ionos>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <4FCCB31B.6060302@linux.vnet.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
 Cc: Sam Ravnborg <sam@ravnborg.org>, peterz@infradead.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, nikunj@linux.vnet.ibm.com, Suresh Siddha <suresh.b.siddha@intel.com>, Venkatesh Pallipadi <venki@google.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 06/04/2012 04:02 PM, Thomas Gleixner wrote:
-
-> On Sat, 2 Jun 2012, Srivatsa S. Bhat wrote:
+On Mon, 4 Jun 2012, Srivatsa S. Bhat wrote:
+> On 06/04/2012 04:02 PM, Thomas Gleixner wrote:
+> I can add the prototype w/o the __weak prefix and the #ifndef magic in
+> include/linux/smpboot.h (which I will, and include it in v2).
 > 
->> On 06/01/2012 10:21 PM, Sam Ravnborg wrote:
->>
->>>> +/* Implement the following functions in your architecture, as appropriate. */
->>>> +
->>>> +/**
->>>> + * __cpu_pre_starting()
->>>> + *
->>>> + * Implement whatever you need to do before the CPU_STARTING notifiers are
->>>> + * invoked. Note that the CPU_STARTING callbacks run *on* the cpu that is
->>>> + * coming up. So that cpu better be prepared! IOW, implement all the early
->>>> + * boot/init code for the cpu here. And do NOT enable interrupts.
->>>> + */
->>>> +#ifndef __cpu_pre_starting
->>>> +void __weak __cpu_pre_starting(void *arg) {}
->>>> +#endif
+> However, I can't get rid of the #ifndef magic in kernel/smpboot.c because
+> it will cause build failures on x86.
 > 
-> This wants to be a prototype w/o the __weak prefix and the #ifndef
-> magic and the weak default implementation should be in kernel/smpboot.c
-> 
+> I addressed this same issue in another email:
+> https://lkml.org/lkml/2012/6/3/33
 
+> In short, to avoid breaking build on x86.
+> We wanted to follow the x86 convention of having static inline functions in
+> arch/x86/include/asm/smp.h and use the smp_ops structure to route the calls
+> to x86 or xen as appropriate (see patch 4 in this series).
 
-I can add the prototype w/o the __weak prefix and the #ifndef magic in
-include/linux/smpboot.h (which I will, and include it in v2).
+Oh no. That's not really a good argument.
 
-However, I can't get rid of the #ifndef magic in kernel/smpboot.c because
-it will cause build failures on x86.
+There is no reason why this _must_ be an inline function on x86. It
+can be a proper function in arch/x86/kernel/smpboot.c as well.
 
-I addressed this same issue in another email:
-https://lkml.org/lkml/2012/6/3/33
+The alternative solution is to generalize the smp_ops approach and get
+rid of the weak implementations completely.
 
->>> __What __is __the __purpose __of __all __these __underscaores __used
->>> __as __function __prefix? __It __does __not __help __readability.
->>
->>>
->>
->>
->> We had used "__" as the function prefix to emphasize that these functions are
->> implemented/overriden in the depths of architecture-specific code.
->>
->> But now that you mention it, I see that we don't really have something like an
->> arch-independent variant without the "__" prefix. So adding the "__" prefix
->> might not be really necessary, since there is nothing to distinguish name-wise.
->>
->> However, I do want to emphasize that this isn't generic code. So how about
->> an "arch_" prefix instead? Something like:
->> arch_cpu_pre_starting(), arch_cpu_pre_online() and arch_cpu_post_online()?
-> 
-> Yes, please.
+Thanks,
 
-
-Sure, queued up for v2. (Atm, figuring out how to deal with xen (patch 5). Once
-that gets done, will post a v2.)
-
-> 
-> Otherwise, thanks for that work!
-
-
-We are glad that it helps :-)
-
-> From the first glance, it's not
-> colliding much with the changes I have in the pipeline, but I will
-> have a closer look.
-> 
-
-
-Great! Thanks a lot for your time, Thomas!
- 
-Regards,
-Srivatsa S. Bhat
+	tglx
