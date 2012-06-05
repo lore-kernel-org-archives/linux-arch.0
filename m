@@ -1,48 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:41364 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1760416Ab2FDNTJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 4 Jun 2012 09:19:09 -0400
-Date: Mon, 4 Jun 2012 15:18:56 +0200 (CEST)
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [PATCH 01/27] smpboot: Provide a generic method to boot secondary
- processors
-In-Reply-To: <4FCCB31B.6060302@linux.vnet.ibm.com>
-Message-ID: <alpine.LFD.2.02.1206041513000.3086@ionos>
-References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com> <20120601091008.31979.93586.stgit@srivatsabhat.in.ibm.com> <20120601165113.GA18870@merkur.ravnborg.org> <4FC9424E.9060009@linux.vnet.ibm.com> <alpine.LFD.2.02.1206041228330.3086@ionos>
- <4FCCB31B.6060302@linux.vnet.ibm.com>
+Received: from rcsinet15.oracle.com ([148.87.113.117]:17290 "EHLO
+	rcsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753367Ab2FEQ7E (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jun 2012 12:59:04 -0400
+Date: Tue, 5 Jun 2012 12:49:57 -0400
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [Xen-devel] [PATCH 05/27] xen, cpu hotplug: Don't call
+ cpu_bringup() in xen_play_dead()
+Message-ID: <20120605164957.GA1997@phenom.dumpdata.com>
+References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
+ <20120601091124.31979.91984.stgit@srivatsabhat.in.ibm.com>
+ <4FC8D8E30200007800087D2B@nat28.tlf.novell.com>
+ <4FC8DC19.4000007@linux.vnet.ibm.com>
+ <4FC8FD9C0200007800087DF5@nat28.tlf.novell.com>
+ <4FCA5608.2010404@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <4FCA5608.2010404@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: Sam Ravnborg <sam@ravnborg.org>, peterz@infradead.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, yong.zhang0@gmail.com, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, nikunj@linux.vnet.ibm.com, Suresh Siddha <suresh.b.siddha@intel.com>, Venkatesh Pallipadi <venki@google.com>
-Message-ID: <20120604131856.uOQBcwziLm6ZRphPV5NEl_uzhC-VN-QOM3CIDCzpeIo@z>
+Cc: Jan Beulich <JBeulich@suse.com>, Russell King <linux@arm.linux.org.uk>, yong.zhang0@gmail.com, Jeremy Fitzhardinge <jeremy@goop.org>, peterz@infradead.org, mingo@kernel.org, x86@kernel.org, Thomas Gleixner <tglx@linutronix.de>, akpm@linux-foundation.org, nikunj@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, vatsa@linux.vnet.ibm.com, virtualization@lists.linux-foundation.org, xen-devel@lists.xensource.com, Ingo Molnar <mingo@redhat.com>, rusty@rustcorp.com.au, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Keir Fraser <keir@xen.org>, "H. Peter Anvin" <hpa@zytor.com>
+Message-ID: <20120605164957.L0_21T1HZ-gXt-GbT4vvrPNaXTWkBVsum9akgZe9L1o@z>
 
-On Mon, 4 Jun 2012, Srivatsa S. Bhat wrote:
-> On 06/04/2012 04:02 PM, Thomas Gleixner wrote:
-> I can add the prototype w/o the __weak prefix and the #ifndef magic in
-> include/linux/smpboot.h (which I will, and include it in v2).
+On Sat, Jun 02, 2012 at 11:36:00PM +0530, Srivatsa S. Bhat wrote:
+> On 06/01/2012 09:06 PM, Jan Beulich wrote:
 > 
-> However, I can't get rid of the #ifndef magic in kernel/smpboot.c because
-> it will cause build failures on x86.
+> >>>> On 01.06.12 at 17:13, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+> > wrote:
+> >> On 06/01/2012 06:29 PM, Jan Beulich wrote:
+> >>
+> >>>>>> On 01.06.12 at 11:11, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+> >>> wrote:
+> >>>> xen_play_dead calls cpu_bringup() which looks weird, because xen_play_dead()
+> >>>> is invoked in the cpu down path, whereas cpu_bringup() (as the name 
+> >>>> suggests) is useful in the cpu bringup path.
+> >>>
+> >>> This might not be correct - the code as it is without this change is
+> >>> safe even when the vCPU gets onlined back later by an external
+> >>> entity (e.g. the Xen tool stack), and it would in that case resume
+> >>> at the return point of the VCPUOP_down hypercall. That might
+> >>> be a heritage from the original XenoLinux tree though, and be
+> >>> meaningless in pv-ops context - Jeremy, Konrad?
+> >>>
+> >>> Possibly it was bogus/unused even in that original tree - Keir?
+> >>>
+> >>
+> >>
+> >> Thanks for your comments Jan!
+> >>
+> >> In case this change is wrong, the other method I had in mind was to call
+> >> cpu_bringup_and_idle() in xen_play_dead(). (Even ARM does something similar,
+> >> in the sense that it runs the cpu bringup code including cpu_idle(), in the
+> >> cpu offline path, namely the cpu_die() function). Would that approach work
+> >> for xen as well? If yes, then we wouldn't have any issues to convert xen to
+> >> generic code.
+> > 
+> > No, that wouldn't work either afaict - the function is expected
+> > to return.
+> > 
 > 
-> I addressed this same issue in another email:
-> https://lkml.org/lkml/2012/6/3/33
+> 
+> Ok.. So, I would love to hear a confirmation about whether this patch (which
+> removes cpu_bringup() in xen_play_dead()) will break things or it is good as is.
 
-> In short, to avoid breaking build on x86.
-> We wanted to follow the x86 convention of having static inline functions in
-> arch/x86/include/asm/smp.h and use the smp_ops structure to route the calls
-> to x86 or xen as appropriate (see patch 4 in this series).
+I think it will break - are these patches available on some git tree to test them out?
 
-Oh no. That's not really a good argument.
+> 
+> If its not correct, then we can probably make __cpu_post_online() return an int,
+> with the meaning:
+> 
+> 0 => success, go ahead and call cpu_idle()
+> non-zero => stop here, thanks for your services so far.. now leave the rest to me.
+> 
+> So all other archs will return 0, Xen will return non-zero, and it will handle
+> when to call cpu_idle() and when not to do so.
 
-There is no reason why this _must_ be an inline function on x86. It
-can be a proper function in arch/x86/kernel/smpboot.c as well.
+The call-chain (this is taken from 41bd956de3dfdc3a43708fe2e0c8096c69064a1e):
 
-The alternative solution is to generalize the smp_ops approach and get
-rid of the weak implementations completely.
+    cpu_bringup_and_idle:
+     \- cpu_bringup
+      |   \-[preempt_disable]
+      |
+      |- cpu_idle
+           \- play_dead [assuming the user offlined the VCPU]
+           |     \
+           |     +- (xen_play_dead)
+           |          \- HYPERVISOR_VCPU_off [so VCPU is dead, once user
+           |          |                       onlines it starts from here]
+           |          \- cpu_bringup [preempt_disable]
+           |
+           +- preempt_enable_no_reschedule()
+           +- schedule()
+           \- preempt_enable()
 
-Thanks,
+Which I think is a bit different from your use-case?
 
-	tglx
+> 
+> Might sound a bit ugly, but I don't see much other option. Suggestions are
+> appreciated!
+> 
+> Regards,
+> Srivatsa S. Bhat
