@@ -1,70 +1,116 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp06.in.ibm.com ([122.248.162.6]:41932 "EHLO
-	e28smtp06.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754113Ab2FERtY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jun 2012 13:49:24 -0400
-Received: from /spool/local
-	by e28smtp06.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 5 Jun 2012 23:19:21 +0530
-Message-ID: <4FCE466A.3050202@linux.vnet.ibm.com>
-Date: Tue, 05 Jun 2012 23:18:26 +0530
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:41857 "EHLO
+	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755885Ab2FESNI convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 5 Jun 2012 14:13:08 -0400
+Received: by lahd3 with SMTP id d3so4012356lah.19
+        for <linux-arch@vger.kernel.org>; Tue, 05 Jun 2012 11:13:05 -0700 (PDT)
 MIME-Version: 1.0
-Subject: Re: [Xen-devel] [PATCH 05/27] xen, cpu hotplug: Don't call cpu_bringup()
- in xen_play_dead()
-References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com> <20120601091124.31979.91984.stgit@srivatsabhat.in.ibm.com> <4FC8D8E30200007800087D2B@nat28.tlf.novell.com> <4FC8DC19.4000007@linux.vnet.ibm.com> <4FC8FD9C0200007800087DF5@nat28.tlf.novell.com> <4FCA5608.2010404@linux.vnet.ibm.com> <alpine.LFD.2.02.1206051921320.3086@ionos>
-In-Reply-To: <alpine.LFD.2.02.1206051921320.3086@ionos>
+In-Reply-To: <CAGXu5jLc6UW85TxA7ccA4e1u78hkTbSrWeBJE+oTXXQECPvtjg@mail.gmail.com>
+References: <4FCE3C18.4080302@amacapital.net>
+	<CAGXu5jLc6UW85TxA7ccA4e1u78hkTbSrWeBJE+oTXXQECPvtjg@mail.gmail.com>
+Date: Tue, 5 Jun 2012 13:13:05 -0500
+Message-ID: <CABqD9hYXKhX1=064DpbaBTAVd8-g43jKAPvtsbxEUTbgC1MPxg@mail.gmail.com>
+Subject: Re: Docs for PR_SET_NO_NEW_PRIVS
+From: Will Drewry <wad@chromium.org>
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: Jan Beulich <JBeulich@suse.com>, Russell King <linux@arm.linux.org.uk>, yong.zhang0@gmail.com, Jeremy Fitzhardinge <jeremy@goop.org>, peterz@infradead.org, mingo@kernel.org, x86@kernel.org, akpm@linux-foundation.org, nikunj@linux.vnet.ibm.com, paulmck@linux.vnet.ibm.com, vatsa@linux.vnet.ibm.com, virtualization@lists.linux-foundation.org, xen-devel@lists.xensource.com, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Ingo Molnar <mingo@redhat.com>, rusty@rustcorp.com.au, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Keir Fraser <keir@xen.org>, "H. Peter Anvin" <hpa@zytor.com>
-Message-ID: <20120605174826.LakIjJ1xL7ffMn381dm2X23uGoMWg0mWK4BnHagS7Xk@z>
+To: Kees Cook <keescook@chromium.org>
+Cc: Andy Lutomirski <luto@amacapital.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, hpa@zytor.com, mingo@redhat.com, peterz@infradead.org, tglx@linutronix.de, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, jmorris@namei.org, linux-man@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>
+Message-ID: <20120605181305.LSv4-cJzfqHYwhiRCPPSNE3xtmwO-aMAH1ayfdz2Bvw@z>
 
-On 06/05/2012 11:10 PM, Thomas Gleixner wrote:
+On Tue, Jun 5, 2012 at 12:33 PM, Kees Cook <keescook@chromium.org> wrote:
+> Hi,
+>
+> As-is, this could probably live in
+> Documentation/security/no-new-privs.txt (maybe with some examples
+> added).
 
-> On Sat, 2 Jun 2012, Srivatsa S. Bhat wrote:
->> Ok.. So, I would love to hear a confirmation about whether this patch (which
->> removes cpu_bringup() in xen_play_dead()) will break things or it is good as is.
+Or Documentation/prctl/no-new-privs.txt
+
+Just a decision between what it does and how you get to it, but I'd
+think either would make sense!
+
+> As for a manpage section, I think Michael Kerrisk would happily add a
+> section for PR_[SG]ET_NO_NEW_PRIVS to prctl if this could be
+> summarized into a paragraph or two.
+>
+> (And this reminds me I should send an update for the seccomp section
+> in the prctl manpage too.)
+
+Faster on the draw than me - thanks!
+
+>
+> On Tue, Jun 5, 2012 at 10:04 AM, Andy Lutomirski <luto@amacapital.net> wrote:
+>> Hi all-
 >>
->> If its not correct, then we can probably make __cpu_post_online() return an int,
->> with the meaning:
+>> As promised (although belatedly), I wrote up some proposed documentation
+>> for the no_new_privs feature.  What should I do with it?  I don't speak
+>> groff/troff/whatever man pages are written in.
 >>
->> 0 => success, go ahead and call cpu_idle()
->> non-zero => stop here, thanks for your services so far.. now leave the rest to me.
+>> I would be happy to license this text appropriately for whatever tree
+>> it might end up in.  In the mean time, it's GPLv2+.
 >>
->> So all other archs will return 0, Xen will return non-zero, and it will handle
->> when to call cpu_idle() and when not to do so.
+>> --- cut here ---
 >>
->> Might sound a bit ugly, but I don't see much other option. Suggestions are
->> appreciated!
-> 
-> Yes, it's butt ugly. 
-> 
-> You are tripping over the main misconception of the current hotplug
-> code: It's asymetric.
-> 
-> So people added warts and workarounds like the xen one. What you are
-> proposing is another wart and workaround.
-> 
-> The real way to avoid it, is to have the symetric state machine in
-> place first and then convert everything to that instead of introducing
-> an intermediate state which resembles the existing state.
-> 
-> One of the main things we need to do to make it symetric is to kill
-> the play_dead() thing in the idle loop and make idle a function which
-> returns on cpu_should_die().
-> 
-> Give me a day or two and I get you a working version of that. (Up is
-> functional, just down refuses to play along)
-> 
-
-
-Oh great! So, then I'll wait for your patches and then adapt this patchset
-to your model then. Let me know if I can help out with something..
-
-Regards,
-Srivatsa S. Bhat
-
+>> The execve system call can grant a newly-started program privileges
+>> that its parent did not have.  The most obvious examples are
+>> setuid/setgid programs and file capabilities.  To prevent the parent
+>> program from gaining these privileges as well, the kernel and user
+>> code must be careful to prevent the parent from doing anything that
+>> could subvert the child.  For example:
+>>
+>>  - The dynamic loader handles LD_* environment variables differently
+>> if a program is setuid.
+>>  - chroot is disallowed to unprivileged processes, since it would
+>> allow /etc/passwd to be replaced from the point of view of a process
+>> that inherited chroot.
+>>  - The exec code has special handling for ptrace.
+>>
+>> These are all ad-hoc fixes.  The no_new_privs bit (since Linux 3.5) is
+>> a new, generic mechanism to make it safe for a process to modify its
+>> execution environment in a manner that persists across execve.  Any
+>> task can set no_new_privs.  Once the bit is set, it is inherited
+>> across fork, clone, and execve and cannot be unset.  With no_new_privs
+>> set, execve promises not to grant the privilege to do anything that
+>> could not have been done without the execve call.  For example, the
+>> setuid and setgid bits will no longer change the uid or gid; file
+>> capabilities will not add to the permitted set, and LSMs will not
+>> relax constraints after execve.
+>>
+>> Note that no_new_privs does not prevent privilege changes that do not
+>> involve execve.  An appropriately privileged task can still call
+>> setuid(2) and receive SCM_RIGHTS datagrams.
+>>
+>> There are two main use cases for no_new_privs so far:
+>>
+>>  - Filters installed for the seccomp mode 2 sandbox persist across
+>> execve and can change the behavior of newly-executed programs.
+>> Unprivileged users are therefore only allowed to install such filters
+>> if no_new_privs is set.
+>>
+>>  - By itself, no_new_privs can be used to reduce the attack surface
+>> available to an unprivileged user.  If everything running with a given
+>> uid has no_new_privs set, then that uid will be unable to escalate its
+>> privileges by directly attacking setuid, setgid, and fcap-using
+>> binaries; it will need to compromise something without the
+>> no_new_privs bit set first.
+>>
+>> In the future, other potentially dangerous kernel features could
+>> become available to unprivileged tasks if no_new_privs is set.  In
+>> principle, several options to unshare(2) and clone(2) would be safe
+>> when no_new_privs is set, and no_new_privs + chroot is considerable
+>> less dangerous than chroot by itself.
+>>
+>> --- cut here ---
+>>
+>> --Andy
+>
+>
+>
+> --
+> Kees Cook
+> Chrome OS Security
