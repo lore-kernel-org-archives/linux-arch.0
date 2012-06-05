@@ -1,76 +1,109 @@
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: Re: [PATCH 01/27] smpboot: Provide a generic method to boot secondary
- processors
-Date: Tue, 05 Jun 2012 11:37:45 +0530
-Message-ID: <4FCDA231.60102@linux.vnet.ibm.com>
-References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com> <20120601091008.31979.93586.stgit@srivatsabhat.in.ibm.com> <20120601165113.GA18870@merkur.ravnborg.org> <4FC9424E.9060009@linux.vnet.ibm.com> <alpine.LFD.2.02.1206041228330.3086@ionos> <4FCCB31B.6060302@linux.vnet.ibm.com> <20120605051144.GA4064@zhy>
+From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Subject: Re: [Xen-devel] [PATCH 05/27] xen, cpu hotplug: Don't call
+	cpu_bringup() in xen_play_dead()
+Date: Tue, 5 Jun 2012 12:49:57 -0400
+Message-ID: <20120605164957.GA1997@phenom.dumpdata.com>
+References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
+	<20120601091124.31979.91984.stgit@srivatsabhat.in.ibm.com>
+	<4FC8D8E30200007800087D2B@nat28.tlf.novell.com>
+	<4FC8DC19.4000007@linux.vnet.ibm.com>
+	<4FC8FD9C0200007800087DF5@nat28.tlf.novell.com>
+	<4FCA5608.2010404@linux.vnet.ibm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp05.au.ibm.com ([202.81.31.147]:58271 "EHLO
-	e23smtp05.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752758Ab2FEGxC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jun 2012 02:53:02 -0400
-Received: from /spool/local
-	by e23smtp05.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 5 Jun 2012 06:03:39 +1000
-In-Reply-To: <20120605051144.GA4064@zhy>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Yong Zhang <yong.zhang0@gmail.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Sam Ravnborg <sam@ravnborg.org>, peterz@infradead.org, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, vatsa@linux.vnet.ibm.com, rjw@sisk.pl, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, nikunj@linux.vnet.ibm.com, Suresh Siddha <suresh.b.siddha@intel.com>, Venkatesh Pallipadi <venki@google.com>
+Return-path: <virtualization-bounces@lists.linux-foundation.org>
+Content-Disposition: inline
+In-Reply-To: <4FCA5608.2010404@linux.vnet.ibm.com>
+List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
+List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
+List-Post: <mailto:virtualization@lists.linux-foundation.org>
+List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
+List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
+	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
+Sender: virtualization-bounces@lists.linux-foundation.org
+Errors-To: virtualization-bounces@lists.linux-foundation.org
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: linux-arch@vger.kernel.org, Jeremy Fitzhardinge <jeremy@goop.org>, xen-devel@lists.xensource.com, Russell King <linux@arm.linux.org.uk>, akpm@linux-foundation.org, nikunj@linux.vnet.ibm.com, peterz@infradead.org, linux-kernel@vger.kernel.org, x86@kernel.org, vatsa@linux.vnet.ibm.com, virtualization@lists.linux-foundation.org, rjw@sisk.pl, yong.zhang0@gmail.com, Ingo Molnar <mingo@redhat.com>, Jan Beulich <JBeulich@suse.com>, "H. Peter Anvin" <hpa@zytor.com>, Keir Fraser <keir@xen.org>, Thomas Gleixner <tglx@linutronix.de>, paulmck@linux.vnet.ibm.com, mingo@kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On 06/05/2012 10:41 AM, Yong Zhang wrote:
-
-> On Mon, Jun 04, 2012 at 06:37:39PM +0530, Srivatsa S. Bhat wrote:
->> On 06/04/2012 04:02 PM, Thomas Gleixner wrote:
->>>> However, I do want to emphasize that this isn't generic code. So how about
->>>> an "arch_" prefix instead? Something like:
->>>> arch_cpu_pre_starting(), arch_cpu_pre_online() and arch_cpu_post_online()?
->>>
->>> Yes, please.
->>
->>
->> Sure, queued up for v2. (Atm, figuring out how to deal with xen (patch 5). Once
->> that gets done, will post a v2.)
+On Sat, Jun 02, 2012 at 11:36:00PM +0530, Srivatsa S. Bhat wrote:
+> On 06/01/2012 09:06 PM, Jan Beulich wrote:
 > 
-> Since there is dependency on ipi_call_lock cleanup patches
-> http://marc.info/?l=linux-kernel&m=133827595625509&w=2
+> >>>> On 01.06.12 at 17:13, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+> > wrote:
+> >> On 06/01/2012 06:29 PM, Jan Beulich wrote:
+> >>
+> >>>>>> On 01.06.12 at 11:11, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+> >>> wrote:
+> >>>> xen_play_dead calls cpu_bringup() which looks weird, because xen_play_dead()
+> >>>> is invoked in the cpu down path, whereas cpu_bringup() (as the name 
+> >>>> suggests) is useful in the cpu bringup path.
+> >>>
+> >>> This might not be correct - the code as it is without this change is
+> >>> safe even when the vCPU gets onlined back later by an external
+> >>> entity (e.g. the Xen tool stack), and it would in that case resume
+> >>> at the return point of the VCPUOP_down hypercall. That might
+> >>> be a heritage from the original XenoLinux tree though, and be
+> >>> meaningless in pv-ops context - Jeremy, Konrad?
+> >>>
+> >>> Possibly it was bogus/unused even in that original tree - Keir?
+> >>>
+> >>
+> >>
+> >> Thanks for your comments Jan!
+> >>
+> >> In case this change is wrong, the other method I had in mind was to call
+> >> cpu_bringup_and_idle() in xen_play_dead(). (Even ARM does something similar,
+> >> in the sense that it runs the cpu bringup code including cpu_idle(), in the
+> >> cpu offline path, namely the cpu_die() function). Would that approach work
+> >> for xen as well? If yes, then we wouldn't have any issues to convert xen to
+> >> generic code.
+> > 
+> > No, that wouldn't work either afaict - the function is expected
+> > to return.
+> > 
 > 
-> So please feel free to include the patches into yours.
->
-
-
-Sure, if that would help Thomas pick them up easily.
-
- 
-> And It will be better that Thomas could pick them up :)
 > 
+> Ok.. So, I would love to hear a confirmation about whether this patch (which
+> removes cpu_bringup() in xen_play_dead()) will break things or it is good as is.
 
-
-Yes :)
-
-Regards,
-Srivatsa S. Bhat
+I think it will break - are these patches available on some git tree to test them out?
 
 > 
->>
->>>
->>> Otherwise, thanks for that work!
->>
->>
->> We are glad that it helps :-)
->>
->>> From the first glance, it's not
->>> colliding much with the changes I have in the pipeline, but I will
->>> have a closer look.
->>>
->>
->>
->> Great! Thanks a lot for your time, Thomas!
->>  
->> Regards,
->> Srivatsa S. Bhat
->>
+> If its not correct, then we can probably make __cpu_post_online() return an int,
+> with the meaning:
+> 
+> 0 => success, go ahead and call cpu_idle()
+> non-zero => stop here, thanks for your services so far.. now leave the rest to me.
+> 
+> So all other archs will return 0, Xen will return non-zero, and it will handle
+> when to call cpu_idle() and when not to do so.
+
+The call-chain (this is taken from 41bd956de3dfdc3a43708fe2e0c8096c69064a1e):
+
+    cpu_bringup_and_idle:
+     \- cpu_bringup
+      |   \-[preempt_disable]
+      |
+      |- cpu_idle
+           \- play_dead [assuming the user offlined the VCPU]
+           |     \
+           |     +- (xen_play_dead)
+           |          \- HYPERVISOR_VCPU_off [so VCPU is dead, once user
+           |          |                       onlines it starts from here]
+           |          \- cpu_bringup [preempt_disable]
+           |
+           +- preempt_enable_no_reschedule()
+           +- schedule()
+           \- preempt_enable()
+
+Which I think is a bit different from your use-case?
+
+> 
+> Might sound a bit ugly, but I don't see much other option. Suggestions are
+> appreciated!
+> 
+> Regards,
+> Srivatsa S. Bhat
