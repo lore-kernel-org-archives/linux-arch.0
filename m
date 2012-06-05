@@ -1,109 +1,81 @@
-From: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Subject: Re: [Xen-devel] [PATCH 05/27] xen, cpu hotplug: Don't call
-	cpu_bringup() in xen_play_dead()
-Date: Tue, 5 Jun 2012 12:49:57 -0400
-Message-ID: <20120605164957.GA1997@phenom.dumpdata.com>
-References: <20120601090952.31979.24799.stgit@srivatsabhat.in.ibm.com>
-	<20120601091124.31979.91984.stgit@srivatsabhat.in.ibm.com>
-	<4FC8D8E30200007800087D2B@nat28.tlf.novell.com>
-	<4FC8DC19.4000007@linux.vnet.ibm.com>
-	<4FC8FD9C0200007800087DF5@nat28.tlf.novell.com>
-	<4FCA5608.2010404@linux.vnet.ibm.com>
+From: Andy Lutomirski <luto@amacapital.net>
+Subject: Docs for PR_SET_NO_NEW_PRIVS
+Date: Tue, 05 Jun 2012 10:04:24 -0700
+Message-ID: <4FCE3C18.4080302@amacapital.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <virtualization-bounces@lists.linux-foundation.org>
-Content-Disposition: inline
-In-Reply-To: <4FCA5608.2010404@linux.vnet.ibm.com>
-List-Unsubscribe: <https://lists.linuxfoundation.org/mailman/options/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=unsubscribe>
-List-Archive: <http://lists.linuxfoundation.org/pipermail/virtualization/>
-List-Post: <mailto:virtualization@lists.linux-foundation.org>
-List-Help: <mailto:virtualization-request@lists.linux-foundation.org?subject=help>
-List-Subscribe: <https://lists.linuxfoundation.org/mailman/listinfo/virtualization>,
-	<mailto:virtualization-request@lists.linux-foundation.org?subject=subscribe>
-Sender: virtualization-bounces@lists.linux-foundation.org
-Errors-To: virtualization-bounces@lists.linux-foundation.org
-To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Cc: linux-arch@vger.kernel.org, Jeremy Fitzhardinge <jeremy@goop.org>, xen-devel@lists.xensource.com, Russell King <linux@arm.linux.org.uk>, akpm@linux-foundation.org, nikunj@linux.vnet.ibm.com, peterz@infradead.org, linux-kernel@vger.kernel.org, x86@kernel.org, vatsa@linux.vnet.ibm.com, virtualization@lists.linux-foundation.org, rjw@sisk.pl, yong.zhang0@gmail.com, Ingo Molnar <mingo@redhat.com>, Jan Beulich <JBeulich@suse.com>, "H. Peter Anvin" <hpa@zytor.com>, Keir Fraser <keir@xen.org>, Thomas Gleixner <tglx@linutronix.de>, paulmck@linux.vnet.ibm.com, mingo@kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pb0-f46.google.com ([209.85.160.46]:50118 "EHLO
+	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754667Ab2FEREb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 5 Jun 2012 13:04:31 -0400
+Received: by pbbrp8 with SMTP id rp8so7708482pbb.19
+        for <linux-arch@vger.kernel.org>; Tue, 05 Jun 2012 10:04:31 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Will Drewry <wad@chromium.org>, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, hpa@zytor.com, mingo@redhat.com, peterz@infradead.org, tglx@linutronix.de, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, keescook@chromium.org, jmorris@namei.org, linux-man@vger.kernel.org
 
-On Sat, Jun 02, 2012 at 11:36:00PM +0530, Srivatsa S. Bhat wrote:
-> On 06/01/2012 09:06 PM, Jan Beulich wrote:
-> 
-> >>>> On 01.06.12 at 17:13, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-> > wrote:
-> >> On 06/01/2012 06:29 PM, Jan Beulich wrote:
-> >>
-> >>>>>> On 01.06.12 at 11:11, "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-> >>> wrote:
-> >>>> xen_play_dead calls cpu_bringup() which looks weird, because xen_play_dead()
-> >>>> is invoked in the cpu down path, whereas cpu_bringup() (as the name 
-> >>>> suggests) is useful in the cpu bringup path.
-> >>>
-> >>> This might not be correct - the code as it is without this change is
-> >>> safe even when the vCPU gets onlined back later by an external
-> >>> entity (e.g. the Xen tool stack), and it would in that case resume
-> >>> at the return point of the VCPUOP_down hypercall. That might
-> >>> be a heritage from the original XenoLinux tree though, and be
-> >>> meaningless in pv-ops context - Jeremy, Konrad?
-> >>>
-> >>> Possibly it was bogus/unused even in that original tree - Keir?
-> >>>
-> >>
-> >>
-> >> Thanks for your comments Jan!
-> >>
-> >> In case this change is wrong, the other method I had in mind was to call
-> >> cpu_bringup_and_idle() in xen_play_dead(). (Even ARM does something similar,
-> >> in the sense that it runs the cpu bringup code including cpu_idle(), in the
-> >> cpu offline path, namely the cpu_die() function). Would that approach work
-> >> for xen as well? If yes, then we wouldn't have any issues to convert xen to
-> >> generic code.
-> > 
-> > No, that wouldn't work either afaict - the function is expected
-> > to return.
-> > 
-> 
-> 
-> Ok.. So, I would love to hear a confirmation about whether this patch (which
-> removes cpu_bringup() in xen_play_dead()) will break things or it is good as is.
+Hi all-
 
-I think it will break - are these patches available on some git tree to test them out?
+As promised (although belatedly), I wrote up some proposed documentation
+for the no_new_privs feature.  What should I do with it?  I don't speak
+groff/troff/whatever man pages are written in.
 
-> 
-> If its not correct, then we can probably make __cpu_post_online() return an int,
-> with the meaning:
-> 
-> 0 => success, go ahead and call cpu_idle()
-> non-zero => stop here, thanks for your services so far.. now leave the rest to me.
-> 
-> So all other archs will return 0, Xen will return non-zero, and it will handle
-> when to call cpu_idle() and when not to do so.
+I would be happy to license this text appropriately for whatever tree
+it might end up in.  In the mean time, it's GPLv2+.
 
-The call-chain (this is taken from 41bd956de3dfdc3a43708fe2e0c8096c69064a1e):
+--- cut here ---
 
-    cpu_bringup_and_idle:
-     \- cpu_bringup
-      |   \-[preempt_disable]
-      |
-      |- cpu_idle
-           \- play_dead [assuming the user offlined the VCPU]
-           |     \
-           |     +- (xen_play_dead)
-           |          \- HYPERVISOR_VCPU_off [so VCPU is dead, once user
-           |          |                       onlines it starts from here]
-           |          \- cpu_bringup [preempt_disable]
-           |
-           +- preempt_enable_no_reschedule()
-           +- schedule()
-           \- preempt_enable()
+The execve system call can grant a newly-started program privileges
+that its parent did not have.  The most obvious examples are
+setuid/setgid programs and file capabilities.  To prevent the parent
+program from gaining these privileges as well, the kernel and user
+code must be careful to prevent the parent from doing anything that
+could subvert the child.  For example:
 
-Which I think is a bit different from your use-case?
+ - The dynamic loader handles LD_* environment variables differently
+if a program is setuid.
+ - chroot is disallowed to unprivileged processes, since it would
+allow /etc/passwd to be replaced from the point of view of a process
+that inherited chroot.
+ - The exec code has special handling for ptrace.
 
-> 
-> Might sound a bit ugly, but I don't see much other option. Suggestions are
-> appreciated!
-> 
-> Regards,
-> Srivatsa S. Bhat
+These are all ad-hoc fixes.  The no_new_privs bit (since Linux 3.5) is
+a new, generic mechanism to make it safe for a process to modify its
+execution environment in a manner that persists across execve.  Any
+task can set no_new_privs.  Once the bit is set, it is inherited
+across fork, clone, and execve and cannot be unset.  With no_new_privs
+set, execve promises not to grant the privilege to do anything that
+could not have been done without the execve call.  For example, the
+setuid and setgid bits will no longer change the uid or gid; file
+capabilities will not add to the permitted set, and LSMs will not
+relax constraints after execve.
+
+Note that no_new_privs does not prevent privilege changes that do not
+involve execve.  An appropriately privileged task can still call
+setuid(2) and receive SCM_RIGHTS datagrams.
+
+There are two main use cases for no_new_privs so far:
+
+ - Filters installed for the seccomp mode 2 sandbox persist across
+execve and can change the behavior of newly-executed programs.
+Unprivileged users are therefore only allowed to install such filters
+if no_new_privs is set.
+
+ - By itself, no_new_privs can be used to reduce the attack surface
+available to an unprivileged user.  If everything running with a given
+uid has no_new_privs set, then that uid will be unable to escalate its
+privileges by directly attacking setuid, setgid, and fcap-using
+binaries; it will need to compromise something without the
+no_new_privs bit set first.
+
+In the future, other potentially dangerous kernel features could
+become available to unprivileged tasks if no_new_privs is set.  In
+principle, several options to unshare(2) and clone(2) would be safe
+when no_new_privs is set, and no_new_privs + chroot is considerable
+less dangerous than chroot by itself.
+
+--- cut here ---
+
+--Andy
