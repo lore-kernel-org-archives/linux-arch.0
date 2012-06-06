@@ -1,61 +1,63 @@
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH 1/4] [-next] Makefile: Do not call cc-option before
- including the arch's Makefile
-Date: Wed, 6 Jun 2012 11:49:12 +0200
-Message-ID: <20120606094912.GG9495@gmail.com>
-References: <1336855148-18817-1-git-send-email-geert@linux-m68k.org>
- <20120520092744.GA21341@merkur.ravnborg.org>
- <4FBF7B34.2080506@suse.cz>
- <20120525202937.GA22903@merkur.ravnborg.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PATCH/RFC 0/2] ARM: DMA-mapping: new extensions for buffer sharing
+ (part 2)
+Date: Wed, 06 Jun 2012 15:17:35 +0200
+Message-ID: <1338988657-20770-1-git-send-email-m.szyprowski@samsung.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bk0-f46.google.com ([209.85.214.46]:45884 "EHLO
-	mail-bk0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751833Ab2FFJtS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Jun 2012 05:49:18 -0400
-Content-Disposition: inline
-In-Reply-To: <20120525202937.GA22903@merkur.ravnborg.org>
+Received: from mailout2.samsung.com ([203.254.224.25]:45209 "EHLO
+	mailout2.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753057Ab2FFNSx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Jun 2012 09:18:53 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Michal Marek <mmarek@suse.cz>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, linux-kbuild@vger.kernel.org
+To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Hiroshi Doyu <hdoyu@nvidia.com>, Subash Patel <subash.ramaswamy@linaro.org>, Sumit Semwal <sumit.semwal@linaro.org>, Abhinav Kochhar <abhinav.k@samsung.com>, Tomasz Stanislawski <t.stanislaws@samsung.com>
+
+Hello,
+
+This is a continuation of the dma-mapping extensions posted in the
+following thread:
+http://thread.gmane.org/gmane.linux.kernel.mm/78644
+
+We noticed that some advanced buffer sharing use cases usually require
+creating a dma mapping for the same memory buffer for more than one
+device. Usually also such buffer is never touched with CPU, so the data
+are processed by the devices.
+
+From the DMA-mapping perspective this requires to call one of the
+dma_map_{page,single,sg} function for the given memory buffer a few
+times, for each of the devices. Each dma_map_* call performs CPU cache
+synchronization, what might be a time consuming operation, especially
+when the buffers are large. We would like to avoid any useless and time
+consuming operations, so that was the main reason for introducing
+another attribute for DMA-mapping subsystem: DMA_ATTR_SKIP_CPU_SYNC,
+which lets dma-mapping core to skip CPU cache synchronization in certain
+cases.
+
+The proposed patches have been generated on top of the ARM DMA-mapping
+redesign patch series on Linux v3.4-rc7. They are also available on the
+following GIT branch:
+
+git://git.linaro.org/people/mszyprowski/linux-dma-mapping.git 3.4-rc7-arm-dma-v10-ext
+
+with all require patches on top of vanilla v3.4-rc7 kernel. I will
+resend them rebased onto v3.5-rc1 soon.
+
+Best regards
+Marek Szyprowski
+Samsung Poland R&D Center
 
 
-* Sam Ravnborg <sam@ravnborg.org> wrote:
+Patch summary:
 
-> On Fri, May 25, 2012 at 02:29:40PM +0200, Michal Marek wrote:
-> > Dne 20.5.2012 11:27, Sam Ravnborg napsal(a):
-> > > On Sat, May 12, 2012 at 10:39:05PM +0200, Geert Uytterhoeven wrote:
-> > >> On architectures that setup CROSS_COMPILE in their arch/*/Makefile
-> > >> (blackfin, h8300, m68k, mips, parisc, score, sh, tile, unicore32, xtensa),
-> > >> cc-option may check against the wrong compiler, causing errors like
-> > >>
-> > >> cc1: error: unrecognized command line option "-fno-ipa-cp-clone"
-> > >>
-> > >> if the host gcc supports -fno-ipa-cp-clone, while the cross compiler
-> > >> doesn't support that option.
-> > >>
-> > >> Move the CONFIG_READABLE_ASM section below the inclusion of the arch's
-> > >> Makefile to fix this.
-> > >>
-> > >> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> > >> Cc: Andi Kleen <ak@linux.intel.com>
-> > >> Cc: H. Peter Anvin <hpa@zytor.com>
-> > >> Cc: Michal Marek <mmarek@suse.cz>
-> > >> Cc: linux-kbuild@vger.kernel.org
-> > > 
-> > > Michal - was this serie ever applied to kbuild?
-> > 
-> > The first patch has to go to the tip tree, where the CONFIG_READABLE_ASM
-> > option is introduced.
-> OK - I had not seen this.
-> 
-> So tip-folks - please apply this.
+Marek Szyprowski (2):
+  common: DMA-mapping: add DMA_ATTR_SKIP_CPU_SYNC attribute
+  ARM: dma-mapping: add support for DMA_ATTR_SKIP_CPU_SYNC attribute
 
-it's now all upstream so you can route it via the kbuild tree I 
-guess?
+ Documentation/DMA-attributes.txt |   24 ++++++++++++++++++++++++
+ arch/arm/mm/dma-mapping.c        |   20 +++++++++++---------
+ include/linux/dma-attrs.h        |    1 +
+ 3 files changed, 36 insertions(+), 9 deletions(-)
 
-Thanks,
-
-	Ingo
+-- 
+1.7.1.569.g6f426
