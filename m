@@ -1,116 +1,94 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lpp01m010-f46.google.com ([209.85.215.46]:41857 "EHLO
-	mail-lpp01m010-f46.google.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755885Ab2FESNI convert rfc822-to-8bit
-	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 5 Jun 2012 14:13:08 -0400
-Received: by lahd3 with SMTP id d3so4012356lah.19
-        for <linux-arch@vger.kernel.org>; Tue, 05 Jun 2012 11:13:05 -0700 (PDT)
-MIME-Version: 1.0
-In-Reply-To: <CAGXu5jLc6UW85TxA7ccA4e1u78hkTbSrWeBJE+oTXXQECPvtjg@mail.gmail.com>
-References: <4FCE3C18.4080302@amacapital.net>
-	<CAGXu5jLc6UW85TxA7ccA4e1u78hkTbSrWeBJE+oTXXQECPvtjg@mail.gmail.com>
-Date: Tue, 5 Jun 2012 13:13:05 -0500
-Message-ID: <CABqD9hYXKhX1=064DpbaBTAVd8-g43jKAPvtsbxEUTbgC1MPxg@mail.gmail.com>
-Subject: Re: Docs for PR_SET_NO_NEW_PRIVS
-From: Will Drewry <wad@chromium.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from mailout2.samsung.com ([203.254.224.25]:45232 "EHLO
+	mailout2.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752990Ab2FFNS7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 6 Jun 2012 09:18:59 -0400
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PATCH 1/2] common: DMA-mapping: add DMA_ATTR_SKIP_CPU_SYNC attribute
+Date: Wed, 06 Jun 2012 15:17:36 +0200
+Message-ID: <1338988657-20770-2-git-send-email-m.szyprowski@samsung.com>
+In-reply-to: <1338988657-20770-1-git-send-email-m.szyprowski@samsung.com>
+References: <1338988657-20770-1-git-send-email-m.szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Kees Cook <keescook@chromium.org>
-Cc: Andy Lutomirski <luto@amacapital.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, hpa@zytor.com, mingo@redhat.com, peterz@infradead.org, tglx@linutronix.de, eparis@redhat.com, serge.hallyn@canonical.com, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, corbet@lwn.net, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, jmorris@namei.org, linux-man@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>
-Message-ID: <20120605181305.LSv4-cJzfqHYwhiRCPPSNE3xtmwO-aMAH1ayfdz2Bvw@z>
+To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Hiroshi Doyu <hdoyu@nvidia.com>, Subash Patel <subash.ramaswamy@linaro.org>, Sumit Semwal <sumit.semwal@linaro.org>, Abhinav Kochhar <abhinav.k@samsung.com>, Tomasz Stanislawski <t.stanislaws@samsung.com>
+Message-ID: <20120606131736.Ha3S9W9thXtXlVtoJVFaIS2LSAhiW74Skzh8-Bg0g-s@z>
 
-On Tue, Jun 5, 2012 at 12:33 PM, Kees Cook <keescook@chromium.org> wrote:
-> Hi,
->
-> As-is, this could probably live in
-> Documentation/security/no-new-privs.txt (maybe with some examples
-> added).
+This patch adds DMA_ATTR_SKIP_CPU_SYNC attribute to the DMA-mapping
+subsystem.
 
-Or Documentation/prctl/no-new-privs.txt
+By default dma_map_{single,page,sg} functions family transfer a given
+buffer from CPU domain to device domain. Some advanced use cases might
+require sharing a buffer between more than one device. This requires
+having a mapping created separately for each device and is usually
+performed by calling dma_map_{single,page,sg} function more than once
+for the given buffer with device pointer to each device taking part in
+the buffer sharing. The first call transfers a buffer from 'CPU' domain
+to 'device' domain, what synchronizes CPU caches for the given region
+(usually it means that the cache has been flushed or invalidated
+depending on the dma direction). However, next calls to
+dma_map_{single,page,sg}() for other devices will perform exactly the
+same sychronization operation on the CPU cache. CPU cache sychronization
+might be a time consuming operation, especially if the buffers are
+large, so it is highly recommended to avoid it if possible.
+DMA_ATTR_SKIP_CPU_SYNC allows platform code to skip synchronization of
+the CPU cache for the given buffer assuming that it has been already
+transferred to 'device' domain. This attribute can be also used for
+dma_unmap_{single,page,sg} functions family to force buffer to stay in
+device domain after releasing a mapping for it. Use this attribute with
+care!
 
-Just a decision between what it does and how you get to it, but I'd
-think either would make sense!
+Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
+---
+ Documentation/DMA-attributes.txt |   24 ++++++++++++++++++++++++
+ include/linux/dma-attrs.h        |    1 +
+ 2 files changed, 25 insertions(+), 0 deletions(-)
 
-> As for a manpage section, I think Michael Kerrisk would happily add a
-> section for PR_[SG]ET_NO_NEW_PRIVS to prctl if this could be
-> summarized into a paragraph or two.
->
-> (And this reminds me I should send an update for the seccomp section
-> in the prctl manpage too.)
+diff --git a/Documentation/DMA-attributes.txt b/Documentation/DMA-attributes.txt
+index 725580d..f503090 100644
+--- a/Documentation/DMA-attributes.txt
++++ b/Documentation/DMA-attributes.txt
+@@ -67,3 +67,27 @@ set on each call.
+ Since it is optional for platforms to implement
+ DMA_ATTR_NO_KERNEL_MAPPING, those that do not will simply ignore the
+ attribute and exhibit default behavior.
++
++DMA_ATTR_SKIP_CPU_SYNC
++----------------------
++
++By default dma_map_{single,page,sg} functions family transfer a given
++buffer from CPU domain to device domain. Some advanced use cases might
++require sharing a buffer between more than one device. This requires
++having a mapping created separately for each device and is usually
++performed by calling dma_map_{single,page,sg} function more than once
++for the given buffer with device pointer to each device taking part in
++the buffer sharing. The first call transfers a buffer from 'CPU' domain
++to 'device' domain, what synchronizes CPU caches for the given region
++(usually it means that the cache has been flushed or invalidated
++depending on the dma direction). However, next calls to
++dma_map_{single,page,sg}() for other devices will perform exactly the
++same sychronization operation on the CPU cache. CPU cache sychronization
++might be a time consuming operation, especially if the buffers are
++large, so it is highly recommended to avoid it if possible.
++DMA_ATTR_SKIP_CPU_SYNC allows platform code to skip synchronization of
++the CPU cache for the given buffer assuming that it has been already
++transferred to 'device' domain. This attribute can be also used for
++dma_unmap_{single,page,sg} functions family to force buffer to stay in
++device domain after releasing a mapping for it. Use this attribute with
++care!
+diff --git a/include/linux/dma-attrs.h b/include/linux/dma-attrs.h
+index a37c10c..f83f793 100644
+--- a/include/linux/dma-attrs.h
++++ b/include/linux/dma-attrs.h
+@@ -16,6 +16,7 @@ enum dma_attr {
+ 	DMA_ATTR_WRITE_COMBINE,
+ 	DMA_ATTR_NON_CONSISTENT,
+ 	DMA_ATTR_NO_KERNEL_MAPPING,
++	DMA_ATTR_SKIP_CPU_SYNC,
+ 	DMA_ATTR_MAX,
+ };
+ 
+-- 
+1.7.1.569.g6f426
 
-Faster on the draw than me - thanks!
-
->
-> On Tue, Jun 5, 2012 at 10:04 AM, Andy Lutomirski <luto@amacapital.net> wrote:
->> Hi all-
->>
->> As promised (although belatedly), I wrote up some proposed documentation
->> for the no_new_privs feature.  What should I do with it?  I don't speak
->> groff/troff/whatever man pages are written in.
->>
->> I would be happy to license this text appropriately for whatever tree
->> it might end up in.  In the mean time, it's GPLv2+.
->>
->> --- cut here ---
->>
->> The execve system call can grant a newly-started program privileges
->> that its parent did not have.  The most obvious examples are
->> setuid/setgid programs and file capabilities.  To prevent the parent
->> program from gaining these privileges as well, the kernel and user
->> code must be careful to prevent the parent from doing anything that
->> could subvert the child.  For example:
->>
->>  - The dynamic loader handles LD_* environment variables differently
->> if a program is setuid.
->>  - chroot is disallowed to unprivileged processes, since it would
->> allow /etc/passwd to be replaced from the point of view of a process
->> that inherited chroot.
->>  - The exec code has special handling for ptrace.
->>
->> These are all ad-hoc fixes.  The no_new_privs bit (since Linux 3.5) is
->> a new, generic mechanism to make it safe for a process to modify its
->> execution environment in a manner that persists across execve.  Any
->> task can set no_new_privs.  Once the bit is set, it is inherited
->> across fork, clone, and execve and cannot be unset.  With no_new_privs
->> set, execve promises not to grant the privilege to do anything that
->> could not have been done without the execve call.  For example, the
->> setuid and setgid bits will no longer change the uid or gid; file
->> capabilities will not add to the permitted set, and LSMs will not
->> relax constraints after execve.
->>
->> Note that no_new_privs does not prevent privilege changes that do not
->> involve execve.  An appropriately privileged task can still call
->> setuid(2) and receive SCM_RIGHTS datagrams.
->>
->> There are two main use cases for no_new_privs so far:
->>
->>  - Filters installed for the seccomp mode 2 sandbox persist across
->> execve and can change the behavior of newly-executed programs.
->> Unprivileged users are therefore only allowed to install such filters
->> if no_new_privs is set.
->>
->>  - By itself, no_new_privs can be used to reduce the attack surface
->> available to an unprivileged user.  If everything running with a given
->> uid has no_new_privs set, then that uid will be unable to escalate its
->> privileges by directly attacking setuid, setgid, and fcap-using
->> binaries; it will need to compromise something without the
->> no_new_privs bit set first.
->>
->> In the future, other potentially dangerous kernel features could
->> become available to unprivileged tasks if no_new_privs is set.  In
->> principle, several options to unshare(2) and clone(2) would be safe
->> when no_new_privs is set, and no_new_privs + chroot is considerable
->> less dangerous than chroot by itself.
->>
->> --- cut here ---
->>
->> --Andy
->
->
->
-> --
-> Kees Cook
-> Chrome OS Security
