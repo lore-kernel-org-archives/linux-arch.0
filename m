@@ -1,32 +1,57 @@
-From: James Morris <jmorris@namei.org>
-Subject: Re: Docs for PR_SET_NO_NEW_PRIVS
-Date: Thu, 7 Jun 2012 11:29:48 +1000 (EST)
-Message-ID: <alpine.LRH.2.02.1206071127340.12194@tundra.namei.org>
-References: <4FCE3C18.4080302@amacapital.net> <CAGXu5jLc6UW85TxA7ccA4e1u78hkTbSrWeBJE+oTXXQECPvtjg@mail.gmail.com> <CABqD9hYXKhX1=064DpbaBTAVd8-g43jKAPvtsbxEUTbgC1MPxg@mail.gmail.com>
-Reply-To: kernel-hardening@lists.openwall.com
+From: "Mr Kirsten Nematandani" <businessinvestment4@gmail.com>
+Subject: BUSINESS CO-OPERATION!
+Date: Fri, 08 Jun 2012 16:33:22 +0200
+Message-ID: <20120608163322.242B86D2@centrum.cz>
+References: <20120524122002.D3031CD3@centrum.cz>, <20120525143643.1C8CDE16@centrum.cz>, <20120528155719.7BF9CE84@centrum.cz>, <20120528155744.62714F43@centrum.cz>, <20120528155810.388A4758@centrum.cz>, <20120528155858.4257A61E@centrum.cz>, <20120529171441.1DF7CEC0@centrum.cz>, <20120529171507.D492A07A@centrum.cz>, <20120529171532.72D8D3E5@centrum.cz>, <20120529171558.FF9F0E56@centrum.cz>, <20120530180036.3E791D44@centrum.cz>, <20120530180105.0D44F433@centrum.cz>, <20120530180123.A430941E@centrum.cz>, <20120530180144.010D63FC@centrum.cz>, <20120531180656.FB6C08A5@centrum.cz>, <20120531180717.E80514C8@centrum.cz>, <20120531180739.862CB3A6@centrum.cz>, <20120531180804.8495512E@centrum.cz>, <20120602125133.6F536A78@centrum.cz>, <20120602125152.2CE53830@centrum.cz>, <20120602125221.A6D3DF60@cen
+ trum.cz>, <20120602125243.C6C0A527@centrum.cz>, <20120604113512.C6B9E8ED@centrum.cz>, <20120604113534.91657471@centrum.cz>, <20120604113557.DA2FAC4F@centrum.cz>, <20120604113617.1B8F69C4@cen
+ trum.cz>, <20120605120000.147DC752@centrum.cz>, <20120605120023.B284A265@centrum.cz>, <20120605120046.45E40474@centrum.cz>, <20120605120108.171101BB@centrum.cz>, <20120606152243.A21D17DB@centrum.cz>, <20120606152301.9C8ADF77@centrum.cz>, <20120606152318.8BA82E98@centrum.cz>, <20120606152339.66C9197A@centrum.cz>, <20120607162900.F6C661E1@centrum.cz>, <20120607162920.3C2D6D71@centrum.cz>, <20120607162939.33635165@centrum.cz>, <20120607163000.2E7BC59B@centrum.cz>, <20120608163248.94F71213@centrum.cz> <20120608163306.FD796195@centrum.cz>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <kernel-hardening-return-1321-glkh-kernel-hardening=m.gmane.org@lists.openwall.com>
-List-Post: <mailto:kernel-hardening@lists.openwall.com>
-List-Help: <mailto:kernel-hardening-help@lists.openwall.com>
-List-Unsubscribe: <mailto:kernel-hardening-unsubscribe@lists.openwall.com>
-List-Subscribe: <mailto:kernel-hardening-subscribe@lists.openwall.com>
-In-Reply-To: <CABqD9hYXKhX1=064DpbaBTAVd8-g43jKAPvtsbxEUTbgC1MPxg@mail.gmail.com>
-To: Will Drewry <wad@chromium.org>
-Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, hpa@zytor.com, mingo@redhat.com, peterz@infradead.org, tglx@linutronix.de, Eric Paris <eparis@redhat.com>, Serge Hallyn <serge.hallyn@canonical.com>, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, Jonathan Corbet <corbet@lwn.net>, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, linux-man@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>
-List-Id: linux-arch.vger.kernel.org
-
-On Tue, 5 Jun 2012, Will Drewry wrote:
-
-> Or Documentation/prctl/no-new-privs.txt
-> 
-> Just a decision between what it does and how you get to it, but I'd
-> think either would make sense!
-
-This makes sense as it's where the seccomp documentation is.
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gmmr2.centrum.cz ([46.255.227.252]:39211 "EHLO gmmr2.centrum.cz"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753568Ab2FHOkA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 8 Jun 2012 10:40:00 -0400
+In-Reply-To: <20120608163306.FD796195@centrum.cz>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
 
-- James
--- 
-James Morris
-<jmorris@namei.org>
+=C2=A0
+Hello!
+
+My name is Mr Kirsten Nematandani, I'm the President of South African F=
+ootball Association and we hosted 2010 world cup here in South Africa a=
+s you may be aware.
+=C2=A0
+I=E2=80=99m consulting you for my personal investment plan which I woul=
+d like to discuss with you and know the possibility of how we can co-op=
+erate and=C2=A0 work together to carry it out without jeopardizing my p=
+osition, which I=C2=A0 believe will be beneficial to both parties if ha=
+ndled with honesty.
+=C2=A0
+There is some fund I realized as a result of my position from the award=
+=C2=A0 of contracts to prospective contractors building stadiums and ot=
+her=C2=A0 projects which I would like to transfer abroad for investment=
+ purposes in your country. The total sum is USD $11 Million Dollars and=
+ it is securely deposited=C2=A0 abroad.
+=C2=A0
+If you can assist me to receive the fund and further invest it for me i=
+n=C2=A0 any kind of profitable business in your country, kindly contact=
+ me (businessinvestment@contractor.net), in other for us to discuss on =
+how to achieve this effectively.
+=C2=A0
+As soon as=C2=A0 your reply, I will then call you and discuss with=C2=A0=
+ you on further steps to be taken to achieve this. I'm willing to offer=
+=C2=A0 you 20% of the total fund for your kind assistance.
+=C2=A0
+Kindly include your full names, mobile/Office telephone numbers while r=
+eplying to enable me give you a call as soon as I've received your e-ma=
+il.
+=C2=A0
+Thanks as I await for your urgent and swift response.
+=C2=A0
+Regards,
+Mr Kirsten Nematandani.
+=C2=A0
