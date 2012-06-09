@@ -1,51 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yw0-f46.google.com ([209.85.213.46]:40424 "EHLO
-	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752795Ab2FIIOI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Jun 2012 04:14:08 -0400
-From: Ezequiel Garcia <elezegarcia@gmail.com>
-Subject: =?UTF-8?q?=5BPATCH=202/6=5D=20arm=3A=20fix=20compiler=20warning=20by=20properly=20inlining=20flat=5Fset=5Fpersistent=28=29?=
-Date: Sat,  9 Jun 2012 05:13:27 -0300
-Message-ID: <1339229611-2326-2-git-send-email-elezegarcia@gmail.com>
-In-Reply-To: <1339229611-2326-1-git-send-email-elezegarcia@gmail.com>
-References: <1339229611-2326-1-git-send-email-elezegarcia@gmail.com>
+Received: from mail-ob0-f174.google.com ([209.85.214.174]:57316 "EHLO
+	mail-ob0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752182Ab2FIMBv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Jun 2012 08:01:51 -0400
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+In-Reply-To: <20120609091426.GA10170@linux-sh.org>
+References: <1339229611-2326-1-git-send-email-elezegarcia@gmail.com>
+	<20120609091426.GA10170@linux-sh.org>
+Date: Sat, 9 Jun 2012 09:01:50 -0300
+Message-ID: <CALF0-+WsZnEho0-bPonCjPnsUtaMUmMnDwKmrqBsNQW_cO0T+g@mail.gmail.com>
+Subject: Re: [PATCH 1/6] sh: fix compiler warning by properly inlining flat_set_persistent()
+From: Ezequiel Garcia <elezegarcia@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Ezequiel Garcia <elezegarcia@gmail.com>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
-Message-ID: <20120609081327.1AVFlUr1-_KiH7gjnoYzMQRkpdASEKxIzua52CADJEE@z>
+To: Paul Mundt <lethal@linux-sh.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-sh@vger.kernel.org
+Message-ID: <20120609120150.ICYLz-gAEGvpAB3LTr6JUnWu5h5ycH2pGB2BKM06nIM@z>
 
-This patch removes the following warning:
-fs/binfmt_flat.c:752: warning: unused variable ‘persistent’
-There is neither change in functionality, nor extra code generated.
+On Sat, Jun 9, 2012 at 6:14 AM, Paul Mundt <lethal@linux-sh.org> wrote:
+> On Sat, Jun 09, 2012 at 05:13:26AM -0300, Ezequiel Garcia wrote:
+>> This patch removes the following warning:
+>> fs/binfmt_flat.c:752: warning: unused variable ???persistent???
+>> There is neither change in functionality, nor extra code generated.
+>>
+>> Cc: Paul Mundt <lethal@linux-sh.org>
+>> Cc: <linux-sh@vger.kernel.org>
+>> Signed-off-by: Ezequiel Garcia <elezegarcia@gmail.com>
+>
+> That's what the cast was for, with what gcc version did that stop
+> working?
 
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: <linux-arm-kernel@lists.infradead.org>
-Signed-off-by: Ezequiel Garcia <elezegarcia@gmail.com>
----
- arch/arm/include/asm/flat.h |    7 ++++++-
- 1 files changed, 6 insertions(+), 1 deletions(-)
+Mmm. You're right. I did this change first for m68k [1] and when that
+went ok, I decided it
+was best to propagate this fix to every other arch.
 
-diff --git a/arch/arm/include/asm/flat.h b/arch/arm/include/asm/flat.h
-index 59426a4..6ef6cc5 100644
---- a/arch/arm/include/asm/flat.h
-+++ b/arch/arm/include/asm/flat.h
-@@ -11,6 +11,11 @@
- #define	flat_get_addr_from_rp(rp, relval, flags, persistent) get_unaligned(rp)
- #define	flat_put_addr_at_rp(rp, val, relval)	put_unaligned(val,rp)
- #define	flat_get_relocate_addr(rel)		(rel)
--#define	flat_set_persistent(relval, p)		0
-+
-+static inline int flat_set_persistent(unsigned long relval,
-+				      unsigned long *persistent)
-+{
-+	return 0;
-+}
- 
- #endif /* __ARM_FLAT_H__ */
--- 
-1.7.3.4
+Originally, my first try was to propagate your cast:
 
+#define        flat_set_persistent(relval, p)          ({ (void)p; 0; })
+
+to the other arches, that just do:
+
+#define        flat_set_persistent(relval, p)          0
+
+But, then someone pointed out that inlining would produce some (nil) code
+and it seemed better.
+To conclude: sh was the only one doing it right, and there is no good
+reason to change
+it, except to make code more homogeneous.
+
+Hope it is clear now,
+Ezequiel.
+
+[1] https://lkml.org/lkml/2012/5/21/491
