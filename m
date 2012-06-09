@@ -1,33 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from tundra.namei.org ([65.99.196.166]:37483 "EHLO tundra.namei.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754630Ab2FGBal (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 6 Jun 2012 21:30:41 -0400
-Date: Thu, 7 Jun 2012 11:29:48 +1000 (EST)
-From: James Morris <jmorris@namei.org>
-Subject: Re: Docs for PR_SET_NO_NEW_PRIVS
-In-Reply-To: <CABqD9hYXKhX1=064DpbaBTAVd8-g43jKAPvtsbxEUTbgC1MPxg@mail.gmail.com>
-Message-ID: <alpine.LRH.2.02.1206071127340.12194@tundra.namei.org>
-References: <4FCE3C18.4080302@amacapital.net> <CAGXu5jLc6UW85TxA7ccA4e1u78hkTbSrWeBJE+oTXXQECPvtjg@mail.gmail.com> <CABqD9hYXKhX1=064DpbaBTAVd8-g43jKAPvtsbxEUTbgC1MPxg@mail.gmail.com>
+Received: from mail-gh0-f174.google.com ([209.85.160.174]:32776 "EHLO
+	mail-gh0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751090Ab2FIIN6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Jun 2012 04:13:58 -0400
+From: Ezequiel Garcia <elezegarcia@gmail.com>
+Subject: =?UTF-8?q?=5BPATCH=201/6=5D=20sh=3A=20fix=20compiler=20warning=20by=20properly=20inlining=20flat=5Fset=5Fpersistent=28=29?=
+Date: Sat,  9 Jun 2012 05:13:26 -0300
+Message-ID: <1339229611-2326-1-git-send-email-elezegarcia@gmail.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Drewry <wad@chromium.org>
-Cc: Kees Cook <keescook@chromium.org>, Andy Lutomirski <luto@amacapital.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-security-module@vger.kernel.org, linux-arch@vger.kernel.org, linux-doc@vger.kernel.org, kernel-hardening@lists.openwall.com, hpa@zytor.com, mingo@redhat.com, peterz@infradead.org, tglx@linutronix.de, Eric Paris <eparis@redhat.com>, Serge Hallyn <serge.hallyn@canonical.com>, djm@mindrot.org, scarybeasts@gmail.com, indan@nul.nu, pmoore@redhat.com, Jonathan Corbet <corbet@lwn.net>, eric.dumazet@gmail.com, markus@chromium.org, coreyb@linux.vnet.ibm.com, linux-man@vger.kernel.org, Michael Kerrisk <mtk.manpages@gmail.com>
-Message-ID: <20120607012948.dlUCi3iMoAxZR_ELoCp6oydJarSlIzWRcRCV0bvpnqY@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Ezequiel Garcia <elezegarcia@gmail.com>, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org
+Message-ID: <20120609081326.kZqQZ0HNVYs64a7uW_enakV00o8DgDTRK1w1nhR8DuM@z>
 
-On Tue, 5 Jun 2012, Will Drewry wrote:
+This patch removes the following warning:
+fs/binfmt_flat.c:752: warning: unused variable ‘persistent’
+There is neither change in functionality, nor extra code generated.
 
-> Or Documentation/prctl/no-new-privs.txt
-> 
-> Just a decision between what it does and how you get to it, but I'd
-> think either would make sense!
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: <linux-sh@vger.kernel.org>
+Signed-off-by: Ezequiel Garcia <elezegarcia@gmail.com>
+---
+ arch/sh/include/asm/flat.h |    7 ++++++-
+ 1 files changed, 6 insertions(+), 1 deletions(-)
 
-This makes sense as it's where the seccomp documentation is.
-
-
-- James
+diff --git a/arch/sh/include/asm/flat.h b/arch/sh/include/asm/flat.h
+index 5d84df5..51dd7af 100644
+--- a/arch/sh/include/asm/flat.h
++++ b/arch/sh/include/asm/flat.h
+@@ -18,7 +18,12 @@
+ #define	flat_get_addr_from_rp(rp, relval, flags, p)	get_unaligned(rp)
+ #define	flat_put_addr_at_rp(rp, val, relval)	put_unaligned(val,rp)
+ #define	flat_get_relocate_addr(rel)		(rel)
+-#define	flat_set_persistent(relval, p)		({ (void)p; 0; })
++
++static inline int flat_set_persistent(unsigned long relval,
++				      unsigned long *persistent)
++{
++	return 0;
++}
+ 
+ #define FLAT_PLAT_INIT(_r) \
+   do { _r->regs[0]=0; _r->regs[1]=0; _r->regs[2]=0; _r->regs[3]=0; \
 -- 
-James Morris
-<jmorris@namei.org>
+1.7.3.4
+
