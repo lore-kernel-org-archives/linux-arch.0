@@ -1,56 +1,31 @@
-From: Ezequiel Garcia <elezegarcia@gmail.com>
-Subject: =?UTF-8?q?=5BPATCH=205/6=5D=20m32r=3A=20fix=20compiler=20warning=20by=20properly=20inlining=20flat=5Fset=5Fpersistent=28=29?=
-Date: Sat,  9 Jun 2012 05:13:30 -0300
-Message-ID: <1339229611-2326-5-git-send-email-elezegarcia@gmail.com>
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [PATCH 1/6] sh: fix compiler warning by properly inlining
+ flat_set_persistent()
+Date: Sat, 9 Jun 2012 18:14:26 +0900
+Message-ID: <20120609091426.GA10170@linux-sh.org>
 References: <1339229611-2326-1-git-send-email-elezegarcia@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from linux-sh.org ([111.68.239.195]:45238 "EHLO linux-sh.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751798Ab2FIJOa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 9 Jun 2012 05:14:30 -0400
+Content-Disposition: inline
 In-Reply-To: <1339229611-2326-1-git-send-email-elezegarcia@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Ezequiel Garcia <elezegarcia@gmail.com>, Hirokazu Takata <takata@linux-m32r.org>, linux-m32r@ml.linux-m32r.org, linux-m32r-ja@ml.linux-m32r.org
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Ezequiel Garcia <elezegarcia@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-sh@vger.kernel.org
 
-This patch removes the following warning:
-fs/binfmt_flat.c:752: warning: unused variable =E2=80=98persistent=E2=80=
-=99
-There is neither change in functionality, nor extra code generated.
+On Sat, Jun 09, 2012 at 05:13:26AM -0300, Ezequiel Garcia wrote:
+> This patch removes the following warning:
+> fs/binfmt_flat.c:752: warning: unused variable ???persistent???
+> There is neither change in functionality, nor extra code generated.
+> 
+> Cc: Paul Mundt <lethal@linux-sh.org>
+> Cc: <linux-sh@vger.kernel.org>
+> Signed-off-by: Ezequiel Garcia <elezegarcia@gmail.com>
 
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: <linux-m32r@ml.linux-m32r.org>
-Cc: <linux-m32r-ja@ml.linux-m32r.org>
-Signed-off-by: Ezequiel Garcia <elezegarcia@gmail.com>
----
- arch/m32r/include/asm/flat.h |    7 ++++++-
- 1 files changed, 6 insertions(+), 1 deletions(-)
-
-diff --git a/arch/m32r/include/asm/flat.h b/arch/m32r/include/asm/flat.=
-h
-index 5d711c4..2caf5b8 100644
---- a/arch/m32r/include/asm/flat.h
-+++ b/arch/m32r/include/asm/flat.h
-@@ -14,7 +14,6 @@
-=20
- #define	flat_argvp_envp_on_stack()		0
- #define	flat_old_ram_flag(flags)		(flags)
--#define	flat_set_persistent(relval, p)		0
- #define	flat_reloc_valid(reloc, size)		\
- 	(((reloc) - textlen_for_m32r_lo16_data) <=3D (size))
- #define flat_get_addr_from_rp(rp, relval, flags, persistent) \
-@@ -23,6 +22,12 @@
- #define flat_put_addr_at_rp(rp, addr, relval) \
- 	m32r_flat_put_addr_at_rp(rp, addr, relval)
-=20
-+static inline int flat_set_persistent(unsigned long relval,
-+				      unsigned long *persistent)
-+{
-+	return 0;
-+}
-+
- /* Convert a relocation entry into an address.  */
- static inline unsigned long
- flat_get_relocate_addr (unsigned long relval)
---=20
-1.7.3.4
+That's what the cast was for, with what gcc version did that stop
+working?
