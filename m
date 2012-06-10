@@ -1,55 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f174.google.com ([209.85.214.174]:57316 "EHLO
-	mail-ob0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752182Ab2FIMBv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 9 Jun 2012 08:01:51 -0400
+Received: from mail-qc0-f174.google.com ([209.85.216.174]:55326 "EHLO
+	mail-qc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752149Ab2FJQgS convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 10 Jun 2012 12:36:18 -0400
+Received: by qcro28 with SMTP id o28so27304qcr.19
+        for <linux-arch@vger.kernel.org>; Sun, 10 Jun 2012 09:36:17 -0700 (PDT)
 MIME-Version: 1.0
-In-Reply-To: <20120609091426.GA10170@linux-sh.org>
-References: <1339229611-2326-1-git-send-email-elezegarcia@gmail.com>
-	<20120609091426.GA10170@linux-sh.org>
-Date: Sat, 9 Jun 2012 09:01:50 -0300
-Message-ID: <CALF0-+WsZnEho0-bPonCjPnsUtaMUmMnDwKmrqBsNQW_cO0T+g@mail.gmail.com>
-Subject: Re: [PATCH 1/6] sh: fix compiler warning by properly inlining flat_set_persistent()
-From: Ezequiel Garcia <elezegarcia@gmail.com>
+In-Reply-To: <cover.1338220457.git.rubini@gnudd.com>
+References: <cover.1338220457.git.rubini@gnudd.com>
+Date: Sun, 10 Jun 2012 18:36:17 +0200
+Message-ID: <CACRpkdbPtR5MDjd1YZ5GhOdp61HQe2PJusudNPOhDQHUAt1kJA@mail.gmail.com>
+Subject: Re: [PATCH V2 0/6] Bridging PCI to amba
+From: Linus Walleij <linus.walleij@linaro.org>
 Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-sh@vger.kernel.org
-Message-ID: <20120609120150.ICYLz-gAEGvpAB3LTr6JUnWu5h5ycH2pGB2BKM06nIM@z>
+To: Alessandro Rubini <rubini@gnudd.com>
+Cc: linux-kernel@vger.kernel.org, Giancarlo Asnaghi <giancarlo.asnaghi@st.com>, Alan Cox <alan@linux.intel.com>, Russell King <linux@arm.linux.org.uk>, x86@kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120610163617.fSYpdSYsvn9utwaP2sHg5tEAb6nOf2oOVI6EGMyTaOQ@z>
 
-On Sat, Jun 9, 2012 at 6:14 AM, Paul Mundt <lethal@linux-sh.org> wrote:
-> On Sat, Jun 09, 2012 at 05:13:26AM -0300, Ezequiel Garcia wrote:
->> This patch removes the following warning:
->> fs/binfmt_flat.c:752: warning: unused variable ???persistent???
->> There is neither change in functionality, nor extra code generated.
->>
->> Cc: Paul Mundt <lethal@linux-sh.org>
->> Cc: <linux-sh@vger.kernel.org>
->> Signed-off-by: Ezequiel Garcia <elezegarcia@gmail.com>
->
-> That's what the cast was for, with what gcc version did that stop
-> working?
+On Mon, May 28, 2012 at 6:36 PM, Alessandro Rubini <rubini@gnudd.com> wrote:
 
-Mmm. You're right. I did this change first for m68k [1] and when that
-went ok, I decided it
-was best to propagate this fix to every other arch.
+> V2: accepted comments I got on V1; rewritten the driver to be generic;
+>    made it tristate instead of boolean. Rebased on new next.
 
-Originally, my first try was to propagate your cast:
+This looks good to me.
+Acked-by: Linus Walleij <linus.walleij@linaro.org>
 
-#define        flat_set_persistent(relval, p)          ({ (void)p; 0; })
+I think this patch set could go through Arnd as arch maintainer?
+It's fun with these cross-arch things. You'll need an ACK from
+Russell first.
 
-to the other arches, that just do:
-
-#define        flat_set_persistent(relval, p)          0
-
-But, then someone pointed out that inlining would produce some (nil) code
-and it seemed better.
-To conclude: sh was the only one doing it right, and there is no good
-reason to change
-it, except to make code more homogeneous.
-
-Hope it is clear now,
-Ezequiel.
-
-[1] https://lkml.org/lkml/2012/5/21/491
+Yours,
+Linus Walleij
