@@ -1,35 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:50357 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.171]:53467 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751369Ab2FKOKl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jun 2012 10:10:41 -0400
+	with ESMTP id S1755706Ab2FKP2l (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jun 2012 11:28:41 -0400
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 3/4] bitops: Introduce generic set_bit_le()
-Date: Mon, 11 Jun 2012 14:10:26 +0000
-References: <20120611212735.f92ea521.yoshikawa.takuya@oss.ntt.co.jp> <20120611213101.5969fde5.yoshikawa.takuya@oss.ntt.co.jp>
-In-Reply-To: <20120611213101.5969fde5.yoshikawa.takuya@oss.ntt.co.jp>
+Subject: Re: [PATCH V2 0/6] Bridging PCI to amba
+Date: Mon, 11 Jun 2012 15:28:22 +0000
+References: <cover.1338220457.git.rubini@gnudd.com> <CACRpkdbPtR5MDjd1YZ5GhOdp61HQe2PJusudNPOhDQHUAt1kJA@mail.gmail.com>
+In-Reply-To: <CACRpkdbPtR5MDjd1YZ5GhOdp61HQe2PJusudNPOhDQHUAt1kJA@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: Text/Plain;
   charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Message-ID: <201206111410.26359.arnd@arndb.de>
+Message-ID: <201206111528.23034.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
-Cc: bhutchings@solarflare.com, grundler@parisc-linux.org, avi@redhat.com, mtosatti@redhat.com, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, takuya.yoshikawa@gmail.com
-Message-ID: <20120611141026.B9XmnIA7H1o6dIvM7jYxTZsH1nkT2gnMYe6Kg1vp5E8@z>
+To: Linus Walleij <linus.walleij@linaro.org>
+Cc: Alessandro Rubini <rubini@gnudd.com>, linux-kernel@vger.kernel.org, Giancarlo Asnaghi <giancarlo.asnaghi@st.com>, Alan Cox <alan@linux.intel.com>, Russell King <linux@arm.linux.org.uk>, x86@kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120611152822.Uy_4YZW0VNi_mXMh5kE9D_HOJ2wm2mEEc2WZPjqNRxg@z>
 
-On Monday 11 June 2012, Takuya Yoshikawa wrote:
-> From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+On Sunday 10 June 2012, Linus Walleij wrote:
+> On Mon, May 28, 2012 at 6:36 PM, Alessandro Rubini <rubini@gnudd.com> wrote:
 > 
-> Needed to replace test_and_set_bit_le() in virt/kvm/kvm_main.c which is
-> being used for this missing function.
+> > V2: accepted comments I got on V1; rewritten the driver to be generic;
+> >    made it tristate instead of boolean. Rebased on new next.
 > 
-> Signed-off-by: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
-> Cc: Arnd Bergmann <arnd@arndb.de>
+> This looks good to me.
+> Acked-by: Linus Walleij <linus.walleij@linaro.org>
+> 
+> I think this patch set could go through Arnd as arch maintainer?
+> It's fun with these cross-arch things. You'll need an ACK from
+> Russell first.
 
-I would recommend adding the corresponding clear_bit_le() along with
-set_bit_le, so the next person who needs that doesn't have to make
-yet another patch.
+I don't think it has much to do with code I maintain. Russell
+as the Primecell maintainer is the right person to take it through
+his tree.
 
 	Arnd
