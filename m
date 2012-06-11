@@ -1,39 +1,109 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:53467 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755706Ab2FKP2l (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jun 2012 11:28:41 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH V2 0/6] Bridging PCI to amba
-Date: Mon, 11 Jun 2012 15:28:22 +0000
-References: <cover.1338220457.git.rubini@gnudd.com> <CACRpkdbPtR5MDjd1YZ5GhOdp61HQe2PJusudNPOhDQHUAt1kJA@mail.gmail.com>
-In-Reply-To: <CACRpkdbPtR5MDjd1YZ5GhOdp61HQe2PJusudNPOhDQHUAt1kJA@mail.gmail.com>
+Received: from mail-we0-f174.google.com ([74.125.82.174]:47411 "EHLO
+	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755270Ab2FKPmr convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jun 2012 11:42:47 -0400
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201206111528.23034.arnd@arndb.de>
+In-Reply-To: <20120611213002.caaf0e05.yoshikawa.takuya@oss.ntt.co.jp>
+References: <20120611212735.f92ea521.yoshikawa.takuya@oss.ntt.co.jp>
+	<20120611213002.caaf0e05.yoshikawa.takuya@oss.ntt.co.jp>
+Date: Mon, 11 Jun 2012 08:42:45 -0700
+Message-ID: <CAP6odjjPAo+y_oZzBVFbOPVn=KkX-Oqycvkjo4CdNuUzNN4zkA@mail.gmail.com>
+Subject: Re: [PATCH 2/4] drivers/net/ethernet/dec/tulip: Add tulip_ prefix to set_bit_le()
+From: Grant Grundler <grantgrundler@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Walleij <linus.walleij@linaro.org>
-Cc: Alessandro Rubini <rubini@gnudd.com>, linux-kernel@vger.kernel.org, Giancarlo Asnaghi <giancarlo.asnaghi@st.com>, Alan Cox <alan@linux.intel.com>, Russell King <linux@arm.linux.org.uk>, x86@kernel.org, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120611152822.Uy_4YZW0VNi_mXMh5kE9D_HOJ2wm2mEEc2WZPjqNRxg@z>
+To: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+Cc: grundler@parisc-linux.org, bhutchings@solarflare.com, arnd@arndb.de, avi@redhat.com, mtosatti@redhat.com, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, takuya.yoshikawa@gmail.com
+Message-ID: <20120611154245.l1EQF6B-NYgk9OnFJoby01wnfEwymQ3WWsqn1j2MEoo@z>
 
-On Sunday 10 June 2012, Linus Walleij wrote:
-> On Mon, May 28, 2012 at 6:36 PM, Alessandro Rubini <rubini@gnudd.com> wrote:
-> 
-> > V2: accepted comments I got on V1; rewritten the driver to be generic;
-> >    made it tristate instead of boolean. Rebased on new next.
-> 
-> This looks good to me.
-> Acked-by: Linus Walleij <linus.walleij@linaro.org>
-> 
-> I think this patch set could go through Arnd as arch maintainer?
-> It's fun with these cross-arch things. You'll need an ACK from
-> Russell first.
+On Mon, Jun 11, 2012 at 5:30 AM, Takuya Yoshikawa
+<yoshikawa.takuya@oss.ntt.co.jp> wrote:
+> From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+>
+> Needed to introduce generic set_bit_le().
+>
+> Signed-off-by: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+> Cc: Grant Grundler <grundler@parisc-linux.org>
+> ---
+>  drivers/net/ethernet/dec/tulip/de2104x.c    |    7 +++----
+>  drivers/net/ethernet/dec/tulip/tulip_core.c |    7 +++----
+>  2 files changed, 6 insertions(+), 8 deletions(-)
+>
+> diff --git a/drivers/net/ethernet/dec/tulip/de2104x.c b/drivers/net/ethernet/dec/tulip/de2104x.c
+> index 61cc093..e635f1a 100644
+> --- a/drivers/net/ethernet/dec/tulip/de2104x.c
+> +++ b/drivers/net/ethernet/dec/tulip/de2104x.c
+> @@ -661,8 +661,7 @@ static netdev_tx_t de_start_xmit (struct sk_buff *skb,
+>    new frame, not around filling de->setup_frame.  This is non-deterministic
+>    when re-entered but still correct. */
+>
+> -#undef set_bit_le
+> -#define set_bit_le(i,p) do { ((char *)(p))[(i)/8] |= (1<<((i)%8)); } while(0)
+> +#define tulip_set_bit_le(i,p) do { ((char *)(p))[(i)/8] |= (1<<((i)%8)); } while(0)
 
-I don't think it has much to do with code I maintain. Russell
-as the Primecell maintainer is the right person to take it through
-his tree.
+I am ok with this patch going in. This code predates the clear
+understanding of bit_ops that we have now and will continue to work
+with this patch.
 
-	Arnd
+If you have time to follow Arnd's suggestion to use __set_bit_le()
+(and removing both local definitions), that would be better. Either
+way:
+
+Acked-by: Grant Grundler <grundler@parisc-linux.org>
+
+thanks!
+grant
+
+>
+>  static void build_setup_frame_hash(u16 *setup_frm, struct net_device *dev)
+>  {
+> @@ -673,12 +672,12 @@ static void build_setup_frame_hash(u16 *setup_frm, struct net_device *dev)
+>        u16 *eaddrs;
+>
+>        memset(hash_table, 0, sizeof(hash_table));
+> -       set_bit_le(255, hash_table);                    /* Broadcast entry */
+> +       tulip_set_bit_le(255, hash_table);              /* Broadcast entry */
+>        /* This should work on big-endian machines as well. */
+>        netdev_for_each_mc_addr(ha, dev) {
+>                int index = ether_crc_le(ETH_ALEN, ha->addr) & 0x1ff;
+>
+> -               set_bit_le(index, hash_table);
+> +               tulip_set_bit_le(index, hash_table);
+>        }
+>
+>        for (i = 0; i < 32; i++) {
+> diff --git a/drivers/net/ethernet/dec/tulip/tulip_core.c b/drivers/net/ethernet/dec/tulip/tulip_core.c
+> index c4f37ac..3a1ebd02 100644
+> --- a/drivers/net/ethernet/dec/tulip/tulip_core.c
+> +++ b/drivers/net/ethernet/dec/tulip/tulip_core.c
+> @@ -1010,8 +1010,7 @@ static int private_ioctl (struct net_device *dev, struct ifreq *rq, int cmd)
+>    new frame, not around filling tp->setup_frame.  This is non-deterministic
+>    when re-entered but still correct. */
+>
+> -#undef set_bit_le
+> -#define set_bit_le(i,p) do { ((char *)(p))[(i)/8] |= (1<<((i)%8)); } while(0)
+> +#define tulip_set_bit_le(i,p) do { ((char *)(p))[(i)/8] |= (1<<((i)%8)); } while(0)
+>
+>  static void build_setup_frame_hash(u16 *setup_frm, struct net_device *dev)
+>  {
+> @@ -1022,12 +1021,12 @@ static void build_setup_frame_hash(u16 *setup_frm, struct net_device *dev)
+>        u16 *eaddrs;
+>
+>        memset(hash_table, 0, sizeof(hash_table));
+> -       set_bit_le(255, hash_table);                    /* Broadcast entry */
+> +       tulip_set_bit_le(255, hash_table);              /* Broadcast entry */
+>        /* This should work on big-endian machines as well. */
+>        netdev_for_each_mc_addr(ha, dev) {
+>                int index = ether_crc_le(ETH_ALEN, ha->addr) & 0x1ff;
+>
+> -               set_bit_le(index, hash_table);
+> +               tulip_set_bit_le(index, hash_table);
+>        }
+>        for (i = 0; i < 32; i++) {
+>                *setup_frm++ = hash_table[i];
+> --
+> 1.7.5.4
+>
