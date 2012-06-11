@@ -1,42 +1,46 @@
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH 1/6] sh: fix compiler warning by properly inlining
- flat_set_persistent()
-Date: Mon, 11 Jun 2012 12:50:05 +0900
-Message-ID: <20120611035005.GC10170@linux-sh.org>
-References: <1339229611-2326-1-git-send-email-elezegarcia@gmail.com>
- <20120609091426.GA10170@linux-sh.org>
- <CALF0-+U-FHtb3Z+JEHoY9Jm9yhgeTasQR0nX5AwVM1Ah1+JKAg@mail.gmail.com>
+From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+Subject: [PATCH 4/4] KVM: Replace test_and_set_bit_le() in
+ mark_page_dirty_in_slot() with set_bit_le()
+Date: Mon, 11 Jun 2012 21:32:21 +0900
+Message-ID: <20120611213221.a48fc664.yoshikawa.takuya@oss.ntt.co.jp>
+References: <20120611212735.f92ea521.yoshikawa.takuya@oss.ntt.co.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-sh-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CALF0-+U-FHtb3Z+JEHoY9Jm9yhgeTasQR0nX5AwVM1Ah1+JKAg@mail.gmail.com>
-Sender: linux-sh-owner@vger.kernel.org
-To: Ezequiel Garcia <elezegarcia@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-sh@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from tama50.ecl.ntt.co.jp ([129.60.39.147]:54955 "EHLO
+	tama50.ecl.ntt.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754422Ab2FKMxJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jun 2012 08:53:09 -0400
+In-Reply-To: <20120611212735.f92ea521.yoshikawa.takuya@oss.ntt.co.jp>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: avi@redhat.com, mtosatti@redhat.com
+Cc: bhutchings@solarflare.com, grundler@parisc-linux.org, arnd@arndb.de, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, takuya.yoshikawa@gmail.com
 
-On Sun, Jun 10, 2012 at 06:33:10PM -0300, Ezequiel Garcia wrote:
-> On Sat, Jun 9, 2012 at 6:14 AM, Paul Mundt <lethal@linux-sh.org> wrote:
-> > On Sat, Jun 09, 2012 at 05:13:26AM -0300, Ezequiel Garcia wrote:
-> >> This patch removes the following warning:
-> >> fs/binfmt_flat.c:752: warning: unused variable ???persistent???
-> >> There is neither change in functionality, nor extra code generated.
-> >>
-> >> Cc: Paul Mundt <lethal@linux-sh.org>
-> >> Cc: <linux-sh@vger.kernel.org>
-> >> Signed-off-by: Ezequiel Garcia <elezegarcia@gmail.com>
-> >
-> > That's what the cast was for, with what gcc version did that stop
-> > working?
-> 
-> I just realized that I should send a v2 (not the whole series just this one)
-> correcting the commit message, since there wasn't a warning to fix
-> in first place.
-> 
-> I'll do this soon.
+From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
 
-If there's no warning then the point of the patch eludes me. There's
-nothing wrong with consistency, but attempting to fix that which isn't
-broken in the name of consistency borders a bit too closely on pointless
-busy work for my liking.
+Now that we have defined generic set_bit_le() we do not need to use
+test_and_set_bit_le() for atomically setting a bit.
+
+Signed-off-by: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+---
+ virt/kvm/kvm_main.c |    3 +--
+ 1 files changed, 1 insertions(+), 2 deletions(-)
+
+diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
+index 02cb440..560c502 100644
+--- a/virt/kvm/kvm_main.c
++++ b/virt/kvm/kvm_main.c
+@@ -1485,8 +1485,7 @@ void mark_page_dirty_in_slot(struct kvm *kvm, struct kvm_memory_slot *memslot,
+ 	if (memslot && memslot->dirty_bitmap) {
+ 		unsigned long rel_gfn = gfn - memslot->base_gfn;
+ 
+-		/* TODO: introduce set_bit_le() and use it */
+-		test_and_set_bit_le(rel_gfn, memslot->dirty_bitmap);
++		set_bit_le(rel_gfn, memslot->dirty_bitmap);
+ 	}
+ }
+ 
+-- 
+1.7.5.4
