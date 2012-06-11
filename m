@@ -1,56 +1,44 @@
-From: Ezequiel Garcia <elezegarcia@gmail.com>
-Subject: Re: [PATCH 1/6] sh: fix compiler warning by properly inlining flat_set_persistent()
-Date: Mon, 11 Jun 2012 13:29:07 -0300
-Message-ID: <CALF0-+UDQO9sATy1iTELW70Rd6pDMVumsbksu6GJTYOyZSawTA@mail.gmail.com>
-References: <1339229611-2326-1-git-send-email-elezegarcia@gmail.com>
-	<20120609091426.GA10170@linux-sh.org>
-	<CALF0-+U-FHtb3Z+JEHoY9Jm9yhgeTasQR0nX5AwVM1Ah1+JKAg@mail.gmail.com>
-	<20120611035005.GC10170@linux-sh.org>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH] include: Fix compile warning in include/linux/bitops.h
+Date: Mon, 11 Jun 2012 15:59:19 -0700
+Message-ID: <20120611155919.7decee80.akpm@linux-foundation.org>
+References: <1339211730-10398-1-git-send-email-linkinjeon@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f174.google.com ([209.85.214.174]:57796 "EHLO
-	mail-ob0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754779Ab2FKQ3H (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jun 2012 12:29:07 -0400
-In-Reply-To: <20120611035005.GC10170@linux-sh.org>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:58184 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751664Ab2FKW7V (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jun 2012 18:59:21 -0400
+In-Reply-To: <1339211730-10398-1-git-send-email-linkinjeon@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-sh@vger.kernel.org
+To: Namjae Jeon <linkinjeon@gmail.com>
+Cc: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Mon, Jun 11, 2012 at 12:50 AM, Paul Mundt <lethal@linux-sh.org> wrote:
-> On Sun, Jun 10, 2012 at 06:33:10PM -0300, Ezequiel Garcia wrote:
->> On Sat, Jun 9, 2012 at 6:14 AM, Paul Mundt <lethal@linux-sh.org> wrote:
->> > On Sat, Jun 09, 2012 at 05:13:26AM -0300, Ezequiel Garcia wrote:
->> >> This patch removes the following warning:
->> >> fs/binfmt_flat.c:752: warning: unused variable ???persistent???
->> >> There is neither change in functionality, nor extra code generated.
->> >>
->> >> Cc: Paul Mundt <lethal@linux-sh.org>
->> >> Cc: <linux-sh@vger.kernel.org>
->> >> Signed-off-by: Ezequiel Garcia <elezegarcia@gmail.com>
->> >
->> > That's what the cast was for, with what gcc version did that stop
->> > working?
->>
->> I just realized that I should send a v2 (not the whole series just this one)
->> correcting the commit message, since there wasn't a warning to fix
->> in first place.
->>
->> I'll do this soon.
->
-> If there's no warning then the point of the patch eludes me. There's
-> nothing wrong with consistency, but attempting to fix that which isn't
-> broken in the name of consistency borders a bit too closely on pointless
-> busy work for my liking.
+On Fri,  8 Jun 2012 23:15:30 -0400
+Namjae Jeon <linkinjeon@gmail.com> wrote:
 
-If you feel like that, then it's perfectly fine with me.
-As I already told you, I was going to propagate your magical define to
-the rest of arches,
-but the inline looked a bit more readable.
+> The compile warning is caused by __const_hweight8 when using
+> hweight_long with -Wsign-compare option.
+> The reason is that the default return value of this macro is signed.
+> So need type casting to remove warning.
 
-Sorry for the noise and thanks for your time.
+um, what warning?
 
-Regards,
-Ezequiel.
+Please always quote the compiler messages when fixing build warnings or
+errors.
+
+> index fa2a50b..3ad0dae 100644
+> --- a/include/asm-generic/bitops/const_hweight.h
+> +++ b/include/asm-generic/bitops/const_hweight.h
+> @@ -4,7 +4,7 @@
+>  /*
+>   * Compile time versions of __arch_hweightN()
+>   */
+> -#define __const_hweight8(w)		\
+> +#define __const_hweight8(w)	(unsigned long)	\
+>        (	(!!((w) & (1ULL << 0))) +	\
+>  	(!!((w) & (1ULL << 1))) +	\
+>  	(!!((w) & (1ULL << 2))) +	\
