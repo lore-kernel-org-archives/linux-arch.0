@@ -1,47 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from linux-sh.org ([111.68.239.195]:49100 "EHLO linux-sh.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753566Ab2FKDuJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sun, 10 Jun 2012 23:50:09 -0400
-Date: Mon, 11 Jun 2012 12:50:05 +0900
-From: Paul Mundt <lethal@linux-sh.org>
-Subject: Re: [PATCH 1/6] sh: fix compiler warning by properly inlining
- flat_set_persistent()
-Message-ID: <20120611035005.GC10170@linux-sh.org>
-References: <1339229611-2326-1-git-send-email-elezegarcia@gmail.com>
- <20120609091426.GA10170@linux-sh.org>
- <CALF0-+U-FHtb3Z+JEHoY9Jm9yhgeTasQR0nX5AwVM1Ah1+JKAg@mail.gmail.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CALF0-+U-FHtb3Z+JEHoY9Jm9yhgeTasQR0nX5AwVM1Ah1+JKAg@mail.gmail.com>
+Received: from tama500.ecl.ntt.co.jp ([129.60.39.148]:42754 "EHLO
+	tama500.ecl.ntt.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751954Ab2FKMxh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jun 2012 08:53:37 -0400
+Date: Mon, 11 Jun 2012 21:27:35 +0900
+From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+Subject: [PATCH 0/4] Introduce generic set_bit_le()
+Message-ID: <20120611212735.f92ea521.yoshikawa.takuya@oss.ntt.co.jp>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ezequiel Garcia <elezegarcia@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-sh@vger.kernel.org
-Message-ID: <20120611035005.E_hSsqkilR-NscBt7lz5EEpzArsGw9taDClxITYjW8Q@z>
+To: bhutchings@solarflare.com, grundler@parisc-linux.org, arnd@arndb.de, avi@redhat.com, mtosatti@redhat.com
+Cc: linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, takuya.yoshikawa@gmail.com
+Message-ID: <20120611122735.qPXi72uuYn9qBZW_dt7z4fSpgps0Fs6rs8g0QA5Wj-Y@z>
 
-On Sun, Jun 10, 2012 at 06:33:10PM -0300, Ezequiel Garcia wrote:
-> On Sat, Jun 9, 2012 at 6:14 AM, Paul Mundt <lethal@linux-sh.org> wrote:
-> > On Sat, Jun 09, 2012 at 05:13:26AM -0300, Ezequiel Garcia wrote:
-> >> This patch removes the following warning:
-> >> fs/binfmt_flat.c:752: warning: unused variable ???persistent???
-> >> There is neither change in functionality, nor extra code generated.
-> >>
-> >> Cc: Paul Mundt <lethal@linux-sh.org>
-> >> Cc: <linux-sh@vger.kernel.org>
-> >> Signed-off-by: Ezequiel Garcia <elezegarcia@gmail.com>
-> >
-> > That's what the cast was for, with what gcc version did that stop
-> > working?
-> 
-> I just realized that I should send a v2 (not the whole series just this one)
-> correcting the commit message, since there wasn't a warning to fix
-> in first place.
-> 
-> I'll do this soon.
+KVM is using test_and_set_bit_le() for this missing function; this patch
+series corrects this usage.
 
-If there's no warning then the point of the patch eludes me. There's
-nothing wrong with consistency, but attempting to fix that which isn't
-broken in the name of consistency borders a bit too closely on pointless
-busy work for my liking.
+As some drivers have their own definitions of set_bit_le(), which seem
+to be incompatible with the generic one, renaming is also needed.
+
+Note: the whole series is against linux-next.
+
+Takuya Yoshikawa (4):
+  drivers/net/ethernet/sfc: Add efx_ prefix to set_bit_le()
+  drivers/net/ethernet/dec/tulip: Add tulip_ prefix to set_bit_le()
+  bitops: Introduce generic set_bit_le()
+  KVM: Replace test_and_set_bit_le() in mark_page_dirty_in_slot() with set_bit_le()
+
+ drivers/net/ethernet/dec/tulip/de2104x.c    |    7 +++----
+ drivers/net/ethernet/dec/tulip/tulip_core.c |    7 +++----
+ drivers/net/ethernet/sfc/efx.c              |    4 ++--
+ drivers/net/ethernet/sfc/net_driver.h       |    4 ++--
+ drivers/net/ethernet/sfc/nic.c              |    4 ++--
+ include/asm-generic/bitops/le.h             |    5 +++++
+ virt/kvm/kvm_main.c                         |    3 +--
+ 7 files changed, 18 insertions(+), 16 deletions(-)
+
+-- 
+1.7.5.4
+
