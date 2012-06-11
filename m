@@ -1,124 +1,56 @@
-From: Grant Grundler <grantgrundler@gmail.com>
-Subject: Re: [PATCH 2/4] drivers/net/ethernet/dec/tulip: Add tulip_ prefix to set_bit_le()
-Date: Mon, 11 Jun 2012 08:42:45 -0700
-Message-ID: <CAP6odjjPAo+y_oZzBVFbOPVn=KkX-Oqycvkjo4CdNuUzNN4zkA@mail.gmail.com>
-References: <20120611212735.f92ea521.yoshikawa.takuya@oss.ntt.co.jp>
-	<20120611213002.caaf0e05.yoshikawa.takuya@oss.ntt.co.jp>
+From: Ezequiel Garcia <elezegarcia@gmail.com>
+Subject: Re: [PATCH 1/6] sh: fix compiler warning by properly inlining flat_set_persistent()
+Date: Mon, 11 Jun 2012 13:29:07 -0300
+Message-ID: <CALF0-+UDQO9sATy1iTELW70Rd6pDMVumsbksu6GJTYOyZSawTA@mail.gmail.com>
+References: <1339229611-2326-1-git-send-email-elezegarcia@gmail.com>
+	<20120609091426.GA10170@linux-sh.org>
+	<CALF0-+U-FHtb3Z+JEHoY9Jm9yhgeTasQR0nX5AwVM1Ah1+JKAg@mail.gmail.com>
+	<20120611035005.GC10170@linux-sh.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <kvm-owner@vger.kernel.org>
-In-Reply-To: <20120611213002.caaf0e05.yoshikawa.takuya@oss.ntt.co.jp>
-Sender: kvm-owner@vger.kernel.org
-To: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
-Cc: grundler@parisc-linux.org, bhutchings@solarflare.com, arnd@arndb.de, avi@redhat.com, mtosatti@redhat.com, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, takuya.yoshikawa@gmail.com
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ob0-f174.google.com ([209.85.214.174]:57796 "EHLO
+	mail-ob0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754779Ab2FKQ3H (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jun 2012 12:29:07 -0400
+In-Reply-To: <20120611035005.GC10170@linux-sh.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Paul Mundt <lethal@linux-sh.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-sh@vger.kernel.org
 
-On Mon, Jun 11, 2012 at 5:30 AM, Takuya Yoshikawa
-<yoshikawa.takuya@oss.ntt.co.jp> wrote:
-> From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+On Mon, Jun 11, 2012 at 12:50 AM, Paul Mundt <lethal@linux-sh.org> wrote:
+> On Sun, Jun 10, 2012 at 06:33:10PM -0300, Ezequiel Garcia wrote:
+>> On Sat, Jun 9, 2012 at 6:14 AM, Paul Mundt <lethal@linux-sh.org> wrote:
+>> > On Sat, Jun 09, 2012 at 05:13:26AM -0300, Ezequiel Garcia wrote:
+>> >> This patch removes the following warning:
+>> >> fs/binfmt_flat.c:752: warning: unused variable ???persistent???
+>> >> There is neither change in functionality, nor extra code generated.
+>> >>
+>> >> Cc: Paul Mundt <lethal@linux-sh.org>
+>> >> Cc: <linux-sh@vger.kernel.org>
+>> >> Signed-off-by: Ezequiel Garcia <elezegarcia@gmail.com>
+>> >
+>> > That's what the cast was for, with what gcc version did that stop
+>> > working?
+>>
+>> I just realized that I should send a v2 (not the whole series just this one)
+>> correcting the commit message, since there wasn't a warning to fix
+>> in first place.
+>>
+>> I'll do this soon.
 >
-> Needed to introduce generic set_bit_le().
->
-> Signed-off-by: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
-> Cc: Grant Grundler <grundler@parisc-linux.org>
-> ---
-> =A0drivers/net/ethernet/dec/tulip/de2104x.c =A0 =A0| =A0 =A07 +++----
-> =A0drivers/net/ethernet/dec/tulip/tulip_core.c | =A0 =A07 +++----
-> =A02 files changed, 6 insertions(+), 8 deletions(-)
->
-> diff --git a/drivers/net/ethernet/dec/tulip/de2104x.c b/drivers/net/e=
-thernet/dec/tulip/de2104x.c
-> index 61cc093..e635f1a 100644
-> --- a/drivers/net/ethernet/dec/tulip/de2104x.c
-> +++ b/drivers/net/ethernet/dec/tulip/de2104x.c
-> @@ -661,8 +661,7 @@ static netdev_tx_t de_start_xmit (struct sk_buff =
-*skb,
-> =A0 =A0new frame, not around filling de->setup_frame. =A0This is non-=
-deterministic
-> =A0 =A0when re-entered but still correct. */
->
-> -#undef set_bit_le
-> -#define set_bit_le(i,p) do { ((char *)(p))[(i)/8] |=3D (1<<((i)%8));=
- } while(0)
-> +#define tulip_set_bit_le(i,p) do { ((char *)(p))[(i)/8] |=3D (1<<((i=
-)%8)); } while(0)
+> If there's no warning then the point of the patch eludes me. There's
+> nothing wrong with consistency, but attempting to fix that which isn't
+> broken in the name of consistency borders a bit too closely on pointless
+> busy work for my liking.
 
-I am ok with this patch going in. This code predates the clear
-understanding of bit_ops that we have now and will continue to work
-with this patch.
+If you feel like that, then it's perfectly fine with me.
+As I already told you, I was going to propagate your magical define to
+the rest of arches,
+but the inline looked a bit more readable.
 
-If you have time to follow Arnd's suggestion to use __set_bit_le()
-(and removing both local definitions), that would be better. Either
-way:
+Sorry for the noise and thanks for your time.
 
-Acked-by: Grant Grundler <grundler@parisc-linux.org>
-
-thanks!
-grant
-
->
-> =A0static void build_setup_frame_hash(u16 *setup_frm, struct net_devi=
-ce *dev)
-> =A0{
-> @@ -673,12 +672,12 @@ static void build_setup_frame_hash(u16 *setup_f=
-rm, struct net_device *dev)
-> =A0 =A0 =A0 =A0u16 *eaddrs;
->
-> =A0 =A0 =A0 =A0memset(hash_table, 0, sizeof(hash_table));
-> - =A0 =A0 =A0 set_bit_le(255, hash_table); =A0 =A0 =A0 =A0 =A0 =A0 =A0=
- =A0 =A0 =A0/* Broadcast entry */
-> + =A0 =A0 =A0 tulip_set_bit_le(255, hash_table); =A0 =A0 =A0 =A0 =A0 =
-=A0 =A0/* Broadcast entry */
-> =A0 =A0 =A0 =A0/* This should work on big-endian machines as well. */
-> =A0 =A0 =A0 =A0netdev_for_each_mc_addr(ha, dev) {
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0int index =3D ether_crc_le(ETH_ALEN, h=
-a->addr) & 0x1ff;
->
-> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 set_bit_le(index, hash_table);
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 tulip_set_bit_le(index, hash_table);
-> =A0 =A0 =A0 =A0}
->
-> =A0 =A0 =A0 =A0for (i =3D 0; i < 32; i++) {
-> diff --git a/drivers/net/ethernet/dec/tulip/tulip_core.c b/drivers/ne=
-t/ethernet/dec/tulip/tulip_core.c
-> index c4f37ac..3a1ebd02 100644
-> --- a/drivers/net/ethernet/dec/tulip/tulip_core.c
-> +++ b/drivers/net/ethernet/dec/tulip/tulip_core.c
-> @@ -1010,8 +1010,7 @@ static int private_ioctl (struct net_device *de=
-v, struct ifreq *rq, int cmd)
-> =A0 =A0new frame, not around filling tp->setup_frame. =A0This is non-=
-deterministic
-> =A0 =A0when re-entered but still correct. */
->
-> -#undef set_bit_le
-> -#define set_bit_le(i,p) do { ((char *)(p))[(i)/8] |=3D (1<<((i)%8));=
- } while(0)
-> +#define tulip_set_bit_le(i,p) do { ((char *)(p))[(i)/8] |=3D (1<<((i=
-)%8)); } while(0)
->
-> =A0static void build_setup_frame_hash(u16 *setup_frm, struct net_devi=
-ce *dev)
-> =A0{
-> @@ -1022,12 +1021,12 @@ static void build_setup_frame_hash(u16 *setup=
-_frm, struct net_device *dev)
-> =A0 =A0 =A0 =A0u16 *eaddrs;
->
-> =A0 =A0 =A0 =A0memset(hash_table, 0, sizeof(hash_table));
-> - =A0 =A0 =A0 set_bit_le(255, hash_table); =A0 =A0 =A0 =A0 =A0 =A0 =A0=
- =A0 =A0 =A0/* Broadcast entry */
-> + =A0 =A0 =A0 tulip_set_bit_le(255, hash_table); =A0 =A0 =A0 =A0 =A0 =
-=A0 =A0/* Broadcast entry */
-> =A0 =A0 =A0 =A0/* This should work on big-endian machines as well. */
-> =A0 =A0 =A0 =A0netdev_for_each_mc_addr(ha, dev) {
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0int index =3D ether_crc_le(ETH_ALEN, h=
-a->addr) & 0x1ff;
->
-> - =A0 =A0 =A0 =A0 =A0 =A0 =A0 set_bit_le(index, hash_table);
-> + =A0 =A0 =A0 =A0 =A0 =A0 =A0 tulip_set_bit_le(index, hash_table);
-> =A0 =A0 =A0 =A0}
-> =A0 =A0 =A0 =A0for (i =3D 0; i < 32; i++) {
-> =A0 =A0 =A0 =A0 =A0 =A0 =A0 =A0*setup_frm++ =3D hash_table[i];
-> --
-> 1.7.5.4
->
+Regards,
+Ezequiel.
