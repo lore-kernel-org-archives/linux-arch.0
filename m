@@ -1,39 +1,66 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/4] drivers/net/ethernet/sfc: Add efx_ prefix to set_bit_le()
-Date: Tue, 12 Jun 2012 13:12:32 +0000
-Message-ID: <201206121312.32301.arnd@arndb.de>
-References: <20120611212735.f92ea521.yoshikawa.takuya@oss.ntt.co.jp> <201206111409.16093.arnd@arndb.de> <20120612220654.fd0246e6e687f7c79e5c988c@gmail.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: [PATCH] sched/numa: fix compat declarations for sys_numa_{t,m}bind()
+Date: Tue, 12 Jun 2012 13:18:19 -0400
+Message-ID: <201206121724.q5CHOaeU002148@farm-0023.internal.tilera.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:63706 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752117Ab2FLNMn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jun 2012 09:12:43 -0400
-In-Reply-To: <20120612220654.fd0246e6e687f7c79e5c988c@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
-Cc: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>, bhutchings@solarflare.com, grundler@parisc-linux.org, avi@redhat.com, mtosatti@redhat.com, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 12 June 2012, Takuya Yoshikawa wrote:
-> > 
-> > Hmm, any reason why we're not just using the existing non-atomic
-> > __set_bit_le() here? I think the helpers in sfc and tulip can
-> > just get removed if you use those.
-> 
-> __set_bit_le() assumes long word alignment and does endian conversion
-> when needed.
+The asm-generic code needs actual declarations of the routines,
+and the syscall entries need to reference the correct names.
 
-Ah, I see.
+Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
+---
+The tilegx architecture is currently broken in linux-next because
+of this issue.
+
+However, although this fixes the problem, I'd like to question the use of
+"compat" syscall entries here at all.  The syscalls in question take only
+"int" and "unsigned long" arguments, so it would seem that you could
+use them directly from compat userspace.  The compat code present in
+the original commit just calls onward to the normal versions without
+any other changes, so I think it should be sufficient to use a model
+more like sys_mprotect, for example, where there is no compat function.
+
+ include/asm-generic/unistd.h |    4 ++--
+ include/linux/compat.h       |    6 ++++++
+ 2 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
+index 4dfef49..43c6b8d 100644
+--- a/include/asm-generic/unistd.h
++++ b/include/asm-generic/unistd.h
+@@ -692,9 +692,9 @@ __SC_COMP(__NR_process_vm_readv, sys_process_vm_readv, \
+ __SC_COMP(__NR_process_vm_writev, sys_process_vm_writev, \
+           compat_sys_process_vm_writev)
+ #define __NR_numa_mbind 272
+-__SC_COMP(__NR_numa_mbind, sys_numa_mbind, compat_sys_ms_mbind)
++__SC_COMP(__NR_numa_mbind, sys_numa_mbind, compat_sys_numa_mbind)
+ #define __NR_numa_tbind 273
+-__SC_COMP(__NR_numa_tbind, sys_numa_tbind, compat_sys_ms_tbind)
++__SC_COMP(__NR_numa_tbind, sys_numa_tbind, compat_sys_numa_tbind)
  
-> To be honest, I am a bit scared of changing drivers which I cannot test
-> on real hardware.
-
-Ok, let's take your patches as they are then.
-
-With the change to add clear_bit_le:
-
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+ #undef __NR_syscalls
+ #define __NR_syscalls 274
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index 4e89039..bb081e1 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -590,6 +590,12 @@ asmlinkage ssize_t compat_sys_process_vm_writev(compat_pid_t pid,
+ 		unsigned long liovcnt, const struct compat_iovec __user *rvec,
+ 		unsigned long riovcnt, unsigned long flags);
+ 
++asmlinkage long compat_sys_numa_mbind(compat_ulong_t addr, compat_ulong_t len,
++				      compat_int_t ng_id,
++                                      compat_ulong_t flags);
++asmlinkage long compat_sys_numa_tbind(compat_int_t tid, compat_int_t ng_id,
++				      compat_ulong_t flags);
++
+ #else
+ 
+ #define is_compat_task() (0)
+-- 
+1.7.10.3
