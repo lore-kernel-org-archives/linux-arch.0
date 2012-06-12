@@ -1,44 +1,72 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f46.google.com ([209.85.160.46]:47542 "EHLO
-	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752509Ab2FLNKU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jun 2012 09:10:20 -0400
-Date: Tue, 12 Jun 2012 22:10:15 +0900
-From: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
-Subject: Re: [PATCH 3/4] bitops: Introduce generic set_bit_le()
-Message-ID: <20120612221015.53873334995f69573827c370@gmail.com>
-In-Reply-To: <201206111410.26359.arnd@arndb.de>
-References: <20120611212735.f92ea521.yoshikawa.takuya@oss.ntt.co.jp>
-	<20120611213101.5969fde5.yoshikawa.takuya@oss.ntt.co.jp>
-	<201206111410.26359.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from usmamail.tilera.com ([12.216.194.151]:21226 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752843Ab2FLRYi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jun 2012 13:24:38 -0400
+Message-ID: <201206121724.q5CHOaeU002148@farm-0023.internal.tilera.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Date: Tue, 12 Jun 2012 13:18:19 -0400
+Subject: [PATCH] sched/numa: fix compat declarations for sys_numa_{t,m}bind()
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>, bhutchings@solarflare.com, grundler@parisc-linux.org, avi@redhat.com, mtosatti@redhat.com, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org
-Message-ID: <20120612131015.TWyn6ZctGVrnwgwxVsjRqDujQxo_KB08KXCXva-ZN10@z>
+To: Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120612171819.nlhaC6-oAouF80Yff1561AXmdrC0DR0aHdtlpe2M1g8@z>
 
-On Mon, 11 Jun 2012 14:10:26 +0000
-Arnd Bergmann <arnd@arndb.de> wrote:
+The asm-generic code needs actual declarations of the routines,
+and the syscall entries need to reference the correct names.
 
-> On Monday 11 June 2012, Takuya Yoshikawa wrote:
-> > From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
-> > 
-> > Needed to replace test_and_set_bit_le() in virt/kvm/kvm_main.c which is
-> > being used for this missing function.
-> > 
-> > Signed-off-by: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
-> > Cc: Arnd Bergmann <arnd@arndb.de>
-> 
-> I would recommend adding the corresponding clear_bit_le() along with
-> set_bit_le, so the next person who needs that doesn't have to make
-> yet another patch.
+Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
+---
+The tilegx architecture is currently broken in linux-next because
+of this issue.
 
-I will do in the next version.
+However, although this fixes the problem, I'd like to question the use of
+"compat" syscall entries here at all.  The syscalls in question take only
+"int" and "unsigned long" arguments, so it would seem that you could
+use them directly from compat userspace.  The compat code present in
+the original commit just calls onward to the normal versions without
+any other changes, so I think it should be sufficient to use a model
+more like sys_mprotect, for example, where there is no compat function.
 
-Now I have also noticed that I need to add the same code to powerpc's
-bitops file.
+ include/asm-generic/unistd.h |    4 ++--
+ include/linux/compat.h       |    6 ++++++
+ 2 files changed, 8 insertions(+), 2 deletions(-)
 
-	Takuya
+diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
+index 4dfef49..43c6b8d 100644
+--- a/include/asm-generic/unistd.h
++++ b/include/asm-generic/unistd.h
+@@ -692,9 +692,9 @@ __SC_COMP(__NR_process_vm_readv, sys_process_vm_readv, \
+ __SC_COMP(__NR_process_vm_writev, sys_process_vm_writev, \
+           compat_sys_process_vm_writev)
+ #define __NR_numa_mbind 272
+-__SC_COMP(__NR_numa_mbind, sys_numa_mbind, compat_sys_ms_mbind)
++__SC_COMP(__NR_numa_mbind, sys_numa_mbind, compat_sys_numa_mbind)
+ #define __NR_numa_tbind 273
+-__SC_COMP(__NR_numa_tbind, sys_numa_tbind, compat_sys_ms_tbind)
++__SC_COMP(__NR_numa_tbind, sys_numa_tbind, compat_sys_numa_tbind)
+ 
+ #undef __NR_syscalls
+ #define __NR_syscalls 274
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index 4e89039..bb081e1 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -590,6 +590,12 @@ asmlinkage ssize_t compat_sys_process_vm_writev(compat_pid_t pid,
+ 		unsigned long liovcnt, const struct compat_iovec __user *rvec,
+ 		unsigned long riovcnt, unsigned long flags);
+ 
++asmlinkage long compat_sys_numa_mbind(compat_ulong_t addr, compat_ulong_t len,
++				      compat_int_t ng_id,
++                                      compat_ulong_t flags);
++asmlinkage long compat_sys_numa_tbind(compat_int_t tid, compat_int_t ng_id,
++				      compat_ulong_t flags);
++
+ #else
+ 
+ #define is_compat_task() (0)
+-- 
+1.7.10.3
+
