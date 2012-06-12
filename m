@@ -1,44 +1,56 @@
-From: Andrew Morton <akpm@linux-foundation.org>
+From: Namjae Jeon <linkinjeon@gmail.com>
 Subject: Re: [PATCH] include: Fix compile warning in include/linux/bitops.h
-Date: Mon, 11 Jun 2012 15:59:19 -0700
-Message-ID: <20120611155919.7decee80.akpm@linux-foundation.org>
+Date: Tue, 12 Jun 2012 09:05:40 +0900
+Message-ID: <CAKYAXd_7SeWb0TN=nWCWLrj2bKOTq1QYpjksagR6HbXvnhyhxQ@mail.gmail.com>
 References: <1339211730-10398-1-git-send-email-linkinjeon@gmail.com>
+	<20120611155919.7decee80.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:58184 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751664Ab2FKW7V (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jun 2012 18:59:21 -0400
-In-Reply-To: <1339211730-10398-1-git-send-email-linkinjeon@gmail.com>
+Received: from mail-wg0-f42.google.com ([74.125.82.42]:60313 "EHLO
+	mail-wg0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752761Ab2FLAFm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jun 2012 20:05:42 -0400
+In-Reply-To: <20120611155919.7decee80.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Namjae Jeon <linkinjeon@gmail.com>
+To: Andrew Morton <akpm@linux-foundation.org>
 Cc: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri,  8 Jun 2012 23:15:30 -0400
-Namjae Jeon <linkinjeon@gmail.com> wrote:
+2012/6/12, Andrew Morton <akpm@linux-foundation.org>:
+> On Fri,  8 Jun 2012 23:15:30 -0400
+> Namjae Jeon <linkinjeon@gmail.com> wrote:
+>
+>> The compile warning is caused by __const_hweight8 when using
+>> hweight_long with -Wsign-compare option.
+>> The reason is that the default return value of this macro is signed.
+>> So need type casting to remove warning.
+>
+> um, what warning?
+Hi Andrew.
+Sorry, I forgot it.
+When we use hwight_long function, We can see the below warning message.
 
-> The compile warning is caused by __const_hweight8 when using
-> hweight_long with -Wsign-compare option.
-> The reason is that the default return value of this macro is signed.
-> So need type casting to remove warning.
+include/linux/bitops.h: In function 'hweight_long':
+include/linux/bitops.h:49: warning: signed and unsigned type in
+conditional expression
 
-um, what warning?
-
-Please always quote the compiler messages when fixing build warnings or
-errors.
-
-> index fa2a50b..3ad0dae 100644
-> --- a/include/asm-generic/bitops/const_hweight.h
-> +++ b/include/asm-generic/bitops/const_hweight.h
-> @@ -4,7 +4,7 @@
->  /*
->   * Compile time versions of __arch_hweightN()
->   */
-> -#define __const_hweight8(w)		\
-> +#define __const_hweight8(w)	(unsigned long)	\
->        (	(!!((w) & (1ULL << 0))) +	\
->  	(!!((w) & (1ULL << 1))) +	\
->  	(!!((w) & (1ULL << 2))) +	\
+Thanks a lot.
+>
+> Please always quote the compiler messages when fixing build warnings or
+> errors.
+>
+>> index fa2a50b..3ad0dae 100644
+>> --- a/include/asm-generic/bitops/const_hweight.h
+>> +++ b/include/asm-generic/bitops/const_hweight.h
+>> @@ -4,7 +4,7 @@
+>>  /*
+>>   * Compile time versions of __arch_hweightN()
+>>   */
+>> -#define __const_hweight8(w)		\
+>> +#define __const_hweight8(w)	(unsigned long)	\
+>>        (	(!!((w) & (1ULL << 0))) +	\
+>>  	(!!((w) & (1ULL << 1))) +	\
+>>  	(!!((w) & (1ULL << 2))) +	\
+>
+>
