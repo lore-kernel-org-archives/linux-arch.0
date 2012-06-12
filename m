@@ -1,72 +1,105 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:21226 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752843Ab2FLRYi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jun 2012 13:24:38 -0400
-Message-ID: <201206121724.q5CHOaeU002148@farm-0023.internal.tilera.com>
-From: Chris Metcalf <cmetcalf@tilera.com>
-Date: Tue, 12 Jun 2012 13:18:19 -0400
-Subject: [PATCH] sched/numa: fix compat declarations for sys_numa_{t,m}bind()
+Received: from webmail.solarflare.com ([12.187.104.25]:12970 "EHLO
+	ocex02.SolarFlarecom.com" rhost-flags-OK-OK-OK-FAIL)
+	by vger.kernel.org with ESMTP id S1752061Ab2FLTXi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 12 Jun 2012 15:23:38 -0400
+Message-ID: <1339529010.2711.5.camel@bwh-desktop.uk.solarflarecom.com>
+Subject: [PATCH] sfc: Use standard __{clear,set}_bit_le() functions
+From: Ben Hutchings <bhutchings@solarflare.com>
+Date: Tue, 12 Jun 2012 20:23:30 +0100
+In-Reply-To: <20120611212901.2b4d0a17.yoshikawa.takuya@oss.ntt.co.jp>
+References: <20120611212735.f92ea521.yoshikawa.takuya@oss.ntt.co.jp>
+	 <20120611212901.2b4d0a17.yoshikawa.takuya@oss.ntt.co.jp>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 MIME-Version: 1.0
-Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20120612171819.nlhaC6-oAouF80Yff1561AXmdrC0DR0aHdtlpe2M1g8@z>
+To: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+Cc: grundler@parisc-linux.org, arnd@arndb.de, avi@redhat.com, mtosatti@redhat.com, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, takuya.yoshikawa@gmail.com
+Message-ID: <20120612192330.3Z6b23bJi1r4hNzgNjGSrm6oXnm_mAH7iZxbyl8Z8YY@z>
 
-The asm-generic code needs actual declarations of the routines,
-and the syscall entries need to reference the correct names.
+There are now standard functions for dealing with little-endian bit
+arrays, so use them instead of our own implementations.
 
-Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
+Signed-off-by: Ben Hutchings <bhutchings@solarflare.com>
 ---
-The tilegx architecture is currently broken in linux-next because
-of this issue.
+Please use this version instead.
 
-However, although this fixes the problem, I'd like to question the use of
-"compat" syscall entries here at all.  The syscalls in question take only
-"int" and "unsigned long" arguments, so it would seem that you could
-use them directly from compat userspace.  The compat code present in
-the original commit just calls onward to the normal versions without
-any other changes, so I think it should be sufficient to use a model
-more like sys_mprotect, for example, where there is no compat function.
+Ben.
 
- include/asm-generic/unistd.h |    4 ++--
- include/linux/compat.h       |    6 ++++++
- 2 files changed, 8 insertions(+), 2 deletions(-)
+ drivers/net/ethernet/sfc/efx.c        |    4 ++--
+ drivers/net/ethernet/sfc/net_driver.h |   12 ------------
+ drivers/net/ethernet/sfc/nic.c        |    4 ++--
+ 3 files changed, 4 insertions(+), 16 deletions(-)
 
-diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
-index 4dfef49..43c6b8d 100644
---- a/include/asm-generic/unistd.h
-+++ b/include/asm-generic/unistd.h
-@@ -692,9 +692,9 @@ __SC_COMP(__NR_process_vm_readv, sys_process_vm_readv, \
- __SC_COMP(__NR_process_vm_writev, sys_process_vm_writev, \
-           compat_sys_process_vm_writev)
- #define __NR_numa_mbind 272
--__SC_COMP(__NR_numa_mbind, sys_numa_mbind, compat_sys_ms_mbind)
-+__SC_COMP(__NR_numa_mbind, sys_numa_mbind, compat_sys_numa_mbind)
- #define __NR_numa_tbind 273
--__SC_COMP(__NR_numa_tbind, sys_numa_tbind, compat_sys_ms_tbind)
-+__SC_COMP(__NR_numa_tbind, sys_numa_tbind, compat_sys_numa_tbind)
+diff --git a/drivers/net/ethernet/sfc/efx.c b/drivers/net/ethernet/sfc/efx.c
+index b95f2e1..ca2a348 100644
+--- a/drivers/net/ethernet/sfc/efx.c
++++ b/drivers/net/ethernet/sfc/efx.c
+@@ -1976,14 +1976,14 @@ static void efx_set_rx_mode(struct net_device *net_dev)
+ 		netdev_for_each_mc_addr(ha, net_dev) {
+ 			crc = ether_crc_le(ETH_ALEN, ha->addr);
+ 			bit = crc & (EFX_MCAST_HASH_ENTRIES - 1);
+-			set_bit_le(bit, mc_hash->byte);
++			__set_bit_le(bit, mc_hash);
+ 		}
  
- #undef __NR_syscalls
- #define __NR_syscalls 274
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index 4e89039..bb081e1 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -590,6 +590,12 @@ asmlinkage ssize_t compat_sys_process_vm_writev(compat_pid_t pid,
- 		unsigned long liovcnt, const struct compat_iovec __user *rvec,
- 		unsigned long riovcnt, unsigned long flags);
+ 		/* Broadcast packets go through the multicast hash filter.
+ 		 * ether_crc_le() of the broadcast address is 0xbe2612ff
+ 		 * so we always add bit 0xff to the mask.
+ 		 */
+-		set_bit_le(0xff, mc_hash->byte);
++		__set_bit_le(0xff, mc_hash);
+ 	}
  
-+asmlinkage long compat_sys_numa_mbind(compat_ulong_t addr, compat_ulong_t len,
-+				      compat_int_t ng_id,
-+                                      compat_ulong_t flags);
-+asmlinkage long compat_sys_numa_tbind(compat_int_t tid, compat_int_t ng_id,
-+				      compat_ulong_t flags);
-+
- #else
+ 	if (efx->port_enabled)
+diff --git a/drivers/net/ethernet/sfc/net_driver.h b/drivers/net/ethernet/sfc/net_driver.h
+index 0e57535..6f1a7f7 100644
+--- a/drivers/net/ethernet/sfc/net_driver.h
++++ b/drivers/net/ethernet/sfc/net_driver.h
+@@ -1080,18 +1080,6 @@ static inline struct efx_rx_buffer *efx_rx_buffer(struct efx_rx_queue *rx_queue,
+ 	return &rx_queue->buffer[index];
+ }
  
- #define is_compat_task() (0)
+-/* Set bit in a little-endian bitfield */
+-static inline void set_bit_le(unsigned nr, unsigned char *addr)
+-{
+-	addr[nr / 8] |= (1 << (nr % 8));
+-}
+-
+-/* Clear bit in a little-endian bitfield */
+-static inline void clear_bit_le(unsigned nr, unsigned char *addr)
+-{
+-	addr[nr / 8] &= ~(1 << (nr % 8));
+-}
+-
+ 
+ /**
+  * EFX_MAX_FRAME_LEN - calculate maximum frame length
+diff --git a/drivers/net/ethernet/sfc/nic.c b/drivers/net/ethernet/sfc/nic.c
+index 4a9a5be..bb0172d 100644
+--- a/drivers/net/ethernet/sfc/nic.c
++++ b/drivers/net/ethernet/sfc/nic.c
+@@ -473,9 +473,9 @@ void efx_nic_init_tx(struct efx_tx_queue *tx_queue)
+ 
+ 		efx_reado(efx, &reg, FR_AA_TX_CHKSM_CFG);
+ 		if (tx_queue->queue & EFX_TXQ_TYPE_OFFLOAD)
+-			clear_bit_le(tx_queue->queue, (void *)&reg);
++			__clear_bit_le(tx_queue->queue, &reg);
+ 		else
+-			set_bit_le(tx_queue->queue, (void *)&reg);
++			__set_bit_le(tx_queue->queue, &reg);
+ 		efx_writeo(efx, &reg, FR_AA_TX_CHKSM_CFG);
+ 	}
+ 
 -- 
-1.7.10.3
+1.7.7.6
+
+
+-- 
+Ben Hutchings, Staff Engineer, Solarflare
+Not speaking for my employer; that's the marketing department's job.
+They asked us to note that Solarflare product names are trademarked.
 
