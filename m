@@ -1,66 +1,32 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: [PATCH] sched/numa: fix compat declarations for sys_numa_{t,m}bind()
-Date: Tue, 12 Jun 2012 13:18:19 -0400
-Message-ID: <201206121724.q5CHOaeU002148@farm-0023.internal.tilera.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] sched/numa: fix compat declarations for sys_numa_{t,m}bind()
+Date: Tue, 12 Jun 2012 17:36:36 +0000
+Message-ID: <201206121736.36586.arnd@arndb.de>
+References: <201206121724.q5CHOaeU002148@farm-0023.internal.tilera.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.10]:59204 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751847Ab2FLRgt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jun 2012 13:36:49 -0400
+In-Reply-To: <201206121724.q5CHOaeU002148@farm-0023.internal.tilera.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-The asm-generic code needs actual declarations of the routines,
-and the syscall entries need to reference the correct names.
+On Tuesday 12 June 2012, Chris Metcalf wrote:
+> The asm-generic code needs actual declarations of the routines,
+> and the syscall entries need to reference the correct names.
+> 
+> Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
+> ---
+> The tilegx architecture is currently broken in linux-next because
+> of this issue.
 
-Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
----
-The tilegx architecture is currently broken in linux-next because
-of this issue.
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-However, although this fixes the problem, I'd like to question the use of
-"compat" syscall entries here at all.  The syscalls in question take only
-"int" and "unsigned long" arguments, so it would seem that you could
-use them directly from compat userspace.  The compat code present in
-the original commit just calls onward to the normal versions without
-any other changes, so I think it should be sufficient to use a model
-more like sys_mprotect, for example, where there is no compat function.
-
- include/asm-generic/unistd.h |    4 ++--
- include/linux/compat.h       |    6 ++++++
- 2 files changed, 8 insertions(+), 2 deletions(-)
-
-diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
-index 4dfef49..43c6b8d 100644
---- a/include/asm-generic/unistd.h
-+++ b/include/asm-generic/unistd.h
-@@ -692,9 +692,9 @@ __SC_COMP(__NR_process_vm_readv, sys_process_vm_readv, \
- __SC_COMP(__NR_process_vm_writev, sys_process_vm_writev, \
-           compat_sys_process_vm_writev)
- #define __NR_numa_mbind 272
--__SC_COMP(__NR_numa_mbind, sys_numa_mbind, compat_sys_ms_mbind)
-+__SC_COMP(__NR_numa_mbind, sys_numa_mbind, compat_sys_numa_mbind)
- #define __NR_numa_tbind 273
--__SC_COMP(__NR_numa_tbind, sys_numa_tbind, compat_sys_ms_tbind)
-+__SC_COMP(__NR_numa_tbind, sys_numa_tbind, compat_sys_numa_tbind)
- 
- #undef __NR_syscalls
- #define __NR_syscalls 274
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index 4e89039..bb081e1 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -590,6 +590,12 @@ asmlinkage ssize_t compat_sys_process_vm_writev(compat_pid_t pid,
- 		unsigned long liovcnt, const struct compat_iovec __user *rvec,
- 		unsigned long riovcnt, unsigned long flags);
- 
-+asmlinkage long compat_sys_numa_mbind(compat_ulong_t addr, compat_ulong_t len,
-+				      compat_int_t ng_id,
-+                                      compat_ulong_t flags);
-+asmlinkage long compat_sys_numa_tbind(compat_int_t tid, compat_int_t ng_id,
-+				      compat_ulong_t flags);
-+
- #else
- 
- #define is_compat_task() (0)
--- 
-1.7.10.3
+Please apply to the branch that contains the syscall implementation.
