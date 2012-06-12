@@ -1,56 +1,52 @@
-From: Namjae Jeon <linkinjeon@gmail.com>
-Subject: Re: [PATCH] include: Fix compile warning in include/linux/bitops.h
-Date: Tue, 12 Jun 2012 09:05:40 +0900
-Message-ID: <CAKYAXd_7SeWb0TN=nWCWLrj2bKOTq1QYpjksagR6HbXvnhyhxQ@mail.gmail.com>
-References: <1339211730-10398-1-git-send-email-linkinjeon@gmail.com>
-	<20120611155919.7decee80.akpm@linux-foundation.org>
+From: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
+Subject: Re: [PATCH 1/4] drivers/net/ethernet/sfc: Add efx_ prefix to
+ set_bit_le()
+Date: Tue, 12 Jun 2012 22:06:54 +0900
+Message-ID: <20120612220654.fd0246e6e687f7c79e5c988c@gmail.com>
+References: <20120611212735.f92ea521.yoshikawa.takuya@oss.ntt.co.jp>
+	<20120611212901.2b4d0a17.yoshikawa.takuya@oss.ntt.co.jp>
+	<201206111409.16093.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f42.google.com ([74.125.82.42]:60313 "EHLO
-	mail-wg0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752761Ab2FLAFm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 11 Jun 2012 20:05:42 -0400
-In-Reply-To: <20120611155919.7decee80.akpm@linux-foundation.org>
+Received: from mail-pz0-f46.google.com ([209.85.210.46]:57701 "EHLO
+	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751696Ab2FLNHA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jun 2012 09:07:00 -0400
+In-Reply-To: <201206111409.16093.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: arnd@arndb.de, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>, bhutchings@solarflare.com, grundler@parisc-linux.org, avi@redhat.com, mtosatti@redhat.com, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org
 
-2012/6/12, Andrew Morton <akpm@linux-foundation.org>:
-> On Fri,  8 Jun 2012 23:15:30 -0400
-> Namjae Jeon <linkinjeon@gmail.com> wrote:
->
->> The compile warning is caused by __const_hweight8 when using
->> hweight_long with -Wsign-compare option.
->> The reason is that the default return value of this macro is signed.
->> So need type casting to remove warning.
->
-> um, what warning?
-Hi Andrew.
-Sorry, I forgot it.
-When we use hwight_long function, We can see the below warning message.
+On Mon, 11 Jun 2012 14:09:15 +0000
+Arnd Bergmann <arnd@arndb.de> wrote:
 
-include/linux/bitops.h: In function 'hweight_long':
-include/linux/bitops.h:49: warning: signed and unsigned type in
-conditional expression
+> On Monday 11 June 2012, Takuya Yoshikawa wrote:
+> > 
+> >  /* Set bit in a little-endian bitfield */
+> > -static inline void set_bit_le(unsigned nr, unsigned char *addr)
+> > +static inline void efx_set_bit_le(unsigned nr, unsigned char *addr)
+> >  {
+> >         addr[nr / 8] |= (1 << (nr % 8));
+> >  }
+> >  
+> >  /* Clear bit in a little-endian bitfield */
+> > -static inline void clear_bit_le(unsigned nr, unsigned char *addr)
+> > +static inline void efx_clear_bit_le(unsigned nr, unsigned char *addr)
+> >  {
+> >         addr[nr / 8] &= ~(1 << (nr % 8));
+> >  }
+> 
+> Hmm, any reason why we're not just using the existing non-atomic
+> __set_bit_le() here? I think the helpers in sfc and tulip can
+> just get removed if you use those.
 
-Thanks a lot.
->
-> Please always quote the compiler messages when fixing build warnings or
-> errors.
->
->> index fa2a50b..3ad0dae 100644
->> --- a/include/asm-generic/bitops/const_hweight.h
->> +++ b/include/asm-generic/bitops/const_hweight.h
->> @@ -4,7 +4,7 @@
->>  /*
->>   * Compile time versions of __arch_hweightN()
->>   */
->> -#define __const_hweight8(w)		\
->> +#define __const_hweight8(w)	(unsigned long)	\
->>        (	(!!((w) & (1ULL << 0))) +	\
->>  	(!!((w) & (1ULL << 1))) +	\
->>  	(!!((w) & (1ULL << 2))) +	\
->
->
+__set_bit_le() assumes long word alignment and does endian conversion
+when needed.
+
+To be honest, I am a bit scared of changing drivers which I cannot test
+on real hardware.
+
+	Takuya
