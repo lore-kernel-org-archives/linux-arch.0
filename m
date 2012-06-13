@@ -1,99 +1,108 @@
-From: Michael Cree <mcree@orcon.net.nz>
-Subject: Re: Arch maintainers Ahoy!
-Date: Wed, 13 Jun 2012 23:08:20 +1200
-Message-ID: <4FD874A4.8060606@orcon.net.nz>
-References: <CA+55aFy675A7qH+5GUZ_C_aN+Um0o70Zq=SVXYZxbM93ft50mg@mail.gmail.com> <20120523.132109.1153947222019508621.davem@davemloft.net> <CA+55aFxWaB4eeYgdvhTJ2RegM53WxJZFC4HfV=shNn7ZDdG9CQ@mail.gmail.com> <20120523.141647.2252460119413470634.davem@davemloft.net> <CA+55aFxcRc_zR9HtFAtrT1exGP2DspP0aA6T49Ph3kZEHHyQWw@mail.gmail.com> <32064.1337852416@redhat.com> <CA+55aFzwZ3mCeALQx7fXX_HO4GZF03q4gtZOFGmdWkJrvwjrJg@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: [PATCHv2 0/6] ARM: DMA-mapping: new extensions for buffer sharing
+Date: Wed, 13 Jun 2012 13:50:12 +0200
+Message-ID: <1339588218-24398-1-git-send-email-m.szyprowski@samsung.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from nctlincom01.orcon.net.nz ([60.234.4.74]:57868 "EHLO
-	nctlincom01.orcon.net.nz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751255Ab2FMLXQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jun 2012 07:23:16 -0400
-Received: from mx7.orcon.net.nz (mx7.orcon.net.nz [219.88.242.57])
-	by nctlincom01.orcon.net.nz (8.14.3/8.14.3/Debian-9.4) with ESMTP id q5DBBTtL018997
-	for <linux-arch@vger.kernel.org>; Wed, 13 Jun 2012 23:11:29 +1200
-Received: from Debian-exim by mx7.orcon.net.nz with local (Exim 4.69)
-	(envelope-from <mcree@orcon.net.nz>)
-	id 1SelR0-0001Ct-Ad
-	for linux-arch@vger.kernel.org; Wed, 13 Jun 2012 23:08:22 +1200
-In-Reply-To: <CA+55aFzwZ3mCeALQx7fXX_HO4GZF03q4gtZOFGmdWkJrvwjrJg@mail.gmail.com>
+Received: from mailout2.samsung.com ([203.254.224.25]:26673 "EHLO
+	mailout2.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753318Ab2FMLus (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jun 2012 07:50:48 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: David Howells <dhowells@redhat.com>, David Miller <davem@davemloft.net>, James.Bottomley@hansenpartnership.com, geert@linux-m68k.org, linux-arch@vger.kernel.org
+To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Hiroshi Doyu <hdoyu@nvidia.com>, Subash Patel <subash.ramaswamy@linaro.org>, Sumit Semwal <sumit.semwal@linaro.org>, Abhinav Kochhar <abhinav.k@samsung.com>, Tomasz Stanislawski <t.stanislaws@samsung.com>
 
-On 25/05/12 03:53, Linus Torvalds wrote:
-> First off, the *last* thing you want to do is go to big-endian mode.
-> All the bit counting gets *much* more complicated, and your argument
-> that it's "free" on some architectures is pointless, since it is only
-> free on the architectures that have the *least* users.
+Hello,
 
-On Alpha we can find the zero bytes extrememly efficiently, and, yeah,
-we have rather few users, so carry bugger-all weight.  Nevertheless I
-want to ask about the semantics of the new prep_zero_mask() function
-because if we have to implement it exactly as specified in the message
-to commit 36126f8f2ed8 then we are forced to take a round-about, thus
-less efficient, route in the find_zero() implementation on Alpha.
+This is an updated version of the patch series introducing a new
+features to DMA mapping subsystem to let drivers share the allocated
+buffers (preferably using recently introduced dma_buf framework) easy
+and efficient.
 
-From commit 36126f8f2ed8 prep_zero_mask() must, and I quote, "generate
-an *exact* mask of which byte had the first zero."  But the result of
-prep_zero_mask() in all current extant usage is passed _only_ to
-create_zero_mask().  It seems to me then that current usage is only
-constrained by the following:
+The first extension is DMA_ATTR_NO_KERNEL_MAPPING attribute. It is
+intended for use with dma_{alloc, mmap, free}_attrs functions. It can be
+used to notify dma-mapping core that the driver will not use kernel
+mapping for the allocated buffer at all, so the core can skip creating
+it. This saves precious kernel virtual address space. Such buffer can be
+accessed from userspace, after calling dma_mmap_attrs() for it (a
+typical use case for multimedia buffers). The value returned by
+dma_alloc_attrs() with this attribute should be considered as a DMA
+cookie, which needs to be passed to dma_mmap_attrs() and
+dma_free_attrs() funtions.
 
-1) The result of prep_zero_mask() must be bitwise "OR"-able and the
-result of the ORed results must in turn be a valid mask of zero bytes.
+The second extension is required to let drivers to share the buffers
+allocated by DMA-mapping subsystem. Right now the driver gets a dma
+address of the allocated buffer and the kernel virtual mapping for it.
+If it wants to share it with other device (= map into its dma address
+space) it usually hacks around kernel virtual addresses to get pointers
+to pages or assumes that both devices share the DMA address space. Both
+solutions are just hacks for the special cases, which should be avoided
+in the final version of buffer sharing. To solve this issue in a generic
+way, a new call to DMA mapping has been introduced - dma_get_sgtable().
+It allocates a scatter-list which describes the allocated buffer and
+lets the driver(s) to use it with other device(s) by calling
+dma_map_sg() on it.
 
-2) The result is only ever passed to create_zero_mask() which, like
-prep_zero_mask(), is architecture specific.
+The third extension solves the performance issues which we observed with
+some advanced buffer sharing use cases, which require creating a dma
+mapping for the same memory buffer for more than one device. From the
+DMA-mapping perspective this requires to call one of the
+dma_map_{page,single,sg} function for the given memory buffer a few
+times, for each of the devices. Each dma_map_* call performs CPU cache
+synchronization, what might be a time consuming operation, especially
+when the buffers are large. We would like to avoid any useless and time
+consuming operations, so that was the main reason for introducing
+another attribute for DMA-mapping subsystem: DMA_ATTR_SKIP_CPU_SYNC,
+which lets dma-mapping core to skip CPU cache synchronization in certain
+cases.
 
-But there is nothing currently in the kernel that currently requires
-(other than a commit message) the result of prep_zero_mask() to be an
-*exact* mask of the zero bytes, only that it be *a* mask of zero bytes.
- The difference is important to Alpha because if we can have a mask
-where the lowest eight bits represent each byte (rather than a 64-bit
-mask where a whole eight bits are set to represent a byte) we get an
-extremely efficient implementation.
+The proposed patches have been rebased on the latest Linux kernel
+v3.5-rc2 with 'ARM: replace custom consistent dma region with vmalloc'
+patches applied (for more information, please refer to the 
+http://www.spinics.net/lists/arm-kernel/msg179202.html thread).
 
-So, may I generalise prep_zero_mask() as suggested above?
+The patches together with all dependences are also available on the
+following GIT branch:
 
-I follow with the Alpha code for word-at-a-time.h that results if I may
-(and is running fine on my Alpha):
+git://git.linaro.org/people/mszyprowski/linux-dma-mapping.git 3.5-rc2-dma-ext-v2
 
+Best regards
+Marek Szyprowski
+Samsung Poland R&D Center
 
-/*
- * We do not use the word_at_a_time struct on Alpha, but it needs to be
- * implemented to humour the generic code.
- */
-struct word_at_a_time {
-        const unsigned long unused;
-};
+Changelog:
 
-#define WORD_AT_A_TIME_CONSTANTS { 0 }
+v2:
+- rebased onto v3.5-rc2 and adapted for CMA and dma-mapping changes
+- renamed dma_get_sgtable() to dma_get_sgtable_attrs() to match the convention
+  of the other dma-mapping calls with attributes
+- added generic fallback function for dma_get_sgtable() for architectures with
+  simple dma-mapping implementations
 
-/* Return nonzero if val has a zero */
-static inline unsigned long has_zero(unsigned long val, unsigned long
-*bits, const struct word_at_a_time *c)
-{
-        unsigned long zero_locations = __kernel_cmpbge(0, val);
-        *bits = zero_locations;
-        return zero_locations;
-}
+v1: http://thread.gmane.org/gmane.linux.kernel.mm/78644
+    http://thread.gmane.org/gmane.linux.kernel.cross-arch/14435 (part 2)
+- initial version
 
-static inline unsigned long prep_zero_mask(unsigned long val, unsigned
-long bits, const struct word_at_a_time *c)
-{
-        return bits;
-}
+Patch summary:
 
-#define create_zero_mask(bits) (bits)
+Marek Szyprowski (6):
+  common: DMA-mapping: add DMA_ATTR_NO_KERNEL_MAPPING attribute
+  ARM: dma-mapping: add support for DMA_ATTR_NO_KERNEL_MAPPING
+    attribute
+  common: dma-mapping: introduce dma_get_sgtable() function
+  ARM: dma-mapping: add support for dma_get_sgtable()
+  common: DMA-mapping: add DMA_ATTR_SKIP_CPU_SYNC attribute
+  ARM: dma-mapping: add support for DMA_ATTR_SKIP_CPU_SYNC attribute
 
-static inline unsigned long find_zero(unsigned long bits)
-{
-        return bits & (unsigned long)(-(long)bits);
-}
+ Documentation/DMA-attributes.txt         |   42 ++++++++++++++++++
+ arch/arm/common/dmabounce.c              |    1 +
+ arch/arm/include/asm/dma-mapping.h       |    3 +
+ arch/arm/mm/dma-mapping.c                |   69 ++++++++++++++++++++++++------
+ drivers/base/dma-mapping.c               |   18 ++++++++
+ include/asm-generic/dma-mapping-common.h |   18 ++++++++
+ include/linux/dma-attrs.h                |    2 +
+ include/linux/dma-mapping.h              |    3 +
+ 8 files changed, 142 insertions(+), 14 deletions(-)
 
-Cheers
-Michael.
+-- 
+1.7.1.569.g6f426
