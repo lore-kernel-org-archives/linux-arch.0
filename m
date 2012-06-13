@@ -1,95 +1,114 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout1.samsung.com ([203.254.224.24]:53370 "EHLO
-	mailout1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753957Ab2FMLvB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jun 2012 07:51:01 -0400
+Received: from mailout2.samsung.com ([203.254.224.25]:26821 "EHLO
+	mailout2.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753951Ab2FMLvQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jun 2012 07:51:16 -0400
 From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: [PATCHv2 2/6] ARM: dma-mapping: add support for
- DMA_ATTR_NO_KERNEL_MAPPING attribute
-Date: Wed, 13 Jun 2012 13:50:14 +0200
-Message-ID: <1339588218-24398-3-git-send-email-m.szyprowski@samsung.com>
+Subject: [PATCHv2 3/6] common: dma-mapping: introduce dma_get_sgtable() function
+Date: Wed, 13 Jun 2012 13:50:15 +0200
+Message-ID: <1339588218-24398-4-git-send-email-m.szyprowski@samsung.com>
 In-reply-to: <1339588218-24398-1-git-send-email-m.szyprowski@samsung.com>
 References: <1339588218-24398-1-git-send-email-m.szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Hiroshi Doyu <hdoyu@nvidia.com>, Subash Patel <subash.ramaswamy@linaro.org>, Sumit Semwal <sumit.semwal@linaro.org>, Abhinav Kochhar <abhinav.k@samsung.com>, Tomasz Stanislawski <t.stanislaws@samsung.com>
-Message-ID: <20120613115014.9G3cvn9ry28rUCR4Zk9rrvznDpRu0YE1qBK46sF1XpA@z>
+Message-ID: <20120613115015.KpRwr5_JEMGfQm9NQ4Q23Z0EHuTDJq-V-ysRH2U3-b8@z>
 
-This patch adds support for DMA_ATTR_NO_KERNEL_MAPPING attribute for
-IOMMU allocations, what let drivers to save precious kernel virtual
-address space for large buffers that are intended to be accessed only
-from userspace.
+This patch adds dma_get_sgtable() function which is required to let
+drivers to share the buffers allocated by DMA-mapping subsystem. Right
+now the driver gets a dma address of the allocated buffer and the kernel
+virtual mapping for it. If it wants to share it with other device (= map
+into its dma address space) it usually hacks around kernel virtual
+addresses to get pointers to pages or assumes that both devices share
+the DMA address space. Both solutions are just hacks for the special
+cases, which should be avoided in the final version of buffer sharing.
 
-This patch is heavily based on initial work kindly provided by Abhinav
-Kochhar <abhinav.k@samsung.com>.
+To solve this issue in a generic way, a new call to DMA mapping has been
+introduced - dma_get_sgtable(). It allocates a scatter-list which
+describes the allocated buffer and lets the driver(s) to use it with
+other device(s) by calling dma_map_sg() on it.
+
+This patch provides a generic implementation based on virt_to_page()
+call. Architectures which require more sophisticated translation might
+provide their own get_sgtable() methods.
 
 Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
 Reviewed-by: Kyungmin Park <kyungmin.park@samsung.com>
 ---
- arch/arm/mm/dma-mapping.c |   18 +++++++++++++-----
- 1 files changed, 13 insertions(+), 5 deletions(-)
+ drivers/base/dma-mapping.c               |   18 ++++++++++++++++++
+ include/asm-generic/dma-mapping-common.h |   18 ++++++++++++++++++
+ include/linux/dma-mapping.h              |    3 +++
+ 3 files changed, 39 insertions(+), 0 deletions(-)
 
-diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
-index b3ffcf9..5d8b8b2 100644
---- a/arch/arm/mm/dma-mapping.c
-+++ b/arch/arm/mm/dma-mapping.c
-@@ -1071,10 +1071,13 @@ static int __iommu_remove_mapping(struct device *dev, dma_addr_t iova, size_t si
- 	return 0;
+diff --git a/drivers/base/dma-mapping.c b/drivers/base/dma-mapping.c
+index 6f3676f..49785c1 100644
+--- a/drivers/base/dma-mapping.c
++++ b/drivers/base/dma-mapping.c
+@@ -217,4 +217,22 @@ void dmam_release_declared_memory(struct device *dev)
  }
+ EXPORT_SYMBOL(dmam_release_declared_memory);
  
--static struct page **__iommu_get_pages(void *cpu_addr)
-+static struct page **__iommu_get_pages(void *cpu_addr, struct dma_attrs *attrs)
- {
- 	struct vm_struct *area;
- 
-+	if (dma_get_attr(DMA_ATTR_NO_KERNEL_MAPPING, attrs))
-+		return cpu_addr;
++/*
++ * Create scatter-list for the already allocated DMA buffer.
++ */
++int dma_common_get_sgtable(struct device *dev, struct sg_table *sgt,
++		 void *cpu_addr, dma_addr_t handle, size_t size)
++{
++	struct page *page = virt_to_page(cpu_addr);
++	int ret;
 +
- 	area = find_vm_area(cpu_addr);
- 	if (area && (area->flags & VM_DMA))
- 		return area->pages;
-@@ -1099,6 +1102,9 @@ static void *arm_iommu_alloc_attrs(struct device *dev, size_t size,
- 	if (*handle == DMA_ERROR_CODE)
- 		goto err_buffer;
- 
-+	if (dma_get_attr(DMA_ATTR_NO_KERNEL_MAPPING, attrs))
-+		return pages;
++	ret = sg_alloc_table(sgt, 1, GFP_KERNEL);
++	if (unlikely(ret))
++		return ret;
 +
- 	addr = __iommu_alloc_remap(pages, size, gfp, prot,
- 				   __builtin_return_address(0));
- 	if (!addr)
-@@ -1119,7 +1125,7 @@ static int arm_iommu_mmap_attrs(struct device *dev, struct vm_area_struct *vma,
- {
- 	unsigned long uaddr = vma->vm_start;
- 	unsigned long usize = vma->vm_end - vma->vm_start;
--	struct page **pages = __iommu_get_pages(cpu_addr);
-+	struct page **pages = __iommu_get_pages(cpu_addr, attrs);
++	sg_set_page(sgt->sgl, page, PAGE_ALIGN(size), 0);
++	return 0;
++}
++EXPORT_SYMBOL(dma_common_get_sgtable);
++
+ #endif
+diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-generic/dma-mapping-common.h
+index 2e248d8..34841c6 100644
+--- a/include/asm-generic/dma-mapping-common.h
++++ b/include/asm-generic/dma-mapping-common.h
+@@ -176,4 +176,22 @@ dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+ #define dma_map_sg(d, s, n, r) dma_map_sg_attrs(d, s, n, r, NULL)
+ #define dma_unmap_sg(d, s, n, r) dma_unmap_sg_attrs(d, s, n, r, NULL)
  
- 	vma->vm_page_prot = __get_dma_pgprot(attrs, vma->vm_page_prot);
++int
++dma_common_get_sgtable(struct device *dev, struct sg_table *sgt,
++		       void *cpu_addr, dma_addr_t dma_addr, size_t size);
++
++static inline int
++dma_get_sgtable_attrs(struct device *dev, struct sg_table *sgt, void *cpu_addr,
++		      dma_addr_t dma_addr, size_t size, struct dma_attrs *attrs)
++{
++	struct dma_map_ops *ops = get_dma_ops(dev);
++	BUG_ON(!ops);
++	if (ops->get_sgtable)
++		return ops->get_sgtable(dev, sgt, cpu_addr, dma_addr, size,
++					attrs);
++	return dma_common_get_sgtable(dev, sgt, cpu_addr, dma_addr, size);
++}
++
++#define dma_get_sgtable(d, t, v, h, s) dma_get_sgtable_attrs(d, t, v, h, s, NULL)
++
+ #endif
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index dfc099e..94af418 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -18,6 +18,9 @@ struct dma_map_ops {
+ 	int (*mmap)(struct device *, struct vm_area_struct *,
+ 			  void *, dma_addr_t, size_t, struct dma_attrs *attrs);
  
-@@ -1146,7 +1152,7 @@ static int arm_iommu_mmap_attrs(struct device *dev, struct vm_area_struct *vma,
- void arm_iommu_free_attrs(struct device *dev, size_t size, void *cpu_addr,
- 			  dma_addr_t handle, struct dma_attrs *attrs)
- {
--	struct page **pages = __iommu_get_pages(cpu_addr);
-+	struct page **pages = __iommu_get_pages(cpu_addr, attrs);
- 	size = PAGE_ALIGN(size);
- 
- 	if (!pages) {
-@@ -1156,8 +1162,10 @@ void arm_iommu_free_attrs(struct device *dev, size_t size, void *cpu_addr,
- 		return;
- 	}
- 
--	unmap_kernel_range((unsigned long)cpu_addr, size);
--	vunmap(cpu_addr);
-+	if (!dma_get_attr(DMA_ATTR_NO_KERNEL_MAPPING, attrs)) {
-+		unmap_kernel_range((unsigned long)cpu_addr, size);
-+		vunmap(cpu_addr);
-+	}
- 
- 	__iommu_remove_mapping(dev, handle, size);
- 	__iommu_free_buffer(dev, pages, size);
++	int (*get_sgtable)(struct device *dev, struct sg_table *sgt, void *,
++			   dma_addr_t, size_t, struct dma_attrs *attrs);
++
+ 	dma_addr_t (*map_page)(struct device *dev, struct page *page,
+ 			       unsigned long offset, size_t size,
+ 			       enum dma_data_direction dir,
 -- 
 1.7.1.569.g6f426
 
