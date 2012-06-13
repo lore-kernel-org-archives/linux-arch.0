@@ -1,169 +1,71 @@
-From: Daniel Vetter <daniel@ffwll.ch>
-Subject: Re: [Linaro-mm-sig] [PATCHv2 0/6] ARM: DMA-mapping: new extensions
- for buffer sharing
-Date: Wed, 13 Jun 2012 21:01:31 +0200
-Message-ID: <20120613190131.GO4829@phenom.ffwll.local>
-References: <1339588218-24398-1-git-send-email-m.szyprowski@samsung.com>
- <20120613141211.GJ5979@phenom.dumpdata.com>
+From: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
+Subject: Re: [PATCH 2/5] drivers/net/ethernet/dec/tulip: Use standard
+ __set_bit_le() function
+Date: Thu, 14 Jun 2012 07:28:31 +0900
+Message-ID: <20120614072831.63845f6ddf024ece28e49f5e@gmail.com>
+References: <20120613130054.b5695621.yoshikawa.takuya@oss.ntt.co.jp>
+	<20120613130304.0186fa9d.yoshikawa.takuya@oss.ntt.co.jp>
+	<CAC5umyj582T+9GbOYDzOAanmMcVZ-Fdxr7i-8GWf3gTSmtAKUA@mail.gmail.com>
+	<20120613214157.0a5179d5358ec7f1b2646606@gmail.com>
+	<CAC5umygutE35hVObuooWj=ADP6PZDy4cqLtxGnRtxRX8uTtGSw@mail.gmail.com>
+	<20120613230013.3cc59bf908616e94bb4ccef2@gmail.com>
+	<CAP6odji_JvRkJP1dSzGK5ww3y71h4k6pXyj4pOQBpqP-X7Nn-A@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f44.google.com ([74.125.82.44]:37679 "EHLO
-	mail-wg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754339Ab2FMTAB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jun 2012 15:00:01 -0400
-Received: by wgbdr13 with SMTP id dr13so1000952wgb.1
-        for <linux-arch@vger.kernel.org>; Wed, 13 Jun 2012 12:00:00 -0700 (PDT)
-Content-Disposition: inline
-In-Reply-To: <20120613141211.GJ5979@phenom.dumpdata.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, linux-arch@vger.kernel.org, Abhinav Kochhar <abhinav.k@samsung.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, Subash Patel <subash.ramaswamy@linaro.org>, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, Kyungmin Park <kyungmin.park@samsung.com>, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <CAP6odji_JvRkJP1dSzGK5ww3y71h4k6pXyj4pOQBpqP-X7Nn-A@mail.gmail.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Grant Grundler <grantgrundler@gmail.com>
+Cc: Akinobu Mita <akinobu.mita@gmail.com>, Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>, akpm@linux-foundation.org, bhutchings@solarflare.com, grundler@parisc-linux.org, arnd@arndb.de, benh@kernel.crashing.org, avi@redhat.com, mtosatti@redhat.com, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Jun 13, 2012 at 10:12:12AM -0400, Konrad Rzeszutek Wilk wrote:
-> On Wed, Jun 13, 2012 at 01:50:12PM +0200, Marek Szyprowski wrote:
-> > Hello,
-> > 
-> > This is an updated version of the patch series introducing a new
-> > features to DMA mapping subsystem to let drivers share the allocated
-> > buffers (preferably using recently introduced dma_buf framework) easy
-> > and efficient.
-> > 
-> > The first extension is DMA_ATTR_NO_KERNEL_MAPPING attribute. It is
-> > intended for use with dma_{alloc, mmap, free}_attrs functions. It can be
-> > used to notify dma-mapping core that the driver will not use kernel
-> > mapping for the allocated buffer at all, so the core can skip creating
-> > it. This saves precious kernel virtual address space. Such buffer can be
-> > accessed from userspace, after calling dma_mmap_attrs() for it (a
-> > typical use case for multimedia buffers). The value returned by
-> > dma_alloc_attrs() with this attribute should be considered as a DMA
-> > cookie, which needs to be passed to dma_mmap_attrs() and
-> > dma_free_attrs() funtions.
-> > 
-> > The second extension is required to let drivers to share the buffers
-> > allocated by DMA-mapping subsystem. Right now the driver gets a dma
-> > address of the allocated buffer and the kernel virtual mapping for it.
-> > If it wants to share it with other device (= map into its dma address
-> > space) it usually hacks around kernel virtual addresses to get pointers
-> > to pages or assumes that both devices share the DMA address space. Both
-> > solutions are just hacks for the special cases, which should be avoided
-> > in the final version of buffer sharing. To solve this issue in a generic
-> > way, a new call to DMA mapping has been introduced - dma_get_sgtable().
-> > It allocates a scatter-list which describes the allocated buffer and
-> > lets the driver(s) to use it with other device(s) by calling
-> > dma_map_sg() on it.
-> 
-> What about the cases where the driver wants to share the buffer but there
-> are multiple IOMMUs? So the DMA address returned initially would be
-> different on the other IOMMUs? Would the driver have to figure this out
-> or would the DMA/IOMMU implementation be in charge of that?
+On Wed, 13 Jun 2012 08:21:18 -0700
+Grant Grundler <grantgrundler@gmail.com> wrote:
 
-You still have to map the allocated sg table into each device address
-space, so I think this is all covered. The reason dma-buf specs that the
-returned sg list must be mapped into device address space already is to
-support special-purpose remapping units that are not handled by the core
-dma api.
+> >> >> Should this hash_table be converted from u16 hash_table[32] to
+> >> >> DECLARE_BITMAP(hash_table, 16 * 32) to ensure that it is aligne=
+d
+> >> >> on long-word boundary?
+> >> >
+> >> > I think hash_table is already long-word aligned because it is pl=
+aced
+> >> > right after a pointer.
+> >>
+> >> I recommend converting to proper bitmap. =A0Because such an implic=
+it
+> >> assumption is easily broken by someone touching this function.
+> >
+> > Do you mean something like:
+> > =A0 =A0 =A0 =A0DECLARE_BITMAP(__hash_table, 16 * 32);
+> > =A0 =A0 =A0 =A0u16 *hash_table =3D (u16 *)__hash_table;
+> > ?
+> >
+> > Grant, what do you think about this?
+>=20
+> Hi Takuya,
+> two thoughts:
+> 1) while I agree with Akinobu and thank him for pointing out a
+> _potential_ alignment problem, this is a separate issue and your
+> existing patch should go in anyway. There are probably other drivers
+> with _potential_ alignment issues. Akinobu could get credit for
+> finding them by submitting patches after reviewing calls to set_bit
+> and set_bit_le() - similar to what you are doing now.
 
-> And what about IOMMU's that don't do DMA_ATTR_NO_KERNEL_MAPPING?
-> Can they just ignore it and do what they did before ? (I presume yes).
-> 
-> > 
-> > The third extension solves the performance issues which we observed with
-> > some advanced buffer sharing use cases, which require creating a dma
-> > mapping for the same memory buffer for more than one device. From the
-> > DMA-mapping perspective this requires to call one of the
-> > dma_map_{page,single,sg} function for the given memory buffer a few
-> > times, for each of the devices. Each dma_map_* call performs CPU cache
-> > synchronization, what might be a time consuming operation, especially
-> > when the buffers are large. We would like to avoid any useless and time
-> > consuming operations, so that was the main reason for introducing
-> > another attribute for DMA-mapping subsystem: DMA_ATTR_SKIP_CPU_SYNC,
-> > which lets dma-mapping core to skip CPU cache synchronization in certain
-> > cases.
+I prefer approach 1.
 
-Ah, here's the use-case I've missed ;-) I'm a bit vary of totally insane
-platforms that have additional caches only on the device side, and only
-for some devices. Well, tlbs belong to that, but the iommu needs to handle
-that anyway.
+hash_table is local in build_setup_frame_hash(), so if further
+improvement is also required, we can do that locally there later.
 
-I think it would be good to add a blurb to the documentation that any
-device-side flushing (of tlbs or special caches or whatever) still needs
-to happen and that this is only a performance optimization to avoid the
-costly cpu cache flushing. This way the dma-buf exporter could keep track
-of whether it's 'device-coherent' and set that flag if the cpu caches don't
-need to be flushed.
-
-Maybe also make it clear that implementing this bit is optional (like your
-doc already mentions for NO_KERNEL_MAPPING).
-
-Yours, Daniel
+Thanks,
+	Takuya
 
 
-> > 
-> > The proposed patches have been rebased on the latest Linux kernel
-> > v3.5-rc2 with 'ARM: replace custom consistent dma region with vmalloc'
-> > patches applied (for more information, please refer to the 
-> > http://www.spinics.net/lists/arm-kernel/msg179202.html thread).
-> > 
-> > The patches together with all dependences are also available on the
-> > following GIT branch:
-> > 
-> > git://git.linaro.org/people/mszyprowski/linux-dma-mapping.git 3.5-rc2-dma-ext-v2
-> > 
-> > Best regards
-> > Marek Szyprowski
-> > Samsung Poland R&D Center
-> > 
-> > Changelog:
-> > 
-> > v2:
-> > - rebased onto v3.5-rc2 and adapted for CMA and dma-mapping changes
-> > - renamed dma_get_sgtable() to dma_get_sgtable_attrs() to match the convention
-> >   of the other dma-mapping calls with attributes
-> > - added generic fallback function for dma_get_sgtable() for architectures with
-> >   simple dma-mapping implementations
-> > 
-> > v1: http://thread.gmane.org/gmane.linux.kernel.mm/78644
-> >     http://thread.gmane.org/gmane.linux.kernel.cross-arch/14435 (part 2)
-> > - initial version
-> > 
-> > Patch summary:
-> > 
-> > Marek Szyprowski (6):
-> >   common: DMA-mapping: add DMA_ATTR_NO_KERNEL_MAPPING attribute
-> >   ARM: dma-mapping: add support for DMA_ATTR_NO_KERNEL_MAPPING
-> >     attribute
-> >   common: dma-mapping: introduce dma_get_sgtable() function
-> >   ARM: dma-mapping: add support for dma_get_sgtable()
-> >   common: DMA-mapping: add DMA_ATTR_SKIP_CPU_SYNC attribute
-> >   ARM: dma-mapping: add support for DMA_ATTR_SKIP_CPU_SYNC attribute
-> > 
-> >  Documentation/DMA-attributes.txt         |   42 ++++++++++++++++++
-> >  arch/arm/common/dmabounce.c              |    1 +
-> >  arch/arm/include/asm/dma-mapping.h       |    3 +
-> >  arch/arm/mm/dma-mapping.c                |   69 ++++++++++++++++++++++++------
-> >  drivers/base/dma-mapping.c               |   18 ++++++++
-> >  include/asm-generic/dma-mapping-common.h |   18 ++++++++
-> >  include/linux/dma-attrs.h                |    2 +
-> >  include/linux/dma-mapping.h              |    3 +
-> >  8 files changed, 142 insertions(+), 14 deletions(-)
-> > 
-> > -- 
-> > 1.7.1.569.g6f426
-> > 
-> > --
-> > To unsubscribe, send a message with 'unsubscribe linux-mm' in
-> > the body to majordomo@kvack.org.  For more info on Linux MM,
-> > see: http://www.linux-mm.org/ .
-> > Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
-> 
-> _______________________________________________
-> Linaro-mm-sig mailing list
-> Linaro-mm-sig@lists.linaro.org
-> http://lists.linaro.org/mailman/listinfo/linaro-mm-sig
-
--- 
-Daniel Vetter
-Mail: daniel@ffwll.ch
-Mobile: +41 (0)79 365 57 48
+> 2) I generally do not like declaring one type and then using an alias
+> of a different type to reference the same memory address. We have a
+> simple alternative since hash_table[] is indexed directly only in one
+> hunk of code:
+>         for (i =3D 0; i < 32; i++) {
+>                 *setup_frm++ =3D ((u16 *)hash_table)[i];
+>                 *setup_frm++ =3D ((u16 *)hash_table)[i];
+>         }
