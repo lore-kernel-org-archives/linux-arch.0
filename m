@@ -1,44 +1,66 @@
-From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
-Subject: [PATCH 5/5] KVM: Replace test_and_set_bit_le() in
- mark_page_dirty_in_slot() with set_bit_le()
-Date: Wed, 13 Jun 2012 13:05:31 +0900
-Message-ID: <20120613130531.dd67479c.yoshikawa.takuya@oss.ntt.co.jp>
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Subject: Re: [PATCH 2/5] drivers/net/ethernet/dec/tulip: Use standard
+ __set_bit_le() function
+Date: Wed, 13 Jun 2012 18:43:40 +0900
+Message-ID: <CAC5umyj582T+9GbOYDzOAanmMcVZ-Fdxr7i-8GWf3gTSmtAKUA@mail.gmail.com>
 References: <20120613130054.b5695621.yoshikawa.takuya@oss.ntt.co.jp>
+	<20120613130304.0186fa9d.yoshikawa.takuya@oss.ntt.co.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20120613130054.b5695621.yoshikawa.takuya@oss.ntt.co.jp>
-Sender: linux-kernel-owner@vger.kernel.org
-To: akpm@linux-foundation.org
-Cc: bhutchings@solarflare.com, grundler@parisc-linux.org, arnd@arndb.de, benh@kernel.crashing.org, avi@redhat.com, mtosatti@redhat.com, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, takuya.yoshikawa@gmail.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-yw0-f46.google.com ([209.85.213.46]:64543 "EHLO
+	mail-yw0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753067Ab2FMJnm convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jun 2012 05:43:42 -0400
+In-Reply-To: <20120613130304.0186fa9d.yoshikawa.takuya@oss.ntt.co.jp>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+Cc: akpm@linux-foundation.org, bhutchings@solarflare.com, grundler@parisc-linux.org, arnd@arndb.de, benh@kernel.crashing.org, avi@redhat.com, mtosatti@redhat.com, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, takuya.yoshikawa@gmail.com
 
-From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+2012/6/13 Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>:
+> From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+>
+> To introduce generic set_bit_le() later, we remove our own definition
+> and use a proper non-atomic bitops function: __set_bit_le().
+>
+> Signed-off-by: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+> Acked-by: Grant Grundler <grundler@parisc-linux.org>
+> ---
+> =A0drivers/net/ethernet/dec/tulip/de2104x.c =A0 =A0| =A0 =A07 ++-----
+> =A0drivers/net/ethernet/dec/tulip/tulip_core.c | =A0 =A07 ++-----
+> =A02 files changed, 4 insertions(+), 10 deletions(-)
+>
+> diff --git a/drivers/net/ethernet/dec/tulip/de2104x.c b/drivers/net/e=
+thernet/dec/tulip/de2104x.c
+> index 61cc093..77335853 100644
+> --- a/drivers/net/ethernet/dec/tulip/de2104x.c
+> +++ b/drivers/net/ethernet/dec/tulip/de2104x.c
+> @@ -661,9 +661,6 @@ static netdev_tx_t de_start_xmit (struct sk_buff =
+*skb,
+> =A0 =A0new frame, not around filling de->setup_frame. =A0This is non-=
+deterministic
+> =A0 =A0when re-entered but still correct. */
+>
+> -#undef set_bit_le
+> -#define set_bit_le(i,p) do { ((char *)(p))[(i)/8] |=3D (1<<((i)%8));=
+ } while(0)
+> -
+> =A0static void build_setup_frame_hash(u16 *setup_frm, struct net_devi=
+ce *dev)
+> =A0{
+> =A0 =A0 =A0 =A0struct de_private *de =3D netdev_priv(dev);
+> @@ -673,12 +670,12 @@ static void build_setup_frame_hash(u16 *setup_f=
+rm, struct net_device *dev)
+> =A0 =A0 =A0 =A0u16 *eaddrs;
+>
+> =A0 =A0 =A0 =A0memset(hash_table, 0, sizeof(hash_table));
+> - =A0 =A0 =A0 set_bit_le(255, hash_table); =A0 =A0 =A0 =A0 =A0 =A0 =A0=
+ =A0 =A0 =A0/* Broadcast entry */
+> + =A0 =A0 =A0 __set_bit_le(255, hash_table); =A0 =A0 =A0 =A0 =A0 =A0 =
+=A0 =A0 =A0/* Broadcast entry */
 
-Now that we have defined generic set_bit_le() we do not need to use
-test_and_set_bit_le() for atomically setting a bit.
-
-Signed-off-by: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
-Cc: Avi Kivity <avi@redhat.com>
-Cc: Marcelo Tosatti <mtosatti@redhat.com>
----
- virt/kvm/kvm_main.c |    3 +--
- 1 files changed, 1 insertions(+), 2 deletions(-)
-
-diff --git a/virt/kvm/kvm_main.c b/virt/kvm/kvm_main.c
-index 02cb440..560c502 100644
---- a/virt/kvm/kvm_main.c
-+++ b/virt/kvm/kvm_main.c
-@@ -1485,8 +1485,7 @@ void mark_page_dirty_in_slot(struct kvm *kvm, struct kvm_memory_slot *memslot,
- 	if (memslot && memslot->dirty_bitmap) {
- 		unsigned long rel_gfn = gfn - memslot->base_gfn;
- 
--		/* TODO: introduce set_bit_le() and use it */
--		test_and_set_bit_le(rel_gfn, memslot->dirty_bitmap);
-+		set_bit_le(rel_gfn, memslot->dirty_bitmap);
- 	}
- }
- 
--- 
-1.7.5.4
+Should this hash_table be converted from u16 hash_table[32] to
+DECLARE_BITMAP(hash_table, 16 * 32) to ensure that it is aligned
+on long-word boundary?
