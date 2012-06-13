@@ -1,61 +1,120 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from webmail.solarflare.com ([12.187.104.25]:50895 "EHLO
-	ocex02.SolarFlarecom.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751324Ab2FMPOZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 13 Jun 2012 11:14:25 -0400
-Message-ID: <1339600457.2612.2.camel@bwh-desktop.uk.solarflarecom.com>
-Subject: Re: [PATCH 2/5] drivers/net/ethernet/dec/tulip: Use standard
- __set_bit_le() function
-From: Ben Hutchings <bhutchings@solarflare.com>
-Date: Wed, 13 Jun 2012 16:14:17 +0100
-In-Reply-To: <20120613230013.3cc59bf908616e94bb4ccef2@gmail.com>
-References: <20120613130054.b5695621.yoshikawa.takuya@oss.ntt.co.jp>
-	 <20120613130304.0186fa9d.yoshikawa.takuya@oss.ntt.co.jp>
-	 <CAC5umyj582T+9GbOYDzOAanmMcVZ-Fdxr7i-8GWf3gTSmtAKUA@mail.gmail.com>
-	 <20120613214157.0a5179d5358ec7f1b2646606@gmail.com>
-	 <CAC5umygutE35hVObuooWj=ADP6PZDy4cqLtxGnRtxRX8uTtGSw@mail.gmail.com>
-	 <20120613230013.3cc59bf908616e94bb4ccef2@gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Received: from mail-wg0-f44.google.com ([74.125.82.44]:56032 "EHLO
+	mail-wg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752616Ab2FMSoU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 13 Jun 2012 14:44:20 -0400
+Received: by wgbdr13 with SMTP id dr13so988263wgb.1
+        for <linux-arch@vger.kernel.org>; Wed, 13 Jun 2012 11:44:19 -0700 (PDT)
+Date: Wed, 13 Jun 2012 20:45:49 +0200
+From: Daniel Vetter <daniel@ffwll.ch>
+Subject: Re: [Linaro-mm-sig] [PATCHv2 5/6] common: DMA-mapping: add
+ DMA_ATTR_SKIP_CPU_SYNC attribute
+Message-ID: <20120613184549.GL4829@phenom.ffwll.local>
+References: <1339588218-24398-1-git-send-email-m.szyprowski@samsung.com>
+ <1339588218-24398-6-git-send-email-m.szyprowski@samsung.com>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1339588218-24398-6-git-send-email-m.szyprowski@samsung.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
-Cc: Akinobu Mita <akinobu.mita@gmail.com>, Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>, akpm@linux-foundation.org, grundler@parisc-linux.org, arnd@arndb.de, benh@kernel.crashing.org, avi@redhat.com, mtosatti@redhat.com, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org
-Message-ID: <20120613151417.Wh3zRDwOFVZbrdIAPLZoN4tVIIUKrkNF0nVJuErtTxc@z>
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Abhinav Kochhar <abhinav.k@samsung.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Kyungmin Park <kyungmin.park@samsung.com>, Subash Patel <subash.ramaswamy@linaro.org>
+Message-ID: <20120613184549.rmcc3E98oU0xe9hw3275C2ksI9RfCgCATq8EBXFwmBw@z>
 
-On Wed, 2012-06-13 at 23:00 +0900, Takuya Yoshikawa wrote:
-> On Wed, 13 Jun 2012 22:31:13 +0900
-> Akinobu Mita <akinobu.mita@gmail.com> wrote:
+On Wed, Jun 13, 2012 at 01:50:17PM +0200, Marek Szyprowski wrote:
+> This patch adds DMA_ATTR_SKIP_CPU_SYNC attribute to the DMA-mapping
+> subsystem.
 > 
-> > >> Should this hash_table be converted from u16 hash_table[32] to
-> > >> DECLARE_BITMAP(hash_table, 16 * 32) to ensure that it is aligned
-> > >> on long-word boundary?
-> > >
-> > > I think hash_table is already long-word aligned because it is placed
-> > > right after a pointer.
-> > 
-> > I recommend converting to proper bitmap.  Because such an implicit
-> > assumption is easily broken by someone touching this function.
+> By default dma_map_{single,page,sg} functions family transfer a given
+> buffer from CPU domain to device domain. Some advanced use cases might
+> require sharing a buffer between more than one device. This requires
+> having a mapping created separately for each device and is usually
+> performed by calling dma_map_{single,page,sg} function more than once
+> for the given buffer with device pointer to each device taking part in
+> the buffer sharing. The first call transfers a buffer from 'CPU' domain
+> to 'device' domain, what synchronizes CPU caches for the given region
+> (usually it means that the cache has been flushed or invalidated
+> depending on the dma direction). However, next calls to
+> dma_map_{single,page,sg}() for other devices will perform exactly the
+> same sychronization operation on the CPU cache. CPU cache sychronization
+> might be a time consuming operation, especially if the buffers are
+> large, so it is highly recommended to avoid it if possible.
+> DMA_ATTR_SKIP_CPU_SYNC allows platform code to skip synchronization of
+> the CPU cache for the given buffer assuming that it has been already
+> transferred to 'device' domain. This attribute can be also used for
+> dma_unmap_{single,page,sg} functions family to force buffer to stay in
+> device domain after releasing a mapping for it. Use this attribute with
+> care!
 > 
-> Do you mean something like:
-> 	DECLARE_BITMAP(__hash_table, 16 * 32);
-> 	u16 *hash_table = (u16 *)__hash_table;
-> ?
-[...]
+> Signed-off-by: Marek Szyprowski <m.szyprowski@samsung.com>
+> Reviewed-by: Kyungmin Park <kyungmin.park@samsung.com>
 
-Could this driver perhaps use:
+Curious question: What's the use-case for this? Is this just to
+work-around the fact that dma-buf atm doesn't support streaming dma so
+that we could optimize this all (and keep around the mappings)? Or is
+there a different use-case that I don't see?
+-Daniel
 
-	union hash_table {
-		DECLARE_BITMAP(bits, 16 * 32);
-		__le16 words[32];
-	};
-
-Ben.
+> ---
+>  Documentation/DMA-attributes.txt |   24 ++++++++++++++++++++++++
+>  include/linux/dma-attrs.h        |    1 +
+>  2 files changed, 25 insertions(+), 0 deletions(-)
+> 
+> diff --git a/Documentation/DMA-attributes.txt b/Documentation/DMA-attributes.txt
+> index 725580d..f503090 100644
+> --- a/Documentation/DMA-attributes.txt
+> +++ b/Documentation/DMA-attributes.txt
+> @@ -67,3 +67,27 @@ set on each call.
+>  Since it is optional for platforms to implement
+>  DMA_ATTR_NO_KERNEL_MAPPING, those that do not will simply ignore the
+>  attribute and exhibit default behavior.
+> +
+> +DMA_ATTR_SKIP_CPU_SYNC
+> +----------------------
+> +
+> +By default dma_map_{single,page,sg} functions family transfer a given
+> +buffer from CPU domain to device domain. Some advanced use cases might
+> +require sharing a buffer between more than one device. This requires
+> +having a mapping created separately for each device and is usually
+> +performed by calling dma_map_{single,page,sg} function more than once
+> +for the given buffer with device pointer to each device taking part in
+> +the buffer sharing. The first call transfers a buffer from 'CPU' domain
+> +to 'device' domain, what synchronizes CPU caches for the given region
+> +(usually it means that the cache has been flushed or invalidated
+> +depending on the dma direction). However, next calls to
+> +dma_map_{single,page,sg}() for other devices will perform exactly the
+> +same sychronization operation on the CPU cache. CPU cache sychronization
+> +might be a time consuming operation, especially if the buffers are
+> +large, so it is highly recommended to avoid it if possible.
+> +DMA_ATTR_SKIP_CPU_SYNC allows platform code to skip synchronization of
+> +the CPU cache for the given buffer assuming that it has been already
+> +transferred to 'device' domain. This attribute can be also used for
+> +dma_unmap_{single,page,sg} functions family to force buffer to stay in
+> +device domain after releasing a mapping for it. Use this attribute with
+> +care!
+> diff --git a/include/linux/dma-attrs.h b/include/linux/dma-attrs.h
+> index a37c10c..f83f793 100644
+> --- a/include/linux/dma-attrs.h
+> +++ b/include/linux/dma-attrs.h
+> @@ -16,6 +16,7 @@ enum dma_attr {
+>  	DMA_ATTR_WRITE_COMBINE,
+>  	DMA_ATTR_NON_CONSISTENT,
+>  	DMA_ATTR_NO_KERNEL_MAPPING,
+> +	DMA_ATTR_SKIP_CPU_SYNC,
+>  	DMA_ATTR_MAX,
+>  };
+>  
+> -- 
+> 1.7.1.569.g6f426
+> 
+> 
+> _______________________________________________
+> Linaro-mm-sig mailing list
+> Linaro-mm-sig@lists.linaro.org
+> http://lists.linaro.org/mailman/listinfo/linaro-mm-sig
 
 -- 
-Ben Hutchings, Staff Engineer, Solarflare
-Not speaking for my employer; that's the marketing department's job.
-They asked us to note that Solarflare product names are trademarked.
-
+Daniel Vetter
+Mail: daniel@ffwll.ch
+Mobile: +41 (0)79 365 57 48
