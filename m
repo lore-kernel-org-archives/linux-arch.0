@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from tama50.ecl.ntt.co.jp ([129.60.39.147]:42293 "EHLO
+Received: from tama50.ecl.ntt.co.jp ([129.60.39.147]:42324 "EHLO
 	tama50.ecl.ntt.co.jp" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751182Ab2FMDzk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jun 2012 23:55:40 -0400
-Date: Wed, 13 Jun 2012 13:02:06 +0900
+	with ESMTP id S1751511Ab2FMD6L (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 12 Jun 2012 23:58:11 -0400
+Date: Wed, 13 Jun 2012 13:04:38 +0900
 From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
-Subject: [PATCH 1/5] sfc: Use standard __{clear,set}_bit_le() functions
-Message-ID: <20120613130206.2bf3a675.yoshikawa.takuya@oss.ntt.co.jp>
+Subject: [PATCH 4/5] powerpc: bitops: Introduce {clear,set}_bit_le()
+Message-ID: <20120613130438.b1cd04db.yoshikawa.takuya@oss.ntt.co.jp>
 In-Reply-To: <20120613130054.b5695621.yoshikawa.takuya@oss.ntt.co.jp>
 References: <20120613130054.b5695621.yoshikawa.takuya@oss.ntt.co.jp>
 Mime-Version: 1.0
@@ -16,81 +16,40 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: akpm@linux-foundation.org
 Cc: bhutchings@solarflare.com, grundler@parisc-linux.org, arnd@arndb.de, benh@kernel.crashing.org, avi@redhat.com, mtosatti@redhat.com, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, takuya.yoshikawa@gmail.com
-Message-ID: <20120613040206.HJtvjhq3yMq-mAxWFtpAW6IhrPluh3xQ3LxQWzGvlFY@z>
+Message-ID: <20120613040438.E4RtkIYxkA_lTU_1fA5qiRVAA6a0yopxaLWxx5YFCvs@z>
 
-From: Ben Hutchings <bhutchings@solarflare.com>
+From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
 
-There are now standard functions for dealing with little-endian bit
-arrays, so use them instead of our own implementations.
+Needed to replace test_and_set_bit_le() in virt/kvm/kvm_main.c which is
+being used for this missing function.
 
-Signed-off-by: Ben Hutchings <bhutchings@solarflare.com>
 Signed-off-by: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 ---
- drivers/net/ethernet/sfc/efx.c        |    4 ++--
- drivers/net/ethernet/sfc/net_driver.h |   12 ------------
- drivers/net/ethernet/sfc/nic.c        |    4 ++--
- 3 files changed, 4 insertions(+), 16 deletions(-)
+ arch/powerpc/include/asm/bitops.h |   10 ++++++++++
+ 1 files changed, 10 insertions(+), 0 deletions(-)
 
-diff --git a/drivers/net/ethernet/sfc/efx.c b/drivers/net/ethernet/sfc/efx.c
-index b95f2e1..ca2a348 100644
---- a/drivers/net/ethernet/sfc/efx.c
-+++ b/drivers/net/ethernet/sfc/efx.c
-@@ -1976,14 +1976,14 @@ static void efx_set_rx_mode(struct net_device *net_dev)
- 		netdev_for_each_mc_addr(ha, net_dev) {
- 			crc = ether_crc_le(ETH_ALEN, ha->addr);
- 			bit = crc & (EFX_MCAST_HASH_ENTRIES - 1);
--			set_bit_le(bit, mc_hash->byte);
-+			__set_bit_le(bit, mc_hash);
- 		}
- 
- 		/* Broadcast packets go through the multicast hash filter.
- 		 * ether_crc_le() of the broadcast address is 0xbe2612ff
- 		 * so we always add bit 0xff to the mask.
- 		 */
--		set_bit_le(0xff, mc_hash->byte);
-+		__set_bit_le(0xff, mc_hash);
- 	}
- 
- 	if (efx->port_enabled)
-diff --git a/drivers/net/ethernet/sfc/net_driver.h b/drivers/net/ethernet/sfc/net_driver.h
-index 0e57535..6f1a7f7 100644
---- a/drivers/net/ethernet/sfc/net_driver.h
-+++ b/drivers/net/ethernet/sfc/net_driver.h
-@@ -1080,18 +1080,6 @@ static inline struct efx_rx_buffer *efx_rx_buffer(struct efx_rx_queue *rx_queue,
- 	return &rx_queue->buffer[index];
+diff --git a/arch/powerpc/include/asm/bitops.h b/arch/powerpc/include/asm/bitops.h
+index efdc926..dc2cf9c 100644
+--- a/arch/powerpc/include/asm/bitops.h
++++ b/arch/powerpc/include/asm/bitops.h
+@@ -288,6 +288,16 @@ static __inline__ int test_bit_le(unsigned long nr,
+ 	return (tmp[nr >> 3] >> (nr & 7)) & 1;
  }
  
--/* Set bit in a little-endian bitfield */
--static inline void set_bit_le(unsigned nr, unsigned char *addr)
--{
--	addr[nr / 8] |= (1 << (nr % 8));
--}
--
--/* Clear bit in a little-endian bitfield */
--static inline void clear_bit_le(unsigned nr, unsigned char *addr)
--{
--	addr[nr / 8] &= ~(1 << (nr % 8));
--}
--
- 
- /**
-  * EFX_MAX_FRAME_LEN - calculate maximum frame length
-diff --git a/drivers/net/ethernet/sfc/nic.c b/drivers/net/ethernet/sfc/nic.c
-index 4a9a5be..bb0172d 100644
---- a/drivers/net/ethernet/sfc/nic.c
-+++ b/drivers/net/ethernet/sfc/nic.c
-@@ -473,9 +473,9 @@ void efx_nic_init_tx(struct efx_tx_queue *tx_queue)
- 
- 		efx_reado(efx, &reg, FR_AA_TX_CHKSM_CFG);
- 		if (tx_queue->queue & EFX_TXQ_TYPE_OFFLOAD)
--			clear_bit_le(tx_queue->queue, (void *)&reg);
-+			__clear_bit_le(tx_queue->queue, &reg);
- 		else
--			set_bit_le(tx_queue->queue, (void *)&reg);
-+			__set_bit_le(tx_queue->queue, &reg);
- 		efx_writeo(efx, &reg, FR_AA_TX_CHKSM_CFG);
- 	}
- 
++static inline void set_bit_le(int nr, void *addr)
++{
++	set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
++}
++
++static inline void clear_bit_le(int nr, void *addr)
++{
++	clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
++}
++
+ static inline void __set_bit_le(int nr, void *addr)
+ {
+ 	__set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
 -- 
 1.7.5.4
 
