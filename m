@@ -1,69 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gg0-f174.google.com ([209.85.161.174]:56523 "EHLO
-	mail-gg0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752184Ab2FNJgn convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jun 2012 05:36:43 -0400
-MIME-Version: 1.0
-In-Reply-To: <20120614072831.63845f6ddf024ece28e49f5e@gmail.com>
-References: <20120613130054.b5695621.yoshikawa.takuya@oss.ntt.co.jp>
-	<20120613130304.0186fa9d.yoshikawa.takuya@oss.ntt.co.jp>
-	<CAC5umyj582T+9GbOYDzOAanmMcVZ-Fdxr7i-8GWf3gTSmtAKUA@mail.gmail.com>
-	<20120613214157.0a5179d5358ec7f1b2646606@gmail.com>
-	<CAC5umygutE35hVObuooWj=ADP6PZDy4cqLtxGnRtxRX8uTtGSw@mail.gmail.com>
-	<20120613230013.3cc59bf908616e94bb4ccef2@gmail.com>
-	<CAP6odji_JvRkJP1dSzGK5ww3y71h4k6pXyj4pOQBpqP-X7Nn-A@mail.gmail.com>
-	<20120614072831.63845f6ddf024ece28e49f5e@gmail.com>
-Date: Thu, 14 Jun 2012 18:36:42 +0900
-Message-ID: <CAC5umyjkdDqavCo3Dk+WOggCnH+_CZz5jrOr3SougS4HSgV3OA@mail.gmail.com>
-Subject: Re: [PATCH 2/5] drivers/net/ethernet/dec/tulip: Use standard
- __set_bit_le() function
-From: Akinobu Mita <akinobu.mita@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 8BIT
+Received: from opensource.wolfsonmicro.com ([80.75.67.52]:46119 "EHLO
+	opensource.wolfsonmicro.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753916Ab2FNLWz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 14 Jun 2012 07:22:55 -0400
+From: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Subject: [PATCH] clkdev: Add default clkdev.h
+Date: Thu, 14 Jun 2012 12:22:45 +0100
+Message-ID: <1339672966-7553-1-git-send-email-broonie@opensource.wolfsonmicro.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
-Cc: Grant Grundler <grantgrundler@gmail.com>, Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>, akpm@linux-foundation.org, bhutchings@solarflare.com, grundler@parisc-linux.org, arnd@arndb.de, benh@kernel.crashing.org, avi@redhat.com, mtosatti@redhat.com, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org
-Message-ID: <20120614093642._pRs7DOR-Ho6eR1s1yiR7YsR7m6ZZsRJ5nYbc6sz7N8@z>
+To: Arnd Bergmann <arnd@arndb.de>, Russell King <linux@arm.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, Mark Brown <broonie@opensource.wolfsonmicro.com>
+Message-ID: <20120614112245.tBFJJDZwzaUh9uMqtZg9lfKcE0XMqgj5CCqCB5MHMso@z>
 
-2012/6/14 Takuya Yoshikawa <takuya.yoshikawa@gmail.com>:
-> On Wed, 13 Jun 2012 08:21:18 -0700
-> Grant Grundler <grantgrundler@gmail.com> wrote:
->
->> >> >> Should this hash_table be converted from u16 hash_table[32] to
->> >> >> DECLARE_BITMAP(hash_table, 16 * 32) to ensure that it is aligned
->> >> >> on long-word boundary?
->> >> >
->> >> > I think hash_table is already long-word aligned because it is placed
->> >> > right after a pointer.
->> >>
->> >> I recommend converting to proper bitmap.  Because such an implicit
->> >> assumption is easily broken by someone touching this function.
->> >
->> > Do you mean something like:
->> >        DECLARE_BITMAP(__hash_table, 16 * 32);
->> >        u16 *hash_table = (u16 *)__hash_table;
->> > ?
->> >
->> > Grant, what do you think about this?
->>
->> Hi Takuya,
->> two thoughts:
->> 1) while I agree with Akinobu and thank him for pointing out a
->> _potential_ alignment problem, this is a separate issue and your
->> existing patch should go in anyway. There are probably other drivers
->> with _potential_ alignment issues. Akinobu could get credit for
->> finding them by submitting patches after reviewing calls to set_bit
->> and set_bit_le() - similar to what you are doing now.
->
-> I prefer approach 1.
->
-> hash_table is local in build_setup_frame_hash(), so if further
-> improvement is also required, we can do that locally there later.
+Ease the deployment of clkdev by providing a default asm/clkdev.h which
+will be used if the arch does not have an include/asm/clkdev.h.
 
-This potential alignment problem is introduced by this patch.  Because
-the original set_bit_le() in tulip driver can handle unaligned bitmap.
-This is why I recommended it should be fixed in this patch.
+Signed-off-by: Mark Brown <broonie@opensource.wolfsonmicro.com>
+---
+ include/asm-generic/Kbuild.asm |    4 ++++
+ include/asm-generic/clkdev.h   |   26 ++++++++++++++++++++++++++
+ 2 files changed, 30 insertions(+)
+ create mode 100644 include/asm-generic/clkdev.h
 
-But please just ignore me if I'm too much paranoid.  And I'll handle
-this issue if no one wants to do it.
+diff --git a/include/asm-generic/Kbuild.asm b/include/asm-generic/Kbuild.asm
+index c5d2e5d..da121e0 100644
+--- a/include/asm-generic/Kbuild.asm
++++ b/include/asm-generic/Kbuild.asm
+@@ -13,6 +13,10 @@ ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/a.out.h \
+ header-y += a.out.h
+ endif
+ 
++ifeq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/clkdev.h),)
++generic-y += clkdev.h
++endif
++
+ header-y += auxvec.h
+ header-y += bitsperlong.h
+ header-y += byteorder.h
+diff --git a/include/asm-generic/clkdev.h b/include/asm-generic/clkdev.h
+new file mode 100644
+index 0000000..c362a9d
+--- /dev/null
++++ b/include/asm-generic/clkdev.h
+@@ -0,0 +1,26 @@
++/*
++ *  include/asm-generic/clkdev.h
++ *
++ * Based on the ARM clkdev.h:
++ *  Copyright (C) 2008 Russell King.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * Helper for the clk API to assist looking up a struct clk.
++ */
++#ifndef __ASM_CLKDEV_H
++#define __ASM_CLKDEV_H
++
++#include <linux/slab.h>
++
++#define __clk_get(clk)	({ 1; })
++#define __clk_put(clk)	do { } while (0)
++
++static inline struct clk_lookup_alloc *__clkdev_alloc(size_t size)
++{
++	return kzalloc(size, GFP_KERNEL);
++}
++
++#endif
+-- 
+1.7.10
+
