@@ -1,90 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout2.samsung.com ([203.254.224.25]:51904 "EHLO
-	mailout2.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753478Ab2FNIk0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jun 2012 04:40:26 -0400
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-References: <1339588218-24398-1-git-send-email-m.szyprowski@samsung.com>
- <20120613141211.GJ5979@phenom.dumpdata.com>
-In-reply-to: <20120613141211.GJ5979@phenom.dumpdata.com>
-Subject: RE: [PATCHv2 0/6] ARM: DMA-mapping: new extensions for buffer sharing
-Date: Thu, 14 Jun 2012 10:39:51 +0200
-Message-ID: <002801cd4a09$49866d00$dc934700$%szyprowski@samsung.com>
-MIME-version: 1.0
-Content-type: text/plain; charset=us-ascii
-Content-transfer-encoding: 7bit
-Content-language: pl
+Received: from mail-gg0-f174.google.com ([209.85.161.174]:56523 "EHLO
+	mail-gg0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752184Ab2FNJgn convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jun 2012 05:36:43 -0400
+MIME-Version: 1.0
+In-Reply-To: <20120614072831.63845f6ddf024ece28e49f5e@gmail.com>
+References: <20120613130054.b5695621.yoshikawa.takuya@oss.ntt.co.jp>
+	<20120613130304.0186fa9d.yoshikawa.takuya@oss.ntt.co.jp>
+	<CAC5umyj582T+9GbOYDzOAanmMcVZ-Fdxr7i-8GWf3gTSmtAKUA@mail.gmail.com>
+	<20120613214157.0a5179d5358ec7f1b2646606@gmail.com>
+	<CAC5umygutE35hVObuooWj=ADP6PZDy4cqLtxGnRtxRX8uTtGSw@mail.gmail.com>
+	<20120613230013.3cc59bf908616e94bb4ccef2@gmail.com>
+	<CAP6odji_JvRkJP1dSzGK5ww3y71h4k6pXyj4pOQBpqP-X7Nn-A@mail.gmail.com>
+	<20120614072831.63845f6ddf024ece28e49f5e@gmail.com>
+Date: Thu, 14 Jun 2012 18:36:42 +0900
+Message-ID: <CAC5umyjkdDqavCo3Dk+WOggCnH+_CZz5jrOr3SougS4HSgV3OA@mail.gmail.com>
+Subject: Re: [PATCH 2/5] drivers/net/ethernet/dec/tulip: Use standard
+ __set_bit_le() function
+From: Akinobu Mita <akinobu.mita@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Konrad Rzeszutek Wilk' <konrad.wilk@oracle.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Arnd Bergmann' <arnd@arndb.de>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>, 'Krishna Reddy' <vdumpa@nvidia.com>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Hiroshi Doyu' <hdoyu@nvidia.com>, 'Subash Patel' <subash.ramaswamy@linaro.org>, 'Sumit Semwal' <sumit.semwal@linaro.org>, 'Abhinav Kochhar' <abhinav.k@samsung.com>, Tomasz Stanislawski <t.stanislaws@samsung.com>
-Message-ID: <20120614083951.BIt7rAOqdCodiF4FM3dA9VG3qz7Zzv-spjHGf9xx1gg@z>
+To: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
+Cc: Grant Grundler <grantgrundler@gmail.com>, Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>, akpm@linux-foundation.org, bhutchings@solarflare.com, grundler@parisc-linux.org, arnd@arndb.de, benh@kernel.crashing.org, avi@redhat.com, mtosatti@redhat.com, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org
+Message-ID: <20120614093642._pRs7DOR-Ho6eR1s1yiR7YsR7m6ZZsRJ5nYbc6sz7N8@z>
 
-Hi Konrad,
+2012/6/14 Takuya Yoshikawa <takuya.yoshikawa@gmail.com>:
+> On Wed, 13 Jun 2012 08:21:18 -0700
+> Grant Grundler <grantgrundler@gmail.com> wrote:
+>
+>> >> >> Should this hash_table be converted from u16 hash_table[32] to
+>> >> >> DECLARE_BITMAP(hash_table, 16 * 32) to ensure that it is aligned
+>> >> >> on long-word boundary?
+>> >> >
+>> >> > I think hash_table is already long-word aligned because it is placed
+>> >> > right after a pointer.
+>> >>
+>> >> I recommend converting to proper bitmap.  Because such an implicit
+>> >> assumption is easily broken by someone touching this function.
+>> >
+>> > Do you mean something like:
+>> >        DECLARE_BITMAP(__hash_table, 16 * 32);
+>> >        u16 *hash_table = (u16 *)__hash_table;
+>> > ?
+>> >
+>> > Grant, what do you think about this?
+>>
+>> Hi Takuya,
+>> two thoughts:
+>> 1) while I agree with Akinobu and thank him for pointing out a
+>> _potential_ alignment problem, this is a separate issue and your
+>> existing patch should go in anyway. There are probably other drivers
+>> with _potential_ alignment issues. Akinobu could get credit for
+>> finding them by submitting patches after reviewing calls to set_bit
+>> and set_bit_le() - similar to what you are doing now.
+>
+> I prefer approach 1.
+>
+> hash_table is local in build_setup_frame_hash(), so if further
+> improvement is also required, we can do that locally there later.
 
-On Wednesday, June 13, 2012 4:12 PM Konrad Rzeszutek Wilk wrote:
+This potential alignment problem is introduced by this patch.  Because
+the original set_bit_le() in tulip driver can handle unaligned bitmap.
+This is why I recommended it should be fixed in this patch.
 
-> On Wed, Jun 13, 2012 at 01:50:12PM +0200, Marek Szyprowski wrote:
-> > Hello,
-> >
-> > This is an updated version of the patch series introducing a new
-> > features to DMA mapping subsystem to let drivers share the allocated
-> > buffers (preferably using recently introduced dma_buf framework) easy
-> > and efficient.
-> >
-> > The first extension is DMA_ATTR_NO_KERNEL_MAPPING attribute. It is
-> > intended for use with dma_{alloc, mmap, free}_attrs functions. It can be
-> > used to notify dma-mapping core that the driver will not use kernel
-> > mapping for the allocated buffer at all, so the core can skip creating
-> > it. This saves precious kernel virtual address space. Such buffer can be
-> > accessed from userspace, after calling dma_mmap_attrs() for it (a
-> > typical use case for multimedia buffers). The value returned by
-> > dma_alloc_attrs() with this attribute should be considered as a DMA
-> > cookie, which needs to be passed to dma_mmap_attrs() and
-> > dma_free_attrs() funtions.
-> >
-> > The second extension is required to let drivers to share the buffers
-> > allocated by DMA-mapping subsystem. Right now the driver gets a dma
-> > address of the allocated buffer and the kernel virtual mapping for it.
-> > If it wants to share it with other device (= map into its dma address
-> > space) it usually hacks around kernel virtual addresses to get pointers
-> > to pages or assumes that both devices share the DMA address space. Both
-> > solutions are just hacks for the special cases, which should be avoided
-> > in the final version of buffer sharing. To solve this issue in a generic
-> > way, a new call to DMA mapping has been introduced - dma_get_sgtable().
-> > It allocates a scatter-list which describes the allocated buffer and
-> > lets the driver(s) to use it with other device(s) by calling
-> > dma_map_sg() on it.
-> 
-> What about the cases where the driver wants to share the buffer but there
-> are multiple IOMMUs? So the DMA address returned initially would be
-> different on the other IOMMUs? Would the driver have to figure this out
-> or would the DMA/IOMMU implementation be in charge of that?
-
-This extension is exactly to solve this problem. The driver(s) don't need to be 
-aware of the IOMMU or IOMMUs between all the devices which are sharing the buffer.
-Using dma_get_sgtable() one can get a scatter list describing the buffer allocated
-for device1 and the call dma_map_sg() to map that scatter list to device2 dma
-area. If there is device3, one calls dma_get_sgtable() again, gets second scatter
-list, then maps it to device3. Weather there is a common IOMMU between those
-device or each of the has its separate one, it doesn't matter - it will be hidden
-behind dma mapping subsystem and the driver should not care about it.
-
-> And what about IOMMU's that don't do DMA_ATTR_NO_KERNEL_MAPPING?
-> Can they just ignore it and do what they did before ? (I presume yes).
-
-The main idea about dma attributes (the beauty of the them) is the fact that all
-are optional to implement for the platform core. If the attribute makes no sense
-for the particular hardware it can be simply ignored. Attributes can relax some
-requirements for dma mapping calls, but if the core ignores them and implements
-calls in the most restrictive way the driver (client) will still work fine.
-
-> (snipped)
-
-Best regards
--- 
-Marek Szyprowski
-Samsung Poland R&D Center
-
-
-
+But please just ignore me if I'm too much paranoid.  And I'll handle
+this issue if no one wants to do it.
