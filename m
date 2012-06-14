@@ -1,90 +1,68 @@
 From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [PATCHv2 0/6] ARM: DMA-mapping: new extensions for buffer sharing
-Date: Thu, 14 Jun 2012 10:39:51 +0200
-Message-ID: <002801cd4a09$49866d00$dc934700$%szyprowski@samsung.com>
+Subject: RE: [Linaro-mm-sig] [PATCHv2 0/6] ARM: DMA-mapping: new extensions for
+ buffer sharing
+Date: Thu, 14 Jun 2012 10:47:48 +0200
+Message-ID: <002901cd4a0a$667e1600$337a4200$%szyprowski@samsung.com>
 References: <1339588218-24398-1-git-send-email-m.szyprowski@samsung.com>
  <20120613141211.GJ5979@phenom.dumpdata.com>
+ <20120613190131.GO4829@phenom.ffwll.local>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-reply-to: <20120613141211.GJ5979@phenom.dumpdata.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mailout3.samsung.com ([203.254.224.33]:12265 "EHLO
+	mailout3.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754743Ab2FNIsJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jun 2012 04:48:09 -0400
+In-reply-to: <20120613190131.GO4829@phenom.ffwll.local>
 Content-language: pl
-Sender: owner-linux-mm@kvack.org
-To: 'Konrad Rzeszutek Wilk' <konrad.wilk@oracle.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Arnd Bergmann' <arnd@arndb.de>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>, 'Krishna Reddy' <vdumpa@nvidia.com>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Hiroshi Doyu' <hdoyu@nvidia.com>, 'Subash Patel' <subash.ramaswamy@linaro.org>, 'Sumit Semwal' <sumit.semwal@linaro.org>, 'Abhinav Kochhar' <abhinav.k@samsung.com>, Tomasz Stanislawski <t.stanislaws@samsung.com>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: 'Daniel Vetter' <daniel@ffwll.ch>, 'Konrad Rzeszutek Wilk' <konrad.wilk@oracle.com>
+Cc: linux-arch@vger.kernel.org, 'Abhinav Kochhar' <abhinav.k@samsung.com>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Arnd Bergmann' <arnd@arndb.de>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, linux-kernel@vger.kernel.org, 'Subash Patel' <subash.ramaswamy@linaro.org>, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, linux-arm-kernel@lists.infradead.org
 
-Hi Konrad,
+Hello,
 
-On Wednesday, June 13, 2012 4:12 PM Konrad Rzeszutek Wilk wrote:
+On Wednesday, June 13, 2012 9:02 PM Daniel Vetter wrote:
 
-> On Wed, Jun 13, 2012 at 01:50:12PM +0200, Marek Szyprowski wrote:
-> > Hello,
-> >
-> > This is an updated version of the patch series introducing a new
-> > features to DMA mapping subsystem to let drivers share the allocated
-> > buffers (preferably using recently introduced dma_buf framework) easy
-> > and efficient.
-> >
-> > The first extension is DMA_ATTR_NO_KERNEL_MAPPING attribute. It is
-> > intended for use with dma_{alloc, mmap, free}_attrs functions. It can be
-> > used to notify dma-mapping core that the driver will not use kernel
-> > mapping for the allocated buffer at all, so the core can skip creating
-> > it. This saves precious kernel virtual address space. Such buffer can be
-> > accessed from userspace, after calling dma_mmap_attrs() for it (a
-> > typical use case for multimedia buffers). The value returned by
-> > dma_alloc_attrs() with this attribute should be considered as a DMA
-> > cookie, which needs to be passed to dma_mmap_attrs() and
-> > dma_free_attrs() funtions.
-> >
-> > The second extension is required to let drivers to share the buffers
-> > allocated by DMA-mapping subsystem. Right now the driver gets a dma
-> > address of the allocated buffer and the kernel virtual mapping for it.
-> > If it wants to share it with other device (= map into its dma address
-> > space) it usually hacks around kernel virtual addresses to get pointers
-> > to pages or assumes that both devices share the DMA address space. Both
-> > solutions are just hacks for the special cases, which should be avoided
-> > in the final version of buffer sharing. To solve this issue in a generic
-> > way, a new call to DMA mapping has been introduced - dma_get_sgtable().
-> > It allocates a scatter-list which describes the allocated buffer and
-> > lets the driver(s) to use it with other device(s) by calling
-> > dma_map_sg() on it.
-> 
-> What about the cases where the driver wants to share the buffer but there
-> are multiple IOMMUs? So the DMA address returned initially would be
-> different on the other IOMMUs? Would the driver have to figure this out
-> or would the DMA/IOMMU implementation be in charge of that?
-
-This extension is exactly to solve this problem. The driver(s) don't need to be 
-aware of the IOMMU or IOMMUs between all the devices which are sharing the buffer.
-Using dma_get_sgtable() one can get a scatter list describing the buffer allocated
-for device1 and the call dma_map_sg() to map that scatter list to device2 dma
-area. If there is device3, one calls dma_get_sgtable() again, gets second scatter
-list, then maps it to device3. Weather there is a common IOMMU between those
-device or each of the has its separate one, it doesn't matter - it will be hidden
-behind dma mapping subsystem and the driver should not care about it.
-
-> And what about IOMMU's that don't do DMA_ATTR_NO_KERNEL_MAPPING?
-> Can they just ignore it and do what they did before ? (I presume yes).
-
-The main idea about dma attributes (the beauty of the them) is the fact that all
-are optional to implement for the platform core. If the attribute makes no sense
-for the particular hardware it can be simply ignored. Attributes can relax some
-requirements for dma mapping calls, but if the core ignores them and implements
-calls in the most restrictive way the driver (client) will still work fine.
+> On Wed, Jun 13, 2012 at 10:12:12AM -0400, Konrad Rzeszutek Wilk wrote:
+> > On Wed, Jun 13, 2012 at 01:50:12PM +0200, Marek Szyprowski wrote:
 
 > (snipped)
+
+> > > The third extension solves the performance issues which we observed with
+> > > some advanced buffer sharing use cases, which require creating a dma
+> > > mapping for the same memory buffer for more than one device. From the
+> > > DMA-mapping perspective this requires to call one of the
+> > > dma_map_{page,single,sg} function for the given memory buffer a few
+> > > times, for each of the devices. Each dma_map_* call performs CPU cache
+> > > synchronization, what might be a time consuming operation, especially
+> > > when the buffers are large. We would like to avoid any useless and time
+> > > consuming operations, so that was the main reason for introducing
+> > > another attribute for DMA-mapping subsystem: DMA_ATTR_SKIP_CPU_SYNC,
+> > > which lets dma-mapping core to skip CPU cache synchronization in certain
+> > > cases.
+> 
+> Ah, here's the use-case I've missed ;-) I'm a bit vary of totally insane
+> platforms that have additional caches only on the device side, and only
+> for some devices. Well, tlbs belong to that, but the iommu needs to handle
+> that anyway.
+> 
+> I think it would be good to add a blurb to the documentation that any
+> device-side flushing (of tlbs or special caches or whatever) still needs
+> to happen and that this is only a performance optimization to avoid the
+> costly cpu cache flushing. This way the dma-buf exporter could keep track
+> of whether it's 'device-coherent' and set that flag if the cpu caches don't
+> need to be flushed.
+> 
+> Maybe also make it clear that implementing this bit is optional (like your
+> doc already mentions for NO_KERNEL_MAPPING).
+
+Ok, I can add additional comment, but support for all dma attributes is optional
+(attributes are considered only as hints that might improve performance for some
+use cases on some hw platforms).
 
 Best regards
 -- 
 Marek Szyprowski
 Samsung Poland R&D Center
-
-
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
