@@ -1,59 +1,55 @@
-From: Michal Marek <mmarek@suse.cz>
-Subject: Re: [PATCH 1/4] [-next] Makefile: Do not call cc-option before including
- the arch's Makefile
-Date: Fri, 15 Jun 2012 17:10:31 +0200
-Message-ID: <4FDB5067.7080204@suse.cz>
-References: <1336855148-18817-1-git-send-email-geert@linux-m68k.org> <20120520092744.GA21341@merkur.ravnborg.org> <4FBF7B34.2080506@suse.cz> <20120525202937.GA22903@merkur.ravnborg.org> <20120606094912.GG9495@gmail.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 4/5] powerpc: bitops: Introduce {clear,set}_bit_le()
+Date: Mon, 18 Jun 2012 07:49:35 +1000
+Message-ID: <1339969775.9220.241.camel@pasglop>
+References: <20120613130054.b5695621.yoshikawa.takuya@oss.ntt.co.jp>
+	 <20120613130438.b1cd04db.yoshikawa.takuya@oss.ntt.co.jp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:60487 "EHLO mx2.suse.de"
+Received: from gate.crashing.org ([63.228.1.57]:46296 "EHLO gate.crashing.org"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751469Ab2FOPKl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 15 Jun 2012 11:10:41 -0400
-In-Reply-To: <20120606094912.GG9495@gmail.com>
+	id S1754329Ab2FQVun (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 17 Jun 2012 17:50:43 -0400
+In-Reply-To: <20120613130438.b1cd04db.yoshikawa.takuya@oss.ntt.co.jp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ingo Molnar <mingo@kernel.org>
-Cc: Sam Ravnborg <sam@ravnborg.org>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, Thomas Gleixner <tglx@linutronix.de>, Geert Uytterhoeven <geert@linux-m68k.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andi Kleen <ak@linux.intel.com>, linux-kbuild@vger.kernel.org
+To: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
+Cc: akpm@linux-foundation.org, bhutchings@solarflare.com, grundler@parisc-linux.org, arnd@arndb.de, avi@redhat.com, mtosatti@redhat.com, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org, takuya.yoshikawa@gmail.com
 
-On 6.6.2012 11:49, Ingo Molnar wrote:
+On Wed, 2012-06-13 at 13:04 +0900, Takuya Yoshikawa wrote:
+> From: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
 > 
-> * Sam Ravnborg <sam@ravnborg.org> wrote:
+> Needed to replace test_and_set_bit_le() in virt/kvm/kvm_main.c which is
+> being used for this missing function.
 > 
->> On Fri, May 25, 2012 at 02:29:40PM +0200, Michal Marek wrote:
->>> Dne 20.5.2012 11:27, Sam Ravnborg napsal(a):
->>>> On Sat, May 12, 2012 at 10:39:05PM +0200, Geert Uytterhoeven wrote:
->>>>> On architectures that setup CROSS_COMPILE in their arch/*/Makefile
->>>>> (blackfin, h8300, m68k, mips, parisc, score, sh, tile, unicore32, xtensa),
->>>>> cc-option may check against the wrong compiler, causing errors like
->>>>>
->>>>> cc1: error: unrecognized command line option "-fno-ipa-cp-clone"
->>>>>
->>>>> if the host gcc supports -fno-ipa-cp-clone, while the cross compiler
->>>>> doesn't support that option.
->>>>>
->>>>> Move the CONFIG_READABLE_ASM section below the inclusion of the arch's
->>>>> Makefile to fix this.
->>>>>
->>>>> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
->>>>> Cc: Andi Kleen <ak@linux.intel.com>
->>>>> Cc: H. Peter Anvin <hpa@zytor.com>
->>>>> Cc: Michal Marek <mmarek@suse.cz>
->>>>> Cc: linux-kbuild@vger.kernel.org
->>>>
->>>> Michal - was this serie ever applied to kbuild?
->>>
->>> The first patch has to go to the tip tree, where the CONFIG_READABLE_ASM
->>> option is introduced.
->> OK - I had not seen this.
->>
->> So tip-folks - please apply this.
-> 
-> it's now all upstream so you can route it via the kbuild tree I 
-> guess?
+> Signed-off-by: Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>
 
-I applied it to kbuild.git#rc-fixes now.
+Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-Michal
+> ---
+>  arch/powerpc/include/asm/bitops.h |   10 ++++++++++
+>  1 files changed, 10 insertions(+), 0 deletions(-)
+> 
+> diff --git a/arch/powerpc/include/asm/bitops.h b/arch/powerpc/include/asm/bitops.h
+> index efdc926..dc2cf9c 100644
+> --- a/arch/powerpc/include/asm/bitops.h
+> +++ b/arch/powerpc/include/asm/bitops.h
+> @@ -288,6 +288,16 @@ static __inline__ int test_bit_le(unsigned long nr,
+>  	return (tmp[nr >> 3] >> (nr & 7)) & 1;
+>  }
+>  
+> +static inline void set_bit_le(int nr, void *addr)
+> +{
+> +	set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
+> +}
+> +
+> +static inline void clear_bit_le(int nr, void *addr)
+> +{
+> +	clear_bit(nr ^ BITOP_LE_SWIZZLE, addr);
+> +}
+> +
+>  static inline void __set_bit_le(int nr, void *addr)
+>  {
+>  	__set_bit(nr ^ BITOP_LE_SWIZZLE, addr);
