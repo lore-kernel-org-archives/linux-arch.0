@@ -1,70 +1,202 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pz0-f46.google.com ([209.85.210.46]:62002 "EHLO
-	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752835Ab2FNO3D (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 14 Jun 2012 10:29:03 -0400
-Date: Thu, 14 Jun 2012 23:28:55 +0900
-From: Takuya Yoshikawa <takuya.yoshikawa@gmail.com>
-Subject: Re: [PATCH 2/5] drivers/net/ethernet/dec/tulip: Use standard
- __set_bit_le() function
-Message-ID: <20120614232855.5cb16291d148340c19d01f04@gmail.com>
-In-Reply-To: <CAC5umyjkdDqavCo3Dk+WOggCnH+_CZz5jrOr3SougS4HSgV3OA@mail.gmail.com>
-References: <20120613130054.b5695621.yoshikawa.takuya@oss.ntt.co.jp>
-	<20120613130304.0186fa9d.yoshikawa.takuya@oss.ntt.co.jp>
-	<CAC5umyj582T+9GbOYDzOAanmMcVZ-Fdxr7i-8GWf3gTSmtAKUA@mail.gmail.com>
-	<20120613214157.0a5179d5358ec7f1b2646606@gmail.com>
-	<CAC5umygutE35hVObuooWj=ADP6PZDy4cqLtxGnRtxRX8uTtGSw@mail.gmail.com>
-	<20120613230013.3cc59bf908616e94bb4ccef2@gmail.com>
-	<CAP6odji_JvRkJP1dSzGK5ww3y71h4k6pXyj4pOQBpqP-X7Nn-A@mail.gmail.com>
-	<20120614072831.63845f6ddf024ece28e49f5e@gmail.com>
-	<CAC5umyjkdDqavCo3Dk+WOggCnH+_CZz5jrOr3SougS4HSgV3OA@mail.gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Received: from hqemgate04.nvidia.com ([216.228.121.35]:9904 "EHLO
+	hqemgate04.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751237Ab2FRHvQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Jun 2012 03:51:16 -0400
+Date: Mon, 18 Jun 2012 10:50:59 +0300
+From: Hiroshi Doyu <hdoyu@nvidia.com>
+Subject: Re: [PATCH/RFC 0/2] ARM: DMA-mapping: new extensions for buffer
+ sharing (part 2)
+Message-ID: <20120618105059.12c709d68240ad18c5f8c7a5@nvidia.com>
+In-Reply-To: <1338988657-20770-1-git-send-email-m.szyprowski@samsung.com>
+References: <1338988657-20770-1-git-send-email-m.szyprowski@samsung.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="US-ASCII"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Akinobu Mita <akinobu.mita@gmail.com>
-Cc: Grant Grundler <grantgrundler@gmail.com>, Takuya Yoshikawa <yoshikawa.takuya@oss.ntt.co.jp>, akpm@linux-foundation.org, bhutchings@solarflare.com, grundler@parisc-linux.org, arnd@arndb.de, benh@kernel.crashing.org, avi@redhat.com, mtosatti@redhat.com, linux-net-drivers@solarflare.com, netdev@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, kvm@vger.kernel.org
-Message-ID: <20120614142855.8zlXpSTwAJ-TjISjL61bTcp5qysjWr9Sg9m48p14E28@z>
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linaro-mm-sig@lists.linaro.org" <linaro-mm-sig@lists.linaro.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Chunsang Jeong <chunsang.jeong@linaro.org>, Krishna Reddy <vdumpa@nvidia.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, Subash Patel <subash.ramaswamy@linaro.org>, Sumit Semwal <sumit.semwal@linaro.org>, Abhinav Kochhar <abhinav.k@samsung.com>, Tomasz Stanislawski <t.stanislaws@samsung.com>
+Message-ID: <20120618075059.SN0Un_VpAAjnpJJkstO8z4U_vn48ngETGsyRf0yJlB0@z>
 
-On Thu, 14 Jun 2012 18:36:42 +0900
-Akinobu Mita <akinobu.mita@gmail.com> wrote:
+Hi Marek,
 
-> >> 1) while I agree with Akinobu and thank him for pointing out a
-> >> _potential_ alignment problem, this is a separate issue and your
-> >> existing patch should go in anyway. There are probably other drivers
-> >> with _potential_ alignment issues. Akinobu could get credit for
-> >> finding them by submitting patches after reviewing calls to set_bit
-> >> and set_bit_le() - similar to what you are doing now.
-> >
-> > I prefer approach 1.
-> >
-> > hash_table is local in build_setup_frame_hash(), so if further
-> > improvement is also required, we can do that locally there later.
+On Wed, 6 Jun 2012 15:17:35 +0200
+Marek Szyprowski <m.szyprowski@samsung.com> wrote:
+
+> Hello,
 > 
-> This potential alignment problem is introduced by this patch.  Because
-> the original set_bit_le() in tulip driver can handle unaligned bitmap.
-> This is why I recommended it should be fixed in this patch.
+> This is a continuation of the dma-mapping extensions posted in the
+> following thread:
+> http://thread.gmane.org/gmane.linux.kernel.mm/78644
+> 
+> We noticed that some advanced buffer sharing use cases usually require
+> creating a dma mapping for the same memory buffer for more than one
+> device. Usually also such buffer is never touched with CPU, so the data
+> are processed by the devices.
+> 
+> From the DMA-mapping perspective this requires to call one of the
+> dma_map_{page,single,sg} function for the given memory buffer a few
+> times, for each of the devices. Each dma_map_* call performs CPU cache
+> synchronization, what might be a time consuming operation, especially
+> when the buffers are large. We would like to avoid any useless and time
+> consuming operations, so that was the main reason for introducing
+> another attribute for DMA-mapping subsystem: DMA_ATTR_SKIP_CPU_SYNC,
+> which lets dma-mapping core to skip CPU cache synchronization in certain
+> cases.
 
-The original set_bit_le() was used only in build_setup_frame_hash().
+I had implemented the similer patch(*1) to optimize/skip the cache
+maintanace, but we did this with "dir", not with "attr", making use of
+the existing DMA_NONE to skip cache operations. I'm just interested in
+why you choose attr for this purpose. Could you enlight me why attr is
+used here?
 
-If it's clear that the table is aligned locally in the function, I do
-not think the __potential__ problem is introduced by this patch.
+Any way, this feature is necessary for us. Thank you for posting them.
 
-As you can see from my response to Arnd in v1 thread, I knew the
-alignment requirement at that time and checked the definition of
-hash_table before using __set_bit_le().
+*1: FYI:
 
-> But please just ignore me if I'm too much paranoid.  And I'll handle
-> this issue if no one wants to do it.
+From 4656146d23d0a3bd02131f732b0c04e50475b8da Mon Sep 17 00:00:00 2001
+From: Hiroshi DOYU <hdoyu@nvidia.com>
+Date: Tue, 20 Mar 2012 15:09:30 +0200
+Subject: [PATCH 1/1] ARM: dma-mapping: Allow DMA_NONE to skip cache_maint
 
-I'm open to suggestions.
+Signed-off-by: Hiroshi DOYU <hdoyu@nvidia.com>
+---
+ arch/arm/mm/dma-mapping.c                |   16 ++++++++--------
+ drivers/video/tegra/nvmap/nvmap.c        |    2 +-
+ drivers/video/tegra/nvmap/nvmap_handle.c |    2 +-
+ include/linux/dma-mapping.h              |   16 +++++++++++++---
+ 4 files changed, 23 insertions(+), 13 deletions(-)
 
-But now that the maintainer who can test the driver on real hardware
-has suggested this patch should go in, I won't change the patch without
-any real issue.
+diff --git a/arch/arm/mm/dma-mapping.c b/arch/arm/mm/dma-mapping.c
+index 83f0ac6..c4b1587 100644
+--- a/arch/arm/mm/dma-mapping.c
++++ b/arch/arm/mm/dma-mapping.c
+@@ -1161,7 +1161,7 @@ static int __map_sg_chunk(struct device *dev, struct scatterlist *sg,
+ 		phys_addr_t phys = page_to_phys(sg_page(s));
+ 		unsigned int len = PAGE_ALIGN(s->offset + s->length);
+ 
+-		if (!arch_is_coherent())
++		if (!arch_is_coherent() && (dir != DMA_NONE))
+ 			__dma_page_cpu_to_dev(sg_page(s), s->offset, s->length, dir);
+ 
+ 		ret = iommu_map(mapping->domain, iova, phys, len, 0);
+@@ -1254,7 +1254,7 @@ void arm_iommu_unmap_sg(struct device *dev, struct scatterlist *sg, int nents,
+ 		if (sg_dma_len(s))
+ 			__iommu_remove_mapping(dev, sg_dma_address(s),
+ 					       sg_dma_len(s));
+-		if (!arch_is_coherent())
++		if (!arch_is_coherent() && (dir != DMA_NONE))
+ 			__dma_page_dev_to_cpu(sg_page(s), s->offset,
+ 					      s->length, dir);
+ 	}
+@@ -1274,7 +1274,7 @@ void arm_iommu_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg,
+ 	int i;
+ 
+ 	for_each_sg(sg, s, nents, i)
+-		if (!arch_is_coherent())
++		if (!arch_is_coherent() && (dir != DMA_NONE))
+ 			__dma_page_dev_to_cpu(sg_page(s), s->offset, s->length, dir);
+ 
+ }
+@@ -1293,7 +1293,7 @@ void arm_iommu_sync_sg_for_device(struct device *dev, struct scatterlist *sg,
+ 	int i;
+ 
+ 	for_each_sg(sg, s, nents, i)
+-		if (!arch_is_coherent())
++		if (!arch_is_coherent() && (dir != DMA_NONE))
+ 			__dma_page_cpu_to_dev(sg_page(s), s->offset, s->length, dir);
+ }
+ 
+@@ -1305,7 +1305,7 @@ static dma_addr_t __arm_iommu_map_page_at(struct device *dev, struct page *page,
+ 	dma_addr_t dma_addr;
+ 	int ret, len = PAGE_ALIGN(size + offset);
+ 
+-	if (!arch_is_coherent())
++	if (!arch_is_coherent() && (dir != DMA_NONE))
+ 		__dma_page_cpu_to_dev(page, offset, size, dir);
+ 
+ 	dma_addr = __alloc_iova_at(mapping, req, len);
+@@ -1349,7 +1349,7 @@ dma_addr_t arm_iommu_map_page_at(struct device *dev, struct page *page,
+ 	unsigned int phys;
+ 	int ret;
+ 
+-	if (!arch_is_coherent())
++	if (!arch_is_coherent() && (dir != DMA_NONE))
+ 		__dma_page_cpu_to_dev(page, offset, size, dir);
+ 
+ 	/* Check if iova area is reserved in advance. */
+@@ -1386,7 +1386,7 @@ static void __arm_iommu_unmap_page_at(struct device *dev, dma_addr_t handle,
+ 	if (!iova)
+ 		return;
+ 
+-	if (!arch_is_coherent())
++	if (!arch_is_coherent() && (dir != DMA_NONE))
+ 		__dma_page_dev_to_cpu(page, offset, size, dir);
+ 
+ 	iommu_unmap(mapping->domain, iova, len);
+@@ -1430,7 +1430,7 @@ static void arm_iommu_sync_single_for_cpu(struct device *dev,
+ 	if (!iova)
+ 		return;
+ 
+-	if (!arch_is_coherent())
++	if (!arch_is_coherent() && (dir != DMA_NONE))
+ 		__dma_page_dev_to_cpu(page, offset, size, dir);
+ }
+ 
+diff --git a/drivers/video/tegra/nvmap/nvmap.c b/drivers/video/tegra/nvmap/nvmap.c
+index 1032224..e98dd11 100644
+--- a/drivers/video/tegra/nvmap/nvmap.c
++++ b/drivers/video/tegra/nvmap/nvmap.c
+@@ -56,7 +56,7 @@ static void map_iovmm_area(struct nvmap_handle *h)
+ 		BUG_ON(!pfn_valid(page_to_pfn(h->pgalloc.pages[i])));
+ 
+ 		iova = dma_map_page_at(to_iovmm_dev(h), h->pgalloc.pages[i],
+-				       va, 0, PAGE_SIZE, DMA_BIDIRECTIONAL);
++				       va, 0, PAGE_SIZE, DMA_NONE);
+ 		BUG_ON(iova != va);
+ 	}
+ 	h->pgalloc.dirty = false;
+diff --git a/drivers/video/tegra/nvmap/nvmap_handle.c b/drivers/video/tegra/nvmap/nvmap_handle.c
+index 853f87e..b2bbeb1 100644
+--- a/drivers/video/tegra/nvmap/nvmap_handle.c
++++ b/drivers/video/tegra/nvmap/nvmap_handle.c
+@@ -504,7 +504,7 @@ void nvmap_free_vm(struct device *dev, struct tegra_iovmm_area *area)
+ 		dma_addr_t iova;
+ 
+ 		iova = area->iovm_start + i * PAGE_SIZE;
+-		dma_unmap_page(dev, iova, PAGE_SIZE, DMA_BIDIRECTIONAL);
++		dma_unmap_page(dev, iova, PAGE_SIZE, DMA_NONE);
+ 	}
+ 	kfree(area);
+ }
+diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.h
+index 36dfe06..cbd8d47 100644
+--- a/include/linux/dma-mapping.h
++++ b/include/linux/dma-mapping.h
+@@ -55,9 +55,19 @@ struct dma_map_ops {
+ 
+ static inline int valid_dma_direction(int dma_direction)
+ {
+-	return ((dma_direction == DMA_BIDIRECTIONAL) ||
+-		(dma_direction == DMA_TO_DEVICE) ||
+-		(dma_direction == DMA_FROM_DEVICE));
++	int ret = 1;
++
++	switch (dma_direction) {
++	case DMA_BIDIRECTIONAL:
++	case DMA_TO_DEVICE:
++	case DMA_FROM_DEVICE:
++	case DMA_NONE:
++		break;
++	default:
++		ret = !!ret;
++		break;
++	} 
++	return ret;
+ }
+ 
+ static inline int is_device_dma_capable(struct device *dev)
+-- 
+1.7.5.4
 
-I would thank you if you improve this driver later on top of that.
-
-Thanks,
-	Takuya
