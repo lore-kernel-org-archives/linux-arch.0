@@ -1,69 +1,71 @@
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: RE: [PATCH/RFC 0/2] ARM: DMA-mapping: new extensions for buffer
- sharing (part 2)
-Date: Mon, 18 Jun 2012 11:03:24 +0200
-Message-ID: <017b01cd4d31$3c855640$b59002c0$%szyprowski@samsung.com>
-References: <1338988657-20770-1-git-send-email-m.szyprowski@samsung.com>
- <20120618105059.12c709d68240ad18c5f8c7a5@nvidia.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+From: "Theodore Ts'o" <tytso@mit.edu>
+Subject: 2012 Kernel Summit: Call for Participation
+Date: Tue, 19 Jun 2012 11:19:40 -0400
+Message-ID: <E1Sh0DU-0005DI-5L@tytso-glaptop.cam.corp.google.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout4.samsung.com ([203.254.224.34]:32945 "EHLO
-	mailout4.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753397Ab2FRJDp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 18 Jun 2012 05:03:45 -0400
-In-reply-to: <20120618105059.12c709d68240ad18c5f8c7a5@nvidia.com>
-Content-language: pl
+Received: from li9-11.members.linode.com ([67.18.176.11]:51302 "EHLO
+	imap.thunk.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752037Ab2FSPTm (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 19 Jun 2012 11:19:42 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: 'Hiroshi Doyu' <hdoyu@nvidia.com>
-Cc: linux-arm-kernel@lists.infradead.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, 'Kyungmin Park' <kyungmin.park@samsung.com>, 'Arnd Bergmann' <arnd@arndb.de>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Chunsang Jeong' <chunsang.jeong@linaro.org>, 'Krishna Reddy' <vdumpa@nvidia.com>, 'Benjamin Herrenschmidt' <benh@kernel.crashing.org>, 'Konrad Rzeszutek Wilk' <konrad.wilk@oracle.com>, 'Subash Patel' <subash.ramaswamy@linaro.org>, 'Sumit Semwal' <sumit.semwal@linaro.org>, 'Abhinav Kochhar' <abhinav.k@samsung.com>, Tomasz Stanislawski <t.stanislaws@samsung.com>
+To: linux-arch@vger.kernel.org
 
-Hi,
 
-On Monday, June 18, 2012 9:51 AM Hiroshi Doyu wrote:
+Please note that we are using a different way of selecting who will get
+invites this year; please read below, subscribe to the
+ksummit-2012-discuss mailing list, and send an [ATTEND] request to the
+mailing list if you are interested in attending.
 
-> On Wed, 6 Jun 2012 15:17:35 +0200
-> Marek Szyprowski <m.szyprowski@samsung.com> wrote:
-> 
-> > This is a continuation of the dma-mapping extensions posted in the
-> > following thread:
-> > http://thread.gmane.org/gmane.linux.kernel.mm/78644
-> >
-> > We noticed that some advanced buffer sharing use cases usually require
-> > creating a dma mapping for the same memory buffer for more than one
-> > device. Usually also such buffer is never touched with CPU, so the data
-> > are processed by the devices.
-> >
-> > From the DMA-mapping perspective this requires to call one of the
-> > dma_map_{page,single,sg} function for the given memory buffer a few
-> > times, for each of the devices. Each dma_map_* call performs CPU cache
-> > synchronization, what might be a time consuming operation, especially
-> > when the buffers are large. We would like to avoid any useless and time
-> > consuming operations, so that was the main reason for introducing
-> > another attribute for DMA-mapping subsystem: DMA_ATTR_SKIP_CPU_SYNC,
-> > which lets dma-mapping core to skip CPU cache synchronization in certain
-> > cases.
-> 
-> I had implemented the similer patch(*1) to optimize/skip the cache
-> maintanace, but we did this with "dir", not with "attr", making use of
-> the existing DMA_NONE to skip cache operations. I'm just interested in
-> why you choose attr for this purpose. Could you enlight me why attr is
-> used here?
+Do feel free to forward this other mailing lists (especially if there
+are internal kernel development lists at your company) if appropriate.
 
-I also thought initially about adding new dma direction for this feature,
-but then I realized that there might be cases where the real direction of
-the data transfer might be needed (for example to set io read/write
-attributes for the mappings) and this will lead us to 3 new dma directions.
-The second reason was the compatibility with existing code. There are
-already drivers which use DMA_NONE type for their internal stuff. Adding
-support for new dma attributes requires changes in all implementations of
-dma-mapping for all architectures. DMA attributes are imho better fits
-this case. They are by default optional, so other architectures are free
-to leave them unimplemented and the drivers should still work correctly.
- 
-Best regards
--- 
-Marek Szyprowski
-Samsung Poland R&D Center
+Many thanks,
+
+						- Ted
+
+
+The annual Kernel Summit for 2012 will be held on the 3 days preceding the
+Linux Foundation LinuxCon and Linux Plumbers Conference at the Sheraton San
+Diego Hotel and Marina from 27-29 August:
+
+        http://www.linuxplumbersconf.org/2012/
+        https://events.linuxfoundation.org/events/linuxcon
+
+The format of the Kernel Summit will be
+
+Monday: All Kernel Developers Plenary Sessions
+Tuesday: Kernel technical working and breakout sessions
+Wednesday: Additional Technical sessions shared with Plumbers
+
+
+This year, in order to make the selection process more transparent,
+we're trying a new mechanism where we'll be selecting this year's
+attendees from amongst those who submit proposals to attend as
+described below.
+
+We'll try to cap attendance at around 80-100 for the all kernel
+developers day, so get your request in early.  To request a place to
+attend, please send an email to
+
+    ksummit-2012-discuss@lists.linuxfoundation.org
+
+Please summarize what expertise you will bring to the meeting,
+and what you'd like to discuss.  Please also tag your email with
+[ATTEND] so there's less chance of it getting lost in the large
+mail pile.
+
+Requests to attend will be looked upon more favorably if you also
+participate in the discussion of topics at
+
+    ksummit-2012-discuss@lists.linuxfoundation.org
+
+You can subscribe via mailman:
+
+    http://lists.linux-foundation.org/mailman/listinfo/ksummit-2012-discuss
+
+
+For reference, the agendas from a few prior kernel summits are here:
+
+http://ksummit2011.kernel.org/agenda
+http://ksummit2010.kernel.org/agenda
