@@ -1,34 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.gnudd.com ([213.203.150.91]:45586 "EHLO mail.gnudd.com"
+Received: from mx1.redhat.com ([209.132.183.28]:28788 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756352Ab2FTKwY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 20 Jun 2012 06:52:24 -0400
-Date: Wed, 20 Jun 2012 12:51:31 +0200
-From: Alessandro Rubini <rubini@gnudd.com>
-Subject: Re: [PATCH V2 0/6] Bridging PCI to amba
-Message-ID: <20120620105131.GA6288@mail.gnudd.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <201206111528.23034.arnd@arndb.de>
-References: <201206111528.23034.arnd@arndb.de>
-  <cover.1338220457.git.rubini@gnudd.com>
- <CACRpkdbPtR5MDjd1YZ5GhOdp61HQe2PJusudNPOhDQHUAt1kJA@mail.gmail.com>
+	id S1754032Ab2FWKFN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 23 Jun 2012 06:05:13 -0400
+From: Cong Wang <amwang@redhat.com>
+Subject: [PATCH 06/12] asm-generic: remove km_type definitions
+Date: Sat, 23 Jun 2012 18:04:17 +0800
+Message-ID: <1340445863-16111-7-git-send-email-amwang@redhat.com>
+In-Reply-To: <1340445863-16111-1-git-send-email-amwang@redhat.com>
+References: <1340445863-16111-1-git-send-email-amwang@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: linus.walleij@linaro.org, linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, linux@arm.linux.org.uk, x86@kernel.org, gregkh@linuxfoundation.org, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120620105131.w0-g0Ugz7V4jR1iO3CyWwfRDP6VyYbCMtWXQG2ICjK8@z>
+To: linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Cong Wang <amwang@redhat.com>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Message-ID: <20120623100417.pmH_IgnBFvHSmOMih3tI4-doHeuvoTdFDwutk99HnNA@z>
 
-> Date: Mon, 11 Jun 2012 15:28:22 +0000
+Signed-off-by: Cong Wang <amwang@redhat.com>
+---
+ include/asm-generic/kmap_types.h |   34 ++--------------------------------
+ 1 files changed, 2 insertions(+), 32 deletions(-)
 
-Arnd Bergmann:
-> I don't think it has much to do with code I maintain. Russell
-> as the Primecell maintainer is the right person to take it through
-> his tree.
+diff --git a/include/asm-generic/kmap_types.h b/include/asm-generic/kmap_types.h
+index 0232ccb..90f99c7 100644
+--- a/include/asm-generic/kmap_types.h
++++ b/include/asm-generic/kmap_types.h
+@@ -2,39 +2,9 @@
+ #define _ASM_GENERIC_KMAP_TYPES_H
+ 
+ #ifdef __WITH_KM_FENCE
+-# define KMAP_D(n) __KM_FENCE_##n ,
++# define KM_TYPE_NR 41
+ #else
+-# define KMAP_D(n)
++# define KM_TYPE_NR 20
+ #endif
+ 
+-enum km_type {
+-KMAP_D(0)	KM_BOUNCE_READ,
+-KMAP_D(1)	KM_SKB_SUNRPC_DATA,
+-KMAP_D(2)	KM_SKB_DATA_SOFTIRQ,
+-KMAP_D(3)	KM_USER0,
+-KMAP_D(4)	KM_USER1,
+-KMAP_D(5)	KM_BIO_SRC_IRQ,
+-KMAP_D(6)	KM_BIO_DST_IRQ,
+-KMAP_D(7)	KM_PTE0,
+-KMAP_D(8)	KM_PTE1,
+-KMAP_D(9)	KM_IRQ0,
+-KMAP_D(10)	KM_IRQ1,
+-KMAP_D(11)	KM_SOFTIRQ0,
+-KMAP_D(12)	KM_SOFTIRQ1,
+-KMAP_D(13)	KM_SYNC_ICACHE,
+-KMAP_D(14)	KM_SYNC_DCACHE,
+-/* UML specific, for copy_*_user - used in do_op_one_page */
+-KMAP_D(15)	KM_UML_USERCOPY,
+-KMAP_D(16)	KM_IRQ_PTE,
+-KMAP_D(17)	KM_NMI,
+-KMAP_D(18)	KM_NMI_PTE,
+-KMAP_D(19)	KM_KDB,
+-/*
+- * Remember to update debug_kmap_atomic() when adding new kmap types!
+- */
+-KMAP_D(20)	KM_TYPE_NR
+-};
+-
+-#undef KMAP_D
+-
+ #endif
+-- 
+1.7.7.6
 
-Russell, is there some action I shall take? I suspect your email-based
-patch system is over by now, or should I send patches in there?
-
-thanks
-/alessandro
