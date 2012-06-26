@@ -1,83 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:29852 "EHLO
-	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932161Ab2FZSyp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jun 2012 14:54:45 -0400
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v12 03/15] resources: Replace registered resource in tree.
-Date: Tue, 26 Jun 2012 11:53:57 -0700
-Message-ID: <1340736849-14875-4-git-send-email-yinghai@kernel.org>
-In-Reply-To: <1340736849-14875-1-git-send-email-yinghai@kernel.org>
-References: <1340736849-14875-1-git-send-email-yinghai@kernel.org>
+Received: from mail-we0-f174.google.com ([74.125.82.174]:43610 "EHLO
+	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751026Ab2FZTBl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jun 2012 15:01:41 -0400
+MIME-Version: 1.0
+In-Reply-To: <1340736849-14875-2-git-send-email-yinghai@kernel.org>
+References: <1340736849-14875-1-git-send-email-yinghai@kernel.org> <1340736849-14875-2-git-send-email-yinghai@kernel.org>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Tue, 26 Jun 2012 12:01:19 -0700
+Message-ID: <CA+55aFzi7tHg=3k8Fmga8XmxFbn6tZLLV97vt67Xx_WtckQo6g@mail.gmail.com>
+Subject: Re: [PATCH -v12 01/15] resources: Split out __allocate_resource()
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
-Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120626185357.ouEPQRxCzQHp04rNpovJGwmAFkMTDZwyu1j6vMrHR4A@z>
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120626190119.koUTczNiL7bkncv2_S1RBK3LufK_iCq2x6Z_V5BAGAo@z>
 
-We could have one resource inserted in tree at first during probing.
+On Tue, Jun 26, 2012 at 11:53 AM, Yinghai Lu <yinghai@kernel.org> wrote:
+> It will take bool lock, so we could use it in other functions that
+> hold the resource lock already.
 
-Later we need to put real resource into the tree.
+This is too damn ugly.
 
-So try to hold the lock to swap them.
+These kinds of "conditionally take lock" things are always just bugs
+waiting to happen. Don't do it.
 
--v2: make it more generic to handle old one with children or no parent.
+Just make the rule be that the caller of the __allocate_resource
+helper has to hold the lock. Sure, that means that you need to then
+use split reallocate_resource() into a helper function (ie a static
+__reallocate_resource() that needs to have the lock taken by the
+caller too), but dammit, that's definitely the right thing to do
+anyway.
 
-Signed-off-by: Yinghai Lu <yinghai@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>
----
- include/linux/ioport.h |    1 +
- kernel/resource.c      |   25 +++++++++++++++++++++++++
- 2 files changed, 26 insertions(+), 0 deletions(-)
+These kinds of "bool lock" crap things have to die. They are *wrong*.
+They are a sign of bad locking rules.
 
-diff --git a/include/linux/ioport.h b/include/linux/ioport.h
-index 8292e8b..cbf3480 100644
---- a/include/linux/ioport.h
-+++ b/include/linux/ioport.h
-@@ -163,6 +163,7 @@ int probe_resource(struct resource *b_res,
- 			struct resource *busn_res,
- 			resource_size_t needed_size, struct resource **p,
- 			int skip_nr, int limit, int flags);
-+void replace_resource(struct resource *old_res, struct resource *new_res);
- struct resource *lookup_resource(struct resource *root, resource_size_t start);
- int adjust_resource(struct resource *res, resource_size_t start,
- 		    resource_size_t size);
-diff --git a/kernel/resource.c b/kernel/resource.c
-index d5d9aef..8da0e76 100644
---- a/kernel/resource.c
-+++ b/kernel/resource.c
-@@ -1129,6 +1129,31 @@ reduce_needed_size:
- 	return ret;
- }
- 
-+/* replace old with new in the resource tree */
-+void replace_resource(struct resource *old, struct resource *new)
-+{
-+	struct resource *parent, *tmp, *p;
-+
-+	write_lock(&resource_lock);
-+	new->start = old->start;
-+	new->end = old->end;
-+	new->flags = old->flags;
-+
-+	p = old->child;
-+	while (p) {
-+		tmp = p;
-+		p = p->sibling;
-+		__release_resource(tmp);
-+		__request_resource(new, tmp);
-+	}
-+	parent = old->parent;
-+	if (parent) {
-+		__release_resource(old);
-+		__request_resource(parent, new);
-+	}
-+	write_unlock(&resource_lock);
-+}
-+
- /*
-  * Managed region resource
-  */
--- 
-1.7.7
-
+                  Linus
