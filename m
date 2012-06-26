@@ -1,51 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:30591 "EHLO
+Received: from acsinet15.oracle.com ([141.146.126.227]:30466 "EHLO
 	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932268Ab2FZS4R (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jun 2012 14:56:17 -0400
+	with ESMTP id S932283Ab2FZS4B (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jun 2012 14:56:01 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v12 15/15] PCI: Don't shrink too much for hotplug bridge
-Date: Tue, 26 Jun 2012 11:54:09 -0700
-Message-ID: <1340736849-14875-16-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v12 13/15] PCI, pciehp: Remove not needed bus number range checking
+Date: Tue, 26 Jun 2012 11:54:07 -0700
+Message-ID: <1340736849-14875-14-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1340736849-14875-1-git-send-email-yinghai@kernel.org>
 References: <1340736849-14875-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120626185409.gOHJniUEHmZw-hY0v0eYjE9taLmVX8dFxKXT7FOcEUg@z>
+Message-ID: <20120626185407.DGnxIkdcaJvF2w342xnpJUwB5BdloNrh2Y71bYdRv7M@z>
 
-Otherwise may have problem later if we plug pcie cards with bridges.
+Found hotplug adding one EM with bridge fail, bios only leave one bus range
+ for slot.
+
+[ 1169.621444] pciehp: No bus number available for hot-added bridge 0000:55:00.0
+[ 1169.633277] pcieport 0000:40:03.0: PCI bridge to [bus 55-55]
+
+With busn_res tracking and allocating, we don't need that checking anymore.
+
+Parent bridges' bus number will be extended safely.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |    6 ++++++
- 1 files changed, 6 insertions(+), 0 deletions(-)
+ drivers/pci/hotplug-pci.c |   12 +-----------
+ 1 files changed, 1 insertions(+), 11 deletions(-)
 
-diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index 118fe5b..f66f1b1 100644
---- a/drivers/pci/probe.c
-+++ b/drivers/pci/probe.c
-@@ -811,6 +811,7 @@ static int __devinit pci_bridge_check_busn_broken(struct pci_bus *bus,
+diff --git a/drivers/pci/hotplug-pci.c b/drivers/pci/hotplug-pci.c
+index 6258dc2..2221a27 100644
+--- a/drivers/pci/hotplug-pci.c
++++ b/drivers/pci/hotplug-pci.c
+@@ -7,18 +7,8 @@
+ int __ref pci_hp_add_bridge(struct pci_dev *dev)
+ {
+ 	struct pci_bus *parent = dev->bus;
+-	int pass, busnr, start = parent->busn_res.start;
+-	int end = parent->busn_res.end;
++	int pass, busnr = parent->busn_res.start;
  
- static unsigned int __devinit __pci_scan_child_bus(struct pci_bus *bus,
- 						 int pass);
-+#define HOTPLUG_BRIDGE_RESERVE_BUSNR 8
- /*
-  * If it's a bridge, configure it and scan the bus behind it.
-  * For CardBus bridges, we don't scan behind as the devices will
-@@ -1019,6 +1020,11 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
- 		/*
- 		 * Set the subordinate bus number to its real value.
- 		 */
-+		if (dev->is_hotplug_bridge && child->busn_res.end > max &&
-+		   (max - child->busn_res.start) < HOTPLUG_BRIDGE_RESERVE_BUSNR)
-+			max = min_t(int, child->busn_res.start +
-+					 HOTPLUG_BRIDGE_RESERVE_BUSNR,
-+				    child->busn_res.end);
- 		shrink_size = (int)child->busn_res.end - max;
- 		pci_write_config_byte(dev, PCI_SUBORDINATE_BUS, max);
- 		pci_bus_update_busn_res_end(child, max);
+-	for (busnr = start; busnr <= end; busnr++) {
+-		if (!pci_find_bus(pci_domain_nr(parent), busnr))
+-			break;
+-	}
+-	if (busnr-- > end) {
+-		printk(KERN_ERR "No bus number available for hot-added bridge %s\n",
+-				pci_name(dev));
+-		return -1;
+-	}
+ 	for (pass = 0; pass < 2; pass++)
+ 		busnr = pci_scan_bridge(parent, dev, busnr, pass);
+ 	if (!dev->subordinate)
 -- 
 1.7.7
 
