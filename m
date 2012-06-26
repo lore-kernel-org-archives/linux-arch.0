@@ -1,7 +1,7 @@
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v12 10/15] PCI: Seperate child bus scanning to two passes overall
-Date: Tue, 26 Jun 2012 11:54:04 -0700
-Message-ID: <1340736849-14875-11-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v12 12/15] PCI: Double checking setting for bus register and bus struct.
+Date: Tue, 26 Jun 2012 11:54:06 -0700
+Message-ID: <1340736849-14875-13-git-send-email-yinghai@kernel.org>
 References: <1340736849-14875-1-git-send-email-yinghai@kernel.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1340736849-14875-1-git-send-email-yinghai@kernel.org>
@@ -10,133 +10,72 @@ To: Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.cra
 Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
 List-Id: linux-arch.vger.kernel.org
 
-In extreme case: Two bridges are properly setup.
-       bridge A
-               bridge AA
-               bridge AB
-       bridge B
-	       bridge BA
-	       bridge BB
-   but AA, AB are not setup properly.
-   bridge A has small range, and bridge AB could need more, when do the
-       first pass0 for bridge A, it will do pass0 and pass1 for AA and AB,
-	during that process, it will extend range of A for AB blindly.
-	because bridge B is not registered yet.
-       that could overlap range that is used by bridge B.
+User could use setpci change bridge's bus register. that could make value of register
+and struct is out of sync.
+User later will use rescan to see the devices is moving.
 
-Right way should be:
-       do pass0 for all good bridges at first.
-So we could do pass0 for bridge B before pass1 for bridge AB.
+In the rescaning, we need to double check the range and remove the old struct at first.
+
+to make thing working user may need have script to remove children devices under bridge
+at first, and then use setpci update bus register and then rescan.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
- drivers/pci/probe.c |   50 ++++++++++++++++++++++++++++++++++----------------
- 1 files changed, 34 insertions(+), 16 deletions(-)
+ drivers/pci/probe.c |   42 ++++++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 42 insertions(+), 0 deletions(-)
 
 diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index d558316..e77f58d 100644
+index e77f58d..93b61b8 100644
 --- a/drivers/pci/probe.c
 +++ b/drivers/pci/probe.c
-@@ -765,6 +765,9 @@ static int __devinit pci_bridge_check_busn_broken(struct pci_bus *bus,
+@@ -806,6 +806,48 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
+ 	    (primary != bus->number || secondary <= bus->number))
+ 		broken = 1;
  
- 	return 0;
- }
++	if (!pass && dev->subordinate) {
++		child = dev->subordinate;
++		/*
++		 * User could change bus register in bridge manually with
++		 * setpci and rescan. So double check the setting, and remove
++		 * old structs.  Don't set broken yet, let following check
++		 * to see if the new setting good.
++		 */
++		if (primary != child->primary ||
++		    secondary != child->busn_res.start ||
++		    subordinate != child->busn_res.end) {
++			dev_info(&dev->dev,
++				"someone changed bus register from pri:%02x, sec:%02x, sub:%02x to pri:%02x, sec:%02x, sub:%02x\n",
++				child->primary, (int)child->busn_res.start,
++				(int)child->busn_res.end,
++				primary, secondary, subordinate);
++			if (!list_empty(&dev->subordinate->devices)) {
++				u32 old_buses;
 +
-+static unsigned int __devinit __pci_scan_child_bus(struct pci_bus *bus,
-+						 int pass);
- /*
-  * If it's a bridge, configure it and scan the bus behind it.
-  * For CardBus bridges, we don't scan behind as the devices will
-@@ -821,11 +824,10 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
- 	    !is_cardbus && !broken) {
- 		unsigned int cmax;
- 		/*
--		 * Bus already configured by firmware, process it in the first
--		 * pass and just note the configuration.
-+		 * Bus already configured by firmware, still process it in two
-+		 * passes in extreme case like two adjaced bridges have children
-+		 * bridges that are not setup properly.
- 		 */
--		if (pass)
--			goto out;
- 
- 		/*
- 		 * If we already got to this bus through a different bridge,
-@@ -844,7 +846,7 @@ int __devinit pci_scan_bridge(struct pci_bus *bus, struct pci_dev *dev, int max,
- 			child->bridge_ctl = bctl;
- 		}
- 
--		cmax = pci_scan_child_bus(child);
-+		cmax = __pci_scan_child_bus(child, pass);
- 		if (cmax > max)
- 			max = cmax;
- 		if (child->busn_res.end > max)
-@@ -1662,12 +1664,13 @@ void pcie_bus_configure_settings(struct pci_bus *bus, u8 mpss)
- }
- EXPORT_SYMBOL_GPL(pcie_bus_configure_settings);
- 
--unsigned int __devinit pci_scan_child_bus(struct pci_bus *bus)
-+static unsigned int __devinit __pci_scan_child_bus(struct pci_bus *bus,
-+						 int pass)
- {
--	unsigned int devfn, pass, max = bus->busn_res.start;
-+	unsigned int devfn, max = bus->busn_res.start;
- 	struct pci_dev *dev;
- 
--	dev_dbg(&bus->dev, "scanning bus\n");
-+	dev_dbg(&bus->dev, "scanning bus pass %d\n", pass);
- 
- 	/* Go find them, Rover! */
- 	for (devfn = 0; devfn < 0x100; devfn += 8)
-@@ -1681,18 +1684,16 @@ unsigned int __devinit pci_scan_child_bus(struct pci_bus *bus)
- 	 * all PCI-to-PCI bridges on this bus.
- 	 */
- 	if (!bus->is_added) {
--		dev_dbg(&bus->dev, "fixups for bus\n");
-+		dev_dbg(&bus->dev, "fixups for bus pass %d\n", pass);
- 		pcibios_fixup_bus(bus);
- 		if (pci_is_root_bus(bus))
- 			bus->is_added = 1;
- 	}
- 
--	for (pass=0; pass < 2; pass++)
--		list_for_each_entry(dev, &bus->devices, bus_list) {
--			if (dev->hdr_type == PCI_HEADER_TYPE_BRIDGE ||
--			    dev->hdr_type == PCI_HEADER_TYPE_CARDBUS)
--				max = pci_scan_bridge(bus, dev, max, pass);
--		}
-+	list_for_each_entry(dev, &bus->devices, bus_list)
-+		if (dev->hdr_type == PCI_HEADER_TYPE_BRIDGE ||
-+		    dev->hdr_type == PCI_HEADER_TYPE_CARDBUS)
-+			max = pci_scan_bridge(bus, dev, max, pass);
- 
- 	/*
- 	 * We've scanned the bus and so we know all about what's on
-@@ -1701,7 +1702,24 @@ unsigned int __devinit pci_scan_child_bus(struct pci_bus *bus)
- 	 *
- 	 * Return how far we've got finding sub-buses.
- 	 */
--	dev_dbg(&bus->dev, "bus scan returning with max=%02x\n", max);
-+	dev_dbg(&bus->dev, "bus scan returning with max=%02x pass %d\n",
-+			max, pass);
-+
-+	return max;
-+}
-+
-+unsigned int __devinit pci_scan_child_bus(struct pci_bus *bus)
-+{
-+	int pass;
-+	unsigned int max = 0, tmp;
-+
-+	for (pass = 0; pass < 2;  pass++) {
-+		tmp = __pci_scan_child_bus(bus, pass);
-+
-+		if (tmp > max)
-+			max = tmp;
++				dev_info(&dev->dev,
++				 "but children devices are not removed manually before that.\n");
++				/*
++				 * Try best to remove left children devices
++				 * but we need to set bus register back,
++				 * otherwise we can not access children device
++				 * and stop them.
++				 */
++				old_buses = (buses & 0xff000000)
++				   | ((unsigned int)(child->primary) << 0)
++				   | ((unsigned int)(child->busn_res.start) << 8)
++				   | ((unsigned int)(child->busn_res.end) << 16);
++				pci_write_config_dword(dev, PCI_PRIMARY_BUS,
++							 old_buses);
++				pci_stop_and_remove_behind_bridge(dev);
++				pci_write_config_dword(dev, PCI_PRIMARY_BUS,
++							 buses);
++			}
++			pci_remove_bus(dev->subordinate);
++			dev->subordinate = NULL;
++		}
 +	}
 +
- 	return max;
- }
- 
+ 	/* more strict checking */
+ 	if (!pass && !broken && !dev->subordinate)
+ 		broken = pci_bridge_check_busn_broken(bus, dev,
 -- 
 1.7.7
