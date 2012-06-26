@@ -1,89 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:29810 "EHLO
+Received: from acsinet15.oracle.com ([141.146.126.227]:29852 "EHLO
 	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758728Ab2FZSyi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jun 2012 14:54:38 -0400
+	with ESMTP id S932161Ab2FZSyp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jun 2012 14:54:45 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v12 01/15] resources: Split out __allocate_resource()
-Date: Tue, 26 Jun 2012 11:53:55 -0700
-Message-ID: <1340736849-14875-2-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v12 03/15] resources: Replace registered resource in tree.
+Date: Tue, 26 Jun 2012 11:53:57 -0700
+Message-ID: <1340736849-14875-4-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1340736849-14875-1-git-send-email-yinghai@kernel.org>
 References: <1340736849-14875-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120626185355.CPWrTtIlS55Rn7qCjWmMDLvIGg6PvhlKs2Ae5j6effw@z>
+Message-ID: <20120626185357.ouEPQRxCzQHp04rNpovJGwmAFkMTDZwyu1j6vMrHR4A@z>
 
-It will take bool lock, so we could use it in other functions that
-hold the resource lock already.
+We could have one resource inserted in tree at first during probing.
+
+Later we need to put real resource into the tree.
+
+So try to hold the lock to swap them.
+
+-v2: make it more generic to handle old one with children or no parent.
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 ---
- kernel/resource.c |   26 +++++++++++++++++++++-----
- 1 files changed, 21 insertions(+), 5 deletions(-)
+ include/linux/ioport.h |    1 +
+ kernel/resource.c      |   25 +++++++++++++++++++++++++
+ 2 files changed, 26 insertions(+), 0 deletions(-)
 
+diff --git a/include/linux/ioport.h b/include/linux/ioport.h
+index 8292e8b..cbf3480 100644
+--- a/include/linux/ioport.h
++++ b/include/linux/ioport.h
+@@ -163,6 +163,7 @@ int probe_resource(struct resource *b_res,
+ 			struct resource *busn_res,
+ 			resource_size_t needed_size, struct resource **p,
+ 			int skip_nr, int limit, int flags);
++void replace_resource(struct resource *old_res, struct resource *new_res);
+ struct resource *lookup_resource(struct resource *root, resource_size_t start);
+ int adjust_resource(struct resource *res, resource_size_t start,
+ 		    resource_size_t size);
 diff --git a/kernel/resource.c b/kernel/resource.c
-index dc8b477..3f6e522 100644
+index d5d9aef..8da0e76 100644
 --- a/kernel/resource.c
 +++ b/kernel/resource.c
-@@ -521,14 +521,14 @@ out:
-  * @alignf: alignment function, optional, called if not NULL
-  * @alignf_data: arbitrary data to pass to the @alignf function
-  */
--int allocate_resource(struct resource *root, struct resource *new,
-+static int __allocate_resource(struct resource *root, struct resource *new,
- 		      resource_size_t size, resource_size_t min,
- 		      resource_size_t max, resource_size_t align,
- 		      resource_size_t (*alignf)(void *,
- 						const struct resource *,
- 						resource_size_t,
- 						resource_size_t),
--		      void *alignf_data)
-+		      void *alignf_data, bool lock)
- {
- 	int err;
- 	struct resource_constraint constraint;
-@@ -542,19 +542,35 @@ int allocate_resource(struct resource *root, struct resource *new,
- 	constraint.alignf = alignf;
- 	constraint.alignf_data = alignf_data;
- 
--	if ( new->parent ) {
-+	if (new->parent && lock) {
- 		/* resource is already allocated, try reallocating with
- 		   the new constraints */
- 		return reallocate_resource(root, new, size, &constraint);
- 	}
- 
--	write_lock(&resource_lock);
-+	if (lock)
-+		write_lock(&resource_lock);
- 	err = find_resource(root, new, size, &constraint);
- 	if (err >= 0 && __request_resource(root, new))
- 		err = -EBUSY;
--	write_unlock(&resource_lock);
-+	if (lock)
-+		write_unlock(&resource_lock);
- 	return err;
+@@ -1129,6 +1129,31 @@ reduce_needed_size:
+ 	return ret;
  }
-+int allocate_resource(struct resource *root, struct resource *new,
-+		      resource_size_t size, resource_size_t min,
-+		      resource_size_t max, resource_size_t align,
-+		      resource_size_t (*alignf)(void *,
-+						const struct resource *,
-+						resource_size_t,
-+						resource_size_t),
-+		      void *alignf_data)
+ 
++/* replace old with new in the resource tree */
++void replace_resource(struct resource *old, struct resource *new)
 +{
-+	bool lock = true;
++	struct resource *parent, *tmp, *p;
 +
-+	return __allocate_resource(root, new, size, min, max, align,
-+				   alignf, alignf_data, lock);
++	write_lock(&resource_lock);
++	new->start = old->start;
++	new->end = old->end;
++	new->flags = old->flags;
++
++	p = old->child;
++	while (p) {
++		tmp = p;
++		p = p->sibling;
++		__release_resource(tmp);
++		__request_resource(new, tmp);
++	}
++	parent = old->parent;
++	if (parent) {
++		__release_resource(old);
++		__request_resource(parent, new);
++	}
++	write_unlock(&resource_lock);
 +}
- 
- EXPORT_SYMBOL(allocate_resource);
- 
++
+ /*
+  * Managed region resource
+  */
 -- 
 1.7.7
 
