@@ -1,25 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from acsinet15.oracle.com ([141.146.126.227]:29933 "EHLO
+Received: from acsinet15.oracle.com ([141.146.126.227]:29988 "EHLO
 	acsinet15.oracle.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755324Ab2FZSyy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jun 2012 14:54:54 -0400
+	with ESMTP id S1758842Ab2FZSzA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jun 2012 14:55:00 -0400
 From: Yinghai Lu <yinghai@kernel.org>
-Subject: [PATCH -v12 04/15] PCI: Add pci_bus_extend/shrink_top()
-Date: Tue, 26 Jun 2012 11:53:58 -0700
-Message-ID: <1340736849-14875-5-git-send-email-yinghai@kernel.org>
+Subject: [PATCH -v12 05/15] PCI: Probe safe range that we can use for unassigned bridge.
+Date: Tue, 26 Jun 2012 11:53:59 -0700
+Message-ID: <1340736849-14875-6-git-send-email-yinghai@kernel.org>
 In-Reply-To: <1340736849-14875-1-git-send-email-yinghai@kernel.org>
 References: <1340736849-14875-1-git-send-email-yinghai@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
 Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
-Message-ID: <20120626185358.qSuPiaxKupXTCthTaC19esIIkP3iIWlpYwtO-N-N0dE@z>
+Message-ID: <20120626185359.IKJQy_1fVk4UO1jfFFUUfDLU7dBOyrC-_g6IQJY0XrE@z>
 
-Extend or shrink bus and parent buses top (subordinate)
+Try to allocate from parent bus busn_res. If we can not find any big enough,
+will try to extend parent bus top. even the extending is through allocating,
+after allocating will pad the range to parent buses top.
 
-Extended range is verified safe range, and stop at recorded parent_res.
+When extending happens, We will record the parent_res, so could use it as
+stopper for really extend/shrink top later.
 
--v2: Remove busn_res change, it is updated in other function.
+-v4: Use generic probe_resource()
 
 Signed-off-by: Yinghai Lu <yinghai@kernel.org>
 ---
@@ -27,39 +30,39 @@ Signed-off-by: Yinghai Lu <yinghai@kernel.org>
  1 files changed, 28 insertions(+), 0 deletions(-)
 
 diff --git a/drivers/pci/probe.c b/drivers/pci/probe.c
-index cd06c84..44c42ae 100644
+index 44c42ae..75bca6f 100644
 --- a/drivers/pci/probe.c
 +++ b/drivers/pci/probe.c
-@@ -689,6 +689,34 @@ static void pci_fixup_parent_subordinate_busnr(struct pci_bus *child, int max)
- 	}
+@@ -717,6 +717,34 @@ static void __devinit pci_bus_shrink_top(struct pci_bus *parent,
+ 	pci_bus_extend_top(parent, -size, parent_res);
  }
  
-+static void __devinit pci_bus_extend_top(struct pci_bus *parent,
-+		 long size, struct resource *parent_res)
++static int __devinit pci_bridge_probe_busn_res(struct pci_bus *bus,
++			 struct pci_dev *dev, struct resource *busn_res,
++			 resource_size_t needed_size, struct resource **p)
 +{
-+	struct resource *res;
++	int ret;
++	int old_size = resource_size(&bus->busn_res);
++	int skip_nr = 1;
++	int domain_limit = 0xff;
++	int stop_flags = IORESOURCE_PCI_FIXED;
 +
-+	if (!size)
-+		return;
++	ret = probe_resource(&bus->busn_res, busn_res, needed_size,
++			p, skip_nr, domain_limit, stop_flags);
 +
-+	while (parent) {
-+		res = &parent->busn_res;
-+		if (res == parent_res)
-+			break;
-+		pci_write_config_byte(parent->self, PCI_SUBORDINATE_BUS,
-+					 parent->busn_res.end);
-+		dev_printk(KERN_DEBUG, &parent->dev,
-+				"busn_res: %s %02lx to %pR\n",
-+				(size > 0) ? "extended" : "shrunk",
-+				abs(size), res);
-+		parent = parent->parent;
++	if (ret)
++		return ret;
++
++	busn_res->flags = IORESOURCE_BUS;
++
++	if (*p) {
++		/* extend parent bus top*/
++		int new_size = resource_size(&bus->busn_res);
++
++		pci_bus_extend_top(bus, new_size - old_size, *p);
 +	}
-+}
 +
-+static void __devinit pci_bus_shrink_top(struct pci_bus *parent,
-+		 long size, struct resource *parent_res)
-+{
-+	pci_bus_extend_top(parent, -size, parent_res);
++	return ret;
 +}
 +
  /*
