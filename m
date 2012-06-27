@@ -1,178 +1,63 @@
-From: Yinghai Lu <yinghai@kernel.org>
-Subject: Re: [PATCH -v12 02/15] resources: Add probe_resource()
-Date: Tue, 26 Jun 2012 15:07:04 -0700
-Message-ID: <CAE9FiQVrUbEzopKfeoQZFNdNszLN96brC+rYuGXQCfZvpi_ETQ@mail.gmail.com>
-References: <1340736849-14875-1-git-send-email-yinghai@kernel.org>
-	<1340736849-14875-3-git-send-email-yinghai@kernel.org>
-Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary=047d7b33d6508e675204c3675197
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pz0-f46.google.com ([209.85.210.46]:36753 "EHLO
-	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750811Ab2FZWHE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 26 Jun 2012 18:07:04 -0400
-In-Reply-To: <1340736849-14875-3-git-send-email-yinghai@kernel.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>
-Cc: Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Linus Torvalds <torvalds@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Yinghai Lu <yinghai@kernel.org>
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Subject: [PATCH 08/20] mm: Optimize fullmm TLB flushing
+Date: Wed, 27 Jun 2012 23:15:48 +0200
+Message-ID: <20120627212831.137126018@chello.nl>
+References: <20120627211540.459910855@chello.nl>
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline; filename=mmu_gather_fullmm.patch
+Sender: owner-linux-mm@kvack.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, Rik van Riel <riel@redhat.com>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Alex Shi <alex.shi@intel.com>, "Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, Konrad Rzeszutek Wilk <konrad@darnok.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Tony Luck <tony.luck@intel.com>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Hans-Christian Egtvedt <hans-christian.egtvedt@>
+List-Id: linux-arch.vger.kernel.org
 
---047d7b33d6508e675204c3675197
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
+This originated from s390 which does something similar and would allow
+s390 to use the generic TLB flushing code.
 
-On Tue, Jun 26, 2012 at 11:53 AM, Yinghai Lu <yinghai@kernel.org> wrote:
-> It is changed from busn_res only version, because Bjorn found that versio=
-n
-> was not holding resource_lock.
-> Even it may be ok for busn_res not holding resource_lock.
-> It would be better to have it to be generic and use lock and we may
-> use it for other resources.
->
-> probe_resource() will try to find specified size or more in parent bus.
-> If can not find current parent resource, and it will try to expand parent=
-s
-> top.
-> If still can not find that specified on top, it will try to reduce target=
- size
-> until find one.
->
-> It will return 0, if it find any resource that could be used.
->
-> Returned resource is registered in the tree.
-> So caller may need to use replace_resource to put real resource in tree.
->
-> -v3: remove two parameters that is for debug purpose.
-> -v4: fix stop_flags checking.
-> -v5: adjust stop_flags checking position to avoid not needed calling
-> =A0 =A0 =A0 =A0into allocate_resource().
+The idea is to flush the mm wide cache and tlb a priory and not bother
+with multiple flushes if the batching isn't large enough.
 
-please check attached one that is updated after first patch with
-__allocate_resource changes.
-except this one and first one are changed. left ones are not needed to
-be updated.
-So i'm not going to resend them.
+This can be safely done since there cannot be any concurrency on this
+mm, its either after the process died (exit) or in the middle of
+execve where the thread switched to the new mm.
 
-the git branch does get updated.
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
+---
+ mm/memory.c |   14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -215,16 +215,22 @@ void tlb_gather_mmu(struct mmu_gather *t
+ 	tlb->active     = &tlb->local;
+ 
+ 	tlb_table_init(tlb);
++
++	if (fullmm) {
++		flush_cache_mm(mm);
++		flush_tlb_mm(mm);
++	}
+ }
+ 
+ void tlb_flush_mmu(struct mmu_gather *tlb)
+ {
+ 	struct mmu_gather_batch *batch;
+ 
+-	if (!tlb->need_flush)
+-		return;
+-	tlb->need_flush = 0;
+-	flush_tlb_mm(tlb->mm);
++	if (!tlb->fullmm && tlb->need_flush) {
++		tlb->need_flush = 0;
++		flush_tlb_mm(tlb->mm);
++	}
++
+ 	tlb_table_flush(tlb);
+ 
+ 	if (tlb_fast_mode(tlb))
 
-Thanks
 
-Yinghai
-
---047d7b33d6508e675204c3675197
-Content-Type: application/octet-stream; name="probe_resource_2.patch"
-Content-Disposition: attachment; filename="probe_resource_2.patch"
-Content-Transfer-Encoding: base64
-X-Attachment-Id: f_h3xiweu70
-
-U3ViamVjdDogW1BBVENIXSByZXNvdXJjZXM6IEFkZCBwcm9iZV9yZXNvdXJjZSgpCgpJdCBpcyBj
-aGFuZ2VkIGZyb20gYnVzbl9yZXMgb25seSB2ZXJzaW9uLCBiZWNhdXNlIEJqb3JuIGZvdW5kIHRo
-YXQgdmVyc2lvbgp3YXMgbm90IGhvbGRpbmcgcmVzb3VyY2VfbG9jay4KRXZlbiBpdCBtYXkgYmUg
-b2sgZm9yIGJ1c25fcmVzIG5vdCBob2xkaW5nIHJlc291cmNlX2xvY2suCkl0IHdvdWxkIGJlIGJl
-dHRlciB0byBoYXZlIGl0IHRvIGJlIGdlbmVyaWMgYW5kIHVzZSBsb2NrIGFuZCB3ZSBtYXkKdXNl
-IGl0IGZvciBvdGhlciByZXNvdXJjZXMuCgpwcm9iZV9yZXNvdXJjZSgpIHdpbGwgdHJ5IHRvIGZp
-bmQgc3BlY2lmaWVkIHNpemUgb3IgbW9yZSBpbiBwYXJlbnQgYnVzLgpJZiBjYW4gbm90IGZpbmQg
-Y3VycmVudCBwYXJlbnQgcmVzb3VyY2UsIGFuZCBpdCB3aWxsIHRyeSB0byBleHBhbmQgcGFyZW50
-cwp0b3AuCklmIHN0aWxsIGNhbiBub3QgZmluZCB0aGF0IHNwZWNpZmllZCBvbiB0b3AsIGl0IHdp
-bGwgdHJ5IHRvIHJlZHVjZSB0YXJnZXQgc2l6ZQp1bnRpbCBmaW5kIG9uZS4KCkl0IHdpbGwgcmV0
-dXJuIDAsIGlmIGl0IGZpbmQgYW55IHJlc291cmNlIHRoYXQgY291bGQgYmUgdXNlZC4KClJldHVy
-bmVkIHJlc291cmNlIGlzIHJlZ2lzdGVyZWQgaW4gdGhlIHRyZWUuClNvIGNhbGxlciBtYXkgbmVl
-ZCB0byB1c2UgcmVwbGFjZV9yZXNvdXJjZSB0byBwdXQgcmVhbCByZXNvdXJjZSBpbiB0cmVlLgoK
-LXYzOiByZW1vdmUgdHdvIHBhcmFtZXRlcnMgdGhhdCBpcyBmb3IgZGVidWcgcHVycG9zZS4KLXY0
-OiBmaXggc3RvcF9mbGFncyBjaGVja2luZy4KLXY1OiBhZGp1c3Qgc3RvcF9mbGFncyBjaGVja2lu
-ZyBwb3NpdGlvbiB0byBhdm9pZCBub3QgbmVlZGVkIGNhbGxpbmcKCWludG8gYWxsb2NhdGVfcmVz
-b3VyY2UoKS4KLXY2OiB1c2UgdXBkYXRlZCBfX2FsbG9jYXRlX3Jlc291cmNlLgoKU2lnbmVkLW9m
-Zi1ieTogWWluZ2hhaSBMdSA8eWluZ2hhaUBrZXJuZWwub3JnPgpDYzogQW5kcmV3IE1vcnRvbiA8
-YWtwbUBsaW51eC1mb3VuZGF0aW9uLm9yZz4KCi0tLQogaW5jbHVkZS9saW51eC9pb3BvcnQuaCB8
-ICAgIDcgKysKIGtlcm5lbC9yZXNvdXJjZS5jICAgICAgfCAgMTQ5ICsrKysrKysrKysrKysrKysr
-KysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysKIDIgZmlsZXMgY2hhbmdlZCwgMTU2IGlu
-c2VydGlvbnMoKykKCkluZGV4OiBsaW51eC0yLjYvaW5jbHVkZS9saW51eC9pb3BvcnQuaAo9PT09
-PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
-PT09PT09Ci0tLSBsaW51eC0yLjYub3JpZy9pbmNsdWRlL2xpbnV4L2lvcG9ydC5oCisrKyBsaW51
-eC0yLjYvaW5jbHVkZS9saW51eC9pb3BvcnQuaApAQCAtMTU2LDYgKzE1NiwxMyBAQCBleHRlcm4g
-aW50IGFsbG9jYXRlX3Jlc291cmNlKHN0cnVjdCByZXNvCiAJCQkJCQkgICAgICAgcmVzb3VyY2Vf
-c2l6ZV90LAogCQkJCQkJICAgICAgIHJlc291cmNlX3NpemVfdCksCiAJCQkgICAgIHZvaWQgKmFs
-aWduZl9kYXRhKTsKK3ZvaWQgcmVzb3VyY2Vfc2hyaW5rX3BhcmVudHNfdG9wKHN0cnVjdCByZXNv
-dXJjZSAqYl9yZXMsCisJCQkJIGxvbmcgc2l6ZSwgc3RydWN0IHJlc291cmNlICpwYXJlbnRfcmVz
-KTsKK3N0cnVjdCBkZXZpY2U7CitpbnQgcHJvYmVfcmVzb3VyY2Uoc3RydWN0IHJlc291cmNlICpi
-X3JlcywKKwkJCXN0cnVjdCByZXNvdXJjZSAqYnVzbl9yZXMsCisJCQlyZXNvdXJjZV9zaXplX3Qg
-bmVlZGVkX3NpemUsIHN0cnVjdCByZXNvdXJjZSAqKnAsCisJCQlpbnQgc2tpcF9uciwgaW50IGxp
-bWl0LCBpbnQgZmxhZ3MpOwogc3RydWN0IHJlc291cmNlICpsb29rdXBfcmVzb3VyY2Uoc3RydWN0
-IHJlc291cmNlICpyb290LCByZXNvdXJjZV9zaXplX3Qgc3RhcnQpOwogaW50IGFkanVzdF9yZXNv
-dXJjZShzdHJ1Y3QgcmVzb3VyY2UgKnJlcywgcmVzb3VyY2Vfc2l6ZV90IHN0YXJ0LAogCQkgICAg
-cmVzb3VyY2Vfc2l6ZV90IHNpemUpOwpJbmRleDogbGludXgtMi42L2tlcm5lbC9yZXNvdXJjZS5j
-Cj09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
-PT09PT09PT09PT0KLS0tIGxpbnV4LTIuNi5vcmlnL2tlcm5lbC9yZXNvdXJjZS5jCisrKyBsaW51
-eC0yLjYva2VybmVsL3Jlc291cmNlLmMKQEAgLTk4OSw2ICs5ODksMTU1IEBAIHZvaWQgX19yZWxl
-YXNlX3JlZ2lvbihzdHJ1Y3QgcmVzb3VyY2UgKnAKIH0KIEVYUE9SVF9TWU1CT0woX19yZWxlYXNl
-X3JlZ2lvbik7CiAKK3N0YXRpYyB2b2lkIF9fcmVzb3VyY2VfZXh0ZW5kX3BhcmVudHNfdG9wKHN0
-cnVjdCByZXNvdXJjZSAqYl9yZXMsCisJCSBsb25nIHNpemUsIHN0cnVjdCByZXNvdXJjZSAqcGFy
-ZW50X3JlcykKK3sKKwlzdHJ1Y3QgcmVzb3VyY2UgKnJlcyA9IGJfcmVzOworCisJaWYgKCFzaXpl
-KQorCQlyZXR1cm47CisKKwl3aGlsZSAocmVzICYmIHJlcyAhPSBwYXJlbnRfcmVzKSB7CisJCXJl
-cy0+ZW5kICs9IHNpemU7CisJCXJlcyA9IHJlcy0+cGFyZW50OworCX0KK30KKwordm9pZCByZXNv
-dXJjZV9zaHJpbmtfcGFyZW50c190b3Aoc3RydWN0IHJlc291cmNlICpiX3JlcywKKwkJIGxvbmcg
-c2l6ZSwgc3RydWN0IHJlc291cmNlICpwYXJlbnRfcmVzKQoreworCXdyaXRlX2xvY2soJnJlc291
-cmNlX2xvY2spOworCV9fcmVzb3VyY2VfZXh0ZW5kX3BhcmVudHNfdG9wKGJfcmVzLCAtc2l6ZSwg
-cGFyZW50X3Jlcyk7CisJd3JpdGVfdW5sb2NrKCZyZXNvdXJjZV9sb2NrKTsKK30KKworc3RhdGlj
-IHJlc291cmNlX3NpemVfdCBfX2ZpbmRfcmVzX3RvcF9mcmVlX3NpemUoc3RydWN0IHJlc291cmNl
-ICpyZXMsCisJCQkJCQkgaW50IHNraXBfbnIpCit7CisJcmVzb3VyY2Vfc2l6ZV90IG5fc2l6ZTsK
-KwlzdHJ1Y3QgcmVzb3VyY2UgdG1wX3JlczsKKworCS8qCisJICogICBmaW5kIG91dCBmcmVlIG51
-bWJlciBiZWxvdyByZXMtPmVuZCB0aGF0IHdlIGNhbiB1c2UuCisJICoJcmVzLT5zdGFydCB0byBy
-ZXMtPnN0YXJ0ICsgc2tpcF9uciAtIDEgY2FuIG5vdCBiZSB1c2VkLgorCSAqLworCW5fc2l6ZSA9
-IHJlc291cmNlX3NpemUocmVzKTsKKwlpZiAobl9zaXplIDw9IHNraXBfbnIpCisJCXJldHVybiAw
-OworCisJbl9zaXplIC09IHNraXBfbnI7CisJbWVtc2V0KCZ0bXBfcmVzLCAwLCBzaXplb2Yoc3Ry
-dWN0IHJlc291cmNlKSk7CisJd2hpbGUgKG5fc2l6ZSA+IDApIHsKKwkJaW50IHJldDsKKworCQly
-ZXQgPSBfX2FsbG9jYXRlX3Jlc291cmNlKHJlcywgJnRtcF9yZXMsIG5fc2l6ZSwKKwkJCXJlcy0+
-ZW5kIC0gbl9zaXplICsgc2tpcF9uciwgcmVzLT5lbmQsCisJCQkxLCBOVUxMLCBOVUxMKTsKKwkJ
-aWYgKHJldCA9PSAwKSB7CisJCQlfX3JlbGVhc2VfcmVzb3VyY2UoJnRtcF9yZXMpOworCQkJYnJl
-YWs7CisJCX0KKwkJbl9zaXplLS07CisJfQorCisJcmV0dXJuIG5fc2l6ZTsKK30KKworLyoqCisg
-KiBwcm9iZV9yZXNvdXJjZSAtIFByb2JlIHJlc291cmNlIGluIHBhcmVudCByZXNvdXJjZS4KKyAq
-IEBiX3JlczogcGFyZW50IHJlc291cmNlIGRlc2NyaXB0b3IKKyAqIEBidXNuX3JlczogcmV0dXJu
-IHByb2JlZCByZXNvdXJjZQorICogQG5lZWRlZF9zaXplOiB0YXJnZXQgc2l6ZQorICogQHA6IHBv
-aW50ZXIgdG8gZmFyZXN0IHBhcmVudCB0aGF0IHdlIGV4dGVuZCB0aGUgdG9wCisgKiBAc2tpcF9u
-cjogbnVtYmVyIGluIGJfcmVzIHN0YXJ0IHRoYXQgd2UgbmVlZCB0byBza2lwLgorICogQGxpbWl0
-OiBsb2NhbCBib3VuZGFyeQorICogQHN0b3BfZmxhZ3M6IGZsYWdzIGZvciBzdG9wcGluZyBleHRl
-bmQgcGFyZW50IHJlcworICoKKyAqIHdpbGwgdHJ5IHRvIGFsbG9jYXRlIHJlc291cmNlIGluIGJf
-cmVzLCBpZiBjYW4gbm90IGZpbmQgdGhlIHJhbmdlCisgKiAgd2lsbCB0cnkgdG8gZXh0ZW5kIHBh
-cmVudCByZXNvdXJjZXMnIHRvcC4KKyAqIGlmIHN0aWxsIGNhbiBub3QgbWFrZSBpdCwgd2lsbCBy
-ZWR1Y2UgbmVlZGVkX3NpemUuCisgKi8KK2ludCBwcm9iZV9yZXNvdXJjZShzdHJ1Y3QgcmVzb3Vy
-Y2UgKmJfcmVzLAorCQkJIHN0cnVjdCByZXNvdXJjZSAqYnVzbl9yZXMsCisJCQkgcmVzb3VyY2Vf
-c2l6ZV90IG5lZWRlZF9zaXplLCBzdHJ1Y3QgcmVzb3VyY2UgKipwLAorCQkJIGludCBza2lwX25y
-LCBpbnQgbGltaXQsIGludCBzdG9wX2ZsYWdzKQoreworCWludCByZXQgPSAtRU5PTUVNOworCXJl
-c291cmNlX3NpemVfdCBuX3NpemU7CisJc3RydWN0IHJlc291cmNlICpwYXJlbnRfcmVzID0gTlVM
-TDsKKwlyZXNvdXJjZV9zaXplX3QgdG1wID0gYl9yZXMtPmVuZCArIDE7CisKK2FnYWluOgorCS8q
-CisJICogV2UgZmlyc3QgdHJ5IHRvIGFsbG9jYXRlIGJpZ2dlc3QgcmFuZ2UgaW4gYl9yZXMgdGhh
-dAorCSAqICB3ZSBjYW4gdXNlIGluIGJfcmVzIGRpcmVjdGx5LgorCSAqICB3ZSBhbHNvIG5lZWQg
-dG8gc2tpcCBza2lwX25yIGZyb20gc3RhcnQgb2YgYl9yZXMuCisJICovCisJbl9zaXplID0gcmVz
-b3VyY2Vfc2l6ZShiX3Jlcyk7CisJaWYgKG5fc2l6ZSA+IHNraXBfbnIpCisJCW5fc2l6ZSAtPSBz
-a2lwX25yOworCWVsc2UKKwkJbl9zaXplID0gMDsKKwltZW1zZXQoYnVzbl9yZXMsIDAsIHNpemVv
-ZihzdHJ1Y3QgcmVzb3VyY2UpKTsKKwl3aGlsZSAobl9zaXplID49IG5lZWRlZF9zaXplKSB7CisJ
-CXJldCA9IGFsbG9jYXRlX3Jlc291cmNlKGJfcmVzLCBidXNuX3Jlcywgbl9zaXplLAorCQkJCWJf
-cmVzLT5zdGFydCArIHNraXBfbnIsIGJfcmVzLT5lbmQsCisJCQkJMSwgTlVMTCwgTlVMTCk7CisJ
-CWlmICghcmV0KQorCQkJcmV0dXJuIHJldDsKKwkJbl9zaXplLS07CisJfQorCisJLyogVHJ5IHRv
-IGV4dGVuZCB0aGUgdG9wIG9mIHBhcmVudCByZXNvdXJjZXMgdG8gbWVldCBuZWVkZWRfc2l6ZSAq
-LworCXdyaXRlX2xvY2soJnJlc291cmNlX2xvY2spOworCisJLyogYl9yZXMgY291bGQgYmUgcm9v
-dCBidXMgcmVzb3VyY2UgYW5kIGNhbiBub3QgYmUgZXh0ZW5kZWQgKi8KKwlpZiAoYl9yZXMtPmZs
-YWdzICYgc3RvcF9mbGFncykKKwkJZ290byByZWR1Y2VfbmVlZGVkX3NpemU7CisKKwkvKiBmaW5k
-IG91dCBmcmVlIHJhbmdlIHVuZGVyIHRvcCBhdCBmaXJzdCAqLworCW5fc2l6ZSA9IF9fZmluZF9y
-ZXNfdG9wX2ZyZWVfc2l6ZShiX3Jlcywgc2tpcF9ucik7CisJLyogY2FuIG5vdCBleHRlbmQgY3Jv
-c3MgbG9jYWwgYm91bmRhcnkgKi8KKwlpZiAoKGxpbWl0IC0gYl9yZXMtPmVuZCkgPCAobmVlZGVk
-X3NpemUgLSBuX3NpemUpKQorCQlnb3RvIHJlZHVjZV9uZWVkZWRfc2l6ZTsKKworCS8qIFByb2Jl
-IGV4dGVuZGVkIHJhbmdlIGFib3ZlIHRvcCAqLworCW1lbXNldChidXNuX3JlcywgMCwgc2l6ZW9m
-KHN0cnVjdCByZXNvdXJjZSkpOworCXBhcmVudF9yZXMgPSBiX3Jlcy0+cGFyZW50OworCXdoaWxl
-IChwYXJlbnRfcmVzICYmICEocGFyZW50X3Jlcy0+ZmxhZ3MgJiBzdG9wX2ZsYWdzKSkgeworCQly
-ZXQgPSBfX2FsbG9jYXRlX3Jlc291cmNlKHBhcmVudF9yZXMsIGJ1c25fcmVzLAorCQkJIG5lZWRl
-ZF9zaXplIC0gbl9zaXplLAorCQkJIHRtcCwgdG1wICsgbmVlZGVkX3NpemUgLSBuX3NpemUgLSAx
-LAorCQkJIDEsIE5VTEwsIE5VTEwpOworCQlpZiAoIXJldCkgeworCQkJLyogc2F2ZSBwYXJlbnRf
-cmVzLCB3ZSBuZWVkIGl0IGFzIHN0b3BwZXIgbGF0ZXIgKi8KKwkJCSpwID0gcGFyZW50X3JlczsK
-KworCQkJLyogcHJlcGFyZSBidXNuX3JlcyBmb3IgcmV0dXJuICovCisJCQlfX3JlbGVhc2VfcmVz
-b3VyY2UoYnVzbl9yZXMpOworCQkJYnVzbl9yZXMtPnN0YXJ0IC09IG5fc2l6ZTsKKworCQkJLyog
-ZXh0ZW5kIHBhcmVudCByZXNvdXJjZXMgdG9wICovCisJCQlfX3Jlc291cmNlX2V4dGVuZF9wYXJl
-bnRzX3RvcChiX3JlcywKKwkJCQkJIG5lZWRlZF9zaXplIC0gbl9zaXplLCBwYXJlbnRfcmVzKTsK
-KwkJCV9fcmVxdWVzdF9yZXNvdXJjZShiX3JlcywgYnVzbl9yZXMpOworCisJCQl3cml0ZV91bmxv
-Y2soJnJlc291cmNlX2xvY2spOworCQkJcmV0dXJuIHJldDsKKwkJfQorCQlwYXJlbnRfcmVzID0g
-cGFyZW50X3Jlcy0+cGFyZW50OworCX0KKworcmVkdWNlX25lZWRlZF9zaXplOgorCXdyaXRlX3Vu
-bG9jaygmcmVzb3VyY2VfbG9jayk7CisJLyogcmV0IG11c3Qgbm90IGJlIDAgaGVyZSAqLworCW5l
-ZWRlZF9zaXplLS07CisJaWYgKG5lZWRlZF9zaXplKQorCQlnb3RvIGFnYWluOworCisJcmV0dXJu
-IHJldDsKK30KKwogLyoKICAqIE1hbmFnZWQgcmVnaW9uIHJlc291cmNlCiAgKi8K
---047d7b33d6508e675204c3675197--
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
