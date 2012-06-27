@@ -1,92 +1,75 @@
 From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: [PATCH 01/20] mm, x86: Add HAVE_RCU_TABLE_FREE support
-Date: Wed, 27 Jun 2012 23:15:41 +0200
-Message-ID: <20120627212830.621401338@chello.nl>
+Subject: [PATCH 20/20] mm, xtensa: Convert xtensa to generic tlb
+Date: Wed, 27 Jun 2012 23:16:00 +0200
+Message-ID: <20120627212832.018140861@chello.nl>
 References: <20120627211540.459910855@chello.nl>
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline; filename=mmu-generic-rcu.patch
+Content-Disposition: inline; filename=xtensa-mmu_range.patch
 Sender: owner-linux-mm@kvack.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
 Cc: Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, Rik van Riel <riel@redhat.com>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Alex Shi <alex.shi@intel.com>, "Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, Konrad Rzeszutek Wilk <konrad@darnok.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Tony Luck <tony.luck@intel.com>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Hans-Christian Egtvedt <hans-christian.egtvedt@>
 List-Id: linux-arch.vger.kernel.org
 
-Implements optional HAVE_RCU_TABLE_FREE support for x86.
-
-This is useful for things like Xen and KVM where paravirt tlb flush
-means the software page table walkers like GUP-fast cannot rely on
-IRQs disabling like regular x86 can.
-
-Cc: Nikunj A Dadhania <nikunj@linux.vnet.ibm.com>
-Cc: Jeremy Fitzhardinge <jeremy@goop.org>
-Cc: Avi Kivity <avi@redhat.com>
+Cc: Chris Zankel <chris@zankel.net>
 Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
 ---
- arch/x86/include/asm/tlb.h |    1 +
- arch/x86/mm/pgtable.c      |    6 +++---
- include/asm-generic/tlb.h  |    9 +++++++++
- 3 files changed, 13 insertions(+), 3 deletions(-)
---- a/arch/x86/include/asm/tlb.h
-+++ b/arch/x86/include/asm/tlb.h
-@@ -1,6 +1,7 @@
- #ifndef _ASM_X86_TLB_H
- #define _ASM_X86_TLB_H
+ arch/xtensa/Kconfig           |    1 +
+ arch/xtensa/include/asm/tlb.h |   23 -----------------------
+ arch/xtensa/mm/tlb.c          |    2 +-
+ 3 files changed, 2 insertions(+), 24 deletions(-)
+--- a/arch/xtensa/Kconfig
++++ b/arch/xtensa/Kconfig
+@@ -10,6 +10,7 @@ config XTENSA
+ 	select HAVE_GENERIC_HARDIRQS
+ 	select GENERIC_IRQ_SHOW
+ 	select GENERIC_CPU_DEVICES
++	select HAVE_MMU_GATHER_RANGE
+ 	help
+ 	  Xtensa processors are 32-bit RISC machines designed by Tensilica
+ 	  primarily for embedded systems.  These processors are both
+--- a/arch/xtensa/include/asm/tlb.h
++++ b/arch/xtensa/include/asm/tlb.h
+@@ -14,29 +14,6 @@
+ #include <asm/cache.h>
+ #include <asm/page.h>
  
-+#define __tlb_remove_table(table) free_page_and_swap_cache(table)
- #define tlb_start_vma(tlb, vma) do { } while (0)
- #define tlb_end_vma(tlb, vma) do { } while (0)
- #define __tlb_remove_tlb_entry(tlb, ptep, address) do { } while (0)
---- a/arch/x86/mm/pgtable.c
-+++ b/arch/x86/mm/pgtable.c
-@@ -51,21 +51,21 @@ void ___pte_free_tlb(struct mmu_gather *
+-#if (DCACHE_WAY_SIZE <= PAGE_SIZE)
+-
+-/* Note, read http://lkml.org/lkml/2004/1/15/6 */
+-
+-# define tlb_start_vma(tlb,vma)			do { } while (0)
+-# define tlb_end_vma(tlb,vma)			do { } while (0)
+-
+-#else
+-
+-# define tlb_start_vma(tlb, vma)					      \
+-	do {								      \
+-		if (!tlb->fullmm)					      \
+-			flush_cache_range(vma, vma->vm_start, vma->vm_end);   \
+-	} while(0)
+-
+-# define tlb_end_vma(tlb, vma)						      \
+-	do {								      \
+-		if (!tlb->fullmm)					      \
+-			flush_tlb_range(vma, vma->vm_start, vma->vm_end);     \
+-	} while(0)
+-
+-#endif
+-
+ #define __tlb_remove_tlb_entry(tlb,pte,addr)	do { } while (0)
+ 
+ #include <asm-generic/tlb.h>
+--- a/arch/xtensa/mm/tlb.c
++++ b/arch/xtensa/mm/tlb.c
+@@ -63,7 +63,7 @@ void flush_tlb_all (void)
+ void flush_tlb_mm(struct mm_struct *mm)
  {
- 	pgtable_page_dtor(pte);
- 	paravirt_release_pte(page_to_pfn(pte));
--	tlb_remove_page(tlb, pte);
-+	tlb_remove_table(tlb, pte);
- }
- 
- #if PAGETABLE_LEVELS > 2
- void ___pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd)
- {
- 	paravirt_release_pmd(__pa(pmd) >> PAGE_SHIFT);
--	tlb_remove_page(tlb, virt_to_page(pmd));
-+	tlb_remove_table(tlb, virt_to_page(pmd));
- }
- 
- #if PAGETABLE_LEVELS > 3
- void ___pud_free_tlb(struct mmu_gather *tlb, pud_t *pud)
- {
- 	paravirt_release_pud(__pa(pud) >> PAGE_SHIFT);
--	tlb_remove_page(tlb, virt_to_page(pud));
-+	tlb_remove_table(tlb, virt_to_page(pud));
- }
- #endif	/* PAGETABLE_LEVELS > 3 */
- #endif	/* PAGETABLE_LEVELS > 2 */
---- a/include/asm-generic/tlb.h
-+++ b/include/asm-generic/tlb.h
-@@ -19,6 +19,8 @@
- #include <asm/pgalloc.h>
- #include <asm/tlbflush.h>
- 
-+static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page);
-+
- #ifdef CONFIG_HAVE_RCU_TABLE_FREE
- /*
-  * Semi RCU freeing of the page directories.
-@@ -60,6 +62,13 @@ struct mmu_table_batch {
- extern void tlb_table_flush(struct mmu_gather *tlb);
- extern void tlb_remove_table(struct mmu_gather *tlb, void *table);
- 
-+#else
-+
-+static inline void tlb_remove_table(struct mmu_gather *tlb, void *table)
-+{
-+	tlb_remove_page(tlb, table);
-+}
-+
- #endif
- 
- /*
+ 	if (mm == current->active_mm) {
+-		int flags;
++		unsigned long flags;
+ 		local_save_flags(flags);
+ 		__get_new_mmu_context(mm);
+ 		__load_mmu_context(mm);
 
 
 --
