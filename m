@@ -1,37 +1,43 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [PATCH 14/20] mm, sh: Convert sh to generic tlb
-Date: Thu, 28 Jun 2012 22:27:16 +0200
-Message-ID: <1340915236.28750.84.camel@twins>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH 08/20] mm: Optimize fullmm TLB flushing
+Date: Fri, 29 Jun 2012 07:57:21 +1000
+Message-ID: <1340920641.20977.103.camel@pasglop>
 References: <20120627211540.459910855@chello.nl>
-	 <20120627212831.578578936@chello.nl> <20120628183251.GA7250@linux-sh.org>
+	 <20120627212831.137126018@chello.nl>
+	 <CA+55aFwZoVK76ue7tFveV0XZpPUmoCVXJx8550OxPm+XKCSSZA@mail.gmail.com>
+	 <1340838154.10063.86.camel@twins> <1340838807.10063.90.camel@twins>
+	 <CA+55aFy6m967fMxyBsRoXVecdpGtSphXi_XdhwS0DB81Qaocdw@mail.gmail.com>
+	 <CA+55aFzLNsVRkp_US8rAmygEkQpp1s1YdakV86Ck-4RZM7TTdA@mail.gmail.com>
+	 <20120628091627.GB8573@arm.com> <1340879984.20977.80.camel@pasglop>
+	 <1340881196.28750.16.camel@twins> <20120628145327.GA17242@arm.com>
+	 <1340900425.28750.73.camel@twins>
+	 <CA+55aFwByDWu5bP__e3sw34E7s88f_2P=8m=i6SuP6s+NZgF6w@mail.gmail.com>
+	 <1340902329.28750.83.camel@twins>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20120628183251.GA7250@linux-sh.org>
+In-Reply-To: <1340902329.28750.83.camel@twins>
 Sender: owner-linux-mm@kvack.org
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Linus Torvalds <torvalds@linux-foundation.org>, Rik van Riel <riel@redhat.com>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Alex Shi <alex.shi@intel.com>, "Nikunj A.
- Dadhania" <nikunj@linux.vnet.ibm.com>, Konrad Rzeszutek Wilk <konrad@darnok.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Tony Luck <tony.luck@intel.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Hans-Christian Egtvedt <hans-christian.egtvedt@atm>
+To: Peter Zijlstra <peterz@infradead.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Rik van Riel <riel@redhat.com>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Alex Shi <alex.shi@intel.com>, "Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, Konrad Rzeszutek Wilk <konrad@darnok.org>, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2012-06-29 at 03:32 +0900, Paul Mundt wrote:
-> On Wed, Jun 27, 2012 at 11:15:54PM +0200, Peter Zijlstra wrote:
-> > Cc: Paul Mundt <lethal@linux-sh.org>
-> > Signed-off-by: Peter Zijlstra <a.p.zijlstra@chello.nl>
-> > ---
-> >  arch/sh/Kconfig           |    1=20
-> >  arch/sh/include/asm/tlb.h |   98 ++-----------------------------------=
----------
-> >  2 files changed, 6 insertions(+), 93 deletions(-)
->=20
-> This blows up in the same way as last time.
->=20
-> I direct you to the same bug report and patch as before:
->=20
-> http://marc.info/?l=3Dlinux-kernel&m=3D133722116507075&w=3D2
+On Thu, 2012-06-28 at 18:52 +0200, Peter Zijlstra wrote:
+> No I think you're right (as always).. also an IPI will not force
+> schedule the thread that might be running on the receiving cpu, also
+> we'd have to wait for any such schedule to complete in order to
+> guarantee the mm isn't lazily used anymore.
+> 
+> Bugger.. 
 
-Sorry about that.. /me goes amend.
+You can still do it if the mm count is 1 no ? Ie, current is the last
+holder of a reference to the mm struct... which will probably be the
+common case for short lived programs.
+
+Cheers,
+Ben.
+
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
