@@ -1,69 +1,69 @@
-From: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Subject: Re: [PATCH 02/20] mm: Add optional TLB flush to generic RCU
- page-table freeing
-Date: Thu, 28 Jun 2012 13:05:11 +0200
-Message-ID: <1340881511.28750.19.camel@twins>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [PATCH 08/20] mm: Optimize fullmm TLB flushing
+Date: Thu, 28 Jun 2012 13:19:50 +0200
+Message-ID: <20120628131950.0afe39f0@de.ibm.com>
 References: <20120627211540.459910855@chello.nl>
-	 <20120627212830.693232452@chello.nl>
-	 <CA+55aFwa41fzvx8EZG_gODvw7hSpr+iP+w5fXp6jUcQh-4nFgQ@mail.gmail.com>
-	 <1340838106.10063.85.camel@twins> <1340867364.20977.65.camel@pasglop>
+	<20120627212831.137126018@chello.nl>
+	<CA+55aFwZoVK76ue7tFveV0XZpPUmoCVXJx8550OxPm+XKCSSZA@mail.gmail.com>
+	<1340838154.10063.86.camel@twins>
+	<1340838807.10063.90.camel@twins>
+	<CA+55aFy6m967fMxyBsRoXVecdpGtSphXi_XdhwS0DB81Qaocdw@mail.gmail.com>
+	<CA+55aFzLNsVRkp_US8rAmygEkQpp1s1YdakV86Ck-4RZM7TTdA@mail.gmail.com>
+	<1340880904.28750.13.camel@twins>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1340867364.20977.65.camel@pasglop>
+In-Reply-To: <1340880904.28750.13.camel@twins>
 Sender: owner-linux-mm@kvack.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Peter Zijlstra <peterz@infradead.org>
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Rik van Riel <riel@redhat.com>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Alex Shi <alex.shi@intel.com>, "Nikunj A.
- Dadhania" <nikunj@linux.vnet.ibm.com>, Konrad Rzeszutek Wilk <konrad@darnok.org>, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Tony Luck <tony.luck@intel.com>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@mcmartin.c>
+ Dadhania" <nikunj@linux.vnet.ibm.com>, Konrad Rzeszutek Wilk <konrad@darnok.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@tilera.com>, Tony Luck <tony.luck@intel.com>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.co>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, 2012-06-28 at 17:09 +1000, Benjamin Herrenschmidt wrote:
-> On Thu, 2012-06-28 at 01:01 +0200, Peter Zijlstra wrote:
-> > On Wed, 2012-06-27 at 15:23 -0700, Linus Torvalds wrote:
-> >=20
-> > > Plus it really isn't about hardware page table walkers at all. It's
-> > > more about the possibility of speculative TLB fils, it has nothing to
-> > > do with *how* they are done. Sure, it's likely that a software
-> > > pagetable walker wouldn't be something that gets called speculatively=
-,
-> > > but it's not out of the question.
-> > >=20
-> > Hmm, I would call gup_fast() as speculative as we can get in software.
-> > It does a lock-less walk of the page-tables. That's what the RCU free'd
-> > page-table stuff is for to begin with.
->=20
-> Strictly speaking it's not :-) To *begin with* (as in the origin of that
-> code) it comes from powerpc hash table code which walks the linux page
-> tables locklessly :-) It then came in handy with gup_fast :-)
+On Thu, 28 Jun 2012 12:55:04 +0200
+Peter Zijlstra <peterz@infradead.org> wrote:
 
-Ah, ok my bad.
+> On Wed, 2012-06-27 at 16:33 -0700, Linus Torvalds wrote:
+> > IOW, the point I'm trying to make is that even if there are zero
+> > *actual* accesses of user space (because user space is dead, and the
+> > kernel hopefully does no "get_user()/put_user()" stuff at this point
+> > any more), the CPU may speculatively use user addresses for the
+> > bog-standard kernel addresses that happen. 
+> 
+> Right.. and s390 having done this only says that s390 appears to be ok
+> with it. Martin, does s390 hardware guarantee no speculative stuff like
+> Linus explained, or might there even be a latent issue on s390?
 
-> > > IOW, if Sparc/PPC really want to guarantee that they never fill TLB
-> > > entries speculatively, and that if we are in a kernel thread they wil=
-l
-> > > *never* fill the TLB with anything else, then make them enable
-> > > CONFIG_STRICT_TLB_FILL or something in their architecture Kconfig
-> > > files.=20
-> >=20
-> > Since we've dealt with the speculative software side by using RCU-ish
-> > stuff, the only thing that's left is hardware, now neither sparc64 nor
-> > ppc actually know about the linux page-tables from what I understood,
-> > they only look at their hash-table thing.
->=20
-> Some embedded ppc's know about the lowest level (SW loaded PMD) but
-> that's not an issue here. We flush these special TLB entries
-> specifically and synchronously in __pte_free_tlb().
+The cpu can create speculative TLB entries, but only if it runs in the
+mode that uses the respective mm. We have two mm's active at the same
+time, the kernel mm (init_mm) and the user mm. While the cpu runs only
+in kernel mode it is not allowed to create TLBs for the user mm.
+While running in user mode it is allowed to speculatively create TLBs.
+ 
+> But it looks like we cannot do this in general, and esp. ARM (as already
+> noted by Catalin) has very aggressive speculative behaviour.
+> 
+> The alternative is that we do a switch_mm() to init_mm instead of the
+> TLB flush. On x86 that should be about the same cost, but I've not
+> looked at other architectures yet.
+> 
+> The second and least favourite alternative is of course special casing
+> this for s390 if it turns out its a safe thing to do for them.
+> 
+> /me goes look through arch code.
 
-OK, I missed that.. is that
-arch/powerpc/mm/tlb_nohash.c:tlb_flush_pgtable() ?
+Basically we have two special requirements on s390:
+1) do not modify ptes while attached to another cpu except with the
+   special IPTE / IDTE instructions
+2) do a TLB flush before freeing any kind of page table page, s390
+   needs a flush for pud, pmd & pte tables.
 
-> > So even if the hardware did do speculative tlb fills, it would do them
-> > from the hash-table, but that's already cleared out.
->=20
-> Right,
+-- 
+blue skies,
+   Martin.
 
-Phew at least I got the important thing right ;-)
+"Reality continues to ruin my life." - Calvin.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
