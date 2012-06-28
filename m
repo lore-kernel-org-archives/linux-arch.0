@@ -1,47 +1,68 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:42586 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751163Ab2F1K4y convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jun 2012 06:56:54 -0400
-Message-ID: <1340880904.28750.13.camel@twins>
-Subject: Re: [PATCH 08/20] mm: Optimize fullmm TLB flushing
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Thu, 28 Jun 2012 12:55:04 +0200
-In-Reply-To: <CA+55aFzLNsVRkp_US8rAmygEkQpp1s1YdakV86Ck-4RZM7TTdA@mail.gmail.com>
+Received: from merlin.infradead.org ([205.233.59.134]:51120 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752460Ab2F1LG1 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 28 Jun 2012 07:06:27 -0400
+Message-ID: <1340881511.28750.19.camel@twins>
+Subject: Re: [PATCH 02/20] mm: Add optional TLB flush to generic RCU
+ page-table freeing
+From: Peter Zijlstra <a.p.zijlstra@chello.nl>
+Date: Thu, 28 Jun 2012 13:05:11 +0200
+In-Reply-To: <1340867364.20977.65.camel@pasglop>
 References: <20120627211540.459910855@chello.nl>
-	 <20120627212831.137126018@chello.nl>
-	 <CA+55aFwZoVK76ue7tFveV0XZpPUmoCVXJx8550OxPm+XKCSSZA@mail.gmail.com>
-	 <1340838154.10063.86.camel@twins> <1340838807.10063.90.camel@twins>
-	 <CA+55aFy6m967fMxyBsRoXVecdpGtSphXi_XdhwS0DB81Qaocdw@mail.gmail.com>
-	 <CA+55aFzLNsVRkp_US8rAmygEkQpp1s1YdakV86Ck-4RZM7TTdA@mail.gmail.com>
+	 <20120627212830.693232452@chello.nl>
+	 <CA+55aFwa41fzvx8EZG_gODvw7hSpr+iP+w5fXp6jUcQh-4nFgQ@mail.gmail.com>
+	 <1340838106.10063.85.camel@twins> <1340867364.20977.65.camel@pasglop>
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
 Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Rik van Riel <riel@redhat.com>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Alex Shi <alex.shi@intel.com>, "Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, Konrad Rzeszutek Wilk <konrad@darnok.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Tony Luck <tony.luck@intel.com>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@mcmartin.ca>, James Bottomley <jejb@parisc-linux.org>, Chris Zankel <chris@zankel.net>
-Message-ID: <20120628105504.bM4Q22XkBKLOEkbxC_FobtGdYCaPxTgb2YqThrNbWmE@z>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Rik van Riel <riel@redhat.com>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Alex Shi <alex.shi@intel.com>, "Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, Konrad Rzeszutek Wilk <konrad@darnok.org>, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Tony Luck <tony.luck@intel.com>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@mcmartin.ca>, James Bottomley <jejb@parisc-linux.org>, Chris Zankel <chris@zankel.net>
+Message-ID: <20120628110511.LI0k0A8p1i-3hgh39RefU8AWBMmNvWNfk-eJDKK7VKE@z>
 
-On Wed, 2012-06-27 at 16:33 -0700, Linus Torvalds wrote:
-> IOW, the point I'm trying to make is that even if there are zero
-> *actual* accesses of user space (because user space is dead, and the
-> kernel hopefully does no "get_user()/put_user()" stuff at this point
-> any more), the CPU may speculatively use user addresses for the
-> bog-standard kernel addresses that happen. 
+On Thu, 2012-06-28 at 17:09 +1000, Benjamin Herrenschmidt wrote:
+> On Thu, 2012-06-28 at 01:01 +0200, Peter Zijlstra wrote:
+> > On Wed, 2012-06-27 at 15:23 -0700, Linus Torvalds wrote:
+> > 
+> > > Plus it really isn't about hardware page table walkers at all. It's
+> > > more about the possibility of speculative TLB fils, it has nothing to
+> > > do with *how* they are done. Sure, it's likely that a software
+> > > pagetable walker wouldn't be something that gets called speculatively,
+> > > but it's not out of the question.
+> > > 
+> > Hmm, I would call gup_fast() as speculative as we can get in software.
+> > It does a lock-less walk of the page-tables. That's what the RCU free'd
+> > page-table stuff is for to begin with.
+> 
+> Strictly speaking it's not :-) To *begin with* (as in the origin of that
+> code) it comes from powerpc hash table code which walks the linux page
+> tables locklessly :-) It then came in handy with gup_fast :-)
 
-Right.. and s390 having done this only says that s390 appears to be ok
-with it. Martin, does s390 hardware guarantee no speculative stuff like
-Linus explained, or might there even be a latent issue on s390?
+Ah, ok my bad.
 
-But it looks like we cannot do this in general, and esp. ARM (as already
-noted by Catalin) has very aggressive speculative behaviour.
+> > > IOW, if Sparc/PPC really want to guarantee that they never fill TLB
+> > > entries speculatively, and that if we are in a kernel thread they will
+> > > *never* fill the TLB with anything else, then make them enable
+> > > CONFIG_STRICT_TLB_FILL or something in their architecture Kconfig
+> > > files. 
+> > 
+> > Since we've dealt with the speculative software side by using RCU-ish
+> > stuff, the only thing that's left is hardware, now neither sparc64 nor
+> > ppc actually know about the linux page-tables from what I understood,
+> > they only look at their hash-table thing.
+> 
+> Some embedded ppc's know about the lowest level (SW loaded PMD) but
+> that's not an issue here. We flush these special TLB entries
+> specifically and synchronously in __pte_free_tlb().
 
-The alternative is that we do a switch_mm() to init_mm instead of the
-TLB flush. On x86 that should be about the same cost, but I've not
-looked at other architectures yet.
+OK, I missed that.. is that
+arch/powerpc/mm/tlb_nohash.c:tlb_flush_pgtable() ?
 
-The second and least favourite alternative is of course special casing
-this for s390 if it turns out its a safe thing to do for them.
+> > So even if the hardware did do speculative tlb fills, it would do them
+> > from the hash-table, but that's already cleared out.
+> 
+> Right,
 
-/me goes look through arch code.
+Phew at least I got the important thing right ;-)
