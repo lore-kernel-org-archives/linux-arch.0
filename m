@@ -1,56 +1,39 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
+From: Avi Kivity <avi@redhat.com>
 Subject: Re: [PATCH 08/20] mm: Optimize fullmm TLB flushing
-Date: Thu, 28 Jun 2012 15:53:28 +0100
-Message-ID: <20120628145327.GA17242@arm.com>
-References: <20120627211540.459910855@chello.nl>
- <20120627212831.137126018@chello.nl>
- <CA+55aFwZoVK76ue7tFveV0XZpPUmoCVXJx8550OxPm+XKCSSZA@mail.gmail.com>
- <1340838154.10063.86.camel@twins>
- <1340838807.10063.90.camel@twins>
- <CA+55aFy6m967fMxyBsRoXVecdpGtSphXi_XdhwS0DB81Qaocdw@mail.gmail.com>
- <CA+55aFzLNsVRkp_US8rAmygEkQpp1s1YdakV86Ck-4RZM7TTdA@mail.gmail.com>
- <20120628091627.GB8573@arm.com>
- <1340879984.20977.80.camel@pasglop>
- <1340881196.28750.16.camel@twins>
+Date: Thu, 28 Jun 2012 19:00:23 +0300
+Message-ID: <4FEC7F97.5010209@redhat.com>
+References: <20120627211540.459910855@chello.nl>  <20120627212831.137126018@chello.nl>  <CA+55aFwZoVK76ue7tFveV0XZpPUmoCVXJx8550OxPm+XKCSSZA@mail.gmail.com>  <1340838154.10063.86.camel@twins> <1340838807.10063.90.camel@twins>  <CA+55aFy6m967fMxyBsRoXVecdpGtSphXi_XdhwS0DB81Qaocdw@mail.gmail.com>  <CA+55aFzLNsVRkp_US8rAmygEkQpp1s1YdakV86Ck-4RZM7TTdA@mail.gmail.com>  <1340880904.28750.13.camel@twins> <20120628131950.0afe39f0@de.ibm.com> <1340883048.28750.25.camel@twins>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1340881196.28750.16.camel@twins>
+In-Reply-To: <1340883048.28750.25.camel@twins>
 Sender: owner-linux-mm@kvack.org
 To: Peter Zijlstra <peterz@infradead.org>
-Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Rik van Riel <riel@redhat.com>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Alex Shi <alex.shi@intel.com>, "Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, Konrad Rzeszutek Wilk <konrad@darnok.org>, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Tony Luck <tony.luck@intel.com>, Paul Mundt <let>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Rik van Riel <riel@redhat.com>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Alex Shi <alex.shi@intel.com>, "Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, Konrad Rzeszutek Wilk <konrad@darnok.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@tilera.com>, Tony Luck <tony.luck@intel.com>Paul Mundt <le>
 List-Id: linux-arch.vger.kernel.org
 
-On Thu, Jun 28, 2012 at 11:59:56AM +0100, Peter Zijlstra wrote:
-> On Thu, 2012-06-28 at 20:39 +1000, Benjamin Herrenschmidt wrote:
-> > On Thu, 2012-06-28 at 10:16 +0100, Catalin Marinas wrote:
-> > > That's definitely an issue on ARM and it was hit on older kernels.
-> > > Basically ARM processors can cache any page translation level in the
-> > > TLB. We need to make sure that no page entry at any level (either cached
-> > > in the TLB or not) points to an invalid next level table (hence the TLB
-> > > shootdown). For example, in cases like free_pgd_range(), if the cached
-> > > pgd entry points to an already freed pud/pmd table (pgd_clear is not
-> > > enough) it may walk the page tables speculatively cache another entry in
-> > > the TLB. Depending on the random data it reads from an old table page,
-> > > it may find a global entry (it's just a bit in the pte) which is not
-> > > tagged with an ASID (application specific id). A latter flush_tlb_mm()
-> > > only flushes the current ASID and doesn't touch global entries (used
-> > > only by kernel mappings). So we end up with global TLB entry in user
-> > > space that overrides any other application mapping.
-> > 
-> > Right, that's the typical scenario. I haven't looked at your flush
-> > implementation though, but surely you can defer the actual freeing so
-> > you can batch them & limit the number of TLB flushes right ?
+On 06/28/2012 02:30 PM, Peter Zijlstra wrote:
+> On Thu, 2012-06-28 at 13:19 +0200, Martin Schwidefsky wrote:
 > 
-> Yes they do.. its just the up-front TLB invalidate for fullmm that's a
-> problem.
+>> The cpu can create speculative TLB entries, but only if it runs in the
+>> mode that uses the respective mm. We have two mm's active at the same
+>> time, the kernel mm (init_mm) and the user mm. While the cpu runs only
+>> in kernel mode it is not allowed to create TLBs for the user mm.
+>> While running in user mode it is allowed to speculatively create TLBs.
+> 
+> OK, that's neat.
 
-The upfront invalidate is fine (i.e. harmless), it's the tlb_flush_mmu()
-change to check for !tlb->fullmm that's not helpful on ARM.
+Note that we can do that for x86 now using the new PCID feature.
+Basically you get a tagged TLB, so you can switch between the
+kernel-only address space and the kernel+user address space quickly.
+
+It's still going to be slower than what we do now, but it might please
+some security people if the kernel can't accidentally access user data.
 
 -- 
-Catalin
+error compiling committee.c: too many arguments to function
+
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
