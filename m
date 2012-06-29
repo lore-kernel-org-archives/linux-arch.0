@@ -1,52 +1,35 @@
-From: Peter Zijlstra <peterz@infradead.org>
-Subject: Re: [PATCH 08/20] mm: Optimize fullmm TLB flushing
-Date: Fri, 29 Jun 2012 10:49:58 +0200
-Message-ID: <1340959798.28750.99.camel@twins>
-References: <20120627211540.459910855@chello.nl>
-	 <20120627212831.137126018@chello.nl>
-	 <CA+55aFwZoVK76ue7tFveV0XZpPUmoCVXJx8550OxPm+XKCSSZA@mail.gmail.com>
-	 <1340838154.10063.86.camel@twins> <1340838807.10063.90.camel@twins>
-	 <CA+55aFy6m967fMxyBsRoXVecdpGtSphXi_XdhwS0DB81Qaocdw@mail.gmail.com>
-	 <CA+55aFzLNsVRkp_US8rAmygEkQpp1s1YdakV86Ck-4RZM7TTdA@mail.gmail.com>
-	 <20120628091627.GB8573@arm.com> <1340879984.20977.80.camel@pasglop>
-	 <1340881196.28750.16.camel@twins> <20120628145327.GA17242@arm.com>
-	 <1340900425.28750.73.camel@twins>
-	 <CA+55aFwByDWu5bP__e3sw34E7s88f_2P=8m=i6SuP6s+NZgF6w@mail.gmail.com>
-	 <1340902329.28750.83.camel@twins> <1340920641.20977.103.camel@pasglop>
-	 <1340920696.20977.104.camel@pasglop>
+From: Clemens Ladisch <clemens@ladisch.de>
+Subject: Re: [PATCH] common: dma-mapping: add support for generic dma_mmap_*
+ calls
+Date: Fri, 29 Jun 2012 13:09:55 +0200
+Message-ID: <4FED8D03.10507@ladisch.de>
+References: <1339741135-7841-1-git-send-email-m.szyprowski@samsung.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1340920696.20977.104.camel@pasglop>
+In-Reply-To: <1339741135-7841-1-git-send-email-m.szyprowski@samsung.com>
 Sender: owner-linux-mm@kvack.org
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Rik van Riel <riel@redhat.com>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Alex Shi <alex.shi@intel.com>, "Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, Konrad Rzeszutek Wilk <konrad@darnok.org>, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Tony Luck <tony.luck@intel.com>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@a>
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, David Gibson <david@gibson.dropbear.id.au>, Subash Patel <subash.ramaswamy@linaro.org>, Sumit Semwal <sumit.semwal@linaro.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Fri, 2012-06-29 at 07:58 +1000, Benjamin Herrenschmidt wrote:
-> On Fri, 2012-06-29 at 07:57 +1000, Benjamin Herrenschmidt wrote:
-> > On Thu, 2012-06-28 at 18:52 +0200, Peter Zijlstra wrote:
-> > > No I think you're right (as always).. also an IPI will not force
-> > > schedule the thread that might be running on the receiving cpu, also
-> > > we'd have to wait for any such schedule to complete in order to
-> > > guarantee the mm isn't lazily used anymore.
-> > >=20
-> > > Bugger..=20
-> >=20
-> > You can still do it if the mm count is 1 no ? Ie, current is the last
-> > holder of a reference to the mm struct... which will probably be the
-> > common case for short lived programs.
->=20
-> Also I just remembered... x86 flushes in SMP via IPIs right ? So maybe
-> you can invent a "detach and flush" variant of it ?=20
+Marek Szyprowski wrote:
+> +++ b/drivers/base/dma-mapping.c
+> ...
+> +int dma_common_mmap(struct device *dev, struct vm_area_struct *vma,
+> +		    void *cpu_addr, dma_addr_t dma_addr, size_t size)
+> +{
+> +	int ret = -ENXIO;
+> +	...
+> +	if (dma_mmap_from_coherent(dev, vma, cpu_addr, size, &ret))
+> +		return ret;
 
-Its not just x86 I worry about.. I want to share as much as possible
-between all our architectures.
+This will return -ENXIO if dma_mmap_from_coherent() succeeds.
 
-But yeah, I could do it for mm_count =3D=3D 1, but I'd still need to specia=
-l
-case s390 because they always want it.
+
+Regards,
+Clemens
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
