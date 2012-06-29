@@ -1,50 +1,69 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 08/20] mm: Optimize fullmm TLB flushing
-Date: Fri, 29 Jun 2012 07:58:16 +1000
-Message-ID: <1340920696.20977.104.camel@pasglop>
-References: <20120627211540.459910855@chello.nl>
-	 <20120627212831.137126018@chello.nl>
-	 <CA+55aFwZoVK76ue7tFveV0XZpPUmoCVXJx8550OxPm+XKCSSZA@mail.gmail.com>
-	 <1340838154.10063.86.camel@twins> <1340838807.10063.90.camel@twins>
-	 <CA+55aFy6m967fMxyBsRoXVecdpGtSphXi_XdhwS0DB81Qaocdw@mail.gmail.com>
-	 <CA+55aFzLNsVRkp_US8rAmygEkQpp1s1YdakV86Ck-4RZM7TTdA@mail.gmail.com>
-	 <20120628091627.GB8573@arm.com> <1340879984.20977.80.camel@pasglop>
-	 <1340881196.28750.16.camel@twins> <20120628145327.GA17242@arm.com>
-	 <1340900425.28750.73.camel@twins>
-	 <CA+55aFwByDWu5bP__e3sw34E7s88f_2P=8m=i6SuP6s+NZgF6w@mail.gmail.com>
-	 <1340902329.28750.83.camel@twins> <1340920641.20977.103.camel@pasglop>
+From: Greg Ungerer <gerg@snapgear.com>
+Subject: Re: should there still be arch-specific 4KSTACKS support?
+Date: Fri, 29 Jun 2012 16:10:42 +1000
+Message-ID: <4FED46E2.3070008@snapgear.com>
+References: <alpine.DEB.2.02.1206231142150.14887@oneiric> <CAMuHMdXqieWY5C_C9ituryRwPSNDU__XL8X=g6EXF3-RH1DDdw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="UTF-8"; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1340920641.20977.103.camel@pasglop>
-Sender: owner-linux-mm@kvack.org
-To: Peter Zijlstra <peterz@infradead.org>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Rik van Riel <riel@redhat.com>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Alex Shi <alex.shi@intel.com>, "Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, Konrad Rzeszutek Wilk <konrad@darnok.org>, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from dnvwsmailout1.mcafee.com ([161.69.31.173]:11915 "EHLO
+	DNVWSMAILOUT1.mcafee.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751011Ab2F2GMd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jun 2012 02:12:33 -0400
+In-Reply-To: <CAMuHMdXqieWY5C_C9ituryRwPSNDU__XL8X=g6EXF3-RH1DDdw@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "Robert P. J. Day" <rpjday@crashcourse.ca>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
 
-On Fri, 2012-06-29 at 07:57 +1000, Benjamin Herrenschmidt wrote:
-> On Thu, 2012-06-28 at 18:52 +0200, Peter Zijlstra wrote:
-> > No I think you're right (as always).. also an IPI will not force
-> > schedule the thread that might be running on the receiving cpu, also
-> > we'd have to wait for any such schedule to complete in order to
-> > guarantee the mm isn't lazily used anymore.
-> > 
-> > Bugger.. 
-> 
-> You can still do it if the mm count is 1 no ? Ie, current is the last
-> holder of a reference to the mm struct... which will probably be the
-> common case for short lived programs.
+On 24/06/12 04:51, Geert Uytterhoeven wrote:
+> Broadening the audience...
+>
+> On Sat, Jun 23, 2012 at 5:47 PM, Robert P. J. Day <rpjday@crashcourse.ca> wrote:
+>>   via some convoluted logic, i ended up doing the following search:
+>>
+>> $ grep -r 4KSTACKS *
+>> arch/sh/configs/r7785rp_defconfig:CONFIG_4KSTACKS=y
+>> arch/sh/Kconfig.debug:config 4KSTACKS
+>> arch/sh/include/asm/thread_info.h:#if defined(CONFIG_4KSTACKS)
+>> arch/mn10300/include/asm/thread_info.h:#ifdef CONFIG_4KSTACKS
+>> arch/m68k/Kconfig.machine:config 4KSTACKS
+>> arch/m68k/configs/m5208evb_defconfig:# CONFIG_4KSTACKS is not set
+>> arch/m68k/configs/m5275evb_defconfig:# CONFIG_4KSTACKS is not set
+>> arch/m68k/configs/m5475evb_defconfig:# CONFIG_4KSTACKS is not set
+>> arch/m68k/include/asm/thread_info.h:#ifdef CONFIG_4KSTACKS
+>> arch/c6x/include/asm/thread_info.h:#ifdef CONFIG_4KSTACKS
+>> drivers/lguest/interrupts_and_traps.c:   * Depending on the CONFIG_4KSTACKS option, the Guest can have one or
+>> kernel/lockdep.c:        * hardirq contexts (such as on 4KSTACKS), so only
+>> $
+>>
+>>   so even though 4KSTACKS support was officially removed in June of
+>> 2010:
+>>
+>> $ git show dcfa7262
+>>
+>> there's still traces of it, some of it obviously harmless, leftover
+>> cruft, but it would appear that both sh and m68k still provide a
+>> 4KSTACKS config option.
+>>
+>>   how much of that can be tossed as useless?
 
-Also I just remembered... x86 flushes in SMP via IPIs right ? So maybe
-you can invent a "detach and flush" variant of it ? 
+Well, it still works on non-mmu m68k. Yes, I am aware of the issues,
+but for those types of small memory non-mmu systems 4k stacks is a
+saving. And those types of systems don't tend to use the parts of
+the kernel that have been known to want lots of kernel stack.
 
-Cheers,
-Ben.
+But if opposition was incredibly strong to having anything support
+4k stacks, I probably won't loose any sleep over it being removed
+for m68k.
+
+Regards
+Greg
 
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+------------------------------------------------------------------------
+Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.com
+SnapGear Group, McAfee                      PHONE:       +61 7 3435 2888
+8 Gardner Close                             FAX:         +61 7 3217 5323
+Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.com
