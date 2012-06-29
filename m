@@ -1,66 +1,55 @@
-From: Michael Holzheu <holzheu@linux.vnet.ibm.com>
-Subject: Re: [PATCH] panic: Fix a possible deadlock in panic()
-Date: Fri, 29 Jun 2012 08:54:31 +0200
-Message-ID: <20120629085431.24771aa2@br98xy6r>
-References: <1340926985-8270-1-git-send-email-markivx@codeaurora.org>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: Re: [PATCH 08/20] mm: Optimize fullmm TLB flushing
+Date: Fri, 29 Jun 2012 10:49:58 +0200
+Message-ID: <1340959798.28750.99.camel@twins>
+References: <20120627211540.459910855@chello.nl>
+	 <20120627212831.137126018@chello.nl>
+	 <CA+55aFwZoVK76ue7tFveV0XZpPUmoCVXJx8550OxPm+XKCSSZA@mail.gmail.com>
+	 <1340838154.10063.86.camel@twins> <1340838807.10063.90.camel@twins>
+	 <CA+55aFy6m967fMxyBsRoXVecdpGtSphXi_XdhwS0DB81Qaocdw@mail.gmail.com>
+	 <CA+55aFzLNsVRkp_US8rAmygEkQpp1s1YdakV86Ck-4RZM7TTdA@mail.gmail.com>
+	 <20120628091627.GB8573@arm.com> <1340879984.20977.80.camel@pasglop>
+	 <1340881196.28750.16.camel@twins> <20120628145327.GA17242@arm.com>
+	 <1340900425.28750.73.camel@twins>
+	 <CA+55aFwByDWu5bP__e3sw34E7s88f_2P=8m=i6SuP6s+NZgF6w@mail.gmail.com>
+	 <1340902329.28750.83.camel@twins> <1340920641.20977.103.camel@pasglop>
+	 <1340920696.20977.104.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:51502 "EHLO
-	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751258Ab2F2Gyu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jun 2012 02:54:50 -0400
-Received: from /spool/local
-	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <holzheu@linux.vnet.ibm.com>;
-	Fri, 29 Jun 2012 07:54:48 +0100
-In-Reply-To: <1340926985-8270-1-git-send-email-markivx@codeaurora.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Vikram Mulukutla <markivx@codeaurora.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Stephen Boyd <sboyd@codeaurora.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <1340920696.20977.104.camel@pasglop>
+Sender: owner-linux-mm@kvack.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Rik van Riel <riel@redhat.com>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Alex Shi <alex.shi@intel.com>, "Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, Konrad Rzeszutek Wilk <konrad@darnok.org>, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Tony Luck <tony.luck@intel.com>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@a>
+List-Id: linux-arch.vger.kernel.org
 
-Hello Vikram,
+On Fri, 2012-06-29 at 07:58 +1000, Benjamin Herrenschmidt wrote:
+> On Fri, 2012-06-29 at 07:57 +1000, Benjamin Herrenschmidt wrote:
+> > On Thu, 2012-06-28 at 18:52 +0200, Peter Zijlstra wrote:
+> > > No I think you're right (as always).. also an IPI will not force
+> > > schedule the thread that might be running on the receiving cpu, also
+> > > we'd have to wait for any such schedule to complete in order to
+> > > guarantee the mm isn't lazily used anymore.
+> > >=20
+> > > Bugger..=20
+> >=20
+> > You can still do it if the mm count is 1 no ? Ie, current is the last
+> > holder of a reference to the mm struct... which will probably be the
+> > common case for short lived programs.
+>=20
+> Also I just remembered... x86 flushes in SMP via IPIs right ? So maybe
+> you can invent a "detach and flush" variant of it ?=20
 
-Putting "linux-arch" on cc...
+Its not just x86 I worry about.. I want to share as much as possible
+between all our architectures.
 
-On Thu, 28 Jun 2012 16:43:05 -0700
-Vikram Mulukutla <markivx@codeaurora.org> wrote:
-> panic_lock is meant to ensure that panic processing takes
-> place only on one cpu; if any of the other cpus encounter
-> a panic, they will spin waiting to be shut down.
-> 
-> However, this causes a regression in this scenario:
-> 
-> 1. Cpu 0 encounters a panic and acquires the panic_lock
->    and proceeds with the panic processing.
-> 2. There is an interrupt on cpu 0 that also encounters
->    an error condition and invokes panic.
-> 3. This second invocation fails to acquire the panic_lock
->    and enters the infinite while loop in panic_smp_self_stop.
-> 
-> Thus all panic processing is stopped, and the cpu is stuck
-> for eternity in the while(1) inside panic_smp_self_stop.
-> 
-> To address this, disable local interrupts with
-> local_irq_disable before acquiring the panic_lock. This will
-> prevent interrupt handlers from executing during the panic
-> processing, thus avoiding this particular problem.
+But yeah, I could do it for mm_count =3D=3D 1, but I'd still need to specia=
+l
+case s390 because they always want it.
 
-Looks good to me.
-
-I re-read the panic lock discussion and in fact one version of my patch
-also disabled interrupts:
-
-http://lists.infradead.org/pipermail/kexec/2011-October/005695.html
-
-I think the reason why we later took a version with irqs enabled was
-that we did not think about the scenario you described above and
-we wanted to make the change as less intrusive as possible. But I am
-not really sure about that.
-
-Regarding you patch: Perhaps we could use spin_trylock_irq() instead of
-local_irq_disable() and spin_lock().
-
-Michael
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
