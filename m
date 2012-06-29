@@ -1,69 +1,66 @@
-From: Greg Ungerer <gerg@snapgear.com>
-Subject: Re: should there still be arch-specific 4KSTACKS support?
-Date: Fri, 29 Jun 2012 16:10:42 +1000
-Message-ID: <4FED46E2.3070008@snapgear.com>
-References: <alpine.DEB.2.02.1206231142150.14887@oneiric> <CAMuHMdXqieWY5C_C9ituryRwPSNDU__XL8X=g6EXF3-RH1DDdw@mail.gmail.com>
+From: Michael Holzheu <holzheu@linux.vnet.ibm.com>
+Subject: Re: [PATCH] panic: Fix a possible deadlock in panic()
+Date: Fri, 29 Jun 2012 08:54:31 +0200
+Message-ID: <20120629085431.24771aa2@br98xy6r>
+References: <1340926985-8270-1-git-send-email-markivx@codeaurora.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"; format=flowed
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from dnvwsmailout1.mcafee.com ([161.69.31.173]:11915 "EHLO
-	DNVWSMAILOUT1.mcafee.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751011Ab2F2GMd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jun 2012 02:12:33 -0400
-In-Reply-To: <CAMuHMdXqieWY5C_C9ituryRwPSNDU__XL8X=g6EXF3-RH1DDdw@mail.gmail.com>
+Received: from e06smtp14.uk.ibm.com ([195.75.94.110]:51502 "EHLO
+	e06smtp14.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751258Ab2F2Gyu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jun 2012 02:54:50 -0400
+Received: from /spool/local
+	by e06smtp14.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <holzheu@linux.vnet.ibm.com>;
+	Fri, 29 Jun 2012 07:54:48 +0100
+In-Reply-To: <1340926985-8270-1-git-send-email-markivx@codeaurora.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Robert P. J. Day" <rpjday@crashcourse.ca>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Vikram Mulukutla <markivx@codeaurora.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Stephen Boyd <sboyd@codeaurora.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 24/06/12 04:51, Geert Uytterhoeven wrote:
-> Broadening the audience...
->
-> On Sat, Jun 23, 2012 at 5:47 PM, Robert P. J. Day <rpjday@crashcourse.ca> wrote:
->>   via some convoluted logic, i ended up doing the following search:
->>
->> $ grep -r 4KSTACKS *
->> arch/sh/configs/r7785rp_defconfig:CONFIG_4KSTACKS=y
->> arch/sh/Kconfig.debug:config 4KSTACKS
->> arch/sh/include/asm/thread_info.h:#if defined(CONFIG_4KSTACKS)
->> arch/mn10300/include/asm/thread_info.h:#ifdef CONFIG_4KSTACKS
->> arch/m68k/Kconfig.machine:config 4KSTACKS
->> arch/m68k/configs/m5208evb_defconfig:# CONFIG_4KSTACKS is not set
->> arch/m68k/configs/m5275evb_defconfig:# CONFIG_4KSTACKS is not set
->> arch/m68k/configs/m5475evb_defconfig:# CONFIG_4KSTACKS is not set
->> arch/m68k/include/asm/thread_info.h:#ifdef CONFIG_4KSTACKS
->> arch/c6x/include/asm/thread_info.h:#ifdef CONFIG_4KSTACKS
->> drivers/lguest/interrupts_and_traps.c:   * Depending on the CONFIG_4KSTACKS option, the Guest can have one or
->> kernel/lockdep.c:        * hardirq contexts (such as on 4KSTACKS), so only
->> $
->>
->>   so even though 4KSTACKS support was officially removed in June of
->> 2010:
->>
->> $ git show dcfa7262
->>
->> there's still traces of it, some of it obviously harmless, leftover
->> cruft, but it would appear that both sh and m68k still provide a
->> 4KSTACKS config option.
->>
->>   how much of that can be tossed as useless?
+Hello Vikram,
 
-Well, it still works on non-mmu m68k. Yes, I am aware of the issues,
-but for those types of small memory non-mmu systems 4k stacks is a
-saving. And those types of systems don't tend to use the parts of
-the kernel that have been known to want lots of kernel stack.
+Putting "linux-arch" on cc...
 
-But if opposition was incredibly strong to having anything support
-4k stacks, I probably won't loose any sleep over it being removed
-for m68k.
+On Thu, 28 Jun 2012 16:43:05 -0700
+Vikram Mulukutla <markivx@codeaurora.org> wrote:
+> panic_lock is meant to ensure that panic processing takes
+> place only on one cpu; if any of the other cpus encounter
+> a panic, they will spin waiting to be shut down.
+> 
+> However, this causes a regression in this scenario:
+> 
+> 1. Cpu 0 encounters a panic and acquires the panic_lock
+>    and proceeds with the panic processing.
+> 2. There is an interrupt on cpu 0 that also encounters
+>    an error condition and invokes panic.
+> 3. This second invocation fails to acquire the panic_lock
+>    and enters the infinite while loop in panic_smp_self_stop.
+> 
+> Thus all panic processing is stopped, and the cpu is stuck
+> for eternity in the while(1) inside panic_smp_self_stop.
+> 
+> To address this, disable local interrupts with
+> local_irq_disable before acquiring the panic_lock. This will
+> prevent interrupt handlers from executing during the panic
+> processing, thus avoiding this particular problem.
 
-Regards
-Greg
+Looks good to me.
 
+I re-read the panic lock discussion and in fact one version of my patch
+also disabled interrupts:
 
-------------------------------------------------------------------------
-Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.com
-SnapGear Group, McAfee                      PHONE:       +61 7 3435 2888
-8 Gardner Close                             FAX:         +61 7 3217 5323
-Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.com
+http://lists.infradead.org/pipermail/kexec/2011-October/005695.html
+
+I think the reason why we later took a version with irqs enabled was
+that we did not think about the scenario you described above and
+we wanted to make the change as less intrusive as possible. But I am
+not really sure about that.
+
+Regarding you patch: Perhaps we could use spin_trylock_irq() instead of
+local_irq_disable() and spin_lock().
+
+Michael
