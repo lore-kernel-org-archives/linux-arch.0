@@ -1,37 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtprelay05.ispgateway.de ([80.67.31.99]:58721 "EHLO
-	smtprelay05.ispgateway.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752111Ab2F2LRq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 29 Jun 2012 07:17:46 -0400
-Message-ID: <4FED8D03.10507@ladisch.de>
-Date: Fri, 29 Jun 2012 13:09:55 +0200
-From: Clemens Ladisch <clemens@ladisch.de>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:35985 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932073Ab2GALDe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Jul 2012 07:03:34 -0400
+Date: Sun, 1 Jul 2012 11:59:35 +0100
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH V2 5/6] x86: add CONFIG_ARM_AMBA, selected by STA2X11
+Message-ID: <20120701105934.GD16319@n2100.arm.linux.org.uk>
+References: <4FECB95D.7010200@zytor.com> <cover.1338222460.git.rubini@gnudd.com> <f85fefb10b7a7407b77180be65b18bf0426145b9.1338222461.git.rubini@gnudd.com> <20120701104401.GA4352@mail.gnudd.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH] common: dma-mapping: add support for generic dma_mmap_*
- calls
-References: <1339741135-7841-1-git-send-email-m.szyprowski@samsung.com>
-In-Reply-To: <1339741135-7841-1-git-send-email-m.szyprowski@samsung.com>
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+In-Reply-To: <20120701104401.GA4352@mail.gnudd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, linaro-mm-sig@lists.linaro.org, linux-mm@kvack.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Kyungmin Park <kyungmin.park@samsung.com>, Arnd Bergmann <arnd@arndb.de>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>, David Gibson <david@gibson.dropbear.id.au>, Subash Patel <subash.ramaswamy@linaro.org>, Sumit Semwal <sumit.semwal@linaro.org>
-Message-ID: <20120629110955.n6FtGaRMhUJcLn69pdcp012gb075aguUY1Lt6aYELr4@z>
+To: Alessandro Rubini <rubini@gnudd.com>
+Cc: hpa@zytor.com, linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, x86@kernel.org, gregkh@linuxfoundation.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120701105935.VhP4Q_NtnS87xzaGWyVzUet3soW10527FY1PovbaXhQ@z>
 
-Marek Szyprowski wrote:
-> +++ b/drivers/base/dma-mapping.c
-> ...
-> +int dma_common_mmap(struct device *dev, struct vm_area_struct *vma,
-> +		    void *cpu_addr, dma_addr_t dma_addr, size_t size)
-> +{
-> +	int ret = -ENXIO;
-> +	...
-> +	if (dma_mmap_from_coherent(dev, vma, cpu_addr, size, &ret))
-> +		return ret;
+On Sun, Jul 01, 2012 at 12:44:01PM +0200, Alessandro Rubini wrote:
+> How should I address the problem? (original code, published on
+> sourceforge was simply replicating a number of amba drivers into pci
+> drivers, but I don't think massive code duplication is ever sensible,
+> thus I preferred to reuse the existing drivers).
 
-This will return -ENXIO if dma_mmap_from_coherent() succeeds.
+I think the answer is... those primecell drivers need fixing in some way.
+Re-defining CS, DS and ES in drivers is rather silly given that they're
+x86 segment register names - so if PL330 can be fixed to make its names
+more specific, that sorts it out.
 
+As for PL08x, which depends on asm/hardware/pl080.h, I think that's going
+to have to be a config dependency - it would be nice to move that header
+into drivers/dma and make it private to the amba-pl08x driver, but we have
+definitions in there which platforms supply to the pl08x driver via
+platform data.  I'd rather not stuff the register definitions into
+include/linux/platform_data/...
 
-Regards,
-Clemens
+Note also that hpa has only reported the first errors he encountered, so
+there may be more, and that's somehting which needs checking.
