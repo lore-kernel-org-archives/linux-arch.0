@@ -1,63 +1,66 @@
-From: Jassi Brar <jaswinder.singh@linaro.org>
+From: "H. Peter Anvin" <hpa@zytor.com>
 Subject: Re: [PATCH V2 5/6] x86: add CONFIG_ARM_AMBA, selected by STA2X11
-Date: Sun, 1 Jul 2012 18:41:44 +0530
-Message-ID: <CAJe_Zhdy0q8H9jhG=wXMVToUjevZk1XcGUm1oKSZvpDNZ1UdVg@mail.gmail.com>
-References: <4FECB95D.7010200@zytor.com>
-	<cover.1338222460.git.rubini@gnudd.com>
-	<f85fefb10b7a7407b77180be65b18bf0426145b9.1338222461.git.rubini@gnudd.com>
-	<20120701104401.GA4352@mail.gnudd.com>
-	<20120701105934.GD16319@n2100.arm.linux.org.uk>
-	<CAJe_ZheynaBcMiQiwnxPrEoGxhhAJyHDD6VM-uDEN_5Yg1vVpA@mail.gmail.com>
-	<20120701121008.GF16319@n2100.arm.linux.org.uk>
+Date: Sun, 01 Jul 2012 07:13:10 -0700
+Message-ID: <2b797c83-6a3c-4051-841a-a4cfa9d1cae1@email.android.com>
+References: <4FECB95D.7010200@zytor.com> <cover.1338222460.git.rubini@gnudd.com> <f85fefb10b7a7407b77180be65b18bf0426145b9.1338222461.git.rubini@gnudd.com> <20120701104401.GA4352@mail.gnudd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain;
+ charset=UTF-8
+Content-Transfer-Encoding: 8bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:38135 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753721Ab2GANLq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Jul 2012 09:11:46 -0400
-Received: by lbbgm6 with SMTP id gm6so6576028lbb.19
-        for <linux-arch@vger.kernel.org>; Sun, 01 Jul 2012 06:11:44 -0700 (PDT)
-In-Reply-To: <20120701121008.GF16319@n2100.arm.linux.org.uk>
+Received: from terminus.zytor.com ([198.137.202.10]:40249 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932418Ab2GAOPr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 1 Jul 2012 10:15:47 -0400
+In-Reply-To: <20120701104401.GA4352@mail.gnudd.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Alessandro Rubini <rubini@gnudd.com>, linux-arch@vger.kernel.org, giancarlo.asnaghi@st.com, arnd@arndb.de, gregkh@linuxfoundation.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-serial@vger.kernel.org, hpa@zytor.com, linux-arm-kernel@lists.infradead.org, alan@linux.intel.com
+To: Alessandro Rubini <rubini@gnudd.com>
+Cc: linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, linux@arm.linux.org.uk, x86@kernel.org, gregkh@linuxfoundation.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 1 July 2012 17:40, Russell King - ARM Linux <linux@arm.linux.org.uk> wrote:
-> On Sun, Jul 01, 2012 at 05:28:16PM +0530, Jassi Brar wrote:
->> On 1 July 2012 16:29, Russell King - ARM Linux <linux@arm.linux.org.uk> wrote:
->> > On Sun, Jul 01, 2012 at 12:44:01PM +0200, Alessandro Rubini wrote:
->> >> How should I address the problem? (original code, published on
->> >> sourceforge was simply replicating a number of amba drivers into pci
->> >> drivers, but I don't think massive code duplication is ever sensible,
->> >> thus I preferred to reuse the existing drivers).
->> >
->> > I think the answer is... those primecell drivers need fixing in some way.
->> > Re-defining CS, DS and ES in drivers is rather silly given that they're
->> > x86 segment register names - so if PL330 can be fixed to make its names
->> > more specific, that sorts it out.
->> >
->> I am OK prefixing the regs with PL330_ or somesuch.
->>
->> The CS, DS and ES regs were named so as to match exactly the
->> terminology of the PL330 manual. So apparently even the ARM Ltd didn't
->> imagine ARM and X86 galaxies colliding so soon :)
->
-> Whatever it says in documentation is neither here nor there.  We're humans,
-> we can re-interpret, and we are capable of adding prefixes to names when
-> they're stupidly chosen.
->
-> Notice how I added MMCI_ and MCI_ to the register definitions for PL180
-> for example.  I always do that kind of thing as a rule to avoid these kinds
-> of problems right from the outset, and I don't understand why others don't
-> do the same.  We've been through soo many "this symbol clashes with
-> something else in the kernel tree" now that we really should be doing this
-> automatically, and not waiting for the clash to happen.
->
-I fully agree with your point and IIRC I always add some prefix to
-definitions in header files.
-Private defines in a .c file, without redundant prefixes, sounded like
-safe to me at the time, but perhaps I was wrong.
+There is no problem with adding ARM or !X86 dependencies to drivers now and fixing them later or as required.
 
-Thanks.
+Alessandro Rubini <rubini@gnudd.com> wrote:
+
+>>> The sta2x11 I/O Hub is a bridge from PCIe to AMBA. It reuses a
+>number
+>>> of amba drivers and needs to activate core bus support.
+>
+>> Nacked-by: H. Peter Anvin <hpa@zytor.com>
+>> 
+>> This brings in tons of code into the x86 all{yes,mod}config builds,
+>and 
+>> as perhaps one could expect some of it doesn't compile.  For example:
+>
+>Ok. I apologize for not checking this. Actually, I only fixed the ones
+>that I needed to compile.
+>
+>How should I address the problem? (original code, published on
+>sourceforge was simply replicating a number of amba drivers into pci
+>drivers, but I don't think massive code duplication is ever sensible,
+>thus I preferred to reuse the existing drivers).
+>
+>I doubt all amba drivers can easily be made x86-compatible.
+>I see these possible approaces, all of them with their cons
+>
+> 1- add STA2X11 dependencies to ARM_AMBA _and_ the drivers that do work
+>
+>  2- leave CONFIG_ARM_AMBA undefined and play select file in Makefiles
+>   using obj-$(CONFIG_STA2X11)
+>
+>  3- add ARM dependencies to the drivers that do not compile on x86
+>
+>  any other option?
+>
+>(1) and (2) bring chipset-specific stuff into the amba world, which is
+>bad, especially since I suspect other similar bridges will appear soon.
+>
+>(3) looks like a temporary hack and stuff can be fixed over time, but
+>it has the disadvantage of adding a big number of needless drivers in
+>the dsitributions' packages -- like my nacked patch did.
+>
+>thanks
+>/alessandro
+
+-- 
+Sent from my mobile phone. Please excuse brevity and lack of formatting.
