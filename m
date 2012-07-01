@@ -1,129 +1,58 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [PATCH 08/20] mm: Optimize fullmm TLB flushing
-Date: Sat, 30 Jun 2012 08:11:43 +1000
-Message-ID: <1341007903.2563.41.camel@pasglop>
-References: <CA+55aFy6m967fMxyBsRoXVecdpGtSphXi_XdhwS0DB81Qaocdw@mail.gmail.com>
-	 <CA+55aFzLNsVRkp_US8rAmygEkQpp1s1YdakV86Ck-4RZM7TTdA@mail.gmail.com>
-	 <20120628091627.GB8573@arm.com> <1340879984.20977.80.camel@pasglop>
-	 <1340881196.28750.16.camel@twins> <20120628145327.GA17242@arm.com>
-	 <1340900425.28750.73.camel@twins>
-	 <CA+55aFwByDWu5bP__e3sw34E7s88f_2P=8m=i6SuP6s+NZgF6w@mail.gmail.com>
-	 <1340902329.28750.83.camel@twins> <1340920641.20977.103.camel@pasglop>
-	 <20120629152645.GG17837@arm.com>
+From: Alessandro Rubini <rubini@gnudd.com>
+Subject: Re: [PATCH V2 5/6] x86: add CONFIG_ARM_AMBA, selected by STA2X11
+Date: Sun, 1 Jul 2012 12:44:01 +0200
+Message-ID: <20120701104401.GA4352@mail.gnudd.com>
+References: <4FECB95D.7010200@zytor.com>
+  <cover.1338222460.git.rubini@gnudd.com>
+ <f85fefb10b7a7407b77180be65b18bf0426145b9.1338222461.git.rubini@gnudd.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20120629152645.GG17837@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Rik van Riel <riel@redhat.com>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Alex Shi <alex.shi@intel.com>, "Nikunj A. Dadhania" <nikunj@linux.vnet.ibm.com>, Konrad Rzeszutek Wilk <konrad@darnok.org>, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>Martin Schwidefsky <sc>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail2.gnudd.com ([213.203.150.91]:33287 "EHLO mail.gnudd.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755674Ab2GAKpF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 1 Jul 2012 06:45:05 -0400
+Content-Disposition: inline
+In-Reply-To: <4FECB95D.7010200@zytor.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: hpa@zytor.com
+Cc: linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, linux@arm.linux.org.uk, x86@kernel.org, gregkh@linuxfoundation.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Fri, 2012-06-29 at 16:26 +0100, Catalin Marinas wrote:
-> On Thu, Jun 28, 2012 at 10:57:21PM +0100, Benjamin Herrenschmidt wrote:
-> > On Thu, 2012-06-28 at 18:52 +0200, Peter Zijlstra wrote:
-> > > No I think you're right (as always).. also an IPI will not force
-> > > schedule the thread that might be running on the receiving cpu, also
-> > > we'd have to wait for any such schedule to complete in order to
-> > > guarantee the mm isn't lazily used anymore.
-> > > 
-> > > Bugger.. 
-> > 
-> > You can still do it if the mm count is 1 no ? Ie, current is the last
-> > holder of a reference to the mm struct... which will probably be the
-> > common case for short lived programs.
+>> The sta2x11 I/O Hub is a bridge from PCIe to AMBA. It reuses a number
+>> of amba drivers and needs to activate core bus support.
+
+> Nacked-by: H. Peter Anvin <hpa@zytor.com>
 > 
-> BTW, can we not move the free_pgtables() call in exit_mmap() to
-> __mmdrop()? Something like below but I'm not entirely sure about its
-> implications:
+> This brings in tons of code into the x86 all{yes,mod}config builds, and 
+> as perhaps one could expect some of it doesn't compile.  For example:
 
-The main one is that it might remain active on another core for a
--loooong- time if that cores is only running kernel threads or otherwise
-idle, thus wasting memory etc...
+Ok. I apologize for not checking this. Actually, I only fixed the ones
+that I needed to compile.
 
-Also, mm_count being 1 is probably the common case for many short lived
-processes, so it should be fine, I don't think the count can every
-increase back at that point can it ? (we could make sure it doesn't,
-mark the mm as dead and WARN loudly if somebody tries to increase the
-count).
+How should I address the problem? (original code, published on
+sourceforge was simply replicating a number of amba drivers into pci
+drivers, but I don't think massive code duplication is ever sensible,
+thus I preferred to reuse the existing drivers).
 
-The advantage of doing a "detach & flush" IPI if the count is larger is
-that you already do the IPI for flushing anyway, so you just add a
-detach to the path.
+I doubt all amba drivers can easily be made x86-compatible.
+I see these possible approaces, all of them with their cons
 
-That avoids the problem of the mm staying around for too long as well.
+  1- add STA2X11 dependencies to ARM_AMBA _and_ the drivers that do work
 
-Cheers,
-Ben.
+  2- leave CONFIG_ARM_AMBA undefined and play select file in Makefiles
+   using obj-$(CONFIG_STA2X11)
 
-> 
-> diff --git a/include/linux/mm.h b/include/linux/mm.h
-> index b36d08c..507ee9f 100644
-> --- a/include/linux/mm.h
-> +++ b/include/linux/mm.h
-> @@ -1372,6 +1372,7 @@ extern void unlink_file_vma(struct vm_area_struct *);
->  extern struct vm_area_struct *copy_vma(struct vm_area_struct **,
->  	unsigned long addr, unsigned long len, pgoff_t pgoff);
->  extern void exit_mmap(struct mm_struct *);
-> +extern void exit_pgtables(struct mm_struct *mm);
->  
->  extern int mm_take_all_locks(struct mm_struct *mm);
->  extern void mm_drop_all_locks(struct mm_struct *mm);
-> diff --git a/kernel/fork.c b/kernel/fork.c
-> index ab5211b..3412b1a 100644
-> --- a/kernel/fork.c
-> +++ b/kernel/fork.c
-> @@ -588,6 +588,7 @@ struct mm_struct *mm_alloc(void)
->  void __mmdrop(struct mm_struct *mm)
->  {
->  	BUG_ON(mm == &init_mm);
-> +	exit_pgtables(mm);
->  	mm_free_pgd(mm);
->  	destroy_context(mm);
->  	mmu_notifier_mm_destroy(mm);
-> diff --git a/mm/mmap.c b/mm/mmap.c
-> index 074b487..d9ebfdb 100644
-> --- a/mm/mmap.c
-> +++ b/mm/mmap.c
-> @@ -2269,7 +2269,6 @@ void exit_mmap(struct mm_struct *mm)
->  {
->  	struct mmu_gather tlb;
->  	struct vm_area_struct *vma;
-> -	unsigned long nr_accounted = 0;
->  
->  	/* mm's last user has gone, and its about to be pulled down */
->  	mmu_notifier_release(mm);
-> @@ -2291,11 +2290,23 @@ void exit_mmap(struct mm_struct *mm)
->  
->  	lru_add_drain();
->  	flush_cache_mm(mm);
-> -	tlb_gather_mmu(&tlb, mm, 1);
-> +	tlb_gather_mmu(&tlb, mm, 0);
->  	/* update_hiwater_rss(mm) here? but nobody should be looking */
->  	/* Use -1 here to ensure all VMAs in the mm are unmapped */
->  	unmap_vmas(&tlb, vma, 0, -1);
-> +	tlb_finish_mmu(&tlb, 0, -1);
-> +}
-> +
-> +void exit_pgtables(struct mm_struct *mm)
-> +{
-> +	struct mmu_gather tlb;
-> +	struct vm_area_struct *vma;
-> +	unsigned long nr_accounted = 0;
->  
-> +	vma = mm->mmap;
-> +	if (!vma)
-> +		return;
-> +	tlb_gather_mmu(&tlb, mm, 1);
->  	free_pgtables(&tlb, vma, FIRST_USER_ADDRESS, TASK_SIZE);
->  	tlb_finish_mmu(&tlb, 0, -1);
->  
-> 
+  3- add ARM dependencies to the drivers that do not compile on x86
 
+  any other option?
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+(1) and (2) bring chipset-specific stuff into the amba world, which is
+bad, especially since I suspect other similar bridges will appear soon.
+
+(3) looks like a temporary hack and stuff can be fixed over time, but
+it has the disadvantage of adding a big number of needless drivers in
+the dsitributions' packages -- like my nacked patch did.
+
+thanks
+/alessandro
