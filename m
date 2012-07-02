@@ -1,33 +1,73 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH V2 5/6] x86: add CONFIG_ARM_AMBA, selected by STA2X11
-Date: Mon, 2 Jul 2012 16:58:27 +0000
-Message-ID: <201207021658.27755.arnd@arndb.de>
-References: <4FECB95D.7010200@zytor.com> <20120701104401.GA4352@mail.gnudd.com> <2b797c83-6a3c-4051-841a-a4cfa9d1cae1@email.android.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
+From: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Subject: [PATCH] clkdev: Add default clkdev.h
+Date: Mon,  2 Jul 2012 19:04:10 +0100
+Message-ID: <1341252250-26476-1-git-send-email-broonie@opensource.wolfsonmicro.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:61282 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755736Ab2GBR7K (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jul 2012 13:59:10 -0400
-In-Reply-To: <2b797c83-6a3c-4051-841a-a4cfa9d1cae1@email.android.com>
+Received: from opensource.wolfsonmicro.com ([80.75.67.52]:60778 "EHLO
+	opensource.wolfsonmicro.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S932136Ab2GBSEO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jul 2012 14:04:14 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Alessandro Rubini <rubini@gnudd.com>, linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, linux@arm.linux.org.uk, x86@kernel.org, gregkh@linuxfoundation.org, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, mturquette@ti.com, Russell King <linux@arm.linux.org.uk>, Mark Brown <broonie@opensource.wolfsonmicro.com>
 
-On Sunday 01 July 2012, H. Peter Anvin wrote:
-> 
-> There is no problem with adding ARM or !X86 dependencies to drivers
-> now and fixing them later or as required.
+Ease the deployment of clkdev by providing a default asm/clkdev.h which
+will be used if the arch does not have an include/asm/clkdev.h.
 
-Right, but if the fix is trivial (e.g. missing #include statement), it's
-usually better to just fix the code.
+Signed-off-by: Mark Brown <broonie@opensource.wolfsonmicro.com>
+---
+ include/asm-generic/Kbuild.asm |    4 ++++
+ include/asm-generic/clkdev.h   |   26 ++++++++++++++++++++++++++
+ 2 files changed, 30 insertions(+)
+ create mode 100644 include/asm-generic/clkdev.h
 
-Also, in many cases it's possible to say specifically what some code depends
-on. E.g. if a driver uses clk_get/clk_put, it should depend on CLKDEV_LOOKUP,
-not on !X86.
-
-	Arnd
+diff --git a/include/asm-generic/Kbuild.asm b/include/asm-generic/Kbuild.asm
+index c5d2e5d..da121e0 100644
+--- a/include/asm-generic/Kbuild.asm
++++ b/include/asm-generic/Kbuild.asm
+@@ -13,6 +13,10 @@ ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/a.out.h \
+ header-y += a.out.h
+ endif
+ 
++ifeq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/clkdev.h),)
++generic-y += clkdev.h
++endif
++
+ header-y += auxvec.h
+ header-y += bitsperlong.h
+ header-y += byteorder.h
+diff --git a/include/asm-generic/clkdev.h b/include/asm-generic/clkdev.h
+new file mode 100644
+index 0000000..c362a9d
+--- /dev/null
++++ b/include/asm-generic/clkdev.h
+@@ -0,0 +1,26 @@
++/*
++ *  include/asm-generic/clkdev.h
++ *
++ * Based on the ARM clkdev.h:
++ *  Copyright (C) 2008 Russell King.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * Helper for the clk API to assist looking up a struct clk.
++ */
++#ifndef __ASM_CLKDEV_H
++#define __ASM_CLKDEV_H
++
++#include <linux/slab.h>
++
++#define __clk_get(clk)	({ 1; })
++#define __clk_put(clk)	do { } while (0)
++
++static inline struct clk_lookup_alloc *__clkdev_alloc(size_t size)
++{
++	return kzalloc(size, GFP_KERNEL);
++}
++
++#endif
+-- 
+1.7.10
