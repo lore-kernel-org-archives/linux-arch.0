@@ -1,44 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:56629 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932253Ab2GAL6S (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 1 Jul 2012 07:58:18 -0400
-Received: by lbbgm6 with SMTP id gm6so6535547lbb.19
-        for <linux-arch@vger.kernel.org>; Sun, 01 Jul 2012 04:58:16 -0700 (PDT)
+Received: from terminus.zytor.com ([198.137.202.10]:36026 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932261Ab2GBSJc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 2 Jul 2012 14:09:32 -0400
+Message-ID: <4FF1E37D.7050103@zytor.com>
+Date: Mon, 02 Jul 2012 11:07:57 -0700
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-In-Reply-To: <20120701105934.GD16319@n2100.arm.linux.org.uk>
-References: <4FECB95D.7010200@zytor.com>
-	<cover.1338222460.git.rubini@gnudd.com>
-	<f85fefb10b7a7407b77180be65b18bf0426145b9.1338222461.git.rubini@gnudd.com>
-	<20120701104401.GA4352@mail.gnudd.com>
-	<20120701105934.GD16319@n2100.arm.linux.org.uk>
-Date: Sun, 1 Jul 2012 17:28:16 +0530
-Message-ID: <CAJe_ZheynaBcMiQiwnxPrEoGxhhAJyHDD6VM-uDEN_5Yg1vVpA@mail.gmail.com>
 Subject: Re: [PATCH V2 5/6] x86: add CONFIG_ARM_AMBA, selected by STA2X11
-From: Jassi Brar <jaswinder.singh@linaro.org>
+References: <4FECB95D.7010200@zytor.com> <20120701104401.GA4352@mail.gnudd.com> <2b797c83-6a3c-4051-841a-a4cfa9d1cae1@email.android.com> <201207021658.27755.arnd@arndb.de> <20120702180518.GA25995@sirena.org.uk>
+In-Reply-To: <20120702180518.GA25995@sirena.org.uk>
 Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Alessandro Rubini <rubini@gnudd.com>, linux-arch@vger.kernel.org, giancarlo.asnaghi@st.com, arnd@arndb.de, gregkh@linuxfoundation.org, x86@kernel.org, linux-kernel@vger.kernel.org, linux-serial@vger.kernel.org, hpa@zytor.com, linux-arm-kernel@lists.infradead.org, alan@linux.intel.com
-Message-ID: <20120701115816.eoaPX9cKqmZrR3c61ySAzV65zmXpRyhbohu95k-JU28@z>
+To: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Alessandro Rubini <rubini@gnudd.com>, linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, linux@arm.linux.org.uk, x86@kernel.org, gregkh@linuxfoundation.org, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20120702180757.bVFNDeNkYNCmN0Z6VJWhm_2_pMlwwHgT4sgxyxVEvwQ@z>
 
-On 1 July 2012 16:29, Russell King - ARM Linux <linux@arm.linux.org.uk> wrote:
-> On Sun, Jul 01, 2012 at 12:44:01PM +0200, Alessandro Rubini wrote:
->> How should I address the problem? (original code, published on
->> sourceforge was simply replicating a number of amba drivers into pci
->> drivers, but I don't think massive code duplication is ever sensible,
->> thus I preferred to reuse the existing drivers).
->
-> I think the answer is... those primecell drivers need fixing in some way.
-> Re-defining CS, DS and ES in drivers is rather silly given that they're
-> x86 segment register names - so if PL330 can be fixed to make its names
-> more specific, that sorts it out.
->
-I am OK prefixing the regs with PL330_ or somesuch.
+On 07/02/2012 11:05 AM, Mark Brown wrote:
+> On Mon, Jul 02, 2012 at 04:58:27PM +0000, Arnd Bergmann wrote:
+> 
+>> Also, in many cases it's possible to say specifically what some code depends
+>> on. E.g. if a driver uses clk_get/clk_put, it should depend on CLKDEV_LOOKUP,
+>> not on !X86.
+> 
+> Or we could get the stubs merged, or x86 could enable the clock API...
+> 
 
-The CS, DS and ES regs were named so as to match exactly the
-terminology of the PL330 manual. So apparently even the ARM Ltd didn't
-imagine ARM and X86 galaxies colliding so soon :)
+If there is a dependency there it should be registered, regardless if
+x86 enables the clock API.
 
-Regards.
+Last I saw I saw a patch to that effect, asked what the benefit was, and
+got no answer.
+
+	-hpa
+
+
