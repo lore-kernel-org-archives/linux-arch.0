@@ -1,73 +1,29 @@
 From: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Subject: [PATCH] clkdev: Add default clkdev.h
-Date: Mon,  2 Jul 2012 19:04:10 +0100
-Message-ID: <1341252250-26476-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+Subject: Re: [PATCH V2 5/6] x86: add CONFIG_ARM_AMBA, selected by STA2X11
+Date: Mon, 2 Jul 2012 19:05:18 +0100
+Message-ID: <20120702180518.GA25995@sirena.org.uk>
+References: <4FECB95D.7010200@zytor.com>
+ <20120701104401.GA4352@mail.gnudd.com>
+ <2b797c83-6a3c-4051-841a-a4cfa9d1cae1@email.android.com>
+ <201207021658.27755.arnd@arndb.de>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from opensource.wolfsonmicro.com ([80.75.67.52]:60778 "EHLO
-	opensource.wolfsonmicro.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S932136Ab2GBSEO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jul 2012 14:04:14 -0400
+Received: from cassiel.sirena.org.uk ([80.68.93.111]:53640 "EHLO
+	cassiel.sirena.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756028Ab2GBSF5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jul 2012 14:05:57 -0400
+Content-Disposition: inline
+In-Reply-To: <201207021658.27755.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, mturquette@ti.com, Russell King <linux@arm.linux.org.uk>, Mark Brown <broonie@opensource.wolfsonmicro.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, Alessandro Rubini <rubini@gnudd.com>, linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, linux@arm.linux.org.uk, x86@kernel.org, gregkh@linuxfoundation.org, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
 
-Ease the deployment of clkdev by providing a default asm/clkdev.h which
-will be used if the arch does not have an include/asm/clkdev.h.
+On Mon, Jul 02, 2012 at 04:58:27PM +0000, Arnd Bergmann wrote:
 
-Signed-off-by: Mark Brown <broonie@opensource.wolfsonmicro.com>
----
- include/asm-generic/Kbuild.asm |    4 ++++
- include/asm-generic/clkdev.h   |   26 ++++++++++++++++++++++++++
- 2 files changed, 30 insertions(+)
- create mode 100644 include/asm-generic/clkdev.h
+> Also, in many cases it's possible to say specifically what some code depends
+> on. E.g. if a driver uses clk_get/clk_put, it should depend on CLKDEV_LOOKUP,
+> not on !X86.
 
-diff --git a/include/asm-generic/Kbuild.asm b/include/asm-generic/Kbuild.asm
-index c5d2e5d..da121e0 100644
---- a/include/asm-generic/Kbuild.asm
-+++ b/include/asm-generic/Kbuild.asm
-@@ -13,6 +13,10 @@ ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/a.out.h \
- header-y += a.out.h
- endif
- 
-+ifeq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/clkdev.h),)
-+generic-y += clkdev.h
-+endif
-+
- header-y += auxvec.h
- header-y += bitsperlong.h
- header-y += byteorder.h
-diff --git a/include/asm-generic/clkdev.h b/include/asm-generic/clkdev.h
-new file mode 100644
-index 0000000..c362a9d
---- /dev/null
-+++ b/include/asm-generic/clkdev.h
-@@ -0,0 +1,26 @@
-+/*
-+ *  include/asm-generic/clkdev.h
-+ *
-+ * Based on the ARM clkdev.h:
-+ *  Copyright (C) 2008 Russell King.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * Helper for the clk API to assist looking up a struct clk.
-+ */
-+#ifndef __ASM_CLKDEV_H
-+#define __ASM_CLKDEV_H
-+
-+#include <linux/slab.h>
-+
-+#define __clk_get(clk)	({ 1; })
-+#define __clk_put(clk)	do { } while (0)
-+
-+static inline struct clk_lookup_alloc *__clkdev_alloc(size_t size)
-+{
-+	return kzalloc(size, GFP_KERNEL);
-+}
-+
-+#endif
--- 
-1.7.10
+Or we could get the stubs merged, or x86 could enable the clock API...
