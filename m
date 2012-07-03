@@ -1,79 +1,61 @@
-From: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Subject: Re: [PATCH V2 5/6] x86: add CONFIG_ARM_AMBA, selected by STA2X11
-Date: Tue, 3 Jul 2012 12:05:21 +0100
-Message-ID: <20120703110520.GI29030@opensource.wolfsonmicro.com>
-References: <4FECB95D.7010200@zytor.com>
- <20120701104401.GA4352@mail.gnudd.com>
- <2b797c83-6a3c-4051-841a-a4cfa9d1cae1@email.android.com>
- <201207021658.27755.arnd@arndb.de>
- <20120702180518.GA25995@sirena.org.uk>
- <4FF1E37D.7050103@zytor.com>
- <20120702183324.GA29030@opensource.wolfsonmicro.com>
- <4FF1F987.3030501@zytor.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] clkdev: Add default clkdev.h
+Date: Tue, 3 Jul 2012 11:16:05 +0000
+Message-ID: <201207031116.05876.arnd@arndb.de>
+References: <1341252250-26476-1-git-send-email-broonie@opensource.wolfsonmicro.com> <20120703120059.f153bd696269528be2baa1bc@canb.auug.org.au> <20120703101209.GH29030@opensource.wolfsonmicro.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="WHz+neNWvhIGAO8A"
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from opensource.wolfsonmicro.com ([80.75.67.52]:44925 "EHLO
-	opensource.wolfsonmicro.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751445Ab2GCLFX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jul 2012 07:05:23 -0400
-Content-Disposition: inline
-In-Reply-To: <4FF1F987.3030501@zytor.com>
+Received: from moutng.kundenserver.de ([212.227.17.10]:55858 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752604Ab2GCLQM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jul 2012 07:16:12 -0400
+In-Reply-To: <20120703101209.GH29030@opensource.wolfsonmicro.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Alessandro Rubini <rubini@gnudd.com>, linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, linux@arm.linux.org.uk, x86@kernel.org, gregkh@linuxfoundation.org, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+To: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org, mturquette@ti.com, Russell King <linux@arm.linux.org.uk>, linux-kbuild@vger.kernel.org, Michal Marek <mmarek@suse.cz>
 
+On Tuesday 03 July 2012, Mark Brown wrote:
+> On Tue, Jul 03, 2012 at 12:00:59PM +1000, Stephen Rothwell wrote:
+> > On Mon,  2 Jul 2012 19:04:10 +0100 Mark Brown <broonie@opensource.wolfsonmicro.com> wrote:
+> 
+> > > +#define __clk_get(clk)     ({ 1; })
+> > > +#define __clk_put(clk)     do { } while (0)
+> 
+> > So why not:
+> 
+> > struct clk;
+> 
+> > static inline int __clk_get(struct clk *clk) { return 1; }
+> > static inline void __clk_put(struct clk *clk) ( )
+> 
+> No idea, I'm just taking the existing default header and making it more
+> generally available.
 
---WHz+neNWvhIGAO8A
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+I prefer Stephen's version because that maintains the type checking.
+However, that is not a controversial point at all IMHO. The question
+that we need to decide on is whether we want automatic "generic-y"
+statements in Kbuild.asm.
 
-On Mon, Jul 02, 2012 at 12:41:59PM -0700, H. Peter Anvin wrote:
-> On 07/02/2012 11:33 AM, Mark Brown wrote:
+I'm not opposed to the idea, but I can imagine some arch maintainers
+fine it confusing. When you first posted the patch, I spent some
+time trying to get the wildcard logic moved to scripts/Makefile.asm-generic
+and scripts/Makefile.headersinst but couldn't figure it out in the end.
 
-> >> Last I saw I saw a patch to that effect, asked what the benefit
-> >> was, and got no answer.
+I would definitely prefer being able to just write 
 
-> > Are you positive about that?  I don't recall you replying any of
-> > the times I sent out the patch and my mail archive isn't
-> > contradicting me either.
+generic-y += clkdev.h 
 
-> I said last time I saw a patch to that effect; it might not have been
-> from you.  I might not have seen yours for whatever reason (including
-> losing it on my end.)
+in include/asm-generic/Kbuild.asm, rather than 
 
-I'm kind of surprised anyone else has been sending stuff (unless mine
-got resent by someone else, I did include it in some of my serises for
-the clock API); I know I've posted mine several times now.  In any case,
-I hope the mail you're replying to answers your question about why it's
-useful.
+ifeq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/clkdev.h),)
+generic-y += clkdev.h
+endif
 
-In general I'd probably go further and say that (at least when a generic
-implementation is available) there should be a very good reason for not
-enabling an API on an architecture rather than the other way around.
+Maybe Michal Marek or someone on the kbuild mailing list can help
+out with a solution for that.
 
---WHz+neNWvhIGAO8A
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
-
-iQIcBAEBAgAGBQJP8tHWAAoJEBus8iNuMP3d5sUP/RGmlvwsVzYuojMtOmKiG5Ce
-ipKXHvQWqnuFbMcW0ZgauSYVy8vq4C1R/gjkAB9Kt/2zGWPWfTozVk8Qazti+WPK
-ASgxVmpX4vY2ArzXMuxnMPuMoINS2kM9G2te1Fi4iyauuuSZH0Fnue0FNkAQu4lN
-T+/fLBJJg2ONl+XjTPsXqSmKeCuBzZJayLDWoUjdNnzBMSCEB0dCQxETxUXMdOVz
-xIVBTki/His8rhgSkrZ4p0vvNayJYfqPLCLv7vnfYnt6kyGahUsUmMWgU6Fglzc5
-+AiotwP5s7FkkmP8x6S8oCQdG2ouzy1YPN9oKQi0KH7yJhj1wQeq5MMTNbY/uuLo
-37Ikj3OYp2mD6WT/oMSU4fIe5/TNDa/tqb4qZUafo8pbDtb7K5cYNVA1fTukEkmq
-w4GlQ/oJy6G+kHcVbzUCST8qxy6ENnNljafgGFxFEorDPZdnPfL9FYkjIgWz4/by
-GuZU/yFbVHTAE1lLR2iZsN0rM5u9PQ0ozz8mJOxEKLC4VZDGc6KVg/tu30tgWhSl
-yqSQ3JmkNuCiW+FMdBaD7wwX6fRSOhBs/7XYABrkpmL9dU9m01jb8svh1lIZYWAM
-yv6BriIm0Z0JJvCQagFrFPcnaeKCIOYkrFwJuorXw7KmwEXkw2uHXybNqhbrMOGN
-OV49/m5b+ukYwNADndAI
-=brpJ
------END PGP SIGNATURE-----
-
---WHz+neNWvhIGAO8A--
+	Arnd
