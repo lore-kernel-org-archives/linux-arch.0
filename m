@@ -1,65 +1,41 @@
-From: Ezequiel Garcia <elezegarcia@gmail.com>
-Subject: Re: [PATCH 2/6] arm: fix compiler warning by properly inlining flat_set_persistent()
-Date: Tue, 3 Jul 2012 15:53:17 -0300
-Message-ID: <CALF0-+V3LcbXK_0Hi2G_j63qRwPceAuTq_bgwwCGpxicB=EXvQ@mail.gmail.com>
-References: <1339229611-2326-1-git-send-email-elezegarcia@gmail.com>
-	<1339229611-2326-2-git-send-email-elezegarcia@gmail.com>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH V2 5/6] x86: add CONFIG_ARM_AMBA, selected by STA2X11
+Date: Tue, 3 Jul 2012 20:34:03 +0100
+Message-ID: <20120703193403.GA26355@n2100.arm.linux.org.uk>
+References: <2b797c83-6a3c-4051-841a-a4cfa9d1cae1@email.android.com> <20120701104401.GA4352@mail.gnudd.com> <20120703130042.GA10007@mail.gnudd.com> <201207031319.40884.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yx0-f174.google.com ([209.85.213.174]:59250 "EHLO
-	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756489Ab2GCSxR convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jul 2012 14:53:17 -0400
-In-Reply-To: <1339229611-2326-2-git-send-email-elezegarcia@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Ezequiel Garcia <elezegarcia@gmail.com>, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <201207031319.40884.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Alessandro Rubini <rubini@gnudd.com>, hpa@zytor.com, linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, x86@kernel.org, gregkh@linuxfoundation.org, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Hi,
+On Tue, Jul 03, 2012 at 01:19:40PM +0000, Arnd Bergmann wrote:
+> On Tuesday 03 July 2012, Alessandro Rubini wrote:
+> >    drivers/dma/amba-pl08x.c: needs <asm/hardware/pl080.h>
+> >      proposed fix: move pl080.h to include/linux
+> 
+> Note that there is already an include/linux/amba/pl08x.h.
+> I would just move the few parts of pl080.h that are actually
+> needed with global visibility there, and move the rest
+> to drivers/dma/.
 
-On Sat, Jun 9, 2012 at 5:13 AM, Ezequiel Garcia <elezegarcia@gmail.com>=
- wrote:
-> This patch removes the following warning:
-> fs/binfmt_flat.c:752: warning: unused variable =91persistent=92
-> There is neither change in functionality, nor extra code generated.
->
-> Cc: Russell King <linux@arm.linux.org.uk>
-> Cc: <linux-arm-kernel@lists.infradead.org>
-> Signed-off-by: Ezequiel Garcia <elezegarcia@gmail.com>
-> ---
->  arch/arm/include/asm/flat.h |    7 ++++++-
->  1 files changed, 6 insertions(+), 1 deletions(-)
->
-> diff --git a/arch/arm/include/asm/flat.h b/arch/arm/include/asm/flat.=
-h
-> index 59426a4..6ef6cc5 100644
-> --- a/arch/arm/include/asm/flat.h
-> +++ b/arch/arm/include/asm/flat.h
-> @@ -11,6 +11,11 @@
->  #define        flat_get_addr_from_rp(rp, relval, flags, persistent) =
-get_unaligned(rp)
->  #define        flat_put_addr_at_rp(rp, val, relval)    put_unaligned=
-(val,rp)
->  #define        flat_get_relocate_addr(rel)             (rel)
-> -#define        flat_set_persistent(relval, p)          0
-> +
-> +static inline int flat_set_persistent(unsigned long relval,
-> +                                     unsigned long *persistent)
-> +{
-> +       return 0;
-> +}
->
->  #endif /* __ARM_FLAT_H__ */
-> --
-> 1.7.3.4
->
+NAK.  It's the entire register definitions for the PL08x, which we really
+should not be exporting to common code.
 
-Is there something wrong with this patch preventing it from being appli=
-ed?
-Or did I send it to wrong list?
+Please wait until _after_ my DMA engine stuff (which is now in linux-next)
+makes its way upstream before touching any of this stuff, otherwise there's
+going to be conflicts.
 
-Thanks,
-Ezequiel.
+As part of my patch series, this gets rid of a number of uses of it in
+arch/arm, but there's still the .cctl_memcpy initializer which does. I've
+not yet checked whether all implementations use the same value (they
+probably do), and if so then it should be eliminated from platform code
+and moved into the driver.
+
+I've talked about asm/hardware/pl080.h within the last week on this very
+thread... and it's disappointing to have to re-say what I said because
+you've not read my previous postings.
