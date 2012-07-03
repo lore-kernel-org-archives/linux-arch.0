@@ -1,71 +1,77 @@
-From: Alessandro Rubini <rubini@gnudd.com>
-Subject: Re: [PATCH V2 5/6] x86: add CONFIG_ARM_AMBA, selected by STA2X11
-Date: Tue, 3 Jul 2012 15:00:42 +0200
-Message-ID: <20120703130042.GA10007@mail.gnudd.com>
-References: <2b797c83-6a3c-4051-841a-a4cfa9d1cae1@email.android.com>
-  <4FECB95D.7010200@zytor.com> <cover.1338222460.git.rubini@gnudd.com>
- <f85fefb10b7a7407b77180be65b18bf0426145b9.1338222461.git.rubini@gnudd.com>
- <20120701104401.GA4352@mail.gnudd.com>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH] clkdev: Add default clkdev.h
+Date: Tue, 3 Jul 2012 23:15:55 +1000
+Message-ID: <20120703231555.b675da0eb648cbb2c7fecf41@canb.auug.org.au>
+References: <1341252250-26476-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+	<20120703120059.f153bd696269528be2baa1bc@canb.auug.org.au>
+	<20120703101209.GH29030@opensource.wolfsonmicro.com>
+	<201207031116.05876.arnd@arndb.de>
+	<20120703114844.GJ29030@opensource.wolfsonmicro.com>
+	<20120703220512.e03805948e31cfa90778d6c2@canb.auug.org.au>
+	<20120703123322.GK29030@opensource.wolfsonmicro.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail2.gnudd.com ([213.203.150.91]:37313 "EHLO mail.gnudd.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752636Ab2GCNBv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 3 Jul 2012 09:01:51 -0400
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Tue__3_Jul_2012_23_15_55_+1000_3EQJHF_IRzMjNmQ1"
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20120703123322.GK29030@opensource.wolfsonmicro.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, mturquette@ti.com, Russell King <linux@arm.linux.org.uk>, linux-kbuild@vger.kernel.org, Michal Marek <mmarek@suse.cz>
+List-Id: linux-arch.vger.kernel.org
+
+--Signature=_Tue__3_Jul_2012_23_15_55_+1000_3EQJHF_IRzMjNmQ1
+Content-Type: text/plain; charset=US-ASCII
 Content-Disposition: inline
-In-Reply-To: <2b797c83-6a3c-4051-841a-a4cfa9d1cae1@email.android.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: hpa@zytor.com
-Cc: linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, linux@arm.linux.org.uk, x86@kernel.org, gregkh@linuxfoundation.org, arnd@arndb.de, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Transfer-Encoding: quoted-printable
 
-Peter Anvin:
-> There is no problem with adding ARM or !X86 dependencies to drivers
-> now and fixing them later or as required.
+Hi Mark,
 
-Ok. This is my summary of the compilation errors I have when
-enabling ARM_AMBA undex x86 and enabling everything that appears
-in "make oldconfig":
+On Tue, 3 Jul 2012 13:33:22 +0100 Mark Brown <broonie@opensource.wolfsonmic=
+ro.com> wrote:
+>
+> On Tue, Jul 03, 2012 at 10:05:12PM +1000, Stephen Rothwell wrote:
+> > On Tue, 3 Jul 2012 12:48:44 +0100 Mark Brown <broonie@opensource.wolfso=
+nmicro.com> wrote:
+>=20
+> > > The reason I'm doing this is that the lack of a widely available clock
+> > > API is a considerable pain point for a lot of the stuff I work on and
+> > > this is the major blocker to just enabling the default implementation=
+ on
+> > > architectures that don't support it already which would be a big step
+> > > forwards.
+>=20
+> > Agreed.  Please submit this patch and we can concentrate on this other
+> > stuff later.
+>=20
+> Perhaps if you give me a couple of hours...
 
+Sorry, I wasn't meaning to rush you, just agreeing that the two things
+are separate.
 
-This is a sum up of the errors in all driver that are
-enabled by telling "CONFIG_ARM_AMBA=y" in the x86 config.
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
 
-   drivers/dma/pl330.c: register names conflict with arch symbols
-     proposed fix: use proper prefix names
+--Signature=_Tue__3_Jul_2012_23_15_55_+1000_3EQJHF_IRzMjNmQ1
+Content-Type: application/pgp-signature
 
-   drivers/dma/amba-pl08x.c: needs <asm/hardware/pl080.h>
-     proposed fix: move pl080.h to include/linux
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
 
-   drivers/gpio/gpio-pl061.c: uses chained_irq_enter/exit
-     proposed fix: depend on CONFIG_ARM (the function only exists in arm)
+iQIcBAEBCAAGBQJP8vCLAAoJEECxmPOUX5FEyFIP+QFb9J0lZ9Is6pg0fvwB2HK6
+Xi3afBV/rhX5qCwQff48tLHHOG6N5cPxx26JDyhmGxfEDP6qHva24WHBZpPxKM6M
+GdS10RY/K0AP+6QCi+0/skeu6pkoQWIPEXOKOrnQV/d+GrnETHOUplWx45jtmwD1
+RQcGMK7BtvAW3A/FpXxDHn39Bca8nyv6kEWOyYBPIPVw02gYF+SVW0cyJ/FzDYTB
+j46t4MuD+B98GjzrxXycy9cv54StFCMWx57jTvGAoyhfqZ+ymD10UrmDRGaK4bhR
+3AAAb1ZQ/ORmYNfokhpP+1HW5hKJg+b4KgFrNL4towHa1zC/zW3GDOLwZe2mHxwp
+jUlK3ZBRynEtNh2pnT9lnb6FYEwXguRQZpKVTG1K70/95TblEW6rmSLhmXHPYO+A
+5Yw5+qIi7MGY1k4L05sHtJmTdKFP5ROG8mRveGl606eyqonUTkG1oVQnWNAqx1I/
+oN3XIyawAKrO330F5LLOOHR7uViOZfyrJbEl1I2gIRFZNxyKvzfCShL7xxkGxhT7
+62CvdvTqg4CMPAhSRqr1N1gPUeos12584rXLlvZ2KCE6lLzgto5jiNayXAaGlos2
+tibngbcFWlzw9Zk35tBtOh259IO3mxjDs/FqeQdSOgeKKGRLtGl30ENNLiYW5iiT
+/cfDyRenFZnVg0+1lw0r
+=iVRk
+-----END PGP SIGNATURE-----
 
-   drivers/mmc/host/mmci.c: uses <asm/sizes.h>
-   drivers/mmc/host/mmci.c: uses readsl/writesl
-     proposed fix: use linux/sizes.h and provide readsl/writesl like others do
-
-   drivers/spi/spi-pl022.c: warning for an integer size mismatch
-     proposed fix: none by now
-
-   drivers/watchdog/sp805_wdt.c: uses writel_relaxed
-     proposed fix: depend on CONFIG_ARM (this is a spear-only cell by now)
-
-
-So, if you agree, I would:
-
-    - fix the two dma engines (checking pl080 against russell's pending
-    patches)
-
-    - make pl061 and sp805_wdt.c depends on CONFIG_ARM
-
-    - temporarily do the same for mmci, which I'll make work soon as
-    I have it under my pci bridge
-
-    - ignore the warning on spi-pl022 until I find a fix
-
-    - resubmit my enabling of arm_amba for x86 and my pci-to-amba bridge
-    driver.
-
-thanks
-/alessandro
+--Signature=_Tue__3_Jul_2012_23_15_55_+1000_3EQJHF_IRzMjNmQ1--
