@@ -1,58 +1,77 @@
 From: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Subject: Re: [PATCH] clkdev: Add default clkdev.h
-Date: Tue, 3 Jul 2012 14:47:30 +0100
-Message-ID: <20120703134729.GP29030@opensource.wolfsonmicro.com>
-References: <1341252250-26476-1-git-send-email-broonie@opensource.wolfsonmicro.com>
- <20120703114844.GJ29030@opensource.wolfsonmicro.com>
- <20120703220512.e03805948e31cfa90778d6c2@canb.auug.org.au>
- <201207031339.34369.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="6iXXu7NwgEt9u5a7"
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <201207031339.34369.arnd@arndb.de>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org, mturquette@ti.com, Russell King <linux@arm.linux.org.uk>, linux-kbuild@vger.kernel.org, Michal Marek <mmarek@suse.cz>
-List-Id: linux-arch.vger.kernel.org
+Subject: [PATCH] clkdev: Add default clkdev.h
+Date: Tue,  3 Jul 2012 16:23:35 +0100
+Message-ID: <1341329015-28207-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from opensource.wolfsonmicro.com ([80.75.67.52]:57194 "EHLO
+	opensource.wolfsonmicro.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752321Ab2GCPXh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jul 2012 11:23:37 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Stephen Rothwell <sfr@canb.auug.org.au>, Russell King <linux@arm.linux.org.uk>, mturquette@ti.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Brown <broonie@opensource.wolfsonmicro.com>
 
+Ease the deployment of clkdev by providing a default asm/clkdev.h which
+will be used if the arch does not have an include/asm/clkdev.h.
 
---6iXXu7NwgEt9u5a7
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Signed-off-by: Mark Brown <broonie@opensource.wolfsonmicro.com>
+---
 
-On Tue, Jul 03, 2012 at 01:39:34PM +0000, Arnd Bergmann wrote:
+The discussion on the previous posting of this patch suggested we should
+be merging this via clk (or possibly clkdev).
 
-> Ok, let's do that then. What tree should we use for merging it?
+ include/asm-generic/Kbuild.asm |    4 ++++
+ include/asm-generic/clkdev.h   |   26 ++++++++++++++++++++++++++
+ 2 files changed, 30 insertions(+)
+ create mode 100644 include/asm-generic/clkdev.h
 
-> In theory I should take it to some asm-generic tree, but since
-> I get very little traffic there, I'm usually happy to just provide
-> an Ack and let anyone who needs the patch merge it through their
-> trees.
-
-I guess one of the clock trees which probably means Mike?
-
---6iXXu7NwgEt9u5a7
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
-
-iQIcBAEBAgAGBQJP8vfFAAoJEBus8iNuMP3d6jYP/A2tuRA5AmjAepGUnjZA5DxD
-Ggs+awXgHYcwHs0XWGT3e1POt9b713yBGKNZ/FGPQHOmS8d+HebsjoPoKHznau1u
-LLlDt5mD2qg/ST/kNF7HtF4BtfPJy38h5CHRq5B8hbYu6zdpdayyZ3uE5vZp4Y4r
-pokeLvs4wuskGnIHmxHOJAJTHcNgeZqDhoZRwIr699L6iuzos0I6GQZhuOzurOFZ
-Unfgn3VAQ42ctKmuOj++RNbUweZPuJK7NbXd2Jm4EDSzeRAqbAB37Tc7nkVgo1eh
-lmvfWLID6YZRGEPsOAeP+zDD7WqejAg+n6XtNLKcblvPhMOD4jLMspAha1UBk8Aq
-5hqZ6kk3hCSV+/4+kncMTFjMAEz2yA88mvfaUA/ZwqR2N8npmB1QflWTHYpIIggL
-yAqiHptfXQKa5OmE0E1mDa7GF0Xizf1Y/GbeTR7tMl/V5p4d0RwbWHy0SZRoDupW
-42PPzucg5buH0B3rTQjQ8byW/rqxB0jKmFGOWGeQSB8XhlqOJ99XNVNMatPsyWb+
-SYik8VjYK6PHQj4vCfyVrR4Uog+AAdzKmY7AQnKD6PPF6y2LHJMZQ3Cgeu01yUPy
-x34743xPq1TEqzoqbLTS7xZMWzT3SSAGWKA3MADe//nsMNAmDD1JG9+lGQv6YRu3
-Cy5j4vZaSynwu8aX8Trm
-=LvgG
------END PGP SIGNATURE-----
-
---6iXXu7NwgEt9u5a7--
+diff --git a/include/asm-generic/Kbuild.asm b/include/asm-generic/Kbuild.asm
+index c5d2e5d..da121e0 100644
+--- a/include/asm-generic/Kbuild.asm
++++ b/include/asm-generic/Kbuild.asm
+@@ -13,6 +13,10 @@ ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/a.out.h \
+ header-y += a.out.h
+ endif
+ 
++ifeq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/clkdev.h),)
++generic-y += clkdev.h
++endif
++
+ header-y += auxvec.h
+ header-y += bitsperlong.h
+ header-y += byteorder.h
+diff --git a/include/asm-generic/clkdev.h b/include/asm-generic/clkdev.h
+new file mode 100644
+index 0000000..7a15bd0
+--- /dev/null
++++ b/include/asm-generic/clkdev.h
+@@ -0,0 +1,26 @@
++/*
++ *  include/asm-generic/clkdev.h
++ *
++ * Based on the ARM clkdev.h:
++ *  Copyright (C) 2008 Russell King.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * Helper for the clk API to assist looking up a struct clk.
++ */
++#ifndef __ASM_CLKDEV_H
++#define __ASM_CLKDEV_H
++
++#include <linux/slab.h>
++
++static inline int __clk_get(clk) { return 1; }
++static inline void __clk_put(clk) { }
++
++static inline struct clk_lookup_alloc *__clkdev_alloc(size_t size)
++{
++	return kzalloc(size, GFP_KERNEL);
++}
++
++#endif
+-- 
+1.7.10
