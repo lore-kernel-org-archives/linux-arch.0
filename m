@@ -1,89 +1,65 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
+From: Mark Brown <broonie@opensource.wolfsonmicro.com>
 Subject: Re: [PATCH] clkdev: Add default clkdev.h
-Date: Tue, 3 Jul 2012 12:00:59 +1000
-Message-ID: <20120703120059.f153bd696269528be2baa1bc@canb.auug.org.au>
+Date: Tue, 3 Jul 2012 11:12:09 +0100
+Message-ID: <20120703101209.GH29030@opensource.wolfsonmicro.com>
 References: <1341252250-26476-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+ <20120703120059.f153bd696269528be2baa1bc@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Tue__3_Jul_2012_12_00_59_+1000_tbGYG/EGtljIZqld"
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="MP5ln1Rcf9Bvi+ZW"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from haggis.pcug.org.au ([203.10.76.10]:46205 "EHLO
-	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751219Ab2GCCBI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 2 Jul 2012 22:01:08 -0400
-In-Reply-To: <1341252250-26476-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+Received: from opensource.wolfsonmicro.com ([80.75.67.52]:55532 "EHLO
+	opensource.wolfsonmicro.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751642Ab2GCKML (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 3 Jul 2012 06:12:11 -0400
+Content-Disposition: inline
+In-Reply-To: <20120703120059.f153bd696269528be2baa1bc@canb.auug.org.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@opensource.wolfsonmicro.com>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
 Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, mturquette@ti.com, Russell King <linux@arm.linux.org.uk>
 
---Signature=_Tue__3_Jul_2012_12_00_59_+1000_tbGYG/EGtljIZqld
-Content-Type: text/plain; charset=US-ASCII
+
+--MP5ln1Rcf9Bvi+ZW
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
 
-Hi Mark,
+On Tue, Jul 03, 2012 at 12:00:59PM +1000, Stephen Rothwell wrote:
+> On Mon,  2 Jul 2012 19:04:10 +0100 Mark Brown <broonie@opensource.wolfsonmicro.com> wrote:
 
-On Mon,  2 Jul 2012 19:04:10 +0100 Mark Brown <broonie@opensource.wolfsonmi=
-cro.com> wrote:
->
-> diff --git a/include/asm-generic/clkdev.h b/include/asm-generic/clkdev.h
-> new file mode 100644
-> index 0000000..c362a9d
-> --- /dev/null
-> +++ b/include/asm-generic/clkdev.h
-> @@ -0,0 +1,26 @@
-> +/*
-> + *  include/asm-generic/clkdev.h
-> + *
-> + * Based on the ARM clkdev.h:
-> + *  Copyright (C) 2008 Russell King.
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + *
-> + * Helper for the clk API to assist looking up a struct clk.
-> + */
-> +#ifndef __ASM_CLKDEV_H
-> +#define __ASM_CLKDEV_H
-> +
-> +#include <linux/slab.h>
-> +
-> +#define __clk_get(clk)	({ 1; })
-> +#define __clk_put(clk)	do { } while (0)
+> > +#define __clk_get(clk)	({ 1; })
+> > +#define __clk_put(clk)	do { } while (0)
 
-So why not:
+> So why not:
 
-struct clk;
+> struct clk;
 
-static inline int __clk_get(struct clk *clk) { return 1; }
-static inline void __clk_put(struct clk *clk) ( )
+> static inline int __clk_get(struct clk *clk) { return 1; }
+> static inline void __clk_put(struct clk *clk) ( )
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
+No idea, I'm just taking the existing default header and making it more
+generally available.
 
---Signature=_Tue__3_Jul_2012_12_00_59_+1000_tbGYG/EGtljIZqld
-Content-Type: application/pgp-signature
+--MP5ln1Rcf9Bvi+ZW
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.12 (GNU/Linux)
 
-iQIcBAEBCAAGBQJP8lJbAAoJEECxmPOUX5FERD0P/jY9Jmbo6Lv3Z/XLqd2td2K7
-gpu+3rJpBRRmdvayST1u3O1J5Rp8CZ6BChMQhyixRmXQ3giDex352NMW6pVJ9zi2
-jAiy+sbGDyJwtElcKjgZ7nDuQydp5cMd97u2YNoqW/dnzKVRd+3HVspYqmfWb7px
-5zkFkT+50U6rg1pAMcku9dtTbWznSSRMLoGN83DTJac0iUBZQYaRZyEhHikOSoMq
-Al59eHi/UCfOMBgUNuF7WrJY2tKCBRU/ufjOIqA6E+PbkMwgGn35d4JMxXD5dimJ
-7vxDzsOryOGWinKx9+d7LndviDA0//Q37EP+54rNOHA2v/UCYtdlriSkPl3rZez6
-20fvHP4sI0xbP0MG2RBsoEQ5Ctr/R0cakrpq1cuu1w0Ykv+OXwIjclEP8u8irfIv
-Powjwp5JjChYRhBhlGWkweBLgH9LafRmF/3KYLokUp6QzT+MCsxzbYSfdZv+Wsuk
-Lz6nDPJl27Pkz3iVVlvOhZa3CuDOrmK0PkFmWajILWVzeoSRNcWP3CgpXDh7MaSu
-LWp3cNVb7spB+JrOSWm7h9Ne//z6HCkaTAf4M3FdeWQuse+0miWZ1uXO2PHTe8Ub
-Ze+5loGz8hpuiHYl6X/lv/pCOKc5yxbzvu7j2JjV0g23JezcOj7iaGK6HYAXMkQ1
-EugfOvJzXO7P7VPHuHCE
-=5s1b
+iQIcBAEBAgAGBQJP8sVyAAoJEBus8iNuMP3dO+EP/1/NvhnEeMpxZCPmJVpwNK3q
+5MQl++aCYr31u6xZSO4XMipUYTT+Iqn8tp8UwpRpFeFCEOAcEOfFeJ2e7KyZyeV3
+XtsxcoTHkAyvqm9dtMVcZ2bm3vwIe5EQ28JxQ4h7FSuPfrdJIjGDXMOoSCIZjXBS
+DYJYGB00jBoHbgDt5yCWhXL0WK7uHum1o86choTUlrVpZv0CEi2Xr0NVLVgxRhKc
+fkhI3h7HK5Qi/9B4lB1JfJ2lLc+UNR0+Hgp22/LPafi3IAcYH46RN0U5AKMoGEcJ
+HSJ6VkB7YwDt8du0kMGJWn888xGk448WtXFgtsSAyBIsYy2gjmY0VbpmQ00YkF7R
+uj3H7X4ovILc8jUM7i8fdS1UOAGQweW9RUZ9eDqv52IU8WiyFjDRD2DevQTfPAvP
+7hlWKMIFOpeUE/rOEy76iqA78kwPeKe9x7e9FOZVcWgbxNExoIpGmbjd3u2zw9cR
+QdW/iQbpURVvgVHc2B3c3rEp+p40okIQbd12ZJw3M3woTlJ4qtsBFoHvzwAUfup8
+rhFcJvYNxrKFycld1qOuNuXh43IRkZhJ4m46x0q26EE8J1xfwpJoyHdVqbwnHiJs
+7hnryRMAsbAai+xguORksSizpMwcoNF02WEFdtjBEisNbBn9eMR/LNXz77gOQDKb
+XeE2R0GTrhoVulGf7jKb
+=ZXyK
 -----END PGP SIGNATURE-----
 
---Signature=_Tue__3_Jul_2012_12_00_59_+1000_tbGYG/EGtljIZqld--
+--MP5ln1Rcf9Bvi+ZW--
