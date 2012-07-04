@@ -1,62 +1,71 @@
-From: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Subject: Re: [PATCH] clkdev: Add default clkdev.h
-Date: Wed, 4 Jul 2012 10:22:56 +0100
-Message-ID: <20120704092255.GA4111@opensource.wolfsonmicro.com>
-References: <1341329015-28207-1-git-send-email-broonie@opensource.wolfsonmicro.com>
- <CAMuHMdXzE48MCpQWjaxdrYMEwi-Cn5GR6NYrDAOAKwqiJ3m7Yg@mail.gmail.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: size_t/ssize_t warnings (was: Re: Build regressions/improvements in v3.5-rc5)
+Date: Wed, 4 Jul 2012 22:17:28 +0200
+Message-ID: <CAMuHMdVJTUF3r=MKzpkvj6y_xdVdw=zEgAy2_wm_hG94jdrhBA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="cNdxnHkX5QqsyA0e"
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdXzE48MCpQWjaxdrYMEwi-Cn5GR6NYrDAOAKwqiJ3m7Yg@mail.gmail.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, Russell King <linux@arm.linux.org.uk>, mturquette@ti.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild <linux-kbuild@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-yx0-f174.google.com ([209.85.213.174]:52356 "EHLO
+	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754466Ab2GDUR3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jul 2012 16:17:29 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jan Kara <jack@suse.cz>
+Cc: linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, linux-cris-kernel@axis.com
 
+On Wed, Jul 4, 2012 at 3:34 PM, Jan Kara <jack@suse.cz> wrote:
+>>   + fs/quota/quota_tree.c: warning: format '%zd' expects argument of type 'signed size_t', but argument 4 has type 'ssize_t' [-Wformat]:  => 372:4
+>>   + fs/quota/quota_v2.c: warning: format '%zd' expects argument of type 'signed size_t', but argument 5 has type 'ssize_t' [-Wformat]:  => 66:92
+>   These really look like false positives (there are quite a few of this
+> kind). Can we possibly silence them?
 
---cNdxnHkX5QqsyA0e
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+These 2 warnings happen on cris only, because size_t is unsigned int and
+ssize_t is (signed) long. They go away if I make ssize_t int.
 
-On Wed, Jul 04, 2012 at 10:00:50AM +0200, Geert Uytterhoeven wrote:
+I had a look at the various definitions of size_t and ssize_t:
 
-> Quoting Sam:
-> "Any use of wildcards in include/asm-generic/Kbuild.asm is bogus."
+                        __kernel_size_t                         __kernel_ssize_t
+                        ---------------                         ----------------
 
-> http://lkml.indiana.edu/hypermail/linux/kernel/1206.2/01507.html
+generic 32-bit:         unsigned int                            int
+generic 64-bit:         __kernel_ulong_t (unsigned long)
+__kernel_long_t (long)
 
-Without actually explaining why which isn't terribly helpful :/
+Exceptions:
 
-As far as I can tell it looks like this is for headers which may
-optionally be absent but clkdev.h is a header which should never be
-absent, either the architecture defines it or it uses the generic one.
+avr32:                  unsigned long                           long
+blackfin:               unsigned long                           long
+cris:                   __SIZE_TYPE__ (unsigned int)            long
+mn10300/__GNUC__ == 4:  unsigned int                            signed int
+mn10300/__GNUC__ != 4:  unsigned long                           signed long
+s390 (32-bit):          unsigned long                           int
+x32:                    __kernel_ulong_t (unsigned long long)
+__kernel_long_t (long long)
 
-As I said further up the thread having to go round ever single
-architecture and get them to actually apply patches for stuff like this
-is needlessly painful.
+On cris, I get the warning if ssize_t != int.
+Whether size_t is unsigned int or unsigned long doesn't matter.
+So it's not just a mismatch between int and long.
 
---cNdxnHkX5QqsyA0e
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+I also tried blackfin, which has matching unsigned long/long, and it doesn't
+give the warning. Presumably the toolchain has size_t hardcoded to long for
+printf-style format checking?
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
+I haven't tried s390 yet, which also has a non-matching combination (unsigned
+long vs. int).
 
-iQIcBAEBAgAGBQJP9AsUAAoJEBus8iNuMP3dMOoP/07hHKd23hk+4gebt3Y82PdD
-TL0y8CZEWpF1qn10hpNaDmWwNagYg12zr/UZb08dzH0E8APGw+rxfnGQoY+4Uunj
-zL3SPUCQ9X9uGtkOfg8BDWXCjj5cYMUJ99RzGw22/4yFN3ofF3wc49Ws87vhjDH8
-W4qpzehu3hELmYSNvU6PGw9Q/YQAj/fn/oHpMZzw4t4FqyHigZs/hMzXeYh88ex/
-ZseXTXOaJzT4kHrLVtf22esZgumLJyZnoaFA8UkT1Lf95zEI2yv8Iofqw82lInQ4
-ps1ORjs4J0xHvv9qMklDn21Ct6UcdBCKyGCZ3zszxJJwpl4H/2Gu2roNLLxOMZgL
-+htnRe3rJC2xYUFGjwZsfHh32JCIHd2i9PflRxbRZ+fu87g+Xo0V6yPvwd+S9uat
-KBey7kOZK+QpwG0V4rSPvACy57BHy8VQyrnT6K7Fg9SMxKDthdlaxoUEhmPy0Uy/
-86k5cD6LLq/OzmEwD0IVFientTXJplQy4kcWuBQbOS3Ov7sLRJSZeQMdeRrUC76L
-jUUK+s6KpBZkmQewkstxLL8ct8s2RFyb9q+25OO5bpIQTvx7DIlFJMqqNkvoh6lJ
-o+1VmR1fx3LJOzEoVPvnblJiz9DEiuR9H0Jvt0rJuv+EoFqP3LM3tEMtghfBUEnd
-48CN7Tzw/r07sH+44ohv
-=Gp+d
------END PGP SIGNATURE-----
+Cris-people: __SIZE_TYPE__ turned out to be hardcoded in my compiler (gcc
+4.6.3 from Tony's collection) to unsigned int. Is that correct?
 
---cNdxnHkX5QqsyA0e--
+And why do some 32-bit architectures use unsigned long/long?
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
