@@ -1,46 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-yx0-f174.google.com ([209.85.213.174]:52083 "EHLO
-	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751774Ab2GDIAv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jul 2012 04:00:51 -0400
-MIME-Version: 1.0
-In-Reply-To: <1341329015-28207-1-git-send-email-broonie@opensource.wolfsonmicro.com>
-References: <1341329015-28207-1-git-send-email-broonie@opensource.wolfsonmicro.com>
-Date: Wed, 4 Jul 2012 10:00:50 +0200
-Message-ID: <CAMuHMdXzE48MCpQWjaxdrYMEwi-Cn5GR6NYrDAOAKwqiJ3m7Yg@mail.gmail.com>
+Received: from opensource.wolfsonmicro.com ([80.75.67.52]:50409 "EHLO
+	opensource.wolfsonmicro.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756472Ab2GDJW7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jul 2012 05:22:59 -0400
+Date: Wed, 4 Jul 2012 10:22:56 +0100
+From: Mark Brown <broonie@opensource.wolfsonmicro.com>
 Subject: Re: [PATCH] clkdev: Add default clkdev.h
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Message-ID: <20120704092255.GA4111@opensource.wolfsonmicro.com>
+References: <1341329015-28207-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+ <CAMuHMdXzE48MCpQWjaxdrYMEwi-Cn5GR6NYrDAOAKwqiJ3m7Yg@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="cNdxnHkX5QqsyA0e"
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdXzE48MCpQWjaxdrYMEwi-Cn5GR6NYrDAOAKwqiJ3m7Yg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Brown <broonie@opensource.wolfsonmicro.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Stephen Rothwell <sfr@canb.auug.org.au>, Russell King <linux@arm.linux.org.uk>, mturquette@ti.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild <linux-kbuild@vger.kernel.org>
-Message-ID: <20120704080050.V_dp79LlILWC7csIqhJdBb-NG8DtC4FW9uS_nefJSIA@z>
+Message-ID: <20120704092256.TrjpB19hXNlSxdUdFuMs4h8ZsdJoo-pJ4YLP-0okU4E@z>
 
-On Tue, Jul 3, 2012 at 5:23 PM, Mark Brown
-<broonie@opensource.wolfsonmicro.com> wrote:
-> --- a/include/asm-generic/Kbuild.asm
-> +++ b/include/asm-generic/Kbuild.asm
-> @@ -13,6 +13,10 @@ ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/a.out.h \
->  header-y += a.out.h
->  endif
->
-> +ifeq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/clkdev.h),)
-> +generic-y += clkdev.h
-> +endif
 
-Quoting Sam:
-"Any use of wildcards in include/asm-generic/Kbuild.asm is bogus."
+--cNdxnHkX5QqsyA0e
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
 
-http://lkml.indiana.edu/hypermail/linux/kernel/1206.2/01507.html
+On Wed, Jul 04, 2012 at 10:00:50AM +0200, Geert Uytterhoeven wrote:
 
-Gr{oetje,eeting}s,
+> Quoting Sam:
+> "Any use of wildcards in include/asm-generic/Kbuild.asm is bogus."
 
-                        Geert
+> http://lkml.indiana.edu/hypermail/linux/kernel/1206.2/01507.html
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+Without actually explaining why which isn't terribly helpful :/
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+As far as I can tell it looks like this is for headers which may
+optionally be absent but clkdev.h is a header which should never be
+absent, either the architecture defines it or it uses the generic one.
+
+As I said further up the thread having to go round ever single
+architecture and get them to actually apply patches for stuff like this
+is needlessly painful.
+
+--cNdxnHkX5QqsyA0e
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+iQIcBAEBAgAGBQJP9AsUAAoJEBus8iNuMP3dMOoP/07hHKd23hk+4gebt3Y82PdD
+TL0y8CZEWpF1qn10hpNaDmWwNagYg12zr/UZb08dzH0E8APGw+rxfnGQoY+4Uunj
+zL3SPUCQ9X9uGtkOfg8BDWXCjj5cYMUJ99RzGw22/4yFN3ofF3wc49Ws87vhjDH8
+W4qpzehu3hELmYSNvU6PGw9Q/YQAj/fn/oHpMZzw4t4FqyHigZs/hMzXeYh88ex/
+ZseXTXOaJzT4kHrLVtf22esZgumLJyZnoaFA8UkT1Lf95zEI2yv8Iofqw82lInQ4
+ps1ORjs4J0xHvv9qMklDn21Ct6UcdBCKyGCZ3zszxJJwpl4H/2Gu2roNLLxOMZgL
++htnRe3rJC2xYUFGjwZsfHh32JCIHd2i9PflRxbRZ+fu87g+Xo0V6yPvwd+S9uat
+KBey7kOZK+QpwG0V4rSPvACy57BHy8VQyrnT6K7Fg9SMxKDthdlaxoUEhmPy0Uy/
+86k5cD6LLq/OzmEwD0IVFientTXJplQy4kcWuBQbOS3Ov7sLRJSZeQMdeRrUC76L
+jUUK+s6KpBZkmQewkstxLL8ct8s2RFyb9q+25OO5bpIQTvx7DIlFJMqqNkvoh6lJ
+o+1VmR1fx3LJOzEoVPvnblJiz9DEiuR9H0Jvt0rJuv+EoFqP3LM3tEMtghfBUEnd
+48CN7Tzw/r07sH+44ohv
+=Gp+d
+-----END PGP SIGNATURE-----
+
+--cNdxnHkX5QqsyA0e--
