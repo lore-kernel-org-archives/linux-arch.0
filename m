@@ -1,104 +1,66 @@
-From: Mike Frysinger <vapier@gentoo.org>
-Subject: Re: size_t/ssize_t warnings (was: Re: Build regressions/improvements in v3.5-rc5)
-Date: Wed, 4 Jul 2012 21:25:13 -0400
-Message-ID: <201207042125.14680.vapier@gentoo.org>
+From: Hans-Peter Nilsson <hans-peter.nilsson@axis.com>
+Subject: Re: size_t/ssize_t warnings (was: Re: Build regressions/improvements in
+	v3.5-rc5)
+Date: Fri, 6 Jul 2012 03:12:36 +0200
+Message-ID: <201207060112.q661CaG4002389@ignucius.se.axis.com>
 References: <CAMuHMdVJTUF3r=MKzpkvj6y_xdVdw=zEgAy2_wm_hG94jdrhBA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed;
-  boundary="nextPart2082783.vk3JZMNMW3";
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1
-Content-Transfer-Encoding: 7bit
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.gentoo.org ([140.211.166.183]:36013 "EHLO smtp.gentoo.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751102Ab2GEBZG (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 4 Jul 2012 21:25:06 -0400
-In-Reply-To: <CAMuHMdVJTUF3r=MKzpkvj6y_xdVdw=zEgAy2_wm_hG94jdrhBA@mail.gmail.com>
+Received: from anubis.se.axis.com ([195.60.68.12]:42898 "EHLO
+	anubis.se.axis.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752050Ab2GFBSn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 5 Jul 2012 21:18:43 -0400
+In-reply-to: <CAMuHMdVJTUF3r=MKzpkvj6y_xdVdw=zEgAy2_wm_hG94jdrhBA@mail.gmail.com>
+	(message from Geert Uytterhoeven on Wed, 4 Jul 2012 22:17:28 +0200)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Jan Kara <jack@suse.cz>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, linux-cris-kernel@axis.com
+To: geert@linux-m68k.org
+Cc: jack@suse.cz, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-cris-kernel@axis.com
 
---nextPart2082783.vk3JZMNMW3
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: quoted-printable
+> From: Geert Uytterhoeven <geert@linux-m68k.org>
+> Date: Wed, 4 Jul 2012 22:17:28 +0200
 
-On Wednesday 04 July 2012 16:17:28 Geert Uytterhoeven wrote:
 > On Wed, Jul 4, 2012 at 3:34 PM, Jan Kara <jack@suse.cz> wrote:
-> >>   + fs/quota/quota_tree.c: warning: format '%zd' expects argument of
-> >>   type 'signed size_t', but argument 4 has type 'ssize_t' [-Wformat]:=
-=20
-> >>   =3D> 372:4 + fs/quota/quota_v2.c: warning: format '%zd' expects
-> >>   argument of type 'signed size_t', but argument 5 has type 'ssize_t'
-> >>   [-Wformat]:  =3D> 66:92
-> >  =20
+> >>   + fs/quota/quota_tree.c: warning: format '%zd' expects argument of type 'signed size_t', but argument 4 has type 'ssize_t' [-Wformat]:  => 372:4
+> >>   + fs/quota/quota_v2.c: warning: format '%zd' expects argument of type 'signed size_t', but argument 5 has type 'ssize_t' [-Wformat]:  => 66:92
 > >   These really look like false positives (there are quite a few of this
-> >=20
 > > kind). Can we possibly silence them?
->=20
+> 
 > These 2 warnings happen on cris only, because size_t is unsigned int and
-> ssize_t is (signed) long. They go away if I make ssize_t int.
->=20
-> I had a look at the various definitions of size_t and ssize_t:
->=20
->                         __kernel_size_t                       =20
-> __kernel_ssize_t ---------------                         ----------------
->=20
-> generic 32-bit:         unsigned int                            int
-> generic 64-bit:         __kernel_ulong_t (unsigned long)
-> __kernel_long_t (long)
->=20
-> Exceptions:
->=20
-> avr32:                  unsigned long                           long
-> blackfin:               unsigned long                           long
+> ssize_t is (signed) long.
+
+Um, no, ssize_t isn't long.  Do you mean __kernel_ssize_t?
+(Or are you looking at cris-axis-elf?  ...no, that can't be it,
+as you see __SIZE_TYPE__ being unsigned int.)
+
+> They go away if I make ssize_t int.
+
+But ssize_t already is int...
+
+N.B. size_t is different between cris-axis-elf and
+cris-axis-linux-gnu.  The former uses the default definition in
+gcc/defaults.h (long unsigned int) and the latter sets it
+specifically to "unsigned int", in gcc/config/cris/linux.h (or
+before 2010-12-09, from config/svr4.h).  The ssize_t definition
+comes from glibc, where it is "int".
+
+>                         __kernel_size_t                         __kernel_ssize_t
+>                         ---------------                         ----------------
+
 > cris:                   __SIZE_TYPE__ (unsigned int)            long
-> mn10300/__GNUC__ =3D=3D 4:  unsigned int                            signe=
-d int
-> mn10300/__GNUC__ !=3D 4:  unsigned long                           signed =
-long
-> s390 (32-bit):          unsigned long                           int
-> x32:                    __kernel_ulong_t (unsigned long long)
-> __kernel_long_t (long long)
->=20
-> On cris, I get the warning if ssize_t !=3D int.
-> Whether size_t is unsigned int or unsigned long doesn't matter.
-> So it's not just a mismatch between int and long.
->=20
-> I also tried blackfin, which has matching unsigned long/long, and it
-> doesn't give the warning. Presumably the toolchain has size_t hardcoded to
-> long for printf-style format checking?
 
-well, every gcc arch has to declare a type for size_t.  on Blackfin, we pic=
-ked:
-gcc/config/bfin/bfin.h:/* what is the 'type' of size_t */
-gcc/config/bfin/bfin.h-#define SIZE_TYPE "long unsigned int"
+A bit odd; __kernel_ssize_t should probably change to int, to
+match ssize_t.
 
-grep shows that many other arches do the same
-=2Dmike
+> Cris-people: __SIZE_TYPE__ turned out to be hardcoded in my compiler (gcc
+> 4.6.3 from Tony's collection) to unsigned int. Is that correct?
 
---nextPart2082783.vk3JZMNMW3
-Content-Type: application/pgp-signature; name=signature.asc 
-Content-Description: This is a digitally signed message part.
+Correct, for cris-axis-linux-gnu.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.17 (GNU/Linux)
+> And why do some 32-bit architectures use unsigned long/long?
 
-iQIcBAABAgAGBQJP9Oz6AAoJEEFjO5/oN/WBkXsP/j8vqhTROh4Pagcdk9vKLhiH
-SVm2fT0nzTmSRdxN2ehRydAmAyK6fooSPkSj6/hk9wCdPCbJAhj/D9wIXu2LaqHT
-bxGSNaLXAKwVvx0eHfp/0XBtV3H1/X9TpBrtYYQ2UBSvWxQS/01hR7bL5USjwKZB
-BO/s4IkuhKYe2K+2YR6T4LFe8OuDxzkwl68pUuQ8nbkM/FyW6BLyOuDiQqjkRyOu
-GkBGE2HAZW2LmSd0oGYCboVvCO8E8r3LB96d1BHML03CzWbnyy6RyGrALF3Lg6Yb
-DFEKlSLK6YOYWP5R0Z3i4Bxn55KGBuczYOE0uezW5G/iPiw++OIb6wogeqNcGKql
-niRsbTIKKVPUXPHGmP5tHyHNCaDERctLHGXeVZUlYazBMwKX69FLiCD7uazBkBT2
-nYP8KR4cQ5f8njTFKk18dgUOa8ETTBR781Ak4qHRtmBBKH3B3l/1JXS+EBR3vNv3
-VHX6WQuJk66i1omYBmo7wZMUf9Sp1efZ34Qq1D2ZjYVaBz3Q+w6KsxMMfkXpEGhS
-zFN2r2dbnEVKHNYXbGsxn/me86OhzpBKkthJ3oAuXi1rn3aUAN8TcSqFGUUE0de7
-juKzvk7VJzX2doMfkXWJbaxltqWIhAAigOL4u33v+QunJWkN/e14HaAj68ooeX8S
-wGWOIuncc+xVb0JXmFQR
-=ALSI
------END PGP SIGNATURE-----
+I'd guess from the gcc default.
 
---nextPart2082783.vk3JZMNMW3--
+brgds, H-P
