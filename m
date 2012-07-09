@@ -1,67 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from opensource.wolfsonmicro.com ([80.75.67.52]:50409 "EHLO
-	opensource.wolfsonmicro.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756472Ab2GDJW7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 4 Jul 2012 05:22:59 -0400
-Date: Wed, 4 Jul 2012 10:22:56 +0100
-From: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Received: from na3sys009aog123.obsmtp.com ([74.125.149.149]:35379 "EHLO
+	na3sys009aog123.obsmtp.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754593Ab2GIWXr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2012 18:23:47 -0400
+Received: by pbbrq2 with SMTP id rq2so18853616pbb.34
+        for <linux-arch@vger.kernel.org>; Mon, 09 Jul 2012 15:23:45 -0700 (PDT)
+Date: Mon, 9 Jul 2012 15:23:32 -0700
+From: Mike Turquette <mturquette@ti.com>
 Subject: Re: [PATCH] clkdev: Add default clkdev.h
-Message-ID: <20120704092255.GA4111@opensource.wolfsonmicro.com>
-References: <1341329015-28207-1-git-send-email-broonie@opensource.wolfsonmicro.com>
- <CAMuHMdXzE48MCpQWjaxdrYMEwi-Cn5GR6NYrDAOAKwqiJ3m7Yg@mail.gmail.com>
+Message-ID: <20120709222332.GA16202@gmail.com>
+References: <1341252250-26476-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+ <20120703114844.GJ29030@opensource.wolfsonmicro.com>
+ <20120703220512.e03805948e31cfa90778d6c2@canb.auug.org.au>
+ <201207031339.34369.arnd@arndb.de>
+ <20120703134729.GP29030@opensource.wolfsonmicro.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="cNdxnHkX5QqsyA0e"
-Content-Disposition: inline
-In-Reply-To: <CAMuHMdXzE48MCpQWjaxdrYMEwi-Cn5GR6NYrDAOAKwqiJ3m7Yg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, Russell King <linux@arm.linux.org.uk>, mturquette@ti.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>, linux-kbuild <linux-kbuild@vger.kernel.org>
-Message-ID: <20120704092256.TrjpB19hXNlSxdUdFuMs4h8ZsdJoo-pJ4YLP-0okU4E@z>
-
-
---cNdxnHkX5QqsyA0e
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
+In-Reply-To: <20120703134729.GP29030@opensource.wolfsonmicro.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-kbuild@vger.kernel.org, Michal Marek <mmarek@suse.cz>
+Message-ID: <20120709222332.8Zn2RapCJgpZ9vN8BMUQreTuyMRJ_qBWmECJNfnD0Ro@z>
 
-On Wed, Jul 04, 2012 at 10:00:50AM +0200, Geert Uytterhoeven wrote:
+On 20120703-14:47, Mark Brown wrote:
+> On Tue, Jul 03, 2012 at 01:39:34PM +0000, Arnd Bergmann wrote:
+> 
+> > Ok, let's do that then. What tree should we use for merging it?
+> 
+> > In theory I should take it to some asm-generic tree, but since
+> > I get very little traffic there, I'm usually happy to just provide
+> > an Ack and let anyone who needs the patch merge it through their
+> > trees.
+> 
+> I guess one of the clock trees which probably means Mike?
 
-> Quoting Sam:
-> "Any use of wildcards in include/asm-generic/Kbuild.asm is bogus."
+Hi Mark,
 
-> http://lkml.indiana.edu/hypermail/linux/kernel/1206.2/01507.html
+Russell owns clkdev so I'd prefer he take this patch.
 
-Without actually explaining why which isn't terribly helpful :/
-
-As far as I can tell it looks like this is for headers which may
-optionally be absent but clkdev.h is a header which should never be
-absent, either the architecture defines it or it uses the generic one.
-
-As I said further up the thread having to go round ever single
-architecture and get them to actually apply patches for stuff like this
-is needlessly painful.
-
---cNdxnHkX5QqsyA0e
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
-
-iQIcBAEBAgAGBQJP9AsUAAoJEBus8iNuMP3dMOoP/07hHKd23hk+4gebt3Y82PdD
-TL0y8CZEWpF1qn10hpNaDmWwNagYg12zr/UZb08dzH0E8APGw+rxfnGQoY+4Uunj
-zL3SPUCQ9X9uGtkOfg8BDWXCjj5cYMUJ99RzGw22/4yFN3ofF3wc49Ws87vhjDH8
-W4qpzehu3hELmYSNvU6PGw9Q/YQAj/fn/oHpMZzw4t4FqyHigZs/hMzXeYh88ex/
-ZseXTXOaJzT4kHrLVtf22esZgumLJyZnoaFA8UkT1Lf95zEI2yv8Iofqw82lInQ4
-ps1ORjs4J0xHvv9qMklDn21Ct6UcdBCKyGCZ3zszxJJwpl4H/2Gu2roNLLxOMZgL
-+htnRe3rJC2xYUFGjwZsfHh32JCIHd2i9PflRxbRZ+fu87g+Xo0V6yPvwd+S9uat
-KBey7kOZK+QpwG0V4rSPvACy57BHy8VQyrnT6K7Fg9SMxKDthdlaxoUEhmPy0Uy/
-86k5cD6LLq/OzmEwD0IVFientTXJplQy4kcWuBQbOS3Ov7sLRJSZeQMdeRrUC76L
-jUUK+s6KpBZkmQewkstxLL8ct8s2RFyb9q+25OO5bpIQTvx7DIlFJMqqNkvoh6lJ
-o+1VmR1fx3LJOzEoVPvnblJiz9DEiuR9H0Jvt0rJuv+EoFqP3LM3tEMtghfBUEnd
-48CN7Tzw/r07sH+44ohv
-=Gp+d
------END PGP SIGNATURE-----
-
---cNdxnHkX5QqsyA0e--
+Thanks,
+Mike
