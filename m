@@ -1,61 +1,37 @@
-From: Hans-Peter Nilsson <hans-peter.nilsson@axis.com>
-Subject: Re: size_t/ssize_t warnings (was: Re: Build
- regressions/improvements in v3.5-rc5)
-Date: Fri, 6 Jul 2012 15:45:55 +0200
-Message-ID: <201207061345.q66DjtJl016985@ignucius.se.axis.com>
-References: <CAMuHMdU+GdPnEgdJJFezPET5y4Q0-fqBJZZZ1cNZyPOG6_d4Ug@mail.gmail.com>
+From: Mike Turquette <mturquette@ti.com>
+Subject: Re: [PATCH] clkdev: Add default clkdev.h
+Date: Mon, 9 Jul 2012 15:23:32 -0700
+Message-ID: <20120709222332.GA16202@gmail.com>
+References: <1341252250-26476-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+ <20120703114844.GJ29030@opensource.wolfsonmicro.com>
+ <20120703220512.e03805948e31cfa90778d6c2@canb.auug.org.au>
+ <201207031339.34369.arnd@arndb.de>
+ <20120703134729.GP29030@opensource.wolfsonmicro.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from anubis.se.axis.com ([195.60.68.12]:34849 "EHLO
-	anubis.se.axis.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750736Ab2GFNqA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 6 Jul 2012 09:46:00 -0400
-In-reply-to: <CAMuHMdU+GdPnEgdJJFezPET5y4Q0-fqBJZZZ1cNZyPOG6_d4Ug@mail.gmail.com>
-	(message from Geert Uytterhoeven on Fri, 6 Jul 2012 09:18:52 +0200)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: geert@linux-m68k.org
-Cc: jack@suse.cz, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-cris-kernel@axis.com
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20120703134729.GP29030@opensource.wolfsonmicro.com>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-kbuild@vger.kernel.org, Michal Marek <mmarek@suse.cz>
+List-Id: linux-arch.vger.kernel.org
 
-> From: Geert Uytterhoeven <geert@linux-m68k.org>
-> Date: Fri, 6 Jul 2012 09:18:52 +0200
-
-> On Fri, Jul 6, 2012 at 3:12 AM, Hans-Peter Nilsson
-> <hans-peter.nilsson@axis.com> wrote:
-> > Um, no, ssize_t isn't long.  Do you mean __kernel_ssize_t?
+On 20120703-14:47, Mark Brown wrote:
+> On Tue, Jul 03, 2012 at 01:39:34PM +0000, Arnd Bergmann wrote:
 > 
-> In the kernel, (s)size_t == __kernel_(s)size_t
+> > Ok, let's do that then. What tree should we use for merging it?
+> 
+> > In theory I should take it to some asm-generic tree, but since
+> > I get very little traffic there, I'm usually happy to just provide
+> > an Ack and let anyone who needs the patch merge it through their
+> > trees.
+> 
+> I guess one of the clock trees which probably means Mike?
 
-Right, sorry for being slow.
+Hi Mark,
 
-> OK, so (s)size_t should be (unsigned) int for Linux.
+Russell owns clkdev so I'd prefer he take this patch.
 
-Both the the kernel and userspace, yes.
-
-> Probably the "long" dates from the time people used cris-axis-elf
-> instead of cris-axis-linux-gnu, and "__SIZE_TYPE" from the time
-> people started using cris-axis-linux-gnu?
-
-I don't remember.  I have a vague recollection of a change in
-the distant past.
-
-> Ah, yes, commit ac505a9fd19c99fdb622fe4896446f995151babc
-> ("[PATCH] CRIS architecture update for 2.5.74") in full-history-linux
-> changed size_t from "unsigned long" to __SIZE_TYPE, but didn't
-> update ssize_t. Probably "signed __SIZE_TYPE" doesn't work?
-
-Well no.  Remember here it's "unsigned int": "signed unsigned
-int" doesn't compile very well.
-
-> So I guess they should be changed to (explicit) "unsigned int", resp.
-> "int". Or does it make sense to retain __SIZE_TYPE?
-
-I think it'd make sense to use __SIZE_TYPE__ (don't forget the
-trailing "__") for *all* targets that don't have a particular
-difference between kernel and userspace ABI's (notable
-exceptions being those with use 32-bit user and 64-bit kernel
-ABIs).  Unfortunately, there's no __SSIZE_TYPE__.
-
-brgds, H-P
+Thanks,
+Mike
