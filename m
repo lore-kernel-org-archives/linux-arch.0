@@ -1,53 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:57315 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751534Ab2GJKmn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 10 Jul 2012 06:42:43 -0400
-Date: Tue, 10 Jul 2012 11:42:34 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH] mm: hugetlb: flush dcache before returning zeroed huge
- page to userspace
-Message-ID: <20120710104234.GI9108@mudshark.cambridge.arm.com>
-References: <1341412376-6272-1-git-send-email-will.deacon@arm.com>
- <20120709122523.GC4627@tiehlicka.suse.cz>
- <20120709141324.GK7315@mudshark.cambridge.arm.com>
- <alpine.LSU.2.00.1207091622470.2261@eggly.anvils>
- <20120710094513.GB9108@mudshark.cambridge.arm.com>
+Received: from moutng.kundenserver.de ([212.227.17.10]:64566 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750829Ab2GJSHi (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 10 Jul 2012 14:07:38 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] clkdev: Add default clkdev.h
+Date: Tue, 10 Jul 2012 18:07:28 +0000
+References: <1341252250-26476-1-git-send-email-broonie@opensource.wolfsonmicro.com> <20120709233022.GO16319@n2100.arm.linux.org.uk> <20120710172223.GM10022@opensource.wolfsonmicro.com>
+In-Reply-To: <20120710172223.GM10022@opensource.wolfsonmicro.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20120710094513.GB9108@mudshark.cambridge.arm.com>
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201207101807.28993.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hugh Dickins <hughd@google.com>
-Cc: Michal Hocko <mhocko@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Hillf Danton <dhillf@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
-Message-ID: <20120710104234.gIC6KvyAQcRHNGumQYu5uJXeXvVR6JSjhCiFBEIW3B8@z>
+To: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Cc: Russell King - ARM Linux <linux@arm.linux.org.uk>, Mike Turquette <mturquette@ti.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Michal Marek <mmarek@suse.cz>
+Message-ID: <20120710180728.3jQufsA2o1OfB68F6lIfIMdq2JV9fvQqAsvR4WyDaLA@z>
 
-On Tue, Jul 10, 2012 at 10:45:13AM +0100, Will Deacon wrote:
-> On Tue, Jul 10, 2012 at 12:57:14AM +0100, Hugh Dickins wrote:
-> > If I start to grep the architectures for non-empty flush_dcache_page(),
-> > I soon find things in arch/arm such as v4_mc_copy_user_highpage() doing
-> > if (!test_and_set_bit(PG_dcache_clean,)) __flush_dcache_page() - where
-> > the naming suggests that I'm right, it's the architecture's responsibility
-> > to arrange whatever flushing is needed in its copy and clear page functions.
+On Tuesday 10 July 2012, Mark Brown wrote:
+> On Tue, Jul 10, 2012 at 12:30:22AM +0100, Russell King - ARM Linux wrote:
+> > On Mon, Jul 09, 2012 at 03:23:32PM -0700, Mike Turquette wrote:
 > 
-> On ARM the flushing is there to deal with dcache aliasing and highmem, so the
-> clear/copy functions won't actually do explicit flushing on modern (ARMv7)
-> cores. Instead we flush the page when writing the pte and noticing that
-> PG_arch_1 (PG_dcache_clean) is clear...
+> > > Russell owns clkdev so I'd prefer he take this patch.
 > 
-> ...so the real question is why this wasn't being triggered for huge pages.
-> I'll go and take another look since I would expect PG_arch_1 to be cleared
-> for pages coming back from alloc_huge_page.
+> > Note that I'm not going to be taking any further patches for at least
+> > the next 16 days (as I'm away), and I'm not going to even guarantee
+> > that I'll pick up on anything on the mailing lists during that period.
+> 
+> Oh dear, that's a bit sad - given that the merge window may well open
+> it'll mean we'll end up with at least one additional release where we
+> can't get the clock API available as standard :(
 
-Ok, so this is exactly the problem. The hugetlb allocator uses its own
-pool of huge pages, so free_huge_page followed by a later alloc_huge_page
-will give you something where the page flags of the compound head do not
-guarantee that PG_arch_1 is clear.
+I can start an asm-generic branch in the arm-soc tree then (or maybe
+a new tree) and apply the patch there.
 
-I tried hacking arch_release_hugepage to clear the bit, but that's only
-called when actually releasing the hugepages via __free_pages which is
-precisely the case that works correctly anyway!
-
-Will
+	Arnd
