@@ -1,93 +1,104 @@
-From: Hugh Dickins <hughd@google.com>
+From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [PATCH] mm: hugetlb: flush dcache before returning zeroed huge
  page to userspace
-Date: Mon, 9 Jul 2012 16:57:14 -0700 (PDT)
-Message-ID: <alpine.LSU.2.00.1207091622470.2261@eggly.anvils>
-References: <1341412376-6272-1-git-send-email-will.deacon@arm.com> <20120709122523.GC4627@tiehlicka.suse.cz> <20120709141324.GK7315@mudshark.cambridge.arm.com>
+Date: Tue, 10 Jul 2012 10:45:13 +0100
+Message-ID: <20120710094513.GB9108@mudshark.cambridge.arm.com>
+References: <1341412376-6272-1-git-send-email-will.deacon@arm.com>
+ <20120709122523.GC4627@tiehlicka.suse.cz>
+ <20120709141324.GK7315@mudshark.cambridge.arm.com>
+ <alpine.LSU.2.00.1207091622470.2261@eggly.anvils>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gg0-f174.google.com ([209.85.161.174]:40614 "EHLO
-	mail-gg0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752660Ab2GIX5x (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 9 Jul 2012 19:57:53 -0400
-Received: by gglu4 with SMTP id u4so10712430ggl.19
-        for <linux-arch@vger.kernel.org>; Mon, 09 Jul 2012 16:57:53 -0700 (PDT)
-In-Reply-To: <20120709141324.GK7315@mudshark.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Michal Hocko <mhocko@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Hillf Danton <dhillf@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <alpine.LSU.2.00.1207091622470.2261@eggly.anvils>
+Sender: owner-linux-mm@kvack.org
+To: Hugh Dickins <hughd@google.com>
+Cc: Michal Hocko <mhocko@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Hillf Danton <dhillf@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 9 Jul 2012, Will Deacon wrote:
-> On Mon, Jul 09, 2012 at 01:25:23PM +0100, Michal Hocko wrote:
-> > On Wed 04-07-12 15:32:56, Will Deacon wrote:
-> > > When allocating and returning clear huge pages to userspace as a
-> > > response to a fault, we may zero and return a mapping to a previously
-> > > dirtied physical region (for example, it may have been written by
-> > > a private mapping which was freed as a result of an ftruncate on the
-> > > backing file). On architectures with Harvard caches, this can lead to
-> > > I/D inconsistency since the zeroed view may not be visible to the
-> > > instruction stream.
+Hi Hugh,
+
+Cheers for looking at this.
+
+On Tue, Jul 10, 2012 at 12:57:14AM +0100, Hugh Dickins wrote:
+> On Mon, 9 Jul 2012, Will Deacon wrote:
+> > On Mon, Jul 09, 2012 at 01:25:23PM +0100, Michal Hocko wrote:
+> > > On Wed 04-07-12 15:32:56, Will Deacon wrote:
+> > > > diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+> > > > index e198831..b83d026 100644
+> > > > --- a/mm/hugetlb.c
+> > > > +++ b/mm/hugetlb.c
+> > > > @@ -2646,6 +2646,7 @@ retry:
+> > > >  			goto out;
+> > > >  		}
+> > > >  		clear_huge_page(page, address, pages_per_huge_page(h));
+> > > > +		flush_dcache_page(page);
+> > > >  		__SetPageUptodate(page);
 > > > 
-> > > This patch solves the problem by flushing the region after allocating
-> > > and clearing a new huge page. Note that PowerPC avoids this issue by
-> > > performing the flushing in their clear_user_page implementation to keep
-> > > the loader happy, however this is closely tied to the semantics of the
-> > > PG_arch_1 page flag which is architecture-specific.
-> > > 
-> > > Acked-by: Catalin Marinas <catalin.marinas@arm.com>
-> > > Signed-off-by: Will Deacon <will.deacon@arm.com>
-> > > ---
-> > >  mm/hugetlb.c |    1 +
-> > >  1 files changed, 1 insertions(+), 0 deletions(-)
-> > > 
-> > > diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-> > > index e198831..b83d026 100644
-> > > --- a/mm/hugetlb.c
-> > > +++ b/mm/hugetlb.c
-> > > @@ -2646,6 +2646,7 @@ retry:
-> > >  			goto out;
-> > >  		}
-> > >  		clear_huge_page(page, address, pages_per_huge_page(h));
-> > > +		flush_dcache_page(page);
-> > >  		__SetPageUptodate(page);
+> > > Does this have to be explicit in the arch independent code?
+> > > It seems that ia64 uses flush_dcache_page already in the clear_user_page
 > > 
-> > Does this have to be explicit in the arch independent code?
-> > It seems that ia64 uses flush_dcache_page already in the clear_user_page
+> > It would match what is done in similar situations by cow_user_page (mm/memory.c)
+> > and shmem_writepage (mm/shmem.c). Other subsystems also have explicit page
+> > flushing (DMA bounce, ksm) so I think this is the right place for it.
 > 
-> It would match what is done in similar situations by cow_user_page (mm/memory.c)
-> and shmem_writepage (mm/shmem.c). Other subsystems also have explicit page
-> flushing (DMA bounce, ksm) so I think this is the right place for it.
+> I am not at all sure if you are right or not:
+> please let's consult linux-arch about this - now Cc'ed.
 
-I am not at all sure if you are right or not:
-please let's consult linux-arch about this - now Cc'ed.
+I assume that by `linux-arch' you mean BenH :)
 
-If this hugetlb_no_page() were solely mapping the hugepage into that
-userspace, I would say you are wrong.  It's the job of clear_huge_page()
-to take the mapped address into account, and pass it down to the
-architecture-specific implementation, to do whatever flushing is
-needed - you should be providing that in your architecture.
+> If this hugetlb_no_page() were solely mapping the hugepage into that
+> userspace, I would say you are wrong.  It's the job of clear_huge_page()
+> to take the mapped address into account, and pass it down to the
+> architecture-specific implementation, to do whatever flushing is
+> needed - you should be providing that in your architecture.
+> 
+> In particular, notice how clear_huge_page() goes round a loop of
+> clear_user_highpage()s: in your patch, you're expecting the implementation
+> of flush_dcache_page() to notice whether or not this is a hugepage, and
+> flush the appropriate size.
+> 
+> Perhaps yours is the only architecture to need this on huge, and your
+> flush_dcache_page() implements it correctly; but it does seem surprising.
 
-In particular, notice how clear_huge_page() goes round a loop of
-clear_user_highpage()s: in your patch, you're expecting the implementation
-of flush_dcache_page() to notice whether or not this is a hugepage, and
-flush the appropriate size.
+ARM doesn't yet have hugetlb support in mainline so we can do whatever
+people prefer. I think it makes sense for flush_dcache_page to be hugepage
+aware so that we can sync the caches when installing huge ptes using the
+same code as normal ptes. Of course, that may not be the same across all
+architectures, so you certainly have a valid point.
 
-Perhaps yours is the only architecture to need this on huge, and your
-flush_dcache_page() implements it correctly; but it does seem surprising.
+> If I start to grep the architectures for non-empty flush_dcache_page(),
+> I soon find things in arch/arm such as v4_mc_copy_user_highpage() doing
+> if (!test_and_set_bit(PG_dcache_clean,)) __flush_dcache_page() - where
+> the naming suggests that I'm right, it's the architecture's responsibility
+> to arrange whatever flushing is needed in its copy and clear page functions.
 
-If I start to grep the architectures for non-empty flush_dcache_page(),
-I soon find things in arch/arm such as v4_mc_copy_user_highpage() doing
-if (!test_and_set_bit(PG_dcache_clean,)) __flush_dcache_page() - where
-the naming suggests that I'm right, it's the architecture's responsibility
-to arrange whatever flushing is needed in its copy and clear page functions.
+On ARM the flushing is there to deal with dcache aliasing and highmem, so the
+clear/copy functions won't actually do explicit flushing on modern (ARMv7)
+cores. Instead we flush the page when writing the pte and noticing that
+PG_arch_1 (PG_dcache_clean) is clear...
 
-But... this hugetlb_no_page() has a VM_MAYSHARE case below, which puts
-the new page into page cache, making it accessible by other processes:
-that may indeed be reason for flush_dcache_page() there - or a loop of
-flush_dcache_page()s.  But I worry then that in the !VM_MAYSHARE case
-you would be duplicating expensive flushes: perhaps they should be
-restricted to the VM_MAYSHARE block.
+...so the real question is why this wasn't being triggered for huge pages.
+I'll go and take another look since I would expect PG_arch_1 to be cleared
+for pages coming back from alloc_huge_page.
 
-Hugh
+> But... this hugetlb_no_page() has a VM_MAYSHARE case below, which puts
+> the new page into page cache, making it accessible by other processes:
+> that may indeed be reason for flush_dcache_page() there - or a loop of
+> flush_dcache_page()s.  But I worry then that in the !VM_MAYSHARE case
+> you would be duplicating expensive flushes: perhaps they should be
+> restricted to the VM_MAYSHARE block.
+
+If the PG_arch_1 flag does its job, duplicate flushes shouldn't be a
+problem.
+
+Thanks,
+
+Will
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
