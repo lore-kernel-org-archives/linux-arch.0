@@ -1,47 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:51558 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:56511 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755693Ab2GKPcj (ORCPT
+	by vger.kernel.org with ESMTP id S1754032Ab2GKRsN (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 11 Jul 2012 11:32:39 -0400
+	Wed, 11 Jul 2012 13:48:13 -0400
+Date: Wed, 11 Jul 2012 18:48:02 +0100
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH 0/3] random compat IPC fixes required by AArch64
-Date: Wed, 11 Jul 2012 16:32:18 +0100
-Message-ID: <1342020741-12758-1-git-send-email-will.deacon@arm.com>
+Subject: Re: [PATCH] mm: hugetlb: flush dcache before returning zeroed huge
+ page to userspace
+Message-ID: <20120711174802.GG13498@mudshark.cambridge.arm.com>
+References: <1341412376-6272-1-git-send-email-will.deacon@arm.com>
+ <20120709122523.GC4627@tiehlicka.suse.cz>
+ <20120709141324.GK7315@mudshark.cambridge.arm.com>
+ <alpine.LSU.2.00.1207091622470.2261@eggly.anvils>
+ <20120710094513.GB9108@mudshark.cambridge.arm.com>
+ <20120710104234.GI9108@mudshark.cambridge.arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20120710104234.GI9108@mudshark.cambridge.arm.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: davem@davemloft.net, chris@zankel.net, catalin.marinas@arm.com, arnd@arndb.de, cmetcalf@tilera.com, akpm@linux-foundation.org, Will Deacon <will.deacon@arm.com>
-Message-ID: <20120711153218.8ZLd8xqYPRTgUCgkMQ0itylK0yVBuNMQquJ4jUB_0Zs@z>
+To: Hugh Dickins <hughd@google.com>
+Cc: Michal Hocko <mhocko@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Hillf Danton <dhillf@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+Message-ID: <20120711174802.nqk4Ggiz9jnnLH-iUOJidfMbb4vjDv6-TQG2BRx-MRU@z>
 
-Hello,
+On Tue, Jul 10, 2012 at 11:42:34AM +0100, Will Deacon wrote:
+> On Tue, Jul 10, 2012 at 10:45:13AM +0100, Will Deacon wrote:
+> > On Tue, Jul 10, 2012 at 12:57:14AM +0100, Hugh Dickins wrote:
+> > > If I start to grep the architectures for non-empty flush_dcache_page(),
+> > > I soon find things in arch/arm such as v4_mc_copy_user_highpage() doing
+> > > if (!test_and_set_bit(PG_dcache_clean,)) __flush_dcache_page() - where
+> > > the naming suggests that I'm right, it's the architecture's responsibility
+> > > to arrange whatever flushing is needed in its copy and clear page functions.
 
-This patch series includes some fixes to the compat IPC code when the
-compat and native targets have API differences that weren't previously
-considered. The problems were found during development of the AArch64
-port and, as such, are prerequisities for the merging of that code.
+[...]
 
-All feedback and comments welcome (but please resist the urge to talk
-about the name -- there's another thread for that on LKML :).
+> Ok, so this is exactly the problem. The hugetlb allocator uses its own
+> pool of huge pages, so free_huge_page followed by a later alloc_huge_page
+> will give you something where the page flags of the compound head do not
+> guarantee that PG_arch_1 is clear.
+
+Just to confirm, the following quick hack at least results in the correct
+flushing for me (on ARM):
+
+
+diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+index e198831..7a7c9d3 100644
+--- a/mm/hugetlb.c
++++ b/mm/hugetlb.c
+@@ -1141,6 +1141,7 @@ static struct page *alloc_huge_page(struct vm_area_struct *vma,
+        }
+ 
+        set_page_private(page, (unsigned long)spool);
++       clear_bit(PG_arch_1, &page->flags);
+ 
+        vma_commit_reservation(h, vma, addr);
+ 
+
+
+The question is whether we should tidy that up for the core code or get
+architectures to clear the bit in arch_make_huge_pte (which also seems to
+work).
 
 Will
-
-
-Will Deacon (3):
-  ipc: add COMPAT_SHMLBA support
-  ipc: allow compat IPC version field parsing if
-    !ARCH_WANT_OLD_COMPAT_IPC
-  ipc: compat: use signed size_t types for msgsnd and msgrcv
-
- arch/sparc/kernel/sys_sparc_64.c |    2 +-
- arch/xtensa/kernel/syscall.c     |    2 +-
- include/linux/compat.h           |    5 +++--
- include/linux/shm.h              |    6 ++++--
- ipc/compat.c                     |   18 +++++++++++-------
- ipc/shm.c                        |    9 +++++----
- ipc/syscall.c                    |    2 +-
- 7 files changed, 26 insertions(+), 18 deletions(-)
-
--- 
-1.7.4.1
-
