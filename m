@@ -1,40 +1,70 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH 0/3] random compat IPC fixes required by AArch64
-Date: Wed, 11 Jul 2012 16:32:18 +0100
-Message-ID: <1342020741-12758-1-git-send-email-will.deacon@arm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Subject: [PATCH 2/3] ipc: allow compat IPC version field parsing if !ARCH_WANT_OLD_COMPAT_IPC
+Date: Wed, 11 Jul 2012 16:32:20 +0100
+Message-ID: <1342020741-12758-3-git-send-email-will.deacon@arm.com>
+References: <1342020741-12758-1-git-send-email-will.deacon@arm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:51561 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755735Ab2GKPcj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 11 Jul 2012 11:32:39 -0400
+In-Reply-To: <1342020741-12758-1-git-send-email-will.deacon@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: davem@davemloft.net, chris@zankel.net, catalin.marinas@arm.com, arnd@arndb.de, cmetcalf@tilera.com, akpm@linux-foundation.org, Will Deacon <will.deacon@arm.com>
-List-Id: linux-arch.vger.kernel.org
 
-Hello,
+Commit 48b25c43 ("[PATCH v3] ipc: provide generic compat versions of IPC
+syscalls") added a new ARCH_WANT_OLD_COMPAT_IPC config option for
+architectures to select if their compat target requires the old IPC
+syscall interface.
 
-This patch series includes some fixes to the compat IPC code when the
-compat and native targets have API differences that weren't previously
-considered. The problems were found during development of the AArch64
-port and, as such, are prerequisities for the merging of that code.
+For architectures (such as AArch64) that do not require the internal
+calling conventions provided by this option, but have a compat target
+where the C library passes the IPC_64 flag explicitly,
+compat_ipc_parse_version no longer strips out the flag before calling
+the native system call implementation, resulting in unknown SHM/IPC
+commands and -EINVAL being returned to userspace.
 
-All feedback and comments welcome (but please resist the urge to talk
-about the name -- there's another thread for that on LKML :).
+This patch separates the selection of the internal calling conventions
+for the IPC syscalls from the version parsing, allowing architectures to
+select __ARCH_WANT_COMPAT_IPC_PARSE_VERSION if they want to use version
+parsing whilst retaining the newer syscall calling conventions.
 
-Will
+Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ include/linux/compat.h |    1 +
+ ipc/compat.c           |    2 +-
+ 2 files changed, 2 insertions(+), 1 deletions(-)
 
-
-Will Deacon (3):
-  ipc: add COMPAT_SHMLBA support
-  ipc: allow compat IPC version field parsing if
-    !ARCH_WANT_OLD_COMPAT_IPC
-  ipc: compat: use signed size_t types for msgsnd and msgrcv
-
- arch/sparc/kernel/sys_sparc_64.c |    2 +-
- arch/xtensa/kernel/syscall.c     |    2 +-
- include/linux/compat.h           |    5 +++--
- include/linux/shm.h              |    6 ++++--
- ipc/compat.c                     |   18 +++++++++++-------
- ipc/shm.c                        |    9 +++++----
- ipc/syscall.c                    |    2 +-
- 7 files changed, 26 insertions(+), 18 deletions(-)
-
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index 4e89039..9f68e90 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -256,6 +256,7 @@ compat_sys_get_robust_list(int pid, compat_uptr_t __user *head_ptr,
+ 			   compat_size_t __user *len_ptr);
+ 
+ #ifdef CONFIG_ARCH_WANT_OLD_COMPAT_IPC
++#define __ARCH_WANT_COMPAT_IPC_PARSE_VERSION
+ long compat_sys_semctl(int first, int second, int third, void __user *uptr);
+ long compat_sys_msgsnd(int first, int second, int third, void __user *uptr);
+ long compat_sys_msgrcv(int first, int second, int msgtyp, int third,
+diff --git a/ipc/compat.c b/ipc/compat.c
+index 53cebdf..a41600f 100644
+--- a/ipc/compat.c
++++ b/ipc/compat.c
+@@ -118,7 +118,7 @@ extern int sem_ctls[];
+ 
+ static inline int compat_ipc_parse_version(int *cmd)
+ {
+-#ifdef CONFIG_ARCH_WANT_OLD_COMPAT_IPC
++#ifdef	__ARCH_WANT_COMPAT_IPC_PARSE_VERSION
+ 	int version = *cmd & IPC_64;
+ 
+ 	/* this is tricky: architectures that have support for the old
 -- 
 1.7.4.1
