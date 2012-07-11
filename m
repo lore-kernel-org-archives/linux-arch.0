@@ -1,37 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:50040 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755986Ab2GKGdA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Jul 2012 02:33:00 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] clkdev: Add default clkdev.h
-Date: Wed, 11 Jul 2012 06:32:39 +0000
-References: <1341252250-26476-1-git-send-email-broonie@opensource.wolfsonmicro.com> <201207101807.28993.arnd@arndb.de> <20120711024411.GA11440@linux-sh.org>
-In-Reply-To: <20120711024411.GA11440@linux-sh.org>
-MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201207110632.39571.arnd@arndb.de>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:51560 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755722Ab2GKPcj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 11 Jul 2012 11:32:39 -0400
+From: Will Deacon <will.deacon@arm.com>
+Subject: [PATCH 3/3] ipc: compat: use signed size_t types for msgsnd and msgrcv
+Date: Wed, 11 Jul 2012 16:32:21 +0100
+Message-ID: <1342020741-12758-4-git-send-email-will.deacon@arm.com>
+In-Reply-To: <1342020741-12758-1-git-send-email-will.deacon@arm.com>
+References: <1342020741-12758-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: Mark Brown <broonie@opensource.wolfsonmicro.com>, Russell King - ARM Linux <linux@arm.linux.org.uk>, Mike Turquette <mturquette@ti.com>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org, linux-kbuild@vger.kernel.org, Michal Marek <mmarek@suse.cz>
-Message-ID: <20120711063239.d6P20pC7sYxKJUClKUSmGHD4ef7bVpy7yHgpjeDzIgI@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: davem@davemloft.net, chris@zankel.net, catalin.marinas@arm.com, arnd@arndb.de, cmetcalf@tilera.com, akpm@linux-foundation.org, Will Deacon <will.deacon@arm.com>
+Message-ID: <20120711153221.yI40s51Lsv-oCfF380dFlCw43N_EWUnj7nixpAgI-R0@z>
 
-On Wednesday 11 July 2012, Paul Mundt wrote:
-> > I can start an asm-generic branch in the arm-soc tree then (or maybe
-> > a new tree) and apply the patch there.
-> > 
-> Given that this patch has nothing at all to do with ARM, why not just
-> take it through the asm-generic tree?
+The msgsnd and msgrcv system calls use size_t to represent the size of
+the message being transferred. POSIX states that values of msgsz greater
+than SSIZE_MAX cause the result to be implementation-defined. On Linux,
+this equates to returning -EINVAL if (long) msgsz < 0.
 
-Just my personal lazyness. I haven't had an asm-generic tree for a while,
-and my main working tree is a mirror of the arm-soc tree.
+For compat tasks where !CONFIG_ARCH_WANT_OLD_COMPAT_IPC and
+compat_size_t is smaller than size_t, negative size values passed from
+userspace will be interpreted as positive values by do_msg{rcv,snd} and
+will fail to exit early with -EINVAL.
 
-On the other hand, I looked up the maintainers file and it points to
-git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git
-so maybe I should restore that one after all or remove the reference
-if I don't.
+This patch changes the compat prototypes for msg{rcv,snd} so that the
+message size is represented as a compat_ssize_t, which we cast to the
+native ssize_t type for the core IPC code.
 
-	Arnd
+Cc: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ include/linux/compat.h |    4 ++--
+ ipc/compat.c           |    8 ++++----
+ 2 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index 9f68e90..f2b8fe2 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -266,9 +266,9 @@ long compat_sys_shmat(int first, int second, compat_uptr_t third, int version,
+ #else
+ long compat_sys_semctl(int semid, int semnum, int cmd, int arg);
+ long compat_sys_msgsnd(int msqid, struct compat_msgbuf __user *msgp,
+-		size_t msgsz, int msgflg);
++		compat_ssize_t msgsz, int msgflg);
+ long compat_sys_msgrcv(int msqid, struct compat_msgbuf __user *msgp,
+-		size_t msgsz, long msgtyp, int msgflg);
++		compat_ssize_t msgsz, long msgtyp, int msgflg);
+ long compat_sys_shmat(int shmid, compat_uptr_t shmaddr, int shmflg);
+ #endif
+ long compat_sys_msgctl(int first, int second, void __user *uptr);
+diff --git a/ipc/compat.c b/ipc/compat.c
+index a41600f..20f92b2 100644
+--- a/ipc/compat.c
++++ b/ipc/compat.c
+@@ -373,21 +373,21 @@ long compat_sys_semctl(int semid, int semnum, int cmd, int arg)
+ }
+ 
+ long compat_sys_msgsnd(int msqid, struct compat_msgbuf __user *msgp,
+-		       size_t msgsz, int msgflg)
++		       compat_ssize_t msgsz, int msgflg)
+ {
+ 	compat_long_t mtype;
+ 
+ 	if (get_user(mtype, &msgp->mtype))
+ 		return -EFAULT;
+-	return do_msgsnd(msqid, mtype, msgp->mtext, msgsz, msgflg);
++	return do_msgsnd(msqid, mtype, msgp->mtext, (ssize_t)msgsz, msgflg);
+ }
+ 
+ long compat_sys_msgrcv(int msqid, struct compat_msgbuf __user *msgp,
+-		       size_t msgsz, long msgtyp, int msgflg)
++		       compat_ssize_t msgsz, long msgtyp, int msgflg)
+ {
+ 	long err, mtype;
+ 
+-	err =  do_msgrcv(msqid, &mtype, msgp->mtext, msgsz, msgtyp, msgflg);
++	err =  do_msgrcv(msqid, &mtype, msgp->mtext, (ssize_t)msgsz, msgtyp, msgflg);
+ 	if (err < 0)
+ 		goto out;
+ 
+-- 
+1.7.4.1
+
