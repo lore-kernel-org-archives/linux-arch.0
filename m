@@ -1,52 +1,67 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH 2/3] ipc: allow compat IPC version field parsing if !ARCH_WANT_OLD_COMPAT_IPC
-Date: Wed, 11 Jul 2012 12:07:17 -0400
-Message-ID: <4FFDA4B5.9060005@tilera.com>
-References: <1342020741-12758-1-git-send-email-will.deacon@arm.com> <1342020741-12758-3-git-send-email-will.deacon@arm.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH] mm: hugetlb: flush dcache before returning zeroed huge
+ page to userspace
+Date: Wed, 11 Jul 2012 18:48:02 +0100
+Message-ID: <20120711174802.GG13498@mudshark.cambridge.arm.com>
+References: <1341412376-6272-1-git-send-email-will.deacon@arm.com>
+ <20120709122523.GC4627@tiehlicka.suse.cz>
+ <20120709141324.GK7315@mudshark.cambridge.arm.com>
+ <alpine.LSU.2.00.1207091622470.2261@eggly.anvils>
+ <20120710094513.GB9108@mudshark.cambridge.arm.com>
+ <20120710104234.GI9108@mudshark.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:17575 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932824Ab2GKQHR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 11 Jul 2012 12:07:17 -0400
-In-Reply-To: <1342020741-12758-3-git-send-email-will.deacon@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, davem@davemloft.net, chris@zankel.net, catalin.marinas@arm.com, arnd@arndb.de, akpm@linux-foundation.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20120710104234.GI9108@mudshark.cambridge.arm.com>
+Content-Language: en-US
+Sender: owner-linux-mm@kvack.org
+To: Hugh Dickins <hughd@google.com>
+Cc: Michal Hocko <mhocko@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Hillf Danton <dhillf@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 7/11/2012 11:32 AM, Will Deacon wrote:
-> Commit 48b25c43 ("[PATCH v3] ipc: provide generic compat versions of IPC
-> syscalls") added a new ARCH_WANT_OLD_COMPAT_IPC config option for
-> architectures to select if their compat target requires the old IPC
-> syscall interface.
->
-> For architectures (such as AArch64) that do not require the internal
-> calling conventions provided by this option, but have a compat target
-> where the C library passes the IPC_64 flag explicitly,
-> compat_ipc_parse_version no longer strips out the flag before calling
-> the native system call implementation, resulting in unknown SHM/IPC
-> commands and -EINVAL being returned to userspace.
->
-> This patch separates the selection of the internal calling conventions
-> for the IPC syscalls from the version parsing, allowing architectures to
-> select __ARCH_WANT_COMPAT_IPC_PARSE_VERSION if they want to use version
-> parsing whilst retaining the newer syscall calling conventions.
->
-> Cc: Chris Metcalf <cmetcalf@tilera.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Acked-by: Catalin Marinas <catalin.marinas@arm.com>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> ---
->  include/linux/compat.h |    1 +
->  ipc/compat.c           |    2 +-
->  2 files changed, 2 insertions(+), 1 deletions(-)
->
+On Tue, Jul 10, 2012 at 11:42:34AM +0100, Will Deacon wrote:
+> On Tue, Jul 10, 2012 at 10:45:13AM +0100, Will Deacon wrote:
+> > On Tue, Jul 10, 2012 at 12:57:14AM +0100, Hugh Dickins wrote:
+> > > If I start to grep the architectures for non-empty flush_dcache_page(),
+> > > I soon find things in arch/arm such as v4_mc_copy_user_highpage() doing
+> > > if (!test_and_set_bit(PG_dcache_clean,)) __flush_dcache_page() - where
+> > > the naming suggests that I'm right, it's the architecture's responsibility
+> > > to arrange whatever flushing is needed in its copy and clear page functions.
 
-Acked-by: Chris Metcalf <cmetcalf@tilera.com>
+[...]
 
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+> Ok, so this is exactly the problem. The hugetlb allocator uses its own
+> pool of huge pages, so free_huge_page followed by a later alloc_huge_page
+> will give you something where the page flags of the compound head do not
+> guarantee that PG_arch_1 is clear.
+
+Just to confirm, the following quick hack at least results in the correct
+flushing for me (on ARM):
+
+
+diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+index e198831..7a7c9d3 100644
+--- a/mm/hugetlb.c
++++ b/mm/hugetlb.c
+@@ -1141,6 +1141,7 @@ static struct page *alloc_huge_page(struct vm_area_struct *vma,
+        }
+ 
+        set_page_private(page, (unsigned long)spool);
++       clear_bit(PG_arch_1, &page->flags);
+ 
+        vma_commit_reservation(h, vma, addr);
+ 
+
+
+The question is whether we should tidy that up for the core code or get
+architectures to clear the bit in arch_make_huge_pte (which also seems to
+work).
+
+Will
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
