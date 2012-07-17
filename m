@@ -1,77 +1,148 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:59513 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933726Ab2GLL5K (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 12 Jul 2012 07:57:10 -0400
-Date: Thu, 12 Jul 2012 13:57:08 +0200
-From: Michal Hocko <mhocko@suse.cz>
-Subject: Re: [PATCH] mm: hugetlb: flush dcache before returning zeroed huge
- page to userspace
-Message-ID: <20120712115708.GG21013@tiehlicka.suse.cz>
-References: <1341412376-6272-1-git-send-email-will.deacon@arm.com>
- <20120709122523.GC4627@tiehlicka.suse.cz>
- <20120709141324.GK7315@mudshark.cambridge.arm.com>
- <alpine.LSU.2.00.1207091622470.2261@eggly.anvils>
- <20120710094513.GB9108@mudshark.cambridge.arm.com>
- <20120710104234.GI9108@mudshark.cambridge.arm.com>
- <20120711174802.GG13498@mudshark.cambridge.arm.com>
- <20120712111659.GF21013@tiehlicka.suse.cz>
- <20120712112645.GG2816@mudshark.cambridge.arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20120712112645.GG2816@mudshark.cambridge.arm.com>
+Received: from service87.mimecast.com ([91.220.42.44]:53014 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752802Ab2GQRLe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 17 Jul 2012 13:11:34 -0400
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: [PATCH] atomic64_test: Simplify the #ifdef for atomic64_dec_if_positive() test
+Date: Tue, 17 Jul 2012 18:10:48 +0100
+Message-ID: <1342545048-30958-1-git-send-email-catalin.marinas@arm.com>
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Hillf Danton <dhillf@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
-Message-ID: <20120712115708.YVQItxfj4IUhhbI7A3bQZRdd2b6won6LyM9clj5FTJ4@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Russell King <linux@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linux390@de.ibm.com, x86@kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20120717171048.81iH6ABLrQ8SH6NtnwPRWSkIxyc3r6GYpM-E9oWwxvc@z>
 
-On Thu 12-07-12 12:26:45, Will Deacon wrote:
-> On Thu, Jul 12, 2012 at 12:16:59PM +0100, Michal Hocko wrote:
-> > On Wed 11-07-12 18:48:02, Will Deacon wrote:
-> > > Just to confirm, the following quick hack at least results in the correct
-> > > flushing for me (on ARM):
-> > > 
-> > > 
-> > > diff --git a/mm/hugetlb.c b/mm/hugetlb.c
-> > > index e198831..7a7c9d3 100644
-> > > --- a/mm/hugetlb.c
-> > > +++ b/mm/hugetlb.c
-> > > @@ -1141,6 +1141,7 @@ static struct page *alloc_huge_page(struct vm_area_struct *vma,
-> > >         }
-> > >  
-> > >         set_page_private(page, (unsigned long)spool);
-> > > +       clear_bit(PG_arch_1, &page->flags);
-> > >  
-> > >         vma_commit_reservation(h, vma, addr);
-> > >  
-> > > 
-> > > 
-> > > The question is whether we should tidy that up for the core code or get
-> > > architectures to clear the bit in arch_make_huge_pte (which also seems to
-> > > work).
-> > 
-> > This should go into arch specific code IMO. Even the page flag name
-> > suggests this shouldn't be in the base code.
-> 
-> Well, the comment in linux/page-flags.h does state that:
-> 
->  * PG_arch_1 is an architecture specific page state bit.  The generic code
->  * guarantees that this bit is cleared for a page when it first is entered into
->  * the page cache.
-> 
-> so it's not completely clear cut that the architecture should be responsible
-> for clearing this bit when allocating pages from the hugepage pool.
+This patch introduces CONFIG_ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE and uses
+this instead of the multitude of #if defined() checks in atomic64_test.c
 
-I think the wording is quite clear. It guarantees it gets cleared not
-clears it. So it is up to an arch specific functions called from the
-generic code to do that.
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: linux390@de.ibm.com
+Cc: x86@kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
+---
 
--- 
-Michal Hocko
-SUSE Labs
-SUSE LINUX s.r.o.
-Lihovarska 1060/12
-190 00 Praha 9    
-Czech Republic
+That's a trivial patch to sort out the #if statement for the
+atomic64_dec_if_positive() test. I went for the Kconfig option, the
+alternative being #define in the atomic.h header files of each
+architecture affected.
+
+Thanks.
+
+ arch/arm/Kconfig     |    1 +
+ arch/mips/Kconfig    |    1 +
+ arch/powerpc/Kconfig |    1 +
+ arch/s390/Kconfig    |    1 +
+ arch/x86/Kconfig     |    1 +
+ lib/Kconfig          |    3 +++
+ lib/atomic64_test.c  |    5 ++---
+ 7 files changed, 10 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index a91009c..88df37f 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -11,6 +11,7 @@ config ARM
+ =09select RTC_LIB
+ =09select SYS_SUPPORTS_APM_EMULATION
+ =09select GENERIC_ATOMIC64 if (CPU_V6 || !CPU_32v6K || !AEABI)
++=09select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+ =09select HAVE_OPROFILE if (HAVE_PERF_EVENTS)
+ =09select HAVE_ARCH_JUMP_LABEL if !XIP_KERNEL
+ =09select HAVE_ARCH_KGDB
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index 09ab87e..c9e1812 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -20,6 +20,7 @@ config MIPS
+ =09select ARCH_BINFMT_ELF_RANDOMIZE_PIE
+ =09select RTC_LIB if !MACH_LOONGSON
+ =09select GENERIC_ATOMIC64 if !64BIT
++=09select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+ =09select HAVE_DMA_ATTRS
+ =09select HAVE_DMA_API_DEBUG
+ =09select HAVE_GENERIC_HARDIRQS
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 050cb37..8b8bc3a 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -115,6 +115,7 @@ config PPC
+ =09select HAVE_OPROFILE
+ =09select HAVE_SYSCALL_WRAPPERS if PPC64
+ =09select GENERIC_ATOMIC64 if PPC32
++=09select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+ =09select HAVE_IRQ_WORK
+ =09select HAVE_PERF_EVENTS
+ =09select HAVE_REGS_AND_STACK_ACCESS_API
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index a39b469..64cb682 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -121,6 +121,7 @@ config S390
+ =09select GENERIC_TIME_VSYSCALL
+ =09select GENERIC_CLOCKEVENTS
+ =09select KTIME_SCALAR if 32BIT
++=09select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+=20
+ config SCHED_OMIT_FRAME_POINTER
+ =09def_bool y
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index c70684f..1d08863 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -95,6 +95,7 @@ config X86
+ =09select KTIME_SCALAR if X86_32
+ =09select GENERIC_STRNCPY_FROM_USER
+ =09select GENERIC_STRNLEN_USER
++=09select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+=20
+ config INSTRUCTION_DECODER
+ =09def_bool (KPROBES || PERF_EVENTS || UPROBES)
+diff --git a/lib/Kconfig b/lib/Kconfig
+index a9e1540..e0a7d57 100644
+--- a/lib/Kconfig
++++ b/lib/Kconfig
+@@ -340,6 +340,9 @@ config NLATTR
+ config GENERIC_ATOMIC64
+        bool
+=20
++config ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
++=09def_bool y if GENERIC_ATOMIC64
++
+ config LRU_CACHE
+ =09tristate
+=20
+diff --git a/lib/atomic64_test.c b/lib/atomic64_test.c
+index cb99b91..00bca22 100644
+--- a/lib/atomic64_test.c
++++ b/lib/atomic64_test.c
+@@ -114,8 +114,7 @@ static __init int test_atomic64(void)
+ =09r +=3D one;
+ =09BUG_ON(v.counter !=3D r);
+=20
+-#if defined(CONFIG_X86) || defined(CONFIG_MIPS) || defined(CONFIG_PPC) || =
+\
+-    defined(CONFIG_S390) || defined(_ASM_GENERIC_ATOMIC64_H) || defined(CO=
+NFIG_ARM)
++#ifdef CONFIG_ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+ =09INIT(onestwos);
+ =09BUG_ON(atomic64_dec_if_positive(&v) !=3D (onestwos - 1));
+ =09r -=3D one;
+@@ -129,7 +128,7 @@ static __init int test_atomic64(void)
+ =09BUG_ON(atomic64_dec_if_positive(&v) !=3D (-one - one));
+ =09BUG_ON(v.counter !=3D r);
+ #else
+-#warning Please implement atomic64_dec_if_positive for your architecture, =
+and add it to the IF above
++#warning Please implement atomic64_dec_if_positive for your architecture a=
+nd select the above Kconfig symbol
+ #endif
+=20
+ =09INIT(onestwos);
+
