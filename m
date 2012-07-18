@@ -1,58 +1,53 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH] Make most arch asm/module.h files use asm-generic/module.h
-Date: Wed, 18 Jul 2012 14:33:12 +0100
-Message-ID: <2722.1342618392@warthog.procyon.org.uk>
-References: <201207181320.35807.arnd@arndb.de> <32350.1342615619@warthog.procyon.org.uk>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH] Make most arch asm/module.h files use
+	asm-generic/module.h
+Date: Wed, 18 Jul 2012 15:41:50 +0200
+Message-ID: <20120718134150.GA25202@merkur.ravnborg.org>
+References: <32350.1342615619@warthog.procyon.org.uk> <2597.1342617840@warthog.procyon.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:10703 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751867Ab2GRNd1 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Jul 2012 09:33:27 -0400
-In-Reply-To: <201207181320.35807.arnd@arndb.de>
+Received: from smtp.snhosting.dk ([87.238.248.203]:18923 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753136Ab2GRNlx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Jul 2012 09:41:53 -0400
+Content-Disposition: inline
+In-Reply-To: <2597.1342617840@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: dhowells@redhat.com, Rusty Russell <rusty@rustcorp.com.au>, linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>
+To: David Howells <dhowells@redhat.com>
+Cc: Rusty Russell <rusty@rustcorp.com.au>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>
 
-Arnd Bergmann <arnd@arndb.de> wrote:
-
-> The method I try to use for architectures overriding asm-generic definitions
-> is to make the architecture define the same symbol, like
+On Wed, Jul 18, 2012 at 02:24:00PM +0100, David Howells wrote:
+> David Howells <dhowells@redhat.com> wrote:
 > 
-> #ifdef CONFIG_ARM_UNWIND
-> struct mod_arch_specific {
-> 	struct unwind_table *unwind[ARM_SEC_MAX];
-> };
-> #define mod_arch_specific mod_arch_specific
-> #endif
+> > Hi Rusty, Arnd,
+> > 
+> > Here's a patch to asm-genericise the arch asm/module.h files.  It allows four
+> > of them to be deleted outright.  MIPS is the only weirdo of the bunch.
+> > 
+> > The patch can also be found here:
+> > 
+> > http://git.kernel.org/?p=linux/kernel/git/dhowells/linux-modsign.git;a=shortlog;h=refs/heads/for-rusty
+> > 
+> > David
 > 
-> and then let the asm-generic version test that using
+> No sooner had I pushed that than Fengguang Wu found a bug in it.  I've pushed a
+> new version to the GIT tree which will find its way to gitweb at some point.
 > 
-> #ifndef mod_arch_specific
-> struct mod_arch_specific {};
-> #endif
-
-Ewww.  That's even ickier.
-
-> I believe all architectures have either one or the other, but never both or
-> neither of the two, right? If so, we only need one symbol here.
-
-That's probably the case, but I don't know which it is for which arch, or
-whether it has changed during the lifetime of an arch, requiring both to be
-supported for that arch.
-
-> some time back to provide a default so architectures no longer need
-> to provide the apply_relocate function for both cases. If we have the
-> Kconfig symbol you introduce, we can turn this into an nice inline
-> function and do
+> The problem was that I defined the new config options within the:
 > 
-> #ifdef CONFIG_MODULES_USE_RELA_ONLY
-> static inline int __weak apply_relocate(Elf_Shdr *sechdrs,
+> 	if MODULES
+> 	...
+> 	endif # MODULES
+> 
+> section within init/Kconfig - but they're statements of fact about the arch and
+> are not dependent on whether or not modules are configured.
 
-You don't then need the __weak attributes.
+Stuff like this is better situated in arch/Kconfig.
+This is not related to the init part but to the configuration of the
+architecture.
+For historical reasons we used to use init/Kconfig for this in
+the past - but now that we have arch/Kconfig let's use it.
 
-> and consequently kill off the remaining empty functions.
-
-:-)
-
-David
+	Sam
