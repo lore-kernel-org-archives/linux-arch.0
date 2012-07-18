@@ -1,78 +1,53 @@
-From: Mike Frysinger <vapier@gentoo.org>
-Subject: Re: [PATCH] Make most arch asm/module.h files use asm-generic/module.h
-Date: Wed, 18 Jul 2012 09:56:47 -0400
-Message-ID: <201207180956.49573.vapier@gentoo.org>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH] Make most arch asm/module.h files use
+ asm-generic/module.h
+Date: Wed, 18 Jul 2012 16:21:19 +0200
+Message-ID: <20120718142119.GA26087@linux-mips.org>
 References: <32350.1342615619@warthog.procyon.org.uk>
+ <201207181320.35807.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: multipart/signed;
-  boundary="nextPart2173222.vg99vfy2e6";
-  protocol="application/pgp-signature";
-  micalg=pgp-sha1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.gentoo.org ([140.211.166.183]:50050 "EHLO smtp.gentoo.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753202Ab2GRN4a (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Jul 2012 09:56:30 -0400
-In-Reply-To: <32350.1342615619@warthog.procyon.org.uk>
+Received: from eddie.linux-mips.org ([78.24.191.182]:38706 "EHLO
+	cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752745Ab2GROVb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Jul 2012 10:21:31 -0400
+Received: from localhost.localdomain ([127.0.0.1]:35801 "EHLO linux-mips.org"
+        rhost-flags-OK-OK-OK-FAIL) by eddie.linux-mips.org with ESMTP
+        id S1903559Ab2GROV3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+        Wed, 18 Jul 2012 16:21:29 +0200
+Content-Disposition: inline
+In-Reply-To: <201207181320.35807.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Rusty Russell <rusty@rustcorp.com.au>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: David Howells <dhowells@redhat.com>, Rusty Russell <rusty@rustcorp.com.au>, linux-arch@vger.kernel.org
 
---nextPart2173222.vg99vfy2e6
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: quoted-printable
+On Wed, Jul 18, 2012 at 01:20:35PM +0000, Arnd Bergmann wrote:
 
-On Wednesday 18 July 2012 08:46:59 David Howells wrote:
-> --- a/arch/blackfin/Kconfig
-> +++ b/arch/blackfin/Kconfig
-> @@ -40,6 +40,7 @@ config BLACKFIN
->  	select HAVE_NMI_WATCHDOG if NMI_WATCHDOG
->  	select GENERIC_SMP_IDLE_THREAD
->  	select ARCH_USES_GETTIMEOFFSET if !GENERIC_CLOCKEVENTS
-> +	select HAVE_MOD_ARCH_SPECIFIC
->=20
->  config GENERIC_CSUM
->  	def_bool y
-> --- a/arch/blackfin/include/asm/module.h
-> +++ b/arch/blackfin/include/asm/module.h
-> @@ -7,9 +7,7 @@
->  #ifndef _ASM_BFIN_MODULE_H
->  #define _ASM_BFIN_MODULE_H
->=20
-> -#define Elf_Shdr        Elf32_Shdr
-> -#define Elf_Sym         Elf32_Sym
-> -#define Elf_Ehdr        Elf32_Ehdr
-> +#include <asm-generic/module.h>
->=20
->  struct mod_arch_specific {
->  	Elf_Shdr	*text_l1;
+> >      (*) MODULES_USE_RELA_ONLY
+> >     
+> >          Arches define this if their modules will only contain RELA records (and
+> >          not REL records).  This causes the Elf_Rel mapping not to be emitted.
+> >     
+> >      (*) MODULES_USE_REL_ONLY
+> >     
+> >          Arches define this if their modules will only contain REL records (and
+> >          not RELA records).  This causes the Elf_Rela mapping not to be emitted.
+> 
+> I believe all architectures have either one or the other, but never both
+> or neither of the two, right? If so, we only need one symbol here.
 
-looks sane to me
-=2Dmike
+How sweet life would be without the SGI designed ELF NABI.  For the
+purposes of kernel modules that means 64-bit MIPS kernels.  The 64-bit
+ELF spec [1] allows both REL and RELA.  I believe that GNU tools only
+emit rela relocations and in the hope that things are going to stay
+like this I'd like 64-bit MIPS to be treated as RELA-only.  However we're
+in the hand of the tools guy here - they always could make use of the
+rope provided.
 
---nextPart2173222.vg99vfy2e6
-Content-Type: application/pgp-signature; name=signature.asc 
-Content-Description: This is a digitally signed message part.
+32-bit MIPS uses REL only.
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.17 (GNU/Linux)
+  Ralf
 
-iQIcBAABAgAGBQJQBsChAAoJEEFjO5/oN/WBCH4QAKjPsZqhxA3Ky8XLR3O0e4fA
-a0pU6DaFIqvv+yrx0bZDo3Ko62ka0elqXBZIYeBjA7jhteKPI7MlAYUgAbAdOQOA
-wi+Zvps24XaIywLOtJl8wmxFTx1RPDn4bbEox1RmE/eBNrthKjeQcrAfT92pKbIE
-B266sRqkqQNLkxeY/I9Ocd1m4/AKSGQvPYzyDbjfnSWr+n3bHEYeXcHu9tg/ZItq
-H1fV7Z8ejSkhTtS/eo4rQ2eteA8cEbnzs5W8QjUoLD9VThn6nAgH3pdBxJrzQ53Z
-7Umux7XHluBgovKY57u4MUit+0FpsKfsokxJz2VXnruP2o6LPXIiQX1N1ZY0dpyh
-0/yuirIl6G/BbGJcZjxs5AYQ5Q3XYkTm4IwTGRr2F47PZt9IefsDFYH03aUY7Lu3
-UFKb1RMOpcAnGgrEEJFScHSd3uDhEK1KKRtClTPmznp0UjF+4/gPX6EHnHEBOmsz
-Np8ZUZRTkKJX4Oc0TqNb+6nPTYH28eHt8DsUpbHuM1nL7uV7IQ0Y6VvurLB7RrDj
-D66/HKSDzevzUuYbsQP3Lp4UrW/k+y/5nLJJ4HdGSP9LOT52XdEtDZ7NlYiqb5Eu
-foYGqo+jyXwJ7aNeH/RSixYsrlP64l4HLbxwPQPN0yOk58iw/886GLgHiWz+Y49S
-/Sumam1y54ZJjoOIviyK
-=iS8d
------END PGP SIGNATURE-----
-
---nextPart2173222.vg99vfy2e6--
+[1] https://www.linux-mips.org/pub/linux/mips/doc/ABI/elf64-2.4.pdf
