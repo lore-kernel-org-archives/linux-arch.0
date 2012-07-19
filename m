@@ -1,50 +1,43 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH] atomic64_test: Simplify the #ifdef for
- atomic64_dec_if_positive() test
-Date: Wed, 18 Jul 2012 15:10:37 -0700
-Message-ID: <20120718151037.4692fa85.akpm@linux-foundation.org>
-References: <1342545048-30958-1-git-send-email-catalin.marinas@arm.com>
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH] Make most arch asm/module.h files use asm-generic/module.h
+Date: Thu, 19 Jul 2012 11:15:24 +0930
+Message-ID: <874np4cymj.fsf@rustcorp.com.au>
+References: <32350.1342615619@warthog.procyon.org.uk> <2597.1342617840@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:43990 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751188Ab2GRWKj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 18 Jul 2012 18:10:39 -0400
-In-Reply-To: <1342545048-30958-1-git-send-email-catalin.marinas@arm.com>
+Received: from ozlabs.org ([203.10.76.45]:33118 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752190Ab2GSCQq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 18 Jul 2012 22:16:46 -0400
+In-Reply-To: <2597.1342617840@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linux390@de.ibm.com, x86@kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>
 
-On Tue, 17 Jul 2012 18:10:48 +0100
-Catalin Marinas <catalin.marinas@arm.com> wrote:
-
-> This patch introduces CONFIG_ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE and uses
-> this instead of the multitude of #if defined() checks in atomic64_test.c
-> 
-> ...
->
-> --- a/lib/atomic64_test.c
-> +++ b/lib/atomic64_test.c
-> @@ -114,8 +114,7 @@ static __init int test_atomic64(void)
->  	r += one;
->  	BUG_ON(v.counter != r);
+On Wed, 18 Jul 2012 14:24:00 +0100, David Howells <dhowells@redhat.com> wrote:
+> diff --git a/arch/sh/include/asm/module.h b/arch/sh/include/asm/module.h
+> index b7927de..81300d8b 100644
+> --- a/arch/sh/include/asm/module.h
+> +++ b/arch/sh/include/asm/module.h
+> @@ -1,21 +1,13 @@
+>  #ifndef _ASM_SH_MODULE_H
+>  #define _ASM_SH_MODULE_H
 >  
-> -#if defined(CONFIG_X86) || defined(CONFIG_MIPS) || defined(CONFIG_PPC) || \
-> -    defined(CONFIG_S390) || defined(_ASM_GENERIC_ATOMIC64_H) || defined(CONFIG_ARM)
+> -struct mod_arch_specific {
+> +#include <asm-generic/module.h>
+> +
+>  #ifdef CONFIG_DWARF_UNWINDER
+> +struct mod_arch_specific {
+>  	struct list_head fde_list;
+>  	struct list_head cie_list;
+> -#endif
+>  };
 
-ugh, good riddance.
+Hmm, this means we get two definitions if CONFIG_DWARF_UNWINDER?
 
-> +#ifdef CONFIG_ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
+Seems like a useful effort.  Fiddly though.
 
-The alternative way of doing this is to do
-
-#define atomic64_dec_if_positive atomic64_dec_if_positive
-
-in all the relevant .h files, then use #ifdef atomic64_dec_if_positive.
-That's rather nice because it keeps everything in one place.  otoh it
-is rather unobvious trickery.
-
-But either way is better than what we have now.
+Cheers,
+Rusty.
