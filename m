@@ -1,80 +1,36 @@
-From: "Carman Lapointe" <crussell5941@aol.com>
-Subject: UNITED NATIONS OFFICE
-Date: Thu, 19 Jul 2012 09:51:01 +0200
-Message-ID: <201207190754.q6J7s8nm013936@ims-d11.mx.aol.com>
-Reply-To: ms.carmanlapointey1@yahoo.es
-Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="===============0799128023=="
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH] Make most arch asm/module.h files use asm-generic/module.h [ver #2]
+Date: Thu, 19 Jul 2012 12:40:46 +0100
+Message-ID: <31321.1342698046@warthog.procyon.org.uk>
+References: <20105.1342623053@warthog.procyon.org.uk>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ims-d11.mx.aol.com ([205.188.249.148]:61696 "EHLO
-	ims-d11.mx.aol.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750966Ab2GSHyl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 19 Jul 2012 03:54:41 -0400
-Received: from oms-ma01.r1000.mx.aol.com (oms-ma01.r1000.mx.aol.com [64.12.140.129])
-	by ims-d11.mx.aol.com (8.14.1/8.14.1) with ESMTP id q6J7s8nm013936
-	for <linux-arch@vger.kernel.org>; Thu, 19 Jul 2012 03:54:08 -0400
+Received: from mx1.redhat.com ([209.132.183.28]:63470 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751701Ab2GSLlN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 19 Jul 2012 07:41:13 -0400
+In-Reply-To: <20105.1342623053@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Recipients <crussell5941@aol.com>
+To: Rusty Russell <rusty@rustcorp.com.au>, Arnd Bergmann <arnd@arndb.de>
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>, Sam Ravnborg <sam@ravnborg.org>, Fengguang Wu <fengguang.wu@intel.com>
 
-You will not see this in a MIME-aware mail reader.
---===============0799128023==
-Content-Type: text/plain; charset="iso-8859-1"
-MIME-Version: 1.0
-Content-Transfer-Encoding: quoted-printable
-Content-Description: Mail message body
 
-OPEN AND READ THE ATTACHMENT FOR MORE DETAILS ABOUT YOUR APPROVED FUND
---===============0799128023==
-Content-Type: application/octet-stream
-MIME-Version: 1.0
-Content-Transfer-Encoding: base64
-Content-Disposition: attachment; filename="Young.rtf"
+David Howells <dhowells@redhat.com> wrote:
 
-e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjBcZGVmbGFuZzEwMzF7XGZvbnR0Ymx7XGYwXGZz
-d2lzc1xmY2hhcnNldDIwNHtcKlxmbmFtZSBBcmlhbDt9QXJpYWwgQ1lSO319DQp7XCpcZ2VuZXJh
-dG9yIE1zZnRlZGl0IDUuNDEuMjEuMjUwOTt9XHZpZXdraW5kNFx1YzFccGFyZFxmMFxmczIwIFVO
-SVRFRCBOQVRJT05TIEhFQURRVUFSVEVSU1xwYXINCk9GRklDRSBPRiBJTlRFUk5BTCBPVkVSU0lH
-SFQgU0VSVklDRVMoT0lPUylccGFyDQpJbnRlcm5hbCBBdWRpdCwgTW9uaXRvcmluZywgQ29uc3Vs
-dGluZyBhbmQgIEludmVzdGlnYXRpb25zIERpdmlzaW9uXHBhcg0KXHBhcg0KRnJvbTogTXMuIENh
-cm1hbiBMLiBMYXBvaW50ZVxwYXINClVOIFVuZGVyLVNlY3JldGFyeS1HZW5lcmFsIGZvciBJbnRl
-cm5hbCBPdmVyc2lnaHQgIFNlcnZpY2VzXHBhcg0KIFxwYXINClRoaXMgaXMgdG8gaW5mb3JtIHlv
-dSB0aGF0IEkgY2FtZSB0byBOaWdlcmlhIHllc3RlcmRheSAgYWZ0ZXIgc2VyaWVzIG9mIGNvbXBs
-YWlucyBmcm9tIHRoZSBGQkkgYW5kIG90aGVyICBTZWN1cml0eSBhZ2VuY2llcyBmcm9tIEFzaWEs
-IEV1cm9wZSwgT2NlYW5pYSwgIEFudGFyY3RpY2EsU291dGggQW1lcmljYSBhbmQgdGhlIFVuaXRl
-ZCBTdGF0ZXMgb2YgIEFtZXJpY2EgcmVzcGVjdGl2ZWx5LCBhZ2FpbnN0IHRoZSBGZWRlcmFsIEdv
-dmVybm1lbnQgb2YgIE5pZ2VyaWEgYW5kIHRoZSBCcml0aXNoIEdvdmVybm1lbnQgZm9yIHRoZSBy
-YXRlIG9mIHNjYW0gIGFjdGl2aXRpZXMgZ29pbmcgb24gaW4gdGhlc2UgdHdvIG5hdGlvbnMuIFxw
-YXINCiBccGFyDQpJIGhhdmUgbWV0IHdpdGggUHJlc2lkZW50IERyIEdvb2RsdWNrIEpvbmF0aGFu
-IG9mICBOaWdlcmlhIGFuZCBzb21lIG90aGVyIHRvcCBjb25jZXJuZWQgYmFua3Mgb2ZmaWNpYWxz
-ICBoZXJlIGluIE5pZ2VyaWEgd2hvIGNsYWltZWQgdGhhdCB0aGV5IGhhdmUgYmVlbiB0cnlpbmcg
-IHRoZWlyIGJlc3QgdG8gbWFrZSBzdXJlIHlvdSByZWNlaXZlIHlvdXIgZnVuZCBpbiB5b3VyICBh
-Y2NvdW50LiBccGFyDQogXHBhcg0KUmlnaHQgbm93LGFzIGRpcmVjdGVkIGJ5IG91ciBzZWNyZXRh
-cnkgZ2VuZXJhbCBNci5CYW4gIEtpLU1vb24sV2UgYXJlIHdvcmtpbmcgaW4gY29sbGFib3JhdGlv
-bnMgd2l0aCB0aGUgIE5pZ2VyaWFuIEVjb25vbWljIGFuZCBGaW5hbmNpYWwgQ3JpbWUgQ29tbWlz
-c2lvbiAoRUZDQykgIGFuZCBpdCB3YXMgcmVzb2x2ZWQgdG8gd2FpdmUgYXdheSBhbGwgeW91ciBj
-bGVhcmFuY2UgIGZlZXMvQ2hhcmdlcyBhbmQgYXV0aG9yaXplIHRoZSBHb3Zlcm5tZW50IG9mIE5p
-Z2VyaWEgdG8gIGVmZmVjdCB5b3VyIGFwcHJvdmVkIHBheW1lbnQgb2YgICQxMC41MDAsMDAwLDAw
-KSBidXQgdGhlICBvbmx5IGZlZSB5b3Ugd2lsbCBwYXkgdG8gY29uZmlybSB5b3VyIGZ1bmQgaXMg
-eW91ciAgTm90YXJpemF0aW9uIG9ibGlnYXRvcnkgZmVlcyB0byB0aGUgVW5pdGVkIE5hdGlvbiBI
-ZWFkICBPZmZpY2UgaW4gIEFidWphIE5pZ2VyaWEsIFRoaXMgcGF5bWVudCB3YXMgYXBwcm92ZWQg
-YnkgIGJvdGggdGhlIEJyaXRpc2ggIGdvdmVybm1lbnQgYW5kIHRoZSBVTiBpbiB5b3VyIGZhdm9y
-ICBlaXRoZXIgYnkgd2lyZSB0cmFuc2Zlci9DaGVjayBwYXltZW50L0FUTSBjYXJkIE1ldGhvZCAg
-d2l0aG91dCBhbnkgbW9yZSBkZWxheS5ccGFyDQpccGFyDQpTaW5jZXJlbHkseW91IGFyZSBhIGx1
-Y2t5IHBlcnNvbiBiZWNhdXNlIEkgaGF2ZSBqdXN0ICBkaXNjb3ZlcmVkIHRoYXQgc29tZSB0b3Ag
-TmlnZXJpYW4gYW5kIEJyaXRpc2ggR292ZXJubWVudCAgT2ZmaWNpYWxzIGFyZSBpbnRlcmVzdGVk
-IGluIHlvdXIgZnVuZCBhbmQgdGhleSBhcmUgIHdvcmtpbmcgaW4gY29sbGFib3JhdGlvbiB3aXRo
-IE9uZSBNci5SaWNoYXJkIEdyYXZlcyBmcm9tICBVU0EgdG8gZnJ1c3RyYXRlIHlvdSBhbmQgdGhl
-cmVhZnRlciBkaXZlcnQgeW91ciBmdW5kICBpbnRvIHRoZWlyIHBlcnNvbmFsIGFjY291bnQuIFxw
-YXINCiBccGFyDQpTaW5jZSBteSBzdGF5IGhlcmUgaW4gTmlnZXJpYSwgaSBoYXZlIGJlZW4gaG9s
-ZGluZyAgc2VyaWVzIG9mIG1lZXRpbmdzIHdpdGggdGhlIE5pZ2VyaWEgYW5kIHlvdSBjYW4gY2Fs
-bCBtZSAgb24gdGhlIG51bWJlciB3aGljaCBJIGp1c3QgYWNxdWlyZWQgaW4gTmlnZXJpYSB0b2Rh
-eTogICsyMzQtODAyNjExMzE4MlxwYXINCiBccGFyDQpJIGhhdmUgYSB2ZXJ5IGxpbWl0ZWQgdGlt
-ZSB0byBzdGF5IGluIE5pZ2VyaWEgaGVyZSBzbyBJICB3b3VsZCBsaWtlIHlvdSB0byB1cmdlbnRs
-eSByZXNwb25kIHRvIHRoaXMgbWVzc2FnZSBzbyAgdGhhdCBJIGNhbiBhZHZpc2UgeW91IG9uIGhv
-dyBiZXN0IHRvIGNvbmZpcm0geW91ciBmdW5kICBpbiB5b3VyIGFjY291bnQgd2l0aGluIHRoZSBu
-ZXh0IDcyIGhvdXJzLnJlcGx5IG1lICBpbmZvcnVuaXRlZG5hdGlvbkB6aW5nLnZuXHBhcg0KXHBh
-cg0KTXMuIENhcm1hbiBMYXBvaW50ZS1Zb3VuZy5ccGFyDQpVbml0ZWQgTmF0aW9ucyBVbmRlci1T
-ZWNyZXRhcnktXHBhcg0KR2VuZXJhbCBmb3IgSW50ZXJuYWwgT3ZlcnNpZ2h0LlxwYXINCkNlbGwg
-UGhvbmU6KzIzNC04MDI2MTEzMTgyXHBhcg0KfQ0KAA==
---===============0799128023==--
+> +static inline int apply_relocate(Elf_Shdr *sechdrs,
+> +				 const char *strtab,
+> +				 unsigned int symindex,
+> +				 unsigned int relsec,
+> +				 struct module *me)
+> +{
+> +	pr_err("module %s: REL relocation unsupported\n", me->name);
+> +	return -ENOEXEC;
+> +}
+
+Turns out you cannot use pr_err() and friends in a header file, lest it get
+included in a file that defines pr_fmt() to be something inconvenient.
+
+Thanks to Fengguang and his GIT tree cruncher for finding this in Blackfin
+with the BF526-EZBRD_defconfig.
+
+David
