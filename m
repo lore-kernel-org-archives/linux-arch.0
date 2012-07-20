@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:62652 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:48211 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753678Ab2GTV6l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Jul 2012 17:58:41 -0400
+	id S1753632Ab2GTV66 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Jul 2012 17:58:58 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 10/13] UAPI: Move linux/version.h
-Date: Fri, 20 Jul 2012 22:58:32 +0100
-Message-ID: <20120720215832.14854.80740.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 11/13] UAPI: Remove the objhdr-y export list
+Date: Fri, 20 Jul 2012 22:58:42 +0100
+Message-ID: <20120720215842.14854.34363.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
 References: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,85 +16,81 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, tglx@linutronix.de, mingo@kernel.org, davej@redhat.com
-Message-ID: <20120720215832.TzvZo4ui3Qtk9bY1HlNvocZAk1-sqvQzCTYTQ36EjKQ@z>
+Message-ID: <20120720215842.239_Rps7tXS0AEtwcR62JzE0Uy0YfE04f_9jLi7w9yM@z>
 
-Move include/linux/version.h to the include/generated/ header directory.
-A later patch will move it to include/uapi/generated/.
-
-This allows us to get rid of the objhdr-y list.
+Remove the objhdr-y export list as it is no longer used.  genhdr-y should be
+used instead.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- Makefile             |   13 +++++++------
- include/linux/Kbuild |    2 +-
- 2 files changed, 8 insertions(+), 7 deletions(-)
+ Documentation/kbuild/makefiles.txt |    8 ++++----
+ scripts/Makefile.headersinst       |    7 ++-----
+ 2 files changed, 6 insertions(+), 9 deletions(-)
 
-diff --git a/Makefile b/Makefile
-index d6f09dd..bd0763f 100644
---- a/Makefile
-+++ b/Makefile
-@@ -447,9 +447,11 @@ asm-generic:
- # Detect when mixed targets is specified, and make a second invocation
- # of make so .config is not included in this case either (for *config).
+diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+index ab0a984..ec9ae67 100644
+--- a/Documentation/kbuild/makefiles.txt
++++ b/Documentation/kbuild/makefiles.txt
+@@ -45,7 +45,7 @@ This document describes the Linux kernel Makefiles.
  
-+version_h := include/generated/linux/version.h
-+
- no-dot-config-targets := clean mrproper distclean \
- 			 cscope gtags TAGS tags help %docs check% coccicheck \
--			 include/linux/version.h headers_% archheaders archscripts \
-+			 $(version_h) headers_% archheaders archscripts \
- 			 kernelversion %src-pkg
+ 	=== 7 Kbuild syntax for exported headers
+ 		--- 7.1 header-y
+-		--- 7.2 objhdr-y
++		--- 7.2 genhdr-y
+ 		--- 7.3 destination-y
+ 		--- 7.4 generic-y
  
- config-targets := 0
-@@ -815,7 +817,7 @@ endif
- # prepare2 creates a makefile if using a separate output directory
- prepare2: prepare3 outputmakefile asm-generic
+@@ -1282,15 +1282,15 @@ See subsequent chapter for the syntax of the Kbuild file.
  
--prepare1: prepare2 include/linux/version.h include/generated/utsrelease.h \
-+prepare1: prepare2 $(version_h) include/generated/utsrelease.h \
-                    include/config/auto.conf
- 	$(cmd_crmodverdir)
+ 	Subdirectories are visited before their parent directories.
  
-@@ -848,7 +850,7 @@ define filechk_version.h
- 	echo '#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))';)
- endef
+-	--- 7.2 objhdr-y
++	--- 7.2 genhdr-y
  
--include/linux/version.h: $(srctree)/Makefile FORCE
-+$(version_h): $(srctree)/Makefile FORCE
- 	$(call filechk,version.h)
+-	objhdr-y specifies generated files to be exported.
++	genhdr-y specifies generated files to be exported.
+ 	Generated files are special as they need to be looked
+ 	up in another directory when doing 'make O=...' builds.
  
- include/generated/utsrelease.h: include/config/kernel.release FORCE
-@@ -893,7 +895,7 @@ PHONY += archscripts
- archscripts:
+ 		Example:
+ 			#include/linux/Kbuild
+-			objhdr-y += version.h
++			genhdr-y += version.h
  
- PHONY += __headers
--__headers: include/linux/version.h scripts_basic asm-generic archheaders archscripts FORCE
-+__headers: $(version_h) scripts_basic asm-generic archheaders archscripts FORCE
- 	$(Q)$(MAKE) $(build)=scripts build_unifdef
+ 	--- 7.3 destination-y
  
- PHONY += headers_install_all
-@@ -1003,8 +1005,7 @@ CLEAN_DIRS  += $(MODVERDIR)
- # Directories & files removed with 'make mrproper'
- MRPROPER_DIRS  += include/config usr/include include/generated          \
-                   arch/*/include/generated
--MRPROPER_FILES += .config .config.old .version .old_version             \
--                  include/linux/version.h                               \
-+MRPROPER_FILES += .config .config.old .version .old_version $(version_h) \
- 		  Module.symvers tags TAGS cscope* GPATH GTAGS GRTAGS GSYMS
+diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
+index d3bae5e..463b95a 100644
+--- a/scripts/Makefile.headersinst
++++ b/scripts/Makefile.headersinst
+@@ -3,8 +3,7 @@
+ #
+ # header-y  - list files to be installed. They are preprocessed
+ #             to remove __KERNEL__ section of the file
+-# objhdr-y  - Same as header-y but for generated files
+-# genhdr-y  - Same as objhdr-y but in a generated/ directory
++# genhdr-y  - Same as header-y but in a generated/ directory
+ #
+ # ==========================================================================
  
- # clean - Delete most, but leave enough to build external modules
-diff --git a/include/linux/Kbuild b/include/linux/Kbuild
-index 8760be3..ecd8820d 100644
---- a/include/linux/Kbuild
-+++ b/include/linux/Kbuild
-@@ -20,7 +20,7 @@ header-y += netfilter_ipv6/
- header-y += usb/
- header-y += wimax/
+@@ -37,9 +36,8 @@ wrapper-files := $(filter $(header-y), $(generic-y))
  
--objhdr-y += version.h
-+genhdr-y += version.h
+ # all headers files for this dir
+ header-y      := $(filter-out $(generic-y), $(header-y))
+-all-files     := $(header-y) $(objhdr-y) $(genhdr-y) $(wrapper-files)
++all-files     := $(header-y) $(genhdr-y) $(wrapper-files)
+ input-files   := $(addprefix $(srctree)/$(obj)/,$(header-y)) \
+-                 $(addprefix $(objtree)/$(obj)/,$(objhdr-y)) \
+                  $(addprefix $(objtree)/$(gen)/,$(genhdr-y))
+ output-files  := $(addprefix $(install)/, $(all-files))
  
- ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/a.out.h \
- 		  $(srctree)/include/asm-$(SRCARCH)/a.out.h \
+@@ -56,7 +54,6 @@ quiet_cmd_install = INSTALL $(printdir) ($(words $(all-files))\
+                             file$(if $(word 2, $(all-files)),s))
+       cmd_install = \
+         $(PERL) $< $(srctree)/$(obj) $(install) $(SRCARCH) $(header-y); \
+-        $(PERL) $< $(objtree)/$(obj) $(install) $(SRCARCH) $(objhdr-y); \
+         $(PERL) $< $(objtree)/$(gen) $(install) $(SRCARCH) $(genhdr-y); \
+         for F in $(wrapper-files); do                                   \
+                 echo "\#include <asm-generic/$$F>" > $(install)/$$F;    \
 
