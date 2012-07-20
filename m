@@ -1,7 +1,7 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 09/13] UAPI: Set up uapi/asm/Kbuild.asm
-Date: Fri, 20 Jul 2012 22:58:22 +0100
-Message-ID: <20120720215822.14854.44849.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 11/13] UAPI: Remove the objhdr-y export list
+Date: Fri, 20 Jul 2012 22:58:42 +0100
+Message-ID: <20120720215842.14854.34363.stgit@warthog.procyon.org.uk>
 References: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -13,125 +13,78 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, tglx@linutronix.de, mingo@kernel.org, davej@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-Set up uapi/asm/Kbuild.asm.  This requires the mandatory headers to be
-dynamically detected.  The same goes for include/asm/Kbuild.asm.  The problem
-is that the header files will be split or moved one at a time, but each header
-file in Kbuild.asm's list applies to all arch headers of that name
-simultaneously.
-
-The dynamic detection of mandatory files can be undone later.
+Remove the objhdr-y export list as it is no longer used.  genhdr-y should be
+used instead.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- include/asm-generic/Kbuild.asm      |   46 +--------------------------------
- include/uapi/asm-generic/Kbuild.asm |   49 +++++++++++++++++++++++++++++++++++
- 2 files changed, 50 insertions(+), 45 deletions(-)
- create mode 100644 include/uapi/asm-generic/Kbuild.asm
+ Documentation/kbuild/makefiles.txt |    8 ++++----
+ scripts/Makefile.headersinst       |    7 ++-----
+ 2 files changed, 6 insertions(+), 9 deletions(-)
 
-diff --git a/include/asm-generic/Kbuild.asm b/include/asm-generic/Kbuild.asm
-index c5d2e5d..d2ee86b 100644
---- a/include/asm-generic/Kbuild.asm
-+++ b/include/asm-generic/Kbuild.asm
-@@ -1,45 +1 @@
--ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/kvm.h \
--		  $(srctree)/include/asm-$(SRCARCH)/kvm.h),)
--header-y  += kvm.h
--endif
--
--ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/kvm_para.h \
--		  $(srctree)/include/asm-$(SRCARCH)/kvm_para.h),)
--header-y  += kvm_para.h
--endif
--
--ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/a.out.h \
--		  $(srctree)/include/asm-$(SRCARCH)/a.out.h),)
--header-y += a.out.h
--endif
--
--header-y += auxvec.h
--header-y += bitsperlong.h
--header-y += byteorder.h
--header-y += errno.h
--header-y += fcntl.h
--header-y += ioctl.h
--header-y += ioctls.h
--header-y += ipcbuf.h
--header-y += mman.h
--header-y += msgbuf.h
--header-y += param.h
--header-y += poll.h
--header-y += posix_types.h
--header-y += ptrace.h
--header-y += resource.h
--header-y += sembuf.h
--header-y += setup.h
--header-y += shmbuf.h
--header-y += sigcontext.h
--header-y += siginfo.h
--header-y += signal.h
--header-y += socket.h
--header-y += sockios.h
--header-y += stat.h
--header-y += statfs.h
--header-y += swab.h
--header-y += termbits.h
--header-y += termios.h
--header-y += types.h
--header-y += unistd.h
-+include include/uapi/asm-generic/Kbuild.asm
-diff --git a/include/uapi/asm-generic/Kbuild.asm b/include/uapi/asm-generic/Kbuild.asm
-new file mode 100644
-index 0000000..9a8464d
---- /dev/null
-+++ b/include/uapi/asm-generic/Kbuild.asm
-@@ -0,0 +1,49 @@
-+#
-+# Headers that are optional in usr/include/asm/
-+#
-+opt-header += kvm.h
-+opt-header += kvm_para.h
-+opt-header += a.out.h
-+
-+#
-+# Headers that are mandatory in usr/include/asm/
-+#
-+header-y += auxvec.h
-+header-y += bitsperlong.h
-+header-y += byteorder.h
-+header-y += errno.h
-+header-y += fcntl.h
-+header-y += ioctl.h
-+header-y += ioctls.h
-+header-y += ipcbuf.h
-+header-y += mman.h
-+header-y += msgbuf.h
-+header-y += param.h
-+header-y += poll.h
-+header-y += posix_types.h
-+header-y += ptrace.h
-+header-y += resource.h
-+header-y += sembuf.h
-+header-y += setup.h
-+header-y += shmbuf.h
-+header-y += sigcontext.h
-+header-y += siginfo.h
-+header-y += signal.h
-+header-y += socket.h
-+header-y += sockios.h
-+header-y += stat.h
-+header-y += statfs.h
-+header-y += swab.h
-+header-y += termbits.h
-+header-y += termios.h
-+header-y += types.h
-+header-y += unistd.h
-+
-+header-y += $(foreach hdr,$(opt-header), \
-+	      $(if \
-+		$(wildcard \
-+			arch/$(SRCARCH)/include/uapi/asm/$(hdr) \
-+			arch/$(SRCARCH)/include/asm/$(hdr) \
-+		), \
-+		$(hdr) \
-+		))
+diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+index ab0a984..ec9ae67 100644
+--- a/Documentation/kbuild/makefiles.txt
++++ b/Documentation/kbuild/makefiles.txt
+@@ -45,7 +45,7 @@ This document describes the Linux kernel Makefiles.
+ 
+ 	=== 7 Kbuild syntax for exported headers
+ 		--- 7.1 header-y
+-		--- 7.2 objhdr-y
++		--- 7.2 genhdr-y
+ 		--- 7.3 destination-y
+ 		--- 7.4 generic-y
+ 
+@@ -1282,15 +1282,15 @@ See subsequent chapter for the syntax of the Kbuild file.
+ 
+ 	Subdirectories are visited before their parent directories.
+ 
+-	--- 7.2 objhdr-y
++	--- 7.2 genhdr-y
+ 
+-	objhdr-y specifies generated files to be exported.
++	genhdr-y specifies generated files to be exported.
+ 	Generated files are special as they need to be looked
+ 	up in another directory when doing 'make O=...' builds.
+ 
+ 		Example:
+ 			#include/linux/Kbuild
+-			objhdr-y += version.h
++			genhdr-y += version.h
+ 
+ 	--- 7.3 destination-y
+ 
+diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
+index d3bae5e..463b95a 100644
+--- a/scripts/Makefile.headersinst
++++ b/scripts/Makefile.headersinst
+@@ -3,8 +3,7 @@
+ #
+ # header-y  - list files to be installed. They are preprocessed
+ #             to remove __KERNEL__ section of the file
+-# objhdr-y  - Same as header-y but for generated files
+-# genhdr-y  - Same as objhdr-y but in a generated/ directory
++# genhdr-y  - Same as header-y but in a generated/ directory
+ #
+ # ==========================================================================
+ 
+@@ -37,9 +36,8 @@ wrapper-files := $(filter $(header-y), $(generic-y))
+ 
+ # all headers files for this dir
+ header-y      := $(filter-out $(generic-y), $(header-y))
+-all-files     := $(header-y) $(objhdr-y) $(genhdr-y) $(wrapper-files)
++all-files     := $(header-y) $(genhdr-y) $(wrapper-files)
+ input-files   := $(addprefix $(srctree)/$(obj)/,$(header-y)) \
+-                 $(addprefix $(objtree)/$(obj)/,$(objhdr-y)) \
+                  $(addprefix $(objtree)/$(gen)/,$(genhdr-y))
+ output-files  := $(addprefix $(install)/, $(all-files))
+ 
+@@ -56,7 +54,6 @@ quiet_cmd_install = INSTALL $(printdir) ($(words $(all-files))\
+                             file$(if $(word 2, $(all-files)),s))
+       cmd_install = \
+         $(PERL) $< $(srctree)/$(obj) $(install) $(SRCARCH) $(header-y); \
+-        $(PERL) $< $(objtree)/$(obj) $(install) $(SRCARCH) $(objhdr-y); \
+         $(PERL) $< $(objtree)/$(gen) $(install) $(SRCARCH) $(genhdr-y); \
+         for F in $(wrapper-files); do                                   \
+                 echo "\#include <asm-generic/$$F>" > $(install)/$$F;    \
