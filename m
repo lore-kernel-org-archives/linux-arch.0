@@ -1,12 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:48211 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:50544 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753632Ab2GTV66 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Jul 2012 17:58:58 -0400
+	id S1753708Ab2GTV7H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Jul 2012 17:59:07 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 11/13] UAPI: Remove the objhdr-y export list
-Date: Fri, 20 Jul 2012 22:58:42 +0100
-Message-ID: <20120720215842.14854.34363.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 12/13] UAPI: x86: Differentiate the generated UAPI and
+ internal headers
+Date: Fri, 20 Jul 2012 22:58:53 +0100
+Message-ID: <20120720215853.14854.56339.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
 References: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,81 +17,77 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, tglx@linutronix.de, mingo@kernel.org, davej@redhat.com
-Message-ID: <20120720215842.239_Rps7tXS0AEtwcR62JzE0Uy0YfE04f_9jLi7w9yM@z>
+Message-ID: <20120720215853.hB-DuJoqgNUqxYwvmZDUGjUOjNKV3d_jPRZnj2RBolk@z>
 
-Remove the objhdr-y export list as it is no longer used.  genhdr-y should be
-used instead.
+Differentiate the generated UAPI and internal headers during generation such
+that the UAPI headers can be installed elsewhere.
+
+A later patch will use this to move the UAPI headers to:
+
+	arch/x86/include/generated/uapi/asm/
+
+to make them easier to handle.
+
+A previous patch added a -I for this path.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- Documentation/kbuild/makefiles.txt |    8 ++++----
- scripts/Makefile.headersinst       |    7 ++-----
- 2 files changed, 6 insertions(+), 9 deletions(-)
+ arch/x86/syscalls/Makefile |   17 ++++++++++-------
+ 1 file changed, 10 insertions(+), 7 deletions(-)
 
-diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
-index ab0a984..ec9ae67 100644
---- a/Documentation/kbuild/makefiles.txt
-+++ b/Documentation/kbuild/makefiles.txt
-@@ -45,7 +45,7 @@ This document describes the Linux kernel Makefiles.
+diff --git a/arch/x86/syscalls/Makefile b/arch/x86/syscalls/Makefile
+index 3236aeb..174b032 100644
+--- a/arch/x86/syscalls/Makefile
++++ b/arch/x86/syscalls/Makefile
+@@ -1,7 +1,9 @@
+ out := $(obj)/../include/generated/asm
++uapi := $(obj)/../include/generated/asm
  
- 	=== 7 Kbuild syntax for exported headers
- 		--- 7.1 header-y
--		--- 7.2 objhdr-y
-+		--- 7.2 genhdr-y
- 		--- 7.3 destination-y
- 		--- 7.4 generic-y
+ # Create output directory if not already present
+-_dummy := $(shell [ -d '$(out)' ] || mkdir -p '$(out)')
++_dummy := $(shell [ -d '$(out)' ] || mkdir -p '$(out)') \
++	  $(shell [ -d '$(uapi)' ] || mkdir -p '$(uapi)')
  
-@@ -1282,15 +1282,15 @@ See subsequent chapter for the syntax of the Kbuild file.
+ syscall32 := $(srctree)/$(src)/syscall_32.tbl
+ syscall64 := $(srctree)/$(src)/syscall_64.tbl
+@@ -18,7 +20,7 @@ quiet_cmd_systbl = SYSTBL  $@
+       cmd_systbl = $(CONFIG_SHELL) '$(systbl)' $< $@
  
- 	Subdirectories are visited before their parent directories.
+ syshdr_abi_unistd_32 := i386
+-$(out)/unistd_32.h: $(syscall32) $(syshdr)
++$(uapi)/unistd_32.h: $(syscall32) $(syshdr)
+ 	$(call if_changed,syshdr)
  
--	--- 7.2 objhdr-y
-+	--- 7.2 genhdr-y
+ syshdr_abi_unistd_32_ia32 := i386
+@@ -28,11 +30,11 @@ $(out)/unistd_32_ia32.h: $(syscall32) $(syshdr)
  
--	objhdr-y specifies generated files to be exported.
-+	genhdr-y specifies generated files to be exported.
- 	Generated files are special as they need to be looked
- 	up in another directory when doing 'make O=...' builds.
+ syshdr_abi_unistd_x32 := common,x32
+ syshdr_offset_unistd_x32 := __X32_SYSCALL_BIT
+-$(out)/unistd_x32.h: $(syscall64) $(syshdr)
++$(uapi)/unistd_x32.h: $(syscall64) $(syshdr)
+ 	$(call if_changed,syshdr)
  
- 		Example:
- 			#include/linux/Kbuild
--			objhdr-y += version.h
-+			genhdr-y += version.h
+ syshdr_abi_unistd_64 := common,64
+-$(out)/unistd_64.h: $(syscall64) $(syshdr)
++$(uapi)/unistd_64.h: $(syscall64) $(syshdr)
+ 	$(call if_changed,syshdr)
  
- 	--- 7.3 destination-y
+ syshdr_abi_unistd_64_x32 := x32
+@@ -45,11 +47,12 @@ $(out)/syscalls_32.h: $(syscall32) $(systbl)
+ $(out)/syscalls_64.h: $(syscall64) $(systbl)
+ 	$(call if_changed,systbl)
  
-diff --git a/scripts/Makefile.headersinst b/scripts/Makefile.headersinst
-index d3bae5e..463b95a 100644
---- a/scripts/Makefile.headersinst
-+++ b/scripts/Makefile.headersinst
-@@ -3,8 +3,7 @@
- #
- # header-y  - list files to be installed. They are preprocessed
- #             to remove __KERNEL__ section of the file
--# objhdr-y  - Same as header-y but for generated files
--# genhdr-y  - Same as objhdr-y but in a generated/ directory
-+# genhdr-y  - Same as header-y but in a generated/ directory
- #
- # ==========================================================================
+-syshdr-y			+= unistd_32.h unistd_64.h unistd_x32.h
++uapisyshdr-y			+= unistd_32.h unistd_64.h unistd_x32.h
+ syshdr-y			+= syscalls_32.h
+ syshdr-$(CONFIG_X86_64)		+= unistd_32_ia32.h unistd_64_x32.h
+ syshdr-$(CONFIG_X86_64)		+= syscalls_64.h
  
-@@ -37,9 +36,8 @@ wrapper-files := $(filter $(header-y), $(generic-y))
+-targets	+= $(syshdr-y)
++targets	+= $(uapisyshdr-y) $(syshdr-y)
  
- # all headers files for this dir
- header-y      := $(filter-out $(generic-y), $(header-y))
--all-files     := $(header-y) $(objhdr-y) $(genhdr-y) $(wrapper-files)
-+all-files     := $(header-y) $(genhdr-y) $(wrapper-files)
- input-files   := $(addprefix $(srctree)/$(obj)/,$(header-y)) \
--                 $(addprefix $(objtree)/$(obj)/,$(objhdr-y)) \
-                  $(addprefix $(objtree)/$(gen)/,$(genhdr-y))
- output-files  := $(addprefix $(install)/, $(all-files))
- 
-@@ -56,7 +54,6 @@ quiet_cmd_install = INSTALL $(printdir) ($(words $(all-files))\
-                             file$(if $(word 2, $(all-files)),s))
-       cmd_install = \
-         $(PERL) $< $(srctree)/$(obj) $(install) $(SRCARCH) $(header-y); \
--        $(PERL) $< $(objtree)/$(obj) $(install) $(SRCARCH) $(objhdr-y); \
-         $(PERL) $< $(objtree)/$(gen) $(install) $(SRCARCH) $(genhdr-y); \
-         for F in $(wrapper-files); do                                   \
-                 echo "\#include <asm-generic/$$F>" > $(install)/$$F;    \
+-all: $(addprefix $(out)/,$(targets))
++all: $(addprefix $(uapi)/,$(uapisyshdr-y))
++all: $(addprefix $(out)/,$(syshdr-y))
 
