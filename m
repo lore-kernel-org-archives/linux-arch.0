@@ -1,8 +1,8 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 05/13] UAPI: Partition the header include path sets and add
- uapi/ header directories
-Date: Fri, 20 Jul 2012 22:57:38 +0100
-Message-ID: <20120720215738.14854.55273.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 08/13] UAPI: x86: Fix insn_sanity build failure after UAPI
+ split
+Date: Fri, 20 Jul 2012 22:58:11 +0100
+Message-ID: <20120720215811.14854.97877.stgit@warthog.procyon.org.uk>
 References: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
@@ -14,152 +14,68 @@ To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, tglx@linutronix.de, mingo@kernel.org, davej@redhat.com
 List-Id: linux-arch.vger.kernel.org
 
-Partition the header include path flags into two sets, one for kernelspace
-builds and one for userspace builds.
+Fix a build failure in the x86 insn_sanity program after the UAPI split.  The
+problem is that insn_sanity.c #includes arch/x86/lib/insn.c - which uses the
+kernel string header.  This leads to conflicts for various definitions against
+the /usr/include/ headers.
 
-Add the following directories to build after the ordinary include directories
-so that #include will pick up the UAPI header directly if the kernel header
-has been moved there.
+linux/string.h can be replaced with the normal userspace string.h if __KERNEL__
+is not specified.
 
-The userspace set (represented by the USERINCLUDE make variable) contains:
-
-	-I $(srctree)/arch/$(hdr-arch)/include/uapi
-	-I arch/$(hdr-arch)/include/generated/uapi
-	-I $(srctree)/include/uapi
-	-I include/generated/uapi
-	-include $(srctree)/include/linux/kconfig.h
-
-and the kernelspace set (represented by the LINUXINCLUDE make variable)
-contains:
-
-	-I $(srctree)/arch/$(hdr-arch)/include
-	-I arch/$(hdr-arch)/include/generated
-	-I $(srctree)/include
-	-I include		--- if not building in the source tree
-
-plus everything in the USERINCLUDE set.
-
-Then use USERINCLUDE in building the x86 boot code.
+  HOSTCC  arch/x86/tools/insn_sanity
+In file included from /data/fs/linux-2.6-hdr/include/linux/string.h:6:0,
+                 from /data/fs/linux-2.6-hdr/arch/x86/lib/insn.c:21,
+                 from arch/x86/tools/insn_sanity.c:36:
+/data/fs/linux-2.6-hdr/include/linux/types.h:14:26: error: conflicting types for 'fd_set'
+/usr/include/sys/select.h:76:5: note: previous declaration of 'fd_set' was here
+/data/fs/linux-2.6-hdr/include/linux/types.h:15:25: error: conflicting types for 'dev_t'
+/usr/include/sys/types.h:61:17: note: previous declaration of 'dev_t' was here
+/data/fs/linux-2.6-hdr/include/linux/types.h:25:26: error: conflicting types for 'timer_t'
+/usr/include/time.h:104:19: note: previous declaration of 'timer_t' was here
+/data/fs/linux-2.6-hdr/include/linux/types.h:45:26: error: conflicting types for 'loff_t'
+/usr/include/sys/types.h:45:18: note: previous declaration of 'loff_t' was here
+/data/fs/linux-2.6-hdr/include/linux/types.h:112:17: error: conflicting types for 'u_int64_t'
+/usr/include/sys/types.h:204:1: note: previous declaration of 'u_int64_t' was here
+/data/fs/linux-2.6-hdr/include/linux/types.h:113:17: error: conflicting types for 'int64_t'
+/usr/include/sys/types.h:198:1: note: previous declaration of 'int64_t' was here
+/data/fs/linux-2.6-hdr/include/linux/types.h:134:23: error: conflicting types for 'blkcnt_t'
+/usr/include/sys/types.h:236:20: note: previous declaration of 'blkcnt_t' was here
+In file included from /data/fs/linux-2.6-hdr/arch/x86/lib/insn.c:21:0,
+                 from arch/x86/tools/insn_sanity.c:36:
+/data/fs/linux-2.6-hdr/include/linux/string.h:38:12: error: expected identifier or '(' before '__extension__'
+/data/fs/linux-2.6-hdr/include/linux/string.h:38:12: error: expected identifier or '(' before ')' token
+/data/fs/linux-2.6-hdr/include/linux/string.h:41:12: error: expected identifier or '(' before '__extension__'
+/data/fs/linux-2.6-hdr/include/linux/string.h:53:15: error: expected identifier or '(' before '__extension__'
+/data/fs/linux-2.6-hdr/include/linux/string.h:61:28: error: expected '=', ',', ';', 'asm' or '__attribute__' before 'skip_spaces'
+/data/fs/linux-2.6-hdr/include/linux/string.h:65:28: error: expected '=', ',', ';', 'asm' or '__attribute__' before 'char'
+/data/fs/linux-2.6-hdr/include/linux/string.h:83:15: error: expected identifier or '(' before '__extension__'
+/data/fs/linux-2.6-hdr/include/linux/string.h:83:15: error: expected identifier or '(' before ')' token
+/data/fs/linux-2.6-hdr/include/linux/string.h:86:15: error: expected identifier or '(' before '__extension__'
+/data/fs/linux-2.6-hdr/include/linux/string.h:86:15: error: expected identifier or '(' before ')' token
+/data/fs/linux-2.6-hdr/include/linux/string.h:89:24: error: expected identifier or '(' before '__extension__'
+/data/fs/linux-2.6-hdr/include/linux/string.h:89:24: error: expected identifier or '(' before ')' token
+/data/fs/linux-2.6-hdr/include/linux/string.h:92:24: error: expected identifier or '(' before '__extension__'
+/data/fs/linux-2.6-hdr/include/linux/string.h:92:24: error: expected identifier or '(' before ')' token
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- Makefile                          |   18 ++++++++++++++----
- arch/cris/Makefile                |    4 +++-
- arch/x86/boot/Makefile            |    4 ++--
- arch/x86/boot/mkcpustr.c          |    2 ++
- arch/x86/include/asm/cpufeature.h |    2 ++
- arch/x86/kernel/cpu/mkcapflags.pl |    5 ++++-
- 6 files changed, 27 insertions(+), 8 deletions(-)
+ arch/x86/lib/insn.c |    4 ++++
+ 1 file changed, 4 insertions(+)
 
-diff --git a/Makefile b/Makefile
-index aa8e315..d6f09dd 100644
---- a/Makefile
-+++ b/Makefile
-@@ -350,12 +350,22 @@ AFLAGS_KERNEL	=
- CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
+diff --git a/arch/x86/lib/insn.c b/arch/x86/lib/insn.c
+index b1e6c4b..54fcffe 100644
+--- a/arch/x86/lib/insn.c
++++ b/arch/x86/lib/insn.c
+@@ -18,7 +18,11 @@
+  * Copyright (C) IBM Corporation, 2002, 2004, 2009
+  */
  
- 
-+# Use USERINCLUDE when you must reference the UAPI directories only.
-+USERINCLUDE    := \
-+		-I$(srctree)/arch/$(hdr-arch)/include/uapi \
-+		-Iarch/$(hdr-arch)/include/generated/uapi \
-+		-Iinclude/uapi \
-+		-Iinclude/generated/uapi \
-+                -include $(srctree)/include/linux/kconfig.h
-+
- # Use LINUXINCLUDE when you must reference the include/ directory.
- # Needed to be compatible with the O= option
--LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
--                   -Iarch/$(hdr-arch)/include/generated -Iinclude \
--                   $(if $(KBUILD_SRC), -I$(srctree)/include) \
--                   -include $(srctree)/include/linux/kconfig.h
-+LINUXINCLUDE    := \
-+		-I$(srctree)/arch/$(hdr-arch)/include \
-+		-Iarch/$(hdr-arch)/include/generated \
-+		$(if $(KBUILD_SRC), -I$(srctree)/include) \
-+		-Iinclude \
-+		$(USERINCLUDE)
- 
- KBUILD_CPPFLAGS := -D__KERNEL__
- 
-diff --git a/arch/cris/Makefile b/arch/cris/Makefile
-index 29c2ceb..39dc7d0 100644
---- a/arch/cris/Makefile
-+++ b/arch/cris/Makefile
-@@ -23,7 +23,9 @@ mach-$(CONFIG_ETRAXFS) := fs
- 
- ifneq ($(arch-y),)
- SARCH := arch-$(arch-y)
--inc := -Iarch/cris/include/$(SARCH)
-+inc := -Iarch/cris/include/uapi/$(SARCH)
-+inc += -Iarch/cris/include/$(SARCH)
-+inc += -Iarch/cris/include/uapi/$(SARCH)/arch
- inc += -Iarch/cris/include/$(SARCH)/arch
- else
- SARCH :=
-diff --git a/arch/x86/boot/Makefile b/arch/x86/boot/Makefile
-index 5a747dd..33607c8 100644
---- a/arch/x86/boot/Makefile
-+++ b/arch/x86/boot/Makefile
-@@ -37,7 +37,7 @@ setup-y		+= video-bios.o
- targets		+= $(setup-y)
- hostprogs-y	:= mkcpustr tools/build
- 
--HOST_EXTRACFLAGS += -I$(srctree)/tools/include $(LINUXINCLUDE) \
-+HOST_EXTRACFLAGS += -I$(srctree)/tools/include $(USERINCLUDE) \
- 	            -D__EXPORTED_HEADERS__
- 
- $(obj)/cpu.o: $(obj)/cpustr.h
-@@ -52,7 +52,7 @@ $(obj)/cpustr.h: $(obj)/mkcpustr FORCE
- 
- # How to compile the 16-bit code.  Note we always compile for -march=i386,
- # that way we can complain to the user if the CPU is insufficient.
--KBUILD_CFLAGS	:= $(LINUXINCLUDE) -g -Os -D_SETUP -D__KERNEL__ \
-+KBUILD_CFLAGS	:= $(USERINCLUDE) -g -Os -D_SETUP -D__KERNEL__ \
- 		   -DDISABLE_BRANCH_PROFILING \
- 		   -Wall -Wstrict-prototypes \
- 		   -march=i386 -mregparm=3 \
-diff --git a/arch/x86/boot/mkcpustr.c b/arch/x86/boot/mkcpustr.c
-index 919257f..4579eff 100644
---- a/arch/x86/boot/mkcpustr.c
-+++ b/arch/x86/boot/mkcpustr.c
-@@ -15,6 +15,8 @@
- 
- #include <stdio.h>
- 
-+#include "../include/asm/required-features.h"
-+#include "../include/asm/cpufeature.h"
- #include "../kernel/cpu/capflags.c"
- 
- int main(void)
-diff --git a/arch/x86/include/asm/cpufeature.h b/arch/x86/include/asm/cpufeature.h
-index f91e80f..c89c55d 100644
---- a/arch/x86/include/asm/cpufeature.h
-+++ b/arch/x86/include/asm/cpufeature.h
-@@ -4,7 +4,9 @@
- #ifndef _ASM_X86_CPUFEATURE_H
- #define _ASM_X86_CPUFEATURE_H
- 
-+#ifndef _ASM_X86_REQUIRED_FEATURES_H
- #include <asm/required-features.h>
++#ifdef __KERNEL__
+ #include <linux/string.h>
++#else
++#include <string.h>
 +#endif
+ #include <asm/inat.h>
+ #include <asm/insn.h>
  
- #define NCAPINTS	10	/* N 32-bit words worth of info */
- 
-diff --git a/arch/x86/kernel/cpu/mkcapflags.pl b/arch/x86/kernel/cpu/mkcapflags.pl
-index c7b3fe2..091972e 100644
---- a/arch/x86/kernel/cpu/mkcapflags.pl
-+++ b/arch/x86/kernel/cpu/mkcapflags.pl
-@@ -8,7 +8,10 @@
- open(IN, "< $in\0")   or die "$0: cannot open: $in: $!\n";
- open(OUT, "> $out\0") or die "$0: cannot create: $out: $!\n";
- 
--print OUT "#include <asm/cpufeature.h>\n\n";
-+print OUT "#ifndef _ASM_X86_CPUFEATURE_H\n";
-+print OUT "#include <asm/cpufeature.h>\n";
-+print OUT "#endif\n";
-+print OUT "\n";
- print OUT "const char * const x86_cap_flags[NCAPINTS*32] = {\n";
- 
- %features = ();
