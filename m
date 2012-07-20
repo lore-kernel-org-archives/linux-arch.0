@@ -1,13 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:44403 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:60240 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752234Ab2GTV5u (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Jul 2012 17:57:50 -0400
+	id S1751520Ab2GTV6L (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Jul 2012 17:58:11 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 05/13] UAPI: Partition the header include path sets and add
- uapi/ header directories
-Date: Fri, 20 Jul 2012 22:57:38 +0100
-Message-ID: <20120720215738.14854.55273.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 07/13] UAPI: x86: Fix the test_get_len tool
+Date: Fri, 20 Jul 2012 22:58:01 +0100
+Message-ID: <20120720215800.14854.35471.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
 References: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -17,155 +16,36 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, tglx@linutronix.de, mingo@kernel.org, davej@redhat.com
-Message-ID: <20120720215738.rX-AqZnSw_3fcacVBqjvbUWdiD8MIWK8Rma__NapBD8@z>
+Message-ID: <20120720215801.DDb7FO_idjGkTKJYuPrgtpjYl28tiav7ScNBawcNJUQ@z>
 
-Partition the header include path flags into two sets, one for kernelspace
-builds and one for userspace builds.
+Fix the x86 test_get_len tool to have the right include paths in the right
+order (it includes a non-exported kernel header directly), otherwise errors
+like the following occur:
 
-Add the following directories to build after the ordinary include directories
-so that #include will pick up the UAPI header directly if the kernel header
-has been moved there.
+/data/fs/linux-2.6-hdr/include/linux/types.h:18:26: error: conflicting types for 'fd_set'
+/usr/include/sys/select.h:78:5: note: previous declaration of 'fd_set' was here
 
-The userspace set (represented by the USERINCLUDE make variable) contains:
+and
 
-	-I $(srctree)/arch/$(hdr-arch)/include/uapi
-	-I arch/$(hdr-arch)/include/generated/uapi
-	-I $(srctree)/include/uapi
-	-I include/generated/uapi
-	-include $(srctree)/include/linux/kconfig.h
-
-and the kernelspace set (represented by the LINUXINCLUDE make variable)
-contains:
-
-	-I $(srctree)/arch/$(hdr-arch)/include
-	-I arch/$(hdr-arch)/include/generated
-	-I $(srctree)/include
-	-I include		--- if not building in the source tree
-
-plus everything in the USERINCLUDE set.
-
-Then use USERINCLUDE in building the x86 boot code.
+/data/fs/linux-2.6-hdr/include/linux/string.h:42:12: error: expected identifier or '(' before '__extension__'
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- Makefile                          |   18 ++++++++++++++----
- arch/cris/Makefile                |    4 +++-
- arch/x86/boot/Makefile            |    4 ++--
- arch/x86/boot/mkcpustr.c          |    2 ++
- arch/x86/include/asm/cpufeature.h |    2 ++
- arch/x86/kernel/cpu/mkcapflags.pl |    5 ++++-
- 6 files changed, 27 insertions(+), 8 deletions(-)
+ arch/x86/tools/Makefile |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/Makefile b/Makefile
-index aa8e315..d6f09dd 100644
---- a/Makefile
-+++ b/Makefile
-@@ -350,12 +350,22 @@ AFLAGS_KERNEL	=
- CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
+diff --git a/arch/x86/tools/Makefile b/arch/x86/tools/Makefile
+index 733057b..bae601f 100644
+--- a/arch/x86/tools/Makefile
++++ b/arch/x86/tools/Makefile
+@@ -28,7 +28,7 @@ posttest: $(obj)/test_get_len vmlinux $(obj)/insn_sanity
+ hostprogs-y	+= test_get_len insn_sanity
  
+ # -I needed for generated C source and C source which in the kernel tree.
+-HOSTCFLAGS_test_get_len.o := -Wall -I$(objtree)/arch/x86/lib/ -I$(srctree)/arch/x86/include/ -I$(srctree)/arch/x86/lib/ -I$(srctree)/include/
++HOSTCFLAGS_test_get_len.o := -Wall -I$(objtree)/arch/x86/lib/ -I$(srctree)/arch/x86/include/uapi/ -I$(srctree)/arch/x86/include/ -I$(srctree)/arch/x86/lib/ -I$(srctree)/include/uapi/
  
-+# Use USERINCLUDE when you must reference the UAPI directories only.
-+USERINCLUDE    := \
-+		-I$(srctree)/arch/$(hdr-arch)/include/uapi \
-+		-Iarch/$(hdr-arch)/include/generated/uapi \
-+		-Iinclude/uapi \
-+		-Iinclude/generated/uapi \
-+                -include $(srctree)/include/linux/kconfig.h
-+
- # Use LINUXINCLUDE when you must reference the include/ directory.
- # Needed to be compatible with the O= option
--LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
--                   -Iarch/$(hdr-arch)/include/generated -Iinclude \
--                   $(if $(KBUILD_SRC), -I$(srctree)/include) \
--                   -include $(srctree)/include/linux/kconfig.h
-+LINUXINCLUDE    := \
-+		-I$(srctree)/arch/$(hdr-arch)/include \
-+		-Iarch/$(hdr-arch)/include/generated \
-+		$(if $(KBUILD_SRC), -I$(srctree)/include) \
-+		-Iinclude \
-+		$(USERINCLUDE)
+ HOSTCFLAGS_insn_sanity.o := -Wall -I$(objtree)/arch/x86/lib/ -I$(srctree)/arch/x86/include/ -I$(srctree)/arch/x86/lib/ -I$(srctree)/include/
  
- KBUILD_CPPFLAGS := -D__KERNEL__
- 
-diff --git a/arch/cris/Makefile b/arch/cris/Makefile
-index 29c2ceb..39dc7d0 100644
---- a/arch/cris/Makefile
-+++ b/arch/cris/Makefile
-@@ -23,7 +23,9 @@ mach-$(CONFIG_ETRAXFS) := fs
- 
- ifneq ($(arch-y),)
- SARCH := arch-$(arch-y)
--inc := -Iarch/cris/include/$(SARCH)
-+inc := -Iarch/cris/include/uapi/$(SARCH)
-+inc += -Iarch/cris/include/$(SARCH)
-+inc += -Iarch/cris/include/uapi/$(SARCH)/arch
- inc += -Iarch/cris/include/$(SARCH)/arch
- else
- SARCH :=
-diff --git a/arch/x86/boot/Makefile b/arch/x86/boot/Makefile
-index 5a747dd..33607c8 100644
---- a/arch/x86/boot/Makefile
-+++ b/arch/x86/boot/Makefile
-@@ -37,7 +37,7 @@ setup-y		+= video-bios.o
- targets		+= $(setup-y)
- hostprogs-y	:= mkcpustr tools/build
- 
--HOST_EXTRACFLAGS += -I$(srctree)/tools/include $(LINUXINCLUDE) \
-+HOST_EXTRACFLAGS += -I$(srctree)/tools/include $(USERINCLUDE) \
- 	            -D__EXPORTED_HEADERS__
- 
- $(obj)/cpu.o: $(obj)/cpustr.h
-@@ -52,7 +52,7 @@ $(obj)/cpustr.h: $(obj)/mkcpustr FORCE
- 
- # How to compile the 16-bit code.  Note we always compile for -march=i386,
- # that way we can complain to the user if the CPU is insufficient.
--KBUILD_CFLAGS	:= $(LINUXINCLUDE) -g -Os -D_SETUP -D__KERNEL__ \
-+KBUILD_CFLAGS	:= $(USERINCLUDE) -g -Os -D_SETUP -D__KERNEL__ \
- 		   -DDISABLE_BRANCH_PROFILING \
- 		   -Wall -Wstrict-prototypes \
- 		   -march=i386 -mregparm=3 \
-diff --git a/arch/x86/boot/mkcpustr.c b/arch/x86/boot/mkcpustr.c
-index 919257f..4579eff 100644
---- a/arch/x86/boot/mkcpustr.c
-+++ b/arch/x86/boot/mkcpustr.c
-@@ -15,6 +15,8 @@
- 
- #include <stdio.h>
- 
-+#include "../include/asm/required-features.h"
-+#include "../include/asm/cpufeature.h"
- #include "../kernel/cpu/capflags.c"
- 
- int main(void)
-diff --git a/arch/x86/include/asm/cpufeature.h b/arch/x86/include/asm/cpufeature.h
-index f91e80f..c89c55d 100644
---- a/arch/x86/include/asm/cpufeature.h
-+++ b/arch/x86/include/asm/cpufeature.h
-@@ -4,7 +4,9 @@
- #ifndef _ASM_X86_CPUFEATURE_H
- #define _ASM_X86_CPUFEATURE_H
- 
-+#ifndef _ASM_X86_REQUIRED_FEATURES_H
- #include <asm/required-features.h>
-+#endif
- 
- #define NCAPINTS	10	/* N 32-bit words worth of info */
- 
-diff --git a/arch/x86/kernel/cpu/mkcapflags.pl b/arch/x86/kernel/cpu/mkcapflags.pl
-index c7b3fe2..091972e 100644
---- a/arch/x86/kernel/cpu/mkcapflags.pl
-+++ b/arch/x86/kernel/cpu/mkcapflags.pl
-@@ -8,7 +8,10 @@
- open(IN, "< $in\0")   or die "$0: cannot open: $in: $!\n";
- open(OUT, "> $out\0") or die "$0: cannot create: $out: $!\n";
- 
--print OUT "#include <asm/cpufeature.h>\n\n";
-+print OUT "#ifndef _ASM_X86_CPUFEATURE_H\n";
-+print OUT "#include <asm/cpufeature.h>\n";
-+print OUT "#endif\n";
-+print OUT "\n";
- print OUT "const char * const x86_cap_flags[NCAPINTS*32] = {\n";
- 
- %features = ();
 
