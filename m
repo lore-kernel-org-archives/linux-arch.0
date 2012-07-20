@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:31036 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:62652 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752016Ab2GTV6g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Jul 2012 17:58:36 -0400
+	id S1753678Ab2GTV6l (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Jul 2012 17:58:41 -0400
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 09/13] UAPI: Set up uapi/asm/Kbuild.asm
-Date: Fri, 20 Jul 2012 22:58:22 +0100
-Message-ID: <20120720215822.14854.44849.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 10/13] UAPI: Move linux/version.h
+Date: Fri, 20 Jul 2012 22:58:32 +0100
+Message-ID: <20120720215832.14854.80740.stgit@warthog.procyon.org.uk>
 In-Reply-To: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
 References: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
@@ -16,128 +16,85 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, tglx@linutronix.de, mingo@kernel.org, davej@redhat.com
-Message-ID: <20120720215822.IiQf7UFhsrPhIRtuTBCUtN7OU-_j1ogSWezg9UwOzyg@z>
+Message-ID: <20120720215832.TzvZo4ui3Qtk9bY1HlNvocZAk1-sqvQzCTYTQ36EjKQ@z>
 
-Set up uapi/asm/Kbuild.asm.  This requires the mandatory headers to be
-dynamically detected.  The same goes for include/asm/Kbuild.asm.  The problem
-is that the header files will be split or moved one at a time, but each header
-file in Kbuild.asm's list applies to all arch headers of that name
-simultaneously.
+Move include/linux/version.h to the include/generated/ header directory.
+A later patch will move it to include/uapi/generated/.
 
-The dynamic detection of mandatory files can be undone later.
+This allows us to get rid of the objhdr-y list.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- include/asm-generic/Kbuild.asm      |   46 +--------------------------------
- include/uapi/asm-generic/Kbuild.asm |   49 +++++++++++++++++++++++++++++++++++
- 2 files changed, 50 insertions(+), 45 deletions(-)
- create mode 100644 include/uapi/asm-generic/Kbuild.asm
+ Makefile             |   13 +++++++------
+ include/linux/Kbuild |    2 +-
+ 2 files changed, 8 insertions(+), 7 deletions(-)
 
-diff --git a/include/asm-generic/Kbuild.asm b/include/asm-generic/Kbuild.asm
-index c5d2e5d..d2ee86b 100644
---- a/include/asm-generic/Kbuild.asm
-+++ b/include/asm-generic/Kbuild.asm
-@@ -1,45 +1 @@
--ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/kvm.h \
--		  $(srctree)/include/asm-$(SRCARCH)/kvm.h),)
--header-y  += kvm.h
--endif
--
--ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/kvm_para.h \
--		  $(srctree)/include/asm-$(SRCARCH)/kvm_para.h),)
--header-y  += kvm_para.h
--endif
--
--ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/a.out.h \
--		  $(srctree)/include/asm-$(SRCARCH)/a.out.h),)
--header-y += a.out.h
--endif
--
--header-y += auxvec.h
--header-y += bitsperlong.h
--header-y += byteorder.h
--header-y += errno.h
--header-y += fcntl.h
--header-y += ioctl.h
--header-y += ioctls.h
--header-y += ipcbuf.h
--header-y += mman.h
--header-y += msgbuf.h
--header-y += param.h
--header-y += poll.h
--header-y += posix_types.h
--header-y += ptrace.h
--header-y += resource.h
--header-y += sembuf.h
--header-y += setup.h
--header-y += shmbuf.h
--header-y += sigcontext.h
--header-y += siginfo.h
--header-y += signal.h
--header-y += socket.h
--header-y += sockios.h
--header-y += stat.h
--header-y += statfs.h
--header-y += swab.h
--header-y += termbits.h
--header-y += termios.h
--header-y += types.h
--header-y += unistd.h
-+include include/uapi/asm-generic/Kbuild.asm
-diff --git a/include/uapi/asm-generic/Kbuild.asm b/include/uapi/asm-generic/Kbuild.asm
-new file mode 100644
-index 0000000..9a8464d
---- /dev/null
-+++ b/include/uapi/asm-generic/Kbuild.asm
-@@ -0,0 +1,49 @@
-+#
-+# Headers that are optional in usr/include/asm/
-+#
-+opt-header += kvm.h
-+opt-header += kvm_para.h
-+opt-header += a.out.h
+diff --git a/Makefile b/Makefile
+index d6f09dd..bd0763f 100644
+--- a/Makefile
++++ b/Makefile
+@@ -447,9 +447,11 @@ asm-generic:
+ # Detect when mixed targets is specified, and make a second invocation
+ # of make so .config is not included in this case either (for *config).
+ 
++version_h := include/generated/linux/version.h
 +
-+#
-+# Headers that are mandatory in usr/include/asm/
-+#
-+header-y += auxvec.h
-+header-y += bitsperlong.h
-+header-y += byteorder.h
-+header-y += errno.h
-+header-y += fcntl.h
-+header-y += ioctl.h
-+header-y += ioctls.h
-+header-y += ipcbuf.h
-+header-y += mman.h
-+header-y += msgbuf.h
-+header-y += param.h
-+header-y += poll.h
-+header-y += posix_types.h
-+header-y += ptrace.h
-+header-y += resource.h
-+header-y += sembuf.h
-+header-y += setup.h
-+header-y += shmbuf.h
-+header-y += sigcontext.h
-+header-y += siginfo.h
-+header-y += signal.h
-+header-y += socket.h
-+header-y += sockios.h
-+header-y += stat.h
-+header-y += statfs.h
-+header-y += swab.h
-+header-y += termbits.h
-+header-y += termios.h
-+header-y += types.h
-+header-y += unistd.h
-+
-+header-y += $(foreach hdr,$(opt-header), \
-+	      $(if \
-+		$(wildcard \
-+			arch/$(SRCARCH)/include/uapi/asm/$(hdr) \
-+			arch/$(SRCARCH)/include/asm/$(hdr) \
-+		), \
-+		$(hdr) \
-+		))
+ no-dot-config-targets := clean mrproper distclean \
+ 			 cscope gtags TAGS tags help %docs check% coccicheck \
+-			 include/linux/version.h headers_% archheaders archscripts \
++			 $(version_h) headers_% archheaders archscripts \
+ 			 kernelversion %src-pkg
+ 
+ config-targets := 0
+@@ -815,7 +817,7 @@ endif
+ # prepare2 creates a makefile if using a separate output directory
+ prepare2: prepare3 outputmakefile asm-generic
+ 
+-prepare1: prepare2 include/linux/version.h include/generated/utsrelease.h \
++prepare1: prepare2 $(version_h) include/generated/utsrelease.h \
+                    include/config/auto.conf
+ 	$(cmd_crmodverdir)
+ 
+@@ -848,7 +850,7 @@ define filechk_version.h
+ 	echo '#define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))';)
+ endef
+ 
+-include/linux/version.h: $(srctree)/Makefile FORCE
++$(version_h): $(srctree)/Makefile FORCE
+ 	$(call filechk,version.h)
+ 
+ include/generated/utsrelease.h: include/config/kernel.release FORCE
+@@ -893,7 +895,7 @@ PHONY += archscripts
+ archscripts:
+ 
+ PHONY += __headers
+-__headers: include/linux/version.h scripts_basic asm-generic archheaders archscripts FORCE
++__headers: $(version_h) scripts_basic asm-generic archheaders archscripts FORCE
+ 	$(Q)$(MAKE) $(build)=scripts build_unifdef
+ 
+ PHONY += headers_install_all
+@@ -1003,8 +1005,7 @@ CLEAN_DIRS  += $(MODVERDIR)
+ # Directories & files removed with 'make mrproper'
+ MRPROPER_DIRS  += include/config usr/include include/generated          \
+                   arch/*/include/generated
+-MRPROPER_FILES += .config .config.old .version .old_version             \
+-                  include/linux/version.h                               \
++MRPROPER_FILES += .config .config.old .version .old_version $(version_h) \
+ 		  Module.symvers tags TAGS cscope* GPATH GTAGS GRTAGS GSYMS
+ 
+ # clean - Delete most, but leave enough to build external modules
+diff --git a/include/linux/Kbuild b/include/linux/Kbuild
+index 8760be3..ecd8820d 100644
+--- a/include/linux/Kbuild
++++ b/include/linux/Kbuild
+@@ -20,7 +20,7 @@ header-y += netfilter_ipv6/
+ header-y += usb/
+ header-y += wimax/
+ 
+-objhdr-y += version.h
++genhdr-y += version.h
+ 
+ ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/a.out.h \
+ 		  $(srctree)/include/asm-$(SRCARCH)/a.out.h \
 
