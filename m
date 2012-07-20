@@ -1,44 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:33118 "EHLO ozlabs.org"
+Received: from mx1.redhat.com ([209.132.183.28]:13735 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752190Ab2GSCQq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 18 Jul 2012 22:16:46 -0400
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [PATCH] Make most arch asm/module.h files use asm-generic/module.h
-In-Reply-To: <2597.1342617840@warthog.procyon.org.uk>
-References: <32350.1342615619@warthog.procyon.org.uk> <2597.1342617840@warthog.procyon.org.uk>
-Date: Thu, 19 Jul 2012 11:15:24 +0930
-Message-ID: <874np4cymj.fsf@rustcorp.com.au>
+	id S1751520Ab2GTV5D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 20 Jul 2012 17:57:03 -0400
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH 01/13] UAPI: Refer to the DRM UAPI headers with <...> and from
+ certain headers only
+Date: Fri, 20 Jul 2012 22:56:50 +0100
+Message-ID: <20120720215650.14854.75260.stgit@warthog.procyon.org.uk>
+In-Reply-To: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
+References: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20120719014524.Hf5WKtjNgUl5J0zLQxrPU2ku6m5WG0LPNol5N77f0rU@z>
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, tglx@linutronix.de, mingo@kernel.org, davej@redhat.com
+Message-ID: <20120720215650.B99Pfn-14npnfdzb6wXsb-tf4S_pHNXNE4pRa3KhyUc@z>
 
-On Wed, 18 Jul 2012 14:24:00 +0100, David Howells <dhowells@redhat.com> wrote:
-> diff --git a/arch/sh/include/asm/module.h b/arch/sh/include/asm/module.h
-> index b7927de..81300d8b 100644
-> --- a/arch/sh/include/asm/module.h
-> +++ b/arch/sh/include/asm/module.h
-> @@ -1,21 +1,13 @@
->  #ifndef _ASM_SH_MODULE_H
->  #define _ASM_SH_MODULE_H
->  
-> -struct mod_arch_specific {
-> +#include <asm-generic/module.h>
-> +
->  #ifdef CONFIG_DWARF_UNWINDER
-> +struct mod_arch_specific {
->  	struct list_head fde_list;
->  	struct list_head cie_list;
-> -#endif
->  };
+Only refer to the DRM UAPI headers (drm.h, drm_mode.h and drm_sarea.h) from
+within drmP.h and drm_crtc.h, and use #include <...> to refer to them so that
+when the UAPI split happens they can still be accessed.
 
-Hmm, this means we get two definitions if CONFIG_DWARF_UNWINDER?
+Signed-off-by: David Howells <dhowells@redhat.com>
+Acked-by: Dave Airlie <airlied@redhat.com>
+---
 
-Seems like a useful effort.  Fiddly though.
+ include/drm/drmP.h     |    3 ++-
+ include/drm/drm_crtc.h |    1 +
+ 2 files changed, 3 insertions(+), 1 deletion(-)
 
-Cheers,
-Rusty.
+diff --git a/include/drm/drmP.h b/include/drm/drmP.h
+index 31ad880..850f5ce 100644
+--- a/include/drm/drmP.h
++++ b/include/drm/drmP.h
+@@ -72,7 +72,8 @@
+ #include <linux/workqueue.h>
+ #include <linux/poll.h>
+ #include <asm/pgalloc.h>
+-#include "drm.h"
++#include <drm/drm.h>
++#include <drm/drm_sarea.h>
+ 
+ #include <linux/idr.h>
+ 
+diff --git a/include/drm/drm_crtc.h b/include/drm/drm_crtc.h
+index bac55c2..fc820d9 100644
+--- a/include/drm/drm_crtc.h
++++ b/include/drm/drm_crtc.h
+@@ -30,6 +30,7 @@
+ #include <linux/types.h>
+ #include <linux/idr.h>
+ #include <linux/fb.h>
++#include <drm/drm_mode.h>
+ 
+ #include <drm/drm_fourcc.h>
+ 
+
