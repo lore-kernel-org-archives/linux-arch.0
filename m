@@ -1,37 +1,46 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH 05/13] UAPI: Partition the header include path sets and add uapi/ header directories
-Date: Sat, 21 Jul 2012 11:13:27 +0100
-Message-ID: <28231.1342865607@warthog.procyon.org.uk>
-References: <20120720215738.14854.55273.stgit@warthog.procyon.org.uk> <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 00/13] UAPI header file split
+Date: Mon, 23 Jul 2012 15:50:43 +0000
+Message-ID: <201207231550.43775.arnd@arndb.de>
+References: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
+Mime-Version: 1.0
+Content-Type: Text/Plain;
+  charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:16851 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750754Ab2GUKNq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 21 Jul 2012 06:13:46 -0400
-In-Reply-To: <20120720215738.14854.55273.stgit@warthog.procyon.org.uk>
+Received: from moutng.kundenserver.de ([212.227.126.171]:51406 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753296Ab2GWPuy (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jul 2012 11:50:54 -0400
+In-Reply-To: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: dhowells@redhat.com, linux-kernel@vger.kernel.org, arnd@arndb.de, tglx@linutronix.de, mingo@kernel.org, davej@redhat.com, viro@ZenIV.linux.org.uk
+To: David Howells <dhowells@redhat.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, mingo@kernel.org, davej@redhat.com
 
+On Friday 20 July 2012, David Howells wrote:
+>      (a) It reduces the size of the kernel-only headers and obviates the need
+>          for __KERNEL__ conditionals in the remnant kernel-only headers.
+> 
+>      (b) In what we have today, there are complex interdependencies between
+>          headers that are partly exported to user space, and we want to reduce
+>          those interdependencies.
+> 
+>          It simplifies the problem space by splitting out the user headers as
+>          they then only depend only on other user headers.
+> 
+>      This step makes it easier to follow through with the remaining steps as
+>      the remnant kernel headers can be split up without regard as to whether
+>      the UAPI will be broken.  Header files such as linux/sched.h can even
+>      disappear entirely if that seems convenient.
+> 
+>      There is another potential benefit as well: it becomes easier to track
+>      when the UAPI changes just from the filenames in the GIT log.
+> 
+>      Further, linux-api@vger.kernel.org can be put into the MAINTAINERS file
+>      for the uapi/ directories so that patches changing them get sent to that
+>      list by everyone using get_maintainer.pl.
 
-And thanks to Al for pointing out that the UM arch needed fixing.  The
-attached patch should do the trick.
+Looks all good to me. For the entire series:
 
-David
----
-diff --git a/arch/um/Makefile b/arch/um/Makefile
-index 0970910..133f7de 100644
---- a/arch/um/Makefile
-+++ b/arch/um/Makefile
-@@ -66,7 +66,9 @@ USER_CFLAGS = $(patsubst $(KERNEL_DEFINES),,$(patsubst -D__KERNEL__,,\
- include $(srctree)/$(ARCH_DIR)/Makefile-os-$(OS)
- 
- KBUILD_CPPFLAGS += -I$(srctree)/$(HOST_DIR)/include \
--		   -I$(HOST_DIR)/include/generated
-+		   -I$(srctree)/$(HOST_DIR)/include/uapi \
-+		   -I$(HOST_DIR)/include/generated \
-+		   -I$(HOST_DIR)/include/generated/uapi
- 
- # -Derrno=kernel_errno - This turns all kernel references to errno into
- # kernel_errno to separate them from the libc errno.  This allows -fno-common
+Acked-by: Arnd Bergmann <arnd@arndb.de>
