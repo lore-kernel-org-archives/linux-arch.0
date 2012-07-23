@@ -1,681 +1,129 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:22109 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751520Ab2GTV6G (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 20 Jul 2012 17:58:06 -0400
-From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 06/13] UAPI: (Scripted) Set up UAPI Kbuild files
-Date: Fri, 20 Jul 2012 22:57:49 +0100
-Message-ID: <20120720215749.14854.59170.stgit@warthog.procyon.org.uk>
-In-Reply-To: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
-References: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
-MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Received: from casper.infradead.org ([85.118.1.10]:37765 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753616Ab2GWRep convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jul 2012 13:34:45 -0400
+Message-ID: <1343064870.26034.23.camel@twins>
+Subject: [RFC] page-table walkers vs memory order
+From: Peter Zijlstra <peterz@infradead.org>
+Date: Mon, 23 Jul 2012 19:34:30 +0200
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, arnd@arndb.de, tglx@linutronix.de, mingo@kernel.org, davej@redhat.com
-Message-ID: <20120720215749.qlkczZEQbwYRNXzbud5GJSWNX3UsqRv_rE-OyeKABMs@z>
+To: Linus Torvalds <torvalds@linux-foundation.org>, paulmck <paulmck@linux.vnet.ibm.com>, Hugh Dickins <hughd@google.com>
+Cc: Rik van Riel <riel@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@kernel.dk>, linux-kernel <linux-kernel@vger.kernel.org>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+Message-ID: <20120723173430.lZj7t3xZfdfW9Amw8lFZF5LuUI_16XWH_fw_GxZYoeo@z>
 
-Set up empty UAPI Kbuild files to be populated by the header splitter.
 
-Signed-off-by: David Howells <dhowells@redhat.com>
+While staring at mm/huge_memory.c I found a very under-commented
+smp_wmb() in __split_huge_page_map(). It turns out that its copied from
+__{pte,pmd,pud}_alloc() but forgot the useful comment (or a reference
+thereto).
+
+Now, afaict we're not good, as per that comment. Paul has since
+convinced some of us that compiler writers are pure evil and out to get
+us.
+
+Therefore we should do what rcu_dereference() does and use
+ACCESS_ONCE()/barrier() followed smp_read_barrier_depends() every time
+we dereference a page-table pointer.
+
+
+In particular it looks like things like
+mm/memcontrol.c:mem_cgroup_count_precharge(), which use
+walk_page_range() under down_read(&mm->mmap_sem) and can thus be
+concurrent with __{pte,pmd,pud}_alloc() from faults (and possibly
+itself) are quite broken on Alpha and subtly broken for those of us with
+'creative' compilers.
+
+Should I go do a more extensive audit of page-table walkers or are we
+happy with the status quo?
+
 ---
+ arch/x86/mm/gup.c |    6 +++---
+ mm/pagewalk.c     |   24 ++++++++++++++++++++++++
+ 2 files changed, 27 insertions(+), 3 deletions(-)
 
- arch/alpha/include/uapi/asm/Kbuild          |    3 +++
- arch/arm/include/uapi/asm/Kbuild            |    3 +++
- arch/avr32/include/uapi/asm/Kbuild          |    3 +++
- arch/blackfin/include/uapi/asm/Kbuild       |    3 +++
- arch/c6x/include/uapi/asm/Kbuild            |    3 +++
- arch/cris/include/uapi/arch-v10/arch/Kbuild |    1 +
- arch/cris/include/uapi/arch-v32/arch/Kbuild |    1 +
- arch/cris/include/uapi/asm/Kbuild           |    5 +++++
- arch/frv/include/uapi/asm/Kbuild            |    3 +++
- arch/h8300/include/uapi/asm/Kbuild          |    3 +++
- arch/hexagon/include/uapi/asm/Kbuild        |    3 +++
- arch/ia64/include/uapi/asm/Kbuild           |    3 +++
- arch/m32r/include/uapi/asm/Kbuild           |    3 +++
- arch/m68k/include/uapi/asm/Kbuild           |    3 +++
- arch/microblaze/include/uapi/asm/Kbuild     |    3 +++
- arch/mips/include/uapi/asm/Kbuild           |    3 +++
- arch/mn10300/include/uapi/asm/Kbuild        |    3 +++
- arch/openrisc/include/uapi/asm/Kbuild       |    3 +++
- arch/parisc/include/uapi/asm/Kbuild         |    3 +++
- arch/powerpc/include/uapi/asm/Kbuild        |    3 +++
- arch/s390/include/uapi/asm/Kbuild           |    3 +++
- arch/score/include/uapi/asm/Kbuild          |    3 +++
- arch/sh/include/uapi/asm/Kbuild             |    3 +++
- arch/sparc/include/uapi/asm/Kbuild          |    5 +++++
- arch/tile/include/uapi/arch/Kbuild          |    1 +
- arch/tile/include/uapi/asm/Kbuild           |    3 +++
- arch/unicore32/include/uapi/asm/Kbuild      |    3 +++
- arch/x86/include/uapi/asm/Kbuild            |    6 ++++++
- arch/xtensa/include/uapi/asm/Kbuild         |    3 +++
- include/uapi/Kbuild                         |   14 ++++++++++++++
- include/uapi/asm-generic/Kbuild             |    1 +
- include/uapi/drm/Kbuild                     |    1 +
- include/uapi/linux/Kbuild                   |   22 ++++++++++++++++++++++
- include/uapi/linux/byteorder/Kbuild         |    1 +
- include/uapi/linux/caif/Kbuild              |    1 +
- include/uapi/linux/can/Kbuild               |    1 +
- include/uapi/linux/dvb/Kbuild               |    1 +
- include/uapi/linux/hdlc/Kbuild              |    1 +
- include/uapi/linux/hsi/Kbuild               |    1 +
- include/uapi/linux/isdn/Kbuild              |    1 +
- include/uapi/linux/mmc/Kbuild               |    1 +
- include/uapi/linux/netfilter/Kbuild         |    2 ++
- include/uapi/linux/netfilter/ipset/Kbuild   |    1 +
- include/uapi/linux/netfilter_arp/Kbuild     |    1 +
- include/uapi/linux/netfilter_bridge/Kbuild  |    1 +
- include/uapi/linux/netfilter_ipv4/Kbuild    |    1 +
- include/uapi/linux/netfilter_ipv6/Kbuild    |    1 +
- include/uapi/linux/nfsd/Kbuild              |    1 +
- include/uapi/linux/raid/Kbuild              |    1 +
- include/uapi/linux/spi/Kbuild               |    1 +
- include/uapi/linux/sunrpc/Kbuild            |    1 +
- include/uapi/linux/tc_act/Kbuild            |    1 +
- include/uapi/linux/tc_ematch/Kbuild         |    1 +
- include/uapi/linux/usb/Kbuild               |    1 +
- include/uapi/linux/wimax/Kbuild             |    1 +
- include/uapi/mtd/Kbuild                     |    1 +
- include/uapi/rdma/Kbuild                    |    1 +
- include/uapi/scsi/Kbuild                    |    2 ++
- include/uapi/scsi/fc/Kbuild                 |    1 +
- include/uapi/sound/Kbuild                   |    1 +
- include/uapi/video/Kbuild                   |    1 +
- include/uapi/xen/Kbuild                     |    1 +
- 62 files changed, 157 insertions(+)
- create mode 100644 arch/alpha/include/uapi/asm/Kbuild
- create mode 100644 arch/arm/include/uapi/asm/Kbuild
- create mode 100644 arch/avr32/include/uapi/asm/Kbuild
- create mode 100644 arch/blackfin/include/uapi/asm/Kbuild
- create mode 100644 arch/c6x/include/uapi/asm/Kbuild
- create mode 100644 arch/cris/include/uapi/arch-v10/arch/Kbuild
- create mode 100644 arch/cris/include/uapi/arch-v32/arch/Kbuild
- create mode 100644 arch/cris/include/uapi/asm/Kbuild
- create mode 100644 arch/frv/include/uapi/asm/Kbuild
- create mode 100644 arch/h8300/include/uapi/asm/Kbuild
- create mode 100644 arch/hexagon/include/uapi/asm/Kbuild
- create mode 100644 arch/ia64/include/uapi/asm/Kbuild
- create mode 100644 arch/m32r/include/uapi/asm/Kbuild
- create mode 100644 arch/m68k/include/uapi/asm/Kbuild
- create mode 100644 arch/microblaze/include/uapi/asm/Kbuild
- create mode 100644 arch/mips/include/uapi/asm/Kbuild
- create mode 100644 arch/mn10300/include/uapi/asm/Kbuild
- create mode 100644 arch/openrisc/include/uapi/asm/Kbuild
- create mode 100644 arch/parisc/include/uapi/asm/Kbuild
- create mode 100644 arch/powerpc/include/uapi/asm/Kbuild
- create mode 100644 arch/s390/include/uapi/asm/Kbuild
- create mode 100644 arch/score/include/uapi/asm/Kbuild
- create mode 100644 arch/sh/include/uapi/asm/Kbuild
- create mode 100644 arch/sparc/include/uapi/asm/Kbuild
- create mode 100644 arch/tile/include/uapi/arch/Kbuild
- create mode 100644 arch/tile/include/uapi/asm/Kbuild
- create mode 100644 arch/unicore32/include/uapi/asm/Kbuild
- create mode 100644 arch/x86/include/uapi/asm/Kbuild
- create mode 100644 arch/xtensa/include/uapi/asm/Kbuild
- create mode 100644 include/uapi/Kbuild
- create mode 100644 include/uapi/asm-generic/Kbuild
- create mode 100644 include/uapi/drm/Kbuild
- create mode 100644 include/uapi/linux/Kbuild
- create mode 100644 include/uapi/linux/byteorder/Kbuild
- create mode 100644 include/uapi/linux/caif/Kbuild
- create mode 100644 include/uapi/linux/can/Kbuild
- create mode 100644 include/uapi/linux/dvb/Kbuild
- create mode 100644 include/uapi/linux/hdlc/Kbuild
- create mode 100644 include/uapi/linux/hsi/Kbuild
- create mode 100644 include/uapi/linux/isdn/Kbuild
- create mode 100644 include/uapi/linux/mmc/Kbuild
- create mode 100644 include/uapi/linux/netfilter/Kbuild
- create mode 100644 include/uapi/linux/netfilter/ipset/Kbuild
- create mode 100644 include/uapi/linux/netfilter_arp/Kbuild
- create mode 100644 include/uapi/linux/netfilter_bridge/Kbuild
- create mode 100644 include/uapi/linux/netfilter_ipv4/Kbuild
- create mode 100644 include/uapi/linux/netfilter_ipv6/Kbuild
- create mode 100644 include/uapi/linux/nfsd/Kbuild
- create mode 100644 include/uapi/linux/raid/Kbuild
- create mode 100644 include/uapi/linux/spi/Kbuild
- create mode 100644 include/uapi/linux/sunrpc/Kbuild
- create mode 100644 include/uapi/linux/tc_act/Kbuild
- create mode 100644 include/uapi/linux/tc_ematch/Kbuild
- create mode 100644 include/uapi/linux/usb/Kbuild
- create mode 100644 include/uapi/linux/wimax/Kbuild
- create mode 100644 include/uapi/mtd/Kbuild
- create mode 100644 include/uapi/rdma/Kbuild
- create mode 100644 include/uapi/scsi/Kbuild
- create mode 100644 include/uapi/scsi/fc/Kbuild
- create mode 100644 include/uapi/sound/Kbuild
- create mode 100644 include/uapi/video/Kbuild
- create mode 100644 include/uapi/xen/Kbuild
-
-diff --git a/arch/alpha/include/uapi/asm/Kbuild b/arch/alpha/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/alpha/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/arm/include/uapi/asm/Kbuild b/arch/arm/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/arm/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/avr32/include/uapi/asm/Kbuild b/arch/avr32/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/avr32/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/blackfin/include/uapi/asm/Kbuild b/arch/blackfin/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/blackfin/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/c6x/include/uapi/asm/Kbuild b/arch/c6x/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/c6x/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/cris/include/uapi/arch-v10/arch/Kbuild b/arch/cris/include/uapi/arch-v10/arch/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/arch/cris/include/uapi/arch-v10/arch/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/arch/cris/include/uapi/arch-v32/arch/Kbuild b/arch/cris/include/uapi/arch-v32/arch/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/arch/cris/include/uapi/arch-v32/arch/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/arch/cris/include/uapi/asm/Kbuild b/arch/cris/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..f50236a
---- /dev/null
-+++ b/arch/cris/include/uapi/asm/Kbuild
-@@ -0,0 +1,5 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-+header-y += arch-v10/
-+header-y += arch-v32/
-diff --git a/arch/frv/include/uapi/asm/Kbuild b/arch/frv/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/frv/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/h8300/include/uapi/asm/Kbuild b/arch/h8300/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/h8300/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/hexagon/include/uapi/asm/Kbuild b/arch/hexagon/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/hexagon/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/ia64/include/uapi/asm/Kbuild b/arch/ia64/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/ia64/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/m32r/include/uapi/asm/Kbuild b/arch/m32r/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/m32r/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/m68k/include/uapi/asm/Kbuild b/arch/m68k/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/m68k/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/microblaze/include/uapi/asm/Kbuild b/arch/microblaze/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/microblaze/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/mips/include/uapi/asm/Kbuild b/arch/mips/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/mips/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/mn10300/include/uapi/asm/Kbuild b/arch/mn10300/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/mn10300/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/openrisc/include/uapi/asm/Kbuild b/arch/openrisc/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/openrisc/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/parisc/include/uapi/asm/Kbuild b/arch/parisc/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/parisc/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/powerpc/include/uapi/asm/Kbuild b/arch/powerpc/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/powerpc/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/s390/include/uapi/asm/Kbuild b/arch/s390/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/s390/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/score/include/uapi/asm/Kbuild b/arch/score/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/score/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/sh/include/uapi/asm/Kbuild b/arch/sh/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/sh/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/sparc/include/uapi/asm/Kbuild b/arch/sparc/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..7518ad2
---- /dev/null
-+++ b/arch/sparc/include/uapi/asm/Kbuild
-@@ -0,0 +1,5 @@
-+# UAPI Header export list
-+# User exported sparc header files
-+
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/tile/include/uapi/arch/Kbuild b/arch/tile/include/uapi/arch/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/arch/tile/include/uapi/arch/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/arch/tile/include/uapi/asm/Kbuild b/arch/tile/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/tile/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/unicore32/include/uapi/asm/Kbuild b/arch/unicore32/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/unicore32/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/arch/x86/include/uapi/asm/Kbuild b/arch/x86/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..83b6e9a
---- /dev/null
-+++ b/arch/x86/include/uapi/asm/Kbuild
-@@ -0,0 +1,6 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-+genhdr-y += unistd_32.h
-+genhdr-y += unistd_64.h
-+genhdr-y += unistd_x32.h
-diff --git a/arch/xtensa/include/uapi/asm/Kbuild b/arch/xtensa/include/uapi/asm/Kbuild
-new file mode 100644
-index 0000000..baebb3d
---- /dev/null
-+++ b/arch/xtensa/include/uapi/asm/Kbuild
-@@ -0,0 +1,3 @@
-+# UAPI Header export list
-+include include/uapi/asm-generic/Kbuild.asm
-+
-diff --git a/include/uapi/Kbuild b/include/uapi/Kbuild
-new file mode 100644
-index 0000000..81d2106
---- /dev/null
-+++ b/include/uapi/Kbuild
-@@ -0,0 +1,14 @@
-+# UAPI Header export list
-+# Top-level Makefile calls into asm-$(ARCH)
-+# List only non-arch directories below
-+
-+
-+header-y += asm-generic/
-+header-y += linux/
-+header-y += sound/
-+header-y += mtd/
-+header-y += rdma/
-+header-y += video/
-+header-y += drm/
-+header-y += xen/
-+header-y += scsi/
-diff --git a/include/uapi/asm-generic/Kbuild b/include/uapi/asm-generic/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/asm-generic/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/drm/Kbuild b/include/uapi/drm/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/drm/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/Kbuild b/include/uapi/linux/Kbuild
-new file mode 100644
-index 0000000..13a9cf4
---- /dev/null
-+++ b/include/uapi/linux/Kbuild
-@@ -0,0 +1,22 @@
-+# UAPI Header export list
-+header-y += byteorder/
-+header-y += can/
-+header-y += caif/
-+header-y += dvb/
-+header-y += hdlc/
-+header-y += hsi/
-+header-y += isdn/
-+header-y += mmc/
-+header-y += nfsd/
-+header-y += raid/
-+header-y += spi/
-+header-y += sunrpc/
-+header-y += tc_act/
-+header-y += tc_ematch/
-+header-y += netfilter/
-+header-y += netfilter_arp/
-+header-y += netfilter_bridge/
-+header-y += netfilter_ipv4/
-+header-y += netfilter_ipv6/
-+header-y += usb/
-+header-y += wimax/
-diff --git a/include/uapi/linux/byteorder/Kbuild b/include/uapi/linux/byteorder/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/byteorder/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/caif/Kbuild b/include/uapi/linux/caif/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/caif/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/can/Kbuild b/include/uapi/linux/can/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/can/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/dvb/Kbuild b/include/uapi/linux/dvb/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/dvb/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/hdlc/Kbuild b/include/uapi/linux/hdlc/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/hdlc/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/hsi/Kbuild b/include/uapi/linux/hsi/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/hsi/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/isdn/Kbuild b/include/uapi/linux/isdn/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/isdn/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/mmc/Kbuild b/include/uapi/linux/mmc/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/mmc/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/netfilter/Kbuild b/include/uapi/linux/netfilter/Kbuild
-new file mode 100644
-index 0000000..4afbace
---- /dev/null
-+++ b/include/uapi/linux/netfilter/Kbuild
-@@ -0,0 +1,2 @@
-+# UAPI Header export list
-+header-y += ipset/
-diff --git a/include/uapi/linux/netfilter/ipset/Kbuild b/include/uapi/linux/netfilter/ipset/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/netfilter/ipset/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/netfilter_arp/Kbuild b/include/uapi/linux/netfilter_arp/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/netfilter_arp/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/netfilter_bridge/Kbuild b/include/uapi/linux/netfilter_bridge/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/netfilter_bridge/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/netfilter_ipv4/Kbuild b/include/uapi/linux/netfilter_ipv4/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/netfilter_ipv4/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/netfilter_ipv6/Kbuild b/include/uapi/linux/netfilter_ipv6/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/netfilter_ipv6/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/nfsd/Kbuild b/include/uapi/linux/nfsd/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/nfsd/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/raid/Kbuild b/include/uapi/linux/raid/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/raid/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/spi/Kbuild b/include/uapi/linux/spi/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/spi/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/sunrpc/Kbuild b/include/uapi/linux/sunrpc/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/sunrpc/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/tc_act/Kbuild b/include/uapi/linux/tc_act/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/tc_act/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/tc_ematch/Kbuild b/include/uapi/linux/tc_ematch/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/tc_ematch/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/usb/Kbuild b/include/uapi/linux/usb/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/usb/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/linux/wimax/Kbuild b/include/uapi/linux/wimax/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/linux/wimax/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/mtd/Kbuild b/include/uapi/mtd/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/mtd/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/rdma/Kbuild b/include/uapi/rdma/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/rdma/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/scsi/Kbuild b/include/uapi/scsi/Kbuild
-new file mode 100644
-index 0000000..29a87dd
---- /dev/null
-+++ b/include/uapi/scsi/Kbuild
-@@ -0,0 +1,2 @@
-+# UAPI Header export list
-+header-y += fc/
-diff --git a/include/uapi/scsi/fc/Kbuild b/include/uapi/scsi/fc/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/scsi/fc/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/sound/Kbuild b/include/uapi/sound/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/sound/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/video/Kbuild b/include/uapi/video/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/video/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
-diff --git a/include/uapi/xen/Kbuild b/include/uapi/xen/Kbuild
-new file mode 100644
-index 0000000..aafaa5a
---- /dev/null
-+++ b/include/uapi/xen/Kbuild
-@@ -0,0 +1 @@
-+# UAPI Header export list
+diff --git a/arch/x86/mm/gup.c b/arch/x86/mm/gup.c
+index dd74e46..4958fb1 100644
+--- a/arch/x86/mm/gup.c
++++ b/arch/x86/mm/gup.c
+@@ -150,7 +150,7 @@ static int gup_pmd_range(pud_t pud, unsigned long addr, unsigned long end,
+ 
+ 	pmdp = pmd_offset(&pud, addr);
+ 	do {
+-		pmd_t pmd = *pmdp;
++		pmd_t pmd = ACCESS_ONCE(*pmdp);
+ 
+ 		next = pmd_addr_end(addr, end);
+ 		/*
+@@ -220,7 +220,7 @@ static int gup_pud_range(pgd_t pgd, unsigned long addr, unsigned long end,
+ 
+ 	pudp = pud_offset(&pgd, addr);
+ 	do {
+-		pud_t pud = *pudp;
++		pud_t pud = ACCESS_ONCE(*pudp);
+ 
+ 		next = pud_addr_end(addr, end);
+ 		if (pud_none(pud))
+@@ -280,7 +280,7 @@ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
+ 	local_irq_save(flags);
+ 	pgdp = pgd_offset(mm, addr);
+ 	do {
+-		pgd_t pgd = *pgdp;
++		pgd_t pgd = ACCESS_ONCE(*pgdp);
+ 
+ 		next = pgd_addr_end(addr, end);
+ 		if (pgd_none(pgd))
+diff --git a/mm/pagewalk.c b/mm/pagewalk.c
+index 6c118d0..2ba2a74 100644
+--- a/mm/pagewalk.c
++++ b/mm/pagewalk.c
+@@ -10,6 +10,14 @@ static int walk_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
+ 	int err = 0;
+ 
+ 	pte = pte_offset_map(pmd, addr);
++	/*
++	 * Pairs with the smp_wmb() in __{pte,pmd,pud}_alloc() and
++	 * __split_huge_page_map(). Ideally we'd use ACCESS_ONCE() on the
++	 * actual dereference of p[gum]d, but that's hidden deep within the
++	 * bowels of {pte,pmd,pud}_offset.
++	 */
++	barrier();
++	smp_read_barrier_depends();
+ 	for (;;) {
+ 		err = walk->pte_entry(pte, addr, addr + PAGE_SIZE, walk);
+ 		if (err)
+@@ -32,6 +40,14 @@ static int walk_pmd_range(pud_t *pud, unsigned long addr, unsigned long end,
+ 	int err = 0;
+ 
+ 	pmd = pmd_offset(pud, addr);
++	/*
++	 * Pairs with the smp_wmb() in __{pte,pmd,pud}_alloc() and
++	 * __split_huge_page_map(). Ideally we'd use ACCESS_ONCE() on the
++	 * actual dereference of p[gum]d, but that's hidden deep within the
++	 * bowels of {pte,pmd,pud}_offset.
++	 */
++	barrier();
++	smp_read_barrier_depends();
+ 	do {
+ again:
+ 		next = pmd_addr_end(addr, end);
+@@ -77,6 +93,14 @@ static int walk_pud_range(pgd_t *pgd, unsigned long addr, unsigned long end,
+ 	int err = 0;
+ 
+ 	pud = pud_offset(pgd, addr);
++	/*
++	 * Pairs with the smp_wmb() in __{pte,pmd,pud}_alloc() and
++	 * __split_huge_page_map(). Ideally we'd use ACCESS_ONCE() on the
++	 * actual dereference of p[gum]d, but that's hidden deep within the
++	 * bowels of {pte,pmd,pud}_offset.
++	 */
++	barrier();
++	smp_read_barrier_depends();
+ 	do {
+ 		next = pud_addr_end(addr, end);
+ 		if (pud_none_or_clear_bad(pud)) {
 
