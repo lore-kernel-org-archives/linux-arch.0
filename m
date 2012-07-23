@@ -1,46 +1,135 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 00/13] UAPI header file split
-Date: Mon, 23 Jul 2012 15:50:43 +0000
-Message-ID: <201207231550.43775.arnd@arndb.de>
-References: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
+From: Peter Zijlstra <peterz@infradead.org>
+Subject: [RFC] page-table walkers vs memory order
+Date: Mon, 23 Jul 2012 19:34:30 +0200
+Message-ID: <1343064870.26034.23.camel@twins>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:51406 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753296Ab2GWPuy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jul 2012 11:50:54 -0400
-In-Reply-To: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, mingo@kernel.org, davej@redhat.com
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: quoted-printable
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, paulmck <paulmck@linux.vnet.ibm.com>, Hugh Dickins <hughd@google.com>
+Cc: Rik van Riel <riel@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@kernel.dk>, linux-kernel <linux-kernel@vger.kernel.org>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Friday 20 July 2012, David Howells wrote:
->      (a) It reduces the size of the kernel-only headers and obviates the need
->          for __KERNEL__ conditionals in the remnant kernel-only headers.
-> 
->      (b) In what we have today, there are complex interdependencies between
->          headers that are partly exported to user space, and we want to reduce
->          those interdependencies.
-> 
->          It simplifies the problem space by splitting out the user headers as
->          they then only depend only on other user headers.
-> 
->      This step makes it easier to follow through with the remaining steps as
->      the remnant kernel headers can be split up without regard as to whether
->      the UAPI will be broken.  Header files such as linux/sched.h can even
->      disappear entirely if that seems convenient.
-> 
->      There is another potential benefit as well: it becomes easier to track
->      when the UAPI changes just from the filenames in the GIT log.
-> 
->      Further, linux-api@vger.kernel.org can be put into the MAINTAINERS file
->      for the uapi/ directories so that patches changing them get sent to that
->      list by everyone using get_maintainer.pl.
 
-Looks all good to me. For the entire series:
+While staring at mm/huge_memory.c I found a very under-commented
+smp_wmb() in __split_huge_page_map(). It turns out that its copied from
+__{pte,pmd,pud}_alloc() but forgot the useful comment (or a reference
+thereto).
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+Now, afaict we're not good, as per that comment. Paul has since
+convinced some of us that compiler writers are pure evil and out to get
+us.
+
+Therefore we should do what rcu_dereference() does and use
+ACCESS_ONCE()/barrier() followed smp_read_barrier_depends() every time
+we dereference a page-table pointer.
+
+
+In particular it looks like things like
+mm/memcontrol.c:mem_cgroup_count_precharge(), which use
+walk_page_range() under down_read(&mm->mmap_sem) and can thus be
+concurrent with __{pte,pmd,pud}_alloc() from faults (and possibly
+itself) are quite broken on Alpha and subtly broken for those of us with
+'creative' compilers.
+
+Should I go do a more extensive audit of page-table walkers or are we
+happy with the status quo?
+
+---
+ arch/x86/mm/gup.c |    6 +++---
+ mm/pagewalk.c     |   24 ++++++++++++++++++++++++
+ 2 files changed, 27 insertions(+), 3 deletions(-)
+
+diff --git a/arch/x86/mm/gup.c b/arch/x86/mm/gup.c
+index dd74e46..4958fb1 100644
+--- a/arch/x86/mm/gup.c
++++ b/arch/x86/mm/gup.c
+@@ -150,7 +150,7 @@ static int gup_pmd_range(pud_t pud, unsigned long addr,=
+ unsigned long end,
+=20
+ 	pmdp =3D pmd_offset(&pud, addr);
+ 	do {
+-		pmd_t pmd =3D *pmdp;
++		pmd_t pmd =3D ACCESS_ONCE(*pmdp);
+=20
+ 		next =3D pmd_addr_end(addr, end);
+ 		/*
+@@ -220,7 +220,7 @@ static int gup_pud_range(pgd_t pgd, unsigned long addr,=
+ unsigned long end,
+=20
+ 	pudp =3D pud_offset(&pgd, addr);
+ 	do {
+-		pud_t pud =3D *pudp;
++		pud_t pud =3D ACCESS_ONCE(*pudp);
+=20
+ 		next =3D pud_addr_end(addr, end);
+ 		if (pud_none(pud))
+@@ -280,7 +280,7 @@ int __get_user_pages_fast(unsigned long start, int nr_p=
+ages, int write,
+ 	local_irq_save(flags);
+ 	pgdp =3D pgd_offset(mm, addr);
+ 	do {
+-		pgd_t pgd =3D *pgdp;
++		pgd_t pgd =3D ACCESS_ONCE(*pgdp);
+=20
+ 		next =3D pgd_addr_end(addr, end);
+ 		if (pgd_none(pgd))
+diff --git a/mm/pagewalk.c b/mm/pagewalk.c
+index 6c118d0..2ba2a74 100644
+--- a/mm/pagewalk.c
++++ b/mm/pagewalk.c
+@@ -10,6 +10,14 @@ static int walk_pte_range(pmd_t *pmd, unsigned long addr=
+, unsigned long end,
+ 	int err =3D 0;
+=20
+ 	pte =3D pte_offset_map(pmd, addr);
++	/*
++	 * Pairs with the smp_wmb() in __{pte,pmd,pud}_alloc() and
++	 * __split_huge_page_map(). Ideally we'd use ACCESS_ONCE() on the
++	 * actual dereference of p[gum]d, but that's hidden deep within the
++	 * bowels of {pte,pmd,pud}_offset.
++	 */
++	barrier();
++	smp_read_barrier_depends();
+ 	for (;;) {
+ 		err =3D walk->pte_entry(pte, addr, addr + PAGE_SIZE, walk);
+ 		if (err)
+@@ -32,6 +40,14 @@ static int walk_pmd_range(pud_t *pud, unsigned long addr=
+, unsigned long end,
+ 	int err =3D 0;
+=20
+ 	pmd =3D pmd_offset(pud, addr);
++	/*
++	 * Pairs with the smp_wmb() in __{pte,pmd,pud}_alloc() and
++	 * __split_huge_page_map(). Ideally we'd use ACCESS_ONCE() on the
++	 * actual dereference of p[gum]d, but that's hidden deep within the
++	 * bowels of {pte,pmd,pud}_offset.
++	 */
++	barrier();
++	smp_read_barrier_depends();
+ 	do {
+ again:
+ 		next =3D pmd_addr_end(addr, end);
+@@ -77,6 +93,14 @@ static int walk_pud_range(pgd_t *pgd, unsigned long addr=
+, unsigned long end,
+ 	int err =3D 0;
+=20
+ 	pud =3D pud_offset(pgd, addr);
++	/*
++	 * Pairs with the smp_wmb() in __{pte,pmd,pud}_alloc() and
++	 * __split_huge_page_map(). Ideally we'd use ACCESS_ONCE() on the
++	 * actual dereference of p[gum]d, but that's hidden deep within the
++	 * bowels of {pte,pmd,pud}_offset.
++	 */
++	barrier();
++	smp_read_barrier_depends();
+ 	do {
+ 		next =3D pud_addr_end(addr, end);
+ 		if (pud_none_or_clear_bad(pud)) {
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
