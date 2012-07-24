@@ -1,129 +1,61 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:37765 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753616Ab2GWRep convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jul 2012 13:34:45 -0400
-Message-ID: <1343064870.26034.23.camel@twins>
-Subject: [RFC] page-table walkers vs memory order
-From: Peter Zijlstra <peterz@infradead.org>
-Date: Mon, 23 Jul 2012 19:34:30 +0200
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Mime-Version: 1.0
+Received: from LGEMRELSE1Q.lge.com ([156.147.1.111]:57351 "EHLO
+	LGEMRELSE1Q.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755490Ab2GXBKU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jul 2012 21:10:20 -0400
+From: Minchan Kim <minchan@kernel.org>
+Subject: [PATCH 2/3] mm: Warn if pg_data_t isn't initialized with zero
+Date: Tue, 24 Jul 2012 10:10:34 +0900
+Message-ID: <1343092235-13399-2-git-send-email-minchan@kernel.org>
+In-Reply-To: <1343092235-13399-1-git-send-email-minchan@kernel.org>
+References: <1343092235-13399-1-git-send-email-minchan@kernel.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, paulmck <paulmck@linux.vnet.ibm.com>, Hugh Dickins <hughd@google.com>
-Cc: Rik van Riel <riel@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@kernel.dk>, linux-kernel <linux-kernel@vger.kernel.org>, Andrea Arcangeli <aarcange@redhat.com>, linux-arch <linux-arch@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
-Message-ID: <20120723173430.lZj7t3xZfdfW9Amw8lFZF5LuUI_16XWH_fw_GxZYoeo@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Tejun Heo <tj@kernel.org>, Yinghai Lu <yinghai@kernel.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Minchan Kim <minchan@kernel.org>, linux-arch <linux-arch@vger.kernel.org>
+Message-ID: <20120724011034.sZEciH5xkmdwOPToJusPhbozMMuKHnwcs6tLSuTIpjw@z>
 
+This patch warns if memory-hotplug/boot code doesn't initialize
+pg_data_t with zero when it's allocated. As I looked arch code and
+memory hotplug, they already seem to initiailize pg_data_t.
+So this warning should be never happen. It needs double check and
+let's add checking garbage with warn. I select fields randomly
+nearyby begin/middle/end of pg_data_t for checking garbage.
+If we are very unlucky, those garbage might be zero but it's very unlikely,
+I hope.
 
-While staring at mm/huge_memory.c I found a very under-commented
-smp_wmb() in __split_huge_page_map(). It turns out that its copied from
-__{pte,pmd,pud}_alloc() but forgot the useful comment (or a reference
-thereto).
+This patch isn't for performance but removing initialization code
+which is necessary to add whenever we adds new field to pg_data_t or zone.
+It's rather bothersome and error-prone about compile at least as I had
+experienced.
 
-Now, afaict we're not good, as per that comment. Paul has since
-convinced some of us that compiler writers are pure evil and out to get
-us.
+Firstly, Andrew suggested clearing out of pg_data_t in MM core part but
+Tejun doesn't like it because in the future, some archs can initialize
+some fields in arch code and pass them into general MM part so blindly clearing
+it out in mm core part would be very annoying.
 
-Therefore we should do what rcu_dereference() does and use
-ACCESS_ONCE()/barrier() followed smp_read_barrier_depends() every time
-we dereference a page-table pointer.
-
-
-In particular it looks like things like
-mm/memcontrol.c:mem_cgroup_count_precharge(), which use
-walk_page_range() under down_read(&mm->mmap_sem) and can thus be
-concurrent with __{pte,pmd,pud}_alloc() from faults (and possibly
-itself) are quite broken on Alpha and subtly broken for those of us with
-'creative' compilers.
-
-Should I go do a more extensive audit of page-table walkers or are we
-happy with the status quo?
-
+Cc: Tejun Heo <tj@kernel.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-arch <linux-arch@vger.kernel.org>
+Signed-off-by: Minchan Kim <minchan@kernel.org>
 ---
- arch/x86/mm/gup.c |    6 +++---
- mm/pagewalk.c     |   24 ++++++++++++++++++++++++
- 2 files changed, 27 insertions(+), 3 deletions(-)
+ mm/page_alloc.c |    3 +++
+ 1 file changed, 3 insertions(+)
 
-diff --git a/arch/x86/mm/gup.c b/arch/x86/mm/gup.c
-index dd74e46..4958fb1 100644
---- a/arch/x86/mm/gup.c
-+++ b/arch/x86/mm/gup.c
-@@ -150,7 +150,7 @@ static int gup_pmd_range(pud_t pud, unsigned long addr, unsigned long end,
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index b65c362..2037eeb 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -4517,6 +4517,9 @@ void __paginginit free_area_init_node(int nid, unsigned long *zones_size,
+ {
+ 	pg_data_t *pgdat = NODE_DATA(nid);
  
- 	pmdp = pmd_offset(&pud, addr);
- 	do {
--		pmd_t pmd = *pmdp;
-+		pmd_t pmd = ACCESS_ONCE(*pmdp);
- 
- 		next = pmd_addr_end(addr, end);
- 		/*
-@@ -220,7 +220,7 @@ static int gup_pud_range(pgd_t pgd, unsigned long addr, unsigned long end,
- 
- 	pudp = pud_offset(&pgd, addr);
- 	do {
--		pud_t pud = *pudp;
-+		pud_t pud = ACCESS_ONCE(*pudp);
- 
- 		next = pud_addr_end(addr, end);
- 		if (pud_none(pud))
-@@ -280,7 +280,7 @@ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
- 	local_irq_save(flags);
- 	pgdp = pgd_offset(mm, addr);
- 	do {
--		pgd_t pgd = *pgdp;
-+		pgd_t pgd = ACCESS_ONCE(*pgdp);
- 
- 		next = pgd_addr_end(addr, end);
- 		if (pgd_none(pgd))
-diff --git a/mm/pagewalk.c b/mm/pagewalk.c
-index 6c118d0..2ba2a74 100644
---- a/mm/pagewalk.c
-+++ b/mm/pagewalk.c
-@@ -10,6 +10,14 @@ static int walk_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
- 	int err = 0;
- 
- 	pte = pte_offset_map(pmd, addr);
-+	/*
-+	 * Pairs with the smp_wmb() in __{pte,pmd,pud}_alloc() and
-+	 * __split_huge_page_map(). Ideally we'd use ACCESS_ONCE() on the
-+	 * actual dereference of p[gum]d, but that's hidden deep within the
-+	 * bowels of {pte,pmd,pud}_offset.
-+	 */
-+	barrier();
-+	smp_read_barrier_depends();
- 	for (;;) {
- 		err = walk->pte_entry(pte, addr, addr + PAGE_SIZE, walk);
- 		if (err)
-@@ -32,6 +40,14 @@ static int walk_pmd_range(pud_t *pud, unsigned long addr, unsigned long end,
- 	int err = 0;
- 
- 	pmd = pmd_offset(pud, addr);
-+	/*
-+	 * Pairs with the smp_wmb() in __{pte,pmd,pud}_alloc() and
-+	 * __split_huge_page_map(). Ideally we'd use ACCESS_ONCE() on the
-+	 * actual dereference of p[gum]d, but that's hidden deep within the
-+	 * bowels of {pte,pmd,pud}_offset.
-+	 */
-+	barrier();
-+	smp_read_barrier_depends();
- 	do {
- again:
- 		next = pmd_addr_end(addr, end);
-@@ -77,6 +93,14 @@ static int walk_pud_range(pgd_t *pgd, unsigned long addr, unsigned long end,
- 	int err = 0;
- 
- 	pud = pud_offset(pgd, addr);
-+	/*
-+	 * Pairs with the smp_wmb() in __{pte,pmd,pud}_alloc() and
-+	 * __split_huge_page_map(). Ideally we'd use ACCESS_ONCE() on the
-+	 * actual dereference of p[gum]d, but that's hidden deep within the
-+	 * bowels of {pte,pmd,pud}_offset.
-+	 */
-+	barrier();
-+	smp_read_barrier_depends();
- 	do {
- 		next = pud_addr_end(addr, end);
- 		if (pud_none_or_clear_bad(pud)) {
++	/* pg_data_t should be reset to zero when it's allocated */
++	WARN_ON(pgdat->nr_zones || pgdat->node_start_pfn || pgdat->classzone_idx);
++
+ 	pgdat->node_id = nid;
+ 	pgdat->node_start_pfn = node_start_pfn;
+ 	calculate_node_totalpages(pgdat, zones_size, zholes_size);
+-- 
+1.7.9.5
 
