@@ -1,61 +1,147 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from LGEMRELSE1Q.lge.com ([156.147.1.111]:57351 "EHLO
-	LGEMRELSE1Q.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755490Ab2GXBKU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 23 Jul 2012 21:10:20 -0400
-From: Minchan Kim <minchan@kernel.org>
-Subject: [PATCH 2/3] mm: Warn if pg_data_t isn't initialized with zero
-Date: Tue, 24 Jul 2012 10:10:34 +0900
-Message-ID: <1343092235-13399-2-git-send-email-minchan@kernel.org>
-In-Reply-To: <1343092235-13399-1-git-send-email-minchan@kernel.org>
-References: <1343092235-13399-1-git-send-email-minchan@kernel.org>
+Received: from e28smtp02.in.ibm.com ([122.248.162.2]:44482 "EHLO
+	e28smtp02.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751798Ab2GXFNP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 24 Jul 2012 01:13:15 -0400
+Received: from /spool/local
+	by e28smtp02.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <nikunj@linux.vnet.ibm.com>;
+	Tue, 24 Jul 2012 10:43:10 +0530
+From: Nikunj A Dadhania <nikunj@linux.vnet.ibm.com>
+Subject: Re: [PATCH 02/20] mm: Add optional TLB flush to generic RCU page-table freeing
+In-Reply-To: <1340838106.10063.85.camel@twins>
+References: <20120627211540.459910855@chello.nl> <20120627212830.693232452@chello.nl> <CA+55aFwa41fzvx8EZG_gODvw7hSpr+iP+w5fXp6jUcQh-4nFgQ@mail.gmail.com> <1340838106.10063.85.camel@twins>
+Date: Tue, 24 Jul 2012 10:42:27 +0530
+Message-ID: <87vchd68uc.fsf@linux.vnet.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Tejun Heo <tj@kernel.org>, Yinghai Lu <yinghai@kernel.org>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, Minchan Kim <minchan@kernel.org>, linux-arch <linux-arch@vger.kernel.org>
-Message-ID: <20120724011034.sZEciH5xkmdwOPToJusPhbozMMuKHnwcs6tLSuTIpjw@z>
+To: Peter Zijlstra <a.p.zijlstra@chello.nl>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@elte.hu>, akpm@linux-foundation.org, Rik van Riel <riel@redhat.com>, Hugh Dickins <hugh.dickins@tiscali.co.uk>, Mel Gorman <mel@csn.ul.ie>, Nick Piggin <npiggin@kernel.dk>, Alex Shi <alex.shi@intel.com>, Konrad Rzeszutek Wilk <konrad@darnok.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, David Miller <davem@davemloft.net>, Russell King <rmk@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Chris Metcalf <cmetcalf@tilera.com>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Tony Luck <tony.luck@intel.com>, Paul Mundt <lethal@linux-sh.org>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Ralf Baechle <ralf@linux-mips.org>, Kyle McMartin <kyle@mcmartin.ca>, James Bottomley <jejb@parisc-linux.org>, Chris Zankel <chris@zankel.net>
+Message-ID: <20120724051227._JlFcDjmaofCF58sUrXpu_MReGl_lVvD_hJPf50Fozg@z>
 
-This patch warns if memory-hotplug/boot code doesn't initialize
-pg_data_t with zero when it's allocated. As I looked arch code and
-memory hotplug, they already seem to initiailize pg_data_t.
-So this warning should be never happen. It needs double check and
-let's add checking garbage with warn. I select fields randomly
-nearyby begin/middle/end of pg_data_t for checking garbage.
-If we are very unlucky, those garbage might be zero but it's very unlikely,
-I hope.
+On Thu, 28 Jun 2012 01:01:46 +0200, Peter Zijlstra <a.p.zijlstra@chello.nl> wrote:
+  
+> +#ifdef CONFIG_STRICT_TLB_FILL
+> +/*
+> + * Some archictures (sparc64, ppc) cannot refill TLBs after the they've removed
+> + * the PTE entries from their hash-table. Their hardware never looks at the
+> + * linux page-table structures, so they don't need a hardware TLB invalidate
+> + * when tearing down the page-table structure itself.
+> + */
+> +static inline void tlb_table_flush_mmu(struct mmu_gather *tlb) { }
+> +#else
+> +static inline void tlb_table_flush_mmu(struct mmu_gather *tlb)
+> +{
+> +	tlb_flush_mmu(tlb);
+> +}
+> +#endif
+> +
+>  void tlb_table_flush(struct mmu_gather *tlb)
+>  {
+>  	struct mmu_table_batch **batch = &tlb->batch;
+>  
+>  	if (*batch) {
+> +		tlb_table_flush_mmu(tlb);
+>  		call_rcu_sched(&(*batch)->rcu, tlb_remove_table_rcu);
+>  		*batch = NULL;
+>  	}
 
-This patch isn't for performance but removing initialization code
-which is necessary to add whenever we adds new field to pg_data_t or zone.
-It's rather bothersome and error-prone about compile at least as I had
-experienced.
+Hi Peter,
 
-Firstly, Andrew suggested clearing out of pg_data_t in MM core part but
-Tejun doesn't like it because in the future, some archs can initialize
-some fields in arch code and pass them into general MM part so blindly clearing
-it out in mm core part would be very annoying.
+When running munmap(https://lkml.org/lkml/2012/5/17/59) test with KVM
+and pvflush patches I got a crash. I have verified that the crash
+happens on the base(non virt) as well when I have
+CONFIG_HAVE_RCU_TABLE_FREE defined. Here is the crash details and my
+analysis below:
 
-Cc: Tejun Heo <tj@kernel.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: linux-arch <linux-arch@vger.kernel.org>
-Signed-off-by: Minchan Kim <minchan@kernel.org>
----
- mm/page_alloc.c |    3 +++
- 1 file changed, 3 insertions(+)
+-----------------------------------------------------------------------
 
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index b65c362..2037eeb 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -4517,6 +4517,9 @@ void __paginginit free_area_init_node(int nid, unsigned long *zones_size,
- {
- 	pg_data_t *pgdat = NODE_DATA(nid);
+BUG: unable to handle kernel NULL pointer dereference at 0000000000000008
+IP: [<ffffffff810d31d9>] __call_rcu+0x29/0x1c0
+PGD 0 
+Oops: 0002 [#1] SMP 
+CPU 24 
+Modules linked in: kvm_intel kvm [last unloaded: scsi_wait_scan]
+
+
+Pid: 32643, comm: munmap Not tainted 3.5.0-rc7+ #46 IBM System x3850 X5 -[7042CR6]-[root@mx3850x5 ~/Node 1, Processor Card]# 
+RIP: 0010:[<ffffffff810d31d9>]  [<ffffffff810d31d9>] __call_rcu+0x29/0x1c0
+RSP: 0018:ffff88203164fc28  EFLAGS: 00010246
+RAX: ffff88203164fba8 RBX: 0000000000000000 RCX: 0000000000000000
+RDX: ffffffff81e34280 RSI: ffffffff81130330 RDI: 0000000000000000
+RBP: ffff88203164fc58 R08: ffffea00d2680340 R09: 0000000000000000
+R10: ffff883c7fbd4ef8 R11: 0000000000000078 R12: ffffffff81130330
+R13: 00007f09ee803000 R14: ffff883c2fa5bab0 R15: ffff88203164fe08
+FS:  00007f09ee7ee700(0000) GS:ffff883c7fc00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 000000008005003b
+CR2: 0000000000000008 CR3: 0000000001e0b000 CR4: 00000000000007e0
+DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+DR3: 0000000000000000 DR6: 00000000ffff0ff0 DR7: 0000000000000400
+Process munmap (pid: 32643, threadinfo ffff88203164e000, task ffff882030458a70)
+Stack:
+ ffff883c2fa5bab0 ffff88203164fe08 ffff88203164fc68 ffff88203164fe08
+ ffff88203164fe08 00007f09ee803000 ffff88203164fc68 ffffffff810d33c7
+ ffff88203164fc88 ffffffff81130e0d ffff88203164fc88 ffffea00d28e54f8
+Call Trace:
+ [<ffffffff810d33c7>] call_rcu_sched+0x17/0x20
+ [<ffffffff81130e0d>] tlb_table_flush+0x2d/0x40
+ [<ffffffff81130e80>] tlb_remove_table+0x60/0xc0
+ [<ffffffff8103a5e3>] ___pte_free_tlb+0x63/0x70
+ [<ffffffff81131b38>] free_pgd_range+0x298/0x4b0
+ [<ffffffff81131e1e>] free_pgtables+0xce/0x120
+ [<ffffffff81137247>] exit_mmap+0xa7/0x160
+ [<ffffffff81043fdf>] mmput+0x6f/0xf0
+ [<ffffffff8104c3f5>] exit_mm+0x105/0x130
+ [<ffffffff810d6c7d>] ? taskstats_exit+0x17d/0x240
+ [<ffffffff8104c596>] do_exit+0x176/0x480
+ [<ffffffff8104c8f5>] do_group_exit+0x55/0xd0
+ [<ffffffff8104c987>] sys_exit_group+0x17/0x20
+ [<ffffffff818a3829>] system_call_fastpath+0x16/0x1b
+Code: ff ff 55 48 89 e5 48 83 ec 30 48 89 5d e8 4c 89 65 f0 4c 89 6d f8 66 66 66 66 90 40 f6 c7 03 48 89 fb 49 89 f4 0f 85 19 01 00 00 <4c> 89 63 08 48 c7 03 00 00 00 00 0f ae f0 9c 58 66 66 90 66 90 
+RIP  [<ffffffff810d31d9>] __call_rcu+0x29/0x1c0
+ RSP <ffff88203164fc28>
+CR2: 0000000000000008
+---[ end trace 3ed30a91ea7cb375 ]---
+
+----------------------------------------------------------------------------
+
+I think this is what is happening:
+
+___pte_free_tlb
+   tlb_remove_table
+      tlb_table_flush
+         tlb_table_flush_mmu
+            tlb_flush_mmu
+                Sets need_flush = 0
+                tlb_table_flush (if CONFIG_HAVE_RCU_TABLE_FREE)
+                    [Gets called twice with same *tlb!]
+
+                    tlb_table_flush_mmu
+                        tlb_flush_mmu(nop as need_flush is 0)
+                    call_rcu_sched(&(*batch)->rcu,...);
+                    *batch = NULL;
+         call_rcu_sched(&(*batch)->rcu,...); <---- *batch would be NULL
+
+I verified this by putting following fix and do not see the crash
+anymore:
+
+diff --git a/mm/memory.c b/mm/memory.c
+index 1797bc1..329fcb9 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -367,7 +367,8 @@ void tlb_table_flush(struct mmu_gather *tlb)
  
-+	/* pg_data_t should be reset to zero when it's allocated */
-+	WARN_ON(pgdat->nr_zones || pgdat->node_start_pfn || pgdat->classzone_idx);
-+
- 	pgdat->node_id = nid;
- 	pgdat->node_start_pfn = node_start_pfn;
- 	calculate_node_totalpages(pgdat, zones_size, zholes_size);
--- 
-1.7.9.5
+ 	if (*batch) {
+ 		tlb_table_flush_mmu(tlb);
+-		call_rcu_sched(&(*batch)->rcu, tlb_remove_table_rcu);
++		if(*batch)
++			call_rcu_sched(&(*batch)->rcu, tlb_remove_table_rcu);
+ 		*batch = NULL;
+ 	}
+ }
+
+Thanks
+Nikunj
 
