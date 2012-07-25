@@ -1,13 +1,13 @@
 From: David Howells <dhowells@redhat.com>
 Subject: Re: [PATCH 00/13] UAPI header file split
-Date: Wed, 25 Jul 2012 12:20:32 +0100
-Message-ID: <12201.1343215232@warthog.procyon.org.uk>
+Date: Wed, 25 Jul 2012 18:32:48 +0100
+Message-ID: <9561.1343237568@warthog.procyon.org.uk>
 References: <CAHO5Pa2ck_wqUwiuFUxEeU=k3dJvByyjpygpUhrSFRsMyBZ8Eg@mail.gmail.com> <20120720215636.14854.41208.stgit@warthog.procyon.org.uk> <CAHO5Pa0NOUk=Z8SNQ9t=Oi6aU96o-JtMuAytAoXJ2v1L0ntNww@mail.gmail.com> <28702.1343135952@warthog.procyon.org.uk> <CAHO5Pa310CYFKvyN4N21CHoCKJG-eJ04Q-yg1VmgwvgR5N91Rg@mail.gmail.com> <6193.1343211798@warthog.procyon.org.uk>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:53873 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:25340 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756468Ab2GYLUs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Jul 2012 07:20:48 -0400
+	id S1750946Ab2GYRdI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 Jul 2012 13:33:08 -0400
 In-Reply-To: <CAHO5Pa2ck_wqUwiuFUxEeU=k3dJvByyjpygpUhrSFRsMyBZ8Eg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -16,29 +16,89 @@ Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.or
 
 Michael Kerrisk <mtk.manpages@gmail.com> wrote:
 
-> >> 2. EMPTY UAPI HEADERS
+> >> 4. DISINTEGRATE MARKERS LEFT OVER (?)
 > >>
-> >> Some of the resulting uapi header files are empty:
-> >> ...
-> >> I imagine this should be reasonably easy to fix.
+> >> Some of the DISINTEGRATE markers that you create during the scripting
+> >> process are left in the final uapi files. Was this intentional?
 > >
-> > Fix how?  The Kbuild files say these headers must exist in UAPI space, but
-> > the __KERNEL__ guards therein don't define any content for them in UAPI.
+> > Ummm... no, there shouldn't be any.
+> >
+> > Certainly the marker has worked (the __KERNEL__ guard got retained), but I'm
+> > not sure why it didn't get removed.  Probably my understanding of the black
+> > magic required to make perl do what I want is lacking.
 > 
-> I'm not sure of the answer here. It certainly seems odd to have a
-> bunch of new empty header files in the kernel tree, which is why I
-> commented on it. Without digging much deeper, I've no idea whether the
-> Kbuild files can be (automatically?) modified not to require these
-> empty files.
-
-You can't get rid of the empty header files completely.  They're exported to
-userspace and so userspace may require their presence.
-
-I could put a guard in there just so they're not empty, I suppose.
-
 > So, a manual fix may be in order?
 
-Or just apply the removal regexp to each line before I write the UAPI header
-out.  I'll have a play with it later.
+Okay...  Dealt with that in the script.  The following command:
+
+	git diff uapi-post-split-20120724
+
+shows the attached.
 
 David
+---
+diff --git a/arch/sparc/include/uapi/asm/termbits.h b/arch/sparc/include/uapi/asm/termbits.h
+index a023152..dd91642 100644
+--- a/arch/sparc/include/uapi/asm/termbits.h
++++ b/arch/sparc/include/uapi/asm/termbits.h
+@@ -29,7 +29,7 @@ struct termios {
+ 	tcflag_t c_cflag;		/* control mode flags */
+ 	tcflag_t c_lflag;		/* local mode flags */
+ 	cc_t c_line;			/* line discipline */
+-#ifndef __KERNEL__ // DISINTEGRATE: RETAIN
++#ifndef __KERNEL__
+ 	cc_t c_cc[NCCS];		/* control characters */
+ #else
+ 	cc_t c_cc[NCCS+2];	/* kernel needs 2 more to hold vmin/vtime */
+diff --git a/include/uapi/linux/acct.h b/include/uapi/linux/acct.h
+index 14aeac7..11b6ca3 100644
+--- a/include/uapi/linux/acct.h
++++ b/include/uapi/linux/acct.h
+@@ -81,7 +81,7 @@ struct acct_v3
+ 	__u32		ac_pid;			/* Process ID */
+ 	__u32		ac_ppid;		/* Parent Process ID */
+ 	__u32		ac_btime;		/* Process Creation Time */
+-#ifdef __KERNEL__ // DISINTEGRATE: RETAIN
++#ifdef __KERNEL__
+ 	__u32		ac_etime;		/* Elapsed Time */
+ #else
+ 	float		ac_etime;		/* Elapsed Time */
+diff --git a/include/uapi/linux/coda.h b/include/uapi/linux/coda.h
+index 67b01dc..8826a31 100644
+--- a/include/uapi/linux/coda.h
++++ b/include/uapi/linux/coda.h
+@@ -615,7 +615,7 @@ struct coda_open_by_fd_out {
+     struct coda_out_hdr oh;
+     int fd;
+ 
+-#ifdef __KERNEL__ // DISINTEGRATE: RETAIN
++#ifdef __KERNEL__
+     struct file *fh; /* not passed from userspace but used in-kernel only */
+ #endif
+ };
+diff --git a/include/uapi/linux/ncp.h b/include/uapi/linux/ncp.h
+index 4717262..99f0ade 100644
+--- a/include/uapi/linux/ncp.h
++++ b/include/uapi/linux/ncp.h
+@@ -155,7 +155,7 @@ struct nw_info_struct {
+ 	__u8 nameLen;
+ 	__u8 entryName[256];
+ 	/* libncp may depend on there being nothing after entryName */
+-#ifdef __KERNEL__ // DISINTEGRATE: RETAIN
++#ifdef __KERNEL__
+ 	struct nw_nfs_info nfs;
+ #endif
+ } __attribute__((packed));
+diff --git a/include/uapi/linux/netfilter/xt_policy.h b/include/uapi/linux/netfilter/xt_policy.h
+index 573da52..be8ead0 100644
+--- a/include/uapi/linux/netfilter/xt_policy.h
++++ b/include/uapi/linux/netfilter/xt_policy.h
+@@ -35,7 +35,7 @@ union xt_policy_addr {
+ 
+ struct xt_policy_elem {
+ 	union {
+-#ifdef __KERNEL__ // DISINTEGRATE: RETAIN
++#ifdef __KERNEL__
+ 		struct {
+ 			union nf_inet_addr saddr;
+ 			union nf_inet_addr smask;
