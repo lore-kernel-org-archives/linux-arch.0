@@ -1,171 +1,113 @@
-From: Michael Kerrisk <mtk.manpages@gmail.com>
+From: David Howells <dhowells@redhat.com>
 Subject: Re: [PATCH 00/13] UAPI header file split
-Date: Wed, 25 Jul 2012 09:48:18 +0200
-Message-ID: <CAHO5Pa310CYFKvyN4N21CHoCKJG-eJ04Q-yg1VmgwvgR5N91Rg@mail.gmail.com>
-References: <20120720215636.14854.41208.stgit@warthog.procyon.org.uk>
- <CAHO5Pa0NOUk=Z8SNQ9t=Oi6aU96o-JtMuAytAoXJ2v1L0ntNww@mail.gmail.com> <28702.1343135952@warthog.procyon.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Date: Wed, 25 Jul 2012 11:23:18 +0100
+Message-ID: <6193.1343211798@warthog.procyon.org.uk>
+References: <CAHO5Pa310CYFKvyN4N21CHoCKJG-eJ04Q-yg1VmgwvgR5N91Rg@mail.gmail.com> <20120720215636.14854.41208.stgit@warthog.procyon.org.uk> <CAHO5Pa0NOUk=Z8SNQ9t=Oi6aU96o-JtMuAytAoXJ2v1L0ntNww@mail.gmail.com> <28702.1343135952@warthog.procyon.org.uk>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f174.google.com ([209.85.214.174]:45025 "EHLO
-	mail-ob0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754857Ab2GYHsk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 25 Jul 2012 03:48:40 -0400
-In-Reply-To: <28702.1343135952@warthog.procyon.org.uk>
+Received: from mx1.redhat.com ([209.132.183.28]:51847 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754192Ab2GYKXj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 25 Jul 2012 06:23:39 -0400
+In-Reply-To: <CAHO5Pa310CYFKvyN4N21CHoCKJG-eJ04Q-yg1VmgwvgR5N91Rg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, tglx@linutronix.de, mingo@kernel.org, davej@redhat.com, Michael Kerrisk <mtk.manpages@gmail.com>
+To: Michael Kerrisk <mtk.manpages@gmail.com>
+Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, tglx@linutronix.de, mingo@kernel.org, davej@redhat.com
 
-On Tue, Jul 24, 2012 at 3:19 PM, David Howells <dhowells@redhat.com> wrote:
-> Michael Kerrisk <mtk.manpages@gmail.com> wrote:
+Michael Kerrisk <mtk.manpages@gmail.com> wrote:
+
+> A few other points that I noticed now...
+> 
+> 1. GIT HISTORY COULD BE RETAINED IN SOME CASES
+> ...
+> But, as currently scripted the "new" uapi header file does not carry
+> over the git history of the old "kapi" header, even though it is an
+> exact duplicate of that file.
+
+How do you retain git history?  Git relies entirely on the git client to
+notice the rename or excision within a single commit - and this seems to work.
+
+No history derivation clues are stored in the git repo.  It only stores that
+the tree was at point A and is now at point B.  How it got there is not
+recorded.
+
+> i.e., those cases would be better scripted as the equivalent of
+> a 'git mv'.
+
+That's just a macro for "mv; git rm; git add", I believe.
+
+> 2. EMPTY UAPI HEADERS
 >
->> In the uapi-split branch, there are now 44 empty Kbuild files. Was
->> that intended? Or, should these files rather be removed by your
->> patches?
->
-> To be removed by a later patch, I think.  Getting rid of some of them isn't
-> trivial - ones in arch/x/include/asm/Kbuild for example - because that Kbuild
-> is referenced by common code IIRC as a function of the arch.
+> Some of the resulting uapi header files are empty:
+> ...
+> I imagine this should be reasonably easy to fix.
 
-From a brief glance, I wonder if any of this could be automated. From
-a quick inspection, some of the Kbuild files seem not to be referred
-to elsewhere in the sources.
+Fix how?  The Kbuild files say these headers must exist in UAPI space, but the
+__KERNEL__ guards therein don't define any content for them in UAPI.
 
-A few other points that I noticed now...
+> 3. HEADER COMMENTS NOT RETAINED IN KAPI FILES
+> 
+> Another point that may be more difficult to fix is the following. Your
+> scripting is predicated on a header file structure that looks like
+> this:
+> 
+>     /* Header comments (copyright, author, license, etc) */
+>     #ifndef _GUARD_MACRO_H
+>     #define _GUARD_MACRO_H
+>     ...
+>     #endif
+> 
+> And the header comments get (sensibly) duplicated in the new uapi header file.
+> 
+> But some of the header files have this structure:
+> 
+>     #ifndef _GUARD_MACRO_H
+>     #define _GUARD_MACRO_H
+>     /* Header comments (copyright, author, license, etc) */
+>     ...
+>     #endif
 
-1. GIT HISTORY COULD BE RETAINED IN SOME CASES
+Yeah.  The problem was that the header following the guard also might not be
+such, but as you say, checking for:
 
-This case appears to occur for several hundred of the uapi files.
+	copyright
+	author
+	licen[sc]e
+	GPL
+	warranty
+	warranties
+	merchantability
+	liability
 
-When all of the content in a "kapi" file migrates to the uapi header,
-the "kapi" file is simply removed, which makes sense. In that case,
-the creation of the uapi file is effectively a "rename" operation.
-But, as currently scripted the "new" uapi header file does not carry
-over the git history of the old "kapi" header, even though it is an
-exact duplicate of that file.
+in the comment might well work.
 
-For example, the scripts in effect rename
-include/asm-generic/posix_types.h to
-include/uapi/asm-generic/posix_types.h, but the latter file carries
-none of the git history of the former file.
+> Some special casing or manual prepatching might best handle the
+> following files, where it looks like there are two comments that
+> should ideally be retained:
 
-In this case, would it nit be better that the git history *is*carried
-over? i.e., those cases would be better scripted as the equivalent of
-a 'git mv'.
+I see.
 
+> Some other special casing may be needed for these files
+> 
+> include/uapi/linux/virtio_console.h
+> include/uapi/sound/emu10k1.h
+> include/uapi/linux/netfilter/xt_connmark.h
 
-2. EMPTY UAPI HEADERS
+Hmmm.  Well, the virtio_console.h comment can actually be suitably modified to
+get rid of the bit about __KERNEL__ for the UAPI file, I think.
 
-Some of the resulting uapi header files are empty:
+It's looking like any comment that mentions one or more of the key words above
+should be duplicated.
 
-include/uapi/asm-generic/kvm_para.h
-include/uapi/linux/irqnr.h
-arch/sparc/include/uapi/asm/sigcontext.h
-arch/x86/include/uapi/asm/setup.h
-arch/x86/include/uapi/asm/hw_breakpoint.h
-arch/cris/include/uapi/asm/swab.h
-arch/sh/include/uapi/asm/hw_breakpoint.h
-arch/ia64/include/uapi/asm/kvm_para.h
-arch/mn10300/include/uapi/asm/setup.h
-arch/s390/include/uapi/asm/kvm_para.h
+> 4. DISINTEGRATE MARKERS LEFT OVER (?)
+> 
+> Some of the DISINTEGRATE markers that you create during the scripting
+> process are left in the final uapi files. Was this intentional?
 
-I imagine this should be reasonably easy to fix.
+Ummm... no, there shouldn't be any.
 
+Certainly the marker has worked (the __KERNEL__ guard got retained), but I'm
+not sure why it didn't get removed.  Probably my understanding of the black
+magic required to make perl do what I want is lacking.
 
-3. HEADER COMMENTS NOT RETAINED IN KAPI FILES
-
-Another point that may be more difficult to fix is the following. Your
-scripting is predicated on a header file structure that looks like
-this:
-
-    /* Header comments (copyright, author, license, etc) */
-    #ifndef _GUARD_MACRO_H
-    #define _GUARD_MACRO_H
-    ...
-    #endif
-
-And the header comments get (sensibly) duplicated in the new uapi header file.
-
-But some of the header files have this structure:
-
-    #ifndef _GUARD_MACRO_H
-    #define _GUARD_MACRO_H
-    /* Header comments (copyright, author, license, etc) */
-    ...
-    #endif
-
-With the consequence that the header comment is removed from the
-original header file. Since there's often copyright and licensing
-information in that comment, that seems undesirable. I wonder if some
-work on the script could improve that situation. In particular, if
-there's a header comment just after the #ifndef that contains
-something like a copyright/author/license, then that should be
-retained in the original header as well.
-
-I wrote a short script against your output uapi header files that I
-think captures all of the files where there is potential for
-improvement:
-
-egrep -l 'Author|\([cC]\)|[Cc]opyright |COPYRIGHT|[Ll]icensed|Modified' \
-    $(grep -n '#ifndef'  $(find -name '*.h'|g uapi) | \
-    grep ':1:' | awk -F':' '{print $1}')
-
-That script finds 83 matching files, and in each case (two
-exceptions), the single comment just below the #ifndef should ideally
-be retained in the "kapi" header (if the "kapi" header itself is
-retained, which appears to be the case in about 50% of the matching
-uapi files). There are two special false positives from that script:
-
-include/uapi/linux/netfilter/x_tables.h
-arch/x86/include/uapi/asm/mce.h
-
-The heuristic to correctly retain the comment in the "kapi" file would
-be something like this (which would also handle the two exceptions
-just noted):
-
-if the "kapi" header is retained:
-    if there was no header before the #ifndef guard:
-        if there is a comment block immediately following
-        the #ifndef guard:
-            if that comment block contains one of the above strings:
-                duplicate the comment block in the "kapi" header
-
-Some special casing or manual prepatching might best handle the
-following files, where it looks like there are two comments that
-should ideally be retained:
-
-include/uapi/linux/joystick.h
-include/uapi/linux/ultrasound.h
-include/uapi/linux/hiddev.h
-include/uapi/linux/hid.h
-include/uapi/linux/hidraw.h
-
-Some other special casing may be needed for these files
-
-include/uapi/linux/virtio_console.h
-include/uapi/sound/emu10k1.h
-include/uapi/linux/netfilter/xt_connmark.h
-
-
-4. DISINTEGRATE MARKERS LEFT OVER (?)
-
-Some of the DISINTEGRATE markers that you create during the scripting
-process are left in the final uapi files. Was this intentional?
-
-$ grep -rl 'DISINTEGRATE' .
-./include/uapi/linux/acct.h
-./include/uapi/linux/ncp.h
-./include/uapi/linux/netfilter/xt_policy.h
-./include/uapi/linux/coda.h
-./arch/sparc/include/uapi/asm/termbits.h
-
-
-Cheers,
-
-Michael
-
--- 
-Michael Kerrisk Linux man-pages maintainer;
-http://www.kernel.org/doc/man-pages/
-Author of "The Linux Programming Interface", http://blog.man7.org/
+David
