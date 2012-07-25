@@ -1,104 +1,200 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH 00/13] UAPI header file split
-Date: Wed, 25 Jul 2012 18:32:48 +0100
-Message-ID: <9561.1343237568@warthog.procyon.org.uk>
-References: <CAHO5Pa2ck_wqUwiuFUxEeU=k3dJvByyjpygpUhrSFRsMyBZ8Eg@mail.gmail.com> <20120720215636.14854.41208.stgit@warthog.procyon.org.uk> <CAHO5Pa0NOUk=Z8SNQ9t=Oi6aU96o-JtMuAytAoXJ2v1L0ntNww@mail.gmail.com> <28702.1343135952@warthog.procyon.org.uk> <CAHO5Pa310CYFKvyN4N21CHoCKJG-eJ04Q-yg1VmgwvgR5N91Rg@mail.gmail.com> <6193.1343211798@warthog.procyon.org.uk>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:25340 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750946Ab2GYRdI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 25 Jul 2012 13:33:08 -0400
-In-Reply-To: <CAHO5Pa2ck_wqUwiuFUxEeU=k3dJvByyjpygpUhrSFRsMyBZ8Eg@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Michael Kerrisk <mtk.manpages@gmail.com>
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, tglx@linutronix.de, mingo@kernel.org, davej@redhat.com
+From: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Subject: Re: [RFC] page-table walkers vs memory order
+Date: Wed, 25 Jul 2012 10:56:28 -0700
+Message-ID: <20120725175628.GH2378@linux.vnet.ibm.com>
+References: <1343064870.26034.23.camel@twins>
+ <alpine.LSU.2.00.1207241356350.2094@eggly.anvils>
+Reply-To: paulmck@linux.vnet.ibm.com
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <alpine.LSU.2.00.1207241356350.2094@eggly.anvils>
+Sender: owner-linux-mm@kvack.org
+To: Hugh Dickins <hughd@google.com>
+Cc: Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Rik van Riel <riel@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@kernel.dk>, Andrea Arcangeli <aarcange@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-Michael Kerrisk <mtk.manpages@gmail.com> wrote:
-
-> >> 4. DISINTEGRATE MARKERS LEFT OVER (?)
-> >>
-> >> Some of the DISINTEGRATE markers that you create during the scripting
-> >> process are left in the final uapi files. Was this intentional?
-> >
-> > Ummm... no, there shouldn't be any.
-> >
-> > Certainly the marker has worked (the __KERNEL__ guard got retained), but I'm
-> > not sure why it didn't get removed.  Probably my understanding of the black
-> > magic required to make perl do what I want is lacking.
+On Tue, Jul 24, 2012 at 02:51:05PM -0700, Hugh Dickins wrote:
+> On Mon, 23 Jul 2012, Peter Zijlstra wrote:
+> > 
+> > While staring at mm/huge_memory.c I found a very under-commented
+> > smp_wmb() in __split_huge_page_map(). It turns out that its copied from
+> > __{pte,pmd,pud}_alloc() but forgot the useful comment (or a reference
+> > thereto).
+> > 
+> > Now, afaict we're not good, as per that comment. Paul has since
+> > convinced some of us that compiler writers are pure evil and out to get
+> > us.
+> > 
+> > Therefore we should do what rcu_dereference() does and use
+> > ACCESS_ONCE()/barrier() followed smp_read_barrier_depends() every time
+> > we dereference a page-table pointer.
+> > 
+> > 
+> > In particular it looks like things like
+> > mm/memcontrol.c:mem_cgroup_count_precharge(), which use
+> > walk_page_range() under down_read(&mm->mmap_sem) and can thus be
+> > concurrent with __{pte,pmd,pud}_alloc() from faults (and possibly
+> > itself) are quite broken on Alpha
 > 
-> So, a manual fix may be in order?
+> The Alpha pmd_offset() and pte_offset_map() already contain an
+> smp_read_barrier_depends() (362a61ad from Nick); with comment that
+> it's not needed on the pgd, and I presume the pud level is folded.
+> Does Alpha really need more of them, as you have put below?
+> 
+> > and subtly broken for those of us with 'creative' compilers.
+> 
+> I don't want to fight against ACCESS_ONCE() (or barrier(): that's
+> interesting, thank you, I hadn't seen it used as an ACCESS_ONCE()
+> substitute before); but I do want to question it a little.
+> 
+> I'm totally unclear whether the kernel ever gets built with these
+> 'creative' compilers that you refer to.  Is ACCESS_ONCE() a warning
+> of where some future compiler would be permitted to mess with our
+> assumptions?  Or is it actually saving us already today?  Would we
+> know?  Could there be a boottime test that would tell us?  Is it
+> likely that a future compiler would have an "--access_once"
+> option that the kernel build would want to turn on?
+> 
+> Those may all be questions for Paul!
 
-Okay...  Dealt with that in the script.  The following command:
+The problem is that, unless you tell it otherwise, the compiler is
+permitted to assume that the code that it is generating is the only thing
+active in that address space at that time.  So the compiler might know
+that it already has a perfectly good copy of that value somewhere in
+its registers, or it might decide to fetch the value twice rather than
+once due to register pressure, either of which can be fatal in SMP code.
+And then there are more aggressive optimizations as well.
 
-	git diff uapi-post-split-20120724
+ACCESS_ONCE() is a way of telling the compiler to access the value
+once, regardless of what cute single-threaded optimizations that it
+otherwise might want to apply.
 
-shows the attached.
+							Thanx, Paul
 
-David
----
-diff --git a/arch/sparc/include/uapi/asm/termbits.h b/arch/sparc/include/uapi/asm/termbits.h
-index a023152..dd91642 100644
---- a/arch/sparc/include/uapi/asm/termbits.h
-+++ b/arch/sparc/include/uapi/asm/termbits.h
-@@ -29,7 +29,7 @@ struct termios {
- 	tcflag_t c_cflag;		/* control mode flags */
- 	tcflag_t c_lflag;		/* local mode flags */
- 	cc_t c_line;			/* line discipline */
--#ifndef __KERNEL__ // DISINTEGRATE: RETAIN
-+#ifndef __KERNEL__
- 	cc_t c_cc[NCCS];		/* control characters */
- #else
- 	cc_t c_cc[NCCS+2];	/* kernel needs 2 more to hold vmin/vtime */
-diff --git a/include/uapi/linux/acct.h b/include/uapi/linux/acct.h
-index 14aeac7..11b6ca3 100644
---- a/include/uapi/linux/acct.h
-+++ b/include/uapi/linux/acct.h
-@@ -81,7 +81,7 @@ struct acct_v3
- 	__u32		ac_pid;			/* Process ID */
- 	__u32		ac_ppid;		/* Parent Process ID */
- 	__u32		ac_btime;		/* Process Creation Time */
--#ifdef __KERNEL__ // DISINTEGRATE: RETAIN
-+#ifdef __KERNEL__
- 	__u32		ac_etime;		/* Elapsed Time */
- #else
- 	float		ac_etime;		/* Elapsed Time */
-diff --git a/include/uapi/linux/coda.h b/include/uapi/linux/coda.h
-index 67b01dc..8826a31 100644
---- a/include/uapi/linux/coda.h
-+++ b/include/uapi/linux/coda.h
-@@ -615,7 +615,7 @@ struct coda_open_by_fd_out {
-     struct coda_out_hdr oh;
-     int fd;
- 
--#ifdef __KERNEL__ // DISINTEGRATE: RETAIN
-+#ifdef __KERNEL__
-     struct file *fh; /* not passed from userspace but used in-kernel only */
- #endif
- };
-diff --git a/include/uapi/linux/ncp.h b/include/uapi/linux/ncp.h
-index 4717262..99f0ade 100644
---- a/include/uapi/linux/ncp.h
-+++ b/include/uapi/linux/ncp.h
-@@ -155,7 +155,7 @@ struct nw_info_struct {
- 	__u8 nameLen;
- 	__u8 entryName[256];
- 	/* libncp may depend on there being nothing after entryName */
--#ifdef __KERNEL__ // DISINTEGRATE: RETAIN
-+#ifdef __KERNEL__
- 	struct nw_nfs_info nfs;
- #endif
- } __attribute__((packed));
-diff --git a/include/uapi/linux/netfilter/xt_policy.h b/include/uapi/linux/netfilter/xt_policy.h
-index 573da52..be8ead0 100644
---- a/include/uapi/linux/netfilter/xt_policy.h
-+++ b/include/uapi/linux/netfilter/xt_policy.h
-@@ -35,7 +35,7 @@ union xt_policy_addr {
- 
- struct xt_policy_elem {
- 	union {
--#ifdef __KERNEL__ // DISINTEGRATE: RETAIN
-+#ifdef __KERNEL__
- 		struct {
- 			union nf_inet_addr saddr;
- 			union nf_inet_addr smask;
+> > Should I go do a more extensive audit of page-table walkers or are we
+> > happy with the status quo?
+> 
+> I do love the status quo, but an audit would be welcome.  When
+> it comes to patches, personally I tend to prefer ACCESS_ONCE() and
+> smp_read_barrier_depends() and accompanying comments to be hidden away
+> in the underlying macros or inlines where reasonable, rather than
+> repeated all over; but I may have my priorities wrong on that.
+> 
+> The last time we rewrote the main pgd-pud-pmd-pte walkers,
+> we believed that no ACCESS_ONCE() was necessary, because although a
+> pgd-pud-pmd entry might be racily instantiated at any instant, it
+> could never change beneath us - the freeing of page tables happens
+> only when we cannot reach them by other routes.
+> 
+> (Never quite true: those _clear_bad() things can zero entries at any
+> instant, but we're already in a bad place when those come into play,
+> so we never worried about racing against them.)
+> 
+> Since then, I think THP has made the rules more complicated; but I
+> believe Andrea paid a great deal of attention to that kind of issue.
+> 
+> I suspect your arch/x86/mm/gup.c ACCESS_ONCE()s are necessary:
+> gup_fast() breaks as many rules as it can, and in particular may
+> be racing with the freeing of page tables; but I'm not so sure
+> about the pagewalk mods - we could say "cannot do any harm",
+> but I don't like adding lines on that basis.
+> 
+> Hugh
+> 
+> > 
+> > ---
+> >  arch/x86/mm/gup.c |    6 +++---
+> >  mm/pagewalk.c     |   24 ++++++++++++++++++++++++
+> >  2 files changed, 27 insertions(+), 3 deletions(-)
+> > 
+> > diff --git a/arch/x86/mm/gup.c b/arch/x86/mm/gup.c
+> > index dd74e46..4958fb1 100644
+> > --- a/arch/x86/mm/gup.c
+> > +++ b/arch/x86/mm/gup.c
+> > @@ -150,7 +150,7 @@ static int gup_pmd_range(pud_t pud, unsigned long addr, unsigned long end,
+> >  
+> >  	pmdp = pmd_offset(&pud, addr);
+> >  	do {
+> > -		pmd_t pmd = *pmdp;
+> > +		pmd_t pmd = ACCESS_ONCE(*pmdp);
+> >  
+> >  		next = pmd_addr_end(addr, end);
+> >  		/*
+> > @@ -220,7 +220,7 @@ static int gup_pud_range(pgd_t pgd, unsigned long addr, unsigned long end,
+> >  
+> >  	pudp = pud_offset(&pgd, addr);
+> >  	do {
+> > -		pud_t pud = *pudp;
+> > +		pud_t pud = ACCESS_ONCE(*pudp);
+> >  
+> >  		next = pud_addr_end(addr, end);
+> >  		if (pud_none(pud))
+> > @@ -280,7 +280,7 @@ int __get_user_pages_fast(unsigned long start, int nr_pages, int write,
+> >  	local_irq_save(flags);
+> >  	pgdp = pgd_offset(mm, addr);
+> >  	do {
+> > -		pgd_t pgd = *pgdp;
+> > +		pgd_t pgd = ACCESS_ONCE(*pgdp);
+> >  
+> >  		next = pgd_addr_end(addr, end);
+> >  		if (pgd_none(pgd))
+> > diff --git a/mm/pagewalk.c b/mm/pagewalk.c
+> > index 6c118d0..2ba2a74 100644
+> > --- a/mm/pagewalk.c
+> > +++ b/mm/pagewalk.c
+> > @@ -10,6 +10,14 @@ static int walk_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
+> >  	int err = 0;
+> >  
+> >  	pte = pte_offset_map(pmd, addr);
+> > +	/*
+> > +	 * Pairs with the smp_wmb() in __{pte,pmd,pud}_alloc() and
+> > +	 * __split_huge_page_map(). Ideally we'd use ACCESS_ONCE() on the
+> > +	 * actual dereference of p[gum]d, but that's hidden deep within the
+> > +	 * bowels of {pte,pmd,pud}_offset.
+> > +	 */
+> > +	barrier();
+> > +	smp_read_barrier_depends();
+> >  	for (;;) {
+> >  		err = walk->pte_entry(pte, addr, addr + PAGE_SIZE, walk);
+> >  		if (err)
+> > @@ -32,6 +40,14 @@ static int walk_pmd_range(pud_t *pud, unsigned long addr, unsigned long end,
+> >  	int err = 0;
+> >  
+> >  	pmd = pmd_offset(pud, addr);
+> > +	/*
+> > +	 * Pairs with the smp_wmb() in __{pte,pmd,pud}_alloc() and
+> > +	 * __split_huge_page_map(). Ideally we'd use ACCESS_ONCE() on the
+> > +	 * actual dereference of p[gum]d, but that's hidden deep within the
+> > +	 * bowels of {pte,pmd,pud}_offset.
+> > +	 */
+> > +	barrier();
+> > +	smp_read_barrier_depends();
+> >  	do {
+> >  again:
+> >  		next = pmd_addr_end(addr, end);
+> > @@ -77,6 +93,14 @@ static int walk_pud_range(pgd_t *pgd, unsigned long addr, unsigned long end,
+> >  	int err = 0;
+> >  
+> >  	pud = pud_offset(pgd, addr);
+> > +	/*
+> > +	 * Pairs with the smp_wmb() in __{pte,pmd,pud}_alloc() and
+> > +	 * __split_huge_page_map(). Ideally we'd use ACCESS_ONCE() on the
+> > +	 * actual dereference of p[gum]d, but that's hidden deep within the
+> > +	 * bowels of {pte,pmd,pud}_offset.
+> > +	 */
+> > +	barrier();
+> > +	smp_read_barrier_depends();
+> >  	do {
+> >  		next = pud_addr_end(addr, end);
+> >  		if (pud_none_or_clear_bad(pud)) {
+> > 
+> > 
+> 
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
