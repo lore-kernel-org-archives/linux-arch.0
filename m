@@ -1,390 +1,322 @@
 From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: [PATCH 1/2] add mm argument to lazy mmu mode hooks
-Date: Thu, 26 Jul 2012 17:47:13 +0200
-Message-ID: <1343317634-13197-2-git-send-email-schwidefsky@de.ibm.com>
+Subject: [PATCH 2/2] s390/tlb: race of lazy TLB flush vs. recreation of TLB entries
+Date: Thu, 26 Jul 2012 17:47:14 +0200
+Message-ID: <1343317634-13197-3-git-send-email-schwidefsky@de.ibm.com>
 References: <1343317634-13197-1-git-send-email-schwidefsky@de.ibm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp11.uk.ibm.com ([195.75.94.107]:52964 "EHLO
-	e06smtp11.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751966Ab2GZPr6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jul 2012 11:47:58 -0400
-Received: from /spool/local
-	by e06smtp11.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-	Thu, 26 Jul 2012 16:47:56 +0100
-Received: from d06av06.portsmouth.uk.ibm.com (d06av06.portsmouth.uk.ibm.com [9.149.37.217])
-	by d06nrmr1407.portsmouth.uk.ibm.com (8.13.8/8.13.8/NCO v10.0) with ESMTP id q6QFlsn73133460
-	for <linux-arch@vger.kernel.org>; Thu, 26 Jul 2012 16:47:54 +0100
-Received: from d06av06.portsmouth.uk.ibm.com (loopback [127.0.0.1])
-	by d06av06.portsmouth.uk.ibm.com (8.14.4/8.13.1/NCO v10.0 AVout) with ESMTP id q6QFlqhA002766
-	for <linux-arch@vger.kernel.org>; Thu, 26 Jul 2012 09:47:53 -0600
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1343317634-13197-1-git-send-email-schwidefsky@de.ibm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: owner-linux-mm@kvack.org
 To: linux-arch@vger.kernel.org, linux-mm@kvack.org, Zachary Amsden <zach@vmware.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, Peter Zijlstra <peterz@infradead.org>
 Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-To enable lazy TLB flush schemes with a scope limited to a single
-mm_struct add the mm pointer as argument to the three lazy mmu mode
-hooks.
+Git commit 050eef364ad70059 "[S390] fix tlb flushing vs. concurrent
+/proc accesses" introduced the attach counter to avoid using the
+mm_users value to decide between IPTE for every PTE and lazy TLB
+flushing with IDTE. That fixed the problem with mm_users but it
+introduced another subtle race, fortunately one that is very hard
+to hit.
+The background is the requirement of the architecture that a valid
+PTE may not be changed while it can be used concurrently by another
+cpu. Ergo the decision between IPTE and lazy TLB flushing needs to
+be done while the PTE is still valid. Now if the virtual cpu is
+temporarily stopped after the decision to use lazy TLB flushing but
+before the invalid bit of the PTE has been set, another cpu can attach
+the mm, find that flush_mm is set, do the IDTE, return to userspace,
+and recreate a TLB that uses the PTE in question. When the first,
+stopped cpu continues it will change the PTE while it is attached on
+another cpu. The first cpu will do another IDTE shortly after the
+modification of the PTE which makes the race window quite short.
 
+To fix this the attach of an mm needs to be delayed until the PTE
+modification is complete. To do that the lazy mmu mode hooks are
+used and some compare-and-swap magic on the attach counter.
+
+Reviewed-by: Gerald Schaefer <gerald.schaefer@de.ibm.com>
 Signed-off-by: Martin Schwidefsky <schwidefsky@de.ibm.com>
 ---
- arch/powerpc/include/asm/tlbflush.h |    6 +++---
- arch/powerpc/mm/subpage-prot.c      |    4 ++--
- arch/powerpc/mm/tlb_hash64.c        |    4 ++--
- arch/tile/mm/fault.c                |    2 +-
- arch/tile/mm/highmem.c              |    4 ++--
- arch/x86/include/asm/paravirt.h     |    6 +++---
- arch/x86/kernel/paravirt.c          |   10 +++++-----
- arch/x86/mm/highmem_32.c            |    4 ++--
- arch/x86/mm/iomap_32.c              |    2 +-
- include/asm-generic/pgtable.h       |    6 +++---
- mm/memory.c                         |   16 ++++++++--------
- mm/mprotect.c                       |    4 ++--
- mm/mremap.c                         |    4 ++--
- 13 files changed, 36 insertions(+), 36 deletions(-)
+ arch/s390/include/asm/hugetlb.h     |   24 ++++++++-----------
+ arch/s390/include/asm/mmu_context.h |   13 ++++++++---
+ arch/s390/include/asm/pgtable.h     |   43 ++++++++++++++++++++++-------------
+ arch/s390/include/asm/tlb.h         |    3 ++-
+ arch/s390/include/asm/tlbflush.h    |    8 +++----
+ arch/s390/mm/pgtable.c              |    6 ++---
+ 6 files changed, 55 insertions(+), 42 deletions(-)
 
-diff --git a/arch/powerpc/include/asm/tlbflush.h b/arch/powerpc/include/asm/tlbflush.h
-index 81143fc..7851e0c1 100644
---- a/arch/powerpc/include/asm/tlbflush.h
-+++ b/arch/powerpc/include/asm/tlbflush.h
-@@ -108,14 +108,14 @@ extern void hpte_need_flush(struct mm_struct *mm, unsigned long addr,
+diff --git a/arch/s390/include/asm/hugetlb.h b/arch/s390/include/asm/hugetlb.h
+index 799ed0f..2d6e6e3 100644
+--- a/arch/s390/include/asm/hugetlb.h
++++ b/arch/s390/include/asm/hugetlb.h
+@@ -66,16 +66,6 @@ static inline pte_t huge_ptep_get(pte_t *ptep)
+ 	return pte;
+ }
  
- #define __HAVE_ARCH_ENTER_LAZY_MMU_MODE
+-static inline pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
+-					    unsigned long addr, pte_t *ptep)
+-{
+-	pte_t pte = huge_ptep_get(ptep);
+-
+-	mm->context.flush_mm = 1;
+-	pmd_clear((pmd_t *) ptep);
+-	return pte;
+-}
+-
+ static inline void __pmd_csp(pmd_t *pmdp)
+ {
+ 	register unsigned long reg2 asm("2") = pmd_val(*pmdp);
+@@ -117,6 +107,15 @@ static inline void huge_ptep_invalidate(struct mm_struct *mm,
+ 		__pmd_csp(pmdp);
+ }
  
--static inline void arch_enter_lazy_mmu_mode(void)
++static inline pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
++					    unsigned long addr, pte_t *ptep)
++{
++	pte_t pte = huge_ptep_get(ptep);
++
++	huge_ptep_invalidate(mm, addr, ptep);
++	return pte;
++}
++
+ #define huge_ptep_set_access_flags(__vma, __addr, __ptep, __entry, __dirty) \
+ ({									    \
+ 	int __changed = !pte_same(huge_ptep_get(__ptep), __entry);	    \
+@@ -131,10 +130,7 @@ static inline void huge_ptep_invalidate(struct mm_struct *mm,
+ ({									\
+ 	pte_t __pte = huge_ptep_get(__ptep);				\
+ 	if (pte_write(__pte)) {						\
+-		(__mm)->context.flush_mm = 1;				\
+-		if (atomic_read(&(__mm)->context.attach_count) > 1 ||	\
+-		    (__mm) != current->active_mm)			\
+-			huge_ptep_invalidate(__mm, __addr, __ptep);	\
++		huge_ptep_invalidate(__mm, __addr, __ptep);		\
+ 		set_huge_pte_at(__mm, __addr, __ptep,			\
+ 				huge_pte_wrprotect(__pte));		\
+ 	}								\
+diff --git a/arch/s390/include/asm/mmu_context.h b/arch/s390/include/asm/mmu_context.h
+index 5c63615..2276106 100644
+--- a/arch/s390/include/asm/mmu_context.h
++++ b/arch/s390/include/asm/mmu_context.h
+@@ -72,14 +72,21 @@ static inline void update_mm(struct mm_struct *mm, struct task_struct *tsk)
+ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
+ 			     struct task_struct *tsk)
+ {
++	int v;
++
+ 	cpumask_set_cpu(smp_processor_id(), mm_cpumask(next));
+ 	update_mm(next, tsk);
+ 	atomic_dec(&prev->context.attach_count);
+ 	WARN_ON(atomic_read(&prev->context.attach_count) < 0);
+-	atomic_inc(&next->context.attach_count);
++	while (1) {
++		v = atomic_read(&next->context.attach_count);
++		if ((v & 0xffff0000) && (v & 0xffff) <= 1)
++			continue;
++		if (atomic_cmpxchg(&next->context.attach_count, v, v + 1) == v)
++			break;
++	}
+ 	/* Check for TLBs not flushed yet */
+-	if (next->context.flush_mm)
+-		__tlb_flush_mm(next);
++	__tlb_flush_mm_lazy(next);
+ }
+ 
+ #define enter_lazy_tlb(mm,tsk)	do { } while (0)
+diff --git a/arch/s390/include/asm/pgtable.h b/arch/s390/include/asm/pgtable.h
+index 6bd7d74..808824d 100644
+--- a/arch/s390/include/asm/pgtable.h
++++ b/arch/s390/include/asm/pgtable.h
+@@ -405,12 +405,6 @@ extern struct page *vmemmap;
+ #define __S110	PAGE_RW
+ #define __S111	PAGE_RW
+ 
+-static inline int mm_exclusive(struct mm_struct *mm)
+-{
+-	return likely(mm == current->active_mm &&
+-		      atomic_read(&mm->context.attach_count) <= 1);
+-}
+-
+ static inline int mm_has_pgste(struct mm_struct *mm)
+ {
+ #ifdef CONFIG_PGSTE
+@@ -933,6 +927,29 @@ static inline void __ptep_ipte(unsigned long address, pte_t *ptep)
+ 	}
+ }
+ 
++#define __HAVE_ARCH_ENTER_LAZY_MMU_MODE
++
 +static inline void arch_enter_lazy_mmu_mode(struct mm_struct *mm)
- {
- 	struct ppc64_tlb_batch *batch = &__get_cpu_var(ppc64_tlb_batch);
- 
- 	batch->active = 1;
- }
- 
--static inline void arch_leave_lazy_mmu_mode(void)
++{
++	atomic_add(0x10000, &mm->context.attach_count);
++}
++
 +static inline void arch_leave_lazy_mmu_mode(struct mm_struct *mm)
++{
++	atomic_sub(0x10000, &mm->context.attach_count);
++}
++
++static inline void ptep_flush_lazy(struct mm_struct *mm,
++				   unsigned long address, pte_t *ptep)
++{
++	int active = (mm == current->active_mm) ? 1 : 0;
++
++	if ((atomic_read(&mm->context.attach_count) & 0xffff) > active)
++		__ptep_ipte(address, ptep);
++	else
++		mm->context.flush_mm = 1;
++}
++
+ /*
+  * This is hard to understand. ptep_get_and_clear and ptep_clear_flush
+  * both clear the TLB for the unmapped pte. The reason is that
+@@ -953,13 +970,11 @@ static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
+ 	pgste_t pgste;
+ 	pte_t pte;
+ 
+-	mm->context.flush_mm = 1;
+ 	if (mm_has_pgste(mm))
+ 		pgste = pgste_get_lock(ptep);
+ 
+ 	pte = *ptep;
+-	if (!mm_exclusive(mm))
+-		__ptep_ipte(address, ptep);
++	ptep_flush_lazy(mm, address, ptep);
+ 	pte_val(*ptep) = _PAGE_TYPE_EMPTY;
+ 
+ 	if (mm_has_pgste(mm)) {
+@@ -976,13 +991,11 @@ static inline pte_t ptep_modify_prot_start(struct mm_struct *mm,
  {
- 	struct ppc64_tlb_batch *batch = &__get_cpu_var(ppc64_tlb_batch);
+ 	pte_t pte;
  
-@@ -124,7 +124,7 @@ static inline void arch_leave_lazy_mmu_mode(void)
- 	batch->active = 0;
+-	mm->context.flush_mm = 1;
+ 	if (mm_has_pgste(mm))
+ 		pgste_get_lock(ptep);
+ 
+ 	pte = *ptep;
+-	if (!mm_exclusive(mm))
+-		__ptep_ipte(address, ptep);
++	ptep_flush_lazy(mm, address, ptep);
+ 	return pte;
  }
  
--#define arch_flush_lazy_mmu_mode()      do {} while (0)
-+#define arch_flush_lazy_mmu_mode(mm)	  do {} while (0)
+@@ -1036,7 +1049,7 @@ static inline pte_t ptep_get_and_clear_full(struct mm_struct *mm,
  
+ 	pte = *ptep;
+ 	if (!full)
+-		__ptep_ipte(address, ptep);
++		ptep_flush_lazy(mm, address, ptep);
+ 	pte_val(*ptep) = _PAGE_TYPE_EMPTY;
  
- extern void flush_hash_page(unsigned long va, real_pte_t pte, int psize,
-diff --git a/arch/powerpc/mm/subpage-prot.c b/arch/powerpc/mm/subpage-prot.c
-index e4f8f1f..bf95185 100644
---- a/arch/powerpc/mm/subpage-prot.c
-+++ b/arch/powerpc/mm/subpage-prot.c
-@@ -76,13 +76,13 @@ static void hpte_flush_range(struct mm_struct *mm, unsigned long addr,
- 	if (pmd_none(*pmd))
- 		return;
- 	pte = pte_offset_map_lock(mm, pmd, addr, &ptl);
--	arch_enter_lazy_mmu_mode();
-+	arch_enter_lazy_mmu_mode(mm);
- 	for (; npages > 0; --npages) {
- 		pte_update(mm, addr, pte, 0, 0);
- 		addr += PAGE_SIZE;
- 		++pte;
- 	}
--	arch_leave_lazy_mmu_mode();
-+	arch_leave_lazy_mmu_mode(mm);
- 	pte_unmap_unlock(pte - 1, ptl);
- }
+ 	if (mm_has_pgste(mm)) {
+@@ -1054,12 +1067,10 @@ static inline pte_t ptep_set_wrprotect(struct mm_struct *mm,
+ 	pte_t pte = *ptep;
  
-diff --git a/arch/powerpc/mm/tlb_hash64.c b/arch/powerpc/mm/tlb_hash64.c
-index 31f1820..73fd065 100644
---- a/arch/powerpc/mm/tlb_hash64.c
-+++ b/arch/powerpc/mm/tlb_hash64.c
-@@ -205,7 +205,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
- 	 * way to do things but is fine for our needs here.
- 	 */
- 	local_irq_save(flags);
--	arch_enter_lazy_mmu_mode();
-+	arch_enter_lazy_mmu_mode(mm);
- 	for (; start < end; start += PAGE_SIZE) {
- 		pte_t *ptep = find_linux_pte(mm->pgd, start);
- 		unsigned long pte;
-@@ -217,7 +217,7 @@ void __flush_hash_table_range(struct mm_struct *mm, unsigned long start,
- 			continue;
- 		hpte_need_flush(mm, start, ptep, pte, 0);
- 	}
--	arch_leave_lazy_mmu_mode();
-+	arch_leave_lazy_mmu_mode(mm);
- 	local_irq_restore(flags);
- }
+ 	if (pte_write(pte)) {
+-		mm->context.flush_mm = 1;
+ 		if (mm_has_pgste(mm))
+ 			pgste = pgste_get_lock(ptep);
  
-diff --git a/arch/tile/mm/fault.c b/arch/tile/mm/fault.c
-index 84ce7ab..0d78f93 100644
---- a/arch/tile/mm/fault.c
-+++ b/arch/tile/mm/fault.c
-@@ -123,7 +123,7 @@ static inline pmd_t *vmalloc_sync_one(pgd_t *pgd, unsigned long address)
- 		return NULL;
- 	if (!pmd_present(*pmd)) {
- 		set_pmd(pmd, *pmd_k);
--		arch_flush_lazy_mmu_mode();
-+		arch_flush_lazy_mmu_mode(&init_mm);
- 	} else
- 		BUG_ON(pmd_ptfn(*pmd) != pmd_ptfn(*pmd_k));
- 	return pmd_k;
-diff --git a/arch/tile/mm/highmem.c b/arch/tile/mm/highmem.c
-index ef8e5a6..85b061e 100644
---- a/arch/tile/mm/highmem.c
-+++ b/arch/tile/mm/highmem.c
-@@ -114,7 +114,7 @@ static void kmap_atomic_register(struct page *page, enum km_type type,
+-		if (!mm_exclusive(mm))
+-			__ptep_ipte(address, ptep);
++		ptep_flush_lazy(mm, address, ptep);
+ 		*ptep = pte_wrprotect(pte);
  
- 	list_add(&amp->list, &amp_list);
- 	set_pte(ptep, pteval);
--	arch_flush_lazy_mmu_mode();
-+	arch_flush_lazy_mmu_mode(&init_mm);
+ 		if (mm_has_pgste(mm))
+diff --git a/arch/s390/include/asm/tlb.h b/arch/s390/include/asm/tlb.h
+index 06e5acb..40cec46 100644
+--- a/arch/s390/include/asm/tlb.h
++++ b/arch/s390/include/asm/tlb.h
+@@ -59,13 +59,14 @@ static inline void tlb_gather_mmu(struct mmu_gather *tlb,
  
- 	spin_unlock(&amp_lock);
- 	homecache_kpte_unlock(flags);
-@@ -259,7 +259,7 @@ void __kunmap_atomic(void *kvaddr)
- 		BUG_ON(vaddr >= (unsigned long)high_memory);
- 	}
- 
--	arch_flush_lazy_mmu_mode();
-+	arch_flush_lazy_mmu_mode(&init_mm);
- 	pagefault_enable();
- }
- EXPORT_SYMBOL(__kunmap_atomic);
-diff --git a/arch/x86/include/asm/paravirt.h b/arch/x86/include/asm/paravirt.h
-index 0b47ddb..b097945 100644
---- a/arch/x86/include/asm/paravirt.h
-+++ b/arch/x86/include/asm/paravirt.h
-@@ -694,17 +694,17 @@ static inline void arch_end_context_switch(struct task_struct *next)
- }
- 
- #define  __HAVE_ARCH_ENTER_LAZY_MMU_MODE
--static inline void arch_enter_lazy_mmu_mode(void)
-+static inline void arch_enter_lazy_mmu_mode(struct mm_struct *mm)
+ static inline void tlb_flush_mmu(struct mmu_gather *tlb)
  {
- 	PVOP_VCALL0(pv_mmu_ops.lazy_mode.enter);
++	__tlb_flush_mm_lazy(tlb->mm);
+ 	tlb_table_flush(tlb);
  }
  
--static inline void arch_leave_lazy_mmu_mode(void)
-+static inline void arch_leave_lazy_mmu_mode(struct mm_struct *mm)
+ static inline void tlb_finish_mmu(struct mmu_gather *tlb,
+ 				  unsigned long start, unsigned long end)
  {
- 	PVOP_VCALL0(pv_mmu_ops.lazy_mode.leave);
+-	tlb_table_flush(tlb);
++	tlb_flush_mmu(tlb);
  }
- 
--void arch_flush_lazy_mmu_mode(void);
-+void arch_flush_lazy_mmu_mode(struct mm_struct *mm);
- 
- static inline void __set_fixmap(unsigned /* enum fixed_addresses */ idx,
- 				phys_addr_t phys, pgprot_t flags)
-diff --git a/arch/x86/kernel/paravirt.c b/arch/x86/kernel/paravirt.c
-index 17fff18..62d9b94 100644
---- a/arch/x86/kernel/paravirt.c
-+++ b/arch/x86/kernel/paravirt.c
-@@ -268,7 +268,7 @@ void paravirt_start_context_switch(struct task_struct *prev)
- 	BUG_ON(preemptible());
- 
- 	if (this_cpu_read(paravirt_lazy_mode) == PARAVIRT_LAZY_MMU) {
--		arch_leave_lazy_mmu_mode();
-+		arch_leave_lazy_mmu_mode(prev->mm);
- 		set_ti_thread_flag(task_thread_info(prev), TIF_LAZY_MMU_UPDATES);
- 	}
- 	enter_lazy(PARAVIRT_LAZY_CPU);
-@@ -281,7 +281,7 @@ void paravirt_end_context_switch(struct task_struct *next)
- 	leave_lazy(PARAVIRT_LAZY_CPU);
- 
- 	if (test_and_clear_ti_thread_flag(task_thread_info(next), TIF_LAZY_MMU_UPDATES))
--		arch_enter_lazy_mmu_mode();
-+		arch_enter_lazy_mmu_mode(next->mm);
- }
- 
- enum paravirt_lazy_mode paravirt_get_lazy_mode(void)
-@@ -292,13 +292,13 @@ enum paravirt_lazy_mode paravirt_get_lazy_mode(void)
- 	return this_cpu_read(paravirt_lazy_mode);
- }
- 
--void arch_flush_lazy_mmu_mode(void)
-+void arch_flush_lazy_mmu_mode(struct mm_struct *mm)
- {
- 	preempt_disable();
- 
- 	if (paravirt_get_lazy_mode() == PARAVIRT_LAZY_MMU) {
--		arch_leave_lazy_mmu_mode();
--		arch_enter_lazy_mmu_mode();
-+		arch_leave_lazy_mmu_mode(mm);
-+		arch_enter_lazy_mmu_mode(mm);
- 	}
- 
- 	preempt_enable();
-diff --git a/arch/x86/mm/highmem_32.c b/arch/x86/mm/highmem_32.c
-index 6f31ee5..318ee33 100644
---- a/arch/x86/mm/highmem_32.c
-+++ b/arch/x86/mm/highmem_32.c
-@@ -45,7 +45,7 @@ void *kmap_atomic_prot(struct page *page, pgprot_t prot)
- 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
- 	BUG_ON(!pte_none(*(kmap_pte-idx)));
- 	set_pte(kmap_pte-idx, mk_pte(page, prot));
--	arch_flush_lazy_mmu_mode();
-+	arch_flush_lazy_mmu_mode(&init_mm);
- 
- 	return (void *)vaddr;
- }
-@@ -89,7 +89,7 @@ void __kunmap_atomic(void *kvaddr)
- 		 */
- 		kpte_clear_flush(kmap_pte-idx, vaddr);
- 		kmap_atomic_idx_pop();
--		arch_flush_lazy_mmu_mode();
-+		arch_flush_lazy_mmu_mode(&init_mm);
- 	}
- #ifdef CONFIG_DEBUG_HIGHMEM
- 	else {
-diff --git a/arch/x86/mm/iomap_32.c b/arch/x86/mm/iomap_32.c
-index 7b179b4..d8a1556 100644
---- a/arch/x86/mm/iomap_32.c
-+++ b/arch/x86/mm/iomap_32.c
-@@ -65,7 +65,7 @@ void *kmap_atomic_prot_pfn(unsigned long pfn, pgprot_t prot)
- 	idx = type + KM_TYPE_NR * smp_processor_id();
- 	vaddr = __fix_to_virt(FIX_KMAP_BEGIN + idx);
- 	set_pte(kmap_pte - idx, pfn_pte(pfn, prot));
--	arch_flush_lazy_mmu_mode();
-+	arch_flush_lazy_mmu_mode(&init_mm);
- 
- 	return (void *)vaddr;
- }
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index ff4947b..2efd6c7 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -359,9 +359,9 @@ static inline void ptep_modify_prot_commit(struct mm_struct *mm,
-  * it must synchronize the delayed page table writes properly on other CPUs.
-  */
- #ifndef __HAVE_ARCH_ENTER_LAZY_MMU_MODE
--#define arch_enter_lazy_mmu_mode()	do {} while (0)
--#define arch_leave_lazy_mmu_mode()	do {} while (0)
--#define arch_flush_lazy_mmu_mode()	do {} while (0)
-+#define arch_enter_lazy_mmu_mode(mm)	do {} while (0)
-+#define arch_leave_lazy_mmu_mode(mm)	do {} while (0)
-+#define arch_flush_lazy_mmu_mode(mm)	do {} while (0)
- #endif
  
  /*
-diff --git a/mm/memory.c b/mm/memory.c
-index 2466d12..1c48c22 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -932,7 +932,7 @@ again:
- 	spin_lock_nested(src_ptl, SINGLE_DEPTH_NESTING);
- 	orig_src_pte = src_pte;
- 	orig_dst_pte = dst_pte;
--	arch_enter_lazy_mmu_mode();
-+	arch_enter_lazy_mmu_mode(src_mm);
- 
- 	do {
- 		/*
-@@ -956,7 +956,7 @@ again:
- 		progress += 8;
- 	} while (dst_pte++, src_pte++, addr += PAGE_SIZE, addr != end);
- 
--	arch_leave_lazy_mmu_mode();
-+	arch_leave_lazy_mmu_mode(src_mm);
- 	spin_unlock(src_ptl);
- 	pte_unmap(orig_src_pte);
- 	add_mm_rss_vec(dst_mm, rss);
-@@ -1106,7 +1106,7 @@ again:
- 	init_rss_vec(rss);
- 	start_pte = pte_offset_map_lock(mm, pmd, addr, &ptl);
- 	pte = start_pte;
--	arch_enter_lazy_mmu_mode();
-+	arch_enter_lazy_mmu_mode(mm);
- 	do {
- 		pte_t ptent = *pte;
- 		if (pte_none(ptent)) {
-@@ -1194,7 +1194,7 @@ again:
- 	} while (pte++, addr += PAGE_SIZE, addr != end);
- 
- 	add_mm_rss_vec(mm, rss);
--	arch_leave_lazy_mmu_mode();
-+	arch_leave_lazy_mmu_mode(mm);
- 	pte_unmap_unlock(start_pte, ptl);
- 
- 	/*
-@@ -2202,13 +2202,13 @@ static int remap_pte_range(struct mm_struct *mm, pmd_t *pmd,
- 	pte = pte_alloc_map_lock(mm, pmd, addr, &ptl);
- 	if (!pte)
- 		return -ENOMEM;
--	arch_enter_lazy_mmu_mode();
-+	arch_enter_lazy_mmu_mode(mm);
- 	do {
- 		BUG_ON(!pte_none(*pte));
- 		set_pte_at(mm, addr, pte, pte_mkspecial(pfn_pte(pfn, prot)));
- 		pfn++;
- 	} while (pte++, addr += PAGE_SIZE, addr != end);
--	arch_leave_lazy_mmu_mode();
-+	arch_leave_lazy_mmu_mode(mm);
- 	pte_unmap_unlock(pte - 1, ptl);
- 	return 0;
- }
-@@ -2346,7 +2346,7 @@ static int apply_to_pte_range(struct mm_struct *mm, pmd_t *pmd,
- 
- 	BUG_ON(pmd_huge(*pmd));
- 
--	arch_enter_lazy_mmu_mode();
-+	arch_enter_lazy_mmu_mode(mm);
- 
- 	token = pmd_pgtable(*pmd);
- 
-@@ -2356,7 +2356,7 @@ static int apply_to_pte_range(struct mm_struct *mm, pmd_t *pmd,
- 			break;
- 	} while (addr += PAGE_SIZE, addr != end);
- 
--	arch_leave_lazy_mmu_mode();
-+	arch_leave_lazy_mmu_mode(mm);
- 
- 	if (mm != &init_mm)
- 		pte_unmap_unlock(pte-1, ptl);
-diff --git a/mm/mprotect.c b/mm/mprotect.c
-index a409926..df8688c 100644
---- a/mm/mprotect.c
-+++ b/mm/mprotect.c
-@@ -43,7 +43,7 @@ static void change_pte_range(struct mm_struct *mm, pmd_t *pmd,
- 	spinlock_t *ptl;
- 
- 	pte = pte_offset_map_lock(mm, pmd, addr, &ptl);
--	arch_enter_lazy_mmu_mode();
-+	arch_enter_lazy_mmu_mode(mm);
- 	do {
- 		oldpte = *pte;
- 		if (pte_present(oldpte)) {
-@@ -74,7 +74,7 @@ static void change_pte_range(struct mm_struct *mm, pmd_t *pmd,
- 			}
- 		}
- 	} while (pte++, addr += PAGE_SIZE, addr != end);
--	arch_leave_lazy_mmu_mode();
-+	arch_leave_lazy_mmu_mode(mm);
- 	pte_unmap_unlock(pte - 1, ptl);
+diff --git a/arch/s390/include/asm/tlbflush.h b/arch/s390/include/asm/tlbflush.h
+index 9fde315..1de9f51 100644
+--- a/arch/s390/include/asm/tlbflush.h
++++ b/arch/s390/include/asm/tlbflush.h
+@@ -88,14 +88,12 @@ static inline void __tlb_flush_mm(struct mm_struct * mm)
+ 		__tlb_flush_full(mm);
  }
  
-diff --git a/mm/mremap.c b/mm/mremap.c
-index 21fed20..5241520 100644
---- a/mm/mremap.c
-+++ b/mm/mremap.c
-@@ -98,7 +98,7 @@ static void move_ptes(struct vm_area_struct *vma, pmd_t *old_pmd,
- 	new_ptl = pte_lockptr(mm, new_pmd);
- 	if (new_ptl != old_ptl)
- 		spin_lock_nested(new_ptl, SINGLE_DEPTH_NESTING);
--	arch_enter_lazy_mmu_mode();
-+	arch_enter_lazy_mmu_mode(mm);
- 
- 	for (; old_addr < old_end; old_pte++, old_addr += PAGE_SIZE,
- 				   new_pte++, new_addr += PAGE_SIZE) {
-@@ -109,7 +109,7 @@ static void move_ptes(struct vm_area_struct *vma, pmd_t *old_pmd,
- 		set_pte_at(mm, new_addr, new_pte, pte);
+-static inline void __tlb_flush_mm_cond(struct mm_struct * mm)
++static inline void __tlb_flush_mm_lazy(struct mm_struct * mm)
+ {
+-	spin_lock(&mm->page_table_lock);
+ 	if (mm->context.flush_mm) {
+ 		__tlb_flush_mm(mm);
+ 		mm->context.flush_mm = 0;
  	}
+-	spin_unlock(&mm->page_table_lock);
+ }
  
--	arch_leave_lazy_mmu_mode();
-+	arch_leave_lazy_mmu_mode(mm);
- 	if (new_ptl != old_ptl)
- 		spin_unlock(new_ptl);
- 	pte_unmap(new_pte - 1);
+ /*
+@@ -122,13 +120,13 @@ static inline void __tlb_flush_mm_cond(struct mm_struct * mm)
+ 
+ static inline void flush_tlb_mm(struct mm_struct *mm)
+ {
+-	__tlb_flush_mm_cond(mm);
++	__tlb_flush_mm_lazy(mm);
+ }
+ 
+ static inline void flush_tlb_range(struct vm_area_struct *vma,
+ 				   unsigned long start, unsigned long end)
+ {
+-	__tlb_flush_mm_cond(vma->vm_mm);
++	__tlb_flush_mm_lazy(vma->vm_mm);
+ }
+ 
+ static inline void flush_tlb_kernel_range(unsigned long start,
+diff --git a/arch/s390/mm/pgtable.c b/arch/s390/mm/pgtable.c
+index 1cab221..cecf8c8 100644
+--- a/arch/s390/mm/pgtable.c
++++ b/arch/s390/mm/pgtable.c
+@@ -767,7 +767,6 @@ void tlb_table_flush(struct mmu_gather *tlb)
+ 	struct mmu_table_batch **batch = &tlb->batch;
+ 
+ 	if (*batch) {
+-		__tlb_flush_mm(tlb->mm);
+ 		call_rcu_sched(&(*batch)->rcu, tlb_remove_table_rcu);
+ 		*batch = NULL;
+ 	}
+@@ -777,11 +776,12 @@ void tlb_remove_table(struct mmu_gather *tlb, void *table)
+ {
+ 	struct mmu_table_batch **batch = &tlb->batch;
+ 
++	tlb->mm->context.flush_mm = 1;
+ 	if (*batch == NULL) {
+ 		*batch = (struct mmu_table_batch *)
+ 			__get_free_page(GFP_NOWAIT | __GFP_NOWARN);
+ 		if (*batch == NULL) {
+-			__tlb_flush_mm(tlb->mm);
++			__tlb_flush_mm_lazy(tlb->mm);
+ 			tlb_remove_table_one(table);
+ 			return;
+ 		}
+@@ -789,7 +789,7 @@ void tlb_remove_table(struct mmu_gather *tlb, void *table)
+ 	}
+ 	(*batch)->tables[(*batch)->nr++] = table;
+ 	if ((*batch)->nr == MAX_TABLE_BATCH)
+-		tlb_table_flush(tlb);
++		tlb_flush_mmu(tlb);
+ }
+ 
+ /*
 -- 
 1.7.10.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
