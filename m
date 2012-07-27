@@ -1,46 +1,33 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from casper.infradead.org ([85.118.1.10]:39164 "EHLO
-	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751670Ab2GZUjh convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 26 Jul 2012 16:39:37 -0400
-Message-ID: <1343335169.32120.18.camel@twins>
-Subject: Re: [RFC] page-table walkers vs memory order
+Received: from merlin.infradead.org ([205.233.59.134]:36970 "EHLO
+	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752164Ab2G0IDx convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 27 Jul 2012 04:03:53 -0400
+Message-ID: <1343376091.32120.23.camel@twins>
+Subject: Re: [RFC][PATCH 0/2] fun with tlb flushing on s390
 From: Peter Zijlstra <peterz@infradead.org>
-Date: Thu, 26 Jul 2012 22:39:29 +0200
-In-Reply-To: <alpine.LSU.2.00.1207241356350.2094@eggly.anvils>
-References: <1343064870.26034.23.camel@twins>
-	 <alpine.LSU.2.00.1207241356350.2094@eggly.anvils>
+Date: Fri, 27 Jul 2012 10:01:31 +0200
+In-Reply-To: <20120727085718.19c33cce@de.ibm.com>
+References: <1343317634-13197-1-git-send-email-schwidefsky@de.ibm.com>
+	 <1343331770.32120.6.camel@twins> <20120727085718.19c33cce@de.ibm.com>
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
 Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Hugh Dickins <hughd@google.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Rik van Riel <riel@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@kernel.dk>, Andrea Arcangeli <aarcange@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20120726203929.qPoBwLHcD_teTquSjjXcvXIacV5WNBD3JeUrS_3nUCw@z>
+To: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: linux-arch@vger.kernel.org, linux-mm@kvack.org, Zachary Amsden <zach@vmware.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>
+Message-ID: <20120727080131.C5t5ADsWhnsXWfmrtUdaNMyhwAtEoeMxREIGlq6_8B4@z>
 
-On Tue, 2012-07-24 at 14:51 -0700, Hugh Dickins wrote:
-> I do love the status quo, but an audit would be welcome.  When
-> it comes to patches, personally I tend to prefer ACCESS_ONCE() and
-> smp_read_barrier_depends() and accompanying comments to be hidden away
-> in the underlying macros or inlines where reasonable, rather than
-> repeated all over; but I may have my priorities wrong on that.
+On Fri, 2012-07-27 at 08:57 +0200, Martin Schwidefsky wrote:
+> > > powerpc 
+> > 
+> > I have a patch that makes sparc64 do the same thing.
 > 
-> 
-Yeah, I was being lazy, and I totally forgot to actually look at the
-alpha code.
+> That is good, I guess we are in agreement then to add the mm
+> argument. 
 
-How about we do a generic (cribbed from rcu_dereference):
-
-#define page_table_deref(p)					\
-({								\
-	typeof(*p) *______p = (typeof(*p) __force *)ACCESS_ONCE(p);\
-	smp_read_barrier_depends();				\
-	((typeof(*p) __force __kernel *)(______p));		\
-})
-
-and use that all over to dereference page-tables. That way all this
-lives in one place. Granted, I'll have to go edit all arch code, but I
-seem to be doing that on a frequent basis anyway :/
+Ah, what I meant was make sparc64 use the lazy_mmu stuff just like ppc64
+does. I haven't so far had a need for extra arguments.
 
 
