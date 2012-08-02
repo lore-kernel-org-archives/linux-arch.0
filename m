@@ -1,90 +1,52 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
+From: Meredydd Luff <meredydd@senatehouse.org>
 Subject: Re: [PATCH] [RFC] syscalls,x86: Add execveat() system call (v2)
-Date: Thu, 2 Aug 2012 07:55:57 +0100
-Message-ID: <20120802065557.GI6481@ZenIV.linux.org.uk>
+Date: Thu, 2 Aug 2012 10:14:53 +0100
+Message-ID: <CAD=T17Gkryua5TQW5h18kCu+yiViuVv6NyxtMw3C9we0RWzmKQ@mail.gmail.com>
 References: <1343859049-3632-1-git-send-email-meredydd@senatehouse.org>
- <5019B36A.4030604@zytor.com>
- <CAD=T17Esguer01OsrxMtqEcHKZ-Ovg05+MxSdF7NhXENsUubgg@mail.gmail.com>
- <5019BC0E.4010109@zytor.com>
+ <5019B36A.4030604@zytor.com> <CAD=T17Esguer01OsrxMtqEcHKZ-Ovg05+MxSdF7NhXENsUubgg@mail.gmail.com>
+ <5019BC0E.4010109@zytor.com> <20120802065557.GI6481@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:56829 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752037Ab2HBG4D (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Aug 2012 02:56:03 -0400
-Content-Disposition: inline
-In-Reply-To: <5019BC0E.4010109@zytor.com>
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:55684 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753594Ab2HBJPP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 2 Aug 2012 05:15:15 -0400
+Received: by lbbgm6 with SMTP id gm6so857817lbb.19
+        for <linux-arch@vger.kernel.org>; Thu, 02 Aug 2012 02:15:13 -0700 (PDT)
+In-Reply-To: <20120802065557.GI6481@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: Meredydd Luff <meredydd@senatehouse.org>, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@redhat.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-kernel@vger.kernel.org, Kees Cook <keescook@chromium.org>, Ingo Molnar <mingo@redhat.com>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org
 
-On Wed, Aug 01, 2012 at 04:30:22PM -0700, H. Peter Anvin wrote:
-> On 08/01/2012 04:09 PM, Meredydd Luff wrote:
-> >>>  #
-> >>>  # x32-specific system call numbers start at 512 to avoid cache impact
-> >>
-> >> I think that should be common, not 64 (as should kcmp be).
-> > 
-> > I copied the original execve, which is 64.
-> > 
-> 
-> Sorry, you're right.  The argument vector needs compatibility support.
-> 
-> This means you need an x32 version of the function -- execve
-> unfortunately is one of the few system calls which require a special x32
-> version (although it's a simple wrapper around sys32_execve).  See
-> sys_x32_execve.
+On Thu, Aug 2, 2012 at 7:55 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+>> This means you need an x32 version of the function -- execve
+>> unfortunately is one of the few system calls which require a special x32
+>> version (although it's a simple wrapper around sys32_execve).  See
+>> sys_x32_execve.
+>
+> I *really* strongly object to doing that thing before we sanitize the
+> situation with sys_execve().
 
-I *really* strongly object to doing that thing before we sanitize the
-situation with sys_execve().  As it is, the damn thing is defined
-separately on each architecture, with spectaculary ugly kludges used
-in these implementations.  Adding a parallel pile of kludges (and
-due to their nature, they'll need to be changed in non-trivial
-way in a lot of cases) is simply wrong.
+"That thing" = "creating an x32 entry stub", or "merging execveat() at all"?
 
-The thing is, there's essentially no reason to have more than one
-implementation.  What they are (badly) doing is "we need to find
-pt_regs to pass to do_execve(), the thing we are after has to be near
-our stack frame, so let's try to get to it that way".  With really
-ugly set of kludges trying to do just that.
+(snip)
+> The thing is, there's essentially no reason to have more than one
+> implementation.  What they are (badly) doing is "we need to find
+> pt_regs to pass to do_execve(), the thing we are after has to be near
+> our stack frame, so let's try to get to it that way".
 
-What we should use instead is task_pt_regs(); maybe introduce
-current_pt_regs(), defaulting to task_pt_regs(current) and letting
-architectures that can do it better (on some it's simply
-available in dedicated register, on some it's better to work
-from current_thread_info(), etc.) override the default.
-With that we have a fairly good chance to merge most of those
-guys; probably not all of them, due to e.g. mips weirdness,
-but enough to make it worth doing.
+Hang on...it's not just sys_execve that fits that description, is it?
+You seem to be describing every call that needs a pt_regs parameter,
+which at a glance is anything with a stub_ or PTREGSCALL in
+arch/x86/kernel/entry_{32,64}.S. That's: clone, fork, vfork,
+sigaltstack, iopl, execve, sigreturn, rt_sigreturn, vm86, vm86old.
+Most of those are handled by a common PTREGSCALL macro, but there are
+a few that get special treatment (different set on each arch - on
+x86-64 it's execve and rt_sigreturn ; on i386 it's just clone).
 
-The obstacle is in lazy kernel_execve() implementations;
-ones that simply issue a trap/whatever is used to enter
-the system call.  Directly from kernel space.  It doesn't
-have to be done that way; see what e.g. arm does there.
-Note that doing it without syscall instruction avoids another
-headache; namely, we don't have to worry about returning
-from *failed* execve (i.e. return to kernel mode) through
-the codepath that is normally taken only when returning
-to userland.
+Is there's something special about execve in particular, or do you
+want to overhaul all the ptregscalls?
 
-FWIW, I would try to pull the asm tail of arm kernel_execve()
-into something that would look to C side as
-	ret_from_kernel_exec(&regs);	/* never returns */
-and start converting architectures to that primitive.  It should
-copy the provided pt_regs to normal location (keeping in mind
-that there really might be an overlap), set registers (including
-stack pointer) for normal return to user path and jump there.
-Essentially, that's the real arch-dependent part of kernel_execve() -
-transition from kernel thread to userland process.
-
-It can be done architecture-by-architecture; there's no need to make
-it a flagday conversion.  Once an arch is handled, we define
-something like __ARCH_HAS_RET_FROM_KERNEL_EXEC and get the common
-implementations of kernel_execve() and sys_execve() for that -
-those could simply live in fs/exec.c under the matching ifdef.
-Along with your sys_execveat().  I can probably throw alpha,
-arm and x86 conversions into the pile, but it really needs to
-be handled on linux-arch, with arch maintainers at least agreeing
-in principle with that scheme.
+Meredydd
