@@ -1,70 +1,69 @@
-From: "Dr. David Alan Gilbert" <dave@treblig.org>
-Subject: Re: [RFC] page-table walkers vs memory order
-Date: Sun, 5 Aug 2012 01:10:51 +0100
-Message-ID: <20120805001051.GC1255@gallifrey>
-References: <1343064870.26034.23.camel@twins>
- <alpine.LSU.2.00.1207241356350.2094@eggly.anvils>
- <20120804143719.GB10459@redhat.com>
- <20120804220245.GB3307@linux.vnet.ibm.com>
- <20120804224705.GD10459@redhat.com>
- <20120804225910.GB1255@gallifrey>
- <20120804231151.GK3307@linux.vnet.ibm.com>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH V2 5/6] x86: add CONFIG_ARM_AMBA, selected by STA2X11
+Date: Sun, 5 Aug 2012 22:28:36 +0200
+Message-ID: <CACRpkdZLGhgpUJy_3QGYvGRqyxMkkPPSdyP==h5YurWqKnctBw@mail.gmail.com>
+References: <2b797c83-6a3c-4051-841a-a4cfa9d1cae1@email.android.com>
+	<20120701104401.GA4352@mail.gnudd.com>
+	<20120703130042.GA10007@mail.gnudd.com>
+	<201207031319.40884.arnd@arndb.de>
+	<20120703193403.GA26355@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20120804231151.GK3307@linux.vnet.ibm.com>
-Sender: owner-linux-mm@kvack.org
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Hugh Dickins <hughd@google.com>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Rik van Riel <riel@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@kernel.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-vc0-f174.google.com ([209.85.220.174]:45515 "EHLO
+	mail-vc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754904Ab2HEU2h (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 5 Aug 2012 16:28:37 -0400
+Received: by vcbfk26 with SMTP id fk26so2111805vcb.19
+        for <linux-arch@vger.kernel.org>; Sun, 05 Aug 2012 13:28:37 -0700 (PDT)
+In-Reply-To: <20120703193403.GA26355@n2100.arm.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>, Alim Akhtar <alim.akhtar@gmail.com>, Kukjin Kim <kgene.kim@samsung.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Alessandro Rubini <rubini@gnudd.com>, hpa@zytor.com, linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, x86@kernel.org, gregkh@linuxfoundation.org, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
 
-* Paul E. McKenney (paulmck@linux.vnet.ibm.com) wrote:
-> On Sat, Aug 04, 2012 at 11:59:10PM +0100, Dr. David Alan Gilbert wrote:
+On Tue, Jul 3, 2012 at 9:34 PM, Russell King - ARM Linux
+<linux@arm.linux.org.uk> wrote:
+> On Tue, Jul 03, 2012 at 01:19:40PM +0000, Arnd Bergmann wrote:
+>> On Tuesday 03 July 2012, Alessandro Rubini wrote:
+>> >    drivers/dma/amba-pl08x.c: needs <asm/hardware/pl080.h>
+>> >      proposed fix: move pl080.h to include/linux
+>>
+>> Note that there is already an include/linux/amba/pl08x.h.
+>> I would just move the few parts of pl080.h that are actually
+>> needed with global visibility there, and move the rest
+>> to drivers/dma/.
+>
+> NAK.  It's the entire register definitions for the PL08x, which we really
+> should not be exporting to common code.
 
-<snip>
+The major reason why that file is there is that there is *another*
+PL080 driver in arch/arm/mach-s3c64xx/dma.c which I repeatedly
+asked the Samsung people to replace with the
+drivers/dma/amba-pl08x.c driver. :-(
 
-> > A compiler could decide to dereference it using a non-faulting load,
-> > do the calculations or whatever on the returned value of the non-faulting
-> > load, and then check whether the load actually faulted, and whether the
-> > address matched the prediction before it did a store based on it's
-> > guess.
-> 
-> Or the compiler could record a recovery address in a per-thread variable
-> before doing the speculative reference.  The page-fault handler could
-> consult the per-thread variable and take appropriate action.
+When I worked on the PL08x driver in drivers/dma I reused
+this header to avoid code duplication.
 
-The difference is that I'd expect a compiler writer to think that
-they've got a free hand in terms of instruction usage that the OS/library
-doesn't see - if it's in the instruction manual and it's marked as user
-space and non-faulting I'd say it's fair game; once they know that they're
-going to take a fault or mark pages specially then they already know they're
-going to have to cooperate with the OS, or worry about what other
-normal library calls are going to do.
-(A bit of googling seems to suggest IA64 and SPARC have played around
-with non-faulting load optimisations, but I can't tell how much.)
+Now that thing is stranding in the way. Alim, Kukjin, what's happening?
 
-> But both this approach and your approach are vulnerable to things like
-> having the speculation area mapped to (say) MMIO space.  Not good!
+I feel tempted to update Alim's patch myself and push it on you
+soon...
 
-Not good for someone doing MMIO, but from an evil-compiler point
-of view, they might well assume that a pointer is to memory
-unless someone has made an effort to tell them otherwise (not that
-there is a good standard to do that).
+> Please wait until _after_ my DMA engine stuff (which is now in linux-next)
+> makes its way upstream before touching any of this stuff, otherwise there's
+> going to be conflicts.
 
-> So I am with Andrea on this one -- there would need to be some handshake
-> between kernel and compiler to avoid messing with possibly-unsafe
-> mappings.  And I am still not much in favor of value speculation.  ;-)
+That stuff is in now, looking real good. Good work on this!
 
-Dave
--- 
- -----Open up your eyes, open up your mind, open up your code -------   
-/ Dr. David Alan Gilbert    |       Running GNU/Linux       | Happy  \ 
-\ gro.gilbert @ treblig.org |                               | In Hex /
- \ _________________________|_____ http://www.treblig.org   |_______/
+> As part of my patch series, this gets rid of a number of uses of it in
+> arch/arm, but there's still the .cctl_memcpy initializer which does. I've
+> not yet checked whether all implementations use the same value (they
+> probably do), and if so then it should be eliminated from platform code
+> and moved into the driver.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Sounds like a plan. If we just get rid of the duplicate implementation
+we're going somewhere.
+
+Yours,
+Linus Walleij
