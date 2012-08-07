@@ -1,53 +1,81 @@
-From: Kukjin Kim <kgene.kim@samsung.com>
-Subject: RE: [PATCH V2 5/6] x86: add CONFIG_ARM_AMBA, selected by STA2X11
-Date: Tue, 07 Aug 2012 19:06:37 +0900
-Message-ID: <098e01cd7484$553871c0$ffa95540$%kim@samsung.com>
-References: <2b797c83-6a3c-4051-841a-a4cfa9d1cae1@email.android.com>
- <20120701104401.GA4352@mail.gnudd.com> <20120703130042.GA10007@mail.gnudd.com>
- <201207031319.40884.arnd@arndb.de>
- <20120703193403.GA26355@n2100.arm.linux.org.uk>
- <CACRpkdZLGhgpUJy_3QGYvGRqyxMkkPPSdyP==h5YurWqKnctBw@mail.gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH] mm: hugetlb: flush dcache before returning zeroed huge
+ page to userspace
+Date: Tue, 7 Aug 2012 17:03:37 +0100
+Message-ID: <20120807160337.GC16877@mudshark.cambridge.arm.com>
+References: <1341412376-6272-1-git-send-email-will.deacon@arm.com>
+ <20120709122523.GC4627@tiehlicka.suse.cz>
+ <20120709141324.GK7315@mudshark.cambridge.arm.com>
+ <alpine.LSU.2.00.1207091622470.2261@eggly.anvils>
+ <20120710094513.GB9108@mudshark.cambridge.arm.com>
+ <20120710104234.GI9108@mudshark.cambridge.arm.com>
+ <20120711174802.GG13498@mudshark.cambridge.arm.com>
+ <20120712111659.GF21013@tiehlicka.suse.cz>
+ <20120712112645.GG2816@mudshark.cambridge.arm.com>
+ <20120712115708.GG21013@tiehlicka.suse.cz>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout4.samsung.com ([203.254.224.34]:28070 "EHLO
-	mailout4.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751222Ab2HGKGj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Aug 2012 06:06:39 -0400
-In-reply-to: <CACRpkdZLGhgpUJy_3QGYvGRqyxMkkPPSdyP==h5YurWqKnctBw@mail.gmail.com>
-Content-language: ko
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: 'Linus Walleij' <linus.walleij@linaro.org>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Alim Akhtar' <alim.akhtar@gmail.com>
-Cc: 'Arnd Bergmann' <arnd@arndb.de>, 'Alessandro Rubini' <rubini@gnudd.com>, hpa@zytor.com, linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, x86@kernel.org, gregkh@linuxfoundation.org, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20120712115708.GG21013@tiehlicka.suse.cz>
+Sender: owner-linux-mm@kvack.org
+To: Michal Hocko <mhocko@suse.cz>
+Cc: Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Hillf Danton <dhillf@gmail.com>, Russell King <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+List-Id: linux-arch.vger.kernel.org
 
-Linus Walleij wrote:
+<resurrecting this thread>
+
+On Thu, Jul 12, 2012 at 12:57:08PM +0100, Michal Hocko wrote:
+> On Thu 12-07-12 12:26:45, Will Deacon wrote:
+> > Well, the comment in linux/page-flags.h does state that:
+> > 
+> >  * PG_arch_1 is an architecture specific page state bit.  The generic code
+> >  * guarantees that this bit is cleared for a page when it first is entered into
+> >  * the page cache.
+> > 
+> > so it's not completely clear cut that the architecture should be responsible
+> > for clearing this bit when allocating pages from the hugepage pool.
 > 
+> I think the wording is quite clear. It guarantees it gets cleared not
+> clears it. So it is up to an arch specific functions called from the
+> generic code to do that.
 
-[...]
+If we have to do this in arch-specific functions then:
 
-> The major reason why that file is there is that there is *another*
-> PL080 driver in arch/arm/mach-s3c64xx/dma.c which I repeatedly
-> asked the Samsung people to replace with the
-> drivers/dma/amba-pl08x.c driver. :-(
-> 
-> When I worked on the PL08x driver in drivers/dma I reused
-> this header to avoid code duplication.
-> 
-> Now that thing is stranding in the way. Alim, Kukjin, what's happening?
-> 
-Afaik, Alim was working on that but I'm not sure how long he needs more?
+	1. Where should we do it?
+	2. Why don't we also do this for normal (non-huge) pages?
 
-Alim, please share the progress of the pl080 work?
+I looked at what happens for non-huge pages and the page flags are
+cleared by *generic* code in free_pages_check:
 
-> I feel tempted to update Alim's patch myself and push it on you
-> soon...
 
-Thanks.
+  /*
+   * Flags checked when a page is prepped for return by the page allocator.
+   * Pages being prepped should not have any flags set.  It they are set,
+   * there has been a kernel bug or struct page corruption.
+   */
+  #define PAGE_FLAGS_CHECK_AT_PREP	((1 << NR_PAGEFLAGS) - 1)
 
-Best regards,
-Kgene.
+  static inline int free_pages_check(struct page *page)
+  {
+  	[...]
+  	if (page->flags & PAGE_FLAGS_CHECK_AT_PREP)
+  		page->flags &= ~PAGE_FLAGS_CHECK_AT_PREP;
+  	return 0;
+  }
+
+
+Which guarantees to the arch-code that any new pages coming back from the
+allocator will have PG_arch_1 clear. Why can't we just do something similar
+for the hugepage pool?
+
+Sorry to nag, but the discrepancy seems both unnecessary and unsolvable
+at the arch level with the current hooks.
+
+Will
+
 --
-Kukjin Kim <kgene.kim@samsung.com>, Senior Engineer,
-SW Solution Development Team, Samsung Electronics Co., Ltd.
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
