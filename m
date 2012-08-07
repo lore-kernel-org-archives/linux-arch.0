@@ -1,69 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx.treblig.org ([80.68.94.177]:37426 "EHLO mx.treblig.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754161Ab2HEALB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 4 Aug 2012 20:11:01 -0400
-Date: Sun, 5 Aug 2012 01:10:51 +0100
-From: "Dr. David Alan Gilbert" <dave@treblig.org>
-Subject: Re: [RFC] page-table walkers vs memory order
-Message-ID: <20120805001051.GC1255@gallifrey>
-References: <1343064870.26034.23.camel@twins>
- <alpine.LSU.2.00.1207241356350.2094@eggly.anvils>
- <20120804143719.GB10459@redhat.com>
- <20120804220245.GB3307@linux.vnet.ibm.com>
- <20120804224705.GD10459@redhat.com>
- <20120804225910.GB1255@gallifrey>
- <20120804231151.GK3307@linux.vnet.ibm.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:35899 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750734Ab2HGQDw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Aug 2012 12:03:52 -0400
+Date: Tue, 7 Aug 2012 17:03:37 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH] mm: hugetlb: flush dcache before returning zeroed huge
+ page to userspace
+Message-ID: <20120807160337.GC16877@mudshark.cambridge.arm.com>
+References: <1341412376-6272-1-git-send-email-will.deacon@arm.com>
+ <20120709122523.GC4627@tiehlicka.suse.cz>
+ <20120709141324.GK7315@mudshark.cambridge.arm.com>
+ <alpine.LSU.2.00.1207091622470.2261@eggly.anvils>
+ <20120710094513.GB9108@mudshark.cambridge.arm.com>
+ <20120710104234.GI9108@mudshark.cambridge.arm.com>
+ <20120711174802.GG13498@mudshark.cambridge.arm.com>
+ <20120712111659.GF21013@tiehlicka.suse.cz>
+ <20120712112645.GG2816@mudshark.cambridge.arm.com>
+ <20120712115708.GG21013@tiehlicka.suse.cz>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20120804231151.GK3307@linux.vnet.ibm.com>
+In-Reply-To: <20120712115708.GG21013@tiehlicka.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Hugh Dickins <hughd@google.com>, Peter Zijlstra <peterz@infradead.org>, Linus Torvalds <torvalds@linux-foundation.org>, Rik van Riel <riel@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Nick Piggin <npiggin@kernel.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20120805001051.n4Ty0U-UPpUfHbwe4XKDI_5YMtd3HuIBqtJfZug8wTo@z>
+To: Michal Hocko <mhocko@suse.cz>
+Cc: Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Hillf Danton <dhillf@gmail.com>, Russell King <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
+Message-ID: <20120807160337.hDFMxse07Pj4bt0LYnv3ozG1nbX6gLuB3NRZKqfbrSg@z>
 
-* Paul E. McKenney (paulmck@linux.vnet.ibm.com) wrote:
-> On Sat, Aug 04, 2012 at 11:59:10PM +0100, Dr. David Alan Gilbert wrote:
+<resurrecting this thread>
 
-<snip>
-
-> > A compiler could decide to dereference it using a non-faulting load,
-> > do the calculations or whatever on the returned value of the non-faulting
-> > load, and then check whether the load actually faulted, and whether the
-> > address matched the prediction before it did a store based on it's
-> > guess.
+On Thu, Jul 12, 2012 at 12:57:08PM +0100, Michal Hocko wrote:
+> On Thu 12-07-12 12:26:45, Will Deacon wrote:
+> > Well, the comment in linux/page-flags.h does state that:
+> > 
+> >  * PG_arch_1 is an architecture specific page state bit.  The generic code
+> >  * guarantees that this bit is cleared for a page when it first is entered into
+> >  * the page cache.
+> > 
+> > so it's not completely clear cut that the architecture should be responsible
+> > for clearing this bit when allocating pages from the hugepage pool.
 > 
-> Or the compiler could record a recovery address in a per-thread variable
-> before doing the speculative reference.  The page-fault handler could
-> consult the per-thread variable and take appropriate action.
+> I think the wording is quite clear. It guarantees it gets cleared not
+> clears it. So it is up to an arch specific functions called from the
+> generic code to do that.
 
-The difference is that I'd expect a compiler writer to think that
-they've got a free hand in terms of instruction usage that the OS/library
-doesn't see - if it's in the instruction manual and it's marked as user
-space and non-faulting I'd say it's fair game; once they know that they're
-going to take a fault or mark pages specially then they already know they're
-going to have to cooperate with the OS, or worry about what other
-normal library calls are going to do.
-(A bit of googling seems to suggest IA64 and SPARC have played around
-with non-faulting load optimisations, but I can't tell how much.)
+If we have to do this in arch-specific functions then:
 
-> But both this approach and your approach are vulnerable to things like
-> having the speculation area mapped to (say) MMIO space.  Not good!
+	1. Where should we do it?
+	2. Why don't we also do this for normal (non-huge) pages?
 
-Not good for someone doing MMIO, but from an evil-compiler point
-of view, they might well assume that a pointer is to memory
-unless someone has made an effort to tell them otherwise (not that
-there is a good standard to do that).
+I looked at what happens for non-huge pages and the page flags are
+cleared by *generic* code in free_pages_check:
 
-> So I am with Andrea on this one -- there would need to be some handshake
-> between kernel and compiler to avoid messing with possibly-unsafe
-> mappings.  And I am still not much in favor of value speculation.  ;-)
 
-Dave
--- 
- -----Open up your eyes, open up your mind, open up your code -------   
-/ Dr. David Alan Gilbert    |       Running GNU/Linux       | Happy  \ 
-\ gro.gilbert @ treblig.org |                               | In Hex /
- \ _________________________|_____ http://www.treblig.org   |_______/
+  /*
+   * Flags checked when a page is prepped for return by the page allocator.
+   * Pages being prepped should not have any flags set.  It they are set,
+   * there has been a kernel bug or struct page corruption.
+   */
+  #define PAGE_FLAGS_CHECK_AT_PREP	((1 << NR_PAGEFLAGS) - 1)
+
+  static inline int free_pages_check(struct page *page)
+  {
+  	[...]
+  	if (page->flags & PAGE_FLAGS_CHECK_AT_PREP)
+  		page->flags &= ~PAGE_FLAGS_CHECK_AT_PREP;
+  	return 0;
+  }
+
+
+Which guarantees to the arch-code that any new pages coming back from the
+allocator will have PG_arch_1 clear. Why can't we just do something similar
+for the hugepage pool?
+
+Sorry to nag, but the discrepancy seems both unnecessary and unsolvable
+at the arch level with the current hooks.
+
+Will
