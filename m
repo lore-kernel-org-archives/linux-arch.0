@@ -1,69 +1,53 @@
-From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [PATCH V2 5/6] x86: add CONFIG_ARM_AMBA, selected by STA2X11
-Date: Sun, 5 Aug 2012 22:28:36 +0200
-Message-ID: <CACRpkdZLGhgpUJy_3QGYvGRqyxMkkPPSdyP==h5YurWqKnctBw@mail.gmail.com>
+From: Kukjin Kim <kgene.kim@samsung.com>
+Subject: RE: [PATCH V2 5/6] x86: add CONFIG_ARM_AMBA, selected by STA2X11
+Date: Tue, 07 Aug 2012 19:06:37 +0900
+Message-ID: <098e01cd7484$553871c0$ffa95540$%kim@samsung.com>
 References: <2b797c83-6a3c-4051-841a-a4cfa9d1cae1@email.android.com>
-	<20120701104401.GA4352@mail.gnudd.com>
-	<20120703130042.GA10007@mail.gnudd.com>
-	<201207031319.40884.arnd@arndb.de>
-	<20120703193403.GA26355@n2100.arm.linux.org.uk>
+ <20120701104401.GA4352@mail.gnudd.com> <20120703130042.GA10007@mail.gnudd.com>
+ <201207031319.40884.arnd@arndb.de>
+ <20120703193403.GA26355@n2100.arm.linux.org.uk>
+ <CACRpkdZLGhgpUJy_3QGYvGRqyxMkkPPSdyP==h5YurWqKnctBw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f174.google.com ([209.85.220.174]:45515 "EHLO
-	mail-vc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754904Ab2HEU2h (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 5 Aug 2012 16:28:37 -0400
-Received: by vcbfk26 with SMTP id fk26so2111805vcb.19
-        for <linux-arch@vger.kernel.org>; Sun, 05 Aug 2012 13:28:37 -0700 (PDT)
-In-Reply-To: <20120703193403.GA26355@n2100.arm.linux.org.uk>
+Received: from mailout4.samsung.com ([203.254.224.34]:28070 "EHLO
+	mailout4.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751222Ab2HGKGj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 7 Aug 2012 06:06:39 -0400
+In-reply-to: <CACRpkdZLGhgpUJy_3QGYvGRqyxMkkPPSdyP==h5YurWqKnctBw@mail.gmail.com>
+Content-language: ko
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>, Alim Akhtar <alim.akhtar@gmail.com>, Kukjin Kim <kgene.kim@samsung.com>
-Cc: Arnd Bergmann <arnd@arndb.de>, Alessandro Rubini <rubini@gnudd.com>, hpa@zytor.com, linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, x86@kernel.org, gregkh@linuxfoundation.org, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
+To: 'Linus Walleij' <linus.walleij@linaro.org>, 'Russell King - ARM Linux' <linux@arm.linux.org.uk>, 'Alim Akhtar' <alim.akhtar@gmail.com>
+Cc: 'Arnd Bergmann' <arnd@arndb.de>, 'Alessandro Rubini' <rubini@gnudd.com>, hpa@zytor.com, linux-kernel@vger.kernel.org, giancarlo.asnaghi@st.com, alan@linux.intel.com, x86@kernel.org, gregkh@linuxfoundation.org, linux-arm-kernel@lists.infradead.org, linux-serial@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Tue, Jul 3, 2012 at 9:34 PM, Russell King - ARM Linux
-<linux@arm.linux.org.uk> wrote:
-> On Tue, Jul 03, 2012 at 01:19:40PM +0000, Arnd Bergmann wrote:
->> On Tuesday 03 July 2012, Alessandro Rubini wrote:
->> >    drivers/dma/amba-pl08x.c: needs <asm/hardware/pl080.h>
->> >      proposed fix: move pl080.h to include/linux
->>
->> Note that there is already an include/linux/amba/pl08x.h.
->> I would just move the few parts of pl080.h that are actually
->> needed with global visibility there, and move the rest
->> to drivers/dma/.
->
-> NAK.  It's the entire register definitions for the PL08x, which we really
-> should not be exporting to common code.
+Linus Walleij wrote:
+> 
 
-The major reason why that file is there is that there is *another*
-PL080 driver in arch/arm/mach-s3c64xx/dma.c which I repeatedly
-asked the Samsung people to replace with the
-drivers/dma/amba-pl08x.c driver. :-(
+[...]
 
-When I worked on the PL08x driver in drivers/dma I reused
-this header to avoid code duplication.
+> The major reason why that file is there is that there is *another*
+> PL080 driver in arch/arm/mach-s3c64xx/dma.c which I repeatedly
+> asked the Samsung people to replace with the
+> drivers/dma/amba-pl08x.c driver. :-(
+> 
+> When I worked on the PL08x driver in drivers/dma I reused
+> this header to avoid code duplication.
+> 
+> Now that thing is stranding in the way. Alim, Kukjin, what's happening?
+> 
+Afaik, Alim was working on that but I'm not sure how long he needs more?
 
-Now that thing is stranding in the way. Alim, Kukjin, what's happening?
+Alim, please share the progress of the pl080 work?
 
-I feel tempted to update Alim's patch myself and push it on you
-soon...
+> I feel tempted to update Alim's patch myself and push it on you
+> soon...
 
-> Please wait until _after_ my DMA engine stuff (which is now in linux-next)
-> makes its way upstream before touching any of this stuff, otherwise there's
-> going to be conflicts.
+Thanks.
 
-That stuff is in now, looking real good. Good work on this!
-
-> As part of my patch series, this gets rid of a number of uses of it in
-> arch/arm, but there's still the .cctl_memcpy initializer which does. I've
-> not yet checked whether all implementations use the same value (they
-> probably do), and if so then it should be eliminated from platform code
-> and moved into the driver.
-
-Sounds like a plan. If we just get rid of the duplicate implementation
-we're going somewhere.
-
-Yours,
-Linus Walleij
+Best regards,
+Kgene.
+--
+Kukjin Kim <kgene.kim@samsung.com>, Senior Engineer,
+SW Solution Development Team, Samsung Electronics Co., Ltd.
