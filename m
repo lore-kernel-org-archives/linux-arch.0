@@ -1,10 +1,9 @@
-From: Will Deacon <will.deacon@arm.com>
+From: Michal Hocko <mhocko@suse.cz>
 Subject: Re: [PATCH] mm: hugetlb: flush dcache before returning zeroed huge
  page to userspace
-Date: Tue, 7 Aug 2012 17:03:37 +0100
-Message-ID: <20120807160337.GC16877@mudshark.cambridge.arm.com>
-References: <1341412376-6272-1-git-send-email-will.deacon@arm.com>
- <20120709122523.GC4627@tiehlicka.suse.cz>
+Date: Wed, 8 Aug 2012 18:26:07 +0200
+Message-ID: <20120808162607.GA7885@dhcp22.suse.cz>
+References: <20120709122523.GC4627@tiehlicka.suse.cz>
  <20120709141324.GK7315@mudshark.cambridge.arm.com>
  <alpine.LSU.2.00.1207091622470.2261@eggly.anvils>
  <20120710094513.GB9108@mudshark.cambridge.arm.com>
@@ -13,66 +12,51 @@ References: <1341412376-6272-1-git-send-email-will.deacon@arm.com>
  <20120712111659.GF21013@tiehlicka.suse.cz>
  <20120712112645.GG2816@mudshark.cambridge.arm.com>
  <20120712115708.GG21013@tiehlicka.suse.cz>
+ <20120807160337.GC16877@mudshark.cambridge.arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <20120712115708.GG21013@tiehlicka.suse.cz>
+In-Reply-To: <20120807160337.GC16877@mudshark.cambridge.arm.com>
 Sender: owner-linux-mm@kvack.org
-To: Michal Hocko <mhocko@suse.cz>
+To: Will Deacon <will.deacon@arm.com>
 Cc: Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Hillf Danton <dhillf@gmail.com>, Russell King <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
 List-Id: linux-arch.vger.kernel.org
 
-<resurrecting this thread>
-
-On Thu, Jul 12, 2012 at 12:57:08PM +0100, Michal Hocko wrote:
-> On Thu 12-07-12 12:26:45, Will Deacon wrote:
-> > Well, the comment in linux/page-flags.h does state that:
-> > 
-> >  * PG_arch_1 is an architecture specific page state bit.  The generic code
-> >  * guarantees that this bit is cleared for a page when it first is entered into
-> >  * the page cache.
-> > 
-> > so it's not completely clear cut that the architecture should be responsible
-> > for clearing this bit when allocating pages from the hugepage pool.
+On Tue 07-08-12 17:03:37, Will Deacon wrote:
+> <resurrecting this thread>
 > 
-> I think the wording is quite clear. It guarantees it gets cleared not
-> clears it. So it is up to an arch specific functions called from the
-> generic code to do that.
+> On Thu, Jul 12, 2012 at 12:57:08PM +0100, Michal Hocko wrote:
+> > On Thu 12-07-12 12:26:45, Will Deacon wrote:
+> > > Well, the comment in linux/page-flags.h does state that:
+> > > 
+> > >  * PG_arch_1 is an architecture specific page state bit.  The generic code
+> > >  * guarantees that this bit is cleared for a page when it first is entered into
+> > >  * the page cache.
+> > > 
+> > > so it's not completely clear cut that the architecture should be responsible
+> > > for clearing this bit when allocating pages from the hugepage pool.
+> > 
+> > I think the wording is quite clear. It guarantees it gets cleared not
+> > clears it. So it is up to an arch specific functions called from the
+> > generic code to do that.
+> 
+> If we have to do this in arch-specific functions then:
+> 
+> 	1. Where should we do it?
+> 	2. Why don't we also do this for normal (non-huge) pages?
 
-If we have to do this in arch-specific functions then:
-
-	1. Where should we do it?
-	2. Why don't we also do this for normal (non-huge) pages?
-
-I looked at what happens for non-huge pages and the page flags are
-cleared by *generic* code in free_pages_check:
-
-
-  /*
-   * Flags checked when a page is prepped for return by the page allocator.
-   * Pages being prepped should not have any flags set.  It they are set,
-   * there has been a kernel bug or struct page corruption.
-   */
-  #define PAGE_FLAGS_CHECK_AT_PREP	((1 << NR_PAGEFLAGS) - 1)
-
-  static inline int free_pages_check(struct page *page)
-  {
-  	[...]
-  	if (page->flags & PAGE_FLAGS_CHECK_AT_PREP)
-  		page->flags &= ~PAGE_FLAGS_CHECK_AT_PREP;
-  	return 0;
-  }
-
-
-Which guarantees to the arch-code that any new pages coming back from the
-allocator will have PG_arch_1 clear. Why can't we just do something similar
-for the hugepage pool?
-
-Sorry to nag, but the discrepancy seems both unnecessary and unsolvable
-at the arch level with the current hooks.
-
-Will
+As you describe below, it is done during the page freeing but hugetlb
+tries to be clever and it doesn't do the reinitialization when the page
+is just returned back to the pool. We have arch_release_hugepage and 
+arch_prepare_hugepage defined only for s390 and they are not called on
+the way in resp. out of the pool because we do not want to pointlessly
+go over ptep free&alloc cycle.
+I guess the cleanest way is to hook into dequeue_huge_page_node and add
+something like arch_clear_hugepage_flags.
+-- 
+Michal Hocko
+SUSE Labs
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
