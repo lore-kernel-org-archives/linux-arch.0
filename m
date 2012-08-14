@@ -1,7 +1,7 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v2 23/31] arm64: Debugging support
-Date: Tue, 14 Aug 2012 18:52:24 +0100
-Message-ID: <1344966752-16102-24-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v2 25/31] arm64: Performance counters support
+Date: Tue, 14 Aug 2012 18:52:26 +0100
+Message-ID: <1344966752-16102-26-git-send-email-catalin.marinas@arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
 Content-Type: text/plain; charset=WINDOWS-1252
 Content-Transfer-Encoding: quoted-printable
@@ -14,32 +14,28 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Will Deacon <will.deacon@arm.com>
 
-This patch adds ptrace, debug monitors and hardware breakpoints support.
+This patch adds support for the AArch64 performance counters.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/include/asm/debug-monitors.h |   88 +++
- arch/arm64/include/asm/hw_breakpoint.h  |  137 +++++
- arch/arm64/kernel/debug-monitors.c      |  288 ++++++++++
- arch/arm64/kernel/hw_breakpoint.c       |  880 +++++++++++++++++++++++++++=
+ arch/arm64/include/asm/perf_event.h |   22 +
+ arch/arm64/include/asm/pmu.h        |   82 +++
+ arch/arm64/kernel/perf_event.c      | 1368 +++++++++++++++++++++++++++++++=
 ++++
- arch/arm64/kernel/ptrace.c              |  834 +++++++++++++++++++++++++++=
-++
- 5 files changed, 2227 insertions(+), 0 deletions(-)
- create mode 100644 arch/arm64/include/asm/debug-monitors.h
- create mode 100644 arch/arm64/include/asm/hw_breakpoint.h
- create mode 100644 arch/arm64/kernel/debug-monitors.c
- create mode 100644 arch/arm64/kernel/hw_breakpoint.c
- create mode 100644 arch/arm64/kernel/ptrace.c
+ tools/perf/perf.h                   |    6 +
+ 4 files changed, 1478 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/perf_event.h
+ create mode 100644 arch/arm64/include/asm/pmu.h
+ create mode 100644 arch/arm64/kernel/perf_event.c
 
-diff --git a/arch/arm64/include/asm/debug-monitors.h b/arch/arm64/include/a=
-sm/debug-monitors.h
+diff --git a/arch/arm64/include/asm/perf_event.h b/arch/arm64/include/asm/p=
+erf_event.h
 new file mode 100644
-index 0000000..7eaa0b3
+index 0000000..a6fffd5
 --- /dev/null
-+++ b/arch/arm64/include/asm/debug-monitors.h
-@@ -0,0 +1,88 @@
++++ b/arch/arm64/include/asm/perf_event.h
+@@ -0,0 +1,22 @@
 +/*
 + * Copyright (C) 2012 ARM Ltd.
 + *
@@ -55,87 +51,23 @@ index 0000000..7eaa0b3
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_DEBUG_MONITORS_H
-+#define __ASM_DEBUG_MONITORS_H
 +
-+#ifdef __KERNEL__
++#ifndef __ASM_PERF_EVENT_H
++#define __ASM_PERF_EVENT_H
 +
-+#define=09DBG_ESR_EVT(x)=09=09(((x) >> 27) & 0x7)
++/* It's quiet around here... */
 +
-+/* AArch64 */
-+#define DBG_ESR_EVT_HWBP=090x0
-+#define DBG_ESR_EVT_HWSS=090x1
-+#define DBG_ESR_EVT_HWWP=090x2
-+#define DBG_ESR_EVT_BRK=09=090x6
-+
-+enum debug_el {
-+=09DBG_ACTIVE_EL0 =3D 0,
-+=09DBG_ACTIVE_EL1,
-+};
-+
-+/* AArch32 */
-+#define DBG_ESR_EVT_BKPT=090x4
-+#define DBG_ESR_EVT_VECC=090x5
-+
-+#define AARCH32_BREAK_ARM=090x07f001f0
-+#define AARCH32_BREAK_THUMB=090xde01
-+#define AARCH32_BREAK_THUMB2_LO=090xf7f0
-+#define AARCH32_BREAK_THUMB2_HI=090xa000
-+
-+#ifndef __ASSEMBLY__
-+struct task_struct;
-+
-+#define local_dbg_save(flags)=09=09=09=09=09=09=09\
-+=09do {=09=09=09=09=09=09=09=09=09\
-+=09=09typecheck(unsigned long, flags);=09=09=09=09\
-+=09=09asm volatile(=09=09=09=09=09=09=09\
-+=09=09"mrs=09%0, daif=09=09=09// local_dbg_save\n"=09\
-+=09=09"msr=09daifset, #8"=09=09=09=09=09=09\
-+=09=09: "=3Dr" (flags) : : "memory");=09=09=09=09=09\
-+=09} while (0)
-+
-+#define local_dbg_restore(flags)=09=09=09=09=09=09\
-+=09do {=09=09=09=09=09=09=09=09=09\
-+=09=09typecheck(unsigned long, flags);=09=09=09=09\
-+=09=09asm volatile(=09=09=09=09=09=09=09\
-+=09=09"msr=09daif, %0=09=09=09// local_dbg_restore\n"=09\
-+=09=09: : "r" (flags) : "memory");=09=09=09=09=09\
-+=09} while (0)
-+
-+#define DBG_ARCH_ID_RESERVED=090=09/* In case of ptrace ABI updates. */
-+
-+u8 debug_monitors_arch(void);
-+
-+void enable_debug_monitors(enum debug_el el);
-+void disable_debug_monitors(enum debug_el el);
-+
-+void user_rewind_single_step(struct task_struct *task);
-+void user_fastforward_single_step(struct task_struct *task);
-+
-+void kernel_enable_single_step(struct pt_regs *regs);
-+void kernel_disable_single_step(void);
-+int kernel_active_single_step(void);
-+
-+#ifdef CONFIG_HAVE_HW_BREAKPOINT
-+int reinstall_suspended_bps(struct pt_regs *regs);
-+#else
-+static inline int reinstall_suspended_bps(struct pt_regs *regs)
-+{
-+=09return -ENODEV;
-+}
 +#endif
-+
-+#endif=09/* __ASSEMBLY */
-+#endif=09/* __KERNEL__ */
-+#endif=09/* __ASM_DEBUG_MONITORS_H */
-diff --git a/arch/arm64/include/asm/hw_breakpoint.h b/arch/arm64/include/as=
-m/hw_breakpoint.h
+diff --git a/arch/arm64/include/asm/pmu.h b/arch/arm64/include/asm/pmu.h
 new file mode 100644
-index 0000000..d064047
+index 0000000..e6f0878
 --- /dev/null
-+++ b/arch/arm64/include/asm/hw_breakpoint.h
-@@ -0,0 +1,137 @@
++++ b/arch/arm64/include/asm/pmu.h
+@@ -0,0 +1,82 @@
 +/*
++ * Based on arch/arm/include/asm/pmu.h
++ *
++ * Copyright (C) 2009 picoChip Designs Ltd, Jamie Iles
 + * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -150,437 +82,84 @@ index 0000000..d064047
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_HW_BREAKPOINT_H
-+#define __ASM_HW_BREAKPOINT_H
++#ifndef __ASM_PMU_H
++#define __ASM_PMU_H
 +
-+#ifdef __KERNEL__
++#ifdef CONFIG_HW_PERF_EVENTS
 +
-+struct arch_hw_breakpoint_ctrl {
-+=09u32 __reserved=09: 19,
-+=09len=09=09: 8,
-+=09type=09=09: 2,
-+=09privilege=09: 2,
-+=09enabled=09=09: 1;
-+};
-+
-+struct arch_hw_breakpoint {
-+=09u64 address;
-+=09u64 trigger;
-+=09struct arch_hw_breakpoint_ctrl ctrl;
-+};
-+
-+static inline u32 encode_ctrl_reg(struct arch_hw_breakpoint_ctrl ctrl)
-+{
-+=09return (ctrl.len << 5) | (ctrl.type << 3) | (ctrl.privilege << 1) |
-+=09=09ctrl.enabled;
-+}
-+
-+static inline void decode_ctrl_reg(u32 reg,
-+=09=09=09=09   struct arch_hw_breakpoint_ctrl *ctrl)
-+{
-+=09ctrl->enabled=09=3D reg & 0x1;
-+=09reg >>=3D 1;
-+=09ctrl->privilege=09=3D reg & 0x3;
-+=09reg >>=3D 2;
-+=09ctrl->type=09=3D reg & 0x3;
-+=09reg >>=3D 2;
-+=09ctrl->len=09=3D reg & 0xff;
-+}
-+
-+/* Breakpoint */
-+#define ARM_BREAKPOINT_EXECUTE=090
-+
-+/* Watchpoints */
-+#define ARM_BREAKPOINT_LOAD=091
-+#define ARM_BREAKPOINT_STORE=092
-+#define AARCH64_ESR_ACCESS_MASK=09(1 << 6)
-+
-+/* Privilege Levels */
-+#define AARCH64_BREAKPOINT_EL1=091
-+#define AARCH64_BREAKPOINT_EL0=092
-+
-+/* Lengths */
-+#define ARM_BREAKPOINT_LEN_1=090x1
-+#define ARM_BREAKPOINT_LEN_2=090x3
-+#define ARM_BREAKPOINT_LEN_4=090xf
-+#define ARM_BREAKPOINT_LEN_8=090xff
-+
-+/* Kernel stepping */
-+#define ARM_KERNEL_STEP_NONE=090
-+#define ARM_KERNEL_STEP_ACTIVE=091
-+#define ARM_KERNEL_STEP_SUSPEND=092
-+
-+/*
-+ * Limits.
-+ * Changing these will require modifications to the register accessors.
-+ */
-+#define ARM_MAX_BRP=09=0916
-+#define ARM_MAX_WRP=09=0916
-+#define ARM_MAX_HBP_SLOTS=09(ARM_MAX_BRP + ARM_MAX_WRP)
-+
-+/* Virtual debug register bases. */
-+#define AARCH64_DBG_REG_BVR=090
-+#define AARCH64_DBG_REG_BCR=09(AARCH64_DBG_REG_BVR + ARM_MAX_BRP)
-+#define AARCH64_DBG_REG_WVR=09(AARCH64_DBG_REG_BCR + ARM_MAX_BRP)
-+#define AARCH64_DBG_REG_WCR=09(AARCH64_DBG_REG_WVR + ARM_MAX_WRP)
-+
-+/* Debug register names. */
-+#define AARCH64_DBG_REG_NAME_BVR=09"bvr"
-+#define AARCH64_DBG_REG_NAME_BCR=09"bcr"
-+#define AARCH64_DBG_REG_NAME_WVR=09"wvr"
-+#define AARCH64_DBG_REG_NAME_WCR=09"wcr"
-+
-+/* Accessor macros for the debug registers. */
-+#define AARCH64_DBG_READ(N, REG, VAL) do {\
-+=09asm volatile("mrs %0, dbg" REG #N "_el1" : "=3Dr" (VAL));\
-+} while (0)
-+
-+#define AARCH64_DBG_WRITE(N, REG, VAL) do {\
-+=09asm volatile("msr dbg" REG #N "_el1, %0" :: "r" (VAL));\
-+} while (0)
-+
-+struct task_struct;
-+struct notifier_block;
-+struct perf_event;
-+struct pmu;
-+
-+extern int arch_bp_generic_fields(struct arch_hw_breakpoint_ctrl ctrl,
-+=09=09=09=09  int *gen_len, int *gen_type);
-+extern int arch_check_bp_in_kernelspace(struct perf_event *bp);
-+extern int arch_validate_hwbkpt_settings(struct perf_event *bp);
-+extern int hw_breakpoint_exceptions_notify(struct notifier_block *unused,
-+=09=09=09=09=09   unsigned long val, void *data);
-+
-+extern int arch_install_hw_breakpoint(struct perf_event *bp);
-+extern void arch_uninstall_hw_breakpoint(struct perf_event *bp);
-+extern void hw_breakpoint_pmu_read(struct perf_event *bp);
-+extern int hw_breakpoint_slots(int type);
-+
-+#ifdef CONFIG_HAVE_HW_BREAKPOINT
-+extern void hw_breakpoint_thread_switch(struct task_struct *next);
-+extern void ptrace_hw_copy_thread(struct task_struct *task);
-+#else
-+static inline void hw_breakpoint_thread_switch(struct task_struct *next)
-+{
-+}
-+static inline void ptrace_hw_copy_thread(struct task_struct *task)
-+{
-+}
-+#endif
-+
-+extern struct pmu perf_ops_bp;
-+
-+#endif=09/* __KERNEL__ */
-+#endif=09/* __ASM_BREAKPOINT_H */
-diff --git a/arch/arm64/kernel/debug-monitors.c b/arch/arm64/kernel/debug-m=
-onitors.c
-new file mode 100644
-index 0000000..0c3ba9f
---- /dev/null
-+++ b/arch/arm64/kernel/debug-monitors.c
-@@ -0,0 +1,288 @@
-+/*
-+ * ARMv8 single-step debug support and mdscr context switching.
-+ *
-+ * Copyright (C) 2012 ARM Limited
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ * Author: Will Deacon <will.deacon@arm.com>
-+ */
-+
-+#include <linux/cpu.h>
-+#include <linux/debugfs.h>
-+#include <linux/hardirq.h>
-+#include <linux/init.h>
-+#include <linux/ptrace.h>
-+#include <linux/stat.h>
-+
-+#include <asm/debug-monitors.h>
-+#include <asm/local.h>
-+#include <asm/cputype.h>
-+#include <asm/system_misc.h>
-+
-+/* Low-level stepping controls. */
-+#define DBG_MDSCR_SS=09=09(1 << 0)
-+#define DBG_SPSR_SS=09=09(1 << 21)
-+
-+/* MDSCR_EL1 enabling bits */
-+#define DBG_MDSCR_KDE=09=09(1 << 13)
-+#define DBG_MDSCR_MDE=09=09(1 << 15)
-+#define DBG_MDSCR_MASK=09=09~(DBG_MDSCR_KDE | DBG_MDSCR_MDE)
-+
-+/* Determine debug architecture. */
-+u8 debug_monitors_arch(void)
-+{
-+=09return read_cpuid(ID_AA64DFR0_EL1) & 0xf;
-+}
-+
-+/*
-+ * MDSCR access routines.
-+ */
-+static void mdscr_write(u32 mdscr)
-+{
-+=09unsigned long flags;
-+=09local_dbg_save(flags);
-+=09asm volatile("msr mdscr_el1, %0" :: "r" (mdscr));
-+=09local_dbg_restore(flags);
-+}
-+
-+static u32 mdscr_read(void)
-+{
-+=09u32 mdscr;
-+=09asm volatile("mrs %0, mdscr_el1" : "=3Dr" (mdscr));
-+=09return mdscr;
-+}
-+
-+/*
-+ * Allow root to disable self-hosted debug from userspace.
-+ * This is useful if you want to connect an external JTAG debugger.
-+ */
-+static u32 debug_enabled =3D 1;
-+
-+static int create_debug_debugfs_entry(void)
-+{
-+=09debugfs_create_bool("debug_enabled", 0644, NULL, &debug_enabled);
-+=09return 0;
-+}
-+fs_initcall(create_debug_debugfs_entry);
-+
-+static int __init early_debug_disable(char *buf)
-+{
-+=09debug_enabled =3D 0;
-+=09return 0;
-+}
-+
-+early_param("nodebugmon", early_debug_disable);
-+
-+/*
-+ * Keep track of debug users on each core.
-+ * The ref counts are per-cpu so we use a local_t type.
-+ */
-+static DEFINE_PER_CPU(local_t, mde_ref_count);
-+static DEFINE_PER_CPU(local_t, kde_ref_count);
-+
-+void enable_debug_monitors(enum debug_el el)
-+{
-+=09u32 mdscr, enable =3D 0;
-+
-+=09WARN_ON(preemptible());
-+
-+=09if (local_inc_return(&__get_cpu_var(mde_ref_count)) =3D=3D 1)
-+=09=09enable =3D DBG_MDSCR_MDE;
-+
-+=09if (el =3D=3D DBG_ACTIVE_EL1 &&
-+=09    local_inc_return(&__get_cpu_var(kde_ref_count)) =3D=3D 1)
-+=09=09enable |=3D DBG_MDSCR_KDE;
-+
-+=09if (enable && debug_enabled) {
-+=09=09mdscr =3D mdscr_read();
-+=09=09mdscr |=3D enable;
-+=09=09mdscr_write(mdscr);
-+=09}
-+}
-+
-+void disable_debug_monitors(enum debug_el el)
-+{
-+=09u32 mdscr, disable =3D 0;
-+
-+=09WARN_ON(preemptible());
-+
-+=09if (local_dec_and_test(&__get_cpu_var(mde_ref_count)))
-+=09=09disable =3D ~DBG_MDSCR_MDE;
-+
-+=09if (el =3D=3D DBG_ACTIVE_EL1 &&
-+=09    local_dec_and_test(&__get_cpu_var(kde_ref_count)))
-+=09=09disable &=3D ~DBG_MDSCR_KDE;
-+
-+=09if (disable) {
-+=09=09mdscr =3D mdscr_read();
-+=09=09mdscr &=3D disable;
-+=09=09mdscr_write(mdscr);
-+=09}
-+}
-+
-+/*
-+ * OS lock clearing.
-+ */
-+static void clear_os_lock(void *unused)
-+{
-+=09asm volatile("msr mdscr_el1, %0" : : "r" (0));
-+=09isb();
-+=09asm volatile("msr oslar_el1, %0" : : "r" (0));
-+=09isb();
-+}
-+
-+static int __cpuinit os_lock_notify(struct notifier_block *self,
-+=09=09=09=09    unsigned long action, void *data)
-+{
-+=09int cpu =3D (unsigned long)data;
-+=09if (action =3D=3D CPU_ONLINE)
-+=09=09smp_call_function_single(cpu, clear_os_lock, NULL, 1);
-+=09return NOTIFY_OK;
-+}
-+
-+static struct notifier_block __cpuinitdata os_lock_nb =3D {
-+=09.notifier_call =3D os_lock_notify,
-+};
-+
-+static int __cpuinit debug_monitors_init(void)
-+{
-+=09/* Clear the OS lock. */
-+=09smp_call_function(clear_os_lock, NULL, 1);
-+=09clear_os_lock(NULL);
-+
-+=09/* Register hotplug handler. */
-+=09register_cpu_notifier(&os_lock_nb);
-+=09return 0;
-+}
-+postcore_initcall(debug_monitors_init);
-+
-+/*
-+ * Single step API and exception handling.
-+ */
-+static void set_regs_spsr_ss(struct pt_regs *regs)
-+{
-+=09unsigned long spsr;
-+
-+=09spsr =3D regs->pstate;
-+=09spsr &=3D ~DBG_SPSR_SS;
-+=09spsr |=3D DBG_SPSR_SS;
-+=09regs->pstate =3D spsr;
-+}
-+
-+static void clear_regs_spsr_ss(struct pt_regs *regs)
-+{
-+=09unsigned long spsr;
-+
-+=09spsr =3D regs->pstate;
-+=09spsr &=3D ~DBG_SPSR_SS;
-+=09regs->pstate =3D spsr;
-+}
-+
-+static int single_step_handler(unsigned long addr, unsigned int esr,
-+=09=09=09       struct pt_regs *regs)
-+{
-+=09siginfo_t info;
++/* The events for a given PMU register set. */
++struct pmu_hw_events {
++=09/*
++=09 * The events that are active on the PMU for the given index.
++=09 */
++=09struct perf_event=09**events;
 +
 +=09/*
-+=09 * If we are stepping a pending breakpoint, call the hw_breakpoint
-+=09 * handler first.
++=09 * A 1 bit for an index indicates that the counter is being used for
++=09 * an event. A 0 means that the counter can be used.
 +=09 */
-+=09if (!reinstall_suspended_bps(regs))
-+=09=09return 0;
++=09unsigned long           *used_mask;
 +
-+=09if (user_mode(regs)) {
-+=09=09info.si_signo =3D SIGTRAP;
-+=09=09info.si_errno =3D 0;
-+=09=09info.si_code  =3D TRAP_HWBKPT;
-+=09=09info.si_addr  =3D (void __user *)instruction_pointer(regs);
-+=09=09force_sig_info(SIGTRAP, &info, current);
-+
-+=09=09/*
-+=09=09 * ptrace will disable single step unless explicitly
-+=09=09 * asked to re-enable it. For other clients, it makes
-+=09=09 * sense to leave it enabled (i.e. rewind the controls
-+=09=09 * to the active-not-pending state).
-+=09=09 */
-+=09=09user_rewind_single_step(current);
-+=09} else {
-+=09=09/* TODO: route to KGDB */
-+=09=09pr_warning("Unexpected kernel single-step exception at EL1\n");
-+=09=09/*
-+=09=09 * Re-enable stepping since we know that we will be
-+=09=09 * returning to regs.
-+=09=09 */
-+=09=09set_regs_spsr_ss(regs);
-+=09}
-+
-+=09return 0;
-+}
-+
-+static int __init single_step_init(void)
-+{
-+=09hook_debug_fault_code(DBG_ESR_EVT_HWSS, single_step_handler, SIGTRAP,
-+=09=09=09      TRAP_HWBKPT, "single-step handler");
-+=09return 0;
-+}
-+arch_initcall(single_step_init);
-+
-+/* Re-enable single step for syscall restarting. */
-+void user_rewind_single_step(struct task_struct *task)
-+{
 +=09/*
-+=09 * If single step is active for this thread, then set SPSR.SS
-+=09 * to 1 to avoid returning to the active-pending state.
++=09 * Hardware lock to serialize accesses to PMU registers. Needed for the
++=09 * read/modify/write sequences.
 +=09 */
-+=09if (test_ti_thread_flag(task_thread_info(task), TIF_SINGLESTEP))
-+=09=09set_regs_spsr_ss(task_pt_regs(task));
-+}
++=09raw_spinlock_t=09=09pmu_lock;
++};
 +
-+void user_fastforward_single_step(struct task_struct *task)
-+{
-+=09if (test_ti_thread_flag(task_thread_info(task), TIF_SINGLESTEP))
-+=09=09clear_regs_spsr_ss(task_pt_regs(task));
-+}
++struct arm_pmu {
++=09struct pmu=09=09pmu;
++=09cpumask_t=09=09active_irqs;
++=09const char=09=09*name;
++=09irqreturn_t=09=09(*handle_irq)(int irq_num, void *dev);
++=09void=09=09=09(*enable)(struct hw_perf_event *evt, int idx);
++=09void=09=09=09(*disable)(struct hw_perf_event *evt, int idx);
++=09int=09=09=09(*get_event_idx)(struct pmu_hw_events *hw_events,
++=09=09=09=09=09=09 struct hw_perf_event *hwc);
++=09int=09=09=09(*set_event_filter)(struct hw_perf_event *evt,
++=09=09=09=09=09=09    struct perf_event_attr *attr);
++=09u32=09=09=09(*read_counter)(int idx);
++=09void=09=09=09(*write_counter)(int idx, u32 val);
++=09void=09=09=09(*start)(void);
++=09void=09=09=09(*stop)(void);
++=09void=09=09=09(*reset)(void *);
++=09int=09=09=09(*map_event)(struct perf_event *event);
++=09int=09=09=09num_events;
++=09atomic_t=09=09active_events;
++=09struct mutex=09=09reserve_mutex;
++=09u64=09=09=09max_period;
++=09struct platform_device=09*plat_device;
++=09struct pmu_hw_events=09*(*get_hw_events)(void);
++};
 +
-+/* Kernel API */
-+void kernel_enable_single_step(struct pt_regs *regs)
-+{
-+=09WARN_ON(!irqs_disabled());
-+=09set_regs_spsr_ss(regs);
-+=09mdscr_write(mdscr_read() | DBG_MDSCR_SS);
-+=09enable_debug_monitors(DBG_ACTIVE_EL1);
-+}
++#define to_arm_pmu(p) (container_of(p, struct arm_pmu, pmu))
 +
-+void kernel_disable_single_step(void)
-+{
-+=09WARN_ON(!irqs_disabled());
-+=09mdscr_write(mdscr_read() & ~DBG_MDSCR_SS);
-+=09disable_debug_monitors(DBG_ACTIVE_EL1);
-+}
++int __init armpmu_register(struct arm_pmu *armpmu, char *name, int type);
 +
-+int kernel_active_single_step(void)
-+{
-+=09WARN_ON(!irqs_disabled());
-+=09return mdscr_read() & DBG_MDSCR_SS;
-+}
++u64 armpmu_event_update(struct perf_event *event,
++=09=09=09struct hw_perf_event *hwc,
++=09=09=09int idx);
 +
-+/* ptrace API */
-+void user_enable_single_step(struct task_struct *task)
-+{
-+=09set_ti_thread_flag(task_thread_info(task), TIF_SINGLESTEP);
-+=09set_regs_spsr_ss(task_pt_regs(task));
-+}
++int armpmu_event_set_period(struct perf_event *event,
++=09=09=09    struct hw_perf_event *hwc,
++=09=09=09    int idx);
 +
-+void user_disable_single_step(struct task_struct *task)
-+{
-+=09clear_ti_thread_flag(task_thread_info(task), TIF_SINGLESTEP);
-+}
-diff --git a/arch/arm64/kernel/hw_breakpoint.c b/arch/arm64/kernel/hw_break=
-point.c
++#endif /* CONFIG_HW_PERF_EVENTS */
++#endif /* __ASM_PMU_H */
+diff --git a/arch/arm64/kernel/perf_event.c b/arch/arm64/kernel/perf_event.=
+c
 new file mode 100644
-index 0000000..5ab825c
+index 0000000..ecbf2d8
 --- /dev/null
-+++ b/arch/arm64/kernel/hw_breakpoint.c
-@@ -0,0 +1,880 @@
++++ b/arch/arm64/kernel/perf_event.c
+@@ -0,0 +1,1368 @@
 +/*
-+ * HW_breakpoint: a unified kernel/user-space hardware breakpoint facility=
-,
-+ * using the CPU's debug registers.
++ * PMU support
 + *
 + * Copyright (C) 2012 ARM Limited
 + * Author: Will Deacon <will.deacon@arm.com>
++ *
++ * This code is based heavily on the ARMv7 perf event code.
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -594,1733 +173,1386 @@ index 0000000..5ab825c
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
++#define pr_fmt(fmt) "hw perfevents: " fmt
 +
-+#define pr_fmt(fmt) "hw-breakpoint: " fmt
-+
-+#include <linux/errno.h>
-+#include <linux/hw_breakpoint.h>
++#include <linux/bitmap.h>
++#include <linux/interrupt.h>
++#include <linux/kernel.h>
++#include <linux/export.h>
 +#include <linux/perf_event.h>
-+#include <linux/ptrace.h>
-+#include <linux/smp.h>
++#include <linux/platform_device.h>
++#include <linux/spinlock.h>
++#include <linux/uaccess.h>
 +
-+#include <asm/compat.h>
-+#include <asm/current.h>
-+#include <asm/debug-monitors.h>
-+#include <asm/hw_breakpoint.h>
-+#include <asm/kdebug.h>
-+#include <asm/traps.h>
 +#include <asm/cputype.h>
-+#include <asm/system_misc.h>
++#include <asm/irq.h>
++#include <asm/irq_regs.h>
++#include <asm/pmu.h>
++#include <asm/stacktrace.h>
 +
-+/* Breakpoint currently in use for each BRP. */
-+static DEFINE_PER_CPU(struct perf_event *, bp_on_reg[ARM_MAX_BRP]);
++/*
++ * ARMv8 supports a maximum of 32 events.
++ * The cycle counter is included in this total.
++ */
++#define ARMPMU_MAX_HWEVENTS=09=0932
 +
-+/* Watchpoint currently in use for each WRP. */
-+static DEFINE_PER_CPU(struct perf_event *, wp_on_reg[ARM_MAX_WRP]);
++static DEFINE_PER_CPU(struct perf_event * [ARMPMU_MAX_HWEVENTS], hw_events=
+);
++static DEFINE_PER_CPU(unsigned long [BITS_TO_LONGS(ARMPMU_MAX_HWEVENTS)], =
+used_mask);
++static DEFINE_PER_CPU(struct pmu_hw_events, cpu_hw_events);
 +
-+/* Currently stepping a per-CPU kernel breakpoint. */
-+static DEFINE_PER_CPU(int, stepping_kernel_bp);
++#define to_arm_pmu(p) (container_of(p, struct arm_pmu, pmu))
 +
-+/* Number of BRP/WRP registers on this CPU. */
-+static int core_num_brps;
-+static int core_num_wrps;
++/* Set at runtime when we know what CPU type we are. */
++static struct arm_pmu *cpu_pmu;
 +
-+/* Determine number of BRP registers available. */
-+static int get_num_brps(void)
++int
++armpmu_get_max_events(void)
 +{
-+=09return ((read_cpuid(ID_AA64DFR0_EL1) >> 12) & 0xf) + 1;
++=09int max_events =3D 0;
++
++=09if (cpu_pmu !=3D NULL)
++=09=09max_events =3D cpu_pmu->num_events;
++
++=09return max_events;
++}
++EXPORT_SYMBOL_GPL(armpmu_get_max_events);
++
++int perf_num_counters(void)
++{
++=09return armpmu_get_max_events();
++}
++EXPORT_SYMBOL_GPL(perf_num_counters);
++
++#define HW_OP_UNSUPPORTED=09=090xFFFF
++
++#define C(_x) \
++=09PERF_COUNT_HW_CACHE_##_x
++
++#define CACHE_OP_UNSUPPORTED=09=090xFFFF
++
++static int
++armpmu_map_cache_event(const unsigned (*cache_map)
++=09=09=09=09      [PERF_COUNT_HW_CACHE_MAX]
++=09=09=09=09      [PERF_COUNT_HW_CACHE_OP_MAX]
++=09=09=09=09      [PERF_COUNT_HW_CACHE_RESULT_MAX],
++=09=09       u64 config)
++{
++=09unsigned int cache_type, cache_op, cache_result, ret;
++
++=09cache_type =3D (config >>  0) & 0xff;
++=09if (cache_type >=3D PERF_COUNT_HW_CACHE_MAX)
++=09=09return -EINVAL;
++
++=09cache_op =3D (config >>  8) & 0xff;
++=09if (cache_op >=3D PERF_COUNT_HW_CACHE_OP_MAX)
++=09=09return -EINVAL;
++
++=09cache_result =3D (config >> 16) & 0xff;
++=09if (cache_result >=3D PERF_COUNT_HW_CACHE_RESULT_MAX)
++=09=09return -EINVAL;
++
++=09ret =3D (int)(*cache_map)[cache_type][cache_op][cache_result];
++
++=09if (ret =3D=3D CACHE_OP_UNSUPPORTED)
++=09=09return -ENOENT;
++
++=09return ret;
 +}
 +
-+/* Determine number of WRP registers available. */
-+static int get_num_wrps(void)
++static int
++armpmu_map_event(const unsigned (*event_map)[PERF_COUNT_HW_MAX], u64 confi=
+g)
 +{
-+=09return ((read_cpuid(ID_AA64DFR0_EL1) >> 20) & 0xf) + 1;
++=09int mapping =3D (*event_map)[config];
++=09return mapping =3D=3D HW_OP_UNSUPPORTED ? -ENOENT : mapping;
 +}
 +
-+int hw_breakpoint_slots(int type)
++static int
++armpmu_map_raw_event(u32 raw_event_mask, u64 config)
 +{
++=09return (int)(config & raw_event_mask);
++}
++
++static int map_cpu_event(struct perf_event *event,
++=09=09=09 const unsigned (*event_map)[PERF_COUNT_HW_MAX],
++=09=09=09 const unsigned (*cache_map)
++=09=09=09=09=09[PERF_COUNT_HW_CACHE_MAX]
++=09=09=09=09=09[PERF_COUNT_HW_CACHE_OP_MAX]
++=09=09=09=09=09[PERF_COUNT_HW_CACHE_RESULT_MAX],
++=09=09=09 u32 raw_event_mask)
++{
++=09u64 config =3D event->attr.config;
++
++=09switch (event->attr.type) {
++=09case PERF_TYPE_HARDWARE:
++=09=09return armpmu_map_event(event_map, config);
++=09case PERF_TYPE_HW_CACHE:
++=09=09return armpmu_map_cache_event(cache_map, config);
++=09case PERF_TYPE_RAW:
++=09=09return armpmu_map_raw_event(raw_event_mask, config);
++=09}
++
++=09return -ENOENT;
++}
++
++int
++armpmu_event_set_period(struct perf_event *event,
++=09=09=09struct hw_perf_event *hwc,
++=09=09=09int idx)
++{
++=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
++=09s64 left =3D local64_read(&hwc->period_left);
++=09s64 period =3D hwc->sample_period;
++=09int ret =3D 0;
++
++=09if (unlikely(left <=3D -period)) {
++=09=09left =3D period;
++=09=09local64_set(&hwc->period_left, left);
++=09=09hwc->last_period =3D period;
++=09=09ret =3D 1;
++=09}
++
++=09if (unlikely(left <=3D 0)) {
++=09=09left +=3D period;
++=09=09local64_set(&hwc->period_left, left);
++=09=09hwc->last_period =3D period;
++=09=09ret =3D 1;
++=09}
++
++=09if (left > (s64)armpmu->max_period)
++=09=09left =3D armpmu->max_period;
++
++=09local64_set(&hwc->prev_count, (u64)-left);
++
++=09armpmu->write_counter(idx, (u64)(-left) & 0xffffffff);
++
++=09perf_event_update_userpage(event);
++
++=09return ret;
++}
++
++u64
++armpmu_event_update(struct perf_event *event,
++=09=09    struct hw_perf_event *hwc,
++=09=09    int idx)
++{
++=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
++=09u64 delta, prev_raw_count, new_raw_count;
++
++again:
++=09prev_raw_count =3D local64_read(&hwc->prev_count);
++=09new_raw_count =3D armpmu->read_counter(idx);
++
++=09if (local64_cmpxchg(&hwc->prev_count, prev_raw_count,
++=09=09=09     new_raw_count) !=3D prev_raw_count)
++=09=09goto again;
++
++=09delta =3D (new_raw_count - prev_raw_count) & armpmu->max_period;
++
++=09local64_add(delta, &event->count);
++=09local64_sub(delta, &hwc->period_left);
++
++=09return new_raw_count;
++}
++
++static void
++armpmu_read(struct perf_event *event)
++{
++=09struct hw_perf_event *hwc =3D &event->hw;
++
++=09/* Don't read disabled counters! */
++=09if (hwc->idx < 0)
++=09=09return;
++
++=09armpmu_event_update(event, hwc, hwc->idx);
++}
++
++static void
++armpmu_stop(struct perf_event *event, int flags)
++{
++=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
++=09struct hw_perf_event *hwc =3D &event->hw;
++
 +=09/*
-+=09 * We can be called early, so don't rely on
-+=09 * our static variables being initialised.
++=09 * ARM pmu always has to update the counter, so ignore
++=09 * PERF_EF_UPDATE, see comments in armpmu_start().
 +=09 */
-+=09switch (type) {
-+=09case TYPE_INST:
-+=09=09return get_num_brps();
-+=09case TYPE_DATA:
-+=09=09return get_num_wrps();
-+=09default:
-+=09=09pr_warning("unknown slot type: %d\n", type);
-+=09=09return 0;
++=09if (!(hwc->state & PERF_HES_STOPPED)) {
++=09=09armpmu->disable(hwc, hwc->idx);
++=09=09barrier(); /* why? */
++=09=09armpmu_event_update(event, hwc, hwc->idx);
++=09=09hwc->state |=3D PERF_HES_STOPPED | PERF_HES_UPTODATE;
 +=09}
 +}
 +
-+#define READ_WB_REG_CASE(OFF, N, REG, VAL)=09\
-+=09case (OFF + N):=09=09=09=09\
-+=09=09AARCH64_DBG_READ(N, REG, VAL);=09\
-+=09=09break
-+
-+#define WRITE_WB_REG_CASE(OFF, N, REG, VAL)=09\
-+=09case (OFF + N):=09=09=09=09\
-+=09=09AARCH64_DBG_WRITE(N, REG, VAL);=09\
-+=09=09break
-+
-+#define GEN_READ_WB_REG_CASES(OFF, REG, VAL)=09\
-+=09READ_WB_REG_CASE(OFF,  0, REG, VAL);=09\
-+=09READ_WB_REG_CASE(OFF,  1, REG, VAL);=09\
-+=09READ_WB_REG_CASE(OFF,  2, REG, VAL);=09\
-+=09READ_WB_REG_CASE(OFF,  3, REG, VAL);=09\
-+=09READ_WB_REG_CASE(OFF,  4, REG, VAL);=09\
-+=09READ_WB_REG_CASE(OFF,  5, REG, VAL);=09\
-+=09READ_WB_REG_CASE(OFF,  6, REG, VAL);=09\
-+=09READ_WB_REG_CASE(OFF,  7, REG, VAL);=09\
-+=09READ_WB_REG_CASE(OFF,  8, REG, VAL);=09\
-+=09READ_WB_REG_CASE(OFF,  9, REG, VAL);=09\
-+=09READ_WB_REG_CASE(OFF, 10, REG, VAL);=09\
-+=09READ_WB_REG_CASE(OFF, 11, REG, VAL);=09\
-+=09READ_WB_REG_CASE(OFF, 12, REG, VAL);=09\
-+=09READ_WB_REG_CASE(OFF, 13, REG, VAL);=09\
-+=09READ_WB_REG_CASE(OFF, 14, REG, VAL);=09\
-+=09READ_WB_REG_CASE(OFF, 15, REG, VAL)
-+
-+#define GEN_WRITE_WB_REG_CASES(OFF, REG, VAL)=09\
-+=09WRITE_WB_REG_CASE(OFF,  0, REG, VAL);=09\
-+=09WRITE_WB_REG_CASE(OFF,  1, REG, VAL);=09\
-+=09WRITE_WB_REG_CASE(OFF,  2, REG, VAL);=09\
-+=09WRITE_WB_REG_CASE(OFF,  3, REG, VAL);=09\
-+=09WRITE_WB_REG_CASE(OFF,  4, REG, VAL);=09\
-+=09WRITE_WB_REG_CASE(OFF,  5, REG, VAL);=09\
-+=09WRITE_WB_REG_CASE(OFF,  6, REG, VAL);=09\
-+=09WRITE_WB_REG_CASE(OFF,  7, REG, VAL);=09\
-+=09WRITE_WB_REG_CASE(OFF,  8, REG, VAL);=09\
-+=09WRITE_WB_REG_CASE(OFF,  9, REG, VAL);=09\
-+=09WRITE_WB_REG_CASE(OFF, 10, REG, VAL);=09\
-+=09WRITE_WB_REG_CASE(OFF, 11, REG, VAL);=09\
-+=09WRITE_WB_REG_CASE(OFF, 12, REG, VAL);=09\
-+=09WRITE_WB_REG_CASE(OFF, 13, REG, VAL);=09\
-+=09WRITE_WB_REG_CASE(OFF, 14, REG, VAL);=09\
-+=09WRITE_WB_REG_CASE(OFF, 15, REG, VAL)
-+
-+static u64 read_wb_reg(int reg, int n)
++static void
++armpmu_start(struct perf_event *event, int flags)
 +{
-+=09u64 val =3D 0;
++=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
++=09struct hw_perf_event *hwc =3D &event->hw;
 +
-+=09switch (reg + n) {
-+=09GEN_READ_WB_REG_CASES(AARCH64_DBG_REG_BVR, AARCH64_DBG_REG_NAME_BVR, va=
-l);
-+=09GEN_READ_WB_REG_CASES(AARCH64_DBG_REG_BCR, AARCH64_DBG_REG_NAME_BCR, va=
-l);
-+=09GEN_READ_WB_REG_CASES(AARCH64_DBG_REG_WVR, AARCH64_DBG_REG_NAME_WVR, va=
-l);
-+=09GEN_READ_WB_REG_CASES(AARCH64_DBG_REG_WCR, AARCH64_DBG_REG_NAME_WCR, va=
-l);
-+=09default:
-+=09=09pr_warning("attempt to read from unknown breakpoint register %d\n", =
-n);
++=09/*
++=09 * ARM pmu always has to reprogram the period, so ignore
++=09 * PERF_EF_RELOAD, see the comment below.
++=09 */
++=09if (flags & PERF_EF_RELOAD)
++=09=09WARN_ON_ONCE(!(hwc->state & PERF_HES_UPTODATE));
++
++=09hwc->state =3D 0;
++=09/*
++=09 * Set the period again. Some counters can't be stopped, so when we
++=09 * were stopped we simply disabled the IRQ source and the counter
++=09 * may have been left counting. If we don't do this step then we may
++=09 * get an interrupt too soon or *way* too late if the overflow has
++=09 * happened since disabling.
++=09 */
++=09armpmu_event_set_period(event, hwc, hwc->idx);
++=09armpmu->enable(hwc, hwc->idx);
++}
++
++static void
++armpmu_del(struct perf_event *event, int flags)
++{
++=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
++=09struct pmu_hw_events *hw_events =3D armpmu->get_hw_events();
++=09struct hw_perf_event *hwc =3D &event->hw;
++=09int idx =3D hwc->idx;
++
++=09WARN_ON(idx < 0);
++
++=09armpmu_stop(event, PERF_EF_UPDATE);
++=09hw_events->events[idx] =3D NULL;
++=09clear_bit(idx, hw_events->used_mask);
++
++=09perf_event_update_userpage(event);
++}
++
++static int
++armpmu_add(struct perf_event *event, int flags)
++{
++=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
++=09struct pmu_hw_events *hw_events =3D armpmu->get_hw_events();
++=09struct hw_perf_event *hwc =3D &event->hw;
++=09int idx;
++=09int err =3D 0;
++
++=09perf_pmu_disable(event->pmu);
++
++=09/* If we don't have a space for the counter then finish early. */
++=09idx =3D armpmu->get_event_idx(hw_events, hwc);
++=09if (idx < 0) {
++=09=09err =3D idx;
++=09=09goto out;
 +=09}
 +
++=09/*
++=09 * If there is an event in the counter we are going to use then make
++=09 * sure it is disabled.
++=09 */
++=09event->hw.idx =3D idx;
++=09armpmu->disable(hwc, idx);
++=09hw_events->events[idx] =3D event;
++
++=09hwc->state =3D PERF_HES_STOPPED | PERF_HES_UPTODATE;
++=09if (flags & PERF_EF_START)
++=09=09armpmu_start(event, PERF_EF_RELOAD);
++
++=09/* Propagate our changes to the userspace mapping. */
++=09perf_event_update_userpage(event);
++
++out:
++=09perf_pmu_enable(event->pmu);
++=09return err;
++}
++
++static int
++validate_event(struct pmu_hw_events *hw_events,
++=09       struct perf_event *event)
++{
++=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
++=09struct hw_perf_event fake_event =3D event->hw;
++=09struct pmu *leader_pmu =3D event->group_leader->pmu;
++
++=09if (event->pmu !=3D leader_pmu || event->state <=3D PERF_EVENT_STATE_OF=
+F)
++=09=09return 1;
++
++=09return armpmu->get_event_idx(hw_events, &fake_event) >=3D 0;
++}
++
++static int
++validate_group(struct perf_event *event)
++{
++=09struct perf_event *sibling, *leader =3D event->group_leader;
++=09struct pmu_hw_events fake_pmu;
++=09DECLARE_BITMAP(fake_used_mask, ARMPMU_MAX_HWEVENTS);
++
++=09/*
++=09 * Initialise the fake PMU. We only need to populate the
++=09 * used_mask for the purposes of validation.
++=09 */
++=09memset(fake_used_mask, 0, sizeof(fake_used_mask));
++=09fake_pmu.used_mask =3D fake_used_mask;
++
++=09if (!validate_event(&fake_pmu, leader))
++=09=09return -EINVAL;
++
++=09list_for_each_entry(sibling, &leader->sibling_list, group_entry) {
++=09=09if (!validate_event(&fake_pmu, sibling))
++=09=09=09return -EINVAL;
++=09}
++
++=09if (!validate_event(&fake_pmu, event))
++=09=09return -EINVAL;
++
++=09return 0;
++}
++
++static void
++armpmu_release_hardware(struct arm_pmu *armpmu)
++{
++=09int i, irq, irqs;
++=09struct platform_device *pmu_device =3D armpmu->plat_device;
++
++=09irqs =3D min(pmu_device->num_resources, num_possible_cpus());
++
++=09for (i =3D 0; i < irqs; ++i) {
++=09=09if (!cpumask_test_and_clear_cpu(i, &armpmu->active_irqs))
++=09=09=09continue;
++=09=09irq =3D platform_get_irq(pmu_device, i);
++=09=09if (irq >=3D 0)
++=09=09=09free_irq(irq, armpmu);
++=09}
++}
++
++static int
++armpmu_reserve_hardware(struct arm_pmu *armpmu)
++{
++=09int i, err, irq, irqs;
++=09struct platform_device *pmu_device =3D armpmu->plat_device;
++
++=09if (!pmu_device) {
++=09=09pr_err("no PMU device registered\n");
++=09=09return -ENODEV;
++=09}
++
++=09irqs =3D min(pmu_device->num_resources, num_possible_cpus());
++=09if (irqs < 1) {
++=09=09pr_err("no irqs for PMUs defined\n");
++=09=09return -ENODEV;
++=09}
++
++=09for (i =3D 0; i < irqs; ++i) {
++=09=09err =3D 0;
++=09=09irq =3D platform_get_irq(pmu_device, i);
++=09=09if (irq < 0)
++=09=09=09continue;
++
++=09=09/*
++=09=09 * If we have a single PMU interrupt that we can't shift,
++=09=09 * assume that we're running on a uniprocessor machine and
++=09=09 * continue. Otherwise, continue without this interrupt.
++=09=09 */
++=09=09if (irq_set_affinity(irq, cpumask_of(i)) && irqs > 1) {
++=09=09=09pr_warning("unable to set irq affinity (irq=3D%d, cpu=3D%u)\n",
++=09=09=09=09    irq, i);
++=09=09=09continue;
++=09=09}
++
++=09=09err =3D request_irq(irq, armpmu->handle_irq,
++=09=09=09=09  IRQF_NOBALANCING,
++=09=09=09=09  "arm-pmu", armpmu);
++=09=09if (err) {
++=09=09=09pr_err("unable to request IRQ%d for ARM PMU counters\n",
++=09=09=09=09irq);
++=09=09=09armpmu_release_hardware(armpmu);
++=09=09=09return err;
++=09=09}
++
++=09=09cpumask_set_cpu(i, &armpmu->active_irqs);
++=09}
++
++=09return 0;
++}
++
++static void
++hw_perf_event_destroy(struct perf_event *event)
++{
++=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
++=09atomic_t *active_events=09 =3D &armpmu->active_events;
++=09struct mutex *pmu_reserve_mutex =3D &armpmu->reserve_mutex;
++
++=09if (atomic_dec_and_mutex_lock(active_events, pmu_reserve_mutex)) {
++=09=09armpmu_release_hardware(armpmu);
++=09=09mutex_unlock(pmu_reserve_mutex);
++=09}
++}
++
++static int
++event_requires_mode_exclusion(struct perf_event_attr *attr)
++{
++=09return attr->exclude_idle || attr->exclude_user ||
++=09       attr->exclude_kernel || attr->exclude_hv;
++}
++
++static int
++__hw_perf_event_init(struct perf_event *event)
++{
++=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
++=09struct hw_perf_event *hwc =3D &event->hw;
++=09int mapping, err;
++
++=09mapping =3D armpmu->map_event(event);
++
++=09if (mapping < 0) {
++=09=09pr_debug("event %x:%llx not supported\n", event->attr.type,
++=09=09=09 event->attr.config);
++=09=09return mapping;
++=09}
++
++=09/*
++=09 * We don't assign an index until we actually place the event onto
++=09 * hardware. Use -1 to signify that we haven't decided where to put it
++=09 * yet. For SMP systems, each core has it's own PMU so we can't do any
++=09 * clever allocation or constraints checking at this point.
++=09 */
++=09hwc->idx=09=09=3D -1;
++=09hwc->config_base=09=3D 0;
++=09hwc->config=09=09=3D 0;
++=09hwc->event_base=09=09=3D 0;
++
++=09/*
++=09 * Check whether we need to exclude the counter from certain modes.
++=09 */
++=09if ((!armpmu->set_event_filter ||
++=09     armpmu->set_event_filter(hwc, &event->attr)) &&
++=09     event_requires_mode_exclusion(&event->attr)) {
++=09=09pr_debug("ARM performance counters do not support mode exclusion\n")=
+;
++=09=09return -EPERM;
++=09}
++
++=09/*
++=09 * Store the event encoding into the config_base field.
++=09 */
++=09hwc->config_base=09    |=3D (unsigned long)mapping;
++
++=09if (!hwc->sample_period) {
++=09=09/*
++=09=09 * For non-sampling runs, limit the sample_period to half
++=09=09 * of the counter width. That way, the new counter value
++=09=09 * is far less likely to overtake the previous one unless
++=09=09 * you have some serious IRQ latency issues.
++=09=09 */
++=09=09hwc->sample_period  =3D armpmu->max_period >> 1;
++=09=09hwc->last_period    =3D hwc->sample_period;
++=09=09local64_set(&hwc->period_left, hwc->sample_period);
++=09}
++
++=09err =3D 0;
++=09if (event->group_leader !=3D event) {
++=09=09err =3D validate_group(event);
++=09=09if (err)
++=09=09=09return -EINVAL;
++=09}
++
++=09return err;
++}
++
++static int armpmu_event_init(struct perf_event *event)
++{
++=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
++=09int err =3D 0;
++=09atomic_t *active_events =3D &armpmu->active_events;
++
++=09if (armpmu->map_event(event) =3D=3D -ENOENT)
++=09=09return -ENOENT;
++
++=09event->destroy =3D hw_perf_event_destroy;
++
++=09if (!atomic_inc_not_zero(active_events)) {
++=09=09mutex_lock(&armpmu->reserve_mutex);
++=09=09if (atomic_read(active_events) =3D=3D 0)
++=09=09=09err =3D armpmu_reserve_hardware(armpmu);
++
++=09=09if (!err)
++=09=09=09atomic_inc(active_events);
++=09=09mutex_unlock(&armpmu->reserve_mutex);
++=09}
++
++=09if (err)
++=09=09return err;
++
++=09err =3D __hw_perf_event_init(event);
++=09if (err)
++=09=09hw_perf_event_destroy(event);
++
++=09return err;
++}
++
++static void armpmu_enable(struct pmu *pmu)
++{
++=09struct arm_pmu *armpmu =3D to_arm_pmu(pmu);
++=09struct pmu_hw_events *hw_events =3D armpmu->get_hw_events();
++=09int enabled =3D bitmap_weight(hw_events->used_mask, armpmu->num_events)=
+;
++
++=09if (enabled)
++=09=09armpmu->start();
++}
++
++static void armpmu_disable(struct pmu *pmu)
++{
++=09struct arm_pmu *armpmu =3D to_arm_pmu(pmu);
++=09armpmu->stop();
++}
++
++static void __init armpmu_init(struct arm_pmu *armpmu)
++{
++=09atomic_set(&armpmu->active_events, 0);
++=09mutex_init(&armpmu->reserve_mutex);
++
++=09armpmu->pmu =3D (struct pmu) {
++=09=09.pmu_enable=09=3D armpmu_enable,
++=09=09.pmu_disable=09=3D armpmu_disable,
++=09=09.event_init=09=3D armpmu_event_init,
++=09=09.add=09=09=3D armpmu_add,
++=09=09.del=09=09=3D armpmu_del,
++=09=09.start=09=09=3D armpmu_start,
++=09=09.stop=09=09=3D armpmu_stop,
++=09=09.read=09=09=3D armpmu_read,
++=09};
++}
++
++int __init armpmu_register(struct arm_pmu *armpmu, char *name, int type)
++{
++=09armpmu_init(armpmu);
++=09return perf_pmu_register(&armpmu->pmu, name, type);
++}
++
++/*
++ * ARMv8 PMUv3 Performance Events handling code.
++ * Common event types.
++ */
++enum armv8_pmuv3_perf_types {
++=09/* Required events. */
++=09ARMV8_PMUV3_PERFCTR_PMNC_SW_INCR=09=09=09=3D 0x00,
++=09ARMV8_PMUV3_PERFCTR_L1_DCACHE_REFILL=09=09=09=3D 0x03,
++=09ARMV8_PMUV3_PERFCTR_L1_DCACHE_ACCESS=09=09=09=3D 0x04,
++=09ARMV8_PMUV3_PERFCTR_PC_BRANCH_MIS_PRED=09=09=09=3D 0x10,
++=09ARMV8_PMUV3_PERFCTR_CLOCK_CYCLES=09=09=09=3D 0x11,
++=09ARMV8_PMUV3_PERFCTR_PC_BRANCH_PRED=09=09=09=3D 0x12,
++
++=09/* At least one of the following is required. */
++=09ARMV8_PMUV3_PERFCTR_INSTR_EXECUTED=09=09=09=3D 0x08,
++=09ARMV8_PMUV3_PERFCTR_OP_SPEC=09=09=09=09=3D 0x1B,
++
++=09/* Common architectural events. */
++=09ARMV8_PMUV3_PERFCTR_MEM_READ=09=09=09=09=3D 0x06,
++=09ARMV8_PMUV3_PERFCTR_MEM_WRITE=09=09=09=09=3D 0x07,
++=09ARMV8_PMUV3_PERFCTR_EXC_TAKEN=09=09=09=09=3D 0x09,
++=09ARMV8_PMUV3_PERFCTR_EXC_EXECUTED=09=09=09=3D 0x0A,
++=09ARMV8_PMUV3_PERFCTR_CID_WRITE=09=09=09=09=3D 0x0B,
++=09ARMV8_PMUV3_PERFCTR_PC_WRITE=09=09=09=09=3D 0x0C,
++=09ARMV8_PMUV3_PERFCTR_PC_IMM_BRANCH=09=09=09=3D 0x0D,
++=09ARMV8_PMUV3_PERFCTR_PC_PROC_RETURN=09=09=09=3D 0x0E,
++=09ARMV8_PMUV3_PERFCTR_MEM_UNALIGNED_ACCESS=09=09=3D 0x0F,
++=09ARMV8_PMUV3_PERFCTR_TTBR_WRITE=09=09=09=09=3D 0x1C,
++
++=09/* Common microarchitectural events. */
++=09ARMV8_PMUV3_PERFCTR_L1_ICACHE_REFILL=09=09=09=3D 0x01,
++=09ARMV8_PMUV3_PERFCTR_ITLB_REFILL=09=09=09=09=3D 0x02,
++=09ARMV8_PMUV3_PERFCTR_DTLB_REFILL=09=09=09=09=3D 0x05,
++=09ARMV8_PMUV3_PERFCTR_MEM_ACCESS=09=09=09=09=3D 0x13,
++=09ARMV8_PMUV3_PERFCTR_L1_ICACHE_ACCESS=09=09=09=3D 0x14,
++=09ARMV8_PMUV3_PERFCTR_L1_DCACHE_WB=09=09=09=3D 0x15,
++=09ARMV8_PMUV3_PERFCTR_L2_CACHE_ACCESS=09=09=09=3D 0x16,
++=09ARMV8_PMUV3_PERFCTR_L2_CACHE_REFILL=09=09=09=3D 0x17,
++=09ARMV8_PMUV3_PERFCTR_L2_CACHE_WB=09=09=09=09=3D 0x18,
++=09ARMV8_PMUV3_PERFCTR_BUS_ACCESS=09=09=09=09=3D 0x19,
++=09ARMV8_PMUV3_PERFCTR_MEM_ERROR=09=09=09=09=3D 0x1A,
++=09ARMV8_PMUV3_PERFCTR_BUS_CYCLES=09=09=09=09=3D 0x1D,
++
++=09/*
++=09 * This isn't an architected event.
++=09 * We detect this event number and use the cycle counter instead.
++=09 */
++=09ARMV8_PMUV3_PERFCTR_CPU_CYCLES=09=09=09=09=3D 0xFF,
++};
++
++/* PMUv3 HW events mapping. */
++static const unsigned armv8_pmuv3_perf_map[PERF_COUNT_HW_MAX] =3D {
++=09[PERF_COUNT_HW_CPU_CYCLES]=09=09=3D ARMV8_PMUV3_PERFCTR_CPU_CYCLES,
++=09[PERF_COUNT_HW_INSTRUCTIONS]=09=09=3D ARMV8_PMUV3_PERFCTR_INSTR_EXECUTE=
+D,
++=09[PERF_COUNT_HW_CACHE_REFERENCES]=09=3D ARMV8_PMUV3_PERFCTR_L1_DCACHE_AC=
+CESS,
++=09[PERF_COUNT_HW_CACHE_MISSES]=09=09=3D ARMV8_PMUV3_PERFCTR_L1_DCACHE_REF=
+ILL,
++=09[PERF_COUNT_HW_BRANCH_INSTRUCTIONS]=09=3D HW_OP_UNSUPPORTED,
++=09[PERF_COUNT_HW_BRANCH_MISSES]=09=09=3D ARMV8_PMUV3_PERFCTR_PC_BRANCH_MI=
+S_PRED,
++=09[PERF_COUNT_HW_BUS_CYCLES]=09=09=3D HW_OP_UNSUPPORTED,
++=09[PERF_COUNT_HW_STALLED_CYCLES_FRONTEND]=09=3D HW_OP_UNSUPPORTED,
++=09[PERF_COUNT_HW_STALLED_CYCLES_BACKEND]=09=3D HW_OP_UNSUPPORTED,
++};
++
++static const unsigned armv8_pmuv3_perf_cache_map[PERF_COUNT_HW_CACHE_MAX]
++=09=09=09=09=09=09[PERF_COUNT_HW_CACHE_OP_MAX]
++=09=09=09=09=09=09[PERF_COUNT_HW_CACHE_RESULT_MAX] =3D {
++=09[C(L1D)] =3D {
++=09=09[C(OP_READ)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D ARMV8_PMUV3_PERFCTR_L1_DCACHE_ACCESS,
++=09=09=09[C(RESULT_MISS)]=09=3D ARMV8_PMUV3_PERFCTR_L1_DCACHE_REFILL,
++=09=09},
++=09=09[C(OP_WRITE)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D ARMV8_PMUV3_PERFCTR_L1_DCACHE_ACCESS,
++=09=09=09[C(RESULT_MISS)]=09=3D ARMV8_PMUV3_PERFCTR_L1_DCACHE_REFILL,
++=09=09},
++=09=09[C(OP_PREFETCH)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09},
++=09[C(L1I)] =3D {
++=09=09[C(OP_READ)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09=09[C(OP_WRITE)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09=09[C(OP_PREFETCH)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09},
++=09[C(LL)] =3D {
++=09=09[C(OP_READ)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09=09[C(OP_WRITE)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09=09[C(OP_PREFETCH)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09},
++=09[C(DTLB)] =3D {
++=09=09[C(OP_READ)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09=09[C(OP_WRITE)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09=09[C(OP_PREFETCH)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09},
++=09[C(ITLB)] =3D {
++=09=09[C(OP_READ)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09=09[C(OP_WRITE)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09=09[C(OP_PREFETCH)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09},
++=09[C(BPU)] =3D {
++=09=09[C(OP_READ)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D ARMV8_PMUV3_PERFCTR_PC_BRANCH_PRED,
++=09=09=09[C(RESULT_MISS)]=09=3D ARMV8_PMUV3_PERFCTR_PC_BRANCH_MIS_PRED,
++=09=09},
++=09=09[C(OP_WRITE)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D ARMV8_PMUV3_PERFCTR_PC_BRANCH_PRED,
++=09=09=09[C(RESULT_MISS)]=09=3D ARMV8_PMUV3_PERFCTR_PC_BRANCH_MIS_PRED,
++=09=09},
++=09=09[C(OP_PREFETCH)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09},
++=09[C(NODE)] =3D {
++=09=09[C(OP_READ)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09=09[C(OP_WRITE)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09=09[C(OP_PREFETCH)] =3D {
++=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
++=09=09},
++=09},
++};
++
++/*
++ * Perf Events' indices
++ */
++#define=09ARMV8_IDX_CYCLE_COUNTER=090
++#define=09ARMV8_IDX_COUNTER0=091
++#define=09ARMV8_IDX_COUNTER_LAST=09(ARMV8_IDX_CYCLE_COUNTER + cpu_pmu->num=
+_events - 1)
++
++#define=09ARMV8_MAX_COUNTERS=0932
++#define=09ARMV8_COUNTER_MASK=09(ARMV8_MAX_COUNTERS - 1)
++
++/*
++ * ARMv8 low level PMU access
++ */
++
++/*
++ * Perf Event to low level counters mapping
++ */
++#define=09ARMV8_IDX_TO_COUNTER(x)=09\
++=09(((x) - ARMV8_IDX_COUNTER0) & ARMV8_COUNTER_MASK)
++
++/*
++ * Per-CPU PMCR: config reg
++ */
++#define ARMV8_PMCR_E=09=09(1 << 0) /* Enable all counters */
++#define ARMV8_PMCR_P=09=09(1 << 1) /* Reset all counters */
++#define ARMV8_PMCR_C=09=09(1 << 2) /* Cycle counter reset */
++#define ARMV8_PMCR_D=09=09(1 << 3) /* CCNT counts every 64th cpu cycle */
++#define ARMV8_PMCR_X=09=09(1 << 4) /* Export to ETM */
++#define ARMV8_PMCR_DP=09=09(1 << 5) /* Disable CCNT if non-invasive debug*=
+/
++#define=09ARMV8_PMCR_N_SHIFT=0911=09 /* Number of counters supported */
++#define=09ARMV8_PMCR_N_MASK=090x1f
++#define=09ARMV8_PMCR_MASK=09=090x3f=09 /* Mask for writable bits */
++
++/*
++ * PMOVSR: counters overflow flag status reg
++ */
++#define=09ARMV8_OVSR_MASK=09=090xffffffff=09/* Mask for writable bits */
++#define=09ARMV8_OVERFLOWED_MASK=09ARMV8_OVSR_MASK
++
++/*
++ * PMXEVTYPER: Event selection reg
++ */
++#define=09ARMV8_EVTYPE_MASK=090xc00000ff=09/* Mask for writable bits */
++#define=09ARMV8_EVTYPE_EVENT=090xff=09=09/* Mask for EVENT bits */
++
++/*
++ * Event filters for PMUv3
++ */
++#define=09ARMV8_EXCLUDE_EL1=09(1 << 31)
++#define=09ARMV8_EXCLUDE_EL0=09(1 << 30)
++#define=09ARMV8_INCLUDE_EL2=09(1 << 27)
++
++static inline u32 armv8pmu_pmcr_read(void)
++{
++=09u32 val;
++=09asm volatile("mrs %0, pmcr_el0" : "=3Dr" (val));
 +=09return val;
 +}
 +
-+static void write_wb_reg(int reg, int n, u64 val)
++static inline void armv8pmu_pmcr_write(u32 val)
 +{
-+=09switch (reg + n) {
-+=09GEN_WRITE_WB_REG_CASES(AARCH64_DBG_REG_BVR, AARCH64_DBG_REG_NAME_BVR, v=
-al);
-+=09GEN_WRITE_WB_REG_CASES(AARCH64_DBG_REG_BCR, AARCH64_DBG_REG_NAME_BCR, v=
-al);
-+=09GEN_WRITE_WB_REG_CASES(AARCH64_DBG_REG_WVR, AARCH64_DBG_REG_NAME_WVR, v=
-al);
-+=09GEN_WRITE_WB_REG_CASES(AARCH64_DBG_REG_WCR, AARCH64_DBG_REG_NAME_WCR, v=
-al);
-+=09default:
-+=09=09pr_warning("attempt to write to unknown breakpoint register %d\n", n=
-);
-+=09}
++=09val &=3D ARMV8_PMCR_MASK;
 +=09isb();
++=09asm volatile("msr pmcr_el0, %0" :: "r" (val));
 +}
 +
-+/*
-+ * Convert a breakpoint privilege level to the corresponding exception
-+ * level.
-+ */
-+static enum debug_el debug_exception_level(int privilege)
++static inline int armv8pmu_has_overflowed(u32 pmovsr)
 +{
-+=09switch (privilege) {
-+=09case AARCH64_BREAKPOINT_EL0:
-+=09=09return DBG_ACTIVE_EL0;
-+=09case AARCH64_BREAKPOINT_EL1:
-+=09=09return DBG_ACTIVE_EL1;
-+=09default:
-+=09=09pr_warning("invalid breakpoint privilege level %d\n", privilege);
-+=09=09return -EINVAL;
-+=09}
++=09return pmovsr & ARMV8_OVERFLOWED_MASK;
 +}
 +
-+/*
-+ * Install a perf counter breakpoint.
-+ */
-+int arch_install_hw_breakpoint(struct perf_event *bp)
++static inline int armv8pmu_counter_valid(int idx)
 +{
-+=09struct arch_hw_breakpoint *info =3D counter_arch_bp(bp);
-+=09struct perf_event **slot, **slots;
-+=09struct debug_info *debug_info =3D &current->thread.debug;
-+=09int i, max_slots, ctrl_reg, val_reg, reg_enable;
-+=09u32 ctrl;
++=09return idx >=3D ARMV8_IDX_CYCLE_COUNTER && idx <=3D ARMV8_IDX_COUNTER_L=
+AST;
++}
 +
-+=09if (info->ctrl.type =3D=3D ARM_BREAKPOINT_EXECUTE) {
-+=09=09/* Breakpoint */
-+=09=09ctrl_reg =3D AARCH64_DBG_REG_BCR;
-+=09=09val_reg =3D AARCH64_DBG_REG_BVR;
-+=09=09slots =3D __get_cpu_var(bp_on_reg);
-+=09=09max_slots =3D core_num_brps;
-+=09=09reg_enable =3D !debug_info->bps_disabled;
++static inline int armv8pmu_counter_has_overflowed(u32 pmnc, int idx)
++{
++=09int ret =3D 0;
++=09u32 counter;
++
++=09if (!armv8pmu_counter_valid(idx)) {
++=09=09pr_err("CPU%u checking wrong counter %d overflow status\n",
++=09=09=09smp_processor_id(), idx);
 +=09} else {
-+=09=09/* Watchpoint */
-+=09=09ctrl_reg =3D AARCH64_DBG_REG_WCR;
-+=09=09val_reg =3D AARCH64_DBG_REG_WVR;
-+=09=09slots =3D __get_cpu_var(wp_on_reg);
-+=09=09max_slots =3D core_num_wrps;
-+=09=09reg_enable =3D !debug_info->wps_disabled;
++=09=09counter =3D ARMV8_IDX_TO_COUNTER(idx);
++=09=09ret =3D pmnc & BIT(counter);
 +=09}
 +
-+=09for (i =3D 0; i < max_slots; ++i) {
-+=09=09slot =3D &slots[i];
-+
-+=09=09if (!*slot) {
-+=09=09=09*slot =3D bp;
-+=09=09=09break;
-+=09=09}
-+=09}
-+
-+=09if (WARN_ONCE(i =3D=3D max_slots, "Can't find any breakpoint slot"))
-+=09=09return -ENOSPC;
-+
-+=09/* Ensure debug monitors are enabled at the correct exception level.  *=
-/
-+=09enable_debug_monitors(debug_exception_level(info->ctrl.privilege));
-+
-+=09/* Setup the address register. */
-+=09write_wb_reg(val_reg, i, info->address);
-+
-+=09/* Setup the control register. */
-+=09ctrl =3D encode_ctrl_reg(info->ctrl);
-+=09write_wb_reg(ctrl_reg, i, reg_enable ? ctrl | 0x1 : ctrl & ~0x1);
-+
-+=09return 0;
++=09return ret;
 +}
 +
-+void arch_uninstall_hw_breakpoint(struct perf_event *bp)
++static inline int armv8pmu_select_counter(int idx)
 +{
-+=09struct arch_hw_breakpoint *info =3D counter_arch_bp(bp);
-+=09struct perf_event **slot, **slots;
-+=09int i, max_slots, base;
++=09u32 counter;
 +
-+=09if (info->ctrl.type =3D=3D ARM_BREAKPOINT_EXECUTE) {
-+=09=09/* Breakpoint */
-+=09=09base =3D AARCH64_DBG_REG_BCR;
-+=09=09slots =3D __get_cpu_var(bp_on_reg);
-+=09=09max_slots =3D core_num_brps;
-+=09} else {
-+=09=09/* Watchpoint */
-+=09=09base =3D AARCH64_DBG_REG_WCR;
-+=09=09slots =3D __get_cpu_var(wp_on_reg);
-+=09=09max_slots =3D core_num_wrps;
-+=09}
-+
-+=09/* Remove the breakpoint. */
-+=09for (i =3D 0; i < max_slots; ++i) {
-+=09=09slot =3D &slots[i];
-+
-+=09=09if (*slot =3D=3D bp) {
-+=09=09=09*slot =3D NULL;
-+=09=09=09break;
-+=09=09}
-+=09}
-+
-+=09if (WARN_ONCE(i =3D=3D max_slots, "Can't find any breakpoint slot"))
-+=09=09return;
-+
-+=09/* Reset the control register. */
-+=09write_wb_reg(base, i, 0);
-+
-+=09/* Release the debug monitors for the correct exception level.  */
-+=09disable_debug_monitors(debug_exception_level(info->ctrl.privilege));
-+}
-+
-+static int get_hbp_len(u8 hbp_len)
-+{
-+=09unsigned int len_in_bytes =3D 0;
-+
-+=09switch (hbp_len) {
-+=09case ARM_BREAKPOINT_LEN_1:
-+=09=09len_in_bytes =3D 1;
-+=09=09break;
-+=09case ARM_BREAKPOINT_LEN_2:
-+=09=09len_in_bytes =3D 2;
-+=09=09break;
-+=09case ARM_BREAKPOINT_LEN_4:
-+=09=09len_in_bytes =3D 4;
-+=09=09break;
-+=09case ARM_BREAKPOINT_LEN_8:
-+=09=09len_in_bytes =3D 8;
-+=09=09break;
-+=09}
-+
-+=09return len_in_bytes;
-+}
-+
-+/*
-+ * Check whether bp virtual address is in kernel space.
-+ */
-+int arch_check_bp_in_kernelspace(struct perf_event *bp)
-+{
-+=09unsigned int len;
-+=09unsigned long va;
-+=09struct arch_hw_breakpoint *info =3D counter_arch_bp(bp);
-+
-+=09va =3D info->address;
-+=09len =3D get_hbp_len(info->ctrl.len);
-+
-+=09return (va >=3D TASK_SIZE) && ((va + len - 1) >=3D TASK_SIZE);
-+}
-+
-+/*
-+ * Extract generic type and length encodings from an arch_hw_breakpoint_ct=
-rl.
-+ * Hopefully this will disappear when ptrace can bypass the conversion
-+ * to generic breakpoint descriptions.
-+ */
-+int arch_bp_generic_fields(struct arch_hw_breakpoint_ctrl ctrl,
-+=09=09=09   int *gen_len, int *gen_type)
-+{
-+=09/* Type */
-+=09switch (ctrl.type) {
-+=09case ARM_BREAKPOINT_EXECUTE:
-+=09=09*gen_type =3D HW_BREAKPOINT_X;
-+=09=09break;
-+=09case ARM_BREAKPOINT_LOAD:
-+=09=09*gen_type =3D HW_BREAKPOINT_R;
-+=09=09break;
-+=09case ARM_BREAKPOINT_STORE:
-+=09=09*gen_type =3D HW_BREAKPOINT_W;
-+=09=09break;
-+=09case ARM_BREAKPOINT_LOAD | ARM_BREAKPOINT_STORE:
-+=09=09*gen_type =3D HW_BREAKPOINT_RW;
-+=09=09break;
-+=09default:
++=09if (!armv8pmu_counter_valid(idx)) {
++=09=09pr_err("CPU%u selecting wrong PMNC counter %d\n",
++=09=09=09smp_processor_id(), idx);
 +=09=09return -EINVAL;
 +=09}
 +
-+=09/* Len */
-+=09switch (ctrl.len) {
-+=09case ARM_BREAKPOINT_LEN_1:
-+=09=09*gen_len =3D HW_BREAKPOINT_LEN_1;
-+=09=09break;
-+=09case ARM_BREAKPOINT_LEN_2:
-+=09=09*gen_len =3D HW_BREAKPOINT_LEN_2;
-+=09=09break;
-+=09case ARM_BREAKPOINT_LEN_4:
-+=09=09*gen_len =3D HW_BREAKPOINT_LEN_4;
-+=09=09break;
-+=09case ARM_BREAKPOINT_LEN_8:
-+=09=09*gen_len =3D HW_BREAKPOINT_LEN_8;
-+=09=09break;
-+=09default:
-+=09=09return -EINVAL;
-+=09}
++=09counter =3D ARMV8_IDX_TO_COUNTER(idx);
++=09asm volatile("msr pmselr_el0, %0" :: "r" (counter));
++=09isb();
 +
-+=09return 0;
++=09return idx;
 +}
 +
-+/*
-+ * Construct an arch_hw_breakpoint from a perf_event.
-+ */
-+static int arch_build_bp_info(struct perf_event *bp)
++static inline u32 armv8pmu_read_counter(int idx)
 +{
-+=09struct arch_hw_breakpoint *info =3D counter_arch_bp(bp);
++=09u32 value =3D 0;
 +
-+=09/* Type */
-+=09switch (bp->attr.bp_type) {
-+=09case HW_BREAKPOINT_X:
-+=09=09info->ctrl.type =3D ARM_BREAKPOINT_EXECUTE;
-+=09=09break;
-+=09case HW_BREAKPOINT_R:
-+=09=09info->ctrl.type =3D ARM_BREAKPOINT_LOAD;
-+=09=09break;
-+=09case HW_BREAKPOINT_W:
-+=09=09info->ctrl.type =3D ARM_BREAKPOINT_STORE;
-+=09=09break;
-+=09case HW_BREAKPOINT_RW:
-+=09=09info->ctrl.type =3D ARM_BREAKPOINT_LOAD | ARM_BREAKPOINT_STORE;
-+=09=09break;
-+=09default:
++=09if (!armv8pmu_counter_valid(idx))
++=09=09pr_err("CPU%u reading wrong counter %d\n",
++=09=09=09smp_processor_id(), idx);
++=09else if (idx =3D=3D ARMV8_IDX_CYCLE_COUNTER)
++=09=09asm volatile("mrs %0, pmccntr_el0" : "=3Dr" (value));
++=09else if (armv8pmu_select_counter(idx) =3D=3D idx)
++=09=09asm volatile("mrs %0, pmxevcntr_el0" : "=3Dr" (value));
++
++=09return value;
++}
++
++static inline void armv8pmu_write_counter(int idx, u32 value)
++{
++=09if (!armv8pmu_counter_valid(idx))
++=09=09pr_err("CPU%u writing wrong counter %d\n",
++=09=09=09smp_processor_id(), idx);
++=09else if (idx =3D=3D ARMV8_IDX_CYCLE_COUNTER)
++=09=09asm volatile("msr pmccntr_el0, %0" :: "r" (value));
++=09else if (armv8pmu_select_counter(idx) =3D=3D idx)
++=09=09asm volatile("msr pmxevcntr_el0, %0" :: "r" (value));
++}
++
++static inline void armv8pmu_write_evtype(int idx, u32 val)
++{
++=09if (armv8pmu_select_counter(idx) =3D=3D idx) {
++=09=09val &=3D ARMV8_EVTYPE_MASK;
++=09=09asm volatile("msr pmxevtyper_el0, %0" :: "r" (val));
++=09}
++}
++
++static inline int armv8pmu_enable_counter(int idx)
++{
++=09u32 counter;
++
++=09if (!armv8pmu_counter_valid(idx)) {
++=09=09pr_err("CPU%u enabling wrong PMNC counter %d\n",
++=09=09=09smp_processor_id(), idx);
 +=09=09return -EINVAL;
 +=09}
 +
-+=09/* Len */
-+=09switch (bp->attr.bp_len) {
-+=09case HW_BREAKPOINT_LEN_1:
-+=09=09info->ctrl.len =3D ARM_BREAKPOINT_LEN_1;
-+=09=09break;
-+=09case HW_BREAKPOINT_LEN_2:
-+=09=09info->ctrl.len =3D ARM_BREAKPOINT_LEN_2;
-+=09=09break;
-+=09case HW_BREAKPOINT_LEN_4:
-+=09=09info->ctrl.len =3D ARM_BREAKPOINT_LEN_4;
-+=09=09break;
-+=09case HW_BREAKPOINT_LEN_8:
-+=09=09info->ctrl.len =3D ARM_BREAKPOINT_LEN_8;
-+=09=09break;
-+=09default:
++=09counter =3D ARMV8_IDX_TO_COUNTER(idx);
++=09asm volatile("msr pmcntenset_el0, %0" :: "r" (BIT(counter)));
++=09return idx;
++}
++
++static inline int armv8pmu_disable_counter(int idx)
++{
++=09u32 counter;
++
++=09if (!armv8pmu_counter_valid(idx)) {
++=09=09pr_err("CPU%u disabling wrong PMNC counter %d\n",
++=09=09=09smp_processor_id(), idx);
 +=09=09return -EINVAL;
 +=09}
++
++=09counter =3D ARMV8_IDX_TO_COUNTER(idx);
++=09asm volatile("msr pmcntenclr_el0, %0" :: "r" (BIT(counter)));
++=09return idx;
++}
++
++static inline int armv8pmu_enable_intens(int idx)
++{
++=09u32 counter;
++
++=09if (!armv8pmu_counter_valid(idx)) {
++=09=09pr_err("CPU%u enabling wrong PMNC counter IRQ enable %d\n",
++=09=09=09smp_processor_id(), idx);
++=09=09return -EINVAL;
++=09}
++
++=09counter =3D ARMV8_IDX_TO_COUNTER(idx);
++=09asm volatile("msr pmintenset_el1, %0" :: "r" (BIT(counter)));
++=09return idx;
++}
++
++static inline int armv8pmu_disable_intens(int idx)
++{
++=09u32 counter;
++
++=09if (!armv8pmu_counter_valid(idx)) {
++=09=09pr_err("CPU%u disabling wrong PMNC counter IRQ enable %d\n",
++=09=09=09smp_processor_id(), idx);
++=09=09return -EINVAL;
++=09}
++
++=09counter =3D ARMV8_IDX_TO_COUNTER(idx);
++=09asm volatile("msr pmintenclr_el1, %0" :: "r" (BIT(counter)));
++=09isb();
++=09/* Clear the overflow flag in case an interrupt is pending. */
++=09asm volatile("msr pmovsclr_el0, %0" :: "r" (BIT(counter)));
++=09isb();
++=09return idx;
++}
++
++static inline u32 armv8pmu_getreset_flags(void)
++{
++=09u32 value;
++
++=09/* Read */
++=09asm volatile("mrs %0, pmovsclr_el0" : "=3Dr" (value));
++
++=09/* Write to clear flags */
++=09value &=3D ARMV8_OVSR_MASK;
++=09asm volatile("msr pmovsclr_el0, %0" :: "r" (value));
++
++=09return value;
++}
++
++static void armv8pmu_enable_event(struct hw_perf_event *hwc, int idx)
++{
++=09unsigned long flags;
++=09struct pmu_hw_events *events =3D cpu_pmu->get_hw_events();
 +
 +=09/*
-+=09 * On AArch64, we only permit breakpoints of length 4, whereas
-+=09 * AArch32 also requires breakpoints of length 2 for Thumb.
-+=09 * Watchpoints can be of length 1, 2, 4 or 8 bytes.
++=09 * Enable counter and interrupt, and set the counter to count
++=09 * the event that we're interested in.
 +=09 */
-+=09if (info->ctrl.type =3D=3D ARM_BREAKPOINT_EXECUTE) {
-+=09=09if (is_compat_task()) {
-+=09=09=09if (info->ctrl.len !=3D ARM_BREAKPOINT_LEN_2 &&
-+=09=09=09    info->ctrl.len !=3D ARM_BREAKPOINT_LEN_4)
-+=09=09=09=09return -EINVAL;
-+=09=09} else if (info->ctrl.len !=3D ARM_BREAKPOINT_LEN_4) {
-+=09=09=09/*
-+=09=09=09 * FIXME: Some tools (I'm looking at you perf) assume
-+=09=09=09 *=09  that breakpoints should be sizeof(long). This
-+=09=09=09 *=09  is nonsense. For now, we fix up the parameter
-+=09=09=09 *=09  but we should probably return -EINVAL instead.
-+=09=09=09 */
-+=09=09=09info->ctrl.len =3D ARM_BREAKPOINT_LEN_4;
-+=09=09}
-+=09}
-+
-+=09/* Address */
-+=09info->address =3D bp->attr.bp_addr;
++=09raw_spin_lock_irqsave(&events->pmu_lock, flags);
 +
 +=09/*
-+=09 * Privilege
-+=09 * Note that we disallow combined EL0/EL1 breakpoints because
-+=09 * that would complicate the stepping code.
++=09 * Disable counter
 +=09 */
-+=09if (arch_check_bp_in_kernelspace(bp))
-+=09=09info->ctrl.privilege =3D AARCH64_BREAKPOINT_EL1;
-+=09else
-+=09=09info->ctrl.privilege =3D AARCH64_BREAKPOINT_EL0;
++=09armv8pmu_disable_counter(idx);
 +
-+=09/* Enabled? */
-+=09info->ctrl.enabled =3D !bp->attr.disabled;
++=09/*
++=09 * Set event (if destined for PMNx counters).
++=09 */
++=09armv8pmu_write_evtype(idx, hwc->config_base);
 +
-+=09return 0;
++=09/*
++=09 * Enable interrupt for this counter
++=09 */
++=09armv8pmu_enable_intens(idx);
++
++=09/*
++=09 * Enable counter
++=09 */
++=09armv8pmu_enable_counter(idx);
++
++=09raw_spin_unlock_irqrestore(&events->pmu_lock, flags);
 +}
 +
-+/*
-+ * Validate the arch-specific HW Breakpoint register settings.
-+ */
-+int arch_validate_hwbkpt_settings(struct perf_event *bp)
++static void armv8pmu_disable_event(struct hw_perf_event *hwc, int idx)
 +{
-+=09struct arch_hw_breakpoint *info =3D counter_arch_bp(bp);
-+=09int ret;
-+=09u64 alignment_mask, offset;
-+
-+=09/* Build the arch_hw_breakpoint. */
-+=09ret =3D arch_build_bp_info(bp);
-+=09if (ret)
-+=09=09return ret;
++=09unsigned long flags;
++=09struct pmu_hw_events *events =3D cpu_pmu->get_hw_events();
 +
 +=09/*
-+=09 * Check address alignment.
-+=09 * We don't do any clever alignment correction for watchpoints
-+=09 * because using 64-bit unaligned addresses is deprecated for
-+=09 * AArch64.
++=09 * Disable counter and interrupt
++=09 */
++=09raw_spin_lock_irqsave(&events->pmu_lock, flags);
++
++=09/*
++=09 * Disable counter
++=09 */
++=09armv8pmu_disable_counter(idx);
++
++=09/*
++=09 * Disable interrupt for this counter
++=09 */
++=09armv8pmu_disable_intens(idx);
++
++=09raw_spin_unlock_irqrestore(&events->pmu_lock, flags);
++}
++
++static irqreturn_t armv8pmu_handle_irq(int irq_num, void *dev)
++{
++=09u32 pmovsr;
++=09struct perf_sample_data data;
++=09struct pmu_hw_events *cpuc;
++=09struct pt_regs *regs;
++=09int idx;
++
++=09/*
++=09 * Get and reset the IRQ flags
++=09 */
++=09pmovsr =3D armv8pmu_getreset_flags();
++
++=09/*
++=09 * Did an overflow occur?
++=09 */
++=09if (!armv8pmu_has_overflowed(pmovsr))
++=09=09return IRQ_NONE;
++
++=09/*
++=09 * Handle the counter(s) overflow(s)
++=09 */
++=09regs =3D get_irq_regs();
++
++=09cpuc =3D &__get_cpu_var(cpu_hw_events);
++=09for (idx =3D 0; idx < cpu_pmu->num_events; ++idx) {
++=09=09struct perf_event *event =3D cpuc->events[idx];
++=09=09struct hw_perf_event *hwc;
++
++=09=09/* Ignore if we don't have an event. */
++=09=09if (!event)
++=09=09=09continue;
++
++=09=09/*
++=09=09 * We have a single interrupt for all counters. Check that
++=09=09 * each counter has overflowed before we process it.
++=09=09 */
++=09=09if (!armv8pmu_counter_has_overflowed(pmovsr, idx))
++=09=09=09continue;
++
++=09=09hwc =3D &event->hw;
++=09=09armpmu_event_update(event, hwc, idx);
++=09=09perf_sample_data_init(&data, 0, hwc->last_period);
++=09=09if (!armpmu_event_set_period(event, hwc, idx))
++=09=09=09continue;
++
++=09=09if (perf_event_overflow(event, &data, regs))
++=09=09=09cpu_pmu->disable(hwc, idx);
++=09}
++
++=09/*
++=09 * Handle the pending perf events.
 +=09 *
-+=09 * AArch32 tasks expect some simple alignment fixups, so emulate
-+=09 * that here.
++=09 * Note: this call *must* be run with interrupts disabled. For
++=09 * platforms that can have the PMU interrupts raised as an NMI, this
++=09 * will not work.
 +=09 */
-+=09if (is_compat_task()) {
-+=09=09if (info->ctrl.len =3D=3D ARM_BREAKPOINT_LEN_8)
-+=09=09=09alignment_mask =3D 0x7;
-+=09=09else
-+=09=09=09alignment_mask =3D 0x3;
-+=09=09offset =3D info->address & alignment_mask;
-+=09=09switch (offset) {
-+=09=09case 0:
-+=09=09=09/* Aligned */
-+=09=09=09break;
-+=09=09case 1:
-+=09=09=09/* Allow single byte watchpoint. */
-+=09=09=09if (info->ctrl.len =3D=3D ARM_BREAKPOINT_LEN_1)
-+=09=09=09=09break;
-+=09=09case 2:
-+=09=09=09/* Allow halfword watchpoints and breakpoints. */
-+=09=09=09if (info->ctrl.len =3D=3D ARM_BREAKPOINT_LEN_2)
-+=09=09=09=09break;
-+=09=09default:
-+=09=09=09return -EINVAL;
-+=09=09}
++=09irq_work_run();
 +
-+=09=09info->address &=3D ~alignment_mask;
-+=09=09info->ctrl.len <<=3D offset;
-+=09} else {
-+=09=09if (info->ctrl.type =3D=3D ARM_BREAKPOINT_EXECUTE)
-+=09=09=09alignment_mask =3D 0x3;
-+=09=09else
-+=09=09=09alignment_mask =3D 0x7;
-+=09=09if (info->address & alignment_mask)
-+=09=09=09return -EINVAL;
++=09return IRQ_HANDLED;
++}
++
++static void armv8pmu_start(void)
++{
++=09unsigned long flags;
++=09struct pmu_hw_events *events =3D cpu_pmu->get_hw_events();
++
++=09raw_spin_lock_irqsave(&events->pmu_lock, flags);
++=09/* Enable all counters */
++=09armv8pmu_pmcr_write(armv8pmu_pmcr_read() | ARMV8_PMCR_E);
++=09raw_spin_unlock_irqrestore(&events->pmu_lock, flags);
++}
++
++static void armv8pmu_stop(void)
++{
++=09unsigned long flags;
++=09struct pmu_hw_events *events =3D cpu_pmu->get_hw_events();
++
++=09raw_spin_lock_irqsave(&events->pmu_lock, flags);
++=09/* Disable all counters */
++=09armv8pmu_pmcr_write(armv8pmu_pmcr_read() & ~ARMV8_PMCR_E);
++=09raw_spin_unlock_irqrestore(&events->pmu_lock, flags);
++}
++
++static int armv8pmu_get_event_idx(struct pmu_hw_events *cpuc,
++=09=09=09=09  struct hw_perf_event *event)
++{
++=09int idx;
++=09unsigned long evtype =3D event->config_base & ARMV8_EVTYPE_EVENT;
++
++=09/* Always place a cycle counter into the cycle counter. */
++=09if (evtype =3D=3D ARMV8_PMUV3_PERFCTR_CPU_CYCLES) {
++=09=09if (test_and_set_bit(ARMV8_IDX_CYCLE_COUNTER, cpuc->used_mask))
++=09=09=09return -EAGAIN;
++
++=09=09return ARMV8_IDX_CYCLE_COUNTER;
 +=09}
 +
 +=09/*
-+=09 * Disallow per-task kernel breakpoints since these would
-+=09 * complicate the stepping code.
++=09 * For anything other than a cycle counter, try and use
++=09 * the events counters
 +=09 */
-+=09if (info->ctrl.privilege =3D=3D AARCH64_BREAKPOINT_EL1 && bp->hw.bp_tar=
-get)
-+=09=09return -EINVAL;
++=09for (idx =3D ARMV8_IDX_COUNTER0; idx < cpu_pmu->num_events; ++idx) {
++=09=09if (!test_and_set_bit(idx, cpuc->used_mask))
++=09=09=09return idx;
++=09}
++
++=09/* The counters are all in use. */
++=09return -EAGAIN;
++}
++
++/*
++ * Add an event filter to a given event. This will only work for PMUv2 PMU=
+s.
++ */
++static int armv8pmu_set_event_filter(struct hw_perf_event *event,
++=09=09=09=09     struct perf_event_attr *attr)
++{
++=09unsigned long config_base =3D 0;
++
++=09if (attr->exclude_idle)
++=09=09return -EPERM;
++=09if (attr->exclude_user)
++=09=09config_base |=3D ARMV8_EXCLUDE_EL0;
++=09if (attr->exclude_kernel)
++=09=09config_base |=3D ARMV8_EXCLUDE_EL1;
++=09if (!attr->exclude_hv)
++=09=09config_base |=3D ARMV8_INCLUDE_EL2;
++
++=09/*
++=09 * Install the filter into config_base as this is used to
++=09 * construct the event type.
++=09 */
++=09event->config_base =3D config_base;
 +
 +=09return 0;
 +}
 +
-+/*
-+ * Enable/disable all of the breakpoints active at the specified
-+ * exception level at the register level.
-+ * This is used when single-stepping after a breakpoint exception.
-+ */
-+static void toggle_bp_registers(int reg, enum debug_el el, int enable)
++static void armv8pmu_reset(void *info)
 +{
-+=09int i, max_slots, privilege;
-+=09u32 ctrl;
-+=09struct perf_event **slots;
++=09u32 idx, nb_cnt =3D cpu_pmu->num_events;
 +
-+=09switch (reg) {
-+=09case AARCH64_DBG_REG_BCR:
-+=09=09slots =3D __get_cpu_var(bp_on_reg);
-+=09=09max_slots =3D core_num_brps;
++=09/* The counter and interrupt enable registers are unknown at reset. */
++=09for (idx =3D ARMV8_IDX_CYCLE_COUNTER; idx < nb_cnt; ++idx)
++=09=09armv8pmu_disable_event(NULL, idx);
++
++=09/* Initialize & Reset PMNC: C and P bits. */
++=09armv8pmu_pmcr_write(ARMV8_PMCR_P | ARMV8_PMCR_C);
++
++=09/* Disable access from userspace. */
++=09asm volatile("msr pmuserenr_el0, %0" :: "r" (0));
++}
++
++static int armv8_pmuv3_map_event(struct perf_event *event)
++{
++=09return map_cpu_event(event, &armv8_pmuv3_perf_map,
++=09=09=09=09&armv8_pmuv3_perf_cache_map, 0xFF);
++}
++
++static struct arm_pmu armv8pmu =3D {
++=09.handle_irq=09=09=3D armv8pmu_handle_irq,
++=09.enable=09=09=09=3D armv8pmu_enable_event,
++=09.disable=09=09=3D armv8pmu_disable_event,
++=09.read_counter=09=09=3D armv8pmu_read_counter,
++=09.write_counter=09=09=3D armv8pmu_write_counter,
++=09.get_event_idx=09=09=3D armv8pmu_get_event_idx,
++=09.start=09=09=09=3D armv8pmu_start,
++=09.stop=09=09=09=3D armv8pmu_stop,
++=09.reset=09=09=09=3D armv8pmu_reset,
++=09.max_period=09=09=3D (1LLU << 32) - 1,
++};
++
++static u32 __init armv8pmu_read_num_pmnc_events(void)
++{
++=09u32 nb_cnt;
++
++=09/* Read the nb of CNTx counters supported from PMNC */
++=09nb_cnt =3D (armv8pmu_pmcr_read() >> ARMV8_PMCR_N_SHIFT) & ARMV8_PMCR_N_=
+MASK;
++
++=09/* Add the CPU cycles counter and return */
++=09return nb_cnt + 1;
++}
++
++static struct arm_pmu *__init armv8_pmuv3_pmu_init(void)
++{
++=09armv8pmu.name=09=09=09=3D "arm/armv8-pmuv3";
++=09armv8pmu.map_event=09=09=3D armv8_pmuv3_map_event;
++=09armv8pmu.num_events=09=09=3D armv8pmu_read_num_pmnc_events();
++=09armv8pmu.set_event_filter=09=3D armv8pmu_set_event_filter;
++=09return &armv8pmu;
++}
++
++/*
++ * Ensure the PMU has sane values out of reset.
++ * This requires SMP to be available, so exists as a separate initcall.
++ */
++static int __init
++cpu_pmu_reset(void)
++{
++=09if (cpu_pmu && cpu_pmu->reset)
++=09=09return on_each_cpu(cpu_pmu->reset, NULL, 1);
++=09return 0;
++}
++arch_initcall(cpu_pmu_reset);
++
++/*
++ * PMU platform driver and devicetree bindings.
++ */
++static struct of_device_id armpmu_of_device_ids[] =3D {
++=09{.compatible =3D "arm,armv8-pmuv3"},
++=09{},
++};
++
++static int __devinit armpmu_device_probe(struct platform_device *pdev)
++{
++=09if (!cpu_pmu)
++=09=09return -ENODEV;
++
++=09cpu_pmu->plat_device =3D pdev;
++=09return 0;
++}
++
++static struct platform_driver armpmu_driver =3D {
++=09.driver=09=09=3D {
++=09=09.name=09=3D "arm-pmu",
++=09=09.of_match_table =3D armpmu_of_device_ids,
++=09},
++=09.probe=09=09=3D armpmu_device_probe,
++};
++
++static int __init register_pmu_driver(void)
++{
++=09return platform_driver_register(&armpmu_driver);
++}
++device_initcall(register_pmu_driver);
++
++static struct pmu_hw_events *armpmu_get_cpu_events(void)
++{
++=09return &__get_cpu_var(cpu_hw_events);
++}
++
++static void __init cpu_pmu_init(struct arm_pmu *armpmu)
++{
++=09int cpu;
++=09for_each_possible_cpu(cpu) {
++=09=09struct pmu_hw_events *events =3D &per_cpu(cpu_hw_events, cpu);
++=09=09events->events =3D per_cpu(hw_events, cpu);
++=09=09events->used_mask =3D per_cpu(used_mask, cpu);
++=09=09raw_spin_lock_init(&events->pmu_lock);
++=09}
++=09armpmu->get_hw_events =3D armpmu_get_cpu_events;
++}
++
++static int __init init_hw_perf_events(void)
++{
++=09u64 dfr =3D read_cpuid(ID_AA64DFR0_EL1);
++
++=09switch ((dfr >> 8) & 0xf) {
++=09case 0x1:=09/* PMUv3 */
++=09=09cpu_pmu =3D armv8_pmuv3_pmu_init();
 +=09=09break;
-+=09case AARCH64_DBG_REG_WCR:
-+=09=09slots =3D __get_cpu_var(wp_on_reg);
-+=09=09max_slots =3D core_num_wrps;
-+=09=09break;
-+=09default:
-+=09=09return;
 +=09}
 +
-+=09for (i =3D 0; i < max_slots; ++i) {
-+=09=09if (!slots[i])
-+=09=09=09continue;
-+
-+=09=09privilege =3D counter_arch_bp(slots[i])->ctrl.privilege;
-+=09=09if (debug_exception_level(privilege) !=3D el)
-+=09=09=09continue;
-+
-+=09=09ctrl =3D read_wb_reg(reg, i);
-+=09=09if (enable)
-+=09=09=09ctrl |=3D 0x1;
-+=09=09else
-+=09=09=09ctrl &=3D ~0x1;
-+=09=09write_wb_reg(reg, i, ctrl);
-+=09}
-+}
-+
-+/*
-+ * Debug exception handlers.
-+ */
-+static int breakpoint_handler(unsigned long unused, unsigned int esr,
-+=09=09=09      struct pt_regs *regs)
-+{
-+=09int i, step =3D 0, *kernel_step;
-+=09u32 ctrl_reg;
-+=09u64 addr, val;
-+=09struct perf_event *bp, **slots;
-+=09struct debug_info *debug_info;
-+=09struct arch_hw_breakpoint_ctrl ctrl;
-+
-+=09slots =3D (struct perf_event **)__get_cpu_var(bp_on_reg);
-+=09addr =3D instruction_pointer(regs);
-+=09debug_info =3D &current->thread.debug;
-+
-+=09for (i =3D 0; i < core_num_brps; ++i) {
-+=09=09rcu_read_lock();
-+
-+=09=09bp =3D slots[i];
-+
-+=09=09if (bp =3D=3D NULL)
-+=09=09=09goto unlock;
-+
-+=09=09/* Check if the breakpoint value matches. */
-+=09=09val =3D read_wb_reg(AARCH64_DBG_REG_BVR, i);
-+=09=09if (val !=3D (addr & ~0x3))
-+=09=09=09goto unlock;
-+
-+=09=09/* Possible match, check the byte address select to confirm. */
-+=09=09ctrl_reg =3D read_wb_reg(AARCH64_DBG_REG_BCR, i);
-+=09=09decode_ctrl_reg(ctrl_reg, &ctrl);
-+=09=09if (!((1 << (addr & 0x3)) & ctrl.len))
-+=09=09=09goto unlock;
-+
-+=09=09counter_arch_bp(bp)->trigger =3D addr;
-+=09=09perf_bp_event(bp, regs);
-+
-+=09=09/* Do we need to handle the stepping? */
-+=09=09if (!bp->overflow_handler)
-+=09=09=09step =3D 1;
-+unlock:
-+=09=09rcu_read_unlock();
-+=09}
-+
-+=09if (!step)
-+=09=09return 0;
-+
-+=09if (user_mode(regs)) {
-+=09=09debug_info->bps_disabled =3D 1;
-+=09=09toggle_bp_registers(AARCH64_DBG_REG_BCR, DBG_ACTIVE_EL0, 0);
-+
-+=09=09/* If we're already stepping a watchpoint, just return. */
-+=09=09if (debug_info->wps_disabled)
-+=09=09=09return 0;
-+
-+=09=09if (test_thread_flag(TIF_SINGLESTEP))
-+=09=09=09debug_info->suspended_step =3D 1;
-+=09=09else
-+=09=09=09user_enable_single_step(current);
++=09if (cpu_pmu) {
++=09=09pr_info("enabled with %s PMU driver, %d counters available\n",
++=09=09=09cpu_pmu->name, cpu_pmu->num_events);
++=09=09cpu_pmu_init(cpu_pmu);
++=09=09armpmu_register(cpu_pmu, "cpu", PERF_TYPE_RAW);
 +=09} else {
-+=09=09toggle_bp_registers(AARCH64_DBG_REG_BCR, DBG_ACTIVE_EL1, 0);
-+=09=09kernel_step =3D &__get_cpu_var(stepping_kernel_bp);
-+
-+=09=09if (*kernel_step !=3D ARM_KERNEL_STEP_NONE)
-+=09=09=09return 0;
-+
-+=09=09if (kernel_active_single_step()) {
-+=09=09=09*kernel_step =3D ARM_KERNEL_STEP_SUSPEND;
-+=09=09} else {
-+=09=09=09*kernel_step =3D ARM_KERNEL_STEP_ACTIVE;
-+=09=09=09kernel_enable_single_step(regs);
-+=09=09}
++=09=09pr_info("no hardware support available\n");
 +=09}
 +
 +=09return 0;
 +}
++early_initcall(init_hw_perf_events);
 +
-+static int watchpoint_handler(unsigned long addr, unsigned int esr,
-+=09=09=09      struct pt_regs *regs)
++/*
++ * Callchain handling code.
++ */
++struct frame_tail {
++=09struct frame_tail   __user *fp;
++=09unsigned long=09    lr;
++} __attribute__((packed));
++
++/*
++ * Get the return address for a single stackframe and return a pointer to =
+the
++ * next frame tail.
++ */
++static struct frame_tail __user *
++user_backtrace(struct frame_tail __user *tail,
++=09       struct perf_callchain_entry *entry)
 +{
-+=09int i, step =3D 0, *kernel_step, access;
-+=09u32 ctrl_reg;
-+=09u64 val, alignment_mask;
-+=09struct perf_event *wp, **slots;
-+=09struct debug_info *debug_info;
-+=09struct arch_hw_breakpoint *info;
-+=09struct arch_hw_breakpoint_ctrl ctrl;
++=09struct frame_tail buftail;
++=09unsigned long err;
 +
-+=09slots =3D (struct perf_event **)__get_cpu_var(wp_on_reg);
-+=09debug_info =3D &current->thread.debug;
++=09/* Also check accessibility of one struct frame_tail beyond */
++=09if (!access_ok(VERIFY_READ, tail, sizeof(buftail)))
++=09=09return NULL;
 +
-+=09for (i =3D 0; i < core_num_wrps; ++i) {
-+=09=09rcu_read_lock();
++=09pagefault_disable();
++=09err =3D __copy_from_user_inatomic(&buftail, tail, sizeof(buftail));
++=09pagefault_enable();
 +
-+=09=09wp =3D slots[i];
++=09if (err)
++=09=09return NULL;
 +
-+=09=09if (wp =3D=3D NULL)
-+=09=09=09goto unlock;
-+
-+=09=09info =3D counter_arch_bp(wp);
-+=09=09/* AArch32 watchpoints are either 4 or 8 bytes aligned. */
-+=09=09if (is_compat_task()) {
-+=09=09=09if (info->ctrl.len =3D=3D ARM_BREAKPOINT_LEN_8)
-+=09=09=09=09alignment_mask =3D 0x7;
-+=09=09=09else
-+=09=09=09=09alignment_mask =3D 0x3;
-+=09=09} else {
-+=09=09=09alignment_mask =3D 0x7;
-+=09=09}
-+
-+=09=09/* Check if the watchpoint value matches. */
-+=09=09val =3D read_wb_reg(AARCH64_DBG_REG_WVR, i);
-+=09=09if (val !=3D (addr & ~alignment_mask))
-+=09=09=09goto unlock;
-+
-+=09=09/* Possible match, check the byte address select to confirm. */
-+=09=09ctrl_reg =3D read_wb_reg(AARCH64_DBG_REG_WCR, i);
-+=09=09decode_ctrl_reg(ctrl_reg, &ctrl);
-+=09=09if (!((1 << (addr & alignment_mask)) & ctrl.len))
-+=09=09=09goto unlock;
-+
-+=09=09/*
-+=09=09 * Check that the access type matches.
-+=09=09 * 0 =3D> load, otherwise =3D> store
-+=09=09 */
-+=09=09access =3D (esr & AARCH64_ESR_ACCESS_MASK) ? HW_BREAKPOINT_W :
-+=09=09=09 HW_BREAKPOINT_R;
-+=09=09if (!(access & hw_breakpoint_type(wp)))
-+=09=09=09goto unlock;
-+
-+=09=09info->trigger =3D addr;
-+=09=09perf_bp_event(wp, regs);
-+
-+=09=09/* Do we need to handle the stepping? */
-+=09=09if (!wp->overflow_handler)
-+=09=09=09step =3D 1;
-+
-+unlock:
-+=09=09rcu_read_unlock();
-+=09}
-+
-+=09if (!step)
-+=09=09return 0;
++=09perf_callchain_store(entry, buftail.lr);
 +
 +=09/*
-+=09 * We always disable EL0 watchpoints because the kernel can
-+=09 * cause these to fire via an unprivileged access.
++=09 * Frame pointers should strictly progress back up the stack
++=09 * (towards higher addresses).
 +=09 */
-+=09toggle_bp_registers(AARCH64_DBG_REG_WCR, DBG_ACTIVE_EL0, 0);
++=09if (tail >=3D buftail.fp)
++=09=09return NULL;
 +
-+=09if (user_mode(regs)) {
-+=09=09debug_info->wps_disabled =3D 1;
++=09return buftail.fp;
++}
 +
-+=09=09/* If we're already stepping a breakpoint, just return. */
-+=09=09if (debug_info->bps_disabled)
-+=09=09=09return 0;
++void perf_callchain_user(struct perf_callchain_entry *entry,
++=09=09=09 struct pt_regs *regs)
++{
++=09struct frame_tail __user *tail;
 +
-+=09=09if (test_thread_flag(TIF_SINGLESTEP))
-+=09=09=09debug_info->suspended_step =3D 1;
-+=09=09else
-+=09=09=09user_enable_single_step(current);
-+=09} else {
-+=09=09toggle_bp_registers(AARCH64_DBG_REG_WCR, DBG_ACTIVE_EL1, 0);
-+=09=09kernel_step =3D &__get_cpu_var(stepping_kernel_bp);
++=09tail =3D (struct frame_tail __user *)regs->regs[29];
 +
-+=09=09if (*kernel_step !=3D ARM_KERNEL_STEP_NONE)
-+=09=09=09return 0;
++=09while (entry->nr < PERF_MAX_STACK_DEPTH &&
++=09       tail && !((unsigned long)tail & 0xf))
++=09=09tail =3D user_backtrace(tail, entry);
++}
 +
-+=09=09if (kernel_active_single_step()) {
-+=09=09=09*kernel_step =3D ARM_KERNEL_STEP_SUSPEND;
-+=09=09} else {
-+=09=09=09*kernel_step =3D ARM_KERNEL_STEP_ACTIVE;
-+=09=09=09kernel_enable_single_step(regs);
-+=09=09}
-+=09}
-+
++/*
++ * Gets called by walk_stackframe() for every stackframe. This will be cal=
+led
++ * whist unwinding the stackframe and is like a subroutine return so we us=
+e
++ * the PC.
++ */
++static int callchain_trace(struct stackframe *frame, void *data)
++{
++=09struct perf_callchain_entry *entry =3D data;
++=09perf_callchain_store(entry, frame->pc);
 +=09return 0;
 +}
 +
-+/*
-+ * Handle single-step exception.
-+ */
-+int reinstall_suspended_bps(struct pt_regs *regs)
++void perf_callchain_kernel(struct perf_callchain_entry *entry,
++=09=09=09   struct pt_regs *regs)
 +{
-+=09struct debug_info *debug_info =3D &current->thread.debug;
-+=09int handled_exception =3D 0, *kernel_step;
++=09struct stackframe frame;
 +
-+=09kernel_step =3D &__get_cpu_var(stepping_kernel_bp);
-+
-+=09/*
-+=09 * Called from single-step exception handler.
-+=09 * Return 0 if execution can resume, 1 if a SIGTRAP should be
-+=09 * reported.
-+=09 */
-+=09if (user_mode(regs)) {
-+=09=09if (debug_info->bps_disabled) {
-+=09=09=09debug_info->bps_disabled =3D 0;
-+=09=09=09toggle_bp_registers(AARCH64_DBG_REG_BCR, DBG_ACTIVE_EL0, 1);
-+=09=09=09handled_exception =3D 1;
-+=09=09}
-+
-+=09=09if (debug_info->wps_disabled) {
-+=09=09=09debug_info->wps_disabled =3D 0;
-+=09=09=09toggle_bp_registers(AARCH64_DBG_REG_WCR, DBG_ACTIVE_EL0, 1);
-+=09=09=09handled_exception =3D 1;
-+=09=09}
-+
-+=09=09if (handled_exception) {
-+=09=09=09if (debug_info->suspended_step) {
-+=09=09=09=09debug_info->suspended_step =3D 0;
-+=09=09=09=09/* Allow exception handling to fall-through. */
-+=09=09=09=09handled_exception =3D 0;
-+=09=09=09} else {
-+=09=09=09=09user_disable_single_step(current);
-+=09=09=09}
-+=09=09}
-+=09} else if (*kernel_step !=3D ARM_KERNEL_STEP_NONE) {
-+=09=09toggle_bp_registers(AARCH64_DBG_REG_BCR, DBG_ACTIVE_EL1, 1);
-+=09=09toggle_bp_registers(AARCH64_DBG_REG_WCR, DBG_ACTIVE_EL1, 1);
-+
-+=09=09if (!debug_info->wps_disabled)
-+=09=09=09toggle_bp_registers(AARCH64_DBG_REG_WCR, DBG_ACTIVE_EL0, 1);
-+
-+=09=09if (*kernel_step !=3D ARM_KERNEL_STEP_SUSPEND) {
-+=09=09=09kernel_disable_single_step();
-+=09=09=09handled_exception =3D 1;
-+=09=09} else {
-+=09=09=09handled_exception =3D 0;
-+=09=09}
-+
-+=09=09*kernel_step =3D ARM_KERNEL_STEP_NONE;
-+=09}
-+
-+=09return !handled_exception;
++=09frame.fp =3D regs->regs[29];
++=09frame.sp =3D regs->sp;
++=09frame.pc =3D regs->pc;
++=09walk_stackframe(&frame, callchain_trace, entry);
 +}
-+
-+/*
-+ * Context-switcher for restoring suspended breakpoints.
-+ */
-+void hw_breakpoint_thread_switch(struct task_struct *next)
-+{
-+=09/*
-+=09 *           current        next
-+=09 * disabled: 0              0     =3D> The usual case, NOTIFY_DONE
-+=09 *           0              1     =3D> Disable the registers
-+=09 *           1              0     =3D> Enable the registers
-+=09 *           1              1     =3D> NOTIFY_DONE. per-task bps will
-+=09 *                                   get taken care of by perf.
-+=09 */
-+
-+=09struct debug_info *current_debug_info, *next_debug_info;
-+
-+=09current_debug_info =3D &current->thread.debug;
-+=09next_debug_info =3D &next->thread.debug;
-+
-+=09/* Update breakpoints. */
-+=09if (current_debug_info->bps_disabled !=3D next_debug_info->bps_disabled=
-)
-+=09=09toggle_bp_registers(AARCH64_DBG_REG_BCR,
-+=09=09=09=09    DBG_ACTIVE_EL0,
-+=09=09=09=09    !next_debug_info->bps_disabled);
-+
-+=09/* Update watchpoints. */
-+=09if (current_debug_info->wps_disabled !=3D next_debug_info->wps_disabled=
-)
-+=09=09toggle_bp_registers(AARCH64_DBG_REG_WCR,
-+=09=09=09=09    DBG_ACTIVE_EL0,
-+=09=09=09=09    !next_debug_info->wps_disabled);
-+}
-+
-+/*
-+ * CPU initialisation.
-+ */
-+static void reset_ctrl_regs(void *unused)
-+{
-+=09int i;
-+
-+=09for (i =3D 0; i < core_num_brps; ++i) {
-+=09=09write_wb_reg(AARCH64_DBG_REG_BCR, i, 0UL);
-+=09=09write_wb_reg(AARCH64_DBG_REG_BVR, i, 0UL);
-+=09}
-+
-+=09for (i =3D 0; i < core_num_wrps; ++i) {
-+=09=09write_wb_reg(AARCH64_DBG_REG_WCR, i, 0UL);
-+=09=09write_wb_reg(AARCH64_DBG_REG_WVR, i, 0UL);
-+=09}
-+}
-+
-+static int __cpuinit hw_breakpoint_reset_notify(struct notifier_block *sel=
-f,
-+=09=09=09=09=09=09unsigned long action,
-+=09=09=09=09=09=09void *hcpu)
-+{
-+=09int cpu =3D (long)hcpu;
-+=09if (action =3D=3D CPU_ONLINE)
-+=09=09smp_call_function_single(cpu, reset_ctrl_regs, NULL, 1);
-+=09return NOTIFY_OK;
-+}
-+
-+static struct notifier_block __cpuinitdata hw_breakpoint_reset_nb =3D {
-+=09.notifier_call =3D hw_breakpoint_reset_notify,
-+};
-+
-+/*
-+ * One-time initialisation.
-+ */
-+static int __init arch_hw_breakpoint_init(void)
-+{
-+=09core_num_brps =3D get_num_brps();
-+=09core_num_wrps =3D get_num_wrps();
-+
-+=09pr_info("found %d breakpoint and %d watchpoint registers.\n",
-+=09=09core_num_brps, core_num_wrps);
-+
-+=09/*
-+=09 * Reset the breakpoint resources. We assume that a halting
-+=09 * debugger will leave the world in a nice state for us.
-+=09 */
-+=09smp_call_function(reset_ctrl_regs, NULL, 1);
-+=09reset_ctrl_regs(NULL);
-+
-+=09/* Register debug fault handlers. */
-+=09hook_debug_fault_code(DBG_ESR_EVT_HWBP, breakpoint_handler, SIGTRAP,
-+=09=09=09      TRAP_HWBKPT, "hw-breakpoint handler");
-+=09hook_debug_fault_code(DBG_ESR_EVT_HWWP, watchpoint_handler, SIGTRAP,
-+=09=09=09      TRAP_HWBKPT, "hw-watchpoint handler");
-+
-+=09/* Register hotplug notifier. */
-+=09register_cpu_notifier(&hw_breakpoint_reset_nb);
-+
-+=09return 0;
-+}
-+arch_initcall(arch_hw_breakpoint_init);
-+
-+void hw_breakpoint_pmu_read(struct perf_event *bp)
-+{
-+}
-+
-+/*
-+ * Dummy function to register with die_notifier.
-+ */
-+int hw_breakpoint_exceptions_notify(struct notifier_block *unused,
-+=09=09=09=09    unsigned long val, void *data)
-+{
-+=09return NOTIFY_DONE;
-+}
-diff --git a/arch/arm64/kernel/ptrace.c b/arch/arm64/kernel/ptrace.c
-new file mode 100644
-index 0000000..816b1b5
---- /dev/null
-+++ b/arch/arm64/kernel/ptrace.c
-@@ -0,0 +1,834 @@
-+/*
-+ * Based on arch/arm/kernel/ptrace.c
-+ *
-+ * By Ross Biro 1/23/92
-+ * edited by Linus Torvalds
-+ * ARM modifications Copyright (C) 2000 Russell King
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <linux/kernel.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/smp.h>
-+#include <linux/ptrace.h>
-+#include <linux/user.h>
-+#include <linux/security.h>
-+#include <linux/init.h>
-+#include <linux/signal.h>
-+#include <linux/uaccess.h>
-+#include <linux/perf_event.h>
-+#include <linux/hw_breakpoint.h>
-+#include <linux/regset.h>
-+#include <linux/tracehook.h>
-+#include <linux/elf.h>
-+
-+#include <asm/compat.h>
-+#include <asm/debug-monitors.h>
-+#include <asm/pgtable.h>
-+#include <asm/traps.h>
-+#include <asm/system_misc.h>
-+
-+/*
-+ * TODO: does not yet catch signals sent when the child dies.
-+ * in exit.c or in signal.c.
-+ */
-+
-+/*
-+ * Called by kernel/ptrace.c when detaching..
-+ */
-+void ptrace_disable(struct task_struct *child)
-+{
-+}
-+
-+/*
-+ * Handle hitting a breakpoint.
-+ */
-+static int ptrace_break(struct pt_regs *regs)
-+{
-+=09siginfo_t info;
-+
-+=09info.si_signo =3D SIGTRAP;
-+=09info.si_errno =3D 0;
-+=09info.si_code  =3D TRAP_BRKPT;
-+=09info.si_addr  =3D (void __user *)instruction_pointer(regs);
-+
-+=09force_sig_info(SIGTRAP, &info, current);
-+=09return 0;
-+}
-+
-+static int arm64_break_trap(unsigned long addr, unsigned int esr,
-+=09=09=09    struct pt_regs *regs)
-+{
-+=09return ptrace_break(regs);
-+}
-+
-+#ifdef CONFIG_HAVE_HW_BREAKPOINT
-+/*
-+ * Convert a virtual register number into an index for a thread_info
-+ * breakpoint array. Breakpoints are identified using positive numbers
-+ * whilst watchpoints are negative. The registers are laid out as pairs
-+ * of (address, control), each pair mapping to a unique hw_breakpoint stru=
-ct.
-+ * Register 0 is reserved for describing resource information.
-+ */
-+static int ptrace_hbp_num_to_idx(long num)
-+{
-+=09if (num < 0)
-+=09=09num =3D (ARM_MAX_BRP << 1) - num;
-+=09return (num - 1) >> 1;
-+}
-+
-+/*
-+ * Returns the virtual register number for the address of the
-+ * breakpoint at index idx.
-+ */
-+static long ptrace_hbp_idx_to_num(int idx)
-+{
-+=09long mid =3D ARM_MAX_BRP << 1;
-+=09long num =3D (idx << 1) + 1;
-+=09return num > mid ? mid - num : num;
-+}
-+
-+/*
-+ * Handle hitting a HW-breakpoint.
-+ */
-+static void ptrace_hbptriggered(struct perf_event *bp,
-+=09=09=09=09struct perf_sample_data *data,
-+=09=09=09=09struct pt_regs *regs)
-+{
-+=09struct arch_hw_breakpoint *bkpt =3D counter_arch_bp(bp);
-+=09long num;
-+=09int i;
-+=09siginfo_t info;
-+
-+=09for (i =3D 0; i < ARM_MAX_HBP_SLOTS; ++i)
-+=09=09if (current->thread.debug.hbp[i] =3D=3D bp)
-+=09=09=09break;
-+
-+=09num =3D (i =3D=3D ARM_MAX_HBP_SLOTS) ? 0 : ptrace_hbp_idx_to_num(i);
-+
-+=09info.si_signo=09=3D SIGTRAP;
-+=09info.si_errno=09=3D (int)num;
-+=09info.si_code=09=3D TRAP_HWBKPT;
-+=09info.si_addr=09=3D (void __user *)(bkpt->trigger);
-+
-+=09force_sig_info(SIGTRAP, &info, current);
-+}
-+
-+/*
-+ * Unregister breakpoints from this task and reset the pointers in
-+ * the thread_struct.
-+ */
-+void flush_ptrace_hw_breakpoint(struct task_struct *tsk)
-+{
-+=09int i;
-+=09struct thread_struct *t =3D &tsk->thread;
-+
-+=09for (i =3D 0; i < ARM_MAX_HBP_SLOTS; i++) {
-+=09=09if (t->debug.hbp[i]) {
-+=09=09=09unregister_hw_breakpoint(t->debug.hbp[i]);
-+=09=09=09t->debug.hbp[i] =3D NULL;
-+=09=09}
-+=09}
-+}
-+
-+void ptrace_hw_copy_thread(struct task_struct *task)
-+{
-+=09memset(&task->thread.debug, 0, sizeof(struct debug_info));
-+}
-+
-+static u32 ptrace_get_hbp_resource_info(void)
-+{
-+=09u8 num_brps, num_wrps, debug_arch, wp_len;
-+=09u32 reg =3D 0;
-+
-+=09num_brps=09=3D hw_breakpoint_slots(TYPE_INST);
-+=09num_wrps=09=3D hw_breakpoint_slots(TYPE_DATA);
-+
-+=09debug_arch=09=3D debug_monitors_arch();
-+=09wp_len=09=09=3D 8;=09=09/* Reserved on AArch64 */
-+=09reg=09=09|=3D debug_arch;
-+=09reg=09=09<<=3D 8;
-+=09reg=09=09|=3D wp_len;
-+=09reg=09=09<<=3D 8;
-+=09reg=09=09|=3D num_wrps;
-+=09reg=09=09<<=3D 8;
-+=09reg=09=09|=3D num_brps;
-+
-+=09return reg;
-+}
-+
-+static struct perf_event *ptrace_hbp_create(struct task_struct *tsk, int t=
-ype)
-+{
-+=09struct perf_event_attr attr;
-+
-+=09ptrace_breakpoint_init(&attr);
-+
-+=09/*
-+=09 * Initialise fields to sane defaults
-+=09 * (i.e. values that will pass validation).
-+=09 */
-+=09attr.bp_addr=09=3D 0;
-+=09attr.bp_len=09=3D HW_BREAKPOINT_LEN_4;
-+=09attr.bp_type=09=3D type;
-+=09attr.disabled=09=3D 1;
-+
-+=09return register_user_hw_breakpoint(&attr, ptrace_hbptriggered, NULL,
-+=09=09=09=09=09   tsk);
-+}
-+
-+static int ptrace_gethbpregs(struct task_struct *tsk, long num,
-+=09=09=09     unsigned long  __user *data)
-+{
-+=09u64 addr_reg;
-+=09u32 ctrl_reg;
-+=09int idx, ret =3D 0;
-+=09struct perf_event *bp;
-+=09struct arch_hw_breakpoint_ctrl arch_ctrl;
-+
-+=09if (num =3D=3D 0) {
-+=09=09ctrl_reg =3D ptrace_get_hbp_resource_info();
-+=09=09if (put_user(ctrl_reg, (u32 __user *)data))
-+=09=09=09ret =3D -EFAULT;
-+=09} else {
-+=09=09idx =3D ptrace_hbp_num_to_idx(num);
-+=09=09if (idx < 0 || idx >=3D ARM_MAX_HBP_SLOTS)
-+=09=09=09return -EINVAL;
-+
-+=09=09bp =3D tsk->thread.debug.hbp[idx];
-+=09=09arch_ctrl =3D counter_arch_bp(bp)->ctrl;
-+
-+=09=09if (is_compat_task()) {
-+=09=09=09/*
-+=09=09=09 * Fix up the len because we may have adjusted
-+=09=09=09 * it to compensate for an unaligned address.
-+=09=09=09 */
-+=09=09=09while (!(arch_ctrl.len & 0x1))
-+=09=09=09=09arch_ctrl.len >>=3D 1;
-+=09=09}
-+
-+=09=09if (num & 0x1) {
-+=09=09=09addr_reg =3D bp ? bp->attr.bp_addr : 0;
-+=09=09=09if (put_user(addr_reg, data))
-+=09=09=09=09ret =3D -EFAULT;
-+=09=09} else {
-+=09=09=09ctrl_reg =3D bp ? encode_ctrl_reg(arch_ctrl) : 0;
-+=09=09=09if (put_user(ctrl_reg, (u32 __user *)data))
-+=09=09=09=09ret =3D -EFAULT;
-+=09=09}
-+=09}
-+
-+=09return ret;
-+}
-+
-+static int ptrace_sethbpregs(struct task_struct *tsk, long num,
-+=09=09=09     unsigned long __user *data)
-+{
-+=09int idx, gen_len, gen_type, implied_type, ret;
-+=09u64 user_addr;
-+=09u32 user_ctrl;
-+=09struct perf_event *bp;
-+=09struct arch_hw_breakpoint_ctrl ctrl;
-+=09struct perf_event_attr attr;
-+
-+=09if (num =3D=3D 0)
-+=09=09return 0;
-+=09else if (num < 0)
-+=09=09implied_type =3D HW_BREAKPOINT_RW;
-+=09else
-+=09=09implied_type =3D HW_BREAKPOINT_X;
-+
-+=09idx =3D ptrace_hbp_num_to_idx(num);
-+=09if (idx < 0 || idx >=3D ARM_MAX_HBP_SLOTS)
-+=09=09return -EFAULT;
-+
-+=09bp =3D tsk->thread.debug.hbp[idx];
-+=09if (!bp) {
-+=09=09bp =3D ptrace_hbp_create(tsk, implied_type);
-+=09=09if (IS_ERR(bp))
-+=09=09=09return PTR_ERR(bp);
-+=09=09tsk->thread.debug.hbp[idx] =3D bp;
-+=09}
-+
-+=09attr =3D bp->attr;
-+
-+=09if (num & 0x1) {
-+=09=09/* Address */
-+=09=09if (get_user(user_addr, data))
-+=09=09=09return -EFAULT;
-+=09=09attr.bp_addr =3D user_addr;
-+=09} else {
-+=09=09/* Control */
-+=09=09if (get_user(user_ctrl, (u32 __user *)data))
-+=09=09=09return -EFAULT;
-+=09=09decode_ctrl_reg(user_ctrl, &ctrl);
-+=09=09ret =3D arch_bp_generic_fields(ctrl, &gen_len, &gen_type);
-+=09=09if (ret)
-+=09=09=09return ret;
-+
-+=09=09if ((gen_type & implied_type) !=3D gen_type)
-+=09=09=09return -EINVAL;
-+
-+=09=09attr.bp_len=09=3D gen_len;
-+=09=09attr.bp_type=09=3D gen_type;
-+=09=09attr.disabled=09=3D !ctrl.enabled;
-+=09}
-+
-+=09return modify_user_hw_breakpoint(bp, &attr);
-+}
-+#endif=09/* CONFIG_HAVE_HW_BREAKPOINT */
-+
-+static int gpr_get(struct task_struct *target,
-+=09=09   const struct user_regset *regset,
-+=09=09   unsigned int pos, unsigned int count,
-+=09=09   void *kbuf, void __user *ubuf)
-+{
-+=09struct user_pt_regs *uregs =3D &task_pt_regs(target)->user_regs;
-+=09return user_regset_copyout(&pos, &count, &kbuf, &ubuf, uregs, 0, -1);
-+}
-+
-+static int gpr_set(struct task_struct *target, const struct user_regset *r=
-egset,
-+=09=09   unsigned int pos, unsigned int count,
-+=09=09   const void *kbuf, const void __user *ubuf)
-+{
-+=09int ret;
-+=09struct user_pt_regs newregs;
-+
-+=09ret =3D user_regset_copyin(&pos, &count, &kbuf, &ubuf, &newregs, 0, -1)=
-;
-+=09if (ret)
-+=09=09return ret;
-+
-+=09if (!valid_user_regs(&newregs))
-+=09=09return -EINVAL;
-+
-+=09task_pt_regs(target)->user_regs =3D newregs;
-+=09return 0;
-+}
-+
-+/*
-+ * TODO: update fp accessors for lazy context switching (sync/flush hwstat=
-e)
-+ */
-+static int fpr_get(struct task_struct *target, const struct user_regset *r=
-egset,
-+=09=09   unsigned int pos, unsigned int count,
-+=09=09   void *kbuf, void __user *ubuf)
-+{
-+=09struct user_fpsimd_state *uregs;
-+=09uregs =3D &target->thread.fpsimd_state.user_fpsimd;
-+=09return user_regset_copyout(&pos, &count, &kbuf, &ubuf, uregs, 0, -1);
-+}
-+
-+static int fpr_set(struct task_struct *target, const struct user_regset *r=
-egset,
-+=09=09   unsigned int pos, unsigned int count,
-+=09=09   const void *kbuf, const void __user *ubuf)
-+{
-+=09int ret;
-+=09struct user_fpsimd_state newstate;
-+
-+=09ret =3D user_regset_copyin(&pos, &count, &kbuf, &ubuf, &newstate, 0, -1=
-);
-+=09if (ret)
-+=09=09return ret;
-+
-+=09target->thread.fpsimd_state.user_fpsimd =3D newstate;
-+=09return ret;
-+}
-+
-+enum aarch64_regset {
-+=09REGSET_GPR,
-+=09REGSET_FPR,
-+};
-+
-+static const struct user_regset aarch64_regsets[] =3D {
-+=09[REGSET_GPR] =3D {
-+=09=09.core_note_type =3D NT_PRSTATUS,
-+=09=09.n =3D sizeof(struct user_pt_regs) / sizeof(u64),
-+=09=09.size =3D sizeof(u64),
-+=09=09.align =3D sizeof(u64),
-+=09=09.get =3D gpr_get,
-+=09=09.set =3D gpr_set
-+=09},
-+=09[REGSET_FPR] =3D {
-+=09=09.core_note_type =3D NT_PRFPREG,
-+=09=09.n =3D sizeof(struct user_fpsimd_state) / sizeof(u32),
-+=09=09/*
-+=09=09 * We pretend we have 32-bit registers because the fpsr and
-+=09=09 * fpcr are 32-bits wide.
-+=09=09 */
-+=09=09.size =3D sizeof(u32),
-+=09=09.align =3D sizeof(u32),
-+=09=09.get =3D fpr_get,
-+=09=09.set =3D fpr_set
-+=09},
-+};
-+
-+static const struct user_regset_view user_aarch64_view =3D {
-+=09.name =3D "aarch64", .e_machine =3D EM_AARCH64,
-+=09.regsets =3D aarch64_regsets, .n =3D ARRAY_SIZE(aarch64_regsets)
-+};
-+
-+#ifdef CONFIG_AARCH32_EMULATION
-+enum compat_regset {
-+=09REGSET_COMPAT_GPR,
-+=09REGSET_COMPAT_VFP,
-+};
-+
-+static int compat_gpr_get(struct task_struct *target,
-+=09=09=09  const struct user_regset *regset,
-+=09=09=09  unsigned int pos, unsigned int count,
-+=09=09=09  void *kbuf, void __user *ubuf)
-+{
-+=09int ret =3D 0;
-+=09unsigned int i, start, num_regs;
-+
-+=09/* Calculate the number of AArch32 registers contained in count */
-+=09num_regs =3D count / regset->size;
-+
-+=09/* Convert pos into an register number */
-+=09start =3D pos / regset->size;
-+
-+=09if (start + num_regs > regset->n)
-+=09=09return -EIO;
-+
-+=09for (i =3D 0; i < num_regs; ++i) {
-+=09=09unsigned int idx =3D start + i;
-+=09=09void *reg;
-+
-+=09=09switch (idx) {
-+=09=09case 15:
-+=09=09=09reg =3D (void *)&task_pt_regs(target)->pc;
-+=09=09=09break;
-+=09=09case 16:
-+=09=09=09reg =3D (void *)&task_pt_regs(target)->pstate;
-+=09=09=09break;
-+=09=09case 17:
-+=09=09=09reg =3D (void *)&task_pt_regs(target)->orig_x0;
-+=09=09=09break;
-+=09=09default:
-+=09=09=09reg =3D (void *)&task_pt_regs(target)->regs[idx];
-+=09=09}
-+
-+=09=09ret =3D copy_to_user(ubuf, reg, sizeof(compat_ulong_t));
-+
-+=09=09if (ret)
-+=09=09=09break;
-+=09=09else
-+=09=09=09ubuf +=3D sizeof(compat_ulong_t);
-+=09}
-+
-+=09return ret;
-+}
-+
-+static int compat_gpr_set(struct task_struct *target,
-+=09=09=09  const struct user_regset *regset,
-+=09=09=09  unsigned int pos, unsigned int count,
-+=09=09=09  const void *kbuf, const void __user *ubuf)
-+{
-+=09struct pt_regs newregs;
-+=09int ret =3D 0;
-+=09unsigned int i, start, num_regs;
-+
-+=09/* Calculate the number of AArch32 registers contained in count */
-+=09num_regs =3D count / regset->size;
-+
-+=09/* Convert pos into an register number */
-+=09start =3D pos / regset->size;
-+
-+=09if (start + num_regs > regset->n)
-+=09=09return -EIO;
-+
-+=09newregs =3D *task_pt_regs(target);
-+
-+=09for (i =3D 0; i < num_regs; ++i) {
-+=09=09unsigned int idx =3D start + i;
-+=09=09void *reg;
-+
-+=09=09switch (idx) {
-+=09=09case 15:
-+=09=09=09reg =3D (void *)&newregs.pc;
-+=09=09=09break;
-+=09=09case 16:
-+=09=09=09reg =3D (void *)&newregs.pstate;
-+=09=09=09break;
-+=09=09case 17:
-+=09=09=09reg =3D (void *)&newregs.orig_x0;
-+=09=09=09break;
-+=09=09default:
-+=09=09=09reg =3D (void *)&newregs.regs[idx];
-+=09=09}
-+
-+=09=09ret =3D copy_from_user(reg, ubuf, sizeof(compat_ulong_t));
-+
-+=09=09if (ret)
-+=09=09=09goto out;
-+=09=09else
-+=09=09=09ubuf +=3D sizeof(compat_ulong_t);
-+=09}
-+
-+=09if (valid_user_regs(&newregs.user_regs))
-+=09=09*task_pt_regs(target) =3D newregs;
-+=09else
-+=09=09ret =3D -EINVAL;
-+
-+out:
-+=09return ret;
-+}
-+
-+static int compat_vfp_get(struct task_struct *target,
-+=09=09=09  const struct user_regset *regset,
-+=09=09=09  unsigned int pos, unsigned int count,
-+=09=09=09  void *kbuf, void __user *ubuf)
-+{
-+=09struct user_fpsimd_state *uregs;
-+=09compat_ulong_t fpscr;
-+=09int ret;
-+
-+=09uregs =3D &target->thread.fpsimd_state.user_fpsimd;
-+
-+=09/*
-+=09 * The VFP registers are packed into the fpsimd_state, so they all sit
-+=09 * nicely together for us. We just need to create the fpscr separately.
-+=09 */
-+=09ret =3D user_regset_copyout(&pos, &count, &kbuf, &ubuf, uregs, 0,
-+=09=09=09=09  VFP_STATE_SIZE - sizeof(compat_ulong_t));
-+
-+=09if (count && !ret) {
-+=09=09fpscr =3D (uregs->fpsr & VFP_FPSCR_STAT_MASK) |
-+=09=09=09(uregs->fpcr & VFP_FPSCR_CTRL_MASK);
-+=09=09ret =3D put_user(fpscr, (compat_ulong_t *)ubuf);
-+=09}
-+
-+=09return ret;
-+}
-+
-+static int compat_vfp_set(struct task_struct *target,
-+=09=09=09  const struct user_regset *regset,
-+=09=09=09  unsigned int pos, unsigned int count,
-+=09=09=09  const void *kbuf, const void __user *ubuf)
-+{
-+=09struct user_fpsimd_state *uregs;
-+=09compat_ulong_t fpscr;
-+=09int ret;
-+
-+=09if (pos + count > VFP_STATE_SIZE)
-+=09=09return -EIO;
-+
-+=09uregs =3D &target->thread.fpsimd_state.user_fpsimd;
-+
-+=09ret =3D user_regset_copyin(&pos, &count, &kbuf, &ubuf, uregs, 0,
-+=09=09=09=09 VFP_STATE_SIZE - sizeof(compat_ulong_t));
-+
-+=09if (count && !ret) {
-+=09=09ret =3D get_user(fpscr, (compat_ulong_t *)ubuf);
-+=09=09uregs->fpsr =3D fpscr & VFP_FPSCR_STAT_MASK;
-+=09=09uregs->fpcr =3D fpscr & VFP_FPSCR_CTRL_MASK;
-+=09}
-+
-+=09return ret;
-+}
-+
-+static const struct user_regset aarch32_regsets[] =3D {
-+=09[REGSET_COMPAT_GPR] =3D {
-+=09=09.core_note_type =3D NT_PRSTATUS,
-+=09=09.n =3D COMPAT_ELF_NGREG,
-+=09=09.size =3D sizeof(compat_elf_greg_t),
-+=09=09.align =3D sizeof(compat_elf_greg_t),
-+=09=09.get =3D compat_gpr_get,
-+=09=09.set =3D compat_gpr_set
-+=09},
-+=09[REGSET_COMPAT_VFP] =3D {
-+=09=09.core_note_type =3D NT_ARM_VFP,
-+=09=09.n =3D VFP_STATE_SIZE / sizeof(compat_ulong_t),
-+=09=09.size =3D sizeof(compat_ulong_t),
-+=09=09.align =3D sizeof(compat_ulong_t),
-+=09=09.get =3D compat_vfp_get,
-+=09=09.set =3D compat_vfp_set
-+=09},
-+};
-+
-+static const struct user_regset_view user_aarch32_view =3D {
-+=09.name =3D "aarch32", .e_machine =3D EM_ARM,
-+=09.regsets =3D aarch32_regsets, .n =3D ARRAY_SIZE(aarch32_regsets)
-+};
-+#endif /* CONFIG_AARCH32_EMULATION */
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *t=
-ask)
-+{
-+#ifdef CONFIG_AARCH32_EMULATION
-+=09if (test_tsk_thread_flag(task, TIF_32BIT))
-+=09=09return &user_aarch32_view;
-+#endif
-+=09return &user_aarch64_view;
-+}
-+
-+long arch_ptrace(struct task_struct *child, long request,
-+=09=09 unsigned long addr, unsigned long data)
-+{
-+=09int ret;
-+=09unsigned long *datap =3D (unsigned long __user *)data;
-+
-+=09switch (request) {
-+=09=09case PTRACE_GET_THREAD_AREA:
-+=09=09=09ret =3D put_user(child->thread.tp_value, datap);
-+=09=09=09break;
-+
-+#ifdef CONFIG_HAVE_HW_BREAKPOINT
-+=09=09case PTRACE_GETHBPREGS:
-+=09=09=09ret =3D ptrace_gethbpregs(child, addr, datap);
-+=09=09=09break;
-+
-+=09=09case PTRACE_SETHBPREGS:
-+=09=09=09ret =3D ptrace_sethbpregs(child, addr, datap);
-+=09=09=09break;
+diff --git a/tools/perf/perf.h b/tools/perf/perf.h
+index f960ccb..8c36763 100644
+--- a/tools/perf/perf.h
++++ b/tools/perf/perf.h
+@@ -88,6 +88,12 @@ void get_term_dimensions(struct winsize *ws);
+ #define CPUINFO_PROC=09"Processor"
+ #endif
+=20
++#ifdef __aarch64__
++#include "../../arch/arm64/include/asm/unistd.h"
++#define rmb()=09=09asm volatile("dmb ld" ::: "memory")
++#define cpu_relax()=09asm volatile("yield" ::: "memory")
 +#endif
 +
-+=09=09default:
-+=09=09=09ret =3D ptrace_request(child, request, addr, data);
-+=09=09=09break;
-+=09}
-+
-+=09return ret;
-+}
-+
-+#ifdef CONFIG_AARCH32_EMULATION
-+
-+#include <linux/compat.h>
-+
-+int aarch32_break_trap(struct pt_regs *regs)
-+{
-+=09unsigned int instr;
-+=09bool bp =3D false;
-+=09void __user *pc =3D (void __user *)instruction_pointer(regs);
-+
-+=09if (compat_thumb_mode(regs)) {
-+=09=09/* get 16-bit Thumb instruction */
-+=09=09get_user(instr, (u16 __user *)pc);
-+=09=09if (instr =3D=3D AARCH32_BREAK_THUMB2_LO) {
-+=09=09=09/* get second half of 32-bit Thumb-2 instruction */
-+=09=09=09get_user(instr, (u16 __user *)(pc + 2));
-+=09=09=09bp =3D instr =3D=3D AARCH32_BREAK_THUMB2_HI;
-+=09=09} else {
-+=09=09=09bp =3D instr =3D=3D AARCH32_BREAK_THUMB;
-+=09=09}
-+=09} else {
-+=09=09/* 32-bit ARM instruction */
-+=09=09get_user(instr, (u32 __user *)pc);
-+=09=09bp =3D (instr & ~0xf0000000) =3D=3D AARCH32_BREAK_ARM;
-+=09}
-+
-+=09if (bp)
-+=09=09return ptrace_break(regs);
-+=09return 1;
-+}
-+
-+static int compat_ptrace_read_user(struct task_struct *tsk, compat_ulong_t=
- off,
-+=09=09=09=09   compat_ulong_t __user *ret)
-+{
-+=09compat_ulong_t tmp;
-+
-+=09if (off & 3)
-+=09=09return -EIO;
-+
-+=09if (off =3D=3D PT_TEXT_ADDR)
-+=09=09tmp =3D tsk->mm->start_code;
-+=09else if (off =3D=3D PT_DATA_ADDR)
-+=09=09tmp =3D tsk->mm->start_data;
-+=09else if (off =3D=3D PT_TEXT_END_ADDR)
-+=09=09tmp =3D tsk->mm->end_code;
-+=09else if (off < sizeof(compat_elf_gregset_t))
-+=09=09return copy_regset_to_user(tsk, &user_aarch32_view,
-+=09=09=09=09=09   REGSET_COMPAT_GPR, off,
-+=09=09=09=09=09   sizeof(compat_ulong_t), ret);
-+=09else if (off >=3D COMPAT_USER_SZ)
-+=09=09return -EIO;
-+=09else
-+=09=09tmp =3D 0;
-+
-+=09return put_user(tmp, ret);
-+}
-+
-+static int compat_ptrace_write_user(struct task_struct *tsk, compat_ulong_=
-t off,
-+=09=09=09=09    compat_ulong_t val)
-+{
-+=09int ret;
-+
-+=09if (off & 3 || off >=3D COMPAT_USER_SZ)
-+=09=09return -EIO;
-+
-+=09if (off >=3D sizeof(compat_elf_gregset_t))
-+=09=09return 0;
-+
-+=09ret =3D copy_regset_from_user(tsk, &user_aarch32_view,
-+=09=09=09=09    REGSET_COMPAT_GPR, off,
-+=09=09=09=09    sizeof(compat_ulong_t),
-+=09=09=09=09    &val);
-+=09return ret;
-+}
-+
-+#ifdef CONFIG_HAVE_HW_BREAKPOINT
-+static int compat_ptrace_gethbpregs(struct task_struct *tsk, compat_long_t=
- num,
-+=09=09=09=09    compat_ulong_t __user *data)
-+{
-+=09int ret;
-+=09unsigned long kdata;
-+
-+=09mm_segment_t old_fs =3D get_fs();
-+=09set_fs(KERNEL_DS);
-+=09ret =3D ptrace_gethbpregs(tsk, (long)num, &kdata);
-+=09set_fs(old_fs);
-+
-+=09if (!ret)
-+=09=09ret =3D put_user(kdata, data);
-+
-+=09return ret;
-+}
-+
-+static int compat_ptrace_sethbpregs(struct task_struct *tsk, compat_long_t=
- num,
-+=09=09=09=09    compat_ulong_t __user *data)
-+{
-+=09int ret;
-+=09unsigned long kdata =3D 0;
-+=09mm_segment_t old_fs =3D get_fs();
-+
-+=09ret =3D get_user(kdata, data);
-+
-+=09if (!ret) {
-+=09=09set_fs(KERNEL_DS);
-+=09=09ret =3D ptrace_sethbpregs(tsk, (long)num, &kdata);
-+=09=09set_fs(old_fs);
-+=09}
-+
-+=09return ret;
-+}
-+#endif=09/* CONFIG_HAVE_HW_BREAKPOINT */
-+
-+long compat_arch_ptrace(struct task_struct *child, compat_long_t request,
-+=09=09=09compat_ulong_t caddr, compat_ulong_t cdata)
-+{
-+=09unsigned long addr =3D caddr;
-+=09unsigned long data =3D cdata;
-+=09void __user *datap =3D compat_ptr(data);
-+=09int ret;
-+
-+=09switch (request) {
-+=09=09case PTRACE_PEEKUSR:
-+=09=09=09ret =3D compat_ptrace_read_user(child, addr, datap);
-+=09=09=09break;
-+
-+=09=09case PTRACE_POKEUSR:
-+=09=09=09ret =3D compat_ptrace_write_user(child, addr, data);
-+=09=09=09break;
-+
-+=09=09case PTRACE_GETREGS:
-+=09=09=09ret =3D copy_regset_to_user(child,
-+=09=09=09=09=09=09  &user_aarch32_view,
-+=09=09=09=09=09=09  REGSET_COMPAT_GPR,
-+=09=09=09=09=09=09  0, sizeof(compat_elf_gregset_t),
-+=09=09=09=09=09=09  datap);
-+=09=09=09break;
-+
-+=09=09case PTRACE_SETREGS:
-+=09=09=09ret =3D copy_regset_from_user(child,
-+=09=09=09=09=09=09    &user_aarch32_view,
-+=09=09=09=09=09=09    REGSET_COMPAT_GPR,
-+=09=09=09=09=09=09    0, sizeof(compat_elf_gregset_t),
-+=09=09=09=09=09=09    datap);
-+=09=09=09break;
-+
-+=09=09case PTRACE_GET_THREAD_AREA:
-+=09=09=09ret =3D put_user((compat_ulong_t)child->thread.tp_value,
-+=09=09=09=09       (compat_ulong_t __user *)datap);
-+=09=09=09break;
-+
-+=09=09case PTRACE_SET_SYSCALL:
-+=09=09=09task_pt_regs(child)->syscallno =3D data;
-+=09=09=09ret =3D 0;
-+=09=09=09break;
-+
-+=09=09case COMPAT_PTRACE_GETVFPREGS:
-+=09=09=09ret =3D copy_regset_to_user(child,
-+=09=09=09=09=09=09  &user_aarch32_view,
-+=09=09=09=09=09=09  REGSET_COMPAT_VFP,
-+=09=09=09=09=09=09  0, VFP_STATE_SIZE,
-+=09=09=09=09=09=09  datap);
-+=09=09=09break;
-+
-+=09=09case COMPAT_PTRACE_SETVFPREGS:
-+=09=09=09ret =3D copy_regset_from_user(child,
-+=09=09=09=09=09=09    &user_aarch32_view,
-+=09=09=09=09=09=09    REGSET_COMPAT_VFP,
-+=09=09=09=09=09=09    0, VFP_STATE_SIZE,
-+=09=09=09=09=09=09    datap);
-+=09=09=09break;
-+
-+#ifdef CONFIG_HAVE_HW_BREAKPOINT
-+=09=09case PTRACE_GETHBPREGS:
-+=09=09=09ret =3D compat_ptrace_gethbpregs(child, addr, datap);
-+=09=09=09break;
-+
-+=09=09case PTRACE_SETHBPREGS:
-+=09=09=09ret =3D compat_ptrace_sethbpregs(child, addr, datap);
-+=09=09=09break;
-+#endif
-+
-+=09=09default:
-+=09=09=09ret =3D compat_ptrace_request(child, request, addr,
-+=09=09=09=09=09=09    data);
-+=09=09=09break;
-+=09}
-+
-+=09return ret;
-+}
-+#endif /* CONFIG_AARCH32_EMULATION */
-+
-+static int __init ptrace_break_init(void)
-+{
-+=09hook_debug_fault_code(DBG_ESR_EVT_BRK, arm64_break_trap, SIGTRAP,
-+=09=09=09      TRAP_BRKPT, "ptrace BRK handler");
-+=09return 0;
-+}
-+core_initcall(ptrace_break_init);
-+
-+
-+asmlinkage int syscall_trace(int dir, struct pt_regs *regs)
-+{
-+=09unsigned long saved_reg;
-+
-+=09if (!test_thread_flag(TIF_SYSCALL_TRACE))
-+=09=09return regs->syscallno;
-+
-+=09if (test_thread_flag(TIF_32BIT)) {
-+=09=09/* AArch32 uses ip (r12) for scratch */
-+=09=09saved_reg =3D regs->regs[12];
-+=09=09regs->regs[12] =3D dir;
-+=09} else {
-+=09=09/*
-+=09=09 * Save X7. X7 is used to denote syscall entry/exit:
-+=09=09 *   X7 =3D 0 -> entry, =3D 1 -> exit
-+=09=09 */
-+=09=09saved_reg =3D regs->regs[7];
-+=09=09regs->regs[7] =3D dir;
-+=09}
-+
-+=09if (dir)
-+=09=09tracehook_report_syscall_exit(regs, 0);
-+=09else if (tracehook_report_syscall_entry(regs))
-+=09=09regs->syscallno =3D ~0UL;
-+
-+=09if (test_thread_flag(TIF_32BIT))
-+=09=09regs->regs[12] =3D saved_reg;
-+=09else
-+=09=09regs->regs[7] =3D saved_reg;
-+
-+=09return regs->syscallno;
-+}
+ #ifdef __mips__
+ #include "../../arch/mips/include/asm/unistd.h"
+ #define rmb()=09=09asm volatile(=09=09=09=09=09\
