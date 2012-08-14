@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:55437 "EHLO
+Received: from service87.mimecast.com ([91.220.42.44]:55016 "EHLO
 	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756900Ab2HNRxO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 13:53:14 -0400
+	with ESMTP id S1756797Ab2HNRxH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 13:53:07 -0400
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v2 25/31] arm64: Performance counters support
-Date: Tue, 14 Aug 2012 18:52:26 +0100
-Message-ID: <1344966752-16102-26-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v2 06/31] arm64: MMU fault handling and page table management
+Date: Tue, 14 Aug 2012 18:52:07 +0100
+Message-ID: <1344966752-16102-7-git-send-email-catalin.marinas@arm.com>
 In-Reply-To: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
 Content-Type: text/plain; charset=WINDOWS-1252
@@ -15,33 +15,47 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
-Message-ID: <20120814175226._FaQLch6Ungjx9oJCF1JP4U7rsv2unmpu_kthzZb-oE@z>
+Message-ID: <20120814175207.Io3Ou75VqrqsNkZ1EZi8_iH8Q5NG9LbgbuLvFmr-Ppc@z>
 
-From: Will Deacon <will.deacon@arm.com>
+This patch adds support for the handling of the MMU faults (exception
+entry code introduced by a previous patch) and page table management.
 
-This patch adds support for the AArch64 performance counters.
+The user translation table is pointed to by TTBR0 and the kernel one
+(swapper_pg_dir) by TTBR1. There is no translation information shared or
+address space overlapping between user and kernel page tables.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/include/asm/perf_event.h |   22 +
- arch/arm64/include/asm/pmu.h        |   82 +++
- arch/arm64/kernel/perf_event.c      | 1368 +++++++++++++++++++++++++++++++=
+ arch/arm64/include/asm/page.h    |   67 +++++
+ arch/arm64/include/asm/pgalloc.h |  113 ++++++++
+ arch/arm64/mm/copypage.c         |   34 +++
+ arch/arm64/mm/extable.c          |   17 ++
+ arch/arm64/mm/fault.c            |  534 ++++++++++++++++++++++++++++++++++=
 ++++
- tools/perf/perf.h                   |    6 +
- 4 files changed, 1478 insertions(+), 0 deletions(-)
- create mode 100644 arch/arm64/include/asm/perf_event.h
- create mode 100644 arch/arm64/include/asm/pmu.h
- create mode 100644 arch/arm64/kernel/perf_event.c
+ arch/arm64/mm/mm.h               |    2 +
+ arch/arm64/mm/mmap.c             |  144 ++++++++++
+ arch/arm64/mm/pgd.c              |   49 ++++
+ 8 files changed, 960 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/page.h
+ create mode 100644 arch/arm64/include/asm/pgalloc.h
+ create mode 100644 arch/arm64/mm/copypage.c
+ create mode 100644 arch/arm64/mm/extable.c
+ create mode 100644 arch/arm64/mm/fault.c
+ create mode 100644 arch/arm64/mm/mm.h
+ create mode 100644 arch/arm64/mm/mmap.c
+ create mode 100644 arch/arm64/mm/pgd.c
 
-diff --git a/arch/arm64/include/asm/perf_event.h b/arch/arm64/include/asm/p=
-erf_event.h
+diff --git a/arch/arm64/include/asm/page.h b/arch/arm64/include/asm/page.h
 new file mode 100644
-index 0000000..a6fffd5
+index 0000000..46bf666
 --- /dev/null
-+++ b/arch/arm64/include/asm/perf_event.h
-@@ -0,0 +1,22 @@
++++ b/arch/arm64/include/asm/page.h
+@@ -0,0 +1,67 @@
 +/*
++ * Based on arch/arm/include/asm/page.h
++ *
++ * Copyright (C) 1995-2003 Russell King
 + * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -56,23 +70,67 @@ index 0000000..a6fffd5
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
++#ifndef __ASM_PAGE_H
++#define __ASM_PAGE_H
 +
-+#ifndef __ASM_PERF_EVENT_H
-+#define __ASM_PERF_EVENT_H
++/* PAGE_SHIFT determines the page size */
++#ifdef CONFIG_ARM64_64K_PAGES
++#define PAGE_SHIFT=09=0916
++#else
++#define PAGE_SHIFT=09=0912
++#endif
++#define PAGE_SIZE=09=09(_AC(1,UL) << PAGE_SHIFT)
++#define PAGE_MASK=09=09(~(PAGE_SIZE-1))
 +
-+/* It's quiet around here... */
++/* We do define AT_SYSINFO_EHDR but don't use the gate mechanism */
++#define __HAVE_ARCH_GATE_AREA=09=091
++
++#ifndef __ASSEMBLY__
++
++#ifdef CONFIG_ARM64_64K_PAGES
++#include <asm/pgtable-2level-types.h>
++#else
++#include <asm/pgtable-3level-types.h>
++#endif
++
++extern void __cpu_clear_user_page(void *p, unsigned long user);
++extern void __cpu_copy_user_page(void *to, const void *from,
++=09=09=09=09 unsigned long user);
++extern void copy_page(void *to, const void *from);
++extern void clear_page(void *to);
++
++#define clear_user_page(addr,vaddr,pg)  __cpu_clear_user_page(addr, vaddr)
++#define copy_user_page(to,from,vaddr,pg) __cpu_copy_user_page(to, from, va=
+ddr)
++
++typedef struct page *pgtable_t;
++
++#ifdef CONFIG_HAVE_ARCH_PFN_VALID
++extern int pfn_valid(unsigned long);
++#endif
++
++#include <asm/memory.h>
++
++#endif /* !__ASSEMBLY__ */
++
++#define VM_DATA_DEFAULT_FLAGS \
++=09(((current->personality & READ_IMPLIES_EXEC) ? VM_EXEC : 0) | \
++=09 VM_READ | VM_WRITE | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
++
++#include <asm-generic/getorder.h>
 +
 +#endif
-diff --git a/arch/arm64/include/asm/pmu.h b/arch/arm64/include/asm/pmu.h
+diff --git a/arch/arm64/include/asm/pgalloc.h b/arch/arm64/include/asm/pgal=
+loc.h
 new file mode 100644
-index 0000000..e6f0878
+index 0000000..f214069
 --- /dev/null
-+++ b/arch/arm64/include/asm/pmu.h
-@@ -0,0 +1,82 @@
++++ b/arch/arm64/include/asm/pgalloc.h
+@@ -0,0 +1,113 @@
 +/*
-+ * Based on arch/arm/include/asm/pmu.h
++ * Based on arch/arm/include/asm/pgalloc.h
 + *
-+ * Copyright (C) 2009 picoChip Designs Ltd, Jamie Iles
++ * Copyright (C) 2000-2001 Russell King
 + * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -87,84 +145,115 @@ index 0000000..e6f0878
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_PMU_H
-+#define __ASM_PMU_H
++#ifndef __ASM_PGALLOC_H
++#define __ASM_PGALLOC_H
 +
-+#ifdef CONFIG_HW_PERF_EVENTS
++#include <asm/pgtable-hwdef.h>
++#include <asm/processor.h>
++#include <asm/cacheflush.h>
++#include <asm/tlbflush.h>
 +
-+/* The events for a given PMU register set. */
-+struct pmu_hw_events {
-+=09/*
-+=09 * The events that are active on the PMU for the given index.
-+=09 */
-+=09struct perf_event=09**events;
++#define check_pgt_cache()=09=09do { } while (0)
 +
-+=09/*
-+=09 * A 1 bit for an index indicates that the counter is being used for
-+=09 * an event. A 0 means that the counter can be used.
-+=09 */
-+=09unsigned long           *used_mask;
++#ifndef CONFIG_ARM64_64K_PAGES
 +
-+=09/*
-+=09 * Hardware lock to serialize accesses to PMU registers. Needed for the
-+=09 * read/modify/write sequences.
-+=09 */
-+=09raw_spinlock_t=09=09pmu_lock;
-+};
++static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long add=
+r)
++{
++=09return (pmd_t *)get_zeroed_page(GFP_KERNEL | __GFP_REPEAT);
++}
 +
-+struct arm_pmu {
-+=09struct pmu=09=09pmu;
-+=09cpumask_t=09=09active_irqs;
-+=09const char=09=09*name;
-+=09irqreturn_t=09=09(*handle_irq)(int irq_num, void *dev);
-+=09void=09=09=09(*enable)(struct hw_perf_event *evt, int idx);
-+=09void=09=09=09(*disable)(struct hw_perf_event *evt, int idx);
-+=09int=09=09=09(*get_event_idx)(struct pmu_hw_events *hw_events,
-+=09=09=09=09=09=09 struct hw_perf_event *hwc);
-+=09int=09=09=09(*set_event_filter)(struct hw_perf_event *evt,
-+=09=09=09=09=09=09    struct perf_event_attr *attr);
-+=09u32=09=09=09(*read_counter)(int idx);
-+=09void=09=09=09(*write_counter)(int idx, u32 val);
-+=09void=09=09=09(*start)(void);
-+=09void=09=09=09(*stop)(void);
-+=09void=09=09=09(*reset)(void *);
-+=09int=09=09=09(*map_event)(struct perf_event *event);
-+=09int=09=09=09num_events;
-+=09atomic_t=09=09active_events;
-+=09struct mutex=09=09reserve_mutex;
-+=09u64=09=09=09max_period;
-+=09struct platform_device=09*plat_device;
-+=09struct pmu_hw_events=09*(*get_hw_events)(void);
-+};
++static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
++{
++=09BUG_ON((unsigned long)pmd & (PAGE_SIZE-1));
++=09free_page((unsigned long)pmd);
++}
 +
-+#define to_arm_pmu(p) (container_of(p, struct arm_pmu, pmu))
++static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *p=
+md)
++{
++=09set_pud(pud, __pud(__pa(pmd) | PMD_TYPE_TABLE));
++}
 +
-+int __init armpmu_register(struct arm_pmu *armpmu, char *name, int type);
++#endif=09/* CONFIG_ARM64_64K_PAGES */
 +
-+u64 armpmu_event_update(struct perf_event *event,
-+=09=09=09struct hw_perf_event *hwc,
-+=09=09=09int idx);
++extern pgd_t *pgd_alloc(struct mm_struct *mm);
++extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
 +
-+int armpmu_event_set_period(struct perf_event *event,
-+=09=09=09    struct hw_perf_event *hwc,
-+=09=09=09    int idx);
++#define PGALLOC_GFP=09(GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_Z=
+ERO)
 +
-+#endif /* CONFIG_HW_PERF_EVENTS */
-+#endif /* __ASM_PMU_H */
-diff --git a/arch/arm64/kernel/perf_event.c b/arch/arm64/kernel/perf_event.=
-c
-new file mode 100644
-index 0000000..ecbf2d8
---- /dev/null
-+++ b/arch/arm64/kernel/perf_event.c
-@@ -0,0 +1,1368 @@
++static inline pte_t *
++pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr)
++{
++=09return (pte_t *)__get_free_page(PGALLOC_GFP);
++}
++
++static inline pgtable_t
++pte_alloc_one(struct mm_struct *mm, unsigned long addr)
++{
++=09struct page *pte;
++
++=09pte =3D alloc_pages(PGALLOC_GFP, 0);
++=09if (pte)
++=09=09pgtable_page_ctor(pte);
++
++=09return pte;
++}
++
 +/*
-+ * PMU support
++ * Free a PTE table.
++ */
++static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
++{
++=09if (pte)
++=09=09free_page((unsigned long)pte);
++}
++
++static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
++{
++=09pgtable_page_dtor(pte);
++=09__free_page(pte);
++}
++
++static inline void __pmd_populate(pmd_t *pmdp, phys_addr_t pte,
++=09=09=09=09  pmdval_t prot)
++{
++=09set_pmd(pmdp, __pmd(pte | prot));
++}
++
++/*
++ * Populate the pmdp entry with a pointer to the pte.  This pmd is part
++ * of the mm address space.
++ */
++static inline void
++pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmdp, pte_t *ptep)
++{
++=09/*
++=09 * The pmd must be loaded with the physical address of the PTE table
++=09 */
++=09__pmd_populate(pmdp, __pa(ptep), PMD_TYPE_TABLE);
++}
++
++static inline void
++pmd_populate(struct mm_struct *mm, pmd_t *pmdp, pgtable_t ptep)
++{
++=09__pmd_populate(pmdp, page_to_phys(ptep), PMD_TYPE_TABLE);
++}
++#define pmd_pgtable(pmd) pmd_page(pmd)
++
++#endif
+diff --git a/arch/arm64/mm/copypage.c b/arch/arm64/mm/copypage.c
+new file mode 100644
+index 0000000..9361662
+--- /dev/null
++++ b/arch/arm64/mm/copypage.c
+@@ -0,0 +1,34 @@
++/*
++ * Based on arch/arm/mm/copypage.c
 + *
-+ * Copyright (C) 2012 ARM Limited
-+ * Author: Will Deacon <will.deacon@arm.com>
-+ *
-+ * This code is based heavily on the ARMv7 perf event code.
++ * Copyright (C) 2002 Deep Blue Solutions Ltd, All Rights Reserved.
++ * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -178,1387 +267,837 @@ index 0000000..ecbf2d8
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#define pr_fmt(fmt) "hw perfevents: " fmt
 +
-+#include <linux/bitmap.h>
-+#include <linux/interrupt.h>
-+#include <linux/kernel.h>
-+#include <linux/export.h>
-+#include <linux/perf_event.h>
-+#include <linux/platform_device.h>
-+#include <linux/spinlock.h>
++#include <linux/mm.h>
++
++#include <asm/page.h>
++#include <asm/cacheflush.h>
++
++void __cpu_copy_user_page(void *kto, const void *kfrom, unsigned long vadd=
+r)
++{
++=09copy_page(kto, kfrom);
++=09__cpuc_flush_dcache_area(kto, PAGE_SIZE);
++}
++
++void __cpu_clear_user_page(void *kaddr, unsigned long vaddr)
++{
++=09clear_page(kaddr);
++}
+diff --git a/arch/arm64/mm/extable.c b/arch/arm64/mm/extable.c
+new file mode 100644
+index 0000000..7944427
+--- /dev/null
++++ b/arch/arm64/mm/extable.c
+@@ -0,0 +1,17 @@
++/*
++ * Based on arch/arm/mm/extable.c
++ */
++
++#include <linux/module.h>
 +#include <linux/uaccess.h>
 +
-+#include <asm/cputype.h>
-+#include <asm/irq.h>
-+#include <asm/irq_regs.h>
-+#include <asm/pmu.h>
-+#include <asm/stacktrace.h>
++int fixup_exception(struct pt_regs *regs)
++{
++=09const struct exception_table_entry *fixup;
++
++=09fixup =3D search_exception_tables(instruction_pointer(regs));
++=09if (fixup)
++=09=09regs->pc =3D fixup->fixup;
++
++=09return fixup !=3D NULL;
++}
+diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
+new file mode 100644
+index 0000000..1909a69
+--- /dev/null
++++ b/arch/arm64/mm/fault.c
+@@ -0,0 +1,534 @@
++/*
++ * Based on arch/arm/mm/fault.c
++ *
++ * Copyright (C) 1995  Linus Torvalds
++ * Copyright (C) 1995-2004 Russell King
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/module.h>
++#include <linux/signal.h>
++#include <linux/mm.h>
++#include <linux/hardirq.h>
++#include <linux/init.h>
++#include <linux/kprobes.h>
++#include <linux/uaccess.h>
++#include <linux/page-flags.h>
++#include <linux/sched.h>
++#include <linux/highmem.h>
++#include <linux/perf_event.h>
++
++#include <asm/exception.h>
++#include <asm/debug-monitors.h>
++#include <asm/system_misc.h>
++#include <asm/pgtable.h>
++#include <asm/tlbflush.h>
 +
 +/*
-+ * ARMv8 supports a maximum of 32 events.
-+ * The cycle counter is included in this total.
++ * Dump out the page tables associated with 'addr' in mm 'mm'.
 + */
-+#define ARMPMU_MAX_HWEVENTS=09=0932
-+
-+static DEFINE_PER_CPU(struct perf_event * [ARMPMU_MAX_HWEVENTS], hw_events=
-);
-+static DEFINE_PER_CPU(unsigned long [BITS_TO_LONGS(ARMPMU_MAX_HWEVENTS)], =
-used_mask);
-+static DEFINE_PER_CPU(struct pmu_hw_events, cpu_hw_events);
-+
-+#define to_arm_pmu(p) (container_of(p, struct arm_pmu, pmu))
-+
-+/* Set at runtime when we know what CPU type we are. */
-+static struct arm_pmu *cpu_pmu;
-+
-+int
-+armpmu_get_max_events(void)
++void show_pte(struct mm_struct *mm, unsigned long addr)
 +{
-+=09int max_events =3D 0;
++=09pgd_t *pgd;
 +
-+=09if (cpu_pmu !=3D NULL)
-+=09=09max_events =3D cpu_pmu->num_events;
++=09if (!mm)
++=09=09mm =3D &init_mm;
 +
-+=09return max_events;
-+}
-+EXPORT_SYMBOL_GPL(armpmu_get_max_events);
++=09pr_alert("pgd =3D %p\n", mm->pgd);
++=09pgd =3D pgd_offset(mm, addr);
++=09pr_alert("[%08lx] *pgd=3D%016llx", addr, pgd_val(*pgd));
 +
-+int perf_num_counters(void)
-+{
-+=09return armpmu_get_max_events();
-+}
-+EXPORT_SYMBOL_GPL(perf_num_counters);
++=09do {
++=09=09pud_t *pud;
++=09=09pmd_t *pmd;
++=09=09pte_t *pte;
 +
-+#define HW_OP_UNSUPPORTED=09=090xFFFF
++=09=09if (pgd_none_or_clear_bad(pgd))
++=09=09=09break;
 +
-+#define C(_x) \
-+=09PERF_COUNT_HW_CACHE_##_x
++=09=09pud =3D pud_offset(pgd, addr);
++=09=09if (pud_none_or_clear_bad(pud))
++=09=09=09break;
 +
-+#define CACHE_OP_UNSUPPORTED=09=090xFFFF
++=09=09pmd =3D pmd_offset(pud, addr);
++=09=09printk(", *pmd=3D%016llx", pmd_val(*pmd));
++=09=09if (pmd_none_or_clear_bad(pmd))
++=09=09=09break;
 +
-+static int
-+armpmu_map_cache_event(const unsigned (*cache_map)
-+=09=09=09=09      [PERF_COUNT_HW_CACHE_MAX]
-+=09=09=09=09      [PERF_COUNT_HW_CACHE_OP_MAX]
-+=09=09=09=09      [PERF_COUNT_HW_CACHE_RESULT_MAX],
-+=09=09       u64 config)
-+{
-+=09unsigned int cache_type, cache_op, cache_result, ret;
++=09=09pte =3D pte_offset_map(pmd, addr);
++=09=09printk(", *pte=3D%016llx", pte_val(*pte));
++=09=09pte_unmap(pte);
++=09} while(0);
 +
-+=09cache_type =3D (config >>  0) & 0xff;
-+=09if (cache_type >=3D PERF_COUNT_HW_CACHE_MAX)
-+=09=09return -EINVAL;
-+
-+=09cache_op =3D (config >>  8) & 0xff;
-+=09if (cache_op >=3D PERF_COUNT_HW_CACHE_OP_MAX)
-+=09=09return -EINVAL;
-+
-+=09cache_result =3D (config >> 16) & 0xff;
-+=09if (cache_result >=3D PERF_COUNT_HW_CACHE_RESULT_MAX)
-+=09=09return -EINVAL;
-+
-+=09ret =3D (int)(*cache_map)[cache_type][cache_op][cache_result];
-+
-+=09if (ret =3D=3D CACHE_OP_UNSUPPORTED)
-+=09=09return -ENOENT;
-+
-+=09return ret;
++=09printk("\n");
 +}
 +
-+static int
-+armpmu_map_event(const unsigned (*event_map)[PERF_COUNT_HW_MAX], u64 confi=
-g)
++/*
++ * The kernel tried to access some page that wasn't present.
++ */
++static void __do_kernel_fault(struct mm_struct *mm, unsigned long addr,
++=09=09=09      unsigned int esr, struct pt_regs *regs)
 +{
-+=09int mapping =3D (*event_map)[config];
-+=09return mapping =3D=3D HW_OP_UNSUPPORTED ? -ENOENT : mapping;
-+}
-+
-+static int
-+armpmu_map_raw_event(u32 raw_event_mask, u64 config)
-+{
-+=09return (int)(config & raw_event_mask);
-+}
-+
-+static int map_cpu_event(struct perf_event *event,
-+=09=09=09 const unsigned (*event_map)[PERF_COUNT_HW_MAX],
-+=09=09=09 const unsigned (*cache_map)
-+=09=09=09=09=09[PERF_COUNT_HW_CACHE_MAX]
-+=09=09=09=09=09[PERF_COUNT_HW_CACHE_OP_MAX]
-+=09=09=09=09=09[PERF_COUNT_HW_CACHE_RESULT_MAX],
-+=09=09=09 u32 raw_event_mask)
-+{
-+=09u64 config =3D event->attr.config;
-+
-+=09switch (event->attr.type) {
-+=09case PERF_TYPE_HARDWARE:
-+=09=09return armpmu_map_event(event_map, config);
-+=09case PERF_TYPE_HW_CACHE:
-+=09=09return armpmu_map_cache_event(cache_map, config);
-+=09case PERF_TYPE_RAW:
-+=09=09return armpmu_map_raw_event(raw_event_mask, config);
-+=09}
-+
-+=09return -ENOENT;
-+}
-+
-+int
-+armpmu_event_set_period(struct perf_event *event,
-+=09=09=09struct hw_perf_event *hwc,
-+=09=09=09int idx)
-+{
-+=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
-+=09s64 left =3D local64_read(&hwc->period_left);
-+=09s64 period =3D hwc->sample_period;
-+=09int ret =3D 0;
-+
-+=09if (unlikely(left <=3D -period)) {
-+=09=09left =3D period;
-+=09=09local64_set(&hwc->period_left, left);
-+=09=09hwc->last_period =3D period;
-+=09=09ret =3D 1;
-+=09}
-+
-+=09if (unlikely(left <=3D 0)) {
-+=09=09left +=3D period;
-+=09=09local64_set(&hwc->period_left, left);
-+=09=09hwc->last_period =3D period;
-+=09=09ret =3D 1;
-+=09}
-+
-+=09if (left > (s64)armpmu->max_period)
-+=09=09left =3D armpmu->max_period;
-+
-+=09local64_set(&hwc->prev_count, (u64)-left);
-+
-+=09armpmu->write_counter(idx, (u64)(-left) & 0xffffffff);
-+
-+=09perf_event_update_userpage(event);
-+
-+=09return ret;
-+}
-+
-+u64
-+armpmu_event_update(struct perf_event *event,
-+=09=09    struct hw_perf_event *hwc,
-+=09=09    int idx)
-+{
-+=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
-+=09u64 delta, prev_raw_count, new_raw_count;
-+
-+again:
-+=09prev_raw_count =3D local64_read(&hwc->prev_count);
-+=09new_raw_count =3D armpmu->read_counter(idx);
-+
-+=09if (local64_cmpxchg(&hwc->prev_count, prev_raw_count,
-+=09=09=09     new_raw_count) !=3D prev_raw_count)
-+=09=09goto again;
-+
-+=09delta =3D (new_raw_count - prev_raw_count) & armpmu->max_period;
-+
-+=09local64_add(delta, &event->count);
-+=09local64_sub(delta, &hwc->period_left);
-+
-+=09return new_raw_count;
-+}
-+
-+static void
-+armpmu_read(struct perf_event *event)
-+{
-+=09struct hw_perf_event *hwc =3D &event->hw;
-+
-+=09/* Don't read disabled counters! */
-+=09if (hwc->idx < 0)
++=09/*
++=09 * Are we prepared to handle this kernel fault?
++=09 */
++=09if (fixup_exception(regs))
 +=09=09return;
 +
-+=09armpmu_event_update(event, hwc, hwc->idx);
++=09/*
++=09 * No handler, we'll have to terminate things with extreme prejudice.
++=09 */
++=09bust_spinlocks(1);
++=09pr_alert("Unable to handle kernel %s at virtual address %08lx\n",
++=09=09 (addr < PAGE_SIZE) ? "NULL pointer dereference" :
++=09=09 "paging request", addr);
++
++=09show_pte(mm, addr);
++=09die("Oops", regs, esr);
++=09bust_spinlocks(0);
++=09do_exit(SIGKILL);
 +}
 +
-+static void
-+armpmu_stop(struct perf_event *event, int flags)
++/*
++ * Something tried to access memory that isn't in our memory map. User mod=
+e
++ * accesses just cause a SIGSEGV
++ */
++static void __do_user_fault(struct task_struct *tsk, unsigned long addr,
++=09=09=09    unsigned int esr, unsigned int sig, int code,
++=09=09=09    struct pt_regs *regs)
 +{
-+=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
-+=09struct hw_perf_event *hwc =3D &event->hw;
++=09struct siginfo si;
 +
-+=09/*
-+=09 * ARM pmu always has to update the counter, so ignore
-+=09 * PERF_EF_UPDATE, see comments in armpmu_start().
-+=09 */
-+=09if (!(hwc->state & PERF_HES_STOPPED)) {
-+=09=09armpmu->disable(hwc, hwc->idx);
-+=09=09barrier(); /* why? */
-+=09=09armpmu_event_update(event, hwc, hwc->idx);
-+=09=09hwc->state |=3D PERF_HES_STOPPED | PERF_HES_UPTODATE;
++=09if (show_unhandled_signals) {
++=09=09pr_info("%s[%d]: unhandled page fault (%d) at 0x%08lx, code 0x%03x\n=
+",
++=09=09=09tsk->comm, task_pid_nr(tsk), sig, addr, esr);
++=09=09show_pte(tsk->mm, addr);
++=09=09show_regs(regs);
 +=09}
++
++=09tsk->thread.fault_address =3D addr;
++=09si.si_signo =3D sig;
++=09si.si_errno =3D 0;
++=09si.si_code =3D code;
++=09si.si_addr =3D (void __user *)addr;
++=09force_sig_info(sig, &si, tsk);
 +}
 +
-+static void
-+armpmu_start(struct perf_event *event, int flags)
++void do_bad_area(unsigned long addr, unsigned int esr, struct pt_regs *reg=
+s)
 +{
-+=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
-+=09struct hw_perf_event *hwc =3D &event->hw;
++=09struct task_struct *tsk =3D current;
++=09struct mm_struct *mm =3D tsk->active_mm;
 +
 +=09/*
-+=09 * ARM pmu always has to reprogram the period, so ignore
-+=09 * PERF_EF_RELOAD, see the comment below.
++=09 * If we are in kernel mode at this point, we have no context to
++=09 * handle this fault with.
 +=09 */
-+=09if (flags & PERF_EF_RELOAD)
-+=09=09WARN_ON_ONCE(!(hwc->state & PERF_HES_UPTODATE));
++=09if (user_mode(regs))
++=09=09__do_user_fault(tsk, addr, esr, SIGSEGV, SEGV_MAPERR, regs);
++=09else
++=09=09__do_kernel_fault(mm, addr, esr, regs);
++}
 +
-+=09hwc->state =3D 0;
++#define VM_FAULT_BADMAP=09=090x010000
++#define VM_FAULT_BADACCESS=090x020000
++
++#define ESR_WRITE=09=09(1 << 6)
++#define ESR_LNX_EXEC=09=09(1 << 24)
++
++/*
++ * Check that the permissions on the VMA allow for the fault which occurre=
+d.
++ * If we encountered a write fault, we must have write permission, otherwi=
+se
++ * we allow any permission.
++ */
++static inline bool access_error(unsigned int esr, struct vm_area_struct *v=
+ma)
++{
++=09unsigned int mask =3D VM_READ | VM_WRITE | VM_EXEC;
++
++=09if (esr & ESR_WRITE)
++=09=09mask =3D VM_WRITE;
++=09if (esr & ESR_LNX_EXEC)
++=09=09mask =3D VM_EXEC;
++
++=09return vma->vm_flags & mask ? false : true;
++}
++
++static int __do_page_fault(struct mm_struct *mm, unsigned long addr,
++=09=09=09   unsigned int esr, unsigned int flags,
++=09=09=09   struct task_struct *tsk)
++{
++=09struct vm_area_struct *vma;
++=09int fault;
++
++=09vma =3D find_vma(mm, addr);
++=09fault =3D VM_FAULT_BADMAP;
++=09if (unlikely(!vma))
++=09=09goto out;
++=09if (unlikely(vma->vm_start > addr))
++=09=09goto check_stack;
++
 +=09/*
-+=09 * Set the period again. Some counters can't be stopped, so when we
-+=09 * were stopped we simply disabled the IRQ source and the counter
-+=09 * may have been left counting. If we don't do this step then we may
-+=09 * get an interrupt too soon or *way* too late if the overflow has
-+=09 * happened since disabling.
++=09 * Ok, we have a good vm_area for this memory access, so we can handle
++=09 * it.
 +=09 */
-+=09armpmu_event_set_period(event, hwc, hwc->idx);
-+=09armpmu->enable(hwc, hwc->idx);
-+}
-+
-+static void
-+armpmu_del(struct perf_event *event, int flags)
-+{
-+=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
-+=09struct pmu_hw_events *hw_events =3D armpmu->get_hw_events();
-+=09struct hw_perf_event *hwc =3D &event->hw;
-+=09int idx =3D hwc->idx;
-+
-+=09WARN_ON(idx < 0);
-+
-+=09armpmu_stop(event, PERF_EF_UPDATE);
-+=09hw_events->events[idx] =3D NULL;
-+=09clear_bit(idx, hw_events->used_mask);
-+
-+=09perf_event_update_userpage(event);
-+}
-+
-+static int
-+armpmu_add(struct perf_event *event, int flags)
-+{
-+=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
-+=09struct pmu_hw_events *hw_events =3D armpmu->get_hw_events();
-+=09struct hw_perf_event *hwc =3D &event->hw;
-+=09int idx;
-+=09int err =3D 0;
-+
-+=09perf_pmu_disable(event->pmu);
-+
-+=09/* If we don't have a space for the counter then finish early. */
-+=09idx =3D armpmu->get_event_idx(hw_events, hwc);
-+=09if (idx < 0) {
-+=09=09err =3D idx;
++good_area:
++=09if (access_error(esr, vma)) {
++=09=09fault =3D VM_FAULT_BADACCESS;
 +=09=09goto out;
 +=09}
 +
-+=09/*
-+=09 * If there is an event in the counter we are going to use then make
-+=09 * sure it is disabled.
-+=09 */
-+=09event->hw.idx =3D idx;
-+=09armpmu->disable(hwc, idx);
-+=09hw_events->events[idx] =3D event;
++=09return handle_mm_fault(mm, vma, addr & PAGE_MASK, flags);
 +
-+=09hwc->state =3D PERF_HES_STOPPED | PERF_HES_UPTODATE;
-+=09if (flags & PERF_EF_START)
-+=09=09armpmu_start(event, PERF_EF_RELOAD);
-+
-+=09/* Propagate our changes to the userspace mapping. */
-+=09perf_event_update_userpage(event);
-+
++check_stack:
++=09if (vma->vm_flags & VM_GROWSDOWN && !expand_stack(vma, addr))
++=09=09goto good_area;
 +out:
-+=09perf_pmu_enable(event->pmu);
-+=09return err;
++=09return fault;
 +}
 +
-+static int
-+validate_event(struct pmu_hw_events *hw_events,
-+=09       struct perf_event *event)
++static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
++=09=09=09=09   struct pt_regs *regs)
 +{
-+=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
-+=09struct hw_perf_event fake_event =3D event->hw;
-+=09struct pmu *leader_pmu =3D event->group_leader->pmu;
++=09struct task_struct *tsk;
++=09struct mm_struct *mm;
++=09int fault, sig, code;
++=09int write =3D esr & ESR_WRITE;
++=09unsigned int flags =3D FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE |
++=09=09(write ? FAULT_FLAG_WRITE : 0);
 +
-+=09if (event->pmu !=3D leader_pmu || event->state <=3D PERF_EVENT_STATE_OF=
-F)
-+=09=09return 1;
++=09tsk =3D current;
++=09mm  =3D tsk->mm;
 +
-+=09return armpmu->get_event_idx(hw_events, &fake_event) >=3D 0;
-+}
-+
-+static int
-+validate_group(struct perf_event *event)
-+{
-+=09struct perf_event *sibling, *leader =3D event->group_leader;
-+=09struct pmu_hw_events fake_pmu;
-+=09DECLARE_BITMAP(fake_used_mask, ARMPMU_MAX_HWEVENTS);
++=09/* Enable interrupts if they were enabled in the parent context. */
++=09if (interrupts_enabled(regs))
++=09=09local_irq_enable();
 +
 +=09/*
-+=09 * Initialise the fake PMU. We only need to populate the
-+=09 * used_mask for the purposes of validation.
++=09 * If we're in an interrupt or have no user context, we must not take
++=09 * the fault.
 +=09 */
-+=09memset(fake_used_mask, 0, sizeof(fake_used_mask));
-+=09fake_pmu.used_mask =3D fake_used_mask;
-+
-+=09if (!validate_event(&fake_pmu, leader))
-+=09=09return -EINVAL;
-+
-+=09list_for_each_entry(sibling, &leader->sibling_list, group_entry) {
-+=09=09if (!validate_event(&fake_pmu, sibling))
-+=09=09=09return -EINVAL;
-+=09}
-+
-+=09if (!validate_event(&fake_pmu, event))
-+=09=09return -EINVAL;
-+
-+=09return 0;
-+}
-+
-+static void
-+armpmu_release_hardware(struct arm_pmu *armpmu)
-+{
-+=09int i, irq, irqs;
-+=09struct platform_device *pmu_device =3D armpmu->plat_device;
-+
-+=09irqs =3D min(pmu_device->num_resources, num_possible_cpus());
-+
-+=09for (i =3D 0; i < irqs; ++i) {
-+=09=09if (!cpumask_test_and_clear_cpu(i, &armpmu->active_irqs))
-+=09=09=09continue;
-+=09=09irq =3D platform_get_irq(pmu_device, i);
-+=09=09if (irq >=3D 0)
-+=09=09=09free_irq(irq, armpmu);
-+=09}
-+}
-+
-+static int
-+armpmu_reserve_hardware(struct arm_pmu *armpmu)
-+{
-+=09int i, err, irq, irqs;
-+=09struct platform_device *pmu_device =3D armpmu->plat_device;
-+
-+=09if (!pmu_device) {
-+=09=09pr_err("no PMU device registered\n");
-+=09=09return -ENODEV;
-+=09}
-+
-+=09irqs =3D min(pmu_device->num_resources, num_possible_cpus());
-+=09if (irqs < 1) {
-+=09=09pr_err("no irqs for PMUs defined\n");
-+=09=09return -ENODEV;
-+=09}
-+
-+=09for (i =3D 0; i < irqs; ++i) {
-+=09=09err =3D 0;
-+=09=09irq =3D platform_get_irq(pmu_device, i);
-+=09=09if (irq < 0)
-+=09=09=09continue;
-+
-+=09=09/*
-+=09=09 * If we have a single PMU interrupt that we can't shift,
-+=09=09 * assume that we're running on a uniprocessor machine and
-+=09=09 * continue. Otherwise, continue without this interrupt.
-+=09=09 */
-+=09=09if (irq_set_affinity(irq, cpumask_of(i)) && irqs > 1) {
-+=09=09=09pr_warning("unable to set irq affinity (irq=3D%d, cpu=3D%u)\n",
-+=09=09=09=09    irq, i);
-+=09=09=09continue;
-+=09=09}
-+
-+=09=09err =3D request_irq(irq, armpmu->handle_irq,
-+=09=09=09=09  IRQF_NOBALANCING,
-+=09=09=09=09  "arm-pmu", armpmu);
-+=09=09if (err) {
-+=09=09=09pr_err("unable to request IRQ%d for ARM PMU counters\n",
-+=09=09=09=09irq);
-+=09=09=09armpmu_release_hardware(armpmu);
-+=09=09=09return err;
-+=09=09}
-+
-+=09=09cpumask_set_cpu(i, &armpmu->active_irqs);
-+=09}
-+
-+=09return 0;
-+}
-+
-+static void
-+hw_perf_event_destroy(struct perf_event *event)
-+{
-+=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
-+=09atomic_t *active_events=09 =3D &armpmu->active_events;
-+=09struct mutex *pmu_reserve_mutex =3D &armpmu->reserve_mutex;
-+
-+=09if (atomic_dec_and_mutex_lock(active_events, pmu_reserve_mutex)) {
-+=09=09armpmu_release_hardware(armpmu);
-+=09=09mutex_unlock(pmu_reserve_mutex);
-+=09}
-+}
-+
-+static int
-+event_requires_mode_exclusion(struct perf_event_attr *attr)
-+{
-+=09return attr->exclude_idle || attr->exclude_user ||
-+=09       attr->exclude_kernel || attr->exclude_hv;
-+}
-+
-+static int
-+__hw_perf_event_init(struct perf_event *event)
-+{
-+=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
-+=09struct hw_perf_event *hwc =3D &event->hw;
-+=09int mapping, err;
-+
-+=09mapping =3D armpmu->map_event(event);
-+
-+=09if (mapping < 0) {
-+=09=09pr_debug("event %x:%llx not supported\n", event->attr.type,
-+=09=09=09 event->attr.config);
-+=09=09return mapping;
-+=09}
++=09if (in_atomic() || !mm)
++=09=09goto no_context;
 +
 +=09/*
-+=09 * We don't assign an index until we actually place the event onto
-+=09 * hardware. Use -1 to signify that we haven't decided where to put it
-+=09 * yet. For SMP systems, each core has it's own PMU so we can't do any
-+=09 * clever allocation or constraints checking at this point.
++=09 * As per x86, we may deadlock here. However, since the kernel only
++=09 * validly references user space from well defined areas of the code,
++=09 * we can bug out early if this is from code which shouldn't.
 +=09 */
-+=09hwc->idx=09=09=3D -1;
-+=09hwc->config_base=09=3D 0;
-+=09hwc->config=09=09=3D 0;
-+=09hwc->event_base=09=09=3D 0;
-+
-+=09/*
-+=09 * Check whether we need to exclude the counter from certain modes.
-+=09 */
-+=09if ((!armpmu->set_event_filter ||
-+=09     armpmu->set_event_filter(hwc, &event->attr)) &&
-+=09     event_requires_mode_exclusion(&event->attr)) {
-+=09=09pr_debug("ARM performance counters do not support mode exclusion\n")=
-;
-+=09=09return -EPERM;
-+=09}
-+
-+=09/*
-+=09 * Store the event encoding into the config_base field.
-+=09 */
-+=09hwc->config_base=09    |=3D (unsigned long)mapping;
-+
-+=09if (!hwc->sample_period) {
-+=09=09/*
-+=09=09 * For non-sampling runs, limit the sample_period to half
-+=09=09 * of the counter width. That way, the new counter value
-+=09=09 * is far less likely to overtake the previous one unless
-+=09=09 * you have some serious IRQ latency issues.
-+=09=09 */
-+=09=09hwc->sample_period  =3D armpmu->max_period >> 1;
-+=09=09hwc->last_period    =3D hwc->sample_period;
-+=09=09local64_set(&hwc->period_left, hwc->sample_period);
-+=09}
-+
-+=09err =3D 0;
-+=09if (event->group_leader !=3D event) {
-+=09=09err =3D validate_group(event);
-+=09=09if (err)
-+=09=09=09return -EINVAL;
-+=09}
-+
-+=09return err;
-+}
-+
-+static int armpmu_event_init(struct perf_event *event)
-+{
-+=09struct arm_pmu *armpmu =3D to_arm_pmu(event->pmu);
-+=09int err =3D 0;
-+=09atomic_t *active_events =3D &armpmu->active_events;
-+
-+=09if (armpmu->map_event(event) =3D=3D -ENOENT)
-+=09=09return -ENOENT;
-+
-+=09event->destroy =3D hw_perf_event_destroy;
-+
-+=09if (!atomic_inc_not_zero(active_events)) {
-+=09=09mutex_lock(&armpmu->reserve_mutex);
-+=09=09if (atomic_read(active_events) =3D=3D 0)
-+=09=09=09err =3D armpmu_reserve_hardware(armpmu);
-+
-+=09=09if (!err)
-+=09=09=09atomic_inc(active_events);
-+=09=09mutex_unlock(&armpmu->reserve_mutex);
-+=09}
-+
-+=09if (err)
-+=09=09return err;
-+
-+=09err =3D __hw_perf_event_init(event);
-+=09if (err)
-+=09=09hw_perf_event_destroy(event);
-+
-+=09return err;
-+}
-+
-+static void armpmu_enable(struct pmu *pmu)
-+{
-+=09struct arm_pmu *armpmu =3D to_arm_pmu(pmu);
-+=09struct pmu_hw_events *hw_events =3D armpmu->get_hw_events();
-+=09int enabled =3D bitmap_weight(hw_events->used_mask, armpmu->num_events)=
-;
-+
-+=09if (enabled)
-+=09=09armpmu->start();
-+}
-+
-+static void armpmu_disable(struct pmu *pmu)
-+{
-+=09struct arm_pmu *armpmu =3D to_arm_pmu(pmu);
-+=09armpmu->stop();
-+}
-+
-+static void __init armpmu_init(struct arm_pmu *armpmu)
-+{
-+=09atomic_set(&armpmu->active_events, 0);
-+=09mutex_init(&armpmu->reserve_mutex);
-+
-+=09armpmu->pmu =3D (struct pmu) {
-+=09=09.pmu_enable=09=3D armpmu_enable,
-+=09=09.pmu_disable=09=3D armpmu_disable,
-+=09=09.event_init=09=3D armpmu_event_init,
-+=09=09.add=09=09=3D armpmu_add,
-+=09=09.del=09=09=3D armpmu_del,
-+=09=09.start=09=09=3D armpmu_start,
-+=09=09.stop=09=09=3D armpmu_stop,
-+=09=09.read=09=09=3D armpmu_read,
-+=09};
-+}
-+
-+int __init armpmu_register(struct arm_pmu *armpmu, char *name, int type)
-+{
-+=09armpmu_init(armpmu);
-+=09return perf_pmu_register(&armpmu->pmu, name, type);
-+}
-+
-+/*
-+ * ARMv8 PMUv3 Performance Events handling code.
-+ * Common event types.
-+ */
-+enum armv8_pmuv3_perf_types {
-+=09/* Required events. */
-+=09ARMV8_PMUV3_PERFCTR_PMNC_SW_INCR=09=09=09=3D 0x00,
-+=09ARMV8_PMUV3_PERFCTR_L1_DCACHE_REFILL=09=09=09=3D 0x03,
-+=09ARMV8_PMUV3_PERFCTR_L1_DCACHE_ACCESS=09=09=09=3D 0x04,
-+=09ARMV8_PMUV3_PERFCTR_PC_BRANCH_MIS_PRED=09=09=09=3D 0x10,
-+=09ARMV8_PMUV3_PERFCTR_CLOCK_CYCLES=09=09=09=3D 0x11,
-+=09ARMV8_PMUV3_PERFCTR_PC_BRANCH_PRED=09=09=09=3D 0x12,
-+
-+=09/* At least one of the following is required. */
-+=09ARMV8_PMUV3_PERFCTR_INSTR_EXECUTED=09=09=09=3D 0x08,
-+=09ARMV8_PMUV3_PERFCTR_OP_SPEC=09=09=09=09=3D 0x1B,
-+
-+=09/* Common architectural events. */
-+=09ARMV8_PMUV3_PERFCTR_MEM_READ=09=09=09=09=3D 0x06,
-+=09ARMV8_PMUV3_PERFCTR_MEM_WRITE=09=09=09=09=3D 0x07,
-+=09ARMV8_PMUV3_PERFCTR_EXC_TAKEN=09=09=09=09=3D 0x09,
-+=09ARMV8_PMUV3_PERFCTR_EXC_EXECUTED=09=09=09=3D 0x0A,
-+=09ARMV8_PMUV3_PERFCTR_CID_WRITE=09=09=09=09=3D 0x0B,
-+=09ARMV8_PMUV3_PERFCTR_PC_WRITE=09=09=09=09=3D 0x0C,
-+=09ARMV8_PMUV3_PERFCTR_PC_IMM_BRANCH=09=09=09=3D 0x0D,
-+=09ARMV8_PMUV3_PERFCTR_PC_PROC_RETURN=09=09=09=3D 0x0E,
-+=09ARMV8_PMUV3_PERFCTR_MEM_UNALIGNED_ACCESS=09=09=3D 0x0F,
-+=09ARMV8_PMUV3_PERFCTR_TTBR_WRITE=09=09=09=09=3D 0x1C,
-+
-+=09/* Common microarchitectural events. */
-+=09ARMV8_PMUV3_PERFCTR_L1_ICACHE_REFILL=09=09=09=3D 0x01,
-+=09ARMV8_PMUV3_PERFCTR_ITLB_REFILL=09=09=09=09=3D 0x02,
-+=09ARMV8_PMUV3_PERFCTR_DTLB_REFILL=09=09=09=09=3D 0x05,
-+=09ARMV8_PMUV3_PERFCTR_MEM_ACCESS=09=09=09=09=3D 0x13,
-+=09ARMV8_PMUV3_PERFCTR_L1_ICACHE_ACCESS=09=09=09=3D 0x14,
-+=09ARMV8_PMUV3_PERFCTR_L1_DCACHE_WB=09=09=09=3D 0x15,
-+=09ARMV8_PMUV3_PERFCTR_L2_CACHE_ACCESS=09=09=09=3D 0x16,
-+=09ARMV8_PMUV3_PERFCTR_L2_CACHE_REFILL=09=09=09=3D 0x17,
-+=09ARMV8_PMUV3_PERFCTR_L2_CACHE_WB=09=09=09=09=3D 0x18,
-+=09ARMV8_PMUV3_PERFCTR_BUS_ACCESS=09=09=09=09=3D 0x19,
-+=09ARMV8_PMUV3_PERFCTR_MEM_ERROR=09=09=09=09=3D 0x1A,
-+=09ARMV8_PMUV3_PERFCTR_BUS_CYCLES=09=09=09=09=3D 0x1D,
-+
-+=09/*
-+=09 * This isn't an architected event.
-+=09 * We detect this event number and use the cycle counter instead.
-+=09 */
-+=09ARMV8_PMUV3_PERFCTR_CPU_CYCLES=09=09=09=09=3D 0xFF,
-+};
-+
-+/* PMUv3 HW events mapping. */
-+static const unsigned armv8_pmuv3_perf_map[PERF_COUNT_HW_MAX] =3D {
-+=09[PERF_COUNT_HW_CPU_CYCLES]=09=09=3D ARMV8_PMUV3_PERFCTR_CPU_CYCLES,
-+=09[PERF_COUNT_HW_INSTRUCTIONS]=09=09=3D ARMV8_PMUV3_PERFCTR_INSTR_EXECUTE=
-D,
-+=09[PERF_COUNT_HW_CACHE_REFERENCES]=09=3D ARMV8_PMUV3_PERFCTR_L1_DCACHE_AC=
-CESS,
-+=09[PERF_COUNT_HW_CACHE_MISSES]=09=09=3D ARMV8_PMUV3_PERFCTR_L1_DCACHE_REF=
-ILL,
-+=09[PERF_COUNT_HW_BRANCH_INSTRUCTIONS]=09=3D HW_OP_UNSUPPORTED,
-+=09[PERF_COUNT_HW_BRANCH_MISSES]=09=09=3D ARMV8_PMUV3_PERFCTR_PC_BRANCH_MI=
-S_PRED,
-+=09[PERF_COUNT_HW_BUS_CYCLES]=09=09=3D HW_OP_UNSUPPORTED,
-+=09[PERF_COUNT_HW_STALLED_CYCLES_FRONTEND]=09=3D HW_OP_UNSUPPORTED,
-+=09[PERF_COUNT_HW_STALLED_CYCLES_BACKEND]=09=3D HW_OP_UNSUPPORTED,
-+};
-+
-+static const unsigned armv8_pmuv3_perf_cache_map[PERF_COUNT_HW_CACHE_MAX]
-+=09=09=09=09=09=09[PERF_COUNT_HW_CACHE_OP_MAX]
-+=09=09=09=09=09=09[PERF_COUNT_HW_CACHE_RESULT_MAX] =3D {
-+=09[C(L1D)] =3D {
-+=09=09[C(OP_READ)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D ARMV8_PMUV3_PERFCTR_L1_DCACHE_ACCESS,
-+=09=09=09[C(RESULT_MISS)]=09=3D ARMV8_PMUV3_PERFCTR_L1_DCACHE_REFILL,
-+=09=09},
-+=09=09[C(OP_WRITE)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D ARMV8_PMUV3_PERFCTR_L1_DCACHE_ACCESS,
-+=09=09=09[C(RESULT_MISS)]=09=3D ARMV8_PMUV3_PERFCTR_L1_DCACHE_REFILL,
-+=09=09},
-+=09=09[C(OP_PREFETCH)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09},
-+=09[C(L1I)] =3D {
-+=09=09[C(OP_READ)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09=09[C(OP_WRITE)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09=09[C(OP_PREFETCH)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09},
-+=09[C(LL)] =3D {
-+=09=09[C(OP_READ)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09=09[C(OP_WRITE)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09=09[C(OP_PREFETCH)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09},
-+=09[C(DTLB)] =3D {
-+=09=09[C(OP_READ)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09=09[C(OP_WRITE)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09=09[C(OP_PREFETCH)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09},
-+=09[C(ITLB)] =3D {
-+=09=09[C(OP_READ)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09=09[C(OP_WRITE)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09=09[C(OP_PREFETCH)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09},
-+=09[C(BPU)] =3D {
-+=09=09[C(OP_READ)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D ARMV8_PMUV3_PERFCTR_PC_BRANCH_PRED,
-+=09=09=09[C(RESULT_MISS)]=09=3D ARMV8_PMUV3_PERFCTR_PC_BRANCH_MIS_PRED,
-+=09=09},
-+=09=09[C(OP_WRITE)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D ARMV8_PMUV3_PERFCTR_PC_BRANCH_PRED,
-+=09=09=09[C(RESULT_MISS)]=09=3D ARMV8_PMUV3_PERFCTR_PC_BRANCH_MIS_PRED,
-+=09=09},
-+=09=09[C(OP_PREFETCH)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09},
-+=09[C(NODE)] =3D {
-+=09=09[C(OP_READ)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09=09[C(OP_WRITE)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09=09[C(OP_PREFETCH)] =3D {
-+=09=09=09[C(RESULT_ACCESS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09=09[C(RESULT_MISS)]=09=3D CACHE_OP_UNSUPPORTED,
-+=09=09},
-+=09},
-+};
-+
-+/*
-+ * Perf Events' indices
-+ */
-+#define=09ARMV8_IDX_CYCLE_COUNTER=090
-+#define=09ARMV8_IDX_COUNTER0=091
-+#define=09ARMV8_IDX_COUNTER_LAST=09(ARMV8_IDX_CYCLE_COUNTER + cpu_pmu->num=
-_events - 1)
-+
-+#define=09ARMV8_MAX_COUNTERS=0932
-+#define=09ARMV8_COUNTER_MASK=09(ARMV8_MAX_COUNTERS - 1)
-+
-+/*
-+ * ARMv8 low level PMU access
-+ */
-+
-+/*
-+ * Perf Event to low level counters mapping
-+ */
-+#define=09ARMV8_IDX_TO_COUNTER(x)=09\
-+=09(((x) - ARMV8_IDX_COUNTER0) & ARMV8_COUNTER_MASK)
-+
-+/*
-+ * Per-CPU PMCR: config reg
-+ */
-+#define ARMV8_PMCR_E=09=09(1 << 0) /* Enable all counters */
-+#define ARMV8_PMCR_P=09=09(1 << 1) /* Reset all counters */
-+#define ARMV8_PMCR_C=09=09(1 << 2) /* Cycle counter reset */
-+#define ARMV8_PMCR_D=09=09(1 << 3) /* CCNT counts every 64th cpu cycle */
-+#define ARMV8_PMCR_X=09=09(1 << 4) /* Export to ETM */
-+#define ARMV8_PMCR_DP=09=09(1 << 5) /* Disable CCNT if non-invasive debug*=
-/
-+#define=09ARMV8_PMCR_N_SHIFT=0911=09 /* Number of counters supported */
-+#define=09ARMV8_PMCR_N_MASK=090x1f
-+#define=09ARMV8_PMCR_MASK=09=090x3f=09 /* Mask for writable bits */
-+
-+/*
-+ * PMOVSR: counters overflow flag status reg
-+ */
-+#define=09ARMV8_OVSR_MASK=09=090xffffffff=09/* Mask for writable bits */
-+#define=09ARMV8_OVERFLOWED_MASK=09ARMV8_OVSR_MASK
-+
-+/*
-+ * PMXEVTYPER: Event selection reg
-+ */
-+#define=09ARMV8_EVTYPE_MASK=090xc00000ff=09/* Mask for writable bits */
-+#define=09ARMV8_EVTYPE_EVENT=090xff=09=09/* Mask for EVENT bits */
-+
-+/*
-+ * Event filters for PMUv3
-+ */
-+#define=09ARMV8_EXCLUDE_EL1=09(1 << 31)
-+#define=09ARMV8_EXCLUDE_EL0=09(1 << 30)
-+#define=09ARMV8_INCLUDE_EL2=09(1 << 27)
-+
-+static inline u32 armv8pmu_pmcr_read(void)
-+{
-+=09u32 val;
-+=09asm volatile("mrs %0, pmcr_el0" : "=3Dr" (val));
-+=09return val;
-+}
-+
-+static inline void armv8pmu_pmcr_write(u32 val)
-+{
-+=09val &=3D ARMV8_PMCR_MASK;
-+=09isb();
-+=09asm volatile("msr pmcr_el0, %0" :: "r" (val));
-+}
-+
-+static inline int armv8pmu_has_overflowed(u32 pmovsr)
-+{
-+=09return pmovsr & ARMV8_OVERFLOWED_MASK;
-+}
-+
-+static inline int armv8pmu_counter_valid(int idx)
-+{
-+=09return idx >=3D ARMV8_IDX_CYCLE_COUNTER && idx <=3D ARMV8_IDX_COUNTER_L=
-AST;
-+}
-+
-+static inline int armv8pmu_counter_has_overflowed(u32 pmnc, int idx)
-+{
-+=09int ret =3D 0;
-+=09u32 counter;
-+
-+=09if (!armv8pmu_counter_valid(idx)) {
-+=09=09pr_err("CPU%u checking wrong counter %d overflow status\n",
-+=09=09=09smp_processor_id(), idx);
++=09if (!down_read_trylock(&mm->mmap_sem)) {
++=09=09if (!user_mode(regs) && !search_exception_tables(regs->pc))
++=09=09=09goto no_context;
++retry:
++=09=09down_read(&mm->mmap_sem);
 +=09} else {
-+=09=09counter =3D ARMV8_IDX_TO_COUNTER(idx);
-+=09=09ret =3D pmnc & BIT(counter);
-+=09}
-+
-+=09return ret;
-+}
-+
-+static inline int armv8pmu_select_counter(int idx)
-+{
-+=09u32 counter;
-+
-+=09if (!armv8pmu_counter_valid(idx)) {
-+=09=09pr_err("CPU%u selecting wrong PMNC counter %d\n",
-+=09=09=09smp_processor_id(), idx);
-+=09=09return -EINVAL;
-+=09}
-+
-+=09counter =3D ARMV8_IDX_TO_COUNTER(idx);
-+=09asm volatile("msr pmselr_el0, %0" :: "r" (counter));
-+=09isb();
-+
-+=09return idx;
-+}
-+
-+static inline u32 armv8pmu_read_counter(int idx)
-+{
-+=09u32 value =3D 0;
-+
-+=09if (!armv8pmu_counter_valid(idx))
-+=09=09pr_err("CPU%u reading wrong counter %d\n",
-+=09=09=09smp_processor_id(), idx);
-+=09else if (idx =3D=3D ARMV8_IDX_CYCLE_COUNTER)
-+=09=09asm volatile("mrs %0, pmccntr_el0" : "=3Dr" (value));
-+=09else if (armv8pmu_select_counter(idx) =3D=3D idx)
-+=09=09asm volatile("mrs %0, pmxevcntr_el0" : "=3Dr" (value));
-+
-+=09return value;
-+}
-+
-+static inline void armv8pmu_write_counter(int idx, u32 value)
-+{
-+=09if (!armv8pmu_counter_valid(idx))
-+=09=09pr_err("CPU%u writing wrong counter %d\n",
-+=09=09=09smp_processor_id(), idx);
-+=09else if (idx =3D=3D ARMV8_IDX_CYCLE_COUNTER)
-+=09=09asm volatile("msr pmccntr_el0, %0" :: "r" (value));
-+=09else if (armv8pmu_select_counter(idx) =3D=3D idx)
-+=09=09asm volatile("msr pmxevcntr_el0, %0" :: "r" (value));
-+}
-+
-+static inline void armv8pmu_write_evtype(int idx, u32 val)
-+{
-+=09if (armv8pmu_select_counter(idx) =3D=3D idx) {
-+=09=09val &=3D ARMV8_EVTYPE_MASK;
-+=09=09asm volatile("msr pmxevtyper_el0, %0" :: "r" (val));
-+=09}
-+}
-+
-+static inline int armv8pmu_enable_counter(int idx)
-+{
-+=09u32 counter;
-+
-+=09if (!armv8pmu_counter_valid(idx)) {
-+=09=09pr_err("CPU%u enabling wrong PMNC counter %d\n",
-+=09=09=09smp_processor_id(), idx);
-+=09=09return -EINVAL;
-+=09}
-+
-+=09counter =3D ARMV8_IDX_TO_COUNTER(idx);
-+=09asm volatile("msr pmcntenset_el0, %0" :: "r" (BIT(counter)));
-+=09return idx;
-+}
-+
-+static inline int armv8pmu_disable_counter(int idx)
-+{
-+=09u32 counter;
-+
-+=09if (!armv8pmu_counter_valid(idx)) {
-+=09=09pr_err("CPU%u disabling wrong PMNC counter %d\n",
-+=09=09=09smp_processor_id(), idx);
-+=09=09return -EINVAL;
-+=09}
-+
-+=09counter =3D ARMV8_IDX_TO_COUNTER(idx);
-+=09asm volatile("msr pmcntenclr_el0, %0" :: "r" (BIT(counter)));
-+=09return idx;
-+}
-+
-+static inline int armv8pmu_enable_intens(int idx)
-+{
-+=09u32 counter;
-+
-+=09if (!armv8pmu_counter_valid(idx)) {
-+=09=09pr_err("CPU%u enabling wrong PMNC counter IRQ enable %d\n",
-+=09=09=09smp_processor_id(), idx);
-+=09=09return -EINVAL;
-+=09}
-+
-+=09counter =3D ARMV8_IDX_TO_COUNTER(idx);
-+=09asm volatile("msr pmintenset_el1, %0" :: "r" (BIT(counter)));
-+=09return idx;
-+}
-+
-+static inline int armv8pmu_disable_intens(int idx)
-+{
-+=09u32 counter;
-+
-+=09if (!armv8pmu_counter_valid(idx)) {
-+=09=09pr_err("CPU%u disabling wrong PMNC counter IRQ enable %d\n",
-+=09=09=09smp_processor_id(), idx);
-+=09=09return -EINVAL;
-+=09}
-+
-+=09counter =3D ARMV8_IDX_TO_COUNTER(idx);
-+=09asm volatile("msr pmintenclr_el1, %0" :: "r" (BIT(counter)));
-+=09isb();
-+=09/* Clear the overflow flag in case an interrupt is pending. */
-+=09asm volatile("msr pmovsclr_el0, %0" :: "r" (BIT(counter)));
-+=09isb();
-+=09return idx;
-+}
-+
-+static inline u32 armv8pmu_getreset_flags(void)
-+{
-+=09u32 value;
-+
-+=09/* Read */
-+=09asm volatile("mrs %0, pmovsclr_el0" : "=3Dr" (value));
-+
-+=09/* Write to clear flags */
-+=09value &=3D ARMV8_OVSR_MASK;
-+=09asm volatile("msr pmovsclr_el0, %0" :: "r" (value));
-+
-+=09return value;
-+}
-+
-+static void armv8pmu_enable_event(struct hw_perf_event *hwc, int idx)
-+{
-+=09unsigned long flags;
-+=09struct pmu_hw_events *events =3D cpu_pmu->get_hw_events();
-+
-+=09/*
-+=09 * Enable counter and interrupt, and set the counter to count
-+=09 * the event that we're interested in.
-+=09 */
-+=09raw_spin_lock_irqsave(&events->pmu_lock, flags);
-+
-+=09/*
-+=09 * Disable counter
-+=09 */
-+=09armv8pmu_disable_counter(idx);
-+
-+=09/*
-+=09 * Set event (if destined for PMNx counters).
-+=09 */
-+=09armv8pmu_write_evtype(idx, hwc->config_base);
-+
-+=09/*
-+=09 * Enable interrupt for this counter
-+=09 */
-+=09armv8pmu_enable_intens(idx);
-+
-+=09/*
-+=09 * Enable counter
-+=09 */
-+=09armv8pmu_enable_counter(idx);
-+
-+=09raw_spin_unlock_irqrestore(&events->pmu_lock, flags);
-+}
-+
-+static void armv8pmu_disable_event(struct hw_perf_event *hwc, int idx)
-+{
-+=09unsigned long flags;
-+=09struct pmu_hw_events *events =3D cpu_pmu->get_hw_events();
-+
-+=09/*
-+=09 * Disable counter and interrupt
-+=09 */
-+=09raw_spin_lock_irqsave(&events->pmu_lock, flags);
-+
-+=09/*
-+=09 * Disable counter
-+=09 */
-+=09armv8pmu_disable_counter(idx);
-+
-+=09/*
-+=09 * Disable interrupt for this counter
-+=09 */
-+=09armv8pmu_disable_intens(idx);
-+
-+=09raw_spin_unlock_irqrestore(&events->pmu_lock, flags);
-+}
-+
-+static irqreturn_t armv8pmu_handle_irq(int irq_num, void *dev)
-+{
-+=09u32 pmovsr;
-+=09struct perf_sample_data data;
-+=09struct pmu_hw_events *cpuc;
-+=09struct pt_regs *regs;
-+=09int idx;
-+
-+=09/*
-+=09 * Get and reset the IRQ flags
-+=09 */
-+=09pmovsr =3D armv8pmu_getreset_flags();
-+
-+=09/*
-+=09 * Did an overflow occur?
-+=09 */
-+=09if (!armv8pmu_has_overflowed(pmovsr))
-+=09=09return IRQ_NONE;
-+
-+=09/*
-+=09 * Handle the counter(s) overflow(s)
-+=09 */
-+=09regs =3D get_irq_regs();
-+
-+=09cpuc =3D &__get_cpu_var(cpu_hw_events);
-+=09for (idx =3D 0; idx < cpu_pmu->num_events; ++idx) {
-+=09=09struct perf_event *event =3D cpuc->events[idx];
-+=09=09struct hw_perf_event *hwc;
-+
-+=09=09/* Ignore if we don't have an event. */
-+=09=09if (!event)
-+=09=09=09continue;
-+
 +=09=09/*
-+=09=09 * We have a single interrupt for all counters. Check that
-+=09=09 * each counter has overflowed before we process it.
++=09=09 * The above down_read_trylock() might have succeeded in which
++=09=09 * case, we'll have missed the might_sleep() from down_read().
 +=09=09 */
-+=09=09if (!armv8pmu_counter_has_overflowed(pmovsr, idx))
-+=09=09=09continue;
++=09=09might_sleep();
++#ifdef CONFIG_DEBUG_VM
++=09=09if (!user_mode(regs) && !search_exception_tables(regs->pc))
++=09=09=09goto no_context;
++#endif
++=09}
 +
-+=09=09hwc =3D &event->hw;
-+=09=09armpmu_event_update(event, hwc, idx);
-+=09=09perf_sample_data_init(&data, 0, hwc->last_period);
-+=09=09if (!armpmu_event_set_period(event, hwc, idx))
-+=09=09=09continue;
++=09fault =3D __do_page_fault(mm, addr, esr, flags, tsk);
 +
-+=09=09if (perf_event_overflow(event, &data, regs))
-+=09=09=09cpu_pmu->disable(hwc, idx);
++=09/*
++=09 * If we need to retry but a fatal signal is pending, handle the
++=09 * signal first. We do not need to release the mmap_sem because it
++=09 * would already be released in __lock_page_or_retry in mm/filemap.c.
++=09 */
++=09if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current))
++=09=09return 0;
++
++=09/*
++=09 * Major/minor page fault accounting is only done on the initial
++=09 * attempt. If we go through a retry, it is extremely likely that the
++=09 * page will be found in page cache at that point.
++=09 */
++
++=09perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, addr);
++=09if (flags & FAULT_FLAG_ALLOW_RETRY) {
++=09=09if (fault & VM_FAULT_MAJOR) {
++=09=09=09tsk->maj_flt++;
++=09=09=09perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MAJ, 1, regs,
++=09=09=09=09      addr);
++=09=09} else {
++=09=09=09tsk->min_flt++;
++=09=09=09perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MIN, 1, regs,
++=09=09=09=09      addr);
++=09=09}
++=09=09if (fault & VM_FAULT_RETRY) {
++=09=09=09/*
++=09=09=09 * Clear FAULT_FLAG_ALLOW_RETRY to avoid any risk of
++=09=09=09 * starvation.
++=09=09=09 */
++=09=09=09flags &=3D ~FAULT_FLAG_ALLOW_RETRY;
++=09=09=09goto retry;
++=09=09}
++=09}
++
++=09up_read(&mm->mmap_sem);
++
++=09/*
++=09 * Handle the "normal" case first - VM_FAULT_MAJOR / VM_FAULT_MINOR
++=09 */
++=09if (likely(!(fault & (VM_FAULT_ERROR | VM_FAULT_BADMAP |
++=09=09=09      VM_FAULT_BADACCESS))))
++=09=09return 0;
++
++=09if (fault & VM_FAULT_OOM) {
++=09=09/*
++=09=09 * We ran out of memory, call the OOM killer, and return to
++=09=09 * userspace (which will retry the fault, or kill us if we got
++=09=09 * oom-killed).
++=09=09 */
++=09=09pagefault_out_of_memory();
++=09=09return 0;
 +=09}
 +
 +=09/*
-+=09 * Handle the pending perf events.
-+=09 *
-+=09 * Note: this call *must* be run with interrupts disabled. For
-+=09 * platforms that can have the PMU interrupts raised as an NMI, this
-+=09 * will not work.
++=09 * If we are in kernel mode at this point, we have no context to
++=09 * handle this fault with.
 +=09 */
-+=09irq_work_run();
++=09if (!user_mode(regs))
++=09=09goto no_context;
 +
-+=09return IRQ_HANDLED;
-+}
-+
-+static void armv8pmu_start(void)
-+{
-+=09unsigned long flags;
-+=09struct pmu_hw_events *events =3D cpu_pmu->get_hw_events();
-+
-+=09raw_spin_lock_irqsave(&events->pmu_lock, flags);
-+=09/* Enable all counters */
-+=09armv8pmu_pmcr_write(armv8pmu_pmcr_read() | ARMV8_PMCR_E);
-+=09raw_spin_unlock_irqrestore(&events->pmu_lock, flags);
-+}
-+
-+static void armv8pmu_stop(void)
-+{
-+=09unsigned long flags;
-+=09struct pmu_hw_events *events =3D cpu_pmu->get_hw_events();
-+
-+=09raw_spin_lock_irqsave(&events->pmu_lock, flags);
-+=09/* Disable all counters */
-+=09armv8pmu_pmcr_write(armv8pmu_pmcr_read() & ~ARMV8_PMCR_E);
-+=09raw_spin_unlock_irqrestore(&events->pmu_lock, flags);
-+}
-+
-+static int armv8pmu_get_event_idx(struct pmu_hw_events *cpuc,
-+=09=09=09=09  struct hw_perf_event *event)
-+{
-+=09int idx;
-+=09unsigned long evtype =3D event->config_base & ARMV8_EVTYPE_EVENT;
-+
-+=09/* Always place a cycle counter into the cycle counter. */
-+=09if (evtype =3D=3D ARMV8_PMUV3_PERFCTR_CPU_CYCLES) {
-+=09=09if (test_and_set_bit(ARMV8_IDX_CYCLE_COUNTER, cpuc->used_mask))
-+=09=09=09return -EAGAIN;
-+
-+=09=09return ARMV8_IDX_CYCLE_COUNTER;
-+=09}
-+
-+=09/*
-+=09 * For anything other than a cycle counter, try and use
-+=09 * the events counters
-+=09 */
-+=09for (idx =3D ARMV8_IDX_COUNTER0; idx < cpu_pmu->num_events; ++idx) {
-+=09=09if (!test_and_set_bit(idx, cpuc->used_mask))
-+=09=09=09return idx;
-+=09}
-+
-+=09/* The counters are all in use. */
-+=09return -EAGAIN;
-+}
-+
-+/*
-+ * Add an event filter to a given event. This will only work for PMUv2 PMU=
-s.
-+ */
-+static int armv8pmu_set_event_filter(struct hw_perf_event *event,
-+=09=09=09=09     struct perf_event_attr *attr)
-+{
-+=09unsigned long config_base =3D 0;
-+
-+=09if (attr->exclude_idle)
-+=09=09return -EPERM;
-+=09if (attr->exclude_user)
-+=09=09config_base |=3D ARMV8_EXCLUDE_EL0;
-+=09if (attr->exclude_kernel)
-+=09=09config_base |=3D ARMV8_EXCLUDE_EL1;
-+=09if (!attr->exclude_hv)
-+=09=09config_base |=3D ARMV8_INCLUDE_EL2;
-+
-+=09/*
-+=09 * Install the filter into config_base as this is used to
-+=09 * construct the event type.
-+=09 */
-+=09event->config_base =3D config_base;
-+
-+=09return 0;
-+}
-+
-+static void armv8pmu_reset(void *info)
-+{
-+=09u32 idx, nb_cnt =3D cpu_pmu->num_events;
-+
-+=09/* The counter and interrupt enable registers are unknown at reset. */
-+=09for (idx =3D ARMV8_IDX_CYCLE_COUNTER; idx < nb_cnt; ++idx)
-+=09=09armv8pmu_disable_event(NULL, idx);
-+
-+=09/* Initialize & Reset PMNC: C and P bits. */
-+=09armv8pmu_pmcr_write(ARMV8_PMCR_P | ARMV8_PMCR_C);
-+
-+=09/* Disable access from userspace. */
-+=09asm volatile("msr pmuserenr_el0, %0" :: "r" (0));
-+}
-+
-+static int armv8_pmuv3_map_event(struct perf_event *event)
-+{
-+=09return map_cpu_event(event, &armv8_pmuv3_perf_map,
-+=09=09=09=09&armv8_pmuv3_perf_cache_map, 0xFF);
-+}
-+
-+static struct arm_pmu armv8pmu =3D {
-+=09.handle_irq=09=09=3D armv8pmu_handle_irq,
-+=09.enable=09=09=09=3D armv8pmu_enable_event,
-+=09.disable=09=09=3D armv8pmu_disable_event,
-+=09.read_counter=09=09=3D armv8pmu_read_counter,
-+=09.write_counter=09=09=3D armv8pmu_write_counter,
-+=09.get_event_idx=09=09=3D armv8pmu_get_event_idx,
-+=09.start=09=09=09=3D armv8pmu_start,
-+=09.stop=09=09=09=3D armv8pmu_stop,
-+=09.reset=09=09=09=3D armv8pmu_reset,
-+=09.max_period=09=09=3D (1LLU << 32) - 1,
-+};
-+
-+static u32 __init armv8pmu_read_num_pmnc_events(void)
-+{
-+=09u32 nb_cnt;
-+
-+=09/* Read the nb of CNTx counters supported from PMNC */
-+=09nb_cnt =3D (armv8pmu_pmcr_read() >> ARMV8_PMCR_N_SHIFT) & ARMV8_PMCR_N_=
-MASK;
-+
-+=09/* Add the CPU cycles counter and return */
-+=09return nb_cnt + 1;
-+}
-+
-+static struct arm_pmu *__init armv8_pmuv3_pmu_init(void)
-+{
-+=09armv8pmu.name=09=09=09=3D "arm/armv8-pmuv3";
-+=09armv8pmu.map_event=09=09=3D armv8_pmuv3_map_event;
-+=09armv8pmu.num_events=09=09=3D armv8pmu_read_num_pmnc_events();
-+=09armv8pmu.set_event_filter=09=3D armv8pmu_set_event_filter;
-+=09return &armv8pmu;
-+}
-+
-+/*
-+ * Ensure the PMU has sane values out of reset.
-+ * This requires SMP to be available, so exists as a separate initcall.
-+ */
-+static int __init
-+cpu_pmu_reset(void)
-+{
-+=09if (cpu_pmu && cpu_pmu->reset)
-+=09=09return on_each_cpu(cpu_pmu->reset, NULL, 1);
-+=09return 0;
-+}
-+arch_initcall(cpu_pmu_reset);
-+
-+/*
-+ * PMU platform driver and devicetree bindings.
-+ */
-+static struct of_device_id armpmu_of_device_ids[] =3D {
-+=09{.compatible =3D "arm,armv8-pmuv3"},
-+=09{},
-+};
-+
-+static int __devinit armpmu_device_probe(struct platform_device *pdev)
-+{
-+=09if (!cpu_pmu)
-+=09=09return -ENODEV;
-+
-+=09cpu_pmu->plat_device =3D pdev;
-+=09return 0;
-+}
-+
-+static struct platform_driver armpmu_driver =3D {
-+=09.driver=09=09=3D {
-+=09=09.name=09=3D "arm-pmu",
-+=09=09.of_match_table =3D armpmu_of_device_ids,
-+=09},
-+=09.probe=09=09=3D armpmu_device_probe,
-+};
-+
-+static int __init register_pmu_driver(void)
-+{
-+=09return platform_driver_register(&armpmu_driver);
-+}
-+device_initcall(register_pmu_driver);
-+
-+static struct pmu_hw_events *armpmu_get_cpu_events(void)
-+{
-+=09return &__get_cpu_var(cpu_hw_events);
-+}
-+
-+static void __init cpu_pmu_init(struct arm_pmu *armpmu)
-+{
-+=09int cpu;
-+=09for_each_possible_cpu(cpu) {
-+=09=09struct pmu_hw_events *events =3D &per_cpu(cpu_hw_events, cpu);
-+=09=09events->events =3D per_cpu(hw_events, cpu);
-+=09=09events->used_mask =3D per_cpu(used_mask, cpu);
-+=09=09raw_spin_lock_init(&events->pmu_lock);
-+=09}
-+=09armpmu->get_hw_events =3D armpmu_get_cpu_events;
-+}
-+
-+static int __init init_hw_perf_events(void)
-+{
-+=09u64 dfr =3D read_cpuid(ID_AA64DFR0_EL1);
-+
-+=09switch ((dfr >> 8) & 0xf) {
-+=09case 0x1:=09/* PMUv3 */
-+=09=09cpu_pmu =3D armv8_pmuv3_pmu_init();
-+=09=09break;
-+=09}
-+
-+=09if (cpu_pmu) {
-+=09=09pr_info("enabled with %s PMU driver, %d counters available\n",
-+=09=09=09cpu_pmu->name, cpu_pmu->num_events);
-+=09=09cpu_pmu_init(cpu_pmu);
-+=09=09armpmu_register(cpu_pmu, "cpu", PERF_TYPE_RAW);
++=09if (fault & VM_FAULT_SIGBUS) {
++=09=09/*
++=09=09 * We had some memory, but were unable to successfully fix up
++=09=09 * this page fault.
++=09=09 */
++=09=09sig =3D SIGBUS;
++=09=09code =3D BUS_ADRERR;
 +=09} else {
-+=09=09pr_info("no hardware support available\n");
++=09=09/*
++=09=09 * Something tried to access memory that isn't in our memory
++=09=09 * map.
++=09=09 */
++=09=09sig =3D SIGSEGV;
++=09=09code =3D fault =3D=3D VM_FAULT_BADACCESS ?
++=09=09=09SEGV_ACCERR : SEGV_MAPERR;
 +=09}
 +
++=09__do_user_fault(tsk, addr, esr, sig, code, regs);
++=09return 0;
++
++no_context:
++=09__do_kernel_fault(mm, addr, esr, regs);
 +=09return 0;
 +}
-+early_initcall(init_hw_perf_events);
 +
 +/*
-+ * Callchain handling code.
-+ */
-+struct frame_tail {
-+=09struct frame_tail   __user *fp;
-+=09unsigned long=09    lr;
-+} __attribute__((packed));
-+
-+/*
-+ * Get the return address for a single stackframe and return a pointer to =
++ * First Level Translation Fault Handler
++ *
++ * We enter here because the first level page table doesn't contain a vali=
+d
++ * entry for the address.
++ *
++ * If the address is in kernel space (>=3D TASK_SIZE), then we are probabl=
+y
++ * faulting in the vmalloc() area.
++ *
++ * If the init_task's first level page tables contains the relevant entry,=
+ we
++ * copy the it to this task.  If not, we send the process a signal, fixup =
 the
-+ * next frame tail.
++ * exception, or oops the kernel.
++ *
++ * NOTE! We MUST NOT take any locks for this case. We may be in an interru=
+pt
++ * or a critical region, and should only copy the information from the mas=
+ter
++ * page table, nothing more.
 + */
-+static struct frame_tail __user *
-+user_backtrace(struct frame_tail __user *tail,
-+=09       struct perf_callchain_entry *entry)
++static int __kprobes do_translation_fault(unsigned long addr,
++=09=09=09=09=09  unsigned int esr,
++=09=09=09=09=09  struct pt_regs *regs)
 +{
-+=09struct frame_tail buftail;
-+=09unsigned long err;
++=09if (addr < TASK_SIZE)
++=09=09return do_page_fault(addr, esr, regs);
 +
-+=09/* Also check accessibility of one struct frame_tail beyond */
-+=09if (!access_ok(VERIFY_READ, tail, sizeof(buftail)))
-+=09=09return NULL;
-+
-+=09pagefault_disable();
-+=09err =3D __copy_from_user_inatomic(&buftail, tail, sizeof(buftail));
-+=09pagefault_enable();
-+
-+=09if (err)
-+=09=09return NULL;
-+
-+=09perf_callchain_store(entry, buftail.lr);
-+
-+=09/*
-+=09 * Frame pointers should strictly progress back up the stack
-+=09 * (towards higher addresses).
-+=09 */
-+=09if (tail >=3D buftail.fp)
-+=09=09return NULL;
-+
-+=09return buftail.fp;
++=09do_bad_area(addr, esr, regs);
++=09return 0;
 +}
 +
-+void perf_callchain_user(struct perf_callchain_entry *entry,
++/*
++ * Some section permission faults need to be handled gracefully.  They can
++ * happen due to a __{get,put}_user during an oops.
++ */
++static int do_sect_fault(unsigned long addr, unsigned int esr,
 +=09=09=09 struct pt_regs *regs)
 +{
-+=09struct frame_tail __user *tail;
-+
-+=09tail =3D (struct frame_tail __user *)regs->regs[29];
-+
-+=09while (entry->nr < PERF_MAX_STACK_DEPTH &&
-+=09       tail && !((unsigned long)tail & 0xf))
-+=09=09tail =3D user_backtrace(tail, entry);
-+}
-+
-+/*
-+ * Gets called by walk_stackframe() for every stackframe. This will be cal=
-led
-+ * whist unwinding the stackframe and is like a subroutine return so we us=
-e
-+ * the PC.
-+ */
-+static int callchain_trace(struct stackframe *frame, void *data)
-+{
-+=09struct perf_callchain_entry *entry =3D data;
-+=09perf_callchain_store(entry, frame->pc);
++=09do_bad_area(addr, esr, regs);
 +=09return 0;
 +}
 +
-+void perf_callchain_kernel(struct perf_callchain_entry *entry,
-+=09=09=09   struct pt_regs *regs)
++/*
++ * This abort handler always returns "fault".
++ */
++static int do_bad(unsigned long addr, unsigned int esr, struct pt_regs *re=
+gs)
 +{
-+=09struct stackframe frame;
-+
-+=09frame.fp =3D regs->regs[29];
-+=09frame.sp =3D regs->sp;
-+=09frame.pc =3D regs->pc;
-+=09walk_stackframe(&frame, callchain_trace, entry);
++=09return 1;
 +}
-diff --git a/tools/perf/perf.h b/tools/perf/perf.h
-index f960ccb..8c36763 100644
---- a/tools/perf/perf.h
-+++ b/tools/perf/perf.h
-@@ -88,6 +88,12 @@ void get_term_dimensions(struct winsize *ws);
- #define CPUINFO_PROC=09"Processor"
- #endif
-=20
-+#ifdef __aarch64__
-+#include "../../arch/arm64/include/asm/unistd.h"
-+#define rmb()=09=09asm volatile("dmb ld" ::: "memory")
-+#define cpu_relax()=09asm volatile("yield" ::: "memory")
-+#endif
 +
- #ifdef __mips__
- #include "../../arch/mips/include/asm/unistd.h"
- #define rmb()=09=09asm volatile(=09=09=09=09=09\
++static struct fault_info {
++=09int=09(*fn)(unsigned long addr, unsigned int esr, struct pt_regs *regs)=
+;
++=09int=09sig;
++=09int=09code;
++=09const char *name;
++} fault_info[] =3D {
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"ttbr address size fault"=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"level 1 address size fault"=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"level 2 address size fault"=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"level 3 address size fault"=09},
++=09{ do_translation_fault,=09SIGSEGV, SEGV_MAPERR,=09"input address range =
+fault"=09},
++=09{ do_translation_fault,=09SIGSEGV, SEGV_MAPERR,=09"level 1 translation =
+fault"=09},
++=09{ do_translation_fault,=09SIGSEGV, SEGV_MAPERR,=09"level 2 translation =
+fault"=09},
++=09{ do_page_fault,=09SIGSEGV, SEGV_MAPERR,=09"level 3 translation fault"=
+=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"reserved access flag fault"=09},
++=09{ do_bad,=09=09SIGSEGV, SEGV_ACCERR,=09"level 1 access flag fault"=09},
++=09{ do_bad,=09=09SIGSEGV, SEGV_ACCERR,=09"level 2 access flag fault"=09},
++=09{ do_page_fault,=09SIGSEGV, SEGV_ACCERR,=09"level 3 access flag fault"=
+=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"reserved permission fault"=09},
++=09{ do_bad,=09=09SIGSEGV, SEGV_ACCERR,=09"level 1 permission fault"=09},
++=09{ do_sect_fault,=09SIGSEGV, SEGV_ACCERR,=09"level 2 permission fault"=
+=09},
++=09{ do_page_fault,=09SIGSEGV, SEGV_ACCERR,=09"level 3 permission fault"=
+=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"synchronous external abort"=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"asynchronous external abort"=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 18"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 19"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"synchronous abort (translation table w=
+alk)" },
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"synchronous abort (translation table w=
+alk)" },
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"synchronous abort (translation table w=
+alk)" },
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"synchronous abort (translation table w=
+alk)" },
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"synchronous parity error"=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"asynchronous parity error"=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 26"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 27"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"synchronous parity error (translation =
+table walk" },
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"synchronous parity error (translation =
+table walk" },
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"synchronous parity error (translation =
+table walk" },
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"synchronous parity error (translation =
+table walk" },
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 32"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  BUS_ADRALN,=09"alignment fault"=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"debug event"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 35"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 36"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 37"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 38"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 39"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 40"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 41"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 42"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 43"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 44"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 45"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 46"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 47"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 48"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 49"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 50"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 51"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"implementation fault (lockdown abort)"=
+ },
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 53"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 54"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 55"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 56"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 57"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"implementation fault (coprocessor abor=
+t)" },
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 59"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 60"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 61"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 62"=09=09=09},
++=09{ do_bad,=09=09SIGBUS,  0,=09=09"unknown 63"=09=09=09},
++};
++
++/*
++ * Dispatch a data abort to the relevant handler.
++ */
++asmlinkage void __exception do_mem_abort(unsigned long addr, unsigned int =
+esr,
++=09=09=09=09=09 struct pt_regs *regs)
++{
++=09const struct fault_info *inf =3D fault_info + (esr & 63);
++=09struct siginfo info;
++
++=09if (!inf->fn(addr, esr, regs))
++=09=09return;
++
++=09pr_alert("Unhandled fault: %s (0x%08x) at 0x%016lx\n",
++=09=09 inf->name, esr, addr);
++
++=09info.si_signo =3D inf->sig;
++=09info.si_errno =3D 0;
++=09info.si_code  =3D inf->code;
++=09info.si_addr  =3D (void __user *)addr;
++=09arm64_notify_die("", regs, &info, esr);
++}
++
++/*
++ * Handle stack alignment exceptions.
++ */
++asmlinkage void __exception do_sp_pc_abort(unsigned long addr,
++=09=09=09=09=09   unsigned int esr,
++=09=09=09=09=09   struct pt_regs *regs)
++{
++=09struct siginfo info;
++
++=09info.si_signo =3D SIGBUS;
++=09info.si_errno =3D 0;
++=09info.si_code  =3D BUS_ADRALN;
++=09info.si_addr  =3D (void __user *)addr;
++=09arm64_notify_die("", regs, &info, esr);
++}
++
++static struct fault_info debug_fault_info[] =3D {
++=09{ do_bad,=09SIGTRAP,=09TRAP_HWBKPT,=09"hardware breakpoint"=09},
++=09{ do_bad,=09SIGTRAP,=09TRAP_HWBKPT,=09"hardware single-step"=09},
++=09{ do_bad,=09SIGTRAP,=09TRAP_HWBKPT,=09"hardware watchpoint"=09},
++=09{ do_bad,=09SIGBUS,=09=090,=09=09"unknown 3"=09=09},
++=09{ do_bad,=09SIGTRAP,=09TRAP_BRKPT,=09"aarch32 BKPT"=09=09},
++=09{ do_bad,=09SIGTRAP,=090,=09=09"aarch32 vector catch"=09},
++=09{ do_bad,=09SIGTRAP,=09TRAP_BRKPT,=09"aarch64 BRK"=09=09},
++=09{ do_bad,=09SIGBUS,=09=090,=09=09"unknown 7"=09=09},
++};
++
++void __init hook_debug_fault_code(int nr,
++=09=09=09=09  int (*fn)(unsigned long, unsigned int, struct pt_regs *),
++=09=09=09=09  int sig, int code, const char *name)
++{
++=09BUG_ON(nr < 0 || nr >=3D ARRAY_SIZE(debug_fault_info));
++
++=09debug_fault_info[nr].fn=09=09=3D fn;
++=09debug_fault_info[nr].sig=09=3D sig;
++=09debug_fault_info[nr].code=09=3D code;
++=09debug_fault_info[nr].name=09=3D name;
++}
++
++asmlinkage int __exception do_debug_exception(unsigned long addr,
++=09=09=09=09=09      unsigned int esr,
++=09=09=09=09=09      struct pt_regs *regs)
++{
++=09const struct fault_info *inf =3D debug_fault_info + DBG_ESR_EVT(esr);
++=09struct siginfo info;
++
++=09if (!inf->fn(addr, esr, regs))
++=09=09return 1;
++
++=09pr_alert("Unhandled debug exception: %s (0x%08x) at 0x%016lx\n",
++=09=09 inf->name, esr, addr);
++
++=09info.si_signo =3D inf->sig;
++=09info.si_errno =3D 0;
++=09info.si_code  =3D inf->code;
++=09info.si_addr  =3D (void __user *)addr;
++=09arm64_notify_die("", regs, &info, esr);
++
++=09return 0;
++}
+diff --git a/arch/arm64/mm/mm.h b/arch/arm64/mm/mm.h
+new file mode 100644
+index 0000000..c84f68b
+--- /dev/null
++++ b/arch/arm64/mm/mm.h
+@@ -0,0 +1,2 @@
++extern void __flush_dcache_page(struct address_space *mapping, struct page=
+ *page);
++extern void __init bootmem_init(void);
+diff --git a/arch/arm64/mm/mmap.c b/arch/arm64/mm/mmap.c
+new file mode 100644
+index 0000000..7c7be78
+--- /dev/null
++++ b/arch/arm64/mm/mmap.c
+@@ -0,0 +1,144 @@
++/*
++ * Based on arch/arm/mm/mmap.c
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/elf.h>
++#include <linux/fs.h>
++#include <linux/mm.h>
++#include <linux/mman.h>
++#include <linux/export.h>
++#include <linux/shm.h>
++#include <linux/sched.h>
++#include <linux/io.h>
++#include <linux/personality.h>
++#include <linux/random.h>
++
++#include <asm/cputype.h>
++
++/*
++ * Leave enough space between the mmap area and the stack to honour ulimit=
+ in
++ * the face of randomisation.
++ */
++#define MIN_GAP (SZ_128M + ((STACK_RND_MASK << PAGE_SHIFT) + 1))
++#define MAX_GAP=09(STACK_TOP/6*5)
++
++static int mmap_is_legacy(void)
++{
++=09if (current->personality & ADDR_COMPAT_LAYOUT)
++=09=09return 1;
++
++=09if (rlimit(RLIMIT_STACK) =3D=3D RLIM_INFINITY)
++=09=09return 1;
++
++=09return sysctl_legacy_va_layout;
++}
++
++/*
++ * Since get_random_int() returns the same value within a 1 jiffy window, =
+we
++ * will almost always get the same randomisation for the stack and mmap
++ * region. This will mean the relative distance between stack and mmap wil=
+l be
++ * the same.
++ *
++ * To avoid this we can shift the randomness by 1 bit.
++ */
++static unsigned long mmap_rnd(void)
++{
++=09unsigned long rnd =3D 0;
++
++=09if (current->flags & PF_RANDOMIZE)
++=09=09rnd =3D (long)get_random_int() & (STACK_RND_MASK >> 1);
++
++=09return rnd << (PAGE_SHIFT + 1);
++}
++
++static unsigned long mmap_base(void)
++{
++=09unsigned long gap =3D rlimit(RLIMIT_STACK);
++
++=09if (gap < MIN_GAP)
++=09=09gap =3D MIN_GAP;
++=09else if (gap > MAX_GAP)
++=09=09gap =3D MAX_GAP;
++
++=09return PAGE_ALIGN(STACK_TOP - gap - mmap_rnd());
++}
++
++/*
++ * This function, called very early during the creation of a new process V=
+M
++ * image, sets up which VM layout function to use:
++ */
++void arch_pick_mmap_layout(struct mm_struct *mm)
++{
++=09/*
++=09 * Fall back to the standard layout if the personality bit is set, or
++=09 * if the expected stack growth is unlimited:
++=09 */
++=09if (mmap_is_legacy()) {
++=09=09mm->mmap_base =3D TASK_UNMAPPED_BASE;
++=09=09mm->get_unmapped_area =3D arch_get_unmapped_area;
++=09=09mm->unmap_area =3D arch_unmap_area;
++=09} else {
++=09=09mm->mmap_base =3D mmap_base();
++=09=09mm->get_unmapped_area =3D arch_get_unmapped_area_topdown;
++=09=09mm->unmap_area =3D arch_unmap_area_topdown;
++=09}
++}
++EXPORT_SYMBOL_GPL(arch_pick_mmap_layout);
++
++
++/*
++ * You really shouldn't be using read() or write() on /dev/mem.  This migh=
+t go
++ * away in the future.
++ */
++int valid_phys_addr_range(unsigned long addr, size_t size)
++{
++=09if (addr < PHYS_OFFSET)
++=09=09return 0;
++=09if (addr + size > __pa(high_memory - 1) + 1)
++=09=09return 0;
++
++=09return 1;
++}
++
++/*
++ * Do not allow /dev/mem mappings beyond the supported physical range.
++ */
++int valid_mmap_phys_addr_range(unsigned long pfn, size_t size)
++{
++=09return !(((pfn << PAGE_SHIFT) + size) & ~PHYS_MASK);
++}
++
++#ifdef CONFIG_STRICT_DEVMEM
++
++#include <linux/ioport.h>
++
++/*
++ * devmem_is_allowed() checks to see if /dev/mem access to a certain addre=
+ss
++ * is valid. The argument is a physical page number.  We mimic x86 here by
++ * disallowing access to system RAM as well as device-exclusive MMIO regio=
+ns.
++ * This effectively disable read()/write() on /dev/mem.
++ */
++int devmem_is_allowed(unsigned long pfn)
++{
++=09if (iomem_is_exclusive(pfn << PAGE_SHIFT))
++=09=09return 0;
++=09if (!page_is_ram(pfn))
++=09=09return 1;
++=09return 0;
++}
++
++#endif
+diff --git a/arch/arm64/mm/pgd.c b/arch/arm64/mm/pgd.c
+new file mode 100644
+index 0000000..7a7b0e9
+--- /dev/null
++++ b/arch/arm64/mm/pgd.c
+@@ -0,0 +1,49 @@
++/*
++ * PGD allocation/freeing
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ * Author: Catalin Marinas <catalin.marinas@arm.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/mm.h>
++#include <linux/gfp.h>
++#include <linux/highmem.h>
++#include <linux/slab.h>
++
++#include <asm/pgalloc.h>
++#include <asm/page.h>
++#include <asm/tlbflush.h>
++
++#include "mm.h"
++
++#define PGD_ORDER=090
++
++pgd_t *pgd_alloc(struct mm_struct *mm)
++{
++=09pgd_t *new_pgd;
++
++=09new_pgd =3D (pgd_t *)__get_free_pages(GFP_KERNEL, PGD_ORDER);
++=09if (!new_pgd)
++=09=09return NULL;
++
++=09memset(new_pgd, 0, PAGE_SIZE << PGD_ORDER);
++
++=09return new_pgd;
++}
++
++void pgd_free(struct mm_struct *mm, pgd_t *pgd)
++{
++=09free_pages((unsigned long)pgd, PGD_ORDER);
++}
 
