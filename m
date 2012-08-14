@@ -1,50 +1,25 @@
-From: David Daney <ddaney.cavm@gmail.com>
-Subject: [PATCH 1/2] vmlinux.lds.h: Allow architectures to add sections to the front of .bss
-Date: Tue, 14 Aug 2012 11:08:00 -0700
-Message-ID: <1344967681-13179-2-git-send-email-ddaney.cavm@gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 0/2] Align MIPS swapper_pg_dir for faster code.
+Date: Tue, 14 Aug 2012 18:39:41 +0000
+Message-ID: <201208141839.41441.arnd@arndb.de>
 References: <1344967681-13179-1-git-send-email-ddaney.cavm@gmail.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.187]:52825 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757066Ab2HNSjz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 14:39:55 -0400
 In-Reply-To: <1344967681-13179-1-git-send-email-ddaney.cavm@gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-mips@linux-mips.org, ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Cc: David Daney <david.daney@cavium.com>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Daney <ddaney.cavm@gmail.com>
+Cc: linux-mips@linux-mips.org, ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Daney <david.daney@cavium.com>
 
-From: David Daney <david.daney@cavium.com>
+On Tuesday 14 August 2012, David Daney wrote:
+> Since the initial use of the code is for MIPS, perhaps both parts
+> could be merged by Ralf's tree (after collecting any Acked-bys).
 
-Follow-on MIPS patch will put an object here that needs 64K alignment
-to minimize padding.
-
-For those architectures that don't define BSS_FIRST_SECTIONS, there is
-no change.
-
-Signed-off-by: David Daney <david.daney@cavium.com>
----
- include/asm-generic/vmlinux.lds.h |    9 +++++++++
- 1 files changed, 9 insertions(+), 0 deletions(-)
-
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index 4e2e1cc..d1ea7ce 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -530,9 +530,18 @@
- 		*(.scommon)						\
- 	}
- 
-+/*
-+ * Allow archectures to redefine BSS_FIRST_SECTIONS to add extra
-+ * sections to the front of bss.
-+ */
-+#ifndef BSS_FIRST_SECTIONS
-+#define BSS_FIRST_SECTIONS
-+#endif
-+
- #define BSS(bss_align)							\
- 	. = ALIGN(bss_align);						\
- 	.bss : AT(ADDR(.bss) - LOAD_OFFSET) {				\
-+		BSS_FIRST_SECTIONS					\
- 		*(.bss..page_aligned)					\
- 		*(.dynbss)						\
- 		*(.bss)							\
--- 
-1.7.2.3
+Acked-by: Arnd Bergmann <arnd@arndb.de>
