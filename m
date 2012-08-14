@@ -1,124 +1,82 @@
-From: Fengguang Wu <fengguang.wu@intel.com>
-Subject: Re: Architectures missing atomic64_t
-Date: Tue, 14 Aug 2012 22:57:15 +0800
-Message-ID: <20120814145715.GA16834@localhost>
-References: <20120812145023.GA17077@localhost>
- <87k3x3z3de.fsf@xmission.com>
- <20120813133910.GA30532@localhost>
- <63f9e712-3cd1-4020-9df6-8fb8d9c3f1ec@email.android.com>
- <20120813175516.GA32757@localhost>
- <20120813181343.GA2055@localhost>
- <877gt2y5hc.fsf_-_@xmission.com>
+From: Oliver Hartkopp <socketcan@hartkopp.net>
+Subject: Re: [GIT PULL] Disintegrate the User API from the kernel headers
+Date: Tue, 14 Aug 2012 19:26:40 +0200
+Message-ID: <502A8A50.4080308@hartkopp.net>
+References: <5725.1343931663@warthog.procyon.org.uk> <27564.1343122707@warthog.procyon.org.uk> <31633.1344950521@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga01.intel.com ([192.55.52.88]:30981 "EHLO mga01.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753118Ab2HNO5Z (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 14 Aug 2012 10:57:25 -0400
-Content-Disposition: inline
-In-Reply-To: <877gt2y5hc.fsf_-_@xmission.com>
+Received: from mo-p00-ob.rzone.de ([81.169.146.161]:48763 "EHLO
+	mo-p00-ob.rzone.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755351Ab2HNR0l (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 13:26:41 -0400
+In-Reply-To: <31633.1344950521@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, kernel-janitors@vger.kernel.org, Greg Ungerer <gerg@uclinux.org>, linux-m68k@lists.linux-m68k.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@osdl.org, mkl@pengutronix.de, arnd@arndb.de, tglx@linutronix.de, mtk.manpages@gmail.com, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Mon, Aug 13, 2012 at 12:08:47PM -0700, Eric W. Biederman wrote:
-> Fengguang Wu <fengguang.wu@intel.com> writes:
-> 
-> > On Tue, Aug 14, 2012 at 01:55:16AM +0800, Fengguang Wu wrote:
-> >> > >I'd suggest to fix it in m68k and make atomic64_t generally available.
-> >> > 
-> >> > Fengguang in your testing on any architechtures is atomic64_t missing on anything except some m68k subarchtechtures?
-> >> 
-> >> Eric, it only complaints for m68k, among the architechtures the build
-> >> tests covered (alpha arm avr32 blackfin cris frv h8300 i386 ia64 m32r
-> >> m68k mips mn10300 openrisc parisc powerpc s390 sh sparc sparc64 tile
-> >> um x86_64 xtensa).
-> >
-> > Sorry, I must missed something (in my system, build errors are only
-> > recorded on first sight)..
-> >
-> > wfg /c/linux% for arch in arch/*/; do grep -ir -q atomic64 $arch || echo $arch; done
-> > arch/c6x/
-> > arch/h8300/
-> > arch/mn10300/
-> > arch/score/
-> > arch/unicore32/
-> >
-> > So the above archs are likely still missing atomic64_t support.
-> > However it should be trivial to add support to them, by adding
-> > "select GENERIC_ATOMIC64" lines to them.
-> 
-> So I just looked a little deeper and it appears architectures that do
-> not support atomic64_t are broken.
-> 
-> The generic atomic64 support came in 2009 to support the perf subsystem
-> with the expectation that all architectures would implement atomic64
-> support.
-> 
-> Furthermore upon inspection of the kernel atomic64_t is used in a fair
-> number of places beyond the performance counters:
-> block/blk-cgroup.c
-> drivers/acpi/apei/
-> drivers/block/rbd.c
-> drivers/crypto/nx/nx.h
-> drivers/gpu/drm/radeon/radeon.h
-> drivers/infiniband/hw/ipath/
-> drivers/infiniband/hw/qib/
-> drivers/staging/octeon/
-> fs/xfs/
-> include/linux/perf_event.h
-> include/net/netfilter/nf_conntrack_acct.h
-> kernel/events/
-> kernel/trace/
-> net/mac80211/key.h
-> net/rds/
-> 
-> The block control group, infiniband, xfs, crypto, 802.11, netfilter.
-> Nothing quite so fundamental as fs/namespace.c but definitely in
-> multiplatform-code that should work, and is already broken on those
-> architecutres.
-> 
-> Looking at the implementation of atomic64_add_return in lib/atomic64.c
-> the code looks as efficient as these kinds of things get.
-> 
-> Which leads me to the conclusion that we need atomic64 support on all
-> architectures.
+On 14.08.2012 15:22, David Howells wrote:
 
-Agreed.
-
-> Arch folks can you please take care of your achitectures and ensure
-> that atomic64_t is supported?
-
-Since I can test h8300 and mn10300, I'll do patches for them.
-
-CC score and unicore32 maintainers.
-
-Thanks,
-Fengguang
-
-> Eric
+> Hi Linus,
 > 
-> commit 09d4e0edd4614e787393acc582ac701c6ec3565b
-> Author: Paul Mackerras <paulus@samba.org>
-> Date:   Fri Jun 12 21:10:05 2009 +0000
+>>> Could you please pull this tree at the _end_ of this merge window?
+>>>
+>>> The patches therein extract the Userspace API bits from the various header
+>>> files named in the Kbuild files and separate them out into their own files.
+>>> The original files are then given #includes to the new files.
+>>
+>> I've been keeping this regenerated.  Assuming nothing more is pulled in this
+>> merge window, it is ready to pull and should just apply on top of your tree.
+>> If you do pull more, it will likely need regenerating again.
 > 
->     lib: Provide generic atomic64_t implementation
->     
->     Many processor architectures have no 64-bit atomic instructions, but
->     we need atomic64_t in order to support the perf_counter subsystem.
->     
->     This adds an implementation of 64-bit atomic operations using hashed
->     spinlocks to provide atomicity.  For each atomic operation, the address
->     of the atomic64_t variable is hashed to an index into an array of 16
->     spinlocks.  That spinlock is taken (with interrupts disabled) around the
->     operation, which can then be coded non-atomically within the lock.
->     
->     On UP, all the spinlock manipulation goes away and we simply disable
->     interrupts around each operation.  In fact gcc eliminates the whole
->     atomic64_lock variable as well.
->     
->     Signed-off-by: Paul Mackerras <paulus@samba.org>
->     Signed-off-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+> Are you still considering pulling this?  Some of the patches needed tweaking
+> to apply due to fixes you've pulled changing headers, so I've regenerated the
+> patches again on top of your tree as of the morning of the 14th (UK time).
+> See tag:
 > 
+> 	uapi-post-split-20120814
+> 
+> The old tags are still around.  Interestingly,
+> 
+> 	git diff uapi-post-split-201208{03,14} -- arch/*/include include >/tmp/a.diff
+> 
+> shows a change in the user API for linux/can.h:
+> 
+> -#define CANFD_NOHDR 0x01 /* frame without high data rate */
+> -#define CANFD_NOEDL 0x02 /* frame without extended data length */
+> -#define CANFD_ESI   0x04 /* error state indicator */
+> +#define CANFD_BRS 0x01 /* bit rate switch (second bitrate for payload data) */
+> +#define CANFD_ESI 0x02 /* error state indicator of the transmitting node */
+> 
+> from commit 035534ed3377d9def2c17717899fd64a111a785b.  Is this permissible as
+> it breaks the userspace API?  Should this part of the patch be reverted?
+> 
+> I compile tested with x86_64 allyesconfig and i386 allmodconfig in the source
+> dir, and arm, m68k, ia64 and s390 defconfigs + CONFIG_HEADERS_CHECK in a
+> separate build directory.
+> 
+> David
+
+
+Hello David,
+
+the defines have been integrated in his 3.6 merge window and have been changed
+the way above after 3.6-rc1 and are now pulled into Linus tree.
+
+The defines are relevant for upcoming tools and drivers (for hardware that
+will become available in Q4/2012). So we're currently not breaking any
+Userspace API. After it turned out that one of the bits was misleading i
+wanted to fix the bits ASAP, so that the final 3.6 will contain the agreed
+information and final userspace API for CAN FD.
+
+Currently no-one is referencing these bits inside the kernel. And the only one
+that's working on adapting the userspace tools is currently me :-)
+
+So no need to revert anything ...
+
+Sorry for the confusion this caused for your process.
+
+Best regards,
+Oliver
