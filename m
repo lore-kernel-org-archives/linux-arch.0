@@ -1,7 +1,7 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v2 16/31] arm64: ELF definitions
-Date: Tue, 14 Aug 2012 18:52:17 +0100
-Message-ID: <1344966752-16102-17-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v2 12/31] arm64: Atomic operations
+Date: Tue, 14 Aug 2012 18:52:13 +0100
+Message-ID: <1344966752-16102-13-git-send-email-catalin.marinas@arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
 Content-Type: text/plain; charset=WINDOWS-1252
 Content-Transfer-Encoding: quoted-printable
@@ -12,36 +12,32 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds definitions for the ELF format, including personality
-personality setting and EXEC_PAGESIZE. The are only two hwcap
-definitions for 64-bit applications - HWCAP_FP and HWCAP_ASIMD.
+This patch introduces the atomic, mutex and futex operations. Many
+atomic operations use the load-acquire and store-release operations
+which imply barriers, avoiding the need for explicit DMB.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/include/asm/auxvec.h   |   22 +++++
- arch/arm64/include/asm/elf.h      |  176 +++++++++++++++++++++++++++++++++=
+ arch/arm64/include/asm/atomic.h |  306 +++++++++++++++++++++++++++++++++++=
 ++++
- arch/arm64/include/asm/hwcap.h    |   57 ++++++++++++
- arch/arm64/include/asm/param.h    |   23 +++++
- arch/arm64/include/asm/shmparam.h |   28 ++++++
- arch/arm64/kernel/elf.c           |   41 +++++++++
- 6 files changed, 347 insertions(+), 0 deletions(-)
- create mode 100644 arch/arm64/include/asm/auxvec.h
- create mode 100644 arch/arm64/include/asm/elf.h
- create mode 100644 arch/arm64/include/asm/hwcap.h
- create mode 100644 arch/arm64/include/asm/param.h
- create mode 100644 arch/arm64/include/asm/shmparam.h
- create mode 100644 arch/arm64/kernel/elf.c
+ arch/arm64/include/asm/futex.h  |  134 +++++++++++++++++
+ 2 files changed, 440 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/atomic.h
+ create mode 100644 arch/arm64/include/asm/futex.h
 
-diff --git a/arch/arm64/include/asm/auxvec.h b/arch/arm64/include/asm/auxve=
+diff --git a/arch/arm64/include/asm/atomic.h b/arch/arm64/include/asm/atomi=
 c.h
 new file mode 100644
-index 0000000..22d6d88
+index 0000000..fa60c8b
 --- /dev/null
-+++ b/arch/arm64/include/asm/auxvec.h
-@@ -0,0 +1,22 @@
++++ b/arch/arm64/include/asm/atomic.h
+@@ -0,0 +1,306 @@
 +/*
++ * Based on arch/arm/include/asm/atomic.h
++ *
++ * Copyright (C) 1996 Russell King.
++ * Copyright (C) 2002 Deep Blue Solutions Ltd.
 + * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -56,374 +52,435 @@ index 0000000..22d6d88
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_AUXVEC_H
-+#define __ASM_AUXVEC_H
++#ifndef __ASM_ATOMIC_H
++#define __ASM_ATOMIC_H
 +
-+/* vDSO location */
-+#define AT_SYSINFO_EHDR=0933
++#include <linux/compiler.h>
++#include <linux/types.h>
 +
-+#endif
-diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
-new file mode 100644
-index 0000000..9d62a7a
---- /dev/null
-+++ b/arch/arm64/include/asm/elf.h
-@@ -0,0 +1,176 @@
-+/*
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+#ifndef __ASM_ELF_H
-+#define __ASM_ELF_H
++#include <asm/barrier.h>
++#include <asm/cmpxchg.h>
 +
-+#include <asm/hwcap.h>
++#define ATOMIC_INIT(i)=09{ (i) }
++
++#ifdef __KERNEL__
 +
 +/*
-+ * ELF register definitions..
++ * On ARM, ordinary assignment (str instruction) doesn't clear the local
++ * strex/ldrex monitor on some implementations. The reason we can use it f=
+or
++ * atomic_set() is the clrex or dummy strex done on every exception return=
+.
 + */
-+#include <asm/ptrace.h>
-+#include <asm/user.h>
-+
-+typedef unsigned long elf_greg_t;
-+typedef unsigned long elf_freg_t[3];
-+
-+#define ELF_NGREG (sizeof (struct pt_regs) / sizeof(elf_greg_t))
-+typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-+
-+typedef struct user_fp elf_fpregset_t;
-+
-+#define EM_AARCH64=09=09183
++#define atomic_read(v)=09(*(volatile int *)&(v)->counter)
++#define atomic_set(v,i)=09(((v)->counter) =3D (i))
 +
 +/*
-+ * AArch64 static relocation types.
++ * AArch64 UP and SMP safe atomic ops.  We use load exclusive and
++ * store exclusive to ensure that these are atomic.  We may loop
++ * to ensure that the update happens.
 + */
-+
-+/* Miscellaneous. */
-+#define R_ARM_NONE=09=09=090
-+#define R_AARCH64_NONE=09=09=09256
-+
-+/* Data. */
-+#define R_AARCH64_ABS64=09=09=09257
-+#define R_AARCH64_ABS32=09=09=09258
-+#define R_AARCH64_ABS16=09=09=09259
-+#define R_AARCH64_PREL64=09=09260
-+#define R_AARCH64_PREL32=09=09261
-+#define R_AARCH64_PREL16=09=09262
-+
-+/* Instructions. */
-+#define R_AARCH64_MOVW_UABS_G0=09=09263
-+#define R_AARCH64_MOVW_UABS_G0_NC=09264
-+#define R_AARCH64_MOVW_UABS_G1=09=09265
-+#define R_AARCH64_MOVW_UABS_G1_NC=09266
-+#define R_AARCH64_MOVW_UABS_G2=09=09267
-+#define R_AARCH64_MOVW_UABS_G2_NC=09268
-+#define R_AARCH64_MOVW_UABS_G3=09=09269
-+
-+#define R_AARCH64_MOVW_SABS_G0=09=09270
-+#define R_AARCH64_MOVW_SABS_G1=09=09271
-+#define R_AARCH64_MOVW_SABS_G2=09=09272
-+
-+#define R_AARCH64_LD_PREL_LO19=09=09273
-+#define R_AARCH64_ADR_PREL_LO21=09=09274
-+#define R_AARCH64_ADR_PREL_PG_HI21=09275
-+#define R_AARCH64_ADR_PREL_PG_HI21_NC=09276
-+#define R_AARCH64_ADD_ABS_LO12_NC=09277
-+#define R_AARCH64_LDST8_ABS_LO12_NC=09278
-+
-+#define R_AARCH64_TSTBR14=09=09279
-+#define R_AARCH64_CONDBR19=09=09280
-+#define R_AARCH64_JUMP26=09=09282
-+#define R_AARCH64_CALL26=09=09283
-+#define R_AARCH64_LDST16_ABS_LO12_NC=09284
-+#define R_AARCH64_LDST32_ABS_LO12_NC=09285
-+#define R_AARCH64_LDST64_ABS_LO12_NC=09286
-+#define R_AARCH64_LDST128_ABS_LO12_NC=09299
-+
-+#define R_AARCH64_MOVW_PREL_G0=09=09287
-+#define R_AARCH64_MOVW_PREL_G0_NC=09288
-+#define R_AARCH64_MOVW_PREL_G1=09=09289
-+#define R_AARCH64_MOVW_PREL_G1_NC=09290
-+#define R_AARCH64_MOVW_PREL_G2=09=09291
-+#define R_AARCH64_MOVW_PREL_G2_NC=09292
-+#define R_AARCH64_MOVW_PREL_G3=09=09293
-+
-+
-+/*
-+ * These are used to set parameters in the core dumps.
-+ */
-+#define ELF_CLASS=09ELFCLASS64
-+#define ELF_DATA=09ELFDATA2LSB
-+#define ELF_ARCH=09EM_AARCH64
-+
-+#define ELF_PLATFORM_SIZE=0916
-+#define ELF_PLATFORM=09=09("aarch64")
-+
-+/*
-+ * This is used to ensure we don't load something for the wrong architectu=
-re.
-+ */
-+#define elf_check_arch(x)=09=09((x)->e_machine =3D=3D EM_AARCH64)
-+
-+#define elf_read_implies_exec(ex,stk)=09(stk !=3D EXSTACK_DISABLE_X)
-+
-+#define CORE_DUMP_USE_REGSET
-+#define ELF_EXEC_PAGESIZE=09PAGE_SIZE
-+
-+/*
-+ * This is the location that an ET_DYN program is loaded if exec'ed.  Typi=
-cal
-+ * use of this is to invoke "./ld.so someprog" to test out a new version o=
-f
-+ * the loader.  We need to make sure that it is out of the way of the prog=
-ram
-+ * that it will "exec", and that there is sufficient room for the brk.
-+ */
-+extern unsigned long randomize_et_dyn(unsigned long base);
-+#define ELF_ET_DYN_BASE=09(randomize_et_dyn(2 * TASK_SIZE_64 / 3))
-+
-+/*
-+ * When the program starts, a1 contains a pointer to a function to be
-+ * registered with atexit, as per the SVR4 ABI.  A value of 0 means we hav=
-e no
-+ * such handler.
-+ */
-+#define ELF_PLAT_INIT(_r, load_addr)=09(_r)->regs[0] =3D 0
-+
-+extern void=09=09=09=09elf_set_personality(int personality);
-+#define SET_PERSONALITY(ex)=09=09elf_set_personality(PER_LINUX)
-+
-+#define ARCH_DLINFO=09=09=09=09=09=09=09\
-+do {=09=09=09=09=09=09=09=09=09\
-+=09NEW_AUX_ENT(AT_SYSINFO_EHDR,=09=09=09=09=09\
-+=09=09    (elf_addr_t)current->mm->context.vdso);=09=09\
-+} while (0)
-+
-+#define ARCH_HAS_SETUP_ADDITIONAL_PAGES
-+struct linux_binprm;
-+extern int arch_setup_additional_pages(struct linux_binprm *bprm,
-+=09=09=09=09       int uses_interp);
-+
-+/* 1GB of VA */
-+#define STACK_RND_MASK=09=09=09(test_thread_flag(TIF_32BIT) ? \
-+=09=09=09=09=09=090x7ff >> (PAGE_SHIFT - 12) : \
-+=09=09=09=09=09=090x3ffff >> (PAGE_SHIFT - 12))
-+
-+struct mm_struct;
-+extern unsigned long arch_randomize_brk(struct mm_struct *mm);
-+#define arch_randomize_brk arch_randomize_brk
-+
-+#ifdef CONFIG_AARCH32_EMULATION
-+#define EM_ARM=09=09=09=0940
-+#define COMPAT_ELF_PLATFORM=09=09("v8l")
-+
-+#define COMPAT_ELF_ET_DYN_BASE=09=09(randomize_et_dyn(2 * TASK_SIZE_32 / 3=
-))
-+
-+/* AArch32 registers. */
-+#define COMPAT_ELF_NGREG=09=0918
-+typedef unsigned int=09=09=09compat_elf_greg_t;
-+typedef compat_elf_greg_t=09=09compat_elf_gregset_t[COMPAT_ELF_NGREG];
-+
-+/* AArch32 EABI. */
-+#define EF_ARM_EABI_MASK=09=090xff000000
-+#define compat_elf_check_arch(x)=09(((x)->e_machine =3D=3D EM_ARM) && \
-+=09=09=09=09=09 ((x)->e_flags & EF_ARM_EABI_MASK))
-+
-+#define compat_start_thread=09=09compat_start_thread
-+#define COMPAT_SET_PERSONALITY(ex)=09elf_set_personality(PER_LINUX32)
-+#define COMPAT_ARCH_DLINFO
-+extern int aarch32_setup_vectors_page(struct linux_binprm *bprm,
-+=09=09=09=09      int uses_interp);
-+#define compat_arch_setup_additional_pages \
-+=09=09=09=09=09aarch32_setup_vectors_page
-+
-+#endif /* CONFIG_AARCH32_EMULATION */
-+
-+#endif
-diff --git a/arch/arm64/include/asm/hwcap.h b/arch/arm64/include/asm/hwcap.=
-h
-new file mode 100644
-index 0000000..0cc7c03
---- /dev/null
-+++ b/arch/arm64/include/asm/hwcap.h
-@@ -0,0 +1,57 @@
-+/*
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+#ifndef __ASM_HWCAP_H
-+#define __ASM_HWCAP_H
-+
-+/*
-+ * HWCAP flags - for elf_hwcap (in kernel) and AT_HWCAP
-+ */
-+#define HWCAP_FP=09=09(1 << 0)
-+#define HWCAP_ASIMD=09=09(1 << 1)
-+
-+#ifdef CONFIG_AARCH32_EMULATION
-+#define COMPAT_HWCAP_HALF=09(1 << 1)
-+#define COMPAT_HWCAP_THUMB=09(1 << 2)
-+#define COMPAT_HWCAP_FAST_MULT=09(1 << 4)
-+#define COMPAT_HWCAP_VFP=09(1 << 6)
-+#define COMPAT_HWCAP_EDSP=09(1 << 7)
-+#define COMPAT_HWCAP_NEON=09(1 << 12)
-+#define COMPAT_HWCAP_VFPv3=09(1 << 13)
-+#define COMPAT_HWCAP_TLS=09(1 << 15)
-+#define COMPAT_HWCAP_VFPv4=09(1 << 16)
-+#define COMPAT_HWCAP_IDIVA=09(1 << 17)
-+#define COMPAT_HWCAP_IDIVT=09(1 << 18)
-+#define COMPAT_HWCAP_IDIV=09(COMPAT_HWCAP_IDIVA|COMPAT_HWCAP_IDIVT)
-+
-+#endif /* CONFIG_AARCH32_EMULATION */
-+
-+#if defined(__KERNEL__) && !defined(__ASSEMBLY__)
-+/*
-+ * This yields a mask that user programs can use to figure out what
-+ * instruction set this cpu supports.
-+ */
-+#define ELF_HWCAP=09=09(elf_hwcap)
-+#ifdef CONFIG_AARCH32_EMULATION
-+#define COMPAT_ELF_HWCAP=09(COMPAT_HWCAP_HALF|COMPAT_HWCAP_THUMB|\
-+=09=09=09=09 COMPAT_HWCAP_FAST_MULT|COMPAT_HWCAP_EDSP|\
-+=09=09=09=09 COMPAT_HWCAP_TLS|COMPAT_HWCAP_VFP|\
-+=09=09=09=09 COMPAT_HWCAP_VFPv3|COMPAT_HWCAP_VFPv4|\
-+=09=09=09=09 COMPAT_HWCAP_NEON|COMPAT_HWCAP_IDIV)
-+#endif
-+extern unsigned int elf_hwcap;
-+#endif
-+
-+#endif
-diff --git a/arch/arm64/include/asm/param.h b/arch/arm64/include/asm/param.=
-h
-new file mode 100644
-index 0000000..8e3a281
---- /dev/null
-+++ b/arch/arm64/include/asm/param.h
-@@ -0,0 +1,23 @@
-+/*
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+#ifndef __ASM_PARAM_H
-+#define __ASM_PARAM_H
-+
-+#define EXEC_PAGESIZE=0965536
-+
-+#include <asm-generic/param.h>
-+
-+#endif
-diff --git a/arch/arm64/include/asm/shmparam.h b/arch/arm64/include/asm/shm=
-param.h
-new file mode 100644
-index 0000000..4df608a
---- /dev/null
-+++ b/arch/arm64/include/asm/shmparam.h
-@@ -0,0 +1,28 @@
-+/*
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+#ifndef __ASM_SHMPARAM_H
-+#define __ASM_SHMPARAM_H
-+
-+/*
-+ * For IPC syscalls from compat tasks, we need to use the legacy 16k
-+ * alignment value. Since we don't have aliasing D-caches, the rest of
-+ * the time we can safely use PAGE_SIZE.
-+ */
-+#define COMPAT_SHMLBA=090x4000
-+
-+#include <asm-generic/shmparam.h>
-+
-+#endif /* __ASM_SHMPARAM_H */
-diff --git a/arch/arm64/kernel/elf.c b/arch/arm64/kernel/elf.c
-new file mode 100644
-index 0000000..6f98076
---- /dev/null
-+++ b/arch/arm64/kernel/elf.c
-@@ -0,0 +1,41 @@
-+/*
-+ * ELF personality setting
-+ *
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+#include <linux/export.h>
-+#include <linux/sched.h>
-+#include <linux/personality.h>
-+#include <linux/binfmts.h>
-+#include <linux/elf.h>
-+
-+void elf_set_personality(int personality)
++static inline void atomic_add(int i, atomic_t *v)
 +{
-+=09switch (personality & PER_MASK) {
-+=09case PER_LINUX:
-+=09=09clear_thread_flag(TIF_32BIT);
++=09unsigned long tmp;
++=09int result;
++
++=09asm volatile("// atomic_add\n"
++"1:=09ldxr=09%w0, [%3]\n"
++"=09add=09%w0, %w0, %w4\n"
++"=09stxr=09%w1, %w0, [%3]\n"
++"=09cbnz=09%w1,1b"
++=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
++=09: "r" (&v->counter), "Ir" (i)
++=09: "cc");
++}
++
++static inline int atomic_add_return(int i, atomic_t *v)
++{
++=09unsigned long tmp;
++=09int result;
++
++=09asm volatile("// atomic_add_return\n"
++"1:=09ldaxr=09%w0, [%3]\n"
++"=09add=09%w0, %w0, %w4\n"
++"=09stlxr=09%w1, %w0, [%3]\n"
++"=09cbnz=09%w1, 1b"
++=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
++=09: "r" (&v->counter), "Ir" (i)
++=09: "cc");
++
++=09return result;
++}
++
++static inline void atomic_sub(int i, atomic_t *v)
++{
++=09unsigned long tmp;
++=09int result;
++
++=09asm volatile("// atomic_sub\n"
++"1:=09ldxr=09%w0, [%3]\n"
++"=09sub=09%w0, %w0, %w4\n"
++"=09stxr=09%w1, %w0, [%3]\n"
++"=09cbnz=09%w1, 1b"
++=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
++=09: "r" (&v->counter), "Ir" (i)
++=09: "cc");
++}
++
++static inline int atomic_sub_return(int i, atomic_t *v)
++{
++=09unsigned long tmp;
++=09int result;
++
++=09asm volatile("// atomic_sub_return\n"
++"1:=09ldaxr=09%w0, [%3]\n"
++"=09sub=09%w0, %w0, %w4\n"
++"=09stlxr=09%w1, %w0, [%3]\n"
++"=09cbnz=09%w1, 1b"
++=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
++=09: "r" (&v->counter), "Ir" (i)
++=09: "cc");
++
++=09return result;
++}
++
++static inline int atomic_cmpxchg(atomic_t *ptr, int old, int new)
++{
++=09unsigned long tmp;
++=09int oldval;
++
++=09asm volatile("// atomic_cmpxchg\n"
++"1:=09ldaxr=09%w1, [%3]\n"
++"=09cmp=09%w1, %w4\n"
++"=09b.ne=092f\n"
++"=09stlxr=09%w0, %w5, [%3]\n"
++"=09cbnz=09%w0, 1b\n"
++"2:"
++=09: "=3D&r" (tmp), "=3D&r" (oldval), "+o" (ptr->counter)
++=09: "r" (&ptr->counter), "Ir" (old), "r" (new)
++=09: "cc");
++
++=09return oldval;
++}
++
++static inline void atomic_clear_mask(unsigned long mask, unsigned long *ad=
+dr)
++{
++=09unsigned long tmp, tmp2;
++
++=09asm volatile("// atomic_clear_mask\n"
++"1:=09ldxr=09%0, [%3]\n"
++"=09bic=09%0, %0, %4\n"
++"=09stxr=09%w1, %0, [%3]\n"
++"=09cbnz=09%w1, 1b"
++=09: "=3D&r" (tmp), "=3D&r" (tmp2), "+o" (*addr)
++=09: "r" (addr), "Ir" (mask)
++=09: "cc");
++}
++
++#define atomic_xchg(v, new) (xchg(&((v)->counter), new))
++
++static inline int __atomic_add_unless(atomic_t *v, int a, int u)
++{
++=09int c, old;
++
++=09c =3D atomic_read(v);
++=09while (c !=3D u && (old =3D atomic_cmpxchg((v), c, c + a)) !=3D c)
++=09=09c =3D old;
++=09return c;
++}
++
++#define atomic_inc(v)=09=09atomic_add(1, v)
++#define atomic_dec(v)=09=09atomic_sub(1, v)
++
++#define atomic_inc_and_test(v)=09(atomic_add_return(1, v) =3D=3D 0)
++#define atomic_dec_and_test(v)=09(atomic_sub_return(1, v) =3D=3D 0)
++#define atomic_inc_return(v)    (atomic_add_return(1, v))
++#define atomic_dec_return(v)    (atomic_sub_return(1, v))
++#define atomic_sub_and_test(i, v) (atomic_sub_return(i, v) =3D=3D 0)
++
++#define atomic_add_negative(i,v) (atomic_add_return(i, v) < 0)
++
++#define smp_mb__before_atomic_dec()=09smp_mb()
++#define smp_mb__after_atomic_dec()=09smp_mb()
++#define smp_mb__before_atomic_inc()=09smp_mb()
++#define smp_mb__after_atomic_inc()=09smp_mb()
++
++/*
++ * 64-bit atomic operations.
++ */
++#define ATOMIC64_INIT(i) { (i) }
++
++#define atomic64_read(v)=09(*(volatile long long *)&(v)->counter)
++#define atomic64_set(v,i)=09(((v)->counter) =3D (i))
++
++static inline void atomic64_add(u64 i, atomic64_t *v)
++{
++=09long result;
++=09unsigned long tmp;
++
++=09asm volatile("// atomic64_add\n"
++"1:=09ldxr=09%0, [%3]\n"
++"=09add=09%0, %0, %4\n"
++"=09stxr=09%w1, %0, [%3]\n"
++"=09cbnz=09%w1, 1b"
++=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
++=09: "r" (&v->counter), "Ir" (i)
++=09: "cc");
++}
++
++static inline long atomic64_add_return(long i, atomic64_t *v)
++{
++=09long result;
++=09unsigned long tmp;
++
++=09asm volatile("// atomic64_add_return\n"
++"1:=09ldaxr=09%0, [%3]\n"
++"=09add=09%0, %0, %4\n"
++"=09stlxr=09%w1, %0, [%3]\n"
++"=09cbnz=09%w1, 1b"
++=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
++=09: "r" (&v->counter), "Ir" (i)
++=09: "cc");
++
++=09return result;
++}
++
++static inline void atomic64_sub(u64 i, atomic64_t *v)
++{
++=09long result;
++=09unsigned long tmp;
++
++=09asm volatile("// atomic64_sub\n"
++"1:=09ldxr=09%0, [%3]\n"
++"=09sub=09%0, %0, %4\n"
++"=09stxr=09%w1, %0, [%3]\n"
++"=09cbnz=09%w1, 1b"
++=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
++=09: "r" (&v->counter), "Ir" (i)
++=09: "cc");
++}
++
++static inline long atomic64_sub_return(long i, atomic64_t *v)
++{
++=09long result;
++=09unsigned long tmp;
++
++=09asm volatile("// atomic64_sub_return\n"
++"1:=09ldaxr=09%0, [%3]\n"
++"=09sub=09%0, %0, %4\n"
++"=09stlxr=09%w1, %0, [%3]\n"
++"=09cbnz=09%w1, 1b"
++=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
++=09: "r" (&v->counter), "Ir" (i)
++=09: "cc");
++
++=09return result;
++}
++
++static inline long atomic64_cmpxchg(atomic64_t *ptr, long old, long new)
++{
++=09long oldval;
++=09unsigned long res;
++
++=09asm volatile("// atomic64_cmpxchg\n"
++"1:=09ldaxr=09%1, [%3]\n"
++"=09cmp=09%1, %4\n"
++"=09b.ne=092f\n"
++"=09stlxr=09%w0, %5, [%3]\n"
++"=09cbnz=09%w0, 1b\n"
++"2:"
++=09: "=3D&r" (res), "=3D&r" (oldval), "+o" (ptr->counter)
++=09: "r" (&ptr->counter), "Ir" (old), "r" (new)
++=09: "cc");
++
++=09return oldval;
++}
++
++#define atomic64_xchg(v, new) (xchg(&((v)->counter), new))
++
++#define ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
++static inline long atomic64_dec_if_positive(atomic64_t *v)
++{
++=09long result;
++=09unsigned long tmp;
++
++=09asm volatile("// atomic64_dec_if_positive\n"
++"1:=09ldaxr=09%0, [%3]\n"
++"=09subs=09%0, %0, #1\n"
++"=09b.mi=092f\n"
++"=09stlxr=09%w1, %0, [%3]\n"
++"=09cbnz=09%w1, 1b\n"
++"2:"
++=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
++=09: "r" (&v->counter)
++=09: "cc");
++
++=09return result;
++}
++
++static inline int atomic64_add_unless(atomic64_t *v, long a, long u)
++{
++=09long c, old;
++
++=09c =3D atomic64_read(v);
++=09while (c !=3D u && (old =3D atomic64_cmpxchg((v), c, c + a)) !=3D c)
++=09=09c =3D old;
++
++=09return c !=3D u;
++}
++
++#define atomic64_add_negative(a, v)=09(atomic64_add_return((a), (v)) < 0)
++#define atomic64_inc(v)=09=09=09atomic64_add(1LL, (v))
++#define atomic64_inc_return(v)=09=09atomic64_add_return(1LL, (v))
++#define atomic64_inc_and_test(v)=09(atomic64_inc_return(v) =3D=3D 0)
++#define atomic64_sub_and_test(a, v)=09(atomic64_sub_return((a), (v)) =3D=
+=3D 0)
++#define atomic64_dec(v)=09=09=09atomic64_sub(1LL, (v))
++#define atomic64_dec_return(v)=09=09atomic64_sub_return(1LL, (v))
++#define atomic64_dec_and_test(v)=09(atomic64_dec_return((v)) =3D=3D 0)
++#define atomic64_inc_not_zero(v)=09atomic64_add_unless((v), 1LL, 0LL)
++
++#endif
++#endif
+diff --git a/arch/arm64/include/asm/futex.h b/arch/arm64/include/asm/futex.=
+h
+new file mode 100644
+index 0000000..0745e82
+--- /dev/null
++++ b/arch/arm64/include/asm/futex.h
+@@ -0,0 +1,134 @@
++/*
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_FUTEX_H
++#define __ASM_FUTEX_H
++
++#ifdef __KERNEL__
++
++#include <linux/futex.h>
++#include <linux/uaccess.h>
++#include <asm/errno.h>
++
++#define __futex_atomic_op(insn, ret, oldval, uaddr, tmp, oparg)=09=09\
++=09asm volatile(=09=09=09=09=09=09=09\
++"1:=09ldaxr=09%w1, %2\n"=09=09=09=09=09=09\
++=09insn "\n"=09=09=09=09=09=09=09\
++"2:=09stlxr=09%w3, %w0, %2\n"=09=09=09=09=09=09\
++"=09cbnz=09%w3, 1b\n"=09=09=09=09=09=09\
++"3:=09.pushsection __ex_table,\"a\"\n"=09=09=09=09\
++"=09.align=093\n"=09=09=09=09=09=09=09\
++"=09.quad=091b, 4f, 2b, 4f\n"=09=09=09=09=09\
++"=09.popsection\n"=09=09=09=09=09=09=09\
++"=09.pushsection .fixup,\"ax\"\n"=09=09=09=09=09\
++"4:=09mov=09%w0, %w5\n"=09=09=09=09=09=09\
++"=09b=093b\n"=09=09=09=09=09=09=09\
++"=09.popsection"=09=09=09=09=09=09=09\
++=09: "=3D&r" (ret), "=3D&r" (oldval), "+Q" (*uaddr), "=3D&r" (tmp)=09\
++=09: "r" (oparg), "Ir" (-EFAULT)=09=09=09=09=09\
++=09: "cc")
++
++static inline int
++futex_atomic_op_inuser (int encoded_op, u32 __user *uaddr)
++{
++=09int op =3D (encoded_op >> 28) & 7;
++=09int cmp =3D (encoded_op >> 24) & 15;
++=09int oparg =3D (encoded_op << 8) >> 20;
++=09int cmparg =3D (encoded_op << 20) >> 20;
++=09int oldval =3D 0, ret, tmp;
++
++=09if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
++=09=09oparg =3D 1 << oparg;
++
++=09if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
++=09=09return -EFAULT;
++
++=09pagefault_disable();=09/* implies preempt_disable() */
++
++=09switch (op) {
++=09case FUTEX_OP_SET:
++=09=09__futex_atomic_op("mov=09%w0, %w4",
++=09=09=09=09  ret, oldval, uaddr, tmp, oparg);
 +=09=09break;
-+=09case PER_LINUX32:
-+=09=09set_thread_flag(TIF_32BIT);
++=09case FUTEX_OP_ADD:
++=09=09__futex_atomic_op("add=09%w0, %w1, %w4",
++=09=09=09=09  ret, oldval, uaddr, tmp, oparg);
++=09=09break;
++=09case FUTEX_OP_OR:
++=09=09__futex_atomic_op("orr=09%w0, %w1, %w4",
++=09=09=09=09  ret, oldval, uaddr, tmp, oparg);
++=09=09break;
++=09case FUTEX_OP_ANDN:
++=09=09__futex_atomic_op("and=09%w0, %w1, %w4",
++=09=09=09=09  ret, oldval, uaddr, tmp, ~oparg);
++=09=09break;
++=09case FUTEX_OP_XOR:
++=09=09__futex_atomic_op("eor=09%w0, %w1, %w4",
++=09=09=09=09  ret, oldval, uaddr, tmp, oparg);
 +=09=09break;
 +=09default:
-+=09=09pr_warning("Process %s tried to assume unknown personality %d\n",
-+=09=09=09   current->comm, personality);
-+=09=09return;
++=09=09ret =3D -ENOSYS;
 +=09}
 +
-+=09current->personality =3D personality;
++=09pagefault_enable();=09/* subsumes preempt_enable() */
++
++=09if (!ret) {
++=09=09switch (cmp) {
++=09=09case FUTEX_OP_CMP_EQ: ret =3D (oldval =3D=3D cmparg); break;
++=09=09case FUTEX_OP_CMP_NE: ret =3D (oldval !=3D cmparg); break;
++=09=09case FUTEX_OP_CMP_LT: ret =3D (oldval < cmparg); break;
++=09=09case FUTEX_OP_CMP_GE: ret =3D (oldval >=3D cmparg); break;
++=09=09case FUTEX_OP_CMP_LE: ret =3D (oldval <=3D cmparg); break;
++=09=09case FUTEX_OP_CMP_GT: ret =3D (oldval > cmparg); break;
++=09=09default: ret =3D -ENOSYS;
++=09=09}
++=09}
++=09return ret;
 +}
-+EXPORT_SYMBOL(elf_set_personality);
++
++static inline int
++futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
++=09=09=09      u32 oldval, u32 newval)
++{
++=09int ret =3D 0;
++=09u32 val, tmp;
++
++=09if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
++=09=09return -EFAULT;
++
++=09asm volatile("// futex_atomic_cmpxchg_inatomic\n"
++"1:=09ldaxr=09%w1, %2\n"
++"=09sub=09%w3, %w1, %w4\n"
++"=09cbnz=09%w3, 3f\n"
++"2:=09stlxr=09%w3, %w5, %2\n"
++"=09cbnz=09%w3, 1b\n"
++"3:=09.pushsection __ex_table,\"a\"\n"
++"=09.align=093\n"
++"=09.quad=091b, 4f, 2b, 4f\n"
++"=09.popsection\n"
++"=09.pushsection .fixup,\"ax\"\n"
++"4:=09mov=09%w0, %w6\n"
++"=09b=093b\n"
++"=09.popsection"
++=09: "+r" (ret), "=3D&r" (val), "+Q" (*uaddr), "=3D&r" (tmp)
++=09: "r" (oldval), "r" (newval), "Ir" (-EFAULT)
++=09: "cc", "memory");
++
++=09*uval =3D val;
++=09return ret;
++}
++
++#endif /* __KERNEL__ */
++#endif /* __ASM_FUTEX_H */
