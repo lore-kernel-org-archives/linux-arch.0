@@ -1,43 +1,46 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v2 14/31] arm64: DMA mapping API
-Date: Tue, 14 Aug 2012 18:52:15 +0100
-Message-ID: <1344966752-16102-15-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v2 16/31] arm64: ELF definitions
+Date: Tue, 14 Aug 2012 18:52:17 +0100
+Message-ID: <1344966752-16102-17-git-send-email-catalin.marinas@arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
 Content-Type: text/plain; charset=WINDOWS-1252
 Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:55158 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756850Ab2HNRxJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 13:53:09 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
-This patch adds support for the DMA mapping API. It uses dma_map_ops for
-flexibility and it currently supports swiotlb. This patch could be
-simplified further if the DMA accesses are coherent (not mandated by the
-architecture) or if corresponding hooks are placed in the generic
-swiotlb code to deal with cache maintenance.
+This patch adds definitions for the ELF format, including personality
+personality setting and EXEC_PAGESIZE. The are only two hwcap
+definitions for 64-bit applications - HWCAP_FP and HWCAP_ASIMD.
 
+Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/include/asm/dma-mapping.h |  124 ++++++++++++++++++++
- arch/arm64/mm/dma-mapping.c          |  208 ++++++++++++++++++++++++++++++=
+ arch/arm64/include/asm/auxvec.h   |   22 +++++
+ arch/arm64/include/asm/elf.h      |  176 +++++++++++++++++++++++++++++++++=
 ++++
- 2 files changed, 332 insertions(+), 0 deletions(-)
- create mode 100644 arch/arm64/include/asm/dma-mapping.h
- create mode 100644 arch/arm64/mm/dma-mapping.c
+ arch/arm64/include/asm/hwcap.h    |   57 ++++++++++++
+ arch/arm64/include/asm/param.h    |   23 +++++
+ arch/arm64/include/asm/shmparam.h |   28 ++++++
+ arch/arm64/kernel/elf.c           |   41 +++++++++
+ 6 files changed, 347 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/auxvec.h
+ create mode 100644 arch/arm64/include/asm/elf.h
+ create mode 100644 arch/arm64/include/asm/hwcap.h
+ create mode 100644 arch/arm64/include/asm/param.h
+ create mode 100644 arch/arm64/include/asm/shmparam.h
+ create mode 100644 arch/arm64/kernel/elf.c
 
-diff --git a/arch/arm64/include/asm/dma-mapping.h b/arch/arm64/include/asm/=
-dma-mapping.h
+diff --git a/arch/arm64/include/asm/auxvec.h b/arch/arm64/include/asm/auxve=
+c.h
 new file mode 100644
-index 0000000..538f4b4
+index 0000000..22d6d88
 --- /dev/null
-+++ b/arch/arm64/include/asm/dma-mapping.h
-@@ -0,0 +1,124 @@
++++ b/arch/arm64/include/asm/auxvec.h
+@@ -0,0 +1,22 @@
 +/*
 + * Copyright (C) 2012 ARM Ltd.
 + *
@@ -53,130 +56,21 @@ index 0000000..538f4b4
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_DMA_MAPPING_H
-+#define __ASM_DMA_MAPPING_H
++#ifndef __ASM_AUXVEC_H
++#define __ASM_AUXVEC_H
 +
-+#ifdef __KERNEL__
++/* vDSO location */
++#define AT_SYSINFO_EHDR=0933
 +
-+#include <linux/types.h>
-+#include <linux/vmalloc.h>
-+
-+#include <asm-generic/dma-coherent.h>
-+
-+#define ARCH_HAS_DMA_GET_REQUIRED_MASK
-+
-+extern struct dma_map_ops *dma_ops;
-+
-+static inline struct dma_map_ops *get_dma_ops(struct device *dev)
-+{
-+=09if (unlikely(!dev) || !dev->archdata.dma_ops)
-+=09=09return dma_ops;
-+=09else
-+=09=09return dev->archdata.dma_ops;
-+}
-+
-+#include <asm-generic/dma-mapping-common.h>
-+
-+static inline dma_addr_t phys_to_dma(struct device *dev, phys_addr_t paddr=
-)
-+{
-+=09return (dma_addr_t)paddr;
-+}
-+
-+static inline phys_addr_t dma_to_phys(struct device *dev, dma_addr_t dev_a=
-ddr)
-+{
-+=09return (phys_addr_t)dev_addr;
-+}
-+
-+static inline int dma_mapping_error(struct device *dev, dma_addr_t dev_add=
-r)
-+{
-+=09struct dma_map_ops *ops =3D get_dma_ops(dev);
-+=09return ops->mapping_error(dev, dev_addr);
-+}
-+
-+static inline int dma_supported(struct device *dev, u64 mask)
-+{
-+=09struct dma_map_ops *ops =3D get_dma_ops(dev);
-+=09return ops->dma_supported(dev, mask);
-+}
-+
-+static inline int dma_set_mask(struct device *dev, u64 mask)
-+{
-+=09if (!dev->dma_mask || !dma_supported(dev, mask))
-+=09=09return -EIO;
-+=09*dev->dma_mask =3D mask;
-+
-+=09return 0;
-+}
-+
-+static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t=
- size)
-+{
-+=09if (!dev->dma_mask)
-+=09=09return 0;
-+
-+=09return addr + size - 1 <=3D *dev->dma_mask;
-+}
-+
-+static inline void dma_mark_clean(void *addr, size_t size)
-+{
-+}
-+
-+static inline void *dma_alloc_coherent(struct device *dev, size_t size,
-+=09=09=09=09       dma_addr_t *dma_handle, gfp_t flags)
-+{
-+=09struct dma_map_ops *ops =3D get_dma_ops(dev);
-+=09void *vaddr;
-+
-+=09if (dma_alloc_from_coherent(dev, size, dma_handle, &vaddr))
-+=09=09return vaddr;
-+
-+=09vaddr =3D ops->alloc(dev, size, dma_handle, flags, NULL);
-+=09debug_dma_alloc_coherent(dev, size, *dma_handle, vaddr);
-+=09return vaddr;
-+}
-+
-+static inline void dma_free_coherent(struct device *dev, size_t size,
-+=09=09=09=09     void *vaddr, dma_addr_t dev_addr)
-+{
-+=09struct dma_map_ops *ops =3D get_dma_ops(dev);
-+
-+=09if (dma_release_from_coherent(dev, get_order(size), vaddr))
-+=09=09return;
-+
-+=09debug_dma_free_coherent(dev, size, vaddr, dev_addr);
-+=09ops->free(dev, size, vaddr, dev_addr, NULL);
-+}
-+
-+/*
-+ * There is no dma_cache_sync() implementation, so just return NULL here.
-+ */
-+static inline void *dma_alloc_noncoherent(struct device *dev, size_t size,
-+=09=09=09=09=09  dma_addr_t *handle, gfp_t flags)
-+{
-+=09return NULL;
-+}
-+
-+static inline void dma_free_noncoherent(struct device *dev, size_t size,
-+=09=09=09=09=09void *cpu_addr, dma_addr_t handle)
-+{
-+}
-+
-+#endif=09/* __KERNEL__ */
-+#endif=09/* __ASM_DMA_MAPPING_H */
-diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
++#endif
+diff --git a/arch/arm64/include/asm/elf.h b/arch/arm64/include/asm/elf.h
 new file mode 100644
-index 0000000..4e5871d
+index 0000000..9d62a7a
 --- /dev/null
-+++ b/arch/arm64/mm/dma-mapping.c
-@@ -0,0 +1,208 @@
++++ b/arch/arm64/include/asm/elf.h
+@@ -0,0 +1,176 @@
 +/*
-+ * SWIOTLB-based DMA API implementation
-+ *
 + * Copyright (C) 2012 ARM Ltd.
-+ * Author: Catalin Marinas <catalin.marinas@arm.com>
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -190,195 +84,346 @@ index 0000000..4e5871d
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
++#ifndef __ASM_ELF_H
++#define __ASM_ELF_H
 +
-+#include <linux/gfp.h>
++#include <asm/hwcap.h>
++
++/*
++ * ELF register definitions..
++ */
++#include <asm/ptrace.h>
++#include <asm/user.h>
++
++typedef unsigned long elf_greg_t;
++typedef unsigned long elf_freg_t[3];
++
++#define ELF_NGREG (sizeof (struct pt_regs) / sizeof(elf_greg_t))
++typedef elf_greg_t elf_gregset_t[ELF_NGREG];
++
++typedef struct user_fp elf_fpregset_t;
++
++#define EM_AARCH64=09=09183
++
++/*
++ * AArch64 static relocation types.
++ */
++
++/* Miscellaneous. */
++#define R_ARM_NONE=09=09=090
++#define R_AARCH64_NONE=09=09=09256
++
++/* Data. */
++#define R_AARCH64_ABS64=09=09=09257
++#define R_AARCH64_ABS32=09=09=09258
++#define R_AARCH64_ABS16=09=09=09259
++#define R_AARCH64_PREL64=09=09260
++#define R_AARCH64_PREL32=09=09261
++#define R_AARCH64_PREL16=09=09262
++
++/* Instructions. */
++#define R_AARCH64_MOVW_UABS_G0=09=09263
++#define R_AARCH64_MOVW_UABS_G0_NC=09264
++#define R_AARCH64_MOVW_UABS_G1=09=09265
++#define R_AARCH64_MOVW_UABS_G1_NC=09266
++#define R_AARCH64_MOVW_UABS_G2=09=09267
++#define R_AARCH64_MOVW_UABS_G2_NC=09268
++#define R_AARCH64_MOVW_UABS_G3=09=09269
++
++#define R_AARCH64_MOVW_SABS_G0=09=09270
++#define R_AARCH64_MOVW_SABS_G1=09=09271
++#define R_AARCH64_MOVW_SABS_G2=09=09272
++
++#define R_AARCH64_LD_PREL_LO19=09=09273
++#define R_AARCH64_ADR_PREL_LO21=09=09274
++#define R_AARCH64_ADR_PREL_PG_HI21=09275
++#define R_AARCH64_ADR_PREL_PG_HI21_NC=09276
++#define R_AARCH64_ADD_ABS_LO12_NC=09277
++#define R_AARCH64_LDST8_ABS_LO12_NC=09278
++
++#define R_AARCH64_TSTBR14=09=09279
++#define R_AARCH64_CONDBR19=09=09280
++#define R_AARCH64_JUMP26=09=09282
++#define R_AARCH64_CALL26=09=09283
++#define R_AARCH64_LDST16_ABS_LO12_NC=09284
++#define R_AARCH64_LDST32_ABS_LO12_NC=09285
++#define R_AARCH64_LDST64_ABS_LO12_NC=09286
++#define R_AARCH64_LDST128_ABS_LO12_NC=09299
++
++#define R_AARCH64_MOVW_PREL_G0=09=09287
++#define R_AARCH64_MOVW_PREL_G0_NC=09288
++#define R_AARCH64_MOVW_PREL_G1=09=09289
++#define R_AARCH64_MOVW_PREL_G1_NC=09290
++#define R_AARCH64_MOVW_PREL_G2=09=09291
++#define R_AARCH64_MOVW_PREL_G2_NC=09292
++#define R_AARCH64_MOVW_PREL_G3=09=09293
++
++
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define ELF_CLASS=09ELFCLASS64
++#define ELF_DATA=09ELFDATA2LSB
++#define ELF_ARCH=09EM_AARCH64
++
++#define ELF_PLATFORM_SIZE=0916
++#define ELF_PLATFORM=09=09("aarch64")
++
++/*
++ * This is used to ensure we don't load something for the wrong architectu=
+re.
++ */
++#define elf_check_arch(x)=09=09((x)->e_machine =3D=3D EM_AARCH64)
++
++#define elf_read_implies_exec(ex,stk)=09(stk !=3D EXSTACK_DISABLE_X)
++
++#define CORE_DUMP_USE_REGSET
++#define ELF_EXEC_PAGESIZE=09PAGE_SIZE
++
++/*
++ * This is the location that an ET_DYN program is loaded if exec'ed.  Typi=
+cal
++ * use of this is to invoke "./ld.so someprog" to test out a new version o=
+f
++ * the loader.  We need to make sure that it is out of the way of the prog=
+ram
++ * that it will "exec", and that there is sufficient room for the brk.
++ */
++extern unsigned long randomize_et_dyn(unsigned long base);
++#define ELF_ET_DYN_BASE=09(randomize_et_dyn(2 * TASK_SIZE_64 / 3))
++
++/*
++ * When the program starts, a1 contains a pointer to a function to be
++ * registered with atexit, as per the SVR4 ABI.  A value of 0 means we hav=
+e no
++ * such handler.
++ */
++#define ELF_PLAT_INIT(_r, load_addr)=09(_r)->regs[0] =3D 0
++
++extern void=09=09=09=09elf_set_personality(int personality);
++#define SET_PERSONALITY(ex)=09=09elf_set_personality(PER_LINUX)
++
++#define ARCH_DLINFO=09=09=09=09=09=09=09\
++do {=09=09=09=09=09=09=09=09=09\
++=09NEW_AUX_ENT(AT_SYSINFO_EHDR,=09=09=09=09=09\
++=09=09    (elf_addr_t)current->mm->context.vdso);=09=09\
++} while (0)
++
++#define ARCH_HAS_SETUP_ADDITIONAL_PAGES
++struct linux_binprm;
++extern int arch_setup_additional_pages(struct linux_binprm *bprm,
++=09=09=09=09       int uses_interp);
++
++/* 1GB of VA */
++#define STACK_RND_MASK=09=09=09(test_thread_flag(TIF_32BIT) ? \
++=09=09=09=09=09=090x7ff >> (PAGE_SHIFT - 12) : \
++=09=09=09=09=09=090x3ffff >> (PAGE_SHIFT - 12))
++
++struct mm_struct;
++extern unsigned long arch_randomize_brk(struct mm_struct *mm);
++#define arch_randomize_brk arch_randomize_brk
++
++#ifdef CONFIG_AARCH32_EMULATION
++#define EM_ARM=09=09=09=0940
++#define COMPAT_ELF_PLATFORM=09=09("v8l")
++
++#define COMPAT_ELF_ET_DYN_BASE=09=09(randomize_et_dyn(2 * TASK_SIZE_32 / 3=
+))
++
++/* AArch32 registers. */
++#define COMPAT_ELF_NGREG=09=0918
++typedef unsigned int=09=09=09compat_elf_greg_t;
++typedef compat_elf_greg_t=09=09compat_elf_gregset_t[COMPAT_ELF_NGREG];
++
++/* AArch32 EABI. */
++#define EF_ARM_EABI_MASK=09=090xff000000
++#define compat_elf_check_arch(x)=09(((x)->e_machine =3D=3D EM_ARM) && \
++=09=09=09=09=09 ((x)->e_flags & EF_ARM_EABI_MASK))
++
++#define compat_start_thread=09=09compat_start_thread
++#define COMPAT_SET_PERSONALITY(ex)=09elf_set_personality(PER_LINUX32)
++#define COMPAT_ARCH_DLINFO
++extern int aarch32_setup_vectors_page(struct linux_binprm *bprm,
++=09=09=09=09      int uses_interp);
++#define compat_arch_setup_additional_pages \
++=09=09=09=09=09aarch32_setup_vectors_page
++
++#endif /* CONFIG_AARCH32_EMULATION */
++
++#endif
+diff --git a/arch/arm64/include/asm/hwcap.h b/arch/arm64/include/asm/hwcap.=
+h
+new file mode 100644
+index 0000000..0cc7c03
+--- /dev/null
++++ b/arch/arm64/include/asm/hwcap.h
+@@ -0,0 +1,57 @@
++/*
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_HWCAP_H
++#define __ASM_HWCAP_H
++
++/*
++ * HWCAP flags - for elf_hwcap (in kernel) and AT_HWCAP
++ */
++#define HWCAP_FP=09=09(1 << 0)
++#define HWCAP_ASIMD=09=09(1 << 1)
++
++#ifdef CONFIG_AARCH32_EMULATION
++#define COMPAT_HWCAP_HALF=09(1 << 1)
++#define COMPAT_HWCAP_THUMB=09(1 << 2)
++#define COMPAT_HWCAP_FAST_MULT=09(1 << 4)
++#define COMPAT_HWCAP_VFP=09(1 << 6)
++#define COMPAT_HWCAP_EDSP=09(1 << 7)
++#define COMPAT_HWCAP_NEON=09(1 << 12)
++#define COMPAT_HWCAP_VFPv3=09(1 << 13)
++#define COMPAT_HWCAP_TLS=09(1 << 15)
++#define COMPAT_HWCAP_VFPv4=09(1 << 16)
++#define COMPAT_HWCAP_IDIVA=09(1 << 17)
++#define COMPAT_HWCAP_IDIVT=09(1 << 18)
++#define COMPAT_HWCAP_IDIV=09(COMPAT_HWCAP_IDIVA|COMPAT_HWCAP_IDIVT)
++
++#endif /* CONFIG_AARCH32_EMULATION */
++
++#if defined(__KERNEL__) && !defined(__ASSEMBLY__)
++/*
++ * This yields a mask that user programs can use to figure out what
++ * instruction set this cpu supports.
++ */
++#define ELF_HWCAP=09=09(elf_hwcap)
++#ifdef CONFIG_AARCH32_EMULATION
++#define COMPAT_ELF_HWCAP=09(COMPAT_HWCAP_HALF|COMPAT_HWCAP_THUMB|\
++=09=09=09=09 COMPAT_HWCAP_FAST_MULT|COMPAT_HWCAP_EDSP|\
++=09=09=09=09 COMPAT_HWCAP_TLS|COMPAT_HWCAP_VFP|\
++=09=09=09=09 COMPAT_HWCAP_VFPv3|COMPAT_HWCAP_VFPv4|\
++=09=09=09=09 COMPAT_HWCAP_NEON|COMPAT_HWCAP_IDIV)
++#endif
++extern unsigned int elf_hwcap;
++#endif
++
++#endif
+diff --git a/arch/arm64/include/asm/param.h b/arch/arm64/include/asm/param.=
+h
+new file mode 100644
+index 0000000..8e3a281
+--- /dev/null
++++ b/arch/arm64/include/asm/param.h
+@@ -0,0 +1,23 @@
++/*
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_PARAM_H
++#define __ASM_PARAM_H
++
++#define EXEC_PAGESIZE=0965536
++
++#include <asm-generic/param.h>
++
++#endif
+diff --git a/arch/arm64/include/asm/shmparam.h b/arch/arm64/include/asm/shm=
+param.h
+new file mode 100644
+index 0000000..4df608a
+--- /dev/null
++++ b/arch/arm64/include/asm/shmparam.h
+@@ -0,0 +1,28 @@
++/*
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_SHMPARAM_H
++#define __ASM_SHMPARAM_H
++
++/*
++ * For IPC syscalls from compat tasks, we need to use the legacy 16k
++ * alignment value. Since we don't have aliasing D-caches, the rest of
++ * the time we can safely use PAGE_SIZE.
++ */
++#define COMPAT_SHMLBA=090x4000
++
++#include <asm-generic/shmparam.h>
++
++#endif /* __ASM_SHMPARAM_H */
+diff --git a/arch/arm64/kernel/elf.c b/arch/arm64/kernel/elf.c
+new file mode 100644
+index 0000000..6f98076
+--- /dev/null
++++ b/arch/arm64/kernel/elf.c
+@@ -0,0 +1,41 @@
++/*
++ * ELF personality setting
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
 +#include <linux/export.h>
-+#include <linux/slab.h>
-+#include <linux/dma-mapping.h>
-+#include <linux/vmalloc.h>
-+#include <linux/swiotlb.h>
++#include <linux/sched.h>
++#include <linux/personality.h>
++#include <linux/binfmts.h>
++#include <linux/elf.h>
 +
-+#include <asm/cacheflush.h>
-+
-+struct dma_map_ops *dma_ops;
-+EXPORT_SYMBOL(dma_ops);
-+
-+static void *arm64_swiotlb_alloc_coherent(struct device *dev, size_t size,
-+=09=09=09=09=09  dma_addr_t *dma_handle, gfp_t flags,
-+=09=09=09=09=09  struct dma_attrs *attrs)
++void elf_set_personality(int personality)
 +{
-+=09struct page *page, **map;
-+=09void *ptr;
-+=09int order =3D get_order(size);
-+=09int i;
++=09switch (personality & PER_MASK) {
++=09case PER_LINUX:
++=09=09clear_thread_flag(TIF_32BIT);
++=09=09break;
++=09case PER_LINUX32:
++=09=09set_thread_flag(TIF_32BIT);
++=09=09break;
++=09default:
++=09=09pr_warning("Process %s tried to assume unknown personality %d\n",
++=09=09=09   current->comm, personality);
++=09=09return;
++=09}
 +
-+=09if (dev->coherent_dma_mask !=3D DMA_BIT_MASK(64))
-+=09=09flags |=3D GFP_DMA;
-+
-+=09ptr =3D swiotlb_alloc_coherent(dev, size, dma_handle, flags);
-+=09if (!ptr)
-+=09=09goto no_mem;
-+=09map =3D kmalloc(sizeof(struct page *) << order, flags & ~GFP_DMA);
-+=09if (!map)
-+=09=09goto no_map;
-+
-+=09/* remove any dirty cache lines on the kernel alias */
-+=09dmac_flush_range(ptr, ptr + size);
-+
-+=09/* create a coherent mapping */
-+=09page =3D virt_to_page(ptr);
-+=09for (i =3D 0; i < (size >> PAGE_SHIFT); i++)
-+=09=09map[i] =3D page + i;
-+=09ptr =3D vmap(map, size >> PAGE_SHIFT, VM_MAP,
-+=09=09   pgprot_dmacoherent(pgprot_default)); kfree(map);
-+=09if (!ptr)
-+=09=09goto no_map;
-+
-+=09return ptr;
-+
-+no_map:
-+=09swiotlb_free_coherent(dev, size, ptr, *dma_handle);
-+no_mem:
-+=09*dma_handle =3D ~0;
-+=09return NULL;
++=09current->personality =3D personality;
 +}
-+
-+static void arm64_swiotlb_free_coherent(struct device *dev, size_t size,
-+=09=09=09=09=09void *vaddr, dma_addr_t dma_handle,
-+=09=09=09=09=09struct dma_attrs *attrs)
-+{
-+=09vunmap(vaddr);
-+=09swiotlb_free_coherent(dev, size, vaddr, dma_handle);
-+}
-+
-+static dma_addr_t arm64_swiotlb_map_page(struct device *dev,
-+=09=09=09=09=09 struct page *page,
-+=09=09=09=09=09 unsigned long offset, size_t size,
-+=09=09=09=09=09 enum dma_data_direction dir,
-+=09=09=09=09=09 struct dma_attrs *attrs)
-+{
-+=09dma_addr_t dev_addr;
-+
-+=09dev_addr =3D swiotlb_map_page(dev, page, offset, size, dir, attrs);
-+=09dmac_map_area(phys_to_virt(dma_to_phys(dev, dev_addr)), size, dir);
-+
-+=09return dev_addr;
-+}
-+
-+
-+static void arm64_swiotlb_unmap_page(struct device *dev, dma_addr_t dev_ad=
-dr,
-+=09=09=09=09     size_t size, enum dma_data_direction dir,
-+=09=09=09=09     struct dma_attrs *attrs)
-+{
-+=09dmac_unmap_area(phys_to_virt(dma_to_phys(dev, dev_addr)), size, dir);
-+=09swiotlb_unmap_page(dev, dev_addr, size, dir, attrs);
-+}
-+
-+static int arm64_swiotlb_map_sg_attrs(struct device *dev,
-+=09=09=09=09      struct scatterlist *sgl, int nelems,
-+=09=09=09=09      enum dma_data_direction dir,
-+=09=09=09=09      struct dma_attrs *attrs)
-+{
-+=09struct scatterlist *sg;
-+=09int i, ret;
-+
-+=09ret =3D swiotlb_map_sg_attrs(dev, sgl, nelems, dir, attrs);
-+=09for_each_sg(sgl, sg, ret, i)
-+=09=09dmac_map_area(phys_to_virt(dma_to_phys(dev, sg->dma_address)),
-+=09=09=09      sg->length, dir);
-+
-+=09return ret;
-+}
-+
-+static void arm64_swiotlb_unmap_sg_attrs(struct device *dev,
-+=09=09=09=09=09 struct scatterlist *sgl, int nelems,
-+=09=09=09=09=09 enum dma_data_direction dir,
-+=09=09=09=09=09 struct dma_attrs *attrs)
-+{
-+=09struct scatterlist *sg;
-+=09int i;
-+
-+=09for_each_sg(sgl, sg, nelems, i)
-+=09=09dmac_unmap_area(phys_to_virt(dma_to_phys(dev, sg->dma_address)),
-+=09=09=09=09sg->length, dir);
-+=09swiotlb_unmap_sg_attrs(dev, sgl, nelems, dir, attrs);
-+}
-+
-+static void arm64_swiotlb_sync_single_for_cpu(struct device *dev,
-+=09=09=09=09=09      dma_addr_t dev_addr,
-+=09=09=09=09=09      size_t size,
-+=09=09=09=09=09      enum dma_data_direction dir)
-+{
-+=09dmac_unmap_area(phys_to_virt(dma_to_phys(dev, dev_addr)), size, dir);
-+=09swiotlb_sync_single_for_cpu(dev, dev_addr, size, dir);
-+}
-+
-+static void arm64_swiotlb_sync_single_for_device(struct device *dev,
-+=09=09=09=09=09=09 dma_addr_t dev_addr,
-+=09=09=09=09=09=09 size_t size,
-+=09=09=09=09=09=09 enum dma_data_direction dir)
-+{
-+=09swiotlb_sync_single_for_device(dev, dev_addr, size, dir);
-+=09dmac_map_area(phys_to_virt(dma_to_phys(dev, dev_addr)), size, dir);
-+}
-+
-+static void arm64_swiotlb_sync_sg_for_cpu(struct device *dev,
-+=09=09=09=09=09  struct scatterlist *sgl, int nelems,
-+=09=09=09=09=09  enum dma_data_direction dir)
-+{
-+=09struct scatterlist *sg;
-+=09int i;
-+
-+=09for_each_sg(sgl, sg, nelems, i)
-+=09=09dmac_unmap_area(phys_to_virt(dma_to_phys(dev, sg->dma_address)),
-+=09=09=09=09sg->length, dir);
-+=09swiotlb_sync_sg_for_cpu(dev, sgl, nelems, dir);
-+}
-+
-+static void arm64_swiotlb_sync_sg_for_device(struct device *dev,
-+=09=09=09=09=09     struct scatterlist *sgl,
-+=09=09=09=09=09     int nelems,
-+=09=09=09=09=09     enum dma_data_direction dir)
-+{
-+=09struct scatterlist *sg;
-+=09int i;
-+
-+=09swiotlb_sync_sg_for_device(dev, sgl, nelems, dir);
-+=09for_each_sg(sgl, sg, nelems, i)
-+=09=09dmac_map_area(phys_to_virt(dma_to_phys(dev, sg->dma_address)),
-+=09=09=09      sg->length, dir);
-+}
-+
-+static struct dma_map_ops arm64_swiotlb_dma_ops =3D {
-+=09.alloc =3D arm64_swiotlb_alloc_coherent,
-+=09.free =3D arm64_swiotlb_free_coherent,
-+=09.map_page =3D arm64_swiotlb_map_page,
-+=09.unmap_page =3D arm64_swiotlb_unmap_page,
-+=09.map_sg =3D arm64_swiotlb_map_sg_attrs,
-+=09.unmap_sg =3D arm64_swiotlb_unmap_sg_attrs,
-+=09.sync_single_for_cpu =3D arm64_swiotlb_sync_single_for_cpu,
-+=09.sync_single_for_device =3D arm64_swiotlb_sync_single_for_device,
-+=09.sync_sg_for_cpu =3D arm64_swiotlb_sync_sg_for_cpu,
-+=09.sync_sg_for_device =3D arm64_swiotlb_sync_sg_for_device,
-+=09.dma_supported =3D swiotlb_dma_supported,
-+=09.mapping_error =3D swiotlb_dma_mapping_error,
-+};
-+
-+void __init swiotlb_init_with_default_size(size_t default_size, int verbos=
-e);
-+
-+void __init arm64_swiotlb_init(size_t max_size)
-+{
-+=09dma_ops =3D &arm64_swiotlb_dma_ops;
-+=09swiotlb_init_with_default_size(min((size_t)SZ_64M, max_size), 1);
-+}
-+
-+#define PREALLOC_DMA_DEBUG_ENTRIES=094096
-+
-+static int __init dma_debug_do_init(void)
-+{
-+=09dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
-+=09return 0;
-+}
-+fs_initcall(dma_debug_do_init);
++EXPORT_SYMBOL(elf_set_personality);
