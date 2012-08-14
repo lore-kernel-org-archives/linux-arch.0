@@ -1,897 +1,519 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v2 30/31] arm64: Build infrastructure
-Date: Tue, 14 Aug 2012 18:52:31 +0100
-Message-ID: <1344966752-16102-31-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v2 28/31] arm64: Generic timers support
+Date: Tue, 14 Aug 2012 18:52:29 +0100
+Message-ID: <1344966752-16102-29-git-send-email-catalin.marinas@arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: linux-arm-kernel-bounces@lists.infradead.org
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Marc Zyngier <marc.zyngier@arm.com>, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds Makefile and Kconfig files required for building an
-AArch64 kernel.
+From: Marc Zyngier <marc.zyngier@arm.com>
 
+This patch adds support for the ARM generic timers with A64 instructions
+for accessing the timer registers. It uses the physical counter as the
+clock source and the virtual counter as sched_clock.
+
+The timer frequency can be specified via DT or read from the CNTFRQ_EL0
+register. The physical counter is also accessible from user space
+allowing fast gettimeofday() implementation.
+
+Signed-off-by: Marc Zyngier <marc.zyngier@arm.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/Kconfig                   |  261 ++++++++++++++++++++++++++++++++++
- arch/arm64/Kconfig.debug             |   27 ++++
- arch/arm64/Makefile                  |   71 +++++++++
- arch/arm64/boot/.gitignore           |    2 +
- arch/arm64/boot/Makefile             |   38 +++++
- arch/arm64/boot/install.sh           |   52 +++++++
- arch/arm64/configs/generic_defconfig |   85 +++++++++++
- arch/arm64/include/asm/prom.h        |    1 +
- arch/arm64/kernel/.gitignore         |    1 +
- arch/arm64/kernel/Makefile           |   27 ++++
- arch/arm64/kernel/vmlinux.lds.S      |  146 +++++++++++++++++++
- arch/arm64/mm/Kconfig                |    5 +
- arch/arm64/mm/Makefile               |    6 +
- init/Kconfig                         |    3 +-
- lib/Kconfig.debug                    |    6 +-
- 15 files changed, 728 insertions(+), 3 deletions(-)
- create mode 100644 arch/arm64/Kconfig
- create mode 100644 arch/arm64/Kconfig.debug
- create mode 100644 arch/arm64/Makefile
- create mode 100644 arch/arm64/boot/.gitignore
- create mode 100644 arch/arm64/boot/Makefile
- create mode 100644 arch/arm64/boot/install.sh
- create mode 100644 arch/arm64/configs/generic_defconfig
- create mode 100644 arch/arm64/include/asm/prom.h
- create mode 100644 arch/arm64/kernel/.gitignore
- create mode 100644 arch/arm64/kernel/Makefile
- create mode 100644 arch/arm64/kernel/vmlinux.lds.S
- create mode 100644 arch/arm64/mm/Kconfig
- create mode 100644 arch/arm64/mm/Makefile
+ arch/arm64/include/asm/timex.h    |   32 ++++
+ arch/arm64/kernel/time.c          |   65 ++++++++
+ drivers/clocksource/Kconfig       |    5 +
+ drivers/clocksource/Makefile      |    1 +
+ drivers/clocksource/arm_generic.c |  309 +++++++++++++++++++++++++++++++++=
+++++
+ include/clocksource/arm_generic.h |   21 +++
+ 6 files changed, 433 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/timex.h
+ create mode 100644 arch/arm64/kernel/time.c
+ create mode 100644 drivers/clocksource/arm_generic.c
+ create mode 100644 include/clocksource/arm_generic.h
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+diff --git a/arch/arm64/include/asm/timex.h b/arch/arm64/include/asm/timex.=
+h
 new file mode 100644
-index 0000000..1ce3d04
+index 0000000..88f74de
 --- /dev/null
-+++ b/arch/arm64/Kconfig
-@@ -0,0 +1,261 @@
-+config ARM64
-+	def_bool y
-+	select OF
-+	select OF_EARLY_FLATTREE
-+	select IRQ_DOMAIN
-+	select HAVE_AOUT
-+	select HAVE_DMA_ATTRS
-+	select HAVE_DMA_API_DEBUG
-+	select HAVE_IDE
-+	select HAVE_MEMBLOCK
-+	select RTC_LIB
-+	select SYS_SUPPORTS_APM_EMULATION
-+	select HAVE_GENERIC_DMA_COHERENT
-+	select GENERIC_IOMAP
-+	select HAVE_IRQ_WORK
-+	select HAVE_PERF_EVENTS
-+	select HAVE_ARCH_TRACEHOOK
-+	select PERF_USE_VMALLOC
-+	select HAVE_HW_BREAKPOINT if PERF_EVENTS
-+	select HAVE_GENERIC_HARDIRQS
-+	select GENERIC_HARDIRQS_NO_DEPRECATED
-+	select HAVE_SPARSE_IRQ
-+	select SPARSE_IRQ
-+	select GENERIC_IRQ_SHOW
-+	select GENERIC_SMP_IDLE_THREAD
-+	select NO_BOOTMEM
-+	help
-+	  ARM 64-bit (AArch64) Linux support.
-+
-+config 64BIT
-+	def_bool y
-+
-+config ARCH_PHYS_ADDR_T_64BIT
-+	def_bool y
-+
-+config HAVE_PWM
-+	bool
-+
-+config SYS_SUPPORTS_APM_EMULATION
-+	bool
-+
-+config NO_IOPORT
-+	def_bool y
-+
-+config GENERIC_GPIO
-+	bool
-+
-+config GENERIC_TIME_VSYSCALL
-+	def_bool y
-+
-+config GENERIC_CLOCKEVENTS
-+	def_bool y
-+
-+config STACKTRACE_SUPPORT
-+	def_bool y
-+
-+config LOCKDEP_SUPPORT
-+	def_bool y
-+
-+config TRACE_IRQFLAGS_SUPPORT
-+	def_bool y
-+
-+config HARDIRQS_SW_RESEND
-+	def_bool y
-+
-+config GENERIC_IRQ_PROBE
-+	def_bool y
-+
-+config GENERIC_LOCKBREAK
-+	def_bool y
-+	depends on SMP && PREEMPT
-+
-+config RWSEM_GENERIC_SPINLOCK
-+	def_bool y
-+
-+config RWSEM_XCHGADD_ALGORITHM
-+	bool
-+
-+config ARCH_HAS_ILOG2_U32
-+	bool
-+
-+config ARCH_HAS_ILOG2_U64
-+	bool
-+
-+config ARCH_HAS_CPUFREQ
-+	bool
-+	help
-+	  Internal node to signify that the ARCH has CPUFREQ support
-+	  and that the relevant menu configurations are displayed for
-+	  it.
-+
-+config GENERIC_HWEIGHT
-+	def_bool y
-+
-+config GENERIC_CSUM
-+        def_bool y
-+
-+config GENERIC_CALIBRATE_DELAY
-+	def_bool y
-+
-+config ZONE_DMA32
-+	def_bool y
-+
-+config ARCH_DMA_ADDR_T_64BIT
-+	def_bool y
-+
-+config NEED_DMA_MAP_STATE
-+	def_bool y
-+
-+config NEED_SG_DMA_LENGTH
-+	def_bool y
-+
-+config SWIOTLB
-+	def_bool y
-+
-+config IOMMU_HELPER
-+	def_bool SWIOTLB
-+
-+source "init/Kconfig"
-+
-+source "kernel/Kconfig.freezer"
-+
-+menu "System Type"
-+
-+source "arch/arm64/mm/Kconfig"
-+
-+endmenu
-+
-+menu "Bus support"
-+
-+config ARM_AMBA
-+	bool
-+
-+endmenu
-+
-+menu "Kernel Features"
-+
-+source "kernel/time/Kconfig"
-+
-+config ARM64_64K_PAGES
-+	bool "Enable 64KB pages support"
-+	help
-+	  This feature enables 64KB pages support (4KB by default)
-+	  allowing only two levels of page tables and faster TLB
-+	  look-up. AArch32 emulation is not available when this feature
-+	  is enabled.
-+
-+config SMP
-+	bool "Symmetric Multi-Processing"
-+	depends on GENERIC_CLOCKEVENTS
-+	select USE_GENERIC_SMP_HELPERS
-+	help
-+	  This enables support for systems with more than one CPU.  If
-+	  you say N here, the kernel will run on single and
-+	  multiprocessor machines, but will use only one CPU of a
-+	  multiprocessor machine. If you say Y here, the kernel will run
-+	  on many, but not all, single processor machines. On a single
-+	  processor machine, the kernel will run faster if you say N
-+	  here.
-+
-+	  If you don't know what to do here, say N.
-+
-+config NR_CPUS
-+	int "Maximum number of CPUs (2-32)"
-+	range 2 32
-+	depends on SMP
-+	default "4"
-+
-+source kernel/Kconfig.preempt
-+
-+config HZ
-+	int
-+	default 100
-+
-+config ARCH_HAS_HOLES_MEMORYMODEL
-+	def_bool y if SPARSEMEM
-+
-+config ARCH_SPARSEMEM_ENABLE
-+	def_bool y
-+	select SPARSEMEM_VMEMMAP_ENABLE
-+
-+config ARCH_SPARSEMEM_DEFAULT
-+	def_bool ARCH_SPARSEMEM_ENABLE
-+
-+config ARCH_SELECT_MEMORY_MODEL
-+	def_bool ARCH_SPARSEMEM_ENABLE
-+
-+config HAVE_ARCH_PFN_VALID
-+	def_bool ARCH_HAS_HOLES_MEMORYMODEL || !SPARSEMEM
-+
-+config HW_PERF_EVENTS
-+	bool "Enable hardware performance counter support for perf events"
-+	depends on PERF_EVENTS
-+	default y
-+	help
-+	  Enable hardware performance counter support for perf events. If
-+	  disabled, perf events will use software events only.
-+
-+source "mm/Kconfig"
-+
-+endmenu
-+
-+menu "Boot options"
-+
-+config CMDLINE
-+	string "Default kernel command string"
-+	default ""
-+	help
-+	  Provide a set of default command-line options at build time by
-+	  entering them here. As a minimum, you should specify the the
-+	  root device (e.g. root=/dev/nfs).
-+
-+config CMDLINE_FORCE
-+	bool "Always use the default kernel command string"
-+	help
-+	  Always use the default kernel command string, even if the boot
-+	  loader passes other arguments to the kernel.
-+	  This is useful if you cannot or don't want to change the
-+	  command-line options your boot loader passes to the kernel.
-+
-+endmenu
-+
-+menu "Userspace binary formats"
-+
-+source "fs/Kconfig.binfmt"
-+
-+config AARCH32_EMULATION
-+	bool "Kernel support for 32-bit EL0"
-+	depends on !ARM64_64K_PAGES
-+	select COMPAT_BINFMT_ELF
-+	help
-+	  This option enables support for a 32-bit EL0 running under a 64-bit
-+	  kernel at EL1. AArch32-specific components such as system calls,
-+	  the user helper functions, VFP support and the ptrace interface are
-+	  handled appropriately by the kernel.
-+
-+	  If you want to execute 32-bit userspace applications, say Y.
-+
-+config COMPAT
-+	def_bool y
-+	depends on AARCH32_EMULATION
-+
-+config SYSVIPC_COMPAT
-+	def_bool y
-+	depends on COMPAT && SYSVIPC
-+
-+endmenu
-+
-+source "net/Kconfig"
-+
-+source "drivers/Kconfig"
-+
-+source "fs/Kconfig"
-+
-+source "arch/arm64/Kconfig.debug"
-+
-+source "security/Kconfig"
-+
-+source "crypto/Kconfig"
-+
-+source "lib/Kconfig"
-diff --git a/arch/arm64/Kconfig.debug b/arch/arm64/Kconfig.debug
-new file mode 100644
-index 0000000..d7553f2
---- /dev/null
-+++ b/arch/arm64/Kconfig.debug
-@@ -0,0 +1,27 @@
-+menu "Kernel hacking"
-+
-+source "lib/Kconfig.debug"
-+
-+config FRAME_POINTER
-+	bool
-+	default y
-+
-+config DEBUG_ERRORS
-+	bool "Verbose kernel error messages"
-+	depends on DEBUG_KERNEL
-+	help
-+	  This option controls verbose debugging information which can be
-+	  printed when the kernel detects an internal error. This debugging
-+	  information is useful to kernel hackers when tracking down problems,
-+	  but mostly meaningless to other people. It's safe to say Y unless
-+	  you are concerned with the code size or don't want to see these
-+	  messages.
-+
-+config DEBUG_STACK_USAGE
-+	bool "Enable stack utilization instrumentation"
-+	depends on DEBUG_KERNEL
-+	help
-+	  Enables the display of the minimum amount of free stack which each
-+	  task has ever had available in the sysrq-T output.
-+
-+endmenu
-diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
-new file mode 100644
-index 0000000..831bd41
---- /dev/null
-+++ b/arch/arm64/Makefile
-@@ -0,0 +1,71 @@
-+#
-+# arch/arm64/Makefile
-+#
-+# This file is included by the global makefile so that you can add your own
-+# architecture-specific flags and dependencies.
-+#
-+# This file is subject to the terms and conditions of the GNU General Public
-+# License.  See the file "COPYING" in the main directory of this archive
-+# for more details.
-+#
-+# Copyright (C) 1995-2001 by Russell King
-+
-+LDFLAGS_vmlinux	:=-p --no-undefined -X
-+CPPFLAGS_vmlinux.lds = -DTEXT_OFFSET=$(TEXT_OFFSET)
-+OBJCOPYFLAGS	:=-O binary -R .note -R .note.gnu.build-id -R .comment -S
-+GZFLAGS		:=-9
-+
-+LIBGCC 		:= $(shell $(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
-+
-+KBUILD_DEFCONFIG := generic_defconfig
-+
-+KBUILD_CFLAGS	+= -mgeneral-regs-only
-+KBUILD_CPPFLAGS	+= -mlittle-endian
-+AS		+= -EL
-+LD		+= -EL
-+
-+comma = ,
-+
-+CHECKFLAGS	+= -D__aarch64__
-+
-+# Default value
-+head-y		:= arch/arm64/kernel/head.o
-+
-+# The byte offset of the kernel image in RAM from the start of RAM.
-+TEXT_OFFSET := 0x00080000
-+
-+export	TEXT_OFFSET GZFLAGS
-+
-+core-y		+= arch/arm64/kernel/ arch/arm64/mm/
-+libs-y		:= arch/arm64/lib/ $(libs-y)
-+libs-y		+= $(LIBGCC)
-+
-+# Default target when executing plain make
-+KBUILD_IMAGE := Image.gz
-+
-+all:	$(KBUILD_IMAGE)
-+
-+boot := arch/arm64/boot
-+
-+Image Image.gz: vmlinux
-+	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
-+
-+zinstall install: vmlinux
-+	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $@
-+
-+%.dtb:
-+	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
-+
-+# We use MRPROPER_FILES and CLEAN_FILES now
-+archclean:
-+	$(Q)$(MAKE) $(clean)=$(boot)
-+
-+define archhelp
-+  echo  '* Image.gz      - Compressed kernel image (arch/$(ARCH)/boot/Image.gz)'
-+  echo  '  Image         - Uncompressed kernel image (arch/$(ARCH)/boot/Image)'
-+  echo  '  install       - Install uncompressed kernel'
-+  echo  '  zinstall      - Install compressed kernel'
-+  echo  '                  Install using (your) ~/bin/installkernel or'
-+  echo  '                  (distribution) /sbin/installkernel or'
-+  echo  '                  install to $$(INSTALL_PATH) and run lilo'
-+endef
-diff --git a/arch/arm64/boot/.gitignore b/arch/arm64/boot/.gitignore
-new file mode 100644
-index 0000000..8dab0bb
---- /dev/null
-+++ b/arch/arm64/boot/.gitignore
-@@ -0,0 +1,2 @@
-+Image
-+Image.gz
-diff --git a/arch/arm64/boot/Makefile b/arch/arm64/boot/Makefile
-new file mode 100644
-index 0000000..15a58a8
---- /dev/null
-+++ b/arch/arm64/boot/Makefile
-@@ -0,0 +1,38 @@
-+#
-+# arch/arm64/boot/Makefile
-+#
-+# This file is included by the global makefile so that you can add your own
-+# architecture-specific flags and dependencies.
-+#
-+# This file is subject to the terms and conditions of the GNU General Public
-+# License.  See the file "COPYING" in the main directory of this archive
-+# for more details.
-+#
-+# Copyright (C) 2012, ARM Ltd.
-+# Author: Will Deacon <will.deacon@arm.com>
-+#
-+# Based on the ia64 boot/Makefile.
-+#
-+
-+targets := Image Image.gz
-+
-+$(obj)/Image: vmlinux FORCE
-+	$(call if_changed,objcopy)
-+	@echo '  Kernel: $@ is ready'
-+
-+$(obj)/Image.gz: $(obj)/Image FORCE
-+	$(call if_changed,gzip)
-+	@echo '  Kernel: $@ is ready'
-+
-+$(obj)/%.dtb: $(src)/dts/%.dts
-+	$(call cmd,dtc)
-+
-+install: $(obj)/Image
-+	$(CONFIG_SHELL) $(srctree)/$(src)/install.sh $(KERNELRELEASE) \
-+	$(obj)/Image System.map "$(INSTALL_PATH)"
-+
-+zinstall: $(obj)/Image.gz
-+	$(CONFIG_SHELL) $(srctree)/$(src)/install.sh $(KERNELRELEASE) \
-+	$(obj)/Image.gz System.map "$(INSTALL_PATH)"
-+
-+clean-files += *.dtb
-diff --git a/arch/arm64/boot/install.sh b/arch/arm64/boot/install.sh
-new file mode 100644
-index 0000000..9151e21
---- /dev/null
-+++ b/arch/arm64/boot/install.sh
-@@ -0,0 +1,52 @@
-+#!/bin/sh
-+#
-+# arch/arm64/boot/install.sh
-+#
-+# This file is subject to the terms and conditions of the GNU General Public
-+# License.  See the file "COPYING" in the main directory of this archive
-+# for more details.
-+#
-+# Copyright (C) 1995 by Linus Torvalds
-+#
-+# Adapted from code in arch/i386/boot/Makefile by H. Peter Anvin
-+# Adapted from code in arch/i386/boot/install.sh by Russell King
-+#
-+# "make install" script for the AArch64 Linux port
-+#
-+# Arguments:
-+#   $1 - kernel version
-+#   $2 - kernel image file
-+#   $3 - kernel map file
-+#   $4 - default install path (blank if root directory)
-+#
-+
-+# User may have a custom install script
-+if [ -x ~/bin/${INSTALLKERNEL} ]; then exec ~/bin/${INSTALLKERNEL} "$@"; fi
-+if [ -x /sbin/${INSTALLKERNEL} ]; then exec /sbin/${INSTALLKERNEL} "$@"; fi
-+
-+if [ "$(basename $2)" = "Image.gz" ]; then
-+# Compressed install
-+  echo "Installing compressed kernel"
-+  base=vmlinuz
-+else
-+# Normal install
-+  echo "Installing normal kernel"
-+  base=vmlinux
-+fi
-+
-+if [ -f $4/$base-$1 ]; then
-+  mv $4/$base-$1 $4/$base-$1.old
-+fi
-+cat $2 > $4/$base-$1
-+
-+# Install system map file
-+if [ -f $4/System.map-$1 ]; then
-+  mv $4/System.map-$1 $4/System.map-$1.old
-+fi
-+cp $3 $4/System.map-$1
-+
-+if [ -x /sbin/loadmap ]; then
-+  /sbin/loadmap
-+else
-+  echo "You have to install it yourself"
-+fi
-diff --git a/arch/arm64/configs/generic_defconfig b/arch/arm64/configs/generic_defconfig
-new file mode 100644
-index 0000000..d9aac95
---- /dev/null
-+++ b/arch/arm64/configs/generic_defconfig
-@@ -0,0 +1,85 @@
-+CONFIG_EXPERIMENTAL=y
-+# CONFIG_LOCALVERSION_AUTO is not set
-+# CONFIG_SWAP is not set
-+CONFIG_SYSVIPC=y
-+CONFIG_POSIX_MQUEUE=y
-+CONFIG_BSD_PROCESS_ACCT=y
-+CONFIG_BSD_PROCESS_ACCT_V3=y
-+CONFIG_NO_HZ=y
-+CONFIG_HIGH_RES_TIMERS=y
-+CONFIG_IKCONFIG=y
-+CONFIG_IKCONFIG_PROC=y
-+CONFIG_LOG_BUF_SHIFT=14
-+# CONFIG_UTS_NS is not set
-+# CONFIG_IPC_NS is not set
-+# CONFIG_PID_NS is not set
-+# CONFIG_NET_NS is not set
-+CONFIG_SCHED_AUTOGROUP=y
-+CONFIG_BLK_DEV_INITRD=y
-+CONFIG_KALLSYMS_ALL=y
-+# CONFIG_COMPAT_BRK is not set
-+CONFIG_PROFILING=y
-+CONFIG_MODULES=y
-+CONFIG_MODULE_UNLOAD=y
-+# CONFIG_BLK_DEV_BSG is not set
-+# CONFIG_IOSCHED_DEADLINE is not set
-+CONFIG_SMP=y
-+CONFIG_PREEMPT_VOLUNTARY=y
-+CONFIG_CMDLINE="console=ttyAMA0"
-+# CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set
-+CONFIG_AARCH32_EMULATION=y
-+CONFIG_NET=y
-+CONFIG_PACKET=y
-+CONFIG_UNIX=y
-+CONFIG_INET=y
-+CONFIG_IP_PNP=y
-+CONFIG_IP_PNP_DHCP=y
-+CONFIG_IP_PNP_BOOTP=y
-+# CONFIG_INET_LRO is not set
-+# CONFIG_IPV6 is not set
-+# CONFIG_WIRELESS is not set
-+CONFIG_UEVENT_HELPER_PATH="/sbin/hotplug"
-+CONFIG_DEVTMPFS=y
-+# CONFIG_BLK_DEV is not set
-+CONFIG_SCSI=y
-+# CONFIG_SCSI_PROC_FS is not set
-+CONFIG_BLK_DEV_SD=y
-+# CONFIG_SCSI_LOWLEVEL is not set
-+CONFIG_NETDEVICES=y
-+CONFIG_MII=y
-+# CONFIG_WLAN is not set
-+CONFIG_INPUT_EVDEV=y
-+# CONFIG_SERIO_I8042 is not set
-+# CONFIG_SERIO_SERPORT is not set
-+CONFIG_LEGACY_PTY_COUNT=16
-+# CONFIG_HW_RANDOM is not set
-+# CONFIG_HWMON is not set
-+CONFIG_FB=y
-+# CONFIG_VGA_CONSOLE is not set
-+CONFIG_FRAMEBUFFER_CONSOLE=y
-+CONFIG_LOGO=y
-+# CONFIG_LOGO_LINUX_MONO is not set
-+# CONFIG_LOGO_LINUX_VGA16 is not set
-+# CONFIG_USB_SUPPORT is not set
-+# CONFIG_IOMMU_SUPPORT is not set
-+CONFIG_EXT2_FS=y
-+CONFIG_EXT3_FS=y
-+# CONFIG_EXT3_DEFAULTS_TO_ORDERED is not set
-+# CONFIG_EXT3_FS_XATTR is not set
-+CONFIG_FUSE_FS=y
-+CONFIG_CUSE=y
-+CONFIG_VFAT_FS=y
-+CONFIG_TMPFS=y
-+# CONFIG_MISC_FILESYSTEMS is not set
-+CONFIG_NFS_FS=y
-+CONFIG_ROOT_NFS=y
-+CONFIG_NLS_CODEPAGE_437=y
-+CONFIG_NLS_ISO8859_1=y
-+CONFIG_MAGIC_SYSRQ=y
-+CONFIG_DEBUG_FS=y
-+CONFIG_DEBUG_KERNEL=y
-+# CONFIG_SCHED_DEBUG is not set
-+CONFIG_DEBUG_INFO=y
-+# CONFIG_FTRACE is not set
-+CONFIG_ATOMIC64_SELFTEST=y
-+CONFIG_DEBUG_ERRORS=y
-diff --git a/arch/arm64/include/asm/prom.h b/arch/arm64/include/asm/prom.h
-new file mode 100644
-index 0000000..68b90e6
---- /dev/null
-+++ b/arch/arm64/include/asm/prom.h
-@@ -0,0 +1 @@
-+/* Empty for now */
-diff --git a/arch/arm64/kernel/.gitignore b/arch/arm64/kernel/.gitignore
-new file mode 100644
-index 0000000..c5f676c
---- /dev/null
-+++ b/arch/arm64/kernel/.gitignore
-@@ -0,0 +1 @@
-+vmlinux.lds
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-new file mode 100644
-index 0000000..59fbdef
---- /dev/null
-+++ b/arch/arm64/kernel/Makefile
-@@ -0,0 +1,27 @@
-+#
-+# Makefile for the linux kernel.
-+#
-+
-+CPPFLAGS_vmlinux.lds	:= -DTEXT_OFFSET=$(TEXT_OFFSET)
-+AFLAGS_head.o		:= -DTEXT_OFFSET=$(TEXT_OFFSET)
-+
-+# Object file lists.
-+arm64-obj-y		:= debug-monitors.o elf.o entry.o irq.o	fpsimd.o	\
-+			   entry-fpsimd.o process.o ptrace.o setup.o signal.o	\
-+			   sys.o stacktrace.o time.o traps.o io.o vdso.o
-+
-+arm64-obj-$(CONFIG_AARCH32_EMULATION)	+= sys32.o kuser32.o signal32.o 	\
-+					   sys_compat.o
-+arm64-obj-$(CONFIG_MODULES)		+= arm64ksyms.o module.o
-+arm64-obj-$(CONFIG_SMP)			+= smp.o
-+arm64-obj-$(CONFIG_HW_PERF_EVENTS)	+= perf_event.o
-+arm64-obj-$(CONFIG_HAVE_HW_BREAKPOINT)+= hw_breakpoint.o
-+
-+obj-y					+= $(arm64-obj-y) vdso/
-+obj-m					+= $(arm64-obj-m)
-+head-y					:= head.o
-+extra-y					:= $(head-y) vmlinux.lds
-+
-+# vDSO - this must be built first to generate the symbol offsets
-+$(call objectify,$(arm64-obj-y)): $(obj)/vdso/vdso-offsets.h
-+$(obj)/vdso/vdso-offsets.h: $(obj)/vdso
-diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.lds.S
-new file mode 100644
-index 0000000..5eab87b
---- /dev/null
-+++ b/arch/arm64/kernel/vmlinux.lds.S
-@@ -0,0 +1,146 @@
++++ b/arch/arm64/include/asm/timex.h
+@@ -0,0 +1,32 @@
 +/*
-+ * ld script to make ARM Linux kernel
-+ * taken from the i386 version by Russell King
-+ * Written by Martin Mares <mj@atrey.karlin.mff.cuni.cz>
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_TIMEX_H
++#define __ASM_TIMEX_H
++
++/*
++ * Use the current timer as a cycle counter since this is what we use for
++ * the delay loop.
++ */
++#define get_cycles()=09({ cycles_t c; read_current_timer(&c); c; })
++
++#include <asm-generic/timex.h>
++
++#define ARCH_HAS_READ_CURRENT_TIMER
++
++/* This isn't really used any more */
++#define CLOCK_TICK_RATE 1000
++
++#endif
+diff --git a/arch/arm64/kernel/time.c b/arch/arm64/kernel/time.c
+new file mode 100644
+index 0000000..3b4b725
+--- /dev/null
++++ b/arch/arm64/kernel/time.c
+@@ -0,0 +1,65 @@
++/*
++ * Based on arch/arm/kernel/time.c
++ *
++ * Copyright (C) 1991, 1992, 1995  Linus Torvalds
++ * Modifications for ARM (C) 1994-2001 Russell King
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <asm-generic/vmlinux.lds.h>
++#include <linux/export.h>
++#include <linux/kernel.h>
++#include <linux/interrupt.h>
++#include <linux/time.h>
++#include <linux/init.h>
++#include <linux/sched.h>
++#include <linux/smp.h>
++#include <linux/timex.h>
++#include <linux/errno.h>
++#include <linux/profile.h>
++#include <linux/syscore_ops.h>
++#include <linux/timer.h>
++#include <linux/irq.h>
++
++#include <clocksource/arm_generic.h>
++
 +#include <asm/thread_info.h>
-+#include <asm/memory.h>
-+#include <asm/page.h>
++#include <asm/stacktrace.h>
 +
-+#define PROC_INFO							\
-+	VMLINUX_SYMBOL(__proc_info_begin) = .;				\
-+	*(.proc.info.init)						\
-+	VMLINUX_SYMBOL(__proc_info_end) = .;
-+
-+#define ARM_CPU_DISCARD(x)	x
-+#define ARM_CPU_KEEP(x)
-+
-+#define ARM_EXIT_KEEP(x)
-+#define ARM_EXIT_DISCARD(x)	x
-+
-+OUTPUT_ARCH(aarch64)
-+ENTRY(stext)
-+
-+jiffies = jiffies_64;
-+
-+SECTIONS
++#ifdef CONFIG_SMP
++unsigned long profile_pc(struct pt_regs *regs)
 +{
-+	/*
-+	 * XXX: The linker does not define how output sections are
-+	 * assigned to input sections when there are multiple statements
-+	 * matching the same input section name.  There is no documented
-+	 * order of matching.
-+	 */
-+	/DISCARD/ : {
-+		ARM_EXIT_DISCARD(EXIT_TEXT)
-+		ARM_EXIT_DISCARD(EXIT_DATA)
-+		EXIT_CALL
-+		*(.discard)
-+		*(.discard.*)
-+	}
++=09struct stackframe frame;
 +
-+	. = PAGE_OFFSET + TEXT_OFFSET;
++=09if (!in_lock_functions(regs->pc))
++=09=09return regs->pc;
 +
-+	.head.text : {
-+		_text = .;
-+		HEAD_TEXT
-+	}
-+	.text : {			/* Real text segment		*/
-+		_stext = .;		/* Text and read-only data	*/
-+			*(.smp.pen.text)
-+			__exception_text_start = .;
-+			*(.exception.text)
-+			__exception_text_end = .;
-+			IRQENTRY_TEXT
-+			TEXT_TEXT
-+			SCHED_TEXT
-+			LOCK_TEXT
-+			*(.fixup)
-+			*(.gnu.warning)
-+		. = ALIGN(16);
-+		*(.got)			/* Global offset table		*/
-+			ARM_CPU_KEEP(PROC_INFO)
-+	}
++=09frame.fp =3D regs->regs[29];
++=09frame.sp =3D regs->sp;
++=09frame.pc =3D regs->pc;
++=09do {
++=09=09int ret =3D unwind_frame(&frame);
++=09=09if (ret < 0)
++=09=09=09return 0;
++=09} while (in_lock_functions(frame.pc));
 +
-+	RO_DATA(PAGE_SIZE)
++=09return frame.pc;
++}
++EXPORT_SYMBOL(profile_pc);
++#endif
 +
-+	_etext = .;			/* End of text and rodata section */
++void __init time_init(void)
++{
++=09arm_generic_timer_init();
++}
+diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+index d53cd0a..6a78073 100644
+--- a/drivers/clocksource/Kconfig
++++ b/drivers/clocksource/Kconfig
+@@ -35,3 +35,8 @@ config CLKSRC_DBX500_PRCMU_SCHED_CLOCK
+ =09default y
+ =09help
+ =09  Use the always on PRCMU Timer as sched_clock
 +
-+	. = ALIGN(PAGE_SIZE);
-+	__init_begin = .;
++config CLKSRC_ARM_GENERIC
++=09def_bool y if ARM64
++=09help
++=09  This option enables support for the ARM generic timer.
+diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+index b65d0c5..6591990 100644
+--- a/drivers/clocksource/Makefile
++++ b/drivers/clocksource/Makefile
+@@ -13,3 +13,4 @@ obj-$(CONFIG_DW_APB_TIMER)=09+=3D dw_apb_timer.o
+ obj-$(CONFIG_DW_APB_TIMER_OF)=09+=3D dw_apb_timer_of.o
+ obj-$(CONFIG_CLKSRC_DBX500_PRCMU)=09+=3D clksrc-dbx500-prcmu.o
+ obj-$(CONFIG_ARMADA_370_XP_TIMER)=09+=3D time-armada-370-xp.o
++obj-$(CONFIG_CLKSRC_ARM_GENERIC)=09+=3D arm_generic.o
+diff --git a/drivers/clocksource/arm_generic.c b/drivers/clocksource/arm_ge=
+neric.c
+new file mode 100644
+index 0000000..05c898c
+--- /dev/null
++++ b/drivers/clocksource/arm_generic.c
+@@ -0,0 +1,309 @@
++/*
++ * Generic timers support
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ * Author: Marc Zyngier <marc.zyngier@arm.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
 +
-+	INIT_TEXT_SECTION(8)
-+	.exit.text : {
-+		ARM_EXIT_KEEP(EXIT_TEXT)
-+	}
-+	. = ALIGN(16);
-+	.init.proc.info : {
-+		ARM_CPU_DISCARD(PROC_INFO)
-+	}
-+	. = ALIGN(16);
-+	.init.data : {
-+		INIT_DATA
-+		INIT_SETUP(16)
-+		INIT_CALLS
-+		CON_INITCALL
-+		SECURITY_INITCALL
-+		INIT_RAM_FS
-+	}
-+	.exit.data : {
-+		ARM_EXIT_KEEP(EXIT_DATA)
-+	}
++#include <linux/init.h>
++#include <linux/kernel.h>
++#include <linux/delay.h>
++#include <linux/device.h>
++#include <linux/smp.h>
++#include <linux/cpu.h>
++#include <linux/jiffies.h>
++#include <linux/interrupt.h>
++#include <linux/clockchips.h>
++#include <linux/of_irq.h>
++#include <linux/io.h>
 +
-+	PERCPU_SECTION(64)
++#include <clocksource/arm_generic.h>
 +
-+	__init_end = .;
-+	. = ALIGN(THREAD_SIZE);
-+	__data_loc = .;
++static u32 arch_timer_rate;
++static u64 sched_clock_mult __read_mostly;
++static DEFINE_PER_CPU(struct clock_event_device, arch_timer_evt);
++static int arch_timer_ppi;
 +
-+	.data : AT(__data_loc) {
-+		_data = .;		/* address in memory */
-+		_sdata = .;
++/*
++ * Architected system timer support.
++ */
 +
-+		/*
-+		 * first, the init task union, aligned
-+		 * to an 8192 byte boundary.
-+		 */
-+		INIT_TASK_DATA(THREAD_SIZE)
-+		NOSAVE_DATA
-+		CACHELINE_ALIGNED_DATA(64)
-+		READ_MOSTLY_DATA(64)
++#define ARCH_TIMER_CTRL_ENABLE=09=09(1 << 0)
++#define ARCH_TIMER_CTRL_IT_MASK=09=09(1 << 1)
 +
-+		/*
-+		 * The exception fixup table (might need resorting at runtime)
-+		 */
-+		. = ALIGN(32);
-+		__start___ex_table = .;
-+		*(__ex_table)
-+		__stop___ex_table = .;
++#define ARCH_TIMER_REG_CTRL=09=090
++#define ARCH_TIMER_REG_FREQ=09=091
++#define ARCH_TIMER_REG_TVAL=09=092
 +
-+		/*
-+		 * and the usual data section
-+		 */
-+		DATA_DATA
-+		CONSTRUCTORS
++static void arch_timer_reg_write(int reg, u32 val)
++{
++=09switch (reg) {
++=09case ARCH_TIMER_REG_CTRL:
++=09=09asm volatile("msr cntp_ctl_el0,  %0" : : "r" (val));
++=09=09break;
++=09case ARCH_TIMER_REG_TVAL:
++=09=09asm volatile("msr cntp_tval_el0, %0" : : "r" (val));
++=09=09break;
++=09default:
++=09=09BUG();
++=09}
 +
-+		_edata = .;
-+	}
-+	_edata_loc = __data_loc + SIZEOF(.data);
-+
-+	NOTES
-+
-+	BSS_SECTION(0, 0, 0)
-+	_end = .;
-+
-+	STABS_DEBUG
-+	.comment 0 : { *(.comment) }
++=09isb();
 +}
 +
++static u32 arch_timer_reg_read(int reg)
++{
++=09u32 val;
++
++=09switch (reg) {
++=09case ARCH_TIMER_REG_CTRL:
++=09=09asm volatile("mrs %0,  cntp_ctl_el0" : "=3Dr" (val));
++=09=09break;
++=09case ARCH_TIMER_REG_FREQ:
++=09=09asm volatile("mrs %0,   cntfrq_el0" : "=3Dr" (val));
++=09=09break;
++=09case ARCH_TIMER_REG_TVAL:
++=09=09asm volatile("mrs %0, cntp_tval_el0" : "=3Dr" (val));
++=09=09break;
++=09default:
++=09=09BUG();
++=09}
++
++=09return val;
++}
++
++static irqreturn_t arch_timer_handle_irq(int irq, void *dev_id)
++{
++=09struct clock_event_device *evt =3D dev_id;
++=09unsigned long ctrl;
++
++=09ctrl =3D arch_timer_reg_read(ARCH_TIMER_REG_CTRL);
++=09if (ctrl & 0x4) {
++=09=09ctrl |=3D ARCH_TIMER_CTRL_IT_MASK;
++=09=09arch_timer_reg_write(ARCH_TIMER_REG_CTRL, ctrl);
++=09=09evt->event_handler(evt);
++=09=09return IRQ_HANDLED;
++=09}
++
++=09return IRQ_NONE;
++}
++
++static void arch_timer_stop(void)
++{
++=09unsigned long ctrl;
++
++=09ctrl =3D arch_timer_reg_read(ARCH_TIMER_REG_CTRL);
++=09ctrl &=3D ~ARCH_TIMER_CTRL_ENABLE;
++=09arch_timer_reg_write(ARCH_TIMER_REG_CTRL, ctrl);
++}
++
++static void arch_timer_set_mode(enum clock_event_mode mode,
++=09=09=09=09struct clock_event_device *clk)
++{
++=09switch (mode) {
++=09case CLOCK_EVT_MODE_UNUSED:
++=09case CLOCK_EVT_MODE_SHUTDOWN:
++=09=09arch_timer_stop();
++=09=09break;
++=09default:
++=09=09break;
++=09}
++}
++
++static int arch_timer_set_next_event(unsigned long evt,
++=09=09=09=09     struct clock_event_device *unused)
++{
++=09unsigned long ctrl;
++
++=09ctrl =3D arch_timer_reg_read(ARCH_TIMER_REG_CTRL);
++=09ctrl |=3D ARCH_TIMER_CTRL_ENABLE;
++=09ctrl &=3D ~ARCH_TIMER_CTRL_IT_MASK;
++
++=09arch_timer_reg_write(ARCH_TIMER_REG_TVAL, evt);
++=09arch_timer_reg_write(ARCH_TIMER_REG_CTRL, ctrl);
++
++=09return 0;
++}
++
++static void __cpuinit arch_counter_enable_user_access(void)
++{
++=09u32 cntkctl;
++
++=09/* Disable user access to the timers and the virtual counter. */
++=09asm volatile("mrs=09%0, cntkctl_el1" : "=3Dr" (cntkctl));
++=09cntkctl &=3D ~((3 << 8) | (1 << 1));
++
++=09/* Enable user access to the physical counter and frequency. */
++=09cntkctl |=3D 1;
++=09asm volatile("msr=09cntkctl_el1, %0" : : "r" (cntkctl));
++}
++
++static void __cpuinit arch_timer_setup(struct clock_event_device *clk)
++{
++=09/* Let's make sure the timer is off before doing anything else */
++=09arch_timer_stop();
++
++=09clk->features =3D CLOCK_EVT_FEAT_ONESHOT;
++=09clk->name =3D "arch_sys_timer";
++=09clk->rating =3D 400;
++=09clk->set_mode =3D arch_timer_set_mode;
++=09clk->set_next_event =3D arch_timer_set_next_event;
++=09clk->irq =3D arch_timer_ppi;
++=09clk->cpumask =3D cpumask_of(smp_processor_id());
++
++=09clockevents_config_and_register(clk, arch_timer_rate,
++=09=09=09=09=090xf, 0x7fffffff);
++
++=09enable_percpu_irq(clk->irq, 0);
++
++=09/* Ensure the physical counter is visible to userspace for the vDSO. */
++=09arch_counter_enable_user_access();
++}
++
++static void __init arch_timer_calibrate(void)
++{
++=09if (arch_timer_rate =3D=3D 0) {
++=09=09arch_timer_reg_write(ARCH_TIMER_REG_CTRL, 0);
++=09=09arch_timer_rate =3D arch_timer_reg_read(ARCH_TIMER_REG_FREQ);
++
++=09=09/* Check the timer frequency. */
++=09=09if (arch_timer_rate =3D=3D 0)
++=09=09=09panic("Architected timer frequency is set to zero.\n"
++=09=09=09      "You must set this in your .dts file\n");
++=09}
++
++=09/* Cache the sched_clock multiplier to save a divide in the hot path. *=
+/
++
++=09sched_clock_mult =3D NSEC_PER_SEC / arch_timer_rate;
++
++=09pr_info("Architected local timer running at %u.%02uMHz.\n",
++=09=09 arch_timer_rate / 1000000, (arch_timer_rate / 10000) % 100);
++}
++
++static inline cycle_t arch_counter_get_cntpct(void)
++{
++=09cycle_t cval;
++
++=09asm volatile("mrs %0, cntpct_el0" : "=3Dr" (cval));
++
++=09return cval;
++}
++
++static inline cycle_t arch_counter_get_cntvct(void)
++{
++=09cycle_t cval;
++
++=09asm volatile("mrs %0, cntvct_el0" : "=3Dr" (cval));
++
++=09return cval;
++}
++
++static cycle_t arch_counter_read(struct clocksource *cs)
++{
++=09return arch_counter_get_cntpct();
++}
++
++static struct clocksource clocksource_counter =3D {
++=09.name=09=3D "arch_sys_counter",
++=09.rating=09=3D 400,
++=09.read=09=3D arch_counter_read,
++=09.mask=09=3D CLOCKSOURCE_MASK(56),
++=09.flags=09=3D (CLOCK_SOURCE_IS_CONTINUOUS | CLOCK_SOURCE_VALID_FOR_HRES)=
+,
++};
++
++int read_current_timer(unsigned long *timer_value)
++{
++=09*timer_value =3D arch_counter_get_cntpct();
++=09return 0;
++}
++
++unsigned long long notrace sched_clock(void)
++{
++=09return arch_counter_get_cntvct() * sched_clock_mult;
++}
++
++static int __cpuinit arch_timer_cpu_notify(struct notifier_block *self,
++=09=09=09=09=09   unsigned long action, void *hcpu)
++{
++=09int cpu =3D (long)hcpu;
++=09struct clock_event_device *clk =3D per_cpu_ptr(&arch_timer_evt, cpu);
++
++=09switch(action) {
++=09case CPU_STARTING:
++=09case CPU_STARTING_FROZEN:
++=09=09arch_timer_setup(clk);
++=09=09break;
++
++=09case CPU_DYING:
++=09case CPU_DYING_FROZEN:
++=09=09pr_debug("arch_timer_teardown disable IRQ%d cpu #%d\n",
++=09=09=09 clk->irq, cpu);
++=09=09disable_percpu_irq(clk->irq);
++=09=09arch_timer_set_mode(CLOCK_EVT_MODE_UNUSED, clk);
++=09=09break;
++=09}
++
++=09return NOTIFY_OK;
++}
++
++static struct notifier_block __cpuinitdata arch_timer_cpu_nb =3D {
++=09.notifier_call =3D arch_timer_cpu_notify,
++};
++
++static const struct of_device_id arch_timer_of_match[] __initconst =3D {
++=09{ .compatible =3D "arm,armv8-timer" },
++=09{},
++};
++
++int __init arm_generic_timer_init(void)
++{
++=09struct device_node *np;
++=09int err;
++=09u32 freq;
++
++=09np =3D of_find_matching_node(NULL, arch_timer_of_match);
++=09if (!np) {
++=09=09pr_err("arch_timer: can't find DT node\n");
++=09=09return -ENODEV;
++=09}
++
++=09/* Try to determine the frequency from the device tree or CNTFRQ */
++=09if (!of_property_read_u32(np, "clock-frequency", &freq))
++=09=09arch_timer_rate =3D freq;
++=09arch_timer_calibrate();
++
++=09arch_timer_ppi =3D irq_of_parse_and_map(np, 0);
++=09pr_info("arch_timer: found %s irq %d\n", np->name, arch_timer_ppi);
++
++=09err =3D request_percpu_irq(arch_timer_ppi, arch_timer_handle_irq,
++=09=09=09=09 np->name, &arch_timer_evt);
++=09if (err) {
++=09=09pr_err("arch_timer: can't register interrupt %d (%d)\n",
++=09=09       arch_timer_ppi, err);
++=09=09return err;
++=09}
++
++=09clocksource_register_hz(&clocksource_counter, arch_timer_rate);
++
++=09/* Calibrate the delay loop directly */
++=09lpj_fine =3D arch_timer_rate / HZ;
++
++=09/* Immediately configure the timer on the boot CPU */
++=09arch_timer_setup(per_cpu_ptr(&arch_timer_evt, smp_processor_id()));
++
++=09register_cpu_notifier(&arch_timer_cpu_nb);
++
++=09return 0;
++}
+diff --git a/include/clocksource/arm_generic.h b/include/clocksource/arm_ge=
+neric.h
+new file mode 100644
+index 0000000..5b41b0d
+--- /dev/null
++++ b/include/clocksource/arm_generic.h
+@@ -0,0 +1,21 @@
 +/*
-+ * These must never be empty
-+ * If you have to comment these two assert statements out, your
-+ * binutils is too old (for other reasons as well)
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+ASSERT((__proc_info_end - __proc_info_begin), "missing CPU support")
-diff --git a/arch/arm64/mm/Kconfig b/arch/arm64/mm/Kconfig
-new file mode 100644
-index 0000000..8e94e52
---- /dev/null
-+++ b/arch/arm64/mm/Kconfig
-@@ -0,0 +1,5 @@
-+config MMU
-+	def_bool y
++#ifndef __CLKSOURCE_ARM_GENERIC_H
++#define __CLKSOURCE_ARM_GENERIC_H
 +
-+config CPU_64
-+	def_bool y
-diff --git a/arch/arm64/mm/Makefile b/arch/arm64/mm/Makefile
-new file mode 100644
-index 0000000..81a9d8b
---- /dev/null
-+++ b/arch/arm64/mm/Makefile
-@@ -0,0 +1,6 @@
-+obj-y				:= dma-mapping.o extable.o fault.o init.o \
-+				   cache.o copypage.o flush.o \
-+				   ioremap.o mmap.o pgd.o mmu.o \
-+				   context.o tlb.o proc.o
++extern int arm_generic_timer_init(void);
 +
-+obj-$(CONFIG_MODULES)		+= proc-syms.o
-diff --git a/init/Kconfig b/init/Kconfig
-index af6c7f8..8bfda46 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1153,7 +1153,8 @@ menuconfig EXPERT
- 
- config UID16
- 	bool "Enable 16-bit UID system calls" if EXPERT
--	depends on ARM || BLACKFIN || CRIS || FRV || H8300 || X86_32 || M68K || (S390 && !64BIT) || SUPERH || SPARC32 || (SPARC64 && COMPAT) || UML || (X86_64 && IA32_EMULATION)
-+	depends on ARM || BLACKFIN || CRIS || FRV || H8300 || X86_32 || M68K || (S390 && !64BIT) || SUPERH || SPARC32 || (SPARC64 && COMPAT) || UML || (X86_64 && IA32_EMULATION) \
-+		|| AARCH32_EMULATION
- 	default y
- 	help
- 	  This enables the legacy 16-bit UID syscall wrappers.
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index 2403a63..cfb4578 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -452,7 +452,8 @@ config SLUB_STATS
- config DEBUG_KMEMLEAK
- 	bool "Kernel memory leak detector"
- 	depends on DEBUG_KERNEL && EXPERIMENTAL && \
--		(X86 || ARM || PPC || MIPS || S390 || SPARC64 || SUPERH || MICROBLAZE || TILE)
-+		(X86 || ARM || PPC || MIPS || S390 || SPARC64 || SUPERH || \
-+		 MICROBLAZE || TILE || ARM64)
- 
- 	select DEBUG_FS
- 	select STACKTRACE if STACKTRACE_SUPPORT
-@@ -739,7 +740,8 @@ config DEBUG_BUGVERBOSE
- 	bool "Verbose BUG() reporting (adds 70K)" if DEBUG_KERNEL && EXPERT
- 	depends on BUG
- 	depends on ARM || AVR32 || M32R || M68K || SPARC32 || SPARC64 || \
--		   FRV || SUPERH || GENERIC_BUG || BLACKFIN || MN10300 || TILE
-+		   FRV || SUPERH || GENERIC_BUG || BLACKFIN || MN10300 || \
-+		   TILE || ARM64
- 	default y
- 	help
- 	  Say Y here to make BUG() panics output the file name and line number
++#endif
