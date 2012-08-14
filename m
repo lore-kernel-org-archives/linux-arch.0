@@ -1,25 +1,27 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 0/2] Align MIPS swapper_pg_dir for faster code.
-Date: Tue, 14 Aug 2012 18:39:41 +0000
-Message-ID: <201208141839.41441.arnd@arndb.de>
-References: <1344967681-13179-1-git-send-email-ddaney.cavm@gmail.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [GIT PULL] Disintegrate the User API from the kernel headers
+Date: Tue, 14 Aug 2012 21:54:40 +0100
+Message-ID: <8709.1344977680@warthog.procyon.org.uk>
+References: <502A8A50.4080308@hartkopp.net> <5725.1343931663@warthog.procyon.org.uk> <27564.1343122707@warthog.procyon.org.uk> <31633.1344950521@warthog.procyon.org.uk>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:52825 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757066Ab2HNSjz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 14:39:55 -0400
-In-Reply-To: <1344967681-13179-1-git-send-email-ddaney.cavm@gmail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:37345 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757496Ab2HNUzU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 14 Aug 2012 16:55:20 -0400
+In-Reply-To: <502A8A50.4080308@hartkopp.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Daney <ddaney.cavm@gmail.com>
-Cc: linux-mips@linux-mips.org, ralf@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Daney <david.daney@cavium.com>
+To: Oliver Hartkopp <socketcan@hartkopp.net>
+Cc: dhowells@redhat.com, torvalds@osdl.org, mkl@pengutronix.de, arnd@arndb.de, tglx@linutronix.de, mtk.manpages@gmail.com, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Tuesday 14 August 2012, David Daney wrote:
-> Since the initial use of the code is for MIPS, perhaps both parts
-> could be merged by Ralf's tree (after collecting any Acked-bys).
+Oliver Hartkopp <socketcan@hartkopp.net> wrote:
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+> The defines are relevant for upcoming tools and drivers (for hardware that
+> will become available in Q4/2012). So we're currently not breaking any
+> Userspace API. After it turned out that one of the bits was misleading i
+> wanted to fix the bits ASAP, so that the final 3.6 will contain the agreed
+> information and final userspace API for CAN FD.
+
+That sounds fine, then.
+
+David
