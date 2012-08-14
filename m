@@ -1,7 +1,7 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v2 22/31] arm64: Floating point and SIMD
-Date: Tue, 14 Aug 2012 18:52:23 +0100
-Message-ID: <1344966752-16102-23-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v2 29/31] arm64: Miscellaneous header files
+Date: Tue, 14 Aug 2012 18:52:30 +0100
+Message-ID: <1344966752-16102-30-git-send-email-catalin.marinas@arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
@@ -21,30 +21,100 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds support for FP/ASIMD register bank saving and restoring
-during context switch and FP exception handling to generate SIGFPE.
-There are 32 128-bit registers and the context switching is currently
-done non-lazily. Benchmarks on real hardware are required before
-implementing lazy FP state saving/restoring.
+This patch introduces a few AArch64-specific header files together with
+Kbuild entries for generic headers.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/include/asm/fpsimd.h  |   64 +++++++++++++++++++++++
- arch/arm64/kernel/entry-fpsimd.S |   80 ++++++++++++++++++++++++++++
- arch/arm64/kernel/fpsimd.c       |  106 ++++++++++++++++++++++++++++++++++++++
- 3 files changed, 250 insertions(+), 0 deletions(-)
- create mode 100644 arch/arm64/include/asm/fpsimd.h
- create mode 100644 arch/arm64/kernel/entry-fpsimd.S
- create mode 100644 arch/arm64/kernel/fpsimd.c
+ arch/arm64/include/asm/Kbuild        |   51 ++++++++++
+ arch/arm64/include/asm/barrier.h     |   52 ++++++++++
+ arch/arm64/include/asm/bitsperlong.h |   23 +++++
+ arch/arm64/include/asm/byteorder.h   |   21 ++++
+ arch/arm64/include/asm/cmpxchg.h     |  180 ++++++++++++++++++++++++++++++++++
+ arch/arm64/include/asm/compiler.h    |   30 ++++++
+ arch/arm64/include/asm/exception.h   |   23 +++++
+ arch/arm64/include/asm/exec.h        |   23 +++++
+ arch/arm64/include/asm/fcntl.h       |   29 ++++++
+ arch/arm64/include/asm/system_misc.h |   54 ++++++++++
+ 10 files changed, 486 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/Kbuild
+ create mode 100644 arch/arm64/include/asm/barrier.h
+ create mode 100644 arch/arm64/include/asm/bitsperlong.h
+ create mode 100644 arch/arm64/include/asm/byteorder.h
+ create mode 100644 arch/arm64/include/asm/cmpxchg.h
+ create mode 100644 arch/arm64/include/asm/compiler.h
+ create mode 100644 arch/arm64/include/asm/exception.h
+ create mode 100644 arch/arm64/include/asm/exec.h
+ create mode 100644 arch/arm64/include/asm/fcntl.h
+ create mode 100644 arch/arm64/include/asm/system_misc.h
 
-diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsimd.h
+diff --git a/arch/arm64/include/asm/Kbuild b/arch/arm64/include/asm/Kbuild
 new file mode 100644
-index 0000000..7ea4711
+index 0000000..35924a5
 --- /dev/null
-+++ b/arch/arm64/include/asm/fpsimd.h
-@@ -0,0 +1,64 @@
++++ b/arch/arm64/include/asm/Kbuild
+@@ -0,0 +1,51 @@
++include include/asm-generic/Kbuild.asm
++
++header-y += hwcap.h
++
++generic-y += bug.h
++generic-y += bugs.h
++generic-y += checksum.h
++generic-y += cputime.h
++generic-y += current.h
++generic-y += delay.h
++generic-y += div64.h
++generic-y += dma.h
++generic-y += emergency-restart.h
++generic-y += errno.h
++generic-y += ftrace.h
++generic-y += hw_irq.h
++generic-y += ioctl.h
++generic-y += ioctls.h
++generic-y += ipcbuf.h
++generic-y += irq_regs.h
++generic-y += kdebug.h
++generic-y += kmap_types.h
++generic-y += linkage.h
++generic-y += local.h
++generic-y += local64.h
++generic-y += mman.h
++generic-y += msgbuf.h
++generic-y += mutex.h
++generic-y += pci.h
++generic-y += percpu.h
++generic-y += poll.h
++generic-y += posix_types.h
++generic-y += resource.h
++generic-y += scatterlist.h
++generic-y += sections.h
++generic-y += segment.h
++generic-y += sembuf.h
++generic-y += serial.h
++generic-y += shmbuf.h
++generic-y += sizes.h
++generic-y += socket.h
++generic-y += sockios.h
++generic-y += string.h
++generic-y += switch_to.h
++generic-y += swab.h
++generic-y += termbits.h
++generic-y += termios.h
++generic-y += topology.h
++generic-y += types.h
++generic-y += unaligned.h
++generic-y += user.h
+diff --git a/arch/arm64/include/asm/barrier.h b/arch/arm64/include/asm/barrier.h
+new file mode 100644
+index 0000000..d4a6333
+--- /dev/null
++++ b/arch/arm64/include/asm/barrier.h
+@@ -0,0 +1,52 @@
 +/*
++ * Based on arch/arm/include/asm/barrier.h
++ *
 + * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -59,66 +129,49 @@ index 0000000..7ea4711
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_FP_H
-+#define __ASM_FP_H
-+
-+#include <asm/ptrace.h>
++#ifndef __ASM_BARRIER_H
++#define __ASM_BARRIER_H
 +
 +#ifndef __ASSEMBLY__
 +
-+/*
-+ * FP/SIMD storage area has:
-+ *  - FPSR and FPCR
-+ *  - 32 128-bit data registers
-+ *
-+ * Note that user_fp forms a prefix of this structure, which is relied
-+ * upon in the ptrace FP/SIMD accessors. struct user_fpsimd_state must
-+ * form a prefix of struct fpsimd_state.
-+ */
-+struct fpsimd_state {
-+	union {
-+		struct user_fpsimd_state user_fpsimd;
-+		struct {
-+			__uint128_t vregs[32];
-+			u32 fpsr;
-+			u32 fpcr;
-+		};
-+	};
-+};
++#define sev()		asm volatile("sev" : : : "memory")
++#define wfe()		asm volatile("wfe" : : : "memory")
++#define wfi()		asm volatile("wfi" : : : "memory")
 +
-+#if defined(__KERNEL__) && defined(CONFIG_AARCH32_EMULATION)
-+/* Masks for extracting the FPSR and FPCR from the FPSCR */
-+#define VFP_FPSCR_STAT_MASK	0xf800009f
-+#define VFP_FPSCR_CTRL_MASK	0x07f79f00
-+/*
-+ * The VFP state has 32x64-bit registers and a single 32-bit
-+ * control/status register.
-+ */
-+#define VFP_STATE_SIZE		((32 * 8) + 4)
++#define isb()		asm volatile("isb" : : : "memory")
++#define dsb()		asm volatile("dsb sy" : : : "memory")
++
++#define mb()		dsb()
++#define rmb()		asm volatile("dsb ld" : : : "memory")
++#define wmb()		asm volatile("dsb st" : : : "memory")
++
++#ifndef CONFIG_SMP
++#define smp_mb()	barrier()
++#define smp_rmb()	barrier()
++#define smp_wmb()	barrier()
++#else
++#define smp_mb()	asm volatile("dmb ish" : : : "memory")
++#define smp_rmb()	asm volatile("dmb ishld" : : : "memory")
++#define smp_wmb()	asm volatile("dmb ishst" : : : "memory")
 +#endif
 +
-+struct task_struct;
++#define read_barrier_depends()		do { } while(0)
++#define smp_read_barrier_depends()	do { } while(0)
 +
-+extern void fpsimd_save_state(struct fpsimd_state *state);
-+extern void fpsimd_load_state(struct fpsimd_state *state);
++#define set_mb(var, value)	do { var = value; smp_mb(); } while (0)
++#define nop()		asm volatile("nop");
 +
-+extern void fpsimd_thread_switch(struct task_struct *next);
-+extern void fpsimd_flush_thread(void);
++#endif	/* __ASSEMBLY__ */
 +
-+#endif
-+
-+#endif
-diff --git a/arch/arm64/kernel/entry-fpsimd.S b/arch/arm64/kernel/entry-fpsimd.S
++#endif	/* __ASM_BARRIER_H */
+diff --git a/arch/arm64/include/asm/bitsperlong.h b/arch/arm64/include/asm/bitsperlong.h
 new file mode 100644
-index 0000000..17988a6
+index 0000000..fce9c29
 --- /dev/null
-+++ b/arch/arm64/kernel/entry-fpsimd.S
-@@ -0,0 +1,80 @@
++++ b/arch/arm64/include/asm/bitsperlong.h
+@@ -0,0 +1,23 @@
 +/*
-+ * FP/SIMD state saving and restoring
-+ *
 + * Copyright (C) 2012 ARM Ltd.
-+ * Author: Catalin Marinas <catalin.marinas@arm.com>
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -132,79 +185,22 @@ index 0000000..17988a6
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
++#ifndef __ASM_BITSPERLONG_H
++#define __ASM_BITSPERLONG_H
 +
-+#include <linux/linkage.h>
++#define __BITS_PER_LONG 64
 +
-+#include <asm/assembler.h>
++#include <asm-generic/bitsperlong.h>
 +
-+/*
-+ * Save the FP registers.
-+ *
-+ * x0 - pointer to struct fpsimd_state
-+ */
-+ENTRY(fpsimd_save_state)
-+	stp	q0, q1, [x0, #16 * 0]
-+	stp	q2, q3, [x0, #16 * 2]
-+	stp	q4, q5, [x0, #16 * 4]
-+	stp	q6, q7, [x0, #16 * 6]
-+	stp	q8, q9, [x0, #16 * 8]
-+	stp	q10, q11, [x0, #16 * 10]
-+	stp	q12, q13, [x0, #16 * 12]
-+	stp	q14, q15, [x0, #16 * 14]
-+	stp	q16, q17, [x0, #16 * 16]
-+	stp	q18, q19, [x0, #16 * 18]
-+	stp	q20, q21, [x0, #16 * 20]
-+	stp	q22, q23, [x0, #16 * 22]
-+	stp	q24, q25, [x0, #16 * 24]
-+	stp	q26, q27, [x0, #16 * 26]
-+	stp	q28, q29, [x0, #16 * 28]
-+	stp	q30, q31, [x0, #16 * 30]!
-+	mrs	x8, fpsr
-+	str	w8, [x0, #16 * 2]
-+	mrs	x8, fpcr
-+	str	w8, [x0, #16 * 2 + 4]
-+	ret
-+ENDPROC(fpsimd_save_state)
-+
-+/*
-+ * Load the FP registers.
-+ *
-+ * x0 - pointer to struct fpsimd_state
-+ */
-+ENTRY(fpsimd_load_state)
-+	ldp	q0, q1, [x0, #16 * 0]
-+	ldp	q2, q3, [x0, #16 * 2]
-+	ldp	q4, q5, [x0, #16 * 4]
-+	ldp	q6, q7, [x0, #16 * 6]
-+	ldp	q8, q9, [x0, #16 * 8]
-+	ldp	q10, q11, [x0, #16 * 10]
-+	ldp	q12, q13, [x0, #16 * 12]
-+	ldp	q14, q15, [x0, #16 * 14]
-+	ldp	q16, q17, [x0, #16 * 16]
-+	ldp	q18, q19, [x0, #16 * 18]
-+	ldp	q20, q21, [x0, #16 * 20]
-+	ldp	q22, q23, [x0, #16 * 22]
-+	ldp	q24, q25, [x0, #16 * 24]
-+	ldp	q26, q27, [x0, #16 * 26]
-+	ldp	q28, q29, [x0, #16 * 28]
-+	ldp	q30, q31, [x0, #16 * 30]!
-+	ldr	w8, [x0, #16 * 2]
-+	ldr	w9, [x0, #16 * 2 + 4]
-+	msr	fpsr, x8
-+	msr	fpcr, x9
-+	ret
-+ENDPROC(fpsimd_load_state)
-diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
++#endif	/* __ASM_BITSPERLONG_H */
+diff --git a/arch/arm64/include/asm/byteorder.h b/arch/arm64/include/asm/byteorder.h
 new file mode 100644
-index 0000000..e8b8357
+index 0000000..2b92046
 --- /dev/null
-+++ b/arch/arm64/kernel/fpsimd.c
-@@ -0,0 +1,106 @@
++++ b/arch/arm64/include/asm/byteorder.h
+@@ -0,0 +1,21 @@
 +/*
-+ * FP/SIMD context switching and fault handling
-+ *
 + * Copyright (C) 2012 ARM Ltd.
-+ * Author: Catalin Marinas <catalin.marinas@arm.com>
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -218,91 +214,384 @@ index 0000000..e8b8357
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
++#ifndef __ASM_BYTEORDER_H
++#define __ASM_BYTEORDER_H
 +
-+#include <linux/kernel.h>
-+#include <linux/init.h>
-+#include <linux/sched.h>
-+#include <linux/signal.h>
++#include <linux/byteorder/little_endian.h>
 +
-+#include <asm/fpsimd.h>
-+#include <asm/cputype.h>
-+
-+#define FPEXC_IOF	(1 << 0)
-+#define FPEXC_DZF	(1 << 1)
-+#define FPEXC_OFF	(1 << 2)
-+#define FPEXC_UFF	(1 << 3)
-+#define FPEXC_IXF	(1 << 4)
-+#define FPEXC_IDF	(1 << 7)
-+
++#endif	/* __ASM_BYTEORDER_H */
+diff --git a/arch/arm64/include/asm/cmpxchg.h b/arch/arm64/include/asm/cmpxchg.h
+new file mode 100644
+index 0000000..dc50de7
+--- /dev/null
++++ b/arch/arm64/include/asm/cmpxchg.h
+@@ -0,0 +1,180 @@
 +/*
-+ * Trapped FP/ASIMD access.
++ * Based on arch/arm/include/asm/cmpxchg.h
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+void do_fpsimd_acc(unsigned int esr, struct pt_regs *regs)
++#ifndef __ASM_CMPXCHG_H
++#define __ASM_CMPXCHG_H
++
++#include <linux/irqflags.h>
++#include <asm/barrier.h>
++
++static inline unsigned long __xchg(unsigned long x, volatile void *ptr, int size)
 +{
-+	/* TODO: implement lazy context saving/restoring */
-+	WARN_ON(1);
-+}
++	extern void __bad_xchg(volatile void *, int);
++	unsigned long ret, tmp;
 +
-+/*
-+ * Raise a SIGFPE for the current process.
-+ */
-+void do_fpsimd_exc(unsigned int esr, struct pt_regs *regs)
-+{
-+	siginfo_t info;
-+	unsigned int si_code = 0;
-+
-+	if (esr & FPEXC_IOF)
-+		si_code = FPE_FLTINV;
-+	else if (esr & FPEXC_DZF)
-+		si_code = FPE_FLTDIV;
-+	else if (esr & FPEXC_OFF)
-+		si_code = FPE_FLTOVF;
-+	else if (esr & FPEXC_UFF)
-+		si_code = FPE_FLTUND;
-+	else if (esr & FPEXC_IXF)
-+		si_code = FPE_FLTRES;
-+
-+	memset(&info, 0, sizeof(info));
-+	info.si_signo = SIGFPE;
-+	info.si_code = si_code;
-+	info.si_addr = (void __user *)instruction_pointer(regs);
-+
-+	send_sig_info(SIGFPE, &info, current);
-+}
-+
-+void fpsimd_thread_switch(struct task_struct *next)
-+{
-+	/* check if not kernel threads */
-+	if (current->mm)
-+		fpsimd_save_state(&current->thread.fpsimd_state);
-+	if (next->mm)
-+		fpsimd_load_state(&next->thread.fpsimd_state);
-+}
-+
-+void fpsimd_flush_thread(void)
-+{
-+	memset(&current->thread.fpsimd_state, 0, sizeof(struct fpsimd_state));
-+	fpsimd_load_state(&current->thread.fpsimd_state);
-+}
-+
-+/*
-+ * FP/SIMD support code initialisation.
-+ */
-+static int __init fpsimd_init(void)
-+{
-+	u64 pfr = read_cpuid(ID_AA64PFR0_EL1);
-+
-+	if (pfr & (0xf << 16)) {
-+		pr_notice("Floating-point is not implemented\n");
-+		return 0;
++	switch (size) {
++	case 1:
++		asm volatile("//	__xchg1\n"
++		"1:	ldaxrb	%w0, [%3]\n"
++		"	stlxrb	%w1, %w2, [%3]\n"
++		"	cbnz	%w1, 1b\n"
++			: "=&r" (ret), "=&r" (tmp)
++			: "r" (x), "r" (ptr)
++			: "memory", "cc");
++		break;
++	case 2:
++		asm volatile("//	__xchg2\n"
++		"1:	ldaxrh	%w0, [%3]\n"
++		"	stlxrh	%w1, %w2, [%3]\n"
++		"	cbnz	%w1, 1b\n"
++			: "=&r" (ret), "=&r" (tmp)
++			: "r" (x), "r" (ptr)
++			: "memory", "cc");
++		break;
++	case 4:
++		asm volatile("//	__xchg4\n"
++		"1:	ldaxr	%w0, [%3]\n"
++		"	stlxr	%w1, %w2, [%3]\n"
++		"	cbnz	%w1, 1b\n"
++			: "=&r" (ret), "=&r" (tmp)
++			: "r" (x), "r" (ptr)
++			: "memory", "cc");
++		break;
++	case 8:
++		asm volatile("//	__xchg8\n"
++		"1:	ldaxr	%0, [%3]\n"
++		"	stlxr	%w1, %2, [%3]\n"
++		"	cbnz	%w1, 1b\n"
++			: "=&r" (ret), "=&r" (tmp)
++			: "r" (x), "r" (ptr)
++			: "memory", "cc");
++		break;
++	default:
++		__bad_xchg(ptr, size), ret = 0;
++		break;
 +	}
-+	elf_hwcap |= HWCAP_FP;
 +
-+	if (pfr & (0xf << 20))
-+		pr_notice("Advanced SIMD is not implemented\n");
-+	else
-+		elf_hwcap |= HWCAP_ASIMD;
-+
-+	return 0;
++	return ret;
 +}
-+late_initcall(fpsimd_init);
++
++#define xchg(ptr,x) \
++	((__typeof__(*(ptr)))__xchg((unsigned long)(x),(ptr),sizeof(*(ptr))))
++
++/*
++ * cmpxchg operations.
++ */
++extern void __bad_cmpxchg(volatile void *ptr, int size);
++
++static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
++				      unsigned long new, int size)
++{
++	unsigned long oldval, res;
++
++	switch (size) {
++	case 1:
++		do {
++			asm volatile("// __cmpxchg1\n"
++			"	ldxrb	%w1, [%2]\n"
++			"	mov	%w0, #0\n"
++			"	cmp	%w1, %w3\n"
++			"	b.ne	1f\n"
++			"	stxrb	%w0, %w4, [%2]\n"
++			"1:\n"
++				: "=&r" (res), "=&r" (oldval)
++				: "r" (ptr), "Ir" (old), "r" (new)
++				: "cc");
++		} while (res);
++		break;
++
++	case 2:
++		do {
++			asm volatile("// __cmpxchg2\n"
++			"	ldxrh	%w1, [%2]\n"
++			"	mov	%w0, #0\n"
++			"	cmp	%w1, %w3\n"
++			"	b.ne	1f\n"
++			"	stxrh	%w0, %w4, [%2]\n"
++			"1:\n"
++				: "=&r" (res), "=&r" (oldval)
++				: "r" (ptr), "Ir" (old), "r" (new)
++				: "memory", "cc");
++		} while (res);
++		break;
++
++	case 4:
++		do {
++			asm volatile("// __cmpxchg4\n"
++			"	ldxr	%w1, [%2]\n"
++			"	mov	%w0, #0\n"
++			"	cmp	%w1, %w3\n"
++			"	b.ne	1f\n"
++			"	stxr	%w0, %w4, [%2]\n"
++			"1:\n"
++				: "=&r" (res), "=&r" (oldval)
++				: "r" (ptr), "Ir" (old), "r" (new)
++				: "cc");
++		} while (res);
++		break;
++
++	case 8:
++		do {
++			asm volatile("// __cmpxchg8\n"
++			"	ldxr	%1, [%2]\n"
++			"	mov	%w0, #0\n"
++			"	cmp	%1, %3\n"
++			"	b.ne	1f\n"
++			"	stxr	%w0, %4, [%2]\n"
++			"1:\n"
++				: "=&r" (res), "=&r" (oldval)
++				: "r" (ptr), "Ir" (old), "r" (new)
++				: "cc");
++		} while (res);
++		break;
++
++	default:
++		__bad_cmpxchg(ptr, size);
++		oldval = 0;
++	}
++
++	return oldval;
++}
++
++static inline unsigned long __cmpxchg_mb(volatile void *ptr, unsigned long old,
++					 unsigned long new, int size)
++{
++	unsigned long ret;
++
++	smp_mb();
++	ret = __cmpxchg(ptr, old, new, size);
++	smp_mb();
++
++	return ret;
++}
++
++#define cmpxchg(ptr,o,n)						\
++	((__typeof__(*(ptr)))__cmpxchg_mb((ptr),			\
++					  (unsigned long)(o),		\
++					  (unsigned long)(n),		\
++					  sizeof(*(ptr))))
++
++#define cmpxchg_local(ptr,o,n)						\
++	((__typeof__(*(ptr)))__cmpxchg((ptr),				\
++				       (unsigned long)(o),		\
++				       (unsigned long)(n),		\
++				       sizeof(*(ptr))))
++
++#endif	/* __ASM_CMPXCHG_H */
+diff --git a/arch/arm64/include/asm/compiler.h b/arch/arm64/include/asm/compiler.h
+new file mode 100644
+index 0000000..ee35fd0
+--- /dev/null
++++ b/arch/arm64/include/asm/compiler.h
+@@ -0,0 +1,30 @@
++/*
++ * Based on arch/arm/include/asm/compiler.h
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_COMPILER_H
++#define __ASM_COMPILER_H
++
++/*
++ * This is used to ensure the compiler did actually allocate the register we
++ * asked it for some inline assembly sequences.  Apparently we can't trust the
++ * compiler from one version to another so a bit of paranoia won't hurt.  This
++ * string is meant to be concatenated with the inline asm string and will
++ * cause compilation to stop on mismatch.  (for details, see gcc PR 15089)
++ */
++#define __asmeq(x, y)  ".ifnc " x "," y " ; .err ; .endif\n\t"
++
++#endif	/* __ASM_COMPILER_H */
+diff --git a/arch/arm64/include/asm/exception.h b/arch/arm64/include/asm/exception.h
+new file mode 100644
+index 0000000..ac63519
+--- /dev/null
++++ b/arch/arm64/include/asm/exception.h
+@@ -0,0 +1,23 @@
++/*
++ * Based on arch/arm/include/asm/exception.h
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_EXCEPTION_H
++#define __ASM_EXCEPTION_H
++
++#define __exception	__attribute__((section(".exception.text")))
++
++#endif	/* __ASM_EXCEPTION_H */
+diff --git a/arch/arm64/include/asm/exec.h b/arch/arm64/include/asm/exec.h
+new file mode 100644
+index 0000000..db0563c
+--- /dev/null
++++ b/arch/arm64/include/asm/exec.h
+@@ -0,0 +1,23 @@
++/*
++ * Based on arch/arm/include/asm/exec.h
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_EXEC_H
++#define __ASM_EXEC_H
++
++extern unsigned long arch_align_stack(unsigned long sp);
++
++#endif	/* __ASM_EXEC_H */
+diff --git a/arch/arm64/include/asm/fcntl.h b/arch/arm64/include/asm/fcntl.h
+new file mode 100644
+index 0000000..cd2e630
+--- /dev/null
++++ b/arch/arm64/include/asm/fcntl.h
+@@ -0,0 +1,29 @@
++/*
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_FCNTL_H
++#define __ASM_FCNTL_H
++
++/*
++ * Using our own definitions for AArch32 (compat) support.
++ */
++#define O_DIRECTORY	 040000	/* must be a directory */
++#define O_NOFOLLOW	0100000	/* don't follow links */
++#define O_DIRECT	0200000	/* direct disk access hint - currently ignored */
++#define O_LARGEFILE	0400000
++
++#include <asm-generic/fcntl.h>
++
++#endif
+diff --git a/arch/arm64/include/asm/system_misc.h b/arch/arm64/include/asm/system_misc.h
+new file mode 100644
+index 0000000..95e4072
+--- /dev/null
++++ b/arch/arm64/include/asm/system_misc.h
+@@ -0,0 +1,54 @@
++/*
++ * Based on arch/arm/include/asm/system_misc.h
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_SYSTEM_MISC_H
++#define __ASM_SYSTEM_MISC_H
++
++#ifndef __ASSEMBLY__
++
++#include <linux/compiler.h>
++#include <linux/linkage.h>
++#include <linux/irqflags.h>
++
++struct pt_regs;
++
++void die(const char *msg, struct pt_regs *regs, int err);
++
++struct siginfo;
++void arm64_notify_die(const char *str, struct pt_regs *regs,
++		      struct siginfo *info, int err);
++
++void hook_debug_fault_code(int nr, int (*fn)(unsigned long, unsigned int,
++					     struct pt_regs *),
++			   int sig, int code, const char *name);
++
++struct mm_struct;
++extern void show_pte(struct mm_struct *mm, unsigned long addr);
++extern void __show_regs(struct pt_regs *);
++
++void soft_restart(unsigned long);
++extern void (*pm_restart)(const char *cmd);
++
++#define UDBG_UNDEFINED	(1 << 0)
++#define UDBG_SYSCALL	(1 << 1)
++#define UDBG_BADABORT	(1 << 2)
++#define UDBG_SEGV	(1 << 3)
++#define UDBG_BUS	(1 << 4)
++
++#endif	/* __ASSEMBLY__ */
++
++#endif	/* __ASM_SYSTEM_MISC_H */
