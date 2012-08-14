@@ -1,43 +1,55 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v2 12/31] arm64: Atomic operations
-Date: Tue, 14 Aug 2012 18:52:13 +0100
-Message-ID: <1344966752-16102-13-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v2 10/31] arm64: TLB maintenance functionality
+Date: Tue, 14 Aug 2012 18:52:11 +0100
+Message-ID: <1344966752-16102-11-git-send-email-catalin.marinas@arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
-Content-Type: text/plain; charset=WINDOWS-1252
-Content-Transfer-Encoding: quoted-printable
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: linux-arm-kernel-bounces@lists.infradead.org
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
+Cc: Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-This patch introduces the atomic, mutex and futex operations. Many
-atomic operations use the load-acquire and store-release operations
-which imply barriers, avoiding the need for explicit DMB.
+This patch adds the TLB maintenance functions. There is no distinction
+made between the I and D TLBs. TLB maintenance operations are
+automatically broadcast between CPUs in hardware. The inner-shareable
+operations are always present, even on UP systems.
+
+NOTE: Large part of this patch to be dropped once Peter Z's generic
+mmu_gather patches are merged.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/include/asm/atomic.h |  306 +++++++++++++++++++++++++++++++++++=
-++++
- arch/arm64/include/asm/futex.h  |  134 +++++++++++++++++
- 2 files changed, 440 insertions(+), 0 deletions(-)
- create mode 100644 arch/arm64/include/asm/atomic.h
- create mode 100644 arch/arm64/include/asm/futex.h
+ arch/arm64/include/asm/tlb.h      |  190 +++++++++++++++++++++++++++++++++++++
+ arch/arm64/include/asm/tlbflush.h |  123 ++++++++++++++++++++++++
+ arch/arm64/mm/tlb.S               |   71 ++++++++++++++
+ 3 files changed, 384 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/tlb.h
+ create mode 100644 arch/arm64/include/asm/tlbflush.h
+ create mode 100644 arch/arm64/mm/tlb.S
 
-diff --git a/arch/arm64/include/asm/atomic.h b/arch/arm64/include/asm/atomi=
-c.h
+diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
 new file mode 100644
-index 0000000..fa60c8b
+index 0000000..654f096
 --- /dev/null
-+++ b/arch/arm64/include/asm/atomic.h
-@@ -0,0 +1,306 @@
++++ b/arch/arm64/include/asm/tlb.h
+@@ -0,0 +1,190 @@
 +/*
-+ * Based on arch/arm/include/asm/atomic.h
++ * Based on arch/arm/include/asm/tlb.h
 + *
-+ * Copyright (C) 1996 Russell King.
-+ * Copyright (C) 2002 Deep Blue Solutions Ltd.
++ * Copyright (C) 2002 Russell King
 + * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -52,305 +64,188 @@ index 0000000..fa60c8b
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_ATOMIC_H
-+#define __ASM_ATOMIC_H
++#ifndef __ASM_TLB_H
++#define __ASM_TLB_H
 +
-+#include <linux/compiler.h>
-+#include <linux/types.h>
++#include <linux/pagemap.h>
++#include <linux/swap.h>
 +
-+#include <asm/barrier.h>
-+#include <asm/cmpxchg.h>
++#include <asm/pgalloc.h>
++#include <asm/tlbflush.h>
 +
-+#define ATOMIC_INIT(i)=09{ (i) }
-+
-+#ifdef __KERNEL__
++#define MMU_GATHER_BUNDLE	8
 +
 +/*
-+ * On ARM, ordinary assignment (str instruction) doesn't clear the local
-+ * strex/ldrex monitor on some implementations. The reason we can use it f=
-or
-+ * atomic_set() is the clrex or dummy strex done on every exception return=
-.
++ * TLB handling.  This allows us to remove pages from the page
++ * tables, and efficiently handle the TLB issues.
 + */
-+#define atomic_read(v)=09(*(volatile int *)&(v)->counter)
-+#define atomic_set(v,i)=09(((v)->counter) =3D (i))
++struct mmu_gather {
++	struct mm_struct	*mm;
++	unsigned int		fullmm;
++	struct vm_area_struct	*vma;
++	unsigned long		range_start;
++	unsigned long		range_end;
++	unsigned int		nr;
++	unsigned int		max;
++	struct page		**pages;
++	struct page		*local[MMU_GATHER_BUNDLE];
++};
 +
 +/*
-+ * AArch64 UP and SMP safe atomic ops.  We use load exclusive and
-+ * store exclusive to ensure that these are atomic.  We may loop
-+ * to ensure that the update happens.
++ * This is unnecessarily complex.  There's three ways the TLB shootdown
++ * code is used:
++ *  1. Unmapping a range of vmas.  See zap_page_range(), unmap_region().
++ *     tlb->fullmm = 0, and tlb_start_vma/tlb_end_vma will be called.
++ *     tlb->vma will be non-NULL.
++ *  2. Unmapping all vmas.  See exit_mmap().
++ *     tlb->fullmm = 1, and tlb_start_vma/tlb_end_vma will be called.
++ *     tlb->vma will be non-NULL.  Additionally, page tables will be freed.
++ *  3. Unmapping argument pages.  See shift_arg_pages().
++ *     tlb->fullmm = 0, but tlb_start_vma/tlb_end_vma will not be called.
++ *     tlb->vma will be NULL.
 + */
-+static inline void atomic_add(int i, atomic_t *v)
++static inline void tlb_flush(struct mmu_gather *tlb)
 +{
-+=09unsigned long tmp;
-+=09int result;
-+
-+=09asm volatile("// atomic_add\n"
-+"1:=09ldxr=09%w0, [%3]\n"
-+"=09add=09%w0, %w0, %w4\n"
-+"=09stxr=09%w1, %w0, [%3]\n"
-+"=09cbnz=09%w1,1b"
-+=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
-+=09: "r" (&v->counter), "Ir" (i)
-+=09: "cc");
++	if (tlb->fullmm || !tlb->vma)
++		flush_tlb_mm(tlb->mm);
++	else if (tlb->range_end > 0) {
++		flush_tlb_range(tlb->vma, tlb->range_start, tlb->range_end);
++		tlb->range_start = TASK_SIZE;
++		tlb->range_end = 0;
++	}
 +}
 +
-+static inline int atomic_add_return(int i, atomic_t *v)
++static inline void tlb_add_flush(struct mmu_gather *tlb, unsigned long addr)
 +{
-+=09unsigned long tmp;
-+=09int result;
-+
-+=09asm volatile("// atomic_add_return\n"
-+"1:=09ldaxr=09%w0, [%3]\n"
-+"=09add=09%w0, %w0, %w4\n"
-+"=09stlxr=09%w1, %w0, [%3]\n"
-+"=09cbnz=09%w1, 1b"
-+=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
-+=09: "r" (&v->counter), "Ir" (i)
-+=09: "cc");
-+
-+=09return result;
++	if (!tlb->fullmm) {
++		if (addr < tlb->range_start)
++			tlb->range_start = addr;
++		if (addr + PAGE_SIZE > tlb->range_end)
++			tlb->range_end = addr + PAGE_SIZE;
++	}
 +}
 +
-+static inline void atomic_sub(int i, atomic_t *v)
++static inline void __tlb_alloc_page(struct mmu_gather *tlb)
 +{
-+=09unsigned long tmp;
-+=09int result;
++	unsigned long addr = __get_free_pages(GFP_NOWAIT | __GFP_NOWARN, 0);
 +
-+=09asm volatile("// atomic_sub\n"
-+"1:=09ldxr=09%w0, [%3]\n"
-+"=09sub=09%w0, %w0, %w4\n"
-+"=09stxr=09%w1, %w0, [%3]\n"
-+"=09cbnz=09%w1, 1b"
-+=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
-+=09: "r" (&v->counter), "Ir" (i)
-+=09: "cc");
++	if (addr) {
++		tlb->pages = (void *)addr;
++		tlb->max = PAGE_SIZE / sizeof(struct page *);
++	}
 +}
 +
-+static inline int atomic_sub_return(int i, atomic_t *v)
++static inline void tlb_flush_mmu(struct mmu_gather *tlb)
 +{
-+=09unsigned long tmp;
-+=09int result;
-+
-+=09asm volatile("// atomic_sub_return\n"
-+"1:=09ldaxr=09%w0, [%3]\n"
-+"=09sub=09%w0, %w0, %w4\n"
-+"=09stlxr=09%w1, %w0, [%3]\n"
-+"=09cbnz=09%w1, 1b"
-+=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
-+=09: "r" (&v->counter), "Ir" (i)
-+=09: "cc");
-+
-+=09return result;
++	tlb_flush(tlb);
++	free_pages_and_swap_cache(tlb->pages, tlb->nr);
++	tlb->nr = 0;
++	if (tlb->pages == tlb->local)
++		__tlb_alloc_page(tlb);
 +}
 +
-+static inline int atomic_cmpxchg(atomic_t *ptr, int old, int new)
++static inline void
++tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int fullmm)
 +{
-+=09unsigned long tmp;
-+=09int oldval;
-+
-+=09asm volatile("// atomic_cmpxchg\n"
-+"1:=09ldaxr=09%w1, [%3]\n"
-+"=09cmp=09%w1, %w4\n"
-+"=09b.ne=092f\n"
-+"=09stlxr=09%w0, %w5, [%3]\n"
-+"=09cbnz=09%w0, 1b\n"
-+"2:"
-+=09: "=3D&r" (tmp), "=3D&r" (oldval), "+o" (ptr->counter)
-+=09: "r" (&ptr->counter), "Ir" (old), "r" (new)
-+=09: "cc");
-+
-+=09return oldval;
++	tlb->mm = mm;
++	tlb->fullmm = fullmm;
++	tlb->vma = NULL;
++	tlb->max = ARRAY_SIZE(tlb->local);
++	tlb->pages = tlb->local;
++	tlb->nr = 0;
++	__tlb_alloc_page(tlb);
 +}
 +
-+static inline void atomic_clear_mask(unsigned long mask, unsigned long *ad=
-dr)
++static inline void
++tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long end)
 +{
-+=09unsigned long tmp, tmp2;
++	tlb_flush_mmu(tlb);
 +
-+=09asm volatile("// atomic_clear_mask\n"
-+"1:=09ldxr=09%0, [%3]\n"
-+"=09bic=09%0, %0, %4\n"
-+"=09stxr=09%w1, %0, [%3]\n"
-+"=09cbnz=09%w1, 1b"
-+=09: "=3D&r" (tmp), "=3D&r" (tmp2), "+o" (*addr)
-+=09: "r" (addr), "Ir" (mask)
-+=09: "cc");
++	/* keep the page table cache within bounds */
++	check_pgt_cache();
++
++	if (tlb->pages != tlb->local)
++		free_pages((unsigned long)tlb->pages, 0);
 +}
-+
-+#define atomic_xchg(v, new) (xchg(&((v)->counter), new))
-+
-+static inline int __atomic_add_unless(atomic_t *v, int a, int u)
-+{
-+=09int c, old;
-+
-+=09c =3D atomic_read(v);
-+=09while (c !=3D u && (old =3D atomic_cmpxchg((v), c, c + a)) !=3D c)
-+=09=09c =3D old;
-+=09return c;
-+}
-+
-+#define atomic_inc(v)=09=09atomic_add(1, v)
-+#define atomic_dec(v)=09=09atomic_sub(1, v)
-+
-+#define atomic_inc_and_test(v)=09(atomic_add_return(1, v) =3D=3D 0)
-+#define atomic_dec_and_test(v)=09(atomic_sub_return(1, v) =3D=3D 0)
-+#define atomic_inc_return(v)    (atomic_add_return(1, v))
-+#define atomic_dec_return(v)    (atomic_sub_return(1, v))
-+#define atomic_sub_and_test(i, v) (atomic_sub_return(i, v) =3D=3D 0)
-+
-+#define atomic_add_negative(i,v) (atomic_add_return(i, v) < 0)
-+
-+#define smp_mb__before_atomic_dec()=09smp_mb()
-+#define smp_mb__after_atomic_dec()=09smp_mb()
-+#define smp_mb__before_atomic_inc()=09smp_mb()
-+#define smp_mb__after_atomic_inc()=09smp_mb()
 +
 +/*
-+ * 64-bit atomic operations.
++ * Memorize the range for the TLB flush.
 + */
-+#define ATOMIC64_INIT(i) { (i) }
-+
-+#define atomic64_read(v)=09(*(volatile long long *)&(v)->counter)
-+#define atomic64_set(v,i)=09(((v)->counter) =3D (i))
-+
-+static inline void atomic64_add(u64 i, atomic64_t *v)
++static inline void
++tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep, unsigned long addr)
 +{
-+=09long result;
-+=09unsigned long tmp;
-+
-+=09asm volatile("// atomic64_add\n"
-+"1:=09ldxr=09%0, [%3]\n"
-+"=09add=09%0, %0, %4\n"
-+"=09stxr=09%w1, %0, [%3]\n"
-+"=09cbnz=09%w1, 1b"
-+=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
-+=09: "r" (&v->counter), "Ir" (i)
-+=09: "cc");
++	tlb_add_flush(tlb, addr);
 +}
 +
-+static inline long atomic64_add_return(long i, atomic64_t *v)
++/*
++ * In the case of tlb vma handling, we can optimise these away in the
++ * case where we're doing a full MM flush.  When we're doing a munmap,
++ * the vmas are adjusted to only cover the region to be torn down.
++ */
++static inline void
++tlb_start_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
 +{
-+=09long result;
-+=09unsigned long tmp;
-+
-+=09asm volatile("// atomic64_add_return\n"
-+"1:=09ldaxr=09%0, [%3]\n"
-+"=09add=09%0, %0, %4\n"
-+"=09stlxr=09%w1, %0, [%3]\n"
-+"=09cbnz=09%w1, 1b"
-+=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
-+=09: "r" (&v->counter), "Ir" (i)
-+=09: "cc");
-+
-+=09return result;
++	if (!tlb->fullmm) {
++		tlb->vma = vma;
++		tlb->range_start = TASK_SIZE;
++		tlb->range_end = 0;
++	}
 +}
 +
-+static inline void atomic64_sub(u64 i, atomic64_t *v)
++static inline void
++tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
 +{
-+=09long result;
-+=09unsigned long tmp;
-+
-+=09asm volatile("// atomic64_sub\n"
-+"1:=09ldxr=09%0, [%3]\n"
-+"=09sub=09%0, %0, %4\n"
-+"=09stxr=09%w1, %0, [%3]\n"
-+"=09cbnz=09%w1, 1b"
-+=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
-+=09: "r" (&v->counter), "Ir" (i)
-+=09: "cc");
++	if (!tlb->fullmm)
++		tlb_flush(tlb);
 +}
 +
-+static inline long atomic64_sub_return(long i, atomic64_t *v)
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *page)
 +{
-+=09long result;
-+=09unsigned long tmp;
-+
-+=09asm volatile("// atomic64_sub_return\n"
-+"1:=09ldaxr=09%0, [%3]\n"
-+"=09sub=09%0, %0, %4\n"
-+"=09stlxr=09%w1, %0, [%3]\n"
-+"=09cbnz=09%w1, 1b"
-+=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
-+=09: "r" (&v->counter), "Ir" (i)
-+=09: "cc");
-+
-+=09return result;
++	tlb->pages[tlb->nr++] = page;
++	VM_BUG_ON(tlb->nr > tlb->max);
++	return tlb->max - tlb->nr;
 +}
 +
-+static inline long atomic64_cmpxchg(atomic64_t *ptr, long old, long new)
++static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *page)
 +{
-+=09long oldval;
-+=09unsigned long res;
-+
-+=09asm volatile("// atomic64_cmpxchg\n"
-+"1:=09ldaxr=09%1, [%3]\n"
-+"=09cmp=09%1, %4\n"
-+"=09b.ne=092f\n"
-+"=09stlxr=09%w0, %5, [%3]\n"
-+"=09cbnz=09%w0, 1b\n"
-+"2:"
-+=09: "=3D&r" (res), "=3D&r" (oldval), "+o" (ptr->counter)
-+=09: "r" (&ptr->counter), "Ir" (old), "r" (new)
-+=09: "cc");
-+
-+=09return oldval;
++	if (!__tlb_remove_page(tlb, page))
++		tlb_flush_mmu(tlb);
 +}
 +
-+#define atomic64_xchg(v, new) (xchg(&((v)->counter), new))
-+
-+#define ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
-+static inline long atomic64_dec_if_positive(atomic64_t *v)
++static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
++	unsigned long addr)
 +{
-+=09long result;
-+=09unsigned long tmp;
-+
-+=09asm volatile("// atomic64_dec_if_positive\n"
-+"1:=09ldaxr=09%0, [%3]\n"
-+"=09subs=09%0, %0, #1\n"
-+"=09b.mi=092f\n"
-+"=09stlxr=09%w1, %0, [%3]\n"
-+"=09cbnz=09%w1, 1b\n"
-+"2:"
-+=09: "=3D&r" (result), "=3D&r" (tmp), "+o" (v->counter)
-+=09: "r" (&v->counter)
-+=09: "cc");
-+
-+=09return result;
++	pgtable_page_dtor(pte);
++	tlb_add_flush(tlb, addr);
++	tlb_remove_page(tlb, pte);
 +}
 +
-+static inline int atomic64_add_unless(atomic64_t *v, long a, long u)
++#ifndef CONFIG_ARM64_64K_PAGES
++static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
++				  unsigned long addr)
 +{
-+=09long c, old;
-+
-+=09c =3D atomic64_read(v);
-+=09while (c !=3D u && (old =3D atomic64_cmpxchg((v), c, c + a)) !=3D c)
-+=09=09c =3D old;
-+
-+=09return c !=3D u;
++	tlb_add_flush(tlb, addr);
++	tlb_remove_page(tlb, virt_to_page(pmdp));
 +}
++#endif
 +
-+#define atomic64_add_negative(a, v)=09(atomic64_add_return((a), (v)) < 0)
-+#define atomic64_inc(v)=09=09=09atomic64_add(1LL, (v))
-+#define atomic64_inc_return(v)=09=09atomic64_add_return(1LL, (v))
-+#define atomic64_inc_and_test(v)=09(atomic64_inc_return(v) =3D=3D 0)
-+#define atomic64_sub_and_test(a, v)=09(atomic64_sub_return((a), (v)) =3D=
-=3D 0)
-+#define atomic64_dec(v)=09=09=09atomic64_sub(1LL, (v))
-+#define atomic64_dec_return(v)=09=09atomic64_sub_return(1LL, (v))
-+#define atomic64_dec_and_test(v)=09(atomic64_dec_return((v)) =3D=3D 0)
-+#define atomic64_inc_not_zero(v)=09atomic64_add_unless((v), 1LL, 0LL)
++#define pte_free_tlb(tlb, ptep, addr)	__pte_free_tlb(tlb, ptep, addr)
++#define pmd_free_tlb(tlb, pmdp, addr)	__pmd_free_tlb(tlb, pmdp, addr)
++#define pud_free_tlb(tlb, pudp, addr)	pud_free((tlb)->mm, pudp)
++
++#define tlb_migrate_finish(mm)		do { } while (0)
 +
 +#endif
-+#endif
-diff --git a/arch/arm64/include/asm/futex.h b/arch/arm64/include/asm/futex.=
-h
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlbflush.h
 new file mode 100644
-index 0000000..0745e82
+index 0000000..615d131
 --- /dev/null
-+++ b/arch/arm64/include/asm/futex.h
-@@ -0,0 +1,134 @@
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -0,0 +1,123 @@
 +/*
++ * Based on arch/arm/include/asm/tlbflush.h
++ *
++ * Copyright (C) 1999-2003 Russell King
 + * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -365,122 +260,185 @@ index 0000000..0745e82
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_FUTEX_H
-+#define __ASM_FUTEX_H
++#ifndef __ASM_TLBFLUSH_H
++#define __ASM_TLBFLUSH_H
 +
-+#ifdef __KERNEL__
++#ifndef __ASSEMBLY__
 +
-+#include <linux/futex.h>
-+#include <linux/uaccess.h>
-+#include <asm/errno.h>
++#include <linux/sched.h>
++#include <asm/cputype.h>
 +
-+#define __futex_atomic_op(insn, ret, oldval, uaddr, tmp, oparg)=09=09\
-+=09asm volatile(=09=09=09=09=09=09=09\
-+"1:=09ldaxr=09%w1, %2\n"=09=09=09=09=09=09\
-+=09insn "\n"=09=09=09=09=09=09=09\
-+"2:=09stlxr=09%w3, %w0, %2\n"=09=09=09=09=09=09\
-+"=09cbnz=09%w3, 1b\n"=09=09=09=09=09=09\
-+"3:=09.pushsection __ex_table,\"a\"\n"=09=09=09=09\
-+"=09.align=093\n"=09=09=09=09=09=09=09\
-+"=09.quad=091b, 4f, 2b, 4f\n"=09=09=09=09=09\
-+"=09.popsection\n"=09=09=09=09=09=09=09\
-+"=09.pushsection .fixup,\"ax\"\n"=09=09=09=09=09\
-+"4:=09mov=09%w0, %w5\n"=09=09=09=09=09=09\
-+"=09b=093b\n"=09=09=09=09=09=09=09\
-+"=09.popsection"=09=09=09=09=09=09=09\
-+=09: "=3D&r" (ret), "=3D&r" (oldval), "+Q" (*uaddr), "=3D&r" (tmp)=09\
-+=09: "r" (oparg), "Ir" (-EFAULT)=09=09=09=09=09\
-+=09: "cc")
++extern void __cpu_flush_user_tlb_range(unsigned long, unsigned long, struct vm_area_struct *);
++extern void __cpu_flush_kern_tlb_range(unsigned long, unsigned long);
 +
-+static inline int
-+futex_atomic_op_inuser (int encoded_op, u32 __user *uaddr)
++extern struct cpu_tlb_fns cpu_tlb;
++
++/*
++ *	TLB Management
++ *	==============
++ *
++ *	The arch/arm/mm/tlb-*.S files implement these methods.
++ *
++ *	The TLB specific code is expected to perform whatever tests it
++ *	needs to determine if it should invalidate the TLB for each
++ *	call.  Start addresses are inclusive and end addresses are
++ *	exclusive; it is safe to round these addresses down.
++ *
++ *	flush_tlb_all()
++ *
++ *		Invalidate the entire TLB.
++ *
++ *	flush_tlb_mm(mm)
++ *
++ *		Invalidate all TLB entries in a particular address
++ *		space.
++ *		- mm	- mm_struct describing address space
++ *
++ *	flush_tlb_range(mm,start,end)
++ *
++ *		Invalidate a range of TLB entries in the specified
++ *		address space.
++ *		- mm	- mm_struct describing address space
++ *		- start - start address (may not be aligned)
++ *		- end	- end address (exclusive, may not be aligned)
++ *
++ *	flush_tlb_page(vaddr,vma)
++ *
++ *		Invalidate the specified page in the specified address range.
++ *		- vaddr - virtual address (may not be aligned)
++ *		- vma	- vma_struct describing address range
++ *
++ *	flush_kern_tlb_page(kaddr)
++ *
++ *		Invalidate the TLB entry for the specified page.  The address
++ *		will be in the kernels virtual memory space.  Current uses
++ *		only require the D-TLB to be invalidated.
++ *		- kaddr - Kernel virtual memory address
++ */
++static inline void flush_tlb_all(void)
 +{
-+=09int op =3D (encoded_op >> 28) & 7;
-+=09int cmp =3D (encoded_op >> 24) & 15;
-+=09int oparg =3D (encoded_op << 8) >> 20;
-+=09int cmparg =3D (encoded_op << 20) >> 20;
-+=09int oldval =3D 0, ret, tmp;
-+
-+=09if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
-+=09=09oparg =3D 1 << oparg;
-+
-+=09if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
-+=09=09return -EFAULT;
-+
-+=09pagefault_disable();=09/* implies preempt_disable() */
-+
-+=09switch (op) {
-+=09case FUTEX_OP_SET:
-+=09=09__futex_atomic_op("mov=09%w0, %w4",
-+=09=09=09=09  ret, oldval, uaddr, tmp, oparg);
-+=09=09break;
-+=09case FUTEX_OP_ADD:
-+=09=09__futex_atomic_op("add=09%w0, %w1, %w4",
-+=09=09=09=09  ret, oldval, uaddr, tmp, oparg);
-+=09=09break;
-+=09case FUTEX_OP_OR:
-+=09=09__futex_atomic_op("orr=09%w0, %w1, %w4",
-+=09=09=09=09  ret, oldval, uaddr, tmp, oparg);
-+=09=09break;
-+=09case FUTEX_OP_ANDN:
-+=09=09__futex_atomic_op("and=09%w0, %w1, %w4",
-+=09=09=09=09  ret, oldval, uaddr, tmp, ~oparg);
-+=09=09break;
-+=09case FUTEX_OP_XOR:
-+=09=09__futex_atomic_op("eor=09%w0, %w1, %w4",
-+=09=09=09=09  ret, oldval, uaddr, tmp, oparg);
-+=09=09break;
-+=09default:
-+=09=09ret =3D -ENOSYS;
-+=09}
-+
-+=09pagefault_enable();=09/* subsumes preempt_enable() */
-+
-+=09if (!ret) {
-+=09=09switch (cmp) {
-+=09=09case FUTEX_OP_CMP_EQ: ret =3D (oldval =3D=3D cmparg); break;
-+=09=09case FUTEX_OP_CMP_NE: ret =3D (oldval !=3D cmparg); break;
-+=09=09case FUTEX_OP_CMP_LT: ret =3D (oldval < cmparg); break;
-+=09=09case FUTEX_OP_CMP_GE: ret =3D (oldval >=3D cmparg); break;
-+=09=09case FUTEX_OP_CMP_LE: ret =3D (oldval <=3D cmparg); break;
-+=09=09case FUTEX_OP_CMP_GT: ret =3D (oldval > cmparg); break;
-+=09=09default: ret =3D -ENOSYS;
-+=09=09}
-+=09}
-+=09return ret;
++	dsb();
++	asm("tlbi	vmalle1is");
++	dsb();
++	isb();
 +}
 +
-+static inline int
-+futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
-+=09=09=09      u32 oldval, u32 newval)
++static inline void flush_tlb_mm(struct mm_struct *mm)
 +{
-+=09int ret =3D 0;
-+=09u32 val, tmp;
++	unsigned long asid = (unsigned long)ASID(mm) << 48;
 +
-+=09if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
-+=09=09return -EFAULT;
-+
-+=09asm volatile("// futex_atomic_cmpxchg_inatomic\n"
-+"1:=09ldaxr=09%w1, %2\n"
-+"=09sub=09%w3, %w1, %w4\n"
-+"=09cbnz=09%w3, 3f\n"
-+"2:=09stlxr=09%w3, %w5, %2\n"
-+"=09cbnz=09%w3, 1b\n"
-+"3:=09.pushsection __ex_table,\"a\"\n"
-+"=09.align=093\n"
-+"=09.quad=091b, 4f, 2b, 4f\n"
-+"=09.popsection\n"
-+"=09.pushsection .fixup,\"ax\"\n"
-+"4:=09mov=09%w0, %w6\n"
-+"=09b=093b\n"
-+"=09.popsection"
-+=09: "+r" (ret), "=3D&r" (val), "+Q" (*uaddr), "=3D&r" (tmp)
-+=09: "r" (oldval), "r" (newval), "Ir" (-EFAULT)
-+=09: "cc", "memory");
-+
-+=09*uval =3D val;
-+=09return ret;
++	dsb();
++	asm("tlbi	aside1is, %0" : : "r" (asid));
++	dsb();
 +}
 +
-+#endif /* __KERNEL__ */
-+#endif /* __ASM_FUTEX_H */
++static inline void flush_tlb_page(struct vm_area_struct *vma,
++				  unsigned long uaddr)
++{
++	unsigned long addr = uaddr >> 12 |
++		((unsigned long)ASID(vma->vm_mm) << 48);
++
++	dsb();
++	asm("tlbi	vae1is, %0" : : "r" (addr));
++	dsb();
++}
++
++/*
++ * Convert calls to our calling convention.
++ */
++#define flush_tlb_range(vma,start,end)	__cpu_flush_user_tlb_range(start,end,vma)
++#define flush_tlb_kernel_range(s,e)	__cpu_flush_kern_tlb_range(s,e)
++
++/*
++ * On AArch64, the cache coherency is handled via the set_pte_at() function.
++ */
++static inline void update_mmu_cache(struct vm_area_struct *vma,
++				    unsigned long addr, pte_t *ptep)
++{
++	/*
++	 * set_pte() does not have a DSB, so make sure that the page table
++	 * write is visible.
++	 */
++	dsb();
++}
++
++#endif
++
++#endif
+diff --git a/arch/arm64/mm/tlb.S b/arch/arm64/mm/tlb.S
+new file mode 100644
+index 0000000..8ae80a1
+--- /dev/null
++++ b/arch/arm64/mm/tlb.S
+@@ -0,0 +1,71 @@
++/*
++ * Based on arch/arm/mm/tlb.S
++ *
++ * Copyright (C) 1997-2002 Russell King
++ * Copyright (C) 2012 ARM Ltd.
++ * Written by Catalin Marinas <catalin.marinas@arm.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#include <linux/linkage.h>
++#include <asm/assembler.h>
++#include <asm/asm-offsets.h>
++#include <asm/page.h>
++#include <asm/tlbflush.h>
++#include "proc-macros.S"
++
++/*
++ *	__cpu_flush_user_tlb_range(start, end, vma)
++ *
++ *	Invalidate a range of TLB entries in the specified address space.
++ *
++ *	- start - start address (may not be aligned)
++ *	- end   - end address (exclusive, may not be aligned)
++ *	- vma   - vma_struct describing address range
++ */
++ENTRY(__cpu_flush_user_tlb_range)
++	vma_vm_mm x3, x2			// get vma->vm_mm
++	mmid	x3, x3				// get vm_mm->context.id
++	dsb	sy
++	lsr	x0, x0, #12			// align address
++	lsr	x1, x1, #12
++	bfi	x0, x3, #48, #16		// start VA and ASID
++	bfi	x1, x3, #48, #16		// end VA and ASID
++1:	tlbi	vae1is, x0			// TLB invalidate by address and ASID
++	add	x0, x0, #1
++	cmp	x0, x1
++	b.lo	1b
++	dsb	sy
++	ret
++ENDPROC(__cpu_flush_user_tlb_range)
++
++/*
++ *	__cpu_flush_kern_tlb_range(start,end)
++ *
++ *	Invalidate a range of kernel TLB entries.
++ *
++ *	- start - start address (may not be aligned)
++ *	- end   - end address (exclusive, may not be aligned)
++ */
++ENTRY(__cpu_flush_kern_tlb_range)
++	dsb	sy
++	lsr	x0, x0, #12			// align address
++	lsr	x1, x1, #12
++1:	tlbi	vaae1is, x0			// TLB invalidate by address
++	add	x0, x0, #1
++	cmp	x0, x1
++	b.lo	1b
++	dsb	sy
++	isb
++	ret
++ENDPROC(__cpu_flush_kern_tlb_range)
