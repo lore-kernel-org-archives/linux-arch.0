@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:55371 "EHLO
+Received: from service87.mimecast.com ([91.220.42.44]:55331 "EHLO
 	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756893Ab2HNRxM (ORCPT
+	with ESMTP id S1756882Ab2HNRxM (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 13:53:12 -0400
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v2 22/31] arm64: Floating point and SIMD
-Date: Tue, 14 Aug 2012 18:52:23 +0100
-Message-ID: <1344966752-16102-23-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v2 20/31] arm64: User access library functions
+Date: Tue, 14 Aug 2012 18:52:21 +0100
+Message-ID: <1344966752-16102-21-git-send-email-catalin.marinas@arm.com>
 In-Reply-To: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
 Content-Type: text/plain; charset=WINDOWS-1252
@@ -14,35 +14,48 @@ Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
-Message-ID: <20120814175223.ViK2g2lNJ6SN0t5BtAMT6gujLXDjJTkjgcpzx6pjnps@z>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Marc Zyngier <marc.zyngier@arm.com>
+Message-ID: <20120814175221.koELcpCan3F0JMyZBd_AvW92chV3da6ukJAryI_tDrs@z>
 
-This patch adds support for FP/ASIMD register bank saving and restoring
-during context switch and FP exception handling to generate SIGFPE.
-There are 32 128-bit registers and the context switching is currently
-done non-lazily. Benchmarks on real hardware are required before
-implementing lazy FP state saving/restoring.
+This patch add support for various user access functions. These
+functions use the standard LDR/STR instructions and not the LDRT/STRT
+variants in order to allow kernel addresses (after set_fs(KERNEL_DS)).
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
+Signed-off-by: Marc Zyngier <marc.zyngier@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/include/asm/fpsimd.h  |   64 +++++++++++++++++++++++
- arch/arm64/kernel/entry-fpsimd.S |   80 ++++++++++++++++++++++++++++
- arch/arm64/kernel/fpsimd.c       |  106 ++++++++++++++++++++++++++++++++++=
+ arch/arm64/include/asm/uaccess.h   |  377 ++++++++++++++++++++++++++++++++=
 ++++
- 3 files changed, 250 insertions(+), 0 deletions(-)
- create mode 100644 arch/arm64/include/asm/fpsimd.h
- create mode 100644 arch/arm64/kernel/entry-fpsimd.S
- create mode 100644 arch/arm64/kernel/fpsimd.c
+ arch/arm64/lib/clear_user.S        |   58 ++++++
+ arch/arm64/lib/copy_from_user.S    |   66 +++++++
+ arch/arm64/lib/copy_in_user.S      |   63 ++++++
+ arch/arm64/lib/copy_to_user.S      |   61 ++++++
+ arch/arm64/lib/getuser.S           |   75 +++++++
+ arch/arm64/lib/putuser.S           |   73 +++++++
+ arch/arm64/lib/strncpy_from_user.S |   50 +++++
+ arch/arm64/lib/strnlen_user.S      |   47 +++++
+ 9 files changed, 870 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/uaccess.h
+ create mode 100644 arch/arm64/lib/clear_user.S
+ create mode 100644 arch/arm64/lib/copy_from_user.S
+ create mode 100644 arch/arm64/lib/copy_in_user.S
+ create mode 100644 arch/arm64/lib/copy_to_user.S
+ create mode 100644 arch/arm64/lib/getuser.S
+ create mode 100644 arch/arm64/lib/putuser.S
+ create mode 100644 arch/arm64/lib/strncpy_from_user.S
+ create mode 100644 arch/arm64/lib/strnlen_user.S
 
-diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsim=
-d.h
+diff --git a/arch/arm64/include/asm/uaccess.h b/arch/arm64/include/asm/uacc=
+ess.h
 new file mode 100644
-index 0000000..7ea4711
+index 0000000..09d7b53
 --- /dev/null
-+++ b/arch/arm64/include/asm/fpsimd.h
-@@ -0,0 +1,64 @@
++++ b/arch/arm64/include/asm/uaccess.h
+@@ -0,0 +1,377 @@
 +/*
++ * Based on arch/arm/include/asm/uaccess.h
++ *
 + * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -57,67 +70,450 @@ index 0000000..7ea4711
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_FP_H
-+#define __ASM_FP_H
++#ifndef __ASM_UACCESS_H
++#define __ASM_UACCESS_H
++
++/*
++ * User space memory access functions
++ */
++#include <linux/string.h>
++#include <linux/thread_info.h>
 +
 +#include <asm/ptrace.h>
++#include <asm/errno.h>
++#include <asm/memory.h>
++#include <asm/compiler.h>
 +
-+#ifndef __ASSEMBLY__
++#define VERIFY_READ 0
++#define VERIFY_WRITE 1
 +
 +/*
-+ * FP/SIMD storage area has:
-+ *  - FPSR and FPCR
-+ *  - 32 128-bit data registers
++ * The exception table consists of pairs of addresses: the first is the
++ * address of an instruction that is allowed to fault, and the second is
++ * the address at which the program should continue.  No registers are
++ * modified, so it is entirely up to the continuation code to figure out
++ * what to do.
 + *
-+ * Note that user_fp forms a prefix of this structure, which is relied
-+ * upon in the ptrace FP/SIMD accessors. struct user_fpsimd_state must
-+ * form a prefix of struct fpsimd_state.
++ * All the routines below use bits of fixup code that are out of line
++ * with the main instruction path.  This means when everything is well,
++ * we don't even have to jump over them.  Further, they do not intrude
++ * on our cache or tlb entries.
 + */
-+struct fpsimd_state {
-+=09union {
-+=09=09struct user_fpsimd_state user_fpsimd;
-+=09=09struct {
-+=09=09=09__uint128_t vregs[32];
-+=09=09=09u32 fpsr;
-+=09=09=09u32 fpcr;
-+=09=09};
-+=09};
++
++struct exception_table_entry
++{
++=09unsigned long insn, fixup;
 +};
 +
-+#if defined(__KERNEL__) && defined(CONFIG_AARCH32_EMULATION)
-+/* Masks for extracting the FPSR and FPCR from the FPSCR */
-+#define VFP_FPSCR_STAT_MASK=090xf800009f
-+#define VFP_FPSCR_CTRL_MASK=090x07f79f00
++extern int fixup_exception(struct pt_regs *regs);
++
 +/*
-+ * The VFP state has 32x64-bit registers and a single 32-bit
-+ * control/status register.
++ * These two are intentionally not defined anywhere - if the kernel
++ * code generates any references to them, that's a bug.
 + */
-+#define VFP_STATE_SIZE=09=09((32 * 8) + 4)
-+#endif
++extern long __get_user_bad(void);
++extern long __put_user_bad(void);
 +
-+struct task_struct;
++#define KERNEL_DS=09(-1UL)
++#define get_ds()=09(KERNEL_DS)
 +
-+extern void fpsimd_save_state(struct fpsimd_state *state);
-+extern void fpsimd_load_state(struct fpsimd_state *state);
++#define USER_DS=09=09TASK_SIZE_64
++#define get_fs()=09(current_thread_info()->addr_limit)
 +
-+extern void fpsimd_thread_switch(struct task_struct *next);
-+extern void fpsimd_flush_thread(void);
++static inline void set_fs(mm_segment_t fs)
++{
++=09current_thread_info()->addr_limit =3D fs;
++}
 +
-+#endif
++#define segment_eq(a,b)=09((a) =3D=3D (b))
 +
-+#endif
-diff --git a/arch/arm64/kernel/entry-fpsimd.S b/arch/arm64/kernel/entry-fps=
-imd.S
-new file mode 100644
-index 0000000..17988a6
---- /dev/null
-+++ b/arch/arm64/kernel/entry-fpsimd.S
-@@ -0,0 +1,80 @@
 +/*
-+ * FP/SIMD state saving and restoring
++ * Return 1 if addr < current->addr_limit, 0 otherwise.
++ */
++#define __addr_ok(addr)=09=09=09=09=09=09=09\
++({=09=09=09=09=09=09=09=09=09\
++=09unsigned long flag;=09=09=09=09=09=09\
++=09asm("cmp %1, %0; cset %0, lo"=09=09=09=09\
++=09=09: "=3D&r" (flag)=09=09=09=09=09=09\
++=09=09: "r" (addr), "0" (current_thread_info()->addr_limit)=09\
++=09=09: "cc");=09=09=09=09=09=09\
++=09flag;=09=09=09=09=09=09=09=09\
++})
++
++/*
++ * Test whether a block of memory is a valid user space address.
++ * Returns 1 if the range is valid, 0 otherwise.
++ *
++ * This is equivalent to the following test:
++ * (u65)addr + (u65)size < (u65)current->addr_limit
++ *
++ * This needs 65-bit arithmetic.
++ */
++#define __range_ok(addr,size)=09=09=09=09=09=09\
++({=09=09=09=09=09=09=09=09=09\
++=09unsigned long flag, roksum;=09=09=09=09=09\
++=09__chk_user_ptr(addr);=09=09=09=09=09=09\
++=09asm("adds %1, %1, %3; ccmp %1, %4, #2, cc; cset %0, cc"=09\
++=09=09: "=3D&r" (flag), "=3D&r" (roksum)=09=09=09=09\
++=09=09: "1" (addr), "Ir" (size),=09=09=09=09\
++=09=09  "r" (current_thread_info()->addr_limit)=09=09\
++=09=09: "cc");=09=09=09=09=09=09\
++=09flag;=09=09=09=09=09=09=09=09\
++})
++
++/*
++ * Single-value transfer routines.  They automatically use the right
++ * size if we just have the right pointer type.  Note that the functions
++ * which read from user space (*get_*) need to take care not to leak
++ * kernel data even if the calling code is buggy and fails to check
++ * the return value.  This means zeroing out the destination variable
++ * or buffer on error.  Normally this is done out of line by the
++ * fixup code, but there are a few places where it intrudes on the
++ * main code path.  When we only write to user space, there is no
++ * problem.
++ */
++extern long __get_user_1(void *);
++extern long __get_user_2(void *);
++extern long __get_user_4(void *);
++extern long __get_user_8(void *);
++
++#define __get_user_x(__r2,__p,__e,__s,__i...)=09=09=09=09\
++=09   asm volatile(=09=09=09=09=09=09\
++=09=09__asmeq("%0", "x0") __asmeq("%1", "x2")=09=09=09\
++=09=09"bl=09__get_user_" #__s=09=09=09=09\
++=09=09: "=3D&r" (__e), "=3Dr" (__r2)=09=09=09=09\
++=09=09: "0" (__p)=09=09=09=09=09=09\
++=09=09: __i, "cc")
++
++#define get_user(x,p)=09=09=09=09=09=09=09\
++=09({=09=09=09=09=09=09=09=09\
++=09=09register const typeof(*(p)) __user *__p asm("x0") =3D (p);\
++=09=09register unsigned long __r2 asm("x2");=09=09=09\
++=09=09register long __e asm("x0");=09=09=09=09\
++=09=09switch (sizeof(*(__p))) {=09=09=09=09\
++=09=09case 1:=09=09=09=09=09=09=09\
++=09=09=09__get_user_x(__r2, __p, __e, 1, "x30");=09=09\
++=09=09=09break;=09=09=09=09=09=09\
++=09=09case 2:=09=09=09=09=09=09=09\
++=09=09=09__get_user_x(__r2, __p, __e, 2, "x3", "x30");=09\
++=09=09=09break;=09=09=09=09=09=09\
++=09=09case 4:=09=09=09=09=09=09=09\
++=09=09=09__get_user_x(__r2, __p, __e, 4, "x30");=09=09\
++=09=09=09break;=09=09=09=09=09=09\
++=09=09case 8:=09=09=09=09=09=09=09\
++=09=09=09__get_user_x(__r2, __p, __e, 8, "x30");=09=09\
++=09=09=09break;=09=09=09=09=09=09\
++=09=09default: __e =3D __get_user_bad(); break;=09=09=09\
++=09=09}=09=09=09=09=09=09=09\
++=09=09x =3D (typeof(*(p))) __r2;=09=09=09=09\
++=09=09__e;=09=09=09=09=09=09=09\
++=09})
++
++#define __get_user_unaligned __get_user
++
++extern long __put_user_1(void *, unsigned long);
++extern long __put_user_2(void *, unsigned long);
++extern long __put_user_4(void *, unsigned long);
++extern long __put_user_8(void *, unsigned long);
++
++#define __put_user_x(__r2,__p,__e,__s)=09=09=09=09=09\
++=09   asm volatile(=09=09=09=09=09=09\
++=09=09__asmeq("%0", "x0") __asmeq("%2", "x2")=09=09=09\
++=09=09"bl=09__put_user_" #__s=09=09=09=09\
++=09=09: "=3D&r" (__e)=09=09=09=09=09=09\
++=09=09: "0" (__p), "r" (__r2)=09=09=09=09=09\
++=09=09: "x8", "x30", "cc")
++
++#define put_user(x,p)=09=09=09=09=09=09=09\
++=09({=09=09=09=09=09=09=09=09\
++=09=09register const typeof(*(p)) __r2 asm("x2") =3D (x);=09\
++=09=09register const typeof(*(p)) __user *__p asm("x0") =3D (p);\
++=09=09register long __e asm("x0");=09=09=09=09\
++=09=09switch (sizeof(*(__p))) {=09=09=09=09\
++=09=09case 1:=09=09=09=09=09=09=09\
++=09=09=09__put_user_x(__r2, __p, __e, 1);=09=09\
++=09=09=09break;=09=09=09=09=09=09\
++=09=09case 2:=09=09=09=09=09=09=09\
++=09=09=09__put_user_x(__r2, __p, __e, 2);=09=09\
++=09=09=09break;=09=09=09=09=09=09\
++=09=09case 4:=09=09=09=09=09=09=09\
++=09=09=09__put_user_x(__r2, __p, __e, 4);=09=09\
++=09=09=09break;=09=09=09=09=09=09\
++=09=09case 8:=09=09=09=09=09=09=09\
++=09=09=09__put_user_x(__r2, __p, __e, 8);=09=09\
++=09=09=09break;=09=09=09=09=09=09\
++=09=09default: __e =3D __put_user_bad(); break;=09=09=09\
++=09=09}=09=09=09=09=09=09=09\
++=09=09__e;=09=09=09=09=09=09=09\
++=09})
++
++#define __put_user_unaligned __put_user
++
++#define access_ok(type,addr,size)=09__range_ok(addr,size)
++
++/*
++ * The "__xxx" versions of the user access functions do not verify the
++ * address space - it must have been done previously with a separate
++ * "access_ok()" call.
++ *
++ * The "xxx_error" versions set the third argument to EFAULT if an
++ * error occurs, and leave it unchanged on success.  Note that these
++ * versions are void (ie, don't return a value as such).
++ */
++#define __get_user(x,ptr)=09=09=09=09=09=09\
++({=09=09=09=09=09=09=09=09=09\
++=09long __gu_err =3D 0;=09=09=09=09=09=09\
++=09__get_user_err((x),(ptr),__gu_err);=09=09=09=09\
++=09__gu_err;=09=09=09=09=09=09=09\
++})
++
++#define __get_user_error(x,ptr,err)=09=09=09=09=09\
++({=09=09=09=09=09=09=09=09=09\
++=09__get_user_err((x),(ptr),err);=09=09=09=09=09\
++=09(void) 0;=09=09=09=09=09=09=09\
++})
++
++#define __get_user_err(x,ptr,err)=09=09=09=09=09\
++do {=09=09=09=09=09=09=09=09=09\
++=09unsigned long __gu_addr =3D (unsigned long)(ptr);=09=09=09\
++=09unsigned long __gu_val;=09=09=09=09=09=09\
++=09__chk_user_ptr(ptr);=09=09=09=09=09=09\
++=09switch (sizeof(*(ptr))) {=09=09=09=09=09\
++=09case 1:=09=09=09=09=09=09=09=09\
++=09=09__get_user_asm("ldrb", "%w", __gu_val, __gu_addr, err);=09\
++=09=09break;=09=09=09=09=09=09=09\
++=09case 2:=09=09=09=09=09=09=09=09\
++=09=09__get_user_asm("ldrh", "%w", __gu_val, __gu_addr, err);=09\
++=09=09break;=09=09=09=09=09=09=09\
++=09case 4:=09=09=09=09=09=09=09=09\
++=09=09__get_user_asm("ldr", "%w", __gu_val, __gu_addr, err);=09\
++=09=09break;=09=09=09=09=09=09=09\
++=09case 8:=09=09=09=09=09=09=09=09\
++=09=09__get_user_asm("ldr", "%",  __gu_val, __gu_addr, err);=09\
++=09=09break;=09=09=09=09=09=09=09\
++=09default:=09=09=09=09=09=09=09\
++=09=09(__gu_val) =3D __get_user_bad();=09=09=09=09\
++=09}=09=09=09=09=09=09=09=09\
++=09(x) =3D (__typeof__(*(ptr)))__gu_val;=09=09=09=09\
++} while (0)
++
++#define __get_user_asm(instr, reg, x, addr, err)=09=09=09\
++=09asm volatile(=09=09=09=09=09=09=09\
++=09"1:=09" instr "=09" reg "1, [%2]\n"=09=09=09\
++=09"2:\n"=09=09=09=09=09=09=09=09\
++=09"=09.section .fixup, \"ax\"\n"=09=09=09=09\
++=09"=09.align=092\n"=09=09=09=09=09=09\
++=09"3:=09mov=09%0, %3\n"=09=09=09=09=09\
++=09"=09mov=09%1, #0\n"=09=09=09=09=09\
++=09"=09b=092b\n"=09=09=09=09=09=09\
++=09"=09.previous\n"=09=09=09=09=09=09\
++=09"=09.section __ex_table,\"a\"\n"=09=09=09=09\
++=09"=09.align=093\n"=09=09=09=09=09=09\
++=09"=09.quad=091b, 3b\n"=09=09=09=09=09\
++=09"=09.previous"=09=09=09=09=09=09\
++=09: "+r" (err), "=3D&r" (x)=09=09=09=09=09=09\
++=09: "r" (addr), "i" (-EFAULT)=09=09=09=09=09\
++=09: "cc")
++
++#define __put_user(x,ptr)=09=09=09=09=09=09\
++({=09=09=09=09=09=09=09=09=09\
++=09long __pu_err =3D 0;=09=09=09=09=09=09\
++=09__put_user_err((x),(ptr),__pu_err);=09=09=09=09\
++=09__pu_err;=09=09=09=09=09=09=09\
++})
++
++#define __put_user_error(x,ptr,err)=09=09=09=09=09\
++({=09=09=09=09=09=09=09=09=09\
++=09__put_user_err((x),(ptr),err);=09=09=09=09=09\
++=09(void) 0;=09=09=09=09=09=09=09\
++})
++
++#define __put_user_err(x,ptr,err)=09=09=09=09=09\
++do {=09=09=09=09=09=09=09=09=09\
++=09unsigned long __pu_addr =3D (unsigned long)(ptr);=09=09=09\
++=09__typeof__(*(ptr)) __pu_val =3D (x);=09=09=09=09\
++=09__chk_user_ptr(ptr);=09=09=09=09=09=09\
++=09switch (sizeof(*(ptr))) {=09=09=09=09=09\
++=09case 1:=09=09=09=09=09=09=09=09\
++=09=09__put_user_asm("strb", "%w", __pu_val, __pu_addr, err);=09\
++=09=09break;=09=09=09=09=09=09=09\
++=09case 2:=09=09=09=09=09=09=09=09\
++=09=09__put_user_asm("strh", "%w", __pu_val, __pu_addr, err);=09\
++=09=09break;=09=09=09=09=09=09=09\
++=09case 4:=09=09=09=09=09=09=09=09\
++=09=09__put_user_asm("str",  "%w", __pu_val, __pu_addr, err);=09\
++=09=09break;=09=09=09=09=09=09=09\
++=09case 8:=09=09=09=09=09=09=09=09\
++=09=09__put_user_asm("str",  "%",  __pu_val, __pu_addr, err);=09\
++=09=09break;=09=09=09=09=09=09=09\
++=09default:=09=09=09=09=09=09=09\
++=09=09__put_user_bad();=09=09=09=09=09\
++=09}=09=09=09=09=09=09=09=09\
++} while (0)
++
++#define __put_user_asm(instr, reg, x, __pu_addr, err)=09=09=09\
++=09asm volatile(=09=09=09=09=09=09=09\
++=09"1:=09" instr "=09" reg "1, [%2]\n"=09=09=09\
++=09"2:\n"=09=09=09=09=09=09=09=09\
++=09"=09.section .fixup,\"ax\"\n"=09=09=09=09\
++=09"=09.align=092\n"=09=09=09=09=09=09\
++=09"3:=09mov=09%0, %3\n"=09=09=09=09=09\
++=09"=09b=092b\n"=09=09=09=09=09=09\
++=09"=09.previous\n"=09=09=09=09=09=09\
++=09"=09.section __ex_table,\"a\"\n"=09=09=09=09\
++=09"=09.align=093\n"=09=09=09=09=09=09\
++=09"=09.quad=091b, 3b\n"=09=09=09=09=09\
++=09"=09.previous"=09=09=09=09=09=09\
++=09: "+r" (err)=09=09=09=09=09=09=09\
++=09: "r" (x), "r" (__pu_addr), "i" (-EFAULT)=09=09=09\
++=09: "cc")
++
++extern unsigned long __must_check __copy_from_user(void *to, const void __=
+user *from, unsigned long n);
++extern unsigned long __must_check __copy_to_user(void __user *to, const vo=
+id *from, unsigned long n);
++extern unsigned long __must_check __copy_in_user(void __user *to, const vo=
+id __user *from, unsigned long n);
++extern unsigned long __must_check __clear_user(void __user *addr, unsigned=
+ long n);
++
++extern unsigned long __must_check __strncpy_from_user(char *to, const char=
+ __user *from, unsigned long count);
++extern unsigned long __must_check __strnlen_user(const char __user *s, lon=
+g n);
++
++static inline unsigned long __must_check copy_from_user(void *to, const vo=
+id __user *from, unsigned long n)
++{
++=09if (access_ok(VERIFY_READ, from, n))
++=09=09n =3D __copy_from_user(to, from, n);
++=09else /* security hole - plug it */
++=09=09memset(to, 0, n);
++=09return n;
++}
++
++static inline unsigned long __must_check copy_to_user(void __user *to, con=
+st void *from, unsigned long n)
++{
++=09if (access_ok(VERIFY_WRITE, to, n))
++=09=09n =3D __copy_to_user(to, from, n);
++=09return n;
++}
++
++static inline unsigned long __must_check copy_in_user(void __user *to, con=
+st void __user *from, unsigned long n)
++{
++=09if (access_ok(VERIFY_READ, from, n) && access_ok(VERIFY_WRITE, to, n))
++=09=09n =3D __copy_in_user(to, from, n);
++=09return n;
++}
++
++#define __copy_to_user_inatomic __copy_to_user
++#define __copy_from_user_inatomic __copy_from_user
++
++static inline unsigned long __must_check clear_user(void __user *to, unsig=
+ned long n)
++{
++=09if (access_ok(VERIFY_WRITE, to, n))
++=09=09n =3D __clear_user(to, n);
++=09return n;
++}
++
++static inline long __must_check strncpy_from_user(char *dst, const char __=
+user *src, long count)
++{
++=09long res =3D -EFAULT;
++=09if (access_ok(VERIFY_READ, src, 1))
++=09=09res =3D __strncpy_from_user(dst, src, count);
++=09return res;
++}
++
++#define strlen_user(s)=09strnlen_user(s, ~0UL >> 1)
++
++static inline long __must_check strnlen_user(const char __user *s, long n)
++{
++=09unsigned long res =3D 0;
++
++=09if (__addr_ok(s))
++=09=09res =3D __strnlen_user(s, n);
++
++=09return res;
++}
++
++#endif /* __ASM_UACCESS_H */
+diff --git a/arch/arm64/lib/clear_user.S b/arch/arm64/lib/clear_user.S
+new file mode 100644
+index 0000000..6e0ed93
+--- /dev/null
++++ b/arch/arm64/lib/clear_user.S
+@@ -0,0 +1,58 @@
++/*
++ * Based on arch/arm/lib/clear_user.S
 + *
 + * Copyright (C) 2012 ARM Ltd.
-+ * Author: Catalin Marinas <catalin.marinas@arm.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#include <linux/linkage.h>
++#include <asm/assembler.h>
++
++=09.text
++
++/* Prototype: int __clear_user(void *addr, size_t sz)
++ * Purpose  : clear some user memory
++ * Params   : addr - user memory address to clear
++ *          : sz   - number of bytes to clear
++ * Returns  : number of bytes NOT cleared
++ *
++ * Alignment fixed up by hardware.
++ */
++ENTRY(__clear_user)
++=09mov=09x2, x1=09=09=09// save the size for fixup return
++=09subs=09x1, x1, #8
++=09b.mi=092f
++1:
++USER(9f, str=09xzr, [x0], #8=09)
++=09subs=09x1, x1, #8
++=09b.pl=091b
++2:=09adds=09x1, x1, #4
++=09b.mi=093f
++USER(9f, str=09wzr, [x0], #4=09)
++=09sub=09x1, x1, #4
++3:=09adds=09x1, x1, #2
++=09b.mi=094f
++USER(9f, strh=09wzr, [x0], #2=09)
++=09sub=09x1, x1, #2
++4:=09adds=09x1, x1, #1
++=09b.mi=095f
++=09strb=09wzr, [x0]
++5:=09mov=09x0, #0
++=09ret
++ENDPROC(__clear_user)
++
++=09.section .fixup,"ax"
++=09.align=092
++9:=09mov=09x0, x2=09=09=09// return the original size
++=09ret
++=09.previous
+diff --git a/arch/arm64/lib/copy_from_user.S b/arch/arm64/lib/copy_from_use=
+r.S
+new file mode 100644
+index 0000000..5e27add
+--- /dev/null
++++ b/arch/arm64/lib/copy_from_user.S
+@@ -0,0 +1,66 @@
++/*
++ * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -133,77 +529,66 @@ index 0000000..17988a6
 + */
 +
 +#include <linux/linkage.h>
-+
 +#include <asm/assembler.h>
 +
 +/*
-+ * Save the FP registers.
++ * Copy from user space to a kernel buffer (alignment handled by the hardw=
+are)
 + *
-+ * x0 - pointer to struct fpsimd_state
++ * Parameters:
++ *=09x0 - to
++ *=09x1 - from
++ *=09x2 - n
++ * Returns:
++ *=09x0 - bytes not copied
 + */
-+ENTRY(fpsimd_save_state)
-+=09stp=09q0, q1, [x0, #16 * 0]
-+=09stp=09q2, q3, [x0, #16 * 2]
-+=09stp=09q4, q5, [x0, #16 * 4]
-+=09stp=09q6, q7, [x0, #16 * 6]
-+=09stp=09q8, q9, [x0, #16 * 8]
-+=09stp=09q10, q11, [x0, #16 * 10]
-+=09stp=09q12, q13, [x0, #16 * 12]
-+=09stp=09q14, q15, [x0, #16 * 14]
-+=09stp=09q16, q17, [x0, #16 * 16]
-+=09stp=09q18, q19, [x0, #16 * 18]
-+=09stp=09q20, q21, [x0, #16 * 20]
-+=09stp=09q22, q23, [x0, #16 * 22]
-+=09stp=09q24, q25, [x0, #16 * 24]
-+=09stp=09q26, q27, [x0, #16 * 26]
-+=09stp=09q28, q29, [x0, #16 * 28]
-+=09stp=09q30, q31, [x0, #16 * 30]!
-+=09mrs=09x8, fpsr
-+=09str=09w8, [x0, #16 * 2]
-+=09mrs=09x8, fpcr
-+=09str=09w8, [x0, #16 * 2 + 4]
++ENTRY(__copy_from_user)
++=09add=09x4, x1, x2=09=09=09// upper user buffer boundary
++=09subs=09x2, x2, #8
++=09b.mi=092f
++1:
++USER(9f, ldr=09x3, [x1], #8=09)
++=09subs=09x2, x2, #8
++=09str=09x3, [x0], #8
++=09b.pl=091b
++2:=09adds=09x2, x2, #4
++=09b.mi=093f
++USER(9f, ldr=09w3, [x1], #4=09)
++=09sub=09x2, x2, #4
++=09str=09w3, [x0], #4
++3:=09adds=09x2, x2, #2
++=09b.mi=094f
++USER(9f, ldrh=09w3, [x1], #2=09)
++=09sub=09x2, x2, #2
++=09strh=09w3, [x0], #2
++4:=09adds=09x2, x2, #1
++=09b.mi=095f
++USER(9f, ldrb=09w3, [x1]=09)
++=09strb=09w3, [x0]
++5:=09mov=09x0, #0
 +=09ret
-+ENDPROC(fpsimd_save_state)
++ENDPROC(__copy_from_user)
 +
-+/*
-+ * Load the FP registers.
-+ *
-+ * x0 - pointer to struct fpsimd_state
-+ */
-+ENTRY(fpsimd_load_state)
-+=09ldp=09q0, q1, [x0, #16 * 0]
-+=09ldp=09q2, q3, [x0, #16 * 2]
-+=09ldp=09q4, q5, [x0, #16 * 4]
-+=09ldp=09q6, q7, [x0, #16 * 6]
-+=09ldp=09q8, q9, [x0, #16 * 8]
-+=09ldp=09q10, q11, [x0, #16 * 10]
-+=09ldp=09q12, q13, [x0, #16 * 12]
-+=09ldp=09q14, q15, [x0, #16 * 14]
-+=09ldp=09q16, q17, [x0, #16 * 16]
-+=09ldp=09q18, q19, [x0, #16 * 18]
-+=09ldp=09q20, q21, [x0, #16 * 20]
-+=09ldp=09q22, q23, [x0, #16 * 22]
-+=09ldp=09q24, q25, [x0, #16 * 24]
-+=09ldp=09q26, q27, [x0, #16 * 26]
-+=09ldp=09q28, q29, [x0, #16 * 28]
-+=09ldp=09q30, q31, [x0, #16 * 30]!
-+=09ldr=09w8, [x0, #16 * 2]
-+=09ldr=09w9, [x0, #16 * 2 + 4]
-+=09msr=09fpsr, x8
-+=09msr=09fpcr, x9
++=09.section .fixup,"ax"
++=09.align=092
++9:=09sub=09x2, x4, x1
++=09mov=09x3, x2
++10:=09strb=09wzr, [x0], #1=09=09=09// zero remaining buffer space
++=09subs=09x3, x3, #1
++=09b.ne=0910b
++=09mov=09x0, x2=09=09=09=09// bytes not copied
 +=09ret
-+ENDPROC(fpsimd_load_state)
-diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
++=09.previous
+diff --git a/arch/arm64/lib/copy_in_user.S b/arch/arm64/lib/copy_in_user.S
 new file mode 100644
-index 0000000..e8b8357
+index 0000000..84b6c9b
 --- /dev/null
-+++ b/arch/arm64/kernel/fpsimd.c
-@@ -0,0 +1,106 @@
++++ b/arch/arm64/lib/copy_in_user.S
+@@ -0,0 +1,63 @@
 +/*
-+ * FP/SIMD context switching and fault handling
++ * Copy from user space to user space
 + *
 + * Copyright (C) 2012 ARM Ltd.
-+ * Author: Catalin Marinas <catalin.marinas@arm.com>
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -218,91 +603,387 @@ index 0000000..e8b8357
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/kernel.h>
-+#include <linux/init.h>
-+#include <linux/sched.h>
-+#include <linux/signal.h>
-+
-+#include <asm/fpsimd.h>
-+#include <asm/cputype.h>
-+
-+#define FPEXC_IOF=09(1 << 0)
-+#define FPEXC_DZF=09(1 << 1)
-+#define FPEXC_OFF=09(1 << 2)
-+#define FPEXC_UFF=09(1 << 3)
-+#define FPEXC_IXF=09(1 << 4)
-+#define FPEXC_IDF=09(1 << 7)
++#include <linux/linkage.h>
++#include <asm/assembler.h>
 +
 +/*
-+ * Trapped FP/ASIMD access.
++ * Copy from user space to user space (alignment handled by the hardware)
++ *
++ * Parameters:
++ *=09x0 - to
++ *=09x1 - from
++ *=09x2 - n
++ * Returns:
++ *=09x0 - bytes not copied
 + */
-+void do_fpsimd_acc(unsigned int esr, struct pt_regs *regs)
-+{
-+=09/* TODO: implement lazy context saving/restoring */
-+=09WARN_ON(1);
-+}
++ENTRY(__copy_in_user)
++=09add=09x4, x0, x2=09=09=09// upper user buffer boundary
++=09subs=09x2, x2, #8
++=09b.mi=092f
++1:
++USER(9f, ldr=09x3, [x1], #8=09)
++=09subs=09x2, x2, #8
++USER(9f, str=09x3, [x0], #8=09)
++=09b.pl=091b
++2:=09adds=09x2, x2, #4
++=09b.mi=093f
++USER(9f, ldr=09w3, [x1], #4=09)
++=09sub=09x2, x2, #4
++USER(9f, str=09w3, [x0], #4=09)
++3:=09adds=09x2, x2, #2
++=09b.mi=094f
++USER(9f, ldrh=09w3, [x1], #2=09)
++=09sub=09x2, x2, #2
++USER(9f, strh=09w3, [x0], #2=09)
++4:=09adds=09x2, x2, #1
++=09b.mi=095f
++USER(9f, ldrb=09w3, [x1]=09)
++USER(9f, strb=09w3, [x0]=09)
++5:=09mov=09x0, #0
++=09ret
++ENDPROC(__copy_in_user)
++
++=09.section .fixup,"ax"
++=09.align=092
++9:=09sub=09x0, x4, x0=09=09=09// bytes not copied
++=09ret
++=09.previous
+diff --git a/arch/arm64/lib/copy_to_user.S b/arch/arm64/lib/copy_to_user.S
+new file mode 100644
+index 0000000..a0aeeb9
+--- /dev/null
++++ b/arch/arm64/lib/copy_to_user.S
+@@ -0,0 +1,61 @@
++/*
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/linkage.h>
++#include <asm/assembler.h>
 +
 +/*
-+ * Raise a SIGFPE for the current process.
++ * Copy to user space from a kernel buffer (alignment handled by the hardw=
+are)
++ *
++ * Parameters:
++ *=09x0 - to
++ *=09x1 - from
++ *=09x2 - n
++ * Returns:
++ *=09x0 - bytes not copied
 + */
-+void do_fpsimd_exc(unsigned int esr, struct pt_regs *regs)
-+{
-+=09siginfo_t info;
-+=09unsigned int si_code =3D 0;
++ENTRY(__copy_to_user)
++=09add=09x4, x0, x2=09=09=09// upper user buffer boundary
++=09subs=09x2, x2, #8
++=09b.mi=092f
++1:
++=09ldr=09x3, [x1], #8
++=09subs=09x2, x2, #8
++USER(9f, str=09x3, [x0], #8=09)
++=09b.pl=091b
++2:=09adds=09x2, x2, #4
++=09b.mi=093f
++=09ldr=09w3, [x1], #4
++=09sub=09x2, x2, #4
++USER(9f, str=09w3, [x0], #4=09)
++3:=09adds=09x2, x2, #2
++=09b.mi=094f
++=09ldrh=09w3, [x1], #2
++=09sub=09x2, x2, #2
++USER(9f, strh=09w3, [x0], #2=09)
++4:=09adds=09x2, x2, #1
++=09b.mi=095f
++=09ldrb=09w3, [x1]
++USER(9f, strb=09w3, [x0]=09)
++5:=09mov=09x0, #0
++=09ret
++ENDPROC(__copy_to_user)
 +
-+=09if (esr & FPEXC_IOF)
-+=09=09si_code =3D FPE_FLTINV;
-+=09else if (esr & FPEXC_DZF)
-+=09=09si_code =3D FPE_FLTDIV;
-+=09else if (esr & FPEXC_OFF)
-+=09=09si_code =3D FPE_FLTOVF;
-+=09else if (esr & FPEXC_UFF)
-+=09=09si_code =3D FPE_FLTUND;
-+=09else if (esr & FPEXC_IXF)
-+=09=09si_code =3D FPE_FLTRES;
++=09.section .fixup,"ax"
++=09.align=092
++9:=09sub=09x0, x4, x0=09=09=09// bytes not copied
++=09ret
++=09.previous
+diff --git a/arch/arm64/lib/getuser.S b/arch/arm64/lib/getuser.S
+new file mode 100644
+index 0000000..1b4da22
+--- /dev/null
++++ b/arch/arm64/lib/getuser.S
+@@ -0,0 +1,75 @@
++/*
++ * Based on arch/arm/lib/getuser.S
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ * Idea from x86 version, (C) Copyright 1998 Linus Torvalds
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ *
++ * These functions have a non-standard call interface to make them more
++ * efficient, especially as they return an error value in addition to
++ * the "real" return value.
++ *
++ * __get_user_X
++ *
++ * Inputs:=09x0 contains the address
++ * Outputs:=09x0 is the error code
++ *=09=09x2, x3 contains the zero-extended value
++ *=09=09lr corrupted
++ *
++ * No other registers must be altered.  (see <asm/uaccess.h>
++ * for specific ASM register usage).
++ *
++ * Note also that it is intended that __get_user_bad is not global.
++ */
 +
-+=09memset(&info, 0, sizeof(info));
-+=09info.si_signo =3D SIGFPE;
-+=09info.si_code =3D si_code;
-+=09info.si_addr =3D (void __user *)instruction_pointer(regs);
++#include <linux/linkage.h>
++#include <asm/errno.h>
 +
-+=09send_sig_info(SIGFPE, &info, current);
-+}
++ENTRY(__get_user_1)
++1:=09ldrb=09w2, [x0]
++=09mov=09x0, #0
++=09ret
++ENDPROC(__get_user_1)
 +
-+void fpsimd_thread_switch(struct task_struct *next)
-+{
-+=09/* check if not kernel threads */
-+=09if (current->mm)
-+=09=09fpsimd_save_state(&current->thread.fpsimd_state);
-+=09if (next->mm)
-+=09=09fpsimd_load_state(&next->thread.fpsimd_state);
-+}
++ENTRY(__get_user_2)
++2:=09ldrh=09w2, [x0]
++=09mov=09x0, #0
++=09ret
++ENDPROC(__get_user_2)
 +
-+void fpsimd_flush_thread(void)
-+{
-+=09memset(&current->thread.fpsimd_state, 0, sizeof(struct fpsimd_state));
-+=09fpsimd_load_state(&current->thread.fpsimd_state);
-+}
++ENTRY(__get_user_4)
++3:=09ldr=09w2, [x0]
++=09mov=09x0, #0
++=09ret
++ENDPROC(__get_user_4)
++
++ENTRY(__get_user_8)
++4:=09ldr=09x2, [x0]
++=09mov=09x0, #0
++=09ret
++ENDPROC(__get_user_4)
++
++__get_user_bad:
++=09mov=09x2, #0
++=09mov=09x0, #-EFAULT
++=09ret
++ENDPROC(__get_user_bad)
++
++.section __ex_table, "a"
++=09.quad=091b, __get_user_bad
++=09.quad=092b, __get_user_bad
++=09.quad=093b, __get_user_bad
++=09.quad=094b, __get_user_bad
++.previous
+diff --git a/arch/arm64/lib/putuser.S b/arch/arm64/lib/putuser.S
+new file mode 100644
+index 0000000..62d4a42
+--- /dev/null
++++ b/arch/arm64/lib/putuser.S
+@@ -0,0 +1,73 @@
++/*
++ * Based on arch/arm/lib/putuser.S
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ * Idea from x86 version, (C) Copyright 1998 Linus Torvalds
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ * These functions have a non-standard call interface to make
++ * them more efficient, especially as they return an error
++ * value in addition to the "real" return value.
++ *
++ * __put_user_X
++ *
++ * Inputs:=09x0 contains the address
++ *=09=09x2, x3 contains the value
++ * Outputs:=09x0 is the error code
++ *=09=09lr corrupted
++ *
++ * No other registers must be altered.  (see <asm/uaccess.h>
++ * for specific ASM register usage).
++ *
++ * Note that it is intended that __put_user_bad is not global.
++ */
++
++#include <linux/linkage.h>
++#include <asm/errno.h>
++
++ENTRY(__put_user_1)
++1:=09strb=09w2, [x0]
++=09mov=09x0, #0
++=09ret
++ENDPROC(__put_user_1)
++
++ENTRY(__put_user_2)
++2:=09strh=09w2, [x0]
++=09mov=09x0, #0
++=09ret
++ENDPROC(__put_user_2)
++
++ENTRY(__put_user_4)
++3:=09str=09w2, [x0]
++=09mov=09x0, #0
++=09ret
++ENDPROC(__put_user_4)
++
++ENTRY(__put_user_8)
++4:=09str=09x2, [x0]
++=09mov=09x0, #0
++=09ret
++ENDPROC(__put_user_8)
++
++__put_user_bad:
++=09mov=09x0, #-EFAULT
++=09ret
++ENDPROC(__put_user_bad)
++
++.section __ex_table, "a"
++=09.quad=091b, __put_user_bad
++=09.quad=092b, __put_user_bad
++=09.quad=093b, __put_user_bad
++=09.quad=094b, __put_user_bad
++.previous
+diff --git a/arch/arm64/lib/strncpy_from_user.S b/arch/arm64/lib/strncpy_fr=
+om_user.S
+new file mode 100644
+index 0000000..56e448a
+--- /dev/null
++++ b/arch/arm64/lib/strncpy_from_user.S
+@@ -0,0 +1,50 @@
++/*
++ * Based on arch/arm/lib/strncpy_from_user.S
++ *
++ * Copyright (C) 1995-2000 Russell King
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/linkage.h>
++#include <asm/assembler.h>
++#include <asm/errno.h>
++
++=09.text
++=09.align=095
 +
 +/*
-+ * FP/SIMD support code initialisation.
++ * Copy a string from user space to kernel space.
++ *  x0 =3D dst, x1 =3D src, x2 =3D byte length
++ * returns the number of characters copied (strlen of copied string),
++ *  -EFAULT on exception, or "len" if we fill the whole buffer
 + */
-+static int __init fpsimd_init(void)
-+{
-+=09u64 pfr =3D read_cpuid(ID_AA64PFR0_EL1);
++ENTRY(__strncpy_from_user)
++=09mov=09x4, x1
++1:=09subs=09x2, x2, #1
++=09bmi=092f
++USER(9f, ldrb=09w3, [x1], #1=09)
++=09strb=09w3, [x0], #1
++=09cbnz=09w3, 1b
++=09sub=09x1, x1, #1=09// take NUL character out of count
++2:=09sub=09x0, x1, x4
++=09ret
++ENDPROC(__strncpy_from_user)
 +
-+=09if (pfr & (0xf << 16)) {
-+=09=09pr_notice("Floating-point is not implemented\n");
-+=09=09return 0;
-+=09}
-+=09elf_hwcap |=3D HWCAP_FP;
++=09.section .fixup,"ax"
++=09.align=090
++9:=09strb=09wzr, [x0]=09// null terminate
++=09mov=09x0, #-EFAULT
++=09ret
++=09.previous
+diff --git a/arch/arm64/lib/strnlen_user.S b/arch/arm64/lib/strnlen_user.S
+new file mode 100644
+index 0000000..7f7b176
+--- /dev/null
++++ b/arch/arm64/lib/strnlen_user.S
+@@ -0,0 +1,47 @@
++/*
++ * Based on arch/arm/lib/strnlen_user.S
++ *
++ * Copyright (C) 1995-2000 Russell King
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
 +
-+=09if (pfr & (0xf << 20))
-+=09=09pr_notice("Advanced SIMD is not implemented\n");
-+=09else
-+=09=09elf_hwcap |=3D HWCAP_ASIMD;
++#include <linux/linkage.h>
++#include <asm/assembler.h>
++#include <asm/errno.h>
 +
-+=09return 0;
-+}
-+late_initcall(fpsimd_init);
++=09.text
++=09.align=095
++
++/* Prototype: unsigned long __strnlen_user(const char *str, long n)
++ * Purpose  : get length of a string in user memory
++ * Params   : str - address of string in user memory
++ * Returns  : length of string *including terminator*
++ *=09      or zero on exception, or n if too long
++ */
++ENTRY(__strnlen_user)
++=09mov=09x2, x0
++1:=09subs=09x1, x1, #1
++=09b.mi=092f
++USER(9f, ldrb=09w3, [x0], #1=09)
++=09cbnz=09w3, 1b
++2:=09sub=09x0, x0, x2
++=09ret
++ENDPROC(__strnlen_user)
++
++=09.section .fixup,"ax"
++=09.align=090
++9:=09mov=09x0, #0
++=09ret
++=09.previous
 
