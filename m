@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:55038 "EHLO
+Received: from service87.mimecast.com ([91.220.42.44]:55456 "EHLO
 	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756802Ab2HNRxH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 13:53:07 -0400
+	with ESMTP id S1756902Ab2HNRxO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 13:53:14 -0400
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v2 07/31] arm64: Process management
-Date: Tue, 14 Aug 2012 18:52:08 +0100
-Message-ID: <1344966752-16102-8-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v2 26/31] arm64: Miscellaneous library functions
+Date: Tue, 14 Aug 2012 18:52:27 +0100
+Message-ID: <1344966752-16102-27-git-send-email-catalin.marinas@arm.com>
 In-Reply-To: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
 Content-Type: text/plain; charset=WINDOWS-1252
@@ -14,40 +14,45 @@ Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
-Message-ID: <20120814175208.rXnAv3s201cZj-UuPySRabi20_2_8VqUl25IUFaZrw4@z>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Marc Zyngier <marc.zyngier@arm.com>, Will Deacon <will.deacon@arm.com>
+Message-ID: <20120814175227.mQPhzM1qgSnaNxMtpFTxZsLmsK3RZgFTKTWcM8vtlEE@z>
 
-The patch adds support for thread creation and context switching. The
-context switching CPU specific code is introduced with the CPU support
-patch (part of the arch/arm64/mm/proc.S file). AArch64 supports
-ASID-tagged TLBs and the ASID can be either 8 or 16-bit wide (detectable
-via the ID_AA64AFR0_EL1 register).
+From: Marc Zyngier <marc.zyngier@arm.com>
 
+This patch adds udelay, memory and bit operations together with the
+ksyms exports.
+
+Signed-off-by: Marc Zyngier <marc.zyngier@arm.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/include/asm/mmu_context.h |  152 +++++++++++++
- arch/arm64/include/asm/thread_info.h |  124 ++++++++++
- arch/arm64/kernel/process.c          |  416 ++++++++++++++++++++++++++++++=
+ arch/arm64/include/asm/bitops.h  |   74 ++++++++++++++++++++++++++++
+ arch/arm64/include/asm/syscall.h |  101 ++++++++++++++++++++++++++++++++++=
 ++++
- arch/arm64/mm/context.c              |  159 +++++++++++++
- 4 files changed, 851 insertions(+), 0 deletions(-)
- create mode 100644 arch/arm64/include/asm/mmu_context.h
- create mode 100644 arch/arm64/include/asm/thread_info.h
- create mode 100644 arch/arm64/kernel/process.c
- create mode 100644 arch/arm64/mm/context.c
+ arch/arm64/kernel/arm64ksyms.c   |   55 ++++++++++++++++++++
+ arch/arm64/lib/Makefile          |    5 ++
+ arch/arm64/lib/bitops.c          |   25 +++++++++
+ arch/arm64/lib/clear_page.S      |   39 +++++++++++++++
+ arch/arm64/lib/copy_page.S       |   46 +++++++++++++++++
+ arch/arm64/lib/delay.c           |   55 ++++++++++++++++++++
+ 8 files changed, 400 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/bitops.h
+ create mode 100644 arch/arm64/include/asm/syscall.h
+ create mode 100644 arch/arm64/kernel/arm64ksyms.c
+ create mode 100644 arch/arm64/lib/Makefile
+ create mode 100644 arch/arm64/lib/bitops.c
+ create mode 100644 arch/arm64/lib/clear_page.S
+ create mode 100644 arch/arm64/lib/copy_page.S
+ create mode 100644 arch/arm64/lib/delay.c
 
-diff --git a/arch/arm64/include/asm/mmu_context.h b/arch/arm64/include/asm/=
-mmu_context.h
+diff --git a/arch/arm64/include/asm/bitops.h b/arch/arm64/include/asm/bitop=
+s.h
 new file mode 100644
-index 0000000..f68465d
+index 0000000..67df4d2
 --- /dev/null
-+++ b/arch/arm64/include/asm/mmu_context.h
-@@ -0,0 +1,152 @@
++++ b/arch/arm64/include/asm/bitops.h
+@@ -0,0 +1,74 @@
 +/*
-+ * Based on arch/arm/include/asm/mmu_context.h
-+ *
-+ * Copyright (C) 1996 Russell King.
 + * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -62,152 +67,184 @@ index 0000000..f68465d
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_MMU_CONTEXT_H
-+#define __ASM_MMU_CONTEXT_H
++#ifndef __ASM_BITOPS_H
++#define __ASM_BITOPS_H
 +
 +#include <linux/compiler.h>
-+#include <linux/sched.h>
 +
-+#include <asm/cacheflush.h>
-+#include <asm/proc-fns.h>
-+#include <asm-generic/mm_hooks.h>
-+#include <asm/cputype.h>
-+#include <asm/pgtable.h>
-+
-+#define MAX_ASID_BITS=0916
-+
-+extern unsigned int cpu_last_asid;
-+
-+void __init_new_context(struct task_struct *tsk, struct mm_struct *mm);
-+void __new_context(struct mm_struct *mm);
++#include <asm/barrier.h>
 +
 +/*
-+ * Set TTBR0 to empty_zero_page. No translations will be possible via TTBR=
-0.
++ * clear_bit may not imply a memory barrier
 + */
-+static inline void cpu_set_reserved_ttbr0(void)
-+{
-+=09unsigned long ttbr =3D page_to_phys(empty_zero_page);
++#ifndef smp_mb__before_clear_bit
++#define smp_mb__before_clear_bit()=09smp_mb()
++#define smp_mb__after_clear_bit()=09smp_mb()
++#endif
 +
-+=09asm(
-+=09"=09msr=09ttbr0_el1, %0=09=09=09// set TTBR0\n"
-+=09"=09isb"
-+=09:
-+=09: "r" (ttbr));
++/*
++ * Use compiler builtins for simple inline operations.
++ */
++static inline unsigned long __ffs(unsigned long word)
++{
++=09return __builtin_ffsl(word) - 1;
 +}
 +
-+static inline void switch_new_context(struct mm_struct *mm)
++static inline int ffs(int x)
 +{
-+=09unsigned long flags;
-+
-+=09__new_context(mm);
-+
-+=09local_irq_save(flags);
-+=09cpu_switch_mm(mm->pgd, mm);
-+=09local_irq_restore(flags);
++=09return __builtin_ffs(x);
 +}
 +
-+static inline void check_and_switch_context(struct mm_struct *mm,
-+=09=09=09=09=09    struct task_struct *tsk)
++static inline unsigned long __fls(unsigned long word)
 +{
-+=09/*
-+=09 * Required during context switch to avoid speculative page table
-+=09 * walking with the wrong TTBR.
-+=09 */
-+=09cpu_set_reserved_ttbr0();
-+
-+=09if (!((mm->context.id ^ cpu_last_asid) >> MAX_ASID_BITS))
-+=09=09/*
-+=09=09 * The ASID is from the current generation, just switch to the
-+=09=09 * new pgd. This condition is only true for calls from
-+=09=09 * context_switch() and interrupts are already disabled.
-+=09=09 */
-+=09=09cpu_switch_mm(mm->pgd, mm);
-+=09else if (irqs_disabled())
-+=09=09/*
-+=09=09 * Defer the new ASID allocation until after the context
-+=09=09 * switch critical region since __new_context() cannot be
-+=09=09 * called with interrupts disabled.
-+=09=09 */
-+=09=09set_ti_thread_flag(task_thread_info(tsk), TIF_SWITCH_MM);
-+=09else
-+=09=09/*
-+=09=09 * That is a direct call to switch_mm() or activate_mm() with
-+=09=09 * interrupts enabled and a new context.
-+=09=09 */
-+=09=09switch_new_context(mm);
++=09return BITS_PER_LONG - 1 - __builtin_clzl(word);
 +}
 +
-+#define init_new_context(tsk,mm)=09(__init_new_context(tsk,mm),0)
-+#define destroy_context(mm)=09=09do { } while(0)
-+
-+#define finish_arch_post_lock_switch \
-+=09finish_arch_post_lock_switch
-+static inline void finish_arch_post_lock_switch(void)
++static inline int fls(int x)
 +{
-+=09if (test_and_clear_thread_flag(TIF_SWITCH_MM)) {
-+=09=09struct mm_struct *mm =3D current->mm;
-+=09=09unsigned long flags;
++=09return x ? sizeof(x) * BITS_PER_BYTE - __builtin_clz(x) : 0;
++}
 +
-+=09=09__new_context(mm);
++/*
++ * Mainly use the generic routines for now.
++ */
++#ifndef _LINUX_BITOPS_H
++#error only <linux/bitops.h> can be included directly
++#endif
 +
-+=09=09local_irq_save(flags);
-+=09=09cpu_switch_mm(mm->pgd, mm);
-+=09=09local_irq_restore(flags);
++#include <asm-generic/bitops/ffz.h>
++#include <asm-generic/bitops/fls64.h>
++#include <asm-generic/bitops/find.h>
++
++#include <asm-generic/bitops/sched.h>
++#include <asm-generic/bitops/hweight.h>
++#include <asm-generic/bitops/lock.h>
++
++#include <asm-generic/bitops/atomic.h>
++#include <asm-generic/bitops/non-atomic.h>
++#include <asm-generic/bitops/le.h>
++#include <asm-generic/bitops/ext2-atomic.h>
++
++#endif /* __ASM_BITOPS_H */
+diff --git a/arch/arm64/include/asm/syscall.h b/arch/arm64/include/asm/sysc=
+all.h
+new file mode 100644
+index 0000000..89c047f
+--- /dev/null
++++ b/arch/arm64/include/asm/syscall.h
+@@ -0,0 +1,101 @@
++/*
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_SYSCALL_H
++#define __ASM_SYSCALL_H
++
++#include <linux/err.h>
++
++
++static inline int syscall_get_nr(struct task_struct *task,
++=09=09=09=09 struct pt_regs *regs)
++{
++=09return regs->syscallno;
++}
++
++static inline void syscall_rollback(struct task_struct *task,
++=09=09=09=09    struct pt_regs *regs)
++{
++=09regs->regs[0] =3D regs->orig_x0;
++}
++
++
++static inline long syscall_get_error(struct task_struct *task,
++=09=09=09=09     struct pt_regs *regs)
++{
++=09unsigned long error =3D regs->regs[0];
++=09return IS_ERR_VALUE(error) ? error : 0;
++}
++
++static inline long syscall_get_return_value(struct task_struct *task,
++=09=09=09=09=09    struct pt_regs *regs)
++{
++=09return regs->regs[0];
++}
++
++static inline void syscall_set_return_value(struct task_struct *task,
++=09=09=09=09=09    struct pt_regs *regs,
++=09=09=09=09=09    int error, long val)
++{
++=09regs->regs[0] =3D (long) error ? error : val;
++}
++
++#define SYSCALL_MAX_ARGS 6
++
++static inline void syscall_get_arguments(struct task_struct *task,
++=09=09=09=09=09 struct pt_regs *regs,
++=09=09=09=09=09 unsigned int i, unsigned int n,
++=09=09=09=09=09 unsigned long *args)
++{
++=09if (i + n > SYSCALL_MAX_ARGS) {
++=09=09unsigned long *args_bad =3D args + SYSCALL_MAX_ARGS - i;
++=09=09unsigned int n_bad =3D n + i - SYSCALL_MAX_ARGS;
++=09=09pr_warning("%s called with max args %d, handling only %d\n",
++=09=09=09   __func__, i + n, SYSCALL_MAX_ARGS);
++=09=09memset(args_bad, 0, n_bad * sizeof(args[0]));
 +=09}
++
++=09if (i =3D=3D 0) {
++=09=09args[0] =3D regs->orig_x0;
++=09=09args++;
++=09=09i++;
++=09=09n--;
++=09}
++
++=09memcpy(args, &regs->regs[i], n * sizeof(args[0]));
 +}
 +
-+/*
-+ * This is called when "tsk" is about to enter lazy TLB mode.
-+ *
-+ * mm:  describes the currently active mm context
-+ * tsk: task which is entering lazy tlb
-+ * cpu: cpu number which is entering lazy tlb
-+ *
-+ * tsk->mm will be NULL
-+ */
-+static inline void
-+enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
++static inline void syscall_set_arguments(struct task_struct *task,
++=09=09=09=09=09 struct pt_regs *regs,
++=09=09=09=09=09 unsigned int i, unsigned int n,
++=09=09=09=09=09 const unsigned long *args)
 +{
++=09if (i + n > SYSCALL_MAX_ARGS) {
++=09=09pr_warning("%s called with max args %d, handling only %d\n",
++=09=09=09   __func__, i + n, SYSCALL_MAX_ARGS);
++=09=09n =3D SYSCALL_MAX_ARGS - i;
++=09}
++
++=09if (i =3D=3D 0) {
++=09=09regs->orig_x0 =3D args[0];
++=09=09args++;
++=09=09i++;
++=09=09n--;
++=09}
++
++=09memcpy(&regs->regs[i], args, n * sizeof(args[0]));
 +}
 +
-+/*
-+ * This is the actual mm switch as far as the scheduler
-+ * is concerned.  No registers are touched.  We avoid
-+ * calling the CPU specific function when the mm hasn't
-+ * actually changed.
-+ */
-+static inline void
-+switch_mm(struct mm_struct *prev, struct mm_struct *next,
-+=09  struct task_struct *tsk)
-+{
-+=09unsigned int cpu =3D smp_processor_id();
-+
-+#ifdef CONFIG_SMP
-+=09/* check for possible thread migration */
-+=09if (!cpumask_empty(mm_cpumask(next)) &&
-+=09    !cpumask_test_cpu(cpu, mm_cpumask(next)))
-+=09=09__flush_icache_all();
-+#endif
-+=09if (!cpumask_test_and_set_cpu(cpu, mm_cpumask(next)) || prev !=3D next)
-+=09=09check_and_switch_context(next, tsk);
-+}
-+
-+#define deactivate_mm(tsk,mm)=09do { } while (0)
-+#define activate_mm(prev,next)=09switch_mm(prev, next, NULL)
-+
-+#endif
-diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/=
-thread_info.h
++#endif=09/* __ASM_SYSCALL_H */
+diff --git a/arch/arm64/kernel/arm64ksyms.c b/arch/arm64/kernel/arm64ksyms.=
+c
 new file mode 100644
-index 0000000..4f909a3
+index 0000000..4631573
 --- /dev/null
-+++ b/arch/arm64/include/asm/thread_info.h
-@@ -0,0 +1,124 @@
++++ b/arch/arm64/kernel/arm64ksyms.c
+@@ -0,0 +1,55 @@
 +/*
-+ * Based on arch/arm/include/asm/thread_info.h
++ * Based on arch/arm/kernel/armksyms.c
 + *
-+ * Copyright (C) 2002 Russell King.
++ * Copyright (C) 2000 Russell King
 + * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -222,546 +259,92 @@ index 0000000..4f909a3
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_THREAD_INFO_H
-+#define __ASM_THREAD_INFO_H
-+
-+#ifdef __KERNEL__
-+
-+#include <linux/compiler.h>
-+
-+#define THREAD_SIZE_ORDER=091
-+#define THREAD_SIZE=09=098192
-+#define THREAD_START_SP=09=09(THREAD_SIZE - 16)
-+
-+#ifndef __ASSEMBLY__
-+
-+struct task_struct;
-+struct exec_domain;
-+
-+#include <asm/types.h>
-+
-+typedef unsigned long mm_segment_t;
-+
-+/*
-+ * low level task data that entry.S needs immediate access to.
-+ * __switch_to() assumes cpu_context follows immediately after cpu_domain.
-+ */
-+struct thread_info {
-+=09unsigned long=09=09flags;=09=09/* low level flags */
-+=09mm_segment_t=09=09addr_limit;=09/* address limit */
-+=09struct task_struct=09*task;=09=09/* main task structure */
-+=09struct exec_domain=09*exec_domain;=09/* execution domain */
-+=09struct restart_block=09restart_block;
-+=09int=09=09=09preempt_count;=09/* 0 =3D> preemptable, <0 =3D> bug */
-+=09int=09=09=09cpu;=09=09/* cpu */
-+};
-+
-+#define INIT_THREAD_INFO(tsk)=09=09=09=09=09=09\
-+{=09=09=09=09=09=09=09=09=09\
-+=09.task=09=09=3D &tsk,=09=09=09=09=09=09\
-+=09.exec_domain=09=3D &default_exec_domain,=09=09=09=09\
-+=09.flags=09=09=3D 0,=09=09=09=09=09=09\
-+=09.preempt_count=09=3D INIT_PREEMPT_COUNT,=09=09=09=09\
-+=09.addr_limit=09=3D KERNEL_DS,=09=09=09=09=09\
-+=09.restart_block=09=3D {=09=09=09=09=09=09\
-+=09=09.fn=09=3D do_no_restart_syscall,=09=09=09\
-+=09},=09=09=09=09=09=09=09=09\
-+}
-+
-+#define init_thread_info=09(init_thread_union.thread_info)
-+#define init_stack=09=09(init_thread_union.stack)
-+
-+/*
-+ * how to get the thread information struct from C
-+ */
-+static inline struct thread_info *current_thread_info(void) __attribute_co=
-nst__;
-+
-+static inline struct thread_info *current_thread_info(void)
-+{
-+=09register unsigned long sp asm ("sp");
-+=09return (struct thread_info *)(sp & ~(THREAD_SIZE - 1));
-+}
-+
-+#define thread_saved_pc(tsk)=09\
-+=09((unsigned long)(tsk->thread.cpu_context.pc))
-+#define thread_saved_sp(tsk)=09\
-+=09((unsigned long)(tsk->thread.cpu_context.sp))
-+#define thread_saved_fp(tsk)=09\
-+=09((unsigned long)(tsk->thread.cpu_context.fp))
-+
-+#endif
-+
-+/*
-+ * We use bit 30 of the preempt_count to indicate that kernel
-+ * preemption is occurring.  See <asm/hardirq.h>.
-+ */
-+#define PREEMPT_ACTIVE=090x40000000
-+
-+/*
-+ * thread information flags:
-+ *  TIF_SYSCALL_TRACE=09- syscall trace active
-+ *  TIF_SIGPENDING=09- signal pending
-+ *  TIF_NEED_RESCHED=09- rescheduling necessary
-+ *  TIF_NOTIFY_RESUME=09- callback before returning to user
-+ *  TIF_USEDFPU=09=09- FPU was used by this task this quantum (SMP)
-+ *  TIF_POLLING_NRFLAG=09- true if poll_idle() is polling TIF_NEED_RESCHED
-+ */
-+#define TIF_SIGPENDING=09=090
-+#define TIF_NEED_RESCHED=091
-+#define TIF_NOTIFY_RESUME=092=09/* callback before returning to user */
-+#define TIF_SYSCALL_TRACE=098
-+#define TIF_POLLING_NRFLAG=0916
-+#define TIF_MEMDIE=09=0918=09/* is terminating due to OOM killer */
-+#define TIF_FREEZE=09=0919
-+#define TIF_RESTORE_SIGMASK=0920
-+#define TIF_SINGLESTEP=09=0921
-+#define TIF_32BIT=09=0922=09/* 32bit process */
-+#define TIF_SWITCH_MM=09=0923=09/* deferred switch_mm */
-+
-+#define _TIF_SIGPENDING=09=09(1 << TIF_SIGPENDING)
-+#define _TIF_NEED_RESCHED=09(1 << TIF_NEED_RESCHED)
-+#define _TIF_NOTIFY_RESUME=09(1 << TIF_NOTIFY_RESUME)
-+#define _TIF_32BIT=09=09(1 << TIF_32BIT)
-+
-+#define _TIF_WORK_MASK=09=09(_TIF_NEED_RESCHED | _TIF_SIGPENDING | \
-+=09=09=09=09 _TIF_NOTIFY_RESUME)
-+
-+#endif /* __KERNEL__ */
-+#endif /* __ASM_THREAD_INFO_H */
-diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-new file mode 100644
-index 0000000..c4a4e1c
---- /dev/null
-+++ b/arch/arm64/kernel/process.c
-@@ -0,0 +1,416 @@
-+/*
-+ * Based on arch/arm/kernel/process.c
-+ *
-+ * Original Copyright (C) 1995  Linus Torvalds
-+ * Copyright (C) 1996-2000 Russell King - Converted to ARM.
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <stdarg.h>
 +
 +#include <linux/export.h>
 +#include <linux/sched.h>
-+#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/stddef.h>
-+#include <linux/unistd.h>
-+#include <linux/user.h>
++#include <linux/string.h>
++#include <linux/cryptohash.h>
 +#include <linux/delay.h>
-+#include <linux/reboot.h>
-+#include <linux/interrupt.h>
-+#include <linux/kallsyms.h>
-+#include <linux/init.h>
-+#include <linux/cpu.h>
-+#include <linux/elfcore.h>
-+#include <linux/pm.h>
-+#include <linux/tick.h>
-+#include <linux/utsname.h>
++#include <linux/in6.h>
++#include <linux/syscalls.h>
 +#include <linux/uaccess.h>
-+#include <linux/random.h>
-+#include <linux/hw_breakpoint.h>
-+#include <linux/personality.h>
-+#include <linux/notifier.h>
++#include <linux/io.h>
 +
-+#include <asm/cacheflush.h>
-+#include <asm/processor.h>
-+#include <asm/stacktrace.h>
-+#include <asm/fpsimd.h>
++#include <asm/checksum.h>
 +
-+extern void setup_mm_for_reboot(void);
++=09/* user mem (segment) */
++EXPORT_SYMBOL(__strnlen_user);
++EXPORT_SYMBOL(__strncpy_from_user);
 +
-+static void setup_restart(void)
-+{
-+=09/*
-+=09 * Tell the mm system that we are going to reboot -
-+=09 * we may need it to insert some 1:1 mappings so that
-+=09 * soft boot works.
-+=09 */
-+=09setup_mm_for_reboot();
++EXPORT_SYMBOL(copy_page);
 +
-+=09/* Clean and invalidate caches */
-+=09flush_cache_all();
++EXPORT_SYMBOL(__copy_from_user);
++EXPORT_SYMBOL(__copy_to_user);
++EXPORT_SYMBOL(__clear_user);
 +
-+=09/* Turn off caching */
-+=09cpu_proc_fin();
++EXPORT_SYMBOL(__get_user_1);
++EXPORT_SYMBOL(__get_user_2);
++EXPORT_SYMBOL(__get_user_4);
 +
-+=09/* Push out any further dirty data, and ensure cache is empty */
-+=09flush_cache_all();
-+}
++EXPORT_SYMBOL(__put_user_1);
++EXPORT_SYMBOL(__put_user_2);
++EXPORT_SYMBOL(__put_user_4);
++EXPORT_SYMBOL(__put_user_8);
 +
-+void soft_restart(unsigned long addr)
-+{
-+=09setup_restart();
-+=09cpu_reset(addr);
-+}
++=09/* bitops */
++EXPORT_SYMBOL(__atomic_hash);
 +
-+/*
-+ * Function pointers to optional machine specific functions
-+ */
-+void (*pm_power_off)(void);
-+EXPORT_SYMBOL(pm_power_off);
-+
-+void (*pm_restart)(const char *cmd);
-+EXPORT_SYMBOL_GPL(pm_restart);
-+
-+
-+/*
-+ * This is our default idle handler.
-+ */
-+static void default_idle(void)
-+{
-+=09/*
-+=09 * This should do all the clock switching and wait for interrupt
-+=09 * tricks
-+=09 */
-+=09cpu_do_idle();
-+=09local_irq_enable();
-+}
-+
-+void (*pm_idle)(void) =3D default_idle;
-+EXPORT_SYMBOL(pm_idle);
-+
-+/*
-+ * The idle thread, has rather strange semantics for calling pm_idle,
-+ * but this is what x86 does and we need to do the same, so that
-+ * things like cpuidle get called in the same way.  The only difference
-+ * is that we always respect 'hlt_counter' to prevent low power idle.
-+ */
-+void cpu_idle(void)
-+{
-+=09local_fiq_enable();
-+
-+=09/* endless idle loop with no priority at all */
-+=09while (1) {
-+=09=09tick_nohz_idle_enter();
-+=09=09rcu_idle_enter();
-+=09=09while (!need_resched()) {
-+=09=09=09/*
-+=09=09=09 * We need to disable interrupts here to ensure
-+=09=09=09 * we don't miss a wakeup call.
-+=09=09=09 */
-+=09=09=09local_irq_disable();
-+=09=09=09if (!need_resched()) {
-+=09=09=09=09stop_critical_timings();
-+=09=09=09=09pm_idle();
-+=09=09=09=09start_critical_timings();
-+=09=09=09=09/*
-+=09=09=09=09 * pm_idle functions should always return
-+=09=09=09=09 * with IRQs enabled.
-+=09=09=09=09 */
-+=09=09=09=09WARN_ON(irqs_disabled());
-+=09=09=09} else {
-+=09=09=09=09local_irq_enable();
-+=09=09=09}
-+=09=09}
-+=09=09rcu_idle_exit();
-+=09=09tick_nohz_idle_exit();
-+=09=09preempt_enable_no_resched();
-+=09=09schedule();
-+=09=09preempt_disable();
-+=09}
-+}
-+
-+void machine_shutdown(void)
-+{
-+#ifdef CONFIG_SMP
-+=09smp_send_stop();
-+#endif
-+}
-+
-+void machine_halt(void)
-+{
-+=09machine_shutdown();
-+=09while (1);
-+}
-+
-+void machine_power_off(void)
-+{
-+=09machine_shutdown();
-+=09if (pm_power_off)
-+=09=09pm_power_off();
-+}
-+
-+void machine_restart(char *cmd)
-+{
-+=09machine_shutdown();
-+
-+=09/* Disable interrupts first */
-+=09local_irq_disable();
-+=09local_fiq_disable();
-+
-+=09/* Now call the architecture specific reboot code. */
-+=09if (pm_restart)
-+=09=09pm_restart(cmd);
-+
-+=09/*
-+=09 * Whoops - the architecture was unable to reboot.
-+=09 * Tell the user!
-+=09 */
-+=09mdelay(1000);
-+=09printk("Reboot failed -- System halted\n");
-+=09while (1);
-+}
-+
-+void __show_regs(struct pt_regs *regs)
-+{
-+=09int i;
-+
-+=09printk("CPU: %d    %s  (%s %.*s)\n",
-+=09=09raw_smp_processor_id(), print_tainted(),
-+=09=09init_utsname()->release,
-+=09=09(int)strcspn(init_utsname()->version, " "),
-+=09=09init_utsname()->version);
-+=09print_symbol("PC is at %s\n", instruction_pointer(regs));
-+=09print_symbol("LR is at %s\n", regs->regs[30]);
-+=09printk("pc : [<%016llx>] lr : [<%016llx>] pstate: %08llx\n",
-+=09       regs->pc, regs->regs[30], regs->pstate);
-+=09printk("sp : %016llx\n", regs->sp);
-+=09for (i =3D 29; i >=3D 0; i--) {
-+=09=09printk("x%-2d: %016llx ", i, regs->regs[i]);
-+=09=09if (i % 2 =3D=3D 0)
-+=09=09=09printk("\n");
-+=09}
-+=09printk("\n");
-+}
-+
-+void show_regs(struct pt_regs * regs)
-+{
-+=09printk("\n");
-+=09printk("Pid: %d, comm: %20s\n", task_pid_nr(current), current->comm);
-+=09__show_regs(regs);
-+}
-+
-+/*
-+ * Free current thread data structures etc..
-+ */
-+void exit_thread(void)
-+{
-+}
-+
-+void flush_thread(void)
-+{
-+=09fpsimd_flush_thread();
-+=09flush_ptrace_hw_breakpoint(current);
-+}
-+
-+void release_thread(struct task_struct *dead_task)
-+{
-+}
-+
-+int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
-+{
-+=09fpsimd_save_state(&current->thread.fpsimd_state);
-+=09*dst =3D *src;
-+=09return 0;
-+}
-+
-+asmlinkage void ret_from_fork(void) asm("ret_from_fork");
-+
-+int copy_thread(unsigned long clone_flags, unsigned long stack_start,
-+=09=09unsigned long stk_sz, struct task_struct *p,
-+=09=09struct pt_regs *regs)
-+{
-+=09struct pt_regs *childregs =3D task_pt_regs(p);
-+=09unsigned long tls =3D p->thread.tp_value;
-+
-+=09*childregs =3D *regs;
-+=09childregs->regs[0] =3D 0;
-+
-+#ifdef CONFIG_AARCH32_EMULATION
-+=09if (test_ti_thread_flag(task_thread_info(p), TIF_32BIT))
-+=09=09childregs->compat_sp =3D stack_start;
-+=09else
-+#endif
-+=09{
-+=09=09/*
-+=09=09 * Read the current TLS pointer from tpidr_el0 as it may be
-+=09=09 * out-of-sync with the saved value.
-+=09=09 */
-+=09=09asm("mrs %0, tpidr_el0" : "=3Dr" (tls));
-+=09=09childregs->sp =3D stack_start;
-+=09}
-+
-+=09memset(&p->thread.cpu_context, 0, sizeof(struct cpu_context));
-+=09p->thread.cpu_context.sp =3D (unsigned long)childregs;
-+=09p->thread.cpu_context.pc =3D (unsigned long)ret_from_fork;
-+
-+=09/* If a TLS pointer was passed to clone, use that for the new thread. *=
-/
-+=09if (clone_flags & CLONE_SETTLS)
-+=09=09tls =3D regs->regs[3];
-+=09p->thread.tp_value =3D tls;
-+
-+=09ptrace_hw_copy_thread(p);
-+
-+=09return 0;
-+}
-+
-+static void tls_thread_switch(struct task_struct *next)
-+{
-+=09unsigned long tpidr, tpidrro;
-+
-+=09if (!test_thread_flag(TIF_32BIT)) {
-+=09=09asm("mrs %0, tpidr_el0" : "=3Dr" (tpidr));
-+=09=09current->thread.tp_value =3D tpidr;
-+=09}
-+
-+=09if (test_ti_thread_flag(task_thread_info(next), TIF_32BIT)) {
-+=09=09tpidr =3D 0;
-+=09=09tpidrro =3D next->thread.tp_value;
-+=09} else {
-+=09=09tpidr =3D next->thread.tp_value;
-+=09=09tpidrro =3D 0;
-+=09}
-+
-+=09asm(
-+=09"=09msr=09tpidr_el0, %0\n"
-+=09"=09msr=09tpidrro_el0, %1"
-+=09: : "r" (tpidr), "r" (tpidrro));
-+}
-+
-+/*
-+ * Thread switching.
-+ */
-+struct task_struct *__switch_to(struct task_struct *prev,
-+=09=09=09=09struct task_struct *next)
-+{
-+=09struct task_struct *last;
-+
-+=09fpsimd_thread_switch(next);
-+=09tls_thread_switch(next);
-+=09hw_breakpoint_thread_switch(next);
-+
-+=09/* the actual thread switch */
-+=09last =3D cpu_switch_to(prev, next);
-+
-+=09return last;
-+}
-+
-+/*
-+ * Fill in the task's elfregs structure for a core dump.
-+ */
-+int dump_task_regs(struct task_struct *t, elf_gregset_t *elfregs)
-+{
-+=09elf_core_copy_regs(elfregs, task_pt_regs(t));
-+=09return 1;
-+}
-+
-+/*
-+ * fill in the fpe structure for a core dump...
-+ */
-+int dump_fpu (struct pt_regs *regs, struct user_fp *fp)
-+{
-+=09return 0;
-+}
-+EXPORT_SYMBOL(dump_fpu);
-+
-+/*
-+ * Shuffle the argument into the correct register before calling the
-+ * thread function.  x1 is the thread argument, x2 is the pointer to
-+ * the thread function, and x3 points to the exit function.
-+ */
-+extern void kernel_thread_helper(void);
-+asm(=09".section .text\n"
-+"=09.align\n"
-+"=09.type=09kernel_thread_helper, #function\n"
-+"kernel_thread_helper:\n"
-+"=09mov=09x0, x1\n"
-+"=09mov=09x30, x3\n"
-+"=09br=09x2\n"
-+"=09.size=09kernel_thread_helper, . - kernel_thread_helper\n"
-+"=09.previous");
-+
-+#define kernel_thread_exit=09do_exit
-+
-+/*
-+ * Create a kernel thread.
-+ */
-+pid_t kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
-+{
-+=09struct pt_regs regs;
-+
-+=09memset(&regs, 0, sizeof(regs));
-+
-+=09regs.regs[1] =3D (unsigned long)arg;
-+=09regs.regs[2] =3D (unsigned long)fn;
-+=09regs.regs[3] =3D (unsigned long)kernel_thread_exit;
-+=09regs.pc =3D (unsigned long)kernel_thread_helper;
-+=09regs.pstate =3D PSR_MODE_EL1h;
-+
-+=09return do_fork(flags|CLONE_VM|CLONE_UNTRACED, 0, &regs, 0, NULL, NULL);
-+}
-+EXPORT_SYMBOL(kernel_thread);
-+
-+unsigned long get_wchan(struct task_struct *p)
-+{
-+=09struct stackframe frame;
-+=09int count =3D 0;
-+=09if (!p || p =3D=3D current || p->state =3D=3D TASK_RUNNING)
-+=09=09return 0;
-+
-+=09frame.fp =3D thread_saved_fp(p);
-+=09frame.sp =3D thread_saved_sp(p);
-+=09frame.pc =3D thread_saved_pc(p);
-+=09do {
-+=09=09int ret =3D unwind_frame(&frame);
-+=09=09if (ret < 0)
-+=09=09=09return 0;
-+=09=09if (!in_sched_functions(frame.pc))
-+=09=09=09return frame.pc;
-+=09} while (count ++ < 16);
-+=09return 0;
-+}
-+
-+unsigned long arch_align_stack(unsigned long sp)
-+{
-+=09if (!(current->personality & ADDR_NO_RANDOMIZE) && randomize_va_space)
-+=09=09sp -=3D get_random_int() & ~PAGE_MASK;
-+=09return sp & ~0xf;
-+}
-+
-+static unsigned long randomize_base(unsigned long base)
-+{
-+=09unsigned long range_end =3D base + (STACK_RND_MASK << PAGE_SHIFT) + 1;
-+=09return randomize_range(base, range_end, 0) ? : base;
-+}
-+
-+unsigned long arch_randomize_brk(struct mm_struct *mm)
-+{
-+=09return randomize_base(mm->brk);
-+}
-+
-+unsigned long randomize_et_dyn(unsigned long base)
-+{
-+=09return randomize_base(base);
-+}
-diff --git a/arch/arm64/mm/context.c b/arch/arm64/mm/context.c
++=09/* physical memory */
++EXPORT_SYMBOL(memstart_addr);
+diff --git a/arch/arm64/lib/Makefile b/arch/arm64/lib/Makefile
 new file mode 100644
-index 0000000..e06f47a
+index 0000000..ae71bae
 --- /dev/null
-+++ b/arch/arm64/mm/context.c
-@@ -0,0 +1,159 @@
++++ b/arch/arm64/lib/Makefile
+@@ -0,0 +1,5 @@
++lib-y=09=09:=3D bitops.o delay.o=09=09=09=09=09\
++=09=09   strncpy_from_user.o strnlen_user.o=09=09=09\
++=09=09   clear_user.o getuser.o putuser.o=09=09=09\
++=09=09   copy_from_user.o copy_to_user.o copy_in_user.o=09\
++=09=09   copy_page.o clear_page.o
+diff --git a/arch/arm64/lib/bitops.c b/arch/arm64/lib/bitops.c
+new file mode 100644
+index 0000000..aa4965e
+--- /dev/null
++++ b/arch/arm64/lib/bitops.c
+@@ -0,0 +1,25 @@
 +/*
-+ * Based on arch/arm/mm/context.c
++ * Copyright (C) 2012 ARM Limited
 + *
-+ * Copyright (C) 2002-2003 Deep Blue Solutions Ltd, all rights reserved.
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/kernel.h>
++#include <linux/spinlock.h>
++#include <linux/atomic.h>
++
++#ifdef CONFIG_SMP
++arch_spinlock_t __atomic_hash[ATOMIC_HASH_SIZE] __lock_aligned =3D {
++       [0 ... (ATOMIC_HASH_SIZE-1)]  =3D __ARCH_SPIN_LOCK_UNLOCKED
++};
++#endif
+diff --git a/arch/arm64/lib/clear_page.S b/arch/arm64/lib/clear_page.S
+new file mode 100644
+index 0000000..ef08e90
+--- /dev/null
++++ b/arch/arm64/lib/clear_page.S
+@@ -0,0 +1,39 @@
++/*
 + * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -777,146 +360,140 @@ index 0000000..e06f47a
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
++#include <linux/linkage.h>
++#include <linux/const.h>
++#include <asm/assembler.h>
++#include <asm/page.h>
++
++/*
++ * Clear page @dest
++ *
++ * Parameters:
++ *=09x0 - dest
++ */
++ENTRY(clear_page)
++=09mrs=09x1, dczid_el0
++=09and=09w1, w1, #0xf
++=09mov=09x2, #4
++=09lsl=09x1, x2, x1
++
++1:=09dc=09zva, x0
++=09add=09x0, x0, x1
++=09tst=09x0, #(PAGE_SIZE - 1)
++=09b.ne=091b
++=09ret
++ENDPROC(clear_page)
+diff --git a/arch/arm64/lib/copy_page.S b/arch/arm64/lib/copy_page.S
+new file mode 100644
+index 0000000..512b9a7
+--- /dev/null
++++ b/arch/arm64/lib/copy_page.S
+@@ -0,0 +1,46 @@
++/*
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/linkage.h>
++#include <linux/const.h>
++#include <asm/assembler.h>
++#include <asm/page.h>
++
++/*
++ * Copy a page from src to dest (both are page aligned)
++ *
++ * Parameters:
++ *=09x0 - dest
++ *=09x1 - src
++ */
++ENTRY(copy_page)
++=09/* Assume cache line size is 64 bytes. */
++=09prfm=09pldl1strm, [x1, #64]
++1:=09ldp=09x2, x3, [x1]
++=09ldp=09x4, x5, [x1, #16]
++=09ldp=09x6, x7, [x1, #32]
++=09ldp=09x8, x9, [x1, #48]
++=09add=09x1, x1, #64
++=09prfm=09pldl1strm, [x1, #64]
++=09stnp=09x2, x3, [x0]
++=09stnp=09x4, x5, [x0, #16]
++=09stnp=09x6, x7, [x0, #32]
++=09stnp=09x8, x9, [x0, #48]
++=09add=09x0, x0, #64
++=09tst=09x1, #(PAGE_SIZE - 1)
++=09b.ne=091b
++=09ret
++ENDPROC(copy_page)
+diff --git a/arch/arm64/lib/delay.c b/arch/arm64/lib/delay.c
+new file mode 100644
+index 0000000..dad4ec9
+--- /dev/null
++++ b/arch/arm64/lib/delay.c
+@@ -0,0 +1,55 @@
++/*
++ * Delay loops based on the OpenRISC implementation.
++ *
++ * Copyright (C) 2012 ARM Limited
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Will Deacon <will.deacon@arm.com>
++ */
++
++#include <linux/delay.h>
 +#include <linux/init.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/smp.h>
-+#include <linux/percpu.h>
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/timex.h>
 +
-+#include <asm/mmu_context.h>
-+#include <asm/tlbflush.h>
-+#include <asm/cachetype.h>
-+
-+#define asid_bits(reg) \
-+=09(((read_cpuid(ID_AA64MMFR0_EL1) & 0xf0) >> 2) + 8)
-+
-+#define ASID_FIRST_VERSION=09(1 << MAX_ASID_BITS)
-+
-+static DEFINE_SPINLOCK(cpu_asid_lock);
-+unsigned int cpu_last_asid =3D ASID_FIRST_VERSION;
-+
-+/*
-+ * We fork()ed a process, and we need a new context for the child to run i=
-n.
-+ */
-+void __init_new_context(struct task_struct *tsk, struct mm_struct *mm)
++void __delay(unsigned long cycles)
 +{
-+=09mm->context.id =3D 0;
-+=09spin_lock_init(&mm->context.id_lock);
-+}
++=09cycles_t start =3D get_cycles();
 +
-+static void flush_context(void)
++=09while ((get_cycles() - start) < cycles)
++=09=09cpu_relax();
++}
++EXPORT_SYMBOL(__delay);
++
++inline void __const_udelay(unsigned long xloops)
 +{
-+=09/* set the reserved TTBR0 before flushing the TLB */
-+=09cpu_set_reserved_ttbr0();
-+=09flush_tlb_all();
-+=09if (icache_is_aivivt())
-+=09=09__flush_icache_all();
++=09unsigned long loops;
++
++=09loops =3D xloops * loops_per_jiffy * HZ;
++=09__delay(loops >> 32);
 +}
++EXPORT_SYMBOL(__const_udelay);
 +
-+#ifdef CONFIG_SMP
-+
-+static void set_mm_context(struct mm_struct *mm, unsigned int asid)
++void __udelay(unsigned long usecs)
 +{
-+=09unsigned long flags;
-+
-+=09/*
-+=09 * Locking needed for multi-threaded applications where the same
-+=09 * mm->context.id could be set from different CPUs during the
-+=09 * broadcast. This function is also called via IPI so the
-+=09 * mm->context.id_lock has to be IRQ-safe.
-+=09 */
-+=09spin_lock_irqsave(&mm->context.id_lock, flags);
-+=09if (likely((mm->context.id ^ cpu_last_asid) >> MAX_ASID_BITS)) {
-+=09=09/*
-+=09=09 * Old version of ASID found. Set the new one and reset
-+=09=09 * mm_cpumask(mm).
-+=09=09 */
-+=09=09mm->context.id =3D asid;
-+=09=09cpumask_clear(mm_cpumask(mm));
-+=09}
-+=09spin_unlock_irqrestore(&mm->context.id_lock, flags);
-+
-+=09/*
-+=09 * Set the mm_cpumask(mm) bit for the current CPU.
-+=09 */
-+=09cpumask_set_cpu(smp_processor_id(), mm_cpumask(mm));
++=09__const_udelay(usecs * 0x10C7UL); /* 2**32 / 1000000 (rounded up) */
 +}
++EXPORT_SYMBOL(__udelay);
 +
-+/*
-+ * Reset the ASID on the current CPU. This function call is broadcast from=
- the
-+ * CPU handling the ASID rollover and holding cpu_asid_lock.
-+ */
-+static void reset_context(void *info)
++void __ndelay(unsigned long nsecs)
 +{
-+=09unsigned int asid;
-+=09unsigned int cpu =3D smp_processor_id();
-+=09struct mm_struct *mm =3D current->active_mm;
-+
-+=09smp_rmb();
-+=09asid =3D cpu_last_asid + cpu;
-+
-+=09flush_context();
-+=09set_mm_context(mm, asid);
-+
-+=09/* set the new ASID */
-+=09cpu_switch_mm(mm->pgd, mm);
++=09__const_udelay(nsecs * 0x5UL); /* 2**32 / 1000000000 (rounded up) */
 +}
-+
-+#else
-+
-+static inline void set_mm_context(struct mm_struct *mm, unsigned int asid)
-+{
-+=09mm->context.id =3D asid;
-+=09cpumask_copy(mm_cpumask(mm), cpumask_of(smp_processor_id()));
-+}
-+
-+#endif
-+
-+void __new_context(struct mm_struct *mm)
-+{
-+=09unsigned int asid;
-+=09unsigned int bits =3D asid_bits();
-+
-+=09spin_lock(&cpu_asid_lock);
-+#ifdef CONFIG_SMP
-+=09/*
-+=09 * Check the ASID again, in case the change was broadcast from another
-+=09 * CPU before we acquired the lock.
-+=09 */
-+=09if (!unlikely((mm->context.id ^ cpu_last_asid) >> MAX_ASID_BITS)) {
-+=09=09cpumask_set_cpu(smp_processor_id(), mm_cpumask(mm));
-+=09=09spin_unlock(&cpu_asid_lock);
-+=09=09return;
-+=09}
-+#endif
-+=09/*
-+=09 * At this point, it is guaranteed that the current mm (with an old
-+=09 * ASID) isn't active on any other CPU since the ASIDs are changed
-+=09 * simultaneously via IPI.
-+=09 */
-+=09asid =3D ++cpu_last_asid;
-+
-+=09/*
-+=09 * If we've used up all our ASIDs, we need to start a new version and
-+=09 * flush the TLB.
-+=09 */
-+=09if (unlikely((asid & ((1 << bits) - 1)) =3D=3D 0)) {
-+=09=09/* increment the ASID version */
-+=09=09cpu_last_asid +=3D (1 << MAX_ASID_BITS) - (1 << bits);
-+=09=09if (cpu_last_asid =3D=3D 0)
-+=09=09=09cpu_last_asid =3D ASID_FIRST_VERSION;
-+=09=09asid =3D cpu_last_asid + smp_processor_id();
-+=09=09flush_context();
-+#ifdef CONFIG_SMP
-+=09=09smp_wmb();
-+=09=09smp_call_function(reset_context, NULL, 1);
-+#endif
-+=09=09cpu_last_asid +=3D NR_CPUS - 1;
-+=09}
-+
-+=09set_mm_context(mm, asid);
-+=09spin_unlock(&cpu_asid_lock);
-+}
++EXPORT_SYMBOL(__ndelay);
 
