@@ -1,55 +1,46 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v2 07/31] arm64: Process management
-Date: Tue, 14 Aug 2012 18:52:08 +0100
-Message-ID: <1344966752-16102-8-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v2 19/31] arm64: Signal handling support
+Date: Tue, 14 Aug 2012 18:52:20 +0100
+Message-ID: <1344966752-16102-20-git-send-email-catalin.marinas@arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: linux-arm-kernel-bounces@lists.infradead.org
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-Cc: Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-The patch adds support for thread creation and context switching. The
-context switching CPU specific code is introduced with the CPU support
-patch (part of the arch/arm64/mm/proc.S file). AArch64 supports
-ASID-tagged TLBs and the ASID can be either 8 or 16-bit wide (detectable
-via the ID_AA64AFR0_EL1 register).
+This patch adds support for signal handling. The sigreturn is done via
+VDSO, introduced by a previous patch. The SA_RESTORER is still defined
+as it is required for 32-bit (compat) support but it is not to be used
+for 64-bit applications.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/include/asm/mmu_context.h |  152 +++++++++++++
- arch/arm64/include/asm/thread_info.h |  124 ++++++++++
- arch/arm64/kernel/process.c          |  416 ++++++++++++++++++++++++++++++++++
- arch/arm64/mm/context.c              |  159 +++++++++++++
- 4 files changed, 851 insertions(+), 0 deletions(-)
- create mode 100644 arch/arm64/include/asm/mmu_context.h
- create mode 100644 arch/arm64/include/asm/thread_info.h
- create mode 100644 arch/arm64/kernel/process.c
- create mode 100644 arch/arm64/mm/context.c
+ arch/arm64/include/asm/sigcontext.h |   69 ++++++
+ arch/arm64/include/asm/siginfo.h    |   23 ++
+ arch/arm64/include/asm/signal.h     |   24 ++
+ arch/arm64/include/asm/ucontext.h   |   30 +++
+ arch/arm64/kernel/signal.c          |  436 +++++++++++++++++++++++++++++++=
+++++
+ 5 files changed, 582 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/sigcontext.h
+ create mode 100644 arch/arm64/include/asm/siginfo.h
+ create mode 100644 arch/arm64/include/asm/signal.h
+ create mode 100644 arch/arm64/include/asm/ucontext.h
+ create mode 100644 arch/arm64/kernel/signal.c
 
-diff --git a/arch/arm64/include/asm/mmu_context.h b/arch/arm64/include/asm/mmu_context.h
+diff --git a/arch/arm64/include/asm/sigcontext.h b/arch/arm64/include/asm/s=
+igcontext.h
 new file mode 100644
-index 0000000..f68465d
+index 0000000..573cec7
 --- /dev/null
-+++ b/arch/arm64/include/asm/mmu_context.h
-@@ -0,0 +1,152 @@
++++ b/arch/arm64/include/asm/sigcontext.h
+@@ -0,0 +1,69 @@
 +/*
-+ * Based on arch/arm/include/asm/mmu_context.h
-+ *
-+ * Copyright (C) 1996 Russell King.
 + * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -64,281 +55,171 @@ index 0000000..f68465d
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_MMU_CONTEXT_H
-+#define __ASM_MMU_CONTEXT_H
++#ifndef __ASM_SIGCONTEXT_H
++#define __ASM_SIGCONTEXT_H
 +
-+#include <linux/compiler.h>
-+#include <linux/sched.h>
-+
-+#include <asm/cacheflush.h>
-+#include <asm/proc-fns.h>
-+#include <asm-generic/mm_hooks.h>
-+#include <asm/cputype.h>
-+#include <asm/pgtable.h>
-+
-+#define MAX_ASID_BITS	16
-+
-+extern unsigned int cpu_last_asid;
-+
-+void __init_new_context(struct task_struct *tsk, struct mm_struct *mm);
-+void __new_context(struct mm_struct *mm);
++#include <linux/types.h>
 +
 +/*
-+ * Set TTBR0 to empty_zero_page. No translations will be possible via TTBR0.
++ * Signal context structure - contains all info to do with the state
++ * before the signal handler was invoked.
 + */
-+static inline void cpu_set_reserved_ttbr0(void)
-+{
-+	unsigned long ttbr = page_to_phys(empty_zero_page);
-+
-+	asm(
-+	"	msr	ttbr0_el1, %0			// set TTBR0\n"
-+	"	isb"
-+	:
-+	: "r" (ttbr));
-+}
-+
-+static inline void switch_new_context(struct mm_struct *mm)
-+{
-+	unsigned long flags;
-+
-+	__new_context(mm);
-+
-+	local_irq_save(flags);
-+	cpu_switch_mm(mm->pgd, mm);
-+	local_irq_restore(flags);
-+}
-+
-+static inline void check_and_switch_context(struct mm_struct *mm,
-+					    struct task_struct *tsk)
-+{
-+	/*
-+	 * Required during context switch to avoid speculative page table
-+	 * walking with the wrong TTBR.
-+	 */
-+	cpu_set_reserved_ttbr0();
-+
-+	if (!((mm->context.id ^ cpu_last_asid) >> MAX_ASID_BITS))
-+		/*
-+		 * The ASID is from the current generation, just switch to the
-+		 * new pgd. This condition is only true for calls from
-+		 * context_switch() and interrupts are already disabled.
-+		 */
-+		cpu_switch_mm(mm->pgd, mm);
-+	else if (irqs_disabled())
-+		/*
-+		 * Defer the new ASID allocation until after the context
-+		 * switch critical region since __new_context() cannot be
-+		 * called with interrupts disabled.
-+		 */
-+		set_ti_thread_flag(task_thread_info(tsk), TIF_SWITCH_MM);
-+	else
-+		/*
-+		 * That is a direct call to switch_mm() or activate_mm() with
-+		 * interrupts enabled and a new context.
-+		 */
-+		switch_new_context(mm);
-+}
-+
-+#define init_new_context(tsk,mm)	(__init_new_context(tsk,mm),0)
-+#define destroy_context(mm)		do { } while(0)
-+
-+#define finish_arch_post_lock_switch \
-+	finish_arch_post_lock_switch
-+static inline void finish_arch_post_lock_switch(void)
-+{
-+	if (test_and_clear_thread_flag(TIF_SWITCH_MM)) {
-+		struct mm_struct *mm = current->mm;
-+		unsigned long flags;
-+
-+		__new_context(mm);
-+
-+		local_irq_save(flags);
-+		cpu_switch_mm(mm->pgd, mm);
-+		local_irq_restore(flags);
-+	}
-+}
-+
-+/*
-+ * This is called when "tsk" is about to enter lazy TLB mode.
-+ *
-+ * mm:  describes the currently active mm context
-+ * tsk: task which is entering lazy tlb
-+ * cpu: cpu number which is entering lazy tlb
-+ *
-+ * tsk->mm will be NULL
-+ */
-+static inline void
-+enter_lazy_tlb(struct mm_struct *mm, struct task_struct *tsk)
-+{
-+}
-+
-+/*
-+ * This is the actual mm switch as far as the scheduler
-+ * is concerned.  No registers are touched.  We avoid
-+ * calling the CPU specific function when the mm hasn't
-+ * actually changed.
-+ */
-+static inline void
-+switch_mm(struct mm_struct *prev, struct mm_struct *next,
-+	  struct task_struct *tsk)
-+{
-+	unsigned int cpu = smp_processor_id();
-+
-+#ifdef CONFIG_SMP
-+	/* check for possible thread migration */
-+	if (!cpumask_empty(mm_cpumask(next)) &&
-+	    !cpumask_test_cpu(cpu, mm_cpumask(next)))
-+		__flush_icache_all();
-+#endif
-+	if (!cpumask_test_and_set_cpu(cpu, mm_cpumask(next)) || prev != next)
-+		check_and_switch_context(next, tsk);
-+}
-+
-+#define deactivate_mm(tsk,mm)	do { } while (0)
-+#define activate_mm(prev,next)	switch_mm(prev, next, NULL)
-+
-+#endif
-diff --git a/arch/arm64/include/asm/thread_info.h b/arch/arm64/include/asm/thread_info.h
-new file mode 100644
-index 0000000..4f909a3
---- /dev/null
-+++ b/arch/arm64/include/asm/thread_info.h
-@@ -0,0 +1,124 @@
-+/*
-+ * Based on arch/arm/include/asm/thread_info.h
-+ *
-+ * Copyright (C) 2002 Russell King.
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+#ifndef __ASM_THREAD_INFO_H
-+#define __ASM_THREAD_INFO_H
-+
-+#ifdef __KERNEL__
-+
-+#include <linux/compiler.h>
-+
-+#define THREAD_SIZE_ORDER	1
-+#define THREAD_SIZE		8192
-+#define THREAD_START_SP		(THREAD_SIZE - 16)
-+
-+#ifndef __ASSEMBLY__
-+
-+struct task_struct;
-+struct exec_domain;
-+
-+#include <asm/types.h>
-+
-+typedef unsigned long mm_segment_t;
-+
-+/*
-+ * low level task data that entry.S needs immediate access to.
-+ * __switch_to() assumes cpu_context follows immediately after cpu_domain.
-+ */
-+struct thread_info {
-+	unsigned long		flags;		/* low level flags */
-+	mm_segment_t		addr_limit;	/* address limit */
-+	struct task_struct	*task;		/* main task structure */
-+	struct exec_domain	*exec_domain;	/* execution domain */
-+	struct restart_block	restart_block;
-+	int			preempt_count;	/* 0 => preemptable, <0 => bug */
-+	int			cpu;		/* cpu */
++struct sigcontext {
++=09__u64 fault_address;
++=09/* AArch64 registers */
++=09__u64 regs[31];
++=09__u64 sp;
++=09__u64 pc;
++=09__u64 pstate;
++=09/* 4K reserved for FP/SIMD state and future expansion */
++=09__u8 __reserved[4096] __attribute__((__aligned__(16)));
 +};
 +
-+#define INIT_THREAD_INFO(tsk)						\
-+{									\
-+	.task		= &tsk,						\
-+	.exec_domain	= &default_exec_domain,				\
-+	.flags		= 0,						\
-+	.preempt_count	= INIT_PREEMPT_COUNT,				\
-+	.addr_limit	= KERNEL_DS,					\
-+	.restart_block	= {						\
-+		.fn	= do_no_restart_syscall,			\
-+	},								\
-+}
-+
-+#define init_thread_info	(init_thread_union.thread_info)
-+#define init_stack		(init_thread_union.stack)
-+
 +/*
-+ * how to get the thread information struct from C
++ * Header to be used at the beginning of structures extending the user
++ * context. Such structures must be placed after the rt_sigframe on the st=
+ack
++ * and be 16-byte aligned. The last structure must be a dummy one with the
++ * magic and size set to 0.
 + */
-+static inline struct thread_info *current_thread_info(void) __attribute_const__;
++struct _aarch64_ctx {
++=09__u32 magic;
++=09__u32 size;
++};
 +
-+static inline struct thread_info *current_thread_info(void)
-+{
-+	register unsigned long sp asm ("sp");
-+	return (struct thread_info *)(sp & ~(THREAD_SIZE - 1));
-+}
++#define FPSIMD_MAGIC=090x46508001
 +
-+#define thread_saved_pc(tsk)	\
-+	((unsigned long)(tsk->thread.cpu_context.pc))
-+#define thread_saved_sp(tsk)	\
-+	((unsigned long)(tsk->thread.cpu_context.sp))
-+#define thread_saved_fp(tsk)	\
-+	((unsigned long)(tsk->thread.cpu_context.fp))
++struct fpsimd_context {
++=09struct _aarch64_ctx head;
++=09__u32 fpsr;
++=09__u32 fpcr;
++=09__uint128_t vregs[32];
++};
 +
++#ifdef __KERNEL__
++/*
++ * Auxiliary context saved in the sigcontext.__reserved array. Not exporte=
+d to
++ * user space as it will change with the addition of new context. User spa=
+ce
++ * should check the magic/size information.
++ */
++struct aux_context {
++=09struct fpsimd_context fpsimd;
++=09/* additional context to be added before "end" */
++=09struct _aarch64_ctx end;
++};
 +#endif
 +
-+/*
-+ * We use bit 30 of the preempt_count to indicate that kernel
-+ * preemption is occurring.  See <asm/hardirq.h>.
-+ */
-+#define PREEMPT_ACTIVE	0x40000000
-+
-+/*
-+ * thread information flags:
-+ *  TIF_SYSCALL_TRACE	- syscall trace active
-+ *  TIF_SIGPENDING	- signal pending
-+ *  TIF_NEED_RESCHED	- rescheduling necessary
-+ *  TIF_NOTIFY_RESUME	- callback before returning to user
-+ *  TIF_USEDFPU		- FPU was used by this task this quantum (SMP)
-+ *  TIF_POLLING_NRFLAG	- true if poll_idle() is polling TIF_NEED_RESCHED
-+ */
-+#define TIF_SIGPENDING		0
-+#define TIF_NEED_RESCHED	1
-+#define TIF_NOTIFY_RESUME	2	/* callback before returning to user */
-+#define TIF_SYSCALL_TRACE	8
-+#define TIF_POLLING_NRFLAG	16
-+#define TIF_MEMDIE		18	/* is terminating due to OOM killer */
-+#define TIF_FREEZE		19
-+#define TIF_RESTORE_SIGMASK	20
-+#define TIF_SINGLESTEP		21
-+#define TIF_32BIT		22	/* 32bit process */
-+#define TIF_SWITCH_MM		23	/* deferred switch_mm */
-+
-+#define _TIF_SIGPENDING		(1 << TIF_SIGPENDING)
-+#define _TIF_NEED_RESCHED	(1 << TIF_NEED_RESCHED)
-+#define _TIF_NOTIFY_RESUME	(1 << TIF_NOTIFY_RESUME)
-+#define _TIF_32BIT		(1 << TIF_32BIT)
-+
-+#define _TIF_WORK_MASK		(_TIF_NEED_RESCHED | _TIF_SIGPENDING | \
-+				 _TIF_NOTIFY_RESUME)
-+
-+#endif /* __KERNEL__ */
-+#endif /* __ASM_THREAD_INFO_H */
-diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
++#endif
+diff --git a/arch/arm64/include/asm/siginfo.h b/arch/arm64/include/asm/sigi=
+nfo.h
 new file mode 100644
-index 0000000..c4a4e1c
+index 0000000..5a74a08
 --- /dev/null
-+++ b/arch/arm64/kernel/process.c
-@@ -0,0 +1,416 @@
++++ b/arch/arm64/include/asm/siginfo.h
+@@ -0,0 +1,23 @@
 +/*
-+ * Based on arch/arm/kernel/process.c
++ * Copyright (C) 2012 ARM Ltd.
 + *
-+ * Original Copyright (C) 1995  Linus Torvalds
-+ * Copyright (C) 1996-2000 Russell King - Converted to ARM.
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_SIGINFO_H
++#define __ASM_SIGINFO_H
++
++#define __ARCH_SI_PREAMBLE_SIZE=09(4 * sizeof(int))
++
++#include <asm-generic/siginfo.h>
++
++#endif
+diff --git a/arch/arm64/include/asm/signal.h b/arch/arm64/include/asm/signa=
+l.h
+new file mode 100644
+index 0000000..8d1e723
+--- /dev/null
++++ b/arch/arm64/include/asm/signal.h
+@@ -0,0 +1,24 @@
++/*
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_SIGNAL_H
++#define __ASM_SIGNAL_H
++
++/* Required for AArch32 compatibility. */
++#define SA_RESTORER=090x04000000
++
++#include <asm-generic/signal.h>
++
++#endif
+diff --git a/arch/arm64/include/asm/ucontext.h b/arch/arm64/include/asm/uco=
+ntext.h
+new file mode 100644
+index 0000000..bde9607
+--- /dev/null
++++ b/arch/arm64/include/asm/ucontext.h
+@@ -0,0 +1,30 @@
++/*
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_UCONTEXT_H
++#define __ASM_UCONTEXT_H
++
++struct ucontext {
++=09unsigned long=09  uc_flags;
++=09struct ucontext=09 *uc_link;
++=09stack_t=09=09  uc_stack;
++=09sigset_t=09  uc_sigmask;
++=09/* glibc uses a 1024-bit sigset_t */
++=09__u8=09=09  __unused[(1024 - sizeof(sigset_t)) / 8];
++=09/* last for future expansion */
++=09struct sigcontext uc_mcontext;
++};
++
++#endif /* __ASM_UCONTEXT_H */
+diff --git a/arch/arm64/kernel/signal.c b/arch/arm64/kernel/signal.c
+new file mode 100644
+index 0000000..a8f29d2
+--- /dev/null
++++ b/arch/arm64/kernel/signal.c
+@@ -0,0 +1,436 @@
++/*
++ * Based on arch/arm/kernel/signal.c
++ *
++ * Copyright (C) 1995-2009 Russell King
 + * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -354,564 +235,431 @@ index 0000000..c4a4e1c
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <stdarg.h>
-+
-+#include <linux/export.h>
-+#include <linux/sched.h>
-+#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/stddef.h>
-+#include <linux/unistd.h>
-+#include <linux/user.h>
-+#include <linux/delay.h>
-+#include <linux/reboot.h>
-+#include <linux/interrupt.h>
-+#include <linux/kallsyms.h>
-+#include <linux/init.h>
-+#include <linux/cpu.h>
-+#include <linux/elfcore.h>
-+#include <linux/pm.h>
-+#include <linux/tick.h>
-+#include <linux/utsname.h>
-+#include <linux/uaccess.h>
-+#include <linux/random.h>
-+#include <linux/hw_breakpoint.h>
++#include <linux/errno.h>
++#include <linux/signal.h>
 +#include <linux/personality.h>
-+#include <linux/notifier.h>
++#include <linux/freezer.h>
++#include <linux/uaccess.h>
++#include <linux/tracehook.h>
++#include <linux/ratelimit.h>
 +
++#include <asm/debug-monitors.h>
++#include <asm/elf.h>
 +#include <asm/cacheflush.h>
-+#include <asm/processor.h>
-+#include <asm/stacktrace.h>
++#include <asm/ucontext.h>
++#include <asm/unistd.h>
 +#include <asm/fpsimd.h>
-+
-+extern void setup_mm_for_reboot(void);
-+
-+static void setup_restart(void)
-+{
-+	/*
-+	 * Tell the mm system that we are going to reboot -
-+	 * we may need it to insert some 1:1 mappings so that
-+	 * soft boot works.
-+	 */
-+	setup_mm_for_reboot();
-+
-+	/* Clean and invalidate caches */
-+	flush_cache_all();
-+
-+	/* Turn off caching */
-+	cpu_proc_fin();
-+
-+	/* Push out any further dirty data, and ensure cache is empty */
-+	flush_cache_all();
-+}
-+
-+void soft_restart(unsigned long addr)
-+{
-+	setup_restart();
-+	cpu_reset(addr);
-+}
++#include <asm/signal32.h>
++#include <asm/vdso.h>
 +
 +/*
-+ * Function pointers to optional machine specific functions
++ * Do a signal return; undo the signal stack. These are aligned to 128-bit=
+.
 + */
-+void (*pm_power_off)(void);
-+EXPORT_SYMBOL(pm_power_off);
++struct rt_sigframe {
++=09struct siginfo info;
++=09struct ucontext uc;
++};
 +
-+void (*pm_restart)(const char *cmd);
-+EXPORT_SYMBOL_GPL(pm_restart);
++static int preserve_fpsimd_context(struct fpsimd_context __user *ctx)
++{
++=09struct fpsimd_state *fpsimd =3D &current->thread.fpsimd_state;
++=09int err;
 +
++=09/* dump the hardware registers to the fpsimd_state structure */
++=09fpsimd_save_state(fpsimd);
++
++=09/* copy the FP and status/control registers */
++=09err =3D __copy_to_user(ctx->vregs, fpsimd->vregs, sizeof(fpsimd->vregs)=
+);
++=09__put_user_error(fpsimd->fpsr, &ctx->fpsr, err);
++=09__put_user_error(fpsimd->fpcr, &ctx->fpcr, err);
++
++=09/* copy the magic/size information */
++=09__put_user_error(FPSIMD_MAGIC, &ctx->head.magic, err);
++=09__put_user_error(sizeof(struct fpsimd_context), &ctx->head.size, err);
++
++=09return err ? -EFAULT : 0;
++}
++
++static int restore_fpsimd_context(struct fpsimd_context __user *ctx)
++{
++=09struct fpsimd_state fpsimd;
++=09__u32 magic, size;
++=09int err =3D 0;
++
++=09/* check the magic/size information */
++=09__get_user_error(magic, &ctx->head.magic, err);
++=09__get_user_error(size, &ctx->head.size, err);
++=09if (err)
++=09=09return -EFAULT;
++=09if (magic !=3D FPSIMD_MAGIC || size !=3D sizeof(struct fpsimd_context))
++=09=09return -EINVAL;
++
++=09/* copy the FP and status/control registers */
++=09err =3D __copy_from_user(fpsimd.vregs, ctx->vregs,
++=09=09=09       sizeof(fpsimd.vregs));
++=09__get_user_error(fpsimd.fpsr, &ctx->fpsr, err);
++=09__get_user_error(fpsimd.fpcr, &ctx->fpcr, err);
++
++=09/* load the hardware registers from the fpsimd_state structure */
++=09if (!err) {
++=09=09preempt_disable();
++=09=09fpsimd_load_state(&fpsimd);
++=09=09preempt_enable();
++=09}
++
++=09return err ? -EFAULT : 0;
++}
++
++static int restore_sigframe(struct pt_regs *regs,
++=09=09=09    struct rt_sigframe __user *sf)
++{
++=09sigset_t set;
++=09int i, err;
++=09struct aux_context __user *aux =3D
++=09=09(struct aux_context __user *)sf->uc.uc_mcontext.__reserved;
++
++=09err =3D __copy_from_user(&set, &sf->uc.uc_sigmask, sizeof(set));
++=09if (err =3D=3D 0)
++=09=09set_current_blocked(&set);
++
++=09for (i =3D 0; i < 31; i++)
++=09=09__get_user_error(regs->regs[i], &sf->uc.uc_mcontext.regs[i],
++=09=09=09=09 err);
++=09__get_user_error(regs->sp, &sf->uc.uc_mcontext.sp, err);
++=09__get_user_error(regs->pc, &sf->uc.uc_mcontext.pc, err);
++=09__get_user_error(regs->pstate, &sf->uc.uc_mcontext.pstate, err);
++
++=09/*
++=09 * Avoid sys_rt_sigreturn() restarting.
++=09 */
++=09regs->syscallno =3D ~0UL;
++
++=09err |=3D !valid_user_regs(&regs->user_regs);
++
++=09if (err =3D=3D 0)
++=09=09err |=3D restore_fpsimd_context(&aux->fpsimd);
++
++=09return err;
++}
++
++asmlinkage long sys_rt_sigreturn(struct pt_regs *regs)
++{
++=09struct rt_sigframe __user *frame;
++
++=09/* Always make any pending restarted system calls return -EINTR */
++=09current_thread_info()->restart_block.fn =3D do_no_restart_syscall;
++
++=09/*
++=09 * Since we stacked the signal on a 128-bit boundary, then 'sp' should
++=09 * be word aligned here.
++=09 */
++=09if (regs->sp & 15)
++=09=09goto badframe;
++
++=09frame =3D (struct rt_sigframe __user *)regs->sp;
++
++=09if (!access_ok(VERIFY_READ, frame, sizeof (*frame)))
++=09=09goto badframe;
++
++=09if (restore_sigframe(regs, frame))
++=09=09goto badframe;
++
++=09if (do_sigaltstack(&frame->uc.uc_stack,
++=09=09=09   NULL, regs->sp) =3D=3D -EFAULT)
++=09=09goto badframe;
++
++=09return regs->regs[0];
++
++badframe:
++=09if (show_unhandled_signals)
++=09=09printk_ratelimited(KERN_INFO "%s[%d]: bad frame in %s: pc=3D%08llx s=
+p=3D%08llx\n",
++=09=09=09=09   current->comm, task_pid_nr(current), __func__,
++=09=09=09=09   regs->pc, regs->sp);
++=09force_sig(SIGSEGV, current);
++=09return 0;
++}
++
++asmlinkage long sys_sigaltstack(const stack_t __user *uss, stack_t __user =
+*uoss,
++=09=09=09=09unsigned long sp)
++{
++=09return do_sigaltstack(uss, uoss, sp);
++}
++
++static int setup_sigframe(struct rt_sigframe __user *sf,
++=09=09=09  struct pt_regs *regs, sigset_t *set)
++{
++=09int i, err =3D 0;
++=09struct aux_context __user *aux =3D
++=09=09(struct aux_context __user *)sf->uc.uc_mcontext.__reserved;
++
++=09for (i =3D 0; i < 31; i++)
++=09=09__put_user_error(regs->regs[i], &sf->uc.uc_mcontext.regs[i],
++=09=09=09=09 err);
++=09__put_user_error(regs->sp, &sf->uc.uc_mcontext.sp, err);
++=09__put_user_error(regs->pc, &sf->uc.uc_mcontext.pc, err);
++=09__put_user_error(regs->pstate, &sf->uc.uc_mcontext.pstate, err);
++
++=09__put_user_error(current->thread.fault_address, &sf->uc.uc_mcontext.fau=
+lt_address, err);
++
++=09err |=3D __copy_to_user(&sf->uc.uc_sigmask, set, sizeof(*set));
++
++=09if (err =3D=3D 0)
++=09=09err |=3D preserve_fpsimd_context(&aux->fpsimd);
++
++=09/* set the "end" magic */
++=09__put_user_error(0, &aux->end.magic, err);
++=09__put_user_error(0, &aux->end.size, err);
++
++=09return err;
++}
++
++static void __user *get_sigframe(struct k_sigaction *ka, struct pt_regs *r=
+egs,
++=09=09=09=09 int framesize)
++{
++=09unsigned long sp, sp_top;
++=09void __user *frame;
++
++=09sp =3D sp_top =3D regs->sp;
++
++=09/*
++=09 * This is the X/Open sanctioned signal stack switching.
++=09 */
++=09if ((ka->sa.sa_flags & SA_ONSTACK) && !sas_ss_flags(sp))
++=09=09sp =3D sp_top =3D current->sas_ss_sp + current->sas_ss_size;
++
++=09/* room for stack frame (FP, LR) */
++=09sp -=3D 16;
++
++=09sp =3D (sp - framesize) & ~15;
++=09frame =3D (void __user *)sp;
++
++=09/*
++=09 * Check that we can actually write to the signal frame.
++=09 */
++=09if (!access_ok(VERIFY_WRITE, frame, sp_top - sp))
++=09=09frame =3D NULL;
++
++=09return frame;
++}
++
++static int setup_return(struct pt_regs *regs, struct k_sigaction *ka,
++=09=09=09void __user *frame, int usig)
++{
++=09int err =3D 0;
++=09__sigrestore_t sigtramp;
++=09unsigned long __user *sp =3D (unsigned long __user *)regs->sp;
++
++=09/* set up the stack frame */
++=09__put_user_error(regs->regs[29], sp - 2, err);
++=09__put_user_error(regs->regs[30], sp - 1, err);
++
++=09regs->regs[0] =3D usig;
++=09regs->regs[29] =3D regs->sp - 16;
++=09regs->sp =3D (unsigned long)frame;
++=09regs->pc =3D (unsigned long)ka->sa.sa_handler;
++
++=09if (ka->sa.sa_flags & SA_RESTORER)
++=09=09sigtramp =3D ka->sa.sa_restorer;
++=09else
++=09=09sigtramp =3D VDSO_SYMBOL(current->mm->context.vdso, sigtramp);
++
++=09regs->regs[30] =3D (unsigned long)sigtramp;
++
++=09return err;
++}
++
++static int setup_rt_frame(int usig, struct k_sigaction *ka, siginfo_t *inf=
+o,
++=09=09=09  sigset_t *set, struct pt_regs *regs)
++{
++=09struct rt_sigframe __user *frame;
++=09stack_t stack;
++=09int err =3D 0;
++
++=09frame =3D get_sigframe(ka, regs, sizeof(*frame));
++=09if (!frame)
++=09=09return 1;
++
++=09__put_user_error(0, &frame->uc.uc_flags, err);
++=09__put_user_error(NULL, &frame->uc.uc_link, err);
++
++=09memset(&stack, 0, sizeof(stack));
++=09stack.ss_sp =3D (void __user *)current->sas_ss_sp;
++=09stack.ss_flags =3D sas_ss_flags(regs->sp);
++=09stack.ss_size =3D current->sas_ss_size;
++=09err |=3D __copy_to_user(&frame->uc.uc_stack, &stack, sizeof(stack));
++
++=09err |=3D setup_sigframe(frame, regs, set);
++=09if (err =3D=3D 0)
++=09=09err =3D setup_return(regs, ka, frame, usig);
++
++=09if (err =3D=3D 0 && ka->sa.sa_flags & SA_SIGINFO) {
++=09=09err |=3D copy_siginfo_to_user(&frame->info, info);
++=09=09regs->regs[1] =3D (unsigned long)&frame->info;
++=09=09regs->regs[2] =3D (unsigned long)&frame->uc;
++=09}
++
++=09return err;
++}
++
++static void setup_restart_syscall(struct pt_regs *regs)
++{
++=09if (test_thread_flag(TIF_32BIT))
++=09=09compat_setup_restart_syscall(regs);
++=09else
++=09=09regs->regs[8] =3D __NR_restart_syscall;
++}
 +
 +/*
-+ * This is our default idle handler.
++ * OK, we're invoking a handler
 + */
-+static void default_idle(void)
++static void handle_signal(unsigned long sig, struct k_sigaction *ka,
++=09=09=09  siginfo_t *info, struct pt_regs *regs)
 +{
-+	/*
-+	 * This should do all the clock switching and wait for interrupt
-+	 * tricks
-+	 */
-+	cpu_do_idle();
-+	local_irq_enable();
-+}
++=09struct thread_info *thread =3D current_thread_info();
++=09struct task_struct *tsk =3D current;
++=09sigset_t *oldset =3D sigmask_to_save();
++=09int usig =3D sig;
++=09int ret;
 +
-+void (*pm_idle)(void) = default_idle;
-+EXPORT_SYMBOL(pm_idle);
++=09/*
++=09 * translate the signal
++=09 */
++=09if (usig < 32 && thread->exec_domain && thread->exec_domain->signal_inv=
+map)
++=09=09usig =3D thread->exec_domain->signal_invmap[usig];
 +
-+/*
-+ * The idle thread, has rather strange semantics for calling pm_idle,
-+ * but this is what x86 does and we need to do the same, so that
-+ * things like cpuidle get called in the same way.  The only difference
-+ * is that we always respect 'hlt_counter' to prevent low power idle.
-+ */
-+void cpu_idle(void)
-+{
-+	local_fiq_enable();
++=09/*
++=09 * Set up the stack frame
++=09 */
++=09if (test_thread_flag(TIF_32BIT)) {
++=09=09if (ka->sa.sa_flags & SA_SIGINFO)
++=09=09=09ret =3D compat_setup_rt_frame(usig, ka, info, oldset,
++=09=09=09=09=09=09    regs);
++=09=09else
++=09=09=09ret =3D compat_setup_frame(usig, ka, oldset, regs);
++=09} else {
++=09=09ret =3D setup_rt_frame(usig, ka, info, oldset, regs);
++=09}
 +
-+	/* endless idle loop with no priority at all */
-+	while (1) {
-+		tick_nohz_idle_enter();
-+		rcu_idle_enter();
-+		while (!need_resched()) {
-+			/*
-+			 * We need to disable interrupts here to ensure
-+			 * we don't miss a wakeup call.
-+			 */
-+			local_irq_disable();
-+			if (!need_resched()) {
-+				stop_critical_timings();
-+				pm_idle();
-+				start_critical_timings();
-+				/*
-+				 * pm_idle functions should always return
-+				 * with IRQs enabled.
-+				 */
-+				WARN_ON(irqs_disabled());
-+			} else {
-+				local_irq_enable();
-+			}
-+		}
-+		rcu_idle_exit();
-+		tick_nohz_idle_exit();
-+		preempt_enable_no_resched();
-+		schedule();
-+		preempt_disable();
-+	}
-+}
++=09/*
++=09 * Check that the resulting registers are actually sane.
++=09 */
++=09ret |=3D !valid_user_regs(&regs->user_regs);
 +
-+void machine_shutdown(void)
-+{
-+#ifdef CONFIG_SMP
-+	smp_send_stop();
-+#endif
-+}
++=09if (ret !=3D 0) {
++=09=09force_sigsegv(sig, tsk);
++=09=09return;
++=09}
 +
-+void machine_halt(void)
-+{
-+	machine_shutdown();
-+	while (1);
-+}
++=09/*
++=09 * Fast forward the stepping logic so we step into the signal
++=09 * handler.
++=09 */
++=09user_fastforward_single_step(tsk);
 +
-+void machine_power_off(void)
-+{
-+	machine_shutdown();
-+	if (pm_power_off)
-+		pm_power_off();
-+}
-+
-+void machine_restart(char *cmd)
-+{
-+	machine_shutdown();
-+
-+	/* Disable interrupts first */
-+	local_irq_disable();
-+	local_fiq_disable();
-+
-+	/* Now call the architecture specific reboot code. */
-+	if (pm_restart)
-+		pm_restart(cmd);
-+
-+	/*
-+	 * Whoops - the architecture was unable to reboot.
-+	 * Tell the user!
-+	 */
-+	mdelay(1000);
-+	printk("Reboot failed -- System halted\n");
-+	while (1);
-+}
-+
-+void __show_regs(struct pt_regs *regs)
-+{
-+	int i;
-+
-+	printk("CPU: %d    %s  (%s %.*s)\n",
-+		raw_smp_processor_id(), print_tainted(),
-+		init_utsname()->release,
-+		(int)strcspn(init_utsname()->version, " "),
-+		init_utsname()->version);
-+	print_symbol("PC is at %s\n", instruction_pointer(regs));
-+	print_symbol("LR is at %s\n", regs->regs[30]);
-+	printk("pc : [<%016llx>] lr : [<%016llx>] pstate: %08llx\n",
-+	       regs->pc, regs->regs[30], regs->pstate);
-+	printk("sp : %016llx\n", regs->sp);
-+	for (i = 29; i >= 0; i--) {
-+		printk("x%-2d: %016llx ", i, regs->regs[i]);
-+		if (i % 2 == 0)
-+			printk("\n");
-+	}
-+	printk("\n");
-+}
-+
-+void show_regs(struct pt_regs * regs)
-+{
-+	printk("\n");
-+	printk("Pid: %d, comm: %20s\n", task_pid_nr(current), current->comm);
-+	__show_regs(regs);
++=09signal_delivered(sig, info, ka, regs, 0);
 +}
 +
 +/*
-+ * Free current thread data structures etc..
-+ */
-+void exit_thread(void)
-+{
-+}
-+
-+void flush_thread(void)
-+{
-+	fpsimd_flush_thread();
-+	flush_ptrace_hw_breakpoint(current);
-+}
-+
-+void release_thread(struct task_struct *dead_task)
-+{
-+}
-+
-+int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
-+{
-+	fpsimd_save_state(&current->thread.fpsimd_state);
-+	*dst = *src;
-+	return 0;
-+}
-+
-+asmlinkage void ret_from_fork(void) asm("ret_from_fork");
-+
-+int copy_thread(unsigned long clone_flags, unsigned long stack_start,
-+		unsigned long stk_sz, struct task_struct *p,
-+		struct pt_regs *regs)
-+{
-+	struct pt_regs *childregs = task_pt_regs(p);
-+	unsigned long tls = p->thread.tp_value;
-+
-+	*childregs = *regs;
-+	childregs->regs[0] = 0;
-+
-+#ifdef CONFIG_AARCH32_EMULATION
-+	if (test_ti_thread_flag(task_thread_info(p), TIF_32BIT))
-+		childregs->compat_sp = stack_start;
-+	else
-+#endif
-+	{
-+		/*
-+		 * Read the current TLS pointer from tpidr_el0 as it may be
-+		 * out-of-sync with the saved value.
-+		 */
-+		asm("mrs %0, tpidr_el0" : "=r" (tls));
-+		childregs->sp = stack_start;
-+	}
-+
-+	memset(&p->thread.cpu_context, 0, sizeof(struct cpu_context));
-+	p->thread.cpu_context.sp = (unsigned long)childregs;
-+	p->thread.cpu_context.pc = (unsigned long)ret_from_fork;
-+
-+	/* If a TLS pointer was passed to clone, use that for the new thread. */
-+	if (clone_flags & CLONE_SETTLS)
-+		tls = regs->regs[3];
-+	p->thread.tp_value = tls;
-+
-+	ptrace_hw_copy_thread(p);
-+
-+	return 0;
-+}
-+
-+static void tls_thread_switch(struct task_struct *next)
-+{
-+	unsigned long tpidr, tpidrro;
-+
-+	if (!test_thread_flag(TIF_32BIT)) {
-+		asm("mrs %0, tpidr_el0" : "=r" (tpidr));
-+		current->thread.tp_value = tpidr;
-+	}
-+
-+	if (test_ti_thread_flag(task_thread_info(next), TIF_32BIT)) {
-+		tpidr = 0;
-+		tpidrro = next->thread.tp_value;
-+	} else {
-+		tpidr = next->thread.tp_value;
-+		tpidrro = 0;
-+	}
-+
-+	asm(
-+	"	msr	tpidr_el0, %0\n"
-+	"	msr	tpidrro_el0, %1"
-+	: : "r" (tpidr), "r" (tpidrro));
-+}
-+
-+/*
-+ * Thread switching.
-+ */
-+struct task_struct *__switch_to(struct task_struct *prev,
-+				struct task_struct *next)
-+{
-+	struct task_struct *last;
-+
-+	fpsimd_thread_switch(next);
-+	tls_thread_switch(next);
-+	hw_breakpoint_thread_switch(next);
-+
-+	/* the actual thread switch */
-+	last = cpu_switch_to(prev, next);
-+
-+	return last;
-+}
-+
-+/*
-+ * Fill in the task's elfregs structure for a core dump.
-+ */
-+int dump_task_regs(struct task_struct *t, elf_gregset_t *elfregs)
-+{
-+	elf_core_copy_regs(elfregs, task_pt_regs(t));
-+	return 1;
-+}
-+
-+/*
-+ * fill in the fpe structure for a core dump...
-+ */
-+int dump_fpu (struct pt_regs *regs, struct user_fp *fp)
-+{
-+	return 0;
-+}
-+EXPORT_SYMBOL(dump_fpu);
-+
-+/*
-+ * Shuffle the argument into the correct register before calling the
-+ * thread function.  x1 is the thread argument, x2 is the pointer to
-+ * the thread function, and x3 points to the exit function.
-+ */
-+extern void kernel_thread_helper(void);
-+asm(	".section .text\n"
-+"	.align\n"
-+"	.type	kernel_thread_helper, #function\n"
-+"kernel_thread_helper:\n"
-+"	mov	x0, x1\n"
-+"	mov	x30, x3\n"
-+"	br	x2\n"
-+"	.size	kernel_thread_helper, . - kernel_thread_helper\n"
-+"	.previous");
-+
-+#define kernel_thread_exit	do_exit
-+
-+/*
-+ * Create a kernel thread.
-+ */
-+pid_t kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
-+{
-+	struct pt_regs regs;
-+
-+	memset(&regs, 0, sizeof(regs));
-+
-+	regs.regs[1] = (unsigned long)arg;
-+	regs.regs[2] = (unsigned long)fn;
-+	regs.regs[3] = (unsigned long)kernel_thread_exit;
-+	regs.pc = (unsigned long)kernel_thread_helper;
-+	regs.pstate = PSR_MODE_EL1h;
-+
-+	return do_fork(flags|CLONE_VM|CLONE_UNTRACED, 0, &regs, 0, NULL, NULL);
-+}
-+EXPORT_SYMBOL(kernel_thread);
-+
-+unsigned long get_wchan(struct task_struct *p)
-+{
-+	struct stackframe frame;
-+	int count = 0;
-+	if (!p || p == current || p->state == TASK_RUNNING)
-+		return 0;
-+
-+	frame.fp = thread_saved_fp(p);
-+	frame.sp = thread_saved_sp(p);
-+	frame.pc = thread_saved_pc(p);
-+	do {
-+		int ret = unwind_frame(&frame);
-+		if (ret < 0)
-+			return 0;
-+		if (!in_sched_functions(frame.pc))
-+			return frame.pc;
-+	} while (count ++ < 16);
-+	return 0;
-+}
-+
-+unsigned long arch_align_stack(unsigned long sp)
-+{
-+	if (!(current->personality & ADDR_NO_RANDOMIZE) && randomize_va_space)
-+		sp -= get_random_int() & ~PAGE_MASK;
-+	return sp & ~0xf;
-+}
-+
-+static unsigned long randomize_base(unsigned long base)
-+{
-+	unsigned long range_end = base + (STACK_RND_MASK << PAGE_SHIFT) + 1;
-+	return randomize_range(base, range_end, 0) ? : base;
-+}
-+
-+unsigned long arch_randomize_brk(struct mm_struct *mm)
-+{
-+	return randomize_base(mm->brk);
-+}
-+
-+unsigned long randomize_et_dyn(unsigned long base)
-+{
-+	return randomize_base(base);
-+}
-diff --git a/arch/arm64/mm/context.c b/arch/arm64/mm/context.c
-new file mode 100644
-index 0000000..e06f47a
---- /dev/null
-+++ b/arch/arm64/mm/context.c
-@@ -0,0 +1,159 @@
-+/*
-+ * Based on arch/arm/mm/context.c
++ * Note that 'init' is a special process: it doesn't get signals it doesn'=
+t
++ * want to handle. Thus you cannot kill init even with a SIGKILL even by
++ * mistake.
 + *
-+ * Copyright (C) 2002-2003 Deep Blue Solutions Ltd, all rights reserved.
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ * Note that we go through the signals twice: once to check the signals th=
+at
++ * the kernel can handle, and then we build all the user-level signal hand=
+ling
++ * stack-frames in one go after that.
 + */
-+
-+#include <linux/init.h>
-+#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/smp.h>
-+#include <linux/percpu.h>
-+
-+#include <asm/mmu_context.h>
-+#include <asm/tlbflush.h>
-+#include <asm/cachetype.h>
-+
-+#define asid_bits(reg) \
-+	(((read_cpuid(ID_AA64MMFR0_EL1) & 0xf0) >> 2) + 8)
-+
-+#define ASID_FIRST_VERSION	(1 << MAX_ASID_BITS)
-+
-+static DEFINE_SPINLOCK(cpu_asid_lock);
-+unsigned int cpu_last_asid = ASID_FIRST_VERSION;
-+
-+/*
-+ * We fork()ed a process, and we need a new context for the child to run in.
-+ */
-+void __init_new_context(struct task_struct *tsk, struct mm_struct *mm)
++static void do_signal(struct pt_regs *regs)
 +{
-+	mm->context.id = 0;
-+	spin_lock_init(&mm->context.id_lock);
++=09unsigned long continue_addr =3D 0, restart_addr =3D 0;
++=09struct k_sigaction ka;
++=09siginfo_t info;
++=09int signr, retval =3D 0;
++=09int syscall =3D (int)regs->syscallno;
++
++=09/*
++=09 * If we were from a system call, check for system call restarting...
++=09 */
++=09if (syscall >=3D 0) {
++=09=09continue_addr =3D regs->pc;
++=09=09restart_addr =3D continue_addr - (compat_thumb_mode(regs) ? 2 : 4);
++=09=09retval =3D regs->regs[0];
++
++=09=09/*
++=09=09 * Avoid additional syscall restarting via ret_to_user.
++=09=09 */
++=09=09regs->syscallno =3D ~0UL;
++
++=09=09/*
++=09=09 * Prepare for system call restart. We do this here so that a
++=09=09 * debugger will see the already changed PC.
++=09=09 */
++=09=09switch (retval) {
++=09=09case -ERESTARTNOHAND:
++=09=09case -ERESTARTSYS:
++=09=09case -ERESTARTNOINTR:
++=09=09case -ERESTART_RESTARTBLOCK:
++=09=09=09regs->regs[0] =3D regs->orig_x0;
++=09=09=09regs->pc =3D restart_addr;
++=09=09=09break;
++=09=09}
++=09}
++
++=09/*
++=09 * Get the signal to deliver. When running under ptrace, at this point
++=09 * the debugger may change all of our registers.
++=09 */
++=09signr =3D get_signal_to_deliver(&info, &ka, regs, NULL);
++=09if (signr > 0) {
++=09=09/*
++=09=09 * Depending on the signal settings, we may need to revert the
++=09=09 * decision to restart the system call, but skip this if a
++=09=09 * debugger has chosen to restart at a different PC.
++=09=09 */
++=09=09if (regs->pc =3D=3D restart_addr &&
++=09=09    (retval =3D=3D -ERESTARTNOHAND ||
++=09=09     retval =3D=3D -ERESTART_RESTARTBLOCK ||
++=09=09     (retval =3D=3D -ERESTARTSYS &&
++=09=09      !(ka.sa.sa_flags & SA_RESTART)))) {
++=09=09=09regs->regs[0] =3D -EINTR;
++=09=09=09regs->pc =3D continue_addr;
++=09=09}
++
++=09=09handle_signal(signr, &ka, &info, regs);
++=09=09return;
++=09}
++
++=09/*
++=09 * Handle restarting a different system call. As above, if a debugger
++=09 * has chosen to restart at a different PC, ignore the restart.
++=09 */
++=09if (syscall >=3D 0 && regs->pc =3D=3D restart_addr) {
++=09=09if (retval =3D=3D -ERESTART_RESTARTBLOCK)
++=09=09=09setup_restart_syscall(regs);
++=09=09user_rewind_single_step(current);
++=09}
++
++=09restore_saved_sigmask();
 +}
 +
-+static void flush_context(void)
++asmlinkage void do_notify_resume(struct pt_regs *regs,
++=09=09=09=09 unsigned int thread_flags)
 +{
-+	/* set the reserved TTBR0 before flushing the TLB */
-+	cpu_set_reserved_ttbr0();
-+	flush_tlb_all();
-+	if (icache_is_aivivt())
-+		__flush_icache_all();
-+}
++=09if (thread_flags & _TIF_SIGPENDING)
++=09=09do_signal(regs);
 +
-+#ifdef CONFIG_SMP
-+
-+static void set_mm_context(struct mm_struct *mm, unsigned int asid)
-+{
-+	unsigned long flags;
-+
-+	/*
-+	 * Locking needed for multi-threaded applications where the same
-+	 * mm->context.id could be set from different CPUs during the
-+	 * broadcast. This function is also called via IPI so the
-+	 * mm->context.id_lock has to be IRQ-safe.
-+	 */
-+	spin_lock_irqsave(&mm->context.id_lock, flags);
-+	if (likely((mm->context.id ^ cpu_last_asid) >> MAX_ASID_BITS)) {
-+		/*
-+		 * Old version of ASID found. Set the new one and reset
-+		 * mm_cpumask(mm).
-+		 */
-+		mm->context.id = asid;
-+		cpumask_clear(mm_cpumask(mm));
-+	}
-+	spin_unlock_irqrestore(&mm->context.id_lock, flags);
-+
-+	/*
-+	 * Set the mm_cpumask(mm) bit for the current CPU.
-+	 */
-+	cpumask_set_cpu(smp_processor_id(), mm_cpumask(mm));
-+}
-+
-+/*
-+ * Reset the ASID on the current CPU. This function call is broadcast from the
-+ * CPU handling the ASID rollover and holding cpu_asid_lock.
-+ */
-+static void reset_context(void *info)
-+{
-+	unsigned int asid;
-+	unsigned int cpu = smp_processor_id();
-+	struct mm_struct *mm = current->active_mm;
-+
-+	smp_rmb();
-+	asid = cpu_last_asid + cpu;
-+
-+	flush_context();
-+	set_mm_context(mm, asid);
-+
-+	/* set the new ASID */
-+	cpu_switch_mm(mm->pgd, mm);
-+}
-+
-+#else
-+
-+static inline void set_mm_context(struct mm_struct *mm, unsigned int asid)
-+{
-+	mm->context.id = asid;
-+	cpumask_copy(mm_cpumask(mm), cpumask_of(smp_processor_id()));
-+}
-+
-+#endif
-+
-+void __new_context(struct mm_struct *mm)
-+{
-+	unsigned int asid;
-+	unsigned int bits = asid_bits();
-+
-+	spin_lock(&cpu_asid_lock);
-+#ifdef CONFIG_SMP
-+	/*
-+	 * Check the ASID again, in case the change was broadcast from another
-+	 * CPU before we acquired the lock.
-+	 */
-+	if (!unlikely((mm->context.id ^ cpu_last_asid) >> MAX_ASID_BITS)) {
-+		cpumask_set_cpu(smp_processor_id(), mm_cpumask(mm));
-+		spin_unlock(&cpu_asid_lock);
-+		return;
-+	}
-+#endif
-+	/*
-+	 * At this point, it is guaranteed that the current mm (with an old
-+	 * ASID) isn't active on any other CPU since the ASIDs are changed
-+	 * simultaneously via IPI.
-+	 */
-+	asid = ++cpu_last_asid;
-+
-+	/*
-+	 * If we've used up all our ASIDs, we need to start a new version and
-+	 * flush the TLB.
-+	 */
-+	if (unlikely((asid & ((1 << bits) - 1)) == 0)) {
-+		/* increment the ASID version */
-+		cpu_last_asid += (1 << MAX_ASID_BITS) - (1 << bits);
-+		if (cpu_last_asid == 0)
-+			cpu_last_asid = ASID_FIRST_VERSION;
-+		asid = cpu_last_asid + smp_processor_id();
-+		flush_context();
-+#ifdef CONFIG_SMP
-+		smp_wmb();
-+		smp_call_function(reset_context, NULL, 1);
-+#endif
-+		cpu_last_asid += NR_CPUS - 1;
-+	}
-+
-+	set_mm_context(mm, asid);
-+	spin_unlock(&cpu_asid_lock);
++=09if (thread_flags & _TIF_NOTIFY_RESUME) {
++=09=09clear_thread_flag(TIF_NOTIFY_RESUME);
++=09=09tracehook_notify_resume(regs);
++=09}
 +}
