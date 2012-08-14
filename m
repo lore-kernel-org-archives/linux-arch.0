@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:55143 "EHLO
+Received: from service87.mimecast.com ([91.220.42.44]:55371 "EHLO
 	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756834Ab2HNRxI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 13:53:08 -0400
+	with ESMTP id S1756893Ab2HNRxM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 13:53:12 -0400
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v2 13/31] arm64: Device specific operations
-Date: Tue, 14 Aug 2012 18:52:14 +0100
-Message-ID: <1344966752-16102-14-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v2 22/31] arm64: Floating point and SIMD
+Date: Tue, 14 Aug 2012 18:52:23 +0100
+Message-ID: <1344966752-16102-23-git-send-email-catalin.marinas@arm.com>
 In-Reply-To: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
 Content-Type: text/plain; charset=WINDOWS-1252
@@ -15,397 +15,34 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
-Message-ID: <20120814175214.uox1yJXQ-9su01-b9dWtmfi2ZuIWtwJft1q_weGtSHA@z>
+Message-ID: <20120814175223.ViK2g2lNJ6SN0t5BtAMT6gujLXDjJTkjgcpzx6pjnps@z>
 
-This patch adds several definitions for device communication, including
-I/O accessors and ioremap(). The __raw_* accessors are implemented as
-inline asm to avoid compiler generation of post-indexed accesses (less
-efficient to emulate in a virtualised environment).
+This patch adds support for FP/ASIMD register bank saving and restoring
+during context switch and FP exception handling to generate SIGFPE.
+There are 32 128-bit registers and the context switching is currently
+done non-lazily. Benchmarks on real hardware are required before
+implementing lazy FP state saving/restoring.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/include/asm/device.h |   26 ++++
- arch/arm64/include/asm/fb.h     |   34 +++++
- arch/arm64/include/asm/io.h     |  263 +++++++++++++++++++++++++++++++++++=
+ arch/arm64/include/asm/fpsimd.h  |   64 +++++++++++++++++++++++
+ arch/arm64/kernel/entry-fpsimd.S |   80 ++++++++++++++++++++++++++++
+ arch/arm64/kernel/fpsimd.c       |  106 ++++++++++++++++++++++++++++++++++=
 ++++
- arch/arm64/kernel/io.c          |   64 ++++++++++
- arch/arm64/mm/ioremap.c         |   84 +++++++++++++
- 5 files changed, 471 insertions(+), 0 deletions(-)
- create mode 100644 arch/arm64/include/asm/device.h
- create mode 100644 arch/arm64/include/asm/fb.h
- create mode 100644 arch/arm64/include/asm/io.h
- create mode 100644 arch/arm64/kernel/io.c
- create mode 100644 arch/arm64/mm/ioremap.c
+ 3 files changed, 250 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/fpsimd.h
+ create mode 100644 arch/arm64/kernel/entry-fpsimd.S
+ create mode 100644 arch/arm64/kernel/fpsimd.c
 
-diff --git a/arch/arm64/include/asm/device.h b/arch/arm64/include/asm/devic=
-e.h
+diff --git a/arch/arm64/include/asm/fpsimd.h b/arch/arm64/include/asm/fpsim=
+d.h
 new file mode 100644
-index 0000000..0d8453c
+index 0000000..7ea4711
 --- /dev/null
-+++ b/arch/arm64/include/asm/device.h
-@@ -0,0 +1,26 @@
-+/*
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+#ifndef __ASM_DEVICE_H
-+#define __ASM_DEVICE_H
-+
-+struct dev_archdata {
-+=09struct dma_map_ops *dma_ops;
-+};
-+
-+struct pdev_archdata {
-+};
-+
-+#endif
-diff --git a/arch/arm64/include/asm/fb.h b/arch/arm64/include/asm/fb.h
-new file mode 100644
-index 0000000..adb88a6
---- /dev/null
-+++ b/arch/arm64/include/asm/fb.h
-@@ -0,0 +1,34 @@
-+/*
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+#ifndef __ASM_FB_H_
-+#define __ASM_FB_H_
-+
-+#include <linux/fb.h>
-+#include <linux/fs.h>
-+#include <asm/page.h>
-+
-+static inline void fb_pgprotect(struct file *file, struct vm_area_struct *=
-vma,
-+=09=09=09=09unsigned long off)
-+{
-+=09vma->vm_page_prot =3D pgprot_writecombine(vma->vm_page_prot);
-+}
-+
-+static inline int fb_is_primary_device(struct fb_info *info)
-+{
-+=09return 0;
-+}
-+
-+#endif /* __ASM_FB_H_ */
-diff --git a/arch/arm64/include/asm/io.h b/arch/arm64/include/asm/io.h
-new file mode 100644
-index 0000000..48fa83f
---- /dev/null
-+++ b/arch/arm64/include/asm/io.h
-@@ -0,0 +1,263 @@
-+/*
-+ * Based on arch/arm/include/asm/io.h
-+ *
-+ * Copyright (C) 1996-2000 Russell King
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+#ifndef __ASM_IO_H
-+#define __ASM_IO_H
-+
-+#ifdef __KERNEL__
-+
-+#include <linux/types.h>
-+
-+#include <asm/byteorder.h>
-+#include <asm/barrier.h>
-+#include <asm/pgtable.h>
-+
-+/*
-+ * Generic IO read/write.  These perform native-endian accesses.
-+ */
-+static inline void __raw_writeb(u8 val, volatile void __iomem *addr)
-+{
-+=09asm volatile("strb %w0, [%1]" : : "r" (val), "r" (addr));
-+}
-+
-+static inline void __raw_writew(u16 val, volatile void __iomem *addr)
-+{
-+=09asm volatile("strh %w0, [%1]" : : "r" (val), "r" (addr));
-+}
-+
-+static inline void __raw_writel(u32 val, volatile void __iomem *addr)
-+{
-+=09asm volatile("str %w0, [%1]" : : "r" (val), "r" (addr));
-+}
-+
-+static inline void __raw_writeq(u64 val, volatile void __iomem *addr)
-+{
-+=09asm volatile("str %0, [%1]" : : "r" (val), "r" (addr));
-+}
-+
-+static inline u8 __raw_readb(const volatile void __iomem *addr)
-+{
-+=09u8 val;
-+=09asm volatile("ldrb %w0, [%1]" : "=3Dr" (val) : "r" (addr));
-+=09return val;
-+}
-+
-+static inline u16 __raw_readw(const volatile void __iomem *addr)
-+{
-+=09u16 val;
-+=09asm volatile("ldrh %w0, [%1]" : "=3Dr" (val) : "r" (addr));
-+=09return val;
-+}
-+
-+static inline u32 __raw_readl(const volatile void __iomem *addr)
-+{
-+=09u32 val;
-+=09asm volatile("ldr %w0, [%1]" : "=3Dr" (val) : "r" (addr));
-+=09return val;
-+}
-+
-+static inline u64 __raw_readq(const volatile void __iomem *addr)
-+{
-+=09u64 val;
-+=09asm volatile("ldr %0, [%1]" : "=3Dr" (val) : "r" (addr));
-+=09return val;
-+}
-+
-+/* IO barriers */
-+#define __iormb()=09=09rmb()
-+#define __iowmb()=09=09wmb()
-+
-+#define mmiowb()=09=09do { } while (0)
-+
-+/*
-+ * Relaxed I/O memory access primitives. These follow the Device memory
-+ * ordering rules but do not guarantee any ordering relative to Normal mem=
-ory
-+ * accesses.
-+ */
-+#define readb_relaxed(c)=09({ u8  __v =3D __raw_readb(c); __v; })
-+#define readw_relaxed(c)=09({ u16 __v =3D le16_to_cpu((__force __le16)__ra=
-w_readw(c)); __v; })
-+#define readl_relaxed(c)=09({ u32 __v =3D le32_to_cpu((__force __le32)__ra=
-w_readl(c)); __v; })
-+
-+#define writeb_relaxed(v,c)=09((void)__raw_writeb((v),(c)))
-+#define writew_relaxed(v,c)=09((void)__raw_writew((__force u16)cpu_to_le16=
-(v),(c)))
-+#define writel_relaxed(v,c)=09((void)__raw_writel((__force u32)cpu_to_le32=
-(v),(c)))
-+
-+/*
-+ * I/O memory access primitives. Reads are ordered relative to any
-+ * following Normal memory access. Writes are ordered relative to any prio=
-r
-+ * Normal memory access.
-+ */
-+#define readb(c)=09=09({ u8  __v =3D readb_relaxed(c); __iormb(); __v; })
-+#define readw(c)=09=09({ u16 __v =3D readw_relaxed(c); __iormb(); __v; })
-+#define readl(c)=09=09({ u32 __v =3D readl_relaxed(c); __iormb(); __v; })
-+
-+#define writeb(v,c)=09=09({ __iowmb(); writeb_relaxed((v),(c)); })
-+#define writew(v,c)=09=09({ __iowmb(); writew_relaxed((v),(c)); })
-+#define writel(v,c)=09=09({ __iowmb(); writel_relaxed((v),(c)); })
-+
-+/*
-+ *  I/O port access primitives.
-+ */
-+#define IO_SPACE_LIMIT=09=090xffff
-+
-+/*
-+ * We currently don't have any platform with PCI support, so just leave th=
-is
-+ * defined to 0 until needed.
-+ */
-+#define PCI_IOBASE=09=09((void __iomem *)0)
-+
-+static inline u8 inb(unsigned long addr)
-+{
-+=09return readb(addr + PCI_IOBASE);
-+}
-+
-+static inline u16 inw(unsigned long addr)
-+{
-+=09return readw(addr + PCI_IOBASE);
-+}
-+
-+static inline u32 inl(unsigned long addr)
-+{
-+=09return readl(addr + PCI_IOBASE);
-+}
-+
-+static inline void outb(u8 b, unsigned long addr)
-+{
-+=09writeb(b, addr + PCI_IOBASE);
-+}
-+
-+static inline void outw(u16 b, unsigned long addr)
-+{
-+=09writew(b, addr + PCI_IOBASE);
-+}
-+
-+static inline void outl(u32 b, unsigned long addr)
-+{
-+=09writel(b, addr + PCI_IOBASE);
-+}
-+
-+#define inb_p(addr)=09inb(addr)
-+#define inw_p(addr)=09inw(addr)
-+#define inl_p(addr)=09inl(addr)
-+
-+#define outb_p(x, addr)=09outb((x), (addr))
-+#define outw_p(x, addr)=09outw((x), (addr))
-+#define outl_p(x, addr)=09outl((x), (addr))
-+
-+static inline void insb(unsigned long addr, void *buffer, int count)
-+{
-+=09u8 *buf =3D buffer;
-+=09while (count--)
-+=09=09*buf++ =3D __raw_readb(addr + PCI_IOBASE);
-+}
-+
-+static inline void insw(unsigned long addr, void *buffer, int count)
-+{
-+=09u16 *buf =3D buffer;
-+=09while (count--)
-+=09=09*buf++ =3D __raw_readw(addr + PCI_IOBASE);
-+}
-+
-+static inline void insl(unsigned long addr, void *buffer, int count)
-+{
-+=09u32 *buf =3D buffer;
-+=09while (count--)
-+=09=09*buf++ =3D __raw_readl(addr + PCI_IOBASE);
-+}
-+
-+static inline void outsb(unsigned long addr, const void *buffer, int count=
-)
-+{
-+=09const u8 *buf =3D buffer;
-+=09while (count--)
-+=09=09__raw_writeb(*buf++, addr + PCI_IOBASE);
-+}
-+
-+static inline void outsw(unsigned long addr, const void *buffer, int count=
-)
-+{
-+=09const u16 *buf =3D buffer;
-+=09while (count--)
-+=09=09__raw_writew(*buf++, addr + PCI_IOBASE);
-+}
-+
-+static inline void outsl(unsigned long addr, const void *buffer, int count=
-)
-+{
-+=09const u32 *buf =3D buffer;
-+=09while (count--)
-+=09=09__raw_writel(*buf++, addr + PCI_IOBASE);
-+}
-+
-+#define insb_p(port,to,len)=09insb(port,to,len)
-+#define insw_p(port,to,len)=09insw(port,to,len)
-+#define insl_p(port,to,len)=09insl(port,to,len)
-+
-+#define outsb_p(port,from,len)=09outsb(port,from,len)
-+#define outsw_p(port,from,len)=09outsw(port,from,len)
-+#define outsl_p(port,from,len)=09outsl(port,from,len)
-+
-+/*
-+ * String version of I/O memory access operations.
-+ */
-+extern void __memcpy_fromio(void *, const volatile void __iomem *, size_t)=
-;
-+extern void __memcpy_toio(volatile void __iomem *, const void *, size_t);
-+extern void __memset_io(volatile void __iomem *, int, size_t);
-+
-+#define memset_io(c,v,l)=09__memset_io((c),(v),(l))
-+#define memcpy_fromio(a,c,l)=09__memcpy_fromio((a),(c),(l))
-+#define memcpy_toio(c,a,l)=09__memcpy_toio((c),(a),(l))
-+
-+/*
-+ * I/O memory mapping functions.
-+ */
-+extern void __iomem *__ioremap(phys_addr_t phys_addr, size_t size, pgprot_=
-t prot);
-+extern void __iounmap(volatile void __iomem *addr);
-+
-+#define PROT_DEFAULT=09=09(PTE_TYPE_PAGE | PTE_AF | PTE_DIRTY)
-+#define PROT_DEVICE_nGnRE=09(PROT_DEFAULT | PTE_XN | PTE_ATTRINDX(MT_DEVIC=
-E_nGnRE))
-+#define PROT_NORMAL_NC=09=09(PROT_DEFAULT | PTE_ATTRINDX(MT_NORMAL_NC))
-+
-+#define ioremap(addr, size)=09=09__ioremap((addr), (size), PROT_DEVICE_nGn=
-RE)
-+#define ioremap_nocache(addr, size)=09__ioremap((addr), (size), PROT_DEVIC=
-E_nGnRE)
-+#define ioremap_wc(addr, size)=09=09__ioremap((addr), (size), PROT_NORMAL_=
-NC)
-+#define iounmap=09=09=09=09__iounmap
-+
-+#define ARCH_HAS_IOREMAP_WC
-+#include <asm-generic/iomap.h>
-+
-+/*
-+ * More restrictive address range checking than the default implementation
-+ * (PHYS_OFFSET and PHYS_MASK taken into account).
-+ */
-+#define ARCH_HAS_VALID_PHYS_ADDR_RANGE
-+extern int valid_phys_addr_range(unsigned long addr, size_t size);
-+extern int valid_mmap_phys_addr_range(unsigned long pfn, size_t size);
-+
-+extern int devmem_is_allowed(unsigned long pfn);
-+
-+/*
-+ * Convert a physical pointer to a virtual kernel pointer for /dev/mem
-+ * access
-+ */
-+#define xlate_dev_mem_ptr(p)=09__va(p)
-+
-+/*
-+ * Convert a virtual cached pointer to an uncached pointer
-+ */
-+#define xlate_dev_kmem_ptr(p)=09p
-+
-+#endif=09/* __KERNEL__ */
-+#endif=09/* __ASM_IO_H */
-diff --git a/arch/arm64/kernel/io.c b/arch/arm64/kernel/io.c
-new file mode 100644
-index 0000000..7d37ead
---- /dev/null
-+++ b/arch/arm64/kernel/io.c
++++ b/arch/arm64/include/asm/fpsimd.h
 @@ -0,0 +1,64 @@
 +/*
-+ * Based on arch/arm/kernel/io.c
-+ *
 + * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -420,69 +57,67 @@ index 0000000..7d37ead
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
++#ifndef __ASM_FP_H
++#define __ASM_FP_H
 +
-+#include <linux/export.h>
-+#include <linux/types.h>
-+#include <linux/io.h>
++#include <asm/ptrace.h>
 +
-+/*
-+ * Copy data from IO memory space to "real" memory space.
-+ */
-+void __memcpy_fromio(void *to, const volatile void __iomem *from, size_t c=
-ount)
-+{
-+=09unsigned char *t =3D to;
-+=09while (count) {
-+=09=09count--;
-+=09=09*t =3D readb(from);
-+=09=09t++;
-+=09=09from++;
-+=09}
-+}
-+EXPORT_SYMBOL(__memcpy_fromio);
++#ifndef __ASSEMBLY__
 +
 +/*
-+ * Copy data from "real" memory space to IO memory space.
++ * FP/SIMD storage area has:
++ *  - FPSR and FPCR
++ *  - 32 128-bit data registers
++ *
++ * Note that user_fp forms a prefix of this structure, which is relied
++ * upon in the ptrace FP/SIMD accessors. struct user_fpsimd_state must
++ * form a prefix of struct fpsimd_state.
 + */
-+void __memcpy_toio(volatile void __iomem *to, const void *from, size_t cou=
-nt)
-+{
-+=09const unsigned char *f =3D from;
-+=09while (count) {
-+=09=09count--;
-+=09=09writeb(*f, to);
-+=09=09f++;
-+=09=09to++;
-+=09}
-+}
-+EXPORT_SYMBOL(__memcpy_toio);
++struct fpsimd_state {
++=09union {
++=09=09struct user_fpsimd_state user_fpsimd;
++=09=09struct {
++=09=09=09__uint128_t vregs[32];
++=09=09=09u32 fpsr;
++=09=09=09u32 fpcr;
++=09=09};
++=09};
++};
 +
++#if defined(__KERNEL__) && defined(CONFIG_AARCH32_EMULATION)
++/* Masks for extracting the FPSR and FPCR from the FPSCR */
++#define VFP_FPSCR_STAT_MASK=090xf800009f
++#define VFP_FPSCR_CTRL_MASK=090x07f79f00
 +/*
-+ * "memset" on IO memory space.
++ * The VFP state has 32x64-bit registers and a single 32-bit
++ * control/status register.
 + */
-+void __memset_io(volatile void __iomem *dst, int c, size_t count)
-+{
-+=09while (count) {
-+=09=09count--;
-+=09=09writeb(c, dst);
-+=09=09dst++;
-+=09}
-+}
-+EXPORT_SYMBOL(__memset_io);
-diff --git a/arch/arm64/mm/ioremap.c b/arch/arm64/mm/ioremap.c
++#define VFP_STATE_SIZE=09=09((32 * 8) + 4)
++#endif
++
++struct task_struct;
++
++extern void fpsimd_save_state(struct fpsimd_state *state);
++extern void fpsimd_load_state(struct fpsimd_state *state);
++
++extern void fpsimd_thread_switch(struct task_struct *next);
++extern void fpsimd_flush_thread(void);
++
++#endif
++
++#endif
+diff --git a/arch/arm64/kernel/entry-fpsimd.S b/arch/arm64/kernel/entry-fps=
+imd.S
 new file mode 100644
-index 0000000..1725cd6
+index 0000000..17988a6
 --- /dev/null
-+++ b/arch/arm64/mm/ioremap.c
-@@ -0,0 +1,84 @@
++++ b/arch/arm64/kernel/entry-fpsimd.S
+@@ -0,0 +1,80 @@
 +/*
-+ * Based on arch/arm/mm/ioremap.c
++ * FP/SIMD state saving and restoring
 + *
-+ * (C) Copyright 1995 1996 Linus Torvalds
-+ * Hacked for ARM by Phil Blundell <philb@gnu.org>
-+ * Hacked to allow all architectures to build, and various cleanups
-+ * by Russell King
 + * Copyright (C) 2012 ARM Ltd.
++ * Author: Catalin Marinas <catalin.marinas@arm.com>
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -497,66 +132,177 @@ index 0000000..1725cd6
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/export.h>
-+#include <linux/mm.h>
-+#include <linux/vmalloc.h>
-+#include <linux/io.h>
++#include <linux/linkage.h>
 +
-+static void __iomem *__ioremap_caller(phys_addr_t phys_addr, size_t size,
-+=09=09=09=09      pgprot_t prot, void *caller)
++#include <asm/assembler.h>
++
++/*
++ * Save the FP registers.
++ *
++ * x0 - pointer to struct fpsimd_state
++ */
++ENTRY(fpsimd_save_state)
++=09stp=09q0, q1, [x0, #16 * 0]
++=09stp=09q2, q3, [x0, #16 * 2]
++=09stp=09q4, q5, [x0, #16 * 4]
++=09stp=09q6, q7, [x0, #16 * 6]
++=09stp=09q8, q9, [x0, #16 * 8]
++=09stp=09q10, q11, [x0, #16 * 10]
++=09stp=09q12, q13, [x0, #16 * 12]
++=09stp=09q14, q15, [x0, #16 * 14]
++=09stp=09q16, q17, [x0, #16 * 16]
++=09stp=09q18, q19, [x0, #16 * 18]
++=09stp=09q20, q21, [x0, #16 * 20]
++=09stp=09q22, q23, [x0, #16 * 22]
++=09stp=09q24, q25, [x0, #16 * 24]
++=09stp=09q26, q27, [x0, #16 * 26]
++=09stp=09q28, q29, [x0, #16 * 28]
++=09stp=09q30, q31, [x0, #16 * 30]!
++=09mrs=09x8, fpsr
++=09str=09w8, [x0, #16 * 2]
++=09mrs=09x8, fpcr
++=09str=09w8, [x0, #16 * 2 + 4]
++=09ret
++ENDPROC(fpsimd_save_state)
++
++/*
++ * Load the FP registers.
++ *
++ * x0 - pointer to struct fpsimd_state
++ */
++ENTRY(fpsimd_load_state)
++=09ldp=09q0, q1, [x0, #16 * 0]
++=09ldp=09q2, q3, [x0, #16 * 2]
++=09ldp=09q4, q5, [x0, #16 * 4]
++=09ldp=09q6, q7, [x0, #16 * 6]
++=09ldp=09q8, q9, [x0, #16 * 8]
++=09ldp=09q10, q11, [x0, #16 * 10]
++=09ldp=09q12, q13, [x0, #16 * 12]
++=09ldp=09q14, q15, [x0, #16 * 14]
++=09ldp=09q16, q17, [x0, #16 * 16]
++=09ldp=09q18, q19, [x0, #16 * 18]
++=09ldp=09q20, q21, [x0, #16 * 20]
++=09ldp=09q22, q23, [x0, #16 * 22]
++=09ldp=09q24, q25, [x0, #16 * 24]
++=09ldp=09q26, q27, [x0, #16 * 26]
++=09ldp=09q28, q29, [x0, #16 * 28]
++=09ldp=09q30, q31, [x0, #16 * 30]!
++=09ldr=09w8, [x0, #16 * 2]
++=09ldr=09w9, [x0, #16 * 2 + 4]
++=09msr=09fpsr, x8
++=09msr=09fpcr, x9
++=09ret
++ENDPROC(fpsimd_load_state)
+diff --git a/arch/arm64/kernel/fpsimd.c b/arch/arm64/kernel/fpsimd.c
+new file mode 100644
+index 0000000..e8b8357
+--- /dev/null
++++ b/arch/arm64/kernel/fpsimd.c
+@@ -0,0 +1,106 @@
++/*
++ * FP/SIMD context switching and fault handling
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ * Author: Catalin Marinas <catalin.marinas@arm.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/kernel.h>
++#include <linux/init.h>
++#include <linux/sched.h>
++#include <linux/signal.h>
++
++#include <asm/fpsimd.h>
++#include <asm/cputype.h>
++
++#define FPEXC_IOF=09(1 << 0)
++#define FPEXC_DZF=09(1 << 1)
++#define FPEXC_OFF=09(1 << 2)
++#define FPEXC_UFF=09(1 << 3)
++#define FPEXC_IXF=09(1 << 4)
++#define FPEXC_IDF=09(1 << 7)
++
++/*
++ * Trapped FP/ASIMD access.
++ */
++void do_fpsimd_acc(unsigned int esr, struct pt_regs *regs)
 +{
-+=09unsigned long last_addr;
-+=09unsigned long offset =3D phys_addr & ~PAGE_MASK;
-+=09int err;
-+=09unsigned long addr;
-+=09struct vm_struct *area;
++=09/* TODO: implement lazy context saving/restoring */
++=09WARN_ON(1);
++}
 +
-+=09/*
-+=09 * Page align the mapping address and size, taking account of any
-+=09 * offset.
-+=09 */
-+=09phys_addr &=3D PAGE_MASK;
-+=09size =3D PAGE_ALIGN(size + offset);
++/*
++ * Raise a SIGFPE for the current process.
++ */
++void do_fpsimd_exc(unsigned int esr, struct pt_regs *regs)
++{
++=09siginfo_t info;
++=09unsigned int si_code =3D 0;
 +
-+=09/*
-+=09 * Don't allow wraparound, zero size or outside PHYS_MASK.
-+=09 */
-+=09last_addr =3D phys_addr + size - 1;
-+=09if (!size || last_addr < phys_addr || (last_addr & ~PHYS_MASK))
-+=09=09return NULL;
++=09if (esr & FPEXC_IOF)
++=09=09si_code =3D FPE_FLTINV;
++=09else if (esr & FPEXC_DZF)
++=09=09si_code =3D FPE_FLTDIV;
++=09else if (esr & FPEXC_OFF)
++=09=09si_code =3D FPE_FLTOVF;
++=09else if (esr & FPEXC_UFF)
++=09=09si_code =3D FPE_FLTUND;
++=09else if (esr & FPEXC_IXF)
++=09=09si_code =3D FPE_FLTRES;
 +
-+=09/*
-+=09 * Don't allow RAM to be mapped.
-+=09 */
-+=09if (WARN_ON(pfn_valid(__phys_to_pfn(phys_addr))))
-+=09=09return NULL;
++=09memset(&info, 0, sizeof(info));
++=09info.si_signo =3D SIGFPE;
++=09info.si_code =3D si_code;
++=09info.si_addr =3D (void __user *)instruction_pointer(regs);
 +
-+=09area =3D get_vm_area_caller(size, VM_IOREMAP, caller);
-+=09if (!area)
-+=09=09return NULL;
-+=09addr =3D (unsigned long)area->addr;
++=09send_sig_info(SIGFPE, &info, current);
++}
 +
-+=09err =3D ioremap_page_range(addr, addr + size, phys_addr, prot);
-+=09if (err) {
-+=09=09vunmap((void *)addr);
-+=09=09return NULL;
++void fpsimd_thread_switch(struct task_struct *next)
++{
++=09/* check if not kernel threads */
++=09if (current->mm)
++=09=09fpsimd_save_state(&current->thread.fpsimd_state);
++=09if (next->mm)
++=09=09fpsimd_load_state(&next->thread.fpsimd_state);
++}
++
++void fpsimd_flush_thread(void)
++{
++=09memset(&current->thread.fpsimd_state, 0, sizeof(struct fpsimd_state));
++=09fpsimd_load_state(&current->thread.fpsimd_state);
++}
++
++/*
++ * FP/SIMD support code initialisation.
++ */
++static int __init fpsimd_init(void)
++{
++=09u64 pfr =3D read_cpuid(ID_AA64PFR0_EL1);
++
++=09if (pfr & (0xf << 16)) {
++=09=09pr_notice("Floating-point is not implemented\n");
++=09=09return 0;
 +=09}
++=09elf_hwcap |=3D HWCAP_FP;
 +
-+=09return (void __iomem *)(offset + addr);
++=09if (pfr & (0xf << 20))
++=09=09pr_notice("Advanced SIMD is not implemented\n");
++=09else
++=09=09elf_hwcap |=3D HWCAP_ASIMD;
++
++=09return 0;
 +}
-+
-+void __iomem *__ioremap(phys_addr_t phys_addr, size_t size, pgprot_t prot)
-+{
-+=09return __ioremap_caller(phys_addr, size, prot,
-+=09=09=09=09__builtin_return_address(0));
-+}
-+EXPORT_SYMBOL(__ioremap);
-+
-+void __iounmap(volatile void __iomem *io_addr)
-+{
-+=09void *addr =3D (void *)(PAGE_MASK & (unsigned long)io_addr);
-+
-+=09vunmap(addr);
-+}
-+EXPORT_SYMBOL(__iounmap);
++late_initcall(fpsimd_init);
 
