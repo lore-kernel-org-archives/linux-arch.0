@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:55625 "EHLO
+Received: from service87.mimecast.com ([91.220.42.44]:54977 "EHLO
 	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756921Ab2HNRxR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 13:53:17 -0400
+	with ESMTP id S1756798Ab2HNRxF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 13:53:05 -0400
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v2 30/31] arm64: Build infrastructure
-Date: Tue, 14 Aug 2012 18:52:31 +0100
-Message-ID: <1344966752-16102-31-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v2 05/31] arm64: MMU initialisation
+Date: Tue, 14 Aug 2012 18:52:06 +0100
+Message-ID: <1344966752-16102-6-git-send-email-catalin.marinas@arm.com>
 In-Reply-To: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
 Content-Type: text/plain; charset=WINDOWS-1252
@@ -15,898 +15,890 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
-Message-ID: <20120814175231.M2VKtCy66HDnMowkKjUY8GNOeaiPnJ9oox6ge4jR1vg@z>
+Message-ID: <20120814175206.w4kiFCEPpLF18OMXQBf1uYtFBEdZUTXtjvdEw0pKlEo@z>
 
-This patch adds Makefile and Kconfig files required for building an
-AArch64 kernel.
+This patch contains the initialisation of the memory blocks, MMU
+attributes and the memory map. Only five memory types are defined:
+Device nGnRnE (equivalent to Strongly Ordered), Device nGnRE (classic
+Device memory), Device GRE, Normal Non-cacheable and Normal Cacheable.
+Cache policies are supported via the memory attributes register
+(MAIR_EL1) and only affect the Normal Cacheable mappings.
+
+This patch also adds the SPARSEMEM_VMEMMAP initialisation.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 ---
- arch/arm64/Kconfig                   |  261 ++++++++++++++++++++++++++++++=
+ arch/arm64/include/asm/memblock.h |   21 ++
+ arch/arm64/mm/init.c              |  416 +++++++++++++++++++++++++++++++++=
 ++++
- arch/arm64/Kconfig.debug             |   27 ++++
- arch/arm64/Makefile                  |   71 +++++++++
- arch/arm64/boot/.gitignore           |    2 +
- arch/arm64/boot/Makefile             |   38 +++++
- arch/arm64/boot/install.sh           |   52 +++++++
- arch/arm64/configs/generic_defconfig |   85 +++++++++++
- arch/arm64/include/asm/prom.h        |    1 +
- arch/arm64/kernel/.gitignore         |    1 +
- arch/arm64/kernel/Makefile           |   27 ++++
- arch/arm64/kernel/vmlinux.lds.S      |  146 +++++++++++++++++++
- arch/arm64/mm/Kconfig                |    5 +
- arch/arm64/mm/Makefile               |    6 +
- init/Kconfig                         |    3 +-
- lib/Kconfig.debug                    |    6 +-
- 15 files changed, 728 insertions(+), 3 deletions(-)
- create mode 100644 arch/arm64/Kconfig
- create mode 100644 arch/arm64/Kconfig.debug
- create mode 100644 arch/arm64/Makefile
- create mode 100644 arch/arm64/boot/.gitignore
- create mode 100644 arch/arm64/boot/Makefile
- create mode 100644 arch/arm64/boot/install.sh
- create mode 100644 arch/arm64/configs/generic_defconfig
- create mode 100644 arch/arm64/include/asm/prom.h
- create mode 100644 arch/arm64/kernel/.gitignore
- create mode 100644 arch/arm64/kernel/Makefile
- create mode 100644 arch/arm64/kernel/vmlinux.lds.S
- create mode 100644 arch/arm64/mm/Kconfig
- create mode 100644 arch/arm64/mm/Makefile
+ arch/arm64/mm/mmu.c               |  395 +++++++++++++++++++++++++++++++++=
+++
+ 3 files changed, 832 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/memblock.h
+ create mode 100644 arch/arm64/mm/init.c
+ create mode 100644 arch/arm64/mm/mmu.c
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+diff --git a/arch/arm64/include/asm/memblock.h b/arch/arm64/include/asm/mem=
+block.h
 new file mode 100644
-index 0000000..1ce3d04
+index 0000000..6afeed2
 --- /dev/null
-+++ b/arch/arm64/Kconfig
-@@ -0,0 +1,261 @@
-+config ARM64
-+=09def_bool y
-+=09select OF
-+=09select OF_EARLY_FLATTREE
-+=09select IRQ_DOMAIN
-+=09select HAVE_AOUT
-+=09select HAVE_DMA_ATTRS
-+=09select HAVE_DMA_API_DEBUG
-+=09select HAVE_IDE
-+=09select HAVE_MEMBLOCK
-+=09select RTC_LIB
-+=09select SYS_SUPPORTS_APM_EMULATION
-+=09select HAVE_GENERIC_DMA_COHERENT
-+=09select GENERIC_IOMAP
-+=09select HAVE_IRQ_WORK
-+=09select HAVE_PERF_EVENTS
-+=09select HAVE_ARCH_TRACEHOOK
-+=09select PERF_USE_VMALLOC
-+=09select HAVE_HW_BREAKPOINT if PERF_EVENTS
-+=09select HAVE_GENERIC_HARDIRQS
-+=09select GENERIC_HARDIRQS_NO_DEPRECATED
-+=09select HAVE_SPARSE_IRQ
-+=09select SPARSE_IRQ
-+=09select GENERIC_IRQ_SHOW
-+=09select GENERIC_SMP_IDLE_THREAD
-+=09select NO_BOOTMEM
-+=09help
-+=09  ARM 64-bit (AArch64) Linux support.
-+
-+config 64BIT
-+=09def_bool y
-+
-+config ARCH_PHYS_ADDR_T_64BIT
-+=09def_bool y
-+
-+config HAVE_PWM
-+=09bool
-+
-+config SYS_SUPPORTS_APM_EMULATION
-+=09bool
-+
-+config NO_IOPORT
-+=09def_bool y
-+
-+config GENERIC_GPIO
-+=09bool
-+
-+config GENERIC_TIME_VSYSCALL
-+=09def_bool y
-+
-+config GENERIC_CLOCKEVENTS
-+=09def_bool y
-+
-+config STACKTRACE_SUPPORT
-+=09def_bool y
-+
-+config LOCKDEP_SUPPORT
-+=09def_bool y
-+
-+config TRACE_IRQFLAGS_SUPPORT
-+=09def_bool y
-+
-+config HARDIRQS_SW_RESEND
-+=09def_bool y
-+
-+config GENERIC_IRQ_PROBE
-+=09def_bool y
-+
-+config GENERIC_LOCKBREAK
-+=09def_bool y
-+=09depends on SMP && PREEMPT
-+
-+config RWSEM_GENERIC_SPINLOCK
-+=09def_bool y
-+
-+config RWSEM_XCHGADD_ALGORITHM
-+=09bool
-+
-+config ARCH_HAS_ILOG2_U32
-+=09bool
-+
-+config ARCH_HAS_ILOG2_U64
-+=09bool
-+
-+config ARCH_HAS_CPUFREQ
-+=09bool
-+=09help
-+=09  Internal node to signify that the ARCH has CPUFREQ support
-+=09  and that the relevant menu configurations are displayed for
-+=09  it.
-+
-+config GENERIC_HWEIGHT
-+=09def_bool y
-+
-+config GENERIC_CSUM
-+        def_bool y
-+
-+config GENERIC_CALIBRATE_DELAY
-+=09def_bool y
-+
-+config ZONE_DMA32
-+=09def_bool y
-+
-+config ARCH_DMA_ADDR_T_64BIT
-+=09def_bool y
-+
-+config NEED_DMA_MAP_STATE
-+=09def_bool y
-+
-+config NEED_SG_DMA_LENGTH
-+=09def_bool y
-+
-+config SWIOTLB
-+=09def_bool y
-+
-+config IOMMU_HELPER
-+=09def_bool SWIOTLB
-+
-+source "init/Kconfig"
-+
-+source "kernel/Kconfig.freezer"
-+
-+menu "System Type"
-+
-+source "arch/arm64/mm/Kconfig"
-+
-+endmenu
-+
-+menu "Bus support"
-+
-+config ARM_AMBA
-+=09bool
-+
-+endmenu
-+
-+menu "Kernel Features"
-+
-+source "kernel/time/Kconfig"
-+
-+config ARM64_64K_PAGES
-+=09bool "Enable 64KB pages support"
-+=09help
-+=09  This feature enables 64KB pages support (4KB by default)
-+=09  allowing only two levels of page tables and faster TLB
-+=09  look-up. AArch32 emulation is not available when this feature
-+=09  is enabled.
-+
-+config SMP
-+=09bool "Symmetric Multi-Processing"
-+=09depends on GENERIC_CLOCKEVENTS
-+=09select USE_GENERIC_SMP_HELPERS
-+=09help
-+=09  This enables support for systems with more than one CPU.  If
-+=09  you say N here, the kernel will run on single and
-+=09  multiprocessor machines, but will use only one CPU of a
-+=09  multiprocessor machine. If you say Y here, the kernel will run
-+=09  on many, but not all, single processor machines. On a single
-+=09  processor machine, the kernel will run faster if you say N
-+=09  here.
-+
-+=09  If you don't know what to do here, say N.
-+
-+config NR_CPUS
-+=09int "Maximum number of CPUs (2-32)"
-+=09range 2 32
-+=09depends on SMP
-+=09default "4"
-+
-+source kernel/Kconfig.preempt
-+
-+config HZ
-+=09int
-+=09default 100
-+
-+config ARCH_HAS_HOLES_MEMORYMODEL
-+=09def_bool y if SPARSEMEM
-+
-+config ARCH_SPARSEMEM_ENABLE
-+=09def_bool y
-+=09select SPARSEMEM_VMEMMAP_ENABLE
-+
-+config ARCH_SPARSEMEM_DEFAULT
-+=09def_bool ARCH_SPARSEMEM_ENABLE
-+
-+config ARCH_SELECT_MEMORY_MODEL
-+=09def_bool ARCH_SPARSEMEM_ENABLE
-+
-+config HAVE_ARCH_PFN_VALID
-+=09def_bool ARCH_HAS_HOLES_MEMORYMODEL || !SPARSEMEM
-+
-+config HW_PERF_EVENTS
-+=09bool "Enable hardware performance counter support for perf events"
-+=09depends on PERF_EVENTS
-+=09default y
-+=09help
-+=09  Enable hardware performance counter support for perf events. If
-+=09  disabled, perf events will use software events only.
-+
-+source "mm/Kconfig"
-+
-+endmenu
-+
-+menu "Boot options"
-+
-+config CMDLINE
-+=09string "Default kernel command string"
-+=09default ""
-+=09help
-+=09  Provide a set of default command-line options at build time by
-+=09  entering them here. As a minimum, you should specify the the
-+=09  root device (e.g. root=3D/dev/nfs).
-+
-+config CMDLINE_FORCE
-+=09bool "Always use the default kernel command string"
-+=09help
-+=09  Always use the default kernel command string, even if the boot
-+=09  loader passes other arguments to the kernel.
-+=09  This is useful if you cannot or don't want to change the
-+=09  command-line options your boot loader passes to the kernel.
-+
-+endmenu
-+
-+menu "Userspace binary formats"
-+
-+source "fs/Kconfig.binfmt"
-+
-+config AARCH32_EMULATION
-+=09bool "Kernel support for 32-bit EL0"
-+=09depends on !ARM64_64K_PAGES
-+=09select COMPAT_BINFMT_ELF
-+=09help
-+=09  This option enables support for a 32-bit EL0 running under a 64-bit
-+=09  kernel at EL1. AArch32-specific components such as system calls,
-+=09  the user helper functions, VFP support and the ptrace interface are
-+=09  handled appropriately by the kernel.
-+
-+=09  If you want to execute 32-bit userspace applications, say Y.
-+
-+config COMPAT
-+=09def_bool y
-+=09depends on AARCH32_EMULATION
-+
-+config SYSVIPC_COMPAT
-+=09def_bool y
-+=09depends on COMPAT && SYSVIPC
-+
-+endmenu
-+
-+source "net/Kconfig"
-+
-+source "drivers/Kconfig"
-+
-+source "fs/Kconfig"
-+
-+source "arch/arm64/Kconfig.debug"
-+
-+source "security/Kconfig"
-+
-+source "crypto/Kconfig"
-+
-+source "lib/Kconfig"
-diff --git a/arch/arm64/Kconfig.debug b/arch/arm64/Kconfig.debug
-new file mode 100644
-index 0000000..d7553f2
---- /dev/null
-+++ b/arch/arm64/Kconfig.debug
-@@ -0,0 +1,27 @@
-+menu "Kernel hacking"
-+
-+source "lib/Kconfig.debug"
-+
-+config FRAME_POINTER
-+=09bool
-+=09default y
-+
-+config DEBUG_ERRORS
-+=09bool "Verbose kernel error messages"
-+=09depends on DEBUG_KERNEL
-+=09help
-+=09  This option controls verbose debugging information which can be
-+=09  printed when the kernel detects an internal error. This debugging
-+=09  information is useful to kernel hackers when tracking down problems,
-+=09  but mostly meaningless to other people. It's safe to say Y unless
-+=09  you are concerned with the code size or don't want to see these
-+=09  messages.
-+
-+config DEBUG_STACK_USAGE
-+=09bool "Enable stack utilization instrumentation"
-+=09depends on DEBUG_KERNEL
-+=09help
-+=09  Enables the display of the minimum amount of free stack which each
-+=09  task has ever had available in the sysrq-T output.
-+
-+endmenu
-diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
-new file mode 100644
-index 0000000..831bd41
---- /dev/null
-+++ b/arch/arm64/Makefile
-@@ -0,0 +1,71 @@
-+#
-+# arch/arm64/Makefile
-+#
-+# This file is included by the global makefile so that you can add your ow=
-n
-+# architecture-specific flags and dependencies.
-+#
-+# This file is subject to the terms and conditions of the GNU General Publ=
-ic
-+# License.  See the file "COPYING" in the main directory of this archive
-+# for more details.
-+#
-+# Copyright (C) 1995-2001 by Russell King
-+
-+LDFLAGS_vmlinux=09:=3D-p --no-undefined -X
-+CPPFLAGS_vmlinux.lds =3D -DTEXT_OFFSET=3D$(TEXT_OFFSET)
-+OBJCOPYFLAGS=09:=3D-O binary -R .note -R .note.gnu.build-id -R .comment -S
-+GZFLAGS=09=09:=3D-9
-+
-+LIBGCC =09=09:=3D $(shell $(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
-+
-+KBUILD_DEFCONFIG :=3D generic_defconfig
-+
-+KBUILD_CFLAGS=09+=3D -mgeneral-regs-only
-+KBUILD_CPPFLAGS=09+=3D -mlittle-endian
-+AS=09=09+=3D -EL
-+LD=09=09+=3D -EL
-+
-+comma =3D ,
-+
-+CHECKFLAGS=09+=3D -D__aarch64__
-+
-+# Default value
-+head-y=09=09:=3D arch/arm64/kernel/head.o
-+
-+# The byte offset of the kernel image in RAM from the start of RAM.
-+TEXT_OFFSET :=3D 0x00080000
-+
-+export=09TEXT_OFFSET GZFLAGS
-+
-+core-y=09=09+=3D arch/arm64/kernel/ arch/arm64/mm/
-+libs-y=09=09:=3D arch/arm64/lib/ $(libs-y)
-+libs-y=09=09+=3D $(LIBGCC)
-+
-+# Default target when executing plain make
-+KBUILD_IMAGE :=3D Image.gz
-+
-+all:=09$(KBUILD_IMAGE)
-+
-+boot :=3D arch/arm64/boot
-+
-+Image Image.gz: vmlinux
-+=09$(Q)$(MAKE) $(build)=3D$(boot) MACHINE=3D$(MACHINE) $(boot)/$@
-+
-+zinstall install: vmlinux
-+=09$(Q)$(MAKE) $(build)=3D$(boot) MACHINE=3D$(MACHINE) $@
-+
-+%.dtb:
-+=09$(Q)$(MAKE) $(build)=3D$(boot) MACHINE=3D$(MACHINE) $(boot)/$@
-+
-+# We use MRPROPER_FILES and CLEAN_FILES now
-+archclean:
-+=09$(Q)$(MAKE) $(clean)=3D$(boot)
-+
-+define archhelp
-+  echo  '* Image.gz      - Compressed kernel image (arch/$(ARCH)/boot/Imag=
-e.gz)'
-+  echo  '  Image         - Uncompressed kernel image (arch/$(ARCH)/boot/Im=
-age)'
-+  echo  '  install       - Install uncompressed kernel'
-+  echo  '  zinstall      - Install compressed kernel'
-+  echo  '                  Install using (your) ~/bin/installkernel or'
-+  echo  '                  (distribution) /sbin/installkernel or'
-+  echo  '                  install to $$(INSTALL_PATH) and run lilo'
-+endef
-diff --git a/arch/arm64/boot/.gitignore b/arch/arm64/boot/.gitignore
-new file mode 100644
-index 0000000..8dab0bb
---- /dev/null
-+++ b/arch/arm64/boot/.gitignore
-@@ -0,0 +1,2 @@
-+Image
-+Image.gz
-diff --git a/arch/arm64/boot/Makefile b/arch/arm64/boot/Makefile
-new file mode 100644
-index 0000000..15a58a8
---- /dev/null
-+++ b/arch/arm64/boot/Makefile
-@@ -0,0 +1,38 @@
-+#
-+# arch/arm64/boot/Makefile
-+#
-+# This file is included by the global makefile so that you can add your ow=
-n
-+# architecture-specific flags and dependencies.
-+#
-+# This file is subject to the terms and conditions of the GNU General Publ=
-ic
-+# License.  See the file "COPYING" in the main directory of this archive
-+# for more details.
-+#
-+# Copyright (C) 2012, ARM Ltd.
-+# Author: Will Deacon <will.deacon@arm.com>
-+#
-+# Based on the ia64 boot/Makefile.
-+#
-+
-+targets :=3D Image Image.gz
-+
-+$(obj)/Image: vmlinux FORCE
-+=09$(call if_changed,objcopy)
-+=09@echo '  Kernel: $@ is ready'
-+
-+$(obj)/Image.gz: $(obj)/Image FORCE
-+=09$(call if_changed,gzip)
-+=09@echo '  Kernel: $@ is ready'
-+
-+$(obj)/%.dtb: $(src)/dts/%.dts
-+=09$(call cmd,dtc)
-+
-+install: $(obj)/Image
-+=09$(CONFIG_SHELL) $(srctree)/$(src)/install.sh $(KERNELRELEASE) \
-+=09$(obj)/Image System.map "$(INSTALL_PATH)"
-+
-+zinstall: $(obj)/Image.gz
-+=09$(CONFIG_SHELL) $(srctree)/$(src)/install.sh $(KERNELRELEASE) \
-+=09$(obj)/Image.gz System.map "$(INSTALL_PATH)"
-+
-+clean-files +=3D *.dtb
-diff --git a/arch/arm64/boot/install.sh b/arch/arm64/boot/install.sh
-new file mode 100644
-index 0000000..9151e21
---- /dev/null
-+++ b/arch/arm64/boot/install.sh
-@@ -0,0 +1,52 @@
-+#!/bin/sh
-+#
-+# arch/arm64/boot/install.sh
-+#
-+# This file is subject to the terms and conditions of the GNU General Publ=
-ic
-+# License.  See the file "COPYING" in the main directory of this archive
-+# for more details.
-+#
-+# Copyright (C) 1995 by Linus Torvalds
-+#
-+# Adapted from code in arch/i386/boot/Makefile by H. Peter Anvin
-+# Adapted from code in arch/i386/boot/install.sh by Russell King
-+#
-+# "make install" script for the AArch64 Linux port
-+#
-+# Arguments:
-+#   $1 - kernel version
-+#   $2 - kernel image file
-+#   $3 - kernel map file
-+#   $4 - default install path (blank if root directory)
-+#
-+
-+# User may have a custom install script
-+if [ -x ~/bin/${INSTALLKERNEL} ]; then exec ~/bin/${INSTALLKERNEL} "$@"; f=
-i
-+if [ -x /sbin/${INSTALLKERNEL} ]; then exec /sbin/${INSTALLKERNEL} "$@"; f=
-i
-+
-+if [ "$(basename $2)" =3D "Image.gz" ]; then
-+# Compressed install
-+  echo "Installing compressed kernel"
-+  base=3Dvmlinuz
-+else
-+# Normal install
-+  echo "Installing normal kernel"
-+  base=3Dvmlinux
-+fi
-+
-+if [ -f $4/$base-$1 ]; then
-+  mv $4/$base-$1 $4/$base-$1.old
-+fi
-+cat $2 > $4/$base-$1
-+
-+# Install system map file
-+if [ -f $4/System.map-$1 ]; then
-+  mv $4/System.map-$1 $4/System.map-$1.old
-+fi
-+cp $3 $4/System.map-$1
-+
-+if [ -x /sbin/loadmap ]; then
-+  /sbin/loadmap
-+else
-+  echo "You have to install it yourself"
-+fi
-diff --git a/arch/arm64/configs/generic_defconfig b/arch/arm64/configs/gene=
-ric_defconfig
-new file mode 100644
-index 0000000..d9aac95
---- /dev/null
-+++ b/arch/arm64/configs/generic_defconfig
-@@ -0,0 +1,85 @@
-+CONFIG_EXPERIMENTAL=3Dy
-+# CONFIG_LOCALVERSION_AUTO is not set
-+# CONFIG_SWAP is not set
-+CONFIG_SYSVIPC=3Dy
-+CONFIG_POSIX_MQUEUE=3Dy
-+CONFIG_BSD_PROCESS_ACCT=3Dy
-+CONFIG_BSD_PROCESS_ACCT_V3=3Dy
-+CONFIG_NO_HZ=3Dy
-+CONFIG_HIGH_RES_TIMERS=3Dy
-+CONFIG_IKCONFIG=3Dy
-+CONFIG_IKCONFIG_PROC=3Dy
-+CONFIG_LOG_BUF_SHIFT=3D14
-+# CONFIG_UTS_NS is not set
-+# CONFIG_IPC_NS is not set
-+# CONFIG_PID_NS is not set
-+# CONFIG_NET_NS is not set
-+CONFIG_SCHED_AUTOGROUP=3Dy
-+CONFIG_BLK_DEV_INITRD=3Dy
-+CONFIG_KALLSYMS_ALL=3Dy
-+# CONFIG_COMPAT_BRK is not set
-+CONFIG_PROFILING=3Dy
-+CONFIG_MODULES=3Dy
-+CONFIG_MODULE_UNLOAD=3Dy
-+# CONFIG_BLK_DEV_BSG is not set
-+# CONFIG_IOSCHED_DEADLINE is not set
-+CONFIG_SMP=3Dy
-+CONFIG_PREEMPT_VOLUNTARY=3Dy
-+CONFIG_CMDLINE=3D"console=3DttyAMA0"
-+# CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set
-+CONFIG_AARCH32_EMULATION=3Dy
-+CONFIG_NET=3Dy
-+CONFIG_PACKET=3Dy
-+CONFIG_UNIX=3Dy
-+CONFIG_INET=3Dy
-+CONFIG_IP_PNP=3Dy
-+CONFIG_IP_PNP_DHCP=3Dy
-+CONFIG_IP_PNP_BOOTP=3Dy
-+# CONFIG_INET_LRO is not set
-+# CONFIG_IPV6 is not set
-+# CONFIG_WIRELESS is not set
-+CONFIG_UEVENT_HELPER_PATH=3D"/sbin/hotplug"
-+CONFIG_DEVTMPFS=3Dy
-+# CONFIG_BLK_DEV is not set
-+CONFIG_SCSI=3Dy
-+# CONFIG_SCSI_PROC_FS is not set
-+CONFIG_BLK_DEV_SD=3Dy
-+# CONFIG_SCSI_LOWLEVEL is not set
-+CONFIG_NETDEVICES=3Dy
-+CONFIG_MII=3Dy
-+# CONFIG_WLAN is not set
-+CONFIG_INPUT_EVDEV=3Dy
-+# CONFIG_SERIO_I8042 is not set
-+# CONFIG_SERIO_SERPORT is not set
-+CONFIG_LEGACY_PTY_COUNT=3D16
-+# CONFIG_HW_RANDOM is not set
-+# CONFIG_HWMON is not set
-+CONFIG_FB=3Dy
-+# CONFIG_VGA_CONSOLE is not set
-+CONFIG_FRAMEBUFFER_CONSOLE=3Dy
-+CONFIG_LOGO=3Dy
-+# CONFIG_LOGO_LINUX_MONO is not set
-+# CONFIG_LOGO_LINUX_VGA16 is not set
-+# CONFIG_USB_SUPPORT is not set
-+# CONFIG_IOMMU_SUPPORT is not set
-+CONFIG_EXT2_FS=3Dy
-+CONFIG_EXT3_FS=3Dy
-+# CONFIG_EXT3_DEFAULTS_TO_ORDERED is not set
-+# CONFIG_EXT3_FS_XATTR is not set
-+CONFIG_FUSE_FS=3Dy
-+CONFIG_CUSE=3Dy
-+CONFIG_VFAT_FS=3Dy
-+CONFIG_TMPFS=3Dy
-+# CONFIG_MISC_FILESYSTEMS is not set
-+CONFIG_NFS_FS=3Dy
-+CONFIG_ROOT_NFS=3Dy
-+CONFIG_NLS_CODEPAGE_437=3Dy
-+CONFIG_NLS_ISO8859_1=3Dy
-+CONFIG_MAGIC_SYSRQ=3Dy
-+CONFIG_DEBUG_FS=3Dy
-+CONFIG_DEBUG_KERNEL=3Dy
-+# CONFIG_SCHED_DEBUG is not set
-+CONFIG_DEBUG_INFO=3Dy
-+# CONFIG_FTRACE is not set
-+CONFIG_ATOMIC64_SELFTEST=3Dy
-+CONFIG_DEBUG_ERRORS=3Dy
-diff --git a/arch/arm64/include/asm/prom.h b/arch/arm64/include/asm/prom.h
-new file mode 100644
-index 0000000..68b90e6
---- /dev/null
-+++ b/arch/arm64/include/asm/prom.h
-@@ -0,0 +1 @@
-+/* Empty for now */
-diff --git a/arch/arm64/kernel/.gitignore b/arch/arm64/kernel/.gitignore
-new file mode 100644
-index 0000000..c5f676c
---- /dev/null
-+++ b/arch/arm64/kernel/.gitignore
-@@ -0,0 +1 @@
-+vmlinux.lds
-diff --git a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
-new file mode 100644
-index 0000000..59fbdef
---- /dev/null
-+++ b/arch/arm64/kernel/Makefile
-@@ -0,0 +1,27 @@
-+#
-+# Makefile for the linux kernel.
-+#
-+
-+CPPFLAGS_vmlinux.lds=09:=3D -DTEXT_OFFSET=3D$(TEXT_OFFSET)
-+AFLAGS_head.o=09=09:=3D -DTEXT_OFFSET=3D$(TEXT_OFFSET)
-+
-+# Object file lists.
-+arm64-obj-y=09=09:=3D debug-monitors.o elf.o entry.o irq.o=09fpsimd.o=09\
-+=09=09=09   entry-fpsimd.o process.o ptrace.o setup.o signal.o=09\
-+=09=09=09   sys.o stacktrace.o time.o traps.o io.o vdso.o
-+
-+arm64-obj-$(CONFIG_AARCH32_EMULATION)=09+=3D sys32.o kuser32.o signal32.o =
-=09\
-+=09=09=09=09=09   sys_compat.o
-+arm64-obj-$(CONFIG_MODULES)=09=09+=3D arm64ksyms.o module.o
-+arm64-obj-$(CONFIG_SMP)=09=09=09+=3D smp.o
-+arm64-obj-$(CONFIG_HW_PERF_EVENTS)=09+=3D perf_event.o
-+arm64-obj-$(CONFIG_HAVE_HW_BREAKPOINT)+=3D hw_breakpoint.o
-+
-+obj-y=09=09=09=09=09+=3D $(arm64-obj-y) vdso/
-+obj-m=09=09=09=09=09+=3D $(arm64-obj-m)
-+head-y=09=09=09=09=09:=3D head.o
-+extra-y=09=09=09=09=09:=3D $(head-y) vmlinux.lds
-+
-+# vDSO - this must be built first to generate the symbol offsets
-+$(call objectify,$(arm64-obj-y)): $(obj)/vdso/vdso-offsets.h
-+$(obj)/vdso/vdso-offsets.h: $(obj)/vdso
-diff --git a/arch/arm64/kernel/vmlinux.lds.S b/arch/arm64/kernel/vmlinux.ld=
-s.S
-new file mode 100644
-index 0000000..5eab87b
---- /dev/null
-+++ b/arch/arm64/kernel/vmlinux.lds.S
-@@ -0,0 +1,146 @@
++++ b/arch/arm64/include/asm/memblock.h
+@@ -0,0 +1,21 @@
 +/*
-+ * ld script to make ARM Linux kernel
-+ * taken from the i386 version by Russell King
-+ * Written by Martin Mares <mj@atrey.karlin.mff.cuni.cz>
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_MEMBLOCK_H
++#define __ASM_MEMBLOCK_H
++
++extern void arm64_memblock_init(void);
++
++#endif
+diff --git a/arch/arm64/mm/init.c b/arch/arm64/mm/init.c
+new file mode 100644
+index 0000000..c87583d
+--- /dev/null
++++ b/arch/arm64/mm/init.c
+@@ -0,0 +1,416 @@
++/*
++ * Based on arch/arm/mm/init.c
++ *
++ * Copyright (C) 1995-2005 Russell King
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <asm-generic/vmlinux.lds.h>
-+#include <asm/thread_info.h>
-+#include <asm/memory.h>
-+#include <asm/page.h>
++#include <linux/kernel.h>
++#include <linux/export.h>
++#include <linux/errno.h>
++#include <linux/swap.h>
++#include <linux/init.h>
++#include <linux/bootmem.h>
++#include <linux/mman.h>
++#include <linux/nodemask.h>
++#include <linux/initrd.h>
++#include <linux/gfp.h>
++#include <linux/memblock.h>
++#include <linux/sort.h>
++#include <linux/of_fdt.h>
 +
-+#define PROC_INFO=09=09=09=09=09=09=09\
-+=09VMLINUX_SYMBOL(__proc_info_begin) =3D .;=09=09=09=09\
-+=09*(.proc.info.init)=09=09=09=09=09=09\
-+=09VMLINUX_SYMBOL(__proc_info_end) =3D .;
++#include <asm/prom.h>
++#include <asm/sections.h>
++#include <asm/setup.h>
++#include <asm/sizes.h>
++#include <asm/tlb.h>
 +
-+#define ARM_CPU_DISCARD(x)=09x
-+#define ARM_CPU_KEEP(x)
++#include "mm.h"
 +
-+#define ARM_EXIT_KEEP(x)
-+#define ARM_EXIT_DISCARD(x)=09x
++static unsigned long phys_initrd_start __initdata =3D 0;
++static unsigned long phys_initrd_size __initdata =3D 0;
 +
-+OUTPUT_ARCH(aarch64)
-+ENTRY(stext)
++phys_addr_t memstart_addr __read_mostly =3D 0;
 +
-+jiffies =3D jiffies_64;
-+
-+SECTIONS
++void __init early_init_dt_setup_initrd_arch(unsigned long start,
++=09=09=09=09=09    unsigned long end)
 +{
++=09phys_initrd_start =3D start;
++=09phys_initrd_size =3D end - start;
++}
++
++static int __init early_initrd(char *p)
++{
++=09unsigned long start, size;
++=09char *endp;
++
++=09start =3D memparse(p, &endp);
++=09if (*endp =3D=3D ',') {
++=09=09size =3D memparse(endp + 1, NULL);
++
++=09=09phys_initrd_start =3D start;
++=09=09phys_initrd_size =3D size;
++=09}
++=09return 0;
++}
++early_param("initrd", early_initrd);
++
++#define MAX_DMA32_PFN ((4UL * 1024 * 1024 * 1024) >> PAGE_SHIFT)
++
++static void __init zone_sizes_init(unsigned long min, unsigned long max)
++{
++=09unsigned long zone_size[MAX_NR_ZONES];
++=09unsigned long max_dma32 =3D min;
++
++=09memset(zone_size, 0, sizeof(zone_size));
++
++=09zone_size[0] =3D max - min;
++#ifdef CONFIG_ZONE_DMA32
++=09/* 4GB maximum for 32-bit only capable devices */
++=09max_dma32 =3D min(max, MAX_DMA32_PFN);
++=09zone_size[ZONE_DMA32] =3D max_dma32 - min;
++#endif
++=09zone_size[ZONE_NORMAL] =3D max - max_dma32;
++
++=09free_area_init(zone_size);
++}
++
++#ifdef CONFIG_HAVE_ARCH_PFN_VALID
++int pfn_valid(unsigned long pfn)
++{
++=09return memblock_is_memory(pfn << PAGE_SHIFT);
++}
++EXPORT_SYMBOL(pfn_valid);
++#endif
++
++#ifndef CONFIG_SPARSEMEM
++static void arm64_memory_present(void)
++{
++}
++#else
++static void arm64_memory_present(void)
++{
++=09struct memblock_region *reg;
++
++=09for_each_memblock(memory, reg)
++=09=09memory_present(0, memblock_region_memory_base_pfn(reg),
++=09=09=09       memblock_region_memory_end_pfn(reg));
++}
++#endif
++
++void __init arm64_memblock_init(void)
++{
++=09u64 *reserve_map, base, size;
++
++=09/* Register the kernel text, kernel data and initrd with memblock */
++=09memblock_reserve(__pa(_text), _end - _text);
++#ifdef CONFIG_BLK_DEV_INITRD
++=09if (phys_initrd_size) {
++=09=09memblock_reserve(phys_initrd_start, phys_initrd_size);
++
++=09=09/* Now convert initrd to virtual addresses */
++=09=09initrd_start =3D __phys_to_virt(phys_initrd_start);
++=09=09initrd_end =3D initrd_start + phys_initrd_size;
++=09}
++#endif
++
 +=09/*
-+=09 * XXX: The linker does not define how output sections are
-+=09 * assigned to input sections when there are multiple statements
-+=09 * matching the same input section name.  There is no documented
-+=09 * order of matching.
++=09 * Reserve the page tables.  These are already in use,
++=09 * and can only be in node 0.
 +=09 */
-+=09/DISCARD/ : {
-+=09=09ARM_EXIT_DISCARD(EXIT_TEXT)
-+=09=09ARM_EXIT_DISCARD(EXIT_DATA)
-+=09=09EXIT_CALL
-+=09=09*(.discard)
-+=09=09*(.discard.*)
++=09memblock_reserve(__pa(swapper_pg_dir), SWAPPER_DIR_SIZE);
++=09memblock_reserve(__pa(idmap_pg_dir), IDMAP_DIR_SIZE);
++
++=09/* Reserve the dtb region */
++=09memblock_reserve(virt_to_phys(initial_boot_params),
++=09=09=09 be32_to_cpu(initial_boot_params->totalsize));
++
++=09/*
++=09 * Process the reserve map.  This will probably overlap the initrd
++=09 * and dtb locations which are already reserved, but overlapping
++=09 * doesn't hurt anything
++=09 */
++=09reserve_map =3D ((void*)initial_boot_params) +
++=09=09=09be32_to_cpu(initial_boot_params->off_mem_rsvmap);
++=09while (1) {
++=09=09base =3D be64_to_cpup(reserve_map++);
++=09=09size =3D be64_to_cpup(reserve_map++);
++=09=09if (!size)
++=09=09=09break;
++=09=09memblock_reserve(base, size);
 +=09}
 +
-+=09. =3D PAGE_OFFSET + TEXT_OFFSET;
++=09memblock_allow_resize();
++=09memblock_dump_all();
++}
 +
-+=09.head.text : {
-+=09=09_text =3D .;
-+=09=09HEAD_TEXT
-+=09}
-+=09.text : {=09=09=09/* Real text segment=09=09*/
-+=09=09_stext =3D .;=09=09/* Text and read-only data=09*/
-+=09=09=09*(.smp.pen.text)
-+=09=09=09__exception_text_start =3D .;
-+=09=09=09*(.exception.text)
-+=09=09=09__exception_text_end =3D .;
-+=09=09=09IRQENTRY_TEXT
-+=09=09=09TEXT_TEXT
-+=09=09=09SCHED_TEXT
-+=09=09=09LOCK_TEXT
-+=09=09=09*(.fixup)
-+=09=09=09*(.gnu.warning)
-+=09=09. =3D ALIGN(16);
-+=09=09*(.got)=09=09=09/* Global offset table=09=09*/
-+=09=09=09ARM_CPU_KEEP(PROC_INFO)
-+=09}
++void __init bootmem_init(void)
++{
++=09unsigned long min, max;
 +
-+=09RO_DATA(PAGE_SIZE)
++=09min =3D PFN_UP(memblock_start_of_DRAM());
++=09max =3D PFN_DOWN(memblock_end_of_DRAM());
 +
-+=09_etext =3D .;=09=09=09/* End of text and rodata section */
++=09/*
++=09 * Sparsemem tries to allocate bootmem in memory_present(), so must be
++=09 * done after the fixed reservations.
++=09 */
++=09arm64_memory_present();
 +
-+=09. =3D ALIGN(PAGE_SIZE);
-+=09__init_begin =3D .;
++=09sparse_init();
++=09zone_sizes_init(min, max);
 +
-+=09INIT_TEXT_SECTION(8)
-+=09.exit.text : {
-+=09=09ARM_EXIT_KEEP(EXIT_TEXT)
-+=09}
-+=09. =3D ALIGN(16);
-+=09.init.proc.info : {
-+=09=09ARM_CPU_DISCARD(PROC_INFO)
-+=09}
-+=09. =3D ALIGN(16);
-+=09.init.data : {
-+=09=09INIT_DATA
-+=09=09INIT_SETUP(16)
-+=09=09INIT_CALLS
-+=09=09CON_INITCALL
-+=09=09SECURITY_INITCALL
-+=09=09INIT_RAM_FS
-+=09}
-+=09.exit.data : {
-+=09=09ARM_EXIT_KEEP(EXIT_DATA)
++=09high_memory =3D __va((max << PAGE_SHIFT) - 1) + 1;
++=09max_pfn =3D max_low_pfn =3D max;
++}
++
++static inline int free_area(unsigned long pfn, unsigned long end, char *s)
++{
++=09unsigned int pages =3D 0, size =3D (end - pfn) << (PAGE_SHIFT - 10);
++
++=09for (; pfn < end; pfn++) {
++=09=09struct page *page =3D pfn_to_page(pfn);
++=09=09ClearPageReserved(page);
++=09=09init_page_count(page);
++=09=09__free_page(page);
++=09=09pages++;
 +=09}
 +
-+=09PERCPU_SECTION(64)
++=09if (size && s)
++=09=09pr_info("Freeing %s memory: %dK\n", s, size);
 +
-+=09__init_end =3D .;
-+=09. =3D ALIGN(THREAD_SIZE);
-+=09__data_loc =3D .;
-+
-+=09.data : AT(__data_loc) {
-+=09=09_data =3D .;=09=09/* address in memory */
-+=09=09_sdata =3D .;
-+
-+=09=09/*
-+=09=09 * first, the init task union, aligned
-+=09=09 * to an 8192 byte boundary.
-+=09=09 */
-+=09=09INIT_TASK_DATA(THREAD_SIZE)
-+=09=09NOSAVE_DATA
-+=09=09CACHELINE_ALIGNED_DATA(64)
-+=09=09READ_MOSTLY_DATA(64)
-+
-+=09=09/*
-+=09=09 * The exception fixup table (might need resorting at runtime)
-+=09=09 */
-+=09=09. =3D ALIGN(32);
-+=09=09__start___ex_table =3D .;
-+=09=09*(__ex_table)
-+=09=09__stop___ex_table =3D .;
-+
-+=09=09/*
-+=09=09 * and the usual data section
-+=09=09 */
-+=09=09DATA_DATA
-+=09=09CONSTRUCTORS
-+
-+=09=09_edata =3D .;
-+=09}
-+=09_edata_loc =3D __data_loc + SIZEOF(.data);
-+
-+=09NOTES
-+
-+=09BSS_SECTION(0, 0, 0)
-+=09_end =3D .;
-+
-+=09STABS_DEBUG
-+=09.comment 0 : { *(.comment) }
++=09return pages;
 +}
 +
 +/*
-+ * These must never be empty
-+ * If you have to comment these two assert statements out, your
-+ * binutils is too old (for other reasons as well)
++ * Poison init memory with an undefined instruction (0x0).
 + */
-+ASSERT((__proc_info_end - __proc_info_begin), "missing CPU support")
-diff --git a/arch/arm64/mm/Kconfig b/arch/arm64/mm/Kconfig
-new file mode 100644
-index 0000000..8e94e52
---- /dev/null
-+++ b/arch/arm64/mm/Kconfig
-@@ -0,0 +1,5 @@
-+config MMU
-+=09def_bool y
++static inline void poison_init_mem(void *s, size_t count)
++{
++=09memset(s, 0, count);
++}
 +
-+config CPU_64
-+=09def_bool y
-diff --git a/arch/arm64/mm/Makefile b/arch/arm64/mm/Makefile
-new file mode 100644
-index 0000000..81a9d8b
---- /dev/null
-+++ b/arch/arm64/mm/Makefile
-@@ -0,0 +1,6 @@
-+obj-y=09=09=09=09:=3D dma-mapping.o extable.o fault.o init.o \
-+=09=09=09=09   cache.o copypage.o flush.o \
-+=09=09=09=09   ioremap.o mmap.o pgd.o mmu.o \
-+=09=09=09=09   context.o tlb.o proc.o
++#ifndef CONFIG_SPARSEMEM_VMEMMAP
++static inline void free_memmap(unsigned long start_pfn, unsigned long end_=
+pfn)
++{
++=09struct page *start_pg, *end_pg;
++=09unsigned long pg, pgend;
 +
-+obj-$(CONFIG_MODULES)=09=09+=3D proc-syms.o
-diff --git a/init/Kconfig b/init/Kconfig
-index af6c7f8..8bfda46 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1153,7 +1153,8 @@ menuconfig EXPERT
-=20
- config UID16
- =09bool "Enable 16-bit UID system calls" if EXPERT
--=09depends on ARM || BLACKFIN || CRIS || FRV || H8300 || X86_32 || M68K ||=
- (S390 && !64BIT) || SUPERH || SPARC32 || (SPARC64 && COMPAT) || UML || (X8=
-6_64 && IA32_EMULATION)
-+=09depends on ARM || BLACKFIN || CRIS || FRV || H8300 || X86_32 || M68K ||=
- (S390 && !64BIT) || SUPERH || SPARC32 || (SPARC64 && COMPAT) || UML || (X8=
-6_64 && IA32_EMULATION) \
-+=09=09|| AARCH32_EMULATION
- =09default y
- =09help
- =09  This enables the legacy 16-bit UID syscall wrappers.
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index 2403a63..cfb4578 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -452,7 +452,8 @@ config SLUB_STATS
- config DEBUG_KMEMLEAK
- =09bool "Kernel memory leak detector"
- =09depends on DEBUG_KERNEL && EXPERIMENTAL && \
--=09=09(X86 || ARM || PPC || MIPS || S390 || SPARC64 || SUPERH || MICROBLAZ=
-E || TILE)
-+=09=09(X86 || ARM || PPC || MIPS || S390 || SPARC64 || SUPERH || \
-+=09=09 MICROBLAZE || TILE || ARM64)
-=20
- =09select DEBUG_FS
- =09select STACKTRACE if STACKTRACE_SUPPORT
-@@ -739,7 +740,8 @@ config DEBUG_BUGVERBOSE
- =09bool "Verbose BUG() reporting (adds 70K)" if DEBUG_KERNEL && EXPERT
- =09depends on BUG
- =09depends on ARM || AVR32 || M32R || M68K || SPARC32 || SPARC64 || \
--=09=09   FRV || SUPERH || GENERIC_BUG || BLACKFIN || MN10300 || TILE
-+=09=09   FRV || SUPERH || GENERIC_BUG || BLACKFIN || MN10300 || \
-+=09=09   TILE || ARM64
- =09default y
- =09help
- =09  Say Y here to make BUG() panics output the file name and line number
++=09/*
++=09 * Convert start_pfn/end_pfn to a struct page pointer.
++=09 */
++=09start_pg =3D pfn_to_page(start_pfn - 1) + 1;
++=09end_pg =3D pfn_to_page(end_pfn - 1) + 1;
++
++=09/*
++=09 * Convert to physical addresses, and round start upwards and end
++=09 * downwards.
++=09 */
++=09pg =3D (unsigned long)PAGE_ALIGN(__pa(start_pg));
++=09pgend =3D (unsigned long)__pa(end_pg) & PAGE_MASK;
++
++=09/*
++=09 * If there are free pages between these, free the section of the
++=09 * memmap array.
++=09 */
++=09if (pg < pgend)
++=09=09free_bootmem(pg, pgend - pg);
++}
++
++/*
++ * The mem_map array can get very big. Free the unused area of the memory =
+map.
++ */
++static void __init free_unused_memmap(void)
++{
++=09unsigned long start, prev_end =3D 0;
++=09struct memblock_region *reg;
++
++=09for_each_memblock(memory, reg) {
++=09=09start =3D __phys_to_pfn(reg->base);
++
++#ifdef CONFIG_SPARSEMEM
++=09=09/*
++=09=09 * Take care not to free memmap entries that don't exist due
++=09=09 * to SPARSEMEM sections which aren't present.
++=09=09 */
++=09=09start =3D min(start, ALIGN(prev_end, PAGES_PER_SECTION));
++#endif
++=09=09/*
++=09=09 * If we had a previous bank, and there is a space between the
++=09=09 * current bank and the previous, free it.
++=09=09 */
++=09=09if (prev_end && prev_end < start)
++=09=09=09free_memmap(prev_end, start);
++
++=09=09/*
++=09=09 * Align up here since the VM subsystem insists that the
++=09=09 * memmap entries are valid from the bank end aligned to
++=09=09 * MAX_ORDER_NR_PAGES.
++=09=09 */
++=09=09prev_end =3D ALIGN(start + __phys_to_pfn(reg->size),
++=09=09=09=09 MAX_ORDER_NR_PAGES);
++=09}
++
++#ifdef CONFIG_SPARSEMEM
++=09if (!IS_ALIGNED(prev_end, PAGES_PER_SECTION))
++=09=09free_memmap(prev_end, ALIGN(prev_end, PAGES_PER_SECTION));
++#endif
++}
++#endif=09/* !CONFIG_SPARSEMEM_VMEMMAP */
++
++/*
++ * mem_init() marks the free areas in the mem_map and tells us how much me=
+mory
++ * is free.  This is done after various parts of the system have claimed t=
+heir
++ * memory after the kernel image.
++ */
++void __init mem_init(void)
++{
++=09unsigned long reserved_pages, free_pages;
++=09struct memblock_region *reg;
++
++#if CONFIG_SWIOTLB
++=09extern void __init arm64_swiotlb_init(size_t max_size);
++=09arm64_swiotlb_init(max_pfn << (PAGE_SHIFT - 1));
++#endif
++
++=09max_mapnr   =3D pfn_to_page(max_pfn + PHYS_PFN_OFFSET) - mem_map;
++
++#ifndef CONFIG_SPARSEMEM_VMEMMAP
++=09/* this will put all unused low memory onto the freelists */
++=09free_unused_memmap();
++#endif
++
++=09totalram_pages +=3D free_all_bootmem();
++
++=09reserved_pages =3D free_pages =3D 0;
++
++=09for_each_memblock(memory, reg) {
++=09=09unsigned int pfn1, pfn2;
++=09=09struct page *page, *end;
++
++=09=09pfn1 =3D __phys_to_pfn(reg->base);
++=09=09pfn2 =3D pfn1 + __phys_to_pfn(reg->size);
++
++=09=09page =3D pfn_to_page(pfn1);
++=09=09end  =3D pfn_to_page(pfn2 - 1) + 1;
++
++=09=09do {
++=09=09=09if (PageReserved(page))
++=09=09=09=09reserved_pages++;
++=09=09=09else if (!page_count(page))
++=09=09=09=09free_pages++;
++=09=09=09page++;
++=09=09} while (page < end);
++=09}
++
++=09/*
++=09 * Since our memory may not be contiguous, calculate the real number
++=09 * of pages we have in this system.
++=09 */
++=09pr_info("Memory:");
++=09num_physpages =3D 0;
++=09for_each_memblock(memory, reg) {
++=09=09unsigned long pages =3D memblock_region_memory_end_pfn(reg) -
++=09=09=09memblock_region_memory_base_pfn(reg);
++=09=09num_physpages +=3D pages;
++=09=09printk(" %ldMB", pages >> (20 - PAGE_SHIFT));
++=09}
++=09printk(" =3D %luMB total\n", num_physpages >> (20 - PAGE_SHIFT));
++
++=09pr_notice("Memory: %luk/%luk available, %luk reserved\n",
++=09=09  nr_free_pages() << (PAGE_SHIFT-10),
++=09=09  free_pages << (PAGE_SHIFT-10),
++=09=09  reserved_pages << (PAGE_SHIFT-10));
++
++#define MLK(b, t) b, t, ((t) - (b)) >> 10
++#define MLM(b, t) b, t, ((t) - (b)) >> 20
++#define MLK_ROUNDUP(b, t) b, t, DIV_ROUND_UP(((t) - (b)), SZ_1K)
++
++=09pr_notice("Virtual kernel memory layout:\n"
++=09=09  "    vmalloc : 0x%16lx - 0x%16lx   (%6ld MB)\n"
++#ifdef CONFIG_SPARSEMEM_VMEMMAP
++=09=09  "    vmemmap : 0x%16lx - 0x%16lx   (%6ld MB)\n"
++#endif
++=09=09  "    modules : 0x%16lx - 0x%16lx   (%6ld MB)\n"
++=09=09  "    memory  : 0x%16lx - 0x%16lx   (%6ld MB)\n"
++=09=09  "      .init : 0x%p" " - 0x%p" "   (%6ld kB)\n"
++=09=09  "      .text : 0x%p" " - 0x%p" "   (%6ld kB)\n"
++=09=09  "      .data : 0x%p" " - 0x%p" "   (%6ld kB)\n",
++=09=09  MLM(VMALLOC_START, VMALLOC_END),
++#ifdef CONFIG_SPARSEMEM_VMEMMAP
++=09=09  MLM((unsigned long)virt_to_page(PAGE_OFFSET),
++=09=09      (unsigned long)virt_to_page(high_memory)),
++#endif
++=09=09  MLM(MODULES_VADDR, MODULES_END),
++=09=09  MLM(PAGE_OFFSET, (unsigned long)high_memory),
++
++=09=09  MLK_ROUNDUP(__init_begin, __init_end),
++=09=09  MLK_ROUNDUP(_text, _etext),
++=09=09  MLK_ROUNDUP(_sdata, _edata));
++
++#undef MLK
++#undef MLM
++#undef MLK_ROUNDUP
++
++=09/*
++=09 * Check boundaries twice: Some fundamental inconsistencies can be
++=09 * detected at build time already.
++=09 */
++#ifdef CONFIG_AARCH32_EMULATION
++=09BUILD_BUG_ON(TASK_SIZE_32=09=09=09> TASK_SIZE_64);
++#endif
++=09BUILD_BUG_ON(TASK_SIZE_64=09=09=09> MODULES_VADDR);
++=09BUG_ON(TASK_SIZE_64=09=09=09=09> MODULES_VADDR);
++
++=09if (PAGE_SIZE >=3D 16384 && num_physpages <=3D 128) {
++=09=09extern int sysctl_overcommit_memory;
++=09=09/*
++=09=09 * On a machine this small we won't get anywhere without
++=09=09 * overcommit, so turn it on by default.
++=09=09 */
++=09=09sysctl_overcommit_memory =3D OVERCOMMIT_ALWAYS;
++=09}
++}
++
++void free_initmem(void)
++{
++=09poison_init_mem(__init_begin, __init_end - __init_begin);
++=09totalram_pages +=3D free_area(__phys_to_pfn(__pa(__init_begin)),
++=09=09=09=09    __phys_to_pfn(__pa(__init_end)),
++=09=09=09=09    "init");
++}
++
++#ifdef CONFIG_BLK_DEV_INITRD
++
++static int keep_initrd;
++
++void free_initrd_mem(unsigned long start, unsigned long end)
++{
++=09if (!keep_initrd) {
++=09=09poison_init_mem((void *)start, PAGE_ALIGN(end) - start);
++=09=09totalram_pages +=3D free_area(__phys_to_pfn(__pa(start)),
++=09=09=09=09=09    __phys_to_pfn(__pa(end)),
++=09=09=09=09=09    "initrd");
++=09}
++}
++
++static int __init keepinitrd_setup(char *__unused)
++{
++=09keep_initrd =3D 1;
++=09return 1;
++}
++
++__setup("keepinitrd", keepinitrd_setup);
++#endif
+diff --git a/arch/arm64/mm/mmu.c b/arch/arm64/mm/mmu.c
+new file mode 100644
+index 0000000..d2dd438
+--- /dev/null
++++ b/arch/arm64/mm/mmu.c
+@@ -0,0 +1,395 @@
++/*
++ * Based on arch/arm/mm/mmu.c
++ *
++ * Copyright (C) 1995-2005 Russell King
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/export.h>
++#include <linux/kernel.h>
++#include <linux/errno.h>
++#include <linux/init.h>
++#include <linux/mman.h>
++#include <linux/nodemask.h>
++#include <linux/memblock.h>
++#include <linux/fs.h>
++
++#include <asm/cputype.h>
++#include <asm/sections.h>
++#include <asm/setup.h>
++#include <asm/sizes.h>
++#include <asm/tlb.h>
++#include <asm/mmu_context.h>
++
++#include "mm.h"
++
++/*
++ * Empty_zero_page is a special page that is used for zero-initialized dat=
+a
++ * and COW.
++ */
++struct page *empty_zero_page;
++EXPORT_SYMBOL(empty_zero_page);
++
++pgprot_t pgprot_default;
++EXPORT_SYMBOL(pgprot_default);
++
++static pmdval_t prot_sect_kernel;
++
++struct cachepolicy {
++=09const char=09policy[16];
++=09u64=09=09mair;
++=09u64=09=09tcr;
++};
++
++static struct cachepolicy cache_policies[] __initdata =3D {
++=09{
++=09=09.policy=09=09=3D "uncached",
++=09=09.mair=09=09=3D 0x44,=09=09=09/* inner, outer non-cacheable */
++=09=09.tcr=09=09=3D TCR_IRGN_NC | TCR_ORGN_NC,
++=09}, {
++=09=09.policy=09=09=3D "writethrough",
++=09=09.mair=09=09=3D 0xaa,=09=09=09/* inner, outer write-through, read-all=
+ocate */
++=09=09.tcr=09=09=3D TCR_IRGN_WT | TCR_ORGN_WT,
++=09}, {
++=09=09.policy=09=09=3D "writeback",
++=09=09.mair=09=09=3D 0xee,=09=09=09/* inner, outer write-back, read-alloca=
+te */
++=09=09.tcr=09=09=3D TCR_IRGN_WBnWA | TCR_ORGN_WBnWA,
++=09}
++};
++
++/*
++ * These are useful for identifying cache coherency problems by allowing t=
+he
++ * cache or the cache and writebuffer to be turned off. It changes the Nor=
+mal
++ * memory caching attributes in the MAIR_EL1 register.
++ */
++static int __init early_cachepolicy(char *p)
++{
++=09int i;
++=09u64 tmp;
++
++=09for (i =3D 0; i < ARRAY_SIZE(cache_policies); i++) {
++=09=09int len =3D strlen(cache_policies[i].policy);
++
++=09=09if (memcmp(p, cache_policies[i].policy, len) =3D=3D 0)
++=09=09=09break;
++=09}
++=09if (i =3D=3D ARRAY_SIZE(cache_policies)) {
++=09=09pr_err("ERROR: unknown or unsupported cache policy: %s\n", p);
++=09=09return 0;
++=09}
++
++=09flush_cache_all();
++
++=09/*
++=09 * Modify MT_NORMAL attributes in MAIR_EL1.
++=09 */
++=09asm volatile(
++=09"=09mrs=09%0, mair_el1\n"
++=09"=09bfi=09%0, %1, #%2, #8\n"
++=09"=09msr=09mair_el1, %0\n"
++=09"=09isb\n"
++=09: "=3D&r" (tmp)
++=09: "r" (cache_policies[i].mair), "i" (MT_NORMAL * 8));
++
++=09/*
++=09 * Modify TCR PTW cacheability attributes.
++=09 */
++=09asm volatile(
++=09"=09mrs=09%0, tcr_el1\n"
++=09"=09bic=09%0, %0, %2\n"
++=09"=09orr=09%0, %0, %1\n"
++=09"=09msr=09tcr_el1, %0\n"
++=09"=09isb\n"
++=09: "=3D&r" (tmp)
++=09: "r" (cache_policies[i].tcr), "r" (TCR_IRGN_MASK | TCR_ORGN_MASK));
++
++=09flush_cache_all();
++
++=09return 0;
++}
++early_param("cachepolicy", early_cachepolicy);
++
++/*
++ * Adjust the PMD section entries according to the CPU in use.
++ */
++static void __init init_mem_pgprot(void)
++{
++=09pteval_t default_pgprot;
++=09int i;
++
++=09default_pgprot =3D PTE_ATTRINDX(MT_NORMAL);
++=09prot_sect_kernel =3D PMD_TYPE_SECT | PMD_SECT_AF | PMD_ATTRINDX(MT_NORM=
+AL);
++
++#ifdef CONFIG_SMP
++=09/*
++=09 * Mark memory with the "shared" attribute for SMP systems
++=09 */
++=09default_pgprot |=3D PTE_SHARED;
++=09prot_sect_kernel |=3D PMD_SECT_S;
++#endif
++
++=09for (i =3D 0; i < 16; i++) {
++=09=09unsigned long v =3D pgprot_val(protection_map[i]);
++=09=09protection_map[i] =3D __pgprot(v | default_pgprot);
++=09}
++
++=09pgprot_default =3D __pgprot(PTE_TYPE_PAGE | PTE_AF | default_pgprot);
++}
++
++pgprot_t phys_mem_access_prot(struct file *file, unsigned long pfn,
++=09=09=09      unsigned long size, pgprot_t vma_prot)
++{
++=09if (!pfn_valid(pfn))
++=09=09return pgprot_noncached(vma_prot);
++=09else if (file->f_flags & O_SYNC)
++=09=09return pgprot_writecombine(vma_prot);
++=09return vma_prot;
++}
++EXPORT_SYMBOL(phys_mem_access_prot);
++
++static void __init *early_alloc(unsigned long sz)
++{
++=09void *ptr =3D __va(memblock_alloc(sz, sz));
++=09memset(ptr, 0, sz);
++=09return ptr;
++}
++
++static void __init alloc_init_pte(pmd_t *pmd, unsigned long addr,
++=09=09=09=09  unsigned long end, unsigned long pfn)
++{
++=09pte_t *pte;
++
++=09if (pmd_none(*pmd)) {
++=09=09pte =3D early_alloc(PTRS_PER_PTE * sizeof(pte_t));
++=09=09__pmd_populate(pmd, __pa(pte), PMD_TYPE_TABLE);
++=09}
++=09BUG_ON(pmd_bad(*pmd));
++
++=09pte =3D pte_offset_kernel(pmd, addr);
++=09do {
++=09=09set_pte(pte, pfn_pte(pfn, PAGE_KERNEL_EXEC));
++=09=09pfn++;
++=09} while (pte++, addr +=3D PAGE_SIZE, addr !=3D end);
++}
++
++static void __init alloc_init_pmd(pud_t *pud, unsigned long addr,
++=09=09=09=09  unsigned long end, phys_addr_t phys)
++{
++=09pmd_t *pmd;
++=09unsigned long next;
++
++=09/*
++=09 * Check for initial section mappings in the pgd/pud and remove them.
++=09 */
++=09if (pud_none(*pud) || pud_bad(*pud)) {
++=09=09pmd =3D early_alloc(PTRS_PER_PMD * sizeof(pmd_t));
++=09=09pud_populate(&init_mm, pud, pmd);
++=09}
++
++=09pmd =3D pmd_offset(pud, addr);
++=09do {
++=09=09next =3D pmd_addr_end(addr, end);
++=09=09/* try section mapping first */
++=09=09if (((addr | next | phys) & ~SECTION_MASK) =3D=3D 0)
++=09=09=09set_pmd(pmd, __pmd(phys | prot_sect_kernel));
++=09=09else
++=09=09=09alloc_init_pte(pmd, addr, next, __phys_to_pfn(phys));
++=09=09phys +=3D next - addr;
++=09} while (pmd++, addr =3D next, addr !=3D end);
++}
++
++static void __init alloc_init_pud(pgd_t *pgd, unsigned long addr,
++=09=09=09=09  unsigned long end, unsigned long phys)
++{
++=09pud_t *pud =3D pud_offset(pgd, addr);
++=09unsigned long next;
++
++=09do {
++=09=09next =3D pud_addr_end(addr, end);
++=09=09alloc_init_pmd(pud, addr, next, phys);
++=09=09phys +=3D next - addr;
++=09} while (pud++, addr =3D next, addr !=3D end);
++}
++
++/*
++ * Create the page directory entries and any necessary page tables for the
++ * mapping specified by 'md'.
++ */
++static void __init create_mapping(phys_addr_t phys, unsigned long virt,
++=09=09=09=09  phys_addr_t size)
++{
++=09unsigned long addr, length, end, next;
++=09pgd_t *pgd;
++
++=09if (virt < VMALLOC_START) {
++=09=09pr_warning("BUG: not creating mapping for 0x%016llx at 0x%016lx - ou=
+tside kernel range\n",
++=09=09=09   phys, virt);
++=09=09return;
++=09}
++
++=09addr =3D virt & PAGE_MASK;
++=09length =3D PAGE_ALIGN(size + (virt & ~PAGE_MASK));
++
++=09pgd =3D pgd_offset_k(addr);
++=09end =3D addr + length;
++=09do {
++=09=09next =3D pgd_addr_end(addr, end);
++=09=09alloc_init_pud(pgd, addr, next, phys);
++=09=09phys +=3D next - addr;
++=09} while (pgd++, addr =3D next, addr !=3D end);
++}
++
++static void __init map_mem(void)
++{
++=09struct memblock_region *reg;
++
++=09/* map all the memory banks */
++=09for_each_memblock(memory, reg) {
++=09=09phys_addr_t start =3D reg->base;
++=09=09phys_addr_t end =3D start + reg->size;
++
++=09=09if (start >=3D end)
++=09=09=09break;
++
++=09=09create_mapping(start, __phys_to_virt(start), end - start);
++=09}
++}
++
++/*
++ * paging_init() sets up the page tables, initialises the zone memory
++ * maps and sets up the zero page.
++ */
++void __init paging_init(void)
++{
++=09void *zero_page;
++
++=09/*
++=09 * Maximum PGDIR_SIZE addressable via the initial direct kernel
++=09 * mapping in swapper_pg_dir.
++=09 */
++=09memblock_set_current_limit((PHYS_OFFSET & PGDIR_MASK) + PGDIR_SIZE);
++
++=09init_mem_pgprot();
++=09map_mem();
++
++=09/*
++=09 * Finally flush the caches and tlb to ensure that we're in a
++=09 * consistent state.
++=09 */
++=09flush_cache_all();
++=09flush_tlb_all();
++
++=09/* allocate the zero page. */
++=09zero_page =3D early_alloc(PAGE_SIZE);
++
++=09bootmem_init();
++
++=09empty_zero_page =3D virt_to_page(zero_page);
++=09__flush_dcache_page(NULL, empty_zero_page);
++
++=09/*
++=09 * TTBR0 is only used for the identity mapping at this stage. Make it
++=09 * point to zero page to avoid speculatively fetching new entries.
++=09 */
++=09cpu_set_reserved_ttbr0();
++=09flush_tlb_all();
++}
++
++/*
++ * Enable the identity mapping to allow the MMU disabling.
++ */
++void setup_mm_for_reboot(void)
++{
++=09cpu_switch_mm(idmap_pg_dir, &init_mm);
++=09flush_tlb_all();
++}
++
++/*
++ * Check whether a kernel address is valid (derived from arch/x86/).
++ */
++int kern_addr_valid(unsigned long addr)
++{
++=09pgd_t *pgd;
++=09pud_t *pud;
++=09pmd_t *pmd;
++=09pte_t *pte;
++
++=09if ((((long)addr) >> VA_BITS) !=3D -1UL)
++=09=09return 0;
++
++=09pgd =3D pgd_offset_k(addr);
++=09if (pgd_none(*pgd))
++=09=09return 0;
++
++=09pud =3D pud_offset(pgd, addr);
++=09if (pud_none(*pud))
++=09=09return 0;
++
++=09pmd =3D pmd_offset(pud, addr);
++=09if (pmd_none(*pmd))
++=09=09return 0;
++
++=09pte =3D pte_offset_kernel(pmd, addr);
++=09if (pte_none(*pte))
++=09=09return 0;
++
++=09return pfn_valid(pte_pfn(*pte));
++}
++#ifdef CONFIG_SPARSEMEM_VMEMMAP
++#ifdef CONFIG_ARM64_64K_PAGES
++int __meminit vmemmap_populate(struct page *start_page,
++=09=09=09       unsigned long size, int node)
++{
++=09return vmemmap_populate_basepages(start_page, size, node);
++}
++#else=09/* !CONFIG_ARM64_64K_PAGES */
++int __meminit vmemmap_populate(struct page *start_page,
++=09=09=09       unsigned long size, int node)
++{
++=09unsigned long addr =3D (unsigned long)start_page;
++=09unsigned long end =3D (unsigned long)(start_page + size);
++=09unsigned long next;
++=09pgd_t *pgd;
++=09pud_t *pud;
++=09pmd_t *pmd;
++
++=09do {
++=09=09next =3D pmd_addr_end(addr, end);
++
++=09=09pgd =3D vmemmap_pgd_populate(addr, node);
++=09=09if (!pgd)
++=09=09=09return -ENOMEM;
++
++=09=09pud =3D vmemmap_pud_populate(pgd, addr, node);
++=09=09if (!pud)
++=09=09=09return -ENOMEM;
++
++=09=09pmd =3D pmd_offset(pud, addr);
++=09=09if (pmd_none(*pmd)) {
++=09=09=09void *p =3D NULL;
++
++=09=09=09p =3D vmemmap_alloc_block_buf(PMD_SIZE, node);
++=09=09=09if (!p)
++=09=09=09=09return -ENOMEM;
++
++=09=09=09set_pmd(pmd, __pmd(__pa(p) | prot_sect_kernel));
++=09=09} else
++=09=09=09vmemmap_verify((pte_t *)pmd, node, addr, next);
++=09} while (addr =3D next, addr !=3D end);
++
++=09return 0;
++}
++#endif=09/* CONFIG_ARM64_64K_PAGES */
++#endif=09/* CONFIG_SPARSEMEM_VMEMMAP */
 
