@@ -1,278 +1,384 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v2 00/31] AArch64 Linux kernel port
-Date: Tue, 14 Aug 2012 18:52:01 +0100
-Message-ID: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v2 14/31] arm64: DMA mapping API
+Date: Tue, 14 Aug 2012 18:52:15 +0100
+Message-ID: <1344966752-16102-15-git-send-email-catalin.marinas@arm.com>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
 Content-Type: text/plain; charset=WINDOWS-1252
 Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:54910 "EHLO
+Received: from service87.mimecast.com ([91.220.42.44]:55158 "EHLO
 	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756732Ab2HNRxE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 13:53:04 -0400
+	with ESMTP id S1756850Ab2HNRxJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 13:53:09 -0400
+In-Reply-To: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 
-This is the 2nd version of the set of patches implementing Linux kernel
-support for the 64-bit ARM architecture (AArch64). Thanks to all who
-provided feedback on the previous version.
+This patch adds support for the DMA mapping API. It uses dma_map_ops for
+flexibility and it currently supports swiotlb. This patch could be
+simplified further if the DMA accesses are coherent (not mandated by the
+architecture) or if corresponding hooks are placed in the generic
+swiotlb code to deal with cache maintenance.
 
-The Linux kernel patches are available on this tree:
-
-git://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/linux-aarch64.git up=
-stream
-
-The "master" branch in the above repository tracks the development
-history.
-
-Main changes from the previous version (for the full log see the
-"master" branch above):
-
-- Kernel port directory and related functions renamed to "arm64".
-  "uname -m" reports "aarch64" as per the official name.
-- NO_BOOTMEM enabled.
-- "mem=3D" is now used for limiting the amount of memory rather than
-  specifying the memory banks (already done via FDT).
-- struct mem_type removed as static definitions are enough for
-  ioremap().
-- Support for ZONE_DMA32.
-- Replaced "user_debug" with "/proc/sys/debug/exception-trace".
-- Added a generic defconfig file.
-- More clean-up (comments, code) and bug-fixes.
-
-The generic patches were dropped from this series as they have been pushed
-separately (and most of them already merged into mainline).
-
-
-Background to the 64-bit ARM architecture:
-
-ARM introduced AArch64 as part of the ARMv8 architecture and consists of
-a substantially revised exception model (with 4 exception levels: EL0 -
-user, EL1 - kernel, EL2 - hypervisor, EL3 - secure monitor), new A64
-instruction set based on larger register file, new FP/SIMD instructions.
-The new ABI is LP64 and takes advantage of the larger register file. It
-also mandates FP.
-
-AArch64 documentation currently available (publicly, though
-click-through agreement required):
-
-- Instruction Set Overview:
-http://infocenter.arm.com/help/topic/com.arm.doc.genc010197a/index.html
-
-- ABI (PCS, ELF, DWARF, C++):
-http://infocenter.arm.com/help/topic/com.arm.doc.ihi0059a/index.html
-
-
-Regards,
-
-Catalin
-
-
-Catalin Marinas (23):
-  arm64: Assembly macros and definitions
-  arm64: Kernel booting and initialisation
-  arm64: Exception handling
-  arm64: MMU definitions
-  arm64: MMU initialisation
-  arm64: MMU fault handling and page table management
-  arm64: Process management
-  arm64: CPU support
-  arm64: Cache maintenance routines
-  arm64: TLB maintenance functionality
-  arm64: Atomic operations
-  arm64: Device specific operations
-  arm64: DMA mapping API
-  arm64: SMP support
-  arm64: ELF definitions
-  arm64: System calls handling
-  arm64: Signal handling support
-  arm64: User access library functions
-  arm64: Floating point and SIMD
-  arm64: Add support for /proc/sys/debug/exception-trace
-  arm64: Miscellaneous header files
-  arm64: Build infrastructure
-  arm64: MAINTAINERS update
-
-Marc Zyngier (3):
-  arm64: IRQ handling
-  arm64: Miscellaneous library functions
-  arm64: Generic timers support
-
-Will Deacon (5):
-  arm64: VDSO support
-  arm64: 32-bit (compat) applications support
-  arm64: Debugging support
-  arm64: Performance counters support
-  arm64: Loadable modules
-
- Documentation/arm64/booting.txt               |  141 +++
- Documentation/arm64/memory.txt                |   69 ++
- MAINTAINERS                                   |    6 +
- arch/arm64/Kconfig                            |  261 +++++
- arch/arm64/Kconfig.debug                      |   27 +
- arch/arm64/Makefile                           |   71 ++
- arch/arm64/boot/.gitignore                    |    2 +
- arch/arm64/boot/Makefile                      |   38 +
- arch/arm64/boot/install.sh                    |   52 +
- arch/arm64/configs/generic_defconfig          |   85 ++
- arch/arm64/include/asm/Kbuild                 |   51 +
- arch/arm64/include/asm/asm-offsets.h          |    1 +
- arch/arm64/include/asm/assembler.h            |  109 ++
- arch/arm64/include/asm/atomic.h               |  306 ++++++
- arch/arm64/include/asm/auxvec.h               |   22 +
- arch/arm64/include/asm/barrier.h              |   52 +
- arch/arm64/include/asm/bitops.h               |   74 ++
- arch/arm64/include/asm/bitsperlong.h          |   23 +
- arch/arm64/include/asm/byteorder.h            |   21 +
- arch/arm64/include/asm/cache.h                |   32 +
- arch/arm64/include/asm/cacheflush.h           |  209 ++++
- arch/arm64/include/asm/cachetype.h            |   48 +
- arch/arm64/include/asm/cmpxchg.h              |  180 ++++
- arch/arm64/include/asm/compat.h               |  232 +++++
- arch/arm64/include/asm/compiler.h             |   30 +
- arch/arm64/include/asm/cputype.h              |   49 +
- arch/arm64/include/asm/debug-monitors.h       |   88 ++
- arch/arm64/include/asm/device.h               |   26 +
- arch/arm64/include/asm/dma-mapping.h          |  124 +++
- arch/arm64/include/asm/elf.h                  |  176 ++++
- arch/arm64/include/asm/exception.h            |   23 +
- arch/arm64/include/asm/exec.h                 |   23 +
- arch/arm64/include/asm/fb.h                   |   34 +
- arch/arm64/include/asm/fcntl.h                |   29 +
- arch/arm64/include/asm/fpsimd.h               |   64 ++
- arch/arm64/include/asm/futex.h                |  134 +++
- arch/arm64/include/asm/hardirq.h              |   52 +
- arch/arm64/include/asm/hw_breakpoint.h        |  137 +++
- arch/arm64/include/asm/hwcap.h                |   57 +
- arch/arm64/include/asm/io.h                   |  263 +++++
- arch/arm64/include/asm/irq.h                  |    8 +
- arch/arm64/include/asm/irqflags.h             |   91 ++
- arch/arm64/include/asm/memblock.h             |   21 +
- arch/arm64/include/asm/memory.h               |  144 +++
- arch/arm64/include/asm/mmu.h                  |   27 +
- arch/arm64/include/asm/mmu_context.h          |  152 +++
- arch/arm64/include/asm/module.h               |   23 +
- arch/arm64/include/asm/page.h                 |   67 ++
- arch/arm64/include/asm/param.h                |   23 +
- arch/arm64/include/asm/perf_event.h           |   22 +
- arch/arm64/include/asm/pgalloc.h              |  113 ++
- arch/arm64/include/asm/pgtable-2level-hwdef.h |   43 +
- arch/arm64/include/asm/pgtable-2level-types.h |   60 ++
- arch/arm64/include/asm/pgtable-3level-hwdef.h |   50 +
- arch/arm64/include/asm/pgtable-3level-types.h |   66 ++
- arch/arm64/include/asm/pgtable-hwdef.h        |   94 ++
- arch/arm64/include/asm/pgtable.h              |  328 ++++++
- arch/arm64/include/asm/pmu.h                  |   82 ++
- arch/arm64/include/asm/proc-fns.h             |   51 +
- arch/arm64/include/asm/processor.h            |  174 ++++
- arch/arm64/include/asm/procinfo.h             |   44 +
- arch/arm64/include/asm/prom.h                 |    1 +
- arch/arm64/include/asm/ptrace.h               |  206 ++++
- arch/arm64/include/asm/setup.h                |   26 +
- arch/arm64/include/asm/shmparam.h             |   28 +
- arch/arm64/include/asm/sigcontext.h           |   69 ++
- arch/arm64/include/asm/siginfo.h              |   23 +
- arch/arm64/include/asm/signal.h               |   24 +
- arch/arm64/include/asm/signal32.h             |   54 +
- arch/arm64/include/asm/smp.h                  |   69 ++
- arch/arm64/include/asm/sparsemem.h            |   24 +
- arch/arm64/include/asm/spinlock.h             |  199 ++++
- arch/arm64/include/asm/spinlock_types.h       |   38 +
- arch/arm64/include/asm/stacktrace.h           |   29 +
- arch/arm64/include/asm/stat.h                 |   63 ++
- arch/arm64/include/asm/statfs.h               |   23 +
- arch/arm64/include/asm/syscall.h              |  101 ++
- arch/arm64/include/asm/syscalls.h             |   40 +
- arch/arm64/include/asm/system_misc.h          |   54 +
- arch/arm64/include/asm/thread_info.h          |  124 +++
- arch/arm64/include/asm/timex.h                |   32 +
- arch/arm64/include/asm/tlb.h                  |  190 ++++
- arch/arm64/include/asm/tlbflush.h             |  123 +++
- arch/arm64/include/asm/traps.h                |   30 +
- arch/arm64/include/asm/uaccess.h              |  377 +++++++
- arch/arm64/include/asm/ucontext.h             |   30 +
- arch/arm64/include/asm/unistd.h               |   27 +
- arch/arm64/include/asm/unistd32.h             |  758 ++++++++++++++
- arch/arm64/include/asm/vdso.h                 |   41 +
- arch/arm64/include/asm/vdso_datapage.h        |   43 +
- arch/arm64/kernel/.gitignore                  |    1 +
- arch/arm64/kernel/Makefile                    |   27 +
- arch/arm64/kernel/arm64ksyms.c                |   55 +
- arch/arm64/kernel/asm-offsets.c               |  108 ++
- arch/arm64/kernel/debug-monitors.c            |  288 ++++++
- arch/arm64/kernel/elf.c                       |   41 +
- arch/arm64/kernel/entry-fpsimd.S              |   80 ++
- arch/arm64/kernel/entry.S                     |  695 +++++++++++++
- arch/arm64/kernel/fpsimd.c                    |  106 ++
- arch/arm64/kernel/head.S                      |  521 ++++++++++
- arch/arm64/kernel/hw_breakpoint.c             |  880 ++++++++++++++++
- arch/arm64/kernel/io.c                        |   64 ++
- arch/arm64/kernel/irq.c                       |   84 ++
- arch/arm64/kernel/kuser32.S                   |   77 ++
- arch/arm64/kernel/module.c                    |  456 ++++++++
- arch/arm64/kernel/perf_event.c                | 1368 +++++++++++++++++++++=
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ arch/arm64/include/asm/dma-mapping.h |  124 ++++++++++++++++++++
+ arch/arm64/mm/dma-mapping.c          |  208 ++++++++++++++++++++++++++++++=
 ++++
- arch/arm64/kernel/process.c                   |  416 ++++++++
- arch/arm64/kernel/ptrace.c                    |  834 +++++++++++++++
- arch/arm64/kernel/setup.c                     |  357 +++++++
- arch/arm64/kernel/signal.c                    |  436 ++++++++
- arch/arm64/kernel/signal32.c                  |  876 ++++++++++++++++
- arch/arm64/kernel/smp.c                       |  469 +++++++++
- arch/arm64/kernel/stacktrace.c                |  127 +++
- arch/arm64/kernel/sys.c                       |  138 +++
- arch/arm64/kernel/sys32.S                     |  283 +++++
- arch/arm64/kernel/sys_compat.c                |  177 ++++
- arch/arm64/kernel/time.c                      |   65 ++
- arch/arm64/kernel/traps.c                     |  357 +++++++
- arch/arm64/kernel/vdso.c                      |  261 +++++
- arch/arm64/kernel/vdso/.gitignore             |    2 +
- arch/arm64/kernel/vdso/Makefile               |   63 ++
- arch/arm64/kernel/vdso/gen_vdso_offsets.sh    |   15 +
- arch/arm64/kernel/vdso/gettimeofday.S         |  242 +++++
- arch/arm64/kernel/vdso/note.S                 |   28 +
- arch/arm64/kernel/vdso/sigreturn.S            |   37 +
- arch/arm64/kernel/vdso/vdso.S                 |   33 +
- arch/arm64/kernel/vdso/vdso.lds.S             |  100 ++
- arch/arm64/kernel/vmlinux.lds.S               |  146 +++
- arch/arm64/lib/Makefile                       |    5 +
- arch/arm64/lib/bitops.c                       |   25 +
- arch/arm64/lib/clear_page.S                   |   39 +
- arch/arm64/lib/clear_user.S                   |   58 ++
- arch/arm64/lib/copy_from_user.S               |   66 ++
- arch/arm64/lib/copy_in_user.S                 |   63 ++
- arch/arm64/lib/copy_page.S                    |   46 +
- arch/arm64/lib/copy_to_user.S                 |   61 ++
- arch/arm64/lib/delay.c                        |   55 +
- arch/arm64/lib/getuser.S                      |   75 ++
- arch/arm64/lib/putuser.S                      |   73 ++
- arch/arm64/lib/strncpy_from_user.S            |   50 +
- arch/arm64/lib/strnlen_user.S                 |   47 +
- arch/arm64/mm/Kconfig                         |    5 +
- arch/arm64/mm/Makefile                        |    6 +
- arch/arm64/mm/cache.S                         |  279 +++++
- arch/arm64/mm/context.c                       |  159 +++
- arch/arm64/mm/copypage.c                      |   34 +
- arch/arm64/mm/dma-mapping.c                   |  208 ++++
- arch/arm64/mm/extable.c                       |   17 +
- arch/arm64/mm/fault.c                         |  534 ++++++++++
- arch/arm64/mm/flush.c                         |  132 +++
- arch/arm64/mm/init.c                          |  416 ++++++++
- arch/arm64/mm/ioremap.c                       |   84 ++
- arch/arm64/mm/mm.h                            |    2 +
- arch/arm64/mm/mmap.c                          |  144 +++
- arch/arm64/mm/mmu.c                           |  395 +++++++
- arch/arm64/mm/pgd.c                           |   49 +
- arch/arm64/mm/proc-macros.S                   |   55 +
- arch/arm64/mm/proc-syms.c                     |   31 +
- arch/arm64/mm/proc.S                          |  193 ++++
- arch/arm64/mm/tlb.S                           |   71 ++
- drivers/clocksource/Kconfig                   |    5 +
- drivers/clocksource/Makefile                  |    1 +
- drivers/clocksource/arm_generic.c             |  309 ++++++
- include/clocksource/arm_generic.h             |   21 +
- init/Kconfig                                  |    3 +-
- kernel/sysctl.c                               |    2 +-
- lib/Kconfig.debug                             |    6 +-
- tools/perf/perf.h                             |    6 +
- 168 files changed, 22089 insertions(+), 4 deletions(-)
+ 2 files changed, 332 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/dma-mapping.h
+ create mode 100644 arch/arm64/mm/dma-mapping.c
+
+diff --git a/arch/arm64/include/asm/dma-mapping.h b/arch/arm64/include/asm/=
+dma-mapping.h
+new file mode 100644
+index 0000000..538f4b4
+--- /dev/null
++++ b/arch/arm64/include/asm/dma-mapping.h
+@@ -0,0 +1,124 @@
++/*
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_DMA_MAPPING_H
++#define __ASM_DMA_MAPPING_H
++
++#ifdef __KERNEL__
++
++#include <linux/types.h>
++#include <linux/vmalloc.h>
++
++#include <asm-generic/dma-coherent.h>
++
++#define ARCH_HAS_DMA_GET_REQUIRED_MASK
++
++extern struct dma_map_ops *dma_ops;
++
++static inline struct dma_map_ops *get_dma_ops(struct device *dev)
++{
++=09if (unlikely(!dev) || !dev->archdata.dma_ops)
++=09=09return dma_ops;
++=09else
++=09=09return dev->archdata.dma_ops;
++}
++
++#include <asm-generic/dma-mapping-common.h>
++
++static inline dma_addr_t phys_to_dma(struct device *dev, phys_addr_t paddr=
+)
++{
++=09return (dma_addr_t)paddr;
++}
++
++static inline phys_addr_t dma_to_phys(struct device *dev, dma_addr_t dev_a=
+ddr)
++{
++=09return (phys_addr_t)dev_addr;
++}
++
++static inline int dma_mapping_error(struct device *dev, dma_addr_t dev_add=
+r)
++{
++=09struct dma_map_ops *ops =3D get_dma_ops(dev);
++=09return ops->mapping_error(dev, dev_addr);
++}
++
++static inline int dma_supported(struct device *dev, u64 mask)
++{
++=09struct dma_map_ops *ops =3D get_dma_ops(dev);
++=09return ops->dma_supported(dev, mask);
++}
++
++static inline int dma_set_mask(struct device *dev, u64 mask)
++{
++=09if (!dev->dma_mask || !dma_supported(dev, mask))
++=09=09return -EIO;
++=09*dev->dma_mask =3D mask;
++
++=09return 0;
++}
++
++static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t=
+ size)
++{
++=09if (!dev->dma_mask)
++=09=09return 0;
++
++=09return addr + size - 1 <=3D *dev->dma_mask;
++}
++
++static inline void dma_mark_clean(void *addr, size_t size)
++{
++}
++
++static inline void *dma_alloc_coherent(struct device *dev, size_t size,
++=09=09=09=09       dma_addr_t *dma_handle, gfp_t flags)
++{
++=09struct dma_map_ops *ops =3D get_dma_ops(dev);
++=09void *vaddr;
++
++=09if (dma_alloc_from_coherent(dev, size, dma_handle, &vaddr))
++=09=09return vaddr;
++
++=09vaddr =3D ops->alloc(dev, size, dma_handle, flags, NULL);
++=09debug_dma_alloc_coherent(dev, size, *dma_handle, vaddr);
++=09return vaddr;
++}
++
++static inline void dma_free_coherent(struct device *dev, size_t size,
++=09=09=09=09     void *vaddr, dma_addr_t dev_addr)
++{
++=09struct dma_map_ops *ops =3D get_dma_ops(dev);
++
++=09if (dma_release_from_coherent(dev, get_order(size), vaddr))
++=09=09return;
++
++=09debug_dma_free_coherent(dev, size, vaddr, dev_addr);
++=09ops->free(dev, size, vaddr, dev_addr, NULL);
++}
++
++/*
++ * There is no dma_cache_sync() implementation, so just return NULL here.
++ */
++static inline void *dma_alloc_noncoherent(struct device *dev, size_t size,
++=09=09=09=09=09  dma_addr_t *handle, gfp_t flags)
++{
++=09return NULL;
++}
++
++static inline void dma_free_noncoherent(struct device *dev, size_t size,
++=09=09=09=09=09void *cpu_addr, dma_addr_t handle)
++{
++}
++
++#endif=09/* __KERNEL__ */
++#endif=09/* __ASM_DMA_MAPPING_H */
+diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
+new file mode 100644
+index 0000000..4e5871d
+--- /dev/null
++++ b/arch/arm64/mm/dma-mapping.c
+@@ -0,0 +1,208 @@
++/*
++ * SWIOTLB-based DMA API implementation
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ * Author: Catalin Marinas <catalin.marinas@arm.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/gfp.h>
++#include <linux/export.h>
++#include <linux/slab.h>
++#include <linux/dma-mapping.h>
++#include <linux/vmalloc.h>
++#include <linux/swiotlb.h>
++
++#include <asm/cacheflush.h>
++
++struct dma_map_ops *dma_ops;
++EXPORT_SYMBOL(dma_ops);
++
++static void *arm64_swiotlb_alloc_coherent(struct device *dev, size_t size,
++=09=09=09=09=09  dma_addr_t *dma_handle, gfp_t flags,
++=09=09=09=09=09  struct dma_attrs *attrs)
++{
++=09struct page *page, **map;
++=09void *ptr;
++=09int order =3D get_order(size);
++=09int i;
++
++=09if (dev->coherent_dma_mask !=3D DMA_BIT_MASK(64))
++=09=09flags |=3D GFP_DMA;
++
++=09ptr =3D swiotlb_alloc_coherent(dev, size, dma_handle, flags);
++=09if (!ptr)
++=09=09goto no_mem;
++=09map =3D kmalloc(sizeof(struct page *) << order, flags & ~GFP_DMA);
++=09if (!map)
++=09=09goto no_map;
++
++=09/* remove any dirty cache lines on the kernel alias */
++=09dmac_flush_range(ptr, ptr + size);
++
++=09/* create a coherent mapping */
++=09page =3D virt_to_page(ptr);
++=09for (i =3D 0; i < (size >> PAGE_SHIFT); i++)
++=09=09map[i] =3D page + i;
++=09ptr =3D vmap(map, size >> PAGE_SHIFT, VM_MAP,
++=09=09   pgprot_dmacoherent(pgprot_default)); kfree(map);
++=09if (!ptr)
++=09=09goto no_map;
++
++=09return ptr;
++
++no_map:
++=09swiotlb_free_coherent(dev, size, ptr, *dma_handle);
++no_mem:
++=09*dma_handle =3D ~0;
++=09return NULL;
++}
++
++static void arm64_swiotlb_free_coherent(struct device *dev, size_t size,
++=09=09=09=09=09void *vaddr, dma_addr_t dma_handle,
++=09=09=09=09=09struct dma_attrs *attrs)
++{
++=09vunmap(vaddr);
++=09swiotlb_free_coherent(dev, size, vaddr, dma_handle);
++}
++
++static dma_addr_t arm64_swiotlb_map_page(struct device *dev,
++=09=09=09=09=09 struct page *page,
++=09=09=09=09=09 unsigned long offset, size_t size,
++=09=09=09=09=09 enum dma_data_direction dir,
++=09=09=09=09=09 struct dma_attrs *attrs)
++{
++=09dma_addr_t dev_addr;
++
++=09dev_addr =3D swiotlb_map_page(dev, page, offset, size, dir, attrs);
++=09dmac_map_area(phys_to_virt(dma_to_phys(dev, dev_addr)), size, dir);
++
++=09return dev_addr;
++}
++
++
++static void arm64_swiotlb_unmap_page(struct device *dev, dma_addr_t dev_ad=
+dr,
++=09=09=09=09     size_t size, enum dma_data_direction dir,
++=09=09=09=09     struct dma_attrs *attrs)
++{
++=09dmac_unmap_area(phys_to_virt(dma_to_phys(dev, dev_addr)), size, dir);
++=09swiotlb_unmap_page(dev, dev_addr, size, dir, attrs);
++}
++
++static int arm64_swiotlb_map_sg_attrs(struct device *dev,
++=09=09=09=09      struct scatterlist *sgl, int nelems,
++=09=09=09=09      enum dma_data_direction dir,
++=09=09=09=09      struct dma_attrs *attrs)
++{
++=09struct scatterlist *sg;
++=09int i, ret;
++
++=09ret =3D swiotlb_map_sg_attrs(dev, sgl, nelems, dir, attrs);
++=09for_each_sg(sgl, sg, ret, i)
++=09=09dmac_map_area(phys_to_virt(dma_to_phys(dev, sg->dma_address)),
++=09=09=09      sg->length, dir);
++
++=09return ret;
++}
++
++static void arm64_swiotlb_unmap_sg_attrs(struct device *dev,
++=09=09=09=09=09 struct scatterlist *sgl, int nelems,
++=09=09=09=09=09 enum dma_data_direction dir,
++=09=09=09=09=09 struct dma_attrs *attrs)
++{
++=09struct scatterlist *sg;
++=09int i;
++
++=09for_each_sg(sgl, sg, nelems, i)
++=09=09dmac_unmap_area(phys_to_virt(dma_to_phys(dev, sg->dma_address)),
++=09=09=09=09sg->length, dir);
++=09swiotlb_unmap_sg_attrs(dev, sgl, nelems, dir, attrs);
++}
++
++static void arm64_swiotlb_sync_single_for_cpu(struct device *dev,
++=09=09=09=09=09      dma_addr_t dev_addr,
++=09=09=09=09=09      size_t size,
++=09=09=09=09=09      enum dma_data_direction dir)
++{
++=09dmac_unmap_area(phys_to_virt(dma_to_phys(dev, dev_addr)), size, dir);
++=09swiotlb_sync_single_for_cpu(dev, dev_addr, size, dir);
++}
++
++static void arm64_swiotlb_sync_single_for_device(struct device *dev,
++=09=09=09=09=09=09 dma_addr_t dev_addr,
++=09=09=09=09=09=09 size_t size,
++=09=09=09=09=09=09 enum dma_data_direction dir)
++{
++=09swiotlb_sync_single_for_device(dev, dev_addr, size, dir);
++=09dmac_map_area(phys_to_virt(dma_to_phys(dev, dev_addr)), size, dir);
++}
++
++static void arm64_swiotlb_sync_sg_for_cpu(struct device *dev,
++=09=09=09=09=09  struct scatterlist *sgl, int nelems,
++=09=09=09=09=09  enum dma_data_direction dir)
++{
++=09struct scatterlist *sg;
++=09int i;
++
++=09for_each_sg(sgl, sg, nelems, i)
++=09=09dmac_unmap_area(phys_to_virt(dma_to_phys(dev, sg->dma_address)),
++=09=09=09=09sg->length, dir);
++=09swiotlb_sync_sg_for_cpu(dev, sgl, nelems, dir);
++}
++
++static void arm64_swiotlb_sync_sg_for_device(struct device *dev,
++=09=09=09=09=09     struct scatterlist *sgl,
++=09=09=09=09=09     int nelems,
++=09=09=09=09=09     enum dma_data_direction dir)
++{
++=09struct scatterlist *sg;
++=09int i;
++
++=09swiotlb_sync_sg_for_device(dev, sgl, nelems, dir);
++=09for_each_sg(sgl, sg, nelems, i)
++=09=09dmac_map_area(phys_to_virt(dma_to_phys(dev, sg->dma_address)),
++=09=09=09      sg->length, dir);
++}
++
++static struct dma_map_ops arm64_swiotlb_dma_ops =3D {
++=09.alloc =3D arm64_swiotlb_alloc_coherent,
++=09.free =3D arm64_swiotlb_free_coherent,
++=09.map_page =3D arm64_swiotlb_map_page,
++=09.unmap_page =3D arm64_swiotlb_unmap_page,
++=09.map_sg =3D arm64_swiotlb_map_sg_attrs,
++=09.unmap_sg =3D arm64_swiotlb_unmap_sg_attrs,
++=09.sync_single_for_cpu =3D arm64_swiotlb_sync_single_for_cpu,
++=09.sync_single_for_device =3D arm64_swiotlb_sync_single_for_device,
++=09.sync_sg_for_cpu =3D arm64_swiotlb_sync_sg_for_cpu,
++=09.sync_sg_for_device =3D arm64_swiotlb_sync_sg_for_device,
++=09.dma_supported =3D swiotlb_dma_supported,
++=09.mapping_error =3D swiotlb_dma_mapping_error,
++};
++
++void __init swiotlb_init_with_default_size(size_t default_size, int verbos=
+e);
++
++void __init arm64_swiotlb_init(size_t max_size)
++{
++=09dma_ops =3D &arm64_swiotlb_dma_ops;
++=09swiotlb_init_with_default_size(min((size_t)SZ_64M, max_size), 1);
++}
++
++#define PREALLOC_DMA_DEBUG_ENTRIES=094096
++
++static int __init dma_debug_do_init(void)
++{
++=09dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
++=09return 0;
++}
++fs_initcall(dma_debug_do_init);
