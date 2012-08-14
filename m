@@ -1,160 +1,182 @@
-From: Sam Ravnborg <sam@ravnborg.org>
-Subject: Re: [PATCH v2 30/31] arm64: Build infrastructure
-Date: Tue, 14 Aug 2012 23:01:02 +0200
-Message-ID: <20120814210102.GA4386@merkur.ravnborg.org>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <1344966752-16102-31-git-send-email-catalin.marinas@arm.com>
+From: Olof Johansson <olof@lixom.net>
+Subject: Re: [PATCH v2 02/31] arm64: Kernel booting and initialisation
+Date: Tue, 14 Aug 2012 16:06:45 -0700
+Message-ID: <20120814230645.GA19607@quad.lixom.net>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
+ <1344966752-16102-3-git-send-email-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp.snhosting.dk ([87.238.248.203]:26973 "EHLO
-	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757422Ab2HNVBF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 17:01:05 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1344966752-16102-31-git-send-email-catalin.marinas@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <1344966752-16102-3-git-send-email-catalin.marinas@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Catalin Marinas <catalin.marinas@arm.com>
 Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
-> 
-> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-> new file mode 100644
-> index 0000000..1ce3d04
+Hi,
+
+
+On Tue, Aug 14, 2012 at 06:52:03PM +0100, Catalin Marinas wrote:
+
+> +Before jumping into the kernel, the following conditions must be met:
+> +
+> +- Quiesce all DMA capable devices so that memory does not get
+> +  corrupted by bogus network packets or disk data.  This will save
+> +  you many hours of debug.
+> +
+> +- Primary CPU general-purpose register settings
+> +  x0 = physical address of device tree blob (dtb) in system RAM.
+> +
+> +- CPU mode
+> +  All forms of interrupts must be masked in PSTATE.DAIF (Debug, SError,
+> +  IRQ and FIQ).
+> +  The CPU must be in either EL2 (RECOMMENDED in order to have access to
+> +  the virtualisation extensions) or non-secure EL1.
+> +
+> +- Caches, MMUs
+> +  The MMU must be off.
+> +  Instruction cache may be on or off.
+> +  Data cache must be off and invalidated.
+> +
+> +- Architected timers
+> +  CNTFRQ must be programmed with the timer frequency.
+> +  If entering the kernel at EL1, CNTHCTL_EL2 must have EL1PCTEN (bit 0)
+> +  set where available.
+> +
+> +- Coherency
+> +  All CPUs to be booted by the kernel must be part of the same coherency
+> +  domain on entry to the kernel.  This may require IMPLEMENTATION DEFINED
+> +  initialisation to enable the receiving of maintenance operations on
+> +  each CPU.
+> +
+> +- System registers
+> +  All writable architected system registers at the exception level where
+> +  the kernel image will be entered must be initialised by software at a
+> +  higher exception level to prevent execution in an UNKNOWN state.
+
+Given the recent development of ARM platforms, you might want to mandate
+the state of IOMMUs as well (they should probably be off, since there
+should be no active DMA activity). Graphics would be the exception to
+this, since if you want to keep scanning out a splash screen, you'll
+have to keep doing DMA...
+
+> +- The primary CPU must jump directly to the first instruction of the
+> +  kernel image.  The device tree blob passed by this CPU must contain
+> +  for each CPU node:
+> +
+> +    1. An 'enable-method' property. Currently, the only supported value
+> +       for this field is the string "spin-table".
+> +
+> +    2. A 'cpu-release-addr' property identifying a 64-bit,
+> +       zero-initialised memory location.
+
+These would be good to have documented in the
+Documentation/devicetree/bindings hierarchy as well.
+
+> index 0000000..d766493
 > --- /dev/null
-> +++ b/arch/arm64/Kconfig
-> @@ -0,0 +1,261 @@
-> +config ARM64
-> +	def_bool y
-> +	select OF
-> +	select OF_EARLY_FLATTREE
-> +	select IRQ_DOMAIN
-> +	select HAVE_AOUT
-> +	select HAVE_DMA_ATTRS
-> +	select HAVE_DMA_API_DEBUG
-> +	select HAVE_IDE
-> +	select HAVE_MEMBLOCK
-> +	select RTC_LIB
-> +	select SYS_SUPPORTS_APM_EMULATION
-> +	select HAVE_GENERIC_DMA_COHERENT
-> +	select GENERIC_IOMAP
-> +	select HAVE_IRQ_WORK
-> +	select HAVE_PERF_EVENTS
-> +	select HAVE_ARCH_TRACEHOOK
-> +	select PERF_USE_VMALLOC
-> +	select HAVE_HW_BREAKPOINT if PERF_EVENTS
-> +	select HAVE_GENERIC_HARDIRQS
-> +	select GENERIC_HARDIRQS_NO_DEPRECATED
-> +	select HAVE_SPARSE_IRQ
-> +	select SPARSE_IRQ
-> +	select GENERIC_IRQ_SHOW
-> +	select GENERIC_SMP_IDLE_THREAD
-> +	select NO_BOOTMEM
+> +++ b/arch/arm64/include/asm/setup.h
+> @@ -0,0 +1,26 @@
+> +/*
+> + * Based on arch/arm/include/asm/setup.h
+> + *
+> + * Copyright (C) 1997-1999 Russell King
+> + * Copyright (C) 2012 ARM Ltd.
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License version 2 as
+> + * published by the Free Software Foundation.
+> + *
+> + * This program is distributed in the hope that it will be useful,
+> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> + * GNU General Public License for more details.
+> + *
+> + * You should have received a copy of the GNU General Public License
+> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+> + */
+> +#ifndef __ASM_SETUP_H
+> +#define __ASM_SETUP_H
+> +
+> +#include <linux/types.h>
+> +
+> +#define COMMAND_LINE_SIZE 1024
 
-If you keep this list sorted then merge conflicts are less likely.
+Probably not a huge deal, and other architectures seem to be all over
+the map on this, but you might want to go with a larger value now rather
+than later. 2048 or 4096 perhaps?
 
+> diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
+> new file mode 100644
+> index 0000000..34ccdc0
+> --- /dev/null
+> +++ b/arch/arm64/kernel/head.S
 
-> +	help
-> +	  ARM 64-bit (AArch64) Linux support.
-> +
-> +config 64BIT
-> +	def_bool y
-> +
-> +config ARCH_PHYS_ADDR_T_64BIT
-> +	def_bool y
-> +
-> +config HAVE_PWM
-> +	bool
-> +
-> +config SYS_SUPPORTS_APM_EMULATION
-> +	bool
-> +
-> +config NO_IOPORT
-> +	def_bool y
-> +
-> +config GENERIC_GPIO
-> +	bool
-> +
-> +config GENERIC_TIME_VSYSCALL
-> +	def_bool y
-Please use select like all other archs do.
+[...]
 
+> +/*
+> + * Setup common bits before finally enabling the MMU. Essentially this is just
+> + * loading the page table pointer and vector base registers.
+> + *
+> + * On entry to this code, x0 must contain the SCTLR_EL1 value for turning on
+> + * the MMU.
+> + */
+> +__enable_mmu:
 
-> +
-> +config GENERIC_CLOCKEVENTS
-> +	def_bool y
-Again - please use select.
+ENTRY()?
 
-> +
-> +config STACKTRACE_SUPPORT
-> +	def_bool y
-> +
-> +config LOCKDEP_SUPPORT
-> +	def_bool y
-> +
-> +config TRACE_IRQFLAGS_SUPPORT
-> +	def_bool y
-> +
-> +config HARDIRQS_SW_RESEND
-> +	def_bool y
-Please use select.
+> +	ldr	x5, =vectors
+> +	msr	vbar_el1, x5
+> +	msr	ttbr0_el1, x25			// load TTBR0
+> +	msr	ttbr1_el1, x26			// load TTBR1
+> +	isb
+> +	b	__turn_mmu_on
+> +ENDPROC(__enable_mmu)
 
-> +
-> +config GENERIC_IRQ_PROBE
-> +	def_bool y
-Please use select.
+...or just END()? Same for a few of the other functions below.
 
+> diff --git a/arch/arm64/kernel/setup.c b/arch/arm64/kernel/setup.c
+> new file mode 100644
+> index 0000000..f25186f
+> --- /dev/null
+> +++ b/arch/arm64/kernel/setup.c
+
+[...]
+
+> +static void __init setup_processor(void)
+> +{
+> +	struct proc_info_list *list;
 > +
-> +config GENERIC_LOCKBREAK
-> +	def_bool y
-> +	depends on SMP && PREEMPT
-> +
-> +config RWSEM_GENERIC_SPINLOCK
-> +	def_bool y
-> +
-> +config RWSEM_XCHGADD_ALGORITHM
-> +	bool
-> +
-> +config ARCH_HAS_ILOG2_U32
-> +	bool
-> +
-> +config ARCH_HAS_ILOG2_U64
-> +	bool
-> +
-> +config ARCH_HAS_CPUFREQ
-> +	bool
-> +	help
-> +	  Internal node to signify that the ARCH has CPUFREQ support
-> +	  and that the relevant menu configurations are displayed for
-> +	  it.
-> +
-> +config GENERIC_HWEIGHT
-> +	def_bool y
-> +
-> +config GENERIC_CSUM
-> +        def_bool y
-> +
-> +config GENERIC_CALIBRATE_DELAY
-> +	def_bool y
-> +
-> +config ZONE_DMA32
-> +	def_bool y
-> +
-> +config ARCH_DMA_ADDR_T_64BIT
-> +	def_bool y
-> +
-> +config NEED_DMA_MAP_STATE
-> +	def_bool y
-> +
-> +config NEED_SG_DMA_LENGTH
-> +	def_bool y
-> +
-> +config SWIOTLB
-> +	def_bool y
-> +
-> +config IOMMU_HELPER
-> +	def_bool SWIOTLB
-> +
+> +	/*
+> +	 * locate processor in the list of supported processor
+> +	 * types.  The linker builds this table for us from the
+> +	 * entries in arch/arm/mm/proc.S
+> +	 */
+
+Probably from arch/arm64/... somewhere?
 
 
-	Sam
+[...]
+
+> +	printk("CPU: %s [%08x] revision %d\n",
+> +	       cpu_name, read_cpuid_id(), read_cpuid_id() & 15);
+> +
+> +	sprintf(init_utsname()->machine, "aarch64");
+
+> +	initial_boot_params = devtree;
+> +	dt_root = of_get_flat_dt_root();
+> +
+> +	machine_name = of_get_flat_dt_prop(dt_root, "model", NULL);
+> +	if (!machine_name)
+> +		machine_name = of_get_flat_dt_prop(dt_root, "compatible", NULL);
+> +	if (!machine_name)
+> +		machine_name = "<unknown>";
+> +	pr_info("Machine: %s\n", machine_name);
+
+This property is an array of strings. It would be more valuable to print out
+the entry that was matched for a platform instead of the provided one from the
+device tree.
+
+
+-Olof
