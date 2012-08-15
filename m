@@ -1,80 +1,63 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 02/31] arm64: Kernel booting and initialisation
-Date: Wed, 15 Aug 2012 13:20:02 +0000
-Message-ID: <201208151320.02313.arnd@arndb.de>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <1344966752-16102-3-git-send-email-catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 04/31] arm64: MMU definitions
+Date: Wed, 15 Aug 2012 13:30:01 +0000
+Message-ID: <201208151330.02112.arnd@arndb.de>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <1344966752-16102-5-git-send-email-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
   charset="windows-1252"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:51799 "EHLO
+Received: from moutng.kundenserver.de ([212.227.17.9]:57522 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751065Ab2HONUI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2012 09:20:08 -0400
-In-Reply-To: <1344966752-16102-3-git-send-email-catalin.marinas@arm.com>
+	with ESMTP id S1751920Ab2HONaF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2012 09:30:05 -0400
+In-Reply-To: <1344966752-16102-5-git-send-email-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>
 Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>
 
 On Tuesday 14 August 2012, Catalin Marinas wrote:
-
-> +The AArch64 exception model is made up of a number of exception levels
-> +(EL0 - EL3), with EL0 and EL1 having a secure and a non-secure
-> +counterpart.  EL2 is the hypervisor level and exists only in non-secure
-> +mode. EL3 is the highest priority level and exists only in secure mode.
-
-I'm always confused by a description like this. It sounds like you cannot
-have a hypervisor if you have code running in secure mode in EL3. What
-I instead understand is that you enter non-secure mode by going from
-EL3 into EL2.
-
-> +2. Setup the device tree
-> +-------------------------
+>
+> +/*
+> + * TCR flags.
+> + */
+> +#define TCR_TxSZ(x)		(((64 - (x)) << 16) | ((64 - (x)) << 0))
+> +#define TCR_IRGN_NC		((0 << 8) | (0 << 24))
+> +#define TCR_IRGN_WBWA		((1 << 8) | (1 << 24))
+> +#define TCR_IRGN_WT		((2 << 8) | (2 << 24))
+> +#define TCR_IRGN_WBnWA		((3 << 8) | (3 << 24))
+> +#define TCR_IRGN_MASK		((3 << 8) | (3 << 24))
+> +#define TCR_ORGN_NC		((0 << 10) | (0 << 26))
+> +#define TCR_ORGN_WBWA		((1 << 10) | (1 << 26))
+> +#define TCR_ORGN_WT		((2 << 10) | (2 << 26))
+> +#define TCR_ORGN_WBnWA		((3 << 10) | (3 << 26))
+> +#define TCR_ORGN_MASK		((3 << 10) | (3 << 26))
+> +#define TCR_SHARED		((3 << 12) | (3 << 28))
+> +#define TCR_TG0_64K		(1 << 14)
+> +#define TCR_TG1_64K		(1 << 30)
+> +#define TCR_IPS_40BIT		(2 << 32)
+> +#define TCR_ASID16		(1 << 36)
 > +
-> +Requirement: MANDATORY
-> +
-> +The device tree blob (dtb) must be no bigger than 2 megabytes in size
-> +and placed at a 2-megabyte boundary within the first 512 megabytes from
-> +the start of the kernel image. This is to allow the kernel to map the
-> +blob using a single section mapping in the initial page tables.
 
-I've seen people put firmware for some peripherals into the device tree,
-so that a device driver can grab a blob from there and load it into the
-device, rather than calling request_firmware() which would fail if the
-OS running on the system does not contain the blob. If such firmware is
-too large, you end up violating the 2 MB limit you impose here.
+As a matter of coding style, I would much prefer tables like this to be
+written as
 
-Should we keep that limit and declare those use cases as invalid, or
-should we try to make the boot protocol more flexible?
+#define TCR_IRGN_MASK		0x0000000003000300
+#define TCR_IRGN_WBnWA		0x0000000003000300
+#define TCR_IRGN_WT		0x0000000002000200
+#define TCR_IRGN_WBWA		0x0000000001000100
+#define TCR_IRGN_NC		0x0000000000000000
 
-> diff --git a/arch/arm64/include/asm/setup.h b/arch/arm64/include/asm/setup.h
-> new file mode 100644
-> index 0000000..d766493
-> --- /dev/null
-> +++ b/arch/arm64/include/asm/setup.h
-> @@ -0,0 +1,26 @@
-> +#ifndef __ASM_SETUP_H
-> +#define __ASM_SETUP_H
-> +
-> +#include <linux/types.h>
-> +
-> +#define COMMAND_LINE_SIZE 1024
-> +
-> +#endif
+#define TCR_ORGN_MASK		0x000000000c000c00
+#define TCR_ORGN_WBnWA		0x000000000c000c00
+#define TCR_ORGN_WT		0x0000000008000800
+#define TCR_ORGN_WBWA		0x0000000004000400
+#define TCR_ORGN_NC		0x0000000000000000
 
-Is this necessary? The asm-generic version of this file allows 512 bytes,
-which seems plenty.
-
-> +unsigned int processor_id;
-> +EXPORT_SYMBOL(processor_id);
-> +
-> +unsigned int elf_hwcap __read_mostly;
-> +EXPORT_SYMBOL(elf_hwcap);
-
-EXPORT_SYMBOL_GPL?
-
-Neither of these looks like they should be used in drivers.
+The advantage of this is that you can visually compare the bitmasks
+to a hex dump, and if you are suffering from endian-confused documentation
+authors, there is no ambiguity about which end of the word is bit zero.
 
 	Arnd
