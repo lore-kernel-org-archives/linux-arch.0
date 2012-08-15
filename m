@@ -1,30 +1,48 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 27/31] arm64: Loadable modules
-Date: Wed, 15 Aug 2012 16:16:56 +0000
-Message-ID: <201208151616.56932.arnd@arndb.de>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <201208151523.21447.arnd@arndb.de> <20120815153538.GA14264@arm.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH v2 04/31] arm64: MMU definitions
+Date: Wed, 15 Aug 2012 18:34:46 +0200
+Message-ID: <CAMuHMdUEKNYFAU4N8KnJ0DPYgW7BRtaaJQSARDJCVjQOU2bFBw@mail.gmail.com>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
+	<1344966752-16102-5-git-send-email-catalin.marinas@arm.com>
+	<201208151330.02112.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:58144 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750781Ab2HOQRD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2012 12:17:03 -0400
-In-Reply-To: <20120815153538.GA14264@arm.com>
+Received: from mail-qc0-f174.google.com ([209.85.216.174]:60382 "EHLO
+	mail-qc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755693Ab2HOQer (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2012 12:34:47 -0400
+In-Reply-To: <201208151330.02112.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>
 
-On Wednesday 15 August 2012, Catalin Marinas wrote:
-> Primarily branch relocation, we have a limitation to 128MB branch range.
-> The alternative would be to always compile the modules with a large
-> memory model but we may lose some performance and could make the
-> relocation handling even harder. What we do now is pretty much similar
-> to static linking but at module load time.
+On Wed, Aug 15, 2012 at 3:30 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+>> +#define TCR_IPS_40BIT                (2 << 32)
 
-Ok, makes sense.
+By default, constants are int, i.e. 32-bit. So you must write
 
-	Arnd
+2ULL << 32
+
+>> +#define TCR_ASID16           (1 << 36)
+
+1ULL
+
+> As a matter of coding style, I would much prefer tables like this to be
+> written as
+>
+> #define TCR_IRGN_MASK           0x0000000003000300
+
+0x0000000003000300ULL, to be safe
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
