@@ -1,18 +1,18 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 17/31] arm64: System calls handling
-Date: Wed, 15 Aug 2012 14:22:16 +0000
-Message-ID: <201208151422.16335.arnd@arndb.de>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <1344966752-16102-18-git-send-email-catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 21/31] arm64: 32-bit (compat) applications support
+Date: Wed, 15 Aug 2012 14:34:04 +0000
+Message-ID: <201208151434.05145.arnd@arndb.de>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <1344966752-16102-22-git-send-email-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
   charset="windows-1252"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:63426 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.186]:50142 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754150Ab2HOOWT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2012 10:22:19 -0400
-In-Reply-To: <1344966752-16102-18-git-send-email-catalin.marinas@arm.com>
+	with ESMTP id S1750833Ab2HOOeN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2012 10:34:13 -0400
+In-Reply-To: <1344966752-16102-22-git-send-email-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>
@@ -20,118 +20,85 @@ Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kern
 
 On Tuesday 14 August 2012, Catalin Marinas wrote:
 
+> +#ifdef CONFIG_AARCH32_EMULATION
+> +#include <linux/compat.h>
 > +
-> +/* This matches struct stat64 in glibc2.1, hence the absolutely
-> + * insane amounts of padding around dev_t's.
-> + * Note: The kernel zero's the padded region because glibc might read them
-> + * in the hope that the kernel has stretched to using larger sizes.
-> + */
-> +struct stat64 {
-> +	compat_u64	st_dev;
-> +	unsigned char   __pad0[4];
+> +#define AARCH32_KERN_SIGRET_CODE_OFFSET	0x500
 > +
-> +#define STAT64_HAS_BROKEN_ST_INO	1
-> +	compat_ulong_t	__st_ino;
-> +	compat_uint_t	st_mode;
-> +	compat_uint_t	st_nlink;
+> +extern const compat_ulong_t aarch32_sigret_code[6];
 > +
-> +	compat_ulong_t	st_uid;
-> +	compat_ulong_t	st_gid;
+> +int compat_setup_frame(int usig, struct k_sigaction *ka, sigset_t *set,
+> +		       struct pt_regs *regs);
+> +int compat_setup_rt_frame(int usig, struct k_sigaction *ka, siginfo_t *info,
+> +			  sigset_t *set, struct pt_regs *regs);
 > +
-> +	compat_u64	st_rdev;
-> +	unsigned char   __pad3[4];
+> +void compat_setup_restart_syscall(struct pt_regs *regs);
+> +#else
 > +
-> +	compat_s64	st_size;
-> +	compat_ulong_t	st_blksize;
-> +	compat_u64	st_blocks;	/* Number 512-byte blocks allocated. */
-> +
-> +	compat_ulong_t	st_atime;
-> +	compat_ulong_t	st_atime_nsec;
-> +
-> +	compat_ulong_t	st_mtime;
-> +	compat_ulong_t	st_mtime_nsec;
-> +
-> +	compat_ulong_t	st_ctime;
-> +	compat_ulong_t	st_ctime_nsec;
-> +
-> +	compat_u64	st_ino;
-> +};
-
-The comment above struct stat64 is completely irrelevant here. I would instead
-explain why you need your own stat64 in the first place.
-
-> +int kernel_execve(const char *filename,
-> +		  const char *const argv[],
-> +		  const char *const envp[])
+> +static inline int compat_setup_frame(int usid, struct k_sigaction *ka,
+> +				     sigset_t *set, struct pt_regs *regs)
 > +{
-> +	struct pt_regs regs;
+> +	BUG();
+> +}
+
+What good is the run-time BUG() here? Nothing should be calling these
+when CONFIG_COMPAT is disabled, so I think you should just remove
+the #ifdef around the declarations, and the entire #else case.
+
+
+> +asmlinkage int compat_sys_sched_rr_get_interval(compat_pid_t pid,
+> +						struct compat_timespec __user *interval)
+> +{
+> +	struct timespec t;
 > +	int ret;
+> +	mm_segment_t old_fs = get_fs();
 > +
-> +	memset(&regs, 0, sizeof(struct pt_regs));
-> +	ret = do_execve(filename,
-> +			(const char __user *const __user *)argv,
-> +			(const char __user *const __user *)envp, &regs);
-> +	if (ret < 0)
-> +		goto out;
-> +
-> +	/*
-> +	 * Save argc to the register structure for userspace.
-> +	 */
-> +	regs.regs[0] = ret;
-> +
-> +	/*
-> +	 * We were successful.  We won't be returning to our caller, but
-> +	 * instead to user space by manipulating the kernel stack.
-> +	 */
-> +	asm(	"add	x0, %0, %1\n\t"
-> +		"mov	x1, %2\n\t"
-> +		"mov	x2, %3\n\t"
-> +		"bl	memmove\n\t"	/* copy regs to top of stack */
-> +		"mov	x27, #0\n\t"	/* not a syscall */
-> +		"mov	x28, %0\n\t"	/* thread structure */
-> +		"mov	sp, x0\n\t"	/* reposition stack pointer */
-> +		"b	ret_to_user"
-> +		:
-> +		: "r" (current_thread_info()),
-> +		  "Ir" (THREAD_START_SP - sizeof(regs)),
-> +		  "r" (&regs),
-> +		  "Ir" (sizeof(regs))
-> +		: "x0", "x1", "x2", "x27", "x28", "x30", "memory");
-> +
-> + out:
+> +	set_fs(KERNEL_DS);
+> +	ret = sys_sched_rr_get_interval(pid, (struct timespec __user *)&t);
+> +	set_fs(old_fs);
+> +	if (put_compat_timespec(&t, interval))
+> +		return -EFAULT;
 > +	return ret;
 > +}
-> +EXPORT_SYMBOL(kernel_execve);
-
-Al Viro was recently talking about a generic implementation of execve.
-I can't find that now, but I think you should use that.
-
 > +
-> +asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
-> +			 unsigned long prot, unsigned long flags,
-> +			 unsigned long fd, off_t off)
+> +asmlinkage int compat_sys_sendfile(int out_fd, int in_fd,
+> +				   compat_off_t __user *offset, s32 count)
 > +{
-> +	if (offset_in_page(off) != 0)
-> +		return -EINVAL;
+> +	mm_segment_t old_fs = get_fs();
+> +	int ret;
+> +	off_t of;
 > +
-> +	return sys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
+> +	if (offset && get_user(of, offset))
+> +		return -EFAULT;
+> +
+> +	set_fs(KERNEL_DS);
+> +	ret = sys_sendfile(out_fd, in_fd, offset ? (off_t __user *)&of : NULL,
+> +			   count);
+> +	set_fs(old_fs);
+> +
+> +	if (offset && put_user(of, offset))
+> +		return -EFAULT;
+> +	return ret;
 > +}
+
+I guess it's time to move these two into common code. They look like they should
+be shared across most architectures that have compat support.
+
+> +asmlinkage int compat_sys_personality(compat_ulong_t personality)
+> +{
+> +	int ret;
 > +
-> +/*
-> + * Wrappers to pass the pt_regs argument.
-> + */
-> +#define sys_execve		sys_execve_wrapper
-> +#define sys_clone		sys_clone_wrapper
-> +#define sys_rt_sigreturn	sys_rt_sigreturn_wrapper
-> +#define sys_sigaltstack		sys_sigaltstack_wrapper
+> +	if (personality(current->personality) == PER_LINUX32 &&
+> +		personality == PER_LINUX)
+> +		personality = PER_LINUX32;
+> +	ret = sys_personality(personality);
+> +	if (ret == PER_LINUX32)
+> +		ret = PER_LINUX;
+> +	return ret;
+> +}
 
-I think
+Where did you get this from?
 
-#define sys_mmap sys_mmap_pgoff 
-
-would be more appropriate than defining your own sys_mmap function here.
-We should probably make that the default in asm-generic/unistd.h and
-change the architectures that have their own implementation to override
-it.
+You should not need compat_sys_personality, just call the native function.
 
 	Arnd
