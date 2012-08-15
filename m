@@ -1,44 +1,42 @@
-From: Heiko Carstens <heiko.carstens@de.ibm.com>
-Subject: Re: [PATCH 2/2] s390: Always use "long" for ssize_t to match size_t
-Date: Wed, 15 Aug 2012 10:07:53 +0200
-Message-ID: <20120815080752.GC3622@osiris.de.ibm.com>
-References: <1344765694-7465-1-git-send-email-geert@linux-m68k.org>
- <1344765694-7465-2-git-send-email-geert@linux-m68k.org>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH 0/2] Align MIPS swapper_pg_dir for faster code.
+Date: Wed, 15 Aug 2012 12:57:20 +0200
+Message-ID: <20120815105720.GA6270@linux-mips.org>
+References: <1344967681-13179-1-git-send-email-ddaney.cavm@gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp17.uk.ibm.com ([195.75.94.113]:39334 "EHLO
-	e06smtp17.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751259Ab2HOIID (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2012 04:08:03 -0400
-Received: from /spool/local
-	by e06smtp17.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <heiko.carstens@de.ibm.com>;
-	Wed, 15 Aug 2012 09:08:01 +0100
+Received: from eddie.linux-mips.org ([78.24.191.182]:48637 "EHLO
+	cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751317Ab2HOK5a (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2012 06:57:30 -0400
 Content-Disposition: inline
-In-Reply-To: <1344765694-7465-2-git-send-email-geert@linux-m68k.org>
+In-Reply-To: <1344967681-13179-1-git-send-email-ddaney.cavm@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, linux-s390@vger.kernel.org
+To: David Daney <ddaney.cavm@gmail.com>
+Cc: linux-mips@linux-mips.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, David Daney <david.daney@cavium.com>
 
-On Sun, Aug 12, 2012 at 12:01:34PM +0200, Geert Uytterhoeven wrote:
-> On s390x-linux-gcc, __SIZE_TYPE__ expands to "long unsigned int" for both
-> 32-bit s390 and 64-bit s390x, as
-> gcc-4.6.3-nolibc/s390x-linux/lib/gcc/s390x-linux/4.6.3/plugin/include/config/s390/linux.h
-> has
-> 
->     #define SIZE_TYPE (TARGET_64BIT ? "long unsigned int" : "long unsigned int")
-> 
-> To match this, __kernel_size_t is always set to "long unsigned int".
-> 
-> But while __kernel_ssize_t is "long" on 64-bit s390x, it is "int" on 32-bit
-> s390, causing compiler warnings like:
-> 
->     fs/quota/quota_tree.c:372:4: warning: format '%zd' expects argument of type 'signed size_t', but argument 4 has type 'ssize_t' [-Wformat]
-> 
-> To fix this, __kernel_ssize_t should be "long", irrespective of word size.
-> 
-> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+On Tue, Aug 14, 2012 at 11:07:59AM -0700, David Daney wrote:
 
-Applied. Thanks Geert!
+> From: David Daney <david.daney@cavium.com>
+> 
+> The MIPS swapper_pg_dir needs 64K alignment for faster TLB refills in
+> kernel mappings.  There are two parts to the patch set:
+> 
+> 1) Modify generic vmlinux.lds.h to allow architectures to place
+>    additional sections at the start of .bss.  This allows alignment
+>    constraints to be met with minimal holes added for padding.
+>    Putting this in common code should reduce the risk of future
+>    changes to the linker scripts not being propagated to MIPS (or any
+>    other architecture that needs something like this).
+> 
+> 2) Align the MIPS swapper_pg_dir.
+> 
+> Since the initial use of the code is for MIPS, perhaps both parts
+> could be merged by Ralf's tree (after collecting any Acked-bys).
+
+Looks good to me but will wait a bit longer for comments and (N)Acks
+before merging.
+
+  Ralf
