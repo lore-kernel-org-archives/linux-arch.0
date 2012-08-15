@@ -1,114 +1,70 @@
 From: Olof Johansson <olof@lixom.net>
-Subject: Re: [PATCH v2 12/31] arm64: Atomic operations
-Date: Tue, 14 Aug 2012 17:21:30 -0700
-Message-ID: <20120815002130.GE19607@quad.lixom.net>
+Subject: Re: [PATCH v2 13/31] arm64: Device specific operations
+Date: Tue, 14 Aug 2012 17:33:55 -0700
+Message-ID: <20120815003355.GF19607@quad.lixom.net>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-13-git-send-email-catalin.marinas@arm.com>
+ <1344966752-16102-14-git-send-email-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-gg0-f174.google.com ([209.85.161.174]:48180 "EHLO
-	mail-gg0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752545Ab2HOAVa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 20:21:30 -0400
-Received: by ggdk6 with SMTP id k6so1183271ggd.19
-        for <linux-arch@vger.kernel.org>; Tue, 14 Aug 2012 17:21:29 -0700 (PDT)
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <1344966752-16102-13-git-send-email-catalin.marinas@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <1344966752-16102-14-git-send-email-catalin.marinas@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Catalin Marinas <catalin.marinas@arm.com>
 Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi,
-
-On Tue, Aug 14, 2012 at 06:52:13PM +0100, Catalin Marinas wrote:
-> This patch introduces the atomic, mutex and futex operations. Many
-> atomic operations use the load-acquire and store-release operations
-> which imply barriers, avoiding the need for explicit DMB.
+On Tue, Aug 14, 2012 at 06:52:14PM +0100, Catalin Marinas wrote:
+> This patch adds several definitions for device communication, including
+> I/O accessors and ioremap(). The __raw_* accessors are implemented as
+> inline asm to avoid compiler generation of post-indexed accesses (less
+> efficient to emulate in a virtualised environment).
 > 
 > Signed-off-by: Will Deacon <will.deacon@arm.com>
 > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 > ---
->  arch/arm64/include/asm/atomic.h |  306 +++++++++++++++++++++++++++++++++++++++
->  arch/arm64/include/asm/futex.h  |  134 +++++++++++++++++
->  2 files changed, 440 insertions(+), 0 deletions(-)
->  create mode 100644 arch/arm64/include/asm/atomic.h
->  create mode 100644 arch/arm64/include/asm/futex.h
+>  arch/arm64/include/asm/device.h |   26 ++++
+>  arch/arm64/include/asm/fb.h     |   34 +++++
+>  arch/arm64/include/asm/io.h     |  263 +++++++++++++++++++++++++++++++++++++++
+>  arch/arm64/kernel/io.c          |   64 ++++++++++
+>  arch/arm64/mm/ioremap.c         |   84 +++++++++++++
+>  5 files changed, 471 insertions(+), 0 deletions(-)
+>  create mode 100644 arch/arm64/include/asm/device.h
+>  create mode 100644 arch/arm64/include/asm/fb.h
+>  create mode 100644 arch/arm64/include/asm/io.h
+>  create mode 100644 arch/arm64/kernel/io.c
+>  create mode 100644 arch/arm64/mm/ioremap.c
 > 
-> diff --git a/arch/arm64/include/asm/atomic.h b/arch/arm64/include/asm/atomic.h
+> diff --git a/arch/arm64/include/asm/io.h b/arch/arm64/include/asm/io.h
 > new file mode 100644
-> index 0000000..fa60c8b
+> index 0000000..48fa83f
 > --- /dev/null
-> +++ b/arch/arm64/include/asm/atomic.h
-> @@ -0,0 +1,306 @@
-> +/*
-> + * Based on arch/arm/include/asm/atomic.h
-> + *
-> + * Copyright (C) 1996 Russell King.
-> + * Copyright (C) 2002 Deep Blue Solutions Ltd.
-> + * Copyright (C) 2012 ARM Ltd.
-> + *
-> + * This program is free software; you can redistribute it and/or modify
-> + * it under the terms of the GNU General Public License version 2 as
-> + * published by the Free Software Foundation.
-> + *
-> + * This program is distributed in the hope that it will be useful,
-> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
-> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-> + * GNU General Public License for more details.
-> + *
-> + * You should have received a copy of the GNU General Public License
-> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-> + */
-> +#ifndef __ASM_ATOMIC_H
-> +#define __ASM_ATOMIC_H
-> +
-> +#include <linux/compiler.h>
-> +#include <linux/types.h>
-> +
-> +#include <asm/barrier.h>
-> +#include <asm/cmpxchg.h>
-> +
-> +#define ATOMIC_INIT(i)	{ (i) }
-> +
-> +#ifdef __KERNEL__
-> +
-> +/*
-> + * On ARM, ordinary assignment (str instruction) doesn't clear the local
-> + * strex/ldrex monitor on some implementations. The reason we can use it for
-> + * atomic_set() is the clrex or dummy strex done on every exception return.
-> + */
-> +#define atomic_read(v)	(*(volatile int *)&(v)->counter)
-> +#define atomic_set(v,i)	(((v)->counter) = (i))
-> +
-> +/*
-> + * AArch64 UP and SMP safe atomic ops.  We use load exclusive and
-> + * store exclusive to ensure that these are atomic.  We may loop
-> + * to ensure that the update happens.
-> + */
-> +static inline void atomic_add(int i, atomic_t *v)
-> +{
-> +	unsigned long tmp;
-> +	int result;
-> +
-> +	asm volatile("// atomic_add\n"
-> +"1:	ldxr	%w0, [%3]\n"
-> +"	add	%w0, %w0, %w4\n"
-> +"	stxr	%w1, %w0, [%3]\n"
-> +"	cbnz	%w1,1b"
-
-Nit: space before 1b
+> +++ b/arch/arm64/include/asm/io.h
 
 [...]
 
-> diff --git a/arch/arm64/include/asm/futex.h b/arch/arm64/include/asm/futex.h
-> new file mode 100644
-> index 0000000..0745e82
-> --- /dev/null
-> +++ b/arch/arm64/include/asm/futex.h
-> @@ -0,0 +1,134 @@
 > +/*
+> + *  I/O port access primitives.
+> + */
+> +#define IO_SPACE_LIMIT		0xffff
+> +
+> +/*
+> + * We currently don't have any platform with PCI support, so just leave this
+> + * defined to 0 until needed.
+> + */
+> +#define PCI_IOBASE		((void __iomem *)0)
+
+You could just leave out the PCI / I/O code alltogether instead.
+
+> diff --git a/arch/arm64/kernel/io.c b/arch/arm64/kernel/io.c
+> new file mode 100644
+> index 0000000..7d37ead
+> --- /dev/null
+> +++ b/arch/arm64/kernel/io.c
+> @@ -0,0 +1,64 @@
+> +/*
+> + * Based on arch/arm/kernel/io.c
+> + *
 > + * Copyright (C) 2012 ARM Ltd.
 > + *
 > + * This program is free software; you can redistribute it and/or modify
@@ -123,134 +79,57 @@ Nit: space before 1b
 > + * You should have received a copy of the GNU General Public License
 > + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 > + */
-> +#ifndef __ASM_FUTEX_H
-> +#define __ASM_FUTEX_H
 > +
-> +#ifdef __KERNEL__
+> +#include <linux/export.h>
+> +#include <linux/types.h>
+> +#include <linux/io.h>
 > +
-> +#include <linux/futex.h>
-> +#include <linux/uaccess.h>
-> +#include <asm/errno.h>
-> +
-> +#define __futex_atomic_op(insn, ret, oldval, uaddr, tmp, oparg)		\
-> +	asm volatile(							\
-> +"1:	ldaxr	%w1, %2\n"						\
-> +	insn "\n"							\
-> +"2:	stlxr	%w3, %w0, %2\n"						\
-> +"	cbnz	%w3, 1b\n"						\
-> +"3:	.pushsection __ex_table,\"a\"\n"				\
-> +"	.align	3\n"							\
-> +"	.quad	1b, 4f, 2b, 4f\n"					\
-> +"	.popsection\n"							\
-> +"	.pushsection .fixup,\"ax\"\n"					\
-
-Moving the exception table below the body of the code makes the flow easier to
-read, please do that.
-
-Also, don't you need a barrier here?
-
-> +"4:	mov	%w0, %w5\n"						\
-> +"	b	3b\n"							\
-> +"	.popsection"							\
-> +	: "=&r" (ret), "=&r" (oldval), "+Q" (*uaddr), "=&r" (tmp)	\
-> +	: "r" (oparg), "Ir" (-EFAULT)					\
-> +	: "cc")
-> +
-> +static inline int
-> +futex_atomic_op_inuser (int encoded_op, u32 __user *uaddr)
+> +/*
+> + * Copy data from IO memory space to "real" memory space.
+> + */
+> +void __memcpy_fromio(void *to, const volatile void __iomem *from, size_t count)
 > +{
-> +	int op = (encoded_op >> 28) & 7;
-> +	int cmp = (encoded_op >> 24) & 15;
-> +	int oparg = (encoded_op << 8) >> 20;
-> +	int cmparg = (encoded_op << 20) >> 20;
-> +	int oldval = 0, ret, tmp;
-> +
-> +	if (encoded_op & (FUTEX_OP_OPARG_SHIFT << 28))
-> +		oparg = 1 << oparg;
-> +
-> +	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
-> +		return -EFAULT;
-> +
-> +	pagefault_disable();	/* implies preempt_disable() */
-> +
-> +	switch (op) {
-> +	case FUTEX_OP_SET:
-> +		__futex_atomic_op("mov	%w0, %w4",
-> +				  ret, oldval, uaddr, tmp, oparg);
-> +		break;
-> +	case FUTEX_OP_ADD:
-> +		__futex_atomic_op("add	%w0, %w1, %w4",
-> +				  ret, oldval, uaddr, tmp, oparg);
-> +		break;
-> +	case FUTEX_OP_OR:
-> +		__futex_atomic_op("orr	%w0, %w1, %w4",
-> +				  ret, oldval, uaddr, tmp, oparg);
-> +		break;
-> +	case FUTEX_OP_ANDN:
-> +		__futex_atomic_op("and	%w0, %w1, %w4",
-> +				  ret, oldval, uaddr, tmp, ~oparg);
-> +		break;
-> +	case FUTEX_OP_XOR:
-> +		__futex_atomic_op("eor	%w0, %w1, %w4",
-> +				  ret, oldval, uaddr, tmp, oparg);
-> +		break;
-> +	default:
-> +		ret = -ENOSYS;
+> +	unsigned char *t = to;
+> +	while (count) {
+> +		count--;
+> +		*t = readb(from);
+> +		t++;
+> +		from++;
 > +	}
-> +
-> +	pagefault_enable();	/* subsumes preempt_enable() */
-> +
-> +	if (!ret) {
-> +		switch (cmp) {
-> +		case FUTEX_OP_CMP_EQ: ret = (oldval == cmparg); break;
-> +		case FUTEX_OP_CMP_NE: ret = (oldval != cmparg); break;
-> +		case FUTEX_OP_CMP_LT: ret = (oldval < cmparg); break;
-> +		case FUTEX_OP_CMP_GE: ret = (oldval >= cmparg); break;
-> +		case FUTEX_OP_CMP_LE: ret = (oldval <= cmparg); break;
-> +		case FUTEX_OP_CMP_GT: ret = (oldval > cmparg); break;
-> +		default: ret = -ENOSYS;
-> +		}
-> +	}
-> +	return ret;
 > +}
+> +EXPORT_SYMBOL(__memcpy_fromio);
 > +
-> +static inline int
-> +futex_atomic_cmpxchg_inatomic(u32 *uval, u32 __user *uaddr,
-> +			      u32 oldval, u32 newval)
+> +/*
+> + * Copy data from "real" memory space to IO memory space.
+> + */
+> +void __memcpy_toio(volatile void __iomem *to, const void *from, size_t count)
 > +{
-> +	int ret = 0;
-> +	u32 val, tmp;
-> +
-> +	if (!access_ok(VERIFY_WRITE, uaddr, sizeof(u32)))
-> +		return -EFAULT;
-> +
-> +	asm volatile("// futex_atomic_cmpxchg_inatomic\n"
-> +"1:	ldaxr	%w1, %2\n"
-> +"	sub	%w3, %w1, %w4\n"
-> +"	cbnz	%w3, 3f\n"
-> +"2:	stlxr	%w3, %w5, %2\n"
-> +"	cbnz	%w3, 1b\n"
-> +"3:	.pushsection __ex_table,\"a\"\n"
-> +"	.align	3\n"
-> +"	.quad	1b, 4f, 2b, 4f\n"
-> +"	.popsection\n"
-> +"	.pushsection .fixup,\"ax\"\n"
-
-Same here w.r.t. exception table location and barrier.
-
-> +"4:	mov	%w0, %w6\n"
-> +"	b	3b\n"
-> +"	.popsection"
-> +	: "+r" (ret), "=&r" (val), "+Q" (*uaddr), "=&r" (tmp)
-> +	: "r" (oldval), "r" (newval), "Ir" (-EFAULT)
-> +	: "cc", "memory");
-> +
-> +	*uval = val;
-> +	return ret;
+> +	const unsigned char *f = from;
+> +	while (count) {
+> +		count--;
+> +		writeb(*f, to);
+> +		f++;
+> +		to++;
+> +	}
 > +}
+> +EXPORT_SYMBOL(__memcpy_toio);
 > +
-> +#endif /* __KERNEL__ */
-> +#endif /* __ASM_FUTEX_H */
+> +/*
+> + * "memset" on IO memory space.
+> + */
+> +void __memset_io(volatile void __iomem *dst, int c, size_t count)
+> +{
+> +	while (count) {
+> +		count--;
+> +		writeb(c, dst);
+> +		dst++;
+> +	}
+> +}
+> +EXPORT_SYMBOL(__memset_io);
+
+Doing all of the above a byte at a time is horribly inefficient. Feel
+free to borrow the implementations from arch/powerpc/kernel/io.c instead
+of from ARM.
 
 
 -Olof
