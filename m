@@ -1,52 +1,50 @@
 From: Olof Johansson <olof@lixom.net>
-Subject: Re: [PATCH v2 14/31] arm64: DMA mapping API
-Date: Tue, 14 Aug 2012 17:40:06 -0700
-Message-ID: <20120815004006.GG19607@quad.lixom.net>
+Subject: Re: [PATCH v2 15/31] arm64: SMP support
+Date: Tue, 14 Aug 2012 17:49:14 -0700
+Message-ID: <20120815004914.GH19607@quad.lixom.net>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-15-git-send-email-catalin.marinas@arm.com>
+ <1344966752-16102-16-git-send-email-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-yx0-f174.google.com ([209.85.213.174]:61423 "EHLO
+	mail-yx0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752843Ab2HOAtO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 20:49:14 -0400
+Received: by yenl14 with SMTP id l14so1202715yen.19
+        for <linux-arch@vger.kernel.org>; Tue, 14 Aug 2012 17:49:13 -0700 (PDT)
 Content-Disposition: inline
-In-Reply-To: <1344966752-16102-15-git-send-email-catalin.marinas@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: linux-arm-kernel-bounces@lists.infradead.org
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+In-Reply-To: <1344966752-16102-16-git-send-email-catalin.marinas@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>, Marc Zyngier <marc.zyngier@arm.com>
 
 Hi,
 
-
-On Tue, Aug 14, 2012 at 06:52:15PM +0100, Catalin Marinas wrote:
-> This patch adds support for the DMA mapping API. It uses dma_map_ops for
-> flexibility and it currently supports swiotlb. This patch could be
-> simplified further if the DMA accesses are coherent (not mandated by the
-> architecture) or if corresponding hooks are placed in the generic
-> swiotlb code to deal with cache maintenance.
+On Tue, Aug 14, 2012 at 06:52:16PM +0100, Catalin Marinas wrote:
+> This patch adds SMP initialisation and spinlocks implementation for
+> AArch64. The spinlock support uses the new load-acquire/store-release
+> instructions to avoid explicit barriers. The architecture also specifies
+> that an event is automatically generated when clearing the exclusive
+> monitor state to wake up processors in WFE, so there is no need for an
+> explicit DSB/SEV instruction sequence. The SEVL instruction is used to
+> set the exclusive monitor locally as there is no conditional WFE and a
+> branch is more expensive.
 > 
+> For the SMP booting protocol, see Documentation/arm64/booting.txt.
+> 
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> Signed-off-by: Marc Zyngier <marc.zyngier@arm.com>
 > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 > ---
->  arch/arm64/include/asm/dma-mapping.h |  124 ++++++++++++++++++++
->  arch/arm64/mm/dma-mapping.c          |  208 ++++++++++++++++++++++++++++++++++
->  2 files changed, 332 insertions(+), 0 deletions(-)
->  create mode 100644 arch/arm64/include/asm/dma-mapping.h
->  create mode 100644 arch/arm64/mm/dma-mapping.c
-> 
-> diff --git a/arch/arm64/include/asm/dma-mapping.h b/arch/arm64/include/asm/dma-mapping.h
+
+> diff --git a/arch/arm64/include/asm/spinlock.h b/arch/arm64/include/asm/spinlock.h
 > new file mode 100644
-> index 0000000..538f4b4
+> index 0000000..34a37fb
 > --- /dev/null
-> +++ b/arch/arm64/include/asm/dma-mapping.h
-> @@ -0,0 +1,124 @@
+> +++ b/arch/arm64/include/asm/spinlock.h
+> @@ -0,0 +1,199 @@
 > +/*
 > + * Copyright (C) 2012 ARM Ltd.
 > + *
@@ -62,33 +60,25 @@ On Tue, Aug 14, 2012 at 06:52:15PM +0100, Catalin Marinas wrote:
 > + * You should have received a copy of the GNU General Public License
 > + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 > + */
-> +#ifndef __ASM_DMA_MAPPING_H
-> +#define __ASM_DMA_MAPPING_H
+> +#ifndef __ASM_SPINLOCK_H
+> +#define __ASM_SPINLOCK_H
 > +
-> +#ifdef __KERNEL__
+> +#include <asm/spinlock_types.h>
+> +#include <asm/processor.h>
 > +
-> +#include <linux/types.h>
-> +#include <linux/vmalloc.h>
-> +
-> +#include <asm-generic/dma-coherent.h>
-> +
-> +#define ARCH_HAS_DMA_GET_REQUIRED_MASK
-> +
-> +extern struct dma_map_ops *dma_ops;
-> 
-> +static inline struct dma_map_ops *get_dma_ops(struct device *dev)
-> +{
-> +	if (unlikely(!dev) || !dev->archdata.dma_ops)
-> +		return dma_ops;
-> +	else
-> +		return dev->archdata.dma_ops;
-> +}
+> +/*
+> + * AArch64 Spin-locking.
+> + *
+> + * We exclusively read the old value.  If it is zero, we may have
+> + * won the lock, so we try exclusively storing it.  A memory barrier
+> + * is required after we get a lock, and before we release it, because
+> + * V6 CPUs are assumed to have weakly ordered memory.
 
-Does it make sense to add the concept of a global dma ops on arm64,
-instead of requiring the dma ops pointer per device similar to how
-some other platforms do it (including powerpc)? For devices that lack
-archdata.dma_ops, dma_supported() should return 0 (and the other ops
-should return error).
+This comment should be updated, to mention the implicit locking and remove the
+reference to V6?
+
+Also, ignore previous questions on another reply about need for barriers,
+obviously not needed given the load-acquire/store-release semantics.
 
 
 
