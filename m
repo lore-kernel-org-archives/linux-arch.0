@@ -1,82 +1,214 @@
-From: Olof Johansson <olof@lixom.net>
+From: Catalin Marinas <catalin.marinas@arm.com>
 Subject: Re: [PATCH v2 02/31] arm64: Kernel booting and initialisation
-Date: Wed, 15 Aug 2012 10:06:13 -0700
-Message-ID: <20120815170613.GA2892@quad.lixom.net>
+Date: Wed, 15 Aug 2012 18:37:11 +0100
+Message-ID: <20120815173711.GC14264@arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
  <1344966752-16102-3-git-send-email-catalin.marinas@arm.com>
- <201208151320.02313.arnd@arndb.de>
+ <20120814230645.GA19607@quad.lixom.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f46.google.com ([209.85.160.46]:61282 "EHLO
-	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754064Ab2HORGM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2012 13:06:12 -0400
-Received: by pbbrr13 with SMTP id rr13so87595pbb.19
-        for <linux-arch@vger.kernel.org>; Wed, 15 Aug 2012 10:06:12 -0700 (PDT)
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:42778 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756013Ab2HORhn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 15 Aug 2012 13:37:43 -0400
 Content-Disposition: inline
-In-Reply-To: <201208151320.02313.arnd@arndb.de>
+In-Reply-To: <20120814230645.GA19607@quad.lixom.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>
+To: Olof Johansson <olof@lixom.net>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <Will.Deacon@arm.com>
 
-On Wed, Aug 15, 2012 at 01:20:02PM +0000, Arnd Bergmann wrote:
-> On Tuesday 14 August 2012, Catalin Marinas wrote:
-> 
-> > +The AArch64 exception model is made up of a number of exception levels
-> > +(EL0 - EL3), with EL0 and EL1 having a secure and a non-secure
-> > +counterpart.  EL2 is the hypervisor level and exists only in non-secure
-> > +mode. EL3 is the highest priority level and exists only in secure mode.
-> 
-> I'm always confused by a description like this. It sounds like you cannot
-> have a hypervisor if you have code running in secure mode in EL3. What
-> I instead understand is that you enter non-secure mode by going from
-> EL3 into EL2.
-> 
-> > +2. Setup the device tree
-> > +-------------------------
+Hi Olof,
+
+On Wed, Aug 15, 2012 at 12:06:45AM +0100, Olof Johansson wrote:
+> On Tue, Aug 14, 2012 at 06:52:03PM +0100, Catalin Marinas wrote:
+> > +Before jumping into the kernel, the following conditions must be met:
 > > +
-> > +Requirement: MANDATORY
+> > +- Quiesce all DMA capable devices so that memory does not get
+> > +  corrupted by bogus network packets or disk data.  This will save
+> > +  you many hours of debug.
 > > +
-> > +The device tree blob (dtb) must be no bigger than 2 megabytes in size
-> > +and placed at a 2-megabyte boundary within the first 512 megabytes from
-> > +the start of the kernel image. This is to allow the kernel to map the
-> > +blob using a single section mapping in the initial page tables.
+> > +- Primary CPU general-purpose register settings
+> > +  x0 = physical address of device tree blob (dtb) in system RAM.
+> > +
+> > +- CPU mode
+> > +  All forms of interrupts must be masked in PSTATE.DAIF (Debug, SError,
+> > +  IRQ and FIQ).
+> > +  The CPU must be in either EL2 (RECOMMENDED in order to have access to
+> > +  the virtualisation extensions) or non-secure EL1.
+> > +
+> > +- Caches, MMUs
+> > +  The MMU must be off.
+> > +  Instruction cache may be on or off.
+> > +  Data cache must be off and invalidated.
+> > +
+> > +- Architected timers
+> > +  CNTFRQ must be programmed with the timer frequency.
+> > +  If entering the kernel at EL1, CNTHCTL_EL2 must have EL1PCTEN (bit 0)
+> > +  set where available.
+> > +
+> > +- Coherency
+> > +  All CPUs to be booted by the kernel must be part of the same coherency
+> > +  domain on entry to the kernel.  This may require IMPLEMENTATION DEFINED
+> > +  initialisation to enable the receiving of maintenance operations on
+> > +  each CPU.
+> > +
+> > +- System registers
+> > +  All writable architected system registers at the exception level where
+> > +  the kernel image will be entered must be initialised by software at a
+> > +  higher exception level to prevent execution in an UNKNOWN state.
 > 
-> I've seen people put firmware for some peripherals into the device tree,
-> so that a device driver can grab a blob from there and load it into the
-> device, rather than calling request_firmware() which would fail if the
-> OS running on the system does not contain the blob. If such firmware is
-> too large, you end up violating the 2 MB limit you impose here.
+> Given the recent development of ARM platforms, you might want to mandate
+> the state of IOMMUs as well (they should probably be off, since there
+> should be no active DMA activity). Graphics would be the exception to
+> this, since if you want to keep scanning out a splash screen, you'll
+> have to keep doing DMA...
+
+We'll enhance this document as we get hardware as it's not clear whether
+we can simply mandate it to be off. We may have situations with some
+simple IOMMU that is previously set up by the firmware and the kernel
+doesn't get access to it. One example is the System MMU from ARM that
+supports stage 2 (hypervisor) translations and you just run a guest
+kernel without any control of the IOMMU.
+
+> > +- The primary CPU must jump directly to the first instruction of the
+> > +  kernel image.  The device tree blob passed by this CPU must contain
+> > +  for each CPU node:
+> > +
+> > +    1. An 'enable-method' property. Currently, the only supported value
+> > +       for this field is the string "spin-table".
+> > +
+> > +    2. A 'cpu-release-addr' property identifying a 64-bit,
+> > +       zero-initialised memory location.
 > 
-> Should we keep that limit and declare those use cases as invalid, or
-> should we try to make the boot protocol more flexible?
-> 
-> > diff --git a/arch/arm64/include/asm/setup.h b/arch/arm64/include/asm/setup.h
-> > new file mode 100644
+> These would be good to have documented in the
+> Documentation/devicetree/bindings hierarchy as well.
+
+OK.
+
 > > index 0000000..d766493
 > > --- /dev/null
 > > +++ b/arch/arm64/include/asm/setup.h
 > > @@ -0,0 +1,26 @@
+> > +/*
+> > + * Based on arch/arm/include/asm/setup.h
+> > + *
+> > + * Copyright (C) 1997-1999 Russell King
+> > + * Copyright (C) 2012 ARM Ltd.
+> > + *
+> > + * This program is free software; you can redistribute it and/or modify
+> > + * it under the terms of the GNU General Public License version 2 as
+> > + * published by the Free Software Foundation.
+> > + *
+> > + * This program is distributed in the hope that it will be useful,
+> > + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+> > + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> > + * GNU General Public License for more details.
+> > + *
+> > + * You should have received a copy of the GNU General Public License
+> > + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+> > + */
 > > +#ifndef __ASM_SETUP_H
 > > +#define __ASM_SETUP_H
 > > +
 > > +#include <linux/types.h>
 > > +
 > > +#define COMMAND_LINE_SIZE 1024
-> > +
-> > +#endif
 > 
-> Is this necessary? The asm-generic version of this file allows 512 bytes,
-> which seems plenty.
+> Probably not a huge deal, and other architectures seem to be all over
+> the map on this, but you might want to go with a larger value now rather
+> than later. 2048 or 4096 perhaps?
 
-Chrome OS on my system today uses a 553 character cmdline, in particular
-because some of the device mapper arguments are in there (since we boot without
-ramdisk). It adds up quickly.
+It looks like there are many different values, including the asm-generic
+one which is 512. I'm happy to follow the x86 example and change it to
+2048, it doesn't really matter.
 
-I suggest keeping it common with x86 since those limits are what people
-will be used to (2048).
+> > diff --git a/arch/arm64/kernel/head.S b/arch/arm64/kernel/head.S
+> > new file mode 100644
+> > index 0000000..34ccdc0
+> > --- /dev/null
+> > +++ b/arch/arm64/kernel/head.S
+> 
+> [...]
+> 
+> > +/*
+> > + * Setup common bits before finally enabling the MMU. Essentially this is just
+> > + * loading the page table pointer and vector base registers.
+> > + *
+> > + * On entry to this code, x0 must contain the SCTLR_EL1 value for turning on
+> > + * the MMU.
+> > + */
+> > +__enable_mmu:
+> 
+> ENTRY()?
 
+__enable_mmu is not used outside this file, so no need for ENTRY().
 
--Olof
+> > +	ldr	x5, =vectors
+> > +	msr	vbar_el1, x5
+> > +	msr	ttbr0_el1, x25			// load TTBR0
+> > +	msr	ttbr1_el1, x26			// load TTBR1
+> > +	isb
+> > +	b	__turn_mmu_on
+> > +ENDPROC(__enable_mmu)
+> 
+> ...or just END()? Same for a few of the other functions below.
+
+ENDPROC() gives us ".type @function" in addition to END(). This proved
+to be useful in the past for debugging symbols, unwind table (though we
+don't have the latter on AArch64).
+
+> > diff --git a/arch/arm64/kernel/setup.c b/arch/arm64/kernel/setup.c
+> > new file mode 100644
+> > index 0000000..f25186f
+> > --- /dev/null
+> > +++ b/arch/arm64/kernel/setup.c
+> 
+> [...]
+> 
+> > +static void __init setup_processor(void)
+> > +{
+> > +	struct proc_info_list *list;
+> > +
+> > +	/*
+> > +	 * locate processor in the list of supported processor
+> > +	 * types.  The linker builds this table for us from the
+> > +	 * entries in arch/arm/mm/proc.S
+> > +	 */
+> 
+> Probably from arch/arm64/... somewhere?
+
+Yes, I did a grep and found a few more.
+
+> > +	printk("CPU: %s [%08x] revision %d\n",
+> > +	       cpu_name, read_cpuid_id(), read_cpuid_id() & 15);
+> > +
+> > +	sprintf(init_utsname()->machine, "aarch64");
+> 
+> > +	initial_boot_params = devtree;
+> > +	dt_root = of_get_flat_dt_root();
+> > +
+> > +	machine_name = of_get_flat_dt_prop(dt_root, "model", NULL);
+> > +	if (!machine_name)
+> > +		machine_name = of_get_flat_dt_prop(dt_root, "compatible", NULL);
+> > +	if (!machine_name)
+> > +		machine_name = "<unknown>";
+> > +	pr_info("Machine: %s\n", machine_name);
+> 
+> This property is an array of strings. It would be more valuable to print out
+> the entry that was matched for a platform instead of the provided one from the
+> device tree.
+
+If we add machine_desc structure back, we could print which machine was
+matched. But so far I try to keep the SoC code to a minimum and just do
+the probing later in the SoC code (of_find_matching_node). Ideally we
+shouldn't have any SoC code and just keep code in drivers but we'll see
+how far we can get. We can discuss more details at the KS as I would
+like the arm-soc team to get involved here.
+
+Thanks.
+
+-- 
+Catalin
