@@ -1,43 +1,142 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from filtteri2.pp.htv.fi ([213.243.153.185]:46618 "EHLO
-	filtteri2.pp.htv.fi" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754645Ab2HNXdr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 19:33:47 -0400
-Date: Wed, 15 Aug 2012 02:22:50 +0300
-From: Aaro Koskinen <aaro.koskinen@iki.fi>
-Subject: Re: [PATCH v2 11/31] arm64: IRQ handling
-Message-ID: <20120814232250.GB747@harshnoise.musicnaut.iki.fi>
+Received: from mail-gh0-f174.google.com ([209.85.160.174]:33722 "EHLO
+	mail-gh0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754213Ab2HOAdz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 14 Aug 2012 20:33:55 -0400
+Received: by ghrr11 with SMTP id r11so1194190ghr.19
+        for <linux-arch@vger.kernel.org>; Tue, 14 Aug 2012 17:33:54 -0700 (PDT)
+Date: Tue, 14 Aug 2012 17:33:55 -0700
+From: Olof Johansson <olof@lixom.net>
+Subject: Re: [PATCH v2 13/31] arm64: Device specific operations
+Message-ID: <20120815003355.GF19607@quad.lixom.net>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-12-git-send-email-catalin.marinas@arm.com>
+ <1344966752-16102-14-git-send-email-catalin.marinas@arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1344966752-16102-12-git-send-email-catalin.marinas@arm.com>
+In-Reply-To: <1344966752-16102-14-git-send-email-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Marc Zyngier <marc.zyngier@arm.com>, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20120814232250.ZRn5tCj_UGYcAYWhBex0HrvgSOUFL4LNwHMMytRR8kk@z>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
+Message-ID: <20120815003355.LX_X_SpOcOmd8o2tL-BpaxpkRA8bAemCEau22dZyGFE@z>
 
-Hi,
+On Tue, Aug 14, 2012 at 06:52:14PM +0100, Catalin Marinas wrote:
+> This patch adds several definitions for device communication, including
+> I/O accessors and ioremap(). The __raw_* accessors are implemented as
+> inline asm to avoid compiler generation of post-indexed accesses (less
+> efficient to emulate in a virtualised environment).
+> 
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> ---
+>  arch/arm64/include/asm/device.h |   26 ++++
+>  arch/arm64/include/asm/fb.h     |   34 +++++
+>  arch/arm64/include/asm/io.h     |  263 +++++++++++++++++++++++++++++++++++++++
+>  arch/arm64/kernel/io.c          |   64 ++++++++++
+>  arch/arm64/mm/ioremap.c         |   84 +++++++++++++
+>  5 files changed, 471 insertions(+), 0 deletions(-)
+>  create mode 100644 arch/arm64/include/asm/device.h
+>  create mode 100644 arch/arm64/include/asm/fb.h
+>  create mode 100644 arch/arm64/include/asm/io.h
+>  create mode 100644 arch/arm64/kernel/io.c
+>  create mode 100644 arch/arm64/mm/ioremap.c
+> 
+> diff --git a/arch/arm64/include/asm/io.h b/arch/arm64/include/asm/io.h
+> new file mode 100644
+> index 0000000..48fa83f
+> --- /dev/null
+> +++ b/arch/arm64/include/asm/io.h
 
-On Tue, Aug 14, 2012 at 06:52:12PM +0100, Catalin Marinas wrote:
-> +void handle_IRQ(unsigned int irq, struct pt_regs *regs)
+[...]
+
+> +/*
+> + *  I/O port access primitives.
+> + */
+> +#define IO_SPACE_LIMIT		0xffff
+> +
+> +/*
+> + * We currently don't have any platform with PCI support, so just leave this
+> + * defined to 0 until needed.
+> + */
+> +#define PCI_IOBASE		((void __iomem *)0)
+
+You could just leave out the PCI / I/O code alltogether instead.
+
+> diff --git a/arch/arm64/kernel/io.c b/arch/arm64/kernel/io.c
+> new file mode 100644
+> index 0000000..7d37ead
+> --- /dev/null
+> +++ b/arch/arm64/kernel/io.c
+> @@ -0,0 +1,64 @@
+> +/*
+> + * Based on arch/arm/kernel/io.c
+> + *
+> + * Copyright (C) 2012 ARM Ltd.
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License version 2 as
+> + * published by the Free Software Foundation.
+> + *
+> + * This program is distributed in the hope that it will be useful,
+> + * but WITHOUT ANY WARRANTY; without even the implied warranty of
+> + * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+> + * GNU General Public License for more details.
+> + *
+> + * You should have received a copy of the GNU General Public License
+> + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+> + */
+> +
+> +#include <linux/export.h>
+> +#include <linux/types.h>
+> +#include <linux/io.h>
+> +
+> +/*
+> + * Copy data from IO memory space to "real" memory space.
+> + */
+> +void __memcpy_fromio(void *to, const volatile void __iomem *from, size_t count)
 > +{
-> +	struct pt_regs *old_regs = set_irq_regs(regs);
+> +	unsigned char *t = to;
+> +	while (count) {
+> +		count--;
+> +		*t = readb(from);
+> +		t++;
+> +		from++;
+> +	}
+> +}
+> +EXPORT_SYMBOL(__memcpy_fromio);
 > +
-> +	irq_enter();
+> +/*
+> + * Copy data from "real" memory space to IO memory space.
+> + */
+> +void __memcpy_toio(volatile void __iomem *to, const void *from, size_t count)
+> +{
+> +	const unsigned char *f = from;
+> +	while (count) {
+> +		count--;
+> +		writeb(*f, to);
+> +		f++;
+> +		to++;
+> +	}
+> +}
+> +EXPORT_SYMBOL(__memcpy_toio);
 > +
-> +	/*
-> +	 * Some hardware gives randomly wrong interrupts.  Rather
-> +	 * than crashing, do something sensible.
-> +	 */
-> +	if (unlikely(irq >= nr_irqs)) {
-> +		if (printk_ratelimit())
-> +			pr_warning("Bad IRQ%u\n", irq);
+> +/*
+> + * "memset" on IO memory space.
+> + */
+> +void __memset_io(volatile void __iomem *dst, int c, size_t count)
+> +{
+> +	while (count) {
+> +		count--;
+> +		writeb(c, dst);
+> +		dst++;
+> +	}
+> +}
+> +EXPORT_SYMBOL(__memset_io);
 
-I guess pr_warn_ratelimited() should be used for new code.
+Doing all of the above a byte at a time is horribly inefficient. Feel
+free to borrow the implementations from arch/powerpc/kernel/io.c instead
+of from ARM.
 
-(See include/linux/printk.h, "Please don't use printk_ratelimit()...")
 
-A.
+-Olof
