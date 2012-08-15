@@ -1,40 +1,30 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 06/31] arm64: MMU fault handling and page table management
-Date: Wed, 15 Aug 2012 13:47:00 +0000
-Message-ID: <201208151347.01169.arnd@arndb.de>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <1344966752-16102-7-git-send-email-catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 07/31] arm64: Process management
+Date: Wed, 15 Aug 2012 13:53:01 +0000
+Message-ID: <201208151353.01367.arnd@arndb.de>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <1344966752-16102-8-git-send-email-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
   charset="windows-1252"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1344966752-16102-7-git-send-email-catalin.marinas@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.9]:58284 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751913Ab2HONxF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 15 Aug 2012 09:53:05 -0400
+In-Reply-To: <1344966752-16102-8-git-send-email-catalin.marinas@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>
 Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>
-List-Id: linux-arch.vger.kernel.org
 
 On Tuesday 14 August 2012, Catalin Marinas wrote:
-> +
-> +pgd_t *pgd_alloc(struct mm_struct *mm)
-> +{
-> +	pgd_t *new_pgd;
-> +
-> +	new_pgd = (pgd_t *)__get_free_pages(GFP_KERNEL, PGD_ORDER);
-> +	if (!new_pgd)
-> +		return NULL;
-> +
-> +	memset(new_pgd, 0, PAGE_SIZE << PGD_ORDER);
-> +
-> +	return new_pgd;
-> +}
-> +
-> +void pgd_free(struct mm_struct *mm, pgd_t *pgd)
-> +{
-> +	free_pages((unsigned long)pgd, PGD_ORDER);
-> +}
- 
-According to the documentation, you should only need 8kb for the pgd on
-a 64kb page system. Is it required that you use up a full page here?
+
+> +#define THREAD_SIZE_ORDER	1
+> +#define THREAD_SIZE		8192
+> +#define THREAD_START_SP		(THREAD_SIZE - 16)
+
+THREAD_SIZE_ORDER looks wrong for 64kb-page kernels. It also doesn't seem to
+be used, so better remove it.
 
 	Arnd
