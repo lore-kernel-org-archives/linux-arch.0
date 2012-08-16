@@ -1,94 +1,79 @@
-From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [PATCH v2 28/31] arm64: Generic timers support
-Date: Thu, 16 Aug 2012 14:40:06 +0200
-Message-ID: <CACRpkdYJngvG92BJ_jMyx5KZcr2WmMwGtat6=wKsq+RLk3ECgA@mail.gmail.com>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
-	<1344966752-16102-29-git-send-email-catalin.marinas@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 23/31] arm64: Debugging support
+Date: Thu, 16 Aug 2012 12:49:34 +0000
+Message-ID: <201208161249.35008.arnd@arndb.de>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <201208151507.36174.arnd@arndb.de> <20120816104748.GI31784@mudshark.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vb0-f46.google.com ([209.85.212.46]:64360 "EHLO
-	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754749Ab2HPMkH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Aug 2012 08:40:07 -0400
-Received: by vbbff1 with SMTP id ff1so2303692vbb.19
-        for <linux-arch@vger.kernel.org>; Thu, 16 Aug 2012 05:40:06 -0700 (PDT)
-In-Reply-To: <1344966752-16102-29-git-send-email-catalin.marinas@arm.com>
+Received: from moutng.kundenserver.de ([212.227.17.9]:56431 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754872Ab2HPMtn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Aug 2012 08:49:43 -0400
+In-Reply-To: <20120816104748.GI31784@mudshark.cambridge.arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Marc Zyngier <marc.zyngier@arm.com>, Will Deacon <will.deacon@arm.com>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, ulrich.weigand@linaro.rg
 
-On Tue, Aug 14, 2012 at 7:52 PM, Catalin Marinas
-<catalin.marinas@arm.com> wrote:
+On Thursday 16 August 2012, Will Deacon wrote:
+> On Wed, Aug 15, 2012 at 04:07:36PM +0100, Arnd Bergmann wrote:
+> > On Tuesday 14 August 2012, Catalin Marinas wrote:
 
-> From: Marc Zyngier <marc.zyngier@arm.com>
-(...)
-> +static void __init arch_timer_calibrate(void)
+> > From what I can tell, there is no support for 32 bit processes debugging
+> > 64 bit ones. Is that something you plan to add in the future, or do you
+> > consider that out of scope? In either case, a comment would be helpful.
+> 
+> That can't really work because the debugger won't be able to manipulate
+> child pointers properly without us adding a new ptrace interface (and then,
+> I still wonder about how feasible it really is). I can add a comment.
 
-I think you wrot in the last review thread that this should be renamed
-"arch_timer_get_freq()".
+You can already have a 32 bit gdb that is able to do remote debugging of
+64 bit processes using a gdb server process. I guess it wouldn't be
+too strange to have a ptrace extension to allow the native case as well.
+I agree it's not a high priority.
 
-> +{
-> +       if (arch_timer_rate == 0) {
-> +               arch_timer_reg_write(ARCH_TIMER_REG_CTRL, 0);
-> +               arch_timer_rate = arch_timer_reg_read(ARCH_TIMER_REG_FREQ);
-> +
-> +               /* Check the timer frequency. */
-> +               if (arch_timer_rate == 0)
-> +                       panic("Architected timer frequency is set to zero.\n"
-> +                             "You must set this in your .dts file\n");
+> > > +long arch_ptrace(struct task_struct *child, long request,
+> > > +		 unsigned long addr, unsigned long data)
+> > > +{
+> > > +	int ret;
+> > > +	unsigned long *datap = (unsigned long __user *)data;
+> > > +
+> > > +	switch (request) {
+> > > +		case PTRACE_GET_THREAD_AREA:
+> > > +			ret = put_user(child->thread.tp_value, datap);
+> > > +			break;
+> > > +
+> > > +#ifdef CONFIG_HAVE_HW_BREAKPOINT
+> > > +		case PTRACE_GETHBPREGS:
+> > > +			ret = ptrace_gethbpregs(child, addr, datap);
+> > > +			break;
+> > > +
+> > > +		case PTRACE_SETHBPREGS:
+> > > +			ret = ptrace_sethbpregs(child, addr, datap);
+> > > +			break;
+> > > +#endif
+> > > +
+> > > +		default:
+> > > +			ret = ptrace_request(child, request, addr, data);
+> > > +			break;
+> > > +	}
+> > > +
+> > > +	return ret;
+> > > +}
+> > 
+> > Is there a reaons why these are not regsets but have their own ptrace
+> > commands? I believe new architectures should generally not add ptrace
+> > commands any more.
+> 
+> I could probably add some regset wrappers about the hbp accessors (which we
+> have to keep for the compat ptrace interface). I'll have a think as it might
+> even make sense to have different regsets for breakpoints and watchpoints.
+> 
+> As for the the tls, is it worth having a regset with only one register?
 
-This comment about the .dts file is completely out-of-place.
-The error message should be about the register containing 0, right?
+Better ask the gdb folks. I'm adding Uli to Cc, maybe he has some insight.
 
-Also, at this very point in the code, I think you should convert that panic()
-to pr_err() and insert:
-
-#include <linux/clk.h>
-
-struct clk *clk;
-
-clk = clk_get_sys("arm_generic_timer", NULL);
-if (IS_ERR(clk))
-               panic("Not even a clk to get freq off! Giving up.\n");
-err = clk_prepare_enable(clk);
-if (err) {
-           pr_err("smp_twd: clock failed to prepare: %d\n", err);
-           clk_put(clk);
-           panic("Not even a clk to get freq off! Giving up.\n");
-}
-arch_timer_rate = clk_get_rate(clk);
-
-Possibly the clk should even be able to override the register value,
-then it's the other way around.
-
-> +       }
-> +
-> +       /* Cache the sched_clock multiplier to save a divide in the hot path. */
-> +
-> +       sched_clock_mult = NSEC_PER_SEC / arch_timer_rate;
-> +
-> +       pr_info("Architected local timer running at %u.%02uMHz.\n",
-> +                arch_timer_rate / 1000000, (arch_timer_rate / 10000) % 100);
-
-This multiplier and print should be moved below the call site since
-the DT frequency
-overrides it and then you get no print which is sad, and incorrect
-sched_clock_mult
-which is a bug.
-
-> +}
-
-(...)
-> +       /* Try to determine the frequency from the device tree or CNTFRQ */
-> +       if (!of_property_read_u32(np, "clock-frequency", &freq))
-> +               arch_timer_rate = freq;
-> +       arch_timer_calibrate();
-
-rename arch_timer_get_freq()
-
-And move that print here.
-
-Yours,
-Linus Walleij
+	Arnd
