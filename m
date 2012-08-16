@@ -1,57 +1,59 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Catalin Marinas <catalin.marinas@arm.com>
 Subject: Re: [PATCH v2 26/31] arm64: Miscellaneous library functions
-Date: Thu, 16 Aug 2012 13:00:32 +0000
-Message-ID: <201208161300.32830.arnd@arndb.de>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <201208151521.14663.arnd@arndb.de> <20120816105709.GK31784@mudshark.cambridge.arm.com>
+Date: Thu, 16 Aug 2012 15:11:53 +0100
+Message-ID: <20120816141153.GC30876@arm.com>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
+ <201208151521.14663.arnd@arndb.de>
+ <20120816105709.GK31784@mudshark.cambridge.arm.com>
+ <201208161300.32830.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.9]:52947 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755369Ab2HPNAj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Aug 2012 09:00:39 -0400
-In-Reply-To: <20120816105709.GK31784@mudshark.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Marc Zyngier <Marc.Zyngier@arm.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <201208161300.32830.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Will Deacon <Will.Deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Marc Zyngier <Marc.Zyngier@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thursday 16 August 2012, Will Deacon wrote:
-> > > +
-> > > +#include <linux/kernel.h>
-> > > +#include <linux/spinlock.h>
-> > > +#include <linux/atomic.h>
-> > > +
-> > > +#ifdef CONFIG_SMP
-> > > +arch_spinlock_t __atomic_hash[ATOMIC_HASH_SIZE] __lock_aligned = {
-> > > +       [0 ... (ATOMIC_HASH_SIZE-1)]  = __ARCH_SPIN_LOCK_UNLOCKED
-> > > +};
-> > > +#endif
+On Thu, Aug 16, 2012 at 02:00:32PM +0100, Arnd Bergmann wrote:
+> On Thursday 16 August 2012, Will Deacon wrote:
+> > > > +
+> > > > +#include <linux/kernel.h>
+> > > > +#include <linux/spinlock.h>
+> > > > +#include <linux/atomic.h>
+> > > > +
+> > > > +#ifdef CONFIG_SMP
+> > > > +arch_spinlock_t __atomic_hash[ATOMIC_HASH_SIZE] __lock_aligned = {
+> > > > +       [0 ... (ATOMIC_HASH_SIZE-1)]  = __ARCH_SPIN_LOCK_UNLOCKED
+> > > > +};
+> > > > +#endif
+> > > 
+> > > What?
+> > > 
+> > > I suppose this is a leftover from an earlier version using the
+> > > generic bitops, right?
 > > 
-> > What?
+> > We currently use the generic atomic bitops (asm-generic/bitops/atomic.h)
+> > which contains:
 > > 
-> > I suppose this is a leftover from an earlier version using the
-> > generic bitops, right?
+> > #  define ATOMIC_HASH(a) (&(__atomic_hash[ (((unsigned long) a)/L1_CACHE_BYTES) & (ATOMIC_HASH_SIZE-1) ]))
+> > 
+> > so we have to provide a definition for the array. We have additional patches
+> > containing optimised assembly implementations of the atomic bitops which we
+> > will push later, once we've got some hardware to benchmark with.
+> > 
 > 
-> We currently use the generic atomic bitops (asm-generic/bitops/atomic.h)
-> which contains:
+> Ah, I was confusing this with the asm/atomic.h stuff, for which you already
+> provide an optimized version.
 > 
-> #  define ATOMIC_HASH(a) (&(__atomic_hash[ (((unsigned long) a)/L1_CACHE_BYTES) & (ATOMIC_HASH_SIZE-1) ]))
-> 
-> so we have to provide a definition for the array. We have additional patches
-> containing optimised assembly implementations of the atomic bitops which we
-> will push later, once we've got some hardware to benchmark with.
-> 
+> The generic atomic bitops are really horrible in performance and I would
+> expect that there is just one obvious way to implement bitops using ldaxr/stlxr,
+> so I recommend just doing that even if you have no hardware for benchmarking.
 
-Ah, I was confusing this with the asm/atomic.h stuff, for which you already
-provide an optimized version.
+As Will said, we have the code already but I dropped it from the initial
+set patches to be reviewed to keep them simpler. They will be added
+later.
 
-The generic atomic bitops are really horrible in performance and I would
-expect that there is just one obvious way to implement bitops using ldaxr/stlxr,
-so I recommend just doing that even if you have no hardware for benchmarking.
-
-The s390 version should be fairly easy to adapt.
-
-	Arnd
+-- 
+Catalin
