@@ -1,86 +1,50 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 23/31] arm64: Debugging support
-Date: Thu, 16 Aug 2012 11:47:48 +0100
-Message-ID: <20120816104748.GI31784@mudshark.cambridge.arm.com>
+Subject: Re: [PATCH v2 25/31] arm64: Performance counters support
+Date: Thu, 16 Aug 2012 11:51:34 +0100
+Message-ID: <20120816105134.GJ31784@mudshark.cambridge.arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-24-git-send-email-catalin.marinas@arm.com>
- <201208151507.36174.arnd@arndb.de>
+ <1344966752-16102-26-git-send-email-catalin.marinas@arm.com>
+ <201208151511.11612.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:44845 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:44996 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753524Ab2HPKr7 (ORCPT
+	by vger.kernel.org with ESMTP id S1751255Ab2HPKvm (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Aug 2012 06:47:59 -0400
+	Thu, 16 Aug 2012 06:51:42 -0400
 Content-Disposition: inline
-In-Reply-To: <201208151507.36174.arnd@arndb.de>
+In-Reply-To: <201208151511.11612.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On Wed, Aug 15, 2012 at 04:07:36PM +0100, Arnd Bergmann wrote:
+On Wed, Aug 15, 2012 at 04:11:11PM +0100, Arnd Bergmann wrote:
 > On Tuesday 14 August 2012, Catalin Marinas wrote:
+> > From: Will Deacon <will.deacon@arm.com>
+> > 
+> > This patch adds support for the AArch64 performance counters.
+> > 
+> > Signed-off-by: Will Deacon <will.deacon@arm.com>
+> > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> > ---
+> >  arch/arm64/include/asm/perf_event.h |   22 +
+> >  arch/arm64/include/asm/pmu.h        |   82 +++
+> >  arch/arm64/kernel/perf_event.c      | 1368 +++++++++++++++++++++++++++++++++++
+> >  tools/perf/perf.h                   |    6 +
 > 
-> > +const struct user_regset_view *task_user_regset_view(struct task_struct *task)
-> > +{
-> > +#ifdef CONFIG_AARCH32_EMULATION
-> > +	if (test_tsk_thread_flag(task, TIF_32BIT))
-> > +		return &user_aarch32_view;
-> > +#endif
-> > +	return &user_aarch64_view;
-> > +}
-> 
-> Ah, nice. So you support 64 bit debuggers debugging 32 bit processes, right?
+> Can you explain how AArch64 performance counters differ from the 32
+> bit ones? Do they work for AArch32 user space under AArch64 kernels?
+> Is it possible to share parts of the implementation with arch/arm?
 
-That should work if the debugger can deal with it, yes.
+Perf should work for compat tasks, yes. I'd like to share some of the code
+with arch/arm/ and I've started reworking the arch/arm/ stuff to accomodate
+this better:
 
-> From what I can tell, there is no support for 32 bit processes debugging
-> 64 bit ones. Is that something you plan to add in the future, or do you
-> consider that out of scope? In either case, a comment would be helpful.
+  git://git.kernel.org/pub/scm/linux/kernel/git/will/linux.git perf/updates
 
-That can't really work because the debugger won't be able to manipulate
-child pointers properly without us adding a new ptrace interface (and then,
-I still wonder about how feasible it really is). I can add a comment.
-
-> > +long arch_ptrace(struct task_struct *child, long request,
-> > +		 unsigned long addr, unsigned long data)
-> > +{
-> > +	int ret;
-> > +	unsigned long *datap = (unsigned long __user *)data;
-> > +
-> > +	switch (request) {
-> > +		case PTRACE_GET_THREAD_AREA:
-> > +			ret = put_user(child->thread.tp_value, datap);
-> > +			break;
-> > +
-> > +#ifdef CONFIG_HAVE_HW_BREAKPOINT
-> > +		case PTRACE_GETHBPREGS:
-> > +			ret = ptrace_gethbpregs(child, addr, datap);
-> > +			break;
-> > +
-> > +		case PTRACE_SETHBPREGS:
-> > +			ret = ptrace_sethbpregs(child, addr, datap);
-> > +			break;
-> > +#endif
-> > +
-> > +		default:
-> > +			ret = ptrace_request(child, request, addr, data);
-> > +			break;
-> > +	}
-> > +
-> > +	return ret;
-> > +}
-> 
-> Is there a reaons why these are not regsets but have their own ptrace
-> commands? I believe new architectures should generally not add ptrace
-> commands any more.
-
-I could probably add some regset wrappers about the hbp accessors (which we
-have to keep for the compat ptrace interface). I'll have a think as it might
-even make sense to have different regsets for breakpoints and watchpoints.
-
-As for the the tls, is it worth having a regset with only one register?
+I'm not sure how well it will fit in drivers/ but I'm certainly willing to
+give it a try.
 
 Will
