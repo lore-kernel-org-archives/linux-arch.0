@@ -1,16 +1,16 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 02/31] arm64: Kernel booting and initialisation
-Date: Wed, 15 Aug 2012 20:53:12 +0100
-Message-ID: <CAHkRjk4k0q9TuHqJMLtLy-wxFHN8xQEQERkpf2Qt_48+1Qwwgw@mail.gmail.com>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2 03/31] arm64: Exception handling
+Date: Thu, 16 Aug 2012 11:05:37 +0100
+Message-ID: <20120816100536.GF31784@mudshark.cambridge.arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-3-git-send-email-catalin.marinas@arm.com>
- <20120814230645.GA19607@quad.lixom.net> <20120815173711.GC14264@arm.com>
- <20120815190328.GA6714@quad.lixom.net>
+ <1344966752-16102-4-git-send-email-catalin.marinas@arm.com>
+ <201208151303.47743.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20120815190328.GA6714@quad.lixom.net>
+Content-Disposition: inline
+In-Reply-To: <201208151303.47743.arnd@arndb.de>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -20,31 +20,25 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
 Sender: linux-arm-kernel-bounces@lists.infradead.org
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Olof Johansson <olof@lixom.net>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 15 August 2012 20:03, Olof Johansson <olof@lixom.net> wrote:
-> On Wed, Aug 15, 2012 at 06:37:11PM +0100, Catalin Marinas wrote:
->> If we add machine_desc structure back, we could print which machine was
->> matched. But so far I try to keep the SoC code to a minimum and just do
->> the probing later in the SoC code (of_find_matching_node). Ideally we
->> shouldn't have any SoC code and just keep code in drivers but we'll see
->> how far we can get. We can discuss more details at the KS as I would
->> like the arm-soc team to get involved here.
->
-> Interesting approach, I wonder if it'll scale, in particular if it comes
-> to needing to do early setup and init. For device-level setup, generic
-> will probably work just fine. And if it doesn't, things can be changed
-> later. So it sounds like a good start.
->
-> Definitely something we should discuss. I suggest not doing it at KS
-> though, since only half of the arm-soc team is invited there. So the
-> ARM mini-summit or hallway around LPC is a better venue.
+On Wed, Aug 15, 2012 at 02:03:47PM +0100, Arnd Bergmann wrote:
+> On Tuesday 14 August 2012, Catalin Marinas wrote:
+> 
+> > +#ifdef CONFIG_AARCH32_EMULATION
+> > +#define compat_thumb_mode(regs) \
+> > +	(((regs)->pstate & COMPAT_PSR_T_BIT))
+> > +#else
+> > +#define compat_thumb_mode(regs) (0)
+> > +#endif
+> 
+> The symbol we use on other platforms is CONFIG_COMPAT. I don't think you
+> need to have a separate CONFIG_AARCH32_EMULATION
 
-I was indeed thinking of the ARM mini-summit or hallway discussions.
-The KS has different topics and it wouldn't have been of wide interest
-anyway.
+Using COMPAT does preclude the possibility of doing something like the x32
+ABI later on though. Some other architectures seem to do something similar
+(MIPS32_COMPAT, IA32_EMULATION).
 
--- 
-Catalin
+Will
