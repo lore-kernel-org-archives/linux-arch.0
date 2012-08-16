@@ -1,79 +1,67 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 23/31] arm64: Debugging support
-Date: Thu, 16 Aug 2012 12:49:34 +0000
-Message-ID: <201208161249.35008.arnd@arndb.de>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <201208151507.36174.arnd@arndb.de> <20120816104748.GI31784@mudshark.cambridge.arm.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 02/31] arm64: Kernel booting and initialisation
+Date: Thu, 16 Aug 2012 13:53:24 +0100
+Message-ID: <20120816125324.GB30876@arm.com>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
+ <1344966752-16102-3-git-send-email-catalin.marinas@arm.com>
+ <201208151320.02313.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.9]:56431 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754872Ab2HPMtn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 16 Aug 2012 08:49:43 -0400
-In-Reply-To: <20120816104748.GI31784@mudshark.cambridge.arm.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:48870 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752556Ab2HPMx5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 16 Aug 2012 08:53:57 -0400
+Content-Disposition: inline
+In-Reply-To: <201208151320.02313.arnd@arndb.de>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, ulrich.weigand@linaro.rg
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>
 
-On Thursday 16 August 2012, Will Deacon wrote:
-> On Wed, Aug 15, 2012 at 04:07:36PM +0100, Arnd Bergmann wrote:
-> > On Tuesday 14 August 2012, Catalin Marinas wrote:
-
-> > From what I can tell, there is no support for 32 bit processes debugging
-> > 64 bit ones. Is that something you plan to add in the future, or do you
-> > consider that out of scope? In either case, a comment would be helpful.
+On Wed, Aug 15, 2012 at 02:20:02PM +0100, Arnd Bergmann wrote:
+> On Tuesday 14 August 2012, Catalin Marinas wrote:
 > 
-> That can't really work because the debugger won't be able to manipulate
-> child pointers properly without us adding a new ptrace interface (and then,
-> I still wonder about how feasible it really is). I can add a comment.
-
-You can already have a 32 bit gdb that is able to do remote debugging of
-64 bit processes using a gdb server process. I guess it wouldn't be
-too strange to have a ptrace extension to allow the native case as well.
-I agree it's not a high priority.
-
-> > > +long arch_ptrace(struct task_struct *child, long request,
-> > > +		 unsigned long addr, unsigned long data)
-> > > +{
-> > > +	int ret;
-> > > +	unsigned long *datap = (unsigned long __user *)data;
-> > > +
-> > > +	switch (request) {
-> > > +		case PTRACE_GET_THREAD_AREA:
-> > > +			ret = put_user(child->thread.tp_value, datap);
-> > > +			break;
-> > > +
-> > > +#ifdef CONFIG_HAVE_HW_BREAKPOINT
-> > > +		case PTRACE_GETHBPREGS:
-> > > +			ret = ptrace_gethbpregs(child, addr, datap);
-> > > +			break;
-> > > +
-> > > +		case PTRACE_SETHBPREGS:
-> > > +			ret = ptrace_sethbpregs(child, addr, datap);
-> > > +			break;
-> > > +#endif
-> > > +
-> > > +		default:
-> > > +			ret = ptrace_request(child, request, addr, data);
-> > > +			break;
-> > > +	}
-> > > +
-> > > +	return ret;
-> > > +}
-> > 
-> > Is there a reaons why these are not regsets but have their own ptrace
-> > commands? I believe new architectures should generally not add ptrace
-> > commands any more.
+> > +The AArch64 exception model is made up of a number of exception levels
+> > +(EL0 - EL3), with EL0 and EL1 having a secure and a non-secure
+> > +counterpart.  EL2 is the hypervisor level and exists only in non-secure
+> > +mode. EL3 is the highest priority level and exists only in secure mode.
 > 
-> I could probably add some regset wrappers about the hbp accessors (which we
-> have to keep for the compat ptrace interface). I'll have a think as it might
-> even make sense to have different regsets for breakpoints and watchpoints.
+> I'm always confused by a description like this. It sounds like you cannot
+> have a hypervisor if you have code running in secure mode in EL3. What
+> I instead understand is that you enter non-secure mode by going from
+> EL3 into EL2.
+
+From EL3 you can drop to either EL2 (non-secure) or EL1 (secure or
+non-secure), it's the highest privilege level. But we don't support the
+kernel entering at EL3, the SoC firmware runs in this mode. I'll try to
+make it clearer.
+
+> > +2. Setup the device tree
+> > +-------------------------
+> > +
+> > +Requirement: MANDATORY
+> > +
+> > +The device tree blob (dtb) must be no bigger than 2 megabytes in size
+> > +and placed at a 2-megabyte boundary within the first 512 megabytes from
+> > +the start of the kernel image. This is to allow the kernel to map the
+> > +blob using a single section mapping in the initial page tables.
 > 
-> As for the the tls, is it worth having a regset with only one register?
+> I've seen people put firmware for some peripherals into the device tree,
+> so that a device driver can grab a blob from there and load it into the
+> device, rather than calling request_firmware() which would fail if the
+> OS running on the system does not contain the blob. If such firmware is
+> too large, you end up violating the 2 MB limit you impose here.
+> 
+> Should we keep that limit and declare those use cases as invalid, or
+> should we try to make the boot protocol more flexible?
 
-Better ask the gdb folks. I'm adding Uli to Cc, maybe he has some insight.
+I would be ok to allowing larger range here but we currently don't get
+the information about the size of the dtb early enough to know how much
+to map. We could make some other arbitrary choice if needed like being
+in the first 16MB of RAM and we map this range.
 
-	Arnd
+-- 
+Catalin
