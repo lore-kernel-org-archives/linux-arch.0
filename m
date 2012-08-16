@@ -1,14 +1,14 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:58370 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:60219 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1756202Ab2HPRfN (ORCPT
+	by vger.kernel.org with ESMTP id S1752662Ab2HPSdM (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Aug 2012 13:35:13 -0400
-Date: Thu, 16 Aug 2012 18:34:59 +0100
+	Thu, 16 Aug 2012 14:33:12 -0400
+Date: Thu, 16 Aug 2012 19:32:56 +0100
 From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [PATCH] mm: hugetlb: flush dcache before returning zeroed huge
  page to userspace
-Message-ID: <20120816173459.GB7203@mudshark.cambridge.arm.com>
+Message-ID: <20120816183255.GB19401@mudshark.cambridge.arm.com>
 References: <20120710094513.GB9108@mudshark.cambridge.arm.com>
  <20120710104234.GI9108@mudshark.cambridge.arm.com>
  <20120711174802.GG13498@mudshark.cambridge.arm.com>
@@ -18,32 +18,33 @@ References: <20120710094513.GB9108@mudshark.cambridge.arm.com>
  <20120807160337.GC16877@mudshark.cambridge.arm.com>
  <20120808162607.GA7885@dhcp22.suse.cz>
  <20120816160954.GA4330@mudshark.cambridge.arm.com>
- <20120816172527.GA12578@dhcp22.suse.cz>
+ <20120816182015.GC12578@dhcp22.suse.cz>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20120816172527.GA12578@dhcp22.suse.cz>
+In-Reply-To: <20120816182015.GC12578@dhcp22.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Michal Hocko <mhocko@suse.cz>
 Cc: Hugh Dickins <hughd@google.com>, Andrew Morton <akpm@linux-foundation.org>, Hillf Danton <dhillf@gmail.com>, Russell King <linux@arm.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>
-Message-ID: <20120816173459.sa1Y5qFtTUL1tZerRKbzvjUypR2i_C27T5rfo6jOe1U@z>
+Message-ID: <20120816183256.VHOZ8IRxsOtUk2Dgae-sKk6camv2FnwXX9gvTN4CAIo@z>
 
-On Thu, Aug 16, 2012 at 06:25:27PM +0100, Michal Hocko wrote:
+On Thu, Aug 16, 2012 at 07:20:15PM +0100, Michal Hocko wrote:
 > On Thu 16-08-12 17:09:54, Will Deacon wrote:
-> > On Wed, Aug 08, 2012 at 05:26:07PM +0100, Michal Hocko wrote:
-> > > I guess the cleanest way is to hook into dequeue_huge_page_node and add
-> > > something like arch_clear_hugepage_flags.
-> > 
-> > I hooked into enqueue_huge_page instead, but how about something like this?:
+> > +static inline void arch_clear_hugepage_flags(struct page *page)
+> > +{
+> > +	flush_dcache_page(page);
+> > +}
+> > +
 > 
-> Do you have any specific reason for that? enqueue_huge_page is called on
-> pages which potentially never get used so isn't that wasting a bit?
-> Not that it would be wrong I was just thinking why shouldn't we do it
-> when the page is actualy going to be used for sure.
+> Why do we need the hook for ia64? hugetlb_no_page calls clear_huge_page
+> and that one calls flush_dcache_page (via clear_user_page), right?
+> The same applies to copy_huge_page for COW.
 
-I just did it that way to match the flag clearing for normal pages. I can
-move it into dequeue if you think it's worthwhile but in the worst case it
-just adds a clear_bit call, so I doubt it's measurable.
+You're right, these are redundant for ppc and ia64 (although ppc does have a
+comment moaning about the flush). Looks like it's just sh and ARM that need to
+do anything.
+
+Cheers,
 
 Will
