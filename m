@@ -1,41 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:43413 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:43945 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754305Ab2HPKFz (ORCPT
+	by vger.kernel.org with ESMTP id S1754385Ab2HPKXH (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 16 Aug 2012 06:05:55 -0400
-Date: Thu, 16 Aug 2012 11:05:37 +0100
+	Thu, 16 Aug 2012 06:23:07 -0400
+Date: Thu, 16 Aug 2012 11:23:00 +0100
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 03/31] arm64: Exception handling
-Message-ID: <20120816100536.GF31784@mudshark.cambridge.arm.com>
+Subject: Re: [PATCH v2 16/31] arm64: ELF definitions
+Message-ID: <20120816102300.GG31784@mudshark.cambridge.arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-4-git-send-email-catalin.marinas@arm.com>
- <201208151303.47743.arnd@arndb.de>
+ <1344966752-16102-17-git-send-email-catalin.marinas@arm.com>
+ <201208151415.39570.arnd@arndb.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <201208151303.47743.arnd@arndb.de>
+In-Reply-To: <201208151415.39570.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20120816100537.S7tCfSUfNGT8BQWZrcKEYJ775iaJy_0ryKtJufcIMfY@z>
+Message-ID: <20120816102300.eQpCXA9YggHqcHmiZyAXhMsevQBXEkMQD4IlW7BgIR0@z>
 
-On Wed, Aug 15, 2012 at 02:03:47PM +0100, Arnd Bergmann wrote:
+On Wed, Aug 15, 2012 at 03:15:39PM +0100, Arnd Bergmann wrote:
 > On Tuesday 14 August 2012, Catalin Marinas wrote:
+> > +
+> > +void elf_set_personality(int personality)
+> > +{
+> > +       switch (personality & PER_MASK) {
+> > +       case PER_LINUX:
+> > +               clear_thread_flag(TIF_32BIT);
+> > +               break;
+> > +       case PER_LINUX32:
+> > +               set_thread_flag(TIF_32BIT);
+> > +               break;
+> > +       default:
+> > +               pr_warning("Process %s tried to assume unknown personality %d\n",
+> > +                          current->comm, personality);
+> > +               return;
+> > +       }
+> > +
+> > +       current->personality = personality;
+> > +}
+> > +EXPORT_SYMBOL(elf_set_personality);
 > 
-> > +#ifdef CONFIG_AARCH32_EMULATION
-> > +#define compat_thumb_mode(regs) \
-> > +	(((regs)->pstate & COMPAT_PSR_T_BIT))
-> > +#else
-> > +#define compat_thumb_mode(regs) (0)
-> > +#endif
+> This looks wrong: PER_LINUX/PER_LINUX32 decides over the output of the
+> uname system call, while TIF_32BIT decides over the instruction set
+> when returning to user space. You definitely should not set the personality
+> to the value you pass from the elf loader. Instead, just do
 > 
-> The symbol we use on other platforms is CONFIG_COMPAT. I don't think you
-> need to have a separate CONFIG_AARCH32_EMULATION
+> #define SET_PERSONALITY(ex) clear_thread_flag(TIF_32BIT);
+> #defined COMPAT_SET_PERSONALITY(ex) set_thread_flag(TIF_32BIT);
 
-Using COMPAT does preclude the possibility of doing something like the x32
-ABI later on though. Some other architectures seem to do something similar
-(MIPS32_COMPAT, IA32_EMULATION).
+In this case, won't uname be incorrect (aarch64l) for aarch32 tasks (which
+expect something like armv8l)?
 
 Will
