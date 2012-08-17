@@ -1,92 +1,59 @@
-From: "Shilimkar, Santosh" <santosh.shilimkar@ti.com>
-Subject: Re: [PATCH v2 05/31] arm64: MMU initialisation
-Date: Fri, 17 Aug 2012 15:55:25 +0530
-Message-ID: <CAMQu2gxpmCZqAqZ1KCXoxg3vXQLqdFRv+nQ2vt0FeDzpGvNc7A@mail.gmail.com>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-6-git-send-email-catalin.marinas@arm.com>
- <502E1793.9080605@ti.com> <20120817101500.GG24389@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 02/31] arm64: Kernel booting and initialisation
+Date: Fri, 17 Aug 2012 11:20:40 +0000
+Message-ID: <201208171120.40740.arnd@arndb.de>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <1344966752-16102-3-git-send-email-catalin.marinas@arm.com> <alpine.LFD.2.02.1208161438110.1541@xanadu.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from na3sys009aog126.obsmtp.com ([74.125.149.155]:39938 "EHLO
-	na3sys009aog126.obsmtp.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757446Ab2HQKZr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 17 Aug 2012 06:25:47 -0400
-Received: by yhpp61 with SMTP id p61so4777487yhp.39
-        for <linux-arch@vger.kernel.org>; Fri, 17 Aug 2012 03:25:46 -0700 (PDT)
-In-Reply-To: <20120817101500.GG24389@arm.com>
+Received: from moutng.kundenserver.de ([212.227.17.9]:54757 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756369Ab2HQLUp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Aug 2012 07:20:45 -0400
+In-Reply-To: <alpine.LFD.2.02.1208161438110.1541@xanadu.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Will Deacon <Will.Deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
+To: Nicolas Pitre <nico@fluxnic.net>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>
 
-On Fri, Aug 17, 2012 at 3:45 PM, Catalin Marinas
-<catalin.marinas@arm.com> wrote:
-> On Fri, Aug 17, 2012 at 11:06:11AM +0100, Santosh Shilimkar wrote:
->> On Tuesday 14 August 2012 11:22 PM, Catalin Marinas wrote:
->> > This patch contains the initialisation of the memory blocks, MMU
->> > attributes and the memory map. Only five memory types are defined:
->> > Device nGnRnE (equivalent to Strongly Ordered), Device nGnRE (classic
->> > Device memory), Device GRE, Normal Non-cacheable and Normal Cacheable.
->> > Cache policies are supported via the memory attributes register
->> > (MAIR_EL1) and only affect the Normal Cacheable mappings.
->> >
->> > This patch also adds the SPARSEMEM_VMEMMAP initialisation.
->> >
->> > Signed-off-by: Will Deacon<will.deacon@arm.com>
->> > Signed-off-by: Catalin Marinas<catalin.marinas@arm.com>
->> > ---
->>
->> Whats the difference between Device nGnRE and Device GRE ?
->> Sorry, I haven't gone through the specs yet and hence the
->> question.
->
-> G - gathering (multiple reads/writes into one)
-> R - reordering (reads/writes)
-> E - early acknowledgement (the write may have not hit the device before
->     the instruction returns).
->
-> The 'n' in front just negates the meaning.
->
-> So the Device memory as we know it on ARMv7 is equivalent to nGnRE. The
-> Strongly Ordered is nGnRnE. GRE is pretty much like Normal Non-cacheable
-> memory but with Device mapping, so there are restrictions on unaligned
-> accesses.
->
-Thanks for explaining it so clearly.
+On Thursday 16 August 2012, Nicolas Pitre wrote:
+> > +3. Decompress the kernel image
+> > +------------------------------
+> > +
+> > +Requirement: OPTIONAL
+> > +
+> > +The AArch64 kernel does not provide a decompressor and therefore
+> > +requires gzip decompression to be performed by the boot loader if the
+> > +default Image.gz target is used.  For bootloaders that do not implement
+> > +this requirement, the larger Image target is available instead.
+> 
+> Some people will want to use bzip2 or whatever other decompressor du 
+> jour.  Maybe this shouldn't be gzip specific, or just presented as a 
+> possible option?
 
->> > +#ifdef CONFIG_ZONE_DMA32
->> > +   /* 4GB maximum for 32-bit only capable devices */
->> > +   max_dma32 = min(max, MAX_DMA32_PFN);
->> > +   zone_size[ZONE_DMA32] = max_dma32 - min;
->> > +#endif
->>
->> Do you see need of supporting DMA32 on arm64 SOCs ?
->
-> I've got some questions from partners but those devices may just be
-> hidden behind an iommu. For now I left it in.
->
-ok.
+Good point. Whether this should be part of this document depends on
+what assumptions we make about the boot loader getting the image
+in the first place.
 
->> > +static struct cachepolicy cache_policies[] __initdata = {
->> > +   {
->> > +           .policy         = "uncached",
->> > +           .mair           = 0x44,                 /* inner, outer non-cacheable */
->> > +           .tcr            = TCR_IRGN_NC | TCR_ORGN_NC,
->> > +   }, {
->> > +           .policy         = "writethrough",
->> > +           .mair           = 0xaa,                 /* inner, outer write-through, read-allocate */
->> > +           .tcr            = TCR_IRGN_WT | TCR_ORGN_WT,
->>
->> Is WT supported on arm64?
->> On the recent ARMv7 processors, I think WT wasn't supported.
->
-> All of WB, WA, WT are just architectural hints. A CPU implementation may
-> or may not ignore them but with Linux we try to follow the architecture
-> rather than specific implementations.
->
-Agree.
+In the strict sense, we are documenting the interface between the boot
+loader and the kernel here, which already specifies that  the kernel
+must be uncompressed by the time we enter it. If the boot loader wants
+to add its own encryption or compression methods, or its own headers
+in front of the binary, the boot protocol isn't really impacted.
 
-Regards
-Santosh
+That said, I think it's a good idea to also specify what kind of
+format we want to be used, e.g. a stripped ELF Image compressed
+with one of gzip/bzip2/lzo/xz and with no other headers added,
+on a vfat/ext4/btrfs formatted file system. There are probably a
+lot of other things one might want to specify if we go down this
+route. Or we could refer to the UEFI spec and mandate that the
+same format that UEFI uses should be used here independent of
+what boot loader is used. I think we can still allow other ways to
+get to the image for deeply embedded systems, e.g. linking the
+kernel into the boot loader as a blob on tightly constrained
+systems. For that case, we'd only specify the interface between
+boot loader and kernel as described above.
+
+	Arnd
