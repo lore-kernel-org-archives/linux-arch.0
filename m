@@ -1,84 +1,46 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 23/31] arm64: Debugging support
-Date: Fri, 17 Aug 2012 07:06:07 +0000
-Message-ID: <201208170706.07821.arnd@arndb.de>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <20120816104748.GI31784@mudshark.cambridge.arm.com> <201208161249.35008.arnd@arndb.de>
+From: Tony Lindgren <tony@atomide.com>
+Subject: Re: [PATCH v2 02/31] arm64: Kernel booting and initialisation
+Date: Fri, 17 Aug 2012 01:56:15 -0700
+Message-ID: <20120817085615.GO11011@atomide.com>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
+ <1344966752-16102-3-git-send-email-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:53342 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750792Ab2HQHGR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Aug 2012 03:06:17 -0400
-In-Reply-To: <201208161249.35008.arnd@arndb.de>
+Received: from mho-02-ewr.mailhop.org ([204.13.248.72]:26325 "EHLO
+	mho-02-ewr.mailhop.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755981Ab2HQI4T (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Aug 2012 04:56:19 -0400
+Content-Disposition: inline
+In-Reply-To: <1344966752-16102-3-git-send-email-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, ulrich.weigand@linaro.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
 
-On Thursday 16 August 2012, Arnd Bergmann wrote:
-> On Thursday 16 August 2012, Will Deacon wrote:
-> > On Wed, Aug 15, 2012 at 04:07:36PM +0100, Arnd Bergmann wrote:
-> > > On Tuesday 14 August 2012, Catalin Marinas wrote:
-> 
-> > > From what I can tell, there is no support for 32 bit processes debugging
-> > > 64 bit ones. Is that something you plan to add in the future, or do you
-> > > consider that out of scope? In either case, a comment would be helpful.
-> > 
-> > That can't really work because the debugger won't be able to manipulate
-> > child pointers properly without us adding a new ptrace interface (and then,
-> > I still wonder about how feasible it really is). I can add a comment.
-> 
-> You can already have a 32 bit gdb that is able to do remote debugging of
-> 64 bit processes using a gdb server process. I guess it wouldn't be
-> too strange to have a ptrace extension to allow the native case as well.
-> I agree it's not a high priority.
-> 
-> > > > +long arch_ptrace(struct task_struct *child, long request,
-> > > > +		 unsigned long addr, unsigned long data)
-> > > > +{
-> > > > +	int ret;
-> > > > +	unsigned long *datap = (unsigned long __user *)data;
-> > > > +
-> > > > +	switch (request) {
-> > > > +		case PTRACE_GET_THREAD_AREA:
-> > > > +			ret = put_user(child->thread.tp_value, datap);
-> > > > +			break;
-> > > > +
-> > > > +#ifdef CONFIG_HAVE_HW_BREAKPOINT
-> > > > +		case PTRACE_GETHBPREGS:
-> > > > +			ret = ptrace_gethbpregs(child, addr, datap);
-> > > > +			break;
-> > > > +
-> > > > +		case PTRACE_SETHBPREGS:
-> > > > +			ret = ptrace_sethbpregs(child, addr, datap);
-> > > > +			break;
-> > > > +#endif
-> > > > +
-> > > > +		default:
-> > > > +			ret = ptrace_request(child, request, addr, data);
-> > > > +			break;
-> > > > +	}
-> > > > +
-> > > > +	return ret;
-> > > > +}
-> > > 
-> > > Is there a reaons why these are not regsets but have their own ptrace
-> > > commands? I believe new architectures should generally not add ptrace
-> > > commands any more.
-> > 
-> > I could probably add some regset wrappers about the hbp accessors (which we
-> > have to keep for the compat ptrace interface). I'll have a think as it might
-> > even make sense to have different regsets for breakpoints and watchpoints.
-> > 
-> > As for the the tls, is it worth having a regset with only one register?
-> 
-> Better ask the gdb folks. I'm adding Uli to Cc, maybe he has some insight.
+* Catalin Marinas <catalin.marinas@arm.com> [120814 11:00]:
+> +3. Decompress the kernel image
+> +------------------------------
+> +
+> +Requirement: OPTIONAL
+> +
+> +The AArch64 kernel does not provide a decompressor and therefore
+> +requires gzip decompression to be performed by the boot loader if the
+> +default Image.gz target is used.  For bootloaders that do not implement
+> +this requirement, the larger Image target is available instead.
 
-Sorry for the dumb question, but why do you even need PTRACE_GET_THREAD_AREA
-for 64 bit tasks? I thought the thread pointer is a GPR, or is this just
-for compat tasks?
+Maybe add something here about why AArch64 does not provide a
+decompressor? That's something everybody will wonder while reading
+this part.
 
-	Arnd
+> +- Caches, MMUs
+> +  The MMU must be off.
+> +  Instruction cache may be on or off.
+> +  Data cache must be off and invalidated.
+
+External caches must be configured by bootloader but set to disabled
+state?
+
+Other than that:
+
+Acked-by: Tony Lindgren <tony@atomide.com>
