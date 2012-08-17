@@ -1,37 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mho-02-ewr.mailhop.org ([204.13.248.72]:54902 "EHLO
-	mho-02-ewr.mailhop.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933797Ab2HQJTL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Aug 2012 05:19:11 -0400
-Date: Fri, 17 Aug 2012 02:19:08 -0700
+Received: from mho-01-ewr.mailhop.org ([204.13.248.71]:56056 "EHLO
+	mho-01-ewr.mailhop.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756596Ab2HQJcQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Aug 2012 05:32:16 -0400
+Date: Fri, 17 Aug 2012 02:32:13 -0700
 From: Tony Lindgren <tony@atomide.com>
-Subject: Re: [PATCH v2 13/31] arm64: Device specific operations
-Message-ID: <20120817091908.GQ11011@atomide.com>
+Subject: Re: [PATCH v2 30/31] arm64: Build infrastructure
+Message-ID: <20120817093213.GT11011@atomide.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-14-git-send-email-catalin.marinas@arm.com>
+ <1344966752-16102-31-git-send-email-catalin.marinas@arm.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1344966752-16102-14-git-send-email-catalin.marinas@arm.com>
+In-Reply-To: <1344966752-16102-31-git-send-email-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>
 Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
-Message-ID: <20120817091908.f3VM4DBYcF1NzybaTbLud6flRSWpWORujCdInc2p0Pk@z>
+Message-ID: <20120817093213.vtg6RKRqZHNBUcdgOfOdLm-dpZY0mGVYvJ5xezQX9Zg@z>
 
-* Catalin Marinas <catalin.marinas@arm.com> [120814 11:05]:
+* Catalin Marinas <catalin.marinas@arm.com> [120814 11:00]:
 > --- /dev/null
-> +++ b/arch/arm64/mm/ioremap.c
-> +
-> +void __iomem *__ioremap(phys_addr_t phys_addr, size_t size, pgprot_t prot)
-> +{
-> +	return __ioremap_caller(phys_addr, size, prot,
-> +				__builtin_return_address(0));
-> +}
-> +EXPORT_SYMBOL(__ioremap);
+> +++ b/arch/arm64/Kconfig
+> @@ -0,0 +1,261 @@
+> +config ARM64
+> +	def_bool y
+> +	select OF
+> +	select OF_EARLY_FLATTREE
+> +	select IRQ_DOMAIN
+> +	select HAVE_AOUT
+> +	select HAVE_DMA_ATTRS
+> +	select HAVE_DMA_API_DEBUG
+> +	select HAVE_IDE
+> +	select HAVE_MEMBLOCK
+> +	select RTC_LIB
+> +	select SYS_SUPPORTS_APM_EMULATION
+> +	select HAVE_GENERIC_DMA_COHERENT
+> +	select GENERIC_IOMAP
+> +	select HAVE_IRQ_WORK
+> +	select HAVE_PERF_EVENTS
+> +	select HAVE_ARCH_TRACEHOOK
+> +	select PERF_USE_VMALLOC
+> +	select HAVE_HW_BREAKPOINT if PERF_EVENTS
+> +	select HAVE_GENERIC_HARDIRQS
+> +	select GENERIC_HARDIRQS_NO_DEPRECATED
+> +	select HAVE_SPARSE_IRQ
+> +	select SPARSE_IRQ
+> +	select GENERIC_IRQ_SHOW
+> +	select GENERIC_SMP_IDLE_THREAD
+> +	select NO_BOOTMEM
+> +	help
+> +	  ARM 64-bit (AArch64) Linux support.
 
-From SoC point of view, we're probably going to need __ioremap_exec()
-here too for programming clocks during runtime in SRAM etc. But that
-can be added later as needed.
+Anything we should select here for ARM generic timers and
+interrupts assuming we can always expect to boot using those?
+
+Other than that:
 
 Acked-by: Tony Lindgren <tony@atomide.com>
