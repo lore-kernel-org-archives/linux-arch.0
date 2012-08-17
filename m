@@ -1,55 +1,46 @@
-From: Tony Lindgren <tony@atomide.com>
-Subject: Re: [PATCH v2 30/31] arm64: Build infrastructure
-Date: Fri, 17 Aug 2012 02:32:13 -0700
-Message-ID: <20120817093213.GT11011@atomide.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 15/31] arm64: SMP support
+Date: Fri, 17 Aug 2012 10:32:50 +0100
+Message-ID: <20120817093250.GB24389@arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-31-git-send-email-catalin.marinas@arm.com>
+ <1344966752-16102-16-git-send-email-catalin.marinas@arm.com>
+ <20120817092133.GR11011@atomide.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:56560 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S964862Ab2HQJdX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 17 Aug 2012 05:33:23 -0400
 Content-Disposition: inline
-In-Reply-To: <1344966752-16102-31-git-send-email-catalin.marinas@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <20120817092133.GR11011@atomide.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tony Lindgren <tony@atomide.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <Will.Deacon@arm.com>, Marc Zyngier <Marc.Zyngier@arm.com>
 
-* Catalin Marinas <catalin.marinas@arm.com> [120814 11:00]:
-> --- /dev/null
-> +++ b/arch/arm64/Kconfig
-> @@ -0,0 +1,261 @@
-> +config ARM64
-> +	def_bool y
-> +	select OF
-> +	select OF_EARLY_FLATTREE
-> +	select IRQ_DOMAIN
-> +	select HAVE_AOUT
-> +	select HAVE_DMA_ATTRS
-> +	select HAVE_DMA_API_DEBUG
-> +	select HAVE_IDE
-> +	select HAVE_MEMBLOCK
-> +	select RTC_LIB
-> +	select SYS_SUPPORTS_APM_EMULATION
-> +	select HAVE_GENERIC_DMA_COHERENT
-> +	select GENERIC_IOMAP
-> +	select HAVE_IRQ_WORK
-> +	select HAVE_PERF_EVENTS
-> +	select HAVE_ARCH_TRACEHOOK
-> +	select PERF_USE_VMALLOC
-> +	select HAVE_HW_BREAKPOINT if PERF_EVENTS
-> +	select HAVE_GENERIC_HARDIRQS
-> +	select GENERIC_HARDIRQS_NO_DEPRECATED
-> +	select HAVE_SPARSE_IRQ
-> +	select SPARSE_IRQ
-> +	select GENERIC_IRQ_SHOW
-> +	select GENERIC_SMP_IDLE_THREAD
-> +	select NO_BOOTMEM
-> +	help
-> +	  ARM 64-bit (AArch64) Linux support.
+On Fri, Aug 17, 2012 at 10:21:33AM +0100, Tony Lindgren wrote:
+> * Catalin Marinas <catalin.marinas@arm.com> [120814 11:05]:
+> > This patch adds SMP initialisation and spinlocks implementation for
+> > AArch64. The spinlock support uses the new load-acquire/store-release
+> > instructions to avoid explicit barriers. The architecture also specifies
+> > that an event is automatically generated when clearing the exclusive
+> > monitor state to wake up processors in WFE, so there is no need for an
+> > explicit DSB/SEV instruction sequence. The SEVL instruction is used to
+> > set the exclusive monitor locally as there is no conditional WFE and a
+> > branch is more expensive.
+> 
+> Do we always have SMP hardware on arm64? Or are we going to need to
+> again add smp_on_up support later on?
 
-Anything we should select here for ARM generic timers and
-interrupts assuming we can always expect to boot using those?
+There isn't anything in the architecture specs that mandates multiple
+cores but given the current trend it's very likely that we'll always
+have MP.
 
-Other than that:
+An improvement in AArch64 is that we can use the SMP cache/TLB ops (the
+inner shareable variants) even on a UP system so there is no need for
+run-time code patching for correct execution.
 
-Acked-by: Tony Lindgren <tony@atomide.com>
+-- 
+Catalin
