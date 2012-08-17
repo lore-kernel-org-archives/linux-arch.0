@@ -1,152 +1,84 @@
-From: Nicolas Pitre <nico@fluxnic.net>
-Subject: Re: [PATCH v2 02/31] arm64: Kernel booting and initialisation
-Date: Thu, 16 Aug 2012 14:59:43 -0400 (EDT)
-Message-ID: <alpine.LFD.2.02.1208161438110.1541@xanadu.home>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-3-git-send-email-catalin.marinas@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 23/31] arm64: Debugging support
+Date: Fri, 17 Aug 2012 07:06:07 +0000
+Message-ID: <201208170706.07821.arnd@arndb.de>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <20120816104748.GI31784@mudshark.cambridge.arm.com> <201208161249.35008.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; CHARSET=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-reply-to: <1344966752-16102-3-git-send-email-catalin.marinas@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.171]:53342 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750792Ab2HQHGR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 17 Aug 2012 03:06:17 -0400
+In-Reply-To: <201208161249.35008.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, ulrich.weigand@linaro.org
 
-On Tue, 14 Aug 2012, Catalin Marinas wrote:
-
-> The patch adds the kernel booting and the initial setup code.
-> Documentation/arm64/booting.txt describes the booting protocol on the
-> AArch64 Linux kernel. This is subject to change following the work on
-> boot standardisation, ACPI.
+On Thursday 16 August 2012, Arnd Bergmann wrote:
+> On Thursday 16 August 2012, Will Deacon wrote:
+> > On Wed, Aug 15, 2012 at 04:07:36PM +0100, Arnd Bergmann wrote:
+> > > On Tuesday 14 August 2012, Catalin Marinas wrote:
 > 
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-
-A few minor comments below, otherwise...
-
-Acked-by: Nicolas Pitre <nico@linaro.org>
-
-> ---
->  Documentation/arm64/booting.txt |  141 +++++++++++
->  arch/arm64/include/asm/setup.h  |   26 ++
->  arch/arm64/kernel/head.S        |  521 +++++++++++++++++++++++++++++++++++++++
->  arch/arm64/kernel/setup.c       |  357 +++++++++++++++++++++++++++
->  4 files changed, 1045 insertions(+), 0 deletions(-)
->  create mode 100644 Documentation/arm64/booting.txt
->  create mode 100644 arch/arm64/include/asm/setup.h
->  create mode 100644 arch/arm64/kernel/head.S
->  create mode 100644 arch/arm64/kernel/setup.c
+> > > From what I can tell, there is no support for 32 bit processes debugging
+> > > 64 bit ones. Is that something you plan to add in the future, or do you
+> > > consider that out of scope? In either case, a comment would be helpful.
+> > 
+> > That can't really work because the debugger won't be able to manipulate
+> > child pointers properly without us adding a new ptrace interface (and then,
+> > I still wonder about how feasible it really is). I can add a comment.
 > 
-> diff --git a/Documentation/arm64/booting.txt b/Documentation/arm64/booting.txt
-> new file mode 100644
-> index 0000000..3197820
-> --- /dev/null
-> +++ b/Documentation/arm64/booting.txt
-> @@ -0,0 +1,141 @@
-> +			Booting AArch64 Linux
-> +			=====================
-> +
-> +Author: Will Deacon <will.deacon@arm.com>
-> +Date  : 25 April 2012
-> +
-> +This document is based on the ARM booting document by Russell King and
-> +is relevant to all public releases of the AArch64 Linux kernel.
-> +
-> +The AArch64 exception model is made up of a number of exception levels
-> +(EL0 - EL3), with EL0 and EL1 having a secure and a non-secure
-> +counterpart.  EL2 is the hypervisor level and exists only in non-secure
-> +mode. EL3 is the highest priority level and exists only in secure mode.
-> +
-> +For the purposes of this document, we will use the term `boot loader'
-> +simply to define all software that executes on the CPU(s) before control
-> +is passed to the Linux kernel.  This may include secure monitor and
-> +hypervisor code, or it may just be a handful of instructions for
-> +preparing a minimal boot environment.
-> +
-> +Essentially, the boot loader should provide (as a minimum) the
-> +following:
-> +
-> +1. Setup and initialise the RAM
-> +2. Setup the device tree
-> +3. Decompress the kernel image
-> +4. Call the kernel image
-> +
-> +
-> +1. Setup and initialise RAM
-> +---------------------------
-> +
-> +Requirement: MANDATORY
-> +
-> +The boot loader is expected to find and initialise all RAM that the
-> +kernel will use for volatile data storage in the system.  It performs
-> +this in a machine dependent manner.  (It may use internal algorithms
-> +to automatically locate and size all RAM, or it may use knowledge of
-> +the RAM in the machine, or any other method the boot loader designer
-> +sees fit.)
-> +
-> +
-> +2. Setup the device tree
-> +-------------------------
-> +
-> +Requirement: MANDATORY
-> +
-> +The device tree blob (dtb) must be no bigger than 2 megabytes in size
-> +and placed at a 2-megabyte boundary within the first 512 megabytes from
-> +the start of the kernel image. This is to allow the kernel to map the
-> +blob using a single section mapping in the initial page tables.
+> You can already have a 32 bit gdb that is able to do remote debugging of
+> 64 bit processes using a gdb server process. I guess it wouldn't be
+> too strange to have a ptrace extension to allow the native case as well.
+> I agree it's not a high priority.
+> 
+> > > > +long arch_ptrace(struct task_struct *child, long request,
+> > > > +		 unsigned long addr, unsigned long data)
+> > > > +{
+> > > > +	int ret;
+> > > > +	unsigned long *datap = (unsigned long __user *)data;
+> > > > +
+> > > > +	switch (request) {
+> > > > +		case PTRACE_GET_THREAD_AREA:
+> > > > +			ret = put_user(child->thread.tp_value, datap);
+> > > > +			break;
+> > > > +
+> > > > +#ifdef CONFIG_HAVE_HW_BREAKPOINT
+> > > > +		case PTRACE_GETHBPREGS:
+> > > > +			ret = ptrace_gethbpregs(child, addr, datap);
+> > > > +			break;
+> > > > +
+> > > > +		case PTRACE_SETHBPREGS:
+> > > > +			ret = ptrace_sethbpregs(child, addr, datap);
+> > > > +			break;
+> > > > +#endif
+> > > > +
+> > > > +		default:
+> > > > +			ret = ptrace_request(child, request, addr, data);
+> > > > +			break;
+> > > > +	}
+> > > > +
+> > > > +	return ret;
+> > > > +}
+> > > 
+> > > Is there a reaons why these are not regsets but have their own ptrace
+> > > commands? I believe new architectures should generally not add ptrace
+> > > commands any more.
+> > 
+> > I could probably add some regset wrappers about the hbp accessors (which we
+> > have to keep for the compat ptrace interface). I'll have a think as it might
+> > even make sense to have different regsets for breakpoints and watchpoints.
+> > 
+> > As for the the tls, is it worth having a regset with only one register?
+> 
+> Better ask the gdb folks. I'm adding Uli to Cc, maybe he has some insight.
 
-It might be a good idea to specify the minimum information that should 
-be contained in the DTB.  Memory size is certainly one such item.
+Sorry for the dumb question, but why do you even need PTRACE_GET_THREAD_AREA
+for 64 bit tasks? I thought the thread pointer is a GPR, or is this just
+for compat tasks?
 
-> +3. Decompress the kernel image
-> +------------------------------
-> +
-> +Requirement: OPTIONAL
-> +
-> +The AArch64 kernel does not provide a decompressor and therefore
-> +requires gzip decompression to be performed by the boot loader if the
-> +default Image.gz target is used.  For bootloaders that do not implement
-> +this requirement, the larger Image target is available instead.
-
-Some people will want to use bzip2 or whatever other decompressor du 
-jour.  Maybe this shouldn't be gzip specific, or just presented as a 
-possible option?
-
-> +4. Call the kernel image
-> +------------------------
-> +
-> +Requirement: MANDATORY
-> +
-> +The decompressed kernel image contains a 32-byte header as follows:
-> +
-> +  u32 magic	= 0x14000008;	/* branch to stext, little-endian */
-> +  u32 res0	= 0;		/* reserved */
-> +  u64 text_offset;		/* Image load offset */
-> +  u64 res1	= 0;		/* reserved */
-> +  u64 res2	= 0;		/* reserved */
-> +
-> +The image must be placed at the specified offset (currently 0x80000)
-> +from the start of the system RAM and called there. The start of the
-> +system RAM must be aligned to 2MB.
-> +
-> +Before jumping into the kernel, the following conditions must be met:
-> +
-> +- Quiesce all DMA capable devices so that memory does not get
-> +  corrupted by bogus network packets or disk data.  This will save
-> +  you many hours of debug.
-> +
-> +- Primary CPU general-purpose register settings
-> +  x0 = physical address of device tree blob (dtb) in system RAM.
-
-I think you should mandate that some additional registers be explicitly 
-initialized to 0 for possible future usage (and also mentioned in the 
-corresponding code comment).  We have that issue on ARM32 where it is 
-unclear if r2 contains a valid ATAG/DTB address or not as its content 
-was not defined before.
-
-[...]
-
-
-Nicolas
+	Arnd
