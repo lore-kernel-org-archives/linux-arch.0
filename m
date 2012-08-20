@@ -1,32 +1,49 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2 23/31] arm64: Debugging support
-Date: Mon, 20 Aug 2012 10:27:44 +0100
-Message-ID: <20120820092744.GD25864@mudshark.cambridge.arm.com>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [PATCH v2 21/31] arm64: 32-bit (compat) applications support
+Date: Mon, 20 Aug 2012 12:53:08 +0200
+Message-ID: <20120820105308.GA906@elf.ucw.cz>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <20120816104748.GI31784@mudshark.cambridge.arm.com>
- <201208161249.35008.arnd@arndb.de>
- <201208170706.07821.arnd@arndb.de>
- <20120820090754.GB25864@mudshark.cambridge.arm.com>
+ <1344966752-16102-22-git-send-email-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:52685 "EHLO
+	atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752517Ab2HTKxK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 20 Aug 2012 06:53:10 -0400
 Content-Disposition: inline
-In-Reply-To: <20120820090754.GB25864@mudshark.cambridge.arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ulrich.weigand@linaro.org" <ulrich.weigand@linaro.org>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <1344966752-16102-22-git-send-email-catalin.marinas@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Will Deacon <will.deacon@arm.com>
 
-On Mon, Aug 20, 2012 at 10:07:54AM +0100, Will Deacon wrote:
-> On Fri, Aug 17, 2012 at 08:06:07AM +0100, Arnd Bergmann wrote:
-> > Sorry for the dumb question, but why do you even need PTRACE_GET_THREAD_AREA
-> > for 64 bit tasks? I thought the thread pointer is a GPR, or is this just
-> > for compat tasks?
+Hi!
+
+> This patch adds support for 32-bit applications. The vectors page is a
+> binary blob mapped into the application user space at 0xffff0000 (the
+> AArch64 toolchain does not support compilation of AArch32 code). Full
+> compatibility with ARMv7 user space is supported. The use of deprecated
+> ARMv7 functionality (SWP, CP15 barriers) has been disabled by default on
+> AArch64 kernels and unaligned LDM/STM is not supported.
 > 
-> The TLS is stored in a co-processor register which is read-only for
-> userspace.
+> Please note that only the ARM 32-bit EABI is supported, so no OABI
+> compatibility.
 
-I should elaborate: the register is RW for AArch64 tasks, RO for aarch32
-tasks (although that doesn't affect the need for the ptrace request).
+> +struct compat_statfs {
+> +	int		f_type;
+> +	int		f_bsize;
+> +	int		f_blocks;
+> +	int		f_bfree;
+> +	int		f_bavail;
+> +	int		f_files;
+> +	int		f_ffree;
+> +	compat_fsid_t	f_fsid;
+> +	int		f_namelen;	/* SunOS ignores this field. */
 
-Will
+I'm sure it does. But is it good comment?
+
+									Pavel
+-- 
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
