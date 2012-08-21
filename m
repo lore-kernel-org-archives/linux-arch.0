@@ -1,52 +1,52 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 17/31] arm64: System calls handling
-Date: Tue, 21 Aug 2012 20:14:01 +0000
-Message-ID: <201208212014.01837.arnd@arndb.de>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <201208151422.16335.arnd@arndb.de> <20120821175122.GI12708@arm.com>
+Subject: Re: [PATCH v2 16/31] arm64: ELF definitions
+Date: Tue, 21 Aug 2012 20:17:07 +0000
+Message-ID: <201208212017.08110.arnd@arndb.de>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <201208161237.53594.arnd@arndb.de> <20120821160653.GH12708@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <20120821175122.GI12708@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: linux-arm-kernel-bounces@lists.infradead.org
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.187]:65234 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752412Ab2HUURL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Aug 2012 16:17:11 -0400
+In-Reply-To: <20120821160653.GH12708@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: Will Deacon <Will.Deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
 On Tuesday 21 August 2012, Catalin Marinas wrote:
-> > > +asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
-> > > +                    unsigned long prot, unsigned long flags,
-> > > +                    unsigned long fd, off_t off)
-> > > +{
-> > > +   if (offset_in_page(off) != 0)
-> > > +           return -EINVAL;
-> > > +
-> > > +   return sys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
-> > > +}
+> On Thu, Aug 16, 2012 at 01:37:53PM +0100, Arnd Bergmann wrote:
+> > On Thursday 16 August 2012, Will Deacon wrote:
+> > > > This looks wrong: PER_LINUX/PER_LINUX32 decides over the output of the
+> > > > uname system call, while TIF_32BIT decides over the instruction set
+> > > > when returning to user space. You definitely should not set the personality
+> > > > to the value you pass from the elf loader. Instead, just do
+> > > > 
+> > > > #define SET_PERSONALITY(ex) clear_thread_flag(TIF_32BIT);
+> > > > #defined COMPAT_SET_PERSONALITY(ex) set_thread_flag(TIF_32BIT);
+> > > 
+> > > In this case, won't uname be incorrect (aarch64l) for aarch32 tasks (which
+> > > expect something like armv8l)?
 > > 
-> > I think
-> > 
-> > #define sys_mmap sys_mmap_pgoff 
+> > No, the uname output is meant to tell you about the system, not the
+> > instruction set that you are using (you already know that in compiled
+> > code).
 > 
-> There are slightly different semantics with the last argument of
-> sys_mmap() which takes a byte offset. The sys_mmap_pgoff() function
-> takes the offset shifted by PAGE_SHIFT (which is the same as sys_mmap2).
-> 
-> Looking at the other architectures, it makes sense to use a generic
-> sys_mmap() implementation similar to the one above (or the ia-64, seems
-> to be the most complete).
-> 
+> OK, so we assumed that compat tasks should get a uname as close as
+> possible to a 32-bit system, i.e. armv8l, for full compatibility. This
+> would allow us to run something like 32-bit Debian on an AArch64 kernel
+> without worrying about any scripts failing.
 
-Why that? The generic sys_mmap_pgoff was specifically added so new architectures
-could just use that instead of having their own wrappers, see f8b72560.
+You can still do that, just boot with init="/sbin/setarch armv7 /sbin/init".
+
+> But I can see on x86 that it always reports x86_64 even if the task is
+> x86_32.
+
+Not just x86, the same behavior is used on powerpc, s390, mips, sparc and
+parisc. Not sure about tile though.
 
 	Arnd
