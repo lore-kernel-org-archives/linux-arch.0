@@ -1,60 +1,52 @@
-From: Christopher Covington <cov@codeaurora.org>
-Subject: Re: [PATCH v2 28/31] arm64: Generic timers support
-Date: Tue, 21 Aug 2012 15:20:18 -0400
-Message-ID: <5033DF72.70609@codeaurora.org>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <1344966752-16102-29-git-send-email-catalin.marinas@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 17/31] arm64: System calls handling
+Date: Tue, 21 Aug 2012 20:14:01 +0000
+Message-ID: <201208212014.01837.arnd@arndb.de>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
+ <201208151422.16335.arnd@arndb.de> <20120821175122.GI12708@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine01.qualcomm.com ([199.106.114.254]:10223 "EHLO
-	wolverine01.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751282Ab2HUTU0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Aug 2012 15:20:26 -0400
-In-Reply-To: <1344966752-16102-29-git-send-email-catalin.marinas@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Marc Zyngier <marc.zyngier@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20120821175122.GI12708@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: linux-arm-kernel-bounces@lists.infradead.org
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 08/14/2012 01:52 PM, Catalin Marinas wrote:
-> From: Marc Zyngier <marc.zyngier@arm.com>
+On Tuesday 21 August 2012, Catalin Marinas wrote:
+> > > +asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
+> > > +                    unsigned long prot, unsigned long flags,
+> > > +                    unsigned long fd, off_t off)
+> > > +{
+> > > +   if (offset_in_page(off) != 0)
+> > > +           return -EINVAL;
+> > > +
+> > > +   return sys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
+> > > +}
+> > 
+> > I think
+> > 
+> > #define sys_mmap sys_mmap_pgoff 
 > 
-> This patch adds support for the ARM generic timers with A64 instructions
-> for accessing the timer registers. It uses the physical counter as the
-> clock source and the virtual counter as sched_clock.
+> There are slightly different semantics with the last argument of
+> sys_mmap() which takes a byte offset. The sys_mmap_pgoff() function
+> takes the offset shifted by PAGE_SHIFT (which is the same as sys_mmap2).
 > 
-> The timer frequency can be specified via DT or read from the CNTFRQ_EL0
-> register. The physical counter is also accessible from user space
-> allowing fast gettimeofday() implementation.
+> Looking at the other architectures, it makes sense to use a generic
+> sys_mmap() implementation similar to the one above (or the ia-64, seems
+> to be the most complete).
+> 
 
-[...]
+Why that? The generic sys_mmap_pgoff was specifically added so new architectures
+could just use that instead of having their own wrappers, see f8b72560.
 
-> +++ b/drivers/clocksource/arm_generic.c
-
-[...]
-
-> +static void arch_timer_reg_write(int reg, u32 val)
-> +{
-> +	switch (reg) {
-> +	case ARCH_TIMER_REG_CTRL:
-> +		asm volatile("msr cntp_ctl_el0,  %0" : : "r" (val));
-> +		break;
-> +	case ARCH_TIMER_REG_TVAL:
-> +		asm volatile("msr cntp_tval_el0, %0" : : "r" (val));
-> +		break;
-> +	default:
-> +		BUG();
-> +	}
-> +
-> +	isb();
-> +}
-
-Doesn't architecture-specific assembly need to go in the arch directory rather
-than the drivers directory?
-
-Christopher
-
--- 
-Employee of Qualcomm Innovation Center, Inc.
-Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum
+	Arnd
