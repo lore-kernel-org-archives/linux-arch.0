@@ -1,38 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:57455 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:39051 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753977Ab2HTJ1x (ORCPT
+	by vger.kernel.org with ESMTP id S1753472Ab2HUJDa (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 20 Aug 2012 05:27:53 -0400
-Date: Mon, 20 Aug 2012 10:27:44 +0100
+	Tue, 21 Aug 2012 05:03:30 -0400
+Date: Tue, 21 Aug 2012 09:58:19 +0100
 From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [PATCH v2 23/31] arm64: Debugging support
-Message-ID: <20120820092744.GD25864@mudshark.cambridge.arm.com>
+Message-ID: <20120821085819.GD28660@mudshark.cambridge.arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <20120816104748.GI31784@mudshark.cambridge.arm.com>
- <201208161249.35008.arnd@arndb.de>
- <201208170706.07821.arnd@arndb.de>
  <20120820090754.GB25864@mudshark.cambridge.arm.com>
+ <20120820092744.GD25864@mudshark.cambridge.arm.com>
+ <201208202010.59985.arnd@arndb.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20120820090754.GB25864@mudshark.cambridge.arm.com>
+In-Reply-To: <201208202010.59985.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ulrich.weigand@linaro.org" <ulrich.weigand@linaro.org>
-Message-ID: <20120820092744.vOfubHj1F0zmNOvVJqJTiztish76n7hkeloW6GddYOs@z>
+Message-ID: <20120821085819.qaemntuxX6nxy0fjZmWfKm_tdWqBn4Hm12YYIh_rLa0@z>
 
-On Mon, Aug 20, 2012 at 10:07:54AM +0100, Will Deacon wrote:
-> On Fri, Aug 17, 2012 at 08:06:07AM +0100, Arnd Bergmann wrote:
-> > Sorry for the dumb question, but why do you even need PTRACE_GET_THREAD_AREA
-> > for 64 bit tasks? I thought the thread pointer is a GPR, or is this just
-> > for compat tasks?
+On Mon, Aug 20, 2012 at 09:10:59PM +0100, Arnd Bergmann wrote:
+> On Monday 20 August 2012, Will Deacon wrote:
+> > On Mon, Aug 20, 2012 at 10:07:54AM +0100, Will Deacon wrote:
+> > > On Fri, Aug 17, 2012 at 08:06:07AM +0100, Arnd Bergmann wrote:
+> > > > Sorry for the dumb question, but why do you even need PTRACE_GET_THREAD_AREA
+> > > > for 64 bit tasks? I thought the thread pointer is a GPR, or is this just
+> > > > for compat tasks?
+> > > 
+> > > The TLS is stored in a co-processor register which is read-only for
+> > > userspace.
+> > 
+> > I should elaborate: the register is RW for AArch64 tasks, RO for aarch32
+> > tasks (although that doesn't affect the need for the ptrace request).
 > 
-> The TLS is stored in a co-processor register which is read-only for
-> userspace.
+> So can't you just /add/ that register to the GPR regset?
 
-I should elaborate: the register is RW for AArch64 tasks, RO for aarch32
-tasks (although that doesn't affect the need for the ptrace request).
+We *could*, but it doesn't feel right to me. The TLS register:
+
+	- Can only be manipulated by msr/mrs instructions
+	- Is not part of the PCS
+	- Is not accessed explicitly by user applications
+	- Can not be written via ptrace
+
+so I think it sticks out like a sore thumb if we bundle it up with the GPRs.
 
 Will
