@@ -1,72 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:49155 "EHLO
-	atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756253Ab2HUK2N (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Aug 2012 06:28:13 -0400
-Date: Tue, 21 Aug 2012 12:28:11 +0200
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: [PATCH v2 21/31] arm64: 32-bit (compat) applications support
-Message-ID: <20120821102811.GA22126@elf.ucw.cz>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:47490 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S932112Ab2HUNAW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 21 Aug 2012 09:00:22 -0400
+Date: Tue, 21 Aug 2012 13:59:48 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 14/31] arm64: DMA mapping API
+Message-ID: <20120821125948.GC12708@arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-22-git-send-email-catalin.marinas@arm.com>
- <20120820105308.GA906@elf.ucw.cz>
- <201208202034.55135.arnd@arndb.de>
+ <1344966752-16102-15-git-send-email-catalin.marinas@arm.com>
+ <201208151616.01114.arnd@arndb.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <201208202034.55135.arnd@arndb.de>
+In-Reply-To: <201208151616.01114.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>
-Message-ID: <20120821102811.Mz83V7tiy_o3JZkREzkWr66ipWo7a2JYjpPqLQ1iMWI@z>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20120821125948.8haxOBIonSXel8oYdqHfptY-fDZBLt5iau_kOxx-zRQ@z>
 
-On Mon 2012-08-20 20:34:54, Arnd Bergmann wrote:
-> On Monday 20 August 2012, Pavel Machek wrote:
-> > > This patch adds support for 32-bit applications. The vectors page is a
-> > > binary blob mapped into the application user space at 0xffff0000 (the
-> > > AArch64 toolchain does not support compilation of AArch32 code). Full
-> > > compatibility with ARMv7 user space is supported. The use of deprecated
-> > > ARMv7 functionality (SWP, CP15 barriers) has been disabled by default on
-> > > AArch64 kernels and unaligned LDM/STM is not supported.
-> > > 
-> > > Please note that only the ARM 32-bit EABI is supported, so no OABI
-> > > compatibility.
-> > 
-> > > +struct compat_statfs {
-> > > +     int             f_type;
-> > > +     int             f_bsize;
-> > > +     int             f_blocks;
-> > > +     int             f_bfree;
-> > > +     int             f_bavail;
-> > > +     int             f_files;
-> > > +     int             f_ffree;
-> > > +     compat_fsid_t   f_fsid;
-> > > +     int             f_namelen;      /* SunOS ignores this field. */
-> > 
-> > I'm sure it does. But is it good comment?
+On Wed, Aug 15, 2012 at 05:16:00PM +0100, Arnd Bergmann wrote:
+> On Tuesday 14 August 2012, Catalin Marinas wrote:
+> > +static struct dma_map_ops arm64_swiotlb_dma_ops = {
+> > +       .alloc = arm64_swiotlb_alloc_coherent,
+> > +       .free = arm64_swiotlb_free_coherent,
+> > +       .map_page = arm64_swiotlb_map_page,
+> > +       .unmap_page = arm64_swiotlb_unmap_page,
+> > +       .map_sg = arm64_swiotlb_map_sg_attrs,
+> > +       .unmap_sg = arm64_swiotlb_unmap_sg_attrs,
+> > +       .sync_single_for_cpu = arm64_swiotlb_sync_single_for_cpu,
+> > +       .sync_single_for_device = arm64_swiotlb_sync_single_for_device,
+> > +       .sync_sg_for_cpu = arm64_swiotlb_sync_sg_for_cpu,
+> > +       .sync_sg_for_device = arm64_swiotlb_sync_sg_for_device,
+> > +       .dma_supported = swiotlb_dma_supported,
+> > +       .mapping_error = swiotlb_dma_mapping_error,
+> > +};
+> > +
+> > +void __init swiotlb_init_with_default_size(size_t default_size, int verbose);
+> > +
+> > +void __init arm64_swiotlb_init(size_t max_size)
+> > +{
+> > +       dma_ops = &arm64_swiotlb_dma_ops;
+> > +       swiotlb_init_with_default_size(min((size_t)SZ_64M, max_size), 1);
+> > +}
 > 
-> Good catch. It seems that some of the other compat platforms (x86,
-> sparc, powerpc) have the same thing. I guess the real solution would
-> be to introduce an asm-generic/compat.h file that contains a bunch
-> of those definitions, like
-> 
-> #ifndef compat_timespec
-> struct compat_timespec {
->         compat_time_t   tv_sec;
->         s32             tv_nsec;
-> };
-> #endif
-> 
-> #ifndef compat_timeval
-> struct compat_timeval {
->         compat_time_t   tv_sec;
->         s32             tv_usec;
-> };
-> #endif
+> Why is swiotlb the default? I would expect that most devices can in fact
+> use the entire 64 bit address space, so you can use a simple linear
+> implementation for those.
 
-Yes, I guess that would be very good.
-									Pavel
+That was my worry, devices not capable of accessing the full 64-bit
+address space. We can hope that those SoCs would have an IOMMU but I
+can't tell for sure at this stage.
+
+The default implementation could be simpler. I can even drop it
+altogether from the initial patchset given that no SoC makes use of it
+yet.
+
 -- 
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+Catalin
