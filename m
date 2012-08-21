@@ -1,62 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:47490 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S932112Ab2HUNAW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Aug 2012 09:00:22 -0400
-Date: Tue, 21 Aug 2012 13:59:48 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 14/31] arm64: DMA mapping API
-Message-ID: <20120821125948.GC12708@arm.com>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-15-git-send-email-catalin.marinas@arm.com>
- <201208151616.01114.arnd@arndb.de>
+Received: from eddie.linux-mips.org ([78.24.191.182]:59823 "EHLO
+	cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757890Ab2HURFI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Aug 2012 13:05:08 -0400
+Received: from localhost.localdomain ([127.0.0.1]:36938 "EHLO linux-mips.org"
+        rhost-flags-OK-OK-OK-FAIL) by eddie.linux-mips.org with ESMTP
+        id S1903636Ab2HURFG (ORCPT <rfc822;linux-arch@vger.kernel.org>
+        + 1 other); Tue, 21 Aug 2012 19:05:06 +0200
+Date: Tue, 21 Aug 2012 19:04:57 +0200
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: PCI Section mismatch error in linux-next.
+Message-ID: <20120821170456.GA18994@linux-mips.org>
+References: <20120817182931.GA27391@avionic-0098.adnet.avionic-design.de>
+ <CAErSpo6xhbpmd-rnLqKp9SuRQCp5a7jUzKhz0n6zGGLNHybWqA@mail.gmail.com>
+ <20120817200755.GA16021@avionic-0098.adnet.avionic-design.de>
+ <CAErSpo4XX7mQBmJfYWzmXCSDAt4BzZoJV6gU9__409K=fpvC6A@mail.gmail.com>
+ <20120817204839.GA2017@avionic-0098.mockup.avionic-design.de>
+ <20120817210718.GA14842@avionic-0098.mockup.avionic-design.de>
+ <CAErSpo7bwHNUchZHeJByxzhsc0uN7RJMLivBo5FuOJzA0Gz2Jg@mail.gmail.com>
+ <20120817213247.GA1056@avionic-0098.mockup.avionic-design.de>
+ <20120820053036.GA23166@kroah.com>
+ <CAMuHMdWfhATFQrP-ZiMi6Ub3ZbOgUhe7S_fVUzc7zOwDxRNsyw@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <201208151616.01114.arnd@arndb.de>
+In-Reply-To: <CAMuHMdWfhATFQrP-ZiMi6Ub3ZbOgUhe7S_fVUzc7zOwDxRNsyw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20120821125948.8haxOBIonSXel8oYdqHfptY-fDZBLt5iau_kOxx-zRQ@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Greg KH <gregkh@linuxfoundation.org>, Thierry Reding <thierry.reding@avionic-design.de>, Bjorn Helgaas <bhelgaas@google.com>, David Daney <ddaney.cavm@gmail.com>, linux-pci@vger.kernel.org, linux-mips <linux-mips@linux-mips.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20120821170457.pcOCbQuHlk8fRdX6w4jdg00BZspNNX3jhoThACimh5c@z>
 
-On Wed, Aug 15, 2012 at 05:16:00PM +0100, Arnd Bergmann wrote:
-> On Tuesday 14 August 2012, Catalin Marinas wrote:
-> > +static struct dma_map_ops arm64_swiotlb_dma_ops = {
-> > +       .alloc = arm64_swiotlb_alloc_coherent,
-> > +       .free = arm64_swiotlb_free_coherent,
-> > +       .map_page = arm64_swiotlb_map_page,
-> > +       .unmap_page = arm64_swiotlb_unmap_page,
-> > +       .map_sg = arm64_swiotlb_map_sg_attrs,
-> > +       .unmap_sg = arm64_swiotlb_unmap_sg_attrs,
-> > +       .sync_single_for_cpu = arm64_swiotlb_sync_single_for_cpu,
-> > +       .sync_single_for_device = arm64_swiotlb_sync_single_for_device,
-> > +       .sync_sg_for_cpu = arm64_swiotlb_sync_sg_for_cpu,
-> > +       .sync_sg_for_device = arm64_swiotlb_sync_sg_for_device,
-> > +       .dma_supported = swiotlb_dma_supported,
-> > +       .mapping_error = swiotlb_dma_mapping_error,
-> > +};
-> > +
-> > +void __init swiotlb_init_with_default_size(size_t default_size, int verbose);
-> > +
-> > +void __init arm64_swiotlb_init(size_t max_size)
-> > +{
-> > +       dma_ops = &arm64_swiotlb_dma_ops;
-> > +       swiotlb_init_with_default_size(min((size_t)SZ_64M, max_size), 1);
-> > +}
+On Tue, Aug 21, 2012 at 04:32:45PM +0200, Geert Uytterhoeven wrote:
+
+> Anyone who disables CONFIG_HOTPLUG in his defconfig files?
 > 
-> Why is swiotlb the default? I would expect that most devices can in fact
-> use the entire 64 bit address space, so you can use a simple linear
-> implementation for those.
+> $ git grep CONFIG_HOTPLUG arch/*/*config
+> arch/frv/defconfig:# CONFIG_HOTPLUG is not set
+> arch/h8300/defconfig:# CONFIG_HOTPLUG is not set
+> arch/um/defconfig:CONFIG_HOTPLUG=y
+> $
+> 
+> Yep, (at least --- not all defconfigs are up-to-date) frv and h8300.
 
-That was my worry, devices not capable of accessing the full 64-bit
-address space. We can hope that those SoCs would have an IOMMU but I
-can't tell for sure at this stage.
+Since we started stripping all the defconfigs down grepping through
+arch/*/configs/ doesn't yield much useful information anymore :-(
 
-The default implementation could be simpler. I can even drop it
-altogether from the initial patchset given that no SoC makes use of it
-yet.
+There are currently 8 MIPS default configurations that dondo not enable
+CONFIG_HOTPLUG.  I didn't check other architectures.
 
--- 
-Catalin
+  Ralf
