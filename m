@@ -1,113 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f174.google.com ([209.85.220.174]:61402 "EHLO
-	mail-vc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932196Ab2HUSPI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Aug 2012 14:15:08 -0400
+Received: from mail-vb0-f46.google.com ([209.85.212.46]:43772 "EHLO
+	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932251Ab2HUSW4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 21 Aug 2012 14:22:56 -0400
 MIME-Version: 1.0
-In-Reply-To: <20120821170456.GA18994@linux-mips.org>
-References: <20120817182931.GA27391@avionic-0098.adnet.avionic-design.de>
-	<CAErSpo6xhbpmd-rnLqKp9SuRQCp5a7jUzKhz0n6zGGLNHybWqA@mail.gmail.com>
-	<20120817200755.GA16021@avionic-0098.adnet.avionic-design.de>
-	<CAErSpo4XX7mQBmJfYWzmXCSDAt4BzZoJV6gU9__409K=fpvC6A@mail.gmail.com>
-	<20120817204839.GA2017@avionic-0098.mockup.avionic-design.de>
-	<20120817210718.GA14842@avionic-0098.mockup.avionic-design.de>
-	<CAErSpo7bwHNUchZHeJByxzhsc0uN7RJMLivBo5FuOJzA0Gz2Jg@mail.gmail.com>
-	<20120817213247.GA1056@avionic-0098.mockup.avionic-design.de>
-	<20120820053036.GA23166@kroah.com>
-	<CAMuHMdWfhATFQrP-ZiMi6Ub3ZbOgUhe7S_fVUzc7zOwDxRNsyw@mail.gmail.com>
-	<20120821170456.GA18994@linux-mips.org>
-Date: Tue, 21 Aug 2012 20:15:07 +0200
-Message-ID: <CAMuHMdVrvT5RCp43bmbd9=MwsqhMWewJm4Xnq0ZMPT7hoEBSng@mail.gmail.com>
-Subject: Re: PCI Section mismatch error in linux-next.
+In-Reply-To: <20120821160653.GH12708@arm.com>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
+	<201208151415.39570.arnd@arndb.de>
+	<20120816102300.GG31784@mudshark.cambridge.arm.com>
+	<201208161237.53594.arnd@arndb.de>
+	<20120821160653.GH12708@arm.com>
+Date: Tue, 21 Aug 2012 20:17:19 +0200
+Message-ID: <CAMuHMdVEX0egzFETMJ=LA_PB+7Qc=Ph-7uxofVr__wOE-0cvLQ@mail.gmail.com>
+Subject: Re: [PATCH v2 16/31] arm64: ELF definitions
 From: Geert Uytterhoeven <geert@linux-m68k.org>
 Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: Greg KH <gregkh@linuxfoundation.org>, Thierry Reding <thierry.reding@avionic-design.de>, Bjorn Helgaas <bhelgaas@google.com>, David Daney <ddaney.cavm@gmail.com>, linux-pci@vger.kernel.org, linux-mips <linux-mips@linux-mips.org>, Linux-Arch <linux-arch@vger.kernel.org>
-Message-ID: <20120821181507.KLHkA2dON7WBMdeGnbj7yGUP1fWxQFZd8xtZ6kiDgu4@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Will Deacon <Will.Deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20120821181719.hYtHpmyadsxRbD01i07fIgNu0E7S-Lv3aSQeLZGbmdc@z>
 
-Hi Ralf,
+On Tue, Aug 21, 2012 at 6:06 PM, Catalin Marinas
+<catalin.marinas@arm.com> wrote:
+> But I can see on x86 that it always reports x86_64 even if the task is
+> x86_32.
 
-On Tue, Aug 21, 2012 at 7:04 PM, Ralf Baechle <ralf@linux-mips.org> wrote:
->> Anyone who disables CONFIG_HOTPLUG in his defconfig files?
->>
->> $ git grep CONFIG_HOTPLUG arch/*/*config
->> arch/frv/defconfig:# CONFIG_HOTPLUG is not set
->> arch/h8300/defconfig:# CONFIG_HOTPLUG is not set
->> arch/um/defconfig:CONFIG_HOTPLUG=y
->> $
->>
->> Yep, (at least --- not all defconfigs are up-to-date) frv and h8300.
->
-> Since we started stripping all the defconfigs down grepping through
-> arch/*/configs/ doesn't yield much useful information anymore :-(
+Really?
 
-Sure, but since CONFIG_HOTPLUG=y and CONFIG_EXPERT=n are the
-defaults, disabling CONFIG_HOTPLUG should show up in the miniconfig.
-
-> There are currently 8 MIPS default configurations that dondo not enable
-> CONFIG_HOTPLUG.  I didn't check other architectures.
-
-Strange, how come I didn't see those?
-Ah, wrong file pattern. They're stored in the "configs" subdir, not in "config".
-Better list:
-
-$ git grep -w CONFIG_HOTPLUG arch/*/*config*
-arch/arm/configs/at91x40_defconfig:# CONFIG_HOTPLUG is not set
-arch/arm/configs/bcmring_defconfig:# CONFIG_HOTPLUG is not set
-arch/arm/configs/edb7211_defconfig:# CONFIG_HOTPLUG is not set
-arch/arm/configs/footbridge_defconfig:# CONFIG_HOTPLUG is not set
-arch/arm/configs/fortunet_defconfig:# CONFIG_HOTPLUG is not set
-arch/arm/configs/pleb_defconfig:# CONFIG_HOTPLUG is not set
-arch/blackfin/configs/IP0X_defconfig:# CONFIG_HOTPLUG is not set
-arch/cris/configs/artpec_3_defconfig:# CONFIG_HOTPLUG is not set
-arch/cris/configs/etrax-100lx_v2_defconfig:# CONFIG_HOTPLUG is not set
-arch/cris/configs/etraxfs_defconfig:# CONFIG_HOTPLUG is not set
-arch/frv/defconfig:# CONFIG_HOTPLUG is not set
-arch/h8300/defconfig:# CONFIG_HOTPLUG is not set
-arch/m68k/configs/m5208evb_defconfig:# CONFIG_HOTPLUG is not set
-arch/m68k/configs/m5249evb_defconfig:# CONFIG_HOTPLUG is not set
-arch/m68k/configs/m5272c3_defconfig:# CONFIG_HOTPLUG is not set
-arch/m68k/configs/m5275evb_defconfig:# CONFIG_HOTPLUG is not set
-arch/m68k/configs/m5307c3_defconfig:# CONFIG_HOTPLUG is not set
-arch/m68k/configs/m5407c3_defconfig:# CONFIG_HOTPLUG is not set
-arch/m68k/configs/m5475evb_defconfig:# CONFIG_HOTPLUG is not set
-arch/microblaze/configs/mmu_defconfig:# CONFIG_HOTPLUG is not set
-arch/microblaze/configs/nommu_defconfig:# CONFIG_HOTPLUG is not set
-arch/mips/configs/db1000_defconfig:CONFIG_HOTPLUG=y
-arch/mips/configs/db1300_defconfig:CONFIG_HOTPLUG=y
-arch/mips/configs/db1550_defconfig:CONFIG_HOTPLUG=y
-arch/mips/configs/decstation_defconfig:# CONFIG_HOTPLUG is not set
-arch/mips/configs/e55_defconfig:# CONFIG_HOTPLUG is not set
-arch/mips/configs/ip22_defconfig:# CONFIG_HOTPLUG is not set
-arch/mips/configs/ip28_defconfig:# CONFIG_HOTPLUG is not set
-arch/mips/configs/jmr3927_defconfig:# CONFIG_HOTPLUG is not set
-arch/mips/configs/lasat_defconfig:# CONFIG_HOTPLUG is not set
-arch/mips/configs/pnx8550-stb810_defconfig:# CONFIG_HOTPLUG is not set
-arch/mips/configs/rbtx49xx_defconfig:# CONFIG_HOTPLUG is not set
-arch/mn10300/configs/asb2303_defconfig:# CONFIG_HOTPLUG is not set
-arch/powerpc/configs/85xx/socrates_defconfig:# CONFIG_HOTPLUG is not set
-arch/powerpc/configs/85xx/tqm8540_defconfig:# CONFIG_HOTPLUG is not set
-arch/powerpc/configs/85xx/tqm8541_defconfig:# CONFIG_HOTPLUG is not set
-arch/powerpc/configs/85xx/tqm8555_defconfig:# CONFIG_HOTPLUG is not set
-arch/powerpc/configs/85xx/tqm8560_defconfig:# CONFIG_HOTPLUG is not set
-arch/powerpc/configs/mpc866_ads_defconfig:# CONFIG_HOTPLUG is not set
-arch/score/configs/spct6600_defconfig:# CONFIG_HOTPLUG is not set
-arch/sh/configs/edosk7705_defconfig:# CONFIG_HOTPLUG is not set
-arch/sh/configs/se7619_defconfig:# CONFIG_HOTPLUG is not set
-arch/sh/configs/se7705_defconfig:# CONFIG_HOTPLUG is not set
-arch/sh/configs/se7750_defconfig:# CONFIG_HOTPLUG is not set
-arch/sh/configs/se7751_defconfig:# CONFIG_HOTPLUG is not set
-arch/sh/configs/se7780_defconfig:# CONFIG_HOTPLUG is not set
-arch/sh/configs/secureedge5410_defconfig:# CONFIG_HOTPLUG is not set
-arch/sh/configs/shmin_defconfig:# CONFIG_HOTPLUG is not set
-arch/um/defconfig:CONFIG_HOTPLUG=y
-arch/unicore32/configs/unicore32_defconfig:CONFIG_HOTPLUG=y
-arch/xtensa/configs/common_defconfig:# CONFIG_HOTPLUG is not set
-arch/xtensa/configs/iss_defconfig:# CONFIG_HOTPLUG is not set
-arch/xtensa/configs/s6105_defconfig:# CONFIG_HOTPLUG is not set
+$ uname -m
+x86_64
+$ linux32 uname -m
+i686
 $
+
+On Ubuntu 2.6.32-42-generic
 
 Gr{oetje,eeting}s,
 
