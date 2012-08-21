@@ -1,47 +1,67 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 08/31] arm64: CPU support
-Date: Tue, 21 Aug 2012 10:50:51 +0100
-Message-ID: <20120821095051.GA12708@arm.com>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [PATCH v2 21/31] arm64: 32-bit (compat) applications support
+Date: Tue, 21 Aug 2012 12:28:11 +0200
+Message-ID: <20120821102811.GA22126@elf.ucw.cz>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <20120815001043.GD19607@quad.lixom.net>
- <20120820155740.GA912@arm.com>
- <201208202047.07991.arnd@arndb.de>
+ <1344966752-16102-22-git-send-email-catalin.marinas@arm.com>
+ <20120820105308.GA906@elf.ucw.cz>
+ <201208202034.55135.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:40654 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751817Ab2HUJv1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Aug 2012 05:51:27 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <201208202047.07991.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+In-Reply-To: <201208202034.55135.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Olof Johansson <olof@lixom.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Will Deacon <will.deacon@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Aug 20, 2012 at 09:47:07PM +0100, Arnd Bergmann wrote:
-> On Monday 20 August 2012, Catalin Marinas wrote:
-> > > > --- /dev/null
-> > > > +++ b/arch/arm64/mm/proc-syms.c
-> > ...
-> > > > +EXPORT_SYMBOL(__cpuc_flush_kern_all);
-> > > > +EXPORT_SYMBOL(__cpuc_flush_user_all);
-> > > > +EXPORT_SYMBOL(__cpuc_flush_user_range);
-> > > > +EXPORT_SYMBOL(__cpuc_coherent_kern_range);
-> > > > +EXPORT_SYMBOL(__cpuc_flush_dcache_area);
+On Mon 2012-08-20 20:34:54, Arnd Bergmann wrote:
+> On Monday 20 August 2012, Pavel Machek wrote:
+> > > This patch adds support for 32-bit applications. The vectors page is a
+> > > binary blob mapped into the application user space at 0xffff0000 (the
+> > > AArch64 toolchain does not support compilation of AArch32 code). Full
+> > > compatibility with ARMv7 user space is supported. The use of deprecated
+> > > ARMv7 functionality (SWP, CP15 barriers) has been disabled by default on
+> > > AArch64 kernels and unaligned LDM/STM is not supported.
 > > > 
-> > > See comment on other email about putting function pointers in a struct
-> > > instead.
+> > > Please note that only the ARM 32-bit EABI is supported, so no OABI
+> > > compatibility.
 > > 
-> > There is no need to support multiple CPU architectures with different
-> > implementations, so allowing these functions to be called without
-> > indirection is better.
+> > > +struct compat_statfs {
+> > > +     int             f_type;
+> > > +     int             f_bsize;
+> > > +     int             f_blocks;
+> > > +     int             f_bfree;
+> > > +     int             f_bavail;
+> > > +     int             f_files;
+> > > +     int             f_ffree;
+> > > +     compat_fsid_t   f_fsid;
+> > > +     int             f_namelen;      /* SunOS ignores this field. */
+> > 
+> > I'm sure it does. But is it good comment?
 > 
-> What is the __cpuc prefix about then? Could you just drop it?
+> Good catch. It seems that some of the other compat platforms (x86,
+> sparc, powerpc) have the same thing. I guess the real solution would
+> be to introduce an asm-generic/compat.h file that contains a bunch
+> of those definitions, like
+> 
+> #ifndef compat_timespec
+> struct compat_timespec {
+>         compat_time_t   tv_sec;
+>         s32             tv_nsec;
+> };
+> #endif
+> 
+> #ifndef compat_timeval
+> struct compat_timeval {
+>         compat_time_t   tv_sec;
+>         s32             tv_usec;
+> };
+> #endif
 
-It can be dropped indeed.
-
+Yes, I guess that would be very good.
+									Pavel
 -- 
-Catalin
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
