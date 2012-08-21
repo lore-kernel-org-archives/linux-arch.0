@@ -1,50 +1,47 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 16/31] arm64: ELF definitions
-Date: Tue, 21 Aug 2012 17:06:53 +0100
-Message-ID: <20120821160653.GH12708@arm.com>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <201208151415.39570.arnd@arndb.de>
- <20120816102300.GG31784@mudshark.cambridge.arm.com>
- <201208161237.53594.arnd@arndb.de>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: PCI Section mismatch error in linux-next.
+Date: Tue, 21 Aug 2012 19:04:57 +0200
+Message-ID: <20120821170456.GA18994@linux-mips.org>
+References: <20120817182931.GA27391@avionic-0098.adnet.avionic-design.de>
+ <CAErSpo6xhbpmd-rnLqKp9SuRQCp5a7jUzKhz0n6zGGLNHybWqA@mail.gmail.com>
+ <20120817200755.GA16021@avionic-0098.adnet.avionic-design.de>
+ <CAErSpo4XX7mQBmJfYWzmXCSDAt4BzZoJV6gU9__409K=fpvC6A@mail.gmail.com>
+ <20120817204839.GA2017@avionic-0098.mockup.avionic-design.de>
+ <20120817210718.GA14842@avionic-0098.mockup.avionic-design.de>
+ <CAErSpo7bwHNUchZHeJByxzhsc0uN7RJMLivBo5FuOJzA0Gz2Jg@mail.gmail.com>
+ <20120817213247.GA1056@avionic-0098.mockup.avionic-design.de>
+ <20120820053036.GA23166@kroah.com>
+ <CAMuHMdWfhATFQrP-ZiMi6Ub3ZbOgUhe7S_fVUzc7zOwDxRNsyw@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:54182 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752082Ab2HUQH0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 21 Aug 2012 12:07:26 -0400
+Return-path: <linux-pci-owner@vger.kernel.org>
+Received: from localhost.localdomain ([127.0.0.1]:36938 "EHLO linux-mips.org"
+        rhost-flags-OK-OK-OK-FAIL) by eddie.linux-mips.org with ESMTP
+        id S1903636Ab2HURFG (ORCPT <rfc822;linux-arch@vger.kernel.org>
+        + 1 other); Tue, 21 Aug 2012 19:05:06 +0200
 Content-Disposition: inline
-In-Reply-To: <201208161237.53594.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Will Deacon <Will.Deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+In-Reply-To: <CAMuHMdWfhATFQrP-ZiMi6Ub3ZbOgUhe7S_fVUzc7zOwDxRNsyw@mail.gmail.com>
+Sender: linux-pci-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Greg KH <gregkh@linuxfoundation.org>, Thierry Reding <thierry.reding@avionic-design.de>, Bjorn Helgaas <bhelgaas@google.com>, David Daney <ddaney.cavm@gmail.com>, linux-pci@vger.kernel.org, linux-mips <linux-mips@linux-mips.org>, Linux-Arch <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Aug 16, 2012 at 01:37:53PM +0100, Arnd Bergmann wrote:
-> On Thursday 16 August 2012, Will Deacon wrote:
-> > > This looks wrong: PER_LINUX/PER_LINUX32 decides over the output of the
-> > > uname system call, while TIF_32BIT decides over the instruction set
-> > > when returning to user space. You definitely should not set the personality
-> > > to the value you pass from the elf loader. Instead, just do
-> > > 
-> > > #define SET_PERSONALITY(ex) clear_thread_flag(TIF_32BIT);
-> > > #defined COMPAT_SET_PERSONALITY(ex) set_thread_flag(TIF_32BIT);
-> > 
-> > In this case, won't uname be incorrect (aarch64l) for aarch32 tasks (which
-> > expect something like armv8l)?
+On Tue, Aug 21, 2012 at 04:32:45PM +0200, Geert Uytterhoeven wrote:
+
+> Anyone who disables CONFIG_HOTPLUG in his defconfig files?
 > 
-> No, the uname output is meant to tell you about the system, not the
-> instruction set that you are using (you already know that in compiled
-> code).
+> $ git grep CONFIG_HOTPLUG arch/*/*config
+> arch/frv/defconfig:# CONFIG_HOTPLUG is not set
+> arch/h8300/defconfig:# CONFIG_HOTPLUG is not set
+> arch/um/defconfig:CONFIG_HOTPLUG=y
+> $
+> 
+> Yep, (at least --- not all defconfigs are up-to-date) frv and h8300.
 
-OK, so we assumed that compat tasks should get a uname as close as
-possible to a 32-bit system, i.e. armv8l, for full compatibility. This
-would allow us to run something like 32-bit Debian on an AArch64 kernel
-without worrying about any scripts failing.
+Since we started stripping all the defconfigs down grepping through
+arch/*/configs/ doesn't yield much useful information anymore :-(
 
-But I can see on x86 that it always reports x86_64 even if the task is
-x86_32.
+There are currently 8 MIPS default configurations that dondo not enable
+CONFIG_HOTPLUG.  I didn't check other architectures.
 
--- 
-Catalin
+  Ralf
