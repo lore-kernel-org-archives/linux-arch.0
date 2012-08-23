@@ -1,99 +1,180 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:42608 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:56247 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1030270Ab2HWKnZ (ORCPT
+	by vger.kernel.org with ESMTP id S1755285Ab2HWQh6 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Thu, 23 Aug 2012 06:43:25 -0400
-Date: Thu, 23 Aug 2012 11:42:52 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: PER_LINUX32, Was: [PATCH v2 21/31] arm64: 32-bit (compat)
- applications support
-Message-ID: <20120823104252.GA7585@arm.com>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <201208151434.05145.arnd@arndb.de>
- <20120816102808.GH31784@mudshark.cambridge.arm.com>
- <201208230646.31276.arnd@arndb.de>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <201208230646.31276.arnd@arndb.de>
+	Thu, 23 Aug 2012 12:37:58 -0400
+From: Will Deacon <will.deacon@arm.com>
+Subject: [PATCH v2] mm: hugetlb: add arch hook for clearing page flags before entering pool
+Date: Thu, 23 Aug 2012 17:37:13 +0100
+Message-ID: <1345739833-25008-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Will Deacon <Will.Deacon@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Jiri Kosina <jkosina@suse.cz>, "x86@kernel.org" <x86@kernel.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Andi Kleen <andi@firstfloor.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
-Message-ID: <20120823104252.xkY1KQzA_9XBJm6vwfNoltKJ0OsUlsItiOkLSfWw6-k@z>
+To: linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, Will Deacon <will.deacon@arm.com>, Michal Hocko <mhocko@suse.cz>
+Message-ID: <20120823163713.zY0VIY-H27NsUflPySMBNMDJBbiZ__LVbbzzyXwBfSA@z>
 
-On Thu, Aug 23, 2012 at 07:46:30AM +0100, Arnd Bergmann wrote:
-> On Thursday 16 August 2012, Will Deacon wrote:
-> > On Wed, Aug 15, 2012 at 03:34:04PM +0100, Arnd Bergmann wrote:
-> > > On Tuesday 14 August 2012, Catalin Marinas wrote:
-> > > > +asmlinkage int compat_sys_personality(compat_ulong_t personality)
-> > > > +{
-> > > > +	int ret;
-> > > > +
-> > > > +	if (personality(current->personality) == PER_LINUX32 &&
-> > > > +		personality == PER_LINUX)
-> > > > +		personality = PER_LINUX32;
-> > > > +	ret = sys_personality(personality);
-> > > > +	if (ret == PER_LINUX32)
-> > > > +		ret = PER_LINUX;
-> > > > +	return ret;
-> > > > +}
-> > > 
-> > > Where did you get this from?
-> > > 
-> > > You should not need compat_sys_personality, just call the native function.
-> > 
-> > Hmm, but in that case an aarch32 application doing a personality(PER_LINUX)
-> > syscall will start seeing the wrong uname.
-> 
-> Coming back at this topic, I noticed another issue. Jiri Kosina
-> has recently posted patches to fix this function in the other architectures
-> in order to mask out the other personality bits, which is a correct fix,
-> but the above function is odd for other reasons.
-> 
-> * On MIPS, it is used only for compat tasks, like you have it above.
-> * On PA-RISC, it is used for native 32 bit tasks and for compat 32 bit tasks,
->   but not for native 64 bit ones.
-> * On IA64, it was used for compat tasks (support for which has since
->   been removed from the kernel), plus all 32 bit tasks would start with
->   PER_LINUX32.
-> * On PowerPC, Sparc and s390, it is used for native 64 bit tasks and for
->   compat 32 bit tasks, but not for native 32 bit ones.
-> * On Tile, it was never used.
-> * On x86_64, it used to be defined (copied from ia64) but not used
->   throughout the git history.
-> 
-> The semantics of the function are also interesting: The intention seems
-> to be that to a compat task, PER_LINUX32 would appear as PER_LINUX.
-> The effect is that any process can set PER_LINUX32 but it can never
-> be unset except by a 64 bit MIPS or PA-RISC task.
+The core page allocator ensures that page flags are zeroed when freeing
+pages via free_pages_check. A number of architectures (ARM, PPC, MIPS)
+rely on this property to treat new pages as dirty with respect to the
+data cache and perform the appropriate flushing before mapping the pages
+into userspace.
 
-IMHO, it makes sense to keep the compat_sys_personality() as implemented
-above. You may want to start a chroot ARMv7 environment using "linux32"
-but don't want some 32-bit app calling personality(PER_LINUX) (as that's
-the default personality on an ARMv7 system) and unknowingly changing the
-personality that you wanted to enforce via "linux32".
+This can lead to cache synchronisation problems when using hugepages,
+since the allocator keeps its own pool of pages above the usual page
+allocator and does not reset the page flags when freeing a page into
+the pool.
 
-I agree with not setting the personality based on the ELF type, but
-that's different from the compat_sys_personality().
+This patch adds a new architecture hook, arch_clear_hugepage_flags, so
+that architectures which rely on the page flags being in a particular
+state for fresh allocations can adjust the flags accordingly when a
+page is freed into the pool.
 
-> Since x86_64 does not implement this behavior at all, I suspect that
-> there are now lots of things depending on not having it, while all
-> the other architectures might also have some (even predating the
-> x86_64 port) use cases that depend on depend on not being able to
-> observe PER_LINUX32 in 32 bit compat tasks.
-> 
-> I think we should try to agree on how this is all supposed to work
-> and use common code, either put the ppc/sparc/s390 version into
-> sys_personality, or remove all of them and just do what x86 and tile
-> do, using the regular sys_personality for all tasks.
+Cc: Michal Hocko <mhocko@suse.cz>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
 
-Late topic for the KS :).
+v2: Made ia64 and powerpc code a nop, moved hook to free_huge_page
 
-I don't think we can move this behaviour to sys_personality. We may want
-to add a generic compat_sys_personality() if we agree on the above
-use-case.
+ arch/ia64/include/asm/hugetlb.h    |    4 ++++
+ arch/mips/include/asm/hugetlb.h    |    4 ++++
+ arch/powerpc/include/asm/hugetlb.h |    4 ++++
+ arch/s390/include/asm/hugetlb.h    |    1 +
+ arch/sh/include/asm/hugetlb.h      |    6 ++++++
+ arch/sparc/include/asm/hugetlb.h   |    4 ++++
+ arch/tile/include/asm/hugetlb.h    |    4 ++++
+ arch/x86/include/asm/hugetlb.h     |    4 ++++
+ mm/hugetlb.c                       |    1 +
+ 9 files changed, 32 insertions(+), 0 deletions(-)
 
+diff --git a/arch/ia64/include/asm/hugetlb.h b/arch/ia64/include/asm/hugetlb.h
+index da55c63..94eaa5b 100644
+--- a/arch/ia64/include/asm/hugetlb.h
++++ b/arch/ia64/include/asm/hugetlb.h
+@@ -77,4 +77,8 @@ static inline void arch_release_hugepage(struct page *page)
+ {
+ }
+ 
++static inline void arch_clear_hugepage_flags(struct page *page)
++{
++}
++
+ #endif /* _ASM_IA64_HUGETLB_H */
+diff --git a/arch/mips/include/asm/hugetlb.h b/arch/mips/include/asm/hugetlb.h
+index 58d3688..bd94946 100644
+--- a/arch/mips/include/asm/hugetlb.h
++++ b/arch/mips/include/asm/hugetlb.h
+@@ -112,4 +112,8 @@ static inline void arch_release_hugepage(struct page *page)
+ {
+ }
+ 
++static inline void arch_clear_hugepage_flags(struct page *page)
++{
++}
++
+ #endif /* __ASM_HUGETLB_H */
+diff --git a/arch/powerpc/include/asm/hugetlb.h b/arch/powerpc/include/asm/hugetlb.h
+index dfdb95b..62e11a3 100644
+--- a/arch/powerpc/include/asm/hugetlb.h
++++ b/arch/powerpc/include/asm/hugetlb.h
+@@ -151,6 +151,10 @@ static inline void arch_release_hugepage(struct page *page)
+ {
+ }
+ 
++static inline void arch_clear_hugepage_flags(struct page *page)
++{
++}
++
+ #else /* ! CONFIG_HUGETLB_PAGE */
+ static inline void flush_hugetlb_page(struct vm_area_struct *vma,
+ 				      unsigned long vmaddr)
+diff --git a/arch/s390/include/asm/hugetlb.h b/arch/s390/include/asm/hugetlb.h
+index 799ed0f..faa7655 100644
+--- a/arch/s390/include/asm/hugetlb.h
++++ b/arch/s390/include/asm/hugetlb.h
+@@ -33,6 +33,7 @@ static inline int prepare_hugepage_range(struct file *file,
+ }
+ 
+ #define hugetlb_prefault_arch_hook(mm)		do { } while (0)
++#define arch_clear_hugepage_flags(page)		do { } while (0)
+ 
+ int arch_prepare_hugepage(struct page *page);
+ void arch_release_hugepage(struct page *page);
+diff --git a/arch/sh/include/asm/hugetlb.h b/arch/sh/include/asm/hugetlb.h
+index 967068f..b3808c7 100644
+--- a/arch/sh/include/asm/hugetlb.h
++++ b/arch/sh/include/asm/hugetlb.h
+@@ -1,6 +1,7 @@
+ #ifndef _ASM_SH_HUGETLB_H
+ #define _ASM_SH_HUGETLB_H
+ 
++#include <asm/cacheflush.h>
+ #include <asm/page.h>
+ 
+ 
+@@ -89,4 +90,9 @@ static inline void arch_release_hugepage(struct page *page)
+ {
+ }
+ 
++static inline void arch_clear_hugepage_flags(struct page *page)
++{
++	clear_bit(PG_dcache_clean, &page->flags);
++}
++
+ #endif /* _ASM_SH_HUGETLB_H */
+diff --git a/arch/sparc/include/asm/hugetlb.h b/arch/sparc/include/asm/hugetlb.h
+index 1770610..e7927c9 100644
+--- a/arch/sparc/include/asm/hugetlb.h
++++ b/arch/sparc/include/asm/hugetlb.h
+@@ -82,4 +82,8 @@ static inline void arch_release_hugepage(struct page *page)
+ {
+ }
+ 
++static inline void arch_clear_hugepage_flags(struct page *page)
++{
++}
++
+ #endif /* _ASM_SPARC64_HUGETLB_H */
+diff --git a/arch/tile/include/asm/hugetlb.h b/arch/tile/include/asm/hugetlb.h
+index b204238..0f885af 100644
+--- a/arch/tile/include/asm/hugetlb.h
++++ b/arch/tile/include/asm/hugetlb.h
+@@ -106,6 +106,10 @@ static inline void arch_release_hugepage(struct page *page)
+ {
+ }
+ 
++static inline void arch_clear_hugepage_flags(struct page *page)
++{
++}
++
+ #ifdef CONFIG_HUGETLB_SUPER_PAGES
+ static inline pte_t arch_make_huge_pte(pte_t entry, struct vm_area_struct *vma,
+ 				       struct page *page, int writable)
+diff --git a/arch/x86/include/asm/hugetlb.h b/arch/x86/include/asm/hugetlb.h
+index 439a9ac..bdd35db 100644
+--- a/arch/x86/include/asm/hugetlb.h
++++ b/arch/x86/include/asm/hugetlb.h
+@@ -90,4 +90,8 @@ static inline void arch_release_hugepage(struct page *page)
+ {
+ }
+ 
++static inline void arch_clear_hugepage_flags(struct page *page)
++{
++}
++
+ #endif /* _ASM_X86_HUGETLB_H */
+diff --git a/mm/hugetlb.c b/mm/hugetlb.c
+index bc72712..f1bb534 100644
+--- a/mm/hugetlb.c
++++ b/mm/hugetlb.c
+@@ -637,6 +637,7 @@ static void free_huge_page(struct page *page)
+ 		h->surplus_huge_pages--;
+ 		h->surplus_huge_pages_node[nid]--;
+ 	} else {
++		arch_clear_hugepage_flags(page);
+ 		enqueue_huge_page(h, page);
+ 	}
+ 	spin_unlock(&hugetlb_lock);
 -- 
-Catalin
+1.7.4.1
+
