@@ -1,50 +1,38 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2] mm: hugetlb: add arch hook for clearing page flags
- before entering pool
-Date: Thu, 23 Aug 2012 18:36:02 +0100
-Message-ID: <20120823173602.GA3117@mudshark.cambridge.arm.com>
-References: <1345739833-25008-1-git-send-email-will.deacon@arm.com>
- <20120823171156.GE19968@dhcp22.suse.cz>
+From: Tai Bei <info@gmx.co.uk>
+Subject: Proposal.
+Date: Thu, 23 Aug 2012 23:55:22 +0100
+Message-ID: <077134233b42efbd44ed2f63961b7a2b__12445.0746727691$1345767083$gmane$org@fce.uncu.edu.ar>
+Reply-To: <tai02@9.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20120823171156.GE19968@dhcp22.suse.cz>
-Sender: owner-linux-mm@kvack.org
-To: Michal Hocko <mhocko@suse.cz>
-Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8;
+ format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from fce.uncu.edu.ar ([190.220.130.146]:39429 "EHLO
+	mail.fce.uncu.edu.ar" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751006Ab2HXAKW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 23 Aug 2012 20:10:22 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 
-On Thu, Aug 23, 2012 at 06:11:56PM +0100, Michal Hocko wrote:
-> On Thu 23-08-12 17:37:13, Will Deacon wrote:
-> > The core page allocator ensures that page flags are zeroed when freeing
-> > pages via free_pages_check. A number of architectures (ARM, PPC, MIPS)
-> > rely on this property to treat new pages as dirty with respect to the
-> > data cache and perform the appropriate flushing before mapping the pages
-> > into userspace.
-> > 
-> > This can lead to cache synchronisation problems when using hugepages,
-> > since the allocator keeps its own pool of pages above the usual page
-> > allocator and does not reset the page flags when freeing a page into
-> > the pool.
-> > 
-> > This patch adds a new architecture hook, arch_clear_hugepage_flags, so
-> > that architectures which rely on the page flags being in a particular
-> > state for fresh allocations can adjust the flags accordingly when a
-> > page is freed into the pool.
-> > 
-> > Cc: Michal Hocko <mhocko@suse.cz>
-> > Signed-off-by: Will Deacon <will.deacon@arm.com>
-> 
-> Looks good to me
-> Reviewed-by: Michal Hocko <mhocko@suse.cz>
+Good-day To You,
 
-Cheers Michal. Next step: start posting the ARM code!
 
-Will
+It is understandable that you might be a little bit apprehensive 
+because you do not know me but I have a lucrative business proposal of 
+mutual interest to share with you. I got your reference in my search for 
+someone who suits my proposed business relationship. I am Mr. Tai Bei, 
+officer with the International bank of Taipei (Bank SinoPac). I will 
+need you to assist me in executing a business project from Taiwan to 
+your country. It involves the transfer of money, Everything concerning 
+this transaction shall be legally done without hitch.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+
+Once the funds have been successfully transferred into your account, we 
+shall share in the ratio to be agreed by both of us. I shall furnish you 
+with more information about this operation immediately I receive a 
+positive response from you.
+
+
+Kind Regards,
+Tai Bei
