@@ -1,57 +1,52 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 21/31] arm64: 32-bit (compat) applications support
-Date: Fri, 24 Aug 2012 11:43:39 +0100
-Message-ID: <20120824104338.GI7585@arm.com>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-22-git-send-email-catalin.marinas@arm.com>
- <201208151434.05145.arnd@arndb.de>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v2] mm: hugetlb: add arch hook for clearing page flags
+ before entering pool
+Date: Fri, 24 Aug 2012 15:01:54 -0700
+Message-ID: <20120824150154.fc16a78e.akpm@linux-foundation.org>
+References: <1345739833-25008-1-git-send-email-will.deacon@arm.com>
+	<20120823171156.GE19968@dhcp22.suse.cz>
+	<20120823173602.GA3117@mudshark.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:61129 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757698Ab2HXKoO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 24 Aug 2012 06:44:14 -0400
-Content-Disposition: inline
-In-Reply-To: <201208151434.05145.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20120823173602.GA3117@mudshark.cambridge.arm.com>
+Sender: owner-linux-mm@kvack.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: Michal Hocko <mhocko@suse.cz>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Aug 15, 2012 at 03:34:04PM +0100, Arnd Bergmann wrote:
-> On Tuesday 14 August 2012, Catalin Marinas wrote:
-> 
-> > +#ifdef CONFIG_AARCH32_EMULATION
-> > +#include <linux/compat.h>
-> > +
-> > +#define AARCH32_KERN_SIGRET_CODE_OFFSET	0x500
-> > +
-> > +extern const compat_ulong_t aarch32_sigret_code[6];
-> > +
-> > +int compat_setup_frame(int usig, struct k_sigaction *ka, sigset_t *set,
-> > +		       struct pt_regs *regs);
-> > +int compat_setup_rt_frame(int usig, struct k_sigaction *ka, siginfo_t *info,
-> > +			  sigset_t *set, struct pt_regs *regs);
-> > +
-> > +void compat_setup_restart_syscall(struct pt_regs *regs);
-> > +#else
-> > +
-> > +static inline int compat_setup_frame(int usid, struct k_sigaction *ka,
-> > +				     sigset_t *set, struct pt_regs *regs)
-> > +{
-> > +	BUG();
-> > +}
-> 
-> What good is the run-time BUG() here? Nothing should be calling these
-> when CONFIG_COMPAT is disabled, so I think you should just remove
-> the #ifdef around the declarations, and the entire #else case.
+On Thu, 23 Aug 2012 18:36:02 +0100
+Will Deacon <will.deacon@arm.com> wrote:
 
-They are called from handle_signal(), so that's to avoid #ifdef inside
-functions. I can drop the BUG() (but keep the empty function) and
-change the checks to is_compat_task() so that the compiler optimises the
-condition out when !COMPAT.
+> On Thu, Aug 23, 2012 at 06:11:56PM +0100, Michal Hocko wrote:
+> > On Thu 23-08-12 17:37:13, Will Deacon wrote:
+> > > The core page allocator ensures that page flags are zeroed when freeing
+> > > pages via free_pages_check. A number of architectures (ARM, PPC, MIPS)
+> > > rely on this property to treat new pages as dirty with respect to the
+> > > data cache and perform the appropriate flushing before mapping the pages
+> > > into userspace.
+> > > 
+> > > This can lead to cache synchronisation problems when using hugepages,
+> > > since the allocator keeps its own pool of pages above the usual page
+> > > allocator and does not reset the page flags when freeing a page into
+> > > the pool.
+> > > 
+> > > This patch adds a new architecture hook, arch_clear_hugepage_flags, so
+> > > that architectures which rely on the page flags being in a particular
+> > > state for fresh allocations can adjust the flags accordingly when a
+> > > page is freed into the pool.
 
--- 
-Catalin
+You could have used __weak here quite neatly, but whatever.
+
+> Next step: start posting the ARM code!
+
+I suggest you keep this patch in whichever tree holds that arm code.  If
+I see this patch turn up in linux-next then I'll just drop my copy,
+expecting that this patch will be merged alongside the ARM changes.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
