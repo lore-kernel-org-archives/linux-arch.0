@@ -1,52 +1,77 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v2] mm: hugetlb: add arch hook for clearing page flags
- before entering pool
-Date: Fri, 24 Aug 2012 15:01:54 -0700
-Message-ID: <20120824150154.fc16a78e.akpm@linux-foundation.org>
-References: <1345739833-25008-1-git-send-email-will.deacon@arm.com>
-	<20120823171156.GE19968@dhcp22.suse.cz>
-	<20120823173602.GA3117@mudshark.cambridge.arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20120823173602.GA3117@mudshark.cambridge.arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: Michal Hocko <mhocko@suse.cz>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+From: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Subject: [PATCH] clkdev: Add default clkdev.h
+Date: Sat, 25 Aug 2012 11:16:10 -0700
+Message-ID: <1345918571-4099-1-git-send-email-broonie@opensource.wolfsonmicro.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from opensource.wolfsonmicro.com ([80.75.67.52]:58550 "EHLO
+	opensource.wolfsonmicro.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751414Ab2HYSQR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 25 Aug 2012 14:16:17 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Brown <broonie@opensource.wolfsonmicro.com>
 
-On Thu, 23 Aug 2012 18:36:02 +0100
-Will Deacon <will.deacon@arm.com> wrote:
+Ease the deployment of clkdev by providing a default asm/clkdev.h which
+will be used if the arch does not have an include/asm/clkdev.h.
 
-> On Thu, Aug 23, 2012 at 06:11:56PM +0100, Michal Hocko wrote:
-> > On Thu 23-08-12 17:37:13, Will Deacon wrote:
-> > > The core page allocator ensures that page flags are zeroed when freeing
-> > > pages via free_pages_check. A number of architectures (ARM, PPC, MIPS)
-> > > rely on this property to treat new pages as dirty with respect to the
-> > > data cache and perform the appropriate flushing before mapping the pages
-> > > into userspace.
-> > > 
-> > > This can lead to cache synchronisation problems when using hugepages,
-> > > since the allocator keeps its own pool of pages above the usual page
-> > > allocator and does not reset the page flags when freeing a page into
-> > > the pool.
-> > > 
-> > > This patch adds a new architecture hook, arch_clear_hugepage_flags, so
-> > > that architectures which rely on the page flags being in a particular
-> > > state for fresh allocations can adjust the flags accordingly when a
-> > > page is freed into the pool.
+Signed-off-by: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Reviewed-by: Stephen Rothwell <sfr@canb.auug.org.au>
+---
+ include/asm-generic/Kbuild.asm |    4 ++++
+ include/asm-generic/clkdev.h   |   28 ++++++++++++++++++++++++++++
+ 2 files changed, 32 insertions(+)
+ create mode 100644 include/asm-generic/clkdev.h
 
-You could have used __weak here quite neatly, but whatever.
-
-> Next step: start posting the ARM code!
-
-I suggest you keep this patch in whichever tree holds that arm code.  If
-I see this patch turn up in linux-next then I'll just drop my copy,
-expecting that this patch will be merged alongside the ARM changes.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+diff --git a/include/asm-generic/Kbuild.asm b/include/asm-generic/Kbuild.asm
+index c5d2e5d..da121e0 100644
+--- a/include/asm-generic/Kbuild.asm
++++ b/include/asm-generic/Kbuild.asm
+@@ -13,6 +13,10 @@ ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/a.out.h \
+ header-y += a.out.h
+ endif
+ 
++ifeq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/clkdev.h),)
++generic-y += clkdev.h
++endif
++
+ header-y += auxvec.h
+ header-y += bitsperlong.h
+ header-y += byteorder.h
+diff --git a/include/asm-generic/clkdev.h b/include/asm-generic/clkdev.h
+new file mode 100644
+index 0000000..90a32a6
+--- /dev/null
++++ b/include/asm-generic/clkdev.h
+@@ -0,0 +1,28 @@
++/*
++ *  include/asm-generic/clkdev.h
++ *
++ * Based on the ARM clkdev.h:
++ *  Copyright (C) 2008 Russell King.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * Helper for the clk API to assist looking up a struct clk.
++ */
++#ifndef __ASM_CLKDEV_H
++#define __ASM_CLKDEV_H
++
++#include <linux/slab.h>
++
++struct clk;
++
++static inline int __clk_get(struct clk *clk) { return 1; }
++static inline void __clk_put(struct clk *clk) { }
++
++static inline struct clk_lookup_alloc *__clkdev_alloc(size_t size)
++{
++	return kzalloc(size, GFP_KERNEL);
++}
++
++#endif
+-- 
+1.7.10.4
