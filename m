@@ -1,52 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:54809 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932349Ab2HXWBz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 24 Aug 2012 18:01:55 -0400
-Date: Fri, 24 Aug 2012 15:01:54 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v2] mm: hugetlb: add arch hook for clearing page flags
- before entering pool
-Message-ID: <20120824150154.fc16a78e.akpm@linux-foundation.org>
-In-Reply-To: <20120823173602.GA3117@mudshark.cambridge.arm.com>
-References: <1345739833-25008-1-git-send-email-will.deacon@arm.com>
-	<20120823171156.GE19968@dhcp22.suse.cz>
-	<20120823173602.GA3117@mudshark.cambridge.arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Received: from moutng.kundenserver.de ([212.227.17.10]:56578 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750939Ab2HZEtk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 26 Aug 2012 00:49:40 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 21/31] arm64: 32-bit (compat) applications support
+Date: Sun, 26 Aug 2012 04:49:32 +0000
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <201208151434.05145.arnd@arndb.de> <20120824104338.GI7585@arm.com>
+In-Reply-To: <20120824104338.GI7585@arm.com>
+MIME-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
+Message-ID: <201208260449.32807.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: Michal Hocko <mhocko@suse.cz>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Message-ID: <20120824220154.z1RsLvNfPoyF7_F04jBvqkNmrYe8sdmVfADXDL4i14o@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>
+Message-ID: <20120826044932.ioPUmpjGKz60dCHfQiZXy5bi6PuN-3OdvU0kelt58oY@z>
 
-On Thu, 23 Aug 2012 18:36:02 +0100
-Will Deacon <will.deacon@arm.com> wrote:
+On Friday 24 August 2012, Catalin Marinas wrote:
+> > What good is the run-time BUG() here? Nothing should be calling these
+> > when CONFIG_COMPAT is disabled, so I think you should just remove
+> > the #ifdef around the declarations, and the entire #else case.
+> 
+> They are called from handle_signal(), so that's to avoid #ifdef inside
+> functions. I can drop the BUG() (but keep the empty function) and
+> change the checks to is_compat_task() so that the compiler optimises the
+> condition out when !COMPAT.
+> 
 
-> On Thu, Aug 23, 2012 at 06:11:56PM +0100, Michal Hocko wrote:
-> > On Thu 23-08-12 17:37:13, Will Deacon wrote:
-> > > The core page allocator ensures that page flags are zeroed when freeing
-> > > pages via free_pages_check. A number of architectures (ARM, PPC, MIPS)
-> > > rely on this property to treat new pages as dirty with respect to the
-> > > data cache and perform the appropriate flushing before mapping the pages
-> > > into userspace.
-> > > 
-> > > This can lead to cache synchronisation problems when using hugepages,
-> > > since the allocator keeps its own pool of pages above the usual page
-> > > allocator and does not reset the page flags when freeing a page into
-> > > the pool.
-> > > 
-> > > This patch adds a new architecture hook, arch_clear_hugepage_flags, so
-> > > that architectures which rely on the page flags being in a particular
-> > > state for fresh allocations can adjust the flags accordingly when a
-> > > page is freed into the pool.
+Sounds good. Note that you can turn a lot of #ifdef into
+if(IS_ENABLED(CONFIG_FOO)) as well, even if there is no other runtime
+check for them.
 
-You could have used __weak here quite neatly, but whatever.
-
-> Next step: start posting the ARM code!
-
-I suggest you keep this patch in whichever tree holds that arm code.  If
-I see this patch turn up in linux-next then I'll just drop my copy,
-expecting that this patch will be merged alongside the ARM changes.
-
+	Arnd
