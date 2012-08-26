@@ -1,77 +1,40 @@
-From: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Subject: [PATCH] clkdev: Add default clkdev.h
-Date: Sat, 25 Aug 2012 11:16:10 -0700
-Message-ID: <1345918571-4099-1-git-send-email-broonie@opensource.wolfsonmicro.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from opensource.wolfsonmicro.com ([80.75.67.52]:58550 "EHLO
-	opensource.wolfsonmicro.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751414Ab2HYSQR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 25 Aug 2012 14:16:17 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Brown <broonie@opensource.wolfsonmicro.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 21/31] arm64: 32-bit (compat) applications support
+Date: Sun, 26 Aug 2012 04:49:32 +0000
+Message-ID: <201208260449.32807.arnd@arndb.de>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
+ <201208151434.05145.arnd@arndb.de> <20120824104338.GI7585@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <20120824104338.GI7585@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: linux-arm-kernel-bounces@lists.infradead.org
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-Ease the deployment of clkdev by providing a default asm/clkdev.h which
-will be used if the arch does not have an include/asm/clkdev.h.
+On Friday 24 August 2012, Catalin Marinas wrote:
+> > What good is the run-time BUG() here? Nothing should be calling these
+> > when CONFIG_COMPAT is disabled, so I think you should just remove
+> > the #ifdef around the declarations, and the entire #else case.
+> 
+> They are called from handle_signal(), so that's to avoid #ifdef inside
+> functions. I can drop the BUG() (but keep the empty function) and
+> change the checks to is_compat_task() so that the compiler optimises the
+> condition out when !COMPAT.
+> 
 
-Signed-off-by: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Reviewed-by: Stephen Rothwell <sfr@canb.auug.org.au>
----
- include/asm-generic/Kbuild.asm |    4 ++++
- include/asm-generic/clkdev.h   |   28 ++++++++++++++++++++++++++++
- 2 files changed, 32 insertions(+)
- create mode 100644 include/asm-generic/clkdev.h
+Sounds good. Note that you can turn a lot of #ifdef into
+if(IS_ENABLED(CONFIG_FOO)) as well, even if there is no other runtime
+check for them.
 
-diff --git a/include/asm-generic/Kbuild.asm b/include/asm-generic/Kbuild.asm
-index c5d2e5d..da121e0 100644
---- a/include/asm-generic/Kbuild.asm
-+++ b/include/asm-generic/Kbuild.asm
-@@ -13,6 +13,10 @@ ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/a.out.h \
- header-y += a.out.h
- endif
- 
-+ifeq ($(wildcard $(srctree)/arch/$(SRCARCH)/include/asm/clkdev.h),)
-+generic-y += clkdev.h
-+endif
-+
- header-y += auxvec.h
- header-y += bitsperlong.h
- header-y += byteorder.h
-diff --git a/include/asm-generic/clkdev.h b/include/asm-generic/clkdev.h
-new file mode 100644
-index 0000000..90a32a6
---- /dev/null
-+++ b/include/asm-generic/clkdev.h
-@@ -0,0 +1,28 @@
-+/*
-+ *  include/asm-generic/clkdev.h
-+ *
-+ * Based on the ARM clkdev.h:
-+ *  Copyright (C) 2008 Russell King.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * Helper for the clk API to assist looking up a struct clk.
-+ */
-+#ifndef __ASM_CLKDEV_H
-+#define __ASM_CLKDEV_H
-+
-+#include <linux/slab.h>
-+
-+struct clk;
-+
-+static inline int __clk_get(struct clk *clk) { return 1; }
-+static inline void __clk_put(struct clk *clk) { }
-+
-+static inline struct clk_lookup_alloc *__clkdev_alloc(size_t size)
-+{
-+	return kzalloc(size, GFP_KERNEL);
-+}
-+
-+#endif
--- 
-1.7.10.4
+	Arnd
