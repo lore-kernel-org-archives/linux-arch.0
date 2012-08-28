@@ -1,87 +1,315 @@
-From: Jiri Kosina <jkosina@suse.cz>
-Subject: Re: PER_LINUX32, Was: [PATCH v2 21/31] arm64: 32-bit (compat)
- applications support
-Date: Tue, 28 Aug 2012 11:28:11 -0700 (PDT)
-Message-ID: <alpine.LNX.2.00.1208281124520.22447@pobox.suse.cz>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <201208151434.05145.arnd@arndb.de> <20120816102808.GH31784@mudshark.cambridge.arm.com> <201208230646.31276.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+From: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Subject: [PATCH] clkdev: Add default clkdev.h
+Date: Tue, 28 Aug 2012 11:56:53 -0700
+Message-ID: <1346180213-14963-1-git-send-email-broonie@opensource.wolfsonmicro.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:36367 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751760Ab2H1S21 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 28 Aug 2012 14:28:27 -0400
-In-Reply-To: <201208230646.31276.arnd@arndb.de>
+Received: from opensource.wolfsonmicro.com ([80.75.67.52]:50766 "EHLO
+	opensource.wolfsonmicro.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752165Ab2H1S5D (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 28 Aug 2012 14:57:03 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Will Deacon <will.deacon@arm.com>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, x86@kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Andi Kleen <andi@firstfloor.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Brown <broonie@opensource.wolfsonmicro.com>
 
-On Thu, 23 Aug 2012, Arnd Bergmann wrote:
+Ease the deployment of clkdev by providing a default asm/clkdev.h for
+use if the arch does not have an include/asm/clkdev.h.
 
-> > > > +asmlinkage int compat_sys_personality(compat_ulong_t personality)
-> > > > +{
-> > > > +	int ret;
-> > > > +
-> > > > +	if (personality(current->personality) == PER_LINUX32 &&
-> > > > +		personality == PER_LINUX)
-> > > > +		personality = PER_LINUX32;
-> > > > +	ret = sys_personality(personality);
-> > > > +	if (ret == PER_LINUX32)
-> > > > +		ret = PER_LINUX;
-> > > > +	return ret;
-> > > > +}
-> > > 
-> > > Where did you get this from?
-> > > 
-> > > You should not need compat_sys_personality, just call the native function.
-> > 
-> > Hmm, but in that case an aarch32 application doing a personality(PER_LINUX)
-> > syscall will start seeing the wrong uname.
-> 
-> Coming back at this topic, I noticed another issue. Jiri Kosina
-> has recently posted patches to fix this function in the other architectures
+Due to limitations in Kbuild we manually add clkdev.h to all
+architectures that don't have one rather than having the header appear
+by default.
 
-Yeah, there were quite a few broken ones, some of them since the beginning 
-of time.
+Signed-off-by: Mark Brown <broonie@opensource.wolfsonmicro.com>
+Reviewed-by: Stephen Rothwell <sfr@canb.auug.org.au>
+---
+ arch/alpha/include/asm/Kbuild      |    2 ++
+ arch/avr32/include/asm/Kbuild      |    2 ++
+ arch/cris/include/asm/Kbuild       |    1 +
+ arch/frv/include/asm/Kbuild        |    2 ++
+ arch/h8300/include/asm/Kbuild      |    1 +
+ arch/hexagon/include/asm/Kbuild    |    1 +
+ arch/ia64/include/asm/Kbuild       |    2 ++
+ arch/m32r/include/asm/Kbuild       |    1 +
+ arch/m68k/include/asm/Kbuild       |    1 +
+ arch/microblaze/include/asm/Kbuild |    2 ++
+ arch/mn10300/include/asm/Kbuild    |    2 ++
+ arch/openrisc/include/asm/Kbuild   |    1 +
+ arch/parisc/include/asm/Kbuild     |    1 +
+ arch/powerpc/include/asm/Kbuild    |    1 +
+ arch/s390/include/asm/Kbuild       |    2 ++
+ arch/score/include/asm/Kbuild      |    2 ++
+ arch/sparc/include/asm/Kbuild      |    1 +
+ arch/tile/include/asm/Kbuild       |    1 +
+ arch/um/include/asm/Kbuild         |    2 +-
+ arch/unicore32/include/asm/Kbuild  |    1 +
+ arch/x86/include/asm/Kbuild        |    2 ++
+ arch/xtensa/include/asm/Kbuild     |    2 ++
+ include/asm-generic/clkdev.h       |   28 ++++++++++++++++++++++++++++
+ 23 files changed, 60 insertions(+), 1 deletion(-)
+ create mode 100644 include/asm-generic/clkdev.h
 
-> in order to mask out the other personality bits, which is a correct fix,
-> but the above function is odd for other reasons.
-> 
-> * On MIPS, it is used only for compat tasks, like you have it above.
-> * On PA-RISC, it is used for native 32 bit tasks and for compat 32 bit tasks,
->   but not for native 64 bit ones.
-> * On IA64, it was used for compat tasks (support for which has since
->   been removed from the kernel), plus all 32 bit tasks would start with
->   PER_LINUX32.
-> * On PowerPC, Sparc and s390, it is used for native 64 bit tasks and for
->   compat 32 bit tasks, but not for native 32 bit ones.
-> * On Tile, it was never used.
-> * On x86_64, it used to be defined (copied from ia64) but not used
->   throughout the git history.
-> 
-> The semantics of the function are also interesting: The intention seems
-> to be that to a compat task, PER_LINUX32 would appear as PER_LINUX.
-> The effect is that any process can set PER_LINUX32 but it can never
-> be unset except by a 64 bit MIPS or PA-RISC task.
-> 
-> Since x86_64 does not implement this behavior at all, I suspect that
-> there are now lots of things depending on not having it, while all
-> the other architectures might also have some (even predating the
-> x86_64 port) use cases that depend on depend on not being able to
-> observe PER_LINUX32 in 32 bit compat tasks.
-> 
-> I think we should try to agree on how this is all supposed to work
-> and use common code, either put the ppc/sparc/s390 version into
-> sys_personality, or remove all of them and just do what x86 and tile
-> do, using the regular sys_personality for all tasks.
-
-How about rather introducing common compat_sys_personality() and switching 
-the archs that are using it to it? Unifying the behavior (PER_LINUX / 
-PER_LINUX32 masquerading) should be painless.
-
-Thanks,
-
+diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
+index e423def..d97d663 100644
+--- a/arch/alpha/include/asm/Kbuild
++++ b/arch/alpha/include/asm/Kbuild
+@@ -1,5 +1,7 @@
+ include include/asm-generic/Kbuild.asm
+ 
++generic-y += clkdev.h
++
+ header-y += compiler.h
+ header-y += console.h
+ header-y += fpu.h
+diff --git a/arch/avr32/include/asm/Kbuild b/arch/avr32/include/asm/Kbuild
+index 3136628..e3ba7bc 100644
+--- a/arch/avr32/include/asm/Kbuild
++++ b/arch/avr32/include/asm/Kbuild
+@@ -1,3 +1,5 @@
+ include include/asm-generic/Kbuild.asm
+ 
++generic-y	+= clkdev.h
++
+ header-y	+= cachectl.h
+diff --git a/arch/cris/include/asm/Kbuild b/arch/cris/include/asm/Kbuild
+index 28b690d..0d3854c 100644
+--- a/arch/cris/include/asm/Kbuild
++++ b/arch/cris/include/asm/Kbuild
+@@ -8,4 +8,5 @@ header-y += etraxgpio.h
+ header-y += rs485.h
+ header-y += sync_serial.h
+ 
++generic-y += clkdev.h
+ generic-y += module.h
+diff --git a/arch/frv/include/asm/Kbuild b/arch/frv/include/asm/Kbuild
+index 5be6663..0c8cf8a 100644
+--- a/arch/frv/include/asm/Kbuild
++++ b/arch/frv/include/asm/Kbuild
+@@ -2,3 +2,5 @@ include include/asm-generic/Kbuild.asm
+ 
+ header-y += registers.h
+ header-y += termios.h
++
++generic-y += clkdev.h
+diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
+index 871382d..65902a6 100644
+--- a/arch/h8300/include/asm/Kbuild
++++ b/arch/h8300/include/asm/Kbuild
+@@ -1,3 +1,4 @@
+ include include/asm-generic/Kbuild.asm
+ 
++generic-y	+= clkdev.h
+ generic-y	+= module.h
+diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
+index 0690642..3364b696 100644
+--- a/arch/hexagon/include/asm/Kbuild
++++ b/arch/hexagon/include/asm/Kbuild
+@@ -7,6 +7,7 @@ header-y += user.h
+ generic-y += auxvec.h
+ generic-y += bug.h
+ generic-y += bugs.h
++generic-y += clkdev.h
+ generic-y += cputime.h
+ generic-y += current.h
+ generic-y += device.h
+diff --git a/arch/ia64/include/asm/Kbuild b/arch/ia64/include/asm/Kbuild
+index d4eb9383..47c545b 100644
+--- a/arch/ia64/include/asm/Kbuild
++++ b/arch/ia64/include/asm/Kbuild
+@@ -13,3 +13,5 @@ header-y += ptrace_offsets.h
+ header-y += rse.h
+ header-y += ucontext.h
+ header-y += ustack.h
++
++generiy-y += clkdev.h
+diff --git a/arch/m32r/include/asm/Kbuild b/arch/m32r/include/asm/Kbuild
+index 871382d..65902a6 100644
+--- a/arch/m32r/include/asm/Kbuild
++++ b/arch/m32r/include/asm/Kbuild
+@@ -1,3 +1,4 @@
+ include include/asm-generic/Kbuild.asm
+ 
++generic-y	+= clkdev.h
+ generic-y	+= module.h
+diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
+index a74e5d9..bfe675f 100644
+--- a/arch/m68k/include/asm/Kbuild
++++ b/arch/m68k/include/asm/Kbuild
+@@ -2,6 +2,7 @@ include include/asm-generic/Kbuild.asm
+ header-y += cachectl.h
+ 
+ generic-y += bitsperlong.h
++generic-y += clkdev.h
+ generic-y += cputime.h
+ generic-y += device.h
+ generic-y += emergency-restart.h
+diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
+index db5294c..153a2a1 100644
+--- a/arch/microblaze/include/asm/Kbuild
++++ b/arch/microblaze/include/asm/Kbuild
+@@ -1,3 +1,5 @@
+ include include/asm-generic/Kbuild.asm
+ 
+ header-y  += elf.h
++
++generic-y += clkdev.h
+diff --git a/arch/mn10300/include/asm/Kbuild b/arch/mn10300/include/asm/Kbuild
+index c68e168..0d20f55 100644
+--- a/arch/mn10300/include/asm/Kbuild
++++ b/arch/mn10300/include/asm/Kbuild
+@@ -1 +1,3 @@
+ include include/asm-generic/Kbuild.asm
++
++generic-y += clkdev.h
+diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
+index 0922959..7140b6b 100644
+--- a/arch/openrisc/include/asm/Kbuild
++++ b/arch/openrisc/include/asm/Kbuild
+@@ -11,6 +11,7 @@ generic-y += bug.h
+ generic-y += bugs.h
+ generic-y += cacheflush.h
+ generic-y += checksum.h
++generic-y += clkdev.h
+ generic-y += cmpxchg.h
+ generic-y += cmpxchg-local.h
+ generic-y += cputime.h
+diff --git a/arch/parisc/include/asm/Kbuild b/arch/parisc/include/asm/Kbuild
+index 4383707..0587f62 100644
+--- a/arch/parisc/include/asm/Kbuild
++++ b/arch/parisc/include/asm/Kbuild
+@@ -1,4 +1,5 @@
+ include include/asm-generic/Kbuild.asm
+ 
+ header-y += pdc.h
++generic-y += clkdev.h
+ generic-y += word-at-a-time.h
+diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
+index 13d6b7b..2767973 100644
+--- a/arch/powerpc/include/asm/Kbuild
++++ b/arch/powerpc/include/asm/Kbuild
+@@ -36,4 +36,5 @@ header-y += ucontext.h
+ header-y += unistd.h
+ header-y += epapr_hcalls.h
+ 
++generic-y += clkdev.h
+ generic-y += rwsem.h
+diff --git a/arch/s390/include/asm/Kbuild b/arch/s390/include/asm/Kbuild
+index 287d7bb..f18fc79 100644
+--- a/arch/s390/include/asm/Kbuild
++++ b/arch/s390/include/asm/Kbuild
+@@ -13,3 +13,5 @@ header-y += tape390.h
+ header-y += ucontext.h
+ header-y += vtoc.h
+ header-y += zcrypt.h
++
++generic-y += clkdev.h
+diff --git a/arch/score/include/asm/Kbuild b/arch/score/include/asm/Kbuild
+index b367abd..ec697ae 100644
+--- a/arch/score/include/asm/Kbuild
++++ b/arch/score/include/asm/Kbuild
+@@ -1,3 +1,5 @@
+ include include/asm-generic/Kbuild.asm
+ 
+ header-y +=
++
++generic-y += clkdev.h
+diff --git a/arch/sparc/include/asm/Kbuild b/arch/sparc/include/asm/Kbuild
+index fbe1cb5..100aa10 100644
+--- a/arch/sparc/include/asm/Kbuild
++++ b/arch/sparc/include/asm/Kbuild
+@@ -17,6 +17,7 @@ header-y += uctx.h
+ header-y += utrap.h
+ header-y += watchdog.h
+ 
++generic-y += clkdev.h
+ generic-y += div64.h
+ generic-y += local64.h
+ generic-y += irq_regs.h
+diff --git a/arch/tile/include/asm/Kbuild b/arch/tile/include/asm/Kbuild
+index 5bd7199..ea2e8ea 100644
+--- a/arch/tile/include/asm/Kbuild
++++ b/arch/tile/include/asm/Kbuild
+@@ -8,6 +8,7 @@ header-y += hardwall.h
+ 
+ generic-y += bug.h
+ generic-y += bugs.h
++generic-y += clkdev.h
+ generic-y += cputime.h
+ generic-y += div64.h
+ generic-y += emergency-restart.h
+diff --git a/arch/um/include/asm/Kbuild b/arch/um/include/asm/Kbuild
+index fff2435..0f6e7b3 100644
+--- a/arch/um/include/asm/Kbuild
++++ b/arch/um/include/asm/Kbuild
+@@ -1,4 +1,4 @@
+ generic-y += bug.h cputime.h device.h emergency-restart.h futex.h hardirq.h
+ generic-y += hw_irq.h irq_regs.h kdebug.h percpu.h sections.h topology.h xor.h
+ generic-y += ftrace.h pci.h io.h param.h delay.h mutex.h current.h exec.h
+-generic-y += switch_to.h
++generic-y += switch_to.h clkdev.h
+diff --git a/arch/unicore32/include/asm/Kbuild b/arch/unicore32/include/asm/Kbuild
+index 34b789b..123c59a 100644
+--- a/arch/unicore32/include/asm/Kbuild
++++ b/arch/unicore32/include/asm/Kbuild
+@@ -4,6 +4,7 @@ generic-y += atomic.h
+ generic-y += auxvec.h
+ generic-y += bitsperlong.h
+ generic-y += bugs.h
++generic-y += clkdev.h
+ generic-y += cputime.h
+ generic-y += current.h
+ generic-y += device.h
+diff --git a/arch/x86/include/asm/Kbuild b/arch/x86/include/asm/Kbuild
+index f9c0d3ba..66e5f0e 100644
+--- a/arch/x86/include/asm/Kbuild
++++ b/arch/x86/include/asm/Kbuild
+@@ -26,3 +26,5 @@ header-y += vsyscall.h
+ genhdr-y += unistd_32.h
+ genhdr-y += unistd_64.h
+ genhdr-y += unistd_x32.h
++
++generic-y += clkdev.h
+diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
+index c68e168..0d20f55 100644
+--- a/arch/xtensa/include/asm/Kbuild
++++ b/arch/xtensa/include/asm/Kbuild
+@@ -1 +1,3 @@
+ include include/asm-generic/Kbuild.asm
++
++generic-y += clkdev.h
+diff --git a/include/asm-generic/clkdev.h b/include/asm-generic/clkdev.h
+new file mode 100644
+index 0000000..90a32a6
+--- /dev/null
++++ b/include/asm-generic/clkdev.h
+@@ -0,0 +1,28 @@
++/*
++ *  include/asm-generic/clkdev.h
++ *
++ * Based on the ARM clkdev.h:
++ *  Copyright (C) 2008 Russell King.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * Helper for the clk API to assist looking up a struct clk.
++ */
++#ifndef __ASM_CLKDEV_H
++#define __ASM_CLKDEV_H
++
++#include <linux/slab.h>
++
++struct clk;
++
++static inline int __clk_get(struct clk *clk) { return 1; }
++static inline void __clk_put(struct clk *clk) { }
++
++static inline struct clk_lookup_alloc *__clkdev_alloc(size_t size)
++{
++	return kzalloc(size, GFP_KERNEL);
++}
++
++#endif
 -- 
-Jiri Kosina
-SUSE Labs
+1.7.10.4
