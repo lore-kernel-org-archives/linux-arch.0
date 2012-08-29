@@ -1,315 +1,133 @@
-From: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Subject: [PATCH] clkdev: Add default clkdev.h
-Date: Tue, 28 Aug 2012 11:56:53 -0700
-Message-ID: <1346180213-14963-1-git-send-email-broonie@opensource.wolfsonmicro.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from opensource.wolfsonmicro.com ([80.75.67.52]:50766 "EHLO
-	opensource.wolfsonmicro.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752165Ab2H1S5D (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 28 Aug 2012 14:57:03 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mark Brown <broonie@opensource.wolfsonmicro.com>
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Subject: Re: [PATCH -v12 02/15] resources: Add probe_resource()
+Date: Tue, 28 Aug 2012 17:10:43 -0700
+Message-ID: <CA+55aFyb-g77CQNoR72J0pjw76ZCy_nufP=VavT_X3xBg6=G-Q@mail.gmail.com>
+References: <1340736849-14875-1-git-send-email-yinghai@kernel.org>
+ <1340736849-14875-3-git-send-email-yinghai@kernel.org> <CAE9FiQVrUbEzopKfeoQZFNdNszLN96brC+rYuGXQCfZvpi_ETQ@mail.gmail.com>
+ <CAE9FiQUXTngUZp2c2dLVRZjFxhXD9e+XYW6Pn0zaHvMt0fB+eA@mail.gmail.com> <CA+55aFxLUExCZE1=gQpDT0ip9s+iMRYEVK2QjdCGNk9iympfYA@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: multipart/mixed; boundary=f46d04427108fe7b4004c85c64c8
+Return-path: <linux-pci-owner@vger.kernel.org>
+In-Reply-To: <CA+55aFxLUExCZE1=gQpDT0ip9s+iMRYEVK2QjdCGNk9iympfYA@mail.gmail.com>
+Sender: linux-pci-owner@vger.kernel.org
+To: Yinghai Lu <yinghai@kernel.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Tony Luck <tony.luck@intel.com>, David Miller <davem@davemloft.net>, x86 <x86@kernel.org>, Dominik Brodowski <linux@dominikbrodowski.net>, Andrew Morton <akpm@linux-foundation.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-pci@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Ease the deployment of clkdev by providing a default asm/clkdev.h for
-use if the arch does not have an include/asm/clkdev.h.
+--f46d04427108fe7b4004c85c64c8
+Content-Type: text/plain; charset=ISO-8859-1
 
-Due to limitations in Kbuild we manually add clkdev.h to all
-architectures that don't have one rather than having the header appear
-by default.
+On Tue, Aug 28, 2012 at 10:05 AM, Linus Torvalds
+<torvalds@linux-foundation.org> wrote:
+>
+> Ugh. Ok, looking closer at this,
 
-Signed-off-by: Mark Brown <broonie@opensource.wolfsonmicro.com>
-Reviewed-by: Stephen Rothwell <sfr@canb.auug.org.au>
----
- arch/alpha/include/asm/Kbuild      |    2 ++
- arch/avr32/include/asm/Kbuild      |    2 ++
- arch/cris/include/asm/Kbuild       |    1 +
- arch/frv/include/asm/Kbuild        |    2 ++
- arch/h8300/include/asm/Kbuild      |    1 +
- arch/hexagon/include/asm/Kbuild    |    1 +
- arch/ia64/include/asm/Kbuild       |    2 ++
- arch/m32r/include/asm/Kbuild       |    1 +
- arch/m68k/include/asm/Kbuild       |    1 +
- arch/microblaze/include/asm/Kbuild |    2 ++
- arch/mn10300/include/asm/Kbuild    |    2 ++
- arch/openrisc/include/asm/Kbuild   |    1 +
- arch/parisc/include/asm/Kbuild     |    1 +
- arch/powerpc/include/asm/Kbuild    |    1 +
- arch/s390/include/asm/Kbuild       |    2 ++
- arch/score/include/asm/Kbuild      |    2 ++
- arch/sparc/include/asm/Kbuild      |    1 +
- arch/tile/include/asm/Kbuild       |    1 +
- arch/um/include/asm/Kbuild         |    2 +-
- arch/unicore32/include/asm/Kbuild  |    1 +
- arch/x86/include/asm/Kbuild        |    2 ++
- arch/xtensa/include/asm/Kbuild     |    2 ++
- include/asm-generic/clkdev.h       |   28 ++++++++++++++++++++++++++++
- 23 files changed, 60 insertions(+), 1 deletion(-)
- create mode 100644 include/asm-generic/clkdev.h
+Btw, looking at that code, I also found what looks like a potential
+locking bug in allocate_resource().
 
-diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
-index e423def..d97d663 100644
---- a/arch/alpha/include/asm/Kbuild
-+++ b/arch/alpha/include/asm/Kbuild
-@@ -1,5 +1,7 @@
- include include/asm-generic/Kbuild.asm
- 
-+generic-y += clkdev.h
-+
- header-y += compiler.h
- header-y += console.h
- header-y += fpu.h
-diff --git a/arch/avr32/include/asm/Kbuild b/arch/avr32/include/asm/Kbuild
-index 3136628..e3ba7bc 100644
---- a/arch/avr32/include/asm/Kbuild
-+++ b/arch/avr32/include/asm/Kbuild
-@@ -1,3 +1,5 @@
- include include/asm-generic/Kbuild.asm
- 
-+generic-y	+= clkdev.h
-+
- header-y	+= cachectl.h
-diff --git a/arch/cris/include/asm/Kbuild b/arch/cris/include/asm/Kbuild
-index 28b690d..0d3854c 100644
---- a/arch/cris/include/asm/Kbuild
-+++ b/arch/cris/include/asm/Kbuild
-@@ -8,4 +8,5 @@ header-y += etraxgpio.h
- header-y += rs485.h
- header-y += sync_serial.h
- 
-+generic-y += clkdev.h
- generic-y += module.h
-diff --git a/arch/frv/include/asm/Kbuild b/arch/frv/include/asm/Kbuild
-index 5be6663..0c8cf8a 100644
---- a/arch/frv/include/asm/Kbuild
-+++ b/arch/frv/include/asm/Kbuild
-@@ -2,3 +2,5 @@ include include/asm-generic/Kbuild.asm
- 
- header-y += registers.h
- header-y += termios.h
-+
-+generic-y += clkdev.h
-diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
-index 871382d..65902a6 100644
---- a/arch/h8300/include/asm/Kbuild
-+++ b/arch/h8300/include/asm/Kbuild
-@@ -1,3 +1,4 @@
- include include/asm-generic/Kbuild.asm
- 
-+generic-y	+= clkdev.h
- generic-y	+= module.h
-diff --git a/arch/hexagon/include/asm/Kbuild b/arch/hexagon/include/asm/Kbuild
-index 0690642..3364b696 100644
---- a/arch/hexagon/include/asm/Kbuild
-+++ b/arch/hexagon/include/asm/Kbuild
-@@ -7,6 +7,7 @@ header-y += user.h
- generic-y += auxvec.h
- generic-y += bug.h
- generic-y += bugs.h
-+generic-y += clkdev.h
- generic-y += cputime.h
- generic-y += current.h
- generic-y += device.h
-diff --git a/arch/ia64/include/asm/Kbuild b/arch/ia64/include/asm/Kbuild
-index d4eb9383..47c545b 100644
---- a/arch/ia64/include/asm/Kbuild
-+++ b/arch/ia64/include/asm/Kbuild
-@@ -13,3 +13,5 @@ header-y += ptrace_offsets.h
- header-y += rse.h
- header-y += ucontext.h
- header-y += ustack.h
-+
-+generiy-y += clkdev.h
-diff --git a/arch/m32r/include/asm/Kbuild b/arch/m32r/include/asm/Kbuild
-index 871382d..65902a6 100644
---- a/arch/m32r/include/asm/Kbuild
-+++ b/arch/m32r/include/asm/Kbuild
-@@ -1,3 +1,4 @@
- include include/asm-generic/Kbuild.asm
- 
-+generic-y	+= clkdev.h
- generic-y	+= module.h
-diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
-index a74e5d9..bfe675f 100644
---- a/arch/m68k/include/asm/Kbuild
-+++ b/arch/m68k/include/asm/Kbuild
-@@ -2,6 +2,7 @@ include include/asm-generic/Kbuild.asm
- header-y += cachectl.h
- 
- generic-y += bitsperlong.h
-+generic-y += clkdev.h
- generic-y += cputime.h
- generic-y += device.h
- generic-y += emergency-restart.h
-diff --git a/arch/microblaze/include/asm/Kbuild b/arch/microblaze/include/asm/Kbuild
-index db5294c..153a2a1 100644
---- a/arch/microblaze/include/asm/Kbuild
-+++ b/arch/microblaze/include/asm/Kbuild
-@@ -1,3 +1,5 @@
- include include/asm-generic/Kbuild.asm
- 
- header-y  += elf.h
-+
-+generic-y += clkdev.h
-diff --git a/arch/mn10300/include/asm/Kbuild b/arch/mn10300/include/asm/Kbuild
-index c68e168..0d20f55 100644
---- a/arch/mn10300/include/asm/Kbuild
-+++ b/arch/mn10300/include/asm/Kbuild
-@@ -1 +1,3 @@
- include include/asm-generic/Kbuild.asm
-+
-+generic-y += clkdev.h
-diff --git a/arch/openrisc/include/asm/Kbuild b/arch/openrisc/include/asm/Kbuild
-index 0922959..7140b6b 100644
---- a/arch/openrisc/include/asm/Kbuild
-+++ b/arch/openrisc/include/asm/Kbuild
-@@ -11,6 +11,7 @@ generic-y += bug.h
- generic-y += bugs.h
- generic-y += cacheflush.h
- generic-y += checksum.h
-+generic-y += clkdev.h
- generic-y += cmpxchg.h
- generic-y += cmpxchg-local.h
- generic-y += cputime.h
-diff --git a/arch/parisc/include/asm/Kbuild b/arch/parisc/include/asm/Kbuild
-index 4383707..0587f62 100644
---- a/arch/parisc/include/asm/Kbuild
-+++ b/arch/parisc/include/asm/Kbuild
-@@ -1,4 +1,5 @@
- include include/asm-generic/Kbuild.asm
- 
- header-y += pdc.h
-+generic-y += clkdev.h
- generic-y += word-at-a-time.h
-diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
-index 13d6b7b..2767973 100644
---- a/arch/powerpc/include/asm/Kbuild
-+++ b/arch/powerpc/include/asm/Kbuild
-@@ -36,4 +36,5 @@ header-y += ucontext.h
- header-y += unistd.h
- header-y += epapr_hcalls.h
- 
-+generic-y += clkdev.h
- generic-y += rwsem.h
-diff --git a/arch/s390/include/asm/Kbuild b/arch/s390/include/asm/Kbuild
-index 287d7bb..f18fc79 100644
---- a/arch/s390/include/asm/Kbuild
-+++ b/arch/s390/include/asm/Kbuild
-@@ -13,3 +13,5 @@ header-y += tape390.h
- header-y += ucontext.h
- header-y += vtoc.h
- header-y += zcrypt.h
-+
-+generic-y += clkdev.h
-diff --git a/arch/score/include/asm/Kbuild b/arch/score/include/asm/Kbuild
-index b367abd..ec697ae 100644
---- a/arch/score/include/asm/Kbuild
-+++ b/arch/score/include/asm/Kbuild
-@@ -1,3 +1,5 @@
- include include/asm-generic/Kbuild.asm
- 
- header-y +=
-+
-+generic-y += clkdev.h
-diff --git a/arch/sparc/include/asm/Kbuild b/arch/sparc/include/asm/Kbuild
-index fbe1cb5..100aa10 100644
---- a/arch/sparc/include/asm/Kbuild
-+++ b/arch/sparc/include/asm/Kbuild
-@@ -17,6 +17,7 @@ header-y += uctx.h
- header-y += utrap.h
- header-y += watchdog.h
- 
-+generic-y += clkdev.h
- generic-y += div64.h
- generic-y += local64.h
- generic-y += irq_regs.h
-diff --git a/arch/tile/include/asm/Kbuild b/arch/tile/include/asm/Kbuild
-index 5bd7199..ea2e8ea 100644
---- a/arch/tile/include/asm/Kbuild
-+++ b/arch/tile/include/asm/Kbuild
-@@ -8,6 +8,7 @@ header-y += hardwall.h
- 
- generic-y += bug.h
- generic-y += bugs.h
-+generic-y += clkdev.h
- generic-y += cputime.h
- generic-y += div64.h
- generic-y += emergency-restart.h
-diff --git a/arch/um/include/asm/Kbuild b/arch/um/include/asm/Kbuild
-index fff2435..0f6e7b3 100644
---- a/arch/um/include/asm/Kbuild
-+++ b/arch/um/include/asm/Kbuild
-@@ -1,4 +1,4 @@
- generic-y += bug.h cputime.h device.h emergency-restart.h futex.h hardirq.h
- generic-y += hw_irq.h irq_regs.h kdebug.h percpu.h sections.h topology.h xor.h
- generic-y += ftrace.h pci.h io.h param.h delay.h mutex.h current.h exec.h
--generic-y += switch_to.h
-+generic-y += switch_to.h clkdev.h
-diff --git a/arch/unicore32/include/asm/Kbuild b/arch/unicore32/include/asm/Kbuild
-index 34b789b..123c59a 100644
---- a/arch/unicore32/include/asm/Kbuild
-+++ b/arch/unicore32/include/asm/Kbuild
-@@ -4,6 +4,7 @@ generic-y += atomic.h
- generic-y += auxvec.h
- generic-y += bitsperlong.h
- generic-y += bugs.h
-+generic-y += clkdev.h
- generic-y += cputime.h
- generic-y += current.h
- generic-y += device.h
-diff --git a/arch/x86/include/asm/Kbuild b/arch/x86/include/asm/Kbuild
-index f9c0d3ba..66e5f0e 100644
---- a/arch/x86/include/asm/Kbuild
-+++ b/arch/x86/include/asm/Kbuild
-@@ -26,3 +26,5 @@ header-y += vsyscall.h
- genhdr-y += unistd_32.h
- genhdr-y += unistd_64.h
- genhdr-y += unistd_x32.h
-+
-+generic-y += clkdev.h
-diff --git a/arch/xtensa/include/asm/Kbuild b/arch/xtensa/include/asm/Kbuild
-index c68e168..0d20f55 100644
---- a/arch/xtensa/include/asm/Kbuild
-+++ b/arch/xtensa/include/asm/Kbuild
-@@ -1 +1,3 @@
- include include/asm-generic/Kbuild.asm
-+
-+generic-y += clkdev.h
-diff --git a/include/asm-generic/clkdev.h b/include/asm-generic/clkdev.h
-new file mode 100644
-index 0000000..90a32a6
---- /dev/null
-+++ b/include/asm-generic/clkdev.h
-@@ -0,0 +1,28 @@
-+/*
-+ *  include/asm-generic/clkdev.h
-+ *
-+ * Based on the ARM clkdev.h:
-+ *  Copyright (C) 2008 Russell King.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * Helper for the clk API to assist looking up a struct clk.
-+ */
-+#ifndef __ASM_CLKDEV_H
-+#define __ASM_CLKDEV_H
-+
-+#include <linux/slab.h>
-+
-+struct clk;
-+
-+static inline int __clk_get(struct clk *clk) { return 1; }
-+static inline void __clk_put(struct clk *clk) { }
-+
-+static inline struct clk_lookup_alloc *__clkdev_alloc(size_t size)
-+{
-+	return kzalloc(size, GFP_KERNEL);
-+}
-+
-+#endif
--- 
-1.7.10.4
+The code does
+
+    if (new->parent)
+       .. reallocate ..
+
+to check whether a resource was already allocated. HOWEVER, it does so
+without actually holding the resource lock. Which means that
+"new->parent" might in theory change.
+
+I don't really know if we care. Anybody who does a
+"allocate_resource()" on an existing resource that might already be in
+the resource tree hopefully does *not* do that in parallel with
+another user trying to change the resource allocation, so maybe the
+right thing to do is to just say "whatever, if there is a race with
+two threads reallocating the same resource at the same time, the bug
+is a much more serious one at a higher level".
+
+So this may well be a non-issue. It was introduced some time ago, in
+commit 23c570a67448e ("resource: ability to resize an allocated
+resource"), since before that we never even allowed re-allocation of
+an already allocated resource in the first place, and everything
+happened under the lock.
+
+I dunno. Here's a (UNTESTED!) patch that should fix it. Because it's
+extremely doubtful whether this is a real problem, I'm certainly not
+going to commit it now, much less mark it for stable. But I'm throwing
+it out as an RFC. Technically, if people rely on any races being
+handled by the resource subsystem, this *could* trigger. But I'm
+hoping that the PCI layer has some higher-level locking for
+"reallocate the resources of this PCI device". I did *not* check the
+callers.
+
+Btw, reallocate_resource() isn't actually used anywhere in the tree
+that I can see, so maybe we should remove it and the export, and just
+have the __reallocate_resource() that is static to resource.c and is
+to be called only with the lock held.
+
+                         Linus
+
+--f46d04427108fe7b4004c85c64c8
+Content-Type: application/octet-stream; name="patch.diff"
+Content-Disposition: attachment; filename="patch.diff"
+Content-Transfer-Encoding: base64
+X-Attachment-Id: f_h6fnyfep0
+
+IGtlcm5lbC9yZXNvdXJjZS5jIHwgNzUgKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKy0t
+LS0tLS0tLS0tLS0tLS0tLS0tLS0tLQogMSBmaWxlIGNoYW5nZWQsIDQyIGluc2VydGlvbnMoKyks
+IDMzIGRlbGV0aW9ucygtKQoKZGlmZiAtLWdpdCBhL2tlcm5lbC9yZXNvdXJjZS5jIGIva2VybmVs
+L3Jlc291cmNlLmMKaW5kZXggMzRkNDU4ODZlZTg0Li44Mjk0NDM2OTA0OTcgMTAwNjQ0Ci0tLSBh
+L2tlcm5lbC9yZXNvdXJjZS5jCisrKyBiL2tlcm5lbC9yZXNvdXJjZS5jCkBAIC00NjIsNTAgKzQ2
+Miw1OSBAQCBzdGF0aWMgaW50IGZpbmRfcmVzb3VyY2Uoc3RydWN0IHJlc291cmNlICpyb290LCBz
+dHJ1Y3QgcmVzb3VyY2UgKm5ldywKIAlyZXR1cm4gIF9fZmluZF9yZXNvdXJjZShyb290LCBOVUxM
+LCBuZXcsIHNpemUsIGNvbnN0cmFpbnQpOwogfQogCi0vKioKLSAqIHJlYWxsb2NhdGVfcmVzb3Vy
+Y2UgLSBhbGxvY2F0ZSBhIHNsb3QgaW4gdGhlIHJlc291cmNlIHRyZWUgZ2l2ZW4gcmFuZ2UgJiBh
+bGlnbm1lbnQuCi0gKglUaGUgcmVzb3VyY2Ugd2lsbCBiZSByZWxvY2F0ZWQgaWYgdGhlIG5ldyBz
+aXplIGNhbm5vdCBiZSByZWFsbG9jYXRlZCBpbiB0aGUKLSAqCWN1cnJlbnQgbG9jYXRpb24uCi0g
+KgotICogQHJvb3Q6IHJvb3QgcmVzb3VyY2UgZGVzY3JpcHRvcgotICogQG9sZDogIHJlc291cmNl
+IGRlc2NyaXB0b3IgZGVzaXJlZCBieSBjYWxsZXIKLSAqIEBuZXdzaXplOiBuZXcgc2l6ZSBvZiB0
+aGUgcmVzb3VyY2UgZGVzY3JpcHRvcgotICogQGNvbnN0cmFpbnQ6IHRoZSBzaXplIGFuZCBhbGln
+bm1lbnQgY29uc3RyYWludHMgdG8gYmUgbWV0LgotICovCi1pbnQgcmVhbGxvY2F0ZV9yZXNvdXJj
+ZShzdHJ1Y3QgcmVzb3VyY2UgKnJvb3QsIHN0cnVjdCByZXNvdXJjZSAqb2xkLAorCitzdGF0aWMg
+aW50IF9fcmVhbGxvY2F0ZV9yZXNvdXJjZShzdHJ1Y3QgcmVzb3VyY2UgKnJvb3QsIHN0cnVjdCBy
+ZXNvdXJjZSAqb2xkLAogCQkJcmVzb3VyY2Vfc2l6ZV90IG5ld3NpemUsCiAJCQlzdHJ1Y3QgcmVz
+b3VyY2VfY29uc3RyYWludCAgKmNvbnN0cmFpbnQpCiB7Ci0JaW50IGVycj0wOworCWludCBlcnI7
+CiAJc3RydWN0IHJlc291cmNlIG5ldyA9ICpvbGQ7CiAJc3RydWN0IHJlc291cmNlICpjb25mbGlj
+dDsKIAotCXdyaXRlX2xvY2soJnJlc291cmNlX2xvY2spOwotCi0JaWYgKChlcnIgPSBfX2ZpbmRf
+cmVzb3VyY2Uocm9vdCwgb2xkLCAmbmV3LCBuZXdzaXplLCBjb25zdHJhaW50KSkpCi0JCWdvdG8g
+b3V0OworCWVyciA9IF9fZmluZF9yZXNvdXJjZShyb290LCBvbGQsICZuZXcsIG5ld3NpemUsIGNv
+bnN0cmFpbnQpOworCWlmIChlcnIpCisJCXJldHVybiBlcnI7CiAKIAlpZiAocmVzb3VyY2VfY29u
+dGFpbnMoJm5ldywgb2xkKSkgewogCQlvbGQtPnN0YXJ0ID0gbmV3LnN0YXJ0OwogCQlvbGQtPmVu
+ZCA9IG5ldy5lbmQ7Ci0JCWdvdG8gb3V0OworCQlyZXR1cm4gMDsKIAl9CiAKLQlpZiAob2xkLT5j
+aGlsZCkgewotCQllcnIgPSAtRUJVU1k7Ci0JCWdvdG8gb3V0OwotCX0KKwlpZiAob2xkLT5jaGls
+ZCkKKwkJcmV0dXJuIC1FQlVTWTsKIAogCWlmIChyZXNvdXJjZV9jb250YWlucyhvbGQsICZuZXcp
+KSB7CiAJCW9sZC0+c3RhcnQgPSBuZXcuc3RhcnQ7CiAJCW9sZC0+ZW5kID0gbmV3LmVuZDsKLQl9
+IGVsc2UgewotCQlfX3JlbGVhc2VfcmVzb3VyY2Uob2xkKTsKLQkJKm9sZCA9IG5ldzsKLQkJY29u
+ZmxpY3QgPSBfX3JlcXVlc3RfcmVzb3VyY2Uocm9vdCwgb2xkKTsKLQkJQlVHX09OKGNvbmZsaWN0
+KTsKKwkJcmV0dXJuIDA7CiAJfQotb3V0OgorCisJX19yZWxlYXNlX3Jlc291cmNlKG9sZCk7CisJ
+Km9sZCA9IG5ldzsKKwljb25mbGljdCA9IF9fcmVxdWVzdF9yZXNvdXJjZShyb290LCBvbGQpOwor
+CUJVR19PTihjb25mbGljdCk7CisJcmV0dXJuIDA7Cit9CisKKy8qKgorICogcmVhbGxvY2F0ZV9y
+ZXNvdXJjZSAtIGFsbG9jYXRlIGEgc2xvdCBpbiB0aGUgcmVzb3VyY2UgdHJlZSBnaXZlbiByYW5n
+ZSAmIGFsaWdubWVudC4KKyAqCVRoZSByZXNvdXJjZSB3aWxsIGJlIHJlbG9jYXRlZCBpZiB0aGUg
+bmV3IHNpemUgY2Fubm90IGJlIHJlYWxsb2NhdGVkIGluIHRoZQorICoJY3VycmVudCBsb2NhdGlv
+bi4KKyAqCisgKiBAcm9vdDogcm9vdCByZXNvdXJjZSBkZXNjcmlwdG9yCisgKiBAb2xkOiAgcmVz
+b3VyY2UgZGVzY3JpcHRvciBkZXNpcmVkIGJ5IGNhbGxlcgorICogQG5ld3NpemU6IG5ldyBzaXpl
+IG9mIHRoZSByZXNvdXJjZSBkZXNjcmlwdG9yCisgKiBAY29uc3RyYWludDogdGhlIHNpemUgYW5k
+IGFsaWdubWVudCBjb25zdHJhaW50cyB0byBiZSBtZXQuCisgKi8KK2ludCByZWFsbG9jYXRlX3Jl
+c291cmNlKHN0cnVjdCByZXNvdXJjZSAqcm9vdCwgc3RydWN0IHJlc291cmNlICpvbGQsCisJCQly
+ZXNvdXJjZV9zaXplX3QgbmV3c2l6ZSwKKwkJCXN0cnVjdCByZXNvdXJjZV9jb25zdHJhaW50ICAq
+Y29uc3RyYWludCkKK3sKKwlpbnQgZXJyOworCisJd3JpdGVfbG9jaygmcmVzb3VyY2VfbG9jayk7
+CisJZXJyID0gX19yZWFsbG9jYXRlX3Jlc291cmNlKHJvb3QsIG9sZCwgbmV3c2l6ZSwgY29uc3Ry
+YWludCk7CiAJd3JpdGVfdW5sb2NrKCZyZXNvdXJjZV9sb2NrKTsKIAlyZXR1cm4gZXJyOwogfQpA
+QCAtNTQ0LDE2ICs1NTMsMTYgQEAgaW50IGFsbG9jYXRlX3Jlc291cmNlKHN0cnVjdCByZXNvdXJj
+ZSAqcm9vdCwgc3RydWN0IHJlc291cmNlICpuZXcsCiAJY29uc3RyYWludC5hbGlnbmYgPSBhbGln
+bmY7CiAJY29uc3RyYWludC5hbGlnbmZfZGF0YSA9IGFsaWduZl9kYXRhOwogCisJd3JpdGVfbG9j
+aygmcmVzb3VyY2VfbG9jayk7CiAJaWYgKCBuZXctPnBhcmVudCApIHsKIAkJLyogcmVzb3VyY2Ug
+aXMgYWxyZWFkeSBhbGxvY2F0ZWQsIHRyeSByZWFsbG9jYXRpbmcgd2l0aAogCQkgICB0aGUgbmV3
+IGNvbnN0cmFpbnRzICovCi0JCXJldHVybiByZWFsbG9jYXRlX3Jlc291cmNlKHJvb3QsIG5ldywg
+c2l6ZSwgJmNvbnN0cmFpbnQpOworCQllcnIgPSBfX3JlYWxsb2NhdGVfcmVzb3VyY2Uocm9vdCwg
+bmV3LCBzaXplLCAmY29uc3RyYWludCk7CisJfSBlbHNlIHsKKwkJZXJyID0gZmluZF9yZXNvdXJj
+ZShyb290LCBuZXcsIHNpemUsICZjb25zdHJhaW50KTsKKwkJaWYgKGVyciA+PSAwICYmIF9fcmVx
+dWVzdF9yZXNvdXJjZShyb290LCBuZXcpKQorCQkJZXJyID0gLUVCVVNZOwogCX0KLQotCXdyaXRl
+X2xvY2soJnJlc291cmNlX2xvY2spOwotCWVyciA9IGZpbmRfcmVzb3VyY2Uocm9vdCwgbmV3LCBz
+aXplLCAmY29uc3RyYWludCk7Ci0JaWYgKGVyciA+PSAwICYmIF9fcmVxdWVzdF9yZXNvdXJjZShy
+b290LCBuZXcpKQotCQllcnIgPSAtRUJVU1k7CiAJd3JpdGVfdW5sb2NrKCZyZXNvdXJjZV9sb2Nr
+KTsKIAlyZXR1cm4gZXJyOwogfQo=
+--f46d04427108fe7b4004c85c64c8--
