@@ -1,66 +1,38 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: [PATCH v2 17/31] arm64: System calls handling
-Date: Mon, 3 Sep 2012 12:48:31 +0100
-Message-ID: <20120903114831.GA3313@mbp>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <201208220756.31149.arnd@arndb.de>
- <20120822102953.GA24136@arm.com>
- <201208221227.14274.arnd@arndb.de>
- <20120822171309.GC2582@arm.com>
+Date: Mon, 3 Sep 2012 12:39:51 +0000
+Message-ID: <201209031239.51515.arnd@arndb.de>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <20120822171309.GC2582@arm.com> <20120903114831.GA3313@mbp>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:41585 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754327Ab2ICLsm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Sep 2012 07:48:42 -0400
-Content-Disposition: inline
-In-Reply-To: <20120822171309.GC2582@arm.com>
+Received: from moutng.kundenserver.de ([212.227.126.187]:50542 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753949Ab2ICMj7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Sep 2012 08:39:59 -0400
+In-Reply-To: <20120903114831.GA3313@mbp>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+To: Catalin Marinas <catalin.marinas@arm.com>
 Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>
 
-Hi Arnd,
-
-On Wed, Aug 22, 2012 at 06:13:10PM +0100, Catalin Marinas wrote:
-> On Wed, Aug 22, 2012 at 01:27:14PM +0100, Arnd Bergmann wrote:
-> > On Wednesday 22 August 2012, Catalin Marinas wrote:
-> > > But what's more important - moving this wrapper to glibc causes issues
-> > > with the page size. We support both 4KB and 64KB pages on 64-bit systems
-> > > (the latter without compat support). The kernel is in a better position
-> > > to do the shift by a compile-time constant. Glibc would need to enquire
-> > > the actual page size to do the shift before calling sys_mmap_pgoff. If
-> > > we assume in glibc that the shift is always 12, we need another wrapper
-> > > in the kernel anyway for 64KB page configuration. So passing the offset
-> > > in bytes worked best for us.
-> > 
-> > Right, the kernel interface should really be independent of the page
-> > size, as sys_mmap2 normally is, and sys_mmap2 is not provided here.
+On Monday 03 September 2012, Catalin Marinas wrote:
+> I forgot about this at the KS and we haven't got to a clear conclusion.
 > 
-> sys_mmap2 is indeed independent of the page size on most architectures
-> assuming that the last argument represents the offset in units of 4096.
-> The cris and ia64 seem to differ (one being 8K, the other variable).
+> Do we (1) stick with the sys_mmap() for 64-bit systems and avoid offset
+> conversion in both glibc and kernel or (2) use sys_mmap2() with a 12
+> shift in glibc and (PAGE_SHIFT - 12) in the kernel wrapper?
 > 
-> sys_mmap is also independent of the page size.
-> 
-> But using sys_mmap2 for a 64-bit architecture, especially when the page
-> size is not always 4K, does not bring any advantages. We end up doing a
-> shift by 12 in glibc and another shift by (PAGE_SHIFT - 12) in the
-> kernel wrapper. Unless I missed your point, I don't see the reason for
-> using sys_mmap2 on a 64-bit architecture, apart from it being newer (and
-> compat support should not have any relevance, we have different syscall
-> tables anyway).
+> I personally prefer (1) as it doesn't require a kernel wrapper and we
+> avoid the double shifting. 
 
-I forgot about this at the KS and we haven't got to a clear conclusion.
+Yes, I think it's ok this way.
 
-Do we (1) stick with the sys_mmap() for 64-bit systems and avoid offset
-conversion in both glibc and kernel or (2) use sys_mmap2() with a 12
-shift in glibc and (PAGE_SHIFT - 12) in the kernel wrapper?
+> A reason for (2) would be if we ever need file offsets greater than 16EB.
 
-I personally prefer (1) as it doesn't require a kernel wrapper and we
-avoid the double shifting. A reason for (2) would be if we ever need
-file offsets greater than 16EB.
+Let's not worry about this for now, all the other architectures will
+have the same problem when we get there.
 
--- 
-Catalin
+	Arnd
