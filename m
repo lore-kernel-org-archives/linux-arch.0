@@ -1,41 +1,59 @@
 From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Subject: [patch 0/3] Turn CONFIG_HOTPLUG always on.
-Date: Tue,  4 Sep 2012 17:01:05 -0700
-Message-ID: <20120904234803.554552301@clark.kroah.org>
+Subject: [patch 1/3] xtensa: remove duplicate CONFIG_HOTPLUG definition
+Date: Tue,  4 Sep 2012 17:01:06 -0700
+Message-ID: <20120904235155.064688725@clark.kroah.org>
+References: <20120904234803.554552301@clark.kroah.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
 Received: from mail-pz0-f46.google.com ([209.85.210.46]:65016 "EHLO
 	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752688Ab2IEABY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Sep 2012 20:01:24 -0400
-Received: by dady13 with SMTP id y13so4738848dad.19
-        for <linux-arch@vger.kernel.org>; Tue, 04 Sep 2012 17:01:23 -0700 (PDT)
+	with ESMTP id S1758006Ab2IEAB3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Sep 2012 20:01:29 -0400
+Received: by mail-pz0-f46.google.com with SMTP id y13so4738848dad.19
+        for <linux-arch@vger.kernel.org>; Tue, 04 Sep 2012 17:01:29 -0700 (PDT)
+In-Reply-To: <20120904234803.554552301@clark.kroah.org>
+Content-Disposition: inline; filename=xtensa-remove-duplicate-config_hotplug-definition.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, Bjorn Helgaas <bhelgaas@google.com>, Chris Metcalf <cmetcalf@tilera.com>, Chris Zankel <chris@zankel.net>
-Cc: Greg KH <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Chris Zankel <chris@zankel.net>
+Cc: Greg KH <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, Bjorn Helgaas <bhelgaas@google.com>, Chris Metcalf <cmetcalf@tilera.com>
 
 From: Greg KH <gregkh@linuxfoundation.org>
 
-The CONFIG_HOTPLUG variable is tough to turn off, and almost all arches
-default to it on.
+As part of the plan to remove CONFIG_HOTPLUG, it was found that xtensa
+duplicates this config option for no reason (it's already defined as part of
+init/Kconfig).  This patch removes it from the xtensa-only Kconfig file.
 
-If you turn it off, it saves you a big 200 or so bytes, and then starts
-to cause all sorts of problems as the code paths if the option is
-disabled is never really tested, and memory segments start to get thrown
-away that driver authors assume will always be present.
+Cc: Chris Zankel <chris@zankel.net>
+Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
-So, as part of trying to get rid of the option entirely, let's just turn
-the option always on.
+---
+ arch/xtensa/Kconfig |   18 ------------------
+ 1 file changed, 18 deletions(-)
 
-Note, to do this properly, I found two duplicate definitions of the
-option, in the Tile and Xtensa arch files, this patch series removes
-those duplicates first.
-
-Anyone object to me just taking these three patches through my
-driver-core tree for 3.7?  After this set, I'll start unwinding the
-places where CONFIG_HOTPLUG is used and remove the parts that are not
-used anymore now that the option can not be turned off.
-
-thanks,
-
-greg k-h
+--- a/arch/xtensa/Kconfig
++++ b/arch/xtensa/Kconfig
+@@ -172,24 +172,6 @@ config CMDLINE
+ 
+ source "mm/Kconfig"
+ 
+-config HOTPLUG
+-	bool "Support for hot-pluggable devices"
+-	help
+-	  Say Y here if you want to plug devices into your computer while
+-	  the system is running, and be able to use them quickly.  In many
+-	  cases, the devices can likewise be unplugged at any time too.
+-
+-	  One well known example of this is PCMCIA- or PC-cards, credit-card
+-	  size devices such as network cards, modems or hard drives which are
+-	  plugged into slots found on all modern laptop computers.  Another
+-	  example, used on modern desktops as well as laptops, is USB.
+-
+-	  Enable HOTPLUG and build a modular kernel.  Get agent software
+-	  (from <http://linux-hotplug.sourceforge.net/>) and install it.
+-	  Then your kernel will automatically call out to a user mode "policy
+-	  agent" (/sbin/hotplug) to load modules and set up software needed
+-	  to use devices as you hotplug them.
+-
+ source "drivers/pcmcia/Kconfig"
+ 
+ source "drivers/pci/hotplug/Kconfig"
