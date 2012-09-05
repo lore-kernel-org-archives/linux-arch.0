@@ -1,76 +1,41 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 20/31] arm64: User access library function
-Date: Mon, 3 Sep 2012 13:58:11 +0100
-Message-ID: <20120903125810.GB3313@mbp>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-21-git-send-email-catalin.marinas@arm.com>
- <201208151449.54834.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <201208151449.54834.arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Will Deacon <Will.Deacon@arm.com>, Marc Zyngier <Marc.Zyngier@arm.com>
-List-Id: linux-arch.vger.kernel.org
+From: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Subject: [patch 0/3] Turn CONFIG_HOTPLUG always on.
+Date: Tue,  4 Sep 2012 17:01:05 -0700
+Message-ID: <20120904234803.554552301@clark.kroah.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pz0-f46.google.com ([209.85.210.46]:65016 "EHLO
+	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752688Ab2IEABY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Sep 2012 20:01:24 -0400
+Received: by dady13 with SMTP id y13so4738848dad.19
+        for <linux-arch@vger.kernel.org>; Tue, 04 Sep 2012 17:01:23 -0700 (PDT)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, Bjorn Helgaas <bhelgaas@google.com>, Chris Metcalf <cmetcalf@tilera.com>, Chris Zankel <chris@zankel.net>
+Cc: Greg KH <gregkh@linuxfoundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Wed, Aug 15, 2012 at 03:49:54PM +0100, Arnd Bergmann wrote:
-> On Tuesday 14 August 2012, Catalin Marinas wrote:
-> 
-> > +/*
-> > + * Single-value transfer routines.  They automatically use the right
-> > + * size if we just have the right pointer type.  Note that the functions
-> > + * which read from user space (*get_*) need to take care not to leak
-> > + * kernel data even if the calling code is buggy and fails to check
-> > + * the return value.  This means zeroing out the destination variable
-> > + * or buffer on error.  Normally this is done out of line by the
-> > + * fixup code, but there are a few places where it intrudes on the
-> > + * main code path.  When we only write to user space, there is no
-> > + * problem.
-> > + */
-> > +extern long __get_user_1(void *);
-> > +extern long __get_user_2(void *);
-> > +extern long __get_user_4(void *);
-> > +extern long __get_user_8(void *);
-> > +
-> > +#define __get_user_x(__r2,__p,__e,__s,__i...)				\
-> > +	   asm volatile(						\
-> > +		__asmeq("%0", "x0") __asmeq("%1", "x2")			\
-> > +		"bl	__get_user_" #__s				\
-> > +		: "=&r" (__e), "=r" (__r2)				\
-> > +		: "0" (__p)						\
-> > +		: __i, "cc")
-> > +
-> > +#define get_user(x,p)							\
-> > +	({								\
-> > +		register const typeof(*(p)) __user *__p asm("x0") = (p);\
-> > +		register unsigned long __r2 asm("x2");			\
-> > +		register long __e asm("x0");				\
-> > +		switch (sizeof(*(__p))) {				\
-> > +		case 1:							\
-> > +			__get_user_x(__r2, __p, __e, 1, "x30");		\
-> > +			break;						\
-> > +		case 2:							\
-> > +			__get_user_x(__r2, __p, __e, 2, "x3", "x30");	\
-> > +			break;						\
-> > +		case 4:							\
-> > +			__get_user_x(__r2, __p, __e, 4, "x30");		\
-> > +			break;						\
-> > +		case 8:							\
-> > +			__get_user_x(__r2, __p, __e, 8, "x30");		\
-> > +			break;						\
-> > +		default: __e = __get_user_bad(); break;			\
-> > +		}							\
-> > +		x = (typeof(*(p))) __r2;				\
-> > +		__e;							\
-> > +	})
-> 
-> It's fairly unusual to have out of line get_user/put_user functions.
-> What is the reason for this, other than copying from ARM?
+From: Greg KH <gregkh@linuxfoundation.org>
 
-I changed these to inline asm. The only reason which I don't think
-matters much in this case is a few KB increase in Image size.
+The CONFIG_HOTPLUG variable is tough to turn off, and almost all arches
+default to it on.
 
--- 
-Catalin
+If you turn it off, it saves you a big 200 or so bytes, and then starts
+to cause all sorts of problems as the code paths if the option is
+disabled is never really tested, and memory segments start to get thrown
+away that driver authors assume will always be present.
+
+So, as part of trying to get rid of the option entirely, let's just turn
+the option always on.
+
+Note, to do this properly, I found two duplicate definitions of the
+option, in the Tile and Xtensa arch files, this patch series removes
+those duplicates first.
+
+Anyone object to me just taking these three patches through my
+driver-core tree for 3.7?  After this set, I'll start unwinding the
+places where CONFIG_HOTPLUG is used and remove the parts that are not
+used anymore now that the option can not be turned off.
+
+thanks,
+
+greg k-h
