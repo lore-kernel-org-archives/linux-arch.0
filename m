@@ -1,44 +1,45 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH v2 16/31] arm64: ELF definitions
-Date: Wed, 5 Sep 2012 15:56:27 -0400
-Message-ID: <5047AE6B.6090508@tilera.com>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com> <201208161237.53594.arnd@arndb.de> <20120821160653.GH12708@arm.com> <201208212017.08110.arnd@arndb.de>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v2 20/31] arm64: User access library function
+Date: Wed, 5 Sep 2012 22:01:37 +0100
+Message-ID: <20120905210135.GA87548@MacBook-Pro.local>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
+ <1344966752-16102-21-git-send-email-catalin.marinas@arm.com>
+ <201208151449.54834.arnd@arndb.de>
+ <20120905191312.GH24085@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:36197 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759282Ab2IET43 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Sep 2012 15:56:29 -0400
-In-Reply-To: <201208212017.08110.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20120905191312.GH24085@n2100.arm.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Marc Zyngier <Marc.Zyngier@arm.com>, Will Deacon <Will.Deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On 8/21/2012 4:17 PM, Arnd Bergmann wrote:
-> On Tuesday 21 August 2012, Catalin Marinas wrote:
->> On Thu, Aug 16, 2012 at 01:37:53PM +0100, Arnd Bergmann wrote:
->>> No, the uname output is meant to tell you about the system, not the
->>> instruction set that you are using (you already know that in compiled
->>> code).
->>
->> OK, so we assumed that compat tasks should get a uname as close as
->> possible to a 32-bit system, i.e. armv8l, for full compatibility. This
->> would allow us to run something like 32-bit Debian on an AArch64 kernel
->> without worrying about any scripts failing.
+On Wed, Sep 05, 2012 at 08:13:12PM +0100, Russell King - ARM Linux wrote:
+> On Wed, Aug 15, 2012 at 02:49:54PM +0000, Arnd Bergmann wrote:
+> > It's fairly unusual to have out of line get_user/put_user functions.
+> > What is the reason for this, other than copying from ARM?
 > 
-> You can still do that, just boot with init="/sbin/setarch armv7 /sbin/init".
-> 
->> But I can see on x86 that it always reports x86_64 even if the task is
->> x86_32.
-> 
-> Not just x86, the same behavior is used on powerpc, s390, mips, sparc and
-> parisc. Not sure about tile though.
+> Actually, we never used to out of line on ARM, and then I experimented,
+> and found there was a net benefit - not only in code size but also
+> there appeared to be a performance benefit by out of lining them.
 
-tile also reports "tilegx" regardless of whether the task is 64-bit or
-32-bit compat.
+There are indeed a few KB gain in code size but that's probably coming
+from the exception table since otherwise you just replace a bl with
+ldrt. It depends on what the compiler does as well, the arm code has
+some carefully chosen registers when calling the __get_user_x function.
+
+If you do the access_ok inline and the __get_user_x separately, the size
+increase is even greater (at least in the arm64 case it can get to over
+20KB). I think x86 does the access_ok check out of line.
+
+For now I changed the arm64 code to inline as most of the other
+architectures but I'll revisit this when I get some hardware. Another
+thing to be optimised is the size of the exception table entry. I use
+two .quad declarations for the fault address and branch but I guess they
+could be made relative to PAGE_OFFSET and only use .long (or some
+prel31).
+
 -- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+Catalin
