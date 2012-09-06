@@ -1,56 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:45699 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1755657Ab2IFIg6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2012 04:36:58 -0400
-Date: Thu, 6 Sep 2012 09:36:07 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 20/31] arm64: User access library function
-Message-ID: <20120906083607.GA13975@arm.com>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-21-git-send-email-catalin.marinas@arm.com>
- <201208151449.54834.arnd@arndb.de>
- <20120905191312.GH24085@n2100.arm.linux.org.uk>
- <20120905210135.GA87548@MacBook-Pro.local>
- <20120905210534.GI24085@n2100.arm.linux.org.uk>
+Received: from mail-pz0-f46.google.com ([209.85.210.46]:43242 "EHLO
+	mail-pz0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759828Ab2IFUav (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Sep 2012 16:30:51 -0400
+Received: by dady13 with SMTP id y13so1318607dad.19
+        for <linux-arch@vger.kernel.org>; Thu, 06 Sep 2012 13:30:51 -0700 (PDT)
+Date: Thu, 6 Sep 2012 13:28:16 -0700
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [patch 0/3] Turn CONFIG_HOTPLUG always on.
+Message-ID: <20120906202815.GA6732@kroah.com>
+References: <20120904234803.554552301@clark.kroah.org>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20120905210534.GI24085@n2100.arm.linux.org.uk>
+In-Reply-To: <20120904234803.554552301@clark.kroah.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Marc Zyngier <Marc.Zyngier@arm.com>, Will Deacon <Will.Deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20120906083607.0eAG4j-2TqkbqbSxVMbBFWsBWHiSXMJz-35-TxzYNBk@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, Bjorn Helgaas <bhelgaas@google.com>, Chris Metcalf <cmetcalf@tilera.com>, Chris Zankel <chris@zankel.net>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120906202816.qwyig5nEDs1bG3Zr4ShfO4oi6aWfrWqi20nQTrdERgU@z>
 
-On Wed, Sep 05, 2012 at 10:05:34PM +0100, Russell King - ARM Linux wrote:
-> On Wed, Sep 05, 2012 at 10:01:37PM +0100, Catalin Marinas wrote:
-> > There are indeed a few KB gain in code size but that's probably coming
-> > from the exception table since otherwise you just replace a bl with
-> > ldrt. It depends on what the compiler does as well, the arm code has
-> > some carefully chosen registers when calling the __get_user_x function.
+On Tue, Sep 04, 2012 at 05:01:05PM -0700, Greg Kroah-Hartman wrote:
+> From: Greg KH <gregkh@linuxfoundation.org>
 > 
-> It's more than that - it's not just the ldr but also a zeroing of a
-> temporary register to hold the error code should the instruction fault.
-> So it's not only the exception tables but also an increase in the
-> main path - and that's where you benefit from having it out of line and
-> thereby a hotter i-cache.
-
-On 32-bit we have __get_user() inline and get_user() out of line. What
-was the history behind this?
-
-> > If you do the access_ok inline and the __get_user_x separately, the size
-> > increase is even greater (at least in the arm64 case it can get to over
-> > 20KB). I think x86 does the access_ok check out of line.
+> The CONFIG_HOTPLUG variable is tough to turn off, and almost all arches
+> default to it on.
 > 
-> Please talk to Will about get_user() and put_user().  Afterwards you
-> will definitely want to keep them out of line on 64-bit ARM.
+> If you turn it off, it saves you a big 200 or so bytes, and then starts
+> to cause all sorts of problems as the code paths if the option is
+> disabled is never really tested, and memory segments start to get thrown
+> away that driver authors assume will always be present.
+> 
+> So, as part of trying to get rid of the option entirely, let's just turn
+> the option always on.
+> 
+> Note, to do this properly, I found two duplicate definitions of the
+> option, in the Tile and Xtensa arch files, this patch series removes
+> those duplicates first.
+> 
+> Anyone object to me just taking these three patches through my
+> driver-core tree for 3.7?  After this set, I'll start unwinding the
+> places where CONFIG_HOTPLUG is used and remove the parts that are not
+> used anymore now that the option can not be turned off.
 
-As I said, I already made the change to always inline get_user/put_user
-with some penalty in the Image size but it makes the code cleaner. I'm
-not entirely convinced of the performance gain/loss especially on ARMv8
-cores with physically tagged caches. There is room for optimisation when
-I get real silicon.
+Given the lack of objection, I've now queued these up for 3.7 and will
+start unwinding the CONFIG_HOTPLUG mess.
 
--- 
-Catalin
+thanks,
+
+greg k-h
