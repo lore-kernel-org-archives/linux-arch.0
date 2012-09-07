@@ -1,66 +1,65 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v3 06/31] arm64: MMU fault handling and page table management
-Date: Fri,  7 Sep 2012 17:26:41 +0100
-Message-ID: <1347035226-18649-7-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v3 18/31] arm64: VDSO support
+Date: Fri,  7 Sep 2012 17:26:53 +0100
+Message-ID: <1347035226-18649-19-git-send-email-catalin.marinas@arm.com>
 References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: quoted-printable
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from service87.mimecast.com ([91.220.42.44]:34522 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752734Ab2IGQ14 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Sep 2012 12:27:56 -0400
 In-Reply-To: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: linux-arm-kernel-bounces@lists.infradead.org
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-List-Id: linux-arch.vger.kernel.org
 
-This patch adds support for the handling of the MMU faults (exception
-entry code introduced by a previous patch) and page table management.
+From: Will Deacon <will.deacon@arm.com>
 
-The user translation table is pointed to by TTBR0 and the kernel one
-(swapper_pg_dir) by TTBR1. There is no translation information shared or
-address space overlapping between user and kernel page tables.
+This patch adds VDSO support for 64-bit applications. The VDSO code is
+currently used for sys_rt_sigreturn() and optimised gettimeofday()
+(using the user-accessible generic counter).
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 Acked-by: Tony Lindgren <tony@atomide.com>
 ---
- arch/arm64/include/asm/page.h    |   67 +++++
- arch/arm64/include/asm/pgalloc.h |  113 ++++++++
- arch/arm64/mm/copypage.c         |   34 +++
- arch/arm64/mm/extable.c          |   17 ++
- arch/arm64/mm/fault.c            |  534 ++++++++++++++++++++++++++++++++++++++
- arch/arm64/mm/mm.h               |    2 +
- arch/arm64/mm/mmap.c             |  144 ++++++++++
- arch/arm64/mm/pgd.c              |   54 ++++
- 8 files changed, 965 insertions(+), 0 deletions(-)
- create mode 100644 arch/arm64/include/asm/page.h
- create mode 100644 arch/arm64/include/asm/pgalloc.h
- create mode 100644 arch/arm64/mm/copypage.c
- create mode 100644 arch/arm64/mm/extable.c
- create mode 100644 arch/arm64/mm/fault.c
- create mode 100644 arch/arm64/mm/mm.h
- create mode 100644 arch/arm64/mm/mmap.c
- create mode 100644 arch/arm64/mm/pgd.c
+ arch/arm64/include/asm/vdso.h              |   41 +++++
+ arch/arm64/include/asm/vdso_datapage.h     |   43 +++++
+ arch/arm64/kernel/vdso.c                   |  261 ++++++++++++++++++++++++=
+++++
+ arch/arm64/kernel/vdso/.gitignore          |    2 +
+ arch/arm64/kernel/vdso/Makefile            |   63 +++++++
+ arch/arm64/kernel/vdso/gen_vdso_offsets.sh |   15 ++
+ arch/arm64/kernel/vdso/gettimeofday.S      |  242 ++++++++++++++++++++++++=
+++
+ arch/arm64/kernel/vdso/note.S              |   28 +++
+ arch/arm64/kernel/vdso/sigreturn.S         |   37 ++++
+ arch/arm64/kernel/vdso/vdso.S              |   33 ++++
+ arch/arm64/kernel/vdso/vdso.lds.S          |  100 +++++++++++
+ 11 files changed, 865 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/vdso.h
+ create mode 100644 arch/arm64/include/asm/vdso_datapage.h
+ create mode 100644 arch/arm64/kernel/vdso.c
+ create mode 100644 arch/arm64/kernel/vdso/.gitignore
+ create mode 100644 arch/arm64/kernel/vdso/Makefile
+ create mode 100755 arch/arm64/kernel/vdso/gen_vdso_offsets.sh
+ create mode 100644 arch/arm64/kernel/vdso/gettimeofday.S
+ create mode 100644 arch/arm64/kernel/vdso/note.S
+ create mode 100644 arch/arm64/kernel/vdso/sigreturn.S
+ create mode 100644 arch/arm64/kernel/vdso/vdso.S
+ create mode 100644 arch/arm64/kernel/vdso/vdso.lds.S
 
-diff --git a/arch/arm64/include/asm/page.h b/arch/arm64/include/asm/page.h
+diff --git a/arch/arm64/include/asm/vdso.h b/arch/arm64/include/asm/vdso.h
 new file mode 100644
-index 0000000..46bf666
+index 0000000..839ce00
 --- /dev/null
-+++ b/arch/arm64/include/asm/page.h
-@@ -0,0 +1,67 @@
++++ b/arch/arm64/include/asm/vdso.h
+@@ -0,0 +1,41 @@
 +/*
-+ * Based on arch/arm/include/asm/page.h
-+ *
-+ * Copyright (C) 1995-2003 Russell King
-+ * Copyright (C) 2012 ARM Ltd.
++ * Copyright (C) 2012 ARM Limited
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -74,66 +73,41 @@ index 0000000..46bf666
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_PAGE_H
-+#define __ASM_PAGE_H
++#ifndef __ASM_VDSO_H
++#define __ASM_VDSO_H
 +
-+/* PAGE_SHIFT determines the page size */
-+#ifdef CONFIG_ARM64_64K_PAGES
-+#define PAGE_SHIFT		16
-+#else
-+#define PAGE_SHIFT		12
-+#endif
-+#define PAGE_SIZE		(_AC(1,UL) << PAGE_SHIFT)
-+#define PAGE_MASK		(~(PAGE_SIZE-1))
++#ifdef __KERNEL__
 +
-+/* We do define AT_SYSINFO_EHDR but don't use the gate mechanism */
-+#define __HAVE_ARCH_GATE_AREA		1
++/*
++ * Default link address for the vDSO.
++ * Since we randomise the VDSO mapping, there's little point in trying
++ * to prelink this.
++ */
++#define VDSO_LBASE=090x0
 +
 +#ifndef __ASSEMBLY__
 +
-+#ifdef CONFIG_ARM64_64K_PAGES
-+#include <asm/pgtable-2level-types.h>
-+#else
-+#include <asm/pgtable-3level-types.h>
-+#endif
++#include <generated/vdso-offsets.h>
 +
-+extern void __cpu_clear_user_page(void *p, unsigned long user);
-+extern void __cpu_copy_user_page(void *to, const void *from,
-+				 unsigned long user);
-+extern void copy_page(void *to, const void *from);
-+extern void clear_page(void *to);
-+
-+#define clear_user_page(addr,vaddr,pg)  __cpu_clear_user_page(addr, vaddr)
-+#define copy_user_page(to,from,vaddr,pg) __cpu_copy_user_page(to, from, vaddr)
-+
-+typedef struct page *pgtable_t;
-+
-+#ifdef CONFIG_HAVE_ARCH_PFN_VALID
-+extern int pfn_valid(unsigned long);
-+#endif
-+
-+#include <asm/memory.h>
++#define VDSO_SYMBOL(base, name)=09=09=09=09=09=09   \
++({=09=09=09=09=09=09=09=09=09   \
++=09(void *)(vdso_offset_##name - VDSO_LBASE + (unsigned long)(base)); \
++})
 +
 +#endif /* !__ASSEMBLY__ */
 +
-+#define VM_DATA_DEFAULT_FLAGS \
-+	(((current->personality & READ_IMPLIES_EXEC) ? VM_EXEC : 0) | \
-+	 VM_READ | VM_WRITE | VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
++#endif /* __KERNEL__ */
 +
-+#include <asm-generic/getorder.h>
-+
-+#endif
-diff --git a/arch/arm64/include/asm/pgalloc.h b/arch/arm64/include/asm/pgalloc.h
++#endif /* __ASM_VDSO_H */
+diff --git a/arch/arm64/include/asm/vdso_datapage.h b/arch/arm64/include/as=
+m/vdso_datapage.h
 new file mode 100644
-index 0000000..f214069
+index 0000000..de66199
 --- /dev/null
-+++ b/arch/arm64/include/asm/pgalloc.h
-@@ -0,0 +1,113 @@
++++ b/arch/arm64/include/asm/vdso_datapage.h
+@@ -0,0 +1,43 @@
 +/*
-+ * Based on arch/arm/include/asm/pgalloc.h
-+ *
-+ * Copyright (C) 2000-2001 Russell King
-+ * Copyright (C) 2012 ARM Ltd.
++ * Copyright (C) 2012 ARM Limited
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -147,722 +121,44 @@ index 0000000..f214069
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_PGALLOC_H
-+#define __ASM_PGALLOC_H
-+
-+#include <asm/pgtable-hwdef.h>
-+#include <asm/processor.h>
-+#include <asm/cacheflush.h>
-+#include <asm/tlbflush.h>
-+
-+#define check_pgt_cache()		do { } while (0)
-+
-+#ifndef CONFIG_ARM64_64K_PAGES
-+
-+static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
-+{
-+	return (pmd_t *)get_zeroed_page(GFP_KERNEL | __GFP_REPEAT);
-+}
-+
-+static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
-+{
-+	BUG_ON((unsigned long)pmd & (PAGE_SIZE-1));
-+	free_page((unsigned long)pmd);
-+}
-+
-+static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
-+{
-+	set_pud(pud, __pud(__pa(pmd) | PMD_TYPE_TABLE));
-+}
-+
-+#endif	/* CONFIG_ARM64_64K_PAGES */
-+
-+extern pgd_t *pgd_alloc(struct mm_struct *mm);
-+extern void pgd_free(struct mm_struct *mm, pgd_t *pgd);
-+
-+#define PGALLOC_GFP	(GFP_KERNEL | __GFP_NOTRACK | __GFP_REPEAT | __GFP_ZERO)
-+
-+static inline pte_t *
-+pte_alloc_one_kernel(struct mm_struct *mm, unsigned long addr)
-+{
-+	return (pte_t *)__get_free_page(PGALLOC_GFP);
-+}
-+
-+static inline pgtable_t
-+pte_alloc_one(struct mm_struct *mm, unsigned long addr)
-+{
-+	struct page *pte;
-+
-+	pte = alloc_pages(PGALLOC_GFP, 0);
-+	if (pte)
-+		pgtable_page_ctor(pte);
-+
-+	return pte;
-+}
-+
-+/*
-+ * Free a PTE table.
-+ */
-+static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
-+{
-+	if (pte)
-+		free_page((unsigned long)pte);
-+}
-+
-+static inline void pte_free(struct mm_struct *mm, pgtable_t pte)
-+{
-+	pgtable_page_dtor(pte);
-+	__free_page(pte);
-+}
-+
-+static inline void __pmd_populate(pmd_t *pmdp, phys_addr_t pte,
-+				  pmdval_t prot)
-+{
-+	set_pmd(pmdp, __pmd(pte | prot));
-+}
-+
-+/*
-+ * Populate the pmdp entry with a pointer to the pte.  This pmd is part
-+ * of the mm address space.
-+ */
-+static inline void
-+pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmdp, pte_t *ptep)
-+{
-+	/*
-+	 * The pmd must be loaded with the physical address of the PTE table
-+	 */
-+	__pmd_populate(pmdp, __pa(ptep), PMD_TYPE_TABLE);
-+}
-+
-+static inline void
-+pmd_populate(struct mm_struct *mm, pmd_t *pmdp, pgtable_t ptep)
-+{
-+	__pmd_populate(pmdp, page_to_phys(ptep), PMD_TYPE_TABLE);
-+}
-+#define pmd_pgtable(pmd) pmd_page(pmd)
-+
-+#endif
-diff --git a/arch/arm64/mm/copypage.c b/arch/arm64/mm/copypage.c
-new file mode 100644
-index 0000000..9aecbac
---- /dev/null
-+++ b/arch/arm64/mm/copypage.c
-@@ -0,0 +1,34 @@
-+/*
-+ * Based on arch/arm/mm/copypage.c
-+ *
-+ * Copyright (C) 2002 Deep Blue Solutions Ltd, All Rights Reserved.
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <linux/mm.h>
-+
-+#include <asm/page.h>
-+#include <asm/cacheflush.h>
-+
-+void __cpu_copy_user_page(void *kto, const void *kfrom, unsigned long vaddr)
-+{
-+	copy_page(kto, kfrom);
-+	__flush_dcache_area(kto, PAGE_SIZE);
-+}
-+
-+void __cpu_clear_user_page(void *kaddr, unsigned long vaddr)
-+{
-+	clear_page(kaddr);
-+}
-diff --git a/arch/arm64/mm/extable.c b/arch/arm64/mm/extable.c
-new file mode 100644
-index 0000000..7944427
---- /dev/null
-+++ b/arch/arm64/mm/extable.c
-@@ -0,0 +1,17 @@
-+/*
-+ * Based on arch/arm/mm/extable.c
-+ */
-+
-+#include <linux/module.h>
-+#include <linux/uaccess.h>
-+
-+int fixup_exception(struct pt_regs *regs)
-+{
-+	const struct exception_table_entry *fixup;
-+
-+	fixup = search_exception_tables(instruction_pointer(regs));
-+	if (fixup)
-+		regs->pc = fixup->fixup;
-+
-+	return fixup != NULL;
-+}
-diff --git a/arch/arm64/mm/fault.c b/arch/arm64/mm/fault.c
-new file mode 100644
-index 0000000..1909a69
---- /dev/null
-+++ b/arch/arm64/mm/fault.c
-@@ -0,0 +1,534 @@
-+/*
-+ * Based on arch/arm/mm/fault.c
-+ *
-+ * Copyright (C) 1995  Linus Torvalds
-+ * Copyright (C) 1995-2004 Russell King
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <linux/module.h>
-+#include <linux/signal.h>
-+#include <linux/mm.h>
-+#include <linux/hardirq.h>
-+#include <linux/init.h>
-+#include <linux/kprobes.h>
-+#include <linux/uaccess.h>
-+#include <linux/page-flags.h>
-+#include <linux/sched.h>
-+#include <linux/highmem.h>
-+#include <linux/perf_event.h>
-+
-+#include <asm/exception.h>
-+#include <asm/debug-monitors.h>
-+#include <asm/system_misc.h>
-+#include <asm/pgtable.h>
-+#include <asm/tlbflush.h>
-+
-+/*
-+ * Dump out the page tables associated with 'addr' in mm 'mm'.
-+ */
-+void show_pte(struct mm_struct *mm, unsigned long addr)
-+{
-+	pgd_t *pgd;
-+
-+	if (!mm)
-+		mm = &init_mm;
-+
-+	pr_alert("pgd = %p\n", mm->pgd);
-+	pgd = pgd_offset(mm, addr);
-+	pr_alert("[%08lx] *pgd=%016llx", addr, pgd_val(*pgd));
-+
-+	do {
-+		pud_t *pud;
-+		pmd_t *pmd;
-+		pte_t *pte;
-+
-+		if (pgd_none_or_clear_bad(pgd))
-+			break;
-+
-+		pud = pud_offset(pgd, addr);
-+		if (pud_none_or_clear_bad(pud))
-+			break;
-+
-+		pmd = pmd_offset(pud, addr);
-+		printk(", *pmd=%016llx", pmd_val(*pmd));
-+		if (pmd_none_or_clear_bad(pmd))
-+			break;
-+
-+		pte = pte_offset_map(pmd, addr);
-+		printk(", *pte=%016llx", pte_val(*pte));
-+		pte_unmap(pte);
-+	} while(0);
-+
-+	printk("\n");
-+}
-+
-+/*
-+ * The kernel tried to access some page that wasn't present.
-+ */
-+static void __do_kernel_fault(struct mm_struct *mm, unsigned long addr,
-+			      unsigned int esr, struct pt_regs *regs)
-+{
-+	/*
-+	 * Are we prepared to handle this kernel fault?
-+	 */
-+	if (fixup_exception(regs))
-+		return;
-+
-+	/*
-+	 * No handler, we'll have to terminate things with extreme prejudice.
-+	 */
-+	bust_spinlocks(1);
-+	pr_alert("Unable to handle kernel %s at virtual address %08lx\n",
-+		 (addr < PAGE_SIZE) ? "NULL pointer dereference" :
-+		 "paging request", addr);
-+
-+	show_pte(mm, addr);
-+	die("Oops", regs, esr);
-+	bust_spinlocks(0);
-+	do_exit(SIGKILL);
-+}
-+
-+/*
-+ * Something tried to access memory that isn't in our memory map. User mode
-+ * accesses just cause a SIGSEGV
-+ */
-+static void __do_user_fault(struct task_struct *tsk, unsigned long addr,
-+			    unsigned int esr, unsigned int sig, int code,
-+			    struct pt_regs *regs)
-+{
-+	struct siginfo si;
-+
-+	if (show_unhandled_signals) {
-+		pr_info("%s[%d]: unhandled page fault (%d) at 0x%08lx, code 0x%03x\n",
-+			tsk->comm, task_pid_nr(tsk), sig, addr, esr);
-+		show_pte(tsk->mm, addr);
-+		show_regs(regs);
-+	}
-+
-+	tsk->thread.fault_address = addr;
-+	si.si_signo = sig;
-+	si.si_errno = 0;
-+	si.si_code = code;
-+	si.si_addr = (void __user *)addr;
-+	force_sig_info(sig, &si, tsk);
-+}
-+
-+void do_bad_area(unsigned long addr, unsigned int esr, struct pt_regs *regs)
-+{
-+	struct task_struct *tsk = current;
-+	struct mm_struct *mm = tsk->active_mm;
-+
-+	/*
-+	 * If we are in kernel mode at this point, we have no context to
-+	 * handle this fault with.
-+	 */
-+	if (user_mode(regs))
-+		__do_user_fault(tsk, addr, esr, SIGSEGV, SEGV_MAPERR, regs);
-+	else
-+		__do_kernel_fault(mm, addr, esr, regs);
-+}
-+
-+#define VM_FAULT_BADMAP		0x010000
-+#define VM_FAULT_BADACCESS	0x020000
-+
-+#define ESR_WRITE		(1 << 6)
-+#define ESR_LNX_EXEC		(1 << 24)
-+
-+/*
-+ * Check that the permissions on the VMA allow for the fault which occurred.
-+ * If we encountered a write fault, we must have write permission, otherwise
-+ * we allow any permission.
-+ */
-+static inline bool access_error(unsigned int esr, struct vm_area_struct *vma)
-+{
-+	unsigned int mask = VM_READ | VM_WRITE | VM_EXEC;
-+
-+	if (esr & ESR_WRITE)
-+		mask = VM_WRITE;
-+	if (esr & ESR_LNX_EXEC)
-+		mask = VM_EXEC;
-+
-+	return vma->vm_flags & mask ? false : true;
-+}
-+
-+static int __do_page_fault(struct mm_struct *mm, unsigned long addr,
-+			   unsigned int esr, unsigned int flags,
-+			   struct task_struct *tsk)
-+{
-+	struct vm_area_struct *vma;
-+	int fault;
-+
-+	vma = find_vma(mm, addr);
-+	fault = VM_FAULT_BADMAP;
-+	if (unlikely(!vma))
-+		goto out;
-+	if (unlikely(vma->vm_start > addr))
-+		goto check_stack;
-+
-+	/*
-+	 * Ok, we have a good vm_area for this memory access, so we can handle
-+	 * it.
-+	 */
-+good_area:
-+	if (access_error(esr, vma)) {
-+		fault = VM_FAULT_BADACCESS;
-+		goto out;
-+	}
-+
-+	return handle_mm_fault(mm, vma, addr & PAGE_MASK, flags);
-+
-+check_stack:
-+	if (vma->vm_flags & VM_GROWSDOWN && !expand_stack(vma, addr))
-+		goto good_area;
-+out:
-+	return fault;
-+}
-+
-+static int __kprobes do_page_fault(unsigned long addr, unsigned int esr,
-+				   struct pt_regs *regs)
-+{
-+	struct task_struct *tsk;
-+	struct mm_struct *mm;
-+	int fault, sig, code;
-+	int write = esr & ESR_WRITE;
-+	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE |
-+		(write ? FAULT_FLAG_WRITE : 0);
-+
-+	tsk = current;
-+	mm  = tsk->mm;
-+
-+	/* Enable interrupts if they were enabled in the parent context. */
-+	if (interrupts_enabled(regs))
-+		local_irq_enable();
-+
-+	/*
-+	 * If we're in an interrupt or have no user context, we must not take
-+	 * the fault.
-+	 */
-+	if (in_atomic() || !mm)
-+		goto no_context;
-+
-+	/*
-+	 * As per x86, we may deadlock here. However, since the kernel only
-+	 * validly references user space from well defined areas of the code,
-+	 * we can bug out early if this is from code which shouldn't.
-+	 */
-+	if (!down_read_trylock(&mm->mmap_sem)) {
-+		if (!user_mode(regs) && !search_exception_tables(regs->pc))
-+			goto no_context;
-+retry:
-+		down_read(&mm->mmap_sem);
-+	} else {
-+		/*
-+		 * The above down_read_trylock() might have succeeded in which
-+		 * case, we'll have missed the might_sleep() from down_read().
-+		 */
-+		might_sleep();
-+#ifdef CONFIG_DEBUG_VM
-+		if (!user_mode(regs) && !search_exception_tables(regs->pc))
-+			goto no_context;
-+#endif
-+	}
-+
-+	fault = __do_page_fault(mm, addr, esr, flags, tsk);
-+
-+	/*
-+	 * If we need to retry but a fatal signal is pending, handle the
-+	 * signal first. We do not need to release the mmap_sem because it
-+	 * would already be released in __lock_page_or_retry in mm/filemap.c.
-+	 */
-+	if ((fault & VM_FAULT_RETRY) && fatal_signal_pending(current))
-+		return 0;
-+
-+	/*
-+	 * Major/minor page fault accounting is only done on the initial
-+	 * attempt. If we go through a retry, it is extremely likely that the
-+	 * page will be found in page cache at that point.
-+	 */
-+
-+	perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS, 1, regs, addr);
-+	if (flags & FAULT_FLAG_ALLOW_RETRY) {
-+		if (fault & VM_FAULT_MAJOR) {
-+			tsk->maj_flt++;
-+			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MAJ, 1, regs,
-+				      addr);
-+		} else {
-+			tsk->min_flt++;
-+			perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MIN, 1, regs,
-+				      addr);
-+		}
-+		if (fault & VM_FAULT_RETRY) {
-+			/*
-+			 * Clear FAULT_FLAG_ALLOW_RETRY to avoid any risk of
-+			 * starvation.
-+			 */
-+			flags &= ~FAULT_FLAG_ALLOW_RETRY;
-+			goto retry;
-+		}
-+	}
-+
-+	up_read(&mm->mmap_sem);
-+
-+	/*
-+	 * Handle the "normal" case first - VM_FAULT_MAJOR / VM_FAULT_MINOR
-+	 */
-+	if (likely(!(fault & (VM_FAULT_ERROR | VM_FAULT_BADMAP |
-+			      VM_FAULT_BADACCESS))))
-+		return 0;
-+
-+	if (fault & VM_FAULT_OOM) {
-+		/*
-+		 * We ran out of memory, call the OOM killer, and return to
-+		 * userspace (which will retry the fault, or kill us if we got
-+		 * oom-killed).
-+		 */
-+		pagefault_out_of_memory();
-+		return 0;
-+	}
-+
-+	/*
-+	 * If we are in kernel mode at this point, we have no context to
-+	 * handle this fault with.
-+	 */
-+	if (!user_mode(regs))
-+		goto no_context;
-+
-+	if (fault & VM_FAULT_SIGBUS) {
-+		/*
-+		 * We had some memory, but were unable to successfully fix up
-+		 * this page fault.
-+		 */
-+		sig = SIGBUS;
-+		code = BUS_ADRERR;
-+	} else {
-+		/*
-+		 * Something tried to access memory that isn't in our memory
-+		 * map.
-+		 */
-+		sig = SIGSEGV;
-+		code = fault == VM_FAULT_BADACCESS ?
-+			SEGV_ACCERR : SEGV_MAPERR;
-+	}
-+
-+	__do_user_fault(tsk, addr, esr, sig, code, regs);
-+	return 0;
-+
-+no_context:
-+	__do_kernel_fault(mm, addr, esr, regs);
-+	return 0;
-+}
-+
-+/*
-+ * First Level Translation Fault Handler
-+ *
-+ * We enter here because the first level page table doesn't contain a valid
-+ * entry for the address.
-+ *
-+ * If the address is in kernel space (>= TASK_SIZE), then we are probably
-+ * faulting in the vmalloc() area.
-+ *
-+ * If the init_task's first level page tables contains the relevant entry, we
-+ * copy the it to this task.  If not, we send the process a signal, fixup the
-+ * exception, or oops the kernel.
-+ *
-+ * NOTE! We MUST NOT take any locks for this case. We may be in an interrupt
-+ * or a critical region, and should only copy the information from the master
-+ * page table, nothing more.
-+ */
-+static int __kprobes do_translation_fault(unsigned long addr,
-+					  unsigned int esr,
-+					  struct pt_regs *regs)
-+{
-+	if (addr < TASK_SIZE)
-+		return do_page_fault(addr, esr, regs);
-+
-+	do_bad_area(addr, esr, regs);
-+	return 0;
-+}
-+
-+/*
-+ * Some section permission faults need to be handled gracefully.  They can
-+ * happen due to a __{get,put}_user during an oops.
-+ */
-+static int do_sect_fault(unsigned long addr, unsigned int esr,
-+			 struct pt_regs *regs)
-+{
-+	do_bad_area(addr, esr, regs);
-+	return 0;
-+}
-+
-+/*
-+ * This abort handler always returns "fault".
-+ */
-+static int do_bad(unsigned long addr, unsigned int esr, struct pt_regs *regs)
-+{
-+	return 1;
-+}
-+
-+static struct fault_info {
-+	int	(*fn)(unsigned long addr, unsigned int esr, struct pt_regs *regs);
-+	int	sig;
-+	int	code;
-+	const char *name;
-+} fault_info[] = {
-+	{ do_bad,		SIGBUS,  0,		"ttbr address size fault"	},
-+	{ do_bad,		SIGBUS,  0,		"level 1 address size fault"	},
-+	{ do_bad,		SIGBUS,  0,		"level 2 address size fault"	},
-+	{ do_bad,		SIGBUS,  0,		"level 3 address size fault"	},
-+	{ do_translation_fault,	SIGSEGV, SEGV_MAPERR,	"input address range fault"	},
-+	{ do_translation_fault,	SIGSEGV, SEGV_MAPERR,	"level 1 translation fault"	},
-+	{ do_translation_fault,	SIGSEGV, SEGV_MAPERR,	"level 2 translation fault"	},
-+	{ do_page_fault,	SIGSEGV, SEGV_MAPERR,	"level 3 translation fault"	},
-+	{ do_bad,		SIGBUS,  0,		"reserved access flag fault"	},
-+	{ do_bad,		SIGSEGV, SEGV_ACCERR,	"level 1 access flag fault"	},
-+	{ do_bad,		SIGSEGV, SEGV_ACCERR,	"level 2 access flag fault"	},
-+	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 3 access flag fault"	},
-+	{ do_bad,		SIGBUS,  0,		"reserved permission fault"	},
-+	{ do_bad,		SIGSEGV, SEGV_ACCERR,	"level 1 permission fault"	},
-+	{ do_sect_fault,	SIGSEGV, SEGV_ACCERR,	"level 2 permission fault"	},
-+	{ do_page_fault,	SIGSEGV, SEGV_ACCERR,	"level 3 permission fault"	},
-+	{ do_bad,		SIGBUS,  0,		"synchronous external abort"	},
-+	{ do_bad,		SIGBUS,  0,		"asynchronous external abort"	},
-+	{ do_bad,		SIGBUS,  0,		"unknown 18"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 19"			},
-+	{ do_bad,		SIGBUS,  0,		"synchronous abort (translation table walk)" },
-+	{ do_bad,		SIGBUS,  0,		"synchronous abort (translation table walk)" },
-+	{ do_bad,		SIGBUS,  0,		"synchronous abort (translation table walk)" },
-+	{ do_bad,		SIGBUS,  0,		"synchronous abort (translation table walk)" },
-+	{ do_bad,		SIGBUS,  0,		"synchronous parity error"	},
-+	{ do_bad,		SIGBUS,  0,		"asynchronous parity error"	},
-+	{ do_bad,		SIGBUS,  0,		"unknown 26"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 27"			},
-+	{ do_bad,		SIGBUS,  0,		"synchronous parity error (translation table walk" },
-+	{ do_bad,		SIGBUS,  0,		"synchronous parity error (translation table walk" },
-+	{ do_bad,		SIGBUS,  0,		"synchronous parity error (translation table walk" },
-+	{ do_bad,		SIGBUS,  0,		"synchronous parity error (translation table walk" },
-+	{ do_bad,		SIGBUS,  0,		"unknown 32"			},
-+	{ do_bad,		SIGBUS,  BUS_ADRALN,	"alignment fault"		},
-+	{ do_bad,		SIGBUS,  0,		"debug event"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 35"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 36"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 37"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 38"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 39"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 40"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 41"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 42"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 43"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 44"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 45"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 46"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 47"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 48"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 49"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 50"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 51"			},
-+	{ do_bad,		SIGBUS,  0,		"implementation fault (lockdown abort)" },
-+	{ do_bad,		SIGBUS,  0,		"unknown 53"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 54"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 55"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 56"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 57"			},
-+	{ do_bad,		SIGBUS,  0,		"implementation fault (coprocessor abort)" },
-+	{ do_bad,		SIGBUS,  0,		"unknown 59"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 60"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 61"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 62"			},
-+	{ do_bad,		SIGBUS,  0,		"unknown 63"			},
++#ifndef __ASM_VDSO_DATAPAGE_H
++#define __ASM_VDSO_DATAPAGE_H
++
++#ifdef __KERNEL__
++
++#ifndef __ASSEMBLY__
++
++struct vdso_data {
++=09__u64 cs_cycle_last;=09/* Timebase at clocksource init */
++=09__u64 xtime_clock_sec;=09/* Kernel time */
++=09__u64 xtime_clock_nsec;
++=09__u64 xtime_coarse_sec;=09/* Coarse time */
++=09__u64 xtime_coarse_nsec;
++=09__u64 wtm_clock_sec;=09/* Wall to monotonic time */
++=09__u64 wtm_clock_nsec;
++=09__u32 tb_seq_count;=09/* Timebase sequence counter */
++=09__u32 cs_mult;=09=09/* Clocksource multiplier */
++=09__u32 cs_shift;=09=09/* Clocksource shift */
++=09__u32 tz_minuteswest;=09/* Whacky timezone stuff */
++=09__u32 tz_dsttime;
++=09__u32 use_syscall;
 +};
 +
-+/*
-+ * Dispatch a data abort to the relevant handler.
-+ */
-+asmlinkage void __exception do_mem_abort(unsigned long addr, unsigned int esr,
-+					 struct pt_regs *regs)
-+{
-+	const struct fault_info *inf = fault_info + (esr & 63);
-+	struct siginfo info;
++#endif /* !__ASSEMBLY__ */
 +
-+	if (!inf->fn(addr, esr, regs))
-+		return;
++#endif /* __KERNEL__ */
 +
-+	pr_alert("Unhandled fault: %s (0x%08x) at 0x%016lx\n",
-+		 inf->name, esr, addr);
-+
-+	info.si_signo = inf->sig;
-+	info.si_errno = 0;
-+	info.si_code  = inf->code;
-+	info.si_addr  = (void __user *)addr;
-+	arm64_notify_die("", regs, &info, esr);
-+}
-+
-+/*
-+ * Handle stack alignment exceptions.
-+ */
-+asmlinkage void __exception do_sp_pc_abort(unsigned long addr,
-+					   unsigned int esr,
-+					   struct pt_regs *regs)
-+{
-+	struct siginfo info;
-+
-+	info.si_signo = SIGBUS;
-+	info.si_errno = 0;
-+	info.si_code  = BUS_ADRALN;
-+	info.si_addr  = (void __user *)addr;
-+	arm64_notify_die("", regs, &info, esr);
-+}
-+
-+static struct fault_info debug_fault_info[] = {
-+	{ do_bad,	SIGTRAP,	TRAP_HWBKPT,	"hardware breakpoint"	},
-+	{ do_bad,	SIGTRAP,	TRAP_HWBKPT,	"hardware single-step"	},
-+	{ do_bad,	SIGTRAP,	TRAP_HWBKPT,	"hardware watchpoint"	},
-+	{ do_bad,	SIGBUS,		0,		"unknown 3"		},
-+	{ do_bad,	SIGTRAP,	TRAP_BRKPT,	"aarch32 BKPT"		},
-+	{ do_bad,	SIGTRAP,	0,		"aarch32 vector catch"	},
-+	{ do_bad,	SIGTRAP,	TRAP_BRKPT,	"aarch64 BRK"		},
-+	{ do_bad,	SIGBUS,		0,		"unknown 7"		},
-+};
-+
-+void __init hook_debug_fault_code(int nr,
-+				  int (*fn)(unsigned long, unsigned int, struct pt_regs *),
-+				  int sig, int code, const char *name)
-+{
-+	BUG_ON(nr < 0 || nr >= ARRAY_SIZE(debug_fault_info));
-+
-+	debug_fault_info[nr].fn		= fn;
-+	debug_fault_info[nr].sig	= sig;
-+	debug_fault_info[nr].code	= code;
-+	debug_fault_info[nr].name	= name;
-+}
-+
-+asmlinkage int __exception do_debug_exception(unsigned long addr,
-+					      unsigned int esr,
-+					      struct pt_regs *regs)
-+{
-+	const struct fault_info *inf = debug_fault_info + DBG_ESR_EVT(esr);
-+	struct siginfo info;
-+
-+	if (!inf->fn(addr, esr, regs))
-+		return 1;
-+
-+	pr_alert("Unhandled debug exception: %s (0x%08x) at 0x%016lx\n",
-+		 inf->name, esr, addr);
-+
-+	info.si_signo = inf->sig;
-+	info.si_errno = 0;
-+	info.si_code  = inf->code;
-+	info.si_addr  = (void __user *)addr;
-+	arm64_notify_die("", regs, &info, esr);
-+
-+	return 0;
-+}
-diff --git a/arch/arm64/mm/mm.h b/arch/arm64/mm/mm.h
++#endif /* __ASM_VDSO_DATAPAGE_H */
+diff --git a/arch/arm64/kernel/vdso.c b/arch/arm64/kernel/vdso.c
 new file mode 100644
-index 0000000..c84f68b
+index 0000000..17948fc
 --- /dev/null
-+++ b/arch/arm64/mm/mm.h
-@@ -0,0 +1,2 @@
-+extern void __flush_dcache_page(struct address_space *mapping, struct page *page);
-+extern void __init bootmem_init(void);
-diff --git a/arch/arm64/mm/mmap.c b/arch/arm64/mm/mmap.c
-new file mode 100644
-index 0000000..7c7be78
---- /dev/null
-+++ b/arch/arm64/mm/mmap.c
-@@ -0,0 +1,144 @@
++++ b/arch/arm64/kernel/vdso.c
+@@ -0,0 +1,261 @@
 +/*
-+ * Based on arch/arm/mm/mmap.c
++ * VDSO implementation for AArch64 and vector page setup for AArch32.
 + *
-+ * Copyright (C) 2012 ARM Ltd.
++ * Copyright (C) 2012 ARM Limited
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -875,145 +171,365 @@ index 0000000..7c7be78
 + *
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Will Deacon <will.deacon@arm.com>
 + */
 +
++#include <linux/kernel.h>
++#include <linux/clocksource.h>
 +#include <linux/elf.h>
-+#include <linux/fs.h>
++#include <linux/err.h>
++#include <linux/errno.h>
++#include <linux/gfp.h>
 +#include <linux/mm.h>
-+#include <linux/mman.h>
-+#include <linux/export.h>
-+#include <linux/shm.h>
 +#include <linux/sched.h>
-+#include <linux/io.h>
-+#include <linux/personality.h>
-+#include <linux/random.h>
++#include <linux/signal.h>
++#include <linux/slab.h>
++#include <linux/vmalloc.h>
 +
-+#include <asm/cputype.h>
++#include <asm/cacheflush.h>
++#include <asm/signal32.h>
++#include <asm/vdso.h>
++#include <asm/vdso_datapage.h>
 +
-+/*
-+ * Leave enough space between the mmap area and the stack to honour ulimit in
-+ * the face of randomisation.
-+ */
-+#define MIN_GAP (SZ_128M + ((STACK_RND_MASK << PAGE_SHIFT) + 1))
-+#define MAX_GAP	(STACK_TOP/6*5)
-+
-+static int mmap_is_legacy(void)
-+{
-+	if (current->personality & ADDR_COMPAT_LAYOUT)
-+		return 1;
-+
-+	if (rlimit(RLIMIT_STACK) == RLIM_INFINITY)
-+		return 1;
-+
-+	return sysctl_legacy_va_layout;
-+}
++extern char vdso_start, vdso_end;
++static unsigned long vdso_pages;
++static struct page **vdso_pagelist;
 +
 +/*
-+ * Since get_random_int() returns the same value within a 1 jiffy window, we
-+ * will almost always get the same randomisation for the stack and mmap
-+ * region. This will mean the relative distance between stack and mmap will be
-+ * the same.
-+ *
-+ * To avoid this we can shift the randomness by 1 bit.
++ * The vDSO data page.
 + */
-+static unsigned long mmap_rnd(void)
-+{
-+	unsigned long rnd = 0;
++static union {
++=09struct vdso_data=09data;
++=09u8=09=09=09page[PAGE_SIZE];
++} vdso_data_store __page_aligned_data;
++struct vdso_data *vdso_data =3D &vdso_data_store.data;
 +
-+	if (current->flags & PF_RANDOMIZE)
-+		rnd = (long)get_random_int() & (STACK_RND_MASK >> 1);
-+
-+	return rnd << (PAGE_SHIFT + 1);
-+}
-+
-+static unsigned long mmap_base(void)
-+{
-+	unsigned long gap = rlimit(RLIMIT_STACK);
-+
-+	if (gap < MIN_GAP)
-+		gap = MIN_GAP;
-+	else if (gap > MAX_GAP)
-+		gap = MAX_GAP;
-+
-+	return PAGE_ALIGN(STACK_TOP - gap - mmap_rnd());
-+}
-+
++#ifdef CONFIG_COMPAT
 +/*
-+ * This function, called very early during the creation of a new process VM
-+ * image, sets up which VM layout function to use:
++ * Create and map the vectors page for AArch32 tasks.
 + */
-+void arch_pick_mmap_layout(struct mm_struct *mm)
++static struct page *vectors_page[1];
++
++static int alloc_vectors_page(void)
 +{
-+	/*
-+	 * Fall back to the standard layout if the personality bit is set, or
-+	 * if the expected stack growth is unlimited:
-+	 */
-+	if (mmap_is_legacy()) {
-+		mm->mmap_base = TASK_UNMAPPED_BASE;
-+		mm->get_unmapped_area = arch_get_unmapped_area;
-+		mm->unmap_area = arch_unmap_area;
-+	} else {
-+		mm->mmap_base = mmap_base();
-+		mm->get_unmapped_area = arch_get_unmapped_area_topdown;
-+		mm->unmap_area = arch_unmap_area_topdown;
-+	}
++=09extern char __kuser_helper_start[], __kuser_helper_end[];
++=09int kuser_sz =3D __kuser_helper_end - __kuser_helper_start;
++=09unsigned long vpage;
++
++=09vpage =3D get_zeroed_page(GFP_ATOMIC);
++
++=09if (!vpage)
++=09=09return -ENOMEM;
++
++=09/* kuser helpers */
++=09memcpy((void *)vpage + 0x1000 - kuser_sz, __kuser_helper_start,
++=09=09kuser_sz);
++
++=09/* sigreturn code */
++=09memcpy((void *)vpage + AARCH32_KERN_SIGRET_CODE_OFFSET,
++=09=09aarch32_sigret_code, sizeof(aarch32_sigret_code));
++
++=09flush_icache_range(vpage, vpage + PAGE_SIZE);
++=09vectors_page[0] =3D virt_to_page(vpage);
++
++=09return 0;
 +}
-+EXPORT_SYMBOL_GPL(arch_pick_mmap_layout);
++arch_initcall(alloc_vectors_page);
 +
-+
-+/*
-+ * You really shouldn't be using read() or write() on /dev/mem.  This might go
-+ * away in the future.
-+ */
-+int valid_phys_addr_range(unsigned long addr, size_t size)
++int aarch32_setup_vectors_page(struct linux_binprm *bprm, int uses_interp)
 +{
-+	if (addr < PHYS_OFFSET)
-+		return 0;
-+	if (addr + size > __pa(high_memory - 1) + 1)
-+		return 0;
++=09struct mm_struct *mm =3D current->mm;
++=09unsigned long addr =3D AARCH32_VECTORS_BASE;
++=09int ret;
 +
-+	return 1;
++=09down_write(&mm->mmap_sem);
++=09current->mm->context.vdso =3D (void *)addr;
++
++=09/* Map vectors page at the high address. */
++=09ret =3D install_special_mapping(mm, addr, PAGE_SIZE,
++=09=09=09=09      VM_READ|VM_EXEC|VM_MAYREAD|VM_MAYEXEC,
++=09=09=09=09      vectors_page);
++
++=09up_write(&mm->mmap_sem);
++
++=09return ret;
 +}
++#endif /* CONFIG_COMPAT */
 +
-+/*
-+ * Do not allow /dev/mem mappings beyond the supported physical range.
-+ */
-+int valid_mmap_phys_addr_range(unsigned long pfn, size_t size)
++static int __init vdso_init(void)
 +{
-+	return !(((pfn << PAGE_SHIFT) + size) & ~PHYS_MASK);
++=09struct page *pg;
++=09char *vbase;
++=09int i, ret =3D 0;
++
++=09vdso_pages =3D (&vdso_end - &vdso_start) >> PAGE_SHIFT;
++=09pr_info("vdso: %ld pages (%ld code, %ld data) at base %p\n",
++=09=09vdso_pages + 1, vdso_pages, 1L, &vdso_start);
++
++=09/* Allocate the vDSO pagelist, plus a page for the data. */
++=09vdso_pagelist =3D kzalloc(sizeof(struct page *) * (vdso_pages + 1),
++=09=09=09=09GFP_KERNEL);
++=09if (vdso_pagelist =3D=3D NULL) {
++=09=09pr_err("Failed to allocate vDSO pagelist!\n");
++=09=09return -ENOMEM;
++=09}
++
++=09/* Grab the vDSO code pages. */
++=09for (i =3D 0; i < vdso_pages; i++) {
++=09=09pg =3D virt_to_page(&vdso_start + i*PAGE_SIZE);
++=09=09ClearPageReserved(pg);
++=09=09get_page(pg);
++=09=09vdso_pagelist[i] =3D pg;
++=09}
++
++=09/* Sanity check the shared object header. */
++=09vbase =3D vmap(vdso_pagelist, 1, 0, PAGE_KERNEL);
++=09if (vbase =3D=3D NULL) {
++=09=09pr_err("Failed to map vDSO pagelist!\n");
++=09=09return -ENOMEM;
++=09} else if (memcmp(vbase, "\177ELF", 4)) {
++=09=09pr_err("vDSO is not a valid ELF object!\n");
++=09=09ret =3D -EINVAL;
++=09=09goto unmap;
++=09}
++
++=09/* Grab the vDSO data page. */
++=09pg =3D virt_to_page(vdso_data);
++=09get_page(pg);
++=09vdso_pagelist[i] =3D pg;
++
++unmap:
++=09vunmap(vbase);
++=09return ret;
 +}
++arch_initcall(vdso_init);
 +
-+#ifdef CONFIG_STRICT_DEVMEM
-+
-+#include <linux/ioport.h>
-+
-+/*
-+ * devmem_is_allowed() checks to see if /dev/mem access to a certain address
-+ * is valid. The argument is a physical page number.  We mimic x86 here by
-+ * disallowing access to system RAM as well as device-exclusive MMIO regions.
-+ * This effectively disable read()/write() on /dev/mem.
-+ */
-+int devmem_is_allowed(unsigned long pfn)
++int arch_setup_additional_pages(struct linux_binprm *bprm,
++=09=09=09=09int uses_interp)
 +{
-+	if (iomem_is_exclusive(pfn << PAGE_SHIFT))
-+		return 0;
-+	if (!page_is_ram(pfn))
-+		return 1;
-+	return 0;
++=09struct mm_struct *mm =3D current->mm;
++=09unsigned long vdso_base, vdso_mapping_len;
++=09int ret;
++
++=09/* Be sure to map the data page */
++=09vdso_mapping_len =3D (vdso_pages + 1) << PAGE_SHIFT;
++
++=09down_write(&mm->mmap_sem);
++=09vdso_base =3D get_unmapped_area(NULL, 0, vdso_mapping_len, 0, 0);
++=09if (IS_ERR_VALUE(vdso_base)) {
++=09=09ret =3D vdso_base;
++=09=09goto up_fail;
++=09}
++=09mm->context.vdso =3D (void *)vdso_base;
++
++=09ret =3D install_special_mapping(mm, vdso_base, vdso_mapping_len,
++=09=09=09=09      VM_READ|VM_EXEC|
++=09=09=09=09      VM_MAYREAD|VM_MAYWRITE|VM_MAYEXEC,
++=09=09=09=09      vdso_pagelist);
++=09if (ret) {
++=09=09mm->context.vdso =3D NULL;
++=09=09goto up_fail;
++=09}
++
++up_fail:
++=09up_write(&mm->mmap_sem);
++
++=09return ret;
 +}
 +
++const char *arch_vma_name(struct vm_area_struct *vma)
++{
++=09/*
++=09 * We can re-use the vdso pointer in mm_context_t for identifying
++=09 * the vectors page for compat applications. The vDSO will always
++=09 * sit above TASK_UNMAPPED_BASE and so we don't need to worry about
++=09 * it conflicting with the vectors base.
++=09 */
++=09if (vma->vm_mm && vma->vm_start =3D=3D (long)vma->vm_mm->context.vdso) =
+{
++#ifdef CONFIG_COMPAT
++=09=09if (vma->vm_start =3D=3D AARCH32_VECTORS_BASE)
++=09=09=09return "[vectors]";
 +#endif
-diff --git a/arch/arm64/mm/pgd.c b/arch/arm64/mm/pgd.c
-new file mode 100644
-index 0000000..7083cda
---- /dev/null
-+++ b/arch/arm64/mm/pgd.c
-@@ -0,0 +1,54 @@
++=09=09return "[vdso]";
++=09}
++
++=09return NULL;
++}
++
 +/*
-+ * PGD allocation/freeing
++ * We define AT_SYSINFO_EHDR, so we need these function stubs to keep
++ * Linux happy.
++ */
++int in_gate_area_no_mm(unsigned long addr)
++{
++=09return 0;
++}
++
++int in_gate_area(struct mm_struct *mm, unsigned long addr)
++{
++=09return 0;
++}
++
++struct vm_area_struct *get_gate_vma(struct mm_struct *mm)
++{
++=09return NULL;
++}
++
++/*
++ * Update the vDSO data page to keep in sync with kernel timekeeping.
++ */
++void update_vsyscall(struct timespec *ts, struct timespec *wtm,
++=09=09     struct clocksource *clock, u32 mult)
++{
++=09struct timespec xtime_coarse;
++=09u32 use_syscall =3D strcmp(clock->name, "arch_sys_counter");
++
++=09++vdso_data->tb_seq_count;
++=09smp_wmb();
++
++=09xtime_coarse =3D __current_kernel_time();
++=09vdso_data->use_syscall=09=09=09=3D use_syscall;
++=09vdso_data->xtime_coarse_sec=09=09=3D xtime_coarse.tv_sec;
++=09vdso_data->xtime_coarse_nsec=09=09=3D xtime_coarse.tv_nsec;
++
++=09if (!use_syscall) {
++=09=09vdso_data->cs_cycle_last=09=3D clock->cycle_last;
++=09=09vdso_data->xtime_clock_sec=09=3D ts->tv_sec;
++=09=09vdso_data->xtime_clock_nsec=09=3D ts->tv_nsec;
++=09=09vdso_data->cs_mult=09=09=3D mult;
++=09=09vdso_data->cs_shift=09=09=3D clock->shift;
++=09=09vdso_data->wtm_clock_sec=09=3D wtm->tv_sec;
++=09=09vdso_data->wtm_clock_nsec=09=3D wtm->tv_nsec;
++=09}
++
++=09smp_wmb();
++=09++vdso_data->tb_seq_count;
++}
++
++void update_vsyscall_tz(void)
++{
++=09++vdso_data->tb_seq_count;
++=09smp_wmb();
++=09vdso_data->tz_minuteswest=09=3D sys_tz.tz_minuteswest;
++=09vdso_data->tz_dsttime=09=09=3D sys_tz.tz_dsttime;
++=09smp_wmb();
++=09++vdso_data->tb_seq_count;
++}
+diff --git a/arch/arm64/kernel/vdso/.gitignore b/arch/arm64/kernel/vdso/.gi=
+tignore
+new file mode 100644
+index 0000000..b8cc94e
+--- /dev/null
++++ b/arch/arm64/kernel/vdso/.gitignore
+@@ -0,0 +1,2 @@
++vdso.lds
++vdso-offsets.h
+diff --git a/arch/arm64/kernel/vdso/Makefile b/arch/arm64/kernel/vdso/Makef=
+ile
+new file mode 100644
+index 0000000..d8064af
+--- /dev/null
++++ b/arch/arm64/kernel/vdso/Makefile
+@@ -0,0 +1,63 @@
++#
++# Building a vDSO image for AArch64.
++#
++# Author: Will Deacon <will.deacon@arm.com>
++# Heavily based on the vDSO Makefiles for other archs.
++#
++
++obj-vdso :=3D gettimeofday.o note.o sigreturn.o
++
++# Build rules
++targets :=3D $(obj-vdso) vdso.so vdso.so.dbg
++obj-vdso :=3D $(addprefix $(obj)/, $(obj-vdso))
++
++ccflags-y :=3D -shared -fno-common -fno-builtin
++ccflags-y +=3D -nostdlib -Wl,-soname=3Dlinux-vdso.so.1 \
++=09=09$(call cc-ldoption, -Wl$(comma)--hash-style=3Dsysv)
++
++obj-y +=3D vdso.o
++extra-y +=3D vdso.lds vdso-offsets.h
++CPPFLAGS_vdso.lds +=3D -P -C -U$(ARCH)
++
++# Force dependency (incbin is bad)
++$(obj)/vdso.o : $(obj)/vdso.so
++
++# Link rule for the .so file, .lds has to be first
++$(obj)/vdso.so.dbg: $(src)/vdso.lds $(obj-vdso)
++=09$(call if_changed,vdsold)
++
++# Strip rule for the .so file
++$(obj)/%.so: OBJCOPYFLAGS :=3D -S
++$(obj)/%.so: $(obj)/%.so.dbg FORCE
++=09$(call if_changed,objcopy)
++
++# Generate VDSO offsets using helper script
++gen-vdsosym :=3D $(srctree)/$(src)/gen_vdso_offsets.sh
++quiet_cmd_vdsosym =3D VDSOSYM $@
++define cmd_vdsosym
++=09$(NM) $< | $(gen-vdsosym) | LC_ALL=3DC sort > $@ && \
++=09cp $@ include/generated/
++endef
++
++$(obj)/vdso-offsets.h: $(obj)/vdso.so.dbg FORCE
++=09$(call if_changed,vdsosym)
++
++# Assembly rules for the .S files
++$(obj-vdso): %.o: %.S
++=09$(call if_changed_dep,vdsoas)
++
++# Actual build commands
++quiet_cmd_vdsold =3D VDSOL $@
++      cmd_vdsold =3D $(CC) $(c_flags) -Wl,-T $^ -o $@
++quiet_cmd_vdsoas =3D VDSOA $@
++      cmd_vdsoas =3D $(CC) $(a_flags) -c -o $@ $<
++
++# Install commands for the unstripped file
++quiet_cmd_vdso_install =3D INSTALL $@
++      cmd_vdso_install =3D cp $(obj)/$@.dbg $(MODLIB)/vdso/$@
++
++vdso.so: $(obj)/vdso.so.dbg
++=09@mkdir -p $(MODLIB)/vdso
++=09$(call cmd,vdso_install)
++
++vdso_install: vdso.so
+diff --git a/arch/arm64/kernel/vdso/gen_vdso_offsets.sh b/arch/arm64/kernel=
+/vdso/gen_vdso_offsets.sh
+new file mode 100755
+index 0000000..01924ff
+--- /dev/null
++++ b/arch/arm64/kernel/vdso/gen_vdso_offsets.sh
+@@ -0,0 +1,15 @@
++#!/bin/sh
++
++#
++# Match symbols in the DSO that look like VDSO_*; produce a header file
++# of constant offsets into the shared object.
++#
++# Doing this inside the Makefile will break the $(filter-out) function,
++# causing Kbuild to rebuild the vdso-offsets header file every time.
++#
++# Author: Will Deacon <will.deacon@arm.com
++#
++
++LC_ALL=3DC
++sed -n -e 's/^00*/0/' -e \
++'s/^\([0-9a-fA-F]*\) . VDSO_\([a-zA-Z0-9_]*\)$/\#define vdso_offset_\2\t0x=
+\1/p'
+diff --git a/arch/arm64/kernel/vdso/gettimeofday.S b/arch/arm64/kernel/vdso=
+/gettimeofday.S
+new file mode 100644
+index 0000000..dcb8c20
+--- /dev/null
++++ b/arch/arm64/kernel/vdso/gettimeofday.S
+@@ -0,0 +1,242 @@
++/*
++ * Userspace implementations of gettimeofday() and friends.
 + *
-+ * Copyright (C) 2012 ARM Ltd.
-+ * Author: Catalin Marinas <catalin.marinas@arm.com>
++ * Copyright (C) 2012 ARM Limited
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -1026,40 +542,456 @@ index 0000000..7083cda
 + *
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Will Deacon <will.deacon@arm.com>
 + */
 +
-+#include <linux/mm.h>
-+#include <linux/gfp.h>
-+#include <linux/highmem.h>
-+#include <linux/slab.h>
++#include <linux/linkage.h>
++#include <asm/asm-offsets.h>
++#include <asm/unistd.h>
 +
-+#include <asm/pgalloc.h>
++#define NSEC_PER_SEC_LO16=090xca00
++#define NSEC_PER_SEC_HI16=090x3b9a
++
++vdso_data=09.req=09x6
++use_syscall=09.req=09w7
++seqcnt=09=09.req=09w8
++
++=09.macro=09seqcnt_acquire
++9999:=09ldr=09seqcnt, [vdso_data, #VDSO_TB_SEQ_COUNT]
++=09tbnz=09seqcnt, #0, 9999b
++=09dmb=09ishld
++=09ldr=09use_syscall, [vdso_data, #VDSO_USE_SYSCALL]
++=09.endm
++
++=09.macro=09seqcnt_read, cnt
++=09dmb=09ishld
++=09ldr=09\cnt, [vdso_data, #VDSO_TB_SEQ_COUNT]
++=09.endm
++
++=09.macro=09seqcnt_check, cnt, fail
++=09cmp=09\cnt, seqcnt
++=09b.ne=09\fail
++=09.endm
++
++=09.text
++
++/* int __kernel_gettimeofday(struct timeval *tv, struct timezone *tz); */
++ENTRY(__kernel_gettimeofday)
++=09.cfi_startproc
++=09mov=09x2, x30
++=09.cfi_register x30, x2
++
++=09/* Acquire the sequence counter and get the timespec. */
++=09adr=09vdso_data, _vdso_data
++1:=09seqcnt_acquire
++=09cbnz=09use_syscall, 4f
++
++=09/* If tv is NULL, skip to the timezone code. */
++=09cbz=09x0, 2f
++=09bl=09__do_get_tspec
++=09seqcnt_check w13, 1b
++
++=09/* Convert ns to us. */
++=09mov=09x11, #1000
++=09udiv=09x10, x10, x11
++=09stp=09x9, x10, [x0, #TVAL_TV_SEC]
++2:
++=09/* If tz is NULL, return 0. */
++=09cbz=09x1, 3f
++=09ldp=09w4, w5, [vdso_data, #VDSO_TZ_MINWEST]
++=09seqcnt_read w13
++=09seqcnt_check w13, 1b
++=09stp=09w4, w5, [x1, #TZ_MINWEST]
++3:
++=09mov=09x0, xzr
++=09ret=09x2
++4:
++=09/* Syscall fallback. */
++=09mov=09x8, #__NR_gettimeofday
++=09svc=09#0
++=09ret=09x2
++=09.cfi_endproc
++ENDPROC(__kernel_gettimeofday)
++
++/* int __kernel_clock_gettime(clockid_t clock_id, struct timespec *tp); */
++ENTRY(__kernel_clock_gettime)
++=09.cfi_startproc
++=09cmp=09w0, #CLOCK_REALTIME
++=09ccmp=09w0, #CLOCK_MONOTONIC, #0x4, ne
++=09b.ne=092f
++
++=09mov=09x2, x30
++=09.cfi_register x30, x2
++
++=09/* Get kernel timespec. */
++=09adr=09vdso_data, _vdso_data
++1:=09seqcnt_acquire
++=09cbnz=09use_syscall, 7f
++
++=09bl=09__do_get_tspec
++=09seqcnt_check w13, 1b
++
++=09cmp=09w0, #CLOCK_MONOTONIC
++=09b.ne=096f
++
++=09/* Get wtm timespec. */
++=09ldp=09x14, x15, [vdso_data, #VDSO_WTM_CLK_SEC]
++
++=09/* Check the sequence counter. */
++=09seqcnt_read w13
++=09seqcnt_check w13, 1b
++=09b=094f
++2:
++=09cmp=09w0, #CLOCK_REALTIME_COARSE
++=09ccmp=09w0, #CLOCK_MONOTONIC_COARSE, #0x4, ne
++=09b.ne=098f
++
++=09/* Get coarse timespec. */
++=09adr=09vdso_data, _vdso_data
++3:=09seqcnt_acquire
++=09ldp=09x9, x10, [vdso_data, #VDSO_XTIME_CRS_SEC]
++
++=09cmp=09w0, #CLOCK_MONOTONIC_COARSE
++=09b.ne=096f
++
++=09/* Get wtm timespec. */
++=09ldp=09x14, x15, [vdso_data, #VDSO_WTM_CLK_SEC]
++
++=09/* Check the sequence counter. */
++=09seqcnt_read w13
++=09seqcnt_check w13, 3b
++4:
++=09/* Add on wtm timespec. */
++=09add=09x9, x9, x14
++=09add=09x10, x10, x15
++
++=09/* Normalise the new timespec. */
++=09mov=09x14, #NSEC_PER_SEC_LO16
++=09movk=09x14, #NSEC_PER_SEC_HI16, lsl #16
++=09cmp=09x10, x14
++=09b.lt=095f
++=09sub=09x10, x10, x14
++=09add=09x9, x9, #1
++5:
++=09cmp=09x10, #0
++=09b.ge=096f
++=09add=09x10, x10, x14
++=09sub=09x9, x9, #1
++
++6:=09/* Store to the user timespec. */
++=09stp=09x9, x10, [x1, #TSPEC_TV_SEC]
++=09mov=09x0, xzr
++=09ret=09x2
++7:
++=09mov=09x30, x2
++8:=09/* Syscall fallback. */
++=09mov=09x8, #__NR_clock_gettime
++=09svc=09#0
++=09ret
++=09.cfi_endproc
++ENDPROC(__kernel_clock_gettime)
++
++/* int __kernel_clock_getres(clockid_t clock_id, struct timespec *res); */
++ENTRY(__kernel_clock_getres)
++=09.cfi_startproc
++=09cbz=09w1, 3f
++
++=09cmp=09w0, #CLOCK_REALTIME
++=09ccmp=09w0, #CLOCK_MONOTONIC, #0x4, ne
++=09b.ne=091f
++
++=09ldr=09x2, 5f
++=09b=092f
++1:
++=09cmp=09w0, #CLOCK_REALTIME_COARSE
++=09ccmp=09w0, #CLOCK_MONOTONIC_COARSE, #0x4, ne
++=09b.ne=094f
++=09ldr=09x2, 6f
++2:
++=09stp=09xzr, x2, [x1]
++
++3:=09/* res =3D=3D NULL. */
++=09mov=09w0, wzr
++=09ret
++
++4:=09/* Syscall fallback. */
++=09mov=09x8, #__NR_clock_getres
++=09svc=09#0
++=09ret
++5:
++=09.quad=09CLOCK_REALTIME_RES
++6:
++=09.quad=09CLOCK_COARSE_RES
++=09.cfi_endproc
++ENDPROC(__kernel_clock_getres)
++
++/*
++ * Read the current time from the architected counter.
++ * Expects vdso_data to be initialised.
++ * Clobbers the temporary registers (x9 - x15).
++ * Returns:
++ *  - (x9, x10) =3D (ts->tv_sec, ts->tv_nsec)
++ *  - (x11, x12) =3D (xtime->tv_sec, xtime->tv_nsec)
++ *  - w13 =3D vDSO sequence counter
++ */
++ENTRY(__do_get_tspec)
++=09.cfi_startproc
++
++=09/* Read from the vDSO data page. */
++=09ldr=09x10, [vdso_data, #VDSO_CS_CYCLE_LAST]
++=09ldp=09x11, x12, [vdso_data, #VDSO_XTIME_CLK_SEC]
++=09ldp=09w14, w15, [vdso_data, #VDSO_CS_MULT]
++=09seqcnt_read w13
++
++=09/* Read the physical counter. */
++=09isb
++=09mrs=09x9, cntpct_el0
++
++=09/* Calculate cycle delta and convert to ns. */
++=09sub=09x10, x9, x10
++=09/* We can only guarantee 56 bits of precision. */
++=09movn=09x9, #0xff0, lsl #48
++=09and=09x10, x9, x10
++=09mul=09x10, x10, x14
++=09lsr=09x10, x10, x15
++
++=09/* Use the kernel time to calculate the new timespec. */
++=09add=09x10, x12, x10
++=09mov=09x14, #NSEC_PER_SEC_LO16
++=09movk=09x14, #NSEC_PER_SEC_HI16, lsl #16
++=09udiv=09x15, x10, x14
++=09add=09x9, x15, x11
++=09mul=09x14, x14, x15
++=09sub=09x10, x10, x14
++
++=09ret
++=09.cfi_endproc
++ENDPROC(__do_get_tspec)
+diff --git a/arch/arm64/kernel/vdso/note.S b/arch/arm64/kernel/vdso/note.S
+new file mode 100644
+index 0000000..b82c85e
+--- /dev/null
++++ b/arch/arm64/kernel/vdso/note.S
+@@ -0,0 +1,28 @@
++/*
++ * Copyright (C) 2012 ARM Limited
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Will Deacon <will.deacon@arm.com>
++ *
++ * This supplies .note.* sections to go into the PT_NOTE inside the vDSO t=
+ext.
++ * Here we can supply some information useful to userland.
++ */
++
++#include <linux/uts.h>
++#include <linux/version.h>
++#include <linux/elfnote.h>
++
++ELFNOTE_START(Linux, 0, "a")
++=09.long LINUX_VERSION_CODE
++ELFNOTE_END
+diff --git a/arch/arm64/kernel/vdso/sigreturn.S b/arch/arm64/kernel/vdso/si=
+greturn.S
+new file mode 100644
+index 0000000..20d98ef
+--- /dev/null
++++ b/arch/arm64/kernel/vdso/sigreturn.S
+@@ -0,0 +1,37 @@
++/*
++ * Sigreturn trampoline for returning from a signal when the SA_RESTORER
++ * flag is not set.
++ *
++ * Copyright (C) 2012 ARM Limited
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Will Deacon <will.deacon@arm.com>
++ */
++
++#include <linux/linkage.h>
++#include <asm/unistd.h>
++
++=09.text
++
++=09nop
++ENTRY(__kernel_rt_sigreturn)
++=09.cfi_startproc
++=09.cfi_signal_frame
++=09.cfi_def_cfa=09x29, 0
++=09.cfi_offset=09x29, 0 * 8
++=09.cfi_offset=09x30, 1 * 8
++=09mov=09x8, #__NR_rt_sigreturn
++=09svc=09#0
++=09.cfi_endproc
++ENDPROC(__kernel_rt_sigreturn)
+diff --git a/arch/arm64/kernel/vdso/vdso.S b/arch/arm64/kernel/vdso/vdso.S
+new file mode 100644
+index 0000000..60c1db5
+--- /dev/null
++++ b/arch/arm64/kernel/vdso/vdso.S
+@@ -0,0 +1,33 @@
++/*
++ * Copyright (C) 2012 ARM Limited
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Will Deacon <will.deacon@arm.com>
++ */
++
++#include <linux/init.h>
++#include <linux/linkage.h>
++#include <linux/const.h>
 +#include <asm/page.h>
-+#include <asm/tlbflush.h>
 +
-+#include "mm.h"
++=09__PAGE_ALIGNED_DATA
 +
-+#define PGD_SIZE	(PTRS_PER_PGD * sizeof(pgd_t))
++=09.globl vdso_start, vdso_end
++=09.balign PAGE_SIZE
++vdso_start:
++=09.incbin "arch/arm64/kernel/vdso/vdso.so"
++=09.balign PAGE_SIZE
++vdso_end:
 +
-+pgd_t *pgd_alloc(struct mm_struct *mm)
++=09.previous
+diff --git a/arch/arm64/kernel/vdso/vdso.lds.S b/arch/arm64/kernel/vdso/vds=
+o.lds.S
+new file mode 100644
+index 0000000..8154b8d
+--- /dev/null
++++ b/arch/arm64/kernel/vdso/vdso.lds.S
+@@ -0,0 +1,100 @@
++/*
++ * GNU linker script for the VDSO library.
++*
++ * Copyright (C) 2012 ARM Limited
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ * Author: Will Deacon <will.deacon@arm.com>
++ * Heavily based on the vDSO linker scripts for other archs.
++ */
++
++#include <linux/const.h>
++#include <asm/page.h>
++#include <asm/vdso.h>
++
++OUTPUT_FORMAT("elf64-littleaarch64", "elf64-bigaarch64", "elf64-littleaarc=
+h64")
++OUTPUT_ARCH(aarch64)
++
++SECTIONS
 +{
-+	pgd_t *new_pgd;
++=09. =3D VDSO_LBASE + SIZEOF_HEADERS;
 +
-+	if (PGD_SIZE == PAGE_SIZE)
-+		new_pgd = (pgd_t *)get_zeroed_page(GFP_KERNEL);
-+	else
-+		new_pgd = kzalloc(PGD_SIZE, GFP_KERNEL);
++=09.hash=09=09: { *(.hash) }=09=09=09:text
++=09.gnu.hash=09: { *(.gnu.hash) }
++=09.dynsym=09=09: { *(.dynsym) }
++=09.dynstr=09=09: { *(.dynstr) }
++=09.gnu.version=09: { *(.gnu.version) }
++=09.gnu.version_d=09: { *(.gnu.version_d) }
++=09.gnu.version_r=09: { *(.gnu.version_r) }
 +
-+	if (!new_pgd)
-+		return NULL;
++=09.note=09=09: { *(.note.*) }=09=09:text=09:note
 +
-+	return new_pgd;
++=09. =3D ALIGN(16);
++
++=09.text=09=09: { *(.text*) }=09=09=09:text=09=3D0xd503201f
++=09PROVIDE (__etext =3D .);
++=09PROVIDE (_etext =3D .);
++=09PROVIDE (etext =3D .);
++
++=09.eh_frame_hdr=09: { *(.eh_frame_hdr) }=09=09:text=09:eh_frame_hdr
++=09.eh_frame=09: { KEEP (*(.eh_frame)) }=09:text
++
++=09.dynamic=09: { *(.dynamic) }=09=09:text=09:dynamic
++
++=09.rodata=09=09: { *(.rodata*) }=09=09:text
++
++=09_end =3D .;
++=09PROVIDE(end =3D .);
++
++=09. =3D ALIGN(PAGE_SIZE);
++=09PROVIDE(_vdso_data =3D .);
++
++=09/DISCARD/=09: {
++=09=09*(.note.GNU-stack)
++=09=09*(.data .data.* .gnu.linkonce.d.* .sdata*)
++=09=09*(.bss .sbss .dynbss .dynsbss)
++=09}
 +}
 +
-+void pgd_free(struct mm_struct *mm, pgd_t *pgd)
++/*
++ * We must supply the ELF program headers explicitly to get just one
++ * PT_LOAD segment, and set the flags explicitly to make segments read-onl=
+y.
++ */
++PHDRS
 +{
-+	if (PGD_SIZE == PAGE_SIZE)
-+		free_page((unsigned long)pgd);
-+	else
-+		kfree(pgd);
++=09text=09=09PT_LOAD=09=09FLAGS(5) FILEHDR PHDRS; /* PF_R|PF_X */
++=09dynamic=09=09PT_DYNAMIC=09FLAGS(4);=09=09/* PF_R */
++=09note=09=09PT_NOTE=09=09FLAGS(4);=09=09/* PF_R */
++=09eh_frame_hdr=09PT_GNU_EH_FRAME;
 +}
++
++/*
++ * This controls what symbols we export from the DSO.
++ */
++VERSION
++{
++=09LINUX_2.6.39 {
++=09global:
++=09=09__kernel_rt_sigreturn;
++=09=09__kernel_gettimeofday;
++=09=09__kernel_clock_gettime;
++=09=09__kernel_clock_getres;
++=09local: *;
++=09};
++}
++
++/*
++ * Make the sigreturn code visible to the kernel.
++ */
++VDSO_sigtramp=09=09=3D __kernel_rt_sigreturn;
