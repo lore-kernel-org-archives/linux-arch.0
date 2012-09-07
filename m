@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:34724 "EHLO
+Received: from service87.mimecast.com ([91.220.42.44]:34756 "EHLO
 	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752914Ab2IGQ17 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Sep 2012 12:27:59 -0400
+	with ESMTP id S1752954Ab2IGQ2A (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Sep 2012 12:28:00 -0400
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v3 27/31] arm64: Loadable modules
-Date: Fri,  7 Sep 2012 17:27:02 +0100
-Message-ID: <1347035226-18649-28-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v3 28/31] arm64: Generic timers support
+Date: Fri,  7 Sep 2012 17:27:03 +0100
+Message-ID: <1347035226-18649-29-git-send-email-catalin.marinas@arm.com>
 In-Reply-To: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
 References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
 Content-Type: text/plain; charset=WINDOWS-1252
@@ -15,32 +15,152 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20120907162702.MjJ5Iyn2p8a0nGNeUwkqnNAch_br-gJuWOEulc8v6LE@z>
+Message-ID: <20120907162703.vJJKxKbn-HPnneeQrzNOcD85AFrk7eQrok4D_89wWc8@z>
 
-From: Will Deacon <will.deacon@arm.com>
+From: Marc Zyngier <marc.zyngier@arm.com>
 
-This patch adds support for loadable modules. Loadable modules are
-loaded 64MB below the kernel image due to branch relocation restrictions
-(see Documentation/arm64/memory.txt).
+This patch adds support for the ARM generic timers with A64 instructions
+for accessing the timer registers. It uses the physical counter as the
+clock source and the virtual counter as sched_clock.
 
+The timer frequency can be specified via DT or read from the CNTFRQ_EL0
+register. The physical counter is also accessible from user space
+allowing fast gettimeofday() implementation.
+
+Signed-off-by: Marc Zyngier <marc.zyngier@arm.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 Acked-by: Tony Lindgren <tony@atomide.com>
 ---
- arch/arm64/include/asm/module.h |   23 ++
- arch/arm64/kernel/module.c      |  456 +++++++++++++++++++++++++++++++++++=
+ arch/arm64/include/asm/arm_generic.h |  100 +++++++++++++++
+ arch/arm64/include/asm/timex.h       |   29 +++++
+ arch/arm64/kernel/time.c             |   65 ++++++++++
+ drivers/clocksource/Kconfig          |    5 +
+ drivers/clocksource/Makefile         |    1 +
+ drivers/clocksource/arm_generic.c    |  232 ++++++++++++++++++++++++++++++=
 ++++
- 2 files changed, 479 insertions(+), 0 deletions(-)
- create mode 100644 arch/arm64/include/asm/module.h
- create mode 100644 arch/arm64/kernel/module.c
+ include/clocksource/arm_generic.h    |   21 +++
+ 7 files changed, 453 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/arm_generic.h
+ create mode 100644 arch/arm64/include/asm/timex.h
+ create mode 100644 arch/arm64/kernel/time.c
+ create mode 100644 drivers/clocksource/arm_generic.c
+ create mode 100644 include/clocksource/arm_generic.h
 
-diff --git a/arch/arm64/include/asm/module.h b/arch/arm64/include/asm/modul=
-e.h
+diff --git a/arch/arm64/include/asm/arm_generic.h b/arch/arm64/include/asm/=
+arm_generic.h
 new file mode 100644
-index 0000000..e80e232
+index 0000000..e4cec9d
 --- /dev/null
-+++ b/arch/arm64/include/asm/module.h
-@@ -0,0 +1,23 @@
++++ b/arch/arm64/include/asm/arm_generic.h
+@@ -0,0 +1,100 @@
++/*
++ * arch/arm64/include/asm/arm_generic.h
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ * Author: Marc Zyngier <marc.zyngier@arm.com>
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_ARM_GENERIC_H
++#define __ASM_ARM_GENERIC_H
++
++#include <linux/clocksource.h>
++
++#define ARCH_TIMER_CTRL_ENABLE=09=09(1 << 0)
++#define ARCH_TIMER_CTRL_IMASK=09=09(1 << 1)
++#define ARCH_TIMER_CTRL_ISTATUS=09=09(1 << 2)
++
++#define ARCH_TIMER_REG_CTRL=09=090
++#define ARCH_TIMER_REG_FREQ=09=091
++#define ARCH_TIMER_REG_TVAL=09=092
++
++static inline void arch_timer_reg_write(int reg, u32 val)
++{
++=09switch (reg) {
++=09case ARCH_TIMER_REG_CTRL:
++=09=09asm volatile("msr cntp_ctl_el0,  %0" : : "r" (val));
++=09=09break;
++=09case ARCH_TIMER_REG_TVAL:
++=09=09asm volatile("msr cntp_tval_el0, %0" : : "r" (val));
++=09=09break;
++=09default:
++=09=09BUILD_BUG();
++=09}
++
++=09isb();
++}
++
++static inline u32 arch_timer_reg_read(int reg)
++{
++=09u32 val;
++
++=09switch (reg) {
++=09case ARCH_TIMER_REG_CTRL:
++=09=09asm volatile("mrs %0,  cntp_ctl_el0" : "=3Dr" (val));
++=09=09break;
++=09case ARCH_TIMER_REG_FREQ:
++=09=09asm volatile("mrs %0,   cntfrq_el0" : "=3Dr" (val));
++=09=09break;
++=09case ARCH_TIMER_REG_TVAL:
++=09=09asm volatile("mrs %0, cntp_tval_el0" : "=3Dr" (val));
++=09=09break;
++=09default:
++=09=09BUILD_BUG();
++=09}
++
++=09return val;
++}
++
++static inline void __cpuinit arch_counter_enable_user_access(void)
++{
++=09u32 cntkctl;
++
++=09/* Disable user access to the timers and the virtual counter. */
++=09asm volatile("mrs=09%0, cntkctl_el1" : "=3Dr" (cntkctl));
++=09cntkctl &=3D ~((3 << 8) | (1 << 1));
++
++=09/* Enable user access to the physical counter and frequency. */
++=09cntkctl |=3D 1;
++=09asm volatile("msr=09cntkctl_el1, %0" : : "r" (cntkctl));
++}
++
++static inline cycle_t arch_counter_get_cntpct(void)
++{
++=09cycle_t cval;
++
++=09asm volatile("mrs %0, cntpct_el0" : "=3Dr" (cval));
++
++=09return cval;
++}
++
++static inline cycle_t arch_counter_get_cntvct(void)
++{
++=09cycle_t cval;
++
++=09asm volatile("mrs %0, cntvct_el0" : "=3Dr" (cval));
++
++=09return cval;
++}
++
++#endif
+diff --git a/arch/arm64/include/asm/timex.h b/arch/arm64/include/asm/timex.=
+h
+new file mode 100644
+index 0000000..b24a31a
+--- /dev/null
++++ b/arch/arm64/include/asm/timex.h
+@@ -0,0 +1,29 @@
 +/*
 + * Copyright (C) 2012 ARM Ltd.
 + *
@@ -56,24 +176,32 @@ index 0000000..e80e232
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_MODULE_H
-+#define __ASM_MODULE_H
++#ifndef __ASM_TIMEX_H
++#define __ASM_TIMEX_H
 +
-+#include <asm-generic/module.h>
-+
-+#define MODULE_ARCH_VERMAGIC=09"aarch64"
-+
-+#endif /* __ASM_MODULE_H */
-diff --git a/arch/arm64/kernel/module.c b/arch/arm64/kernel/module.c
-new file mode 100644
-index 0000000..ca0e3d5
---- /dev/null
-+++ b/arch/arm64/kernel/module.c
-@@ -0,0 +1,456 @@
 +/*
-+ * AArch64 loadable module support.
++ * Use the current timer as a cycle counter since this is what we use for
++ * the delay loop.
++ */
++#define get_cycles()=09({ cycles_t c; read_current_timer(&c); c; })
++
++#include <asm-generic/timex.h>
++
++#define ARCH_HAS_READ_CURRENT_TIMER
++
++#endif
+diff --git a/arch/arm64/kernel/time.c b/arch/arm64/kernel/time.c
+new file mode 100644
+index 0000000..3b4b725
+--- /dev/null
++++ b/arch/arm64/kernel/time.c
+@@ -0,0 +1,65 @@
++/*
++ * Based on arch/arm/kernel/time.c
 + *
-+ * Copyright (C) 2012 ARM Limited
++ * Copyright (C) 1991, 1992, 1995  Linus Torvalds
++ * Modifications for ARM (C) 1994-2001 Russell King
++ * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -86,446 +214,342 @@ index 0000000..ca0e3d5
 + *
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ *
-+ * Author: Will Deacon <will.deacon@arm.com>
 + */
 +
-+#include <linux/bitops.h>
-+#include <linux/elf.h>
-+#include <linux/gfp.h>
++#include <linux/export.h>
 +#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/moduleloader.h>
-+#include <linux/vmalloc.h>
++#include <linux/interrupt.h>
++#include <linux/time.h>
++#include <linux/init.h>
++#include <linux/sched.h>
++#include <linux/smp.h>
++#include <linux/timex.h>
++#include <linux/errno.h>
++#include <linux/profile.h>
++#include <linux/syscore_ops.h>
++#include <linux/timer.h>
++#include <linux/irq.h>
 +
-+void *module_alloc(unsigned long size)
++#include <clocksource/arm_generic.h>
++
++#include <asm/thread_info.h>
++#include <asm/stacktrace.h>
++
++#ifdef CONFIG_SMP
++unsigned long profile_pc(struct pt_regs *regs)
 +{
-+=09return __vmalloc_node_range(size, 1, MODULES_VADDR, MODULES_END,
-+=09=09=09=09    GFP_KERNEL, PAGE_KERNEL_EXEC, -1,
-+=09=09=09=09    __builtin_return_address(0));
++=09struct stackframe frame;
++
++=09if (!in_lock_functions(regs->pc))
++=09=09return regs->pc;
++
++=09frame.fp =3D regs->regs[29];
++=09frame.sp =3D regs->sp;
++=09frame.pc =3D regs->pc;
++=09do {
++=09=09int ret =3D unwind_frame(&frame);
++=09=09if (ret < 0)
++=09=09=09return 0;
++=09} while (in_lock_functions(frame.pc));
++
++=09return frame.pc;
 +}
++EXPORT_SYMBOL(profile_pc);
++#endif
 +
-+enum aarch64_reloc_op {
-+=09RELOC_OP_NONE,
-+=09RELOC_OP_ABS,
-+=09RELOC_OP_PREL,
-+=09RELOC_OP_PAGE,
-+};
-+
-+static u64 do_reloc(enum aarch64_reloc_op reloc_op, void *place, u64 val)
++void __init time_init(void)
 +{
-+=09switch (reloc_op) {
-+=09case RELOC_OP_ABS:
-+=09=09return val;
-+=09case RELOC_OP_PREL:
-+=09=09return val - (u64)place;
-+=09case RELOC_OP_PAGE:
-+=09=09return (val & ~0xfff) - ((u64)place & ~0xfff);
-+=09case RELOC_OP_NONE:
-+=09=09return 0;
++=09arm_generic_timer_init();
++}
+diff --git a/drivers/clocksource/Kconfig b/drivers/clocksource/Kconfig
+index d53cd0a..6a78073 100644
+--- a/drivers/clocksource/Kconfig
++++ b/drivers/clocksource/Kconfig
+@@ -35,3 +35,8 @@ config CLKSRC_DBX500_PRCMU_SCHED_CLOCK
+ =09default y
+ =09help
+ =09  Use the always on PRCMU Timer as sched_clock
++
++config CLKSRC_ARM_GENERIC
++=09def_bool y if ARM64
++=09help
++=09  This option enables support for the ARM generic timer.
+diff --git a/drivers/clocksource/Makefile b/drivers/clocksource/Makefile
+index b65d0c5..6591990 100644
+--- a/drivers/clocksource/Makefile
++++ b/drivers/clocksource/Makefile
+@@ -13,3 +13,4 @@ obj-$(CONFIG_DW_APB_TIMER)=09+=3D dw_apb_timer.o
+ obj-$(CONFIG_DW_APB_TIMER_OF)=09+=3D dw_apb_timer_of.o
+ obj-$(CONFIG_CLKSRC_DBX500_PRCMU)=09+=3D clksrc-dbx500-prcmu.o
+ obj-$(CONFIG_ARMADA_370_XP_TIMER)=09+=3D time-armada-370-xp.o
++obj-$(CONFIG_CLKSRC_ARM_GENERIC)=09+=3D arm_generic.o
+diff --git a/drivers/clocksource/arm_generic.c b/drivers/clocksource/arm_ge=
+neric.c
+new file mode 100644
+index 0000000..c4d9f95
+--- /dev/null
++++ b/drivers/clocksource/arm_generic.c
+@@ -0,0 +1,232 @@
++/*
++ * Generic timers support
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ * Author: Marc Zyngier <marc.zyngier@arm.com>
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/init.h>
++#include <linux/kernel.h>
++#include <linux/delay.h>
++#include <linux/device.h>
++#include <linux/smp.h>
++#include <linux/cpu.h>
++#include <linux/jiffies.h>
++#include <linux/interrupt.h>
++#include <linux/clockchips.h>
++#include <linux/of_irq.h>
++#include <linux/io.h>
++
++#include <clocksource/arm_generic.h>
++
++#include <asm/arm_generic.h>
++
++static u32 arch_timer_rate;
++static u64 sched_clock_mult __read_mostly;
++static DEFINE_PER_CPU(struct clock_event_device, arch_timer_evt);
++static int arch_timer_ppi;
++
++static irqreturn_t arch_timer_handle_irq(int irq, void *dev_id)
++{
++=09struct clock_event_device *evt =3D dev_id;
++=09unsigned long ctrl;
++
++=09ctrl =3D arch_timer_reg_read(ARCH_TIMER_REG_CTRL);
++=09if (ctrl & ARCH_TIMER_CTRL_ISTATUS) {
++=09=09ctrl |=3D ARCH_TIMER_CTRL_IMASK;
++=09=09arch_timer_reg_write(ARCH_TIMER_REG_CTRL, ctrl);
++=09=09evt->event_handler(evt);
++=09=09return IRQ_HANDLED;
 +=09}
 +
-+=09pr_err("do_reloc: unknown relocation operation %d\n", reloc_op);
-+=09return 0;
++=09return IRQ_NONE;
 +}
 +
-+static int reloc_data(enum aarch64_reloc_op op, void *place, u64 val, int =
-len)
++static void arch_timer_stop(void)
 +{
-+=09u64 imm_mask =3D (1 << len) - 1;
-+=09s64 sval =3D do_reloc(op, place, val);
++=09unsigned long ctrl;
 +
-+=09switch (len) {
-+=09case 16:
-+=09=09*(s16 *)place =3D sval;
-+=09=09break;
-+=09case 32:
-+=09=09*(s32 *)place =3D sval;
-+=09=09break;
-+=09case 64:
-+=09=09*(s64 *)place =3D sval;
++=09ctrl =3D arch_timer_reg_read(ARCH_TIMER_REG_CTRL);
++=09ctrl &=3D ~ARCH_TIMER_CTRL_ENABLE;
++=09arch_timer_reg_write(ARCH_TIMER_REG_CTRL, ctrl);
++}
++
++static void arch_timer_set_mode(enum clock_event_mode mode,
++=09=09=09=09struct clock_event_device *clk)
++{
++=09switch (mode) {
++=09case CLOCK_EVT_MODE_UNUSED:
++=09case CLOCK_EVT_MODE_SHUTDOWN:
++=09=09arch_timer_stop();
 +=09=09break;
 +=09default:
-+=09=09pr_err("Invalid length (%d) for data relocation\n", len);
-+=09=09return 0;
++=09=09break;
 +=09}
++}
 +
-+=09/*
-+=09 * Extract the upper value bits (including the sign bit) and
-+=09 * shift them to bit 0.
-+=09 */
-+=09sval =3D (s64)(sval & ~(imm_mask >> 1)) >> (len - 1);
++static int arch_timer_set_next_event(unsigned long evt,
++=09=09=09=09     struct clock_event_device *unused)
++{
++=09unsigned long ctrl;
 +
-+=09/*
-+=09 * Overflow has occurred if the value is not representable in
-+=09 * len bits (i.e the bottom len bits are not sign-extended and
-+=09 * the top bits are not all zero).
-+=09 */
-+=09if ((u64)(sval + 1) > 2)
-+=09=09return -ERANGE;
++=09ctrl =3D arch_timer_reg_read(ARCH_TIMER_REG_CTRL);
++=09ctrl |=3D ARCH_TIMER_CTRL_ENABLE;
++=09ctrl &=3D ~ARCH_TIMER_CTRL_IMASK;
++
++=09arch_timer_reg_write(ARCH_TIMER_REG_TVAL, evt);
++=09arch_timer_reg_write(ARCH_TIMER_REG_CTRL, ctrl);
 +
 +=09return 0;
 +}
 +
-+enum aarch64_imm_type {
-+=09INSN_IMM_MOVNZ,
-+=09INSN_IMM_MOVK,
-+=09INSN_IMM_ADR,
-+=09INSN_IMM_26,
-+=09INSN_IMM_19,
-+=09INSN_IMM_16,
-+=09INSN_IMM_14,
-+=09INSN_IMM_12,
-+=09INSN_IMM_9,
++static void __cpuinit arch_timer_setup(struct clock_event_device *clk)
++{
++=09/* Let's make sure the timer is off before doing anything else */
++=09arch_timer_stop();
++
++=09clk->features =3D CLOCK_EVT_FEAT_ONESHOT | CLOCK_EVT_FEAT_C3STOP;
++=09clk->name =3D "arch_sys_timer";
++=09clk->rating =3D 400;
++=09clk->set_mode =3D arch_timer_set_mode;
++=09clk->set_next_event =3D arch_timer_set_next_event;
++=09clk->irq =3D arch_timer_ppi;
++=09clk->cpumask =3D cpumask_of(smp_processor_id());
++
++=09clockevents_config_and_register(clk, arch_timer_rate,
++=09=09=09=09=090xf, 0x7fffffff);
++
++=09enable_percpu_irq(clk->irq, 0);
++
++=09/* Ensure the physical counter is visible to userspace for the vDSO. */
++=09arch_counter_enable_user_access();
++}
++
++static void __init arch_timer_calibrate(void)
++{
++=09if (arch_timer_rate =3D=3D 0) {
++=09=09arch_timer_reg_write(ARCH_TIMER_REG_CTRL, 0);
++=09=09arch_timer_rate =3D arch_timer_reg_read(ARCH_TIMER_REG_FREQ);
++
++=09=09/* Check the timer frequency. */
++=09=09if (arch_timer_rate =3D=3D 0)
++=09=09=09panic("Architected timer frequency is set to zero.\n"
++=09=09=09      "You must set this in your .dts file\n");
++=09}
++
++=09/* Cache the sched_clock multiplier to save a divide in the hot path. *=
+/
++
++=09sched_clock_mult =3D NSEC_PER_SEC / arch_timer_rate;
++
++=09pr_info("Architected local timer running at %u.%02uMHz.\n",
++=09=09 arch_timer_rate / 1000000, (arch_timer_rate / 10000) % 100);
++}
++
++static cycle_t arch_counter_read(struct clocksource *cs)
++{
++=09return arch_counter_get_cntpct();
++}
++
++static struct clocksource clocksource_counter =3D {
++=09.name=09=3D "arch_sys_counter",
++=09.rating=09=3D 400,
++=09.read=09=3D arch_counter_read,
++=09.mask=09=3D CLOCKSOURCE_MASK(56),
++=09.flags=09=3D (CLOCK_SOURCE_IS_CONTINUOUS | CLOCK_SOURCE_VALID_FOR_HRES)=
+,
 +};
 +
-+static u32 encode_insn_immediate(enum aarch64_imm_type type, u32 insn, u64=
- imm)
++int read_current_timer(unsigned long *timer_value)
 +{
-+=09u32 immlo, immhi, lomask, himask, mask;
-+=09int shift;
-+
-+=09switch (type) {
-+=09case INSN_IMM_MOVNZ:
-+=09=09/*
-+=09=09 * For signed MOVW relocations, we have to manipulate the
-+=09=09 * instruction encoding depending on whether or not the
-+=09=09 * immediate is less than zero.
-+=09=09 */
-+=09=09insn &=3D ~(3 << 29);
-+=09=09if ((s64)imm >=3D 0) {
-+=09=09=09/* >=3D0: Set the instruction to MOVZ (opcode 10b). */
-+=09=09=09insn |=3D 2 << 29;
-+=09=09} else {
-+=09=09=09/*
-+=09=09=09 * <0: Set the instruction to MOVN (opcode 00b).
-+=09=09=09 *     Since we've masked the opcode already, we
-+=09=09=09 *     don't need to do anything other than
-+=09=09=09 *     inverting the new immediate field.
-+=09=09=09 */
-+=09=09=09imm =3D ~imm;
-+=09=09}
-+=09case INSN_IMM_MOVK:
-+=09=09mask =3D BIT(16) - 1;
-+=09=09shift =3D 5;
-+=09=09break;
-+=09case INSN_IMM_ADR:
-+=09=09lomask =3D 0x3;
-+=09=09himask =3D 0x7ffff;
-+=09=09immlo =3D imm & lomask;
-+=09=09imm >>=3D 2;
-+=09=09immhi =3D imm & himask;
-+=09=09imm =3D (immlo << 24) | (immhi);
-+=09=09mask =3D (lomask << 24) | (himask);
-+=09=09shift =3D 5;
-+=09=09break;
-+=09case INSN_IMM_26:
-+=09=09mask =3D BIT(26) - 1;
-+=09=09shift =3D 0;
-+=09=09break;
-+=09case INSN_IMM_19:
-+=09=09mask =3D BIT(19) - 1;
-+=09=09shift =3D 5;
-+=09=09break;
-+=09case INSN_IMM_16:
-+=09=09mask =3D BIT(16) - 1;
-+=09=09shift =3D 5;
-+=09=09break;
-+=09case INSN_IMM_14:
-+=09=09mask =3D BIT(14) - 1;
-+=09=09shift =3D 5;
-+=09=09break;
-+=09case INSN_IMM_12:
-+=09=09mask =3D BIT(12) - 1;
-+=09=09shift =3D 10;
-+=09=09break;
-+=09case INSN_IMM_9:
-+=09=09mask =3D BIT(9) - 1;
-+=09=09shift =3D 12;
-+=09=09break;
-+=09default:
-+=09=09pr_err("encode_insn_immediate: unknown immediate encoding %d\n",
-+=09=09=09type);
-+=09=09return 0;
-+=09}
-+
-+=09/* Update the immediate field. */
-+=09insn &=3D ~(mask << shift);
-+=09insn |=3D (imm & mask) << shift;
-+
-+=09return insn;
-+}
-+
-+static int reloc_insn_movw(enum aarch64_reloc_op op, void *place, u64 val,
-+=09=09=09   int lsb, enum aarch64_imm_type imm_type)
-+{
-+=09u64 imm, limit =3D 0;
-+=09s64 sval;
-+=09u32 insn =3D *(u32 *)place;
-+
-+=09sval =3D do_reloc(op, place, val);
-+=09sval >>=3D lsb;
-+=09imm =3D sval & 0xffff;
-+
-+=09/* Update the instruction with the new encoding. */
-+=09*(u32 *)place =3D encode_insn_immediate(imm_type, insn, imm);
-+
-+=09/* Shift out the immediate field. */
-+=09sval >>=3D 16;
-+
-+=09/*
-+=09 * For unsigned immediates, the overflow check is straightforward.
-+=09 * For signed immediates, the sign bit is actually the bit past the
-+=09 * most significant bit of the field.
-+=09 * The INSN_IMM_16 immediate type is unsigned.
-+=09 */
-+=09if (imm_type !=3D INSN_IMM_16) {
-+=09=09sval++;
-+=09=09limit++;
-+=09}
-+
-+=09/* Check the upper bits depending on the sign of the immediate. */
-+=09if ((u64)sval > limit)
-+=09=09return -ERANGE;
-+
++=09*timer_value =3D arch_counter_get_cntpct();
 +=09return 0;
 +}
 +
-+static int reloc_insn_imm(enum aarch64_reloc_op op, void *place, u64 val,
-+=09=09=09  int lsb, int len, enum aarch64_imm_type imm_type)
++unsigned long long notrace sched_clock(void)
 +{
-+=09u64 imm, imm_mask;
-+=09s64 sval;
-+=09u32 insn =3D *(u32 *)place;
-+
-+=09/* Calculate the relocation value. */
-+=09sval =3D do_reloc(op, place, val);
-+=09sval >>=3D lsb;
-+
-+=09/* Extract the value bits and shift them to bit 0. */
-+=09imm_mask =3D (BIT(lsb + len) - 1) >> lsb;
-+=09imm =3D sval & imm_mask;
-+
-+=09/* Update the instruction's immediate field. */
-+=09*(u32 *)place =3D encode_insn_immediate(imm_type, insn, imm);
-+
-+=09/*
-+=09 * Extract the upper value bits (including the sign bit) and
-+=09 * shift them to bit 0.
-+=09 */
-+=09sval =3D (s64)(sval & ~(imm_mask >> 1)) >> (len - 1);
-+
-+=09/*
-+=09 * Overflow has occurred if the upper bits are not all equal to
-+=09 * the sign bit of the value.
-+=09 */
-+=09if ((u64)(sval + 1) >=3D 2)
-+=09=09return -ERANGE;
-+
-+=09return 0;
++=09return arch_counter_get_cntvct() * sched_clock_mult;
 +}
 +
-+int apply_relocate_add(Elf64_Shdr *sechdrs,
-+=09=09       const char *strtab,
-+=09=09       unsigned int symindex,
-+=09=09       unsigned int relsec,
-+=09=09       struct module *me)
++static int __cpuinit arch_timer_cpu_notify(struct notifier_block *self,
++=09=09=09=09=09   unsigned long action, void *hcpu)
 +{
-+=09unsigned int i;
-+=09int ovf;
-+=09bool overflow_check;
-+=09Elf64_Sym *sym;
-+=09void *loc;
-+=09u64 val;
-+=09Elf64_Rela *rel =3D (void *)sechdrs[relsec].sh_addr;
++=09int cpu =3D (long)hcpu;
++=09struct clock_event_device *clk =3D per_cpu_ptr(&arch_timer_evt, cpu);
 +
-+=09for (i =3D 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
-+=09=09/* loc corresponds to P in the AArch64 ELF document. */
-+=09=09loc =3D (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
-+=09=09=09+ rel[i].r_offset;
++=09switch(action) {
++=09case CPU_STARTING:
++=09case CPU_STARTING_FROZEN:
++=09=09arch_timer_setup(clk);
++=09=09break;
 +
-+=09=09/* sym is the ELF symbol we're referring to. */
-+=09=09sym =3D (Elf64_Sym *)sechdrs[symindex].sh_addr
-+=09=09=09+ ELF64_R_SYM(rel[i].r_info);
-+
-+=09=09/* val corresponds to (S + A) in the AArch64 ELF document. */
-+=09=09val =3D sym->st_value + rel[i].r_addend;
-+
-+=09=09/* Check for overflow by default. */
-+=09=09overflow_check =3D true;
-+
-+=09=09/* Perform the static relocation. */
-+=09=09switch (ELF64_R_TYPE(rel[i].r_info)) {
-+=09=09/* Null relocations. */
-+=09=09case R_ARM_NONE:
-+=09=09case R_AARCH64_NONE:
-+=09=09=09ovf =3D 0;
-+=09=09=09break;
-+
-+=09=09/* Data relocations. */
-+=09=09case R_AARCH64_ABS64:
-+=09=09=09overflow_check =3D false;
-+=09=09=09ovf =3D reloc_data(RELOC_OP_ABS, loc, val, 64);
-+=09=09=09break;
-+=09=09case R_AARCH64_ABS32:
-+=09=09=09ovf =3D reloc_data(RELOC_OP_ABS, loc, val, 32);
-+=09=09=09break;
-+=09=09case R_AARCH64_ABS16:
-+=09=09=09ovf =3D reloc_data(RELOC_OP_ABS, loc, val, 16);
-+=09=09=09break;
-+=09=09case R_AARCH64_PREL64:
-+=09=09=09overflow_check =3D false;
-+=09=09=09ovf =3D reloc_data(RELOC_OP_PREL, loc, val, 64);
-+=09=09=09break;
-+=09=09case R_AARCH64_PREL32:
-+=09=09=09ovf =3D reloc_data(RELOC_OP_PREL, loc, val, 32);
-+=09=09=09break;
-+=09=09case R_AARCH64_PREL16:
-+=09=09=09ovf =3D reloc_data(RELOC_OP_PREL, loc, val, 16);
-+=09=09=09break;
-+
-+=09=09/* MOVW instruction relocations. */
-+=09=09case R_AARCH64_MOVW_UABS_G0_NC:
-+=09=09=09overflow_check =3D false;
-+=09=09case R_AARCH64_MOVW_UABS_G0:
-+=09=09=09ovf =3D reloc_insn_movw(RELOC_OP_ABS, loc, val, 0,
-+=09=09=09=09=09      INSN_IMM_16);
-+=09=09=09break;
-+=09=09case R_AARCH64_MOVW_UABS_G1_NC:
-+=09=09=09overflow_check =3D false;
-+=09=09case R_AARCH64_MOVW_UABS_G1:
-+=09=09=09ovf =3D reloc_insn_movw(RELOC_OP_ABS, loc, val, 16,
-+=09=09=09=09=09      INSN_IMM_16);
-+=09=09=09break;
-+=09=09case R_AARCH64_MOVW_UABS_G2_NC:
-+=09=09=09overflow_check =3D false;
-+=09=09case R_AARCH64_MOVW_UABS_G2:
-+=09=09=09ovf =3D reloc_insn_movw(RELOC_OP_ABS, loc, val, 32,
-+=09=09=09=09=09      INSN_IMM_16);
-+=09=09=09break;
-+=09=09case R_AARCH64_MOVW_UABS_G3:
-+=09=09=09/* We're using the top bits so we can't overflow. */
-+=09=09=09overflow_check =3D false;
-+=09=09=09ovf =3D reloc_insn_movw(RELOC_OP_ABS, loc, val, 48,
-+=09=09=09=09=09      INSN_IMM_16);
-+=09=09=09break;
-+=09=09case R_AARCH64_MOVW_SABS_G0:
-+=09=09=09ovf =3D reloc_insn_movw(RELOC_OP_ABS, loc, val, 0,
-+=09=09=09=09=09      INSN_IMM_MOVNZ);
-+=09=09=09break;
-+=09=09case R_AARCH64_MOVW_SABS_G1:
-+=09=09=09ovf =3D reloc_insn_movw(RELOC_OP_ABS, loc, val, 16,
-+=09=09=09=09=09      INSN_IMM_MOVNZ);
-+=09=09=09break;
-+=09=09case R_AARCH64_MOVW_SABS_G2:
-+=09=09=09ovf =3D reloc_insn_movw(RELOC_OP_ABS, loc, val, 32,
-+=09=09=09=09=09      INSN_IMM_MOVNZ);
-+=09=09=09break;
-+=09=09case R_AARCH64_MOVW_PREL_G0_NC:
-+=09=09=09overflow_check =3D false;
-+=09=09=09ovf =3D reloc_insn_movw(RELOC_OP_PREL, loc, val, 0,
-+=09=09=09=09=09      INSN_IMM_MOVK);
-+=09=09=09break;
-+=09=09case R_AARCH64_MOVW_PREL_G0:
-+=09=09=09ovf =3D reloc_insn_movw(RELOC_OP_PREL, loc, val, 0,
-+=09=09=09=09=09      INSN_IMM_MOVNZ);
-+=09=09=09break;
-+=09=09case R_AARCH64_MOVW_PREL_G1_NC:
-+=09=09=09overflow_check =3D false;
-+=09=09=09ovf =3D reloc_insn_movw(RELOC_OP_PREL, loc, val, 16,
-+=09=09=09=09=09      INSN_IMM_MOVK);
-+=09=09=09break;
-+=09=09case R_AARCH64_MOVW_PREL_G1:
-+=09=09=09ovf =3D reloc_insn_movw(RELOC_OP_PREL, loc, val, 16,
-+=09=09=09=09=09      INSN_IMM_MOVNZ);
-+=09=09=09break;
-+=09=09case R_AARCH64_MOVW_PREL_G2_NC:
-+=09=09=09overflow_check =3D false;
-+=09=09=09ovf =3D reloc_insn_movw(RELOC_OP_PREL, loc, val, 32,
-+=09=09=09=09=09      INSN_IMM_MOVK);
-+=09=09=09break;
-+=09=09case R_AARCH64_MOVW_PREL_G2:
-+=09=09=09ovf =3D reloc_insn_movw(RELOC_OP_PREL, loc, val, 32,
-+=09=09=09=09=09      INSN_IMM_MOVNZ);
-+=09=09=09break;
-+=09=09case R_AARCH64_MOVW_PREL_G3:
-+=09=09=09/* We're using the top bits so we can't overflow. */
-+=09=09=09overflow_check =3D false;
-+=09=09=09ovf =3D reloc_insn_movw(RELOC_OP_PREL, loc, val, 48,
-+=09=09=09=09=09      INSN_IMM_MOVNZ);
-+=09=09=09break;
-+
-+=09=09/* Immediate instruction relocations. */
-+=09=09case R_AARCH64_LD_PREL_LO19:
-+=09=09=09ovf =3D reloc_insn_imm(RELOC_OP_PREL, loc, val, 2, 19,
-+=09=09=09=09=09     INSN_IMM_19);
-+=09=09=09break;
-+=09=09case R_AARCH64_ADR_PREL_LO21:
-+=09=09=09ovf =3D reloc_insn_imm(RELOC_OP_PREL, loc, val, 0, 21,
-+=09=09=09=09=09     INSN_IMM_ADR);
-+=09=09=09break;
-+=09=09case R_AARCH64_ADR_PREL_PG_HI21_NC:
-+=09=09=09overflow_check =3D false;
-+=09=09case R_AARCH64_ADR_PREL_PG_HI21:
-+=09=09=09ovf =3D reloc_insn_imm(RELOC_OP_PAGE, loc, val, 12, 21,
-+=09=09=09=09=09     INSN_IMM_ADR);
-+=09=09=09break;
-+=09=09case R_AARCH64_ADD_ABS_LO12_NC:
-+=09=09case R_AARCH64_LDST8_ABS_LO12_NC:
-+=09=09=09overflow_check =3D false;
-+=09=09=09ovf =3D reloc_insn_imm(RELOC_OP_ABS, loc, val, 0, 12,
-+=09=09=09=09=09     INSN_IMM_12);
-+=09=09=09break;
-+=09=09case R_AARCH64_LDST16_ABS_LO12_NC:
-+=09=09=09overflow_check =3D false;
-+=09=09=09ovf =3D reloc_insn_imm(RELOC_OP_ABS, loc, val, 1, 11,
-+=09=09=09=09=09     INSN_IMM_12);
-+=09=09=09break;
-+=09=09case R_AARCH64_LDST32_ABS_LO12_NC:
-+=09=09=09overflow_check =3D false;
-+=09=09=09ovf =3D reloc_insn_imm(RELOC_OP_ABS, loc, val, 2, 10,
-+=09=09=09=09=09     INSN_IMM_12);
-+=09=09=09break;
-+=09=09case R_AARCH64_LDST64_ABS_LO12_NC:
-+=09=09=09overflow_check =3D false;
-+=09=09=09ovf =3D reloc_insn_imm(RELOC_OP_ABS, loc, val, 3, 9,
-+=09=09=09=09=09     INSN_IMM_12);
-+=09=09=09break;
-+=09=09case R_AARCH64_LDST128_ABS_LO12_NC:
-+=09=09=09overflow_check =3D false;
-+=09=09=09ovf =3D reloc_insn_imm(RELOC_OP_ABS, loc, val, 4, 8,
-+=09=09=09=09=09     INSN_IMM_12);
-+=09=09=09break;
-+=09=09case R_AARCH64_TSTBR14:
-+=09=09=09ovf =3D reloc_insn_imm(RELOC_OP_PREL, loc, val, 2, 14,
-+=09=09=09=09=09     INSN_IMM_14);
-+=09=09=09break;
-+=09=09case R_AARCH64_CONDBR19:
-+=09=09=09ovf =3D reloc_insn_imm(RELOC_OP_PREL, loc, val, 2, 19,
-+=09=09=09=09=09     INSN_IMM_19);
-+=09=09=09break;
-+=09=09case R_AARCH64_JUMP26:
-+=09=09case R_AARCH64_CALL26:
-+=09=09=09ovf =3D reloc_insn_imm(RELOC_OP_PREL, loc, val, 2, 26,
-+=09=09=09=09=09     INSN_IMM_26);
-+=09=09=09break;
-+
-+=09=09default:
-+=09=09=09pr_err("module %s: unsupported RELA relocation: %llu\n",
-+=09=09=09       me->name, ELF64_R_TYPE(rel[i].r_info));
-+=09=09=09return -ENOEXEC;
-+=09=09}
-+
-+=09=09if (overflow_check && ovf =3D=3D -ERANGE)
-+=09=09=09goto overflow;
-+
++=09case CPU_DYING:
++=09case CPU_DYING_FROZEN:
++=09=09pr_debug("arch_timer_teardown disable IRQ%d cpu #%d\n",
++=09=09=09 clk->irq, cpu);
++=09=09disable_percpu_irq(clk->irq);
++=09=09arch_timer_set_mode(CLOCK_EVT_MODE_UNUSED, clk);
++=09=09break;
 +=09}
 +
-+=09return 0;
-+
-+overflow:
-+=09pr_err("module %s: overflow in relocation type %d val %Lx\n",
-+=09       me->name, (int)ELF64_R_TYPE(rel[i].r_info), val);
-+=09return -ENOEXEC;
++=09return NOTIFY_OK;
 +}
++
++static struct notifier_block __cpuinitdata arch_timer_cpu_nb =3D {
++=09.notifier_call =3D arch_timer_cpu_notify,
++};
++
++static const struct of_device_id arch_timer_of_match[] __initconst =3D {
++=09{ .compatible =3D "arm,armv8-timer" },
++=09{},
++};
++
++int __init arm_generic_timer_init(void)
++{
++=09struct device_node *np;
++=09int err;
++=09u32 freq;
++
++=09np =3D of_find_matching_node(NULL, arch_timer_of_match);
++=09if (!np) {
++=09=09pr_err("arch_timer: can't find DT node\n");
++=09=09return -ENODEV;
++=09}
++
++=09/* Try to determine the frequency from the device tree or CNTFRQ */
++=09if (!of_property_read_u32(np, "clock-frequency", &freq))
++=09=09arch_timer_rate =3D freq;
++=09arch_timer_calibrate();
++
++=09arch_timer_ppi =3D irq_of_parse_and_map(np, 0);
++=09pr_info("arch_timer: found %s irq %d\n", np->name, arch_timer_ppi);
++
++=09err =3D request_percpu_irq(arch_timer_ppi, arch_timer_handle_irq,
++=09=09=09=09 np->name, &arch_timer_evt);
++=09if (err) {
++=09=09pr_err("arch_timer: can't register interrupt %d (%d)\n",
++=09=09       arch_timer_ppi, err);
++=09=09return err;
++=09}
++
++=09clocksource_register_hz(&clocksource_counter, arch_timer_rate);
++
++=09/* Calibrate the delay loop directly */
++=09lpj_fine =3D arch_timer_rate / HZ;
++
++=09/* Immediately configure the timer on the boot CPU */
++=09arch_timer_setup(per_cpu_ptr(&arch_timer_evt, smp_processor_id()));
++
++=09register_cpu_notifier(&arch_timer_cpu_nb);
++
++=09return 0;
++}
+diff --git a/include/clocksource/arm_generic.h b/include/clocksource/arm_ge=
+neric.h
+new file mode 100644
+index 0000000..5b41b0d
+--- /dev/null
++++ b/include/clocksource/arm_generic.h
+@@ -0,0 +1,21 @@
++/*
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __CLKSOURCE_ARM_GENERIC_H
++#define __CLKSOURCE_ARM_GENERIC_H
++
++extern int arm_generic_timer_init(void);
++
++#endif
 
