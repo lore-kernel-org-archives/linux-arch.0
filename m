@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:34502 "EHLO
+Received: from service87.mimecast.com ([91.220.42.44]:34443 "EHLO
 	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752663Ab2IGQ1z (ORCPT
+	with ESMTP id S1752042Ab2IGQ1z (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Sep 2012 12:27:55 -0400
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v3 17/31] arm64: System calls handling
-Date: Fri,  7 Sep 2012 17:26:52 +0100
-Message-ID: <1347035226-18649-18-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v3 15/31] arm64: SMP support
+Date: Fri,  7 Sep 2012 17:26:50 +0100
+Message-ID: <1347035226-18649-16-git-send-email-catalin.marinas@arm.com>
 In-Reply-To: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
 References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
 Content-Type: text/plain; charset=WINDOWS-1252
@@ -15,41 +15,63 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20120907162652.oaL4lWAcuNRYEpmPd-8eAtKyDUqhQNlV5JBUr3RxwpM@z>
+Message-ID: <20120907162650.c6fWFbYqmcVoy6z8an69-2xXBLbYFj8G9xyj2RG_gt4@z>
 
-This patch adds support for system calls coming from 64-bit
-applications. It uses the asm-generic/unistd.h definitions with the
-canonical set of system calls. The private system calls are only used
-for 32-bit (compat) applications as 64-bit ones can set the TLS and
-flush the caches entirely from user space.
+This patch adds SMP initialisation and spinlocks implementation for
+AArch64. The spinlock support uses the new load-acquire/store-release
+instructions to avoid explicit barriers. The architecture also specifies
+that an event is automatically generated when clearing the exclusive
+monitor state to wake up processors in WFE, so there is no need for an
+explicit DSB/SEV instruction sequence. The SEVL instruction is used to
+set the exclusive monitor locally as there is no conditional WFE and a
+branch is more expensive.
 
-The sys_call_table is just an array defined in a C file and it contains
-pointers to the syscall functions. The array is 4KB aligned to allow the
-use of the ADRP instruction (longer range ADR) in entry.S.
+For the SMP booting protocol, see Documentation/arm64/booting.txt.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
+Signed-off-by: Marc Zyngier <marc.zyngier@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 Acked-by: Tony Lindgren <tony@atomide.com>
 ---
- arch/arm64/include/asm/stat.h     |   62 +++++++++++++++++
- arch/arm64/include/asm/statfs.h   |   23 ++++++
- arch/arm64/include/asm/syscalls.h |   40 +++++++++++
- arch/arm64/include/asm/unistd.h   |   27 +++++++
- arch/arm64/kernel/sys.c           |  138 +++++++++++++++++++++++++++++++++=
+ arch/arm64/include/asm/hardirq.h        |    5 +
+ arch/arm64/include/asm/smp.h            |   69 +++++
+ arch/arm64/include/asm/spinlock.h       |  202 +++++++++++++
+ arch/arm64/include/asm/spinlock_types.h |   38 +++
+ arch/arm64/kernel/smp.c                 |  469 +++++++++++++++++++++++++++=
 ++++
- 5 files changed, 290 insertions(+), 0 deletions(-)
- create mode 100644 arch/arm64/include/asm/stat.h
- create mode 100644 arch/arm64/include/asm/statfs.h
- create mode 100644 arch/arm64/include/asm/syscalls.h
- create mode 100644 arch/arm64/include/asm/unistd.h
- create mode 100644 arch/arm64/kernel/sys.c
+ 5 files changed, 783 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/smp.h
+ create mode 100644 arch/arm64/include/asm/spinlock.h
+ create mode 100644 arch/arm64/include/asm/spinlock_types.h
+ create mode 100644 arch/arm64/kernel/smp.c
 
-diff --git a/arch/arm64/include/asm/stat.h b/arch/arm64/include/asm/stat.h
+diff --git a/arch/arm64/include/asm/hardirq.h b/arch/arm64/include/asm/hard=
+irq.h
+index c6c9514..5075463 100644
+--- a/arch/arm64/include/asm/hardirq.h
++++ b/arch/arm64/include/asm/hardirq.h
+@@ -20,8 +20,13 @@
+ #include <linux/threads.h>
+ #include <asm/irq.h>
+=20
++#define NR_IPI=094
++
+ typedef struct {
+ =09unsigned int __softirq_pending;
++#ifdef CONFIG_SMP
++=09unsigned int ipi_irqs[NR_IPI];
++#endif
+ } ____cacheline_aligned irq_cpustat_t;
+=20
+ #include <linux/irq_cpustat.h>=09/* Standard mappings for irq_cpustat_t ab=
+ove */
+diff --git a/arch/arm64/include/asm/smp.h b/arch/arm64/include/asm/smp.h
 new file mode 100644
-index 0000000..d87225c
+index 0000000..7e34295
 --- /dev/null
-+++ b/arch/arm64/include/asm/stat.h
-@@ -0,0 +1,62 @@
++++ b/arch/arm64/include/asm/smp.h
+@@ -0,0 +1,69 @@
 +/*
 + * Copyright (C) 2012 ARM Ltd.
 + *
@@ -65,308 +87,801 @@ index 0000000..d87225c
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_STAT_H
-+#define __ASM_STAT_H
++#ifndef __ASM_SMP_H
++#define __ASM_SMP_H
 +
-+#include <asm-generic/stat.h>
++#include <linux/threads.h>
++#include <linux/cpumask.h>
++#include <linux/thread_info.h>
 +
-+#if defined(__KERNEL__) && defined(CONFIG_COMPAT)
++#ifndef CONFIG_SMP
++# error "<asm/smp.h> included in non-SMP build"
++#endif
 +
-+#include <asm/compat.h>
++#define raw_smp_processor_id() (current_thread_info()->cpu)
++
++struct seq_file;
 +
 +/*
-+ * struct stat64 is needed for compat tasks only. Its definition is differ=
-ent
-+ * from the generic struct stat64.
++ * generate IPI list text
 + */
-+struct stat64 {
-+=09compat_u64=09st_dev;
-+=09unsigned char   __pad0[4];
++extern void show_ipi_list(struct seq_file *p, int prec);
 +
-+#define STAT64_HAS_BROKEN_ST_INO=091
-+=09compat_ulong_t=09__st_ino;
-+=09compat_uint_t=09st_mode;
-+=09compat_uint_t=09st_nlink;
++/*
++ * Called from C code, this handles an IPI.
++ */
++extern void handle_IPI(int ipinr, struct pt_regs *regs);
 +
-+=09compat_ulong_t=09st_uid;
-+=09compat_ulong_t=09st_gid;
++/*
++ * Setup the set of possible CPUs (via set_cpu_possible)
++ */
++extern void smp_init_cpus(void);
 +
-+=09compat_u64=09st_rdev;
-+=09unsigned char   __pad3[4];
++/*
++ * Provide a function to raise an IPI cross call on CPUs in callmap.
++ */
++extern void set_smp_cross_call(void (*)(const struct cpumask *, unsigned i=
+nt));
 +
-+=09compat_s64=09st_size;
-+=09compat_ulong_t=09st_blksize;
-+=09compat_u64=09st_blocks;=09/* Number of 512-byte blocks allocated. */
++/*
++ * Called from the secondary holding pen, this is the secondary CPU entry =
+point.
++ */
++asmlinkage void secondary_start_kernel(void);
 +
-+=09compat_ulong_t=09st_atime;
-+=09compat_ulong_t=09st_atime_nsec;
++/*
++ * Initial data for bringing up a secondary CPU.
++ */
++struct secondary_data {
++=09void *stack;
++};
++extern struct secondary_data secondary_data;
++extern void secondary_holding_pen(void);
++extern volatile unsigned long secondary_holding_pen_release;
 +
-+=09compat_ulong_t=09st_mtime;
-+=09compat_ulong_t=09st_mtime_nsec;
++extern void arch_send_call_function_single_ipi(int cpu);
++extern void arch_send_call_function_ipi_mask(const struct cpumask *mask);
 +
-+=09compat_ulong_t=09st_ctime;
-+=09compat_ulong_t=09st_ctime_nsec;
++#endif /* ifndef __ASM_SMP_H */
+diff --git a/arch/arm64/include/asm/spinlock.h b/arch/arm64/include/asm/spi=
+nlock.h
+new file mode 100644
+index 0000000..41112fe
+--- /dev/null
++++ b/arch/arm64/include/asm/spinlock.h
+@@ -0,0 +1,202 @@
++/*
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_SPINLOCK_H
++#define __ASM_SPINLOCK_H
 +
-+=09compat_u64=09st_ino;
++#include <asm/spinlock_types.h>
++#include <asm/processor.h>
++
++/*
++ * Spinlock implementation.
++ *
++ * The old value is read exclusively and the new one, if unlocked, is writ=
+ten
++ * exclusively. In case of failure, the loop is restarted.
++ *
++ * The memory barriers are implicit with the load-acquire and store-releas=
+e
++ * instructions.
++ *
++ * Unlocked value: 0
++ * Locked value: 1
++ */
++
++#define arch_spin_is_locked(x)=09=09((x)->lock !=3D 0)
++#define arch_spin_unlock_wait(lock) \
++=09do { while (arch_spin_is_locked(lock)) cpu_relax(); } while (0)
++
++#define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
++
++static inline void arch_spin_lock(arch_spinlock_t *lock)
++{
++=09unsigned int tmp;
++
++=09asm volatile(
++=09"=09sevl\n"
++=09"1:=09wfe\n"
++=09"2:=09ldaxr=09%w0, [%1]\n"
++=09"=09cbnz=09%w0, 1b\n"
++=09"=09stxr=09%w0, %w2, [%1]\n"
++=09"=09cbnz=09%w0, 2b\n"
++=09: "=3D&r" (tmp)
++=09: "r" (&lock->lock), "r" (1)
++=09: "memory");
++}
++
++static inline int arch_spin_trylock(arch_spinlock_t *lock)
++{
++=09unsigned int tmp;
++
++=09asm volatile(
++=09"=09ldaxr=09%w0, [%1]\n"
++=09"=09cbnz=09%w0, 1f\n"
++=09"=09stxr=09%w0, %w2, [%1]\n"
++=09"1:\n"
++=09: "=3D&r" (tmp)
++=09: "r" (&lock->lock), "r" (1)
++=09: "memory");
++
++=09return !tmp;
++}
++
++static inline void arch_spin_unlock(arch_spinlock_t *lock)
++{
++=09asm volatile(
++=09"=09stlr=09%w1, [%0]\n"
++=09: : "r" (&lock->lock), "r" (0) : "memory");
++}
++
++/*
++ * Write lock implementation.
++ *
++ * Write locks set bit 31. Unlocking, is done by writing 0 since the lock =
+is
++ * exclusively held.
++ *
++ * The memory barriers are implicit with the load-acquire and store-releas=
+e
++ * instructions.
++ */
++
++static inline void arch_write_lock(arch_rwlock_t *rw)
++{
++=09unsigned int tmp;
++
++=09asm volatile(
++=09"=09sevl\n"
++=09"1:=09wfe\n"
++=09"2:=09ldaxr=09%w0, [%1]\n"
++=09"=09cbnz=09%w0, 1b\n"
++=09"=09stxr=09%w0, %w2, [%1]\n"
++=09"=09cbnz=09%w0, 2b\n"
++=09: "=3D&r" (tmp)
++=09: "r" (&rw->lock), "r" (0x80000000)
++=09: "memory");
++}
++
++static inline int arch_write_trylock(arch_rwlock_t *rw)
++{
++=09unsigned int tmp;
++
++=09asm volatile(
++=09"=09ldaxr=09%w0, [%1]\n"
++=09"=09cbnz=09%w0, 1f\n"
++=09"=09stxr=09%w0, %w2, [%1]\n"
++=09"1:\n"
++=09: "=3D&r" (tmp)
++=09: "r" (&rw->lock), "r" (0x80000000)
++=09: "memory");
++
++=09return !tmp;
++}
++
++static inline void arch_write_unlock(arch_rwlock_t *rw)
++{
++=09asm volatile(
++=09"=09stlr=09%w1, [%0]\n"
++=09: : "r" (&rw->lock), "r" (0) : "memory");
++}
++
++/* write_can_lock - would write_trylock() succeed? */
++#define arch_write_can_lock(x)=09=09((x)->lock =3D=3D 0)
++
++/*
++ * Read lock implementation.
++ *
++ * It exclusively loads the lock value, increments it and stores the new v=
+alue
++ * back if positive and the CPU still exclusively owns the location. If th=
+e
++ * value is negative, the lock is already held.
++ *
++ * During unlocking there may be multiple active read locks but no write l=
+ock.
++ *
++ * The memory barriers are implicit with the load-acquire and store-releas=
+e
++ * instructions.
++ */
++static inline void arch_read_lock(arch_rwlock_t *rw)
++{
++=09unsigned int tmp, tmp2;
++
++=09asm volatile(
++=09"=09sevl\n"
++=09"1:=09wfe\n"
++=09"2:=09ldaxr=09%w0, [%2]\n"
++=09"=09add=09%w0, %w0, #1\n"
++=09"=09tbnz=09%w0, #31, 1b\n"
++=09"=09stxr=09%w1, %w0, [%2]\n"
++=09"=09cbnz=09%w1, 2b\n"
++=09: "=3D&r" (tmp), "=3D&r" (tmp2)
++=09: "r" (&rw->lock)
++=09: "memory");
++}
++
++static inline void arch_read_unlock(arch_rwlock_t *rw)
++{
++=09unsigned int tmp, tmp2;
++
++=09asm volatile(
++=09"1:=09ldxr=09%w0, [%2]\n"
++=09"=09sub=09%w0, %w0, #1\n"
++=09"=09stlxr=09%w1, %w0, [%2]\n"
++=09"=09cbnz=09%w1, 1b\n"
++=09: "=3D&r" (tmp), "=3D&r" (tmp2)
++=09: "r" (&rw->lock)
++=09: "memory");
++}
++
++static inline int arch_read_trylock(arch_rwlock_t *rw)
++{
++=09unsigned int tmp, tmp2 =3D 1;
++
++=09asm volatile(
++=09"=09ldaxr=09%w0, [%2]\n"
++=09"=09add=09%w0, %w0, #1\n"
++=09"=09tbnz=09%w0, #31, 1f\n"
++=09"=09stxr=09%w1, %w0, [%2]\n"
++=09"1:\n"
++=09: "=3D&r" (tmp), "+r" (tmp2)
++=09: "r" (&rw->lock)
++=09: "memory");
++
++=09return !tmp2;
++}
++
++/* read_can_lock - would read_trylock() succeed? */
++#define arch_read_can_lock(x)=09=09((x)->lock < 0x80000000)
++
++#define arch_read_lock_flags(lock, flags) arch_read_lock(lock)
++#define arch_write_lock_flags(lock, flags) arch_write_lock(lock)
++
++#define arch_spin_relax(lock)=09cpu_relax()
++#define arch_read_relax(lock)=09cpu_relax()
++#define arch_write_relax(lock)=09cpu_relax()
++
++#endif /* __ASM_SPINLOCK_H */
+diff --git a/arch/arm64/include/asm/spinlock_types.h b/arch/arm64/include/a=
+sm/spinlock_types.h
+new file mode 100644
+index 0000000..9a49434
+--- /dev/null
++++ b/arch/arm64/include/asm/spinlock_types.h
+@@ -0,0 +1,38 @@
++/*
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#ifndef __ASM_SPINLOCK_TYPES_H
++#define __ASM_SPINLOCK_TYPES_H
++
++#if !defined(__LINUX_SPINLOCK_TYPES_H) && !defined(__ASM_SPINLOCK_H)
++# error "please don't include this file directly"
++#endif
++
++/* We only require natural alignment for exclusive accesses. */
++#define __lock_aligned
++
++typedef struct {
++=09volatile unsigned int lock;
++} arch_spinlock_t;
++
++#define __ARCH_SPIN_LOCK_UNLOCKED=09{ 0 }
++
++typedef struct {
++=09volatile unsigned int lock;
++} arch_rwlock_t;
++
++#define __ARCH_RW_LOCK_UNLOCKED=09=09{ 0 }
++
++#endif
+diff --git a/arch/arm64/kernel/smp.c b/arch/arm64/kernel/smp.c
+new file mode 100644
+index 0000000..b711525
+--- /dev/null
++++ b/arch/arm64/kernel/smp.c
+@@ -0,0 +1,469 @@
++/*
++ * SMP initialisation and IPI support
++ * Based on arch/arm/kernel/smp.c
++ *
++ * Copyright (C) 2012 ARM Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <linux/delay.h>
++#include <linux/init.h>
++#include <linux/spinlock.h>
++#include <linux/sched.h>
++#include <linux/interrupt.h>
++#include <linux/cache.h>
++#include <linux/profile.h>
++#include <linux/errno.h>
++#include <linux/mm.h>
++#include <linux/err.h>
++#include <linux/cpu.h>
++#include <linux/smp.h>
++#include <linux/seq_file.h>
++#include <linux/irq.h>
++#include <linux/percpu.h>
++#include <linux/clockchips.h>
++#include <linux/completion.h>
++#include <linux/of.h>
++
++#include <asm/atomic.h>
++#include <asm/cacheflush.h>
++#include <asm/cputype.h>
++#include <asm/mmu_context.h>
++#include <asm/pgtable.h>
++#include <asm/pgalloc.h>
++#include <asm/processor.h>
++#include <asm/sections.h>
++#include <asm/tlbflush.h>
++#include <asm/ptrace.h>
++#include <asm/mmu_context.h>
++
++/*
++ * as from 2.5, kernels no longer have an init_tasks structure
++ * so we need some other way of telling a new secondary core
++ * where to place its SVC stack
++ */
++struct secondary_data secondary_data;
++volatile unsigned long secondary_holding_pen_release =3D -1;
++
++enum ipi_msg_type {
++=09IPI_RESCHEDULE,
++=09IPI_CALL_FUNC,
++=09IPI_CALL_FUNC_SINGLE,
++=09IPI_CPU_STOP,
 +};
 +
-+#endif
-+
-+#endif
-diff --git a/arch/arm64/include/asm/statfs.h b/arch/arm64/include/asm/statf=
-s.h
-new file mode 100644
-index 0000000..6f62190
---- /dev/null
-+++ b/arch/arm64/include/asm/statfs.h
-@@ -0,0 +1,23 @@
-+/*
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+#ifndef __ASM_STATFS_H
-+#define __ASM_STATFS_H
-+
-+#define ARCH_PACK_COMPAT_STATFS64 __attribute__((packed,aligned(4)))
-+
-+#include <asm-generic/statfs.h>
-+
-+#endif
-diff --git a/arch/arm64/include/asm/syscalls.h b/arch/arm64/include/asm/sys=
-calls.h
-new file mode 100644
-index 0000000..09ff335
---- /dev/null
-+++ b/arch/arm64/include/asm/syscalls.h
-@@ -0,0 +1,40 @@
-+/*
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+#ifndef __ASM_SYSCALLS_H
-+#define __ASM_SYSCALLS_H
-+
-+#include <linux/linkage.h>
-+#include <linux/compiler.h>
-+#include <linux/signal.h>
++static DEFINE_RAW_SPINLOCK(boot_lock);
 +
 +/*
-+ * System call wrappers implemented in kernel/entry.S.
++ * Write secondary_holding_pen_release in a way that is guaranteed to be
++ * visible to all observers, irrespective of whether they're taking part
++ * in coherency or not.  This is necessary for the hotplug code to work
++ * reliably.
 + */
-+asmlinkage long sys_execve_wrapper(const char __user *filename,
-+=09=09=09=09   const char __user *const __user *argv,
-+=09=09=09=09   const char __user *const __user *envp);
-+asmlinkage long sys_clone_wrapper(unsigned long clone_flags,
-+=09=09=09=09  unsigned long newsp,
-+=09=09=09=09  void __user *parent_tid,
-+=09=09=09=09  unsigned long tls_val,
-+=09=09=09=09  void __user *child_tid);
-+asmlinkage long sys_rt_sigreturn_wrapper(void);
-+asmlinkage long sys_sigaltstack_wrapper(const stack_t __user *uss,
-+=09=09=09=09=09stack_t __user *uoss);
-+
-+#include <asm-generic/syscalls.h>
-+
-+#endif=09/* __ASM_SYSCALLS_H */
-diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unist=
-d.h
-new file mode 100644
-index 0000000..fe18a68
---- /dev/null
-+++ b/arch/arm64/include/asm/unistd.h
-@@ -0,0 +1,27 @@
-+/*
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+#if !defined(__ASM_UNISTD_H) || defined(__SYSCALL)
-+#define __ASM_UNISTD_H
-+
-+#ifndef __SYSCALL_COMPAT
-+#include <asm-generic/unistd.h>
-+#endif
-+
-+#if defined(__KERNEL__) && defined(CONFIG_COMPAT)
-+#include <asm/unistd32.h>
-+#endif
-+
-+#endif /* __ASM_UNISTD_H */
-diff --git a/arch/arm64/kernel/sys.c b/arch/arm64/kernel/sys.c
-new file mode 100644
-index 0000000..905fcfb
---- /dev/null
-+++ b/arch/arm64/kernel/sys.c
-@@ -0,0 +1,138 @@
-+/*
-+ * AArch64-specific system calls implementation
-+ *
-+ * Copyright (C) 2012 ARM Ltd.
-+ * Author: Catalin Marinas <catalin.marinas@arm.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <linux/compiler.h>
-+#include <linux/errno.h>
-+#include <linux/fs.h>
-+#include <linux/mm.h>
-+#include <linux/export.h>
-+#include <linux/sched.h>
-+#include <linux/slab.h>
-+#include <linux/syscalls.h>
-+
-+/*
-+ * Clone a task - this clones the calling program thread.
-+ */
-+asmlinkage long sys_clone(unsigned long clone_flags, unsigned long newsp,
-+=09=09=09  int __user *parent_tidptr, unsigned long tls_val,
-+=09=09=09  int __user *child_tidptr, struct pt_regs *regs)
++static void __cpuinit write_pen_release(int val)
 +{
-+=09if (!newsp)
-+=09=09newsp =3D regs->sp;
-+=09/* 16-byte aligned stack mandatory on AArch64 */
-+=09if (newsp & 15)
-+=09=09return -EINVAL;
-+=09return do_fork(clone_flags, newsp, regs, 0, parent_tidptr, child_tidptr=
-);
++=09void *start =3D (void *)&secondary_holding_pen_release;
++=09unsigned long size =3D sizeof(secondary_holding_pen_release);
++
++=09secondary_holding_pen_release =3D val;
++=09__flush_dcache_area(start, size);
 +}
 +
 +/*
-+ * sys_execve() executes a new program.
++ * Boot a secondary CPU, and assign it the specified idle task.
++ * This also gives us the initial stack to use for this CPU.
 + */
-+asmlinkage long sys_execve(const char __user *filenamei,
-+=09=09=09   const char __user *const __user *argv,
-+=09=09=09   const char __user *const __user *envp,
-+=09=09=09   struct pt_regs *regs)
++static int __cpuinit boot_secondary(unsigned int cpu, struct task_struct *=
+idle)
 +{
-+=09long error;
-+=09char * filename;
++=09unsigned long timeout;
 +
-+=09filename =3D getname(filenamei);
-+=09error =3D PTR_ERR(filename);
-+=09if (IS_ERR(filename))
-+=09=09goto out;
-+=09error =3D do_execve(filename, argv, envp, regs);
-+=09putname(filename);
-+out:
-+=09return error;
++=09/*
++=09 * Set synchronisation state between this boot processor
++=09 * and the secondary one
++=09 */
++=09raw_spin_lock(&boot_lock);
++
++=09/*
++=09 * Update the pen release flag.
++=09 */
++=09write_pen_release(cpu);
++
++=09/*
++=09 * Send an event, causing the secondaries to read pen_release.
++=09 */
++=09sev();
++
++=09timeout =3D jiffies + (1 * HZ);
++=09while (time_before(jiffies, timeout)) {
++=09=09if (secondary_holding_pen_release =3D=3D -1UL)
++=09=09=09break;
++=09=09udelay(10);
++=09}
++
++=09/*
++=09 * Now the secondary core is starting up let it run its
++=09 * calibrations, then wait for it to finish
++=09 */
++=09raw_spin_unlock(&boot_lock);
++
++=09return secondary_holding_pen_release !=3D -1 ? -ENOSYS : 0;
 +}
 +
-+int kernel_execve(const char *filename,
-+=09=09  const char *const argv[],
-+=09=09  const char *const envp[])
++static DECLARE_COMPLETION(cpu_running);
++
++int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *idle)
 +{
-+=09struct pt_regs regs;
 +=09int ret;
 +
-+=09memset(&regs, 0, sizeof(struct pt_regs));
-+=09ret =3D do_execve(filename,
-+=09=09=09(const char __user *const __user *)argv,
-+=09=09=09(const char __user *const __user *)envp, &regs);
-+=09if (ret < 0)
-+=09=09goto out;
++=09/*
++=09 * We need to tell the secondary core where to find its stack and the
++=09 * page tables.
++=09 */
++=09secondary_data.stack =3D task_stack_page(idle) + THREAD_START_SP;
++=09__flush_dcache_area(&secondary_data, sizeof(secondary_data));
 +
 +=09/*
-+=09 * Save argc to the register structure for userspace.
++=09 * Now bring the CPU into our world.
 +=09 */
-+=09regs.regs[0] =3D ret;
++=09ret =3D boot_secondary(cpu, idle);
++=09if (ret =3D=3D 0) {
++=09=09/*
++=09=09 * CPU was successfully started, wait for it to come online or
++=09=09 * time out.
++=09=09 */
++=09=09wait_for_completion_timeout(&cpu_running,
++=09=09=09=09=09    msecs_to_jiffies(1000));
 +
-+=09/*
-+=09 * We were successful.  We won't be returning to our caller, but
-+=09 * instead to user space by manipulating the kernel stack.
-+=09 */
-+=09asm(=09"add=09x0, %0, %1\n\t"
-+=09=09"mov=09x1, %2\n\t"
-+=09=09"mov=09x2, %3\n\t"
-+=09=09"bl=09memmove\n\t"=09/* copy regs to top of stack */
-+=09=09"mov=09x27, #0\n\t"=09/* not a syscall */
-+=09=09"mov=09x28, %0\n\t"=09/* thread structure */
-+=09=09"mov=09sp, x0\n\t"=09/* reposition stack pointer */
-+=09=09"b=09ret_to_user"
-+=09=09:
-+=09=09: "r" (current_thread_info()),
-+=09=09  "Ir" (THREAD_START_SP - sizeof(regs)),
-+=09=09  "r" (&regs),
-+=09=09  "Ir" (sizeof(regs))
-+=09=09: "x0", "x1", "x2", "x27", "x28", "x30", "memory");
++=09=09if (!cpu_online(cpu)) {
++=09=09=09pr_crit("CPU%u: failed to come online\n", cpu);
++=09=09=09ret =3D -EIO;
++=09=09}
++=09} else {
++=09=09pr_err("CPU%u: failed to boot: %d\n", cpu, ret);
++=09}
 +
-+ out:
++=09secondary_data.stack =3D NULL;
++
 +=09return ret;
 +}
-+EXPORT_SYMBOL(kernel_execve);
 +
-+asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
-+=09=09=09 unsigned long prot, unsigned long flags,
-+=09=09=09 unsigned long fd, off_t off)
++/*
++ * This is the secondary CPU boot entry.  We're using this CPUs
++ * idle thread stack, but a set of temporary page tables.
++ */
++asmlinkage void __cpuinit secondary_start_kernel(void)
 +{
-+=09if (offset_in_page(off) !=3D 0)
-+=09=09return -EINVAL;
++=09struct mm_struct *mm =3D &init_mm;
++=09unsigned int cpu =3D smp_processor_id();
 +
-+=09return sys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
++=09printk("CPU%u: Booted secondary processor\n", cpu);
++
++=09/*
++=09 * All kernel threads share the same mm context; grab a
++=09 * reference and switch to it.
++=09 */
++=09atomic_inc(&mm->mm_count);
++=09current->active_mm =3D mm;
++=09cpumask_set_cpu(cpu, mm_cpumask(mm));
++
++=09/*
++=09 * TTBR0 is only used for the identity mapping at this stage. Make it
++=09 * point to zero page to avoid speculatively fetching new entries.
++=09 */
++=09cpu_set_reserved_ttbr0();
++=09flush_tlb_all();
++
++=09preempt_disable();
++=09trace_hardirqs_off();
++
++=09/*
++=09 * Let the primary processor know we're out of the
++=09 * pen, then head off into the C entry point
++=09 */
++=09write_pen_release(-1);
++
++=09/*
++=09 * Synchronise with the boot thread.
++=09 */
++=09raw_spin_lock(&boot_lock);
++=09raw_spin_unlock(&boot_lock);
++
++=09/*
++=09 * Enable local interrupts.
++=09 */
++=09notify_cpu_starting(cpu);
++=09local_irq_enable();
++=09local_fiq_enable();
++
++=09/*
++=09 * OK, now it's safe to let the boot CPU continue.  Wait for
++=09 * the CPU migration code to notice that the CPU is online
++=09 * before we continue.
++=09 */
++=09set_cpu_online(cpu, true);
++=09while (!cpu_active(cpu))
++=09=09cpu_relax();
++
++=09/*
++=09 * OK, it's off to the idle thread for us
++=09 */
++=09cpu_idle();
++}
++
++void __init smp_cpus_done(unsigned int max_cpus)
++{
++=09unsigned long bogosum =3D loops_per_jiffy * num_online_cpus();
++
++=09pr_info("SMP: Total of %d processors activated (%lu.%02lu BogoMIPS).\n"=
+,
++=09=09num_online_cpus(), bogosum / (500000/HZ),
++=09=09(bogosum / (5000/HZ)) % 100);
++}
++
++void __init smp_prepare_boot_cpu(void)
++{
++}
++
++static void (*smp_cross_call)(const struct cpumask *, unsigned int);
++static phys_addr_t cpu_release_addr[NR_CPUS];
++
++/*
++ * Enumerate the possible CPU set from the device tree.
++ */
++void __init smp_init_cpus(void)
++{
++=09const char *enable_method;
++=09struct device_node *dn =3D NULL;
++=09int cpu =3D 0;
++
++=09while ((dn =3D of_find_node_by_type(dn, "cpu"))) {
++=09=09if (cpu >=3D NR_CPUS)
++=09=09=09goto next;
++
++=09=09/*
++=09=09 * We currently support only the "spin-table" enable-method.
++=09=09 */
++=09=09enable_method =3D of_get_property(dn, "enable-method", NULL);
++=09=09if (!enable_method || strcmp(enable_method, "spin-table")) {
++=09=09=09pr_err("CPU %d: missing or invalid enable-method property: %s\n",
++=09=09=09       cpu, enable_method);
++=09=09=09goto next;
++=09=09}
++
++=09=09/*
++=09=09 * Determine the address from which the CPU is polling.
++=09=09 */
++=09=09if (of_property_read_u64(dn, "cpu-release-addr",
++=09=09=09=09=09 &cpu_release_addr[cpu])) {
++=09=09=09pr_err("CPU %d: missing or invalid cpu-release-addr property\n",
++=09=09=09       cpu);
++=09=09=09goto next;
++=09=09}
++
++=09=09set_cpu_possible(cpu, true);
++next:
++=09=09cpu++;
++=09}
++
++=09/* sanity check */
++=09if (cpu > NR_CPUS)
++=09=09pr_warning("no. of cores (%d) greater than configured maximum of %d =
+- clipping\n",
++=09=09=09   cpu, NR_CPUS);
++}
++
++void __init smp_prepare_cpus(unsigned int max_cpus)
++{
++=09int cpu;
++=09void **release_addr;
++=09unsigned int ncores =3D num_possible_cpus();
++
++=09/*
++=09 * are we trying to boot more cores than exist?
++=09 */
++=09if (max_cpus > ncores)
++=09=09max_cpus =3D ncores;
++
++=09/*
++=09 * Initialise the present map (which describes the set of CPUs
++=09 * actually populated at the present time) and release the
++=09 * secondaries from the bootloader.
++=09 */
++=09for_each_possible_cpu(cpu) {
++=09=09if (max_cpus =3D=3D 0)
++=09=09=09break;
++
++=09=09if (!cpu_release_addr[cpu])
++=09=09=09continue;
++
++=09=09release_addr =3D __va(cpu_release_addr[cpu]);
++=09=09release_addr[0] =3D (void *)__pa(secondary_holding_pen);
++=09=09__flush_dcache_area(release_addr, sizeof(release_addr[0]));
++
++=09=09set_cpu_present(cpu, true);
++=09=09max_cpus--;
++=09}
++
++=09/*
++=09 * Send an event to wake up the secondaries.
++=09 */
++=09sev();
++}
++
++
++void __init set_smp_cross_call(void (*fn)(const struct cpumask *, unsigned=
+ int))
++{
++=09smp_cross_call =3D fn;
++}
++
++void arch_send_call_function_ipi_mask(const struct cpumask *mask)
++{
++=09smp_cross_call(mask, IPI_CALL_FUNC);
++}
++
++void arch_send_call_function_single_ipi(int cpu)
++{
++=09smp_cross_call(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
++}
++
++static const char *ipi_types[NR_IPI] =3D {
++#define S(x,s)=09[x - IPI_RESCHEDULE] =3D s
++=09S(IPI_RESCHEDULE, "Rescheduling interrupts"),
++=09S(IPI_CALL_FUNC, "Function call interrupts"),
++=09S(IPI_CALL_FUNC_SINGLE, "Single function call interrupts"),
++=09S(IPI_CPU_STOP, "CPU stop interrupts"),
++};
++
++void show_ipi_list(struct seq_file *p, int prec)
++{
++=09unsigned int cpu, i;
++
++=09for (i =3D 0; i < NR_IPI; i++) {
++=09=09seq_printf(p, "%*s%u:%s", prec - 1, "IPI", i + IPI_RESCHEDULE,
++=09=09=09   prec >=3D 4 ? " " : "");
++=09=09for_each_present_cpu(cpu)
++=09=09=09seq_printf(p, "%10u ",
++=09=09=09=09   __get_irq_stat(cpu, ipi_irqs[i]));
++=09=09seq_printf(p, "      %s\n", ipi_types[i]);
++=09}
++}
++
++u64 smp_irq_stat_cpu(unsigned int cpu)
++{
++=09u64 sum =3D 0;
++=09int i;
++
++=09for (i =3D 0; i < NR_IPI; i++)
++=09=09sum +=3D __get_irq_stat(cpu, ipi_irqs[i]);
++
++=09return sum;
++}
++
++static DEFINE_RAW_SPINLOCK(stop_lock);
++
++/*
++ * ipi_cpu_stop - handle IPI from smp_send_stop()
++ */
++static void ipi_cpu_stop(unsigned int cpu)
++{
++=09if (system_state =3D=3D SYSTEM_BOOTING ||
++=09    system_state =3D=3D SYSTEM_RUNNING) {
++=09=09raw_spin_lock(&stop_lock);
++=09=09pr_crit("CPU%u: stopping\n", cpu);
++=09=09dump_stack();
++=09=09raw_spin_unlock(&stop_lock);
++=09}
++
++=09set_cpu_online(cpu, false);
++
++=09local_fiq_disable();
++=09local_irq_disable();
++
++=09while (1)
++=09=09cpu_relax();
 +}
 +
 +/*
-+ * Wrappers to pass the pt_regs argument.
++ * Main handler for inter-processor interrupts
 + */
-+#define sys_execve=09=09sys_execve_wrapper
-+#define sys_clone=09=09sys_clone_wrapper
-+#define sys_rt_sigreturn=09sys_rt_sigreturn_wrapper
-+#define sys_sigaltstack=09=09sys_sigaltstack_wrapper
++void handle_IPI(int ipinr, struct pt_regs *regs)
++{
++=09unsigned int cpu =3D smp_processor_id();
++=09struct pt_regs *old_regs =3D set_irq_regs(regs);
 +
-+#include <asm/syscalls.h>
++=09if (ipinr >=3D IPI_RESCHEDULE && ipinr < IPI_RESCHEDULE + NR_IPI)
++=09=09__inc_irq_stat(cpu, ipi_irqs[ipinr - IPI_RESCHEDULE]);
 +
-+#undef __SYSCALL
-+#define __SYSCALL(nr, sym)=09[nr] =3D sym,
++=09switch (ipinr) {
++=09case IPI_RESCHEDULE:
++=09=09scheduler_ipi();
++=09=09break;
++
++=09case IPI_CALL_FUNC:
++=09=09irq_enter();
++=09=09generic_smp_call_function_interrupt();
++=09=09irq_exit();
++=09=09break;
++
++=09case IPI_CALL_FUNC_SINGLE:
++=09=09irq_enter();
++=09=09generic_smp_call_function_single_interrupt();
++=09=09irq_exit();
++=09=09break;
++
++=09case IPI_CPU_STOP:
++=09=09irq_enter();
++=09=09ipi_cpu_stop(cpu);
++=09=09irq_exit();
++=09=09break;
++
++=09default:
++=09=09pr_crit("CPU%u: Unknown IPI message 0x%x\n", cpu, ipinr);
++=09=09break;
++=09}
++=09set_irq_regs(old_regs);
++}
++
++void smp_send_reschedule(int cpu)
++{
++=09smp_cross_call(cpumask_of(cpu), IPI_RESCHEDULE);
++}
++
++void smp_send_stop(void)
++{
++=09unsigned long timeout;
++
++=09if (num_online_cpus() > 1) {
++=09=09cpumask_t mask;
++
++=09=09cpumask_copy(&mask, cpu_online_mask);
++=09=09cpu_clear(smp_processor_id(), mask);
++
++=09=09smp_cross_call(&mask, IPI_CPU_STOP);
++=09}
++
++=09/* Wait up to one second for other CPUs to stop */
++=09timeout =3D USEC_PER_SEC;
++=09while (num_online_cpus() > 1 && timeout--)
++=09=09udelay(1);
++
++=09if (num_online_cpus() > 1)
++=09=09pr_warning("SMP: failed to stop secondary CPUs\n");
++}
 +
 +/*
-+ * The sys_call_table array must be 4K aligned to be accessible from
-+ * kernel/entry.S.
++ * not supported here
 + */
-+void *sys_call_table[__NR_syscalls] __aligned(4096) =3D {
-+=09[0 ... __NR_syscalls - 1] =3D sys_ni_syscall,
-+#include <asm/unistd.h>
-+};
++int setup_profiling_timer(unsigned int multiplier)
++{
++=09return -EINVAL;
++}
 
