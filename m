@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:34321 "EHLO
+Received: from service87.mimecast.com ([91.220.42.44]:34302 "EHLO
 	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751932Ab2IGQ1x (ORCPT
+	with ESMTP id S1751778Ab2IGQ1x (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Sep 2012 12:27:53 -0400
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v3 09/31] arm64: Cache maintenance routines
-Date: Fri,  7 Sep 2012 17:26:44 +0100
-Message-ID: <1347035226-18649-10-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v3 10/31] arm64: TLB maintenance functionality
+Date: Fri,  7 Sep 2012 17:26:45 +0100
+Message-ID: <1347035226-18649-11-git-send-email-catalin.marinas@arm.com>
 In-Reply-To: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
 References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
 Content-Type: text/plain; charset=WINDOWS-1252
@@ -15,38 +15,39 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20120907162644.a_K6VUPTJEF_bDGpcVcYqnJ2zX7kwTimhNlHV8W1B80@z>
+Message-ID: <20120907162645._FazZ4v_AQWtg1_u0F-19JgAnXRtShahj9clDWMZTJM@z>
 
-The patch adds functionality required for cache maintenance. The AArch64
-architecture mandates non-aliasing VIPT or PIPT D-cache and VIPT (may
-have aliases) or ASID-tagged VIVT I-cache. Cache maintenance operations
-are automatically broadcast in hardware between CPUs.
+This patch adds the TLB maintenance functions. There is no distinction
+made between the I and D TLBs. TLB maintenance operations are
+automatically broadcast between CPUs in hardware. The inner-shareable
+operations are always present, even on UP systems.
+
+NOTE: Large part of this patch to be dropped once Peter Z's generic
+mmu_gather patches are merged.
 
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 Acked-by: Tony Lindgren <tony@atomide.com>
 ---
- arch/arm64/include/asm/cache.h      |   32 +++++
- arch/arm64/include/asm/cacheflush.h |  168 +++++++++++++++++++++++
- arch/arm64/include/asm/cachetype.h  |   48 +++++++
- arch/arm64/mm/cache.S               |  251 +++++++++++++++++++++++++++++++=
+ arch/arm64/include/asm/tlb.h      |  190 +++++++++++++++++++++++++++++++++=
 ++++
- arch/arm64/mm/flush.c               |  138 +++++++++++++++++++
- 5 files changed, 637 insertions(+), 0 deletions(-)
- create mode 100644 arch/arm64/include/asm/cache.h
- create mode 100644 arch/arm64/include/asm/cacheflush.h
- create mode 100644 arch/arm64/include/asm/cachetype.h
- create mode 100644 arch/arm64/mm/cache.S
- create mode 100644 arch/arm64/mm/flush.c
+ arch/arm64/include/asm/tlbflush.h |  122 ++++++++++++++++++++++++
+ arch/arm64/mm/tlb.S               |   71 ++++++++++++++
+ 3 files changed, 383 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/tlb.h
+ create mode 100644 arch/arm64/include/asm/tlbflush.h
+ create mode 100644 arch/arm64/mm/tlb.S
 
-diff --git a/arch/arm64/include/asm/cache.h b/arch/arm64/include/asm/cache.=
-h
+diff --git a/arch/arm64/include/asm/tlb.h b/arch/arm64/include/asm/tlb.h
 new file mode 100644
-index 0000000..390308a
+index 0000000..654f096
 --- /dev/null
-+++ b/arch/arm64/include/asm/cache.h
-@@ -0,0 +1,32 @@
++++ b/arch/arm64/include/asm/tlb.h
+@@ -0,0 +1,190 @@
 +/*
++ * Based on arch/arm/include/asm/tlb.h
++ *
++ * Copyright (C) 2002 Russell King
 + * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -61,34 +62,197 @@ index 0000000..390308a
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_CACHE_H
-+#define __ASM_CACHE_H
++#ifndef __ASM_TLB_H
++#define __ASM_TLB_H
 +
-+#define L1_CACHE_SHIFT=09=096
-+#define L1_CACHE_BYTES=09=09(1 << L1_CACHE_SHIFT)
++#include <linux/pagemap.h>
++#include <linux/swap.h>
++
++#include <asm/pgalloc.h>
++#include <asm/tlbflush.h>
++
++#define MMU_GATHER_BUNDLE=098
 +
 +/*
-+ * Memory returned by kmalloc() may be used for DMA, so we must make
-+ * sure that all such allocations are cache aligned. Otherwise,
-+ * unrelated code may cause parts of the buffer to be read into the
-+ * cache before the transfer is done, causing old data to be seen by
-+ * the CPU.
++ * TLB handling.  This allows us to remove pages from the page
++ * tables, and efficiently handle the TLB issues.
 + */
-+#define ARCH_DMA_MINALIGN=09L1_CACHE_BYTES
-+#define ARCH_SLAB_MINALIGN=098
++struct mmu_gather {
++=09struct mm_struct=09*mm;
++=09unsigned int=09=09fullmm;
++=09struct vm_area_struct=09*vma;
++=09unsigned long=09=09range_start;
++=09unsigned long=09=09range_end;
++=09unsigned int=09=09nr;
++=09unsigned int=09=09max;
++=09struct page=09=09**pages;
++=09struct page=09=09*local[MMU_GATHER_BUNDLE];
++};
++
++/*
++ * This is unnecessarily complex.  There's three ways the TLB shootdown
++ * code is used:
++ *  1. Unmapping a range of vmas.  See zap_page_range(), unmap_region().
++ *     tlb->fullmm =3D 0, and tlb_start_vma/tlb_end_vma will be called.
++ *     tlb->vma will be non-NULL.
++ *  2. Unmapping all vmas.  See exit_mmap().
++ *     tlb->fullmm =3D 1, and tlb_start_vma/tlb_end_vma will be called.
++ *     tlb->vma will be non-NULL.  Additionally, page tables will be freed=
+.
++ *  3. Unmapping argument pages.  See shift_arg_pages().
++ *     tlb->fullmm =3D 0, but tlb_start_vma/tlb_end_vma will not be called=
+.
++ *     tlb->vma will be NULL.
++ */
++static inline void tlb_flush(struct mmu_gather *tlb)
++{
++=09if (tlb->fullmm || !tlb->vma)
++=09=09flush_tlb_mm(tlb->mm);
++=09else if (tlb->range_end > 0) {
++=09=09flush_tlb_range(tlb->vma, tlb->range_start, tlb->range_end);
++=09=09tlb->range_start =3D TASK_SIZE;
++=09=09tlb->range_end =3D 0;
++=09}
++}
++
++static inline void tlb_add_flush(struct mmu_gather *tlb, unsigned long add=
+r)
++{
++=09if (!tlb->fullmm) {
++=09=09if (addr < tlb->range_start)
++=09=09=09tlb->range_start =3D addr;
++=09=09if (addr + PAGE_SIZE > tlb->range_end)
++=09=09=09tlb->range_end =3D addr + PAGE_SIZE;
++=09}
++}
++
++static inline void __tlb_alloc_page(struct mmu_gather *tlb)
++{
++=09unsigned long addr =3D __get_free_pages(GFP_NOWAIT | __GFP_NOWARN, 0);
++
++=09if (addr) {
++=09=09tlb->pages =3D (void *)addr;
++=09=09tlb->max =3D PAGE_SIZE / sizeof(struct page *);
++=09}
++}
++
++static inline void tlb_flush_mmu(struct mmu_gather *tlb)
++{
++=09tlb_flush(tlb);
++=09free_pages_and_swap_cache(tlb->pages, tlb->nr);
++=09tlb->nr =3D 0;
++=09if (tlb->pages =3D=3D tlb->local)
++=09=09__tlb_alloc_page(tlb);
++}
++
++static inline void
++tlb_gather_mmu(struct mmu_gather *tlb, struct mm_struct *mm, unsigned int =
+fullmm)
++{
++=09tlb->mm =3D mm;
++=09tlb->fullmm =3D fullmm;
++=09tlb->vma =3D NULL;
++=09tlb->max =3D ARRAY_SIZE(tlb->local);
++=09tlb->pages =3D tlb->local;
++=09tlb->nr =3D 0;
++=09__tlb_alloc_page(tlb);
++}
++
++static inline void
++tlb_finish_mmu(struct mmu_gather *tlb, unsigned long start, unsigned long =
+end)
++{
++=09tlb_flush_mmu(tlb);
++
++=09/* keep the page table cache within bounds */
++=09check_pgt_cache();
++
++=09if (tlb->pages !=3D tlb->local)
++=09=09free_pages((unsigned long)tlb->pages, 0);
++}
++
++/*
++ * Memorize the range for the TLB flush.
++ */
++static inline void
++tlb_remove_tlb_entry(struct mmu_gather *tlb, pte_t *ptep, unsigned long ad=
+dr)
++{
++=09tlb_add_flush(tlb, addr);
++}
++
++/*
++ * In the case of tlb vma handling, we can optimise these away in the
++ * case where we're doing a full MM flush.  When we're doing a munmap,
++ * the vmas are adjusted to only cover the region to be torn down.
++ */
++static inline void
++tlb_start_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
++{
++=09if (!tlb->fullmm) {
++=09=09tlb->vma =3D vma;
++=09=09tlb->range_start =3D TASK_SIZE;
++=09=09tlb->range_end =3D 0;
++=09}
++}
++
++static inline void
++tlb_end_vma(struct mmu_gather *tlb, struct vm_area_struct *vma)
++{
++=09if (!tlb->fullmm)
++=09=09tlb_flush(tlb);
++}
++
++static inline int __tlb_remove_page(struct mmu_gather *tlb, struct page *p=
+age)
++{
++=09tlb->pages[tlb->nr++] =3D page;
++=09VM_BUG_ON(tlb->nr > tlb->max);
++=09return tlb->max - tlb->nr;
++}
++
++static inline void tlb_remove_page(struct mmu_gather *tlb, struct page *pa=
+ge)
++{
++=09if (!__tlb_remove_page(tlb, page))
++=09=09tlb_flush_mmu(tlb);
++}
++
++static inline void __pte_free_tlb(struct mmu_gather *tlb, pgtable_t pte,
++=09unsigned long addr)
++{
++=09pgtable_page_dtor(pte);
++=09tlb_add_flush(tlb, addr);
++=09tlb_remove_page(tlb, pte);
++}
++
++#ifndef CONFIG_ARM64_64K_PAGES
++static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
++=09=09=09=09  unsigned long addr)
++{
++=09tlb_add_flush(tlb, addr);
++=09tlb_remove_page(tlb, virt_to_page(pmdp));
++}
++#endif
++
++#define pte_free_tlb(tlb, ptep, addr)=09__pte_free_tlb(tlb, ptep, addr)
++#define pmd_free_tlb(tlb, pmdp, addr)=09__pmd_free_tlb(tlb, pmdp, addr)
++#define pud_free_tlb(tlb, pudp, addr)=09pud_free((tlb)->mm, pudp)
++
++#define tlb_migrate_finish(mm)=09=09do { } while (0)
 +
 +#endif
-diff --git a/arch/arm64/include/asm/cacheflush.h b/arch/arm64/include/asm/c=
-acheflush.h
+diff --git a/arch/arm64/include/asm/tlbflush.h b/arch/arm64/include/asm/tlb=
+flush.h
 new file mode 100644
-index 0000000..0bb9853
+index 0000000..122d632
 --- /dev/null
-+++ b/arch/arm64/include/asm/cacheflush.h
-@@ -0,0 +1,168 @@
++++ b/arch/arm64/include/asm/tlbflush.h
+@@ -0,0 +1,122 @@
 +/*
-+ * Based on arch/arm/include/asm/cacheflush.h
++ * Based on arch/arm/include/asm/tlbflush.h
 + *
-+ * Copyright (C) 1999-2002 Russell King.
++ * Copyright (C) 1999-2003 Russell King
 + * Copyright (C) 2012 ARM Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -103,172 +267,126 @@ index 0000000..0bb9853
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_CACHEFLUSH_H
-+#define __ASM_CACHEFLUSH_H
++#ifndef __ASM_TLBFLUSH_H
++#define __ASM_TLBFLUSH_H
 +
-+#include <linux/mm.h>
++#ifndef __ASSEMBLY__
 +
-+/*
-+ * This flag is used to indicate that the page pointed to by a pte is clea=
-n
-+ * and does not require cleaning before returning it to the user.
-+ */
-+#define PG_dcache_clean PG_arch_1
++#include <linux/sched.h>
++#include <asm/cputype.h>
 +
-+/*
-+ *=09MM Cache Management
-+ *=09=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-+ *
-+ *=09The arch/arm64/mm/cache.S implements these methods.
-+ *
-+ *=09Start addresses are inclusive and end addresses are exclusive; start
-+ *=09addresses should be rounded down, end addresses up.
-+ *
-+ *=09See Documentation/cachetlb.txt for more information. Please note that
-+ *=09the implementation assumes non-aliasing VIPT D-cache and (aliasing)
-+ *=09VIPT or ASID-tagged VIVT I-cache.
-+ *
-+ *=09flush_cache_all()
-+ *
-+ *=09=09Unconditionally clean and invalidate the entire cache.
-+ *
-+ *=09flush_cache_mm(mm)
-+ *
-+ *=09=09Clean and invalidate all user space cache entries
-+ *=09=09before a change of page tables.
-+ *
-+ *=09flush_icache_range(start, end)
-+ *
-+ *=09=09Ensure coherency between the I-cache and the D-cache in the
-+ *=09=09region described by start, end.
-+ *=09=09- start  - virtual start address
-+ *=09=09- end    - virtual end address
-+ *
-+ *=09__flush_cache_user_range(start, end)
-+ *
-+ *=09=09Ensure coherency between the I-cache and the D-cache in the
-+ *=09=09region described by start, end.
-+ *=09=09- start  - virtual start address
-+ *=09=09- end    - virtual end address
-+ *
-+ *=09__flush_dcache_area(kaddr, size)
-+ *
-+ *=09=09Ensure that the data held in page is written back.
-+ *=09=09- kaddr  - page address
-+ *=09=09- size   - region size
-+ */
-+extern void flush_cache_all(void);
-+extern void flush_cache_mm(struct mm_struct *mm);
-+extern void flush_cache_range(struct vm_area_struct *vma, unsigned long st=
-art, unsigned long end);
-+extern void flush_cache_page(struct vm_area_struct *vma, unsigned long use=
-r_addr, unsigned long pfn);
-+extern void flush_icache_range(unsigned long start, unsigned long end);
-+extern void __flush_dcache_area(void *addr, size_t len);
-+extern void __flush_cache_user_range(unsigned long start, unsigned long en=
-d);
++extern void __cpu_flush_user_tlb_range(unsigned long, unsigned long, struc=
+t vm_area_struct *);
++extern void __cpu_flush_kern_tlb_range(unsigned long, unsigned long);
++
++extern struct cpu_tlb_fns cpu_tlb;
 +
 +/*
-+ * These are private to the dma-mapping API.  Do not use directly.
-+ * Their sole purpose is to ensure that data held in the cache
-+ * is visible to DMA, or data written by DMA to system memory is
-+ * visible to the CPU.
-+ */
-+extern void dmac_map_area(const void *, size_t, int);
-+extern void dmac_unmap_area(const void *, size_t, int);
-+extern void dmac_flush_range(const void *, const void *);
-+
-+/*
-+ * Copy user data from/to a page which is mapped into a different
-+ * processes address space.  Really, we want to allow our "user
-+ * space" model to handle this.
-+ */
-+extern void copy_to_user_page(struct vm_area_struct *, struct page *,
-+=09unsigned long, void *, const void *, unsigned long);
-+#define copy_from_user_page(vma, page, vaddr, dst, src, len) \
-+=09do {=09=09=09=09=09=09=09\
-+=09=09memcpy(dst, src, len);=09=09=09=09\
-+=09} while (0)
-+
-+#define flush_cache_dup_mm(mm) flush_cache_mm(mm)
-+
-+/*
-+ * flush_dcache_page is used when the kernel has written to the page
-+ * cache page at virtual address page->virtual.
++ *=09TLB Management
++ *=09=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
 + *
-+ * If this page isn't mapped (ie, page_mapping =3D=3D NULL), or it might
-+ * have userspace mappings, then we _must_ always clean + invalidate
-+ * the dcache entries associated with the kernel mapping.
++ *=09The arch/arm64/mm/tlb.S files implement these methods.
 + *
-+ * Otherwise we can defer the operation, and clean the cache when we are
-+ * about to change to user space.  This is the same method as used on SPAR=
-C64.
-+ * See update_mmu_cache for the user space part.
++ *=09The TLB specific code is expected to perform whatever tests it needs
++ *=09to determine if it should invalidate the TLB for each call.  Start
++ *=09addresses are inclusive and end addresses are exclusive; it is safe t=
+o
++ *=09round these addresses down.
++ *
++ *=09flush_tlb_all()
++ *
++ *=09=09Invalidate the entire TLB.
++ *
++ *=09flush_tlb_mm(mm)
++ *
++ *=09=09Invalidate all TLB entries in a particular address space.
++ *=09=09- mm=09- mm_struct describing address space
++ *
++ *=09flush_tlb_range(mm,start,end)
++ *
++ *=09=09Invalidate a range of TLB entries in the specified address
++ *=09=09space.
++ *=09=09- mm=09- mm_struct describing address space
++ *=09=09- start - start address (may not be aligned)
++ *=09=09- end=09- end address (exclusive, may not be aligned)
++ *
++ *=09flush_tlb_page(vaddr,vma)
++ *
++ *=09=09Invalidate the specified page in the specified address range.
++ *=09=09- vaddr - virtual address (may not be aligned)
++ *=09=09- vma=09- vma_struct describing address range
++ *
++ *=09flush_kern_tlb_page(kaddr)
++ *
++ *=09=09Invalidate the TLB entry for the specified page.  The address
++ *=09=09will be in the kernels virtual memory space.  Current uses
++ *=09=09only require the D-TLB to be invalidated.
++ *=09=09- kaddr - Kernel virtual memory address
 + */
-+#define ARCH_IMPLEMENTS_FLUSH_DCACHE_PAGE 1
-+extern void flush_dcache_page(struct page *);
-+
-+static inline void __flush_icache_all(void)
++static inline void flush_tlb_all(void)
 +{
-+=09asm("ic=09ialluis");
++=09dsb();
++=09asm("tlbi=09vmalle1is");
++=09dsb();
++=09isb();
 +}
 +
-+#define ARCH_HAS_FLUSH_ANON_PAGE
-+static inline void flush_anon_page(struct vm_area_struct *vma,
-+=09=09=09 struct page *page, unsigned long vmaddr)
++static inline void flush_tlb_mm(struct mm_struct *mm)
 +{
-+=09extern void __flush_anon_page(struct vm_area_struct *vma,
-+=09=09=09=09struct page *, unsigned long);
-+=09if (PageAnon(page))
-+=09=09__flush_anon_page(vma, page, vmaddr);
++=09unsigned long asid =3D (unsigned long)ASID(mm) << 48;
++
++=09dsb();
++=09asm("tlbi=09aside1is, %0" : : "r" (asid));
++=09dsb();
 +}
 +
-+#define flush_dcache_mmap_lock(mapping) \
-+=09spin_lock_irq(&(mapping)->tree_lock)
-+#define flush_dcache_mmap_unlock(mapping) \
-+=09spin_unlock_irq(&(mapping)->tree_lock)
++static inline void flush_tlb_page(struct vm_area_struct *vma,
++=09=09=09=09  unsigned long uaddr)
++{
++=09unsigned long addr =3D uaddr >> 12 |
++=09=09((unsigned long)ASID(vma->vm_mm) << 48);
 +
-+#define flush_icache_user_range(vma,page,addr,len) \
-+=09flush_dcache_page(page)
-+
-+/*
-+ * We don't appear to need to do anything here.  In fact, if we did, we'd
-+ * duplicate cache flushing elsewhere performed by flush_dcache_page().
-+ */
-+#define flush_icache_page(vma,page)=09do { } while (0)
++=09dsb();
++=09asm("tlbi=09vae1is, %0" : : "r" (addr));
++=09dsb();
++}
 +
 +/*
-+ * flush_cache_vmap() is used when creating mappings (eg, via vmap,
-+ * vmalloc, ioremap etc) in kernel space for pages.  On non-VIPT
-+ * caches, since the direct-mappings of these pages may contain cached
-+ * data, we need to do a full cache flush to ensure that writebacks
-+ * don't corrupt data placed into these pages via the new mappings.
++ * Convert calls to our calling convention.
 + */
-+static inline void flush_cache_vmap(unsigned long start, unsigned long end=
-)
++#define flush_tlb_range(vma,start,end)=09__cpu_flush_user_tlb_range(start,=
+end,vma)
++#define flush_tlb_kernel_range(s,e)=09__cpu_flush_kern_tlb_range(s,e)
++
++/*
++ * On AArch64, the cache coherency is handled via the set_pte_at() functio=
+n.
++ */
++static inline void update_mmu_cache(struct vm_area_struct *vma,
++=09=09=09=09    unsigned long addr, pte_t *ptep)
 +{
 +=09/*
-+=09 * set_pte_at() called from vmap_pte_range() does not
-+=09 * have a DSB after cleaning the cache line.
++=09 * set_pte() does not have a DSB, so make sure that the page table
++=09 * write is visible.
 +=09 */
 +=09dsb();
 +}
 +
-+static inline void flush_cache_vunmap(unsigned long start, unsigned long e=
-nd)
-+{
-+}
++#endif
 +
 +#endif
-diff --git a/arch/arm64/include/asm/cachetype.h b/arch/arm64/include/asm/ca=
-chetype.h
+diff --git a/arch/arm64/mm/tlb.S b/arch/arm64/mm/tlb.S
 new file mode 100644
-index 0000000..85f5f51
+index 0000000..8ae80a1
 --- /dev/null
-+++ b/arch/arm64/include/asm/cachetype.h
-@@ -0,0 +1,48 @@
++++ b/arch/arm64/mm/tlb.S
+@@ -0,0 +1,71 @@
 +/*
++ * Based on arch/arm/mm/tlb.S
++ *
++ * Copyright (C) 1997-2002 Russell King
 + * Copyright (C) 2012 ARM Ltd.
++ * Written by Catalin Marinas <catalin.marinas@arm.com>
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -282,443 +400,56 @@ index 0000000..85f5f51
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_CACHETYPE_H
-+#define __ASM_CACHETYPE_H
-+
-+#include <asm/cputype.h>
-+
-+#define CTR_L1IP_SHIFT=09=0914
-+#define CTR_L1IP_MASK=09=093
-+
-+#define ICACHE_POLICY_RESERVED=090
-+#define ICACHE_POLICY_AIVIVT=091
-+#define ICACHE_POLICY_VIPT=092
-+#define ICACHE_POLICY_PIPT=093
-+
-+static inline u32 icache_policy(void)
-+{
-+=09return (read_cpuid_cachetype() >> CTR_L1IP_SHIFT) & CTR_L1IP_MASK;
-+}
-+
-+/*
-+ * Whilst the D-side always behaves as PIPT on AArch64, aliasing is
-+ * permitted in the I-cache.
-+ */
-+static inline int icache_is_aliasing(void)
-+{
-+=09return icache_policy() !=3D ICACHE_POLICY_PIPT;
-+}
-+
-+static inline int icache_is_aivivt(void)
-+{
-+=09return icache_policy() =3D=3D ICACHE_POLICY_AIVIVT;
-+}
-+
-+#endif=09/* __ASM_CACHETYPE_H */
-diff --git a/arch/arm64/mm/cache.S b/arch/arm64/mm/cache.S
-new file mode 100644
-index 0000000..3df0aa7
---- /dev/null
-+++ b/arch/arm64/mm/cache.S
-@@ -0,0 +1,251 @@
-+/*
-+ * Cache maintenance
-+ *
-+ * Copyright (C) 2001 Deep Blue Solutions Ltd.
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
 +#include <linux/linkage.h>
-+#include <linux/init.h>
 +#include <asm/assembler.h>
-+
++#include <asm/asm-offsets.h>
++#include <asm/page.h>
++#include <asm/tlbflush.h>
 +#include "proc-macros.S"
 +
 +/*
-+ *=09__flush_dcache_all()
++ *=09__cpu_flush_user_tlb_range(start, end, vma)
 + *
-+ *=09Flush the whole D-cache.
++ *=09Invalidate a range of TLB entries in the specified address space.
 + *
-+ *=09Corrupted registers: x0-x7, x9-x11
++ *=09- start - start address (may not be aligned)
++ *=09- end   - end address (exclusive, may not be aligned)
++ *=09- vma   - vma_struct describing address range
 + */
-+ENTRY(__flush_dcache_all)
-+=09dsb=09sy=09=09=09=09// ensure ordering with previous memory accesses
-+=09mrs=09x0, clidr_el1=09=09=09// read clidr
-+=09and=09x3, x0, #0x7000000=09=09// extract loc from clidr
-+=09lsr=09x3, x3, #23=09=09=09// left align loc bit field
-+=09cbz=09x3, finished=09=09=09// if loc is 0, then no need to clean
-+=09mov=09x10, #0=09=09=09=09// start clean at cache level 0
-+loop1:
-+=09add=09x2, x10, x10, lsr #1=09=09// work out 3x current cache level
-+=09lsr=09x1, x0, x2=09=09=09// extract cache type bits from clidr
-+=09and=09x1, x1, #7=09=09=09// mask of the bits for current cache only
-+=09cmp=09x1, #2=09=09=09=09// see what cache we have at this level
-+=09b.lt=09skip=09=09=09=09// skip if no cache, or just i-cache
-+=09save_and_disable_irqs x9=09=09// make CSSELR and CCSIDR access atomic
-+=09msr=09csselr_el1, x10=09=09=09// select current cache level in csselr
-+=09isb=09=09=09=09=09// isb to sych the new cssr&csidr
-+=09mrs=09x1, ccsidr_el1=09=09=09// read the new ccsidr
-+=09restore_irqs x9
-+=09and=09x2, x1, #7=09=09=09// extract the length of the cache lines
-+=09add=09x2, x2, #4=09=09=09// add 4 (line length offset)
-+=09mov=09x4, #0x3ff
-+=09and=09x4, x4, x1, lsr #3=09=09// find maximum number on the way size
-+=09clz=09x5, x4=09=09=09=09// find bit position of way size increment
-+=09mov=09x7, #0x7fff
-+=09and=09x7, x7, x1, lsr #13=09=09// extract max number of the index size
-+loop2:
-+=09mov=09x9, x4=09=09=09=09// create working copy of max way size
-+loop3:
-+=09lsl=09x6, x9, x5
-+=09orr=09x11, x10, x6=09=09=09// factor way and cache number into x11
-+=09lsl=09x6, x7, x2
-+=09orr=09x11, x11, x6=09=09=09// factor index number into x11
-+=09dc=09cisw, x11=09=09=09// clean & invalidate by set/way
-+=09subs=09x9, x9, #1=09=09=09// decrement the way
-+=09b.ge=09loop3
-+=09subs=09x7, x7, #1=09=09=09// decrement the index
-+=09b.ge=09loop2
-+skip:
-+=09add=09x10, x10, #2=09=09=09// increment cache number
-+=09cmp=09x3, x10
-+=09b.gt=09loop1
-+finished:
-+=09mov=09x10, #0=09=09=09=09// swith back to cache level 0
-+=09msr=09csselr_el1, x10=09=09=09// select current cache level in csselr
++ENTRY(__cpu_flush_user_tlb_range)
++=09vma_vm_mm x3, x2=09=09=09// get vma->vm_mm
++=09mmid=09x3, x3=09=09=09=09// get vm_mm->context.id
++=09dsb=09sy
++=09lsr=09x0, x0, #12=09=09=09// align address
++=09lsr=09x1, x1, #12
++=09bfi=09x0, x3, #48, #16=09=09// start VA and ASID
++=09bfi=09x1, x3, #48, #16=09=09// end VA and ASID
++1:=09tlbi=09vae1is, x0=09=09=09// TLB invalidate by address and ASID
++=09add=09x0, x0, #1
++=09cmp=09x0, x1
++=09b.lo=091b
++=09dsb=09sy
++=09ret
++ENDPROC(__cpu_flush_user_tlb_range)
++
++/*
++ *=09__cpu_flush_kern_tlb_range(start,end)
++ *
++ *=09Invalidate a range of kernel TLB entries.
++ *
++ *=09- start - start address (may not be aligned)
++ *=09- end   - end address (exclusive, may not be aligned)
++ */
++ENTRY(__cpu_flush_kern_tlb_range)
++=09dsb=09sy
++=09lsr=09x0, x0, #12=09=09=09// align address
++=09lsr=09x1, x1, #12
++1:=09tlbi=09vaae1is, x0=09=09=09// TLB invalidate by address
++=09add=09x0, x0, #1
++=09cmp=09x0, x1
++=09b.lo=091b
 +=09dsb=09sy
 +=09isb
 +=09ret
-+ENDPROC(__flush_dcache_all)
-+
-+/*
-+ *=09flush_cache_all()
-+ *
-+ *=09Flush the entire cache system.  The data cache flush is now achieved
-+ *=09using atomic clean / invalidates working outwards from L1 cache. This
-+ *=09is done using Set/Way based cache maintainance instructions.  The
-+ *=09instruction cache can still be invalidated back to the point of
-+ *=09unification in a single instruction.
-+ */
-+ENTRY(flush_cache_all)
-+=09mov=09x12, lr
-+=09bl=09__flush_dcache_all
-+=09mov=09x0, #0
-+=09ic=09ialluis=09=09=09=09// I+BTB cache invalidate
-+=09ret=09x12
-+ENDPROC(flush_cache_all)
-+
-+/*
-+ *=09flush_icache_range(start,end)
-+ *
-+ *=09Ensure that the I and D caches are coherent within specified region.
-+ *=09This is typically used when code has been written to a memory region,
-+ *=09and will be executed.
-+ *
-+ *=09- start   - virtual start address of region
-+ *=09- end     - virtual end address of region
-+ */
-+ENTRY(flush_icache_range)
-+=09/* FALLTHROUGH */
-+
-+/*
-+ *=09__flush_cache_user_range(start,end)
-+ *
-+ *=09Ensure that the I and D caches are coherent within specified region.
-+ *=09This is typically used when code has been written to a memory region,
-+ *=09and will be executed.
-+ *
-+ *=09- start   - virtual start address of region
-+ *=09- end     - virtual end address of region
-+ */
-+ENTRY(__flush_cache_user_range)
-+=09dcache_line_size x2, x3
-+=09sub=09x3, x2, #1
-+=09bic=09x4, x0, x3
-+1:
-+USER(9f, dc=09cvau, x4=09)=09=09// clean D line to PoU
-+=09add=09x4, x4, x2
-+=09cmp=09x4, x1
-+=09b.lo=091b
-+=09dsb=09sy
-+
-+=09icache_line_size x2, x3
-+=09sub=09x3, x2, #1
-+=09bic=09x4, x0, x3
-+1:
-+USER(9f, ic=09ivau, x4=09)=09=09// invalidate I line PoU
-+=09add=09x4, x4, x2
-+=09cmp=09x4, x1
-+=09b.lo=091b
-+9:=09=09=09=09=09=09// ignore any faulting cache operation
-+=09dsb=09sy
-+=09isb
-+=09ret
-+ENDPROC(flush_icache_range)
-+ENDPROC(__flush_cache_user_range)
-+
-+/*
-+ *=09__flush_kern_dcache_page(kaddr)
-+ *
-+ *=09Ensure that the data held in the page kaddr is written back to the
-+ *=09page in question.
-+ *
-+ *=09- kaddr   - kernel address
-+ *=09- size    - size in question
-+ */
-+ENTRY(__flush_dcache_area)
-+=09dcache_line_size x2, x3
-+=09add=09x1, x0, x1
-+=09sub=09x3, x2, #1
-+=09bic=09x0, x0, x3
-+1:=09dc=09civac, x0=09=09=09// clean & invalidate D line / unified line
-+=09add=09x0, x0, x2
-+=09cmp=09x0, x1
-+=09b.lo=091b
-+=09dsb=09sy
-+=09ret
-+ENDPROC(__flush_dcache_area)
-+
-+/*
-+ *=09dmac_inv_range(start,end)
-+ *
-+ *=09Invalidate the data cache within the specified region; we will be
-+ *=09performing a DMA operation in this region and we want to purge old
-+ *=09data in the cache.
-+ *
-+ *=09- start   - virtual start address of region
-+ *=09- end     - virtual end address of region
-+ */
-+ENTRY(dmac_inv_range)
-+=09dcache_line_size x2, x3
-+=09sub=09x3, x2, #1
-+=09bic=09x0, x0, x3
-+=09bic=09x1, x1, x3
-+1:=09dc=09ivac, x0=09=09=09// invalidate D / U line
-+=09add=09x0, x0, x2
-+=09cmp=09x0, x1
-+=09b.lo=091b
-+=09dsb=09sy
-+=09ret
-+ENDPROC(dmac_inv_range)
-+
-+/*
-+ *=09dmac_clean_range(start,end)
-+ *=09- start   - virtual start address of region
-+ *=09- end     - virtual end address of region
-+ */
-+ENTRY(dmac_clean_range)
-+=09dcache_line_size x2, x3
-+=09sub=09x3, x2, #1
-+=09bic=09x0, x0, x3
-+1:=09dc=09cvac, x0=09=09=09// clean D / U line
-+=09add=09x0, x0, x2
-+=09cmp=09x0, x1
-+=09b.lo=091b
-+=09dsb=09sy
-+=09ret
-+ENDPROC(dmac_clean_range)
-+
-+/*
-+ *=09dmac_flush_range(start,end)
-+ *=09- start   - virtual start address of region
-+ *=09- end     - virtual end address of region
-+ */
-+ENTRY(dmac_flush_range)
-+=09dcache_line_size x2, x3
-+=09sub=09x3, x2, #1
-+=09bic=09x0, x0, x3
-+1:=09dc=09civac, x0=09=09=09// clean & invalidate D / U line
-+=09add=09x0, x0, x2
-+=09cmp=09x0, x1
-+=09b.lo=091b
-+=09dsb=09sy
-+=09ret
-+ENDPROC(dmac_flush_range)
-+
-+/*
-+ *=09dmac_map_area(start, size, dir)
-+ *=09- start=09- kernel virtual start address
-+ *=09- size=09- size of region
-+ *=09- dir=09- DMA direction
-+ */
-+ENTRY(dmac_map_area)
-+=09add=09x1, x1, x0
-+=09cmp=09x2, #DMA_FROM_DEVICE
-+=09b.eq=09dmac_inv_range
-+=09b=09dmac_clean_range
-+ENDPROC(dmac_map_area)
-+
-+/*
-+ *=09dmac_unmap_area(start, size, dir)
-+ *=09- start=09- kernel virtual start address
-+ *=09- size=09- size of region
-+ *=09- dir=09- DMA direction
-+ */
-+ENTRY(dmac_unmap_area)
-+=09add=09x1, x1, x0
-+=09cmp=09x2, #DMA_TO_DEVICE
-+=09b.ne=09dmac_inv_range
-+=09ret
-+ENDPROC(dmac_unmap_area)
-diff --git a/arch/arm64/mm/flush.c b/arch/arm64/mm/flush.c
-new file mode 100644
-index 0000000..6138d86
---- /dev/null
-+++ b/arch/arm64/mm/flush.c
-@@ -0,0 +1,138 @@
-+/*
-+ * Based on arch/arm/mm/flush.c
-+ *
-+ * Copyright (C) 1995-2002 Russell King
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+
-+#include <linux/export.h>
-+#include <linux/mm.h>
-+#include <linux/pagemap.h>
-+
-+#include <asm/cacheflush.h>
-+#include <asm/cachetype.h>
-+#include <asm/tlbflush.h>
-+
-+#include "mm.h"
-+
-+void flush_cache_mm(struct mm_struct *mm)
-+{
-+}
-+
-+void flush_cache_range(struct vm_area_struct *vma, unsigned long start,
-+=09=09       unsigned long end)
-+{
-+=09if (vma->vm_flags & VM_EXEC)
-+=09=09__flush_icache_all();
-+}
-+
-+void flush_cache_page(struct vm_area_struct *vma, unsigned long user_addr,
-+=09=09      unsigned long pfn)
-+{
-+}
-+
-+static void flush_ptrace_access(struct vm_area_struct *vma, struct page *p=
-age,
-+=09=09=09=09unsigned long uaddr, void *kaddr,
-+=09=09=09=09unsigned long len)
-+{
-+=09if (vma->vm_flags & VM_EXEC) {
-+=09=09unsigned long addr =3D (unsigned long)kaddr;
-+=09=09if (icache_is_aliasing()) {
-+=09=09=09__flush_dcache_area(kaddr, len);
-+=09=09=09__flush_icache_all();
-+=09=09} else {
-+=09=09=09flush_icache_range(addr, addr + len);
-+=09=09}
-+=09}
-+}
-+
-+/*
-+ * Copy user data from/to a page which is mapped into a different processe=
-s
-+ * address space.  Really, we want to allow our "user space" model to hand=
-le
-+ * this.
-+ *
-+ * Note that this code needs to run on the current CPU.
-+ */
-+void copy_to_user_page(struct vm_area_struct *vma, struct page *page,
-+=09=09       unsigned long uaddr, void *dst, const void *src,
-+=09=09       unsigned long len)
-+{
-+#ifdef CONFIG_SMP
-+=09preempt_disable();
-+#endif
-+=09memcpy(dst, src, len);
-+=09flush_ptrace_access(vma, page, uaddr, dst, len);
-+#ifdef CONFIG_SMP
-+=09preempt_enable();
-+#endif
-+}
-+
-+void __flush_dcache_page(struct address_space *mapping, struct page *page)
-+{
-+=09__flush_dcache_area(page_address(page), PAGE_SIZE);
-+}
-+
-+void __sync_icache_dcache(pte_t pte)
-+{
-+=09unsigned long pfn;
-+=09struct page *page;
-+
-+=09pfn =3D pte_pfn(pte);
-+=09if (!pfn_valid(pfn))
-+=09=09return;
-+
-+=09page =3D pfn_to_page(pfn);
-+=09if (!test_and_set_bit(PG_dcache_clean, &page->flags))
-+=09=09__flush_dcache_page(NULL, page);
-+=09__flush_icache_all();
-+}
-+
-+/*
-+ * Ensure cache coherency between kernel mapping and userspace mapping of =
-this
-+ * page.
-+ */
-+void flush_dcache_page(struct page *page)
-+{
-+=09struct address_space *mapping;
-+
-+=09/*
-+=09 * The zero page is never written to, so never has any dirty cache
-+=09 * lines, and therefore never needs to be flushed.
-+=09 */
-+=09if (page =3D=3D ZERO_PAGE(0))
-+=09=09return;
-+
-+=09mapping =3D page_mapping(page);
-+
-+=09if (mapping && !mapping_mapped(mapping))
-+=09=09clear_bit(PG_dcache_clean, &page->flags);
-+=09else {
-+=09=09__flush_dcache_page(mapping, page);
-+=09=09if (mapping)
-+=09=09=09__flush_icache_all();
-+=09=09set_bit(PG_dcache_clean, &page->flags);
-+=09}
-+}
-+EXPORT_SYMBOL(flush_dcache_page);
-+
-+void __flush_anon_page(struct vm_area_struct *vma, struct page *page, unsi=
-gned long vmaddr)
-+{
-+}
-+
-+/*
-+ * Additional functions defined in assembly.
-+ */
-+EXPORT_SYMBOL(flush_cache_all);
-+EXPORT_SYMBOL(flush_icache_range);
++ENDPROC(__cpu_flush_kern_tlb_range)
 
