@@ -1,7 +1,7 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH v3 17/31] arm64: System calls handling
-Date: Fri,  7 Sep 2012 17:26:52 +0100
-Message-ID: <1347035226-18649-18-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH v3 14/31] arm64: DMA mapping API
+Date: Fri,  7 Sep 2012 17:26:49 +0100
+Message-ID: <1347035226-18649-15-git-send-email-catalin.marinas@arm.com>
 References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
 Content-Type: text/plain; charset=WINDOWS-1252
 Content-Transfer-Encoding: quoted-printable
@@ -12,39 +12,29 @@ To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 List-Id: linux-arch.vger.kernel.org
 
-This patch adds support for system calls coming from 64-bit
-applications. It uses the asm-generic/unistd.h definitions with the
-canonical set of system calls. The private system calls are only used
-for 32-bit (compat) applications as 64-bit ones can set the TLS and
-flush the caches entirely from user space.
+This patch adds support for the DMA mapping API. It uses dma_map_ops for
+flexibility and it currently supports swiotlb. This patch could be
+simplified further if the DMA accesses are coherent (not mandated by the
+architecture) or if corresponding hooks are placed in the generic
+swiotlb code to deal with cache maintenance.
 
-The sys_call_table is just an array defined in a C file and it contains
-pointers to the syscall functions. The array is 4KB aligned to allow the
-use of the ADRP instruction (longer range ADR) in entry.S.
-
-Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 Acked-by: Tony Lindgren <tony@atomide.com>
 ---
- arch/arm64/include/asm/stat.h     |   62 +++++++++++++++++
- arch/arm64/include/asm/statfs.h   |   23 ++++++
- arch/arm64/include/asm/syscalls.h |   40 +++++++++++
- arch/arm64/include/asm/unistd.h   |   27 +++++++
- arch/arm64/kernel/sys.c           |  138 +++++++++++++++++++++++++++++++++=
+ arch/arm64/include/asm/dma-mapping.h |  124 ++++++++++++++++++++++++++++++=
 ++++
- 5 files changed, 290 insertions(+), 0 deletions(-)
- create mode 100644 arch/arm64/include/asm/stat.h
- create mode 100644 arch/arm64/include/asm/statfs.h
- create mode 100644 arch/arm64/include/asm/syscalls.h
- create mode 100644 arch/arm64/include/asm/unistd.h
- create mode 100644 arch/arm64/kernel/sys.c
+ arch/arm64/mm/dma-mapping.c          |   79 +++++++++++++++++++++
+ 2 files changed, 203 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arm64/include/asm/dma-mapping.h
+ create mode 100644 arch/arm64/mm/dma-mapping.c
 
-diff --git a/arch/arm64/include/asm/stat.h b/arch/arm64/include/asm/stat.h
+diff --git a/arch/arm64/include/asm/dma-mapping.h b/arch/arm64/include/asm/=
+dma-mapping.h
 new file mode 100644
-index 0000000..d87225c
+index 0000000..538f4b4
 --- /dev/null
-+++ b/arch/arm64/include/asm/stat.h
-@@ -0,0 +1,62 @@
++++ b/arch/arm64/include/asm/dma-mapping.h
+@@ -0,0 +1,124 @@
 +/*
 + * Copyright (C) 2012 ARM Ltd.
 + *
@@ -60,173 +50,127 @@ index 0000000..d87225c
 + * You should have received a copy of the GNU General Public License
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
-+#ifndef __ASM_STAT_H
-+#define __ASM_STAT_H
++#ifndef __ASM_DMA_MAPPING_H
++#define __ASM_DMA_MAPPING_H
 +
-+#include <asm-generic/stat.h>
++#ifdef __KERNEL__
 +
-+#if defined(__KERNEL__) && defined(CONFIG_COMPAT)
++#include <linux/types.h>
++#include <linux/vmalloc.h>
 +
-+#include <asm/compat.h>
++#include <asm-generic/dma-coherent.h>
++
++#define ARCH_HAS_DMA_GET_REQUIRED_MASK
++
++extern struct dma_map_ops *dma_ops;
++
++static inline struct dma_map_ops *get_dma_ops(struct device *dev)
++{
++=09if (unlikely(!dev) || !dev->archdata.dma_ops)
++=09=09return dma_ops;
++=09else
++=09=09return dev->archdata.dma_ops;
++}
++
++#include <asm-generic/dma-mapping-common.h>
++
++static inline dma_addr_t phys_to_dma(struct device *dev, phys_addr_t paddr=
+)
++{
++=09return (dma_addr_t)paddr;
++}
++
++static inline phys_addr_t dma_to_phys(struct device *dev, dma_addr_t dev_a=
+ddr)
++{
++=09return (phys_addr_t)dev_addr;
++}
++
++static inline int dma_mapping_error(struct device *dev, dma_addr_t dev_add=
+r)
++{
++=09struct dma_map_ops *ops =3D get_dma_ops(dev);
++=09return ops->mapping_error(dev, dev_addr);
++}
++
++static inline int dma_supported(struct device *dev, u64 mask)
++{
++=09struct dma_map_ops *ops =3D get_dma_ops(dev);
++=09return ops->dma_supported(dev, mask);
++}
++
++static inline int dma_set_mask(struct device *dev, u64 mask)
++{
++=09if (!dev->dma_mask || !dma_supported(dev, mask))
++=09=09return -EIO;
++=09*dev->dma_mask =3D mask;
++
++=09return 0;
++}
++
++static inline bool dma_capable(struct device *dev, dma_addr_t addr, size_t=
+ size)
++{
++=09if (!dev->dma_mask)
++=09=09return 0;
++
++=09return addr + size - 1 <=3D *dev->dma_mask;
++}
++
++static inline void dma_mark_clean(void *addr, size_t size)
++{
++}
++
++static inline void *dma_alloc_coherent(struct device *dev, size_t size,
++=09=09=09=09       dma_addr_t *dma_handle, gfp_t flags)
++{
++=09struct dma_map_ops *ops =3D get_dma_ops(dev);
++=09void *vaddr;
++
++=09if (dma_alloc_from_coherent(dev, size, dma_handle, &vaddr))
++=09=09return vaddr;
++
++=09vaddr =3D ops->alloc(dev, size, dma_handle, flags, NULL);
++=09debug_dma_alloc_coherent(dev, size, *dma_handle, vaddr);
++=09return vaddr;
++}
++
++static inline void dma_free_coherent(struct device *dev, size_t size,
++=09=09=09=09     void *vaddr, dma_addr_t dev_addr)
++{
++=09struct dma_map_ops *ops =3D get_dma_ops(dev);
++
++=09if (dma_release_from_coherent(dev, get_order(size), vaddr))
++=09=09return;
++
++=09debug_dma_free_coherent(dev, size, vaddr, dev_addr);
++=09ops->free(dev, size, vaddr, dev_addr, NULL);
++}
 +
 +/*
-+ * struct stat64 is needed for compat tasks only. Its definition is differ=
-ent
-+ * from the generic struct stat64.
++ * There is no dma_cache_sync() implementation, so just return NULL here.
 + */
-+struct stat64 {
-+=09compat_u64=09st_dev;
-+=09unsigned char   __pad0[4];
++static inline void *dma_alloc_noncoherent(struct device *dev, size_t size,
++=09=09=09=09=09  dma_addr_t *handle, gfp_t flags)
++{
++=09return NULL;
++}
 +
-+#define STAT64_HAS_BROKEN_ST_INO=091
-+=09compat_ulong_t=09__st_ino;
-+=09compat_uint_t=09st_mode;
-+=09compat_uint_t=09st_nlink;
++static inline void dma_free_noncoherent(struct device *dev, size_t size,
++=09=09=09=09=09void *cpu_addr, dma_addr_t handle)
++{
++}
 +
-+=09compat_ulong_t=09st_uid;
-+=09compat_ulong_t=09st_gid;
-+
-+=09compat_u64=09st_rdev;
-+=09unsigned char   __pad3[4];
-+
-+=09compat_s64=09st_size;
-+=09compat_ulong_t=09st_blksize;
-+=09compat_u64=09st_blocks;=09/* Number of 512-byte blocks allocated. */
-+
-+=09compat_ulong_t=09st_atime;
-+=09compat_ulong_t=09st_atime_nsec;
-+
-+=09compat_ulong_t=09st_mtime;
-+=09compat_ulong_t=09st_mtime_nsec;
-+
-+=09compat_ulong_t=09st_ctime;
-+=09compat_ulong_t=09st_ctime_nsec;
-+
-+=09compat_u64=09st_ino;
-+};
-+
-+#endif
-+
-+#endif
-diff --git a/arch/arm64/include/asm/statfs.h b/arch/arm64/include/asm/statf=
-s.h
++#endif=09/* __KERNEL__ */
++#endif=09/* __ASM_DMA_MAPPING_H */
+diff --git a/arch/arm64/mm/dma-mapping.c b/arch/arm64/mm/dma-mapping.c
 new file mode 100644
-index 0000000..6f62190
+index 0000000..5eb2444
 --- /dev/null
-+++ b/arch/arm64/include/asm/statfs.h
-@@ -0,0 +1,23 @@
++++ b/arch/arm64/mm/dma-mapping.c
+@@ -0,0 +1,79 @@
 +/*
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+#ifndef __ASM_STATFS_H
-+#define __ASM_STATFS_H
-+
-+#define ARCH_PACK_COMPAT_STATFS64 __attribute__((packed,aligned(4)))
-+
-+#include <asm-generic/statfs.h>
-+
-+#endif
-diff --git a/arch/arm64/include/asm/syscalls.h b/arch/arm64/include/asm/sys=
-calls.h
-new file mode 100644
-index 0000000..09ff335
---- /dev/null
-+++ b/arch/arm64/include/asm/syscalls.h
-@@ -0,0 +1,40 @@
-+/*
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+#ifndef __ASM_SYSCALLS_H
-+#define __ASM_SYSCALLS_H
-+
-+#include <linux/linkage.h>
-+#include <linux/compiler.h>
-+#include <linux/signal.h>
-+
-+/*
-+ * System call wrappers implemented in kernel/entry.S.
-+ */
-+asmlinkage long sys_execve_wrapper(const char __user *filename,
-+=09=09=09=09   const char __user *const __user *argv,
-+=09=09=09=09   const char __user *const __user *envp);
-+asmlinkage long sys_clone_wrapper(unsigned long clone_flags,
-+=09=09=09=09  unsigned long newsp,
-+=09=09=09=09  void __user *parent_tid,
-+=09=09=09=09  unsigned long tls_val,
-+=09=09=09=09  void __user *child_tid);
-+asmlinkage long sys_rt_sigreturn_wrapper(void);
-+asmlinkage long sys_sigaltstack_wrapper(const stack_t __user *uss,
-+=09=09=09=09=09stack_t __user *uoss);
-+
-+#include <asm-generic/syscalls.h>
-+
-+#endif=09/* __ASM_SYSCALLS_H */
-diff --git a/arch/arm64/include/asm/unistd.h b/arch/arm64/include/asm/unist=
-d.h
-new file mode 100644
-index 0000000..fe18a68
---- /dev/null
-+++ b/arch/arm64/include/asm/unistd.h
-@@ -0,0 +1,27 @@
-+/*
-+ * Copyright (C) 2012 ARM Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
-+ */
-+#if !defined(__ASM_UNISTD_H) || defined(__SYSCALL)
-+#define __ASM_UNISTD_H
-+
-+#ifndef __SYSCALL_COMPAT
-+#include <asm-generic/unistd.h>
-+#endif
-+
-+#if defined(__KERNEL__) && defined(CONFIG_COMPAT)
-+#include <asm/unistd32.h>
-+#endif
-+
-+#endif /* __ASM_UNISTD_H */
-diff --git a/arch/arm64/kernel/sys.c b/arch/arm64/kernel/sys.c
-new file mode 100644
-index 0000000..905fcfb
---- /dev/null
-+++ b/arch/arm64/kernel/sys.c
-@@ -0,0 +1,138 @@
-+/*
-+ * AArch64-specific system calls implementation
++ * SWIOTLB-based DMA API implementation
 + *
 + * Copyright (C) 2012 ARM Ltd.
 + * Author: Catalin Marinas <catalin.marinas@arm.com>
@@ -244,123 +188,64 @@ index 0000000..905fcfb
 + * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 + */
 +
-+#include <linux/compiler.h>
-+#include <linux/errno.h>
-+#include <linux/fs.h>
-+#include <linux/mm.h>
++#include <linux/gfp.h>
 +#include <linux/export.h>
-+#include <linux/sched.h>
 +#include <linux/slab.h>
-+#include <linux/syscalls.h>
++#include <linux/dma-mapping.h>
++#include <linux/vmalloc.h>
++#include <linux/swiotlb.h>
 +
-+/*
-+ * Clone a task - this clones the calling program thread.
-+ */
-+asmlinkage long sys_clone(unsigned long clone_flags, unsigned long newsp,
-+=09=09=09  int __user *parent_tidptr, unsigned long tls_val,
-+=09=09=09  int __user *child_tidptr, struct pt_regs *regs)
++#include <asm/cacheflush.h>
++
++struct dma_map_ops *dma_ops;
++EXPORT_SYMBOL(dma_ops);
++
++static void *arm64_swiotlb_alloc_coherent(struct device *dev, size_t size,
++=09=09=09=09=09  dma_addr_t *dma_handle, gfp_t flags,
++=09=09=09=09=09  struct dma_attrs *attrs)
 +{
-+=09if (!newsp)
-+=09=09newsp =3D regs->sp;
-+=09/* 16-byte aligned stack mandatory on AArch64 */
-+=09if (newsp & 15)
-+=09=09return -EINVAL;
-+=09return do_fork(clone_flags, newsp, regs, 0, parent_tidptr, child_tidptr=
-);
++=09if (IS_ENABLED(CONFIG_ZONE_DMA32) &&
++=09    dev->coherent_dma_mask <=3D DMA_BIT_MASK(32))
++=09=09flags |=3D GFP_DMA32;
++=09return swiotlb_alloc_coherent(dev, size, dma_handle, flags);
 +}
 +
-+/*
-+ * sys_execve() executes a new program.
-+ */
-+asmlinkage long sys_execve(const char __user *filenamei,
-+=09=09=09   const char __user *const __user *argv,
-+=09=09=09   const char __user *const __user *envp,
-+=09=09=09   struct pt_regs *regs)
++static void arm64_swiotlb_free_coherent(struct device *dev, size_t size,
++=09=09=09=09=09void *vaddr, dma_addr_t dma_handle,
++=09=09=09=09=09struct dma_attrs *attrs)
 +{
-+=09long error;
-+=09char * filename;
-+
-+=09filename =3D getname(filenamei);
-+=09error =3D PTR_ERR(filename);
-+=09if (IS_ERR(filename))
-+=09=09goto out;
-+=09error =3D do_execve(filename, argv, envp, regs);
-+=09putname(filename);
-+out:
-+=09return error;
++=09swiotlb_free_coherent(dev, size, vaddr, dma_handle);
 +}
 +
-+int kernel_execve(const char *filename,
-+=09=09  const char *const argv[],
-+=09=09  const char *const envp[])
-+{
-+=09struct pt_regs regs;
-+=09int ret;
-+
-+=09memset(&regs, 0, sizeof(struct pt_regs));
-+=09ret =3D do_execve(filename,
-+=09=09=09(const char __user *const __user *)argv,
-+=09=09=09(const char __user *const __user *)envp, &regs);
-+=09if (ret < 0)
-+=09=09goto out;
-+
-+=09/*
-+=09 * Save argc to the register structure for userspace.
-+=09 */
-+=09regs.regs[0] =3D ret;
-+
-+=09/*
-+=09 * We were successful.  We won't be returning to our caller, but
-+=09 * instead to user space by manipulating the kernel stack.
-+=09 */
-+=09asm(=09"add=09x0, %0, %1\n\t"
-+=09=09"mov=09x1, %2\n\t"
-+=09=09"mov=09x2, %3\n\t"
-+=09=09"bl=09memmove\n\t"=09/* copy regs to top of stack */
-+=09=09"mov=09x27, #0\n\t"=09/* not a syscall */
-+=09=09"mov=09x28, %0\n\t"=09/* thread structure */
-+=09=09"mov=09sp, x0\n\t"=09/* reposition stack pointer */
-+=09=09"b=09ret_to_user"
-+=09=09:
-+=09=09: "r" (current_thread_info()),
-+=09=09  "Ir" (THREAD_START_SP - sizeof(regs)),
-+=09=09  "r" (&regs),
-+=09=09  "Ir" (sizeof(regs))
-+=09=09: "x0", "x1", "x2", "x27", "x28", "x30", "memory");
-+
-+ out:
-+=09return ret;
-+}
-+EXPORT_SYMBOL(kernel_execve);
-+
-+asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
-+=09=09=09 unsigned long prot, unsigned long flags,
-+=09=09=09 unsigned long fd, off_t off)
-+{
-+=09if (offset_in_page(off) !=3D 0)
-+=09=09return -EINVAL;
-+
-+=09return sys_mmap_pgoff(addr, len, prot, flags, fd, off >> PAGE_SHIFT);
-+}
-+
-+/*
-+ * Wrappers to pass the pt_regs argument.
-+ */
-+#define sys_execve=09=09sys_execve_wrapper
-+#define sys_clone=09=09sys_clone_wrapper
-+#define sys_rt_sigreturn=09sys_rt_sigreturn_wrapper
-+#define sys_sigaltstack=09=09sys_sigaltstack_wrapper
-+
-+#include <asm/syscalls.h>
-+
-+#undef __SYSCALL
-+#define __SYSCALL(nr, sym)=09[nr] =3D sym,
-+
-+/*
-+ * The sys_call_table array must be 4K aligned to be accessible from
-+ * kernel/entry.S.
-+ */
-+void *sys_call_table[__NR_syscalls] __aligned(4096) =3D {
-+=09[0 ... __NR_syscalls - 1] =3D sys_ni_syscall,
-+#include <asm/unistd.h>
++static struct dma_map_ops arm64_swiotlb_dma_ops =3D {
++=09.alloc =3D arm64_swiotlb_alloc_coherent,
++=09.free =3D arm64_swiotlb_free_coherent,
++=09.map_page =3D swiotlb_map_page,
++=09.unmap_page =3D swiotlb_unmap_page,
++=09.map_sg =3D swiotlb_map_sg_attrs,
++=09.unmap_sg =3D swiotlb_unmap_sg_attrs,
++=09.sync_single_for_cpu =3D swiotlb_sync_single_for_cpu,
++=09.sync_single_for_device =3D swiotlb_sync_single_for_device,
++=09.sync_sg_for_cpu =3D swiotlb_sync_sg_for_cpu,
++=09.sync_sg_for_device =3D swiotlb_sync_sg_for_device,
++=09.dma_supported =3D swiotlb_dma_supported,
++=09.mapping_error =3D swiotlb_dma_mapping_error,
 +};
++
++void __init swiotlb_init_with_default_size(size_t default_size, int verbos=
+e);
++
++void __init arm64_swiotlb_init(size_t max_size)
++{
++=09dma_ops =3D &arm64_swiotlb_dma_ops;
++=09swiotlb_init_with_default_size(min((size_t)SZ_64M, max_size), 1);
++}
++
++#define PREALLOC_DMA_DEBUG_ENTRIES=094096
++
++static int __init dma_debug_do_init(void)
++{
++=09dma_debug_init(PREALLOC_DMA_DEBUG_ENTRIES);
++=09return 0;
++}
++fs_initcall(dma_debug_do_init);
