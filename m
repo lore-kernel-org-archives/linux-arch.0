@@ -1,25 +1,33 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC] status of execve() work - per-architecture patches
- solicited
-Date: Fri, 7 Sep 2012 19:22:10 +0100
-Message-ID: <20120907182210.GF13973@ZenIV.linux.org.uk>
-References: <20120907182004.GE13973@ZenIV.linux.org.uk>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3 02/31] arm64: Kernel booting and initialisation
+Date: Fri, 7 Sep 2012 19:07:21 +0000
+Message-ID: <201209071907.21615.arnd@arndb.de>
+References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com> <1347035226-18649-3-git-send-email-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain;
+  charset="windows-1252"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:51863 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752681Ab2IGSWL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Sep 2012 14:22:11 -0400
-Content-Disposition: inline
-In-Reply-To: <20120907182004.GE13973@ZenIV.linux.org.uk>
+Received: from moutng.kundenserver.de ([212.227.17.10]:63507 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751342Ab2IGTH2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Sep 2012 15:07:28 -0400
+In-Reply-To: <1347035226-18649-3-git-send-email-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
 
-On Fri, Sep 07, 2012 at 07:20:04PM +0100, Al Viro wrote:
-> 	To architecture maintainers: please, review the current
-> situation in git.kernel.org/pub/scm/linux/kernel/git/viro/signal #execve2
+On Friday 07 September 2012, Catalin Marinas wrote:
+> 
+> The patch adds the kernel booting and the initial setup code.
+> Documentation/arm64/booting.txt describes the booting protocol on the
+> AArch64 Linux kernel. This is subject to change following the work on
+> boot standardisation, ACPI.
+> 
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> Acked-by: Nicolas Pitre <nico@linaro.org>
+> Acked-by: Tony Lindgren <tony@atomide.com>
 
-It should be commit 50343ee2889f5a8cff1aa30110f07b0e01563500 right now.
+Acked-by: Arnd Bergmann <arnd@arndb.de>
