@@ -1,29 +1,63 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 30/31] arm64: Build infrastructure
-Date: Fri, 7 Sep 2012 19:55:01 +0000
-Message-ID: <201209071955.01994.arnd@arndb.de>
-References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com> <1347035226-18649-31-git-send-email-catalin.marinas@arm.com>
+From: Olof Johansson <olof@lixom.net>
+Subject: Re: [PATCH v3 00/31] AArch64 Linux kernel port
+Date: Fri, 7 Sep 2012 16:25:37 -0700
+Message-ID: <20120907232537.GA5098@quad.lixom.net>
+References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="windows-1252"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:54535 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756514Ab2IGTzG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Sep 2012 15:55:06 -0400
-In-Reply-To: <1347035226-18649-31-git-send-email-catalin.marinas@arm.com>
+Received: from mail-pb0-f46.google.com ([209.85.160.46]:40905 "EHLO
+	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755693Ab2IGXZZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Sep 2012 19:25:25 -0400
+Received: by pbbrr13 with SMTP id rr13so299964pbb.19
+        for <linux-arch@vger.kernel.org>; Fri, 07 Sep 2012 16:25:24 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 
-On Friday 07 September 2012, Catalin Marinas wrote:
-> This patch adds Makefile and Kconfig files required for building an
-> AArch64 kernel.
+On Fri, Sep 07, 2012 at 05:26:35PM +0100, Catalin Marinas wrote:
+> This is the 3rd version of patches implementing Linux kernel support for
+> the 64-bit ARM architecture. Most of the review comments for the
+> previous release have been implemented. There are a few left (like
+> generic timer dts specification) but the main goal was to freeze the
+> user ABI.
 > 
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> Acked-by: Tony Lindgren <tony@atomide.com>
+> The Linux kernel patches are available on this tree:
+> 
+> git://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/linux-aarch64.git upstream
+> 
+> Main changes since the previous version:
+> - ptrace interface now using regsets for TLS and hardware debug
+>   registers.
+> - sys_personality fixes. PER_LINUX is the default for all tasks (32 or
+>   64-bit) and there is no compat_sys_personality defined.
+> - Kconfig clean-up (unused symbols, AARCH32_EMULATION removed in favour
+>   of COMPAT).
+> - Clean-up of the __cpuc_* function prefixes.
+> - CPU information table implemented in C rather than assembly.
+> - __bad_* function calls replaced with BUILD_BUG.
+> - Inline get_user/put_user (code cleaner, slightly bigger kernel Image).
+> - DMA API implementation simplified, defaulting to swiotlb. It will be
+>   extended as hardware becomes available.
+> - Arch-specific code in the generic timer patch moved to arch/arm64/.
+> - Comment fixes and clarifications.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+I see that a good amount of the comments I had on v2 have neither been replied
+to nor addressed.
+
+Please address them where appropriate, ideally before merging. I'll be happy to
+be told I'm wrong in some of the cases too, but completely ignoring feedback
+isn't cool.
+
+However, most of them were nits, and I've had a look-through of the rest
+of the patches, feel free to add:
+
+Acked-by: Olof Johansson <olof@lixom.net>
+
+on the patches in this series.
+
+-Olof
