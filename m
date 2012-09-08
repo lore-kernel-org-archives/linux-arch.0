@@ -1,42 +1,57 @@
-From: "Shilimkar, Santosh" <santosh.shilimkar@ti.com>
-Subject: Re: [PATCH v3 28/31] arm64: Generic timers support
-Date: Sat, 8 Sep 2012 13:58:49 +0530
-Message-ID: <CAMQu2gyLihPnujff6Nq3wzRaX3n+je+4fVfUE_OPVsb_dO14FQ@mail.gmail.com>
+From: Santosh Shilimkar <santosh.shilimkar@ti.com>
+Subject: Re: [PATCH v3 00/31] AArch64 Linux kernel port
+Date: Sat, 08 Sep 2012 14:48:35 +0530
+Message-ID: <504B0D6B.9010908@ti.com>
 References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
- <1347035226-18649-29-git-send-email-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=windows-1252; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1347035226-18649-29-git-send-email-catalin.marinas@arm.com>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: linux-arm-kernel-bounces@lists.infradead.org
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from na3sys009aog105.obsmtp.com ([74.125.149.75]:46051 "EHLO
+	na3sys009aog105.obsmtp.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752547Ab2IHJSm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 Sep 2012 05:18:42 -0400
+Received: by iebc10 with SMTP id c10so1399343ieb.1
+        for <linux-arch@vger.kernel.org>; Sat, 08 Sep 2012 02:18:41 -0700 (PDT)
+In-Reply-To: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 
-On Fri, Sep 7, 2012 at 9:57 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
-> From: Marc Zyngier <marc.zyngier@arm.com>
+Catalin,
+
+On Friday 07 September 2012 09:56 PM, Catalin Marinas wrote:
+> This is the 3rd version of patches implementing Linux kernel support for
+> the 64-bit ARM architecture. Most of the review comments for the
+> previous release have been implemented. There are a few left (like
+> generic timer dts specification) but the main goal was to freeze the
+> user ABI.
 >
-> This patch adds support for the ARM generic timers with A64 instructions
-> for accessing the timer registers. It uses the physical counter as the
-> clock source and the virtual counter as sched_clock.
+> The Linux kernel patches are available on this tree:
 >
-> The timer frequency can be specified via DT or read from the CNTFRQ_EL0
-> register. The physical counter is also accessible from user space
-> allowing fast gettimeofday() implementation.
->
-> Signed-off-by: Marc Zyngier <marc.zyngier@arm.com>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> Acked-by: Tony Lindgren <tony@atomide.com>
-> ---
-Thanks for C3STOP update.
+Firstly thanks for clarifying the questions asked on the previous
+version and also for the update on the arch timer code.
+
+Mostly I was looking at the series from SOC boot and CPU PM
+point of view and boot part seems to just fine.
+
+As per discussion at LPC, I have gone through the SMC
+proposal which ARM has published. In general the boot part
+with SMC seems to be doable and can be standardized across SOCs.
+The part which will be conflicting is the CPU power management.
+That seems to be the harder one and the document is at too
+infancy stage from the details point of view. Some bits about
+save, restore are related to switcher kind of architecture, which
+may not be the requirement for all the SoCs.
+
+Ofcourse the SMC discussion is not related to $subject series
+as such. Also the PM support for ARMv8 not seems be the scope
+of the series so the discussion can be parked aside till we
+need to talk about it. I have few more questions on the various
+MM attribute usage, exceptions and PL's but I will do some
+reading before asking those to you.
+
+For the series itself, feel free to add my ack if yo
+need one.
 Acked-by: Santosh Shilimkar <santosh.shilimkar@ti.com>
