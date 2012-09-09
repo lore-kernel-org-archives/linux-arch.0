@@ -1,49 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mo2.mail-out.ovh.net ([178.32.228.2]:34544 "EHLO
-	mo2.mail-out.ovh.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754140Ab2IIRwK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Sep 2012 13:52:10 -0400
-Received: from mail636.ha.ovh.net (b6.ovh.net [213.186.33.56])
-	by mo2.mail-out.ovh.net (Postfix) with SMTP id 80AB9DC4199
-	for <linux-arch@vger.kernel.org>; Sun,  9 Sep 2012 18:40:03 +0200 (CEST)
-Date: Sun, 9 Sep 2012 18:31:56 +0200
-From: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
-Subject: Re: [PATCH v3 31/31] arm64: MAINTAINERS update
-Message-ID: <20120909163156.GA31430@game.jcrosoft.org>
+Received: from relais.videotron.ca ([24.201.245.36]:53157 "EHLO
+	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755619Ab2IIX3Z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Sep 2012 19:29:25 -0400
+MIME-version: 1.0
+Content-transfer-encoding: 7BIT
+Content-type: TEXT/PLAIN; CHARSET=US-ASCII
+Date: Sun, 09 Sep 2012 19:29:24 -0400 (EDT)
+From: Nicolas Pitre <nico@fluxnic.net>
+Subject: Re: [PATCH v3 02/31] arm64: Kernel booting and initialisation
+In-reply-to: <20120909172046.GB31430@game.jcrosoft.org>
+Message-ID: <alpine.LFD.2.02.1209091923180.28681@xanadu.home>
 References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
- <1347035226-18649-32-git-send-email-catalin.marinas@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1347035226-18649-32-git-send-email-catalin.marinas@arm.com>
+ <1347035226-18649-3-git-send-email-catalin.marinas@arm.com>
+ <20120909172046.GB31430@game.jcrosoft.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20120909163156.xthRP9FjBrC8nKGTkwi4R9zlBX0Tedc6wn2W9EgwLqM@z>
+To: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Message-ID: <20120909232924.oGWMNwhO7xbeSSSS3gloGAOdeCBk3j9U5FZHhzsf5AM@z>
 
-On 17:27 Fri 07 Sep     , Catalin Marinas wrote:
-> This patch updates the MAINTAINERS file for the AArch64 Linux kernel
-> port.
-> 
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> Acked-by: Tony Lindgren <tony@atomide.com>
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-> ---
->  MAINTAINERS |    6 ++++++
->  1 files changed, 6 insertions(+), 0 deletions(-)
-> 
-> diff --git a/MAINTAINERS b/MAINTAINERS
-> index fdc0119..de368a5 100644
-> --- a/MAINTAINERS
-> +++ b/MAINTAINERS
-> @@ -1209,6 +1209,12 @@ S:	Maintained
->  F:	arch/arm/mach-pxa/z2.c
->  F:	arch/arm/mach-pxa/include/mach/z2.h
->  
-> +ARM64 PORT (AARCH64 ARCHITECTURE)
-> +M:	Catalin Marinas <catalin.marinas@arm.com>
-we should put Russell too
+On Sun, 9 Sep 2012, Jean-Christophe PLAGNIOL-VILLARD wrote:
 
-Best Regards,
-J.
+> On 17:26 Fri 07 Sep     , Catalin Marinas wrote:
+> > +4. Call the kernel image
+> > +------------------------
+> > +
+> > +Requirement: MANDATORY
+> > +
+> > +The decompressed kernel image contains a 32-byte header as follows:
+> > +
+> > +  u32 magic	= 0x14000008;	/* branch to stext, little-endian */
+> > +  u32 res0	= 0;		/* reserved */
+> > +  u64 text_offset;		/* Image load offset */
+> > +  u64 res1	= 0;		/* reserved */
+> > +  u64 res2	= 0;		/* reserved */
+> we need to have a magic to known it's a arm64 kernel
+
+You have it: it's 0x14000008 at the beginning.
+
+> > +
+> > +The image must be placed at the specified offset (currently 0x80000)
+> > +from the start of the system RAM and called there. The start of the
+> > +system RAM must be aligned to 2MB.
+> can we drop this
+
+Drop what?
+And why?
+
+
+Nicolas
