@@ -1,39 +1,89 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from na3sys009aog102.obsmtp.com ([74.125.149.69]:58561 "EHLO
-	na3sys009aog102.obsmtp.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752071Ab2IHI3M (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 Sep 2012 04:29:12 -0400
-Received: by qcse13 with SMTP id e13so699902qcs.1
-        for <linux-arch@vger.kernel.org>; Sat, 08 Sep 2012 01:29:11 -0700 (PDT)
+Received: from mail-vb0-f46.google.com ([209.85.212.46]:42041 "EHLO
+	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751374Ab2IIIUI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Sep 2012 04:20:08 -0400
 MIME-Version: 1.0
-In-Reply-To: <1347035226-18649-29-git-send-email-catalin.marinas@arm.com>
-References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com> <1347035226-18649-29-git-send-email-catalin.marinas@arm.com>
-From: "Shilimkar, Santosh" <santosh.shilimkar@ti.com>
-Date: Sat, 8 Sep 2012 13:58:49 +0530
-Message-ID: <CAMQu2gyLihPnujff6Nq3wzRaX3n+je+4fVfUE_OPVsb_dO14FQ@mail.gmail.com>
-Subject: Re: [PATCH v3 28/31] arm64: Generic timers support
-Content-Type: text/plain; charset=ISO-8859-1
+In-Reply-To: <1336855148-18817-4-git-send-email-geert@linux-m68k.org>
+References: <1336855148-18817-1-git-send-email-geert@linux-m68k.org>
+	<1336855148-18817-4-git-send-email-geert@linux-m68k.org>
+Date: Sun, 9 Sep 2012 10:20:07 +0200
+Message-ID: <CAMuHMdXi9+vRk2R61qnzGg7p9e7p9DR1C_Ozw6MFCv+YqhSpVg@mail.gmail.com>
+Subject: Re: [PATCH 4/4] xtensa: Setup CROSS_COMPILE at the top
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
-Message-ID: <20120908082849.r5I2DPdX4PkOkuudAGZ1u70xOO9cvMKe0SCXnnW9OUA@z>
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Chris Zankel <chris@zankel.net>
+Message-ID: <20120909082007.nZY4MBGaQ4jodbaY66-tFpdMtnGYt7sZcBRg1G6Ie10@z>
 
-On Fri, Sep 7, 2012 at 9:57 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
-> From: Marc Zyngier <marc.zyngier@arm.com>
+On Sat, May 12, 2012 at 10:39 PM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> CROSS_COMPILE must be setup before using e.g. cc-option (and a few other
+> as-*, cc-*, ld-* macros), else they will check against the wrong compiler
+> when cross-compiling, and may invoke the cross compiler with wrong or
+> suboptimal compiler options.
 >
-> This patch adds support for the ARM generic timers with A64 instructions
-> for accessing the timer registers. It uses the physical counter as the
-> clock source and the virtual counter as sched_clock.
->
-> The timer frequency can be specified via DT or read from the CNTFRQ_EL0
-> register. The physical counter is also accessible from user space
-> allowing fast gettimeofday() implementation.
->
-> Signed-off-by: Marc Zyngier <marc.zyngier@arm.com>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> Acked-by: Tony Lindgren <tony@atomide.com>
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: Chris Zankel <chris@zankel.net>
+
+Ping?
+
 > ---
-Thanks for C3STOP update.
-Acked-by: Santosh Shilimkar <santosh.shilimkar@ti.com>
+>  arch/xtensa/Makefile |   24 ++++++++++++------------
+>  1 files changed, 12 insertions(+), 12 deletions(-)
+>
+> diff --git a/arch/xtensa/Makefile b/arch/xtensa/Makefile
+> index 7608559..d41f9ed 100644
+> --- a/arch/xtensa/Makefile
+> +++ b/arch/xtensa/Makefile
+> @@ -21,6 +21,18 @@ variant-$(CONFIG_XTENSA_VARIANT_LINUX_CUSTOM)        := custom
+>  VARIANT = $(variant-y)
+>  export VARIANT
+>
+> +# Test for cross compiling
+> +
+> +ifneq ($(VARIANT),)
+> +  COMPILE_ARCH = $(shell uname -m)
+> +
+> +  ifneq ($(COMPILE_ARCH), xtensa)
+> +    ifndef CROSS_COMPILE
+> +      CROSS_COMPILE = xtensa_$(VARIANT)-
+> +    endif
+> +  endif
+> +endif
+> +
+>  # Platform configuration
+>
+>  platform-$(CONFIG_XTENSA_PLATFORM_XT2000)      := xt2000
+> @@ -54,18 +66,6 @@ KBUILD_DEFCONFIG := iss_defconfig
+>
+>  core-$(CONFIG_EMBEDDED_RAMDISK)        += arch/xtensa/boot/ramdisk/
+>
+> -# Test for cross compiling
+> -
+> -ifneq ($(VARIANT),)
+> -  COMPILE_ARCH = $(shell uname -m)
+> -
+> -  ifneq ($(COMPILE_ARCH), xtensa)
+> -    ifndef CROSS_COMPILE
+> -      CROSS_COMPILE = xtensa_$(VARIANT)-
+> -    endif
+> -  endif
+> -endif
+> -
+>  # Only build variant and/or platform if it includes a Makefile
+>
+>  buildvar := $(shell test -a $(srctree)/arch/xtensa/variants/$(VARIANT)/Makefile && echo arch/xtensa/variants/$(VARIANT)/)
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
