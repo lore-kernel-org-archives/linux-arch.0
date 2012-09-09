@@ -1,84 +1,41 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 4/4] xtensa: Setup CROSS_COMPILE at the top
-Date: Sun, 9 Sep 2012 10:20:07 +0200
-Message-ID: <CAMuHMdXi9+vRk2R61qnzGg7p9e7p9DR1C_Ozw6MFCv+YqhSpVg@mail.gmail.com>
-References: <1336855148-18817-1-git-send-email-geert@linux-m68k.org>
-	<1336855148-18817-4-git-send-email-geert@linux-m68k.org>
+From: "mail.pku.edu.cn" <admin@pku.edu.cn>
+Subject: ATTENTION
+Date: Sun, 09 Sep 2012 10:20:57 +0100
+Message-ID: <ece24c$shanrp@smtp04.lnh.mail.rcn.net>
+Reply-To: support_t@w.cn
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1336855148-18817-4-git-send-email-geert@linux-m68k.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Chris Zankel <chris@zankel.net>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp02.lnh.mail.rcn.net ([207.172.157.102]:6302 "EHLO
+	smtp02.lnh.mail.rcn.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751127Ab2IIJcH convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Sep 2012 05:32:07 -0400
+Content-Description: Mail message body
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Recipients <admin@pku.edu.cn>
 
-On Sat, May 12, 2012 at 10:39 PM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> CROSS_COMPILE must be setup before using e.g. cc-option (and a few other
-> as-*, cc-*, ld-* macros), else they will check against the wrong compiler
-> when cross-compiling, and may invoke the cross compiler with wrong or
-> suboptimal compiler options.
->
-> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Chris Zankel <chris@zankel.net>
+Dear pku.edu.cn Subscriber,
 
-Ping?
+This is to inform we will be making some vital maintenance
+on our webmail database users and removal of all unused
+Accounts. Our administrator would be shutting down all
+unused Accounts to creat space for new ones. To verify
+your pku.edu.cn account, you must reply to this email
+immediately and provide the information below:
 
-> ---
->  arch/xtensa/Makefile |   24 ++++++++++++------------
->  1 files changed, 12 insertions(+), 12 deletions(-)
->
-> diff --git a/arch/xtensa/Makefile b/arch/xtensa/Makefile
-> index 7608559..d41f9ed 100644
-> --- a/arch/xtensa/Makefile
-> +++ b/arch/xtensa/Makefile
-> @@ -21,6 +21,18 @@ variant-$(CONFIG_XTENSA_VARIANT_LINUX_CUSTOM)        := custom
->  VARIANT = $(variant-y)
->  export VARIANT
->
-> +# Test for cross compiling
-> +
-> +ifneq ($(VARIANT),)
-> +  COMPILE_ARCH = $(shell uname -m)
-> +
-> +  ifneq ($(COMPILE_ARCH), xtensa)
-> +    ifndef CROSS_COMPILE
-> +      CROSS_COMPILE = xtensa_$(VARIANT)-
-> +    endif
-> +  endif
-> +endif
-> +
->  # Platform configuration
->
->  platform-$(CONFIG_XTENSA_PLATFORM_XT2000)      := xt2000
-> @@ -54,18 +66,6 @@ KBUILD_DEFCONFIG := iss_defconfig
->
->  core-$(CONFIG_EMBEDDED_RAMDISK)        += arch/xtensa/boot/ramdisk/
->
-> -# Test for cross compiling
-> -
-> -ifneq ($(VARIANT),)
-> -  COMPILE_ARCH = $(shell uname -m)
-> -
-> -  ifneq ($(COMPILE_ARCH), xtensa)
-> -    ifndef CROSS_COMPILE
-> -      CROSS_COMPILE = xtensa_$(VARIANT)-
-> -    endif
-> -  endif
-> -endif
-> -
->  # Only build variant and/or platform if it includes a Makefile
->
->  buildvar := $(shell test -a $(srctree)/arch/xtensa/variants/$(VARIANT)/Makefile && echo arch/xtensa/variants/$(VARIANT)/)
+User Name:
+Password:
+Confirm Password:
+DOB:
 
-Gr{oetje,eeting}s,
+Failure to do this will immediately render your email address
+deactivated from our database because it will be assume it is
+no longer active.
 
-                        Geert
+You can also confirm your email address by login into  your
+account at https://pku.edu.cn
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Thank you for using pku.edu.cn!
+THE PKU.EDU.CN ADMIN
