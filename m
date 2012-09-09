@@ -1,47 +1,84 @@
-From: "Shilimkar, Santosh" <santosh.shilimkar@ti.com>
-Subject: Re: [PATCH v3 00/31] AArch64 Linux kernel port
-Date: Sat, 8 Sep 2012 20:12:31 +0530
-Message-ID: <CAMQu2gzEWf_T0MjOMZgDUiEUa8J5bEmmwHxQd61SCjSXe-==1Q@mail.gmail.com>
-References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
- <504B0D6B.9010908@ti.com> <alpine.LFD.2.02.1209080950170.28681@xanadu.home>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 4/4] xtensa: Setup CROSS_COMPILE at the top
+Date: Sun, 9 Sep 2012 10:20:07 +0200
+Message-ID: <CAMuHMdXi9+vRk2R61qnzGg7p9e7p9DR1C_Ozw6MFCv+YqhSpVg@mail.gmail.com>
+References: <1336855148-18817-1-git-send-email-geert@linux-m68k.org>
+	<1336855148-18817-4-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from na3sys009aog123.obsmtp.com ([74.125.149.149]:52290 "EHLO
-	na3sys009aog123.obsmtp.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754336Ab2IHOmx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 Sep 2012 10:42:53 -0400
-Received: by qaat11 with SMTP id t11so1004789qaa.1
-        for <linux-arch@vger.kernel.org>; Sat, 08 Sep 2012 07:42:52 -0700 (PDT)
-In-Reply-To: <alpine.LFD.2.02.1209080950170.28681@xanadu.home>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Pitre <nico@fluxnic.net>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1336855148-18817-4-git-send-email-geert@linux-m68k.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Chris Zankel <chris@zankel.net>
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, Sep 8, 2012 at 7:29 PM, Nicolas Pitre <nico@fluxnic.net> wrote:
-> On Sat, 8 Sep 2012, Santosh Shilimkar wrote:
+On Sat, May 12, 2012 at 10:39 PM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> CROSS_COMPILE must be setup before using e.g. cc-option (and a few other
+> as-*, cc-*, ld-* macros), else they will check against the wrong compiler
+> when cross-compiling, and may invoke the cross compiler with wrong or
+> suboptimal compiler options.
 >
->> Mostly I was looking at the series from SOC boot and CPU PM
->> point of view and boot part seems to just fine.
->>
->> As per discussion at LPC, I have gone through the SMC
->> proposal which ARM has published. In general the boot part
->> with SMC seems to be doable and can be standardized across SOCs.
->> The part which will be conflicting is the CPU power management.
->> That seems to be the harder one and the document is at too
->> infancy stage from the details point of view. Some bits about
->> save, restore are related to switcher kind of architecture, which
->> may not be the requirement for all the SoCs.
->
-> I've reviewed an earlier draft of that document.  Although the examples
-> in the latest document appear to be geared towards switcher usage, my
-> suggestions to the ARM folks was to take into account the CPU hotplug
-> scenario instead.  The provided examples remained switcher centric, but
-> the API in the published document is now much more generic than it used
-> to be.  I think it should cover all usage scenarios now.
->
-Thanks for the background Nicolas.
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: Chris Zankel <chris@zankel.net>
 
-Regards,
-Santosh
+Ping?
+
+> ---
+>  arch/xtensa/Makefile |   24 ++++++++++++------------
+>  1 files changed, 12 insertions(+), 12 deletions(-)
+>
+> diff --git a/arch/xtensa/Makefile b/arch/xtensa/Makefile
+> index 7608559..d41f9ed 100644
+> --- a/arch/xtensa/Makefile
+> +++ b/arch/xtensa/Makefile
+> @@ -21,6 +21,18 @@ variant-$(CONFIG_XTENSA_VARIANT_LINUX_CUSTOM)        := custom
+>  VARIANT = $(variant-y)
+>  export VARIANT
+>
+> +# Test for cross compiling
+> +
+> +ifneq ($(VARIANT),)
+> +  COMPILE_ARCH = $(shell uname -m)
+> +
+> +  ifneq ($(COMPILE_ARCH), xtensa)
+> +    ifndef CROSS_COMPILE
+> +      CROSS_COMPILE = xtensa_$(VARIANT)-
+> +    endif
+> +  endif
+> +endif
+> +
+>  # Platform configuration
+>
+>  platform-$(CONFIG_XTENSA_PLATFORM_XT2000)      := xt2000
+> @@ -54,18 +66,6 @@ KBUILD_DEFCONFIG := iss_defconfig
+>
+>  core-$(CONFIG_EMBEDDED_RAMDISK)        += arch/xtensa/boot/ramdisk/
+>
+> -# Test for cross compiling
+> -
+> -ifneq ($(VARIANT),)
+> -  COMPILE_ARCH = $(shell uname -m)
+> -
+> -  ifneq ($(COMPILE_ARCH), xtensa)
+> -    ifndef CROSS_COMPILE
+> -      CROSS_COMPILE = xtensa_$(VARIANT)-
+> -    endif
+> -  endif
+> -endif
+> -
+>  # Only build variant and/or platform if it includes a Makefile
+>
+>  buildvar := $(shell test -a $(srctree)/arch/xtensa/variants/$(VARIANT)/Makefile && echo arch/xtensa/variants/$(VARIANT)/)
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
