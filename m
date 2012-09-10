@@ -1,51 +1,51 @@
-From: Nicolas Pitre <nico@fluxnic.net>
+From: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
 Subject: Re: [PATCH v3 02/31] arm64: Kernel booting and initialisation
-Date: Mon, 10 Sep 2012 11:00:07 -0400 (EDT)
-Message-ID: <alpine.LFD.2.02.1209101053320.28681@xanadu.home>
+Date: Mon, 10 Sep 2012 17:21:02 +0200
+Message-ID: <20120910152102.GD31430@game.jcrosoft.org>
 References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
- <201209101353.34325.arnd@arndb.de>
- <alpine.LFD.2.02.1209101007160.28681@xanadu.home>
- <201209101448.20745.arnd@arndb.de>
+ <1347035226-18649-3-git-send-email-catalin.marinas@arm.com>
+ <20120909172046.GB31430@game.jcrosoft.org>
+ <alpine.LFD.2.02.1209091923180.28681@xanadu.home>
+ <20120910055339.GC31430@game.jcrosoft.org>
+ <20120910125137.GC27042@arm.com>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; CHARSET=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relais.videotron.ca ([24.201.245.36]:51102 "EHLO
-	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752121Ab2IJPAM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Sep 2012 11:00:12 -0400
-In-reply-to: <201209101448.20745.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <20120910125137.GC27042@arm.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: linux-arm-kernel-bounces@lists.infradead.org
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Nicolas Pitre <nico@fluxnic.net>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, 10 Sep 2012, Arnd Bergmann wrote:
-
-> On Monday 10 September 2012, Nicolas Pitre wrote:
-> > On Mon, 10 Sep 2012, Arnd Bergmann wrote:
-> > > On Monday 10 September 2012, Catalin Marinas wrote:
-> > > > On Mon, Sep 10, 2012 at 06:53:39AM +0100, Jean-Christophe PLAGNIOL-VILLARD wrote:
-> > > I think a bunch of other architectures can have relocatable kernels, which
-> > > is useful e.g. for kdump. It does imply a small runtime cost and may have
-> > > other disadvantages though.
-> > 
-> > Relocatable in physical space is what kdump actually needs, and that's 
-> > what we already have here (as well as on ARM32 for that matter with 
-> > CONFIG_ARM_PATCH_PHYS_VIRT).  Relocatable in the virtual space is costly 
-> > and we shouldn't need to go there.
+On 13:51 Mon 10 Sep     , Catalin Marinas wrote:
+> On Mon, Sep 10, 2012 at 06:53:39AM +0100, Jean-Christophe PLAGNIOL-VILLARD wrote:
+> > On 19:29 Sun 09 Sep     , Nicolas Pitre wrote:
+> > > On Sun, 9 Sep 2012, Jean-Christophe PLAGNIOL-VILLARD wrote:
+> > > > On 17:26 Fri 07 Sep     , Catalin Marinas wrote:
+> > > > > +The image must be placed at the specified offset (currently 0x80000)
+> > > > > +from the start of the system RAM and called there. The start of the
+> > > > > +system RAM must be aligned to 2MB.
+> > > > can we drop this
+> > > 
+> > > Drop what?
+> > > And why?
+> > This contrain the must be loadable at any address
 > 
-> Ah, I see. I thought that the other architectures (powerpc and x86)
-> doing this were actually building with -fPIC, but they do the same
-> kind of early patching that we do.
+> You can't easily load the kernel image at any address, unless it can
+> relocate itself and you have a way to specify PHYS_OFFSET. We don't want
+> a compile-time PHYS_OFFSET, the kernel detects it at boot time based on
+> the load address.
+so NACK kexec and other boot loaders require it
 
-This being said, on ARM we don't take advantage of this physically 
-relocatable attribute with kdump.  Granted, PATCH_PHYS_VIRT was 
-introduced after kdump support, therefore the kernel had to be copied at 
-its expected physical location after the memory content there had been 
-preserved.  These days the only thing that kdump would need to do is to 
-just boot the kdump kernel in place with its reserved memory range and 
-let it ioremap the previous kernel's memory for analysis.
-
-
-Nicolas
+Best Regards,
+J.
