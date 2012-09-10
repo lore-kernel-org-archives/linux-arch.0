@@ -1,50 +1,29 @@
-From: Nicolas Pitre <nico@fluxnic.net>
-Subject: Re: [PATCH v3 31/31] arm64: MAINTAINERS update
-Date: Mon, 10 Sep 2012 13:57:57 -0400 (EDT)
-Message-ID: <alpine.LFD.2.02.1209101355000.28681@xanadu.home>
+From: Jon Masters <jonathan@jonmasters.org>
+Subject: Re: [PATCH v3 00/31] AArch64 Linux kernel port
+Date: Mon, 10 Sep 2012 16:22:38 -0400
+Message-ID: <504E4C0E.9030402@jonmasters.org>
 References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
- <1347035226-18649-32-git-send-email-catalin.marinas@arm.com>
- <20120909163156.GA31430@game.jcrosoft.org>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; CHARSET=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=windows-1252; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relais.videotron.ca ([24.201.245.36]:15392 "EHLO
-	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753740Ab2IJR6G (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Sep 2012 13:58:06 -0400
-In-reply-to: <20120909163156.GA31430@game.jcrosoft.org>
+Received: from mx1.redhat.com ([209.132.183.28]:20107 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1758356Ab2IJUWx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 10 Sep 2012 16:22:53 -0400
+In-Reply-To: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 
-On Sun, 9 Sep 2012, Jean-Christophe PLAGNIOL-VILLARD wrote:
+On 09/07/2012 12:26 PM, Catalin Marinas wrote:
+> This is the 3rd version of patches implementing Linux kernel support for
+> the 64-bit ARM architecture.
+<snip>
 
-> On 17:27 Fri 07 Sep     , Catalin Marinas wrote:
-> > This patch updates the MAINTAINERS file for the AArch64 Linux kernel
-> > port.
-> > 
-> > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> > Acked-by: Tony Lindgren <tony@atomide.com>
-> > Acked-by: Arnd Bergmann <arnd@arndb.de>
-> > ---
-> >  MAINTAINERS |    6 ++++++
-> >  1 files changed, 6 insertions(+), 0 deletions(-)
-> > 
-> > diff --git a/MAINTAINERS b/MAINTAINERS
-> > index fdc0119..de368a5 100644
-> > --- a/MAINTAINERS
-> > +++ b/MAINTAINERS
-> > @@ -1209,6 +1209,12 @@ S:	Maintained
-> >  F:	arch/arm/mach-pxa/z2.c
-> >  F:	arch/arm/mach-pxa/include/mach/z2.h
-> >  
-> > +ARM64 PORT (AARCH64 ARCHITECTURE)
-> > +M:	Catalin Marinas <catalin.marinas@arm.com>
-> we should put Russell too
+> ...but the main goal was to freeze the user ABI.
 
-He is not maintaining the ARM64 code.
+Is the consensus now that we're good from an ABI viewpoint?
 
-
-Nicolas
+Jon.
