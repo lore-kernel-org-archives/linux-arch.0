@@ -1,30 +1,44 @@
-From: "DR.NED OKOH" <emailinfo@ok.net>
-Subject: NICE DAY
-Date: Mon, 10 Sep 2012 03:29:03 -0700
-Message-ID: <SERVERgpYfRo3wO5blw00007683__33488.2378265776$1347273947$gmane$org@offline.co.il>
-Reply-To: mail.info187@ok.net
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 02/31] arm64: Kernel booting and initialisation
+Date: Mon, 10 Sep 2012 13:51:37 +0100
+Message-ID: <20120910125137.GC27042@arm.com>
+References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
+ <1347035226-18649-3-git-send-email-catalin.marinas@arm.com>
+ <20120909172046.GB31430@game.jcrosoft.org>
+ <alpine.LFD.2.02.1209091923180.28681@xanadu.home>
+ <20120910055339.GC31430@game.jcrosoft.org>
 Mime-Version: 1.0
-Content-Type: text/plain; CHARSET=US-ASCII
-Content-Transfer-Encoding: 7BIT
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mxout11.netvision.net.il ([194.90.6.39]:46117 "EHLO
-	mxout11.netvision.net.il" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756475Ab2IJKph (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Sep 2012 06:45:37 -0400
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:38883 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757849Ab2IJMwW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 10 Sep 2012 08:52:22 -0400
+Content-Disposition: inline
+In-Reply-To: <20120910055339.GC31430@game.jcrosoft.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
+To: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
+Cc: Nicolas Pitre <nico@fluxnic.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-Good day my dear,
-I am writing to acknowledged you that this is the second time we are notifying you about your payment worth of US$16.5m USD,with foreign Remittance payment department office which is due to be released into your Account As we begin the first fiscal payment of the year 2012.Please send the information below as needed for your fund release to you OK.
+On Mon, Sep 10, 2012 at 06:53:39AM +0100, Jean-Christophe PLAGNIOL-VILLARD wrote:
+> On 19:29 Sun 09 Sep     , Nicolas Pitre wrote:
+> > On Sun, 9 Sep 2012, Jean-Christophe PLAGNIOL-VILLARD wrote:
+> > > On 17:26 Fri 07 Sep     , Catalin Marinas wrote:
+> > > > +The image must be placed at the specified offset (currently 0x80000)
+> > > > +from the start of the system RAM and called there. The start of the
+> > > > +system RAM must be aligned to 2MB.
+> > > can we drop this
+> > 
+> > Drop what?
+> > And why?
+> This contrain the must be loadable at any address
 
-1)Your Full Name__________________________ _____________
-2)Your Address_______________________ ______________________________
-3)Your Age___________________________ _______________________
-4)Your Direct Telephone Number________________________ ________________
-5)Fax Number________________________ _________________
-6)Occupation____________________ __________________________
+You can't easily load the kernel image at any address, unless it can
+relocate itself and you have a way to specify PHYS_OFFSET. We don't want
+a compile-time PHYS_OFFSET, the kernel detects it at boot time based on
+the load address.
 
-We sincerely apologies for our late contact with you, We are committed to serve you better OK and you have been advice to get back to me immediately for more details OK.
-
-Yours in service
-Dr.Ned Okoh
+-- 
+Catalin
