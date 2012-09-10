@@ -1,56 +1,99 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
 Subject: Re: [PATCH v3 02/31] arm64: Kernel booting and initialisation
-Date: Mon, 10 Sep 2012 17:08:56 +0100
-Message-ID: <20120910160856.GG27042@arm.com>
+Date: Mon, 10 Sep 2012 17:11:59 +0100
+Message-ID: <20120910161159.GH27042@arm.com>
 References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
  <1347035226-18649-3-git-send-email-catalin.marinas@arm.com>
  <20120909172046.GB31430@game.jcrosoft.org>
- <alpine.LFD.2.02.1209091923180.28681@xanadu.home>
- <20120910055339.GC31430@game.jcrosoft.org>
- <20120910125137.GC27042@arm.com>
- <20120910152102.GD31430@game.jcrosoft.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:45749 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:45868 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758019Ab2IJQJq (ORCPT
+	by vger.kernel.org with ESMTP id S1754372Ab2IJQMj (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 Sep 2012 12:09:46 -0400
+	Mon, 10 Sep 2012 12:12:39 -0400
 Content-Disposition: inline
-In-Reply-To: <20120910152102.GD31430@game.jcrosoft.org>
+In-Reply-To: <20120909172046.GB31430@game.jcrosoft.org>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
-Cc: Nicolas Pitre <nico@fluxnic.net>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
 
-On Mon, Sep 10, 2012 at 04:21:02PM +0100, Jean-Christophe PLAGNIOL-VILLARD wrote:
-> On 13:51 Mon 10 Sep     , Catalin Marinas wrote:
-> > On Mon, Sep 10, 2012 at 06:53:39AM +0100, Jean-Christophe PLAGNIOL-VILLARD wrote:
-> > > On 19:29 Sun 09 Sep     , Nicolas Pitre wrote:
-> > > > On Sun, 9 Sep 2012, Jean-Christophe PLAGNIOL-VILLARD wrote:
-> > > > > On 17:26 Fri 07 Sep     , Catalin Marinas wrote:
-> > > > > > +The image must be placed at the specified offset (currently 0x80000)
-> > > > > > +from the start of the system RAM and called there. The start of the
-> > > > > > +system RAM must be aligned to 2MB.
-> > > > > can we drop this
-> > > > 
-> > > > Drop what?
-> > > > And why?
-> > > This contrain the must be loadable at any address
-> > 
-> > You can't easily load the kernel image at any address, unless it can
-> > relocate itself and you have a way to specify PHYS_OFFSET. We don't want
-> > a compile-time PHYS_OFFSET, the kernel detects it at boot time based on
-> > the load address.
-> so NACK kexec and other boot loaders require it
+On Sun, Sep 09, 2012 at 06:20:46PM +0100, Jean-Christophe PLAGNIOL-VILLARD wrote:
+> On 17:26 Fri 07 Sep     , Catalin Marinas wrote:
+> > +The device tree blob (dtb) must be no bigger than 2 megabytes in size
+> > +and placed at a 2-megabyte boundary within the first 512 megabytes from
+> > +the start of the kernel image. This is to allow the kernel to map the
+> > +blob using a single section mapping in the initial page tables.
+> why do you want to restrict the DT to be less tahn 2MiB?
 
-Just in case it wasn't clear, the kernel can be loaded at any address in
-RAM (and the RAM can start at any sane address). The way the kernel
-calculates PHYS_OFFSET is (load address - TEXT_OFFSET) unless we pass it
-by other means (none currently specified). For a kdump kernel, it just
-assumes that its PHYS_OFFSET is higher but it can ioremap the crashed
-kernel memory.
+That's a restriction due on the initial memory map. At some point we may
+add support in head.S to parse the dtb and extract the size information.
+Not critical at this stage.
+
+> > +Before jumping into the kernel, the following conditions must be met:
+> > +
+> > +- Quiesce all DMA capable devices so that memory does not get
+> > +  corrupted by bogus network packets or disk data.  This will save
+> > +  you many hours of debug.
+> > +
+> > +- Primary CPU general-purpose register settings
+> > +  x0 = physical address of device tree blob (dtb) in system RAM.
+> > +  x1 = 0 (reserved for future use)
+> > +  x2 = 0 (reserved for future use)
+> > +  x3 = 0 (reserved for future use)
+> > +
+> > +- CPU mode
+> > +  All forms of interrupts must be masked in PSTATE.DAIF (Debug, SError,
+> > +  IRQ and FIQ).
+> > +  The CPU must be in either EL2 (RECOMMENDED in order to have access to
+> > +  the virtualisation extensions) or non-secure EL1.
+> > +
+> > +- Caches, MMUs
+> > +  The MMU must be off.
+> > +  Instruction cache may be on or off.
+> > +  Data cache must be off and invalidated.
+> > +  External caches (if present) must be configured and disabled.
+> > +
+> > +- Architected timers
+> > +  CNTFRQ must be programmed with the timer frequency.
+> > +  If entering the kernel at EL1, CNTHCTL_EL2 must have EL1PCTEN (bit 0)
+> > +  set where available.
+> can you explain why?
+
+Otherwise the kernel cannot access the generic timer registers (it is
+described in the AArch64 exception model which isn't public yet).
+
+> > +- The primary CPU must jump directly to the first instruction of the
+> > +  kernel image.  The device tree blob passed by this CPU must contain
+> > +  for each CPU node:
+> > +
+> > +    1. An 'enable-method' property. Currently, the only supported value
+> > +       for this field is the string "spin-table".
+> > +
+> > +    2. A 'cpu-release-addr' property identifying a 64-bit,
+> > +       zero-initialised memory location.
+> > +
+> > +  It is expected that the bootloader will generate these device tree
+> > +  properties and insert them into the blob prior to kernel entry.
+> > +
+> > +- Any secondary CPUs must spin outside of the kernel in a reserved area
+> > +  of memory (communicated to the kernel by a /memreserve/ region in the
+> > +  device tree) polling their cpu-release-addr location, which must be
+> > +  contained in the reserved region.  A wfe instruction may be inserted
+> > +  to reduce the overhead of the busy-loop and a sev will be issued by
+> > +  the primary CPU.  When a read of the location pointed to by the
+> > +  cpu-release-addr returns a non-zero value, the CPU must jump directly
+> > +  to this value.
+> do you plan AMP boot?
+
+What do you mean by AMP?
+
+If you only want to use 3 CPUs out of 4 for example, you change the FDT
+information that gets passed to the kernel accordingly. So the kernel
+wouldn't touch the 4th one.
 
 -- 
 Catalin
