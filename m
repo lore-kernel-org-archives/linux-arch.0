@@ -1,47 +1,43 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 17/31] arm64: System calls handling
-Date: Mon, 10 Sep 2012 14:24:21 +0000
-Message-ID: <201209101424.21344.arnd@arndb.de>
-References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com> <201209101351.52902.arnd@arndb.de> <20120910140148.GD27042@arm.com>
+Subject: Re: [PATCH v3 02/31] arm64: Kernel booting and initialisation
+Date: Mon, 10 Sep 2012 14:48:20 +0000
+Message-ID: <201209101448.20745.arnd@arndb.de>
+References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
+ <201209101353.34325.arnd@arndb.de>
+ <alpine.LFD.2.02.1209101007160.28681@xanadu.home>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:51962 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750871Ab2IJOY1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Sep 2012 10:24:27 -0400
-In-Reply-To: <20120910140148.GD27042@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <alpine.LFD.2.02.1209101007160.28681@xanadu.home>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: linux-arm-kernel-bounces@lists.infradead.org
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Nicolas Pitre <nico@fluxnic.net>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Catalin Marinas <catalin.marinas@arm.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Monday 10 September 2012, Catalin Marinas wrote:
-> 
-> On Mon, Sep 10, 2012 at 02:51:52PM +0100, Arnd Bergmann wrote:
+On Monday 10 September 2012, Nicolas Pitre wrote:
+> On Mon, 10 Sep 2012, Arnd Bergmann wrote:
 > > On Monday 10 September 2012, Catalin Marinas wrote:
-> > > Yes, I've seen these but since Al's patches are not in mainline, I don't
-> > > want to add additional dependencies to the arm64 patches (currently
-> > > based on 3.6-rc4). Once they get into mainline, I'll add a patch that
-> > > converts arm64 to the generic functions above.
-> > > 
-> > > For kernel_execve(), I think I can simplify it further and not rely on
-> > > Al's patches (similar to other architectures doing an SVC from kernel):
-> > 
-> > Hmm, I thought one of the reasons for Al to do his series was to discourage
-> > people from doing syscalls from kernel space, but I may be misremembering
-> > things. Al?
+> > > On Mon, Sep 10, 2012 at 06:53:39AM +0100, Jean-Christophe PLAGNIOL-VILLARD wrote:
+> > I think a bunch of other architectures can have relocatable kernels, which
+> > is useful e.g. for kdump. It does imply a small runtime cost and may have
+> > other disadvantages though.
 > 
-> If that was the aim, I'm happy to change the code similar to the
-> arch/arm one. But as I said I would wait until Al's patches get into
-> mainline.
+> Relocatable in physical space is what kdump actually needs, and that's 
+> what we already have here (as well as on ARM32 for that matter with 
+> CONFIG_ARM_PATCH_PHYS_VIRT).  Relocatable in the virtual space is costly 
+> and we shouldn't need to go there.
 
-Ok. Another point: I wouldn't be too worried about dependencies for new
-code, because it's not possible to bisect through your series anyway
-(one needs all the patches before anything starts working really),
-so from my point of view you could also write your code in a way that
-expects Al's patches to get merged first.
+Ah, I see. I thought that the other architectures (powerpc and x86)
+doing this were actually building with -fPIC, but they do the same
+kind of early patching that we do.
 
 	Arnd
