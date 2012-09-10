@@ -1,55 +1,50 @@
 From: Nicolas Pitre <nico@fluxnic.net>
-Subject: Re: [PATCH v3 00/31] AArch64 Linux kernel port
-Date: Mon, 10 Sep 2012 13:53:30 -0400 (EDT)
-Message-ID: <alpine.LFD.2.02.1209101339270.28681@xanadu.home>
+Subject: Re: [PATCH v3 31/31] arm64: MAINTAINERS update
+Date: Mon, 10 Sep 2012 13:57:57 -0400 (EDT)
+Message-ID: <alpine.LFD.2.02.1209101355000.28681@xanadu.home>
 References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
+ <1347035226-18649-32-git-send-email-catalin.marinas@arm.com>
+ <20120909163156.GA31430@game.jcrosoft.org>
 Mime-Version: 1.0
 Content-Type: TEXT/PLAIN; CHARSET=US-ASCII
 Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from relais.videotron.ca ([24.201.245.36]:55413 "EHLO
+Received: from relais.videotron.ca ([24.201.245.36]:15392 "EHLO
 	relais.videotron.ca" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756963Ab2IJRxa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Sep 2012 13:53:30 -0400
-In-reply-to: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
+	with ESMTP id S1753740Ab2IJR6G (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Sep 2012 13:58:06 -0400
+In-reply-to: <20120909163156.GA31430@game.jcrosoft.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+To: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 
-On Fri, 7 Sep 2012, Catalin Marinas wrote:
+On Sun, 9 Sep 2012, Jean-Christophe PLAGNIOL-VILLARD wrote:
 
-> This is the 3rd version of patches implementing Linux kernel support for
-> the 64-bit ARM architecture. Most of the review comments for the
-> previous release have been implemented. There are a few left (like
-> generic timer dts specification) but the main goal was to freeze the
-> user ABI.
-> 
-> The Linux kernel patches are available on this tree:
-> 
-> git://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/linux-aarch64.git upstream
-> 
-> Main changes since the previous version:
-> - ptrace interface now using regsets for TLS and hardware debug
->   registers.
-> - sys_personality fixes. PER_LINUX is the default for all tasks (32 or
->   64-bit) and there is no compat_sys_personality defined.
-> - Kconfig clean-up (unused symbols, AARCH32_EMULATION removed in favour
->   of COMPAT).
-> - Clean-up of the __cpuc_* function prefixes.
-> - CPU information table implemented in C rather than assembly.
-> - __bad_* function calls replaced with BUILD_BUG.
-> - Inline get_user/put_user (code cleaner, slightly bigger kernel Image).
-> - DMA API implementation simplified, defaulting to swiotlb. It will be
->   extended as hardware becomes available.
-> - Arch-specific code in the generic timer patch moved to arch/arm64/.
-> - Comment fixes and clarifications.
+> On 17:27 Fri 07 Sep     , Catalin Marinas wrote:
+> > This patch updates the MAINTAINERS file for the AArch64 Linux kernel
+> > port.
+> > 
+> > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> > Acked-by: Tony Lindgren <tony@atomide.com>
+> > Acked-by: Arnd Bergmann <arnd@arndb.de>
+> > ---
+> >  MAINTAINERS |    6 ++++++
+> >  1 files changed, 6 insertions(+), 0 deletions(-)
+> > 
+> > diff --git a/MAINTAINERS b/MAINTAINERS
+> > index fdc0119..de368a5 100644
+> > --- a/MAINTAINERS
+> > +++ b/MAINTAINERS
+> > @@ -1209,6 +1209,12 @@ S:	Maintained
+> >  F:	arch/arm/mach-pxa/z2.c
+> >  F:	arch/arm/mach-pxa/include/mach/z2.h
+> >  
+> > +ARM64 PORT (AARCH64 ARCHITECTURE)
+> > +M:	Catalin Marinas <catalin.marinas@arm.com>
+> we should put Russell too
 
-For those patches in this series I didn't comment on already:
-
-Acked-by: Nicolas Pitre <nico@linaro.org>
-
-Small nit: please s/nico@cam.org/nico@fluxnic.net/.
+He is not maintaining the ARM64 code.
 
 
 Nicolas
