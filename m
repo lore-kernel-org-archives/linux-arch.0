@@ -1,93 +1,49 @@
-From: czankel <chris@zankel.net>
-Subject: Re: [PATCH 4/4] xtensa: Setup CROSS_COMPILE at the top
-Date: Mon, 10 Sep 2012 22:33:02 +0200
-Message-ID: <504E4E7E.30608@zankel.net>
-References: <1336855148-18817-1-git-send-email-geert@linux-m68k.org> <1336855148-18817-4-git-send-email-geert@linux-m68k.org> <CAMuHMdXi9+vRk2R61qnzGg7p9e7p9DR1C_Ozw6MFCv+YqhSpVg@mail.gmail.com>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH v3 31/31] arm64: MAINTAINERS update
+Date: Mon, 10 Sep 2012 22:17:57 +0100
+Message-ID: <20120910211757.GD31998@n2100.arm.linux.org.uk>
+References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com> <1347035226-18649-32-git-send-email-catalin.marinas@arm.com> <20120909163156.GA31430@game.jcrosoft.org> <alpine.LFD.2.02.1209101355000.28681@xanadu.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f174.google.com ([74.125.82.174]:38534 "EHLO
-	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932396Ab2IJUdJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Sep 2012 16:33:09 -0400
-Received: by weyx8 with SMTP id x8so1543104wey.19
-        for <linux-arch@vger.kernel.org>; Mon, 10 Sep 2012 13:33:08 -0700 (PDT)
-In-Reply-To: <CAMuHMdXi9+vRk2R61qnzGg7p9e7p9DR1C_Ozw6MFCv+YqhSpVg@mail.gmail.com>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:57400 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752444Ab2IJVSE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Sep 2012 17:18:04 -0400
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.2.02.1209101355000.28681@xanadu.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+To: Nicolas Pitre <nico@fluxnic.net>
+Cc: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org
 
-On 9/9/12 10:20 AM, Geert Uytterhoeven wrote:
-> On Sat, May 12, 2012 at 10:39 PM, Geert Uytterhoeven
-> <geert@linux-m68k.org>  wrote:
->> CROSS_COMPILE must be setup before using e.g. cc-option (and a few other
->> as-*, cc-*, ld-* macros), else they will check against the wrong compiler
->> when cross-compiling, and may invoke the cross compiler with wrong or
->> suboptimal compiler options.
->>
->> Signed-off-by: Geert Uytterhoeven<geert@linux-m68k.org>
->> Cc: Chris Zankel<chris@zankel.net>
->>
->> Ping?
-Acked-by: Chris Zankel <chris@zankel.net>
+On Mon, Sep 10, 2012 at 01:57:57PM -0400, Nicolas Pitre wrote:
+> On Sun, 9 Sep 2012, Jean-Christophe PLAGNIOL-VILLARD wrote:
+> 
+> > On 17:27 Fri 07 Sep     , Catalin Marinas wrote:
+> > > This patch updates the MAINTAINERS file for the AArch64 Linux kernel
+> > > port.
+> > > 
+> > > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> > > Acked-by: Tony Lindgren <tony@atomide.com>
+> > > Acked-by: Arnd Bergmann <arnd@arndb.de>
+> > > ---
+> > >  MAINTAINERS |    6 ++++++
+> > >  1 files changed, 6 insertions(+), 0 deletions(-)
+> > > 
+> > > diff --git a/MAINTAINERS b/MAINTAINERS
+> > > index fdc0119..de368a5 100644
+> > > --- a/MAINTAINERS
+> > > +++ b/MAINTAINERS
+> > > @@ -1209,6 +1209,12 @@ S:	Maintained
+> > >  F:	arch/arm/mach-pxa/z2.c
+> > >  F:	arch/arm/mach-pxa/include/mach/z2.h
+> > >  
+> > > +ARM64 PORT (AARCH64 ARCHITECTURE)
+> > > +M:	Catalin Marinas <catalin.marinas@arm.com>
+> > we should put Russell too
+> 
+> He is not maintaining the ARM64 code.
 
-
->>
->> ---
->>   arch/xtensa/Makefile |   24 ++++++++++++------------
->>   1 files changed, 12 insertions(+), 12 deletions(-)
->>
->> diff --git a/arch/xtensa/Makefile b/arch/xtensa/Makefile
->> index 7608559..d41f9ed 100644
->> --- a/arch/xtensa/Makefile
->> +++ b/arch/xtensa/Makefile
->> @@ -21,6 +21,18 @@ variant-$(CONFIG_XTENSA_VARIANT_LINUX_CUSTOM)        := custom
->>   VARIANT = $(variant-y)
->>   export VARIANT
->>
->> +# Test for cross compiling
->> +
->> +ifneq ($(VARIANT),)
->> +  COMPILE_ARCH = $(shell uname -m)
->> +
->> +  ifneq ($(COMPILE_ARCH), xtensa)
->> +    ifndef CROSS_COMPILE
->> +      CROSS_COMPILE = xtensa_$(VARIANT)-
->> +    endif
->> +  endif
->> +endif
->> +
->>   # Platform configuration
->>
->>   platform-$(CONFIG_XTENSA_PLATFORM_XT2000)      := xt2000
->> @@ -54,18 +66,6 @@ KBUILD_DEFCONFIG := iss_defconfig
->>
->>   core-$(CONFIG_EMBEDDED_RAMDISK)        += arch/xtensa/boot/ramdisk/
->>
->> -# Test for cross compiling
->> -
->> -ifneq ($(VARIANT),)
->> -  COMPILE_ARCH = $(shell uname -m)
->> -
->> -  ifneq ($(COMPILE_ARCH), xtensa)
->> -    ifndef CROSS_COMPILE
->> -      CROSS_COMPILE = xtensa_$(VARIANT)-
->> -    endif
->> -  endif
->> -endif
->> -
->>   # Only build variant and/or platform if it includes a Makefile
->>
->>   buildvar := $(shell test -a $(srctree)/arch/xtensa/variants/$(VARIANT)/Makefile&&  echo arch/xtensa/variants/$(VARIANT)/)
-> Gr{oetje,eeting}s,
->
->                          Geert
->
-> --
-> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
->
-> In personal conversations with technical people, I call myself a hacker. But
-> when I'm talking to journalists I just say "programmer" or something like that.
->                                  -- Linus Torvalds
+And, let's say the rest of it - it doesn't take much inteligence to work
+out what that means for me personally.
