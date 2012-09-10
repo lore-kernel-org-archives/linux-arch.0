@@ -1,122 +1,92 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH 2/2] c6x: switch to generic sys_execve()
-Date: Mon, 10 Sep 2012 18:20:03 -0400
-Message-ID: <1347315603-30027-3-git-send-email-msalter@redhat.com>
-References: <20120907182004.GE13973@ZenIV.linux.org.uk>
- <1347315603-30027-1-git-send-email-msalter@redhat.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:38319 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751816Ab2IJWUS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 Sep 2012 18:20:18 -0400
-In-Reply-To: <1347315603-30027-1-git-send-email-msalter@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
+From: Nicolas Pitre <nico@fluxnic.net>
+Subject: Re: [PATCH v3 31/31] arm64: MAINTAINERS update
+Date: Mon, 10 Sep 2012 19:31:14 -0400 (EDT)
+Message-ID: <alpine.LFD.2.02.1209101834530.28681@xanadu.home>
+References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
+ <1347035226-18649-32-git-send-email-catalin.marinas@arm.com>
+ <20120909163156.GA31430@game.jcrosoft.org>
+ <alpine.LFD.2.02.1209101355000.28681@xanadu.home>
+ <20120910211757.GD31998@n2100.arm.linux.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-reply-to: <20120910211757.GD31998@n2100.arm.linux.org.uk>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: linux-arm-kernel-bounces@lists.infradead.org
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, linux-kernel@vger.kernel.org, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Mark Salter <msalter@redhat.com>
----
- arch/c6x/include/asm/syscalls.h |    5 -----
- arch/c6x/include/asm/unistd.h   |    1 +
- arch/c6x/kernel/entry.S         |   23 -----------------------
- arch/c6x/kernel/process.c       |   22 ----------------------
- 4 files changed, 1 insertions(+), 50 deletions(-)
+On Mon, 10 Sep 2012, Russell King - ARM Linux wrote:
 
-diff --git a/arch/c6x/include/asm/syscalls.h b/arch/c6x/include/asm/syscalls.h
-index aed53da..e7b8991 100644
---- a/arch/c6x/include/asm/syscalls.h
-+++ b/arch/c6x/include/asm/syscalls.h
-@@ -44,11 +44,6 @@ extern int sys_cache_sync(unsigned long s, unsigned long e);
- struct pt_regs;
- 
- extern asmlinkage long sys_c6x_clone(struct pt_regs *regs);
--extern asmlinkage long sys_c6x_execve(const char __user *name,
--				      const char __user *const __user *argv,
--				      const char __user *const __user *envp,
--				      struct pt_regs *regs);
--
- 
- #include <asm-generic/syscalls.h>
- 
-diff --git a/arch/c6x/include/asm/unistd.h b/arch/c6x/include/asm/unistd.h
-index 1ce3a6f..3c131d5 100644
---- a/arch/c6x/include/asm/unistd.h
-+++ b/arch/c6x/include/asm/unistd.h
-@@ -17,6 +17,7 @@
- #define _ASM_C6X_UNISTD_H
- 
- #define __ARCH_WANT_KERNEL_EXECVE
-+#define __ARCH_WANT_SYS_EXECVE
- 
- /* Use the standard ABI for syscalls. */
- #include <asm-generic/unistd.h>
-diff --git a/arch/c6x/kernel/entry.S b/arch/c6x/kernel/entry.S
-index 693002b..1c0e867 100644
---- a/arch/c6x/kernel/entry.S
-+++ b/arch/c6x/kernel/entry.S
-@@ -645,29 +645,6 @@ ENTRY(sys_rt_sigreturn)
- #endif
- ENDPROC(sys_rt_sigreturn)
- 
--ENTRY(sys_execve)
--	ADDAW	.D2	SP,2,B6		; put regs addr in 4th parameter
--					; & adjust regs stack addr
--	LDW	.D2T2	*+SP(REGS_B4+8),B4
--
--	;; c6x_execve(char *name, char **argv,
--	;;            char **envp, struct pt_regs *regs)
--#ifdef CONFIG_C6X_BIG_KERNEL
-- ||	MVKL	.S1	sys_c6x_execve,A0
--	MVKH	.S1	sys_c6x_execve,A0
--	B	.S2X	A0
--#else
-- ||	B	.S2	sys_c6x_execve
--#endif
--	STW	.D2T2	B3,*SP--[2]
--	ADDKPC	.S2	ret_from_c6x_execve,B3,3
--
--ret_from_c6x_execve:
--	LDW	.D2T2	*++SP[2],B3
--	NOP	4
--	BNOP	.S2	B3,5
--ENDPROC(sys_execve)
--
- ENTRY(sys_pread_c6x)
- 	MV	.D2X	A8,B7
- #ifdef CONFIG_C6X_BIG_KERNEL
-diff --git a/arch/c6x/kernel/process.c b/arch/c6x/kernel/process.c
-index 45e924a..e83d872 100644
---- a/arch/c6x/kernel/process.c
-+++ b/arch/c6x/kernel/process.c
-@@ -221,28 +221,6 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
- 	return 0;
- }
- 
--/*
-- * c6x_execve() executes a new program.
-- */
--SYSCALL_DEFINE4(c6x_execve, const char __user *, name,
--		const char __user *const __user *, argv,
--		const char __user *const __user *, envp,
--		struct pt_regs *, regs)
--{
--	int error;
--	char *filename;
--
--	filename = getname(name);
--	error = PTR_ERR(filename);
--	if (IS_ERR(filename))
--		goto out;
--
--	error = do_execve(filename, argv, envp, regs);
--	putname(filename);
--out:
--	return error;
--}
--
- unsigned long get_wchan(struct task_struct *p)
- {
- 	return p->thread.wchan;
--- 
-1.7.9.1
+> On Mon, Sep 10, 2012 at 01:57:57PM -0400, Nicolas Pitre wrote:
+> > On Sun, 9 Sep 2012, Jean-Christophe PLAGNIOL-VILLARD wrote:
+> > 
+> > > On 17:27 Fri 07 Sep     , Catalin Marinas wrote:
+> > > > This patch updates the MAINTAINERS file for the AArch64 Linux kernel
+> > > > port.
+> > > > 
+> > > > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> > > > Acked-by: Tony Lindgren <tony@atomide.com>
+> > > > Acked-by: Arnd Bergmann <arnd@arndb.de>
+> > > > ---
+> > > >  MAINTAINERS |    6 ++++++
+> > > >  1 files changed, 6 insertions(+), 0 deletions(-)
+> > > > 
+> > > > diff --git a/MAINTAINERS b/MAINTAINERS
+> > > > index fdc0119..de368a5 100644
+> > > > --- a/MAINTAINERS
+> > > > +++ b/MAINTAINERS
+> > > > @@ -1209,6 +1209,12 @@ S:	Maintained
+> > > >  F:	arch/arm/mach-pxa/z2.c
+> > > >  F:	arch/arm/mach-pxa/include/mach/z2.h
+> > > >  
+> > > > +ARM64 PORT (AARCH64 ARCHITECTURE)
+> > > > +M:	Catalin Marinas <catalin.marinas@arm.com>
+> > > we should put Russell too
+> > 
+> > He is not maintaining the ARM64 code.
+> 
+> And, let's say the rest of it - it doesn't take much inteligence to work
+> out what that means for me personally.
+
+For the record, let me state out loud what I think.
+
+I truly think that the core ARM code is a nice piece of art, and this is 
+because of your technical excellence and good taste with code.  The ARM 
+ecosystem is wide and varied, and keeping it from morphing into a horrid 
+mess is a thankless challenge.  We as a community certainly don't say 
+this very often if at all, but we certainly owe you a big "thank you" 
+for the excellent work you did so far, and I hope you'll go on with it 
+for quite some time yet. In any case, no one with excellent coding 
+skills such as yours is ever going to lack work and opportunities in 
+this community.
+
+Even x86, despite its long history in the Linux kernel, is less 
+fragmented and diversified than the ARM architecture.  For better or 
+worse, the ARM Ltd business model is different from Intel's.  That might 
+be good for the ARM market share and vendor differentiation, but this is 
+far from the ideal scenario for kernel developers.  I said it in the 
+past and I'll say it again: X86 is peanuts in comparison.
+
+Yet, X86 has 3 listed maintainers according to the MAINTAINERS file.  
+ARM has only one.  AS far as I can see, no one is crazy enough to be 
+maintainer for two or more architectures.
+
+Unless you were to give up on the ARM 32 bit maintenance, I don't see 
+how you could be able to maintain both ARM and ARM64 at the same time 
+without losing your sanity or sacrificing on the quality of the code you 
+contribute. .  Fortunately, Catalin is willing to maintain the ARM64 
+port and he appears pretty motivated as well.  Unless he does screw up, 
+we should let him bear this weight.
+
+
+Nicolas
