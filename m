@@ -1,92 +1,121 @@
-From: Nicolas Pitre <nico@fluxnic.net>
-Subject: Re: [PATCH v3 31/31] arm64: MAINTAINERS update
-Date: Mon, 10 Sep 2012 19:31:14 -0400 (EDT)
-Message-ID: <alpine.LFD.2.02.1209101834530.28681@xanadu.home>
-References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
- <1347035226-18649-32-git-send-email-catalin.marinas@arm.com>
- <20120909163156.GA31430@game.jcrosoft.org>
- <alpine.LFD.2.02.1209101355000.28681@xanadu.home>
- <20120910211757.GD31998@n2100.arm.linux.org.uk>
+From: Greg Ungerer <gregungerer@westnet.com.au>
+Subject: Re: [RFC] status of execve() work - per-architecture patches solicited
+Date: Tue, 11 Sep 2012 13:39:54 +1000
+Message-ID: <504EB28A.9080607@westnet.com.au>
+References: <20120907182004.GE13973@ZenIV.linux.org.uk> <504DEDBB.1090404@westnet.com.au> <20120910164946.GO13973@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-reply-to: <20120910211757.GD31998@n2100.arm.linux.org.uk>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: linux-arm-kernel-bounces@lists.infradead.org
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Catalin Marinas <catalin.marinas@arm.com>, linux-kernel@vger.kernel.org, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from outbound-mail03.westnet.com.au ([203.10.1.244]:12428 "EHLO
+	outbound-mail03.westnet.com.au" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751667Ab2IKDj7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 10 Sep 2012 23:39:59 -0400
+In-Reply-To: <20120910164946.GO13973@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Mon, 10 Sep 2012, Russell King - ARM Linux wrote:
+On 09/11/2012 02:49 AM, Al Viro wrote:
+> On Mon, Sep 10, 2012 at 11:40:11PM +1000, Greg Ungerer wrote:
+>> Hi Al,
+>>
+>> On 09/08/2012 04:20 AM, Al Viro wrote:
+>>> 	To architecture maintainers: please, review the current
+>>> situation in git.kernel.org/pub/scm/linux/kernel/git/viro/signal #execve2
+>>> and consider sending the corresponding patches for missing architectures.
+>>
+>> I can see you have some m68k patches in there as well.
+>> They tested good on standard m68k (under emulator) and good on non-mmu
+>> ColdFire. But it is geting an exception when I run on ColdFire with MMU
+>> enabled:
+>>
+>> ...
+>> Creating 1 MTD partitions on "RAM":
+>> 0x000000000000-0x0000001b8000 : "ROMfs"
+>> TCP: cubic registered
+>> NET: Registered protocol family 17
+>> VFS: Mounted root (romfs filesystem) readonly on device 31:0.
+>> *** FORMAT ERROR ***   FORMAT=4
+>> Current process id is 1
+>> BAD KERNEL TRAP: 00000000
+>> Modules linked in:
+>> PC: [<0002562a>] 0x02562a
+>> SR: 2704  SP: 0383dfc4  a2: 00000000
+>> d0: 00000000    d1: 00000000    d2: 00000000    d3: 00000000
+>> d4: 00000000    d5: 00000000    a0: 00000000    a1: 00000000
+>> Process init (pid: 1, task=0383a000)
+>> Frame format=4 eff addr=00000000 pc=6000169a
+>> Stack from 0383e000:
+>> Call Trace:
+>> Code: 6610 4cd7 073e 4fef 0020 201f 588f dfdf <4e73> 2228 0004 46fc
+>> 2000 0801 0007 66ff ffff c2ea 598f 4fef ffe8 48d7 78c0 486f
+>> Disabling lock debugging due to kernel taint
+>>
+>> It is trapping at the return from exception (rte) in Lreturn.
+>> Looks like it doesn't like the "format" field of the new stack frame
+>> for some reason. If I get a few minutes tomorrow I'll dig into it.
+>
+> Interesting...  What it should get is format 0, same as before the change.
 
-> On Mon, Sep 10, 2012 at 01:57:57PM -0400, Nicolas Pitre wrote:
-> > On Sun, 9 Sep 2012, Jean-Christophe PLAGNIOL-VILLARD wrote:
-> > 
-> > > On 17:27 Fri 07 Sep     , Catalin Marinas wrote:
-> > > > This patch updates the MAINTAINERS file for the AArch64 Linux kernel
-> > > > port.
-> > > > 
-> > > > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> > > > Acked-by: Tony Lindgren <tony@atomide.com>
-> > > > Acked-by: Arnd Bergmann <arnd@arndb.de>
-> > > > ---
-> > > >  MAINTAINERS |    6 ++++++
-> > > >  1 files changed, 6 insertions(+), 0 deletions(-)
-> > > > 
-> > > > diff --git a/MAINTAINERS b/MAINTAINERS
-> > > > index fdc0119..de368a5 100644
-> > > > --- a/MAINTAINERS
-> > > > +++ b/MAINTAINERS
-> > > > @@ -1209,6 +1209,12 @@ S:	Maintained
-> > > >  F:	arch/arm/mach-pxa/z2.c
-> > > >  F:	arch/arm/mach-pxa/include/mach/z2.h
-> > > >  
-> > > > +ARM64 PORT (AARCH64 ARCHITECTURE)
-> > > > +M:	Catalin Marinas <catalin.marinas@arm.com>
-> > > we should put Russell too
-> > 
-> > He is not maintaining the ARM64 code.
-> 
-> And, let's say the rest of it - it doesn't take much inteligence to work
-> out what that means for me personally.
+Thats a problem on ColdFire. The format field of the stack frame would
+normally be 0x4 for a long-word aligned user stack pointer. The current
+start_thread code doesn't set this on the ColdFire/MMU case, though we
+do for the non-mmu case. The old code inherited this from the stack
+frame of exec calling process.
 
-For the record, let me state out loud what I think.
+So I will rework the m68k start_thread() code so it sets it explicitly
+for all ColdFire cases.
 
-I truly think that the core ARM code is a nice piece of art, and this is 
-because of your technical excellence and good taste with code.  The ARM 
-ecosystem is wide and varied, and keeping it from morphing into a horrid 
-mess is a thankless challenge.  We as a community certainly don't say 
-this very often if at all, but we certainly owe you a big "thank you" 
-for the excellent work you did so far, and I hope you'll go on with it 
-for quite some time yet. In any case, no one with excellent coding 
-skills such as yours is ever going to lack work and opportunities in 
-this community.
-
-Even x86, despite its long history in the Linux kernel, is less 
-fragmented and diversified than the ARM architecture.  For better or 
-worse, the ARM Ltd business model is different from Intel's.  That might 
-be good for the ARM market share and vendor differentiation, but this is 
-far from the ideal scenario for kernel developers.  I said it in the 
-past and I'll say it again: X86 is peanuts in comparison.
-
-Yet, X86 has 3 listed maintainers according to the MAINTAINERS file.  
-ARM has only one.  AS far as I can see, no one is crazy enough to be 
-maintainer for two or more architectures.
-
-Unless you were to give up on the ARM 32 bit maintenance, I don't see 
-how you could be able to maintain both ARM and ARM64 at the same time 
-without losing your sanity or sacrificing on the quality of the code you 
-contribute. .  Fortunately, Catalin is willing to maintain the ARM64 
-port and he appears pretty motivated as well.  Unless he does screw up, 
-we should let him bear this weight.
+With this fixed up the new exec code works in all cases I have tested
+with ColdFire/MMU then.
 
 
-Nicolas
+> BTW, is there any convenient way to get an emulated coldfire-MMU system?
+
+I only test it on real hardware. But it looks like qemu has coldfire
+emulation. I haven't tried it, but as of version 1.0 it listed supported
+ColdFire CPU's as:
+
+     m5206
+     m5208
+     cfv4e
+
+The cfv4e core is capable of having an MMU, so maybe someone is working
+on it. I must go and check 1.2.0, it might be better.
+
+
+> For m68k I'm using aranym with sid/m68k from debian-ports.org and it seems
+> to work fine these days, but that obviously won't do for coldfire - neither
+> the emulator itself, nor the userland (AFAICS, gcc will happily generate
+> instructions that use weird addressing modes unless told not to, so I would
+> be extremely surprised if normal debian m68k binaries would run on coldfire,
+> MMU or no MMU).
+
+Yeah, no way it will work without the appropriate compiler switches on
+when generating even userland binaries.
+
+Regards
+Greg
+
+
+> BTW, the same question goes for many other embedded targets - I'm using
+> qemu for arm and mips and hercules for s390; alpha, parisc, ppc32 and sparc64 -
+> on actual hardware, amd64 and i386 - on kvm guests (all with debian userland);
+> ia64 kinda-sorta works with ski, but it's very much imperfect...  I think
+> sh (at least sh4) should be usable with qemu as well, but I hadn't set that
+> up yet.  sparc32 is usable on qemu, but only with very old userland.
+> Everything else...  In theory, quite a few ought to be usable if one
+> bootstraps uclinux userland with qemu, but I've no idea how well does that
+> work in practice.  And seeing that e.g. FRV eval boards go for several
+> hundred dollars even on ebay, let alone from manufacturer, I'd rather not
+> add the actual hardware to the pile here ;-/
+>
+> What do people actually use?
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>
