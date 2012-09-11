@@ -1,48 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:61469 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:61467 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1758560Ab2IKQr3 (ORCPT
+	by vger.kernel.org with ESMTP id S1758556Ab2IKQr3 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
 	Tue, 11 Sep 2012 12:47:29 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH 0/3] Minor changes to common hugetlb code for ARM
-Date: Tue, 11 Sep 2012 17:47:13 +0100
-Message-ID: <1347382036-18455-1-git-send-email-will.deacon@arm.com>
+Subject: [PATCH 1/3] mm: thp: Fix the pmd_clear() arguments in pmdp_get_and_clear()
+Date: Tue, 11 Sep 2012 17:47:14 +0100
+Message-ID: <1347382036-18455-2-git-send-email-will.deacon@arm.com>
+In-Reply-To: <1347382036-18455-1-git-send-email-will.deacon@arm.com>
+References: <1347382036-18455-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-mm@kvack.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mhocko@suse.cz, Will Deacon <will.deacon@arm.com>
-Message-ID: <20120911164713.QagO2aP3gYopX5aSwEMPQDTxoy6JHVyGvRmSMEi9RX8@z>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mhocko@suse.cz, Catalin Marinas <catalin.marinas@arm.com>, Arnd Bergmann <arnd@arndb.de>, Steve Capper <steve.capper@arm.com>, Will Deacon <will.deacon@arm.com>
+Message-ID: <20120911164714.5Nat64M3iT_uJVptaFiLbKsV5mgp_Y_6TR6QMmxaPz0@z>
 
-Hello,
+From: Catalin Marinas <catalin.marinas@arm.com>
 
-A few changes are required to common hugetlb code before the ARM support
-can be merged. I posted the main one previously, which has been picked up
-by akpm:
+The CONFIG_TRANSPARENT_HUGEPAGE implementation of pmdp_get_and_clear()
+calls pmd_clear() with 3 arguments instead of 1.
 
-  http://marc.info/?l=linux-mm&m=134573987631394&w=2
-
-The remaining three patches (included here) are all fairly minor but do
-affect other architectures.
-
-All comments welcome,
-
-Will
-
-Catalin Marinas (2):
-  mm: thp: Fix the pmd_clear() arguments in pmdp_get_and_clear()
-  mm: thp: Fix the update_mmu_cache() last argument passing in
-    mm/huge_memory.c
-
-Steve Capper (1):
-  mm: Introduce HAVE_ARCH_TRANSPARENT_HUGEPAGE
-
- arch/x86/Kconfig              |    4 ++++
+Cc: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+Signed-off-by: Steve Capper <steve.capper@arm.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
  include/asm-generic/pgtable.h |    2 +-
- mm/Kconfig                    |    2 +-
- mm/huge_memory.c              |    6 +++---
- 4 files changed, 9 insertions(+), 5 deletions(-)
+ 1 files changed, 1 insertions(+), 1 deletions(-)
 
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index ff4947b..f7e0206 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -87,7 +87,7 @@ static inline pmd_t pmdp_get_and_clear(struct mm_struct *mm,
+ 				       pmd_t *pmdp)
+ {
+ 	pmd_t pmd = *pmdp;
+-	pmd_clear(mm, address, pmdp);
++	pmd_clear(pmdp);
+ 	return pmd;
+ }
+ #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
 -- 
 1.7.4.1
 
