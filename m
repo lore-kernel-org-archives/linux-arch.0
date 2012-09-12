@@ -1,52 +1,40 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 11/31] arm64: IRQ handling
-Date: Wed, 12 Sep 2012 11:24:02 +0100
-Message-ID: <20120912102402.GB21823@arm.com>
-References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
- <1347035226-18649-12-git-send-email-catalin.marinas@arm.com>
- <201209071937.19156.arnd@arndb.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3 00/31] AArch64 Linux kernel port
+Date: Wed, 12 Sep 2012 11:54:20 +0000
+Message-ID: <201209121154.20474.arnd@arndb.de>
+References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com> <504E4C0E.9030402@jonmasters.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <201209071937.19156.arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain;
+  charset="windows-1252"
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.171]:63657 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751219Ab2ILLyh convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Sep 2012 07:54:37 -0400
+In-Reply-To: <504E4C0E.9030402@jonmasters.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Jon Masters <jonathan@jonmasters.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org
 
-On Fri, Sep 07, 2012 at 08:37:18PM +0100, Arnd Bergmann wrote:
-> On Friday 07 September 2012, Catalin Marinas wrote:
+On Monday 10 September 2012, Jon Masters wrote:
+> On 09/07/2012 12:26 PM, Catalin Marinas wrote:
+> > This is the 3rd version of patches implementing Linux kernel support for
+> > the 64-bit ARM architecture.
+> <snip>
 > 
-> > +#define __inc_irq_stat(cpu, member)	__IRQ_STAT(cpu, member)++
-> > +#define __get_irq_stat(cpu, member)	__IRQ_STAT(cpu, member)
+> > ...but the main goal was to freeze the user ABI.
 > 
-> Isn't this something that the IRQ core code already keeps track of?
-
-That's for the IPIs which are handled directly by the arch code. We
-don't even allocate irq descriptors for them.
-
-> > +#endif /* __ASM_HARDIRQ_H */
-> > diff --git a/arch/arm64/include/asm/irq.h b/arch/arm64/include/asm/irq.h
-> > new file mode 100644
-> > index 0000000..a4e1cad
-> > --- /dev/null
-> > +++ b/arch/arm64/include/asm/irq.h
-> > @@ -0,0 +1,8 @@
-> > +#ifndef __ASM_IRQ_H
-> > +#define __ASM_IRQ_H
-> > +
-> > +#include <asm-generic/irq.h>
-> > +
-> > +extern void (*handle_arch_irq)(struct pt_regs *);
-> > +
-> > +#endif
+> Is the consensus now that we're good from an ABI viewpoint?
 > 
-> Is this one still needed?
 
-Yes. It's initialised by the GIC code (called via of_irq_init) and we
-want to allow different GIC versions (GICv2 used by the model currently
-but we would expect GICv3 with hardware).
+From my point of view, no more changes are needed. I would not give any
+guarantees until we have a first kernel release including this code, but
+I think we can agree that we would consult you about ABI changes if they
+seem necessary before then.
 
--- 
-Catalin
+If you start (re)building the Fedora packages based on these kernel
+headers, the changes are pretty good that this will keep working.
+
+	Arnd
