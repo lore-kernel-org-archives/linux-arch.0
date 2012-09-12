@@ -1,222 +1,209 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 26/31] arm64: Miscellaneous library functions
-Date: Wed, 12 Sep 2012 22:12:59 +0100
-Message-ID: <20120912211259.GA8252@arm.com>
+From: Simon Baatz <gmbnomis@gmail.com>
+Subject: Re: [PATCH v3 09/31] arm64: Cache maintenance routines
+Date: Wed, 12 Sep 2012 23:55:54 +0200
+Message-ID: <20120912215553.GA17393@schnuecks.de>
 References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
- <1347035226-18649-27-git-send-email-catalin.marinas@arm.com>
- <201209071952.14309.arnd@arndb.de>
+ <1347035226-18649-10-git-send-email-catalin.marinas@arm.com>
+ <20120907193542.GA22806@schnuecks.de>
+ <20120912092954.GA21823@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:52066 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753141Ab2ILVOO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 12 Sep 2012 17:14:14 -0400
+Received: from mail-wi0-f172.google.com ([209.85.212.172]:46382 "EHLO
+	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753837Ab2ILVz6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 12 Sep 2012 17:55:58 -0400
 Content-Disposition: inline
-In-Reply-To: <201209071952.14309.arnd@arndb.de>
+In-Reply-To: <20120912092954.GA21823@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Simon Baatz <gmbnomis@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
 
-On Fri, Sep 07, 2012 at 08:52:13PM +0100, Arnd Bergmann wrote:
-> On Friday 07 September 2012, Catalin Marinas wrote:
-> > +/*
-> > + * Use compiler builtins for simple inline operations.
-> > + */
-> > +static inline unsigned long __ffs(unsigned long word)
-> > +{
-> > +	return __builtin_ffsl(word) - 1;
-> > +}
-> > +
-> > +static inline int ffs(int x)
-> > +{
-> > +	return __builtin_ffs(x);
-> > +}
-> > +
-> > +static inline unsigned long __fls(unsigned long word)
-> > +{
-> > +	return BITS_PER_LONG - 1 - __builtin_clzl(word);
-> > +}
-> > +
-> > +static inline int fls(int x)
-> > +{
-> > +	return x ? sizeof(x) * BITS_PER_BYTE - __builtin_clz(x) : 0;
-> > +}
+Hi Catalin,
+
+On Wed, Sep 12, 2012 at 10:29:54AM +0100, Catalin Marinas wrote:
 > 
-> Still waiting for the generic version of these.
+> > > +void __flush_dcache_page(struct address_space *mapping, struct page *page)
+> > > +{
+> > > +     __flush_dcache_area(page_address(page), PAGE_SIZE);
+> > > +}
+> > > +
+> > > +void __sync_icache_dcache(pte_t pte)
+> > > +{
+> > > +     unsigned long pfn;
+> > > +     struct page *page;
+> > > +
+> > > +     pfn = pte_pfn(pte);
+> > > +     if (!pfn_valid(pfn))
+> > > +             return;
+> > > +
+> > > +     page = pfn_to_page(pfn);
+> > > +     if (!test_and_set_bit(PG_dcache_clean, &page->flags))
+> > > +             __flush_dcache_page(NULL, page);
+> > > +     __flush_icache_all();
+> > > +}
+> > > +
+> > > +/*
+> > > + * Ensure cache coherency between kernel mapping and userspace mapping of this
+> > > + * page.
+> > > + */
+> > > +void flush_dcache_page(struct page *page)
+> > > +{
+> > > +     struct address_space *mapping;
+> > > +
+> > > +     /*
+> > > +      * The zero page is never written to, so never has any dirty cache
+> > > +      * lines, and therefore never needs to be flushed.
+> > > +      */
+> > > +     if (page == ZERO_PAGE(0))
+> > > +             return;
+> > > +
+> > > +     mapping = page_mapping(page);
+> > > +
+> > > +     if (mapping && !mapping_mapped(mapping))
+> > > +             clear_bit(PG_dcache_clean, &page->flags);
+> > > +     else {
+> > > +             __flush_dcache_page(mapping, page);
+> > > +             if (mapping)
+> > > +                     __flush_icache_all();
+> > 
+> > 
+> > Is this necessary to ensure I/D coherency? Then, I would have
+> > expected
+> > 
+> >                 if (mapping) {
+> >                         __flush_dcache_page(mapping, page);
+> >                         __flush_icache_all();
+> >                 }
+> > 
+> > similar to __sync_icache_dcache() above.
+> 
+> We don't want to do additional flushing if !mapping_mapped() as the page
+> isn't mapped in user space. In this case we defer the flushing until
+> __sync_icache_dcache().
+> 
+> The other case is for anonymous pages where mapping == NULL. Here we
+> don't defer the D-cache flush and do it directly. The I-cache, if
+> needed, is handled later in __sync_icache_dcache(). This was based on
+> the idea that this case is mainly for the args/env page which is mapped
+> shortly after anyway, so not worth deferring. On AArch64, I don't think
+> it makes any difference. Maybe a slight improvement (at least in
+> clarity) in flush_dcache_page():
+> 
+> 	if (mapping && mapping_mapped(mapping)) {
+> 		__flush_dcache_page(page);
+> 		__flush_icache_all();
+> 		set_bit(PG_dcache_clean, &page->flags);
+> 	} else {
+> 		clear_bit(PG_dcache_clean, &page->flags);
+> 	}
+> 
+> In this case the anonymous page flushing is deferred to
+> __sync_icache_dcache().
 
-What about these:
+Yes, I think this is much clearer. It makes clear that the D-cache
+flush is done to avoid I/D incoherencies.  Previously, the obvious
+question was "Why do we flush only the D-cache in some situations
+given that it essentially behaves like a PIPT cache?" (the motivation
+for this became only clear to me after your explanation.)
 
+However, the reason why this was an obvious question for me is
+interesting: I think the main use case you had in mind does not
+happen since about five years (since commit b6a2fe, "mm: variable
+length argument support").  And I had a completely different main use
+case in mind.
 
-From 64ec78a2fce931e0148db90747c69688f248a531 Mon Sep 17 00:00:00 2001
-From: Catalin Marinas <catalin.marinas@arm.com>
-Date: Wed, 12 Sep 2012 22:00:53 +0100
-Subject: [PATCH 1/2] Implement generic ffs/fls using __builtin_* functions
+I reckon that the use case you refer to is the use in fs/exec.c? 
+Copying arg/env was changed in the commit mentioned above.  This also
+changed the use of flush_dcache_page() (which is not supposed to
+handle anon pages) into flush_kernel_dcache_page() (which is supposed
+to handle kernel modified user pages, i.e.  also anon pages).
 
-This patch implements ffs, __ffs, fls, __fls using __builtin_* gcc
-functions. These header files can be used by other architectures that
-rely on the gcc builtins.
+Nevertheless, the __flush_dcache_page(mapping, page) in the
+mapping==NULL case is absoluty necessary for aliasing D-caches on arm
+for the use case I had in mind (which does not apply to arm64 and
+thus my question).
 
-Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
----
- include/asm-generic/bitops/builtin-__ffs.h |   15 +++++++++++++++
- include/asm-generic/bitops/builtin-__fls.h |   15 +++++++++++++++
- include/asm-generic/bitops/builtin-ffs.h   |   17 +++++++++++++++++
- include/asm-generic/bitops/builtin-fls.h   |   16 ++++++++++++++++
- 4 files changed, 63 insertions(+), 0 deletions(-)
- create mode 100644 include/asm-generic/bitops/builtin-__ffs.h
- create mode 100644 include/asm-generic/bitops/builtin-__fls.h
- create mode 100644 include/asm-generic/bitops/builtin-ffs.h
- create mode 100644 include/asm-generic/bitops/builtin-fls.h
+In case of direct I/O (and probably also in other cases like SG_IO)
+the block layer will see pages from get_user_pages() directly, i.e.
+also anonymous pages. Many drivers (especially emulated storage
+drivers like dm-crypt) use flush_dcache_page() after modifying a
+page. Although flush_dcache_page() is not even supposed to handle
+anonymous pages, it flushes the kernel mapping of the page because of
+this code line and everything is well on aliasing D-caches.
 
-diff --git a/include/asm-generic/bitops/builtin-__ffs.h b/include/asm-generic/bitops/builtin-__ffs.h
-new file mode 100644
-index 0000000..90041e3
---- /dev/null
-+++ b/include/asm-generic/bitops/builtin-__ffs.h
-@@ -0,0 +1,15 @@
-+#ifndef _ASM_GENERIC_BITOPS_BUILTIN___FFS_H_
-+#define _ASM_GENERIC_BITOPS_BUILTIN___FFS_H_
-+
-+/**
-+ * __ffs - find first bit in word.
-+ * @word: The word to search
-+ *
-+ * Undefined if no bit exists, so code should check against 0 first.
-+ */
-+static __always_inline unsigned long __ffs(unsigned long word)
-+{
-+	return __builtin_ctzl(word);
-+}
-+
-+#endif
-diff --git a/include/asm-generic/bitops/builtin-__fls.h b/include/asm-generic/bitops/builtin-__fls.h
-new file mode 100644
-index 0000000..0248f38
---- /dev/null
-+++ b/include/asm-generic/bitops/builtin-__fls.h
-@@ -0,0 +1,15 @@
-+#ifndef _ASM_GENERIC_BITOPS_BUILTIN___FLS_H_
-+#define _ASM_GENERIC_BITOPS_BUILTIN___FLS_H_
-+
-+/**
-+ * __fls - find last (most-significant) set bit in a long word
-+ * @word: the word to search
-+ *
-+ * Undefined if no set bit exists, so code should check against 0 first.
-+ */
-+static __always_inline unsigned long __fls(unsigned long word)
-+{
-+	return (sizeof(word) * 8) - 1 - __builtin_clzl(word);
-+}
-+
-+#endif
-diff --git a/include/asm-generic/bitops/builtin-ffs.h b/include/asm-generic/bitops/builtin-ffs.h
-new file mode 100644
-index 0000000..0648258
---- /dev/null
-+++ b/include/asm-generic/bitops/builtin-ffs.h
-@@ -0,0 +1,17 @@
-+#ifndef _ASM_GENERIC_BITOPS_BUILTIN_FFS_H_
-+#define _ASM_GENERIC_BITOPS_BUILTIN_FFS_H_
-+
-+/**
-+ * ffs - find first bit set
-+ * @x: the word to search
-+ *
-+ * This is defined the same way as
-+ * the libc and compiler builtin ffs routines, therefore
-+ * differs in spirit from the above ffz (man ffs).
-+ */
-+static __always_inline int ffs(int x)
-+{
-+	return __builtin_ffs(x);
-+}
-+
-+#endif
-diff --git a/include/asm-generic/bitops/builtin-fls.h b/include/asm-generic/bitops/builtin-fls.h
-new file mode 100644
-index 0000000..eda652d
---- /dev/null
-+++ b/include/asm-generic/bitops/builtin-fls.h
-@@ -0,0 +1,16 @@
-+#ifndef _ASM_GENERIC_BITOPS_BUILTIN_FLS_H_
-+#define _ASM_GENERIC_BITOPS_BUILTIN_FLS_H_
-+
-+/**
-+ * fls - find last (most-significant) bit set
-+ * @x: the word to search
-+ *
-+ * This is defined the same way as ffs.
-+ * Note fls(0) = 0, fls(1) = 1, fls(0x80000000) = 32.
-+ */
-+static __always_inline int fls(int x)
-+{
-+	return x ? sizeof(x) * 8 - __builtin_clz(x) : 0;
-+}
-+
-+#endif
+Ironically, flush_kernel_dcache_page(), which is specifically
+designed to handle this case, does not on arm.  Thus, those few parts
+of the kernel which use flush_kernel_dcache_page() may fail horribly
+(for example the scatterlist memory iterator API, see [1]).
 
+Back to arm64 (and possibly to arm with non-aliasing D-caches?), this
+also means that the saved D-cache flush in the anonymous page case is
+not only a slight improvement on clarity, but may avoid a
+considerable number of D-cache flushes in some I/O situations.  (If
+it is still correct that there are no problems with the I-cache for
+this use case.)
 
-From 542f0b34b5674d8472b820f1ce751118ecdf9470 Mon Sep 17 00:00:00 2001
-From: Catalin Marinas <catalin.marinas@arm.com>
-Date: Wed, 12 Sep 2012 22:06:22 +0100
-Subject: [PATCH 2/2] arm64: Use the generic builtin-* ffs/fls implementation
+If now we could additionally avoid to flush the entire I-cache for
+every page in direct I/O operations with user mapped page cache
+pages (e.g. direct I/O read into an mmap region)...
 
-This patch removes the arm64-specific ffs/fls implementation and
-includes the generic gcc builtins implementation.
-
-Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
----
- arch/arm64/include/asm/bitops.h |   31 +++++--------------------------
- 1 files changed, 5 insertions(+), 26 deletions(-)
-
-diff --git a/arch/arm64/include/asm/bitops.h b/arch/arm64/include/asm/bitops.h
-index 67df4d2..5e69307 100644
---- a/arch/arm64/include/asm/bitops.h
-+++ b/arch/arm64/include/asm/bitops.h
-@@ -28,36 +28,15 @@
- #define smp_mb__after_clear_bit()	smp_mb()
- #endif
  
--/*
-- * Use compiler builtins for simple inline operations.
-- */
--static inline unsigned long __ffs(unsigned long word)
--{
--	return __builtin_ffsl(word) - 1;
--}
--
--static inline int ffs(int x)
--{
--	return __builtin_ffs(x);
--}
--
--static inline unsigned long __fls(unsigned long word)
--{
--	return BITS_PER_LONG - 1 - __builtin_clzl(word);
--}
--
--static inline int fls(int x)
--{
--	return x ? sizeof(x) * BITS_PER_BYTE - __builtin_clz(x) : 0;
--}
--
--/*
-- * Mainly use the generic routines for now.
-- */
- #ifndef _LINUX_BITOPS_H
- #error only <linux/bitops.h> can be included directly
- #endif
- 
-+#include <asm-generic/bitops/builtin-__ffs.h>
-+#include <asm-generic/bitops/builtin-ffs.h>
-+#include <asm-generic/bitops/builtin-__fls.h>
-+#include <asm-generic/bitops/builtin-fls.h>
-+
- #include <asm-generic/bitops/ffz.h>
- #include <asm-generic/bitops/fls64.h>
- #include <asm-generic/bitops/find.h>
+> > What is the reason why the D-cache flush is done in different
+> > cases than the following I-cache flush?
+> 
+> For __sync_icache_dcache(), we need to handle the situation where the
+> page mapped into user space has been cleaned (D-cache) but there may be
+> stale data in the I-cache. I think this can only happen with an
+> ASID-tagged VIVT I-cache configuration (which is allowed on AArch64) if
+> an existing page has been unmapped and the same virtual address remapped
+> (withing the same mm context) to a different page that had been cleaned
+> previously. We could optimise the __sync_icache_dcache() as below:
+> 
+> 	if (!test_and_set_bit(PG_dcache_clean, &page->flags)) {
+> 		__flush_dcache_page(page);
+> 		__flush_icache_all();
+> 	} else if (icache_is_aivivt()) {
+> 		__flush_icache_all();
+> 	}
+
+Sorry, this is out of my depth. I think I don't really understand the
+cases leading to I/D incoherency.
+
+
+- Simon
+
+[1] http://lists.infradead.org/pipermail/linux-arm-kernel/2012-July/111393.html
+
+PS: You did not mention the following comment from my mail. It was
+easy to overlook. Just to make sure you did not miss it:
+
+> diff --git a/arch/arm64/mm/cache.S b/arch/arm64/mm/cache.S
+> new file mode 100644
+> index 0000000..3df0aa7
+> --- /dev/null
+> +++ b/arch/arm64/mm/cache.S
+
+...
+> +/*
+> + *	__flush_kern_dcache_page(kaddr)
+
+
+Should be:  __flush_dcache_area(kaddr,size)
+
+> + *
+> + *	Ensure that the data held in the page kaddr is written back
+> to the
+> + *	page in question.
+
+s/page/area
+
+> + *
+> + *	- kaddr   - kernel address
+> + *	- size    - size in question
+> + */
+> +ENTRY(__flush_dcache_area)
+> +	dcache_line_size x2, x3
+> +	add	x1, x0, x1
+> +
