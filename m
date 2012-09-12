@@ -1,77 +1,163 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH 3/3] mm: Introduce HAVE_ARCH_TRANSPARENT_HUGEPAGE
-Date: Tue, 11 Sep 2012 20:41:05 +0300
-Message-ID: <20120911174105.GB29805@shutemov.name>
-References: <1347382036-18455-1-git-send-email-will.deacon@arm.com>
- <1347382036-18455-4-git-send-email-will.deacon@arm.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 09/31] arm64: Cache maintenance routines
+Date: Wed, 12 Sep 2012 10:29:54 +0100
+Message-ID: <20120912092954.GA21823@arm.com>
+References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
+ <1347035226-18649-10-git-send-email-catalin.marinas@arm.com>
+ <20120907193542.GA22806@schnuecks.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shutemov.name ([176.9.204.213]:58651 "EHLO shutemov.name"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756712Ab2IKRkb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 11 Sep 2012 13:40:31 -0400
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:60908 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754476Ab2ILJbM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 12 Sep 2012 05:31:12 -0400
 Content-Disposition: inline
-In-Reply-To: <1347382036-18455-4-git-send-email-will.deacon@arm.com>
+In-Reply-To: <20120907193542.GA22806@schnuecks.de>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mhocko@suse.cz, Steve Capper <steve.capper@arm.com>
+To: Simon Baatz <gmbnomis@gmail.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
 
-On Tue, Sep 11, 2012 at 05:47:16PM +0100, Will Deacon wrote:
-> From: Steve Capper <steve.capper@arm.com>
-> 
-> Different architectures have slightly different pre-requisites for supporting
-> Transparent Huge Pages. To simplify the layout of mm/Kconfig, a new option
-> HAVE_ARCH_TRANSPARENT_HUGEPAGE is introduced and set in each architecture's
-> Kconfig file (at the moment x86, with ARM being set in a future patch).
-> 
-> Signed-off-by: Steve Capper <steve.capper@arm.com>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
+Hi Simon,
 
-Reviewed-by: Kirill A. Shutemov <kirill@shutemov.name>
+On Fri, Sep 07, 2012 at 08:35:42PM +0100, Simon Baatz wrote:
+> On Fri, Sep 07, 2012 at 05:26:44PM +0100, Catalin Marinas wrote:
+> > +#define ARCH_HAS_FLUSH_ANON_PAGE
+> > +static inline void flush_anon_page(struct vm_area_struct *vma,
+> > +                      struct page *page, unsigned long vmaddr)
+> > +{
+> > +     extern void __flush_anon_page(struct vm_area_struct *vma,
+> > +                             struct page *, unsigned long);
+> > +     if (PageAnon(page))
+> > +             __flush_anon_page(vma, page, vmaddr);
+> 
+> 
+> __flush_anon_page() does nothing. Shouldn't this be removed as well?
 
-> ---
->  arch/x86/Kconfig |    4 ++++
->  mm/Kconfig       |    2 +-
->  2 files changed, 5 insertions(+), 1 deletions(-)
+Yes, good point.
+
+> > +void __flush_dcache_page(struct address_space *mapping, struct page *page)
+> > +{
+> > +     __flush_dcache_area(page_address(page), PAGE_SIZE);
+> > +}
+> > +
+> > +void __sync_icache_dcache(pte_t pte)
+> > +{
+> > +     unsigned long pfn;
+> > +     struct page *page;
+> > +
+> > +     pfn = pte_pfn(pte);
+> > +     if (!pfn_valid(pfn))
+> > +             return;
+> > +
+> > +     page = pfn_to_page(pfn);
+> > +     if (!test_and_set_bit(PG_dcache_clean, &page->flags))
+> > +             __flush_dcache_page(NULL, page);
+> > +     __flush_icache_all();
+> > +}
+> > +
+> > +/*
+> > + * Ensure cache coherency between kernel mapping and userspace mapping of this
+> > + * page.
+> > + */
+> > +void flush_dcache_page(struct page *page)
+> > +{
+> > +     struct address_space *mapping;
+> > +
+> > +     /*
+> > +      * The zero page is never written to, so never has any dirty cache
+> > +      * lines, and therefore never needs to be flushed.
+> > +      */
+> > +     if (page == ZERO_PAGE(0))
+> > +             return;
+> > +
+> > +     mapping = page_mapping(page);
+> > +
+> > +     if (mapping && !mapping_mapped(mapping))
+> > +             clear_bit(PG_dcache_clean, &page->flags);
+> > +     else {
+> > +             __flush_dcache_page(mapping, page);
+> > +             if (mapping)
+> > +                     __flush_icache_all();
 > 
-> diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-> index 8ec3a1a..7decdcf 100644
-> --- a/arch/x86/Kconfig
-> +++ b/arch/x86/Kconfig
-> @@ -1297,6 +1297,10 @@ config ILLEGAL_POINTER_VALUE
->         default 0 if X86_32
->         default 0xdead000000000000 if X86_64
->  
-> +config HAVE_ARCH_TRANSPARENT_HUGEPAGE
-> +       def_bool y
-> +       depends on MMU
-> +
->  source "mm/Kconfig"
->  
->  config HIGHPTE
-> diff --git a/mm/Kconfig b/mm/Kconfig
-> index d5c8019..3322342 100644
-> --- a/mm/Kconfig
-> +++ b/mm/Kconfig
-> @@ -318,7 +318,7 @@ config NOMMU_INITIAL_TRIM_EXCESS
->  
->  config TRANSPARENT_HUGEPAGE
->  	bool "Transparent Hugepage Support"
-> -	depends on X86 && MMU
-> +	depends on HAVE_ARCH_TRANSPARENT_HUGEPAGE
->  	select COMPACTION
->  	help
->  	  Transparent Hugepages allows the kernel to use huge pages and
-> -- 
-> 1.7.4.1
 > 
-> --
-> To unsubscribe, send a message with 'unsubscribe linux-mm' in
-> the body to majordomo@kvack.org.  For more info on Linux MM,
-> see: http://www.linux-mm.org/ .
-> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> Is this necessary to ensure I/D coherency? Then, I would have
+> expected
+> 
+>                 if (mapping) {
+>                         __flush_dcache_page(mapping, page);
+>                         __flush_icache_all();
+>                 }
+> 
+> similar to __sync_icache_dcache() above.
+
+We don't want to do additional flushing if !mapping_mapped() as the page
+isn't mapped in user space. In this case we defer the flushing until
+__sync_icache_dcache().
+
+The other case is for anonymous pages where mapping == NULL. Here we
+don't defer the D-cache flush and do it directly. The I-cache, if
+needed, is handled later in __sync_icache_dcache(). This was based on
+the idea that this case is mainly for the args/env page which is mapped
+shortly after anyway, so not worth deferring. On AArch64, I don't think
+it makes any difference. Maybe a slight improvement (at least in
+clarity) in flush_dcache_page():
+
+	if (mapping && mapping_mapped(mapping)) {
+		__flush_dcache_page(page);
+		__flush_icache_all();
+		set_bit(PG_dcache_clean, &page->flags);
+	} else {
+		clear_bit(PG_dcache_clean, &page->flags);
+	}
+
+In this case the anonymous page flushing is deferred to
+__sync_icache_dcache().
+
+> What is the reason why the D-cache flush is done in different
+> cases than the following I-cache flush?
+
+For __sync_icache_dcache(), we need to handle the situation where the
+page mapped into user space has been cleaned (D-cache) but there may be
+stale data in the I-cache. I think this can only happen with an
+ASID-tagged VIVT I-cache configuration (which is allowed on AArch64) if
+an existing page has been unmapped and the same virtual address remapped
+(withing the same mm context) to a different page that had been cleaned
+previously. We could optimise the __sync_icache_dcache() as below:
+
+	if (!test_and_set_bit(PG_dcache_clean, &page->flags)) {
+		__flush_dcache_page(page);
+		__flush_icache_all();
+	} else if (icache_is_aivivt()) {
+		__flush_icache_all();
+	}
+
+> > +             set_bit(PG_dcache_clean, &page->flags);
+> > +     }
+> > +}
+> > +EXPORT_SYMBOL(flush_dcache_page);
+> > +
+> > +void __flush_anon_page(struct vm_area_struct *vma, struct page *page, unsigned long vmaddr)
+> > +{
+> > +}
+> 
+> Note that the __flush_dcache_page(mapping, page) in
+> flush_dcache_page() above is called when page is an anonymous page
+> (since mapping == NULL in this case).  If the call to
+> __flush_dcache_page() is right above, it should be needed
+> here as well?
+
+flush_anon_page() is called when the kernel needs to access an anonymous
+page. Given that the D-cache behaves like a PIPT, there is no need for
+additional flushing here. The flush_dcache_page() call was based on the
+assumption that such page needs flushing anyway and it's not worth
+deferring. But the code may be easier to understand as I suggested above
+(and slightly more optimal for the VIPT I-cache case).
+
+It looks like any other architecture does something different here.
 
 -- 
- Kirill A. Shutemov
+Catalin
