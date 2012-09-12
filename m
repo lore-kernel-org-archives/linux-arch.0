@@ -1,81 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shutemov.name ([176.9.204.213]:58646 "EHLO shutemov.name"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751536Ab2IKRiF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 11 Sep 2012 13:38:05 -0400
-Date: Tue, 11 Sep 2012 20:38:34 +0300
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH 2/3] mm: thp: Fix the update_mmu_cache() last argument
- passing in mm/huge_memory.c
-Message-ID: <20120911173833.GA29805@shutemov.name>
-References: <1347382036-18455-1-git-send-email-will.deacon@arm.com>
- <1347382036-18455-3-git-send-email-will.deacon@arm.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:62752 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756566Ab2ILKZR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 12 Sep 2012 06:25:17 -0400
+Date: Wed, 12 Sep 2012 11:24:02 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 11/31] arm64: IRQ handling
+Message-ID: <20120912102402.GB21823@arm.com>
+References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
+ <1347035226-18649-12-git-send-email-catalin.marinas@arm.com>
+ <201209071937.19156.arnd@arndb.de>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1347382036-18455-3-git-send-email-will.deacon@arm.com>
+In-Reply-To: <201209071937.19156.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mhocko@suse.cz, Catalin Marinas <catalin.marinas@arm.com>, Steve Capper <steve.capper@arm.com>
-Message-ID: <20120911173834.HNeeO6-XtUOeq2SmNU8F71EVq3yIo-06-Z_gOBnF34k@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20120912102402.4kFqS3bScEkVEuKfaK93kDSCXrIP3YzKi2PstUfc4n8@z>
 
-On Tue, Sep 11, 2012 at 05:47:15PM +0100, Will Deacon wrote:
-> From: Catalin Marinas <catalin.marinas@arm.com>
+On Fri, Sep 07, 2012 at 08:37:18PM +0100, Arnd Bergmann wrote:
+> On Friday 07 September 2012, Catalin Marinas wrote:
 > 
-> The update_mmu_cache() takes a pointer (to pte_t by default) as the last
-> argument but the huge_memory.c passes a pmd_t value. The patch changes
-> the argument to the pmd_t * pointer.
+> > +#define __inc_irq_stat(cpu, member)	__IRQ_STAT(cpu, member)++
+> > +#define __get_irq_stat(cpu, member)	__IRQ_STAT(cpu, member)
 > 
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> Signed-off-by: Steve Capper <steve.capper@arm.com>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> Isn't this something that the IRQ core code already keeps track of?
 
-Reviewed-by: Kirill A. Shutemov <kirill@shutemov.name>
+That's for the IPIs which are handled directly by the arch code. We
+don't even allocate irq descriptors for them.
 
-> ---
->  mm/huge_memory.c |    6 +++---
->  1 files changed, 3 insertions(+), 3 deletions(-)
+> > +#endif /* __ASM_HARDIRQ_H */
+> > diff --git a/arch/arm64/include/asm/irq.h b/arch/arm64/include/asm/irq.h
+> > new file mode 100644
+> > index 0000000..a4e1cad
+> > --- /dev/null
+> > +++ b/arch/arm64/include/asm/irq.h
+> > @@ -0,0 +1,8 @@
+> > +#ifndef __ASM_IRQ_H
+> > +#define __ASM_IRQ_H
+> > +
+> > +#include <asm-generic/irq.h>
+> > +
+> > +extern void (*handle_arch_irq)(struct pt_regs *);
+> > +
+> > +#endif
 > 
-> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-> index 57c4b93..4aa6d02 100644
-> --- a/mm/huge_memory.c
-> +++ b/mm/huge_memory.c
-> @@ -934,7 +934,7 @@ int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
->  		entry = pmd_mkyoung(orig_pmd);
->  		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
->  		if (pmdp_set_access_flags(vma, haddr, pmd, entry,  1))
-> -			update_mmu_cache(vma, address, entry);
-> +			update_mmu_cache(vma, address, pmd);
->  		ret |= VM_FAULT_WRITE;
->  		goto out_unlock;
->  	}
-> @@ -986,7 +986,7 @@ int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
->  		pmdp_clear_flush_notify(vma, haddr, pmd);
->  		page_add_new_anon_rmap(new_page, vma, haddr);
->  		set_pmd_at(mm, haddr, pmd, entry);
-> -		update_mmu_cache(vma, address, entry);
-> +		update_mmu_cache(vma, address, pmd);
->  		page_remove_rmap(page);
->  		put_page(page);
->  		ret |= VM_FAULT_WRITE;
-> @@ -1989,7 +1989,7 @@ static void collapse_huge_page(struct mm_struct *mm,
->  	BUG_ON(!pmd_none(*pmd));
->  	page_add_new_anon_rmap(new_page, vma, address);
->  	set_pmd_at(mm, address, pmd, _pmd);
-> -	update_mmu_cache(vma, address, _pmd);
-> +	update_mmu_cache(vma, address, pmd);
->  	prepare_pmd_huge_pte(pgtable, mm);
->  	spin_unlock(&mm->page_table_lock);
->  
-> -- 
-> 1.7.4.1
-> 
-> --
-> To unsubscribe, send a message with 'unsubscribe linux-mm' in
-> the body to majordomo@kvack.org.  For more info on Linux MM,
-> see: http://www.linux-mm.org/ .
-> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> Is this one still needed?
+
+Yes. It's initialised by the GIC code (called via of_irq_init) and we
+want to allow different GIC versions (GICv2 used by the model currently
+but we would expect GICv3 with hardware).
 
 -- 
- Kirill A. Shutemov
+Catalin
