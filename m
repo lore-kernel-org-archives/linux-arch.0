@@ -1,65 +1,66 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 00/31] AArch64 Linux kernel port
-Date: Wed, 12 Sep 2012 15:54:00 +0100
-Message-ID: <20120912145400.GJ21823@arm.com>
-References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
- <20120907232537.GA5098@quad.lixom.net>
+From: Michal Hocko <mhocko@suse.cz>
+Subject: Re: [PATCH 0/3] Minor changes to common hugetlb code for ARM
+Date: Wed, 12 Sep 2012 17:27:59 +0200
+Message-ID: <20120912152759.GR21579@dhcp22.suse.cz>
+References: <1347382036-18455-1-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:39334 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1759635Ab2ILOyu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 12 Sep 2012 10:54:50 -0400
+Received: from cantor2.suse.de ([195.135.220.15]:56330 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755650Ab2ILP2D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 12 Sep 2012 11:28:03 -0400
 Content-Disposition: inline
-In-Reply-To: <20120907232537.GA5098@quad.lixom.net>
+In-Reply-To: <1347382036-18455-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Olof Johansson <olof@lixom.net>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, Andrea Arcangeli <aarcange@redhat.com>
 
-On Sat, Sep 08, 2012 at 12:25:37AM +0100, Olof Johansson wrote:
-> On Fri, Sep 07, 2012 at 05:26:35PM +0100, Catalin Marinas wrote:
-> > This is the 3rd version of patches implementing Linux kernel support for
-> > the 64-bit ARM architecture. Most of the review comments for the
-> > previous release have been implemented. There are a few left (like
-> > generic timer dts specification) but the main goal was to freeze the
-> > user ABI.
-> > 
-> > The Linux kernel patches are available on this tree:
-> > 
-> > git://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/linux-aarch64.git upstream
-> > 
-> > Main changes since the previous version:
-> > - ptrace interface now using regsets for TLS and hardware debug
-> >   registers.
-> > - sys_personality fixes. PER_LINUX is the default for all tasks (32 or
-> >   64-bit) and there is no compat_sys_personality defined.
-> > - Kconfig clean-up (unused symbols, AARCH32_EMULATION removed in favour
-> >   of COMPAT).
-> > - Clean-up of the __cpuc_* function prefixes.
-> > - CPU information table implemented in C rather than assembly.
-> > - __bad_* function calls replaced with BUILD_BUG.
-> > - Inline get_user/put_user (code cleaner, slightly bigger kernel Image).
-> > - DMA API implementation simplified, defaulting to swiotlb. It will be
-> >   extended as hardware becomes available.
-> > - Arch-specific code in the generic timer patch moved to arch/arm64/.
-> > - Comment fixes and clarifications.
+On Tue 11-09-12 17:47:13, Will Deacon wrote:
+> Hello,
+
+Hi,
+
+> A few changes are required to common hugetlb code before the ARM support
+> can be merged. I posted the main one previously, which has been picked up
+> by akpm:
 > 
-> I see that a good amount of the comments I had on v2 have neither been replied
-> to nor addressed.
+>   http://marc.info/?l=linux-mm&m=134573987631394&w=2
+> 
+> The remaining three patches (included here) are all fairly minor but do
+> affect other architectures.
 
-Sorry, as I said above, my main focus was get the user ABI sorted out as
-a code is public and there are people that started using it. There are
-still a few emails marked as "unread" in my inbox that need to be
-addressed but I did not consider them critical for version 3 of the
-series. They are not forgotten, however, I'm working back through those
-emails and either reply or implement the suggestions.
+I am quite confused. Why THP changes are required for hugetlb code for
+ARM?
 
-> Acked-by: Olof Johansson <olof@lixom.net>
+Besides that I would suggest adding Andrea to the CC (added now the
+whole series can be found here http://lkml.org/lkml/2012/9/11/322) list
+for all THP changes.
 
-Thanks.
+> 
+> All comments welcome,
+> 
+> Will
+> 
+> Catalin Marinas (2):
+>   mm: thp: Fix the pmd_clear() arguments in pmdp_get_and_clear()
+>   mm: thp: Fix the update_mmu_cache() last argument passing in
+>     mm/huge_memory.c
+> 
+> Steve Capper (1):
+>   mm: Introduce HAVE_ARCH_TRANSPARENT_HUGEPAGE
+> 
+>  arch/x86/Kconfig              |    4 ++++
+>  include/asm-generic/pgtable.h |    2 +-
+>  mm/Kconfig                    |    2 +-
+>  mm/huge_memory.c              |    6 +++---
+>  4 files changed, 9 insertions(+), 5 deletions(-)
+> 
+> -- 
+> 1.7.4.1
+> 
 
 -- 
-Catalin
+Michal Hocko
+SUSE Labs
