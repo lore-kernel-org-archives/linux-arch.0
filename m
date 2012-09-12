@@ -1,163 +1,52 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 09/31] arm64: Cache maintenance routines
-Date: Wed, 12 Sep 2012 10:29:54 +0100
-Message-ID: <20120912092954.GA21823@arm.com>
+Subject: Re: [PATCH v3 11/31] arm64: IRQ handling
+Date: Wed, 12 Sep 2012 11:24:02 +0100
+Message-ID: <20120912102402.GB21823@arm.com>
 References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
- <1347035226-18649-10-git-send-email-catalin.marinas@arm.com>
- <20120907193542.GA22806@schnuecks.de>
+ <1347035226-18649-12-git-send-email-catalin.marinas@arm.com>
+ <201209071937.19156.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:60908 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754476Ab2ILJbM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 12 Sep 2012 05:31:12 -0400
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20120907193542.GA22806@schnuecks.de>
-Content-Language: en-US
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Simon Baatz <gmbnomis@gmail.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
+In-Reply-To: <201209071937.19156.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Simon,
-
-On Fri, Sep 07, 2012 at 08:35:42PM +0100, Simon Baatz wrote:
-> On Fri, Sep 07, 2012 at 05:26:44PM +0100, Catalin Marinas wrote:
-> > +#define ARCH_HAS_FLUSH_ANON_PAGE
-> > +static inline void flush_anon_page(struct vm_area_struct *vma,
-> > +                      struct page *page, unsigned long vmaddr)
-> > +{
-> > +     extern void __flush_anon_page(struct vm_area_struct *vma,
-> > +                             struct page *, unsigned long);
-> > +     if (PageAnon(page))
-> > +             __flush_anon_page(vma, page, vmaddr);
+On Fri, Sep 07, 2012 at 08:37:18PM +0100, Arnd Bergmann wrote:
+> On Friday 07 September 2012, Catalin Marinas wrote:
 > 
+> > +#define __inc_irq_stat(cpu, member)	__IRQ_STAT(cpu, member)++
+> > +#define __get_irq_stat(cpu, member)	__IRQ_STAT(cpu, member)
 > 
-> __flush_anon_page() does nothing. Shouldn't this be removed as well?
+> Isn't this something that the IRQ core code already keeps track of?
 
-Yes, good point.
+That's for the IPIs which are handled directly by the arch code. We
+don't even allocate irq descriptors for them.
 
-> > +void __flush_dcache_page(struct address_space *mapping, struct page *page)
-> > +{
-> > +     __flush_dcache_area(page_address(page), PAGE_SIZE);
-> > +}
+> > +#endif /* __ASM_HARDIRQ_H */
+> > diff --git a/arch/arm64/include/asm/irq.h b/arch/arm64/include/asm/irq.h
+> > new file mode 100644
+> > index 0000000..a4e1cad
+> > --- /dev/null
+> > +++ b/arch/arm64/include/asm/irq.h
+> > @@ -0,0 +1,8 @@
+> > +#ifndef __ASM_IRQ_H
+> > +#define __ASM_IRQ_H
 > > +
-> > +void __sync_icache_dcache(pte_t pte)
-> > +{
-> > +     unsigned long pfn;
-> > +     struct page *page;
+> > +#include <asm-generic/irq.h>
 > > +
-> > +     pfn = pte_pfn(pte);
-> > +     if (!pfn_valid(pfn))
-> > +             return;
+> > +extern void (*handle_arch_irq)(struct pt_regs *);
 > > +
-> > +     page = pfn_to_page(pfn);
-> > +     if (!test_and_set_bit(PG_dcache_clean, &page->flags))
-> > +             __flush_dcache_page(NULL, page);
-> > +     __flush_icache_all();
-> > +}
-> > +
-> > +/*
-> > + * Ensure cache coherency between kernel mapping and userspace mapping of this
-> > + * page.
-> > + */
-> > +void flush_dcache_page(struct page *page)
-> > +{
-> > +     struct address_space *mapping;
-> > +
-> > +     /*
-> > +      * The zero page is never written to, so never has any dirty cache
-> > +      * lines, and therefore never needs to be flushed.
-> > +      */
-> > +     if (page == ZERO_PAGE(0))
-> > +             return;
-> > +
-> > +     mapping = page_mapping(page);
-> > +
-> > +     if (mapping && !mapping_mapped(mapping))
-> > +             clear_bit(PG_dcache_clean, &page->flags);
-> > +     else {
-> > +             __flush_dcache_page(mapping, page);
-> > +             if (mapping)
-> > +                     __flush_icache_all();
+> > +#endif
 > 
-> 
-> Is this necessary to ensure I/D coherency? Then, I would have
-> expected
-> 
->                 if (mapping) {
->                         __flush_dcache_page(mapping, page);
->                         __flush_icache_all();
->                 }
-> 
-> similar to __sync_icache_dcache() above.
+> Is this one still needed?
 
-We don't want to do additional flushing if !mapping_mapped() as the page
-isn't mapped in user space. In this case we defer the flushing until
-__sync_icache_dcache().
-
-The other case is for anonymous pages where mapping == NULL. Here we
-don't defer the D-cache flush and do it directly. The I-cache, if
-needed, is handled later in __sync_icache_dcache(). This was based on
-the idea that this case is mainly for the args/env page which is mapped
-shortly after anyway, so not worth deferring. On AArch64, I don't think
-it makes any difference. Maybe a slight improvement (at least in
-clarity) in flush_dcache_page():
-
-	if (mapping && mapping_mapped(mapping)) {
-		__flush_dcache_page(page);
-		__flush_icache_all();
-		set_bit(PG_dcache_clean, &page->flags);
-	} else {
-		clear_bit(PG_dcache_clean, &page->flags);
-	}
-
-In this case the anonymous page flushing is deferred to
-__sync_icache_dcache().
-
-> What is the reason why the D-cache flush is done in different
-> cases than the following I-cache flush?
-
-For __sync_icache_dcache(), we need to handle the situation where the
-page mapped into user space has been cleaned (D-cache) but there may be
-stale data in the I-cache. I think this can only happen with an
-ASID-tagged VIVT I-cache configuration (which is allowed on AArch64) if
-an existing page has been unmapped and the same virtual address remapped
-(withing the same mm context) to a different page that had been cleaned
-previously. We could optimise the __sync_icache_dcache() as below:
-
-	if (!test_and_set_bit(PG_dcache_clean, &page->flags)) {
-		__flush_dcache_page(page);
-		__flush_icache_all();
-	} else if (icache_is_aivivt()) {
-		__flush_icache_all();
-	}
-
-> > +             set_bit(PG_dcache_clean, &page->flags);
-> > +     }
-> > +}
-> > +EXPORT_SYMBOL(flush_dcache_page);
-> > +
-> > +void __flush_anon_page(struct vm_area_struct *vma, struct page *page, unsigned long vmaddr)
-> > +{
-> > +}
-> 
-> Note that the __flush_dcache_page(mapping, page) in
-> flush_dcache_page() above is called when page is an anonymous page
-> (since mapping == NULL in this case).  If the call to
-> __flush_dcache_page() is right above, it should be needed
-> here as well?
-
-flush_anon_page() is called when the kernel needs to access an anonymous
-page. Given that the D-cache behaves like a PIPT, there is no need for
-additional flushing here. The flush_dcache_page() call was based on the
-assumption that such page needs flushing anyway and it's not worth
-deferring. But the code may be easier to understand as I suggested above
-(and slightly more optimal for the VIPT I-cache case).
-
-It looks like any other architecture does something different here.
+Yes. It's initialised by the GIC code (called via of_irq_init) and we
+want to allow different GIC versions (GICv2 used by the model currently
+but we would expect GICv3 with hardware).
 
 -- 
 Catalin
