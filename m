@@ -1,74 +1,274 @@
-From: Andrea Arcangeli <aarcange@redhat.com>
-Subject: Re: [PATCH 0/3] Minor changes to common hugetlb code for ARM
-Date: Thu, 13 Sep 2012 02:12:55 +0200
-Message-ID: <20120913001255.GD3404@redhat.com>
-References: <1347382036-18455-1-git-send-email-will.deacon@arm.com>
- <20120912152759.GR21579@dhcp22.suse.cz>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 21/31] arm64: 32-bit (compat) applications support
+Date: Thu, 13 Sep 2012 10:07:32 +0100
+Message-ID: <20120913090732.GA25131@arm.com>
+References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
+ <1347035226-18649-22-git-send-email-catalin.marinas@arm.com>
+ <201209071947.45313.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:45347 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757393Ab2IMANE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 12 Sep 2012 20:13:04 -0400
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:42830 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751503Ab2IMJIc (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 13 Sep 2012 05:08:32 -0400
 Content-Disposition: inline
-In-Reply-To: <20120912152759.GR21579@dhcp22.suse.cz>
+In-Reply-To: <201209071947.45313.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@suse.cz>
-Cc: Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-Hi everyone,
-
-On Wed, Sep 12, 2012 at 05:27:59PM +0200, Michal Hocko wrote:
-> On Tue 11-09-12 17:47:13, Will Deacon wrote:
-> > Hello,
+On Fri, Sep 07, 2012 at 08:47:45PM +0100, Arnd Bergmann wrote:
+> On Friday 07 September 2012, Catalin Marinas wrote:
+> > 
+> > From: Will Deacon <will.deacon@arm.com>
+> > 
+> > This patch adds support for 32-bit applications. The vectors page is a
+> > binary blob mapped into the application user space at 0xffff0000 (the
+> > AArch64 toolchain does not support compilation of AArch32 code). Full
+> > compatibility with ARMv7 user space is supported. The use of deprecated
+> > ARMv7 functionality (SWP, CP15 barriers) has been disabled by default on
+> > AArch64 kernels and unaligned LDM/STM is not supported.
+> > 
+> > Please note that only the ARM 32-bit EABI is supported, so no OABI
+> > compatibility.
+> > 
+> > Signed-off-by: Will Deacon <will.deacon@arm.com>
+> > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> > Acked-by: Tony Lindgren <tony@atomide.com>
 > 
-> Hi,
-> 
-> > A few changes are required to common hugetlb code before the ARM support
-> > can be merged. I posted the main one previously, which has been picked up
-> > by akpm:
-> > 
-> >   http://marc.info/?l=linux-mm&m=134573987631394&w=2
-> > 
-> > The remaining three patches (included here) are all fairly minor but do
-> > affect other architectures.
-> 
-> I am quite confused. Why THP changes are required for hugetlb code for
-> ARM?
+> I guess you haven't had time to turn any of these into architecture
+> independent functions as discussed last time?
 
-Some functions are just noops on x86 and with no arch other than x86
-building the huge_memory.c file, those x86-noop parts that needed
-minor interface adjustments couldn't be noticed until now.
+Here they are. For converting the other architectures, I'll post
+separate patches as I don't want to add an extra dependency to the
+arm64 series.
 
-Hopefully we got the brainer part right (i.e. the location of the x86
-noop callouts), it's clearly untested.
 
-> Besides that I would suggest adding Andrea to the CC (added now the
-> whole series can be found here http://lkml.org/lkml/2012/9/11/322) list
-> for all THP changes.
-> 
-> > 
-> > All comments welcome,
-> > 
-> > Will
-> > 
-> > Catalin Marinas (2):
-> >   mm: thp: Fix the pmd_clear() arguments in pmdp_get_and_clear()
-> >   mm: thp: Fix the update_mmu_cache() last argument passing in
-> >     mm/huge_memory.c
+From 87fb5301a44ac05b4e6d7245db02acc2dedde831 Mon Sep 17 00:00:00 2001
+From: Catalin Marinas <catalin.marinas@arm.com>
+Date: Thu, 13 Sep 2012 09:51:10 +0100
+Subject: [PATCH 1/3] Add generic compat_sys_sendfile and
+ compat_sys_sendfile64
 
-Both:
+These functions are used by other architectures requiring compat
+support, so just make them generic.
 
-Reviewed-by: Andrea Arcangeli <aarcange@redhat.com>
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+---
+ include/linux/compat.h |    5 +++++
+ kernel/compat.c        |   44 ++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 49 insertions(+), 0 deletions(-)
 
-> > 
-> > Steve Capper (1):
-> >   mm: Introduce HAVE_ARCH_TRANSPARENT_HUGEPAGE
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index c4be3f5..e2f5e9a 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -594,6 +594,11 @@ asmlinkage ssize_t compat_sys_process_vm_writev(compat_pid_t pid,
+ 		unsigned long liovcnt, const struct compat_iovec __user *rvec,
+ 		unsigned long riovcnt, unsigned long flags);
+ 
++asmlinkage int compat_sys_sendfile(int out_fd, int in_fd,
++				   compat_off_t __user *offset, s32 count);
++asmlinkage int compat_sys_sendfile64(int out_fd, int in_fd,
++				     compat_loff_t __user *offset, s32 count);
++
+ #else
+ 
+ #define is_compat_task() (0)
+diff --git a/kernel/compat.c b/kernel/compat.c
+index c28a306..5f07388 100644
+--- a/kernel/compat.c
++++ b/kernel/compat.c
+@@ -1215,6 +1215,50 @@ compat_sys_sysinfo(struct compat_sysinfo __user *info)
+ 	return 0;
+ }
+ 
++#ifdef __ARCH_WANT_COMPAT_SYS_SENDFILE
++asmlinkage int compat_sys_sendfile(int out_fd, int in_fd,
++				   compat_off_t __user *offset, s32 count)
++{
++	mm_segment_t old_fs = get_fs();
++	int ret;
++	off_t of;
++
++	if (offset && get_user(of, offset))
++		return -EFAULT;
++
++	set_fs(KERNEL_DS);
++	ret = sys_sendfile(out_fd, in_fd,
++			   offset ? (off_t __user *)&of : NULL, count);
++	set_fs(old_fs);
++
++	if (offset && put_user(of, offset))
++		return -EFAULT;
++	return ret;
++}
++#endif /* __ARCH_WANT_COMPAT_SYS_SENDFILE */
++
++#ifdef __ARCH_WANT_COMPAT_SYS_SENDFILE64
++asmlinkage int compat_sys_sendfile64(int out_fd, int in_fd,
++				     compat_loff_t __user *offset, s32 count)
++{
++	mm_segment_t old_fs = get_fs();
++	int ret;
++	loff_t of;
++
++	if (offset && get_user(of, offset))
++		return -EFAULT;
++
++	set_fs(KERNEL_DS);
++	ret = sys_sendfile(out_fd, in_fd,
++			   offset ? (loff_t __user *)&of : NULL, count);
++	set_fs(old_fs);
++
++	if (offset && put_user(of, offset))
++		return -EFAULT;
++	return ret;
++}
++#endif /* __ARCH_WANT_COMPAT_SYS_SENDFILE64 */
++
+ /*
+  * Allocate user-space memory for the duration of a single system call,
+  * in order to marshall parameters inside a compat thunk.
 
-This was already introduced by the s390 THP support which I reviewed a
-few days ago, and it's already included in -mm, so it can be dropped.
 
-Thanks!
-Andrea
+From fa734f9523e35d7a6e9ab5e252ab344133111c1f Mon Sep 17 00:00:00 2001
+From: Catalin Marinas <catalin.marinas@arm.com>
+Date: Thu, 13 Sep 2012 09:55:17 +0100
+Subject: [PATCH 2/3] Add generic compat_sys_sched_rr_get_interval
+ implementation
+
+This patch adds a generic implementation for
+compat_sys_sched_rr_get_interval as it is used by other architectures.
+
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+---
+ include/linux/compat.h |    3 +++
+ kernel/compat.c        |   17 +++++++++++++++++
+ 2 files changed, 20 insertions(+), 0 deletions(-)
+
+diff --git a/include/linux/compat.h b/include/linux/compat.h
+index e2f5e9a..bbe89b8 100644
+--- a/include/linux/compat.h
++++ b/include/linux/compat.h
+@@ -599,6 +599,9 @@ asmlinkage int compat_sys_sendfile(int out_fd, int in_fd,
+ asmlinkage int compat_sys_sendfile64(int out_fd, int in_fd,
+ 				     compat_loff_t __user *offset, s32 count);
+ 
++asmlinkage int compat_sys_sched_rr_get_interval(compat_pid_t pid,
++						struct compat_timespec __user *interval);
++
+ #else
+ 
+ #define is_compat_task() (0)
+diff --git a/kernel/compat.c b/kernel/compat.c
+index 5f07388..3961f67 100644
+--- a/kernel/compat.c
++++ b/kernel/compat.c
+@@ -1259,6 +1259,23 @@ asmlinkage int compat_sys_sendfile64(int out_fd, int in_fd,
+ }
+ #endif /* __ARCH_WANT_COMPAT_SYS_SENDFILE64 */
+ 
++#ifdef __ARCH_WANT_COMPAT_SYS_SCHED_RR_GET_INTERVAL
++asmlinkage int compat_sys_sched_rr_get_interval(compat_pid_t pid,
++						struct compat_timespec __user *interval)
++{
++	struct timespec t;
++	int ret;
++	mm_segment_t old_fs = get_fs();
++
++	set_fs(KERNEL_DS);
++	ret = sys_sched_rr_get_interval(pid, (struct timespec __user *)&t);
++	set_fs(old_fs);
++	if (put_compat_timespec(&t, interval))
++		return -EFAULT;
++	return ret;
++}
++#endif /* __ARCH_WANT_COMPAT_SYS_SCHED_RR_GET_INTERVAL */
++
+ /*
+  * Allocate user-space memory for the duration of a single system call,
+  * in order to marshall parameters inside a compat thunk.
+
+
+From 79ed6c77bdd4480b81defe1cd81198235e9d4d03 Mon Sep 17 00:00:00 2001
+From: Catalin Marinas <catalin.marinas@arm.com>
+Date: Thu, 13 Sep 2012 10:02:26 +0100
+Subject: [PATCH 3/3] arm64: Use generic compat_sys_sendfile and
+ compat_sys_sched_rr_get_interval
+
+This patch switches the arm64 port to use the generic implementation of
+the above functions.
+
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+---
+ arch/arm64/include/asm/unistd32.h |    2 ++
+ arch/arm64/kernel/sys_compat.c    |   35 -----------------------------------
+ 2 files changed, 2 insertions(+), 35 deletions(-)
+
+diff --git a/arch/arm64/include/asm/unistd32.h b/arch/arm64/include/asm/unistd32.h
+index a50405f..4161b4c 100644
+--- a/arch/arm64/include/asm/unistd32.h
++++ b/arch/arm64/include/asm/unistd32.h
+@@ -754,5 +754,7 @@ __SYSCALL(__NR_syncfs, sys_syncfs)
+ #define __ARCH_WANT_SYS_SIGPENDING
+ #define __ARCH_WANT_SYS_SIGPROCMASK
+ #define __ARCH_WANT_COMPAT_SYS_RT_SIGSUSPEND
++#define __ARCH_WANT_COMPAT_SYS_SENDFILE
++#define __ARCH_WANT_COMPAT_SYS_SCHED_RR_GET_INTERVAL
+ 
+ #endif /* __ASM_UNISTD32_H */
+diff --git a/arch/arm64/kernel/sys_compat.c b/arch/arm64/kernel/sys_compat.c
+index d77ba8e..740485d 100644
+--- a/arch/arm64/kernel/sys_compat.c
++++ b/arch/arm64/kernel/sys_compat.c
+@@ -51,41 +51,6 @@ asmlinkage int compat_sys_vfork(struct pt_regs *regs)
+ 		       regs, 0, NULL, NULL);
+ }
+ 
+-asmlinkage int compat_sys_sched_rr_get_interval(compat_pid_t pid,
+-						struct compat_timespec __user *interval)
+-{
+-	struct timespec t;
+-	int ret;
+-	mm_segment_t old_fs = get_fs();
+-
+-	set_fs(KERNEL_DS);
+-	ret = sys_sched_rr_get_interval(pid, (struct timespec __user *)&t);
+-	set_fs(old_fs);
+-	if (put_compat_timespec(&t, interval))
+-		return -EFAULT;
+-	return ret;
+-}
+-
+-asmlinkage int compat_sys_sendfile(int out_fd, int in_fd,
+-				   compat_off_t __user *offset, s32 count)
+-{
+-	mm_segment_t old_fs = get_fs();
+-	int ret;
+-	off_t of;
+-
+-	if (offset && get_user(of, offset))
+-		return -EFAULT;
+-
+-	set_fs(KERNEL_DS);
+-	ret = sys_sendfile(out_fd, in_fd, offset ? (off_t __user *)&of : NULL,
+-			   count);
+-	set_fs(old_fs);
+-
+-	if (offset && put_user(of, offset))
+-		return -EFAULT;
+-	return ret;
+-}
+-
+ static inline void
+ do_compat_cache_op(unsigned long start, unsigned long end, int flags)
+ {
+
+-- 
+Catalin
