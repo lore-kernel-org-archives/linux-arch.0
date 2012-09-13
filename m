@@ -1,108 +1,75 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 3/3] mm: Introduce HAVE_ARCH_TRANSPARENT_HUGEPAGE
-Date: Thu, 13 Sep 2012 12:05:14 -0700
-Message-ID: <20120913120514.135d2c38.akpm@linux-foundation.org>
-References: <1347382036-18455-1-git-send-email-will.deacon@arm.com>
-	<1347382036-18455-4-git-send-email-will.deacon@arm.com>
+From: Simon Baatz <gmbnomis@gmail.com>
+Subject: Re: [PATCH v3 09/31] arm64: Cache maintenance routines
+Date: Thu, 13 Sep 2012 22:14:44 +0200
+Message-ID: <20120913201444.GA11692@schnuecks.de>
+References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
+ <1347035226-18649-10-git-send-email-catalin.marinas@arm.com>
+ <20120907193542.GA22806@schnuecks.de>
+ <20120912092954.GA21823@arm.com>
+ <20120912215553.GA17393@schnuecks.de>
+ <20120913123850.GB25131@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:49065 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750734Ab2IMTFQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Sep 2012 15:05:16 -0400
-In-Reply-To: <1347382036-18455-4-git-send-email-will.deacon@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mhocko@suse.cz, Steve Capper <steve.capper@arm.com>, Gerald Schaefer <gerald.schaefer@de.ibm.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20120913123850.GB25131@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Simon Baatz <gmbnomis@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, 11 Sep 2012 17:47:16 +0100
-Will Deacon <will.deacon@arm.com> wrote:
-
-> From: Steve Capper <steve.capper@arm.com>
+On Thu, Sep 13, 2012 at 01:38:50PM +0100, Catalin Marinas wrote:
+> On Wed, Sep 12, 2012 at 10:55:54PM +0100, Simon Baatz wrote:
+> > On Wed, Sep 12, 2012 at 10:29:54AM +0100, Catalin Marinas wrote:
+> ...
 > 
-> Different architectures have slightly different pre-requisites for supporting
-> Transparent Huge Pages. To simplify the layout of mm/Kconfig, a new option
-> HAVE_ARCH_TRANSPARENT_HUGEPAGE is introduced and set in each architecture's
-> Kconfig file (at the moment x86, with ARM being set in a future patch).
+> > In case of direct I/O (and probably also in other cases like SG_IO)
+> > the block layer will see pages from get_user_pages() directly, i.e.
+> > also anonymous pages. Many drivers (especially emulated storage
+> > drivers like dm-crypt) use flush_dcache_page() after modifying a
+> > page. Although flush_dcache_page() is not even supposed to handle
+> > anonymous pages, it flushes the kernel mapping of the page because of
+> > this code line and everything is well on aliasing D-caches.
 > 
-> --- a/arch/x86/Kconfig
-> +++ b/arch/x86/Kconfig
-> @@ -1297,6 +1297,10 @@ config ILLEGAL_POINTER_VALUE
->         default 0 if X86_32
->         default 0xdead000000000000 if X86_64
->  
-> +config HAVE_ARCH_TRANSPARENT_HUGEPAGE
-> +       def_bool y
-> +       depends on MMU
-> +
->  source "mm/Kconfig"
->  
->  config HIGHPTE
-> diff --git a/mm/Kconfig b/mm/Kconfig
-> index d5c8019..3322342 100644
-> --- a/mm/Kconfig
-> +++ b/mm/Kconfig
-> @@ -318,7 +318,7 @@ config NOMMU_INITIAL_TRIM_EXCESS
->  
->  config TRANSPARENT_HUGEPAGE
->  	bool "Transparent Hugepage Support"
-> -	depends on X86 && MMU
-> +	depends on HAVE_ARCH_TRANSPARENT_HUGEPAGE
->  	select COMPACTION
->  	help
->  	  Transparent Hugepages allows the kernel to use huge pages and
+> According to the cachetlb.txt document (though not sure architecture
+> ports follow it entirely), flush_dcache_page() deliberately shouldn't
+> follow anonymous pages. But it seems that we do it on ARM (maybe as an
+> alternative to flush_kernel_dcache_page()).
+> 
+> > Back to arm64 (and possibly to arm with non-aliasing D-caches?), this
+> > also means that the saved D-cache flush in the anonymous page case is
+> > not only a slight improvement on clarity, but may avoid a
+> > considerable number of D-cache flushes in some I/O situations.  (If
+> > it is still correct that there are no problems with the I-cache for
+> > this use case.)
+> 
+> The I-cache would be needed if the kernel modifies an executable user
+> page. But I don't see a case for this yet. So with non-aliasing D-cache
+> the flush_kernel_dcache_page() can be a nop.
 
-We need to talk with Gerald concerning
-http://ozlabs.org/~akpm/mmotm/broken-out/thp-x86-introduce-have_arch_transparent_hugepage.patch
+Ok, this is true for anon pages. But, if we really need to do the D/I
+flush for user mapped page cache pages in flush_dcache_page() then it
+should also be done by flush_kernel_dcache_page().  In general, both
+flush_dcache_page() and flush_kernel_dcache_page() need to handle the
+case in which the kernel modifies such a page. (This means that in
+effect, both functions should be the same in the arm64 case.)
+
+> > If now we could additionally avoid to flush the entire I-cache for
+> > every page in direct I/O operations with user mapped page cache
+> > pages (e.g. direct I/O read into an mmap region)...
+> 
+> If the page is already mapped, we don't have a later hook to be able to
+> flush the caches, so we do it here. We can avoid the I-cache operation
+> only if we are sure that the user would not execute code from such page.
+> IOW the direct I/O wouldn't write any instructions.
+> 
+> The powerpc implementation of flush_dcache_page() doesn't even check for
+> the existence of a mapping, it always marks the page as dirty. We can do
+> the same on arm64 (only leave the clear_bit part of the condition) as
+> long as we know that the kernel wouldn't write new code into a page that
+> is already mapped.
+
+Yes, but how do we know?
 
 
-I did this.  Please check.
-
-From: Steve Capper <steve.capper@arm.com>
-Subject: mm: introduce HAVE_ARCH_TRANSPARENT_HUGEPAGE
-
-Different architectures have slightly different pre-requisites for
-supporting Transparent Huge Pages.  To simplify the layout of mm/Kconfig,
-a new option HAVE_ARCH_TRANSPARENT_HUGEPAGE is introduced and set in each
-architecture's Kconfig file (at the moment x86, with ARM being set in a
-future patch).
-
-Signed-off-by: Steve Capper <steve.capper@arm.com>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Kirill A. Shutemov <kirill@shutemov.name>
-Cc: Michal Hocko <mhocko@suse.cz>
-Cc: Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Cc: Andrea Arcangeli <aarcange@redhat.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- arch/x86/Kconfig |    5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
-
-diff -puN arch/x86/Kconfig~mm-introduce-have_arch_transparent_hugepage arch/x86/Kconfig
---- a/arch/x86/Kconfig~mm-introduce-have_arch_transparent_hugepage
-+++ a/arch/x86/Kconfig
-@@ -83,7 +83,6 @@ config X86
- 	select IRQ_FORCED_THREADING
- 	select USE_GENERIC_SMP_HELPERS if SMP
- 	select HAVE_BPF_JIT if X86_64
--	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
- 	select CLKEVT_I8253
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select GENERIC_IOMAP
-@@ -1330,6 +1329,10 @@ config ILLEGAL_POINTER_VALUE
-        default 0 if X86_32
-        default 0xdead000000000000 if X86_64
- 
-+config HAVE_ARCH_TRANSPARENT_HUGEPAGE
-+       def_bool y
-+       depends on MMU
-+
- source "mm/Kconfig"
- 
- config HIGHPTE
+- Simon
