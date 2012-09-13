@@ -1,78 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:57250 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755650Ab2ILPkj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 12 Sep 2012 11:40:39 -0400
-Date: Wed, 12 Sep 2012 17:40:37 +0200
-From: Michal Hocko <mhocko@suse.cz>
-Subject: Re: [PATCH 2/3] mm: thp: Fix the update_mmu_cache() last argument
- passing in mm/huge_memory.c
-Message-ID: <20120912154037.GU21579@dhcp22.suse.cz>
-References: <1347382036-18455-1-git-send-email-will.deacon@arm.com>
- <1347382036-18455-3-git-send-email-will.deacon@arm.com>
+Received: from moutng.kundenserver.de ([212.227.126.187]:65382 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753168Ab2IMKs2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Sep 2012 06:48:28 -0400
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v3 26/31] arm64: Miscellaneous library functions
+Date: Thu, 13 Sep 2012 10:48:22 +0000
+References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com> <201209071952.14309.arnd@arndb.de> <20120912211259.GA8252@arm.com>
+In-Reply-To: <20120912211259.GA8252@arm.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1347382036-18455-3-git-send-email-will.deacon@arm.com>
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201209131048.22385.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, Catalin Marinas <catalin.marinas@arm.com>, Steve Capper <steve.capper@arm.com>
-Message-ID: <20120912154037.jMH2e4uyZw19xjzufo2lmWhBaYkJVbQZxRdEABHG1Qc@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20120913104822.0UT3-4idD1uEz0eoncLW7wbkLEOmDhcX2fdmDFk4sW0@z>
 
-On Tue 11-09-12 17:47:15, Will Deacon wrote:
+On Wednesday 12 September 2012, Catalin Marinas wrote:
+> From 64ec78a2fce931e0148db90747c69688f248a531 Mon Sep 17 00:00:00 2001
 > From: Catalin Marinas <catalin.marinas@arm.com>
+> Date: Wed, 12 Sep 2012 22:00:53 +0100
+> Subject: [PATCH 1/2] Implement generic ffs/fls using __builtin_* functions
 > 
-> The update_mmu_cache() takes a pointer (to pte_t by default) as the last
-> argument but the huge_memory.c passes a pmd_t value. The patch changes
-> the argument to the pmd_t * pointer.
+> This patch implements ffs, __ffs, fls, __fls using __builtin_* gcc
+> functions. These header files can be used by other architectures that
+> rely on the gcc builtins.
 > 
 > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> Signed-off-by: Steve Capper <steve.capper@arm.com>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> ---
->  mm/huge_memory.c |    6 +++---
->  1 files changed, 3 insertions(+), 3 deletions(-)
-> 
-> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-> index 57c4b93..4aa6d02 100644
-> --- a/mm/huge_memory.c
-> +++ b/mm/huge_memory.c
-> @@ -934,7 +934,7 @@ int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
->  		entry = pmd_mkyoung(orig_pmd);
->  		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
->  		if (pmdp_set_access_flags(vma, haddr, pmd, entry,  1))
-> -			update_mmu_cache(vma, address, entry);
-> +			update_mmu_cache(vma, address, pmd);
+> Cc: Arnd Bergmann <arnd@arndb.de>
 
-I am not sure but shouldn't we use the new entry rather than the given
-pmd?
+Very good.
 
->  		ret |= VM_FAULT_WRITE;
->  		goto out_unlock;
->  	}
-> @@ -986,7 +986,7 @@ int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
->  		pmdp_clear_flush_notify(vma, haddr, pmd);
->  		page_add_new_anon_rmap(new_page, vma, haddr);
->  		set_pmd_at(mm, haddr, pmd, entry);
-> -		update_mmu_cache(vma, address, entry);
-> +		update_mmu_cache(vma, address, pmd);
->  		page_remove_rmap(page);
->  		put_page(page);
->  		ret |= VM_FAULT_WRITE;
-> @@ -1989,7 +1989,7 @@ static void collapse_huge_page(struct mm_struct *mm,
->  	BUG_ON(!pmd_none(*pmd));
->  	page_add_new_anon_rmap(new_page, vma, address);
->  	set_pmd_at(mm, address, pmd, _pmd);
-> -	update_mmu_cache(vma, address, _pmd);
-> +	update_mmu_cache(vma, address, pmd);
->  	prepare_pmd_huge_pte(pgtable, mm);
->  	spin_unlock(&mm->page_table_lock);
->  
-> -- 
-> 1.7.4.1
-> 
-
--- 
-Michal Hocko
-SUSE Labs
+Acked-by: Arnd Bergmann <arnd@arndb.de>
