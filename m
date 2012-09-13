@@ -1,93 +1,80 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:51848 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758467Ab2IMP4N (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Sep 2012 11:56:13 -0400
-Message-ID: <5052021B.4050808@codeaurora.org>
-Date: Thu, 13 Sep 2012 11:56:11 -0400
-From: Christopher Covington <cov@codeaurora.org>
+Received: from mail-wg0-f44.google.com ([74.125.82.44]:54375 "EHLO
+	mail-wg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758051Ab2IMUOs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Sep 2012 16:14:48 -0400
+Date: Thu, 13 Sep 2012 22:14:44 +0200
+From: Simon Baatz <gmbnomis@gmail.com>
+Subject: Re: [PATCH v3 09/31] arm64: Cache maintenance routines
+Message-ID: <20120913201444.GA11692@schnuecks.de>
+References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
+ <1347035226-18649-10-git-send-email-catalin.marinas@arm.com>
+ <20120907193542.GA22806@schnuecks.de>
+ <20120912092954.GA21823@arm.com>
+ <20120912215553.GA17393@schnuecks.de>
+ <20120913123850.GB25131@arm.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v3 02/31] arm64: Kernel booting and initialisation
-References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com> <1347035226-18649-3-git-send-email-catalin.marinas@arm.com> <20120909172046.GB31430@game.jcrosoft.org> <20120910161159.GH27042@arm.com> <20120912120858.GI31430@game.jcrosoft.org> <20120912134916.GF21823@arm.com>
-In-Reply-To: <20120912134916.GF21823@arm.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20120913123850.GB25131@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>
-Cc: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20120913155611.xIO0zCDOTg3CNGqGM3q5_ZGnF3_ACrK2tXu720cVAmg@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Simon Baatz <gmbnomis@gmail.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20120913201444.wVdD5r5ZsomYVTJOpv6fuT01xemqHsXRpGz_0uwax-Q@z>
 
-Hi Catalin and Will,
+On Thu, Sep 13, 2012 at 01:38:50PM +0100, Catalin Marinas wrote:
+> On Wed, Sep 12, 2012 at 10:55:54PM +0100, Simon Baatz wrote:
+> > On Wed, Sep 12, 2012 at 10:29:54AM +0100, Catalin Marinas wrote:
+> ...
+> 
+> > In case of direct I/O (and probably also in other cases like SG_IO)
+> > the block layer will see pages from get_user_pages() directly, i.e.
+> > also anonymous pages. Many drivers (especially emulated storage
+> > drivers like dm-crypt) use flush_dcache_page() after modifying a
+> > page. Although flush_dcache_page() is not even supposed to handle
+> > anonymous pages, it flushes the kernel mapping of the page because of
+> > this code line and everything is well on aliasing D-caches.
+> 
+> According to the cachetlb.txt document (though not sure architecture
+> ports follow it entirely), flush_dcache_page() deliberately shouldn't
+> follow anonymous pages. But it seems that we do it on ARM (maybe as an
+> alternative to flush_kernel_dcache_page()).
+> 
+> > Back to arm64 (and possibly to arm with non-aliasing D-caches?), this
+> > also means that the saved D-cache flush in the anonymous page case is
+> > not only a slight improvement on clarity, but may avoid a
+> > considerable number of D-cache flushes in some I/O situations.  (If
+> > it is still correct that there are no problems with the I-cache for
+> > this use case.)
+> 
+> The I-cache would be needed if the kernel modifies an executable user
+> page. But I don't see a case for this yet. So with non-aliasing D-cache
+> the flush_kernel_dcache_page() can be a nop.
 
-On 09/12/2012 09:49 AM, Catalin Marinas wrote:
-> On Wed, Sep 12, 2012 at 01:08:58PM +0100, Jean-Christophe PLAGNIOL-VILLARD wrote:
->> On 17:11 Mon 10 Sep     , Catalin Marinas wrote:
->>> On Sun, Sep 09, 2012 at 06:20:46PM +0100, Jean-Christophe PLAGNIOL-VILLARD wrote:
->>>> On 17:26 Fri 07 Sep     , Catalin Marinas wrote:
->>>>> +Before jumping into the kernel, the following conditions must be met:
->>>>> +
->>>>> +- Quiesce all DMA capable devices so that memory does not get
->>>>> +  corrupted by bogus network packets or disk data.  This will save
->>>>> +  you many hours of debug.
->>>>> +
->>>>> +- Primary CPU general-purpose register settings
->>>>> +  x0 = physical address of device tree blob (dtb) in system RAM.
->>>>> +  x1 = 0 (reserved for future use)
->>>>> +  x2 = 0 (reserved for future use)
->>>>> +  x3 = 0 (reserved for future use)
->>>>> +
->>>>> +- CPU mode
->>>>> +  All forms of interrupts must be masked in PSTATE.DAIF (Debug, SError,
->>>>> +  IRQ and FIQ).
->>>>> +  The CPU must be in either EL2 (RECOMMENDED in order to have access to
->>>>> +  the virtualisation extensions) or non-secure EL1.
->>>>> +
->>>>> +- Caches, MMUs
->>>>> +  The MMU must be off.
->>>>> +  Instruction cache may be on or off.
->>>>> +  Data cache must be off and invalidated.
->>>>> +  External caches (if present) must be configured and disabled.
->>>>> +
->>>>> +- Architected timers
->>>>> +  CNTFRQ must be programmed with the timer frequency.
->>>>> +  If entering the kernel at EL1, CNTHCTL_EL2 must have EL1PCTEN (bit 0)
->>>>> +  set where available.
->>>> can you explain why?
->>>
->>> Otherwise the kernel cannot access the generic timer registers (it is
->>> described in the AArch64 exception model which isn't public yet).
->> I do not like the idea to do too much in the boot loader
+Ok, this is true for anon pages. But, if we really need to do the D/I
+flush for user mapped page cache pages in flush_dcache_page() then it
+should also be done by flush_kernel_dcache_page().  In general, both
+flush_dcache_page() and flush_kernel_dcache_page() need to handle the
+case in which the kernel modifies such a page. (This means that in
+effect, both functions should be the same in the arm64 case.)
 
-I agree that where possible we should minimize the amount of work required of
-bootloaders. I'm not sure that the percentage of work we might be able to trim
-away on hardware would be significant, but on simulators I think we might be
-able to get to the point where, if you can specify the r0 reset value to be
-the dtb pointer, you can just load a devicetree blob and kernel image into
-memory and start executing the kernel, no boot wrapper required.
+> > If now we could additionally avoid to flush the entire I-cache for
+> > every page in direct I/O operations with user mapped page cache
+> > pages (e.g. direct I/O read into an mmap region)...
+> 
+> If the page is already mapped, we don't have a later hook to be able to
+> flush the caches, so we do it here. We can avoid the I-cache operation
+> only if we are sure that the user would not execute code from such page.
+> IOW the direct I/O wouldn't write any instructions.
+> 
+> The powerpc implementation of flush_dcache_page() doesn't even check for
+> the existence of a mapping, it always marks the page as dirty. We can do
+> the same on arm64 (only leave the clear_bit part of the condition) as
+> long as we know that the kernel wouldn't write new code into a page that
+> is already mapped.
 
-I don't know if Jean-Christophe was commenting on just the EL1PCTEN bit or
-also the CNTFRQ register, but with regard to the latter, it appears to me that
-the timer code actually reads the frequency primarily from the devicetree and
-only reads CNTFRQ if the "clock-frequency" property is unspecified or
-specified as zero.
+Yes, but how do we know?
 
-I suggest that the kernel calling requirements be modified to communicate this
-fallback, rather than mandatory, status, unless some not-yet-released part of
-the arm64 kernel needs it. If userspace code will need to use CNTFRQ at some
-point then perhaps that should be mentioned in an informational note rather
-than being presented as a kernel booting requirement.
 
-> git://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/boot-wrapper-aarch64.git
-
-The UART and GIC stuff is board-specific, and I don't currently have any
-suggestions about the multicore initialization, but would you object to the
-kernel eventually being equipped to make the descent from EL3 itself?
-
-Thanks,
-Christopher
-
--- 
-Employee of Qualcomm Innovation Center, Inc.
-Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by
-the Linux Foundation
+- Simon
