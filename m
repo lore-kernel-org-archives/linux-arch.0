@@ -1,37 +1,93 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:65382 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753168Ab2IMKs2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Sep 2012 06:48:28 -0400
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v3 26/31] arm64: Miscellaneous library functions
-Date: Thu, 13 Sep 2012 10:48:22 +0000
-References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com> <201209071952.14309.arnd@arndb.de> <20120912211259.GA8252@arm.com>
-In-Reply-To: <20120912211259.GA8252@arm.com>
+Received: from wolverine02.qualcomm.com ([199.106.114.251]:51848 "EHLO
+	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758467Ab2IMP4N (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Sep 2012 11:56:13 -0400
+Message-ID: <5052021B.4050808@codeaurora.org>
+Date: Thu, 13 Sep 2012 11:56:11 -0400
+From: Christopher Covington <cov@codeaurora.org>
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
+Subject: Re: [PATCH v3 02/31] arm64: Kernel booting and initialisation
+References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com> <1347035226-18649-3-git-send-email-catalin.marinas@arm.com> <20120909172046.GB31430@game.jcrosoft.org> <20120910161159.GH27042@arm.com> <20120912120858.GI31430@game.jcrosoft.org> <20120912134916.GF21823@arm.com>
+In-Reply-To: <20120912134916.GF21823@arm.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Message-ID: <201209131048.22385.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-Message-ID: <20120913104822.0UT3-4idD1uEz0eoncLW7wbkLEOmDhcX2fdmDFk4sW0@z>
+To: Catalin Marinas <catalin.marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>
+Cc: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20120913155611.xIO0zCDOTg3CNGqGM3q5_ZGnF3_ACrK2tXu720cVAmg@z>
 
-On Wednesday 12 September 2012, Catalin Marinas wrote:
-> From 64ec78a2fce931e0148db90747c69688f248a531 Mon Sep 17 00:00:00 2001
-> From: Catalin Marinas <catalin.marinas@arm.com>
-> Date: Wed, 12 Sep 2012 22:00:53 +0100
-> Subject: [PATCH 1/2] Implement generic ffs/fls using __builtin_* functions
-> 
-> This patch implements ffs, __ffs, fls, __fls using __builtin_* gcc
-> functions. These header files can be used by other architectures that
-> rely on the gcc builtins.
-> 
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
+Hi Catalin and Will,
 
-Very good.
+On 09/12/2012 09:49 AM, Catalin Marinas wrote:
+> On Wed, Sep 12, 2012 at 01:08:58PM +0100, Jean-Christophe PLAGNIOL-VILLARD wrote:
+>> On 17:11 Mon 10 Sep     , Catalin Marinas wrote:
+>>> On Sun, Sep 09, 2012 at 06:20:46PM +0100, Jean-Christophe PLAGNIOL-VILLARD wrote:
+>>>> On 17:26 Fri 07 Sep     , Catalin Marinas wrote:
+>>>>> +Before jumping into the kernel, the following conditions must be met:
+>>>>> +
+>>>>> +- Quiesce all DMA capable devices so that memory does not get
+>>>>> +  corrupted by bogus network packets or disk data.  This will save
+>>>>> +  you many hours of debug.
+>>>>> +
+>>>>> +- Primary CPU general-purpose register settings
+>>>>> +  x0 = physical address of device tree blob (dtb) in system RAM.
+>>>>> +  x1 = 0 (reserved for future use)
+>>>>> +  x2 = 0 (reserved for future use)
+>>>>> +  x3 = 0 (reserved for future use)
+>>>>> +
+>>>>> +- CPU mode
+>>>>> +  All forms of interrupts must be masked in PSTATE.DAIF (Debug, SError,
+>>>>> +  IRQ and FIQ).
+>>>>> +  The CPU must be in either EL2 (RECOMMENDED in order to have access to
+>>>>> +  the virtualisation extensions) or non-secure EL1.
+>>>>> +
+>>>>> +- Caches, MMUs
+>>>>> +  The MMU must be off.
+>>>>> +  Instruction cache may be on or off.
+>>>>> +  Data cache must be off and invalidated.
+>>>>> +  External caches (if present) must be configured and disabled.
+>>>>> +
+>>>>> +- Architected timers
+>>>>> +  CNTFRQ must be programmed with the timer frequency.
+>>>>> +  If entering the kernel at EL1, CNTHCTL_EL2 must have EL1PCTEN (bit 0)
+>>>>> +  set where available.
+>>>> can you explain why?
+>>>
+>>> Otherwise the kernel cannot access the generic timer registers (it is
+>>> described in the AArch64 exception model which isn't public yet).
+>> I do not like the idea to do too much in the boot loader
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+I agree that where possible we should minimize the amount of work required of
+bootloaders. I'm not sure that the percentage of work we might be able to trim
+away on hardware would be significant, but on simulators I think we might be
+able to get to the point where, if you can specify the r0 reset value to be
+the dtb pointer, you can just load a devicetree blob and kernel image into
+memory and start executing the kernel, no boot wrapper required.
+
+I don't know if Jean-Christophe was commenting on just the EL1PCTEN bit or
+also the CNTFRQ register, but with regard to the latter, it appears to me that
+the timer code actually reads the frequency primarily from the devicetree and
+only reads CNTFRQ if the "clock-frequency" property is unspecified or
+specified as zero.
+
+I suggest that the kernel calling requirements be modified to communicate this
+fallback, rather than mandatory, status, unless some not-yet-released part of
+the arm64 kernel needs it. If userspace code will need to use CNTFRQ at some
+point then perhaps that should be mentioned in an informational note rather
+than being presented as a kernel booting requirement.
+
+> git://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/boot-wrapper-aarch64.git
+
+The UART and GIC stuff is board-specific, and I don't currently have any
+suggestions about the multicore initialization, but would you object to the
+kernel eventually being equipped to make the descent from EL3 itself?
+
+Thanks,
+Christopher
+
+-- 
+Employee of Qualcomm Innovation Center, Inc.
+Qualcomm Innovation Center, Inc. is a member of Code Aurora Forum, hosted by
+the Linux Foundation
