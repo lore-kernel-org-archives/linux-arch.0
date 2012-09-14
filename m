@@ -1,63 +1,89 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v2 07/31] arm64: Process management
-Date: Fri, 14 Sep 2012 18:33:52 +0100
-Message-ID: <20120914173352.GC2927@arm.com>
+Subject: Re: [PATCH v2 08/31] arm64: CPU support
+Date: Fri, 14 Sep 2012 18:38:45 +0100
+Message-ID: <20120914173845.GD2927@arm.com>
 References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-8-git-send-email-catalin.marinas@arm.com>
- <20120814235013.GC19607@quad.lixom.net>
+ <1344966752-16102-9-git-send-email-catalin.marinas@arm.com>
+ <20120815001043.GD19607@quad.lixom.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:46863 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:47012 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1759068Ab2INRee (ORCPT
+	by vger.kernel.org with ESMTP id S1758935Ab2INRj3 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 14 Sep 2012 13:34:34 -0400
+	Fri, 14 Sep 2012 13:39:29 -0400
 Content-Disposition: inline
-In-Reply-To: <20120814235013.GC19607@quad.lixom.net>
+In-Reply-To: <20120815001043.GD19607@quad.lixom.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Olof Johansson <olof@lixom.net>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Will Deacon <Will.Deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <Will.Deacon@arm.com>
 
-On Wed, Aug 15, 2012 at 12:50:13AM +0100, Olof Johansson wrote:
-> On Tue, Aug 14, 2012 at 06:52:08PM +0100, Catalin Marinas wrote:
-> 
-> > diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-> > new file mode 100644
-> > index 0000000..c4a4e1c
-> > --- /dev/null
-> > +++ b/arch/arm64/kernel/process.c
-> > @@ -0,0 +1,416 @@
-> 
-> [...]
-> > +/*
-> > + * Function pointers to optional machine specific functions
-> > + */
-> > +void (*pm_power_off)(void);
-> > +EXPORT_SYMBOL(pm_power_off);
+On Wed, Aug 15, 2012 at 01:10:43AM +0100, Olof Johansson wrote:
+> On Tue, Aug 14, 2012 at 06:52:09PM +0100, Catalin Marinas wrote:
+> > +#ifndef __ASM_CPUTYPE_H
+> > +#define __ASM_CPUTYPE_H
 > > +
-> > +void (*pm_restart)(const char *cmd);
-> > +EXPORT_SYMBOL_GPL(pm_restart);
-> [...]
-> > +void (*pm_idle)(void) = default_idle;
-> > +EXPORT_SYMBOL(pm_idle);
+> > +#define ID_MIDR_EL1		"midr_el1"
+> > +#define ID_CTR_EL0		"ctr_el0"
+> > +
+> > +#define ID_AA64PFR0_EL1		"id_aa64pfr0_el1"
+> > +#define ID_AA64DFR0_EL1		"id_aa64dfr0_el1"
+> > +#define ID_AA64AFR0_EL1		"id_aa64afr0_el1"
+> > +#define ID_AA64ISAR0_EL1	"id_aa64isar0_el1"
+> > +#define ID_AA64MMFR0_EL1	"id_aa64mmfr0_el1"
+> > +
+> > +#define read_cpuid(reg) ({						\
+> > +	u64 __val;							\
+> > +	asm("mrs	%0, " reg : "=r" (__val));			\
+> > +	__val;								\
+> > +})
+> > +
+> > +/*
+> > + * The CPU ID never changes at run time, so we might as well tell the
+> > + * compiler that it's constant.  Use this function to read the CPU ID
+> > + * rather than directly reading processor_id or read_cpuid() directly.
+> > + */
+> > +static inline u32 __attribute_const__ read_cpuid_id(void)
+> > +{
+> > +	return read_cpuid(ID_MIDR_EL1);
+> > +}
+> > +
+> > +static inline u32 __attribute_const__ read_cpuid_cachetype(void)
+> > +{
+> > +	return read_cpuid(ID_CTR_EL0);
+> > +}
 > 
-> Does it really make sense to export these to modules?
+> Is this perhaps a carry-over from arch/arm? Abstracting out read_cpuid()
+> doesn't seem to buy anything here, just opencode the one-line assembly
+> in each.
 
-Changed them to _GPL now but we may still want them exported to modules.
-Who knows, we may just have the SoC code in a loadable module (from
-initramfs).
+read_cpuid() is called from several other files under arch/arm64 and
+also used in expressions, so it's a good abstraction.
 
-> I find the powerpc way of having a machine descriptor structure with these
-> (and other) function pointers in it a bit cleaner, since it gives you
-> one place to plug it all in. I'd recommend that you consider doing that
-> here as well, for these three and potentially other cases in the future.
+> > --- /dev/null
+> > +++ b/arch/arm64/mm/proc.S
+> > @@ -0,0 +1,193 @@
+> > +	.section ".proc.info.init", #alloc, #execinstr
+> > +
+> > +	.type	__v8_proc_info, #object
+> > +__v8_proc_info:
+> > +	.long	0x000f0000			// Required ID value
+> > +	.long	0x000f0000			// Mask for ID
+> > +	b	__cpu_setup
+> > +	nop
+> > +	.quad	cpu_name
+> > +	.long	0
+> > +	.size	__v8_proc_info, . - __v8_proc_info
 > 
-> (See arch/powerpc/include/asm/machdep.h, struct machdep_calls).
+> I know this is a carry-over from arch/arm, but how about moving this
+> to more of a C construct similar to arch/powerpc/kernel/cputable.c
+> instead? It's considerably easier to read that way, and it's convenient
+> to have the definitions all in one place, making it easier to share some
+> of the functions, etc.
 
-At some point we may add them but currently I want the SoC code to be
-minimal.
+Done in version 3. It's easier to read :).
 
 -- 
 Catalin
