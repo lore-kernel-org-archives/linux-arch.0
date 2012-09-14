@@ -1,78 +1,50 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 3/3] mm: Introduce HAVE_ARCH_TRANSPARENT_HUGEPAGE
-Date: Thu, 13 Sep 2012 14:40:25 -0700
-Message-ID: <20120913144025.b1760af4.akpm@linux-foundation.org>
-References: <1347382036-18455-1-git-send-email-will.deacon@arm.com>
-	<1347382036-18455-4-git-send-email-will.deacon@arm.com>
-	<20120913120514.135d2c38.akpm@linux-foundation.org>
-	<20120914072732.637f4225c32565468f468305@canb.auug.org.au>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH v3 09/31] arm64: Cache maintenance routines
+Date: Fri, 14 Sep 2012 17:53:32 +0100
+Message-ID: <20120914165331.GA2927@arm.com>
+References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
+ <1347035226-18649-10-git-send-email-catalin.marinas@arm.com>
+ <201209071928.09999.arnd@arndb.de>
+ <20120910164815.GB8238@arm.com>
+ <alpine.LFD.2.02.1209101322140.28681@xanadu.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:50559 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752799Ab2IMVk1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Sep 2012 17:40:27 -0400
-In-Reply-To: <20120914072732.637f4225c32565468f468305@canb.auug.org.au>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:45593 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757325Ab2INQyS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 14 Sep 2012 12:54:18 -0400
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.2.02.1209101322140.28681@xanadu.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mhocko@suse.cz, Steve Capper <steve.capper@arm.com>, Gerald Schaefer <gerald.schaefer@de.ibm.com>
+To: Nicolas Pitre <nico@fluxnic.net>
+Cc: Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On Fri, 14 Sep 2012 07:27:32 +1000
-Stephen Rothwell <sfr@canb.auug.org.au> wrote:
-
-> Hi Andrew,
+On Mon, Sep 10, 2012 at 06:29:21PM +0100, Nicolas Pitre wrote:
+> On Mon, 10 Sep 2012, Catalin Marinas wrote:
 > 
-> On Thu, 13 Sep 2012 12:05:14 -0700 Andrew Morton <akpm@linux-foundation.org> wrote:
-> >
-> > diff -puN arch/x86/Kconfig~mm-introduce-have_arch_transparent_hugepage arch/x86/Kconfig
-> > --- a/arch/x86/Kconfig~mm-introduce-have_arch_transparent_hugepage
-> > +++ a/arch/x86/Kconfig
-> > @@ -83,7 +83,6 @@ config X86
-> >  	select IRQ_FORCED_THREADING
-> >  	select USE_GENERIC_SMP_HELPERS if SMP
-> >  	select HAVE_BPF_JIT if X86_64
-> > -	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+> > On Fri, Sep 07, 2012 at 08:28:09PM +0100, Arnd Bergmann wrote:
+> > > On Friday 07 September 2012, Catalin Marinas wrote:
+> > > > +
+> > > > +/*
+> > > > + *	dmac_inv_range(start,end)
+> > > 
+> > > all of these appear to be unused now. Can you remove them?
+> > 
+> > They aren't currently used but I expect some partners to make use of
+> > them on their private development. I could drop them from the upstream
+> > branch temporarily.
 > 
-> Why not
-> 	select HAVE_ARCH_TRANSPARENT_HUGEPAGE if MMU
-> 
+> Depends.  If your expectation from those partners is a real probability 
+> then it is best to keep a skeleton in place for them to use, otherwise 
+> they might get ... creative.  If this is just wild speculation then you 
+> should drop it.
 
-Well, this is in arch/x86/Kconfig, where MMU is known to always be set.
+I dropped them for now since there is no API using those functions. But
+I have a feeling they will be needed at some point (so I'll keep the
+patches around).
 
-Yes, I think Gerald's patch will suffice:
-
---- a/arch/Kconfig~thp-x86-introduce-have_arch_transparent_hugepage
-+++ a/arch/Kconfig
-@@ -326,4 +326,7 @@ config HAVE_RCU_USER_QS
- 	  are already protected inside rcu_irq_enter/rcu_irq_exit() but
- 	  preemption or signal handling on irq exit still need to be protected.
- 
-+config HAVE_ARCH_TRANSPARENT_HUGEPAGE
-+	bool
-+
- source "kernel/gcov/Kconfig"
---- a/arch/x86/Kconfig~thp-x86-introduce-have_arch_transparent_hugepage
-+++ a/arch/x86/Kconfig
-@@ -83,6 +83,7 @@ config X86
- 	select IRQ_FORCED_THREADING
- 	select USE_GENERIC_SMP_HELPERS if SMP
- 	select HAVE_BPF_JIT if X86_64
-+	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
- 	select CLKEVT_I8253
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select GENERIC_IOMAP
---- a/mm/Kconfig~thp-x86-introduce-have_arch_transparent_hugepage
-+++ a/mm/Kconfig
-@@ -318,7 +318,7 @@ config NOMMU_INITIAL_TRIM_EXCESS
- 
- config TRANSPARENT_HUGEPAGE
- 	bool "Transparent Hugepage Support"
--	depends on X86 && MMU
-+	depends on HAVE_ARCH_TRANSPARENT_HUGEPAGE
- 	select COMPACTION
- 	help
- 	  Transparent Hugepages allows the kernel to use huge pages and
-_
+-- 
+Catalin
