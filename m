@@ -1,50 +1,45 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH v3 09/31] arm64: Cache maintenance routines
-Date: Fri, 14 Sep 2012 17:53:32 +0100
-Message-ID: <20120914165331.GA2927@arm.com>
-References: <1347035226-18649-1-git-send-email-catalin.marinas@arm.com>
- <1347035226-18649-10-git-send-email-catalin.marinas@arm.com>
- <201209071928.09999.arnd@arndb.de>
- <20120910164815.GB8238@arm.com>
- <alpine.LFD.2.02.1209101322140.28681@xanadu.home>
+Subject: Re: [PATCH v2 13/31] arm64: Device specific operations
+Date: Fri, 14 Sep 2012 18:29:45 +0100
+Message-ID: <20120914172944.GB2927@arm.com>
+References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
+ <1344966752-16102-14-git-send-email-catalin.marinas@arm.com>
+ <20120815003355.GF19607@quad.lixom.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:45593 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:46708 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757325Ab2INQyS (ORCPT
+	by vger.kernel.org with ESMTP id S1756341Ab2INRa2 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 14 Sep 2012 12:54:18 -0400
+	Fri, 14 Sep 2012 13:30:28 -0400
 Content-Disposition: inline
-In-Reply-To: <alpine.LFD.2.02.1209101322140.28681@xanadu.home>
+In-Reply-To: <20120815003355.GF19607@quad.lixom.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Nicolas Pitre <nico@fluxnic.net>
-Cc: Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Olof Johansson <olof@lixom.net>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Will Deacon <Will.Deacon@arm.com>
 
-On Mon, Sep 10, 2012 at 06:29:21PM +0100, Nicolas Pitre wrote:
-> On Mon, 10 Sep 2012, Catalin Marinas wrote:
-> 
-> > On Fri, Sep 07, 2012 at 08:28:09PM +0100, Arnd Bergmann wrote:
-> > > On Friday 07 September 2012, Catalin Marinas wrote:
-> > > > +
-> > > > +/*
-> > > > + *	dmac_inv_range(start,end)
-> > > 
-> > > all of these appear to be unused now. Can you remove them?
-> > 
-> > They aren't currently used but I expect some partners to make use of
-> > them on their private development. I could drop them from the upstream
-> > branch temporarily.
-> 
-> Depends.  If your expectation from those partners is a real probability 
-> then it is best to keep a skeleton in place for them to use, otherwise 
-> they might get ... creative.  If this is just wild speculation then you 
-> should drop it.
+(revisiting unanswered emails :))
 
-I dropped them for now since there is no API using those functions. But
-I have a feeling they will be needed at some point (so I'll keep the
-patches around).
+On Wed, Aug 15, 2012 at 01:33:55AM +0100, Olof Johansson wrote:
+> On Tue, Aug 14, 2012 at 06:52:14PM +0100, Catalin Marinas wrote:
+> > +/*
+> > + *  I/O port access primitives.
+> > + */
+> > +#define IO_SPACE_LIMIT		0xffff
+> > +
+> > +/*
+> > + * We currently don't have any platform with PCI support, so just leave this
+> > + * defined to 0 until needed.
+> > + */
+> > +#define PCI_IOBASE		((void __iomem *)0)
+> 
+> You could just leave out the PCI / I/O code alltogether instead.
+
+I would leave this in as some of the first platforms to appear will have
+PCIe. At some point we'll add a fixed address where the PCI_IOBASE is
+mapped.
 
 -- 
 Catalin
