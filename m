@@ -1,85 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from haggis.pcug.org.au ([203.10.76.10]:45028 "EHLO
-	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752264Ab2IMV1o (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 13 Sep 2012 17:27:44 -0400
-Date: Fri, 14 Sep 2012 07:27:32 +1000
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH 3/3] mm: Introduce HAVE_ARCH_TRANSPARENT_HUGEPAGE
-Message-ID: <20120914072732.637f4225c32565468f468305@canb.auug.org.au>
-In-Reply-To: <20120913120514.135d2c38.akpm@linux-foundation.org>
+Received: from eddie.linux-mips.org ([78.24.191.182]:55306 "EHLO
+	cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751142Ab2IONis (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 15 Sep 2012 09:38:48 -0400
+Received: from localhost.localdomain ([127.0.0.1]:58327 "EHLO linux-mips.org"
+        rhost-flags-OK-OK-OK-FAIL) by eddie.linux-mips.org with ESMTP
+        id S1903237Ab2IONiq (ORCPT <rfc822;linux-arch@vger.kernel.org>
+        + 1 other); Sat, 15 Sep 2012 15:38:46 +0200
+Date: Sat, 15 Sep 2012 15:38:33 +0200
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH 2/3] mm: thp: Fix the update_mmu_cache() last argument
+ passing in mm/huge_memory.c
+Message-ID: <20120915133833.GA32398@linux-mips.org>
 References: <1347382036-18455-1-git-send-email-will.deacon@arm.com>
-	<1347382036-18455-4-git-send-email-will.deacon@arm.com>
-	<20120913120514.135d2c38.akpm@linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Fri__14_Sep_2012_07_27_32_+1000_pgH6OJmezGaynvnj"
+ <1347382036-18455-3-git-send-email-will.deacon@arm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1347382036-18455-3-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mhocko@suse.cz, Steve Capper <steve.capper@arm.com>, Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Message-ID: <20120913212732.qWKF6SZhs-BnPXgBlYPUl-6UI3JlNw40m2MqmmtoqNs@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mhocko@suse.cz, Catalin Marinas <catalin.marinas@arm.com>, Steve Capper <steve.capper@arm.com>
+Message-ID: <20120915133833.LBe0FQ3l-q60RiqalxxyY8GxnZAGeYEvVVPgF-o4Y4o@z>
 
---Signature=_Fri__14_Sep_2012_07_27_32_+1000_pgH6OJmezGaynvnj
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Tue, Sep 11, 2012 at 05:47:15PM +0100, Will Deacon wrote:
 
-Hi Andrew,
+> The update_mmu_cache() takes a pointer (to pte_t by default) as the last
+> argument but the huge_memory.c passes a pmd_t value. The patch changes
+> the argument to the pmd_t * pointer.
+> 
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+> Signed-off-by: Steve Capper <steve.capper@arm.com>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> ---
+>  mm/huge_memory.c |    6 +++---
+>  1 files changed, 3 insertions(+), 3 deletions(-)
+> 
+> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+> index 57c4b93..4aa6d02 100644
+> --- a/mm/huge_memory.c
+> +++ b/mm/huge_memory.c
+> @@ -934,7 +934,7 @@ int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
+>  		entry = pmd_mkyoung(orig_pmd);
+>  		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
+>  		if (pmdp_set_access_flags(vma, haddr, pmd, entry,  1))
+> -			update_mmu_cache(vma, address, entry);
+> +			update_mmu_cache(vma, address, pmd);
 
-On Thu, 13 Sep 2012 12:05:14 -0700 Andrew Morton <akpm@linux-foundation.org=
-> wrote:
->
-> diff -puN arch/x86/Kconfig~mm-introduce-have_arch_transparent_hugepage ar=
-ch/x86/Kconfig
-> --- a/arch/x86/Kconfig~mm-introduce-have_arch_transparent_hugepage
-> +++ a/arch/x86/Kconfig
-> @@ -83,7 +83,6 @@ config X86
->  	select IRQ_FORCED_THREADING
->  	select USE_GENERIC_SMP_HELPERS if SMP
->  	select HAVE_BPF_JIT if X86_64
-> -	select HAVE_ARCH_TRANSPARENT_HUGEPAGE
+Documentation/cachetlb.txt will need an update as well.  Currently it says:
 
-Why not
-	select HAVE_ARCH_TRANSPARENT_HUGEPAGE if MMU
+5) void update_mmu_cache(struct vm_area_struct *vma,
+                         unsigned long address, pte_t *ptep)
 
->  	select CLKEVT_I8253
->  	select ARCH_HAVE_NMI_SAFE_CMPXCHG
->  	select GENERIC_IOMAP
-> @@ -1330,6 +1329,10 @@ config ILLEGAL_POINTER_VALUE
->         default 0 if X86_32
->         default 0xdead000000000000 if X86_64
-> =20
-> +config HAVE_ARCH_TRANSPARENT_HUGEPAGE
-> +       def_bool y
-> +       depends on MMU
-> +
+I would prefer we introduce something like update_mmu_cache_huge_page(vma,
+address, pmd) and leave the classic update_mmu_cache() unchanged.
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
-http://www.canb.auug.org.au/~sfr/
-
---Signature=_Fri__14_Sep_2012_07_27_32_+1000_pgH6OJmezGaynvnj
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
-
-iQIcBAEBCAAGBQJQUk/EAAoJEECxmPOUX5FEPhYQAKmhRet965FrG861C8FuoYks
-GP51hrnL0c5SRIzL/QQt+efYxh0tjFkShopokmeJBbiC71ffwY+YTGDeL5SsH4h/
-rSj3qmFgxfb0HUzJeOgp9BuIn3RsKEY4Auj2k9KYR3ryFcXz+ZOeTLCBuNARXKEf
-BKufAnbL56fDoV0c3RDvinTT2Sf42hxmpRQLLF1nQeoxRtF9zYmKH29hEYMFgU7a
-23tAtS+HQd5tfJPi+C1Xc1YNXlXCTSVG8057VC/XdOfggOY5bx2AU4CX3dDiL5zV
-4FczjZStLfPac/GXVlGJ6/D4Et+GSi8VrsUkBsHtgJgmv7w9fjrx2+ZOn3mR6Fny
-oefCKHQF7OVC7EzaGXC1lW2CsiHEJGjd2V7XS0b36W9SCWZlNzsM670VysyS8Uwa
-ykeemA+L+02aCPu3lUopPPzOHymoDxrDXUo5vV3CX9v5LHDIsTY7zgo0Po8nQAf4
-gH+EghqvXWKAp0cia5vDuA1mCDMnx49HljEfErhc5eXxxwzDXTNfUk+zKKJxns8K
-c7SmqhR4eW/FRxMoretS7Usx5us/USeOtKM85bwd0UUJ/8ILX94aozA1lvgmKhO9
-iQ06oEYJ7Pxlmme39Bmnat/qst6f3+BntlMxQaUV62gOog2qgDFsLNHJhDqFtbiW
-Qc5NLVwF52sAdlsi1zS2
-=U84r
------END PGP SIGNATURE-----
-
---Signature=_Fri__14_Sep_2012_07_27_32_+1000_pgH6OJmezGaynvnj--
+  Ralf
