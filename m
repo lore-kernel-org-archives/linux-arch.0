@@ -1,72 +1,86 @@
-From: Olof Johansson <olof@lixom.net>
-Subject: Re: [PATCH v2 07/31] arm64: Process management
-Date: Sat, 15 Sep 2012 17:29:57 -0700
-Message-ID: <20120916002957.GB7028@quad.lixom.net>
-References: <1344966752-16102-1-git-send-email-catalin.marinas@arm.com>
- <1344966752-16102-8-git-send-email-catalin.marinas@arm.com>
- <20120814235013.GC19607@quad.lixom.net>
- <20120914173352.GC2927@arm.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [RFC] status of execve() work - per-architecture patches
+ solicited
+Date: Mon, 17 Sep 2012 04:26:51 +0100
+Message-ID: <20120917032651.GU13973@ZenIV.linux.org.uk>
+References: <20120907182004.GE13973@ZenIV.linux.org.uk>
+ <1347315603-30027-1-git-send-email-msalter@redhat.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f46.google.com ([209.85.160.46]:52890 "EHLO
-	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752468Ab2IPAaD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 15 Sep 2012 20:30:03 -0400
-Received: by pbbrr13 with SMTP id rr13so7361174pbb.19
-        for <linux-arch@vger.kernel.org>; Sat, 15 Sep 2012 17:30:03 -0700 (PDT)
+Received: from zeniv.linux.org.uk ([195.92.253.2]:56636 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753227Ab2IQD0y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Sep 2012 23:26:54 -0400
 Content-Disposition: inline
-In-Reply-To: <20120914173352.GC2927@arm.com>
+In-Reply-To: <1347315603-30027-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Will Deacon <Will.Deacon@arm.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>
+To: Mark Salter <msalter@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>
 
-On Fri, Sep 14, 2012 at 06:33:52PM +0100, Catalin Marinas wrote:
-> On Wed, Aug 15, 2012 at 12:50:13AM +0100, Olof Johansson wrote:
-> > On Tue, Aug 14, 2012 at 06:52:08PM +0100, Catalin Marinas wrote:
-> > 
-> > > diff --git a/arch/arm64/kernel/process.c b/arch/arm64/kernel/process.c
-> > > new file mode 100644
-> > > index 0000000..c4a4e1c
-> > > --- /dev/null
-> > > +++ b/arch/arm64/kernel/process.c
-> > > @@ -0,0 +1,416 @@
-> > 
-> > [...]
-> > > +/*
-> > > + * Function pointers to optional machine specific functions
-> > > + */
-> > > +void (*pm_power_off)(void);
-> > > +EXPORT_SYMBOL(pm_power_off);
-> > > +
-> > > +void (*pm_restart)(const char *cmd);
-> > > +EXPORT_SYMBOL_GPL(pm_restart);
-> > [...]
-> > > +void (*pm_idle)(void) = default_idle;
-> > > +EXPORT_SYMBOL(pm_idle);
-> > 
-> > Does it really make sense to export these to modules?
+On Mon, Sep 10, 2012 at 06:20:01PM -0400, Mark Salter wrote:
+> C6X works fine with these patches to switch over to generic code.
 > 
-> Changed them to _GPL now but we may still want them exported to modules.
-> Who knows, we may just have the SoC code in a loadable module (from
-> initramfs).
-
-Ok, keeping the option open for that makes some sense.
-
-> > I find the powerpc way of having a machine descriptor structure with these
-> > (and other) function pointers in it a bit cleaner, since it gives you
-> > one place to plug it all in. I'd recommend that you consider doing that
-> > here as well, for these three and potentially other cases in the future.
-> > 
-> > (See arch/powerpc/include/asm/machdep.h, struct machdep_calls).
 > 
-> At some point we may add them but currently I want the SoC code to be
-> minimal.
+> Mark Salter (2):
+>   c6x: implement ret_from_kernel_execve() and switch to generic
+>     kernel_execve()
+>   c6x: switch to generic sys_execve()
+> 
+>  arch/c6x/include/asm/syscalls.h |    5 ---
+>  arch/c6x/include/asm/unistd.h   |    3 ++
+>  arch/c6x/kernel/entry.S         |   54 +++++++++++++++++---------------------
+>  arch/c6x/kernel/process.c       |   22 ----------------
+>  4 files changed, 27 insertions(+), 57 deletions(-)
 
-It's not about the size of the code, it's about having one place where
-the SoC divergence is exposed instead of adding hooks here and there. But
-agreed, it could be moved to over time.
+Applied.  There's an alternative variant of that branch; see
+#experimental-kernel_thread in the same tree.  I have *not* attempted
+to port those patches over there - I don't have anything to test on
+and architecture is too unfamiliar for me to even attempt it blindly.
 
+The main differences between those branches are:
+	* ret_from_fork is usually split in two - ret_from_fork
+is used for normal processes and ret_from_kernel_thread is its
+analog for kernel threads; copy_thread() chooses one to use based
+on user_mode(regs).
+	* ret_from_kernel_thread does *not* go through the normal
+return-from-syscall codepath; instead of doing that it simply
+does an equivalent of kernel_thread_helper() itself - i.e. calls
+the function we'd passed to kernel_thread(), followed by sys_exit().
+	* ret_from_kernel_execve does *not* bother with memmove();
+it's done by generic kernel_execve() itself.  Note that the first
+two changes guarantee that kernel threads will have pt_regs at the
+bottom of their stack, so we won't have any overlaps - not between
+the source and destination of copying pt_regs and not between the
+stack frame and that destination.  I.e. that copying can safely
+be done by generic C implementation of kernel_execve().
 
--Olof
+I've ported (and tested) execve2 stuff to that model; it's done for
+alpha, arm, m68k, s390, powerpc, x86 and um.  I think it's a better
+approach:
+	* ret_from_kernel_execve() is simpler that way - one argument,
+no memmove() call to implement in there.
+	* we get to kill the last remnants of "syscall instruction
+from the kernel mode" crap (c6x kernel_thread() is free from that
+already, but for many architectures it's not so) 
+	* syscall return codepath is only taken for return to userland
+now; succeeding kernel_thread() is not sharing it.  Seeing that a bunch
+of things on that path should be avoided when returning to kernel mode,
+that allows for nice optimizations and simpler logics in the asm glue.
+	* it removes more code.  BTW, right now the contents of
+experimental-kernel_thread + for-next sans execve2 counterparts is
+probably getting close to Linus' "it removes 1KLoC, piss on all merge window
+rules and pull it now" threshold ;-)
+
+The price is that kernel threads are in the same boat as userland processes
+now wrt kernel stack consumption - they get pt_regs in the bottom of kernel
+stack, same as for normal syscall path.  That makes for _much_ simpler life,
+but if there's a kernel thread with really borderline stack footprint, that
+might push it over the edge.  Note, however, that syscalls are where the
+worst stack footprints tend to happen and for those we can't get rid of
+pt_regs on stack, no matter what we do.
+
+Just as with #execve2 it's not a flagday conversion; however, switching
+from one to another probably would be messy, so we'd better decide which
+one we'll be doing before the merge window.  Comments?
