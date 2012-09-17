@@ -1,59 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from eddie.linux-mips.org ([78.24.191.182]:55306 "EHLO
-	cvs.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751142Ab2IONis (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 15 Sep 2012 09:38:48 -0400
-Received: from localhost.localdomain ([127.0.0.1]:58327 "EHLO linux-mips.org"
-        rhost-flags-OK-OK-OK-FAIL) by eddie.linux-mips.org with ESMTP
-        id S1903237Ab2IONiq (ORCPT <rfc822;linux-arch@vger.kernel.org>
-        + 1 other); Sat, 15 Sep 2012 15:38:46 +0200
-Date: Sat, 15 Sep 2012 15:38:33 +0200
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [PATCH 2/3] mm: thp: Fix the update_mmu_cache() last argument
- passing in mm/huge_memory.c
-Message-ID: <20120915133833.GA32398@linux-mips.org>
-References: <1347382036-18455-1-git-send-email-will.deacon@arm.com>
- <1347382036-18455-3-git-send-email-will.deacon@arm.com>
+Received: from mail-bk0-f46.google.com ([209.85.214.46]:35101 "EHLO
+	mail-bk0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753584Ab2IQJ3N (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Sep 2012 05:29:13 -0400
+Received: by bkwj10 with SMTP id j10so2353820bkw.19
+        for <linux-arch@vger.kernel.org>; Mon, 17 Sep 2012 02:29:12 -0700 (PDT)
+Message-ID: <5056ED66.30203@monstr.eu>
+Date: Mon, 17 Sep 2012 11:29:10 +0200
+From: Michal Simek <monstr@monstr.eu>
+Reply-To: monstr@monstr.eu
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1347382036-18455-3-git-send-email-will.deacon@arm.com>
+Subject: Re: [RFC] status of execve() work - per-architecture patches solicited
+References: <20120907182004.GE13973@ZenIV.linux.org.uk>
+In-Reply-To: <20120907182004.GE13973@ZenIV.linux.org.uk>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mhocko@suse.cz, Catalin Marinas <catalin.marinas@arm.com>, Steve Capper <steve.capper@arm.com>
-Message-ID: <20120915133833.LBe0FQ3l-q60RiqalxxyY8GxnZAGeYEvVVPgF-o4Y4o@z>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20120917092910.kxLnE4g24pyjQYYo1WJV1vBAWZZJ6jnQNWA4yfV4otY@z>
 
-On Tue, Sep 11, 2012 at 05:47:15PM +0100, Will Deacon wrote:
+Hi Al,
 
-> The update_mmu_cache() takes a pointer (to pte_t by default) as the last
-> argument but the huge_memory.c passes a pmd_t value. The patch changes
-> the argument to the pmd_t * pointer.
-> 
-> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> Signed-off-by: Steve Capper <steve.capper@arm.com>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> ---
->  mm/huge_memory.c |    6 +++---
->  1 files changed, 3 insertions(+), 3 deletions(-)
-> 
-> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-> index 57c4b93..4aa6d02 100644
-> --- a/mm/huge_memory.c
-> +++ b/mm/huge_memory.c
-> @@ -934,7 +934,7 @@ int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
->  		entry = pmd_mkyoung(orig_pmd);
->  		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
->  		if (pmdp_set_access_flags(vma, haddr, pmd, entry,  1))
-> -			update_mmu_cache(vma, address, entry);
-> +			update_mmu_cache(vma, address, pmd);
+On 09/07/2012 08:20 PM, Al Viro wrote:
+> 	To architecture maintainers: please, review the current
+> situation in git.kernel.org/pub/scm/linux/kernel/git/viro/signal #execve2
+> and consider sending the corresponding patches for missing architectures.
 
-Documentation/cachetlb.txt will need an update as well.  Currently it says:
+I have sent two patches. Please apply them to your tree.
 
-5) void update_mmu_cache(struct vm_area_struct *vma,
-                         unsigned long address, pte_t *ptep)
+Michal Simek (2):
+       microblaze: Move restart allowed out of block
+       microblaze: Remove compilation failure
 
-I would prefer we introduce something like update_mmu_cache_huge_page(vma,
-address, pmd) and leave the classic update_mmu_cache() unchanged.
+  arch/microblaze/kernel/entry.S |    6 +++---
+  1 files changed, 3 insertions(+), 3 deletions(-)
 
-  Ralf
+I have seen the compilation problem in June on linux-next but
+have never got any response from you.
+http://www.spinics.net/lists/linux-next/msg20848.html
+
+Can you please apply these two patches to your tree?
+
+Thanks,
+Michal
+
+
+-- 
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
+Microblaze U-BOOT custodian
