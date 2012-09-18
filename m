@@ -1,60 +1,41 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH 2/3] mm: thp: Fix the update_mmu_cache() last argument
- passing in mm/huge_memory.c
-Date: Tue, 18 Sep 2012 12:33:31 -0700
-Message-ID: <20120918123331.6ca5833c.akpm@linux-foundation.org>
-References: <1347382036-18455-1-git-send-email-will.deacon@arm.com>
-	<1347382036-18455-3-git-send-email-will.deacon@arm.com>
-	<20120915133833.GA32398@linux-mips.org>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH] compat: fs: Generic compat_sys_sendfile implementation
+Date: Tue, 18 Sep 2012 16:06:59 -0400 (EDT)
+Message-ID: <20120918.160659.160077660315513625.davem@davemloft.net>
+References: <1347987727-13739-1-git-send-email-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:37454 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754427Ab2IRTdd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2012 15:33:33 -0400
-In-Reply-To: <20120915133833.GA32398@linux-mips.org>
+Received: from shards.monkeyblade.net ([149.20.54.216]:46576 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754583Ab2IRUHG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2012 16:07:06 -0400
+In-Reply-To: <1347987727-13739-1-git-send-email-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mhocko@suse.cz, Catalin Marinas <catalin.marinas@arm.com>, Steve Capper <steve.capper@arm.com>
+To: catalin.marinas@arm.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, benh@kernel.crashing.org, paulus@samba.org, viro@zeniv.linux.org.uk, akpm@linux-foundation.org
 
-On Sat, 15 Sep 2012 15:38:33 +0200
-Ralf Baechle <ralf@linux-mips.org> wrote:
+From: Catalin Marinas <catalin.marinas@arm.com>
+Date: Tue, 18 Sep 2012 18:02:06 +0100
 
-> On Tue, Sep 11, 2012 at 05:47:15PM +0100, Will Deacon wrote:
+> This function is used by sparc, powerpc and arm64 for compat support.
+> The patch adds a generic implementation which calls do_sendfile()
+> directly and avoids set_fs().
 > 
-> > The update_mmu_cache() takes a pointer (to pte_t by default) as the last
-> > argument but the huge_memory.c passes a pmd_t value. The patch changes
-> > the argument to the pmd_t * pointer.
-> > 
-> > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-> > Signed-off-by: Steve Capper <steve.capper@arm.com>
-> > Signed-off-by: Will Deacon <will.deacon@arm.com>
-> > ---
-> >  mm/huge_memory.c |    6 +++---
-> >  1 files changed, 3 insertions(+), 3 deletions(-)
-> > 
-> > diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-> > index 57c4b93..4aa6d02 100644
-> > --- a/mm/huge_memory.c
-> > +++ b/mm/huge_memory.c
-> > @@ -934,7 +934,7 @@ int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
-> >  		entry = pmd_mkyoung(orig_pmd);
-> >  		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
-> >  		if (pmdp_set_access_flags(vma, haddr, pmd, entry,  1))
-> > -			update_mmu_cache(vma, address, entry);
-> > +			update_mmu_cache(vma, address, pmd);
+> The sparc architecture has wrappers for the sign extensions while
+> powerpc relies on the compiler to do the this. The patch adds a wrapper
+> for powerpc to handle the u32->int type conversion.
 > 
-> Documentation/cachetlb.txt will need an update as well.  Currently it says:
+> compat_sys_sendfile64() can be replaced by a sys_sendfile() call since
+> compat_loff_t has the same size as off_t on a 64-bit system. On powerpc,
+> similar wrapper needs to be added for the u32->int conversion.
 > 
-> 5) void update_mmu_cache(struct vm_area_struct *vma,
->                          unsigned long address, pte_t *ptep)
+> The reason for a single patch covering both powerpc and sparc is to keep
+> it bisectable (and simple), otherwise kernel building may fail with
+> mismatched function declarations.
+> 
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 
-Yes please.
-
-> I would prefer we introduce something like update_mmu_cache_huge_page(vma,
-> address, pmd) and leave the classic update_mmu_cache() unchanged.
-
-Why?
+Acked-by: David S. Miller <davem@davemloft.net>
