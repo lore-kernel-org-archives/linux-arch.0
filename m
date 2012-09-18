@@ -1,33 +1,25 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH] compat: fs: Generic compat_sys_sendfile implementation
-Date: Tue, 18 Sep 2012 18:02:06 +0100
-Message-ID: <1347987727-13739-1-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH] compat: Generic compat_sys_sched_rr_get_interval implementation
+Date: Tue, 18 Sep 2012 18:02:07 +0100
+Message-ID: <1347987727-13739-2-git-send-email-catalin.marinas@arm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:62522 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:62527 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751872Ab2IRRDB (ORCPT
+	by vger.kernel.org with ESMTP id S1752374Ab2IRRDE (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 18 Sep 2012 13:03:01 -0400
+	Tue, 18 Sep 2012 13:03:04 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, "David S. Miller" <davem@davemloft.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
+Cc: Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, "David S. Miller" <davem@davemloft.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, Andrew Morton <akpm@linux-foundation.org>
 
-This function is used by sparc, powerpc and arm64 for compat support.
-The patch adds a generic implementation which calls do_sendfile()
-directly and avoids set_fs().
+This function is used by sparc, powerpc tile and arm64 for compat
+support. The patch adds a generic implementation with a wrapper for
+PowerPC to do the u32->int sign extension.
 
-The sparc architecture has wrappers for the sign extensions while
-powerpc relies on the compiler to do the this. The patch adds a wrapper
-for powerpc to handle the u32->int type conversion.
-
-compat_sys_sendfile64() can be replaced by a sys_sendfile() call since
-compat_loff_t has the same size as off_t on a 64-bit system. On powerpc,
-similar wrapper needs to be added for the u32->int conversion.
-
-The reason for a single patch covering both powerpc and sparc is to keep
-it bisectable (and simple), otherwise kernel building may fail with
-mismatched function declarations.
+The reason for a single patch covering powerpc, tile and sparc is to
+keep it bisectable, otherwise kernel building may fail with mismatched
+function declarations.
 
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
@@ -35,266 +27,208 @@ Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Paul Mackerras <paulus@samba.org>
 Cc: David S. Miller <davem@davemloft.net>
 Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: Chris Metcalf <cmetcalf@tilera.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>
 ---
 
-Please note that the patch has only been compile-tested on sparc and
-powerpc (run-time tested on arm64).
+Please note that the patch has only been compile-tested on sparc, tile
+and powerpc (run-time tested on arm64).
 
- arch/powerpc/include/asm/systbl.h |    4 +-
+ arch/powerpc/include/asm/systbl.h |    2 +-
  arch/powerpc/include/asm/unistd.h |    1 +
- arch/powerpc/kernel/sys_ppc32.c   |   45 +++++------------------------------
+ arch/powerpc/kernel/sys_ppc32.c   |   17 ++++-------------
  arch/sparc/include/asm/unistd.h   |    1 +
- arch/sparc/kernel/sys32.S         |    2 +-
- arch/sparc/kernel/sys_sparc32.c   |   46 -------------------------------------
- fs/compat.c                       |   22 +++++++++++++++++
- fs/read_write.c                   |    4 +-
- fs/read_write.h                   |    2 +
- include/linux/compat.h            |    3 ++
- 10 files changed, 41 insertions(+), 89 deletions(-)
+ arch/sparc/kernel/sys_sparc32.c   |   14 --------------
+ arch/tile/include/asm/compat.h    |    2 --
+ arch/tile/include/asm/unistd.h    |    1 +
+ arch/tile/kernel/compat.c         |   18 ------------------
+ include/linux/compat.h            |    3 +++
+ kernel/compat.c                   |   17 +++++++++++++++++
+ 10 files changed, 28 insertions(+), 48 deletions(-)
 
 diff --git a/arch/powerpc/include/asm/systbl.h b/arch/powerpc/include/asm/systbl.h
-index 559ae1e..8fb2429 100644
+index 8fb2429..b5a2fbd 100644
 --- a/arch/powerpc/include/asm/systbl.h
 +++ b/arch/powerpc/include/asm/systbl.h
-@@ -189,7 +189,7 @@ SYSCALL_SPU(getcwd)
- SYSCALL_SPU(capget)
- SYSCALL_SPU(capset)
- COMPAT_SYS(sigaltstack)
--SYSX_SPU(sys_sendfile64,compat_sys_sendfile,sys_sendfile)
-+SYSX_SPU(sys_sendfile64,compat_sys_sendfile_wrapper,sys_sendfile)
- SYSCALL(ni_syscall)
- SYSCALL(ni_syscall)
- PPC_SYS(vfork)
-@@ -229,7 +229,7 @@ COMPAT_SYS_SPU(sched_setaffinity)
- COMPAT_SYS_SPU(sched_getaffinity)
- SYSCALL(ni_syscall)
- SYSCALL(ni_syscall)
--SYS32ONLY(sendfile64)
-+SYS32ONLY(sendfile64_wrapper)
- COMPAT_SYS_SPU(io_setup)
- SYSCALL_SPU(io_destroy)
- COMPAT_SYS_SPU(io_getevents)
+@@ -164,7 +164,7 @@ COMPAT_SYS_SPU(sched_getscheduler)
+ SYSCALL_SPU(sched_yield)
+ COMPAT_SYS_SPU(sched_get_priority_max)
+ COMPAT_SYS_SPU(sched_get_priority_min)
+-COMPAT_SYS_SPU(sched_rr_get_interval)
++SYSX_SPU(sys_sched_rr_get_interval,compat_sys_sched_rr_get_interval_wrapper,sys_sched_rr_get_interval)
+ COMPAT_SYS_SPU(nanosleep)
+ SYSCALL_SPU(mremap)
+ SYSCALL_SPU(setresuid)
 diff --git a/arch/powerpc/include/asm/unistd.h b/arch/powerpc/include/asm/unistd.h
-index bd377a3..c683fa3 100644
+index c683fa3..bd52cb3 100644
 --- a/arch/powerpc/include/asm/unistd.h
 +++ b/arch/powerpc/include/asm/unistd.h
-@@ -419,6 +419,7 @@
- #define __ARCH_WANT_COMPAT_SYS_TIME
+@@ -420,6 +420,7 @@
  #define __ARCH_WANT_COMPAT_SYS_RT_SIGSUSPEND
  #define __ARCH_WANT_SYS_NEWFSTATAT
-+#define __ARCH_WANT_COMPAT_SYS_SENDFILE
+ #define __ARCH_WANT_COMPAT_SYS_SENDFILE
++#define __ARCH_WANT_COMPAT_SYS_SCHED_RR_GET_INTERVAL
  #endif
  
  /*
 diff --git a/arch/powerpc/kernel/sys_ppc32.c b/arch/powerpc/kernel/sys_ppc32.c
-index 81c5706..abd1112 100644
+index abd1112..f369e7b 100644
 --- a/arch/powerpc/kernel/sys_ppc32.c
 +++ b/arch/powerpc/kernel/sys_ppc32.c
-@@ -143,48 +143,17 @@ long compat_sys_ipc(u32 call, u32 first, u32 second, u32 third, compat_uptr_t pt
+@@ -197,19 +197,10 @@ asmlinkage long compat_sys_prctl(u32 option, u32 arg2, u32 arg3, u32 arg4, u32 a
   * proper conversion (sign extension) between the register representation of a signed int (msr in 32-bit mode)
   * and the register representation of a signed int (msr in 64-bit mode) is performed.
   */
--asmlinkage long compat_sys_sendfile(u32 out_fd, u32 in_fd, compat_off_t __user * offset, u32 count)
-+asmlinkage long compat_sys_sendfile_wrapper(u32 out_fd, u32 in_fd,
-+					    compat_off_t __user *offset, u32 count)
- {
--	mm_segment_t old_fs = get_fs();
+-asmlinkage long compat_sys_sched_rr_get_interval(u32 pid, struct compat_timespec __user *interval)
+-{
+-	struct timespec t;
 -	int ret;
--	off_t of;
--	off_t __user *up;
+-	mm_segment_t old_fs = get_fs ();
 -
--	if (offset && get_user(of, offset))
+-	/* The __user pointer cast is valid because of the set_fs() */
+-	set_fs (KERNEL_DS);
+-	ret = sys_sched_rr_get_interval((int)pid, (struct timespec __user *) &t);
+-	set_fs (old_fs);
+-	if (put_compat_timespec(&t, interval))
 -		return -EFAULT;
--
--	/* The __user pointer cast is valid because of the set_fs() */		
--	set_fs(KERNEL_DS);
--	up = offset ? (off_t __user *) &of : NULL;
--	ret = sys_sendfile((int)out_fd, (int)in_fd, up, count);
--	set_fs(old_fs);
--	
--	if (offset && put_user(of, offset))
--		return -EFAULT;
--		
 -	return ret;
-+	return compat_sys_sendfile((int)out_fd, (int)in_fd, offset, count);
++asmlinkage long compat_sys_sched_rr_get_interval_wrapper(u32 pid,
++							 struct compat_timespec __user *interval)
++{
++	return compat_sys_sched_rr_get_interval((int)pid, interval);
  }
  
--asmlinkage int compat_sys_sendfile64(int out_fd, int in_fd, compat_loff_t __user *offset, s32 count)
-+asmlinkage long compat_sys_sendfile64_wrapper(u32 out_fd, u32 in_fd,
-+					      compat_loff_t __user *offset, u32 count)
- {
--	mm_segment_t old_fs = get_fs();
--	int ret;
--	loff_t lof;
--	loff_t __user *up;
--	
--	if (offset && get_user(lof, offset))
--		return -EFAULT;
--		
--	/* The __user pointer cast is valid because of the set_fs() */		
--	set_fs(KERNEL_DS);
--	up = offset ? (loff_t __user *) &lof : NULL;
--	ret = sys_sendfile64(out_fd, in_fd, up, count);
--	set_fs(old_fs);
--	
--	if (offset && put_user(lof, offset))
--		return -EFAULT;
--		
--	return ret;
-+	return sys_sendfile((int)out_fd, (int)in_fd,
-+			    (off_t __user *)offset, count);
- }
- 
- long compat_sys_execve(unsigned long a0, unsigned long a1, unsigned long a2,
+ /* Note: it is necessary to treat mode as an unsigned int,
 diff --git a/arch/sparc/include/asm/unistd.h b/arch/sparc/include/asm/unistd.h
-index fb26934..d9a677c 100644
+index d9a677c..bba519b 100644
 --- a/arch/sparc/include/asm/unistd.h
 +++ b/arch/sparc/include/asm/unistd.h
-@@ -447,6 +447,7 @@
- #else
+@@ -448,6 +448,7 @@
  #define __ARCH_WANT_COMPAT_SYS_TIME
  #define __ARCH_WANT_COMPAT_SYS_RT_SIGSUSPEND
-+#define __ARCH_WANT_COMPAT_SYS_SENDFILE
+ #define __ARCH_WANT_COMPAT_SYS_SENDFILE
++#define __ARCH_WANT_COMPAT_SYS_SCHED_RR_GET_INTERVAL
  #endif
  
  /*
-diff --git a/arch/sparc/kernel/sys32.S b/arch/sparc/kernel/sys32.S
-index d97f3eb..44025f4 100644
---- a/arch/sparc/kernel/sys32.S
-+++ b/arch/sparc/kernel/sys32.S
-@@ -90,7 +90,7 @@ SIGN1(sys32_mkdir, sys_mkdir, %o1)
- SIGN3(sys32_futex, compat_sys_futex, %o1, %o2, %o5)
- SIGN1(sys32_sysfs, compat_sys_sysfs, %o0)
- SIGN2(sys32_sendfile, compat_sys_sendfile, %o0, %o1)
--SIGN2(sys32_sendfile64, compat_sys_sendfile64, %o0, %o1)
-+SIGN2(sys32_sendfile64, sys_sendfile, %o0, %o1)
- SIGN1(sys32_prctl, sys_prctl, %o0)
- SIGN1(sys32_sched_rr_get_interval, compat_sys_sched_rr_get_interval, %o0)
- SIGN2(sys32_waitpid, sys_waitpid, %o0, %o2)
 diff --git a/arch/sparc/kernel/sys_sparc32.c b/arch/sparc/kernel/sys_sparc32.c
-index f739233..d862499 100644
+index d862499..dc1daaa 100644
 --- a/arch/sparc/kernel/sys_sparc32.c
 +++ b/arch/sparc/kernel/sys_sparc32.c
-@@ -506,52 +506,6 @@ long compat_sys_fadvise64_64(int fd,
- 				advice);
+@@ -211,20 +211,6 @@ asmlinkage long compat_sys_sysfs(int option, u32 arg1, u32 arg2)
+ 	return sys_sysfs(option, arg1, arg2);
  }
  
--asmlinkage long compat_sys_sendfile(int out_fd, int in_fd,
--				    compat_off_t __user *offset,
--				    compat_size_t count)
+-asmlinkage long compat_sys_sched_rr_get_interval(compat_pid_t pid, struct compat_timespec __user *interval)
 -{
--	mm_segment_t old_fs = get_fs();
+-	struct timespec t;
 -	int ret;
--	off_t of;
+-	mm_segment_t old_fs = get_fs ();
 -	
--	if (offset && get_user(of, offset))
+-	set_fs (KERNEL_DS);
+-	ret = sys_sched_rr_get_interval(pid, (struct timespec __user *) &t);
+-	set_fs (old_fs);
+-	if (put_compat_timespec(&t, interval))
 -		return -EFAULT;
--		
--	set_fs(KERNEL_DS);
--	ret = sys_sendfile(out_fd, in_fd,
--			   offset ? (off_t __user *) &of : NULL,
--			   count);
--	set_fs(old_fs);
--	
--	if (offset && put_user(of, offset))
--		return -EFAULT;
--		
 -	return ret;
 -}
 -
--asmlinkage long compat_sys_sendfile64(int out_fd, int in_fd,
--				      compat_loff_t __user *offset,
--				      compat_size_t count)
--{
--	mm_segment_t old_fs = get_fs();
--	int ret;
--	loff_t lof;
--	
--	if (offset && get_user(lof, offset))
--		return -EFAULT;
--		
--	set_fs(KERNEL_DS);
--	ret = sys_sendfile64(out_fd, in_fd,
--			     offset ? (loff_t __user *) &lof : NULL,
--			     count);
--	set_fs(old_fs);
--	
--	if (offset && put_user(lof, offset))
--		return -EFAULT;
--		
--	return ret;
--}
--
- /* This is just a version for 32-bit applications which does
-  * not force O_LARGEFILE on.
-  */
-diff --git a/fs/compat.c b/fs/compat.c
-index 1bdb350..a241da9 100644
---- a/fs/compat.c
-+++ b/fs/compat.c
-@@ -1802,3 +1802,25 @@ compat_sys_open_by_handle_at(int mountdirfd,
- 	return do_handle_open(mountdirfd, handle, flags);
- }
+ asmlinkage long compat_sys_rt_sigprocmask(int how,
+ 					  compat_sigset_t __user *set,
+ 					  compat_sigset_t __user *oset,
+diff --git a/arch/tile/include/asm/compat.h b/arch/tile/include/asm/compat.h
+index 6e74450..fec9ae6 100644
+--- a/arch/tile/include/asm/compat.h
++++ b/arch/tile/include/asm/compat.h
+@@ -238,8 +238,6 @@ long compat_sys_sync_file_range2(int fd, unsigned int flags,
+ long compat_sys_fallocate(int fd, int mode,
+ 			  u32 offset_lo, u32 offset_hi,
+ 			  u32 len_lo, u32 len_hi);
+-long compat_sys_sched_rr_get_interval(compat_pid_t pid,
+-				      struct compat_timespec __user *interval);
+ 
+ /* These are the intvec_64.S trampolines. */
+ long _compat_sys_execve(const char __user *path,
+diff --git a/arch/tile/include/asm/unistd.h b/arch/tile/include/asm/unistd.h
+index a017246..52e0540 100644
+--- a/arch/tile/include/asm/unistd.h
++++ b/arch/tile/include/asm/unistd.h
+@@ -40,6 +40,7 @@ __SYSCALL(__NR_cmpxchg_badaddr, sys_cmpxchg_badaddr)
+ /* In compat mode, we use sys_llseek() for compat_sys_llseek(). */
+ #ifdef CONFIG_COMPAT
+ #define __ARCH_WANT_SYS_LLSEEK
++#define __ARCH_WANT_COMPAT_SYS_SCHED_RR_GET_INTERVAL
  #endif
-+
-+#ifdef __ARCH_WANT_COMPAT_SYS_SENDFILE
-+asmlinkage long compat_sys_sendfile(int out_fd, int in_fd,
-+				    compat_off_t __user *offset, compat_size_t count)
-+{
-+	loff_t pos;
-+	off_t off;
-+	ssize_t ret;
-+
-+	if (offset) {
-+		if (unlikely(get_user(off, offset)))
-+			return -EFAULT;
-+		pos = off;
-+		ret = do_sendfile(out_fd, in_fd, &pos, count, MAX_NON_LFS);
-+		if (unlikely(put_user(pos, offset)))
-+			return -EFAULT;
-+		return ret;
-+	}
-+
-+	return do_sendfile(out_fd, in_fd, NULL, count, 0);
-+}
-+#endif /* __ARCH_WANT_COMPAT_SYS_SENDFILE */
-diff --git a/fs/read_write.c b/fs/read_write.c
-index 1adfb69..d8e88fe 100644
---- a/fs/read_write.c
-+++ b/fs/read_write.c
-@@ -884,8 +884,8 @@ SYSCALL_DEFINE5(pwritev, unsigned long, fd, const struct iovec __user *, vec,
- 	return ret;
+ #define __ARCH_WANT_SYS_NEWFSTATAT
+ #endif
+diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
+index d67459b..ef5ab9d 100644
+--- a/arch/tile/kernel/compat.c
++++ b/arch/tile/kernel/compat.c
+@@ -76,24 +76,6 @@ long compat_sys_fallocate(int fd, int mode,
+ 			     ((loff_t)len_hi << 32) | len_lo);
  }
  
--static ssize_t do_sendfile(int out_fd, int in_fd, loff_t *ppos,
--			   size_t count, loff_t max)
-+ssize_t do_sendfile(int out_fd, int in_fd, loff_t *ppos, size_t count,
-+		    loff_t max)
- {
- 	struct file * in_file, * out_file;
- 	struct inode * in_inode, * out_inode;
-diff --git a/fs/read_write.h b/fs/read_write.h
-index d07b954..d3e00ef 100644
---- a/fs/read_write.h
-+++ b/fs/read_write.h
-@@ -12,3 +12,5 @@ ssize_t do_sync_readv_writev(struct file *filp, const struct iovec *iov,
- 		unsigned long nr_segs, size_t len, loff_t *ppos, iov_fn_t fn);
- ssize_t do_loop_readv_writev(struct file *filp, struct iovec *iov,
- 		unsigned long nr_segs, loff_t *ppos, io_fn_t fn);
-+ssize_t do_sendfile(int out_fd, int in_fd, loff_t *ppos, size_t count,
-+		    loff_t max);
+-
+-
+-long compat_sys_sched_rr_get_interval(compat_pid_t pid,
+-				      struct compat_timespec __user *interval)
+-{
+-	struct timespec t;
+-	int ret;
+-	mm_segment_t old_fs = get_fs();
+-
+-	set_fs(KERNEL_DS);
+-	ret = sys_sched_rr_get_interval(pid,
+-					(struct timespec __force __user *)&t);
+-	set_fs(old_fs);
+-	if (put_compat_timespec(&t, interval))
+-		return -EFAULT;
+-	return ret;
+-}
+-
+ /* Provide the compat syscall number to call mapping. */
+ #undef __SYSCALL
+ #define __SYSCALL(nr, call) [nr] = (call),
 diff --git a/include/linux/compat.h b/include/linux/compat.h
-index 09b28b7..fd4e299 100644
+index fd4e299..68a010b 100644
 --- a/include/linux/compat.h
 +++ b/include/linux/compat.h
-@@ -590,6 +590,9 @@ asmlinkage ssize_t compat_sys_process_vm_writev(compat_pid_t pid,
- 		unsigned long liovcnt, const struct compat_iovec __user *rvec,
- 		unsigned long riovcnt, unsigned long flags);
+@@ -593,6 +593,9 @@ asmlinkage ssize_t compat_sys_process_vm_writev(compat_pid_t pid,
+ asmlinkage long compat_sys_sendfile(int out_fd, int in_fd,
+ 				    compat_off_t __user *offset, compat_size_t count);
  
-+asmlinkage long compat_sys_sendfile(int out_fd, int in_fd,
-+				    compat_off_t __user *offset, compat_size_t count);
++asmlinkage long compat_sys_sched_rr_get_interval(compat_pid_t pid,
++						 struct compat_timespec __user *interval);
 +
  #else
  
  #define is_compat_task() (0)
+diff --git a/kernel/compat.c b/kernel/compat.c
+index c28a306..f6150e9 100644
+--- a/kernel/compat.c
++++ b/kernel/compat.c
+@@ -1215,6 +1215,23 @@ compat_sys_sysinfo(struct compat_sysinfo __user *info)
+ 	return 0;
+ }
+ 
++#ifdef __ARCH_WANT_COMPAT_SYS_SCHED_RR_GET_INTERVAL
++asmlinkage long compat_sys_sched_rr_get_interval(compat_pid_t pid,
++						 struct compat_timespec __user *interval)
++{
++	struct timespec t;
++	int ret;
++	mm_segment_t old_fs = get_fs();
++
++	set_fs(KERNEL_DS);
++	ret = sys_sched_rr_get_interval(pid, (struct timespec __user *)&t);
++	set_fs(old_fs);
++	if (put_compat_timespec(&t, interval))
++		return -EFAULT;
++	return ret;
++}
++#endif /* __ARCH_WANT_COMPAT_SYS_SCHED_RR_GET_INTERVAL */
++
+ /*
+  * Allocate user-space memory for the duration of a single system call,
+  * in order to marshall parameters inside a compat thunk.
