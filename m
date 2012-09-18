@@ -1,54 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bk0-f46.google.com ([209.85.214.46]:35101 "EHLO
-	mail-bk0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753584Ab2IQJ3N (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Sep 2012 05:29:13 -0400
-Received: by bkwj10 with SMTP id j10so2353820bkw.19
-        for <linux-arch@vger.kernel.org>; Mon, 17 Sep 2012 02:29:12 -0700 (PDT)
-Message-ID: <5056ED66.30203@monstr.eu>
-Date: Mon, 17 Sep 2012 11:29:10 +0200
-From: Michal Simek <monstr@monstr.eu>
-Reply-To: monstr@monstr.eu
-MIME-Version: 1.0
-Subject: Re: [RFC] status of execve() work - per-architecture patches solicited
-References: <20120907182004.GE13973@ZenIV.linux.org.uk>
-In-Reply-To: <20120907182004.GE13973@ZenIV.linux.org.uk>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Received: from shards.monkeyblade.net ([149.20.54.216]:46589 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754583Ab2IRUHN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 18 Sep 2012 16:07:13 -0400
+Date: Tue, 18 Sep 2012 16:07:11 -0400 (EDT)
+Message-ID: <20120918.160711.306288733249793274.davem@davemloft.net>
+Subject: Re: [PATCH] compat: Generic compat_sys_sched_rr_get_interval
+ implementation
+From: David Miller <davem@davemloft.net>
+In-Reply-To: <1347987727-13739-2-git-send-email-catalin.marinas@arm.com>
+References: <1347987727-13739-2-git-send-email-catalin.marinas@arm.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20120917092910.kxLnE4g24pyjQYYo1WJV1vBAWZZJ6jnQNWA4yfV4otY@z>
+To: catalin.marinas@arm.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, benh@kernel.crashing.org, paulus@samba.org, viro@zeniv.linux.org.uk, cmetcalf@tilera.com, akpm@linux-foundation.org
+Message-ID: <20120918200711.gNPKCnH9_NF2y31-1zdXQIJmXFfH_c-Eelp0VhZGzTA@z>
 
-Hi Al,
+From: Catalin Marinas <catalin.marinas@arm.com>
+Date: Tue, 18 Sep 2012 18:02:07 +0100
 
-On 09/07/2012 08:20 PM, Al Viro wrote:
-> 	To architecture maintainers: please, review the current
-> situation in git.kernel.org/pub/scm/linux/kernel/git/viro/signal #execve2
-> and consider sending the corresponding patches for missing architectures.
+> This function is used by sparc, powerpc tile and arm64 for compat
+> support. The patch adds a generic implementation with a wrapper for
+> PowerPC to do the u32->int sign extension.
+> 
+> The reason for a single patch covering powerpc, tile and sparc is to
+> keep it bisectable, otherwise kernel building may fail with mismatched
+> function declarations.
+> 
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 
-I have sent two patches. Please apply them to your tree.
-
-Michal Simek (2):
-       microblaze: Move restart allowed out of block
-       microblaze: Remove compilation failure
-
-  arch/microblaze/kernel/entry.S |    6 +++---
-  1 files changed, 3 insertions(+), 3 deletions(-)
-
-I have seen the compilation problem in June on linux-next but
-have never got any response from you.
-http://www.spinics.net/lists/linux-next/msg20848.html
-
-Can you please apply these two patches to your tree?
-
-Thanks,
-Michal
-
-
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
-Microblaze U-BOOT custodian
+Acked-by: David S. Miller <davem@davemloft.net>
