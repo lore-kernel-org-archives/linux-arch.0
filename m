@@ -1,68 +1,46 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 2/3] mm: thp: Fix the update_mmu_cache() last argument
- passing in mm/huge_memory.c
-Date: Wed, 19 Sep 2012 10:12:28 +0100
-Message-ID: <CAHkRjk7uCZZvA_Ubq7vgkAV2r-vMNHxs+hZmvf+99ks+4v7isA@mail.gmail.com>
-References: <1347382036-18455-1-git-send-email-will.deacon@arm.com>
- <1347382036-18455-3-git-send-email-will.deacon@arm.com> <20120915133833.GA32398@linux-mips.org>
- <20120918123331.6ca5833c.akpm@linux-foundation.org>
+Subject: Re: [PATCH] compat: fs: Generic compat_sys_sendfile implementation
+Date: Wed, 19 Sep 2012 11:57:42 +0100
+Message-ID: <CAHkRjk581OE1ugsYKB-M8tZP5sYEsxLYkFPsfneLpnLKm3q9-A@mail.gmail.com>
+References: <1347987727-13739-1-git-send-email-catalin.marinas@arm.com> <201209181813.06124.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f174.google.com ([209.85.216.174]:39769 "EHLO
-	mail-qc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752529Ab2ISJMy (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Sep 2012 05:12:54 -0400
-In-Reply-To: <20120918123331.6ca5833c.akpm@linux-foundation.org>
+Received: from mail-qa0-f53.google.com ([209.85.216.53]:38645 "EHLO
+	mail-qa0-f53.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751718Ab2ISK6D (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Sep 2012 06:58:03 -0400
+In-Reply-To: <201209181813.06124.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Ralf Baechle <ralf@linux-mips.org>, Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mhocko@suse.cz, Steve Capper <steve.capper@arm.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, "David S. Miller" <davem@davemloft.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>
 
-On 18 September 2012 20:33, Andrew Morton <akpm@linux-foundation.org> wrote:
-> On Sat, 15 Sep 2012 15:38:33 +0200
-> Ralf Baechle <ralf@linux-mips.org> wrote:
->> On Tue, Sep 11, 2012 at 05:47:15PM +0100, Will Deacon wrote:
->> > The update_mmu_cache() takes a pointer (to pte_t by default) as the last
->> > argument but the huge_memory.c passes a pmd_t value. The patch changes
->> > the argument to the pmd_t * pointer.
->> >
->> > Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
->> > Signed-off-by: Steve Capper <steve.capper@arm.com>
->> > Signed-off-by: Will Deacon <will.deacon@arm.com>
->> > ---
->> >  mm/huge_memory.c |    6 +++---
->> >  1 files changed, 3 insertions(+), 3 deletions(-)
->> >
->> > diff --git a/mm/huge_memory.c b/mm/huge_memory.c
->> > index 57c4b93..4aa6d02 100644
->> > --- a/mm/huge_memory.c
->> > +++ b/mm/huge_memory.c
->> > @@ -934,7 +934,7 @@ int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
->> >             entry = pmd_mkyoung(orig_pmd);
->> >             entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
->> >             if (pmdp_set_access_flags(vma, haddr, pmd, entry,  1))
->> > -                   update_mmu_cache(vma, address, entry);
->> > +                   update_mmu_cache(vma, address, pmd);
->>
->> Documentation/cachetlb.txt will need an update as well.  Currently it says:
->>
->> 5) void update_mmu_cache(struct vm_area_struct *vma,
->>                          unsigned long address, pte_t *ptep)
+On 18 September 2012 19:13, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Tuesday 18 September 2012, Catalin Marinas wrote:
+>> @@ -229,7 +229,7 @@ COMPAT_SYS_SPU(sched_setaffinity)
+>>  COMPAT_SYS_SPU(sched_getaffinity)
+>>  SYSCALL(ni_syscall)
+>>  SYSCALL(ni_syscall)
+>> -SYS32ONLY(sendfile64)
+>> +SYS32ONLY(sendfile64_wrapper)
+>>  COMPAT_SYS_SPU(io_setup)
+>>  SYSCALL_SPU(io_destroy)
+>>  COMPAT_SYS_SPU(io_getevents)
 >
-> Yes please.
+> I believe this will break native ppc32 builds because there is
+> no sys_sendfile64_wrapper function. You probably have to use
+>
+> SYSX(sys_ni_syscall, compat_sys_sendfile64_wrapper, sys_sendfile64)
 
-Should we just use a generic (void *) for the last argument or force a
-cast in mm/huge_memory.c?
+OK, I only built ppc64. I made this change and I'll re-post the patch.
 
-Ralf's point is that transparent huge page code calls update_mmu_cache
-with a (pmd_t *) as the last argument. This could make sense for THP
-as it assumes that huge pages can only be created at the pmd level.
-But that's unlike mm/hugetlb.c which casts huge page types to pte_t,
-even though on ARM they are implemented at the pmd level.
+What I've noticed on ppc64 is that __NR_sendfile is routed to
+sys_sendfile64(). I'm changing this to sys_sendfile() as I don't see
+why we need to carry the two almost identical functions around:
 
-On ARM (with VIPT caches) update_mmu_cache() is empty like on x86,
-though a static inline rather than macro.
+-SYSX_SPU(sys_sendfile64,compat_sys_sendfile,sys_sendfile)
++SYSX_SPU(sys_sendfile,compat_sys_sendfile_wrapper,sys_sendfile)
 
 -- 
 Catalin
