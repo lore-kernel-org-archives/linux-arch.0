@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:21442 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:14429 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755904Ab2IUQ05 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 21 Sep 2012 12:26:57 -0400
+	id S1752579Ab2IUQ1A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 21 Sep 2012 12:27:00 -0400
 From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH 1/3] c6x: add ret_from_kernel_thread(), simplify kernel_thread()
-Date: Fri, 21 Sep 2012 12:26:37 -0400
-Message-ID: <1348244799-16013-2-git-send-email-msalter@redhat.com>
+Subject: [PATCH 3/3] c6x: switch to generic sys_execve
+Date: Fri, 21 Sep 2012 12:26:39 -0400
+Message-ID: <1348244799-16013-4-git-send-email-msalter@redhat.com>
 In-Reply-To: <1348244799-16013-1-git-send-email-msalter@redhat.com>
 References: <20120917032651.GU13973@ZenIV.linux.org.uk>
  <1348244799-16013-1-git-send-email-msalter@redhat.com>
@@ -14,127 +14,111 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Al Viro <viro@ZenIV.linux.org.uk>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
-Message-ID: <20120921162637.lfKg5IflLPdXyOYJWeFn3PABR7TdH-Lds1sLOMM86jU@z>
+Message-ID: <20120921162639.D_krs1jWfU77fg1_F_N5WxHuBsmWlFyvaqwvv_pV8MA@z>
 
 Signed-off-by: Mark Salter <msalter@redhat.com>
 ---
- arch/c6x/kernel/entry.S   |   20 ++++++++++++++++++++
- arch/c6x/kernel/process.c |   38 ++++++++++++--------------------------
- 2 files changed, 32 insertions(+), 26 deletions(-)
+ arch/c6x/include/asm/syscalls.h |    5 -----
+ arch/c6x/include/asm/unistd.h   |    1 +
+ arch/c6x/kernel/entry.S         |   23 -----------------------
+ arch/c6x/kernel/process.c       |   22 ----------------------
+ 4 files changed, 1 insertions(+), 50 deletions(-)
 
+diff --git a/arch/c6x/include/asm/syscalls.h b/arch/c6x/include/asm/syscalls.h
+index aed53da..e7b8991 100644
+--- a/arch/c6x/include/asm/syscalls.h
++++ b/arch/c6x/include/asm/syscalls.h
+@@ -44,11 +44,6 @@ extern int sys_cache_sync(unsigned long s, unsigned long e);
+ struct pt_regs;
+ 
+ extern asmlinkage long sys_c6x_clone(struct pt_regs *regs);
+-extern asmlinkage long sys_c6x_execve(const char __user *name,
+-				      const char __user *const __user *argv,
+-				      const char __user *const __user *envp,
+-				      struct pt_regs *regs);
+-
+ 
+ #include <asm-generic/syscalls.h>
+ 
+diff --git a/arch/c6x/include/asm/unistd.h b/arch/c6x/include/asm/unistd.h
+index 1ce3a6f..3c131d5 100644
+--- a/arch/c6x/include/asm/unistd.h
++++ b/arch/c6x/include/asm/unistd.h
+@@ -17,6 +17,7 @@
+ #define _ASM_C6X_UNISTD_H
+ 
+ #define __ARCH_WANT_KERNEL_EXECVE
++#define __ARCH_WANT_SYS_EXECVE
+ 
+ /* Use the standard ABI for syscalls. */
+ #include <asm-generic/unistd.h>
 diff --git a/arch/c6x/kernel/entry.S b/arch/c6x/kernel/entry.S
-index 30b37e5..6e6bd9d 100644
+index 32e3683..5449c36 100644
 --- a/arch/c6x/kernel/entry.S
 +++ b/arch/c6x/kernel/entry.S
-@@ -400,6 +400,26 @@ ret_from_fork_2:
- 	STW	.D2T2	B0,*+SP(REGS_A4+8)
- ENDPROC(ret_from_fork)
+@@ -647,29 +647,6 @@ ENTRY(sys_rt_sigreturn)
+ #endif
+ ENDPROC(sys_rt_sigreturn)
  
-+ENTRY(ret_from_kernel_thread)
-+#ifdef CONFIG_C6X_BIG_KERNEL
-+	MVKL	.S1	schedule_tail,A0
-+	MVKH	.S1	schedule_tail,A0
-+	B	.S2X	A0
-+#else
-+	B	.S2	schedule_tail
-+#endif
-+	LDW	.D2T2	*+SP(REGS_A0+8),B10 /* get fn  */
-+	ADDKPC	.S2	0f,B3,3
-+0:
-+	B	.S2	B10		   /* call fn */
-+	LDW	.D2T1	*+SP(REGS_A1+8),A4 /* get arg */
-+	MVKL	.S2	sys_exit,B11
-+	MVKH	.S2	sys_exit,B11
-+	ADDKPC	.S2	0f,B3,1
-+0:
-+	BNOP	.S2	B11,5	/* jump to sys_exit */
-+ENDPROC(ret_from_kernel_thread)
-+
- 	;;
- 	;; These are the interrupt handlers, responsible for calling __do_IRQ()
- 	;; int6 is used for syscalls (see _system_call entry)
+-ENTRY(sys_execve)
+-	ADDAW	.D2	SP,2,B6		; put regs addr in 4th parameter
+-					; & adjust regs stack addr
+-	LDW	.D2T2	*+SP(REGS_B4+8),B4
+-
+-	;; c6x_execve(char *name, char **argv,
+-	;;            char **envp, struct pt_regs *regs)
+-#ifdef CONFIG_C6X_BIG_KERNEL
+- ||	MVKL	.S1	sys_c6x_execve,A0
+-	MVKH	.S1	sys_c6x_execve,A0
+-	B	.S2X	A0
+-#else
+- ||	B	.S2	sys_c6x_execve
+-#endif
+-	STW	.D2T2	B3,*SP--[2]
+-	ADDKPC	.S2	ret_from_c6x_execve,B3,3
+-
+-ret_from_c6x_execve:
+-	LDW	.D2T2	*++SP[2],B3
+-	NOP	4
+-	BNOP	.S2	B3,5
+-ENDPROC(sys_execve)
+-
+ ENTRY(sys_pread_c6x)
+ 	MV	.D2X	A8,B7
+ #ifdef CONFIG_C6X_BIG_KERNEL
 diff --git a/arch/c6x/kernel/process.c b/arch/c6x/kernel/process.c
-index 45e924a..d2ffc9b 100644
+index d2ffc9b..f98616d 100644
 --- a/arch/c6x/kernel/process.c
 +++ b/arch/c6x/kernel/process.c
-@@ -25,6 +25,7 @@ void	(*c6x_restart)(void);
- void	(*c6x_halt)(void);
- 
- extern asmlinkage void ret_from_fork(void);
-+extern asmlinkage void ret_from_kernel_thread(void);
- 
- /*
-  * power off function, if any
-@@ -103,36 +104,21 @@ void machine_power_off(void)
- 	halt_loop();
+@@ -207,28 +207,6 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
+ 	return 0;
  }
  
--static void kernel_thread_helper(int dummy, void *arg, int (*fn)(void *))
+-/*
+- * c6x_execve() executes a new program.
+- */
+-SYSCALL_DEFINE4(c6x_execve, const char __user *, name,
+-		const char __user *const __user *, argv,
+-		const char __user *const __user *, envp,
+-		struct pt_regs *, regs)
 -{
--	do_exit(fn(arg));
+-	int error;
+-	char *filename;
+-
+-	filename = getname(name);
+-	error = PTR_ERR(filename);
+-	if (IS_ERR(filename))
+-		goto out;
+-
+-	error = do_execve(filename, argv, envp, regs);
+-	putname(filename);
+-out:
+-	return error;
 -}
 -
- /*
-  * Create a kernel thread
-  */
- int kernel_thread(int (*fn)(void *), void * arg, unsigned long flags)
+ unsigned long get_wchan(struct task_struct *p)
  {
--	struct pt_regs regs;
--
--	/*
--	 * copy_thread sets a4 to zero (child return from fork)
--	 * so we can't just set things up to directly return to
--	 * fn.
--	 */
--	memset(&regs, 0, sizeof(regs));
--	regs.b4 = (unsigned long) arg;
--	regs.a6 = (unsigned long) fn;
--	regs.pc = (unsigned long) kernel_thread_helper;
--	local_save_flags(regs.csr);
--	regs.csr |= 1;
--	regs.tsr = 5; /* Set GEE and GIE in TSR */
-+	struct pt_regs regs = {
-+		.a0 = (unsigned long)fn,
-+		.a1 = (unsigned long)arg,
-+		.tsr = 0, /* kernel mode */
-+	};
- 
- 	/* Ok, create the new process.. */
- 	return do_fork(flags | CLONE_VM | CLONE_UNTRACED, -1, &regs,
- 		       0, NULL, NULL);
- }
--EXPORT_SYMBOL(kernel_thread);
- 
- void flush_thread(void)
- {
-@@ -192,21 +178,21 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
- 	childregs = task_pt_regs(p);
- 
- 	*childregs = *regs;
--	childregs->a4 = 0;
- 
--	if (usp == -1)
-+	if (usp == -1) {
- 		/* case of  __kernel_thread: we return to supervisor space */
- 		childregs->sp = (unsigned long)(childregs + 1);
--	else
-+		p->thread.pc = (unsigned long) ret_from_kernel_thread;
-+	} else {
- 		/* Otherwise use the given stack */
- 		childregs->sp = usp;
-+		p->thread.pc = (unsigned long) ret_from_fork;
-+	}
- 
- 	/* Set usp/ksp */
- 	p->thread.usp = childregs->sp;
--	/* switch_to uses stack to save/restore 14 callee-saved regs */
- 	thread_saved_ksp(p) = (unsigned long)childregs - 8;
--	p->thread.pc = (unsigned int) ret_from_fork;
--	p->thread.wchan	= (unsigned long) ret_from_fork;
-+	p->thread.wchan	= p->thread.pc;
- #ifdef __DSBT__
- 	{
- 		unsigned long dp;
+ 	return p->thread.wchan;
 -- 
 1.7.9.1
 
