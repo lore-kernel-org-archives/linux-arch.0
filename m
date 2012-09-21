@@ -1,35 +1,32 @@
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [PATCH] module: add finit_module syscall to asm-generic
-Date: Fri, 21 Sep 2012 11:47:40 +0930
-Message-ID: <87mx0knmpn.fsf@rustcorp.com.au>
-References: <20120920200702.GA18807@www.outflux.net> <201209202152.38630.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201209202152.38630.arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+From: Mark Salter <msalter@redhat.com>
+Subject: Re: [RFC] status of execve() work - per-architecture patches solicited
+Date: Fri, 21 Sep 2012 12:26:36 -0400
+Message-ID: <1348244799-16013-1-git-send-email-msalter@redhat.com>
+References: <20120917032651.GU13973@ZenIV.linux.org.uk>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:54736 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752579Ab2IUQ04 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 21 Sep 2012 12:26:56 -0400
+In-Reply-To: <20120917032651.GU13973@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
 
-Arnd Bergmann <arnd@arndb.de> writes:
+Here are a set of c6x patches to work with your experimental-kernel_thread
+branch.
 
-> On Thursday 20 September 2012, Kees Cook wrote:
->> 
->> This adds the finit_module syscall to the generic syscall list.
->> 
->> Signed-off-by: Kees Cook <keescook@chromium.org>
->> ---
->> This depends on the finit_module patchset in Rusty's tree, based on
->> https://lkml.org/lkml/2012/9/7/559
->
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
->
-> Please queue this along with the other patches.
+Mark Salter (3):
+  c6x: add ret_from_kernel_thread(), simplify kernel_thread()
+  c6x: switch to generic kernel_execve
+  c6x: switch to generic sys_execve
 
-OK, I'm still holding them back from linux-next due to the question of
-signatures & the new syscall.  But I expect we'll resign ourselves to an
-appended signature, and they'll be fine as-is.
+ arch/c6x/include/asm/syscalls.h |    5 ---
+ arch/c6x/include/asm/unistd.h   |    3 ++
+ arch/c6x/kernel/entry.S         |   56 +++++++++++++++++-------------------
+ arch/c6x/kernel/process.c       |   60 ++++++++-------------------------------
+ 4 files changed, 41 insertions(+), 83 deletions(-)
 
-Cheers,
-Rusty.
+-- 
+1.7.9.1
