@@ -1,40 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:45776 "EHLO ozlabs.org"
+Received: from mx1.redhat.com ([209.132.183.28]:41199 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756856Ab2IUDEQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 20 Sep 2012 23:04:16 -0400
-From: Rusty Russell <rusty@rustcorp.com.au>
-Subject: Re: [PATCH] module: add finit_module syscall to asm-generic
-In-Reply-To: <201209202152.38630.arnd@arndb.de>
-References: <20120920200702.GA18807@www.outflux.net> <201209202152.38630.arnd@arndb.de>
-Date: Fri, 21 Sep 2012 11:47:40 +0930
-Message-ID: <87mx0knmpn.fsf@rustcorp.com.au>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+	id S1757333Ab2IUQ07 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 21 Sep 2012 12:26:59 -0400
+From: Mark Salter <msalter@redhat.com>
+Subject: [PATCH 2/3] c6x: switch to generic kernel_execve
+Date: Fri, 21 Sep 2012 12:26:38 -0400
+Message-ID: <1348244799-16013-3-git-send-email-msalter@redhat.com>
+In-Reply-To: <1348244799-16013-1-git-send-email-msalter@redhat.com>
+References: <20120917032651.GU13973@ZenIV.linux.org.uk>
+ <1348244799-16013-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Kees Cook <keescook@chromium.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120921021740.pl5veCMgo9e948xGpvwkE3mpxl_vLkRSM58eZXW-i78@z>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
+Message-ID: <20120921162638.1UzW-UqZmxOkXqi70m0Qm2bQvXc4IzU0yIbUtZ4rbVk@z>
 
-Arnd Bergmann <arnd@arndb.de> writes:
+Signed-off-by: Mark Salter <msalter@redhat.com>
+---
+ arch/c6x/include/asm/unistd.h |    2 ++
+ arch/c6x/kernel/entry.S       |   13 ++++++-------
+ 2 files changed, 8 insertions(+), 7 deletions(-)
 
-> On Thursday 20 September 2012, Kees Cook wrote:
->> 
->> This adds the finit_module syscall to the generic syscall list.
->> 
->> Signed-off-by: Kees Cook <keescook@chromium.org>
->> ---
->> This depends on the finit_module patchset in Rusty's tree, based on
->> https://lkml.org/lkml/2012/9/7/559
->
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
->
-> Please queue this along with the other patches.
+diff --git a/arch/c6x/include/asm/unistd.h b/arch/c6x/include/asm/unistd.h
+index 6d54ea4..1ce3a6f 100644
+--- a/arch/c6x/include/asm/unistd.h
++++ b/arch/c6x/include/asm/unistd.h
+@@ -16,6 +16,8 @@
+ #if !defined(_ASM_C6X_UNISTD_H) || defined(__SYSCALL)
+ #define _ASM_C6X_UNISTD_H
+ 
++#define __ARCH_WANT_KERNEL_EXECVE
++
+ /* Use the standard ABI for syscalls. */
+ #include <asm-generic/unistd.h>
+ 
+diff --git a/arch/c6x/kernel/entry.S b/arch/c6x/kernel/entry.S
+index 6e6bd9d..32e3683 100644
+--- a/arch/c6x/kernel/entry.S
++++ b/arch/c6x/kernel/entry.S
+@@ -420,6 +420,12 @@ ENTRY(ret_from_kernel_thread)
+ 	BNOP	.S2	B11,5	/* jump to sys_exit */
+ ENDPROC(ret_from_kernel_thread)
+ 
++ENTRY(ret_from_kernel_execve)
++	GET_THREAD_INFO A12
++	BNOP	.S2	syscall_exit,4
++	ADD	.D2X	A4,-8,SP
++ENDPROC(ret_from_kernel_execve)
++
+ 	;;
+ 	;; These are the interrupt handlers, responsible for calling __do_IRQ()
+ 	;; int6 is used for syscalls (see _system_call entry)
+@@ -613,13 +619,6 @@ ENTRY(sys_sigaltstack)
+ 	NOP	4
+ ENDPROC(sys_sigaltstack)
+ 
+-	;; kernel_execve
+-ENTRY(kernel_execve)
+-	MVK	.S2	__NR_execve,B0
+-	SWE
+-	BNOP	.S2	B3,5
+-ENDPROC(kernel_execve)
+-
+ 	;;
+ 	;; Special system calls
+ 	;; return address is in B3
+-- 
+1.7.9.1
 
-OK, I'm still holding them back from linux-next due to the question of
-signatures & the new syscall.  But I expect we'll resign ourselves to an
-appended signature, and they'll be fine as-is.
-
-Cheers,
-Rusty.
