@@ -1,146 +1,72 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC] status of execve() work - per-architecture patches
- solicited
-Date: Fri, 21 Sep 2012 19:39:34 +0100
-Message-ID: <20120921183934.GK13973@ZenIV.linux.org.uk>
-References: <20120917032651.GU13973@ZenIV.linux.org.uk>
- <1348244799-16013-1-git-send-email-msalter@redhat.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: sys_kcmp (was: Re: [PATCH 1/2] ARM: add finit_module syscall to ARM)
+Date: Sat, 22 Sep 2012 12:56:42 +0200
+Message-ID: <CAMuHMdXVKvaCoJTRb4O+Z4GuifzTEopdcRfRHBahQmpuX+Xi0w@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:51061 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932414Ab2IUSjg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Sep 2012 14:39:36 -0400
-Content-Disposition: inline
-In-Reply-To: <1348244799-16013-1-git-send-email-msalter@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Russell King <rmk@arm.linux.org.uk>
+Cc: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Cyrill Gorcunov <gorcunov@openvz.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Sep 21, 2012 at 12:26:36PM -0400, Mark Salter wrote:
-> Here are a set of c6x patches to work with your experimental-kernel_thread
-> branch.
-> 
-> Mark Salter (3):
->   c6x: add ret_from_kernel_thread(), simplify kernel_thread()
->   c6x: switch to generic kernel_execve
->   c6x: switch to generic sys_execve
+On Fri, Sep 21, 2012 at 6:51 PM, Russell King <rmk@arm.linux.org.uk> wrote:
+> That brings up another question though - when was kcmp added to x86, and
+> why aren't we getting notifications from checksyscalls.sh that ARM hasn't
+> been updated?
+>
+> It seems to be that the script was broken, and no one has noticed.
 
-Applied and pushed...
+It seems Heiko did notice: http://www.serverphorums.com/read.php?12,559093
 
-FWIW, the current status:
+Now, I'm a bit puzzled by what follows: Heiko proposes a patch to
+ignore sys_kcmp,
+as it's x86-specific, which is acked by Cyrill. Then it suddenly
+switches to Heiko
+enabling it on s390 anyway?
 
-alpha - done, tested on hardware
-arm - done, tested on qemu
-c6x - done by maintainer
-frv - done, untested
-m68k - done, tested on aranym; there's a known issue in copy_thread() in
-case of coldfire-MMU, presumably to be handled in m68k tree (I can do it
-in this one instead, if m68k folks would prefer it that way)
-mn10300 - done, untested
-powerpc - done, tested on qemu (32bit and 64bit)
-s390 - done, tested on hercules (31bit and 64bit)
-x86 - done, tested on kvm guests (32bit and 64bit)
-um - done, tested on amd64 host (32bit and 64bit)
+> commit 29dc54c673ea2531d589400badb4ada5f5f60dae
+> Author: H. Peter Anvin <hpa@linux.intel.com>
+> Date:   Fri Nov 11 15:57:53 2011 -0800
+>
+>     checksyscalls: Use arch/x86/syscalls/syscall_32.tbl as source
+>
+>     Use the new arch/x86/syscalls/syscall_32.tbl file as source instead of
+>     arch/x86/include/asm/unistd_32.h.
+>
+>     Cc: Michal Marek <mmarek@suse.cz>
+>     Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+>     Cc: Sam Ravnborg <sam@ravnborg.org>
+>     Signed-off-by: H. Peter Anvin <hpa@linux.intel.com>
+>
+> is the culpret, more specifically this fragment:
+>
+> +           echo <<EOF
+> +#if !defined(__NR_${name}) && !defined(__IGNORE_${name})
+> +#warning syscall ${name} not implemented
+> +#endif
+> +EOF
+>
+> "echo <<EOF" doesn't read from its stdin and output to stdout, so the
+> above just generates a blank line for each entry in x86's syscalls_32.tbl,
+> resulting in the compiler doing no checking for us.
+>
+> That "echo <<EOF" should be "cat <<EOF"... and with that fixed we get:
+>
+> <stdin>:1220:2: warning: #warning syscall kcmp not implemented
+>
+> So, actually, I want to add this kcmp syscall _now_ into -rc which I'm
+> afraid will break your patch, and bump your syscall number on ARM to 379.
 
-avr32 - no
-blackfin - no, should be easy to write, NFI how to test
-cris - no
-h8300 - no
-hexagon - no
-ia64 - no
-m32r - no
-microblaze - no
-mips - no, and if I understood Ralf correctly, he prefers to deal with his
-asm glue surgery first.
-openrisc - no
-parisc - no, and there might be interesting issues writing that stuff.  One
-good thing is that I can test it on actual hw (32bit only, though)
-score - no (and AFAICS that port is essentially abandonware)
-sh - no
-sparc - no, will get around to it.  That I can test on actual hw...
-tile - no
-unicore32 - no, should be easy to copy arm solution
-xtensa - no
+With a CC to stable for v3.5? ;-)
 
-The future plans for that series are
-	* kill daemonize() - only one caller, it's in drivers/staging and
-it's trivial to eliminate.
-	* convert powerpc eeh_event_handler() to kthread_run()
-	* pull the calls of do_exit()/sys_exit() into the kernel_thread
-callbacks themselves; there are very few such callbacks (kernel_thread() is
-really a very low-level thing) and most of them never return - either loop
-forever, or call exit() themselves, or do kernel_execve() and panic() on
-failure of that (kernel_init()).  It boils down to adding do_exit() on
-failure in ____call_usermodehelper(), adding do_exit() in the end of
-wait_for_helper() and adding do_exit() on failure in do_linuxrc().  That's
-it.  What we get out of that is removal of asm glue calling exit() after
-the call of kernerl_thread() payload - on each architecture.
-	* once that is done (and assuming we have all architectures converted),
-we can do the following trick:
-void __init kernel_init_guts(void)
-{
-	/* current kernel_init() sans the call of init_post() */
-}
-int __ref kernel_init(void *unused)
-{
-	kernel_init_guts();
-	/* stuff currently in init_post() */
-}
-and we can drastically simplify kernel_execve().  Note that there are only
-3 callers, all of them in kernel_thread() payloads.  Moreover, at that point
-we have the whole path to caller of the payload (i.e. ret_from_kernel_thread)
-alive and well (that's what the trick above is for).  So let's just replace
-kernel_execve() with doing do_execve() *on* *default* *pt_regs*.  And turn
-ret_from_kernel_thread into
-	call schedule_tail()
-	find the payload function and its argument
-	call the payload
-	go to normal return from syscall path (i.e. what ret_from_kernel_execve
-is doing, but without any need to do magic to stack pointer, etc.)
-Note that this is practically the same thing as ret_from_fork, except for
-calling the damn payload.  Which either does exit(), or returns after
-successful do_execve().  
-	At that point we can get rid of pt_regs argument of do_execve().
-And search_binary_handler().  And all kinds of foo_load_binary().  When said
-foo_load_binary() wants pt_regs, it should simply call current_pt_regs() and
-be done with that...
-	* I'm considering generic implementations of fork/vfork/clone -
-all it takes is current_user_stack_pointer() (defaulting to
-user_stack_pointer(current_pt_regs()); all architectures that don't
-have said userland stack pointer stored in pt_regs happen to have such
-function already, called rdusp() in all such cases).  That helper is
-enough to make practically all instances of fork/vfork/clone identical.
-Again, it's up to the architecture whether it wants to use that or not,
-but it promises quite a bit of boilerplate removal *AND* we are getting
-rid of wonders like
-asmlinkage int sys_fork(long r10, long r11, long r12, long r13, long mof, long srp, struct pt_regs *regs)
-or
-asmlinkage int sys_fork(unsigned long r0, unsigned long r1, unsigned long r2,
-        unsigned long r3, unsigned long r4, unsigned long r5, unsigned long r6,
-        struct pt_regs regs)
+Gr{oetje,eeting}s,
 
-and similar bits of black magic.  And black magic it is - in the second case
-(m32r) we are *badly* abusing C ABI.  Took me a while to figure out WTF
-was going on there - in reality, (void *)&regs will be equal to (void *)&r4.
-Compiler has every right to be unhappy.
-	* first 4 arguments go in registers (and are unused)
-	* arguments 5, 6 and 7 are expected to be on top of stack
-	* argument 8 is expected to be passed as a pointer to copy, also
-on stack.
-So compiler expects r0 to r3 in registers, with r4, r5, r6, &regs, regs
-on top of stack.  In reality, pt_regs ther starts with 3 longs and pointer
-to pt_regs.  Initialized with the address of structure itself.  So we get
-r4 aliased to regs.r4, r5 - to regs.r5, r6 - to regs.r6 and what would've
-been a hidden pointer to regs - to regs.pt_regs.  The worst part is, all
-that trickery is absolutely pointless - the pointer we are looking for is
-(sp & ~(THREAD_SIZE - 1)) + constant, so it actually costs *more* to do
-it that way; we fetch the sucker from *(sp + constant_offset), which is
-going to be slower, even leaving aside the price of storing it there
-back when we'd been setting the pt_regs up on the way in.  Kernel isn't
-IOCCC, damnit...
+                        Geert
 
-And it's not the worst example, actually ;-/  All that crap is brittle and
-ugly, for no reason whatsoever.  Sigh...
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
