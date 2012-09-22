@@ -1,72 +1,51 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: sys_kcmp (was: Re: [PATCH 1/2] ARM: add finit_module syscall to ARM)
-Date: Sat, 22 Sep 2012 12:56:42 +0200
-Message-ID: <CAMuHMdXVKvaCoJTRb4O+Z4GuifzTEopdcRfRHBahQmpuX+Xi0w@mail.gmail.com>
+From: Greg Ungerer <gregungerer@westnet.com.au>
+Subject: Re: [RFC] status of execve() work - per-architecture patches solicited
+Date: Sat, 22 Sep 2012 21:16:11 +1000
+Message-ID: <505D9DFB.8080002@westnet.com.au>
+References: <20120917032651.GU13973@ZenIV.linux.org.uk> <1348244799-16013-1-git-send-email-msalter@redhat.com> <20120921183934.GK13973@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Russell King <rmk@arm.linux.org.uk>
-Cc: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Cyrill Gorcunov <gorcunov@openvz.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from outbound-mail02.westnet.com.au ([203.10.1.243]:27981 "EHLO
+	outbound-mail02.westnet.com.au" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752947Ab2IVLQQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 22 Sep 2012 07:16:16 -0400
+In-Reply-To: <20120921183934.GK13973@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Mark Salter <msalter@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Fri, Sep 21, 2012 at 6:51 PM, Russell King <rmk@arm.linux.org.uk> wrote:
-> That brings up another question though - when was kcmp added to x86, and
-> why aren't we getting notifications from checksyscalls.sh that ARM hasn't
-> been updated?
+On 09/22/2012 04:39 AM, Al Viro wrote:
+> On Fri, Sep 21, 2012 at 12:26:36PM -0400, Mark Salter wrote:
+>> Here are a set of c6x patches to work with your experimental-kernel_thread
+>> branch.
+>>
+>> Mark Salter (3):
+>>    c6x: add ret_from_kernel_thread(), simplify kernel_thread()
+>>    c6x: switch to generic kernel_execve
+>>    c6x: switch to generic sys_execve
 >
-> It seems to be that the script was broken, and no one has noticed.
+> Applied and pushed...
+>
+> FWIW, the current status:
+>
+> alpha - done, tested on hardware
+> arm - done, tested on qemu
+> c6x - done by maintainer
+> frv - done, untested
+> m68k - done, tested on aranym; there's a known issue in copy_thread() in
+> case of coldfire-MMU, presumably to be handled in m68k tree (I can do it
+> in this one instead, if m68k folks would prefer it that way)
 
-It seems Heiko did notice: http://www.serverphorums.com/read.php?12,559093
+I sent the patch to the m68k-linux list. Its been acked by Geert.
 
-Now, I'm a bit puzzled by what follows: Heiko proposes a patch to
-ignore sys_kcmp,
-as it's x86-specific, which is acked by Cyrill. Then it suddenly
-switches to Heiko
-enabling it on s390 anyway?
+  http://marc.info/?l=linux-m68k&m=134742688015639&w=2
 
-> commit 29dc54c673ea2531d589400badb4ada5f5f60dae
-> Author: H. Peter Anvin <hpa@linux.intel.com>
-> Date:   Fri Nov 11 15:57:53 2011 -0800
->
->     checksyscalls: Use arch/x86/syscalls/syscall_32.tbl as source
->
->     Use the new arch/x86/syscalls/syscall_32.tbl file as source instead of
->     arch/x86/include/asm/unistd_32.h.
->
->     Cc: Michal Marek <mmarek@suse.cz>
->     Cc: Geert Uytterhoeven <geert@linux-m68k.org>
->     Cc: Sam Ravnborg <sam@ravnborg.org>
->     Signed-off-by: H. Peter Anvin <hpa@linux.intel.com>
->
-> is the culpret, more specifically this fragment:
->
-> +           echo <<EOF
-> +#if !defined(__NR_${name}) && !defined(__IGNORE_${name})
-> +#warning syscall ${name} not implemented
-> +#endif
-> +EOF
->
-> "echo <<EOF" doesn't read from its stdin and output to stdout, so the
-> above just generates a blank line for each entry in x86's syscalls_32.tbl,
-> resulting in the compiler doing no checking for us.
->
-> That "echo <<EOF" should be "cat <<EOF"... and with that fixed we get:
->
-> <stdin>:1220:2: warning: #warning syscall kcmp not implemented
->
-> So, actually, I want to add this kcmp syscall _now_ into -rc which I'm
-> afraid will break your patch, and bump your syscall number on ARM to 379.
+I was going to push it through the m68knommu git tree, but I don't mind
+if you would rather take it with your changes.
 
-With a CC to stable for v3.5? ;-)
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Regards
+Greg
