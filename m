@@ -1,62 +1,82 @@
-From: Cyrill Gorcunov <gorcunov@openvz.org>
+From: Andrew Morton <akpm@linux-foundation.org>
 Subject: Re: sys_kcmp (was: Re: [PATCH 1/2] ARM: add finit_module syscall to
  ARM)
-Date: Sat, 22 Sep 2012 19:37:44 +0400
-Message-ID: <20120922153744.GB11610@moon>
+Date: Sat, 22 Sep 2012 11:47:23 -0700
+Message-ID: <20120922114723.d7f07fb6.akpm@linux-foundation.org>
 References: <CAMuHMdXVKvaCoJTRb4O+Z4GuifzTEopdcRfRHBahQmpuX+Xi0w@mail.gmail.com>
- <20120922114549.GA11610@moon>
- <20120922132046.GA4260@flint.arm.linux.org.uk>
- <20120922133847.GC20003@linux-mips.org>
+	<20120922114549.GA11610@moon>
+	<20120922132046.GA4260@flint.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:65001 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751627Ab2IVPht (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Sep 2012 11:37:49 -0400
-Content-Disposition: inline
-In-Reply-To: <20120922133847.GC20003@linux-mips.org>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:48527 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751664Ab2IVSkj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Sep 2012 14:40:39 -0400
+In-Reply-To: <20120922132046.GA4260@flint.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>
+To: Russell King <rmk@arm.linux.org.uk>
+Cc: Cyrill Gorcunov <gorcunov@openvz.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>
 
-On Sat, Sep 22, 2012 at 03:38:47PM +0200, Ralf Baechle wrote:
-> On Sat, Sep 22, 2012 at 02:20:46PM +0100, Russell King wrote:
-> 
-> > 2. There allegedly exists a patch to remove x86isms from sys_kcmp -
-> >    allegedly also in akpm's tree.  However, I've looked through the code in
-> >    mainline, and nothing stands out.  Ralf Beachle also said yesterday that
-> >    he has looked through from the MIPS PoV and also can't see any x86isms,
-> >    so we're both thinking that it should merely have the x86 dependency
-> >    removed.
+On Sat, 22 Sep 2012 14:20:46 +0100 Russell King <rmk@arm.linux.org.uk> wrote:
+
+> On Sat, Sep 22, 2012 at 03:45:49PM +0400, Cyrill Gorcunov wrote:
+> > On Sat, Sep 22, 2012 at 12:56:42PM +0200, Geert Uytterhoeven wrote:
+> > > On Fri, Sep 21, 2012 at 6:51 PM, Russell King <rmk@arm.linux.org.uk> wrote:
+> > > > That brings up another question though - when was kcmp added to x86, and
+> > > > why aren't we getting notifications from checksyscalls.sh that ARM hasn't
+> > > > been updated?
+> > > >
+> > > > It seems to be that the script was broken, and no one has noticed.
+> > > 
+> > > It seems Heiko did notice: http://www.serverphorums.com/read.php?12,559093
+> > > 
+> > > Now, I'm a bit puzzled by what follows: Heiko proposes a patch to
+> > > ignore sys_kcmp,
+> > > as it's x86-specific, which is acked by Cyrill. Then it suddenly
 > > 
-> > 3. Until the x86 dependency is gone (that depends on what akpm proposes to
-> >    do with the patches he's allegedly sitting on), non-x86 arches can only
-> >    reserve the syscall, and add an IGNORE for it.
+> > hpa@ pointed that better approach is to implement kcmp on other archs
+> > after i've acked the patch. so then Heiko provided a patch for s390.
 > 
-> There is a weak definition provided in kernel/sys_ni.c so it actually can
-> be properly wired up in preparation for the day when the dependency in
-> Kconfig gets fixed.
+> I discussed with hpa yesterday, and it seems the situation is as follows:
 > 
-> > It would be good to at least get checksyscalls.sh fixed so arch maintainers
-> > get their warnings for new syscalls back.
+> 1. There exists a patch to fix checksyscalls.sh, and it's allegedly sitting
+>    in akpm's tree, and no one knows why it's just sitting there and hasn't
+>    been merged upstream.
+
+People sometimes just reply to my commit emails, ignoring the
+reply-to:lkml and the "Before you just go and hit reply" request.  I could
+start cc'ing the lists like tip-bot, but that seems a bit noisy.
+
+> 2. There allegedly exists a patch to remove x86isms from sys_kcmp -
+>    allegedly also in akpm's tree.  However, I've looked through the code in
+>    mainline, and nothing stands out.  Ralf Beachle also said yesterday that
+>    he has looked through from the MIPS PoV and also can't see any x86isms,
+>    so we're both thinking that it should merely have the x86 dependency
+>    removed.
+
+http://ozlabs.org/~akpm/mmotm/broken-out/syscalls-make-kcmp-syscall-available-for-all-architectures.patch
+
+I have that queued for 3.7.  There is of course a little risk here.  We
+do have a test in tools/testing/selftests/kcmp/ - I suggest that arch
+people run it!  In fact all the tools/testing/selftests should execute
+successfully on all architectures - if not, please let's fix things
+up.
+
+> 3. Until the x86 dependency is gone (that depends on what akpm proposes to
+>    do with the patches he's allegedly sitting on), non-x86 arches can only
+>    reserve the syscall, and add an IGNORE for it.
 > 
-> Indeed.  That script has become just too important.
+> Maybe akpm can provide some input to this thread, and let us know what the
+> intentions are for checksyscalls.sh and kernel/kcmp.c, and whether he does
+> indeed have outstanding patches for these.
+> 
+> It would be good to at least get checksyscalls.sh fixed so arch maintainers
+> get their warnings for new syscalls back.
 
-These are the patches from linux-next/akpm
+http://ozlabs.org/~akpm/mmotm/broken-out/checksyscalls-fix-here-document-handling.patch
 
-commit 6dfc4cffd24b0c7dc04ca36471a4a6b2a9fc1377
-Author: Heiko Carstens <heiko.carstens@de.ibm.com>
-Date:   Fri Sep 21 11:01:56 2012 +1000
-
-    syscalls: make kcmp syscall available for all architectures
-
-commit 7f36f199e958ce7009285cd887323cb222ed6b1e
-Author: Heiko Carstens <heiko.carstens@de.ibm.com>
-Date:   Fri Sep 21 10:57:07 2012 +1000
-
-    checksyscalls: fix "here document" handling
-
-So I guess this tree in a good shape just checksyscalls.sh fix should
-go upstream, right?
+I had it queued for 3.7.  I now see that was a mistake and I'll get it
+into 3.6.
