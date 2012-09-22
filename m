@@ -1,124 +1,77 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:14429 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752579Ab2IUQ1A (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 21 Sep 2012 12:27:00 -0400
-From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH 3/3] c6x: switch to generic sys_execve
-Date: Fri, 21 Sep 2012 12:26:39 -0400
-Message-ID: <1348244799-16013-4-git-send-email-msalter@redhat.com>
-In-Reply-To: <1348244799-16013-1-git-send-email-msalter@redhat.com>
-References: <20120917032651.GU13973@ZenIV.linux.org.uk>
- <1348244799-16013-1-git-send-email-msalter@redhat.com>
+Received: from mail-vb0-f46.google.com ([209.85.212.46]:47061 "EHLO
+	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752416Ab2IVK4n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Sep 2012 06:56:43 -0400
+MIME-Version: 1.0
+Date: Sat, 22 Sep 2012 12:56:42 +0200
+Message-ID: <CAMuHMdXVKvaCoJTRb4O+Z4GuifzTEopdcRfRHBahQmpuX+Xi0w@mail.gmail.com>
+Subject: sys_kcmp (was: Re: [PATCH 1/2] ARM: add finit_module syscall to ARM)
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
-Message-ID: <20120921162639.D_krs1jWfU77fg1_F_N5WxHuBsmWlFyvaqwvv_pV8MA@z>
+To: Russell King <rmk@arm.linux.org.uk>
+Cc: Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, Cyrill Gorcunov <gorcunov@openvz.org>
+Message-ID: <20120922105642.VAI2AvQ8luY1vUZD0aQ-6Fnatewh8laqSEwI1zzAhDE@z>
 
-Signed-off-by: Mark Salter <msalter@redhat.com>
----
- arch/c6x/include/asm/syscalls.h |    5 -----
- arch/c6x/include/asm/unistd.h   |    1 +
- arch/c6x/kernel/entry.S         |   23 -----------------------
- arch/c6x/kernel/process.c       |   22 ----------------------
- 4 files changed, 1 insertions(+), 50 deletions(-)
+On Fri, Sep 21, 2012 at 6:51 PM, Russell King <rmk@arm.linux.org.uk> wrote:
+> That brings up another question though - when was kcmp added to x86, and
+> why aren't we getting notifications from checksyscalls.sh that ARM hasn't
+> been updated?
+>
+> It seems to be that the script was broken, and no one has noticed.
 
-diff --git a/arch/c6x/include/asm/syscalls.h b/arch/c6x/include/asm/syscalls.h
-index aed53da..e7b8991 100644
---- a/arch/c6x/include/asm/syscalls.h
-+++ b/arch/c6x/include/asm/syscalls.h
-@@ -44,11 +44,6 @@ extern int sys_cache_sync(unsigned long s, unsigned long e);
- struct pt_regs;
- 
- extern asmlinkage long sys_c6x_clone(struct pt_regs *regs);
--extern asmlinkage long sys_c6x_execve(const char __user *name,
--				      const char __user *const __user *argv,
--				      const char __user *const __user *envp,
--				      struct pt_regs *regs);
--
- 
- #include <asm-generic/syscalls.h>
- 
-diff --git a/arch/c6x/include/asm/unistd.h b/arch/c6x/include/asm/unistd.h
-index 1ce3a6f..3c131d5 100644
---- a/arch/c6x/include/asm/unistd.h
-+++ b/arch/c6x/include/asm/unistd.h
-@@ -17,6 +17,7 @@
- #define _ASM_C6X_UNISTD_H
- 
- #define __ARCH_WANT_KERNEL_EXECVE
-+#define __ARCH_WANT_SYS_EXECVE
- 
- /* Use the standard ABI for syscalls. */
- #include <asm-generic/unistd.h>
-diff --git a/arch/c6x/kernel/entry.S b/arch/c6x/kernel/entry.S
-index 32e3683..5449c36 100644
---- a/arch/c6x/kernel/entry.S
-+++ b/arch/c6x/kernel/entry.S
-@@ -647,29 +647,6 @@ ENTRY(sys_rt_sigreturn)
- #endif
- ENDPROC(sys_rt_sigreturn)
- 
--ENTRY(sys_execve)
--	ADDAW	.D2	SP,2,B6		; put regs addr in 4th parameter
--					; & adjust regs stack addr
--	LDW	.D2T2	*+SP(REGS_B4+8),B4
--
--	;; c6x_execve(char *name, char **argv,
--	;;            char **envp, struct pt_regs *regs)
--#ifdef CONFIG_C6X_BIG_KERNEL
-- ||	MVKL	.S1	sys_c6x_execve,A0
--	MVKH	.S1	sys_c6x_execve,A0
--	B	.S2X	A0
--#else
-- ||	B	.S2	sys_c6x_execve
--#endif
--	STW	.D2T2	B3,*SP--[2]
--	ADDKPC	.S2	ret_from_c6x_execve,B3,3
--
--ret_from_c6x_execve:
--	LDW	.D2T2	*++SP[2],B3
--	NOP	4
--	BNOP	.S2	B3,5
--ENDPROC(sys_execve)
--
- ENTRY(sys_pread_c6x)
- 	MV	.D2X	A8,B7
- #ifdef CONFIG_C6X_BIG_KERNEL
-diff --git a/arch/c6x/kernel/process.c b/arch/c6x/kernel/process.c
-index d2ffc9b..f98616d 100644
---- a/arch/c6x/kernel/process.c
-+++ b/arch/c6x/kernel/process.c
-@@ -207,28 +207,6 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
- 	return 0;
- }
- 
--/*
-- * c6x_execve() executes a new program.
-- */
--SYSCALL_DEFINE4(c6x_execve, const char __user *, name,
--		const char __user *const __user *, argv,
--		const char __user *const __user *, envp,
--		struct pt_regs *, regs)
--{
--	int error;
--	char *filename;
--
--	filename = getname(name);
--	error = PTR_ERR(filename);
--	if (IS_ERR(filename))
--		goto out;
--
--	error = do_execve(filename, argv, envp, regs);
--	putname(filename);
--out:
--	return error;
--}
--
- unsigned long get_wchan(struct task_struct *p)
- {
- 	return p->thread.wchan;
--- 
-1.7.9.1
+It seems Heiko did notice: http://www.serverphorums.com/read.php?12,559093
 
+Now, I'm a bit puzzled by what follows: Heiko proposes a patch to
+ignore sys_kcmp,
+as it's x86-specific, which is acked by Cyrill. Then it suddenly
+switches to Heiko
+enabling it on s390 anyway?
+
+> commit 29dc54c673ea2531d589400badb4ada5f5f60dae
+> Author: H. Peter Anvin <hpa@linux.intel.com>
+> Date:   Fri Nov 11 15:57:53 2011 -0800
+>
+>     checksyscalls: Use arch/x86/syscalls/syscall_32.tbl as source
+>
+>     Use the new arch/x86/syscalls/syscall_32.tbl file as source instead of
+>     arch/x86/include/asm/unistd_32.h.
+>
+>     Cc: Michal Marek <mmarek@suse.cz>
+>     Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+>     Cc: Sam Ravnborg <sam@ravnborg.org>
+>     Signed-off-by: H. Peter Anvin <hpa@linux.intel.com>
+>
+> is the culpret, more specifically this fragment:
+>
+> +           echo <<EOF
+> +#if !defined(__NR_${name}) && !defined(__IGNORE_${name})
+> +#warning syscall ${name} not implemented
+> +#endif
+> +EOF
+>
+> "echo <<EOF" doesn't read from its stdin and output to stdout, so the
+> above just generates a blank line for each entry in x86's syscalls_32.tbl,
+> resulting in the compiler doing no checking for us.
+>
+> That "echo <<EOF" should be "cat <<EOF"... and with that fixed we get:
+>
+> <stdin>:1220:2: warning: #warning syscall kcmp not implemented
+>
+> So, actually, I want to add this kcmp syscall _now_ into -rc which I'm
+> afraid will break your patch, and bump your syscall number on ARM to 379.
+
+With a CC to stable for v3.5? ;-)
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
