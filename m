@@ -1,82 +1,67 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: sys_kcmp (was: Re: [PATCH 1/2] ARM: add finit_module syscall to
- ARM)
-Date: Sat, 22 Sep 2012 11:47:23 -0700
-Message-ID: <20120922114723.d7f07fb6.akpm@linux-foundation.org>
-References: <CAMuHMdXVKvaCoJTRb4O+Z4GuifzTEopdcRfRHBahQmpuX+Xi0w@mail.gmail.com>
-	<20120922114549.GA11610@moon>
-	<20120922132046.GA4260@flint.arm.linux.org.uk>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [RFC] status of execve() work - per-architecture patches
+ solicited
+Date: Sun, 23 Sep 2012 01:46:36 +0100
+Message-ID: <20120923004636.GL13973@ZenIV.linux.org.uk>
+References: <20120917032651.GU13973@ZenIV.linux.org.uk>
+ <1348244799-16013-1-git-send-email-msalter@redhat.com>
+ <20120921183934.GK13973@ZenIV.linux.org.uk>
+ <505D9DFB.8080002@westnet.com.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:48527 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751664Ab2IVSkj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Sep 2012 14:40:39 -0400
-In-Reply-To: <20120922132046.GA4260@flint.arm.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <rmk@arm.linux.org.uk>
-Cc: Cyrill Gorcunov <gorcunov@openvz.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <505D9DFB.8080002@westnet.com.au>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Greg Ungerer <gregungerer@westnet.com.au>
+Cc: Mark Salter <msalter@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Sat, 22 Sep 2012 14:20:46 +0100 Russell King <rmk@arm.linux.org.uk> wrote:
-
-> On Sat, Sep 22, 2012 at 03:45:49PM +0400, Cyrill Gorcunov wrote:
-> > On Sat, Sep 22, 2012 at 12:56:42PM +0200, Geert Uytterhoeven wrote:
-> > > On Fri, Sep 21, 2012 at 6:51 PM, Russell King <rmk@arm.linux.org.uk> wrote:
-> > > > That brings up another question though - when was kcmp added to x86, and
-> > > > why aren't we getting notifications from checksyscalls.sh that ARM hasn't
-> > > > been updated?
-> > > >
-> > > > It seems to be that the script was broken, and no one has noticed.
-> > > 
-> > > It seems Heiko did notice: http://www.serverphorums.com/read.php?12,559093
-> > > 
-> > > Now, I'm a bit puzzled by what follows: Heiko proposes a patch to
-> > > ignore sys_kcmp,
-> > > as it's x86-specific, which is acked by Cyrill. Then it suddenly
-> > 
-> > hpa@ pointed that better approach is to implement kcmp on other archs
-> > after i've acked the patch. so then Heiko provided a patch for s390.
+On Sat, Sep 22, 2012 at 09:16:11PM +1000, Greg Ungerer wrote:
+> I sent the patch to the m68k-linux list. Its been acked by Geert.
 > 
-> I discussed with hpa yesterday, and it seems the situation is as follows:
+>  http://marc.info/?l=linux-m68k&m=134742688015639&w=2
 > 
-> 1. There exists a patch to fix checksyscalls.sh, and it's allegedly sitting
->    in akpm's tree, and no one knows why it's just sitting there and hasn't
->    been merged upstream.
+> I was going to push it through the m68knommu git tree, but I don't mind
+> if you would rather take it with your changes.
 
-People sometimes just reply to my commit emails, ignoring the
-reply-to:lkml and the "Before you just go and hit reply" request.  I could
-start cc'ing the lists like tip-bot, but that seems a bit noisy.
+Applied.  Other changes since the last update:
+	* ppc breakage debugged and fixed
+	* kernel_thread() unified on all converted architectures.
+An architecture can add select GENERIC_KERNEL_THREAD to its Kconfig
+if it's ready to handle that in its copy_thread() - regs will be
+NULL, usp - (unsigned long)fn, stck_size - (unsigned long)arg.  It
+should set things up for ret_from_kernel_thread, so that the sucker
+would call given function on given argument.  See what e.g. m68k
+does in #experimental-kernel_thread() in its copy_thread() and
+ret_from_kernel_thread; it's a fairly typical situation if you have
+enough callee-saved registers to play with.  If not, put these
+values somewhere in childregs and pick them in ret_from_kernel_thread -
+see i386 for example of that.
 
-> 2. There allegedly exists a patch to remove x86isms from sys_kcmp -
->    allegedly also in akpm's tree.  However, I've looked through the code in
->    mainline, and nothing stands out.  Ralf Beachle also said yesterday that
->    he has looked through from the MIPS PoV and also can't see any x86isms,
->    so we're both thinking that it should merely have the x86 dependency
->    removed.
+Eventually I hope to merge all kernel_thread() instances; then
+CONFIG_GENERIC_KERNEL_THREAD will be gone.  Note, BTW, that having
+killed all in-kernel syscalls-via-trap on given architecture we
+get a chance to optimize the syscall glue; for instance, on ppc64
+we could just go ahead and set stack pointer from %r13->kstack
+unconditionally, rather than playing with "if we are coming from
+the kernel mode, push stack pointer down by INT_FRAME_SIZE, otherwise
+pick it from per-CPU data structure pointed to by r13" as we do now.
+And that's just the most obvious bit in the very beginning of their
+system_call_common; there's more.  I haven't touched that stuff -
+this kind of work belongs in architecture trees, not in this series.
 
-http://ozlabs.org/~akpm/mmotm/broken-out/syscalls-make-kcmp-syscall-available-for-all-architectures.patch
-
-I have that queued for 3.7.  There is of course a little risk here.  We
-do have a test in tools/testing/selftests/kcmp/ - I suggest that arch
-people run it!  In fact all the tools/testing/selftests should execute
-successfully on all architectures - if not, please let's fix things
-up.
-
-> 3. Until the x86 dependency is gone (that depends on what akpm proposes to
->    do with the patches he's allegedly sitting on), non-x86 arches can only
->    reserve the syscall, and add an IGNORE for it.
-> 
-> Maybe akpm can provide some input to this thread, and let us know what the
-> intentions are for checksyscalls.sh and kernel/kcmp.c, and whether he does
-> indeed have outstanding patches for these.
-> 
-> It would be good to at least get checksyscalls.sh fixed so arch maintainers
-> get their warnings for new syscalls back.
-
-http://ozlabs.org/~akpm/mmotm/broken-out/checksyscalls-fix-here-document-handling.patch
-
-I had it queued for 3.7.  I now see that was a mistake and I'll get it
-into 3.6.
+FWIW, if we do that conversion for all kernel_thread(), we get another
+nice thing pretty much for free - do_fork() won't need pt_regs passed
+to it anymore.  Note that after that we have two possible values passed
+there - NULL (for kernel_thread()) and current_pt_regs() (from sys_fork()
+and friends).  I.e. it's 1 bit of information, *and* we already have
+that bit - it's current->flags & PF_KTHREAD (it's actually a bit more
+convenient to check its copy in p->flags).  Only kernel threads call
+kernel_thread(); only userland processes call sys_fork/sys_clone/sys_vfork().
+IOW, all architectures are converted to generic kernel_thread() implementation,
+we can
+	* stop passing pt_regs to do_fork()
+	* stop passing pt_regs to copy_process()
+	* stop passing pt_regs to copy_thread() - it can bloody well be
+calculated there.  And it's not used until that point.
