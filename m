@@ -1,38 +1,37 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] syscalls: add __NR_kcmp syscall to generic unistd.h
-Date: Mon, 24 Sep 2012 20:01:16 +0000
-Message-ID: <201209242001.16373.arnd@arndb.de>
-References: <1348516024-4992-1-git-send-email-msalter@redhat.com>
+From: Cyrill Gorcunov <gorcunov@openvz.org>
+Subject: Re: sys_kcmp
+Date: Tue, 25 Sep 2012 00:35:12 +0400
+Message-ID: <20120924203512.GF24172@moon>
+References: <CAMuHMdXVKvaCoJTRb4O+Z4GuifzTEopdcRfRHBahQmpuX+Xi0w@mail.gmail.com>
+ <20120922114549.GA11610@moon>
+ <20120922132046.GA4260@flint.arm.linux.org.uk>
+ <20120922114723.d7f07fb6.akpm@linux-foundation.org>
+ <1348503709.20929.40.camel@deneb.redhat.com>
+ <20120924164942.GH16532@moon>
+ <20120924174256.GD24172@moon>
+ <87lifzuvey.fsf@xmission.com>
+ <20120924185119.GI16532@moon>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:57671 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757679Ab2IXUBa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2012 16:01:30 -0400
-In-Reply-To: <1348516024-4992-1-git-send-email-msalter@redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20120924185119.GI16532@moon>
+Sender: linux-kernel-owner@vger.kernel.org
+To: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Mark Salter <msalter@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King <rmk@arm.linux.org.uk>, Geert Uytterhoeven <geert@linux-m68k.org>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, Pavel Emelyanov <xemul@parallels.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Monday 24 September 2012, Mark Salter wrote:
+On Mon, Sep 24, 2012 at 10:51:19PM +0400, Cyrill Gorcunov wrote:
+> > I expect what you want is a call to access_ok, rather than hard coding
+> > details about task layout here.  This test certainly looks wrong
+> > for a 32bit process on a 64bit kernel. If I read your test right it
+> > appears I can set values of say 0x100000000 on a 32bit process...
+> > 
+> > As for mmap_min_addr I would expect your find_vma check would make that
+> > test unnecessary, simply by not finding a vma...
 > 
-> Commit d97b46a64 added a new syscall (__NR_kcmp) to support checkpoint
-> restore. It is currently x86-only, but that restriction will be removed
-> in a subsequent patch. Unfortunately, the kernel checksyscalls script
-> had a bug which suppressed any warning to other architectures that the
-> kcmp syscall was not implemented. A patch to checksyscalls is being
-> tested in linux-next and other architectures are seeing warnings about
-> kcmp being unimplemented.
-> 
-> This patch adds __NR_kcmp to <asm-generic/unistd.h> so that kcmp is
-> wired in for architectures using the generic syscall list.
-> 
-> Signed-off-by: Mark Salter <msalter@redhat.com>
+> Good point, Eric, thanks! I'm cooking a new patch now.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-
-If you have other patches lined up, can you add this one as well?
+Btw, Eric, I somehow miss one bit -- how would you set this 0x100000000
+if TASK_SIZE is a macro which does check for TIF_ADDR32 and sets limit
+acordingly? What i'm missing?
