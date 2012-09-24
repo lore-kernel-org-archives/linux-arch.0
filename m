@@ -1,72 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:55849 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753416Ab2IWAqn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Sep 2012 20:46:43 -0400
-Date: Sun, 23 Sep 2012 01:46:36 +0100
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC] status of execve() work - per-architecture patches
- solicited
-Message-ID: <20120923004636.GL13973@ZenIV.linux.org.uk>
-References: <20120917032651.GU13973@ZenIV.linux.org.uk>
- <1348244799-16013-1-git-send-email-msalter@redhat.com>
- <20120921183934.GK13973@ZenIV.linux.org.uk>
- <505D9DFB.8080002@westnet.com.au>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <505D9DFB.8080002@westnet.com.au>
+Received: from mx1.redhat.com ([209.132.183.28]:34677 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754031Ab2IXQWM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 24 Sep 2012 12:22:12 -0400
+Subject: Re: sys_kcmp (was: Re: [PATCH 1/2] ARM: add finit_module syscall to
+ ARM)
+From: Mark Salter <msalter@redhat.com>
+Date: Mon, 24 Sep 2012 12:21:46 -0400
+In-Reply-To: <20120922114723.d7f07fb6.akpm@linux-foundation.org>
+References: <CAMuHMdXVKvaCoJTRb4O+Z4GuifzTEopdcRfRHBahQmpuX+Xi0w@mail.gmail.com>
+	 <20120922114549.GA11610@moon>
+	 <20120922132046.GA4260@flint.arm.linux.org.uk>
+	 <20120922114723.d7f07fb6.akpm@linux-foundation.org>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Message-ID: <1348503709.20929.40.camel@deneb.redhat.com>
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg Ungerer <gregungerer@westnet.com.au>
-Cc: Mark Salter <msalter@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20120923004636.-5iUlrG106A26-0kUlk-X2jiHBbo_y2HSGU8mQOpAU4@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Russell King <rmk@arm.linux.org.uk>, Cyrill Gorcunov <gorcunov@openvz.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>
+Message-ID: <20120924162146._oa65iSX8BdLbhGCivmC_etclscT0TaTrccwTgX9aqs@z>
 
-On Sat, Sep 22, 2012 at 09:16:11PM +1000, Greg Ungerer wrote:
-> I sent the patch to the m68k-linux list. Its been acked by Geert.
+On Sat, 2012-09-22 at 11:47 -0700, Andrew Morton wrote:
+> > 2. There allegedly exists a patch to remove x86isms from sys_kcmp -
+> >    allegedly also in akpm's tree.  However, I've looked through the code in
+> >    mainline, and nothing stands out.  Ralf Beachle also said yesterday that
+> >    he has looked through from the MIPS PoV and also can't see any x86isms,
+> >    so we're both thinking that it should merely have the x86 dependency
+> >    removed.
 > 
->  http://marc.info/?l=linux-m68k&m=134742688015639&w=2
+> http://ozlabs.org/~akpm/mmotm/broken-out/syscalls-make-kcmp-syscall-available-for-all-architectures.patch
+
+The following is needed to get rid of the syscall warning on architectures
+using the generic syscall list:
+
+diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
+index 991ef01..3748ec9 100644
+--- a/include/asm-generic/unistd.h
++++ b/include/asm-generic/unistd.h
+@@ -691,9 +691,11 @@ __SC_COMP(__NR_process_vm_readv, sys_process_vm_readv, \
+ #define __NR_process_vm_writev 271
+ __SC_COMP(__NR_process_vm_writev, sys_process_vm_writev, \
+           compat_sys_process_vm_writev)
++#define __NR_kcmp 272
++__SYSCALL(__NR_kcmp, sys_kcmp)
+ 
+ #undef __NR_syscalls
+-#define __NR_syscalls 272
++#define __NR_syscalls 273
+
 > 
-> I was going to push it through the m68knommu git tree, but I don't mind
-> if you would rather take it with your changes.
+> I have that queued for 3.7.  There is of course a little risk here.  We
+> do have a test in tools/testing/selftests/kcmp/ - I suggest that arch
+> people run it!  In fact all the tools/testing/selftests should execute
+> successfully on all architectures - if not, please let's fix things
+> up.
 
-Applied.  Other changes since the last update:
-	* ppc breakage debugged and fixed
-	* kernel_thread() unified on all converted architectures.
-An architecture can add select GENERIC_KERNEL_THREAD to its Kconfig
-if it's ready to handle that in its copy_thread() - regs will be
-NULL, usp - (unsigned long)fn, stck_size - (unsigned long)arg.  It
-should set things up for ret_from_kernel_thread, so that the sucker
-would call given function on given argument.  See what e.g. m68k
-does in #experimental-kernel_thread() in its copy_thread() and
-ret_from_kernel_thread; it's a fairly typical situation if you have
-enough callee-saved registers to play with.  If not, put these
-values somewhere in childregs and pick them in ret_from_kernel_thread -
-see i386 for example of that.
+I ran into a build error on C6X (no-MMU) when I enabled CHECKPOINT_RESTORE:
 
-Eventually I hope to merge all kernel_thread() instances; then
-CONFIG_GENERIC_KERNEL_THREAD will be gone.  Note, BTW, that having
-killed all in-kernel syscalls-via-trap on given architecture we
-get a chance to optimize the syscall glue; for instance, on ppc64
-we could just go ahead and set stack pointer from %r13->kstack
-unconditionally, rather than playing with "if we are coming from
-the kernel mode, push stack pointer down by INT_FRAME_SIZE, otherwise
-pick it from per-CPU data structure pointed to by r13" as we do now.
-And that's just the most obvious bit in the very beginning of their
-system_call_common; there's more.  I haven't touched that stuff -
-this kind of work belongs in architecture trees, not in this series.
+  linux-next/kernel/sys.c: In function 'prctl_set_mm':
+  linux-next/kernel/sys.c:1869:34: error: 'mmap_min_addr' undeclared (first use in this function)
 
-FWIW, if we do that conversion for all kernel_thread(), we get another
-nice thing pretty much for free - do_fork() won't need pt_regs passed
-to it anymore.  Note that after that we have two possible values passed
-there - NULL (for kernel_thread()) and current_pt_regs() (from sys_fork()
-and friends).  I.e. it's 1 bit of information, *and* we already have
-that bit - it's current->flags & PF_KTHREAD (it's actually a bit more
-convenient to check its copy in p->flags).  Only kernel threads call
-kernel_thread(); only userland processes call sys_fork/sys_clone/sys_vfork().
-IOW, all architectures are converted to generic kernel_thread() implementation,
-we can
-	* stop passing pt_regs to do_fork()
-	* stop passing pt_regs to copy_process()
-	* stop passing pt_regs to copy_thread() - it can bloody well be
-calculated there.  And it's not used until that point.
+I got past that with:
+
+diff --git a/include/linux/security.h b/include/linux/security.h
+index 01ef030..14e394d 100644
+--- a/include/linux/security.h
++++ b/include/linux/security.h
+@@ -118,6 +118,7 @@ void reset_security_ops(void);
+ extern unsigned long mmap_min_addr;
+ extern unsigned long dac_mmap_min_addr;
+ #else
++#define mmap_min_addr          0UL
+ #define dac_mmap_min_addr      0UL
+ #endif
+
+Looking at kcmp_test.c, it uses fork, so won't work without MMU. Is
+the kcmp syscall even meaningful for no-MMU? I suppose some of the
+tests in kcmp_test.c could be accomplished using clone directly
+rather than fork.
+
+--Mark
+
+
