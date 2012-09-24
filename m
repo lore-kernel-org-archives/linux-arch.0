@@ -1,44 +1,49 @@
-From: Cyrill Gorcunov <gorcunov@openvz.org>
-Subject: Re: sys_kcmp (was: Re: [PATCH 1/2] ARM: add finit_module syscall to
- ARM)
-Date: Mon, 24 Sep 2012 22:55:46 +0400
-Message-ID: <20120924185546.GJ16532@moon>
-References: <CAMuHMdXVKvaCoJTRb4O+Z4GuifzTEopdcRfRHBahQmpuX+Xi0w@mail.gmail.com>
- <20120922114549.GA11610@moon>
- <20120922132046.GA4260@flint.arm.linux.org.uk>
- <20120922114723.d7f07fb6.akpm@linux-foundation.org>
- <1348503709.20929.40.camel@deneb.redhat.com>
- <20120924164942.GH16532@moon>
- <20120924174256.GD24172@moon>
- <1348510573.20929.44.camel@deneb.redhat.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Mark Salter <msalter@redhat.com>
+Subject: [PATCH] syscalls: add __NR_kcmp syscall to generic unistd.h
+Date: Mon, 24 Sep 2012 15:47:04 -0400
+Message-ID: <1348516024-4992-1-git-send-email-msalter@redhat.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:55856 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755537Ab2IXSzx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2012 14:55:53 -0400
-Content-Disposition: inline
-In-Reply-To: <1348510573.20929.44.camel@deneb.redhat.com>
+Received: from mx1.redhat.com ([209.132.183.28]:59721 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757869Ab2IXTr2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 24 Sep 2012 15:47:28 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mark Salter <msalter@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King <rmk@arm.linux.org.uk>, Geert Uytterhoeven <geert@linux-m68k.org>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Pavel Emelyanov <xemul@parallels.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
 
-On Mon, Sep 24, 2012 at 02:16:09PM -0400, Mark Salter wrote:
-> > > >  #else
-> > > > +#define mmap_min_addr          0UL
-> > > >  #define dac_mmap_min_addr      0UL
-> > > >  #endif
-> > > > 
-> > 
-> > I think better to add CONFIG_MMU test here.
-> 
-> Well, my patch was just something quick to get the kernel to build, but
-> thinking about it a bit, I still prefer it. The CONFIG_MMU check is in
-> security.h already so I think it is less clutter and better for future
-> code which may use mmap_min_addr. In any case, the compiler will drop
-> any test for "x < 0UL" so the end result is the same.
+Commit d97b46a64 added a new syscall (__NR_kcmp) to support checkpoint
+restore. It is currently x86-only, but that restriction will be removed
+in a subsequent patch. Unfortunately, the kernel checksyscalls script
+had a bug which suppressed any warning to other architectures that the
+kcmp syscall was not implemented. A patch to checksyscalls is being
+tested in linux-next and other architectures are seeing warnings about
+kcmp being unimplemented.
 
-Well, sure compiler should optimize it out but frankly i prefer #ifdef here.
-Anyway, i'm cooking some new patch. Will post once it's ready and tested.
+This patch adds __NR_kcmp to <asm-generic/unistd.h> so that kcmp is
+wired in for architectures using the generic syscall list.
+
+Signed-off-by: Mark Salter <msalter@redhat.com>
+---
+ include/asm-generic/unistd.h |    4 +++-
+ 1 files changed, 3 insertions(+), 1 deletions(-)
+
+diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
+index 991ef01..3748ec9 100644
+--- a/include/asm-generic/unistd.h
++++ b/include/asm-generic/unistd.h
+@@ -691,9 +691,11 @@ __SC_COMP(__NR_process_vm_readv, sys_process_vm_readv, \
+ #define __NR_process_vm_writev 271
+ __SC_COMP(__NR_process_vm_writev, sys_process_vm_writev, \
+           compat_sys_process_vm_writev)
++#define __NR_kcmp 272
++__SYSCALL(__NR_kcmp, sys_kcmp)
+ 
+ #undef __NR_syscalls
+-#define __NR_syscalls 272
++#define __NR_syscalls 273
+ 
+ /*
+  * All syscalls below here should go away really,
+-- 
+1.7.9.1
