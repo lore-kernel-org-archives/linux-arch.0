@@ -1,49 +1,38 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: [PATCH] syscalls: add __NR_kcmp syscall to generic unistd.h
-Date: Mon, 24 Sep 2012 15:47:04 -0400
-Message-ID: <1348516024-4992-1-git-send-email-msalter@redhat.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH] syscalls: add __NR_kcmp syscall to generic unistd.h
+Date: Mon, 24 Sep 2012 20:01:16 +0000
+Message-ID: <201209242001.16373.arnd@arndb.de>
+References: <1348516024-4992-1-git-send-email-msalter@redhat.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:59721 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757869Ab2IXTr2 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 24 Sep 2012 15:47:28 -0400
+Received: from moutng.kundenserver.de ([212.227.126.186]:57671 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757679Ab2IXUBa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2012 16:01:30 -0400
+In-Reply-To: <1348516024-4992-1-git-send-email-msalter@redhat.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mark Salter <msalter@redhat.com>
+To: Mark Salter <msalter@redhat.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Commit d97b46a64 added a new syscall (__NR_kcmp) to support checkpoint
-restore. It is currently x86-only, but that restriction will be removed
-in a subsequent patch. Unfortunately, the kernel checksyscalls script
-had a bug which suppressed any warning to other architectures that the
-kcmp syscall was not implemented. A patch to checksyscalls is being
-tested in linux-next and other architectures are seeing warnings about
-kcmp being unimplemented.
+On Monday 24 September 2012, Mark Salter wrote:
+> 
+> Commit d97b46a64 added a new syscall (__NR_kcmp) to support checkpoint
+> restore. It is currently x86-only, but that restriction will be removed
+> in a subsequent patch. Unfortunately, the kernel checksyscalls script
+> had a bug which suppressed any warning to other architectures that the
+> kcmp syscall was not implemented. A patch to checksyscalls is being
+> tested in linux-next and other architectures are seeing warnings about
+> kcmp being unimplemented.
+> 
+> This patch adds __NR_kcmp to <asm-generic/unistd.h> so that kcmp is
+> wired in for architectures using the generic syscall list.
+> 
+> Signed-off-by: Mark Salter <msalter@redhat.com>
 
-This patch adds __NR_kcmp to <asm-generic/unistd.h> so that kcmp is
-wired in for architectures using the generic syscall list.
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-Signed-off-by: Mark Salter <msalter@redhat.com>
----
- include/asm-generic/unistd.h |    4 +++-
- 1 files changed, 3 insertions(+), 1 deletions(-)
-
-diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
-index 991ef01..3748ec9 100644
---- a/include/asm-generic/unistd.h
-+++ b/include/asm-generic/unistd.h
-@@ -691,9 +691,11 @@ __SC_COMP(__NR_process_vm_readv, sys_process_vm_readv, \
- #define __NR_process_vm_writev 271
- __SC_COMP(__NR_process_vm_writev, sys_process_vm_writev, \
-           compat_sys_process_vm_writev)
-+#define __NR_kcmp 272
-+__SYSCALL(__NR_kcmp, sys_kcmp)
- 
- #undef __NR_syscalls
--#define __NR_syscalls 272
-+#define __NR_syscalls 273
- 
- /*
-  * All syscalls below here should go away really,
--- 
-1.7.9.1
+If you have other patches lined up, can you add this one as well?
