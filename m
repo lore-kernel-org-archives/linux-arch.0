@@ -1,49 +1,79 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC] status of execve() work - per-architecture patches solicited
-Date: Mon, 24 Sep 2012 16:29:14 +0530
-Message-ID: <50603D02.50302@synopsys.com>
-References: <20120917032651.GU13973@ZenIV.linux.org.uk> <1348244799-16013-1-git-send-email-msalter@redhat.com> <20120921183934.GK13973@ZenIV.linux.org.uk> <505D9DFB.8080002@westnet.com.au> <20120923004636.GL13973@ZenIV.linux.org.uk>
+From: Mark Salter <msalter@redhat.com>
+Subject: Re: sys_kcmp (was: Re: [PATCH 1/2] ARM: add finit_module syscall to
+ ARM)
+Date: Mon, 24 Sep 2012 12:21:46 -0400
+Message-ID: <1348503709.20929.40.camel@deneb.redhat.com>
+References: <CAMuHMdXVKvaCoJTRb4O+Z4GuifzTEopdcRfRHBahQmpuX+Xi0w@mail.gmail.com>
+	 <20120922114549.GA11610@moon>
+	 <20120922132046.GA4260@flint.arm.linux.org.uk>
+	 <20120922114723.d7f07fb6.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from alvesta.synopsys.com ([198.182.60.77]:61319 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754061Ab2IXK73 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2012 06:59:29 -0400
-In-Reply-To: <20120923004636.GL13973@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Greg Ungerer <gregungerer@westnet.com.au>, Mark Salter <msalter@redhat.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20120922114723.d7f07fb6.akpm@linux-foundation.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Russell King <rmk@arm.linux.org.uk>, Cyrill Gorcunov <gorcunov@openvz.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Sunday 23 September 2012 06:16 AM, Al Viro wrote:
-> On Sat, Sep 22, 2012 at 09:16:11PM +1000, Greg Ungerer wrote:
->> I sent the patch to the m68k-linux list. Its been acked by Geert.
->>
->>  http://marc.info/?l=linux-m68k&m=134742688015639&w=2
->>
->> I was going to push it through the m68knommu git tree, but I don't mind
->> if you would rather take it with your changes.
+On Sat, 2012-09-22 at 11:47 -0700, Andrew Morton wrote:
+> > 2. There allegedly exists a patch to remove x86isms from sys_kcmp -
+> >    allegedly also in akpm's tree.  However, I've looked through the code in
+> >    mainline, and nothing stands out.  Ralf Beachle also said yesterday that
+> >    he has looked through from the MIPS PoV and also can't see any x86isms,
+> >    so we're both thinking that it should merely have the x86 dependency
+> >    removed.
 > 
-> Applied.  Other changes since the last update:
-> 	* ppc breakage debugged and fixed
-> 	* kernel_thread() unified on all converted architectures.
+> http://ozlabs.org/~akpm/mmotm/broken-out/syscalls-make-kcmp-syscall-available-for-all-architectures.patch
 
-commit cc615abcde (mn10300: convert to generic kernel_thread) in the
-experimental-kernel_thread has a minor syntactical error:
+The following is needed to get rid of the syscall warning on architectures
+using the generic syscall list:
 
-diff --git a/arch/mn10300/kernel/process.c b/arch/mn10300/kernel/process.c
-index 26120a9..8ee09d8 100644
---- a/arch/mn10300/kernel/process.c
-+++ b/arch/mn10300/kernel/process.c
-@@ -225,7 +225,7 @@ int copy_thread(unsigned long clone_flags,
-        p->thread.usp   = c_usp;
+diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
+index 991ef01..3748ec9 100644
+--- a/include/asm-generic/unistd.h
++++ b/include/asm-generic/unistd.h
+@@ -691,9 +691,11 @@ __SC_COMP(__NR_process_vm_readv, sys_process_vm_readv, \
+ #define __NR_process_vm_writev 271
+ __SC_COMP(__NR_process_vm_writev, sys_process_vm_writev, \
+           compat_sys_process_vm_writev)
++#define __NR_kcmp 272
++__SYSCALL(__NR_kcmp, sys_kcmp)
+ 
+ #undef __NR_syscalls
+-#define __NR_syscalls 272
++#define __NR_syscalls 273
 
-        if (unlikely(!kregs)) {
--               memset(c_regs, 0, sizeof(struct pt_regs);
-+               memset(c_regs, 0, sizeof(struct pt_regs));
+> 
+> I have that queued for 3.7.  There is of course a little risk here.  We
+> do have a test in tools/testing/selftests/kcmp/ - I suggest that arch
+> people run it!  In fact all the tools/testing/selftests should execute
+> successfully on all architectures - if not, please let's fix things
+> up.
 
+I ran into a build error on C6X (no-MMU) when I enabled CHECKPOINT_RESTORE:
 
-Thx,
--Vineet
+  linux-next/kernel/sys.c: In function 'prctl_set_mm':
+  linux-next/kernel/sys.c:1869:34: error: 'mmap_min_addr' undeclared (first use in this function)
+
+I got past that with:
+
+diff --git a/include/linux/security.h b/include/linux/security.h
+index 01ef030..14e394d 100644
+--- a/include/linux/security.h
++++ b/include/linux/security.h
+@@ -118,6 +118,7 @@ void reset_security_ops(void);
+ extern unsigned long mmap_min_addr;
+ extern unsigned long dac_mmap_min_addr;
+ #else
++#define mmap_min_addr          0UL
+ #define dac_mmap_min_addr      0UL
+ #endif
+
+Looking at kcmp_test.c, it uses fork, so won't work without MMU. Is
+the kcmp syscall even meaningful for no-MMU? I suppose some of the
+tests in kcmp_test.c could be accomplished using clone directly
+rather than fork.
+
+--Mark
