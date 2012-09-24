@@ -1,50 +1,83 @@
-From: ebiederm@xmission.com (Eric W. Biederman)
-Subject: Re: sys_kcmp
-Date: Mon, 24 Sep 2012 13:44:47 -0700
-Message-ID: <87bogvup4w.fsf@xmission.com>
-References: <CAMuHMdXVKvaCoJTRb4O+Z4GuifzTEopdcRfRHBahQmpuX+Xi0w@mail.gmail.com>
-	<20120922114549.GA11610@moon>
-	<20120922132046.GA4260@flint.arm.linux.org.uk>
-	<20120922114723.d7f07fb6.akpm@linux-foundation.org>
-	<1348503709.20929.40.camel@deneb.redhat.com>
-	<20120924164942.GH16532@moon> <20120924174256.GD24172@moon>
-	<87lifzuvey.fsf@xmission.com> <20120924185119.GI16532@moon>
-	<20120924203512.GF24172@moon>
-Mime-Version: 1.0
-Content-Type: text/plain
+From: akpm@linux-foundation.org
+Subject: [to-be-updated] syscalls-make-kcmp-syscall-available-for-all-architectures.patch removed from -mm tree
+Date: Mon, 24 Sep 2012 13:47:06 -0700
+Message-ID: <20120924204707.6C830100047@wpzn3.hot.corp.google.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from out02.mta.xmission.com ([166.70.13.232]:40504 "EHLO
-	out02.mta.xmission.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757707Ab2IXUo4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2012 16:44:56 -0400
-In-Reply-To: <20120924203512.GF24172@moon> (Cyrill Gorcunov's message of "Tue,
-	25 Sep 2012 00:35:12 +0400")
+Received: from mail-vb0-f74.google.com ([209.85.212.74]:48977 "EHLO
+	mail-vb0-f74.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757953Ab2IXUrL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2012 16:47:11 -0400
+Received: by vbis24 with SMTP id s24so811107vbi.1
+        for <linux-arch@vger.kernel.org>; Mon, 24 Sep 2012 13:47:08 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Cyrill Gorcunov <gorcunov@openvz.org>
-Cc: Mark Salter <msalter@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King <rmk@arm.linux.org.uk>, Geert Uytterhoeven <geert@linux-m68k.org>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, Pavel Emelyanov <xemul@parallels.com>
+To: heiko.carstens@de.ibm.com, gorcunov@openvz.org, hpa@linux.intel.com, linux-arch@vger.kernel.org, mmarek@suse.cz, ralf@linux-mips.org, rmk@arm.linux.org.uk, mm-commits@vger.kernel.org
 
-Cyrill Gorcunov <gorcunov@openvz.org> writes:
 
-> On Mon, Sep 24, 2012 at 10:51:19PM +0400, Cyrill Gorcunov wrote:
->> > I expect what you want is a call to access_ok, rather than hard coding
->> > details about task layout here.  This test certainly looks wrong
->> > for a 32bit process on a 64bit kernel. If I read your test right it
->> > appears I can set values of say 0x100000000 on a 32bit process...
->> > 
->> > As for mmap_min_addr I would expect your find_vma check would make that
->> > test unnecessary, simply by not finding a vma...
->> 
->> Good point, Eric, thanks! I'm cooking a new patch now.
->
-> Btw, Eric, I somehow miss one bit -- how would you set this 0x100000000
-> if TASK_SIZE is a macro which does check for TIF_ADDR32 and sets limit
-> acordingly? What i'm missing?
+The patch titled
+     Subject: syscalls: make kcmp syscall available for all architectures
+has been removed from the -mm tree.  Its filename was
+     syscalls-make-kcmp-syscall-available-for-all-architectures.patch
 
-How odd.  Last time I had looked TASK_SIZE was a simple constant.
+This patch was dropped because an updated version will be merged
 
-Still I wonder a little if all architectures currently run from 0 to
-TASK_SIZE, for address space available.  I seem to remember there have
-been some exceptions to that rule.  But I can't recall what they were.
+------------------------------------------------------
+From: Heiko Carstens <heiko.carstens@de.ibm.com>
+Subject: syscalls: make kcmp syscall available for all architectures
 
-Eric
+Remove the x86 dependency, since the system call is not architecture
+dependent.
+
+Also add a ptrace.h include, so it compiles at least also on s390.
+
+Signed-off-by: Heiko Carstens <heiko.carstens@de.ibm.com>
+Reviewed-by: Cyrill Gorcunov <gorcunov@openvz.org>
+Cc: Michal Marek <mmarek@suse.cz>
+Cc: "H. Peter Anvin" <hpa@linux.intel.com>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+
+ kernel/Makefile |    4 +---
+ kernel/kcmp.c   |    1 +
+ 2 files changed, 2 insertions(+), 3 deletions(-)
+
+diff -puN kernel/Makefile~syscalls-make-kcmp-syscall-available-for-all-architectures kernel/Makefile
+--- a/kernel/Makefile~syscalls-make-kcmp-syscall-available-for-all-architectures
++++ a/kernel/Makefile
+@@ -25,9 +25,7 @@ endif
+ obj-y += sched/
+ obj-y += power/
+ 
+-ifeq ($(CONFIG_CHECKPOINT_RESTORE),y)
+-obj-$(CONFIG_X86) += kcmp.o
+-endif
++obj-$(CONFIG_CHECKPOINT_RESTORE) += kcmp.o
+ obj-$(CONFIG_FREEZER) += freezer.o
+ obj-$(CONFIG_PROFILING) += profile.o
+ obj-$(CONFIG_STACKTRACE) += stacktrace.o
+diff -puN kernel/kcmp.c~syscalls-make-kcmp-syscall-available-for-all-architectures kernel/kcmp.c
+--- a/kernel/kcmp.c~syscalls-make-kcmp-syscall-available-for-all-architectures
++++ a/kernel/kcmp.c
+@@ -4,6 +4,7 @@
+ #include <linux/string.h>
+ #include <linux/random.h>
+ #include <linux/module.h>
++#include <linux/ptrace.h>
+ #include <linux/init.h>
+ #include <linux/errno.h>
+ #include <linux/cache.h>
+_
+
+Patches currently in -mm which might be from heiko.carstens@de.ibm.com are
+
+checksyscalls-fix-here-document-handling.patch
+linux-next.patch
+thp-x86-introduce-have_arch_transparent_hugepage.patch
+thp-remove-assumptions-on-pgtable_t-type.patch
+thp-introduce-pmdp_invalidate.patch
+thp-make-madv_hugepage-check-for-mm-def_flags.patch
+thp-s390-thp-splitting-backend-for-s390.patch
+thp-s390-thp-pagetable-pre-allocation-for-s390.patch
+thp-s390-disable-thp-for-kvm-host-on-s390.patch
+thp-s390-architecture-backend-for-thp-on-s390.patch
+thp-s390-architecture-backend-for-thp-on-s390-fix.patch
