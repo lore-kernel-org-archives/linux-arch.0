@@ -1,62 +1,87 @@
-From: Cyrill Gorcunov <gorcunov@openvz.org>
-Subject: Re: sys_kcmp
-Date: Tue, 25 Sep 2012 00:53:18 +0400
-Message-ID: <20120924205318.GK16532@moon>
-References: <20120922114549.GA11610@moon>
- <20120922132046.GA4260@flint.arm.linux.org.uk>
- <20120922114723.d7f07fb6.akpm@linux-foundation.org>
- <1348503709.20929.40.camel@deneb.redhat.com>
- <20120924164942.GH16532@moon>
- <20120924174256.GD24172@moon>
- <87lifzuvey.fsf@xmission.com>
- <20120924185119.GI16532@moon>
- <20120924203512.GF24172@moon>
- <87bogvup4w.fsf@xmission.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: [PATCH] mm: Limit pgd range freeing to mm->task_size
+Date: Tue, 25 Sep 2012 15:52:55 +0100
+Message-ID: <1348584775-326-1-git-send-email-catalin.marinas@arm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:36927 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932154Ab2IXUxY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2012 16:53:24 -0400
-Content-Disposition: inline
-In-Reply-To: <87bogvup4w.fsf@xmission.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:40368 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753351Ab2IYOxp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 25 Sep 2012 10:53:45 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>, Mark Salter <msalter@redhat.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Russell King <rmk@arm.linux.org.uk>, Geert Uytterhoeven <geert@linux-m68k.org>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, Pavel Emelyanov <xemul@parallels.com>
+To: linux-arch@vger.kernel.org
+Cc: Andrea Arcangeli <aarcange@redhat.com>, Russell King <linux@arm.linux.org.uk>
 
-On Mon, Sep 24, 2012 at 01:44:47PM -0700, Eric W. Biederman wrote:
-> Cyrill Gorcunov <gorcunov@openvz.org> writes:
-> 
-> > On Mon, Sep 24, 2012 at 10:51:19PM +0400, Cyrill Gorcunov wrote:
-> >> > I expect what you want is a call to access_ok, rather than hard coding
-> >> > details about task layout here.  This test certainly looks wrong
-> >> > for a 32bit process on a 64bit kernel. If I read your test right it
-> >> > appears I can set values of say 0x100000000 on a 32bit process...
-> >> > 
-> >> > As for mmap_min_addr I would expect your find_vma check would make that
-> >> > test unnecessary, simply by not finding a vma...
-> >> 
-> >> Good point, Eric, thanks! I'm cooking a new patch now.
-> >
-> > Btw, Eric, I somehow miss one bit -- how would you set this 0x100000000
-> > if TASK_SIZE is a macro which does check for TIF_ADDR32 and sets limit
-> > acordingly? What i'm missing?
-> 
-> How odd.  Last time I had looked TASK_SIZE was a simple constant.
+ARM processors with LPAE enabled use 3 levels of page tables, with an
+entry in the top level (pgd) covering 1GB of virtual space. Because of
+the branch relocation limitations on ARM, the loadable modules are
+mapped 16MB below PAGE_OFFSET, making the corresponding 1GB pgd shared
+between kernel modules and user space.
 
-Ah, I see.
+Since free_pgtables() is called with ceiling == 0, free_pgd_range() (and
+subsequently called functions) also frees the page table
+shared between user space and kernel modules (which is normally handled
+by the ARM-specific pgd_free() function).
 
-> Still I wonder a little if all architectures currently run from 0 to
-> TASK_SIZE, for address space available.  I seem to remember there have
-> been some exceptions to that rule.  But I can't recall what they were.
+This patch changes the ceiling argument to mm->task_size for the
+free_pgtables() and free_pgd_range() function calls. We cannot use
+TASK_SIZE since this macro may not be a run-time constant on 64-bit
+systems supporting compat applications.
 
-Actually I;ve tuned up the code to use access_ok instead but now I'm trying
-to fugure out situation if it can somehow affect c/r process (well, i've
-ran all test cases we use for c/r and all are passed well, but still...).
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Andrea Arcangeli <aarcange@redhat.com>
+Cc: Russell King <linux@arm.linux.org.uk>
+---
 
-Mark, after some more thinking, I agree that your proposal with min-address
-should work better than mine explicit CONFIG_MMU. Could you please send
-your patch for that? As to access_ok -- gimme some more time, i need to double
-check everything and I'll patch the code on top of your patch a bit later, ok?
+Posting on linux-arch as I would like to know whether there are any
+implications with a non-zero ceiling argument on other architectures.
+
+ fs/exec.c |    4 ++--
+ mm/mmap.c |    4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/fs/exec.c b/fs/exec.c
+index 574cf4d..3d2fcc9 100644
+--- a/fs/exec.c
++++ b/fs/exec.c
+@@ -623,7 +623,7 @@ static int shift_arg_pages(struct vm_area_struct *vma, unsigned long shift)
+ 		 * when the old and new regions overlap clear from new_end.
+ 		 */
+ 		free_pgd_range(&tlb, new_end, old_end, new_end,
+-			vma->vm_next ? vma->vm_next->vm_start : 0);
++			vma->vm_next ? vma->vm_next->vm_start : mm->task_size);
+ 	} else {
+ 		/*
+ 		 * otherwise, clean from old_start; this is done to not touch
+@@ -632,7 +632,7 @@ static int shift_arg_pages(struct vm_area_struct *vma, unsigned long shift)
+ 		 * for the others its just a little faster.
+ 		 */
+ 		free_pgd_range(&tlb, old_start, old_end, new_end,
+-			vma->vm_next ? vma->vm_next->vm_start : 0);
++			vma->vm_next ? vma->vm_next->vm_start : mm->task_size);
+ 	}
+ 	tlb_finish_mmu(&tlb, new_end, old_end);
+ 
+diff --git a/mm/mmap.c b/mm/mmap.c
+index ae18a48..4e198b0 100644
+--- a/mm/mmap.c
++++ b/mm/mmap.c
+@@ -1912,7 +1912,7 @@ static void unmap_region(struct mm_struct *mm,
+ 	update_hiwater_rss(mm);
+ 	unmap_vmas(&tlb, vma, start, end);
+ 	free_pgtables(&tlb, vma, prev ? prev->vm_end : FIRST_USER_ADDRESS,
+-				 next ? next->vm_start : 0);
++				 next ? next->vm_start : mm->task_size);
+ 	tlb_finish_mmu(&tlb, start, end);
+ }
+ 
+@@ -2294,7 +2294,7 @@ void exit_mmap(struct mm_struct *mm)
+ 	/* Use -1 here to ensure all VMAs in the mm are unmapped */
+ 	unmap_vmas(&tlb, vma, 0, -1);
+ 
+-	free_pgtables(&tlb, vma, FIRST_USER_ADDRESS, 0);
++	free_pgtables(&tlb, vma, FIRST_USER_ADDRESS, mm->task_size);
+ 	tlb_finish_mmu(&tlb, 0, -1);
+ 
+ 	/*
