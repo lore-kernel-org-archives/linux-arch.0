@@ -1,34 +1,34 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re:
-Date: Sun, 7 Oct 2012 08:36:20 +0200
-Message-ID: <CAMuHMdX2TgSbTj8yjyRKXT=RJ0E+efR7FH-vzoWL8+-SCUN29w@mail.gmail.com>
-References: <22758.1349565339@warthog.procyon.org.uk>
+From: Marvin Cheung Kin Tung <info@Tung.com.hk>
+Subject: i need your assistance to transfer $22,500,000.00 GBP
+Date: Fri, 28 Sep 2012 02:19:01 -0700
+Message-ID: <E1THWir-0007FL-Ro@v88.boltwebhosting.com>
+Reply-To: dr.marvin_checung@admin.in.th
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f174.google.com ([209.85.220.174]:35014 "EHLO
-	mail-vc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750750Ab2JGGgV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Oct 2012 02:36:21 -0400
-In-Reply-To: <22758.1349565339@warthog.procyon.org.uk>
+Received: from [174.138.162.230] ([174.138.162.230]:42621 "EHLO
+	v88.boltwebhosting.com" rhost-flags-FAIL-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1750712Ab2JGIyB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Oct 2012 04:54:01 -0400
+Received: from adminip1 by v88.boltwebhosting.com with local (Exim 4.77)
+	(envelope-from <adminip1@v88.boltwebhosting.com>)
+	id 1THWir-0007FL-Ro
+	for linux-arch@vger.kernel.org; Fri, 28 Sep 2012 02:19:01 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, arnd@arndb.de, hpa@zytor.com, catalin.marinas@arm.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, ralf@linux-mips.org, ddaney.cavm@gmail.com, Paul Mundt <lethal@linux-sh.org>
+To: linux-arch@vger.kernel.org
 
-On Sun, Oct 7, 2012 at 1:15 AM, David Howells <dhowells@redhat.com> wrote:
->  (3) m68k turned out to have a header installation problem due to it lacking a
->      kvm_para.h file.
+Hello,
 
-Sh also.
+Compliment of the day, I got your contact information from a reputable
+professional directory of your country which gives me assurance
+of your legibility as a person. I send you this brief letter to solicit
+your partnership to transfer ($22,500,000.00 U.S Dollars) from Hong Kong
+to your country. I shall furnish you with more info when i get a positive
+reply from you. Reply me Via E-mail (dr.marvin_checung@admin.in.th) if
+you are
+interested.
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Best Regards,
+Marvin Cheung Kin Tung
