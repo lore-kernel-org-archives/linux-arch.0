@@ -1,42 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:52222 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757874Ab2IXUfT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Sep 2012 16:35:19 -0400
-Date: Tue, 25 Sep 2012 00:35:12 +0400
-From: Cyrill Gorcunov <gorcunov@openvz.org>
-Subject: Re: sys_kcmp
-Message-ID: <20120924203512.GF24172@moon>
-References: <CAMuHMdXVKvaCoJTRb4O+Z4GuifzTEopdcRfRHBahQmpuX+Xi0w@mail.gmail.com>
- <20120922114549.GA11610@moon>
- <20120922132046.GA4260@flint.arm.linux.org.uk>
- <20120922114723.d7f07fb6.akpm@linux-foundation.org>
- <1348503709.20929.40.camel@deneb.redhat.com>
- <20120924164942.GH16532@moon>
- <20120924174256.GD24172@moon>
- <87lifzuvey.fsf@xmission.com>
- <20120924185119.GI16532@moon>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20120924185119.GI16532@moon>
+Received: from avon.wwwdotorg.org ([70.85.31.133]:34998 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1030610Ab2I1TcU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Sep 2012 15:32:20 -0400
+From: Stephen Warren <swarren@wwwdotorg.org>
+Subject: [RFC PATCH 1/2] kbuild: centralize .dts->.dtb rule
+Date: Fri, 28 Sep 2012 13:32:10 -0600
+Message-ID: <1348860731-20868-2-git-send-email-swarren@wwwdotorg.org>
+In-Reply-To: <1348860731-20868-1-git-send-email-swarren@wwwdotorg.org>
+References: <1348860731-20868-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Mark Salter <msalter@redhat.com>, Andrew Morton <akpm@linux-foundation.org>, Russell King <rmk@arm.linux.org.uk>, Geert Uytterhoeven <geert@linux-m68k.org>, Kees Cook <keescook@chromium.org>, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>, Heiko Carstens <heiko.carstens@de.ibm.com>, "H. Peter Anvin" <hpa@zytor.com>, Pavel Emelyanov <xemul@parallels.com>
-Message-ID: <20120924203512.EVesBswG9atV_cM7BwLACvgK9ET3iokFMdtqyF5PUhE@z>
+To: David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
+Cc: devicetree-discuss@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>
+Message-ID: <20120928193210.PE7cA6GShyihYXCi8G5AQT9GfQ5WZ4M48HwMqLLhOqY@z>
 
-On Mon, Sep 24, 2012 at 10:51:19PM +0400, Cyrill Gorcunov wrote:
-> > I expect what you want is a call to access_ok, rather than hard coding
-> > details about task layout here.  This test certainly looks wrong
-> > for a 32bit process on a 64bit kernel. If I read your test right it
-> > appears I can set values of say 0x100000000 on a 32bit process...
-> > 
-> > As for mmap_min_addr I would expect your find_vma check would make that
-> > test unnecessary, simply by not finding a vma...
-> 
-> Good point, Eric, thanks! I'm cooking a new patch now.
+From: Stephen Warren <swarren@nvidia.com>
 
-Btw, Eric, I somehow miss one bit -- how would you set this 0x100000000
-if TASK_SIZE is a macro which does check for TIF_ADDR32 and sets limit
-acordingly? What i'm missing?
+All architectures that use cmd_dtc do so in the same way. Move the build
+rule to a central location to avoid duplication.
+
+Signed-off-by: Stephen Warren <swarren@nvidia.com>
+---
+Jean-Christophe,
+Moving the build rule to Makefile.lib rather than Makefile.build seems
+reasonable to me; the dtc-related logic is already in Makefile.lib, and
+for features where cmd_* is defined in Makefile.lib, the associated
+build rule is also defined there. I see no reason for this patch series
+to move all the dtc-related logic into Makefile.build.
+
+ arch/arm/boot/Makefile      |    4 ----
+ arch/c6x/boot/Makefile      |    3 ---
+ arch/openrisc/boot/Makefile |    3 ---
+ arch/powerpc/boot/Makefile  |    4 ----
+ scripts/Makefile.lib        |    3 +++
+ 5 files changed, 3 insertions(+), 14 deletions(-)
+
+diff --git a/arch/arm/boot/Makefile b/arch/arm/boot/Makefile
+index 3fdab01..da33331 100644
+--- a/arch/arm/boot/Makefile
++++ b/arch/arm/boot/Makefile
+@@ -61,10 +61,6 @@ endif
+ 
+ targets += $(dtb-y)
+ 
+-# Rule to build device tree blobs
+-$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+-	$(call if_changed_dep,dtc)
+-
+ $(obj)/dtbs: $(addprefix $(obj)/, $(dtb-y))
+ 
+ clean-files := *.dtb
+diff --git a/arch/c6x/boot/Makefile b/arch/c6x/boot/Makefile
+index 6891257..ad605fb 100644
+--- a/arch/c6x/boot/Makefile
++++ b/arch/c6x/boot/Makefile
+@@ -12,9 +12,6 @@ ifneq ($(DTB),)
+ obj-y += linked_dtb.o
+ endif
+ 
+-$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+-	$(call if_changed_dep,dtc)
+-
+ quiet_cmd_cp = CP      $< $@$2
+ 	cmd_cp = cat $< >$@$2 || (rm -f $@ && echo false)
+ 
+diff --git a/arch/openrisc/boot/Makefile b/arch/openrisc/boot/Makefile
+index 0995835..fd329bd 100644
+--- a/arch/openrisc/boot/Makefile
++++ b/arch/openrisc/boot/Makefile
+@@ -10,6 +10,3 @@ obj-y += $(BUILTIN_DTB)
+ clean-files := *.dtb.S
+ 
+ #DTC_FLAGS ?= -p 1024
+-
+-$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+-	$(call if_changed_dep,dtc)
+diff --git a/arch/powerpc/boot/Makefile b/arch/powerpc/boot/Makefile
+index 6a15c96..90206f2 100644
+--- a/arch/powerpc/boot/Makefile
++++ b/arch/powerpc/boot/Makefile
+@@ -356,10 +356,6 @@ $(obj)/treeImage.initrd.%: vmlinux $(obj)/%.dtb $(wrapperbits)
+ $(obj)/treeImage.%: vmlinux $(obj)/%.dtb $(wrapperbits)
+ 	$(call if_changed,wrap,treeboot-$*,,$(obj)/$*.dtb)
+ 
+-# Rule to build device tree blobs
+-$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+-	$(call if_changed_dep,dtc)
+-
+ # If there isn't a platform selected then just strip the vmlinux.
+ ifeq (,$(image-y))
+ image-y := vmlinux.strip
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 0be6f11..425578e 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -266,6 +266,9 @@ $(obj)/%.dtb.S: $(obj)/%.dtb
+ quiet_cmd_dtc = DTC     $@
+ cmd_dtc = $(objtree)/scripts/dtc/dtc -O dtb -o $@ -b 0 $(DTC_FLAGS) -d $(depfile) $<
+ 
++$(obj)/%.dtb: $(src)/dts/%.dts FORCE
++	$(call if_changed_dep,dtc)
++
+ # Bzip2
+ # ---------------------------------------------------------------------------
+ 
+-- 
+1.7.0.4
+
