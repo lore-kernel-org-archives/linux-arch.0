@@ -1,48 +1,51 @@
-From: Jon Loeliger <jdl-CYoMK+44s/E@public.gmane.org>
-Subject: Re: [RFC PATCH 0/2] dtc: enable use of pre-processor
-Date: Fri, 28 Sep 2012 15:39:56 -0500
-Message-ID: <E1THhLo-00073d-FY@jdl.com>
-References: <1348860731-20868-1-git-send-email-swarren@wwwdotorg.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-In-reply-to: <1348860731-20868-1-git-send-email-swarren-3lzwWm7+Weoh9ZMKESR00Q@public.gmane.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/devicetree-discuss>,
- <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/devicetree-discuss/>
-List-Post: <mailto:devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-List-Help: <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/devicetree-discuss>,
- <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=subscribe>
-Errors-To: devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
-Sender: "devicetree-discuss"
- <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-To: Stephen Warren <swarren-3lzwWm7+Weoh9ZMKESR00Q@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Stephen Warren <swarren-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, Mark Brown <broonie-yzvPICuk2AATkU/dhu1WVueM+bqZidxxQQ4Iyu8u01E@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>, Scott Wood <scottwood-KZfg59tc24xl57MIdRCFDg@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCH 0/3] Virtual huge zero page
+Date: Sat, 29 Sep 2012 02:37:18 +0300
+Message-ID: <1348875441-19561-1-git-send-email-kirill.shutemov@linux.intel.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mga11.intel.com ([192.55.52.93]:19497 "EHLO mga11.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932133Ab2I1Xgu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 28 Sep 2012 19:36:50 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, "H. Peter Anvin" <hpa@linux.intel.com>
+Cc: Andi Kleen <ak@linux.intel.com>, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill@shutemov.name>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 
-> From: Stephen Warren <swarren-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-> 
-> I'll post a patch to update the in-kernel dtc to the upstream dtc as
-> soon as one final dtc patch has been applied, and this series will then
-> depend on that patch.
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 
-And that patch, I think, has just been applied to the 
-upstream DTC repo at git.jdl.com:
+Here's alternative implementation of huge zero page: virtual huge zero
+page.
 
-    commit 317a5d92bc357aba2c993ee78b4c089b7539fcc6
-    Author: Stephen Warren <swarren-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
-    Date:   Fri Sep 28 12:39:22 2012 -0600
+Virtual huge zero page is a PMD table with all entries set to zero page.
+H. Peter Anvin asked to evaluate this implementation option.
 
-    dtc: zero out new label objects
-    
-    Without this, new->deleted may be left set to some random value, which
-    may then cause future label references to fail to locate the label. The
-    code that allocates properties and nodes already contains the equivalent
-    memset().
-    
-    Signed-off-by: Stephen Warren <swarren-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
+Pros:
+ - cache friendly (not yet benchmarked);
+ - less changes required (if I haven't miss something ;);
 
-HTH,
-jdl
+Cons:
+ - increases TLB pressure;
+ - requires per-arch enabling;
+ - one more check on handle_mm_fault() path.
+
+At the moment I did only sanity check. Testing is required.
+
+Any opinion?
+
+Kirill A. Shutemov (3):
+  asm-generic: introduce pmd_special() and pmd_mkspecial()
+  mm, thp: implement virtual huge zero page
+  x86: implement HAVE_PMD_SPECAIL
+
+ arch/Kconfig                   |    6 ++++++
+ arch/x86/Kconfig               |    1 +
+ arch/x86/include/asm/pgtable.h |   14 +++++++++++++-
+ include/asm-generic/pgtable.h  |   12 ++++++++++++
+ include/linux/mm.h             |    8 ++++++++
+ mm/huge_memory.c               |   38 ++++++++++++++++++++++++++++++++++++++
+ mm/memory.c                    |   15 ++++++++-------
+ 7 files changed, 86 insertions(+), 8 deletions(-)
+
+-- 
+1.7.7.6
