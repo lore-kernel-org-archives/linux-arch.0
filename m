@@ -1,19 +1,19 @@
 From: Marvin Cheung Kin Tung <info@Tung.com.hk>
 Subject: i need your assistance to transfer $22,500,000.00 GBP
 Date: Fri, 28 Sep 2012 02:19:01 -0700
-Message-ID: <E1THWir-0007FL-Ro@v88.boltwebhosting.com>
+Message-ID: <E1THWir-0007FC-Qt@v88.boltwebhosting.com>
 Reply-To: dr.marvin_checung@admin.in.th
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [174.138.162.230] ([174.138.162.230]:42621 "EHLO
+Received: from [174.138.162.230] ([174.138.162.230]:39914 "EHLO
 	v88.boltwebhosting.com" rhost-flags-FAIL-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1750712Ab2JGIyB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Oct 2012 04:54:01 -0400
+	by vger.kernel.org with ESMTP id S1750887Ab2JGJ1d (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Oct 2012 05:27:33 -0400
 Received: from adminip1 by v88.boltwebhosting.com with local (Exim 4.77)
 	(envelope-from <adminip1@v88.boltwebhosting.com>)
-	id 1THWir-0007FL-Ro
+	id 1THWir-0007FC-Qt
 	for linux-arch@vger.kernel.org; Fri, 28 Sep 2012 02:19:01 -0700
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
