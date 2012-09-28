@@ -1,87 +1,56 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH] mm: Limit pgd range freeing to mm->task_size
-Date: Tue, 25 Sep 2012 15:52:55 +0100
-Message-ID: <1348584775-326-1-git-send-email-catalin.marinas@arm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:40368 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753351Ab2IYOxp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 25 Sep 2012 10:53:45 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: Andrea Arcangeli <aarcange@redhat.com>, Russell King <linux@arm.linux.org.uk>
+From: Stephen Warren <swarren-3lzwWm7+Weoh9ZMKESR00Q@public.gmane.org>
+Subject: [RFC PATCH 0/2] dtc: enable use of pre-processor
+Date: Fri, 28 Sep 2012 13:32:09 -0600
+Message-ID: <1348860731-20868-1-git-send-email-swarren@wwwdotorg.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
+List-Unsubscribe: <https://lists.ozlabs.org/options/devicetree-discuss>,
+ <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/devicetree-discuss/>
+List-Post: <mailto:devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
+List-Help: <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/devicetree-discuss>,
+ <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=subscribe>
+Errors-To: devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
+Sender: "devicetree-discuss"
+ <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
+To: David Gibson <david-xT8FGy+AXnRB3Ne2BGzF6laj5H9X9Tb+@public.gmane.org>, Jon Loeliger <jdl-CYoMK+44s/E@public.gmane.org>, Grant Likely <grant.likely-s3s/WqlpOiPyB63q8FvJNQ@public.gmane.org>, Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>, Scott Wood <scottwood-KZfg59tc24xl57MIdRCFDg@public.gmane.org>, Mark Brown <broonie-yzvPICuk2AATkU/dhu1WVueM+bqZidxxQQ4Iyu8u01E@public.gmane.org>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj-sclMFOaUSTBWk0Htik3J/w@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, Stephen Warren <swarren-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
-ARM processors with LPAE enabled use 3 levels of page tables, with an
-entry in the top level (pgd) covering 1GB of virtual space. Because of
-the branch relocation limitations on ARM, the loadable modules are
-mapped 16MB below PAGE_OFFSET, making the corresponding 1GB pgd shared
-between kernel modules and user space.
+From: Stephen Warren <swarren-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
 
-Since free_pgtables() is called with ceiling == 0, free_pgd_range() (and
-subsequently called functions) also frees the page table
-shared between user space and kernel modules (which is normally handled
-by the ARM-specific pgd_free() function).
+This series adds some build rules to run cpp on *.dtsp prior to
+invoking dtc, and converts Tegra to the new rule as an example. What do
+people think?
 
-This patch changes the ceiling argument to mm->task_size for the
-free_pgtables() and free_pgd_range() function calls. We cannot use
-TASK_SIZE since this macro may not be a run-time constant on 64-bit
-systems supporting compat applications.
+I assume that you've applied the dtc patches I sent yesterday. They
+aren't in this series. See:
 
-Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Andrea Arcangeli <aarcange@redhat.com>
-Cc: Russell King <linux@arm.linux.org.uk>
----
+https://lists.ozlabs.org/pipermail/devicetree-discuss/2012-September/020182.html
+https://lists.ozlabs.org/pipermail/devicetree-discuss/2012-September/020183.html
+https://lists.ozlabs.org/pipermail/devicetree-discuss/2012-September/020181.html
+https://lists.ozlabs.org/pipermail/devicetree-discuss/2012-September/020387.html
 
-Posting on linux-arch as I would like to know whether there are any
-implications with a non-zero ceiling argument on other architectures.
+Note: those patches are against upstream dtc. If you wish to test this
+series, apply the dtc patches to upstream dtc, build it, and copy the
+resultant dtc binary over the top of scripts/dtc/dtc.
 
- fs/exec.c |    4 ++--
- mm/mmap.c |    4 ++--
- 2 files changed, 4 insertions(+), 4 deletions(-)
+I'll post a patch to update the in-kernel dtc to the upstream dtc as
+soon as one final dtc patch has been applied, and this series will then
+depend on that patch.
 
-diff --git a/fs/exec.c b/fs/exec.c
-index 574cf4d..3d2fcc9 100644
---- a/fs/exec.c
-+++ b/fs/exec.c
-@@ -623,7 +623,7 @@ static int shift_arg_pages(struct vm_area_struct *vma, unsigned long shift)
- 		 * when the old and new regions overlap clear from new_end.
- 		 */
- 		free_pgd_range(&tlb, new_end, old_end, new_end,
--			vma->vm_next ? vma->vm_next->vm_start : 0);
-+			vma->vm_next ? vma->vm_next->vm_start : mm->task_size);
- 	} else {
- 		/*
- 		 * otherwise, clean from old_start; this is done to not touch
-@@ -632,7 +632,7 @@ static int shift_arg_pages(struct vm_area_struct *vma, unsigned long shift)
- 		 * for the others its just a little faster.
- 		 */
- 		free_pgd_range(&tlb, old_start, old_end, new_end,
--			vma->vm_next ? vma->vm_next->vm_start : 0);
-+			vma->vm_next ? vma->vm_next->vm_start : mm->task_size);
- 	}
- 	tlb_finish_mmu(&tlb, new_end, old_end);
- 
-diff --git a/mm/mmap.c b/mm/mmap.c
-index ae18a48..4e198b0 100644
---- a/mm/mmap.c
-+++ b/mm/mmap.c
-@@ -1912,7 +1912,7 @@ static void unmap_region(struct mm_struct *mm,
- 	update_hiwater_rss(mm);
- 	unmap_vmas(&tlb, vma, start, end);
- 	free_pgtables(&tlb, vma, prev ? prev->vm_end : FIRST_USER_ADDRESS,
--				 next ? next->vm_start : 0);
-+				 next ? next->vm_start : mm->task_size);
- 	tlb_finish_mmu(&tlb, start, end);
- }
- 
-@@ -2294,7 +2294,7 @@ void exit_mmap(struct mm_struct *mm)
- 	/* Use -1 here to ensure all VMAs in the mm are unmapped */
- 	unmap_vmas(&tlb, vma, 0, -1);
- 
--	free_pgtables(&tlb, vma, FIRST_USER_ADDRESS, 0);
-+	free_pgtables(&tlb, vma, FIRST_USER_ADDRESS, mm->task_size);
- 	tlb_finish_mmu(&tlb, 0, -1);
- 
- 	/*
+Stephen Warren (2):
+  kbuild: centralize .dts->.dtb rule
+  kbuild: introduce cmd_dtc_cpp
+
+ arch/arm/boot/Makefile           |    4 ----
+ arch/arm/boot/dts/skeleton.dtsip |   13 +++++++++++++
+ arch/c6x/boot/Makefile           |    3 ---
+ arch/openrisc/boot/Makefile      |    3 ---
+ arch/powerpc/boot/Makefile       |    4 ----
+ scripts/Makefile.lib             |    9 +++++++++
+ 6 files changed, 22 insertions(+), 14 deletions(-)
+ create mode 100644 arch/arm/boot/dts/skeleton.dtsip
