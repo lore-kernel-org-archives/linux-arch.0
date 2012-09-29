@@ -1,84 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga11.intel.com ([192.55.52.93]:16444 "EHLO mga11.intel.com"
+Received: from mx1.redhat.com ([209.132.183.28]:9924 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932231Ab2I1Xg6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 28 Sep 2012 19:36:58 -0400
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH 3/3] x86: implement HAVE_PMD_SPECAIL
-Date: Sat, 29 Sep 2012 02:37:21 +0300
-Message-ID: <1348875441-19561-4-git-send-email-kirill.shutemov@linux.intel.com>
-In-Reply-To: <1348875441-19561-1-git-send-email-kirill.shutemov@linux.intel.com>
+	id S1755385Ab2I2NsY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 29 Sep 2012 09:48:24 -0400
+Date: Sat, 29 Sep 2012 15:48:11 +0200
+From: Andrea Arcangeli <aarcange@redhat.com>
+Subject: Re: [PATCH 0/3] Virtual huge zero page
+Message-ID: <20120929134811.GC26989@redhat.com>
 References: <1348875441-19561-1-git-send-email-kirill.shutemov@linux.intel.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1348875441-19561-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, Andrea Arcangeli <aarcange@redhat.com>, linux-mm@kvack.org, "H. Peter Anvin" <hpa@linux.intel.com>
-Cc: Andi Kleen <ak@linux.intel.com>, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill@shutemov.name>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20120928233721.ojlB4YmwA_HLnw2JVLdlYPblaY5S0gW-Sh1G1qP1hQA@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, "H. Peter Anvin" <hpa@linux.intel.com>, Andi Kleen <ak@linux.intel.com>, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill@shutemov.name>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20120929134811.J0UQcpwuwaHtleTv_wT1bkQINM9ax1kI5Huv3L8aZhM@z>
 
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+On Sat, Sep 29, 2012 at 02:37:18AM +0300, Kirill A. Shutemov wrote:
+> Cons:
+>  - increases TLB pressure;
 
-We can use the same bit as for special PTE.
+I generally don't like using 4k tlb entries ever. This only has the
+advantage of saving 2MB-4KB RAM (globally), and a chpxchg at the first
+system-wide zero page fault. I like apps to only use 2M TLB entries
+whenever possible (that is going to payoff big as the number of 2M TLB
+entries is going to increase over time).
 
-There's no conflict with _PAGE_SPLITTING since it's only defined for PSE
-pmd, but special PMD is only valid for non-PSE.
+I did some research with tricks using 4k ptes up to half the pmd was
+filled before converting it to a THP (to save some memory and cache),
+and it didn't look good, so my rule of thumb was "THP sometime costs,
+even the switch from half pte filled to transhuge pmd still costs, so
+to diminish the risk of slowdowns we should use 2M TLB entries
+immediately, whenever possible".
 
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- arch/x86/Kconfig               |    1 +
- arch/x86/include/asm/pgtable.h |   14 +++++++++++++-
- 2 files changed, 14 insertions(+), 1 deletions(-)
+Now the rule of thumb doesn't fully apply here, 1) there's no
+compaction costs to offset, 2) chances are the zero page isn't very
+performance critical anyway... only some weird apps uses it (but
+sometime they have a legitimate reason for using it, this is why we
+support it).
 
-diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 50a1d1f..b2146c3 100644
---- a/arch/x86/Kconfig
-+++ b/arch/x86/Kconfig
-@@ -97,6 +97,7 @@ config X86
- 	select KTIME_SCALAR if X86_32
- 	select GENERIC_STRNCPY_FROM_USER
- 	select GENERIC_STRNLEN_USER
-+	select HAVE_PMD_SPECIAL
- 
- config INSTRUCTION_DECODER
- 	def_bool (KPROBES || PERF_EVENTS || UPROBES)
-diff --git a/arch/x86/include/asm/pgtable.h b/arch/x86/include/asm/pgtable.h
-index 49afb3f..ff61694 100644
---- a/arch/x86/include/asm/pgtable.h
-+++ b/arch/x86/include/asm/pgtable.h
-@@ -167,6 +167,12 @@ static inline int has_transparent_hugepage(void)
- }
- #endif /* CONFIG_TRANSPARENT_HUGEPAGE */
- 
-+static inline int pmd_special(pmd_t pmd)
-+{
-+	return !pmd_trans_huge(pmd) &&
-+		pmd_flags(pmd) & _PAGE_SPECIAL;
-+}
-+
- static inline pte_t pte_set_flags(pte_t pte, pteval_t set)
- {
- 	pteval_t v = native_pte_val(pte);
-@@ -290,6 +296,11 @@ static inline pmd_t pmd_mknotpresent(pmd_t pmd)
- 	return pmd_clear_flags(pmd, _PAGE_PRESENT);
- }
- 
-+static inline pmd_t pmd_mkspecial(pmd_t pmd)
-+{
-+	return pmd_set_flags(pmd, _PAGE_SPECIAL);
-+}
-+
- /*
-  * Mask out unsupported bits in a present pgprot.  Non-present pgprots
-  * can use those bits for other purposes, so leave them be.
-@@ -474,7 +485,8 @@ static inline pte_t *pte_offset_kernel(pmd_t *pmd, unsigned long address)
- 
- static inline int pmd_bad(pmd_t pmd)
- {
--	return (pmd_flags(pmd) & ~_PAGE_USER) != _KERNPG_TABLE;
-+	pmdval_t flags = pmd_flags(pmd);
-+	return (flags & ~(_PAGE_USER | _PAGE_SPECIAL)) != _KERNPG_TABLE;
- }
- 
- static inline unsigned long pages_to_mb(unsigned long npg)
--- 
-1.7.7.6
+There would be a small cache benefit here... but even then some first
+level caches are virtually indexed IIRC (always physically tagged to
+avoid the software to notice) and virtually indexed ones won't get any
+benefit.
 
+It wouldn't provide even the memory saving tradeoff by dropping the
+zero pmd at the first fault (not at the last). And it's better to
+replace it at the first fault then the last (that matches the current
+design).
+
+Another point is that the previous patch is easier to port to other
+archs by not requiring arch features to track the zero pmd.
+
+I guess it won't make a whole lot of difference but my preference is
+for the previous implementation that always guaranteed huge TLB
+entries whenever possible. Said that I'm fine either ways so if
+somebody has strong reasons for wanting this one, I'd like to hear
+about it.
+
+Thanks!
+Andrea
