@@ -1,64 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:9924 "EHLO mx1.redhat.com"
+Received: from mx1.redhat.com ([209.132.183.28]:44013 "EHLO mx1.redhat.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755385Ab2I2NsY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 29 Sep 2012 09:48:24 -0400
-Date: Sat, 29 Sep 2012 15:48:11 +0200
+	id S1755241Ab2I2Ohv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 29 Sep 2012 10:37:51 -0400
+Date: Sat, 29 Sep 2012 16:37:37 +0200
 From: Andrea Arcangeli <aarcange@redhat.com>
 Subject: Re: [PATCH 0/3] Virtual huge zero page
-Message-ID: <20120929134811.GC26989@redhat.com>
+Message-ID: <20120929143737.GF26989@redhat.com>
 References: <1348875441-19561-1-git-send-email-kirill.shutemov@linux.intel.com>
+ <20120929134811.GC26989@redhat.com>
+ <20120929143006.GC4110@tassilo.jf.intel.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <1348875441-19561-1-git-send-email-kirill.shutemov@linux.intel.com>
+In-Reply-To: <20120929143006.GC4110@tassilo.jf.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, "H. Peter Anvin" <hpa@linux.intel.com>, Andi Kleen <ak@linux.intel.com>, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill@shutemov.name>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20120929134811.J0UQcpwuwaHtleTv_wT1bkQINM9ax1kI5Huv3L8aZhM@z>
+To: Andi Kleen <ak@linux.intel.com>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, "H. Peter Anvin" <hpa@linux.intel.com>, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill@shutemov.name>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20120929143737.eeKw8SsfpVU3ymfVJbupl6Ii3vrMXfBsZ78YGKodkRM@z>
 
-On Sat, Sep 29, 2012 at 02:37:18AM +0300, Kirill A. Shutemov wrote:
-> Cons:
->  - increases TLB pressure;
+On Sat, Sep 29, 2012 at 07:30:06AM -0700, Andi Kleen wrote:
+> On Sat, Sep 29, 2012 at 03:48:11PM +0200, Andrea Arcangeli wrote:
+> > On Sat, Sep 29, 2012 at 02:37:18AM +0300, Kirill A. Shutemov wrote:
+> > > Cons:
+> > >  - increases TLB pressure;
+> > 
+> > I generally don't like using 4k tlb entries ever. This only has the
+> 
+> From theory I would also prefer the 2MB huge page.
+> 
+> But some numbers comparing between the two alternatives are definitely
+> interesting.  Numbers are often better than theory.
 
-I generally don't like using 4k tlb entries ever. This only has the
-advantage of saving 2MB-4KB RAM (globally), and a chpxchg at the first
-system-wide zero page fault. I like apps to only use 2M TLB entries
-whenever possible (that is going to payoff big as the number of 2M TLB
-entries is going to increase over time).
+Sure good idea, just all standard benchmarks likely aren't using zero
+pages so I suggest a basic micro benchmark:
 
-I did some research with tricks using 4k ptes up to half the pmd was
-filled before converting it to a THP (to save some memory and cache),
-and it didn't look good, so my rule of thumb was "THP sometime costs,
-even the switch from half pte filled to transhuge pmd still costs, so
-to diminish the risk of slowdowns we should use 2M TLB entries
-immediately, whenever possible".
+   some loop of() {
+      memcmp(uninitalized_pointer, (char *)uninitialized_pointer+4G, 4G)
+      barrier();
+   }
 
-Now the rule of thumb doesn't fully apply here, 1) there's no
-compaction costs to offset, 2) chances are the zero page isn't very
-performance critical anyway... only some weird apps uses it (but
-sometime they have a legitimate reason for using it, this is why we
-support it).
+> 
+> > There would be a small cache benefit here... but even then some first
+> > level caches are virtually indexed IIRC (always physically tagged to
+> 
+> Modern x86 doesn't have virtually indexed caches.
 
-There would be a small cache benefit here... but even then some first
-level caches are virtually indexed IIRC (always physically tagged to
-avoid the software to notice) and virtually indexed ones won't get any
-benefit.
+With the above memcmp, I'm quite sure the previous patch will beat the
+new one by a wide margin, especially on modern x86 with more 2M TLB
+entries and >= 8MB L2 caches.
 
-It wouldn't provide even the memory saving tradeoff by dropping the
-zero pmd at the first fault (not at the last). And it's better to
-replace it at the first fault then the last (that matches the current
-design).
-
-Another point is that the previous patch is easier to port to other
-archs by not requiring arch features to track the zero pmd.
-
-I guess it won't make a whole lot of difference but my preference is
-for the previous implementation that always guaranteed huge TLB
-entries whenever possible. Said that I'm fine either ways so if
-somebody has strong reasons for wanting this one, I'd like to hear
-about it.
-
-Thanks!
-Andrea
+But I agree we need to verify it before taking a decision, and that
+the numbers are better than theory, or to rephrase it "let's check the
+theory is right" :)
