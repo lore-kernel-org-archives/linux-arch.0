@@ -1,57 +1,37 @@
-From: Andrea Arcangeli <aarcange@redhat.com>
-Subject: Re: [PATCH 0/3] Virtual huge zero page
-Date: Sat, 29 Sep 2012 16:37:37 +0200
-Message-ID: <20120929143737.GF26989@redhat.com>
-References: <1348875441-19561-1-git-send-email-kirill.shutemov@linux.intel.com>
- <20120929134811.GC26989@redhat.com>
- <20120929143006.GC4110@tassilo.jf.intel.com>
+From: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
+Subject: Re: [RFC PATCH 1/2] kbuild: centralize .dts->.dtb rule
+Date: Sat, 29 Sep 2012 22:08:28 +0200
+Message-ID: <20120929200828.GD31527@game.jcrosoft.org>
+References: <1348860731-20868-1-git-send-email-swarren@wwwdotorg.org>
+ <1348860731-20868-2-git-send-email-swarren@wwwdotorg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
 Content-Disposition: inline
-In-Reply-To: <20120929143006.GC4110@tassilo.jf.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: Andi Kleen <ak@linux.intel.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, "H. Peter Anvin" <hpa@linux.intel.com>, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill@shutemov.name>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org
+In-Reply-To: <1348860731-20868-2-git-send-email-swarren@wwwdotorg.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, devicetree-discuss@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Sat, Sep 29, 2012 at 07:30:06AM -0700, Andi Kleen wrote:
-> On Sat, Sep 29, 2012 at 03:48:11PM +0200, Andrea Arcangeli wrote:
-> > On Sat, Sep 29, 2012 at 02:37:18AM +0300, Kirill A. Shutemov wrote:
-> > > Cons:
-> > >  - increases TLB pressure;
-> > 
-> > I generally don't like using 4k tlb entries ever. This only has the
+On 13:32 Fri 28 Sep     , Stephen Warren wrote:
+> From: Stephen Warren <swarren@nvidia.com>
 > 
-> From theory I would also prefer the 2MB huge page.
+> All architectures that use cmd_dtc do so in the same way. Move the build
+> rule to a central location to avoid duplication.
 > 
-> But some numbers comparing between the two alternatives are definitely
-> interesting.  Numbers are often better than theory.
+> Signed-off-by: Stephen Warren <swarren@nvidia.com>
+> ---
+> Jean-Christophe,
+> Moving the build rule to Makefile.lib rather than Makefile.build seems
+> reasonable to me; the dtc-related logic is already in Makefile.lib, and
+> for features where cmd_* is defined in Makefile.lib, the associated
+> build rule is also defined there. I see no reason for this patch series
+> to move all the dtc-related logic into Makefile.build.
 
-Sure good idea, just all standard benchmarks likely aren't using zero
-pages so I suggest a basic micro benchmark:
+build rules are in Makefile.build c to o , s to o etc...
 
-   some loop of() {
-      memcmp(uninitalized_pointer, (char *)uninitialized_pointer+4G, 4G)
-      barrier();
-   }
+so put it in Makefile.build is the correct place ditto fot the dtc cmd
 
-> 
-> > There would be a small cache benefit here... but even then some first
-> > level caches are virtually indexed IIRC (always physically tagged to
-> 
-> Modern x86 doesn't have virtually indexed caches.
-
-With the above memcmp, I'm quite sure the previous patch will beat the
-new one by a wide margin, especially on modern x86 with more 2M TLB
-entries and >= 8MB L2 caches.
-
-But I agree we need to verify it before taking a decision, and that
-the numbers are better than theory, or to rephrase it "let's check the
-theory is right" :)
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Best Regards,
+J.
