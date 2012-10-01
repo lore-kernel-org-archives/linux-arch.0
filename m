@@ -1,96 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:27232 "EHLO mx1.redhat.com"
+Received: from mga11.intel.com ([192.55.52.93]:49149 "EHLO mga11.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751193Ab2JAO77 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 1 Oct 2012 10:59:59 -0400
-Date: Mon, 1 Oct 2012 16:59:44 +0200
-From: Andrea Arcangeli <aarcange@redhat.com>
-Subject: Re: [PATCH] mm: thp: Set the accessed flag for old pages on access
- fault.
-Message-ID: <20121001145944.GA18051@redhat.com>
-References: <1349099505-5581-1-git-send-email-will.deacon@arm.com>
+	id S1751641Ab2JAPe3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 1 Oct 2012 11:34:29 -0400
+Message-ID: <5069B804.6040902@linux.intel.com>
+Date: Mon, 01 Oct 2012 08:34:28 -0700
+From: "H. Peter Anvin" <hpa@linux.intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1349099505-5581-1-git-send-email-will.deacon@arm.com>
+Subject: Re: [PATCH 0/3] Virtual huge zero page
+References: <1348875441-19561-1-git-send-email-kirill.shutemov@linux.intel.com> <20120929134811.GC26989@redhat.com>
+In-Reply-To: <20120929134811.GC26989@redhat.com>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mhocko@suse.cz, Steve Capper <steve.capper@arm.com>, Chris Metcalf <cmetcalf@tilera.com>
-Message-ID: <20121001145944.L9G0jiLJLXnHFJ4tlPqzyxmshg03YuoUSdintXuCb8M@z>
+To: Andrea Arcangeli <aarcange@redhat.com>
+Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Andi Kleen <ak@linux.intel.com>, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill@shutemov.name>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org
+Message-ID: <20121001153428.NjOHqaOquUTkHCjXnR9b216jFH7lt22aSM5URTiGUoM@z>
 
-Hi Will,
+On 09/29/2012 06:48 AM, Andrea Arcangeli wrote:
+> 
+> There would be a small cache benefit here... but even then some first
+> level caches are virtually indexed IIRC (always physically tagged to
+> avoid the software to notice) and virtually indexed ones won't get any
+> benefit.
+> 
 
-On Mon, Oct 01, 2012 at 02:51:45PM +0100, Will Deacon wrote:
-> +void huge_pmd_set_accessed(struct mm_struct *mm, struct vm_area_struct *vma,
-> +			   unsigned long address, pmd_t *pmd, pmd_t orig_pmd)
-> +{
-> +	pmd_t entry;
-> +
-> +	spin_lock(&mm->page_table_lock);
-> +	entry = pmd_mkyoung(orig_pmd);
-> +	if (pmdp_set_access_flags(vma, address & HPAGE_PMD_MASK, pmd, entry, 0))
-> +		update_mmu_cache(vma, address, pmd);
+Not quite.  The virtual indexing is limited to a few bits (e.g. three
+bits on K8); the right way to deal with that is to color the zeropage,
+both the regular one and the virtual one (the virtual one would circle
+through all the colors repeatedly.)
 
-If the pmd is being splitted, this may not be a trasnhuge pmd anymore
-by the time you obtained the lock. (orig_pmd could be stale, and it
-wasn't verified with pmd_same either)
+The cache difference, therefore, is *huge*.
 
-The lock should be obtained through pmd_trans_huge_lock.
+> I guess it won't make a whole lot of difference but my preference is
+> for the previous implementation that always guaranteed huge TLB
+> entries whenever possible. Said that I'm fine either ways so if
+> somebody has strong reasons for wanting this one, I'd like to hear
+> about it.
 
-  if (pmd_trans_huge_lock(orig_pmd, vma) == 1)
-  {
-	set young bit
-	spin_unlock(&mm->page_table_lock);
-  }
+It's a performance tradeoff, and it can, and should, be measured.
 
+	-hpa
 
-On x86:
-
-int pmdp_set_access_flags(struct vm_area_struct *vma,
-			  unsigned long address, pmd_t *pmdp,
-			  pmd_t entry, int dirty)
-{
-	int changed = !pmd_same(*pmdp, entry);
-
-	VM_BUG_ON(address & ~HPAGE_PMD_MASK);
-
-	if (changed && dirty) {
-		*pmdp = entry;
-
-with dirty == 0 it looks like it won't make any difference, but I
-guess your arm pmdp_set_access_flag is different.
-
-However it seems "dirty" means write access and so the invocation
-would better match the pte case:
-
-	if (pmdp_set_access_flags(vma, address & HPAGE_PMD_MASK, pmd, entry,
-	    flags & FAULT_FLAG_WRITE))
-
-
-But note, you still have to update it even when "dirty" == 0, or it'll
-still infinite loop for read accesses.
-
-> +	spin_unlock(&mm->page_table_lock);
-> +}
-> +
->  int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
->  			unsigned long address, pmd_t *pmd, pmd_t orig_pmd)
->  {
-> diff --git a/mm/memory.c b/mm/memory.c
-> index 5736170..d5c007d 100644
-> --- a/mm/memory.c
-> +++ b/mm/memory.c
-> @@ -3537,7 +3537,11 @@ retry:
->  				if (unlikely(ret & VM_FAULT_OOM))
->  					goto retry;
->  				return ret;
-> +			} else {
-> +				huge_pmd_set_accessed(mm, vma, address, pmd,
-> +						      orig_pmd);
->  			}
-> +
->  			return 0;
-
-Thanks,
-Andrea
