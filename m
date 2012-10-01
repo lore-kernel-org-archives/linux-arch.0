@@ -1,45 +1,52 @@
-From: "H. Peter Anvin" <hpa@linux.intel.com>
-Subject: Re: [PATCH 0/3] Virtual huge zero page
-Date: Mon, 01 Oct 2012 08:34:28 -0700
-Message-ID: <5069B804.6040902@linux.intel.com>
-References: <1348875441-19561-1-git-send-email-kirill.shutemov@linux.intel.com> <20120929134811.GC26989@redhat.com>
+From: Stephen Warren <swarren-3lzwWm7+Weoh9ZMKESR00Q@public.gmane.org>
+Subject: Re: [RFC PATCH 1/2] kbuild: centralize .dts->.dtb rule
+Date: Mon, 01 Oct 2012 09:36:10 -0600
+Message-ID: <5069B86A.2060100@wwwdotorg.org>
+References: <1348860731-20868-1-git-send-email-swarren@wwwdotorg.org>
+ <1348860731-20868-2-git-send-email-swarren@wwwdotorg.org>
+ <20120929200828.GD31527@game.jcrosoft.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20120929134811.GC26989@redhat.com>
-Sender: owner-linux-mm@kvack.org
-To: Andrea Arcangeli <aarcange@redhat.com>
-Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Andi Kleen <ak@linux.intel.com>, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill@shutemov.name>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org
+Return-path: <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
+In-Reply-To: <20120929200828.GD31527-RQcB7r2h9QmfDR2tN2SG5Ni2O/JbrIOy@public.gmane.org>
+List-Unsubscribe: <https://lists.ozlabs.org/options/devicetree-discuss>,
+ <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/devicetree-discuss/>
+List-Post: <mailto:devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
+List-Help: <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/devicetree-discuss>,
+ <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=subscribe>
+Errors-To: devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
+Sender: "devicetree-discuss"
+ <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
+To: Jean-Christophe PLAGNIOL-VILLARD <plagnioj-sclMFOaUSTBWk0Htik3J/w@public.gmane.org>
+Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Stephen Warren <swarren-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, Mark Brown <broonie-yzvPICuk2AATkU/dhu1WVueM+bqZidxxQQ4Iyu8u01E@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>, Scott Wood <scottwood-KZfg59tc24xl57MIdRCFDg@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-On 09/29/2012 06:48 AM, Andrea Arcangeli wrote:
+On 09/29/2012 02:08 PM, Jean-Christophe PLAGNIOL-VILLARD wrote:
+> On 13:32 Fri 28 Sep     , Stephen Warren wrote:
+>> From: Stephen Warren <swarren-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
+>>
+>> All architectures that use cmd_dtc do so in the same way. Move the build
+>> rule to a central location to avoid duplication.
+>>
+>> Signed-off-by: Stephen Warren <swarren-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
+>> ---
+>> Jean-Christophe,
+>> Moving the build rule to Makefile.lib rather than Makefile.build seems
+>> reasonable to me; the dtc-related logic is already in Makefile.lib, and
+>> for features where cmd_* is defined in Makefile.lib, the associated
+>> build rule is also defined there. I see no reason for this patch series
+>> to move all the dtc-related logic into Makefile.build.
 > 
-> There would be a small cache benefit here... but even then some first
-> level caches are virtually indexed IIRC (always physically tagged to
-> avoid the software to notice) and virtually indexed ones won't get any
-> benefit.
-> 
+> build rules are in Makefile.build c to o , s to o etc...
 
-Not quite.  The virtual indexing is limited to a few bits (e.g. three
-bits on K8); the right way to deal with that is to color the zeropage,
-both the regular one and the virtual one (the virtual one would circle
-through all the colors repeatedly.)
+As I explicitly pointed out above, your statement is simply not true;
+there are many build rules in Makefile.lib.
 
-The cache difference, therefore, is *huge*.
+> so put it in Makefile.build is the correct place ditto fot the dtc cmd
 
-> I guess it won't make a whole lot of difference but my preference is
-> for the previous implementation that always guaranteed huge TLB
-> entries whenever possible. Said that I'm fine either ways so if
-> somebody has strong reasons for wanting this one, I'd like to hear
-> about it.
-
-It's a performance tradeoff, and it can, and should, be measured.
-
-	-hpa
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+As such, I'm just going to ignore that feedback. Perhaps the kbuild
+maintainer (oops, who I forgot to CC; I'll forward him the patches) can
+weigh in though.
