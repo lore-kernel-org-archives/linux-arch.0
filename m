@@ -1,51 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:61098 "EHLO mx1.redhat.com"
+Received: from mga11.intel.com ([192.55.52.93]:17754 "EHLO mga11.intel.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750848Ab2JAR0g (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 1 Oct 2012 13:26:36 -0400
-Date: Mon, 1 Oct 2012 19:26:24 +0200
-From: Andrea Arcangeli <aarcange@redhat.com>
-Subject: Re: [PATCH 0/3] Virtual huge zero page
-Message-ID: <20121001172624.GD18051@redhat.com>
-References: <1348875441-19561-1-git-send-email-kirill.shutemov@linux.intel.com>
- <20120929134811.GC26989@redhat.com>
- <5069B804.6040902@linux.intel.com>
- <20121001163118.GC18051@redhat.com>
- <5069CCF9.7040309@linux.intel.com>
+	id S1750856Ab2JARdN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 1 Oct 2012 13:33:13 -0400
+Message-ID: <5069D3D8.9070805@linux.intel.com>
+Date: Mon, 01 Oct 2012 10:33:12 -0700
+From: "H. Peter Anvin" <hpa@linux.intel.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <5069CCF9.7040309@linux.intel.com>
+Subject: Re: [PATCH 0/3] Virtual huge zero page
+References: <1348875441-19561-1-git-send-email-kirill.shutemov@linux.intel.com> <20120929134811.GC26989@redhat.com> <5069B804.6040902@linux.intel.com> <20121001163118.GC18051@redhat.com> <5069CCF9.7040309@linux.intel.com> <20121001172624.GD18051@redhat.com>
+In-Reply-To: <20121001172624.GD18051@redhat.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@linux.intel.com>
+To: Andrea Arcangeli <aarcange@redhat.com>
 Cc: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Andi Kleen <ak@linux.intel.com>, linux-kernel@vger.kernel.org, "Kirill A. Shutemov" <kirill@shutemov.name>, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20121001172624.OIjXDaTXjVroYQJRMrSIXwfGmiXr8tUIADGb-1ED220@z>
+Message-ID: <20121001173312.1tX8uEbdrg64tUfGJL1KsiBUTaYH_kYjvXw5tTMUmd0@z>
 
-On Mon, Oct 01, 2012 at 10:03:53AM -0700, H. Peter Anvin wrote:
-> Something isn't quite right about that.  If you look at your numbers:
+On 10/01/2012 10:26 AM, Andrea Arcangeli wrote:
 > 
-> 1,049,134,961 LLC-loads
->         6,222 LLC-load-misses
+>> It is well known that microbenchmarks can be horribly misleading.  What
+>> led to Kirill investigating huge zero page in the first place was the
+>> fact that some applications/macrobenchmarks benefit, and I think those
+>> are the right thing to look at.
 > 
-> This is another way of saying in your benchmark the huge zero page is
-> parked in your LLC - using up 2 MB of your LLC, typically a significant
-> portion of said cache.  In a real-life application that will squeeze out
-> real data, but in your benchmark the system is artificially quiescent.
+> The whole point of the two microbenchmarks was to measure the worst
+> cases for both scenarios and I think that was useful. Real life using
+> zero pages are going to be somewhere in that range.
+> 
 
-Agreed. And that argument applies to the cache benefits of the virtual
-zero page too: squeeze the cache just more aggressively so those 4k
-got out of the cache too, and that 6% improvement will disappear
-(while the TLB benefit of the physical zero page is guaranteed and is
-always present no matter the workload, even if the TLB miss at the
-same frequency, it'll get filled with one less cacheline access every
-time).
+... and I think it would be worthwhile to know which effect dominates
+(or neither, in which case it doesn't matter).
 
-> It is well known that microbenchmarks can be horribly misleading.  What
-> led to Kirill investigating huge zero page in the first place was the
-> fact that some applications/macrobenchmarks benefit, and I think those
-> are the right thing to look at.
+Overall, I'm okay with either as long as we don't lock down 2 MB when
+there isn't a huge zero page in use.
 
-The whole point of the two microbenchmarks was to measure the worst
-cases for both scenarios and I think that was useful. Real life using
-zero pages are going to be somewhere in that range.
+	-hpa
+
