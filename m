@@ -1,12 +1,15 @@
 From: David Howells <dhowells@redhat.com>
 Subject: [GIT PULL] Disintegrate the User API from the kernel headers
-Date: Mon, 01 Oct 2012 21:16:48 +0100
-Message-ID: <13458.1349122608@warthog.procyon.org.uk>
+Date: Mon, 01 Oct 2012 22:05:26 +0100
+Message-ID: <15670.1349125526@warthog.procyon.org.uk>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: dhowells@redhat.com, arnd@arndb.de, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: torvalds@osdl.org
+Cc: dhowells@redhat.com, arnd@arndb.de, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+
+[Remembering to include Linus in the To: line this time]
 
 Hi Linus,
 
