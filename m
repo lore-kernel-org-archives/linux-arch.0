@@ -1,46 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:46910 "EHLO
+Received: from avon.wwwdotorg.org ([70.85.31.133]:36518 "EHLO
 	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751951Ab2JAPgP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Oct 2012 11:36:15 -0400
-Message-ID: <5069B86A.2060100@wwwdotorg.org>
-Date: Mon, 01 Oct 2012 09:36:10 -0600
+	with ESMTP id S1752253Ab2JAPp7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Oct 2012 11:45:59 -0400
 From: Stephen Warren <swarren@wwwdotorg.org>
-MIME-Version: 1.0
-Subject: Re: [RFC PATCH 1/2] kbuild: centralize .dts->.dtb rule
-References: <1348860731-20868-1-git-send-email-swarren@wwwdotorg.org> <1348860731-20868-2-git-send-email-swarren@wwwdotorg.org> <20120929200828.GD31527@game.jcrosoft.org>
-In-Reply-To: <20120929200828.GD31527@game.jcrosoft.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Subject: [PATCH V3 0/2] dtc: enable use of pre-processor
+Date: Mon,  1 Oct 2012 09:45:49 -0600
+Message-ID: <1349106351-17714-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
-Cc: David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, devicetree-discuss@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>
-Message-ID: <20121001153610.CUORncRHi73opjHmsrAhFYXwVaQrCAqiJ2J9OJm2pP0@z>
+To: Michal Marek <mmarek@suse.cz>
+Cc: linux-kbuild@vger.kernel.org, David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, devicetree-discuss@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>
+Message-ID: <20121001154549.1sFVNi6rBjr6Agu7evQcqILs0f4d774zufv4tre-fRc@z>
 
-On 09/29/2012 02:08 PM, Jean-Christophe PLAGNIOL-VILLARD wrote:
-> On 13:32 Fri 28 Sep     , Stephen Warren wrote:
->> From: Stephen Warren <swarren@nvidia.com>
->>
->> All architectures that use cmd_dtc do so in the same way. Move the build
->> rule to a central location to avoid duplication.
->>
->> Signed-off-by: Stephen Warren <swarren@nvidia.com>
->> ---
->> Jean-Christophe,
->> Moving the build rule to Makefile.lib rather than Makefile.build seems
->> reasonable to me; the dtc-related logic is already in Makefile.lib, and
->> for features where cmd_* is defined in Makefile.lib, the associated
->> build rule is also defined there. I see no reason for this patch series
->> to move all the dtc-related logic into Makefile.build.
-> 
-> build rules are in Makefile.build c to o , s to o etc...
+From: Stephen Warren <swarren@nvidia.com>
 
-As I explicitly pointed out above, your statement is simply not true;
-there are many build rules in Makefile.lib.
+This series adds a build rule to run cpp on *.dtsp prior to invoking dtc.
 
-> so put it in Makefile.build is the correct place ditto fot the dtc cmd
+This patch relies on the patch I recently posted to update the in-kernel
+copy of dtc to match the latest upstream version ("[PATCH] dtc: import
+latest upstream dtc"; http://www.spinics.net/lists/kernel/msg1410063.html.
 
-As such, I'm just going to ignore that feedback. Perhaps the kbuild
-maintainer (oops, who I forgot to CC; I'll forward him the patches) can
-weigh in though.
+Stephen Warren (2):
+  kbuild: centralize .dts->.dtb rule
+  kbuild: introduce cmd_dtc_cpp
+
+ arch/arm/boot/Makefile           |    4 ----
+ arch/arm/boot/dts/skeleton.dtsip |   13 +++++++++++++
+ arch/c6x/boot/Makefile           |    3 ---
+ arch/openrisc/boot/Makefile      |    3 ---
+ arch/powerpc/boot/Makefile       |    4 ----
+ scripts/Makefile.lib             |    9 +++++++++
+ 6 files changed, 22 insertions(+), 14 deletions(-)
+ create mode 100644 arch/arm/boot/dts/skeleton.dtsip
+
