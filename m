@@ -1,26 +1,52 @@
-From: "H. Peter Anvin" <hpa@linux.intel.com>
+From: Andrea Arcangeli <aarcange@redhat.com>
 Subject: Re: [PATCH 0/3] Virtual huge zero page
-Date: Mon, 01 Oct 2012 10:52:06 -0700
-Message-ID: <5069D846.6000104@linux.intel.com>
-References: <1348875441-19561-1-git-send-email-kirill.shutemov@linux.intel.com> <20120929134811.GC26989@redhat.com> <5069B804.6040902@linux.intel.com> <20121001163118.GC18051@redhat.com> <5069CCF9.7040309@linux.intel.com> <20121001172624.GD18051@redhat.com> <5069D3D8.9070805@linux.intel.com> <20121001173604.GC20915@shutemov.name> <5069D4D3.1040003@linux.intel.com> <20121001174420.GA21490@shutemov.name>
+Date: Mon, 1 Oct 2012 20:03:49 +0200
+Message-ID: <20121001180349.GE18051@redhat.com>
+References: <1348875441-19561-1-git-send-email-kirill.shutemov@linux.intel.com>
+ <20120929134811.GC26989@redhat.com>
+ <5069B804.6040902@linux.intel.com>
+ <20121001163118.GC18051@redhat.com>
+ <5069CCF9.7040309@linux.intel.com>
+ <20121001171519.GA20915@shutemov.name>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20121001174420.GA21490@shutemov.name>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20121001171519.GA20915@shutemov.name>
+Sender: owner-linux-mm@kvack.org
 To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: Andrea Arcangeli <aarcange@redhat.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Andi Kleen <ak@linux.intel.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org
+Cc: "H. Peter Anvin" <hpa@linux.intel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Andi Kleen <ak@linux.intel.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On 10/01/2012 10:44 AM, Kirill A. Shutemov wrote:
-> On Mon, Oct 01, 2012 at 10:37:23AM -0700, H. Peter Anvin wrote:
->> One can otherwise argue that if hzp doesn't matter for except in a small
->> number of cases that we shouldn't use it at all.
-> 
-> These small number of cases can easily trigger OOM if THP is enabled. :)
-> 
+On Mon, Oct 01, 2012 at 08:15:19PM +0300, Kirill A. Shutemov wrote:
+> I think performance is not the first thing we should look at. We need to
+> choose which implementation is easier to support.
 
-And that doesn't happen in any conditions that *aren't* helped by hzp?
+Having to introduce a special pmd bitflag requiring architectural
+support is actually making it less self contained. The zero page
+support is made optional of course, but the physical zero page would
+have worked without the arch noticing.
 
-	-hpa
+> Applications which benefit from zero page are quite rare. We need to
+> provide a huge zero page to avoid huge memory consumption with THP.
+> That's it. Performance optimization for that rare case is overkill.
+
+I still don't like the idea of some rare app potentially running
+significantly slower (and we may not be notified because it's not a
+breakage, if they're simulations it's hard to tell it's slower because
+of different input or because of zero page being introduced). If we
+knew for sure that zero pages accesses were always rare I wouldn't
+care of course. But rare app != rare access.
+
+The physical zero page patchset is certainly bigger, but it was mostly
+localized in huge_memory.c so I don't see it at very intrusive even if
+bigger.
+
+Anyway if others sees the virtual zero page as easier to maintain, I'm
+fine either ways.
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
