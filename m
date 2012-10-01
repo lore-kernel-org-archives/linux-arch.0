@@ -1,52 +1,101 @@
-From: Stephen Warren <swarren-3lzwWm7+Weoh9ZMKESR00Q@public.gmane.org>
-Subject: Re: [RFC PATCH 1/2] kbuild: centralize .dts->.dtb rule
-Date: Mon, 01 Oct 2012 09:36:10 -0600
-Message-ID: <5069B86A.2060100@wwwdotorg.org>
-References: <1348860731-20868-1-git-send-email-swarren@wwwdotorg.org>
- <1348860731-20868-2-git-send-email-swarren@wwwdotorg.org>
- <20120929200828.GD31527@game.jcrosoft.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-In-Reply-To: <20120929200828.GD31527-RQcB7r2h9QmfDR2tN2SG5Ni2O/JbrIOy@public.gmane.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/devicetree-discuss>,
- <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/devicetree-discuss/>
-List-Post: <mailto:devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-List-Help: <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/devicetree-discuss>,
- <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=subscribe>
-Errors-To: devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
-Sender: "devicetree-discuss"
- <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-To: Jean-Christophe PLAGNIOL-VILLARD <plagnioj-sclMFOaUSTBWk0Htik3J/w@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Stephen Warren <swarren-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, Mark Brown <broonie-yzvPICuk2AATkU/dhu1WVueM+bqZidxxQQ4Iyu8u01E@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>, Scott Wood <scottwood-KZfg59tc24xl57MIdRCFDg@public.gmane.org>
+From: Stephen Warren <swarren@wwwdotorg.org>
+Subject: [PATCH V3 1/2] kbuild: centralize .dts->.dtb rule
+Date: Mon,  1 Oct 2012 09:45:50 -0600
+Message-ID: <1349106351-17714-2-git-send-email-swarren@wwwdotorg.org>
+References: <1349106351-17714-1-git-send-email-swarren@wwwdotorg.org>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <1349106351-17714-1-git-send-email-swarren@wwwdotorg.org>
+Sender: linux-kbuild-owner@vger.kernel.org
+To: Michal Marek <mmarek@suse.cz>
+Cc: linux-kbuild@vger.kernel.org, David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, devicetree-discuss@lists.ozlabs.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>
 List-Id: linux-arch.vger.kernel.org
 
-On 09/29/2012 02:08 PM, Jean-Christophe PLAGNIOL-VILLARD wrote:
-> On 13:32 Fri 28 Sep     , Stephen Warren wrote:
->> From: Stephen Warren <swarren-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
->>
->> All architectures that use cmd_dtc do so in the same way. Move the build
->> rule to a central location to avoid duplication.
->>
->> Signed-off-by: Stephen Warren <swarren-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>
->> ---
->> Jean-Christophe,
->> Moving the build rule to Makefile.lib rather than Makefile.build seems
->> reasonable to me; the dtc-related logic is already in Makefile.lib, and
->> for features where cmd_* is defined in Makefile.lib, the associated
->> build rule is also defined there. I see no reason for this patch series
->> to move all the dtc-related logic into Makefile.build.
-> 
-> build rules are in Makefile.build c to o , s to o etc...
+From: Stephen Warren <swarren@nvidia.com>
 
-As I explicitly pointed out above, your statement is simply not true;
-there are many build rules in Makefile.lib.
+All architectures that use cmd_dtc do so in the same way. Move the build
+rule to a central location to avoid duplication.
 
-> so put it in Makefile.build is the correct place ditto fot the dtc cmd
+Signed-off-by: Stephen Warren <swarren@nvidia.com>
+---
+v3: No change.
+v2: New patch.
+---
+ arch/arm/boot/Makefile      |    4 ----
+ arch/c6x/boot/Makefile      |    3 ---
+ arch/openrisc/boot/Makefile |    3 ---
+ arch/powerpc/boot/Makefile  |    4 ----
+ scripts/Makefile.lib        |    3 +++
+ 5 files changed, 3 insertions(+), 14 deletions(-)
 
-As such, I'm just going to ignore that feedback. Perhaps the kbuild
-maintainer (oops, who I forgot to CC; I'll forward him the patches) can
-weigh in though.
+diff --git a/arch/arm/boot/Makefile b/arch/arm/boot/Makefile
+index 3fdab01..da33331 100644
+--- a/arch/arm/boot/Makefile
++++ b/arch/arm/boot/Makefile
+@@ -61,10 +61,6 @@ endif
+ 
+ targets += $(dtb-y)
+ 
+-# Rule to build device tree blobs
+-$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+-	$(call if_changed_dep,dtc)
+-
+ $(obj)/dtbs: $(addprefix $(obj)/, $(dtb-y))
+ 
+ clean-files := *.dtb
+diff --git a/arch/c6x/boot/Makefile b/arch/c6x/boot/Makefile
+index 6891257..ad605fb 100644
+--- a/arch/c6x/boot/Makefile
++++ b/arch/c6x/boot/Makefile
+@@ -12,9 +12,6 @@ ifneq ($(DTB),)
+ obj-y += linked_dtb.o
+ endif
+ 
+-$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+-	$(call if_changed_dep,dtc)
+-
+ quiet_cmd_cp = CP      $< $@$2
+ 	cmd_cp = cat $< >$@$2 || (rm -f $@ && echo false)
+ 
+diff --git a/arch/openrisc/boot/Makefile b/arch/openrisc/boot/Makefile
+index 0995835..fd329bd 100644
+--- a/arch/openrisc/boot/Makefile
++++ b/arch/openrisc/boot/Makefile
+@@ -10,6 +10,3 @@ obj-y += $(BUILTIN_DTB)
+ clean-files := *.dtb.S
+ 
+ #DTC_FLAGS ?= -p 1024
+-
+-$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+-	$(call if_changed_dep,dtc)
+diff --git a/arch/powerpc/boot/Makefile b/arch/powerpc/boot/Makefile
+index 6a15c96..90206f2 100644
+--- a/arch/powerpc/boot/Makefile
++++ b/arch/powerpc/boot/Makefile
+@@ -356,10 +356,6 @@ $(obj)/treeImage.initrd.%: vmlinux $(obj)/%.dtb $(wrapperbits)
+ $(obj)/treeImage.%: vmlinux $(obj)/%.dtb $(wrapperbits)
+ 	$(call if_changed,wrap,treeboot-$*,,$(obj)/$*.dtb)
+ 
+-# Rule to build device tree blobs
+-$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+-	$(call if_changed_dep,dtc)
+-
+ # If there isn't a platform selected then just strip the vmlinux.
+ ifeq (,$(image-y))
+ image-y := vmlinux.strip
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 0be6f11..425578e 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -266,6 +266,9 @@ $(obj)/%.dtb.S: $(obj)/%.dtb
+ quiet_cmd_dtc = DTC     $@
+ cmd_dtc = $(objtree)/scripts/dtc/dtc -O dtb -o $@ -b 0 $(DTC_FLAGS) -d $(depfile) $<
+ 
++$(obj)/%.dtb: $(src)/dts/%.dts FORCE
++	$(call if_changed_dep,dtc)
++
+ # Bzip2
+ # ---------------------------------------------------------------------------
+ 
+-- 
+1.7.0.4
+
