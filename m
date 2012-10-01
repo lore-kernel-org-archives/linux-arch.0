@@ -1,19 +1,22 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
 Subject: [RFC][CFT][CFReview] execve and kernel_thread unification work
-Date: Mon, 1 Oct 2012 22:34:52 +0100
-Message-ID: <20121001213452.GL13973@ZenIV.linux.org.uk>
+Date: Mon, 1 Oct 2012 22:38:09 +0100
+Message-ID: <20121001213809.GA31155@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:48220 "EHLO
+Received: from zeniv.linux.org.uk ([195.92.253.2]:35454 "EHLO
 	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752364Ab2JAVe6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Oct 2012 17:34:58 -0400
+	with ESMTP id S1752099Ab2JAViK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 1 Oct 2012 17:38:10 -0400
 Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@ZenIV.linux.org.uk
+To: linux-kernel@vger.kernel.org
 Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+
+[with apologies for folks Cc'd, resent due to mis-autoexpanded l-k address
+on the original posting ;-/  Mea culpa...]
 
 	There's an interesting ongoing project around kernel_thread() and
 friends, including execve() variants.  I really need help from architecture
