@@ -1,51 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:2616 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753388Ab2JASEC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 1 Oct 2012 14:04:02 -0400
-Date: Mon, 1 Oct 2012 20:03:49 +0200
-From: Andrea Arcangeli <aarcange@redhat.com>
-Subject: Re: [PATCH 0/3] Virtual huge zero page
-Message-ID: <20121001180349.GE18051@redhat.com>
-References: <1348875441-19561-1-git-send-email-kirill.shutemov@linux.intel.com>
- <20120929134811.GC26989@redhat.com>
- <5069B804.6040902@linux.intel.com>
- <20121001163118.GC18051@redhat.com>
- <5069CCF9.7040309@linux.intel.com>
- <20121001171519.GA20915@shutemov.name>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:61411 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752838Ab2JBRBP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2012 13:01:15 -0400
+Date: Tue, 2 Oct 2012 17:58:43 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [GIT PULL] Disintegrate the User API from the kernel headers
+Message-ID: <20121002165842.GJ25708@arm.com>
+References: <CAHkRjk4Nv-Wb6NA9tZkLPQw8NFvTXMScF3x6i=e+KeBC0uF6Dw@mail.gmail.com>
+ <15670.1349125526@warthog.procyon.org.uk>
+ <30848.1349196911@warthog.procyon.org.uk>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20121001171519.GA20915@shutemov.name>
+In-Reply-To: <30848.1349196911@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: "H. Peter Anvin" <hpa@linux.intel.com>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>, Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Andi Kleen <ak@linux.intel.com>, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Ingo Molnar <mingo@kernel.org>, linux-arch@vger.kernel.org
-Message-ID: <20121001180349.RyI7ufRbFTui0fOaqBg6GD0iK28nGrxUs1yv9nOfS1s@z>
+To: David Howells <dhowells@redhat.com>
+Cc: "torvalds@osdl.org" <torvalds@osdl.org>, "arnd@arndb.de" <arnd@arndb.de>, "hpa@zytor.com" <hpa@zytor.com>, "alan@lxorguk.ukuu.org.uk" <alan@lxorguk.ukuu.org.uk>, "fengguang.wu@intel.com" <fengguang.wu@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Message-ID: <20121002165843.bq5Q9GzPlJUZGjwRRRpxJSsNQVUb4amfPuQHv42UAfo@z>
 
-On Mon, Oct 01, 2012 at 08:15:19PM +0300, Kirill A. Shutemov wrote:
-> I think performance is not the first thing we should look at. We need to
-> choose which implementation is easier to support.
+On Tue, Oct 02, 2012 at 05:55:11PM +0100, David Howells wrote:
+> Catalin Marinas <catalin.marinas@arm.com> wrote:
+> 
+> > There is arm64 that got merged, so its headers need splitting as well.
+> > I'm happy to send a pull request myself just for arm64 if you give me
+> > the script, otherwise you can run you script again close to -rc1 (and
+> > I'll test it).
+> 
+> I can just re-run my scripts and post a new set of patches.
 
-Having to introduce a special pmd bitflag requiring architectural
-support is actually making it less self contained. The zero page
-support is made optional of course, but the physical zero page would
-have worked without the arch noticing.
+I'm fine with this.
 
-> Applications which benefit from zero page are quite rare. We need to
-> provide a huge zero page to avoid huge memory consumption with THP.
-> That's it. Performance optimization for that rare case is overkill.
-
-I still don't like the idea of some rare app potentially running
-significantly slower (and we may not be notified because it's not a
-breakage, if they're simulations it's hard to tell it's slower because
-of different input or because of zero page being introduced). If we
-knew for sure that zero pages accesses were always rare I wouldn't
-care of course. But rare app != rare access.
-
-The physical zero page patchset is certainly bigger, but it was mostly
-localized in huge_memory.c so I don't see it at very intrusive even if
-bigger.
-
-Anyway if others sees the virtual zero page as easier to maintain, I'm
-fine either ways.
+-- 
+Catalin
