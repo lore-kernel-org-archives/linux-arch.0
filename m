@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:51807 "EHLO
+Received: from shards.monkeyblade.net ([149.20.54.216]:51822 "EHLO
 	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753436Ab2JBW1H (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2012 18:27:07 -0400
-Date: Tue, 02 Oct 2012 18:27:04 -0400 (EDT)
-Message-ID: <20121002.182704.2007474245835123971.davem@davemloft.net>
-Subject: [PATCH 5/8] mm: Add and use update_mmu_cache_pmd() in transparent
- huge page code.
+	with ESMTP id S1752076Ab2JBW1n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2012 18:27:43 -0400
+Date: Tue, 02 Oct 2012 18:27:41 -0400 (EDT)
+Message-ID: <20121002.182741.650740858374403508.davem@davemloft.net>
+Subject: [PATCH 7/8] mm: thp: Use more portable PMD clearing sequenece in
+ zap_huge_pmd().
 From: David Miller <davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
@@ -15,82 +15,58 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-mm@kvack.org
 Cc: sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, aarcange@redhat.com, hannes@cmpxchg.org
-Message-ID: <20121002222704.jYbwg_gfiD2sQsA4Fc8tWO4KDhh_j1zrnTKsDeA_X4k@z>
+Message-ID: <20121002222741.eDMhfZEQLyTyTUs7NBcDF-tIJDv4DOfNmXqnprR3oKo@z>
 
 
-The transparent huge page code passes a PMD in as the third
-argument of update_mmu_cache(), which expects a PTE pointer.
+Invalidation sequences are handled in various ways on various
+architectures.
 
-This never got noticed because X86 implements update_mmu_cache() as a
-macro and thus we don't get any type checking, and X86 is the only
-architecture which supports transparent huge pages currently.
+One way, which sparc64 uses, is to let the set_*_at() functions
+accumulate pending flushes into a per-cpu array.  Then the
+flush_tlb_range() et al. calls process the pending TLB flushes.
 
-Before oter architectures can support transparent huge pages properly
-we need to add a new interface which will take a PMD as the third
-argument rather than a PTE pointer.
+In this regime, the __tlb_remove_*tlb_entry() implementations are
+essentially NOPs.
+
+The canonical PTE zap in mm/memory.c is:
+
+			ptent = ptep_get_and_clear_full(mm, addr, pte,
+							tlb->fullmm);
+			tlb_remove_tlb_entry(tlb, pte, addr);
+
+With a subsequent tlb_flush_mmu() if needed.
+
+Mirror this in the THP PMD zapping using:
+
+		orig_pmd = pmdp_get_and_clear(tlb->mm, addr, pmd);
+		page = pmd_page(orig_pmd);
+		tlb_remove_pmd_tlb_entry(tlb, pmd, addr);
+
+And we properly accomodate TLB flush mechanims like the one described
+above.
 
 Signed-off-by: David S. Miller <davem@davemloft.net>
 ---
- arch/x86/include/asm/pgtable_32.h |    1 +
- arch/x86/include/asm/pgtable_64.h |    1 +
- mm/huge_memory.c                  |    6 +++---
- 3 files changed, 5 insertions(+), 3 deletions(-)
+ mm/huge_memory.c |    5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/arch/x86/include/asm/pgtable_32.h b/arch/x86/include/asm/pgtable_32.h
-index 0c92113..8faa215 100644
---- a/arch/x86/include/asm/pgtable_32.h
-+++ b/arch/x86/include/asm/pgtable_32.h
-@@ -71,6 +71,7 @@ do {						\
-  * tables contain all the necessary information.
-  */
- #define update_mmu_cache(vma, address, ptep) do { } while (0)
-+#define update_mmu_cache_pmd(vma, address, pmd) do { } while (0)
- 
- #endif /* !__ASSEMBLY__ */
- 
-diff --git a/arch/x86/include/asm/pgtable_64.h b/arch/x86/include/asm/pgtable_64.h
-index 8251be0..47356f9 100644
---- a/arch/x86/include/asm/pgtable_64.h
-+++ b/arch/x86/include/asm/pgtable_64.h
-@@ -143,6 +143,7 @@ static inline int pgd_large(pgd_t pgd) { return 0; }
- #define pte_unmap(pte) ((void)(pte))/* NOP */
- 
- #define update_mmu_cache(vma, address, ptep) do { } while (0)
-+#define update_mmu_cache_pmd(vma, address, pmd) do { } while (0)
- 
- /* Encode and de-code a swap entry */
- #if _PAGE_BIT_FILE < _PAGE_BIT_PROTNONE
 diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 57c4b93..29414c1 100644
+index 5d44785..f9d8461 100644
 --- a/mm/huge_memory.c
 +++ b/mm/huge_memory.c
-@@ -934,7 +934,7 @@ int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
- 		entry = pmd_mkyoung(orig_pmd);
- 		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
- 		if (pmdp_set_access_flags(vma, haddr, pmd, entry,  1))
--			update_mmu_cache(vma, address, entry);
-+			update_mmu_cache_pmd(vma, address, entry);
- 		ret |= VM_FAULT_WRITE;
- 		goto out_unlock;
- 	}
-@@ -986,7 +986,7 @@ int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
- 		pmdp_clear_flush_notify(vma, haddr, pmd);
- 		page_add_new_anon_rmap(new_page, vma, haddr);
- 		set_pmd_at(mm, haddr, pmd, entry);
--		update_mmu_cache(vma, address, entry);
-+		update_mmu_cache_pmd(vma, address, entry);
+@@ -1025,9 +1025,10 @@ int zap_huge_pmd(struct mmu_gather *tlb, struct vm_area_struct *vma,
+ 	if (__pmd_trans_huge_lock(pmd, vma) == 1) {
+ 		struct page *page;
+ 		pgtable_t pgtable;
++		pmd_t orig_pmd;
+ 		pgtable = get_pmd_huge_pte(tlb->mm);
+-		page = pmd_page(*pmd);
+-		pmd_clear(pmd);
++		orig_pmd = pmdp_get_and_clear(tlb->mm, addr, pmd);
++		page = pmd_page(orig_pmd);
+ 		tlb_remove_pmd_tlb_entry(tlb, pmd, addr);
  		page_remove_rmap(page);
- 		put_page(page);
- 		ret |= VM_FAULT_WRITE;
-@@ -1989,7 +1989,7 @@ static void collapse_huge_page(struct mm_struct *mm,
- 	BUG_ON(!pmd_none(*pmd));
- 	page_add_new_anon_rmap(new_page, vma, address);
- 	set_pmd_at(mm, address, pmd, _pmd);
--	update_mmu_cache(vma, address, _pmd);
-+	update_mmu_cache_pmd(vma, address, _pmd);
- 	prepare_pmd_huge_pte(pgtable, mm);
- 	spin_unlock(&mm->page_table_lock);
- 
+ 		VM_BUG_ON(page_mapcount(page) < 0);
 -- 
 1.7.10.4
 
