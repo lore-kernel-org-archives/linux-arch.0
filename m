@@ -1,11 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:51785 "EHLO
+Received: from shards.monkeyblade.net ([149.20.54.216]:51807 "EHLO
 	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753407Ab2JBW0c (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2012 18:26:32 -0400
-Date: Tue, 02 Oct 2012 18:26:30 -0400 (EDT)
-Message-ID: <20121002.182630.2161021394486461561.davem@davemloft.net>
-Subject: [PATCH 2/8] sparc64: Halve the size of PTE tables.
+	with ESMTP id S1753436Ab2JBW1H (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2012 18:27:07 -0400
+Date: Tue, 02 Oct 2012 18:27:04 -0400 (EDT)
+Message-ID: <20121002.182704.2007474245835123971.davem@davemloft.net>
+Subject: [PATCH 5/8] mm: Add and use update_mmu_cache_pmd() in transparent
+ huge page code.
 From: David Miller <davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
@@ -14,107 +15,82 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-mm@kvack.org
 Cc: sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, aarcange@redhat.com, hannes@cmpxchg.org
-Message-ID: <20121002222630.YnnDoKoENu0kBRFYEa4XQbIQPNU8DtEx-ILhp5W83G0@z>
+Message-ID: <20121002222704.jYbwg_gfiD2sQsA4Fc8tWO4KDhh_j1zrnTKsDeA_X4k@z>
 
 
-The reason we want to do this is to facilitate transparent huge page
-support.
+The transparent huge page code passes a PMD in as the third
+argument of update_mmu_cache(), which expects a PTE pointer.
 
-Right now PMD's cover 8MB of address space, and our huge page size is
-4MB.  The current transparent hugepage support is not able to handle
-HPAGE_SIZE != PMD_SIZE.
+This never got noticed because X86 implements update_mmu_cache() as a
+macro and thus we don't get any type checking, and X86 is the only
+architecture which supports transparent huge pages currently.
 
-So make PTE tables be sized to half of a page instead of a full page.
-
-We can still map properly the whole supported virtual address range
-which on sparc64 requires 44 bits.  Add a compile time CPP test which
-ensures that this requirement is always met.
-
-There is a minor inefficiency added by this change.  We only use half
-of the page for PTE tables.  It's not trivial to use only half of the
-page yet still get all of the pgtable_page_{ctor,dtor}() stuff working
-properly.  It is doable, and that will come in a subsequent change.
+Before oter architectures can support transparent huge pages properly
+we need to add a new interface which will take a PMD as the third
+argument rather than a PTE pointer.
 
 Signed-off-by: David S. Miller <davem@davemloft.net>
 ---
- arch/sparc/include/asm/pgtable_64.h |   24 +++++++-----------------
- arch/sparc/include/asm/tsb.h        |    4 ++--
- 2 files changed, 9 insertions(+), 19 deletions(-)
+ arch/x86/include/asm/pgtable_32.h |    1 +
+ arch/x86/include/asm/pgtable_64.h |    1 +
+ mm/huge_memory.c                  |    6 +++---
+ 3 files changed, 5 insertions(+), 3 deletions(-)
 
-diff --git a/arch/sparc/include/asm/pgtable_64.h b/arch/sparc/include/asm/pgtable_64.h
-index 51be4a1..27293a3 100644
---- a/arch/sparc/include/asm/pgtable_64.h
-+++ b/arch/sparc/include/asm/pgtable_64.h
-@@ -45,40 +45,30 @@
- 
- #define vmemmap			((struct page *)VMEMMAP_BASE)
- 
--/* XXX All of this needs to be rethought so we can take advantage
-- * XXX cheetah's full 64-bit virtual address space, ie. no more hole
-- * XXX in the middle like on spitfire. -DaveM
-- */
--/*
-- * Given a virtual address, the lowest PAGE_SHIFT bits determine offset
-- * into the page; the next higher PAGE_SHIFT-3 bits determine the pte#
-- * in the proper pagetable (the -3 is from the 8 byte ptes, and each page
-- * table is a single page long). The next higher PMD_BITS determine pmd#
-- * in the proper pmdtable (where we must have PMD_BITS <= (PAGE_SHIFT-2)
-- * since the pmd entries are 4 bytes, and each pmd page is a single page
-- * long). Finally, the higher few bits determine pgde#.
-- */
--
- /* PMD_SHIFT determines the size of the area a second-level page
-  * table can map
+diff --git a/arch/x86/include/asm/pgtable_32.h b/arch/x86/include/asm/pgtable_32.h
+index 0c92113..8faa215 100644
+--- a/arch/x86/include/asm/pgtable_32.h
++++ b/arch/x86/include/asm/pgtable_32.h
+@@ -71,6 +71,7 @@ do {						\
+  * tables contain all the necessary information.
   */
--#define PMD_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-3))
-+#define PMD_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-4))
- #define PMD_SIZE	(_AC(1,UL) << PMD_SHIFT)
- #define PMD_MASK	(~(PMD_SIZE-1))
- #define PMD_BITS	(PAGE_SHIFT - 2)
+ #define update_mmu_cache(vma, address, ptep) do { } while (0)
++#define update_mmu_cache_pmd(vma, address, pmd) do { } while (0)
  
- /* PGDIR_SHIFT determines what a third-level page table entry can map */
--#define PGDIR_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-3) + PMD_BITS)
-+#define PGDIR_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-4) + PMD_BITS)
- #define PGDIR_SIZE	(_AC(1,UL) << PGDIR_SHIFT)
- #define PGDIR_MASK	(~(PGDIR_SIZE-1))
- #define PGDIR_BITS	(PAGE_SHIFT - 2)
+ #endif /* !__ASSEMBLY__ */
  
-+#if (PGDIR_SHIFT + PGDIR_BITS) != 44
-+#error Page table parameters do not cover virtual address space properly.
-+#endif
-+
- #ifndef __ASSEMBLY__
+diff --git a/arch/x86/include/asm/pgtable_64.h b/arch/x86/include/asm/pgtable_64.h
+index 8251be0..47356f9 100644
+--- a/arch/x86/include/asm/pgtable_64.h
++++ b/arch/x86/include/asm/pgtable_64.h
+@@ -143,6 +143,7 @@ static inline int pgd_large(pgd_t pgd) { return 0; }
+ #define pte_unmap(pte) ((void)(pte))/* NOP */
  
- #include <linux/sched.h>
+ #define update_mmu_cache(vma, address, ptep) do { } while (0)
++#define update_mmu_cache_pmd(vma, address, pmd) do { } while (0)
  
- /* Entries per page directory level. */
--#define PTRS_PER_PTE	(1UL << (PAGE_SHIFT-3))
-+#define PTRS_PER_PTE	(1UL << (PAGE_SHIFT-4))
- #define PTRS_PER_PMD	(1UL << PMD_BITS)
- #define PTRS_PER_PGD	(1UL << PGDIR_BITS)
+ /* Encode and de-code a swap entry */
+ #if _PAGE_BIT_FILE < _PAGE_BIT_PROTNONE
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 57c4b93..29414c1 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -934,7 +934,7 @@ int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
+ 		entry = pmd_mkyoung(orig_pmd);
+ 		entry = maybe_pmd_mkwrite(pmd_mkdirty(entry), vma);
+ 		if (pmdp_set_access_flags(vma, haddr, pmd, entry,  1))
+-			update_mmu_cache(vma, address, entry);
++			update_mmu_cache_pmd(vma, address, entry);
+ 		ret |= VM_FAULT_WRITE;
+ 		goto out_unlock;
+ 	}
+@@ -986,7 +986,7 @@ int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
+ 		pmdp_clear_flush_notify(vma, haddr, pmd);
+ 		page_add_new_anon_rmap(new_page, vma, haddr);
+ 		set_pmd_at(mm, haddr, pmd, entry);
+-		update_mmu_cache(vma, address, entry);
++		update_mmu_cache_pmd(vma, address, entry);
+ 		page_remove_rmap(page);
+ 		put_page(page);
+ 		ret |= VM_FAULT_WRITE;
+@@ -1989,7 +1989,7 @@ static void collapse_huge_page(struct mm_struct *mm,
+ 	BUG_ON(!pmd_none(*pmd));
+ 	page_add_new_anon_rmap(new_page, vma, address);
+ 	set_pmd_at(mm, address, pmd, _pmd);
+-	update_mmu_cache(vma, address, _pmd);
++	update_mmu_cache_pmd(vma, address, _pmd);
+ 	prepare_pmd_huge_pte(pgtable, mm);
+ 	spin_unlock(&mm->page_table_lock);
  
-diff --git a/arch/sparc/include/asm/tsb.h b/arch/sparc/include/asm/tsb.h
-index 1a8afd1..6435924 100644
---- a/arch/sparc/include/asm/tsb.h
-+++ b/arch/sparc/include/asm/tsb.h
-@@ -152,7 +152,7 @@ extern struct tsb_phys_patch_entry __tsb_phys_patch, __tsb_phys_patch_end;
- 	lduwa		[REG1 + REG2] ASI_PHYS_USE_EC, REG1; \
- 	brz,pn		REG1, FAIL_LABEL; \
- 	 sllx		VADDR, 64 - PMD_SHIFT, REG2; \
--	srlx		REG2, 64 - PAGE_SHIFT, REG2; \
-+	srlx		REG2, 64 - (PAGE_SHIFT - 1), REG2; \
- 	sllx		REG1, 11, REG1; \
- 	andn		REG2, 0x7, REG2; \
- 	add		REG1, REG2, REG1;
-@@ -177,7 +177,7 @@ extern struct tsb_phys_patch_entry __tsb_phys_patch, __tsb_phys_patch_end;
- 	lduwa		[REG1 + REG2] ASI_PHYS_USE_EC, REG1; \
- 	brz,pn		REG1, FAIL_LABEL; \
- 	 sllx		VADDR, 64 - PMD_SHIFT, REG2; \
--	srlx		REG2, 64 - PAGE_SHIFT, REG2; \
-+	srlx		REG2, 64 - (PAGE_SHIFT - 1), REG2; \
- 	sllx		REG1, 11, REG1; \
- 	andn		REG2, 0x7, REG2; \
- 	add		REG1, REG2, REG1;
 -- 
 1.7.10.4
 
