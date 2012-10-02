@@ -1,25 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:31890 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755209Ab2JBRqk (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 2 Oct 2012 13:46:40 -0400
-Date: Tue, 2 Oct 2012 19:46:24 +0200
-From: Andrea Arcangeli <aarcange@redhat.com>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:53338 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932355Ab2JBWBG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2012 18:01:06 -0400
+Date: Tue, 2 Oct 2012 15:01:04 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
 Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
  access fault.
-Message-ID: <20121002174624.GI4763@redhat.com>
-References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+Message-ID: <20121002150104.da57fa94.akpm@linux-foundation.org>
 In-Reply-To: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
+References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Will Deacon <will.deacon@arm.com>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mhocko@suse.cz, kirill@shutemov.name, Chris Metcalf <cmetcalf@tilera.com>, Steve Capper <steve.capper@arm.com>
-Message-ID: <20121002174624.Fc-8cqYuOEiZi_PM9CANQ4RLA4fCyfLWwLb8Z6wev44@z>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mhocko@suse.cz, kirill@shutemov.name, Andrea Arcangeli <aarcange@redhat.com>, Chris Metcalf <cmetcalf@tilera.com>, Steve Capper <steve.capper@arm.com>
+Message-ID: <20121002220104.IwOLWDvoAIwfzXuP6yseqFElkO1ToThjn_XbB2Olxd8@z>
 
-On Tue, Oct 02, 2012 at 05:59:11PM +0100, Will Deacon wrote:
+On Tue,  2 Oct 2012 17:59:11 +0100
+Will Deacon <will.deacon@arm.com> wrote:
+
 > On x86 memory accesses to pages without the ACCESSED flag set result in the
 > ACCESSED flag being set automatically. With the ARM architecture a page access
 > fault is raised instead (and it will continue to be raised until the ACCESSED
@@ -31,19 +33,21 @@ On Tue, Oct 02, 2012 at 05:59:11PM +0100, Will Deacon wrote:
 > 
 > This patch ensures that faults on transparent hugepages which do not result
 > in a CoW update the access flags for the faulting pmd.
-> 
-> Cc: Andrea Arcangeli <aarcange@redhat.com>
-> Cc: Chris Metcalf <cmetcalf@tilera.com>
-> Signed-off-by: Steve Capper <steve.capper@arm.com>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> ---
-> 
-> v2: - Use pmd_trans_huge_lock to guard against splitting pmds
->     - Propogate dirty (write) flag to low-level pmd modifier
-> 
->  include/linux/huge_mm.h |    2 ++
->  mm/huge_memory.c        |    8 ++++++++
->  mm/memory.c             |    9 ++++++++-
->  3 files changed, 18 insertions(+), 1 deletions(-)
 
-Reviewed-by: Andrea Arcangeli <aarcange@redhat.com>
+Alas, the code you're altering has changed so much in linux-next that I
+am reluctant to force this fix in there myself.  Can you please
+redo/retest/resend?  You can do that on 3.7-rc1 if you like, then we
+can feed this into -rc2.
+
+> --- a/mm/memory.c
+> +++ b/mm/memory.c
+> @@ -3524,7 +3524,8 @@ retry:
+>  
+>  		barrier();
+>  		if (pmd_trans_huge(orig_pmd)) {
+> -			if (flags & FAULT_FLAG_WRITE &&
+> +			int dirty = flags & FAULT_FLAG_WRITE;
+
+`flags' is `unsigned int', so making `dirty' match that is nicer.
+
+
