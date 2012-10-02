@@ -1,29 +1,45 @@
-From: Andrea Arcangeli <aarcange@redhat.com>
-Subject: Re: [PATCH 6/8] mm: Make transparent huge code not depend upon the
- details of pgtable_t
-Date: Wed, 3 Oct 2012 00:49:21 +0200
-Message-ID: <20121002224921.GR4763@redhat.com>
-References: <20121002.182718.250164928532772411.davem@davemloft.net>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 0/8] THP support for Sparc64
+Date: Tue, 2 Oct 2012 15:55:44 -0700
+Message-ID: <20121002155544.2c67b1e8.akpm@linux-foundation.org>
+References: <20121002.182601.845433592794197720.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:45243 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753901Ab2JBWt3 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 2 Oct 2012 18:49:29 -0400
-Content-Disposition: inline
-In-Reply-To: <20121002.182718.250164928532772411.davem@davemloft.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20121002.182601.845433592794197720.davem@davemloft.net>
+Sender: linux-kernel-owner@vger.kernel.org
 To: David Miller <davem@davemloft.net>
-Cc: linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, hannes@cmpxchg.org
+Cc: linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, aarcange@redhat.com, hannes@cmpxchg.org, Gerald Schaefer <gerald.schaefer@de.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hi Dave,
+On Tue, 02 Oct 2012 18:26:01 -0400 (EDT)
+David Miller <davem@davemloft.net> wrote:
 
-On Tue, Oct 02, 2012 at 06:27:18PM -0400, David Miller wrote:
+> Here is a set of patches that add THP support for sparc64.
 > 
-> The code currently assumes that pgtable_t is a struct page pointer.
+> A few of them are relatively minor portability issues I ran into.
+> Like the MIPS guys I hit the update_mmu_cache() typing issue so I have
+> a patch for that here.
 > 
-> Fix this by pushing pgtable management behind arch helper functions.
+> It is very likely that I need the ACCESSED bit handling fix the
+> ARM folks have been posting recently as well.
+> 
+> On the sparc64 side the biggest issue was moving to only supporting
+> 4MB pages and then realigning the page tables so that the PMDs map 4MB
+> (instead of 8MB as they do now).
+> 
+> The rest was just trial and error, running tests, and fixing bugs.
+> 
+> A familiar test case that makes 5 million random accesses to a 1GB
+> memory area goes from 20 seconds down to 0.43 seconds with THP enabled
+> on my SPARC T4-2 box.
 
-This should be fixed in -mm already, it's from the s390x support.
+Hardly worth bothering about ;)
+
+I had a shot at integrating all this onto the pending stuff in linux-next. 
+"mm: Add and use update_mmu_cache_pmd() in transparent huge page code."
+needed minor massaging in huge_memory.c.  But as Andrea mentioned, we
+ran aground on Gerald's
+http://ozlabs.org/~akpm/mmotm/broken-out/thp-remove-assumptions-on-pgtable_t-type.patch,
+part of the thp-for-s390 work.
