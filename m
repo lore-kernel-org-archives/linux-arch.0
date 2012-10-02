@@ -1,31 +1,26 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
+From: David Howells <dhowells@redhat.com>
 Subject: Re: [GIT PULL] Disintegrate the User API from the kernel headers
-Date: Tue, 2 Oct 2012 09:37:44 -0700
-Message-ID: <CA+55aFyu9rJH0x9eAF7A=m64nSCRtcPxdE4MR3+ZSd8qxEbwFw@mail.gmail.com>
-References: <13458.1349122608@warthog.procyon.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Date: Tue, 02 Oct 2012 17:55:11 +0100
+Message-ID: <30848.1349196911@warthog.procyon.org.uk>
+References: <CAHkRjk4Nv-Wb6NA9tZkLPQw8NFvTXMScF3x6i=e+KeBC0uF6Dw@mail.gmail.com> <15670.1349125526@warthog.procyon.org.uk>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f172.google.com ([209.85.212.172]:55907 "EHLO
-	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751264Ab2JBQiG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2012 12:38:06 -0400
-In-Reply-To: <13458.1349122608@warthog.procyon.org.uk>
+Received: from mx1.redhat.com ([209.132.183.28]:38999 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752678Ab2JBQzb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 2 Oct 2012 12:55:31 -0400
+In-Reply-To: <CAHkRjk4Nv-Wb6NA9tZkLPQw8NFvTXMScF3x6i=e+KeBC0uF6Dw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: arnd@arndb.de, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: dhowells@redhat.com, torvalds@osdl.org, arnd@arndb.de, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Mon, Oct 1, 2012 at 1:16 PM, David Howells <dhowells@redhat.com> wrote:
->
-> Could you please pull this tree at the _end_ of this merge window?
+Catalin Marinas <catalin.marinas@arm.com> wrote:
 
-At the KS you said you'd be able to split this up into a preparatory
-patch. That doesn't seem to have happened.
+> There is arm64 that got merged, so its headers need splitting as well.
+> I'm happy to send a pull request myself just for arm64 if you give me
+> the script, otherwise you can run you script again close to -rc1 (and
+> I'll test it).
 
-The whole "at the end of the merge window" tends to be something I
-hate doing anyway, but this merge window I'll be traveling at the end.
+I can just re-run my scripts and post a new set of patches.
 
-The whole "this pull is magical" thing just isn't working.
-
-                 Linus
+David
