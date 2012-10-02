@@ -1,117 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:51814 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753436Ab2JBW1U (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2012 18:27:20 -0400
-Date: Tue, 02 Oct 2012 18:27:18 -0400 (EDT)
-Message-ID: <20121002.182718.250164928532772411.davem@davemloft.net>
-Subject: [PATCH 6/8] mm: Make transparent huge code not depend upon the
- details of pgtable_t
-From: David Miller <davem@davemloft.net>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:53580 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754486Ab2JBWzp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 2 Oct 2012 18:55:45 -0400
+Date: Tue, 2 Oct 2012 15:55:44 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 0/8] THP support for Sparc64
+Message-ID: <20121002155544.2c67b1e8.akpm@linux-foundation.org>
+In-Reply-To: <20121002.182601.845433592794197720.davem@davemloft.net>
+References: <20121002.182601.845433592794197720.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org
-Cc: sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, aarcange@redhat.com, hannes@cmpxchg.org
-Message-ID: <20121002222718.waA3E3NbqKfjk-3bVU37E54AZhSIJDct-czd7Nc6u6g@z>
+To: David Miller <davem@davemloft.net>
+Cc: linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, aarcange@redhat.com, hannes@cmpxchg.org, Gerald Schaefer <gerald.schaefer@de.ibm.com>
+Message-ID: <20121002225544.Xq5s83R8WHr7WxyyoamCRL5KCTv6ns6kaoBBiueGhnA@z>
 
+On Tue, 02 Oct 2012 18:26:01 -0400 (EDT)
+David Miller <davem@davemloft.net> wrote:
 
-The code currently assumes that pgtable_t is a struct page pointer.
+> Here is a set of patches that add THP support for sparc64.
+> 
+> A few of them are relatively minor portability issues I ran into.
+> Like the MIPS guys I hit the update_mmu_cache() typing issue so I have
+> a patch for that here.
+> 
+> It is very likely that I need the ACCESSED bit handling fix the
+> ARM folks have been posting recently as well.
+> 
+> On the sparc64 side the biggest issue was moving to only supporting
+> 4MB pages and then realigning the page tables so that the PMDs map 4MB
+> (instead of 8MB as they do now).
+> 
+> The rest was just trial and error, running tests, and fixing bugs.
+> 
+> A familiar test case that makes 5 million random accesses to a 1GB
+> memory area goes from 20 seconds down to 0.43 seconds with THP enabled
+> on my SPARC T4-2 box.
 
-Fix this by pushing pgtable management behind arch helper functions.
+Hardly worth bothering about ;)
 
-Signed-off-by: David S. Miller <davem@davemloft.net>
----
- arch/x86/include/asm/pgalloc.h |   26 ++++++++++++++++++++++++++
- mm/huge_memory.c               |   22 ++--------------------
- 2 files changed, 28 insertions(+), 20 deletions(-)
+I had a shot at integrating all this onto the pending stuff in linux-next. 
+"mm: Add and use update_mmu_cache_pmd() in transparent huge page code."
+needed minor massaging in huge_memory.c.  But as Andrea mentioned, we
+ran aground on Gerald's
+http://ozlabs.org/~akpm/mmotm/broken-out/thp-remove-assumptions-on-pgtable_t-type.patch,
+part of the thp-for-s390 work.
 
-diff --git a/arch/x86/include/asm/pgalloc.h b/arch/x86/include/asm/pgalloc.h
-index b4389a4..f2a12e9 100644
---- a/arch/x86/include/asm/pgalloc.h
-+++ b/arch/x86/include/asm/pgalloc.h
-@@ -136,4 +136,30 @@ static inline void __pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,
- #endif	/* PAGETABLE_LEVELS > 3 */
- #endif	/* PAGETABLE_LEVELS > 2 */
- 
-+static inline void pmd_huge_pte_insert(struct mm_struct *mm, pgtable_t pgtable)
-+{
-+	/* FIFO */
-+	if (!mm->pmd_huge_pte)
-+		INIT_LIST_HEAD(&pgtable->lru);
-+	else
-+		list_add(&pgtable->lru, &mm->pmd_huge_pte->lru);
-+	mm->pmd_huge_pte = pgtable;
-+}
-+
-+static inline pgtable_t pmd_huge_pte_remove(struct mm_struct *mm)
-+{
-+	pgtable_t pgtable;
-+
-+	/* FIFO */
-+	pgtable = mm->pmd_huge_pte;
-+	if (list_empty(&pgtable->lru))
-+		mm->pmd_huge_pte = NULL;
-+	else {
-+		mm->pmd_huge_pte = list_entry(pgtable->lru.next,
-+					      struct page, lru);
-+		list_del(&pgtable->lru);
-+	}
-+	return pgtable;
-+}
-+
- #endif /* _ASM_X86_PGALLOC_H */
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 29414c1..5d44785 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -616,12 +616,7 @@ static void prepare_pmd_huge_pte(pgtable_t pgtable,
- {
- 	assert_spin_locked(&mm->page_table_lock);
- 
--	/* FIFO */
--	if (!mm->pmd_huge_pte)
--		INIT_LIST_HEAD(&pgtable->lru);
--	else
--		list_add(&pgtable->lru, &mm->pmd_huge_pte->lru);
--	mm->pmd_huge_pte = pgtable;
-+	pmd_huge_pte_insert(mm, pgtable);
- }
- 
- static inline pmd_t maybe_pmd_mkwrite(pmd_t pmd, struct vm_area_struct *vma)
-@@ -805,20 +800,9 @@ out:
- /* no "address" argument so destroys page coloring of some arch */
- pgtable_t get_pmd_huge_pte(struct mm_struct *mm)
- {
--	pgtable_t pgtable;
--
- 	assert_spin_locked(&mm->page_table_lock);
- 
--	/* FIFO */
--	pgtable = mm->pmd_huge_pte;
--	if (list_empty(&pgtable->lru))
--		mm->pmd_huge_pte = NULL;
--	else {
--		mm->pmd_huge_pte = list_entry(pgtable->lru.next,
--					      struct page, lru);
--		list_del(&pgtable->lru);
--	}
--	return pgtable;
-+	return pmd_huge_pte_remove(mm);
- }
- 
- static int do_huge_pmd_wp_page_fallback(struct mm_struct *mm,
-@@ -1971,8 +1955,6 @@ static void collapse_huge_page(struct mm_struct *mm,
- 	pte_unmap(pte);
- 	__SetPageUptodate(new_page);
- 	pgtable = pmd_pgtable(_pmd);
--	VM_BUG_ON(page_count(pgtable) != 1);
--	VM_BUG_ON(page_mapcount(pgtable) != 0);
- 
- 	_pmd = mk_pmd(new_page, vma->vm_page_prot);
- 	_pmd = maybe_pmd_mkwrite(pmd_mkdirty(_pmd), vma);
--- 
-1.7.10.4
 
