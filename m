@@ -1,48 +1,50 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [GIT PULL] Disintegrate the User API from the kernel headers
-Date: Tue, 02 Oct 2012 18:11:23 +0100
-Message-ID: <8455.1349197883@warthog.procyon.org.uk>
-References: <CA+55aFyu9rJH0x9eAF7A=m64nSCRtcPxdE4MR3+ZSd8qxEbwFw@mail.gmail.com> <13458.1349122608@warthog.procyon.org.uk>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:18736 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751264Ab2JBRLl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 2 Oct 2012 13:11:41 -0400
-In-Reply-To: <CA+55aFyu9rJH0x9eAF7A=m64nSCRtcPxdE4MR3+ZSd8qxEbwFw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, Dave Airlie <airlied@redhat.com>, Catalin Marinas <catalin.marinas@arm.com>
-Cc: dhowells@redhat.com, arnd@arndb.de, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+From: Andrea Arcangeli <aarcange@redhat.com>
+Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
+ access fault.
+Date: Tue, 2 Oct 2012 19:46:24 +0200
+Message-ID: <20121002174624.GI4763@redhat.com>
+References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
+Sender: owner-linux-mm@kvack.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, mhocko@suse.cz, kirill@shutemov.name, Chris Metcalf <cmetcalf@tilera.com>, Steve Capper <steve.capper@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Linus Torvalds <torvalds@linux-foundation.org> wrote:
+On Tue, Oct 02, 2012 at 05:59:11PM +0100, Will Deacon wrote:
+> On x86 memory accesses to pages without the ACCESSED flag set result in the
+> ACCESSED flag being set automatically. With the ARM architecture a page access
+> fault is raised instead (and it will continue to be raised until the ACCESSED
+> flag is set for the appropriate PTE/PMD).
+> 
+> For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
+> setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
+> be called for a write fault.
+> 
+> This patch ensures that faults on transparent hugepages which do not result
+> in a CoW update the access flags for the faulting pmd.
+> 
+> Cc: Andrea Arcangeli <aarcange@redhat.com>
+> Cc: Chris Metcalf <cmetcalf@tilera.com>
+> Signed-off-by: Steve Capper <steve.capper@arm.com>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> ---
+> 
+> v2: - Use pmd_trans_huge_lock to guard against splitting pmds
+>     - Propogate dirty (write) flag to low-level pmd modifier
+> 
+>  include/linux/huge_mm.h |    2 ++
+>  mm/huge_memory.c        |    8 ++++++++
+>  mm/memory.c             |    9 ++++++++-
+>  3 files changed, 18 insertions(+), 1 deletions(-)
 
-> At the KS you said you'd be able to split this up into a preparatory
-> patch. That doesn't seem to have happened.
+Reviewed-by: Andrea Arcangeli <aarcange@redhat.com>
 
-I've been generating a tag at the preparatory patch set point for quite a
-while now.  If you look in the tags list on:
-
-	http://git.infradead.org/users/dhowells/linux-headers.git
-
-you will see a number of tags of the form:
-
-	uapi-prep-YYYYMMDD
-
-that's the preparatory set if you want to take just that.
-
-Yesterday's preparatory set is at tag:
-
-	uapi-prep-20121001
-
-See: http://git.infradead.org/users/dhowells/linux-headers.git/shortlog/refs/tags/uapi-prep-20121001
-
-I have just done another regeneration so that arm64 is covered too.  That
-has now been posted under:
-
-	uapi-post-split-20121001	- The complete set
-	uapi-prep-20121002		- The preparatory set
-
-I will send you a pull request for just the preparatory set when I have tried
-some test builds on it and when gitweb has finally caught up.
-
-David
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
