@@ -1,28 +1,28 @@
 From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: [PATCH 2/4] Clean up the long arch list for the DEBUG_KMEMLEAK config option
-Date: Wed,  3 Oct 2012 17:44:24 +0100
-Message-ID: <1349282666-32100-3-git-send-email-catalin.marinas@arm.com>
+Subject: [PATCH 4/4] Clean up the "#if defined(arch)" list for exception-trace sysctl entry
+Date: Wed,  3 Oct 2012 17:44:26 +0100
+Message-ID: <1349282666-32100-5-git-send-email-catalin.marinas@arm.com>
 References: <1349282666-32100-1-git-send-email-catalin.marinas@arm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:51486 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S932112Ab2JCQsG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Oct 2012 12:48:06 -0400
 In-Reply-To: <1349282666-32100-1-git-send-email-catalin.marinas@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Russell King <linux@arm.linux.org.uk>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Andrew Morton <akpm@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-This patch introduces HAVE_DEBUG_KMEMLEAK config option and selects it
-in corresponding architecture Kconfig files. DEBUG_KMEMLEAK now only
-depends on HAVE_DEBUG_KMEMLEAK.
+This patch introduces SYSCTL_EXCEPTION_TRACE config option and selects
+it in the architectures requiring support for the "exception-trace"
+debug_table entry in kernel/sysctl.c.
 
 Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Michal Simek <monstr@monstr.eu>
-Cc: Ralf Baechle <ralf@linux-mips.org>
 Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 Cc: Paul Mackerras <paulus@samba.org>
 Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
 Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
-Cc: Paul Mundt <lethal@linux-sh.org>
 Cc: "David S. Miller" <davem@davemloft.net>
 Cc: Chris Metcalf <cmetcalf@tilera.com>
 Cc: Thomas Gleixner <tglx@linutronix.de>
@@ -31,157 +31,115 @@ Cc: "H. Peter Anvin" <hpa@zytor.com>
 Cc: x86@kernel.org
 Cc: Andrew Morton <akpm@linux-foundation.org>
 ---
- arch/arm/Kconfig        |    1 +
- arch/arm64/Kconfig      |    1 +
- arch/microblaze/Kconfig |    1 +
- arch/mips/Kconfig       |    1 +
- arch/powerpc/Kconfig    |    1 +
- arch/s390/Kconfig       |    1 +
- arch/sh/Kconfig         |    1 +
- arch/sparc/Kconfig      |    1 +
- arch/tile/Kconfig       |    1 +
- arch/x86/Kconfig        |    1 +
- lib/Kconfig.debug       |    8 ++++----
- 11 files changed, 14 insertions(+), 4 deletions(-)
+ arch/arm64/Kconfig   |    1 +
+ arch/powerpc/Kconfig |    1 +
+ arch/s390/Kconfig    |    1 +
+ arch/sparc/Kconfig   |    1 +
+ arch/tile/Kconfig    |    1 +
+ arch/x86/Kconfig     |    1 +
+ init/Kconfig         |    5 +++++
+ kernel/sysctl.c      |    3 +--
+ 8 files changed, 12 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index 63ff281..a39477a 100644
---- a/arch/arm/Kconfig
-+++ b/arch/arm/Kconfig
-@@ -50,6 +50,7 @@ config ARM
- 	select GENERIC_STRNLEN_USER
- 	select DCACHE_WORD_ACCESS if (CPU_V6 || CPU_V6K || CPU_V7) && !CPU_BIG_ENDIAN
- 	select HAVE_UID16
-+	select HAVE_DEBUG_KMEMLEAK
- 	help
- 	  The ARM series is a line of low-power-consumption RISC chip designs
- 	  licensed by ARM Ltd and targeted at embedded applications and
 diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index e61acae..5dc9273 100644
+index a308560..7ff68c9 100644
 --- a/arch/arm64/Kconfig
 +++ b/arch/arm64/Kconfig
-@@ -10,6 +10,7 @@ config ARM64
- 	select GENERIC_TIME_VSYSCALL
- 	select HARDIRQS_SW_RESEND
- 	select HAVE_ARCH_TRACEHOOK
-+	select HAVE_DEBUG_KMEMLEAK
- 	select HAVE_DMA_API_DEBUG
- 	select HAVE_DMA_ATTRS
- 	select HAVE_GENERIC_DMA_COHERENT
-diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
-index ab9afca..61b5d9f 100644
---- a/arch/microblaze/Kconfig
-+++ b/arch/microblaze/Kconfig
-@@ -24,6 +24,7 @@ config MICROBLAZE
- 	select GENERIC_CPU_DEVICES
- 	select GENERIC_ATOMIC64
- 	select GENERIC_CLOCKEVENTS
-+	select HAVE_DEBUG_KMEMLEAK
- 
- config SWAP
- 	def_bool n
-diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index faf6528..e04b95b 100644
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
-@@ -36,6 +36,7 @@ config MIPS
- 	select BUILDTIME_EXTABLE_SORT
- 	select GENERIC_CLOCKEVENTS
- 	select GENERIC_CMOS_UPDATE
-+	select HAVE_DEBUG_KMEMLEAK
- 
- menu "Machine selection"
+@@ -28,6 +28,7 @@ config ARM64
+ 	select PERF_USE_VMALLOC
+ 	select RTC_LIB
+ 	select SPARSE_IRQ
++	select SYSCTL_EXCEPTION_TRACE
+ 	help
+ 	  ARM 64-bit (AArch64) Linux support.
  
 diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 352f416..63c640d 100644
+index 63c640d..1ab473a 100644
 --- a/arch/powerpc/Kconfig
 +++ b/arch/powerpc/Kconfig
-@@ -139,6 +139,7 @@ config PPC
- 	select GENERIC_CLOCKEVENTS
+@@ -140,6 +140,7 @@ config PPC
  	select GENERIC_STRNCPY_FROM_USER
  	select GENERIC_STRNLEN_USER
-+	select HAVE_DEBUG_KMEMLEAK
+ 	select HAVE_DEBUG_KMEMLEAK
++	select SYSCTL_EXCEPTION_TRACE
  
  config EARLY_PRINTK
  	bool
 diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
-index 4de3a85..d3216d7 100644
+index d3216d7..0391630 100644
 --- a/arch/s390/Kconfig
 +++ b/arch/s390/Kconfig
-@@ -133,6 +133,7 @@ config S390
- 	select KTIME_SCALAR if 32BIT
+@@ -134,6 +134,7 @@ config S390
  	select HAVE_ARCH_SECCOMP_FILTER
  	select HAVE_UID16 if 32BIT
-+	select HAVE_DEBUG_KMEMLEAK
+ 	select HAVE_DEBUG_KMEMLEAK
++	select SYSCTL_EXCEPTION_TRACE
  
  config SCHED_OMIT_FRAME_POINTER
  	def_bool y
-diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
-index fa6e2f1..cb5a22e 100644
---- a/arch/sh/Kconfig
-+++ b/arch/sh/Kconfig
-@@ -36,6 +36,7 @@ config SUPERH
- 	select GENERIC_STRNCPY_FROM_USER
- 	select GENERIC_STRNLEN_USER
- 	select HAVE_UID16
-+	select HAVE_DEBUG_KMEMLEAK
- 	help
- 	  The SuperH is a RISC processor targeted for use in embedded systems
- 	  and consumer electronics; it was also used in the Sega Dreamcast
 diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
-index 931eaed..a69bc77b 100644
+index 2006ddc..d427993 100644
 --- a/arch/sparc/Kconfig
 +++ b/arch/sparc/Kconfig
-@@ -70,6 +70,7 @@ config SPARC64
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select HAVE_C_RECORDMCOUNT
- 	select NO_BOOTMEM
-+	select HAVE_DEBUG_KMEMLEAK
+@@ -38,6 +38,7 @@ config SPARC
+ 	select GENERIC_STRNCPY_FROM_USER
+ 	select GENERIC_STRNLEN_USER
+ 	select HAVE_DEBUG_BUGVERBOSE
++	select SYSCTL_EXCEPTION_TRACE
  
- config ARCH_DEFCONFIG
- 	string
+ config SPARC32
+ 	def_bool !64BIT
 diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
-index c9a3c1f..afb3abd 100644
+index e38ae98..e4bb0ca 100644
 --- a/arch/tile/Kconfig
 +++ b/arch/tile/Kconfig
-@@ -17,6 +17,7 @@ config TILE
- 	select SYS_HYPERVISOR
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+@@ -19,6 +19,7 @@ config TILE
  	select GENERIC_CLOCKEVENTS
-+	select HAVE_DEBUG_KMEMLEAK
+ 	select HAVE_DEBUG_KMEMLEAK
+ 	select HAVE_DEBUG_BUGVERBOSE
++	select SYSCTL_EXCEPTION_TRACE
  
  # FIXME: investigate whether we need/want these options.
  #	select HAVE_IOREMAP_PROT
 diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
-index 2e84642..6995d6b 100644
+index 6995d6b..5aaa3b6 100644
 --- a/arch/x86/Kconfig
 +++ b/arch/x86/Kconfig
-@@ -105,6 +105,7 @@ config X86
- 	select GENERIC_STRNLEN_USER
+@@ -106,6 +106,7 @@ config X86
  	select HAVE_RCU_USER_QS if X86_64
  	select HAVE_IRQ_TIME_ACCOUNTING
-+	select HAVE_DEBUG_KMEMLEAK
+ 	select HAVE_DEBUG_KMEMLEAK
++	select SYSCTL_EXCEPTION_TRACE
  
  config INSTRUCTION_DECODER
  	def_bool y
-diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
-index 35c4565..63dfc4c 100644
---- a/lib/Kconfig.debug
-+++ b/lib/Kconfig.debug
-@@ -449,12 +449,12 @@ config SLUB_STATS
- 	  out which slabs are relevant to a particular load.
- 	  Try running: slabinfo -DA
+diff --git a/init/Kconfig b/init/Kconfig
+index f8de091..4d13aae 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1152,6 +1152,11 @@ config SYSCTL_SYSCALL
  
-+config HAVE_DEBUG_KMEMLEAK
+ 	  If unsure say N here.
+ 
++config SYSCTL_EXCEPTION_TRACE
 +	bool
++	help
++	  Enable support for /proc/sys/debug/exception-trace.
 +
- config DEBUG_KMEMLEAK
- 	bool "Kernel memory leak detector"
--	depends on DEBUG_KERNEL && EXPERIMENTAL && \
--		(X86 || ARM || PPC || MIPS || S390 || SPARC64 || SUPERH || \
--		 MICROBLAZE || TILE || ARM64)
--
-+	depends on DEBUG_KERNEL && EXPERIMENTAL && HAVE_DEBUG_KMEMLEAK
- 	select DEBUG_FS
- 	select STACKTRACE if STACKTRACE_SUPPORT
- 	select KALLSYMS
+ config KALLSYMS
+ 	 bool "Load all symbols for debugging/ksymoops" if EXPERT
+ 	 default y
+diff --git a/kernel/sysctl.c b/kernel/sysctl.c
+index 84c76a3..b0eaca7 100644
+--- a/kernel/sysctl.c
++++ b/kernel/sysctl.c
+@@ -1543,8 +1543,7 @@ static struct ctl_table fs_table[] = {
+ };
+ 
+ static struct ctl_table debug_table[] = {
+-#if defined(CONFIG_X86) || defined(CONFIG_PPC) || defined(CONFIG_SPARC) || \
+-    defined(CONFIG_S390) || defined(CONFIG_TILE) || defined(CONFIG_ARM64)
++#ifdef CONFIG_SYSCTL_EXCEPTION_TRACE
+ 	{
+ 		.procname	= "exception-trace",
+ 		.data		= &show_unhandled_signals,
