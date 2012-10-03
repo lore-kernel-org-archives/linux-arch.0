@@ -1,72 +1,65 @@
-From: David Miller <davem@davemloft.net>
-Subject: [PATCH v2 6/7] mm: thp: Use more portable PMD clearing sequenece
- in zap_huge_pmd().
-Date: Thu, 04 Oct 2012 15:47:47 -0400 (EDT)
-Message-ID: <20121004.154747.650416442352280556.davem@davemloft.net>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH 1/4] Clean up the long arch list for the UID16 config
+ option
+Date: Wed, 3 Oct 2012 15:15:05 -0700
+Message-ID: <20121003151505.8d59b646.akpm@linux-foundation.org>
+References: <1349282666-32100-1-git-send-email-catalin.marinas@arm.com>
+	<1349282666-32100-2-git-send-email-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-Sender: owner-linux-mm@kvack.org
-To: linux-mm@kvack.org
-Cc: sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, aarcange@redhat.com, hannes@cmpxchg.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1349282666-32100-2-git-send-email-catalin.marinas@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
+On Wed,  3 Oct 2012 17:44:23 +0100
+Catalin Marinas <catalin.marinas@arm.com> wrote:
 
-Invalidation sequences are handled in various ways on various
-architectures.
+> This patch introduces HAVE_UID16 config option and selects it in
+> corresponding architecture Kconfig files. UID16 now only depends on
+> HAVE_UID16.
 
-One way, which sparc64 uses, is to let the set_*_at() functions
-accumulate pending flushes into a per-cpu array.  Then the
-flush_tlb_range() et al. calls process the pending TLB flushes.
+patching file arch/arm/Kconfig
+Hunk #1 FAILED at 49.
+1 out of 1 hunk FAILED -- saving rejects to file arch/arm/Kconfig.rej
+patching file arch/arm64/Kconfig
+patching file arch/blackfin/Kconfig
+Hunk #1 FAILED at 42.
+1 out of 1 hunk FAILED -- saving rejects to file arch/blackfin/Kconfig.rej
+patching file arch/cris/Kconfig
+Hunk #1 FAILED at 47.
+1 out of 1 hunk FAILED -- saving rejects to file arch/cris/Kconfig.rej
+patching file arch/frv/Kconfig
+Hunk #1 FAILED at 10.
+1 out of 1 hunk FAILED -- saving rejects to file arch/frv/Kconfig.rej
+patching file arch/h8300/Kconfig
+Hunk #1 FAILED at 6.
+1 out of 1 hunk FAILED -- saving rejects to file arch/h8300/Kconfig.rej
+patching file arch/m68k/Kconfig
+Hunk #1 FAILED at 13.
+1 out of 1 hunk FAILED -- saving rejects to file arch/m68k/Kconfig.rej
+patching file arch/s390/Kconfig
+Hunk #1 FAILED at 132.
+1 out of 1 hunk FAILED -- saving rejects to file arch/s390/Kconfig.rej
+patching file arch/sh/Kconfig
+Hunk #1 FAILED at 35.
+1 out of 1 hunk FAILED -- saving rejects to file arch/sh/Kconfig.rej
 
-In this regime, the __tlb_remove_*tlb_entry() implementations are
-essentially NOPs.
 
-The canonical PTE zap in mm/memory.c is:
+This is a pet peeve of mine.  Any time there's a long list of items
+(header file inclusions, kconfig entries, array initalisers, etc) and
+someone wants to add a new item, they *always* go and stick it at the
+end of the list.
 
-			ptent = ptep_get_and_clear_full(mm, addr, pte,
-							tlb->fullmm);
-			tlb_remove_tlb_entry(tlb, pte, addr);
+Which is exactly where everyone else applies their modifications.  The
+whole thing is carefully set up to maximise the number of conflicts.
 
-With a subsequent tlb_flush_mmu() if needed.
+Guys, don't do this.  Either put the new item into a randomly-chosen
+position or, probably better, alphanumerically sort the list.
 
-Mirror this in the THP PMD zapping using:
 
-		orig_pmd = pmdp_get_and_clear(tlb->mm, addr, pmd);
-		page = pmd_page(orig_pmd);
-		tlb_remove_pmd_tlb_entry(tlb, pmd, addr);
-
-And we properly accomodate TLB flush mechanims like the one described
-above.
-
-Signed-off-by: David S. Miller <davem@davemloft.net>
----
- mm/huge_memory.c |    5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
-
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index 20eeb2b..2fa0c59 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -996,9 +996,10 @@ int zap_huge_pmd(struct mmu_gather *tlb, struct vm_area_struct *vma,
- 	if (__pmd_trans_huge_lock(pmd, vma) == 1) {
- 		struct page *page;
- 		pgtable_t pgtable;
-+		pmd_t orig_pmd;
- 		pgtable = pgtable_trans_huge_withdraw(tlb->mm);
--		page = pmd_page(*pmd);
--		pmd_clear(pmd);
-+		orig_pmd = pmdp_get_and_clear(tlb->mm, addr, pmd);
-+		page = pmd_page(orig_pmd);
- 		tlb_remove_pmd_tlb_entry(tlb, pmd, addr);
- 		page_remove_rmap(page);
- 		VM_BUG_ON(page_mapcount(page) < 0);
--- 
-1.7.10.4
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+For this reason it looks like approximately 0% of the patchset will
+apply, sorry.
