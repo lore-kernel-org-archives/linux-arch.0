@@ -1,20 +1,25 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 1/4] Clean up the long arch list for the UID16 config option
-Date: Wed, 3 Oct 2012 20:24:18 +0200
-Message-ID: <CAMuHMdX7=PupayYRnu5cGyWX3K9nTGj0WqQabLk7VkUduTHf1g@mail.gmail.com>
+Subject: Re: [PATCH 3/4] Clean up the long arch list for the DEBUG_BUGVERBOSE
+ config option
+Date: Wed, 3 Oct 2012 20:25:26 +0200
+Message-ID: <CAMuHMdUyF2zz5KGYm6FJ4ofZjf7Thwn9N3_KRXf2NL2x7gN3nw@mail.gmail.com>
 References: <1349282666-32100-1-git-send-email-catalin.marinas@arm.com>
-	<1349282666-32100-2-git-send-email-catalin.marinas@arm.com>
+	<1349282666-32100-4-git-send-email-catalin.marinas@arm.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1349282666-32100-2-git-send-email-catalin.marinas@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qa0-f46.google.com ([209.85.216.46]:37465 "EHLO
+	mail-qa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S933216Ab2JCSZ1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Oct 2012 14:25:27 -0400
+In-Reply-To: <1349282666-32100-4-git-send-email-catalin.marinas@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Andrew Morton <akpm@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Andrew Morton <akpm@linux-foundation.org>
 
 On Wed, Oct 3, 2012 at 6:44 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
->  arch/m68k/Kconfig      |    1 +
+>  arch/m68k/Kconfig  |    1 +
 
 Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
