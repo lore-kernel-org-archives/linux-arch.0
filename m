@@ -1,122 +1,48 @@
-From: Mike Yoknis <mike.yoknis@hp.com>
-Subject: [PATCH] mm: memmap_init_zone() performance improvement
-Date: Wed,  3 Oct 2012 08:56:14 -0600
-Message-ID: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
-Return-path: <owner-linux-mm@kvack.org>
-Sender: owner-linux-mm@kvack.org
-To: mgorman@suse.de, mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org
-Cc: mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Mike Yoknis <mike.yoknis@hp.com>
-List-Id: linux-arch.vger.kernel.org
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: [PATCH 0/4] Clean up some long arch conditionals
+Date: Wed,  3 Oct 2012 17:44:22 +0100
+Message-ID: <1349282666-32100-1-git-send-email-catalin.marinas@arm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:51448 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756382Ab2JCQpT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Oct 2012 12:45:19 -0400
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-memmap_init_zone() loops through every Page Frame Number (pfn),
-including pfn values that are within the gaps between existing
-memory sections.  The unneeded looping will become a boot
-performance issue when machines configure larger memory ranges
-that will contain larger and more numerous gaps.
+As pointed out by Linus, there are Kconfig or .c files with long
+condition checks listing several architectures. These patches attempt to
+solve some of them.
 
-The code will skip across invalid sections to reduce the
-number of loops executed.
+Sorry for the long cc but given that the patches are trivial it's not
+worth submitting individual patches for each architecture.
 
-Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
----
- arch/x86/include/asm/mmzone_32.h     |    2 ++
- arch/x86/include/asm/page_32.h       |    1 +
- arch/x86/include/asm/page_64_types.h |    3 ++-
- include/asm-generic/page.h           |    1 +
- include/linux/mmzone.h               |    6 ++++++
- mm/page_alloc.c                      |    5 ++++-
- 6 files changed, 16 insertions(+), 2 deletions(-)
+Catalin Marinas (4):
+  Clean up the long arch list for the UID16 config option
+  Clean up the long arch list for the DEBUG_KMEMLEAK config option
+  Clean up the long arch list for the DEBUG_BUGVERBOSE config option
+  Clean up the "#if defined(arch)" list for exception-trace sysctl
+    entry
 
-diff --git a/arch/x86/include/asm/mmzone_32.h b/arch/x86/include/asm/mmzone_32.h
-index eb05fb3..73c5c74 100644
---- a/arch/x86/include/asm/mmzone_32.h
-+++ b/arch/x86/include/asm/mmzone_32.h
-@@ -48,6 +48,8 @@ static inline int pfn_to_nid(unsigned long pfn)
- #endif
- }
- 
-+#define next_pfn_try(pfn)	((pfn)+1)
-+
- static inline int pfn_valid(int pfn)
- {
- 	int nid = pfn_to_nid(pfn);
-diff --git a/arch/x86/include/asm/page_32.h b/arch/x86/include/asm/page_32.h
-index da4e762..e2c4cfc 100644
---- a/arch/x86/include/asm/page_32.h
-+++ b/arch/x86/include/asm/page_32.h
-@@ -19,6 +19,7 @@ extern unsigned long __phys_addr(unsigned long);
- 
- #ifdef CONFIG_FLATMEM
- #define pfn_valid(pfn)		((pfn) < max_mapnr)
-+#define next_pfn_try(pfn)	((pfn)+1)
- #endif /* CONFIG_FLATMEM */
- 
- #ifdef CONFIG_X86_USE_3DNOW
-diff --git a/arch/x86/include/asm/page_64_types.h b/arch/x86/include/asm/page_64_types.h
-index 320f7bb..02d82e5 100644
---- a/arch/x86/include/asm/page_64_types.h
-+++ b/arch/x86/include/asm/page_64_types.h
-@@ -69,7 +69,8 @@ extern void init_extra_mapping_wb(unsigned long phys, unsigned long size);
- #endif	/* !__ASSEMBLY__ */
- 
- #ifdef CONFIG_FLATMEM
--#define pfn_valid(pfn)          ((pfn) < max_pfn)
-+#define pfn_valid(pfn)		((pfn) < max_pfn)
-+#define next_pfn_try(pfn)	((pfn)+1)
- #endif
- 
- #endif /* _ASM_X86_PAGE_64_DEFS_H */
-diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
-index 37d1fe2..316200d 100644
---- a/include/asm-generic/page.h
-+++ b/include/asm-generic/page.h
-@@ -91,6 +91,7 @@ extern unsigned long memory_end;
- #endif
- 
- #define pfn_valid(pfn)		((pfn) >= ARCH_PFN_OFFSET && ((pfn) - ARCH_PFN_OFFSET) < max_mapnr)
-+#define next_pfn_try(pfn)	((pfn)+1)
- 
- #define	virt_addr_valid(kaddr)	(((void *)(kaddr) >= (void *)PAGE_OFFSET) && \
- 				((void *)(kaddr) < (void *)memory_end))
-diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
-index f7d88ba..04d3c39 100644
---- a/include/linux/mmzone.h
-+++ b/include/linux/mmzone.h
-@@ -1166,6 +1166,12 @@ static inline int pfn_valid(unsigned long pfn)
- 		return 0;
- 	return valid_section(__nr_to_section(pfn_to_section_nr(pfn)));
- }
-+
-+static inline unsigned long next_pfn_try(unsigned long pfn)
-+{
-+	/* Skip entire section, because all of it is invalid. */
-+	return section_nr_to_pfn(pfn_to_section_nr(pfn) + 1);
-+}
- #endif
- 
- static inline int pfn_present(unsigned long pfn)
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 5b6b6b1..dd2af8b 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -3798,8 +3798,11 @@ void __meminit memmap_init_zone(unsigned long size, int nid, unsigned long zone,
- 		 * exist on hotplugged memory.
- 		 */
- 		if (context == MEMMAP_EARLY) {
--			if (!early_pfn_valid(pfn))
-+			if (!early_pfn_valid(pfn)) {
-+				pfn = next_pfn_try(pfn);
-+				pfn--;
- 				continue;
-+			}
- 			if (!early_pfn_in_nid(pfn, nid))
- 				continue;
- 		}
--- 
-1.7.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+ arch/arm/Kconfig        |    2 ++
+ arch/arm64/Kconfig      |    4 ++++
+ arch/blackfin/Kconfig   |    1 +
+ arch/cris/Kconfig       |    1 +
+ arch/frv/Kconfig        |    2 ++
+ arch/h8300/Kconfig      |    1 +
+ arch/m32r/Kconfig       |    1 +
+ arch/m68k/Kconfig       |    2 ++
+ arch/microblaze/Kconfig |    1 +
+ arch/mips/Kconfig       |    1 +
+ arch/powerpc/Kconfig    |    2 ++
+ arch/s390/Kconfig       |    3 +++
+ arch/sh/Kconfig         |    3 +++
+ arch/sparc/Kconfig      |    5 +++++
+ arch/tile/Kconfig       |    3 +++
+ arch/um/Kconfig.common  |    1 +
+ arch/x86/Kconfig        |    4 ++++
+ init/Kconfig            |   11 +++++++++--
+ kernel/sysctl.c         |    3 +--
+ lib/Kconfig.debug       |   16 ++++++++--------
+ 20 files changed, 55 insertions(+), 12 deletions(-)
