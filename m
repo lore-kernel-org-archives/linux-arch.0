@@ -1,51 +1,30 @@
-From: Andrea Arcangeli <aarcange@redhat.com>
-Subject: Re: [PATCH 7/8] mm: thp: Use more portable PMD clearing sequenece in
- zap_huge_pmd().
-Date: Wed, 3 Oct 2012 00:58:03 +0200
-Message-ID: <20121002225803.GT4763@redhat.com>
-References: <20121002.182741.650740858374403508.davem@davemloft.net>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 0/8] THP support for Sparc64
+Date: Tue, 02 Oct 2012 20:53:18 -0400 (EDT)
+Message-ID: <20121002.205318.1484512119234167322.davem@davemloft.net>
+References: <20121002.182601.845433592794197720.davem@davemloft.net>
+	<20121002155544.2c67b1e8.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20121002.182741.650740858374403508.davem@davemloft.net>
+In-Reply-To: <20121002155544.2c67b1e8.akpm@linux-foundation.org>
 Sender: owner-linux-mm@kvack.org
-To: David Miller <davem@davemloft.net>
-Cc: linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, hannes@cmpxchg.org
+To: akpm@linux-foundation.org
+Cc: linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, aarcange@redhat.com, hannes@cmpxchg.org, gerald.schaefer@de.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Oct 02, 2012 at 06:27:41PM -0400, David Miller wrote:
-> 
-> Invalidation sequences are handled in various ways on various
-> architectures.
-> 
-> One way, which sparc64 uses, is to let the set_*_at() functions
-> accumulate pending flushes into a per-cpu array.  Then the
-> flush_tlb_range() et al. calls process the pending TLB flushes.
-> 
-> In this regime, the __tlb_remove_*tlb_entry() implementations are
-> essentially NOPs.
-> 
-> The canonical PTE zap in mm/memory.c is:
-> 
-> 			ptent = ptep_get_and_clear_full(mm, addr, pte,
-> 							tlb->fullmm);
-> 			tlb_remove_tlb_entry(tlb, pte, addr);
-> 
-> With a subsequent tlb_flush_mmu() if needed.
-> 
-> Mirror this in the THP PMD zapping using:
-> 
-> 		orig_pmd = pmdp_get_and_clear(tlb->mm, addr, pmd);
-> 		page = pmd_page(orig_pmd);
-> 		tlb_remove_pmd_tlb_entry(tlb, pmd, addr);
-> 
-> And we properly accomodate TLB flush mechanims like the one described
-> above.
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Tue, 2 Oct 2012 15:55:44 -0700
 
-Thanks for the explanation.
+> I had a shot at integrating all this onto the pending stuff in linux-next. 
+> "mm: Add and use update_mmu_cache_pmd() in transparent huge page code."
+> needed minor massaging in huge_memory.c.  But as Andrea mentioned, we
+> ran aground on Gerald's
+> http://ozlabs.org/~akpm/mmotm/broken-out/thp-remove-assumptions-on-pgtable_t-type.patch,
+> part of the thp-for-s390 work.
 
-Reviewed-by: Andrea Arcangeli <aarcange@redhat.com>
+I'll rebase my work against that stuff, looks fine to me.
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
