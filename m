@@ -1,60 +1,119 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
- access fault.
-Date: Wed, 3 Oct 2012 10:09:14 +0100
-Message-ID: <20121003090914.GA22445@mudshark.cambridge.arm.com>
-References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
- <20121002150104.da57fa94.akpm@linux-foundation.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Mike Yoknis <mike.yoknis@hp.com>
+Subject: [PATCH] mm: memmap_init_zone() performance improvement
+Date: Wed,  3 Oct 2012 08:56:14 -0600
+Message-ID: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
 Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20121002150104.da57fa94.akpm@linux-foundation.org>
 Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, Andrea Arcangeli <aarcange@redhat.com>, Chris Metcalf <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
+To: mgorman@suse.de, mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org
+Cc: mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org, Mike Yoknis <mike.yoknis@hp.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Tue, Oct 02, 2012 at 11:01:04PM +0100, Andrew Morton wrote:
-> On Tue,  2 Oct 2012 17:59:11 +0100
-> Will Deacon <will.deacon@arm.com> wrote:
-> 
-> > On x86 memory accesses to pages without the ACCESSED flag set result in the
-> > ACCESSED flag being set automatically. With the ARM architecture a page access
-> > fault is raised instead (and it will continue to be raised until the ACCESSED
-> > flag is set for the appropriate PTE/PMD).
-> > 
-> > For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
-> > setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
-> > be called for a write fault.
-> > 
-> > This patch ensures that faults on transparent hugepages which do not result
-> > in a CoW update the access flags for the faulting pmd.
-> 
-> Alas, the code you're altering has changed so much in linux-next that I
-> am reluctant to force this fix in there myself.  Can you please
-> redo/retest/resend?  You can do that on 3.7-rc1 if you like, then we
-> can feed this into -rc2.
+memmap_init_zone() loops through every Page Frame Number (pfn),
+including pfn values that are within the gaps between existing
+memory sections.  The unneeded looping will become a boot
+performance issue when machines configure larger memory ranges
+that will contain larger and more numerous gaps.
 
-No problem. I'll rebase the entire ARM series at -rc1 prior to posting
-anyway, so this can be included in that lot.
+The code will skip across invalid sections to reduce the
+number of loops executed.
 
-> > --- a/mm/memory.c
-> > +++ b/mm/memory.c
-> > @@ -3524,7 +3524,8 @@ retry:
-> >  
-> >  		barrier();
-> >  		if (pmd_trans_huge(orig_pmd)) {
-> > -			if (flags & FAULT_FLAG_WRITE &&
-> > +			int dirty = flags & FAULT_FLAG_WRITE;
-> 
-> `flags' is `unsigned int', so making `dirty' match that is nicer.
+Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
+---
+ arch/x86/include/asm/mmzone_32.h     |    2 ++
+ arch/x86/include/asm/page_32.h       |    1 +
+ arch/x86/include/asm/page_64_types.h |    3 ++-
+ include/asm-generic/page.h           |    1 +
+ include/linux/mmzone.h               |    6 ++++++
+ mm/page_alloc.c                      |    5 ++++-
+ 6 files changed, 16 insertions(+), 2 deletions(-)
 
-I'll fold that in with the above.
-
-Cheers,
-
-Will
+diff --git a/arch/x86/include/asm/mmzone_32.h b/arch/x86/include/asm/mmzone_32.h
+index eb05fb3..73c5c74 100644
+--- a/arch/x86/include/asm/mmzone_32.h
++++ b/arch/x86/include/asm/mmzone_32.h
+@@ -48,6 +48,8 @@ static inline int pfn_to_nid(unsigned long pfn)
+ #endif
+ }
+ 
++#define next_pfn_try(pfn)	((pfn)+1)
++
+ static inline int pfn_valid(int pfn)
+ {
+ 	int nid = pfn_to_nid(pfn);
+diff --git a/arch/x86/include/asm/page_32.h b/arch/x86/include/asm/page_32.h
+index da4e762..e2c4cfc 100644
+--- a/arch/x86/include/asm/page_32.h
++++ b/arch/x86/include/asm/page_32.h
+@@ -19,6 +19,7 @@ extern unsigned long __phys_addr(unsigned long);
+ 
+ #ifdef CONFIG_FLATMEM
+ #define pfn_valid(pfn)		((pfn) < max_mapnr)
++#define next_pfn_try(pfn)	((pfn)+1)
+ #endif /* CONFIG_FLATMEM */
+ 
+ #ifdef CONFIG_X86_USE_3DNOW
+diff --git a/arch/x86/include/asm/page_64_types.h b/arch/x86/include/asm/page_64_types.h
+index 320f7bb..02d82e5 100644
+--- a/arch/x86/include/asm/page_64_types.h
++++ b/arch/x86/include/asm/page_64_types.h
+@@ -69,7 +69,8 @@ extern void init_extra_mapping_wb(unsigned long phys, unsigned long size);
+ #endif	/* !__ASSEMBLY__ */
+ 
+ #ifdef CONFIG_FLATMEM
+-#define pfn_valid(pfn)          ((pfn) < max_pfn)
++#define pfn_valid(pfn)		((pfn) < max_pfn)
++#define next_pfn_try(pfn)	((pfn)+1)
+ #endif
+ 
+ #endif /* _ASM_X86_PAGE_64_DEFS_H */
+diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
+index 37d1fe2..316200d 100644
+--- a/include/asm-generic/page.h
++++ b/include/asm-generic/page.h
+@@ -91,6 +91,7 @@ extern unsigned long memory_end;
+ #endif
+ 
+ #define pfn_valid(pfn)		((pfn) >= ARCH_PFN_OFFSET && ((pfn) - ARCH_PFN_OFFSET) < max_mapnr)
++#define next_pfn_try(pfn)	((pfn)+1)
+ 
+ #define	virt_addr_valid(kaddr)	(((void *)(kaddr) >= (void *)PAGE_OFFSET) && \
+ 				((void *)(kaddr) < (void *)memory_end))
+diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
+index f7d88ba..04d3c39 100644
+--- a/include/linux/mmzone.h
++++ b/include/linux/mmzone.h
+@@ -1166,6 +1166,12 @@ static inline int pfn_valid(unsigned long pfn)
+ 		return 0;
+ 	return valid_section(__nr_to_section(pfn_to_section_nr(pfn)));
+ }
++
++static inline unsigned long next_pfn_try(unsigned long pfn)
++{
++	/* Skip entire section, because all of it is invalid. */
++	return section_nr_to_pfn(pfn_to_section_nr(pfn) + 1);
++}
+ #endif
+ 
+ static inline int pfn_present(unsigned long pfn)
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 5b6b6b1..dd2af8b 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -3798,8 +3798,11 @@ void __meminit memmap_init_zone(unsigned long size, int nid, unsigned long zone,
+ 		 * exist on hotplugged memory.
+ 		 */
+ 		if (context == MEMMAP_EARLY) {
+-			if (!early_pfn_valid(pfn))
++			if (!early_pfn_valid(pfn)) {
++				pfn = next_pfn_try(pfn);
++				pfn--;
+ 				continue;
++			}
+ 			if (!early_pfn_in_nid(pfn, nid))
+ 				continue;
+ 		}
+-- 
+1.7.1
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
