@@ -1,62 +1,192 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:43639 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:51472 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752737Ab2JCJLE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Oct 2012 05:11:04 -0400
-Date: Wed, 3 Oct 2012 10:09:14 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
- access fault.
-Message-ID: <20121003090914.GA22445@mudshark.cambridge.arm.com>
-References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
- <20121002150104.da57fa94.akpm@linux-foundation.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20121002150104.da57fa94.akpm@linux-foundation.org>
+	by vger.kernel.org with ESMTP id S932112Ab2JCQrm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Oct 2012 12:47:42 -0400
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: [PATCH 2/4] Clean up the long arch list for the DEBUG_KMEMLEAK config option
+Date: Wed,  3 Oct 2012 17:44:24 +0100
+Message-ID: <1349282666-32100-3-git-send-email-catalin.marinas@arm.com>
+In-Reply-To: <1349282666-32100-1-git-send-email-catalin.marinas@arm.com>
+References: <1349282666-32100-1-git-send-email-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, Andrea Arcangeli <aarcange@redhat.com>, Chris Metcalf <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
-Message-ID: <20121003090914.Sd-ZW_uiyMpWhIIZOCrwuUxNdq-SRtmS5QmYqR0fvwo@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Russell King <linux@arm.linux.org.uk>, Michal Simek <monstr@monstr.eu>, Ralf Baechle <ralf@linux-mips.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20121003164424.EYEc6tpgQfNAscP1Z2GwEQR3VriAv9wPzOwQ4QqgT80@z>
 
-On Tue, Oct 02, 2012 at 11:01:04PM +0100, Andrew Morton wrote:
-> On Tue,  2 Oct 2012 17:59:11 +0100
-> Will Deacon <will.deacon@arm.com> wrote:
-> 
-> > On x86 memory accesses to pages without the ACCESSED flag set result in the
-> > ACCESSED flag being set automatically. With the ARM architecture a page access
-> > fault is raised instead (and it will continue to be raised until the ACCESSED
-> > flag is set for the appropriate PTE/PMD).
-> > 
-> > For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
-> > setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
-> > be called for a write fault.
-> > 
-> > This patch ensures that faults on transparent hugepages which do not result
-> > in a CoW update the access flags for the faulting pmd.
-> 
-> Alas, the code you're altering has changed so much in linux-next that I
-> am reluctant to force this fix in there myself.  Can you please
-> redo/retest/resend?  You can do that on 3.7-rc1 if you like, then we
-> can feed this into -rc2.
+This patch introduces HAVE_DEBUG_KMEMLEAK config option and selects it
+in corresponding architecture Kconfig files. DEBUG_KMEMLEAK now only
+depends on HAVE_DEBUG_KMEMLEAK.
 
-No problem. I'll rebase the entire ARM series at -rc1 prior to posting
-anyway, so this can be included in that lot.
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Michal Simek <monstr@monstr.eu>
+Cc: Ralf Baechle <ralf@linux-mips.org>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: Paul Mundt <lethal@linux-sh.org>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
+---
+ arch/arm/Kconfig        |    1 +
+ arch/arm64/Kconfig      |    1 +
+ arch/microblaze/Kconfig |    1 +
+ arch/mips/Kconfig       |    1 +
+ arch/powerpc/Kconfig    |    1 +
+ arch/s390/Kconfig       |    1 +
+ arch/sh/Kconfig         |    1 +
+ arch/sparc/Kconfig      |    1 +
+ arch/tile/Kconfig       |    1 +
+ arch/x86/Kconfig        |    1 +
+ lib/Kconfig.debug       |    8 ++++----
+ 11 files changed, 14 insertions(+), 4 deletions(-)
 
-> > --- a/mm/memory.c
-> > +++ b/mm/memory.c
-> > @@ -3524,7 +3524,8 @@ retry:
-> >  
-> >  		barrier();
-> >  		if (pmd_trans_huge(orig_pmd)) {
-> > -			if (flags & FAULT_FLAG_WRITE &&
-> > +			int dirty = flags & FAULT_FLAG_WRITE;
-> 
-> `flags' is `unsigned int', so making `dirty' match that is nicer.
-
-I'll fold that in with the above.
-
-Cheers,
-
-Will
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 63ff281..a39477a 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -50,6 +50,7 @@ config ARM
+ 	select GENERIC_STRNLEN_USER
+ 	select DCACHE_WORD_ACCESS if (CPU_V6 || CPU_V6K || CPU_V7) && !CPU_BIG_ENDIAN
+ 	select HAVE_UID16
++	select HAVE_DEBUG_KMEMLEAK
+ 	help
+ 	  The ARM series is a line of low-power-consumption RISC chip designs
+ 	  licensed by ARM Ltd and targeted at embedded applications and
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index e61acae..5dc9273 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -10,6 +10,7 @@ config ARM64
+ 	select GENERIC_TIME_VSYSCALL
+ 	select HARDIRQS_SW_RESEND
+ 	select HAVE_ARCH_TRACEHOOK
++	select HAVE_DEBUG_KMEMLEAK
+ 	select HAVE_DMA_API_DEBUG
+ 	select HAVE_DMA_ATTRS
+ 	select HAVE_GENERIC_DMA_COHERENT
+diff --git a/arch/microblaze/Kconfig b/arch/microblaze/Kconfig
+index ab9afca..61b5d9f 100644
+--- a/arch/microblaze/Kconfig
++++ b/arch/microblaze/Kconfig
+@@ -24,6 +24,7 @@ config MICROBLAZE
+ 	select GENERIC_CPU_DEVICES
+ 	select GENERIC_ATOMIC64
+ 	select GENERIC_CLOCKEVENTS
++	select HAVE_DEBUG_KMEMLEAK
+ 
+ config SWAP
+ 	def_bool n
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index faf6528..e04b95b 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -36,6 +36,7 @@ config MIPS
+ 	select BUILDTIME_EXTABLE_SORT
+ 	select GENERIC_CLOCKEVENTS
+ 	select GENERIC_CMOS_UPDATE
++	select HAVE_DEBUG_KMEMLEAK
+ 
+ menu "Machine selection"
+ 
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 352f416..63c640d 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -139,6 +139,7 @@ config PPC
+ 	select GENERIC_CLOCKEVENTS
+ 	select GENERIC_STRNCPY_FROM_USER
+ 	select GENERIC_STRNLEN_USER
++	select HAVE_DEBUG_KMEMLEAK
+ 
+ config EARLY_PRINTK
+ 	bool
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index 4de3a85..d3216d7 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -133,6 +133,7 @@ config S390
+ 	select KTIME_SCALAR if 32BIT
+ 	select HAVE_ARCH_SECCOMP_FILTER
+ 	select HAVE_UID16 if 32BIT
++	select HAVE_DEBUG_KMEMLEAK
+ 
+ config SCHED_OMIT_FRAME_POINTER
+ 	def_bool y
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index fa6e2f1..cb5a22e 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -36,6 +36,7 @@ config SUPERH
+ 	select GENERIC_STRNCPY_FROM_USER
+ 	select GENERIC_STRNLEN_USER
+ 	select HAVE_UID16
++	select HAVE_DEBUG_KMEMLEAK
+ 	help
+ 	  The SuperH is a RISC processor targeted for use in embedded systems
+ 	  and consumer electronics; it was also used in the Sega Dreamcast
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 931eaed..a69bc77b 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -70,6 +70,7 @@ config SPARC64
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select HAVE_C_RECORDMCOUNT
+ 	select NO_BOOTMEM
++	select HAVE_DEBUG_KMEMLEAK
+ 
+ config ARCH_DEFCONFIG
+ 	string
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+index c9a3c1f..afb3abd 100644
+--- a/arch/tile/Kconfig
++++ b/arch/tile/Kconfig
+@@ -17,6 +17,7 @@ config TILE
+ 	select SYS_HYPERVISOR
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
+ 	select GENERIC_CLOCKEVENTS
++	select HAVE_DEBUG_KMEMLEAK
+ 
+ # FIXME: investigate whether we need/want these options.
+ #	select HAVE_IOREMAP_PROT
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 2e84642..6995d6b 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -105,6 +105,7 @@ config X86
+ 	select GENERIC_STRNLEN_USER
+ 	select HAVE_RCU_USER_QS if X86_64
+ 	select HAVE_IRQ_TIME_ACCOUNTING
++	select HAVE_DEBUG_KMEMLEAK
+ 
+ config INSTRUCTION_DECODER
+ 	def_bool y
+diff --git a/lib/Kconfig.debug b/lib/Kconfig.debug
+index 35c4565..63dfc4c 100644
+--- a/lib/Kconfig.debug
++++ b/lib/Kconfig.debug
+@@ -449,12 +449,12 @@ config SLUB_STATS
+ 	  out which slabs are relevant to a particular load.
+ 	  Try running: slabinfo -DA
+ 
++config HAVE_DEBUG_KMEMLEAK
++	bool
++
+ config DEBUG_KMEMLEAK
+ 	bool "Kernel memory leak detector"
+-	depends on DEBUG_KERNEL && EXPERIMENTAL && \
+-		(X86 || ARM || PPC || MIPS || S390 || SPARC64 || SUPERH || \
+-		 MICROBLAZE || TILE || ARM64)
+-
++	depends on DEBUG_KERNEL && EXPERIMENTAL && HAVE_DEBUG_KMEMLEAK
+ 	select DEBUG_FS
+ 	select STACKTRACE if STACKTRACE_SUPPORT
+ 	select KALLSYMS
