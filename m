@@ -1,38 +1,103 @@
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Subject: Re: [PATCH 3/8] sparc64: Eliminate PTE table memory wastage.
-Date: Thu, 04 Oct 2012 22:00:48 +0530
-Message-ID: <87y5jmfbd3.fsf@linux.vnet.ibm.com>
-References: <20121002.182642.49574627747120711.davem@davemloft.net>
+From: David Miller <davem@davemloft.net>
+Subject: [PATCH v2 4/7] sparc64: Document PGD and PMD layout.
+Date: Thu, 04 Oct 2012 15:47:26 -0400 (EDT)
+Message-ID: <20121004.154726.2217134450217108064.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20121002.182642.49574627747120711.davem@davemloft.net>
 Sender: owner-linux-mm@kvack.org
-To: David Miller <davem@davemloft.net>, linux-mm@kvack.org
+To: linux-mm@kvack.org
 Cc: sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, aarcange@redhat.com, hannes@cmpxchg.org
 List-Id: linux-arch.vger.kernel.org
 
-David Miller <davem@davemloft.net> writes:
 
-> We've split up the PTE tables so that they take up half a page instead
-> of a full page.  This is in order to facilitate transparent huge page
-> support, which works much better if our PMDs cover 4MB instead of 8MB.
->
-> What we do is have a one-behind cache for PTE table allocations in the
-> mm struct.
->
-> This logic triggers only on allocations.  For example, we don't try to
-> keep track of free'd up page table blocks in the style that the s390
-> port does.
+We're going to be messing around with the PMD interpretation and
+layout for the sake of transparent huge pages, so we better clearly
+document what we're starting with.
 
-I am also implementing a similar change for powerpc. We have a 64K page
-size, and want to make sure PMD cover 16MB, which is the huge page size
-supported by the hardware. I was looking at using the s390 logic,
-considering we have 16 PMDs mapping to same PTE page. Should we look at
-generalizing the case so that other architectures can start using the
-same code ?
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ arch/sparc/include/asm/pgtable_64.h |   16 ++++++++++++----
+ arch/sparc/include/asm/tsb.h        |    8 ++++----
+ 2 files changed, 16 insertions(+), 8 deletions(-)
 
--aneesh
+diff --git a/arch/sparc/include/asm/pgtable_64.h b/arch/sparc/include/asm/pgtable_64.h
+index a7b5091..af3cd7a 100644
+--- a/arch/sparc/include/asm/pgtable_64.h
++++ b/arch/sparc/include/asm/pgtable_64.h
+@@ -63,6 +63,14 @@
+ #error Page table parameters do not cover virtual address space properly.
+ #endif
+ 
++/* PMDs point to PTE tables which are 4K aligned.  */
++#define PMD_PADDR	_AC(0xfffffffe,UL)
++#define PMD_PADDR_SHIFT	_AC(11,UL)
++
++/* PGDs point to PMD tables which are 8K aligned.  */
++#define PGD_PADDR	_AC(0xfffffffc,UL)
++#define PGD_PADDR_SHIFT	_AC(11,UL)
++
+ #ifndef __ASSEMBLY__
+ 
+ #include <linux/sched.h>
+@@ -581,14 +589,14 @@ static inline unsigned long pte_special(pte_t pte)
+ }
+ 
+ #define pmd_set(pmdp, ptep)	\
+-	(pmd_val(*(pmdp)) = (__pa((unsigned long) (ptep)) >> 11UL))
++	(pmd_val(*(pmdp)) = (__pa((unsigned long) (ptep)) >> PMD_PADDR_SHIFT))
+ #define pud_set(pudp, pmdp)	\
+-	(pud_val(*(pudp)) = (__pa((unsigned long) (pmdp)) >> 11UL))
++	(pud_val(*(pudp)) = (__pa((unsigned long) (pmdp)) >> PGD_PADDR_SHIFT))
+ #define __pmd_page(pmd)		\
+-	((unsigned long) __va((((unsigned long)pmd_val(pmd))<<11UL)))
++	((unsigned long) __va((((unsigned long)pmd_val(pmd))<<PMD_PADDR_SHIFT)))
+ #define pmd_page(pmd) 			virt_to_page((void *)__pmd_page(pmd))
+ #define pud_page_vaddr(pud)		\
+-	((unsigned long) __va((((unsigned long)pud_val(pud))<<11UL)))
++	((unsigned long) __va((((unsigned long)pud_val(pud))<<PGD_PADDR_SHIFT)))
+ #define pud_page(pud) 			virt_to_page((void *)pud_page_vaddr(pud))
+ #define pmd_none(pmd)			(!pmd_val(pmd))
+ #define pmd_bad(pmd)			(0)
+diff --git a/arch/sparc/include/asm/tsb.h b/arch/sparc/include/asm/tsb.h
+index 6435924..ef8cd1a 100644
+--- a/arch/sparc/include/asm/tsb.h
++++ b/arch/sparc/include/asm/tsb.h
+@@ -147,13 +147,13 @@ extern struct tsb_phys_patch_entry __tsb_phys_patch, __tsb_phys_patch_end;
+ 	brz,pn		REG1, FAIL_LABEL; \
+ 	 sllx		VADDR, 64 - (PMD_SHIFT + PMD_BITS), REG2; \
+ 	srlx		REG2, 64 - PAGE_SHIFT, REG2; \
+-	sllx		REG1, 11, REG1; \
++	sllx		REG1, PGD_PADDR_SHIFT, REG1; \
+ 	andn		REG2, 0x3, REG2; \
+ 	lduwa		[REG1 + REG2] ASI_PHYS_USE_EC, REG1; \
+ 	brz,pn		REG1, FAIL_LABEL; \
+ 	 sllx		VADDR, 64 - PMD_SHIFT, REG2; \
+ 	srlx		REG2, 64 - (PAGE_SHIFT - 1), REG2; \
+-	sllx		REG1, 11, REG1; \
++	sllx		REG1, PMD_PADDR_SHIFT, REG1; \
+ 	andn		REG2, 0x7, REG2; \
+ 	add		REG1, REG2, REG1;
+ 
+@@ -172,13 +172,13 @@ extern struct tsb_phys_patch_entry __tsb_phys_patch, __tsb_phys_patch_end;
+ 	brz,pn		REG1, FAIL_LABEL; \
+ 	 sllx		VADDR, 64 - (PMD_SHIFT + PMD_BITS), REG2; \
+ 	srlx		REG2, 64 - PAGE_SHIFT, REG2; \
+-	sllx		REG1, 11, REG1; \
++	sllx		REG1, PGD_PADDR_SHIFT, REG1; \
+ 	andn		REG2, 0x3, REG2; \
+ 	lduwa		[REG1 + REG2] ASI_PHYS_USE_EC, REG1; \
+ 	brz,pn		REG1, FAIL_LABEL; \
+ 	 sllx		VADDR, 64 - PMD_SHIFT, REG2; \
+ 	srlx		REG2, 64 - (PAGE_SHIFT - 1), REG2; \
+-	sllx		REG1, 11, REG1; \
++	sllx		REG1, PMD_PADDR_SHIFT, REG1; \
+ 	andn		REG2, 0x7, REG2; \
+ 	add		REG1, REG2, REG1;
+ 
+-- 
+1.7.10.4
 
 --
 To unsubscribe, send a message with 'unsubscribe linux-mm' in
