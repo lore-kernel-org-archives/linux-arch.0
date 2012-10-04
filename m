@@ -1,51 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:36391 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752209Ab2JDKDi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Oct 2012 06:03:38 -0400
-Date: Thu, 4 Oct 2012 11:00:29 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 1/4] Clean up the long arch list for the UID16 config
- option
-Message-ID: <20121004100029.GC18338@arm.com>
-References: <1349282666-32100-1-git-send-email-catalin.marinas@arm.com>
- <1349282666-32100-2-git-send-email-catalin.marinas@arm.com>
- <20121003151505.8d59b646.akpm@linux-foundation.org>
+Received: from mx1.redhat.com ([209.132.183.28]:9896 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753287Ab2JDKf7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 4 Oct 2012 06:35:59 -0400
+Date: Thu, 4 Oct 2012 12:35:48 +0200
+From: Andrea Arcangeli <aarcange@redhat.com>
+Subject: Re: [PATCH 0/8] THP support for Sparc64
+Message-ID: <20121004103548.GB6793@redhat.com>
+References: <20121002.182601.845433592794197720.davem@davemloft.net>
+ <20121002155544.2c67b1e8.akpm@linux-foundation.org>
+ <20121003.220027.1636081487098835868.davem@davemloft.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20121003151505.8d59b646.akpm@linux-foundation.org>
+In-Reply-To: <20121003.220027.1636081487098835868.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Russell King <linux@arm.linux.org.uk>, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>
-Message-ID: <20121004100029.4Lp7aP_ud3XGL7Bthk8ZAaOqz05Ft7eiVLvKBSoQvxM@z>
+To: David Miller <davem@davemloft.net>
+Cc: akpm@linux-foundation.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, hannes@cmpxchg.org, gerald.schaefer@de.ibm.com
+Message-ID: <20121004103548.nrOxooCcSYCp_9Z7AYW2dITU-ru0LPEP8O-xt02tihQ@z>
 
-On Wed, Oct 03, 2012 at 11:15:05PM +0100, Andrew Morton wrote:
-> On Wed,  3 Oct 2012 17:44:23 +0100
-> Catalin Marinas <catalin.marinas@arm.com> wrote:
-> 
-> > This patch introduces HAVE_UID16 config option and selects it in
-> > corresponding architecture Kconfig files. UID16 now only depends on
-> > HAVE_UID16.
-> 
-> patching file arch/arm/Kconfig
-> Hunk #1 FAILED at 49.
-...
-> This is a pet peeve of mine.  Any time there's a long list of items
-> (header file inclusions, kconfig entries, array initalisers, etc) and
-> someone wants to add a new item, they *always* go and stick it at the
-> end of the list.
-> 
-> Which is exactly where everyone else applies their modifications.  The
-> whole thing is carefully set up to maximise the number of conflicts.
-> 
-> Guys, don't do this.  Either put the new item into a randomly-chosen
-> position or, probably better, alphanumerically sort the list.
+Hi Dave,
 
-I will repost a v2 with randomly chosen position. Sorting is better but
-it would cause even more conflicts at this stage. It would be suitable
-for a later -rc clean-up though.
+On Wed, Oct 03, 2012 at 10:00:27PM -0400, David Miller wrote:
+> From: Andrew Morton <akpm@linux-foundation.org>
+> Date: Tue, 2 Oct 2012 15:55:44 -0700
+> 
+> > I had a shot at integrating all this onto the pending stuff in linux-next. 
+> > "mm: Add and use update_mmu_cache_pmd() in transparent huge page code."
+> > needed minor massaging in huge_memory.c.  But as Andrea mentioned, we
+> > ran aground on Gerald's
+> > http://ozlabs.org/~akpm/mmotm/broken-out/thp-remove-assumptions-on-pgtable_t-type.patch,
+> > part of the thp-for-s390 work.
+> 
+> While working on a rebase relative to this work, I noticed that the
+> s390 patches don't even compile.
+> 
+> It's because of that pmd_pgprot() change from Peter Z. which arrives
+> asynchonously via the linux-next tree.  It makes THP start using
+> pmd_pgprot() (a new interface) which the s390 patches don't provide.
 
--- 
-Catalin
+My suggestion would be to ignore linux-next and port it to -mm only
+and re-send to Andrew. schednuma is by mistake in linux-next, and
+it's not going to get merged as far as I can tell.
+
+Even if schednuma would get merged by mistake, pmd_pgprot is a micro
+optimization and it's by no means necessary. I don't think it's clean
+to add arch dependencies like that just for a micro optimization mixed
+up with schednuma code. The implementation of the AutoNUMA NUMA
+hinting page faults that was introduced recently in schednuma is also
+very bad, all checks on the vmas vm_page_prot are totally unnecessary
+because _PAGE_PROTNONE and _PAGE_NUMA are mutually exclusive code
+paths, _PAGE_PROTNONE would segfault before ever entering
+handle_mm_fault and so checking if it's _PAGE_PROTNONE in
+handle_mm_fault is unnecessary. Calling pte_numa do_prot_none also
+sounds very confusing to me.
