@@ -1,35 +1,120 @@
 From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH 0/8] THP support for Sparc64
-Date: Wed, 03 Oct 2012 22:00:27 -0400 (EDT)
-Message-ID: <20121003.220027.1636081487098835868.davem@davemloft.net>
-References: <20121002.182601.845433592794197720.davem@davemloft.net>
-	<20121002155544.2c67b1e8.akpm@linux-foundation.org>
+Subject: [PATCH v2 2/7] sparc64: Halve the size of PTE tables.
+Date: Thu, 04 Oct 2012 15:46:49 -0400 (EDT)
+Message-ID: <20121004.154649.2206336946126738090.davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
-Return-path: <sparclinux-owner@vger.kernel.org>
-In-Reply-To: <20121002155544.2c67b1e8.akpm@linux-foundation.org>
-Sender: sparclinux-owner@vger.kernel.org
-To: akpm@linux-foundation.org
-Cc: linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, aarcange@redhat.com, hannes@cmpxchg.org, gerald.schaefer@de.ibm.com
+Return-path: <owner-linux-mm@kvack.org>
+Sender: owner-linux-mm@kvack.org
+To: linux-mm@kvack.org
+Cc: sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, aarcange@redhat.com, hannes@cmpxchg.org
 List-Id: linux-arch.vger.kernel.org
 
-From: Andrew Morton <akpm@linux-foundation.org>
-Date: Tue, 2 Oct 2012 15:55:44 -0700
 
-> I had a shot at integrating all this onto the pending stuff in linux-next. 
-> "mm: Add and use update_mmu_cache_pmd() in transparent huge page code."
-> needed minor massaging in huge_memory.c.  But as Andrea mentioned, we
-> ran aground on Gerald's
-> http://ozlabs.org/~akpm/mmotm/broken-out/thp-remove-assumptions-on-pgtable_t-type.patch,
-> part of the thp-for-s390 work.
+The reason we want to do this is to facilitate transparent huge page
+support.
 
-While working on a rebase relative to this work, I noticed that the
-s390 patches don't even compile.
+Right now PMD's cover 8MB of address space, and our huge page size is
+4MB.  The current transparent hugepage support is not able to handle
+HPAGE_SIZE != PMD_SIZE.
 
-It's because of that pmd_pgprot() change from Peter Z. which arrives
-asynchonously via the linux-next tree.  It makes THP start using
-pmd_pgprot() (a new interface) which the s390 patches don't provide.
+So make PTE tables be sized to half of a page instead of a full page.
 
-It's going to require that I do new work for my sparc64 THP changes as
-well.
+We can still map properly the whole supported virtual address range
+which on sparc64 requires 44 bits.  Add a compile time CPP test which
+ensures that this requirement is always met.
+
+There is a minor inefficiency added by this change.  We only use half
+of the page for PTE tables.  It's not trivial to use only half of the
+page yet still get all of the pgtable_page_{ctor,dtor}() stuff working
+properly.  It is doable, and that will come in a subsequent change.
+
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ arch/sparc/include/asm/pgtable_64.h |   24 +++++++-----------------
+ arch/sparc/include/asm/tsb.h        |    4 ++--
+ 2 files changed, 9 insertions(+), 19 deletions(-)
+
+diff --git a/arch/sparc/include/asm/pgtable_64.h b/arch/sparc/include/asm/pgtable_64.h
+index 387d484..a7b5091 100644
+--- a/arch/sparc/include/asm/pgtable_64.h
++++ b/arch/sparc/include/asm/pgtable_64.h
+@@ -45,40 +45,30 @@
+ 
+ #define vmemmap			((struct page *)VMEMMAP_BASE)
+ 
+-/* XXX All of this needs to be rethought so we can take advantage
+- * XXX cheetah's full 64-bit virtual address space, ie. no more hole
+- * XXX in the middle like on spitfire. -DaveM
+- */
+-/*
+- * Given a virtual address, the lowest PAGE_SHIFT bits determine offset
+- * into the page; the next higher PAGE_SHIFT-3 bits determine the pte#
+- * in the proper pagetable (the -3 is from the 8 byte ptes, and each page
+- * table is a single page long). The next higher PMD_BITS determine pmd#
+- * in the proper pmdtable (where we must have PMD_BITS <= (PAGE_SHIFT-2)
+- * since the pmd entries are 4 bytes, and each pmd page is a single page
+- * long). Finally, the higher few bits determine pgde#.
+- */
+-
+ /* PMD_SHIFT determines the size of the area a second-level page
+  * table can map
+  */
+-#define PMD_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-3))
++#define PMD_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-4))
+ #define PMD_SIZE	(_AC(1,UL) << PMD_SHIFT)
+ #define PMD_MASK	(~(PMD_SIZE-1))
+ #define PMD_BITS	(PAGE_SHIFT - 2)
+ 
+ /* PGDIR_SHIFT determines what a third-level page table entry can map */
+-#define PGDIR_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-3) + PMD_BITS)
++#define PGDIR_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-4) + PMD_BITS)
+ #define PGDIR_SIZE	(_AC(1,UL) << PGDIR_SHIFT)
+ #define PGDIR_MASK	(~(PGDIR_SIZE-1))
+ #define PGDIR_BITS	(PAGE_SHIFT - 2)
+ 
++#if (PGDIR_SHIFT + PGDIR_BITS) != 44
++#error Page table parameters do not cover virtual address space properly.
++#endif
++
+ #ifndef __ASSEMBLY__
+ 
+ #include <linux/sched.h>
+ 
+ /* Entries per page directory level. */
+-#define PTRS_PER_PTE	(1UL << (PAGE_SHIFT-3))
++#define PTRS_PER_PTE	(1UL << (PAGE_SHIFT-4))
+ #define PTRS_PER_PMD	(1UL << PMD_BITS)
+ #define PTRS_PER_PGD	(1UL << PGDIR_BITS)
+ 
+diff --git a/arch/sparc/include/asm/tsb.h b/arch/sparc/include/asm/tsb.h
+index 1a8afd1..6435924 100644
+--- a/arch/sparc/include/asm/tsb.h
++++ b/arch/sparc/include/asm/tsb.h
+@@ -152,7 +152,7 @@ extern struct tsb_phys_patch_entry __tsb_phys_patch, __tsb_phys_patch_end;
+ 	lduwa		[REG1 + REG2] ASI_PHYS_USE_EC, REG1; \
+ 	brz,pn		REG1, FAIL_LABEL; \
+ 	 sllx		VADDR, 64 - PMD_SHIFT, REG2; \
+-	srlx		REG2, 64 - PAGE_SHIFT, REG2; \
++	srlx		REG2, 64 - (PAGE_SHIFT - 1), REG2; \
+ 	sllx		REG1, 11, REG1; \
+ 	andn		REG2, 0x7, REG2; \
+ 	add		REG1, REG2, REG1;
+@@ -177,7 +177,7 @@ extern struct tsb_phys_patch_entry __tsb_phys_patch, __tsb_phys_patch_end;
+ 	lduwa		[REG1 + REG2] ASI_PHYS_USE_EC, REG1; \
+ 	brz,pn		REG1, FAIL_LABEL; \
+ 	 sllx		VADDR, 64 - PMD_SHIFT, REG2; \
+-	srlx		REG2, 64 - PAGE_SHIFT, REG2; \
++	srlx		REG2, 64 - (PAGE_SHIFT - 1), REG2; \
+ 	sllx		REG1, 11, REG1; \
+ 	andn		REG2, 0x7, REG2; \
+ 	add		REG1, REG2, REG1;
+-- 
+1.7.10.4
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
