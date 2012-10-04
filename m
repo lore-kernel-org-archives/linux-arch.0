@@ -1,57 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:9896 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753287Ab2JDKf7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 4 Oct 2012 06:35:59 -0400
-Date: Thu, 4 Oct 2012 12:35:48 +0200
-From: Andrea Arcangeli <aarcange@redhat.com>
-Subject: Re: [PATCH 0/8] THP support for Sparc64
-Message-ID: <20121004103548.GB6793@redhat.com>
-References: <20121002.182601.845433592794197720.davem@davemloft.net>
- <20121002155544.2c67b1e8.akpm@linux-foundation.org>
- <20121003.220027.1636081487098835868.davem@davemloft.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20121003.220027.1636081487098835868.davem@davemloft.net>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:43752 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757077Ab2JDQRH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Oct 2012 12:17:07 -0400
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: [PATCH v2 0/4] Clean up some long arch conditionals
+Date: Thu,  4 Oct 2012 17:15:53 +0100
+Message-ID: <1349367357-13865-1-git-send-email-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: akpm@linux-foundation.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, hannes@cmpxchg.org, gerald.schaefer@de.ibm.com
-Message-ID: <20121004103548.nrOxooCcSYCp_9Z7AYW2dITU-ru0LPEP8O-xt02tihQ@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20121004161553.Tp7we02MYKrmuYHttuN_kDzrwR5nXtEyhBRk-w0gYo0@z>
 
-Hi Dave,
+That's the second version of the arch conditionals clean-up patches.
+This time the Kconfig options are added in random places (or
+alphabetical for arm64) to reduce the conflicts with other patches.
 
-On Wed, Oct 03, 2012 at 10:00:27PM -0400, David Miller wrote:
-> From: Andrew Morton <akpm@linux-foundation.org>
-> Date: Tue, 2 Oct 2012 15:55:44 -0700
-> 
-> > I had a shot at integrating all this onto the pending stuff in linux-next. 
-> > "mm: Add and use update_mmu_cache_pmd() in transparent huge page code."
-> > needed minor massaging in huge_memory.c.  But as Andrea mentioned, we
-> > ran aground on Gerald's
-> > http://ozlabs.org/~akpm/mmotm/broken-out/thp-remove-assumptions-on-pgtable_t-type.patch,
-> > part of the thp-for-s390 work.
-> 
-> While working on a rebase relative to this work, I noticed that the
-> s390 patches don't even compile.
-> 
-> It's because of that pmd_pgprot() change from Peter Z. which arrives
-> asynchonously via the linux-next tree.  It makes THP start using
-> pmd_pgprot() (a new interface) which the s390 patches don't provide.
+Thanks.
 
-My suggestion would be to ignore linux-next and port it to -mm only
-and re-send to Andrew. schednuma is by mistake in linux-next, and
-it's not going to get merged as far as I can tell.
 
-Even if schednuma would get merged by mistake, pmd_pgprot is a micro
-optimization and it's by no means necessary. I don't think it's clean
-to add arch dependencies like that just for a micro optimization mixed
-up with schednuma code. The implementation of the AutoNUMA NUMA
-hinting page faults that was introduced recently in schednuma is also
-very bad, all checks on the vmas vm_page_prot are totally unnecessary
-because _PAGE_PROTNONE and _PAGE_NUMA are mutually exclusive code
-paths, _PAGE_PROTNONE would segfault before ever entering
-handle_mm_fault and so checking if it's _PAGE_PROTNONE in
-handle_mm_fault is unnecessary. Calling pte_numa do_prot_none also
-sounds very confusing to me.
+Catalin Marinas (4):
+  Clean up the long arch list for the UID16 config option
+  Clean up the long arch list for the DEBUG_KMEMLEAK config option
+  Clean up the long arch list for the DEBUG_BUGVERBOSE config option
+  Clean up the "#if defined(arch)" list for exception-trace sysctl
+    entry
+
+ arch/arm/Kconfig        |    2 ++
+ arch/arm64/Kconfig      |    4 ++++
+ arch/blackfin/Kconfig   |    1 +
+ arch/cris/Kconfig       |    1 +
+ arch/frv/Kconfig        |    2 ++
+ arch/h8300/Kconfig      |    1 +
+ arch/m32r/Kconfig       |    1 +
+ arch/m68k/Kconfig       |    2 ++
+ arch/microblaze/Kconfig |    1 +
+ arch/mips/Kconfig       |    1 +
+ arch/powerpc/Kconfig    |    2 ++
+ arch/s390/Kconfig       |    3 +++
+ arch/sh/Kconfig         |    3 +++
+ arch/sparc/Kconfig      |    5 +++++
+ arch/tile/Kconfig       |    3 +++
+ arch/um/Kconfig.common  |    1 +
+ arch/x86/Kconfig        |    4 ++++
+ init/Kconfig            |   11 +++++++++--
+ kernel/sysctl.c         |    3 +--
+ lib/Kconfig.debug       |   16 ++++++++--------
+ 20 files changed, 55 insertions(+), 12 deletions(-)
+
