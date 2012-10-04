@@ -1,106 +1,52 @@
-From: David Miller <davem@davemloft.net>
-Subject: [PATCH v2 4/7] sparc64: Document PGD and PMD layout.
-Date: Thu, 04 Oct 2012 15:47:26 -0400 (EDT)
-Message-ID: <20121004.154726.2217134450217108064.davem@davemloft.net>
+From: Andrea Arcangeli <aarcange@redhat.com>
+Subject: Re: [PATCH 0/8] THP support for Sparc64
+Date: Thu, 4 Oct 2012 12:35:48 +0200
+Message-ID: <20121004103548.GB6793@redhat.com>
+References: <20121002.182601.845433592794197720.davem@davemloft.net>
+ <20121002155544.2c67b1e8.akpm@linux-foundation.org>
+ <20121003.220027.1636081487098835868.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-Sender: owner-linux-mm@kvack.org
-To: linux-mm@kvack.org
-Cc: sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, aarcange@redhat.com, hannes@cmpxchg.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20121003.220027.1636081487098835868.davem@davemloft.net>
+Sender: linux-kernel-owner@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: akpm@linux-foundation.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, hannes@cmpxchg.org, gerald.schaefer@de.ibm.com
 List-Id: linux-arch.vger.kernel.org
 
+Hi Dave,
 
-We're going to be messing around with the PMD interpretation and
-layout for the sake of transparent huge pages, so we better clearly
-document what we're starting with.
+On Wed, Oct 03, 2012 at 10:00:27PM -0400, David Miller wrote:
+> From: Andrew Morton <akpm@linux-foundation.org>
+> Date: Tue, 2 Oct 2012 15:55:44 -0700
+> 
+> > I had a shot at integrating all this onto the pending stuff in linux-next. 
+> > "mm: Add and use update_mmu_cache_pmd() in transparent huge page code."
+> > needed minor massaging in huge_memory.c.  But as Andrea mentioned, we
+> > ran aground on Gerald's
+> > http://ozlabs.org/~akpm/mmotm/broken-out/thp-remove-assumptions-on-pgtable_t-type.patch,
+> > part of the thp-for-s390 work.
+> 
+> While working on a rebase relative to this work, I noticed that the
+> s390 patches don't even compile.
+> 
+> It's because of that pmd_pgprot() change from Peter Z. which arrives
+> asynchonously via the linux-next tree.  It makes THP start using
+> pmd_pgprot() (a new interface) which the s390 patches don't provide.
 
-Signed-off-by: David S. Miller <davem@davemloft.net>
----
- arch/sparc/include/asm/pgtable_64.h |   16 ++++++++++++----
- arch/sparc/include/asm/tsb.h        |    8 ++++----
- 2 files changed, 16 insertions(+), 8 deletions(-)
+My suggestion would be to ignore linux-next and port it to -mm only
+and re-send to Andrew. schednuma is by mistake in linux-next, and
+it's not going to get merged as far as I can tell.
 
-diff --git a/arch/sparc/include/asm/pgtable_64.h b/arch/sparc/include/asm/pgtable_64.h
-index a7b5091..af3cd7a 100644
---- a/arch/sparc/include/asm/pgtable_64.h
-+++ b/arch/sparc/include/asm/pgtable_64.h
-@@ -63,6 +63,14 @@
- #error Page table parameters do not cover virtual address space properly.
- #endif
- 
-+/* PMDs point to PTE tables which are 4K aligned.  */
-+#define PMD_PADDR	_AC(0xfffffffe,UL)
-+#define PMD_PADDR_SHIFT	_AC(11,UL)
-+
-+/* PGDs point to PMD tables which are 8K aligned.  */
-+#define PGD_PADDR	_AC(0xfffffffc,UL)
-+#define PGD_PADDR_SHIFT	_AC(11,UL)
-+
- #ifndef __ASSEMBLY__
- 
- #include <linux/sched.h>
-@@ -581,14 +589,14 @@ static inline unsigned long pte_special(pte_t pte)
- }
- 
- #define pmd_set(pmdp, ptep)	\
--	(pmd_val(*(pmdp)) = (__pa((unsigned long) (ptep)) >> 11UL))
-+	(pmd_val(*(pmdp)) = (__pa((unsigned long) (ptep)) >> PMD_PADDR_SHIFT))
- #define pud_set(pudp, pmdp)	\
--	(pud_val(*(pudp)) = (__pa((unsigned long) (pmdp)) >> 11UL))
-+	(pud_val(*(pudp)) = (__pa((unsigned long) (pmdp)) >> PGD_PADDR_SHIFT))
- #define __pmd_page(pmd)		\
--	((unsigned long) __va((((unsigned long)pmd_val(pmd))<<11UL)))
-+	((unsigned long) __va((((unsigned long)pmd_val(pmd))<<PMD_PADDR_SHIFT)))
- #define pmd_page(pmd) 			virt_to_page((void *)__pmd_page(pmd))
- #define pud_page_vaddr(pud)		\
--	((unsigned long) __va((((unsigned long)pud_val(pud))<<11UL)))
-+	((unsigned long) __va((((unsigned long)pud_val(pud))<<PGD_PADDR_SHIFT)))
- #define pud_page(pud) 			virt_to_page((void *)pud_page_vaddr(pud))
- #define pmd_none(pmd)			(!pmd_val(pmd))
- #define pmd_bad(pmd)			(0)
-diff --git a/arch/sparc/include/asm/tsb.h b/arch/sparc/include/asm/tsb.h
-index 6435924..ef8cd1a 100644
---- a/arch/sparc/include/asm/tsb.h
-+++ b/arch/sparc/include/asm/tsb.h
-@@ -147,13 +147,13 @@ extern struct tsb_phys_patch_entry __tsb_phys_patch, __tsb_phys_patch_end;
- 	brz,pn		REG1, FAIL_LABEL; \
- 	 sllx		VADDR, 64 - (PMD_SHIFT + PMD_BITS), REG2; \
- 	srlx		REG2, 64 - PAGE_SHIFT, REG2; \
--	sllx		REG1, 11, REG1; \
-+	sllx		REG1, PGD_PADDR_SHIFT, REG1; \
- 	andn		REG2, 0x3, REG2; \
- 	lduwa		[REG1 + REG2] ASI_PHYS_USE_EC, REG1; \
- 	brz,pn		REG1, FAIL_LABEL; \
- 	 sllx		VADDR, 64 - PMD_SHIFT, REG2; \
- 	srlx		REG2, 64 - (PAGE_SHIFT - 1), REG2; \
--	sllx		REG1, 11, REG1; \
-+	sllx		REG1, PMD_PADDR_SHIFT, REG1; \
- 	andn		REG2, 0x7, REG2; \
- 	add		REG1, REG2, REG1;
- 
-@@ -172,13 +172,13 @@ extern struct tsb_phys_patch_entry __tsb_phys_patch, __tsb_phys_patch_end;
- 	brz,pn		REG1, FAIL_LABEL; \
- 	 sllx		VADDR, 64 - (PMD_SHIFT + PMD_BITS), REG2; \
- 	srlx		REG2, 64 - PAGE_SHIFT, REG2; \
--	sllx		REG1, 11, REG1; \
-+	sllx		REG1, PGD_PADDR_SHIFT, REG1; \
- 	andn		REG2, 0x3, REG2; \
- 	lduwa		[REG1 + REG2] ASI_PHYS_USE_EC, REG1; \
- 	brz,pn		REG1, FAIL_LABEL; \
- 	 sllx		VADDR, 64 - PMD_SHIFT, REG2; \
- 	srlx		REG2, 64 - (PAGE_SHIFT - 1), REG2; \
--	sllx		REG1, 11, REG1; \
-+	sllx		REG1, PMD_PADDR_SHIFT, REG1; \
- 	andn		REG2, 0x7, REG2; \
- 	add		REG1, REG2, REG1;
- 
--- 
-1.7.10.4
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Even if schednuma would get merged by mistake, pmd_pgprot is a micro
+optimization and it's by no means necessary. I don't think it's clean
+to add arch dependencies like that just for a micro optimization mixed
+up with schednuma code. The implementation of the AutoNUMA NUMA
+hinting page faults that was introduced recently in schednuma is also
+very bad, all checks on the vmas vm_page_prot are totally unnecessary
+because _PAGE_PROTNONE and _PAGE_NUMA are mutually exclusive code
+paths, _PAGE_PROTNONE would segfault before ever entering
+handle_mm_fault and so checking if it's _PAGE_PROTNONE in
+handle_mm_fault is unnecessary. Calling pte_numa do_prot_none also
+sounds very confusing to me.
