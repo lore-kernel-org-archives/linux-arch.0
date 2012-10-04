@@ -1,106 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:45257 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756932Ab2JDTr2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Oct 2012 15:47:28 -0400
-Date: Thu, 04 Oct 2012 15:47:26 -0400 (EDT)
-Message-ID: <20121004.154726.2217134450217108064.davem@davemloft.net>
-Subject: [PATCH v2 4/7] sparc64: Document PGD and PMD layout.
-From: David Miller <davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:47837 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1754735Ab2JDUUJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Oct 2012 16:20:09 -0400
+Date: Thu, 4 Oct 2012 21:17:17 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH 1/4] Clean up the long arch list for the UID16 config
+ option
+Message-ID: <20121004201717.GA5922@arm.com>
+References: <1349282666-32100-1-git-send-email-catalin.marinas@arm.com>
+ <1349282666-32100-2-git-send-email-catalin.marinas@arm.com>
+ <20121003151505.8d59b646.akpm@linux-foundation.org>
+ <20121004194131.GA4625@n2100.arm.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20121004194131.GA4625@n2100.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-mm@kvack.org
-Cc: sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, aarcange@redhat.com, hannes@cmpxchg.org
-Message-ID: <20121004194726.wVpLpvzoloDgUIuk95uBtfKEhRz8hXVyRUDnwg-P9u8@z>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Geert Uytterhoeven <geert@linux-m68k.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, "x86@kernel.org" <x86@kernel.org>
+Message-ID: <20121004201717.9OckJ4Wx0qqqlhaFxGYWMTn9vnx5qbk_E3XOXoZwaY4@z>
 
+On Thu, Oct 04, 2012 at 08:41:31PM +0100, Russell King - ARM Linux wrote:
+> On Wed, Oct 03, 2012 at 03:15:05PM -0700, Andrew Morton wrote:
+> > Guys, don't do this.  Either put the new item into a randomly-chosen
+> > position or, probably better, alphanumerically sort the list.
+> 
+> I've been telling people to alphanumerically sort Kconfig select
+> options for some time, but as normal, no one's listening.
 
-We're going to be messing around with the PMD interpretation and
-layout for the sake of transparent huge pages, so we better clearly
-document what we're starting with.
+CONFIG_ARM64 is sorted ;)
 
-Signed-off-by: David S. Miller <davem@davemloft.net>
----
- arch/sparc/include/asm/pgtable_64.h |   16 ++++++++++++----
- arch/sparc/include/asm/tsb.h        |    8 ++++----
- 2 files changed, 16 insertions(+), 8 deletions(-)
-
-diff --git a/arch/sparc/include/asm/pgtable_64.h b/arch/sparc/include/asm/pgtable_64.h
-index a7b5091..af3cd7a 100644
---- a/arch/sparc/include/asm/pgtable_64.h
-+++ b/arch/sparc/include/asm/pgtable_64.h
-@@ -63,6 +63,14 @@
- #error Page table parameters do not cover virtual address space properly.
- #endif
- 
-+/* PMDs point to PTE tables which are 4K aligned.  */
-+#define PMD_PADDR	_AC(0xfffffffe,UL)
-+#define PMD_PADDR_SHIFT	_AC(11,UL)
-+
-+/* PGDs point to PMD tables which are 8K aligned.  */
-+#define PGD_PADDR	_AC(0xfffffffc,UL)
-+#define PGD_PADDR_SHIFT	_AC(11,UL)
-+
- #ifndef __ASSEMBLY__
- 
- #include <linux/sched.h>
-@@ -581,14 +589,14 @@ static inline unsigned long pte_special(pte_t pte)
- }
- 
- #define pmd_set(pmdp, ptep)	\
--	(pmd_val(*(pmdp)) = (__pa((unsigned long) (ptep)) >> 11UL))
-+	(pmd_val(*(pmdp)) = (__pa((unsigned long) (ptep)) >> PMD_PADDR_SHIFT))
- #define pud_set(pudp, pmdp)	\
--	(pud_val(*(pudp)) = (__pa((unsigned long) (pmdp)) >> 11UL))
-+	(pud_val(*(pudp)) = (__pa((unsigned long) (pmdp)) >> PGD_PADDR_SHIFT))
- #define __pmd_page(pmd)		\
--	((unsigned long) __va((((unsigned long)pmd_val(pmd))<<11UL)))
-+	((unsigned long) __va((((unsigned long)pmd_val(pmd))<<PMD_PADDR_SHIFT)))
- #define pmd_page(pmd) 			virt_to_page((void *)__pmd_page(pmd))
- #define pud_page_vaddr(pud)		\
--	((unsigned long) __va((((unsigned long)pud_val(pud))<<11UL)))
-+	((unsigned long) __va((((unsigned long)pud_val(pud))<<PGD_PADDR_SHIFT)))
- #define pud_page(pud) 			virt_to_page((void *)pud_page_vaddr(pud))
- #define pmd_none(pmd)			(!pmd_val(pmd))
- #define pmd_bad(pmd)			(0)
-diff --git a/arch/sparc/include/asm/tsb.h b/arch/sparc/include/asm/tsb.h
-index 6435924..ef8cd1a 100644
---- a/arch/sparc/include/asm/tsb.h
-+++ b/arch/sparc/include/asm/tsb.h
-@@ -147,13 +147,13 @@ extern struct tsb_phys_patch_entry __tsb_phys_patch, __tsb_phys_patch_end;
- 	brz,pn		REG1, FAIL_LABEL; \
- 	 sllx		VADDR, 64 - (PMD_SHIFT + PMD_BITS), REG2; \
- 	srlx		REG2, 64 - PAGE_SHIFT, REG2; \
--	sllx		REG1, 11, REG1; \
-+	sllx		REG1, PGD_PADDR_SHIFT, REG1; \
- 	andn		REG2, 0x3, REG2; \
- 	lduwa		[REG1 + REG2] ASI_PHYS_USE_EC, REG1; \
- 	brz,pn		REG1, FAIL_LABEL; \
- 	 sllx		VADDR, 64 - PMD_SHIFT, REG2; \
- 	srlx		REG2, 64 - (PAGE_SHIFT - 1), REG2; \
--	sllx		REG1, 11, REG1; \
-+	sllx		REG1, PMD_PADDR_SHIFT, REG1; \
- 	andn		REG2, 0x7, REG2; \
- 	add		REG1, REG2, REG1;
- 
-@@ -172,13 +172,13 @@ extern struct tsb_phys_patch_entry __tsb_phys_patch, __tsb_phys_patch_end;
- 	brz,pn		REG1, FAIL_LABEL; \
- 	 sllx		VADDR, 64 - (PMD_SHIFT + PMD_BITS), REG2; \
- 	srlx		REG2, 64 - PAGE_SHIFT, REG2; \
--	sllx		REG1, 11, REG1; \
-+	sllx		REG1, PGD_PADDR_SHIFT, REG1; \
- 	andn		REG2, 0x3, REG2; \
- 	lduwa		[REG1 + REG2] ASI_PHYS_USE_EC, REG1; \
- 	brz,pn		REG1, FAIL_LABEL; \
- 	 sllx		VADDR, 64 - PMD_SHIFT, REG2; \
- 	srlx		REG2, 64 - (PAGE_SHIFT - 1), REG2; \
--	sllx		REG1, 11, REG1; \
-+	sllx		REG1, PMD_PADDR_SHIFT, REG1; \
- 	andn		REG2, 0x7, REG2; \
- 	add		REG1, REG2, REG1;
- 
 -- 
-1.7.10.4
-
+Catalin
