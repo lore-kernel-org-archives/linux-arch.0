@@ -1,45 +1,93 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 1/4] Clean up the long arch list for the UID16 config option
-Date: Thu, 4 Oct 2012 21:45:35 +0200
-Message-ID: <CAMuHMdWiPLdw3+iKJZRb0bR5seTDz1jTuiF2bV=WvAiyXJz3CQ@mail.gmail.com>
-References: <1349282666-32100-1-git-send-email-catalin.marinas@arm.com>
-	<1349282666-32100-2-git-send-email-catalin.marinas@arm.com>
-	<20121003151505.8d59b646.akpm@linux-foundation.org>
-	<20121004194131.GA4625@n2100.arm.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+From: David Howells <dhowells@redhat.com>
+Subject: [GIT PULL] UAPI disintegration fixes
+Date: Fri, 05 Oct 2012 00:45:35 +0100
+Message-ID: <20389.1349394335@warthog.procyon.org.uk>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vb0-f46.google.com ([209.85.212.46]:62232 "EHLO
-	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756726Ab2JDTph (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Oct 2012 15:45:37 -0400
-In-Reply-To: <20121004194131.GA4625@n2100.arm.linux.org.uk>
+Received: from mx1.redhat.com ([209.132.183.28]:64907 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753382Ab2JDXpq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 4 Oct 2012 19:45:46 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Andrew Morton <akpm@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
+To: torvalds@osdl.org
+Cc: dhowells@redhat.com, arnd@arndb.de, hpa@zytor.com, catalin.marinas@arm.com, davem@davemloft.net, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thu, Oct 4, 2012 at 9:41 PM, Russell King - ARM Linux
-<linux@arm.linux.org.uk> wrote:
-> On Wed, Oct 03, 2012 at 03:15:05PM -0700, Andrew Morton wrote:
->> Guys, don't do this.  Either put the new item into a randomly-chosen
->> position or, probably better, alphanumerically sort the list.
->
-> I've been telling people to alphanumerically sort Kconfig select
-> options for some time, but as normal, no one's listening.
 
-Anyone who cares to sort the existing ones "at the end of the merge window",
-and teaches checkpatch to enforce it for new ones?
+Hi Linus,
 
-The next step is #include order...
+Could you pull this branch please?
 
-Gr{oetje,eeting}s,
+There are three main parts:
 
-                        Geert
+ (1) I found I needed some more fixups in the wake of testing Arm64 (some
+     asm/unistd.h files had weird guards that caused problems - mostly in
+     arches for which I don't have a compiler) and some __KERNEL__ splitting
+     needed to take place in Arm64.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+ (2) I found that c6x was missing some __KERNEL__ guards in its asm/signal.h.
+     Mark Salter pointed me at a tree with a patch to remove that file
+     entirely and use the asm-generic variant instead.
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+ (3) Lastly, m68k turned out to have a header installation problem due to it
+     lacking a kvm_para.h file.
+
+     The conditional installation bits for linux/kvm_para.h, linux/kvm.h and
+     linux/a.out.h weren't very well specified - and didn't work if an arch
+     didn't have the asm/ version of that file, but there *was* an
+     asm-generic/ version.
+
+     It seems the "ifneq $((wildcard ...),)" for each of those three headers
+     in include/kernel/Kbuild is invoked twice during header installation, and
+     the second time it matches on the just installed asm-generic/kvm_para.h
+     file and thus incorrectly installs linux/kvm_para.h as well.
+
+     Most arches actually have an asm/kvm_para.h, so this wasn't detectable in
+     those.
+
+David
+---
+The following changes since commit 612a9aab56a93533e76e3ad91642db7033e03b69:
+
+  Merge branch 'drm-next' of git://people.freedesktop.org/~airlied/linux (2012-10-03 23:29:23 -0700)
+
+are available in the git repository at:
+
+
+  git://git.infradead.org/users/dhowells/linux-headers.git uapi-prep
+
+for you to fetch changes up to f3dfd599af993385b40fc7a1c947afc12729bc4d:
+
+  UAPI: Fix conditional header installation handling (notably kvm_para.h on m68k) (2012-10-04 18:16:47 +0100)
+
+----------------------------------------------------------------
+(from the branch description for uapi-prep local branch)
+
+clone of "master"
+----------------------------------------------------------------
+David Howells (4):
+      UAPI: Fix the guards on various asm/unistd.h files
+      UAPI: Split compound conditionals containing __KERNEL__ in Arm64
+      Merge remote-tracking branch 'c6x/for-linux-next' into uapi-prep
+      UAPI: Fix conditional header installation handling (notably kvm_para.h on m68k)
+
+Mark Salter (2):
+      c6x: make dsk6455 the default config
+      c6x: remove c6x signal.h
+
+ arch/arm64/include/asm/hwcap.h      |  4 +++-
+ arch/arm64/include/asm/stat.h       |  4 +++-
+ arch/arm64/include/asm/unistd.h     |  8 +++-----
+ arch/arm64/include/asm/unistd32.h   |  4 ----
+ arch/c6x/Makefile                   |  2 ++
+ arch/c6x/include/asm/Kbuild         |  1 +
+ arch/c6x/include/asm/signal.h       | 17 -----------------
+ arch/c6x/include/asm/unistd.h       |  4 ----
+ arch/hexagon/include/asm/unistd.h   |  5 -----
+ arch/openrisc/include/asm/unistd.h  |  5 -----
+ arch/score/include/asm/unistd.h     |  5 -----
+ arch/tile/include/asm/unistd.h      |  5 -----
+ arch/unicore32/include/asm/unistd.h |  4 ----
+ include/asm-generic/unistd.h        |  4 ----
+ include/linux/Kbuild                |  9 +++------
+ 15 files changed, 15 insertions(+), 66 deletions(-)
+ delete mode 100644 arch/c6x/include/asm/signal.h
