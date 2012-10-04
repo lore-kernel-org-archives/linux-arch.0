@@ -1,7 +1,8 @@
 From: David Miller <davem@davemloft.net>
-Subject: [PATCH v2 2/7] sparc64: Halve the size of PTE tables.
-Date: Thu, 04 Oct 2012 15:46:49 -0400 (EDT)
-Message-ID: <20121004.154649.2206336946126738090.davem@davemloft.net>
+Subject: [PATCH v2 6/7] mm: thp: Use more portable PMD clearing sequenece
+ in zap_huge_pmd().
+Date: Thu, 04 Oct 2012 15:47:47 -0400 (EDT)
+Message-ID: <20121004.154747.650416442352280556.davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
@@ -12,104 +13,55 @@ Cc: sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.ke
 List-Id: linux-arch.vger.kernel.org
 
 
-The reason we want to do this is to facilitate transparent huge page
-support.
+Invalidation sequences are handled in various ways on various
+architectures.
 
-Right now PMD's cover 8MB of address space, and our huge page size is
-4MB.  The current transparent hugepage support is not able to handle
-HPAGE_SIZE != PMD_SIZE.
+One way, which sparc64 uses, is to let the set_*_at() functions
+accumulate pending flushes into a per-cpu array.  Then the
+flush_tlb_range() et al. calls process the pending TLB flushes.
 
-So make PTE tables be sized to half of a page instead of a full page.
+In this regime, the __tlb_remove_*tlb_entry() implementations are
+essentially NOPs.
 
-We can still map properly the whole supported virtual address range
-which on sparc64 requires 44 bits.  Add a compile time CPP test which
-ensures that this requirement is always met.
+The canonical PTE zap in mm/memory.c is:
 
-There is a minor inefficiency added by this change.  We only use half
-of the page for PTE tables.  It's not trivial to use only half of the
-page yet still get all of the pgtable_page_{ctor,dtor}() stuff working
-properly.  It is doable, and that will come in a subsequent change.
+			ptent = ptep_get_and_clear_full(mm, addr, pte,
+							tlb->fullmm);
+			tlb_remove_tlb_entry(tlb, pte, addr);
+
+With a subsequent tlb_flush_mmu() if needed.
+
+Mirror this in the THP PMD zapping using:
+
+		orig_pmd = pmdp_get_and_clear(tlb->mm, addr, pmd);
+		page = pmd_page(orig_pmd);
+		tlb_remove_pmd_tlb_entry(tlb, pmd, addr);
+
+And we properly accomodate TLB flush mechanims like the one described
+above.
 
 Signed-off-by: David S. Miller <davem@davemloft.net>
 ---
- arch/sparc/include/asm/pgtable_64.h |   24 +++++++-----------------
- arch/sparc/include/asm/tsb.h        |    4 ++--
- 2 files changed, 9 insertions(+), 19 deletions(-)
+ mm/huge_memory.c |    5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/arch/sparc/include/asm/pgtable_64.h b/arch/sparc/include/asm/pgtable_64.h
-index 387d484..a7b5091 100644
---- a/arch/sparc/include/asm/pgtable_64.h
-+++ b/arch/sparc/include/asm/pgtable_64.h
-@@ -45,40 +45,30 @@
- 
- #define vmemmap			((struct page *)VMEMMAP_BASE)
- 
--/* XXX All of this needs to be rethought so we can take advantage
-- * XXX cheetah's full 64-bit virtual address space, ie. no more hole
-- * XXX in the middle like on spitfire. -DaveM
-- */
--/*
-- * Given a virtual address, the lowest PAGE_SHIFT bits determine offset
-- * into the page; the next higher PAGE_SHIFT-3 bits determine the pte#
-- * in the proper pagetable (the -3 is from the 8 byte ptes, and each page
-- * table is a single page long). The next higher PMD_BITS determine pmd#
-- * in the proper pmdtable (where we must have PMD_BITS <= (PAGE_SHIFT-2)
-- * since the pmd entries are 4 bytes, and each pmd page is a single page
-- * long). Finally, the higher few bits determine pgde#.
-- */
--
- /* PMD_SHIFT determines the size of the area a second-level page
-  * table can map
-  */
--#define PMD_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-3))
-+#define PMD_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-4))
- #define PMD_SIZE	(_AC(1,UL) << PMD_SHIFT)
- #define PMD_MASK	(~(PMD_SIZE-1))
- #define PMD_BITS	(PAGE_SHIFT - 2)
- 
- /* PGDIR_SHIFT determines what a third-level page table entry can map */
--#define PGDIR_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-3) + PMD_BITS)
-+#define PGDIR_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-4) + PMD_BITS)
- #define PGDIR_SIZE	(_AC(1,UL) << PGDIR_SHIFT)
- #define PGDIR_MASK	(~(PGDIR_SIZE-1))
- #define PGDIR_BITS	(PAGE_SHIFT - 2)
- 
-+#if (PGDIR_SHIFT + PGDIR_BITS) != 44
-+#error Page table parameters do not cover virtual address space properly.
-+#endif
-+
- #ifndef __ASSEMBLY__
- 
- #include <linux/sched.h>
- 
- /* Entries per page directory level. */
--#define PTRS_PER_PTE	(1UL << (PAGE_SHIFT-3))
-+#define PTRS_PER_PTE	(1UL << (PAGE_SHIFT-4))
- #define PTRS_PER_PMD	(1UL << PMD_BITS)
- #define PTRS_PER_PGD	(1UL << PGDIR_BITS)
- 
-diff --git a/arch/sparc/include/asm/tsb.h b/arch/sparc/include/asm/tsb.h
-index 1a8afd1..6435924 100644
---- a/arch/sparc/include/asm/tsb.h
-+++ b/arch/sparc/include/asm/tsb.h
-@@ -152,7 +152,7 @@ extern struct tsb_phys_patch_entry __tsb_phys_patch, __tsb_phys_patch_end;
- 	lduwa		[REG1 + REG2] ASI_PHYS_USE_EC, REG1; \
- 	brz,pn		REG1, FAIL_LABEL; \
- 	 sllx		VADDR, 64 - PMD_SHIFT, REG2; \
--	srlx		REG2, 64 - PAGE_SHIFT, REG2; \
-+	srlx		REG2, 64 - (PAGE_SHIFT - 1), REG2; \
- 	sllx		REG1, 11, REG1; \
- 	andn		REG2, 0x7, REG2; \
- 	add		REG1, REG2, REG1;
-@@ -177,7 +177,7 @@ extern struct tsb_phys_patch_entry __tsb_phys_patch, __tsb_phys_patch_end;
- 	lduwa		[REG1 + REG2] ASI_PHYS_USE_EC, REG1; \
- 	brz,pn		REG1, FAIL_LABEL; \
- 	 sllx		VADDR, 64 - PMD_SHIFT, REG2; \
--	srlx		REG2, 64 - PAGE_SHIFT, REG2; \
-+	srlx		REG2, 64 - (PAGE_SHIFT - 1), REG2; \
- 	sllx		REG1, 11, REG1; \
- 	andn		REG2, 0x7, REG2; \
- 	add		REG1, REG2, REG1;
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 20eeb2b..2fa0c59 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -996,9 +996,10 @@ int zap_huge_pmd(struct mmu_gather *tlb, struct vm_area_struct *vma,
+ 	if (__pmd_trans_huge_lock(pmd, vma) == 1) {
+ 		struct page *page;
+ 		pgtable_t pgtable;
++		pmd_t orig_pmd;
+ 		pgtable = pgtable_trans_huge_withdraw(tlb->mm);
+-		page = pmd_page(*pmd);
+-		pmd_clear(pmd);
++		orig_pmd = pmdp_get_and_clear(tlb->mm, addr, pmd);
++		page = pmd_page(orig_pmd);
+ 		tlb_remove_pmd_tlb_entry(tlb, pmd, addr);
+ 		page_remove_rmap(page);
+ 		VM_BUG_ON(page_mapcount(page) < 0);
 -- 
 1.7.10.4
 
