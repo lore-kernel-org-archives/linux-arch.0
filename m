@@ -1,57 +1,120 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:44208 "EHLO
+Received: from shards.monkeyblade.net ([149.20.54.216]:45234 "EHLO
 	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753352Ab2JDSLl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Oct 2012 14:11:41 -0400
-Date: Thu, 04 Oct 2012 14:11:36 -0400 (EDT)
-Message-ID: <20121004.141136.1763670567147718953.davem@davemloft.net>
-Subject: Re: [PATCH 0/8] THP support for Sparc64
+	with ESMTP id S1757024Ab2JDTqv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Oct 2012 15:46:51 -0400
+Date: Thu, 04 Oct 2012 15:46:49 -0400 (EDT)
+Message-ID: <20121004.154649.2206336946126738090.davem@davemloft.net>
+Subject: [PATCH v2 2/7] sparc64: Halve the size of PTE tables.
 From: David Miller <davem@davemloft.net>
-In-Reply-To: <20121004103548.GB6793@redhat.com>
-References: <20121002155544.2c67b1e8.akpm@linux-foundation.org>
-	<20121003.220027.1636081487098835868.davem@davemloft.net>
-	<20121004103548.GB6793@redhat.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: aarcange@redhat.com
-Cc: akpm@linux-foundation.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, hannes@cmpxchg.org, gerald.schaefer@de.ibm.com
-Message-ID: <20121004181136.hRo7IMeUZ_krEhbG4RrDc5Ku5YKaLK6KoCcXxt-riLw@z>
+To: linux-mm@kvack.org
+Cc: sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, aarcange@redhat.com, hannes@cmpxchg.org
+Message-ID: <20121004194649.JFH5JIBuVS1rjySK-Zcp4IL_o6ynvo3XLdcHMKHoMzM@z>
 
-From: Andrea Arcangeli <aarcange@redhat.com>
-Date: Thu, 4 Oct 2012 12:35:48 +0200
 
-> Hi Dave,
-> 
-> On Wed, Oct 03, 2012 at 10:00:27PM -0400, David Miller wrote:
->> From: Andrew Morton <akpm@linux-foundation.org>
->> Date: Tue, 2 Oct 2012 15:55:44 -0700
->> 
->> > I had a shot at integrating all this onto the pending stuff in linux-next. 
->> > "mm: Add and use update_mmu_cache_pmd() in transparent huge page code."
->> > needed minor massaging in huge_memory.c.  But as Andrea mentioned, we
->> > ran aground on Gerald's
->> > http://ozlabs.org/~akpm/mmotm/broken-out/thp-remove-assumptions-on-pgtable_t-type.patch,
->> > part of the thp-for-s390 work.
->> 
->> While working on a rebase relative to this work, I noticed that the
->> s390 patches don't even compile.
->> 
->> It's because of that pmd_pgprot() change from Peter Z. which arrives
->> asynchonously via the linux-next tree.  It makes THP start using
->> pmd_pgprot() (a new interface) which the s390 patches don't provide.
-> 
-> My suggestion would be to ignore linux-next and port it to -mm only
-> and re-send to Andrew. schednuma is by mistake in linux-next, and
-> it's not going to get merged as far as I can tell.
+The reason we want to do this is to facilitate transparent huge page
+support.
 
-Sorry Andrea, that simply is impractical.
+Right now PMD's cover 8MB of address space, and our huge page size is
+4MB.  The current transparent hugepage support is not able to handle
+HPAGE_SIZE != PMD_SIZE.
 
-The first thing Andrew's patch series does is include linux-next,
-therefore every THP and MM patch in his series is against linux-next.
+So make PTE tables be sized to half of a page instead of a full page.
 
-So there are already dependencies in there on the pmd_pgprot() bits
-and I already did the implementation for sparc64 so that's what I'm
-submitting against.
+We can still map properly the whole supported virtual address range
+which on sparc64 requires 44 bits.  Add a compile time CPP test which
+ensures that this requirement is always met.
+
+There is a minor inefficiency added by this change.  We only use half
+of the page for PTE tables.  It's not trivial to use only half of the
+page yet still get all of the pgtable_page_{ctor,dtor}() stuff working
+properly.  It is doable, and that will come in a subsequent change.
+
+Signed-off-by: David S. Miller <davem@davemloft.net>
+---
+ arch/sparc/include/asm/pgtable_64.h |   24 +++++++-----------------
+ arch/sparc/include/asm/tsb.h        |    4 ++--
+ 2 files changed, 9 insertions(+), 19 deletions(-)
+
+diff --git a/arch/sparc/include/asm/pgtable_64.h b/arch/sparc/include/asm/pgtable_64.h
+index 387d484..a7b5091 100644
+--- a/arch/sparc/include/asm/pgtable_64.h
++++ b/arch/sparc/include/asm/pgtable_64.h
+@@ -45,40 +45,30 @@
+ 
+ #define vmemmap			((struct page *)VMEMMAP_BASE)
+ 
+-/* XXX All of this needs to be rethought so we can take advantage
+- * XXX cheetah's full 64-bit virtual address space, ie. no more hole
+- * XXX in the middle like on spitfire. -DaveM
+- */
+-/*
+- * Given a virtual address, the lowest PAGE_SHIFT bits determine offset
+- * into the page; the next higher PAGE_SHIFT-3 bits determine the pte#
+- * in the proper pagetable (the -3 is from the 8 byte ptes, and each page
+- * table is a single page long). The next higher PMD_BITS determine pmd#
+- * in the proper pmdtable (where we must have PMD_BITS <= (PAGE_SHIFT-2)
+- * since the pmd entries are 4 bytes, and each pmd page is a single page
+- * long). Finally, the higher few bits determine pgde#.
+- */
+-
+ /* PMD_SHIFT determines the size of the area a second-level page
+  * table can map
+  */
+-#define PMD_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-3))
++#define PMD_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-4))
+ #define PMD_SIZE	(_AC(1,UL) << PMD_SHIFT)
+ #define PMD_MASK	(~(PMD_SIZE-1))
+ #define PMD_BITS	(PAGE_SHIFT - 2)
+ 
+ /* PGDIR_SHIFT determines what a third-level page table entry can map */
+-#define PGDIR_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-3) + PMD_BITS)
++#define PGDIR_SHIFT	(PAGE_SHIFT + (PAGE_SHIFT-4) + PMD_BITS)
+ #define PGDIR_SIZE	(_AC(1,UL) << PGDIR_SHIFT)
+ #define PGDIR_MASK	(~(PGDIR_SIZE-1))
+ #define PGDIR_BITS	(PAGE_SHIFT - 2)
+ 
++#if (PGDIR_SHIFT + PGDIR_BITS) != 44
++#error Page table parameters do not cover virtual address space properly.
++#endif
++
+ #ifndef __ASSEMBLY__
+ 
+ #include <linux/sched.h>
+ 
+ /* Entries per page directory level. */
+-#define PTRS_PER_PTE	(1UL << (PAGE_SHIFT-3))
++#define PTRS_PER_PTE	(1UL << (PAGE_SHIFT-4))
+ #define PTRS_PER_PMD	(1UL << PMD_BITS)
+ #define PTRS_PER_PGD	(1UL << PGDIR_BITS)
+ 
+diff --git a/arch/sparc/include/asm/tsb.h b/arch/sparc/include/asm/tsb.h
+index 1a8afd1..6435924 100644
+--- a/arch/sparc/include/asm/tsb.h
++++ b/arch/sparc/include/asm/tsb.h
+@@ -152,7 +152,7 @@ extern struct tsb_phys_patch_entry __tsb_phys_patch, __tsb_phys_patch_end;
+ 	lduwa		[REG1 + REG2] ASI_PHYS_USE_EC, REG1; \
+ 	brz,pn		REG1, FAIL_LABEL; \
+ 	 sllx		VADDR, 64 - PMD_SHIFT, REG2; \
+-	srlx		REG2, 64 - PAGE_SHIFT, REG2; \
++	srlx		REG2, 64 - (PAGE_SHIFT - 1), REG2; \
+ 	sllx		REG1, 11, REG1; \
+ 	andn		REG2, 0x7, REG2; \
+ 	add		REG1, REG2, REG1;
+@@ -177,7 +177,7 @@ extern struct tsb_phys_patch_entry __tsb_phys_patch, __tsb_phys_patch_end;
+ 	lduwa		[REG1 + REG2] ASI_PHYS_USE_EC, REG1; \
+ 	brz,pn		REG1, FAIL_LABEL; \
+ 	 sllx		VADDR, 64 - PMD_SHIFT, REG2; \
+-	srlx		REG2, 64 - PAGE_SHIFT, REG2; \
++	srlx		REG2, 64 - (PAGE_SHIFT - 1), REG2; \
+ 	sllx		REG1, 11, REG1; \
+ 	andn		REG2, 0x7, REG2; \
+ 	add		REG1, REG2, REG1;
+-- 
+1.7.10.4
+
