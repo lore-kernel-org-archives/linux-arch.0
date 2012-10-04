@@ -1,45 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp08.au.ibm.com ([202.81.31.141]:46038 "EHLO
-	e23smtp08.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933434Ab2JDQbG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Oct 2012 12:31:06 -0400
-Received: from /spool/local
-	by e23smtp08.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <aneesh.kumar@linux.vnet.ibm.com>;
-	Fri, 5 Oct 2012 02:30:24 +1000
-From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
-Subject: Re: [PATCH 3/8] sparc64: Eliminate PTE table memory wastage.
-In-Reply-To: <20121002.182642.49574627747120711.davem@davemloft.net>
-References: <20121002.182642.49574627747120711.davem@davemloft.net>
-Date: Thu, 04 Oct 2012 22:00:48 +0530
-Message-ID: <87y5jmfbd3.fsf@linux.vnet.ibm.com>
-MIME-Version: 1.0
-Content-Type: text/plain
+Received: from mx1.redhat.com ([209.132.183.28]:40480 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932253Ab2JDRhD (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 4 Oct 2012 13:37:03 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <CAMuHMdUx6he0MdL5etO6pDrMgd=JZWsf1TZj5WevjSpFANCWRA@mail.gmail.com>
+References: <CAMuHMdUx6he0MdL5etO6pDrMgd=JZWsf1TZj5WevjSpFANCWRA@mail.gmail.com> <18137.1349203013@warthog.procyon.org.uk>
+Subject: Re: [GIT PULL] User API Disintegrate: Preparatory patches
+Date: Thu, 04 Oct 2012 18:36:46 +0100
+Message-ID: <29855.1349372206@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>, linux-mm@kvack.org
-Cc: sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, aarcange@redhat.com, hannes@cmpxchg.org
-Message-ID: <20121004163048.axDcgeW9RusOtw1hst1H_zDM_z7UXB3eYtKc96MU7ZY@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: dhowells@redhat.com, torvalds@osdl.org, arnd@arndb.de, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20121004173646.SCv251RxJZ9po4z3-0MbvN5QFEs2FIZ-RHnl_4UlXL0@z>
 
-David Miller <davem@davemloft.net> writes:
+Geert Uytterhoeven <geert@linux-m68k.org> wrote:
 
-> We've split up the PTE tables so that they take up half a page instead
-> of a full page.  This is in order to facilitate transparent huge page
-> support, which works much better if our PMDs cover 4MB instead of 8MB.
->
-> What we do is have a one-behind cache for PTE table allocations in the
-> mm struct.
->
-> This logic triggers only on allocations.  For example, we don't try to
-> keep track of free'd up page table blocks in the style that the s390
-> port does.
+> >  include/linux/libfdt.h                           |  4 +-
+> 
+> So what happened here?
+> 
+>  -#include "../../scripts/dtc/libfdt/fdt.h"
+> -#include "../../scripts/dtc/libfdt/libfdt.h"
+> +#include <>
+> +#include <>
 
-I am also implementing a similar change for powerpc. We have a 64K page
-size, and want to make sure PMD cover 16MB, which is the huge page size
-supported by the hardware. I was looking at using the s390 logic,
-considering we have 16 PMDs mapping to same PTE page. Should we look at
-generalizing the case so that other architectures can start using the
-same code ?
+I didn't expect 'system' header files to be outside of include/ or
+arch/*/include/, so the bit of perl I had to turn this into <...> quietly
+malfunctioned when it stripped too much off of the front.
 
--aneesh
+Out of interest, why aren't these in include/?  The normal way seems to be to
+point the tool build at the kernel headers, not the kernel build at the script
+headers.
 
+David
