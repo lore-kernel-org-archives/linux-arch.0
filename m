@@ -1,36 +1,37 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [GIT PULL] User API Disintegrate: Preparatory patches
-Date: Thu, 4 Oct 2012 19:12:47 +0200
-Message-ID: <CAMuHMdUx6he0MdL5etO6pDrMgd=JZWsf1TZj5WevjSpFANCWRA@mail.gmail.com>
-References: <18137.1349203013@warthog.procyon.org.uk>
+Subject: Re: [PATCH 1/4] Clean up the long arch list for the UID16 config option
+Date: Thu, 4 Oct 2012 21:45:35 +0200
+Message-ID: <CAMuHMdWiPLdw3+iKJZRb0bR5seTDz1jTuiF2bV=WvAiyXJz3CQ@mail.gmail.com>
+References: <1349282666-32100-1-git-send-email-catalin.marinas@arm.com>
+	<1349282666-32100-2-git-send-email-catalin.marinas@arm.com>
+	<20121003151505.8d59b646.akpm@linux-foundation.org>
+	<20121004194131.GA4625@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f46.google.com ([209.85.216.46]:49518 "EHLO
-	mail-qa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752783Ab2JDRMs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Oct 2012 13:12:48 -0400
-In-Reply-To: <18137.1349203013@warthog.procyon.org.uk>
+Received: from mail-vb0-f46.google.com ([209.85.212.46]:62232 "EHLO
+	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756726Ab2JDTph (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Oct 2012 15:45:37 -0400
+In-Reply-To: <20121004194131.GA4625@n2100.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, arnd@arndb.de, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
 
-On Tue, Oct 2, 2012 at 8:36 PM, David Howells <dhowells@redhat.com> wrote:
->  include/linux/libfdt.h                           |  4 +-
+On Thu, Oct 4, 2012 at 9:41 PM, Russell King - ARM Linux
+<linux@arm.linux.org.uk> wrote:
+> On Wed, Oct 03, 2012 at 03:15:05PM -0700, Andrew Morton wrote:
+>> Guys, don't do this.  Either put the new item into a randomly-chosen
+>> position or, probably better, alphanumerically sort the list.
+>
+> I've been telling people to alphanumerically sort Kconfig select
+> options for some time, but as normal, no one's listening.
 
-So what happened here?
+Anyone who cares to sort the existing ones "at the end of the merge window",
+and teaches checkpatch to enforce it for new ones?
 
- -#include "../../scripts/dtc/libfdt/fdt.h"
--#include "../../scripts/dtc/libfdt/libfdt.h"
-+#include <>
-+#include <>
-
-Woops...
-
-http://kisskb.ellerman.id.au/kisskb/buildresult/7312681/
-include/linux/libfdt.h:5:10: error: empty filename in #include
-include/linux/libfdt.h:6:10: error: empty filename in #include
+The next step is #include order...
 
 Gr{oetje,eeting}s,
 
