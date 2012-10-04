@@ -1,39 +1,44 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [GIT PULL] Disintegrate UAPI for asm-generic
-Date: Thu, 4 Oct 2012 21:20:48 +0000
-Message-ID: <201210042120.48955.arnd@arndb.de>
-References: <17336.1349380256@warthog.procyon.org.uk>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [GIT PULL] User API Disintegrate: Preparatory patches
+Date: Thu, 4 Oct 2012 19:12:47 +0200
+Message-ID: <CAMuHMdUx6he0MdL5etO6pDrMgd=JZWsf1TZj5WevjSpFANCWRA@mail.gmail.com>
+References: <18137.1349203013@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <17336.1349380256@warthog.procyon.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qa0-f46.google.com ([209.85.216.46]:49518 "EHLO
+	mail-qa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752783Ab2JDRMs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Oct 2012 13:12:48 -0400
+In-Reply-To: <18137.1349203013@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: David Howells <dhowells@redhat.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>
-List-Id: linux-arch.vger.kernel.org
+Cc: torvalds@osdl.org, arnd@arndb.de, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thursday 04 October 2012, David Howells wrote:
-> Can you merge the following branch into the asm-generic tree please.
-> 
-> This is to complete part of the UAPI disintegration for which the preparatory
-> patches were pulled recently.
-> 
-> Note that there are some fixup patches which are at the base of the branch
-> aimed at you, plus all arches get the asm-generic branch merged in too.
-> 
-> The following changes since commit 612a9aab56a93533e76e3ad91642db7033e03b69:
-> 
->   Merge branch 'drm-next' of git://people.freedesktop.org/~airlied/linux (2012-10-03 23:29:23 -0700)
-> 
-> are available in the git repository at:
+On Tue, Oct 2, 2012 at 8:36 PM, David Howells <dhowells@redhat.com> wrote:
+>  include/linux/libfdt.h                           |  4 +-
 
-Ok, I've pulled it into the asm-generic branch and added it to the arm-soc
-for-next branch, because that is convenient for me to get it into linux-next.
+So what happened here?
 
-Olof, I'll send this to Linus in a couple of days, separate from the other arm-soc
-stuff that I assume you are handling. I could also send everything in one go
-if you prefer.
+ -#include "../../scripts/dtc/libfdt/fdt.h"
+-#include "../../scripts/dtc/libfdt/libfdt.h"
++#include <>
++#include <>
 
-	Arnd
+Woops...
+
+http://kisskb.ellerman.id.au/kisskb/buildresult/7312681/
+include/linux/libfdt.h:5:10: error: empty filename in #include
+include/linux/libfdt.h:6:10: error: empty filename in #include
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
