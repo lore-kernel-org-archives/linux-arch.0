@@ -1,148 +1,145 @@
-From: David Howells <dhowells@redhat.com>
-Subject: [GIT PULL] Disintegrate UAPI for asm-generic
-Date: Thu, 04 Oct 2012 20:50:56 +0100
-Message-ID: <17336.1349380256@warthog.procyon.org.uk>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: [PATCH v2 4/4] Clean up the "#if defined(arch)" list for exception-trace sysctl entry
+Date: Thu,  4 Oct 2012 17:15:57 +0100
+Message-ID: <1349367357-13865-5-git-send-email-catalin.marinas@arm.com>
+References: <1349367357-13865-1-git-send-email-catalin.marinas@arm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:22184 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756950Ab2JDTvE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 4 Oct 2012 15:51:04 -0400
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:43777 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1757132Ab2JDQTj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 4 Oct 2012 12:19:39 -0400
+In-Reply-To: <1349367357-13865-1-git-send-email-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arnd@arndb.de
-Cc: dhowells@redhat.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
 
-Can you merge the following branch into the asm-generic tree please.
+This patch introduces SYSCTL_EXCEPTION_TRACE config option and selects
+it in the architectures requiring support for the "exception-trace"
+debug_table entry in kernel/sysctl.c.
 
-This is to complete part of the UAPI disintegration for which the preparatory
-patches were pulled recently.
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Cc: Heiko Carstens <heiko.carstens@de.ibm.com>
+Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Ingo Molnar <mingo@redhat.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>
+---
+ arch/arm64/Kconfig   |    1 +
+ arch/powerpc/Kconfig |    1 +
+ arch/s390/Kconfig    |    1 +
+ arch/sparc/Kconfig   |    1 +
+ arch/tile/Kconfig    |    1 +
+ arch/x86/Kconfig     |    1 +
+ init/Kconfig         |    5 +++++
+ kernel/sysctl.c      |    3 +--
+ 8 files changed, 12 insertions(+), 2 deletions(-)
 
-Note that there are some fixup patches which are at the base of the branch
-aimed at you, plus all arches get the asm-generic branch merged in too.
-
-The following changes since commit 612a9aab56a93533e76e3ad91642db7033e03b69:
-
-  Merge branch 'drm-next' of git://people.freedesktop.org/~airlied/linux (2012-10-03 23:29:23 -0700)
-
-are available in the git repository at:
-
-
-  git://git.infradead.org/users/dhowells/linux-headers.git disintegrate-asm-generic
-
-for you to fetch changes up to 8a1ab3155c2ac7fbe5f2038d6e26efeb607a1498:
-
-  UAPI: (Scripted) Disintegrate include/asm-generic (2012-10-04 18:20:15 +0100)
-
-----------------------------------------------------------------
-David Howells (5):
-      UAPI: Fix the guards on various asm/unistd.h files
-      UAPI: Split compound conditionals containing __KERNEL__ in Arm64
-      Merge remote-tracking branch 'c6x/for-linux-next' into uapi-prep
-      UAPI: Fix conditional header installation handling (notably kvm_para.h on m68k)
-      UAPI: (Scripted) Disintegrate include/asm-generic
-
-Mark Salter (2):
-      c6x: make dsk6455 the default config
-      c6x: remove c6x signal.h
-
- arch/arm64/include/asm/hwcap.h               |   4 +-
- arch/arm64/include/asm/stat.h                |   4 +-
- arch/arm64/include/asm/unistd.h              |   8 +-
- arch/arm64/include/asm/unistd32.h            |   4 -
- arch/c6x/Makefile                            |   2 +
- arch/c6x/include/asm/Kbuild                  |   1 +
- arch/c6x/include/asm/signal.h                |  17 -
- arch/c6x/include/asm/unistd.h                |   4 -
- arch/hexagon/include/asm/unistd.h            |   5 -
- arch/openrisc/include/asm/unistd.h           |   5 -
- arch/score/include/asm/unistd.h              |   5 -
- arch/tile/include/asm/unistd.h               |   5 -
- arch/unicore32/include/asm/unistd.h          |   4 -
- include/asm-generic/Kbuild                   |  35 -
- include/asm-generic/bitsperlong.h            |  13 +-
- include/asm-generic/int-l64.h                |  26 +-
- include/asm-generic/int-ll64.h               |  31 +-
- include/asm-generic/ioctl.h                  |  95 +--
- include/asm-generic/kvm_para.h               |   5 +-
- include/asm-generic/param.h                  |  17 +-
- include/asm-generic/resource.h               |  66 +-
- include/asm-generic/siginfo.h                | 297 +--------
- include/asm-generic/signal.h                 | 117 +---
- include/asm-generic/statfs.h                 |  81 +--
- include/asm-generic/termios.h                |  49 +-
- include/asm-generic/unistd.h                 | 911 +--------------------------
- include/linux/Kbuild                         |   9 +-
- include/uapi/asm-generic/Kbuild              |  35 +
- include/{ => uapi}/asm-generic/auxvec.h      |   0
- include/uapi/asm-generic/bitsperlong.h       |  15 +
- include/{ => uapi}/asm-generic/errno-base.h  |   0
- include/{ => uapi}/asm-generic/errno.h       |   0
- include/{ => uapi}/asm-generic/fcntl.h       |   0
- include/uapi/asm-generic/int-l64.h           |  34 +
- include/uapi/asm-generic/int-ll64.h          |  39 ++
- include/uapi/asm-generic/ioctl.h             |  98 +++
- include/{ => uapi}/asm-generic/ioctls.h      |   0
- include/{ => uapi}/asm-generic/ipcbuf.h      |   0
- include/{ => uapi}/asm-generic/mman-common.h |   0
- include/{ => uapi}/asm-generic/mman.h        |   0
- include/{ => uapi}/asm-generic/msgbuf.h      |   0
- include/uapi/asm-generic/param.h             |  19 +
- include/{ => uapi}/asm-generic/poll.h        |   0
- include/{ => uapi}/asm-generic/posix_types.h |   0
- include/uapi/asm-generic/resource.h          |  68 ++
- include/{ => uapi}/asm-generic/sembuf.h      |   0
- include/{ => uapi}/asm-generic/setup.h       |   0
- include/{ => uapi}/asm-generic/shmbuf.h      |   0
- include/{ => uapi}/asm-generic/shmparam.h    |   0
- include/uapi/asm-generic/siginfo.h           | 298 +++++++++
- include/{ => uapi}/asm-generic/signal-defs.h |   0
- include/uapi/asm-generic/signal.h            | 123 ++++
- include/{ => uapi}/asm-generic/socket.h      |   0
- include/{ => uapi}/asm-generic/sockios.h     |   0
- include/{ => uapi}/asm-generic/stat.h        |   0
- include/uapi/asm-generic/statfs.h            |  83 +++
- include/{ => uapi}/asm-generic/swab.h        |   0
- include/{ => uapi}/asm-generic/termbits.h    |   0
- include/uapi/asm-generic/termios.h           |  50 ++
- include/{ => uapi}/asm-generic/types.h       |   0
- include/{ => uapi}/asm-generic/ucontext.h    |   0
- include/uapi/asm-generic/unistd.h            | 902 ++++++++++++++++++++++++++
- security/apparmor/Makefile                   |   2 +-
- 63 files changed, 1793 insertions(+), 1793 deletions(-)
- delete mode 100644 arch/c6x/include/asm/signal.h
- rename include/{ => uapi}/asm-generic/auxvec.h (100%)
- create mode 100644 include/uapi/asm-generic/bitsperlong.h
- rename include/{ => uapi}/asm-generic/errno-base.h (100%)
- rename include/{ => uapi}/asm-generic/errno.h (100%)
- rename include/{ => uapi}/asm-generic/fcntl.h (100%)
- create mode 100644 include/uapi/asm-generic/int-l64.h
- create mode 100644 include/uapi/asm-generic/int-ll64.h
- create mode 100644 include/uapi/asm-generic/ioctl.h
- rename include/{ => uapi}/asm-generic/ioctls.h (100%)
- rename include/{ => uapi}/asm-generic/ipcbuf.h (100%)
- create mode 100644 include/uapi/asm-generic/kvm_para.h
- rename include/{ => uapi}/asm-generic/mman-common.h (100%)
- rename include/{ => uapi}/asm-generic/mman.h (100%)
- rename include/{ => uapi}/asm-generic/msgbuf.h (100%)
- create mode 100644 include/uapi/asm-generic/param.h
- rename include/{ => uapi}/asm-generic/poll.h (100%)
- rename include/{ => uapi}/asm-generic/posix_types.h (100%)
- create mode 100644 include/uapi/asm-generic/resource.h
- rename include/{ => uapi}/asm-generic/sembuf.h (100%)
- rename include/{ => uapi}/asm-generic/setup.h (100%)
- rename include/{ => uapi}/asm-generic/shmbuf.h (100%)
- rename include/{ => uapi}/asm-generic/shmparam.h (100%)
- create mode 100644 include/uapi/asm-generic/siginfo.h
- rename include/{ => uapi}/asm-generic/signal-defs.h (100%)
- create mode 100644 include/uapi/asm-generic/signal.h
- rename include/{ => uapi}/asm-generic/socket.h (100%)
- rename include/{ => uapi}/asm-generic/sockios.h (100%)
- rename include/{ => uapi}/asm-generic/stat.h (100%)
- create mode 100644 include/uapi/asm-generic/statfs.h
- rename include/{ => uapi}/asm-generic/swab.h (100%)
- rename include/{ => uapi}/asm-generic/termbits.h (100%)
- create mode 100644 include/uapi/asm-generic/termios.h
- rename include/{ => uapi}/asm-generic/types.h (100%)
- rename include/{ => uapi}/asm-generic/ucontext.h (100%)
- create mode 100644 include/uapi/asm-generic/unistd.h
-.
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index a308560..7ff68c9 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -28,6 +28,7 @@ config ARM64
+ 	select PERF_USE_VMALLOC
+ 	select RTC_LIB
+ 	select SPARSE_IRQ
++	select SYSCTL_EXCEPTION_TRACE
+ 	help
+ 	  ARM 64-bit (AArch64) Linux support.
+ 
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index 7a7f5cc..cba7b65 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -99,6 +99,7 @@ config PPC
+ 	select HAVE_DYNAMIC_FTRACE
+ 	select HAVE_FUNCTION_TRACER
+ 	select HAVE_FUNCTION_GRAPH_TRACER
++	select SYSCTL_EXCEPTION_TRACE
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
+ 	select HAVE_IDE
+ 	select HAVE_IOREMAP_PROT
+diff --git a/arch/s390/Kconfig b/arch/s390/Kconfig
+index 2e26b97..5af0350 100644
+--- a/arch/s390/Kconfig
++++ b/arch/s390/Kconfig
+@@ -68,6 +68,7 @@ config S390
+ 	select HAVE_FTRACE_MCOUNT_RECORD
+ 	select HAVE_C_RECORDMCOUNT
+ 	select HAVE_SYSCALL_TRACEPOINTS
++	select SYSCTL_EXCEPTION_TRACE
+ 	select HAVE_DYNAMIC_FTRACE
+ 	select HAVE_FUNCTION_GRAPH_TRACER
+ 	select HAVE_REGS_AND_STACK_ACCESS_API
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 700a01a..e184075 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -18,6 +18,7 @@ config SPARC
+ 	select HAVE_OPROFILE
+ 	select HAVE_ARCH_KGDB if !SMP || SPARC64
+ 	select HAVE_ARCH_TRACEHOOK
++	select SYSCTL_EXCEPTION_TRACE
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
+ 	select RTC_CLASS
+ 	select RTC_DRV_M48T59
+diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
+index df69d42..dc46490 100644
+--- a/arch/tile/Kconfig
++++ b/arch/tile/Kconfig
+@@ -7,6 +7,7 @@ config TILE
+ 	select HAVE_DMA_API_DEBUG
+ 	select HAVE_KVM if !TILEGX
+ 	select GENERIC_FIND_FIRST_BIT
++	select SYSCTL_EXCEPTION_TRACE
+ 	select USE_GENERIC_SMP_HELPERS
+ 	select CC_OPTIMIZE_FOR_SIZE
+ 	select HAVE_DEBUG_KMEMLEAK
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 302094d..8244d4c 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -47,6 +47,7 @@ config X86
+ 	select HAVE_FUNCTION_GRAPH_FP_TEST
+ 	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
+ 	select HAVE_SYSCALL_TRACEPOINTS
++	select SYSCTL_EXCEPTION_TRACE
+ 	select HAVE_KVM
+ 	select HAVE_ARCH_KGDB
+ 	select HAVE_ARCH_TRACEHOOK
+diff --git a/init/Kconfig b/init/Kconfig
+index f8de091..4d13aae 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1152,6 +1152,11 @@ config SYSCTL_SYSCALL
+ 
+ 	  If unsure say N here.
+ 
++config SYSCTL_EXCEPTION_TRACE
++	bool
++	help
++	  Enable support for /proc/sys/debug/exception-trace.
++
+ config KALLSYMS
+ 	 bool "Load all symbols for debugging/ksymoops" if EXPERT
+ 	 default y
+diff --git a/kernel/sysctl.c b/kernel/sysctl.c
+index 84c76a3..b0eaca7 100644
+--- a/kernel/sysctl.c
++++ b/kernel/sysctl.c
+@@ -1543,8 +1543,7 @@ static struct ctl_table fs_table[] = {
+ };
+ 
+ static struct ctl_table debug_table[] = {
+-#if defined(CONFIG_X86) || defined(CONFIG_PPC) || defined(CONFIG_SPARC) || \
+-    defined(CONFIG_S390) || defined(CONFIG_TILE) || defined(CONFIG_ARM64)
++#ifdef CONFIG_SYSCTL_EXCEPTION_TRACE
+ 	{
+ 		.procname	= "exception-trace",
+ 		.data		= &show_unhandled_signals,
