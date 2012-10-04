@@ -1,32 +1,31 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [GIT PULL] User API Disintegrate: Preparatory patches
-Date: Thu, 04 Oct 2012 18:36:46 +0100
-Message-ID: <29855.1349372206@warthog.procyon.org.uk>
-References: <CAMuHMdUx6he0MdL5etO6pDrMgd=JZWsf1TZj5WevjSpFANCWRA@mail.gmail.com> <18137.1349203013@warthog.procyon.org.uk>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 1/4] Clean up the long arch list for the UID16 config
+	option
+Date: Thu, 4 Oct 2012 20:46:48 +0100
+Message-ID: <20121004194648.GB4625@n2100.arm.linux.org.uk>
+References: <1349282666-32100-1-git-send-email-catalin.marinas@arm.com> <1349282666-32100-2-git-send-email-catalin.marinas@arm.com> <20121003151505.8d59b646.akpm@linux-foundation.org> <20121004194131.GA4625@n2100.arm.linux.org.uk> <CAMuHMdWiPLdw3+iKJZRb0bR5seTDz1jTuiF2bV=WvAiyXJz3CQ@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdUx6he0MdL5etO6pDrMgd=JZWsf1TZj5WevjSpFANCWRA@mail.gmail.com>
+Content-Disposition: inline
+In-Reply-To: <CAMuHMdWiPLdw3+iKJZRb0bR5seTDz1jTuiF2bV=WvAiyXJz3CQ@mail.gmail.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: dhowells@redhat.com, torvalds@osdl.org, arnd@arndb.de, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Jeff Dike <jdike@addtoit.com>, Richard Weinberger <richard@nod.at>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Geert Uytterhoeven <geert@linux-m68k.org> wrote:
-
-> >  include/linux/libfdt.h                           |  4 +-
+On Thu, Oct 04, 2012 at 09:45:35PM +0200, Geert Uytterhoeven wrote:
+> On Thu, Oct 4, 2012 at 9:41 PM, Russell King - ARM Linux
+> <linux@arm.linux.org.uk> wrote:
+> > On Wed, Oct 03, 2012 at 03:15:05PM -0700, Andrew Morton wrote:
+> >> Guys, don't do this.  Either put the new item into a randomly-chosen
+> >> position or, probably better, alphanumerically sort the list.
+> >
+> > I've been telling people to alphanumerically sort Kconfig select
+> > options for some time, but as normal, no one's listening.
 > 
-> So what happened here?
-> 
->  -#include "../../scripts/dtc/libfdt/fdt.h"
-> -#include "../../scripts/dtc/libfdt/libfdt.h"
-> +#include <>
-> +#include <>
+> Anyone who cares to sort the existing ones "at the end of the merge window",
+> and teaches checkpatch to enforce it for new ones?
 
-I didn't expect 'system' header files to be outside of include/ or
-arch/*/include/, so the bit of perl I had to turn this into <...> quietly
-malfunctioned when it stripped too much off of the front.
-
-Out of interest, why aren't these in include/?  The normal way seems to be to
-point the tool build at the kernel headers, not the kernel build at the script
-headers.
-
-David
+Well, I'll certainly do that for ARM... but how long it'll stay like
+that will be very hit and miss...
