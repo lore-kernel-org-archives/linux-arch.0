@@ -1,35 +1,35 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 3/4] Clean up the long arch list for the DEBUG_BUGVERBOSE
- config option
-Date: Wed, 3 Oct 2012 20:25:26 +0200
-Message-ID: <CAMuHMdUyF2zz5KGYm6FJ4ofZjf7Thwn9N3_KRXf2NL2x7gN3nw@mail.gmail.com>
-References: <1349282666-32100-1-git-send-email-catalin.marinas@arm.com>
-	<1349282666-32100-4-git-send-email-catalin.marinas@arm.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 0/8] THP support for Sparc64
+Date: Wed, 03 Oct 2012 22:00:27 -0400 (EDT)
+Message-ID: <20121003.220027.1636081487098835868.davem@davemloft.net>
+References: <20121002.182601.845433592794197720.davem@davemloft.net>
+	<20121002155544.2c67b1e8.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f46.google.com ([209.85.216.46]:37465 "EHLO
-	mail-qa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933216Ab2JCSZ1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 3 Oct 2012 14:25:27 -0400
-In-Reply-To: <1349282666-32100-4-git-send-email-catalin.marinas@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, David Howells <dhowells@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, Paul Mundt <lethal@linux-sh.org>, "David S. Miller" <davem@davemloft.net>, Chris Metcalf <cmetcalf@tilera.com>, Andrew Morton <akpm@linux-foundation.org>
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <20121002155544.2c67b1e8.akpm@linux-foundation.org>
+Sender: sparclinux-owner@vger.kernel.org
+To: akpm@linux-foundation.org
+Cc: linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, aarcange@redhat.com, hannes@cmpxchg.org, gerald.schaefer@de.ibm.com
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 3, 2012 at 6:44 PM, Catalin Marinas <catalin.marinas@arm.com> wrote:
->  arch/m68k/Kconfig  |    1 +
+From: Andrew Morton <akpm@linux-foundation.org>
+Date: Tue, 2 Oct 2012 15:55:44 -0700
 
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> I had a shot at integrating all this onto the pending stuff in linux-next. 
+> "mm: Add and use update_mmu_cache_pmd() in transparent huge page code."
+> needed minor massaging in huge_memory.c.  But as Andrea mentioned, we
+> ran aground on Gerald's
+> http://ozlabs.org/~akpm/mmotm/broken-out/thp-remove-assumptions-on-pgtable_t-type.patch,
+> part of the thp-for-s390 work.
 
-Gr{oetje,eeting}s,
+While working on a rebase relative to this work, I noticed that the
+s390 patches don't even compile.
 
-                        Geert
+It's because of that pmd_pgprot() change from Peter Z. which arrives
+asynchonously via the linux-next tree.  It makes THP start using
+pmd_pgprot() (a new interface) which the s390 patches don't provide.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+It's going to require that I do new work for my sparc64 THP changes as
+well.
