@@ -1,54 +1,57 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [GIT PULL] Disintegrate UAPI for m68k
-Date: Fri, 5 Oct 2012 07:05:43 +0200
-Message-ID: <CAMuHMdWYdKPgVR8hvcXN1qmm7nqCyjWV3NPHzdVHG_H8F20-3w@mail.gmail.com>
-References: <17383.1349380286@warthog.procyon.org.uk>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [patch 0/3] Turn CONFIG_HOTPLUG always on.
+Date: Fri, 5 Oct 2012 01:50:36 -0700
+Message-ID: <20121005015036.0d0b7ebd.akpm@linux-foundation.org>
+References: <20120904234803.554552301@clark.kroah.org>
+	<20120906202815.GA6732@kroah.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vb0-f46.google.com ([209.85.212.46]:49785 "EHLO
-	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751379Ab2JEHDj (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Oct 2012 03:03:39 -0400
-In-Reply-To: <17383.1349380286@warthog.procyon.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-m68k@vger.kernel.org, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20120906202815.GA6732@kroah.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Greg KH <gregkh@linuxfoundation.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, Bjorn Helgaas <bhelgaas@google.com>, Chris Metcalf <cmetcalf@tilera.com>, Chris Zankel <chris@zankel.net>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 4, 2012 at 9:51 PM, David Howells <dhowells@redhat.com> wrote:
->   git://git.infradead.org/users/dhowells/linux-headers.git disintegrate-m68k
->
-> for you to fetch changes up to b039235da939b28c539b3e1b4566107a9bdbdef8:
->
->   UAPI: (Scripted) Disintegrate arch/m68k/include/asm (2012-10-04 18:20:56 +0100)
->
-> ----------------------------------------------------------------
-> David Howells (6):
->       UAPI: Fix the guards on various asm/unistd.h files
->       UAPI: Split compound conditionals containing __KERNEL__ in Arm64
->       Merge remote-tracking branch 'c6x/for-linux-next' into uapi-prep
->       UAPI: Fix conditional header installation handling (notably kvm_para.h on m68k)
->       UAPI: (Scripted) Disintegrate include/asm-generic
->       UAPI: (Scripted) Disintegrate arch/m68k/include/asm
->
-> Mark Salter (2):
->       c6x: make dsk6455 the default config
->       c6x: remove c6x signal.h
+On Thu, 6 Sep 2012 13:28:16 -0700 Greg KH <gregkh@linuxfoundation.org> wrote:
 
-I assume these c6x and asm-generic changes are the ones you just asked Linus
-to pull? Doesn't it make more sense to ask us (the individual arch maintainers)
-to pull our parts after Linus has pulled the generic part?
+> On Tue, Sep 04, 2012 at 05:01:05PM -0700, Greg Kroah-Hartman wrote:
+> > From: Greg KH <gregkh@linuxfoundation.org>
+> > 
+> > The CONFIG_HOTPLUG variable is tough to turn off, and almost all arches
+> > default to it on.
+> > 
+> > If you turn it off, it saves you a big 200 or so bytes, and then starts
+> > to cause all sorts of problems as the code paths if the option is
+> > disabled is never really tested, and memory segments start to get thrown
+> > away that driver authors assume will always be present.
+> > 
+> > So, as part of trying to get rid of the option entirely, let's just turn
+> > the option always on.
+> > 
+> > Note, to do this properly, I found two duplicate definitions of the
+> > option, in the Tile and Xtensa arch files, this patch series removes
+> > those duplicates first.
+> > 
+> > Anyone object to me just taking these three patches through my
+> > driver-core tree for 3.7?  After this set, I'll start unwinding the
+> > places where CONFIG_HOTPLUG is used and remove the parts that are not
+> > used anymore now that the option can not be turned off.
+> 
+> Given the lack of objection, I've now queued these up for 3.7 and will
+> start unwinding the CONFIG_HOTPLUG mess.
+> 
 
-Do you want this ("our parts") to go in 3.7 or 3.8?
+I wonder if this has had sufficient consideration.
 
-Gr{oetje,eeting}s,
+It isn't just 200 bytes, is it?  It's all memory which is marked
+__devinit* and __devexit* - that's a tremendous amount of stuff.  We
+should quantify it.
 
-                        Geert
+It wouldn't surprise me if there are organizations who are using
+CONFIG_HOTPLUG=n effectively.  We regularly bust a gut to save a few
+bytes and for people who really care about this we're here sending them
+backwards a lot further than that.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Tim, do you know?
