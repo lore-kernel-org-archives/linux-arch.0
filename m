@@ -1,40 +1,71 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [GIT PULL] Disintegrate UAPI for m68k
-Date: Fri, 05 Oct 2012 13:50:21 +0100
-Message-ID: <7854.1349441421@warthog.procyon.org.uk>
-References: <CAMuHMdWYdKPgVR8hvcXN1qmm7nqCyjWV3NPHzdVHG_H8F20-3w@mail.gmail.com> <17383.1349380286@warthog.procyon.org.uk>
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [patch 0/3] Turn CONFIG_HOTPLUG always on.
+Date: Fri, 5 Oct 2012 07:32:46 -0700
+Message-ID: <20121005143246.GA18276@kroah.com>
+References: <20120904234803.554552301@clark.kroah.org>
+ <20120906202815.GA6732@kroah.com>
+ <20121005015036.0d0b7ebd.akpm@linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:26769 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753674Ab2JEMuc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 5 Oct 2012 08:50:32 -0400
-In-Reply-To: <CAMuHMdWYdKPgVR8hvcXN1qmm7nqCyjWV3NPHzdVHG_H8F20-3w@mail.gmail.com>
+Received: from mail-pb0-f46.google.com ([209.85.160.46]:46318 "EHLO
+	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755491Ab2JEOcu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Oct 2012 10:32:50 -0400
+Received: by mail-pb0-f46.google.com with SMTP id rr4so1889678pbb.19
+        for <linux-arch@vger.kernel.org>; Fri, 05 Oct 2012 07:32:50 -0700 (PDT)
+Content-Disposition: inline
+In-Reply-To: <20121005015036.0d0b7ebd.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: dhowells@redhat.com, linux-m68k@vger.kernel.org, linux-kernel@vger.kernel.org, Linux-Arch <linux-arch@vger.kernel.org>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, Bjorn Helgaas <bhelgaas@google.com>, Chris Metcalf <cmetcalf@tilera.com>, Chris Zankel <chris@zankel.net>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>
 
-Geert Uytterhoeven <geert@linux-m68k.org> wrote:
+On Fri, Oct 05, 2012 at 01:50:36AM -0700, Andrew Morton wrote:
+> On Thu, 6 Sep 2012 13:28:16 -0700 Greg KH <gregkh@linuxfoundation.org> wrote:
+> 
+> > On Tue, Sep 04, 2012 at 05:01:05PM -0700, Greg Kroah-Hartman wrote:
+> > > From: Greg KH <gregkh@linuxfoundation.org>
+> > > 
+> > > The CONFIG_HOTPLUG variable is tough to turn off, and almost all arches
+> > > default to it on.
+> > > 
+> > > If you turn it off, it saves you a big 200 or so bytes, and then starts
+> > > to cause all sorts of problems as the code paths if the option is
+> > > disabled is never really tested, and memory segments start to get thrown
+> > > away that driver authors assume will always be present.
+> > > 
+> > > So, as part of trying to get rid of the option entirely, let's just turn
+> > > the option always on.
+> > > 
+> > > Note, to do this properly, I found two duplicate definitions of the
+> > > option, in the Tile and Xtensa arch files, this patch series removes
+> > > those duplicates first.
+> > > 
+> > > Anyone object to me just taking these three patches through my
+> > > driver-core tree for 3.7?  After this set, I'll start unwinding the
+> > > places where CONFIG_HOTPLUG is used and remove the parts that are not
+> > > used anymore now that the option can not be turned off.
+> > 
+> > Given the lack of objection, I've now queued these up for 3.7 and will
+> > start unwinding the CONFIG_HOTPLUG mess.
+> > 
+> 
+> I wonder if this has had sufficient consideration.
+> 
+> It isn't just 200 bytes, is it?  It's all memory which is marked
+> __devinit* and __devexit* - that's a tremendous amount of stuff.  We
+> should quantify it.
+> 
+> It wouldn't surprise me if there are organizations who are using
+> CONFIG_HOTPLUG=n effectively.  We regularly bust a gut to save a few
+> bytes and for people who really care about this we're here sending them
+> backwards a lot further than that.
 
-> I assume these c6x and asm-generic changes are the ones you just asked Linus
-> to pull?
+Given the recent round of patches that I've applied to the tree making
+it so that CONFIG_HOTPLUG=n actually boots and works, that were needed
+for the past 6+ kernel versions, I find it very unlikely anyone actually
+runs a system in this type of configuration, but I would love to hear
+from someone who does if they are out there.
 
-Yes.
-
-> Doesn't it make more sense to ask us (the individual arch maintainers) to
-> pull our parts after Linus has pulled the generic part?
-
-I suppose so.
-
-> Do you want this ("our parts") to go in 3.7 or 3.8?
-
-3.7 would be nice, but I know not everyone is willing to pull in this merge
-window.  It might also make sense to wait for (a) Linus to pull those and (b)
-Arnd to pass the asm-generic changes along too.
-
-The main reason I'd like to get things moved along asap is that the
-preparatory patches get things into a known state upon which these commits can
-be pulled.  However, the state is going to degrade over time as people make
-changes which requires more preparatory patches:-/
-
-David
+greg k-h
