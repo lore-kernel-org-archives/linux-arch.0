@@ -1,62 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:49373 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754494Ab2JEItg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Oct 2012 04:49:36 -0400
-Date: Fri, 5 Oct 2012 01:50:36 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [patch 0/3] Turn CONFIG_HOTPLUG always on.
-Message-ID: <20121005015036.0d0b7ebd.akpm@linux-foundation.org>
-In-Reply-To: <20120906202815.GA6732@kroah.com>
-References: <20120904234803.554552301@clark.kroah.org>
-	<20120906202815.GA6732@kroah.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([209.132.183.28]:25503 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932193Ab2JEL5o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 5 Oct 2012 07:57:44 -0400
+Date: Fri, 5 Oct 2012 13:57:31 +0200
+From: Andrea Arcangeli <aarcange@redhat.com>
+Subject: Re: [PATCH 0/8] THP support for Sparc64
+Message-ID: <20121005115731.GI6793@redhat.com>
+References: <20121002155544.2c67b1e8.akpm@linux-foundation.org>
+ <20121003.220027.1636081487098835868.davem@davemloft.net>
+ <20121004103548.GB6793@redhat.com>
+ <20121004.141136.1763670567147718953.davem@davemloft.net>
+ <20121005092810.GA27763@dhcp22.suse.cz>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20121005092810.GA27763@dhcp22.suse.cz>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <gregkh@linuxfoundation.org>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Ralf Baechle <ralf@linux-mips.org>, Bjorn Helgaas <bhelgaas@google.com>, Chris Metcalf <cmetcalf@tilera.com>, Chris Zankel <chris@zankel.net>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Bird <tim.bird@am.sony.com>
-Message-ID: <20121005085036.7Q2fCqVu5W_eHXlL16tV2LHa3OLqYMKXagrW0W2z9TU@z>
+To: Michal Hocko <mhocko@suse.cz>
+Cc: David Miller <davem@davemloft.net>, akpm@linux-foundation.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, hannes@cmpxchg.org, gerald.schaefer@de.ibm.com
+Message-ID: <20121005115731.WPeh11o6qwQfzk-4NbfORXO4456dfHPINjMfVIy3dhk@z>
 
-On Thu, 6 Sep 2012 13:28:16 -0700 Greg KH <gregkh@linuxfoundation.org> wrote:
+Hi Michal,
 
-> On Tue, Sep 04, 2012 at 05:01:05PM -0700, Greg Kroah-Hartman wrote:
-> > From: Greg KH <gregkh@linuxfoundation.org>
-> > 
-> > The CONFIG_HOTPLUG variable is tough to turn off, and almost all arches
-> > default to it on.
-> > 
-> > If you turn it off, it saves you a big 200 or so bytes, and then starts
-> > to cause all sorts of problems as the code paths if the option is
-> > disabled is never really tested, and memory segments start to get thrown
-> > away that driver authors assume will always be present.
-> > 
-> > So, as part of trying to get rid of the option entirely, let's just turn
-> > the option always on.
-> > 
-> > Note, to do this properly, I found two duplicate definitions of the
-> > option, in the Tile and Xtensa arch files, this patch series removes
-> > those duplicates first.
-> > 
-> > Anyone object to me just taking these three patches through my
-> > driver-core tree for 3.7?  After this set, I'll start unwinding the
-> > places where CONFIG_HOTPLUG is used and remove the parts that are not
-> > used anymore now that the option can not be turned off.
-> 
-> Given the lack of objection, I've now queued these up for 3.7 and will
-> start unwinding the CONFIG_HOTPLUG mess.
-> 
+On Fri, Oct 05, 2012 at 11:28:10AM +0200, Michal Hocko wrote:
+> FWIW there is also a pure -mm (non-rebased) git tree at
+> http://git.kernel.org/?p=linux/kernel/git/mhocko/mm.git;a=summary
+> since-3.6 branch. It is based on top of 3.6 with mm patches from
+> Andrew's tree.
 
-I wonder if this has had sufficient consideration.
+I'd still suggest to use your mm.git tree to rebase the -mm patches,
+until schednuma will be dropped from linux-next. Either that or I hope
+you don't run any benchmark with more than one NUMA node.
 
-It isn't just 200 bytes, is it?  It's all memory which is marked
-__devinit* and __devexit* - that's a tremendous amount of stuff.  We
-should quantify it.
-
-It wouldn't surprise me if there are organizations who are using
-CONFIG_HOTPLUG=n effectively.  We regularly bust a gut to save a few
-bytes and for people who really care about this we're here sending them
-backwards a lot further than that.
-
-Tim, do you know?
+Thanks,
+Andrea
