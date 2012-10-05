@@ -1,38 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:25503 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932193Ab2JEL5o (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 5 Oct 2012 07:57:44 -0400
-Date: Fri, 5 Oct 2012 13:57:31 +0200
-From: Andrea Arcangeli <aarcange@redhat.com>
-Subject: Re: [PATCH 0/8] THP support for Sparc64
-Message-ID: <20121005115731.GI6793@redhat.com>
-References: <20121002155544.2c67b1e8.akpm@linux-foundation.org>
- <20121003.220027.1636081487098835868.davem@davemloft.net>
- <20121004103548.GB6793@redhat.com>
- <20121004.141136.1763670567147718953.davem@davemloft.net>
- <20121005092810.GA27763@dhcp22.suse.cz>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20121005092810.GA27763@dhcp22.suse.cz>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:52570 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753730Ab2JEVgq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Oct 2012 17:36:46 -0400
+Date: Fri, 5 Oct 2012 14:36:44 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v2 0/8] THP support for Sparc64
+Message-ID: <20121005143644.abb14c2b.akpm@linux-foundation.org>
+In-Reply-To: <20121004.154624.923241475790311926.davem@davemloft.net>
+References: <20121004.154624.923241475790311926.davem@davemloft.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Hocko <mhocko@suse.cz>
-Cc: David Miller <davem@davemloft.net>, akpm@linux-foundation.org, linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, hannes@cmpxchg.org, gerald.schaefer@de.ibm.com
-Message-ID: <20121005115731.WPeh11o6qwQfzk-4NbfORXO4456dfHPINjMfVIy3dhk@z>
+To: David Miller <davem@davemloft.net>
+Cc: linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, aarcange@redhat.com, hannes@cmpxchg.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Linus Torvalds <torvalds@linux-foundation.org>
+Message-ID: <20121005213644.v44U6kKhqMCOWf2z5WwED08grLMZhhsxRZ1XctRORvk@z>
 
-Hi Michal,
+On Thu, 04 Oct 2012 15:46:24 -0400 (EDT)
+David Miller <davem@davemloft.net> wrote:
 
-On Fri, Oct 05, 2012 at 11:28:10AM +0200, Michal Hocko wrote:
-> FWIW there is also a pure -mm (non-rebased) git tree at
-> http://git.kernel.org/?p=linux/kernel/git/mhocko/mm.git;a=summary
-> since-3.6 branch. It is based on top of 3.6 with mm patches from
-> Andrew's tree.
+> 
+> Changes since V1:
+> 
+> 1) Respun against mmotm
+> 
+> 2) Bug fix for pgtable allocation, need real locking instead of
+>    just preemption disabling.
+> 
+> Andrew, you can probably take patch #5 in this series and combine
+> it into:
+> 
+> mm-thp-fix-the-update_mmu_cache-last-argument-passing-in-mm-huge_memoryc.patch
+> 
+> in your batch.  And finally add a NOP implementation for S390
+> and any other huge page supporting architectures.
+> 
 
-I'd still suggest to use your mm.git tree to rebase the -mm patches,
-until schednuma will be dropped from linux-next. Either that or I hope
-you don't run any benchmark with more than one NUMA node.
+David, I don't know what to do until there's some clarity on the
+numa/sched changes.  Andrea has a new autonuma patchset, Peter's code
+is in -next and I don't know if it's planned for 3.7 merging.  And I
+suspect (hope) that it won't be merged if that is indeed planned.
 
-Thanks,
-Andrea
+Two days I asked what's going on and didn't get told.  I put the entire
+MM merge on hold yesterday and went off to do other things.  At present
+I plan to restage MM against mainline and send it all along to Linus on
+Monday.  If that happens and if you wish that the sparc changes be
+merged for 3.7, I suggest that you rebase and retest on Tuesday and ask
+Linus to pull it, with my ack.
+
+Sorry.
