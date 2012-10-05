@@ -1,53 +1,48 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC][CFT][CFReview] execve and kernel_thread unification work
-Date: Fri, 5 Oct 2012 17:07:47 +0100
-Message-ID: <CAHkRjk6oaZh643hciXyVbvq74KTWgZjfKhyZW1gi8oNEMw3h-A@mail.gmail.com>
-References: <20121001213809.GA31155@ZenIV.linux.org.uk>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v2 0/8] THP support for Sparc64
+Date: Fri, 5 Oct 2012 14:36:44 -0700
+Message-ID: <20121005143644.abb14c2b.akpm@linux-foundation.org>
+References: <20121004.154624.923241475790311926.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f174.google.com ([209.85.220.174]:45267 "EHLO
-	mail-vc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756151Ab2JEQIJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Oct 2012 12:08:09 -0400
-In-Reply-To: <20121001213809.GA31155@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <sparclinux-owner@vger.kernel.org>
+In-Reply-To: <20121004.154624.923241475790311926.davem@davemloft.net>
+Sender: sparclinux-owner@vger.kernel.org
+To: David Miller <davem@davemloft.net>
+Cc: linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, aarcange@redhat.com, hannes@cmpxchg.org, Ingo Molnar <mingo@elte.hu>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Linus Torvalds <torvalds@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-Al,
+On Thu, 04 Oct 2012 15:46:24 -0400 (EDT)
+David Miller <davem@davemloft.net> wrote:
 
-On 1 October 2012 22:38, Al Viro <viro@zeniv.linux.org.uk> wrote:
->         Right now the tree lives in
-> git.kernel.org/pub/scm/linux/kernel/git/viro/signal experimental-kernel_thread
-> Some of that had been in -next for a while.
->
->         Folks, help with review, testing and filling the missing bits, please.
+> 
+> Changes since V1:
+> 
+> 1) Respun against mmotm
+> 
+> 2) Bug fix for pgtable allocation, need real locking instead of
+>    just preemption disabling.
+> 
+> Andrew, you can probably take patch #5 in this series and combine
+> it into:
+> 
+> mm-thp-fix-the-update_mmu_cache-last-argument-passing-in-mm-huge_memoryc.patch
+> 
+> in your batch.  And finally add a NOP implementation for S390
+> and any other huge page supporting architectures.
+> 
 
-I tested this branch with the arm64 kernel and runs ok (I get couple
-of compiler warnings because reparent_to_kthread and
-__set_special_pids are no longer used with the removal of daemonize).
+David, I don't know what to do until there's some clarity on the
+numa/sched changes.  Andrea has a new autonuma patchset, Peter's code
+is in -next and I don't know if it's planned for 3.7 merging.  And I
+suspect (hope) that it won't be merged if that is indeed planned.
 
-I have three arm64 patches on this branch:
+Two days I asked what's going on and didn't get told.  I put the entire
+MM merge on hold yesterday and went off to do other things.  At present
+I plan to restage MM against mainline and send it all along to Linus on
+Monday.  If that happens and if you wish that the sparc changes be
+merged for 3.7, I suggest that you rebase and retest on Tuesday and ask
+Linus to pull it, with my ack.
 
-git://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/linux-aarch64.git execve
-
-Catalin Marinas (3):
-      arm64: Use generic kernel_thread() implementation
-      arm64: Use generic kernel_execve() implementation
-      arm64: Use generic sys_execve() implementation
-
- arch/arm64/Kconfig                 |    1 +
- arch/arm64/include/asm/processor.h |    5 --
- arch/arm64/include/asm/syscalls.h  |    3 -
- arch/arm64/include/asm/unistd.h    |    3 +
- arch/arm64/kernel/entry.S          |   28 ++++++++++---
- arch/arm64/kernel/process.c        |   78 +++++++++++------------------------
- arch/arm64/kernel/sys.c            |   65 ------------------------------
- arch/arm64/kernel/sys32.S          |    7 +---
- arch/arm64/kernel/sys_compat.c     |   18 --------
- 9 files changed, 52 insertions(+), 156 deletions(-)
-
--- 
-Catalin
+Sorry.
