@@ -1,130 +1,129 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:49729 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750917Ab2JFXQE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 6 Oct 2012 19:16:04 -0400
-From: David Howells <dhowells@redhat.com>
-Subject: 
+Received: from mail-ob0-f174.google.com ([209.85.214.174]:50355 "EHLO
+	mail-ob0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750936Ab2JGAAG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Oct 2012 20:00:06 -0400
+Message-ID: <5070C5F7.8030302@gmail.com>
+Date: Sun, 07 Oct 2012 07:59:51 +0800
+From: Ni zhan Chen <nizhan.chen@gmail.com>
 MIME-Version: 1.0
-Content-Type: multipart/signed; boundary="=-=-=";
-	micalg=pgp-sha1; protocol="application/pgp-signature"
-Date: Sun, 07 Oct 2012 00:15:39 +0100
-Message-ID: <22758.1349565339@warthog.procyon.org.uk>
+Subject: Re: [PATCH] mm: memmap_init_zone() performance improvement
+References: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
+In-Reply-To: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: torvalds@osdl.org
-Cc: dhowells@redhat.com, arnd@arndb.de, hpa@zytor.com, catalin.marinas@arm.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, geert@linux-m68k.org, ralf@linux-mips.org, ddaney.cavm@gmail.com
-Message-ID: <20121006231539.OdJIeCPVj_aTIyQKkbklo1wfZyCoieISiBqxvd1EMYY@z>
+To: Mike Yoknis <mike.yoknis@hp.com>
+Cc: mgorman@suse.de, mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20121006235951.bOmtATdccvUMUS5-YrUHMRVmjnsjQCsDYarrFmwDgVM@z>
 
---=-=-=
-Content-Type: text/plain
+On 10/03/2012 10:56 PM, Mike Yoknis wrote:
+> memmap_init_zone() loops through every Page Frame Number (pfn),
+> including pfn values that are within the gaps between existing
+> memory sections.  The unneeded looping will become a boot
+> performance issue when machines configure larger memory ranges
+> that will contain larger and more numerous gaps.
+>
+> The code will skip across invalid sections to reduce the
+> number of loops executed.
 
+looks reasonable to me.
 
-Hi Linus,
+>
+> Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
+> ---
+>   arch/x86/include/asm/mmzone_32.h     |    2 ++
+>   arch/x86/include/asm/page_32.h       |    1 +
+>   arch/x86/include/asm/page_64_types.h |    3 ++-
+>   include/asm-generic/page.h           |    1 +
+>   include/linux/mmzone.h               |    6 ++++++
+>   mm/page_alloc.c                      |    5 ++++-
+>   6 files changed, 16 insertions(+), 2 deletions(-)
+>
+> diff --git a/arch/x86/include/asm/mmzone_32.h b/arch/x86/include/asm/mmzone_32.h
+> index eb05fb3..73c5c74 100644
+> --- a/arch/x86/include/asm/mmzone_32.h
+> +++ b/arch/x86/include/asm/mmzone_32.h
+> @@ -48,6 +48,8 @@ static inline int pfn_to_nid(unsigned long pfn)
+>   #endif
+>   }
+>   
+> +#define next_pfn_try(pfn)	((pfn)+1)
+> +
+>   static inline int pfn_valid(int pfn)
+>   {
+>   	int nid = pfn_to_nid(pfn);
+> diff --git a/arch/x86/include/asm/page_32.h b/arch/x86/include/asm/page_32.h
+> index da4e762..e2c4cfc 100644
+> --- a/arch/x86/include/asm/page_32.h
+> +++ b/arch/x86/include/asm/page_32.h
+> @@ -19,6 +19,7 @@ extern unsigned long __phys_addr(unsigned long);
+>   
+>   #ifdef CONFIG_FLATMEM
+>   #define pfn_valid(pfn)		((pfn) < max_mapnr)
+> +#define next_pfn_try(pfn)	((pfn)+1)
+>   #endif /* CONFIG_FLATMEM */
+>   
+>   #ifdef CONFIG_X86_USE_3DNOW
+> diff --git a/arch/x86/include/asm/page_64_types.h b/arch/x86/include/asm/page_64_types.h
+> index 320f7bb..02d82e5 100644
+> --- a/arch/x86/include/asm/page_64_types.h
+> +++ b/arch/x86/include/asm/page_64_types.h
+> @@ -69,7 +69,8 @@ extern void init_extra_mapping_wb(unsigned long phys, unsigned long size);
+>   #endif	/* !__ASSEMBLY__ */
+>   
+>   #ifdef CONFIG_FLATMEM
+> -#define pfn_valid(pfn)          ((pfn) < max_pfn)
+> +#define pfn_valid(pfn)		((pfn) < max_pfn)
+> +#define next_pfn_try(pfn)	((pfn)+1)
+>   #endif
+>   
+>   #endif /* _ASM_X86_PAGE_64_DEFS_H */
+> diff --git a/include/asm-generic/page.h b/include/asm-generic/page.h
+> index 37d1fe2..316200d 100644
+> --- a/include/asm-generic/page.h
+> +++ b/include/asm-generic/page.h
+> @@ -91,6 +91,7 @@ extern unsigned long memory_end;
+>   #endif
+>   
+>   #define pfn_valid(pfn)		((pfn) >= ARCH_PFN_OFFSET && ((pfn) - ARCH_PFN_OFFSET) < max_mapnr)
+> +#define next_pfn_try(pfn)	((pfn)+1)
+>   
+>   #define	virt_addr_valid(kaddr)	(((void *)(kaddr) >= (void *)PAGE_OFFSET) && \
+>   				((void *)(kaddr) < (void *)memory_end))
+> diff --git a/include/linux/mmzone.h b/include/linux/mmzone.h
+> index f7d88ba..04d3c39 100644
+> --- a/include/linux/mmzone.h
+> +++ b/include/linux/mmzone.h
+> @@ -1166,6 +1166,12 @@ static inline int pfn_valid(unsigned long pfn)
+>   		return 0;
+>   	return valid_section(__nr_to_section(pfn_to_section_nr(pfn)));
+>   }
+> +
+> +static inline unsigned long next_pfn_try(unsigned long pfn)
+> +{
+> +	/* Skip entire section, because all of it is invalid. */
+> +	return section_nr_to_pfn(pfn_to_section_nr(pfn) + 1);
+> +}
+>   #endif
+>   
+>   static inline int pfn_present(unsigned long pfn)
+> diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+> index 5b6b6b1..dd2af8b 100644
+> --- a/mm/page_alloc.c
+> +++ b/mm/page_alloc.c
+> @@ -3798,8 +3798,11 @@ void __meminit memmap_init_zone(unsigned long size, int nid, unsigned long zone,
+>   		 * exist on hotplugged memory.
+>   		 */
+>   		if (context == MEMMAP_EARLY) {
+> -			if (!early_pfn_valid(pfn))
+> +			if (!early_pfn_valid(pfn)) {
+> +				pfn = next_pfn_try(pfn);
+> +				pfn--;
+>   				continue;
+> +			}
+>   			if (!early_pfn_in_nid(pfn, nid))
+>   				continue;
+>   		}
 
-Could you pull this branch please?  It contains some fixups for the UAPI stuff.
-
-There are four main parts:
-
- (1) I found I needed some more fixups in the wake of testing Arm64 (some
-     asm/unistd.h files had weird guards that caused problems - mostly in
-     arches for which I don't have a compiler) and some __KERNEL__ splitting
-     needed to take place in Arm64.
-
- (2) I found that c6x was missing some __KERNEL__ guards in its asm/signal.h.
-     Mark Salter pointed me at a tree with a patch to remove that file
-     entirely and use the asm-generic variant instead.  I pulled his tree
-     since it also give me a defconfig for c6x to use in testing.
-
- (3) m68k turned out to have a header installation problem due to it lacking a
-     kvm_para.h file.
-
-     The conditional installation bits for linux/kvm_para.h, linux/kvm.h and
-     linux/a.out.h weren't very well specified - and didn't work if an arch
-     didn't have the asm/ version of that file, but there *was* an
-     asm-generic/ version.
-
-     It seems the "ifneq $((wildcard ...),)" for each of those three headers
-     in include/kernel/Kbuild is invoked twice during header installation, and
-     the second time it matches on the just installed asm-generic/kvm_para.h
-     file and thus incorrectly installs linux/kvm_para.h as well.
-
-     Most arches actually have an asm/kvm_para.h, so this wasn't detectable in
-     those.
-
- (4) Fix problems with libfdt.h by reverting the changes to that particular
-     header file.
-
-Signed-off-by: David Howells <dhowells@redhat.com>
----
-The following changes since commit 612a9aab56a93533e76e3ad91642db7033e03b69:
-
-  Merge branch 'drm-next' of git://people.freedesktop.org/~airlied/linux (2012-10-03 23:29:23 -0700)
-
-are available in the git repository at:
-
-
-  git://git.infradead.org/users/dhowells/linux-headers.git tags/uapi-prep-20121007
-
-for you to fetch changes up to cb6c88a13060f67ce556a06e279fadf46cc7f244:
-
-  UAPI: Fix libfdt.h's #includes (2012-10-07 00:05:00 +0100)
-
-----------------------------------------------------------------
-(from the branch description for uapi-prep local branch)
-
-clone of "master"
-UAPI prep branch on 2012-10-07
-
-----------------------------------------------------------------
-David Howells (5):
-      UAPI: Fix the guards on various asm/unistd.h files
-      UAPI: Split compound conditionals containing __KERNEL__ in Arm64
-      Merge remote-tracking branch 'c6x/for-linux-next' into uapi-prep
-      UAPI: Fix conditional header installation handling (notably kvm_para.h on m68k)
-      UAPI: Fix libfdt.h's #includes
-
-Mark Salter (2):
-      c6x: make dsk6455 the default config
-      c6x: remove c6x signal.h
-
- arch/arm64/include/asm/hwcap.h      |  4 +++-
- arch/arm64/include/asm/stat.h       |  4 +++-
- arch/arm64/include/asm/unistd.h     |  8 +++-----
- arch/arm64/include/asm/unistd32.h   |  4 ----
- arch/c6x/Makefile                   |  2 ++
- arch/c6x/include/asm/Kbuild         |  1 +
- arch/c6x/include/asm/signal.h       | 17 -----------------
- arch/c6x/include/asm/unistd.h       |  4 ----
- arch/hexagon/include/asm/unistd.h   |  5 -----
- arch/openrisc/include/asm/unistd.h  |  5 -----
- arch/score/include/asm/unistd.h     |  5 -----
- arch/tile/include/asm/unistd.h      |  5 -----
- arch/unicore32/include/asm/unistd.h |  4 ----
- include/asm-generic/unistd.h        |  4 ----
- include/linux/Kbuild                |  9 +++------
- include/linux/libfdt.h              |  4 ++--
- 16 files changed, 17 insertions(+), 68 deletions(-)
- delete mode 100644 arch/c6x/include/asm/signal.h
-
---=-=-=
-Content-Type: application/pgp-signature
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
-
-iQIVAwUBUHC7lxOxKuMESys7AQK5wA/+Plgrr5QspuJhsovvE31lTIYPT3UYWQlt
-DbRMWzrrNhYxtXIR0shOF3MDb8snZRzmv4dupe64vrT8enJYfLOKw8RENYUU3mMA
-oSeEjeR7bMfeZ7j8sodGssaZ3nS18VvQWQYQBK+5V4HMJRpjPG/+51isLtMY2Ktg
-72KKDC7cSpUusV8bWah7LTpRgH9YFN2vdaa4kGsYUVzAw9WGwjGMsNlDnw4LAzMV
-wiNRKbhN9O9BE3SBk8Cbfo0MO2RvmZOoBrzi63VBGhZ5DF1SswWOAkaG2Xh/AUml
-9iJopFSFm4Yulx/KPQkN29/DVJN/vB6RaLi7jbbvr2CwBGfJswm5uVOCY590E2rd
-3lNL2DXjIykocIuV+GCZRwmZk0oCsIftrSzKextY7rAPyQGU8IFve9mYzb147WA+
-Yx3cTqlI2fm3rTGwh/N2Cm6hZMYadE1dL0C7wddMHL3fhN5UdIetiWBFF9zjMEO7
-Fd1je1qhAOMID84rfmJnuI/VRdKVJ55X4wcCEkzKFlD/Gs/ySzbISr0gTEpEoiii
-n5ogKvKWH3FPcS/Qb2Ie4/jyprupQNnNkj+RtQwtucyp5i5gKaNzTJA4M6UL9Ekr
-EY47pieTJVNNuTJYdlShtbKmZzf7AlBKhPJx4tht8wwqzeLGGNZ7uGOVO23j9RY1
-9Z5MNlf1bSw=
-=SFfq
------END PGP SIGNATURE-----
---=-=-=--
