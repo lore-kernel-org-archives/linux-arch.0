@@ -1,52 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:52686 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754583Ab2JEWBL (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 5 Oct 2012 18:01:11 -0400
-Date: Fri, 5 Oct 2012 15:01:10 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v2 5/7] mm: Add and use update_mmu_cache_pmd() in
- transparent huge page code.
-Message-ID: <20121005150110.fdf08c96.akpm@linux-foundation.org>
-In-Reply-To: <20121004.154738.461031090401264236.davem@davemloft.net>
-References: <20121004.154738.461031090401264236.davem@davemloft.net>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Received: from zeniv.linux.org.uk ([195.92.253.2]:50671 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751328Ab2JFQUA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 6 Oct 2012 12:20:00 -0400
+Date: Sat, 6 Oct 2012 17:19:54 +0100
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [RFC][CFT][CFReview] execve and kernel_thread unification work
+Message-ID: <20121006161954.GG2616@ZenIV.linux.org.uk>
+References: <20121001213809.GA31155@ZenIV.linux.org.uk>
+ <CAHkRjk6oaZh643hciXyVbvq74KTWgZjfKhyZW1gi8oNEMw3h-A@mail.gmail.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAHkRjk6oaZh643hciXyVbvq74KTWgZjfKhyZW1gi8oNEMw3h-A@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, aarcange@redhat.com, hannes@cmpxchg.org, Gerald Schaefer <gerald.schaefer@de.ibm.com>
-Message-ID: <20121005220110.KjZicQwdfNwBjXnCP-nrR3ficHEHDJKCJIyBqu3ssWU@z>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Message-ID: <20121006161954.aUX4nzBu9EEtn-XpLnU7V3NyRUYOlrrngPQQ1lKOGPw@z>
 
-On Thu, 04 Oct 2012 15:47:38 -0400 (EDT)
-David Miller <davem@davemloft.net> wrote:
-
-> The transparent huge page code passes a PMD pointer in as the third
-> argument of update_mmu_cache(), which expects a PTE pointer.
+On Fri, Oct 05, 2012 at 05:07:47PM +0100, Catalin Marinas wrote:
+> Al,
 > 
-> This never got noticed because X86 implements update_mmu_cache() as a
-> macro and thus we don't get any type checking, and X86 is the only
-> architecture which supports transparent huge pages currently.
+> On 1 October 2012 22:38, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> >         Right now the tree lives in
+> > git.kernel.org/pub/scm/linux/kernel/git/viro/signal experimental-kernel_thread
+> > Some of that had been in -next for a while.
+> >
+> >         Folks, help with review, testing and filling the missing bits, please.
 > 
-> Before oter architectures can support transparent huge pages properly
-> we need to add a new interface which will take a PMD pointer as the
-> third argument rather than a PTE pointer.
+> I tested this branch with the arm64 kernel and runs ok (I get couple
+> of compiler warnings because reparent_to_kthread and
+> __set_special_pids are no longer used with the removal of daemonize).
 
-I'll toss this on top:
-
---- a/arch/s390/include/asm/pgtable.h~mm-add-and-use-update_mmu_cache_pmd-in-transparent-huge-page-code-fix
-+++ a/arch/s390/include/asm/pgtable.h
-@@ -42,6 +42,7 @@ extern void fault_init(void);
-  * tables contain all the necessary information.
-  */
- #define update_mmu_cache(vma, address, ptep)     do { } while (0)
-+#define update_mmu_cache_pmd(vma, address, ptep) do { } while (0)
- 
- /*
-  * ZERO_PAGE is a global shared page that is always zero; used
-_
-
-and I trust that Gerald will be able to review test the result once all
-this has landed, please.
-
+Applied and pushed.  Also there - folded fixes from jejb into parisc part,
+optimizations of the fork-related paths in parisc on top of that (completely
+untested), fixed the sparc64 breakage davem had spotted yesterday.
