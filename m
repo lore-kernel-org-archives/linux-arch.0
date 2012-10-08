@@ -1,34 +1,51 @@
-From: Marvin Cheung Kin Tung <info@Tung.com.hk>
-Subject: i need your assistance to transfer $22,500,000.00 GBP
-Date: Fri, 28 Sep 2012 02:19:01 -0700
-Message-ID: <E1THWir-0007FC-Qt@v88.boltwebhosting.com>
-Reply-To: dr.marvin_checung@admin.in.th
+From: Mel Gorman <mgorman@suse.de>
+Subject: Re: [PATCH] mm: memmap_init_zone() performance improvement
+Date: Mon, 8 Oct 2012 16:16:56 +0100
+Message-ID: <20121008151656.GM29125@suse.de>
+References: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from [174.138.162.230] ([174.138.162.230]:39914 "EHLO
-	v88.boltwebhosting.com" rhost-flags-FAIL-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1750887Ab2JGJ1d (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 7 Oct 2012 05:27:33 -0400
-Received: from adminip1 by v88.boltwebhosting.com with local (Exim 4.77)
-	(envelope-from <adminip1@v88.boltwebhosting.com>)
-	id 1THWir-0007FC-Qt
-	for linux-arch@vger.kernel.org; Fri, 28 Sep 2012 02:19:01 -0700
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=iso-8859-15
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
+Sender: owner-linux-mm@kvack.org
+To: Mike Yoknis <mike.yoknis@hp.com>
+Cc: mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-Hello,
+On Wed, Oct 03, 2012 at 08:56:14AM -0600, Mike Yoknis wrote:
+> memmap_init_zone() loops through every Page Frame Number (pfn),
+> including pfn values that are within the gaps between existing
+> memory sections.  The unneeded looping will become a boot
+> performance issue when machines configure larger memory ranges
+> that will contain larger and more numerous gaps.
+> 
+> The code will skip across invalid sections to reduce the
+> number of loops executed.
+> 
+> Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
 
-Compliment of the day, I got your contact information from a reputable
-professional directory of your country which gives me assurance
-of your legibility as a person. I send you this brief letter to solicit
-your partnership to transfer ($22,500,000.00 U.S Dollars) from Hong Kong
-to your country. I shall furnish you with more info when i get a positive
-reply from you. Reply me Via E-mail (dr.marvin_checung@admin.in.th) if
-you are
-interested.
+This only helps SPARSEMEM and changes more headers than should be
+necessary. It would have been easier to do something simple like
 
-Best Regards,
-Marvin Cheung Kin Tung
+if (!early_pfn_valid(pfn)) {
+	pfn = ALIGN(pfn + MAX_ORDER_NR_PAGES, MAX_ORDER_NR_PAGES) - 1;
+	continue;
+}
+
+because that would obey the expectation that pages within a
+MAX_ORDER_NR_PAGES-aligned range are all valid or all invalid (ARM is the
+exception that breaks this rule). It would be less efficient on
+SPARSEMEM than what you're trying to merge but I do not see the need for
+the additional complexity unless you can show it makes a big difference
+to boot times.
+
+-- 
+Mel Gorman
+SUSE Labs
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
