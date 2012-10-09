@@ -1,170 +1,53 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [GIT PULL] asm-generic changes for 3.7
-Date: Mon, 8 Oct 2012 15:20:09 +0000
-Message-ID: <201210081520.09942.arnd@arndb.de>
+From: Ni zhan Chen <nizhan.chen@gmail.com>
+Subject: Re: [PATCH] mm: memmap_init_zone() performance improvement
+Date: Tue, 09 Oct 2012 08:42:16 +0800
+Message-ID: <507372E8.9090207@gmail.com>
+References: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com> <20121008151656.GM29125@suse.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
+Content-Type: text/plain; charset=ISO-8859-15; format=flowed
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:53766 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752493Ab2JHPUZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Oct 2012 11:20:25 -0400
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, David Howells <dhowells@redhat.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20121008151656.GM29125@suse.de>
+Sender: owner-linux-mm@kvack.org
+To: Mel Gorman <mgorman@suse.de>
+Cc: Mike Yoknis <mike.yoknis@hp.com>, mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-The following changes since commit f3dfd599af993385b40fc7a1c947afc12729bc4d:
+On 10/08/2012 11:16 PM, Mel Gorman wrote:
+> On Wed, Oct 03, 2012 at 08:56:14AM -0600, Mike Yoknis wrote:
+>> memmap_init_zone() loops through every Page Frame Number (pfn),
+>> including pfn values that are within the gaps between existing
+>> memory sections.  The unneeded looping will become a boot
+>> performance issue when machines configure larger memory ranges
+>> that will contain larger and more numerous gaps.
+>>
+>> The code will skip across invalid sections to reduce the
+>> number of loops executed.
+>>
+>> Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
+> This only helps SPARSEMEM and changes more headers than should be
+> necessary. It would have been easier to do something simple like
+>
+> if (!early_pfn_valid(pfn)) {
+> 	pfn = ALIGN(pfn + MAX_ORDER_NR_PAGES, MAX_ORDER_NR_PAGES) - 1;
+> 	continue;
+> }
 
-  UAPI: Fix conditional header installation handling (notably kvm_para.h on m68k) (2012-10-04 18:16:47 +0100)
+So if present memoy section in sparsemem can have 
+MAX_ORDER_NR_PAGES-aligned range are all invalid?
+If the answer is yes, when this will happen?
 
-are available in the git repository at:
+>
+> because that would obey the expectation that pages within a
+> MAX_ORDER_NR_PAGES-aligned range are all valid or all invalid (ARM is the
+> exception that breaks this rule). It would be less efficient on
+> SPARSEMEM than what you're trying to merge but I do not see the need for
+> the additional complexity unless you can show it makes a big difference
+> to boot times.
+>
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic
-
-for you to fetch changes up to c37d6154c0b9163c27e53cc1d0be3867b4abd760:
-
-  Merge branch 'disintegrate-asm-generic' of git://git.infradead.org/users/dhowells/linux-headers into asm-generic (2012-10-04 22:57:51 +0200)
-
-----------------------------------------------------------------
-
-This has three changes for asm-generic that did not really fit into any
-other branch as normal asm-generic changes do. One is a fix for a
-build warning, the other two are more interesting:
-
-* A patch from Mark Brown to allow using the common clock infrastructure
-on all architectures, so we can use the clock API in architecture
-independent device drivers.
-
-* The UAPI split patches from David Howells for the asm-generic files.
-There are other architecture specific series that are going through
-the arch maintainer tree and that depend on this one.
-
-There may be a few small merge conflicts between Mark's patch and
-the following arch header file split patches. In each case the solution
-will be to keep the new "generic-y += clkdev.h" line, even if it
-ends up being the only line in the Kbuild file.
-
-----------------------------------------------------------------
-Arnd Bergmann (2):
-      asm-generic: xor: mark static functions as __maybe_unused
-      Merge branch 'disintegrate-asm-generic' of git://git.infradead.org/users/dhowells/linux-headers into asm-generic
-
-David Howells (1):
-      UAPI: (Scripted) Disintegrate include/asm-generic
-
-Mark Brown (1):
-      asm-generic: Add default clkdev.h
-
- arch/alpha/include/asm/Kbuild                |    2 +
- arch/avr32/include/asm/Kbuild                |    2 +
- arch/cris/include/asm/Kbuild                 |    2 +
- arch/frv/include/asm/Kbuild                  |    1 +
- arch/h8300/include/asm/Kbuild                |    2 +
- arch/hexagon/include/asm/Kbuild              |    1 +
- arch/ia64/include/asm/Kbuild                 |    1 +
- arch/m32r/include/asm/Kbuild                 |    2 +
- arch/m68k/include/asm/Kbuild                 |    1 +
- arch/microblaze/include/asm/Kbuild           |    1 +
- arch/mn10300/include/asm/Kbuild              |    2 +
- arch/openrisc/include/asm/Kbuild             |    1 +
- arch/parisc/include/asm/Kbuild               |    1 +
- arch/powerpc/include/asm/Kbuild              |    1 +
- arch/s390/include/asm/Kbuild                 |    2 +
- arch/score/include/asm/Kbuild                |    2 +
- arch/sparc/include/asm/Kbuild                |    1 +
- arch/tile/include/asm/Kbuild                 |    1 +
- arch/um/include/asm/Kbuild                   |    2 +-
- arch/unicore32/include/asm/Kbuild            |    1 +
- arch/x86/include/asm/Kbuild                  |    6 +
- arch/xtensa/include/asm/Kbuild               |    2 +
- include/asm-generic/Kbuild                   |   35 -
- include/asm-generic/bitsperlong.h            |   13 +-
- include/asm-generic/clkdev.h                 |   28 +
- include/asm-generic/int-l64.h                |   26 +-
- include/asm-generic/int-ll64.h               |   31 +-
- include/asm-generic/ioctl.h                  |   95 +--
- include/asm-generic/kvm_para.h               |    5 +-
- include/asm-generic/param.h                  |   17 +-
- include/asm-generic/resource.h               |   66 +-
- include/asm-generic/siginfo.h                |  297 +--------
- include/asm-generic/signal.h                 |  117 +---
- include/asm-generic/statfs.h                 |   81 +--
- include/asm-generic/termios.h                |   49 +-
- include/asm-generic/unistd.h                 |  907 +-------------------------
- include/asm-generic/xor.h                    |    4 +-
- include/uapi/asm-generic/Kbuild              |   35 +
- include/{ => uapi}/asm-generic/auxvec.h      |    0
- include/uapi/asm-generic/bitsperlong.h       |   15 +
- include/{ => uapi}/asm-generic/errno-base.h  |    0
- include/{ => uapi}/asm-generic/errno.h       |    0
- include/{ => uapi}/asm-generic/fcntl.h       |    0
- include/uapi/asm-generic/int-l64.h           |   34 +
- include/uapi/asm-generic/int-ll64.h          |   39 ++
- include/uapi/asm-generic/ioctl.h             |   98 +++
- include/{ => uapi}/asm-generic/ioctls.h      |    0
- include/{ => uapi}/asm-generic/ipcbuf.h      |    0
- include/{ => uapi}/asm-generic/mman-common.h |    0
- include/{ => uapi}/asm-generic/mman.h        |    0
- include/{ => uapi}/asm-generic/msgbuf.h      |    0
- include/uapi/asm-generic/param.h             |   19 +
- include/{ => uapi}/asm-generic/poll.h        |    0
- include/{ => uapi}/asm-generic/posix_types.h |    0
- include/uapi/asm-generic/resource.h          |   68 ++
- include/{ => uapi}/asm-generic/sembuf.h      |    0
- include/{ => uapi}/asm-generic/setup.h       |    0
- include/{ => uapi}/asm-generic/shmbuf.h      |    0
- include/{ => uapi}/asm-generic/shmparam.h    |    0
- include/uapi/asm-generic/siginfo.h           |  298 +++++++++
- include/{ => uapi}/asm-generic/signal-defs.h |    0
- include/uapi/asm-generic/signal.h            |  123 ++++
- include/{ => uapi}/asm-generic/socket.h      |    0
- include/{ => uapi}/asm-generic/sockios.h     |    0
- include/{ => uapi}/asm-generic/stat.h        |    0
- include/uapi/asm-generic/statfs.h            |   83 +++
- include/{ => uapi}/asm-generic/swab.h        |    0
- include/{ => uapi}/asm-generic/termbits.h    |    0
- include/uapi/asm-generic/termios.h           |   50 ++
- include/{ => uapi}/asm-generic/types.h       |    0
- include/{ => uapi}/asm-generic/ucontext.h    |    0
- include/uapi/asm-generic/unistd.h            |  902 +++++++++++++++++++++++++
- security/apparmor/Makefile                   |    2 +-
- 73 files changed, 1844 insertions(+), 1730 deletions(-)
- create mode 100644 include/asm-generic/clkdev.h
- rename include/{ => uapi}/asm-generic/auxvec.h (100%)
- create mode 100644 include/uapi/asm-generic/bitsperlong.h
- rename include/{ => uapi}/asm-generic/errno-base.h (100%)
- rename include/{ => uapi}/asm-generic/errno.h (100%)
- rename include/{ => uapi}/asm-generic/fcntl.h (100%)
- create mode 100644 include/uapi/asm-generic/int-l64.h
- create mode 100644 include/uapi/asm-generic/int-ll64.h
- create mode 100644 include/uapi/asm-generic/ioctl.h
- rename include/{ => uapi}/asm-generic/ioctls.h (100%)
- rename include/{ => uapi}/asm-generic/ipcbuf.h (100%)
- create mode 100644 include/uapi/asm-generic/kvm_para.h
- rename include/{ => uapi}/asm-generic/mman-common.h (100%)
- rename include/{ => uapi}/asm-generic/mman.h (100%)
- rename include/{ => uapi}/asm-generic/msgbuf.h (100%)
- create mode 100644 include/uapi/asm-generic/param.h
- rename include/{ => uapi}/asm-generic/poll.h (100%)
- rename include/{ => uapi}/asm-generic/posix_types.h (100%)
- create mode 100644 include/uapi/asm-generic/resource.h
- rename include/{ => uapi}/asm-generic/sembuf.h (100%)
- rename include/{ => uapi}/asm-generic/setup.h (100%)
- rename include/{ => uapi}/asm-generic/shmbuf.h (100%)
- rename include/{ => uapi}/asm-generic/shmparam.h (100%)
- create mode 100644 include/uapi/asm-generic/siginfo.h
- rename include/{ => uapi}/asm-generic/signal-defs.h (100%)
- create mode 100644 include/uapi/asm-generic/signal.h
- rename include/{ => uapi}/asm-generic/socket.h (100%)
- rename include/{ => uapi}/asm-generic/sockios.h (100%)
- rename include/{ => uapi}/asm-generic/stat.h (100%)
- create mode 100644 include/uapi/asm-generic/statfs.h
- rename include/{ => uapi}/asm-generic/swab.h (100%)
- rename include/{ => uapi}/asm-generic/termbits.h (100%)
- create mode 100644 include/uapi/asm-generic/termios.h
- rename include/{ => uapi}/asm-generic/types.h (100%)
- rename include/{ => uapi}/asm-generic/ucontext.h (100%)
- create mode 100644 include/uapi/asm-generic/unistd.h
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
