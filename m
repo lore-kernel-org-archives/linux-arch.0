@@ -1,78 +1,34 @@
-From: Mike Yoknis <mike.yoknis@hp.com>
-Subject: Re: [PATCH] mm: memmap_init_zone() performance improvement
-Date: Tue, 09 Oct 2012 08:56:37 -0600
-Message-ID: <1349794597.29752.10.camel@MikesLinux.fc.hp.com>
-References: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
-	 <20121008151656.GM29125@suse.de>
-Reply-To: mike.yoknis@hp.com
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [RFC][CFT][CFReview] execve and kernel_thread unification work
+Date: Tue, 9 Oct 2012 15:48:16 -0400
+Message-ID: <50747F80.4060503@tilera.com>
+References: <20121001213809.GA31155@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from g6t0184.atlanta.hp.com ([15.193.32.61]:28168 "EHLO
-	g6t0184.atlanta.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752114Ab2JIO4y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2012 10:56:54 -0400
-In-Reply-To: <20121008151656.GM29125@suse.de>
+Received: from usmamail.tilera.com ([12.216.194.151]:17145 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751927Ab2JITsT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2012 15:48:19 -0400
+In-Reply-To: <20121001213809.GA31155@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mel Gorman <mgorman@suse.de>
-Cc: mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-On Mon, 2012-10-08 at 16:16 +0100, Mel Gorman wrote:
-> On Wed, Oct 03, 2012 at 08:56:14AM -0600, Mike Yoknis wrote:
-> > memmap_init_zone() loops through every Page Frame Number (pfn),
-> > including pfn values that are within the gaps between existing
-> > memory sections.  The unneeded looping will become a boot
-> > performance issue when machines configure larger memory ranges
-> > that will contain larger and more numerous gaps.
-> > 
-> > The code will skip across invalid sections to reduce the
-> > number of loops executed.
-> > 
-> > Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
-> 
-> This only helps SPARSEMEM and changes more headers than should be
-> necessary. It would have been easier to do something simple like
-> 
-> if (!early_pfn_valid(pfn)) {
-> 	pfn = ALIGN(pfn + MAX_ORDER_NR_PAGES, MAX_ORDER_NR_PAGES) - 1;
-> 	continue;
-> }
-> 
-> because that would obey the expectation that pages within a
-> MAX_ORDER_NR_PAGES-aligned range are all valid or all invalid (ARM is the
-> exception that breaks this rule). It would be less efficient on
-> SPARSEMEM than what you're trying to merge but I do not see the need for
-> the additional complexity unless you can show it makes a big difference
-> to boot times.
-> 
+On 10/1/2012 5:38 PM, Al Viro wrote:
+> 	There's an interesting ongoing project around kernel_thread() and
+> friends, including execve() variants.  I really need help from architecture
+> maintainers on that one; I'd been able to handle (and test) quite a few
+> architectures on my own [alpha, arm, m68k, powerpc, s390, sparc, x86, um]
+> plus two more untested [frv, mn10300].  c6x patches had been supplied by
+> Mark Salter; everything else remains to be done.  Right now it's at
+> minus 1.2KLoC, quite a bit of that removed from asm glue and other black
+> magic.
 
-Mel,
-I, too, was concerned that pfn_valid() was defined in so many header
-files.  But, I did not feel that it was appropriate for me to try to
-restructure things to consolidate those definitions just to add this one
-new function.  Being a kernel newbie I did not believe that I had a good
-enough understanding of what combinations and permutations of CONFIG and
-architecture may have made all of those different definitions necessary,
-so I left them in.
+I'll take a look at this for arch/tile this week.
 
-Yes, indeed, this fix is targeted for systems that have holes in memory.
-That is where we see the problem.  We are creating large computer
-systems and we would like for those machines to perform well, including
-boot times.
-
-Let me pass along the numbers I have.  We have what we call an
-"architectural simulator".  It is a computer program that pretends that
-it is a computer system.  We use it to test the firmware before real
-hardware is available.  We have booted Linux on our simulator.  As you
-would expect it takes longer to boot on the simulator than it does on
-real hardware.
-
-With my patch - boot time 41 minutes
-Without patch - boot time 94 minutes
-
-These numbers do not scale linearly to real hardware.  But indicate to
-me a place where Linux can be improved.
-
-Mike Yoknis
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
