@@ -1,33 +1,63 @@
 From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [RFC][CFT][CFReview] execve and kernel_thread unification work
-Date: Tue, 9 Oct 2012 15:48:16 -0400
-Message-ID: <50747F80.4060503@tilera.com>
-References: <20121001213809.GA31155@ZenIV.linux.org.uk>
+Subject: Re: [PATCH 3/8] sparc64: Eliminate PTE table memory wastage.
+Date: Tue, 9 Oct 2012 16:02:31 -0400
+Message-ID: <507482D7.909@tilera.com>
+References: <20121002.182642.49574627747120711.davem@davemloft.net>	<87y5jmfbd3.fsf@linux.vnet.ibm.com> <20121004.142003.851528112593506369.davem@davemloft.net>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:17145 "EHLO
+Received: from usmamail.tilera.com ([12.216.194.151]:39286 "EHLO
 	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751927Ab2JITsT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2012 15:48:19 -0400
-In-Reply-To: <20121001213809.GA31155@ZenIV.linux.org.uk>
+	with ESMTP id S1751929Ab2JIUCe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 9 Oct 2012 16:02:34 -0400
+In-Reply-To: <20121004.142003.851528112593506369.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: David Miller <davem@davemloft.net>
+Cc: aneesh.kumar@linux.vnet.ibm.com, linux-mm@kvack.org, sparclinux@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org, aarcange@redhat.com, hannes@cmpxchg.org
 
-On 10/1/2012 5:38 PM, Al Viro wrote:
-> 	There's an interesting ongoing project around kernel_thread() and
-> friends, including execve() variants.  I really need help from architecture
-> maintainers on that one; I'd been able to handle (and test) quite a few
-> architectures on my own [alpha, arm, m68k, powerpc, s390, sparc, x86, um]
-> plus two more untested [frv, mn10300].  c6x patches had been supplied by
-> Mark Salter; everything else remains to be done.  Right now it's at
-> minus 1.2KLoC, quite a bit of that removed from asm glue and other black
-> magic.
+On 10/4/2012 2:23 PM, David Miller wrote:
+> From: "Aneesh Kumar K.V" <aneesh.kumar@linux.vnet.ibm.com>
+> Date: Thu, 04 Oct 2012 22:00:48 +0530
+> 
+>> David Miller <davem@davemloft.net> writes:
+>>
+>>> We've split up the PTE tables so that they take up half a page instead
+>>> of a full page.  This is in order to facilitate transparent huge page
+>>> support, which works much better if our PMDs cover 4MB instead of 8MB.
+>>>
+>>> What we do is have a one-behind cache for PTE table allocations in the
+>>> mm struct.
+>>>
+>>> This logic triggers only on allocations.  For example, we don't try to
+>>> keep track of free'd up page table blocks in the style that the s390
+>>> port does.
+>>
+>> I am also implementing a similar change for powerpc. We have a 64K page
+>> size, and want to make sure PMD cover 16MB, which is the huge page size
+>> supported by the hardware. I was looking at using the s390 logic,
+>> considering we have 16 PMDs mapping to same PTE page. Should we look at
+>> generalizing the case so that other architectures can start using the
+>> same code ?
+> 
+> I think until we have multiple cases we won't know what's common or not.
+> 
+> Each arch has different need.  I need to split the page into two pieces
+> so my code is simpler, and juse uses page counting to manage alloc/free.
+> 
+> Whereas s390 uses an bitmask to manage page state, and also reclaims
+> pgtable pages into a per-mm list on free.  I decided not to do that
+> and to just let the page allocator do the work.
+> 
+> So I don't think it's appropriate to think about commonization at this
+> time, as even the only two cases existing are very non-common :-)
 
-I'll take a look at this for arch/tile this week.
+I'll add arch/tile to the list of architectures that would benefit.
+We currently allocate PTEs using the page allocator, but by default
+we use 64K pages and 16M huge pages, so with 8-byte PTEs that's
+just 2K for the page table, so we could fit 32 of them on a page
+if we wished.  Instead, for the time being, we just waste the space.
 
 -- 
 Chris Metcalf, Tilera Corp.
