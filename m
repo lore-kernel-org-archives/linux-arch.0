@@ -1,49 +1,39 @@
-From: Paul Mackerras <paulus@samba.org>
-Subject: Re: [RFC][CFT][CFReview] execve and kernel_thread unification work
-Date: Thu, 11 Oct 2012 20:00:23 +1100
-Message-ID: <20121011090023.GA28427@bloggs.ozlabs.ibm.com>
-References: <20121001213809.GA31155@ZenIV.linux.org.uk>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re:
+Date: Thu, 11 Oct 2012 10:57:05 +0100
+Message-ID: <20121011095705.GB30598@mudshark.cambridge.arm.com>
+References: <22758.1349565339@warthog.procyon.org.uk>
+ <CAMuHMdX2TgSbTj8yjyRKXT=RJ0E+efR7FH-vzoWL8+-SCUN29w@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ozlabs.org ([203.10.76.45]:57066 "EHLO ozlabs.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752777Ab2JKJBF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 11 Oct 2012 05:01:05 -0400
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:64321 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1758250Ab2JKJ5h (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 11 Oct 2012 05:57:37 -0400
 Content-Disposition: inline
-In-Reply-To: <20121001213809.GA31155@ZenIV.linux.org.uk>
+In-Reply-To: <CAMuHMdX2TgSbTj8yjyRKXT=RJ0E+efR7FH-vzoWL8+-SCUN29w@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: David Howells <dhowells@redhat.com>, "torvalds@osdl.org" <torvalds@osdl.org>, "arnd@arndb.de" <arnd@arndb.de>, "hpa@zytor.com" <hpa@zytor.com>, Catalin Marinas <Catalin.Marinas@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "ralf@linux-mips.org" <ralf@linux-mips.org>, "ddaney.cavm@gmail.com" <ddaney.cavm@gmail.com>, Paul Mundt <lethal@linux-sh.org>
 
-I just looked through the "powerpc: split ret_from_fork" commit in
-your for-next branch, and I have a couple of comments.
+On Sun, Oct 07, 2012 at 07:36:20AM +0100, Geert Uytterhoeven wrote:
+> On Sun, Oct 7, 2012 at 1:15 AM, David Howells <dhowells@redhat.com> wrote:
+> >  (3) m68k turned out to have a header installation problem due to it lacking a
+> >      kvm_para.h file.
+> 
+> Sh also.
 
-First, on 64-bit powerpc, if kernel_thread() is called on a function
-in a module, and that function returns, we'll then jump to do_exit
-with r2 pointing to the module's TOC rather than the main kernel's
-TOC, with disastrous results.  It would be easily solved by adding a
+and arm64 iirc. It should also affect arm, but we have a horrible dummy
+header to get around it (just includes the asm-generic variant).
 
-	ld	r2,PACATOC(r13)
+I posted a fix, but then it got derailed by the wildcarding used to generate
+generic headers for kvm (which I was going some way to removing):
 
-before the branch to .do_exit in the 64-bit ret_from_kernel_thread().
-Maybe no-one ever calls kernel_thread() on a function in a module
-today, but I don't want to rely on that being true forever, especially
-since it's only one more instruction to guard against the possibility.
+  https://lkml.org/lkml/2012/8/2/173
 
-Secondly, while the code as you have it is correct, to my mind it
-would be cleaner to put the function descriptor address in r14 on
-64-bit, rather than the function text address, and then dereference it
-to get the TOC and text address at the point of doing the call.  That
-would reduce the differences between 32-bit and 64-bit in
-copy_thread() and make it more obvious that ret_from_kernel_thread()
-is setting the right TOC value in r2.
+  http://marc.info/?l=linux-kernel&m=134393963216492&w=2
 
-In fact copy_thread() doesn't need to set r2 in the 32-bit case, since
-_switch() sets r2 to the task_struct for the task it's switching to,
-and ignores the r2 value in the stack frame.  So with my suggestion
-copy_thread() wouldn't need to set childregs->gpr[2] at all (for the
-kernel thread case).
-
-Paul.
+Will
