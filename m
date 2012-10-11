@@ -1,49 +1,49 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
+From: Paul Mackerras <paulus@samba.org>
 Subject: Re: [RFC][CFT][CFReview] execve and kernel_thread unification work
-Date: Wed, 10 Oct 2012 05:51:26 +0100
-Message-ID: <20121010045126.GB2616@ZenIV.linux.org.uk>
+Date: Thu, 11 Oct 2012 20:00:23 +1100
+Message-ID: <20121011090023.GA28427@bloggs.ozlabs.ibm.com>
 References: <20121001213809.GA31155@ZenIV.linux.org.uk>
- <50747F80.4060503@tilera.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:35733 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751632Ab2JJEve (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 10 Oct 2012 00:51:34 -0400
+Received: from ozlabs.org ([203.10.76.45]:57066 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752777Ab2JKJBF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 11 Oct 2012 05:01:05 -0400
 Content-Disposition: inline
-In-Reply-To: <50747F80.4060503@tilera.com>
+In-Reply-To: <20121001213809.GA31155@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
+To: Al Viro <viro@ZenIV.linux.org.uk>
 Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-On Tue, Oct 09, 2012 at 03:48:16PM -0400, Chris Metcalf wrote:
-> On 10/1/2012 5:38 PM, Al Viro wrote:
-> > 	There's an interesting ongoing project around kernel_thread() and
-> > friends, including execve() variants.  I really need help from architecture
-> > maintainers on that one; I'd been able to handle (and test) quite a few
-> > architectures on my own [alpha, arm, m68k, powerpc, s390, sparc, x86, um]
-> > plus two more untested [frv, mn10300].  c6x patches had been supplied by
-> > Mark Salter; everything else remains to be done.  Right now it's at
-> > minus 1.2KLoC, quite a bit of that removed from asm glue and other black
-> > magic.
-> 
-> I'll take a look at this for arch/tile this week.
+I just looked through the "powerpc: split ret_from_fork" commit in
+your for-next branch, and I have a couple of comments.
 
-Thanks.  FWIW, changes since the last posting:
-	* untested conversion for cris added [me]
-	* conversion for mips added [Ralf has done execve side, I've added
-kernel_thread() one]
-	* conversion for parisc added [aka "Al has generated broken patches,
-jejb has tested and fixed that crap"]
-	* arm64 conversion added [Catalin Marinas]
+First, on 64-bit powerpc, if kernel_thread() is called on a function
+in a module, and that function returns, we'll then jump to do_exit
+with r2 pointing to the module's TOC rather than the main kernel's
+TOC, with disastrous results.  It would be easily solved by adding a
 
-IOW, right now we have
-	* alpha, arm, arm64, c6x, m68k, mips, parisc, powerpc, s390, sparc,
-um, x86 - apparently over and done with (IOW, all old architectures except for
-itanic are converted by now)
-	* avr32, blackfin, hexagon, h8300, ia64, m32r, microblaze, openrisc,
-score, sh, tile, unicore32, xtensa - need to be done
-	* cris, frv, mn10300 - need to be tested (and very likely will need
-fixing)
+	ld	r2,PACATOC(r13)
+
+before the branch to .do_exit in the 64-bit ret_from_kernel_thread().
+Maybe no-one ever calls kernel_thread() on a function in a module
+today, but I don't want to rely on that being true forever, especially
+since it's only one more instruction to guard against the possibility.
+
+Secondly, while the code as you have it is correct, to my mind it
+would be cleaner to put the function descriptor address in r14 on
+64-bit, rather than the function text address, and then dereference it
+to get the TOC and text address at the point of doing the call.  That
+would reduce the differences between 32-bit and 64-bit in
+copy_thread() and make it more obvious that ret_from_kernel_thread()
+is setting the right TOC value in r2.
+
+In fact copy_thread() doesn't need to set r2 in the 32-bit case, since
+_switch() sets r2 to the task_struct for the task it's switching to,
+and ignores the r2 value in the stack frame.  So with my suggestion
+copy_thread() wouldn't need to set childregs->gpr[2] at all (for the
+kernel thread case).
+
+Paul.
