@@ -1,53 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ob0-f174.google.com ([209.85.214.174]:61399 "EHLO
-	mail-ob0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755174Ab2JIAmZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 8 Oct 2012 20:42:25 -0400
-Message-ID: <507372E8.9090207@gmail.com>
-Date: Tue, 09 Oct 2012 08:42:16 +0800
-From: Ni zhan Chen <nizhan.chen@gmail.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH] mm: memmap_init_zone() performance improvement
-References: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com> <20121008151656.GM29125@suse.de>
-In-Reply-To: <20121008151656.GM29125@suse.de>
-Content-Type: text/plain; charset=ISO-8859-15; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from service87.mimecast.com ([91.220.42.44]:32957 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756217Ab2JKQSO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2012 12:18:14 -0400
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: [PATCH 1/4] uapi: Allow automatic generation of uapi/asm/ header files
+Date: Thu, 11 Oct 2012 17:18:02 +0100
+Message-ID: <1349972285-22830-2-git-send-email-catalin.marinas@arm.com>
+In-Reply-To: <1349972285-22830-1-git-send-email-catalin.marinas@arm.com>
+References: <1349972285-22830-1-git-send-email-catalin.marinas@arm.com>
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: quoted-printable
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mel Gorman <mgorman@suse.de>
-Cc: Mike Yoknis <mike.yoknis@hp.com>, mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20121009004216.bvCpzeoBckAfghLp3VitVNwsBGNVZInUGFS4SfzkbP0@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: David Howells <dhowells@redhat.com>, Michal Marek <mmarek@suse.cz>, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20121011161802.CdOwYrs5YpY0nYnCckoON7B_e-S3qKRIHh3AE56237c@z>
 
-On 10/08/2012 11:16 PM, Mel Gorman wrote:
-> On Wed, Oct 03, 2012 at 08:56:14AM -0600, Mike Yoknis wrote:
->> memmap_init_zone() loops through every Page Frame Number (pfn),
->> including pfn values that are within the gaps between existing
->> memory sections.  The unneeded looping will become a boot
->> performance issue when machines configure larger memory ranges
->> that will contain larger and more numerous gaps.
->>
->> The code will skip across invalid sections to reduce the
->> number of loops executed.
->>
->> Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
-> This only helps SPARSEMEM and changes more headers than should be
-> necessary. It would have been easier to do something simple like
->
-> if (!early_pfn_valid(pfn)) {
-> 	pfn = ALIGN(pfn + MAX_ORDER_NR_PAGES, MAX_ORDER_NR_PAGES) - 1;
-> 	continue;
-> }
+Several arch/*/include/uapi/asm/* header simply include the
+corresponding <asm-generic/*> file. This patch allows such files to be
+specified in uapi/asm/Kbuild via "generic-y +=3D ..." to be automatically
+generated (similar to asm/Kbuild).
 
-So if present memoy section in sparsemem can have 
-MAX_ORDER_NR_PAGES-aligned range are all invalid?
-If the answer is yes, when this will happen?
+Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Michal Marek <mmarek@suse.cz>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+---
+ Makefile                     | 4 +++-
+ scripts/Makefile.asm-generic | 2 +-
+ 2 files changed, 4 insertions(+), 2 deletions(-)
 
->
-> because that would obey the expectation that pages within a
-> MAX_ORDER_NR_PAGES-aligned range are all valid or all invalid (ARM is the
-> exception that breaks this rule). It would be less efficient on
-> SPARSEMEM than what you're trying to merge but I do not see the need for
-> the additional complexity unless you can show it makes a big difference
-> to boot times.
->
+diff --git a/Makefile b/Makefile
+index 86eb6ac..5d0da36 100644
+--- a/Makefile
++++ b/Makefile
+@@ -437,7 +437,9 @@ endif
+ PHONY +=3D asm-generic
+ asm-generic:
+ =09$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic \
+-=09            obj=3Darch/$(SRCARCH)/include/generated/asm
++=09            src=3Dasm obj=3Darch/$(SRCARCH)/include/generated/asm
++=09$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic \
++=09            src=3Duapi/asm obj=3Darch/$(SRCARCH)/include/generated/uapi=
+/asm
+=20
+ # To make sure we do not include .config for any of the *config targets
+ # catch them early, and hand them over to scripts/kconfig/Makefile
+diff --git a/scripts/Makefile.asm-generic b/scripts/Makefile.asm-generic
+index 40caf3c..d17e0ea 100644
+--- a/scripts/Makefile.asm-generic
++++ b/scripts/Makefile.asm-generic
+@@ -5,7 +5,7 @@
+ # and for each file listed in this file with generic-y creates
+ # a small wrapper file in $(obj) (arch/$(SRCARCH)/include/generated/asm)
+=20
+-kbuild-file :=3D $(srctree)/arch/$(SRCARCH)/include/asm/Kbuild
++kbuild-file :=3D $(srctree)/arch/$(SRCARCH)/include/$(src)/Kbuild
+ -include $(kbuild-file)
+=20
+ include scripts/Kbuild.include
 
