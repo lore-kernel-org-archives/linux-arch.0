@@ -1,40 +1,29 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH 0/4] uapi: Allow automatic generation of trivial headers
-Date: Thu, 11 Oct 2012 17:52:20 +0100
-Message-ID: <20121011165220.GD10659@arm.com>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH 4/4] sparc: Automatically generate trivial UAPI headers
+Date: Thu, 11 Oct 2012 15:13:58 -0400 (EDT)
+Message-ID: <20121011.151358.751483166836653953.davem@davemloft.net>
 References: <1349972285-22830-1-git-send-email-catalin.marinas@arm.com>
- <19626.1349974000@warthog.procyon.org.uk>
+	<1349972285-22830-5-git-send-email-catalin.marinas@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=WINDOWS-1252
-Content-Transfer-Encoding: 8BIT
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:50823 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757755Ab2JKQwZ convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2012 12:52:25 -0400
-In-Reply-To: <19626.1349974000@warthog.procyon.org.uk>
-Content-Disposition: inline
+Received: from shards.monkeyblade.net ([149.20.54.216]:38770 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932667Ab2JKTOA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2012 15:14:00 -0400
+In-Reply-To: <1349972285-22830-5-git-send-email-catalin.marinas@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: catalin.marinas@arm.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, dhowells@redhat.com
 
-On Thu, Oct 11, 2012 at 05:46:40PM +0100, David Howells wrote:
-> Catalin Marinas <catalin.marinas@arm.com> wrote:
+From: Catalin Marinas <catalin.marinas@arm.com>
+Date: Thu, 11 Oct 2012 17:18:05 +0100
+
+> This patch removes several trivial UAPI headers that were simply including
+> the asm-generic files as they can be automatically generated.
 > 
-> > The asm/Kbuild allows automatic generation of header files by specifying
-> > "generic-y += ...". The first patch in the series allows the same thing
-> > to be specified in uapi/asm/Kbuild.
-> > 
-> > The subsequent patches remove some of the trivial header files in arm64,
-> > s390 and sparc. Please note that the series has only been tested on
-> > arm64. I can test the others but not until tomorrow.
-> 
-> It should be noted that the arm64 patch is dependent on the disintegrate-arm64
-> branch of my UAPI disintegration patches, which I don't believe is upstream
-> yet.
+> Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
 
-Not yet. But this series is not meant for this merging window anyway.
-
--- 
-Catalin
+Acked-by: David S. Miller <davem@davemloft.net>
