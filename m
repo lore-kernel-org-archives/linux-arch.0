@@ -1,81 +1,65 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC][CFT][CFReview] execve and kernel_thread unification work
-Date: Thu, 11 Oct 2012 13:53:06 +0100
-Message-ID: <20121011125306.GF2616@ZenIV.linux.org.uk>
-References: <20121001213809.GA31155@ZenIV.linux.org.uk>
- <20121011090023.GA28427@bloggs.ozlabs.ibm.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: [PATCH 0/4] uapi: Allow automatic generation of trivial headers
+Date: Thu, 11 Oct 2012 17:18:01 +0100
+Message-ID: <1349972285-22830-1-git-send-email-catalin.marinas@arm.com>
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:58086 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756082Ab2JKMxM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2012 08:53:12 -0400
-Content-Disposition: inline
-In-Reply-To: <20121011090023.GA28427@bloggs.ozlabs.ibm.com>
+Received: from service87.mimecast.com ([91.220.42.44]:32905 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755814Ab2JKQSO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 11 Oct 2012 12:18:14 -0400
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Paul Mackerras <paulus@samba.org>
-Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: David Howells <dhowells@redhat.com>
 
-On Thu, Oct 11, 2012 at 08:00:23PM +1100, Paul Mackerras wrote:
-> I just looked through the "powerpc: split ret_from_fork" commit in
-> your for-next branch, and I have a couple of comments.
-> 
-> First, on 64-bit powerpc, if kernel_thread() is called on a function
-> in a module, and that function returns, we'll then jump to do_exit
-> with r2 pointing to the module's TOC rather than the main kernel's
-> TOC, with disastrous results.  It would be easily solved by adding a
-> 
-> 	ld	r2,PACATOC(r13)
-> 
-> before the branch to .do_exit in the 64-bit ret_from_kernel_thread().
-> Maybe no-one ever calls kernel_thread() on a function in a module
-> today, but I don't want to rely on that being true forever, especially
-> since it's only one more instruction to guard against the possibility.
+Hi,
 
-It's unexported, and for a good reason.  So no, there won't be any callers
-in modules.  The good reasons in question:
-	* it's trivial to convert any such caller to kthread_run() and
-kthread.h in general
-	* there are only ~7 callers in the mainline, all but one in
-{init,kernel}/*.c.  Said exception is in arch/powerpc, also non-modular
-and there conversion is simply
--       set_task_comm(current, "eehd");
-in eeh_event_handler,
--       if (kernel_thread(eeh_event_handler, NULL, CLONE_KERNEL) < 0)
-+       if (IS_ERR(kthread_run(eeh_event_handler, NULL, "eehd")))
-in eeh_thread_launcher, plus adding #include <linux/kthread.h>.
-All there is to it.
-	* life is going to become much simpler if we change kernel_thread()
-callback semantics (while leaving kthread.h and kmod.h behaviour intact)
-and I'm going to do that later in the series.  This call of do_exit() is
-going away, to start with - from any asm glue.  Better have it done in
-kernel/kmod.c - all it takes is a couple of lines in there, everything
-else already never returns, either by looping forever or by successful
-execve(2) or by exit(2) (or panic(), in one case).  Again, I'm talking about
-kernel_thread() callbacks - kthread.h ones already have do_exit() done by
-their caller (which is a kernel_thread() callback in kernel/kthread.c).
-And then we can do even better - check signal.git#experimental-kernel_thread
-and you'll see.
+The asm/Kbuild allows automatic generation of header files by specifying
+"generic-y +=3D ...". The first patch in the series allows the same thing
+to be specified in uapi/asm/Kbuild.
 
-IOW, being able to treat that as internal low-level mechanism rather than
-any kind of stable API for modules is a very good thing.
+The subsequent patches remove some of the trivial header files in arm64,
+s390 and sparc. Please note that the series has only been tested on
+arm64. I can test the others but not until tomorrow.
 
-> Secondly, while the code as you have it is correct, to my mind it
-> would be cleaner to put the function descriptor address in r14 on
-> 64-bit, rather than the function text address, and then dereference it
-> to get the TOC and text address at the point of doing the call.  That
-> would reduce the differences between 32-bit and 64-bit in
-> copy_thread() and make it more obvious that ret_from_kernel_thread()
-> is setting the right TOC value in r2.
 
-	Umm...  Maybe, but let's do that as subsequent cleanup.  Again,
-we almost certainly don't need to mess with TOC at all - the callbacks
-are in the main kernel, there are very few of them and they really are
-low-level details of exported mechanisms (i.e. kthread_create/run/etc.
-in kthread.h and call_usermode... in kmod.h).  Again, we are talking
-about out-of-tree modules, they had better mechanism for at least
-6 years and conversion to it is bloody trivial.  Hell, it was even
-in late unlamented feature-removal-schedule.txt - since 2006.  If that's
-not enough to retire an export, what is?
+Catalin Marinas (4):
+  uapi: Allow automatic generation of uapi/asm/ header files
+  arm64: Automatically generate UAPI stat.h and unistd.h headers
+  s390: Automatically generate trivial UAPI headers
+  sparc: Automatically generate trivial UAPI headers
+
+ Makefile                               |  4 +++-
+ arch/arm64/include/uapi/asm/Kbuild     |  5 +++--
+ arch/arm64/include/uapi/asm/stat.h     | 16 ----------------
+ arch/arm64/include/uapi/asm/unistd.h   | 16 ----------------
+ arch/s390/include/uapi/asm/Kbuild      | 19 ++++++++++---------
+ arch/s390/include/uapi/asm/errno.h     | 11 -----------
+ arch/s390/include/uapi/asm/fcntl.h     |  1 -
+ arch/s390/include/uapi/asm/ioctl.h     |  1 -
+ arch/s390/include/uapi/asm/mman.h      |  6 ------
+ arch/s390/include/uapi/asm/param.h     |  6 ------
+ arch/s390/include/uapi/asm/poll.h      |  1 -
+ arch/s390/include/uapi/asm/resource.h  | 13 -------------
+ arch/s390/include/uapi/asm/sockios.h   |  6 ------
+ arch/s390/include/uapi/asm/termbits.h  |  6 ------
+ arch/sparc/include/uapi/asm/Kbuild     |  5 +++--
+ arch/sparc/include/uapi/asm/kvm_para.h |  1 -
+ arch/sparc/include/uapi/asm/statfs.h   |  6 ------
+ scripts/Makefile.asm-generic           |  2 +-
+ 18 files changed, 20 insertions(+), 105 deletions(-)
+ delete mode 100644 arch/arm64/include/uapi/asm/stat.h
+ delete mode 100644 arch/arm64/include/uapi/asm/unistd.h
+ delete mode 100644 arch/s390/include/uapi/asm/errno.h
+ delete mode 100644 arch/s390/include/uapi/asm/fcntl.h
+ delete mode 100644 arch/s390/include/uapi/asm/ioctl.h
+ delete mode 100644 arch/s390/include/uapi/asm/mman.h
+ delete mode 100644 arch/s390/include/uapi/asm/param.h
+ delete mode 100644 arch/s390/include/uapi/asm/poll.h
+ delete mode 100644 arch/s390/include/uapi/asm/resource.h
+ delete mode 100644 arch/s390/include/uapi/asm/sockios.h
+ delete mode 100644 arch/s390/include/uapi/asm/termbits.h
+ delete mode 100644 arch/sparc/include/uapi/asm/kvm_para.h
+ delete mode 100644 arch/sparc/include/uapi/asm/statfs.h
