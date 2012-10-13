@@ -1,38 +1,74 @@
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Subject: Re: [git pull] signal.git, pile 2 (was Re: [RFC][CFT][CFReview]
- execve and kernel_thread unification work)
-Date: Fri, 12 Oct 2012 18:55:57 +1100
-Message-ID: <1350028557.20486.154.camel@pasglop>
-References: <20121001213809.GA31155@ZenIV.linux.org.uk>
-	 <20121011090023.GA28427@bloggs.ozlabs.ibm.com>
-	 <20121011125306.GF2616@ZenIV.linux.org.uk>
-	 <20121012001633.GA29883@bloggs.ozlabs.ibm.com>
-	 <20121012010958.GG2616@ZenIV.linux.org.uk>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [git pull] signals pile 3
+Date: Sat, 13 Oct 2012 01:53:34 +0100
+Message-ID: <20121013005334.GM2616@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:33310 "EHLO gate.crashing.org"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S933061Ab2JLH4M (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 12 Oct 2012 03:56:12 -0400
-In-Reply-To: <20121012010958.GG2616@ZenIV.linux.org.uk>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:37222 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752828Ab2JMAxg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Oct 2012 20:53:36 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, Paul Mackerras <paulus@samba.org>, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Fri, 2012-10-12 at 02:09 +0100, Al Viro wrote:
-> Anyway, if ppc folks can live with that stuff in its current form for now,
-> here's the second signal.git pull request.  Stuff in there: kernel_thread/
-> kernel_execve/sys_execve conversions for several more architectures plus
-> assorted signal fixes and cleanups.  There'll be more (in particular, real
-> fixes for alpha do_notify_resume() irq mess)...  Linus, could you pull that
-> queue?  It's in the usual place -
-> git://git.kernel.org/pub/scm/linux/kernel/git/viro/signal for-linus
+The last bits of infrastructure for kernel_thread() et.al., with alpha/arm/x86
+use of those.  Plus sanitizing the asm glue and do_notify_resume() on alpha,
+fixing the "disabled irq while running task_work stuff" breakage there.
 
-Yes, we can live with what's in there, it won't break anything. We can
-do the proposed cleanups subsequently.
+At that point the rest of kernel_thread/kernel_execve/sys_execve work can
+be done independently for different architectures.  The only pending bits
+that do depend on having all architectures converted are restrictred to
+fs/* and kernel/* - that'll obviously have to wait for the next cycle.
+I thought we'd have to wait for all of them done before we start eliminating
+the longjump-style insanity in kernel_execve(), but it turned out there's
+a very simple way to do that without flagday-style changes.
 
-Cheers,
-Ben.
+Please, pull from
+git://git.kernel.org/pub/scm/linux/kernel/git/viro/signal for-linus
+
+Shortlog:
+Al Viro (12):
+      alpha: simplify TIF_NEED_RESCHED handling
+      alpha: take SIGPENDING/NOTIFY_RESUME loop into signal.c
+      alpha: don't bother passing switch_stack separately from regs
+      alpha: get rid of switch_stack argument of do_work_pending()
+      don't bother with kernel_thread/kernel_execve for launching linuxrc
+      ppc: eeh_event should just use kthread_run()
+      make sure that we always have a return path from kernel_execve()
+      make sure that kernel_thread() callbacks call do_exit() themselves
+      infrastructure for saner ret_from_kernel_thread semantics
+      x86, um: convert to saner kernel_execve() semantics
+      arm: switch to saner kernel_execve() semantics
+      alpha: switch to saner kernel_execve() semantics
+
+Diffstat:
+ arch/Kconfig                               |    3 +
+ arch/alpha/Kconfig                         |    1 +
+ arch/alpha/include/asm/unistd.h            |    1 -
+ arch/alpha/kernel/entry.S                  |   87 +++++++++-------------------
+ arch/alpha/kernel/signal.c                 |   48 +++++++++------
+ arch/arm/Kconfig                           |    1 +
+ arch/arm/include/asm/unistd.h              |    1 -
+ arch/arm/kernel/entry-common.S             |   29 +--------
+ arch/arm/kernel/process.c                  |    5 +-
+ arch/powerpc/platforms/pseries/eeh_event.c |    5 +-
+ arch/um/include/asm/processor-generic.h    |    2 -
+ arch/um/include/shared/os.h                |    1 -
+ arch/um/kernel/exec.c                      |    5 --
+ arch/um/kernel/process.c                   |   10 +--
+ arch/um/os-Linux/process.c                 |   13 ----
+ arch/x86/Kconfig                           |    1 +
+ arch/x86/include/asm/unistd.h              |    1 -
+ arch/x86/kernel/entry_32.S                 |   31 ++++------
+ arch/x86/kernel/entry_64.S                 |   24 +------
+ arch/x86/um/Kconfig                        |    1 +
+ include/linux/syscalls.h                   |    8 +++
+ init/do_mounts_initrd.c                    |   41 +++++--------
+ init/main.c                                |   33 ++++++-----
+ kernel/kmod.c                              |    7 ++-
+ kernel/kthread.c                           |    1 +
+ 25 files changed, 137 insertions(+), 223 deletions(-)
