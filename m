@@ -1,18 +1,18 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [PATCH 16/25] parisc: Use Kbuild infrastructure to handle asm-generic headers
-Date: Fri, 12 Oct 2012 22:26:48 -0400
-Message-ID: <20121013022954.722147403@goodmis.org>
+Subject: [PATCH 01/25] alpha: Use Kbuild infrastructure to handle asm-generic headers
+Date: Fri, 12 Oct 2012 22:26:33 -0400
+Message-ID: <20121013022952.563646981@goodmis.org>
 References: <20121013022632.024527228@goodmis.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:15140 "EHLO
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:20543 "EHLO
 	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752354Ab2JMC34 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Oct 2012 22:29:56 -0400
-Content-Disposition: inline; filename=0016-parisc-Use-Kbuild-infrastructure-to-handle-asm-gener.patch
+	with ESMTP id S1752290Ab2JMC3z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Oct 2012 22:29:55 -0400
+Content-Disposition: inline; filename=0001-alpha-Use-Kbuild-infrastructure-to-handle-asm-generi.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Richard Henderson <rth@twiddle.net>, Ivan Kokshaysky <ink@jurassic.park.msu.ru>, Matt Turner <mattst88@gmail.com>
 
 From: Steven Rostedt <srostedt@redhat.com>
 
@@ -23,98 +23,76 @@ This only affects headers that do nothing but include the generic
 equivalent. It does not touch any header that does a little more.
 
 Cc: linux-kbuild@vger.kernel.org
-Cc: linux-parisc@vger.kernel.org
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-Cc: Helge Deller <deller@gmx.de>
+Cc: linux-alpha@vger.kernel.org
+Cc: Richard Henderson <rth@twiddle.net>
+Cc: Ivan Kokshaysky <ink@jurassic.park.msu.ru>
+Cc: Matt Turner <mattst88@gmail.com>
 Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 ---
- arch/parisc/include/asm/Kbuild              |   18 +++++++++++++++++-
- arch/parisc/include/asm/compat_signal.h     |    2 --
- arch/parisc/include/asm/cputime.h           |    6 ------
- arch/parisc/include/asm/device.h            |    7 -------
- arch/parisc/include/asm/div64.h             |    1 -
- arch/parisc/include/asm/emergency-restart.h |    6 ------
- arch/parisc/include/asm/hardirq.h           |   11 -----------
- arch/parisc/include/asm/irq_regs.h          |    1 -
- arch/parisc/include/asm/kdebug.h            |    1 -
- arch/parisc/include/asm/kvm_para.h          |    1 -
- arch/parisc/include/asm/local.h             |    1 -
- arch/parisc/include/asm/local64.h           |    1 -
- arch/parisc/include/asm/param.h             |    1 -
- arch/parisc/include/asm/percpu.h            |    7 -------
- arch/parisc/include/asm/poll.h              |    1 -
- arch/parisc/include/asm/topology.h          |    6 ------
- arch/parisc/include/asm/xor.h               |    1 -
- 17 files changed, 17 insertions(+), 55 deletions(-)
- delete mode 100644 arch/parisc/include/asm/compat_signal.h
- delete mode 100644 arch/parisc/include/asm/cputime.h
- delete mode 100644 arch/parisc/include/asm/device.h
- delete mode 100644 arch/parisc/include/asm/div64.h
- delete mode 100644 arch/parisc/include/asm/emergency-restart.h
- delete mode 100644 arch/parisc/include/asm/hardirq.h
- delete mode 100644 arch/parisc/include/asm/irq_regs.h
- delete mode 100644 arch/parisc/include/asm/kdebug.h
- delete mode 100644 arch/parisc/include/asm/kvm_para.h
- delete mode 100644 arch/parisc/include/asm/local.h
- delete mode 100644 arch/parisc/include/asm/local64.h
- delete mode 100644 arch/parisc/include/asm/param.h
- delete mode 100644 arch/parisc/include/asm/percpu.h
- delete mode 100644 arch/parisc/include/asm/poll.h
- delete mode 100644 arch/parisc/include/asm/topology.h
- delete mode 100644 arch/parisc/include/asm/xor.h
+ arch/alpha/include/asm/Kbuild              |   12 ++++++++++++
+ arch/alpha/include/asm/cputime.h           |    6 ------
+ arch/alpha/include/asm/device.h            |    7 -------
+ arch/alpha/include/asm/div64.h             |    1 -
+ arch/alpha/include/asm/emergency-restart.h |    6 ------
+ arch/alpha/include/asm/ipcbuf.h            |    1 -
+ arch/alpha/include/asm/irq_regs.h          |    1 -
+ arch/alpha/include/asm/kdebug.h            |    1 -
+ arch/alpha/include/asm/kvm_para.h          |    1 -
+ arch/alpha/include/asm/local64.h           |    1 -
+ arch/alpha/include/asm/poll.h              |    1 -
+ arch/alpha/include/asm/scatterlist.h       |    6 ------
+ arch/alpha/include/asm/sections.h          |    7 -------
+ 13 files changed, 12 insertions(+), 39 deletions(-)
+ delete mode 100644 arch/alpha/include/asm/cputime.h
+ delete mode 100644 arch/alpha/include/asm/device.h
+ delete mode 100644 arch/alpha/include/asm/div64.h
+ delete mode 100644 arch/alpha/include/asm/emergency-restart.h
+ delete mode 100644 arch/alpha/include/asm/ipcbuf.h
+ delete mode 100644 arch/alpha/include/asm/irq_regs.h
+ delete mode 100644 arch/alpha/include/asm/kdebug.h
+ delete mode 100644 arch/alpha/include/asm/kvm_para.h
+ delete mode 100644 arch/alpha/include/asm/local64.h
+ delete mode 100644 arch/alpha/include/asm/poll.h
+ delete mode 100644 arch/alpha/include/asm/scatterlist.h
+ delete mode 100644 arch/alpha/include/asm/sections.h
 
-diff --git a/arch/parisc/include/asm/Kbuild b/arch/parisc/include/asm/Kbuild
-index 458371a..6ee772d 100644
---- a/arch/parisc/include/asm/Kbuild
-+++ b/arch/parisc/include/asm/Kbuild
-@@ -1,6 +1,22 @@
- include include/asm-generic/Kbuild.asm
- 
- header-y += pdc.h
-+generic-y += compat_signal.h
+diff --git a/arch/alpha/include/asm/Kbuild b/arch/alpha/include/asm/Kbuild
+index 64ffc9e..2bd12d6 100644
+--- a/arch/alpha/include/asm/Kbuild
++++ b/arch/alpha/include/asm/Kbuild
+@@ -10,4 +10,16 @@ header-y += pal.h
+ header-y += reg.h
+ header-y += regdef.h
+ header-y += sysinfo.h
 +generic-y += cputime.h
- generic-y += clkdev.h
--generic-y += word-at-a-time.h
+ generic-y += exec.h
 +generic-y += device.h
 +generic-y += div64.h
 +generic-y += emergency-restart.h
- generic-y += exec.h
-+generic-y += hardirq.h
++generic-y += ipcbuf.h
 +generic-y += irq_regs.h
 +generic-y += kdebug.h
 +generic-y += kvm_para.h
 +generic-y += local64.h
-+generic-y += local.h
-+generic-y += param.h
-+generic-y += percpu.h
 +generic-y += poll.h
-+generic-y += topology.h
-+generic-y += word-at-a-time.h
-+generic-y += xor.h
-diff --git a/arch/parisc/include/asm/compat_signal.h b/arch/parisc/include/asm/compat_signal.h
++generic-y += scatterlist.h
++generic-y += sections.h
+diff --git a/arch/alpha/include/asm/cputime.h b/arch/alpha/include/asm/cputime.h
 deleted file mode 100644
-index 6ad02c3..0000000
---- a/arch/parisc/include/asm/compat_signal.h
-+++ /dev/null
-@@ -1,2 +0,0 @@
--/* Use generic */
--#include <asm-generic/compat_signal.h>
-diff --git a/arch/parisc/include/asm/cputime.h b/arch/parisc/include/asm/cputime.h
-deleted file mode 100644
-index dcdf2fb..0000000
---- a/arch/parisc/include/asm/cputime.h
+index 19577fd..0000000
+--- a/arch/alpha/include/asm/cputime.h
 +++ /dev/null
 @@ -1,6 +0,0 @@
--#ifndef __PARISC_CPUTIME_H
--#define __PARISC_CPUTIME_H
+-#ifndef __ALPHA_CPUTIME_H
+-#define __ALPHA_CPUTIME_H
 -
 -#include <asm-generic/cputime.h>
 -
--#endif /* __PARISC_CPUTIME_H */
-diff --git a/arch/parisc/include/asm/device.h b/arch/parisc/include/asm/device.h
+-#endif /* __ALPHA_CPUTIME_H */
+diff --git a/arch/alpha/include/asm/device.h b/arch/alpha/include/asm/device.h
 deleted file mode 100644
 index d8f9872..0000000
---- a/arch/parisc/include/asm/device.h
+--- a/arch/alpha/include/asm/device.h
 +++ /dev/null
 @@ -1,7 +0,0 @@
 -/*
@@ -124,17 +102,17 @@ index d8f9872..0000000
 - */
 -#include <asm-generic/device.h>
 -
-diff --git a/arch/parisc/include/asm/div64.h b/arch/parisc/include/asm/div64.h
+diff --git a/arch/alpha/include/asm/div64.h b/arch/alpha/include/asm/div64.h
 deleted file mode 100644
 index 6cd978c..0000000
---- a/arch/parisc/include/asm/div64.h
+--- a/arch/alpha/include/asm/div64.h
 +++ /dev/null
 @@ -1 +0,0 @@
 -#include <asm-generic/div64.h>
-diff --git a/arch/parisc/include/asm/emergency-restart.h b/arch/parisc/include/asm/emergency-restart.h
+diff --git a/arch/alpha/include/asm/emergency-restart.h b/arch/alpha/include/asm/emergency-restart.h
 deleted file mode 100644
 index 108d8c4..0000000
---- a/arch/parisc/include/asm/emergency-restart.h
+--- a/arch/alpha/include/asm/emergency-restart.h
 +++ /dev/null
 @@ -1,6 +0,0 @@
 -#ifndef _ASM_EMERGENCY_RESTART_H
@@ -143,103 +121,72 @@ index 108d8c4..0000000
 -#include <asm-generic/emergency-restart.h>
 -
 -#endif /* _ASM_EMERGENCY_RESTART_H */
-diff --git a/arch/parisc/include/asm/hardirq.h b/arch/parisc/include/asm/hardirq.h
+diff --git a/arch/alpha/include/asm/ipcbuf.h b/arch/alpha/include/asm/ipcbuf.h
 deleted file mode 100644
-index 0d68184..0000000
---- a/arch/parisc/include/asm/hardirq.h
+index 84c7e51..0000000
+--- a/arch/alpha/include/asm/ipcbuf.h
 +++ /dev/null
-@@ -1,11 +0,0 @@
--/* hardirq.h: PA-RISC hard IRQ support.
-- *
-- * Copyright (C) 2001 Matthew Wilcox <matthew@wil.cx>
-- */
--
--#ifndef _PARISC_HARDIRQ_H
--#define _PARISC_HARDIRQ_H
--
--#include <asm-generic/hardirq.h>
--
--#endif /* _PARISC_HARDIRQ_H */
-diff --git a/arch/parisc/include/asm/irq_regs.h b/arch/parisc/include/asm/irq_regs.h
+@@ -1 +0,0 @@
+-#include <asm-generic/ipcbuf.h>
+diff --git a/arch/alpha/include/asm/irq_regs.h b/arch/alpha/include/asm/irq_regs.h
 deleted file mode 100644
 index 3dd9c0b..0000000
---- a/arch/parisc/include/asm/irq_regs.h
+--- a/arch/alpha/include/asm/irq_regs.h
 +++ /dev/null
 @@ -1 +0,0 @@
 -#include <asm-generic/irq_regs.h>
-diff --git a/arch/parisc/include/asm/kdebug.h b/arch/parisc/include/asm/kdebug.h
+diff --git a/arch/alpha/include/asm/kdebug.h b/arch/alpha/include/asm/kdebug.h
 deleted file mode 100644
 index 6ece1b0..0000000
---- a/arch/parisc/include/asm/kdebug.h
+--- a/arch/alpha/include/asm/kdebug.h
 +++ /dev/null
 @@ -1 +0,0 @@
 -#include <asm-generic/kdebug.h>
-diff --git a/arch/parisc/include/asm/kvm_para.h b/arch/parisc/include/asm/kvm_para.h
+diff --git a/arch/alpha/include/asm/kvm_para.h b/arch/alpha/include/asm/kvm_para.h
 deleted file mode 100644
 index 14fab8f..0000000
---- a/arch/parisc/include/asm/kvm_para.h
+--- a/arch/alpha/include/asm/kvm_para.h
 +++ /dev/null
 @@ -1 +0,0 @@
 -#include <asm-generic/kvm_para.h>
-diff --git a/arch/parisc/include/asm/local.h b/arch/parisc/include/asm/local.h
-deleted file mode 100644
-index c11c530..0000000
---- a/arch/parisc/include/asm/local.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/local.h>
-diff --git a/arch/parisc/include/asm/local64.h b/arch/parisc/include/asm/local64.h
+diff --git a/arch/alpha/include/asm/local64.h b/arch/alpha/include/asm/local64.h
 deleted file mode 100644
 index 36c93b5..0000000
---- a/arch/parisc/include/asm/local64.h
+--- a/arch/alpha/include/asm/local64.h
 +++ /dev/null
 @@ -1 +0,0 @@
 -#include <asm-generic/local64.h>
-diff --git a/arch/parisc/include/asm/param.h b/arch/parisc/include/asm/param.h
-deleted file mode 100644
-index 965d454..0000000
---- a/arch/parisc/include/asm/param.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/param.h>
-diff --git a/arch/parisc/include/asm/percpu.h b/arch/parisc/include/asm/percpu.h
-deleted file mode 100644
-index a0dcd19..0000000
---- a/arch/parisc/include/asm/percpu.h
-+++ /dev/null
-@@ -1,7 +0,0 @@
--#ifndef _PARISC_PERCPU_H
--#define _PARISC_PERCPU_H
--
--#include <asm-generic/percpu.h>
--
--#endif 
--
-diff --git a/arch/parisc/include/asm/poll.h b/arch/parisc/include/asm/poll.h
+diff --git a/arch/alpha/include/asm/poll.h b/arch/alpha/include/asm/poll.h
 deleted file mode 100644
 index c98509d..0000000
---- a/arch/parisc/include/asm/poll.h
+--- a/arch/alpha/include/asm/poll.h
 +++ /dev/null
 @@ -1 +0,0 @@
 -#include <asm-generic/poll.h>
-diff --git a/arch/parisc/include/asm/topology.h b/arch/parisc/include/asm/topology.h
+diff --git a/arch/alpha/include/asm/scatterlist.h b/arch/alpha/include/asm/scatterlist.h
 deleted file mode 100644
-index d8133eb..0000000
---- a/arch/parisc/include/asm/topology.h
+index 017d747..0000000
+--- a/arch/alpha/include/asm/scatterlist.h
 +++ /dev/null
 @@ -1,6 +0,0 @@
--#ifndef _ASM_PARISC_TOPOLOGY_H
--#define _ASM_PARISC_TOPOLOGY_H
+-#ifndef _ALPHA_SCATTERLIST_H
+-#define _ALPHA_SCATTERLIST_H
 -
--#include <asm-generic/topology.h>
+-#include <asm-generic/scatterlist.h>
 -
--#endif /* _ASM_PARISC_TOPOLOGY_H */
-diff --git a/arch/parisc/include/asm/xor.h b/arch/parisc/include/asm/xor.h
+-#endif /* !(_ALPHA_SCATTERLIST_H) */
+diff --git a/arch/alpha/include/asm/sections.h b/arch/alpha/include/asm/sections.h
 deleted file mode 100644
-index c82eb12..0000000
---- a/arch/parisc/include/asm/xor.h
+index 43b40ed..0000000
+--- a/arch/alpha/include/asm/sections.h
 +++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/xor.h>
+@@ -1,7 +0,0 @@
+-#ifndef _ALPHA_SECTIONS_H
+-#define _ALPHA_SECTIONS_H
+-
+-/* nothing to see, move along */
+-#include <asm-generic/sections.h>
+-
+-#endif
 -- 
 1.7.10.4
