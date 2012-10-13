@@ -1,37 +1,104 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH 23/25] unicore32: Use Kbuild infrastructure for
- kvm_para.h
-Date: Sat, 13 Oct 2012 10:03:00 -0400
-Message-ID: <1350136980.24256.98.camel@gandalf.local.home>
+Subject: Re: [PATCH 16/25] parisc: Use Kbuild infrastructure to handle
+ asm-generic headers
+Date: Sat, 13 Oct 2012 10:17:06 -0400
+Message-ID: <1350137826.24256.110.camel@gandalf.local.home>
 References: <20121013022632.024527228@goodmis.org>
-	 <20121013022955.738395112@goodmis.org>
-	 <4190.124.205.227.162.1350131263.squirrel@mprc.pku.edu.cn>
+	 <20121013022954.722147403@goodmis.org>
+	 <1350131814.2485.46.camel@dabdike.int.hansenpartnership.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:14146 "EHLO
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:15670 "EHLO
 	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753339Ab2JMODC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Oct 2012 10:03:02 -0400
-In-Reply-To: <4190.124.205.227.162.1350131263.squirrel@mprc.pku.edu.cn>
+	with ESMTP id S1753535Ab2JMORI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Oct 2012 10:17:08 -0400
+In-Reply-To: <1350131814.2485.46.camel@dabdike.int.hansenpartnership.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: guanxuetao@mprc.pku.edu.cn
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>
+To: James Bottomley <James.Bottomley@HansenPartnership.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>
 
-On Sat, 2012-10-13 at 20:27 +0800, guanxuetao@mprc.pku.edu.cn wrote:
+On Sat, 2012-10-13 at 13:36 +0100, James Bottomley wrote:
+> On Fri, 2012-10-12 at 22:26 -0400, Steven Rostedt wrote:
+> > plain text document attachment
+> > (0016-parisc-Use-Kbuild-infrastructure-to-handle-asm-gener.patch)
 > > From: Steven Rostedt <srostedt@redhat.com>
-> >
-> > All the headers but kvm_para.h use the Kbuild infrastructure to
-> > get to the asm-generic headers.
+> > 
+> > Use Kbuild infrastructure to handle the asm-generic headers
+> > and remove the wrapper headers that call them.
+> > 
+> > This only affects headers that do nothing but include the generic
+> > equivalent. It does not touch any header that does a little more.
+> > 
+> > Cc: linux-kbuild@vger.kernel.org
+> > Cc: linux-parisc@vger.kernel.org
+> > Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
+> > Cc: Helge Deller <deller@gmx.de>
+> > Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 > 
-> I merged the uapi patch for unicore32.
-> In that patch, kvm_para.h was moved to
-> arch/unicore32/include/uapi/asm/kvm_para.h.
-> Anyway, I'd like to apply this patch based on uapi modification.
+> Actually, we're already evaluating a patch like this:
+> 
+> http://marc.info/?l=linux-kernel&m=134883983019018
+> 
+> When I compare the two, I notice you missed a few (segment.h, vga.h,
+> hw_irq.h, mutex.h), so you probably want to adjust your scripts.
 > 
 
-Sure, do whatever you want ;-)
+Scripts? Naw I did this by hand:
+
+cd arch/parisc/include/asm
+vim `grep -l asm-generic *.h`
+
+And in another terminal added the changes needed to Kbuild. I did this
+by hand because it would have taken me the same time to verify scripts
+to do it. By doing it by hand, I was less likely to add something that I
+shouldn't have.
+
+As Arnd mentioned, I didn't do a compare to check if what is in the
+header is identical to the asm-generic version. That was going to be
+"take 2". As this was just removing the simple cases of either:
+
+foo.h:
+#include <asm-generic/foo.h>
+
+or
+
+foo.h:
+#ifndef _ASM_PARISC_FOO_H
+#define _ASM_PARISC_FOO_H
+#include <asm-generic/foo.h>
+#endif
+
+As for the ones I missed:
+
+mutex.h has:
+
+#include <asm-generic/mutex-dec.h>
+
+which did not match mutex.h, so I ignored it. It would be removed in
+"take 2" because it's identical to asm-generic/mutex.h.
+
+segment.h:
+#ifndef __PARISC_SEGMENT_H
+#define __PARISC_SEGMENT_H
+
+/* Only here because we have some old header files that expect it.. */
+
+#endif
+
+
+It missed the 'grep -l asm-generic' part.
+
+vga.h and hw_irq.h are also empty (no asm-generic added). segment.h and
+hw_irq.h are also empty in asm-generic, so they could be removed in take
+2 as well. vga.h has some defines, but probably wouldn't affect parisc.
+
+I don't care if you take this patch or not. As long as the old method of
+adding a stub file to include asm-generic/foo.h is removed. This patch
+set was caused by my frustration of looking at how to add a new
+asm-generic file and coming up with the wrong implementation, and I want
+to make sure that this doesn't happen again with another developer.
 
 -- Steve
