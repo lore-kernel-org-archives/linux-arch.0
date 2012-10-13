@@ -1,74 +1,394 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [git pull] signals pile 3
-Date: Sat, 13 Oct 2012 01:53:34 +0100
-Message-ID: <20121013005334.GM2616@ZenIV.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: [PATCH 03/25] avr32: Use Kbuild infrastructure to handle asm-generic headers
+Date: Fri, 12 Oct 2012 22:26:35 -0400
+Message-ID: <20121013022952.855483404@goodmis.org>
+References: <20121013022632.024527228@goodmis.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:37222 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752828Ab2JMAxg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Oct 2012 20:53:36 -0400
-Content-Disposition: inline
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:10985 "EHLO
+	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751678Ab2JMC3y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Oct 2012 22:29:54 -0400
+Content-Disposition: inline; filename=0003-avr32-Use-Kbuild-infrastructure-to-handle-asm-generi.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Andrew Morton <akpm@linux-foundation.org>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Hans-Christian Egtvedt <egtvedt@samfundet.no>
 
-The last bits of infrastructure for kernel_thread() et.al., with alpha/arm/x86
-use of those.  Plus sanitizing the asm glue and do_notify_resume() on alpha,
-fixing the "disabled irq while running task_work stuff" breakage there.
+From: Steven Rostedt <srostedt@redhat.com>
 
-At that point the rest of kernel_thread/kernel_execve/sys_execve work can
-be done independently for different architectures.  The only pending bits
-that do depend on having all architectures converted are restrictred to
-fs/* and kernel/* - that'll obviously have to wait for the next cycle.
-I thought we'd have to wait for all of them done before we start eliminating
-the longjump-style insanity in kernel_execve(), but it turned out there's
-a very simple way to do that without flagday-style changes.
+Use Kbuild infrastructure to handle the asm-generic headers
+and remove the wrapper headers that call them.
 
-Please, pull from
-git://git.kernel.org/pub/scm/linux/kernel/git/viro/signal for-linus
+This only affects headers that do nothing but include the generic
+equivalent. It does not touch any header that does a little more.
 
-Shortlog:
-Al Viro (12):
-      alpha: simplify TIF_NEED_RESCHED handling
-      alpha: take SIGPENDING/NOTIFY_RESUME loop into signal.c
-      alpha: don't bother passing switch_stack separately from regs
-      alpha: get rid of switch_stack argument of do_work_pending()
-      don't bother with kernel_thread/kernel_execve for launching linuxrc
-      ppc: eeh_event should just use kthread_run()
-      make sure that we always have a return path from kernel_execve()
-      make sure that kernel_thread() callbacks call do_exit() themselves
-      infrastructure for saner ret_from_kernel_thread semantics
-      x86, um: convert to saner kernel_execve() semantics
-      arm: switch to saner kernel_execve() semantics
-      alpha: switch to saner kernel_execve() semantics
+Cc: linux-kbuild@vger.kernel.org
+Cc: Haavard Skinnemoen <hskinnemoen@gmail.com>
+Cc: Hans-Christian Egtvedt <egtvedt@samfundet.no>
+Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+---
+ arch/avr32/include/asm/Kbuild              |   27 +++++++++++++++++++++++++++
+ arch/avr32/include/asm/bitsperlong.h       |    1 -
+ arch/avr32/include/asm/cputime.h           |    6 ------
+ arch/avr32/include/asm/delay.h             |    1 -
+ arch/avr32/include/asm/device.h            |    7 -------
+ arch/avr32/include/asm/div64.h             |    6 ------
+ arch/avr32/include/asm/emergency-restart.h |    6 ------
+ arch/avr32/include/asm/errno.h             |    6 ------
+ arch/avr32/include/asm/fcntl.h             |    6 ------
+ arch/avr32/include/asm/futex.h             |    6 ------
+ arch/avr32/include/asm/ioctl.h             |    6 ------
+ arch/avr32/include/asm/ioctls.h            |    6 ------
+ arch/avr32/include/asm/irq_regs.h          |    1 -
+ arch/avr32/include/asm/kvm_para.h          |    1 -
+ arch/avr32/include/asm/local.h             |    6 ------
+ arch/avr32/include/asm/local64.h           |    1 -
+ arch/avr32/include/asm/mman.h              |    1 -
+ arch/avr32/include/asm/percpu.h            |    6 ------
+ arch/avr32/include/asm/poll.h              |    1 -
+ arch/avr32/include/asm/resource.h          |    6 ------
+ arch/avr32/include/asm/scatterlist.h       |    6 ------
+ arch/avr32/include/asm/sections.h          |    6 ------
+ arch/avr32/include/asm/siginfo.h           |    6 ------
+ arch/avr32/include/asm/statfs.h            |    6 ------
+ arch/avr32/include/asm/topology.h          |    6 ------
+ arch/avr32/include/asm/xor.h               |    6 ------
+ arch/cris/include/asm/ipcbuf.h             |    1 -
+ 27 files changed, 27 insertions(+), 117 deletions(-)
+ delete mode 100644 arch/avr32/include/asm/bitsperlong.h
+ delete mode 100644 arch/avr32/include/asm/cputime.h
+ delete mode 100644 arch/avr32/include/asm/delay.h
+ delete mode 100644 arch/avr32/include/asm/device.h
+ delete mode 100644 arch/avr32/include/asm/div64.h
+ delete mode 100644 arch/avr32/include/asm/emergency-restart.h
+ delete mode 100644 arch/avr32/include/asm/errno.h
+ delete mode 100644 arch/avr32/include/asm/fcntl.h
+ delete mode 100644 arch/avr32/include/asm/futex.h
+ delete mode 100644 arch/avr32/include/asm/ioctl.h
+ delete mode 100644 arch/avr32/include/asm/ioctls.h
+ delete mode 100644 arch/avr32/include/asm/irq_regs.h
+ delete mode 100644 arch/avr32/include/asm/kvm_para.h
+ delete mode 100644 arch/avr32/include/asm/local.h
+ delete mode 100644 arch/avr32/include/asm/local64.h
+ delete mode 100644 arch/avr32/include/asm/mman.h
+ delete mode 100644 arch/avr32/include/asm/percpu.h
+ delete mode 100644 arch/avr32/include/asm/poll.h
+ delete mode 100644 arch/avr32/include/asm/resource.h
+ delete mode 100644 arch/avr32/include/asm/scatterlist.h
+ delete mode 100644 arch/avr32/include/asm/sections.h
+ delete mode 100644 arch/avr32/include/asm/siginfo.h
+ delete mode 100644 arch/avr32/include/asm/statfs.h
+ delete mode 100644 arch/avr32/include/asm/topology.h
+ delete mode 100644 arch/avr32/include/asm/xor.h
+ delete mode 100644 arch/cris/include/asm/ipcbuf.h
 
-Diffstat:
- arch/Kconfig                               |    3 +
- arch/alpha/Kconfig                         |    1 +
- arch/alpha/include/asm/unistd.h            |    1 -
- arch/alpha/kernel/entry.S                  |   87 +++++++++-------------------
- arch/alpha/kernel/signal.c                 |   48 +++++++++------
- arch/arm/Kconfig                           |    1 +
- arch/arm/include/asm/unistd.h              |    1 -
- arch/arm/kernel/entry-common.S             |   29 +--------
- arch/arm/kernel/process.c                  |    5 +-
- arch/powerpc/platforms/pseries/eeh_event.c |    5 +-
- arch/um/include/asm/processor-generic.h    |    2 -
- arch/um/include/shared/os.h                |    1 -
- arch/um/kernel/exec.c                      |    5 --
- arch/um/kernel/process.c                   |   10 +--
- arch/um/os-Linux/process.c                 |   13 ----
- arch/x86/Kconfig                           |    1 +
- arch/x86/include/asm/unistd.h              |    1 -
- arch/x86/kernel/entry_32.S                 |   31 ++++------
- arch/x86/kernel/entry_64.S                 |   24 +------
- arch/x86/um/Kconfig                        |    1 +
- include/linux/syscalls.h                   |    8 +++
- init/do_mounts_initrd.c                    |   41 +++++--------
- init/main.c                                |   33 ++++++-----
- kernel/kmod.c                              |    7 ++-
- kernel/kthread.c                           |    1 +
- 25 files changed, 137 insertions(+), 223 deletions(-)
+diff --git a/arch/avr32/include/asm/Kbuild b/arch/avr32/include/asm/Kbuild
+index be0433e..40573ee 100644
+--- a/arch/avr32/include/asm/Kbuild
++++ b/arch/avr32/include/asm/Kbuild
+@@ -4,3 +4,30 @@ generic-y	+= clkdev.h
+ generic-y	+= exec.h
+ 
+ header-y	+= cachectl.h
++
++generic-y	+= bitsperlong.h
++generic-y	+= cputime.h
++generic-y	+= delay.h
++generic-y	+= device.h
++generic-y	+= div64.h
++generic-y	+= emergency-restart.h
++generic-y	+= errno.h
++generic-y	+= fcntl.h
++generic-y	+= futex.h
++generic-y	+= ioctl.h
++generic-y	+= ioctls.h
++generic-y	+= ipcbuf.h
++generic-y	+= irq_regs.h
++generic-y	+= kvm_para.h
++generic-y	+= local64.h
++generic-y	+= local.h
++generic-y	+= mman.h
++generic-y	+= percpu.h
++generic-y	+= poll.h
++generic-y	+= resource.h
++generic-y	+= scatterlist.h
++generic-y	+= sections.h
++generic-y	+= siginfo.h
++generic-y	+= statfs.h
++generic-y	+= topology.h
++generic-y	+= xor.h
+diff --git a/arch/avr32/include/asm/bitsperlong.h b/arch/avr32/include/asm/bitsperlong.h
+deleted file mode 100644
+index 6dc0bb0..0000000
+--- a/arch/avr32/include/asm/bitsperlong.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <asm-generic/bitsperlong.h>
+diff --git a/arch/avr32/include/asm/cputime.h b/arch/avr32/include/asm/cputime.h
+deleted file mode 100644
+index e87e0f8..0000000
+--- a/arch/avr32/include/asm/cputime.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __ASM_AVR32_CPUTIME_H
+-#define __ASM_AVR32_CPUTIME_H
+-
+-#include <asm-generic/cputime.h>
+-
+-#endif /* __ASM_AVR32_CPUTIME_H */
+diff --git a/arch/avr32/include/asm/delay.h b/arch/avr32/include/asm/delay.h
+deleted file mode 100644
+index 9670e12..0000000
+--- a/arch/avr32/include/asm/delay.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <asm-generic/delay.h>
+diff --git a/arch/avr32/include/asm/device.h b/arch/avr32/include/asm/device.h
+deleted file mode 100644
+index d8f9872..0000000
+--- a/arch/avr32/include/asm/device.h
++++ /dev/null
+@@ -1,7 +0,0 @@
+-/*
+- * Arch specific extensions to struct device
+- *
+- * This file is released under the GPLv2
+- */
+-#include <asm-generic/device.h>
+-
+diff --git a/arch/avr32/include/asm/div64.h b/arch/avr32/include/asm/div64.h
+deleted file mode 100644
+index d7ddd4f..0000000
+--- a/arch/avr32/include/asm/div64.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __ASM_AVR32_DIV64_H
+-#define __ASM_AVR32_DIV64_H
+-
+-#include <asm-generic/div64.h>
+-
+-#endif /* __ASM_AVR32_DIV64_H */
+diff --git a/arch/avr32/include/asm/emergency-restart.h b/arch/avr32/include/asm/emergency-restart.h
+deleted file mode 100644
+index 3e7e014..0000000
+--- a/arch/avr32/include/asm/emergency-restart.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __ASM_AVR32_EMERGENCY_RESTART_H
+-#define __ASM_AVR32_EMERGENCY_RESTART_H
+-
+-#include <asm-generic/emergency-restart.h>
+-
+-#endif /* __ASM_AVR32_EMERGENCY_RESTART_H */
+diff --git a/arch/avr32/include/asm/errno.h b/arch/avr32/include/asm/errno.h
+deleted file mode 100644
+index 558a724..0000000
+--- a/arch/avr32/include/asm/errno.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __ASM_AVR32_ERRNO_H
+-#define __ASM_AVR32_ERRNO_H
+-
+-#include <asm-generic/errno.h>
+-
+-#endif /* __ASM_AVR32_ERRNO_H */
+diff --git a/arch/avr32/include/asm/fcntl.h b/arch/avr32/include/asm/fcntl.h
+deleted file mode 100644
+index 14c0c44..0000000
+--- a/arch/avr32/include/asm/fcntl.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __ASM_AVR32_FCNTL_H
+-#define __ASM_AVR32_FCNTL_H
+-
+-#include <asm-generic/fcntl.h>
+-
+-#endif /* __ASM_AVR32_FCNTL_H */
+diff --git a/arch/avr32/include/asm/futex.h b/arch/avr32/include/asm/futex.h
+deleted file mode 100644
+index 10419f1..0000000
+--- a/arch/avr32/include/asm/futex.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __ASM_AVR32_FUTEX_H
+-#define __ASM_AVR32_FUTEX_H
+-
+-#include <asm-generic/futex.h>
+-
+-#endif /* __ASM_AVR32_FUTEX_H */
+diff --git a/arch/avr32/include/asm/ioctl.h b/arch/avr32/include/asm/ioctl.h
+deleted file mode 100644
+index c8472c1..0000000
+--- a/arch/avr32/include/asm/ioctl.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __ASM_AVR32_IOCTL_H
+-#define __ASM_AVR32_IOCTL_H
+-
+-#include <asm-generic/ioctl.h>
+-
+-#endif /* __ASM_AVR32_IOCTL_H */
+diff --git a/arch/avr32/include/asm/ioctls.h b/arch/avr32/include/asm/ioctls.h
+deleted file mode 100644
+index 909cf66..0000000
+--- a/arch/avr32/include/asm/ioctls.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __ASM_AVR32_IOCTLS_H
+-#define __ASM_AVR32_IOCTLS_H
+-
+-#include <asm-generic/ioctls.h>
+-
+-#endif /* __ASM_AVR32_IOCTLS_H */
+diff --git a/arch/avr32/include/asm/irq_regs.h b/arch/avr32/include/asm/irq_regs.h
+deleted file mode 100644
+index 3dd9c0b..0000000
+--- a/arch/avr32/include/asm/irq_regs.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <asm-generic/irq_regs.h>
+diff --git a/arch/avr32/include/asm/kvm_para.h b/arch/avr32/include/asm/kvm_para.h
+deleted file mode 100644
+index 14fab8f..0000000
+--- a/arch/avr32/include/asm/kvm_para.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <asm-generic/kvm_para.h>
+diff --git a/arch/avr32/include/asm/local.h b/arch/avr32/include/asm/local.h
+deleted file mode 100644
+index 1c16196..0000000
+--- a/arch/avr32/include/asm/local.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __ASM_AVR32_LOCAL_H
+-#define __ASM_AVR32_LOCAL_H
+-
+-#include <asm-generic/local.h>
+-
+-#endif /* __ASM_AVR32_LOCAL_H */
+diff --git a/arch/avr32/include/asm/local64.h b/arch/avr32/include/asm/local64.h
+deleted file mode 100644
+index 36c93b5..0000000
+--- a/arch/avr32/include/asm/local64.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <asm-generic/local64.h>
+diff --git a/arch/avr32/include/asm/mman.h b/arch/avr32/include/asm/mman.h
+deleted file mode 100644
+index 8eebf89..0000000
+--- a/arch/avr32/include/asm/mman.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <asm-generic/mman.h>
+diff --git a/arch/avr32/include/asm/percpu.h b/arch/avr32/include/asm/percpu.h
+deleted file mode 100644
+index 69227b4..0000000
+--- a/arch/avr32/include/asm/percpu.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __ASM_AVR32_PERCPU_H
+-#define __ASM_AVR32_PERCPU_H
+-
+-#include <asm-generic/percpu.h>
+-
+-#endif /* __ASM_AVR32_PERCPU_H */
+diff --git a/arch/avr32/include/asm/poll.h b/arch/avr32/include/asm/poll.h
+deleted file mode 100644
+index c98509d..0000000
+--- a/arch/avr32/include/asm/poll.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <asm-generic/poll.h>
+diff --git a/arch/avr32/include/asm/resource.h b/arch/avr32/include/asm/resource.h
+deleted file mode 100644
+index c6dd101..0000000
+--- a/arch/avr32/include/asm/resource.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __ASM_AVR32_RESOURCE_H
+-#define __ASM_AVR32_RESOURCE_H
+-
+-#include <asm-generic/resource.h>
+-
+-#endif /* __ASM_AVR32_RESOURCE_H */
+diff --git a/arch/avr32/include/asm/scatterlist.h b/arch/avr32/include/asm/scatterlist.h
+deleted file mode 100644
+index a5902d9..0000000
+--- a/arch/avr32/include/asm/scatterlist.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __ASM_AVR32_SCATTERLIST_H
+-#define __ASM_AVR32_SCATTERLIST_H
+-
+-#include <asm-generic/scatterlist.h>
+-
+-#endif /* __ASM_AVR32_SCATTERLIST_H */
+diff --git a/arch/avr32/include/asm/sections.h b/arch/avr32/include/asm/sections.h
+deleted file mode 100644
+index aa14252..0000000
+--- a/arch/avr32/include/asm/sections.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __ASM_AVR32_SECTIONS_H
+-#define __ASM_AVR32_SECTIONS_H
+-
+-#include <asm-generic/sections.h>
+-
+-#endif /* __ASM_AVR32_SECTIONS_H */
+diff --git a/arch/avr32/include/asm/siginfo.h b/arch/avr32/include/asm/siginfo.h
+deleted file mode 100644
+index 5ee93f4..0000000
+--- a/arch/avr32/include/asm/siginfo.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef _AVR32_SIGINFO_H
+-#define _AVR32_SIGINFO_H
+-
+-#include <asm-generic/siginfo.h>
+-
+-#endif
+diff --git a/arch/avr32/include/asm/statfs.h b/arch/avr32/include/asm/statfs.h
+deleted file mode 100644
+index 2961bd1..0000000
+--- a/arch/avr32/include/asm/statfs.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __ASM_AVR32_STATFS_H
+-#define __ASM_AVR32_STATFS_H
+-
+-#include <asm-generic/statfs.h>
+-
+-#endif /* __ASM_AVR32_STATFS_H */
+diff --git a/arch/avr32/include/asm/topology.h b/arch/avr32/include/asm/topology.h
+deleted file mode 100644
+index 5b766cb..0000000
+--- a/arch/avr32/include/asm/topology.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __ASM_AVR32_TOPOLOGY_H
+-#define __ASM_AVR32_TOPOLOGY_H
+-
+-#include <asm-generic/topology.h>
+-
+-#endif /* __ASM_AVR32_TOPOLOGY_H */
+diff --git a/arch/avr32/include/asm/xor.h b/arch/avr32/include/asm/xor.h
+deleted file mode 100644
+index 99c87aa..0000000
+--- a/arch/avr32/include/asm/xor.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef _ASM_XOR_H
+-#define _ASM_XOR_H
+-
+-#include <asm-generic/xor.h>
+-
+-#endif
+diff --git a/arch/cris/include/asm/ipcbuf.h b/arch/cris/include/asm/ipcbuf.h
+deleted file mode 100644
+index 84c7e51..0000000
+--- a/arch/cris/include/asm/ipcbuf.h
++++ /dev/null
+@@ -1 +0,0 @@
+-#include <asm-generic/ipcbuf.h>
+-- 
+1.7.10.4
