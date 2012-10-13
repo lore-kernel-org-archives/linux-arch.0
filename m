@@ -1,47 +1,49 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: Re: [PATCH 16/25] parisc: Use Kbuild infrastructure to handle
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH 20/25] sparc: Use Kbuild infrastructure to handle
  asm-generic headers
-Date: Sat, 13 Oct 2012 13:36:54 +0100
-Message-ID: <1350131814.2485.46.camel@dabdike.int.hansenpartnership.com>
+Date: Sat, 13 Oct 2012 09:54:00 -0400
+Message-ID: <1350136440.24256.95.camel@gandalf.local.home>
 References: <20121013022632.024527228@goodmis.org>
-	 <20121013022954.722147403@goodmis.org>
+	 <20121013022955.307620438@goodmis.org>
+	 <20121012.231941.1930318153077157651.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:56603 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753390Ab2JMMg6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sat, 13 Oct 2012 08:36:58 -0400
-In-Reply-To: <20121013022954.722147403@goodmis.org>
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:33226 "EHLO
+	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752683Ab2JMNyD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Oct 2012 09:54:03 -0400
+In-Reply-To: <20121012.231941.1930318153077157651.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>
+To: David Miller <davem@davemloft.net>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
 
-On Fri, 2012-10-12 at 22:26 -0400, Steven Rostedt wrote:
-> plain text document attachment
-> (0016-parisc-Use-Kbuild-infrastructure-to-handle-asm-gener.patch)
-> From: Steven Rostedt <srostedt@redhat.com>
+On Fri, 2012-10-12 at 23:19 -0400, David Miller wrote:
+> From: Steven Rostedt <rostedt@goodmis.org>
+> Date: Fri, 12 Oct 2012 22:26:52 -0400
 > 
-> Use Kbuild infrastructure to handle the asm-generic headers
-> and remove the wrapper headers that call them.
+> > From: Steven Rostedt <srostedt@redhat.com>
+> > 
+> > Use Kbuild infrastructure to handle the asm-generic headers
+> > and remove the wrapper headers that call them.
+> > 
+> > This only affects headers that do nothing but include the generic
+> > equivalent. It does not touch any header that does a little more.
+> > 
+> > Cc: linux-kbuild@vger.kernel.org
+> > Cc: sparclinux@vger.kernel.org
+> > Cc: "David S. Miller" <davem@davemloft.net>
+> > Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 > 
-> This only affects headers that do nothing but include the generic
-> equivalent. It does not touch any header that does a little more.
-> 
-> Cc: linux-kbuild@vger.kernel.org
-> Cc: linux-parisc@vger.kernel.org
-> Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-> Cc: Helge Deller <deller@gmx.de>
-> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+> Acked-by: David S. Miller <davem@davemloft.net>
 
-Actually, we're already evaluating a patch like this:
+David,
 
-http://marc.info/?l=linux-kernel&m=134883983019018
+Would you like to take this patch? It's not dependent on any of the
+other patches. Otherwise I'll probably ask Andrew to pull it into his
+tree. Or I can just set up a branch and have it go into linux-next for
+the next merge window.
 
-When I compare the two, I notice you missed a few (segment.h, vga.h,
-hw_irq.h, mutex.h), so you probably want to adjust your scripts.
-
-James
+-- Steve
