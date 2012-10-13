@@ -1,27 +1,44 @@
-From: Jonas Bonn <jonas@southpole.se>
-Subject: Re: [PATCH 15/25] openrisc: Use Kbuild infrastructure for kvm_para.h
-Date: Sat, 13 Oct 2012 08:32:36 +0200
-Message-ID: <CACM3HyHnMHj=DB5FeLUfRsKT-a=KzcmdpSbudoLU7O48RzuPoA@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 00/25] asm-generic: Convert all to use Kbuild file
+Date: Sat, 13 Oct 2012 09:09:52 +0000
+Message-ID: <1762180.8nMW7nCt7B@wuerfel>
 References: <20121013022632.024527228@goodmis.org>
-	<20121013022954.595178706@goodmis.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20121013022954.595178706@goodmis.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7Bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.187]:51646 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752390Ab2JMJJ5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Oct 2012 05:09:57 -0400
+In-Reply-To: <20121013022632.024527228@goodmis.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Steven Rostedt <rostedt@goodmis.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
 
-On 13 October 2012 04:26, Steven Rostedt <rostedt@goodmis.org> wrote:
-> From: Steven Rostedt <srostedt@redhat.com>
->
-> All the headers but kvm_para.h use the Kbuild infrastructure to
-> get to the asm-generic headers.
->
-> Cc: linux-kbuild@vger.kernel.org
-> Cc: linux@lists.openrisc.net
-> Cc: Jonas Bonn <jonas@southpole.se>
-> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+On Friday 12 October 2012 22:26:32 Steven Rostedt wrote:
+> 
+> Please feel free to pluck these patches into your architecture and
+> run them to make sure that they boot as well (I only had the compiler
+> and not the box... Also I only tested with defconfig, I may have
+> broken other configs).
+> 
+> One note, the best thing about these changes is:
+> 
+>  390 files changed, 369 insertions(+), 1378 deletions(-)
 
-Acked-by: Jonas Bonn <jonas@southpole.se>
+Thanks a lot for doing this! I had initially converted a bunch of
+architectures to use the asm-generic files this way, but gave up
+after some of them turned out to be too much work to get in.
+
+Note that while you are addressing all the obvious candidates that
+have only a single #include statement in them, there is room to take
+this further because a lot of the other header files in architectures
+are still identical to their asm-generic counterparts (aside from
+whitespace and comments). I would recommend to arch maintainers that
+have not already done so to go through all the headers and replace
+the identical ones with generated headers that include the asm-generic
+version.
+
+	Arnd
