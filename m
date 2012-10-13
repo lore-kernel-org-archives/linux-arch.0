@@ -1,104 +1,54 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH 16/25] parisc: Use Kbuild infrastructure to handle
- asm-generic headers
-Date: Sat, 13 Oct 2012 10:17:06 -0400
-Message-ID: <1350137826.24256.110.camel@gandalf.local.home>
+Subject: Re: [PATCH 00/25] asm-generic: Convert all to use Kbuild file
+Date: Sat, 13 Oct 2012 10:20:47 -0400
+Message-ID: <1350138047.24256.111.camel@gandalf.local.home>
 References: <20121013022632.024527228@goodmis.org>
-	 <20121013022954.722147403@goodmis.org>
-	 <1350131814.2485.46.camel@dabdike.int.hansenpartnership.com>
+	 <CAHkRjk4D87V9F2-Y5d1A-s+mnt_TpkOSg+dLz6cRtR25aqqoUg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:15670 "EHLO
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:8956 "EHLO
 	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753535Ab2JMORI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Oct 2012 10:17:08 -0400
-In-Reply-To: <1350131814.2485.46.camel@dabdike.int.hansenpartnership.com>
+	with ESMTP id S1753118Ab2JMOUs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Oct 2012 10:20:48 -0400
+In-Reply-To: <CAHkRjk4D87V9F2-Y5d1A-s+mnt_TpkOSg+dLz6cRtR25aqqoUg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-On Sat, 2012-10-13 at 13:36 +0100, James Bottomley wrote:
-> On Fri, 2012-10-12 at 22:26 -0400, Steven Rostedt wrote:
-> > plain text document attachment
-> > (0016-parisc-Use-Kbuild-infrastructure-to-handle-asm-gener.patch)
-> > From: Steven Rostedt <srostedt@redhat.com>
-> > 
-> > Use Kbuild infrastructure to handle the asm-generic headers
-> > and remove the wrapper headers that call them.
-> > 
-> > This only affects headers that do nothing but include the generic
-> > equivalent. It does not touch any header that does a little more.
-> > 
-> > Cc: linux-kbuild@vger.kernel.org
-> > Cc: linux-parisc@vger.kernel.org
-> > Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-> > Cc: Helge Deller <deller@gmx.de>
-> > Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+On Sat, 2012-10-13 at 11:17 +0100, Catalin Marinas wrote:
+> Hi Steven,
 > 
-> Actually, we're already evaluating a patch like this:
+> On 13 October 2012 03:26, Steven Rostedt <rostedt@goodmis.org> wrote:
+> > Recently I suggested to someone that was adding a new asm file that
+> > currently only contained an x86 change to add a header in all archs
+> > that was just a wrapper to point to the asm-generic version. I suggested
+> > this because that's the way we use to do it and just to refresh my
+> > memory, I looked at div64.h in a few archs and saw that was the case.
+> >
+> > After having the change done and just after finishing testing it, I was
+> > notified that the "proper" way of doing this is to add it to the
+> >
+> >   arch/*/include/asm/Kbuild
+> >
+> > file, as 'generic-y += foo.h' and it will reference the asm-generic
+> > file automatically. Well it would have been nice if I knew this before
+> > and wasn't confused by seeing the incorrect method.
 > 
-> http://marc.info/?l=linux-kernel&m=134883983019018
+> Since you are  cleaning this up already, could you please merge these
+> patches into your series:
 > 
-> When I compare the two, I notice you missed a few (segment.h, vga.h,
-> hw_irq.h, mutex.h), so you probably want to adjust your scripts.
+> https://lkml.org/lkml/2012/10/11/291
 > 
+> The first patch adds support for generic-y in the new
+> arch/*/include/uapi/asm/Kbuild file, followed by few patches to
+> convert three architectures. There will probably be more to convert
+> after -rc1.
 
-Scripts? Naw I did this by hand:
-
-cd arch/parisc/include/asm
-vim `grep -l asm-generic *.h`
-
-And in another terminal added the changes needed to Kbuild. I did this
-by hand because it would have taken me the same time to verify scripts
-to do it. By doing it by hand, I was less likely to add something that I
-shouldn't have.
-
-As Arnd mentioned, I didn't do a compare to check if what is in the
-header is identical to the asm-generic version. That was going to be
-"take 2". As this was just removing the simple cases of either:
-
-foo.h:
-#include <asm-generic/foo.h>
-
-or
-
-foo.h:
-#ifndef _ASM_PARISC_FOO_H
-#define _ASM_PARISC_FOO_H
-#include <asm-generic/foo.h>
-#endif
-
-As for the ones I missed:
-
-mutex.h has:
-
-#include <asm-generic/mutex-dec.h>
-
-which did not match mutex.h, so I ignored it. It would be removed in
-"take 2" because it's identical to asm-generic/mutex.h.
-
-segment.h:
-#ifndef __PARISC_SEGMENT_H
-#define __PARISC_SEGMENT_H
-
-/* Only here because we have some old header files that expect it.. */
-
-#endif
-
-
-It missed the 'grep -l asm-generic' part.
-
-vga.h and hw_irq.h are also empty (no asm-generic added). segment.h and
-hw_irq.h are also empty in asm-generic, so they could be removed in take
-2 as well. vga.h has some defines, but probably wouldn't affect parisc.
-
-I don't care if you take this patch or not. As long as the old method of
-adding a stub file to include asm-generic/foo.h is removed. This patch
-set was caused by my frustration of looking at how to add a new
-asm-generic file and coming up with the wrong implementation, and I want
-to make sure that this doesn't happen again with another developer.
+If the maintainers don't, I'll be happy to take them in too. I can set
+up a separate branch for this. I'll see what I can do next week,
+although I'll be traveling for the RTLWS.
 
 -- Steve
