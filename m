@@ -1,44 +1,46 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Catalin Marinas <catalin.marinas@arm.com>
 Subject: Re: [PATCH 00/25] asm-generic: Convert all to use Kbuild file
-Date: Sat, 13 Oct 2012 09:09:52 +0000
-Message-ID: <1762180.8nMW7nCt7B@wuerfel>
+Date: Sat, 13 Oct 2012 11:17:46 +0100
+Message-ID: <CAHkRjk4D87V9F2-Y5d1A-s+mnt_TpkOSg+dLz6cRtR25aqqoUg@mail.gmail.com>
 References: <20121013022632.024527228@goodmis.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:51646 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752390Ab2JMJJ5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Oct 2012 05:09:57 -0400
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <20121013022632.024527228@goodmis.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Steven Rostedt <rostedt@goodmis.org>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Friday 12 October 2012 22:26:32 Steven Rostedt wrote:
-> 
-> Please feel free to pluck these patches into your architecture and
-> run them to make sure that they boot as well (I only had the compiler
-> and not the box... Also I only tested with defconfig, I may have
-> broken other configs).
-> 
-> One note, the best thing about these changes is:
-> 
->  390 files changed, 369 insertions(+), 1378 deletions(-)
+Hi Steven,
 
-Thanks a lot for doing this! I had initially converted a bunch of
-architectures to use the asm-generic files this way, but gave up
-after some of them turned out to be too much work to get in.
+On 13 October 2012 03:26, Steven Rostedt <rostedt@goodmis.org> wrote:
+> Recently I suggested to someone that was adding a new asm file that
+> currently only contained an x86 change to add a header in all archs
+> that was just a wrapper to point to the asm-generic version. I suggested
+> this because that's the way we use to do it and just to refresh my
+> memory, I looked at div64.h in a few archs and saw that was the case.
+>
+> After having the change done and just after finishing testing it, I was
+> notified that the "proper" way of doing this is to add it to the
+>
+>   arch/*/include/asm/Kbuild
+>
+> file, as 'generic-y += foo.h' and it will reference the asm-generic
+> file automatically. Well it would have been nice if I knew this before
+> and wasn't confused by seeing the incorrect method.
 
-Note that while you are addressing all the obvious candidates that
-have only a single #include statement in them, there is room to take
-this further because a lot of the other header files in architectures
-are still identical to their asm-generic counterparts (aside from
-whitespace and comments). I would recommend to arch maintainers that
-have not already done so to go through all the headers and replace
-the identical ones with generated headers that include the asm-generic
-version.
+Since you are  cleaning this up already, could you please merge these
+patches into your series:
 
-	Arnd
+https://lkml.org/lkml/2012/10/11/291
+
+The first patch adds support for generic-y in the new
+arch/*/include/uapi/asm/Kbuild file, followed by few patches to
+convert three architectures. There will probably be more to convert
+after -rc1.
+
+Thanks.
+
+-- 
+Catalin
