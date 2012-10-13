@@ -1,49 +1,37 @@
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH 20/25] sparc: Use Kbuild infrastructure to handle
- asm-generic headers
-Date: Sat, 13 Oct 2012 09:54:00 -0400
-Message-ID: <1350136440.24256.95.camel@gandalf.local.home>
+Subject: Re: [PATCH 04/25] blackfin: Use Kbuild infrastructure for kvm_para.h
+Date: Sat, 13 Oct 2012 09:54:36 -0400
+Message-ID: <1350136476.24256.96.camel@gandalf.local.home>
 References: <20121013022632.024527228@goodmis.org>
-	 <20121013022955.307620438@goodmis.org>
-	 <20121012.231941.1930318153077157651.davem@davemloft.net>
+	 <20121013022953.015897288@goodmis.org>
+	 <201210130012.40451.vapier@gentoo.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:33226 "EHLO
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:30339 "EHLO
 	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752683Ab2JMNyD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Oct 2012 09:54:03 -0400
-In-Reply-To: <20121012.231941.1930318153077157651.davem@davemloft.net>
+	with ESMTP id S1752218Ab2JMNyh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Oct 2012 09:54:37 -0400
+In-Reply-To: <201210130012.40451.vapier@gentoo.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
+To: Mike Frysinger <vapier@gentoo.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-On Fri, 2012-10-12 at 23:19 -0400, David Miller wrote:
-> From: Steven Rostedt <rostedt@goodmis.org>
-> Date: Fri, 12 Oct 2012 22:26:52 -0400
-> 
+On Sat, 2012-10-13 at 00:12 -0400, Mike Frysinger wrote:
+> On Friday 12 October 2012 22:26:36 Steven Rostedt wrote:
 > > From: Steven Rostedt <srostedt@redhat.com>
 > > 
-> > Use Kbuild infrastructure to handle the asm-generic headers
-> > and remove the wrapper headers that call them.
-> > 
-> > This only affects headers that do nothing but include the generic
-> > equivalent. It does not touch any header that does a little more.
-> > 
-> > Cc: linux-kbuild@vger.kernel.org
-> > Cc: sparclinux@vger.kernel.org
-> > Cc: "David S. Miller" <davem@davemloft.net>
-> > Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+> > All the headers but kvm_para.h use the Kbuild infrastructure to
+> > get to the asm-generic headers.
 > 
-> Acked-by: David S. Miller <davem@davemloft.net>
+> Acked-by: Mike Frysinger <vapier@gentoo.org>
+> -mike
 
-David,
+Thanks Mike,
 
-Would you like to take this patch? It's not dependent on any of the
-other patches. Otherwise I'll probably ask Andrew to pull it into his
-tree. Or I can just set up a branch and have it go into linux-next for
-the next merge window.
+Would you want to pull this patch into your tree? It's not dependent on
+any of the other patches.
 
 -- Steve
