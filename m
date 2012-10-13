@@ -1,19 +1,19 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:20081 "EHLO
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:25008 "EHLO
 	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751809Ab2JMC3y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Oct 2012 22:29:54 -0400
-Message-ID: <20121013022953.436816116@goodmis.org>
-Date: Fri, 12 Oct 2012 22:26:39 -0400
+	with ESMTP id S1752826Ab2JMC35 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Oct 2012 22:29:57 -0400
+Message-ID: <20121013022954.861437159@goodmis.org>
+Date: Fri, 12 Oct 2012 22:26:49 -0400
 From: Steven Rostedt <rostedt@goodmis.org>
-Subject: [PATCH 07/25] frv: Use Kbuild infrastructure to handle asm-generic headers
+Subject: [PATCH 17/25] powerpc: Use Kbuild infrastructure to handle asm-generic headers
 References: <20121013022632.024527228@goodmis.org>
-Content-Disposition: inline; filename=0007-frv-Use-Kbuild-infrastructure-to-handle-asm-generic-.patch
+Content-Disposition: inline; filename=0017-powerpc-Use-Kbuild-infrastructure-to-handle-asm-gene.patch
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>, David Howells <dhowells@redhat.com>
-Message-ID: <20121013022639.HgApASKuQe7OfVRK_sjoaVznQEisgESGwM4zllYpkGA@z>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
+Message-ID: <20121013022649.fhz1vPuaObc3oLZObvETX8vwq-rPumfI09oWi1QgODI@z>
 
 From: Steven Rostedt <srostedt@redhat.com>
 
@@ -24,261 +24,119 @@ This only affects headers that do nothing but include the generic
 equivalent. It does not touch any header that does a little more.
 
 Cc: linux-kbuild@vger.kernel.org
-Cc: David Howells <dhowells@redhat.com>
+Cc: linuxppc-dev@lists.ozlabs.org
+Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Paul Mackerras <paulus@samba.org>
 Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 ---
- arch/frv/include/asm/Kbuild              |   19 +++++++++++++++++++
- arch/frv/include/asm/bitsperlong.h       |    1 -
- arch/frv/include/asm/cputime.h           |    6 ------
- arch/frv/include/asm/device.h            |    7 -------
- arch/frv/include/asm/div64.h             |    1 -
- arch/frv/include/asm/emergency-restart.h |    6 ------
- arch/frv/include/asm/errno.h             |    7 -------
- arch/frv/include/asm/fcntl.h             |    1 -
- arch/frv/include/asm/ioctl.h             |    1 -
- arch/frv/include/asm/kdebug.h            |    1 -
- arch/frv/include/asm/kvm_para.h          |    1 -
- arch/frv/include/asm/local.h             |    6 ------
- arch/frv/include/asm/local64.h           |    1 -
- arch/frv/include/asm/mman.h              |    1 -
- arch/frv/include/asm/percpu.h            |    6 ------
- arch/frv/include/asm/resource.h          |    7 -------
- arch/frv/include/asm/scatterlist.h       |    6 ------
- arch/frv/include/asm/statfs.h            |    7 -------
- arch/frv/include/asm/xor.h               |    1 -
- arch/h8300/include/asm/ipcbuf.h          |    1 -
- 20 files changed, 19 insertions(+), 68 deletions(-)
- delete mode 100644 arch/frv/include/asm/bitsperlong.h
- delete mode 100644 arch/frv/include/asm/cputime.h
- delete mode 100644 arch/frv/include/asm/device.h
- delete mode 100644 arch/frv/include/asm/div64.h
- delete mode 100644 arch/frv/include/asm/emergency-restart.h
- delete mode 100644 arch/frv/include/asm/errno.h
- delete mode 100644 arch/frv/include/asm/fcntl.h
- delete mode 100644 arch/frv/include/asm/ioctl.h
- delete mode 100644 arch/frv/include/asm/kdebug.h
- delete mode 100644 arch/frv/include/asm/kvm_para.h
- delete mode 100644 arch/frv/include/asm/local.h
- delete mode 100644 arch/frv/include/asm/local64.h
- delete mode 100644 arch/frv/include/asm/mman.h
- delete mode 100644 arch/frv/include/asm/percpu.h
- delete mode 100644 arch/frv/include/asm/resource.h
- delete mode 100644 arch/frv/include/asm/scatterlist.h
- delete mode 100644 arch/frv/include/asm/statfs.h
- delete mode 100644 arch/frv/include/asm/xor.h
- delete mode 100644 arch/h8300/include/asm/ipcbuf.h
+ arch/powerpc/include/asm/Kbuild              |    9 +++++++++
+ arch/powerpc/include/asm/div64.h             |    1 -
+ arch/powerpc/include/asm/emergency-restart.h |    1 -
+ arch/powerpc/include/asm/irq_regs.h          |    2 --
+ arch/powerpc/include/asm/local64.h           |    1 -
+ arch/powerpc/include/asm/param.h             |    1 -
+ arch/powerpc/include/asm/poll.h              |    1 -
+ arch/powerpc/include/asm/resource.h          |    1 -
+ arch/powerpc/include/asm/statfs.h            |    6 ------
+ arch/powerpc/include/asm/xor.h               |    1 -
+ 10 files changed, 9 insertions(+), 15 deletions(-)
+ delete mode 100644 arch/powerpc/include/asm/div64.h
+ delete mode 100644 arch/powerpc/include/asm/emergency-restart.h
+ delete mode 100644 arch/powerpc/include/asm/irq_regs.h
+ delete mode 100644 arch/powerpc/include/asm/local64.h
+ delete mode 100644 arch/powerpc/include/asm/param.h
+ delete mode 100644 arch/powerpc/include/asm/poll.h
+ delete mode 100644 arch/powerpc/include/asm/resource.h
+ delete mode 100644 arch/powerpc/include/asm/statfs.h
+ delete mode 100644 arch/powerpc/include/asm/xor.h
 
-diff --git a/arch/frv/include/asm/Kbuild b/arch/frv/include/asm/Kbuild
-index 251bd71..1e46bc5 100644
---- a/arch/frv/include/asm/Kbuild
-+++ b/arch/frv/include/asm/Kbuild
-@@ -2,5 +2,24 @@ include include/asm-generic/Kbuild.asm
+diff --git a/arch/powerpc/include/asm/Kbuild b/arch/powerpc/include/asm/Kbuild
+index ace53db..8ae0511 100644
+--- a/arch/powerpc/include/asm/Kbuild
++++ b/arch/powerpc/include/asm/Kbuild
+@@ -36,4 +36,13 @@ header-y += ucontext.h
+ header-y += unistd.h
  
- header-y += registers.h
- header-y += termios.h
-+generic-y += bitsperlong.h
  generic-y += clkdev.h
-+generic-y += cputime.h
-+generic-y += device.h
 +generic-y += div64.h
 +generic-y += emergency-restart.h
-+generic-y += errno.h
- generic-y += exec.h
-+generic-y += fcntl.h
-+generic-y += ioctl.h
-+generic-y += ipcbuf.h
-+generic-y += kdebug.h
-+generic-y += kvm_para.h
++generic-y += irq_regs.h
 +generic-y += local64.h
-+generic-y += local.h
-+generic-y += mman.h
-+generic-y += percpu.h
++generic-y += param.h
++generic-y += poll.h
 +generic-y += resource.h
-+generic-y += scatterlist.h
+ generic-y += rwsem.h
 +generic-y += statfs.h
 +generic-y += xor.h
-diff --git a/arch/frv/include/asm/bitsperlong.h b/arch/frv/include/asm/bitsperlong.h
-deleted file mode 100644
-index 6dc0bb0..0000000
---- a/arch/frv/include/asm/bitsperlong.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/bitsperlong.h>
-diff --git a/arch/frv/include/asm/cputime.h b/arch/frv/include/asm/cputime.h
-deleted file mode 100644
-index f6c373a..0000000
---- a/arch/frv/include/asm/cputime.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef _ASM_CPUTIME_H
--#define _ASM_CPUTIME_H
--
--#include <asm-generic/cputime.h>
--
--#endif /* _ASM_CPUTIME_H */
-diff --git a/arch/frv/include/asm/device.h b/arch/frv/include/asm/device.h
-deleted file mode 100644
-index d8f9872..0000000
---- a/arch/frv/include/asm/device.h
-+++ /dev/null
-@@ -1,7 +0,0 @@
--/*
-- * Arch specific extensions to struct device
-- *
-- * This file is released under the GPLv2
-- */
--#include <asm-generic/device.h>
--
-diff --git a/arch/frv/include/asm/div64.h b/arch/frv/include/asm/div64.h
+diff --git a/arch/powerpc/include/asm/div64.h b/arch/powerpc/include/asm/div64.h
 deleted file mode 100644
 index 6cd978c..0000000
---- a/arch/frv/include/asm/div64.h
+--- a/arch/powerpc/include/asm/div64.h
 +++ /dev/null
 @@ -1 +0,0 @@
 -#include <asm-generic/div64.h>
-diff --git a/arch/frv/include/asm/emergency-restart.h b/arch/frv/include/asm/emergency-restart.h
+diff --git a/arch/powerpc/include/asm/emergency-restart.h b/arch/powerpc/include/asm/emergency-restart.h
 deleted file mode 100644
-index 108d8c4..0000000
---- a/arch/frv/include/asm/emergency-restart.h
+index 3711bd9..0000000
+--- a/arch/powerpc/include/asm/emergency-restart.h
 +++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef _ASM_EMERGENCY_RESTART_H
--#define _ASM_EMERGENCY_RESTART_H
--
+@@ -1 +0,0 @@
 -#include <asm-generic/emergency-restart.h>
--
--#endif /* _ASM_EMERGENCY_RESTART_H */
-diff --git a/arch/frv/include/asm/errno.h b/arch/frv/include/asm/errno.h
+diff --git a/arch/powerpc/include/asm/irq_regs.h b/arch/powerpc/include/asm/irq_regs.h
 deleted file mode 100644
-index d010795..0000000
---- a/arch/frv/include/asm/errno.h
+index ba94b51..0000000
+--- a/arch/powerpc/include/asm/irq_regs.h
 +++ /dev/null
-@@ -1,7 +0,0 @@
--#ifndef _ASM_ERRNO_H
--#define _ASM_ERRNO_H
+@@ -1,2 +0,0 @@
+-#include <asm-generic/irq_regs.h>
 -
--#include <asm-generic/errno.h>
--
--#endif /* _ASM_ERRNO_H */
--
-diff --git a/arch/frv/include/asm/fcntl.h b/arch/frv/include/asm/fcntl.h
-deleted file mode 100644
-index 46ab12d..0000000
---- a/arch/frv/include/asm/fcntl.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/fcntl.h>
-diff --git a/arch/frv/include/asm/ioctl.h b/arch/frv/include/asm/ioctl.h
-deleted file mode 100644
-index b279fe0..0000000
---- a/arch/frv/include/asm/ioctl.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/ioctl.h>
-diff --git a/arch/frv/include/asm/kdebug.h b/arch/frv/include/asm/kdebug.h
-deleted file mode 100644
-index 6ece1b0..0000000
---- a/arch/frv/include/asm/kdebug.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/kdebug.h>
-diff --git a/arch/frv/include/asm/kvm_para.h b/arch/frv/include/asm/kvm_para.h
-deleted file mode 100644
-index 14fab8f..0000000
---- a/arch/frv/include/asm/kvm_para.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/kvm_para.h>
-diff --git a/arch/frv/include/asm/local.h b/arch/frv/include/asm/local.h
-deleted file mode 100644
-index c27bdf0..0000000
---- a/arch/frv/include/asm/local.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef _ASM_LOCAL_H
--#define _ASM_LOCAL_H
--
--#include <asm-generic/local.h>
--
--#endif /* _ASM_LOCAL_H */
-diff --git a/arch/frv/include/asm/local64.h b/arch/frv/include/asm/local64.h
+diff --git a/arch/powerpc/include/asm/local64.h b/arch/powerpc/include/asm/local64.h
 deleted file mode 100644
 index 36c93b5..0000000
---- a/arch/frv/include/asm/local64.h
+--- a/arch/powerpc/include/asm/local64.h
 +++ /dev/null
 @@ -1 +0,0 @@
 -#include <asm-generic/local64.h>
-diff --git a/arch/frv/include/asm/mman.h b/arch/frv/include/asm/mman.h
+diff --git a/arch/powerpc/include/asm/param.h b/arch/powerpc/include/asm/param.h
 deleted file mode 100644
-index 8eebf89..0000000
---- a/arch/frv/include/asm/mman.h
+index 965d454..0000000
+--- a/arch/powerpc/include/asm/param.h
 +++ /dev/null
 @@ -1 +0,0 @@
--#include <asm-generic/mman.h>
-diff --git a/arch/frv/include/asm/percpu.h b/arch/frv/include/asm/percpu.h
+-#include <asm-generic/param.h>
+diff --git a/arch/powerpc/include/asm/poll.h b/arch/powerpc/include/asm/poll.h
 deleted file mode 100644
-index 2cad3f8..0000000
---- a/arch/frv/include/asm/percpu.h
+index c98509d..0000000
+--- a/arch/powerpc/include/asm/poll.h
 +++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __ASM_PERCPU_H
--#define __ASM_PERCPU_H
--
--#include <asm-generic/percpu.h>
--
--#endif	/* __ASM_PERCPU_H */
-diff --git a/arch/frv/include/asm/resource.h b/arch/frv/include/asm/resource.h
+@@ -1 +0,0 @@
+-#include <asm-generic/poll.h>
+diff --git a/arch/powerpc/include/asm/resource.h b/arch/powerpc/include/asm/resource.h
 deleted file mode 100644
-index 5fc6054..0000000
---- a/arch/frv/include/asm/resource.h
+index 04bc4db..0000000
+--- a/arch/powerpc/include/asm/resource.h
 +++ /dev/null
-@@ -1,7 +0,0 @@
--#ifndef _ASM_RESOURCE_H
--#define _ASM_RESOURCE_H
--
+@@ -1 +0,0 @@
 -#include <asm-generic/resource.h>
--
--#endif /* _ASM_RESOURCE_H */
--
-diff --git a/arch/frv/include/asm/scatterlist.h b/arch/frv/include/asm/scatterlist.h
+diff --git a/arch/powerpc/include/asm/statfs.h b/arch/powerpc/include/asm/statfs.h
 deleted file mode 100644
-index 0e5eb30..0000000
---- a/arch/frv/include/asm/scatterlist.h
+index 5244834..0000000
+--- a/arch/powerpc/include/asm/statfs.h
 +++ /dev/null
 @@ -1,6 +0,0 @@
--#ifndef _ASM_SCATTERLIST_H
--#define _ASM_SCATTERLIST_H
--
--#include <asm-generic/scatterlist.h>
--
--#endif /* !_ASM_SCATTERLIST_H */
-diff --git a/arch/frv/include/asm/statfs.h b/arch/frv/include/asm/statfs.h
-deleted file mode 100644
-index 741f586..0000000
---- a/arch/frv/include/asm/statfs.h
-+++ /dev/null
-@@ -1,7 +0,0 @@
--#ifndef _ASM_STATFS_H
--#define _ASM_STATFS_H
+-#ifndef _ASM_POWERPC_STATFS_H
+-#define _ASM_POWERPC_STATFS_H
 -
 -#include <asm-generic/statfs.h>
 -
--#endif /* _ASM_STATFS_H */
--
-diff --git a/arch/frv/include/asm/xor.h b/arch/frv/include/asm/xor.h
+-#endif
+diff --git a/arch/powerpc/include/asm/xor.h b/arch/powerpc/include/asm/xor.h
 deleted file mode 100644
 index c82eb12..0000000
---- a/arch/frv/include/asm/xor.h
+--- a/arch/powerpc/include/asm/xor.h
 +++ /dev/null
 @@ -1 +0,0 @@
 -#include <asm-generic/xor.h>
-diff --git a/arch/h8300/include/asm/ipcbuf.h b/arch/h8300/include/asm/ipcbuf.h
-deleted file mode 100644
-index 84c7e51..0000000
---- a/arch/h8300/include/asm/ipcbuf.h
-+++ /dev/null
-@@ -1 +0,0 @@
--#include <asm-generic/ipcbuf.h>
 -- 
 1.7.10.4
 
