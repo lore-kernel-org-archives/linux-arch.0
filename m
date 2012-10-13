@@ -1,39 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:53064 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751027Ab2JMDTp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 12 Oct 2012 23:19:45 -0400
-Date: Fri, 12 Oct 2012 23:19:41 -0400 (EDT)
-Message-ID: <20121012.231941.1930318153077157651.davem@davemloft.net>
-Subject: Re: [PATCH 20/25] sparc: Use Kbuild infrastructure to handle
- asm-generic headers
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <20121013022955.307620438@goodmis.org>
+Received: from mail.southpole.se ([193.12.106.18]:48073 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750755Ab2JMGvI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Oct 2012 02:51:08 -0400
+MIME-Version: 1.0
+In-Reply-To: <20121013022954.595178706@goodmis.org>
 References: <20121013022632.024527228@goodmis.org>
-	<20121013022955.307620438@goodmis.org>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+	<20121013022954.595178706@goodmis.org>
+Date: Sat, 13 Oct 2012 08:32:36 +0200
+Message-ID: <CACM3HyHnMHj=DB5FeLUfRsKT-a=KzcmdpSbudoLU7O48RzuPoA@mail.gmail.com>
+Subject: Re: [PATCH 15/25] openrisc: Use Kbuild infrastructure for kvm_para.h
+From: Jonas Bonn <jonas@southpole.se>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: rostedt@goodmis.org
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, akpm@linux-foundation.org
-Message-ID: <20121013031941.NKiKJYi66qV-S9y7iF9va1q87wImGGe2MM48pqAnStM@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+Message-ID: <20121013063236.eHOPkHLFDHAfHunKROM4bxsKYN68kHrNcDo3exdcUdQ@z>
 
-From: Steven Rostedt <rostedt@goodmis.org>
-Date: Fri, 12 Oct 2012 22:26:52 -0400
-
+On 13 October 2012 04:26, Steven Rostedt <rostedt@goodmis.org> wrote:
 > From: Steven Rostedt <srostedt@redhat.com>
-> 
-> Use Kbuild infrastructure to handle the asm-generic headers
-> and remove the wrapper headers that call them.
-> 
-> This only affects headers that do nothing but include the generic
-> equivalent. It does not touch any header that does a little more.
-> 
+>
+> All the headers but kvm_para.h use the Kbuild infrastructure to
+> get to the asm-generic headers.
+>
 > Cc: linux-kbuild@vger.kernel.org
-> Cc: sparclinux@vger.kernel.org
-> Cc: "David S. Miller" <davem@davemloft.net>
+> Cc: linux@lists.openrisc.net
+> Cc: Jonas Bonn <jonas@southpole.se>
 > Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 
-Acked-by: David S. Miller <davem@davemloft.net>
+Acked-by: Jonas Bonn <jonas@southpole.se>
