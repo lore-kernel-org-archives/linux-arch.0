@@ -1,69 +1,47 @@
-From: guanxuetao@mprc.pku.edu.cn
-Subject: Re: [PATCH 23/25] unicore32: Use Kbuild infrastructure for
-     kvm_para.h
-Date: Sat, 13 Oct 2012 20:27:43 +0800 (CST)
-Message-ID: <4190.124.205.227.162.1350131263.squirrel@mprc.pku.edu.cn>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: Re: [PATCH 16/25] parisc: Use Kbuild infrastructure to handle
+ asm-generic headers
+Date: Sat, 13 Oct 2012 13:36:54 +0100
+Message-ID: <1350131814.2485.46.camel@dabdike.int.hansenpartnership.com>
 References: <20121013022632.024527228@goodmis.org>
-    <20121013022955.738395112@goodmis.org>
+	 <20121013022954.722147403@goodmis.org>
 Mime-Version: 1.0
-Content-Type: text/plain;charset=GB2312
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mprc.pku.edu.cn ([162.105.203.9]:55867 "EHLO mprc.pku.edu.cn"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752551Ab2JMMNh (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 13 Oct 2012 08:13:37 -0400
-In-Reply-To: <20121013022955.738395112@goodmis.org>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:56603 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753390Ab2JMMg6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sat, 13 Oct 2012 08:36:58 -0400
+In-Reply-To: <20121013022954.722147403@goodmis.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>
 
+On Fri, 2012-10-12 at 22:26 -0400, Steven Rostedt wrote:
+> plain text document attachment
+> (0016-parisc-Use-Kbuild-infrastructure-to-handle-asm-gener.patch)
 > From: Steven Rostedt <srostedt@redhat.com>
->
-> All the headers but kvm_para.h use the Kbuild infrastructure to
-> get to the asm-generic headers.
-
-I merged the uapi patch for unicore32.
-In that patch, kvm_para.h was moved to
-arch/unicore32/include/uapi/asm/kvm_para.h.
-Anyway, I'd like to apply this patch based on uapi modification.
-
-Thanks & Regards,
-Guan Xuetao
-
->
+> 
+> Use Kbuild infrastructure to handle the asm-generic headers
+> and remove the wrapper headers that call them.
+> 
+> This only affects headers that do nothing but include the generic
+> equivalent. It does not touch any header that does a little more.
+> 
 > Cc: linux-kbuild@vger.kernel.org
-> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> Cc: linux-parisc@vger.kernel.org
+> Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
+> Cc: Helge Deller <deller@gmx.de>
 > Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
-> ---
->  arch/unicore32/include/asm/Kbuild     |    1 +
->  arch/unicore32/include/asm/kvm_para.h |    1 -
->  2 files changed, 1 insertion(+), 1 deletion(-)
->  delete mode 100644 arch/unicore32/include/asm/kvm_para.h
->
-> diff --git a/arch/unicore32/include/asm/Kbuild
-> b/arch/unicore32/include/asm/Kbuild
-> index c910c98..15b47f2 100644
-> --- a/arch/unicore32/include/asm/Kbuild
-> +++ b/arch/unicore32/include/asm/Kbuild
-> @@ -24,6 +24,7 @@ generic-y += ipcbuf.h
->  generic-y += irq_regs.h
->  generic-y += kdebug.h
->  generic-y += kmap_types.h
-> +generic-y += kvm_para.h
->  generic-y += local.h
->  generic-y += mman.h
->  generic-y += module.h
-> diff --git a/arch/unicore32/include/asm/kvm_para.h
-> b/arch/unicore32/include/asm/kvm_para.h
-> deleted file mode 100644
-> index 14fab8f..0000000
-> --- a/arch/unicore32/include/asm/kvm_para.h
-> +++ /dev/null
-> @@ -1 +0,0 @@
-> -#include <asm-generic/kvm_para.h>
-> --
-> 1.7.10.4
->
->
+
+Actually, we're already evaluating a patch like this:
+
+http://marc.info/?l=linux-kernel&m=134883983019018
+
+When I compare the two, I notice you missed a few (segment.h, vga.h,
+hw_irq.h, mutex.h), so you probably want to adjust your scripts.
+
+James
