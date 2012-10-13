@@ -1,44 +1,40 @@
-From: Bob Liu <lliubbo@gmail.com>
-Subject: Re: [PATCH 04/25] blackfin: Use Kbuild infrastructure for kvm_para.h
-Date: Sat, 13 Oct 2012 22:53:52 +0800
-Message-ID: <CAA_GA1dFubSrquBsFGF-GYWf04Rn6bivZui0SiXCVhN0zTaFnw@mail.gmail.com>
-References: <20121013022632.024527228@goodmis.org>
-	<20121013022953.015897288@goodmis.org>
-	<201210130012.40451.vapier@gentoo.org>
-	<1350136476.24256.96.camel@gandalf.local.home>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [RFC] desired behaviour of syscall tracing wrt fork()
+Date: Sat, 13 Oct 2012 20:38:39 +0100
+Message-ID: <20121013193839.GU2616@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f174.google.com ([74.125.82.174]:43433 "EHLO
-	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750789Ab2JMOxx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Oct 2012 10:53:53 -0400
-In-Reply-To: <1350136476.24256.96.camel@gandalf.local.home>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:40950 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754027Ab2JMTim (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 13 Oct 2012 15:38:42 -0400
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: Mike Frysinger <vapier@gentoo.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
+To: linux-kernel@vger.kernel.org
+Cc: Ingo Molnar <mingo@redhat.com>, Frederic Weisbecker <fweisbec@gmail.com>, Steven Rostedt <rostedt@goodmis.org>, linux-arch@vger.kernel.org
 
-Hi Steven,
+	There's a lovely incosistency regarding whether we call
+trace_sys_exit() for child process on return from fork()/clone()/etc.
+The current situation:
+	* called on amd64 for 32bit newborns
+	* *NOT* called on i386 or amd64 for 64bit ones
+	* not called on arm
+	* called on ppc, s390, sh and sparc64
+	* not wired on anything else
+Note that existing in-kernel users of that tracepoint (ftrace and perf)
+both at least attempt to bail out in that situation.  However, the
+way it's done is not guaranteed to work if we wire more architectures -
+it relies on syscall_get_nr() returning negative in child, which might
+or might not work everywhere.  If nothing else, it's a landmine to
+avoid...
 
-On Sat, Oct 13, 2012 at 9:54 PM, Steven Rostedt <rostedt@goodmis.org> wrote:
-> On Sat, 2012-10-13 at 00:12 -0400, Mike Frysinger wrote:
->> On Friday 12 October 2012 22:26:36 Steven Rostedt wrote:
->> > From: Steven Rostedt <srostedt@redhat.com>
->> >
->> > All the headers but kvm_para.h use the Kbuild infrastructure to
->> > get to the asm-generic headers.
->>
->> Acked-by: Mike Frysinger <vapier@gentoo.org>
->> -mike
->
-> Thanks Mike,
->
-> Would you want to pull this patch into your tree? It's not dependent on
-> any of the other patches.
->
+	FWIW, I'd vote for not calling syscall_trace_...() on the way
+from ret_from_fork() - nothing in there really wants to be called
+for newborns; e.g. TIF_SYSCALL_TRACE is explicitly turned off for
+newborns, audit_syscall_exit() will not see ->in_syscall set and will
+log nothing and existing users of trace_sys_exit() at least attempt
+to skip doing anything on those.
 
-I'll apply this patch to blackfin git tree on Monday.
-
-Thanks,
---Bob
+	Comments?  AFAICS, it's not that much surgery to do...
