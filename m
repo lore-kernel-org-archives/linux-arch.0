@@ -1,111 +1,116 @@
 From: Russell King - ARM Linux <linux@arm.linux.org.uk>
 Subject: Re: [git pull] signals pile 3
-Date: Sun, 14 Oct 2012 21:24:31 +0100
-Message-ID: <20121014202431.GL21164@n2100.arm.linux.org.uk>
-References: <20121013005334.GM2616@ZenIV.linux.org.uk> <507ADBBB.9090209@gmail.com>
+Date: Sun, 14 Oct 2012 23:24:49 +0100
+Message-ID: <20121014222449.GN21164@n2100.arm.linux.org.uk>
+References: <20121013005334.GM2616@ZenIV.linux.org.uk> <507ADBBB.9090209@gmail.com> <20121014202431.GL21164@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:52185 "EHLO
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:52218 "EHLO
 	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754502Ab2JNUYp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 14 Oct 2012 16:24:45 -0400
+	with ESMTP id S1753890Ab2JNWZF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 14 Oct 2012 18:25:05 -0400
 Content-Disposition: inline
-In-Reply-To: <507ADBBB.9090209@gmail.com>
+In-Reply-To: <20121014202431.GL21164@n2100.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Daniel Mack <zonque@gmail.com>
-Cc: Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Al Viro <viro@ZenIV.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org
 
-On Sun, Oct 14, 2012 at 05:35:23PM +0200, Daniel Mack wrote:
-> I rebased my ARM development branch and figured that your patch 9fff2fa
-> ("arm: switch to saner kernel_execve() semantics") breaks the boot on my
-> board right after init is invoked via NFS:
+Okay, here's the post-mortem diagnosis.
 
-Ok, I'm not going to assign blame to Al's commits (I never reviewed his
-stuff before they hit mainline - patches never posted to the ARM mailing
-list, and the development actually happened within the merge window,
-all things we tell people not to do...)  I _still_ haven't reviewed that
-stuff yet.
+What's happening is as follows (I'm very certain of this.)
 
-But... nevertheless...
+We come through the usual init, and issue (see init/main.c):
 
-> [    4.682072] VFS: Mounted root (nfs filesystem) on device 0:12.
-> [    4.690744] devtmpfs: mounted
-> [    4.694395] Freeing init memory: 172K
-> [    5.291417] Internal error: Oops - undefined instruction: 0 [#1] SMP
-> THUMB2
+	kernel_thread(kernel_init, NULL, CLONE_FS | CLONE_SIGHAND);
 
-Ok, so this tells us the kernel was built using Thumb2 ISA.
+This creates a new thread, which falls through to the ret_from_fork
+assembly, with r4 set NULL and r5 set to kernel_init.  You can see
+this in your oops dump register set - r5 is 0xc0344555, which is the
+address of kernel_init plus 1 which marks the function as Thumb code.
 
-> [    5.298734] Modules linked in:
-> [    5.301952] CPU: 0    Not tainted  (3.6.0-11053-g56c8535 #128)
-> [    5.308071] PC is at cpsw_probe+0x422/0x9ac
+Now, let's look at this code a little closer - this is what the
+disassembly looks like:
 
-PC is not word aligned, so it can't be running in the ARM ISA.
+c000d180 <ret_from_fork>:
+c000d180:       f03a fe08       bl      c0047d94 <schedule_tail>
+c000d184:       2d00            cmp     r5, #0
+c000d186:       bf1e            ittt    ne
+c000d188:       4620            movne   r0, r4
+c000d18a:       46fe            movne   lr, pc <-- XXXXXXX
+c000d18c:       46af            movne   pc, r5
+c000d18e:       46e9            mov     r9, sp
+c000d190:       ea4f 3959       mov.w   r9, r9, lsr #13
+c000d194:       ea4f 3949       mov.w   r9, r9, lsl #13
+c000d198:       e7c8            b.n     c000d12c <ret_to_user>
+c000d19a:       bf00            nop
+c000d19c:       f3af 8000       nop.w
 
-> [    5.312459] LR is at trace_hardirqs_on_caller+0x8f/0xfc
-> [    5.317934] pc : [<c03493de>]    lr : [<c005e81f>]    psr: 60000113
+I have marked one instruction, and it's the significant one.
 
-Note that this reconfirms the above (well, it should do, it's the same
-value.)
+Eventually, having had a successful call to kernel_execve(), kernel_init()
+returns zero.
 
-> [    5.317934] sp : cf055fb0  ip : 00000000  fp : 00000000
-> [    5.329944] r10: 00000000  r9 : 00000000  r8 : 00000000
-> [    5.335413] r7 : 00000000  r6 : 00000000  r5 : c034458d  r4 : 00000000
-> [    5.342244] r3 : cf057a40  r2 : 00000000  r1 : 00000001  r0 : 00000000
-> [    5.349078] Flags: nZCv  IRQs on  FIQs on  Mode SVC_32  ISA ARM
-> Segment user
+In returning, it uses the value in 'lr' which was set by the instruction
+I marked above.  Unfortunately, this causes lr to contain 0xc000d18e -
+an even address.  This switches the ISA to ARM on return but with a non
+word aligned PC value.
 
-And this tells us that we're running in ARM mode, not Thumb mode.
+So, what do we end up executing?  Well, not the instructions above - yes
+the opcodes, but they don't mean the same thing in ARM mode.  In ARM mode,
+it looks like this instead:
 
-> [    5.356546] Control: 50c5387d  Table: 8f434019  DAC: 00000015
-> [    5.362562] Process init (pid: 1, stack limit = 0xcf054240)
-> [    5.368395] Stack: (0xcf055fb0 to 0xcf056000)
-> [    5.372961] 5fa0:                                     00000001
-> 00000000 00000000 00000000
-> [    5.381525] 5fc0: cf055fb0 c000d1a8 00000000 00000000 00000000
-> 00000000 00000000 00000000
-> [    5.390091] 5fe0: 00000000 bee83f10 00000000 b6fdedd0 00000010
-> 00000000 aaaabfaf a8babbaa
+c000d18c:       46e946af        strbtmi r4, [r9], pc, lsr #13
+c000d190:       3959ea4f        ldmdbcc r9, {r0, r1, r2, r3, r6, r9, fp, sp, lr, pc}^
+c000d194:       3949ea4f        stmdbcc r9, {r0, r1, r2, r3, r6, r9, fp, sp, lr, pc}^
+c000d198:       bf00e7c8        svclt   0x0000e7c8
+c000d19c:       8000f3af        andhi   pc, r0, pc, lsr #7
+c000d1a0:       e88db092        stm     sp, {r1, r4, r7, ip, sp, pc}
+c000d1a4:       46e81fff                        ; <UNDEFINED> instruction: 0x46e81fff
+c000d1a8:       8a00f3ef        bhi     0xc004a16c
+c000d1ac:       0a0cf08a        beq     0xc03493dc
 
-No stack backtrace (and it's silent about why that is).
+I have included more above, because it's relevant.  The PSR flags which we
+can see in the oops dump are nZCv, so Z and C are set.
 
-The other strange thing here is that the stack dump above is showing that
-the stack is completely empty - which shouldn't be the case if we're in a
-driver probe function - driver probe functions are called via the driver
-model layers...
+All the above ARM instructions are not executed, except for two.  c000d1a0,
+which has no writeback, and writes below the current stack pointer (and
+that data is lost when we take the next exception.)  The other instruction
+which is executed is c000d1ac, which takes us to... 0xc03493dc.  However,
+remember that bit 1 of the PC got set.  So that makes it 0xc03493de.
 
-> [    5.398664] Code: 2206a010 718ef508 0184f8da f8b1f65d (3070f8d8)
+And that value is the value we find in the oops dump for PC.  What is the
+instruction here when interpreted in ARM mode?
 
-And now we come to the Code: line, which makes no sense as an ARM ISA:
+       0:       f71e150c                ; <UNDEFINED> instruction: 0xf71e150c
 
-   0:   2206a010        andcs   sl, r6, #16
-   4:   718ef508        orrvc   pc, lr, r8, lsl #10
-   8:   0184f8da        ldrdeq  pc, [r4, sl]
-   c:   f8b1f65d                        ; <UNDEFINED> instruction: 0xf8b1f65d
-  10:   3070f8d8        ldrsbtcc        pc, [r0], #-136 ; 0xffffff78    ; <UNPREDICTABLE>
+and there we have our undefined instruction (remember that the 'never'
+condition code, 0xf, has been deprecated and is now always executed.)
 
-But as Thumb, it looks more reasonable:
+So, what we have above is a consistent and sane story for how we ended up
+at such a strange place in the kernel with such an odd register dump - with
+no unanswered questions about what happened to get us there.
 
-   0:   a010            add     r0, pc, #64     ; (adr r0, 44 <foo+0x44>)
-   2:   2206            movs    r2, #6
-   4:   f508 718e       add.w   r1, r8, #284    ; 0x11c
-   8:   f8da 0184       ldr.w   r0, [sl, #388]  ; 0x184
-   c:   f65d f8b1       bl      ffe5d172 <foo+0xffe5d172>
-  10:   f8d8 3070       ldr.w   r3, [r8, #112]  ; 0x70
+In light of this, I'm 100% certain that the patch below will fix the issue
+you're seeing - please test this and get back to me ASAP, thanks.
 
-I don't have any further comments to make on this yet, as I've no idea
-what state stuff is in, but the above oops dump to me suggests that
-we've randomly jumped into some part of the kernel which just happens
-to be cpsw_probe().
+ arch/arm/kernel/entry-common.S |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
 
-Please send me (in private mail) your vmlinux file and a corresponding
-oops dump from that same kernel, and I'll dig and try and work out
-what's going on...
-
-This kind of investigation reminds me of those I did back in the 1990s
-when stuff was rather unstable and ARM was a young architecture.  Now
-all we need is for an ARM platform to dump its entire memory out the
-ethernet port, bringing an university department network to a halt (I
-did that once - back in the 1990s - sorry Tim!)
+diff --git a/arch/arm/kernel/entry-common.S b/arch/arm/kernel/entry-common.S
+index 417bac1..3471175 100644
+--- a/arch/arm/kernel/entry-common.S
++++ b/arch/arm/kernel/entry-common.S
+@@ -88,9 +88,9 @@ ENTRY(ret_from_fork)
+ 	bl	schedule_tail
+ 	cmp	r5, #0
+ 	movne	r0, r4
+-	movne	lr, pc
++	adrne	lr, BSYM(1f)
+ 	movne	pc, r5
+-	get_thread_info tsk
++1:	get_thread_info tsk
+ 	b	ret_slow_syscall
+ ENDPROC(ret_from_fork)
+ 
