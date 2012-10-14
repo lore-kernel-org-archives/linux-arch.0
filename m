@@ -1,29 +1,40 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [revert request for commit 9fff2fa] Re: [git pull] signals pile 3
-Date: Sun, 14 Oct 2012 17:40:20 +0100
-Message-ID: <20121014164020.GV2616@ZenIV.linux.org.uk>
-References: <20121013005334.GM2616@ZenIV.linux.org.uk>
- <507ADBBB.9090209@gmail.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [PATCH 21/25] tile: Use Kbuild infrastructure for kvm_para.h
+Date: Sun, 14 Oct 2012 13:11:47 -0400
+Message-ID: <507AF253.1030108@tilera.com>
+References: <20121013022632.024527228@goodmis.org> <20121013022955.456205573@goodmis.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:43364 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754497Ab2JNQkX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 14 Oct 2012 12:40:23 -0400
-Content-Disposition: inline
-In-Reply-To: <507ADBBB.9090209@gmail.com>
+Received: from usmamail.tilera.com ([12.216.194.151]:21561 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754510Ab2JNRLr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 14 Oct 2012 13:11:47 -0400
+In-Reply-To: <20121013022955.456205573@goodmis.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Daniel Mack <zonque@gmail.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
 
-On Sun, Oct 14, 2012 at 05:35:23PM +0200, Daniel Mack wrote:
 
-> I rebased my ARM development branch and figured that your patch 9fff2fa
-> ("arm: switch to saner kernel_execve() semantics") breaks the boot on my
-> board right after init is invoked via NFS:
+On 10/12/2012 10:26 PM, Steven Rostedt wrote:
+> From: Steven Rostedt <srostedt@redhat.com>
+>
+> All the headers but kvm_para.h use the Kbuild infrastructure to
+> get to the asm-generic headers.
+>
+> Cc: linux-kbuild@vger.kernel.org
+> Cc: Chris Metcalf <cmetcalf@tilera.com>
+> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
+> ---
+>  arch/tile/include/asm/Kbuild     |    1 +
+>  arch/tile/include/asm/kvm_para.h |    1 -
+>  2 files changed, 1 insertion(+), 1 deletion(-)
+>  delete mode 100644 arch/tile/include/asm/kvm_para.h
 
-OK, revert it is, then.  Nothing in the tree has dependencies on that sucker
-and while it survives testing here, it's obviously not ready for mainline.
-So, with abject apologies to everyone involved, please revert.
+Acked-by: Chris Metcalf <cmetcalf@tilera.com>
+
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
