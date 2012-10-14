@@ -1,132 +1,158 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bk0-f46.google.com ([209.85.214.46]:54036 "EHLO
-	mail-bk0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752404Ab2JNSWB (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 14 Oct 2012 14:22:01 -0400
-Message-ID: <507B02C1.1090101@gmail.com>
-Date: Sun, 14 Oct 2012 20:21:53 +0200
-From: Daniel Mack <zonque@gmail.com>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:52256 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752130Ab2JNXRO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 14 Oct 2012 19:17:14 -0400
+Date: Mon, 15 Oct 2012 00:16:49 +0100
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [git pull] signals pile 3
+Message-ID: <20121014231649.GO21164@n2100.arm.linux.org.uk>
+References: <20121013005334.GM2616@ZenIV.linux.org.uk> <507ADBBB.9090209@gmail.com> <20121014202431.GL21164@n2100.arm.linux.org.uk> <20121014222449.GN21164@n2100.arm.linux.org.uk> <507B3F2C.1090500@gmail.com>
 MIME-Version: 1.0
-Subject: Re: [revert request for commit 9fff2fa] Re: [git pull] signals pile
- 3
-References: <20121013005334.GM2616@ZenIV.linux.org.uk> <507ADBBB.9090209@gmail.com> <20121014164020.GV2616@ZenIV.linux.org.uk> <CACTFLAOpcLtHNx-TCHQkUOPNAkTO8EgDhbyZSGQ9ag+Wu_cNRw@mail.gmail.com> <20121014172640.GW2616@ZenIV.linux.org.uk> <20121014175541.GX2616@ZenIV.linux.org.uk>
-In-Reply-To: <20121014175541.GX2616@ZenIV.linux.org.uk>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <507B3F2C.1090500@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20121014182153.Iu8TQOO6XvOQ1iQfxmfGo7kBITKADpIoOZTpNfY7dRY@z>
+To: Daniel Mack <zonque@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-arch@vger.kernel.org, Al Viro <viro@ZenIV.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org
+Message-ID: <20121014231649.4NeFeKsfjXDCayaU2K8VFvYGOOFkVWJWJxO-jeaTicM@z>
 
-On 14.10.2012 19:55, Al Viro wrote:
-> On Sun, Oct 14, 2012 at 06:26:40PM +0100, Al Viro wrote:
->> On Sun, Oct 14, 2012 at 06:44:12PM +0200, Daniel Mack wrote:
->>> On Oct 14, 2012 6:40 PM, "Al Viro" <viro@zeniv.linux.org.uk> wrote:
->>>>
->>>> On Sun, Oct 14, 2012 at 05:35:23PM +0200, Daniel Mack wrote:
->>>>
->>>>> I rebased my ARM development branch and figured that your patch 9fff2fa
->>>>> ("arm: switch to saner kernel_execve() semantics") breaks the boot on my
->>>>> board right after init is invoked via NFS:
->>>>
->>>> OK, revert it is, then.  Nothing in the tree has dependencies on that
->>> sucker
->>>> and while it survives testing here, it's obviously not ready for mainline.
->>>> So, with abject apologies to everyone involved, please revert.
->>>
->>> Reverting it is not straight forward, and half of this patch doesn't seem
->>> to cause issues.
->>>
->>> I can resend my patch with an S-o-b if you want me to.
->>
->> Um...  That's _really_ interesting.  First of all, revert is absolutely
->> straightforward; the only change in Kconfig is "remove the damn select"
->> and it's not hard to resolve.  But I actually wonder what the hell is
->> going on with that breakage - the *only* thing your revert changes is
->> that instead of letting the kernel_thread callback return all the way
->> to returning 0 to ret_from_kernel_thread() on do_execve() success you
->> have it do ret_from_kernel_execve() instead.  Hmm...
->>
->> Could you try to print current_pt_regs()->ARM_r0 in kernel_execve() before
->> calling ret_from_kernel_execve() with your patch applied?  If that somehow
->> got non-zero, we'd see trouble, all right, but I don't see any places where
->> it could.
->>
->> Wait a minute...  I think I see what might be going on, but I don't
->> understand it at all.  Look: arm start_thread() is
->> #define start_thread(regs,pc,sp)                                        \
->> ({                                                                      \
->>         unsigned long *stack = (unsigned long *)sp;                     \
->>         memset(regs->uregs, 0, sizeof(regs->uregs));                    \
->>         if (current->personality & ADDR_LIMIT_32BIT)                    \
->>                 regs->ARM_cpsr = USR_MODE;                              \
->>         else                                                            \
->>                 regs->ARM_cpsr = USR26_MODE;                            \
->>         if (elf_hwcap & HWCAP_THUMB && pc & 1)                          \
->>                 regs->ARM_cpsr |= PSR_T_BIT;                            \
->>         regs->ARM_cpsr |= PSR_ENDSTATE;                                 \
->>         regs->ARM_pc = pc & ~1;         /* pc */                        \
->>         regs->ARM_sp = sp;              /* sp */                        \
->>         regs->ARM_r2 = stack[2];        /* r2 (envp) */                 \
->>         regs->ARM_r1 = stack[1];        /* r1 (argv) */                 \
->>         regs->ARM_r0 = stack[0];        /* r0 (argc) */                 \
->>         nommu_start_thread(regs);                                       \
->> })
->> and the last 3 make no sense whatsoever.  Note that on normal execve() we'll
->> be going through the syscall return, so the userland will see 0 in there,
->> no matter what do we do here.  Theoretically, it might've been done for
->> ptrace sake (it will be able to observe the values in those registers before
->> the tracee reaches userland), but there's another oddity involved - "stack"
->> is a userland pointer here.  Granted, it's been recently written to, so
->> we are not likely to hit a pagefault here, but...  What happens if we are
->> under enough memory pressure to swap those pages out?  PF in the kernel
->> mode with no exception table entries for those insns?
+On Mon, Oct 15, 2012 at 12:39:40AM +0200, Daniel Mack wrote:
+> Tested-by: Daniel Mack <zonque@gmail.com>
 > 
-> FWIW, if you don't mind an experiment, try to take mainline (with that
-> commit not reverted) and add
-> 	strne	r0, [sp, #S_R0]
-> right before
-> 	get_thread_info tsk
-> in ret_from_fork().  And see if that changes behaviour.
-> 
+> Many thanks for the very prompt response!
 
-I don't mind experiments at all :)
+Thanks Daniel.
 
-However, with that extra line in place as described, I'm still getting
-the Oops below. If you want me to test anything else, please let me know.
+I've also tested this on my OMAP4430 board running in ARM mode, so that
+still works - we've covered the possibilities between us here between
+ARM mode and Thumb mode, so...
 
+Linus, could you merge this patch please, thanks.
 
-[    4.683182] VFS: Mounted root (nfs filesystem) on device 0:12.
-[    4.742007] devtmpfs: mounted
-[    4.745746] Freeing init memory: 172K
-[    5.038724] Internal error: Oops - undefined instruction: 0 [#1] SMP
-THUMB2
-[    5.046044] Modules linked in:
-[    5.049263] CPU: 0    Not tainted  (3.6.0-11053-g56c8535-dirty #136)
-[    5.055925] PC is at cpsw_probe+0x422/0x9ac
-[    5.060314] LR is at trace_hardirqs_on_caller+0x8f/0xfc
-[    5.065790] pc : [<c03493de>]    lr : [<c005e81f>]    psr: 60000113
-[    5.065790] sp : cf055fb0  ip : 00000000  fp : 00000000
-[    5.077800] r10: 00000000  r9 : 00000000  r8 : 00000000
-[    5.083270] r7 : 00000000  r6 : 00000000  r5 : c034458d  r4 : 00000000
-[    5.090101] r3 : cf057a40  r2 : 00000000  r1 : 00000001  r0 : 00000000
-[    5.096936] Flags: nZCv  IRQs on  FIQs on  Mode SVC_32  ISA ARM
-Segment user
-[    5.104406] Control: 50c5387d  Table: 8f434019  DAC: 00000015
-[    5.110422] Process init (pid: 1, stack limit = 0xcf054240)
-[    5.116257] Stack: (0xcf055fb0 to 0xcf056000)
-[    5.120824] 5fa0:                                     00000001
-00000000 00000000 00000000
-[    5.129390] 5fc0: cf055fb0 c000d1a8 00000000 00000000 00000000
-00000000 00000000 00000000
-[    5.137957] 5fe0: 00000000 becedf10 00000000 b6f81dd0 00000010
-00000000 aaaabfaf a8babbaa
-[    5.146529] Code: 2206a010 718ef508 0184f8da f8b1f65d (3070f8d8)
-[    5.152915] ---[ end trace 7362bbe8e73e6b07 ]---
-[    5.158324] Kernel panic - not syncing: Attempted to kill init!
-exitcode=0x0000000b
-[    5.158324]
+8<===
+From: Russell King <rmk+kernel@arm.linux.org.uk>
+Subject: [PATCH] ARM: fix oops on initial entry to userspace with Thumb2 kernels
 
+Daniel Mack reports an oops at boot with the latest kernels:
 
+[    4.896717] Internal error: Oops - undefined instruction: 0 [#1] SMP THUMB2
+[    4.904034] Modules linked in:
+[    4.907253] CPU: 0    Not tainted  (3.6.0-11057-g584df1d #145)
+[    4.913372] PC is at cpsw_probe+0x45a/0x9ac
+[    4.917760] LR is at trace_hardirqs_on_caller+0x8f/0xfc
+[    4.923235] pc : [<c03493de>]    lr : [<c005e81f>]    psr: 60000113
+[    4.923235] sp : cf055fb0  ip : 00000000  fp : 00000000
+[    4.935246] r10: 00000000  r9 : 00000000  r8 : 00000000
+[    4.940715] r7 : 00000000  r6 : 00000000  r5 : c0344555  r4 : 00000000
+[    4.947548] r3 : cf057a40  r2 : 00000000  r1 : 00000001  r0 : 00000000
+[    4.954383] Flags: nZCv  IRQs on  FIQs on  Mode SVC_32  ISA ARM Segment user
+[    4.961853] Control: 50c5387d  Table: 8f3f4019  DAC: 00000015
+[    4.967868] Process init (pid: 1, stack limit = 0xcf054240)
+[    4.973702] Stack: (0xcf055fb0 to 0xcf056000)
+[    4.978269] 5fa0:                                     00000001 00000000 00000000 00000000
+[    4.986836] 5fc0: cf055fb0 c000d1a8 00000000 00000000 00000000 00000000 00000000 00000000
+[    4.995403] 5fe0: 00000000 be9b3f10 00000000 b6f6add0 00000010 00000000 aaaabfaf a8babbaa
+
+The analysis of this is as follows.  In init/main.c, we issue:
+
+	kernel_thread(kernel_init, NULL, CLONE_FS | CLONE_SIGHAND);
+
+This creates a new thread, which falls through to the ret_from_fork
+assembly, with r4 set NULL and r5 set to kernel_init.  You can see
+this in your oops dump register set - r5 is 0xc0344555, which is the
+address of kernel_init plus 1 which marks the function as Thumb code.
+
+Now, let's look at this code a little closer - this is what the
+disassembly looks like:
+
+c000d180 <ret_from_fork>:
+c000d180:       f03a fe08       bl      c0047d94 <schedule_tail>
+c000d184:       2d00            cmp     r5, #0
+c000d186:       bf1e            ittt    ne
+c000d188:       4620            movne   r0, r4
+c000d18a:       46fe            movne   lr, pc <-- XXXXXXX
+c000d18c:       46af            movne   pc, r5
+c000d18e:       46e9            mov     r9, sp
+c000d190:       ea4f 3959       mov.w   r9, r9, lsr #13
+c000d194:       ea4f 3949       mov.w   r9, r9, lsl #13
+c000d198:       e7c8            b.n     c000d12c <ret_to_user>
+c000d19a:       bf00            nop
+c000d19c:       f3af 8000       nop.w
+
+This code was introduced in 9fff2fa0db911 (arm: switch to saner
+kernel_execve() semantics).  I have marked one instruction, and it's
+the significant one - I'll come back to that later.
+
+Eventually, having had a successful call to kernel_execve(), kernel_init()
+returns zero.
+
+In returning, it uses the value in 'lr' which was set by the instruction
+I marked above.  Unfortunately, this causes lr to contain 0xc000d18e -
+an even address.  This switches the ISA to ARM on return but with a non
+word aligned PC value.
+
+So, what do we end up executing?  Well, not the instructions above - yes
+the opcodes, but they don't mean the same thing in ARM mode.  In ARM mode,
+it looks like this instead:
+
+c000d18c:       46e946af        strbtmi r4, [r9], pc, lsr #13
+c000d190:       3959ea4f        ldmdbcc r9, {r0, r1, r2, r3, r6, r9, fp, sp, lr, pc}^
+c000d194:       3949ea4f        stmdbcc r9, {r0, r1, r2, r3, r6, r9, fp, sp, lr, pc}^
+c000d198:       bf00e7c8        svclt   0x0000e7c8
+c000d19c:       8000f3af        andhi   pc, r0, pc, lsr #7
+c000d1a0:       e88db092        stm     sp, {r1, r4, r7, ip, sp, pc}
+c000d1a4:       46e81fff                        ; <UNDEFINED> instruction: 0x46e81fff
+c000d1a8:       8a00f3ef        bhi     0xc004a16c
+c000d1ac:       0a0cf08a        beq     0xc03493dc
+
+I have included more above, because it's relevant.  The PSR flags which we
+can see in the oops dump are nZCv, so Z and C are set.
+
+All the above ARM instructions are not executed, except for two.  c000d1a0,
+which has no writeback, and writes below the current stack pointer (and
+that data is lost when we take the next exception.)  The other instruction
+which is executed is c000d1ac, which takes us to... 0xc03493dc.  However,
+remember that bit 1 of the PC got set.  So that makes the PC value
+0xc03493de.
+
+And that value is the value we find in the oops dump for PC.  What is the
+instruction here when interpreted in ARM mode?
+
+       0:       f71e150c                ; <UNDEFINED> instruction: 0xf71e150c
+
+and there we have our undefined instruction (remember that the 'never'
+condition code, 0xf, has been deprecated and is now always executed as it
+is now being used for additional instructions.)
+
+This path also nicely explains the state of the stack we see in the oops
+dump too.
+
+The above is a consistent and sane story for how we got to the oops dump,
+which all stems from the instruction at 0xc000d18a being wrong.
+
+Reported-by: Daniel Mack <zonque@gmail.com>
+Tested-by: Daniel Mack <zonque@gmail.com>
+Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
+---
+ arch/arm/kernel/entry-common.S |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm/kernel/entry-common.S b/arch/arm/kernel/entry-common.S
+index 417bac1..3471175 100644
+--- a/arch/arm/kernel/entry-common.S
++++ b/arch/arm/kernel/entry-common.S
+@@ -88,9 +88,9 @@ ENTRY(ret_from_fork)
+ 	bl	schedule_tail
+ 	cmp	r5, #0
+ 	movne	r0, r4
+-	movne	lr, pc
++	adrne	lr, BSYM(1f)
+ 	movne	pc, r5
+-	get_thread_info tsk
++1:	get_thread_info tsk
+ 	b	ret_slow_syscall
+ ENDPROC(ret_from_fork)
+ 
 
