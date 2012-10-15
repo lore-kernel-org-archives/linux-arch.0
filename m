@@ -1,38 +1,51 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH] asm-generic, mm: PTE_SPECIAL cleanup
-Date: Mon, 15 Oct 2012 17:16:13 +0100
-Message-ID: <CAHkRjk7akwhcmeYV_Ank-YVotUMW0mN_1xeu5zbXWE+z5d9xdg@mail.gmail.com>
-References: <1350302608-8322-1-git-send-email-kirill.shutemov@linux.intel.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [revert request for commit 9fff2fa] Re: [git pull] signals pile 3
+Date: Mon, 15 Oct 2012 17:27:32 +0100
+Message-ID: <20121015162732.GG2616@ZenIV.linux.org.uk>
+References: <20121013005334.GM2616@ZenIV.linux.org.uk>
+ <507ADBBB.9090209@gmail.com>
+ <20121014164020.GV2616@ZenIV.linux.org.uk>
+ <CACTFLAOpcLtHNx-TCHQkUOPNAkTO8EgDhbyZSGQ9ag+Wu_cNRw@mail.gmail.com>
+ <20121014172640.GW2616@ZenIV.linux.org.uk>
+ <20121014192402.GZ2616@ZenIV.linux.org.uk>
+ <20121014195611.GA2616@ZenIV.linux.org.uk>
+ <20121015160710.GC30907@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <1350302608-8322-1-git-send-email-kirill.shutemov@linux.intel.com>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:47503 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752639Ab2JOQ1i (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Oct 2012 12:27:38 -0400
+Content-Disposition: inline
+In-Reply-To: <20121015160710.GC30907@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: Daniel Mack <zonque@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-On 15 October 2012 13:03, Kirill A. Shutemov
-<kirill.shutemov@linux.intel.com> wrote:
-> From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
->
-> Advertise PTE_SPECIAL through Kconfig option and consolidate dummy
-> pte_special() and mkspecial() in <asm-generic/pgtable.h>
->
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> ---
->  arch/Kconfig                             |    6 ++++++
->  arch/alpha/include/asm/pgtable.h         |    2 --
->  arch/arm/include/asm/pgtable.h           |    3 ---
->  arch/arm64/Kconfig                       |    1 +
->  arch/arm64/include/asm/pgtable.h         |    2 --
+On Mon, Oct 15, 2012 at 05:07:10PM +0100, Catalin Marinas wrote:
+> On Sun, Oct 14, 2012 at 08:56:11PM +0100, Al Viro wrote:
+> > On Sun, Oct 14, 2012 at 08:24:03PM +0100, Al Viro wrote:
+> > 
+> > > Russell, could you recall what those had been about?  I'm not sure if that
+> > > had been oopsable that far back (again, oops scenario is userland stack
+> > > page getting swapped out before we get to start_thread(), leading to
+> > > direct read from an absent page in start_thread() by plain ldr, without
+> > > anything in exception table about that insn), but it looks very odd
+> > > regardless of that problem.
+> > 
+> > BTW, arm64 has copied that logics, so it also seems to be unsafe and very
+> > odd - there we definitely have only ELF to cope with.  arm64 folks Cc'd...
+> 
+> Good point. We don't need this on arm64 and probably neither on arm (at
+> least since EABI).
+> 
+> Setting x0 may cause other issues as well. The dynamic loader simply
+> ignores the startup registers but for static binaries the _start code in
+> glibc expects r0 to contain a function pointer to be registered with
+> atexit() in __libc_start_main() or NULL. Since we pass argc in there,
+> for static binaries the rtld_fini argument to __libc_start_main() is
+> neither NULL nor something meaningful.
 
-For the arm64 bits:
-
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+The value left there by start_thread() will not reach the userland anyway...
