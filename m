@@ -1,153 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([143.182.124.37]:43170 "EHLO mga14.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752388Ab2JOL7n (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 15 Oct 2012 07:59:43 -0400
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: [PATCH] asm-generic, mm: pgtable: consolidate zero page helpers
-Date: Mon, 15 Oct 2012 14:59:59 +0300
-Message-ID: <1350302399-8036-1-git-send-email-kirill.shutemov@linux.intel.com>
+Received: from mail-qa0-f46.google.com ([209.85.216.46]:41061 "EHLO
+	mail-qa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751857Ab2JOQQe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Oct 2012 12:16:34 -0400
+Received: by mail-qa0-f46.google.com with SMTP id c26so1440840qad.19
+        for <linux-arch@vger.kernel.org>; Mon, 15 Oct 2012 09:16:33 -0700 (PDT)
+MIME-Version: 1.0
+In-Reply-To: <1350302608-8322-1-git-send-email-kirill.shutemov@linux.intel.com>
+References: <1350302608-8322-1-git-send-email-kirill.shutemov@linux.intel.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Date: Mon, 15 Oct 2012 17:16:13 +0100
+Message-ID: <CAHkRjk7akwhcmeYV_Ank-YVotUMW0mN_1xeu5zbXWE+z5d9xdg@mail.gmail.com>
+Subject: Re: [PATCH] asm-generic, mm: PTE_SPECIAL cleanup
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Cc: linux-s390@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mips@linux-mips.org, Ralf Baechle <ralf@linux-mips.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Message-ID: <20121015115959.d-jjbdtVbMTdjlbPIimIGntioVYpqlVk4IGwnfC6LX0@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Message-ID: <20121015161613.na3vHvUYJSEmwgpLWFPBA7_2-AmvN-rNI23J33AeZEE@z>
 
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+On 15 October 2012 13:03, Kirill A. Shutemov
+<kirill.shutemov@linux.intel.com> wrote:
+> From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+>
+> Advertise PTE_SPECIAL through Kconfig option and consolidate dummy
+> pte_special() and mkspecial() in <asm-generic/pgtable.h>
+>
+> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
+> ---
+>  arch/Kconfig                             |    6 ++++++
+>  arch/alpha/include/asm/pgtable.h         |    2 --
+>  arch/arm/include/asm/pgtable.h           |    3 ---
+>  arch/arm64/Kconfig                       |    1 +
+>  arch/arm64/include/asm/pgtable.h         |    2 --
 
-We have two different implementation of is_zero_pfn() and
-my_zero_pfn() helpers: for architectures with and without zero page
-coloring.
+For the arm64 bits:
 
-Let's consolidate them in <asm-generic/pgtable.h>.
-
-Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
----
- arch/mips/include/asm/pgtable.h |   11 +----------
- arch/s390/include/asm/pgtable.h |   11 +----------
- include/asm-generic/pgtable.h   |   26 ++++++++++++++++++++++++++
- include/linux/mm.h              |    8 --------
- mm/memory.c                     |    7 -------
- 5 files changed, 28 insertions(+), 35 deletions(-)
-
-diff --git a/arch/mips/include/asm/pgtable.h b/arch/mips/include/asm/pgtable.h
-index c02158b..14490e9 100644
---- a/arch/mips/include/asm/pgtable.h
-+++ b/arch/mips/include/asm/pgtable.h
-@@ -76,16 +76,7 @@ extern unsigned long zero_page_mask;
- 
- #define ZERO_PAGE(vaddr) \
- 	(virt_to_page((void *)(empty_zero_page + (((unsigned long)(vaddr)) & zero_page_mask))))
--
--#define is_zero_pfn is_zero_pfn
--static inline int is_zero_pfn(unsigned long pfn)
--{
--	extern unsigned long zero_pfn;
--	unsigned long offset_from_zero_pfn = pfn - zero_pfn;
--	return offset_from_zero_pfn <= (zero_page_mask >> PAGE_SHIFT);
--}
--
--#define my_zero_pfn(addr)	page_to_pfn(ZERO_PAGE(addr))
-+#define __HAVE_COLOR_ZERO_PAGE
- 
- extern void paging_init(void);
- 
-diff --git a/arch/s390/include/asm/pgtable.h b/arch/s390/include/asm/pgtable.h
-index dd647c9..a76e53d 100644
---- a/arch/s390/include/asm/pgtable.h
-+++ b/arch/s390/include/asm/pgtable.h
-@@ -55,16 +55,7 @@ extern unsigned long zero_page_mask;
- #define ZERO_PAGE(vaddr) \
- 	(virt_to_page((void *)(empty_zero_page + \
- 	 (((unsigned long)(vaddr)) &zero_page_mask))))
--
--#define is_zero_pfn is_zero_pfn
--static inline int is_zero_pfn(unsigned long pfn)
--{
--	extern unsigned long zero_pfn;
--	unsigned long offset_from_zero_pfn = pfn - zero_pfn;
--	return offset_from_zero_pfn <= (zero_page_mask >> PAGE_SHIFT);
--}
--
--#define my_zero_pfn(addr)	page_to_pfn(ZERO_PAGE(addr))
-+#define __HAVE_COLOR_ZERO_PAGE
- 
- #endif /* !__ASSEMBLY__ */
- 
-diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
-index b36ce40..284e808 100644
---- a/include/asm-generic/pgtable.h
-+++ b/include/asm-generic/pgtable.h
-@@ -449,6 +449,32 @@ extern void untrack_pfn(struct vm_area_struct *vma, unsigned long pfn,
- 			unsigned long size);
- #endif
- 
-+#ifdef __HAVE_COLOR_ZERO_PAGE
-+static inline int is_zero_pfn(unsigned long pfn)
-+{
-+	extern unsigned long zero_pfn;
-+	unsigned long offset_from_zero_pfn = pfn - zero_pfn;
-+	return offset_from_zero_pfn <= (zero_page_mask >> PAGE_SHIFT);
-+}
-+
-+static inline unsigned long my_zero_pfn(unsigned long addr)
-+{
-+	return page_to_pfn(ZERO_PAGE(addr));
-+}
-+#else
-+static inline int is_zero_pfn(unsigned long pfn)
-+{
-+	extern unsigned long zero_pfn;
-+	return pfn == zero_pfn;
-+}
-+
-+static inline unsigned long my_zero_pfn(unsigned long addr)
-+{
-+	extern unsigned long zero_pfn;
-+	return zero_pfn;
-+}
-+#endif
-+
- #ifdef CONFIG_MMU
- 
- #ifndef CONFIG_TRANSPARENT_HUGEPAGE
-diff --git a/include/linux/mm.h b/include/linux/mm.h
-index fe329da..fa06804 100644
---- a/include/linux/mm.h
-+++ b/include/linux/mm.h
-@@ -516,14 +516,6 @@ static inline pte_t maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
- }
- #endif
- 
--#ifndef my_zero_pfn
--static inline unsigned long my_zero_pfn(unsigned long addr)
--{
--	extern unsigned long zero_pfn;
--	return zero_pfn;
--}
--#endif
--
- /*
-  * Multiple processes may "see" the same page. E.g. for untouched
-  * mappings of /dev/null, all processes see the same page full of
-diff --git a/mm/memory.c b/mm/memory.c
-index 6017e23..d3f2120 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -717,13 +717,6 @@ static inline bool is_cow_mapping(vm_flags_t flags)
- 	return (flags & (VM_SHARED | VM_MAYWRITE)) == VM_MAYWRITE;
- }
- 
--#ifndef is_zero_pfn
--static inline int is_zero_pfn(unsigned long pfn)
--{
--	return pfn == zero_pfn;
--}
--#endif
--
- /*
-  * vm_normal_page -- This function gets the "struct page" associated with a pte.
-  *
--- 
-1.7.7.6
-
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
