@@ -1,57 +1,153 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dnvwsmailout1.mcafee.com ([161.69.31.173]:28942 "EHLO
-	DNVWSMAILOUT1.mcafee.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753759Ab2JOGqv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Oct 2012 02:46:51 -0400
-From: <gerg@snapgear.com>
-Subject: [PATCH 07/11] m68k: switch to using the asm-generic spinlock.h
-Date: Mon, 15 Oct 2012 16:49:15 +1000
-Message-ID: <1350283759-31158-8-git-send-email-gerg@snapgear.com>
-In-Reply-To: <1350283759-31158-1-git-send-email-gerg@snapgear.com>
-References: <1350283759-31158-1-git-send-email-gerg@snapgear.com>
-MIME-Version: 1.0
-Content-Type: text/plain
+Received: from mga14.intel.com ([143.182.124.37]:43170 "EHLO mga14.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752388Ab2JOL7n (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 15 Oct 2012 07:59:43 -0400
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: [PATCH] asm-generic, mm: pgtable: consolidate zero page helpers
+Date: Mon, 15 Oct 2012 14:59:59 +0300
+Message-ID: <1350302399-8036-1-git-send-email-kirill.shutemov@linux.intel.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Greg Ungerer <gerg@uclinux.org>
-Message-ID: <20121015064915.FizWHfPUSHq3McTxjKHvIXZGn-LfvaS-ocforckNiyY@z>
+To: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+Cc: linux-s390@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mips@linux-mips.org, Ralf Baechle <ralf@linux-mips.org>, "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Message-ID: <20121015115959.d-jjbdtVbMTdjlbPIimIGntioVYpqlVk4IGwnfC6LX0@z>
 
-From: Greg Ungerer <gerg@uclinux.org>
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 
-We don't need a local spinlock.h, switch to using the asm-generic version.
+We have two different implementation of is_zero_pfn() and
+my_zero_pfn() helpers: for architectures with and without zero page
+coloring.
 
-Signed-off-by: Greg Ungerer <gerg@uclinux.org>
+Let's consolidate them in <asm-generic/pgtable.h>.
+
+Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
 ---
- arch/m68k/include/asm/Kbuild     |    1 +
- arch/m68k/include/asm/spinlock.h |    6 ------
- 2 files changed, 1 insertions(+), 6 deletions(-)
- delete mode 100644 arch/m68k/include/asm/spinlock.h
+ arch/mips/include/asm/pgtable.h |   11 +----------
+ arch/s390/include/asm/pgtable.h |   11 +----------
+ include/asm-generic/pgtable.h   |   26 ++++++++++++++++++++++++++
+ include/linux/mm.h              |    8 --------
+ mm/memory.c                     |    7 -------
+ 5 files changed, 28 insertions(+), 35 deletions(-)
 
-diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
-index 19f59dc..c770aec 100644
---- a/arch/m68k/include/asm/Kbuild
-+++ b/arch/m68k/include/asm/Kbuild
-@@ -30,6 +30,7 @@ generic-y += sembuf.h
- generic-y += shmbuf.h
- generic-y += shmparam.h
- generic-y += siginfo.h
-+generic-y += spinlock.h
- generic-y += statfs.h
- generic-y += topology.h
- generic-y += types.h
-diff --git a/arch/m68k/include/asm/spinlock.h b/arch/m68k/include/asm/spinlock.h
-deleted file mode 100644
-index 20f46e2..0000000
---- a/arch/m68k/include/asm/spinlock.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef __M68K_SPINLOCK_H
--#define __M68K_SPINLOCK_H
+diff --git a/arch/mips/include/asm/pgtable.h b/arch/mips/include/asm/pgtable.h
+index c02158b..14490e9 100644
+--- a/arch/mips/include/asm/pgtable.h
++++ b/arch/mips/include/asm/pgtable.h
+@@ -76,16 +76,7 @@ extern unsigned long zero_page_mask;
+ 
+ #define ZERO_PAGE(vaddr) \
+ 	(virt_to_page((void *)(empty_zero_page + (((unsigned long)(vaddr)) & zero_page_mask))))
 -
--#error "m68k doesn't do SMP yet"
+-#define is_zero_pfn is_zero_pfn
+-static inline int is_zero_pfn(unsigned long pfn)
+-{
+-	extern unsigned long zero_pfn;
+-	unsigned long offset_from_zero_pfn = pfn - zero_pfn;
+-	return offset_from_zero_pfn <= (zero_page_mask >> PAGE_SHIFT);
+-}
 -
+-#define my_zero_pfn(addr)	page_to_pfn(ZERO_PAGE(addr))
++#define __HAVE_COLOR_ZERO_PAGE
+ 
+ extern void paging_init(void);
+ 
+diff --git a/arch/s390/include/asm/pgtable.h b/arch/s390/include/asm/pgtable.h
+index dd647c9..a76e53d 100644
+--- a/arch/s390/include/asm/pgtable.h
++++ b/arch/s390/include/asm/pgtable.h
+@@ -55,16 +55,7 @@ extern unsigned long zero_page_mask;
+ #define ZERO_PAGE(vaddr) \
+ 	(virt_to_page((void *)(empty_zero_page + \
+ 	 (((unsigned long)(vaddr)) &zero_page_mask))))
+-
+-#define is_zero_pfn is_zero_pfn
+-static inline int is_zero_pfn(unsigned long pfn)
+-{
+-	extern unsigned long zero_pfn;
+-	unsigned long offset_from_zero_pfn = pfn - zero_pfn;
+-	return offset_from_zero_pfn <= (zero_page_mask >> PAGE_SHIFT);
+-}
+-
+-#define my_zero_pfn(addr)	page_to_pfn(ZERO_PAGE(addr))
++#define __HAVE_COLOR_ZERO_PAGE
+ 
+ #endif /* !__ASSEMBLY__ */
+ 
+diff --git a/include/asm-generic/pgtable.h b/include/asm-generic/pgtable.h
+index b36ce40..284e808 100644
+--- a/include/asm-generic/pgtable.h
++++ b/include/asm-generic/pgtable.h
+@@ -449,6 +449,32 @@ extern void untrack_pfn(struct vm_area_struct *vma, unsigned long pfn,
+ 			unsigned long size);
+ #endif
+ 
++#ifdef __HAVE_COLOR_ZERO_PAGE
++static inline int is_zero_pfn(unsigned long pfn)
++{
++	extern unsigned long zero_pfn;
++	unsigned long offset_from_zero_pfn = pfn - zero_pfn;
++	return offset_from_zero_pfn <= (zero_page_mask >> PAGE_SHIFT);
++}
++
++static inline unsigned long my_zero_pfn(unsigned long addr)
++{
++	return page_to_pfn(ZERO_PAGE(addr));
++}
++#else
++static inline int is_zero_pfn(unsigned long pfn)
++{
++	extern unsigned long zero_pfn;
++	return pfn == zero_pfn;
++}
++
++static inline unsigned long my_zero_pfn(unsigned long addr)
++{
++	extern unsigned long zero_pfn;
++	return zero_pfn;
++}
++#endif
++
+ #ifdef CONFIG_MMU
+ 
+ #ifndef CONFIG_TRANSPARENT_HUGEPAGE
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index fe329da..fa06804 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -516,14 +516,6 @@ static inline pte_t maybe_mkwrite(pte_t pte, struct vm_area_struct *vma)
+ }
+ #endif
+ 
+-#ifndef my_zero_pfn
+-static inline unsigned long my_zero_pfn(unsigned long addr)
+-{
+-	extern unsigned long zero_pfn;
+-	return zero_pfn;
+-}
 -#endif
+-
+ /*
+  * Multiple processes may "see" the same page. E.g. for untouched
+  * mappings of /dev/null, all processes see the same page full of
+diff --git a/mm/memory.c b/mm/memory.c
+index 6017e23..d3f2120 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -717,13 +717,6 @@ static inline bool is_cow_mapping(vm_flags_t flags)
+ 	return (flags & (VM_SHARED | VM_MAYWRITE)) == VM_MAYWRITE;
+ }
+ 
+-#ifndef is_zero_pfn
+-static inline int is_zero_pfn(unsigned long pfn)
+-{
+-	return pfn == zero_pfn;
+-}
+-#endif
+-
+ /*
+  * vm_normal_page -- This function gets the "struct page" associated with a pte.
+  *
 -- 
-1.7.0.4
+1.7.7.6
 
