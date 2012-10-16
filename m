@@ -1,61 +1,36 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [revert request for commit 9fff2fa] Re: [git pull] signals
- pile 3
-Date: Mon, 15 Oct 2012 18:06:00 +0100
-Message-ID: <20121015170600.GD30907@arm.com>
-References: <20121013005334.GM2616@ZenIV.linux.org.uk>
- <507ADBBB.9090209@gmail.com>
- <20121014164020.GV2616@ZenIV.linux.org.uk>
- <CACTFLAOpcLtHNx-TCHQkUOPNAkTO8EgDhbyZSGQ9ag+Wu_cNRw@mail.gmail.com>
- <20121014172640.GW2616@ZenIV.linux.org.uk>
- <20121014192402.GZ2616@ZenIV.linux.org.uk>
- <20121014195611.GA2616@ZenIV.linux.org.uk>
- <20121015160710.GC30907@arm.com>
- <20121015162732.GG2616@ZenIV.linux.org.uk>
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: Re: [PATCH 25/25] xtensa: Use Kbuild infrastructure to handle
+ asm-generic headers
+Date: Tue, 16 Oct 2012 09:14:03 +0400
+Message-ID: <CAMo8Bf+isk4HrB7MesgooqmNYuWUjLaifkB9kw3ENdQk7tL1eQ@mail.gmail.com>
+References: <20121013022632.024527228@goodmis.org>
+	<20121013022956.036433758@goodmis.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=WINDOWS-1252
-Content-Transfer-Encoding: 8BIT
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:59178 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753910Ab2JORGG convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Oct 2012 13:06:06 -0400
-In-Reply-To: <20121015162732.GG2616@ZenIV.linux.org.uk>
-Content-Disposition: inline
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Daniel Mack <zonque@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Russell King - ARM Linux <linux@arm.linux.org.uk>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20121013022956.036433758@goodmis.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>
+List-Id: linux-arch.vger.kernel.org
 
-On Mon, Oct 15, 2012 at 05:27:32PM +0100, Al Viro wrote:
-> On Mon, Oct 15, 2012 at 05:07:10PM +0100, Catalin Marinas wrote:
-> > On Sun, Oct 14, 2012 at 08:56:11PM +0100, Al Viro wrote:
-> > > On Sun, Oct 14, 2012 at 08:24:03PM +0100, Al Viro wrote:
-> > > 
-> > > > Russell, could you recall what those had been about?  I'm not sure if that
-> > > > had been oopsable that far back (again, oops scenario is userland stack
-> > > > page getting swapped out before we get to start_thread(), leading to
-> > > > direct read from an absent page in start_thread() by plain ldr, without
-> > > > anything in exception table about that insn), but it looks very odd
-> > > > regardless of that problem.
-> > > 
-> > > BTW, arm64 has copied that logics, so it also seems to be unsafe and very
-> > > odd - there we definitely have only ELF to cope with.  arm64 folks Cc'd...
-> > 
-> > Good point. We don't need this on arm64 and probably neither on arm (at
-> > least since EABI).
-> > 
-> > Setting x0 may cause other issues as well. The dynamic loader simply
-> > ignores the startup registers but for static binaries the _start code in
-> > glibc expects r0 to contain a function pointer to be registered with
-> > atexit() in __libc_start_main() or NULL. Since we pass argc in there,
-> > for static binaries the rtld_fini argument to __libc_start_main() is
-> > neither NULL nor something meaningful.
-> 
-> The value left there by start_thread() will not reach the userland anyway...
+On Sat, Oct 13, 2012 at 6:26 AM, Steven Rostedt <rostedt@goodmis.org> wrote:
+> From: Steven Rostedt <srostedt@redhat.com>
+>
+> Use Kbuild infrastructure to handle the asm-generic headers
+> and remove the wrapper headers that call them.
+>
+> This only affects headers that do nothing but include the generic
+> equivalent. It does not touch any header that does a little more.
+>
+> Cc: linux-kbuild@vger.kernel.org
+> Cc: linux-xtensa@linux-xtensa.org
+> Cc: Chris Zankel <chris@zankel.net>
+> Cc: Max Filippov <jcmvbkbc@gmail.com>
+> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 
-Ah, yes. So not causing any user issues (apart from the possible fault
-in the kernel while accessing the user stack).
+Thanks, rebased on top of UAPI changes and applied to
+the xtensa_next tree.
 
 -- 
-Catalin
+-- Max
