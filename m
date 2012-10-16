@@ -1,39 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f46.google.com ([209.85.216.46]:41061 "EHLO
-	mail-qa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751857Ab2JOQQe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 15 Oct 2012 12:16:34 -0400
-Received: by mail-qa0-f46.google.com with SMTP id c26so1440840qad.19
-        for <linux-arch@vger.kernel.org>; Mon, 15 Oct 2012 09:16:33 -0700 (PDT)
+Received: from mail-ob0-f174.google.com ([209.85.214.174]:62435 "EHLO
+	mail-ob0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755486Ab2JPFOE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Oct 2012 01:14:04 -0400
 MIME-Version: 1.0
-In-Reply-To: <1350302608-8322-1-git-send-email-kirill.shutemov@linux.intel.com>
-References: <1350302608-8322-1-git-send-email-kirill.shutemov@linux.intel.com>
-From: Catalin Marinas <catalin.marinas@arm.com>
-Date: Mon, 15 Oct 2012 17:16:13 +0100
-Message-ID: <CAHkRjk7akwhcmeYV_Ank-YVotUMW0mN_1xeu5zbXWE+z5d9xdg@mail.gmail.com>
-Subject: Re: [PATCH] asm-generic, mm: PTE_SPECIAL cleanup
+In-Reply-To: <20121013022956.036433758@goodmis.org>
+References: <20121013022632.024527228@goodmis.org>
+	<20121013022956.036433758@goodmis.org>
+Date: Tue, 16 Oct 2012 09:14:03 +0400
+Message-ID: <CAMo8Bf+isk4HrB7MesgooqmNYuWUjLaifkB9kw3ENdQk7tL1eQ@mail.gmail.com>
+Subject: Re: [PATCH 25/25] xtensa: Use Kbuild infrastructure to handle
+ asm-generic headers
+From: Max Filippov <jcmvbkbc@gmail.com>
 Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
-Message-ID: <20121015161613.na3vHvUYJSEmwgpLWFPBA7_2-AmvN-rNI23J33AeZEE@z>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Chris Zankel <chris@zankel.net>
+Message-ID: <20121016051403.IkKXOf_4osOsaf7yg57GW4XT5i23QRCm2ZpV-0KlhVE@z>
 
-On 15 October 2012 13:03, Kirill A. Shutemov
-<kirill.shutemov@linux.intel.com> wrote:
-> From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+On Sat, Oct 13, 2012 at 6:26 AM, Steven Rostedt <rostedt@goodmis.org> wrote:
+> From: Steven Rostedt <srostedt@redhat.com>
 >
-> Advertise PTE_SPECIAL through Kconfig option and consolidate dummy
-> pte_special() and mkspecial() in <asm-generic/pgtable.h>
+> Use Kbuild infrastructure to handle the asm-generic headers
+> and remove the wrapper headers that call them.
 >
-> Signed-off-by: Kirill A. Shutemov <kirill.shutemov@linux.intel.com>
-> ---
->  arch/Kconfig                             |    6 ++++++
->  arch/alpha/include/asm/pgtable.h         |    2 --
->  arch/arm/include/asm/pgtable.h           |    3 ---
->  arch/arm64/Kconfig                       |    1 +
->  arch/arm64/include/asm/pgtable.h         |    2 --
+> This only affects headers that do nothing but include the generic
+> equivalent. It does not touch any header that does a little more.
+>
+> Cc: linux-kbuild@vger.kernel.org
+> Cc: linux-xtensa@linux-xtensa.org
+> Cc: Chris Zankel <chris@zankel.net>
+> Cc: Max Filippov <jcmvbkbc@gmail.com>
+> Signed-off-by: Steven Rostedt <rostedt@goodmis.org>
 
-For the arm64 bits:
+Thanks, rebased on top of UAPI changes and applied to
+the xtensa_next tree.
 
-Acked-by: Catalin Marinas <catalin.marinas@arm.com>
+-- 
+-- Max
