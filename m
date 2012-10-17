@@ -1,54 +1,145 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cn.fujitsu.com ([222.73.24.84]:40310 "EHLO song.cn.fujitsu.com"
-	rhost-flags-OK-FAIL-OK-OK) by vger.kernel.org with ESMTP
-	id S1752979Ab2JQFzY (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 17 Oct 2012 01:55:24 -0400
-Message-ID: <507E48ED.8060809@cn.fujitsu.com>
-Date: Wed, 17 Oct 2012 13:58:05 +0800
-From: Lai Jiangshan <laijs@cn.fujitsu.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:36386 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752100Ab2JQNBt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 Oct 2012 09:01:49 -0400
+Date: Wed, 17 Oct 2012 14:01:25 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
+ access fault.
+Message-ID: <20121017130125.GH5973@mudshark.cambridge.arm.com>
+References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
+ <20121002150104.da57fa94.akpm@linux-foundation.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH] percpu-rwsem: use barrier in unlock path
-References: <Pine.LNX.4.64.1210151716310.10685@file.rdu.redhat.com> <Pine.LNX.4.64.1210161924350.20581@file.rdu.redhat.com> <CA+55aFyZ9uq_yfHn9PwpmM77X3xVd+xseEbjJmeCCqbFddtjWA@mail.gmail.com>
-In-Reply-To: <CA+55aFyZ9uq_yfHn9PwpmM77X3xVd+xseEbjJmeCCqbFddtjWA@mail.gmail.com>
-Content-Transfer-Encoding: 7bit
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20121002150104.da57fa94.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Mikulas Patocka <mpatocka@redhat.com>, Jens Axboe <axboe@kernel.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Thomas Gleixner <tglx@linutronix.de>, Eric Dumazet <eric.dumazet@gmail.com>
-Message-ID: <20121017055805.sS9leXfkfMaqaFTLbOwF-fs9oYLCAsKYlcilMPR17LI@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, Andrea Arcangeli <aarcange@redhat.com>, Chris Metcalf <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
+Message-ID: <20121017130125.Ztw_F140A_piSeoPRUpljtyvVNuIbw1roSQqsyxKFCs@z>
 
-On 10/17/2012 10:23 AM, Linus Torvalds wrote:
-> [ Architecture people, note the potential new SMP barrier! ]
+Hi Andrew,
+
+On Tue, Oct 02, 2012 at 11:01:04PM +0100, Andrew Morton wrote:
+> On Tue,  2 Oct 2012 17:59:11 +0100
+> Will Deacon <will.deacon@arm.com> wrote:
 > 
-> On Tue, Oct 16, 2012 at 4:30 PM, Mikulas Patocka <mpatocka@redhat.com> wrote:
->> +       /*
->> +        * The lock is considered unlocked when p->locked is set to false.
->> +        * Use barrier prevent reordering of operations around p->locked.
->> +        */
->> +#if defined(CONFIG_X86) && (!defined(CONFIG_X86_PPRO_FENCE) && !defined(CONFIG_X86_OOSTORE))
->> +       barrier();
->> +#else
->> +       smp_mb();
->> +#endif
->>         p->locked = false;
+> > On x86 memory accesses to pages without the ACCESSED flag set result in the
+> > ACCESSED flag being set automatically. With the ARM architecture a page access
+> > fault is raised instead (and it will continue to be raised until the ACCESSED
+> > flag is set for the appropriate PTE/PMD).
+> > 
+> > For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
+> > setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
+> > be called for a write fault.
+> > 
+> > This patch ensures that faults on transparent hugepages which do not result
+> > in a CoW update the access flags for the faulting pmd.
 > 
-> Ugh. The #if is too ugly to live.
+> Alas, the code you're altering has changed so much in linux-next that I
+> am reluctant to force this fix in there myself.  Can you please
+> redo/retest/resend?  You can do that on 3.7-rc1 if you like, then we
+> can feed this into -rc2.
 
-Even the previous patch is applied, percpu_down_read() still
-needs mb() to pair with it.
+Here's the updated patch against -rc1...
 
-> 
-> This is a classic case of "people who write their own serialization
-> primitives invariably get them wrong". And this fix is just horrible,
-> and code like this should not be allowed.
+Cheers,
 
-One of the most major problems of 62ac665ff9fc07497ca524bd20d6a96893d11071 is that
-it is merged without Ackeds or Revieweds from Paul or Peter or someone else
-who are expert at synchronization/arch memory models.
+Will
 
-I suggest any new synchronization should stay in -tip for 2 or more cycles
-before merged to mainline.
+--->8
 
-Thanks,
-Lai
+From 16b73aea010832cd3d6f22ada60ae055937ef6c0 Mon Sep 17 00:00:00 2001
+From: Will Deacon <will.deacon@arm.com>
+Date: Tue, 2 Oct 2012 11:18:52 +0100
+Subject: [PATCH] mm: thp: Set the accessed flag for old pages on access fault.
+
+On x86 memory accesses to pages without the ACCESSED flag set result in the
+ACCESSED flag being set automatically. With the ARM architecture a page access
+fault is raised instead (and it will continue to be raised until the ACCESSED
+flag is set for the appropriate PTE/PMD).
+
+For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
+setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
+be called for a write fault.
+
+This patch ensures that faults on transparent hugepages which do not result
+in a CoW update the access flags for the faulting pmd.
+
+Cc: Chris Metcalf <cmetcalf@tilera.com>
+Acked-by: Kirill A. Shutemov <kirill@shutemov.name>
+Reviewed-by: Andrea Arcangeli <aarcange@redhat.com>
+Signed-off-by: Steve Capper <steve.capper@arm.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ include/linux/huge_mm.h |    2 ++
+ mm/huge_memory.c        |    8 ++++++++
+ mm/memory.c             |    9 ++++++++-
+ 3 files changed, 18 insertions(+), 1 deletions(-)
+
+diff --git a/include/linux/huge_mm.h b/include/linux/huge_mm.h
+index b31cb7d..62a0d5a 100644
+--- a/include/linux/huge_mm.h
++++ b/include/linux/huge_mm.h
+@@ -8,6 +8,8 @@ extern int do_huge_pmd_anonymous_page(struct mm_struct *mm,
+ extern int copy_huge_pmd(struct mm_struct *dst_mm, struct mm_struct *src_mm,
+ 			 pmd_t *dst_pmd, pmd_t *src_pmd, unsigned long addr,
+ 			 struct vm_area_struct *vma);
++extern void huge_pmd_set_accessed(struct vm_area_struct *vma,
++				  unsigned long address, pmd_t *pmd, int dirty);
+ extern int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
+ 			       unsigned long address, pmd_t *pmd,
+ 			       pmd_t orig_pmd);
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index a863af2..5a7ce24 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -878,6 +878,14 @@ out_free_pages:
+ 	goto out;
+ }
+ 
++void huge_pmd_set_accessed(struct vm_area_struct *vma, unsigned long address,
++			   pmd_t *pmd, int dirty)
++{
++	pmd_t entry = pmd_mkyoung(*pmd);
++	if (pmdp_set_access_flags(vma, address & HPAGE_PMD_MASK, pmd, entry, dirty))
++		update_mmu_cache(vma, address, pmd);
++}
++
+ int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
+ 			unsigned long address, pmd_t *pmd, pmd_t orig_pmd)
+ {
+diff --git a/mm/memory.c b/mm/memory.c
+index fb135ba..c55c17c 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -3539,7 +3539,8 @@ retry:
+ 
+ 		barrier();
+ 		if (pmd_trans_huge(orig_pmd)) {
+-			if (flags & FAULT_FLAG_WRITE &&
++			unsigned int dirty = flags & FAULT_FLAG_WRITE;
++			if (dirty &&
+ 			    !pmd_write(orig_pmd) &&
+ 			    !pmd_trans_splitting(orig_pmd)) {
+ 				ret = do_huge_pmd_wp_page(mm, vma, address, pmd,
+@@ -3552,7 +3553,13 @@ retry:
+ 				if (unlikely(ret & VM_FAULT_OOM))
+ 					goto retry;
+ 				return ret;
++			} else if (pmd_trans_huge_lock(pmd, vma) == 1) {
++				if (likely(pmd_same(*pmd, orig_pmd)))
++					huge_pmd_set_accessed(vma, address, pmd,
++							      dirty);
++				spin_unlock(&mm->page_table_lock);
+ 			}
++
+ 			return 0;
+ 		}
+ 	}
+-- 
+1.7.4.1
+
