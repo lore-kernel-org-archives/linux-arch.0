@@ -1,72 +1,70 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [RFC][CFT][CFReview] execve and kernel_thread unification work
-Date: Wed, 17 Oct 2012 15:02:15 +0100
-Message-ID: <CAHkRjk7QbybMx1Kc9dP-Mz_ujMmHf5htLViviNok=HKjac0G+A@mail.gmail.com>
-References: <20121001213809.GA31155@ZenIV.linux.org.uk> <20121015013009.GB2616@ZenIV.linux.org.uk>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: new execve/kernel_thread design
+Date: Wed, 17 Oct 2012 16:27:06 +0200
+Message-ID: <CAHTX3dKDsOiUwtXxAUj-F4Y4rO+UZZDR4ufx_nxf+vuhmz46WA@mail.gmail.com>
+References: <20121016223508.GR2616@ZenIV.linux.org.uk>
+	<CACM3HyEpypULRWUc5ZnLnZ=uOWf3_j=9PXZiJrT_BXyGcQe9yg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qc0-f174.google.com ([209.85.216.174]:33957 "EHLO
-	mail-qc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757068Ab2JQOCg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2012 10:02:36 -0400
-In-Reply-To: <20121015013009.GB2616@ZenIV.linux.org.uk>
+Received: from mail-ea0-f174.google.com ([209.85.215.174]:44928 "EHLO
+	mail-ea0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757223Ab2JQO1H (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2012 10:27:07 -0400
+Received: by mail-ea0-f174.google.com with SMTP id c13so1835415eaa.19
+        for <linux-arch@vger.kernel.org>; Wed, 17 Oct 2012 07:27:06 -0700 (PDT)
+In-Reply-To: <CACM3HyEpypULRWUc5ZnLnZ=uOWf3_j=9PXZiJrT_BXyGcQe9yg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
+To: Jonas Bonn <jonas@southpole.se>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
 
-Hi Al,
+2012/10/17 Jonas Bonn <jonas@southpole.se>:
+> On 17 October 2012 00:35, Al Viro <viro@zeniv.linux.org.uk> wrote:
+>>
+>> Not even a tentative patchset: hexagon, openrisc, tile, xtensa.
+>>
+>
+> I did most of the OpenRISC conversion last weekend... the
+> kernel_thread bits work fine but I end up with the init thread dying
+> with what I've got now for kernel_execve.  Once I've got that sorted
+> out, I'll pass this along to you.
 
-On 15 October 2012 02:30, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> arch-arm64 - patches from maintainer with minor followup folded
+I am testing the Microblaze conversion and I see the similar problem
+with GENERIC_KERNEL_EXECVE
+(commit: http://git.kernel.org/?p=linux/kernel/git/viro/signal.git;a=commit;h=6aa044199aed5b541eba7fe7f25efdfb3a655a58)
 
-Thanks for updating the arm64 branch. I've adapted the changes, tested
-and folded them into the branch below (the AArch64 instruction set
-does not have conditional instructions):
+I have look at the patch and I have found this.
+(From description above: a kernel thread can become a userland
+process.  The primitive is kernel_execve())
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/linux-aarch64.git
-execve
+In  init/main.c:795/run_init_process() kernel_execve is called.
+In old style, kernel_execve is called which runs microblaze
+kernel_execve which calls __NR_execve as syscall.
+In entry.S user exception detects that jump comes from kernel space
+and save pt_regs on the current stack
+and calls sys_execve and then microblaze_execve with 4th argument
+which is pointer to pt_regs, etc.
 
-Top commit: 6a872777ffff6184f4ac10bd71d926d5e6f2491e (arm64: Use
-generic sys_execve() implementation)
+In the patch above there is directly used current_pt_regs() function
+which works good for newly created threads
+when pt_regs are exactly in current_pt_regs() position but not for
+pt_regs which are saved on the stack
+which is the init task case.
 
-The diff between your branch and mine (including one cosmetic change
-as the ARM64 Kconfig selects are alphabetically sorted):
+Also this is the reason why microblaze has implementation for calling
+_user_exception from the kernel space.
+I believe that it is called just once for /init.
 
-diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
-index 31e3b5e..75b212d 100644
---- a/arch/arm64/Kconfig
-+++ b/arch/arm64/Kconfig
-@@ -6,8 +6,8 @@ config ARM64
- 	select GENERIC_IOMAP
- 	select GENERIC_IRQ_PROBE
- 	select GENERIC_IRQ_SHOW
--	select GENERIC_KERNEL_THREAD
- 	select GENERIC_KERNEL_EXECVE
-+	select GENERIC_KERNEL_THREAD
- 	select GENERIC_SMP_IDLE_THREAD
- 	select GENERIC_TIME_VSYSCALL
- 	select HARDIRQS_SW_RESEND
-diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
-index c3d650a..6165318 100644
---- a/arch/arm64/kernel/entry.S
-+++ b/arch/arm64/kernel/entry.S
-@@ -611,10 +611,10 @@ ENDPROC(ret_to_user)
-  */
- ENTRY(ret_from_fork)
- 	bl	schedule_tail
--	cmp	x19, #0
--	movne	x0, x20
--	blne	x19
--	get_thread_info tsk
-+	cbz	x19, 1f				// not a kernel thread
-+	mov	x0, x20
-+	blr	x19
-+1:	get_thread_info tsk
- 	b	ret_to_user
- ENDPROC(ret_from_fork)
+My question is how should /init be called? Because I need to save
+pt_regs to current_pt_regs() position where
+generic kernel_execve expects it.
 
+Thanks,
+Michal
 
 -- 
-Catalin
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
+Microblaze U-BOOT custodian
