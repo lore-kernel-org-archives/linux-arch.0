@@ -1,28 +1,59 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
- access fault.
-Date: Wed, 17 Oct 2012 11:26:20 -0400 (EDT)
-Message-ID: <20121017.112620.1865348978594874782.davem@davemloft.net>
-References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
-	<20121002150104.da57fa94.akpm@linux-foundation.org>
-	<20121017130125.GH5973@mudshark.cambridge.arm.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:40785 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751871Ab2JQP0W (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2012 11:26:22 -0400
-In-Reply-To: <20121017130125.GH5973@mudshark.cambridge.arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: will.deacon@arm.com
-Cc: akpm@linux-foundation.org, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mhocko@suse.cz, kirill@shutemov.name, aarcange@redhat.com, cmetcalf@tilera.com, Steve.Capper@arm.com
-
 From: Will Deacon <will.deacon@arm.com>
-Date: Wed, 17 Oct 2012 14:01:25 +0100
+Subject: [RESEND PATCH 3/4] mmc: mmci: use io{read,write}*_rep accessors instead of string functions
+Date: Wed, 17 Oct 2012 16:45:03 +0100
+Message-ID: <1350488704-3711-4-git-send-email-will.deacon@arm.com>
+References: <1350488704-3711-1-git-send-email-will.deacon@arm.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1350488704-3711-1-git-send-email-will.deacon@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Ben Herrenschmidt <benh@kernel.crashing.org>
+List-Id: linux-arch.vger.kernel.org
 
-> +		update_mmu_cache(vma, address, pmd);
+The {read,write}s{b,w,l} operations are not defined by all architectures
+and are being removed from the asm-generic/io.h interface.
 
-This won't build, use update_mmu_cache_pmd().
+This patch replaces the usage of these string functions with
+io{read,write}{8,16,32}_rep calls instead, which are defined for all
+architectures.
+
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Ben Herrenschmidt <benh@kernel.crashing.org>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ drivers/mmc/host/mmci.c |    8 ++++----
+ 1 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/mmc/host/mmci.c b/drivers/mmc/host/mmci.c
+index edc3e9b..4f125b4 100644
+--- a/drivers/mmc/host/mmci.c
++++ b/drivers/mmc/host/mmci.c
+@@ -840,14 +840,14 @@ static int mmci_pio_read(struct mmci_host *host, char *buffer, unsigned int rema
+ 		if (unlikely(count & 0x3)) {
+ 			if (count < 4) {
+ 				unsigned char buf[4];
+-				readsl(base + MMCIFIFO, buf, 1);
++				ioread32_rep(base + MMCIFIFO, buf, 1);
+ 				memcpy(ptr, buf, count);
+ 			} else {
+-				readsl(base + MMCIFIFO, ptr, count >> 2);
++				ioread32_rep(base + MMCIFIFO, ptr, count >> 2);
+ 				count &= ~0x3;
+ 			}
+ 		} else {
+-			readsl(base + MMCIFIFO, ptr, count >> 2);
++			ioread32_rep(base + MMCIFIFO, ptr, count >> 2);
+ 		}
+ 
+ 		ptr += count;
+@@ -900,7 +900,7 @@ static int mmci_pio_write(struct mmci_host *host, char *buffer, unsigned int rem
+ 		 * byte become a 32bit write, 7 bytes will be two
+ 		 * 32bit writes etc.
+ 		 */
+-		writesl(base + MMCIFIFO, ptr, (count + 3) >> 2);
++		iowrite32_rep(base + MMCIFIFO, ptr, (count + 3) >> 2);
+ 
+ 		ptr += count;
+ 		remain -= count;
+-- 
+1.7.4.1
