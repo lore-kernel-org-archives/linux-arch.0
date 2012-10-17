@@ -1,38 +1,29 @@
-From: James Hogan <james@albanarts.com>
-Subject: Re: [GIT PULL] User API Disintegrate: Preparatory patches
-Date: Wed, 17 Oct 2012 09:42:57 +0100
-Message-ID: <CAAG0J9_gYLn5+4j9WUnPmxWyJfQK_b8e5xjxZdRPG21euXoCFg@mail.gmail.com>
-References: <18137.1349203013@warthog.procyon.org.uk>
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Subject: Re: [PATCH] percpu-rwsem: use barrier in unlock path
+Date: Wed, 17 Oct 2012 10:56:35 +0100
+Message-ID: <20121017105635.7623af47@pyramind.ukuu.org.uk>
+References: <Pine.LNX.4.64.1210151716310.10685@file.rdu.redhat.com>
+	<Pine.LNX.4.64.1210161924350.20581@file.rdu.redhat.com>
+	<CA+55aFyZ9uq_yfHn9PwpmM77X3xVd+xseEbjJmeCCqbFddtjWA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f46.google.com ([209.85.215.46]:64708 "EHLO
-	mail-la0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751871Ab2JQIm7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2012 04:42:59 -0400
-Received: by mail-la0-f46.google.com with SMTP id h6so4822276lag.19
-        for <linux-arch@vger.kernel.org>; Wed, 17 Oct 2012 01:42:58 -0700 (PDT)
-In-Reply-To: <18137.1349203013@warthog.procyon.org.uk>
+Received: from lxorguk.ukuu.org.uk ([81.2.110.251]:42559 "EHLO
+	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752101Ab2JQJvo (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2012 05:51:44 -0400
+In-Reply-To: <CA+55aFyZ9uq_yfHn9PwpmM77X3xVd+xseEbjJmeCCqbFddtjWA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, arnd@arndb.de, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Mikulas Patocka <mpatocka@redhat.com>, Jens Axboe <axboe@kernel.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 2 October 2012 19:36, David Howells <dhowells@redhat.com> wrote:
-> The patches herein prepare for the extraction of the Userspace API bits from
-> the various header files named in the Kbuild files.
->
-> [IMPORTANT NOTE!  These patches may need regenerating if the header files
->  change too much.  This doesn't normally take very long to do as the
->  disintegration procedure is almost entirely scripted.]
+> a later stores, and stores are viewed in program order, so all x86
+> stores have "release consistency" modulo the theoretical PPro bugs
+> (that I don't think we actually ever saw in practice).
 
-Hi David,
+We did seem the for real. The PPro is on its way out however so I hardly
+thing we care about optimising for that case.
 
-Any chance you (or somebody else) can point me towards your latest
-scripts for all this UAPI disintegration work? They don't seem to be
-in the kernel tree, and the only scripts I can find are from 2011 so I
-guess they're probably a bit out of date.
-
-Thanks in advance
--- 
-James Hogan
+Alan
