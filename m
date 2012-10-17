@@ -1,59 +1,132 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [RESEND PATCH 4/4] net: smc91x: use io{read,write}*_rep accessors instead of string functions
-Date: Wed, 17 Oct 2012 16:45:04 +0100
-Message-ID: <1350488704-3711-5-git-send-email-will.deacon@arm.com>
-References: <1350488704-3711-1-git-send-email-will.deacon@arm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1350488704-3711-1-git-send-email-will.deacon@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Ben Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
+ access fault.
+Date: Wed, 17 Oct 2012 16:54:02 +0100
+Message-ID: <20121017155401.GJ5973@mudshark.cambridge.arm.com>
+References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
+ <20121002150104.da57fa94.akpm@linux-foundation.org>
+ <20121017130125.GH5973@mudshark.cambridge.arm.com>
+ <20121017.112620.1865348978594874782.davem@davemloft.net>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20121017.112620.1865348978594874782.davem@davemloft.net>
+Sender: owner-linux-mm@kvack.org
+To: David Miller <davem@davemloft.net>
+Cc: "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, "aarcange@redhat.com" <aarcange@redhat.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-The {read,write}s{b,w,l} operations are not defined by all architectures
-and are being removed from the asm-generic/io.h interface.
+On Wed, Oct 17, 2012 at 04:26:20PM +0100, David Miller wrote:
+> From: Will Deacon <will.deacon@arm.com>
+> Date: Wed, 17 Oct 2012 14:01:25 +0100
+> 
+> > +		update_mmu_cache(vma, address, pmd);
+> 
+> This won't build, use update_mmu_cache_pmd().
 
-This patch replaces the usage of these string functions in the default
-SMC accessors with io{read,write}{8,16,32}_rep calls instead, which are
-defined for all architectures.
+Good catch. They're both empty macros on ARM, so the typechecker didn't spot
+it. Updated patch below.
 
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Ben Herrenschmidt <benh@kernel.crashing.org>
+Cheers,
+
+Will
+
+--->8
+
+From a548127ac12c14c178d4d817fa454baec9043d89 Mon Sep 17 00:00:00 2001
+From: Will Deacon <will.deacon@arm.com>
+Date: Tue, 2 Oct 2012 11:18:52 +0100
+Subject: [PATCH] mm: thp: Set the accessed flag for old pages on access fault.
+
+On x86 memory accesses to pages without the ACCESSED flag set result in the
+ACCESSED flag being set automatically. With the ARM architecture a page access
+fault is raised instead (and it will continue to be raised until the ACCESSED
+flag is set for the appropriate PTE/PMD).
+
+For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
+setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
+be called for a write fault.
+
+This patch ensures that faults on transparent hugepages which do not result
+in a CoW update the access flags for the faulting pmd.
+
+Cc: Chris Metcalf <cmetcalf@tilera.com>
+Acked-by: Kirill A. Shutemov <kirill@shutemov.name>
+Reviewed-by: Andrea Arcangeli <aarcange@redhat.com>
+Signed-off-by: Steve Capper <steve.capper@arm.com>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- drivers/net/ethernet/smsc/smc91x.h |   20 ++++++++++----------
- 1 files changed, 10 insertions(+), 10 deletions(-)
+ include/linux/huge_mm.h |    2 ++
+ mm/huge_memory.c        |    8 ++++++++
+ mm/memory.c             |    9 ++++++++-
+ 3 files changed, 18 insertions(+), 1 deletions(-)
 
-diff --git a/drivers/net/ethernet/smsc/smc91x.h b/drivers/net/ethernet/smsc/smc91x.h
-index 5f53fbb..370e13d 100644
---- a/drivers/net/ethernet/smsc/smc91x.h
-+++ b/drivers/net/ethernet/smsc/smc91x.h
-@@ -286,16 +286,16 @@ static inline void mcf_outsw(void *a, unsigned char *p, int l)
+diff --git a/include/linux/huge_mm.h b/include/linux/huge_mm.h
+index b31cb7d..62a0d5a 100644
+--- a/include/linux/huge_mm.h
++++ b/include/linux/huge_mm.h
+@@ -8,6 +8,8 @@ extern int do_huge_pmd_anonymous_page(struct mm_struct *mm,
+ extern int copy_huge_pmd(struct mm_struct *dst_mm, struct mm_struct *src_mm,
+ 			 pmd_t *dst_pmd, pmd_t *src_pmd, unsigned long addr,
+ 			 struct vm_area_struct *vma);
++extern void huge_pmd_set_accessed(struct vm_area_struct *vma,
++				  unsigned long address, pmd_t *pmd, int dirty);
+ extern int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
+ 			       unsigned long address, pmd_t *pmd,
+ 			       pmd_t orig_pmd);
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index a863af2..d9aa402 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -878,6 +878,14 @@ out_free_pages:
+ 	goto out;
+ }
  
- #define SMC_IO_SHIFT		(lp->io_shift)
++void huge_pmd_set_accessed(struct vm_area_struct *vma, unsigned long address,
++			   pmd_t *pmd, int dirty)
++{
++	pmd_t entry = pmd_mkyoung(*pmd);
++	if (pmdp_set_access_flags(vma, address & HPAGE_PMD_MASK, pmd, entry, dirty))
++		update_mmu_cache_pmd(vma, address, pmd);
++}
++
+ int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
+ 			unsigned long address, pmd_t *pmd, pmd_t orig_pmd)
+ {
+diff --git a/mm/memory.c b/mm/memory.c
+index fb135ba..c55c17c 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -3539,7 +3539,8 @@ retry:
  
--#define SMC_inb(a, r)		readb((a) + (r))
--#define SMC_inw(a, r)		readw((a) + (r))
--#define SMC_inl(a, r)		readl((a) + (r))
--#define SMC_outb(v, a, r)	writeb(v, (a) + (r))
--#define SMC_outw(v, a, r)	writew(v, (a) + (r))
--#define SMC_outl(v, a, r)	writel(v, (a) + (r))
--#define SMC_insw(a, r, p, l)	readsw((a) + (r), p, l)
--#define SMC_outsw(a, r, p, l)	writesw((a) + (r), p, l)
--#define SMC_insl(a, r, p, l)	readsl((a) + (r), p, l)
--#define SMC_outsl(a, r, p, l)	writesl((a) + (r), p, l)
-+#define SMC_inb(a, r)		ioread8((a) + (r))
-+#define SMC_inw(a, r)		ioread16((a) + (r))
-+#define SMC_inl(a, r)		ioread32((a) + (r))
-+#define SMC_outb(v, a, r)	iowrite8(v, (a) + (r))
-+#define SMC_outw(v, a, r)	iowrite16(v, (a) + (r))
-+#define SMC_outl(v, a, r)	iowrite32(v, (a) + (r))
-+#define SMC_insw(a, r, p, l)	ioread16_rep((a) + (r), p, l)
-+#define SMC_outsw(a, r, p, l)	iowrite16_rep((a) + (r), p, l)
-+#define SMC_insl(a, r, p, l)	ioread32_rep((a) + (r), p, l)
-+#define SMC_outsl(a, r, p, l)	iowrite32_rep((a) + (r), p, l)
- 
- #define RPC_LSA_DEFAULT		RPC_LED_100_10
- #define RPC_LSB_DEFAULT		RPC_LED_TX_RX
+ 		barrier();
+ 		if (pmd_trans_huge(orig_pmd)) {
+-			if (flags & FAULT_FLAG_WRITE &&
++			unsigned int dirty = flags & FAULT_FLAG_WRITE;
++			if (dirty &&
+ 			    !pmd_write(orig_pmd) &&
+ 			    !pmd_trans_splitting(orig_pmd)) {
+ 				ret = do_huge_pmd_wp_page(mm, vma, address, pmd,
+@@ -3552,7 +3553,13 @@ retry:
+ 				if (unlikely(ret & VM_FAULT_OOM))
+ 					goto retry;
+ 				return ret;
++			} else if (pmd_trans_huge_lock(pmd, vma) == 1) {
++				if (likely(pmd_same(*pmd, orig_pmd)))
++					huge_pmd_set_accessed(vma, address, pmd,
++							      dirty);
++				spin_unlock(&mm->page_table_lock);
+ 			}
++
+ 			return 0;
+ 		}
+ 	}
 -- 
 1.7.4.1
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
