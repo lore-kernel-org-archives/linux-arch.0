@@ -1,42 +1,46 @@
 From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: new execve/kernel_thread design
-Date: Wed, 17 Oct 2012 17:19:53 +0100
-Message-ID: <20121017161953.GZ2616@ZenIV.linux.org.uk>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk>
- <CACM3HyEpypULRWUc5ZnLnZ=uOWf3_j=9PXZiJrT_BXyGcQe9yg@mail.gmail.com>
- <CAHTX3dKDsOiUwtXxAUj-F4Y4rO+UZZDR4ufx_nxf+vuhmz46WA@mail.gmail.com>
- <20121017160702.GY2616@ZenIV.linux.org.uk>
+Subject: Re: [RFC][CFT][CFReview] execve and kernel_thread unification work
+Date: Wed, 17 Oct 2012 17:34:24 +0100
+Message-ID: <20121017163424.GA2616@ZenIV.linux.org.uk>
+References: <20121001213809.GA31155@ZenIV.linux.org.uk>
+ <20121015013009.GB2616@ZenIV.linux.org.uk>
+ <CAHkRjk7QbybMx1Kc9dP-Mz_ujMmHf5htLViviNok=HKjac0G+A@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:56011 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757410Ab2JQQeZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2012 12:34:25 -0400
 Content-Disposition: inline
-In-Reply-To: <20121017160702.GY2616@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Michal Simek <monstr@monstr.eu>
-Cc: Jonas Bonn <jonas@southpole.se>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gx>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <CAHkRjk7QbybMx1Kc9dP-Mz_ujMmHf5htLViviNok=HKjac0G+A@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-On Wed, Oct 17, 2012 at 05:07:03PM +0100, Al Viro wrote:
-> What happens during boot is this:
-> 	* init_task (not to be confused with init) is used as current during
-> infrastructure initializations.  Once everything needed for scheduler and
-> for working fork is set, we spawn two threads - future init and future
-> kthreadd.  The last thing we do with init_task is telling init that kthreadd
-> has been spawned.  After that init_task turns itself into an idle thread.
-> 	* future init waits for kthreadd to be spawned (it would be more
-> natural to fork them in opposite order, but we want init to have PID 1 -
-> too much stuff in userland depends on that).  Then it does the rest of
-> initialization, including setting up initramfs contents.  And does
-> kernel_execve() on /init.  Note that this is a task that had been created
-> by kernel_thread() and is currently in function called from
-> ret_from_kernel_thread().  Its kernel stack has been set up by copy_thread().
-> That's where pt_regs need to be set up; note that they'll be passed to
-> start_thread() before you return to userland.  If there are any magic bits
-> in pt_regs needed by return-from-syscall code, set them in kthread case of
-> copy_thread().
+On Wed, Oct 17, 2012 at 03:02:15PM +0100, Catalin Marinas wrote:
+> Hi Al,
+> 
+> On 15 October 2012 02:30, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> > arch-arm64 - patches from maintainer with minor followup folded
+> 
+> Thanks for updating the arm64 branch. I've adapted the changes, tested
+> and folded them into the branch below (the AArch64 instruction set
+> does not have conditional instructions):
+> 
+>   git://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/linux-aarch64.git
+> execve
 
-PS: I suspect that we end up with the wrong value in childregs->msr;
-start_thread() only add MSR_UMS there.  I'd suggest running the kernel
-with these patches + printk childregs->msr the very first time start_thread()
-is called and see what it prints, then working kernel + such printk and
-compare the results...
+Fetched and merged, thanks.  I'll probably drop arch-arm64 branch, now
+that I have yours directly merged.  In any case, right now arch-arm64
+points to the current head or yours and for-next has
+
+commit 0cea479343cbfaec3a9b8accdeadae53322d98a8
+Merge: 43cc05a 6a87277
+Author: Al Viro <viro@zeniv.linux.org.uk>
+Date:   Wed Oct 17 12:29:32 2012 -0400
+
+    Merge branch 'execve' of git://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/linux-aarch
+
+in it...
