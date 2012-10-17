@@ -1,95 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:40057 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:40035 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S932337Ab2JQPpU (ORCPT
+	by vger.kernel.org with ESMTP id S932202Ab2JQPpO (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 17 Oct 2012 11:45:20 -0400
+	Wed, 17 Oct 2012 11:45:14 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [RESEND PATCH 2/4] asm-generic: io: don't perform swab during {in,out} string functions
-Date: Wed, 17 Oct 2012 16:45:02 +0100
-Message-ID: <1350488704-3711-3-git-send-email-will.deacon@arm.com>
-In-Reply-To: <1350488704-3711-1-git-send-email-will.deacon@arm.com>
-References: <1350488704-3711-1-git-send-email-will.deacon@arm.com>
+Subject: [RESEND PATCH 0/4] Fix endianness of generic I/O accessors
+Date: Wed, 17 Oct 2012 16:45:00 +0100
+Message-ID: <1350488704-3711-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Will Deacon <will.deacon@arm.com>, Mike Frysinger <vapier@gentoo.org>, Ben Herrenschmidt <benh@kernel.crashing.org>
-Message-ID: <20121017154502.fyMDULd7J8NDLmrZ1qrON5kHsa2Cz2bs4d6DtUXstsU@z>
+Cc: Will Deacon <will.deacon@arm.com>
+Message-ID: <20121017154500.m0KiEn5Ty2XoUomyP_xCJ5XEBLZMxjyGHAWEPpSLnZ0@z>
 
-The {in,out}s{b,w,l} functions are designed to operate on a stream of
-bytes and therefore should not perform any byte-swapping, regardless of
-the CPU byte order.
+Hello,
 
-This patch fixes the generic IO header so that {in,out}s{b,w,l} call
-the __raw_{read,write} functions directly rather than going via the
-endian-correcting accessors.
+This is a resend of the patches I originally sent a while back:
 
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: Ben Herrenschmidt <benh@kernel.crashing.org>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
----
- include/asm-generic/io.h |   12 ++++++------
- 1 files changed, 6 insertions(+), 6 deletions(-)
+  http://marc.info/?l=linux-kernel&m=133552356617938&w=2
 
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 3607921..403b861 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -148,7 +148,7 @@ static inline void insb(unsigned long addr, void *buffer, int count)
- 	if (count) {
- 		u8 *buf = buffer;
- 		do {
--			u8 x = inb(addr);
-+			u8 x = __raw_readb(addr + PCI_IOBASE);
- 			*buf++ = x;
- 		} while (--count);
- 	}
-@@ -161,7 +161,7 @@ static inline void insw(unsigned long addr, void *buffer, int count)
- 	if (count) {
- 		u16 *buf = buffer;
- 		do {
--			u16 x = inw(addr);
-+			u16 x = __raw_readw(addr + PCI_IOBASE);
- 			*buf++ = x;
- 		} while (--count);
- 	}
-@@ -174,7 +174,7 @@ static inline void insl(unsigned long addr, void *buffer, int count)
- 	if (count) {
- 		u32 *buf = buffer;
- 		do {
--			u32 x = inl(addr);
-+			u32 x = __raw_readl(addr + PCI_IOBASE);
- 			*buf++ = x;
- 		} while (--count);
- 	}
-@@ -187,7 +187,7 @@ static inline void outsb(unsigned long addr, const void *buffer, int count)
- 	if (count) {
- 		const u8 *buf = buffer;
- 		do {
--			outb(*buf++, addr);
-+			__raw_writeb(*buf++, addr + PCI_IOBASE);
- 		} while (--count);
- 	}
- }
-@@ -199,7 +199,7 @@ static inline void outsw(unsigned long addr, const void *buffer, int count)
- 	if (count) {
- 		const u16 *buf = buffer;
- 		do {
--			outw(*buf++, addr);
-+			__raw_writew(*buf++, addr + PCI_IOBASE);
- 		} while (--count);
- 	}
- }
-@@ -211,7 +211,7 @@ static inline void outsl(unsigned long addr, const void *buffer, int count)
- 	if (count) {
- 		const u32 *buf = buffer;
- 		do {
--			outl(*buf++, addr);
-+			__raw_writel(*buf++, addr + PCI_IOBASE);
- 		} while (--count);
- 	}
- }
+There was some loose conclusion then that documentation needed to be
+updated, which I didn't get round to doing. However, after discussion
+with Ben at LPC (following his `Big and Little Endian inside/out'
+presentation), he encouraged me to resend the patches anyway.
+
+So here they are. I also included two extra patches to fix the MMC and
+ethernet drivers used on the ARM64 model, which is where I came across
+this issue in the first place.
+
+Comments welcome,
+
+Will
+
+Big endian is not dead -- it just smells funny.
+
+
+Will Deacon (4):
+  asm-generic: io: remove {read,write} string functions
+  asm-generic: io: don't perform swab during {in,out} string functions
+  mmc: mmci: use io{read,write}*_rep accessors instead of string
+    functions
+  net: smc91x: use io{read,write}*_rep accessors instead of string
+    functions
+
+ drivers/mmc/host/mmci.c            |    8 +++---
+ drivers/net/ethernet/smsc/smc91x.h |   20 ++++++++--------
+ include/asm-generic/io.h           |   42 +++++------------------------------
+ 3 files changed, 20 insertions(+), 50 deletions(-)
+
 -- 
 1.7.4.1
 
