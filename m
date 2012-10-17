@@ -1,39 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from caramon.arm.linux.org.uk ([78.32.30.218]:53370 "EHLO
-	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753246Ab2JPOGE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 16 Oct 2012 10:06:04 -0400
-Date: Tue, 16 Oct 2012 15:05:25 +0100
-From: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Subject: Re: [git pull] signals pile 3
-Message-ID: <20121016140525.GG21164@n2100.arm.linux.org.uk>
-References: <20121013005334.GM2616@ZenIV.linux.org.uk> <507ADBBB.9090209@gmail.com> <20121014202431.GL21164@n2100.arm.linux.org.uk> <20121014222449.GN21164@n2100.arm.linux.org.uk> <507B3F2C.1090500@gmail.com> <20121014231649.GO21164@n2100.arm.linux.org.uk> <20121016140414.GS639@pengutronix.de>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:53004 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751974Ab2JQFni (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2012 01:43:38 -0400
+Date: Wed, 17 Oct 2012 06:43:37 +0100
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: new execve/kernel_thread design
+Message-ID: <20121017054337.GX2616@ZenIV.linux.org.uk>
+References: <20121016223508.GR2616@ZenIV.linux.org.uk>
+ <CAMo8BfLdm1OvJTU2y-YQtoPffYsP=UzRco_q2GHWTo-bYQO4ug@mail.gmail.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-1
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <20121016140414.GS639@pengutronix.de>
+In-Reply-To: <CAMo8BfLdm1OvJTU2y-YQtoPffYsP=UzRco_q2GHWTo-bYQO4ug@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Uwe =?iso-8859-1?Q?Kleine-K=F6nig?= <u.kleine-koenig@pengutronix.de>
-Cc: Daniel Mack <zonque@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, Al Viro <viro@ZenIV.linux.org.uk>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, linux-kernel@vger.kernel.org
-Message-ID: <20121016140525.vCa7rpekyDLKLRPRTbfAdp5KW02LwUHLABfn3bPbbus@z>
+To: Max Filippov <jcmvbkbc@gmail.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20121017054337.ahRTPDSiz4t343wwrMCNVSamz3E5bfOz2anP3lt5qWo@z>
 
-On Tue, Oct 16, 2012 at 04:04:14PM +0200, Uwe Kleine-König wrote:
-> I used:
->  	movne	r0, r4
-> -	movne	lr, pc
-> -	movne	pc, r5
-> +	blxne	r5
->  	get_thread_info tsk
+On Wed, Oct 17, 2012 at 09:32:34AM +0400, Max Filippov wrote:
+> On Wed, Oct 17, 2012 at 2:35 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> > [apologies for enormous Cc; I've talked to some of you in private mail
+> > and after being politely asked to explain WTF was all that thing for
+> > and how was it supposed to work, well...]
 > 
-> but I assume Russell's patch is better. (Probably because blx doesn't
-> exist everywhere?!)
-
-Correct.
-
-> So if it's not too late yet:
+> [...]
 > 
-> Tested-by: Uwe Kleine-König <u.kleine-koenig@pengutronix.de>
+> > Not even a tentative patchset: hexagon, openrisc, tile, xtensa.
+> 
+> I'm doing xtensa part.
 
-It is, because it's already in Linus' tree.
+Thanks; I hope this variant is going to be less painful than messing with
+ret_from_kernel_execve()...
+
+> BTW, what linus-arch ML might be for?
+
+A typo, noticed only when I got a bounce ;-)
+My apologies...
