@@ -1,66 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:40048 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:40047 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S932179Ab2JQPpN (ORCPT
+	by vger.kernel.org with ESMTP id S1756329Ab2JQPpN (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
 	Wed, 17 Oct 2012 11:45:13 -0400
 From: Will Deacon <will.deacon@arm.com>
-Subject: [RESEND PATCH 4/4] net: smc91x: use io{read,write}*_rep accessors instead of string functions
-Date: Wed, 17 Oct 2012 16:45:04 +0100
-Message-ID: <1350488704-3711-5-git-send-email-will.deacon@arm.com>
+Subject: [RESEND PATCH 3/4] mmc: mmci: use io{read,write}*_rep accessors instead of string functions
+Date: Wed, 17 Oct 2012 16:45:03 +0100
+Message-ID: <1350488704-3711-4-git-send-email-will.deacon@arm.com>
 In-Reply-To: <1350488704-3711-1-git-send-email-will.deacon@arm.com>
 References: <1350488704-3711-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Will Deacon <will.deacon@arm.com>, Arnd Bergmann <arnd@arndb.de>, Ben Herrenschmidt <benh@kernel.crashing.org>
-Message-ID: <20121017154504.J74GrhVi4w8libZ-Yu3fVvar07lFJuCnAowCDUyGYqs@z>
+Message-ID: <20121017154503.0sDfneUFAPON2DVSQ1Ng_u53tKMJTqn40SFM-Rcqyt4@z>
 
 The {read,write}s{b,w,l} operations are not defined by all architectures
 and are being removed from the asm-generic/io.h interface.
 
-This patch replaces the usage of these string functions in the default
-SMC accessors with io{read,write}{8,16,32}_rep calls instead, which are
-defined for all architectures.
+This patch replaces the usage of these string functions with
+io{read,write}{8,16,32}_rep calls instead, which are defined for all
+architectures.
 
 Cc: Arnd Bergmann <arnd@arndb.de>
 Cc: Ben Herrenschmidt <benh@kernel.crashing.org>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- drivers/net/ethernet/smsc/smc91x.h |   20 ++++++++++----------
- 1 files changed, 10 insertions(+), 10 deletions(-)
+ drivers/mmc/host/mmci.c |    8 ++++----
+ 1 files changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/drivers/net/ethernet/smsc/smc91x.h b/drivers/net/ethernet/smsc/smc91x.h
-index 5f53fbb..370e13d 100644
---- a/drivers/net/ethernet/smsc/smc91x.h
-+++ b/drivers/net/ethernet/smsc/smc91x.h
-@@ -286,16 +286,16 @@ static inline void mcf_outsw(void *a, unsigned char *p, int l)
+diff --git a/drivers/mmc/host/mmci.c b/drivers/mmc/host/mmci.c
+index edc3e9b..4f125b4 100644
+--- a/drivers/mmc/host/mmci.c
++++ b/drivers/mmc/host/mmci.c
+@@ -840,14 +840,14 @@ static int mmci_pio_read(struct mmci_host *host, char *buffer, unsigned int rema
+ 		if (unlikely(count & 0x3)) {
+ 			if (count < 4) {
+ 				unsigned char buf[4];
+-				readsl(base + MMCIFIFO, buf, 1);
++				ioread32_rep(base + MMCIFIFO, buf, 1);
+ 				memcpy(ptr, buf, count);
+ 			} else {
+-				readsl(base + MMCIFIFO, ptr, count >> 2);
++				ioread32_rep(base + MMCIFIFO, ptr, count >> 2);
+ 				count &= ~0x3;
+ 			}
+ 		} else {
+-			readsl(base + MMCIFIFO, ptr, count >> 2);
++			ioread32_rep(base + MMCIFIFO, ptr, count >> 2);
+ 		}
  
- #define SMC_IO_SHIFT		(lp->io_shift)
+ 		ptr += count;
+@@ -900,7 +900,7 @@ static int mmci_pio_write(struct mmci_host *host, char *buffer, unsigned int rem
+ 		 * byte become a 32bit write, 7 bytes will be two
+ 		 * 32bit writes etc.
+ 		 */
+-		writesl(base + MMCIFIFO, ptr, (count + 3) >> 2);
++		iowrite32_rep(base + MMCIFIFO, ptr, (count + 3) >> 2);
  
--#define SMC_inb(a, r)		readb((a) + (r))
--#define SMC_inw(a, r)		readw((a) + (r))
--#define SMC_inl(a, r)		readl((a) + (r))
--#define SMC_outb(v, a, r)	writeb(v, (a) + (r))
--#define SMC_outw(v, a, r)	writew(v, (a) + (r))
--#define SMC_outl(v, a, r)	writel(v, (a) + (r))
--#define SMC_insw(a, r, p, l)	readsw((a) + (r), p, l)
--#define SMC_outsw(a, r, p, l)	writesw((a) + (r), p, l)
--#define SMC_insl(a, r, p, l)	readsl((a) + (r), p, l)
--#define SMC_outsl(a, r, p, l)	writesl((a) + (r), p, l)
-+#define SMC_inb(a, r)		ioread8((a) + (r))
-+#define SMC_inw(a, r)		ioread16((a) + (r))
-+#define SMC_inl(a, r)		ioread32((a) + (r))
-+#define SMC_outb(v, a, r)	iowrite8(v, (a) + (r))
-+#define SMC_outw(v, a, r)	iowrite16(v, (a) + (r))
-+#define SMC_outl(v, a, r)	iowrite32(v, (a) + (r))
-+#define SMC_insw(a, r, p, l)	ioread16_rep((a) + (r), p, l)
-+#define SMC_outsw(a, r, p, l)	iowrite16_rep((a) + (r), p, l)
-+#define SMC_insl(a, r, p, l)	ioread32_rep((a) + (r), p, l)
-+#define SMC_outsl(a, r, p, l)	iowrite32_rep((a) + (r), p, l)
- 
- #define RPC_LSA_DEFAULT		RPC_LED_100_10
- #define RPC_LSB_DEFAULT		RPC_LED_TX_RX
+ 		ptr += count;
+ 		remain -= count;
 -- 
 1.7.4.1
 
