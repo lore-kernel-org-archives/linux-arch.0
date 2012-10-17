@@ -1,144 +1,72 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
- access fault.
-Date: Wed, 17 Oct 2012 14:01:25 +0100
-Message-ID: <20121017130125.GH5973@mudshark.cambridge.arm.com>
-References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
- <20121002150104.da57fa94.akpm@linux-foundation.org>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [RFC][CFT][CFReview] execve and kernel_thread unification work
+Date: Wed, 17 Oct 2012 15:02:15 +0100
+Message-ID: <CAHkRjk7QbybMx1Kc9dP-Mz_ujMmHf5htLViviNok=HKjac0G+A@mail.gmail.com>
+References: <20121001213809.GA31155@ZenIV.linux.org.uk> <20121015013009.GB2616@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20121002150104.da57fa94.akpm@linux-foundation.org>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, Andrea Arcangeli <aarcange@redhat.com>, Chris Metcalf <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-qc0-f174.google.com ([209.85.216.174]:33957 "EHLO
+	mail-qc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757068Ab2JQOCg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2012 10:02:36 -0400
+In-Reply-To: <20121015013009.GB2616@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, David Miller <davem@davemloft.net>, Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-Hi Andrew,
+Hi Al,
 
-On Tue, Oct 02, 2012 at 11:01:04PM +0100, Andrew Morton wrote:
-> On Tue,  2 Oct 2012 17:59:11 +0100
-> Will Deacon <will.deacon@arm.com> wrote:
-> 
-> > On x86 memory accesses to pages without the ACCESSED flag set result in the
-> > ACCESSED flag being set automatically. With the ARM architecture a page access
-> > fault is raised instead (and it will continue to be raised until the ACCESSED
-> > flag is set for the appropriate PTE/PMD).
-> > 
-> > For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
-> > setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
-> > be called for a write fault.
-> > 
-> > This patch ensures that faults on transparent hugepages which do not result
-> > in a CoW update the access flags for the faulting pmd.
-> 
-> Alas, the code you're altering has changed so much in linux-next that I
-> am reluctant to force this fix in there myself.  Can you please
-> redo/retest/resend?  You can do that on 3.7-rc1 if you like, then we
-> can feed this into -rc2.
+On 15 October 2012 02:30, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> arch-arm64 - patches from maintainer with minor followup folded
 
-Here's the updated patch against -rc1...
+Thanks for updating the arm64 branch. I've adapted the changes, tested
+and folded them into the branch below (the AArch64 instruction set
+does not have conditional instructions):
 
-Cheers,
+  git://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/linux-aarch64.git
+execve
 
-Will
+Top commit: 6a872777ffff6184f4ac10bd71d926d5e6f2491e (arm64: Use
+generic sys_execve() implementation)
 
---->8
+The diff between your branch and mine (including one cosmetic change
+as the ARM64 Kconfig selects are alphabetically sorted):
 
-From 16b73aea010832cd3d6f22ada60ae055937ef6c0 Mon Sep 17 00:00:00 2001
-From: Will Deacon <will.deacon@arm.com>
-Date: Tue, 2 Oct 2012 11:18:52 +0100
-Subject: [PATCH] mm: thp: Set the accessed flag for old pages on access fault.
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 31e3b5e..75b212d 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -6,8 +6,8 @@ config ARM64
+ 	select GENERIC_IOMAP
+ 	select GENERIC_IRQ_PROBE
+ 	select GENERIC_IRQ_SHOW
+-	select GENERIC_KERNEL_THREAD
+ 	select GENERIC_KERNEL_EXECVE
++	select GENERIC_KERNEL_THREAD
+ 	select GENERIC_SMP_IDLE_THREAD
+ 	select GENERIC_TIME_VSYSCALL
+ 	select HARDIRQS_SW_RESEND
+diff --git a/arch/arm64/kernel/entry.S b/arch/arm64/kernel/entry.S
+index c3d650a..6165318 100644
+--- a/arch/arm64/kernel/entry.S
++++ b/arch/arm64/kernel/entry.S
+@@ -611,10 +611,10 @@ ENDPROC(ret_to_user)
+  */
+ ENTRY(ret_from_fork)
+ 	bl	schedule_tail
+-	cmp	x19, #0
+-	movne	x0, x20
+-	blne	x19
+-	get_thread_info tsk
++	cbz	x19, 1f				// not a kernel thread
++	mov	x0, x20
++	blr	x19
++1:	get_thread_info tsk
+ 	b	ret_to_user
+ ENDPROC(ret_from_fork)
 
-On x86 memory accesses to pages without the ACCESSED flag set result in the
-ACCESSED flag being set automatically. With the ARM architecture a page access
-fault is raised instead (and it will continue to be raised until the ACCESSED
-flag is set for the appropriate PTE/PMD).
 
-For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
-setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
-be called for a write fault.
-
-This patch ensures that faults on transparent hugepages which do not result
-in a CoW update the access flags for the faulting pmd.
-
-Cc: Chris Metcalf <cmetcalf@tilera.com>
-Acked-by: Kirill A. Shutemov <kirill@shutemov.name>
-Reviewed-by: Andrea Arcangeli <aarcange@redhat.com>
-Signed-off-by: Steve Capper <steve.capper@arm.com>
-Signed-off-by: Will Deacon <will.deacon@arm.com>
----
- include/linux/huge_mm.h |    2 ++
- mm/huge_memory.c        |    8 ++++++++
- mm/memory.c             |    9 ++++++++-
- 3 files changed, 18 insertions(+), 1 deletions(-)
-
-diff --git a/include/linux/huge_mm.h b/include/linux/huge_mm.h
-index b31cb7d..62a0d5a 100644
---- a/include/linux/huge_mm.h
-+++ b/include/linux/huge_mm.h
-@@ -8,6 +8,8 @@ extern int do_huge_pmd_anonymous_page(struct mm_struct *mm,
- extern int copy_huge_pmd(struct mm_struct *dst_mm, struct mm_struct *src_mm,
- 			 pmd_t *dst_pmd, pmd_t *src_pmd, unsigned long addr,
- 			 struct vm_area_struct *vma);
-+extern void huge_pmd_set_accessed(struct vm_area_struct *vma,
-+				  unsigned long address, pmd_t *pmd, int dirty);
- extern int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
- 			       unsigned long address, pmd_t *pmd,
- 			       pmd_t orig_pmd);
-diff --git a/mm/huge_memory.c b/mm/huge_memory.c
-index a863af2..5a7ce24 100644
---- a/mm/huge_memory.c
-+++ b/mm/huge_memory.c
-@@ -878,6 +878,14 @@ out_free_pages:
- 	goto out;
- }
- 
-+void huge_pmd_set_accessed(struct vm_area_struct *vma, unsigned long address,
-+			   pmd_t *pmd, int dirty)
-+{
-+	pmd_t entry = pmd_mkyoung(*pmd);
-+	if (pmdp_set_access_flags(vma, address & HPAGE_PMD_MASK, pmd, entry, dirty))
-+		update_mmu_cache(vma, address, pmd);
-+}
-+
- int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
- 			unsigned long address, pmd_t *pmd, pmd_t orig_pmd)
- {
-diff --git a/mm/memory.c b/mm/memory.c
-index fb135ba..c55c17c 100644
---- a/mm/memory.c
-+++ b/mm/memory.c
-@@ -3539,7 +3539,8 @@ retry:
- 
- 		barrier();
- 		if (pmd_trans_huge(orig_pmd)) {
--			if (flags & FAULT_FLAG_WRITE &&
-+			unsigned int dirty = flags & FAULT_FLAG_WRITE;
-+			if (dirty &&
- 			    !pmd_write(orig_pmd) &&
- 			    !pmd_trans_splitting(orig_pmd)) {
- 				ret = do_huge_pmd_wp_page(mm, vma, address, pmd,
-@@ -3552,7 +3553,13 @@ retry:
- 				if (unlikely(ret & VM_FAULT_OOM))
- 					goto retry;
- 				return ret;
-+			} else if (pmd_trans_huge_lock(pmd, vma) == 1) {
-+				if (likely(pmd_same(*pmd, orig_pmd)))
-+					huge_pmd_set_accessed(vma, address, pmd,
-+							      dirty);
-+				spin_unlock(&mm->page_table_lock);
- 			}
-+
- 			return 0;
- 		}
- 	}
 -- 
-1.7.4.1
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Catalin
