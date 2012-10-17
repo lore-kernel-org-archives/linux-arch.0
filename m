@@ -1,65 +1,57 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [RESEND PATCH 2/4] asm-generic: io: don't perform swab during
- {in,out} string functions
-Date: Wed, 17 Oct 2012 21:16:10 +0200
-Message-ID: <CAMuHMdXcQjDyen+o5aH=1zUOkNX-cfT3aXBOgCpyop=V67jk7w@mail.gmail.com>
-References: <1350488704-3711-1-git-send-email-will.deacon@arm.com>
-	<1350488704-3711-3-git-send-email-will.deacon@arm.com>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH] percpu-rwsem: use barrier in unlock path
+Date: Wed, 17 Oct 2012 16:28:06 -0400
+Message-ID: <20121017202806.GA7282@home.goodmis.org>
+References: <Pine.LNX.4.64.1210151716310.10685@file.rdu.redhat.com>
+ <Pine.LNX.4.64.1210161924350.20581@file.rdu.redhat.com>
+ <CA+55aFyZ9uq_yfHn9PwpmM77X3xVd+xseEbjJmeCCqbFddtjWA@mail.gmail.com>
+ <507E48ED.8060809@cn.fujitsu.com>
+ <Pine.LNX.4.64.1210171046130.26481@file.rdu.redhat.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:40073 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932475Ab2JQTQM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2012 15:16:12 -0400
-In-Reply-To: <1350488704-3711-3-git-send-email-will.deacon@arm.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, Ben Herrenschmidt <benh@kernel.crashing.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <Pine.LNX.4.64.1210171046130.26481@file.rdu.redhat.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Mikulas Patocka <mpatocka@redhat.com>
+Cc: Lai Jiangshan <laijs@cn.fujitsu.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jens Axboe <axboe@kernel.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Eric Dumazet <eric.dumazet@gmail.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 17, 2012 at 5:45 PM, Will Deacon <will.deacon@arm.com> wrote:
-> The {in,out}s{b,w,l} functions are designed to operate on a stream of
-> bytes and therefore should not perform any byte-swapping, regardless of
-> the CPU byte order.
+On Wed, Oct 17, 2012 at 11:07:21AM -0400, Mikulas Patocka wrote:
+> > 
+> > Even the previous patch is applied, percpu_down_read() still
+> > needs mb() to pair with it.
+> 
+> percpu_down_read uses rcu_read_lock which should guarantee that memory 
+> accesses don't escape in front of a rcu-protected section.
 
-Euh?
+You do realize that rcu_read_lock() does nothing more that a barrier(),
+right?
 
-They transfer a stream of bytes between memory and PCI/ISA I/O space by
-reading from/writing to a single I/O port of width 8, 16, or 32 bits.
-On big endian machines, I/O port accesses may need to be swapped.
+Paul worked really hard to get rcu_read_locks() to not call HW barriers.
 
-> This patch fixes the generic IO header so that {in,out}s{b,w,l} call
-> the __raw_{read,write} functions directly rather than going via the
-> endian-correcting accessors.
+> 
+> If rcu_read_unlock has only an unlock barrier and not a full barrier, 
+> memory accesses could be moved in front of rcu_read_unlock and reordered 
+> with this_cpu_inc(*p->counters), but it doesn't matter because 
+> percpu_down_write does synchronize_rcu(), so it never sees these accesses 
+> halfway through.
 
-Furthermore __raw_*() has different semantics besides endianness, like
-ordering barriers. So you can't just change one for the other.
+Looking at the patch, you are correct. The read side doesn't need the
+memory barrier as the worse thing that will happen is that it sees the
+locked = false, and will just grab the mutex unnecessarily.
 
-> Cc: Mike Frysinger <vapier@gentoo.org>
-> Cc: Ben Herrenschmidt <benh@kernel.crashing.org>
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> ---
->  include/asm-generic/io.h |   12 ++++++------
->  1 files changed, 6 insertions(+), 6 deletions(-)
->
-> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-> index 3607921..403b861 100644
-> --- a/include/asm-generic/io.h
-> +++ b/include/asm-generic/io.h
-> @@ -148,7 +148,7 @@ static inline void insb(unsigned long addr, void *buffer, int count)
+> > 
+> > I suggest any new synchronization should stay in -tip for 2 or more cycles
+> > before merged to mainline.
+> 
+> But the bug that this synchronization is fixing is quite serious (it 
+> causes random crashes when block size is being changed, the crash happens 
+> regularly at multiple important business sites) so it must be fixed soon 
+> and not wait half a year.
 
-The "addr" parameter is actually a misnomer. Probably it should be "port".
-Oops, inb() and friends also use "addr".
+I don't think Lai was suggesting to wait on this fix, but instead to
+totally rip out the percpu_rwsems and work on them some more, and then
+re-introduce them in a half a year.
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+-- Steve
