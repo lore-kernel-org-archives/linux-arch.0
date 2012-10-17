@@ -1,70 +1,75 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: new execve/kernel_thread design
-Date: Wed, 17 Oct 2012 16:27:06 +0200
-Message-ID: <CAHTX3dKDsOiUwtXxAUj-F4Y4rO+UZZDR4ufx_nxf+vuhmz46WA@mail.gmail.com>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk>
-	<CACM3HyEpypULRWUc5ZnLnZ=uOWf3_j=9PXZiJrT_BXyGcQe9yg@mail.gmail.com>
+From: Mikulas Patocka <mpatocka@redhat.com>
+Subject: Re: [PATCH] percpu-rwsem: use barrier in unlock path
+Date: Wed, 17 Oct 2012 11:07:21 -0400 (EDT)
+Message-ID: <Pine.LNX.4.64.1210171046130.26481@file.rdu.redhat.com>
+References: <Pine.LNX.4.64.1210151716310.10685@file.rdu.redhat.com>
+ <Pine.LNX.4.64.1210161924350.20581@file.rdu.redhat.com>
+ <CA+55aFyZ9uq_yfHn9PwpmM77X3xVd+xseEbjJmeCCqbFddtjWA@mail.gmail.com>
+ <507E48ED.8060809@cn.fujitsu.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f174.google.com ([209.85.215.174]:44928 "EHLO
-	mail-ea0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757223Ab2JQO1H (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2012 10:27:07 -0400
-Received: by mail-ea0-f174.google.com with SMTP id c13so1835415eaa.19
-        for <linux-arch@vger.kernel.org>; Wed, 17 Oct 2012 07:27:06 -0700 (PDT)
-In-Reply-To: <CACM3HyEpypULRWUc5ZnLnZ=uOWf3_j=9PXZiJrT_BXyGcQe9yg@mail.gmail.com>
+Received: from mx1.redhat.com ([209.132.183.28]:40242 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755544Ab2JQPHx (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 Oct 2012 11:07:53 -0400
+In-Reply-To: <507E48ED.8060809@cn.fujitsu.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jonas Bonn <jonas@southpole.se>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>
+To: Lai Jiangshan <laijs@cn.fujitsu.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Jens Axboe <axboe@kernel.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Steven Rostedt <rostedt@goodmis.org>, Thomas Gleixner <tglx@linutronix.de>, Eric Dumazet <eric.dumazet@gmail.com>
 
-2012/10/17 Jonas Bonn <jonas@southpole.se>:
-> On 17 October 2012 00:35, Al Viro <viro@zeniv.linux.org.uk> wrote:
->>
->> Not even a tentative patchset: hexagon, openrisc, tile, xtensa.
->>
->
-> I did most of the OpenRISC conversion last weekend... the
-> kernel_thread bits work fine but I end up with the init thread dying
-> with what I've got now for kernel_execve.  Once I've got that sorted
-> out, I'll pass this along to you.
+Hi
 
-I am testing the Microblaze conversion and I see the similar problem
-with GENERIC_KERNEL_EXECVE
-(commit: http://git.kernel.org/?p=linux/kernel/git/viro/signal.git;a=commit;h=6aa044199aed5b541eba7fe7f25efdfb3a655a58)
 
-I have look at the patch and I have found this.
-(From description above: a kernel thread can become a userland
-process.  The primitive is kernel_execve())
+On Wed, 17 Oct 2012, Lai Jiangshan wrote:
 
-In  init/main.c:795/run_init_process() kernel_execve is called.
-In old style, kernel_execve is called which runs microblaze
-kernel_execve which calls __NR_execve as syscall.
-In entry.S user exception detects that jump comes from kernel space
-and save pt_regs on the current stack
-and calls sys_execve and then microblaze_execve with 4th argument
-which is pointer to pt_regs, etc.
+> On 10/17/2012 10:23 AM, Linus Torvalds wrote:
+> > [ Architecture people, note the potential new SMP barrier! ]
+> > 
+> > On Tue, Oct 16, 2012 at 4:30 PM, Mikulas Patocka <mpatocka@redhat.com> wrote:
+> >> +       /*
+> >> +        * The lock is considered unlocked when p->locked is set to false.
+> >> +        * Use barrier prevent reordering of operations around p->locked.
+> >> +        */
+> >> +#if defined(CONFIG_X86) && (!defined(CONFIG_X86_PPRO_FENCE) && !defined(CONFIG_X86_OOSTORE))
+> >> +       barrier();
+> >> +#else
+> >> +       smp_mb();
+> >> +#endif
+> >>         p->locked = false;
+> > 
+> > Ugh. The #if is too ugly to live.
+> 
+> Even the previous patch is applied, percpu_down_read() still
+> needs mb() to pair with it.
 
-In the patch above there is directly used current_pt_regs() function
-which works good for newly created threads
-when pt_regs are exactly in current_pt_regs() position but not for
-pt_regs which are saved on the stack
-which is the init task case.
+percpu_down_read uses rcu_read_lock which should guarantee that memory 
+accesses don't escape in front of a rcu-protected section.
 
-Also this is the reason why microblaze has implementation for calling
-_user_exception from the kernel space.
-I believe that it is called just once for /init.
+If rcu_read_unlock has only an unlock barrier and not a full barrier, 
+memory accesses could be moved in front of rcu_read_unlock and reordered 
+with this_cpu_inc(*p->counters), but it doesn't matter because 
+percpu_down_write does synchronize_rcu(), so it never sees these accesses 
+halfway through.
 
-My question is how should /init be called? Because I need to save
-pt_regs to current_pt_regs() position where
-generic kernel_execve expects it.
+> > This is a classic case of "people who write their own serialization
+> > primitives invariably get them wrong". And this fix is just horrible,
+> > and code like this should not be allowed.
+> 
+> One of the most major problems of 62ac665ff9fc07497ca524bd20d6a96893d11071 is that
+> it is merged without Ackeds or Revieweds from Paul or Peter or someone else
+> who are expert at synchronization/arch memory models.
+> 
+> I suggest any new synchronization should stay in -tip for 2 or more cycles
+> before merged to mainline.
 
-Thanks,
-Michal
+But the bug that this synchronization is fixing is quite serious (it 
+causes random crashes when block size is being changed, the crash happens 
+regularly at multiple important business sites) so it must be fixed soon 
+and not wait half a year.
 
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
-Microblaze U-BOOT custodian
+> Thanks,
+> Lai
+
+Mikulas
