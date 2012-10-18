@@ -1,245 +1,205 @@
 From: Steve Capper <steve.capper@arm.com>
-Subject: [RFC PATCH 5/6] ARM: mm: Transparent huge page support for LPAE systems.
-Date: Thu, 18 Oct 2012 17:15:41 +0100
-Message-ID: <1350576942-25299-6-git-send-email-steve.capper@arm.com>
+Subject: [RFC PATCH 6/6] ARM: mm: Transparent huge page support for non-LPAE systems.
+Date: Thu, 18 Oct 2012 17:15:42 +0100
+Message-ID: <1350576942-25299-7-git-send-email-steve.capper@arm.com>
 References: <1350576942-25299-1-git-send-email-steve.capper@arm.com>
 Content-Type: text/plain; charset=WINDOWS-1252
 Content-Transfer-Encoding: quoted-printable
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:54959 "EHLO
+Received: from service87.mimecast.com ([91.220.42.44]:57979 "EHLO
 	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756977Ab2JRQQO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Oct 2012 12:16:14 -0400
+	with ESMTP id S1756977Ab2JRQQR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Oct 2012 12:16:17 -0400
 In-Reply-To: <1350576942-25299-1-git-send-email-steve.capper@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org
 Cc: akpm@linux-foundation.org, mhocko@suse.cz, kirill@shutemov.name, aarcange@redhat.com, cmetcalf@tilera.com, hoffman@marvell.com, notasas@gmail.com, bill4carson@gmail.com, will.deacon@arm.com, catalin.marinas@arm.com, maen@marvell.com, shadi@marvell.com, tawfik@marvell.com, Steve Capper <steve.capper@arm.com>
 
-From: Catalin Marinas <catalin.marinas@arm.com>
+Much of the required code for THP has been implemented in the earlier non-L=
+PAE
+HugeTLB patch.
 
-The patch adds support for THP (transparent huge pages) to LPAE systems. Wh=
-en
-this feature is enabled, the kernel tries to map anonymous pages as 2MB
-sections where possible.
+One more domain bits is used (to store whether or not the THP is splitting)=
+.
 
-Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
-[steve.capper@arm.com: symbolic constants used, value of PMD_SECT_SPLITTING
-adjusted, tlbflush.h included in pgtable.h]
+Some THP helper functions are defined; and we have to re-define pmd_page su=
+ch
+that it distinguishes between page tables and sections.
+
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 Signed-off-by: Steve Capper <steve.capper@arm.com>
 ---
- arch/arm/Kconfig                            |    4 ++
- arch/arm/include/asm/pgtable-2level.h       |    2 +
- arch/arm/include/asm/pgtable-3level-hwdef.h |    2 +
- arch/arm/include/asm/pgtable-3level.h       |   57 +++++++++++++++++++++++=
-++++
- arch/arm/include/asm/pgtable.h              |    4 +-
- arch/arm/include/asm/tlb.h                  |    6 +++
- arch/arm/include/asm/tlbflush.h             |    2 +
- arch/arm/mm/fsr-3level.c                    |    2 +-
- 8 files changed, 77 insertions(+), 2 deletions(-)
+ arch/arm/Kconfig                      |    2 +-
+ arch/arm/include/asm/pgtable-2level.h |   68 +++++++++++++++++++++++++++++=
++++-
+ arch/arm/include/asm/pgtable-3level.h |    2 +
+ arch/arm/include/asm/pgtable.h        |    7 +++-
+ 4 files changed, 75 insertions(+), 4 deletions(-)
 
 diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
-index dd0a230..9621d5f 100644
+index 9621d5f..d459673 100644
 --- a/arch/arm/Kconfig
 +++ b/arch/arm/Kconfig
-@@ -1771,6 +1771,10 @@ config SYS_SUPPORTS_HUGETLBFS
-        def_bool y
-        depends on ARM_LPAE || (!CPU_USE_DOMAINS && !MEMORY_FAILURE)
+@@ -1773,7 +1773,7 @@ config SYS_SUPPORTS_HUGETLBFS
 =20
-+config HAVE_ARCH_TRANSPARENT_HUGEPAGE
-+       def_bool y
-+       depends on ARM_LPAE
-+
+ config HAVE_ARCH_TRANSPARENT_HUGEPAGE
+        def_bool y
+-       depends on ARM_LPAE
++       depends on SYS_SUPPORTS_HUGETLBFS
+=20
  source "mm/Kconfig"
 =20
- config FORCE_MAX_ZONEORDER
 diff --git a/arch/arm/include/asm/pgtable-2level.h b/arch/arm/include/asm/p=
 gtable-2level.h
-index fd1d9be..34f4775 100644
+index 34f4775..67eabb4 100644
 --- a/arch/arm/include/asm/pgtable-2level.h
 +++ b/arch/arm/include/asm/pgtable-2level.h
-@@ -182,6 +182,8 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned lo=
-ng addr)
+@@ -179,6 +179,13 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned l=
+ong addr)
+ =09=09clean_pmd_entry(pmdp);=09\
+ =09} while (0)
+=20
++
++#ifdef CONFIG_TRANSPARENT_HUGEPAGE
++#define _PMD_HUGE(pmd) ((pmd_val(pmd) & PMD_TYPE_MASK) =3D=3D PMD_TYPE_SEC=
+T)
++#else
++#define _PMD_HUGE(pmd) (0)
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
++
  /* we don't need complex calculations here as the pmd is folded into the p=
 gd */
  #define pmd_addr_end(addr,end) (end)
 =20
-+#define pmd_present(pmd)        ((pmd_val(pmd) & PMD_TYPE_MASK) !=3D PMD_T=
-YPE_FAULT)
-+
- #define set_pte_ext(ptep,pte,ext) cpu_set_pte_ext(ptep,pte,ext)
+@@ -197,7 +204,6 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned lo=
+ng addr)
 =20
+ #define HPAGE_SHIFT             PMD_SHIFT
+ #define HPAGE_SIZE              (_AC(1, UL) << HPAGE_SHIFT)
+-#define HPAGE_MASK              (~(HPAGE_SIZE - 1))
+ #define HUGETLB_PAGE_ORDER      (HPAGE_SHIFT - PAGE_SHIFT)
 =20
-diff --git a/arch/arm/include/asm/pgtable-3level-hwdef.h b/arch/arm/include=
-/asm/pgtable-3level-hwdef.h
-index d795282..53c7f67 100644
---- a/arch/arm/include/asm/pgtable-3level-hwdef.h
-+++ b/arch/arm/include/asm/pgtable-3level-hwdef.h
-@@ -38,6 +38,8 @@
+ #define HUGE_LINUX_PTE_COUNT       (PAGE_OFFSET >> HPAGE_SHIFT)
+@@ -209,6 +215,7 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned lo=
+ng addr)
   */
- #define PMD_SECT_BUFFERABLE=09(_AT(pmdval_t, 1) << 2)
- #define PMD_SECT_CACHEABLE=09(_AT(pmdval_t, 1) << 3)
-+#define PMD_SECT_USER=09=09(_AT(pmdval_t, 1) << 6)=09=09/* AP[1] */
-+#define PMD_SECT_RDONLY=09=09(_AT(pmdval_t, 1) << 7)=09=09/* AP[2] */
- #define PMD_SECT_S=09=09(_AT(pmdval_t, 3) << 8)
- #define PMD_SECT_AF=09=09(_AT(pmdval_t, 1) << 10)
- #define PMD_SECT_nG=09=09(_AT(pmdval_t, 1) << 11)
-diff --git a/arch/arm/include/asm/pgtable-3level.h b/arch/arm/include/asm/p=
-gtable-3level.h
-index d086f61..31c071f 100644
---- a/arch/arm/include/asm/pgtable-3level.h
-+++ b/arch/arm/include/asm/pgtable-3level.h
-@@ -85,6 +85,9 @@
- #define L_PTE_DIRTY=09=09(_AT(pteval_t, 1) << 55)=09/* unused */
- #define L_PTE_SPECIAL=09=09(_AT(pteval_t, 1) << 56)=09/* unused */
+ #define PMD_DSECT_DIRTY=09=09(_AT(pmdval_t, 1) << 5)
+ #define PMD_DSECT_AF=09=09(_AT(pmdval_t, 1) << 6)
++#define PMD_DSECT_SPLITTING=09(_AT(pmdval_t, 1) << 7)
 =20
-+#define PMD_SECT_DIRTY=09=09(_AT(pmdval_t, 1) << 55)
-+#define PMD_SECT_SPLITTING=09(_AT(pmdval_t, 1) << 57)
-+
- /*
-  * To be used in assembly code with the upper page attributes.
-  */
-@@ -166,6 +169,60 @@ static inline pmd_t *pmd_offset(pud_t *pud, unsigned l=
-ong addr)
- #define pte_mkhuge(pte)=09=09(__pte((pte_val(pte) & ~PMD_TYPE_MASK) | PMD_=
-TYPE_SECT))
+ #define PMD_BIT_FUNC(fn,op) \
+ static inline pmd_t pmd_##fn(pmd_t pmd) { pmd_val(pmd) op; return pmd; }
+@@ -261,8 +268,67 @@ static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t new=
+prot)
+ =09return __pmd(pmdval);
+ }
 =20
++#else
++#define=09HPAGE_SIZE=090
+ #endif /* CONFIG_SYS_SUPPORTS_HUGETLBFS */
 =20
-+#define pmd_present(pmd)=09((pmd_val(pmd) & PMD_TYPE_MASK) !=3D PMD_TYPE_F=
-AULT)
-+#define pmd_young(pmd)=09=09(pmd_val(pmd) & PMD_SECT_AF)
-+
-+#define __HAVE_ARCH_PMD_WRITE
-+#define pmd_write(pmd)=09=09(!(pmd_val(pmd) & PMD_SECT_RDONLY))
++#define HPAGE_MASK              (~(HPAGE_SIZE - 1))
 +
 +#ifdef CONFIG_TRANSPARENT_HUGEPAGE
-+#define pmd_trans_huge(pmd)=09((pmd_val(pmd) & PMD_TYPE_MASK) =3D=3D PMD_T=
-YPE_SECT)
-+#define pmd_trans_splitting(pmd) (pmd_val(pmd) & PMD_SECT_SPLITTING)
-+#endif
-+
-+#define PMD_BIT_FUNC(fn,op) \
-+static inline pmd_t pmd_##fn(pmd_t pmd) { pmd_val(pmd) op; return pmd; }
-+
-+PMD_BIT_FUNC(wrprotect,=09|=3D PMD_SECT_RDONLY);
-+PMD_BIT_FUNC(mkold,=09&=3D ~PMD_SECT_AF);
-+PMD_BIT_FUNC(mksplitting, |=3D PMD_SECT_SPLITTING);
-+PMD_BIT_FUNC(mkwrite,   &=3D ~PMD_SECT_RDONLY);
-+PMD_BIT_FUNC(mkdirty,   |=3D PMD_SECT_DIRTY);
-+PMD_BIT_FUNC(mkyoung,   |=3D PMD_SECT_AF);
-+PMD_BIT_FUNC(mknotpresent, &=3D ~PMD_TYPE_MASK);
-+
 +#define pmd_mkhuge(pmd)=09=09(__pmd((pmd_val(pmd) & ~PMD_TYPE_MASK) | PMD_=
 TYPE_SECT))
 +
-+#define pmd_pfn(pmd)=09=09((pmd_val(pmd) & PHYS_MASK) >> PAGE_SHIFT)
-+#define pfn_pmd(pfn,prot)=09(__pmd(((phys_addr_t)(pfn) << PAGE_SHIFT) | pg=
-prot_val(prot)))
-+#define mk_pmd(page,prot)=09pfn_pmd(page_to_pfn(page),prot)
++PMD_BIT_FUNC(mkold, &=3D ~PMD_DSECT_AF);
++PMD_BIT_FUNC(mksplitting, |=3D PMD_DSECT_SPLITTING);
++PMD_BIT_FUNC(mkdirty, |=3D PMD_DSECT_DIRTY);
++PMD_BIT_FUNC(mkyoung, |=3D PMD_DSECT_AF);
++PMD_BIT_FUNC(mkwrite, |=3D PMD_SECT_AP_WRITE);
++PMD_BIT_FUNC(mknotpresent, &=3D ~PMD_TYPE_MASK);
 +
-+static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
++#define pmd_trans_splitting(pmd)=09(pmd_val(pmd) & PMD_DSECT_SPLITTING)
++#define pmd_young(pmd)=09=09=09(pmd_val(pmd) & PMD_DSECT_AF)
++#define pmd_write(pmd)=09=09=09(pmd_val(pmd) & PMD_SECT_AP_WRITE)
++#define pmd_trans_huge(pmd)=09=09((pmd_val(pmd) & PMD_TYPE_MASK) =3D=3D PM=
+D_TYPE_SECT)
++
++static inline unsigned long pmd_pfn(pmd_t pmd)
 +{
-+=09const pmdval_t mask =3D PMD_SECT_USER | PMD_SECT_XN | PMD_SECT_RDONLY;
-+=09pmd_val(pmd) =3D (pmd_val(pmd) & ~mask) | (pgprot_val(newprot) & mask);
-+=09return pmd;
++=09/*
++=09 * for a section, we need to mask off more of the pmd
++=09 * before looking up the pfn
++=09 */
++=09if ((pmd_val(pmd) & PMD_TYPE_MASK) =3D=3D PMD_TYPE_SECT)
++=09=09return __phys_to_pfn(pmd_val(pmd) & HPAGE_MASK);
++=09else
++=09=09return __phys_to_pfn(pmd_val(pmd) & PHYS_MASK);
 +}
 +
-+static inline void set_pmd(pmd_t *pmdp, pmd_t pmd)
++static inline pmd_t pfn_pmd(unsigned long pfn, pgprot_t prot)
 +{
-+=09*pmdp =3D pmd;
++=09pmd_t pmd =3D __pmd(__pfn_to_phys(pfn) | PMD_SECT_AP_READ | PMD_SECT_nG=
+);
++
++=09return pmd_modify(pmd, prot);
 +}
 +
-+static inline void set_pmd_at(struct mm_struct *mm, unsigned long addr,
-+=09=09=09      pmd_t *pmdp, pmd_t pmd)
-+{
-+=09BUG_ON(addr >=3D TASK_SIZE);
-+=09pmd =3D __pmd(pmd_val(pmd) | PMD_SECT_nG);
-+=09set_pmd(pmdp, pmd);
-+=09flush_pmd_entry(pmdp);
-+}
++#define mk_pmd(page,prot) pfn_pmd(page_to_pfn(page),prot);
 +
 +static inline int has_transparent_hugepage(void)
 +{
 +=09return 1;
 +}
 +
++#endif /* CONFIG_TRANSPARENT_HUGEPAGE */
++
++static inline struct page *pmd_page(pmd_t pmd)
++{
++=09/*
++=09 * for a section, we need to mask off more of the pmd
++=09 * before looking up the page as it is a section descriptor.
++=09 */
++=09if (_PMD_HUGE(pmd))
++=09=09return phys_to_page(pmd_val(pmd) & HPAGE_MASK);
++
++=09return phys_to_page(pmd_val(pmd) & PHYS_MASK);
++}
++
  #endif /* __ASSEMBLY__ */
 =20
- #endif /* _ASM_PGTABLE_3LEVEL_H */
+ #endif /* _ASM_PGTABLE_2LEVEL_H */
+diff --git a/arch/arm/include/asm/pgtable-3level.h b/arch/arm/include/asm/p=
+gtable-3level.h
+index 31c071f..8360814 100644
+--- a/arch/arm/include/asm/pgtable-3level.h
++++ b/arch/arm/include/asm/pgtable-3level.h
+@@ -197,6 +197,8 @@ PMD_BIT_FUNC(mknotpresent, &=3D ~PMD_TYPE_MASK);
+ #define pfn_pmd(pfn,prot)=09(__pmd(((phys_addr_t)(pfn) << PAGE_SHIFT) | pg=
+prot_val(prot)))
+ #define mk_pmd(page,prot)=09pfn_pmd(page_to_pfn(page),prot)
+=20
++#define pmd_page(pmd)           pfn_to_page(__phys_to_pfn(pmd_val(pmd) & P=
+HYS_MASK))
++
+ static inline pmd_t pmd_modify(pmd_t pmd, pgprot_t newprot)
+ {
+ =09const pmdval_t mask =3D PMD_SECT_USER | PMD_SECT_XN | PMD_SECT_RDONLY;
 diff --git a/arch/arm/include/asm/pgtable.h b/arch/arm/include/asm/pgtable.=
 h
-index c35bf46..767aa7c 100644
+index 767aa7c..2d96381 100644
 --- a/arch/arm/include/asm/pgtable.h
 +++ b/arch/arm/include/asm/pgtable.h
-@@ -24,6 +24,9 @@
- #include <asm/memory.h>
- #include <asm/pgtable-hwdef.h>
-=20
-+
-+#include <asm/tlbflush.h>
-+
- #ifdef CONFIG_ARM_LPAE
- #include <asm/pgtable-3level.h>
- #else
-@@ -163,7 +166,6 @@ extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
- #define pgd_offset_k(addr)=09pgd_offset(&init_mm, addr)
-=20
- #define pmd_none(pmd)=09=09(!pmd_val(pmd))
--#define pmd_present(pmd)=09(pmd_val(pmd))
+@@ -169,11 +169,14 @@ extern pgd_t swapper_pg_dir[PTRS_PER_PGD];
 =20
  static inline pte_t *pmd_page_vaddr(pmd_t pmd)
  {
-diff --git a/arch/arm/include/asm/tlb.h b/arch/arm/include/asm/tlb.h
-index 685e9e87..0fc2d9d 100644
---- a/arch/arm/include/asm/tlb.h
-+++ b/arch/arm/include/asm/tlb.h
-@@ -229,6 +229,12 @@ static inline void __pmd_free_tlb(struct mmu_gather *t=
-lb, pmd_t *pmdp,
- #endif
++#ifdef SYS_SUPPORTS_HUGETLBFS
++=09if ((pmd_val(pmd) & PMD_TYPE_MASK) =3D=3D PMD_TYPE_SECT)
++=09=09return __va(pmd_val(pmd) & HPAGE_MASK);
++#endif
++
+ =09return __va(pmd_val(pmd) & PHYS_MASK & (s32)PAGE_MASK);
  }
 =20
-+static inline void
-+tlb_remove_pmd_tlb_entry(struct mmu_gather *tlb, pmd_t *pmdp, unsigned lon=
-g addr)
-+{
-+=09tlb_add_flush(tlb, addr);
-+}
-+
- #define pte_free_tlb(tlb, ptep, addr)=09__pte_free_tlb(tlb, ptep, addr)
- #define pmd_free_tlb(tlb, pmdp, addr)=09__pmd_free_tlb(tlb, pmdp, addr)
- #define pud_free_tlb(tlb, pudp, addr)=09pud_free((tlb)->mm, pudp)
-diff --git a/arch/arm/include/asm/tlbflush.h b/arch/arm/include/asm/tlbflus=
-h.h
-index 6e924d3..907cede 100644
---- a/arch/arm/include/asm/tlbflush.h
-+++ b/arch/arm/include/asm/tlbflush.h
-@@ -505,6 +505,8 @@ static inline void update_mmu_cache(struct vm_area_stru=
-ct *vma,
- }
- #endif
-=20
-+#define update_mmu_cache_pmd(vma, address, pmd) do { } while (0)
-+
- #endif
-=20
- #endif /* CONFIG_MMU */
-diff --git a/arch/arm/mm/fsr-3level.c b/arch/arm/mm/fsr-3level.c
-index 05a4e94..47f4c6f 100644
---- a/arch/arm/mm/fsr-3level.c
-+++ b/arch/arm/mm/fsr-3level.c
-@@ -9,7 +9,7 @@ static struct fsr_info fsr_info[] =3D {
- =09{ do_page_fault,=09SIGSEGV, SEGV_MAPERR,=09"level 3 translation fault"=
-=09},
- =09{ do_bad,=09=09SIGBUS,  0,=09=09"reserved access flag fault"=09},
- =09{ do_bad,=09=09SIGSEGV, SEGV_ACCERR,=09"level 1 access flag fault"=09},
--=09{ do_bad,=09=09SIGSEGV, SEGV_ACCERR,=09"level 2 access flag fault"=09},
-+=09{ do_page_fault,=09SIGSEGV, SEGV_ACCERR,=09"level 2 access flag fault"=
-=09},
- =09{ do_page_fault,=09SIGSEGV, SEGV_ACCERR,=09"level 3 access flag fault"=
-=09},
- =09{ do_bad,=09=09SIGBUS,  0,=09=09"reserved permission fault"=09},
- =09{ do_bad,=09=09SIGSEGV, SEGV_ACCERR,=09"level 1 permission fault"=09},
+-#define pmd_page(pmd)=09=09pfn_to_page(__phys_to_pfn(pmd_val(pmd) & PHYS_M=
+ASK))
+-
+ #ifndef CONFIG_HIGHPTE
+ #define __pte_map(pmd)=09=09pmd_page_vaddr(*(pmd))
+ #define __pte_unmap(pte)=09do { } while (0)
 --=20
 1.7.9.5
