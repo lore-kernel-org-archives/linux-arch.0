@@ -1,63 +1,41 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:11814 "EHLO
-	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753275Ab2JQU2K (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 17 Oct 2012 16:28:10 -0400
-Date: Wed, 17 Oct 2012 16:28:06 -0400
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH] percpu-rwsem: use barrier in unlock path
-Message-ID: <20121017202806.GA7282@home.goodmis.org>
-References: <Pine.LNX.4.64.1210151716310.10685@file.rdu.redhat.com>
- <Pine.LNX.4.64.1210161924350.20581@file.rdu.redhat.com>
- <CA+55aFyZ9uq_yfHn9PwpmM77X3xVd+xseEbjJmeCCqbFddtjWA@mail.gmail.com>
- <507E48ED.8060809@cn.fujitsu.com>
- <Pine.LNX.4.64.1210171046130.26481@file.rdu.redhat.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.1210171046130.26481@file.rdu.redhat.com>
+Received: from mail.linuxfoundation.org ([140.211.169.12]:40666 "EHLO
+	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755787Ab2JRWFE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Oct 2012 18:05:04 -0400
+Date: Thu, 18 Oct 2012 15:05:02 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
+ access fault.
+Message-ID: <20121018150502.3dee7899.akpm@linux-foundation.org>
+In-Reply-To: <20121017155401.GJ5973@mudshark.cambridge.arm.com>
+References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
+	<20121002150104.da57fa94.akpm@linux-foundation.org>
+	<20121017130125.GH5973@mudshark.cambridge.arm.com>
+	<20121017.112620.1865348978594874782.davem@davemloft.net>
+	<20121017155401.GJ5973@mudshark.cambridge.arm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mikulas Patocka <mpatocka@redhat.com>
-Cc: Lai Jiangshan <laijs@cn.fujitsu.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jens Axboe <axboe@kernel.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Eric Dumazet <eric.dumazet@gmail.com>
-Message-ID: <20121017202806.6hmy_rTMijP4lc-6APpapxP-lMp91lqcHPTeu5tG7fM@z>
+To: Will Deacon <will.deacon@arm.com>
+Cc: David Miller <davem@davemloft.net>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, "aarcange@redhat.com" <aarcange@redhat.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
+Message-ID: <20121018220502.A7HNCeoG9JFg5sYEnzPzZTXjQkwBSti5i6lsuvhtkZc@z>
 
-On Wed, Oct 17, 2012 at 11:07:21AM -0400, Mikulas Patocka wrote:
-> > 
-> > Even the previous patch is applied, percpu_down_read() still
-> > needs mb() to pair with it.
+On Wed, 17 Oct 2012 16:54:02 +0100
+Will Deacon <will.deacon@arm.com> wrote:
+
+> On x86 memory accesses to pages without the ACCESSED flag set result in the
+> ACCESSED flag being set automatically. With the ARM architecture a page access
+> fault is raised instead (and it will continue to be raised until the ACCESSED
+> flag is set for the appropriate PTE/PMD).
 > 
-> percpu_down_read uses rcu_read_lock which should guarantee that memory 
-> accesses don't escape in front of a rcu-protected section.
-
-You do realize that rcu_read_lock() does nothing more that a barrier(),
-right?
-
-Paul worked really hard to get rcu_read_locks() to not call HW barriers.
-
+> For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
+> setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
+> be called for a write fault.
 > 
-> If rcu_read_unlock has only an unlock barrier and not a full barrier, 
-> memory accesses could be moved in front of rcu_read_unlock and reordered 
-> with this_cpu_inc(*p->counters), but it doesn't matter because 
-> percpu_down_write does synchronize_rcu(), so it never sees these accesses 
-> halfway through.
+> This patch ensures that faults on transparent hugepages which do not result
+> in a CoW update the access flags for the faulting pmd.
 
-Looking at the patch, you are correct. The read side doesn't need the
-memory barrier as the worse thing that will happen is that it sees the
-locked = false, and will just grab the mutex unnecessarily.
-
-> > 
-> > I suggest any new synchronization should stay in -tip for 2 or more cycles
-> > before merged to mainline.
-> 
-> But the bug that this synchronization is fixing is quite serious (it 
-> causes random crashes when block size is being changed, the crash happens 
-> regularly at multiple important business sites) so it must be fixed soon 
-> and not wait half a year.
-
-I don't think Lai was suggesting to wait on this fix, but instead to
-totally rip out the percpu_rwsems and work on them some more, and then
-re-introduce them in a half a year.
-
--- Steve
-
+Confused.  Where is the arm implementation of update_mmu_cache_pmd()?
