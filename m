@@ -1,57 +1,98 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH] percpu-rwsem: use barrier in unlock path
-Date: Wed, 17 Oct 2012 16:28:06 -0400
-Message-ID: <20121017202806.GA7282@home.goodmis.org>
-References: <Pine.LNX.4.64.1210151716310.10685@file.rdu.redhat.com>
- <Pine.LNX.4.64.1210161924350.20581@file.rdu.redhat.com>
- <CA+55aFyZ9uq_yfHn9PwpmM77X3xVd+xseEbjJmeCCqbFddtjWA@mail.gmail.com>
- <507E48ED.8060809@cn.fujitsu.com>
- <Pine.LNX.4.64.1210171046130.26481@file.rdu.redhat.com>
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Subject: Re: [RESEND PATCH 2/4] asm-generic: io: don't perform swab during
+ {in,out} string functions
+Date: Thu, 18 Oct 2012 11:01:50 +1100
+Message-ID: <1350518510.4678.117.camel@pasglop>
+References: <1350488704-3711-1-git-send-email-will.deacon@arm.com>
+	 <1350488704-3711-3-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <Pine.LNX.4.64.1210171046130.26481@file.rdu.redhat.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Mikulas Patocka <mpatocka@redhat.com>
-Cc: Lai Jiangshan <laijs@cn.fujitsu.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jens Axboe <axboe@kernel.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Eric Dumazet <eric.dumazet@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from gate.crashing.org ([63.228.1.57]:55809 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752729Ab2JRACE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 17 Oct 2012 20:02:04 -0400
+In-Reply-To: <1350488704-3711-3-git-send-email-will.deacon@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>
 
-On Wed, Oct 17, 2012 at 11:07:21AM -0400, Mikulas Patocka wrote:
-> > 
-> > Even the previous patch is applied, percpu_down_read() still
-> > needs mb() to pair with it.
+On Wed, 2012-10-17 at 16:45 +0100, Will Deacon wrote:
+> The {in,out}s{b,w,l} functions are designed to operate on a stream of
+> bytes and therefore should not perform any byte-swapping, regardless of
+> the CPU byte order.
 > 
-> percpu_down_read uses rcu_read_lock which should guarantee that memory 
-> accesses don't escape in front of a rcu-protected section.
-
-You do realize that rcu_read_lock() does nothing more that a barrier(),
-right?
-
-Paul worked really hard to get rcu_read_locks() to not call HW barriers.
-
+> This patch fixes the generic IO header so that {in,out}s{b,w,l} call
+> the __raw_{read,write} functions directly rather than going via the
+> endian-correcting accessors.
 > 
-> If rcu_read_unlock has only an unlock barrier and not a full barrier, 
-> memory accesses could be moved in front of rcu_read_unlock and reordered 
-> with this_cpu_inc(*p->counters), but it doesn't matter because 
-> percpu_down_write does synchronize_rcu(), so it never sees these accesses 
-> halfway through.
+> Cc: Mike Frysinger <vapier@gentoo.org>
 
-Looking at the patch, you are correct. The read side doesn't need the
-memory barrier as the worse thing that will happen is that it sees the
-locked = false, and will just grab the mutex unnecessarily.
+Acked-by: Benjamin Herrenschmidt <benh@kernel.crashing.org>
 
-> > 
-> > I suggest any new synchronization should stay in -tip for 2 or more cycles
-> > before merged to mainline.
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> ---
+>  include/asm-generic/io.h |   12 ++++++------
+>  1 files changed, 6 insertions(+), 6 deletions(-)
 > 
-> But the bug that this synchronization is fixing is quite serious (it 
-> causes random crashes when block size is being changed, the crash happens 
-> regularly at multiple important business sites) so it must be fixed soon 
-> and not wait half a year.
-
-I don't think Lai was suggesting to wait on this fix, but instead to
-totally rip out the percpu_rwsems and work on them some more, and then
-re-introduce them in a half a year.
-
--- Steve
+> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+> index 3607921..403b861 100644
+> --- a/include/asm-generic/io.h
+> +++ b/include/asm-generic/io.h
+> @@ -148,7 +148,7 @@ static inline void insb(unsigned long addr, void *buffer, int count)
+>  	if (count) {
+>  		u8 *buf = buffer;
+>  		do {
+> -			u8 x = inb(addr);
+> +			u8 x = __raw_readb(addr + PCI_IOBASE);
+>  			*buf++ = x;
+>  		} while (--count);
+>  	}
+> @@ -161,7 +161,7 @@ static inline void insw(unsigned long addr, void *buffer, int count)
+>  	if (count) {
+>  		u16 *buf = buffer;
+>  		do {
+> -			u16 x = inw(addr);
+> +			u16 x = __raw_readw(addr + PCI_IOBASE);
+>  			*buf++ = x;
+>  		} while (--count);
+>  	}
+> @@ -174,7 +174,7 @@ static inline void insl(unsigned long addr, void *buffer, int count)
+>  	if (count) {
+>  		u32 *buf = buffer;
+>  		do {
+> -			u32 x = inl(addr);
+> +			u32 x = __raw_readl(addr + PCI_IOBASE);
+>  			*buf++ = x;
+>  		} while (--count);
+>  	}
+> @@ -187,7 +187,7 @@ static inline void outsb(unsigned long addr, const void *buffer, int count)
+>  	if (count) {
+>  		const u8 *buf = buffer;
+>  		do {
+> -			outb(*buf++, addr);
+> +			__raw_writeb(*buf++, addr + PCI_IOBASE);
+>  		} while (--count);
+>  	}
+>  }
+> @@ -199,7 +199,7 @@ static inline void outsw(unsigned long addr, const void *buffer, int count)
+>  	if (count) {
+>  		const u16 *buf = buffer;
+>  		do {
+> -			outw(*buf++, addr);
+> +			__raw_writew(*buf++, addr + PCI_IOBASE);
+>  		} while (--count);
+>  	}
+>  }
+> @@ -211,7 +211,7 @@ static inline void outsl(unsigned long addr, const void *buffer, int count)
+>  	if (count) {
+>  		const u32 *buf = buffer;
+>  		do {
+> -			outl(*buf++, addr);
+> +			__raw_writel(*buf++, addr + PCI_IOBASE);
+>  		} while (--count);
+>  	}
+>  }
