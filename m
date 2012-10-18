@@ -1,69 +1,97 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [PATCH] percpu-rwsem: use barrier in unlock path
-Date: Thu, 18 Oct 2012 00:13:39 -0400
-Message-ID: <1350533619.19292.59.camel@pippen.local.home>
-References: <Pine.LNX.4.64.1210151716310.10685@file.rdu.redhat.com>
-	 <Pine.LNX.4.64.1210161924350.20581@file.rdu.redhat.com>
-	 <CA+55aFyZ9uq_yfHn9PwpmM77X3xVd+xseEbjJmeCCqbFddtjWA@mail.gmail.com>
-	 <507E48ED.8060809@cn.fujitsu.com>
-	 <Pine.LNX.4.64.1210171046130.26481@file.rdu.redhat.com>
-	 <20121017202806.GA7282@home.goodmis.org>  <507F66F6.20704@cn.fujitsu.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [RESEND PATCH 2/4] asm-generic: io: don't perform swab during
+ {in,out} string functions
+Date: Thu, 18 Oct 2012 07:48:16 +0200
+Message-ID: <CAMuHMdWH3GXJ_dW-FCAX=LAkBuQmQtwRUtNpcqg_afm-UFK_2g@mail.gmail.com>
+References: <1350488704-3711-1-git-send-email-will.deacon@arm.com>
+	<1350488704-3711-3-git-send-email-will.deacon@arm.com>
+	<CAMuHMdXcQjDyen+o5aH=1zUOkNX-cfT3aXBOgCpyop=V67jk7w@mail.gmail.com>
+	<1350518655.4678.120.camel@pasglop>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:14125 "EHLO
-	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750724Ab2JRENu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Oct 2012 00:13:50 -0400
-In-Reply-To: <507F66F6.20704@cn.fujitsu.com>
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:44197 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754091Ab2JRFsR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 18 Oct 2012 01:48:17 -0400
+In-Reply-To: <1350518655.4678.120.camel@pasglop>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lai Jiangshan <laijs@cn.fujitsu.com>
-Cc: Mikulas Patocka <mpatocka@redhat.com>, Linus Torvalds <torvalds@linux-foundation.org>, Jens Axboe <axboe@kernel.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Eric Dumazet <eric.dumazet@gmail.com>
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Cc: Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>
 
-On Thu, 2012-10-18 at 10:18 +0800, Lai Jiangshan wrote:
-> > 
-> > Looking at the patch, you are correct. The read side doesn't need the
-> > memory barrier as the worse thing that will happen is that it sees the
-> > locked = false, and will just grab the mutex unnecessarily.
-> 
-> ---------------------
-> A memory barrier can be added iff these two things are known:
-> 	1) it disables the disordering between what and what.
-> 	2) what is the corresponding mb() that it pairs with.
-> 
+Hi Ben,
 
-OK, I was just looking at the protection and actions of the locked flag,
-but I see what you are saying with the data itself.
+On Thu, Oct 18, 2012 at 2:04 AM, Benjamin Herrenschmidt
+<benh@kernel.crashing.org> wrote:
+> On Wed, 2012-10-17 at 21:16 +0200, Geert Uytterhoeven wrote:
+>> On Wed, Oct 17, 2012 at 5:45 PM, Will Deacon <will.deacon@arm.com> wrote:
+>> > The {in,out}s{b,w,l} functions are designed to operate on a stream of
+>> > bytes and therefore should not perform any byte-swapping, regardless of
+>> > the CPU byte order.
+>>
+>> Euh?
+>
+> Will is perfectly right :-)
+>
+>> They transfer a stream of bytes between memory and PCI/ISA I/O space by
+>> reading from/writing to a single I/O port of width 8, 16, or 32 bits.
+>> On big endian machines, I/O port accesses may need to be swapped.
+>
+> No. Not for streams. I suggest you watch the recording of my Plumbers
+> talk :-)
 
-> You tried to add a mb() in percpu_up_write(), OK, I know it disables the disordering
-> between the writes to the protected data and the statement "p->locked = false",
-> But I can't find out the corresponding mb() that it pairs with.
-> 
-> percpu_down_read()					writes to the data
-> 	The cpu cache/prefetch the data			writes to the data
-> 	which is chaos					writes to the data
-> 							percpu_up_write()
-> 								mb()
-> 								p->locked = false;
-> 	unlikely(p->locked)
-> 		the cpu see p->lock = false,
-> 		don't discard the cached/prefetch data
-> 	this_cpu_inc(*p->counters);
-> 	the code of read-access to the data
-> 	****and we use the chaos data*****
-> 
-> So you need to add a mb() after "unlikely(p->locked)".
+I will. But as email text on lkml is easier to refer to than videos, I
+will continue below,
+so yo can refute me in plain text ;-)
 
-Does it need a full mb() or could it be just a rmb()? The down_read I
-wouldn't think would need to protect against stores, would it? The
-memory barrier should probably go in front of the unlikely() too. The
-write to p->counters is handled by the synchronized sched, and adding a
-rmb() in front of the unlikely check would keep prefetched data from
-passing this barrier.
+> The sort story is that endianness is not a property of the IO port but
+> of the information that transit through it. If you're just going to copy
+> it into memory, you want to preserve it's format and so do not byteswap.
+>
+> The byteswap we do on standard accessors is a "helper" because we assume
+> that underneath those IO ports are registers that are Little Endian. But
+> when using one as a window to a byte stream, we must not arbitrarily
+> swap the byte stream. We copy it as-is to memory, and then one can work
+> at interpreting the various fields that might or might not be present in
+> that stream with the appropriate accessors for memory accesses.
 
-This is a perfect example why this primitive should be vetted outside of
-mainline before it gets merged.
+So assume you have the bytestream "Hello, world!\n" in memory on the
+PCI device.I.e.
 
--- Steve
+00000000  48 65 6c 6c 6f 2c 20 77  6f 72 6c 64 21 0a        |Hello, world!.|
+
+You want to copy it to system RAM using readsl(), which does:
+
+               u32 *buf = buffer;
+               do {
+                       u32 x = __raw_readl(addr + PCI_IOBASE);
+                       *buf++ = x;
+                } while (--count);
+
+On little endian, the first __raw_readl() should return "0x6c6c6548", so
+it is stored correctly by "*buf = x ".
+On big endian, the first __raw_readl() should return "0x48656c6c" instead,
+else it's stored incorrectly by "*buf = x ".
+But the PCI bus is little endian, so I expect __raw_readl() would return
+"0x6c6c6548", and thus needs swapping?
+
+On m68k (classic with MMU), the situation is a bit more complicated, as some ISA
+(or PCMCIA) busses are physically wired swapped. But inw() and insw() always do
+either both swapping, or both no swapping. The state of support for ISA drivers
+is a bit vague, though.
+
+Now, on m68k without MMU, inw() doesn't do swapping, but insw() does.
+This agrees more or less with you and Will, except that the bus seems to be
+physically swapped?
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
