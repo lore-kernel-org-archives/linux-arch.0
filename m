@@ -1,42 +1,33 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
- access fault.
-Date: Thu, 18 Oct 2012 15:05:02 -0700
-Message-ID: <20121018150502.3dee7899.akpm@linux-foundation.org>
-References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
-	<20121002150104.da57fa94.akpm@linux-foundation.org>
-	<20121017130125.GH5973@mudshark.cambridge.arm.com>
-	<20121017.112620.1865348978594874782.davem@davemloft.net>
-	<20121017155401.GJ5973@mudshark.cambridge.arm.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [RESEND PATCH 4/4] net: smc91x: use io{read,write}*_rep accessors
+ instead of string functions
+Date: Fri, 19 Oct 2012 09:25:48 +0100
+Message-ID: <50810E8C.5010806@imgtec.com>
+References: <1350488704-3711-1-git-send-email-will.deacon@arm.com> <1350488704-3711-5-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20121017155401.GJ5973@mudshark.cambridge.arm.com>
-Sender: owner-linux-mm@kvack.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1350488704-3711-5-git-send-email-will.deacon@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Will Deacon <will.deacon@arm.com>
-Cc: David Miller <davem@davemloft.net>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, "aarcange@redhat.com" <aarcange@redhat.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Ben Herrenschmidt <benh@kernel.crashing.org>
 List-Id: linux-arch.vger.kernel.org
 
-On Wed, 17 Oct 2012 16:54:02 +0100
-Will Deacon <will.deacon@arm.com> wrote:
-
-> On x86 memory accesses to pages without the ACCESSED flag set result in the
-> ACCESSED flag being set automatically. With the ARM architecture a page access
-> fault is raised instead (and it will continue to be raised until the ACCESSED
-> flag is set for the appropriate PTE/PMD).
+On 17/10/12 16:45, Will Deacon wrote:
+> The {read,write}s{b,w,l} operations are not defined by all architectures
+> and are being removed from the asm-generic/io.h interface.
 > 
-> For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
-> setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
-> be called for a write fault.
-> 
-> This patch ensures that faults on transparent hugepages which do not result
-> in a CoW update the access flags for the faulting pmd.
+> This patch replaces the usage of these string functions in the default
+> SMC accessors with io{read,write}{8,16,32}_rep calls instead, which are
+> defined for all architectures.
 
-Confused.  Where is the arm implementation of update_mmu_cache_pmd()?
+Hi,
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Should this patch (and the mmc one) precede patch 1?
+
+Also there appear to be some other places that it's used (e.g.
+smsc911x.c and smc911x.h). I guess these should be fixed up first too?
+
+Cheers
+James
