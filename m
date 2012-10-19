@@ -1,46 +1,58 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: [PATCH] percpu-rwsem: use barrier in unlock path
-Date: Fri, 19 Oct 2012 11:48:13 -0700
-Message-ID: <CA+55aFzyP8OFJGWB5nZduzqMMwuAwy+1Ed5TBCpdBSOpC1ketw@mail.gmail.com>
-References: <Pine.LNX.4.64.1210151716310.10685@file.rdu.redhat.com>
- <Pine.LNX.4.64.1210161924350.20581@file.rdu.redhat.com> <CA+55aFyZ9uq_yfHn9PwpmM77X3xVd+xseEbjJmeCCqbFddtjWA@mail.gmail.com>
- <Pine.LNX.4.64.1210181132430.22996@file.rdu.redhat.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
+ access fault.
+Date: Fri, 19 Oct 2012 11:49:55 -0700
+Message-ID: <20121019114955.3a0c2b66.akpm@linux-foundation.org>
+References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
+	<20121002150104.da57fa94.akpm@linux-foundation.org>
+	<20121017130125.GH5973@mudshark.cambridge.arm.com>
+	<20121017.112620.1865348978594874782.davem@davemloft.net>
+	<20121017155401.GJ5973@mudshark.cambridge.arm.com>
+	<20121018150502.3dee7899.akpm@linux-foundation.org>
+	<20121019091016.GA4582@mudshark.cambridge.arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-we0-f174.google.com ([74.125.82.174]:55087 "EHLO
-	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752384Ab2JSSsg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Oct 2012 14:48:36 -0400
-In-Reply-To: <Pine.LNX.4.64.1210181132430.22996@file.rdu.redhat.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Mikulas Patocka <mpatocka@redhat.com>
-Cc: Jens Axboe <axboe@kernel.dk>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Lai Jiangshan <laijs@cn.fujitsu.com>, Steven Rostedt <rostedt@goodmis.org>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, Peter Zijlstra <peterz@infradead.org>, Thomas Gleixner <tglx@linutronix.de>, Eric Dumazet <eric.dumazet@gmail.com>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20121019091016.GA4582@mudshark.cambridge.arm.com>
+Sender: owner-linux-mm@kvack.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: David Miller <davem@davemloft.net>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, "aarcange@redhat.com" <aarcange@redhat.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Thu, Oct 18, 2012 at 9:00 AM, Mikulas Patocka <mpatocka@redhat.com> wrote:
->
-> What is the procedure for making changes that require support of
-> architectures? It is trivial to make a patch that moves this into
-> arch-specific includes, the problem is that the patch break all the
-> architectures - I wrote support for x86, sparc, parisc, alpha (I can test
-> those) but not the others.
+On Fri, 19 Oct 2012 10:10:16 +0100
+Will Deacon <will.deacon@arm.com> wrote:
 
-We'd need to add it to everybody.
+> On Thu, Oct 18, 2012 at 11:05:02PM +0100, Andrew Morton wrote:
+> > On Wed, 17 Oct 2012 16:54:02 +0100
+> > Will Deacon <will.deacon@arm.com> wrote:
+> > 
+> > > On x86 memory accesses to pages without the ACCESSED flag set result in the
+> > > ACCESSED flag being set automatically. With the ARM architecture a page access
+> > > fault is raised instead (and it will continue to be raised until the ACCESSED
+> > > flag is set for the appropriate PTE/PMD).
+> > > 
+> > > For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
+> > > setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
+> > > be called for a write fault.
+> > > 
+> > > This patch ensures that faults on transparent hugepages which do not result
+> > > in a CoW update the access flags for the faulting pmd.
+> > 
+> > Confused.  Where is the arm implementation of update_mmu_cache_pmd()?
+> 
+> Right at the end of this patch, which was posted to the ARM list yesterday:
+> 
+>   http://lists.infradead.org/pipermail/linux-arm-kernel/2012-October/126387.html
 
-It shouldn't need per-architecture testing - since "smp_mb()" is
-always safe. So we could just make all architectures default to that,
-and then for x86 (and potentially others that have cheaper models for
-release-consistency) just do the optimized one.
+I received and then merged a patch which won't compile!
 
-We *could* also simply do something like
+Ho hum.  I'll drop
+mm-thp-set-the-accessed-flag-for-old-pages-on-access-fault.patch and
+shall assume that you'll sort things out at the appropriate time.
 
-   #ifndef smp_release_before_store
-     #define smp_release_before_store() smp_mb()
-   #endif
-
-and basically make the rule be that only architectures that have a
-cheaper one need to define it at all. That may be the correct
-short-term fix, since there initially would be only a single user.
-
-                  Linus
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
