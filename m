@@ -1,52 +1,193 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:45369 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753881Ab2JSJKl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 19 Oct 2012 05:10:41 -0400
-Date: Fri, 19 Oct 2012 10:10:16 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
- access fault.
-Message-ID: <20121019091016.GA4582@mudshark.cambridge.arm.com>
-References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
- <20121002150104.da57fa94.akpm@linux-foundation.org>
- <20121017130125.GH5973@mudshark.cambridge.arm.com>
- <20121017.112620.1865348978594874782.davem@davemloft.net>
- <20121017155401.GJ5973@mudshark.cambridge.arm.com>
- <20121018150502.3dee7899.akpm@linux-foundation.org>
+Received: from mx1.redhat.com ([209.132.183.28]:54317 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1030439Ab2JSQ4d (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 19 Oct 2012 12:56:33 -0400
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH 3/5] perf: Make perf build for x86 with UAPI disintegration
+ applied
+Date: Fri, 19 Oct 2012 17:56:24 +0100
+Message-ID: <20121019165624.23037.1780.stgit@warthog.procyon.org.uk>
+In-Reply-To: <20121019165558.23037.40181.stgit@warthog.procyon.org.uk>
+References: <20121019165558.23037.40181.stgit@warthog.procyon.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20121018150502.3dee7899.akpm@linux-foundation.org>
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: David Miller <davem@davemloft.net>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, "aarcange@redhat.com" <aarcange@redhat.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
-Message-ID: <20121019091016.L26NPJ9EtOA-PeLzCLe8z3lQ0oL98qE58bI50-9VisY@z>
+To: mingo@kernel.org, tglx@linutronix.de, acme@ghostprotocols.net
+Cc: dhowells@redhat.com, davem@davemloft.net, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
+Message-ID: <20121019165624.CTSa_pPiHw4kiacpONtt2JAezXQbtnJydixkYSvA-lM@z>
 
-On Thu, Oct 18, 2012 at 11:05:02PM +0100, Andrew Morton wrote:
-> On Wed, 17 Oct 2012 16:54:02 +0100
-> Will Deacon <will.deacon@arm.com> wrote:
-> 
-> > On x86 memory accesses to pages without the ACCESSED flag set result in the
-> > ACCESSED flag being set automatically. With the ARM architecture a page access
-> > fault is raised instead (and it will continue to be raised until the ACCESSED
-> > flag is set for the appropriate PTE/PMD).
-> > 
-> > For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
-> > setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
-> > be called for a write fault.
-> > 
-> > This patch ensures that faults on transparent hugepages which do not result
-> > in a CoW update the access flags for the faulting pmd.
-> 
-> Confused.  Where is the arm implementation of update_mmu_cache_pmd()?
+Make perf build for x86 once the UAPI disintegration patches for that arch
+have been applied by adding the appropriate -I flags - in the right order -
+and then converting some #includes that use ../.. notation to find main kernel
+headerfiles to use <asm/foo.h> and <linux/foo.h> instead.
 
-Right at the end of this patch, which was posted to the ARM list yesterday:
+Note that -Iarch/foo/include/uapi is present _before_ -Iarch/foo/include.
+This makes sure we get the userspace version of the pt_regs struct.  Ideally,
+we wouldn't have the latter -I flag at all, but unfortunately we want
+asm/svm.h and asm/vmx.h in buildin-kvm.c and these aren't part of the UAPI -
+at least not for x86.  I wonder if the bits outside of the __KERNEL__ guards
+*should* be transferred there.
 
-  http://lists.infradead.org/pipermail/linux-arm-kernel/2012-October/126387.html
+I note also that perf seems to do its dependency handling manually by listing
+all the header files it might want to use in LIB_H in the Makefile.  Can this
+be changed to use -MD?
 
-Cheers,
+Signed-off-by: David Howells <dhowells@redhat.com>
+---
 
-Will
+ tools/perf/Makefile      |   16 +++++++++++++++-
+ tools/perf/builtin-kvm.c |    6 +++---
+ tools/perf/perf.h        |   16 +++-------------
+ 3 files changed, 21 insertions(+), 17 deletions(-)
+
+diff --git a/tools/perf/Makefile b/tools/perf/Makefile
+index f7c968a..9024a42 100644
+--- a/tools/perf/Makefile
++++ b/tools/perf/Makefile
+@@ -169,7 +169,21 @@ endif
+ 
+ ### --- END CONFIGURATION SECTION ---
+ 
+-BASIC_CFLAGS = -Iutil/include -Iarch/$(ARCH)/include -I$(OUTPUT)util -I$(TRACE_EVENT_DIR) -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
++ifeq ($(srctree),)
++srctree := $(shell pwd)
++endif
++
++BASIC_CFLAGS = \
++	-Iutil/include \
++	-Iarch/$(ARCH)/include \
++	-I$(objtree)/arch/$(ARCH)/include/generated/uapi \
++	-I$(srctree)/arch/$(ARCH)/include/uapi \
++	-I$(srctree)/arch/$(ARCH)/include \
++	-I$(objtree)/include/generated/uapi \
++	-I$(srctree)/include/uapi \
++	-I$(OUTPUT)util \
++	-I$(TRACE_EVENT_DIR) \
++	-D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
+ BASIC_LDFLAGS =
+ 
+ # Guard against environment variables
+diff --git a/tools/perf/builtin-kvm.c b/tools/perf/builtin-kvm.c
+index 260abc5..e013bdb 100644
+--- a/tools/perf/builtin-kvm.c
++++ b/tools/perf/builtin-kvm.c
+@@ -22,9 +22,9 @@
+ #include <pthread.h>
+ #include <math.h>
+ 
+-#include "../../arch/x86/include/asm/svm.h"
+-#include "../../arch/x86/include/asm/vmx.h"
+-#include "../../arch/x86/include/asm/kvm.h"
++#include <asm/svm.h>
++#include <asm/vmx.h>
++#include <asm/kvm.h>
+ 
+ struct event_key {
+ 	#define INVALID_KEY     (~0ULL)
+diff --git a/tools/perf/perf.h b/tools/perf/perf.h
+index 2762877..238f923 100644
+--- a/tools/perf/perf.h
++++ b/tools/perf/perf.h
+@@ -5,8 +5,9 @@ struct winsize;
+ 
+ void get_term_dimensions(struct winsize *ws);
+ 
++#include <asm/unistd.h>
++
+ #if defined(__i386__)
+-#include "../../arch/x86/include/asm/unistd.h"
+ #define rmb()		asm volatile("lock; addl $0,0(%%esp)" ::: "memory")
+ #define cpu_relax()	asm volatile("rep; nop" ::: "memory");
+ #define CPUINFO_PROC	"model name"
+@@ -16,7 +17,6 @@ void get_term_dimensions(struct winsize *ws);
+ #endif
+ 
+ #if defined(__x86_64__)
+-#include "../../arch/x86/include/asm/unistd.h"
+ #define rmb()		asm volatile("lfence" ::: "memory")
+ #define cpu_relax()	asm volatile("rep; nop" ::: "memory");
+ #define CPUINFO_PROC	"model name"
+@@ -26,20 +26,17 @@ void get_term_dimensions(struct winsize *ws);
+ #endif
+ 
+ #ifdef __powerpc__
+-#include "../../arch/powerpc/include/asm/unistd.h"
+ #define rmb()		asm volatile ("sync" ::: "memory")
+ #define cpu_relax()	asm volatile ("" ::: "memory");
+ #define CPUINFO_PROC	"cpu"
+ #endif
+ 
+ #ifdef __s390__
+-#include "../../arch/s390/include/asm/unistd.h"
+ #define rmb()		asm volatile("bcr 15,0" ::: "memory")
+ #define cpu_relax()	asm volatile("" ::: "memory");
+ #endif
+ 
+ #ifdef __sh__
+-#include "../../arch/sh/include/asm/unistd.h"
+ #if defined(__SH4A__) || defined(__SH5__)
+ # define rmb()		asm volatile("synco" ::: "memory")
+ #else
+@@ -50,35 +47,30 @@ void get_term_dimensions(struct winsize *ws);
+ #endif
+ 
+ #ifdef __hppa__
+-#include "../../arch/parisc/include/asm/unistd.h"
+ #define rmb()		asm volatile("" ::: "memory")
+ #define cpu_relax()	asm volatile("" ::: "memory");
+ #define CPUINFO_PROC	"cpu"
+ #endif
+ 
+ #ifdef __sparc__
+-#include "../../arch/sparc/include/asm/unistd.h"
+ #define rmb()		asm volatile("":::"memory")
+ #define cpu_relax()	asm volatile("":::"memory")
+ #define CPUINFO_PROC	"cpu"
+ #endif
+ 
+ #ifdef __alpha__
+-#include "../../arch/alpha/include/asm/unistd.h"
+ #define rmb()		asm volatile("mb" ::: "memory")
+ #define cpu_relax()	asm volatile("" ::: "memory")
+ #define CPUINFO_PROC	"cpu model"
+ #endif
+ 
+ #ifdef __ia64__
+-#include "../../arch/ia64/include/asm/unistd.h"
+ #define rmb()		asm volatile ("mf" ::: "memory")
+ #define cpu_relax()	asm volatile ("hint @pause" ::: "memory")
+ #define CPUINFO_PROC	"model name"
+ #endif
+ 
+ #ifdef __arm__
+-#include "../../arch/arm/include/asm/unistd.h"
+ /*
+  * Use the __kuser_memory_barrier helper in the CPU helper page. See
+  * arch/arm/kernel/entry-armv.S in the kernel source for details.
+@@ -89,13 +81,11 @@ void get_term_dimensions(struct winsize *ws);
+ #endif
+ 
+ #ifdef __aarch64__
+-#include "../../arch/arm64/include/asm/unistd.h"
+ #define rmb()		asm volatile("dmb ld" ::: "memory")
+ #define cpu_relax()	asm volatile("yield" ::: "memory")
+ #endif
+ 
+ #ifdef __mips__
+-#include "../../arch/mips/include/asm/unistd.h"
+ #define rmb()		asm volatile(					\
+ 				".set	mips2\n\t"			\
+ 				"sync\n\t"				\
+@@ -112,7 +102,7 @@ void get_term_dimensions(struct winsize *ws);
+ #include <sys/types.h>
+ #include <sys/syscall.h>
+ 
+-#include "../../include/uapi/linux/perf_event.h"
++#include <linux/perf_event.h>
+ #include "util/types.h"
+ #include <stdbool.h>
+ 
+
