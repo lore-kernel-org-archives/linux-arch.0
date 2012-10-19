@@ -1,58 +1,79 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
- access fault.
-Date: Fri, 19 Oct 2012 11:49:55 -0700
-Message-ID: <20121019114955.3a0c2b66.akpm@linux-foundation.org>
-References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
-	<20121002150104.da57fa94.akpm@linux-foundation.org>
-	<20121017130125.GH5973@mudshark.cambridge.arm.com>
-	<20121017.112620.1865348978594874782.davem@davemloft.net>
-	<20121017155401.GJ5973@mudshark.cambridge.arm.com>
-	<20121018150502.3dee7899.akpm@linux-foundation.org>
-	<20121019091016.GA4582@mudshark.cambridge.arm.com>
+From: Mike Yoknis <mike.yoknis@hp.com>
+Subject: Re: [PATCH] mm: memmap_init_zone() performance improvement
+Date: Fri, 19 Oct 2012 13:53:18 -0600
+Message-ID: <1350676398.1169.6.camel@MikesLinux.fc.hp.com>
+References: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
+	 <20121008151656.GM29125@suse.de>
+	 <1349794597.29752.10.camel@MikesLinux.fc.hp.com>
+Reply-To: mike.yoknis@hp.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20121019091016.GA4582@mudshark.cambridge.arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: David Miller <davem@davemloft.net>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, "aarcange@redhat.com" <aarcange@redhat.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from g4t0014.houston.hp.com ([15.201.24.17]:7250 "EHLO
+	g4t0014.houston.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758203Ab2JSTxZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Oct 2012 15:53:25 -0400
+In-Reply-To: <1349794597.29752.10.camel@MikesLinux.fc.hp.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Mel Gorman <mgorman@suse.de>
+Cc: mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
 
-On Fri, 19 Oct 2012 10:10:16 +0100
-Will Deacon <will.deacon@arm.com> wrote:
-
-> On Thu, Oct 18, 2012 at 11:05:02PM +0100, Andrew Morton wrote:
-> > On Wed, 17 Oct 2012 16:54:02 +0100
-> > Will Deacon <will.deacon@arm.com> wrote:
-> > 
-> > > On x86 memory accesses to pages without the ACCESSED flag set result in the
-> > > ACCESSED flag being set automatically. With the ARM architecture a page access
-> > > fault is raised instead (and it will continue to be raised until the ACCESSED
-> > > flag is set for the appropriate PTE/PMD).
+On Tue, 2012-10-09 at 08:56 -0600, Mike Yoknis wrote:
+> On Mon, 2012-10-08 at 16:16 +0100, Mel Gorman wrote:
+> > On Wed, Oct 03, 2012 at 08:56:14AM -0600, Mike Yoknis wrote:
+> > > memmap_init_zone() loops through every Page Frame Number (pfn),
+> > > including pfn values that are within the gaps between existing
+> > > memory sections.  The unneeded looping will become a boot
+> > > performance issue when machines configure larger memory ranges
+> > > that will contain larger and more numerous gaps.
 > > > 
-> > > For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
-> > > setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
-> > > be called for a write fault.
+> > > The code will skip across invalid sections to reduce the
+> > > number of loops executed.
 > > > 
-> > > This patch ensures that faults on transparent hugepages which do not result
-> > > in a CoW update the access flags for the faulting pmd.
+> > > Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
 > > 
-> > Confused.  Where is the arm implementation of update_mmu_cache_pmd()?
+> > I do not see the need for
+> > the additional complexity unless you can show it makes a big difference
+> > to boot times.
+> > 
 > 
-> Right at the end of this patch, which was posted to the ARM list yesterday:
+> Mel,
 > 
->   http://lists.infradead.org/pipermail/linux-arm-kernel/2012-October/126387.html
-
-I received and then merged a patch which won't compile!
-
-Ho hum.  I'll drop
-mm-thp-set-the-accessed-flag-for-old-pages-on-access-fault.patch and
-shall assume that you'll sort things out at the appropriate time.
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+> Let me pass along the numbers I have.  We have what we call an
+> "architectural simulator".  It is a computer program that pretends that
+> it is a computer system.  We use it to test the firmware before real
+> hardware is available.  We have booted Linux on our simulator.  As you
+> would expect it takes longer to boot on the simulator than it does on
+> real hardware.
+> 
+> With my patch - boot time 41 minutes
+> Without patch - boot time 94 minutes
+> 
+> These numbers do not scale linearly to real hardware.  But indicate to
+> me a place where Linux can be improved.
+> 
+> Mike Yoknis
+> 
+Mel,
+I finally got access to prototype hardware.  
+It is a relatively small machine with only 64GB of RAM.
+ 
+I put in a time measurement by reading the TSC register.
+I booted both with and without my patch -
+ 
+Without patch -
+[    0.000000]   Normal zone: 13400064 pages, LIFO batch:31
+[    0.000000] memmap_init_zone() enter 1404184834218
+[    0.000000] memmap_init_zone() exit  1411174884438  diff = 6990050220
+ 
+With patch -
+[    0.000000]   Normal zone: 13400064 pages, LIFO batch:31
+[    0.000000] memmap_init_zone() enter 1555530050778
+[    0.000000] memmap_init_zone() exit  1559379204643  diff = 3849153865
+ 
+This shows that without the patch the routine spends 45% 
+of its time spinning unnecessarily.
+ 
+Mike Yoknis
