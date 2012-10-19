@@ -1,300 +1,210 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: [PATCH] tile: support GENERIC_KERNEL_THREAD and GENERIC_KERNEL_EXECVE
-Date: Fri, 19 Oct 2012 16:25:12 -0400
-Message-ID: <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and
+ GENERIC_KERNEL_EXECVE
+Date: Fri, 19 Oct 2012 22:35:48 +0100
+Message-ID: <20121019213548.GR2616@ZenIV.linux.org.uk>
 References: <20121016223508.GR2616@ZenIV.linux.org.uk>
+ <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20121016223508.GR2616@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-kernel@vger.kernel.org, Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@davemloft.net>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:36195 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755157Ab2JSVfx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Oct 2012 17:35:53 -0400
+Content-Disposition: inline
+In-Reply-To: <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@davemloft.net>
 
-Also provide an optimized current_pt_regs() while we're at it.
+On Fri, Oct 19, 2012 at 04:25:12PM -0400, Chris Metcalf wrote:
+> Also provide an optimized current_pt_regs() while we're at it.
 
-Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
----
-[Re-sending to correct linus-arch / linux-arch typo.]
+Applied.  BTW, are you sure you want to record parent's pid and not tid?
 
- arch/tile/Kconfig                 |    2 +
- arch/tile/include/asm/processor.h |    3 ++
- arch/tile/include/asm/switch_to.h |    5 +-
- arch/tile/kernel/entry.S          |   11 ----
- arch/tile/kernel/intvec_32.S      |   15 ++++++
- arch/tile/kernel/intvec_64.S      |   15 ++++++
- arch/tile/kernel/process.c        |  103 ++++++++++++++-----------------------
- 7 files changed, 78 insertions(+), 76 deletions(-)
+Anyway, here's a followup on top of this one (again, completely untested) -
+switching to generic sys_execve().  Does that look right for you?  While
+we are at it, I wonder if any of PTREGS_SYSCALL wrappers are needed -
+current_pt_regs() would do just as well, won't it?  It's a couple of
+arithmetical operations vs. arith operation + branch; even if the latter
+is somehow cheaper, can't be cheaper by much.  And I'd expect it to be
+costlier, actually, what with the icache effects.
 
-diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
-index 875d008..ea7f61e 100644
---- a/arch/tile/Kconfig
-+++ b/arch/tile/Kconfig
-@@ -21,6 +21,8 @@ config TILE
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select GENERIC_CLOCKEVENTS
- 	select MODULES_USE_ELF_RELA
-+	select GENERIC_KERNEL_THREAD
-+	select GENERIC_KERNEL_EXECVE
+Until now current_pt_regs() was not an option for execve(), due to
+kernel_thread() implementation being what it was, but now it should
+work for all of them...
+
+diff --git a/arch/tile/include/asm/compat.h b/arch/tile/include/asm/compat.h
+index 3063e6f..404a3dd 100644
+--- a/arch/tile/include/asm/compat.h
++++ b/arch/tile/include/asm/compat.h
+@@ -304,9 +304,6 @@ long compat_sys_sched_rr_get_interval(compat_pid_t pid,
+ 				      struct compat_timespec __user *interval);
  
- # FIXME: investigate whether we need/want these options.
- #	select HAVE_IOREMAP_PROT
-diff --git a/arch/tile/include/asm/processor.h b/arch/tile/include/asm/processor.h
-index 8c4dd9f..9a83e53 100644
---- a/arch/tile/include/asm/processor.h
-+++ b/arch/tile/include/asm/processor.h
-@@ -239,6 +239,9 @@ unsigned long get_wchan(struct task_struct *p);
- #define KSTK_TOP(task)	(task_ksp0(task) - STACK_TOP_DELTA)
- #define task_pt_regs(task) \
-   ((struct pt_regs *)(task_ksp0(task) - KSTK_PTREGS_GAP) - 1)
-+#define current_pt_regs()                                   \
-+  ((struct pt_regs *)((stack_pointer | (THREAD_SIZE - 1)) - \
-+                      (KSTK_PTREGS_GAP - 1)) - 1)
- #define task_sp(task)	(task_pt_regs(task)->sp)
- #define task_pc(task)	(task_pt_regs(task)->pc)
- /* Aliases for pc and sp (used in fs/proc/array.c) */
-diff --git a/arch/tile/include/asm/switch_to.h b/arch/tile/include/asm/switch_to.h
-index 1d48c5f..b8f888c 100644
---- a/arch/tile/include/asm/switch_to.h
-+++ b/arch/tile/include/asm/switch_to.h
-@@ -68,7 +68,10 @@ extern unsigned long get_switch_to_pc(void);
- /* Support function for forking a new task. */
- void ret_from_fork(void);
- 
--/* Called from ret_from_fork() when a new process starts up. */
-+/* Support function for forking a new kernel thread. */
-+void ret_from_kernel_thread(void *fn, void *arg);
-+
-+/* Called from ret_from_xxx() when a new process starts up. */
- struct task_struct *sim_notify_fork(struct task_struct *prev);
- 
- #endif /* !__ASSEMBLY__ */
-diff --git a/arch/tile/kernel/entry.S b/arch/tile/kernel/entry.S
-index c31637b..f116cb0 100644
---- a/arch/tile/kernel/entry.S
-+++ b/arch/tile/kernel/entry.S
-@@ -28,17 +28,6 @@ STD_ENTRY(current_text_addr)
- 	STD_ENDPROC(current_text_addr)
+ /* These are the intvec_64.S trampolines. */
+-long _compat_sys_execve(const char __user *path,
+-			const compat_uptr_t __user *argv,
+-			const compat_uptr_t __user *envp);
+ long _compat_sys_sigaltstack(const struct compat_sigaltstack __user *uss_ptr,
+ 			    struct compat_sigaltstack __user *uoss_ptr);
+ long _compat_sys_rt_sigreturn(void);
+diff --git a/arch/tile/include/asm/elf.h b/arch/tile/include/asm/elf.h
+index f8ccf08..b73e103 100644
+--- a/arch/tile/include/asm/elf.h
++++ b/arch/tile/include/asm/elf.h
+@@ -148,6 +148,7 @@ extern int arch_setup_additional_pages(struct linux_binprm *bprm,
+ #define compat_start_thread(regs, ip, usp) do { \
+ 		regs->pc = ptr_to_compat_reg((void *)(ip)); \
+ 		regs->sp = ptr_to_compat_reg((void *)(usp)); \
++		single_step_execve();	\
+ 	} while (0)
  
  /*
-- * Implement execve().  The i386 code has a note that forking from kernel
-- * space results in no copy on write until the execve, so we should be
-- * careful not to write to the stack here.
-- */
--STD_ENTRY(kernel_execve)
--	moveli TREG_SYSCALL_NR_NAME, __NR_execve
--	swint1
--	jrp lr
--	STD_ENDPROC(kernel_execve)
--
--/*
-  * We don't run this function directly, but instead copy it to a page
-  * we map into every user process.  See vdso_setup().
-  *
+diff --git a/arch/tile/include/asm/processor.h b/arch/tile/include/asm/processor.h
+index 9a83e53..879073e 100644
+--- a/arch/tile/include/asm/processor.h
++++ b/arch/tile/include/asm/processor.h
+@@ -211,6 +211,7 @@ static inline void start_thread(struct pt_regs *regs,
+ {
+ 	regs->pc = pc;
+ 	regs->sp = usp;
++	single_step_execve();
+ }
+ 
+ /* Free all resources held by a thread. */
+diff --git a/arch/tile/include/asm/syscalls.h b/arch/tile/include/asm/syscalls.h
+index 06f0464..0d52992 100644
+--- a/arch/tile/include/asm/syscalls.h
++++ b/arch/tile/include/asm/syscalls.h
+@@ -68,9 +68,10 @@ long _sys_sigaltstack(const stack_t __user *, stack_t __user *);
+ long _sys_rt_sigreturn(void);
+ long _sys_clone(unsigned long clone_flags, unsigned long newsp,
+ 		void __user *parent_tid, void __user *child_tid);
+-long _sys_execve(const char __user *filename,
++long sys_execve(const char __user *filename,
+ 		 const char __user *const __user *argv,
+ 		 const char __user *const __user *envp);
++#define sys_execve sys_execve
+ 
+ #include <asm-generic/syscalls.h>
+ 
+diff --git a/arch/tile/include/asm/unistd.h b/arch/tile/include/asm/unistd.h
+index 6e032a0..dab827d 100644
+--- a/arch/tile/include/asm/unistd.h
++++ b/arch/tile/include/asm/unistd.h
+@@ -16,4 +16,5 @@
+ #define __ARCH_WANT_SYS_LLSEEK
+ #endif
+ #define __ARCH_WANT_SYS_NEWFSTATAT
++#define __ARCH_WANT_SYS_EXECVE
+ #include <uapi/asm/unistd.h>
+diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
+index d67459b..a8e5a84 100644
+--- a/arch/tile/kernel/compat.c
++++ b/arch/tile/kernel/compat.c
+@@ -103,7 +103,6 @@ long compat_sys_sched_rr_get_interval(compat_pid_t pid,
+ #define compat_sys_readahead sys32_readahead
+ 
+ /* Call the trampolines to manage pt_regs where necessary. */
+-#define compat_sys_execve _compat_sys_execve
+ #define compat_sys_sigaltstack _compat_sys_sigaltstack
+ #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
+ #define sys_clone _sys_clone
 diff --git a/arch/tile/kernel/intvec_32.S b/arch/tile/kernel/intvec_32.S
-index 6943515..58aad51 100644
+index 58aad51..174b837 100644
 --- a/arch/tile/kernel/intvec_32.S
 +++ b/arch/tile/kernel/intvec_32.S
-@@ -1291,6 +1291,21 @@ STD_ENTRY(ret_from_fork)
- 	}
- 	STD_ENDPROC(ret_from_fork)
+@@ -1476,7 +1476,6 @@ STD_ENTRY_LOCAL(bad_intr)
+ 	};                                              \
+ 	STD_ENDPROC(_##x)
  
-+STD_ENTRY(ret_from_kernel_thread)
-+	jal     sim_notify_fork
-+	jal     schedule_tail
-+	FEEDBACK_REENTER(ret_from_fork)
-+	{
-+	 move   r0, r31
-+	 jalr   r30
-+	}
-+	FEEDBACK_REENTER(ret_from_kernel_thread)
-+	{
-+	 movei  r30, 0               /* not an NMI */
-+	 j      .Lresume_userspace   /* jump into middle of interrupt_return */
-+	}
-+	STD_ENDPROC(ret_from_kernel_thread)
-+
- 	/*
- 	 * Code for ill interrupt.
- 	 */
+-PTREGS_SYSCALL(sys_execve, r3)
+ PTREGS_SYSCALL(sys_sigaltstack, r2)
+ PTREGS_SYSCALL_SIGRETURN(sys_rt_sigreturn, r0)
+ PTREGS_SYSCALL(sys_cmpxchg_badaddr, r1)
 diff --git a/arch/tile/kernel/intvec_64.S b/arch/tile/kernel/intvec_64.S
-index 7c06d59..a84911c 100644
+index a84911c4..283efed 100644
 --- a/arch/tile/kernel/intvec_64.S
 +++ b/arch/tile/kernel/intvec_64.S
-@@ -1150,6 +1150,21 @@ STD_ENTRY(ret_from_fork)
- 	}
- 	STD_ENDPROC(ret_from_fork)
+@@ -1205,11 +1205,9 @@ STD_ENTRY_LOCAL(bad_intr)
+ 	};                                              \
+ 	STD_ENDPROC(_##x)
  
-+STD_ENTRY(ret_from_kernel_thread)
-+	jal     sim_notify_fork
-+	jal     schedule_tail
-+	FEEDBACK_REENTER(ret_from_fork)
-+	{
-+	 move   r0, r31
-+	 jalr   r30
-+	}
-+	FEEDBACK_REENTER(ret_from_kernel_thread)
-+	{
-+	 movei  r30, 0               /* not an NMI */
-+	 j      .Lresume_userspace   /* jump into middle of interrupt_return */
-+	}
-+	STD_ENDPROC(ret_from_kernel_thread)
-+
- /* Various stub interrupt handlers and syscall handlers */
- 
- STD_ENTRY_LOCAL(_kernel_double_fault)
+-PTREGS_SYSCALL(sys_execve, r3)
+ PTREGS_SYSCALL(sys_sigaltstack, r2)
+ PTREGS_SYSCALL_SIGRETURN(sys_rt_sigreturn, r0)
+ #ifdef CONFIG_COMPAT
+-PTREGS_SYSCALL(compat_sys_execve, r3)
+ PTREGS_SYSCALL(compat_sys_sigaltstack, r2)
+ PTREGS_SYSCALL_SIGRETURN(compat_sys_rt_sigreturn, r0)
+ #endif
 diff --git a/arch/tile/kernel/process.c b/arch/tile/kernel/process.c
-index 307d010..ca6de8d 100644
+index ca6de8d..58f8fd1 100644
 --- a/arch/tile/kernel/process.c
 +++ b/arch/tile/kernel/process.c
-@@ -157,24 +157,44 @@ void arch_release_thread_info(struct thread_info *info)
- static void save_arch_state(struct thread_struct *t);
- 
- int copy_thread(unsigned long clone_flags, unsigned long sp,
--		unsigned long stack_size,
-+		unsigned long arg,
- 		struct task_struct *p, struct pt_regs *regs)
- {
--	struct pt_regs *childregs;
-+	struct pt_regs *childregs = task_pt_regs(p);
- 	unsigned long ksp;
-+	unsigned long *callee_regs;
- 
- 	/*
--	 * When creating a new kernel thread we pass sp as zero.
--	 * Assign it to a reasonable value now that we have the stack.
-+	 * Set up the stack and stack pointer appropriately for the
-+	 * new child to find itself woken up in __switch_to().
-+	 * The callee-saved registers must be on the stack to be read;
-+	 * the new task will then jump to assembly support to handle
-+	 * calling schedule_tail(), etc., and (for userspace tasks)
-+	 * returning to the context set up in the pt_regs.
- 	 */
--	if (sp == 0 && regs->ex1 == PL_ICS_EX1(KERNEL_PL, 0))
--		sp = KSTK_TOP(p);
-+	ksp = (unsigned long) childregs;
-+	ksp -= C_ABI_SAVE_AREA_SIZE;   /* interrupt-entry save area */
-+	((long *)ksp)[0] = ((long *)ksp)[1] = 0;
-+	ksp -= CALLEE_SAVED_REGS_COUNT * sizeof(unsigned long);
-+	callee_regs = (unsigned long *)ksp;
-+	ksp -= C_ABI_SAVE_AREA_SIZE;   /* __switch_to() save area */
-+	((long *)ksp)[0] = ((long *)ksp)[1] = 0;
-+	p->thread.ksp = ksp;
- 
--	/*
--	 * Do not clone step state from the parent; each thread
--	 * must make its own lazily.
--	 */
--	task_thread_info(p)->step_state = NULL;
-+	/* Record the pid of the task that created this one. */
-+	p->thread.creator_pid = current->pid;
-+
-+	if (unlikely(!regs)) {
-+		/* kernel thread */
-+		memset(childregs, 0, sizeof(struct pt_regs));
-+		memset(&callee_regs[2], 0,
-+		       (CALLEE_SAVED_REGS_COUNT - 2) * sizeof(unsigned long));
-+		callee_regs[0] = sp;   /* r30 = function */
-+		callee_regs[1] = arg;  /* r31 = arg */
-+		childregs->ex1 = PL_ICS_EX1(KERNEL_PL, 0);
-+		p->thread.pc = (unsigned long) ret_from_kernel_thread;
-+		return 0;
-+	}
- 
- 	/*
- 	 * Start new thread in ret_from_fork so it schedules properly
-@@ -182,20 +202,24 @@ int copy_thread(unsigned long clone_flags, unsigned long sp,
- 	 */
- 	p->thread.pc = (unsigned long) ret_from_fork;
- 
-+	/*
-+	 * Do not clone step state from the parent; each thread
-+	 * must make its own lazily.
-+	 */
-+	task_thread_info(p)->step_state = NULL;
-+
- 	/* Save user stack top pointer so we can ID the stack vm area later. */
- 	p->thread.usp0 = sp;
- 
--	/* Record the pid of the process that created this one. */
--	p->thread.creator_pid = current->pid;
--
- 	/*
- 	 * Copy the registers onto the kernel stack so the
- 	 * return-from-interrupt code will reload it into registers.
- 	 */
--	childregs = task_pt_regs(p);
- 	*childregs = *regs;
- 	childregs->regs[0] = 0;         /* return value is zero */
- 	childregs->sp = sp;  /* override with new user stack pointer */
-+	memcpy(callee_regs, &regs->regs[CALLEE_SAVED_FIRST_REG],
-+	       CALLEE_SAVED_REGS_COUNT * sizeof(unsigned long));
- 
- 	/*
- 	 * If CLONE_SETTLS is set, set "tp" in the new task to "r4",
-@@ -204,24 +228,6 @@ int copy_thread(unsigned long clone_flags, unsigned long sp,
- 	if (clone_flags & CLONE_SETTLS)
- 		childregs->tp = regs->regs[4];
- 
--	/*
--	 * Copy the callee-saved registers from the passed pt_regs struct
--	 * into the context-switch callee-saved registers area.
--	 * This way when we start the interrupt-return sequence, the
--	 * callee-save registers will be correctly in registers, which
--	 * is how we assume the compiler leaves them as we start doing
--	 * the normal return-from-interrupt path after calling C code.
--	 * Zero out the C ABI save area to mark the top of the stack.
--	 */
--	ksp = (unsigned long) childregs;
--	ksp -= C_ABI_SAVE_AREA_SIZE;   /* interrupt-entry save area */
--	((long *)ksp)[0] = ((long *)ksp)[1] = 0;
--	ksp -= CALLEE_SAVED_REGS_COUNT * sizeof(unsigned long);
--	memcpy((void *)ksp, &regs->regs[CALLEE_SAVED_FIRST_REG],
--	       CALLEE_SAVED_REGS_COUNT * sizeof(unsigned long));
--	ksp -= C_ABI_SAVE_AREA_SIZE;   /* __switch_to() save area */
--	((long *)ksp)[0] = ((long *)ksp)[1] = 0;
--	p->thread.ksp = ksp;
- 
- #if CHIP_HAS_TILE_DMA()
- 	/*
-@@ -650,37 +656,6 @@ unsigned long get_wchan(struct task_struct *p)
- 	return 0;
+@@ -594,51 +594,6 @@ SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,
+ 		       parent_tidptr, child_tidptr);
  }
  
 -/*
-- * We pass in lr as zero (cleared in kernel_thread) and the caller
-- * part of the backtrace ABI on the stack also zeroed (in copy_thread)
-- * so that backtraces will stop with this function.
-- * Note that we don't use r0, since copy_thread() clears it.
+- * sys_execve() executes a new program.
 - */
--static void start_kernel_thread(int dummy, int (*fn)(int), int arg)
+-SYSCALL_DEFINE4(execve, const char __user *, path,
+-		const char __user *const __user *, argv,
+-		const char __user *const __user *, envp,
+-		struct pt_regs *, regs)
 -{
--	do_exit(fn(arg));
+-	long error;
+-	struct filename *filename;
+-
+-	filename = getname(path);
+-	error = PTR_ERR(filename);
+-	if (IS_ERR(filename))
+-		goto out;
+-	error = do_execve(filename->name, argv, envp, regs);
+-	putname(filename);
+-	if (error == 0)
+-		single_step_execve();
+-out:
+-	return error;
 -}
 -
--/*
-- * Create a kernel thread
-- */
--int kernel_thread(int (*fn)(void *), void * arg, unsigned long flags)
+-#ifdef CONFIG_COMPAT
+-long compat_sys_execve(const char __user *path,
+-		       compat_uptr_t __user *argv,
+-		       compat_uptr_t __user *envp,
+-		       struct pt_regs *regs)
 -{
--	struct pt_regs regs;
+-	long error;
+-	struct filename *filename;
 -
--	memset(&regs, 0, sizeof(regs));
--	regs.ex1 = PL_ICS_EX1(KERNEL_PL, 0);  /* run at kernel PL, no ICS */
--	regs.pc = (long) start_kernel_thread;
--	regs.flags = PT_FLAGS_CALLER_SAVES;   /* need to restore r1 and r2 */
--	regs.regs[1] = (long) fn;             /* function pointer */
--	regs.regs[2] = (long) arg;            /* parameter register */
--
--	/* Ok, create the new process.. */
--	return do_fork(flags | CLONE_VM | CLONE_UNTRACED, 0, &regs,
--		       0, NULL, NULL);
+-	filename = getname(path);
+-	error = PTR_ERR(filename);
+-	if (IS_ERR(filename))
+-		goto out;
+-	error = compat_do_execve(filename->name, argv, envp, regs);
+-	putname(filename);
+-	if (error == 0)
+-		single_step_execve();
+-out:
+-	return error;
 -}
--EXPORT_SYMBOL(kernel_thread);
+-#endif
 -
- /* Flush thread state. */
- void flush_thread(void)
+ unsigned long get_wchan(struct task_struct *p)
  {
--- 
-1.7.10.3
+ 	struct KBacktraceIterator kbt;
+diff --git a/arch/tile/kernel/sys.c b/arch/tile/kernel/sys.c
+index b08095b..359e76f 100644
+--- a/arch/tile/kernel/sys.c
++++ b/arch/tile/kernel/sys.c
+@@ -107,7 +107,6 @@ SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
+ #endif
+ 
+ /* Call the trampolines to manage pt_regs where necessary. */
+-#define sys_execve _sys_execve
+ #define sys_sigaltstack _sys_sigaltstack
+ #define sys_rt_sigreturn _sys_rt_sigreturn
+ #define sys_clone _sys_clone
