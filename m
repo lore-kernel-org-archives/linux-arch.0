@@ -1,109 +1,128 @@
 From: David Howells <dhowells@redhat.com>
-Subject: [PATCH 2/5] tools: Honour the O= flag when tool build called from a
- higher Makefile
-Date: Fri, 19 Oct 2012 17:56:16 +0100
-Message-ID: <20121019165616.23037.35557.stgit@warthog.procyon.org.uk>
+Subject: [PATCH 5/5] x86: UAPI Disintegrate asm/perf_regs.h
+Date: Fri, 19 Oct 2012 17:56:41 +0100
+Message-ID: <20121019165641.23037.59790.stgit@warthog.procyon.org.uk>
 References: <20121019165558.23037.40181.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:46540 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1030533Ab2JSQ4u (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 19 Oct 2012 12:56:50 -0400
 In-Reply-To: <20121019165558.23037.40181.stgit@warthog.procyon.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: mingo@kernel.org, tglx@linutronix.de, acme@ghostprotocols.net
 Cc: dhowells@redhat.com, davem@davemloft.net, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
-List-Id: linux-arch.vger.kernel.org
 
-Honour the O= flag that was passed to a higher level Makefile and then passed
-down as part of a tool build.
+Disintegrate x86's asm/perf_regs.h for UAPI.  This just entails moving it to
+the uapi directory.
 
-To make this work, the top-level Makefile passes the original O= flag and
-subdir=tools to the tools/Makefile, and that in turn passes
-subdir=$(O)/$(subdir)/foodir when building tool foo in directory
-$(O)/$(subdir)/foodir (where the intervening slashes aren't added if an
-element is missing).
+With this, the #inclusion in perf's perf_regs.h can use <asm/perf_regs.h>.
 
-For example, take perf.  This is found in tools/perf/.  Assume we're building
-into directory ~/zebra/, so we pass O=~/zebra to make.  Dependening on where
-we run the build from, we see:
-
-	make run in dir		$(OUTPUT) dir
-	=======================	==================
-	linux			~/zebra/tools/perf/
-	linux/tools		~/zebra/perf/
-	linux/tools/perf	~/zebra/
-
-and if O= is not set, we get:
-
-	make run in dir		$(OUTPUT) dir
-	=======================	==================
-	linux			linux/tools/perf/
-	linux/tools		linux/tools/perf/
-	linux/tools/perf	linux/tools/perf/
-
-The output directories are created by the descend function if they don't
-already exist.
+If this actually wants posting to userspace, then it will need a headers-y
+line adding to the Kbuild file.
 
 Signed-off-by: David Howells <dhowells@redhat.com>
 ---
 
- Makefile                       |    6 ++++--
- tools/scripts/Makefile.include |   12 +++++++++---
- 2 files changed, 13 insertions(+), 5 deletions(-)
+ arch/x86/include/asm/perf_regs.h        |   33 -------------------------------
+ arch/x86/include/uapi/asm/perf_regs.h   |   33 +++++++++++++++++++++++++++++++
+ tools/perf/arch/x86/include/perf_regs.h |    2 +-
+ 3 files changed, 34 insertions(+), 34 deletions(-)
+ delete mode 100644 arch/x86/include/asm/perf_regs.h
+ create mode 100644 arch/x86/include/uapi/asm/perf_regs.h
 
-diff --git a/Makefile b/Makefile
-index 366d0ab..e93ac4d 100644
---- a/Makefile
-+++ b/Makefile
-@@ -1310,10 +1310,12 @@ kernelversion:
- 
- # Clear a bunch of variables before executing the submake
- tools/: FORCE
--	$(Q)$(MAKE) LDFLAGS= MAKEFLAGS= -C $(src)/tools/
-+	$(Q)mkdir -p $(objtree)/tools
-+	$(Q)$(MAKE) LDFLAGS= MAKEFLAGS= O=$(objtree) subdir=tools -C $(src)/tools/
- 
- tools/%: FORCE
--	$(Q)$(MAKE) LDFLAGS= MAKEFLAGS= -C $(src)/tools/ $*
-+	$(Q)mkdir -p $(objtree)/tools
-+	$(Q)$(MAKE) LDFLAGS= MAKEFLAGS= O=$(objtree) subdir=tools -C $(src)/tools/ $*
- 
- # Single targets
- # ---------------------------------------------------------------------------
-diff --git a/tools/scripts/Makefile.include b/tools/scripts/Makefile.include
-index 4a9e317..357cfea 100644
---- a/tools/scripts/Makefile.include
-+++ b/tools/scripts/Makefile.include
-@@ -1,7 +1,7 @@
- ifeq ("$(origin O)", "command line")
- 	dummy := $(if $(shell test -d $(O) || echo $(O)),$(error O=$(O) does not exist),)
- 	ABSOLUTE_O := $(shell cd $(O) ; pwd)
--	OUTPUT := $(ABSOLUTE_O)/
-+	OUTPUT := $(ABSOLUTE_O)/$(if $(subdir),$(subdir)/)
- 	COMMAND_O := O=$(ABSOLUTE_O)
- endif
- 
-@@ -47,9 +47,10 @@ endif
- # Call by doing: $(call descend,directory[,target])
- #
- descend = \
--	$(QUIET_SUBDIR0)$(1) $(QUIET_SUBDIR1) $(2)
-+	+mkdir -p $(OUTPUT)$(1) && \
-+	$(MAKE) $(COMMAND_O) $(if $(subdir),subdir=$(subdir)/$(1)) $(PRINT_DIR) -C $(1)
- 
--QUIET_SUBDIR0  = +$(MAKE) -C # space to separate -C and subdir
-+QUIET_SUBDIR0  = +$(MAKE) $(COMMAND_O) -C # space to separate -C and subdir
- QUIET_SUBDIR1  =
- 
- ifneq ($(findstring $(MAKEFLAGS),s),s)
-@@ -64,5 +65,10 @@ ifndef V
- 			 $(MAKE) $(PRINT_DIR) -C $$subdir
- 	QUIET_FLEX     = @echo '   ' FLEX $@;
- 	QUIET_BISON    = @echo '   ' BISON $@;
+diff --git a/arch/x86/include/asm/perf_regs.h b/arch/x86/include/asm/perf_regs.h
+deleted file mode 100644
+index 3f2207b..0000000
+--- a/arch/x86/include/asm/perf_regs.h
++++ /dev/null
+@@ -1,33 +0,0 @@
+-#ifndef _ASM_X86_PERF_REGS_H
+-#define _ASM_X86_PERF_REGS_H
+-
+-enum perf_event_x86_regs {
+-	PERF_REG_X86_AX,
+-	PERF_REG_X86_BX,
+-	PERF_REG_X86_CX,
+-	PERF_REG_X86_DX,
+-	PERF_REG_X86_SI,
+-	PERF_REG_X86_DI,
+-	PERF_REG_X86_BP,
+-	PERF_REG_X86_SP,
+-	PERF_REG_X86_IP,
+-	PERF_REG_X86_FLAGS,
+-	PERF_REG_X86_CS,
+-	PERF_REG_X86_SS,
+-	PERF_REG_X86_DS,
+-	PERF_REG_X86_ES,
+-	PERF_REG_X86_FS,
+-	PERF_REG_X86_GS,
+-	PERF_REG_X86_R8,
+-	PERF_REG_X86_R9,
+-	PERF_REG_X86_R10,
+-	PERF_REG_X86_R11,
+-	PERF_REG_X86_R12,
+-	PERF_REG_X86_R13,
+-	PERF_REG_X86_R14,
+-	PERF_REG_X86_R15,
+-
+-	PERF_REG_X86_32_MAX = PERF_REG_X86_GS + 1,
+-	PERF_REG_X86_64_MAX = PERF_REG_X86_R15 + 1,
+-};
+-#endif /* _ASM_X86_PERF_REGS_H */
+diff --git a/arch/x86/include/uapi/asm/perf_regs.h b/arch/x86/include/uapi/asm/perf_regs.h
+new file mode 100644
+index 0000000..3f2207b
+--- /dev/null
++++ b/arch/x86/include/uapi/asm/perf_regs.h
+@@ -0,0 +1,33 @@
++#ifndef _ASM_X86_PERF_REGS_H
++#define _ASM_X86_PERF_REGS_H
 +
-+	descend = \
-+		@echo '   ' DESCEND $(1); \
-+		mkdir -p $(OUTPUT)$(1) && \
-+		$(MAKE) $(COMMAND_O) $(if $(subdir),subdir=$(subdir)/$(1)) $(PRINT_DIR) -C $(1)
- endif
- endif
++enum perf_event_x86_regs {
++	PERF_REG_X86_AX,
++	PERF_REG_X86_BX,
++	PERF_REG_X86_CX,
++	PERF_REG_X86_DX,
++	PERF_REG_X86_SI,
++	PERF_REG_X86_DI,
++	PERF_REG_X86_BP,
++	PERF_REG_X86_SP,
++	PERF_REG_X86_IP,
++	PERF_REG_X86_FLAGS,
++	PERF_REG_X86_CS,
++	PERF_REG_X86_SS,
++	PERF_REG_X86_DS,
++	PERF_REG_X86_ES,
++	PERF_REG_X86_FS,
++	PERF_REG_X86_GS,
++	PERF_REG_X86_R8,
++	PERF_REG_X86_R9,
++	PERF_REG_X86_R10,
++	PERF_REG_X86_R11,
++	PERF_REG_X86_R12,
++	PERF_REG_X86_R13,
++	PERF_REG_X86_R14,
++	PERF_REG_X86_R15,
++
++	PERF_REG_X86_32_MAX = PERF_REG_X86_GS + 1,
++	PERF_REG_X86_64_MAX = PERF_REG_X86_R15 + 1,
++};
++#endif /* _ASM_X86_PERF_REGS_H */
+diff --git a/tools/perf/arch/x86/include/perf_regs.h b/tools/perf/arch/x86/include/perf_regs.h
+index 46fc9f1..7fcdcdb 100644
+--- a/tools/perf/arch/x86/include/perf_regs.h
++++ b/tools/perf/arch/x86/include/perf_regs.h
+@@ -3,7 +3,7 @@
+ 
+ #include <stdlib.h>
+ #include "../../util/types.h"
+-#include "../../../../../arch/x86/include/asm/perf_regs.h"
++#include <asm/perf_regs.h>
+ 
+ #ifndef ARCH_X86_64
+ #define PERF_REGS_MASK ((1ULL << PERF_REG_X86_32_MAX) - 1)
