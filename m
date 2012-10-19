@@ -1,52 +1,47 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
- access fault.
-Date: Fri, 19 Oct 2012 10:10:16 +0100
-Message-ID: <20121019091016.GA4582@mudshark.cambridge.arm.com>
-References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
- <20121002150104.da57fa94.akpm@linux-foundation.org>
- <20121017130125.GH5973@mudshark.cambridge.arm.com>
- <20121017.112620.1865348978594874782.davem@davemloft.net>
- <20121017155401.GJ5973@mudshark.cambridge.arm.com>
- <20121018150502.3dee7899.akpm@linux-foundation.org>
+Subject: Re: [RESEND PATCH 4/4] net: smc91x: use io{read,write}*_rep
+ accessors instead of string functions
+Date: Fri, 19 Oct 2012 10:27:14 +0100
+Message-ID: <20121019092714.GC4582@mudshark.cambridge.arm.com>
+References: <1350488704-3711-1-git-send-email-will.deacon@arm.com>
+ <1350488704-3711-5-git-send-email-will.deacon@arm.com>
+ <50810E8C.5010806@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:45750 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1750810Ab2JSJ1X (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Fri, 19 Oct 2012 05:27:23 -0400
 Content-Disposition: inline
-In-Reply-To: <20121018150502.3dee7899.akpm@linux-foundation.org>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: David Miller <davem@davemloft.net>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, "aarcange@redhat.com" <aarcange@redhat.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <50810E8C.5010806@imgtec.com>
+Content-Language: en-US
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Ben Herrenschmidt <benh@kernel.crashing.org>
 
-On Thu, Oct 18, 2012 at 11:05:02PM +0100, Andrew Morton wrote:
-> On Wed, 17 Oct 2012 16:54:02 +0100
-> Will Deacon <will.deacon@arm.com> wrote:
-> 
-> > On x86 memory accesses to pages without the ACCESSED flag set result in the
-> > ACCESSED flag being set automatically. With the ARM architecture a page access
-> > fault is raised instead (and it will continue to be raised until the ACCESSED
-> > flag is set for the appropriate PTE/PMD).
+On Fri, Oct 19, 2012 at 09:25:48AM +0100, James Hogan wrote:
+> On 17/10/12 16:45, Will Deacon wrote:
+> > The {read,write}s{b,w,l} operations are not defined by all architectures
+> > and are being removed from the asm-generic/io.h interface.
 > > 
-> > For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
-> > setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
-> > be called for a write fault.
-> > 
-> > This patch ensures that faults on transparent hugepages which do not result
-> > in a CoW update the access flags for the faulting pmd.
+> > This patch replaces the usage of these string functions in the default
+> > SMC accessors with io{read,write}{8,16,32}_rep calls instead, which are
+> > defined for all architectures.
 > 
-> Confused.  Where is the arm implementation of update_mmu_cache_pmd()?
+> Hi,
+> 
+> Should this patch (and the mmc one) precede patch 1?
 
-Right at the end of this patch, which was posted to the ARM list yesterday:
+Yup, I can reorder that easily enough.
 
-  http://lists.infradead.org/pipermail/linux-arm-kernel/2012-October/126387.html
+> Also there appear to be some other places that it's used (e.g.
+> smsc911x.c and smc911x.h). I guess these should be fixed up first too?
 
-Cheers,
+I could have a look if you like, but I'm wary of changing the I/O accessors
+in anything but a mechanical fashion given that I can't test any of my
+changes.
 
 Will
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
