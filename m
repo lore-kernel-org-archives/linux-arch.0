@@ -1,100 +1,73 @@
-From: Mel Gorman <mgorman@suse.de>
-Subject: Re: [PATCH] mm: memmap_init_zone() performance improvement
-Date: Sat, 20 Oct 2012 09:29:25 +0100
-Message-ID: <20121020082858.GA2698@suse.de>
-References: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
- <20121008151656.GM29125@suse.de>
- <1349794597.29752.10.camel@MikesLinux.fc.hp.com>
- <1350676398.1169.6.camel@MikesLinux.fc.hp.com>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and GENERIC_KERNEL_EXECVE
+Date: Sat, 20 Oct 2012 09:06:57 -0400
+Message-ID: <5082A1F1.3080303@tilera.com>
+References: <20121016223508.GR2616@ZenIV.linux.org.uk> <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com> <20121019213548.GR2616@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1350676398.1169.6.camel@MikesLinux.fc.hp.com>
-Sender: owner-linux-mm@kvack.org
-To: Mike Yoknis <mike.yoknis@hp.com>
-Cc: mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from usmamail.tilera.com ([12.216.194.151]:19122 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754617Ab2JTNHA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 20 Oct 2012 09:07:00 -0400
+In-Reply-To: <20121019213548.GR2616@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@davemloft.net>
 
-On Fri, Oct 19, 2012 at 01:53:18PM -0600, Mike Yoknis wrote:
-> On Tue, 2012-10-09 at 08:56 -0600, Mike Yoknis wrote:
-> > On Mon, 2012-10-08 at 16:16 +0100, Mel Gorman wrote:
-> > > On Wed, Oct 03, 2012 at 08:56:14AM -0600, Mike Yoknis wrote:
-> > > > memmap_init_zone() loops through every Page Frame Number (pfn),
-> > > > including pfn values that are within the gaps between existing
-> > > > memory sections.  The unneeded looping will become a boot
-> > > > performance issue when machines configure larger memory ranges
-> > > > that will contain larger and more numerous gaps.
-> > > > 
-> > > > The code will skip across invalid sections to reduce the
-> > > > number of loops executed.
-> > > > 
-> > > > Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
-> > > 
-> > > I do not see the need for
-> > > the additional complexity unless you can show it makes a big difference
-> > > to boot times.
-> > > 
-> > 
-> > Mel,
-> > 
-> > Let me pass along the numbers I have.  We have what we call an
-> > "architectural simulator".  It is a computer program that pretends that
-> > it is a computer system.  We use it to test the firmware before real
-> > hardware is available.  We have booted Linux on our simulator.  As you
-> > would expect it takes longer to boot on the simulator than it does on
-> > real hardware.
-> > 
-> > With my patch - boot time 41 minutes
-> > Without patch - boot time 94 minutes
-> > 
-> > These numbers do not scale linearly to real hardware.  But indicate to
-> > me a place where Linux can be improved.
-> > 
-> > Mike Yoknis
-> > 
-> Mel,
-> I finally got access to prototype hardware.  
-> It is a relatively small machine with only 64GB of RAM.
->  
-> I put in a time measurement by reading the TSC register.
-> I booted both with and without my patch -
->  
-> Without patch -
-> [    0.000000]   Normal zone: 13400064 pages, LIFO batch:31
-> [    0.000000] memmap_init_zone() enter 1404184834218
-> [    0.000000] memmap_init_zone() exit  1411174884438  diff = 6990050220
->  
-> With patch -
-> [    0.000000]   Normal zone: 13400064 pages, LIFO batch:31
-> [    0.000000] memmap_init_zone() enter 1555530050778
-> [    0.000000] memmap_init_zone() exit  1559379204643  diff = 3849153865
->  
-> This shows that without the patch the routine spends 45% 
-> of its time spinning unnecessarily.
->  
+On 10/19/2012 5:35 PM, Al Viro wrote:
+> On Fri, Oct 19, 2012 at 04:25:12PM -0400, Chris Metcalf wrote:
+>> Also provide an optimized current_pt_regs() while we're at it.
+> Applied.  BTW, are you sure you want to record parent's pid and not tid?
 
-I'm travelling at the moment so apologies that I have not followed up on
-this. My problem is still the same with the patch - it changes more
-headers than is necessary and it is sparsemem specific. At minimum, try
-the suggestion of 
+By recording ->pid rather than ->pgid, we ARE recording the tid :-)
 
-if (!early_pfn_valid(pfn)) {
-      pfn = ALIGN(pfn + MAX_ORDER_NR_PAGES, MAX_ORDER_NR_PAGES) - 1;
-      continue;
-}
+> Anyway, here's a followup on top of this one (again, completely untested) -
+> switching to generic sys_execve().  Does that look right for you?
 
-and see how much it gains you as it should work on all memory models. If
-it turns out that you really need to skip whole sections then the strice
-could MAX_ORDER_NR_PAGES on all memory models except sparsemem where the
-stride would be PAGES_PER_SECTION
+It does look right, but it doesn't quite work as-is.  But after some tweaks
+it did yield a kernel that booted up userspace correctly, so I think it's
+basically good.
+
+First, the compat_sys_execve() declaration provided in
+arch/tile/include/asm/compat.h isn't right, so I deleted that (you had only
+deleted the PTREGS_SYSCALL trampoline declaration, _compat_sys_execve).
+
+However, then arch/tile/kernel/compat.c failed to build, because
+<linux/compat.h> is included before <asm/unistd.h>, and <asm/unistd.h>
+provides __ARCH_WANT_SYS_EXECVE, and so we end up with no declaration at
+all for compat_sys_execve.  For most platforms this is no big deal, but on
+tile we use the __SYSCALL #define to provide the actual syscall table, and
+for that to work we need a declaration in scope for each syscall at the
+time we create the table.
+
+The best solution seems likely to be to copy the other place in
+<linux/compat.h> where we need to do something configurable (that is,
+CONFIG_ARCH_WANT_OLD_COMPAT_IPC), and just convert __ARCH_WANT_SYS_EXECVE
+to be a Kconfig option.
+
+Another possibility is to pre-include <asm/unistd.h> in the tile compat.c
+before including <linux/compat.h>.  This requires adding some #undefs for
+_SC_3264, etc., in <asm-generic/unistd.h>, since we'll need to include the
+header twice, once to satisfy <linux/compat.h>, and then again to actually
+provide the body of the syscall array.  If we go down this path, I suspect
+we should just make <linux/compat.h> include <asm/unistd.h>, so it gets the
+__ARCH_WANT_SYS_EXECVE define provided.  Otherwise we have the ugly
+requirement of requiring the C file to include specific headers in specific
+order for it to work right.
+
+> While
+> we are at it, I wonder if any of PTREGS_SYSCALL wrappers are needed -
+> current_pt_regs() would do just as well, won't it?  It's a couple of
+> arithmetical operations vs. arith operation + branch; even if the latter
+> is somehow cheaper, can't be cheaper by much.  And I'd expect it to be
+> costlier, actually, what with the icache effects.
+
+Yes, that's a good idea.  I'll look at it when I'm back in the office next
+week.
 
 -- 
-Mel Gorman
-SUSE Labs
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
