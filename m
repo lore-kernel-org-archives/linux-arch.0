@@ -1,73 +1,46 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and GENERIC_KERNEL_EXECVE
-Date: Sat, 20 Oct 2012 09:06:57 -0400
-Message-ID: <5082A1F1.3080303@tilera.com>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk> <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com> <20121019213548.GR2616@ZenIV.linux.org.uk>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 00/11] m68k: use asm-generic headers when possible
+Date: Sat, 20 Oct 2012 16:46:46 +0200
+Message-ID: <CAMuHMdU_=3-_UcWMT2yBif5dX30963sqNz4CV+_KjTSAZwBS9w@mail.gmail.com>
+References: <1350283759-31158-1-git-send-email-gerg@snapgear.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:19122 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754617Ab2JTNHA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 20 Oct 2012 09:07:00 -0400
-In-Reply-To: <20121019213548.GR2616@ZenIV.linux.org.uk>
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:56813 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753759Ab2JTOqs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 20 Oct 2012 10:46:48 -0400
+In-Reply-To: <1350283759-31158-1-git-send-email-gerg@snapgear.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@davemloft.net>
+To: gerg@snapgear.com
+Cc: linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
 
-On 10/19/2012 5:35 PM, Al Viro wrote:
-> On Fri, Oct 19, 2012 at 04:25:12PM -0400, Chris Metcalf wrote:
->> Also provide an optimized current_pt_regs() while we're at it.
-> Applied.  BTW, are you sure you want to record parent's pid and not tid?
+Hi Greg,
 
-By recording ->pid rather than ->pgid, we ARE recording the tid :-)
+On Mon, Oct 15, 2012 at 8:49 AM,  <gerg@snapgear.com> wrote:
+> On Arnd's suggestion I have gone through the m68k asm headers and weeded
+> out a bunch that are identical (or near enough) to the asm-generic versions
+> of these files.
 
-> Anyway, here's a followup on top of this one (again, completely untested) -
-> switching to generic sys_execve().  Does that look right for you?
+Thanks, looks great!
 
-It does look right, but it doesn't quite work as-is.  But after some tweaks
-it did yield a kernel that booted up userspace correctly, so I think it's
-basically good.
+(my first thought a few days ago was "Oh no, we're changing to the correct
+padding for e.g. time_t", but apparently the asm-generic versions do it wrong
+on big endian platforms, too ;-)
 
-First, the compat_sys_execve() declaration provided in
-arch/tile/include/asm/compat.h isn't right, so I deleted that (you had only
-deleted the PTREGS_SYSCALL trampoline declaration, _compat_sys_execve).
+Do you plan to resubmit for the uapi header changes I have already queued?
+Or shall I try to rebase it myself, using Stephen's fix?
+Note that termios.h now needs 2 changes, as it's split in uapi and normal
+(kernel use only).
 
-However, then arch/tile/kernel/compat.c failed to build, because
-<linux/compat.h> is included before <asm/unistd.h>, and <asm/unistd.h>
-provides __ARCH_WANT_SYS_EXECVE, and so we end up with no declaration at
-all for compat_sys_execve.  For most platforms this is no big deal, but on
-tile we use the __SYSCALL #define to provide the actual syscall table, and
-for that to work we need a declaration in scope for each syscall at the
-time we create the table.
+Gr{oetje,eeting}s,
 
-The best solution seems likely to be to copy the other place in
-<linux/compat.h> where we need to do something configurable (that is,
-CONFIG_ARCH_WANT_OLD_COMPAT_IPC), and just convert __ARCH_WANT_SYS_EXECVE
-to be a Kconfig option.
+                        Geert
 
-Another possibility is to pre-include <asm/unistd.h> in the tile compat.c
-before including <linux/compat.h>.  This requires adding some #undefs for
-_SC_3264, etc., in <asm-generic/unistd.h>, since we'll need to include the
-header twice, once to satisfy <linux/compat.h>, and then again to actually
-provide the body of the syscall array.  If we go down this path, I suspect
-we should just make <linux/compat.h> include <asm/unistd.h>, so it gets the
-__ARCH_WANT_SYS_EXECVE define provided.  Otherwise we have the ugly
-requirement of requiring the C file to include specific headers in specific
-order for it to work right.
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-> While
-> we are at it, I wonder if any of PTREGS_SYSCALL wrappers are needed -
-> current_pt_regs() would do just as well, won't it?  It's a couple of
-> arithmetical operations vs. arith operation + branch; even if the latter
-> is somehow cheaper, can't be cheaper by much.  And I'd expect it to be
-> costlier, actually, what with the icache effects.
-
-Yes, that's a good idea.  I'll look at it when I'm back in the office next
-week.
-
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
