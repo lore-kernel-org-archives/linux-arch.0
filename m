@@ -1,210 +1,100 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and
- GENERIC_KERNEL_EXECVE
-Date: Fri, 19 Oct 2012 22:35:48 +0100
-Message-ID: <20121019213548.GR2616@ZenIV.linux.org.uk>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk>
- <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com>
+From: Mel Gorman <mgorman@suse.de>
+Subject: Re: [PATCH] mm: memmap_init_zone() performance improvement
+Date: Sat, 20 Oct 2012 09:29:25 +0100
+Message-ID: <20121020082858.GA2698@suse.de>
+References: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
+ <20121008151656.GM29125@suse.de>
+ <1349794597.29752.10.camel@MikesLinux.fc.hp.com>
+ <1350676398.1169.6.camel@MikesLinux.fc.hp.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:36195 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755157Ab2JSVfx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Oct 2012 17:35:53 -0400
+Content-Type: text/plain; charset=iso-8859-15
+Return-path: <owner-linux-mm@kvack.org>
 Content-Disposition: inline
-In-Reply-To: <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@davemloft.net>
+In-Reply-To: <1350676398.1169.6.camel@MikesLinux.fc.hp.com>
+Sender: owner-linux-mm@kvack.org
+To: Mike Yoknis <mike.yoknis@hp.com>
+Cc: mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Oct 19, 2012 at 04:25:12PM -0400, Chris Metcalf wrote:
-> Also provide an optimized current_pt_regs() while we're at it.
+On Fri, Oct 19, 2012 at 01:53:18PM -0600, Mike Yoknis wrote:
+> On Tue, 2012-10-09 at 08:56 -0600, Mike Yoknis wrote:
+> > On Mon, 2012-10-08 at 16:16 +0100, Mel Gorman wrote:
+> > > On Wed, Oct 03, 2012 at 08:56:14AM -0600, Mike Yoknis wrote:
+> > > > memmap_init_zone() loops through every Page Frame Number (pfn),
+> > > > including pfn values that are within the gaps between existing
+> > > > memory sections.  The unneeded looping will become a boot
+> > > > performance issue when machines configure larger memory ranges
+> > > > that will contain larger and more numerous gaps.
+> > > > 
+> > > > The code will skip across invalid sections to reduce the
+> > > > number of loops executed.
+> > > > 
+> > > > Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
+> > > 
+> > > I do not see the need for
+> > > the additional complexity unless you can show it makes a big difference
+> > > to boot times.
+> > > 
+> > 
+> > Mel,
+> > 
+> > Let me pass along the numbers I have.  We have what we call an
+> > "architectural simulator".  It is a computer program that pretends that
+> > it is a computer system.  We use it to test the firmware before real
+> > hardware is available.  We have booted Linux on our simulator.  As you
+> > would expect it takes longer to boot on the simulator than it does on
+> > real hardware.
+> > 
+> > With my patch - boot time 41 minutes
+> > Without patch - boot time 94 minutes
+> > 
+> > These numbers do not scale linearly to real hardware.  But indicate to
+> > me a place where Linux can be improved.
+> > 
+> > Mike Yoknis
+> > 
+> Mel,
+> I finally got access to prototype hardware.  
+> It is a relatively small machine with only 64GB of RAM.
+>  
+> I put in a time measurement by reading the TSC register.
+> I booted both with and without my patch -
+>  
+> Without patch -
+> [    0.000000]   Normal zone: 13400064 pages, LIFO batch:31
+> [    0.000000] memmap_init_zone() enter 1404184834218
+> [    0.000000] memmap_init_zone() exit  1411174884438  diff = 6990050220
+>  
+> With patch -
+> [    0.000000]   Normal zone: 13400064 pages, LIFO batch:31
+> [    0.000000] memmap_init_zone() enter 1555530050778
+> [    0.000000] memmap_init_zone() exit  1559379204643  diff = 3849153865
+>  
+> This shows that without the patch the routine spends 45% 
+> of its time spinning unnecessarily.
+>  
 
-Applied.  BTW, are you sure you want to record parent's pid and not tid?
+I'm travelling at the moment so apologies that I have not followed up on
+this. My problem is still the same with the patch - it changes more
+headers than is necessary and it is sparsemem specific. At minimum, try
+the suggestion of 
 
-Anyway, here's a followup on top of this one (again, completely untested) -
-switching to generic sys_execve().  Does that look right for you?  While
-we are at it, I wonder if any of PTREGS_SYSCALL wrappers are needed -
-current_pt_regs() would do just as well, won't it?  It's a couple of
-arithmetical operations vs. arith operation + branch; even if the latter
-is somehow cheaper, can't be cheaper by much.  And I'd expect it to be
-costlier, actually, what with the icache effects.
+if (!early_pfn_valid(pfn)) {
+      pfn = ALIGN(pfn + MAX_ORDER_NR_PAGES, MAX_ORDER_NR_PAGES) - 1;
+      continue;
+}
 
-Until now current_pt_regs() was not an option for execve(), due to
-kernel_thread() implementation being what it was, but now it should
-work for all of them...
+and see how much it gains you as it should work on all memory models. If
+it turns out that you really need to skip whole sections then the strice
+could MAX_ORDER_NR_PAGES on all memory models except sparsemem where the
+stride would be PAGES_PER_SECTION
 
-diff --git a/arch/tile/include/asm/compat.h b/arch/tile/include/asm/compat.h
-index 3063e6f..404a3dd 100644
---- a/arch/tile/include/asm/compat.h
-+++ b/arch/tile/include/asm/compat.h
-@@ -304,9 +304,6 @@ long compat_sys_sched_rr_get_interval(compat_pid_t pid,
- 				      struct compat_timespec __user *interval);
- 
- /* These are the intvec_64.S trampolines. */
--long _compat_sys_execve(const char __user *path,
--			const compat_uptr_t __user *argv,
--			const compat_uptr_t __user *envp);
- long _compat_sys_sigaltstack(const struct compat_sigaltstack __user *uss_ptr,
- 			    struct compat_sigaltstack __user *uoss_ptr);
- long _compat_sys_rt_sigreturn(void);
-diff --git a/arch/tile/include/asm/elf.h b/arch/tile/include/asm/elf.h
-index f8ccf08..b73e103 100644
---- a/arch/tile/include/asm/elf.h
-+++ b/arch/tile/include/asm/elf.h
-@@ -148,6 +148,7 @@ extern int arch_setup_additional_pages(struct linux_binprm *bprm,
- #define compat_start_thread(regs, ip, usp) do { \
- 		regs->pc = ptr_to_compat_reg((void *)(ip)); \
- 		regs->sp = ptr_to_compat_reg((void *)(usp)); \
-+		single_step_execve();	\
- 	} while (0)
- 
- /*
-diff --git a/arch/tile/include/asm/processor.h b/arch/tile/include/asm/processor.h
-index 9a83e53..879073e 100644
---- a/arch/tile/include/asm/processor.h
-+++ b/arch/tile/include/asm/processor.h
-@@ -211,6 +211,7 @@ static inline void start_thread(struct pt_regs *regs,
- {
- 	regs->pc = pc;
- 	regs->sp = usp;
-+	single_step_execve();
- }
- 
- /* Free all resources held by a thread. */
-diff --git a/arch/tile/include/asm/syscalls.h b/arch/tile/include/asm/syscalls.h
-index 06f0464..0d52992 100644
---- a/arch/tile/include/asm/syscalls.h
-+++ b/arch/tile/include/asm/syscalls.h
-@@ -68,9 +68,10 @@ long _sys_sigaltstack(const stack_t __user *, stack_t __user *);
- long _sys_rt_sigreturn(void);
- long _sys_clone(unsigned long clone_flags, unsigned long newsp,
- 		void __user *parent_tid, void __user *child_tid);
--long _sys_execve(const char __user *filename,
-+long sys_execve(const char __user *filename,
- 		 const char __user *const __user *argv,
- 		 const char __user *const __user *envp);
-+#define sys_execve sys_execve
- 
- #include <asm-generic/syscalls.h>
- 
-diff --git a/arch/tile/include/asm/unistd.h b/arch/tile/include/asm/unistd.h
-index 6e032a0..dab827d 100644
---- a/arch/tile/include/asm/unistd.h
-+++ b/arch/tile/include/asm/unistd.h
-@@ -16,4 +16,5 @@
- #define __ARCH_WANT_SYS_LLSEEK
- #endif
- #define __ARCH_WANT_SYS_NEWFSTATAT
-+#define __ARCH_WANT_SYS_EXECVE
- #include <uapi/asm/unistd.h>
-diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
-index d67459b..a8e5a84 100644
---- a/arch/tile/kernel/compat.c
-+++ b/arch/tile/kernel/compat.c
-@@ -103,7 +103,6 @@ long compat_sys_sched_rr_get_interval(compat_pid_t pid,
- #define compat_sys_readahead sys32_readahead
- 
- /* Call the trampolines to manage pt_regs where necessary. */
--#define compat_sys_execve _compat_sys_execve
- #define compat_sys_sigaltstack _compat_sys_sigaltstack
- #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
- #define sys_clone _sys_clone
-diff --git a/arch/tile/kernel/intvec_32.S b/arch/tile/kernel/intvec_32.S
-index 58aad51..174b837 100644
---- a/arch/tile/kernel/intvec_32.S
-+++ b/arch/tile/kernel/intvec_32.S
-@@ -1476,7 +1476,6 @@ STD_ENTRY_LOCAL(bad_intr)
- 	};                                              \
- 	STD_ENDPROC(_##x)
- 
--PTREGS_SYSCALL(sys_execve, r3)
- PTREGS_SYSCALL(sys_sigaltstack, r2)
- PTREGS_SYSCALL_SIGRETURN(sys_rt_sigreturn, r0)
- PTREGS_SYSCALL(sys_cmpxchg_badaddr, r1)
-diff --git a/arch/tile/kernel/intvec_64.S b/arch/tile/kernel/intvec_64.S
-index a84911c4..283efed 100644
---- a/arch/tile/kernel/intvec_64.S
-+++ b/arch/tile/kernel/intvec_64.S
-@@ -1205,11 +1205,9 @@ STD_ENTRY_LOCAL(bad_intr)
- 	};                                              \
- 	STD_ENDPROC(_##x)
- 
--PTREGS_SYSCALL(sys_execve, r3)
- PTREGS_SYSCALL(sys_sigaltstack, r2)
- PTREGS_SYSCALL_SIGRETURN(sys_rt_sigreturn, r0)
- #ifdef CONFIG_COMPAT
--PTREGS_SYSCALL(compat_sys_execve, r3)
- PTREGS_SYSCALL(compat_sys_sigaltstack, r2)
- PTREGS_SYSCALL_SIGRETURN(compat_sys_rt_sigreturn, r0)
- #endif
-diff --git a/arch/tile/kernel/process.c b/arch/tile/kernel/process.c
-index ca6de8d..58f8fd1 100644
---- a/arch/tile/kernel/process.c
-+++ b/arch/tile/kernel/process.c
-@@ -594,51 +594,6 @@ SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,
- 		       parent_tidptr, child_tidptr);
- }
- 
--/*
-- * sys_execve() executes a new program.
-- */
--SYSCALL_DEFINE4(execve, const char __user *, path,
--		const char __user *const __user *, argv,
--		const char __user *const __user *, envp,
--		struct pt_regs *, regs)
--{
--	long error;
--	struct filename *filename;
--
--	filename = getname(path);
--	error = PTR_ERR(filename);
--	if (IS_ERR(filename))
--		goto out;
--	error = do_execve(filename->name, argv, envp, regs);
--	putname(filename);
--	if (error == 0)
--		single_step_execve();
--out:
--	return error;
--}
--
--#ifdef CONFIG_COMPAT
--long compat_sys_execve(const char __user *path,
--		       compat_uptr_t __user *argv,
--		       compat_uptr_t __user *envp,
--		       struct pt_regs *regs)
--{
--	long error;
--	struct filename *filename;
--
--	filename = getname(path);
--	error = PTR_ERR(filename);
--	if (IS_ERR(filename))
--		goto out;
--	error = compat_do_execve(filename->name, argv, envp, regs);
--	putname(filename);
--	if (error == 0)
--		single_step_execve();
--out:
--	return error;
--}
--#endif
--
- unsigned long get_wchan(struct task_struct *p)
- {
- 	struct KBacktraceIterator kbt;
-diff --git a/arch/tile/kernel/sys.c b/arch/tile/kernel/sys.c
-index b08095b..359e76f 100644
---- a/arch/tile/kernel/sys.c
-+++ b/arch/tile/kernel/sys.c
-@@ -107,7 +107,6 @@ SYSCALL_DEFINE6(mmap, unsigned long, addr, unsigned long, len,
- #endif
- 
- /* Call the trampolines to manage pt_regs where necessary. */
--#define sys_execve _sys_execve
- #define sys_sigaltstack _sys_sigaltstack
- #define sys_rt_sigreturn _sys_rt_sigreturn
- #define sys_clone _sys_clone
+-- 
+Mel Gorman
+SUSE Labs
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
