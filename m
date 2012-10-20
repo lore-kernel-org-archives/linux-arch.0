@@ -1,305 +1,99 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:56134 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1030240Ab2JSUlH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 19 Oct 2012 16:41:07 -0400
-Message-ID: <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com>
-From: Chris Metcalf <cmetcalf@tilera.com>
-Date: Fri, 19 Oct 2012 16:25:12 -0400
-Subject: [PATCH] tile: support GENERIC_KERNEL_THREAD and GENERIC_KERNEL_EXECVE
-In-Reply-To: <20121016223508.GR2616@ZenIV.linux.org.uk>
+Received: from cantor2.suse.de ([195.135.220.15]:53553 "EHLO mx2.suse.de"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753968Ab2JTIgo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sat, 20 Oct 2012 04:36:44 -0400
+Date: Sat, 20 Oct 2012 09:29:25 +0100
+From: Mel Gorman <mgorman@suse.de>
+Subject: Re: [PATCH] mm: memmap_init_zone() performance improvement
+Message-ID: <20121020082858.GA2698@suse.de>
+References: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
+ <20121008151656.GM29125@suse.de>
+ <1349794597.29752.10.camel@MikesLinux.fc.hp.com>
+ <1350676398.1169.6.camel@MikesLinux.fc.hp.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=iso-8859-15
+Content-Disposition: inline
+In-Reply-To: <1350676398.1169.6.camel@MikesLinux.fc.hp.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org, Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20121019202512.k6BwaFFTDBsu4OY5EXZwtDZonKtVPd9xrj1YZ4qAxvQ@z>
+To: Mike Yoknis <mike.yoknis@hp.com>
+Cc: mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20121020082925.nCRozlFPZzOhLtm5o5Q8CbMoD0z4wl0dPSaY1HtjVPw@z>
 
-Also provide an optimized current_pt_regs() while we're at it.
+On Fri, Oct 19, 2012 at 01:53:18PM -0600, Mike Yoknis wrote:
+> On Tue, 2012-10-09 at 08:56 -0600, Mike Yoknis wrote:
+> > On Mon, 2012-10-08 at 16:16 +0100, Mel Gorman wrote:
+> > > On Wed, Oct 03, 2012 at 08:56:14AM -0600, Mike Yoknis wrote:
+> > > > memmap_init_zone() loops through every Page Frame Number (pfn),
+> > > > including pfn values that are within the gaps between existing
+> > > > memory sections.  The unneeded looping will become a boot
+> > > > performance issue when machines configure larger memory ranges
+> > > > that will contain larger and more numerous gaps.
+> > > > 
+> > > > The code will skip across invalid sections to reduce the
+> > > > number of loops executed.
+> > > > 
+> > > > Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
+> > > 
+> > > I do not see the need for
+> > > the additional complexity unless you can show it makes a big difference
+> > > to boot times.
+> > > 
+> > 
+> > Mel,
+> > 
+> > Let me pass along the numbers I have.  We have what we call an
+> > "architectural simulator".  It is a computer program that pretends that
+> > it is a computer system.  We use it to test the firmware before real
+> > hardware is available.  We have booted Linux on our simulator.  As you
+> > would expect it takes longer to boot on the simulator than it does on
+> > real hardware.
+> > 
+> > With my patch - boot time 41 minutes
+> > Without patch - boot time 94 minutes
+> > 
+> > These numbers do not scale linearly to real hardware.  But indicate to
+> > me a place where Linux can be improved.
+> > 
+> > Mike Yoknis
+> > 
+> Mel,
+> I finally got access to prototype hardware.  
+> It is a relatively small machine with only 64GB of RAM.
+>  
+> I put in a time measurement by reading the TSC register.
+> I booted both with and without my patch -
+>  
+> Without patch -
+> [    0.000000]   Normal zone: 13400064 pages, LIFO batch:31
+> [    0.000000] memmap_init_zone() enter 1404184834218
+> [    0.000000] memmap_init_zone() exit  1411174884438  diff = 6990050220
+>  
+> With patch -
+> [    0.000000]   Normal zone: 13400064 pages, LIFO batch:31
+> [    0.000000] memmap_init_zone() enter 1555530050778
+> [    0.000000] memmap_init_zone() exit  1559379204643  diff = 3849153865
+>  
+> This shows that without the patch the routine spends 45% 
+> of its time spinning unnecessarily.
+>  
 
-Signed-off-by: Chris Metcalf <cmetcalf@tilera.com>
----
-[Re-sending to correct linus-arch / linux-arch typo.]
+I'm travelling at the moment so apologies that I have not followed up on
+this. My problem is still the same with the patch - it changes more
+headers than is necessary and it is sparsemem specific. At minimum, try
+the suggestion of 
 
- arch/tile/Kconfig                 |    2 +
- arch/tile/include/asm/processor.h |    3 ++
- arch/tile/include/asm/switch_to.h |    5 +-
- arch/tile/kernel/entry.S          |   11 ----
- arch/tile/kernel/intvec_32.S      |   15 ++++++
- arch/tile/kernel/intvec_64.S      |   15 ++++++
- arch/tile/kernel/process.c        |  103 ++++++++++++++-----------------------
- 7 files changed, 78 insertions(+), 76 deletions(-)
+if (!early_pfn_valid(pfn)) {
+      pfn = ALIGN(pfn + MAX_ORDER_NR_PAGES, MAX_ORDER_NR_PAGES) - 1;
+      continue;
+}
 
-diff --git a/arch/tile/Kconfig b/arch/tile/Kconfig
-index 875d008..ea7f61e 100644
---- a/arch/tile/Kconfig
-+++ b/arch/tile/Kconfig
-@@ -21,6 +21,8 @@ config TILE
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select GENERIC_CLOCKEVENTS
- 	select MODULES_USE_ELF_RELA
-+	select GENERIC_KERNEL_THREAD
-+	select GENERIC_KERNEL_EXECVE
- 
- # FIXME: investigate whether we need/want these options.
- #	select HAVE_IOREMAP_PROT
-diff --git a/arch/tile/include/asm/processor.h b/arch/tile/include/asm/processor.h
-index 8c4dd9f..9a83e53 100644
---- a/arch/tile/include/asm/processor.h
-+++ b/arch/tile/include/asm/processor.h
-@@ -239,6 +239,9 @@ unsigned long get_wchan(struct task_struct *p);
- #define KSTK_TOP(task)	(task_ksp0(task) - STACK_TOP_DELTA)
- #define task_pt_regs(task) \
-   ((struct pt_regs *)(task_ksp0(task) - KSTK_PTREGS_GAP) - 1)
-+#define current_pt_regs()                                   \
-+  ((struct pt_regs *)((stack_pointer | (THREAD_SIZE - 1)) - \
-+                      (KSTK_PTREGS_GAP - 1)) - 1)
- #define task_sp(task)	(task_pt_regs(task)->sp)
- #define task_pc(task)	(task_pt_regs(task)->pc)
- /* Aliases for pc and sp (used in fs/proc/array.c) */
-diff --git a/arch/tile/include/asm/switch_to.h b/arch/tile/include/asm/switch_to.h
-index 1d48c5f..b8f888c 100644
---- a/arch/tile/include/asm/switch_to.h
-+++ b/arch/tile/include/asm/switch_to.h
-@@ -68,7 +68,10 @@ extern unsigned long get_switch_to_pc(void);
- /* Support function for forking a new task. */
- void ret_from_fork(void);
- 
--/* Called from ret_from_fork() when a new process starts up. */
-+/* Support function for forking a new kernel thread. */
-+void ret_from_kernel_thread(void *fn, void *arg);
-+
-+/* Called from ret_from_xxx() when a new process starts up. */
- struct task_struct *sim_notify_fork(struct task_struct *prev);
- 
- #endif /* !__ASSEMBLY__ */
-diff --git a/arch/tile/kernel/entry.S b/arch/tile/kernel/entry.S
-index c31637b..f116cb0 100644
---- a/arch/tile/kernel/entry.S
-+++ b/arch/tile/kernel/entry.S
-@@ -28,17 +28,6 @@ STD_ENTRY(current_text_addr)
- 	STD_ENDPROC(current_text_addr)
- 
- /*
-- * Implement execve().  The i386 code has a note that forking from kernel
-- * space results in no copy on write until the execve, so we should be
-- * careful not to write to the stack here.
-- */
--STD_ENTRY(kernel_execve)
--	moveli TREG_SYSCALL_NR_NAME, __NR_execve
--	swint1
--	jrp lr
--	STD_ENDPROC(kernel_execve)
--
--/*
-  * We don't run this function directly, but instead copy it to a page
-  * we map into every user process.  See vdso_setup().
-  *
-diff --git a/arch/tile/kernel/intvec_32.S b/arch/tile/kernel/intvec_32.S
-index 6943515..58aad51 100644
---- a/arch/tile/kernel/intvec_32.S
-+++ b/arch/tile/kernel/intvec_32.S
-@@ -1291,6 +1291,21 @@ STD_ENTRY(ret_from_fork)
- 	}
- 	STD_ENDPROC(ret_from_fork)
- 
-+STD_ENTRY(ret_from_kernel_thread)
-+	jal     sim_notify_fork
-+	jal     schedule_tail
-+	FEEDBACK_REENTER(ret_from_fork)
-+	{
-+	 move   r0, r31
-+	 jalr   r30
-+	}
-+	FEEDBACK_REENTER(ret_from_kernel_thread)
-+	{
-+	 movei  r30, 0               /* not an NMI */
-+	 j      .Lresume_userspace   /* jump into middle of interrupt_return */
-+	}
-+	STD_ENDPROC(ret_from_kernel_thread)
-+
- 	/*
- 	 * Code for ill interrupt.
- 	 */
-diff --git a/arch/tile/kernel/intvec_64.S b/arch/tile/kernel/intvec_64.S
-index 7c06d59..a84911c 100644
---- a/arch/tile/kernel/intvec_64.S
-+++ b/arch/tile/kernel/intvec_64.S
-@@ -1150,6 +1150,21 @@ STD_ENTRY(ret_from_fork)
- 	}
- 	STD_ENDPROC(ret_from_fork)
- 
-+STD_ENTRY(ret_from_kernel_thread)
-+	jal     sim_notify_fork
-+	jal     schedule_tail
-+	FEEDBACK_REENTER(ret_from_fork)
-+	{
-+	 move   r0, r31
-+	 jalr   r30
-+	}
-+	FEEDBACK_REENTER(ret_from_kernel_thread)
-+	{
-+	 movei  r30, 0               /* not an NMI */
-+	 j      .Lresume_userspace   /* jump into middle of interrupt_return */
-+	}
-+	STD_ENDPROC(ret_from_kernel_thread)
-+
- /* Various stub interrupt handlers and syscall handlers */
- 
- STD_ENTRY_LOCAL(_kernel_double_fault)
-diff --git a/arch/tile/kernel/process.c b/arch/tile/kernel/process.c
-index 307d010..ca6de8d 100644
---- a/arch/tile/kernel/process.c
-+++ b/arch/tile/kernel/process.c
-@@ -157,24 +157,44 @@ void arch_release_thread_info(struct thread_info *info)
- static void save_arch_state(struct thread_struct *t);
- 
- int copy_thread(unsigned long clone_flags, unsigned long sp,
--		unsigned long stack_size,
-+		unsigned long arg,
- 		struct task_struct *p, struct pt_regs *regs)
- {
--	struct pt_regs *childregs;
-+	struct pt_regs *childregs = task_pt_regs(p);
- 	unsigned long ksp;
-+	unsigned long *callee_regs;
- 
- 	/*
--	 * When creating a new kernel thread we pass sp as zero.
--	 * Assign it to a reasonable value now that we have the stack.
-+	 * Set up the stack and stack pointer appropriately for the
-+	 * new child to find itself woken up in __switch_to().
-+	 * The callee-saved registers must be on the stack to be read;
-+	 * the new task will then jump to assembly support to handle
-+	 * calling schedule_tail(), etc., and (for userspace tasks)
-+	 * returning to the context set up in the pt_regs.
- 	 */
--	if (sp == 0 && regs->ex1 == PL_ICS_EX1(KERNEL_PL, 0))
--		sp = KSTK_TOP(p);
-+	ksp = (unsigned long) childregs;
-+	ksp -= C_ABI_SAVE_AREA_SIZE;   /* interrupt-entry save area */
-+	((long *)ksp)[0] = ((long *)ksp)[1] = 0;
-+	ksp -= CALLEE_SAVED_REGS_COUNT * sizeof(unsigned long);
-+	callee_regs = (unsigned long *)ksp;
-+	ksp -= C_ABI_SAVE_AREA_SIZE;   /* __switch_to() save area */
-+	((long *)ksp)[0] = ((long *)ksp)[1] = 0;
-+	p->thread.ksp = ksp;
- 
--	/*
--	 * Do not clone step state from the parent; each thread
--	 * must make its own lazily.
--	 */
--	task_thread_info(p)->step_state = NULL;
-+	/* Record the pid of the task that created this one. */
-+	p->thread.creator_pid = current->pid;
-+
-+	if (unlikely(!regs)) {
-+		/* kernel thread */
-+		memset(childregs, 0, sizeof(struct pt_regs));
-+		memset(&callee_regs[2], 0,
-+		       (CALLEE_SAVED_REGS_COUNT - 2) * sizeof(unsigned long));
-+		callee_regs[0] = sp;   /* r30 = function */
-+		callee_regs[1] = arg;  /* r31 = arg */
-+		childregs->ex1 = PL_ICS_EX1(KERNEL_PL, 0);
-+		p->thread.pc = (unsigned long) ret_from_kernel_thread;
-+		return 0;
-+	}
- 
- 	/*
- 	 * Start new thread in ret_from_fork so it schedules properly
-@@ -182,20 +202,24 @@ int copy_thread(unsigned long clone_flags, unsigned long sp,
- 	 */
- 	p->thread.pc = (unsigned long) ret_from_fork;
- 
-+	/*
-+	 * Do not clone step state from the parent; each thread
-+	 * must make its own lazily.
-+	 */
-+	task_thread_info(p)->step_state = NULL;
-+
- 	/* Save user stack top pointer so we can ID the stack vm area later. */
- 	p->thread.usp0 = sp;
- 
--	/* Record the pid of the process that created this one. */
--	p->thread.creator_pid = current->pid;
--
- 	/*
- 	 * Copy the registers onto the kernel stack so the
- 	 * return-from-interrupt code will reload it into registers.
- 	 */
--	childregs = task_pt_regs(p);
- 	*childregs = *regs;
- 	childregs->regs[0] = 0;         /* return value is zero */
- 	childregs->sp = sp;  /* override with new user stack pointer */
-+	memcpy(callee_regs, &regs->regs[CALLEE_SAVED_FIRST_REG],
-+	       CALLEE_SAVED_REGS_COUNT * sizeof(unsigned long));
- 
- 	/*
- 	 * If CLONE_SETTLS is set, set "tp" in the new task to "r4",
-@@ -204,24 +228,6 @@ int copy_thread(unsigned long clone_flags, unsigned long sp,
- 	if (clone_flags & CLONE_SETTLS)
- 		childregs->tp = regs->regs[4];
- 
--	/*
--	 * Copy the callee-saved registers from the passed pt_regs struct
--	 * into the context-switch callee-saved registers area.
--	 * This way when we start the interrupt-return sequence, the
--	 * callee-save registers will be correctly in registers, which
--	 * is how we assume the compiler leaves them as we start doing
--	 * the normal return-from-interrupt path after calling C code.
--	 * Zero out the C ABI save area to mark the top of the stack.
--	 */
--	ksp = (unsigned long) childregs;
--	ksp -= C_ABI_SAVE_AREA_SIZE;   /* interrupt-entry save area */
--	((long *)ksp)[0] = ((long *)ksp)[1] = 0;
--	ksp -= CALLEE_SAVED_REGS_COUNT * sizeof(unsigned long);
--	memcpy((void *)ksp, &regs->regs[CALLEE_SAVED_FIRST_REG],
--	       CALLEE_SAVED_REGS_COUNT * sizeof(unsigned long));
--	ksp -= C_ABI_SAVE_AREA_SIZE;   /* __switch_to() save area */
--	((long *)ksp)[0] = ((long *)ksp)[1] = 0;
--	p->thread.ksp = ksp;
- 
- #if CHIP_HAS_TILE_DMA()
- 	/*
-@@ -650,37 +656,6 @@ unsigned long get_wchan(struct task_struct *p)
- 	return 0;
- }
- 
--/*
-- * We pass in lr as zero (cleared in kernel_thread) and the caller
-- * part of the backtrace ABI on the stack also zeroed (in copy_thread)
-- * so that backtraces will stop with this function.
-- * Note that we don't use r0, since copy_thread() clears it.
-- */
--static void start_kernel_thread(int dummy, int (*fn)(int), int arg)
--{
--	do_exit(fn(arg));
--}
--
--/*
-- * Create a kernel thread
-- */
--int kernel_thread(int (*fn)(void *), void * arg, unsigned long flags)
--{
--	struct pt_regs regs;
--
--	memset(&regs, 0, sizeof(regs));
--	regs.ex1 = PL_ICS_EX1(KERNEL_PL, 0);  /* run at kernel PL, no ICS */
--	regs.pc = (long) start_kernel_thread;
--	regs.flags = PT_FLAGS_CALLER_SAVES;   /* need to restore r1 and r2 */
--	regs.regs[1] = (long) fn;             /* function pointer */
--	regs.regs[2] = (long) arg;            /* parameter register */
--
--	/* Ok, create the new process.. */
--	return do_fork(flags | CLONE_VM | CLONE_UNTRACED, 0, &regs,
--		       0, NULL, NULL);
--}
--EXPORT_SYMBOL(kernel_thread);
--
- /* Flush thread state. */
- void flush_thread(void)
- {
+and see how much it gains you as it should work on all memory models. If
+it turns out that you really need to skip whole sections then the strice
+could MAX_ORDER_NR_PAGES on all memory models except sparsemem where the
+stride would be PAGES_PER_SECTION
+
 -- 
-1.7.10.3
-
+Mel Gorman
+SUSE Labs
