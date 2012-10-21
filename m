@@ -1,99 +1,66 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cantor2.suse.de ([195.135.220.15]:53553 "EHLO mx2.suse.de"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753968Ab2JTIgo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Sat, 20 Oct 2012 04:36:44 -0400
-Date: Sat, 20 Oct 2012 09:29:25 +0100
-From: Mel Gorman <mgorman@suse.de>
-Subject: Re: [PATCH] mm: memmap_init_zone() performance improvement
-Message-ID: <20121020082858.GA2698@suse.de>
-References: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
- <20121008151656.GM29125@suse.de>
- <1349794597.29752.10.camel@MikesLinux.fc.hp.com>
- <1350676398.1169.6.camel@MikesLinux.fc.hp.com>
+Received: from outbound-mail01.westnet.com.au ([203.10.1.242]:16103 "EHLO
+	outbound-mail01.westnet.com.au" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1753383Ab2JUMiz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 21 Oct 2012 08:38:55 -0400
+Message-ID: <5083ECD8.80205@westnet.com.au>
+Date: Sun, 21 Oct 2012 22:38:48 +1000
+From: Greg Ungerer <gregungerer@westnet.com.au>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=iso-8859-15
-Content-Disposition: inline
-In-Reply-To: <1350676398.1169.6.camel@MikesLinux.fc.hp.com>
+Subject: Re: [PATCH 00/11] m68k: use asm-generic headers when possible
+References: <1350283759-31158-1-git-send-email-gerg@snapgear.com> <CAMuHMdU_=3-_UcWMT2yBif5dX30963sqNz4CV+_KjTSAZwBS9w@mail.gmail.com>
+In-Reply-To: <CAMuHMdU_=3-_UcWMT2yBif5dX30963sqNz4CV+_KjTSAZwBS9w@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mike Yoknis <mike.yoknis@hp.com>
-Cc: mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20121020082925.nCRozlFPZzOhLtm5o5Q8CbMoD0z4wl0dPSaY1HtjVPw@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: gerg@snapgear.com, linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20121021123848.IhI6qBPch2mF24QJ4I5Td__tFXPGsy_kYHSVmDwdFz4@z>
 
-On Fri, Oct 19, 2012 at 01:53:18PM -0600, Mike Yoknis wrote:
-> On Tue, 2012-10-09 at 08:56 -0600, Mike Yoknis wrote:
-> > On Mon, 2012-10-08 at 16:16 +0100, Mel Gorman wrote:
-> > > On Wed, Oct 03, 2012 at 08:56:14AM -0600, Mike Yoknis wrote:
-> > > > memmap_init_zone() loops through every Page Frame Number (pfn),
-> > > > including pfn values that are within the gaps between existing
-> > > > memory sections.  The unneeded looping will become a boot
-> > > > performance issue when machines configure larger memory ranges
-> > > > that will contain larger and more numerous gaps.
-> > > > 
-> > > > The code will skip across invalid sections to reduce the
-> > > > number of loops executed.
-> > > > 
-> > > > Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
-> > > 
-> > > I do not see the need for
-> > > the additional complexity unless you can show it makes a big difference
-> > > to boot times.
-> > > 
-> > 
-> > Mel,
-> > 
-> > Let me pass along the numbers I have.  We have what we call an
-> > "architectural simulator".  It is a computer program that pretends that
-> > it is a computer system.  We use it to test the firmware before real
-> > hardware is available.  We have booted Linux on our simulator.  As you
-> > would expect it takes longer to boot on the simulator than it does on
-> > real hardware.
-> > 
-> > With my patch - boot time 41 minutes
-> > Without patch - boot time 94 minutes
-> > 
-> > These numbers do not scale linearly to real hardware.  But indicate to
-> > me a place where Linux can be improved.
-> > 
-> > Mike Yoknis
-> > 
-> Mel,
-> I finally got access to prototype hardware.  
-> It is a relatively small machine with only 64GB of RAM.
->  
-> I put in a time measurement by reading the TSC register.
-> I booted both with and without my patch -
->  
-> Without patch -
-> [    0.000000]   Normal zone: 13400064 pages, LIFO batch:31
-> [    0.000000] memmap_init_zone() enter 1404184834218
-> [    0.000000] memmap_init_zone() exit  1411174884438  diff = 6990050220
->  
-> With patch -
-> [    0.000000]   Normal zone: 13400064 pages, LIFO batch:31
-> [    0.000000] memmap_init_zone() enter 1555530050778
-> [    0.000000] memmap_init_zone() exit  1559379204643  diff = 3849153865
->  
-> This shows that without the patch the routine spends 45% 
-> of its time spinning unnecessarily.
->  
+Hi Geert,
 
-I'm travelling at the moment so apologies that I have not followed up on
-this. My problem is still the same with the patch - it changes more
-headers than is necessary and it is sparsemem specific. At minimum, try
-the suggestion of 
+On 10/21/2012 12:46 AM, Geert Uytterhoeven wrote:
+> On Mon, Oct 15, 2012 at 8:49 AM,  <gerg@snapgear.com> wrote:
+>> On Arnd's suggestion I have gone through the m68k asm headers and weeded
+>> out a bunch that are identical (or near enough) to the asm-generic versions
+>> of these files.
+>
+> Thanks, looks great!
+>
+> (my first thought a few days ago was "Oh no, we're changing to the correct
+> padding for e.g. time_t", but apparently the asm-generic versions do it wrong
+> on big endian platforms, too ;-)
 
-if (!early_pfn_valid(pfn)) {
-      pfn = ALIGN(pfn + MAX_ORDER_NR_PAGES, MAX_ORDER_NR_PAGES) - 1;
-      continue;
-}
+Yes, it is rather nice of the asm-generic versions , just what
+we needed :-)
 
-and see how much it gains you as it should work on all memory models. If
-it turns out that you really need to skip whole sections then the strice
-could MAX_ORDER_NR_PAGES on all memory models except sparsemem where the
-stride would be PAGES_PER_SECTION
+> Do you plan to resubmit for the uapi header changes I have already queued?
 
--- 
-Mel Gorman
-SUSE Labs
+I am happy to do that. No hurry on my part, so whatever makes it
+easiest for everyone. Will you be pushing those to Linus in this
+rc series?
+
+> Or shall I try to rebase it myself, using Stephen's fix?
+> Note that termios.h now needs 2 changes, as it's split in uapi and normal
+> (kernel use only).
+
+Thanks for the heads up.
+
+Regards
+Greg
+
+>
+> --
+> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+>
+> In personal conversations with technical people, I call myself a hacker. But
+> when I'm talking to journalists I just say "programmer" or something like that.
+>                                  -- Linus Torvalds
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-m68k" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+>
+
