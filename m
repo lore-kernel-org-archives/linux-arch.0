@@ -1,180 +1,206 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and
- GENERIC_KERNEL_EXECVE
-Date: Sat, 20 Oct 2012 18:16:43 +0100
-Message-ID: <20121020171643.GU2616@ZenIV.linux.org.uk>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk>
- <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com>
- <20121019213548.GR2616@ZenIV.linux.org.uk>
- <5082A1F1.3080303@tilera.com>
- <20121020153401.GT2616@ZenIV.linux.org.uk>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: Re: new execve/kernel_thread design
+Date: Sun, 21 Oct 2012 11:35:25 +0100
+Message-ID: <1350815725.2449.1.camel@dabdike.int.hansenpartnership.com>
+References: <20121019155554.GL2616@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:39023 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756325Ab2JTRQq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 20 Oct 2012 13:16:46 -0400
-Content-Disposition: inline
-In-Reply-To: <20121020153401.GT2616@ZenIV.linux.org.uk>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:34427 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752273Ab2JUKfb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Sun, 21 Oct 2012 06:35:31 -0400
+In-Reply-To: <20121019155554.GL2616@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, Parisc List <linux-parisc@vger.kernel.org>
 
-On Sat, Oct 20, 2012 at 04:34:01PM +0100, Al Viro wrote:
-> On Sat, Oct 20, 2012 at 09:06:57AM -0400, Chris Metcalf wrote:
-> > First, the compat_sys_execve() declaration provided in
-> > arch/tile/include/asm/compat.h isn't right, so I deleted that (you had only
-> > deleted the PTREGS_SYSCALL trampoline declaration, _compat_sys_execve).
-> > 
-> > However, then arch/tile/kernel/compat.c failed to build, because
-> > <linux/compat.h> is included before <asm/unistd.h>, and <asm/unistd.h>
-> > provides __ARCH_WANT_SYS_EXECVE, and so we end up with no declaration at
-> > all for compat_sys_execve.  For most platforms this is no big deal, but on
-> > tile we use the __SYSCALL #define to provide the actual syscall table, and
-> > for that to work we need a declaration in scope for each syscall at the
-> > time we create the table.
-> > 
-> > The best solution seems likely to be to copy the other place in
-> > <linux/compat.h> where we need to do something configurable (that is,
-> > CONFIG_ARCH_WANT_OLD_COMPAT_IPC), and just convert __ARCH_WANT_SYS_EXECVE
-> > to be a Kconfig option.
+On Fri, 2012-10-19 at 16:55 +0100, Al Viro wrote:
+> [Sorry; forgot about that typo in Cc...  Repost to linux-arch alone]
 > 
-> Frankly, I hope to get rid of the damn thing completely.  By now we have
-> at least some variant of execve conversions for just about everything;
-> I certainly hope that by the beginning of the next cycle we'll have it
-> defined on everything.  And put unconditional declarations in syscalls.h
-> and compat.h
+> On Tue, Oct 16, 2012 at 11:35:08PM +0100, Al Viro wrote:
+> > 	1.  Basic rules for process lifetime.
+> > Except for the initial process (init_task, eventual idle thread on the boot
+> > CPU) all processes are created by do_fork().  There are three classes of
+> > those: kernel threads, userland processes and idle threads to be.  There are
+> > few low-level operations involved:
+> > 	* a kernel thread can spawn a new kernel thread; the primitive
+> > doing that is kernel_thread().
+> > 	* a userland process can spawn a new userland process; that's
+> > done by sys_fork()/sys_vfork()/sys_clone()/sys_clone2().
+> > 	* a kernel thread can become a userland process.  The primitive
+> > is kernel_execve().
+> > 	* a kernel thread can spawn a future idle thread; that's done
+> > by fork_idle().  Result is *not* scheduled until the secondary CPU gets
+> > initialized and its state is heavily overwritten in process.
 > 
-> Actually, we can make the declaration in linux/compat.h unconditional
-> right now.  The only obstacle is the situation on arm64; there the mainline
-> has C variant of that sucker (with struct pt_regs * in arguments) in
-> arch/arm64/kernel/sys_compat.c.  So we could ask Linus to pull
-> git://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/linux-aarch64 execve
-> and then do the following in one patch:
-> 	introduce current_pt_regs() on tile (from your commit)
-> 	get rid of pt_regs * argument in tile compat_sys_execve(), making it
-> use current_pt_regs(); kill its wrapper
-> 	kill the declarations of compat_sys_execve()/_compat_sys_execve()
-> in tile asm/compat.h
-> 	make declaration in linux/compat.h unconditional
-> Note that this does *not* depend on kernel_thread/kernel_execve patch -
-> kernel_execve() is never going to hit compat_sys_execve(), since it's
-> only called from kernel threads and those are not going to be 32bit.
-> After that we can do kernel_thread/kernel_execve commit and
-> sys_execve() conversion with nothing outside of arch/tile touched.
+> Minor correction: while the first two cases go through do_fork() to
+> copy_process() to copy_thread(), fork_idle() calls copy_process() directly.
+> 
+> > 	4. What is done?
+> > I've done the conversions for almost all architectures, but quite a few
+> > are completely untested.
+> > 
+> > I'm fairly sure about alpha, x86 and um.  Tested and I understand the
+> > architecture well enough.  arm, mips and c6x had been tested by architecture
+> > maintainers.  This stuff also works.  alpha, arm, x86 and um are fully
+> > converted in mainline by now.
+> 
+> arm64 fixed and tested by maintainer, put in no-rebase mode.
+> 
+> sparc corrected to avoid branching beyond what ba,pt allows, ACKed by Davem
+> in that form.  In no-rebase mode.
+> 
+> m68k tested and ACKed on coldfire; I think that along with aranym testing
+> here that is enough.  In no-rebase mode.
+> 
+> Surprisingly enough, ia64 one seems to work on actual hardware; I have sent
+> Tony an incremental patch cleaning copy_thread() up, waiting for results of
+> testing that on SMP box.
+> 
+> Even more surprisingly, unicore32 variant turned out to contain only one
+> obvious typo.  Fixed and tested by maintainer of unicore32 tree and actually
+> applied there, I've pulled his branch at that point.
+> 
+> microblaze: some fixes from Michal folded, still breakage with kernel_execve()
+> side of things.
+> 
+> Since there had been no signs of life from hexagon folks, I'd done (absolutely
+> blind and untested) tentative patches; see #arch-hexagon.  Same situation
+> as with most of the embedded architectures - i.e. take with a cartload of salt,
+> that pair of patches is intended to be a possible starting point for producing
+> something working.
+> 
+> At that point we have the following situation:
+> alpha                   done
+> arm                     done
+> arm64                   done
+> avr32                   untested
+> blackfin                untested
+> c6x                     done
+> cris                    untested
+> frv                     untested, maintainer going to test
+> h8300                   untested
+> hexagon                 untested
+> ia64                    apparently works, needs the final ACK from Tony.
+> m32r                    untested
+> m68k                    done
+> microblaze              partially tested, maintainer hunting breakage down
+> mips                    done
+> mn10300                 untested
+> openrisc                maintainers said to have partially working variant
+> parisc                  should work, needs testing and ACK
 
-Another possible variant is for you to merge that branch from arm64 tree
-(only 3 commits it it) and then do as described above.  I.e. on top of
-that apply the thing below, followed by your kernel_thread()/kernel_execve()
-patch (sans current_pt_regs() part), followed by obviously massaged parts
-of generic sys_execve for tile patch I've sent.  FWIW, I've put the
-whole series (based at the end of arm64 branch) in signal.git#arch-tile.
-Comments?
+Tested and works on top of 3.7-rc2 ... you can add my ACK.
 
-Drop struct pt_regs * argument in compat_sys_execve()
+James
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
-diff --git a/arch/tile/include/asm/compat.h b/arch/tile/include/asm/compat.h
-index 3063e6f..3bcf1b9 100644
---- a/arch/tile/include/asm/compat.h
-+++ b/arch/tile/include/asm/compat.h
-@@ -275,9 +275,6 @@ extern int compat_setup_rt_frame(int sig, struct k_sigaction *ka,
- struct compat_sigaction;
- struct compat_siginfo;
- struct compat_sigaltstack;
--long compat_sys_execve(const char __user *path,
--		       compat_uptr_t __user *argv,
--		       compat_uptr_t __user *envp, struct pt_regs *);
- long compat_sys_rt_sigaction(int sig, struct compat_sigaction __user *act,
- 			     struct compat_sigaction __user *oact,
- 			     size_t sigsetsize);
-@@ -304,9 +301,6 @@ long compat_sys_sched_rr_get_interval(compat_pid_t pid,
- 				      struct compat_timespec __user *interval);
- 
- /* These are the intvec_64.S trampolines. */
--long _compat_sys_execve(const char __user *path,
--			const compat_uptr_t __user *argv,
--			const compat_uptr_t __user *envp);
- long _compat_sys_sigaltstack(const struct compat_sigaltstack __user *uss_ptr,
- 			    struct compat_sigaltstack __user *uoss_ptr);
- long _compat_sys_rt_sigreturn(void);
-diff --git a/arch/tile/include/asm/processor.h b/arch/tile/include/asm/processor.h
-index 8c4dd9f..9a83e53 100644
---- a/arch/tile/include/asm/processor.h
-+++ b/arch/tile/include/asm/processor.h
-@@ -239,6 +239,9 @@ unsigned long get_wchan(struct task_struct *p);
- #define KSTK_TOP(task)	(task_ksp0(task) - STACK_TOP_DELTA)
- #define task_pt_regs(task) \
-   ((struct pt_regs *)(task_ksp0(task) - KSTK_PTREGS_GAP) - 1)
-+#define current_pt_regs()                                   \
-+  ((struct pt_regs *)((stack_pointer | (THREAD_SIZE - 1)) - \
-+                      (KSTK_PTREGS_GAP - 1)) - 1)
- #define task_sp(task)	(task_pt_regs(task)->sp)
- #define task_pc(task)	(task_pt_regs(task)->pc)
- /* Aliases for pc and sp (used in fs/proc/array.c) */
-diff --git a/arch/tile/kernel/compat.c b/arch/tile/kernel/compat.c
-index d67459b..a8e5a84 100644
---- a/arch/tile/kernel/compat.c
-+++ b/arch/tile/kernel/compat.c
-@@ -103,7 +103,6 @@ long compat_sys_sched_rr_get_interval(compat_pid_t pid,
- #define compat_sys_readahead sys32_readahead
- 
- /* Call the trampolines to manage pt_regs where necessary. */
--#define compat_sys_execve _compat_sys_execve
- #define compat_sys_sigaltstack _compat_sys_sigaltstack
- #define compat_sys_rt_sigreturn _compat_sys_rt_sigreturn
- #define sys_clone _sys_clone
-diff --git a/arch/tile/kernel/intvec_64.S b/arch/tile/kernel/intvec_64.S
-index 7c06d59..73f6c0a 100644
---- a/arch/tile/kernel/intvec_64.S
-+++ b/arch/tile/kernel/intvec_64.S
-@@ -1194,7 +1194,6 @@ PTREGS_SYSCALL(sys_execve, r3)
- PTREGS_SYSCALL(sys_sigaltstack, r2)
- PTREGS_SYSCALL_SIGRETURN(sys_rt_sigreturn, r0)
- #ifdef CONFIG_COMPAT
--PTREGS_SYSCALL(compat_sys_execve, r3)
- PTREGS_SYSCALL(compat_sys_sigaltstack, r2)
- PTREGS_SYSCALL_SIGRETURN(compat_sys_rt_sigreturn, r0)
- #endif
-diff --git a/arch/tile/kernel/process.c b/arch/tile/kernel/process.c
-index 307d010..9dc1391 100644
---- a/arch/tile/kernel/process.c
-+++ b/arch/tile/kernel/process.c
-@@ -614,8 +614,7 @@ out:
- #ifdef CONFIG_COMPAT
- long compat_sys_execve(const char __user *path,
- 		       compat_uptr_t __user *argv,
--		       compat_uptr_t __user *envp,
--		       struct pt_regs *regs)
-+		       compat_uptr_t __user *envp)
- {
- 	long error;
- 	struct filename *filename;
-@@ -624,7 +623,8 @@ long compat_sys_execve(const char __user *path,
- 	error = PTR_ERR(filename);
- 	if (IS_ERR(filename))
- 		goto out;
--	error = compat_do_execve(filename->name, argv, envp, regs);
-+	error = compat_do_execve(filename->name, argv, envp,
-+				 current_pt_regs());
- 	putname(filename);
- 	if (error == 0)
- 		single_step_execve();
-diff --git a/include/linux/compat.h b/include/linux/compat.h
-index d0ced10..d2db710 100644
---- a/include/linux/compat.h
-+++ b/include/linux/compat.h
-@@ -286,10 +286,8 @@ asmlinkage ssize_t compat_sys_pwritev(unsigned long fd,
- 
- int compat_do_execve(const char *filename, const compat_uptr_t __user *argv,
- 		     const compat_uptr_t __user *envp, struct pt_regs *regs);
--#ifdef __ARCH_WANT_SYS_EXECVE
- asmlinkage long compat_sys_execve(const char __user *filename, const compat_uptr_t __user *argv,
- 		     const compat_uptr_t __user *envp);
--#endif
- 
- asmlinkage long compat_sys_select(int n, compat_ulong_t __user *inp,
- 		compat_ulong_t __user *outp, compat_ulong_t __user *exp,
+
+> powerpc                 should work, needs testing and ACK
+> s390                    should work, needs testing and ACK
+> score                   untested
+> sh                      untested, maintainers planned reviewing and
+> testing
+> sparc                   done
+> tile                    maintainers writing that one
+> um                      done
+> unicore32               done
+> x86                     done
+> xtensa                  maintainers writing that one
+> 
+> One more thing: AFAICS, just about everything has something along the
+> lines
+> of
+>         if (!usp)
+>                 usp = <current userland sp>
+>         do_fork(flags, usp, ....)
+> in their sys_clone().  How about taking that into copy_thread()?
+> After
+> all, the logics there is
+>         copy all the state, including userland stack pointer to child
+>         override userland stack pointer with what the caller passed to
+> copy_thread()
+> often enough with "... and if we are about to override it with
+> something
+> different, do the following extra work".  Turning that into
+>         copy all the state, including userland stack pointer to child
+>         if (usp) {
+>                 override the userland stack pointer for child and
+> maybe do
+>                 some extra work
+>         }
+> would seem to be a fairly natural thing.  Does anybody see problems
+> with
+> doing that on their architecture?  Note that with that fork() becomes
+> simply
+> #ifndef CONFIG_MMU
+>         return -EINVAL;
+> #else
+>         return do_fork(SIGCHLD, 0, current_pt_regs(), 0, NULL, NULL);
+> #endif
+> and similar for vfork().  And these can definitely drop the
+> Cthulhu-awful
+> kludges for obtaining pt_regs (OK, on everything that doesn't do
+> kernel_thread() via syscall-from-kernel, but by now only xtensa is
+> still
+> doing that).  In some cases we need to do a bit of work before that
+> (gather callee-saved registers so that the child could get them as on
+> alpha,
+> mips, m68k, openrisc, parisc, ppc and x86, flush userland register
+> windows
+> on sparc and get psr/wim values on sparc32), but a lot more
+> architectures
+> lose the asm wrappers for those and the rest can get rid of assorted
+> ugliness involved in getting that struct pt_regs *.
+> 
+> BTW, alpha seems to be doing an absolutely pointless work on the way
+> out of
+> sys_fork() et.al. - saving callee-saved registers is needed, all
+> right,
+> but why bother restoring all of them on the way out in the parent?
+> All
+> we need is rp; that's ~0.3Kb of useless reads from memory on each
+> fork()...
+> 
+> The same goes for m68k; there the amount of traffic is less, but
+> still, what
+> the hell for?  Child needs callee-saved registers restored (and
+> usually will
+> have that done by switch_to()), but the parent needs only to make sure
+> they
+> are saved and available for copy_thread() to bring them to child
+> (incidentally,
+> copying registers is needed only when they are not embedded into
+> task_struct.
+> At least um is doing a memcpy() for no reason whatsoever; fix will be
+> sent
+> to rw shortly and ISTR seeing something similar on some of the other
+> architectures).
+> 
+> Another cross-architecture thing: folks, watch out for what's being
+> done with
+> thread flags; I've just found a lovely bug on alpha where we have
+> prctl(2)
+> doing non-atomic modifications of those (as in ti->flags =
+> (ti->flags&~x)|y;),
+> which is obviously broken; TIF_SIGPENDING can be set asynchronously
+> and even
+> from an interrupt.  Fix for this one is going to Linus shortly (adding
+> a separate field for thread-synchronous flags, taking obviously t-s
+> ones
+> there, including the UAC_... bunch set by that prctl()), but I don't
+> think
+> that I can audit that for all architectures efficiently; cursory look
+> has
+> found a braino on frv (fix being discussed with dhowells), but there
+> may bloody
+> well be more of that fun.
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch"
+> in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> 
