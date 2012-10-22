@@ -1,71 +1,41 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
- access fault.
-Date: Mon, 22 Oct 2012 11:35:03 +0100
-Message-ID: <20121022103503.GA26619@mudshark.cambridge.arm.com>
-References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
- <20121002150104.da57fa94.akpm@linux-foundation.org>
- <20121017130125.GH5973@mudshark.cambridge.arm.com>
- <20121017.112620.1865348978594874782.davem@davemloft.net>
- <20121017155401.GJ5973@mudshark.cambridge.arm.com>
- <20121018150502.3dee7899.akpm@linux-foundation.org>
- <20121019091016.GA4582@mudshark.cambridge.arm.com>
- <20121019114955.3a0c2b66.akpm@linux-foundation.org>
+From: James Hogan <james@albanarts.com>
+Subject: Re: [GIT PULL] User API Disintegrate: Preparatory patches
+Date: Mon, 22 Oct 2012 12:50:24 +0100
+Message-ID: <CAAG0J9_LZ5Q1fNdcbSOyieesabkqcTMT0ueEDLXmemV2C_+F=g@mail.gmail.com>
+References: <18137.1349203013@warthog.procyon.org.uk>
+	<CAAG0J9_gYLn5+4j9WUnPmxWyJfQK_b8e5xjxZdRPG21euXoCFg@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20121019114955.3a0c2b66.akpm@linux-foundation.org>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: David Miller <davem@davemloft.net>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, "aarcange@redhat.com" <aarcange@redhat.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:38829 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752948Ab2JVLuZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Oct 2012 07:50:25 -0400
+Received: by mail-lb0-f174.google.com with SMTP id n3so1582843lbo.19
+        for <linux-arch@vger.kernel.org>; Mon, 22 Oct 2012 04:50:24 -0700 (PDT)
+In-Reply-To: <CAAG0J9_gYLn5+4j9WUnPmxWyJfQK_b8e5xjxZdRPG21euXoCFg@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: torvalds@osdl.org, arnd@arndb.de, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Fri, Oct 19, 2012 at 07:49:55PM +0100, Andrew Morton wrote:
-> On Fri, 19 Oct 2012 10:10:16 +0100
-> Will Deacon <will.deacon@arm.com> wrote:
-> 
-> > On Thu, Oct 18, 2012 at 11:05:02PM +0100, Andrew Morton wrote:
-> > > On Wed, 17 Oct 2012 16:54:02 +0100
-> > > Will Deacon <will.deacon@arm.com> wrote:
-> > > 
-> > > > On x86 memory accesses to pages without the ACCESSED flag set result in the
-> > > > ACCESSED flag being set automatically. With the ARM architecture a page access
-> > > > fault is raised instead (and it will continue to be raised until the ACCESSED
-> > > > flag is set for the appropriate PTE/PMD).
-> > > > 
-> > > > For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
-> > > > setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
-> > > > be called for a write fault.
-> > > > 
-> > > > This patch ensures that faults on transparent hugepages which do not result
-> > > > in a CoW update the access flags for the faulting pmd.
-> > > 
-> > > Confused.  Where is the arm implementation of update_mmu_cache_pmd()?
-> > 
-> > Right at the end of this patch, which was posted to the ARM list yesterday:
-> > 
-> >   http://lists.infradead.org/pipermail/linux-arm-kernel/2012-October/126387.html
-> 
-> I received and then merged a patch which won't compile!
+On 17 October 2012 09:42, James Hogan <james@albanarts.com> wrote:
+> On 2 October 2012 19:36, David Howells <dhowells@redhat.com> wrote:
+>> The patches herein prepare for the extraction of the Userspace API bits from
+>> the various header files named in the Kbuild files.
+>>
+>> [IMPORTANT NOTE!  These patches may need regenerating if the header files
+>>  change too much.  This doesn't normally take very long to do as the
+>>  disintegration procedure is almost entirely scripted.]
+>
+> Hi David,
+>
+> Any chance you (or somebody else) can point me towards your latest
+> scripts for all this UAPI disintegration work? They don't seem to be
+> in the kernel tree, and the only scripts I can find are from 2011 so I
+> guess they're probably a bit out of date.
 
-Eek, that certainly wasn't intentional and it's compiling fine for me on
--rc1 and -rc2 for both ARM (no THP) and x86 (with and without THP).
+Ping... Please can you point me to the scripts you've been using David?
 
-Please can you send the build failure?
-
-> Ho hum.  I'll drop
-> mm-thp-set-the-accessed-flag-for-old-pages-on-access-fault.patch and
-> shall assume that you'll sort things out at the appropriate time.
-
-Happy to sort it out once I work out what's going wrong!
-
-Cheers,
-
-Will
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Thanks
+James Hogan
