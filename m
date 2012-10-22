@@ -1,66 +1,71 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from outbound-mail01.westnet.com.au ([203.10.1.242]:16103 "EHLO
-	outbound-mail01.westnet.com.au" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1753383Ab2JUMiz (ORCPT
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:34647 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752098Ab2JVKfe (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 21 Oct 2012 08:38:55 -0400
-Message-ID: <5083ECD8.80205@westnet.com.au>
-Date: Sun, 21 Oct 2012 22:38:48 +1000
-From: Greg Ungerer <gregungerer@westnet.com.au>
+	Mon, 22 Oct 2012 06:35:34 -0400
+Date: Mon, 22 Oct 2012 11:35:03 +0100
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
+ access fault.
+Message-ID: <20121022103503.GA26619@mudshark.cambridge.arm.com>
+References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
+ <20121002150104.da57fa94.akpm@linux-foundation.org>
+ <20121017130125.GH5973@mudshark.cambridge.arm.com>
+ <20121017.112620.1865348978594874782.davem@davemloft.net>
+ <20121017155401.GJ5973@mudshark.cambridge.arm.com>
+ <20121018150502.3dee7899.akpm@linux-foundation.org>
+ <20121019091016.GA4582@mudshark.cambridge.arm.com>
+ <20121019114955.3a0c2b66.akpm@linux-foundation.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH 00/11] m68k: use asm-generic headers when possible
-References: <1350283759-31158-1-git-send-email-gerg@snapgear.com> <CAMuHMdU_=3-_UcWMT2yBif5dX30963sqNz4CV+_KjTSAZwBS9w@mail.gmail.com>
-In-Reply-To: <CAMuHMdU_=3-_UcWMT2yBif5dX30963sqNz4CV+_KjTSAZwBS9w@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20121019114955.3a0c2b66.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: gerg@snapgear.com, linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20121021123848.IhI6qBPch2mF24QJ4I5Td__tFXPGsy_kYHSVmDwdFz4@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: David Miller <davem@davemloft.net>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, "aarcange@redhat.com" <aarcange@redhat.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
+Message-ID: <20121022103503.-B5HfMt8Mm3MS5i7whDO4sNh0UgXoMqxCKcmQoe6-HQ@z>
 
-Hi Geert,
+On Fri, Oct 19, 2012 at 07:49:55PM +0100, Andrew Morton wrote:
+> On Fri, 19 Oct 2012 10:10:16 +0100
+> Will Deacon <will.deacon@arm.com> wrote:
+> 
+> > On Thu, Oct 18, 2012 at 11:05:02PM +0100, Andrew Morton wrote:
+> > > On Wed, 17 Oct 2012 16:54:02 +0100
+> > > Will Deacon <will.deacon@arm.com> wrote:
+> > > 
+> > > > On x86 memory accesses to pages without the ACCESSED flag set result in the
+> > > > ACCESSED flag being set automatically. With the ARM architecture a page access
+> > > > fault is raised instead (and it will continue to be raised until the ACCESSED
+> > > > flag is set for the appropriate PTE/PMD).
+> > > > 
+> > > > For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
+> > > > setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
+> > > > be called for a write fault.
+> > > > 
+> > > > This patch ensures that faults on transparent hugepages which do not result
+> > > > in a CoW update the access flags for the faulting pmd.
+> > > 
+> > > Confused.  Where is the arm implementation of update_mmu_cache_pmd()?
+> > 
+> > Right at the end of this patch, which was posted to the ARM list yesterday:
+> > 
+> >   http://lists.infradead.org/pipermail/linux-arm-kernel/2012-October/126387.html
+> 
+> I received and then merged a patch which won't compile!
 
-On 10/21/2012 12:46 AM, Geert Uytterhoeven wrote:
-> On Mon, Oct 15, 2012 at 8:49 AM,  <gerg@snapgear.com> wrote:
->> On Arnd's suggestion I have gone through the m68k asm headers and weeded
->> out a bunch that are identical (or near enough) to the asm-generic versions
->> of these files.
->
-> Thanks, looks great!
->
-> (my first thought a few days ago was "Oh no, we're changing to the correct
-> padding for e.g. time_t", but apparently the asm-generic versions do it wrong
-> on big endian platforms, too ;-)
+Eek, that certainly wasn't intentional and it's compiling fine for me on
+-rc1 and -rc2 for both ARM (no THP) and x86 (with and without THP).
 
-Yes, it is rather nice of the asm-generic versions , just what
-we needed :-)
+Please can you send the build failure?
 
-> Do you plan to resubmit for the uapi header changes I have already queued?
+> Ho hum.  I'll drop
+> mm-thp-set-the-accessed-flag-for-old-pages-on-access-fault.patch and
+> shall assume that you'll sort things out at the appropriate time.
 
-I am happy to do that. No hurry on my part, so whatever makes it
-easiest for everyone. Will you be pushing those to Linus in this
-rc series?
+Happy to sort it out once I work out what's going wrong!
 
-> Or shall I try to rebase it myself, using Stephen's fix?
-> Note that termios.h now needs 2 changes, as it's split in uapi and normal
-> (kernel use only).
+Cheers,
 
-Thanks for the heads up.
-
-Regards
-Greg
-
->
-> --
-> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
->
-> In personal conversations with technical people, I call myself a hacker. But
-> when I'm talking to journalists I just say "programmer" or something like that.
->                                  -- Linus Torvalds
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-m68k" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
->
-
+Will
