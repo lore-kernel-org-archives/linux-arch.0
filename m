@@ -1,41 +1,82 @@
-From: James Hogan <james@albanarts.com>
-Subject: Re: [GIT PULL] User API Disintegrate: Preparatory patches
-Date: Mon, 22 Oct 2012 12:50:24 +0100
-Message-ID: <CAAG0J9_LZ5Q1fNdcbSOyieesabkqcTMT0ueEDLXmemV2C_+F=g@mail.gmail.com>
-References: <18137.1349203013@warthog.procyon.org.uk>
-	<CAAG0J9_gYLn5+4j9WUnPmxWyJfQK_b8e5xjxZdRPG21euXoCFg@mail.gmail.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and
+ GENERIC_KERNEL_EXECVE
+Date: Mon, 22 Oct 2012 15:23:30 +0100
+Message-ID: <20121022142330.GE8072@arm.com>
+References: <20121016223508.GR2616@ZenIV.linux.org.uk>
+ <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com>
+ <20121019213548.GR2616@ZenIV.linux.org.uk>
+ <5082A1F1.3080303@tilera.com>
+ <20121020153401.GT2616@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:38829 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752948Ab2JVLuZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 22 Oct 2012 07:50:25 -0400
-Received: by mail-lb0-f174.google.com with SMTP id n3so1582843lbo.19
-        for <linux-arch@vger.kernel.org>; Mon, 22 Oct 2012 04:50:24 -0700 (PDT)
-In-Reply-To: <CAAG0J9_gYLn5+4j9WUnPmxWyJfQK_b8e5xjxZdRPG21euXoCFg@mail.gmail.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:38366 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755013Ab2JVOXn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Oct 2012 10:23:43 -0400
+Content-Disposition: inline
+In-Reply-To: <20121020153401.GT2616@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: torvalds@osdl.org, arnd@arndb.de, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Chris Metcalf <cmetcalf@tilera.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>
 
-On 17 October 2012 09:42, James Hogan <james@albanarts.com> wrote:
-> On 2 October 2012 19:36, David Howells <dhowells@redhat.com> wrote:
->> The patches herein prepare for the extraction of the Userspace API bits from
->> the various header files named in the Kbuild files.
->>
->> [IMPORTANT NOTE!  These patches may need regenerating if the header files
->>  change too much.  This doesn't normally take very long to do as the
->>  disintegration procedure is almost entirely scripted.]
->
-> Hi David,
->
-> Any chance you (or somebody else) can point me towards your latest
-> scripts for all this UAPI disintegration work? They don't seem to be
-> in the kernel tree, and the only scripts I can find are from 2011 so I
-> guess they're probably a bit out of date.
+Hi Al,
 
-Ping... Please can you point me to the scripts you've been using David?
+Sorry, couldn't reply earlier.
 
-Thanks
-James Hogan
+On Sat, Oct 20, 2012 at 04:34:01PM +0100, Al Viro wrote:
+> On Sat, Oct 20, 2012 at 09:06:57AM -0400, Chris Metcalf wrote:
+> > First, the compat_sys_execve() declaration provided in
+> > arch/tile/include/asm/compat.h isn't right, so I deleted that (you had only
+> > deleted the PTREGS_SYSCALL trampoline declaration, _compat_sys_execve).
+> > 
+> > However, then arch/tile/kernel/compat.c failed to build, because
+> > <linux/compat.h> is included before <asm/unistd.h>, and <asm/unistd.h>
+> > provides __ARCH_WANT_SYS_EXECVE, and so we end up with no declaration at
+> > all for compat_sys_execve.  For most platforms this is no big deal, but on
+> > tile we use the __SYSCALL #define to provide the actual syscall table, and
+> > for that to work we need a declaration in scope for each syscall at the
+> > time we create the table.
+> > 
+> > The best solution seems likely to be to copy the other place in
+> > <linux/compat.h> where we need to do something configurable (that is,
+> > CONFIG_ARCH_WANT_OLD_COMPAT_IPC), and just convert __ARCH_WANT_SYS_EXECVE
+> > to be a Kconfig option.
+> 
+> Frankly, I hope to get rid of the damn thing completely.  By now we have
+> at least some variant of execve conversions for just about everything;
+> I certainly hope that by the beginning of the next cycle we'll have it
+> defined on everything.  And put unconditional declarations in syscalls.h
+> and compat.h
+> 
+> Actually, we can make the declaration in linux/compat.h unconditional
+> right now.  The only obstacle is the situation on arm64; there the mainline
+> has C variant of that sucker (with struct pt_regs * in arguments) in
+> arch/arm64/kernel/sys_compat.c.  So we could ask Linus to pull
+> git://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/linux-aarch64 execve
+> and then do the following in one patch:
+> 	introduce current_pt_regs() on tile (from your commit)
+> 	get rid of pt_regs * argument in tile compat_sys_execve(), making it
+> use current_pt_regs(); kill its wrapper
+> 	kill the declarations of compat_sys_execve()/_compat_sys_execve()
+> in tile asm/compat.h
+> 	make declaration in linux/compat.h unconditional
+> Note that this does *not* depend on kernel_thread/kernel_execve patch -
+> kernel_execve() is never going to hit compat_sys_execve(), since it's
+> only called from kernel threads and those are not going to be 32bit.
+> After that we can do kernel_thread/kernel_execve commit and
+> sys_execve() conversion with nothing outside of arch/tile touched.
+> 
+> Comments?  If Catalin feels that arm64 series needs more testing, we could
+> reorder it a bit - all we really need there is getting rid of pt_regs argument
+> in compat_sys_execve() and just as on tile, that isn't tied into kernel_execve
+> and kernel_thread issues.
+
+I don't mind merging it earlier (if Linus is ok to take it after the
+merging window). It works fine in my tests.
+
+-- 
+Catalin
