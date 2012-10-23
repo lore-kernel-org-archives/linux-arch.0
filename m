@@ -1,58 +1,82 @@
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
- access fault.
-Date: Tue, 23 Oct 2012 11:11:25 +0100
-Message-ID: <20121023101125.GA20210@mudshark.cambridge.arm.com>
-References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
- <20121002150104.da57fa94.akpm@linux-foundation.org>
- <20121017130125.GH5973@mudshark.cambridge.arm.com>
- <20121017.112620.1865348978594874782.davem@davemloft.net>
- <20121017155401.GJ5973@mudshark.cambridge.arm.com>
- <20121018150502.3dee7899.akpm@linux-foundation.org>
- <20121019091016.GA4582@mudshark.cambridge.arm.com>
- <20121019114955.3a0c2b66.akpm@linux-foundation.org>
- <20121022103503.GA26619@mudshark.cambridge.arm.com>
- <20121022111843.4406850d.akpm@linux-foundation.org>
+From: Chris Metcalf <cmetcalf@tilera.com>
+Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and GENERIC_KERNEL_EXECVE
+Date: Tue, 23 Oct 2012 13:30:26 -0400
+Message-ID: <5086D432.4070008@tilera.com>
+References: <20121016223508.GR2616@ZenIV.linux.org.uk> <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com> <20121019213548.GR2616@ZenIV.linux.org.uk> <5082A1F1.3080303@tilera.com> <20121020153401.GT2616@ZenIV.linux.org.uk> <20121020171643.GU2616@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20121022111843.4406850d.akpm@linux-foundation.org>
-Sender: owner-linux-mm@kvack.org
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: David Miller <davem@davemloft.net>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, "aarcange@redhat.com" <aarcange@redhat.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from usmamail.tilera.com ([12.216.194.151]:25501 "EHLO
+	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755485Ab2JWRaa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Oct 2012 13:30:30 -0400
+In-Reply-To: <20121020171643.GU2616@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>
 
-On Mon, Oct 22, 2012 at 07:18:43PM +0100, Andrew Morton wrote:
-> On Mon, 22 Oct 2012 11:35:03 +0100
-> Will Deacon <will.deacon@arm.com> wrote:
-> 
-> > On Fri, Oct 19, 2012 at 07:49:55PM +0100, Andrew Morton wrote:
-> > > Ho hum.  I'll drop
-> > > mm-thp-set-the-accessed-flag-for-old-pages-on-access-fault.patch and
-> > > shall assume that you'll sort things out at the appropriate time.
-> > 
-> > Happy to sort it out once I work out what's going wrong!
-> 
-> The patch "ARM: mm: Transparent huge page support for LPAE systems" is
-> not present in linux-next, so this patch ("mm: thp: Set the accessed
-> flag for old pages on access fault") will not compile?
+On 10/20/2012 1:16 PM, Al Viro wrote:
+> On Sat, Oct 20, 2012 at 04:34:01PM +0100, Al Viro wrote:
+>> On Sat, Oct 20, 2012 at 09:06:57AM -0400, Chris Metcalf wrote:
+>>> First, the compat_sys_execve() declaration provided in
+>>> arch/tile/include/asm/compat.h isn't right, so I deleted that (you had only
+>>> deleted the PTREGS_SYSCALL trampoline declaration, _compat_sys_execve).
+>>>
+>>> However, then arch/tile/kernel/compat.c failed to build, because
+>>> <linux/compat.h> is included before <asm/unistd.h>, and <asm/unistd.h>
+>>> provides __ARCH_WANT_SYS_EXECVE, and so we end up with no declaration at
+>>> all for compat_sys_execve.  For most platforms this is no big deal, but on
+>>> tile we use the __SYSCALL #define to provide the actual syscall table, and
+>>> for that to work we need a declaration in scope for each syscall at the
+>>> time we create the table.
+>>>
+>>> The best solution seems likely to be to copy the other place in
+>>> <linux/compat.h> where we need to do something configurable (that is,
+>>> CONFIG_ARCH_WANT_OLD_COMPAT_IPC), and just convert __ARCH_WANT_SYS_EXECVE
+>>> to be a Kconfig option.
+>> Frankly, I hope to get rid of the damn thing completely.  By now we have
+>> at least some variant of execve conversions for just about everything;
+>> I certainly hope that by the beginning of the next cycle we'll have it
+>> defined on everything.  And put unconditional declarations in syscalls.h
+>> and compat.h
+>>
+>> Actually, we can make the declaration in linux/compat.h unconditional
+>> right now.  The only obstacle is the situation on arm64; there the mainline
+>> has C variant of that sucker (with struct pt_regs * in arguments) in
+>> arch/arm64/kernel/sys_compat.c.  So we could ask Linus to pull
+>> git://git.kernel.org/pub/scm/linux/kernel/git/cmarinas/linux-aarch64 execve
+>> and then do the following in one patch:
+>> 	introduce current_pt_regs() on tile (from your commit)
+>> 	get rid of pt_regs * argument in tile compat_sys_execve(), making it
+>> use current_pt_regs(); kill its wrapper
+>> 	kill the declarations of compat_sys_execve()/_compat_sys_execve()
+>> in tile asm/compat.h
+>> 	make declaration in linux/compat.h unconditional
+>> Note that this does *not* depend on kernel_thread/kernel_execve patch -
+>> kernel_execve() is never going to hit compat_sys_execve(), since it's
+>> only called from kernel threads and those are not going to be 32bit.
+>> After that we can do kernel_thread/kernel_execve commit and
+>> sys_execve() conversion with nothing outside of arch/tile touched.
+> Another possible variant is for you to merge that branch from arm64 tree
+> (only 3 commits it it) and then do as described above.  I.e. on top of
+> that apply the thing below, followed by your kernel_thread()/kernel_execve()
+> patch (sans current_pt_regs() part), followed by obviously massaged parts
+> of generic sys_execve for tile patch I've sent.  FWIW, I've put the
+> whole series (based at the end of arm64 branch) in signal.git#arch-tile.
+> Comments?
 
-This patch ("mm: thp: Set the accessed flag for old pages on access fault")
-doesn't depend on "ARM: mm: Transparent huge page support for LPAE systems"
-because currently transparent huge pages cannot be enabled for ARM in
-mainline (or linux-next). update_mmu_cache_pmd is only called from
-mm/huge_memory.c, which depends on CONFIG_TRANSPARENT_HUGEPAGE=y.
+I fetched the series from your arch-tile branch and built it, and it works
+fine.  It looks good from my inspection:
 
-As for the new huge_pmd_set_accessed function... there's a similar situation
-for the do_huge_pmd_wp_page function: it's called from mm/memory.c but is
-only defined in mm/huge_memory.c. Looks like the compiler optimises those
-calls away because pmd_trans_huge and friends constant-fold to 0.
+Acked-by: Chris Metcalf <cmetcalf@tilera.com>
 
-Will
+As you had suggested in an earlier email, I went ahead and eliminated the
+special pt_regs handling for sigaltstack, rt_sigreturn, and clone.  (Also a
+tilepro-specific syscall that was also using PTREG_SYSCALL.)  I'll send it
+separately and you can include it in your tree if you like.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+Chris Metcalf, Tilera Corp.
+http://www.tilera.com
