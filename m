@@ -1,13 +1,13 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 75-15-5-89.uvs.iplsin.sbcglobal.net ([75.15.5.89]:51586 "EHLO
+Received: from 75-15-5-89.uvs.iplsin.sbcglobal.net ([75.15.5.89]:51612 "EHLO
 	peff.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757297Ab2JWVWs (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 23 Oct 2012 17:22:48 -0400
-Date: Tue, 23 Oct 2012 17:22:45 -0400
+	id S1754428Ab2JWVrV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Oct 2012 17:47:21 -0400
+Date: Tue, 23 Oct 2012 17:47:17 -0400
 From: Jeff King <peff@peff.net>
 Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and
  GENERIC_KERNEL_EXECVE
-Message-ID: <20121023212245.GA28828@sigill.intra.peff.net>
+Message-ID: <20121023214717.GA29306@sigill.intra.peff.net>
 References: <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com>
  <20121019213548.GR2616@ZenIV.linux.org.uk>
  <5082A1F1.3080303@tilera.com>
@@ -17,77 +17,82 @@ References: <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com>
  <20121023184122.GZ2616@ZenIV.linux.org.uk>
  <alpine.LFD.2.02.1210232232070.2756@ionos>
  <20121023205119.GA27729@sigill.intra.peff.net>
- <CAHkRjk6x9ToVzY7jv1ZxPt57F6agcH7SfHZpZNpHC3QP3PZp3Q@mail.gmail.com>
+ <alpine.LFD.2.02.1210232307480.2756@ionos>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <CAHkRjk6x9ToVzY7jv1ZxPt57F6agcH7SfHZpZNpHC3QP3PZp3Q@mail.gmail.com>
+In-Reply-To: <alpine.LFD.2.02.1210232307480.2756@ionos>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Al Viro <viro@zeniv.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, git@vger.kernel.org, Junio C Hamano <gitster@pobox.com>
-Message-ID: <20121023212245.jJyFoA3IlVnQ6PA7TE_SZKTX-4zojhDGoOczLxfq4Kc@z>
+To: Thomas Gleixner <tglx@linutronix.de>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, git@vger.kernel.org, Junio C Hamano <gitster@pobox.com>
+Message-ID: <20121023214717.4EXtXA1k7kInAwsG62dbAtgaWviEJZpmDHb_BP4zKMY@z>
 
-On Tue, Oct 23, 2012 at 10:09:46PM +0100, Catalin Marinas wrote:
+On Tue, Oct 23, 2012 at 11:25:06PM +0200, Thomas Gleixner wrote:
 
-> > It is spelled:
-> >
-> >   git notes add -m <comment> SHA1
-> >
 > > The resulting notes are stored in a separate revision-controlled branch
-> > and can be pushed and pulled like regular refs. Note, though, that the
-> > default refspecs do not yet include refs/notes, so you'd have to add
-> > them manually. The workflows around notes are not very mature yet, so if
-> > you start using them, feedback would be appreciated.
 > 
-> What would be nice is that notes are pushed/pulled automatically with
-> standard git push/fetch/pull commands. Usually git walks the DAG
-> starting with the pulled commit or tag and following the parents. With
-> notes, the reference is reversed, the note pointing to the commit and
-> not the other way around. So handling this automatically in Git would
-> be really useful.
+> Which branch(es) is/are that ? What are the semantics of that?
 
-Right, that's what I meant about the refspecs. You can configure git to
-push or pull them automatically, but it is not the default. Something
-like:
+They are stored in refs/notes/commits by default, but you can have
+multiple notes refs if you want to store logically distinct sets of
+notes.
 
-  git config --add remote.origin.fetch '+refs/notes/*:refs/notes/origin/*'
+A notes ref's tree is just a tree whose entries are sha1s, and the file
+contents contain the notes themselves (the sha1s are broken down into
+subdirectories for performance, but "git notes" handles this behind the
+scenes). Technically you could check it out as a branch, edit, and
+commit, but "git checkout" is not happy to have a HEAD outside of
+refs/heads/, so you are stuck with plumbing like:
 
-would be a start, but you'd also want to "git notes merge" upstream's
-changes into your local notes (you _could_ just fetch straight into
-refs/notes/, but if you are making your own notes locally, you have to
-resolve it somehow). Exactly how to make this smooth is one of the workflow
-considerations; there's been discussion, but most people aren't using
-the feature, so we don't have a lot of data.
+  $ git checkout `git rev-parse refs/notes/commits`
+  $ edit edit edit
+  $ git commit ...
+  $ git update-ref refs/notes/commits HEAD
 
-If you are asking whether we could "auto-follow" notes for commits that
-have been fetched like we do for tags, the answer is "not really". The
-notes tree is version-controlled as a whole, so you generally fetch the
-whole thing or not. And the remote does not advertise note information
-the same way we advertise peeled tag references, so a client does not
-know which notes are available for fetch. The intended strategy is to
-pull in the notes or not (though you can have multiple notes refs with
-different names, and fetch just a subset of them).
+It's probably not good for much beyond exploring how notes are
+implemented. See "git help notes" for more discussion.
 
-> The other feature I'd like is that notes are automatically folded in
-> the log during git rebase (maybe similar to the squash option). If you
-> rebase, you lose all the notes (though this depends on the workflow,
-> it may not be needed with published branches).
+> Assume I commit something to branch "foo"
+> 
+> Now I get that late Ack/Reviewed-by and want to associate that to that
+> commit in branch "foo". Does that go into "notes/foo" ?
 
-Git-rebase can automatically copy notes from one commit to another
-during a rebase, but you need to set notes.rewriteRef to do so (see "git
-help config" for details). The reason for this conservative default is
-that some notes may not be appropriate for automatic copying (e.g., a
-notes tree containing QA approval should probably be invalidated during
-a rebase, whereas one with commentary probably should).
+No. It would go into refs/notes/commits, or you could ask it to go to
+refs/notes/acks if you wanted to keep them separate from your default
+notes. It is indexed by commit object, not by branch (so if that branch
+later goes away, the notes are always still attached to the commit
+objects, assuming they got merged in).
 
-Squashing the notes into the commit message during rebase would be a
-useful feature (at least for some type of notes), but that feature does
-not currently exist (and as far as I recall, this is the first it has
-been proposed).
+> Later when I send a pull request to my upstream maintainer for branch
+> "foo" does he get "notes/foo" automagically or do I have to request to
+> pull him that separately?
 
-Again, I think a lot of this comes down to the fact that not many people
-are really using notes for their daily workflow, so these itches are not
-coming up and getting scratched.
+No, he would have to pull your notes separately. Most of the discussion
+around sharing has been configuring the default refspec configuration to
+fetch notes.  But in the kernel you guys use a lot of one-off pulls
+without configured remotes. I'm not sure what the right workflow would
+be. It might simply be to ask git to always pull particular notes
+commits at the same time (so you might push your notes to
+refs/notes/for-linus, and then git would automatically grab the notes
+when somebody pulls refs/heads/for-linus).
+
+> Either way is fine for me, though something which lets me "automate"
+> that would be appreciated. I can work around that easily as my pull
+> requests are generated via scripts, so I can add the secondary one for
+> the dependent "notes" branch if necessary. Though it would be nice to
+> avoid that. Avoiding that, i.e having a straight connection (maybe
+> configurable) between "foo" and "notes/foo" and the commits which have
+> not yet hit my upstream maintainer would make my life easier. I.e. I
+> just have to check "foo" for stuff which is not upstream yet instead
+> of checking both, but that might just be my laziness.
+> 
+> Thoughts?
+
+That all makes sense. Putting extra work on the puller is not a good
+long-term solution. So while sending them an extra "also pull these
+notes" line, even if it ends up being a cut-and-pastable single-liner,
+is not great (even if it is the most flexible thing). Using a convention
+based on name-equivalence seems like a sensible compromise.
 
 -Peff
