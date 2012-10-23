@@ -1,87 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:47763 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751644Ab2JXLS1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Oct 2012 07:18:27 -0400
-Date: Wed, 24 Oct 2012 12:18:02 +0100
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and
+Received: from hq2.tensilica.com ([65.119.96.30]:64253 "EHLO
+	mailgw.tensilica.com" rhost-flags-OK-FAIL-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1756186Ab2JXPkW convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Oct 2012 11:40:22 -0400
+From: Marc Gauthier <marc@tensilica.com>
+Date: Tue, 23 Oct 2012 15:06:59 -0700
+Subject: RE: [PATCH] tile: support GENERIC_KERNEL_THREAD and
  GENERIC_KERNEL_EXECVE
-Message-ID: <20121024111802.GB2006@arm.com>
-References: <20121019213548.GR2616@ZenIV.linux.org.uk>
- <5082A1F1.3080303@tilera.com>
+Message-ID: <522C1DF17AF50042AD8AE87F7887BD3D0B60880C30@exch.hq.tensilica.com>
+References: <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com>
+ <20121019213548.GR2616@ZenIV.linux.org.uk> <5082A1F1.3080303@tilera.com>
  <20121020153401.GT2616@ZenIV.linux.org.uk>
- <20121020171643.GU2616@ZenIV.linux.org.uk>
- <5086D432.4070008@tilera.com>
+ <20121020171643.GU2616@ZenIV.linux.org.uk> <5086D432.4070008@tilera.com>
  <20121023184122.GZ2616@ZenIV.linux.org.uk>
  <alpine.LFD.2.02.1210232232070.2756@ionos>
  <20121023205119.GA27729@sigill.intra.peff.net>
- <CAHkRjk6x9ToVzY7jv1ZxPt57F6agcH7SfHZpZNpHC3QP3PZp3Q@mail.gmail.com>
- <20121023212245.GA28828@sigill.intra.peff.net>
+ <alpine.LFD.2.02.1210232307480.2756@ionos>
+ <20121023214717.GA29306@sigill.intra.peff.net>
+In-Reply-To: <20121023214717.GA29306@sigill.intra.peff.net>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20121023212245.GA28828@sigill.intra.peff.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jeff King <peff@peff.net>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Al Viro <viro@zeniv.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, "git@vger.kernel.org" <git@vger.kernel.org>, Junio C Hamano <gitster@pobox.com>
-Message-ID: <20121024111802.DclA6_Dr0UStHOxjE89DURQLeoC6lvgBxKNgnMPz-Z4@z>
+To: Jeff King <peff@peff.net>, Thomas Gleixner <tglx@linutronix.de>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, "git@vger.kernel.org" <git@vger.kernel.org>, Junio C Hamano <gitster@pobox.com>
+Message-ID: <20121023220659.-htfwn3zaOdCC7p51ayYTAH7YQ5p9KhN3BE29cLqjhQ@z>
 
-On Tue, Oct 23, 2012 at 10:22:45PM +0100, Jeff King wrote:
-> On Tue, Oct 23, 2012 at 10:09:46PM +0100, Catalin Marinas wrote:
-> > > It is spelled:
-> > >
-> > >   git notes add -m <comment> SHA1
-> > >
-> > > The resulting notes are stored in a separate revision-controlled branch
-> > > and can be pushed and pulled like regular refs. Note, though, that the
-> > > default refspecs do not yet include refs/notes, so you'd have to add
-> > > them manually. The workflows around notes are not very mature yet, so if
-> > > you start using them, feedback would be appreciated.
-> > 
-> > What would be nice is that notes are pushed/pulled automatically with
-> > standard git push/fetch/pull commands. Usually git walks the DAG
-> > starting with the pulled commit or tag and following the parents. With
-> > notes, the reference is reversed, the note pointing to the commit and
-> > not the other way around. So handling this automatically in Git would
-> > be really useful.
-> 
-> Right, that's what I meant about the refspecs. You can configure git to
-> push or pull them automatically, but it is not the default. Something
-> like:
-> 
->   git config --add remote.origin.fetch '+refs/notes/*:refs/notes/origin/*'
+Jeff King wrote:
+> On Tue, Oct 23, 2012 at 11:25:06PM +0200, Thomas Gleixner wrote:
+> > > The resulting notes are stored in a separate
+> > > revision-controlled branch
+> >
+> > Which branch(es) is/are that ? What are the semantics of that?
+[...]
 
-Yes, but that's a bit more complicated than a simple pull. Anyway, Linus
-seems to not be in favour of annotating commits later for adding acks,
-so no need for such feature.
 
-> > The other feature I'd like is that notes are automatically folded in
-> > the log during git rebase (maybe similar to the squash option). If you
-> > rebase, you lose all the notes (though this depends on the workflow,
-> > it may not be needed with published branches).
-> 
-> Git-rebase can automatically copy notes from one commit to another
-> during a rebase, but you need to set notes.rewriteRef to do so (see "git
-> help config" for details). The reason for this conservative default is
-> that some notes may not be appropriate for automatic copying (e.g., a
-> notes tree containing QA approval should probably be invalidated during
-> a rebase, whereas one with commentary probably should).
+Nice feature.
 
-Thanks, I wasn't aware of this.
+Can a later commit be eventually be made to reference some set
+of notes added so far, so they become part of the whole history
+signed by the HEAD SHA1?  hence pulled/pushed automatically as
+well.  Otherwise do you not end up with a forever growing separate
+tree of notes that loses some of the properties of being behind
+the head SHA1 (and perhaps less scalable in manageability)?
+Also that way notes are separate only temporarily.
 
-> Squashing the notes into the commit message during rebase would be a
-> useful feature (at least for some type of notes), but that feature does
-> not currently exist (and as far as I recall, this is the first it has
-> been proposed).
+As for automating the inclusion of notes in the flow, can that
+be conditional on some pattern in the note, so that e.g. the
+Acked-by's get included and folded in automatically, whereas
+others do not, according to settings?
 
-For some workflow - I post patches to the list, people reply with their
-acks, I could just add those to notes and later fold them into the
-existing commits before pushing the branch upstream. I guess it may be
-just a matter of changing git format-patch to include the notes. I can
-later reword he commits and drop the "Notes:" line.
-
--- 
-Catalin
+-Marc
