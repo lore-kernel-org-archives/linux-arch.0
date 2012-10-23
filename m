@@ -1,115 +1,75 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from gate.crashing.org ([63.228.1.57]:59822 "EHLO gate.crashing.org"
+Received: from multi.imgtec.com ([194.200.65.239]:11188 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932498Ab2JWCRE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Oct 2012 22:17:04 -0400
-Message-ID: <1350955556.2728.18.camel@pasglop>
-Subject: Re: [RESEND PATCH 2/4] asm-generic: io: don't perform swab during
- {in,out} string functions
-From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-Date: Tue, 23 Oct 2012 12:25:56 +1100
-In-Reply-To: <CAMuHMdWH3GXJ_dW-FCAX=LAkBuQmQtwRUtNpcqg_afm-UFK_2g@mail.gmail.com>
-References: <1350488704-3711-1-git-send-email-will.deacon@arm.com>
-	 <1350488704-3711-3-git-send-email-will.deacon@arm.com>
-	 <CAMuHMdXcQjDyen+o5aH=1zUOkNX-cfT3aXBOgCpyop=V67jk7w@mail.gmail.com>
-	 <1350518655.4678.120.camel@pasglop>
-	 <CAMuHMdWH3GXJ_dW-FCAX=LAkBuQmQtwRUtNpcqg_afm-UFK_2g@mail.gmail.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Mime-Version: 1.0
+	id S932695Ab2JWJYI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Oct 2012 05:24:08 -0400
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH] asm-generic/io.h: remove asm/cacheflush.h include
+Date: Tue, 23 Oct 2012 10:21:57 +0100
+Message-ID: <1350984117-17369-1-git-send-email-james.hogan@imgtec.com>
+MIME-Version: 1.0
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>
-Message-ID: <20121023012556.Vhvt4j1TJeBpwu05XGBNIk71UKzz1XKnhaY_FC7D8WE@z>
+To: Arnd Bergmann <arnd@arndb.de>, Jonas Bonn <jonas@southpole.se>
+Cc: linux-arch@vger.kernel.org, linux@lists.openrisc.net, linux-kernel@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linux-xtensa@linux-xtensa.org, James Hogan <james.hogan@imgtec.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>
+Message-ID: <20121023092157.5yKzC7wxkQ6buTCpBNnr2b8Tyyozjujz0JNmD5ANAJw@z>
 
-On Thu, 2012-10-18 at 07:48 +0200, Geert Uytterhoeven wrote:
+Including <asm/cacheflush.h> from <asm-generic/io.h> prevents
+cacheflush.h being able to use I/O functions like readl and writel due
+to circular include dependencies. It doesn't appear as if anything from
+cacheflush.h is actually used by the generic io.h, so remove the
+include.
 
-> So assume you have the bytestream "Hello, world!\n" in memory on the
-> PCI device.I.e.
-> 
-> 00000000  48 65 6c 6c 6f 2c 20 77  6f 72 6c 64 21 0a        |Hello, world!.|
-> 
-> You want to copy it to system RAM using readsl(), which does:
-> 
->                u32 *buf = buffer;
->                do {
->                        u32 x = __raw_readl(addr + PCI_IOBASE);
->                        *buf++ = x;
->                 } while (--count);
-> 
-> On little endian, the first __raw_readl() should return "0x6c6c6548", so
-> it is stored correctly by "*buf = x ".
+I've compile tested a defconfig compilation of blackfin, openrisc (which
+needed <asm/pgtable.h> including from it's <asm/io.h> to get the PAGE_*
+definitions), and xtensa.
 
-Right.
+Other architectures which use asm-generic/io.h are score and unicore32,
+and looking at their io.h I don't see any obvious problems.
 
-> On big endian, the first __raw_readl() should return "0x48656c6c" instead,
-> else it's stored incorrectly by "*buf = x ".
-> But the PCI bus is little endian, so I expect __raw_readl() would return
-> "0x6c6c6548", and thus needs swapping?
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Jonas Bonn <jonas@southpole.se>
+Cc: Chris Zankel <chris@zankel.net>
+Cc: Max Filippov <jcmvbkbc@gmail.com>
+Cc: Mike Frysinger <vapier@gentoo.org>
+Cc: Chen Liqin <liqin.chen@sunplusct.com>
+Cc: Lennox Wu <lennox.wu@gmail.com>
+Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+---
+Any compile testing of score and unicore32 anybody could provide would
+be great.
 
-No. The PCI bus will return 0x48656c6c.
+ arch/openrisc/include/asm/io.h |    1 +
+ include/asm-generic/io.h       |    1 -
+ 2 files changed, 1 insertions(+), 1 deletions(-)
 
-This is due to how the PCI bus is wired to the CPU bus, which is called
-"byte address invariant". When doing a read of your byte 0, the CPU will
-effectively read 0 with byte enables picking 48. Since the CPU wants
-the first byte in the MSB, the bus must be wired up to the CPU such that
-the MSB is the first byte in address order.
-
-This is how a BE CPU is normally wired to a LE bus. The fact that a
-register needs to be swapped comes from the fact that the device will
-put the MSB in the higher address byte, which then corresponds to the
-LSB on the BE CPU -> needs swapping.
-
-But for a byte stream, as you can see, no swapping is required.
-
-To some extent, it looks as if the wiring is byte swapped, in order to
-provide the byte address invariance (and thus causes registers to look
-byteswapped) but it's really not, it's just a convention.
-
-> On m68k (classic with MMU), the situation is a bit more complicated, as some ISA
-> (or PCMCIA) busses are physically wired swapped. But inw() and insw() always do
-> either both swapping, or both no swapping. The state of support for ISA drivers
-> is a bit vague, though.
-
-Then something is horribly wrong in those m68k setups :-) Either in the
-way the busses are wired or in your implementation of either inw or
-insw.
-
-> Now, on m68k without MMU, inw() doesn't do swapping, but insw() does.
-> This agrees more or less with you and Will, except that the bus seems to be
-> physically swapped?
-
-Yeah that's possible. In the early days people incorrectly thought it
-would be smart to do that, thus avoiding a byteswap for register
-accesses .... and causing all data (DMA or FIFO) to be all backward.
-
-That's for example why the disks in the Tivo are byteswapped 16-bit by
-16-bit on the platter (ie, all the data is).
-
-I wouldn't be surprised if some 68k suffered from similar HW designer
-stupidity.
-
-But the "proper" generic rule is byte address invariance, and that
-implies swap on register access and no swap on byte streams.
-
-Cheers,
-Ben.
-
-
-> Gr{oetje,eeting}s,
-> 
->                         Geert
-> 
-> --
-> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-> 
-> In personal conversations with technical people, I call myself a hacker. But
-> when I'm talking to journalists I just say "programmer" or something like that.
->                                 -- Linus Torvalds
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+diff --git a/arch/openrisc/include/asm/io.h b/arch/openrisc/include/asm/io.h
+index 07f5299..7c69139 100644
+--- a/arch/openrisc/include/asm/io.h
++++ b/arch/openrisc/include/asm/io.h
+@@ -30,6 +30,7 @@
+ #define PIO_MASK		0
+ 
+ #include <asm-generic/io.h>
++#include <asm/pgtable.h>
+ 
+ extern void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
+ 				pgprot_t prot);
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 448303b..616eea5 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -12,7 +12,6 @@
+ #define __ASM_GENERIC_IO_H
+ 
+ #include <asm/page.h> /* I/O is all done through memory accesses */
+-#include <asm/cacheflush.h>
+ #include <linux/types.h>
+ 
+ #ifdef CONFIG_GENERIC_IOMAP
+-- 
+1.7.7.6
 
 
