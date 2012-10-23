@@ -1,72 +1,90 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
- access fault.
-Date: Tue, 23 Oct 2012 14:50:27 -0700
-Message-ID: <20121023145027.40710e7a.akpm@linux-foundation.org>
-References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
-	<20121002150104.da57fa94.akpm@linux-foundation.org>
-	<20121017130125.GH5973@mudshark.cambridge.arm.com>
-	<20121017.112620.1865348978594874782.davem@davemloft.net>
-	<20121017155401.GJ5973@mudshark.cambridge.arm.com>
-	<20121018150502.3dee7899.akpm@linux-foundation.org>
-	<20121019091016.GA4582@mudshark.cambridge.arm.com>
-	<20121019114955.3a0c2b66.akpm@linux-foundation.org>
-	<20121022103503.GA26619@mudshark.cambridge.arm.com>
-	<20121022111843.4406850d.akpm@linux-foundation.org>
-	<20121023101125.GA20210@mudshark.cambridge.arm.com>
+From: Jeff King <peff@peff.net>
+Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and
+ GENERIC_KERNEL_EXECVE
+Date: Tue, 23 Oct 2012 18:23:18 -0400
+Message-ID: <20121023222318.GA3055@sigill.intra.peff.net>
+References: <5082A1F1.3080303@tilera.com>
+ <20121020153401.GT2616@ZenIV.linux.org.uk>
+ <20121020171643.GU2616@ZenIV.linux.org.uk>
+ <5086D432.4070008@tilera.com>
+ <20121023184122.GZ2616@ZenIV.linux.org.uk>
+ <alpine.LFD.2.02.1210232232070.2756@ionos>
+ <20121023205119.GA27729@sigill.intra.peff.net>
+ <alpine.LFD.2.02.1210232307480.2756@ionos>
+ <20121023214717.GA29306@sigill.intra.peff.net>
+ <522C1DF17AF50042AD8AE87F7887BD3D0B60880C30@exch.hq.tensilica.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.linuxfoundation.org ([140.211.169.12]:56928 "EHLO
-	mail.linuxfoundation.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754816Ab2JWVu2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Oct 2012 17:50:28 -0400
-In-Reply-To: <20121023101125.GA20210@mudshark.cambridge.arm.com>
+Received: from 75-15-5-89.uvs.iplsin.sbcglobal.net ([75.15.5.89]:51650 "EHLO
+	peff.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S933386Ab2JWWXV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 23 Oct 2012 18:23:21 -0400
+Content-Disposition: inline
+In-Reply-To: <522C1DF17AF50042AD8AE87F7887BD3D0B60880C30@exch.hq.tensilica.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: David Miller <davem@davemloft.net>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, "aarcange@redhat.com" <aarcange@redhat.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
+To: Marc Gauthier <marc@tensilica.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Al Viro <viro@ZenIV.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, "git@vger.kernel.org" <git@vger.kernel.org>, Junio C Hamano <gitster@pobox.com>
 
-On Tue, 23 Oct 2012 11:11:25 +0100
-Will Deacon <will.deacon@arm.com> wrote:
+On Tue, Oct 23, 2012 at 03:06:59PM -0700, Marc Gauthier wrote:
 
-> On Mon, Oct 22, 2012 at 07:18:43PM +0100, Andrew Morton wrote:
-> > On Mon, 22 Oct 2012 11:35:03 +0100
-> > Will Deacon <will.deacon@arm.com> wrote:
-> > 
-> > > On Fri, Oct 19, 2012 at 07:49:55PM +0100, Andrew Morton wrote:
-> > > > Ho hum.  I'll drop
-> > > > mm-thp-set-the-accessed-flag-for-old-pages-on-access-fault.patch and
-> > > > shall assume that you'll sort things out at the appropriate time.
-> > > 
-> > > Happy to sort it out once I work out what's going wrong!
-> > 
-> > The patch "ARM: mm: Transparent huge page support for LPAE systems" is
-> > not present in linux-next, so this patch ("mm: thp: Set the accessed
-> > flag for old pages on access fault") will not compile?
-> 
-> This patch ("mm: thp: Set the accessed flag for old pages on access fault")
-> doesn't depend on "ARM: mm: Transparent huge page support for LPAE systems"
-> because currently transparent huge pages cannot be enabled for ARM in
-> mainline (or linux-next). update_mmu_cache_pmd is only called from
-> mm/huge_memory.c, which depends on CONFIG_TRANSPARENT_HUGEPAGE=y.
-> 
-> As for the new huge_pmd_set_accessed function... there's a similar situation
-> for the do_huge_pmd_wp_page function: it's called from mm/memory.c but is
-> only defined in mm/huge_memory.c. Looks like the compiler optimises those
-> calls away because pmd_trans_huge and friends constant-fold to 0.
+> Can a later commit be eventually be made to reference some set
+> of notes added so far, so they become part of the whole history
+> signed by the HEAD SHA1?  hence pulled/pushed automatically as
+> well.  Otherwise do you not end up with a forever growing separate
+> tree of notes that loses some of the properties of being behind
+> the head SHA1 (and perhaps less scalable in manageability)?
+> Also that way notes are separate only temporarily.
 
-Ah, OK.
+Interesting idea. It would be tough to do with existing objects. There
+are really only two ways for a commit to reference objects:
 
-"mm: thp: Set the accessed flag for old pages on access fault" clashes
-in a non-trivial way with linux-next changes, due to the sched-numa
-changes (sigh).  This is a problem for me, because I either need to
-significantly alter your patch (so it isn't applicable to mainline) or
-I need to stage your patch ahead of linux-next, then fix up linux-next
-every day after I've pulled and re-merged it.
+  1. Via a parent header. But we would not want to include the notes
+     tree as a separate parent. The semantics are all wrong, and would
+     make your commit look like a nonsense merge.
 
-I'm unsure what your timing is.  Can you carry "mm: thp: Set the
-accessed flag for old pages on access fault" until either the whole
-patchset is ready to merge or until the sched-numa situation has been
-cleared up?
+  2. As an entry in a tree. But we do not enforce connectivity of
+     commits referenced in trees, because that is the way that
+     submodules are implemented.
+
+So I think we would have to add a new header that says "also, here are
+some notes for my history". That has two problems:
+
+  1. It's not backwards compatible. People with the new version of git
+     will expect to have objects referenced by the new header, but older
+     servers may not provide those objects (and vice versa). We can add
+     a protocol extension to communicate this, but fundamentally you are
+     going to lose the object connection any time it passes through a
+     repo running an older git.
+
+  2. It's impure from the perspective of git's data model. Adding in the
+     notes reference is not really a property of the commit. It's more
+     like saying "Oh, these other things happened to _past_ commits, and
+     I'm just now mentioning them". So you pick an arbitrary commit to
+     attach it to. What are the semantics with relation to that commit's
+     position in the history graph? If I have a commit that is identical
+     but without the notes reference, it will have a different sha1. But
+     is it the same commit?
+
+So it's a bit ugly. I think I'd rather build out the transfer
+infrastructure to pass the notes references around more gracefully
+without trying to shoehorn them into the commit graph.
+
+> As for automating the inclusion of notes in the flow, can that
+> be conditional on some pattern in the note, so that e.g. the
+> Acked-by's get included and folded in automatically, whereas
+> others do not, according to settings?
+
+Yeah. You can store arbitrary data in notes (e.g., one of the existing
+uses of notes is to record metadata on the patch emails that led to a
+commit). Right now you typically separate it out by data type into
+separate refs, and then you ask git log to show you particular ones (so
+we see refs/notes/commits with "--notes", but you can do "--notes=foo"
+to see refs/notes/foo, or even show multiple refs).
+
+For the fold-on-rebase idea, I'd think you would want something similar,
+like setting rebase.foldNotes to "foo" to say "refs/notes/foo contains
+pseudo-headers that should be folded in like a signed-off-by".
+
+-Peff
