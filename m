@@ -1,122 +1,53 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:60441 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S964982Ab2JWUgX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Oct 2012 16:36:23 -0400
-Date: Tue, 23 Oct 2012 21:36:20 +0100
-From: Al Viro <viro@ZenIV.linux.org.uk>
+Received: from www.linutronix.de ([62.245.132.108]:46942 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965259Ab2JWUrl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Oct 2012 16:47:41 -0400
+Date: Tue, 23 Oct 2012 22:47:28 +0200 (CEST)
+From: Thomas Gleixner <tglx@linutronix.de>
 Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and
  GENERIC_KERNEL_EXECVE
-Message-ID: <20121023203620.GA2616@ZenIV.linux.org.uk>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk>
- <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com>
- <20121019213548.GR2616@ZenIV.linux.org.uk>
- <5082A1F1.3080303@tilera.com>
- <20121020153401.GT2616@ZenIV.linux.org.uk>
- <20121020171643.GU2616@ZenIV.linux.org.uk>
- <5086D432.4070008@tilera.com>
- <20121023184122.GZ2616@ZenIV.linux.org.uk>
- <5086EE7C.2080608@tilera.com>
+In-Reply-To: <20121023184122.GZ2616@ZenIV.linux.org.uk>
+Message-ID: <alpine.LFD.2.02.1210232232070.2756@ionos>
+References: <20121016223508.GR2616@ZenIV.linux.org.uk> <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com> <20121019213548.GR2616@ZenIV.linux.org.uk> <5082A1F1.3080303@tilera.com> <20121020153401.GT2616@ZenIV.linux.org.uk> <20121020171643.GU2616@ZenIV.linux.org.uk>
+ <5086D432.4070008@tilera.com> <20121023184122.GZ2616@ZenIV.linux.org.uk>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <5086EE7C.2080608@tilera.com>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>
-Message-ID: <20121023203620.-q3XfJAXMFBmGnBHRtB7NGe7R2H70t_LQl2ZlxNAsEE@z>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Chris Metcalf <cmetcalf@tilera.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, git@vger.kernel.org, Junio C Hamano <gitster@pobox.com>
+Message-ID: <20121023204728.6gfsg12g5MiSAvfgtYLyU-pO3SYz7n_3YSNO1kasQHI@z>
 
-On Tue, Oct 23, 2012 at 03:22:36PM -0400, Chris Metcalf wrote:
-> On 10/23/2012 2:41 PM, Al Viro wrote:
-> > On Tue, Oct 23, 2012 at 01:30:26PM -0400, Chris Metcalf wrote:
-> >> As you had suggested in an earlier email, I went ahead and eliminated the
-> >> special pt_regs handling for sigaltstack, rt_sigreturn, and clone.  (Also a
-> >> tilepro-specific syscall that was also using PTREG_SYSCALL.)  I'll send it
-> >> separately and you can include it in your tree if you like.
-> > OK by me...  Or just pull this arch-tile into a separate branch in your
-> > tree, add commit on top of it and I'll pull that.
+On Tue, 23 Oct 2012, Al Viro wrote:
+> On Tue, Oct 23, 2012 at 01:30:26PM -0400, Chris Metcalf wrote:
 > 
-> Done in 
+> > I fetched the series from your arch-tile branch and built it, and it works
+> > fine.  It looks good from my inspection:
+> > 
+> > Acked-by: Chris Metcalf <cmetcalf@tilera.com>
 > 
->   git://git.kernel.org/pub/scm/linux/kernel/git/cmetcalf/linux-tile.git viro-signal-tile
+> Thanks; Acked-by applied, branch pushed and put into no-rebase mode.
+> 
+> BTW, something like detached Acked-by objects might be a good idea - i.e.
+> commit-like git object with amendment to commit message of a given ancestor.
+> The situation when ACKs come only after the commit has been pushed is quite
+> common.  Linus, what do you think about usefulness of such thing?  Ability
+> to append ACKed-by/Tested-by of an earlier commit to a branch instead of
+> git commit --amend + possibly some cherry-picks + force-push, that is.
 
-Argh...  That's exactly the reason why I would like to get amending commits -
-you've done that commit on top of the identical tree, but without your
-Acked-by on the last commit.  Result: merge conflict ;-/
+I agree that this is a common issue. Acked-by/Reviewed-by mails come
+in after the fact that the patch has been committed to an immutable
+(i.e no-rebase mode) branch or if the change in question already hit
+Linus tree.
 
-Could you test the following on top of your patch?  It gets rid of
-regs use in sys_clone() *and* of the regs argument in copy_thread().
-If that work (including SMP - note that it changes the path taken
-by copy_thread() when called by fork_idle()), that should be all
-we'll need in arch/tile for killing idle_regs() and killing the pt_regs
-passing to do_fork()/copy_process()/copy_thread().
+Still it would be nice to have a recording of that in the git tree
+itself.
 
-diff --git a/arch/tile/kernel/process.c b/arch/tile/kernel/process.c
-index 6e7fb4e..1c20029 100644
---- a/arch/tile/kernel/process.c
-+++ b/arch/tile/kernel/process.c
-@@ -158,7 +158,7 @@ static void save_arch_state(struct thread_struct *t);
- 
- int copy_thread(unsigned long clone_flags, unsigned long sp,
- 		unsigned long arg,
--		struct task_struct *p, struct pt_regs *regs)
-+		struct task_struct *p, struct pt_regs *unused)
- {
- 	struct pt_regs *childregs = task_pt_regs(p);
- 	unsigned long ksp;
-@@ -184,7 +184,7 @@ int copy_thread(unsigned long clone_flags, unsigned long sp,
- 	/* Record the pid of the task that created this one. */
- 	p->thread.creator_pid = current->pid;
- 
--	if (unlikely(!regs)) {
-+	if (unlikely(p->flags & PF_KTHREAD)) {
- 		/* kernel thread */
- 		memset(childregs, 0, sizeof(struct pt_regs));
- 		memset(&callee_regs[2], 0,
-@@ -208,25 +208,26 @@ int copy_thread(unsigned long clone_flags, unsigned long sp,
- 	 */
- 	task_thread_info(p)->step_state = NULL;
- 
--	/* Save user stack top pointer so we can ID the stack vm area later. */
--	p->thread.usp0 = sp;
--
- 	/*
- 	 * Copy the registers onto the kernel stack so the
- 	 * return-from-interrupt code will reload it into registers.
- 	 */
--	*childregs = *regs;
-+	*childregs = *current_pt_regs();
- 	childregs->regs[0] = 0;         /* return value is zero */
--	childregs->sp = sp;  /* override with new user stack pointer */
--	memcpy(callee_regs, &regs->regs[CALLEE_SAVED_FIRST_REG],
-+	if (sp)
-+		childregs->sp = sp;  /* override with new user stack pointer */
-+	memcpy(callee_regs, &childregs->regs[CALLEE_SAVED_FIRST_REG],
- 	       CALLEE_SAVED_REGS_COUNT * sizeof(unsigned long));
- 
-+	/* Save user stack top pointer so we can ID the stack vm area later. */
-+	p->thread.usp0 = childregs->sp;
-+
- 	/*
- 	 * If CLONE_SETTLS is set, set "tp" in the new task to "r4",
- 	 * which is passed in as arg #5 to sys_clone().
- 	 */
- 	if (clone_flags & CLONE_SETTLS)
--		childregs->tp = regs->regs[4];
-+		childregs->tp = childregs->regs[4];
- 
- 
- #if CHIP_HAS_TILE_DMA()
-@@ -587,10 +588,7 @@ int do_work_pending(struct pt_regs *regs, u32 thread_info_flags)
- SYSCALL_DEFINE4(clone, unsigned long, clone_flags, unsigned long, newsp,
- 		void __user *, parent_tidptr, void __user *, child_tidptr)
- {
--	struct pt_regs *regs = current_pt_regs();
--	if (!newsp)
--		newsp = regs->sp;
--	return do_fork(clone_flags, newsp, regs, 0,
-+	return do_fork(clone_flags, newsp, current_pt_regs(), 0,
- 		       parent_tidptr, child_tidptr);
- }
- 
+Something like: "git --attach SHA1 <comment>" would be appreciated!
+
+Thanks,
+
+	tglx
+
+
