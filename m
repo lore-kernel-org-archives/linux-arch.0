@@ -1,71 +1,115 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:34647 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1752098Ab2JVKfe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 22 Oct 2012 06:35:34 -0400
-Date: Mon, 22 Oct 2012 11:35:03 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
- access fault.
-Message-ID: <20121022103503.GA26619@mudshark.cambridge.arm.com>
-References: <1349197151-19645-1-git-send-email-will.deacon@arm.com>
- <20121002150104.da57fa94.akpm@linux-foundation.org>
- <20121017130125.GH5973@mudshark.cambridge.arm.com>
- <20121017.112620.1865348978594874782.davem@davemloft.net>
- <20121017155401.GJ5973@mudshark.cambridge.arm.com>
- <20121018150502.3dee7899.akpm@linux-foundation.org>
- <20121019091016.GA4582@mudshark.cambridge.arm.com>
- <20121019114955.3a0c2b66.akpm@linux-foundation.org>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20121019114955.3a0c2b66.akpm@linux-foundation.org>
+Received: from gate.crashing.org ([63.228.1.57]:59822 "EHLO gate.crashing.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932498Ab2JWCRE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 22 Oct 2012 22:17:04 -0400
+Message-ID: <1350955556.2728.18.camel@pasglop>
+Subject: Re: [RESEND PATCH 2/4] asm-generic: io: don't perform swab during
+ {in,out} string functions
+From: Benjamin Herrenschmidt <benh@kernel.crashing.org>
+Date: Tue, 23 Oct 2012 12:25:56 +1100
+In-Reply-To: <CAMuHMdWH3GXJ_dW-FCAX=LAkBuQmQtwRUtNpcqg_afm-UFK_2g@mail.gmail.com>
+References: <1350488704-3711-1-git-send-email-will.deacon@arm.com>
+	 <1350488704-3711-3-git-send-email-will.deacon@arm.com>
+	 <CAMuHMdXcQjDyen+o5aH=1zUOkNX-cfT3aXBOgCpyop=V67jk7w@mail.gmail.com>
+	 <1350518655.4678.120.camel@pasglop>
+	 <CAMuHMdWH3GXJ_dW-FCAX=LAkBuQmQtwRUtNpcqg_afm-UFK_2g@mail.gmail.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: David Miller <davem@davemloft.net>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, "aarcange@redhat.com" <aarcange@redhat.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
-Message-ID: <20121022103503.-B5HfMt8Mm3MS5i7whDO4sNh0UgXoMqxCKcmQoe6-HQ@z>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Will Deacon <will.deacon@arm.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>
+Message-ID: <20121023012556.Vhvt4j1TJeBpwu05XGBNIk71UKzz1XKnhaY_FC7D8WE@z>
 
-On Fri, Oct 19, 2012 at 07:49:55PM +0100, Andrew Morton wrote:
-> On Fri, 19 Oct 2012 10:10:16 +0100
-> Will Deacon <will.deacon@arm.com> wrote:
+On Thu, 2012-10-18 at 07:48 +0200, Geert Uytterhoeven wrote:
+
+> So assume you have the bytestream "Hello, world!\n" in memory on the
+> PCI device.I.e.
 > 
-> > On Thu, Oct 18, 2012 at 11:05:02PM +0100, Andrew Morton wrote:
-> > > On Wed, 17 Oct 2012 16:54:02 +0100
-> > > Will Deacon <will.deacon@arm.com> wrote:
-> > > 
-> > > > On x86 memory accesses to pages without the ACCESSED flag set result in the
-> > > > ACCESSED flag being set automatically. With the ARM architecture a page access
-> > > > fault is raised instead (and it will continue to be raised until the ACCESSED
-> > > > flag is set for the appropriate PTE/PMD).
-> > > > 
-> > > > For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
-> > > > setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
-> > > > be called for a write fault.
-> > > > 
-> > > > This patch ensures that faults on transparent hugepages which do not result
-> > > > in a CoW update the access flags for the faulting pmd.
-> > > 
-> > > Confused.  Where is the arm implementation of update_mmu_cache_pmd()?
-> > 
-> > Right at the end of this patch, which was posted to the ARM list yesterday:
-> > 
-> >   http://lists.infradead.org/pipermail/linux-arm-kernel/2012-October/126387.html
+> 00000000  48 65 6c 6c 6f 2c 20 77  6f 72 6c 64 21 0a        |Hello, world!.|
 > 
-> I received and then merged a patch which won't compile!
+> You want to copy it to system RAM using readsl(), which does:
+> 
+>                u32 *buf = buffer;
+>                do {
+>                        u32 x = __raw_readl(addr + PCI_IOBASE);
+>                        *buf++ = x;
+>                 } while (--count);
+> 
+> On little endian, the first __raw_readl() should return "0x6c6c6548", so
+> it is stored correctly by "*buf = x ".
 
-Eek, that certainly wasn't intentional and it's compiling fine for me on
--rc1 and -rc2 for both ARM (no THP) and x86 (with and without THP).
+Right.
 
-Please can you send the build failure?
+> On big endian, the first __raw_readl() should return "0x48656c6c" instead,
+> else it's stored incorrectly by "*buf = x ".
+> But the PCI bus is little endian, so I expect __raw_readl() would return
+> "0x6c6c6548", and thus needs swapping?
 
-> Ho hum.  I'll drop
-> mm-thp-set-the-accessed-flag-for-old-pages-on-access-fault.patch and
-> shall assume that you'll sort things out at the appropriate time.
+No. The PCI bus will return 0x48656c6c.
 
-Happy to sort it out once I work out what's going wrong!
+This is due to how the PCI bus is wired to the CPU bus, which is called
+"byte address invariant". When doing a read of your byte 0, the CPU will
+effectively read 0 with byte enables picking 48. Since the CPU wants
+the first byte in the MSB, the bus must be wired up to the CPU such that
+the MSB is the first byte in address order.
+
+This is how a BE CPU is normally wired to a LE bus. The fact that a
+register needs to be swapped comes from the fact that the device will
+put the MSB in the higher address byte, which then corresponds to the
+LSB on the BE CPU -> needs swapping.
+
+But for a byte stream, as you can see, no swapping is required.
+
+To some extent, it looks as if the wiring is byte swapped, in order to
+provide the byte address invariance (and thus causes registers to look
+byteswapped) but it's really not, it's just a convention.
+
+> On m68k (classic with MMU), the situation is a bit more complicated, as some ISA
+> (or PCMCIA) busses are physically wired swapped. But inw() and insw() always do
+> either both swapping, or both no swapping. The state of support for ISA drivers
+> is a bit vague, though.
+
+Then something is horribly wrong in those m68k setups :-) Either in the
+way the busses are wired or in your implementation of either inw or
+insw.
+
+> Now, on m68k without MMU, inw() doesn't do swapping, but insw() does.
+> This agrees more or less with you and Will, except that the bus seems to be
+> physically swapped?
+
+Yeah that's possible. In the early days people incorrectly thought it
+would be smart to do that, thus avoiding a byteswap for register
+accesses .... and causing all data (DMA or FIFO) to be all backward.
+
+That's for example why the disks in the Tivo are byteswapped 16-bit by
+16-bit on the platter (ie, all the data is).
+
+I wouldn't be surprised if some 68k suffered from similar HW designer
+stupidity.
+
+But the "proper" generic rule is byte address invariance, and that
+implies swap on register access and no swap on byte streams.
 
 Cheers,
+Ben.
 
-Will
+
+> Gr{oetje,eeting}s,
+> 
+>                         Geert
+> 
+> --
+> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+> 
+> In personal conversations with technical people, I call myself a hacker. But
+> when I'm talking to journalists I just say "programmer" or something like that.
+>                                 -- Linus Torvalds
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+
+
