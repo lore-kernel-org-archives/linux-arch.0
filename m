@@ -1,15 +1,15 @@
 From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: [PATCH 1/3] xtensa: switch to generic kernel_thread()
-Date: Wed, 24 Oct 2012 05:48:35 +0400
-Message-ID: <1351043317-21631-2-git-send-email-jcmvbkbc@gmail.com>
+Subject: [PATCH 2/3] xtensa: switch to generic kernel_execve()
+Date: Wed, 24 Oct 2012 05:48:36 +0400
+Message-ID: <1351043317-21631-3-git-send-email-jcmvbkbc@gmail.com>
 References: <1351043317-21631-1-git-send-email-jcmvbkbc@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f46.google.com ([209.85.215.46]:55288 "EHLO
-	mail-la0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754694Ab2JXBtb (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Oct 2012 21:49:31 -0400
-Received: by mail-la0-f46.google.com with SMTP id h6so7238lag.19
-        for <linux-arch@vger.kernel.org>; Tue, 23 Oct 2012 18:49:30 -0700 (PDT)
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:61817 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754694Ab2JXBtk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 23 Oct 2012 21:49:40 -0400
+Received: by mail-lb0-f174.google.com with SMTP id n3so765207lbo.19
+        for <linux-arch@vger.kernel.org>; Tue, 23 Oct 2012 18:49:39 -0700 (PDT)
 In-Reply-To: <1351043317-21631-1-git-send-email-jcmvbkbc@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -18,234 +18,56 @@ Cc: linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Marc Gauthier <ma
 
 Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
 ---
- arch/xtensa/Kconfig                 |    1 +
- arch/xtensa/include/asm/processor.h |    3 -
- arch/xtensa/kernel/entry.S          |   41 ++++++-------------
- arch/xtensa/kernel/process.c        |   72 +++++++++++++++++++++-------------
- arch/xtensa/kernel/xtensa_ksyms.c   |    1 -
- 5 files changed, 58 insertions(+), 60 deletions(-)
+ arch/xtensa/Kconfig        |    1 +
+ arch/xtensa/kernel/entry.S |   18 +-----------------
+ 2 files changed, 2 insertions(+), 17 deletions(-)
 
 diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
-index cdcb48a..9525b70 100644
+index 9525b70..0d1f36a 100644
 --- a/arch/xtensa/Kconfig
 +++ b/arch/xtensa/Kconfig
-@@ -13,6 +13,7 @@ config XTENSA
- 	select GENERIC_CPU_DEVICES
+@@ -14,6 +14,7 @@ config XTENSA
  	select MODULES_USE_ELF_RELA
  	select GENERIC_PCI_IOMAP
-+	select GENERIC_KERNEL_THREAD
+ 	select GENERIC_KERNEL_THREAD
++	select GENERIC_KERNEL_EXECVE
  	select ARCH_WANT_OPTIONAL_GPIOLIB
  	help
  	  Xtensa processors are 32-bit RISC machines designed by Tensilica
-diff --git a/arch/xtensa/include/asm/processor.h b/arch/xtensa/include/asm/processor.h
-index 5c371d8..a8642da 100644
---- a/arch/xtensa/include/asm/processor.h
-+++ b/arch/xtensa/include/asm/processor.h
-@@ -168,9 +168,6 @@ struct mm_struct;
- /* Free all resources held by a thread. */
- #define release_thread(thread) do { } while(0)
- 
--/* Create a kernel thread without removing it from tasklists */
--extern int kernel_thread(int (*fn)(void *), void * arg, unsigned long flags);
--
- /* Copy and release all segment info associated with a VM */
- #define copy_segments(p, mm)	do { } while(0)
- #define release_segments(mm)	do { } while(0)
 diff --git a/arch/xtensa/kernel/entry.S b/arch/xtensa/kernel/entry.S
-index 18453067..d4ec138 100644
+index d4ec138..90bfc1d 100644
 --- a/arch/xtensa/kernel/entry.S
 +++ b/arch/xtensa/kernel/entry.S
-@@ -1833,34 +1833,6 @@ ENTRY(system_call)
+@@ -1833,22 +1833,6 @@ ENTRY(system_call)
  
  
  /*
-- * Create a kernel thread
+- * Do a system call from kernel instead of calling sys_execve, so we end up
+- * with proper pt_regs.
 - *
-- * int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
-- * a2                    a2                 a3             a4
+- * int kernel_execve(const char *fname, char *const argv[], charg *const envp[])
+- * a2                        a2               a3                  a4
 - */
 -
--ENTRY(kernel_thread)
+-ENTRY(kernel_execve)
 -	entry	a1, 16
--
--	mov	a5, a2			# preserve fn over syscall
--	mov	a7, a3			# preserve args over syscall
--
--	movi	a3, _CLONE_VM | _CLONE_UNTRACED
--	movi	a2, __NR_clone
--	or	a6, a4, a3		# arg0: flags
--	mov	a3, a1			# arg1: sp
+-	mov	a6, a2			# arg0 is in a6
+-	movi	a2, __NR_execve
 -	syscall
 -
--	beq	a3, a1, 1f		# branch if parent
--	mov	a6, a7			# args
--	callx4	a5			# fn(args)
--
--	movi	a2, __NR_exit
--	syscall				# return value of fn(args) still in a6
--
--1:	retw
+-	retw
 -
 -/*
-  * Do a system call from kernel instead of calling sys_execve, so we end up
-  * with proper pt_regs.
+  * Task switch.
   *
-@@ -1958,3 +1930,16 @@ ENTRY(ret_from_fork)
+  * struct task*  _switch_to (struct task* prev, struct task* next)
+@@ -1940,6 +1924,6 @@ ENTRY(ret_from_kernel_thread)
+ 	call4	schedule_tail
+ 	mov	a6, a3
+ 	callx4	a2
+-	call4	do_exit
++	j	common_exception_return
  
- 	j	common_exception_return
- 
-+/*
-+ * Kernel thread creation helper
-+ * On entry, set up by copy_thread: a2 = thread_fn, a3 = thread_fn arg
-+ *           left from _switch_to: a6 = prev
-+ */
-+ENTRY(ret_from_kernel_thread)
-+
-+	call4	schedule_tail
-+	mov	a6, a3
-+	callx4	a2
-+	call4	do_exit
-+
-+ENDPROC(ret_from_kernel_thread)
-diff --git a/arch/xtensa/kernel/process.c b/arch/xtensa/kernel/process.c
-index 1908f66..fd538bb 100644
---- a/arch/xtensa/kernel/process.c
-+++ b/arch/xtensa/kernel/process.c
-@@ -45,6 +45,7 @@
- #include <asm/regs.h>
- 
- extern void ret_from_fork(void);
-+extern void ret_from_kernel_thread(void);
- 
- struct task_struct *current_set[NR_CPUS] = {&init_task, };
- 
-@@ -158,18 +159,30 @@ int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
- /*
-  * Copy thread.
-  *
-+ * There are two modes in which this function is called:
-+ * 1) Userspace thread creation,
-+ *    regs != NULL, usp_thread_fn is userspace stack pointer.
-+ *    It is expected to copy parent regs (in case CLONE_VM is not set
-+ *    in the clone_flags) and set up passed usp in the childregs.
-+ * 2) Kernel thread creation,
-+ *    regs == NULL, usp_thread_fn is the function to run in the new thread
-+ *    and thread_fn_arg is its parameter.
-+ *    childregs are not used for the kernel threads.
-+ *
-  * The stack layout for the new thread looks like this:
-  *
-- *	+------------------------+ <- sp in childregs (= tos)
-+ *	+------------------------+
-  *	|       childregs        |
-  *	+------------------------+ <- thread.sp = sp in dummy-frame
-  *	|      dummy-frame       |    (saved in dummy-frame spill-area)
-  *	+------------------------+
-  *
-- * We create a dummy frame to return to ret_from_fork:
-- *   a0 points to ret_from_fork (simulating a call4)
-+ * We create a dummy frame to return to either ret_from_fork or
-+ *   ret_from_kernel_thread:
-+ *   a0 points to ret_from_fork/ret_from_kernel_thread (simulating a call4)
-  *   sp points to itself (thread.sp)
-- *   a2, a3 are unused.
-+ *   a2, a3 are unused for userspace threads,
-+ *   a2 points to thread_fn, a3 holds thread_fn arg for kernel threads.
-  *
-  * Note: This is a pristine frame, so we don't need any spill region on top of
-  *       childregs.
-@@ -185,41 +198,35 @@ int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
-  * involved.  Much simpler to just not copy those live frames across.
-  */
- 
--int copy_thread(unsigned long clone_flags, unsigned long usp,
--		unsigned long unused,
-+int copy_thread(unsigned long clone_flags, unsigned long usp_thread_fn,
-+		unsigned long thread_fn_arg,
-                 struct task_struct * p, struct pt_regs * regs)
- {
--	struct pt_regs *childregs;
--	unsigned long tos;
--	int user_mode = user_mode(regs);
-+	struct pt_regs *childregs = task_pt_regs(p);
- 
- #if (XTENSA_HAVE_COPROCESSORS || XTENSA_HAVE_IO_PORTS)
- 	struct thread_info *ti;
- #endif
- 
--	/* Set up new TSS. */
--	tos = (unsigned long)task_stack_page(p) + THREAD_SIZE;
--	if (user_mode)
--		childregs = (struct pt_regs*)(tos - PT_USER_SIZE);
--	else
--		childregs = (struct pt_regs*)tos - 1;
--
--	/* This does not copy all the regs.  In a bout of brilliance or madness,
--	   ARs beyond a0-a15 exist past the end of the struct. */
--	*childregs = *regs;
--
- 	/* Create a call4 dummy-frame: a0 = 0, a1 = childregs. */
- 	*((int*)childregs - 3) = (unsigned long)childregs;
- 	*((int*)childregs - 4) = 0;
- 
--	childregs->areg[2] = 0;
- 	p->set_child_tid = p->clear_child_tid = NULL;
--	p->thread.ra = MAKE_RA_FOR_CALL((unsigned long)ret_from_fork, 0x1);
- 	p->thread.sp = (unsigned long)childregs;
- 
--	if (user_mode(regs)) {
-+	if (regs) {
-+		p->thread.ra = MAKE_RA_FOR_CALL(
-+				(unsigned long)ret_from_fork, 0x1);
-+
-+		/* This does not copy all the regs.
-+		 * In a bout of brilliance or madness,
-+		 * ARs beyond a0-a15 exist past the end of the struct.
-+		 */
-+		*childregs = *regs;
-+		childregs->areg[1] = usp_thread_fn;
-+		childregs->areg[2] = 0;
- 
--		childregs->areg[1] = usp;
- 		if (clone_flags & CLONE_VM) {
- 			childregs->wmask = 1;	/* can't share live windows */
- 		} else {
-@@ -230,11 +237,20 @@ int copy_thread(unsigned long clone_flags, unsigned long usp,
- // FIXME: we need to set THREADPTR in thread_info...
- 		if (clone_flags & CLONE_SETTLS)
- 			childregs->areg[2] = childregs->areg[6];
--
- 	} else {
--		/* In kernel space, we start a new thread with a new stack. */
--		childregs->wmask = 1;
--		childregs->areg[1] = tos;
-+		p->thread.ra = MAKE_RA_FOR_CALL(
-+				(unsigned long)ret_from_kernel_thread, 1);
-+
-+		/* pass parameters to ret_from_kernel_thread:
-+		 * a2 = thread_fn, a3 = thread_fn arg
-+		 */
-+		*((int *)childregs - 1) = thread_fn_arg;
-+		*((int *)childregs - 2) = usp_thread_fn;
-+
-+		/* Childregs are only used when we're going to userspace
-+		 * in which case start_thread will set them up.
-+		 */
-+		memset(childregs, 0, sizeof(*childregs));
- 	}
- 
- #if (XTENSA_HAVE_COPROCESSORS || XTENSA_HAVE_IO_PORTS)
-diff --git a/arch/xtensa/kernel/xtensa_ksyms.c b/arch/xtensa/kernel/xtensa_ksyms.c
-index a8b9f1f..afe058b 100644
---- a/arch/xtensa/kernel/xtensa_ksyms.c
-+++ b/arch/xtensa/kernel/xtensa_ksyms.c
-@@ -43,7 +43,6 @@ EXPORT_SYMBOL(__strncpy_user);
- EXPORT_SYMBOL(clear_page);
- EXPORT_SYMBOL(copy_page);
- 
--EXPORT_SYMBOL(kernel_thread);
- EXPORT_SYMBOL(empty_zero_page);
- 
- /*
+ ENDPROC(ret_from_kernel_thread)
 -- 
 1.7.7.6
