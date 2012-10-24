@@ -1,63 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f44.google.com ([74.125.82.44]:57238 "EHLO
-	mail-wg0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757499Ab2JXGC1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Oct 2012 02:02:27 -0400
-Date: Wed, 24 Oct 2012 08:02:22 +0200
-From: Ingo Molnar <mingo@kernel.org>
-Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and
- GENERIC_KERNEL_EXECVE
-Message-ID: <20121024060222.GA20007@gmail.com>
-References: <20121019213548.GR2616@ZenIV.linux.org.uk>
- <5082A1F1.3080303@tilera.com>
- <20121020153401.GT2616@ZenIV.linux.org.uk>
- <20121020171643.GU2616@ZenIV.linux.org.uk>
- <5086D432.4070008@tilera.com>
- <20121023184122.GZ2616@ZenIV.linux.org.uk>
- <alpine.LFD.2.02.1210232232070.2756@ionos>
- <20121023205119.GA27729@sigill.intra.peff.net>
- <alpine.LFD.2.02.1210232307480.2756@ionos>
- <CA+55aFyYD2jvD3+TSe=GhBgg5UQt2RNFdYf6HGiKRX-xWzFmdw@mail.gmail.com>
+Received: from so.liwest.at ([212.33.55.24]:8459 "EHLO so.liwest.at"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757507Ab2JXGT6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 24 Oct 2012 02:19:58 -0400
+Message-ID: <5087848D.7060400@viscovery.net>
+Date: Wed, 24 Oct 2012 08:02:53 +0200
+From: Johannes Sixt <j.sixt@viscovery.net>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <CA+55aFyYD2jvD3+TSe=GhBgg5UQt2RNFdYf6HGiKRX-xWzFmdw@mail.gmail.com>
+Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and GENERIC_KERNEL_EXECVE
+References: <5082A1F1.3080303@tilera.com> <20121020153401.GT2616@ZenIV.linux.org.uk> <20121020171643.GU2616@ZenIV.linux.org.uk> <5086D432.4070008@tilera.com> <20121023184122.GZ2616@ZenIV.linux.org.uk> <alpine.LFD.2.02.1210232232070.2756@ionos> <20121023205119.GA27729@sigill.intra.peff.net> <alpine.LFD.2.02.1210232307480.2756@ionos> <20121023214717.GA29306@sigill.intra.peff.net> <522C1DF17AF50042AD8AE87F7887BD3D0B60880C30@exch.hq.tensilica.com> <20121023222318.GA3055@sigill.intra.peff.net>
+In-Reply-To: <20121023222318.GA3055@sigill.intra.peff.net>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Jeff King <peff@peff.net>, Al Viro <viro@zeniv.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Catalin Marinas <catalin.marinas@arm.com>, git@vger.kernel.org, Junio C Hamano <gitster@pobox.com>
-Message-ID: <20121024060222.axNjw0EXp4ay-Fl9qZupqk39EP6__sgYZfDV8vh3nlM@z>
+To: Jeff King <peff@peff.net>
+Cc: Marc Gauthier <marc@tensilica.com>, Thomas Gleixner <tglx@linutronix.de>, Al Viro <viro@ZenIV.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, "git@vger.kernel.org" <git@vger.kernel.org>, Junio C Hamano <gitster@pobox.com>
+Message-ID: <20121024060253.-FCiOirKVZYefvxVdkDA0mf7xE6avi1_RujCev9w_0I@z>
 
+Am 10/24/2012 0:23, schrieb Jeff King:
+> For the fold-on-rebase idea, I'd think you would want something similar,
+> like setting rebase.foldNotes to "foo" to say "refs/notes/foo contains
+> pseudo-headers that should be folded in like a signed-off-by".
 
-* Linus Torvalds <torvalds@linux-foundation.org> wrote:
+If you are rebasing anyway, you can already use interactive rebase's
+--autosquash option:
 
-> On Wed, Oct 24, 2012 at 12:25 AM, Thomas Gleixner <tglx@linutronix.de> wrote:
-> >>
-> >> It is spelled:
-> >>
-> >>   git notes add -m <comment> SHA1
-> >
-> > Cool!
-> 
-> Don't use them for anything global.
-> 
-> Use them for local codeflow, but don't expect them to be 
-> distributed. It's a separate "flow", and while it *can* be 
-> distributed, it's not going to be for the kernel, for example. 
-> So no, don't start using this to ack things, because the acks 
-> *will* get lost.
+# a late ACK came in:
+git commit --allow-empty -m'squash! tile: support GENERIC_
 
-I'd also add a small meta argument: that it would be actively 
-wrong to *allow* 'belated' acks to be added. In practice acks 
-are most useful *before* a commit gets created and they often 
-have a mostly buerocratic role afterwards.
+Acked-by: A U Thor <author@example.com>'
 
-So we should encourage timely acks (which actually help 
-development), and accept ack-less patches as long as they are 
-correct and create no problems. More utility, less buerocracy. 
-Incorrect, ack-less patches causing problems will get all the 
-flames they deserve.
+git rebase -i --keep-empty --autosquash $forkpoint
 
-Thanks,
+Requires git 1.7.11 for --keep-empty and requires to edit out the
+'squash!...' headers when the editor appears during the rebase.
 
-	Ingo
+-- Hannes
