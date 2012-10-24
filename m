@@ -1,40 +1,116 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH 3/3] xtensa: switch to generic sys_execve()
-Date: Wed, 24 Oct 2012 15:01:24 +0100
-Message-ID: <20121024140124.GE2616@ZenIV.linux.org.uk>
-References: <1351043317-21631-1-git-send-email-jcmvbkbc@gmail.com>
- <1351043317-21631-4-git-send-email-jcmvbkbc@gmail.com>
- <20121024024123.GD2616@ZenIV.linux.org.uk>
- <CAMo8Bf+fkUTDPHh-sbVJj=8SOjMDfpywa=g1sMRFXWfpBhsDYA@mail.gmail.com>
+From: Mike Yoknis <mike.yoknis@hp.com>
+Subject: Re: [PATCH] mm: memmap_init_zone() performance improvement
+Date: Wed, 24 Oct 2012 09:47:47 -0600
+Message-ID: <1351093667.1205.11.camel@MikesLinux.fc.hp.com>
+References: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
+	 <20121008151656.GM29125@suse.de>
+	 <1349794597.29752.10.camel@MikesLinux.fc.hp.com>
+	 <1350676398.1169.6.camel@MikesLinux.fc.hp.com>
+	 <20121020082858.GA2698@suse.de>
+Reply-To: mike.yoknis@hp.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:37126 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934814Ab2JXOC1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Oct 2012 10:02:27 -0400
-Content-Disposition: inline
-In-Reply-To: <CAMo8Bf+fkUTDPHh-sbVJj=8SOjMDfpywa=g1sMRFXWfpBhsDYA@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Max Filippov <jcmvbkbc@gmail.com>
-Cc: Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Marc Gauthier <marc@tensilica.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20121020082858.GA2698@suse.de>
+Sender: owner-linux-mm@kvack.org
+To: Mel Gorman <mgorman@suse.de>
+Cc: mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 24, 2012 at 01:16:39PM +0400, Max Filippov wrote:
-> On Wed, Oct 24, 2012 at 6:41 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> > On Wed, Oct 24, 2012 at 05:48:37AM +0400, Max Filippov wrote:
-> >> Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
-> >> ---
-> >>  arch/xtensa/include/asm/syscall.h     |    2 +-
-> >>  arch/xtensa/include/asm/unistd.h      |    1 +
-> >>  arch/xtensa/include/uapi/asm/unistd.h |    2 +-
-> >>  arch/xtensa/kernel/process.c          |   25 -------------------------
-> >>  4 files changed, 3 insertions(+), 27 deletions(-)
-> >
-> > All three applied, but there's a couple of things I'd like to have on top
-> > of that.  Are you OK with the following incremental?
+On Sat, 2012-10-20 at 09:29 +0100, Mel Gorman wrote:
+> On Fri, Oct 19, 2012 at 01:53:18PM -0600, Mike Yoknis wrote:
+> > On Tue, 2012-10-09 at 08:56 -0600, Mike Yoknis wrote:
+> > > On Mon, 2012-10-08 at 16:16 +0100, Mel Gorman wrote:
+> > > > On Wed, Oct 03, 2012 at 08:56:14AM -0600, Mike Yoknis wrote:
+> > > > > memmap_init_zone() loops through every Page Frame Number (pfn),
+> > > > > including pfn values that are within the gaps between existing
+> > > > > memory sections.  The unneeded looping will become a boot
+> > > > > performance issue when machines configure larger memory ranges
+> > > > > that will contain larger and more numerous gaps.
+> > > > > 
+> > > > > The code will skip across invalid sections to reduce the
+> > > > > number of loops executed.
+> > > > > 
+> > > > > Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
+> > > > 
+> > > > I do not see the need for
+> > > > the additional complexity unless you can show it makes a big difference
+> > > > to boot times.
+> > > > 
+> > > 
+> > > Mel,
+> > > 
+> > > Let me pass along the numbers I have.  We have what we call an
+> > > "architectural simulator".  It is a computer program that pretends that
+> > > it is a computer system.  We use it to test the firmware before real
+> > > hardware is available.  We have booted Linux on our simulator.  As you
+> > > would expect it takes longer to boot on the simulator than it does on
+> > > real hardware.
+> > > 
+> > > With my patch - boot time 41 minutes
+> > > Without patch - boot time 94 minutes
+> > > 
+> > > These numbers do not scale linearly to real hardware.  But indicate to
+> > > me a place where Linux can be improved.
+> > > 
+> > > Mike Yoknis
+> > > 
+> > Mel,
+> > I finally got access to prototype hardware.  
+> > It is a relatively small machine with only 64GB of RAM.
+> >  
+> > I put in a time measurement by reading the TSC register.
+> > I booted both with and without my patch -
+> >  
+> > Without patch -
+> > [    0.000000]   Normal zone: 13400064 pages, LIFO batch:31
+> > [    0.000000] memmap_init_zone() enter 1404184834218
+> > [    0.000000] memmap_init_zone() exit  1411174884438  diff = 6990050220
+> >  
+> > With patch -
+> > [    0.000000]   Normal zone: 13400064 pages, LIFO batch:31
+> > [    0.000000] memmap_init_zone() enter 1555530050778
+> > [    0.000000] memmap_init_zone() exit  1559379204643  diff = 3849153865
+> >  
+> > This shows that without the patch the routine spends 45% 
+> > of its time spinning unnecessarily.
+> >  
 > 
-> Yes. Looks like I need to send v2 to address Chris' comments,
-> I can put these changes there as well.
+> I'm travelling at the moment so apologies that I have not followed up on
+> this. My problem is still the same with the patch - it changes more
+> headers than is necessary and it is sparsemem specific. At minimum, try
+> the suggestion of 
+> 
+> if (!early_pfn_valid(pfn)) {
+>       pfn = ALIGN(pfn + MAX_ORDER_NR_PAGES, MAX_ORDER_NR_PAGES) - 1;
+>       continue;
+> }
+> 
+> and see how much it gains you as it should work on all memory models. If
+> it turns out that you really need to skip whole sections then the strice
+> could MAX_ORDER_NR_PAGES on all memory models except sparsemem where the
+> stride would be PAGES_PER_SECTION
+> 
+Mel,
+I tried your suggestion.  I re-ran all 3 methods on our latest firmware.
 
-Please, do.
+The following are TSC difference numbers (*10^6) to execute
+memmap_init_zone() -
+
+No patch   - 7010
+Mel's patch- 3918
+My patch   - 3847
+
+The incremental improvement of my method is not significant vs. yours.
+
+If you believe your suggested change is worthwhile I will create a v2
+patch.
+Mike Y
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
