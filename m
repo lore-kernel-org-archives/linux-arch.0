@@ -1,81 +1,40 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and
- GENERIC_KERNEL_EXECVE
-Date: Wed, 24 Oct 2012 12:18:02 +0100
-Message-ID: <20121024111802.GB2006@arm.com>
-References: <20121019213548.GR2616@ZenIV.linux.org.uk>
- <5082A1F1.3080303@tilera.com>
- <20121020153401.GT2616@ZenIV.linux.org.uk>
- <20121020171643.GU2616@ZenIV.linux.org.uk>
- <5086D432.4070008@tilera.com>
- <20121023184122.GZ2616@ZenIV.linux.org.uk>
- <alpine.LFD.2.02.1210232232070.2756@ionos>
- <20121023205119.GA27729@sigill.intra.peff.net>
- <CAHkRjk6x9ToVzY7jv1ZxPt57F6agcH7SfHZpZNpHC3QP3PZp3Q@mail.gmail.com>
- <20121023212245.GA28828@sigill.intra.peff.net>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH 3/3] xtensa: switch to generic sys_execve()
+Date: Wed, 24 Oct 2012 15:01:24 +0100
+Message-ID: <20121024140124.GE2616@ZenIV.linux.org.uk>
+References: <1351043317-21631-1-git-send-email-jcmvbkbc@gmail.com>
+ <1351043317-21631-4-git-send-email-jcmvbkbc@gmail.com>
+ <20121024024123.GD2616@ZenIV.linux.org.uk>
+ <CAMo8Bf+fkUTDPHh-sbVJj=8SOjMDfpywa=g1sMRFXWfpBhsDYA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:37126 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934814Ab2JXOC1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Oct 2012 10:02:27 -0400
 Content-Disposition: inline
-In-Reply-To: <20121023212245.GA28828@sigill.intra.peff.net>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Jeff King <peff@peff.net>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Al Viro <viro@zeniv.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, "git@vger.kernel.org" <git@vger.kernel.org>, Junio C Hamano <gitster@pobox.com>
-List-Id: linux-arch.vger.kernel.org
+In-Reply-To: <CAMo8Bf+fkUTDPHh-sbVJj=8SOjMDfpywa=g1sMRFXWfpBhsDYA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Max Filippov <jcmvbkbc@gmail.com>
+Cc: Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Marc Gauthier <marc@tensilica.com>
 
-On Tue, Oct 23, 2012 at 10:22:45PM +0100, Jeff King wrote:
-> On Tue, Oct 23, 2012 at 10:09:46PM +0100, Catalin Marinas wrote:
-> > > It is spelled:
-> > >
-> > >   git notes add -m <comment> SHA1
-> > >
-> > > The resulting notes are stored in a separate revision-controlled branch
-> > > and can be pushed and pulled like regular refs. Note, though, that the
-> > > default refspecs do not yet include refs/notes, so you'd have to add
-> > > them manually. The workflows around notes are not very mature yet, so if
-> > > you start using them, feedback would be appreciated.
-> > 
-> > What would be nice is that notes are pushed/pulled automatically with
-> > standard git push/fetch/pull commands. Usually git walks the DAG
-> > starting with the pulled commit or tag and following the parents. With
-> > notes, the reference is reversed, the note pointing to the commit and
-> > not the other way around. So handling this automatically in Git would
-> > be really useful.
+On Wed, Oct 24, 2012 at 01:16:39PM +0400, Max Filippov wrote:
+> On Wed, Oct 24, 2012 at 6:41 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> > On Wed, Oct 24, 2012 at 05:48:37AM +0400, Max Filippov wrote:
+> >> Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
+> >> ---
+> >>  arch/xtensa/include/asm/syscall.h     |    2 +-
+> >>  arch/xtensa/include/asm/unistd.h      |    1 +
+> >>  arch/xtensa/include/uapi/asm/unistd.h |    2 +-
+> >>  arch/xtensa/kernel/process.c          |   25 -------------------------
+> >>  4 files changed, 3 insertions(+), 27 deletions(-)
+> >
+> > All three applied, but there's a couple of things I'd like to have on top
+> > of that.  Are you OK with the following incremental?
 > 
-> Right, that's what I meant about the refspecs. You can configure git to
-> push or pull them automatically, but it is not the default. Something
-> like:
-> 
->   git config --add remote.origin.fetch '+refs/notes/*:refs/notes/origin/*'
+> Yes. Looks like I need to send v2 to address Chris' comments,
+> I can put these changes there as well.
 
-Yes, but that's a bit more complicated than a simple pull. Anyway, Linus
-seems to not be in favour of annotating commits later for adding acks,
-so no need for such feature.
-
-> > The other feature I'd like is that notes are automatically folded in
-> > the log during git rebase (maybe similar to the squash option). If you
-> > rebase, you lose all the notes (though this depends on the workflow,
-> > it may not be needed with published branches).
-> 
-> Git-rebase can automatically copy notes from one commit to another
-> during a rebase, but you need to set notes.rewriteRef to do so (see "git
-> help config" for details). The reason for this conservative default is
-> that some notes may not be appropriate for automatic copying (e.g., a
-> notes tree containing QA approval should probably be invalidated during
-> a rebase, whereas one with commentary probably should).
-
-Thanks, I wasn't aware of this.
-
-> Squashing the notes into the commit message during rebase would be a
-> useful feature (at least for some type of notes), but that feature does
-> not currently exist (and as far as I recall, this is the first it has
-> been proposed).
-
-For some workflow - I post patches to the list, people reply with their
-acks, I could just add those to notes and later fold them into the
-existing commits before pushing the branch upstream. I guess it may be
-just a matter of changing git format-patch to include the notes. I can
-later reword he commits and drop the "Notes:" line.
-
--- 
-Catalin
+Please, do.
