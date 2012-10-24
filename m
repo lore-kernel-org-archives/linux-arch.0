@@ -1,67 +1,87 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:45907 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:47763 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S932132Ab2JXJf3 (ORCPT
+	by vger.kernel.org with ESMTP id S1751644Ab2JXLS1 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 24 Oct 2012 05:35:29 -0400
-Date: Wed, 24 Oct 2012 10:35:10 +0100
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
- access fault.
-Message-ID: <20121024093510.GB23775@mudshark.cambridge.arm.com>
-References: <20121017130125.GH5973@mudshark.cambridge.arm.com>
- <20121017.112620.1865348978594874782.davem@davemloft.net>
- <20121017155401.GJ5973@mudshark.cambridge.arm.com>
- <20121018150502.3dee7899.akpm@linux-foundation.org>
- <20121019091016.GA4582@mudshark.cambridge.arm.com>
- <20121019114955.3a0c2b66.akpm@linux-foundation.org>
- <20121022103503.GA26619@mudshark.cambridge.arm.com>
- <20121022111843.4406850d.akpm@linux-foundation.org>
- <20121023101125.GA20210@mudshark.cambridge.arm.com>
- <20121023145027.40710e7a.akpm@linux-foundation.org>
+	Wed, 24 Oct 2012 07:18:27 -0400
+Date: Wed, 24 Oct 2012 12:18:02 +0100
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and
+ GENERIC_KERNEL_EXECVE
+Message-ID: <20121024111802.GB2006@arm.com>
+References: <20121019213548.GR2616@ZenIV.linux.org.uk>
+ <5082A1F1.3080303@tilera.com>
+ <20121020153401.GT2616@ZenIV.linux.org.uk>
+ <20121020171643.GU2616@ZenIV.linux.org.uk>
+ <5086D432.4070008@tilera.com>
+ <20121023184122.GZ2616@ZenIV.linux.org.uk>
+ <alpine.LFD.2.02.1210232232070.2756@ionos>
+ <20121023205119.GA27729@sigill.intra.peff.net>
+ <CAHkRjk6x9ToVzY7jv1ZxPt57F6agcH7SfHZpZNpHC3QP3PZp3Q@mail.gmail.com>
+ <20121023212245.GA28828@sigill.intra.peff.net>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20121023145027.40710e7a.akpm@linux-foundation.org>
+In-Reply-To: <20121023212245.GA28828@sigill.intra.peff.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: David Miller <davem@davemloft.net>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, "aarcange@redhat.com" <aarcange@redhat.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
-Message-ID: <20121024093510.qs-vfHwp10L-MIg3o01CceiAu6H1M6pv3ly_GZhFmdA@z>
+To: Jeff King <peff@peff.net>
+Cc: Thomas Gleixner <tglx@linutronix.de>, Al Viro <viro@zeniv.linux.org.uk>, Chris Metcalf <cmetcalf@tilera.com>, LKML <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Linus Torvalds <torvalds@linux-foundation.org>, "git@vger.kernel.org" <git@vger.kernel.org>, Junio C Hamano <gitster@pobox.com>
+Message-ID: <20121024111802.DclA6_Dr0UStHOxjE89DURQLeoC6lvgBxKNgnMPz-Z4@z>
 
-On Tue, Oct 23, 2012 at 10:50:27PM +0100, Andrew Morton wrote:
-> On Tue, 23 Oct 2012 11:11:25 +0100
-> Will Deacon <will.deacon@arm.com> wrote:
-> > This patch ("mm: thp: Set the accessed flag for old pages on access fault")
-> > doesn't depend on "ARM: mm: Transparent huge page support for LPAE systems"
-> > because currently transparent huge pages cannot be enabled for ARM in
-> > mainline (or linux-next). update_mmu_cache_pmd is only called from
-> > mm/huge_memory.c, which depends on CONFIG_TRANSPARENT_HUGEPAGE=y.
+On Tue, Oct 23, 2012 at 10:22:45PM +0100, Jeff King wrote:
+> On Tue, Oct 23, 2012 at 10:09:46PM +0100, Catalin Marinas wrote:
+> > > It is spelled:
+> > >
+> > >   git notes add -m <comment> SHA1
+> > >
+> > > The resulting notes are stored in a separate revision-controlled branch
+> > > and can be pushed and pulled like regular refs. Note, though, that the
+> > > default refspecs do not yet include refs/notes, so you'd have to add
+> > > them manually. The workflows around notes are not very mature yet, so if
+> > > you start using them, feedback would be appreciated.
 > > 
-> > As for the new huge_pmd_set_accessed function... there's a similar situation
-> > for the do_huge_pmd_wp_page function: it's called from mm/memory.c but is
-> > only defined in mm/huge_memory.c. Looks like the compiler optimises those
-> > calls away because pmd_trans_huge and friends constant-fold to 0.
+> > What would be nice is that notes are pushed/pulled automatically with
+> > standard git push/fetch/pull commands. Usually git walks the DAG
+> > starting with the pulled commit or tag and following the parents. With
+> > notes, the reference is reversed, the note pointing to the commit and
+> > not the other way around. So handling this automatically in Git would
+> > be really useful.
 > 
-> Ah, OK.
+> Right, that's what I meant about the refspecs. You can configure git to
+> push or pull them automatically, but it is not the default. Something
+> like:
 > 
-> "mm: thp: Set the accessed flag for old pages on access fault" clashes
-> in a non-trivial way with linux-next changes, due to the sched-numa
-> changes (sigh).  This is a problem for me, because I either need to
-> significantly alter your patch (so it isn't applicable to mainline) or
-> I need to stage your patch ahead of linux-next, then fix up linux-next
-> every day after I've pulled and re-merged it.
+>   git config --add remote.origin.fetch '+refs/notes/*:refs/notes/origin/*'
+
+Yes, but that's a bit more complicated than a simple pull. Anyway, Linus
+seems to not be in favour of annotating commits later for adding acks,
+so no need for such feature.
+
+> > The other feature I'd like is that notes are automatically folded in
+> > the log during git rebase (maybe similar to the squash option). If you
+> > rebase, you lose all the notes (though this depends on the workflow,
+> > it may not be needed with published branches).
 > 
-> I'm unsure what your timing is.  Can you carry "mm: thp: Set the
-> accessed flag for old pages on access fault" until either the whole
-> patchset is ready to merge or until the sched-numa situation has been
-> cleared up?
+> Git-rebase can automatically copy notes from one commit to another
+> during a rebase, but you need to set notes.rewriteRef to do so (see "git
+> help config" for details). The reason for this conservative default is
+> that some notes may not be appropriate for automatic copying (e.g., a
+> notes tree containing QA approval should probably be invalidated during
+> a rebase, whereas one with commentary probably should).
 
-I think DaveM may want this patch for sparc, so I'll keep it separate from
-the ARM patches and have a go at reworking it when the sched-numa stuff has
-settled down. Is that all in linux-next btw? If so, I can use that as a
-starting point to dealing with the mess.
+Thanks, I wasn't aware of this.
 
-Cheers,
+> Squashing the notes into the commit message during rebase would be a
+> useful feature (at least for some type of notes), but that feature does
+> not currently exist (and as far as I recall, this is the first it has
+> been proposed).
 
-Will
+For some workflow - I post patches to the list, people reply with their
+acks, I could just add those to notes and later fold them into the
+existing commits before pushing the branch upstream. I guess it may be
+just a matter of changing git format-patch to include the notes. I can
+later reword he commits and drop the "Notes:" line.
+
+-- 
+Catalin
