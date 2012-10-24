@@ -1,97 +1,67 @@
-From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: Re: [PATCH 3/3] xtensa: switch to generic sys_execve()
-Date: Wed, 24 Oct 2012 13:16:39 +0400
-Message-ID: <CAMo8Bf+fkUTDPHh-sbVJj=8SOjMDfpywa=g1sMRFXWfpBhsDYA@mail.gmail.com>
-References: <1351043317-21631-1-git-send-email-jcmvbkbc@gmail.com>
-	<1351043317-21631-4-git-send-email-jcmvbkbc@gmail.com>
-	<20121024024123.GD2616@ZenIV.linux.org.uk>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2] mm: thp: Set the accessed flag for old pages on
+ access fault.
+Date: Wed, 24 Oct 2012 10:35:10 +0100
+Message-ID: <20121024093510.GB23775@mudshark.cambridge.arm.com>
+References: <20121017130125.GH5973@mudshark.cambridge.arm.com>
+ <20121017.112620.1865348978594874782.davem@davemloft.net>
+ <20121017155401.GJ5973@mudshark.cambridge.arm.com>
+ <20121018150502.3dee7899.akpm@linux-foundation.org>
+ <20121019091016.GA4582@mudshark.cambridge.arm.com>
+ <20121019114955.3a0c2b66.akpm@linux-foundation.org>
+ <20121022103503.GA26619@mudshark.cambridge.arm.com>
+ <20121022111843.4406850d.akpm@linux-foundation.org>
+ <20121023101125.GA20210@mudshark.cambridge.arm.com>
+ <20121023145027.40710e7a.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f46.google.com ([209.85.219.46]:63320 "EHLO
-	mail-oa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753236Ab2JXJQk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Oct 2012 05:16:40 -0400
-Received: by mail-oa0-f46.google.com with SMTP id h16so231899oag.19
-        for <linux-arch@vger.kernel.org>; Wed, 24 Oct 2012 02:16:39 -0700 (PDT)
-In-Reply-To: <20121024024123.GD2616@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Marc Gauthier <marc@tensilica.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20121023145027.40710e7a.akpm@linux-foundation.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: David Miller <davem@davemloft.net>, "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "kirill@shutemov.name" <kirill@shutemov.name>, "aarcange@redhat.com" <aarcange@redhat.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, Steve Capper <Steve.Capper@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Oct 24, 2012 at 6:41 AM, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> On Wed, Oct 24, 2012 at 05:48:37AM +0400, Max Filippov wrote:
->> Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
->> ---
->>  arch/xtensa/include/asm/syscall.h     |    2 +-
->>  arch/xtensa/include/asm/unistd.h      |    1 +
->>  arch/xtensa/include/uapi/asm/unistd.h |    2 +-
->>  arch/xtensa/kernel/process.c          |   25 -------------------------
->>  4 files changed, 3 insertions(+), 27 deletions(-)
->
-> All three applied, but there's a couple of things I'd like to have on top
-> of that.  Are you OK with the following incremental?
+On Tue, Oct 23, 2012 at 10:50:27PM +0100, Andrew Morton wrote:
+> On Tue, 23 Oct 2012 11:11:25 +0100
+> Will Deacon <will.deacon@arm.com> wrote:
+> > This patch ("mm: thp: Set the accessed flag for old pages on access fault")
+> > doesn't depend on "ARM: mm: Transparent huge page support for LPAE systems"
+> > because currently transparent huge pages cannot be enabled for ARM in
+> > mainline (or linux-next). update_mmu_cache_pmd is only called from
+> > mm/huge_memory.c, which depends on CONFIG_TRANSPARENT_HUGEPAGE=y.
+> > 
+> > As for the new huge_pmd_set_accessed function... there's a similar situation
+> > for the do_huge_pmd_wp_page function: it's called from mm/memory.c but is
+> > only defined in mm/huge_memory.c. Looks like the compiler optimises those
+> > calls away because pmd_trans_huge and friends constant-fold to 0.
+> 
+> Ah, OK.
+> 
+> "mm: thp: Set the accessed flag for old pages on access fault" clashes
+> in a non-trivial way with linux-next changes, due to the sched-numa
+> changes (sigh).  This is a problem for me, because I either need to
+> significantly alter your patch (so it isn't applicable to mainline) or
+> I need to stage your patch ahead of linux-next, then fix up linux-next
+> every day after I've pulled and re-merged it.
+> 
+> I'm unsure what your timing is.  Can you carry "mm: thp: Set the
+> accessed flag for old pages on access fault" until either the whole
+> patchset is ready to merge or until the sched-numa situation has been
+> cleared up?
 
-Yes. Looks like I need to send v2 to address Chris' comments,
-I can put these changes there as well.
+I think DaveM may want this patch for sparc, so I'll keep it separate from
+the ARM patches and have a go at reworking it when the sched-numa stuff has
+settled down. Is that all in linux-next btw? If so, I can use that as a
+starting point to dealing with the mess.
 
->         1) ->{set,clear}_child_tid is set by the caller; no need to set it
-> in copy_thread().
->         2) for later work it would be easier if copy_thread() hadn't looked
-> at regs argument at all; telling kernel_thread(9) from clone(2) can be done
-> by checking p->flags & PF_KTHREAD and for clone(2) it's always going to get
-> current_pt_regs().
->         3) interpretation of zero newsp is probably better off in copy_thread()
-> as well.  Eventually we are going to kill regs argument of do_fork() et.al.
->
-> diff --git a/arch/xtensa/kernel/process.c b/arch/xtensa/kernel/process.c
-> index 58e50ff..9d8f387 100644
-> --- a/arch/xtensa/kernel/process.c
-> +++ b/arch/xtensa/kernel/process.c
-> @@ -200,7 +200,7 @@ int arch_dup_task_struct(struct task_struct *dst, struct task_struct *src)
->
->  int copy_thread(unsigned long clone_flags, unsigned long usp_thread_fn,
->                 unsigned long thread_fn_arg,
-> -                struct task_struct * p, struct pt_regs * regs)
-> +                struct task_struct * p, struct pt_regs *unused)
->  {
->         struct pt_regs *childregs = task_pt_regs(p);
->
-> @@ -212,10 +212,10 @@ int copy_thread(unsigned long clone_flags, unsigned long usp_thread_fn,
->         *((int*)childregs - 3) = (unsigned long)childregs;
->         *((int*)childregs - 4) = 0;
->
-> -       p->set_child_tid = p->clear_child_tid = NULL;
->         p->thread.sp = (unsigned long)childregs;
->
-> -       if (regs) {
-> +       if (!(p->flags & PF_KTHREAD)) {
-> +               struct pt_regs *regs = current_pt_regs();
->                 p->thread.ra = MAKE_RA_FOR_CALL(
->                                 (unsigned long)ret_from_fork, 0x1);
->
-> @@ -224,7 +224,8 @@ int copy_thread(unsigned long clone_flags, unsigned long usp_thread_fn,
->                  * ARs beyond a0-a15 exist past the end of the struct.
->                  */
->                 *childregs = *regs;
-> -               childregs->areg[1] = usp_thread_fn;
-> +               if (usp_thread_fn)
-> +                       childregs->areg[1] = usp_thread_fn;
->                 childregs->areg[2] = 0;
->
->                 if (clone_flags & CLONE_VM) {
-> @@ -346,7 +347,5 @@ long xtensa_clone(unsigned long clone_flags, unsigned long newsp,
->                    void __user *child_tid, long a5,
->                    struct pt_regs *regs)
->  {
-> -        if (!newsp)
-> -                newsp = regs->areg[1];
->          return do_fork(clone_flags, newsp, regs, 0, parent_tid, child_tid);
->  }
+Cheers,
 
+Will
 
-
--- 
-Thanks.
--- Max
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
