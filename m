@@ -1,53 +1,85 @@
-From: Johannes Weiner <hannes@cmpxchg.org>
-Subject: Re: [PATCH v3] mm: thp: Set the accessed flag for old pages on
- access fault.
-Date: Thu, 25 Oct 2012 15:51:10 -0400
-Message-ID: <20121025195110.GA4771@cmpxchg.org>
-References: <1351183471-14710-1-git-send-email-will.deacon@arm.com>
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: Re: [PATCH] asm-generic/io.h: remove asm/cacheflush.h include
+Date: Fri, 26 Oct 2012 01:19:47 +0400
+Message-ID: <CAMo8BfL3o=+JZiZJuR6kC+O=0Kf4quyXsxFTugdTs+Rfwn+zQQ@mail.gmail.com>
+References: <1350984117-17369-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <1351183471-14710-1-git-send-email-will.deacon@arm.com>
-Sender: owner-linux-mm@kvack.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mhocko@suse.cz, peterz@infradead.org, akpm@linux-foundation.org, Chris Metcalf <cmetcalf@tilera.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Andrea Arcangeli <aarcange@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ob0-f174.google.com ([209.85.214.174]:44600 "EHLO
+	mail-ob0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751038Ab2JYVTs (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Oct 2012 17:19:48 -0400
+In-Reply-To: <1350984117-17369-1-git-send-email-james.hogan@imgtec.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Jonas Bonn <jonas@southpole.se>, linux-arch@vger.kernel.org, linux@lists.openrisc.net, linux-kernel@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linux-xtensa@linux-xtensa.org, Chris Zankel <chris@zankel.net>, Mike Frysinger <vapier@gentoo.org>, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-On Thu, Oct 25, 2012 at 05:44:31PM +0100, Will Deacon wrote:
-> On x86 memory accesses to pages without the ACCESSED flag set result in the
-> ACCESSED flag being set automatically. With the ARM architecture a page access
-> fault is raised instead (and it will continue to be raised until the ACCESSED
-> flag is set for the appropriate PTE/PMD).
-> 
-> For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
-> setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
-> be called for a write fault.
-> 
-> This patch ensures that faults on transparent hugepages which do not result
-> in a CoW update the access flags for the faulting pmd.
-> 
-> Cc: Chris Metcalf <cmetcalf@tilera.com>
-> Cc: Kirill A. Shutemov <kirill@shutemov.name>
-> Cc: Andrea Arcangeli <aarcange@redhat.com>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
+On Tue, Oct 23, 2012 at 1:21 PM, James Hogan <james.hogan@imgtec.com> wrote:
+> Including <asm/cacheflush.h> from <asm-generic/io.h> prevents
+> cacheflush.h being able to use I/O functions like readl and writel due
+> to circular include dependencies. It doesn't appear as if anything from
+> cacheflush.h is actually used by the generic io.h, so remove the
+> include.
 
-Acked-by: Johannes Weiner <hannes@cmpxchg.org>
+Acked-by: Max Filippov <jcmvbkbc@gmail.com> for xtensa part.
 
-> Ok chaps, I rebased this thing onto today's next (which basically
-> necessitated a rewrite) so I've reluctantly dropped my acks and kindly
-> ask if you could eyeball the new code, especially where the locking is
-> concerned. In the numa code (do_huge_pmd_prot_none), Peter checks again
-> that the page is not splitting, but I can't see why that is required.
+> I've compile tested a defconfig compilation of blackfin, openrisc (which
+> needed <asm/pgtable.h> including from it's <asm/io.h> to get the PAGE_*
+> definitions), and xtensa.
+>
+> Other architectures which use asm-generic/io.h are score and unicore32,
+> and looking at their io.h I don't see any obvious problems.
+>
+> Signed-off-by: James Hogan <james.hogan@imgtec.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Jonas Bonn <jonas@southpole.se>
+> Cc: Chris Zankel <chris@zankel.net>
+> Cc: Max Filippov <jcmvbkbc@gmail.com>
+> Cc: Mike Frysinger <vapier@gentoo.org>
+> Cc: Chen Liqin <liqin.chen@sunplusct.com>
+> Cc: Lennox Wu <lennox.wu@gmail.com>
+> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
+> ---
+> Any compile testing of score and unicore32 anybody could provide would
+> be great.
+>
+>  arch/openrisc/include/asm/io.h |    1 +
+>  include/asm-generic/io.h       |    1 -
+>  2 files changed, 1 insertions(+), 1 deletions(-)
+>
+> diff --git a/arch/openrisc/include/asm/io.h b/arch/openrisc/include/asm/io.h
+> index 07f5299..7c69139 100644
+> --- a/arch/openrisc/include/asm/io.h
+> +++ b/arch/openrisc/include/asm/io.h
+> @@ -30,6 +30,7 @@
+>  #define PIO_MASK               0
+>
+>  #include <asm-generic/io.h>
+> +#include <asm/pgtable.h>
+>
+>  extern void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
+>                                 pgprot_t prot);
+> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+> index 448303b..616eea5 100644
+> --- a/include/asm-generic/io.h
+> +++ b/include/asm-generic/io.h
+> @@ -12,7 +12,6 @@
+>  #define __ASM_GENERIC_IO_H
+>
+>  #include <asm/page.h> /* I/O is all done through memory accesses */
+> -#include <asm/cacheflush.h>
+>  #include <linux/types.h>
+>
+>  #ifdef CONFIG_GENERIC_IOMAP
+> --
+> 1.7.7.6
+>
+>
 
-I don't either.  If the thing was splitting when the fault happened,
-that path is not taken.  And the locked pmd_same() check should rule
-out splitting setting in after testing pmd_trans_huge_splitting().
 
-Peter?
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+-- 
+Thanks.
+-- Max
