@@ -1,32 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:31754 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S934569Ab2JYH5s (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 25 Oct 2012 03:57:48 -0400
-From: David Howells <dhowells@redhat.com>
-In-Reply-To: <20121024194619.GC17945@liondog.tnic>
-References: <20121024194619.GC17945@liondog.tnic> <20121019165558.23037.40181.stgit@warthog.procyon.org.uk> <20121024184337.GD13993@ghostprotocols.net>
-Subject: Re: [RFC][PATCH 0/5] tools, perf: Fix up for x86 UAPI disintegration
-Date: Thu, 25 Oct 2012 08:57:20 +0100
-Message-ID: <8477.1351151840@warthog.procyon.org.uk>
+Received: from mail.southpole.se ([193.12.106.18]:51292 "EHLO
+	mail.southpole.se" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1945939Ab2JYNkX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Oct 2012 09:40:23 -0400
+Message-ID: <1351172416.6232.70.camel@jerome.southpole.se>
+Subject: Re: [PATCH] asm-generic/io.h: remove asm/cacheflush.h include
+From: Jonas Bonn <jonas@southpole.se>
+Date: Thu, 25 Oct 2012 15:40:16 +0200
+In-Reply-To: <1350984117-17369-1-git-send-email-james.hogan@imgtec.com>
+References: <1350984117-17369-1-git-send-email-james.hogan@imgtec.com>
+Content-Type: multipart/signed; micalg="pgp-sha1"; protocol="application/pgp-signature";
+	boundary="=-DroHWeIpZkq/HMR3Q1UU"
+Mime-Version: 1.0
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Borislav Petkov <bp@alien8.de>
-Cc: dhowells@redhat.com, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, Namhyung Kim <namhyung@gmail.com>, mingo@kernel.org, tglx@linutronix.de, davem@davemloft.net, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
-Message-ID: <20121025075720.7G6wwNWbuJR933TOOs64eRS_RPwMjuHhm1NO0807zxE@z>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux@lists.openrisc.net, linux-kernel@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linux-xtensa@linux-xtensa.org, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>
+Message-ID: <20121025134016.QBrQgOsNbertMKo3Ao1OkPb-Aau8st2VhHOby3kAZiQ@z>
 
-Borislav Petkov <bp@alien8.de> wrote:
 
-> David, where can get that x86 UAPI disintegration patch?
+--=-DroHWeIpZkq/HMR3Q1UU
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-The tip tree has it in branch x86/uapi or you can get it from:
+On Tue, 2012-10-23 at 10:21 +0100, James Hogan wrote:
+> Including <asm/cacheflush.h> from <asm-generic/io.h> prevents
+> cacheflush.h being able to use I/O functions like readl and writel due
+> to circular include dependencies. It doesn't appear as if anything from
+> cacheflush.h is actually used by the generic io.h, so remove the
+> include.
+>=20
+> I've compile tested a defconfig compilation of blackfin, openrisc (which
+> needed <asm/pgtable.h> including from it's <asm/io.h> to get the PAGE_*
+> definitions), and xtensa.
+>=20
+> Other architectures which use asm-generic/io.h are score and unicore32,
+> and looking at their io.h I don't see any obvious problems.
 
-	git://git.infradead.org/users/dhowells/linux-headers.git
+Acked-by: Jonas Bonn <jonas@southpole.se> for OpenRISC
 
-branch disintegrate-x86 or tag disintegrate-x86-20121009.
+Who's tree should this go via.  I can take it via the openrisc tree, but
+it would be good to get some Ack's that this isn't going to break things
+for the other arch's (in particular score and unicore32, since they are
+untested).
 
-I've posted a couple of additional patches to deal with files that became
-empty, but they're only for dealing with people who construct their kernel
-sources with the patch program.
+/Jonas
 
-David
+--=-DroHWeIpZkq/HMR3Q1UU
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
+Content-Transfer-Encoding: 7bit
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
+
+iEYEABECAAYFAlCJQUAACgkQ70gcjN2673Mg9ACgj7RYv/dyPk9S9zHc+g4dSAhL
+KpIAn0413qPWwD42ZyDGpMBjlY5nzmxf
+=i/LT
+-----END PGP SIGNATURE-----
+
+--=-DroHWeIpZkq/HMR3Q1UU--
+
