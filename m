@@ -1,43 +1,37 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH] asm-generic/io.h: remove asm/cacheflush.h
-	include
-Date: Thu, 25 Oct 2012 14:10:23 +0000
-Message-ID: <201210251410.23720.arnd@arndb.de>
-References: <1350984117-17369-1-git-send-email-james.hogan@imgtec.com>
-	<1351172416.6232.70.camel@jerome.southpole.se>
-	<5089479F.6070608@imgtec.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and
+ GENERIC_KERNEL_EXECVE
+Date: Thu, 25 Oct 2012 15:25:05 +0100
+Message-ID: <20121025142505.GK2616@ZenIV.linux.org.uk>
+References: <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com>
+ <20121019213548.GR2616@ZenIV.linux.org.uk>
+ <5082A1F1.3080303@tilera.com>
+ <20121020153401.GT2616@ZenIV.linux.org.uk>
+ <20121020171643.GU2616@ZenIV.linux.org.uk>
+ <5086D432.4070008@tilera.com>
+ <20121023184122.GZ2616@ZenIV.linux.org.uk>
+ <5086EE7C.2080608@tilera.com>
+ <20121023203620.GA2616@ZenIV.linux.org.uk>
+ <50893F33.10700@tilera.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-bounces@lists.openrisc.net>
-In-Reply-To: <5089479F.6070608@imgtec.com>
-List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
-	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
-List-Archive: <http://lists.openrisc.net/pipermail/linux>
-List-Post: <mailto:linux@lists.openrisc.net>
-List-Help: <mailto:linux-request@lists.openrisc.net?subject=help>
-List-Subscribe: <http://lists.openrisc.net/listinfo/linux>,
-	<mailto:linux-request@lists.openrisc.net?subject=subscribe>
-Sender: linux-bounces@lists.openrisc.net
-Errors-To: linux-bounces@lists.openrisc.net
-To: James Hogan <james.hogan@imgtec.com>
-Cc: linux-arch@vger.kernel.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, Mike Frysinger <vapier@gentoo.org>, linux-xtensa@linux-xtensa.org, linux-kernel@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, linux@lists.openrisc.net, uclinux-dist-devel@blackfin.uclinux.org, Chen Liqin <liqin.chen@sunplusct.com>, Chris Zankel <chris@zankel.net>, Lennox Wu <lennox.wu@gmail.com>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <50893F33.10700@tilera.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Chris Metcalf <cmetcalf@tilera.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>
 List-Id: linux-arch.vger.kernel.org
 
-On Thursday 25 October 2012, James Hogan wrote:
-> > Who's tree should this go via.  I can take it via the openrisc
-> > tree, but it would be good to get some Ack's that this isn't going
-> > to break things for the other arch's (in particular score and
-> > unicore32, since they are untested).
+On Thu, Oct 25, 2012 at 09:31:31AM -0400, Chris Metcalf wrote:
+> On 10/23/2012 4:36 PM, Al Viro wrote:
+> > Could you test the following on top of your patch?  It gets rid of
+> > regs use in sys_clone() *and* of the regs argument in copy_thread().
+> > If that work (including SMP - note that it changes the path taken
+> > by copy_thread() when called by fork_idle()), that should be all
+> > we'll need in arch/tile for killing idle_regs() and killing the pt_regs
+> > passing to do_fork()/copy_process()/copy_thread().
 > 
-> Yeh I'd like some acks from score and unicore32 if possible, since I
-> didn't notice I needed the openrisc bit until I tried compiling it.
+> It seems to work fine.  Thanks!
 
-I'm not worried about score, because there have been no updates at
-all for the entire last year, and I doubt anyone is using that any
-more. I agree that having an Ack from Guan Xuetao would be good.
-
-The patch will also show up in linux-next now, and I can update
-it if necessary.
-
-	Arnd
+Thanks.  Put into no-rebase mode.
