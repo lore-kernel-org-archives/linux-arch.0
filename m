@@ -1,42 +1,130 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:46327 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759830Ab2JYOZH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Oct 2012 10:25:07 -0400
-Date: Thu, 25 Oct 2012 15:25:05 +0100
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and
- GENERIC_KERNEL_EXECVE
-Message-ID: <20121025142505.GK2616@ZenIV.linux.org.uk>
-References: <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com>
- <20121019213548.GR2616@ZenIV.linux.org.uk>
- <5082A1F1.3080303@tilera.com>
- <20121020153401.GT2616@ZenIV.linux.org.uk>
- <20121020171643.GU2616@ZenIV.linux.org.uk>
- <5086D432.4070008@tilera.com>
- <20121023184122.GZ2616@ZenIV.linux.org.uk>
- <5086EE7C.2080608@tilera.com>
- <20121023203620.GA2616@ZenIV.linux.org.uk>
- <50893F33.10700@tilera.com>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <50893F33.10700@tilera.com>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:44943 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1755502Ab2JYQpQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Oct 2012 12:45:16 -0400
+From: Will Deacon <will.deacon@arm.com>
+Subject: [PATCH v3] mm: thp: Set the accessed flag for old pages on access fault.
+Date: Thu, 25 Oct 2012 17:44:31 +0100
+Message-ID: <1351183471-14710-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Chris Metcalf <cmetcalf@tilera.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>
-Message-ID: <20121025142505.iS8JvSYOKlnUPiCODJKSTXpIa4PvcknL6LPlg4wxqeQ@z>
+To: linux-mm@kvack.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mhocko@suse.cz, peterz@infradead.org, akpm@linux-foundation.org, Will Deacon <will.deacon@arm.com>, Chris Metcalf <cmetcalf@tilera.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Andrea Arcangeli <aarcange@redhat.com>
+Message-ID: <20121025164431.vKZiE_HLVRBw1UDuGXkpPrw2EKL1JL54qcvYjvpqDlA@z>
 
-On Thu, Oct 25, 2012 at 09:31:31AM -0400, Chris Metcalf wrote:
-> On 10/23/2012 4:36 PM, Al Viro wrote:
-> > Could you test the following on top of your patch?  It gets rid of
-> > regs use in sys_clone() *and* of the regs argument in copy_thread().
-> > If that work (including SMP - note that it changes the path taken
-> > by copy_thread() when called by fork_idle()), that should be all
-> > we'll need in arch/tile for killing idle_regs() and killing the pt_regs
-> > passing to do_fork()/copy_process()/copy_thread().
-> 
-> It seems to work fine.  Thanks!
+On x86 memory accesses to pages without the ACCESSED flag set result in the
+ACCESSED flag being set automatically. With the ARM architecture a page access
+fault is raised instead (and it will continue to be raised until the ACCESSED
+flag is set for the appropriate PTE/PMD).
 
-Thanks.  Put into no-rebase mode.
+For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
+setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
+be called for a write fault.
+
+This patch ensures that faults on transparent hugepages which do not result
+in a CoW update the access flags for the faulting pmd.
+
+Cc: Chris Metcalf <cmetcalf@tilera.com>
+Cc: Kirill A. Shutemov <kirill@shutemov.name>
+Cc: Andrea Arcangeli <aarcange@redhat.com>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+
+Ok chaps, I rebased this thing onto today's next (which basically
+necessitated a rewrite) so I've reluctantly dropped my acks and kindly
+ask if you could eyeball the new code, especially where the locking is
+concerned. In the numa code (do_huge_pmd_prot_none), Peter checks again
+that the page is not splitting, but I can't see why that is required.
+
+Cheers,
+
+Will
+
+ include/linux/huge_mm.h |    4 ++++
+ mm/huge_memory.c        |   22 ++++++++++++++++++++++
+ mm/memory.c             |    7 ++++++-
+ 3 files changed, 32 insertions(+), 1 deletions(-)
+
+diff --git a/include/linux/huge_mm.h b/include/linux/huge_mm.h
+index 4f0f948..766fb27 100644
+--- a/include/linux/huge_mm.h
++++ b/include/linux/huge_mm.h
+@@ -8,6 +8,10 @@ extern int do_huge_pmd_anonymous_page(struct mm_struct *mm,
+ extern int copy_huge_pmd(struct mm_struct *dst_mm, struct mm_struct *src_mm,
+ 			 pmd_t *dst_pmd, pmd_t *src_pmd, unsigned long addr,
+ 			 struct vm_area_struct *vma);
++extern void huge_pmd_set_accessed(struct mm_struct *mm,
++				  struct vm_area_struct *vma,
++				  unsigned long address, pmd_t *pmd,
++				  pmd_t orig_pmd, int dirty);
+ extern int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
+ 			       unsigned long address, pmd_t *pmd,
+ 			       pmd_t orig_pmd);
+diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+index 3c14a96..f024d98 100644
+--- a/mm/huge_memory.c
++++ b/mm/huge_memory.c
+@@ -932,6 +932,28 @@ out:
+ 	return ret;
+ }
+ 
++void huge_pmd_set_accessed(struct mm_struct *mm,
++			   struct vm_area_struct *vma,
++			   unsigned long address,
++			   pmd_t *pmd, pmd_t orig_pmd,
++			   int dirty)
++{
++	pmd_t entry;
++	unsigned long haddr;
++
++	spin_lock(&mm->page_table_lock);
++	if (unlikely(!pmd_same(*pmd, orig_pmd)))
++		goto unlock;
++
++	entry = pmd_mkyoung(orig_pmd);
++	haddr = address & HPAGE_PMD_MASK;
++	if (pmdp_set_access_flags(vma, haddr, pmd, entry, dirty))
++		update_mmu_cache_pmd(vma, address, pmd);
++
++unlock:
++	spin_unlock(&mm->page_table_lock);
++}
++
+ static int do_huge_pmd_wp_page_fallback(struct mm_struct *mm,
+ 					struct vm_area_struct *vma,
+ 					unsigned long address,
+diff --git a/mm/memory.c b/mm/memory.c
+index f21ac1c..bcbc084 100644
+--- a/mm/memory.c
++++ b/mm/memory.c
+@@ -3650,12 +3650,14 @@ retry:
+ 
+ 		barrier();
+ 		if (pmd_trans_huge(orig_pmd) && !pmd_trans_splitting(orig_pmd)) {
++			unsigned int dirty = flags & FAULT_FLAG_WRITE;
++
+ 			if (pmd_numa(vma, orig_pmd)) {
+ 				do_huge_pmd_numa_page(mm, vma, address, pmd,
+ 						      flags, orig_pmd);
+ 			}
+ 
+-			if ((flags & FAULT_FLAG_WRITE) && !pmd_write(orig_pmd)) {
++			if (dirty && !pmd_write(orig_pmd)) {
+ 				ret = do_huge_pmd_wp_page(mm, vma, address, pmd,
+ 							  orig_pmd);
+ 				/*
+@@ -3665,6 +3667,9 @@ retry:
+ 				 */
+ 				if (unlikely(ret & VM_FAULT_OOM))
+ 					goto retry;
++			} else {
++				huge_pmd_set_accessed(mm, vma, address, pmd,
++						      orig_pmd, dirty);
+ 			}
+ 
+ 			return ret;
+-- 
+1.7.4.1
+
