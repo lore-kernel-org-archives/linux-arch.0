@@ -1,116 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0029.austin.hp.com ([15.216.28.36]:12442 "EHLO
-	g1t0029.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751161Ab2JXPry (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 24 Oct 2012 11:47:54 -0400
-Message-ID: <1351093667.1205.11.camel@MikesLinux.fc.hp.com>
-Subject: Re: [PATCH] mm: memmap_init_zone() performance improvement
-From: Mike Yoknis <mike.yoknis@hp.com>
-Reply-To: mike.yoknis@hp.com
-Date: Wed, 24 Oct 2012 09:47:47 -0600
-In-Reply-To: <20121020082858.GA2698@suse.de>
-References: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
-	 <20121008151656.GM29125@suse.de>
-	 <1349794597.29752.10.camel@MikesLinux.fc.hp.com>
-	 <1350676398.1169.6.camel@MikesLinux.fc.hp.com>
-	 <20121020082858.GA2698@suse.de>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from mx1.redhat.com ([209.132.183.28]:31754 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S934569Ab2JYH5s (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 25 Oct 2012 03:57:48 -0400
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20121024194619.GC17945@liondog.tnic>
+References: <20121024194619.GC17945@liondog.tnic> <20121019165558.23037.40181.stgit@warthog.procyon.org.uk> <20121024184337.GD13993@ghostprotocols.net>
+Subject: Re: [RFC][PATCH 0/5] tools, perf: Fix up for x86 UAPI disintegration
+Date: Thu, 25 Oct 2012 08:57:20 +0100
+Message-ID: <8477.1351151840@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mel Gorman <mgorman@suse.de>
-Cc: mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20121024154747.ZdyHMVAPfsejXdT2XcFXFRnFnBNTxVa8CvLAuoQnA3g@z>
+To: Borislav Petkov <bp@alien8.de>
+Cc: dhowells@redhat.com, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, Namhyung Kim <namhyung@gmail.com>, mingo@kernel.org, tglx@linutronix.de, davem@davemloft.net, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
+Message-ID: <20121025075720.7G6wwNWbuJR933TOOs64eRS_RPwMjuHhm1NO0807zxE@z>
 
-On Sat, 2012-10-20 at 09:29 +0100, Mel Gorman wrote:
-> On Fri, Oct 19, 2012 at 01:53:18PM -0600, Mike Yoknis wrote:
-> > On Tue, 2012-10-09 at 08:56 -0600, Mike Yoknis wrote:
-> > > On Mon, 2012-10-08 at 16:16 +0100, Mel Gorman wrote:
-> > > > On Wed, Oct 03, 2012 at 08:56:14AM -0600, Mike Yoknis wrote:
-> > > > > memmap_init_zone() loops through every Page Frame Number (pfn),
-> > > > > including pfn values that are within the gaps between existing
-> > > > > memory sections.  The unneeded looping will become a boot
-> > > > > performance issue when machines configure larger memory ranges
-> > > > > that will contain larger and more numerous gaps.
-> > > > > 
-> > > > > The code will skip across invalid sections to reduce the
-> > > > > number of loops executed.
-> > > > > 
-> > > > > Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
-> > > > 
-> > > > I do not see the need for
-> > > > the additional complexity unless you can show it makes a big difference
-> > > > to boot times.
-> > > > 
-> > > 
-> > > Mel,
-> > > 
-> > > Let me pass along the numbers I have.  We have what we call an
-> > > "architectural simulator".  It is a computer program that pretends that
-> > > it is a computer system.  We use it to test the firmware before real
-> > > hardware is available.  We have booted Linux on our simulator.  As you
-> > > would expect it takes longer to boot on the simulator than it does on
-> > > real hardware.
-> > > 
-> > > With my patch - boot time 41 minutes
-> > > Without patch - boot time 94 minutes
-> > > 
-> > > These numbers do not scale linearly to real hardware.  But indicate to
-> > > me a place where Linux can be improved.
-> > > 
-> > > Mike Yoknis
-> > > 
-> > Mel,
-> > I finally got access to prototype hardware.  
-> > It is a relatively small machine with only 64GB of RAM.
-> >  
-> > I put in a time measurement by reading the TSC register.
-> > I booted both with and without my patch -
-> >  
-> > Without patch -
-> > [    0.000000]   Normal zone: 13400064 pages, LIFO batch:31
-> > [    0.000000] memmap_init_zone() enter 1404184834218
-> > [    0.000000] memmap_init_zone() exit  1411174884438  diff = 6990050220
-> >  
-> > With patch -
-> > [    0.000000]   Normal zone: 13400064 pages, LIFO batch:31
-> > [    0.000000] memmap_init_zone() enter 1555530050778
-> > [    0.000000] memmap_init_zone() exit  1559379204643  diff = 3849153865
-> >  
-> > This shows that without the patch the routine spends 45% 
-> > of its time spinning unnecessarily.
-> >  
-> 
-> I'm travelling at the moment so apologies that I have not followed up on
-> this. My problem is still the same with the patch - it changes more
-> headers than is necessary and it is sparsemem specific. At minimum, try
-> the suggestion of 
-> 
-> if (!early_pfn_valid(pfn)) {
->       pfn = ALIGN(pfn + MAX_ORDER_NR_PAGES, MAX_ORDER_NR_PAGES) - 1;
->       continue;
-> }
-> 
-> and see how much it gains you as it should work on all memory models. If
-> it turns out that you really need to skip whole sections then the strice
-> could MAX_ORDER_NR_PAGES on all memory models except sparsemem where the
-> stride would be PAGES_PER_SECTION
-> 
-Mel,
-I tried your suggestion.  I re-ran all 3 methods on our latest firmware.
+Borislav Petkov <bp@alien8.de> wrote:
 
-The following are TSC difference numbers (*10^6) to execute
-memmap_init_zone() -
+> David, where can get that x86 UAPI disintegration patch?
 
-No patch   - 7010
-Mel's patch- 3918
-My patch   - 3847
+The tip tree has it in branch x86/uapi or you can get it from:
 
-The incremental improvement of my method is not significant vs. yours.
+	git://git.infradead.org/users/dhowells/linux-headers.git
 
-If you believe your suggested change is worthwhile I will create a v2
-patch.
-Mike Y
+branch disintegrate-x86 or tag disintegrate-x86-20121009.
 
+I've posted a couple of additional patches to deal with files that became
+empty, but they're only for dealing with people who construct their kernel
+sources with the patch program.
 
+David
