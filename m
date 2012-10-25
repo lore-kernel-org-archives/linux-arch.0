@@ -1,34 +1,80 @@
-From: Chris Metcalf <cmetcalf@tilera.com>
-Subject: Re: [PATCH] tile: support GENERIC_KERNEL_THREAD and GENERIC_KERNEL_EXECVE
-Date: Thu, 25 Oct 2012 09:31:31 -0400
-Message-ID: <50893F33.10700@tilera.com>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk> <201210192041.q9JKf7jD003998@farm-0010.internal.tilera.com> <20121019213548.GR2616@ZenIV.linux.org.uk> <5082A1F1.3080303@tilera.com> <20121020153401.GT2616@ZenIV.linux.org.uk> <20121020171643.GU2616@ZenIV.linux.org.uk> <5086D432.4070008@tilera.com> <20121023184122.GZ2616@ZenIV.linux.org.uk> <5086EE7C.2080608@tilera.com> <20121023203620.GA2616@ZenIV.linux.org.uk>
+From: Jonas Bonn <jonas@southpole.se>
+Subject: Re: [PATCH] asm-generic/io.h: remove asm/cacheflush.h
+	include
+Date: Thu, 25 Oct 2012 15:40:16 +0200
+Message-ID: <1351172416.6232.70.camel@jerome.southpole.se>
+References: <1350984117-17369-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: multipart/mixed; boundary="===============3131519270252712387=="
+Return-path: <linux-bounces@lists.openrisc.net>
+In-Reply-To: <1350984117-17369-1-git-send-email-james.hogan@imgtec.com>
+List-Unsubscribe: <http://lists.openrisc.net/options/linux>,
+	<mailto:linux-request@lists.openrisc.net?subject=unsubscribe>
+List-Archive: <http://lists.openrisc.net/pipermail/linux>
+List-Post: <mailto:linux@lists.openrisc.net>
+List-Help: <mailto:linux-request@lists.openrisc.net?subject=help>
+List-Subscribe: <http://lists.openrisc.net/listinfo/linux>,
+	<mailto:linux-request@lists.openrisc.net?subject=subscribe>
+Sender: linux-bounces@lists.openrisc.net
+Errors-To: linux-bounces@lists.openrisc.net
+To: James Hogan <james.hogan@imgtec.com>
+Cc: linux-arch@vger.kernel.org, linux-xtensa@linux-xtensa.org, Guan Xuetao <gxt@mprc.pku.edu.cn>, Mike Frysinger <vapier@gentoo.org>, Arnd Bergmann <arnd@arndb.de>, Chris Zankel <chris@zankel.net>, linux-kernel@vger.kernel.org, Max Filippov <jcmvbkbc@gmail.com>, linux@lists.openrisc.net, uclinux-dist-devel@blackfin.uclinux.org, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>
+List-Id: linux-arch.vger.kernel.org
+
+
+--===============3131519270252712387==
+Content-Type: multipart/signed; micalg="pgp-sha1"; protocol="application/pgp-signature";
+	boundary="=-DroHWeIpZkq/HMR3Q1UU"
+
+
+--=-DroHWeIpZkq/HMR3Q1UU
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+On Tue, 2012-10-23 at 10:21 +0100, James Hogan wrote:
+> Including <asm/cacheflush.h> from <asm-generic/io.h> prevents
+> cacheflush.h being able to use I/O functions like readl and writel due
+> to circular include dependencies. It doesn't appear as if anything from
+> cacheflush.h is actually used by the generic io.h, so remove the
+> include.
+>=20
+> I've compile tested a defconfig compilation of blackfin, openrisc (which
+> needed <asm/pgtable.h> including from it's <asm/io.h> to get the PAGE_*
+> definitions), and xtensa.
+>=20
+> Other architectures which use asm-generic/io.h are score and unicore32,
+> and looking at their io.h I don't see any obvious problems.
+
+Acked-by: Jonas Bonn <jonas@southpole.se> for OpenRISC
+
+Who's tree should this go via.  I can take it via the openrisc tree, but
+it would be good to get some Ack's that this isn't going to break things
+for the other arch's (in particular score and unicore32, since they are
+untested).
+
+/Jonas
+
+--=-DroHWeIpZkq/HMR3Q1UU
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: This is a digitally signed message part
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from usmamail.tilera.com ([12.216.194.151]:29346 "EHLO
-	USMAMAIL.TILERA.COM" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759057Ab2JYNbd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 25 Oct 2012 09:31:33 -0400
-In-Reply-To: <20121023203620.GA2616@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>
 
-On 10/23/2012 4:36 PM, Al Viro wrote:
-> Could you test the following on top of your patch?  It gets rid of
-> regs use in sys_clone() *and* of the regs argument in copy_thread().
-> If that work (including SMP - note that it changes the path taken
-> by copy_thread() when called by fork_idle()), that should be all
-> we'll need in arch/tile for killing idle_regs() and killing the pt_regs
-> passing to do_fork()/copy_process()/copy_thread().
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.11 (GNU/Linux)
 
-It seems to work fine.  Thanks!
+iEYEABECAAYFAlCJQUAACgkQ70gcjN2673Mg9ACgj7RYv/dyPk9S9zHc+g4dSAhL
+KpIAn0413qPWwD42ZyDGpMBjlY5nzmxf
+=i/LT
+-----END PGP SIGNATURE-----
 
-Acked-by: Chris Metcalf <cmetcalf@tilera.com>
+--=-DroHWeIpZkq/HMR3Q1UU--
 
--- 
-Chris Metcalf, Tilera Corp.
-http://www.tilera.com
+
+--===============3131519270252712387==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: inline
+
+
+--===============3131519270252712387==--
