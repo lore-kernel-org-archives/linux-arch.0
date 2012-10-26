@@ -1,67 +1,63 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:38884 "EHLO
-	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S966172Ab2JZTaJ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 15:30:09 -0400
-From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: [PATCH V4 REPOST 2/2] kbuild: run the pre-processor on *.dts files
-Date: Fri, 26 Oct 2012 13:29:57 -0600
-Message-ID: <1351279797-16450-2-git-send-email-swarren@wwwdotorg.org>
-In-Reply-To: <1351279797-16450-1-git-send-email-swarren@wwwdotorg.org>
-References: <1351279797-16450-1-git-send-email-swarren@wwwdotorg.org>
+Received: from g1t0029.austin.hp.com ([15.216.28.36]:12076 "EHLO
+	g1t0029.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S966838Ab2JZWrz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 18:47:55 -0400
+Message-ID: <1351291667.6504.13.camel@MikesLinux.fc.hp.com>
+Subject: [PATCH v2] mm: memmap_init_zone() performance improvement
+From: Mike Yoknis <mike.yoknis@hp.com>
+Reply-To: mike.yoknis@hp.com
+Date: Fri, 26 Oct 2012 16:47:47 -0600
+In-Reply-To: <20121025094410.GA2558@suse.de>
+References: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
+	 <20121008151656.GM29125@suse.de>
+	 <1349794597.29752.10.camel@MikesLinux.fc.hp.com>
+	 <1350676398.1169.6.camel@MikesLinux.fc.hp.com>
+	 <20121020082858.GA2698@suse.de>
+	 <1351093667.1205.11.camel@MikesLinux.fc.hp.com>
+	 <20121025094410.GA2558@suse.de>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Marek <mmarek@suse.cz>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Stephen Warren <swarren@nvidia.com>
-Message-ID: <20121026192957.4y-Fsi_ehS_RJCMNFbzcHmCibN7MenuuZfjZahANKek@z>
+To: Mel Gorman <mgorman@suse.de>
+Cc: mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20121026224747.-8VQMoH3o-7T7qP-_cP1tVJHp63hPsK0YPBKqtunYnk@z>
 
-From: Stephen Warren <swarren@nvidia.com>
+memmap_init_zone() loops through every Page Frame Number (pfn),
+including pfn values that are within the gaps between existing
+memory sections.  The unneeded looping will become a boot
+performance issue when machines configure larger memory ranges
+that will contain larger and more numerous gaps.
 
-Modify cmd_dtc to run the C pre-processor on the input .dts file before
-passing it to dtc for final compilation. This allows the use of #define
-and #include within the .dts file.
+The code will skip across invalid pfn values to reduce the
+number of loops executed.
 
-Signed-off-by: Stephen Warren <swarren@nvidia.com>
+Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
 ---
-v4:
-* Use -x assembler-with-cpp so pre-defined macros are set up so that
-  #included header files know to only use cpp syntax, not C syntax.
-* Define __DTS__ for similar reasons.
-* use $(CPP) not $(CC) -E, and use $(cpp_flags).
-* Save the pre-processed results so they can be easily inspected when
-  debugging build issues.
-* The use of -x assembler-with-cpp causes cpp to recognize directives in
-  column 1 only. Hence, there's no need to escape property names that
-  begin with #. Hence, there's no need for separate skeleton.dtsi and
-  skeleton.dtsip. Maintain a separate file extension and build rule so that
-  CPP-usage is opt-in. In particular, when using CPP, #include must be used
-  rather than /include/ so that dependencies work.
-v3: Pass "-x c" not "-xc" to cpp.
-v2: Place make %.dtb: %.dtsp rule into Makefile.lib.
----
- scripts/Makefile.lib |    9 +++++++++
- 1 files changed, 9 insertions(+), 0 deletions(-)
+ mm/page_alloc.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
-index 425578e..33432f4 100644
---- a/scripts/Makefile.lib
-+++ b/scripts/Makefile.lib
-@@ -269,6 +269,15 @@ cmd_dtc = $(objtree)/scripts/dtc/dtc -O dtb -o $@ -b 0 $(DTC_FLAGS) -d $(depfile
- $(obj)/%.dtb: $(src)/dts/%.dts FORCE
- 	$(call if_changed_dep,dtc)
- 
-+dtc-tmp = $(subst $(comma),_,$(dot-target).dts)
-+
-+quiet_cmd_dtc_cpp = DTC+CPP $@
-+cmd_dtc_cpp = $(CPP) $(cpp_flags) -D__DTS__ -x assembler-with-cpp -o $(dtc-tmp) $< ; \
-+	$(objtree)/scripts/dtc/dtc -O dtb -o $@ -b 0 $(DTC_FLAGS) $(dtc-tmp)
-+
-+$(obj)/%.dtb: $(src)/dts/%.dtsp FORCE
-+	$(call if_changed_dep,dtc_cpp)
-+
- # Bzip2
- # ---------------------------------------------------------------------------
- 
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 45c916b..9f9c1a6 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -3857,8 +3857,11 @@ void __meminit memmap_init_zone(unsigned long
+size, int nid, unsigned long zone,
+ 		 * exist on hotplugged memory.
+ 		 */
+ 		if (context == MEMMAP_EARLY) {
+-			if (!early_pfn_valid(pfn))
++			if (!early_pfn_valid(pfn)) {
++				pfn = ALIGN(pfn + MAX_ORDER_NR_PAGES,
++						MAX_ORDER_NR_PAGES) - 1;
+ 				continue;
++			}
+ 			if (!early_pfn_in_nid(pfn, nid))
+ 				continue;
+ 		}
 -- 
-1.7.0.4
+1.7.11.3
+
 
