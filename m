@@ -1,170 +1,139 @@
-From: Namhyung Kim <namhyung@kernel.org>
-Subject: Re: [RFC][PATCH 0/5] tools, perf: Fix up for x86 UAPI disintegration
-Date: Fri, 26 Oct 2012 15:04:36 +0900
-Message-ID: <878vat93bf.fsf@sejong.aot.lge.com>
-References: <20121024194619.GC17945@liondog.tnic>
-	<20121019165558.23037.40181.stgit@warthog.procyon.org.uk>
-	<20121024184337.GD13993@ghostprotocols.net>
-	<8477.1351151840@warthog.procyon.org.uk>
-	<87liet97jk.fsf@sejong.aot.lge.com>
+From: Ni zhan Chen <nizhan.chen@gmail.com>
+Subject: Re: [PATCH v3] mm: thp: Set the accessed flag for old pages on access
+ fault.
+Date: Fri, 26 Oct 2012 14:19:55 +0800
+Message-ID: <508A2B8B.7020608@gmail.com>
+References: <1351183471-14710-1-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from LGEMRELSE7Q.lge.com ([156.147.1.151]:56819 "EHLO
-	LGEMRELSE7Q.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756296Ab2JZGEh convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 02:04:37 -0400
-In-Reply-To: <87liet97jk.fsf@sejong.aot.lge.com> (Namhyung Kim's message of
-	"Fri, 26 Oct 2012 13:33:19 +0900")
+Received: from mail-ie0-f174.google.com ([209.85.223.174]:45902 "EHLO
+	mail-ie0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756321Ab2JZGUH (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 02:20:07 -0400
+In-Reply-To: <1351183471-14710-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, mingo@kernel.org, tglx@linutronix.de, davem@davemloft.net, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
+To: Will Deacon <will.deacon@arm.com>
+Cc: linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mhocko@suse.cz, peterz@infradead.org, akpm@linux-foundation.org, Chris Metcalf <cmetcalf@tilera.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Andrea Arcangeli <aarcange@redhat.com>
 
-This time, I tried on tip/master since it seemed that it contains
-related patches already.
+On 10/26/2012 12:44 AM, Will Deacon wrote:
+> On x86 memory accesses to pages without the ACCESSED flag set result in the
+> ACCESSED flag being set automatically. With the ARM architecture a page access
+> fault is raised instead (and it will continue to be raised until the ACCESSED
+> flag is set for the appropriate PTE/PMD).
+>
+> For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
+> setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
+> be called for a write fault.
+>
+> This patch ensures that faults on transparent hugepages which do not result
+> in a CoW update the access flags for the faulting pmd.
 
-At first I got a conflict with davem's change:
+Could you write changlog?
 
---- a/tools/perf/perf.h
-+++ b/tools/perf/perf.h
-@@@ -57,7 -53,6 +53,10 @@@ void get_term_dimensions(struct winsiz
-  #endif
- =20
-  #ifdef __sparc__
-++<<<<<<< HEAD
- +#include "../../arch/sparc/include/uapi/asm/unistd.h"
-++=3D=3D=3D=3D=3D=3D=3D
-++>>>>>>> perf: Make perf build for x86 with UAPI disintegration applie=
-d
-  #define rmb()         asm volatile("":::"memory")
-  #define cpu_relax()   asm volatile("":::"memory")
-  #define CPUINFO_PROC  "cpu"
+>
+> Cc: Chris Metcalf <cmetcalf@tilera.com>
+> Cc: Kirill A. Shutemov <kirill@shutemov.name>
+> Cc: Andrea Arcangeli <aarcange@redhat.com>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
+> ---
+>
+> Ok chaps, I rebased this thing onto today's next (which basically
+> necessitated a rewrite) so I've reluctantly dropped my acks and kindly
+> ask if you could eyeball the new code, especially where the locking is
+> concerned. In the numa code (do_huge_pmd_prot_none), Peter checks again
+> that the page is not splitting, but I can't see why that is required.
+>
+> Cheers,
+>
+> Will
 
+Could you explain why you not call pmd_trans_huge_lock to confirm the 
+pmd is splitting or stable as Andrea point out?
 
-After resolving it, I got a tons of error mostly about redeclaration of
-enum contants.  I managed to build perf with below patch:
-
-
------------- 8< ------------------- 8< -----------------
-diff --git a/tools/perf/Makefile b/tools/perf/Makefile
-index da040ff69b2b..7a73f37696b7 100644
---- a/tools/perf/Makefile
-+++ b/tools/perf/Makefile
-@@ -170,7 +170,11 @@ endif
- ### --- END CONFIGURATION SECTION ---
-=20
- ifeq ($(srctree),)
--srctree :=3D $(shell pwd)
-+srctree :=3D $(shell cd ../../; pwd)
-+endif
-+
-+ifeq ($(objtree),)
-+objtree :=3D $(shell cd ../../; pwd)
- endif
-=20
- BASIC_CFLAGS =3D \
-diff --git a/tools/perf/util/evsel.c b/tools/perf/util/evsel.c
-index 618d41140abd..de882d5a4ab3 100644
---- a/tools/perf/util/evsel.c
-+++ b/tools/perf/util/evsel.c
-@@ -19,7 +19,6 @@
- #include "thread_map.h"
- #include "target.h"
- #include "../../../include/linux/hw_breakpoint.h"
--#include "../../../include/uapi/linux/perf_event.h"
- #include "perf_regs.h"
-=20
- #define FD(e, x, y) (*(int *)xyarray__entry(e->fd, x, y))
-diff --git a/tools/perf/util/evsel.h b/tools/perf/util/evsel.h
-index 6f94d6dea00f..9ac02f655124 100644
---- a/tools/perf/util/evsel.h
-+++ b/tools/perf/util/evsel.h
-@@ -3,7 +3,7 @@
-=20
- #include <linux/list.h>
- #include <stdbool.h>
--#include "../../../include/uapi/linux/perf_event.h"
-+#include <linux/perf_event.h>
- #include "types.h"
- #include "xyarray.h"
- #include "cgroup.h"
-diff --git a/tools/perf/util/header.h b/tools/perf/util/header.h
-index 879d215cdac9..3c24404c8523 100644
---- a/tools/perf/util/header.h
-+++ b/tools/perf/util/header.h
-@@ -1,7 +1,7 @@
- #ifndef __PERF_HEADER_H
- #define __PERF_HEADER_H
-=20
--#include "../../../include/uapi/linux/perf_event.h"
-+#include <linux/perf_event.h>
- #include <sys/types.h>
- #include <stdbool.h>
- #include "types.h"
-diff --git a/tools/perf/util/parse-events.h b/tools/perf/util/parse-eve=
-nts.h
-index ac9a6aacf2f5..146684787adb 100644
---- a/tools/perf/util/parse-events.h
-+++ b/tools/perf/util/parse-events.h
-@@ -7,7 +7,7 @@
- #include <linux/list.h>
- #include <stdbool.h>
- #include "types.h"
--#include "../../../include/uapi/linux/perf_event.h"
-+#include <linux/perf_event.h>
- #include "types.h"
-=20
- struct list_head;
-diff --git a/tools/perf/util/pmu.h b/tools/perf/util/pmu.h
-index 39f3abac7744..8410897cc856 100644
---- a/tools/perf/util/pmu.h
-+++ b/tools/perf/util/pmu.h
-@@ -2,7 +2,7 @@
- #define __PMU_H
-=20
- #include <linux/bitops.h>
--#include "../../../include/uapi/linux/perf_event.h"
-+#include <linux/perf_event.h>
-=20
- enum {
- 	PERF_PMU_FORMAT_VALUE_CONFIG,
-diff --git a/tools/perf/util/session.h b/tools/perf/util/session.h
-index dd6426163ba6..1768581bb4a6 100644
---- a/tools/perf/util/session.h
-+++ b/tools/perf/util/session.h
-@@ -7,7 +7,7 @@
- #include "symbol.h"
- #include "thread.h"
- #include <linux/rbtree.h>
--#include "../../../include/uapi/linux/perf_event.h"
-+#include <linux/perf_event.h>
-=20
- struct sample_queue;
- struct ip_callchain;
------------- 8< ------------------- 8< -----------------
-
-But it also failed to build like this:
-
-    CC builtin-kvm.o
-builtin-kvm.c:146:2: error: =E2=80=98DB_VECTOR=E2=80=99 undeclared here=
- (not in a function)
-builtin-kvm.c:146:2: error: =E2=80=98BP_VECTOR=E2=80=99 undeclared here=
- (not in a function)
-builtin-kvm.c:146:2: error: =E2=80=98UD_VECTOR=E2=80=99 undeclared here=
- (not in a function)
-builtin-kvm.c:146:2: error: =E2=80=98PF_VECTOR=E2=80=99 undeclared here=
- (not in a function)
-builtin-kvm.c:146:2: error: =E2=80=98NM_VECTOR=E2=80=99 undeclared here=
- (not in a function)
-builtin-kvm.c:146:2: error: =E2=80=98MC_VECTOR=E2=80=99 undeclared here=
- (not in a function)
-make: *** [builtin-kvm.o] Error 1
-
-
-I can see that those are defined in arch/x86/include/asm/kvm.h.
-
-
-Thanks,
-Namhyung
+>
+>   include/linux/huge_mm.h |    4 ++++
+>   mm/huge_memory.c        |   22 ++++++++++++++++++++++
+>   mm/memory.c             |    7 ++++++-
+>   3 files changed, 32 insertions(+), 1 deletions(-)
+>
+> diff --git a/include/linux/huge_mm.h b/include/linux/huge_mm.h
+> index 4f0f948..766fb27 100644
+> --- a/include/linux/huge_mm.h
+> +++ b/include/linux/huge_mm.h
+> @@ -8,6 +8,10 @@ extern int do_huge_pmd_anonymous_page(struct mm_struct *mm,
+>   extern int copy_huge_pmd(struct mm_struct *dst_mm, struct mm_struct *src_mm,
+>   			 pmd_t *dst_pmd, pmd_t *src_pmd, unsigned long addr,
+>   			 struct vm_area_struct *vma);
+> +extern void huge_pmd_set_accessed(struct mm_struct *mm,
+> +				  struct vm_area_struct *vma,
+> +				  unsigned long address, pmd_t *pmd,
+> +				  pmd_t orig_pmd, int dirty);
+>   extern int do_huge_pmd_wp_page(struct mm_struct *mm, struct vm_area_struct *vma,
+>   			       unsigned long address, pmd_t *pmd,
+>   			       pmd_t orig_pmd);
+> diff --git a/mm/huge_memory.c b/mm/huge_memory.c
+> index 3c14a96..f024d98 100644
+> --- a/mm/huge_memory.c
+> +++ b/mm/huge_memory.c
+> @@ -932,6 +932,28 @@ out:
+>   	return ret;
+>   }
+>   
+> +void huge_pmd_set_accessed(struct mm_struct *mm,
+> +			   struct vm_area_struct *vma,
+> +			   unsigned long address,
+> +			   pmd_t *pmd, pmd_t orig_pmd,
+> +			   int dirty)
+> +{
+> +	pmd_t entry;
+> +	unsigned long haddr;
+> +
+> +	spin_lock(&mm->page_table_lock);
+> +	if (unlikely(!pmd_same(*pmd, orig_pmd)))
+> +		goto unlock;
+> +
+> +	entry = pmd_mkyoung(orig_pmd);
+> +	haddr = address & HPAGE_PMD_MASK;
+> +	if (pmdp_set_access_flags(vma, haddr, pmd, entry, dirty))
+> +		update_mmu_cache_pmd(vma, address, pmd);
+> +
+> +unlock:
+> +	spin_unlock(&mm->page_table_lock);
+> +}
+> +
+>   static int do_huge_pmd_wp_page_fallback(struct mm_struct *mm,
+>   					struct vm_area_struct *vma,
+>   					unsigned long address,
+> diff --git a/mm/memory.c b/mm/memory.c
+> index f21ac1c..bcbc084 100644
+> --- a/mm/memory.c
+> +++ b/mm/memory.c
+> @@ -3650,12 +3650,14 @@ retry:
+>   
+>   		barrier();
+>   		if (pmd_trans_huge(orig_pmd) && !pmd_trans_splitting(orig_pmd)) {
+> +			unsigned int dirty = flags & FAULT_FLAG_WRITE;
+> +
+>   			if (pmd_numa(vma, orig_pmd)) {
+>   				do_huge_pmd_numa_page(mm, vma, address, pmd,
+>   						      flags, orig_pmd);
+>   			}
+>   
+> -			if ((flags & FAULT_FLAG_WRITE) && !pmd_write(orig_pmd)) {
+> +			if (dirty && !pmd_write(orig_pmd)) {
+>   				ret = do_huge_pmd_wp_page(mm, vma, address, pmd,
+>   							  orig_pmd);
+>   				/*
+> @@ -3665,6 +3667,9 @@ retry:
+>   				 */
+>   				if (unlikely(ret & VM_FAULT_OOM))
+>   					goto retry;
+> +			} else {
+> +				huge_pmd_set_accessed(mm, vma, address, pmd,
+> +						      orig_pmd, dirty);
+>   			}
+>   
+>   			return ret;
