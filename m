@@ -1,111 +1,232 @@
 From: Namhyung Kim <namhyung@kernel.org>
-Subject: Re: [PATCH 2/5] tools: Honour the O= flag when tool build called from a higher Makefile
-Date: Fri, 26 Oct 2012 14:34:59 +0900
-Message-ID: <87haph94os.fsf@sejong.aot.lge.com>
+Subject: Re: [PATCH 3/5] perf: Make perf build for x86 with UAPI disintegration applied
+Date: Fri, 26 Oct 2012 14:49:22 +0900
+Message-ID: <87d305940t.fsf@sejong.aot.lge.com>
 References: <20121019165558.23037.40181.stgit@warthog.procyon.org.uk>
-	<20121019165616.23037.35557.stgit@warthog.procyon.org.uk>
+	<20121019165624.23037.1780.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from LGEMRELSE7Q.lge.com ([156.147.1.151]:45016 "EHLO
-	LGEMRELSE7Q.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755224Ab2JZFfC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 01:35:02 -0400
-In-Reply-To: <20121019165616.23037.35557.stgit@warthog.procyon.org.uk> (David
-	Howells's message of "Fri, 19 Oct 2012 17:56:16 +0100")
+Received: from LGEMRELSE6Q.lge.com ([156.147.1.121]:62430 "EHLO
+	LGEMRELSE6Q.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756202Ab2JZFt0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 01:49:26 -0400
+In-Reply-To: <20121019165624.23037.1780.stgit@warthog.procyon.org.uk> (David
+	Howells's message of "Fri, 19 Oct 2012 17:56:24 +0100")
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Howells <dhowells@redhat.com>
 Cc: mingo@kernel.org, tglx@linutronix.de, acme@ghostprotocols.net, davem@davemloft.net, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
 
-On Fri, 19 Oct 2012 17:56:16 +0100, David Howells wrote:
-> Honour the O= flag that was passed to a higher level Makefile and then passed
-> down as part of a tool build.
->
-> To make this work, the top-level Makefile passes the original O= flag and
-> subdir=tools to the tools/Makefile, and that in turn passes
-> subdir=$(O)/$(subdir)/foodir when building tool foo in directory
-> $(O)/$(subdir)/foodir (where the intervening slashes aren't added if an
-> element is missing).
->
-> For example, take perf.  This is found in tools/perf/.  Assume we're building
-> into directory ~/zebra/, so we pass O=~/zebra to make.  Dependening on where
-> we run the build from, we see:
->
-> 	make run in dir		$(OUTPUT) dir
-> 	=======================	==================
-> 	linux			~/zebra/tools/perf/
-> 	linux/tools		~/zebra/perf/
-> 	linux/tools/perf	~/zebra/
->
-> and if O= is not set, we get:
->
-> 	make run in dir		$(OUTPUT) dir
-> 	=======================	==================
-> 	linux			linux/tools/perf/
-> 	linux/tools		linux/tools/perf/
-> 	linux/tools/perf	linux/tools/perf/
->
-> The output directories are created by the descend function if they don't
-> already exist.
+On Fri, 19 Oct 2012 17:56:24 +0100, David Howells wrote:
+> Make perf build for x86 once the UAPI disintegration patches for that arch
+> have been applied by adding the appropriate -I flags - in the right order -
+> and then converting some #includes that use ../.. notation to find main kernel
+> headerfiles to use <asm/foo.h> and <linux/foo.h> instead.
 
-This is my test:
+Looks nice.
 
-  namhyung@sejong:~$ cd project/linux
-  namhyung@sejong:linux$ make O=~/build/zebra tools/perf
-  /bin/sh: line 0: cd: /home/namhyung/build/zebra: No such file or directory
-  Makefile:121: *** output directory "/home/namhyung/build/zebra" does not exist.  Stop.
-  
-  namhyung@sejong:tools$ mkdir ~/build/zebra
-  namhyung@sejong:linux$ make O=~/build/zebra tools/perf
-    HOSTCC  scripts/basic/fixdep
-    GEN     /home/namhyung/build/zebra/Makefile
-    HOSTCC  scripts/kconfig/conf.o
-    HOSTCC  scripts/kconfig/zconf.tab.o
-    HOSTLD  scripts/kconfig/conf
-  scripts/kconfig/conf --silentoldconfig Kconfig
-  ***
-  *** Configuration file ".config" not found!
-  ***
-  *** Please run some configurator (e.g. "make oldconfig" or
-  *** "make menuconfig" or "make xconfig").
-  ***
-  make[3]: *** [silentoldconfig] Error 1
-  make[2]: *** [silentoldconfig] Error 2
-      DESCEND perf
-      MKDIR /home/namhyung/build/zebra/tools/perf/arch/
-      MKDIR /home/namhyung/build/zebra/tools/perf/arch/x86/util/
-      MKDIR /home/namhyung/build/zebra/tools/perf/bench/
-      MKDIR /home/namhyung/build/zebra/tools/perf/scripts/perl/Perf-Trace-Util/
-      MKDIR /home/namhyung/build/zebra/tools/perf/scripts/python/Perf-Trace-Util/
-      MKDIR /home/namhyung/build/zebra/tools/perf/ui/
-      MKDIR /home/namhyung/build/zebra/tools/perf/ui/browsers/
-      MKDIR /home/namhyung/build/zebra/tools/perf/ui/gtk/
-      MKDIR /home/namhyung/build/zebra/tools/perf/ui/stdio/
-      MKDIR /home/namhyung/build/zebra/tools/perf/ui/tui/
-      MKDIR /home/namhyung/build/zebra/tools/perf/util/
-      MKDIR /home/namhyung/build/zebra/tools/perf/util/scripting-engines/
-  PERF_VERSION = 3.7.rc2.1655.g54fa2b.dirty
-      GEN /home/namhyung/build/zebra/tools/perf/common-cmds.h
-      * new build flags or prefix
-      CC /home/namhyung/build/zebra/tools/perf/perf.o
-      ...
+>
+> Note that -Iarch/foo/include/uapi is present _before_ -Iarch/foo/include.
+> This makes sure we get the userspace version of the pt_regs struct.  Ideally,
+> we wouldn't have the latter -I flag at all, but unfortunately we want
+> asm/svm.h and asm/vmx.h in buildin-kvm.c and these aren't part of the UAPI -
+> at least not for x86.  I wonder if the bits outside of the __KERNEL__ guards
+> *should* be transferred there.
 
-This looks ok but it'd be better if we can skip the config check when
-building tools IMHO.
+What about asm/kvm.h?  Is it a part of the UAPI?
+
+>
+> I note also that perf seems to do its dependency handling manually by listing
+> all the header files it might want to use in LIB_H in the Makefile.  Can this
+> be changed to use -MD?
+
+Yeah, that part could be improved, probably with -MMD.
+
+>
+> Signed-off-by: David Howells <dhowells@redhat.com>
+> ---
+>
+>  tools/perf/Makefile      |   16 +++++++++++++++-
+>  tools/perf/builtin-kvm.c |    6 +++---
+>  tools/perf/perf.h        |   16 +++-------------
+>  3 files changed, 21 insertions(+), 17 deletions(-)
+>
+> diff --git a/tools/perf/Makefile b/tools/perf/Makefile
+> index f7c968a..9024a42 100644
+> --- a/tools/perf/Makefile
+> +++ b/tools/perf/Makefile
+> @@ -169,7 +169,21 @@ endif
+>  
+>  ### --- END CONFIGURATION SECTION ---
+>  
+> -BASIC_CFLAGS = -Iutil/include -Iarch/$(ARCH)/include -I$(OUTPUT)util -I$(TRACE_EVENT_DIR) -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
+> +ifeq ($(srctree),)
+> +srctree := $(shell pwd)
+> +endif
+
+Isn't the srctree intended to point to kernel root?  Also you missed to
+define the objtree which used below.
+
+> +
+> +BASIC_CFLAGS = \
+> +	-Iutil/include \
+> +	-Iarch/$(ARCH)/include \
+> +	-I$(objtree)/arch/$(ARCH)/include/generated/uapi \
+> +	-I$(srctree)/arch/$(ARCH)/include/uapi \
+> +	-I$(srctree)/arch/$(ARCH)/include \
+> +	-I$(objtree)/include/generated/uapi \
+> +	-I$(srctree)/include/uapi \
+> +	-I$(OUTPUT)util \
+> +	-I$(TRACE_EVENT_DIR) \
+> +	-D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
+
+This isn't bad, but using '+=' looks more natural IMHO.
+
+BASIC_CFLAGS  = -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
+BASIC_CFLAGS += -Iutil/include
+BASIC_CFLAGS += -Iarch/$(ARCH)/include
+...
+
+>  BASIC_LDFLAGS =
+>  
+>  # Guard against environment variables
+> diff --git a/tools/perf/builtin-kvm.c b/tools/perf/builtin-kvm.c
+> index 260abc5..e013bdb 100644
+> --- a/tools/perf/builtin-kvm.c
+> +++ b/tools/perf/builtin-kvm.c
+> @@ -22,9 +22,9 @@
+>  #include <pthread.h>
+>  #include <math.h>
+>  
+> -#include "../../arch/x86/include/asm/svm.h"
+> -#include "../../arch/x86/include/asm/vmx.h"
+> -#include "../../arch/x86/include/asm/kvm.h"
+> +#include <asm/svm.h>
+> +#include <asm/vmx.h>
+> +#include <asm/kvm.h>
+>  
+>  struct event_key {
+>  	#define INVALID_KEY     (~0ULL)
+> diff --git a/tools/perf/perf.h b/tools/perf/perf.h
+> index 2762877..238f923 100644
+> --- a/tools/perf/perf.h
+> +++ b/tools/perf/perf.h
+> @@ -5,8 +5,9 @@ struct winsize;
+>  
+>  void get_term_dimensions(struct winsize *ws);
+>  
+> +#include <asm/unistd.h>
+> +
+>  #if defined(__i386__)
+> -#include "../../arch/x86/include/asm/unistd.h"
+>  #define rmb()		asm volatile("lock; addl $0,0(%%esp)" ::: "memory")
+>  #define cpu_relax()	asm volatile("rep; nop" ::: "memory");
+>  #define CPUINFO_PROC	"model name"
+> @@ -16,7 +17,6 @@ void get_term_dimensions(struct winsize *ws);
+>  #endif
+>  
+>  #if defined(__x86_64__)
+> -#include "../../arch/x86/include/asm/unistd.h"
+>  #define rmb()		asm volatile("lfence" ::: "memory")
+>  #define cpu_relax()	asm volatile("rep; nop" ::: "memory");
+>  #define CPUINFO_PROC	"model name"
+> @@ -26,20 +26,17 @@ void get_term_dimensions(struct winsize *ws);
+>  #endif
+>  
+>  #ifdef __powerpc__
+> -#include "../../arch/powerpc/include/asm/unistd.h"
+>  #define rmb()		asm volatile ("sync" ::: "memory")
+>  #define cpu_relax()	asm volatile ("" ::: "memory");
+>  #define CPUINFO_PROC	"cpu"
+>  #endif
+>  
+>  #ifdef __s390__
+> -#include "../../arch/s390/include/asm/unistd.h"
+>  #define rmb()		asm volatile("bcr 15,0" ::: "memory")
+>  #define cpu_relax()	asm volatile("" ::: "memory");
+>  #endif
+>  
+>  #ifdef __sh__
+> -#include "../../arch/sh/include/asm/unistd.h"
+>  #if defined(__SH4A__) || defined(__SH5__)
+>  # define rmb()		asm volatile("synco" ::: "memory")
+>  #else
+> @@ -50,35 +47,30 @@ void get_term_dimensions(struct winsize *ws);
+>  #endif
+>  
+>  #ifdef __hppa__
+> -#include "../../arch/parisc/include/asm/unistd.h"
+>  #define rmb()		asm volatile("" ::: "memory")
+>  #define cpu_relax()	asm volatile("" ::: "memory");
+>  #define CPUINFO_PROC	"cpu"
+>  #endif
+>  
+>  #ifdef __sparc__
+> -#include "../../arch/sparc/include/asm/unistd.h"
+
+It might conflict with davem's sparc uapi patch which merged into tip:
+
+commit 77626081849c9050b20670e5d832aca54c966936
+Author: David Miller <davem@davemloft.net>
+Date:   Wed Oct 17 01:06:56 2012 -0400
+
+    perf tools: Fix build on sparc.
+    
+    More UAPI stuff.
 
 
-  namhyung@sejong:linux cd tools
-  
-  namhyung@sejong:tools$ make O=~/build/zebra perf
-      DESCEND perf
-      ...
-      * new build flags or prefix
-      CC /home/namhyung/build/zebra/perf.o
-      ...
+>  #define rmb()		asm volatile("":::"memory")
+>  #define cpu_relax()	asm volatile("":::"memory")
+>  #define CPUINFO_PROC	"cpu"
+>  #endif
+>  
+>  #ifdef __alpha__
+> -#include "../../arch/alpha/include/asm/unistd.h"
+>  #define rmb()		asm volatile("mb" ::: "memory")
+>  #define cpu_relax()	asm volatile("" ::: "memory")
+>  #define CPUINFO_PROC	"cpu model"
+>  #endif
+>  
+>  #ifdef __ia64__
+> -#include "../../arch/ia64/include/asm/unistd.h"
+>  #define rmb()		asm volatile ("mf" ::: "memory")
+>  #define cpu_relax()	asm volatile ("hint @pause" ::: "memory")
+>  #define CPUINFO_PROC	"model name"
+>  #endif
+>  
+>  #ifdef __arm__
+> -#include "../../arch/arm/include/asm/unistd.h"
+>  /*
+>   * Use the __kuser_memory_barrier helper in the CPU helper page. See
+>   * arch/arm/kernel/entry-armv.S in the kernel source for details.
+> @@ -89,13 +81,11 @@ void get_term_dimensions(struct winsize *ws);
+>  #endif
+>  
+>  #ifdef __aarch64__
+> -#include "../../arch/arm64/include/asm/unistd.h"
+>  #define rmb()		asm volatile("dmb ld" ::: "memory")
+>  #define cpu_relax()	asm volatile("yield" ::: "memory")
+>  #endif
+>  
+>  #ifdef __mips__
+> -#include "../../arch/mips/include/asm/unistd.h"
+>  #define rmb()		asm volatile(					\
+>  				".set	mips2\n\t"			\
+>  				"sync\n\t"				\
+> @@ -112,7 +102,7 @@ void get_term_dimensions(struct winsize *ws);
+>  #include <sys/types.h>
+>  #include <sys/syscall.h>
+>  
+> -#include "../../include/uapi/linux/perf_event.h"
 
-This looks not good as it doesn't build perf into
-~/build/zebra/perf/perf.o.
+And I got a conflict here.
 
 Thanks,
 Namhyung
+
+
+> +#include <linux/perf_event.h>
+>  #include "util/types.h"
+>  #include <stdbool.h>
+>  
