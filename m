@@ -1,232 +1,170 @@
 From: Namhyung Kim <namhyung@kernel.org>
-Subject: Re: [PATCH 3/5] perf: Make perf build for x86 with UAPI disintegration applied
-Date: Fri, 26 Oct 2012 14:49:22 +0900
-Message-ID: <87d305940t.fsf@sejong.aot.lge.com>
-References: <20121019165558.23037.40181.stgit@warthog.procyon.org.uk>
-	<20121019165624.23037.1780.stgit@warthog.procyon.org.uk>
+Subject: Re: [RFC][PATCH 0/5] tools, perf: Fix up for x86 UAPI disintegration
+Date: Fri, 26 Oct 2012 15:04:36 +0900
+Message-ID: <878vat93bf.fsf@sejong.aot.lge.com>
+References: <20121024194619.GC17945@liondog.tnic>
+	<20121019165558.23037.40181.stgit@warthog.procyon.org.uk>
+	<20121024184337.GD13993@ghostprotocols.net>
+	<8477.1351151840@warthog.procyon.org.uk>
+	<87liet97jk.fsf@sejong.aot.lge.com>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from LGEMRELSE6Q.lge.com ([156.147.1.121]:62430 "EHLO
-	LGEMRELSE6Q.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756202Ab2JZFt0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 01:49:26 -0400
-In-Reply-To: <20121019165624.23037.1780.stgit@warthog.procyon.org.uk> (David
-	Howells's message of "Fri, 19 Oct 2012 17:56:24 +0100")
+Received: from LGEMRELSE7Q.lge.com ([156.147.1.151]:56819 "EHLO
+	LGEMRELSE7Q.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756296Ab2JZGEh convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 02:04:37 -0400
+In-Reply-To: <87liet97jk.fsf@sejong.aot.lge.com> (Namhyung Kim's message of
+	"Fri, 26 Oct 2012 13:33:19 +0900")
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Howells <dhowells@redhat.com>
-Cc: mingo@kernel.org, tglx@linutronix.de, acme@ghostprotocols.net, davem@davemloft.net, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
+Cc: Borislav Petkov <bp@alien8.de>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, mingo@kernel.org, tglx@linutronix.de, davem@davemloft.net, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
 
-On Fri, 19 Oct 2012 17:56:24 +0100, David Howells wrote:
-> Make perf build for x86 once the UAPI disintegration patches for that arch
-> have been applied by adding the appropriate -I flags - in the right order -
-> and then converting some #includes that use ../.. notation to find main kernel
-> headerfiles to use <asm/foo.h> and <linux/foo.h> instead.
+This time, I tried on tip/master since it seemed that it contains
+related patches already.
 
-Looks nice.
+At first I got a conflict with davem's change:
 
->
-> Note that -Iarch/foo/include/uapi is present _before_ -Iarch/foo/include.
-> This makes sure we get the userspace version of the pt_regs struct.  Ideally,
-> we wouldn't have the latter -I flag at all, but unfortunately we want
-> asm/svm.h and asm/vmx.h in buildin-kvm.c and these aren't part of the UAPI -
-> at least not for x86.  I wonder if the bits outside of the __KERNEL__ guards
-> *should* be transferred there.
-
-What about asm/kvm.h?  Is it a part of the UAPI?
-
->
-> I note also that perf seems to do its dependency handling manually by listing
-> all the header files it might want to use in LIB_H in the Makefile.  Can this
-> be changed to use -MD?
-
-Yeah, that part could be improved, probably with -MMD.
-
->
-> Signed-off-by: David Howells <dhowells@redhat.com>
-> ---
->
->  tools/perf/Makefile      |   16 +++++++++++++++-
->  tools/perf/builtin-kvm.c |    6 +++---
->  tools/perf/perf.h        |   16 +++-------------
->  3 files changed, 21 insertions(+), 17 deletions(-)
->
-> diff --git a/tools/perf/Makefile b/tools/perf/Makefile
-> index f7c968a..9024a42 100644
-> --- a/tools/perf/Makefile
-> +++ b/tools/perf/Makefile
-> @@ -169,7 +169,21 @@ endif
->  
->  ### --- END CONFIGURATION SECTION ---
->  
-> -BASIC_CFLAGS = -Iutil/include -Iarch/$(ARCH)/include -I$(OUTPUT)util -I$(TRACE_EVENT_DIR) -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
-> +ifeq ($(srctree),)
-> +srctree := $(shell pwd)
-> +endif
-
-Isn't the srctree intended to point to kernel root?  Also you missed to
-define the objtree which used below.
-
-> +
-> +BASIC_CFLAGS = \
-> +	-Iutil/include \
-> +	-Iarch/$(ARCH)/include \
-> +	-I$(objtree)/arch/$(ARCH)/include/generated/uapi \
-> +	-I$(srctree)/arch/$(ARCH)/include/uapi \
-> +	-I$(srctree)/arch/$(ARCH)/include \
-> +	-I$(objtree)/include/generated/uapi \
-> +	-I$(srctree)/include/uapi \
-> +	-I$(OUTPUT)util \
-> +	-I$(TRACE_EVENT_DIR) \
-> +	-D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
-
-This isn't bad, but using '+=' looks more natural IMHO.
-
-BASIC_CFLAGS  = -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
-BASIC_CFLAGS += -Iutil/include
-BASIC_CFLAGS += -Iarch/$(ARCH)/include
-...
-
->  BASIC_LDFLAGS =
->  
->  # Guard against environment variables
-> diff --git a/tools/perf/builtin-kvm.c b/tools/perf/builtin-kvm.c
-> index 260abc5..e013bdb 100644
-> --- a/tools/perf/builtin-kvm.c
-> +++ b/tools/perf/builtin-kvm.c
-> @@ -22,9 +22,9 @@
->  #include <pthread.h>
->  #include <math.h>
->  
-> -#include "../../arch/x86/include/asm/svm.h"
-> -#include "../../arch/x86/include/asm/vmx.h"
-> -#include "../../arch/x86/include/asm/kvm.h"
-> +#include <asm/svm.h>
-> +#include <asm/vmx.h>
-> +#include <asm/kvm.h>
->  
->  struct event_key {
->  	#define INVALID_KEY     (~0ULL)
-> diff --git a/tools/perf/perf.h b/tools/perf/perf.h
-> index 2762877..238f923 100644
-> --- a/tools/perf/perf.h
-> +++ b/tools/perf/perf.h
-> @@ -5,8 +5,9 @@ struct winsize;
->  
->  void get_term_dimensions(struct winsize *ws);
->  
-> +#include <asm/unistd.h>
-> +
->  #if defined(__i386__)
-> -#include "../../arch/x86/include/asm/unistd.h"
->  #define rmb()		asm volatile("lock; addl $0,0(%%esp)" ::: "memory")
->  #define cpu_relax()	asm volatile("rep; nop" ::: "memory");
->  #define CPUINFO_PROC	"model name"
-> @@ -16,7 +17,6 @@ void get_term_dimensions(struct winsize *ws);
->  #endif
->  
->  #if defined(__x86_64__)
-> -#include "../../arch/x86/include/asm/unistd.h"
->  #define rmb()		asm volatile("lfence" ::: "memory")
->  #define cpu_relax()	asm volatile("rep; nop" ::: "memory");
->  #define CPUINFO_PROC	"model name"
-> @@ -26,20 +26,17 @@ void get_term_dimensions(struct winsize *ws);
->  #endif
->  
->  #ifdef __powerpc__
-> -#include "../../arch/powerpc/include/asm/unistd.h"
->  #define rmb()		asm volatile ("sync" ::: "memory")
->  #define cpu_relax()	asm volatile ("" ::: "memory");
->  #define CPUINFO_PROC	"cpu"
->  #endif
->  
->  #ifdef __s390__
-> -#include "../../arch/s390/include/asm/unistd.h"
->  #define rmb()		asm volatile("bcr 15,0" ::: "memory")
->  #define cpu_relax()	asm volatile("" ::: "memory");
->  #endif
->  
->  #ifdef __sh__
-> -#include "../../arch/sh/include/asm/unistd.h"
->  #if defined(__SH4A__) || defined(__SH5__)
->  # define rmb()		asm volatile("synco" ::: "memory")
->  #else
-> @@ -50,35 +47,30 @@ void get_term_dimensions(struct winsize *ws);
->  #endif
->  
->  #ifdef __hppa__
-> -#include "../../arch/parisc/include/asm/unistd.h"
->  #define rmb()		asm volatile("" ::: "memory")
->  #define cpu_relax()	asm volatile("" ::: "memory");
->  #define CPUINFO_PROC	"cpu"
->  #endif
->  
->  #ifdef __sparc__
-> -#include "../../arch/sparc/include/asm/unistd.h"
-
-It might conflict with davem's sparc uapi patch which merged into tip:
-
-commit 77626081849c9050b20670e5d832aca54c966936
-Author: David Miller <davem@davemloft.net>
-Date:   Wed Oct 17 01:06:56 2012 -0400
-
-    perf tools: Fix build on sparc.
-    
-    More UAPI stuff.
+--- a/tools/perf/perf.h
++++ b/tools/perf/perf.h
+@@@ -57,7 -53,6 +53,10 @@@ void get_term_dimensions(struct winsiz
+  #endif
+ =20
+  #ifdef __sparc__
+++<<<<<<< HEAD
+ +#include "../../arch/sparc/include/uapi/asm/unistd.h"
+++=3D=3D=3D=3D=3D=3D=3D
+++>>>>>>> perf: Make perf build for x86 with UAPI disintegration applie=
+d
+  #define rmb()         asm volatile("":::"memory")
+  #define cpu_relax()   asm volatile("":::"memory")
+  #define CPUINFO_PROC  "cpu"
 
 
->  #define rmb()		asm volatile("":::"memory")
->  #define cpu_relax()	asm volatile("":::"memory")
->  #define CPUINFO_PROC	"cpu"
->  #endif
->  
->  #ifdef __alpha__
-> -#include "../../arch/alpha/include/asm/unistd.h"
->  #define rmb()		asm volatile("mb" ::: "memory")
->  #define cpu_relax()	asm volatile("" ::: "memory")
->  #define CPUINFO_PROC	"cpu model"
->  #endif
->  
->  #ifdef __ia64__
-> -#include "../../arch/ia64/include/asm/unistd.h"
->  #define rmb()		asm volatile ("mf" ::: "memory")
->  #define cpu_relax()	asm volatile ("hint @pause" ::: "memory")
->  #define CPUINFO_PROC	"model name"
->  #endif
->  
->  #ifdef __arm__
-> -#include "../../arch/arm/include/asm/unistd.h"
->  /*
->   * Use the __kuser_memory_barrier helper in the CPU helper page. See
->   * arch/arm/kernel/entry-armv.S in the kernel source for details.
-> @@ -89,13 +81,11 @@ void get_term_dimensions(struct winsize *ws);
->  #endif
->  
->  #ifdef __aarch64__
-> -#include "../../arch/arm64/include/asm/unistd.h"
->  #define rmb()		asm volatile("dmb ld" ::: "memory")
->  #define cpu_relax()	asm volatile("yield" ::: "memory")
->  #endif
->  
->  #ifdef __mips__
-> -#include "../../arch/mips/include/asm/unistd.h"
->  #define rmb()		asm volatile(					\
->  				".set	mips2\n\t"			\
->  				"sync\n\t"				\
-> @@ -112,7 +102,7 @@ void get_term_dimensions(struct winsize *ws);
->  #include <sys/types.h>
->  #include <sys/syscall.h>
->  
-> -#include "../../include/uapi/linux/perf_event.h"
+After resolving it, I got a tons of error mostly about redeclaration of
+enum contants.  I managed to build perf with below patch:
 
-And I got a conflict here.
+
+------------ 8< ------------------- 8< -----------------
+diff --git a/tools/perf/Makefile b/tools/perf/Makefile
+index da040ff69b2b..7a73f37696b7 100644
+--- a/tools/perf/Makefile
++++ b/tools/perf/Makefile
+@@ -170,7 +170,11 @@ endif
+ ### --- END CONFIGURATION SECTION ---
+=20
+ ifeq ($(srctree),)
+-srctree :=3D $(shell pwd)
++srctree :=3D $(shell cd ../../; pwd)
++endif
++
++ifeq ($(objtree),)
++objtree :=3D $(shell cd ../../; pwd)
+ endif
+=20
+ BASIC_CFLAGS =3D \
+diff --git a/tools/perf/util/evsel.c b/tools/perf/util/evsel.c
+index 618d41140abd..de882d5a4ab3 100644
+--- a/tools/perf/util/evsel.c
++++ b/tools/perf/util/evsel.c
+@@ -19,7 +19,6 @@
+ #include "thread_map.h"
+ #include "target.h"
+ #include "../../../include/linux/hw_breakpoint.h"
+-#include "../../../include/uapi/linux/perf_event.h"
+ #include "perf_regs.h"
+=20
+ #define FD(e, x, y) (*(int *)xyarray__entry(e->fd, x, y))
+diff --git a/tools/perf/util/evsel.h b/tools/perf/util/evsel.h
+index 6f94d6dea00f..9ac02f655124 100644
+--- a/tools/perf/util/evsel.h
++++ b/tools/perf/util/evsel.h
+@@ -3,7 +3,7 @@
+=20
+ #include <linux/list.h>
+ #include <stdbool.h>
+-#include "../../../include/uapi/linux/perf_event.h"
++#include <linux/perf_event.h>
+ #include "types.h"
+ #include "xyarray.h"
+ #include "cgroup.h"
+diff --git a/tools/perf/util/header.h b/tools/perf/util/header.h
+index 879d215cdac9..3c24404c8523 100644
+--- a/tools/perf/util/header.h
++++ b/tools/perf/util/header.h
+@@ -1,7 +1,7 @@
+ #ifndef __PERF_HEADER_H
+ #define __PERF_HEADER_H
+=20
+-#include "../../../include/uapi/linux/perf_event.h"
++#include <linux/perf_event.h>
+ #include <sys/types.h>
+ #include <stdbool.h>
+ #include "types.h"
+diff --git a/tools/perf/util/parse-events.h b/tools/perf/util/parse-eve=
+nts.h
+index ac9a6aacf2f5..146684787adb 100644
+--- a/tools/perf/util/parse-events.h
++++ b/tools/perf/util/parse-events.h
+@@ -7,7 +7,7 @@
+ #include <linux/list.h>
+ #include <stdbool.h>
+ #include "types.h"
+-#include "../../../include/uapi/linux/perf_event.h"
++#include <linux/perf_event.h>
+ #include "types.h"
+=20
+ struct list_head;
+diff --git a/tools/perf/util/pmu.h b/tools/perf/util/pmu.h
+index 39f3abac7744..8410897cc856 100644
+--- a/tools/perf/util/pmu.h
++++ b/tools/perf/util/pmu.h
+@@ -2,7 +2,7 @@
+ #define __PMU_H
+=20
+ #include <linux/bitops.h>
+-#include "../../../include/uapi/linux/perf_event.h"
++#include <linux/perf_event.h>
+=20
+ enum {
+ 	PERF_PMU_FORMAT_VALUE_CONFIG,
+diff --git a/tools/perf/util/session.h b/tools/perf/util/session.h
+index dd6426163ba6..1768581bb4a6 100644
+--- a/tools/perf/util/session.h
++++ b/tools/perf/util/session.h
+@@ -7,7 +7,7 @@
+ #include "symbol.h"
+ #include "thread.h"
+ #include <linux/rbtree.h>
+-#include "../../../include/uapi/linux/perf_event.h"
++#include <linux/perf_event.h>
+=20
+ struct sample_queue;
+ struct ip_callchain;
+------------ 8< ------------------- 8< -----------------
+
+But it also failed to build like this:
+
+    CC builtin-kvm.o
+builtin-kvm.c:146:2: error: =E2=80=98DB_VECTOR=E2=80=99 undeclared here=
+ (not in a function)
+builtin-kvm.c:146:2: error: =E2=80=98BP_VECTOR=E2=80=99 undeclared here=
+ (not in a function)
+builtin-kvm.c:146:2: error: =E2=80=98UD_VECTOR=E2=80=99 undeclared here=
+ (not in a function)
+builtin-kvm.c:146:2: error: =E2=80=98PF_VECTOR=E2=80=99 undeclared here=
+ (not in a function)
+builtin-kvm.c:146:2: error: =E2=80=98NM_VECTOR=E2=80=99 undeclared here=
+ (not in a function)
+builtin-kvm.c:146:2: error: =E2=80=98MC_VECTOR=E2=80=99 undeclared here=
+ (not in a function)
+make: *** [builtin-kvm.o] Error 1
+
+
+I can see that those are defined in arch/x86/include/asm/kvm.h.
+
 
 Thanks,
 Namhyung
-
-
-> +#include <linux/perf_event.h>
->  #include "util/types.h"
->  #include <stdbool.h>
->  
