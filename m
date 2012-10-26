@@ -1,78 +1,63 @@
-From: Rob Herring <robherring2@gmail.com>
-Subject: Re: [PATCH V4 REPOST 2/2] kbuild: run the pre-processor on *.dts
- files
-Date: Fri, 26 Oct 2012 14:57:50 -0500
-Message-ID: <508AEB3E.6090405@gmail.com>
-References: <1351279797-16450-1-git-send-email-swarren@wwwdotorg.org> <1351279797-16450-2-git-send-email-swarren@wwwdotorg.org>
+From: Mike Yoknis <mike.yoknis@hp.com>
+Subject: [PATCH v2] mm: memmap_init_zone() performance improvement
+Date: Fri, 26 Oct 2012 16:47:47 -0600
+Message-ID: <1351291667.6504.13.camel@MikesLinux.fc.hp.com>
+References: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
+	 <20121008151656.GM29125@suse.de>
+	 <1349794597.29752.10.camel@MikesLinux.fc.hp.com>
+	 <1350676398.1169.6.camel@MikesLinux.fc.hp.com>
+	 <20121020082858.GA2698@suse.de>
+	 <1351093667.1205.11.camel@MikesLinux.fc.hp.com>
+	 <20121025094410.GA2558@suse.de>
+Reply-To: mike.yoknis@hp.com
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-oa0-f46.google.com ([209.85.219.46]:33906 "EHLO
-	mail-oa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S966285Ab2JZT5y (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 15:57:54 -0400
-In-Reply-To: <1351279797-16450-2-git-send-email-swarren@wwwdotorg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Michal Marek <mmarek@suse.cz>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Grant Likely <grant.likely@secretlab.ca>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Stephen Warren <swarren@nvidia.com>
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20121025094410.GA2558@suse.de>
+Sender: owner-linux-mm@kvack.org
+To: Mel Gorman <mgorman@suse.de>
+Cc: mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
+List-Id: linux-arch.vger.kernel.org
 
-On 10/26/2012 02:29 PM, Stephen Warren wrote:
-> From: Stephen Warren <swarren@nvidia.com>
-> 
-> Modify cmd_dtc to run the C pre-processor on the input .dts file before
-> passing it to dtc for final compilation. This allows the use of #define
-> and #include within the .dts file.
+memmap_init_zone() loops through every Page Frame Number (pfn),
+including pfn values that are within the gaps between existing
+memory sections.  The unneeded looping will become a boot
+performance issue when machines configure larger memory ranges
+that will contain larger and more numerous gaps.
 
-While this change is small the implications are not. I don't think no
-comments reflects agreement on this.
+The code will skip across invalid pfn values to reduce the
+number of loops executed.
 
-Like I said previously, I think we first need guidelines on what is and
-isn't acceptable use of C preprocessor in dts files.
+Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
+---
+ mm/page_alloc.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
 
-Rob
+diff --git a/mm/page_alloc.c b/mm/page_alloc.c
+index 45c916b..9f9c1a6 100644
+--- a/mm/page_alloc.c
++++ b/mm/page_alloc.c
+@@ -3857,8 +3857,11 @@ void __meminit memmap_init_zone(unsigned long
+size, int nid, unsigned long zone,
+ 		 * exist on hotplugged memory.
+ 		 */
+ 		if (context == MEMMAP_EARLY) {
+-			if (!early_pfn_valid(pfn))
++			if (!early_pfn_valid(pfn)) {
++				pfn = ALIGN(pfn + MAX_ORDER_NR_PAGES,
++						MAX_ORDER_NR_PAGES) - 1;
+ 				continue;
++			}
+ 			if (!early_pfn_in_nid(pfn, nid))
+ 				continue;
+ 		}
+-- 
+1.7.11.3
 
-> 
-> Signed-off-by: Stephen Warren <swarren@nvidia.com>
-> ---
-> v4:
-> * Use -x assembler-with-cpp so pre-defined macros are set up so that
->   #included header files know to only use cpp syntax, not C syntax.
-> * Define __DTS__ for similar reasons.
-> * use $(CPP) not $(CC) -E, and use $(cpp_flags).
-> * Save the pre-processed results so they can be easily inspected when
->   debugging build issues.
-> * The use of -x assembler-with-cpp causes cpp to recognize directives in
->   column 1 only. Hence, there's no need to escape property names that
->   begin with #. Hence, there's no need for separate skeleton.dtsi and
->   skeleton.dtsip. Maintain a separate file extension and build rule so that
->   CPP-usage is opt-in. In particular, when using CPP, #include must be used
->   rather than /include/ so that dependencies work.
-> v3: Pass "-x c" not "-xc" to cpp.
-> v2: Place make %.dtb: %.dtsp rule into Makefile.lib.
-> ---
->  scripts/Makefile.lib |    9 +++++++++
->  1 files changed, 9 insertions(+), 0 deletions(-)
-> 
-> diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
-> index 425578e..33432f4 100644
-> --- a/scripts/Makefile.lib
-> +++ b/scripts/Makefile.lib
-> @@ -269,6 +269,15 @@ cmd_dtc = $(objtree)/scripts/dtc/dtc -O dtb -o $@ -b 0 $(DTC_FLAGS) -d $(depfile
->  $(obj)/%.dtb: $(src)/dts/%.dts FORCE
->  	$(call if_changed_dep,dtc)
->  
-> +dtc-tmp = $(subst $(comma),_,$(dot-target).dts)
-> +
-> +quiet_cmd_dtc_cpp = DTC+CPP $@
-> +cmd_dtc_cpp = $(CPP) $(cpp_flags) -D__DTS__ -x assembler-with-cpp -o $(dtc-tmp) $< ; \
-> +	$(objtree)/scripts/dtc/dtc -O dtb -o $@ -b 0 $(DTC_FLAGS) $(dtc-tmp)
-> +
-> +$(obj)/%.dtb: $(src)/dts/%.dtsp FORCE
-> +	$(call if_changed_dep,dtc_cpp)
-> +
->  # Bzip2
->  # ---------------------------------------------------------------------------
->  
-> 
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
