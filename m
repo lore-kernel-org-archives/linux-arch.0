@@ -1,41 +1,67 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:53924 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965870Ab2JZSb3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 14:31:29 -0400
-Date: Fri, 26 Oct 2012 19:31:07 +0100
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [update] Re: new execve/kernel_thread design
-Message-ID: <20121026183107.GQ2616@ZenIV.linux.org.uk>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20121016223508.GR2616@ZenIV.linux.org.uk>
+Received: from avon.wwwdotorg.org ([70.85.31.133]:38884 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S966172Ab2JZTaJ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 15:30:09 -0400
+From: Stephen Warren <swarren@wwwdotorg.org>
+Subject: [PATCH V4 REPOST 2/2] kbuild: run the pre-processor on *.dts files
+Date: Fri, 26 Oct 2012 13:29:57 -0600
+Message-ID: <1351279797-16450-2-git-send-email-swarren@wwwdotorg.org>
+In-Reply-To: <1351279797-16450-1-git-send-email-swarren@wwwdotorg.org>
+References: <1351279797-16450-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gxt@mprc.pku.edu.cn>
-Message-ID: <20121026183107.21yhkqGC99ip4iaBjmiQg9Eq27uneHSDY-Nna5BrgPw@z>
+To: Michal Marek <mmarek@suse.cz>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Stephen Warren <swarren@nvidia.com>
+Message-ID: <20121026192957.4y-Fsi_ehS_RJCMNFbzcHmCibN7MenuuZfjZahANKek@z>
 
-	The situation got much better by now.  More than a half of
-architectures are done - alpha arm arm64 c6x hexagon ia64 m68k mips openrisc
-parisc sparc tile um unicore32 and x86.
+From: Stephen Warren <swarren@nvidia.com>
 
-	Two more avait ACKs from maintainers - powerpc and s390.  Should work,
-AFAICS.
+Modify cmd_dtc to run the C pre-processor on the input .dts file before
+passing it to dtc for final compilation. This allows the use of #define
+and #include within the .dts file.
 
-	xtensa - Max was going to repost updated patches; waiting for that
-to happen, but essentially it's done and tested.
+Signed-off-by: Stephen Warren <swarren@nvidia.com>
+---
+v4:
+* Use -x assembler-with-cpp so pre-defined macros are set up so that
+  #included header files know to only use cpp syntax, not C syntax.
+* Define __DTS__ for similar reasons.
+* use $(CPP) not $(CC) -E, and use $(cpp_flags).
+* Save the pre-processed results so they can be easily inspected when
+  debugging build issues.
+* The use of -x assembler-with-cpp causes cpp to recognize directives in
+  column 1 only. Hence, there's no need to escape property names that
+  begin with #. Hence, there's no need for separate skeleton.dtsi and
+  skeleton.dtsip. Maintain a separate file extension and build rule so that
+  CPP-usage is opt-in. In particular, when using CPP, #include must be used
+  rather than /include/ so that dependencies work.
+v3: Pass "-x c" not "-xc" to cpp.
+v2: Place make %.dtb: %.dtsp rule into Makefile.lib.
+---
+ scripts/Makefile.lib |    9 +++++++++
+ 1 files changed, 9 insertions(+), 0 deletions(-)
 
-	microblaze - Michal was debugging kernel_execve side of it the last
-time I've heard from him...
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 425578e..33432f4 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -269,6 +269,15 @@ cmd_dtc = $(objtree)/scripts/dtc/dtc -O dtb -o $@ -b 0 $(DTC_FLAGS) -d $(depfile
+ $(obj)/%.dtb: $(src)/dts/%.dts FORCE
+ 	$(call if_changed_dep,dtc)
+ 
++dtc-tmp = $(subst $(comma),_,$(dot-target).dts)
++
++quiet_cmd_dtc_cpp = DTC+CPP $@
++cmd_dtc_cpp = $(CPP) $(cpp_flags) -D__DTS__ -x assembler-with-cpp -o $(dtc-tmp) $< ; \
++	$(objtree)/scripts/dtc/dtc -O dtb -o $@ -b 0 $(DTC_FLAGS) $(dtc-tmp)
++
++$(obj)/%.dtb: $(src)/dts/%.dtsp FORCE
++	$(call if_changed_dep,dtc_cpp)
++
+ # Bzip2
+ # ---------------------------------------------------------------------------
+ 
+-- 
+1.7.0.4
 
-	frv, mn10300 - dhowells was going to test those
-
-	sh - Paul Mundt was going to test and send fixes
-
-	avr32, blackfin, cris, h8300, m32r, score - no signs of life from
-maintainers.  Folks, please show up and at least test the damn patchsets.
-Hell knows, they might even work - unicore32 one did, modulo trivial typo,
-to my deep surprise...
