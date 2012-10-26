@@ -1,64 +1,69 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:58827 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:59471 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1757831Ab2JZJHj (ORCPT
+	by vger.kernel.org with ESMTP id S1752149Ab2JZJe2 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Fri, 26 Oct 2012 05:07:39 -0400
-Date: Fri, 26 Oct 2012 10:07:15 +0100
+	Fri, 26 Oct 2012 05:34:28 -0400
+Date: Fri, 26 Oct 2012 10:34:08 +0100
 From: Will Deacon <will.deacon@arm.com>
 Subject: Re: [PATCH v3] mm: thp: Set the accessed flag for old pages on
  access fault.
-Message-ID: <20121026090715.GB20914@mudshark.cambridge.arm.com>
+Message-ID: <20121026093407.GD20914@mudshark.cambridge.arm.com>
 References: <1351183471-14710-1-git-send-email-will.deacon@arm.com>
- <20121026074435.GA871@shutemov.name>
+ <508A2B8B.7020608@gmail.com>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20121026074435.GA871@shutemov.name>
+In-Reply-To: <508A2B8B.7020608@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Kirill A. Shutemov" <kirill@shutemov.name>
-Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "peterz@infradead.org" <peterz@infradead.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Chris Metcalf <cmetcalf@tilera.com>, Andrea Arcangeli <aarcange@redhat.com>
-Message-ID: <20121026090715.YCg7msxCwXYlflV9sl923oqJEO0PMy0_BpLvq-kppyU@z>
+To: Ni zhan Chen <nizhan.chen@gmail.com>
+Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "peterz@infradead.org" <peterz@infradead.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Chris Metcalf <cmetcalf@tilera.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Andrea Arcangeli <aarcange@redhat.com>
+Message-ID: <20121026093408.YBmKk94Zm5MUKwqkoyrfsIMLmSU-eFyC3ePcKymFdmA@z>
 
-On Fri, Oct 26, 2012 at 08:44:35AM +0100, Kirill A. Shutemov wrote:
-> On Thu, Oct 25, 2012 at 05:44:31PM +0100, Will Deacon wrote:
+On Fri, Oct 26, 2012 at 07:19:55AM +0100, Ni zhan Chen wrote:
+> On 10/26/2012 12:44 AM, Will Deacon wrote:
 > > On x86 memory accesses to pages without the ACCESSED flag set result in the
 > > ACCESSED flag being set automatically. With the ARM architecture a page access
 > > fault is raised instead (and it will continue to be raised until the ACCESSED
 > > flag is set for the appropriate PTE/PMD).
-> > 
+> >
 > > For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
 > > setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
 > > be called for a write fault.
-> > 
+> >
 > > This patch ensures that faults on transparent hugepages which do not result
 > > in a CoW update the access flags for the faulting pmd.
-> > 
+> 
+> Could you write changlog?
+
+From v2? I included something below my SoB. The code should do exactly the
+same as before, it's just rebased onto next so that I can play nicely with
+Peter's patches.
+
+> >
 > > Cc: Chris Metcalf <cmetcalf@tilera.com>
 > > Cc: Kirill A. Shutemov <kirill@shutemov.name>
 > > Cc: Andrea Arcangeli <aarcange@redhat.com>
 > > Signed-off-by: Will Deacon <will.deacon@arm.com>
 > > ---
-> > 
+> >
 > > Ok chaps, I rebased this thing onto today's next (which basically
 > > necessitated a rewrite) so I've reluctantly dropped my acks and kindly
 > > ask if you could eyeball the new code, especially where the locking is
 > > concerned. In the numa code (do_huge_pmd_prot_none), Peter checks again
 > > that the page is not splitting, but I can't see why that is required.
+> >
+> > Cheers,
+> >
+> > Will
 > 
-> In handle_mm_fault() we check if the pmd is under splitting without
-> page_table_lock. It's kind of speculative cheap check. We need to re-check
-> if the PMD is really not under splitting after taking page_table_lock.
+> Could you explain why you not call pmd_trans_huge_lock to confirm the 
+> pmd is splitting or stable as Andrea point out?
 
-I appreciate the need to check whether the thing is splitting, but I thought
-that the pmd_same(*pmd, orig_pmd) check after taking the page_table_lock
-would be sufficient, because we know that the entry hasn't changed and that
-it wasn't splitting before we took the lock. This also mirrors the approach
-taken by do_huge_pmd_wp_page.
-
-Is there something I'm missing?
-
-Cheers,
+The way handle_mm_fault is now structured after the numa changes means that
+we only enter the huge pmd page aging code if the entry wasn't splitting
+before taking the lock, so it seemed a bit gratuitous to jump through those
+hoops again in pmd_trans_huge_lock.
 
 Will
