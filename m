@@ -1,63 +1,106 @@
-From: Ni zhan Chen <nizhan.chen@gmail.com>
-Subject: Re: [PATCH v3] mm: thp: Set the accessed flag for old pages on access
- fault.
-Date: Fri, 26 Oct 2012 11:07:58 +0800
-Message-ID: <5089FE8E.4030603@gmail.com>
-References: <1351183471-14710-1-git-send-email-will.deacon@arm.com> <20121025195110.GA4771@cmpxchg.org>
+From: Namhyung Kim <namhyung@kernel.org>
+Subject: Re: [RFC][PATCH 0/5] tools, perf: Fix up for x86 UAPI disintegration
+Date: Fri, 26 Oct 2012 13:33:19 +0900
+Message-ID: <87liet97jk.fsf@sejong.aot.lge.com>
+References: <20121024194619.GC17945@liondog.tnic>
+	<20121019165558.23037.40181.stgit@warthog.procyon.org.uk>
+	<20121024184337.GD13993@ghostprotocols.net>
+	<8477.1351151840@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20121025195110.GA4771@cmpxchg.org>
-Sender: owner-linux-mm@kvack.org
-To: Johannes Weiner <hannes@cmpxchg.org>
-Cc: Will Deacon <will.deacon@arm.com>, linux-mm@kvack.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, mhocko@suse.cz, peterz@infradead.org, akpm@linux-foundation.org, Chris Metcalf <cmetcalf@tilera.com>, "Kirill A. Shutemov" <kirill@shutemov.name>, Andrea Arcangeli <aarcange@redhat.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from LGEMRELSE1Q.lge.com ([156.147.1.111]:60744 "EHLO
+	LGEMRELSE1Q.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753403Ab2JZEdW convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 00:33:22 -0400
+In-Reply-To: <8477.1351151840@warthog.procyon.org.uk> (David Howells's message
+	of "Thu, 25 Oct 2012 08:57:20 +0100")
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: Borislav Petkov <bp@alien8.de>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, mingo@kernel.org, tglx@linutronix.de, davem@davemloft.net, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
 
-On 10/26/2012 03:51 AM, Johannes Weiner wrote:
-> On Thu, Oct 25, 2012 at 05:44:31PM +0100, Will Deacon wrote:
->> On x86 memory accesses to pages without the ACCESSED flag set result in the
->> ACCESSED flag being set automatically. With the ARM architecture a page access
->> fault is raised instead (and it will continue to be raised until the ACCESSED
->> flag is set for the appropriate PTE/PMD).
->>
->> For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
->> setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
->> be called for a write fault.
->>
->> This patch ensures that faults on transparent hugepages which do not result
->> in a CoW update the access flags for the faulting pmd.
->>
->> Cc: Chris Metcalf <cmetcalf@tilera.com>
->> Cc: Kirill A. Shutemov <kirill@shutemov.name>
->> Cc: Andrea Arcangeli <aarcange@redhat.com>
->> Signed-off-by: Will Deacon <will.deacon@arm.com>
-> Acked-by: Johannes Weiner <hannes@cmpxchg.org>
->
->> Ok chaps, I rebased this thing onto today's next (which basically
->> necessitated a rewrite) so I've reluctantly dropped my acks and kindly
->> ask if you could eyeball the new code, especially where the locking is
->> concerned. In the numa code (do_huge_pmd_prot_none), Peter checks again
->> that the page is not splitting, but I can't see why that is required.
-> I don't either.  If the thing was splitting when the fault happened,
-> that path is not taken.  And the locked pmd_same() check should rule
-> out splitting setting in after testing pmd_trans_huge_splitting().
+Hi David,
 
-Why I can't find function pmd_trans_huge_splitting() you mentioned in 
-latest mainline codes and linux-next?
+On Thu, 25 Oct 2012 08:57:20 +0100, David Howells wrote:
+> Borislav Petkov <bp@alien8.de> wrote:
+>
+>> David, where can get that x86 UAPI disintegration patch?
+>
+> The tip tree has it in branch x86/uapi or you can get it from:
+>
+> 	git://git.infradead.org/users/dhowells/linux-headers.git
+>
+> branch disintegrate-x86 or tag disintegrate-x86-20121009.
+>
+> I've posted a couple of additional patches to deal with files that be=
+came
+> empty, but they're only for dealing with people who construct their k=
+ernel
+> sources with the patch program.
 
->
-> Peter?
->
-> --
-> To unsubscribe, send a message with 'unsubscribe linux-mm' in
-> the body to majordomo@kvack.org.  For more info on Linux MM,
-> see: http://www.linux-mm.org/ .
-> Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
->
+I applied this series on top of you disintegrate-x86 branch which has
+following commit.
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+commit 8d2c63c2b664bae1fb0f386661ea5f635330e570
+Author: David Howells <dhowells@redhat.com>
+Date:   Tue Oct 9 09:47:54 2012 +0100
+
+    UAPI: (Scripted) Disintegrate arch/x86/include/asm
+   =20
+    Signed-off-by: David Howells <dhowells@redhat.com>
+    Acked-by: Arnd Bergmann <arnd@arndb.de>
+    Acked-by: Thomas Gleixner <tglx@linutronix.de>
+    Acked-by: Michael Kerrisk <mtk.manpages@gmail.com>
+    Acked-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
+    Acked-by: Dave Jones <davej@redhat.com>
+
+
+But I got a conflict like this:
+
+--- a/tools/perf/perf.h
++++ b/tools/perf/perf.h
+@@@ -112,7 -102,7 +102,11 @@@ void get_term_dimensions(struct winsiz
+  #include <sys/types.h>
+  #include <sys/syscall.h>
+ =20
+++<<<<<<< HEAD
+ +#include "../../include/linux/perf_event.h"
+++=3D=3D=3D=3D=3D=3D=3D
++ #include <linux/perf_event.h>
+++>>>>>>> perf: Make perf build for x86 with UAPI disintegration applie=
+d
+  #include "util/types.h"
+  #include <stdbool.h>
+
+This was because your patch 3 has "uapi" between "include" and "linux".
+It seems I need more patches to apply your series since there's no
+perf_event.h under ../../include/uapi/linux directory.
+
+Anyways, resolving the conflict resulted in build error:
+
+    CC builtin-kvm.o
+builtin-kvm.c:25:21: fatal error: asm/svm.h: No such file or directory
+make: *** [builtin-kvm.o] Error 1
+
+    CC util/evsel.o
+In file included from util/perf_regs.h:5:0,
+                 from util/evsel.c:23:
+arch/x86/include/perf_regs.h:6:27: fatal error: asm/perf_regs.h: No suc=
+h file or directory
+make: *** [util/evsel.o] Error 1
+
+    CC util/rbtree.o
+=2E./../lib/rbtree.c:24:36: fatal error: linux/rbtree_augmented.h: No s=
+uch file or directory
+make: *** [util/rbtree.o] Error 1
+
+    CC util/header.o
+util/header.c:2276:8: error: =E2=80=98PERF_ATTR_SIZE_VER3=E2=80=99 unde=
+clared here (not in a function)
+make: *** [util/header.o] Error 1
+
+
+Thanks,
+Namhyung
