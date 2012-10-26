@@ -1,106 +1,111 @@
 From: Namhyung Kim <namhyung@kernel.org>
-Subject: Re: [RFC][PATCH 0/5] tools, perf: Fix up for x86 UAPI disintegration
-Date: Fri, 26 Oct 2012 13:33:19 +0900
-Message-ID: <87liet97jk.fsf@sejong.aot.lge.com>
-References: <20121024194619.GC17945@liondog.tnic>
-	<20121019165558.23037.40181.stgit@warthog.procyon.org.uk>
-	<20121024184337.GD13993@ghostprotocols.net>
-	<8477.1351151840@warthog.procyon.org.uk>
+Subject: Re: [PATCH 2/5] tools: Honour the O= flag when tool build called from a higher Makefile
+Date: Fri, 26 Oct 2012 14:34:59 +0900
+Message-ID: <87haph94os.fsf@sejong.aot.lge.com>
+References: <20121019165558.23037.40181.stgit@warthog.procyon.org.uk>
+	<20121019165616.23037.35557.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from LGEMRELSE1Q.lge.com ([156.147.1.111]:60744 "EHLO
-	LGEMRELSE1Q.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753403Ab2JZEdW convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 00:33:22 -0400
-In-Reply-To: <8477.1351151840@warthog.procyon.org.uk> (David Howells's message
-	of "Thu, 25 Oct 2012 08:57:20 +0100")
+Received: from LGEMRELSE7Q.lge.com ([156.147.1.151]:45016 "EHLO
+	LGEMRELSE7Q.lge.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755224Ab2JZFfC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 01:35:02 -0400
+In-Reply-To: <20121019165616.23037.35557.stgit@warthog.procyon.org.uk> (David
+	Howells's message of "Fri, 19 Oct 2012 17:56:16 +0100")
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: David Howells <dhowells@redhat.com>
-Cc: Borislav Petkov <bp@alien8.de>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, mingo@kernel.org, tglx@linutronix.de, davem@davemloft.net, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
+Cc: mingo@kernel.org, tglx@linutronix.de, acme@ghostprotocols.net, davem@davemloft.net, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
 
-Hi David,
-
-On Thu, 25 Oct 2012 08:57:20 +0100, David Howells wrote:
-> Borislav Petkov <bp@alien8.de> wrote:
+On Fri, 19 Oct 2012 17:56:16 +0100, David Howells wrote:
+> Honour the O= flag that was passed to a higher level Makefile and then passed
+> down as part of a tool build.
 >
->> David, where can get that x86 UAPI disintegration patch?
+> To make this work, the top-level Makefile passes the original O= flag and
+> subdir=tools to the tools/Makefile, and that in turn passes
+> subdir=$(O)/$(subdir)/foodir when building tool foo in directory
+> $(O)/$(subdir)/foodir (where the intervening slashes aren't added if an
+> element is missing).
 >
-> The tip tree has it in branch x86/uapi or you can get it from:
+> For example, take perf.  This is found in tools/perf/.  Assume we're building
+> into directory ~/zebra/, so we pass O=~/zebra to make.  Dependening on where
+> we run the build from, we see:
 >
-> 	git://git.infradead.org/users/dhowells/linux-headers.git
+> 	make run in dir		$(OUTPUT) dir
+> 	=======================	==================
+> 	linux			~/zebra/tools/perf/
+> 	linux/tools		~/zebra/perf/
+> 	linux/tools/perf	~/zebra/
 >
-> branch disintegrate-x86 or tag disintegrate-x86-20121009.
+> and if O= is not set, we get:
 >
-> I've posted a couple of additional patches to deal with files that be=
-came
-> empty, but they're only for dealing with people who construct their k=
-ernel
-> sources with the patch program.
+> 	make run in dir		$(OUTPUT) dir
+> 	=======================	==================
+> 	linux			linux/tools/perf/
+> 	linux/tools		linux/tools/perf/
+> 	linux/tools/perf	linux/tools/perf/
+>
+> The output directories are created by the descend function if they don't
+> already exist.
 
-I applied this series on top of you disintegrate-x86 branch which has
-following commit.
+This is my test:
 
-commit 8d2c63c2b664bae1fb0f386661ea5f635330e570
-Author: David Howells <dhowells@redhat.com>
-Date:   Tue Oct 9 09:47:54 2012 +0100
+  namhyung@sejong:~$ cd project/linux
+  namhyung@sejong:linux$ make O=~/build/zebra tools/perf
+  /bin/sh: line 0: cd: /home/namhyung/build/zebra: No such file or directory
+  Makefile:121: *** output directory "/home/namhyung/build/zebra" does not exist.  Stop.
+  
+  namhyung@sejong:tools$ mkdir ~/build/zebra
+  namhyung@sejong:linux$ make O=~/build/zebra tools/perf
+    HOSTCC  scripts/basic/fixdep
+    GEN     /home/namhyung/build/zebra/Makefile
+    HOSTCC  scripts/kconfig/conf.o
+    HOSTCC  scripts/kconfig/zconf.tab.o
+    HOSTLD  scripts/kconfig/conf
+  scripts/kconfig/conf --silentoldconfig Kconfig
+  ***
+  *** Configuration file ".config" not found!
+  ***
+  *** Please run some configurator (e.g. "make oldconfig" or
+  *** "make menuconfig" or "make xconfig").
+  ***
+  make[3]: *** [silentoldconfig] Error 1
+  make[2]: *** [silentoldconfig] Error 2
+      DESCEND perf
+      MKDIR /home/namhyung/build/zebra/tools/perf/arch/
+      MKDIR /home/namhyung/build/zebra/tools/perf/arch/x86/util/
+      MKDIR /home/namhyung/build/zebra/tools/perf/bench/
+      MKDIR /home/namhyung/build/zebra/tools/perf/scripts/perl/Perf-Trace-Util/
+      MKDIR /home/namhyung/build/zebra/tools/perf/scripts/python/Perf-Trace-Util/
+      MKDIR /home/namhyung/build/zebra/tools/perf/ui/
+      MKDIR /home/namhyung/build/zebra/tools/perf/ui/browsers/
+      MKDIR /home/namhyung/build/zebra/tools/perf/ui/gtk/
+      MKDIR /home/namhyung/build/zebra/tools/perf/ui/stdio/
+      MKDIR /home/namhyung/build/zebra/tools/perf/ui/tui/
+      MKDIR /home/namhyung/build/zebra/tools/perf/util/
+      MKDIR /home/namhyung/build/zebra/tools/perf/util/scripting-engines/
+  PERF_VERSION = 3.7.rc2.1655.g54fa2b.dirty
+      GEN /home/namhyung/build/zebra/tools/perf/common-cmds.h
+      * new build flags or prefix
+      CC /home/namhyung/build/zebra/tools/perf/perf.o
+      ...
 
-    UAPI: (Scripted) Disintegrate arch/x86/include/asm
-   =20
-    Signed-off-by: David Howells <dhowells@redhat.com>
-    Acked-by: Arnd Bergmann <arnd@arndb.de>
-    Acked-by: Thomas Gleixner <tglx@linutronix.de>
-    Acked-by: Michael Kerrisk <mtk.manpages@gmail.com>
-    Acked-by: Paul E. McKenney <paulmck@linux.vnet.ibm.com>
-    Acked-by: Dave Jones <davej@redhat.com>
+This looks ok but it'd be better if we can skip the config check when
+building tools IMHO.
 
 
-But I got a conflict like this:
+  namhyung@sejong:linux cd tools
+  
+  namhyung@sejong:tools$ make O=~/build/zebra perf
+      DESCEND perf
+      ...
+      * new build flags or prefix
+      CC /home/namhyung/build/zebra/perf.o
+      ...
 
---- a/tools/perf/perf.h
-+++ b/tools/perf/perf.h
-@@@ -112,7 -102,7 +102,11 @@@ void get_term_dimensions(struct winsiz
-  #include <sys/types.h>
-  #include <sys/syscall.h>
- =20
-++<<<<<<< HEAD
- +#include "../../include/linux/perf_event.h"
-++=3D=3D=3D=3D=3D=3D=3D
-+ #include <linux/perf_event.h>
-++>>>>>>> perf: Make perf build for x86 with UAPI disintegration applie=
-d
-  #include "util/types.h"
-  #include <stdbool.h>
-
-This was because your patch 3 has "uapi" between "include" and "linux".
-It seems I need more patches to apply your series since there's no
-perf_event.h under ../../include/uapi/linux directory.
-
-Anyways, resolving the conflict resulted in build error:
-
-    CC builtin-kvm.o
-builtin-kvm.c:25:21: fatal error: asm/svm.h: No such file or directory
-make: *** [builtin-kvm.o] Error 1
-
-    CC util/evsel.o
-In file included from util/perf_regs.h:5:0,
-                 from util/evsel.c:23:
-arch/x86/include/perf_regs.h:6:27: fatal error: asm/perf_regs.h: No suc=
-h file or directory
-make: *** [util/evsel.o] Error 1
-
-    CC util/rbtree.o
-=2E./../lib/rbtree.c:24:36: fatal error: linux/rbtree_augmented.h: No s=
-uch file or directory
-make: *** [util/rbtree.o] Error 1
-
-    CC util/header.o
-util/header.c:2276:8: error: =E2=80=98PERF_ATTR_SIZE_VER3=E2=80=99 unde=
-clared here (not in a function)
-make: *** [util/header.o] Error 1
-
+This looks not good as it doesn't build perf into
+~/build/zebra/perf/perf.o.
 
 Thanks,
 Namhyung
