@@ -1,72 +1,40 @@
-From: "Kirill A. Shutemov" <kirill@shutemov.name>
-Subject: Re: [PATCH v3] mm: thp: Set the accessed flag for old pages on
- access fault.
-Date: Fri, 26 Oct 2012 13:15:20 +0300
-Message-ID: <20121026101520.GA1284@shutemov.name>
-References: <1351183471-14710-1-git-send-email-will.deacon@arm.com>
- <20121026074435.GA871@shutemov.name>
- <20121026090715.GB20914@mudshark.cambridge.arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RESEND PATCH 1/4] asm-generic: io: remove {read,write} string functions
+Date: Fri, 26 Oct 2012 13:29:03 +0000
+Message-ID: <201210261329.03386.arnd@arndb.de>
+References: <1350488704-3711-1-git-send-email-will.deacon@arm.com> <1350488704-3711-2-git-send-email-will.deacon@arm.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <owner-linux-mm@kvack.org>
-Content-Disposition: inline
-In-Reply-To: <20121026090715.GB20914@mudshark.cambridge.arm.com>
-Sender: owner-linux-mm@kvack.org
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.10]:61248 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758854Ab2JZN3W (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 09:29:22 -0400
+In-Reply-To: <1350488704-3711-2-git-send-email-will.deacon@arm.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Will Deacon <will.deacon@arm.com>
-Cc: "linux-mm@kvack.org" <linux-mm@kvack.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "mhocko@suse.cz" <mhocko@suse.cz>, "peterz@infradead.org" <peterz@infradead.org>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, Chris Metcalf <cmetcalf@tilera.com>, Andrea Arcangeli <aarcange@redhat.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, Ben Herrenschmidt <benh@kernel.crashing.org>
 
-On Fri, Oct 26, 2012 at 10:07:15AM +0100, Will Deacon wrote:
-> On Fri, Oct 26, 2012 at 08:44:35AM +0100, Kirill A. Shutemov wrote:
-> > On Thu, Oct 25, 2012 at 05:44:31PM +0100, Will Deacon wrote:
-> > > On x86 memory accesses to pages without the ACCESSED flag set result in the
-> > > ACCESSED flag being set automatically. With the ARM architecture a page access
-> > > fault is raised instead (and it will continue to be raised until the ACCESSED
-> > > flag is set for the appropriate PTE/PMD).
-> > > 
-> > > For normal memory pages, handle_pte_fault will call pte_mkyoung (effectively
-> > > setting the ACCESSED flag). For transparent huge pages, pmd_mkyoung will only
-> > > be called for a write fault.
-> > > 
-> > > This patch ensures that faults on transparent hugepages which do not result
-> > > in a CoW update the access flags for the faulting pmd.
-> > > 
-> > > Cc: Chris Metcalf <cmetcalf@tilera.com>
-> > > Cc: Kirill A. Shutemov <kirill@shutemov.name>
-> > > Cc: Andrea Arcangeli <aarcange@redhat.com>
-> > > Signed-off-by: Will Deacon <will.deacon@arm.com>
-> > > ---
-> > > 
-> > > Ok chaps, I rebased this thing onto today's next (which basically
-> > > necessitated a rewrite) so I've reluctantly dropped my acks and kindly
-> > > ask if you could eyeball the new code, especially where the locking is
-> > > concerned. In the numa code (do_huge_pmd_prot_none), Peter checks again
-> > > that the page is not splitting, but I can't see why that is required.
-> > 
-> > In handle_mm_fault() we check if the pmd is under splitting without
-> > page_table_lock. It's kind of speculative cheap check. We need to re-check
-> > if the PMD is really not under splitting after taking page_table_lock.
+On Wednesday 17 October 2012, Will Deacon wrote:
+> The {read,write}s{b,w,l} functions are not defined across all
+> architectures and therefore shouldn't be used by portable drivers. We
+> should encourage driver writers to use the io{read,write}{8,16,32}_rep
+> functions instead.
 > 
-> I appreciate the need to check whether the thing is splitting, but I thought
-> that the pmd_same(*pmd, orig_pmd) check after taking the page_table_lock
-> would be sufficient, because we know that the entry hasn't changed and that
-> it wasn't splitting before we took the lock. This also mirrors the approach
-> taken by do_huge_pmd_wp_page.
+> This patch removes the {read,write} string functions for the generic IO
+> header as they have no place in a new architecture port.
 > 
-> Is there something I'm missing?
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Mike Frysinger <vapier@gentoo.org>
+> Cc: Ben Herrenschmidt <benh@kernel.crashing.org>
+> Signed-off-by: Will Deacon <will.deacon@arm.com>
 
-Hm.. You're correct from my POV.
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-Acked-by: Kirill A. Shutemov <kirill@shutemov.name>
+What should we do with the series? I can take them through the asm-generic
+tree if you like, or we can let Catalin take them through the arm64 tree.
 
-I think the check in do_huge_pmd_prot_none() is redundant. It only add
-latency. I'll prepare patch to remove it.
-
--- 
- Kirill A. Shutemov
-
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+	Arnd
