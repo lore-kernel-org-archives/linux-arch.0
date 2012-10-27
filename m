@@ -1,63 +1,70 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from g1t0029.austin.hp.com ([15.216.28.36]:12076 "EHLO
-	g1t0029.austin.hp.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S966838Ab2JZWrz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 18:47:55 -0400
-Message-ID: <1351291667.6504.13.camel@MikesLinux.fc.hp.com>
-Subject: [PATCH v2] mm: memmap_init_zone() performance improvement
-From: Mike Yoknis <mike.yoknis@hp.com>
-Reply-To: mike.yoknis@hp.com
-Date: Fri, 26 Oct 2012 16:47:47 -0600
-In-Reply-To: <20121025094410.GA2558@suse.de>
-References: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com>
-	 <20121008151656.GM29125@suse.de>
-	 <1349794597.29752.10.camel@MikesLinux.fc.hp.com>
-	 <1350676398.1169.6.camel@MikesLinux.fc.hp.com>
-	 <20121020082858.GA2698@suse.de>
-	 <1351093667.1205.11.camel@MikesLinux.fc.hp.com>
-	 <20121025094410.GA2558@suse.de>
-Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Received: from zeniv.linux.org.uk ([195.92.253.2]:57010 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S934382Ab2J0Dcn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 23:32:43 -0400
+Date: Sat, 27 Oct 2012 04:32:22 +0100
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [update] Re: new execve/kernel_thread design
+Message-ID: <20121027033222.GT2616@ZenIV.linux.org.uk>
+References: <20121016223508.GR2616@ZenIV.linux.org.uk>
+ <20121026183107.GQ2616@ZenIV.linux.org.uk>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20121026183107.GQ2616@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mel Gorman <mgorman@suse.de>
-Cc: mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
-Message-ID: <20121026224747.-8VQMoH3o-7T7qP-_cP1tVJHp63hPsK0YPBKqtunYnk@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gxt@mprc.pku.edu.cn>
+Message-ID: <20121027033222.GPONtt9rNxZ2s45qX5Tfq8nGS8WkoXbL2DPtxYiiLeg@z>
 
-memmap_init_zone() loops through every Page Frame Number (pfn),
-including pfn values that are within the gaps between existing
-memory sections.  The unneeded looping will become a boot
-performance issue when machines configure larger memory ranges
-that will contain larger and more numerous gaps.
+On Fri, Oct 26, 2012 at 07:31:07PM +0100, Al Viro wrote:
+> 	The situation got much better by now.  More than a half of
+> architectures are done - alpha arm arm64 c6x hexagon ia64 m68k mips openrisc
+> parisc sparc tile um unicore32 and x86.
+> 
+> 	Two more avait ACKs from maintainers - powerpc and s390.  Should work,
+> AFAICS.
+> 
+> 	xtensa - Max was going to repost updated patches; waiting for that
+> to happen, but essentially it's done and tested.
+> 
+> 	microblaze - Michal was debugging kernel_execve side of it the last
+> time I've heard from him...
+> 
+> 	frv, mn10300 - dhowells was going to test those
+> 
+> 	sh - Paul Mundt was going to test and send fixes
+> 
+> 	avr32, blackfin, cris, h8300, m32r, score - no signs of life from
+> maintainers.  Folks, please show up and at least test the damn patchsets.
+> Hell knows, they might even work - unicore32 one did, modulo trivial typo,
+> to my deep surprise...
 
-The code will skip across invalid pfn values to reduce the
-number of loops executed.
+BTW, there's a tangentially related issue: several architectures have
+very odd clone(2).  Namely, blackfin, h8300, no-MMU microblaze and sh64 (==sh5)
+silently ignore child_tidptr and parent_tidptr arguments.  I.e. treat them
+as NULL - or as if CLONE_PARENT_SETTID/CLONE_CHILD_SETTID/CLONE_CHILD_CLEARTID
+were never set.  With the patchset in the local part of queue it would be
+trivial to switch to normal semantics; strictly speaking, it's an ABI change.
+Somebody doing
+	n = 0x69696969;
+	if (clone(CLONE_PARENT_SETTID, 0, &n) > 0) {
+		if (n != 0x69696969) {
+			printf("oh, shit, we are not on blackfin\n");
+			exit(-1);
+		}
+	}
+would run into a user-visible behaviour change, but IMO that's in the realm
+of testing for known architecture-dependent bugs and finding them fixed...
 
-Signed-off-by: Mike Yoknis <mike.yoknis@hp.com>
----
- mm/page_alloc.c | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+Opinions, vetoes?  Should we preserve the current behaviour in this case?
+I would obviously prefer to just go ahead and fix the sucker - the odds of
+any actual software depending on that behaviour are pretty much nil.
+Linus, does that cross the boundary between bug fix and ABI breakage?
 
-diff --git a/mm/page_alloc.c b/mm/page_alloc.c
-index 45c916b..9f9c1a6 100644
---- a/mm/page_alloc.c
-+++ b/mm/page_alloc.c
-@@ -3857,8 +3857,11 @@ void __meminit memmap_init_zone(unsigned long
-size, int nid, unsigned long zone,
- 		 * exist on hotplugged memory.
- 		 */
- 		if (context == MEMMAP_EARLY) {
--			if (!early_pfn_valid(pfn))
-+			if (!early_pfn_valid(pfn)) {
-+				pfn = ALIGN(pfn + MAX_ORDER_NR_PAGES,
-+						MAX_ORDER_NR_PAGES) - 1;
- 				continue;
-+			}
- 			if (!early_pfn_in_nid(pfn, nid))
- 				continue;
- 		}
--- 
-1.7.11.3
-
-
+Another curious thing happens on blackfin; there we subtract 12 from usp
+when it's non-zero (zero == inherit the parent's usp, as always).  No idea
+why is that done; this one definitely has to be preserved, so I'm just
+wondering about the reasons behind that oddity...  Mike?
