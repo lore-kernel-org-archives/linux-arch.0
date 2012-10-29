@@ -1,46 +1,94 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [update] Re: new execve/kernel_thread design
-Date: Mon, 29 Oct 2012 14:57:45 +0000
-Message-ID: <20121029145745.GY2616@ZenIV.linux.org.uk>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk>
- <20121026183107.GQ2616@ZenIV.linux.org.uk>
- <20121029085339.0ea11bc6@mschwide>
- <20121029132521.GW2616@ZenIV.linux.org.uk>
- <20121029153823.2317fdef@mschwide>
+From: Marc Gauthier <marc@tensilica.com>
+Subject: RE: [PATCH v2 1/4] xtensa: reset windowbase/windowstart when
+ cloning the VM
+Date: Mon, 29 Oct 2012 09:10:27 -0700
+Message-ID: <522C1DF17AF50042AD8AE87F7887BD3D0B6088144E@exch.hq.tensilica.com>
+References: <1351522581-30516-1-git-send-email-jcmvbkbc@gmail.com>
+ <1351522581-30516-2-git-send-email-jcmvbkbc@gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:46904 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752277Ab2J2O5z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2012 10:57:55 -0400
-Content-Disposition: inline
-In-Reply-To: <20121029153823.2317fdef@mschwide>
+Received: from vpn-ssl2.tensilica.com ([65.119.96.30]:49887 "EHLO
+	mailgw.tensilica.com" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1759542Ab2J2QK3 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2012 12:10:29 -0400
+In-Reply-To: <1351522581-30516-2-git-send-email-jcmvbkbc@gmail.com>
+Content-Language: en-US
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gxt@mprc.pku.e>
+To: Max Filippov <jcmvbkbc@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Chris Zankel <chris@zankel.net>
 
-On Mon, Oct 29, 2012 at 03:38:23PM +0100, Martin Schwidefsky wrote:
-> On Mon, 29 Oct 2012 13:25:21 +0000
-> Al Viro <viro@ZenIV.linux.org.uk> wrote:
-> 
-> > On Mon, Oct 29, 2012 at 08:53:39AM +0100, Martin Schwidefsky wrote:
-> > 
-> > > Oops, sorry. I tested this weeks ago but it seems I never wrote a mail to
-> > > indicate success. The current git kernel works just fine.
-> > 
-> > "Current git" being what?  Linus' tree?  linux-next?  signal.git#arch-s390?
-> > FWIW, the relevant diff against mainline is below, linux-next already
-> > contains it.
-> 
-> git://git.kernel.org/pub/scm/linux/kernel/git/viro/signal arch-s390
-> 
-> against Linux 3.7-rc3
-> 
-> # uname -a
-> Linux r3545014 3.7.0-rc3-00002-g95a96a7 #1 SMP Mon Oct 29 15:32:18 CET 2012 s390x s390x s390x GNU/Linux
-> 
-> works as it is. Feel free to add my Acked-By.
+Max Filippov wrote:
+> From: Chris Zankel <chris@zankel.net>
+>
+> When we copy a user thread with CLONE_VM, we also have to reset
+> windowbase and windowstart to start a pristine stack frame. Otherwise,
+> overflows can happen using the address 0 as the stack pointer.
+> Also add a special case for vfork, which continues on the
+> parent stack until it calls execve. Because this could be a call8, we
+> need to spill the stack pointer of the previus frame (if
+> still 'live' in
+> the register file).
+>
+> Signed-off-by: Chris Zankel <chris@zankel.net>
+> ---
+>  arch/xtensa/kernel/process.c |   26 +++++++++++++++++++++++++-
+>  1 files changed, 25 insertions(+), 1 deletions(-)
+>
+> diff --git a/arch/xtensa/kernel/process.c
+> b/arch/xtensa/kernel/process.c
+> index 1908f66..341c151 100644
+> --- a/arch/xtensa/kernel/process.c
+> +++ b/arch/xtensa/kernel/process.c
+> @@ -220,8 +220,32 @@ int copy_thread(unsigned long
+> clone_flags, unsigned long usp,
+>       if (user_mode(regs)) {
+>
+>               childregs->areg[1] = usp;
+> +
+> +             /* When sharing memory with the parent thread, the child
+> +                usually starts on a pristine stack, so we
+> have to reset
+> +                windowbase, windowstart and wmask.
+> +                (Note that such a new thread is required to
+> always create
+> +                an initial call4 frame)
+> +                The exception is vfork, where the new thread
+> continues to
+> +                run on the parent's stack until it calls
+> execve. This could
+> +                be a call8 or call12, which requires a legal
+> stack frame
+> +                of the previous caller for the overflow
+> handlers to work.
+> +                (Note that it's always legal to overflow
+> live registers).
+> +                In this case, ensure to spill at least the
+> stack pointer
+> +                of that frame. */
+> +
+>               if (clone_flags & CLONE_VM) {
+> -                     childregs->wmask = 1;   /* can't share
+> live windows */
+> +                     /* check that caller window is live and
+> same stack */
+> +                     int len = childregs->wmask & ~0xf;
+> +                     if (regs->areg[1] == usp && len != 0) {
+> +                             int callinc = (regs->areg[0] >> 30) & 3;
+> +                             int caller_ars =
+> XCHAL_NUM_AREGS - callinc * 4;
+> +                             put_user(regs->areg[caller_ars+1],
+> +                                      (unsigned __user*)(usp - 12));
+> +                     }
+> +                     childregs->wmask = 1;
+> +                     childregs->windowstart = 1;
+> +                     childregs->windowbase = 0;
+>               } else {
+>                       int len = childregs->wmask & ~0xf;
+>                       memcpy(&childregs->areg[XCHAL_NUM_AREGS
+> - len/4],
 
-Done and pushed, should propagate shortly.  It's in no-rebase mode now.
+
+Acked-by: Marc Gauthier <marc@tensilica.com>
