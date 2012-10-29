@@ -1,130 +1,162 @@
 From: <gerg@snapgear.com>
-Subject: [PATCH v2 11/11] m68k: switch to using the asm-generic socket.h
-Date: Mon, 29 Oct 2012 15:49:34 +1000
-Message-ID: <1351489774-14263-12-git-send-email-gerg@snapgear.com>
+Subject: [PATCH v2 09/11] m68k: switch to using the asm-generic termios.h
+Date: Mon, 29 Oct 2012 15:49:32 +1000
+Message-ID: <1351489774-14263-10-git-send-email-gerg@snapgear.com>
 References: <1351489774-14263-1-git-send-email-gerg@snapgear.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-m68k-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from dalsmrelay2.nai.com ([205.227.136.216]:49574 "EHLO
+	dalsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755336Ab2J2F51 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2012 01:57:27 -0400
 In-Reply-To: <1351489774-14263-1-git-send-email-gerg@snapgear.com>
-Sender: linux-m68k-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: Greg Ungerer <gerg@uclinux.org>
-List-Id: linux-arch.vger.kernel.org
 
 From: Greg Ungerer <gerg@uclinux.org>
 
-We don't need a local socket.h, switch to using the asm-generic version.
+We don't need a local termios.h, switch to using the asm-generic version.
 
 Signed-off-by: Greg Ungerer <gerg@uclinux.org>
 ---
- arch/m68k/include/asm/Kbuild        |    1 +
- arch/m68k/include/uapi/asm/Kbuild   |    1 -
- arch/m68k/include/uapi/asm/socket.h |   72 -----------------------------------
- 3 files changed, 1 insertions(+), 73 deletions(-)
- delete mode 100644 arch/m68k/include/uapi/asm/socket.h
+ arch/m68k/include/asm/Kbuild         |    1 +
+ arch/m68k/include/asm/termios.h      |   50 ----------------------------------
+ arch/m68k/include/uapi/asm/Kbuild    |    1 -
+ arch/m68k/include/uapi/asm/termios.h |   44 -----------------------------
+ 4 files changed, 1 insertions(+), 95 deletions(-)
+ delete mode 100644 arch/m68k/include/asm/termios.h
+ delete mode 100644 arch/m68k/include/uapi/asm/termios.h
 
 diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
-index 2801fd5..fe821a2 100644
+index 8867342..63ed062 100644
 --- a/arch/m68k/include/asm/Kbuild
 +++ b/arch/m68k/include/asm/Kbuild
-@@ -28,6 +28,7 @@ generic-y += sembuf.h
- generic-y += shmbuf.h
- generic-y += shmparam.h
- generic-y += siginfo.h
-+generic-y += socket.h
- generic-y += sockios.h
+@@ -31,6 +31,7 @@ generic-y += siginfo.h
  generic-y += spinlock.h
  generic-y += statfs.h
+ generic-y += termbits.h
++generic-y += termios.h
+ generic-y += topology.h
+ generic-y += types.h
+ generic-y += word-at-a-time.h
+diff --git a/arch/m68k/include/asm/termios.h b/arch/m68k/include/asm/termios.h
+deleted file mode 100644
+index ad8efb0..0000000
+--- a/arch/m68k/include/asm/termios.h
++++ /dev/null
+@@ -1,50 +0,0 @@
+-#ifndef _M68K_TERMIOS_H
+-#define _M68K_TERMIOS_H
+-
+-#include <uapi/asm/termios.h>
+-
+-/*	intr=^C		quit=^|		erase=del	kill=^U
+-	eof=^D		vtime=\0	vmin=\1		sxtc=\0
+-	start=^Q	stop=^S		susp=^Z		eol=\0
+-	reprint=^R	discard=^U	werase=^W	lnext=^V
+-	eol2=\0
+-*/
+-#define INIT_C_CC "\003\034\177\025\004\0\1\0\021\023\032\0\022\017\027\026\0"
+-
+-/*
+- * Translate a "termio" structure into a "termios". Ugh.
+- */
+-#define user_termio_to_kernel_termios(termios, termio) \
+-({ \
+-	unsigned short tmp; \
+-	get_user(tmp, &(termio)->c_iflag); \
+-	(termios)->c_iflag = (0xffff0000 & ((termios)->c_iflag)) | tmp; \
+-	get_user(tmp, &(termio)->c_oflag); \
+-	(termios)->c_oflag = (0xffff0000 & ((termios)->c_oflag)) | tmp; \
+-	get_user(tmp, &(termio)->c_cflag); \
+-	(termios)->c_cflag = (0xffff0000 & ((termios)->c_cflag)) | tmp; \
+-	get_user(tmp, &(termio)->c_lflag); \
+-	(termios)->c_lflag = (0xffff0000 & ((termios)->c_lflag)) | tmp; \
+-	get_user((termios)->c_line, &(termio)->c_line); \
+-	copy_from_user((termios)->c_cc, (termio)->c_cc, NCC); \
+-})
+-
+-/*
+- * Translate a "termios" structure into a "termio". Ugh.
+- */
+-#define kernel_termios_to_user_termio(termio, termios) \
+-({ \
+-	put_user((termios)->c_iflag, &(termio)->c_iflag); \
+-	put_user((termios)->c_oflag, &(termio)->c_oflag); \
+-	put_user((termios)->c_cflag, &(termio)->c_cflag); \
+-	put_user((termios)->c_lflag, &(termio)->c_lflag); \
+-	put_user((termios)->c_line,  &(termio)->c_line); \
+-	copy_to_user((termio)->c_cc, (termios)->c_cc, NCC); \
+-})
+-
+-#define user_termios_to_kernel_termios(k, u) copy_from_user(k, u, sizeof(struct termios2))
+-#define kernel_termios_to_user_termios(u, k) copy_to_user(u, k, sizeof(struct termios2))
+-#define user_termios_to_kernel_termios_1(k, u) copy_from_user(k, u, sizeof(struct termios))
+-#define kernel_termios_to_user_termios_1(u, k) copy_to_user(u, k, sizeof(struct termios))
+-
+-#endif /* _M68K_TERMIOS_H */
 diff --git a/arch/m68k/include/uapi/asm/Kbuild b/arch/m68k/include/uapi/asm/Kbuild
-index 1e2314e..aebdbf5 100644
+index 2b774c7..19bd052 100644
 --- a/arch/m68k/include/uapi/asm/Kbuild
 +++ b/arch/m68k/include/uapi/asm/Kbuild
-@@ -13,7 +13,6 @@ header-y += ptrace.h
- header-y += setup.h
- header-y += sigcontext.h
- header-y += signal.h
--header-y += socket.h
+@@ -17,5 +17,4 @@ header-y += socket.h
+ header-y += sockios.h
  header-y += stat.h
  header-y += swab.h
+-header-y += termios.h
  header-y += unistd.h
-diff --git a/arch/m68k/include/uapi/asm/socket.h b/arch/m68k/include/uapi/asm/socket.h
+diff --git a/arch/m68k/include/uapi/asm/termios.h b/arch/m68k/include/uapi/asm/termios.h
 deleted file mode 100644
-index d1be684..0000000
---- a/arch/m68k/include/uapi/asm/socket.h
+index ce2142c..0000000
+--- a/arch/m68k/include/uapi/asm/termios.h
 +++ /dev/null
-@@ -1,72 +0,0 @@
--#ifndef _ASM_SOCKET_H
--#define _ASM_SOCKET_H
+@@ -1,44 +0,0 @@
+-#ifndef _UAPI_M68K_TERMIOS_H
+-#define _UAPI_M68K_TERMIOS_H
 -
--#include <asm/sockios.h>
+-#include <asm/termbits.h>
+-#include <asm/ioctls.h>
 -
--/* For setsockopt(2) */
--#define SOL_SOCKET	1
+-struct winsize {
+-	unsigned short ws_row;
+-	unsigned short ws_col;
+-	unsigned short ws_xpixel;
+-	unsigned short ws_ypixel;
+-};
 -
--#define SO_DEBUG	1
--#define SO_REUSEADDR	2
--#define SO_TYPE		3
--#define SO_ERROR	4
--#define SO_DONTROUTE	5
--#define SO_BROADCAST	6
--#define SO_SNDBUF	7
--#define SO_RCVBUF	8
--#define SO_SNDBUFFORCE	32
--#define SO_RCVBUFFORCE	33
--#define SO_KEEPALIVE	9
--#define SO_OOBINLINE	10
--#define SO_NO_CHECK	11
--#define SO_PRIORITY	12
--#define SO_LINGER	13
--#define SO_BSDCOMPAT	14
--/* To add :#define SO_REUSEPORT 15 */
--#define SO_PASSCRED	16
--#define SO_PEERCRED	17
--#define SO_RCVLOWAT	18
--#define SO_SNDLOWAT	19
--#define SO_RCVTIMEO	20
--#define SO_SNDTIMEO	21
+-#define NCC 8
+-struct termio {
+-	unsigned short c_iflag;		/* input mode flags */
+-	unsigned short c_oflag;		/* output mode flags */
+-	unsigned short c_cflag;		/* control mode flags */
+-	unsigned short c_lflag;		/* local mode flags */
+-	unsigned char c_line;		/* line discipline */
+-	unsigned char c_cc[NCC];	/* control characters */
+-};
 -
--/* Security levels - as per NRL IPv6 - don't actually do anything */
--#define SO_SECURITY_AUTHENTICATION		22
--#define SO_SECURITY_ENCRYPTION_TRANSPORT	23
--#define SO_SECURITY_ENCRYPTION_NETWORK		24
 -
--#define SO_BINDTODEVICE	25
+-/* modem lines */
+-#define TIOCM_LE	0x001
+-#define TIOCM_DTR	0x002
+-#define TIOCM_RTS	0x004
+-#define TIOCM_ST	0x008
+-#define TIOCM_SR	0x010
+-#define TIOCM_CTS	0x020
+-#define TIOCM_CAR	0x040
+-#define TIOCM_RNG	0x080
+-#define TIOCM_DSR	0x100
+-#define TIOCM_CD	TIOCM_CAR
+-#define TIOCM_RI	TIOCM_RNG
+-#define TIOCM_OUT1	0x2000
+-#define TIOCM_OUT2	0x4000
+-#define TIOCM_LOOP	0x8000
 -
--/* Socket filtering */
--#define SO_ATTACH_FILTER        26
--#define SO_DETACH_FILTER        27
+-/* ioctl (fd, TIOCSERGETLSR, &result) where result may be as below */
 -
--#define SO_PEERNAME             28
--#define SO_TIMESTAMP		29
--#define SCM_TIMESTAMP		SO_TIMESTAMP
 -
--#define SO_ACCEPTCONN		30
--
--#define SO_PEERSEC             31
--#define SO_PASSSEC		34
--#define SO_TIMESTAMPNS		35
--#define SCM_TIMESTAMPNS		SO_TIMESTAMPNS
--
--#define SO_MARK			36
--
--#define SO_TIMESTAMPING		37
--#define SCM_TIMESTAMPING	SO_TIMESTAMPING
--
--#define SO_PROTOCOL		38
--#define SO_DOMAIN		39
--
--#define SO_RXQ_OVFL             40
--
--#define SO_WIFI_STATUS		41
--#define SCM_WIFI_STATUS		SO_WIFI_STATUS
--#define SO_PEEK_OFF		42
--
--/* Instruct lower device to use last 4-bytes of skb data as FCS */
--#define SO_NOFCS		43
--
--#endif /* _ASM_SOCKET_H */
+-#endif /* _UAPI_M68K_TERMIOS_H */
 -- 
 1.7.0.4
