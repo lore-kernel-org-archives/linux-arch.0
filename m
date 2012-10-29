@@ -1,7 +1,7 @@
 From: <gerg@snapgear.com>
-Subject: [PATCH v2 04/11] m68k: switch to using the asm-generic msgbuf.h
-Date: Mon, 29 Oct 2012 15:49:27 +1000
-Message-ID: <1351489774-14263-5-git-send-email-gerg@snapgear.com>
+Subject: [PATCH v2 06/11] m68k: switch to using the asm-generic sembuf.h
+Date: Mon, 29 Oct 2012 15:49:29 +1000
+Message-ID: <1351489774-14263-7-git-send-email-gerg@snapgear.com>
 References: <1351489774-14263-1-git-send-email-gerg@snapgear.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -14,51 +14,51 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Greg Ungerer <gerg@uclinux.org>
 
-We don't need a local msgbuf.h, switch to using the asm-generic version.
+We don't need a local sembuf.h, switch to using the asm-generic version.
 
 Signed-off-by: Greg Ungerer <gerg@uclinux.org>
 ---
  arch/m68k/include/asm/Kbuild        |    1 +
  arch/m68k/include/uapi/asm/Kbuild   |    1 -
- arch/m68k/include/uapi/asm/msgbuf.h |   31 -------------------------------
- 3 files changed, 1 insertions(+), 32 deletions(-)
- delete mode 100644 arch/m68k/include/uapi/asm/msgbuf.h
+ arch/m68k/include/uapi/asm/sembuf.h |   25 -------------------------
+ 3 files changed, 1 insertions(+), 26 deletions(-)
+ delete mode 100644 arch/m68k/include/uapi/asm/sembuf.h
 
 diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
-index a0c4c9a..3144bb9 100644
+index 7541328..86d38c0 100644
 --- a/arch/m68k/include/asm/Kbuild
 +++ b/arch/m68k/include/asm/Kbuild
-@@ -18,6 +18,7 @@ generic-y += kvm_para.h
- generic-y += local64.h
- generic-y += local.h
- generic-y += mman.h
-+generic-y += msgbuf.h
- generic-y += mutex.h
- generic-y += percpu.h
+@@ -24,6 +24,7 @@ generic-y += percpu.h
  generic-y += resource.h
+ generic-y += scatterlist.h
+ generic-y += sections.h
++generic-y += sembuf.h
+ generic-y += shmbuf.h
+ generic-y += shmparam.h
+ generic-y += siginfo.h
 diff --git a/arch/m68k/include/uapi/asm/Kbuild b/arch/m68k/include/uapi/asm/Kbuild
-index 588c3cc..5c99e46 100644
+index 5d627ed..73de97a 100644
 --- a/arch/m68k/include/uapi/asm/Kbuild
 +++ b/arch/m68k/include/uapi/asm/Kbuild
-@@ -6,7 +6,6 @@ header-y += byteorder.h
- header-y += cachectl.h
- header-y += fcntl.h
- header-y += ioctls.h
--header-y += msgbuf.h
- header-y += param.h
+@@ -10,7 +10,6 @@ header-y += param.h
  header-y += poll.h
  header-y += posix_types.h
-diff --git a/arch/m68k/include/uapi/asm/msgbuf.h b/arch/m68k/include/uapi/asm/msgbuf.h
+ header-y += ptrace.h
+-header-y += sembuf.h
+ header-y += setup.h
+ header-y += sigcontext.h
+ header-y += signal.h
+diff --git a/arch/m68k/include/uapi/asm/sembuf.h b/arch/m68k/include/uapi/asm/sembuf.h
 deleted file mode 100644
-index 243cb79..0000000
---- a/arch/m68k/include/uapi/asm/msgbuf.h
+index 2308052..0000000
+--- a/arch/m68k/include/uapi/asm/sembuf.h
 +++ /dev/null
-@@ -1,31 +0,0 @@
--#ifndef _M68K_MSGBUF_H
--#define _M68K_MSGBUF_H
+@@ -1,25 +0,0 @@
+-#ifndef _M68K_SEMBUF_H
+-#define _M68K_SEMBUF_H
 -
 -/*
-- * The msqid64_ds structure for m68k architecture.
+- * The semid64_ds structure for m68k architecture.
 - * Note extra padding because this structure is passed back and forth
 - * between kernel and user space.
 - *
@@ -67,23 +67,17 @@ index 243cb79..0000000
 - * - 2 miscellaneous 32-bit values
 - */
 -
--struct msqid64_ds {
--	struct ipc64_perm msg_perm;
--	__kernel_time_t msg_stime;	/* last msgsnd time */
+-struct semid64_ds {
+-	struct ipc64_perm sem_perm;		/* permissions .. see ipc.h */
+-	__kernel_time_t	sem_otime;		/* last semop time */
 -	unsigned long	__unused1;
--	__kernel_time_t msg_rtime;	/* last msgrcv time */
+-	__kernel_time_t	sem_ctime;		/* last change time */
 -	unsigned long	__unused2;
--	__kernel_time_t msg_ctime;	/* last change time */
+-	unsigned long	sem_nsems;		/* no. of semaphores in array */
 -	unsigned long	__unused3;
--	unsigned long  msg_cbytes;	/* current number of bytes on queue */
--	unsigned long  msg_qnum;	/* number of messages in queue */
--	unsigned long  msg_qbytes;	/* max number of bytes on queue */
--	__kernel_pid_t msg_lspid;	/* pid of last msgsnd */
--	__kernel_pid_t msg_lrpid;	/* last receive pid */
--	unsigned long  __unused4;
--	unsigned long  __unused5;
+-	unsigned long	__unused4;
 -};
 -
--#endif /* _M68K_MSGBUF_H */
+-#endif /* _M68K_SEMBUF_H */
 -- 
 1.7.0.4
