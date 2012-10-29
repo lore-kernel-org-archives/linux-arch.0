@@ -1,70 +1,83 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:57010 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S934382Ab2J0Dcn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 26 Oct 2012 23:32:43 -0400
-Date: Sat, 27 Oct 2012 04:32:22 +0100
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [update] Re: new execve/kernel_thread design
-Message-ID: <20121027033222.GT2616@ZenIV.linux.org.uk>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk>
- <20121026183107.GQ2616@ZenIV.linux.org.uk>
+Received: from mprc.pku.edu.cn ([162.105.203.9]:47514 "EHLO mprc.pku.edu.cn"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751145Ab2J2BMA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 28 Oct 2012 21:12:00 -0400
+From: guanxuetao@mprc.pku.edu.cn
+Message-ID: <57835.162.105.203.8.1351474122.squirrel@mprc.pku.edu.cn>
+In-Reply-To: <1350984117-17369-1-git-send-email-james.hogan@imgtec.com>
+References: <1350984117-17369-1-git-send-email-james.hogan@imgtec.com>
+Date: Mon, 29 Oct 2012 09:28:42 +0800 (CST)
+Subject: Re: [PATCH] asm-generic/io.h: remove asm/cacheflush.h include
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20121026183107.GQ2616@ZenIV.linux.org.uk>
+Content-Type: text/plain;charset=GB2312
+Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gxt@mprc.pku.edu.cn>
-Message-ID: <20121027033222.GPONtt9rNxZ2s45qX5Tfq8nGS8WkoXbL2DPtxYiiLeg@z>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, Jonas Bonn <jonas@southpole.se>, linux-arch@vger.kernel.org, linux@openrisc.net, linux-kernel@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linux-xtensa@linux-xtensa.org, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>
+Message-ID: <20121029012842.FlobPx0MxgxtGs7KTLXn58Je38losJlP2hKNQihY4Kg@z>
 
-On Fri, Oct 26, 2012 at 07:31:07PM +0100, Al Viro wrote:
-> 	The situation got much better by now.  More than a half of
-> architectures are done - alpha arm arm64 c6x hexagon ia64 m68k mips openrisc
-> parisc sparc tile um unicore32 and x86.
-> 
-> 	Two more avait ACKs from maintainers - powerpc and s390.  Should work,
-> AFAICS.
-> 
-> 	xtensa - Max was going to repost updated patches; waiting for that
-> to happen, but essentially it's done and tested.
-> 
-> 	microblaze - Michal was debugging kernel_execve side of it the last
-> time I've heard from him...
-> 
-> 	frv, mn10300 - dhowells was going to test those
-> 
-> 	sh - Paul Mundt was going to test and send fixes
-> 
-> 	avr32, blackfin, cris, h8300, m32r, score - no signs of life from
-> maintainers.  Folks, please show up and at least test the damn patchsets.
-> Hell knows, they might even work - unicore32 one did, modulo trivial typo,
-> to my deep surprise...
+> Including <asm/cacheflush.h> from <asm-generic/io.h> prevents
+> cacheflush.h being able to use I/O functions like readl and writel due
+> to circular include dependencies. It doesn't appear as if anything from
+> cacheflush.h is actually used by the generic io.h, so remove the
+> include.
+>
+> I've compile tested a defconfig compilation of blackfin, openrisc (which
+> needed <asm/pgtable.h> including from it's <asm/io.h> to get the PAGE_*
+> definitions), and xtensa.
+>
+> Other architectures which use asm-generic/io.h are score and unicore32,
+> and looking at their io.h I don't see any obvious problems.
+>
+> Signed-off-by: James Hogan <james.hogan@imgtec.com>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Jonas Bonn <jonas@southpole.se>
+> Cc: Chris Zankel <chris@zankel.net>
+> Cc: Max Filippov <jcmvbkbc@gmail.com>
+> Cc: Mike Frysinger <vapier@gentoo.org>
+> Cc: Chen Liqin <liqin.chen@sunplusct.com>
+> Cc: Lennox Wu <lennox.wu@gmail.com>
+> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-BTW, there's a tangentially related issue: several architectures have
-very odd clone(2).  Namely, blackfin, h8300, no-MMU microblaze and sh64 (==sh5)
-silently ignore child_tidptr and parent_tidptr arguments.  I.e. treat them
-as NULL - or as if CLONE_PARENT_SETTID/CLONE_CHILD_SETTID/CLONE_CHILD_CLEARTID
-were never set.  With the patchset in the local part of queue it would be
-trivial to switch to normal semantics; strictly speaking, it's an ABI change.
-Somebody doing
-	n = 0x69696969;
-	if (clone(CLONE_PARENT_SETTID, 0, &n) > 0) {
-		if (n != 0x69696969) {
-			printf("oh, shit, we are not on blackfin\n");
-			exit(-1);
-		}
-	}
-would run into a user-visible behaviour change, but IMO that's in the realm
-of testing for known architecture-dependent bugs and finding them fixed...
+Acked-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-Opinions, vetoes?  Should we preserve the current behaviour in this case?
-I would obviously prefer to just go ahead and fix the sucker - the odds of
-any actual software depending on that behaviour are pretty much nil.
-Linus, does that cross the boundary between bug fix and ABI breakage?
+> ---
+> Any compile testing of score and unicore32 anybody could provide would
+> be great.
+>
+>  arch/openrisc/include/asm/io.h |    1 +
+>  include/asm-generic/io.h       |    1 -
+>  2 files changed, 1 insertions(+), 1 deletions(-)
+>
+> diff --git a/arch/openrisc/include/asm/io.h
+> b/arch/openrisc/include/asm/io.h
+> index 07f5299..7c69139 100644
+> --- a/arch/openrisc/include/asm/io.h
+> +++ b/arch/openrisc/include/asm/io.h
+> @@ -30,6 +30,7 @@
+>  #define PIO_MASK		0
+>
+>  #include <asm-generic/io.h>
+> +#include <asm/pgtable.h>
+>
+>  extern void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
+>  				pgprot_t prot);
+> diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+> index 448303b..616eea5 100644
+> --- a/include/asm-generic/io.h
+> +++ b/include/asm-generic/io.h
+> @@ -12,7 +12,6 @@
+>  #define __ASM_GENERIC_IO_H
+>
+>  #include <asm/page.h> /* I/O is all done through memory accesses */
+> -#include <asm/cacheflush.h>
+>  #include <linux/types.h>
+>
+>  #ifdef CONFIG_GENERIC_IOMAP
+> --
+> 1.7.7.6
+>
+>
 
-Another curious thing happens on blackfin; there we subtract 12 from usp
-when it's non-zero (zero == inherit the parent's usp, as always).  No idea
-why is that done; this one definitely has to be preserved, so I'm just
-wondering about the reasons behind that oddity...  Mike?
