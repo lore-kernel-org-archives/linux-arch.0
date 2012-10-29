@@ -1,52 +1,50 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [update] Re: new execve/kernel_thread design
-Date: Mon, 29 Oct 2012 15:38:23 +0100
-Message-ID: <20121029153823.2317fdef@mschwide>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk>
-	<20121026183107.GQ2616@ZenIV.linux.org.uk>
-	<20121029085339.0ea11bc6@mschwide>
-	<20121029132521.GW2616@ZenIV.linux.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+From: Max Filippov <jcmvbkbc@gmail.com>
+Subject: [PATCH v2 0/4] xtensa: conversion to generic kernel_thread and friends
+Date: Mon, 29 Oct 2012 18:56:17 +0400
+Message-ID: <1351522581-30516-1-git-send-email-jcmvbkbc@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp10.uk.ibm.com ([195.75.94.106]:40362 "EHLO
-	e06smtp10.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756947Ab2J2Oie (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2012 10:38:34 -0400
-Received: from /spool/local
-	by e06smtp10.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-	Mon, 29 Oct 2012 14:38:32 -0000
-In-Reply-To: <20121029132521.GW2616@ZenIV.linux.org.uk>
+Received: from mail-la0-f46.google.com ([209.85.215.46]:32848 "EHLO
+	mail-la0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752976Ab2J2O4l (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2012 10:56:41 -0400
+Received: by mail-la0-f46.google.com with SMTP id h6so3826574lag.19
+        for <linux-arch@vger.kernel.org>; Mon, 29 Oct 2012 07:56:40 -0700 (PDT)
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gxt@mprc.pku.e>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, Chris Zankel <chris@zankel.net>, Marc Gauthier <marc@tensilica.com>, Max Filippov <jcmvbkbc@gmail.com>
 
-On Mon, 29 Oct 2012 13:25:21 +0000
-Al Viro <viro@ZenIV.linux.org.uk> wrote:
+Hi.
 
-> On Mon, Oct 29, 2012 at 08:53:39AM +0100, Martin Schwidefsky wrote:
-> 
-> > Oops, sorry. I tested this weeks ago but it seems I never wrote a mail to
-> > indicate success. The current git kernel works just fine.
-> 
-> "Current git" being what?  Linus' tree?  linux-next?  signal.git#arch-s390?
-> FWIW, the relevant diff against mainline is below, linux-next already
-> contains it.
+This is v2 of xtensa conversion to generic kernel_thread and friends series,
+for inclusion into git://git.kernel.org/pub/scm/linux/kernel/git/viro/signal
+tree.
 
-git://git.kernel.org/pub/scm/linux/kernel/git/viro/signal arch-s390
+Changes v1 -> v2:
+- rebase on top of czankel/xtensa-linux dev branch; a fix to copy_thread from
+  that branch on which kernel_thread conversion depends is also included;
+- move pt_regs memset from copy_thread to start_thread;
+- drop {set,clear}_child_tid manipulation;
+- don't look at regs argument to copy_thread;
+- move zero newsp logic from xtensa_clone to copy_thread.
 
-against Linux 3.7-rc3
+Chris Zankel (1):
+  xtensa: reset windowbase/windowstart when cloning the VM
 
-# uname -a
-Linux r3545014 3.7.0-rc3-00002-g95a96a7 #1 SMP Mon Oct 29 15:32:18 CET 2012 s390x s390x s390x GNU/Linux
+Max Filippov (3):
+  xtensa: switch to generic kernel_thread()
+  xtensa: switch to generic kernel_execve()
+  xtensa: switch to generic sys_execve()
 
-works as it is. Feel free to add my Acked-By.
+ arch/xtensa/Kconfig                   |    2 +
+ arch/xtensa/include/asm/processor.h   |    4 +-
+ arch/xtensa/include/asm/syscall.h     |    2 +-
+ arch/xtensa/include/asm/unistd.h      |    1 +
+ arch/xtensa/include/uapi/asm/unistd.h |    2 +-
+ arch/xtensa/kernel/entry.S            |   57 ++++-----------
+ arch/xtensa/kernel/process.c          |  128 ++++++++++++++++++---------------
+ arch/xtensa/kernel/xtensa_ksyms.c     |    1 -
+ 8 files changed, 90 insertions(+), 107 deletions(-)
 
 -- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
+1.7.7.6
