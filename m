@@ -1,15 +1,15 @@
 From: Max Filippov <jcmvbkbc@gmail.com>
-Subject: [PATCH v2 3/4] xtensa: switch to generic kernel_execve()
-Date: Mon, 29 Oct 2012 18:56:20 +0400
-Message-ID: <1351522581-30516-4-git-send-email-jcmvbkbc@gmail.com>
+Subject: [PATCH v2 4/4] xtensa: switch to generic sys_execve()
+Date: Mon, 29 Oct 2012 18:56:21 +0400
+Message-ID: <1351522581-30516-5-git-send-email-jcmvbkbc@gmail.com>
 References: <1351522581-30516-1-git-send-email-jcmvbkbc@gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f46.google.com ([209.85.215.46]:47053 "EHLO
-	mail-la0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752231Ab2J2O46 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2012 10:56:58 -0400
-Received: by mail-la0-f46.google.com with SMTP id h6so3826596lag.19
-        for <linux-arch@vger.kernel.org>; Mon, 29 Oct 2012 07:56:57 -0700 (PDT)
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:59288 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752254Ab2J2O5L (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2012 10:57:11 -0400
+Received: by mail-lb0-f174.google.com with SMTP id n3so3112446lbo.19
+        for <linux-arch@vger.kernel.org>; Mon, 29 Oct 2012 07:57:10 -0700 (PDT)
 In-Reply-To: <1351522581-30516-1-git-send-email-jcmvbkbc@gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -18,56 +18,82 @@ Cc: linux-arch@vger.kernel.org, Chris Zankel <chris@zankel.net>, Marc Gauthier <
 
 Signed-off-by: Max Filippov <jcmvbkbc@gmail.com>
 ---
- arch/xtensa/Kconfig        |    1 +
- arch/xtensa/kernel/entry.S |   18 +-----------------
- 2 files changed, 2 insertions(+), 17 deletions(-)
+ arch/xtensa/include/asm/syscall.h     |    2 +-
+ arch/xtensa/include/asm/unistd.h      |    1 +
+ arch/xtensa/include/uapi/asm/unistd.h |    2 +-
+ arch/xtensa/kernel/process.c          |   25 -------------------------
+ 4 files changed, 3 insertions(+), 27 deletions(-)
 
-diff --git a/arch/xtensa/Kconfig b/arch/xtensa/Kconfig
-index 1033a1a..e957454 100644
---- a/arch/xtensa/Kconfig
-+++ b/arch/xtensa/Kconfig
-@@ -14,6 +14,7 @@ config XTENSA
- 	select MODULES_USE_ELF_RELA
- 	select GENERIC_PCI_IOMAP
- 	select GENERIC_KERNEL_THREAD
-+	select GENERIC_KERNEL_EXECVE
- 	select ARCH_WANT_OPTIONAL_GPIOLIB
- 	select OF
- 	select OF_EARLY_FLATTREE
-diff --git a/arch/xtensa/kernel/entry.S b/arch/xtensa/kernel/entry.S
-index 0fc994f..7da2c02 100644
---- a/arch/xtensa/kernel/entry.S
-+++ b/arch/xtensa/kernel/entry.S
-@@ -1833,22 +1833,6 @@ ENTRY(system_call)
+diff --git a/arch/xtensa/include/asm/syscall.h b/arch/xtensa/include/asm/syscall.h
+index c1dacca..124aeee 100644
+--- a/arch/xtensa/include/asm/syscall.h
++++ b/arch/xtensa/include/asm/syscall.h
+@@ -10,7 +10,7 @@
  
+ struct pt_regs;
+ struct sigaction;
+-asmlinkage long xtensa_execve(char*, char**, char**, struct pt_regs*);
++asmlinkage long sys_execve(char*, char**, char**, struct pt_regs*);
+ asmlinkage long xtensa_clone(unsigned long, unsigned long, struct pt_regs*);
+ asmlinkage long xtensa_ptrace(long, long, long, long);
+ asmlinkage long xtensa_sigreturn(struct pt_regs*);
+diff --git a/arch/xtensa/include/asm/unistd.h b/arch/xtensa/include/asm/unistd.h
+index d9fa52d..f4e6eaa 100644
+--- a/arch/xtensa/include/asm/unistd.h
++++ b/arch/xtensa/include/asm/unistd.h
+@@ -1,6 +1,7 @@
+ #ifndef _XTENSA_UNISTD_H
+ #define _XTENSA_UNISTD_H
+ 
++#define __ARCH_WANT_SYS_EXECVE
+ #include <uapi/asm/unistd.h>
  
  /*
-- * Do a system call from kernel instead of calling sys_execve, so we end up
-- * with proper pt_regs.
-- *
-- * int kernel_execve(const char *fname, char *const argv[], charg *const envp[])
-- * a2                        a2               a3                  a4
-- */
--
--ENTRY(kernel_execve)
--	entry	a1, 16
--	mov	a6, a2			# arg0 is in a6
--	movi	a2, __NR_execve
--	syscall
--
--	retw
+diff --git a/arch/xtensa/include/uapi/asm/unistd.h b/arch/xtensa/include/uapi/asm/unistd.h
+index 1fd157f..9f36d0e 100644
+--- a/arch/xtensa/include/uapi/asm/unistd.h
++++ b/arch/xtensa/include/uapi/asm/unistd.h
+@@ -262,7 +262,7 @@ __SYSCALL(115, sys_sendmmsg, 4)
+ #define __NR_clone 				116
+ __SYSCALL(116, xtensa_clone, 5)
+ #define __NR_execve 				117
+-__SYSCALL(117, xtensa_execve, 3)
++__SYSCALL(117, sys_execve, 3)
+ #define __NR_exit 				118
+ __SYSCALL(118, sys_exit, 1)
+ #define __NR_exit_group 			119
+diff --git a/arch/xtensa/kernel/process.c b/arch/xtensa/kernel/process.c
+index be52fe4..09ae7bf 100644
+--- a/arch/xtensa/kernel/process.c
++++ b/arch/xtensa/kernel/process.c
+@@ -373,28 +373,3 @@ long xtensa_clone(unsigned long clone_flags, unsigned long newsp,
+ {
+         return do_fork(clone_flags, newsp, regs, 0, parent_tid, child_tid);
+ }
 -
 -/*
-  * Task switch.
-  *
-  * struct task*  _switch_to (struct task* prev, struct task* next)
-@@ -1940,6 +1924,6 @@ ENTRY(ret_from_kernel_thread)
- 	call4	schedule_tail
- 	mov	a6, a3
- 	callx4	a2
--	call4	do_exit
-+	j	common_exception_return
- 
- ENDPROC(ret_from_kernel_thread)
+- * xtensa_execve() executes a new program.
+- */
+-
+-asmlinkage
+-long xtensa_execve(const char __user *name,
+-		   const char __user *const __user *argv,
+-                   const char __user *const __user *envp,
+-                   long a3, long a4, long a5,
+-                   struct pt_regs *regs)
+-{
+-	long error;
+-	struct filename *filename;
+-
+-	filename = getname(name);
+-	error = PTR_ERR(filename);
+-	if (IS_ERR(filename))
+-		goto out;
+-	error = do_execve(filename->name, argv, envp, regs);
+-	putname(filename);
+-out:
+-	return error;
+-}
+-
 -- 
 1.7.7.6
