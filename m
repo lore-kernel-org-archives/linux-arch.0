@@ -1,57 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dalsmrelay2.nai.com ([205.227.136.216]:49567 "EHLO
+Received: from dalsmrelay2.nai.com ([205.227.136.216]:49606 "EHLO
 	dalsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752092Ab2J2F5T (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2012 01:57:19 -0400
+	with ESMTP id S1754779Ab2J2F5n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2012 01:57:43 -0400
 From: <gerg@snapgear.com>
-Subject: [PATCH v2 03/11] m68k: switch to using the asm-generic shmparam.h
-Date: Mon, 29 Oct 2012 15:49:26 +1000
-Message-ID: <1351489774-14263-4-git-send-email-gerg@snapgear.com>
-In-Reply-To: <1351489774-14263-1-git-send-email-gerg@snapgear.com>
-References: <1351489774-14263-1-git-send-email-gerg@snapgear.com>
+Subject: [PATCH v2 00/11] m68k: use asm-generic headers when possible
+Date: Mon, 29 Oct 2012 15:49:23 +1000
+Message-ID: <1351489774-14263-1-git-send-email-gerg@snapgear.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Greg Ungerer <gerg@uclinux.org>
-Message-ID: <20121029054926.aAyegWko8u2yBdU-WMT-ucYDUqN2GM-wyMoYViOR4rs@z>
+Message-ID: <20121029054923.hRaw0aeN8tm0M0kK7YRYcP323SIGBZUDC8Y_uthlT3w@z>
 
-From: Greg Ungerer <gerg@uclinux.org>
 
-We don't need a local shmparam.h, switch to using the asm-generic version.
+Quite a few of the m68k asm headers are identical to the asm-generic
+versions. So switch to using them where ever we can.
 
-Signed-off-by: Greg Ungerer <gerg@uclinux.org>
+v2 is rebased on top of 3.7-rc3.
+
+All defconfigs build. Run tested on ColdFire (with and without MMU) and on
+ArranyM.
+
 ---
- arch/m68k/include/asm/Kbuild     |    1 +
- arch/m68k/include/asm/shmparam.h |    6 ------
- 2 files changed, 1 insertions(+), 6 deletions(-)
- delete mode 100644 arch/m68k/include/asm/shmparam.h
-
-diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
-index fbf0306..a0c4c9a 100644
---- a/arch/m68k/include/asm/Kbuild
-+++ b/arch/m68k/include/asm/Kbuild
-@@ -23,6 +23,7 @@ generic-y += percpu.h
- generic-y += resource.h
- generic-y += scatterlist.h
- generic-y += sections.h
-+generic-y += shmparam.h
- generic-y += siginfo.h
- generic-y += statfs.h
- generic-y += topology.h
-diff --git a/arch/m68k/include/asm/shmparam.h b/arch/m68k/include/asm/shmparam.h
-deleted file mode 100644
-index 558892a..0000000
---- a/arch/m68k/include/asm/shmparam.h
-+++ /dev/null
-@@ -1,6 +0,0 @@
--#ifndef _M68K_SHMPARAM_H
--#define _M68K_SHMPARAM_H
--
--#define	SHMLBA PAGE_SIZE		 /* attach addr a multiple of this */
--
--#endif /* _M68K_SHMPARAM_H */
--- 
-1.7.0.4
+ arch/m68k/include/asm/Kbuild          |   11 +
+ arch/m68k/include/asm/hw_irq.h        |    6 -
+ arch/m68k/include/asm/shmparam.h      |    6 -
+ arch/m68k/include/asm/spinlock.h      |    6 -
+ arch/m68k/include/asm/termios.h       |   50 --------
+ arch/m68k/include/uapi/asm/Kbuild     |    8 -
+ arch/m68k/include/uapi/asm/auxvec.h   |    4 
+ arch/m68k/include/uapi/asm/msgbuf.h   |   31 -----
+ arch/m68k/include/uapi/asm/sembuf.h   |   25 ----
+ arch/m68k/include/uapi/asm/shmbuf.h   |   42 -------
+ arch/m68k/include/uapi/asm/socket.h   |   72 ------------
+ arch/m68k/include/uapi/asm/sockios.h  |   13 --
+ arch/m68k/include/uapi/asm/termbits.h |  201 ----------------------------------
+ arch/m68k/include/uapi/asm/termios.h  |   44 -------
+ 14 files changed, 11 insertions(+), 508 deletions(-)
 
