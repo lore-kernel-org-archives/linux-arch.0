@@ -1,7 +1,7 @@
 From: <gerg@snapgear.com>
-Subject: [PATCH v2 03/11] m68k: switch to using the asm-generic shmparam.h
-Date: Mon, 29 Oct 2012 15:49:26 +1000
-Message-ID: <1351489774-14263-4-git-send-email-gerg@snapgear.com>
+Subject: [PATCH v2 07/11] m68k: switch to using the asm-generic spinlock.h
+Date: Mon, 29 Oct 2012 15:49:30 +1000
+Message-ID: <1351489774-14263-8-git-send-email-gerg@snapgear.com>
 References: <1351489774-14263-1-git-send-email-gerg@snapgear.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -14,38 +14,38 @@ List-Id: linux-arch.vger.kernel.org
 
 From: Greg Ungerer <gerg@uclinux.org>
 
-We don't need a local shmparam.h, switch to using the asm-generic version.
+We don't need a local spinlock.h, switch to using the asm-generic version.
 
 Signed-off-by: Greg Ungerer <gerg@uclinux.org>
 ---
  arch/m68k/include/asm/Kbuild     |    1 +
- arch/m68k/include/asm/shmparam.h |    6 ------
+ arch/m68k/include/asm/spinlock.h |    6 ------
  2 files changed, 1 insertions(+), 6 deletions(-)
- delete mode 100644 arch/m68k/include/asm/shmparam.h
+ delete mode 100644 arch/m68k/include/asm/spinlock.h
 
 diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
-index fbf0306..a0c4c9a 100644
+index 86d38c0..64e549c 100644
 --- a/arch/m68k/include/asm/Kbuild
 +++ b/arch/m68k/include/asm/Kbuild
-@@ -23,6 +23,7 @@ generic-y += percpu.h
- generic-y += resource.h
- generic-y += scatterlist.h
- generic-y += sections.h
-+generic-y += shmparam.h
+@@ -28,6 +28,7 @@ generic-y += sembuf.h
+ generic-y += shmbuf.h
+ generic-y += shmparam.h
  generic-y += siginfo.h
++generic-y += spinlock.h
  generic-y += statfs.h
  generic-y += topology.h
-diff --git a/arch/m68k/include/asm/shmparam.h b/arch/m68k/include/asm/shmparam.h
+ generic-y += types.h
+diff --git a/arch/m68k/include/asm/spinlock.h b/arch/m68k/include/asm/spinlock.h
 deleted file mode 100644
-index 558892a..0000000
---- a/arch/m68k/include/asm/shmparam.h
+index 20f46e2..0000000
+--- a/arch/m68k/include/asm/spinlock.h
 +++ /dev/null
 @@ -1,6 +0,0 @@
--#ifndef _M68K_SHMPARAM_H
--#define _M68K_SHMPARAM_H
+-#ifndef __M68K_SPINLOCK_H
+-#define __M68K_SPINLOCK_H
 -
--#define	SHMLBA PAGE_SIZE		 /* attach addr a multiple of this */
+-#error "m68k doesn't do SMP yet"
 -
--#endif /* _M68K_SHMPARAM_H */
+-#endif
 -- 
 1.7.0.4
