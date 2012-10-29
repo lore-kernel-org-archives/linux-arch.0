@@ -1,71 +1,42 @@
-From: <gerg@snapgear.com>
-Subject: [PATCH v2 10/11] m68k: switch to using the asm-generic sockios.h
-Date: Mon, 29 Oct 2012 15:49:33 +1000
-Message-ID: <1351489774-14263-11-git-send-email-gerg@snapgear.com>
-References: <1351489774-14263-1-git-send-email-gerg@snapgear.com>
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [update] Re: new execve/kernel_thread design
+Date: Mon, 29 Oct 2012 08:53:39 +0100
+Message-ID: <20121029085339.0ea11bc6@mschwide>
+References: <20121016223508.GR2616@ZenIV.linux.org.uk>
+	<20121026183107.GQ2616@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <1351489774-14263-1-git-send-email-gerg@snapgear.com>
-Sender: linux-m68k-owner@vger.kernel.org
-To: linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Greg Ungerer <gerg@uclinux.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from e06smtp12.uk.ibm.com ([195.75.94.108]:39572 "EHLO
+	e06smtp12.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755432Ab2J2Hxu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2012 03:53:50 -0400
+Received: from /spool/local
+	by e06smtp12.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+	Mon, 29 Oct 2012 07:53:49 -0000
+In-Reply-To: <20121026183107.GQ2616@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gxt@mprc.pku.e>
 
-From: Greg Ungerer <gerg@uclinux.org>
+On Fri, 26 Oct 2012 19:31:07 +0100
+Al Viro <viro@ZenIV.linux.org.uk> wrote:
 
-We don't need a local sockios.h, switch to using the asm-generic version.
+> 	The situation got much better by now.  More than a half of
+> architectures are done - alpha arm arm64 c6x hexagon ia64 m68k mips openrisc
+> parisc sparc tile um unicore32 and x86.
+> 
+> 	Two more avait ACKs from maintainers - powerpc and s390.  Should work,
+> AFAICS.
 
-Signed-off-by: Greg Ungerer <gerg@uclinux.org>
----
- arch/m68k/include/asm/Kbuild         |    1 +
- arch/m68k/include/uapi/asm/Kbuild    |    1 -
- arch/m68k/include/uapi/asm/sockios.h |   13 -------------
- 3 files changed, 1 insertions(+), 14 deletions(-)
- delete mode 100644 arch/m68k/include/uapi/asm/sockios.h
+Oops, sorry. I tested this weeks ago but it seems I never wrote a mail to
+indicate success. The current git kernel works just fine.
 
-diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
-index 63ed062..2801fd5 100644
---- a/arch/m68k/include/asm/Kbuild
-+++ b/arch/m68k/include/asm/Kbuild
-@@ -28,6 +28,7 @@ generic-y += sembuf.h
- generic-y += shmbuf.h
- generic-y += shmparam.h
- generic-y += siginfo.h
-+generic-y += sockios.h
- generic-y += spinlock.h
- generic-y += statfs.h
- generic-y += termbits.h
-diff --git a/arch/m68k/include/uapi/asm/Kbuild b/arch/m68k/include/uapi/asm/Kbuild
-index 19bd052..1e2314e 100644
---- a/arch/m68k/include/uapi/asm/Kbuild
-+++ b/arch/m68k/include/uapi/asm/Kbuild
-@@ -14,7 +14,6 @@ header-y += setup.h
- header-y += sigcontext.h
- header-y += signal.h
- header-y += socket.h
--header-y += sockios.h
- header-y += stat.h
- header-y += swab.h
- header-y += unistd.h
-diff --git a/arch/m68k/include/uapi/asm/sockios.h b/arch/m68k/include/uapi/asm/sockios.h
-deleted file mode 100644
-index c04a239..0000000
---- a/arch/m68k/include/uapi/asm/sockios.h
-+++ /dev/null
-@@ -1,13 +0,0 @@
--#ifndef __ARCH_M68K_SOCKIOS__
--#define __ARCH_M68K_SOCKIOS__
--
--/* Socket-level I/O control calls. */
--#define FIOSETOWN	0x8901
--#define SIOCSPGRP	0x8902
--#define FIOGETOWN	0x8903
--#define SIOCGPGRP	0x8904
--#define SIOCATMARK	0x8905
--#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
--#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
--
--#endif /* __ARCH_M68K_SOCKIOS__ */
 -- 
-1.7.0.4
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
