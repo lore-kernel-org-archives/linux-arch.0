@@ -1,42 +1,49 @@
-From: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Subject: Re: [update] Re: new execve/kernel_thread design
-Date: Mon, 29 Oct 2012 08:53:39 +0100
-Message-ID: <20121029085339.0ea11bc6@mschwide>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk>
-	<20121026183107.GQ2616@ZenIV.linux.org.uk>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH] asm-generic/io.h: remove asm/cacheflush.h include
+Date: Mon, 29 Oct 2012 09:28:09 +0000
+Message-ID: <508E4C29.4030308@imgtec.com>
+References: <1350984117-17369-1-git-send-email-james.hogan@imgtec.com> <57835.162.105.203.8.1351474122.squirrel@mprc.pku.edu.cn>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="GB2312"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e06smtp12.uk.ibm.com ([195.75.94.108]:39572 "EHLO
-	e06smtp12.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755432Ab2J2Hxu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2012 03:53:50 -0400
-Received: from /spool/local
-	by e06smtp12.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
-	Mon, 29 Oct 2012 07:53:49 -0000
-In-Reply-To: <20121026183107.GQ2616@ZenIV.linux.org.uk>
+Received: from multi.imgtec.com ([194.200.65.239]:55735 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1753287Ab2J2J2O (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 29 Oct 2012 05:28:14 -0400
+In-Reply-To: <57835.162.105.203.8.1351474122.squirrel@mprc.pku.edu.cn>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gxt@mprc.pku.e>
+To: guanxuetao@mprc.pku.edu.cn
+Cc: Arnd Bergmann <arnd@arndb.de>, Jonas Bonn <jonas@southpole.se>, linux-arch@vger.kernel.org, linux@openrisc.net, linux-kernel@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linux-xtensa@linux-xtensa.org, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>, Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-On Fri, 26 Oct 2012 19:31:07 +0100
-Al Viro <viro@ZenIV.linux.org.uk> wrote:
-
-> 	The situation got much better by now.  More than a half of
-> architectures are done - alpha arm arm64 c6x hexagon ia64 m68k mips openrisc
-> parisc sparc tile um unicore32 and x86.
+On 29/10/12 01:28, guanxuetao@mprc.pku.edu.cn wrote:
+>> Including <asm/cacheflush.h> from <asm-generic/io.h> prevents
+>> cacheflush.h being able to use I/O functions like readl and writel due
+>> to circular include dependencies. It doesn't appear as if anything from
+>> cacheflush.h is actually used by the generic io.h, so remove the
+>> include.
+>>
+>> I've compile tested a defconfig compilation of blackfin, openrisc (which
+>> needed <asm/pgtable.h> including from it's <asm/io.h> to get the PAGE_*
+>> definitions), and xtensa.
+>>
+>> Other architectures which use asm-generic/io.h are score and unicore32,
+>> and looking at their io.h I don't see any obvious problems.
+>>
+>> Signed-off-by: James Hogan <james.hogan@imgtec.com>
+>> Cc: Arnd Bergmann <arnd@arndb.de>
+>> Cc: Jonas Bonn <jonas@southpole.se>
+>> Cc: Chris Zankel <chris@zankel.net>
+>> Cc: Max Filippov <jcmvbkbc@gmail.com>
+>> Cc: Mike Frysinger <vapier@gentoo.org>
+>> Cc: Chen Liqin <liqin.chen@sunplusct.com>
+>> Cc: Lennox Wu <lennox.wu@gmail.com>
+>> Cc: Guan Xuetao <gxt@mprc.pku.edu.cn>
 > 
-> 	Two more avait ACKs from maintainers - powerpc and s390.  Should work,
-> AFAICS.
+> Acked-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
 
-Oops, sorry. I tested this weeks ago but it seems I never wrote a mail to
-indicate success. The current git kernel works just fine.
+Thanks Guan
 
--- 
-blue skies,
-   Martin.
-
-"Reality continues to ruin my life." - Calvin.
+Cheers
+James
