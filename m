@@ -1,89 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dalsmrelay2.nai.com ([205.227.136.216]:49613 "EHLO
-	dalsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754867Ab2J2F5w (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2012 01:57:52 -0400
-From: <gerg@snapgear.com>
-Subject: [PATCH v2 06/11] m68k: switch to using the asm-generic sembuf.h
-Date: Mon, 29 Oct 2012 15:49:29 +1000
-Message-ID: <1351489774-14263-7-git-send-email-gerg@snapgear.com>
-In-Reply-To: <1351489774-14263-1-git-send-email-gerg@snapgear.com>
-References: <1351489774-14263-1-git-send-email-gerg@snapgear.com>
-MIME-Version: 1.0
-Content-Type: text/plain
+Received: from e06smtp12.uk.ibm.com ([195.75.94.108]:39572 "EHLO
+	e06smtp12.uk.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755432Ab2J2Hxu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2012 03:53:50 -0400
+Received: from /spool/local
+	by e06smtp12.uk.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <schwidefsky@de.ibm.com>;
+	Mon, 29 Oct 2012 07:53:49 -0000
+Date: Mon, 29 Oct 2012 08:53:39 +0100
+From: Martin Schwidefsky <schwidefsky@de.ibm.com>
+Subject: Re: [update] Re: new execve/kernel_thread design
+Message-ID: <20121029085339.0ea11bc6@mschwide>
+In-Reply-To: <20121026183107.GQ2616@ZenIV.linux.org.uk>
+References: <20121016223508.GR2616@ZenIV.linux.org.uk>
+	<20121026183107.GQ2616@ZenIV.linux.org.uk>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Greg Ungerer <gerg@uclinux.org>
-Message-ID: <20121029054929.mVlfear7G10vExW53dtZXwDuX5CTSjxOSWG9Sgh3Syc@z>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gxt@mprc.pku.edu.cn>
+Message-ID: <20121029075339.KjYp1AWEpoKNsta_e3mEjVBXgBVAc5vcMUGDiAZq4WY@z>
 
-From: Greg Ungerer <gerg@uclinux.org>
+On Fri, 26 Oct 2012 19:31:07 +0100
+Al Viro <viro@ZenIV.linux.org.uk> wrote:
 
-We don't need a local sembuf.h, switch to using the asm-generic version.
+> 	The situation got much better by now.  More than a half of
+> architectures are done - alpha arm arm64 c6x hexagon ia64 m68k mips openrisc
+> parisc sparc tile um unicore32 and x86.
+> 
+> 	Two more avait ACKs from maintainers - powerpc and s390.  Should work,
+> AFAICS.
 
-Signed-off-by: Greg Ungerer <gerg@uclinux.org>
----
- arch/m68k/include/asm/Kbuild        |    1 +
- arch/m68k/include/uapi/asm/Kbuild   |    1 -
- arch/m68k/include/uapi/asm/sembuf.h |   25 -------------------------
- 3 files changed, 1 insertions(+), 26 deletions(-)
- delete mode 100644 arch/m68k/include/uapi/asm/sembuf.h
+Oops, sorry. I tested this weeks ago but it seems I never wrote a mail to
+indicate success. The current git kernel works just fine.
 
-diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
-index 7541328..86d38c0 100644
---- a/arch/m68k/include/asm/Kbuild
-+++ b/arch/m68k/include/asm/Kbuild
-@@ -24,6 +24,7 @@ generic-y += percpu.h
- generic-y += resource.h
- generic-y += scatterlist.h
- generic-y += sections.h
-+generic-y += sembuf.h
- generic-y += shmbuf.h
- generic-y += shmparam.h
- generic-y += siginfo.h
-diff --git a/arch/m68k/include/uapi/asm/Kbuild b/arch/m68k/include/uapi/asm/Kbuild
-index 5d627ed..73de97a 100644
---- a/arch/m68k/include/uapi/asm/Kbuild
-+++ b/arch/m68k/include/uapi/asm/Kbuild
-@@ -10,7 +10,6 @@ header-y += param.h
- header-y += poll.h
- header-y += posix_types.h
- header-y += ptrace.h
--header-y += sembuf.h
- header-y += setup.h
- header-y += sigcontext.h
- header-y += signal.h
-diff --git a/arch/m68k/include/uapi/asm/sembuf.h b/arch/m68k/include/uapi/asm/sembuf.h
-deleted file mode 100644
-index 2308052..0000000
---- a/arch/m68k/include/uapi/asm/sembuf.h
-+++ /dev/null
-@@ -1,25 +0,0 @@
--#ifndef _M68K_SEMBUF_H
--#define _M68K_SEMBUF_H
--
--/*
-- * The semid64_ds structure for m68k architecture.
-- * Note extra padding because this structure is passed back and forth
-- * between kernel and user space.
-- *
-- * Pad space is left for:
-- * - 64-bit time_t to solve y2038 problem
-- * - 2 miscellaneous 32-bit values
-- */
--
--struct semid64_ds {
--	struct ipc64_perm sem_perm;		/* permissions .. see ipc.h */
--	__kernel_time_t	sem_otime;		/* last semop time */
--	unsigned long	__unused1;
--	__kernel_time_t	sem_ctime;		/* last change time */
--	unsigned long	__unused2;
--	unsigned long	sem_nsems;		/* no. of semaphores in array */
--	unsigned long	__unused3;
--	unsigned long	__unused4;
--};
--
--#endif /* _M68K_SEMBUF_H */
 -- 
-1.7.0.4
+blue skies,
+   Martin.
+
+"Reality continues to ruin my life." - Calvin.
 
