@@ -1,36 +1,51 @@
 From: <gerg@snapgear.com>
-Subject: [PATCH v2 00/11] m68k: use asm-generic headers when possible
-Date: Mon, 29 Oct 2012 15:49:23 +1000
-Message-ID: <1351489774-14263-1-git-send-email-gerg@snapgear.com>
+Subject: [PATCH v2 02/11] m68k: switch to using the asm-generic hw_irq.h
+Date: Mon, 29 Oct 2012 15:49:25 +1000
+Message-ID: <1351489774-14263-3-git-send-email-gerg@snapgear.com>
+References: <1351489774-14263-1-git-send-email-gerg@snapgear.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <1351489774-14263-1-git-send-email-gerg@snapgear.com>
 Sender: linux-m68k-owner@vger.kernel.org
 To: linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: Greg Ungerer <gerg@uclinux.org>
 List-Id: linux-arch.vger.kernel.org
 
+From: Greg Ungerer <gerg@uclinux.org>
 
-Quite a few of the m68k asm headers are identical to the asm-generic
-versions. So switch to using them where ever we can.
+We don't need a local hw_irq.h, switch to using the asm-generic version.
 
-v2 is rebased on top of 3.7-rc3.
-
-All defconfigs build. Run tested on ColdFire (with and without MMU) and on
-ArranyM.
-
+Signed-off-by: Greg Ungerer <gerg@uclinux.org>
 ---
- arch/m68k/include/asm/Kbuild          |   11 +
- arch/m68k/include/asm/hw_irq.h        |    6 -
- arch/m68k/include/asm/shmparam.h      |    6 -
- arch/m68k/include/asm/spinlock.h      |    6 -
- arch/m68k/include/asm/termios.h       |   50 --------
- arch/m68k/include/uapi/asm/Kbuild     |    8 -
- arch/m68k/include/uapi/asm/auxvec.h   |    4 
- arch/m68k/include/uapi/asm/msgbuf.h   |   31 -----
- arch/m68k/include/uapi/asm/sembuf.h   |   25 ----
- arch/m68k/include/uapi/asm/shmbuf.h   |   42 -------
- arch/m68k/include/uapi/asm/socket.h   |   72 ------------
- arch/m68k/include/uapi/asm/sockios.h  |   13 --
- arch/m68k/include/uapi/asm/termbits.h |  201 ----------------------------------
- arch/m68k/include/uapi/asm/termios.h  |   44 -------
- 14 files changed, 11 insertions(+), 508 deletions(-)
+ arch/m68k/include/asm/Kbuild   |    1 +
+ arch/m68k/include/asm/hw_irq.h |    6 ------
+ 2 files changed, 1 insertions(+), 6 deletions(-)
+ delete mode 100644 arch/m68k/include/asm/hw_irq.h
+
+diff --git a/arch/m68k/include/asm/Kbuild b/arch/m68k/include/asm/Kbuild
+index 009446e..fbf0306 100644
+--- a/arch/m68k/include/asm/Kbuild
++++ b/arch/m68k/include/asm/Kbuild
+@@ -8,6 +8,7 @@ generic-y += emergency-restart.h
+ generic-y += errno.h
+ generic-y += exec.h
+ generic-y += futex.h
++generic-y += hw_irq.h
+ generic-y += ioctl.h
+ generic-y += ipcbuf.h
+ generic-y += irq_regs.h
+diff --git a/arch/m68k/include/asm/hw_irq.h b/arch/m68k/include/asm/hw_irq.h
+deleted file mode 100644
+index eacef09..0000000
+--- a/arch/m68k/include/asm/hw_irq.h
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#ifndef __ASM_M68K_HW_IRQ_H
+-#define __ASM_M68K_HW_IRQ_H
+-
+-/* Dummy include. */
+-
+-#endif
+-- 
+1.7.0.4
