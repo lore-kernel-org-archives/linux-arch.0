@@ -1,47 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:46904 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752277Ab2J2O5z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2012 10:57:55 -0400
-Date: Mon, 29 Oct 2012 14:57:45 +0000
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [update] Re: new execve/kernel_thread design
-Message-ID: <20121029145745.GY2616@ZenIV.linux.org.uk>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk>
- <20121026183107.GQ2616@ZenIV.linux.org.uk>
- <20121029085339.0ea11bc6@mschwide>
- <20121029132521.GW2616@ZenIV.linux.org.uk>
- <20121029153823.2317fdef@mschwide>
+Received: from dnvwsmailout1.mcafee.com ([161.69.31.173]:52231 "EHLO
+	DNVWSMAILOUT1.mcafee.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754442Ab2J3G0d (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Oct 2012 02:26:33 -0400
+From: <gerg@snapgear.com>
+Subject: [PATCH v3 00/11] m68k: use asm-generic headers when possible
+Date: Tue, 30 Oct 2012 16:24:26 +1000
+Message-ID: <1351578277-31882-1-git-send-email-gerg@snapgear.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20121029153823.2317fdef@mschwide>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Martin Schwidefsky <schwidefsky@de.ibm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gxt@mprc.pku.edu.cn>
-Message-ID: <20121029145745.soSSNfNVHJ8TIILplr2kNe4gDJkIFiW9sxk17cGkoVI@z>
+To: linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20121030062426.G0MD27uu3HlaGFxqlfyvg3-52-HCOgGuPnvldYPEHJQ@z>
 
-On Mon, Oct 29, 2012 at 03:38:23PM +0100, Martin Schwidefsky wrote:
-> On Mon, 29 Oct 2012 13:25:21 +0000
-> Al Viro <viro@ZenIV.linux.org.uk> wrote:
-> 
-> > On Mon, Oct 29, 2012 at 08:53:39AM +0100, Martin Schwidefsky wrote:
-> > 
-> > > Oops, sorry. I tested this weeks ago but it seems I never wrote a mail to
-> > > indicate success. The current git kernel works just fine.
-> > 
-> > "Current git" being what?  Linus' tree?  linux-next?  signal.git#arch-s390?
-> > FWIW, the relevant diff against mainline is below, linux-next already
-> > contains it.
-> 
-> git://git.kernel.org/pub/scm/linux/kernel/git/viro/signal arch-s390
-> 
-> against Linux 3.7-rc3
-> 
-> # uname -a
-> Linux r3545014 3.7.0-rc3-00002-g95a96a7 #1 SMP Mon Oct 29 15:32:18 CET 2012 s390x s390x s390x GNU/Linux
-> 
-> works as it is. Feel free to add my Acked-By.
 
-Done and pushed, should propagate shortly.  It's in no-rebase mode now.
+Quite a few of the m68k asm headers are identical to the asm-generic
+versions. So switch to using them where ever we can.
+
+v2 is rebased on top of 3.7-rc3.
+v3 keep those in uapi/asm in uapi/asm (not moved to asm-generic)
+
+All defconfigs build. Run tested on ColdFire (with and without MMU) and on
+ArranyM.
+
+---
+ arch/m68k/include/asm/Kbuild          |    4
+ arch/m68k/include/asm/hw_irq.h        |    6 -
+ arch/m68k/include/asm/shmparam.h      |    6 -
+ arch/m68k/include/asm/spinlock.h      |    6 -
+ arch/m68k/include/asm/termios.h       |   50 --------
+ arch/m68k/include/uapi/asm/Kbuild     |   17 +-
+ arch/m68k/include/uapi/asm/auxvec.h   |    4 
+ arch/m68k/include/uapi/asm/msgbuf.h   |   31 -----
+ arch/m68k/include/uapi/asm/sembuf.h   |   25 ----
+ arch/m68k/include/uapi/asm/shmbuf.h   |   42 -------
+ arch/m68k/include/uapi/asm/socket.h   |   72 ------------
+ arch/m68k/include/uapi/asm/sockios.h  |   13 --
+ arch/m68k/include/uapi/asm/termbits.h |  201 ----------------------------------
+ arch/m68k/include/uapi/asm/termios.h  |   44 -------
+ 14 files changed, 13 insertions(+), 508 deletions(-)
+
