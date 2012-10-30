@@ -1,34 +1,51 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH v2 0/4] xtensa: conversion to generic kernel_thread and
- friends
-Date: Mon, 29 Oct 2012 18:11:56 +0000
-Message-ID: <20121029181156.GZ2616@ZenIV.linux.org.uk>
-References: <1351522581-30516-1-git-send-email-jcmvbkbc@gmail.com>
- <508EAD7B.9000303@zankel.net>
- <CAMo8BfKUDHyMjDRUO8jRJ=RFWcsasXKe0_Rr88+xjLkkzTa_Ng@mail.gmail.com>
+From: Greg Ungerer <gerg@snapgear.com>
+Subject: Re: [PATCH v2 01/11] m68k: switch to using the asm-generic auxvec.h
+Date: Tue, 30 Oct 2012 16:21:25 +1000
+Message-ID: <508F71E5.2010101@snapgear.com>
+References: <1351489774-14263-2-git-send-email-gerg@snapgear.com> <1351489774-14263-1-git-send-email-gerg@snapgear.com> <18903.1351507368@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:47887 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752045Ab2J2SL7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 29 Oct 2012 14:11:59 -0400
-Content-Disposition: inline
-In-Reply-To: <CAMo8BfKUDHyMjDRUO8jRJ=RFWcsasXKe0_Rr88+xjLkkzTa_Ng@mail.gmail.com>
+Received: from dalsmrelay2.nai.com ([205.227.136.216]:25318 "EHLO
+	dalsmrelay2.nai.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753328Ab2J3GXO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Oct 2012 02:23:14 -0400
+In-Reply-To: <18903.1351507368@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Max Filippov <jcmvbkbc@gmail.com>
-Cc: czankel <chris@zankel.net>, linux-arch@vger.kernel.org, Marc Gauthier <marc@tensilica.com>
+To: David Howells <dhowells@redhat.com>
+Cc: linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org, Greg Ungerer <gerg@uclinux.org>
 
-On Mon, Oct 29, 2012 at 07:58:02PM +0300, Max Filippov wrote:
-> On Mon, Oct 29, 2012 at 8:23 PM, czankel <chris@zankel.net> wrote:
-> > Hi Max,
-> >
-> > Has anything changed from the version that's already in linux-next? I wanted
-> > to push that version upstream today.
-> 
-> It's the same. I sent self-contained series to Al in case it blocks whatever.
+Hi David,
 
-I'd very much prefer to pull from xtensa tree, to avoid the PITA with
-merge conflicts later.  It's your current #for_next, right?  And there's
-not much besides those commits in there, so I'm grabbing that one...
+On 29/10/12 20:42, David Howells wrote:
+> <gerg@snapgear.com> wrote:
+>
+>> diff --git a/arch/m68k/include/uapi/asm/Kbuild b/arch/m68k/include/uapi/asm/Kbuild
+>> index 972bce1..588c3cc 100644
+>> --- a/arch/m68k/include/uapi/asm/Kbuild
+>> +++ b/arch/m68k/include/uapi/asm/Kbuild
+>> @@ -2,7 +2,6 @@
+>>   include include/uapi/asm-generic/Kbuild.asm
+>>
+>>   header-y += a.out.h
+>> -header-y += auxvec.h
+>>   header-y += byteorder.h
+>>   header-y += cachectl.h
+>>   header-y += fcntl.h
+>
+> Rather than removing header-y from the uapi Kbuild, you probably want to add a
+> generic-y there.
+
+Ok, will do. v3 coming up.
+
+Thanks
+Greg
+
+  
+------------------------------------------------------------------------
+Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.com
+SnapGear Group, McAfee                      PHONE:       +61 7 3435 2888
+8 Gardner Close                             FAX:         +61 7 3217 5323
+Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.com
