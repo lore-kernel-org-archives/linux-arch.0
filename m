@@ -1,72 +1,50 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from dnvwsmailout1.mcafee.com ([161.69.31.173]:52258 "EHLO
-	DNVWSMAILOUT1.mcafee.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755096Ab2J3G0r (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Oct 2012 02:26:47 -0400
-From: <gerg@snapgear.com>
-Subject: [PATCH v3 09/11] m68k: switch to using the asm-generic sockios.h
-Date: Tue, 30 Oct 2012 16:24:35 +1000
-Message-ID: <1351578277-31882-10-git-send-email-gerg@snapgear.com>
-In-Reply-To: <1351578277-31882-1-git-send-email-gerg@snapgear.com>
-References: <1351578277-31882-1-git-send-email-gerg@snapgear.com>
+Received: from e31.co.us.ibm.com ([32.97.110.149]:33400 "EHLO
+	e31.co.us.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1758566Ab2J3PXV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 30 Oct 2012 11:23:21 -0400
+Received: from /spool/local
+	by e31.co.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	for <linux-arch@vger.kernel.org> from <dave@linux.vnet.ibm.com>;
+	Tue, 30 Oct 2012 09:23:16 -0600
+Message-ID: <508FEECE.2070402@linux.vnet.ibm.com>
+Date: Tue, 30 Oct 2012 08:14:22 -0700
+From: Dave Hansen <dave@linux.vnet.ibm.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Subject: Re: [PATCH] mm: memmap_init_zone() performance improvement
+References: <1349276174-8398-1-git-send-email-mike.yoknis@hp.com> <20121008151656.GM29125@suse.de> <1349794597.29752.10.camel@MikesLinux.fc.hp.com> <1350676398.1169.6.camel@MikesLinux.fc.hp.com> <20121020082858.GA2698@suse.de>
+In-Reply-To: <20121020082858.GA2698@suse.de>
+Content-Type: text/plain; charset=ISO-8859-15
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: Greg Ungerer <gerg@uclinux.org>
-Message-ID: <20121030062435.BS45yknv8hvdssJJCwVzexlKRoEhVRCBjBW0892a-lE@z>
+To: Mel Gorman <mgorman@suse.de>
+Cc: Mike Yoknis <mike.yoknis@hp.com>, mingo@redhat.com, akpm@linux-foundation.org, linux-arch@vger.kernel.org, mmarek@suse.cz, tglx@linutronix.de, hpa@zytor.com, arnd@arndb.de, sam@ravnborg.org, minchan@kernel.org, kamezawa.hiroyu@jp.fujitsu.com, mhocko@suse.cz, linux-kbuild@vger.kernel.org, linux-kernel@vger.kernel.org, linux-mm@kvack.org
+Message-ID: <20121030151422.Kjr-z8yA43MkVO6BZHbFIsHtK8_myEv-RN5tYSGMer8@z>
 
-From: Greg Ungerer <gerg@uclinux.org>
+On 10/20/2012 01:29 AM, Mel Gorman wrote:
+> I'm travelling at the moment so apologies that I have not followed up on
+> this. My problem is still the same with the patch - it changes more
+> headers than is necessary and it is sparsemem specific. At minimum, try
+> the suggestion of 
+> 
+> if (!early_pfn_valid(pfn)) {
+>       pfn = ALIGN(pfn + MAX_ORDER_NR_PAGES, MAX_ORDER_NR_PAGES) - 1;
+>       continue;
+> }
 
-We don't need a local sockios.h, switch to using the asm-generic version.
+Sorry I didn't catch this until v2...
 
-Signed-off-by: Greg Ungerer <gerg@uclinux.org>
----
- arch/m68k/include/uapi/asm/Kbuild    |    2 +-
- arch/m68k/include/uapi/asm/sockios.h |   13 -------------
- 2 files changed, 1 insertions(+), 14 deletions(-)
- delete mode 100644 arch/m68k/include/uapi/asm/sockios.h
+Is that ALIGN() correct?  If pfn=3, then it would expand to:
 
-diff --git a/arch/m68k/include/uapi/asm/Kbuild b/arch/m68k/include/uapi/asm/Kbuild
-index 8b90cbd..5218f3d 100644
---- a/arch/m68k/include/uapi/asm/Kbuild
-+++ b/arch/m68k/include/uapi/asm/Kbuild
-@@ -6,6 +6,7 @@ generic-y += msgbuf.h
- generic-y += sembuf.h
- generic-y += shmbuf.h
- generic-y += socket.h
-+generic-y += sockios.h
- 
- header-y += a.out.h
- header-y += byteorder.h
-@@ -19,7 +20,6 @@ header-y += ptrace.h
- header-y += setup.h
- header-y += sigcontext.h
- header-y += signal.h
--header-y += sockios.h
- header-y += stat.h
- header-y += swab.h
- header-y += termbits.h
-diff --git a/arch/m68k/include/uapi/asm/sockios.h b/arch/m68k/include/uapi/asm/sockios.h
-deleted file mode 100644
-index c04a239..0000000
---- a/arch/m68k/include/uapi/asm/sockios.h
-+++ /dev/null
-@@ -1,13 +0,0 @@
--#ifndef __ARCH_M68K_SOCKIOS__
--#define __ARCH_M68K_SOCKIOS__
--
--/* Socket-level I/O control calls. */
--#define FIOSETOWN	0x8901
--#define SIOCSPGRP	0x8902
--#define FIOGETOWN	0x8903
--#define SIOCGPGRP	0x8904
--#define SIOCATMARK	0x8905
--#define SIOCGSTAMP	0x8906		/* Get stamp (timeval) */
--#define SIOCGSTAMPNS	0x8907		/* Get stamp (timespec) */
--
--#endif /* __ARCH_M68K_SOCKIOS__ */
--- 
-1.7.0.4
+(3+MAX_ORDER_NR_PAGES+MAX_ORDER_NR_PAGES-1) & ~(MAX_ORDER_NR_PAGES-1)
+
+You would end up skipping the current MAX_ORDER_NR_PAGES area, and then
+one _extra_ because ALIGN() aligns up, and you're adding
+MAX_ORDER_NR_PAGES too.  It doesn't matter unless you run in to a
+!early_valid_pfn() in the middle of a MAX_ORDER area, I guess.
+
+I think this would work, plus be a bit smaller:
+
+	pfn = ALIGN(pfn + 1, MAX_ORDER_NR_PAGES) - 1;
 
