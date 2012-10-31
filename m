@@ -1,504 +1,1034 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [RFC PATCH v1 00/40] Meta Linux Kernel Port
-Date: Wed, 31 Oct 2012 16:13:41 +0000
-Message-ID: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
+Subject: [RFC PATCH v1 40/40] fs: dafs: Add DAFS filesystem for metag
+Date: Wed, 31 Oct 2012 16:14:21 +0000
+Message-ID: <1351700061-7203-41-git-send-email-james.hogan@imgtec.com>
+References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:49628 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:31270 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S935438Ab2JaQOn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 31 Oct 2012 12:14:43 -0400
+	id S935764Ab2JaQOp (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 31 Oct 2012 12:14:45 -0400
+In-Reply-To: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: James Hogan <james.hogan@imgtec.com>
+Cc: James Hogan <james.hogan@imgtec.com>, Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org
 
-This patchset adds core architecture support to Linux for Imagination's
-Meta ATP (Meta 1) and HTP (Meta 2) processor cores. It is primarily an
-RFC patchset to get some early feedback about what changes we need to
-make, although of course all feedback is most welcome.
+Add the Metag Debug Adapter File System (DAFS), which uses Meta SWITCH
+operations to communicate with a file server on a host computer via a
+JTAG debug adapter.
 
-The patches are based on v3.6 for now, and can also be found in the
-following git tree:
-  git://github.com/jahogan/metag-linux.git metag-core
-
-Meta cores are 32-bit, hardware multithreaded, general purpose, embedded
-processors which also feature a DSP instruction set, and can be found in
-many digital radios. They are capable of running different operating
-systems on different hardware threads, for example a digital radio might
-run RTOSes for DAB decoding and audio decoding on 3 hardware threads,
-and run Linux on the 4th hardware thread to manage the user interface,
-networking etc. HTPs are also capable of running SMP Linux on multiple
-hardware threads.
-
-Instruction set and architecture overview documents can be found on the
-following page (these currently require registration/NDA, a restriction
-which was not intended and will shortly be removed):
-  http://www.imgtec.com/downloads.asp
-
-James Hogan (40):
-  asm-generic/io.h: remove asm/cacheflush.h include
-  asm-generic/unistd.h: handle symbol prefixes in cond_syscall
-  Add CONFIG_HAVE_64BIT_ALIGNED_STRUCT for taskstats
-  trace/ring_buffer: handle 64bit aligned structs
-  Revert some of "binfmt_elf: cleanups"
-  of/vendor-prefixes: add Imagination Technologies
-  metag: Add MAINTAINERS entry
-  metag: Boot
-  metag: TBX
-  metag: Memory management
-  metag: Signal handling
-  metag: Build infrastructure
-  metag: Device tree
-  metag: Ptrace
-  metag: Time keeping
-  metag: Traps
-  metag: IRQ handling
-  metag: System Calls
-  metag: Scheduling/Process management
-  metag: Module support
-  metag: Atomics, locks and bitops
-  metag: Basic documentation
-  metag: SMP support
-  metag: DMA
-  metag: optimised library functions
-  metag: Stack unwinding
-  metag: various other headers
-  metag: Perf
-  metag: ftrace support
-  scripts/checkstack.pl: Add metag support
-  char: don't build rtc or genrtc on METAG
-  i8042: don't build on METAG
-  parport: don't build on METAG
-  musb: don't redefine {read,write}s{l,w,b} on metag
-  vga console: don't build on METAG
-  metag: OProfile
-  metag: Various sysfs drivers
-  metag: add JTAG Debug Adapter (DA) support
-  tty/metag_da: add metag DA TTY driver
-  fs: dafs: Add DAFS filesystem for metag
-
- Documentation/00-INDEX                             |    2 +
- .../devicetree/bindings/metag/meta-intc.txt        |   92 ++
- .../devicetree/bindings/vendor-prefixes.txt        |    3 +-
- Documentation/kernel-parameters.txt                |    4 +
- Documentation/metag/00-INDEX                       |    2 +
- MAINTAINERS                                        |   10 +
- arch/Kconfig                                       |   16 +
- arch/metag/Kconfig                                 |  325 +++++
- arch/metag/Kconfig.debug                           |   40 +
- arch/metag/Kconfig.soc                             |   58 +
- arch/metag/Makefile                                |  101 ++
- arch/metag/boot/.gitignore                         |    4 +
- arch/metag/boot/Makefile                           |   72 +
- arch/metag/boot/dtb/Makefile                       |   32 +
- arch/metag/boot/dts/skeleton.dts                   |   10 +
- arch/metag/boot/dts/skeleton.dtsi                  |   14 +
- arch/metag/configs/meta1_defconfig                 |   45 +
- arch/metag/configs/meta2_defconfig                 |   45 +
- arch/metag/configs/meta2_smp_defconfig             |   46 +
- arch/metag/include/asm/Kbuild                      |   58 +
- arch/metag/include/asm/atomic.h                    |   53 +
- arch/metag/include/asm/atomic_lnkget.h             |  245 ++++
- arch/metag/include/asm/atomic_lock1.h              |  160 +++
- arch/metag/include/asm/barrier.h                   |   88 ++
- arch/metag/include/asm/bitops.h                    |  135 ++
- arch/metag/include/asm/bug.h                       |   12 +
- arch/metag/include/asm/byteorder.h                 |    1 +
- arch/metag/include/asm/cache.h                     |   23 +
- arch/metag/include/asm/cacheflush.h                |  203 +++
- arch/metag/include/asm/cachepart.h                 |   42 +
- arch/metag/include/asm/checksum.h                  |   92 ++
- arch/metag/include/asm/clock.h                     |   51 +
- arch/metag/include/asm/cmpxchg.h                   |   65 +
- arch/metag/include/asm/cmpxchg_irq.h               |   42 +
- arch/metag/include/asm/cmpxchg_lnkget.h            |   86 ++
- arch/metag/include/asm/cmpxchg_lock1.h             |   48 +
- arch/metag/include/asm/core-sysfs.h                |    9 +
- arch/metag/include/asm/core_reg.h                  |    7 +
- arch/metag/include/asm/cpu.h                       |   14 +
- arch/metag/include/asm/da.h                        |   43 +
- arch/metag/include/asm/delay.h                     |   29 +
- arch/metag/include/asm/div64.h                     |   12 +
- arch/metag/include/asm/dma-mapping.h               |  183 +++
- arch/metag/include/asm/elf.h                       |  131 ++
- arch/metag/include/asm/fixmap.h                    |   99 ++
- arch/metag/include/asm/ftrace.h                    |   23 +
- arch/metag/include/asm/gpio.h                      |    4 +
- arch/metag/include/asm/highmem.h                   |   62 +
- arch/metag/include/asm/hugetlb.h                   |   82 ++
- arch/metag/include/asm/hw_breakpoints.h            |   30 +
- arch/metag/include/asm/hwthread.h                  |   44 +
- arch/metag/include/asm/io.h                        |   96 ++
- arch/metag/include/asm/irq.h                       |   79 +
- arch/metag/include/asm/irq_external.h              |   33 +
- arch/metag/include/asm/irq_internal.h              |   16 +
- arch/metag/include/asm/irqflags.h                  |  100 ++
- arch/metag/include/asm/l2cache.h                   |  268 ++++
- arch/metag/include/asm/linkage.h                   |    7 +
- arch/metag/include/asm/lock.h                      |   17 +
- arch/metag/include/asm/mach/arch.h                 |   81 ++
- arch/metag/include/asm/mman.h                      |   14 +
- arch/metag/include/asm/mmu.h                       |   77 +
- arch/metag/include/asm/mmu_context.h               |  113 ++
- arch/metag/include/asm/mmzone.h                    |   49 +
- arch/metag/include/asm/module.h                    |   39 +
- arch/metag/include/asm/page.h                      |  132 ++
- arch/metag/include/asm/perf_event.h                |    4 +
- arch/metag/include/asm/pgalloc.h                   |   79 +
- arch/metag/include/asm/pgtable.h                   |  370 +++++
- arch/metag/include/asm/processor.h                 |  209 +++
- arch/metag/include/asm/prom.h                      |   23 +
- arch/metag/include/asm/ptrace.h                    |   50 +
- arch/metag/include/asm/resource.h                  |    7 +
- arch/metag/include/asm/setup.h                     |   11 +
- arch/metag/include/asm/sigcontext.h                |   23 +
- arch/metag/include/asm/siginfo.h                   |    8 +
- arch/metag/include/asm/smp.h                       |   31 +
- arch/metag/include/asm/sparsemem.h                 |   16 +
- arch/metag/include/asm/spinlock.h                  |   22 +
- arch/metag/include/asm/spinlock_lnkget.h           |  261 ++++
- arch/metag/include/asm/spinlock_lock1.h            |  184 +++
- arch/metag/include/asm/spinlock_types.h            |   20 +
- arch/metag/include/asm/stacktrace.h                |   20 +
- arch/metag/include/asm/string.h                    |   13 +
- arch/metag/include/asm/swab.h                      |   26 +
- arch/metag/include/asm/switch.h                    |   22 +
- arch/metag/include/asm/syscall.h                   |  104 ++
- arch/metag/include/asm/syscalls.h                  |   67 +
- arch/metag/include/asm/tbx/Kbuild                  |    8 +
- arch/metag/include/asm/tbx/compasm.inc             |   84 ++
- arch/metag/include/asm/tbx/machine.inc             |   24 +
- arch/metag/include/asm/tbx/metac_1_2.inc           |  606 ++++++++
- arch/metag/include/asm/tbx/metac_2_1.inc           | 1290 +++++++++++++++++
- arch/metag/include/asm/tbx/metac_all.inc           |   28 +
- arch/metag/include/asm/tbx/metag.inc               | 1340 ++++++++++++++++++
- arch/metag/include/asm/tbx/metagdsp.inc            |  506 +++++++
- arch/metag/include/asm/tbx/metagtbx.h              | 1492 ++++++++++++++++++++
- arch/metag/include/asm/tcm.h                       |   30 +
- arch/metag/include/asm/thread_info.h               |  157 ++
- arch/metag/include/asm/tlb.h                       |   36 +
- arch/metag/include/asm/tlbflush.h                  |   80 ++
- arch/metag/include/asm/topology.h                  |   53 +
- arch/metag/include/asm/traps.h                     |   46 +
- arch/metag/include/asm/uaccess.h                   |  245 ++++
- arch/metag/include/asm/unistd.h                    |   28 +
- arch/metag/include/asm/user_gateway.h              |   44 +
- arch/metag/kernel/.gitignore                       |    1 +
- arch/metag/kernel/Makefile                         |   40 +
- arch/metag/kernel/asm-offsets.c                    |   14 +
- arch/metag/kernel/cachepart.c                      |  125 ++
- arch/metag/kernel/clock.c                          |   53 +
- arch/metag/kernel/core_reg.c                       |  120 ++
- arch/metag/kernel/cpu/Kconfig                      |   53 +
- arch/metag/kernel/cpu/Makefile                     |    8 +
- arch/metag/kernel/cpu/core-sysfs.c                 |   60 +
- arch/metag/kernel/cpu/counters/Makefile            |    7 +
- arch/metag/kernel/cpu/counters/amacount.c          |  227 +++
- arch/metag/kernel/cpu/counters/cyclecount.c        |  135 ++
- arch/metag/kernel/cpu/counters/perfcount.c         |  154 ++
- arch/metag/kernel/cpu/l2cache-control.c            |  289 ++++
- arch/metag/kernel/cpu/memory-arbiter.c             |  133 ++
- arch/metag/kernel/cpu/write-combiner.c             |  215 +++
- arch/metag/kernel/da.c                             |   24 +
- arch/metag/kernel/devtree.c                        |  100 ++
- arch/metag/kernel/dma.c                            |  521 +++++++
- arch/metag/kernel/ftrace.c                         |  127 ++
- arch/metag/kernel/ftrace_stub.S                    |   76 +
- arch/metag/kernel/head.S                           |   57 +
- arch/metag/kernel/hw_breakpoints.c                 |  102 ++
- arch/metag/kernel/irq.c                            |  277 ++++
- arch/metag/kernel/irq_external.c                   |  886 ++++++++++++
- arch/metag/kernel/irq_internal.c                   |  235 +++
- arch/metag/kernel/kick.c                           |   94 ++
- arch/metag/kernel/machines.c                       |   21 +
- arch/metag/kernel/metag_ksyms.c                    |   80 ++
- arch/metag/kernel/module.c                         |  284 ++++
- arch/metag/kernel/perf_callchain.c                 |   96 ++
- arch/metag/kernel/process.c                        |  487 +++++++
- arch/metag/kernel/ptrace.c                         |  503 +++++++
- arch/metag/kernel/setup.c                          |  585 ++++++++
- arch/metag/kernel/signal.c                         |  340 +++++
- arch/metag/kernel/smp.c                            |  582 ++++++++
- arch/metag/kernel/stacktrace.c                     |  187 +++
- arch/metag/kernel/sys_metag.c                      |  209 +++
- arch/metag/kernel/tbiunexp.S                       |   22 +
- arch/metag/kernel/tcm.c                            |  151 ++
- arch/metag/kernel/time.c                           |  165 +++
- arch/metag/kernel/topology.c                       |   77 +
- arch/metag/kernel/traps.c                          |  967 +++++++++++++
- arch/metag/kernel/user_gateway.S                   |   99 ++
- arch/metag/kernel/vmlinux.lds.S                    |   71 +
- arch/metag/lib/Makefile                            |    7 +
- arch/metag/lib/ashldi3.S                           |   33 +
- arch/metag/lib/ashrdi3.S                           |   33 +
- arch/metag/lib/checksum.c                          |  169 +++
- arch/metag/lib/clear_page.S                        |   17 +
- arch/metag/lib/copy_page.S                         |   20 +
- arch/metag/lib/delay.c                             |   55 +
- arch/metag/lib/div64.S                             |  108 ++
- arch/metag/lib/divsi3.S                            |  100 ++
- arch/metag/lib/ip_fast_csum.S                      |   32 +
- arch/metag/lib/lshrdi3.S                           |   33 +
- arch/metag/lib/memcpy.S                            |  185 +++
- arch/metag/lib/memmove.S                           |  345 +++++
- arch/metag/lib/memset.S                            |   86 ++
- arch/metag/lib/modsi3.S                            |   38 +
- arch/metag/lib/muldi3.S                            |   44 +
- arch/metag/lib/usercopy.c                          | 1341 ++++++++++++++++++
- arch/metag/mm/Kconfig                              |  153 ++
- arch/metag/mm/Makefile                             |   17 +
- arch/metag/mm/extable.c                            |   15 +
- arch/metag/mm/fault.c                              |  240 ++++
- arch/metag/mm/highmem.c                            |  133 ++
- arch/metag/mm/hugetlbpage.c                        |  291 ++++
- arch/metag/mm/init.c                               |  448 ++++++
- arch/metag/mm/ioremap.c                            |   89 ++
- arch/metag/mm/l2cache.c                            |  222 +++
- arch/metag/mm/maccess.c                            |   67 +
- arch/metag/mm/mmu-meta1.c                          |  157 ++
- arch/metag/mm/mmu-meta2.c                          |  208 +++
- arch/metag/mm/numa.c                               |  119 ++
- arch/metag/oprofile/Makefile                       |   11 +
- arch/metag/oprofile/backtrace.c                    |  134 ++
- arch/metag/oprofile/backtrace.h                    |    6 +
- arch/metag/oprofile/op_model_meta12.c              |  244 ++++
- arch/metag/tbx/Makefile                            |   17 +
- arch/metag/tbx/tbicache.c                          |  461 ++++++
- arch/metag/tbx/tbicore.S                           |  137 ++
- arch/metag/tbx/tbictx.S                            |  368 +++++
- arch/metag/tbx/tbictxfpu.S                         |  193 +++
- arch/metag/tbx/tbidefr.S                           |  176 +++
- arch/metag/tbx/tbidspram.S                         |  165 +++
- arch/metag/tbx/tbilogf.S                           |   50 +
- arch/metag/tbx/tbipcx.S                            |  456 ++++++
- arch/metag/tbx/tbiroot.S                           |   89 ++
- arch/metag/tbx/tbisoft.S                           |  239 ++++
- arch/metag/tbx/tbistring.c                         |  148 ++
- arch/metag/tbx/tbitimer.S                          |  210 +++
- arch/openrisc/include/asm/io.h                     |    1 +
- drivers/char/Kconfig                               |    5 +-
- drivers/input/serio/Kconfig                        |    2 +-
- drivers/parport/Kconfig                            |    2 +-
- drivers/tty/Kconfig                                |   13 +
- drivers/tty/Makefile                               |    1 +
- drivers/tty/metag_da.c                             |  503 +++++++
- drivers/usb/musb/musb_io.h                         |    3 +-
- drivers/video/console/Kconfig                      |    2 +-
- fs/Kconfig                                         |    1 +
- fs/Makefile                                        |    1 +
- fs/binfmt_elf.c                                    |    4 +
- fs/dafs/Kconfig                                    |    6 +
- fs/dafs/Makefile                                   |    7 +
- fs/dafs/dafs.h                                     |   80 ++
- fs/dafs/inode.c                                    |  830 +++++++++++
- include/asm-generic/io.h                           |    1 -
- include/asm-generic/unistd.h                       |    9 +-
- kernel/taskstats.c                                 |    3 +-
- kernel/trace/ring_buffer.c                         |    7 +-
- lib/Kconfig.debug                                  |    6 +-
- scripts/checkstack.pl                              |    8 +-
- scripts/recordmcount.pl                            |   12 +
- 221 files changed, 30343 insertions(+), 17 deletions(-)
- create mode 100644 Documentation/devicetree/bindings/metag/meta-intc.txt
- create mode 100644 Documentation/metag/00-INDEX
- create mode 100644 arch/metag/Kconfig
- create mode 100644 arch/metag/Kconfig.debug
- create mode 100644 arch/metag/Kconfig.soc
- create mode 100644 arch/metag/Makefile
- create mode 100644 arch/metag/boot/.gitignore
- create mode 100644 arch/metag/boot/Makefile
- create mode 100644 arch/metag/boot/dtb/Makefile
- create mode 100644 arch/metag/boot/dts/skeleton.dts
- create mode 100644 arch/metag/boot/dts/skeleton.dtsi
- create mode 100644 arch/metag/configs/meta1_defconfig
- create mode 100644 arch/metag/configs/meta2_defconfig
- create mode 100644 arch/metag/configs/meta2_smp_defconfig
- create mode 100644 arch/metag/include/asm/Kbuild
- create mode 100644 arch/metag/include/asm/atomic.h
- create mode 100644 arch/metag/include/asm/atomic_lnkget.h
- create mode 100644 arch/metag/include/asm/atomic_lock1.h
- create mode 100644 arch/metag/include/asm/barrier.h
- create mode 100644 arch/metag/include/asm/bitops.h
- create mode 100644 arch/metag/include/asm/bug.h
- create mode 100644 arch/metag/include/asm/byteorder.h
- create mode 100644 arch/metag/include/asm/cache.h
- create mode 100644 arch/metag/include/asm/cacheflush.h
- create mode 100644 arch/metag/include/asm/cachepart.h
- create mode 100644 arch/metag/include/asm/checksum.h
- create mode 100644 arch/metag/include/asm/clock.h
- create mode 100644 arch/metag/include/asm/cmpxchg.h
- create mode 100644 arch/metag/include/asm/cmpxchg_irq.h
- create mode 100644 arch/metag/include/asm/cmpxchg_lnkget.h
- create mode 100644 arch/metag/include/asm/cmpxchg_lock1.h
- create mode 100644 arch/metag/include/asm/core-sysfs.h
- create mode 100644 arch/metag/include/asm/core_reg.h
- create mode 100644 arch/metag/include/asm/cpu.h
- create mode 100644 arch/metag/include/asm/da.h
- create mode 100644 arch/metag/include/asm/delay.h
- create mode 100644 arch/metag/include/asm/div64.h
- create mode 100644 arch/metag/include/asm/dma-mapping.h
- create mode 100644 arch/metag/include/asm/elf.h
- create mode 100644 arch/metag/include/asm/fixmap.h
- create mode 100644 arch/metag/include/asm/ftrace.h
- create mode 100644 arch/metag/include/asm/gpio.h
- create mode 100644 arch/metag/include/asm/highmem.h
- create mode 100644 arch/metag/include/asm/hugetlb.h
- create mode 100644 arch/metag/include/asm/hw_breakpoints.h
- create mode 100644 arch/metag/include/asm/hwthread.h
- create mode 100644 arch/metag/include/asm/io.h
- create mode 100644 arch/metag/include/asm/irq.h
- create mode 100644 arch/metag/include/asm/irq_external.h
- create mode 100644 arch/metag/include/asm/irq_internal.h
- create mode 100644 arch/metag/include/asm/irqflags.h
- create mode 100644 arch/metag/include/asm/l2cache.h
- create mode 100644 arch/metag/include/asm/linkage.h
- create mode 100644 arch/metag/include/asm/lock.h
- create mode 100644 arch/metag/include/asm/mach/arch.h
- create mode 100644 arch/metag/include/asm/mman.h
- create mode 100644 arch/metag/include/asm/mmu.h
- create mode 100644 arch/metag/include/asm/mmu_context.h
- create mode 100644 arch/metag/include/asm/mmzone.h
- create mode 100644 arch/metag/include/asm/module.h
- create mode 100644 arch/metag/include/asm/page.h
- create mode 100644 arch/metag/include/asm/perf_event.h
- create mode 100644 arch/metag/include/asm/pgalloc.h
- create mode 100644 arch/metag/include/asm/pgtable.h
- create mode 100644 arch/metag/include/asm/processor.h
- create mode 100644 arch/metag/include/asm/prom.h
- create mode 100644 arch/metag/include/asm/ptrace.h
- create mode 100644 arch/metag/include/asm/resource.h
- create mode 100644 arch/metag/include/asm/setup.h
- create mode 100644 arch/metag/include/asm/sigcontext.h
- create mode 100644 arch/metag/include/asm/siginfo.h
- create mode 100644 arch/metag/include/asm/smp.h
- create mode 100644 arch/metag/include/asm/sparsemem.h
- create mode 100644 arch/metag/include/asm/spinlock.h
- create mode 100644 arch/metag/include/asm/spinlock_lnkget.h
- create mode 100644 arch/metag/include/asm/spinlock_lock1.h
- create mode 100644 arch/metag/include/asm/spinlock_types.h
- create mode 100644 arch/metag/include/asm/stacktrace.h
- create mode 100644 arch/metag/include/asm/string.h
- create mode 100644 arch/metag/include/asm/swab.h
- create mode 100644 arch/metag/include/asm/switch.h
- create mode 100644 arch/metag/include/asm/syscall.h
- create mode 100644 arch/metag/include/asm/syscalls.h
- create mode 100644 arch/metag/include/asm/tbx/Kbuild
- create mode 100644 arch/metag/include/asm/tbx/compasm.inc
- create mode 100644 arch/metag/include/asm/tbx/machine.inc
- create mode 100644 arch/metag/include/asm/tbx/metac_1_2.inc
- create mode 100644 arch/metag/include/asm/tbx/metac_2_1.inc
- create mode 100644 arch/metag/include/asm/tbx/metac_all.inc
- create mode 100644 arch/metag/include/asm/tbx/metag.inc
- create mode 100644 arch/metag/include/asm/tbx/metagdsp.inc
- create mode 100644 arch/metag/include/asm/tbx/metagtbx.h
- create mode 100644 arch/metag/include/asm/tcm.h
- create mode 100644 arch/metag/include/asm/thread_info.h
- create mode 100644 arch/metag/include/asm/tlb.h
- create mode 100644 arch/metag/include/asm/tlbflush.h
- create mode 100644 arch/metag/include/asm/topology.h
- create mode 100644 arch/metag/include/asm/traps.h
- create mode 100644 arch/metag/include/asm/uaccess.h
- create mode 100644 arch/metag/include/asm/unistd.h
- create mode 100644 arch/metag/include/asm/user_gateway.h
- create mode 100644 arch/metag/kernel/.gitignore
- create mode 100644 arch/metag/kernel/Makefile
- create mode 100644 arch/metag/kernel/asm-offsets.c
- create mode 100644 arch/metag/kernel/cachepart.c
- create mode 100644 arch/metag/kernel/clock.c
- create mode 100644 arch/metag/kernel/core_reg.c
- create mode 100644 arch/metag/kernel/cpu/Kconfig
- create mode 100644 arch/metag/kernel/cpu/Makefile
- create mode 100644 arch/metag/kernel/cpu/core-sysfs.c
- create mode 100644 arch/metag/kernel/cpu/counters/Makefile
- create mode 100644 arch/metag/kernel/cpu/counters/amacount.c
- create mode 100644 arch/metag/kernel/cpu/counters/cyclecount.c
- create mode 100644 arch/metag/kernel/cpu/counters/perfcount.c
- create mode 100644 arch/metag/kernel/cpu/l2cache-control.c
- create mode 100644 arch/metag/kernel/cpu/memory-arbiter.c
- create mode 100644 arch/metag/kernel/cpu/write-combiner.c
- create mode 100644 arch/metag/kernel/da.c
- create mode 100644 arch/metag/kernel/devtree.c
- create mode 100644 arch/metag/kernel/dma.c
- create mode 100644 arch/metag/kernel/ftrace.c
- create mode 100644 arch/metag/kernel/ftrace_stub.S
- create mode 100644 arch/metag/kernel/head.S
- create mode 100644 arch/metag/kernel/hw_breakpoints.c
- create mode 100644 arch/metag/kernel/irq.c
- create mode 100644 arch/metag/kernel/irq_external.c
- create mode 100644 arch/metag/kernel/irq_internal.c
- create mode 100644 arch/metag/kernel/kick.c
- create mode 100644 arch/metag/kernel/machines.c
- create mode 100644 arch/metag/kernel/metag_ksyms.c
- create mode 100644 arch/metag/kernel/module.c
- create mode 100644 arch/metag/kernel/perf_callchain.c
- create mode 100644 arch/metag/kernel/process.c
- create mode 100644 arch/metag/kernel/ptrace.c
- create mode 100644 arch/metag/kernel/setup.c
- create mode 100644 arch/metag/kernel/signal.c
- create mode 100644 arch/metag/kernel/smp.c
- create mode 100644 arch/metag/kernel/stacktrace.c
- create mode 100644 arch/metag/kernel/sys_metag.c
- create mode 100644 arch/metag/kernel/tbiunexp.S
- create mode 100644 arch/metag/kernel/tcm.c
- create mode 100644 arch/metag/kernel/time.c
- create mode 100644 arch/metag/kernel/topology.c
- create mode 100644 arch/metag/kernel/traps.c
- create mode 100644 arch/metag/kernel/user_gateway.S
- create mode 100644 arch/metag/kernel/vmlinux.lds.S
- create mode 100644 arch/metag/lib/Makefile
- create mode 100644 arch/metag/lib/ashldi3.S
- create mode 100644 arch/metag/lib/ashrdi3.S
- create mode 100644 arch/metag/lib/checksum.c
- create mode 100644 arch/metag/lib/clear_page.S
- create mode 100644 arch/metag/lib/copy_page.S
- create mode 100644 arch/metag/lib/delay.c
- create mode 100644 arch/metag/lib/div64.S
- create mode 100644 arch/metag/lib/divsi3.S
- create mode 100644 arch/metag/lib/ip_fast_csum.S
- create mode 100644 arch/metag/lib/lshrdi3.S
- create mode 100644 arch/metag/lib/memcpy.S
- create mode 100644 arch/metag/lib/memmove.S
- create mode 100644 arch/metag/lib/memset.S
- create mode 100644 arch/metag/lib/modsi3.S
- create mode 100644 arch/metag/lib/muldi3.S
- create mode 100644 arch/metag/lib/usercopy.c
- create mode 100644 arch/metag/mm/Kconfig
- create mode 100644 arch/metag/mm/Makefile
- create mode 100644 arch/metag/mm/extable.c
- create mode 100644 arch/metag/mm/fault.c
- create mode 100644 arch/metag/mm/highmem.c
- create mode 100644 arch/metag/mm/hugetlbpage.c
- create mode 100644 arch/metag/mm/init.c
- create mode 100644 arch/metag/mm/ioremap.c
- create mode 100644 arch/metag/mm/l2cache.c
- create mode 100644 arch/metag/mm/maccess.c
- create mode 100644 arch/metag/mm/mmu-meta1.c
- create mode 100644 arch/metag/mm/mmu-meta2.c
- create mode 100644 arch/metag/mm/numa.c
- create mode 100644 arch/metag/oprofile/Makefile
- create mode 100644 arch/metag/oprofile/backtrace.c
- create mode 100644 arch/metag/oprofile/backtrace.h
- create mode 100644 arch/metag/oprofile/op_model_meta12.c
- create mode 100644 arch/metag/tbx/Makefile
- create mode 100644 arch/metag/tbx/tbicache.c
- create mode 100644 arch/metag/tbx/tbicore.S
- create mode 100644 arch/metag/tbx/tbictx.S
- create mode 100644 arch/metag/tbx/tbictxfpu.S
- create mode 100644 arch/metag/tbx/tbidefr.S
- create mode 100644 arch/metag/tbx/tbidspram.S
- create mode 100644 arch/metag/tbx/tbilogf.S
- create mode 100644 arch/metag/tbx/tbipcx.S
- create mode 100644 arch/metag/tbx/tbiroot.S
- create mode 100644 arch/metag/tbx/tbisoft.S
- create mode 100644 arch/metag/tbx/tbistring.c
- create mode 100644 arch/metag/tbx/tbitimer.S
- create mode 100644 drivers/tty/metag_da.c
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+Cc: linux-fsdevel@vger.kernel.org
+---
+ MAINTAINERS        |    1 +
+ arch/metag/Kconfig |    1 +
+ fs/Kconfig         |    1 +
+ fs/Makefile        |    1 +
+ fs/dafs/Kconfig    |    6 +
+ fs/dafs/Makefile   |    7 +
+ fs/dafs/dafs.h     |   80 +++++
+ fs/dafs/inode.c    |  830 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 8 files changed, 927 insertions(+), 0 deletions(-)
  create mode 100644 fs/dafs/Kconfig
  create mode 100644 fs/dafs/Makefile
  create mode 100644 fs/dafs/dafs.h
  create mode 100644 fs/dafs/inode.c
 
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 1e55a5e..02e9d3e 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -4538,6 +4538,7 @@ F:	arch/metag/
+ F:	Documentation/metag/
+ F:	Documentation/devicetree/bindings/metag/
+ F:	drivers/tty/metag_da.c
++F:	fs/dafs/
+ 
+ MICROBLAZE ARCHITECTURE
+ M:	Michal Simek <monstr@monstr.eu>
+diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
+index 96e9fbf..a186f3c 100644
+--- a/arch/metag/Kconfig
++++ b/arch/metag/Kconfig
+@@ -224,6 +224,7 @@ config METAG_DA
+ 	  This enables support for services provided by DA JTAG debug adapters,
+ 	  such as:
+ 	  - communication over DA channels (such as the console driver).
++	  - use of the DA filesystem.
+ 
+ menu "Boot options"
+ 
+diff --git a/fs/Kconfig b/fs/Kconfig
+index f95ae3a..342cd55 100644
+--- a/fs/Kconfig
++++ b/fs/Kconfig
+@@ -220,6 +220,7 @@ source "fs/pstore/Kconfig"
+ source "fs/sysv/Kconfig"
+ source "fs/ufs/Kconfig"
+ source "fs/exofs/Kconfig"
++source "fs/dafs/Kconfig"
+ 
+ endif # MISC_FILESYSTEMS
+ 
+diff --git a/fs/Makefile b/fs/Makefile
+index 2fb9779..e803b53 100644
+--- a/fs/Makefile
++++ b/fs/Makefile
+@@ -125,3 +125,4 @@ obj-$(CONFIG_GFS2_FS)           += gfs2/
+ obj-y				+= exofs/ # Multiple modules
+ obj-$(CONFIG_CEPH_FS)		+= ceph/
+ obj-$(CONFIG_PSTORE)		+= pstore/
++obj-$(CONFIG_DAFS_FS)           += dafs/
+diff --git a/fs/dafs/Kconfig b/fs/dafs/Kconfig
+new file mode 100644
+index 0000000..2ead46f
+--- /dev/null
++++ b/fs/dafs/Kconfig
+@@ -0,0 +1,6 @@
++config DAFS_FS
++	bool "Meta DA filesystem support"
++	depends on METAG_DA
++	help
++	  This enables the DA filesystem, which allows Linux to
++	  to access files on a system attached via a debug adapter.
+diff --git a/fs/dafs/Makefile b/fs/dafs/Makefile
+new file mode 100644
+index 0000000..479ce8f
+--- /dev/null
++++ b/fs/dafs/Makefile
+@@ -0,0 +1,7 @@
++#
++# Makefile for DAfs the Debug Adapter filesystem.
++#
++
++obj-$(CONFIG_DAFS_FS) += dafs.o
++
++dafs-objs := inode.o
+diff --git a/fs/dafs/dafs.h b/fs/dafs/dafs.h
+new file mode 100644
+index 0000000..2352f91
+--- /dev/null
++++ b/fs/dafs/dafs.h
+@@ -0,0 +1,80 @@
++#ifndef _DAFS_H_
++#define _DAFS_H_
++
++#define DA_OP_OPEN 0
++#define DA_OP_CREAT 1
++#define DA_OP_READ 2
++#define DA_OP_WRITE 3
++#define DA_OP_CLOSE 4
++#define DA_OP_LINK 5
++#define DA_OP_LSEEK 6
++#define DA_OP_UNLINK 7
++#define DA_OP_ISATTY 8
++#define DA_OP_FCNTL 9
++#define DA_OP_STAT 10
++#define DA_OP_FSTAT 11
++#define DA_OP_GETCWD 12
++#define DA_OP_CHDIR 13
++#define DA_OP_MKDIR 14
++#define DA_OP_RMDIR 15
++#define DA_OP_FINDFIRST 16
++#define DA_OP_FINDNEXT 17
++#define DA_OP_FINDCLOSE 18
++#define DA_OP_CHMOD 19
++#define DA_OP_PREAD 20
++#define DA_OP_PWRITE 21
++
++#define OS_TYPE_FILE 1
++#define OS_TYPE_DIR 2
++#define OS_TYPE_SYMLINK 3
++#define OS_TYPE_CHARDEV 4
++#define OS_TYPE_BLOCKDEV 5
++#define OS_TYPE_FIFO 6
++#define OS_TYPE_SOCK 7
++
++#define DA_O_RDONLY 0
++#define DA_O_WRONLY 1
++#define DA_O_RDWR 2
++#define DA_O_APPEND 8
++#define DA_O_CREAT 0x0200
++#define DA_O_TRUNC 0x0400
++#define DA_O_EXCL 0x0800
++
++#define DA_O_AFFINITY_THREAD_0 0x10000
++#define DA_O_AFFINITY_THREAD_1 0x20000
++#define DA_O_AFFINITY_THREAD_2 0x40000
++#define DA_O_AFFINITY_THREAD_3 0x80000
++#define DA_O_AFFINITY_SHIFT 16
++
++#define DA_S_IWUSR	0200	/* 0x80 */
++#define DA_S_IRUSR	0400	/* 0x100 */
++
++struct da_stat {
++	short st_dev;
++	unsigned short st_ino;
++	unsigned st_mode;
++	unsigned short st_nlink;
++	unsigned short st_uid;
++	unsigned short st_gid;
++	short st_rdev;
++	int st_size;
++	int st_atime;
++	int st_spare1;
++	int st_mtime;
++	int st_spare2;
++	int st_ctime;
++	int st_spare3;
++	int st_blksize;
++	int st_blocks;
++	int st_spare4[2];
++};
++
++#define _A_SUBDIR 0x10
++
++struct da_finddata {
++	unsigned long size;
++	unsigned long attrib;
++	char name[260];
++};
++
++#endif
+diff --git a/fs/dafs/inode.c b/fs/dafs/inode.c
+new file mode 100644
+index 0000000..25e0ca8
+--- /dev/null
++++ b/fs/dafs/inode.c
+@@ -0,0 +1,830 @@
++/*
++ * Copyright (C) 2008,2009,2010 Imagination Technologies Ltd.
++ * Licensed under the GPL
++ *
++ * Based on hostfs for UML.
++ *
++ */
++
++#include <linux/fs.h>
++#include <linux/module.h>
++#include <linux/mm.h>
++#include <linux/pagemap.h>
++#include <linux/seq_file.h>
++#include <linux/mount.h>
++#include <linux/slab.h>
++
++#include <asm/da.h>
++#include <asm/hwthread.h>
++
++#include "dafs.h"
++
++static int fserrno;
++
++int fscall(int system_call, int arg1, int arg2, int arg3, int arg4, int arg5)
++{
++	register int arg1_           __asm__("D1Ar1") = arg1;
++	register int arg2_           __asm__("D0Ar2") = arg2;
++	register int arg3_           __asm__("D1Ar3") = arg3;
++	register int arg4_           __asm__("D0Ar4") = arg4;
++	register int arg5_           __asm__("D1Ar5") = arg5;
++	register int system_call_    __asm__("D0Ar6") = system_call;
++	register int result          __asm__("D0Re0");
++	register int errno           __asm__("D1Re0");
++
++	__asm__ volatile (
++		"SETL   [A0StP++], %7,%6\n\t"
++		"SETL   [A0StP++], %5,%4\n\t"
++		"SETL   [A0StP++], %3,%2\n\t"
++		"ADD    A0StP, A0StP, #8\n\t"
++		"SWITCH #0x0C00208\n\t"
++		"GETL   %0, %1, [A0StP+#-8]\n\t"
++		"SUB    A0StP, A0StP, #(4*6)+8\n\t"
++		: "=r" (result), "=r" (errno)
++		: "r" (arg1_), "r" (arg2_), "r" (arg3_),
++		  "r" (arg4_), "r" (arg5_), "r" (system_call_)
++		: "memory");
++
++	fserrno = errno;
++
++	return result;
++}
++
++struct dafs_inode_info {
++	int fd;
++	int mode;
++	struct inode vfs_inode;
++};
++
++static inline struct dafs_inode_info *DAFS_I(struct inode *inode)
++{
++	return container_of(inode, struct dafs_inode_info, vfs_inode);
++}
++
++#define FILE_DAFS_I(file) DAFS_I((file)->f_path.dentry->d_inode)
++
++static int dafs_d_delete(const struct dentry *dentry)
++{
++	return 1;
++}
++
++static const struct dentry_operations dafs_dentry_ops = {
++	.d_delete		= dafs_d_delete,
++};
++
++#define DAFS_SUPER_MAGIC 0xdadadaf5
++
++static const struct inode_operations dafs_iops;
++static const struct inode_operations dafs_dir_iops;
++
++static char *__dentry_name(struct dentry *dentry, char *name)
++{
++	char *p = dentry_path_raw(dentry, name, PATH_MAX);
++	char *root;
++	size_t len;
++
++	root = dentry->d_sb->s_fs_info;
++	len = strlen(root);
++	if (IS_ERR(p)) {
++		__putname(name);
++		return NULL;
++	}
++
++	strlcpy(name, root, PATH_MAX);
++	if (len > p - name) {
++		__putname(name);
++		return NULL;
++	}
++	if (p > name + len) {
++		char *s = name + len;
++		while ((*s++ = *p++) != '\0')
++			;
++	}
++	return name;
++}
++
++static char *dentry_name(struct dentry *dentry)
++{
++	char *name = __getname();
++	if (!name)
++		return NULL;
++
++	return __dentry_name(dentry, name); /* will unlock */
++}
++
++static int stat_file(const char *path, struct da_stat *p, int fd)
++{
++	int ret;
++	memset(p, 0, sizeof(*p));
++
++	if (fd >= 0) {
++		ret = fscall(DA_OP_FSTAT, fd, (int)p, 0, 0, 0);
++		if (ret < 0) {
++			/* Some versions of Codescape do not fill out errno. */
++			if (ret < 0 && fserrno == 0)
++				fserrno = ENOENT;
++			return -fserrno;
++		}
++	} else {
++		ret = fscall(DA_OP_STAT, (int)path, (int)p, strlen(path), 0, 0);
++		if (ret < 0) {
++			/* Some versions of Codescape do not fill out errno. */
++			if (ret < 0 && fserrno == 0)
++				fserrno = ENOENT;
++			return -fserrno;
++		}
++	}
++
++	return 0;
++}
++
++static struct inode *dafs_iget(struct super_block *sb)
++{
++	struct inode *inode = new_inode(sb);
++	if (!inode)
++		return ERR_PTR(-ENOMEM);
++	return inode;
++}
++
++static struct inode *dafs_alloc_inode(struct super_block *sb)
++{
++	struct dafs_inode_info *hi;
++
++	hi = kzalloc(sizeof(*hi), GFP_KERNEL);
++	if (hi == NULL)
++		return NULL;
++
++	hi->fd = -1;
++	inode_init_once(&hi->vfs_inode);
++	return &hi->vfs_inode;
++}
++
++static void close_file(void *stream)
++{
++	int fd = *((int *) stream);
++
++	fscall(DA_OP_CLOSE, fd, 0, 0, 0, 0);
++}
++
++static void dafs_evict_inode(struct inode *inode)
++{
++	truncate_inode_pages(&inode->i_data, 0);
++	clear_inode(inode);
++	if (DAFS_I(inode)->fd != -1) {
++		close_file(&DAFS_I(inode)->fd);
++		DAFS_I(inode)->fd = -1;
++	}
++}
++
++static void dafs_i_callback(struct rcu_head *head)
++{
++	struct inode *inode = container_of(head, struct inode, i_rcu);
++	kfree(DAFS_I(inode));
++}
++
++static void dafs_destroy_inode(struct inode *inode)
++{
++	call_rcu(&inode->i_rcu, dafs_i_callback);
++}
++
++static const struct super_operations dafs_sbops = {
++	.alloc_inode	= dafs_alloc_inode,
++	.drop_inode	= generic_delete_inode,
++	.evict_inode	= dafs_evict_inode,
++	.destroy_inode	= dafs_destroy_inode,
++};
++
++static int open_dir(char *path, struct da_finddata *finddata)
++{
++	int len = strlen(path);
++	char buf[len + 3];
++
++	strcpy(buf, path);
++	if (buf[len - 1] != '/')
++		strcat(buf, "/*");
++	else
++		strcat(buf, "*");
++
++	return fscall(DA_OP_FINDFIRST, (int)buf, (int)finddata, 0, 0, 0);
++}
++
++static void close_dir(int handle)
++{
++	fscall(DA_OP_FINDCLOSE, handle, 0, 0, 0, 0);
++}
++
++static int read_dir(int handle, struct da_finddata *finddata)
++{
++	return fscall(DA_OP_FINDNEXT, handle, (int)finddata, 0, 0, 0);
++}
++
++static int dafs_readdir(struct file *file, void *ent, filldir_t filldir)
++{
++	struct inode *inode = file->f_path.dentry->d_inode;
++	struct super_block *sb = inode->i_sb;
++	char *name;
++	int handle;
++	unsigned long long next, ino;
++	int error = 0;
++	struct da_finddata finddata;
++
++	name = dentry_name(file->f_path.dentry);
++	if (name == NULL)
++		return -ENOMEM;
++	handle = open_dir(name, &finddata);
++	__putname(name);
++	if (handle == -1)
++		return -fserrno;
++
++	next = 1;
++
++	if (file->f_pos == 0) {
++		error = (*filldir)(ent, ".", file->f_pos + 1,
++				   file->f_pos, inode->i_ino,
++				   DT_DIR);
++		if (error < 0)
++			goto out;
++		file->f_pos++;
++	}
++
++	while (1) {
++		error = read_dir(handle, &finddata);
++		if (error)
++			break;
++
++		if (next >= file->f_pos) {
++			size_t len = strlen(finddata.name);
++			ino = iunique(sb, 100);
++			error = (*filldir)(ent, finddata.name, len,
++					   file->f_pos, ino,
++					   (finddata.attrib & _A_SUBDIR) ?
++					    DT_DIR : DT_REG);
++			if (error)
++				break;
++			file->f_pos++;
++		}
++		next++;
++	}
++out:
++	close_dir(handle);
++	return 0;
++}
++
++static int dafs_file_open(struct inode *ino, struct file *file)
++{
++	static DEFINE_MUTEX(open_mutex);
++	char *name;
++	int mode, fmode, flags = 0, r = 0, w = 0, fd;
++	int i;
++
++	fmode = file->f_mode & (FMODE_READ | FMODE_WRITE);
++	if ((fmode & DAFS_I(ino)->mode) == fmode)
++		return 0;
++
++	mode = ino->i_mode & (DA_S_IWUSR | DA_S_IRUSR);
++
++	mode |= DAFS_I(ino)->mode;
++
++	DAFS_I(ino)->mode |= fmode;
++	if (DAFS_I(ino)->mode & FMODE_READ)
++		r = 1;
++	if (DAFS_I(ino)->mode & FMODE_WRITE) {
++		w = 1;
++		r = 1;
++	}
++
++retry:
++	if (r && !w)
++		flags |= DA_O_RDONLY;
++	else if (!r && w)
++		flags |= DA_O_WRONLY;
++	else if (r && w)
++		flags |= DA_O_RDWR;
++
++	if (file->f_flags & O_CREAT)
++		flags |= DA_O_CREAT;
++
++	if (file->f_flags & O_TRUNC)
++		flags |= DA_O_TRUNC;
++
++	/*
++	 * Set the affinity for this file handle to all CPUs. If we
++	 * don't do this then, if the process that opened the file
++	 * migrates to a different cpu, the FileServer will not accept
++	 * the file handle.
++	 */
++	for (i = 0; i < NR_CPUS; i++) {
++		u8 hwthread = cpu_2_hwthread_id[i];
++		flags |= (1 << (DA_O_AFFINITY_SHIFT + hwthread));
++	}
++
++	name = dentry_name(file->f_path.dentry);
++	if (name == NULL)
++		return -ENOMEM;
++
++	fd = fscall(DA_OP_OPEN, (int)name, flags, mode, strlen(name), 0);
++	__putname(name);
++	if (fd < 0)
++		return fd;
++
++	mutex_lock(&open_mutex);
++	/* somebody else had handled it first? */
++	if ((mode & DAFS_I(ino)->mode) == mode) {
++		mutex_unlock(&open_mutex);
++		return 0;
++	}
++	if ((mode | DAFS_I(ino)->mode) != mode) {
++		mode |= DAFS_I(ino)->mode;
++		mutex_unlock(&open_mutex);
++		close_file(&fd);
++		goto retry;
++	}
++	DAFS_I(ino)->fd = fd;
++	DAFS_I(ino)->mode = mode;
++	mutex_unlock(&open_mutex);
++
++	return 0;
++}
++
++static const struct file_operations dafs_file_fops = {
++	.llseek		= generic_file_llseek,
++	.read		= do_sync_read,
++	.splice_read	= generic_file_splice_read,
++	.aio_read	= generic_file_aio_read,
++	.aio_write	= generic_file_aio_write,
++	.write		= do_sync_write,
++	.mmap		= generic_file_mmap,
++	.open		= dafs_file_open,
++	.release	= NULL,
++};
++
++static const struct file_operations dafs_dir_fops = {
++	.llseek		= generic_file_llseek,
++	.readdir	= dafs_readdir,
++	.read		= generic_read_dir,
++};
++
++static int read_file(int fd, unsigned long long *offset, const char *buf,
++		     int len)
++{
++	int n;
++
++	n = fscall(DA_OP_PREAD, fd, (int)buf, len, (int)*offset, 0);
++
++	if (n < 0)
++		return -fserrno;
++
++	return n;
++}
++
++static int write_file(int fd, unsigned long long *offset, const char *buf,
++		      int len)
++{
++	int n;
++
++	n = fscall(DA_OP_PWRITE, fd, (int)buf, len, (int)*offset, 0);
++
++	if (n < 0)
++		return -fserrno;
++
++	return n;
++}
++
++static int dafs_writepage(struct page *page, struct writeback_control *wbc)
++{
++	struct address_space *mapping = page->mapping;
++	struct inode *inode = mapping->host;
++	char *buffer;
++	unsigned long long base;
++	int count = PAGE_CACHE_SIZE;
++	int end_index = inode->i_size >> PAGE_CACHE_SHIFT;
++	int err;
++
++	if (page->index >= end_index)
++		count = inode->i_size & (PAGE_CACHE_SIZE-1);
++
++	buffer = kmap(page);
++	base = ((unsigned long long) page->index) << PAGE_CACHE_SHIFT;
++
++	err = write_file(DAFS_I(inode)->fd, &base, buffer, count);
++	if (err != count) {
++		ClearPageUptodate(page);
++		goto out;
++	}
++
++	if (base > inode->i_size)
++		inode->i_size = base;
++
++	if (PageError(page))
++		ClearPageError(page);
++	err = 0;
++
++ out:
++	kunmap(page);
++
++	unlock_page(page);
++	return err;
++}
++
++static int dafs_readpage(struct file *file, struct page *page)
++{
++	char *buffer;
++	long long start;
++	int err = 0;
++
++	start = (long long) page->index << PAGE_CACHE_SHIFT;
++	buffer = kmap(page);
++	err = read_file(FILE_DAFS_I(file)->fd, &start, buffer,
++			PAGE_CACHE_SIZE);
++	if (err < 0)
++		goto out;
++
++	memset(&buffer[err], 0, PAGE_CACHE_SIZE - err);
++
++	flush_dcache_page(page);
++	SetPageUptodate(page);
++	if (PageError(page))
++		ClearPageError(page);
++	err = 0;
++ out:
++	kunmap(page);
++	unlock_page(page);
++	return err;
++}
++
++int dafs_write_begin(struct file *file, struct address_space *mapping,
++			loff_t pos, unsigned len, unsigned flags,
++			struct page **pagep, void **fsdata)
++{
++	pgoff_t index = pos >> PAGE_CACHE_SHIFT;
++
++	*pagep = grab_cache_page_write_begin(mapping, index, flags);
++	if (!*pagep)
++		return -ENOMEM;
++	return 0;
++}
++
++int dafs_write_end(struct file *file, struct address_space *mapping,
++			loff_t pos, unsigned len, unsigned copied,
++			struct page *page, void *fsdata)
++{
++	struct inode *inode = mapping->host;
++	void *buffer;
++	unsigned from = pos & (PAGE_CACHE_SIZE - 1);
++	int err;
++
++	buffer = kmap(page);
++	err = write_file(FILE_DAFS_I(file)->fd, &pos, buffer + from, copied);
++	kunmap(page);
++
++	if (!PageUptodate(page) && err == PAGE_CACHE_SIZE)
++		SetPageUptodate(page);
++
++	/*
++	 * If err > 0, write_file has added err to pos, so we are comparing
++	 * i_size against the last byte written.
++	 */
++	if (err > 0 && (pos > inode->i_size))
++		inode->i_size = pos;
++	unlock_page(page);
++	page_cache_release(page);
++
++	return err;
++}
++
++static const struct address_space_operations dafs_aops = {
++	.writepage	= dafs_writepage,
++	.readpage	= dafs_readpage,
++	.set_page_dirty	= __set_page_dirty_nobuffers,
++	.write_begin	= dafs_write_begin,
++	.write_end	= dafs_write_end,
++};
++
++static int read_name(struct inode *ino, char *name)
++{
++	dev_t rdev;
++	struct da_stat st;
++	int err = stat_file(name, &st, -1);
++	if (err)
++		return err;
++
++	/* No valid maj and min from DA.*/
++	rdev = MKDEV(0, 0);
++
++	switch (st.st_mode & S_IFMT) {
++	case S_IFDIR:
++		ino->i_op = &dafs_dir_iops;
++		ino->i_fop = &dafs_dir_fops;
++		break;
++	case S_IFCHR:
++	case S_IFBLK:
++	case S_IFIFO:
++	case S_IFSOCK:
++		init_special_inode(ino, st.st_mode & S_IFMT, rdev);
++		ino->i_op = &dafs_iops;
++		break;
++
++	case S_IFLNK:
++	default:
++		ino->i_op = &dafs_iops;
++		ino->i_fop = &dafs_file_fops;
++		ino->i_mapping->a_ops = &dafs_aops;
++	}
++
++	ino->i_ino = st.st_ino;
++	ino->i_mode = st.st_mode;
++	set_nlink(ino, st.st_nlink);
++
++	ino->i_uid = st.st_uid;
++	ino->i_gid = st.st_gid;
++	ino->i_atime.tv_sec = st.st_atime;
++	ino->i_atime.tv_nsec = 0;
++	ino->i_mtime.tv_sec = st.st_mtime;
++	ino->i_mtime.tv_nsec = 0;
++	ino->i_ctime.tv_sec = st.st_ctime;
++	ino->i_ctime.tv_nsec = 0;
++	ino->i_size = st.st_size;
++	ino->i_blocks = st.st_blocks;
++	return 0;
++}
++
++static int dafs_create(struct inode *dir, struct dentry *dentry, umode_t mode,
++		       bool excl)
++{
++	struct inode *inode;
++	char *name;
++	int error, fd;
++	int damode;
++	int creat_flags = DA_O_TRUNC | DA_O_CREAT | DA_O_WRONLY;
++	int i;
++
++	inode = dafs_iget(dir->i_sb);
++	if (IS_ERR(inode)) {
++		error = PTR_ERR(inode);
++		goto out;
++	}
++
++	damode = mode & (DA_S_IWUSR | DA_S_IRUSR);
++
++	error = -ENOMEM;
++	name = dentry_name(dentry);
++	if (name == NULL)
++		goto out_put;
++
++	/*
++	 * creat() will only create text mode files on a Windows host
++	 * at present.  Replicate the creat() functionality with an
++	 * open() call, which always creates binary files. Set the
++	 * affinity to all hardware threads.
++	 */
++	for (i = 0; i < NR_CPUS; i++) {
++		u8 hwthread = cpu_2_hwthread_id[i];
++		creat_flags |= (1 << (DA_O_AFFINITY_SHIFT + hwthread));
++	}
++
++	fd = fscall(DA_OP_OPEN, (int)name, creat_flags, damode, strlen(name),
++		    0);
++	if (fd < 0)
++		error = fd;
++	else
++		error = read_name(inode, name);
++
++	kfree(name);
++	if (error)
++		goto out_put;
++
++	DAFS_I(inode)->fd = fd;
++	DAFS_I(inode)->mode = FMODE_READ | FMODE_WRITE;
++	d_instantiate(dentry, inode);
++	return 0;
++
++ out_put:
++	iput(inode);
++ out:
++	return error;
++}
++
++static struct dentry *dafs_lookup(struct inode *ino, struct dentry *dentry,
++				  unsigned int flags)
++{
++	struct inode *inode;
++	char *name;
++	int err;
++
++	inode = dafs_iget(ino->i_sb);
++	if (IS_ERR(inode)) {
++		err = PTR_ERR(inode);
++		goto out;
++	}
++
++	err = -ENOMEM;
++	name = dentry_name(dentry);
++	if (name == NULL)
++		goto out_put;
++
++	err = read_name(inode, name);
++
++	__putname(name);
++	if (err == -ENOENT) {
++		iput(inode);
++		inode = NULL;
++	} else if (err)
++		goto out_put;
++
++	d_add(dentry, inode);
++	return NULL;
++
++ out_put:
++	iput(inode);
++ out:
++	return ERR_PTR(err);
++}
++
++int dafs_link(struct dentry *to, struct inode *ino, struct dentry *from)
++{
++	char *from_name, *to_name;
++	int err;
++
++	from_name = dentry_name(from);
++	if (from_name == NULL)
++		return -ENOMEM;
++	to_name = dentry_name(to);
++	if (to_name == NULL) {
++		__putname(from_name);
++		return -ENOMEM;
++	}
++	err = -EINVAL;
++	__putname(from_name);
++	__putname(to_name);
++	return err;
++}
++
++int dafs_unlink(struct inode *ino, struct dentry *dentry)
++{
++	char *file;
++	int err;
++
++	file = dentry_name(dentry);
++	if (file == NULL)
++		return -ENOMEM;
++
++	err = fscall(DA_OP_UNLINK, (int)file, 0, 0, 0, 0);
++	__putname(file);
++	if (err)
++		return -fserrno;
++	return 0;
++}
++
++static int do_mkdir(const char *file, int mode)
++{
++	int err;
++
++	err = fscall(DA_OP_MKDIR, (int)file, mode, strlen(file), 0, 0);
++	if (err)
++		return -fserrno;
++	return 0;
++}
++
++int dafs_mkdir(struct inode *ino, struct dentry *dentry, umode_t mode)
++{
++	char *file;
++	int err;
++
++	file = dentry_name(dentry);
++	if (file == NULL)
++		return -ENOMEM;
++	err = do_mkdir(file, mode);
++	__putname(file);
++	return err;
++}
++
++static int do_rmdir(const char *file)
++{
++	int err;
++
++	err = fscall(DA_OP_RMDIR, (int)file, strlen(file), 0, 0, 0);
++	if (err)
++		return -fserrno;
++	return 0;
++}
++
++int dafs_rmdir(struct inode *ino, struct dentry *dentry)
++{
++	char *file;
++	int err;
++
++	file = dentry_name(dentry);
++	if (file == NULL)
++		return -ENOMEM;
++	err = do_rmdir(file);
++	__putname(file);
++	return err;
++}
++
++int dafs_rename(struct inode *from_ino, struct dentry *from,
++		  struct inode *to_ino, struct dentry *to)
++{
++	char *from_name, *to_name;
++	int err;
++
++	from_name = dentry_name(from);
++	if (from_name == NULL)
++		return -ENOMEM;
++	to_name = dentry_name(to);
++	if (to_name == NULL) {
++		__putname(from_name);
++		return -ENOMEM;
++	}
++	err = -EINVAL;
++	__putname(from_name);
++	__putname(to_name);
++	return err;
++}
++
++static const struct inode_operations dafs_iops = {
++	.create		= dafs_create,
++	.link		= dafs_link,
++	.unlink		= dafs_unlink,
++	.mkdir		= dafs_mkdir,
++	.rmdir		= dafs_rmdir,
++	.rename		= dafs_rename,
++};
++
++static const struct inode_operations dafs_dir_iops = {
++	.create		= dafs_create,
++	.lookup		= dafs_lookup,
++	.link		= dafs_link,
++	.unlink		= dafs_unlink,
++	.mkdir		= dafs_mkdir,
++	.rmdir		= dafs_rmdir,
++	.rename		= dafs_rename,
++};
++
++static char *host_root_path = ".";
++
++static int dafs_fill_sb_common(struct super_block *sb, void *d, int silent)
++{
++	struct inode *root_inode;
++	int err;
++
++	sb->s_blocksize = 1024;
++	sb->s_blocksize_bits = 10;
++	sb->s_magic = DAFS_SUPER_MAGIC;
++	sb->s_op = &dafs_sbops;
++	sb->s_d_op = &dafs_dentry_ops;
++	sb->s_maxbytes = MAX_LFS_FILESIZE;
++
++	err = -ENOMEM;
++
++	root_inode = new_inode(sb);
++	if (!root_inode)
++		goto out;
++
++	err = read_name(root_inode, host_root_path);
++	if (err)
++		goto out_put;
++
++	err = -ENOMEM;
++	sb->s_fs_info = host_root_path;
++	sb->s_root = d_make_root(root_inode);
++	if (sb->s_root == NULL)
++		goto out;
++
++	return 0;
++
++out_put:
++	iput(root_inode);
++out:
++	return err;
++}
++
++static struct dentry *dafs_read_sb(struct file_system_type *type,
++				   int flags, const char *dev_name,
++				   void *data)
++{
++	if (!metag_da_enabled())
++		return ERR_PTR(-ENODEV);
++	return mount_nodev(type, flags, data, dafs_fill_sb_common);
++}
++
++static struct file_system_type dafs_type = {
++	.owner		= THIS_MODULE,
++	.name		= "dafs",
++	.mount		= dafs_read_sb,
++	.kill_sb	= kill_anon_super,
++	.fs_flags	= 0,
++};
++
++static int __init init_dafs(void)
++{
++	return register_filesystem(&dafs_type);
++}
++
++static void __exit exit_dafs(void)
++{
++	unregister_filesystem(&dafs_type);
++}
++
++module_init(init_dafs)
++module_exit(exit_dafs)
++MODULE_LICENSE("GPL");
 -- 
 1.7.7.6
