@@ -1,74 +1,56 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [RFC PATCH v1 01/40] asm-generic/io.h: remove asm/cacheflush.h include
-Date: Wed, 31 Oct 2012 16:13:42 +0000
-Message-ID: <1351700061-7203-2-git-send-email-james.hogan@imgtec.com>
+Subject: [RFC PATCH v1 06/40] of/vendor-prefixes: add Imagination Technologies
+Date: Wed, 31 Oct 2012 16:13:47 +0000
+Message-ID: <1351700061-7203-7-git-send-email-james.hogan@imgtec.com>
 References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:31270 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:49628 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S935724Ab2JaQOn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 31 Oct 2012 12:14:43 -0400
+	id S935781Ab2JaQOu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 31 Oct 2012 12:14:50 -0400
 In-Reply-To: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: James Hogan <james.hogan@imgtec.com>, Chris Zankel <chris@zankel.net>, Mike Frysinger <vapier@gentoo.org>, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>, Arnd Bergmann <arnd@arndb.de>
+Cc: James Hogan <james.hogan@imgtec.com>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Rob Landley <rob@landley.net>, devicetree-discuss@lists.ozlabs.org
 
-Including <asm/cacheflush.h> from <asm-generic/io.h> prevents
-cacheflush.h being able to use I/O functions like readl and writel due
-to circular include dependencies. It doesn't appear as if anything from
-cacheflush.h is actually used by the generic io.h, so remove the
-include.
-
-I've compile tested a defconfig compilation of blackfin, openrisc (which
-needed <asm/pgtable.h> including from it's <asm/io.h> to get the PAGE_*
-definitions), and xtensa.
-
-Other architectures which use asm-generic/io.h are score and unicore32,
-and looking at their io.h I don't see any obvious problems.
+The "powervr" prefix which is currently described as "Imagination
+Technologies" isn't really appropriate for non-PowerVR hardware, so
+change the description of "powervr" to "PowerVR (Imagination
+Technologies Ltd.)", and add a separate "img" prefix for "Imagination
+Technologies Ltd.".
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Acked-by: Jonas Bonn <jonas@southpole.se>
-Acked-by: Max Filippov <jcmvbkbc@gmail.com>
-Acked-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Cc: Chris Zankel <chris@zankel.net>
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: Chen Liqin <liqin.chen@sunplusct.com>
-Cc: Lennox Wu <lennox.wu@gmail.com>
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Cc: Grant Likely <grant.likely@secretlab.ca>
+Cc: Rob Herring <rob.herring@calxeda.com>
+Cc: Rob Landley <rob@landley.net>
+Cc: devicetree-discuss@lists.ozlabs.org
 ---
-This patch is included for completeness as it's a pre-requisite of the
-metag port using the generic io.h.
+ .../devicetree/bindings/vendor-prefixes.txt        |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
 
- arch/openrisc/include/asm/io.h |    1 +
- include/asm-generic/io.h       |    1 -
- 2 files changed, 1 insertions(+), 1 deletions(-)
-
-diff --git a/arch/openrisc/include/asm/io.h b/arch/openrisc/include/asm/io.h
-index 07f5299..7c69139 100644
---- a/arch/openrisc/include/asm/io.h
-+++ b/arch/openrisc/include/asm/io.h
-@@ -30,6 +30,7 @@
- #define PIO_MASK		0
- 
- #include <asm-generic/io.h>
-+#include <asm/pgtable.h>
- 
- extern void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
- 				pgprot_t prot);
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 448303b..616eea5 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -12,7 +12,6 @@
- #define __ASM_GENERIC_IO_H
- 
- #include <asm/page.h> /* I/O is all done through memory accesses */
--#include <asm/cacheflush.h>
- #include <linux/types.h>
- 
- #ifdef CONFIG_GENERIC_IOMAP
+diff --git a/Documentation/devicetree/bindings/vendor-prefixes.txt b/Documentation/devicetree/bindings/vendor-prefixes.txt
+index db4d3af..5a94721b 100644
+--- a/Documentation/devicetree/bindings/vendor-prefixes.txt
++++ b/Documentation/devicetree/bindings/vendor-prefixes.txt
+@@ -24,6 +24,7 @@ gef	GE Fanuc Intelligent Platforms Embedded Systems, Inc.
+ hp	Hewlett Packard
+ ibm	International Business Machines (IBM)
+ idt	Integrated Device Technologies, Inc.
++img	Imagination Technologies Ltd.
+ intercontrol	Inter Control Group
+ linux	Linux-specific binding
+ marvell	Marvell Technology Group Ltd.
+@@ -34,7 +35,7 @@ nintendo	Nintendo
+ nvidia	NVIDIA
+ nxp	NXP Semiconductors
+ picochip	Picochip Ltd
+-powervr	Imagination Technologies
++powervr	PowerVR (Imagination Technologies Ltd.)
+ qcom	Qualcomm, Inc.
+ ramtron	Ramtron International
+ realtek Realtek Semiconductor Corp.
 -- 
 1.7.7.6
