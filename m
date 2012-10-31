@@ -1,14 +1,14 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [RFC PATCH v1 29/40] metag: ftrace support
-Date: Wed, 31 Oct 2012 16:14:10 +0000
-Message-ID: <1351700061-7203-30-git-send-email-james.hogan@imgtec.com>
+Subject: [RFC PATCH v1 31/40] char: don't build rtc or genrtc on METAG
+Date: Wed, 31 Oct 2012 16:14:12 +0000
+Message-ID: <1351700061-7203-32-git-send-email-james.hogan@imgtec.com>
 References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:49706 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:49761 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1423168Ab2JaQPU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1423192Ab2JaQPU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Wed, 31 Oct 2012 12:15:20 -0400
 In-Reply-To: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
@@ -16,326 +16,37 @@ List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: James Hogan <james.hogan@imgtec.com>
 
-Add ftrace support for metag.
+The metag architecture doesn't have a PC RTC or implement the RTC
+interface that genrtc expects, so add METAG to the list of architectures
+not to build RTC or GEN_RTC on.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
 ---
- arch/metag/Kconfig              |    4 +
- arch/metag/include/asm/Kbuild   |    1 -
- arch/metag/include/asm/ftrace.h |   23 +++++++
- arch/metag/kernel/ftrace.c      |  127 +++++++++++++++++++++++++++++++++++++++
- arch/metag/kernel/ftrace_stub.S |   76 +++++++++++++++++++++++
- arch/metag/kernel/metag_ksyms.c |    1 -
- scripts/recordmcount.pl         |   12 ++++
- 7 files changed, 242 insertions(+), 2 deletions(-)
- create mode 100644 arch/metag/include/asm/ftrace.h
- create mode 100644 arch/metag/kernel/ftrace.c
- create mode 100644 arch/metag/kernel/ftrace_stub.S
+ drivers/char/Kconfig |    5 +++--
+ 1 files changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
-index c7c84d1..a0f1a46 100644
---- a/arch/metag/Kconfig
-+++ b/arch/metag/Kconfig
-@@ -8,6 +8,10 @@ config METAG
- 	select HAVE_64BIT_ALIGNED_STRUCT
- 	select HAVE_MEMBLOCK
- 	select HAVE_MEMBLOCK_NODE_MAP
-+	select HAVE_FUNCTION_TRACER
-+	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
-+	select HAVE_DYNAMIC_FTRACE
-+	select HAVE_FTRACE_MCOUNT_RECORD
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_PERF_EVENTS
- 	select HAVE_IRQ_WORK
-diff --git a/arch/metag/include/asm/Kbuild b/arch/metag/include/asm/Kbuild
-index 1678d85..5939502 100644
---- a/arch/metag/include/asm/Kbuild
-+++ b/arch/metag/include/asm/Kbuild
-@@ -16,7 +16,6 @@ generic-y += errno.h
- generic-y += exec.h
- generic-y += fb.h
- generic-y += fcntl.h
--generic-y += ftrace.h
- generic-y += futex.h
- generic-y += hardirq.h
- generic-y += hw_irq.h
-diff --git a/arch/metag/include/asm/ftrace.h b/arch/metag/include/asm/ftrace.h
-new file mode 100644
-index 0000000..2901f0f
---- /dev/null
-+++ b/arch/metag/include/asm/ftrace.h
-@@ -0,0 +1,23 @@
-+#ifndef _ASM_METAG_FTRACE
-+#define _ASM_METAG_FTRACE
-+
-+#ifdef CONFIG_FUNCTION_TRACER
-+#define MCOUNT_INSN_SIZE	8 /* sizeof mcount call */
-+
-+#ifndef __ASSEMBLY__
-+extern void mcount_wrapper(void);
-+#define MCOUNT_ADDR		((long)(mcount_wrapper))
-+
-+static inline unsigned long ftrace_call_adjust(unsigned long addr)
-+{
-+	return addr;
-+}
-+
-+struct dyn_arch_ftrace {
-+	/* No extra data needed on metag */
-+};
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* CONFIG_FUNCTION_TRACER */
-+
-+#endif /* _ASM_METAG_FTRACE */
-diff --git a/arch/metag/kernel/ftrace.c b/arch/metag/kernel/ftrace.c
-new file mode 100644
-index 0000000..8cbeb53
---- /dev/null
-+++ b/arch/metag/kernel/ftrace.c
-@@ -0,0 +1,127 @@
-+/*
-+ * Copyright (C) 2008 Imagination Technologies Ltd.
-+ * Licensed under the GPL
-+ *
-+ * Dynamic ftrace support.
-+ */
-+
-+#include <linux/ftrace.h>
-+#include <linux/io.h>
-+#include <linux/uaccess.h>
-+#include <linux/ftrace.h>
-+
-+#include <asm/cacheflush.h>
-+
-+#define D04_MOVT_TEMPLATE	0x02200005
-+#define D04_CALL_TEMPLATE	0xAC200005
-+#define D1RTP_MOVT_TEMPLATE	0x03200005
-+#define D1RTP_CALL_TEMPLATE	0xAC200006
-+
-+static const unsigned long NOP[2] = {0xa0fffffe, 0xa0fffffe};
-+static unsigned long movt_and_call_insn[2];
-+
-+static unsigned char *ftrace_nop_replace(void)
-+{
-+	return (char *)&NOP[0];
-+}
-+
-+static unsigned char *ftrace_call_replace(unsigned long pc, unsigned long addr)
-+{
-+	unsigned long hi16, low16;
-+
-+	hi16 = (addr & 0xffff0000) >> 13;
-+	low16 = (addr & 0x0000ffff) << 3;
-+
-+	/*
-+	 * The compiler makes the call to mcount_wrapper()
-+	 * (Meta's wrapper around mcount()) through the register
-+	 * D0.4. So whenever we're patching one of those compiler-generated
-+	 * calls we also need to go through D0.4. Otherwise use D1RtP.
-+	 */
-+	if (pc == (unsigned long)&ftrace_call) {
-+		writel(D1RTP_MOVT_TEMPLATE | hi16, &movt_and_call_insn[0]);
-+		writel(D1RTP_CALL_TEMPLATE | low16, &movt_and_call_insn[1]);
-+	} else {
-+		writel(D04_MOVT_TEMPLATE | hi16, &movt_and_call_insn[0]);
-+		writel(D04_CALL_TEMPLATE | low16, &movt_and_call_insn[1]);
-+	}
-+
-+	return (unsigned char *)&movt_and_call_insn[0];
-+}
-+
-+static int ftrace_modify_code(unsigned long pc, unsigned char *old_code,
-+			      unsigned char *new_code)
-+{
-+	unsigned char replaced[MCOUNT_INSN_SIZE];
-+
-+	/*
-+	 * Note: Due to modules and __init, code can
-+	 *  disappear and change, we need to protect against faulting
-+	 *  as well as code changing.
-+	 *
-+	 * No real locking needed, this code is run through
-+	 * kstop_machine.
-+	 */
-+
-+	/* read the text we want to modify */
-+	if (probe_kernel_read(replaced, (void *)pc, MCOUNT_INSN_SIZE))
-+		return -EFAULT;
-+
-+	/* Make sure it is what we expect it to be */
-+	if (memcmp(replaced, old_code, MCOUNT_INSN_SIZE) != 0)
-+		return -EINVAL;
-+
-+	/* replace the text with the new text */
-+	if (probe_kernel_write((void *)pc, new_code, MCOUNT_INSN_SIZE))
-+		return -EPERM;
-+
-+	flush_icache_range(pc, pc + MCOUNT_INSN_SIZE);
-+
-+	return 0;
-+}
-+
-+int ftrace_update_ftrace_func(ftrace_func_t func)
-+{
-+	int ret;
-+	unsigned long pc;
-+	unsigned char old[MCOUNT_INSN_SIZE], *new;
-+
-+	pc = (unsigned long)&ftrace_call;
-+	memcpy(old, &ftrace_call, MCOUNT_INSN_SIZE);
-+	new = ftrace_call_replace(pc, (unsigned long)func);
-+	ret = ftrace_modify_code(pc, old, new);
-+
-+	return ret;
-+}
-+
-+int ftrace_make_nop(struct module *mod,
-+		    struct dyn_ftrace *rec, unsigned long addr)
-+{
-+	unsigned char *new, *old;
-+	unsigned long ip = rec->ip;
-+
-+	old = ftrace_call_replace(ip, addr);
-+	new = ftrace_nop_replace();
-+
-+	return ftrace_modify_code(ip, old, new);
-+}
-+
-+int ftrace_make_call(struct dyn_ftrace *rec, unsigned long addr)
-+{
-+	unsigned char *new, *old;
-+	unsigned long ip = rec->ip;
-+
-+	old = ftrace_nop_replace();
-+	new = ftrace_call_replace(ip, addr);
-+
-+	return ftrace_modify_code(ip, old, new);
-+}
-+
-+/* run from kstop_machine */
-+int __init ftrace_dyn_arch_init(void *data)
-+{
-+	/* The return code is returned via data */
-+	writel(0, data);
-+
-+	return 0;
-+}
-diff --git a/arch/metag/kernel/ftrace_stub.S b/arch/metag/kernel/ftrace_stub.S
-new file mode 100644
-index 0000000..e70bff7
---- /dev/null
-+++ b/arch/metag/kernel/ftrace_stub.S
-@@ -0,0 +1,76 @@
-+/*
-+ * Copyright (C) 2008 Imagination Technologies Ltd.
-+ * Licensed under the GPL
-+ *
-+ */
-+
-+#include <asm/ftrace.h>
-+
-+	.text
-+#ifdef CONFIG_DYNAMIC_FTRACE
-+	.global	_mcount_wrapper
-+	.type	_mcount_wrapper,function
-+_mcount_wrapper:
-+	MOV	PC,D0.4
-+
-+	.global _ftrace_caller
-+	.type	_ftrace_caller,function
-+_ftrace_caller:
-+	MOVT    D0Re0,#HI(_function_trace_stop)
-+	ADD	D0Re0,D0Re0,#LO(_function_trace_stop)
-+	GETD	D0Re0,[D0Re0]
-+	CMP	D0Re0,#0
-+	BEQ	$Lcall_stub
-+	MOV	PC,D0.4
-+$Lcall_stub:
-+	MSETL   [A0StP], D0Ar6, D0Ar4, D0Ar2, D0.4
-+	MOV     D1Ar1, D0.4
-+	MOV     D0Ar2, D1RtP
-+	SUB	D1Ar1,D1Ar1,#MCOUNT_INSN_SIZE
-+
-+	.global _ftrace_call
-+_ftrace_call:
-+	MOVT	D1RtP,#HI(_ftrace_stub)
-+	CALL	D1RtP,#LO(_ftrace_stub)
-+	GETL    D0.4,  D1RtP, [A0StP++#(-8)]
-+	GETL    D0Ar2, D1Ar1, [A0StP++#(-8)]
-+	GETL    D0Ar4, D1Ar3, [A0StP++#(-8)]
-+	GETL    D0Ar6, D1Ar5, [A0StP++#(-8)]
-+	MOV     PC, D0.4
-+#else
-+
-+	.global	_mcount_wrapper
-+	.type	_mcount_wrapper,function
-+_mcount_wrapper:
-+	MOVT    D0Re0,#HI(_function_trace_stop)
-+	ADD	D0Re0,D0Re0,#LO(_function_trace_stop)
-+	GETD	D0Re0,[D0Re0]
-+	CMP	D0Re0,#0
-+	BEQ	$Lcall_mcount
-+	MOV	PC,D0.4
-+$Lcall_mcount:
-+	MSETL   [A0StP], D0Ar6, D0Ar4, D0Ar2, D0.4
-+	MOV     D1Ar1, D0.4
-+	MOV     D0Ar2, D1RtP
-+	MOVT    D0Re0,#HI(_ftrace_trace_function)
-+	ADD	D0Re0,D0Re0,#LO(_ftrace_trace_function)
-+	GET	D1Ar3,[D0Re0]
-+	MOVT	D1Re0,#HI(_ftrace_stub)
-+	ADD	D1Re0,D1Re0,#LO(_ftrace_stub)
-+	CMP	D1Ar3,D1Re0
-+	BEQ	$Ltrace_exit
-+	MOV	D1RtP,D1Ar3
-+	SUB	D1Ar1,D1Ar1,#MCOUNT_INSN_SIZE
-+	SWAP	PC,D1RtP
-+$Ltrace_exit:
-+	GETL    D0.4,  D1RtP, [A0StP++#(-8)]
-+	GETL    D0Ar2, D1Ar1, [A0StP++#(-8)]
-+	GETL    D0Ar4, D1Ar3, [A0StP++#(-8)]
-+	GETL    D0Ar6, D1Ar5, [A0StP++#(-8)]
-+	MOV     PC, D0.4
-+
-+#endif	/* CONFIG_DYNAMIC_FTRACE */
-+
-+	.global _ftrace_stub
-+_ftrace_stub:
-+	MOV 	PC,D1RtP
-diff --git a/arch/metag/kernel/metag_ksyms.c b/arch/metag/kernel/metag_ksyms.c
-index 7b64076..bb167cf 100644
---- a/arch/metag/kernel/metag_ksyms.c
-+++ b/arch/metag/kernel/metag_ksyms.c
-@@ -76,6 +76,5 @@ EXPORT_SYMBOL(memset);
- EXPORT_SYMBOL(memmove);
+diff --git a/drivers/char/Kconfig b/drivers/char/Kconfig
+index ea6f632..09b64a8 100644
+--- a/drivers/char/Kconfig
++++ b/drivers/char/Kconfig
+@@ -283,7 +283,8 @@ if RTC_LIB=n
+ config RTC
+ 	tristate "Enhanced Real Time Clock Support (legacy PC RTC driver)"
+ 	depends on !PPC && !PARISC && !IA64 && !M68K && !SPARC && !FRV \
+-			&& !ARM && !SUPERH && !S390 && !AVR32 && !BLACKFIN && !UML
++			&& !ARM && !SUPERH && !S390 && !AVR32 && !BLACKFIN \
++			&& !UML && !METAG
+ 	---help---
+ 	  If you say Y here and create a character special file /dev/rtc with
+ 	  major number 10 and minor number 135 using mknod ("man mknod"), you
+@@ -331,7 +332,7 @@ config JS_RTC
  
- #ifdef CONFIG_FUNCTION_TRACER
--EXPORT_SYMBOL(mcount);
- EXPORT_SYMBOL(mcount_wrapper);
- #endif
-diff --git a/scripts/recordmcount.pl b/scripts/recordmcount.pl
-index 858966a..b33446c 100755
---- a/scripts/recordmcount.pl
-+++ b/scripts/recordmcount.pl
-@@ -306,6 +306,18 @@ if ($arch eq "x86_64") {
-     $ld .= " -m elf64_sparc";
-     $cc .= " -m64";
-     $objcopy .= " -O elf64-sparc";
-+
-+} elsif ($arch eq "metag") {
-+    $function_regex = "^([0-9a-fA-F]+)\\s+<([^\$].*?)>:";
-+    $mcount_regex = "^\\s*([0-9a-fA-F]+): R_METAG_HIADDR16\\s+_mcount_wrapper";
-+    $alignment = 2;
-+
-+    # force flags for this arch
-+    $ld .= " -m elf32metag";
-+    $objdump .= " -M metag";
-+    $objcopy .= " -O elf32-metag";
-+    $cc .= " -m32";
-+
- } elsif ($arch eq "mips") {
-     # To enable module support, we need to enable the -mlong-calls option
-     # of gcc for module, after using this option, we can not get the real
+ config GEN_RTC
+ 	tristate "Generic /dev/rtc emulation"
+-	depends on RTC!=y && !IA64 && !ARM && !M32R && !MIPS && !SPARC && !FRV && !S390 && !SUPERH && !AVR32 && !BLACKFIN && !UML
++	depends on RTC!=y && !IA64 && !ARM && !M32R && !MIPS && !SPARC && !FRV && !S390 && !SUPERH && !AVR32 && !BLACKFIN && !UML && !METAG
+ 	---help---
+ 	  If you say Y here and create a character special file /dev/rtc with
+ 	  major number 10 and minor number 135 using mknod ("man mknod"), you
 -- 
 1.7.7.6
