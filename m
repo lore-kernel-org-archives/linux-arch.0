@@ -1,653 +1,386 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [RFC PATCH v1 18/40] metag: System Calls
-Date: Wed, 31 Oct 2012 16:13:59 +0000
-Message-ID: <1351700061-7203-19-git-send-email-james.hogan@imgtec.com>
+Subject: [RFC PATCH v1 15/40] metag: Time keeping
+Date: Wed, 31 Oct 2012 16:13:56 +0000
+Message-ID: <1351700061-7203-16-git-send-email-james.hogan@imgtec.com>
 References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:55144 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:49573 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1423025Ab2JaQPB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 31 Oct 2012 12:15:01 -0400
+	id S1423168Ab2JaQO4 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 31 Oct 2012 12:14:56 -0400
 In-Reply-To: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: James Hogan <james.hogan@imgtec.com>
 
-Add metag system call and gateway page interfaces. Metag uses the
-generic system call numbers from asm-generic/unistd.h, as well as a
-user gateway page mapped at 0x6ffff000 which contains fast atomic
-primitives (depending on SMP) and a fast method of accessing TLS data.
-
-System calls use the SWITCH instruction with the immediate 0x440001 to
-signal a system call.
+Add time keeping code for metag. Meta hardware threads have 2 timers.
+The background timer (TXTIMER) is used as a free-running time base, and
+the interrupt timer (TXTIMERI) is used for the timer interrupt. Both
+counters traditionally count at approximately 1MHz.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
 ---
- arch/metag/include/asm/mman.h         |   14 +++
- arch/metag/include/asm/syscall.h      |  104 ++++++++++++++++
- arch/metag/include/asm/syscalls.h     |   67 +++++++++++
- arch/metag/include/asm/unistd.h       |   28 +++++
- arch/metag/include/asm/user_gateway.h |   44 +++++++
- arch/metag/kernel/sys_metag.c         |  209 +++++++++++++++++++++++++++++++++
- arch/metag/kernel/user_gateway.S      |   99 ++++++++++++++++
- 7 files changed, 565 insertions(+), 0 deletions(-)
- create mode 100644 arch/metag/include/asm/mman.h
- create mode 100644 arch/metag/include/asm/syscall.h
- create mode 100644 arch/metag/include/asm/syscalls.h
- create mode 100644 arch/metag/include/asm/unistd.h
- create mode 100644 arch/metag/include/asm/user_gateway.h
- create mode 100644 arch/metag/kernel/sys_metag.c
- create mode 100644 arch/metag/kernel/user_gateway.S
+ arch/metag/include/asm/clock.h     |   51 +++++++++++
+ arch/metag/include/asm/delay.h     |   29 ++++++
+ arch/metag/include/asm/mach/arch.h |    4 +
+ arch/metag/kernel/clock.c          |   53 ++++++++++++
+ arch/metag/kernel/time.c           |  165 ++++++++++++++++++++++++++++++++++++
+ 5 files changed, 302 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/include/asm/clock.h
+ create mode 100644 arch/metag/include/asm/delay.h
+ create mode 100644 arch/metag/kernel/clock.c
+ create mode 100644 arch/metag/kernel/time.c
 
-diff --git a/arch/metag/include/asm/mman.h b/arch/metag/include/asm/mman.h
+diff --git a/arch/metag/include/asm/clock.h b/arch/metag/include/asm/clock.h
 new file mode 100644
-index 0000000..444a9c2
+index 0000000..3e2915a
 --- /dev/null
-+++ b/arch/metag/include/asm/mman.h
-@@ -0,0 +1,14 @@
-+#ifndef __METAG_MMAN_H__
-+#define __METAG_MMAN_H__
-+
-+#include <asm-generic/mman.h>
-+
-+#ifdef __KERNEL__
-+#ifndef __ASSEMBLY__
-+#define arch_mmap_check metag_mmap_check
-+int metag_mmap_check(unsigned long addr, unsigned long len,
-+		     unsigned long flags);
-+#endif
-+#endif
-+
-+#endif /* __METAG_MMAN_H__ */
-diff --git a/arch/metag/include/asm/syscall.h b/arch/metag/include/asm/syscall.h
-new file mode 100644
-index 0000000..24fc979
---- /dev/null
-+++ b/arch/metag/include/asm/syscall.h
-@@ -0,0 +1,104 @@
++++ b/arch/metag/include/asm/clock.h
+@@ -0,0 +1,51 @@
 +/*
-+ * Access to user system call parameters and results
++ * arch/metag/include/asm/clock.h
 + *
-+ * Copyright (C) 2008 Imagination Technologies Ltd.
-+ *
-+ * This copyrighted material is made available to anyone wishing to use,
-+ * modify, copy, or redistribute it subject to the terms and conditions
-+ * of the GNU General Public License v.2.
-+ *
-+ * See asm-generic/syscall.h for descriptions of what we must do here.
-+ */
-+
-+#ifndef _ASM_METAG_SYSCALL_H
-+#define _ASM_METAG_SYSCALL_H
-+
-+#include <linux/sched.h>
-+#include <linux/err.h>
-+#include <linux/uaccess.h>
-+
-+#include <asm/switch.h>
-+
-+static inline long syscall_get_nr(struct task_struct *task,
-+				  struct pt_regs *regs)
-+{
-+	unsigned long insn;
-+
-+	/*
-+	 * FIXME there's no way to find out how we got here other than to
-+	 * examine the memory at the PC to see if it is a syscall
-+	 * SWITCH instruction.
-+	 */
-+	if (get_user(insn, (unsigned long *)(regs->ctx.CurrPC - 4)))
-+		return -1;
-+
-+	if (insn == __METAG_SW_ENCODING(SYS))
-+		return regs->ctx.DX[0].U1;
-+	else
-+		return -1L;
-+}
-+
-+static inline void syscall_rollback(struct task_struct *task,
-+				    struct pt_regs *regs)
-+{
-+	/* do nothing */
-+}
-+
-+static inline long syscall_get_error(struct task_struct *task,
-+				     struct pt_regs *regs)
-+{
-+	unsigned long error = regs->ctx.DX[0].U0;
-+	return IS_ERR_VALUE(error) ? error : 0;
-+}
-+
-+static inline long syscall_get_return_value(struct task_struct *task,
-+					    struct pt_regs *regs)
-+{
-+	return regs->ctx.DX[0].U0;
-+}
-+
-+static inline void syscall_set_return_value(struct task_struct *task,
-+					    struct pt_regs *regs,
-+					    int error, long val)
-+{
-+	regs->ctx.DX[0].U0 = (long) error ?: val;
-+}
-+
-+static inline void syscall_get_arguments(struct task_struct *task,
-+					 struct pt_regs *regs,
-+					 unsigned int i, unsigned int n,
-+					 unsigned long *args)
-+{
-+	unsigned int reg, j;
-+	BUG_ON(i + n > 6);
-+
-+	for (j = i, reg = 6 - i; j < (i + n); j++, reg--) {
-+		if (reg % 2)
-+			args[j] = regs->ctx.DX[(reg + 1) / 2].U0;
-+		else
-+			args[j] = regs->ctx.DX[reg / 2].U1;
-+	}
-+}
-+
-+static inline void syscall_set_arguments(struct task_struct *task,
-+					 struct pt_regs *regs,
-+					 unsigned int i, unsigned int n,
-+					 const unsigned long *args)
-+{
-+	unsigned int reg;
-+	BUG_ON(i + n > 6);
-+
-+	for (reg = 6 - i; i < (i + n); i++, reg--) {
-+		if (reg % 2)
-+			regs->ctx.DX[(reg + 1) / 2].U0 = args[i];
-+		else
-+			regs->ctx.DX[reg / 2].U1 = args[i];
-+	}
-+}
-+
-+#define NR_syscalls __NR_syscalls
-+
-+/* generic syscall table */
-+extern const void *sys_call_table[];
-+
-+#endif	/* _ASM_METAG_SYSCALL_H */
-diff --git a/arch/metag/include/asm/syscalls.h b/arch/metag/include/asm/syscalls.h
-new file mode 100644
-index 0000000..95405c3
---- /dev/null
-+++ b/arch/metag/include/asm/syscalls.h
-@@ -0,0 +1,67 @@
-+#ifndef _ASM_METAG_SYSCALLS_H
-+#define _ASM_METAG_SYSCALLS_H
-+
-+#include <linux/compiler.h>
-+#include <linux/linkage.h>
-+#include <linux/types.h>
-+#include <linux/signal.h>
-+
-+/* kernel/process.c */
-+asmlinkage int sys_fork(unsigned long, unsigned long,
-+			unsigned long, unsigned long,
-+			unsigned long, unsigned long,
-+			struct pt_regs *);
-+asmlinkage int sys_execve(char __user *, char __user *__user *,
-+			  char __user *__user *, unsigned long,
-+			  unsigned long, unsigned long,
-+			  struct pt_regs *);
-+asmlinkage int sys_clone(unsigned long, unsigned long,
-+			 unsigned long, unsigned long,
-+			 unsigned long, unsigned long,
-+			 struct pt_regs *);
-+
-+/* kernel/signal.c */
-+asmlinkage int sys_sigaltstack(const stack_t __user *, stack_t __user *,
-+			       unsigned long, unsigned long,
-+			       unsigned long, unsigned long,
-+			       struct pt_regs *);
-+asmlinkage int sys_rt_sigreturn(unsigned long, unsigned long,
-+				unsigned long, unsigned long,
-+				unsigned long, unsigned long,
-+				struct pt_regs *);
-+asmlinkage long sys_rt_sigaction(int sig,
-+				 const struct sigaction __user *act,
-+				 struct sigaction __user *oact,
-+				 size_t sigsetsize);
-+asmlinkage long sys_rt_sigsuspend(sigset_t __user *unewset,
-+				  size_t sigsetsize);
-+asmlinkage long sys_rt_tgsigqueueinfo(pid_t, pid_t, int, siginfo_t __user *);
-+
-+/* kernel/sys_metag.c */
-+asmlinkage long sys_mmap2(unsigned long, unsigned long, unsigned long,
-+			  unsigned long, unsigned long, unsigned long);
-+asmlinkage int sys_metag_spinlock(int __user *);
-+asmlinkage int sys_metag_setglobalbit(char __user *, int);
-+asmlinkage void sys_metag_set_fpu_flags(unsigned int);
-+asmlinkage int sys_metag_set_tls(void __user *);
-+asmlinkage void *sys_metag_get_tls(void);
-+asmlinkage long sys32_truncate64(const char __user *, unsigned long,
-+				 unsigned long);
-+asmlinkage long sys32_ftruncate64(unsigned int, unsigned long,
-+				  unsigned long);
-+asmlinkage long sys32_fadvise64_64(int, unsigned long, unsigned long,
-+				   unsigned long, unsigned long, int);
-+asmlinkage long sys32_readahead(int, unsigned long, unsigned long, size_t);
-+asmlinkage ssize_t sys32_pread64(unsigned long, char __user *, size_t,
-+				 unsigned long, unsigned long);
-+asmlinkage ssize_t sys32_pwrite64(unsigned long, char __user *, size_t,
-+				  unsigned long, unsigned long);
-+asmlinkage long sys32_sync_file_range(int, unsigned long, unsigned long,
-+				      unsigned long, unsigned long,
-+				      unsigned int);
-+
-+extern void do_notify_resume(struct pt_regs *regs, int from_syscall,
-+			     unsigned int orig_syscall,
-+			     unsigned long thread_info_flags);
-+
-+#endif /* _ASM_METAG_SYSCALLS_H */
-diff --git a/arch/metag/include/asm/unistd.h b/arch/metag/include/asm/unistd.h
-new file mode 100644
-index 0000000..7322ba6
---- /dev/null
-+++ b/arch/metag/include/asm/unistd.h
-@@ -0,0 +1,28 @@
-+/*
 + * Copyright (C) 2012 Imagination Technologies Ltd.
 + *
 + * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
 + */
 +
-+#if !defined(_ASM_METAG_UNISTD_H) || defined(__SYSCALL)
-+#define _ASM_METAG_UNISTD_H
++#ifndef _METAG_CLOCK_H_
++#define _METAG_CLOCK_H_
 +
-+/* Use the standard ABI for syscalls. */
-+#include <asm-generic/unistd.h>
++#include <asm/mach/arch.h>
 +
-+/* metag-specific syscalls. */
-+#define __NR_metag_spinlock		(__NR_arch_specific_syscall + 0)
-+__SYSCALL(__NR_metag_spinlock, sys_metag_spinlock)
-+#define __NR_metag_setglobalbit		(__NR_arch_specific_syscall + 1)
-+__SYSCALL(__NR_metag_setglobalbit, sys_metag_setglobalbit)
-+#define __NR_metag_set_fpu_flags	(__NR_arch_specific_syscall + 2)
-+__SYSCALL(__NR_metag_set_fpu_flags, sys_metag_set_fpu_flags)
-+#define __NR_metag_set_tls		(__NR_arch_specific_syscall + 3)
-+__SYSCALL(__NR_metag_set_tls, sys_metag_set_tls)
-+#define __NR_metag_get_tls		(__NR_arch_specific_syscall + 4)
-+__SYSCALL(__NR_metag_get_tls, sys_metag_get_tls)
++/**
++ * struct meta_clock_desc - Meta Core clock callbacks.
++ * @get_core_freq:	Get the frequency of the Meta core. If this is NULL, the
++ *			core frequency will be determined like this:
++ *			Meta 1: based on loops_per_jiffy.
++ *			Meta 2: (EXPAND_TIMER_DIV + 1) MHz.
++ */
++struct meta_clock_desc {
++	unsigned long		(*get_core_freq)(void);
++};
 +
-+#endif /* _ASM_METAG_UNISTD_H */
-diff --git a/arch/metag/include/asm/user_gateway.h b/arch/metag/include/asm/user_gateway.h
-new file mode 100644
-index 0000000..aaf832b
---- /dev/null
-+++ b/arch/metag/include/asm/user_gateway.h
-@@ -0,0 +1,44 @@
++extern struct meta_clock_desc _meta_clock;
++
 +/*
-+ * Copyright (C) 2010 Imagination Technologies
++ * Set up the default clock, ensuring all callbacks are valid - only accessible
++ * during boot.
++ */
++void setup_meta_clocks(struct meta_clock_desc *desc);
++
++/**
++ * get_coreclock() - Get the frequency of the Meta core clock.
++ *
++ * Returns:	The Meta core clock frequency in Hz.
++ */
++static inline unsigned long get_coreclock(void)
++{
++	/*
++	 * Use the current clock callback. If set correctly this will provide
++	 * the most accurate frequency as it can be calculated directly from the
++	 * PLL configuration. otherwise a default callback will have been set
++	 * instead.
++	 */
++	return _meta_clock.get_core_freq();
++}
++
++#endif /* _METAG_CLOCK_H_ */
+diff --git a/arch/metag/include/asm/delay.h b/arch/metag/include/asm/delay.h
+new file mode 100644
+index 0000000..9c92f99
+--- /dev/null
++++ b/arch/metag/include/asm/delay.h
+@@ -0,0 +1,29 @@
++#ifndef _METAG_DELAY_H
++#define _METAG_DELAY_H
++
++/*
++ * Copyright (C) 1993 Linus Torvalds
++ *
++ * Delay routines calling functions in arch/metag/lib/delay.c
 + */
 +
-+#ifndef __ASM_METAG_USER_GATEWAY_H
-+#define __ASM_METAG_USER_GATEWAY_H
++/* Undefined functions to get compile-time errors */
++extern void __bad_udelay(void);
++extern void __bad_ndelay(void);
 +
-+#include <asm/page.h>
++extern void __udelay(unsigned long usecs);
++extern void __ndelay(unsigned long nsecs);
++extern void __const_udelay(unsigned long xloops);
++extern void __delay(unsigned long loops);
 +
-+/* Page of kernel code accessible to userspace. */
-+#define USER_GATEWAY_PAGE	0x6ffff000
-+/* Offset of TLS pointer array in gateway page. */
-+#define USER_GATEWAY_TLS	0x100
++/* 0x10c7 is 2**32 / 1000000 (rounded up) */
++#define udelay(n) (__builtin_constant_p(n) ? \
++	((n) > 20000 ? __bad_udelay() : __const_udelay((n) * 0x10c7ul)) : \
++	__udelay(n))
 +
-+#ifndef __ASSEMBLER__
++/* 0x5 is 2**32 / 1000000000 (rounded up) */
++#define ndelay(n) (__builtin_constant_p(n) ? \
++	((n) > 20000 ? __bad_ndelay() : __const_udelay((n) * 5ul)) : \
++	__ndelay(n))
 +
-+extern char __user_gateway_start;
-+extern char __user_gateway_end;
++#endif /* _METAG_DELAY_H */
+diff --git a/arch/metag/include/asm/mach/arch.h b/arch/metag/include/asm/mach/arch.h
+index 8429c76..230d896 100644
+--- a/arch/metag/include/asm/mach/arch.h
++++ b/arch/metag/include/asm/mach/arch.h
+@@ -16,10 +16,13 @@
+ 
+ #include <linux/stddef.h>
+ 
++#include <asm/clock.h>
 +
-+/* Kernel mapping of the gateway page. */
-+extern void *gateway_page;
+ /**
+  * struct machine_desc - Describes a board controlled by a Meta.
+  * @name:		Board/SoC name.
+  * @dt_compat:		Array of device tree 'compatible' strings.
++ * @clocks:		Clock callbacks.
+  *
+  * @init_early:		Early init callback.
+  * @init_irq:		IRQ init callback for setting up IRQ controllers.
+@@ -34,6 +37,7 @@
+ struct machine_desc {
+ 	const char		*name;
+ 	const char		**dt_compat;
++	struct meta_clock_desc	*clocks;
+ 
+ 	void			(*init_early)(void);
+ 	void			(*init_irq)(void);
+diff --git a/arch/metag/kernel/clock.c b/arch/metag/kernel/clock.c
+new file mode 100644
+index 0000000..089287e
+--- /dev/null
++++ b/arch/metag/kernel/clock.c
+@@ -0,0 +1,53 @@
++/*
++ * arch/metag/kernel/clock.c
++ *
++ * Copyright (C) 2012 Imagination Technologies Ltd.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
 +
-+static inline void set_gateway_tls(void __user *tls_ptr)
++#include <linux/delay.h>
++#include <linux/io.h>
++
++#include <asm/param.h>
++#include <asm/clock.h>
++
++struct meta_clock_desc _meta_clock;
++
++/* Default machine get_core_freq callback. */
++static unsigned long get_core_freq_default(void)
 +{
-+	void **gateway_tls = (void **)(gateway_page + USER_GATEWAY_TLS +
-+				       hard_processor_id() * 4);
-+
-+	*gateway_tls = (__force void *)tls_ptr;
-+#ifdef CONFIG_META12
-+	/* Avoid cache aliases on virtually tagged cache. */
-+	__builtin_dcache_flush((void *)USER_GATEWAY_PAGE + USER_GATEWAY_TLS +
-+				       hard_processor_id() * sizeof(void *));
++#ifdef CONFIG_META21
++	/*
++	 * Meta 2 cores divide down the core clock for the Meta timers, so we
++	 * can estimate the core clock from the divider.
++	 */
++	return (readl(EXPAND_TIMER_DIV) + 1) * 1000000;
++#else
++	/*
++	 * On Meta 1 we don't know the core clock, but assuming the Meta timer
++	 * is correct it can be estimated based on loops_per_jiffy.
++	 */
++	return (loops_per_jiffy * HZ * 5) >> 1;
 +#endif
 +}
 +
-+extern int __kuser_get_tls(void);
-+extern char *__kuser_get_tls_end[];
++/**
++ * setup_meta_clocks() - Set up the Meta clock.
++ * @desc:	Clock descriptor usually provided by machine description
++ *
++ * Ensures all callbacks are valid.
++ */
++void __init setup_meta_clocks(struct meta_clock_desc *desc)
++{
++	/* copy callbacks */
++	if (desc)
++		_meta_clock = *desc;
 +
-+extern int __kuser_cmpxchg(int, int, unsigned long *);
-+extern char *__kuser_cmpxchg_end[];
++	/* set fallback functions */
++	if (!_meta_clock.get_core_freq)
++		_meta_clock.get_core_freq = get_core_freq_default;
++}
 +
-+#endif
-+
-+#endif
-diff --git a/arch/metag/kernel/sys_metag.c b/arch/metag/kernel/sys_metag.c
+diff --git a/arch/metag/kernel/time.c b/arch/metag/kernel/time.c
 new file mode 100644
-index 0000000..d7b3cee
+index 0000000..3e20b74
 --- /dev/null
-+++ b/arch/metag/kernel/sys_metag.c
-@@ -0,0 +1,209 @@
++++ b/arch/metag/kernel/time.c
+@@ -0,0 +1,165 @@
 +/*
-+ * This file contains various random system calls that
-+ * have a non-standard calling sequence on the Linux/Meta
-+ * platform.
++ * Copyright (C) 2005,2006,2007,2008 Imagination Technologies Ltd.
++ *
++ * This file contains the Meta-specific time handling details.
++ *
 + */
 +
 +#include <linux/errno.h>
 +#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/syscalls.h>
-+#include <linux/mman.h>
-+#include <linux/file.h>
-+#include <linux/fs.h>
-+#include <linux/uaccess.h>
-+#include <linux/unistd.h>
-+#include <asm/switch.h>
-+#include <asm/syscall.h>
-+#include <asm/syscalls.h>
-+#include <asm/user_gateway.h>
++#include <linux/kernel.h>
++#include <linux/param.h>
++#include <linux/time.h>
++#include <linux/init.h>
++#include <linux/proc_fs.h>
++#include <linux/clocksource.h>
++#include <linux/clockchips.h>
++#include <linux/interrupt.h>
 +
-+#define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + \
-+			  ((lo) & 0xffffffffUL))
-+
-+int metag_mmap_check(unsigned long addr, unsigned long len,
-+		     unsigned long flags)
-+{
-+	/* We can't have people trying to write to the bottom of the
-+	 * memory map, there are mysterious unspecified things there that
-+	 * we don't want people trampling on.
-+	 */
-+	if ((flags & MAP_FIXED) && (addr < TASK_UNMAPPED_BASE))
-+		return -EINVAL;
-+
-+	return 0;
-+}
-+
-+asmlinkage long sys_mmap2(unsigned long addr, unsigned long len,
-+			  unsigned long prot, unsigned long flags,
-+			  unsigned long fd, unsigned long pgoff)
-+{
-+	/* The shift for mmap2 is constant, regardless of PAGE_SIZE setting. */
-+	if (pgoff & ((1 << (PAGE_SHIFT - 12)) - 1))
-+		return -EINVAL;
-+
-+	pgoff >>= PAGE_SHIFT - 12;
-+
-+	return sys_mmap_pgoff(addr, len, prot, flags, fd, pgoff);
-+}
-+
-+asmlinkage int sys_metag_spinlock(int __user *spinlock)
-+{
-+	int ret = 0, tmp;
-+
-+	local_irq_disable();
-+	get_user(tmp, spinlock);
-+	if (tmp)
-+		ret = 1;
-+	tmp = 1;
-+	put_user(tmp, spinlock);
-+	local_irq_enable();
-+	return ret;
-+}
-+
-+asmlinkage int sys_metag_setglobalbit(char __user *addr, int mask)
-+{
-+	char tmp;
-+	int ret = 0;
-+	unsigned int flags;
-+
-+	if (!((__force unsigned int)addr >= LINCORE_BASE))
-+		return -EFAULT;
-+
-+	TBI_LOCK(flags);
-+
-+	__TBIDataCacheFlush((__force void *)addr, sizeof(mask));
-+
-+	ret = __get_user(tmp, addr);
-+	if (ret)
-+		goto out;
-+	tmp |= mask;
-+	ret = __put_user(tmp, addr);
-+
-+	__TBIDataCacheFlush((__force void *)addr, sizeof(mask));
-+
-+out:
-+	TBI_UNLOCK(flags);
-+
-+	return ret;
-+}
-+
-+/*
-+ * Do a system call from kernel instead of calling sys_execve so we
-+ * end up with proper pt_regs.
-+ */
-+int kernel_execve(const char *filename, const char *const argv[],
-+		  const char *const envp[])
-+{
-+	register long __call __asm__("D1Re0") = __NR_execve;
-+	register long __res __asm__("D0Re0");
-+	register long __a __asm__("D1Ar1") = (long)(filename);
-+	register long __b __asm__("D0Ar2") = (long)(argv);
-+	register long __c __asm__("D1Ar3") = (long)(envp);
-+	__asm__ __volatile__("SWITCH	#%c1"
-+			     : "=d" (__res)
-+			     : "i" (__METAG_SW_SYS), "d" (__call),
-+			       "d" (__a), "d" (__b), "d" (__c)
-+			     : "memory");
-+	return __res;
-+}
-+
-+#define TXDEFR_FPU_MASK ((0x1f << 16) | 0x1f)
-+
-+asmlinkage void sys_metag_set_fpu_flags(unsigned int flags)
-+{
-+	unsigned int temp;
-+
-+	flags &= TXDEFR_FPU_MASK;
-+
-+	__asm__ __volatile__("MOV %0,TXDEFR\n" : "=r" (temp));
-+
-+	temp &= ~TXDEFR_FPU_MASK;
-+	temp |= flags;
-+
-+	__asm__ __volatile__("MOV TXDEFR,%0\n" : : "r" (temp));
-+}
-+
-+asmlinkage int sys_metag_set_tls(void __user *ptr)
-+{
-+	current->thread.tls_ptr = ptr;
-+	set_gateway_tls(ptr);
-+
-+	return 0;
-+}
-+
-+asmlinkage void *sys_metag_get_tls(void)
-+{
-+	return (__force void *)current->thread.tls_ptr;
-+}
-+
-+asmlinkage long sys32_truncate64(const char __user *path, unsigned long lo,
-+				 unsigned long hi)
-+{
-+	return sys_truncate64(path, merge_64(hi, lo));
-+}
-+
-+asmlinkage long sys32_ftruncate64(unsigned int fd, unsigned long lo,
-+				  unsigned long hi)
-+{
-+	return sys_ftruncate64(fd, merge_64(hi, lo));
-+}
-+
-+asmlinkage long sys32_fadvise64_64(int fd, unsigned long offs_lo,
-+				   unsigned long offs_hi, unsigned long len_lo,
-+				   unsigned long len_hi, int advice)
-+{
-+	return sys_fadvise64_64(fd, merge_64(offs_hi, offs_lo),
-+				merge_64(len_hi, len_lo), advice);
-+}
-+
-+asmlinkage long sys32_readahead(int fd, unsigned long lo, unsigned long hi,
-+				size_t count)
-+{
-+	return sys_readahead(fd, merge_64(hi, lo), count);
-+}
-+
-+asmlinkage ssize_t sys32_pread64(unsigned long fd, char __user *buf,
-+				 size_t count, unsigned long lo,
-+				 unsigned long hi)
-+{
-+	return sys_pread64(fd, buf, count, merge_64(hi, lo));
-+}
-+
-+asmlinkage ssize_t sys32_pwrite64(unsigned long fd, char __user *buf,
-+				  size_t count, unsigned long lo,
-+				  unsigned long hi)
-+{
-+	return sys_pwrite64(fd, buf, count, merge_64(hi, lo));
-+}
-+
-+asmlinkage long sys32_sync_file_range(int fd, unsigned long offs_lo,
-+				      unsigned long offs_hi,
-+				      unsigned long len_lo,
-+				      unsigned long len_hi,
-+				      unsigned int flags)
-+{
-+	return sys_sync_file_range(fd, merge_64(offs_hi, offs_lo),
-+				   merge_64(len_hi, len_lo), flags);
-+}
-+
-+/* Provide the actual syscall number to call mapping. */
-+#undef __SYSCALL
-+#define __SYSCALL(nr, call) [nr] = (call),
-+
-+/*
-+ * Note that we can't include <linux/unistd.h> here since the header
-+ * guard will defeat us; <asm/unistd.h> checks for __SYSCALL as well.
-+ */
-+const void *sys_call_table[__NR_syscalls] = {
-+	[0 ... __NR_syscalls-1] = sys_ni_syscall,
-+#include <asm/unistd.h>
-+	/* we need wrappers for anything with unaligned 64bit arguments */
-+	__SYSCALL(__NR_truncate64, sys32_truncate64)
-+	__SYSCALL(__NR_ftruncate64, sys32_ftruncate64)
-+	__SYSCALL(__NR_fadvise64_64, sys32_fadvise64_64)
-+	__SYSCALL(__NR_readahead, sys32_readahead)
-+	__SYSCALL(__NR_pread64, sys32_pread64)
-+	__SYSCALL(__NR_pwrite64, sys32_pwrite64)
-+	__SYSCALL(__NR_sync_file_range, sys32_sync_file_range)
-+};
-diff --git a/arch/metag/kernel/user_gateway.S b/arch/metag/kernel/user_gateway.S
-new file mode 100644
-index 0000000..c45e8b8
---- /dev/null
-+++ b/arch/metag/kernel/user_gateway.S
-@@ -0,0 +1,99 @@
-+/*
-+ * Copyright (C) 2010 Imagination Technologies Ltd.
-+ *
-+ * This file contains code that can be accessed from userspace and can
-+ * access certain kernel data structures without the overhead of a system
-+ * call.
-+ */
-+#define METAC_ALL_VALUES
++#include <asm/clock.h>
 +#define METAG_ALL_VALUES
++#define METAC_ALL_VALUES
 +#include <asm/tbx/machine.inc>
++#include <asm/tbx/metagtbx.h>
++#include <asm/hwthread.h>
++#include <asm/core_reg.h>
 +
-+#include <asm/user_gateway.h>
++#define HARDWARE_FREQ		1000000	/* 1MHz */
++#define HARDWARE_DIV		1	/* divide by 1 = 1MHz clock */
++#define HARDWARE_TO_NS_SHIFT	10	/* convert ticks to ns */
 +
-+/*
-+ * User helpers.
-+ *
-+ * These are segment of kernel provided user code reachable from user space
-+ * at a fixed address in kernel memory.  This is used to provide user space
-+ * with some operations which require kernel help because of unimplemented
-+ * native feature and/or instructions in some Meta CPUs. The idea is for
-+ * this code to be executed directly in user mode for best efficiency but
-+ * which is too intimate with the kernel counter part to be left to user
-+ * libraries.  The kernel reserves the right to change this code as needed
-+ * without warning. Only the entry points and their results are guaranteed
-+ * to be stable.
-+ *
-+ * Each segment is 64-byte aligned.  This mechanism should be used only for
-+ * for things that are really small and justified, and not be abused freely.
-+ */
-+	.text
-+	.global	___user_gateway_start
-+___user_gateway_start:
++static unsigned int hwtimer_freq = HARDWARE_FREQ;
++static DEFINE_PER_CPU(struct clock_event_device, local_clockevent);
++static DEFINE_PER_CPU(char [11], local_clockevent_name);
 +
-+	/* get_tls
-+	 * Offset:	 0
-+	 * Description:	 Get the TLS pointer for this process.
-+	 */
-+	.global	___kuser_get_tls
-+	.type	___kuser_get_tls,function
-+___kuser_get_tls:
-+	MOVT	D1Ar1,#HI(USER_GATEWAY_PAGE + USER_GATEWAY_TLS)
-+	ADD	D1Ar1,D1Ar1,#LO(USER_GATEWAY_PAGE + USER_GATEWAY_TLS)
-+	MOV	D1Ar3,TXENABLE
-+	AND	D1Ar3,D1Ar3,#(TXENABLE_THREAD_BITS)
-+	LSR	D1Ar3,D1Ar3,#(TXENABLE_THREAD_S - 2)
-+	GETD	D0Re0,[D1Ar1+D1Ar3]
-+___kuser_get_tls_end:		/* Beyond this point the read will complete */
-+	MOV	PC,D1RtP
-+	.size	___kuser_get_tls,.-___kuser_get_tls
-+	.global	___kuser_get_tls_end
++static int metag_timer_set_next_event(unsigned long delta,
++				      struct clock_event_device *dev)
++{
++	TBI_SETREG(TXTIMERI, -delta);
++	return 0;
++}
 +
-+	/* cmpxchg
-+	 * Offset:	 64
-+	 * Description:  Replace the value at 'ptr' with 'newval' if the current
-+	 *		 value is 'oldval'. Return zero if we succeeded,
-+	 *		 non-zero otherwise.
-+	 *
-+	 * Reference prototype:
-+	 *
-+	 *	int __kuser_cmpxchg(int oldval, int newval, unsigned long *ptr)
-+	 *
-+	 */
-+	.balign 64
-+	.global ___kuser_cmpxchg
-+	.type   ___kuser_cmpxchg,function
-+___kuser_cmpxchg:
-+#ifdef CONFIG_SMP
++static void metag_timer_set_mode(enum clock_event_mode mode,
++				 struct clock_event_device *evt)
++{
++	switch (mode) {
++	case CLOCK_EVT_MODE_ONESHOT:
++	case CLOCK_EVT_MODE_RESUME:
++		break;
++
++	case CLOCK_EVT_MODE_SHUTDOWN:
++		/* We should disable the IRQ here */
++		break;
++
++	case CLOCK_EVT_MODE_PERIODIC:
++	case CLOCK_EVT_MODE_UNUSED:
++		WARN_ON(1);
++		break;
++	};
++}
++
++static inline cycle_t txtimer_read(void)
++{
++	unsigned int ret;
++
++	__asm__ volatile ("MOV	%0, TXTIMER\n" : "=r" (ret));
++	return ret;
++}
++
++static cycle_t metag_clocksource_read(struct clocksource *cs)
++{
++	return txtimer_read();
++}
++
++static struct clocksource clocksource_metag = {
++	.name = "META",
++	.rating = 200,
++	.mask = CLOCKSOURCE_MASK(32),
++	.read = metag_clocksource_read,
++	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
++};
++
++static irqreturn_t metag_timer_interrupt(int irq, void *dummy)
++{
++	struct clock_event_device *evt = &__get_cpu_var(local_clockevent);
++
++	evt->event_handler(evt);
++
++	return IRQ_HANDLED;
++}
++
++static struct irqaction metag_timer_irq = {
++	.name = "META core timer",
++	.handler = metag_timer_interrupt,
++	.flags = IRQF_TIMER | IRQF_IRQPOLL | IRQF_PERCPU,
++};
++
++unsigned long long sched_clock(void)
++{
++	unsigned long long ticks = txtimer_read();
++	return ticks << HARDWARE_TO_NS_SHIFT;
++}
++
++void __cpuinit local_timer_setup(unsigned int cpu)
++{
++	unsigned int txdivtime;
++	struct clock_event_device *clk = &per_cpu(local_clockevent, cpu);
++	char *name = per_cpu(local_clockevent_name, cpu);
++
++	txdivtime = TBI_GETREG(TXDIVTIME);
++
++	txdivtime &= ~TXDIVTIME_DIV_BITS;
++	txdivtime |= (HARDWARE_DIV & TXDIVTIME_DIV_BITS);
++
++	TBI_SETREG(TXDIVTIME, txdivtime);
++
++	sprintf(name, "META %d", cpu);
++	clk->name = name;
++	clk->features = CLOCK_EVT_FEAT_ONESHOT,
++
++	clk->rating = 200,
++	clk->shift = 12,
++	clk->irq = TBID_SIGNUM_TRT,
++	clk->set_mode = metag_timer_set_mode,
++	clk->set_next_event = metag_timer_set_next_event,
++
++	clk->mult = div_sc(hwtimer_freq, NSEC_PER_SEC, clk->shift);
++	clk->max_delta_ns = clockevent_delta2ns(0x7fffffff, clk);
++	clk->min_delta_ns = clockevent_delta2ns(0xf, clk);
++	clk->cpumask = cpumask_of(cpu);
++
++	clockevents_register_device(clk);
++
 +	/*
-+	 * We must use LNKGET/LNKSET with an SMP kernel because the other method
-+	 * does not provide atomicity across multiple CPUs.
++	 * For all non-boot CPUs we need to synchronize our free
++	 * running clock (TXTIMER) with the boot CPU's clock.
++	 *
++	 * While this won't be accurate, it should be close enough.
 +	 */
-+0:	LNKGETD	D0Re0,[D1Ar3]
-+	CMP	D0Re0,D1Ar1
-+	LNKSETDZ [D1Ar3],D0Ar2
-+	BNZ	1f
-+	DEFR	D0Re0,TXSTAT
-+	ANDT	D0Re0,D0Re0,#HI(0x3f000000)
-+	CMPT	D0Re0,#HI(0x02000000)
-+	BNE	0b
-+#ifdef CONFIG_LNKGET_AROUND_CACHE
-+	DCACHE  [D1Ar3], D0Re0
-+#endif
-+1:	MOV	D0Re0,#1
-+	XORZ	D0Re0,D0Re0,D0Re0
-+	MOV	PC,D1RtP
-+#else
-+	GETD	D0Re0,[D1Ar3]
-+	CMP	D0Re0,D1Ar1
-+	SETDZ	[D1Ar3],D0Ar2
-+___kuser_cmpxchg_end:		/* Beyond this point the write will complete */
-+	MOV	D0Re0,#1
-+	XORZ	D0Re0,D0Re0,D0Re0
-+	MOV	PC,D1RtP
-+#endif /* CONFIG_SMP */
-+	.size	___kuser_cmpxchg,.-___kuser_cmpxchg
-+	.global	___kuser_cmpxchg_end
++	if (cpu) {
++		unsigned int thread0 = cpu_2_hwthread_id[0];
++		unsigned long val;
 +
-+	.global	___user_gateway_end
-+___user_gateway_end:
++		val = core_reg_read(TXUCT_ID, TXTIMER_REGNUM, thread0);
++
++		asm volatile("MOV TXTIMER, %0\n" : : "r" (val));
++	}
++}
++
++void __init time_init(void)
++{
++	/*
++	 * On Meta 2 SoCs, the actual frequency of the timer is based on the
++	 * Meta core clock speed divided by an integer, so it is only
++	 * approximately 1MHz. Calculating the real frequency here drastically
++	 * reduces clock skew on these SoCs.
++	 */
++#ifdef CONFIG_META21
++	hwtimer_freq = get_coreclock() / (readl(EXPAND_TIMER_DIV) + 1);
++#endif
++	clocksource_register_hz(&clocksource_metag, hwtimer_freq);
++
++	setup_irq(TBID_SIGNUM_TRT, &metag_timer_irq);
++
++	local_timer_setup(smp_processor_id());
++}
 -- 
 1.7.7.6
