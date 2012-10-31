@@ -1,14 +1,14 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [RFC PATCH v1 26/40] metag: Stack unwinding
-Date: Wed, 31 Oct 2012 16:14:07 +0000
-Message-ID: <1351700061-7203-27-git-send-email-james.hogan@imgtec.com>
+Subject: [RFC PATCH v1 28/40] metag: Perf
+Date: Wed, 31 Oct 2012 16:14:09 +0000
+Message-ID: <1351700061-7203-29-git-send-email-james.hogan@imgtec.com>
 References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:51779 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:55171 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1423210Ab2JaQPE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1423205Ab2JaQPE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Wed, 31 Oct 2012 12:15:04 -0400
 In-Reply-To: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
@@ -16,234 +16,140 @@ List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: James Hogan <james.hogan@imgtec.com>
 
-Add stack unwinding support for Meta.
+Add Perf support to Meta.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
 ---
- arch/metag/include/asm/stacktrace.h |   20 ++++
- arch/metag/kernel/stacktrace.c      |  187 +++++++++++++++++++++++++++++++++++
- 2 files changed, 207 insertions(+), 0 deletions(-)
- create mode 100644 arch/metag/include/asm/stacktrace.h
- create mode 100644 arch/metag/kernel/stacktrace.c
+ arch/metag/Kconfig                  |    1 +
+ arch/metag/include/asm/perf_event.h |    4 ++
+ arch/metag/kernel/perf_callchain.c  |   96 +++++++++++++++++++++++++++++++++++
+ 3 files changed, 101 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/include/asm/perf_event.h
+ create mode 100644 arch/metag/kernel/perf_callchain.c
 
-diff --git a/arch/metag/include/asm/stacktrace.h b/arch/metag/include/asm/stacktrace.h
+diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
+index 5141108..c7c84d1 100644
+--- a/arch/metag/Kconfig
++++ b/arch/metag/Kconfig
+@@ -9,6 +9,7 @@ config METAG
+ 	select HAVE_MEMBLOCK
+ 	select HAVE_MEMBLOCK_NODE_MAP
+ 	select HAVE_ARCH_TRACEHOOK
++	select HAVE_PERF_EVENTS
+ 	select HAVE_IRQ_WORK
+ 	select HAVE_KERNEL_GZIP
+ 	select HAVE_KERNEL_BZIP2
+diff --git a/arch/metag/include/asm/perf_event.h b/arch/metag/include/asm/perf_event.h
 new file mode 100644
-index 0000000..2830a0f
+index 0000000..105bbff
 --- /dev/null
-+++ b/arch/metag/include/asm/stacktrace.h
-@@ -0,0 +1,20 @@
-+#ifndef __ASM_STACKTRACE_H
-+#define __ASM_STACKTRACE_H
++++ b/arch/metag/include/asm/perf_event.h
+@@ -0,0 +1,4 @@
++#ifndef __ASM_METAG_PERF_EVENT_H
++#define __ASM_METAG_PERF_EVENT_H
 +
-+struct stackframe {
-+	unsigned long fp;
-+	unsigned long sp;
-+	unsigned long lr;
-+	unsigned long pc;
-+};
-+
-+struct metag_frame {
-+	unsigned long fp;
-+	unsigned long lr;
-+};
-+
-+extern int unwind_frame(struct stackframe *frame);
-+extern void walk_stackframe(struct stackframe *frame,
-+			    int (*fn)(struct stackframe *, void *), void *data);
-+
-+#endif	/* __ASM_STACKTRACE_H */
-diff --git a/arch/metag/kernel/stacktrace.c b/arch/metag/kernel/stacktrace.c
++#endif /* __ASM_METAG_PERF_EVENT_H */
+diff --git a/arch/metag/kernel/perf_callchain.c b/arch/metag/kernel/perf_callchain.c
 new file mode 100644
-index 0000000..5510361
+index 0000000..3156334
 --- /dev/null
-+++ b/arch/metag/kernel/stacktrace.c
-@@ -0,0 +1,187 @@
-+#include <linux/export.h>
++++ b/arch/metag/kernel/perf_callchain.c
+@@ -0,0 +1,96 @@
++/*
++ * Perf callchain handling code.
++ *
++ *   Based on the ARM perf implementation.
++ */
++
++#include <linux/kernel.h>
 +#include <linux/sched.h>
-+#include <linux/stacktrace.h>
-+
++#include <linux/perf_event.h>
++#include <linux/uaccess.h>
++#include <asm/ptrace.h>
 +#include <asm/stacktrace.h>
 +
-+#if defined(CONFIG_FRAME_POINTER)
-+
-+#ifdef CONFIG_KALLSYMS
-+#include <linux/kallsyms.h>
-+#include <linux/module.h>
-+
-+static unsigned long tbi_boing_addr;
-+static unsigned long tbi_boing_size;
-+
-+static void tbi_boing_init(void)
++static bool is_valid_call(unsigned long calladdr)
 +{
-+	/* We need to know where TBIBoingVec is and it's size */
-+	unsigned long size;
-+	unsigned long offset;
-+	char modname[MODULE_NAME_LEN];
-+	char name[KSYM_NAME_LEN];
-+	tbi_boing_addr = kallsyms_lookup_name("___TBIBoingVec");
-+	if (!tbi_boing_addr)
-+		tbi_boing_addr = 1;
-+	else if (!lookup_symbol_attrs(tbi_boing_addr, &size,
-+				      &offset, modname, name))
-+		tbi_boing_size = size;
-+}
-+#endif
++	unsigned int callinsn;
 +
-+#define ALIGN_DOWN(addr, size)  ((addr)&(~((size)-1)))
-+
-+/*
-+ * Unwind the current stack frame and store the new register values in the
-+ * structure passed as argument. Unwinding is equivalent to a function return,
-+ * hence the new PC value rather than LR should be used for backtrace.
-+ */
-+int notrace unwind_frame(struct stackframe *frame)
-+{
-+	struct metag_frame *fp = (struct metag_frame *)frame->fp;
-+	unsigned long lr;
-+	unsigned long fpnew;
-+
-+	if (frame->fp & 0x7)
-+		return -EINVAL;
-+
-+	fpnew = fp->fp;
-+	lr = fp->lr - 4;
-+
-+#ifdef CONFIG_KALLSYMS
-+	/* If we've reached TBIBoingVec then we're at an interrupt
-+	 * entry point or a syscall entry point. The frame pointer
-+	 * points to a pt_regs which can be used to continue tracing on
-+	 * the other side of the boing.
-+	 */
-+	if (!tbi_boing_addr)
-+		tbi_boing_init();
-+	if (tbi_boing_size && lr >= tbi_boing_addr &&
-+	    lr < tbi_boing_addr + tbi_boing_size) {
-+		struct pt_regs *regs = (struct pt_regs *)fpnew;
-+		if (user_mode(regs))
-+			return -EINVAL;
-+		fpnew = regs->ctx.AX[1].U0;
-+		lr = regs->ctx.DX[4].U1;
++	/* Check the possible return address is aligned. */
++	if (!(calladdr & 0x3)) {
++		if (!get_user(callinsn, (unsigned int *)calladdr)) {
++			/* Check for CALLR or SWAP PC,D1RtP. */
++			if ((callinsn & 0xff000000) == 0xab000000 ||
++			    callinsn == 0xa3200aa0)
++				return true;
++		}
 +	}
-+#endif
++	return false;
++}
 +
-+	/* stack grows up, so frame pointers must decrease */
-+	if (fpnew < (ALIGN_DOWN((unsigned long)fp, THREAD_SIZE) +
-+		     sizeof(struct thread_info)) || fpnew >= (unsigned long)fp)
-+		return -EINVAL;
++static struct metag_frame __user *
++user_backtrace(struct metag_frame __user *user_frame,
++	       struct perf_callchain_entry *entry)
++{
++	struct metag_frame frame;
++	unsigned long calladdr;
 +
-+	/* restore the registers from the stack frame */
-+	frame->fp = fpnew;
-+	frame->pc = lr;
++	/* We cannot rely on having frame pointers in user code. */
++	while (1) {
++		/* Also check accessibility of one struct frame beyond */
++		if (!access_ok(VERIFY_READ, user_frame, sizeof(frame)))
++			return 0;
++		if (__copy_from_user_inatomic(&frame, user_frame,
++					      sizeof(frame)))
++			return 0;
++
++		--user_frame;
++
++		calladdr = frame.lr - 4;
++		if (is_valid_call(calladdr)) {
++			perf_callchain_store(entry, calladdr);
++			return user_frame;
++		}
++	}
 +
 +	return 0;
 +}
-+#else
-+int notrace unwind_frame(struct stackframe *frame)
++
++void
++perf_callchain_user(struct perf_callchain_entry *entry, struct pt_regs *regs)
 +{
-+	struct metag_frame *sp = (struct metag_frame *)frame->sp;
++	unsigned long sp = regs->ctx.AX[0].U0;
++	struct metag_frame __user *frame;
 +
-+	if (frame->sp & 0x7)
-+		return -EINVAL;
++	frame = (struct metag_frame __user *)sp;
 +
-+	while (!kstack_end(sp)) {
-+		unsigned long addr = sp->lr - 4;
-+		sp--;
++	--frame;
 +
-+		if (__kernel_text_address(addr)) {
-+			frame->sp = (unsigned long)sp;
-+			frame->pc = addr;
-+			return 0;
-+		}
-+	}
-+	return -EINVAL;
-+}
-+#endif
-+
-+void notrace walk_stackframe(struct stackframe *frame,
-+		     int (*fn)(struct stackframe *, void *), void *data)
-+{
-+	while (1) {
-+		int ret;
-+
-+		if (fn(frame, data))
-+			break;
-+		ret = unwind_frame(frame);
-+		if (ret < 0)
-+			break;
-+	}
-+}
-+EXPORT_SYMBOL(walk_stackframe);
-+
-+#ifdef CONFIG_STACKTRACE
-+struct stack_trace_data {
-+	struct stack_trace *trace;
-+	unsigned int no_sched_functions;
-+	unsigned int skip;
-+};
-+
-+static int save_trace(struct stackframe *frame, void *d)
-+{
-+	struct stack_trace_data *data = d;
-+	struct stack_trace *trace = data->trace;
-+	unsigned long addr = frame->pc;
-+
-+	if (data->no_sched_functions && in_sched_functions(addr))
-+		return 0;
-+	if (data->skip) {
-+		data->skip--;
-+		return 0;
-+	}
-+
-+	trace->entries[trace->nr_entries++] = addr;
-+
-+	return trace->nr_entries >= trace->max_entries;
++	while ((entry->nr < PERF_MAX_STACK_DEPTH) && frame)
++		frame = user_backtrace(frame, entry);
 +}
 +
-+void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
++/*
++ * Gets called by walk_stackframe() for every stackframe. This will be called
++ * whist unwinding the stackframe and is like a subroutine return so we use
++ * the PC.
++ */
++static int
++callchain_trace(struct stackframe *fr,
++		void *data)
 +{
-+	struct stack_trace_data data;
-+	struct stackframe frame;
-+
-+	data.trace = trace;
-+	data.skip = trace->skip;
-+
-+	if (tsk != current) {
-+#ifdef CONFIG_SMP
-+		/*
-+		 * What guarantees do we have here that 'tsk' is not
-+		 * running on another CPU?  For now, ignore it as we
-+		 * can't guarantee we won't explode.
-+		 */
-+		if (trace->nr_entries < trace->max_entries)
-+			trace->entries[trace->nr_entries++] = ULONG_MAX;
-+		return;
-+#else
-+		data.no_sched_functions = 1;
-+		frame.fp = thread_saved_fp(tsk);
-+		frame.sp = thread_saved_sp(tsk);
-+		frame.lr = 0;		/* recovered from the stack */
-+		frame.pc = thread_saved_pc(tsk);
-+#endif
-+	} else {
-+		register unsigned long current_sp asm ("A0StP");
-+
-+		data.no_sched_functions = 0;
-+		frame.fp = (unsigned long)__builtin_frame_address(0);
-+		frame.sp = current_sp;
-+		frame.lr = (unsigned long)__builtin_return_address(0);
-+		frame.pc = (unsigned long)save_stack_trace_tsk;
-+	}
-+
-+	walk_stackframe(&frame, save_trace, &data);
-+	if (trace->nr_entries < trace->max_entries)
-+		trace->entries[trace->nr_entries++] = ULONG_MAX;
++	struct perf_callchain_entry *entry = data;
++	perf_callchain_store(entry, fr->pc);
++	return 0;
 +}
 +
-+void save_stack_trace(struct stack_trace *trace)
++void
++perf_callchain_kernel(struct perf_callchain_entry *entry, struct pt_regs *regs)
 +{
-+	save_stack_trace_tsk(current, trace);
++	struct stackframe fr;
++
++	fr.fp = regs->ctx.AX[1].U0;
++	fr.sp = regs->ctx.AX[0].U0;
++	fr.lr = regs->ctx.DX[4].U1;
++	fr.pc = regs->ctx.CurrPC;
++	walk_stackframe(&fr, callchain_trace, entry);
 +}
-+EXPORT_SYMBOL_GPL(save_stack_trace);
-+#endif
 -- 
 1.7.7.6
