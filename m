@@ -1,421 +1,1150 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [RFC PATCH v1 11/40] metag: Signal handling
-Date: Wed, 31 Oct 2012 16:13:52 +0000
-Message-ID: <1351700061-7203-12-git-send-email-james.hogan@imgtec.com>
+Subject: [RFC PATCH v1 23/40] metag: SMP support
+Date: Wed, 31 Oct 2012 16:14:04 +0000
+Message-ID: <1351700061-7203-24-git-send-email-james.hogan@imgtec.com>
 References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:31270 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:49759 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1423155Ab2JaQOz (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 31 Oct 2012 12:14:55 -0400
+	id S1423085Ab2JaQPT (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 31 Oct 2012 12:15:19 -0400
 In-Reply-To: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: James Hogan <james.hogan@imgtec.com>
 
-Add signal handling code for metag.
+Add SMP support for metag. This allows Linux to take control of multiple
+hardware threads on a single Meta core, treating them as separate Linux
+CPUs.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
 ---
- arch/metag/include/asm/sigcontext.h |   23 +++
- arch/metag/include/asm/siginfo.h    |    8 +
- arch/metag/kernel/signal.c          |  340 +++++++++++++++++++++++++++++++++++
- 3 files changed, 371 insertions(+), 0 deletions(-)
- create mode 100644 arch/metag/include/asm/sigcontext.h
- create mode 100644 arch/metag/include/asm/siginfo.h
- create mode 100644 arch/metag/kernel/signal.c
+ arch/metag/include/asm/cachepart.h |   42 +++
+ arch/metag/include/asm/core_reg.h  |    7 +
+ arch/metag/include/asm/smp.h       |   31 ++
+ arch/metag/include/asm/topology.h  |   53 ++++
+ arch/metag/kernel/cachepart.c      |  125 ++++++++
+ arch/metag/kernel/core_reg.c       |  120 ++++++++
+ arch/metag/kernel/head.S           |   12 +
+ arch/metag/kernel/smp.c            |  582 ++++++++++++++++++++++++++++++++++++
+ arch/metag/kernel/topology.c       |   77 +++++
+ 9 files changed, 1049 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/include/asm/cachepart.h
+ create mode 100644 arch/metag/include/asm/core_reg.h
+ create mode 100644 arch/metag/include/asm/smp.h
+ create mode 100644 arch/metag/include/asm/topology.h
+ create mode 100644 arch/metag/kernel/cachepart.c
+ create mode 100644 arch/metag/kernel/core_reg.c
+ create mode 100644 arch/metag/kernel/smp.c
+ create mode 100644 arch/metag/kernel/topology.c
 
-diff --git a/arch/metag/include/asm/sigcontext.h b/arch/metag/include/asm/sigcontext.h
+diff --git a/arch/metag/include/asm/cachepart.h b/arch/metag/include/asm/cachepart.h
 new file mode 100644
-index 0000000..292550b
+index 0000000..cf6b44e
 --- /dev/null
-+++ b/arch/metag/include/asm/sigcontext.h
-@@ -0,0 +1,23 @@
-+#ifndef _ASM_METAG_SIGCONTEXT_H
-+#define _ASM_METAG_SIGCONTEXT_H
++++ b/arch/metag/include/asm/cachepart.h
+@@ -0,0 +1,42 @@
++/*
++ * Meta cache partition manipulation.
++ *
++ * Copyright 2010 Imagination Technologies Ltd.
++ */
++
++#ifndef _METAG_CACHEPART_H_
++#define _METAG_CACHEPART_H_
++
++/**
++ * get_dcache_size() - Get size of data cache.
++ */
++unsigned int get_dcache_size(void);
++
++/**
++ * get_icache_size() - Get size of code cache.
++ */
++unsigned int get_icache_size(void);
++
++/**
++ * get_global_dcache_size() - Get the thread's global dcache.
++ *
++ * Returns the size of the current thread's global dcache partition.
++ */
++unsigned int get_global_dcache_size(void);
++
++/**
++ * get_global_icache_size() - Get the thread's global icache.
++ *
++ * Returns the size of the current thread's global icache partition.
++ */
++unsigned int get_global_icache_size(void);
++
++/**
++ * check_for_dache_aliasing() - Ensure that the bootloader has configured the
++ * dache and icache properly to avoid aliasing
++ * @thread_id: Hardware thread ID
++ *
++ */
++void check_for_cache_aliasing(int thread_id);
++
++#endif
+diff --git a/arch/metag/include/asm/core_reg.h b/arch/metag/include/asm/core_reg.h
+new file mode 100644
+index 0000000..62a4a3a
+--- /dev/null
++++ b/arch/metag/include/asm/core_reg.h
+@@ -0,0 +1,7 @@
++#ifndef __ASM_METAG_CORE_REG_H_
++#define __ASM_METAG_CORE_REG_H_
++
++extern void core_reg_write(int unit, int reg, int thread, unsigned int val);
++extern unsigned int core_reg_read(int unit, int reg, int thread);
++
++#endif
+diff --git a/arch/metag/include/asm/smp.h b/arch/metag/include/asm/smp.h
+new file mode 100644
+index 0000000..b35fa84
+--- /dev/null
++++ b/arch/metag/include/asm/smp.h
+@@ -0,0 +1,31 @@
++#ifndef __ASM_SMP_H
++#define __ASM_SMP_H
++
++#include <linux/cpumask.h>
++
++#define raw_smp_processor_id() (current_thread_info()->cpu)
++
++extern void local_timer_setup(unsigned int cpu);
++
++enum ipi_msg_type {
++	IPI_CALL_FUNC,
++	IPI_CALL_FUNC_SINGLE,
++	IPI_RESCHEDULE,
++};
++
++extern void arch_send_call_function_single_ipi(int cpu);
++extern void arch_send_call_function_ipi_mask(const struct cpumask *mask);
++#define arch_send_call_function_ipi_mask arch_send_call_function_ipi_mask
++
++asmlinkage void secondary_start_kernel(void);
++
++extern void secondary_startup(void);
++
++#ifdef CONFIG_HOTPLUG_CPU
++extern void __cpu_die(unsigned int cpu);
++extern int __cpu_disable(void);
++extern void cpu_die(void);
++#endif
++
++extern void smp_init_cpus(void);
++#endif /* __ASM_SMP_H */
+diff --git a/arch/metag/include/asm/topology.h b/arch/metag/include/asm/topology.h
+new file mode 100644
+index 0000000..23f5118
+--- /dev/null
++++ b/arch/metag/include/asm/topology.h
+@@ -0,0 +1,53 @@
++#ifndef _ASM_METAG_TOPOLOGY_H
++#define _ASM_METAG_TOPOLOGY_H
++
++#ifdef CONFIG_NUMA
++
++/* sched_domains SD_NODE_INIT for Meta machines */
++#define SD_NODE_INIT (struct sched_domain) {		\
++	.parent			= NULL,			\
++	.child			= NULL,			\
++	.groups			= NULL,			\
++	.min_interval		= 8,			\
++	.max_interval		= 32,			\
++	.busy_factor		= 32,			\
++	.imbalance_pct		= 125,			\
++	.cache_nice_tries	= 2,			\
++	.busy_idx		= 3,			\
++	.idle_idx		= 2,			\
++	.newidle_idx		= 0,			\
++	.wake_idx		= 0,			\
++	.forkexec_idx		= 0,			\
++	.flags			= SD_LOAD_BALANCE	\
++				| SD_BALANCE_FORK	\
++				| SD_BALANCE_EXEC	\
++				| SD_BALANCE_NEWIDLE	\
++				| SD_SERIALIZE,		\
++	.last_balance		= jiffies,		\
++	.balance_interval	= 1,			\
++	.nr_balance_failed	= 0,			\
++}
++
++#define cpu_to_node(cpu)	((void)(cpu), 0)
++#define parent_node(node)	((void)(node), 0)
++
++#define cpumask_of_node(node)	((void)node, cpu_online_mask)
++
++#define pcibus_to_node(bus)	((void)(bus), -1)
++#define cpumask_of_pcibus(bus)	(pcibus_to_node(bus) == -1 ? \
++					cpu_all_mask : \
++					cpumask_of_node(pcibus_to_node(bus)))
++
++#endif
++
++#define mc_capable()    (1)
++
++const struct cpumask *cpu_coregroup_mask(unsigned int cpu);
++
++extern cpumask_t cpu_core_map[NR_CPUS];
++
++#define topology_core_cpumask(cpu)	(&cpu_core_map[cpu])
++
++#include <asm-generic/topology.h>
++
++#endif /* _ASM_METAG_TOPOLOGY_H */
+diff --git a/arch/metag/kernel/cachepart.c b/arch/metag/kernel/cachepart.c
+new file mode 100644
+index 0000000..0694914
+--- /dev/null
++++ b/arch/metag/kernel/cachepart.c
+@@ -0,0 +1,125 @@
++/*
++ * Meta cache partition manipulation.
++ *
++ * Copyright 2010 Imagination Technologies Ltd.
++ */
++
++#define METAC_SYSC_VALUES
++
++#include <linux/kernel.h>
++#include <linux/io.h>
++#include <linux/errno.h>
++#include <asm/processor.h>
++#include <asm/tbx/machine.inc>
++#include <asm/cachepart.h>
++
++#define SYSC_DCPART(n)	(SYSC_DCPART0 + SYSC_xCPARTn_STRIDE * (n))
++#define SYSC_ICPART(n)	(SYSC_ICPART0 + SYSC_xCPARTn_STRIDE * (n))
++
++#define CACHE_ASSOCIATIVITY 4 /* 4 way set-assosiative */
++#define ICACHE 0
++#define DCACHE 1
++
++/* The CORE_CONFIG2 register is not available on Meta 1 */
++#ifdef CONFIG_META21
++unsigned int get_dcache_size(void)
++{
++	unsigned int config2 = readl(METAC_CORE_CONFIG2);
++	return 0x1000 << ((config2 & METAC_CORECFG2_DCSZ_BITS)
++				>> METAC_CORECFG2_DCSZ_S);
++}
++
++unsigned int get_icache_size(void)
++{
++	unsigned int config2 = readl(METAC_CORE_CONFIG2);
++	return 0x1000 << ((config2 & METAC_CORE_C2ICSZ_BITS)
++				>> METAC_CORE_C2ICSZ_S);
++}
++
++unsigned int get_global_dcache_size(void)
++{
++	unsigned int cpart = readl(SYSC_DCPART(hard_processor_id()));
++	unsigned int temp = cpart & SYSC_xCPARTG_AND_BITS;
++	return (get_dcache_size() * ((temp >> SYSC_xCPARTG_AND_S) + 1)) >> 4;
++}
++
++unsigned int get_global_icache_size(void)
++{
++	unsigned int cpart = readl(SYSC_ICPART(hard_processor_id()));
++	unsigned int temp = cpart & SYSC_xCPARTG_AND_BITS;
++	return (get_icache_size() * ((temp >> SYSC_xCPARTG_AND_S) + 1)) >> 4;
++}
++
++static unsigned int get_thread_cache_size(unsigned int cache, int thread_id)
++{
++	unsigned int cache_size;
++	unsigned int t_cache_part;
++	unsigned int isEnabled;
++	unsigned int offset = 0;
++	isEnabled = (cache == DCACHE ? readl(MMCU_DCACHE_CTRL_ADDR) & 0x1 :
++		readl(MMCU_ICACHE_CTRL_ADDR) & 0x1);
++	if (!isEnabled)
++		return 0;
++#if PAGE_OFFSET >= LINGLOBAL_BASE
++	/* Checking for global cache */
++	cache_size = (cache == DCACHE ? get_global_dache_size() :
++		get_global_icache_size());
++	offset = 8;
++#else
++	cache_size = (cache == DCACHE ? get_dcache_size() :
++		get_icache_size());
++#endif
++	t_cache_part = (cache == DCACHE ?
++		(readl(SYSC_DCPART(thread_id)) >> offset) & 0xF :
++		(readl(SYSC_ICPART(thread_id)) >> offset) & 0xF);
++	switch (t_cache_part) {
++	case 0xF:
++		return cache_size;
++	case 0x7:
++		return cache_size / 2;
++	case 0x3:
++		return cache_size / 4;
++	case 0x1:
++		return cache_size / 8;
++	case 0:
++		return cache_size / 16;
++	}
++	return -1;
++}
++
++void check_for_cache_aliasing(int thread_id)
++{
++	unsigned int thread_cache_size;
++	unsigned int cache_type;
++	for (cache_type = ICACHE; cache_type <= DCACHE; cache_type++) {
++		thread_cache_size =
++				get_thread_cache_size(cache_type, thread_id);
++		if (thread_cache_size < 0)
++			pr_emerg("Can't read %s cache size", \
++				 cache_type ? "DCACHE" : "ICACHE");
++		else if (thread_cache_size == 0)
++			/* Cache is off. No need to check for aliasing */
++			continue;
++		if (thread_cache_size / CACHE_ASSOCIATIVITY > PAGE_SIZE) {
++			pr_emerg("Cache aliasing detected in %s on Thread %d",
++				 cache_type ? "DCACHE" : "ICACHE", thread_id);
++			pr_warn("Total %s size: %u bytes",
++				cache_type ? "DCACHE" : "ICACHE ",
++				cache_type ? get_dcache_size()
++				: get_icache_size());
++			pr_warn("Thread %s size: %d bytes",
++				cache_type ? "CACHE" : "ICACHE",
++				thread_cache_size);
++			pr_warn("Page Size: %lu bytes", PAGE_SIZE);
++		}
++	}
++}
++
++#else
++
++void check_for_cache_aliasing(int thread_id)
++{
++	return;
++}
++
++#endif
+diff --git a/arch/metag/kernel/core_reg.c b/arch/metag/kernel/core_reg.c
+new file mode 100644
+index 0000000..7b961d2
+--- /dev/null
++++ b/arch/metag/kernel/core_reg.c
+@@ -0,0 +1,120 @@
++/*
++ *  Support for reading and writing Meta core internal registers.
++ *
++ *  Copyright (C) 2011 Imagination Technologies Ltd.
++ *
++ */
++
++#include <linux/delay.h>
++#include <linux/export.h>
++
++#include <asm/core_reg.h>
++#include <asm/io.h>
++#include <asm/hwthread.h>
 +
 +#define METAG_ALL_VALUES
 +#define METAC_ALL_VALUES
++#define METAG_TXUXXRX_VALUES
++#include <asm/tbx/machine.inc>
 +#include <asm/tbx/metagtbx.h>
-+/* In a sigcontext structure we need to store the active state of the
-+ * user process so that it does not get trashed when we call the signal
-+ * handler. That not really the same as a user context that we are
-+ * going to store on syscall etc.
-+ */
-+struct sigcontext {
-+	TBICTX ctx;
 +
-+	/* Space to save catch buffers. To tell if the catch buffers have been
-+	 * saved then check the CBF bit in the ctx flags.  See TBX headers for
-+	 * more info.
-+	 */
-+	TBICTXEXTCB0 extcb0[5];
-+	unsigned long oldmask;
-+};
++#define UNIT_BIT_MASK		TXUXXRXRQ_UXX_BITS
++#define REG_BIT_MASK		TXUXXRXRQ_RX_BITS
++#define THREAD_BIT_MASK		TXUXXRXRQ_TX_BITS
 +
-+#endif
-diff --git a/arch/metag/include/asm/siginfo.h b/arch/metag/include/asm/siginfo.h
-new file mode 100644
-index 0000000..b2e0c8b
---- /dev/null
-+++ b/arch/metag/include/asm/siginfo.h
-@@ -0,0 +1,8 @@
-+#ifndef _METAG_SIGINFO_H
-+#define _METAG_SIGINFO_H
++#define UNIT_SHIFTS		TXUXXRXRQ_UXX_S
++#define REG_SHIFTS		TXUXXRXRQ_RX_S
++#define THREAD_SHIFTS		TXUXXRXRQ_TX_S
 +
-+#define __ARCH_SI_TRAPNO
++#define UNIT_VAL(x)		(((x) << UNIT_SHIFTS) & UNIT_BIT_MASK)
++#define REG_VAL(x)		(((x) << REG_SHIFTS) & REG_BIT_MASK)
++#define THREAD_VAL(x)		(((x) << THREAD_SHIFTS) & THREAD_BIT_MASK)
 +
-+#include <asm-generic/siginfo.h>
-+
-+#endif
-diff --git a/arch/metag/kernel/signal.c b/arch/metag/kernel/signal.c
-new file mode 100644
-index 0000000..e8146f6
---- /dev/null
-+++ b/arch/metag/kernel/signal.c
-@@ -0,0 +1,340 @@
 +/*
-+ *  Copyright (C) 1991,1992  Linus Torvalds
-+ *  Copyright (C) 2005,2006,2007,2008,2009  Imagination Technologies Ltd.
++ * core_reg_write() - modify the content of a register in a core unit.
++ * @unit:	The unit to be modified.
++ * @reg:	Register number within the unit.
++ * @thread:	The thread we want to access.
++ * @val:	The new value to write.
 + *
-+ *  1997-11-28  Modified for POSIX.1b signals by Richard Henderson
-+ *
++ * Check metac_x_y.inc for a list/defines of supported units (ie: TXUPC_ID,
++ * TXUTR_ID, etc), and metag.inc for the defines of regnums within the units
++ * (ie: TXMASKI_REGNUM, TXPOLLI_REGNUM, etc).
 + */
++void core_reg_write(int unit, int reg, int thread, unsigned int val)
++{
++	unsigned long flags;
 +
++	/* TXUCT_ID has its own memory mapped registers */
++	if (unit == TXUCT_ID) {
++		void __iomem *cu_reg = __CU_addr(thread, reg);
++		writel(val, cu_reg);
++		return;
++	}
++
++	TBI_LOCK(flags);
++
++	/* wait for ready */
++	while (!(readl(TXUXXRXRQ) & TXUXXRXRQ_DREADY_BIT))
++		udelay(10);
++
++	/* set the value to write */
++	writel(val, TXUXXRXDT);
++
++	/* set the register to write */
++	val = UNIT_VAL(unit) | REG_VAL(reg) | THREAD_VAL(thread);
++	writel(val, TXUXXRXRQ);
++
++	/* wait for finish */
++	while (!(readl(TXUXXRXRQ) & TXUXXRXRQ_DREADY_BIT))
++		udelay(10);
++
++	TBI_UNLOCK(flags);
++}
++EXPORT_SYMBOL(core_reg_write);
++
++/*
++ * core_reg_read() - read the content of a register in a core unit.
++ * @unit:	The unit to be modified.
++ * @reg:	Register number within the unit.
++ * @thread:	The thread we want to access.
++ *
++ * Check metac_x_y.inc for a list/defines of supported units (ie: TXUPC_ID,
++ * TXUTR_ID, etc), and metag.inc for the defines of regnums within the units
++ * (ie: TXMASKI_REGNUM, TXPOLLI_REGNUM, etc).
++ */
++unsigned int core_reg_read(int unit, int reg, int thread)
++{
++	unsigned long flags;
++	unsigned int val;
++
++	/* TXUCT_ID has its own memory mapped registers */
++	if (unit == TXUCT_ID) {
++		void __iomem *cu_reg = __CU_addr(thread, reg);
++		val = readl(cu_reg);
++		return val;
++	}
++
++	TBI_LOCK(flags);
++
++	/* wait for ready */
++	while (!(readl(TXUXXRXRQ) & TXUXXRXRQ_DREADY_BIT))
++		udelay(10);
++
++	/* set the register to read */
++	val = (UNIT_VAL(unit) | REG_VAL(reg) | THREAD_VAL(thread) |
++							TXUXXRXRQ_RDnWR_BIT);
++	writel(val, TXUXXRXRQ);
++
++	/* wait for finish */
++	while (!(readl(TXUXXRXRQ) & TXUXXRXRQ_DREADY_BIT))
++		udelay(10);
++
++	/* read the register value */
++	val = readl(TXUXXRXDT);
++
++	TBI_UNLOCK(flags);
++
++	return val;
++}
++EXPORT_SYMBOL(core_reg_read);
+diff --git a/arch/metag/kernel/head.S b/arch/metag/kernel/head.S
+index d0d8352..eb58032 100644
+--- a/arch/metag/kernel/head.S
++++ b/arch/metag/kernel/head.S
+@@ -43,3 +43,15 @@ __start:
+ __exit:
+ 	XOR     TXENABLE,D0Re0,D0Re0
+ 	.size	__exit,.-__exit
++
++#ifdef CONFIG_SMP
++	.global _secondary_startup
++	.type _secondary_startup,function
++_secondary_startup:
++	MOVT	A0StP,#HI(_secondary_data_stack)
++	ADD	A0StP,A0StP,#LO(_secondary_data_stack)
++	GETD	A0StP,[A0StP]
++	ADD	A0StP,A0StP,#THREAD_INFO_SIZE
++	B	_secondary_start_kernel
++	.size	_secondary_startup,.-_secondary_startup
++#endif
+diff --git a/arch/metag/kernel/smp.c b/arch/metag/kernel/smp.c
+new file mode 100644
+index 0000000..10940b1
+--- /dev/null
++++ b/arch/metag/kernel/smp.c
+@@ -0,0 +1,582 @@
++/*
++ *  Copyright (C) 2009,2010,2011 Imagination Technologies Ltd.
++ *
++ *  Copyright (C) 2002 ARM Limited, All Rights Reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++#include <linux/atomic.h>
++#include <linux/delay.h>
++#include <linux/init.h>
++#include <linux/spinlock.h>
 +#include <linux/sched.h>
-+#include <linux/mm.h>
-+#include <linux/smp.h>
-+#include <linux/kernel.h>
-+#include <linux/signal.h>
++#include <linux/interrupt.h>
++#include <linux/cache.h>
++#include <linux/profile.h>
 +#include <linux/errno.h>
-+#include <linux/wait.h>
-+#include <linux/ptrace.h>
-+#include <linux/unistd.h>
-+#include <linux/stddef.h>
-+#include <linux/personality.h>
-+#include <linux/uaccess.h>
-+#include <linux/tracehook.h>
++#include <linux/mm.h>
++#include <linux/err.h>
++#include <linux/cpu.h>
++#include <linux/smp.h>
++#include <linux/seq_file.h>
++#include <linux/irq.h>
++#include <linux/bootmem.h>
 +
-+#include <asm/ucontext.h>
 +#include <asm/cacheflush.h>
-+#include <asm/switch.h>
-+#include <asm/syscall.h>
-+#include <asm/syscalls.h>
++#include <asm/cachepart.h>
++#include <asm/core_reg.h>
++#include <asm/cpu.h>
++#include <asm/mmu_context.h>
++#include <asm/pgtable.h>
++#include <asm/pgalloc.h>
++#include <asm/processor.h>
++#include <asm/setup.h>
++#include <asm/tlbflush.h>
++#include <asm/hwthread.h>
++#include <asm/traps.h>
 +
-+#define REG_FLAGS	ctx.SaveMask
-+#define REG_RETVAL	ctx.DX[0].U0
-+#define REG_SYSCALL	ctx.DX[0].U1
-+#define REG_SP		ctx.AX[0].U0
-+#define REG_ARG1	ctx.DX[3].U1
-+#define REG_ARG2	ctx.DX[3].U0
-+#define REG_ARG3	ctx.DX[2].U1
-+#define REG_PC		ctx.CurrPC
-+#define REG_RTP		ctx.DX[4].U1
++DECLARE_PER_CPU(PTBI, pTBI);
 +
-+int sys_sigaltstack(const stack_t __user *uss,
-+		    stack_t __user *uoss,
-+		    unsigned long arg3,
-+		    unsigned long arg4,
-+		    unsigned long arg5,
-+		    unsigned long arg6,
-+		    struct pt_regs *regs)
-+{
-+	return do_sigaltstack(uss, uoss, regs->REG_SP);
-+}
++void *secondary_data_stack;
 +
-+struct rt_sigframe {
-+	struct siginfo info;
-+	struct ucontext uc;
-+	unsigned long retcode[2];
++/*
++ * structures for inter-processor calls
++ * - A collection of single bit ipi messages.
++ */
++struct ipi_data {
++	spinlock_t lock;
++	unsigned long ipi_count;
++	unsigned long bits;
 +};
 +
-+static int restore_sigcontext(struct pt_regs *regs,
-+			      struct sigcontext __user *sc)
++static DEFINE_PER_CPU(struct ipi_data, ipi_data) = {
++	.lock	= __SPIN_LOCK_UNLOCKED(ipi_data.lock),
++};
++
++static DEFINE_SPINLOCK(boot_lock);
++
++/*
++ * "thread" is assumed to be a valid Meta hardware thread ID.
++ */
++int __cpuinit boot_secondary(unsigned int thread, struct task_struct *idle)
 +{
-+	int err;
++	u32 val;
 +
-+	/* Always make any pending restarted system calls return -EINTR */
-+	current_thread_info()->restart_block.fn = do_no_restart_syscall;
++	/*
++	 * set synchronisation state between this boot processor
++	 * and the secondary one
++	 */
++	spin_lock(&boot_lock);
 +
-+	err = __copy_from_user(&regs->ctx, sc, sizeof(regs->ctx));
++	core_reg_write(TXUPC_ID, 0, thread, (unsigned int)secondary_startup);
++	core_reg_write(TXUPC_ID, 1, thread, 0);
 +
-+	if (regs->REG_FLAGS & TBICTX_XCBF_BIT) {
-+		err |= __copy_from_user(regs->extcb0,
-+					(void __user *)((unsigned long)sc +
-+							sizeof(regs->ctx)),
-+					sizeof(regs->extcb0));
-+	}
++	/*
++	 * Give the thread privilege (PSTAT) and clear potentially problematic
++	 * bits in the process (namely ISTAT, CBMarker, CBMarkerI, LSM_STEP).
++	 */
++	core_reg_write(TXUCT_ID, TXSTATUS_REGNUM, thread, TXSTATUS_PSTAT_BIT);
 +
-+	/* This is a user-mode context. */
-+	regs->REG_FLAGS |= TBICTX_PRIV_BIT;
++	/* Clear the minim enable bit. */
++	val = core_reg_read(TXUCT_ID, TXPRIVEXT_REGNUM, thread);
++	core_reg_write(TXUCT_ID, TXPRIVEXT_REGNUM, thread, val & ~0x80);
 +
-+	return err;
-+}
++	/*
++	 * set the ThreadEnable bit (0x1) in the TXENABLE register
++	 * for the specified thread - off it goes!
++	 */
++	val = core_reg_read(TXUCT_ID, TXENABLE_REGNUM, thread);
++	core_reg_write(TXUCT_ID, TXENABLE_REGNUM, thread, val | 0x1);
 +
-+int sys_rt_sigreturn(unsigned long arg1,
-+		     unsigned long arg2,
-+		     unsigned long arg3,
-+		     unsigned long arg4,
-+		     unsigned long arg5,
-+		     unsigned long arg6,
-+		     struct pt_regs *regs)    /* regs always arg7 on Meta */
-+{
-+	/* NOTE - Meta stack goes UPWARDS - so we wind the stack back */
-+	struct rt_sigframe __user *frame;
-+	sigset_t set;
-+	stack_t st;
-+
-+	frame = (__force struct rt_sigframe __user *)(regs->REG_SP -
-+						      sizeof(*frame));
-+
-+	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
-+		goto badframe;
-+
-+	if (__copy_from_user(&set, &frame->uc.uc_sigmask, sizeof(set)))
-+		goto badframe;
-+
-+	set_current_blocked(&set);
-+
-+	if (restore_sigcontext(regs, &frame->uc.uc_mcontext))
-+		goto badframe;
-+
-+	if (__copy_from_user(&st, &frame->uc.uc_stack, sizeof(st)))
-+		goto badframe;
-+	/* It is more difficult to avoid calling this function than to
-+	   call it and ignore errors.  */
-+	do_sigaltstack((__force const stack_t __user *)&st, NULL, regs->REG_SP);
-+
-+	return regs->REG_RETVAL;
-+
-+badframe:
-+	force_sig(SIGSEGV, current);
++	/*
++	 * now the secondary core is starting up let it run its
++	 * calibrations, then wait for it to finish
++	 */
++	spin_unlock(&boot_lock);
 +
 +	return 0;
 +}
 +
-+static int setup_sigcontext(struct sigcontext __user *sc, struct pt_regs *regs,
-+			    unsigned long mask)
++int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *idle)
 +{
-+	int err;
++	unsigned int thread = cpu_2_hwthread_id[cpu];
++	int ret;
 +
-+	err = __copy_to_user(sc, &regs->ctx, sizeof(regs->ctx));
++	load_pgd(swapper_pg_dir, thread);
 +
-+	if (regs->REG_FLAGS & TBICTX_XCBF_BIT) {
-+		err |= __copy_to_user((void __user *)((unsigned long)sc +
-+						      sizeof(regs->ctx)),
-+				      regs->extcb0,
-+				      sizeof(regs->extcb0));
++	flush_tlb_all();
++
++	/*
++	 * Tell the secondary CPU where to find its idle threads's stack.
++	 */
++	secondary_data_stack = task_stack_page(idle);
++
++	wmb();
++
++	/*
++	 * Now bring the CPU into our world.
++	 */
++	ret = boot_secondary(thread, idle);
++	if (ret == 0) {
++		unsigned long timeout;
++
++		/*
++		 * CPU was successfully started, wait for it
++		 * to come online or time out.
++		 */
++		timeout = jiffies + HZ;
++		while (time_before(jiffies, timeout)) {
++			if (cpu_online(cpu))
++				break;
++
++			udelay(10);
++			barrier();
++		}
++
++		if (!cpu_online(cpu))
++			ret = -EIO;
 +	}
 +
-+	/* OK, clear that cbuf flag in the old context, or our stored
-+	 * catch buffer will be restored when we go to call the signal
-+	 * handler. Also clear out the CBRP RA/RD pipe bit incase
-+	 * that is pending as well!
-+	 * Note that as we have already stored this context, these
-+	 * flags will get restored on sigreturn to their original
-+	 * state.
++	secondary_data_stack = NULL;
++
++	if (ret) {
++		pr_crit("CPU%u: processor failed to boot\n", cpu);
++
++		/*
++		 * FIXME: We need to clean up the new idle thread. --rmk
++		 */
++	}
++
++	return ret;
++}
++
++#ifdef CONFIG_HOTPLUG_CPU
++static DECLARE_COMPLETION(cpu_killed);
++
++/*
++ * __cpu_disable runs on the processor to be shutdown.
++ */
++int __cpuexit __cpu_disable(void)
++{
++	unsigned int cpu = smp_processor_id();
++	struct task_struct *p;
++
++	/*
++	 * Take this CPU offline.  Once we clear this, we can't return,
++	 * and we must not schedule until we're ready to give up the cpu.
 +	 */
-+	regs->REG_FLAGS &= ~(TBICTX_XCBF_BIT | TBICTX_CBUF_BIT |
-+			     TBICTX_CBRP_BIT);
++	set_cpu_online(cpu, false);
 +
-+	/* Clear out the LSM_STEP bits in case we are in the middle of
-+	 * and MSET/MGET.
++	/*
++	 * OK - migrate IRQs away from this CPU
 +	 */
-+	regs->ctx.Flags &= ~TXSTATUS_LSM_STEP_BITS;
++	migrate_irqs();
 +
-+	err |= __put_user(mask, &sc->oldmask);
++	/*
++	 * Flush user cache and TLB mappings, and then remove this CPU
++	 * from the vm mask set of all processes.
++	 */
++	flush_cache_all();
++	local_flush_tlb_all();
 +
-+	return err;
++	read_lock(&tasklist_lock);
++	for_each_process(p) {
++		if (p->mm)
++			cpumask_clear_cpu(cpu, mm_cpumask(p->mm));
++	}
++	read_unlock(&tasklist_lock);
++
++	return 0;
 +}
 +
 +/*
-+ * Determine which stack to use..
++ * called on the thread which is asking for a CPU to be shutdown -
++ * waits until shutdown has completed, or it is timed out.
 + */
-+static void __user *get_sigframe(struct k_sigaction *ka, unsigned long sp,
-+				 size_t frame_size)
++void __cpuexit __cpu_die(unsigned int cpu)
 +{
-+	/* Meta stacks grows upwards */
-+	if ((ka->sa.sa_flags & SA_ONSTACK) && (sas_ss_flags(sp) == 0))
-+		sp = current->sas_ss_sp;
-+
-+	sp = (sp + 7) & ~7;			/* 8byte align stack */
-+
-+	return (void __user *)sp;
++	if (!wait_for_completion_timeout(&cpu_killed, msecs_to_jiffies(1)))
++		pr_err("CPU%u: unable to kill\n", cpu);
 +}
 +
-+static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
-+			  sigset_t *set, struct pt_regs *regs)
++/*
++ * Called from the idle thread for the CPU which has been shutdown.
++ *
++ * Note that we do not return from this function. If this cpu is
++ * brought online again it will need to run secondary_startup().
++ */
++void __cpuexit cpu_die(void)
 +{
-+	struct rt_sigframe __user *frame;
-+	int err = -EFAULT;
-+	unsigned long code;
++	local_irq_disable();
++	idle_task_exit();
 +
-+	frame = get_sigframe(ka, regs->REG_SP, sizeof(*frame));
-+	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
-+		goto out;
++	complete(&cpu_killed);
 +
-+	err = copy_siginfo_to_user(&frame->info, info);
++	__asm__("XOR	TXENABLE, D0Re0,D0Re0\n");
++}
++#endif /* CONFIG_HOTPLUG_CPU */
 +
-+	/* Create the ucontext.  */
-+	err |= __put_user(0, &frame->uc.uc_flags);
-+	err |= __put_user(0, (unsigned long __user *)&frame->uc.uc_link);
-+	err |= __put_user(current->sas_ss_sp,
-+			  (unsigned long __user *)&frame->uc.uc_stack.ss_sp);
-+	err |= __put_user(sas_ss_flags(regs->REG_SP),
-+			  &frame->uc.uc_stack.ss_flags);
-+	err |= __put_user(current->sas_ss_size, &frame->uc.uc_stack.ss_size);
-+	err |= setup_sigcontext(&frame->uc.uc_mcontext,
-+				regs, set->sig[0]);
-+	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
++/*
++ * Called by both boot and secondaries to move global data into
++ * per-processor storage.
++ */
++void __cpuinit smp_store_cpu_info(unsigned int cpuid)
++{
++	struct cpuinfo_metag *cpu_info = &per_cpu(cpu_data, cpuid);
 +
-+	if (err)
-+		goto out;
++	cpu_info->loops_per_jiffy = loops_per_jiffy;
++}
 +
-+	/* Set up to return from userspace.  */
++/*
++ * This is the secondary CPU boot entry.  We're using this CPUs
++ * idle thread stack and the global page tables.
++ */
++asmlinkage void secondary_start_kernel(void)
++{
++	struct mm_struct *mm = &init_mm;
++	unsigned int cpu = smp_processor_id();
 +
-+	/* MOV D1Re0 (D1.0), #__NR_rt_sigreturn */
-+	code = 0x03000004 | (__NR_rt_sigreturn << 3);
-+	err |= __put_user(code, (unsigned long __user *)(&frame->retcode[0]));
-+
-+	/* SWITCH #__METAG_SW_SYS */
-+	code = __METAG_SW_ENCODING(SYS);
-+	err |= __put_user(code, (unsigned long __user *)(&frame->retcode[1]));
-+
-+	if (err)
-+		goto out;
-+
-+	/* Set up registers for signal handler */
-+	regs->REG_RTP = (unsigned long) frame->retcode;
-+	regs->REG_SP = (unsigned long) frame + sizeof(*frame);
-+	regs->REG_ARG1 = sig;
-+	regs->REG_ARG2 = (unsigned long) &frame->info;
-+	regs->REG_ARG3 = (unsigned long) &frame->uc;
-+	regs->REG_PC = (unsigned long) ka->sa.sa_handler;
-+
-+	pr_debug("SIG deliver (%s:%d): sp=%p pc=%08x pr=%08x\n",
-+		 current->comm, current->pid, frame, regs->REG_PC,
-+		 regs->REG_RTP);
-+
-+	/* Now pass size of 'new code' into sigtramp so we can do a more
-+	 * effective cache flush - directed rather than 'full flush'.
++	/*
++	 * All kernel threads share the same mm context; grab a
++	 * reference and switch to it.
 +	 */
-+	flush_cache_sigtramp(regs->REG_RTP, sizeof(frame->retcode));
-+out:
-+	if (err) {
-+		force_sigsegv(sig, current);
-+		return -EFAULT;
++	atomic_inc(&mm->mm_users);
++	atomic_inc(&mm->mm_count);
++	current->active_mm = mm;
++	cpumask_set_cpu(cpu, mm_cpumask(mm));
++	enter_lazy_tlb(mm, current);
++	local_flush_tlb_all();
++
++	/*
++	 * TODO: Some day it might be useful for each Linux CPU to
++	 * have its own TBI structure. That would allow each Linux CPU
++	 * to run different interrupt handlers for the same IRQ
++	 * number.
++	 *
++	 * For now, simply copying the pointer to the boot CPU's TBI
++	 * structure is sufficient because we always want to run the
++	 * same interrupt handler whatever CPU takes the interrupt.
++	 */
++	per_cpu(pTBI, cpu) = __TBI(TBID_ISTAT_BIT);
++
++	if (!per_cpu(pTBI, cpu))
++		panic("No TBI found!");
++
++	per_cpu_trap_init(cpu);
++
++	preempt_disable();
++
++	setup_txprivext();
++
++	/*
++	 * Enable local interrupts.
++	 */
++	tbi_startup_interrupt(TBID_SIGNUM_TRT);
++	notify_cpu_starting(cpu);
++	local_irq_enable();
++
++	/*
++	 * Start local timers for this CPU.
++	 */
++	local_timer_setup(cpu);
++
++	pr_info("CPU%u (thread %u): Booted secondary processor\n",
++		cpu, cpu_2_hwthread_id[cpu]);
++
++	calibrate_delay();
++	smp_store_cpu_info(cpu);
++
++	/*
++	 * OK, now it's safe to let the boot CPU continue
++	 */
++	notify_cpu_starting(cpu);
++
++	set_cpu_online(cpu, true);
++
++	/*
++	 * Check for cache aliasing.
++	 * Preemption is disabled
++	 */
++	check_for_cache_aliasing(cpu);
++
++	/*
++	 * OK, it's off to the idle thread for us
++	 */
++	cpu_idle();
++}
++
++void __init smp_cpus_done(unsigned int max_cpus)
++{
++	int cpu;
++	unsigned long bogosum = 0;
++
++	for_each_online_cpu(cpu)
++		bogosum += per_cpu(cpu_data, cpu).loops_per_jiffy;
++
++	pr_info("SMP: Total of %d processors activated (%lu.%02lu BogoMIPS).\n",
++		num_online_cpus(),
++		bogosum / (500000/HZ),
++		(bogosum / (5000/HZ)) % 100);
++}
++
++void __init smp_prepare_cpus(unsigned int max_cpus)
++{
++	unsigned int cpu = smp_processor_id();
++
++	init_new_context(current, &init_mm);
++	current_thread_info()->cpu = cpu;
++
++	smp_store_cpu_info(cpu);
++	init_cpu_present(cpu_possible_mask);
++}
++
++void __init smp_prepare_boot_cpu(void)
++{
++	unsigned int cpu = smp_processor_id();
++
++	per_cpu(pTBI, cpu) = __TBI(TBID_ISTAT_BIT);
++
++	if (!per_cpu(pTBI, cpu))
++		panic("No TBI found!");
++}
++
++static void smp_cross_call(cpumask_t callmap, enum ipi_msg_type msg);
++
++static void send_ipi_message(const struct cpumask *mask, enum ipi_msg_type msg)
++{
++	unsigned long flags;
++	unsigned int cpu;
++	cpumask_t map;
++
++	cpumask_clear(&map);
++	local_irq_save(flags);
++
++	for_each_cpu(cpu, mask) {
++		struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
++
++		spin_lock(&ipi->lock);
++
++		/*
++		 * KICK interrupts are queued in hardware so we'll get
++		 * multiple interrupts if we call smp_cross_call()
++		 * multiple times for one msg. The problem is that we
++		 * only have one bit for each message - we can't queue
++		 * them in software.
++		 *
++		 * The first time through ipi_handler() we'll clear
++		 * the msg bit, having done all the work. But when we
++		 * return we'll get _another_ interrupt (and another,
++		 * and another until we've handled all the queued
++		 * KICKs). Running ipi_handler() when there's no work
++		 * to do is bad because that's how kick handler
++		 * chaining detects who the KICK was intended for.
++		 * See arch/metag/kernel/kick.c for more details.
++		 *
++		 * So only add 'cpu' to 'map' if we haven't already
++		 * queued a KICK interrupt for 'msg'.
++		 */
++		if (!(ipi->bits & (1 << msg))) {
++			ipi->bits |= 1 << msg;
++			cpumask_set_cpu(cpu, &map);
++		}
++
++		spin_unlock(&ipi->lock);
 +	}
++
++	/*
++	 * Call the platform specific cross-CPU call function.
++	 */
++	smp_cross_call(map, msg);
++
++	local_irq_restore(flags);
++}
++
++void arch_send_call_function_ipi_mask(const struct cpumask *mask)
++{
++	send_ipi_message(mask, IPI_CALL_FUNC);
++}
++
++void arch_send_call_function_single_ipi(int cpu)
++{
++	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
++}
++
++void show_ipi_list(struct seq_file *p)
++{
++	unsigned int cpu;
++
++	seq_puts(p, "IPI:");
++
++	for_each_present_cpu(cpu)
++		seq_printf(p, " %10lu", per_cpu(ipi_data, cpu).ipi_count);
++
++	seq_putc(p, '\n');
++}
++
++static DEFINE_SPINLOCK(stop_lock);
++
++/*
++ * Main handler for inter-processor interrupts
++ *
++ * For Meta, the ipimask now only identifies a single
++ * category of IPI (Bit 1 IPIs have been replaced by a
++ * different mechanism):
++ *
++ *  Bit 0 - Inter-processor function call
++ */
++static int do_IPI(struct pt_regs *regs)
++{
++	unsigned int cpu = smp_processor_id();
++	struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
++	struct pt_regs *old_regs = set_irq_regs(regs);
++	unsigned long msgs, nextmsg;
++	int handled = 0;
++
++	ipi->ipi_count++;
++
++	spin_lock(&ipi->lock);
++	msgs = ipi->bits;
++	nextmsg = msgs & -msgs;
++	ipi->bits &= ~nextmsg;
++	spin_unlock(&ipi->lock);
++
++	if (nextmsg) {
++		handled = 1;
++
++		nextmsg = ffz(~nextmsg);
++		switch (nextmsg) {
++		case IPI_RESCHEDULE:
++			scheduler_ipi();
++			break;
++
++		case IPI_CALL_FUNC:
++			generic_smp_call_function_interrupt();
++			break;
++
++		case IPI_CALL_FUNC_SINGLE:
++			generic_smp_call_function_single_interrupt();
++			break;
++
++		default:
++			pr_crit("CPU%u: Unknown IPI message 0x%lx\n",
++				cpu, nextmsg);
++			break;
++		}
++	}
++
++	set_irq_regs(old_regs);
++
++	return handled;
++}
++
++void smp_send_reschedule(int cpu)
++{
++	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
++}
++
++static void stop_this_cpu(void *data)
++{
++	unsigned int cpu = smp_processor_id();
++
++	if (system_state == SYSTEM_BOOTING ||
++	    system_state == SYSTEM_RUNNING) {
++		spin_lock(&stop_lock);
++		pr_crit("CPU%u: stopping\n", cpu);
++		dump_stack();
++		spin_unlock(&stop_lock);
++	}
++
++	set_cpu_online(cpu, false);
++
++	local_irq_disable();
++
++	hard_processor_halt(HALT_OK);
++}
++
++void smp_send_stop(void)
++{
++	smp_call_function(stop_this_cpu, NULL, 0);
++}
++
++/*
++ * not supported here
++ */
++int setup_profiling_timer(unsigned int multiplier)
++{
++	return -EINVAL;
++}
++
++/*
++ * We use KICKs for inter-processor interrupts.
++ *
++ * For every CPU in "callmap" the IPI data must already have been
++ * stored in that CPU's "ipi_data" member prior to calling this
++ * function.
++ */
++static void kick_raise_softirq(cpumask_t callmap, unsigned int irq)
++{
++	int cpu;
++
++	for_each_cpu(cpu, &callmap) {
++		unsigned int thread;
++
++		thread = cpu_2_hwthread_id[cpu];
++
++		BUG_ON(thread == BAD_HWTHREAD_ID);
++
++		writel(1, T0KICKI + (thread * TnXKICK_STRIDE));
++	}
++}
++
++static TBIRES ipi_handler(TBIRES State, int SigNum, int Triggers,
++		   int Inst, PTBI pTBI, int *handled)
++{
++	*handled = do_IPI((struct pt_regs *)State.Sig.pCtx);
++
++	return State;
++}
++
++static struct kick_irq_handler ipi_irq = {
++	.func = ipi_handler,
++};
++
++static void smp_cross_call(cpumask_t callmap, enum ipi_msg_type msg)
++{
++	kick_raise_softirq(callmap, 1);
++}
++
++static inline unsigned int get_core_count(void)
++{
++	int i;
++	unsigned int ret = 0;
++
++	for (i = 0; i < CONFIG_NR_CPUS; i++) {
++		if (core_reg_read(TXUCT_ID, TXENABLE_REGNUM, i))
++			ret++;
++	}
++
++	return ret;
++}
++
++/*
++ * Initialise the CPU possible map early - this describes the CPUs
++ * which may be present or become present in the system.
++ */
++void __init smp_init_cpus(void)
++{
++	unsigned int i, ncores = get_core_count();
++
++	/* If no hwthread_map early param was set use default mapping */
++	for (i = 0; i < NR_CPUS; i++)
++		if (cpu_2_hwthread_id[i] == BAD_HWTHREAD_ID) {
++			cpu_2_hwthread_id[i] = i;
++			hwthread_id_2_cpu[i] = i;
++		}
++
++	for (i = 0; i < ncores; i++)
++		set_cpu_possible(i, true);
++
++	kick_register_func(&ipi_irq);
++}
+diff --git a/arch/metag/kernel/topology.c b/arch/metag/kernel/topology.c
+new file mode 100644
+index 0000000..bec3dec
+--- /dev/null
++++ b/arch/metag/kernel/topology.c
+@@ -0,0 +1,77 @@
++/*
++ *  Copyright (C) 2007  Paul Mundt
++ *  Copyright (C) 2010  Imagination Technolohies Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++#include <linux/cpu.h>
++#include <linux/cpumask.h>
++#include <linux/init.h>
++#include <linux/percpu.h>
++#include <linux/node.h>
++#include <linux/nodemask.h>
++#include <linux/topology.h>
++
++#include <asm/cpu.h>
++
++DEFINE_PER_CPU(struct cpuinfo_metag, cpu_data);
++
++cpumask_t cpu_core_map[NR_CPUS];
++
++static cpumask_t cpu_coregroup_map(unsigned int cpu)
++{
++	return *cpu_possible_mask;
++}
++
++const struct cpumask *cpu_coregroup_mask(unsigned int cpu)
++{
++	return &cpu_core_map[cpu];
++}
++
++int arch_update_cpu_topology(void)
++{
++	unsigned int cpu;
++
++	for_each_possible_cpu(cpu)
++		cpu_core_map[cpu] = cpu_coregroup_map(cpu);
++
 +	return 0;
 +}
 +
-+static void handle_signal(unsigned long sig, siginfo_t *info,
-+			  struct k_sigaction *ka, struct pt_regs *regs,
-+			  int from_syscall, unsigned int orig_syscall)
++static int __init topology_init(void)
 +{
-+	sigset_t *oldset = sigmask_to_save();
++	int i, ret;
 +
-+	/* Are we from a system call? */
-+	if (from_syscall) {
-+		/* If so, check system call restarting.. */
-+		switch (syscall_get_error(current, regs)) {
-+		case -ERESTART_RESTARTBLOCK:
-+		case -ERESTARTNOHAND:
-+			regs->REG_RETVAL = -EINTR;
-+			break;
++#ifdef CONFIG_NEED_MULTIPLE_NODES
++	for_each_online_node(i)
++		register_one_node(i);
++#endif
 +
-+		case -ERESTARTSYS:
-+			if (!(ka->sa.sa_flags & SA_RESTART)) {
-+				regs->REG_RETVAL = -EINTR;
-+				break;
-+			}
-+		/* fallthrough */
-+		case -ERESTARTNOINTR:
-+			regs->REG_SYSCALL = orig_syscall;
-+			regs->REG_PC -= 4;
-+			break;
-+		}
++	for_each_present_cpu(i) {
++		struct cpuinfo_metag *cpuinfo = &per_cpu(cpu_data, i);
++#ifdef CONFIG_HOTPLUG_CPU
++		cpuinfo->cpu.hotpluggable = 1;
++#endif
++		ret = register_cpu(&cpuinfo->cpu, i);
++		if (unlikely(ret))
++			pr_warn("%s: register_cpu %d failed (%d)\n",
++				__func__, i, ret);
 +	}
 +
-+	/* Set up the stack frame */
-+	if (setup_rt_frame(sig, ka, info, oldset, regs))
-+		return;
-+
-+	signal_delivered(sig, info, ka, regs, test_thread_flag(TIF_SINGLESTEP));
-+}
-+
-+ /* Notes for Meta.
-+  * We have moved from the old 2.4.9 SH way of using syscall_nr (in the stored
-+  * context) to passing in the syscall flag and orig_syscall on the stack.
-+  * This is for two reasons:
-+  * 1) having syscall_nr in our context does not fit with TBI, and corrupted
-+  *    the stack.
-+  * 2) We need to have orig_syscall and from_syscall to implement syscall
-+  *    restarting.
-+  */
-+static void do_signal(struct pt_regs *regs, int from_syscall,
-+		      unsigned int orig_syscall)
-+{
-+	struct k_sigaction ka;
-+	siginfo_t info;
-+	int signr;
-+
++#if defined(CONFIG_NUMA) && !defined(CONFIG_SMP)
 +	/*
-+	 * We want the common case to go fast, which
-+	 * is why we may in certain cases get here from
-+	 * kernel mode. Just return without doing anything
-+	 * if so.
++	 * In the UP case, make sure the CPU association is still
++	 * registered under each node. Without this, sysfs fails
++	 * to make the connection between nodes other than node0
++	 * and cpu0.
 +	 */
-+	if (!user_mode(regs))
-+		return;
++	for_each_online_node(i)
++		if (i != numa_node_id())
++			register_cpu_under_node(raw_smp_processor_id(), i);
++#endif
 +
-+	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
-+	if (signr > 0) {
-+		/* Whee! Actually deliver the signal.  */
-+		handle_signal(signr, &info, &ka, regs, from_syscall,
-+			      orig_syscall);
-+		return;
-+	}
-+
-+	/* Did we come from a system call? */
-+	if (from_syscall) {
-+		/* Restart the system call - no handlers present */
-+		switch (syscall_get_error(current, regs)) {
-+		case -ERESTARTNOHAND:
-+		case -ERESTARTSYS:
-+		case -ERESTARTNOINTR:
-+			regs->REG_SYSCALL = orig_syscall;
-+			regs->REG_PC -= 4;
-+			break;
-+
-+		case -ERESTART_RESTARTBLOCK:
-+			regs->REG_SYSCALL = __NR_restart_syscall;
-+			regs->REG_PC -= 4;
-+			break;
-+		}
-+	}
-+
-+	/*
-+	 * If there's no signal to deliver, we just put the saved sigmask
-+	 * back.
-+	 */
-+	restore_saved_sigmask();
++	return 0;
 +}
-+
-+void do_notify_resume(struct pt_regs *regs, int from_syscall,
-+		      unsigned int orig_syscall,
-+		      unsigned long thread_info_flags)
-+{
-+	/* deal with pending signal delivery */
-+	if (thread_info_flags & _TIF_SIGPENDING)
-+		do_signal(regs, from_syscall, orig_syscall);
-+
-+	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
-+		clear_thread_flag(TIF_NOTIFY_RESUME);
-+		tracehook_notify_resume(regs);
-+	}
-+}
++subsys_initcall(topology_init);
 -- 
 1.7.7.6
