@@ -1,1484 +1,746 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [RFC PATCH v1 21/40] metag: Atomics, locks and bitops
-Date: Wed, 31 Oct 2012 16:14:02 +0000
-Message-ID: <1351700061-7203-22-git-send-email-james.hogan@imgtec.com>
+Subject: [RFC PATCH v1 24/40] metag: DMA
+Date: Wed, 31 Oct 2012 16:14:05 +0000
+Message-ID: <1351700061-7203-25-git-send-email-james.hogan@imgtec.com>
 References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:55171 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:55144 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S935765Ab2JaQPS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 31 Oct 2012 12:15:18 -0400
+	id S935768Ab2JaQPQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 31 Oct 2012 12:15:16 -0400
 In-Reply-To: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: James Hogan <james.hogan@imgtec.com>
 
-Add header files to implement Meta hardware thread locks (used by some
-other atomic operations), atomics, spinlocks, and bitops.
-
-There are 2 main types of atomic primitives on Meta (in addition to IRQs
-off on UP):
- - LOCK instructions provide locking between hardware threads.
- - LNKGET/LNKSET instructions provide load-linked/store-conditional
-   operations allowing for lighter weight atomics on Meta2)
-
-LOCK instructions allow for hardware threads to acquire voluntary or
-exclusive hardware thread locks:
- - LOCK0 releases exclusive and voluntary lock from the running hardware
-   thread.
- - LOCK1 acquires the voluntary hardware lock, blocking until it becomes
-   available.
- - LOCK2 implies LOCK1, and additionally acquires the exclusive hardware
-   lock, blocking all other hardware threads from executing.
+Add DMA mapping code.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
 ---
- arch/metag/include/asm/atomic.h          |   53 ++++++
- arch/metag/include/asm/atomic_lnkget.h   |  245 ++++++++++++++++++++++++++++
- arch/metag/include/asm/atomic_lock1.h    |  160 ++++++++++++++++++
- arch/metag/include/asm/bitops.h          |  135 +++++++++++++++
- arch/metag/include/asm/cmpxchg.h         |   65 ++++++++
- arch/metag/include/asm/cmpxchg_irq.h     |   42 +++++
- arch/metag/include/asm/cmpxchg_lnkget.h  |   86 ++++++++++
- arch/metag/include/asm/cmpxchg_lock1.h   |   48 ++++++
- arch/metag/include/asm/lock.h            |   17 ++
- arch/metag/include/asm/spinlock.h        |   22 +++
- arch/metag/include/asm/spinlock_lnkget.h |  261 ++++++++++++++++++++++++++++++
- arch/metag/include/asm/spinlock_lock1.h  |  184 +++++++++++++++++++++
- arch/metag/include/asm/spinlock_types.h  |   20 +++
- 13 files changed, 1338 insertions(+), 0 deletions(-)
- create mode 100644 arch/metag/include/asm/atomic.h
- create mode 100644 arch/metag/include/asm/atomic_lnkget.h
- create mode 100644 arch/metag/include/asm/atomic_lock1.h
- create mode 100644 arch/metag/include/asm/bitops.h
- create mode 100644 arch/metag/include/asm/cmpxchg.h
- create mode 100644 arch/metag/include/asm/cmpxchg_irq.h
- create mode 100644 arch/metag/include/asm/cmpxchg_lnkget.h
- create mode 100644 arch/metag/include/asm/cmpxchg_lock1.h
- create mode 100644 arch/metag/include/asm/lock.h
- create mode 100644 arch/metag/include/asm/spinlock.h
- create mode 100644 arch/metag/include/asm/spinlock_lnkget.h
- create mode 100644 arch/metag/include/asm/spinlock_lock1.h
- create mode 100644 arch/metag/include/asm/spinlock_types.h
+ arch/metag/include/asm/dma-mapping.h |  183 ++++++++++++
+ arch/metag/kernel/dma.c              |  521 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 704 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/include/asm/dma-mapping.h
+ create mode 100644 arch/metag/kernel/dma.c
 
-diff --git a/arch/metag/include/asm/atomic.h b/arch/metag/include/asm/atomic.h
+diff --git a/arch/metag/include/asm/dma-mapping.h b/arch/metag/include/asm/dma-mapping.h
 new file mode 100644
-index 0000000..f198759
+index 0000000..9a1b3ac
 --- /dev/null
-+++ b/arch/metag/include/asm/atomic.h
-@@ -0,0 +1,53 @@
-+#ifndef __ASM_METAG_ATOMIC_H
-+#define __ASM_METAG_ATOMIC_H
-+
-+#include <linux/compiler.h>
-+#include <linux/types.h>
-+#include <asm/cmpxchg.h>
-+
-+#if defined(CONFIG_ATOMICITY_IRQSOFF)
-+/* The simple UP case. */
-+#include <asm-generic/atomic.h>
-+#else
-+
-+#if defined(CONFIG_ATOMICITY_LOCK1)
-+#include <asm/atomic_lock1.h>
-+#else
-+#include <asm/atomic_lnkget.h>
-+#endif
-+
-+#define atomic_add_negative(a, v)       (atomic_add_return((a), (v)) < 0)
-+
-+#define atomic_dec_return(v) atomic_sub_return(1, (v))
-+#define atomic_inc_return(v) atomic_add_return(1, (v))
-+
-+/*
-+ * atomic_inc_and_test - increment and test
-+ * @v: pointer of type atomic_t
-+ *
-+ * Atomically increments @v by 1
-+ * and returns true if the result is zero, or false for all
-+ * other cases.
-+ */
-+#define atomic_inc_and_test(v) (atomic_inc_return(v) == 0)
-+
-+#define atomic_sub_and_test(i, v) (atomic_sub_return((i), (v)) == 0)
-+#define atomic_dec_and_test(v) (atomic_sub_return(1, (v)) == 0)
-+
-+#define atomic_inc(v) atomic_add(1, (v))
-+#define atomic_dec(v) atomic_sub(1, (v))
-+
-+#define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
-+
-+#define smp_mb__before_atomic_dec()	barrier()
-+#define smp_mb__after_atomic_dec()	barrier()
-+#define smp_mb__before_atomic_inc()	barrier()
-+#define smp_mb__after_atomic_inc()	barrier()
-+
-+#endif
-+
-+#define atomic_dec_if_positive(v)       atomic_sub_if_positive(1, v)
-+
-+#include <asm-generic/atomic64.h>
-+
-+#endif /* __ASM_METAG_ATOMIC_H */
-diff --git a/arch/metag/include/asm/atomic_lnkget.h b/arch/metag/include/asm/atomic_lnkget.h
-new file mode 100644
-index 0000000..b05be05
---- /dev/null
-+++ b/arch/metag/include/asm/atomic_lnkget.h
-@@ -0,0 +1,245 @@
-+#ifndef __ASM_METAG_ATOMIC_LNKGET_H
-+#define __ASM_METAG_ATOMIC_LNKGET_H
-+
-+#define ATOMIC_INIT(i)	{ (i) }
-+
-+#define atomic_set(v, i)		((v)->counter = (i))
-+
-+#include <linux/compiler.h>
-+
-+#include <asm/barrier.h>
-+
-+/*
-+ * None of these asm statements clobber memory as LNKSET writes around
-+ * the cache so the memory it modifies cannot safely be read by any means
-+ * other than these accessors.
-+ */
-+
-+static inline int atomic_read(const atomic_t *v)
-+{
-+	int temp;
-+
-+	__asm__ __volatile__(
-+		"LNKGETD %0, [%1]\n"
-+		: "=da" (temp)
-+		: "da" (&v->counter)
-+	);
-+
-+	return temp;
-+}
-+
-+static inline void atomic_add(int i, atomic_t *v)
-+{
-+	int temp;
-+
-+	__asm__ __volatile__(
-+		"1:	LNKGETD %0, [%1]\n"
-+		"	ADD	%0, %0, %2\n"
-+		"	LNKSETD [%1], %0\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ	1b\n"
-+		: "=&d" (temp)
-+		: "da" (&v->counter), "bd" (i)
-+		: "cc"
-+	);
-+}
-+
-+static inline void atomic_sub(int i, atomic_t *v)
-+{
-+	int temp;
-+
-+	__asm__ __volatile__(
-+		"1:	LNKGETD %0, [%1]\n"
-+		"	SUB	%0, %0, %2\n"
-+		"	LNKSETD [%1], %0\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ 1b\n"
-+		: "=&d" (temp)
-+		: "da" (&v->counter), "bd" (i)
-+		: "cc"
-+	);
-+}
-+
-+static inline int atomic_add_return(int i, atomic_t *v)
-+{
-+	int result, temp;
-+
-+	smp_mb();
-+
-+	__asm__ __volatile__(
-+		"1:	LNKGETD %1, [%2]\n"
-+		"	ADD	%1, %1, %3\n"
-+		"	LNKSETD [%2], %1\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ 1b\n"
-+		: "=&d" (temp), "=&da" (result)
-+		: "da" (&v->counter), "bd" (i)
-+		: "cc"
-+	);
-+
-+	smp_mb();
-+
-+	return result;
-+}
-+
-+static inline int atomic_sub_return(int i, atomic_t *v)
-+{
-+	int result, temp;
-+
-+	smp_mb();
-+
-+	__asm__ __volatile__(
-+		"1:	LNKGETD %1, [%2]\n"
-+		"	SUB	%1, %1, %3\n"
-+		"	LNKSETD [%2], %1\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ	1b\n"
-+		: "=&d" (temp), "=&da" (result)
-+		: "da" (&v->counter), "bd" (i)
-+		: "cc"
-+	);
-+
-+	smp_mb();
-+
-+	return result;
-+}
-+
-+static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
-+{
-+	int temp;
-+
-+	__asm__ __volatile__(
-+		"1:	LNKGETD %0, [%1]\n"
-+		"	AND	%0, %0, %2\n"
-+		"	LNKSETD	[%1] %0\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ	1b\n"
-+		: "=&d" (temp)
-+		: "da" (&v->counter), "bd" (~mask)
-+		: "cc"
-+	);
-+}
-+
-+static inline void atomic_set_mask(unsigned int mask, atomic_t *v)
-+{
-+	int temp;
-+
-+	__asm__ __volatile__(
-+		"1:	LNKGETD %0, [%1]\n"
-+		"	OR	%0, %0, %2\n"
-+		"	LNKSETD	[%1], %0\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ	1b\n"
-+		: "=&d" (temp)
-+		: "da" (&v->counter), "bd" (mask)
-+		: "cc"
-+	);
-+}
-+
-+static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
-+{
-+	int result, temp;
-+
-+	smp_mb();
-+
-+	__asm__ __volatile__(
-+		"1:	LNKGETD	%1, [%2]\n"
-+		"	CMP	%1, %3\n"
-+		"	LNKSETDEQ [%2], %4\n"
-+		"	BNE	2f\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ	1b\n"
-+		"2:\n"
-+		: "=&d" (temp), "=&d" (result)
-+		: "da" (&v->counter), "bd" (old), "da" (new)
-+		: "cc"
-+	);
-+
-+	smp_mb();
-+
-+	return result;
-+}
-+
-+static inline int atomic_xchg(atomic_t *v, int new)
-+{
-+	int temp, old;
-+
-+	__asm__ __volatile__(
-+			"1:	LNKGETD %1, [%2]\n"
-+			"	LNKSETD	[%2], %3\n"
-+			"	DEFR	%0, TXSTAT\n"
-+			"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+			"	CMPT	%0, #HI(0x02000000)\n"
-+			"	BNZ	1b\n"
-+			: "=&d" (temp), "=&d" (old)
-+			: "da" (&v->counter), "da" (new)
-+			: "cc"
-+	);
-+
-+	return old;
-+}
-+
-+static inline int __atomic_add_unless(atomic_t *v, int a, int u)
-+{
-+	int result, temp;
-+
-+	smp_mb();
-+
-+	__asm__ __volatile__(
-+			"1:	LNKGETD %1, [%2]\n"
-+			"	CMP	%1, %3\n"
-+			"	ADD	%0, %1, %4\n"
-+			"	LNKSETDNE [%2], %0\n"
-+			"	BEQ	2f\n"
-+			"	DEFR	%0, TXSTAT\n"
-+			"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+			"	CMPT	%0, #HI(0x02000000)\n"
-+			"	BNZ	1b\n"
-+			"2:\n"
-+			: "=&d" (temp), "=&d" (result)
-+			: "da" (&v->counter), "bd" (u), "bd" (a)
-+			: "cc"
-+	);
-+
-+	smp_mb();
-+
-+	return result;
-+}
-+
-+static inline int atomic_sub_if_positive(int i, atomic_t *v)
-+{
-+	int result, temp;
-+
-+	__asm__ __volatile__(
-+			"1:	LNKGETD %1, [%2]\n"
-+			"	SUBS	%1, %1, %3\n"
-+			"	LNKSETDGE [%2], %1\n"
-+			"	BLT	2f\n"
-+			"	DEFR	%0, TXSTAT\n"
-+			"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+			"	CMPT	%0, #HI(0x02000000)\n"
-+			"	BNZ	1b\n"
-+			"2:\n"
-+			: "=&d" (temp), "=&da" (result)
-+			: "da" (&v->counter), "bd" (i)
-+			: "cc"
-+	);
-+
-+	return result;
-+}
-+
-+#endif /* __ASM_METAG_ATOMIC_LNKGET_H */
-diff --git a/arch/metag/include/asm/atomic_lock1.h b/arch/metag/include/asm/atomic_lock1.h
-new file mode 100644
-index 0000000..0ce2a9d
---- /dev/null
-+++ b/arch/metag/include/asm/atomic_lock1.h
-@@ -0,0 +1,160 @@
-+#ifndef __ASM_METAG_ATOMIC_LOCK1_H
-+#define __ASM_METAG_ATOMIC_LOCK1_H
-+
-+#define ATOMIC_INIT(i)	{ (i) }
-+
-+#include <linux/compiler.h>
-+
-+#include <asm/barrier.h>
-+#include <asm/lock.h>
-+
-+static inline int atomic_read(const atomic_t *v)
-+{
-+	return (v)->counter;
-+}
-+
-+/*
-+ * atomic_set needs to be take the lock to protect atomic_add_unless from a
-+ * possible race, as it reads the counter twice:
-+ *
-+ *  CPU0                               CPU1
-+ *  atomic_add_unless(1, 0)
-+ *    ret = v->counter (non-zero)
-+ *    if (ret != u)                    v->counter = 0
-+ *      v->counter += 1 (counter set to 1)
-+ *
-+ * Making atomic_set take the lock ensures that ordering and logical
-+ * consistency is preserved.
-+ */
-+static inline int atomic_set(atomic_t *v, int i)
-+{
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	fence();
-+	v->counter = i;
-+	__global_unlock1(flags);
-+	return i;
-+}
-+
-+static inline void atomic_add(int i, atomic_t *v)
-+{
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	fence();
-+	v->counter += i;
-+	__global_unlock1(flags);
-+}
-+
-+static inline void atomic_sub(int i, atomic_t *v)
-+{
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	fence();
-+	v->counter -= i;
-+	__global_unlock1(flags);
-+}
-+
-+static inline int atomic_add_return(int i, atomic_t *v)
-+{
-+	unsigned long result;
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	result = v->counter;
-+	result += i;
-+	fence();
-+	v->counter = result;
-+	__global_unlock1(flags);
-+
-+	return result;
-+}
-+
-+static inline int atomic_sub_return(int i, atomic_t *v)
-+{
-+	unsigned long result;
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	result = v->counter;
-+	result -= i;
-+	fence();
-+	v->counter = result;
-+	__global_unlock1(flags);
-+
-+	return result;
-+}
-+
-+static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
-+{
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	fence();
-+	v->counter &= ~mask;
-+	__global_unlock1(flags);
-+}
-+
-+static inline void atomic_set_mask(unsigned int mask, atomic_t *v)
-+{
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	fence();
-+	v->counter |= mask;
-+	__global_unlock1(flags);
-+}
-+
-+static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
-+{
-+	int ret;
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	ret = v->counter;
-+	if (ret == old) {
-+		fence();
-+		v->counter = new;
-+	}
-+	__global_unlock1(flags);
-+
-+	return ret;
-+}
-+
-+#define atomic_xchg(v, new) (xchg(&((v)->counter), new))
-+
-+static inline int __atomic_add_unless(atomic_t *v, int a, int u)
-+{
-+	int ret;
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	ret = v->counter;
-+	if (ret != u) {
-+		fence();
-+		v->counter += a;
-+	}
-+	__global_unlock1(flags);
-+
-+	return ret;
-+}
-+
-+static inline int atomic_sub_if_positive(int i, atomic_t *v)
-+{
-+	int ret;
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	ret = v->counter - 1;
-+	if (ret >= 0) {
-+		fence();
-+		v->counter = ret;
-+	}
-+	__global_unlock1(flags);
-+
-+	return ret;
-+}
-+
-+#endif /* __ASM_METAG_ATOMIC_LOCK1_H */
-diff --git a/arch/metag/include/asm/bitops.h b/arch/metag/include/asm/bitops.h
-new file mode 100644
-index 0000000..ea3ff8a
---- /dev/null
-+++ b/arch/metag/include/asm/bitops.h
-@@ -0,0 +1,135 @@
-+#ifndef __ASM_METAG_BITOPS_H
-+#define __ASM_METAG_BITOPS_H
-+
-+#ifdef __KERNEL__
-+#include <linux/compiler.h>
-+#include <asm/barrier.h>
-+#include <asm/lock.h>
-+
-+/*
-+ * clear_bit() doesn't provide any barrier for the compiler.
-+ */
-+#define smp_mb__before_clear_bit()	barrier()
-+#define smp_mb__after_clear_bit()	barrier()
-+
-+#ifdef CONFIG_SMP
-+/*
-+ * These functions are the basis of our bit ops.
-+ */
-+static inline void set_bit(unsigned int bit, volatile unsigned long *p)
-+{
-+	unsigned long flags;
-+	unsigned long mask = 1UL << (bit & 31);
-+
-+	p += bit >> 5;
-+
-+	__global_lock1(flags);
-+	fence();
-+	*p |= mask;
-+	__global_unlock1(flags);
-+}
-+
-+static inline void clear_bit(unsigned int bit, volatile unsigned long *p)
-+{
-+	unsigned long flags;
-+	unsigned long mask = 1UL << (bit & 31);
-+
-+	p += bit >> 5;
-+
-+	__global_lock1(flags);
-+	fence();
-+	*p &= ~mask;
-+	__global_unlock1(flags);
-+}
-+
-+static inline void change_bit(unsigned int bit, volatile unsigned long *p)
-+{
-+	unsigned long flags;
-+	unsigned long mask = 1UL << (bit & 31);
-+
-+	p += bit >> 5;
-+
-+	__global_lock1(flags);
-+	fence();
-+	*p ^= mask;
-+	__global_unlock1(flags);
-+}
-+
-+static inline int test_and_set_bit(unsigned int bit, volatile unsigned long *p)
-+{
-+	unsigned long flags;
-+	unsigned long old;
-+	unsigned long mask = 1UL << (bit & 31);
-+
-+	p += bit >> 5;
-+
-+	__global_lock1(flags);
-+	old = *p;
-+	if (!(old & mask)) {
-+		fence();
-+		*p = old | mask;
-+	}
-+	__global_unlock1(flags);
-+
-+	return (old & mask) != 0;
-+}
-+
-+static inline int test_and_clear_bit(unsigned int bit,
-+				     volatile unsigned long *p)
-+{
-+	unsigned long flags;
-+	unsigned long old;
-+	unsigned long mask = 1UL << (bit & 31);
-+
-+	p += bit >> 5;
-+
-+	__global_lock1(flags);
-+	old = *p;
-+	if (old & mask) {
-+		fence();
-+		*p = old & ~mask;
-+	}
-+	__global_unlock1(flags);
-+
-+	return (old & mask) != 0;
-+}
-+
-+static inline int test_and_change_bit(unsigned int bit,
-+				      volatile unsigned long *p)
-+{
-+	unsigned long flags;
-+	unsigned long old;
-+	unsigned long mask = 1UL << (bit & 31);
-+
-+	p += bit >> 5;
-+
-+	__global_lock1(flags);
-+	fence();
-+	old = *p;
-+	*p = old ^ mask;
-+	__global_unlock1(flags);
-+
-+	return (old & mask) != 0;
-+}
-+
-+#else
-+#include <asm-generic/bitops/atomic.h>
-+#endif /* CONFIG_SMP */
-+
-+#include <asm-generic/bitops/non-atomic.h>
-+#include <asm-generic/bitops/find.h>
-+#include <asm-generic/bitops/ffs.h>
-+#include <asm-generic/bitops/__ffs.h>
-+#include <asm-generic/bitops/ffz.h>
-+#include <asm-generic/bitops/fls.h>
-+#include <asm-generic/bitops/__fls.h>
-+#include <asm-generic/bitops/fls64.h>
-+#include <asm-generic/bitops/hweight.h>
-+#include <asm-generic/bitops/lock.h>
-+#include <asm-generic/bitops/sched.h>
-+#include <asm-generic/bitops/le.h>
-+#include <asm-generic/bitops/ext2-atomic.h>
-+
-+#endif /* __KERNEL__ */
-+
-+#endif /* __ASM_METAG_BITOPS_H */
-diff --git a/arch/metag/include/asm/cmpxchg.h b/arch/metag/include/asm/cmpxchg.h
-new file mode 100644
-index 0000000..d9fa415
---- /dev/null
-+++ b/arch/metag/include/asm/cmpxchg.h
-@@ -0,0 +1,65 @@
-+#ifndef __ASM_METAG_CMPXCHG_H
-+#define __ASM_METAG_CMPXCHG_H
-+
-+#include <asm/barrier.h>
-+
-+#if defined(CONFIG_ATOMICITY_IRQSOFF)
-+#include <asm/cmpxchg_irq.h>
-+#elif defined(CONFIG_ATOMICITY_LOCK1)
-+#include <asm/cmpxchg_lock1.h>
-+#elif defined(CONFIG_ATOMICITY_LNKGET)
-+#include <asm/cmpxchg_lnkget.h>
-+#endif
-+
-+extern void __xchg_called_with_bad_pointer(void);
-+
-+#define __xchg(ptr, x, size)				\
-+({							\
-+	unsigned long __xchg__res;			\
-+	volatile void *__xchg_ptr = (ptr);		\
-+	switch (size) {					\
-+	case 4:						\
-+		__xchg__res = xchg_u32(__xchg_ptr, x);	\
-+		break;					\
-+	case 1:						\
-+		__xchg__res = xchg_u8(__xchg_ptr, x);	\
-+		break;					\
-+	default:					\
-+		__xchg_called_with_bad_pointer();	\
-+		__xchg__res = x;			\
-+		break;					\
-+	}						\
-+							\
-+	__xchg__res;					\
-+})
-+
-+#define xchg(ptr, x)	\
-+	((__typeof__(*(ptr)))__xchg((ptr), (unsigned long)(x), sizeof(*(ptr))))
-+
-+/* This function doesn't exist, so you'll get a linker error
-+ * if something tries to do an invalid cmpxchg(). */
-+extern void __cmpxchg_called_with_bad_pointer(void);
-+
-+static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
-+				      unsigned long new, int size)
-+{
-+	switch (size) {
-+	case 4:
-+		return __cmpxchg_u32(ptr, old, new);
-+	}
-+	__cmpxchg_called_with_bad_pointer();
-+	return old;
-+}
-+
-+#define __HAVE_ARCH_CMPXCHG 1
-+
-+#define cmpxchg(ptr, o, n)						\
-+	({								\
-+		__typeof__(*(ptr)) _o_ = (o);				\
-+		__typeof__(*(ptr)) _n_ = (n);				\
-+		(__typeof__(*(ptr))) __cmpxchg((ptr), (unsigned long)_o_, \
-+					       (unsigned long)_n_,	\
-+					       sizeof(*(ptr)));		\
-+	})
-+
-+#endif /* __ASM_METAG_CMPXCHG_H */
-diff --git a/arch/metag/include/asm/cmpxchg_irq.h b/arch/metag/include/asm/cmpxchg_irq.h
-new file mode 100644
-index 0000000..6495731
---- /dev/null
-+++ b/arch/metag/include/asm/cmpxchg_irq.h
-@@ -0,0 +1,42 @@
-+#ifndef __ASM_METAG_CMPXCHG_IRQ_H
-+#define __ASM_METAG_CMPXCHG_IRQ_H
-+
-+#include <linux/irqflags.h>
-+
-+static inline unsigned long xchg_u32(volatile u32 *m, unsigned long val)
-+{
-+	unsigned long flags, retval;
-+
-+	local_irq_save(flags);
-+	retval = *m;
-+	*m = val;
-+	local_irq_restore(flags);
-+	return retval;
-+}
-+
-+static inline unsigned long xchg_u8(volatile u8 *m, unsigned long val)
-+{
-+	unsigned long flags, retval;
-+
-+	local_irq_save(flags);
-+	retval = *m;
-+	*m = val & 0xff;
-+	local_irq_restore(flags);
-+	return retval;
-+}
-+
-+static inline unsigned long __cmpxchg_u32(volatile int *m, unsigned long old,
-+					  unsigned long new)
-+{
-+	__u32 retval;
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	retval = *m;
-+	if (retval == old)
-+		*m = new;
-+	local_irq_restore(flags);       /* implies memory barrier  */
-+	return retval;
-+}
-+
-+#endif /* __ASM_METAG_CMPXCHG_IRQ_H */
-diff --git a/arch/metag/include/asm/cmpxchg_lnkget.h b/arch/metag/include/asm/cmpxchg_lnkget.h
-new file mode 100644
-index 0000000..9800838
---- /dev/null
-+++ b/arch/metag/include/asm/cmpxchg_lnkget.h
-@@ -0,0 +1,86 @@
-+#ifndef __ASM_METAG_CMPXCHG_LNKGET_H
-+#define __ASM_METAG_CMPXCHG_LNKGET_H
-+
-+static inline unsigned long xchg_u32(volatile u32 *m, unsigned long val)
-+{
-+	int temp, old;
-+
-+	smp_mb();
-+
-+	__asm__ __volatile__(
-+			"1:	LNKGETD %1, [%2]\n"
-+			"	LNKSETD	[%2], %3\n"
-+			"	DEFR	%0, TXSTAT\n"
-+			"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+			"	CMPT	%0, #HI(0x02000000)\n"
-+			"	BNZ	1b\n"
-+#ifdef CONFIG_LNKGET_AROUND_CACHE
-+			"	DCACHE	[%2], %0\n"
-+#endif
-+			: "=&d" (temp), "=&d" (old)
-+			: "da" (m), "da" (val)
-+			: "cc"
-+	);
-+
-+	smp_mb();
-+
-+	return old;
-+}
-+
-+static inline unsigned long xchg_u8(volatile u8 *m, unsigned long val)
-+{
-+	int temp, old;
-+
-+	smp_mb();
-+
-+	__asm__ __volatile__(
-+			"1:	LNKGETD %1, [%2]\n"
-+			"	LNKSETD	[%2], %3\n"
-+			"	DEFR	%0, TXSTAT\n"
-+			"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+			"	CMPT	%0, #HI(0x02000000)\n"
-+			"	BNZ	1b\n"
-+#ifdef CONFIG_LNKGET_AROUND_CACHE
-+			"	DCACHE	[%2], %0\n"
-+#endif
-+			: "=&d" (temp), "=&d" (old)
-+			: "da" (m), "da" (val & 0xff)
-+			: "cc"
-+	);
-+
-+	smp_mb();
-+
-+	return old;
-+}
-+
-+static inline unsigned long __cmpxchg_u32(volatile int *m, unsigned long old,
-+					  unsigned long new)
-+{
-+	__u32 retval, temp;
-+
-+	smp_mb();
-+
-+	__asm__ __volatile__(
-+		"1:	LNKGETD	%1, [%2]\n"
-+		"	CMP	%1, %3\n"
-+		"	LNKSETDEQ [%2], %4\n"
-+		"	BNE	2f\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ	1b\n"
-+#ifdef CONFIG_LNKGET_AROUND_CACHE
-+		"	DCACHE	[%2], %0\n"
-+#endif
-+		"2:\n"
-+		: "=&d" (temp), "=&da" (retval)
-+		: "da" (m), "bd" (old), "da" (new)
-+		: "cc"
-+	);
-+
-+	smp_mb();
-+
-+	return retval;
-+}
-+
-+#endif /* __ASM_METAG_CMPXCHG_LNKGET_H */
-diff --git a/arch/metag/include/asm/cmpxchg_lock1.h b/arch/metag/include/asm/cmpxchg_lock1.h
-new file mode 100644
-index 0000000..7fb4e1c
---- /dev/null
-+++ b/arch/metag/include/asm/cmpxchg_lock1.h
-@@ -0,0 +1,48 @@
-+#ifndef __ASM_METAG_CMPXCHG_LOCK1_H
-+#define __ASM_METAG_CMPXCHG_LOCK1_H
-+
-+#include <asm/lock.h>
-+
-+/* Use LOCK2 as these have to be atomic w.r.t. ordinary accesses. */
-+
-+static inline unsigned long xchg_u32(volatile u32 *m, unsigned long val)
-+{
-+	unsigned long flags, retval;
-+
-+	__global_lock2(flags);
-+	fence();
-+	retval = *m;
-+	*m = val;
-+	__global_unlock2(flags);
-+	return retval;
-+}
-+
-+static inline unsigned long xchg_u8(volatile u8 *m, unsigned long val)
-+{
-+	unsigned long flags, retval;
-+
-+	__global_lock2(flags);
-+	fence();
-+	retval = *m;
-+	*m = val & 0xff;
-+	__global_unlock2(flags);
-+	return retval;
-+}
-+
-+static inline unsigned long __cmpxchg_u32(volatile int *m, unsigned long old,
-+					  unsigned long new)
-+{
-+	__u32 retval;
-+	unsigned long flags;
-+
-+	__global_lock2(flags);
-+	retval = *m;
-+	if (retval == old) {
-+		fence();
-+		*m = new;
-+	}
-+	__global_unlock2(flags);
-+	return retval;
-+}
-+
-+#endif /* __ASM_METAG_CMPXCHG_LOCK1_H */
-diff --git a/arch/metag/include/asm/lock.h b/arch/metag/include/asm/lock.h
-new file mode 100644
-index 0000000..f419839
---- /dev/null
-+++ b/arch/metag/include/asm/lock.h
-@@ -0,0 +1,17 @@
-+#ifndef __ASM_METAG_LOCK_H
-+#define __ASM_METAG_LOCK_H
-+
-+#define METAG_ALL_VALUES
-+#define METAC_ALL_VALUES
-+#include <asm/tbx/machine.inc>
-+#include <asm/tbx/metagtbx.h>
-+
-+#include <linux/compiler.h>
-+
-+#define __global_lock1(flags) { TBI_CRITON(flags); barrier(); }
-+#define __global_unlock1(flags) { barrier(); TBI_CRITOFF(flags); }
-+
-+#define __global_lock2(flags) { TBI_LOCK(flags); barrier(); }
-+#define __global_unlock2(flags) { barrier(); TBI_UNLOCK(flags); }
-+
-+#endif /* __ASM_METAG_LOCK_H */
-diff --git a/arch/metag/include/asm/spinlock.h b/arch/metag/include/asm/spinlock.h
-new file mode 100644
-index 0000000..23dad8c
---- /dev/null
-+++ b/arch/metag/include/asm/spinlock.h
-@@ -0,0 +1,22 @@
-+#ifndef __ASM_SPINLOCK_H
-+#define __ASM_SPINLOCK_H
-+
-+#ifdef CONFIG_ATOMICITY_LOCK1
-+#include <asm/spinlock_lock1.h>
-+#else
-+#include <asm/spinlock_lnkget.h>
-+#endif
-+
-+#define arch_spin_unlock_wait(lock) \
-+	do { while (arch_spin_is_locked(lock)) cpu_relax(); } while (0)
-+
-+#define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
-+
-+#define	arch_read_lock_flags(lock, flags) arch_read_lock(lock)
-+#define	arch_write_lock_flags(lock, flags) arch_write_lock(lock)
-+
-+#define arch_spin_relax(lock)	cpu_relax()
-+#define arch_read_relax(lock)	cpu_relax()
-+#define arch_write_relax(lock)	cpu_relax()
-+
-+#endif /* __ASM_SPINLOCK_H */
-diff --git a/arch/metag/include/asm/spinlock_lnkget.h b/arch/metag/include/asm/spinlock_lnkget.h
-new file mode 100644
-index 0000000..0990e39
---- /dev/null
-+++ b/arch/metag/include/asm/spinlock_lnkget.h
-@@ -0,0 +1,261 @@
-+#ifndef __ASM_SPINLOCK_LNKGET_H
-+#define __ASM_SPINLOCK_LNKGET_H
-+
-+/*
-+ * None of these asm statements clobber memory as LNKSET writes around
-+ * the cache so the memory it modifies cannot safely be read by any means
-+ * other than these accessors.
-+ */
-+
-+static inline int arch_spin_is_locked(arch_spinlock_t *lock)
-+{
-+	int ret;
-+
-+	__asm__ __volatile__(
-+			     "LNKGETD	%0, [%1]\n"
-+			     "TST	%0, #1\n"
-+			     "MOV	%0, #1\n"
-+			     "XORZ      %0, %0, %0\n"
-+			     : "=&d" (ret)
-+			     : "da" (&lock->lock)
-+			     : "cc");
-+	return ret;
-+}
-+
-+static inline void arch_spin_lock(arch_spinlock_t *lock)
-+{
-+	int tmp;
-+
-+	__asm__ __volatile__(
-+			     "1:     LNKGETD %0,[%1]\n"
-+			     "       TST     %0, #1\n"
-+			     "       ADD     %0, %0, #1\n"
-+			     "       LNKSETDZ [%1], %0\n"
-+			     "       BNZ     1b\n"
-+			     "       DEFR    %0, TXSTAT\n"
-+			     "       ANDT    %0, %0, #HI(0x3f000000)\n"
-+			     "       CMPT    %0, #HI(0x02000000)\n"
-+			     "       BNZ     1b\n"
-+			     : "=&d" (tmp)
-+			     : "da" (&lock->lock)
-+			     : "cc");
-+
-+	smp_mb();
-+}
-+
-+/* Returns 0 if failed to acquire lock */
-+static inline int arch_spin_trylock(arch_spinlock_t *lock)
-+{
-+	int tmp;
-+
-+	__asm__ __volatile__(
-+			     "       LNKGETD %0,[%1]\n"
-+			     "       TST     %0, #1\n"
-+			     "       ADD     %0, %0, #1\n"
-+			     "       LNKSETDZ [%1], %0\n"
-+			     "       BNZ     1f\n"
-+			     "       DEFR    %0, TXSTAT\n"
-+			     "       ANDT    %0, %0, #HI(0x3f000000)\n"
-+			     "       CMPT    %0, #HI(0x02000000)\n"
-+			     "       MOV     %0, #1\n"
-+			     "1:     XORNZ   %0, %0, %0\n"
-+			     : "=&d" (tmp)
-+			     : "da" (&lock->lock)
-+			     : "cc");
-+
-+	smp_mb();
-+
-+	return tmp;
-+}
-+
-+static inline void arch_spin_unlock(arch_spinlock_t *lock)
-+{
-+	smp_mb();
-+
-+	__asm__ __volatile__(
-+			     "       SETD    [%0], %1\n"
-+			     :
-+			     : "da" (&lock->lock), "da" (0)
-+			     : "memory");
-+}
-+
-+/*
-+ * RWLOCKS
-+ *
-+ *
-+ * Write locks are easy - we just set bit 31.  When unlocking, we can
-+ * just write zero since the lock is exclusively held.
-+ */
-+
-+static inline void arch_write_lock(arch_rwlock_t *rw)
-+{
-+	int tmp;
-+
-+	__asm__ __volatile__(
-+			     "1:     LNKGETD %0,[%1]\n"
-+			     "       CMP     %0, #0\n"
-+			     "       ADD     %0, %0, %2\n"
-+			     "       LNKSETDZ [%1], %0\n"
-+			     "       BNZ     1b\n"
-+			     "       DEFR    %0, TXSTAT\n"
-+			     "       ANDT    %0, %0, #HI(0x3f000000)\n"
-+			     "       CMPT    %0, #HI(0x02000000)\n"
-+			     "       BNZ     1b\n"
-+			     : "=&d" (tmp)
-+			     : "da" (&rw->lock), "bd" (0x80000000)
-+			     : "cc");
-+
-+	smp_mb();
-+}
-+
-+static inline int arch_write_trylock(arch_rwlock_t *rw)
-+{
-+	int tmp;
-+
-+	__asm__ __volatile__(
-+			     "       LNKGETD %0,[%1]\n"
-+			     "       CMP     %0, #0\n"
-+			     "       ADD     %0, %0, %2\n"
-+			     "       LNKSETDZ [%1], %0\n"
-+			     "       BNZ     1f\n"
-+			     "       DEFR    %0, TXSTAT\n"
-+			     "       ANDT    %0, %0, #HI(0x3f000000)\n"
-+			     "       CMPT    %0, #HI(0x02000000)\n"
-+			     "       MOV     %0,#1\n"
-+			     "1:     XORNZ   %0, %0, %0\n"
-+			     : "=&d" (tmp)
-+			     : "da" (&rw->lock), "bd" (0x80000000)
-+			     : "cc");
-+
-+	smp_mb();
-+
-+	return tmp;
-+}
-+
-+static inline void arch_write_unlock(arch_rwlock_t *rw)
-+{
-+	smp_mb();
-+
-+	__asm__ __volatile__(
-+			     "       SETD    [%0], %1\n"
-+			     :
-+			     : "da" (&rw->lock), "da" (0)
-+			     : "memory");
-+}
-+
-+/* write_can_lock - would write_trylock() succeed? */
-+static inline int arch_write_can_lock(arch_rwlock_t *rw)
-+{
-+	int ret;
-+
-+	__asm__ __volatile__(
-+			     "LNKGETD	%0, [%1]\n"
-+			     "CMP	%0, #0\n"
-+			     "MOV	%0, #1\n"
-+			     "XORNZ     %0, %0, %0\n"
-+			     : "=&d" (ret)
-+			     : "da" (&rw->lock)
-+			     : "cc");
-+	return ret;
-+}
-+
-+/*
-+ * Read locks are a bit more hairy:
-+ *  - Exclusively load the lock value.
-+ *  - Increment it.
-+ *  - Store new lock value if positive, and we still own this location.
-+ *    If the value is negative, we've already failed.
-+ *  - If we failed to store the value, we want a negative result.
-+ *  - If we failed, try again.
-+ * Unlocking is similarly hairy.  We may have multiple read locks
-+ * currently active.  However, we know we won't have any write
-+ * locks.
-+ */
-+static inline void arch_read_lock(arch_rwlock_t *rw)
-+{
-+	int tmp;
-+
-+	__asm__ __volatile__(
-+			     "1:     LNKGETD %0,[%1]\n"
-+			     "       ADDS    %0, %0, #1\n"
-+			     "       LNKSETDPL [%1], %0\n"
-+			     "       BMI     1b\n"
-+			     "       DEFR    %0, TXSTAT\n"
-+			     "       ANDT    %0, %0, #HI(0x3f000000)\n"
-+			     "       CMPT    %0, #HI(0x02000000)\n"
-+			     "       BNZ     1b\n"
-+			     : "=&d" (tmp)
-+			     : "da" (&rw->lock)
-+			     : "cc");
-+
-+	smp_mb();
-+}
-+
-+static inline void arch_read_unlock(arch_rwlock_t *rw)
-+{
-+	int tmp;
-+
-+	smp_mb();
-+
-+	__asm__ __volatile__(
-+			     "1:     LNKGETD %0,[%1]\n"
-+			     "       SUB     %0, %0, #1\n"
-+			     "       LNKSETD [%1], %0\n"
-+			     "       DEFR    %0, TXSTAT\n"
-+			     "       ANDT    %0, %0, #HI(0x3f000000)\n"
-+			     "       CMPT    %0, #HI(0x02000000)\n"
-+			     "       BNZ     1b\n"
-+			     : "=&d" (tmp)
-+			     : "da" (&rw->lock)
-+			     : "cc", "memory");
-+}
-+
-+static inline int arch_read_trylock(arch_rwlock_t *rw)
-+{
-+	int tmp;
-+
-+	__asm__ __volatile__(
-+			     "       LNKGETD %0,[%1]\n"
-+			     "       ADDS    %0, %0, #1\n"
-+			     "       LNKSETDPL [%1], %0\n"
-+			     "       BMI     1f\n"
-+			     "       DEFR    %0, TXSTAT\n"
-+			     "       ANDT    %0, %0, #HI(0x3f000000)\n"
-+			     "       CMPT    %0, #HI(0x02000000)\n"
-+			     "       MOV     %0,#1\n"
-+			     "       BZ      2f\n"
-+			     "1:     MOV     %0,#0\n"
-+			     "2:\n"
-+			     : "=&d" (tmp)
-+			     : "da" (&rw->lock)
-+			     : "cc");
-+
-+	smp_mb();
-+
-+	return tmp;
-+}
-+
-+/* read_can_lock - would read_trylock() succeed? */
-+static inline int arch_read_can_lock(arch_rwlock_t *rw)
-+{
-+	int tmp;
-+
-+	__asm__ __volatile__(
-+			     "LNKGETD	%0, [%1]\n"
-+			     "CMP	%0, %2\n"
-+			     "MOV	%0, #1\n"
-+			     "XORZ	%0, %0, %0\n"
-+			     : "=&d" (tmp)
-+			     : "da" (&rw->lock), "bd" (0x80000000)
-+			     : "cc");
-+	return tmp;
-+}
-+
-+#define	arch_read_lock_flags(lock, flags) arch_read_lock(lock)
-+#define	arch_write_lock_flags(lock, flags) arch_write_lock(lock)
-+
-+#define arch_spin_relax(lock)	cpu_relax()
-+#define arch_read_relax(lock)	cpu_relax()
-+#define arch_write_relax(lock)	cpu_relax()
-+
-+#endif /* __ASM_SPINLOCK_LNKGET_H */
-diff --git a/arch/metag/include/asm/spinlock_lock1.h b/arch/metag/include/asm/spinlock_lock1.h
-new file mode 100644
-index 0000000..e9f27df
---- /dev/null
-+++ b/arch/metag/include/asm/spinlock_lock1.h
-@@ -0,0 +1,184 @@
-+#ifndef __ASM_SPINLOCK_LOCK1_H
-+#define __ASM_SPINLOCK_LOCK1_H
-+
++++ b/arch/metag/include/asm/dma-mapping.h
+@@ -0,0 +1,183 @@
++#ifndef _ASM_METAG_DMA_MAPPING_H
++#define _ASM_METAG_DMA_MAPPING_H
++
++#include <linux/mm.h>
++
++#include <asm/cache.h>
++#include <asm/io.h>
++#include <linux/scatterlist.h>
 +#include <asm/bug.h>
-+#include <asm/lock.h>
 +
-+static inline int arch_spin_is_locked(arch_spinlock_t *lock)
++#define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
++#define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
++
++void *dma_alloc_coherent(struct device *dev, size_t size,
++			 dma_addr_t *dma_handle, gfp_t flag);
++
++void dma_free_coherent(struct device *dev, size_t size,
++		       void *vaddr, dma_addr_t dma_handle);
++
++void dma_sync_for_device(void *vaddr, size_t size, int dma_direction);
++void dma_sync_for_cpu(void *vaddr, size_t size, int dma_direction);
++
++int dma_mmap_coherent(struct device *dev, struct vm_area_struct *vma,
++		      void *cpu_addr, dma_addr_t dma_addr, size_t size);
++
++int dma_mmap_writecombine(struct device *dev, struct vm_area_struct *vma,
++			  void *cpu_addr, dma_addr_t dma_addr, size_t size);
++
++static inline dma_addr_t
++dma_map_single(struct device *dev, void *ptr, size_t size,
++	       enum dma_data_direction direction)
 +{
-+	int ret;
++	BUG_ON(!valid_dma_direction(direction));
++	WARN_ON(size == 0);
++	dma_sync_for_device(ptr, size, direction);
++	return virt_to_phys(ptr);
++}
 +
-+	barrier();
-+	ret = lock->lock;
-+	WARN_ON(ret != 0 && ret != 1);
++static inline void
++dma_unmap_single(struct device *dev, dma_addr_t dma_addr, size_t size,
++		 enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++	dma_sync_for_cpu((void *)bus_to_virt(dma_addr), size, direction);
++}
++
++static inline int
++dma_map_sg(struct device *dev, struct scatterlist *sglist, int nents,
++	   enum dma_data_direction direction)
++{
++	struct scatterlist *sg;
++	int i;
++
++	BUG_ON(!valid_dma_direction(direction));
++	WARN_ON(nents == 0 || sglist[0].length == 0);
++
++	for_each_sg(sglist, sg, nents, i) {
++		BUG_ON(!sg_page(sg));
++
++		sg->dma_address = sg_phys(sg);
++		dma_sync_for_device(sg_virt(sg), sg->length, direction);
++	}
++
++	return nents;
++}
++
++static inline dma_addr_t
++dma_map_page(struct device *dev, struct page *page, unsigned long offset,
++	     size_t size, enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++	dma_sync_for_device((void *)(page_to_phys(page) + offset), size,
++			    direction);
++	return page_to_phys(page) + offset;
++}
++
++static inline void
++dma_unmap_page(struct device *dev, dma_addr_t dma_address, size_t size,
++	       enum dma_data_direction direction)
++{
++	BUG_ON(!valid_dma_direction(direction));
++	dma_sync_for_cpu((void *)bus_to_virt(dma_address), size, direction);
++}
++
++
++static inline void
++dma_unmap_sg(struct device *dev, struct scatterlist *sglist, int nhwentries,
++	     enum dma_data_direction direction)
++{
++	struct scatterlist *sg;
++	int i;
++
++	BUG_ON(!valid_dma_direction(direction));
++	WARN_ON(nhwentries == 0 || sglist[0].length == 0);
++
++	for_each_sg(sglist, sg, nhwentries, i) {
++		BUG_ON(!sg_page(sg));
++
++		sg->dma_address = sg_phys(sg);
++		dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
++	}
++}
++
++static inline void
++dma_sync_single_for_cpu(struct device *dev, dma_addr_t dma_handle, size_t size,
++			enum dma_data_direction direction)
++{
++	dma_sync_for_cpu((void *)bus_to_virt(dma_handle), size, direction);
++}
++
++static inline void
++dma_sync_single_for_device(struct device *dev, dma_addr_t dma_handle,
++			   size_t size, enum dma_data_direction direction)
++{
++	dma_sync_for_device((void *)bus_to_virt(dma_handle), size, direction);
++}
++
++static inline void
++dma_sync_single_range_for_cpu(struct device *dev, dma_addr_t dma_handle,
++			      unsigned long offset, size_t size,
++			      enum dma_data_direction direction)
++{
++	dma_sync_for_cpu((void *)bus_to_virt(dma_handle)+offset, size,
++			 direction);
++}
++
++static inline void
++dma_sync_single_range_for_device(struct device *dev, dma_addr_t dma_handle,
++				 unsigned long offset, size_t size,
++				 enum dma_data_direction direction)
++{
++	dma_sync_for_device((void *)bus_to_virt(dma_handle)+offset, size,
++			    direction);
++}
++
++static inline void
++dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg, int nelems,
++		    enum dma_data_direction direction)
++{
++	int i;
++	for (i = 0; i < nelems; i++, sg++)
++		dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
++}
++
++static inline void
++dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg, int nelems,
++		       enum dma_data_direction direction)
++{
++	int i;
++	for (i = 0; i < nelems; i++, sg++)
++		dma_sync_for_device(sg_virt(sg), sg->length, direction);
++}
++
++static inline int
++dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
++{
++	return 0;
++}
++
++#define dma_supported(dev, mask)        (1)
++
++static inline int
++dma_set_mask(struct device *dev, u64 mask)
++{
++	if (!dev->dma_mask || !dma_supported(dev, mask))
++		return -EIO;
++
++	*dev->dma_mask = mask;
++
++	return 0;
++}
++
++/*
++ * dma_alloc_noncoherent() returns non-cacheable memory, so there's no need to
++ * do any flushing here.
++ */
++static inline void
++dma_cache_sync(struct device *dev, void *vaddr, size_t size,
++	       enum dma_data_direction direction)
++{
++}
++
++#endif
+diff --git a/arch/metag/kernel/dma.c b/arch/metag/kernel/dma.c
+new file mode 100644
+index 0000000..7e41f56
+--- /dev/null
++++ b/arch/metag/kernel/dma.c
+@@ -0,0 +1,521 @@
++/*
++ *  Meta version derived from arch/powerpc/lib/dma-noncoherent.c
++ *    Copyright (C) 2008 Imagination Technologies Ltd.
++ *
++ *  PowerPC version derived from arch/arm/mm/consistent.c
++ *    Copyright (C) 2001 Dan Malek (dmalek@jlc.net)
++ *
++ *  Copyright (C) 2000 Russell King
++ *
++ * Consistent memory allocators.  Used for DMA devices that want to
++ * share uncached memory with the processor core.  The function return
++ * is the virtual address and 'dma_handle' is the physical address.
++ * Mostly stolen from the ARM port, with some changes for PowerPC.
++ *						-- Dan
++ *
++ * Reorganized to get rid of the arch-specific consistent_* functions
++ * and provide non-coherent implementations for the DMA API. -Matt
++ *
++ * Added in_interrupt() safe dma_alloc_coherent()/dma_free_coherent()
++ * implementation. This is pulled straight from ARM and barely
++ * modified. -Matt
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <linux/sched.h>
++#include <linux/kernel.h>
++#include <linux/errno.h>
++#include <linux/export.h>
++#include <linux/string.h>
++#include <linux/types.h>
++#include <linux/highmem.h>
++#include <linux/dma-mapping.h>
++#include <linux/slab.h>
++#include <linux/static_key.h>
++
++#include <asm/tlbflush.h>
++#include <asm/mmu.h>
++
++#define CONSISTENT_OFFSET(x)	(((unsigned long)(x) - CONSISTENT_START) \
++					>> PAGE_SHIFT)
++
++static u64 get_coherent_dma_mask(struct device *dev)
++{
++	u64 mask = ~0ULL;
++
++	if (dev) {
++		mask = dev->coherent_dma_mask;
++
++		/*
++		 * Sanity check the DMA mask - it must be non-zero, and
++		 * must be able to be satisfied by a DMA allocation.
++		 */
++		if (mask == 0) {
++			dev_warn(dev, "coherent DMA mask is unset\n");
++			return 0;
++		}
++	}
++
++	return mask;
++}
++/*
++ * This is the page table (2MB) covering uncached, DMA consistent allocations
++ */
++static pte_t *consistent_pte;
++static DEFINE_SPINLOCK(consistent_lock);
++
++/*
++ * VM region handling support.
++ *
++ * This should become something generic, handling VM region allocations for
++ * vmalloc and similar (ioremap, module space, etc).
++ *
++ * I envisage vmalloc()'s supporting vm_struct becoming:
++ *
++ *  struct vm_struct {
++ *    struct metag_vm_region	region;
++ *    unsigned long	flags;
++ *    struct page	**pages;
++ *    unsigned int	nr_pages;
++ *    unsigned long	phys_addr;
++ *  };
++ *
++ * get_vm_area() would then call metag_vm_region_alloc with an appropriate
++ * struct metag_vm_region head (eg):
++ *
++ *  struct metag_vm_region vmalloc_head = {
++ *	.vm_list	= LIST_HEAD_INIT(vmalloc_head.vm_list),
++ *	.vm_start	= VMALLOC_START,
++ *	.vm_end		= VMALLOC_END,
++ *  };
++ *
++ * However, vmalloc_head.vm_start is variable (typically, it is dependent on
++ * the amount of RAM found at boot time.)  I would imagine that get_vm_area()
++ * would have to initialise this each time prior to calling
++ * metag_vm_region_alloc().
++ */
++struct metag_vm_region {
++	struct list_head vm_list;
++	unsigned long vm_start;
++	unsigned long vm_end;
++	struct page		*vm_pages;
++	int			vm_active;
++};
++
++static struct metag_vm_region consistent_head = {
++	.vm_list = LIST_HEAD_INIT(consistent_head.vm_list),
++	.vm_start = CONSISTENT_START,
++	.vm_end = CONSISTENT_END,
++};
++
++static struct metag_vm_region *metag_vm_region_alloc(struct metag_vm_region
++						     *head, size_t size,
++						     gfp_t gfp)
++{
++	unsigned long addr = head->vm_start, end = head->vm_end - size;
++	unsigned long flags;
++	struct metag_vm_region *c, *new;
++
++	new = kmalloc(sizeof(struct metag_vm_region), gfp);
++	if (!new)
++		goto out;
++
++	spin_lock_irqsave(&consistent_lock, flags);
++
++	list_for_each_entry(c, &head->vm_list, vm_list) {
++		if ((addr + size) < addr)
++			goto nospc;
++		if ((addr + size) <= c->vm_start)
++			goto found;
++		addr = c->vm_end;
++		if (addr > end)
++			goto nospc;
++	}
++
++found:
++	/*
++	 * Insert this entry _before_ the one we found.
++	 */
++	list_add_tail(&new->vm_list, &c->vm_list);
++	new->vm_start = addr;
++	new->vm_end = addr + size;
++	new->vm_active = 1;
++
++	spin_unlock_irqrestore(&consistent_lock, flags);
++	return new;
++
++nospc:
++	spin_unlock_irqrestore(&consistent_lock, flags);
++	kfree(new);
++out:
++	return NULL;
++}
++
++static struct metag_vm_region *metag_vm_region_find(struct metag_vm_region
++						    *head, unsigned long addr)
++{
++	struct metag_vm_region *c;
++
++	list_for_each_entry(c, &head->vm_list, vm_list) {
++		if (c->vm_active && c->vm_start == addr)
++			goto out;
++	}
++	c = NULL;
++out:
++	return c;
++}
++
++/*
++ * Allocate DMA-coherent memory space and return both the kernel remapped
++ * virtual and bus address for that space.
++ */
++void *dma_alloc_coherent(struct device *dev, size_t size,
++			 dma_addr_t *handle, gfp_t gfp)
++{
++	struct page *page;
++	struct metag_vm_region *c;
++	unsigned long order;
++	u64 mask = get_coherent_dma_mask(dev);
++	u64 limit;
++
++	if (!consistent_pte) {
++		pr_err("%s: not initialised\n", __func__);
++		dump_stack();
++		return NULL;
++	}
++
++	if (!mask)
++		goto no_page;
++	size = PAGE_ALIGN(size);
++	limit = (mask + 1) & ~mask;
++	if ((limit && size >= limit)
++	    || size >= (CONSISTENT_END - CONSISTENT_START)) {
++		pr_warn("coherent allocation too big (requested %#x mask %#Lx)\n",
++			size, mask);
++		return NULL;
++	}
++
++	order = get_order(size);
++
++	if (mask != 0xffffffff)
++		gfp |= GFP_DMA;
++
++	page = alloc_pages(gfp, order);
++	if (!page)
++		goto no_page;
++
++	/*
++	 * Invalidate any data that might be lurking in the
++	 * kernel direct-mapped region for device DMA.
++	 */
++	{
++		void *kaddr = page_address(page);
++		memset(kaddr, 0, size);
++		flush_dcache_region(kaddr, size);
++	}
++
++	/*
++	 * Allocate a virtual address in the consistent mapping region.
++	 */
++	c = metag_vm_region_alloc(&consistent_head, size,
++				  gfp & ~(__GFP_DMA | __GFP_HIGHMEM));
++	if (c) {
++		unsigned long vaddr = c->vm_start;
++		pte_t *pte = consistent_pte + CONSISTENT_OFFSET(vaddr);
++		struct page *end = page + (1 << order);
++
++		c->vm_pages = page;
++		split_page(page, order);
++
++		/*
++		 * Set the "dma handle"
++		 */
++		*handle = page_to_bus(page);
++
++		do {
++			BUG_ON(!pte_none(*pte));
++
++			SetPageReserved(page);
++			set_pte_at(&init_mm, vaddr,
++				   pte, mk_pte(page,
++					       pgprot_writecombine
++					       (PAGE_KERNEL)));
++			page++;
++			pte++;
++			vaddr += PAGE_SIZE;
++		} while (size -= PAGE_SIZE);
++
++		/*
++		 * Free the otherwise unused pages.
++		 */
++		while (page < end) {
++			__free_page(page);
++			page++;
++		}
++
++		return (void *)c->vm_start;
++	}
++
++	if (page)
++		__free_pages(page, order);
++no_page:
++	return NULL;
++}
++EXPORT_SYMBOL(dma_alloc_coherent);
++
++/*
++ * free a page as defined by the above mapping.
++ */
++void dma_free_coherent(struct device *dev, size_t size,
++		       void *vaddr, dma_addr_t dma_handle)
++{
++	struct metag_vm_region *c;
++	unsigned long flags, addr;
++	pte_t *ptep;
++
++	size = PAGE_ALIGN(size);
++
++	spin_lock_irqsave(&consistent_lock, flags);
++
++	c = metag_vm_region_find(&consistent_head, (unsigned long)vaddr);
++	if (!c)
++		goto no_area;
++
++	c->vm_active = 0;
++	if ((c->vm_end - c->vm_start) != size) {
++		pr_err("%s: freeing wrong coherent size (%ld != %d)\n",
++		       __func__, c->vm_end - c->vm_start, size);
++		dump_stack();
++		size = c->vm_end - c->vm_start;
++	}
++
++	ptep = consistent_pte + CONSISTENT_OFFSET(c->vm_start);
++	addr = c->vm_start;
++	do {
++		pte_t pte = ptep_get_and_clear(&init_mm, addr, ptep);
++		unsigned long pfn;
++
++		ptep++;
++		addr += PAGE_SIZE;
++
++		if (!pte_none(pte) && pte_present(pte)) {
++			pfn = pte_pfn(pte);
++
++			if (pfn_valid(pfn)) {
++				struct page *page = pfn_to_page(pfn);
++				ClearPageReserved(page);
++
++				__free_page(page);
++				continue;
++			}
++		}
++
++		pr_crit("%s: bad page in kernel page table\n",
++			__func__);
++	} while (size -= PAGE_SIZE);
++
++	flush_tlb_kernel_range(c->vm_start, c->vm_end);
++
++	list_del(&c->vm_list);
++
++	spin_unlock_irqrestore(&consistent_lock, flags);
++
++	kfree(c);
++	return;
++
++no_area:
++	spin_unlock_irqrestore(&consistent_lock, flags);
++	pr_err("%s: trying to free invalid coherent area: %p\n",
++	       __func__, vaddr);
++	dump_stack();
++}
++EXPORT_SYMBOL(dma_free_coherent);
++
++
++static int dma_mmap(struct device *dev, struct vm_area_struct *vma,
++		    void *cpu_addr, dma_addr_t dma_addr, size_t size)
++{
++	int ret = -ENXIO;
++
++	unsigned long flags, user_size, kern_size;
++	struct metag_vm_region *c;
++
++	user_size = (vma->vm_end - vma->vm_start) >> PAGE_SHIFT;
++
++	spin_lock_irqsave(&consistent_lock, flags);
++	c = metag_vm_region_find(&consistent_head, (unsigned long)cpu_addr);
++	spin_unlock_irqrestore(&consistent_lock, flags);
++
++	if (c) {
++		unsigned long off = vma->vm_pgoff;
++
++		kern_size = (c->vm_end - c->vm_start) >> PAGE_SHIFT;
++
++		if (off < kern_size &&
++		    user_size <= (kern_size - off)) {
++			ret = remap_pfn_range(vma, vma->vm_start,
++					      page_to_pfn(c->vm_pages) + off,
++					      user_size << PAGE_SHIFT,
++					      vma->vm_page_prot);
++		}
++	}
++
++
 +	return ret;
 +}
 +
-+static inline void arch_spin_lock(arch_spinlock_t *lock)
++int dma_mmap_coherent(struct device *dev, struct vm_area_struct *vma,
++		      void *cpu_addr, dma_addr_t dma_addr, size_t size)
 +{
-+	unsigned int we_won = 0;
-+	unsigned long flags;
-+
-+again:
-+	__global_lock1(flags);
-+	if (lock->lock == 0) {
-+		fence();
-+		lock->lock = 1;
-+		we_won = 1;
-+	}
-+	__global_unlock1(flags);
-+	if (we_won == 0)
-+		goto again;
-+	WARN_ON(lock->lock != 1);
++	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
++	return dma_mmap(dev, vma, cpu_addr, dma_addr, size);
 +}
++EXPORT_SYMBOL(dma_mmap_coherent);
 +
-+/* Returns 0 if failed to acquire lock */
-+static inline int arch_spin_trylock(arch_spinlock_t *lock)
++int dma_mmap_writecombine(struct device *dev, struct vm_area_struct *vma,
++			  void *cpu_addr, dma_addr_t dma_addr, size_t size)
 +{
-+	unsigned long flags;
-+	unsigned int ret;
-+
-+	__global_lock1(flags);
-+	ret = lock->lock;
-+	if (ret == 0) {
-+		fence();
-+		lock->lock = 1;
-+	}
-+	__global_unlock1(flags);
-+	return (ret == 0);
++	vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
++	return dma_mmap(dev, vma, cpu_addr, dma_addr, size);
 +}
++EXPORT_SYMBOL(dma_mmap_writecombine);
 +
-+static inline void arch_spin_unlock(arch_spinlock_t *lock)
-+{
-+	barrier();
-+	WARN_ON(!lock->lock);
-+	lock->lock = 0;
-+}
++
++
 +
 +/*
-+ * RWLOCKS
-+ *
-+ *
-+ * Write locks are easy - we just set bit 31.  When unlocking, we can
-+ * just write zero since the lock is exclusively held.
++ * Initialise the consistent memory allocation.
 + */
-+
-+static inline void arch_write_lock(arch_rwlock_t *rw)
++static int __init dma_alloc_init(void)
 +{
-+	unsigned long flags;
-+	unsigned int we_won = 0;
++	pgd_t *pgd, *pgd_k;
++	pud_t *pud, *pud_k;
++	pmd_t *pmd, *pmd_k;
++	pte_t *pte;
++	int ret = 0;
 +
-+again:
-+	__global_lock1(flags);
-+	if (rw->lock == 0) {
-+		fence();
-+		rw->lock = 0x80000000;
-+		we_won = 1;
-+	}
-+	__global_unlock1(flags);
-+	if (we_won == 0)
-+		goto again;
-+	WARN_ON(rw->lock != 0x80000000);
++	do {
++		int offset = pgd_index(CONSISTENT_START);
++		pgd = pgd_offset(&init_mm, CONSISTENT_START);
++		pud = pud_alloc(&init_mm, pgd, CONSISTENT_START);
++		pmd = pmd_alloc(&init_mm, pud, CONSISTENT_START);
++		if (!pmd) {
++			pr_err("%s: no pmd tables\n", __func__);
++			ret = -ENOMEM;
++			break;
++		}
++		WARN_ON(!pmd_none(*pmd));
++
++		pte = pte_alloc_kernel(pmd, CONSISTENT_START);
++		if (!pte) {
++			pr_err("%s: no pte tables\n", __func__);
++			ret = -ENOMEM;
++			break;
++		}
++
++		pgd_k = ((pgd_t *) mmu_get_base()) + offset;
++		pud_k = pud_offset(pgd_k, CONSISTENT_START);
++		pmd_k = pmd_offset(pud_k, CONSISTENT_START);
++		set_pmd(pmd_k, *pmd);
++
++		consistent_pte = pte;
++	} while (0);
++
++	return ret;
 +}
++early_initcall(dma_alloc_init);
 +
-+static inline int arch_write_trylock(arch_rwlock_t *rw)
++#ifdef CONFIG_META_L2C
++/* Invalidate (may also write back if necessary) */
++static inline void invalidate_dcache_region(void *start, unsigned long size)
 +{
-+	unsigned long flags;
-+	unsigned int ret;
-+
-+	__global_lock1(flags);
-+	ret = rw->lock;
-+	if (ret == 0) {
-+		fence();
-+		rw->lock = 0x80000000;
-+	}
-+	__global_unlock1(flags);
-+
-+	return (ret == 0);
++	if (meta_l2c_has_invalidate())
++		cachew_region_op(start, size, CACHEW_INVALIDATE_L1D_L2);
++	else
++		flush_dcache_region(start, size);
 +}
-+
-+static inline void arch_write_unlock(arch_rwlock_t *rw)
-+{
-+	barrier();
-+	WARN_ON(rw->lock != 0x80000000);
-+	rw->lock = 0;
-+}
-+
-+/* write_can_lock - would write_trylock() succeed? */
-+static inline int arch_write_can_lock(arch_rwlock_t *rw)
-+{
-+	unsigned int ret;
-+
-+	barrier();
-+	ret = rw->lock;
-+	return (ret == 0);
-+}
-+
-+/*
-+ * Read locks are a bit more hairy:
-+ *  - Exclusively load the lock value.
-+ *  - Increment it.
-+ *  - Store new lock value if positive, and we still own this location.
-+ *    If the value is negative, we've already failed.
-+ *  - If we failed to store the value, we want a negative result.
-+ *  - If we failed, try again.
-+ * Unlocking is similarly hairy.  We may have multiple read locks
-+ * currently active.  However, we know we won't have any write
-+ * locks.
-+ */
-+static inline void arch_read_lock(arch_rwlock_t *rw)
-+{
-+	unsigned long flags;
-+	unsigned int we_won = 0, ret;
-+
-+again:
-+	__global_lock1(flags);
-+	ret = rw->lock;
-+	if (ret < 0x80000000) {
-+		fence();
-+		rw->lock = ret + 1;
-+		we_won = 1;
-+	}
-+	__global_unlock1(flags);
-+	if (!we_won)
-+		goto again;
-+}
-+
-+static inline void arch_read_unlock(arch_rwlock_t *rw)
-+{
-+	unsigned long flags;
-+	unsigned int ret;
-+
-+	__global_lock1(flags);
-+	fence();
-+	ret = rw->lock--;
-+	__global_unlock1(flags);
-+	WARN_ON(ret == 0);
-+}
-+
-+static inline int arch_read_trylock(arch_rwlock_t *rw)
-+{
-+	unsigned long flags;
-+	unsigned int ret;
-+
-+	__global_lock1(flags);
-+	ret = rw->lock;
-+	if (ret < 0x80000000) {
-+		fence();
-+		rw->lock = ret + 1;
-+	}
-+	__global_unlock1(flags);
-+	return (ret < 0x80000000);
-+}
-+
-+/* read_can_lock - would read_trylock() succeed? */
-+static inline int arch_read_can_lock(arch_rwlock_t *rw)
-+{
-+	unsigned int ret;
-+
-+	barrier();
-+	ret = rw->lock;
-+	return (ret < 0x80000000);
-+}
-+
-+#endif /* __ASM_SPINLOCK_LOCK1_H */
-diff --git a/arch/metag/include/asm/spinlock_types.h b/arch/metag/include/asm/spinlock_types.h
-new file mode 100644
-index 0000000..b763914
---- /dev/null
-+++ b/arch/metag/include/asm/spinlock_types.h
-@@ -0,0 +1,20 @@
-+#ifndef _ASM_METAG_SPINLOCK_TYPES_H
-+#define _ASM_METAG_SPINLOCK_TYPES_H
-+
-+#ifndef __LINUX_SPINLOCK_TYPES_H
-+# error "please don't include this file directly"
++#else
++#define invalidate_dcache_region(s, l)	flush_dcache_region((s), (l))
 +#endif
 +
-+typedef struct {
-+	volatile unsigned int lock;
-+} arch_spinlock_t;
++/*
++ * make an area consistent to devices.
++ */
++void dma_sync_for_device(void *vaddr, size_t size, int dma_direction)
++{
++	/*
++	 * Ensure any writes get through the write combiner. This is necessary
++	 * even with DMA_FROM_DEVICE, or the write may dirty the cache after
++	 * we've invalidated it and get written back during the DMA.
++	 */
 +
-+#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
++	barrier();
 +
-+typedef struct {
-+	volatile unsigned int lock;
-+} arch_rwlock_t;
++	switch (dma_direction) {
++	case DMA_BIDIRECTIONAL:
++		/*
++		 * Writeback to ensure the device can see our latest changes and
++		 * so that we have no dirty lines, and invalidate the cache
++		 * lines too in preparation for receiving the buffer back
++		 * (dma_sync_for_cpu) later.
++		 */
++		flush_dcache_region(vaddr, size);
++		break;
++	case DMA_TO_DEVICE:
++		/*
++		 * Writeback to ensure the device can see our latest changes.
++		 * There's no need to invalidate as the device shouldn't write
++		 * to the buffer.
++		 */
++		writeback_dcache_region(vaddr, size);
++		break;
++	case DMA_FROM_DEVICE:
++		/*
++		 * Invalidate to ensure we have no dirty lines that could get
++		 * written back during the DMA. It's also safe to flush
++		 * (writeback) here if necessary.
++		 */
++		invalidate_dcache_region(vaddr, size);
++		break;
++	case DMA_NONE:
++		BUG();
++	}
 +
-+#define __ARCH_RW_LOCK_UNLOCKED		{ 0 }
++	wmb();
++}
++EXPORT_SYMBOL(dma_sync_for_device);
 +
-+#endif /* _ASM_METAG_SPINLOCK_TYPES_H */
++/*
++ * make an area consistent to the core.
++ */
++void dma_sync_for_cpu(void *vaddr, size_t size, int dma_direction)
++{
++	/*
++	 * Hardware L2 cache prefetch doesn't occur across 4K physical
++	 * boundaries, however according to Documentation/DMA-API-HOWTO.txt
++	 * kmalloc'd memory is DMA'able, so accesses in nearby memory could
++	 * trigger a cache fill in the DMA buffer.
++	 *
++	 * This should never cause dirty lines, so a flush or invalidate should
++	 * be safe to allow us to see data from the device.
++	 */
++	if (_meta_l2c_pf_is_enabled()) {
++		switch (dma_direction) {
++		case DMA_BIDIRECTIONAL:
++		case DMA_FROM_DEVICE:
++			invalidate_dcache_region(vaddr, size);
++			break;
++		case DMA_TO_DEVICE:
++			/* The device shouldn't have written to the buffer */
++			break;
++		case DMA_NONE:
++			BUG();
++		}
++	}
++
++	rmb();
++}
++EXPORT_SYMBOL(dma_sync_for_cpu);
 -- 
 1.7.7.6
