@@ -1,746 +1,379 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [RFC PATCH v1 24/40] metag: DMA
-Date: Wed, 31 Oct 2012 16:14:05 +0000
-Message-ID: <1351700061-7203-25-git-send-email-james.hogan@imgtec.com>
+Subject: [RFC PATCH v1 20/40] metag: Module support
+Date: Wed, 31 Oct 2012 16:14:01 +0000
+Message-ID: <1351700061-7203-21-git-send-email-james.hogan@imgtec.com>
 References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:55144 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:49759 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S935768Ab2JaQPQ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 31 Oct 2012 12:15:16 -0400
+	id S1423212Ab2JaQPE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 31 Oct 2012 12:15:04 -0400
 In-Reply-To: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: James Hogan <james.hogan@imgtec.com>
 
-Add DMA mapping code.
-
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
 ---
- arch/metag/include/asm/dma-mapping.h |  183 ++++++++++++
- arch/metag/kernel/dma.c              |  521 ++++++++++++++++++++++++++++++++++
- 2 files changed, 704 insertions(+), 0 deletions(-)
- create mode 100644 arch/metag/include/asm/dma-mapping.h
- create mode 100644 arch/metag/kernel/dma.c
+ arch/metag/include/asm/module.h |   39 ++++++
+ arch/metag/kernel/metag_ksyms.c |    4 +
+ arch/metag/kernel/module.c      |  284 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 327 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/include/asm/module.h
+ create mode 100644 arch/metag/kernel/module.c
 
-diff --git a/arch/metag/include/asm/dma-mapping.h b/arch/metag/include/asm/dma-mapping.h
+diff --git a/arch/metag/include/asm/module.h b/arch/metag/include/asm/module.h
 new file mode 100644
-index 0000000..9a1b3ac
+index 0000000..e8e3a28
 --- /dev/null
-+++ b/arch/metag/include/asm/dma-mapping.h
-@@ -0,0 +1,183 @@
-+#ifndef _ASM_METAG_DMA_MAPPING_H
-+#define _ASM_METAG_DMA_MAPPING_H
++++ b/arch/metag/include/asm/module.h
+@@ -0,0 +1,39 @@
++#ifndef _ASM_METAG_MODULE_H
++#define _ASM_METAG_MODULE_H
 +
-+#include <linux/mm.h>
-+
-+#include <asm/cache.h>
-+#include <asm/io.h>
-+#include <linux/scatterlist.h>
-+#include <asm/bug.h>
-+
-+#define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
-+#define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
-+
-+void *dma_alloc_coherent(struct device *dev, size_t size,
-+			 dma_addr_t *dma_handle, gfp_t flag);
-+
-+void dma_free_coherent(struct device *dev, size_t size,
-+		       void *vaddr, dma_addr_t dma_handle);
-+
-+void dma_sync_for_device(void *vaddr, size_t size, int dma_direction);
-+void dma_sync_for_cpu(void *vaddr, size_t size, int dma_direction);
-+
-+int dma_mmap_coherent(struct device *dev, struct vm_area_struct *vma,
-+		      void *cpu_addr, dma_addr_t dma_addr, size_t size);
-+
-+int dma_mmap_writecombine(struct device *dev, struct vm_area_struct *vma,
-+			  void *cpu_addr, dma_addr_t dma_addr, size_t size);
-+
-+static inline dma_addr_t
-+dma_map_single(struct device *dev, void *ptr, size_t size,
-+	       enum dma_data_direction direction)
-+{
-+	BUG_ON(!valid_dma_direction(direction));
-+	WARN_ON(size == 0);
-+	dma_sync_for_device(ptr, size, direction);
-+	return virt_to_phys(ptr);
-+}
-+
-+static inline void
-+dma_unmap_single(struct device *dev, dma_addr_t dma_addr, size_t size,
-+		 enum dma_data_direction direction)
-+{
-+	BUG_ON(!valid_dma_direction(direction));
-+	dma_sync_for_cpu((void *)bus_to_virt(dma_addr), size, direction);
-+}
-+
-+static inline int
-+dma_map_sg(struct device *dev, struct scatterlist *sglist, int nents,
-+	   enum dma_data_direction direction)
-+{
-+	struct scatterlist *sg;
-+	int i;
-+
-+	BUG_ON(!valid_dma_direction(direction));
-+	WARN_ON(nents == 0 || sglist[0].length == 0);
-+
-+	for_each_sg(sglist, sg, nents, i) {
-+		BUG_ON(!sg_page(sg));
-+
-+		sg->dma_address = sg_phys(sg);
-+		dma_sync_for_device(sg_virt(sg), sg->length, direction);
-+	}
-+
-+	return nents;
-+}
-+
-+static inline dma_addr_t
-+dma_map_page(struct device *dev, struct page *page, unsigned long offset,
-+	     size_t size, enum dma_data_direction direction)
-+{
-+	BUG_ON(!valid_dma_direction(direction));
-+	dma_sync_for_device((void *)(page_to_phys(page) + offset), size,
-+			    direction);
-+	return page_to_phys(page) + offset;
-+}
-+
-+static inline void
-+dma_unmap_page(struct device *dev, dma_addr_t dma_address, size_t size,
-+	       enum dma_data_direction direction)
-+{
-+	BUG_ON(!valid_dma_direction(direction));
-+	dma_sync_for_cpu((void *)bus_to_virt(dma_address), size, direction);
-+}
-+
-+
-+static inline void
-+dma_unmap_sg(struct device *dev, struct scatterlist *sglist, int nhwentries,
-+	     enum dma_data_direction direction)
-+{
-+	struct scatterlist *sg;
-+	int i;
-+
-+	BUG_ON(!valid_dma_direction(direction));
-+	WARN_ON(nhwentries == 0 || sglist[0].length == 0);
-+
-+	for_each_sg(sglist, sg, nhwentries, i) {
-+		BUG_ON(!sg_page(sg));
-+
-+		sg->dma_address = sg_phys(sg);
-+		dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
-+	}
-+}
-+
-+static inline void
-+dma_sync_single_for_cpu(struct device *dev, dma_addr_t dma_handle, size_t size,
-+			enum dma_data_direction direction)
-+{
-+	dma_sync_for_cpu((void *)bus_to_virt(dma_handle), size, direction);
-+}
-+
-+static inline void
-+dma_sync_single_for_device(struct device *dev, dma_addr_t dma_handle,
-+			   size_t size, enum dma_data_direction direction)
-+{
-+	dma_sync_for_device((void *)bus_to_virt(dma_handle), size, direction);
-+}
-+
-+static inline void
-+dma_sync_single_range_for_cpu(struct device *dev, dma_addr_t dma_handle,
-+			      unsigned long offset, size_t size,
-+			      enum dma_data_direction direction)
-+{
-+	dma_sync_for_cpu((void *)bus_to_virt(dma_handle)+offset, size,
-+			 direction);
-+}
-+
-+static inline void
-+dma_sync_single_range_for_device(struct device *dev, dma_addr_t dma_handle,
-+				 unsigned long offset, size_t size,
-+				 enum dma_data_direction direction)
-+{
-+	dma_sync_for_device((void *)bus_to_virt(dma_handle)+offset, size,
-+			    direction);
-+}
-+
-+static inline void
-+dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg, int nelems,
-+		    enum dma_data_direction direction)
-+{
-+	int i;
-+	for (i = 0; i < nelems; i++, sg++)
-+		dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
-+}
-+
-+static inline void
-+dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg, int nelems,
-+		       enum dma_data_direction direction)
-+{
-+	int i;
-+	for (i = 0; i < nelems; i++, sg++)
-+		dma_sync_for_device(sg_virt(sg), sg->length, direction);
-+}
-+
-+static inline int
-+dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
-+{
-+	return 0;
-+}
-+
-+#define dma_supported(dev, mask)        (1)
-+
-+static inline int
-+dma_set_mask(struct device *dev, u64 mask)
-+{
-+	if (!dev->dma_mask || !dma_supported(dev, mask))
-+		return -EIO;
-+
-+	*dev->dma_mask = mask;
-+
-+	return 0;
-+}
-+
-+/*
-+ * dma_alloc_noncoherent() returns non-cacheable memory, so there's no need to
-+ * do any flushing here.
-+ */
-+static inline void
-+dma_cache_sync(struct device *dev, void *vaddr, size_t size,
-+	       enum dma_data_direction direction)
-+{
-+}
-+
-+#endif
-diff --git a/arch/metag/kernel/dma.c b/arch/metag/kernel/dma.c
-new file mode 100644
-index 0000000..7e41f56
---- /dev/null
-+++ b/arch/metag/kernel/dma.c
-@@ -0,0 +1,521 @@
-+/*
-+ *  Meta version derived from arch/powerpc/lib/dma-noncoherent.c
-+ *    Copyright (C) 2008 Imagination Technologies Ltd.
-+ *
-+ *  PowerPC version derived from arch/arm/mm/consistent.c
-+ *    Copyright (C) 2001 Dan Malek (dmalek@jlc.net)
-+ *
-+ *  Copyright (C) 2000 Russell King
-+ *
-+ * Consistent memory allocators.  Used for DMA devices that want to
-+ * share uncached memory with the processor core.  The function return
-+ * is the virtual address and 'dma_handle' is the physical address.
-+ * Mostly stolen from the ARM port, with some changes for PowerPC.
-+ *						-- Dan
-+ *
-+ * Reorganized to get rid of the arch-specific consistent_* functions
-+ * and provide non-coherent implementations for the DMA API. -Matt
-+ *
-+ * Added in_interrupt() safe dma_alloc_coherent()/dma_free_coherent()
-+ * implementation. This is pulled straight from ARM and barely
-+ * modified. -Matt
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#include <linux/sched.h>
-+#include <linux/kernel.h>
-+#include <linux/errno.h>
-+#include <linux/export.h>
-+#include <linux/string.h>
-+#include <linux/types.h>
-+#include <linux/highmem.h>
-+#include <linux/dma-mapping.h>
-+#include <linux/slab.h>
-+#include <linux/static_key.h>
-+
-+#include <asm/tlbflush.h>
-+#include <asm/mmu.h>
-+
-+#define CONSISTENT_OFFSET(x)	(((unsigned long)(x) - CONSISTENT_START) \
-+					>> PAGE_SHIFT)
-+
-+static u64 get_coherent_dma_mask(struct device *dev)
-+{
-+	u64 mask = ~0ULL;
-+
-+	if (dev) {
-+		mask = dev->coherent_dma_mask;
-+
-+		/*
-+		 * Sanity check the DMA mask - it must be non-zero, and
-+		 * must be able to be satisfied by a DMA allocation.
-+		 */
-+		if (mask == 0) {
-+			dev_warn(dev, "coherent DMA mask is unset\n");
-+			return 0;
-+		}
-+	}
-+
-+	return mask;
-+}
-+/*
-+ * This is the page table (2MB) covering uncached, DMA consistent allocations
-+ */
-+static pte_t *consistent_pte;
-+static DEFINE_SPINLOCK(consistent_lock);
-+
-+/*
-+ * VM region handling support.
-+ *
-+ * This should become something generic, handling VM region allocations for
-+ * vmalloc and similar (ioremap, module space, etc).
-+ *
-+ * I envisage vmalloc()'s supporting vm_struct becoming:
-+ *
-+ *  struct vm_struct {
-+ *    struct metag_vm_region	region;
-+ *    unsigned long	flags;
-+ *    struct page	**pages;
-+ *    unsigned int	nr_pages;
-+ *    unsigned long	phys_addr;
-+ *  };
-+ *
-+ * get_vm_area() would then call metag_vm_region_alloc with an appropriate
-+ * struct metag_vm_region head (eg):
-+ *
-+ *  struct metag_vm_region vmalloc_head = {
-+ *	.vm_list	= LIST_HEAD_INIT(vmalloc_head.vm_list),
-+ *	.vm_start	= VMALLOC_START,
-+ *	.vm_end		= VMALLOC_END,
-+ *  };
-+ *
-+ * However, vmalloc_head.vm_start is variable (typically, it is dependent on
-+ * the amount of RAM found at boot time.)  I would imagine that get_vm_area()
-+ * would have to initialise this each time prior to calling
-+ * metag_vm_region_alloc().
-+ */
-+struct metag_vm_region {
-+	struct list_head vm_list;
-+	unsigned long vm_start;
-+	unsigned long vm_end;
-+	struct page		*vm_pages;
-+	int			vm_active;
++struct metag_plt_entry {
++	/* Indirect jump instruction sequence. */
++	unsigned long tramp[2];
 +};
 +
-+static struct metag_vm_region consistent_head = {
-+	.vm_list = LIST_HEAD_INIT(consistent_head.vm_list),
-+	.vm_start = CONSISTENT_START,
-+	.vm_end = CONSISTENT_END,
++struct mod_arch_specific {
++	/* Indices of PLT sections within module. */
++	unsigned int core_plt_section, init_plt_section;
 +};
 +
-+static struct metag_vm_region *metag_vm_region_alloc(struct metag_vm_region
-+						     *head, size_t size,
-+						     gfp_t gfp)
-+{
-+	unsigned long addr = head->vm_start, end = head->vm_end - size;
-+	unsigned long flags;
-+	struct metag_vm_region *c, *new;
-+
-+	new = kmalloc(sizeof(struct metag_vm_region), gfp);
-+	if (!new)
-+		goto out;
-+
-+	spin_lock_irqsave(&consistent_lock, flags);
-+
-+	list_for_each_entry(c, &head->vm_list, vm_list) {
-+		if ((addr + size) < addr)
-+			goto nospc;
-+		if ((addr + size) <= c->vm_start)
-+			goto found;
-+		addr = c->vm_end;
-+		if (addr > end)
-+			goto nospc;
-+	}
-+
-+found:
-+	/*
-+	 * Insert this entry _before_ the one we found.
-+	 */
-+	list_add_tail(&new->vm_list, &c->vm_list);
-+	new->vm_start = addr;
-+	new->vm_end = addr + size;
-+	new->vm_active = 1;
-+
-+	spin_unlock_irqrestore(&consistent_lock, flags);
-+	return new;
-+
-+nospc:
-+	spin_unlock_irqrestore(&consistent_lock, flags);
-+	kfree(new);
-+out:
-+	return NULL;
-+}
-+
-+static struct metag_vm_region *metag_vm_region_find(struct metag_vm_region
-+						    *head, unsigned long addr)
-+{
-+	struct metag_vm_region *c;
-+
-+	list_for_each_entry(c, &head->vm_list, vm_list) {
-+		if (c->vm_active && c->vm_start == addr)
-+			goto out;
-+	}
-+	c = NULL;
-+out:
-+	return c;
-+}
-+
-+/*
-+ * Allocate DMA-coherent memory space and return both the kernel remapped
-+ * virtual and bus address for that space.
-+ */
-+void *dma_alloc_coherent(struct device *dev, size_t size,
-+			 dma_addr_t *handle, gfp_t gfp)
-+{
-+	struct page *page;
-+	struct metag_vm_region *c;
-+	unsigned long order;
-+	u64 mask = get_coherent_dma_mask(dev);
-+	u64 limit;
-+
-+	if (!consistent_pte) {
-+		pr_err("%s: not initialised\n", __func__);
-+		dump_stack();
-+		return NULL;
-+	}
-+
-+	if (!mask)
-+		goto no_page;
-+	size = PAGE_ALIGN(size);
-+	limit = (mask + 1) & ~mask;
-+	if ((limit && size >= limit)
-+	    || size >= (CONSISTENT_END - CONSISTENT_START)) {
-+		pr_warn("coherent allocation too big (requested %#x mask %#Lx)\n",
-+			size, mask);
-+		return NULL;
-+	}
-+
-+	order = get_order(size);
-+
-+	if (mask != 0xffffffff)
-+		gfp |= GFP_DMA;
-+
-+	page = alloc_pages(gfp, order);
-+	if (!page)
-+		goto no_page;
-+
-+	/*
-+	 * Invalidate any data that might be lurking in the
-+	 * kernel direct-mapped region for device DMA.
-+	 */
-+	{
-+		void *kaddr = page_address(page);
-+		memset(kaddr, 0, size);
-+		flush_dcache_region(kaddr, size);
-+	}
-+
-+	/*
-+	 * Allocate a virtual address in the consistent mapping region.
-+	 */
-+	c = metag_vm_region_alloc(&consistent_head, size,
-+				  gfp & ~(__GFP_DMA | __GFP_HIGHMEM));
-+	if (c) {
-+		unsigned long vaddr = c->vm_start;
-+		pte_t *pte = consistent_pte + CONSISTENT_OFFSET(vaddr);
-+		struct page *end = page + (1 << order);
-+
-+		c->vm_pages = page;
-+		split_page(page, order);
-+
-+		/*
-+		 * Set the "dma handle"
-+		 */
-+		*handle = page_to_bus(page);
-+
-+		do {
-+			BUG_ON(!pte_none(*pte));
-+
-+			SetPageReserved(page);
-+			set_pte_at(&init_mm, vaddr,
-+				   pte, mk_pte(page,
-+					       pgprot_writecombine
-+					       (PAGE_KERNEL)));
-+			page++;
-+			pte++;
-+			vaddr += PAGE_SIZE;
-+		} while (size -= PAGE_SIZE);
-+
-+		/*
-+		 * Free the otherwise unused pages.
-+		 */
-+		while (page < end) {
-+			__free_page(page);
-+			page++;
-+		}
-+
-+		return (void *)c->vm_start;
-+	}
-+
-+	if (page)
-+		__free_pages(page, order);
-+no_page:
-+	return NULL;
-+}
-+EXPORT_SYMBOL(dma_alloc_coherent);
-+
-+/*
-+ * free a page as defined by the above mapping.
-+ */
-+void dma_free_coherent(struct device *dev, size_t size,
-+		       void *vaddr, dma_addr_t dma_handle)
-+{
-+	struct metag_vm_region *c;
-+	unsigned long flags, addr;
-+	pte_t *ptep;
-+
-+	size = PAGE_ALIGN(size);
-+
-+	spin_lock_irqsave(&consistent_lock, flags);
-+
-+	c = metag_vm_region_find(&consistent_head, (unsigned long)vaddr);
-+	if (!c)
-+		goto no_area;
-+
-+	c->vm_active = 0;
-+	if ((c->vm_end - c->vm_start) != size) {
-+		pr_err("%s: freeing wrong coherent size (%ld != %d)\n",
-+		       __func__, c->vm_end - c->vm_start, size);
-+		dump_stack();
-+		size = c->vm_end - c->vm_start;
-+	}
-+
-+	ptep = consistent_pte + CONSISTENT_OFFSET(c->vm_start);
-+	addr = c->vm_start;
-+	do {
-+		pte_t pte = ptep_get_and_clear(&init_mm, addr, ptep);
-+		unsigned long pfn;
-+
-+		ptep++;
-+		addr += PAGE_SIZE;
-+
-+		if (!pte_none(pte) && pte_present(pte)) {
-+			pfn = pte_pfn(pte);
-+
-+			if (pfn_valid(pfn)) {
-+				struct page *page = pfn_to_page(pfn);
-+				ClearPageReserved(page);
-+
-+				__free_page(page);
-+				continue;
-+			}
-+		}
-+
-+		pr_crit("%s: bad page in kernel page table\n",
-+			__func__);
-+	} while (size -= PAGE_SIZE);
-+
-+	flush_tlb_kernel_range(c->vm_start, c->vm_end);
-+
-+	list_del(&c->vm_list);
-+
-+	spin_unlock_irqrestore(&consistent_lock, flags);
-+
-+	kfree(c);
-+	return;
-+
-+no_area:
-+	spin_unlock_irqrestore(&consistent_lock, flags);
-+	pr_err("%s: trying to free invalid coherent area: %p\n",
-+	       __func__, vaddr);
-+	dump_stack();
-+}
-+EXPORT_SYMBOL(dma_free_coherent);
-+
-+
-+static int dma_mmap(struct device *dev, struct vm_area_struct *vma,
-+		    void *cpu_addr, dma_addr_t dma_addr, size_t size)
-+{
-+	int ret = -ENXIO;
-+
-+	unsigned long flags, user_size, kern_size;
-+	struct metag_vm_region *c;
-+
-+	user_size = (vma->vm_end - vma->vm_start) >> PAGE_SHIFT;
-+
-+	spin_lock_irqsave(&consistent_lock, flags);
-+	c = metag_vm_region_find(&consistent_head, (unsigned long)cpu_addr);
-+	spin_unlock_irqrestore(&consistent_lock, flags);
-+
-+	if (c) {
-+		unsigned long off = vma->vm_pgoff;
-+
-+		kern_size = (c->vm_end - c->vm_start) >> PAGE_SHIFT;
-+
-+		if (off < kern_size &&
-+		    user_size <= (kern_size - off)) {
-+			ret = remap_pfn_range(vma, vma->vm_start,
-+					      page_to_pfn(c->vm_pages) + off,
-+					      user_size << PAGE_SHIFT,
-+					      vma->vm_page_prot);
-+		}
-+	}
-+
-+
-+	return ret;
-+}
-+
-+int dma_mmap_coherent(struct device *dev, struct vm_area_struct *vma,
-+		      void *cpu_addr, dma_addr_t dma_addr, size_t size)
-+{
-+	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
-+	return dma_mmap(dev, vma, cpu_addr, dma_addr, size);
-+}
-+EXPORT_SYMBOL(dma_mmap_coherent);
-+
-+int dma_mmap_writecombine(struct device *dev, struct vm_area_struct *vma,
-+			  void *cpu_addr, dma_addr_t dma_addr, size_t size)
-+{
-+	vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
-+	return dma_mmap(dev, vma, cpu_addr, dma_addr, size);
-+}
-+EXPORT_SYMBOL(dma_mmap_writecombine);
-+
-+
-+
-+
-+/*
-+ * Initialise the consistent memory allocation.
-+ */
-+static int __init dma_alloc_init(void)
-+{
-+	pgd_t *pgd, *pgd_k;
-+	pud_t *pud, *pud_k;
-+	pmd_t *pmd, *pmd_k;
-+	pte_t *pte;
-+	int ret = 0;
-+
-+	do {
-+		int offset = pgd_index(CONSISTENT_START);
-+		pgd = pgd_offset(&init_mm, CONSISTENT_START);
-+		pud = pud_alloc(&init_mm, pgd, CONSISTENT_START);
-+		pmd = pmd_alloc(&init_mm, pud, CONSISTENT_START);
-+		if (!pmd) {
-+			pr_err("%s: no pmd tables\n", __func__);
-+			ret = -ENOMEM;
-+			break;
-+		}
-+		WARN_ON(!pmd_none(*pmd));
-+
-+		pte = pte_alloc_kernel(pmd, CONSISTENT_START);
-+		if (!pte) {
-+			pr_err("%s: no pte tables\n", __func__);
-+			ret = -ENOMEM;
-+			break;
-+		}
-+
-+		pgd_k = ((pgd_t *) mmu_get_base()) + offset;
-+		pud_k = pud_offset(pgd_k, CONSISTENT_START);
-+		pmd_k = pmd_offset(pud_k, CONSISTENT_START);
-+		set_pmd(pmd_k, *pmd);
-+
-+		consistent_pte = pte;
-+	} while (0);
-+
-+	return ret;
-+}
-+early_initcall(dma_alloc_init);
-+
-+#ifdef CONFIG_META_L2C
-+/* Invalidate (may also write back if necessary) */
-+static inline void invalidate_dcache_region(void *start, unsigned long size)
-+{
-+	if (meta_l2c_has_invalidate())
-+		cachew_region_op(start, size, CACHEW_INVALIDATE_L1D_L2);
-+	else
-+		flush_dcache_region(start, size);
-+}
++#if defined CONFIG_META12
++#define MODULE_PROC_FAMILY "META 1.2 "
++#elif defined CONFIG_META21
++#define MODULE_PROC_FAMILY "META 2.1 "
 +#else
-+#define invalidate_dcache_region(s, l)	flush_dcache_region((s), (l))
++#define MODULE_PROC_FAMILY ""
 +#endif
 +
-+/*
-+ * make an area consistent to devices.
-+ */
-+void dma_sync_for_device(void *vaddr, size_t size, int dma_direction)
++#ifdef CONFIG_4KSTACKS
++#define MODULE_STACKSIZE "4KSTACKS "
++#else
++#define MODULE_STACKSIZE ""
++#endif
++
++#define MODULE_ARCH_VERMAGIC MODULE_PROC_FAMILY MODULE_STACKSIZE
++
++#define Elf_Shdr Elf32_Shdr
++#define Elf_Sym Elf32_Sym
++#define Elf_Ehdr Elf32_Ehdr
++
++#ifdef MODULE
++asm(".section .plt,\"ax\",@progbits; .balign 8; .previous");
++asm(".section .init.plt,\"ax\",@progbits; .balign 8; .previous");
++#endif
++
++#endif /* _ASM_METAG_MODULE_H */
+diff --git a/arch/metag/kernel/metag_ksyms.c b/arch/metag/kernel/metag_ksyms.c
+index 0ea1332..7b64076 100644
+--- a/arch/metag/kernel/metag_ksyms.c
++++ b/arch/metag/kernel/metag_ksyms.c
+@@ -66,6 +66,10 @@ DECLARE_EXPORT(__umodsi3);
+ DECLARE_EXPORT(__modsi3);
+ DECLARE_EXPORT(__muldi3);
+ 
++/* Maths functions */
++EXPORT_SYMBOL(div_u64);
++EXPORT_SYMBOL(div_s64);
++
+ /* String functions */
+ EXPORT_SYMBOL(memcpy);
+ EXPORT_SYMBOL(memset);
+diff --git a/arch/metag/kernel/module.c b/arch/metag/kernel/module.c
+new file mode 100644
+index 0000000..986331c
+--- /dev/null
++++ b/arch/metag/kernel/module.c
+@@ -0,0 +1,284 @@
++/*  Kernel module help for Meta.
++
++    This program is free software; you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation; either version 2 of the License, or
++    (at your option) any later version.
++
++    This program is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++*/
++#include <linux/moduleloader.h>
++#include <linux/elf.h>
++#include <linux/vmalloc.h>
++#include <linux/fs.h>
++#include <linux/string.h>
++#include <linux/kernel.h>
++#include <linux/sort.h>
++
++#include <asm/unaligned.h>
++
++/* Count how many different relocations (different symbol, different
++   addend) */
++static unsigned int count_relocs(const Elf32_Rela *rela, unsigned int num)
 +{
-+	/*
-+	 * Ensure any writes get through the write combiner. This is necessary
-+	 * even with DMA_FROM_DEVICE, or the write may dirty the cache after
-+	 * we've invalidated it and get written back during the DMA.
-+	 */
++	unsigned int i, r_info, r_addend, _count_relocs;
 +
-+	barrier();
++	_count_relocs = 0;
++	r_info = 0;
++	r_addend = 0;
++	for (i = 0; i < num; i++)
++		/* Only count relbranch relocs, others don't need stubs */
++		if (ELF32_R_TYPE(rela[i].r_info) == R_METAG_RELBRANCH &&
++		    (r_info != ELF32_R_SYM(rela[i].r_info) ||
++		     r_addend != rela[i].r_addend)) {
++			_count_relocs++;
++			r_info = ELF32_R_SYM(rela[i].r_info);
++			r_addend = rela[i].r_addend;
++		}
 +
-+	switch (dma_direction) {
-+	case DMA_BIDIRECTIONAL:
-+		/*
-+		 * Writeback to ensure the device can see our latest changes and
-+		 * so that we have no dirty lines, and invalidate the cache
-+		 * lines too in preparation for receiving the buffer back
-+		 * (dma_sync_for_cpu) later.
-+		 */
-+		flush_dcache_region(vaddr, size);
-+		break;
-+	case DMA_TO_DEVICE:
-+		/*
-+		 * Writeback to ensure the device can see our latest changes.
-+		 * There's no need to invalidate as the device shouldn't write
-+		 * to the buffer.
-+		 */
-+		writeback_dcache_region(vaddr, size);
-+		break;
-+	case DMA_FROM_DEVICE:
-+		/*
-+		 * Invalidate to ensure we have no dirty lines that could get
-+		 * written back during the DMA. It's also safe to flush
-+		 * (writeback) here if necessary.
-+		 */
-+		invalidate_dcache_region(vaddr, size);
-+		break;
-+	case DMA_NONE:
-+		BUG();
-+	}
-+
-+	wmb();
++	return _count_relocs;
 +}
-+EXPORT_SYMBOL(dma_sync_for_device);
 +
-+/*
-+ * make an area consistent to the core.
-+ */
-+void dma_sync_for_cpu(void *vaddr, size_t size, int dma_direction)
++static int relacmp(const void *_x, const void *_y)
 +{
-+	/*
-+	 * Hardware L2 cache prefetch doesn't occur across 4K physical
-+	 * boundaries, however according to Documentation/DMA-API-HOWTO.txt
-+	 * kmalloc'd memory is DMA'able, so accesses in nearby memory could
-+	 * trigger a cache fill in the DMA buffer.
-+	 *
-+	 * This should never cause dirty lines, so a flush or invalidate should
-+	 * be safe to allow us to see data from the device.
++	const Elf32_Rela *x, *y;
++
++	y = (Elf32_Rela *)_x;
++	x = (Elf32_Rela *)_y;
++
++	/* Compare the entire r_info (as opposed to ELF32_R_SYM(r_info) only) to
++	 * make the comparison cheaper/faster. It won't affect the sorting or
++	 * the counting algorithms' performance
 +	 */
-+	if (_meta_l2c_pf_is_enabled()) {
-+		switch (dma_direction) {
-+		case DMA_BIDIRECTIONAL:
-+		case DMA_FROM_DEVICE:
-+			invalidate_dcache_region(vaddr, size);
-+			break;
-+		case DMA_TO_DEVICE:
-+			/* The device shouldn't have written to the buffer */
-+			break;
-+		case DMA_NONE:
-+			BUG();
++	if (x->r_info < y->r_info)
++		return -1;
++	else if (x->r_info > y->r_info)
++		return 1;
++	else if (x->r_addend < y->r_addend)
++		return -1;
++	else if (x->r_addend > y->r_addend)
++		return 1;
++	else
++		return 0;
++}
++
++static void relaswap(void *_x, void *_y, int size)
++{
++	uint32_t *x, *y, tmp;
++	int i;
++
++	y = (uint32_t *)_x;
++	x = (uint32_t *)_y;
++
++	for (i = 0; i < sizeof(Elf32_Rela) / sizeof(uint32_t); i++) {
++		tmp = x[i];
++		x[i] = y[i];
++		y[i] = tmp;
++	}
++}
++
++/* Get the potential trampolines size required of the init and
++   non-init sections */
++static unsigned long get_plt_size(const Elf32_Ehdr *hdr,
++				  const Elf32_Shdr *sechdrs,
++				  const char *secstrings,
++				  int is_init)
++{
++	unsigned long ret = 0;
++	unsigned i;
++
++	/* Everything marked ALLOC (this includes the exported
++	   symbols) */
++	for (i = 1; i < hdr->e_shnum; i++) {
++		/* If it's called *.init*, and we're not init, we're
++		   not interested */
++		if ((strstr(secstrings + sechdrs[i].sh_name, ".init") != NULL)
++		    != is_init)
++			continue;
++
++		/* We don't want to look at debug sections. */
++		if (strstr(secstrings + sechdrs[i].sh_name, ".debug") != NULL)
++			continue;
++
++		if (sechdrs[i].sh_type == SHT_RELA) {
++			pr_debug("Found relocations in section %u\n", i);
++			pr_debug("Ptr: %p.  Number: %u\n",
++				 (void *)hdr + sechdrs[i].sh_offset,
++				 sechdrs[i].sh_size / sizeof(Elf32_Rela));
++
++			/* Sort the relocation information based on a symbol and
++			 * addend key. This is a stable O(n*log n) complexity
++			 * alogrithm but it will reduce the complexity of
++			 * count_relocs() to linear complexity O(n)
++			 */
++			sort((void *)hdr + sechdrs[i].sh_offset,
++			     sechdrs[i].sh_size / sizeof(Elf32_Rela),
++			     sizeof(Elf32_Rela), relacmp, relaswap);
++
++			ret += count_relocs((void *)hdr
++					     + sechdrs[i].sh_offset,
++					     sechdrs[i].sh_size
++					     / sizeof(Elf32_Rela))
++				* sizeof(struct metag_plt_entry);
 +		}
 +	}
 +
-+	rmb();
++	return ret;
 +}
-+EXPORT_SYMBOL(dma_sync_for_cpu);
++
++int module_frob_arch_sections(Elf32_Ehdr *hdr,
++			      Elf32_Shdr *sechdrs,
++			      char *secstrings,
++			      struct module *me)
++{
++	unsigned int i;
++
++	/* Find .plt and .init.plt sections */
++	for (i = 0; i < hdr->e_shnum; i++) {
++		if (strcmp(secstrings + sechdrs[i].sh_name, ".init.plt") == 0)
++			me->arch.init_plt_section = i;
++		else if (strcmp(secstrings + sechdrs[i].sh_name, ".plt") == 0)
++			me->arch.core_plt_section = i;
++	}
++	if (!me->arch.core_plt_section || !me->arch.init_plt_section) {
++		pr_err("Module doesn't contain .plt or .init.plt sections.\n");
++		return -ENOEXEC;
++	}
++
++	/* Override their sizes */
++	sechdrs[me->arch.core_plt_section].sh_size
++		= get_plt_size(hdr, sechdrs, secstrings, 0);
++	sechdrs[me->arch.core_plt_section].sh_type = SHT_NOBITS;
++	sechdrs[me->arch.init_plt_section].sh_size
++		= get_plt_size(hdr, sechdrs, secstrings, 1);
++	sechdrs[me->arch.init_plt_section].sh_type = SHT_NOBITS;
++	return 0;
++}
++
++/* Set up a trampoline in the PLT to bounce us to the distant function */
++static uint32_t do_plt_call(void *location, Elf32_Addr val,
++			    Elf32_Shdr *sechdrs, struct module *mod)
++{
++	struct metag_plt_entry *entry;
++	/* Instructions used to do the indirect jump.  */
++	uint32_t tramp[2];
++
++	/* We have to trash a register, so we assume that any control
++	   transfer more than 21-bits away must be a function call
++	   (so we can use a call-clobbered register).  */
++
++	/* MOVT D0Re0,#HI(v) */
++	tramp[0] = 0x02000005 | (((val & 0xffff0000) >> 16) << 3);
++	/* JUMP D0Re0,#LO(v) */
++	tramp[1] = 0xac000001 | ((val & 0x0000ffff) << 3);
++
++	/* Init, or core PLT? */
++	if (location >= mod->module_core
++	    && location < mod->module_core + mod->core_size)
++		entry = (void *)sechdrs[mod->arch.core_plt_section].sh_addr;
++	else
++		entry = (void *)sechdrs[mod->arch.init_plt_section].sh_addr;
++
++	/* Find this entry, or if that fails, the next avail. entry */
++	while (entry->tramp[0])
++		if (entry->tramp[0] == tramp[0] && entry->tramp[1] == tramp[1])
++			return (uint32_t)entry;
++		else
++			entry++;
++
++	entry->tramp[0] = tramp[0];
++	entry->tramp[1] = tramp[1];
++
++	return (uint32_t)entry;
++}
++
++int apply_relocate_add(Elf32_Shdr *sechdrs,
++		   const char *strtab,
++		   unsigned int symindex,
++		   unsigned int relsec,
++		   struct module *me)
++{
++	unsigned int i;
++	Elf32_Rela *rel = (void *)sechdrs[relsec].sh_addr;
++	Elf32_Sym *sym;
++	Elf32_Addr relocation;
++	uint32_t *location;
++	int32_t value;
++
++	pr_debug("Applying relocate section %u to %u\n", relsec,
++		 sechdrs[relsec].sh_info);
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
++		/* This is where to make the change */
++		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
++			+ rel[i].r_offset;
++		/* This is the symbol it is referring to.  Note that all
++		   undefined symbols have been resolved.  */
++		sym = (Elf32_Sym *)sechdrs[symindex].sh_addr
++			+ ELF32_R_SYM(rel[i].r_info);
++		relocation = sym->st_value + rel[i].r_addend;
++
++		switch (ELF32_R_TYPE(rel[i].r_info)) {
++		case R_METAG_NONE:
++			break;
++		case R_METAG_HIADDR16:
++			relocation >>= 16;
++		case R_METAG_LOADDR16:
++			*location = (*location & 0xfff80007) |
++				((relocation & 0xffff) << 3);
++			break;
++		case R_METAG_ADDR32:
++			/*
++			 * Packed data structures may cause a misaligned
++			 * R_METAG_ADDR32 to be emitted.
++			 */
++			put_unaligned(relocation, location);
++			break;
++		case R_METAG_GETSETOFF:
++			*location += ((relocation & 0xfff) << 7);
++			break;
++		case R_METAG_RELBRANCH:
++			if (*location & (0x7ffff << 5)) {
++				pr_err("bad relbranch relocation\n");
++				break;
++			}
++
++			/* This jump is too big for the offset slot. Build
++			 * a PLT to jump through to get to where we want to go.
++			 * NB: 21bit check - not scaled to 19bit yet
++			 */
++			if (((int32_t)(relocation -
++				       (uint32_t)location) > 0xfffff) ||
++			    ((int32_t)(relocation -
++				       (uint32_t)location) < -0xfffff)) {
++				relocation = do_plt_call(location, relocation,
++							 sechdrs, me);
++			}
++
++			value = relocation - (uint32_t)location;
++
++			/* branch instruction aligned */
++			value /= 4;
++
++			if ((value > 0x7ffff) || (value < -0x7ffff)) {
++				/*
++				 * this should have been caught by the code
++				 * above!
++				 */
++				pr_err("overflow of relbranch reloc\n");
++			}
++
++			*location = (*location & (~(0x7ffff << 5))) |
++				((value & 0x7ffff) << 5);
++			break;
++
++		default:
++			pr_err("module %s: Unknown relocation: %u\n",
++			       me->name, ELF32_R_TYPE(rel[i].r_info));
++			return -ENOEXEC;
++		}
++	}
++	return 0;
++}
 -- 
 1.7.7.6
