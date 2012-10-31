@@ -1,66 +1,249 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [RFC PATCH v1 22/40] metag: Basic documentation
-Date: Wed, 31 Oct 2012 16:14:03 +0000
-Message-ID: <1351700061-7203-23-git-send-email-james.hogan@imgtec.com>
+Subject: [RFC PATCH v1 26/40] metag: Stack unwinding
+Date: Wed, 31 Oct 2012 16:14:07 +0000
+Message-ID: <1351700061-7203-27-git-send-email-james.hogan@imgtec.com>
 References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:49761 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:51779 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1423215Ab2JaQPF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 31 Oct 2012 12:15:05 -0400
+	id S1423210Ab2JaQPE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 31 Oct 2012 12:15:04 -0400
 In-Reply-To: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
 Cc: James Hogan <james.hogan@imgtec.com>
 
-Add basic metag documentation.
+Add stack unwinding support for Meta.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
 ---
- Documentation/00-INDEX              |    2 ++
- Documentation/kernel-parameters.txt |    4 ++++
- Documentation/metag/00-INDEX        |    2 ++
- 3 files changed, 8 insertions(+), 0 deletions(-)
- create mode 100644 Documentation/metag/00-INDEX
+ arch/metag/include/asm/stacktrace.h |   20 ++++
+ arch/metag/kernel/stacktrace.c      |  187 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 207 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/include/asm/stacktrace.h
+ create mode 100644 arch/metag/kernel/stacktrace.c
 
-diff --git a/Documentation/00-INDEX b/Documentation/00-INDEX
-index 49c0513..1dadc7e 100644
---- a/Documentation/00-INDEX
-+++ b/Documentation/00-INDEX
-@@ -226,6 +226,8 @@ memory-hotplug.txt
- 	- Hotpluggable memory support, how to use and current status.
- memory.txt
- 	- info on typical Linux memory problems.
-+metag/
-+	- directory with info about Linux on Meta architecture.
- mips/
- 	- directory with info about Linux on MIPS architecture.
- mmc/
-diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-parameters.txt
-index ad7e2e5..4989844 100644
---- a/Documentation/kernel-parameters.txt
-+++ b/Documentation/kernel-parameters.txt
-@@ -958,6 +958,10 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
- 			       If specified, z/VM IUCV HVC accepts connections
- 			       from listed z/VM user IDs only.
- 
-+	hwthread_map=	[METAG] Comma-separated list of Linux cpu id to
-+			        hardware thread id mappings.
-+				Format: <cpu>:<hwthread>
-+
- 	keep_bootcon	[KNL]
- 			Do not unregister boot console at start. This is only
- 			useful for debugging when something happens in the window
-diff --git a/Documentation/metag/00-INDEX b/Documentation/metag/00-INDEX
+diff --git a/arch/metag/include/asm/stacktrace.h b/arch/metag/include/asm/stacktrace.h
 new file mode 100644
-index 0000000..808f5d4
+index 0000000..2830a0f
 --- /dev/null
-+++ b/Documentation/metag/00-INDEX
-@@ -0,0 +1,2 @@
-+00-INDEX
-+	- this file
++++ b/arch/metag/include/asm/stacktrace.h
+@@ -0,0 +1,20 @@
++#ifndef __ASM_STACKTRACE_H
++#define __ASM_STACKTRACE_H
++
++struct stackframe {
++	unsigned long fp;
++	unsigned long sp;
++	unsigned long lr;
++	unsigned long pc;
++};
++
++struct metag_frame {
++	unsigned long fp;
++	unsigned long lr;
++};
++
++extern int unwind_frame(struct stackframe *frame);
++extern void walk_stackframe(struct stackframe *frame,
++			    int (*fn)(struct stackframe *, void *), void *data);
++
++#endif	/* __ASM_STACKTRACE_H */
+diff --git a/arch/metag/kernel/stacktrace.c b/arch/metag/kernel/stacktrace.c
+new file mode 100644
+index 0000000..5510361
+--- /dev/null
++++ b/arch/metag/kernel/stacktrace.c
+@@ -0,0 +1,187 @@
++#include <linux/export.h>
++#include <linux/sched.h>
++#include <linux/stacktrace.h>
++
++#include <asm/stacktrace.h>
++
++#if defined(CONFIG_FRAME_POINTER)
++
++#ifdef CONFIG_KALLSYMS
++#include <linux/kallsyms.h>
++#include <linux/module.h>
++
++static unsigned long tbi_boing_addr;
++static unsigned long tbi_boing_size;
++
++static void tbi_boing_init(void)
++{
++	/* We need to know where TBIBoingVec is and it's size */
++	unsigned long size;
++	unsigned long offset;
++	char modname[MODULE_NAME_LEN];
++	char name[KSYM_NAME_LEN];
++	tbi_boing_addr = kallsyms_lookup_name("___TBIBoingVec");
++	if (!tbi_boing_addr)
++		tbi_boing_addr = 1;
++	else if (!lookup_symbol_attrs(tbi_boing_addr, &size,
++				      &offset, modname, name))
++		tbi_boing_size = size;
++}
++#endif
++
++#define ALIGN_DOWN(addr, size)  ((addr)&(~((size)-1)))
++
++/*
++ * Unwind the current stack frame and store the new register values in the
++ * structure passed as argument. Unwinding is equivalent to a function return,
++ * hence the new PC value rather than LR should be used for backtrace.
++ */
++int notrace unwind_frame(struct stackframe *frame)
++{
++	struct metag_frame *fp = (struct metag_frame *)frame->fp;
++	unsigned long lr;
++	unsigned long fpnew;
++
++	if (frame->fp & 0x7)
++		return -EINVAL;
++
++	fpnew = fp->fp;
++	lr = fp->lr - 4;
++
++#ifdef CONFIG_KALLSYMS
++	/* If we've reached TBIBoingVec then we're at an interrupt
++	 * entry point or a syscall entry point. The frame pointer
++	 * points to a pt_regs which can be used to continue tracing on
++	 * the other side of the boing.
++	 */
++	if (!tbi_boing_addr)
++		tbi_boing_init();
++	if (tbi_boing_size && lr >= tbi_boing_addr &&
++	    lr < tbi_boing_addr + tbi_boing_size) {
++		struct pt_regs *regs = (struct pt_regs *)fpnew;
++		if (user_mode(regs))
++			return -EINVAL;
++		fpnew = regs->ctx.AX[1].U0;
++		lr = regs->ctx.DX[4].U1;
++	}
++#endif
++
++	/* stack grows up, so frame pointers must decrease */
++	if (fpnew < (ALIGN_DOWN((unsigned long)fp, THREAD_SIZE) +
++		     sizeof(struct thread_info)) || fpnew >= (unsigned long)fp)
++		return -EINVAL;
++
++	/* restore the registers from the stack frame */
++	frame->fp = fpnew;
++	frame->pc = lr;
++
++	return 0;
++}
++#else
++int notrace unwind_frame(struct stackframe *frame)
++{
++	struct metag_frame *sp = (struct metag_frame *)frame->sp;
++
++	if (frame->sp & 0x7)
++		return -EINVAL;
++
++	while (!kstack_end(sp)) {
++		unsigned long addr = sp->lr - 4;
++		sp--;
++
++		if (__kernel_text_address(addr)) {
++			frame->sp = (unsigned long)sp;
++			frame->pc = addr;
++			return 0;
++		}
++	}
++	return -EINVAL;
++}
++#endif
++
++void notrace walk_stackframe(struct stackframe *frame,
++		     int (*fn)(struct stackframe *, void *), void *data)
++{
++	while (1) {
++		int ret;
++
++		if (fn(frame, data))
++			break;
++		ret = unwind_frame(frame);
++		if (ret < 0)
++			break;
++	}
++}
++EXPORT_SYMBOL(walk_stackframe);
++
++#ifdef CONFIG_STACKTRACE
++struct stack_trace_data {
++	struct stack_trace *trace;
++	unsigned int no_sched_functions;
++	unsigned int skip;
++};
++
++static int save_trace(struct stackframe *frame, void *d)
++{
++	struct stack_trace_data *data = d;
++	struct stack_trace *trace = data->trace;
++	unsigned long addr = frame->pc;
++
++	if (data->no_sched_functions && in_sched_functions(addr))
++		return 0;
++	if (data->skip) {
++		data->skip--;
++		return 0;
++	}
++
++	trace->entries[trace->nr_entries++] = addr;
++
++	return trace->nr_entries >= trace->max_entries;
++}
++
++void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
++{
++	struct stack_trace_data data;
++	struct stackframe frame;
++
++	data.trace = trace;
++	data.skip = trace->skip;
++
++	if (tsk != current) {
++#ifdef CONFIG_SMP
++		/*
++		 * What guarantees do we have here that 'tsk' is not
++		 * running on another CPU?  For now, ignore it as we
++		 * can't guarantee we won't explode.
++		 */
++		if (trace->nr_entries < trace->max_entries)
++			trace->entries[trace->nr_entries++] = ULONG_MAX;
++		return;
++#else
++		data.no_sched_functions = 1;
++		frame.fp = thread_saved_fp(tsk);
++		frame.sp = thread_saved_sp(tsk);
++		frame.lr = 0;		/* recovered from the stack */
++		frame.pc = thread_saved_pc(tsk);
++#endif
++	} else {
++		register unsigned long current_sp asm ("A0StP");
++
++		data.no_sched_functions = 0;
++		frame.fp = (unsigned long)__builtin_frame_address(0);
++		frame.sp = current_sp;
++		frame.lr = (unsigned long)__builtin_return_address(0);
++		frame.pc = (unsigned long)save_stack_trace_tsk;
++	}
++
++	walk_stackframe(&frame, save_trace, &data);
++	if (trace->nr_entries < trace->max_entries)
++		trace->entries[trace->nr_entries++] = ULONG_MAX;
++}
++
++void save_stack_trace(struct stack_trace *trace)
++{
++	save_stack_trace_tsk(current, trace);
++}
++EXPORT_SYMBOL_GPL(save_stack_trace);
++#endif
 -- 
 1.7.7.6
