@@ -1,42 +1,40 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [RFC PATCH v1 06/40] of/vendor-prefixes: add Imagination Technologies
-Date: Thu, 1 Nov 2012 09:20:08 +0000
-Message-ID: <50923EC8.9040408@imgtec.com>
-References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <1351700061-7203-7-git-send-email-james.hogan@imgtec.com> <5091D29F.1050100@gmail.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:63095 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757305Ab2KAJUa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 1 Nov 2012 05:20:30 -0400
-In-Reply-To: <5091D29F.1050100@gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Rob Herring <robherring2@gmail.com>
-Cc: linux-arch@vger.kernel.org, Grant Likely <grant.likely@secretlab.ca>, Rob Landley <rob@landley.net>, devicetree-discuss@lists.ozlabs.org
+From: Lars-Peter Clausen <lars@metafoo.de>
+Subject: [PATCH 2/5] asm-generic/mmu.h: Add support for FDPIC
+Date: Thu,  1 Nov 2012 11:24:24 +0100
+Message-ID: <1351765467-29244-2-git-send-email-lars@metafoo.de>
+References: <1351765467-29244-1-git-send-email-lars@metafoo.de>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1351765467-29244-1-git-send-email-lars@metafoo.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Lars-Peter Clausen <lars@metafoo.de>
+List-Id: linux-arch.vger.kernel.org
 
-On 01/11/12 01:38, Rob Herring wrote:
-> On 10/31/2012 11:13 AM, James Hogan wrote:
->> @@ -34,7 +35,7 @@ nintendo	Nintendo
->>  nvidia	NVIDIA
->>  nxp	NXP Semiconductors
->>  picochip	Picochip Ltd
->> -powervr	Imagination Technologies
->> +powervr	PowerVR (Imagination Technologies Ltd.)
-> 
-> Perhaps you should add "deprecated, use img"
+No-MMU architectures often have support for FDPIC binaries. FDPIC support
+requires two additional fields in the mm_context_t struct. This patch adds these
+fields to the generic mm_context_t definition if support for FDPIC binaries is
+enabled. This allows to use the generic mmu.h for a few more architectures.
 
-Yes, that sounds reasonable, I'll change to something like this:
-powervr		PowerVR (deprecated, use img)
+Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
+---
+ include/asm-generic/mmu.h |    5 +++++
+ 1 files changed, 5 insertions(+), 0 deletions(-)
 
-> Otherwise, looks fine and I assume you are going to merge with the rest
-> of the series:
-
-Yeh, I'm happy either way.
-
-> Acked-by: Rob Herring <rob.herring@calxeda.com>
-
-Thanks
-James
+diff --git a/include/asm-generic/mmu.h b/include/asm-generic/mmu.h
+index a67ae0a9..0ed3f1c 100644
+--- a/include/asm-generic/mmu.h
++++ b/include/asm-generic/mmu.h
+@@ -8,6 +8,11 @@
+ #ifndef __ASSEMBLY__
+ typedef struct {
+ 	unsigned long		end_brk;
++
++#ifdef CONFIG_BINFMT_ELF_FDPIC
++	unsigned long		exec_fdpic_loadmap;
++	unsigned long		interp_fdpic_loadmap;
++#endif
+ } mm_context_t;
+ #endif
+ 
+-- 
+1.7.2.5
