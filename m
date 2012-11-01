@@ -1,37 +1,38 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: Re: [PATCH 4/5] c6x: Use generic asm/mmu.h
-Date: Thu, 01 Nov 2012 10:56:35 -0400
-Message-ID: <1351781799.22206.94.camel@deneb.redhat.com>
-References: <1351765467-29244-1-git-send-email-lars@metafoo.de>
-	 <1351765467-29244-4-git-send-email-lars@metafoo.de>
+From: David Miller <davem@davemloft.net>
+Subject: Re: [balbi-usb:xceiv 3/3] drivers/usb/phy/rcar-phy.c:75:3: error:
+ implicit declaration of function 'iowrite32'
+Date: Thu, 01 Nov 2012 11:06:58 -0400 (EDT)
+Message-ID: <20121101.110658.149879582446959580.davem@davemloft.net>
+References: <20121101130420.GB20982@kroah.com>
+	<20121101132342.GE12489@arwen.pp.htv.fi>
+	<87k3u5h296.fsf@nemi.mork.no>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
+Content-Type: Text/Plain; charset=iso-8859-1
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:9678 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756812Ab2KAO5B (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 1 Nov 2012 10:57:01 -0400
-In-Reply-To: <1351765467-29244-4-git-send-email-lars@metafoo.de>
+Received: from shards.monkeyblade.net ([149.20.54.216]:60098 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1761927Ab2KAPHK convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2012 11:07:10 -0400
+In-Reply-To: <87k3u5h296.fsf@nemi.mork.no>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lars-Peter Clausen <lars@metafoo.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Aurelien Jacquiot <a-jacquiot@ti.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+To: bjorn@mork.no
+Cc: balbi@ti.com, gregkh@linuxfoundation.org, linux-arch@vger.kernel.org, fengguang.wu@intel.com, kuninori.morimoto.gx@renesas.com, linux-usb@vger.kernel.org
 
-On Thu, 2012-11-01 at 11:24 +0100, Lars-Peter Clausen wrote:
-> c6x's asm/mmu.h is basically identical to asm-generic/mmu.h, so use it
-> instead
-> of the custom version.
-> 
-> Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
-> 
-> ---
-> Note, due to lack of toolchain, etc this patch is completely untested.
-> ---
->  arch/c6x/include/asm/Kbuild |    1 +
->  arch/c6x/include/asm/mmu.h  |   22 ----------------------
->  2 files changed, 1 insertions(+), 22 deletions(-)
->  delete mode 100644 arch/c6x/include/asm/mmu.h
+=46rom: Bj=F8rn Mork <bjorn@mork.no>
+Date: Thu, 01 Nov 2012 14:38:29 +0100
 
-Acked-by: Mark Salter <msalter@redhat.com>
-Tested-by: Mark Salter <msalter@redhat.com>
+> Felipe Balbi <balbi@ti.com> writes:
+>=20
+>> btw, only alpha and x86 seem to be providing all of those, but if yo=
+u
+>> look into our documentation, it's said that drivers are supposed to =
+use
+>> write/read{b,w,l,q} for all memory-mapped io. I'd expect all platfor=
+ms
+>> to provide those even if just to allow compilation of drivers.
+>=20
+> Only if HAS_IOMEM is true, I believe.
+
+This is correct.
