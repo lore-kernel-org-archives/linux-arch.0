@@ -1,39 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out-183.synserver.de ([212.40.185.183]:1138 "EHLO
+Received: from smtp-out-183.synserver.de ([212.40.185.183]:1127 "EHLO
 	smtp-out-183.synserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750876Ab2KAKak (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2012 06:30:40 -0400
+	with ESMTP id S1750977Ab2KAKan (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2012 06:30:43 -0400
 From: Lars-Peter Clausen <lars@metafoo.de>
-Subject: [PATCH 1/5] asm-generic/mmu.h: Remove unused vmlist field from mm_context_t
-Date: Thu,  1 Nov 2012 11:24:23 +0100
-Message-ID: <1351765467-29244-1-git-send-email-lars@metafoo.de>
+Subject: [PATCH 3/5] h8300: Use generic asm/mmu.h
+Date: Thu,  1 Nov 2012 11:24:25 +0100
+Message-ID: <1351765467-29244-3-git-send-email-lars@metafoo.de>
+In-Reply-To: <1351765467-29244-1-git-send-email-lars@metafoo.de>
+References: <1351765467-29244-1-git-send-email-lars@metafoo.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Lars-Peter Clausen <lars@metafoo.de>
-Message-ID: <20121101102423.x27TOMIot1cepJhmvwtNJqgzT83Q7Utv4eTXUVSZlQ8@z>
+Message-ID: <20121101102425.8xTpqTbNQmfstYgc6BPPrTluM7i1OCFWMtCssK47h7A@z>
 
-Nothing is using the vmlist field in mm_context_t anymore. It has been removed
-from the non-generic versions over 3 years ago 8feae1311 ("NOMMU: Make VMAs per
-MM as for MMU-mode linux").
+h8300's asm/mmu.h is basically identical to asm-generic/mmu.h, so use it instead
+of the custom version.
 
 Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
----
- include/asm-generic/mmu.h |    1 -
- 1 files changed, 0 insertions(+), 1 deletions(-)
 
-diff --git a/include/asm-generic/mmu.h b/include/asm-generic/mmu.h
-index 4f4aa56..a67ae0a9 100644
---- a/include/asm-generic/mmu.h
-+++ b/include/asm-generic/mmu.h
-@@ -7,7 +7,6 @@
-  */
- #ifndef __ASSEMBLY__
- typedef struct {
--	struct vm_list_struct	*vmlist;
- 	unsigned long		end_brk;
- } mm_context_t;
- #endif
+---
+Note, due to lack of toolchain, etc this patch is completely untested.
+---
+ arch/h8300/include/asm/Kbuild |    1 +
+ arch/h8300/include/asm/mmu.h  |   10 ----------
+ 2 files changed, 1 insertions(+), 10 deletions(-)
+ delete mode 100644 arch/h8300/include/asm/mmu.h
+
+diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
+index 50bbf38..173de77 100644
+--- a/arch/h8300/include/asm/Kbuild
++++ b/arch/h8300/include/asm/Kbuild
+@@ -2,4 +2,5 @@ include include/asm-generic/Kbuild.asm
+ 
+ generic-y += clkdev.h
+ generic-y += exec.h
++generic-y += mmu.h
+ generic-y += module.h
+diff --git a/arch/h8300/include/asm/mmu.h b/arch/h8300/include/asm/mmu.h
+deleted file mode 100644
+index 3130996..0000000
+--- a/arch/h8300/include/asm/mmu.h
++++ /dev/null
+@@ -1,10 +0,0 @@
+-#ifndef __MMU_H
+-#define __MMU_H
+-
+-/* Copyright (C) 2002, David McCullough <davidm@snapgear.com> */
+-
+-typedef struct {
+-	unsigned long		end_brk;
+-} mm_context_t;
+-
+-#endif
 -- 
 1.7.2.5
 
