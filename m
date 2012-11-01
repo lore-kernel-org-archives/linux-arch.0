@@ -1,55 +1,78 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: UAPI for new arches (was Re: [GIT PULL] User API Disintegrate: Preparatory
- patches)
-Date: Thu, 1 Nov 2012 16:11:14 +0530
-Message-ID: <509251CA.8050008@synopsys.com>
-References: <18137.1349203013@warthog.procyon.org.uk> <CAAG0J9_gYLn5+4j9WUnPmxWyJfQK_b8e5xjxZdRPG21euXoCFg@mail.gmail.com> <CAAG0J9_LZ5Q1fNdcbSOyieesabkqcTMT0ueEDLXmemV2C_+F=g@mail.gmail.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [RFC PATCH v1 00/40] Meta Linux Kernel Port
+Date: Thu, 1 Nov 2012 11:42:12 +0000
+Message-ID: <50926014.1080804@imgtec.com>
+References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <20121031223331.GA2764@thor.bakeyournoodle.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAAG0J9_LZ5Q1fNdcbSOyieesabkqcTMT0ueEDLXmemV2C_+F=g@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: James Hogan <james@albanarts.com>, torvalds@osdl.org, arnd@arndb.de, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from multi.imgtec.com ([194.200.65.239]:50174 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932147Ab2KALmd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 1 Nov 2012 07:42:33 -0400
+In-Reply-To: <20121031223331.GA2764@thor.bakeyournoodle.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tony Breeds <tony@bakeyournoodle.com>
+Cc: linux-arch <linux-arch@vger.kernel.org>
 
-On Monday 22 October 2012 05:20 PM, James Hogan wrote:
-> On 17 October 2012 09:42, James Hogan <james@albanarts.com> wrote:
->> On 2 October 2012 19:36, David Howells <dhowells@redhat.com> wrote:
->>> The patches herein prepare for the extraction of the Userspace API bits from
->>> the various header files named in the Kbuild files.
->>>
->>> [IMPORTANT NOTE!  These patches may need regenerating if the header files
->>>  change too much.  This doesn't normally take very long to do as the
->>>  disintegration procedure is almost entirely scripted.]
->>
->> Hi David,
->>
->> Any chance you (or somebody else) can point me towards your latest
->> scripts for all this UAPI disintegration work? They don't seem to be
->> in the kernel tree, and the only scripts I can find are from 2011 so I
->> guess they're probably a bit out of date.
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+On 31/10/12 22:33, Tony Breeds wrote:
+> On Wed, Oct 31, 2012 at 04:13:41PM +0000, James Hogan wrote:
+>> This patchset adds core architecture support to Linux for
+>> Imagination's Meta ATP (Meta 1) and HTP (Meta 2) processor cores.
+>> It is primarily an RFC patchset to get some early feedback about
+>> what changes we need to make, although of course all feedback is
+>> most welcome.
 > 
-> Ping... Please can you point me to the scripts you've been using David?
-> 
-> Thanks
-> James Hogan
-> 
+> Any chance there are patches out there to build a toolchain?
 
-Hi David,
+Hi Tony,
 
-I'm planning to submit ARC Linux kernel port (from Synopsys) for review
-on lkml and arch mailing lists. I already have a a 3.7-rc3 based kernel
-(modulo the arch UAPI split). What would be the best way to get the UAPI
-split done.
+We're working on a buildroot release with toolchain patches etc
+included, which we hope to make available tomorrow, but which may slip
+to late next week (ELC-E).
 
-Can you point me to the latest scripts and the best way to use them (so
-we have consistent automated split of headers). Otherwise if you like,
-you could take a stab at it yourself via my tree at
+In the mean time, there is an older buildroot available here (which
+requires registration):
+http://www.imgtec.com/minimorph
 
-git://github.com/organizations/foss-for-synopsys-dwc-arc-processors/linux.git
-arc-3.7-rc3-newport
+It still uses our legacy system call numbers, so isn't useful for
+running any userland code, but it's sufficient to build the kernel.
 
-TIA,
--Vineet
+Download the Minimorph v1.7 release in the MetaFlow SDK. Extract
+metag-linux-GPL-Minimorph_1_0-rel007.tar.gz, and in the buildroot
+directory, change the config to save a little time:
+$ make comet_defconfig
+
+then switch busybox to v1.19.x (default version doesn't build out of
+the box with newer versions of make):
+$ make menuconfig
+	package selection for target
+		BusyBox Version
+
+After building buildroot, the CROSS_COMPILE prefix is:
+$buildroot/output/host/usr/bin/metag-linux-
+
+Thanks
+James
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+iQIcBAEBAgAGBQJQkmAUAAoJEKHZs+irPybfj5UQAIPduw5gFld9Cw133l0RWJAp
+VPlF+CKN5CGCxQ4jDHAckoI7Yn4Z4Bx/m6luN9u5fKBGeEcS2cXmji81UuSv9oFh
+M5WHymfMJEXqGggQX+Ue9ccy3v4X7z95AuwsaxxCT0xhgVmNhWUKNNAT+o2I5YLx
+v0Mbs3l2esip97iH0nTZAbsYaC5dZUsCI65bVBZ9vrTRiuMqv8tRo3KpupX2yUcX
+BcDBw23x1bligbYtSZyNVMM4WyK+5xDvRomsNlZIePjMUADtx5mwzSeQuxyAJown
+gu0mj6lwbyDI+hDudz6kUC5Y+5XC2jEyOBC+xBXiL4fkoVI40WcTO/XDr/3xf8g9
+cWYlR+bIPcD98P0MwxHvXZBgia3dpTKC4hVNeW2Pg4veejqQmGgB0r6s/MWLYwB2
+3czuYGtz7FufJf0H0lZbhE11anQzsogeHXfAhaJo/6veV53p5ks91Gr+l45VzjXp
+ebYoE6BO3afPH4DjvvasnbOvVSgCVdz5g9G+TgGsQ3c+AQ+989+Rq88DFme1SqE4
+fRW+0W2zQdSii0DPMYliA3jA0QsRpRkrmGS2BjYWshc4l9TeP+i7t56dVPyPsFFd
+TH4cQYDI43popZVZ/EaanEts/EEX04/R/RfzlVafuaBZ/3+ENznQGHQR4L1jaTvq
+J5x0MO7Lyj+Rzxh9Us19
+=mIEP
+-----END PGP SIGNATURE-----
