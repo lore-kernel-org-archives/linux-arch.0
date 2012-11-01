@@ -1,78 +1,63 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [RFC PATCH v1 00/40] Meta Linux Kernel Port
-Date: Thu, 1 Nov 2012 11:42:12 +0000
-Message-ID: <50926014.1080804@imgtec.com>
-References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <20121031223331.GA2764@thor.bakeyournoodle.com>
+From: Greg KH <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>
+Subject: Re: [balbi-usb:xceiv 3/3] drivers/usb/phy/rcar-phy.c:75:3: error:
+ implicit declaration of function 'iowrite32'
+Date: Thu, 1 Nov 2012 06:04:20 -0700
+Message-ID: <20121101130420.GB20982@kroah.com>
+References: <50924f0a.QuF7xjrp4IUSKMwd%fengguang.wu@intel.com>
+ <20121101103339.GD410@arwen.pp.htv.fi>
+ <20121101105034.GE410@arwen.pp.htv.fi>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:50174 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932147Ab2KALmd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 1 Nov 2012 07:42:33 -0400
-In-Reply-To: <20121031223331.GA2764@thor.bakeyournoodle.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Tony Breeds <tony@bakeyournoodle.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-usb-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
+Content-Disposition: inline
+In-Reply-To: <20121101105034.GE410-S8G//mZuvNWo5Im9Ml3/Zg@public.gmane.org>
+Sender: linux-usb-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+To: Felipe Balbi <balbi-l0cyMroinI0@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: kbuild test robot <fengguang.wu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Kuninori Morimoto <kuninori.morimoto.gx-zM6kxYcvzFBBDgjK7y7TUQ@public.gmane.org>, linux-usb-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+List-Id: linux-arch.vger.kernel.org
 
------BEGIN PGP SIGNED MESSAGE-----
-Hash: SHA1
-
-On 31/10/12 22:33, Tony Breeds wrote:
-> On Wed, Oct 31, 2012 at 04:13:41PM +0000, James Hogan wrote:
->> This patchset adds core architecture support to Linux for
->> Imagination's Meta ATP (Meta 1) and HTP (Meta 2) processor cores.
->> It is primarily an RFC patchset to get some early feedback about
->> what changes we need to make, although of course all feedback is
->> most welcome.
+On Thu, Nov 01, 2012 at 12:50:34PM +0200, Felipe Balbi wrote:
+> On Thu, Nov 01, 2012 at 12:33:39PM +0200, Felipe Balbi wrote:
+> > Hi,
+> > 
+> > On Thu, Nov 01, 2012 at 06:29:30PM +0800, kbuild test robot wrote:
+> > > tree:   git://git.kernel.org/pub/scm/linux/kernel/git/balbi/usb.git xceiv
+> > > head:   1789e52acc90c87484a109d6349eefe63cabb257
+> > > commit: 1789e52acc90c87484a109d6349eefe63cabb257 [3/3] usb: phy: add R-Car USB phy driver
+> > > config: make ARCH=cris allyesconfig
+> > > 
+> > > All error/warnings:
+> > > 
+> > > drivers/usb/phy/rcar-phy.c: In function 'rcar_usb_phy_init':
+> > > drivers/usb/phy/rcar-phy.c:75:3: error: implicit declaration of function 'iowrite32' [-Werror=implicit-function-declaration]
+> > > drivers/usb/phy/rcar-phy.c:83:4: error: implicit declaration of function 'ioread32' [-Werror=implicit-function-declaration]
+> > > cc1: some warnings being treated as errors
+> > 
+> > too bad that it compiles fine on x86 and ARM :-(
+> > 
+> > Kuninori, care to send me a fixup patch ? I guess using writel()/readl()
+> > should do it ?!?
 > 
-> Any chance there are patches out there to build a toolchain?
+> looks like this isn't enough. We have 6 arches which don't provide
+> writel()/readl(), namely blackfin, c6x, openrisc, s390, score, and um.
+> 
+> Should those arches be fixed instead ? Don't we have a single
+> memory-mapped access set of APIs which are supposed to be provided by
+> all arches ?
+> 
+> Greg, you've been doing this for much more time then I have. Should all
+> arches provide writeb/w/l/q and readb/w/l/q ??
 
-Hi Tony,
+I would think so, but I really don't know.
 
-We're working on a buildroot release with toolchain patches etc
-included, which we hope to make available tomorrow, but which may slip
-to late next week (ELC-E).
+linux-arch people, what do we do about architectures that don't provide
+these functions?  Just disable building the drivers for them, or do we
+fix them somehow?
 
-In the mean time, there is an older buildroot available here (which
-requires registration):
-http://www.imgtec.com/minimorph
+thanks,
 
-It still uses our legacy system call numbers, so isn't useful for
-running any userland code, but it's sufficient to build the kernel.
-
-Download the Minimorph v1.7 release in the MetaFlow SDK. Extract
-metag-linux-GPL-Minimorph_1_0-rel007.tar.gz, and in the buildroot
-directory, change the config to save a little time:
-$ make comet_defconfig
-
-then switch busybox to v1.19.x (default version doesn't build out of
-the box with newer versions of make):
-$ make menuconfig
-	package selection for target
-		BusyBox Version
-
-After building buildroot, the CROSS_COMPILE prefix is:
-$buildroot/output/host/usr/bin/metag-linux-
-
-Thanks
-James
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
-
-iQIcBAEBAgAGBQJQkmAUAAoJEKHZs+irPybfj5UQAIPduw5gFld9Cw133l0RWJAp
-VPlF+CKN5CGCxQ4jDHAckoI7Yn4Z4Bx/m6luN9u5fKBGeEcS2cXmji81UuSv9oFh
-M5WHymfMJEXqGggQX+Ue9ccy3v4X7z95AuwsaxxCT0xhgVmNhWUKNNAT+o2I5YLx
-v0Mbs3l2esip97iH0nTZAbsYaC5dZUsCI65bVBZ9vrTRiuMqv8tRo3KpupX2yUcX
-BcDBw23x1bligbYtSZyNVMM4WyK+5xDvRomsNlZIePjMUADtx5mwzSeQuxyAJown
-gu0mj6lwbyDI+hDudz6kUC5Y+5XC2jEyOBC+xBXiL4fkoVI40WcTO/XDr/3xf8g9
-cWYlR+bIPcD98P0MwxHvXZBgia3dpTKC4hVNeW2Pg4veejqQmGgB0r6s/MWLYwB2
-3czuYGtz7FufJf0H0lZbhE11anQzsogeHXfAhaJo/6veV53p5ks91Gr+l45VzjXp
-ebYoE6BO3afPH4DjvvasnbOvVSgCVdz5g9G+TgGsQ3c+AQ+989+Rq88DFme1SqE4
-fRW+0W2zQdSii0DPMYliA3jA0QsRpRkrmGS2BjYWshc4l9TeP+i7t56dVPyPsFFd
-TH4cQYDI43popZVZ/EaanEts/EEX04/R/RfzlVafuaBZ/3+ENznQGHQR4L1jaTvq
-J5x0MO7Lyj+Rzxh9Us19
-=mIEP
------END PGP SIGNATURE-----
+greg k-h
+--
+To unsubscribe from this list: send the line "unsubscribe linux-usb" in
+the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+More majordomo info at  http://vger.kernel.org/majordomo-info.html
