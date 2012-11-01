@@ -1,33 +1,49 @@
 From: Lars-Peter Clausen <lars@metafoo.de>
-Subject: [PATCH 1/5] asm-generic/mmu.h: Remove unused vmlist field from mm_context_t
-Date: Thu,  1 Nov 2012 11:24:23 +0100
-Message-ID: <1351765467-29244-1-git-send-email-lars@metafoo.de>
+Subject: [PATCH 5/5] xtensa: Use generic asm/mmu.h for nommu
+Date: Thu,  1 Nov 2012 11:24:27 +0100
+Message-ID: <1351765467-29244-5-git-send-email-lars@metafoo.de>
+References: <1351765467-29244-1-git-send-email-lars@metafoo.de>
 Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1351765467-29244-1-git-send-email-lars@metafoo.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Lars-Peter Clausen <lars@metafoo.de>
 List-Id: linux-arch.vger.kernel.org
 
-Nothing is using the vmlist field in mm_context_t anymore. It has been removed
-from the non-generic versions over 3 years ago 8feae1311 ("NOMMU: Make VMAs per
-MM as for MMU-mode linux").
+The nommu portion of mmu.h of the extensa platform is basically the same as the
+asm-generic mmu.h. So use it instead.
 
 Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
----
- include/asm-generic/mmu.h |    1 -
- 1 files changed, 0 insertions(+), 1 deletions(-)
 
-diff --git a/include/asm-generic/mmu.h b/include/asm-generic/mmu.h
-index 4f4aa56..a67ae0a9 100644
---- a/include/asm-generic/mmu.h
-+++ b/include/asm-generic/mmu.h
-@@ -7,7 +7,6 @@
-  */
- #ifndef __ASSEMBLY__
- typedef struct {
--	struct vm_list_struct	*vmlist;
- 	unsigned long		end_brk;
- } mm_context_t;
- #endif
+---
+Note, due to lack of toolchain, etc this patch is completely untested.
+---
+ arch/xtensa/include/asm/mmu.h   |    2 +-
+ arch/xtensa/include/asm/nommu.h |    3 ---
+ 2 files changed, 1 insertions(+), 4 deletions(-)
+ delete mode 100644 arch/xtensa/include/asm/nommu.h
+
+diff --git a/arch/xtensa/include/asm/mmu.h b/arch/xtensa/include/asm/mmu.h
+index 04890d6..8554b2c 100644
+--- a/arch/xtensa/include/asm/mmu.h
++++ b/arch/xtensa/include/asm/mmu.h
+@@ -12,7 +12,7 @@
+ #define _XTENSA_MMU_H
+ 
+ #ifndef CONFIG_MMU
+-#include <asm/nommu.h>
++#include <asm-generic/mmu.h>
+ #else
+ 
+ /* Default "unsigned long" context */
+diff --git a/arch/xtensa/include/asm/nommu.h b/arch/xtensa/include/asm/nommu.h
+deleted file mode 100644
+index dce2c43..0000000
+--- a/arch/xtensa/include/asm/nommu.h
++++ /dev/null
+@@ -1,3 +0,0 @@
+-typedef struct {
+-	unsigned long end_brk;
+-} mm_context_t;
 -- 
 1.7.2.5
