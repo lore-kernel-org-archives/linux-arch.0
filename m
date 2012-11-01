@@ -1,82 +1,53 @@
-From: James Bottomley <James.Bottomley-d9PhHud1JfjCXq6kfMZ53/egYHeGw8Jk@public.gmane.org>
-Subject: Re: [balbi-usb:xceiv 3/3] drivers/usb/phy/rcar-phy.c:75:3: error:
- implicit declaration of function 'iowrite32'
-Date: Thu, 01 Nov 2012 15:53:43 +0000
-Message-ID: <1351785223.2391.85.camel@dabdike.int.hansenpartnership.com>
-References: <50924f0a.QuF7xjrp4IUSKMwd%fengguang.wu@intel.com>
-	 <20121101103339.GD410@arwen.pp.htv.fi>
-	 <20121101105034.GE410@arwen.pp.htv.fi> <20121101130420.GB20982@kroah.com>
+From: Will Newton <will.newton@gmail.com>
+Subject: Re: [RFC PATCH v1 04/40] trace/ring_buffer: handle 64bit aligned structs
+Date: Thu, 1 Nov 2012 17:32:15 +0000
+Message-ID: <CAFbHwiQnEaNXWJg-qB=0WrUqkKP82PrJrrKRRhDfP-34oz7X5A@mail.gmail.com>
+References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
+	<1351700061-7203-5-git-send-email-james.hogan@imgtec.com>
+	<1351706364.4004.87.camel@gandalf.local.home>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-usb-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20121101130420.GB20982-U8xfFu+wG4EAvxtiuMwx3w@public.gmane.org>
-Sender: linux-usb-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: Greg KH <gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org>
-Cc: Felipe Balbi <balbi-l0cyMroinI0@public.gmane.org>, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, kbuild test robot <fengguang.wu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org>, Kuninori Morimoto <kuninori.morimoto.gx-zM6kxYcvzFBBDgjK7y7TUQ@public.gmane.org>, linux-usb-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-la0-f46.google.com ([209.85.215.46]:59018 "EHLO
+	mail-la0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753415Ab2KARcR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2012 13:32:17 -0400
+Received: by mail-la0-f46.google.com with SMTP id h6so2027540lag.19
+        for <linux-arch@vger.kernel.org>; Thu, 01 Nov 2012 10:32:15 -0700 (PDT)
+In-Reply-To: <1351706364.4004.87.camel@gandalf.local.home>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Steven Rostedt <rostedt@goodmis.org>
+Cc: James Hogan <james.hogan@imgtec.com>, linux-arch@vger.kernel.org, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@redhat.com>
 
-On Thu, 2012-11-01 at 06:04 -0700, Greg KH wrote:
-> On Thu, Nov 01, 2012 at 12:50:34PM +0200, Felipe Balbi wrote:
-> > On Thu, Nov 01, 2012 at 12:33:39PM +0200, Felipe Balbi wrote:
-> > > Hi,
-> > > 
-> > > On Thu, Nov 01, 2012 at 06:29:30PM +0800, kbuild test robot wrote:
-> > > > tree:   git://git.kernel.org/pub/scm/linux/kernel/git/balbi/usb.git xceiv
-> > > > head:   1789e52acc90c87484a109d6349eefe63cabb257
-> > > > commit: 1789e52acc90c87484a109d6349eefe63cabb257 [3/3] usb: phy: add R-Car USB phy driver
-> > > > config: make ARCH=cris allyesconfig
-> > > > 
-> > > > All error/warnings:
-> > > > 
-> > > > drivers/usb/phy/rcar-phy.c: In function 'rcar_usb_phy_init':
-> > > > drivers/usb/phy/rcar-phy.c:75:3: error: implicit declaration of function 'iowrite32' [-Werror=implicit-function-declaration]
-> > > > drivers/usb/phy/rcar-phy.c:83:4: error: implicit declaration of function 'ioread32' [-Werror=implicit-function-declaration]
-> > > > cc1: some warnings being treated as errors
-> > > 
-> > > too bad that it compiles fine on x86 and ARM :-(
-> > > 
-> > > Kuninori, care to send me a fixup patch ? I guess using writel()/readl()
-> > > should do it ?!?
-> > 
-> > looks like this isn't enough. We have 6 arches which don't provide
-> > writel()/readl(), namely blackfin, c6x, openrisc, s390, score, and um.
-> > 
-> > Should those arches be fixed instead ? Don't we have a single
-> > memory-mapped access set of APIs which are supposed to be provided by
-> > all arches ?
-> > 
-> > Greg, you've been doing this for much more time then I have. Should all
-> > arches provide writeb/w/l/q and readb/w/l/q ??
+On Wed, Oct 31, 2012 at 5:59 PM, Steven Rostedt <rostedt@goodmis.org> wrote:
+> On Wed, 2012-10-31 at 16:13 +0000, James Hogan wrote:
+>> Some 32 bit architectures have 64 bit struct alignment (for example
+>> metag which has 64 bit read/write instructions). These require 8 byte
+>> alignment of event data too, so use CONFIG_HAVE_64BIT_ALIGNED_STRUCT
+>> instead of CONFIG_64BIT to decide alignment, and align
+>> buffer_data_page::data accordingly.
+>
+> Can you test if trace-cmd still reads this correctly.
+>
+> git://git.kernel.org/pub/scm/linux/kernel/git/rostedt/trace-cmd.git
+>
+> Run a simple:
+>
+>  trace-cmd record -e all sleep 2
+>  trace-cmd report
+>
+> and make sure that the events report correctly your arch (metag). I just
+> want to make sure that it still reads the binary data correctly. I
+> should as the /sys/kernel/debug/tracing/events/header_page should
+> express the difference in the offset of data.
 
-Certainly not the q variants.  It's debatable on the l ones.
+I just ran trace-cmd on our arch and it appears to work.
 
-The reason for the q problem is that if the arch can achieve atomic bus
-transactions for 8 bytes, that's fine, but if the arch can't do that,
-it's up to the driver to decide what it needs.  Most can do two 4 byte
-writes, but a few need the atomicity.  We can't decide that in the arch
-so we'd have to assume the most extreme case, so using a spinlock around
-the two 4 byte writes to ensure atomicity, which would be a killer for
-performance.
+# cat /sys/kernel/debug/tracing/events/header_page
+        field: u64 timestamp;   offset:0;       size:8; signed:0;
+        field: local_t commit;  offset:8;       size:4; signed:1;
+        field: int overwrite;   offset:8;       size:1; signed:1;
+        field: char data;       offset:16;      size:4080;      signed:0;
 
-> I would think so, but I really don't know.
-> 
-> linux-arch people, what do we do about architectures that don't provide
-> these functions?  Just disable building the drivers for them, or do we
-> fix them somehow?
-
-A good driver has #if's for this case ... see for example
-
-drivers/scsi/ipr.h
-
-(ipr doesn't need atomicity, so it just defines writeq to be a pair of
-writels.  See drivers/scsi/mpt2sas/mpt2sas_base.c for a driver that
-requires atomicity.)
-
-James
-
-
---
-To unsubscribe from this list: send the line "unsubscribe linux-usb" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+Does that look ok?
