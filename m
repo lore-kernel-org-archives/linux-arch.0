@@ -1,46 +1,60 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out-183.synserver.de ([212.40.185.183]:1079 "EHLO
-	smtp-out-183.synserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750977Ab2KAKal (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2012 06:30:41 -0400
-From: Lars-Peter Clausen <lars@metafoo.de>
-Subject: [PATCH 2/5] asm-generic/mmu.h: Add support for FDPIC
-Date: Thu,  1 Nov 2012 11:24:24 +0100
-Message-ID: <1351765467-29244-2-git-send-email-lars@metafoo.de>
-In-Reply-To: <1351765467-29244-1-git-send-email-lars@metafoo.de>
-References: <1351765467-29244-1-git-send-email-lars@metafoo.de>
+Received: from hermes.synopsys.com ([198.182.44.81]:56516 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756174Ab2KAKu2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2012 06:50:28 -0400
+Message-ID: <509251CA.8050008@synopsys.com>
+Date: Thu, 1 Nov 2012 16:11:14 +0530
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+MIME-Version: 1.0
+Subject: UAPI for new arches (was Re: [GIT PULL] User API Disintegrate: Preparatory
+ patches)
+References: <18137.1349203013@warthog.procyon.org.uk> <CAAG0J9_gYLn5+4j9WUnPmxWyJfQK_b8e5xjxZdRPG21euXoCFg@mail.gmail.com> <CAAG0J9_LZ5Q1fNdcbSOyieesabkqcTMT0ueEDLXmemV2C_+F=g@mail.gmail.com>
+In-Reply-To: <CAAG0J9_LZ5Q1fNdcbSOyieesabkqcTMT0ueEDLXmemV2C_+F=g@mail.gmail.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Lars-Peter Clausen <lars@metafoo.de>
-Message-ID: <20121101102424.7cK8q_HE3jAX0odf4gEA79uK1ZnKO2dX6cadycgvNZ4@z>
+To: David Howells <dhowells@redhat.com>
+Cc: James Hogan <james@albanarts.com>, torvalds@osdl.org, arnd@arndb.de, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20121101104114.y8ZdseXrOGSyYOk7tDRtpmmuva4_Gy-e98CwhoF9jVo@z>
 
-No-MMU architectures often have support for FDPIC binaries. FDPIC support
-requires two additional fields in the mm_context_t struct. This patch adds these
-fields to the generic mm_context_t definition if support for FDPIC binaries is
-enabled. This allows to use the generic mmu.h for a few more architectures.
+On Monday 22 October 2012 05:20 PM, James Hogan wrote:
+> On 17 October 2012 09:42, James Hogan <james@albanarts.com> wrote:
+>> On 2 October 2012 19:36, David Howells <dhowells@redhat.com> wrote:
+>>> The patches herein prepare for the extraction of the Userspace API bits from
+>>> the various header files named in the Kbuild files.
+>>>
+>>> [IMPORTANT NOTE!  These patches may need regenerating if the header files
+>>>  change too much.  This doesn't normally take very long to do as the
+>>>  disintegration procedure is almost entirely scripted.]
+>>
+>> Hi David,
+>>
+>> Any chance you (or somebody else) can point me towards your latest
+>> scripts for all this UAPI disintegration work? They don't seem to be
+>> in the kernel tree, and the only scripts I can find are from 2011 so I
+>> guess they're probably a bit out of date.
+> 
+> Ping... Please can you point me to the scripts you've been using David?
+> 
+> Thanks
+> James Hogan
+> 
 
-Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
----
- include/asm-generic/mmu.h |    5 +++++
- 1 files changed, 5 insertions(+), 0 deletions(-)
+Hi David,
 
-diff --git a/include/asm-generic/mmu.h b/include/asm-generic/mmu.h
-index a67ae0a9..0ed3f1c 100644
---- a/include/asm-generic/mmu.h
-+++ b/include/asm-generic/mmu.h
-@@ -8,6 +8,11 @@
- #ifndef __ASSEMBLY__
- typedef struct {
- 	unsigned long		end_brk;
-+
-+#ifdef CONFIG_BINFMT_ELF_FDPIC
-+	unsigned long		exec_fdpic_loadmap;
-+	unsigned long		interp_fdpic_loadmap;
-+#endif
- } mm_context_t;
- #endif
- 
--- 
-1.7.2.5
+I'm planning to submit ARC Linux kernel port (from Synopsys) for review
+on lkml and arch mailing lists. I already have a a 3.7-rc3 based kernel
+(modulo the arch UAPI split). What would be the best way to get the UAPI
+split done.
 
+Can you point me to the latest scripts and the best way to use them (so
+we have consistent automated split of headers). Otherwise if you like,
+you could take a stab at it yourself via my tree at
+
+git://github.com/organizations/foss-for-synopsys-dwc-arc-processors/linux.git
+arc-3.7-rc3-newport
+
+TIA,
+-Vineet
