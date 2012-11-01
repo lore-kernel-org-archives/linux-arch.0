@@ -1,43 +1,31 @@
-From: Steven Rostedt <rostedt@goodmis.org>
-Subject: Re: [RFC PATCH v1 04/40] trace/ring_buffer: handle 64bit aligned
- structs
-Date: Thu, 01 Nov 2012 15:30:05 -0400
-Message-ID: <1351798205.4004.114.camel@gandalf.local.home>
-References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
-	 <1351700061-7203-5-git-send-email-james.hogan@imgtec.com>
-	 <1351706364.4004.87.camel@gandalf.local.home>
-	 <CAFbHwiQnEaNXWJg-qB=0WrUqkKP82PrJrrKRRhDfP-34oz7X5A@mail.gmail.com>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH V5 1/2] kbuild: centralize .dts->.dtb rule
+Date: Thu, 1 Nov 2012 21:30:47 +0100
+Message-ID: <20121101203047.GB6439@merkur.ravnborg.org>
+References: <1351721431-26220-1-git-send-email-swarren@wwwdotorg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:14868 "EHLO
-	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933652Ab2KATaI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2012 15:30:08 -0400
-In-Reply-To: <CAFbHwiQnEaNXWJg-qB=0WrUqkKP82PrJrrKRRhDfP-34oz7X5A@mail.gmail.com>
+Received: from smtp.snhosting.dk ([87.238.248.203]:62259 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932415Ab2KAUat (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2012 16:30:49 -0400
+Content-Disposition: inline
+In-Reply-To: <1351721431-26220-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Newton <will.newton@gmail.com>
-Cc: James Hogan <james.hogan@imgtec.com>, linux-arch@vger.kernel.org, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@redhat.com>
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Michal Marek <mmarek@suse.cz>, David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>
 
-On Thu, 2012-11-01 at 17:32 +0000, Will Newton wrote:
-
-> > and make sure that the events report correctly your arch (metag). I just
-> > want to make sure that it still reads the binary data correctly. I
-> > should as the /sys/kernel/debug/tracing/events/header_page should
-> > express the difference in the offset of data.
+On Wed, Oct 31, 2012 at 04:10:30PM -0600, Stephen Warren wrote:
+> From: Stephen Warren <swarren@nvidia.com>
 > 
-> I just ran trace-cmd on our arch and it appears to work.
+> All architectures that use cmd_dtc do so in the same way. Move the build
+> rule to a central location to avoid duplication.
 > 
-> # cat /sys/kernel/debug/tracing/events/header_page
->         field: u64 timestamp;   offset:0;       size:8; signed:0;
->         field: local_t commit;  offset:8;       size:4; signed:1;
->         field: int overwrite;   offset:8;       size:1; signed:1;
->         field: char data;       offset:16;      size:4080;      signed:0;
+> Update Documentation/kbuild to remove the explicit call to cmd_dtc from
+> the example, now that the rule exists in a centralized location, and in
+> fact replace the example with a couple that still exist.
 > 
-> Does that look ok?
-
-Yep, it seems fine.
-
--- Steve
+> Signed-off-by: Stephen Warren <swarren@nvidia.com>
+Acked-by: Sam Ravnborg <sam@ravnborg.org>
