@@ -1,34 +1,63 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [RFC PATCH v1 12/40] metag: Build infrastructure
-Date: Fri, 2 Nov 2012 09:40:40 +0000
-Message-ID: <50939518.5030302@imgtec.com>
-References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <1351700061-7203-13-git-send-email-james.hogan@imgtec.com> <20121031193503.GA4640@merkur.ravnborg.org>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH V5 1/2] kbuild: centralize .dts->.dtb rule
+Date: Fri, 2 Nov 2012 10:58:01 +0100
+Message-ID: <20121102095801.GC17860@linux-mips.org>
+References: <1351721431-26220-1-git-send-email-swarren@wwwdotorg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:11391 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932852Ab2KBJkn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 2 Nov 2012 05:40:43 -0400
-In-Reply-To: <20121031193503.GA4640@merkur.ravnborg.org>
+Received: from eddie.linux-mips.org ([78.24.191.182]:48295 "EHLO
+	eddie.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1760698Ab2KBJ63 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Nov 2012 05:58:29 -0400
+Received: from localhost.localdomain ([127.0.0.1]:58622 "EHLO linux-mips.org"
+        rhost-flags-OK-OK-OK-FAIL) by eddie.linux-mips.org with ESMTP
+        id S6823024Ab2KBJ62jCphk (ORCPT <rfc822;linux-arch@vger.kernel.org>
+        + 1 other); Fri, 2 Nov 2012 10:58:28 +0100
+Content-Disposition: inline
+In-Reply-To: <1351721431-26220-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: linux-arch@vger.kernel.org
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Michal Marek <mmarek@suse.cz>, David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, linux-mips@linux-mips.org
 
-Hi,
+On Wed, Oct 31, 2012 at 04:10:30PM -0600, Stephen Warren wrote:
 
-On 31/10/12 19:35, Sam Ravnborg wrote:
-> 3) there seems to be confusion if the shorthand is meta or metag.
->    Please fix it up so metag is used everywhere.
+> From: Stephen Warren <swarren@nvidia.com>
+> 
+> All architectures that use cmd_dtc do so in the same way. Move the build
+> rule to a central location to avoid duplication.
 
-The processor cores are called Meta, which should probably be used in
-kconfig labels and some text. We then use metag as the "shorthand" name
-of the architecture in code, which also makes it a bit less ambiguous. I
-tend to rationalise it as being derived from Metagence.
+Can you fold these MIPS bits into your patch?
 
-I'll try and make sure the usage of these terms is consistent.
+  Ralf
 
-Thanks
-James
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+
+ arch/mips/cavium-octeon/Makefile | 3 ---
+ arch/mips/netlogic/dts/Makefile  | 3 ---
+ 2 files changed, 6 deletions(-)
+
+diff --git a/arch/mips/cavium-octeon/Makefile b/arch/mips/cavium-octeon/Makefile
+index bc96e29..6e927cf 100644
+--- a/arch/mips/cavium-octeon/Makefile
++++ b/arch/mips/cavium-octeon/Makefile
+@@ -24,9 +24,6 @@ DTB_FILES = $(patsubst %.dts, %.dtb, $(DTS_FILES))
+ 
+ obj-y += $(patsubst %.dts, %.dtb.o, $(DTS_FILES))
+ 
+-$(obj)/%.dtb: $(src)/%.dts FORCE
+-	$(call if_changed_dep,dtc)
+-
+ # Let's keep the .dtb files around in case we want to look at them.
+ .SECONDARY:  $(addprefix $(obj)/, $(DTB_FILES))
+ 
+diff --git a/arch/mips/netlogic/dts/Makefile b/arch/mips/netlogic/dts/Makefile
+index 67ae3fe2..d117d46 100644
+--- a/arch/mips/netlogic/dts/Makefile
++++ b/arch/mips/netlogic/dts/Makefile
+@@ -1,4 +1 @@
+ obj-$(CONFIG_DT_XLP_EVP) := xlp_evp.dtb.o
+-
+-$(obj)/%.dtb: $(obj)/%.dts
+-	$(call if_changed,dtc)
