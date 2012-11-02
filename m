@@ -1,71 +1,28 @@
-From: Ralf Baechle <ralf@linux-mips.org>
+From: Stephen Warren <swarren@wwwdotorg.org>
 Subject: Re: [PATCH V5 1/2] kbuild: centralize .dts->.dtb rule
-Date: Fri, 2 Nov 2012 11:23:35 +0100
-Message-ID: <20121102102335.GF2905@linux-mips.org>
-References: <1351721431-26220-1-git-send-email-swarren@wwwdotorg.org>
- <20121102095801.GC17860@linux-mips.org>
+Date: Fri, 02 Nov 2012 09:00:37 -0600
+Message-ID: <5093E015.1070504@wwwdotorg.org>
+References: <1351721431-26220-1-git-send-email-swarren@wwwdotorg.org> <20121102095801.GC17860@linux-mips.org> <20121102102335.GF2905@linux-mips.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from eddie.linux-mips.org ([78.24.191.182]:48543 "EHLO
-	eddie.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965871Ab2KBKXt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Nov 2012 06:23:49 -0400
-Received: from localhost.localdomain ([127.0.0.1]:58870 "EHLO linux-mips.org"
-        rhost-flags-OK-OK-OK-FAIL) by eddie.linux-mips.org with ESMTP
-        id S6823020Ab2KBKXs1HuWd (ORCPT <rfc822;linux-arch@vger.kernel.org>
-        + 1 other); Fri, 2 Nov 2012 11:23:48 +0100
-Content-Disposition: inline
-In-Reply-To: <20121102095801.GC17860@linux-mips.org>
+Received: from avon.wwwdotorg.org ([70.85.31.133]:45516 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750746Ab2KBPAn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Nov 2012 11:00:43 -0400
+In-Reply-To: <20121102102335.GF2905@linux-mips.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Warren <swarren@wwwdotorg.org>
+To: Ralf Baechle <ralf@linux-mips.org>
 Cc: Michal Marek <mmarek@suse.cz>, David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, linux-mips@linux-mips.org
 
-On Fri, Nov 02, 2012 at 10:58:01AM +0100, Ralf Baechle wrote:
+On 11/02/2012 04:23 AM, Ralf Baechle wrote:
+> On Fri, Nov 02, 2012 at 10:58:01AM +0100, Ralf Baechle wrote:
+> 
+>> Can you fold these MIPS bits into your patch?
+> 
+> I missed Lantiq.
 
-> Can you fold these MIPS bits into your patch?
-
-I missed Lantiq.
-
-  Ralf
-
-Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
-
- arch/mips/cavium-octeon/Makefile | 3 ---
- arch/mips/lantiq/dts/Makefile    | 3 ---
- arch/mips/netlogic/dts/Makefile  | 3 ---
- 3 files changed, 9 deletions(-)
-
-diff --git a/arch/mips/cavium-octeon/Makefile b/arch/mips/cavium-octeon/Makefile
-index bc96e29..6e927cf 100644
---- a/arch/mips/cavium-octeon/Makefile
-+++ b/arch/mips/cavium-octeon/Makefile
-@@ -24,9 +24,6 @@ DTB_FILES = $(patsubst %.dts, %.dtb, $(DTS_FILES))
- 
- obj-y += $(patsubst %.dts, %.dtb.o, $(DTS_FILES))
- 
--$(obj)/%.dtb: $(src)/%.dts FORCE
--	$(call if_changed_dep,dtc)
--
- # Let's keep the .dtb files around in case we want to look at them.
- .SECONDARY:  $(addprefix $(obj)/, $(DTB_FILES))
- 
-diff --git a/arch/mips/lantiq/dts/Makefile b/arch/mips/lantiq/dts/Makefile
-index 674fca4..6fa72dd 100644
---- a/arch/mips/lantiq/dts/Makefile
-+++ b/arch/mips/lantiq/dts/Makefile
-@@ -1,4 +1 @@
- obj-$(CONFIG_DT_EASY50712) := easy50712.dtb.o
--
--$(obj)/%.dtb: $(obj)/%.dts
--	$(call if_changed,dtc)
-diff --git a/arch/mips/netlogic/dts/Makefile b/arch/mips/netlogic/dts/Makefile
-index 67ae3fe2..d117d46 100644
---- a/arch/mips/netlogic/dts/Makefile
-+++ b/arch/mips/netlogic/dts/Makefile
-@@ -1,4 +1 @@
- obj-$(CONFIG_DT_XLP_EVP) := xlp_evp.dtb.o
--
--$(obj)/%.dtb: $(obj)/%.dts
--	$(call if_changed,dtc)
+Thanks, I've squashed that in, and with a quick grep noticed that
+arch/{arm64,microblaze} also need updating.
