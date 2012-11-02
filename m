@@ -1,38 +1,34 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [RFC PATCH v1 40/40] fs: dafs: Add DAFS filesystem for metag
-Date: Fri, 2 Nov 2012 09:33:45 +0000
-Message-ID: <50939379.9070106@imgtec.com>
-References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>  <1351700061-7203-41-git-send-email-james.hogan@imgtec.com> <4FA345DA4F4AE44899BD2B03EEEC2FA9092A0083@SACEXCMBX04-PRD.hq.netapp.com>
+Subject: Re: [RFC PATCH v1 12/40] metag: Build infrastructure
+Date: Fri, 2 Nov 2012 09:40:40 +0000
+Message-ID: <50939518.5030302@imgtec.com>
+References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <1351700061-7203-13-git-send-email-james.hogan@imgtec.com> <20121031193503.GA4640@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-fsdevel-owner@vger.kernel.org>
-In-Reply-To: <4FA345DA4F4AE44899BD2B03EEEC2FA9092A0083@SACEXCMBX04-PRD.hq.netapp.com>
-Sender: linux-fsdevel-owner@vger.kernel.org
-To: "Myklebust, Trond" <Trond.Myklebust@netapp.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
-
-On 31/10/12 19:55, Myklebust, Trond wrote:
-> On Wed, 2012-10-31 at 16:14 +0000, James Hogan wrote:
->> Add the Metag Debug Adapter File System (DAFS), which uses Meta SWITCH
->> operations to communicate with a file server on a host computer via a
->> JTAG debug adapter.
->>
->> Signed-off-by: James Hogan <james.hogan@imgtec.com>
->> Cc: Alexander Viro <viro@zeniv.linux.org.uk>
->> Cc: linux-fsdevel@vger.kernel.org
-> 
-> You might want to note that DAFS as a name for a remote filesystem is
-> already taken:
-> 
->   http://en.wikipedia.org/wiki/Direct_Access_File_System
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from multi.imgtec.com ([194.200.65.239]:11391 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932852Ab2KBJkn (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 2 Nov 2012 05:40:43 -0400
+In-Reply-To: <20121031193503.GA4640@merkur.ravnborg.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Sam Ravnborg <sam@ravnborg.org>
+Cc: linux-arch@vger.kernel.org
 
 Hi,
 
-Unless there are objections we'll probably rename it to imgdafs in the
-next version to disambiguate with Direct Access File System.
+On 31/10/12 19:35, Sam Ravnborg wrote:
+> 3) there seems to be confusion if the shorthand is meta or metag.
+>    Please fix it up so metag is used everywhere.
+
+The processor cores are called Meta, which should probably be used in
+kconfig labels and some text. We then use metag as the "shorthand" name
+of the architecture in code, which also makes it a bit less ambiguous. I
+tend to rationalise it as being derived from Metagence.
+
+I'll try and make sure the usage of these terms is consistent.
 
 Thanks
 James
-
