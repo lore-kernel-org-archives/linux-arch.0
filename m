@@ -1,83 +1,43 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:38026 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S936020Ab2KAPxr (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 1 Nov 2012 11:53:47 -0400
-Message-ID: <1351785223.2391.85.camel@dabdike.int.hansenpartnership.com>
-Subject: Re: [balbi-usb:xceiv 3/3] drivers/usb/phy/rcar-phy.c:75:3: error:
- implicit declaration of function 'iowrite32'
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Date: Thu, 01 Nov 2012 15:53:43 +0000
-In-Reply-To: <20121101130420.GB20982@kroah.com>
-References: <50924f0a.QuF7xjrp4IUSKMwd%fengguang.wu@intel.com>
-	 <20121101103339.GD410@arwen.pp.htv.fi>
-	 <20121101105034.GE410@arwen.pp.htv.fi> <20121101130420.GB20982@kroah.com>
+Received: from multi.imgtec.com ([194.200.65.239]:11356 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757555Ab2KBJdu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 2 Nov 2012 05:33:50 -0400
+Message-ID: <50939379.9070106@imgtec.com>
+Date: Fri, 2 Nov 2012 09:33:45 +0000
+From: James Hogan <james.hogan@imgtec.com>
+MIME-Version: 1.0
+Subject: Re: [RFC PATCH v1 40/40] fs: dafs: Add DAFS filesystem for metag
+References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>  <1351700061-7203-41-git-send-email-james.hogan@imgtec.com> <4FA345DA4F4AE44899BD2B03EEEC2FA9092A0083@SACEXCMBX04-PRD.hq.netapp.com>
+In-Reply-To: <4FA345DA4F4AE44899BD2B03EEEC2FA9092A0083@SACEXCMBX04-PRD.hq.netapp.com>
 Content-Type: text/plain; charset="UTF-8"
-Mime-Version: 1.0
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Greg KH <gregkh@linuxfoundation.org>
-Cc: Felipe Balbi <balbi@ti.com>, linux-arch@vger.kernel.org, kbuild test robot <fengguang.wu@intel.com>, Kuninori Morimoto <kuninori.morimoto.gx@renesas.com>, linux-usb@vger.kernel.org
-Message-ID: <20121101155343.7rdAPbhb-dLk5r6XDj66ZOhtTv1b37AAOc1xbcieFEE@z>
+To: "Myklebust, Trond" <Trond.Myklebust@netapp.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>
+Message-ID: <20121102093345.H39aXyCXjFNcYO_sYyOYLtOS1eJpKrhIEwjvfjEyH0s@z>
 
-On Thu, 2012-11-01 at 06:04 -0700, Greg KH wrote:
-> On Thu, Nov 01, 2012 at 12:50:34PM +0200, Felipe Balbi wrote:
-> > On Thu, Nov 01, 2012 at 12:33:39PM +0200, Felipe Balbi wrote:
-> > > Hi,
-> > > 
-> > > On Thu, Nov 01, 2012 at 06:29:30PM +0800, kbuild test robot wrote:
-> > > > tree:   git://git.kernel.org/pub/scm/linux/kernel/git/balbi/usb.git xceiv
-> > > > head:   1789e52acc90c87484a109d6349eefe63cabb257
-> > > > commit: 1789e52acc90c87484a109d6349eefe63cabb257 [3/3] usb: phy: add R-Car USB phy driver
-> > > > config: make ARCH=cris allyesconfig
-> > > > 
-> > > > All error/warnings:
-> > > > 
-> > > > drivers/usb/phy/rcar-phy.c: In function 'rcar_usb_phy_init':
-> > > > drivers/usb/phy/rcar-phy.c:75:3: error: implicit declaration of function 'iowrite32' [-Werror=implicit-function-declaration]
-> > > > drivers/usb/phy/rcar-phy.c:83:4: error: implicit declaration of function 'ioread32' [-Werror=implicit-function-declaration]
-> > > > cc1: some warnings being treated as errors
-> > > 
-> > > too bad that it compiles fine on x86 and ARM :-(
-> > > 
-> > > Kuninori, care to send me a fixup patch ? I guess using writel()/readl()
-> > > should do it ?!?
-> > 
-> > looks like this isn't enough. We have 6 arches which don't provide
-> > writel()/readl(), namely blackfin, c6x, openrisc, s390, score, and um.
-> > 
-> > Should those arches be fixed instead ? Don't we have a single
-> > memory-mapped access set of APIs which are supposed to be provided by
-> > all arches ?
-> > 
-> > Greg, you've been doing this for much more time then I have. Should all
-> > arches provide writeb/w/l/q and readb/w/l/q ??
-
-Certainly not the q variants.  It's debatable on the l ones.
-
-The reason for the q problem is that if the arch can achieve atomic bus
-transactions for 8 bytes, that's fine, but if the arch can't do that,
-it's up to the driver to decide what it needs.  Most can do two 4 byte
-writes, but a few need the atomicity.  We can't decide that in the arch
-so we'd have to assume the most extreme case, so using a spinlock around
-the two 4 byte writes to ensure atomicity, which would be a killer for
-performance.
-
-> I would think so, but I really don't know.
+On 31/10/12 19:55, Myklebust, Trond wrote:
+> On Wed, 2012-10-31 at 16:14 +0000, James Hogan wrote:
+>> Add the Metag Debug Adapter File System (DAFS), which uses Meta SWITCH
+>> operations to communicate with a file server on a host computer via a
+>> JTAG debug adapter.
+>>
+>> Signed-off-by: James Hogan <james.hogan@imgtec.com>
+>> Cc: Alexander Viro <viro@zeniv.linux.org.uk>
+>> Cc: linux-fsdevel@vger.kernel.org
 > 
-> linux-arch people, what do we do about architectures that don't provide
-> these functions?  Just disable building the drivers for them, or do we
-> fix them somehow?
+> You might want to note that DAFS as a name for a remote filesystem is
+> already taken:
+> 
+>   http://en.wikipedia.org/wiki/Direct_Access_File_System
 
-A good driver has #if's for this case ... see for example
+Hi,
 
-drivers/scsi/ipr.h
+Unless there are objections we'll probably rename it to imgdafs in the
+next version to disambiguate with Direct Access File System.
 
-(ipr doesn't need atomicity, so it just defines writeq to be a pair of
-writels.  See drivers/scsi/mpt2sas/mpt2sas_base.c for a driver that
-requires atomicity.)
-
+Thanks
 James
-
 
