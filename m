@@ -1,43 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:11356 "EHLO multi.imgtec.com"
+Received: from canardo.mork.no ([148.122.252.1]:51857 "EHLO canardo.mork.no"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757555Ab2KBJdu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 2 Nov 2012 05:33:50 -0400
-Message-ID: <50939379.9070106@imgtec.com>
-Date: Fri, 2 Nov 2012 09:33:45 +0000
-From: James Hogan <james.hogan@imgtec.com>
+	id S1750927Ab2KBKGc convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Nov 2012 06:06:32 -0400
+From: =?utf-8?Q?Bj=C3=B8rn_Mork?= <bjorn@mork.no>
+Subject: Re: [balbi-usb:xceiv 3/3] drivers/usb/phy/rcar-phy.c:75:3: error: implicit declaration of function 'iowrite32'
+References: <20121101130420.GB20982@kroah.com>
+	<20121101132342.GE12489@arwen.pp.htv.fi> <87k3u5h296.fsf@nemi.mork.no>
+	<20121101.110658.149879582446959580.davem@davemloft.net>
+	<20121102091620.GE17938@arwen.pp.htv.fi>
+Date: Fri, 02 Nov 2012 11:05:35 +0100
+In-Reply-To: <20121102091620.GE17938@arwen.pp.htv.fi> (Felipe Balbi's message
+	of "Fri, 2 Nov 2012 11:16:20 +0200")
+Message-ID: <87liekz5e8.fsf@nemi.mork.no>
 MIME-Version: 1.0
-Subject: Re: [RFC PATCH v1 40/40] fs: dafs: Add DAFS filesystem for metag
-References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>  <1351700061-7203-41-git-send-email-james.hogan@imgtec.com> <4FA345DA4F4AE44899BD2B03EEEC2FA9092A0083@SACEXCMBX04-PRD.hq.netapp.com>
-In-Reply-To: <4FA345DA4F4AE44899BD2B03EEEC2FA9092A0083@SACEXCMBX04-PRD.hq.netapp.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "Myklebust, Trond" <Trond.Myklebust@netapp.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, "linux-fsdevel@vger.kernel.org" <linux-fsdevel@vger.kernel.org>
-Message-ID: <20121102093345.H39aXyCXjFNcYO_sYyOYLtOS1eJpKrhIEwjvfjEyH0s@z>
+To: balbi@ti.com
+Cc: David Miller <davem@davemloft.net>, gregkh@linuxfoundation.org, linux-arch@vger.kernel.org, fengguang.wu@intel.com, kuninori.morimoto.gx@renesas.com, linux-usb@vger.kernel.org
+Message-ID: <20121102100535.AwS3ajh6jYx_KBuYuMA2Tc7sAQ4-n1JUJJvpUxROwco@z>
 
-On 31/10/12 19:55, Myklebust, Trond wrote:
-> On Wed, 2012-10-31 at 16:14 +0000, James Hogan wrote:
->> Add the Metag Debug Adapter File System (DAFS), which uses Meta SWITCH
->> operations to communicate with a file server on a host computer via a
->> JTAG debug adapter.
->>
->> Signed-off-by: James Hogan <james.hogan@imgtec.com>
->> Cc: Alexander Viro <viro@zeniv.linux.org.uk>
->> Cc: linux-fsdevel@vger.kernel.org
-> 
-> You might want to note that DAFS as a name for a remote filesystem is
-> already taken:
-> 
->   http://en.wikipedia.org/wiki/Direct_Access_File_System
+Felipe Balbi <balbi@ti.com> writes:
+> On Thu, Nov 01, 2012 at 11:06:58AM -0400, David Miller wrote:
+>> From: Bjørn Mork <bjorn@mork.no>
+>> Date: Thu, 01 Nov 2012 14:38:29 +0100
+>> 
+>> > Felipe Balbi <balbi@ti.com> writes:
+>> > 
+>> >> btw, only alpha and x86 seem to be providing all of those, but if you
+>> >> look into our documentation, it's said that drivers are supposed to use
+>> >> write/read{b,w,l,q} for all memory-mapped io. I'd expect all platforms
+>> >> to provide those even if just to allow compilation of drivers.
+>> > 
+>> > Only if HAS_IOMEM is true, I believe.
+>> 
+>> This is correct.
+>
+> fair enough, then we can depend on HAS_IOMEM.
+>
+> Another question, if HAS_IOMEM is true, is the arch expected to provide
+> *all* accessor methods ?
 
-Hi,
+I'll leave this for those with more clue...
 
-Unless there are objections we'll probably rename it to imgdafs in the
-next version to disambiguate with Direct Access File System.
+But there is a comment in arch/alpha/include/asm/io.h indicating that
+writeq/readq support is tested separately, so I guess it must be
+optional:
 
-Thanks
-James
+/*
+ * Some mucking forons use if[n]def writeq to check if platform has it.
+ * It's a bloody bad idea and we probably want ARCH_HAS_WRITEQ for them
+ * to play with; for now just use cpp anti-recursion logics and make sure
+ * that damn thing is defined and expands to itself.
+ */
 
+#define writeq writeq
+#define readq readq
+
+
+> And the last one: if the arch provides
+> read/write{b,w,l,q}, should it be selecting HAS_IOMEM ??
+
+But that one is easy: HAS_IOMEM is true by default.  The arch sets
+NO_IOMEM to disable it. Similar to HAS_DMA.  So you can be pretty sure
+that HAS_IOMEM is selected unless the arch has reasons not to.  From
+lib/Kconfig:
+
+config HAS_IOMEM
+        boolean
+        depends on !NO_IOMEM
+        select GENERIC_IO
+        default y
+
+
+
+Bjørn
