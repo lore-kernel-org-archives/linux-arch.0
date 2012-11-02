@@ -1,83 +1,71 @@
-From: =?utf-8?Q?Bj=C3=B8rn_Mork?= <bjorn-yOkvZcmFvRU@public.gmane.org>
-Subject: Re: [balbi-usb:xceiv 3/3] drivers/usb/phy/rcar-phy.c:75:3: error: implicit declaration of function 'iowrite32'
-Date: Fri, 02 Nov 2012 11:05:35 +0100
-Message-ID: <87liekz5e8.fsf@nemi.mork.no>
-References: <20121101130420.GB20982@kroah.com>
-	<20121101132342.GE12489@arwen.pp.htv.fi> <87k3u5h296.fsf@nemi.mork.no>
-	<20121101.110658.149879582446959580.davem@davemloft.net>
-	<20121102091620.GE17938@arwen.pp.htv.fi>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [PATCH V5 1/2] kbuild: centralize .dts->.dtb rule
+Date: Fri, 2 Nov 2012 11:23:35 +0100
+Message-ID: <20121102102335.GF2905@linux-mips.org>
+References: <1351721431-26220-1-git-send-email-swarren@wwwdotorg.org>
+ <20121102095801.GC17860@linux-mips.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-usb-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>
-In-Reply-To: <20121102091620.GE17938-S8G//mZuvNWo5Im9Ml3/Zg@public.gmane.org> (Felipe Balbi's message
-	of "Fri, 2 Nov 2012 11:16:20 +0200")
-Sender: linux-usb-owner-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-To: balbi-l0cyMroinI0@public.gmane.org
-Cc: David Miller <davem-fT/PcQaiUtIeIZ0/mPfg9Q@public.gmane.org>, gregkh-hQyY1W1yCW8ekmWlsbkhG0B+6BGkLq7r@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, fengguang.wu-ral2JQCrhuEAvxtiuMwx3w@public.gmane.org, kuninori.morimoto.gx-zM6kxYcvzFBBDgjK7y7TUQ@public.gmane.org, linux-usb-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from eddie.linux-mips.org ([78.24.191.182]:48543 "EHLO
+	eddie.linux-mips.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S965871Ab2KBKXt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Nov 2012 06:23:49 -0400
+Received: from localhost.localdomain ([127.0.0.1]:58870 "EHLO linux-mips.org"
+        rhost-flags-OK-OK-OK-FAIL) by eddie.linux-mips.org with ESMTP
+        id S6823020Ab2KBKXs1HuWd (ORCPT <rfc822;linux-arch@vger.kernel.org>
+        + 1 other); Fri, 2 Nov 2012 11:23:48 +0100
+Content-Disposition: inline
+In-Reply-To: <20121102095801.GC17860@linux-mips.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Michal Marek <mmarek@suse.cz>, David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, linux-mips@linux-mips.org
 
-=46elipe Balbi <balbi-l0cyMroinI0@public.gmane.org> writes:
-> On Thu, Nov 01, 2012 at 11:06:58AM -0400, David Miller wrote:
->> From: Bj=C3=B8rn Mork <bjorn-yOkvZcmFvRU@public.gmane.org>
->> Date: Thu, 01 Nov 2012 14:38:29 +0100
->>=20
->> > Felipe Balbi <balbi-l0cyMroinI0@public.gmane.org> writes:
->> >=20
->> >> btw, only alpha and x86 seem to be providing all of those, but if=
- you
->> >> look into our documentation, it's said that drivers are supposed =
-to use
->> >> write/read{b,w,l,q} for all memory-mapped io. I'd expect all plat=
-forms
->> >> to provide those even if just to allow compilation of drivers.
->> >=20
->> > Only if HAS_IOMEM is true, I believe.
->>=20
->> This is correct.
->
-> fair enough, then we can depend on HAS_IOMEM.
->
-> Another question, if HAS_IOMEM is true, is the arch expected to provi=
-de
-> *all* accessor methods ?
+On Fri, Nov 02, 2012 at 10:58:01AM +0100, Ralf Baechle wrote:
 
-I'll leave this for those with more clue...
+> Can you fold these MIPS bits into your patch?
 
-But there is a comment in arch/alpha/include/asm/io.h indicating that
-writeq/readq support is tested separately, so I guess it must be
-optional:
+I missed Lantiq.
 
-/*
- * Some mucking forons use if[n]def writeq to check if platform has it.
- * It's a bloody bad idea and we probably want ARCH_HAS_WRITEQ for them
- * to play with; for now just use cpp anti-recursion logics and make su=
-re
- * that damn thing is defined and expands to itself.
- */
+  Ralf
 
-#define writeq writeq
-#define readq readq
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
 
+ arch/mips/cavium-octeon/Makefile | 3 ---
+ arch/mips/lantiq/dts/Makefile    | 3 ---
+ arch/mips/netlogic/dts/Makefile  | 3 ---
+ 3 files changed, 9 deletions(-)
 
-> And the last one: if the arch provides
-> read/write{b,w,l,q}, should it be selecting HAS_IOMEM ??
-
-But that one is easy: HAS_IOMEM is true by default.  The arch sets
-NO_IOMEM to disable it. Similar to HAS_DMA.  So you can be pretty sure
-that HAS_IOMEM is selected unless the arch has reasons not to.  From
-lib/Kconfig:
-
-config HAS_IOMEM
-        boolean
-        depends on !NO_IOMEM
-        select GENERIC_IO
-        default y
-
-
-
-Bj=C3=B8rn
---
-To unsubscribe from this list: send the line "unsubscribe linux-usb" in
-the body of a message to majordomo-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-More majordomo info at  http://vger.kernel.org/majordomo-info.html
+diff --git a/arch/mips/cavium-octeon/Makefile b/arch/mips/cavium-octeon/Makefile
+index bc96e29..6e927cf 100644
+--- a/arch/mips/cavium-octeon/Makefile
++++ b/arch/mips/cavium-octeon/Makefile
+@@ -24,9 +24,6 @@ DTB_FILES = $(patsubst %.dts, %.dtb, $(DTS_FILES))
+ 
+ obj-y += $(patsubst %.dts, %.dtb.o, $(DTS_FILES))
+ 
+-$(obj)/%.dtb: $(src)/%.dts FORCE
+-	$(call if_changed_dep,dtc)
+-
+ # Let's keep the .dtb files around in case we want to look at them.
+ .SECONDARY:  $(addprefix $(obj)/, $(DTB_FILES))
+ 
+diff --git a/arch/mips/lantiq/dts/Makefile b/arch/mips/lantiq/dts/Makefile
+index 674fca4..6fa72dd 100644
+--- a/arch/mips/lantiq/dts/Makefile
++++ b/arch/mips/lantiq/dts/Makefile
+@@ -1,4 +1 @@
+ obj-$(CONFIG_DT_EASY50712) := easy50712.dtb.o
+-
+-$(obj)/%.dtb: $(obj)/%.dts
+-	$(call if_changed,dtc)
+diff --git a/arch/mips/netlogic/dts/Makefile b/arch/mips/netlogic/dts/Makefile
+index 67ae3fe2..d117d46 100644
+--- a/arch/mips/netlogic/dts/Makefile
++++ b/arch/mips/netlogic/dts/Makefile
+@@ -1,4 +1 @@
+ obj-$(CONFIG_DT_XLP_EVP) := xlp_evp.dtb.o
+-
+-$(obj)/%.dtb: $(obj)/%.dts
+-	$(call if_changed,dtc)
