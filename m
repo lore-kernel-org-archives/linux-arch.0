@@ -1,79 +1,58 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from canardo.mork.no ([148.122.252.1]:51857 "EHLO canardo.mork.no"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750927Ab2KBKGc convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 2 Nov 2012 06:06:32 -0400
-From: =?utf-8?Q?Bj=C3=B8rn_Mork?= <bjorn@mork.no>
-Subject: Re: [balbi-usb:xceiv 3/3] drivers/usb/phy/rcar-phy.c:75:3: error: implicit declaration of function 'iowrite32'
-References: <20121101130420.GB20982@kroah.com>
-	<20121101132342.GE12489@arwen.pp.htv.fi> <87k3u5h296.fsf@nemi.mork.no>
-	<20121101.110658.149879582446959580.davem@davemloft.net>
-	<20121102091620.GE17938@arwen.pp.htv.fi>
-Date: Fri, 02 Nov 2012 11:05:35 +0100
-In-Reply-To: <20121102091620.GE17938@arwen.pp.htv.fi> (Felipe Balbi's message
-	of "Fri, 2 Nov 2012 11:16:20 +0200")
-Message-ID: <87liekz5e8.fsf@nemi.mork.no>
+Received: from mail-vc0-f174.google.com ([209.85.220.174]:59777 "EHLO
+	mail-vc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751457Ab2KDNUC convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 4 Nov 2012 08:20:02 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+In-Reply-To: <1348553352-14334-2-git-send-email-dhobsong@igel.co.jp>
+References: <1348553352-14334-1-git-send-email-dhobsong@igel.co.jp>
+	<1348553352-14334-2-git-send-email-dhobsong@igel.co.jp>
+Date: Sun, 4 Nov 2012 14:20:00 +0100
+Message-ID: <CAMuHMdWKByLXR-2wkiej=F1WPf7xePf3nMkUqwSf_hEJNNZbvg@mail.gmail.com>
+Subject: Re: [v2 PATCH 1/2] Add new uio device for dynamic memory allocation
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8BIT
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: balbi@ti.com
-Cc: David Miller <davem@davemloft.net>, gregkh@linuxfoundation.org, linux-arch@vger.kernel.org, fengguang.wu@intel.com, kuninori.morimoto.gx@renesas.com, linux-usb@vger.kernel.org
-Message-ID: <20121102100535.AwS3ajh6jYx_KBuYuMA2Tc7sAQ4-n1JUJJvpUxROwco@z>
+To: Damian Hobson-Garcia <dhobsong@igel.co.jp>
+Cc: hjk@hansjkoch.de, gregkh@linuxfoundation.org, magnus.damm@gmail.com, horms@verge.net.au, linux-kernel@vger.kernel.org, linux-sh@vger.kernel.org, hdk@igel.co.jp, Linux-Next <linux-next@vger.kernel.org>, Linux-Arch <linux-arch@vger.kernel.org>
+Message-ID: <20121104132000.Qe7TDyzeHEpfDEdfQjEpaTFeN14n0V2vzMLVBkdvvAU@z>
 
-Felipe Balbi <balbi@ti.com> writes:
-> On Thu, Nov 01, 2012 at 11:06:58AM -0400, David Miller wrote:
->> From: Bjørn Mork <bjorn@mork.no>
->> Date: Thu, 01 Nov 2012 14:38:29 +0100
->> 
->> > Felipe Balbi <balbi@ti.com> writes:
->> > 
->> >> btw, only alpha and x86 seem to be providing all of those, but if you
->> >> look into our documentation, it's said that drivers are supposed to use
->> >> write/read{b,w,l,q} for all memory-mapped io. I'd expect all platforms
->> >> to provide those even if just to allow compilation of drivers.
->> > 
->> > Only if HAS_IOMEM is true, I believe.
->> 
->> This is correct.
->
-> fair enough, then we can depend on HAS_IOMEM.
->
-> Another question, if HAS_IOMEM is true, is the arch expected to provide
-> *all* accessor methods ?
+On Tue, Sep 25, 2012 at 8:09 AM, Damian Hobson-Garcia
+<dhobsong@igel.co.jp> wrote:
+> are holding the device file open, the address returned to userspace is
+> DMA_ERROR_CODE.
 
-I'll leave this for those with more clue...
+Only a small subset of the architectures
+(arm/ia64/microblaze/openrisc/powerpc/sparc/x86)
+seem to define DMA_ERROR_CODE, causing everywhere else:
 
-But there is a comment in arch/alpha/include/asm/io.h indicating that
-writeq/readq support is tested separately, so I guess it must be
-optional:
+drivers/uio/uio_dmem_genirq.c: In function ‘uio_dmem_genirq_release’:
+drivers/uio/uio_dmem_genirq.c:95: error: ‘DMA_ERROR_CODE’ undeclared
+(first use in this function)
+drivers/uio/uio_dmem_genirq.c:95: error: (Each undeclared identifier
+is reported only once
+drivers/uio/uio_dmem_genirq.c:95: error: for each function it appears in.)
+drivers/uio/uio_dmem_genirq.c: In function ‘uio_dmem_genirq_probe’:
+drivers/uio/uio_dmem_genirq.c:238: error: ‘DMA_ERROR_CODE’ undeclared
+(first use in this function)
+make[1]: *** [drivers/uio/uio_dmem_genirq.o] Error 1
+make: *** [drivers/uio/] Error 2
 
-/*
- * Some mucking forons use if[n]def writeq to check if platform has it.
- * It's a bloody bad idea and we probably want ARCH_HAS_WRITEQ for them
- * to play with; for now just use cpp anti-recursion logics and make sure
- * that damn thing is defined and expands to itself.
- */
+(e.g. http://kisskb.ellerman.id.au/kisskb/buildresult/7462173/)
 
-#define writeq writeq
-#define readq readq
+Furthermore, none of them define it in <uapi/...>, so DMA_ERROR_CODE is not
+part of the userspace API (yet), while it is architecture-specific (some use 0,
+others ~0).
 
+Gr{oetje,eeting}s,
 
-> And the last one: if the arch provides
-> read/write{b,w,l,q}, should it be selecting HAS_IOMEM ??
+                        Geert
 
-But that one is easy: HAS_IOMEM is true by default.  The arch sets
-NO_IOMEM to disable it. Similar to HAS_DMA.  So you can be pretty sure
-that HAS_IOMEM is selected unless the arch has reasons not to.  From
-lib/Kconfig:
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-config HAS_IOMEM
-        boolean
-        depends on !NO_IOMEM
-        select GENERIC_IO
-        default y
-
-
-
-Bjørn
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
