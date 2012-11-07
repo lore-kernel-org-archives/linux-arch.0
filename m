@@ -1,44 +1,51 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH v1 14/31] ARC: syscall support
-Date: Wed, 7 Nov 2012 14:21:39 +0000
-Message-ID: <201211071421.39523.arnd@arndb.de>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-15-git-send-email-vgupta@synopsys.com>
+Subject: Re: [RFC Patch v1 00/31] Synopsys ARC Linux kernel Port
+Date: Wed, 7 Nov 2012 14:36:51 +0000
+Message-ID: <201211071436.52035.arnd@arndb.de>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
   charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:57484 "EHLO
+Received: from moutng.kundenserver.de ([212.227.17.8]:58648 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751546Ab2KGOVo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Nov 2012 09:21:44 -0500
-In-Reply-To: <1352281674-2186-15-git-send-email-vgupta@synopsys.com>
+	with ESMTP id S1751292Ab2KGOg5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Nov 2012 09:36:57 -0500
+In-Reply-To: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
 
 On Wednesday 07 November 2012, Vineet Gupta wrote:
-> + * Being uClibc based we need some of the deprecated syscalls:
-> + * -Not emulated by uClibc at all
-> + *     unlink, mkdir,... (needed by Busybox, LTP etc)
-> + *     times (needed by LTP pan test harness)
-> + * -Not emulated efficiently
-> + *     select: emulated using pselect (but extra code to chk usec > 1sec)
-> + *
-> + * some (send/recv) correctly emulated using (recfrom/sendto) and
-> + * some arch specific ones (fork/vfork)can easily be emulated using clone but
-> + * thats the price of using common-denominator....
-> + */
-> +#define __ARCH_WANT_SYSCALL_NO_AT
-> +#define __ARCH_WANT_SYSCALL_NO_FLAGS
-> +#define __ARCH_WANT_SYSCALL_OFF_T
-> +#define __ARCH_WANT_SYSCALL_DEPRECATED
+> This patchset based off-of 3.7-rc3, introduces the Linux kernel port to
+> ARC700 processor family (750D and 770D) from Synopsys.
+> 
+> ARC700 is highly configurable and power efficient 32-bit RISC core with MMU.
+> It is embedded in SoCs deployed in TV Set Top boxes, Digital Media Players,
+> all the way to Network-on-Chips.
 
-I'm pretty sure that this has been solved before, best get in contact with
-the maintainers of the openrisc/c6x/hexagon platforms, that probably all
-use uClibc without needing these.
+Hi Vineet,
 
-You have to remove the legacy calls here.
+I'm largely quite happy with how the series has turned out, having looked
+at earlier versions of the ARC kernel a couple of years ago. I've commented
+already on individual patches, but overall, I see two main issues that
+need to be resolved in order to merge the port:
+
+* You have to use the generic syscall interface, and that means not using
+  any of the legacy system calls that have since been replaced by newer
+  versions of the same.
+
+* You are missing dynamic hardware detection. Rather than building a kernel
+  with everything known about the hardware at compile time, new ports these
+  days are normally able to run on all kinds of hardware and detect the
+  differences by looking at configuration registers (e.g. PCI), asking
+  firmware (Open Firmware, ACPI, ...) or by interpreting a device tree
+  that is passed by the boot loader (most embedded systems).
+  I assume that device tree is the right solution for you because a lot of
+  the hardware you use is likely shared with ARM, PowerPC or MIPS based
+  SoCs and they are all using (or getting migrated to) DT now instead of
+  static platform devices,
 
 	Arnd
