@@ -1,41 +1,91 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hermes.synopsys.com ([198.182.44.81]:53870 "EHLO
+Received: from us01smtp3.synopsys.com ([198.182.44.81]:53880 "EHLO
 	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754250Ab2KGJst (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Nov 2012 04:48:49 -0500
+	with ESMTP id S1754317Ab2KGJs6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Nov 2012 04:48:58 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [RFC PATCH v1 22/31] ARC: Page Fault handling (incl uaccess fixup)
-Date: Wed,  7 Nov 2012 10:47:45 +0100
-Message-ID: <1352281674-2186-23-git-send-email-vgupta@synopsys.com>
+Subject: [RFC PATCH v1 27/31] ARC: Last bits (stubs) to get to a running kernel with UART
+Date: Wed,  7 Nov 2012 10:47:50 +0100
+Message-ID: <1352281674-2186-28-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: tglx@linutronix.de, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20121107094745.yfzCGE8j2-Fr4I6XOkEVn79pKV-YhVF7S1oIsmWOcKU@z>
+Message-ID: <20121107094750.qXXlKkEOkbhqZZ6XG6RP2YLBMFQIaiP-sRJ_jPDHBrE@z>
 
-This includes recent changes to make handler "retry" and/or "killable"
+=========================>8=============================
+Linux version 3.7.0-rc3+ (vineetg@vineetg-Latitude) (gcc version 4.4.7
+(ARCompact elf32 toolchain (built 20120928)) ) #5 Tue Nov 6 17:05:37 CET
+2012
+[plat-arcfpga]: registering early dev resources
+bootconsole [early_ARCuart0] enabled
+pcpu-alloc: s0 r0 d32768 u32768 alloc=1*32768
+pcpu-alloc: [0] 0
+Built 1 zonelists in Zone order, mobility grouping on.  Total pages:
+32624
+Kernel command line: print-fatal-signals=1
+PID hash table entries: 1024 (order: -1, 4096 bytes)
+Dentry cache hash table entries: 32768 (order: 4, 131072 bytes)
+Inode-cache hash table entries: 16384 (order: 3, 65536 bytes)
+Memory Available: 248M / 256M (1219K code, 412K data, 4192K init, 1400K
+reserv)
+SLUB: Genslabs=12, HWalign=64, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+NR_IRQS:16
+Device [ARC Timer0] clockevent mode now [1]
+Device [ARC Timer0] clockevent mode now [2]
+Console: colour dummy device 80x25
+Calibrating delay loop... 39.73 BogoMIPS (lpj=198656)
+pid_max: default: 4096 minimum: 301
+Mount-cache hash table entries: 1024
+devtmpfs: initialized
+[plat-arcfpga]: registering device resources
+bio: create slab <bio-0> at 0
+Switching to clocksource ARC Timer1
+Device [ARC Timer0] clockevent mode now [3]
+io scheduler noop registered (default)
+arc-uart.0: ttyARC0 at MMIO 0xc0fc1000 (irq = 5) is a arc-uart
+console [ttyARC0] enabled, bootconsole disabled
+console [ttyARC0] enabled, bootconsole disabled
+Warning: unable to open an initial console.
+Freeing unused kernel memory: 4192k [80002000] to [8041a000]
+Mounting proc
+Mounting sysfs
+Mounting devpts
+Setting hostname to ARCLinux
+Starting System logger (syslogd)
+Bringing up loopback device
+ifconfig: socket: Function not implemented
+route: socket: Function not implemented
+Disk not detected !
+Mounting tmpfs
+/etc/init.d/rcS: line 76: can't create /proc/sys/kernel/msgmni:
+nonexistent directory
 
-The killable (early exit) logic is loosely based on how SH implements it
-	return if SIGKILL + either of VM_FAULT_OOM or VM_FAULT_RETRY
-which is different from Hexagon implementation which would NOT early
-exit for
-	SIGKILL + VM_FAULT_OOM + !VM_FAULT_RETRY
+Please press Enter to activate this console.
+***********************************************************************
+                        Welcome to ARCLinux
+***********************************************************************
+[ARCLinux]$
+
+=========================>8=============================
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/mm/extable.c |   26 ++++++
- arch/arc/mm/fault.c   |  228 +++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 254 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/mm/extable.c
- create mode 100644 arch/arc/mm/fault.c
+ arch/arc/kernel/ptrace.c       |   26 ++++++++++++++++++++++++
+ arch/arc/kernel/stacktrace.c   |   43 ++++++++++++++++++++++++++++++++++++++++
+ arch/arc/kernel/troubleshoot.c |   17 +++++++++++++++
+ 3 files changed, 86 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/kernel/ptrace.c
+ create mode 100644 arch/arc/kernel/stacktrace.c
+ create mode 100644 arch/arc/kernel/troubleshoot.c
 
-diff --git a/arch/arc/mm/extable.c b/arch/arc/mm/extable.c
+diff --git a/arch/arc/kernel/ptrace.c b/arch/arc/kernel/ptrace.c
 new file mode 100644
-index 0000000..f05b677
+index 0000000..1cf944a
 --- /dev/null
-+++ b/arch/arc/mm/extable.c
++++ b/arch/arc/kernel/ptrace.c
 @@ -0,0 +1,26 @@
 +/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
@@ -43,34 +93,33 @@ index 0000000..f05b677
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
-+ *
-+ * Borrowed heavily from MIPS
 + */
 +
-+#include <linux/module.h>
-+#include <linux/uaccess.h>
++#include <linux/ptrace.h>
 +
-+int fixup_exception(struct pt_regs *regs)
++void ptrace_disable(struct task_struct *child)
 +{
-+	const struct exception_table_entry *fixup;
-+
-+	fixup = search_exception_tables(instruction_pointer(regs));
-+	if (fixup) {
-+		regs->ret = fixup->fixup;
-+
-+		return 1;
-+	}
-+
-+	return 0;
 +}
-diff --git a/arch/arc/mm/fault.c b/arch/arc/mm/fault.c
++
++long arch_ptrace(struct task_struct *child, long request,
++		 unsigned long addr, unsigned long data)
++{
++	int ret = -EIO;
++	return ret;
++}
++
++
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++{
++	return (const struct user_regset_view *)NULL;
++}
+diff --git a/arch/arc/kernel/stacktrace.c b/arch/arc/kernel/stacktrace.c
 new file mode 100644
-index 0000000..af55aab
+index 0000000..b9d1646
 --- /dev/null
-+++ b/arch/arc/mm/fault.c
-@@ -0,0 +1,228 @@
-+/* Page Fault Handling for ARC (TLB Miss / ProtV)
-+ *
++++ b/arch/arc/kernel/stacktrace.c
+@@ -0,0 +1,43 @@
++/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -78,224 +127,63 @@ index 0000000..af55aab
 + * published by the Free Software Foundation.
 + */
 +
-+#include <linux/signal.h>
-+#include <linux/interrupt.h>
-+#include <linux/sched.h>
-+#include <linux/errno.h>
 +#include <linux/ptrace.h>
-+#include <linux/version.h>
-+#include <linux/uaccess.h>
-+#include <linux/kdebug.h>
-+#include <asm/pgalloc.h>
++#include <linux/export.h>
 +
-+static int handle_vmalloc_fault(struct mm_struct *mm, unsigned long address)
++/*-------------------------------------------------------------------------
++ *              APIs expected by various kernel sub-systems
++ *-------------------------------------------------------------------------
++ */
++
++noinline void show_stacktrace(struct task_struct *tsk, struct pt_regs *regs)
 +{
-+	/*
-+	 * Synchronize this task's top level page-table
-+	 * with the 'reference' page table.
-+	 */
-+	pgd_t *pgd, *pgd_k;
-+	pud_t *pud, *pud_k;
-+	pmd_t *pmd, *pmd_k;
++	pr_info("\nStack Trace: NOT Available\n");
++}
++EXPORT_SYMBOL(show_stacktrace);
 +
-+	pgd = pgd_offset_fast(mm, address);
-+	pgd_k = pgd_offset_k(address);
-+
-+	if (!pgd_present(*pgd_k))
-+		goto bad_area;
-+
-+	pud = pud_offset(pgd, address);
-+	pud_k = pud_offset(pgd_k, address);
-+	if (!pud_present(*pud_k))
-+		goto bad_area;
-+
-+	pmd = pmd_offset(pud, address);
-+	pmd_k = pmd_offset(pud_k, address);
-+	if (!pmd_present(*pmd_k))
-+		goto bad_area;
-+
-+	set_pmd(pmd, *pmd_k);
-+
-+	/* XXX: create the TLB entry here */
-+	return 0;
-+
-+bad_area:
-+	return 1;
++/* Expected by sched Code */
++void show_stack(struct task_struct *tsk, unsigned long *sp)
++{
++	show_stacktrace(tsk, NULL);
 +}
 +
-+void do_page_fault(struct pt_regs *regs, int write, unsigned long address,
-+		   unsigned long cause_code)
++/* Expected by Rest of kernel code */
++void dump_stack(void)
 +{
-+	struct vm_area_struct *vma = NULL;
-+	struct task_struct *tsk = current;
-+	struct mm_struct *mm = tsk->mm;
-+	siginfo_t info;
-+	int fault, ret;
-+	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE |
-+				(write ? FAULT_FLAG_WRITE : 0);
++	show_stacktrace(NULL, NULL);
++}
++EXPORT_SYMBOL(dump_stack);
 +
-+	/*
-+	 * We fault-in kernel-space virtual memory on-demand. The
-+	 * 'reference' page table is init_mm.pgd.
-+	 *
-+	 * NOTE! We MUST NOT take any locks for this case. We may
-+	 * be in an interrupt or a critical region, and should
-+	 * only copy the information from the master page table,
-+	 * nothing more.
-+	 */
-+	if (address >= VMALLOC_START && address <= VMALLOC_END) {
-+		ret = handle_vmalloc_fault(mm, address);
-+		if (unlikely(ret))
-+			goto bad_area_nosemaphore;
-+		else
-+			return;
-+	}
++/* Another API expected by schedular, shows up in "ps" as Wait Channel
++ * Ofcourse just returning schedule( ) would be pointless so unwind until
++ * the function is not in schedular code
++ */
++unsigned int get_wchan(struct task_struct *tsk)
++{
++	return 0;
++}
+diff --git a/arch/arc/kernel/troubleshoot.c b/arch/arc/kernel/troubleshoot.c
+new file mode 100644
+index 0000000..80bfe2a
+--- /dev/null
++++ b/arch/arc/kernel/troubleshoot.c
+@@ -0,0 +1,17 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ */
 +
-+	info.si_code = SEGV_MAPERR;
++#include <linux/ptrace.h>
 +
-+	/*
-+	 * If we're in an interrupt or have no user
-+	 * context, we must not take the fault..
-+	 */
-+	if (in_atomic() || !mm)
-+		goto no_context;
++void show_regs(struct pt_regs *regs)
++{
++}
 +
-+retry:
-+	down_read(&mm->mmap_sem);
-+	vma = find_vma(mm, address);
-+	if (!vma)
-+		goto bad_area;
-+	if (vma->vm_start <= address)
-+		goto good_area;
-+	if (!(vma->vm_flags & VM_GROWSDOWN))
-+		goto bad_area;
-+	if (expand_stack(vma, address))
-+		goto bad_area;
-+
-+	/*
-+	 * Ok, we have a good vm_area for this memory access, so
-+	 * we can handle it..
-+	 */
-+good_area:
-+	info.si_code = SEGV_ACCERR;
-+
-+	/* Handle protection violation, execute on heap or stack */
-+
-+	if (cause_code == ((ECR_V_PROTV << 16) | ECR_C_PROTV_INST_FETCH))
-+		goto bad_area;
-+
-+	if (write) {
-+		if (!(vma->vm_flags & VM_WRITE))
-+			goto bad_area;
-+	} else {
-+		if (!(vma->vm_flags & (VM_READ | VM_EXEC)))
-+			goto bad_area;
-+	}
-+
-+survive:
-+	/*
-+	 * If for any reason at all we couldn't handle the fault,
-+	 * make sure we exit gracefully rather than endlessly redo
-+	 * the fault.
-+	 */
-+	fault = handle_mm_fault(mm, vma, address, flags);
-+
-+	/* If Pagefault was interrupted by SIGKILL, exit page fault "early" */
-+	if (unlikely(fatal_signal_pending(current))) {
-+		if ((fault & VM_FAULT_ERROR) && !(fault & VM_FAULT_RETRY))
-+			up_read(&mm->mmap_sem);
-+		if (user_mode(regs))
-+			return;
-+	}
-+
-+	if (likely(!(fault & VM_FAULT_ERROR))) {
-+		if (flags & FAULT_FLAG_ALLOW_RETRY) {
-+			/* To avoid updating stats twice for retry case */
-+			if (fault & VM_FAULT_MAJOR)
-+				tsk->maj_flt++;
-+			else
-+				tsk->min_flt++;
-+
-+			if (fault & VM_FAULT_RETRY) {
-+				flags &= ~FAULT_FLAG_ALLOW_RETRY;
-+				flags |= FAULT_FLAG_TRIED;
-+				goto retry;
-+			}
-+		}
-+
-+		/* Fault Handled Gracefully */
-+		up_read(&mm->mmap_sem);
-+		return;
-+	}
-+
-+	/* TBD: switch to pagefault_out_of_memory() */
-+	if (fault & VM_FAULT_OOM)
-+		goto out_of_memory;
-+	else if (fault & VM_FAULT_SIGBUS)
-+		goto do_sigbus;
-+
-+	/* no man's land */
-+	BUG();
-+
-+	/*
-+	 * Something tried to access memory that isn't in our memory map..
-+	 * Fix it, but check if it's kernel or user first..
-+	 */
-+bad_area:
-+	up_read(&mm->mmap_sem);
-+
-+bad_area_nosemaphore:
-+	/* User mode accesses just cause a SIGSEGV */
-+	if (user_mode(regs)) {
-+		tsk->thread.fault_address = address;
-+		tsk->thread.cause_code = cause_code;
-+		info.si_signo = SIGSEGV;
-+		info.si_errno = 0;
-+		/* info.si_code has been set above */
-+		info.si_addr = (void __user *)address;
-+		force_sig_info(SIGSEGV, &info, tsk);
-+		return;
-+	}
-+
-+no_context:
-+	/* Are we prepared to handle this kernel fault?
-+	 *
-+	 * (The kernel has valid exception-points in the source
-+	 *  when it acesses user-memory. When it fails in one
-+	 *  of those points, we find it in a table and do a jump
-+	 *  to some fixup code that loads an appropriate error
-+	 *  code)
-+	 */
-+	if (fixup_exception(regs))
-+		return;
-+
-+	die("Oops", regs, address, cause_code);
-+
-+out_of_memory:
-+	if (is_global_init(tsk)) {
-+		yield();
-+		goto survive;
-+	}
-+	up_read(&mm->mmap_sem);
-+
-+	if (user_mode(regs))
-+		do_group_exit(SIGKILL);	/* This will never return */
-+
-+	goto no_context;
-+
-+do_sigbus:
-+	up_read(&mm->mmap_sem);
-+
-+	if (!user_mode(regs))
-+		goto no_context;
-+
-+	tsk->thread.fault_address = address;
-+	tsk->thread.cause_code = cause_code;
-+	info.si_signo = SIGBUS;
-+	info.si_errno = 0;
-+	info.si_code = BUS_ADRERR;
-+	info.si_addr = (void __user *)address;
-+	force_sig_info(SIGBUS, &info, tsk);
++void show_kernel_fault_diag(const char *str, struct pt_regs *regs,
++			    unsigned long address, unsigned long cause_reg)
++{
 +}
 -- 
 1.7.4.1
