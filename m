@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [RFC PATCH v1 22/31] ARC: Page Fault handling (incl uaccess fixup)
-Date: Wed,  7 Nov 2012 10:47:45 +0100
-Message-ID: <1352281674-2186-23-git-send-email-vgupta@synopsys.com>
+Subject: [RFC PATCH v1 13/31] ARC: Non-MMU Exception Handling
+Date: Wed,  7 Nov 2012 10:47:36 +0100
+Message-ID: <1352281674-2186-14-git-send-email-vgupta@synopsys.com>
 References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
@@ -10,287 +10,157 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: tglx@linutronix.de, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-This includes recent changes to make handler "retry" and/or "killable"
-
-The killable (early exit) logic is loosely based on how SH implements it
-	return if SIGKILL + either of VM_FAULT_OOM or VM_FAULT_RETRY
-which is different from Hexagon implementation which would NOT early
-exit for
-	SIGKILL + VM_FAULT_OOM + !VM_FAULT_RETRY
-
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/mm/extable.c |   26 ++++++
- arch/arc/mm/fault.c   |  228 +++++++++++++++++++++++++++++++++++++++++++++++++
- 2 files changed, 254 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/mm/extable.c
- create mode 100644 arch/arc/mm/fault.c
+ arch/arc/include/asm/hw_irq.h |    7 --
+ arch/arc/kernel/traps.c       |  125 +++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 125 insertions(+), 7 deletions(-)
+ delete mode 100644 arch/arc/include/asm/hw_irq.h
+ create mode 100644 arch/arc/kernel/traps.c
 
-diff --git a/arch/arc/mm/extable.c b/arch/arc/mm/extable.c
+diff --git a/arch/arc/include/asm/hw_irq.h b/arch/arc/include/asm/hw_irq.h
+deleted file mode 100644
+index fd565ab..0000000
+--- a/arch/arc/include/asm/hw_irq.h
++++ /dev/null
+@@ -1,7 +0,0 @@
+-/*
+- * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 as
+- * published by the Free Software Foundation.
+- */
+diff --git a/arch/arc/kernel/traps.c b/arch/arc/kernel/traps.c
 new file mode 100644
-index 0000000..f05b677
+index 0000000..fd2457c
 --- /dev/null
-+++ b/arch/arc/mm/extable.c
-@@ -0,0 +1,26 @@
++++ b/arch/arc/kernel/traps.c
+@@ -0,0 +1,125 @@
 +/*
++ * Traps/Non-MMU Exception handling for ARC
++ *
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
 + *
-+ * Borrowed heavily from MIPS
++ * Rahul Trivedi: Codito Technologies 2004
 + */
 +
-+#include <linux/module.h>
++#include <linux/sched.h>
++#include <linux/kdebug.h>
 +#include <linux/uaccess.h>
++#include <asm/ptrace.h>
++#include <asm/setup.h>
 +
-+int fixup_exception(struct pt_regs *regs)
++void __init trap_init(void)
 +{
-+	const struct exception_table_entry *fixup;
++	return;
++}
 +
-+	fixup = search_exception_tables(instruction_pointer(regs));
-+	if (fixup) {
-+		regs->ret = fixup->fixup;
++void die(const char *str, struct pt_regs *regs, unsigned long address,
++	 unsigned long cause_reg)
++{
++	show_kernel_fault_diag(str, regs, address, cause_reg);
 +
-+		return 1;
++	/* DEAD END */
++	__asm__("flag 1");
++}
++
++/*
++ * Helper called for bulk of exceptions NOT needing specific handling
++ *  -for user faults enqueues requested signal
++ *  -for kernel, chk if due to copy_(to|from)_user, otherwise die()
++ */
++static noinline int handle_exception(unsigned long cause, char *str,
++				     struct pt_regs *regs, siginfo_t *info)
++{
++	if (user_mode(regs)) {
++		struct task_struct *tsk = current;
++
++		tsk->thread.fault_address = (__force unsigned int)info->si_addr;
++		tsk->thread.cause_code = cause;
++
++		force_sig_info(info->si_signo, info, tsk);
++
++	} else {
++		/* If not due to copy_(to|from)_user, we are doomed */
++		if (fixup_exception(regs))
++			return 0;
++
++		die(str, regs, (unsigned long)info->si_addr, cause);
 +	}
 +
-+	return 0;
-+}
-diff --git a/arch/arc/mm/fault.c b/arch/arc/mm/fault.c
-new file mode 100644
-index 0000000..af55aab
---- /dev/null
-+++ b/arch/arc/mm/fault.c
-@@ -0,0 +1,228 @@
-+/* Page Fault Handling for ARC (TLB Miss / ProtV)
-+ *
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#include <linux/signal.h>
-+#include <linux/interrupt.h>
-+#include <linux/sched.h>
-+#include <linux/errno.h>
-+#include <linux/ptrace.h>
-+#include <linux/version.h>
-+#include <linux/uaccess.h>
-+#include <linux/kdebug.h>
-+#include <asm/pgalloc.h>
-+
-+static int handle_vmalloc_fault(struct mm_struct *mm, unsigned long address)
-+{
-+	/*
-+	 * Synchronize this task's top level page-table
-+	 * with the 'reference' page table.
-+	 */
-+	pgd_t *pgd, *pgd_k;
-+	pud_t *pud, *pud_k;
-+	pmd_t *pmd, *pmd_k;
-+
-+	pgd = pgd_offset_fast(mm, address);
-+	pgd_k = pgd_offset_k(address);
-+
-+	if (!pgd_present(*pgd_k))
-+		goto bad_area;
-+
-+	pud = pud_offset(pgd, address);
-+	pud_k = pud_offset(pgd_k, address);
-+	if (!pud_present(*pud_k))
-+		goto bad_area;
-+
-+	pmd = pmd_offset(pud, address);
-+	pmd_k = pmd_offset(pud_k, address);
-+	if (!pmd_present(*pmd_k))
-+		goto bad_area;
-+
-+	set_pmd(pmd, *pmd_k);
-+
-+	/* XXX: create the TLB entry here */
-+	return 0;
-+
-+bad_area:
 +	return 1;
 +}
 +
-+void do_page_fault(struct pt_regs *regs, int write, unsigned long address,
-+		   unsigned long cause_code)
++#define DO_ERROR_INFO(signr, str, name, sicode) \
++int name(unsigned long cause, unsigned long address, struct pt_regs *regs) \
++{						\
++	siginfo_t info = {			\
++		.si_signo = signr,		\
++		.si_errno = 0,			\
++		.si_code  = sicode,		\
++		.si_addr = (void __user *)address,	\
++	};					\
++	return handle_exception(cause, str, regs, &info);\
++}
++
++/*
++ * Entry points for exceptions NOT needing specific handling
++ */
++DO_ERROR_INFO(SIGILL, "Priv Op/Disabled Extn", do_privilege_fault, ILL_PRVOPC)
++DO_ERROR_INFO(SIGILL, "Invalid Extn Insn", do_extension_fault, ILL_ILLOPC)
++DO_ERROR_INFO(SIGILL, "Illegal Insn (or Seq)", insterror_is_error, ILL_ILLOPC)
++DO_ERROR_INFO(SIGBUS, "Invalid Mem Access", do_memory_error, BUS_ADRERR)
++DO_ERROR_INFO(SIGTRAP, "Breakpoint Set", trap_is_brkpt, TRAP_BRKPT)
++
++DO_ERROR_INFO(SIGSEGV, "Misaligned Access", do_misaligned_access, SEGV_ACCERR)
++
++/*
++ * Entry point for miscll errors such as Nested Exceptions
++ *  -Duplicate TLB entry is handled seperately though
++ */
++void do_machine_check_fault(unsigned long cause, unsigned long address,
++			    struct pt_regs *regs)
 +{
-+	struct vm_area_struct *vma = NULL;
-+	struct task_struct *tsk = current;
-+	struct mm_struct *mm = tsk->mm;
-+	siginfo_t info;
-+	int fault, ret;
-+	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE |
-+				(write ? FAULT_FLAG_WRITE : 0);
++	die("Machine Check Exception", regs, address, cause);
++}
 +
-+	/*
-+	 * We fault-in kernel-space virtual memory on-demand. The
-+	 * 'reference' page table is init_mm.pgd.
-+	 *
-+	 * NOTE! We MUST NOT take any locks for this case. We may
-+	 * be in an interrupt or a critical region, and should
-+	 * only copy the information from the master page table,
-+	 * nothing more.
-+	 */
-+	if (address >= VMALLOC_START && address <= VMALLOC_END) {
-+		ret = handle_vmalloc_fault(mm, address);
-+		if (unlikely(ret))
-+			goto bad_area_nosemaphore;
-+		else
-+			return;
++/*
++ * Entry point for traps induced by ARCompact TRAP_S <n> insn
++ * This is same family as TRAP0/SWI insn (use the same vector).
++ * The only difference being SWI insn take no operand, while TRAP_S does
++ * which reflects in ECR Reg as 8 bit param.
++ * Thus TRAP_S <n> can be used for specific purpose
++ *  -1 used for software breakpointing (gdb)
++ *  -2 used by kprobes
++ */
++void do_non_swi_trap(unsigned long cause, unsigned long address,
++			struct pt_regs *regs)
++{
++	unsigned int param = cause & 0xff;
++
++	switch (param) {
++	case 1:
++		trap_is_brkpt(cause, address, regs);
++		break;
++
++	default:
++		break;
 +	}
++}
 +
-+	info.si_code = SEGV_MAPERR;
-+
-+	/*
-+	 * If we're in an interrupt or have no user
-+	 * context, we must not take the fault..
-+	 */
-+	if (in_atomic() || !mm)
-+		goto no_context;
-+
-+retry:
-+	down_read(&mm->mmap_sem);
-+	vma = find_vma(mm, address);
-+	if (!vma)
-+		goto bad_area;
-+	if (vma->vm_start <= address)
-+		goto good_area;
-+	if (!(vma->vm_flags & VM_GROWSDOWN))
-+		goto bad_area;
-+	if (expand_stack(vma, address))
-+		goto bad_area;
-+
-+	/*
-+	 * Ok, we have a good vm_area for this memory access, so
-+	 * we can handle it..
-+	 */
-+good_area:
-+	info.si_code = SEGV_ACCERR;
-+
-+	/* Handle protection violation, execute on heap or stack */
-+
-+	if (cause_code == ((ECR_V_PROTV << 16) | ECR_C_PROTV_INST_FETCH))
-+		goto bad_area;
-+
-+	if (write) {
-+		if (!(vma->vm_flags & VM_WRITE))
-+			goto bad_area;
-+	} else {
-+		if (!(vma->vm_flags & (VM_READ | VM_EXEC)))
-+			goto bad_area;
-+	}
-+
-+survive:
-+	/*
-+	 * If for any reason at all we couldn't handle the fault,
-+	 * make sure we exit gracefully rather than endlessly redo
-+	 * the fault.
-+	 */
-+	fault = handle_mm_fault(mm, vma, address, flags);
-+
-+	/* If Pagefault was interrupted by SIGKILL, exit page fault "early" */
-+	if (unlikely(fatal_signal_pending(current))) {
-+		if ((fault & VM_FAULT_ERROR) && !(fault & VM_FAULT_RETRY))
-+			up_read(&mm->mmap_sem);
-+		if (user_mode(regs))
-+			return;
-+	}
-+
-+	if (likely(!(fault & VM_FAULT_ERROR))) {
-+		if (flags & FAULT_FLAG_ALLOW_RETRY) {
-+			/* To avoid updating stats twice for retry case */
-+			if (fault & VM_FAULT_MAJOR)
-+				tsk->maj_flt++;
-+			else
-+				tsk->min_flt++;
-+
-+			if (fault & VM_FAULT_RETRY) {
-+				flags &= ~FAULT_FLAG_ALLOW_RETRY;
-+				flags |= FAULT_FLAG_TRIED;
-+				goto retry;
-+			}
-+		}
-+
-+		/* Fault Handled Gracefully */
-+		up_read(&mm->mmap_sem);
-+		return;
-+	}
-+
-+	/* TBD: switch to pagefault_out_of_memory() */
-+	if (fault & VM_FAULT_OOM)
-+		goto out_of_memory;
-+	else if (fault & VM_FAULT_SIGBUS)
-+		goto do_sigbus;
-+
-+	/* no man's land */
-+	BUG();
-+
-+	/*
-+	 * Something tried to access memory that isn't in our memory map..
-+	 * Fix it, but check if it's kernel or user first..
-+	 */
-+bad_area:
-+	up_read(&mm->mmap_sem);
-+
-+bad_area_nosemaphore:
-+	/* User mode accesses just cause a SIGSEGV */
-+	if (user_mode(regs)) {
-+		tsk->thread.fault_address = address;
-+		tsk->thread.cause_code = cause_code;
-+		info.si_signo = SIGSEGV;
-+		info.si_errno = 0;
-+		/* info.si_code has been set above */
-+		info.si_addr = (void __user *)address;
-+		force_sig_info(SIGSEGV, &info, tsk);
-+		return;
-+	}
-+
-+no_context:
-+	/* Are we prepared to handle this kernel fault?
-+	 *
-+	 * (The kernel has valid exception-points in the source
-+	 *  when it acesses user-memory. When it fails in one
-+	 *  of those points, we find it in a table and do a jump
-+	 *  to some fixup code that loads an appropriate error
-+	 *  code)
-+	 */
-+	if (fixup_exception(regs))
-+		return;
-+
-+	die("Oops", regs, address, cause_code);
-+
-+out_of_memory:
-+	if (is_global_init(tsk)) {
-+		yield();
-+		goto survive;
-+	}
-+	up_read(&mm->mmap_sem);
-+
-+	if (user_mode(regs))
-+		do_group_exit(SIGKILL);	/* This will never return */
-+
-+	goto no_context;
-+
-+do_sigbus:
-+	up_read(&mm->mmap_sem);
-+
-+	if (!user_mode(regs))
-+		goto no_context;
-+
-+	tsk->thread.fault_address = address;
-+	tsk->thread.cause_code = cause_code;
-+	info.si_signo = SIGBUS;
-+	info.si_errno = 0;
-+	info.si_code = BUS_ADRERR;
-+	info.si_addr = (void __user *)address;
-+	force_sig_info(SIGBUS, &info, tsk);
++/*
++ * Entry point for Instruction Error Exception
++ */
++void do_insterror_or_kprobe(unsigned long cause,
++				       unsigned long address,
++				       struct pt_regs *regs)
++{
++	insterror_is_error(cause, address, regs);
 +}
 -- 
 1.7.4.1
