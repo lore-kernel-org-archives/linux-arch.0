@@ -1,51 +1,47 @@
-From: Arnd Bergmann <arnd@arndb.de>
+From: Gilad Ben-Yossef <gilad@benyossef.com>
 Subject: Re: [RFC Patch v1 00/31] Synopsys ARC Linux kernel Port
-Date: Wed, 7 Nov 2012 14:36:51 +0000
-Message-ID: <201211071436.52035.arnd@arndb.de>
+Date: Wed, 7 Nov 2012 22:46:19 +0200
+Message-ID: <CAOtvUMfjApPtjcsqr+comm-k90YH3WHSqFXyNPwJYyUXOouTqw@mail.gmail.com>
 References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:58648 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751292Ab2KGOg5 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Nov 2012 09:36:57 -0500
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, arnd@arndb.de
+List-Id: linux-arch.vger.kernel.org
 
-On Wednesday 07 November 2012, Vineet Gupta wrote:
+On Wed, Nov 7, 2012 at 11:47 AM, Vineet Gupta
+<Vineet.Gupta1@synopsys.com> wrote:
+> Hi,
+>
 > This patchset based off-of 3.7-rc3, introduces the Linux kernel port to
 > ARC700 processor family (750D and 770D) from Synopsys.
-> 
-> ARC700 is highly configurable and power efficient 32-bit RISC core with MMU.
-> It is embedded in SoCs deployed in TV Set Top boxes, Digital Media Players,
-> all the way to Network-on-Chips.
 
-Hi Vineet,
 
-I'm largely quite happy with how the series has turned out, having looked
-at earlier versions of the ARC kernel a couple of years ago. I've commented
-already on individual patches, but overall, I see two main issues that
-need to be resolved in order to merge the port:
+We've been using the port for 6 month now at Ezchip running on top of
+FPGA in 4 way SMP configuration (support for which will no doubt
+follow later) and have subjected it to various stress tests (hackbench
+and such) and it is working up quite well over all.
 
-* You have to use the generic syscall interface, and that means not using
-  any of the legacy system calls that have since been replaced by newer
-  versions of the same.
+I realize some code style or organization changes might be in order
+but at the same time wanted to attest the nature of its good and
+behavior performance on real hardware; so for what it's worth:
 
-* You are missing dynamic hardware detection. Rather than building a kernel
-  with everything known about the hardware at compile time, new ports these
-  days are normally able to run on all kinds of hardware and detect the
-  differences by looking at configuration registers (e.g. PCI), asking
-  firmware (Open Firmware, ACPI, ...) or by interpreting a device tree
-  that is passed by the boot loader (most embedded systems).
-  I assume that device tree is the right solution for you because a lot of
-  the hardware you use is likely shared with ARM, PowerPC or MIPS based
-  SoCs and they are all using (or getting migrated to) DT now instead of
-  static platform devices,
+Tested-by: Gilad Ben-Yossef <gilad@benyossef.com>
 
-	Arnd
+Cheers,
+Gilad
+
+-- 
+Gilad Ben-Yossef
+Chief Coffee Drinker
+gilad@benyossef.com
+Israel Cell: +972-52-8260388
+US Cell: +1-973-8260388
+http://benyossef.com
+
+"If you take a class in large-scale robotics, can you end up in a
+situation where the homework eats your dog?"
+ -- Jean-Baptiste Queru
