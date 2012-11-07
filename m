@@ -1,309 +1,330 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from vaxjo.synopsys.com ([198.182.60.75]:52749 "EHLO
+Received: from vaxjo.synopsys.com ([198.182.60.75]:52753 "EHLO
 	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751927Ab2KGJ70 (ORCPT
+	with ESMTP id S1754059Ab2KGJ70 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Nov 2012 04:59:26 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [RFC Patch v1 00/31] Synopsys ARC Linux kernel Port
-Date: Wed,  7 Nov 2012 10:47:23 +0100
-Message-ID: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
+Subject: [RFC PATCH v1 19/31] ARC: MMU Context Management
+Date: Wed,  7 Nov 2012 10:47:42 +0100
+Message-ID: <1352281674-2186-20-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: tglx@linutronix.de, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20121107094723.uTroPgPSZQIgQ5ZmkyCU_-ZeW0WTQU5Fw6GOA9FVw8w@z>
+Message-ID: <20121107094742.Am3EHm15rr7Jr7-7bvqgEZtuOtq7ucwXbCdI9iDKrLQ@z>
 
-Hi,
+ARC700 MMU provides for tagging TLB entries with a 8-bit ASID to avoid
+having to flush the TLB every task switch.
 
-This patchset based off-of 3.7-rc3, introduces the Linux kernel port to
-ARC700 processor family (750D and 770D) from Synopsys.
+It also allows for a quick way to invalidate all the TLB entries for
+task useful for:
+* COW sementics during fork()
+* task exit()ing
 
-ARC700 is highly configurable and power efficient 32-bit RISC core with MMU.
-It is embedded in SoCs deployed in TV Set Top boxes, Digital Media Players,
-all the way to Network-on-Chips.
-
-More information is available @
-    http://www.synopsys.com/IP/ProcessorIP/ARCProcessors/Pages/default.aspx
-
-This series is part #1 of the entire port - just enough to build the kernel
-and bring up a Busybox shell on console (on ARCAngel4 FPGA ref platform)
-The console driver has already been accepted/merged into tty-next tree for 3.8
-
-The part #2 series containing additional features ptrace/SMP/perf/OProfile..
-will follow as we move along the review cycle. It has been withheld just to
-make it easier for reviewers.
-
-The entire series however is available at
-    git://github.com/foss-for-synopsys-dwc-arc-processors/linux.git arc-3.7-rc3
-
-The GNU tool-chain, based off of gcc 4.4  + uClibc 0.9.30.3 is also available
-from github. Please refer to Readme.md in "toolchain" repository also in same
-hierarchy as kernel above.
-
-We are already working on a buildroot based distro, to be made available soon.
-
-More info about the kernel port can also be found in the ELCE-Barclone '12
-talk on same topic.
-
-    https://raw.github.com/vineetgarc/publish/master/ELCE-2012-ARC-Linux.pdf
-
-All comments/criticisms are welcome !
-
-P.S. Despite 3.7 based, we are still short of the UAPI split for arch headers.
-That is also being worked upon with help from David. That will show up in v2
-of the patchseries.
-
-Thx,
--Vineet
-
-Vineet Gupta (31):
-  ARC: Generic Headers
-  ARC: irqflags
-  ARC: atomic/bitops/cmpxchg/barriers
-  asm-generic headers: uaccess.h to conditionally define segment_eq()
-  ARC: uaccess friends
-  asm-generic headers: Allow yet more arch overrides in checksum.h
-  ARC: checksum/byteorder/swab routines
-  ARC: Fundamental ARCH data-types/defines
-  ARC: spinlock/rwlock/mutex primitives
-  ARC: string library
-  ARC: Low level IRQ/Trap/Exception(non-MMU) Handling
-  ARC: Interrupt Handling
-  ARC: Non-MMU Exception Handling
-  ARC: syscall support
-  ARC: Process/scheduling/clock/Timers/Delay Management
-  ARC: Signal handling
-  ARC: Cache Flush Management
-  ARC: Page Table Management
-  ARC: MMU Context Management
-  ARC: MMU Exception Handling
-  ARC: TLB flush Handling
-  ARC: Page Fault handling (incl uaccess fixup)
-  ARC: I/O and DMA Mappings
-  ARC: startup #1: low-level, setup_arch(), /proc/cpuinfo, mem init
-  ARC: [plat-arcfpga] Hooking up platform to ARC UART
-  ARC: Build system: Makefiles, Kconfig, Linker script
-  ARC: Last bits (stubs) to get to a running kernel with UART
-  ARC: split ret_from_fork, simplify kernel_thread()
-  ARC: switch to generic kernel_thread()
-  ARC: switch to generic kernel_execve() and sys_execve()
-  ARC: [plat-arcfpga] defconfig
-
- arch/arc/Kbuild                               |    2 +
- arch/arc/Kconfig                              |  338 ++++++++++
- arch/arc/Kconfig.debug                        |   34 +
- arch/arc/Makefile                             |  115 ++++
- arch/arc/boot/Makefile                        |   27 +
- arch/arc/configs/fpga_defconfig               |  607 ++++++++++++++++++
- arch/arc/include/asm/Kbuild                   |   58 ++
- arch/arc/include/asm/arcregs.h                |  330 ++++++++++
- arch/arc/include/asm/asm-offsets.h            |    9 +
- arch/arc/include/asm/atomic.h                 |  232 +++++++
- arch/arc/include/asm/barrier.h                |   42 ++
- arch/arc/include/asm/bitops.h                 |  507 +++++++++++++++
- arch/arc/include/asm/bug.h                    |   37 ++
- arch/arc/include/asm/byteorder.h              |   18 +
- arch/arc/include/asm/cache.h                  |   75 +++
- arch/arc/include/asm/cachectl.h               |   30 +
- arch/arc/include/asm/cacheflush.h             |   67 ++
- arch/arc/include/asm/checksum.h               |  101 +++
- arch/arc/include/asm/cmpxchg.h                |  143 +++++
- arch/arc/include/asm/delay.h                  |   68 ++
- arch/arc/include/asm/dma-mapping.h            |  176 ++++++
- arch/arc/include/asm/dma.h                    |   14 +
- arch/arc/include/asm/elf.h                    |   97 +++
- arch/arc/include/asm/entry.h                  |  495 +++++++++++++++
- arch/arc/include/asm/exec.h                   |   15 +
- arch/arc/include/asm/io.h                     |   26 +
- arch/arc/include/asm/irq.h                    |   26 +
- arch/arc/include/asm/irqflags.h               |  143 +++++
- arch/arc/include/asm/kdebug.h                 |   19 +
- arch/arc/include/asm/linkage.h                |   30 +
- arch/arc/include/asm/mmu.h                    |   23 +
- arch/arc/include/asm/mmu_context.h            |  209 ++++++
- arch/arc/include/asm/module.h                 |   17 +
- arch/arc/include/asm/mutex.h                  |    9 +
- arch/arc/include/asm/page.h                   |  134 ++++
- arch/arc/include/asm/pgalloc.h                |  134 ++++
- arch/arc/include/asm/pgtable.h                |  401 ++++++++++++
- arch/arc/include/asm/processor.h              |  146 +++++
- arch/arc/include/asm/ptrace.h                 |  133 ++++
- arch/arc/include/asm/sections.h               |   17 +
- arch/arc/include/asm/segment.h                |   24 +
- arch/arc/include/asm/setup.h                  |   22 +
- arch/arc/include/asm/sigcontext.h             |   23 +
- arch/arc/include/asm/signal.h                 |   27 +
- arch/arc/include/asm/smp.h                    |   34 +
- arch/arc/include/asm/spinlock.h               |  144 +++++
- arch/arc/include/asm/spinlock_types.h         |   35 +
- arch/arc/include/asm/string.h                 |   40 ++
- arch/arc/include/asm/swab.h                   |   99 +++
- arch/arc/include/asm/switch_to.h              |   41 ++
- arch/arc/include/asm/syscall.h                |   72 +++
- arch/arc/include/asm/syscalls.h               |   30 +
- arch/arc/include/asm/thread_info.h            |  120 ++++
- arch/arc/include/asm/timex.h                  |   18 +
- arch/arc/include/asm/tlb-mmu1.h               |  104 +++
- arch/arc/include/asm/tlb.h                    |   58 ++
- arch/arc/include/asm/tlbflush.h               |   28 +
- arch/arc/include/asm/uaccess.h                |  605 ++++++++++++++++++
- arch/arc/include/asm/unistd.h                 |   46 ++
- arch/arc/include/asm/vmlinux.lds.h            |   12 +
- arch/arc/kernel/Makefile                      |   16 +
- arch/arc/kernel/arcksyms.c                    |   56 ++
- arch/arc/kernel/asm-offsets.c                 |   46 ++
- arch/arc/kernel/ctx_sw.c                      |   91 +++
- arch/arc/kernel/ctx_sw_asm.S                  |   58 ++
- arch/arc/kernel/entry.S                       |  635 +++++++++++++++++++
- arch/arc/kernel/fpu.c                         |   55 ++
- arch/arc/kernel/head.S                        |   78 +++
- arch/arc/kernel/irq.c                         |  107 ++++
- arch/arc/kernel/process.c                     |  259 ++++++++
- arch/arc/kernel/ptrace.c                      |   26 +
- arch/arc/kernel/reset.c                       |   33 +
- arch/arc/kernel/setup.c                       |  166 +++++
- arch/arc/kernel/signal.c                      |  360 +++++++++++
- arch/arc/kernel/stacktrace.c                  |   43 ++
- arch/arc/kernel/sys.c                         |   18 +
- arch/arc/kernel/time.c                        |  237 +++++++
- arch/arc/kernel/traps.c                       |  125 ++++
- arch/arc/kernel/troubleshoot.c                |   17 +
- arch/arc/kernel/vmlinux.lds.S                 |  117 ++++
- arch/arc/lib/Makefile                         |    9 +
- arch/arc/lib/memcmp.S                         |  124 ++++
- arch/arc/lib/memcpy-700.S                     |   66 ++
- arch/arc/lib/memset.S                         |   59 ++
- arch/arc/lib/strchr-700.S                     |  123 ++++
- arch/arc/lib/strcmp.S                         |   96 +++
- arch/arc/lib/strcpy-700.S                     |   70 ++
- arch/arc/lib/strlen.S                         |   83 +++
- arch/arc/mm/Makefile                          |   10 +
- arch/arc/mm/cache_arc700.c                    |  838 +++++++++++++++++++++++++
- arch/arc/mm/dma.c                             |   91 +++
- arch/arc/mm/extable.c                         |   26 +
- arch/arc/mm/fault.c                           |  228 +++++++
- arch/arc/mm/init.c                            |  185 ++++++
- arch/arc/mm/ioremap.c                         |   62 ++
- arch/arc/mm/mmap.c                            |   21 +
- arch/arc/mm/tlb.c                             |  586 +++++++++++++++++
- arch/arc/mm/tlbex.S                           |  351 +++++++++++
- arch/arc/plat-arcfpga/Kconfig                 |   33 +
- arch/arc/plat-arcfpga/Makefile                |    9 +
- arch/arc/plat-arcfpga/include/plat/dma_addr.h |   45 ++
- arch/arc/plat-arcfpga/include/plat/irq.h      |   27 +
- arch/arc/plat-arcfpga/include/plat/memmap.h   |   31 +
- arch/arc/plat-arcfpga/irq.c                   |   41 ++
- arch/arc/plat-arcfpga/platform.c              |  134 ++++
- include/asm-generic/checksum.h                |    4 +
- include/asm-generic/uaccess.h                 |    3 +-
- lib/checksum.c                                |    2 +
- 108 files changed, 12585 insertions(+), 1 deletions(-)
- create mode 100644 arch/arc/Kbuild
- create mode 100644 arch/arc/Kconfig
- create mode 100644 arch/arc/Kconfig.debug
- create mode 100644 arch/arc/Makefile
- create mode 100644 arch/arc/boot/Makefile
- create mode 100644 arch/arc/configs/fpga_defconfig
- create mode 100644 arch/arc/include/asm/Kbuild
- create mode 100644 arch/arc/include/asm/arcregs.h
- create mode 100644 arch/arc/include/asm/asm-offsets.h
- create mode 100644 arch/arc/include/asm/atomic.h
- create mode 100644 arch/arc/include/asm/barrier.h
- create mode 100644 arch/arc/include/asm/bitops.h
- create mode 100644 arch/arc/include/asm/bug.h
- create mode 100644 arch/arc/include/asm/byteorder.h
- create mode 100644 arch/arc/include/asm/cache.h
- create mode 100644 arch/arc/include/asm/cachectl.h
- create mode 100644 arch/arc/include/asm/cacheflush.h
- create mode 100644 arch/arc/include/asm/checksum.h
- create mode 100644 arch/arc/include/asm/cmpxchg.h
- create mode 100644 arch/arc/include/asm/delay.h
- create mode 100644 arch/arc/include/asm/dma-mapping.h
- create mode 100644 arch/arc/include/asm/dma.h
- create mode 100644 arch/arc/include/asm/elf.h
- create mode 100644 arch/arc/include/asm/entry.h
- create mode 100644 arch/arc/include/asm/exec.h
- create mode 100644 arch/arc/include/asm/io.h
- create mode 100644 arch/arc/include/asm/irq.h
- create mode 100644 arch/arc/include/asm/irqflags.h
- create mode 100644 arch/arc/include/asm/kdebug.h
- create mode 100644 arch/arc/include/asm/linkage.h
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+---
+ arch/arc/include/asm/arcregs.h     |    7 ++
+ arch/arc/include/asm/mmu.h         |   23 ++++
+ arch/arc/include/asm/mmu_context.h |  209 ++++++++++++++++++++++++++++++++++++
+ arch/arc/mm/tlb.c                  |   23 ++++
+ 4 files changed, 262 insertions(+), 0 deletions(-)
  create mode 100644 arch/arc/include/asm/mmu.h
  create mode 100644 arch/arc/include/asm/mmu_context.h
- create mode 100644 arch/arc/include/asm/module.h
- create mode 100644 arch/arc/include/asm/mutex.h
- create mode 100644 arch/arc/include/asm/page.h
- create mode 100644 arch/arc/include/asm/pgalloc.h
- create mode 100644 arch/arc/include/asm/pgtable.h
- create mode 100644 arch/arc/include/asm/processor.h
- create mode 100644 arch/arc/include/asm/ptrace.h
- create mode 100644 arch/arc/include/asm/sections.h
- create mode 100644 arch/arc/include/asm/segment.h
- create mode 100644 arch/arc/include/asm/setup.h
- create mode 100644 arch/arc/include/asm/sigcontext.h
- create mode 100644 arch/arc/include/asm/signal.h
- create mode 100644 arch/arc/include/asm/smp.h
- create mode 100644 arch/arc/include/asm/spinlock.h
- create mode 100644 arch/arc/include/asm/spinlock_types.h
- create mode 100644 arch/arc/include/asm/string.h
- create mode 100644 arch/arc/include/asm/swab.h
- create mode 100644 arch/arc/include/asm/switch_to.h
- create mode 100644 arch/arc/include/asm/syscall.h
- create mode 100644 arch/arc/include/asm/syscalls.h
- create mode 100644 arch/arc/include/asm/thread_info.h
- create mode 100644 arch/arc/include/asm/timex.h
- create mode 100644 arch/arc/include/asm/tlb-mmu1.h
- create mode 100644 arch/arc/include/asm/tlb.h
- create mode 100644 arch/arc/include/asm/tlbflush.h
- create mode 100644 arch/arc/include/asm/uaccess.h
- create mode 100644 arch/arc/include/asm/unistd.h
- create mode 100644 arch/arc/include/asm/vmlinux.lds.h
- create mode 100644 arch/arc/kernel/Makefile
- create mode 100644 arch/arc/kernel/arcksyms.c
- create mode 100644 arch/arc/kernel/asm-offsets.c
- create mode 100644 arch/arc/kernel/ctx_sw.c
- create mode 100644 arch/arc/kernel/ctx_sw_asm.S
- create mode 100644 arch/arc/kernel/entry.S
- create mode 100644 arch/arc/kernel/fpu.c
- create mode 100644 arch/arc/kernel/head.S
- create mode 100644 arch/arc/kernel/irq.c
- create mode 100644 arch/arc/kernel/process.c
- create mode 100644 arch/arc/kernel/ptrace.c
- create mode 100644 arch/arc/kernel/reset.c
- create mode 100644 arch/arc/kernel/setup.c
- create mode 100644 arch/arc/kernel/signal.c
- create mode 100644 arch/arc/kernel/stacktrace.c
- create mode 100644 arch/arc/kernel/sys.c
- create mode 100644 arch/arc/kernel/time.c
- create mode 100644 arch/arc/kernel/traps.c
- create mode 100644 arch/arc/kernel/troubleshoot.c
- create mode 100644 arch/arc/kernel/vmlinux.lds.S
- create mode 100644 arch/arc/lib/Makefile
- create mode 100644 arch/arc/lib/memcmp.S
- create mode 100644 arch/arc/lib/memcpy-700.S
- create mode 100644 arch/arc/lib/memset.S
- create mode 100644 arch/arc/lib/strchr-700.S
- create mode 100644 arch/arc/lib/strcmp.S
- create mode 100644 arch/arc/lib/strcpy-700.S
- create mode 100644 arch/arc/lib/strlen.S
- create mode 100644 arch/arc/mm/Makefile
- create mode 100644 arch/arc/mm/cache_arc700.c
- create mode 100644 arch/arc/mm/dma.c
- create mode 100644 arch/arc/mm/extable.c
- create mode 100644 arch/arc/mm/fault.c
- create mode 100644 arch/arc/mm/init.c
- create mode 100644 arch/arc/mm/ioremap.c
- create mode 100644 arch/arc/mm/mmap.c
  create mode 100644 arch/arc/mm/tlb.c
- create mode 100644 arch/arc/mm/tlbex.S
- create mode 100644 arch/arc/plat-arcfpga/Kconfig
- create mode 100644 arch/arc/plat-arcfpga/Makefile
- create mode 100644 arch/arc/plat-arcfpga/include/plat/dma_addr.h
- create mode 100644 arch/arc/plat-arcfpga/include/plat/irq.h
- create mode 100644 arch/arc/plat-arcfpga/include/plat/memmap.h
- create mode 100644 arch/arc/plat-arcfpga/irq.c
- create mode 100644 arch/arc/plat-arcfpga/platform.c
 
+diff --git a/arch/arc/include/asm/arcregs.h b/arch/arc/include/asm/arcregs.h
+index c6e2805..c12eb9b 100644
+--- a/arch/arc/include/asm/arcregs.h
++++ b/arch/arc/include/asm/arcregs.h
+@@ -85,6 +85,13 @@
+ #define DC_CTRL_INV_MODE_FLUSH  0x40
+ #define DC_CTRL_FLUSH_STATUS    0x100
+ 
++/* MMU Management regs */
++#define ARC_REG_PID		0x409
++#define ARC_REG_SCRATCH_DATA0	0x418
++
++/* Bits in MMU PID register */
++#define MMU_ENABLE		(1 << 31)	/* Enable MMU for process */
++
+ /*
+  * Floating Pt Registers
+  * Status regs are read-only (build-time) so need not be saved/restored
+diff --git a/arch/arc/include/asm/mmu.h b/arch/arc/include/asm/mmu.h
+new file mode 100644
+index 0000000..56b0232
+--- /dev/null
++++ b/arch/arc/include/asm/mmu.h
+@@ -0,0 +1,23 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef _ASM_ARC_MMU_H
++#define _ASM_ARC_MMU_H
++
++#ifndef __ASSEMBLY__
++
++typedef struct {
++	unsigned long asid;	/* Pvt Addr-Space ID for mm */
++#ifdef CONFIG_ARC_TLB_DBG
++	struct task_struct *tsk;
++#endif
++} mm_context_t;
++
++#endif
++
++#endif
+diff --git a/arch/arc/include/asm/mmu_context.h b/arch/arc/include/asm/mmu_context.h
+new file mode 100644
+index 0000000..d12f3de
+--- /dev/null
++++ b/arch/arc/include/asm/mmu_context.h
+@@ -0,0 +1,209 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * vineetg: May 2011
++ *  -Refactored get_new_mmu_context( ) to only handle live-mm.
++ *   retiring-mm handled in other hooks
++ *
++ * Vineetg: March 25th, 2008: Bug #92690
++ *  -Major rewrite of Core ASID allocation routine get_new_mmu_context
++ *
++ * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
++ */
++
++#ifndef _ASM_ARC_MMU_CONTEXT_H
++#define _ASM_ARC_MMU_CONTEXT_H
++
++#include <asm/arcregs.h>
++#include <asm/tlb.h>
++
++#include <asm-generic/mm_hooks.h>
++
++/*		ARC700 ASID Management
++ *
++ * ARC MMU provides 8-bit ASID (0..255) to TAG TLB entries, allowing entries
++ * with same vaddr (different tasks) to co-exit. This provides for
++ * "Fast Context Switch" i.e. no TLB flush on ctxt-switch
++ *
++ * Linux assigns each task a unique ASID. A simple round-robin allocation
++ * of H/w ASID is done using software tracker @asid_cache.
++ * When it reaches max 255, the allocation cycle starts afresh by flushing
++ * the entire TLB and wrapping ASID back to zero.
++ *
++ * For book-keeping, Linux uses a couple of data-structures:
++ *  -mm_struct has an @asid field to keep a note of task's ASID (needed at the
++ *   time of say switch_mm( )
++ *  -An array of mm structs @asid_mm_map[] for asid->mm the reverse mapping,
++ *  given an ASID, finding the mm struct associated.
++ *
++ * The round-robin allocation algorithm allows for ASID stealing.
++ * If asid tracker is at "x-1", a new req will allocate "x", even if "x" was
++ * already assigned to another (switched-out) task. Obviously the prev owner
++ * is marked with an invalid ASID to make it request for a new ASID when it
++ * gets scheduled next time. However its TLB entries (with ASID "x") could
++ * exist, which must be cleared before the same ASID is used by the new owner.
++ * Flushing them would be plausible but costly solution. Instead we force a
++ * allocation policy quirk, which ensures that a stolen ASID won't have any
++ * TLB entries associates, alleviating the need to flush.
++ * The quirk essentially is not allowing ASID allocated in prev cycle
++ * to be used past a roll-over in the next cycle.
++ * When this happens (i.e. task ASID > asid tracker), task needs to refresh
++ * its ASID, aligning it to current value of tracker. If the task doesn't get
++ * scheduled past a roll-over, hence its ASID is not yet realigned with
++ * tracker, such ASID is anyways safely reusable because it is
++ * gauranteed that TLB entries with that ASID wont exist.
++ */
++
++#define FIRST_ASID  0
++#define MAX_ASID    255			/* 8 bit PID field in PID Aux reg */
++#define NO_ASID     (MAX_ASID + 1)	/* ASID Not alloc to mmu ctxt */
++#define NUM_ASID    ((MAX_ASID - FIRST_ASID) + 1)
++
++/* ASID to mm struct mapping */
++extern struct mm_struct *asid_mm_map[NUM_ASID + 1];
++
++extern int asid_cache;
++
++/*
++ * Assign a new ASID to task. If the task already has an ASID, it is
++ * relinquished.
++ */
++static inline void get_new_mmu_context(struct mm_struct *mm)
++{
++	struct mm_struct *prev_owner;
++	unsigned long flags;
++
++	local_irq_save(flags);
++
++	/*
++	 * Relinquish the currently owned ASID (if any).
++	 * Doing unconditionally saves a cmp-n-branch; for already unused
++	 * ASID slot, the value was/remains NULL
++	 */
++	asid_mm_map[mm->context.asid] = (struct mm_struct *)NULL;
++
++	/* move to new ASID */
++	if (++asid_cache > MAX_ASID) {	/* ASID roll-over */
++		asid_cache = FIRST_ASID;
++		flush_tlb_all();
++	}
++
++	/*
++	 * Is next ASID already owned by some-one else (we are stealing it).
++	 * If so, let the orig owner be aware of this, so when it runs, it
++	 * asks for a brand new ASID. This would only happen for a long-lived
++	 * task with ASID from prev allocation cycle (before ASID roll-over).
++	 *
++	 * This might look wrong - if we are re-using some other task's ASID,
++	 * won't we use it's stale TLB entries too. Actually switch_mm( ) takes
++	 * care of such a case: it ensures that task with ASID from prev alloc
++	 * cycle, when scheduled will refresh it's ASID: see switch_mm( ) below
++	 * The stealing scenario described here will only happen if that task
++	 * didn't get a chance to refresh it's ASID - implying stale entries
++	 * won't exist.
++	 */
++	prev_owner = asid_mm_map[asid_cache];
++	if (prev_owner)
++		prev_owner->context.asid = NO_ASID;
++
++	/* Assign new ASID to tsk */
++	asid_mm_map[asid_cache] = mm;
++	mm->context.asid = asid_cache;
++
++#ifdef CONFIG_ARC_TLB_DBG
++	pr_info("ARC_TLB_DBG: NewMM=0x%x OldMM=0x%x task_struct=0x%x Task: %s,"
++	       " pid:%u, assigned asid:%lu\n",
++	       (unsigned int)mm, (unsigned int)prev_owner,
++	       (unsigned int)(mm->context.tsk), (mm->context.tsk)->comm,
++	       (mm->context.tsk)->pid, mm->context.asid);
++#endif
++
++	write_aux_reg(ARC_REG_PID, asid_cache | MMU_ENABLE);
++
++	local_irq_restore(flags);
++}
++
++/*
++ * Initialize the context related info for a new mm_struct
++ * instance.
++ */
++static inline int
++init_new_context(struct task_struct *tsk, struct mm_struct *mm)
++{
++	mm->context.asid = NO_ASID;
++#ifdef CONFIG_ARC_TLB_DBG
++	mm->context.tsk = tsk;
++#endif
++	return 0;
++}
++
++/* Prepare the MMU for task: setup PID reg with allocated ASID
++    If task doesn't have an ASID (never alloc or stolen, get a new ASID)
++*/
++static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
++			     struct task_struct *tsk)
++{
++	/* PGD cached in MMU reg to avoid 3 mem lookups: task->mm->pgd */
++	write_aux_reg(ARC_REG_SCRATCH_DATA0, next->pgd);
++
++	/*
++	 * Get a new ASID if task doesn't have a valid one. Possible when
++	 *  -task never had an ASID (fresh after fork)
++	 *  -it's ASID was stolen - past an ASID roll-over.
++	 *  -There's a third obscure scenario (if this task is running for the
++	 *   first time afer an ASID rollover), where despite having a valid
++	 *   ASID, we force a get for new ASID - see comments at top.
++	 *
++	 * Both the non-alloc scenario and first-use-after-rollover can be
++	 * detected using the single condition below:  NO_ASID = 256
++	 * while asid_cache is always a valid ASID value (0-255).
++	 */
++	if (next->context.asid > asid_cache) {
++		get_new_mmu_context(next);
++	} else {
++		/*
++		 * XXX: This will never happen given the chks above
++		 * BUG_ON(next->context.asid > MAX_ASID);
++		 */
++		write_aux_reg(ARC_REG_PID, next->context.asid | MMU_ENABLE);
++	}
++
++}
++
++static inline void destroy_context(struct mm_struct *mm)
++{
++	unsigned long flags;
++
++	local_irq_save(flags);
++
++	asid_mm_map[mm->context.asid] = NULL;
++	mm->context.asid = NO_ASID;
++
++	local_irq_restore(flags);
++}
++
++/* it seemed that deactivate_mm( ) is a reasonable place to do book-keeping
++ * for retiring-mm. However destroy_context( ) still needs to do that because
++ * between mm_release( ) = >deactive_mm( ) and
++ * mmput => .. => __mmdrop( ) => destroy_context( )
++ * there is a good chance that task gets sched-out/in, making it's ASID valid
++ * again (this teased me for a whole day).
++ */
++#define deactivate_mm(tsk, mm)   do { } while (0)
++
++static inline void activate_mm(struct mm_struct *prev, struct mm_struct *next)
++{
++	write_aux_reg(ARC_REG_SCRATCH_DATA0, next->pgd);
++
++	/* Unconditionally get a new ASID */
++	get_new_mmu_context(next);
++
++}
++
++#define enter_lazy_tlb(mm, tsk)
++
++#endif /* __ASM_ARC_MMU_CONTEXT_H */
+diff --git a/arch/arc/mm/tlb.c b/arch/arc/mm/tlb.c
+new file mode 100644
+index 0000000..f1edae2
+--- /dev/null
++++ b/arch/arc/mm/tlb.c
+@@ -0,0 +1,23 @@
++/*
++ * TLB Management (flush/create/diagnostics) for ARC700
++ *
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <linux/module.h>
++#include <asm/arcregs.h>
++#include <asm/mmu_context.h>
++#include <asm/tlb.h>
++
++/* A copy of the ASID from the PID reg is kept in asid_cache */
++int asid_cache = FIRST_ASID;
++
++/* ASID to mm struct mapping. We have one extra entry corresponding to
++ * NO_ASID to save us a compare when clearing the mm entry for old asid
++ * see get_new_mmu_context (asm-arc/mmu_context.h)
++ */
++struct mm_struct *asid_mm_map[NUM_ASID + 1];
 -- 
 1.7.4.1
 
