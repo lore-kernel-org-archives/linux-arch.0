@@ -1,664 +1,222 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from alvesta.synopsys.com ([198.182.60.77]:40392 "EHLO
+Received: from us02smtp2.synopsys.com ([198.182.60.77]:40406 "EHLO
 	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754345Ab2KGJ5f (ORCPT
+	with ESMTP id S1754389Ab2KGJ5f (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Nov 2012 04:57:35 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [RFC PATCH v1 08/31] ARC: Fundamental ARCH data-types/defines
-Date: Wed,  7 Nov 2012 10:47:31 +0100
-Message-ID: <1352281674-2186-9-git-send-email-vgupta@synopsys.com>
+Subject: [RFC PATCH v1 10/31] ARC: string library
+Date: Wed,  7 Nov 2012 10:47:33 +0100
+Message-ID: <1352281674-2186-11-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: tglx@linutronix.de, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20121107094731.X4bMNjYLfnQgcFsdOtni9R8b_OSgCjPSmGKp6P6PF14@z>
-
-* L1_CACHE_SHIFT
-* PAGE_SIZE, PAGE_OFFSET
-* struct pt_regs, struct user_regs_struct
-* struct thread_struct, cpu_relax(), task_pt_regs(), start_thread(), ...
-* struct thread_info, THREAD_SIZE, INIT_THREAD_INFO(), TIF_*, ...
-* BUG()
-* ELF_*
-* Elf_*
+Message-ID: <20121107094733.TnIWXKuJWcrz0YdmSD6Ki_ck7Yy1eOeDgZBk2W7FAMk@z>
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/include/asm/bug.h         |   37 +++++++++
- arch/arc/include/asm/cache.h       |   21 +++++
- arch/arc/include/asm/elf.h         |   97 ++++++++++++++++++++++++
- arch/arc/include/asm/exec.h        |   15 ++++
- arch/arc/include/asm/kdebug.h      |   19 +++++
- arch/arc/include/asm/linkage.h     |   30 ++++++++
- arch/arc/include/asm/module.h      |   17 ++++
- arch/arc/include/asm/page.h        |   42 +++++++++++
- arch/arc/include/asm/processor.h   |  143 ++++++++++++++++++++++++++++++++++++
- arch/arc/include/asm/ptrace.h      |  120 ++++++++++++++++++++++++++++++
- arch/arc/include/asm/sections.h    |   17 ++++
- arch/arc/include/asm/thread_info.h |  120 ++++++++++++++++++++++++++++++
- 12 files changed, 678 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/include/asm/bug.h
- create mode 100644 arch/arc/include/asm/cache.h
- create mode 100644 arch/arc/include/asm/elf.h
- create mode 100644 arch/arc/include/asm/exec.h
- create mode 100644 arch/arc/include/asm/kdebug.h
- create mode 100644 arch/arc/include/asm/linkage.h
- create mode 100644 arch/arc/include/asm/module.h
- create mode 100644 arch/arc/include/asm/page.h
- create mode 100644 arch/arc/include/asm/processor.h
- create mode 100644 arch/arc/include/asm/ptrace.h
- create mode 100644 arch/arc/include/asm/sections.h
- create mode 100644 arch/arc/include/asm/thread_info.h
+ arch/arc/include/asm/string.h |   40 +++++++++++++
+ arch/arc/lib/memcmp.S         |  124 +++++++++++++++++++++++++++++++++++++++++
+ arch/arc/lib/memcpy-700.S     |   66 ++++++++++++++++++++++
+ arch/arc/lib/memset.S         |   59 +++++++++++++++++++
+ arch/arc/lib/strchr-700.S     |  123 ++++++++++++++++++++++++++++++++++++++++
+ arch/arc/lib/strcmp.S         |   96 +++++++++++++++++++++++++++++++
+ arch/arc/lib/strcpy-700.S     |   70 +++++++++++++++++++++++
+ arch/arc/lib/strlen.S         |   83 +++++++++++++++++++++++++++
+ 8 files changed, 661 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/include/asm/string.h
+ create mode 100644 arch/arc/lib/memcmp.S
+ create mode 100644 arch/arc/lib/memcpy-700.S
+ create mode 100644 arch/arc/lib/memset.S
+ create mode 100644 arch/arc/lib/strchr-700.S
+ create mode 100644 arch/arc/lib/strcmp.S
+ create mode 100644 arch/arc/lib/strcpy-700.S
+ create mode 100644 arch/arc/lib/strlen.S
 
-diff --git a/arch/arc/include/asm/bug.h b/arch/arc/include/asm/bug.h
+diff --git a/arch/arc/include/asm/string.h b/arch/arc/include/asm/string.h
 new file mode 100644
-index 0000000..2ad8f9b
+index 0000000..87676c8
 --- /dev/null
-+++ b/arch/arc/include/asm/bug.h
-@@ -0,0 +1,37 @@
++++ b/arch/arc/include/asm/string.h
+@@ -0,0 +1,40 @@
 +/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
-+ */
-+
-+#ifndef _ASM_ARC_BUG_H
-+#define _ASM_ARC_BUG_H
-+
-+#ifndef __ASSEMBLY__
-+
-+#include <asm/ptrace.h>
-+
-+struct task_struct;
-+
-+void show_regs(struct pt_regs *regs);
-+void show_stacktrace(struct task_struct *tsk, struct pt_regs *regs);
-+void show_kernel_fault_diag(const char *str, struct pt_regs *regs,
-+			    unsigned long address, unsigned long cause_reg);
-+void die(const char *str, struct pt_regs *regs, unsigned long address,
-+	 unsigned long cause_reg);
-+
-+#define BUG()	do {				\
-+	dump_stack();					\
-+	pr_warn("Kernel BUG in %s: %s: %d!\n",	\
-+		__FILE__, __func__,  __LINE__);	\
-+} while (0)
-+
-+#define HAVE_ARCH_BUG
-+
-+#include <asm-generic/bug.h>
-+
-+#endif	/* !__ASSEMBLY__ */
-+
-+#endif
-diff --git a/arch/arc/include/asm/cache.h b/arch/arc/include/asm/cache.h
-new file mode 100644
-index 0000000..30c72a4
---- /dev/null
-+++ b/arch/arc/include/asm/cache.h
-@@ -0,0 +1,21 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ARC_ASM_CACHE_H
-+#define __ARC_ASM_CACHE_H
-+
-+/* In case $$ not config, setup a dummy number for rest of kernel */
-+#ifndef CONFIG_ARC_CACHE_LINE_SHIFT
-+#define L1_CACHE_SHIFT		6
-+#else
-+#define L1_CACHE_SHIFT		CONFIG_ARC_CACHE_LINE_SHIFT
-+#endif
-+
-+#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
-+
-+#endif /* _ASM_CACHE_H */
-diff --git a/arch/arc/include/asm/elf.h b/arch/arc/include/asm/elf.h
-new file mode 100644
-index 0000000..147284f
---- /dev/null
-+++ b/arch/arc/include/asm/elf.h
-@@ -0,0 +1,97 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ * vineetg: May 2011
++ *  -We had half-optimised memset/memcpy, got better versions of those
++ *  -Added memcmp, strchr, strcpy, strcmp, strlen
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
++ * Amit Bhor: Codito Technologies 2004
 + */
 +
-+#ifndef __ASM_ARC_ELF_H
-+#define __ASM_ARC_ELF_H
++#ifndef _ASM_ARC_STRING_H
++#define _ASM_ARC_STRING_H
 +
-+#include <asm/ptrace.h>
-+
-+#define EM_ARCOMPACT		93
-+
-+/* Machine specific ELF Hdr flags */
-+#define EF_ARC_OSABI_MSK	0x00000f00
-+#define EF_ARC_OSABI_ORIG	0x00000000   /* MUST be zero for back-compat */
-+#define EF_ARC_OSABI_V2		0x00000200
-+
-+/* ARC Relocations (kernel Modules only) */
-+#define  R_ARC_32		0x4
-+#define  R_ARC_32_ME		0x1B
-+#define  R_ARC_S25H_PCREL	0x10
-+#define  R_ARC_S25W_PCREL	0x11
-+
-+typedef unsigned long elf_greg_t;
-+typedef unsigned long elf_fpregset_t;
-+
-+
-+/* core dump regs is in the order pt_regs, callee_regs, stop_pc (for gdb) */
-+#define ELF_NGREG	((sizeof(struct pt_regs) + sizeof(struct callee_regs) \
-+			  + sizeof(unsigned long)) / sizeof(elf_greg_t))
-+
-+typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-+
-+/*
-+ * To ensure that
-+ *  -we don't load something for the wrong architecture.
-+ *  -The userspace is using the correct syscall ABI
-+ */
-+struct elf32_hdr;
-+extern int elf_check_arch(const struct elf32_hdr *);
-+#define elf_check_arch	elf_check_arch
-+
-+/*
-+ * These are used to set parameters in the core dumps.
-+ */
-+#define ELF_ARCH		EM_ARCOMPACT
-+#define ELF_CLASS		ELFCLASS32
-+
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+#define ELF_DATA		ELFDATA2MSB
-+#else
-+#define ELF_DATA		ELFDATA2LSB
-+#endif
++#include <linux/types.h>
 +
 +#ifdef __KERNEL__
 +
-+#define CORE_DUMP_USE_REGSET
++#define __HAVE_ARCH_MEMSET
++#define __HAVE_ARCH_MEMCPY
++#define __HAVE_ARCH_MEMCMP
++#define __HAVE_ARCH_STRCHR
++#define __HAVE_ARCH_STRCPY
++#define __HAVE_ARCH_STRCMP
++#define __HAVE_ARCH_STRLEN
 +
-+#define ELF_EXEC_PAGESIZE	PAGE_SIZE
-+
-+/*
-+ * This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-+ * use of this is to invoke "./ld.so someprog" to test out a new version of
-+ * the loader.  We need to make sure that it is out of the way of the program
-+ * that it will "exec", and that there is sufficient room for the brk.
-+ */
-+#define ELF_ET_DYN_BASE		(2 * TASK_SIZE / 3)
-+
-+/*
-+ * When the program starts, a1 contains a pointer to a function to be
-+ * registered with atexit, as per the SVR4 ABI.  A value of 0 means we
-+ * have no such handler.
-+ */
-+#define ELF_PLAT_INIT(_r, load_addr)	((_r)->r0 = 0)
-+
-+/*
-+ * This yields a mask that user programs can use to figure out what
-+ * instruction set this cpu supports.
-+ */
-+#define ELF_HWCAP	(0)
-+
-+/*
-+ * This yields a string that ld.so will use to load implementation
-+ * specific libraries for optimization.  This is more specific in
-+ * intent than poking at uname or /proc/cpuinfo.
-+ */
-+#define ELF_PLATFORM	(NULL)
-+
-+#define SET_PERSONALITY(ex) \
-+	set_personality(PER_LINUX | (current->personality & (~PER_MASK)))
-+
-+#endif  /* __KERNEL__ */
-+
-+#endif
-diff --git a/arch/arc/include/asm/exec.h b/arch/arc/include/asm/exec.h
-new file mode 100644
-index 0000000..28abc69
---- /dev/null
-+++ b/arch/arc/include/asm/exec.h
-@@ -0,0 +1,15 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ASM_ARC_EXEC_H
-+#define __ASM_ARC_EXEC_H
-+
-+/* Align to 16b */
-+#define arch_align_stack(p) ((unsigned long)(p) & ~0xf)
-+
-+#endif
-diff --git a/arch/arc/include/asm/kdebug.h b/arch/arc/include/asm/kdebug.h
-new file mode 100644
-index 0000000..3fbe6c4
---- /dev/null
-+++ b/arch/arc/include/asm/kdebug.h
-@@ -0,0 +1,19 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef _ASM_ARC_KDEBUG_H
-+#define _ASM_ARC_KDEBUG_H
-+
-+enum die_val {
-+	DIE_UNUSED,
-+	DIE_TRAP,
-+	DIE_IERR,
-+	DIE_OOPS
-+};
-+
-+#endif
-diff --git a/arch/arc/include/asm/linkage.h b/arch/arc/include/asm/linkage.h
-new file mode 100644
-index 0000000..a45d1bb
---- /dev/null
-+++ b/arch/arc/include/asm/linkage.h
-@@ -0,0 +1,30 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ASM_LINKAGE_H
-+#define __ASM_LINKAGE_H
-+
-+#ifdef __ASSEMBLY__
-+
-+/* Can't use the ENTRY macro in linux/linkage.h
-+ * gas considers ';' as comment vs. newline
-+ */
-+.macro ARC_ENTRY name
-+	.global \name
-+	.align 4
-+	\name:
-+.endm
-+
-+.macro ARC_EXIT name
-+#define ASM_PREV_SYM_ADDR(name)  .-##name
-+	.size \ name, ASM_PREV_SYM_ADDR(\name)
-+.endm
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif
-diff --git a/arch/arc/include/asm/module.h b/arch/arc/include/asm/module.h
-new file mode 100644
-index 0000000..165d768
---- /dev/null
-+++ b/arch/arc/include/asm/module.h
-@@ -0,0 +1,17 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
-+
-+ */
-+
-+#ifndef _ASM_ARC_MODULE_H
-+#define _ASM_ARC_MODULE_H
-+
-+#include <asm-generic/module.h>
-+
-+#endif /* _ASM_ARC_MODULE_H */
-diff --git a/arch/arc/include/asm/page.h b/arch/arc/include/asm/page.h
-new file mode 100644
-index 0000000..7cd1224
---- /dev/null
-+++ b/arch/arc/include/asm/page.h
-@@ -0,0 +1,42 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ASM_ARC_PAGE_H
-+#define __ASM_ARC_PAGE_H
-+
-+/* PAGE_SHIFT determines the page size */
-+#if defined(CONFIG_ARC_PAGE_SIZE_16K)
-+#define PAGE_SHIFT 14
-+#elif defined(CONFIG_ARC_PAGE_SIZE_4K)
-+#define PAGE_SHIFT 12
-+#else
-+/*
-+ * Default 8k
-+ * done this way (instead of under CONFIG_ARC_PAGE_SIZE_8K) because adhoc
-+ * user code (busybox appletlib.h) expects PAGE_SHIFT to be defined w/o
-+ * using the correct uClibc header and in their build our autoconf.h is
-+ * not available
-+ */
-+#define PAGE_SHIFT 13
-+#endif
-+
-+#ifdef __ASSEMBLY__
-+#define PAGE_SIZE	(1 << PAGE_SHIFT)
-+#define PAGE_OFFSET	(0x80000000)
-+#else
-+#define PAGE_SIZE	(1UL << PAGE_SHIFT)	/* Default 8K */
-+#define PAGE_OFFSET	(0x80000000UL)	/* Kernel starts at 2G onwards */
-+#endif
-+
-+#define PAGE_MASK	(~(PAGE_SIZE-1))
-+
-+#endif /* !__ASSEMBLY__ */
++extern void *memset(void *ptr, int, __kernel_size_t);
++extern void *memcpy(void *, const void *, __kernel_size_t);
++extern void memzero(void *ptr, __kernel_size_t n);
++extern int memcmp(const void *, const void *, __kernel_size_t);
++extern char *strchr(const char *s, int c);
++extern char *strcpy(char *dest, const char *src);
++extern int strcmp(const char *cs, const char *ct);
++extern __kernel_size_t strlen(const char *);
 +
 +#endif /* __KERNEL__ */
++#endif /* _ASM_ARC_STRING_H */
+diff --git a/arch/arc/lib/memcmp.S b/arch/arc/lib/memcmp.S
+new file mode 100644
+index 0000000..bc813d5
+--- /dev/null
++++ b/arch/arc/lib/memcmp.S
+@@ -0,0 +1,124 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
 +
++#include <asm/linkage.h>
++
++#ifdef __LITTLE_ENDIAN__
++#define WORD2 r2
++#define SHIFT r3
++#else /* BIG ENDIAN */
++#define WORD2 r3
++#define SHIFT r2
 +#endif
-diff --git a/arch/arc/include/asm/processor.h b/arch/arc/include/asm/processor.h
++
++ARC_ENTRY memcmp
++	or	r12,r0,r1
++	asl_s	r12,r12,30
++	sub	r3,r2,1
++	brls	r2,r12,.Lbytewise
++	ld	r4,[r0,0]
++	ld	r5,[r1,0]
++	lsr.f	lp_count,r3,3
++	lpne	.Loop_end
++	ld_s	WORD2,[r0,4]
++	ld_s	r12,[r1,4]
++	brne	r4,r5,.Leven
++	ld.a	r4,[r0,8]
++	ld.a	r5,[r1,8]
++	brne	WORD2,r12,.Lodd
++.Loop_end:
++	asl_s	SHIFT,SHIFT,3
++	bhs_s	.Last_cmp
++	brne	r4,r5,.Leven
++	ld	r4,[r0,4]
++	ld	r5,[r1,4]
++#ifdef __LITTLE_ENDIAN__
++	nop_s
++	; one more load latency cycle
++.Last_cmp:
++	xor	r0,r4,r5
++	bset	r0,r0,SHIFT
++	sub_s	r1,r0,1
++	bic_s	r1,r1,r0
++	norm	r1,r1
++	b.d	.Leven_cmp
++	and	r1,r1,24
++.Leven:
++	xor	r0,r4,r5
++	sub_s	r1,r0,1
++	bic_s	r1,r1,r0
++	norm	r1,r1
++	; slow track insn
++	and	r1,r1,24
++.Leven_cmp:
++	asl	r2,r4,r1
++	asl	r12,r5,r1
++	lsr_s	r2,r2,1
++	lsr_s	r12,r12,1
++	j_s.d	[blink]
++	sub	r0,r2,r12
++	.balign	4
++.Lodd:
++	xor	r0,WORD2,r12
++	sub_s	r1,r0,1
++	bic_s	r1,r1,r0
++	norm	r1,r1
++	; slow track insn
++	and	r1,r1,24
++	asl_s	r2,r2,r1
++	asl_s	r12,r12,r1
++	lsr_s	r2,r2,1
++	lsr_s	r12,r12,1
++	j_s.d	[blink]
++	sub	r0,r2,r12
++#else /* BIG ENDIAN */
++.Last_cmp:
++	neg_s	SHIFT,SHIFT
++	lsr	r4,r4,SHIFT
++	lsr	r5,r5,SHIFT
++	; slow track insn
++.Leven:
++	sub.f	r0,r4,r5
++	mov.ne	r0,1
++	j_s.d	[blink]
++	bset.cs	r0,r0,31
++.Lodd:
++	cmp_s	WORD2,r12
++
++	mov_s	r0,1
++	j_s.d	[blink]
++	bset.cs	r0,r0,31
++#endif /* ENDIAN */
++	.balign	4
++.Lbytewise:
++	breq	r2,0,.Lnil
++	ldb	r4,[r0,0]
++	ldb	r5,[r1,0]
++	lsr.f	lp_count,r3
++	lpne	.Lbyte_end
++	ldb_s	r3,[r0,1]
++	ldb	r12,[r1,1]
++	brne	r4,r5,.Lbyte_even
++	ldb.a	r4,[r0,2]
++	ldb.a	r5,[r1,2]
++	brne	r3,r12,.Lbyte_odd
++.Lbyte_end:
++	bcc	.Lbyte_even
++	brne	r4,r5,.Lbyte_even
++	ldb_s	r3,[r0,1]
++	ldb_s	r12,[r1,1]
++.Lbyte_odd:
++	j_s.d	[blink]
++	sub	r0,r3,r12
++.Lbyte_even:
++	j_s.d	[blink]
++	sub	r0,r4,r5
++.Lnil:
++	j_s.d	[blink]
++	mov	r0,0
++ARC_EXIT memcmp
+diff --git a/arch/arc/lib/memcpy-700.S b/arch/arc/lib/memcpy-700.S
 new file mode 100644
-index 0000000..e2445bc
+index 0000000..b64cc10
 --- /dev/null
-+++ b/arch/arc/include/asm/processor.h
-@@ -0,0 +1,143 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * vineetg: March 2009
-+ *  -Implemented task_pt_regs( )
-+ *
-+ * Amit Bhor, Sameer Dhavale, Ashwin Chaugule: Codito Technologies 2004
-+ */
-+
-+#ifndef __ASM_ARC_PROCESSOR_H
-+#define __ASM_ARC_PROCESSOR_H
-+
-+#if defined(__KERNEL__)
-+
-+#if !defined(__ASSEMBLY__)
-+
-+#include <asm/arcregs.h>	/* for STATUS_E1_MASK et all */
-+
-+/* Arch specific stuff which needs to be saved per task.
-+ * However these items are not so important so as to earn a place in
-+ * struct thread_info
-+ */
-+struct thread_struct {
-+	unsigned long ksp;	/* kernel mode stack pointer */
-+	unsigned long callee_reg;	/* pointer to callee regs */
-+	unsigned long fault_address;	/* dbls as brkpt holder as well */
-+	unsigned long cause_code;	/* Exception Cause Code (ECR) */
-+};
-+
-+#define INIT_THREAD  {                          \
-+	.ksp = sizeof(init_stack) + (unsigned long) init_stack, \
-+}
-+
-+/* Forward declaration, a strange C thing */
-+struct task_struct;
-+
-+/*
-+ * Return saved PC of a blocked thread.
-+ */
-+unsigned long thread_saved_pc(struct task_struct *t);
-+
-+#define task_pt_regs(p) \
-+	((struct pt_regs *)(THREAD_SIZE - 4 + (void *)task_stack_page(p)) - 1)
-+
-+/* Free all resources held by a thread. */
-+#define release_thread(thread) do { } while (0)
-+
-+/* Prepare to copy thread state - unlazy all lazy status */
-+#define prepare_to_copy(tsk)    do { } while (0)
-+
-+#define cpu_relax()	do { } while (0)
-+
-+/*
-+ * Create a new kernel thread
-+ */
-+
-+extern int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags);
-+
-+#define copy_segments(tsk, mm)      do { } while (0)
-+#define release_segments(mm)        do { } while (0)
-+
-+#define KSTK_EIP(tsk)   (task_pt_regs(tsk)->ret)
-+
-+/*
-+ * Where abouts of Task's sp, fp, blink when it was last seen in kernel mode.
-+ * These can't be derived from pt_regs as that would give correp user-mode val
-+ */
-+#define KSTK_ESP(tsk)   (tsk->thread.ksp)
-+#define KSTK_BLINK(tsk) (*((unsigned int *)((KSTK_ESP(tsk)) + (13+1+1)*4)))
-+#define KSTK_FP(tsk)    (*((unsigned int *)((KSTK_ESP(tsk)) + (13+1)*4)))
-+
-+/*
-+ * Do necessary setup to start up a newly executed thread.
-+ *
-+ * E1,E2 so that Interrupts are enabled in user mode
-+ * L set, so Loop inhibited to begin with
-+ * lp_start and lp_end seeded with bogus non-zero values so to easily catch
-+ * the ARC700 sr to lp_start hardware bug
-+ */
-+#define start_thread(_regs, _pc, _usp)				\
-+do {								\
-+	set_fs(USER_DS); /* reads from user space */		\
-+	(_regs)->ret = (_pc);					\
-+	/* Interrupts enabled in User Mode */			\
-+	(_regs)->status32 = STATUS_U_MASK | STATUS_L_MASK	\
-+		| STATUS_E1_MASK | STATUS_E2_MASK;		\
-+	(_regs)->sp = (_usp);					\
-+	/* bogus seed values for debugging */			\
-+	(_regs)->lp_start = 0x10;				\
-+	(_regs)->lp_end = 0x80;					\
-+} while (0)
-+
-+extern unsigned int get_wchan(struct task_struct *p);
-+
-+/*
-+ * Default implementation of macro that returns current
-+ * instruction pointer ("program counter").
-+ * Should the PC register be read instead ? This macro does not seem to
-+ * be used in many places so this wont be all that bad.
-+ */
-+#define current_text_addr() ({ __label__ _l; _l: &&_l; })
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+/* Kernels Virtual memory area.
-+ * Unlike other architectures(MIPS, sh, cris ) ARC 700 does not have a
-+ * "kernel translated" region (like KSEG2 in MIPS). So we use a upper part
-+ * of the translated bottom 2GB for kernel virtual memory and protect
-+ * these pages from user accesses by disabling Ru, Eu and Wu.
-+ */
-+#define VMALLOC_SIZE	(0x10000000)	/* 256M */
-+#define VMALLOC_START	(PAGE_OFFSET - VMALLOC_SIZE)
-+#define VMALLOC_END	(PAGE_OFFSET)
-+
-+/* Most of the architectures seem to be keeping some kind of padding between
-+ * userspace TASK_SIZE and PAGE_OFFSET. i.e TASK_SIZE != PAGE_OFFSET.
-+ */
-+#define USER_KERNEL_GUTTER    0x10000000
-+
-+/* User address space:
-+ * On ARC700, CPU allows the entire lower half of 32 bit address space to be
-+ * translated. Thus potentially 2G (0:0x7FFF_FFFF) could be User vaddr space.
-+ * However we steal 256M for kernel addr (0x7000_0000:0x7FFF_FFFF) and another
-+ * 256M (0x6000_0000:0x6FFF_FFFF) is gutter between user/kernel spaces
-+ * Thus total User vaddr space is (0:0x5FFF_FFFF)
-+ */
-+#define TASK_SIZE	(PAGE_OFFSET - VMALLOC_SIZE - USER_KERNEL_GUTTER)
-+
-+#define STACK_TOP       TASK_SIZE
-+#define STACK_TOP_MAX   STACK_TOP
-+
-+/* This decides where the kernel will search for a free chunk of vm
-+ * space during mmap's.
-+ */
-+#define TASK_UNMAPPED_BASE      (TASK_SIZE / 3)
-+
-+#endif /* __KERNEL__ */
-+
-+#endif /* __ASM_ARC_PROCESSOR_H */
-diff --git a/arch/arc/include/asm/ptrace.h b/arch/arc/include/asm/ptrace.h
-new file mode 100644
-index 0000000..c178357
---- /dev/null
-+++ b/arch/arc/include/asm/ptrace.h
-@@ -0,0 +1,120 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
-+ */
-+
-+#ifndef __ASM_ARC_PTRACE_H
-+#define __ASM_ARC_PTRACE_H
-+
-+/*
-+ * XXX: ABI hack.
-+ * The offset calc can be cleanly done in asm-offset.c, however gdb includes
-+ * this header directly.
-+ */
-+#define PT_bta		4
-+#define PT_lp_start	8
-+#define PT_lp_end	12
-+#define PT_lp_count	16
-+#define PT_status32	20
-+#define PT_ret		24
-+#define PT_blink	28
-+#define PT_fp		32
-+#define PT_r26		36
-+#define PT_r12		40
-+#define PT_r11		44
-+#define PT_r10		48
-+#define PT_r9		52
-+#define PT_r8		56
-+#define PT_r7		60
-+#define PT_r6		64
-+#define PT_r5		68
-+#define PT_r4		72
-+#define PT_r3		76
-+#define PT_r2		80
-+#define PT_r1		84
-+#define PT_r0		88
-+#define PT_sp		92
-+#define PT_orig_r0	96
-+#define PT_orig_r8	100
-+
-+#ifndef __ASSEMBLY__
-+
-+/* THE pt_regs: Defines how regs are saved during entry into kernel */
-+
-+struct pt_regs {
-+	/*
-+	 * 1 word gutter after reg-file has been saved
-+	 * Technically not needed, Since SP always points to a "full" location
-+	 * (vs. "empty"). But pt_regs is shared with tools....
-+	 */
-+	long res;
-+
-+	/* Real registers */
-+	long bta;	/* bta_l1, bta_l2, erbta */
-+	long lp_start;
-+	long lp_end;
-+	long lp_count;
-+	long status32;	/* status32_l1, status32_l2, erstatus */
-+	long ret;	/* ilink1, ilink2 or eret */
-+	long blink;
-+	long fp;
-+	long r26;	/* gp */
-+	long r12;
-+	long r11;
-+	long r10;
-+	long r9;
-+	long r8;
-+	long r7;
-+	long r6;
-+	long r5;
-+	long r4;
-+	long r3;
-+	long r2;
-+	long r1;
-+	long r0;
-+	long sp;	/* user/kernel sp depending on where we came from  */
-+	long orig_r0;
-+	long orig_r8;	/*to distinguish bet excp, sys call, int1 or int2 */
-+};
-+
-+/* Callee saved registers - need to be saved only when you are scheduled out */
-+
-+struct callee_regs {
-+	long res;	/* Again this is not needed */
-+	long r25;
-+	long r24;
-+	long r23;
-+	long r22;
-+	long r21;
-+	long r20;
-+	long r19;
-+	long r18;
-+	long r17;
-+	long r16;
-+	long r15;
-+	long r14;
-+	long r13;
-+};
-+
-+/* User mode registers, used for core dumps. */
-+struct user_regs_struct {
-+	struct pt_regs scratch;
-+	struct callee_regs callee;
-+	long efa;	/* break pt addr, for break points in delay slots */
-+	long stop_pc;	/* give dbg stop_pc directly after checking orig_r8 */
-+};
-+
-+#define instruction_pointer(regs)	((regs)->ret)
-+#define profile_pc(regs)		instruction_pointer(regs)
-+
-+/* return 1 if user mode or 0 if kernel mode */
-+#define user_mode(regs) (regs->status32 & STATUS_U_MASK)
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* __ASM_PTRACE_H */
-diff --git a/arch/arc/include/asm/sections.h b/arch/arc/include/asm/sections.h
-new file mode 100644
-index 0000000..fc15f2e
---- /dev/null
-+++ b/arch/arc/include/asm/sections.h
-@@ -0,0 +1,17 @@
++++ b/arch/arc/lib/memcpy-700.S
+@@ -0,0 +1,66 @@
 +/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
@@ -667,141 +225,525 @@ index 0000000..fc15f2e
 + * published by the Free Software Foundation.
 + */
 +
-+#ifndef _ASM_ARC_SECTIONS_H
-+#define _ASM_ARC_SECTIONS_H
++#include <asm/linkage.h>
 +
-+#include <asm-generic/sections.h>
++ARC_ENTRY memcpy
++	or	r3,r0,r1
++	asl_s	r3,r3,30
++	mov_s	r5,r0
++	brls.d	r2,r3,.Lcopy_bytewise
++	sub.f	r3,r2,1
++	ld_s	r12,[r1,0]
++	asr.f	lp_count,r3,3
++	bbit0.d	r3,2,.Lnox4
++	bmsk_s	r2,r2,1
++	st.ab	r12,[r5,4]
++	ld.a	r12,[r1,4]
++.Lnox4:
++	lppnz	.Lendloop
++	ld_s	r3,[r1,4]
++	st.ab	r12,[r5,4]
++	ld.a	r12,[r1,8]
++	st.ab	r3,[r5,4]
++.Lendloop:
++	breq	r2,0,.Last_store
++	ld	r3,[r5,0]
++#ifdef __LITTLE_ENDIAN__
++	add3	r2,-1,r2
++	; uses long immediate
++	xor_s	r12,r12,r3
++	bmsk	r12,r12,r2
++    xor_s	r12,r12,r3
++#else /* BIG ENDIAN */
++	sub3	r2,31,r2
++	; uses long immediate
++        xor_s	r3,r3,r12
++        bmsk	r3,r3,r2
++        xor_s	r12,r12,r3
++#endif /* ENDIAN */
++.Last_store:
++	j_s.d	[blink]
++	st	r12,[r5,0]
 +
-+extern char _int_vec_base_lds[];
-+extern char __arc_dccm_base[];
-+
-+#endif
-diff --git a/arch/arc/include/asm/thread_info.h b/arch/arc/include/asm/thread_info.h
++	.balign	4
++.Lcopy_bytewise:
++	jcs	[blink]
++	ldb_s	r12,[r1,0]
++	lsr.f	lp_count,r3
++	bhs_s	.Lnox1
++	stb.ab	r12,[r5,1]
++	ldb.a	r12,[r1,1]
++.Lnox1:
++	lppnz	.Lendbloop
++	ldb_s	r3,[r1,1]
++	stb.ab	r12,[r5,1]
++	ldb.a	r12,[r1,2]
++	stb.ab	r3,[r5,1]
++.Lendbloop:
++	j_s.d	[blink]
++	stb	r12,[r5,0]
++ARC_EXIT memcpy
+diff --git a/arch/arc/lib/memset.S b/arch/arc/lib/memset.S
 new file mode 100644
-index 0000000..937a818
+index 0000000..9b2d88d
 --- /dev/null
-+++ b/arch/arc/include/asm/thread_info.h
-@@ -0,0 +1,120 @@
++++ b/arch/arc/lib/memset.S
+@@ -0,0 +1,59 @@
 +/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
-+ *
-+ * Vineetg: Oct 2009
-+ *  No need for ARC specific thread_info allocator (kmalloc/free). This is
-+ *  anyways one page allocation, thus slab alloc can be short-circuited and
-+ *  the generic version (get_free_page) would be loads better.
-+ *
-+ * Sameer Dhavale: Codito Technologies 2004
 + */
 +
-+#ifndef _ASM_THREAD_INFO_H
-+#define _ASM_THREAD_INFO_H
++#include <asm/linkage.h>
 +
-+#ifdef __KERNEL__
++#define SMALL	7 /* Must be at least 6 to deal with alignment/loop issues.  */
 +
-+#include <asm/page.h>
++ARC_ENTRY memset
++	mov_s	r4,r0
++	or	r12,r0,r2
++	bmsk.f	r12,r12,1
++	extb_s	r1,r1
++	asl	r3,r1,8
++	beq.d	.Laligned
++	or_s	r1,r1,r3
++	brls	r2,SMALL,.Ltiny
++	add	r3,r2,r0
++	stb	r1,[r3,-1]
++	bclr_s	r3,r3,0
++	stw	r1,[r3,-2]
++	bmsk.f	r12,r0,1
++	add_s	r2,r2,r12
++	sub.ne	r2,r2,4
++	stb.ab	r1,[r4,1]
++	and	r4,r4,-2
++	stw.ab	r1,[r4,2]
++	and	r4,r4,-4
++.Laligned:	; This code address should be aligned for speed.
++	asl	r3,r1,16
++	lsr.f	lp_count,r2,2
++	or_s	r1,r1,r3
++	lpne	.Loop_end
++	st.ab	r1,[r4,4]
++.Loop_end:
++	j_s	[blink]
 +
-+#ifdef CONFIG_16KSTACKS
-+#define THREAD_SIZE_ORDER 1
++	.balign	4
++.Ltiny:
++	mov.f	lp_count,r2
++	lpne	.Ltiny_end
++	stb.ab	r1,[r4,1]
++.Ltiny_end:
++	j_s	[blink]
++ARC_EXIT memset
++
++; memzero: @r0 = mem, @r1 = size_t
++; memset:  @r0 = mem, @r1 = char, @r2 = size_t
++
++ARC_ENTRY memzero
++    ; adjust bzero args to memset args
++    mov r2, r1
++    mov r1, 0
++    b  memset    ;tail call so need to tinker with blink
++ARC_EXIT memzero
+diff --git a/arch/arc/lib/strchr-700.S b/arch/arc/lib/strchr-700.S
+new file mode 100644
+index 0000000..99c1047
+--- /dev/null
++++ b/arch/arc/lib/strchr-700.S
+@@ -0,0 +1,123 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++/* ARC700 has a relatively long pipeline and branch prediction, so we want
++   to avoid branches that are hard to predict.  On the other hand, the
++   presence of the norm instruction makes it easier to operate on whole
++   words branch-free.  */
++
++#include <asm/linkage.h>
++
++ARC_ENTRY strchr
++	extb_s	r1,r1
++	asl	r5,r1,8
++	bmsk	r2,r0,1
++	or	r5,r5,r1
++	mov_s	r3,0x01010101
++	breq.d	r2,r0,.Laligned
++	asl	r4,r5,16
++	sub_s	r0,r0,r2
++	asl	r7,r2,3
++	ld_s	r2,[r0]
++#ifdef __LITTLE_ENDIAN__
++	asl	r7,r3,r7
 +#else
-+#define THREAD_SIZE_ORDER 0
++	lsr	r7,r3,r7
 +#endif
++	or	r5,r5,r4
++	ror	r4,r3
++	sub	r12,r2,r7
++	bic_s	r12,r12,r2
++	and	r12,r12,r4
++	brne.d	r12,0,.Lfound0_ua
++	xor	r6,r2,r5
++	ld.a	r2,[r0,4]
++	sub	r12,r6,r7
++	bic	r12,r12,r6
++	and	r7,r12,r4
++	breq	r7,0,.Loop ; For speed, we want this branch to be unaligned.
++	b	.Lfound_char ; Likewise this one.
++; /* We require this code address to be unaligned for speed...  */
++.Laligned:
++	ld_s	r2,[r0]
++	or	r5,r5,r4
++	ror	r4,r3
++; /* ... so that this code address is aligned, for itself and ...  */
++.Loop:
++	sub	r12,r2,r3
++	bic_s	r12,r12,r2
++	and	r12,r12,r4
++	brne.d	r12,0,.Lfound0
++	xor	r6,r2,r5
++	ld.a	r2,[r0,4]
++	sub	r12,r6,r3
++	bic	r12,r12,r6
++	and	r7,r12,r4
++	breq	r7,0,.Loop /* ... so that this branch is unaligned.  */
++	; Found searched-for character.  r0 has already advanced to next word.
++#ifdef __LITTLE_ENDIAN__
++/* We only need the information about the first matching byte
++   (i.e. the least significant matching byte) to be exact,
++   hence there is no problem with carry effects.  */
++.Lfound_char:
++	sub	r3,r7,1
++	bic	r3,r3,r7
++	norm	r2,r3
++	sub_s	r0,r0,1
++	asr_s	r2,r2,3
++	j.d	[blink]
++	sub_s	r0,r0,r2
 +
-+#define THREAD_SIZE     (PAGE_SIZE << THREAD_SIZE_ORDER)
++	.balign	4
++.Lfound0_ua:
++	mov	r3,r7
++.Lfound0:
++	sub	r3,r6,r3
++	bic	r3,r3,r6
++	and	r2,r3,r4
++	or_s	r12,r12,r2
++	sub_s	r3,r12,1
++	bic_s	r3,r3,r12
++	norm	r3,r3
++	add_s	r0,r0,3
++	asr_s	r12,r3,3
++	asl.f	0,r2,r3
++	sub_s	r0,r0,r12
++	j_s.d	[blink]
++	mov.pl	r0,0
++#else /* BIG ENDIAN */
++.Lfound_char:
++	lsr	r7,r7,7
 +
-+#ifndef __ASSEMBLY__
++	bic	r2,r7,r6
++	norm	r2,r2
++	sub_s	r0,r0,4
++	asr_s	r2,r2,3
++	j.d	[blink]
++	add_s	r0,r0,r2
 +
-+#include <linux/thread_info.h>
-+#include <asm/segment.h>
++.Lfound0_ua:
++	mov_s	r3,r7
++.Lfound0:
++	asl_s	r2,r2,7
++	or	r7,r6,r4
++	bic_s	r12,r12,r2
++	sub	r2,r7,r3
++	or	r2,r2,r6
++	bic	r12,r2,r12
++	bic.f	r3,r4,r12
++	norm	r3,r3
 +
++	add.pl	r3,r3,1
++	asr_s	r12,r3,3
++	asl.f	0,r2,r3
++	add_s	r0,r0,r12
++	j_s.d	[blink]
++	mov.mi	r0,0
++#endif /* ENDIAN */
++ARC_EXIT strchr
+diff --git a/arch/arc/lib/strcmp.S b/arch/arc/lib/strcmp.S
+new file mode 100644
+index 0000000..5dc802b
+--- /dev/null
++++ b/arch/arc/lib/strcmp.S
+@@ -0,0 +1,96 @@
 +/*
-+ * low level task data that entry.S needs immediate access to
-+ * - this struct should fit entirely inside of one cache line
-+ * - this struct shares the supervisor stack pages
-+ * - if the contents of this structure are changed, the assembly constants
-+ *   must also be changed
-+ */
-+struct thread_info {
-+	unsigned long flags;		/* low level flags */
-+	int preempt_count;		/* 0 => preemptable, <0 => BUG */
-+	struct task_struct *task;	/* main task structure */
-+	mm_segment_t addr_limit;	/* thread address space */
-+	struct exec_domain *exec_domain;/* execution domain */
-+	__u32 cpu;			/* current CPU */
-+	unsigned long thr_ptr;		/* TLS ptr */
-+	struct restart_block restart_block;
-+};
-+
-+/*
-+ * macros/functions for gaining access to the thread information structure
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
-+ * preempt_count needs to be 1 initially, until the scheduler is functional.
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
 + */
-+#define INIT_THREAD_INFO(tsk)			\
-+{						\
-+	.task       = &tsk,			\
-+	.exec_domain    = &default_exec_domain,	\
-+	.flags      = 0,			\
-+	.cpu        = 0,			\
-+	.preempt_count  = INIT_PREEMPT_COUNT,	\
-+	.addr_limit = KERNEL_DS,		\
-+	.restart_block  = {			\
-+		.fn = do_no_restart_syscall,	\
-+	},					\
-+}
 +
-+#define init_thread_info    (init_thread_union.thread_info)
-+#define init_stack          (init_thread_union.stack)
++/* This is optimized primarily for the ARC700.
++   It would be possible to speed up the loops by one cycle / word
++   respective one cycle / byte by forcing double source 1 alignment, unrolling
++   by a factor of two, and speculatively loading the second word / byte of
++   source 1; however, that would increase the overhead for loop setup / finish,
++   and strcmp might often terminate early.  */
 +
-+static inline __attribute_const__ struct thread_info *current_thread_info(void)
-+{
-+	register unsigned long sp asm("sp");
-+	return (struct thread_info *)(sp & ~(THREAD_SIZE - 1));
-+}
++#include <asm/linkage.h>
 +
-+#endif /* !__ASSEMBLY__ */
++ARC_ENTRY strcmp
++	or	r2,r0,r1
++	bmsk_s	r2,r2,1
++	brne	r2,0,.Lcharloop
++	mov_s	r12,0x01010101
++	ror	r5,r12
++.Lwordloop:
++	ld.ab	r2,[r0,4]
++	ld.ab	r3,[r1,4]
++	nop_s
++	sub	r4,r2,r12
++	bic	r4,r4,r2
++	and	r4,r4,r5
++	brne	r4,0,.Lfound0
++	breq	r2,r3,.Lwordloop
++#ifdef	__LITTLE_ENDIAN__
++	xor	r0,r2,r3	; mask for difference
++	sub_s	r1,r0,1
++	bic_s	r0,r0,r1	; mask for least significant difference bit
++	sub	r1,r5,r0
++	xor	r0,r5,r1	; mask for least significant difference byte
++	and_s	r2,r2,r0
++	and_s	r3,r3,r0
++#endif /* LITTLE ENDIAN */
++	cmp_s	r2,r3
++	mov_s	r0,1
++	j_s.d	[blink]
++	bset.lo	r0,r0,31
 +
-+#define PREEMPT_ACTIVE      0x10000000
++	.balign	4
++#ifdef __LITTLE_ENDIAN__
++.Lfound0:
++	xor	r0,r2,r3	; mask for difference
++	or	r0,r0,r4	; or in zero indicator
++	sub_s	r1,r0,1
++	bic_s	r0,r0,r1	; mask for least significant difference bit
++	sub	r1,r5,r0
++	xor	r0,r5,r1	; mask for least significant difference byte
++	and_s	r2,r2,r0
++	and_s	r3,r3,r0
++	sub.f	r0,r2,r3
++	mov.hi	r0,1
++	j_s.d	[blink]
++	bset.lo	r0,r0,31
++#else /* BIG ENDIAN */
++	/* The zero-detection above can mis-detect 0x01 bytes as zeroes
++	   because of carry-propagateion from a lower significant zero byte.
++	   We can compensate for this by checking that bit0 is zero.
++	   This compensation is not necessary in the step where we
++	   get a low estimate for r2, because in any affected bytes
++	   we already have 0x00 or 0x01, which will remain unchanged
++	   when bit 7 is cleared.  */
++	.balign	4
++.Lfound0:
++	lsr	r0,r4,8
++	lsr_s	r1,r2
++	bic_s	r2,r2,r0	; get low estimate for r2 and get ...
++	bic_s	r0,r0,r1	; <this is the adjusted mask for zeros>
++	or_s	r3,r3,r0	; ... high estimate r3 so that r2 > r3 will ...
++	cmp_s	r3,r2		; ... be independent of trailing garbage
++	or_s	r2,r2,r0	; likewise for r3 > r2
++	bic_s	r3,r3,r0
++	rlc	r0,0		; r0 := r2 > r3 ? 1 : 0
++	cmp_s	r2,r3
++	j_s.d	[blink]
++	bset.lo	r0,r0,31
++#endif /* ENDIAN */
 +
++	.balign	4
++.Lcharloop:
++	ldb.ab	r2,[r0,1]
++	ldb.ab	r3,[r1,1]
++	nop_s
++	breq	r2,0,.Lcmpend
++	breq	r2,r3,.Lcharloop
++.Lcmpend:
++	j_s.d	[blink]
++	sub	r0,r2,r3
++ARC_EXIT strcmp
+diff --git a/arch/arc/lib/strcpy-700.S b/arch/arc/lib/strcpy-700.S
+new file mode 100644
+index 0000000..b7ca4ae
+--- /dev/null
++++ b/arch/arc/lib/strcpy-700.S
+@@ -0,0 +1,70 @@
 +/*
-+ * thread information flags
-+ * - these are process state flags that various assembly files may need to
-+ *   access
-+ * - pending work-to-be-done flags are in LSW
-+ * - other flags in MSW
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
 + */
-+#define TIF_RESTORE_SIGMASK	0	/* restore sig mask in do_signal() */
-+#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
-+#define TIF_SIGPENDING		2	/* signal pending */
-+#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
-+#define TIF_SYSCALL_AUDIT	4	/* syscall auditing active */
-+#define TIF_SYSCALL_TRACE	15	/* syscall trace active */
 +
-+/* true if poll_idle() is polling TIF_NEED_RESCHED */
-+#define TIF_MEMDIE		16
++/* If dst and src are 4 byte aligned, copy 8 bytes at a time.
++   If the src is 4, but not 8 byte aligned, we first read 4 bytes to get
++   it 8 byte aligned.  Thus, we can do a little read-ahead, without
++   dereferencing a cache line that we should not touch.
++   Note that short and long instructions have been scheduled to avoid
++   branch stalls.
++   The beq_s to r3z could be made unaligned & long to avoid a stall
++   there, but the it is not likely to be taken often, and it
++   would also be likey to cost an unaligned mispredict at the next call.  */
 +
-+#define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
-+#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
-+#define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
-+#define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
-+#define _TIF_SYSCALL_AUDIT	(1<<TIF_SYSCALL_AUDIT)
-+#define _TIF_MEMDIE		(1<<TIF_MEMDIE)
++#include <asm/linkage.h>
 +
-+/* work to do on interrupt/exception return */
-+#define _TIF_WORK_MASK		(0x0000FFFF & ~_TIF_SYSCALL_TRACE)
++ARC_ENTRY strcpy
++	or	r2,r0,r1
++	bmsk_s	r2,r2,1
++	brne.d	r2,0,charloop
++	mov_s	r10,r0
++	ld_s	r3,[r1,0]
++	mov	r8,0x01010101
++	bbit0.d	r1,2,loop_start
++	ror	r12,r8
++	sub	r2,r3,r8
++	bic_s	r2,r2,r3
++	tst_s	r2,r12
++	bne	r3z
++	mov_s	r4,r3
++	.balign 4
++loop:
++	ld.a	r3,[r1,4]
++	st.ab	r4,[r10,4]
++loop_start:
++	ld.a	r4,[r1,4]
++	sub	r2,r3,r8
++	bic_s	r2,r2,r3
++	tst_s	r2,r12
++	bne_s	r3z
++	st.ab	r3,[r10,4]
++	sub	r2,r4,r8
++	bic	r2,r2,r4
++	tst	r2,r12
++	beq	loop
++	mov_s	r3,r4
++#ifdef __LITTLE_ENDIAN__
++r3z:	bmsk.f	r1,r3,7
++	lsr_s	r3,r3,8
++#else
++r3z:	lsr.f	r1,r3,24
++	asl_s	r3,r3,8
++#endif
++	bne.d	r3z
++	stb.ab	r1,[r10,1]
++	j_s	[blink]
 +
++	.balign	4
++charloop:
++	ldb.ab	r3,[r1,1]
++
++
++	brne.d	r3,0,charloop
++	stb.ab	r3,[r10,1]
++	j	[blink]
++ARC_EXIT strcpy
+diff --git a/arch/arc/lib/strlen.S b/arch/arc/lib/strlen.S
+new file mode 100644
+index 0000000..39759e0
+--- /dev/null
++++ b/arch/arc/lib/strlen.S
+@@ -0,0 +1,83 @@
 +/*
-+ * _TIF_ALLWORK_MASK includes SYSCALL_TRACE, but we don't need it.
-+ * SYSCALL_TRACE is anways seperately/unconditionally tested right after a
-+ * syscall, so all that reamins to be tested is _TIF_WORK_MASK
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
 + */
 +
-+#endif /* __KERNEL__ */
++#include <asm/linkage.h>
 +
-+#endif /* _ASM_THREAD_INFO_H */
++ARC_ENTRY strlen
++	or	r3,r0,7
++	ld	r2,[r3,-7]
++	ld.a	r6,[r3,-3]
++	mov	r4,0x01010101
++	; uses long immediate
++#ifdef __LITTLE_ENDIAN__
++	asl_s	r1,r0,3
++	btst_s	r0,2
++	asl	r7,r4,r1
++	ror	r5,r4
++	sub	r1,r2,r7
++	bic_s	r1,r1,r2
++	mov.eq	r7,r4
++	sub	r12,r6,r7
++	bic	r12,r12,r6
++	or.eq	r12,r12,r1
++	and	r12,r12,r5
++	brne	r12,0,.Learly_end
++#else /* BIG ENDIAN */
++	ror	r5,r4
++	btst_s	r0,2
++	mov_s	r1,31
++	sub3	r7,r1,r0
++	sub	r1,r2,r4
++	bic_s	r1,r1,r2
++	bmsk	r1,r1,r7
++	sub	r12,r6,r4
++	bic	r12,r12,r6
++	bmsk.ne	r12,r12,r7
++	or.eq	r12,r12,r1
++	and	r12,r12,r5
++	brne	r12,0,.Learly_end
++#endif /* ENDIAN */
++
++.Loop:
++	ld_s	r2,[r3,4]
++	ld.a	r6,[r3,8]
++	; stall for load result
++	sub	r1,r2,r4
++	bic_s	r1,r1,r2
++	sub	r12,r6,r4
++	bic	r12,r12,r6
++	or	r12,r12,r1
++	and	r12,r12,r5
++	breq r12,0,.Loop
++.Lend:
++	and.f	r1,r1,r5
++	sub.ne	r3,r3,4
++	mov.eq	r1,r12
++#ifdef __LITTLE_ENDIAN__
++	sub_s	r2,r1,1
++	bic_s	r2,r2,r1
++	norm	r1,r2
++	sub_s	r0,r0,3
++	lsr_s	r1,r1,3
++	sub	    r0,r3,r0
++	j_s.d	[blink]
++	sub	    r0,r0,r1
++#else /* BIG ENDIAN */
++	lsr_s	r1,r1,7
++	mov.eq	r2,r6
++	bic_s	r1,r1,r2
++	norm	r1,r1
++	sub	    r0,r3,r0
++	lsr_s	r1,r1,3
++	j_s.d	[blink]
++	add	    r0,r0,r1
++#endif /* ENDIAN */
++.Learly_end:
++	b.d	.Lend
++	sub_s.ne r1,r1,r1
++ARC_EXIT strlen
 -- 
 1.7.4.1
 
