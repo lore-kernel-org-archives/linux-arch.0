@@ -1,236 +1,157 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp1.synopsys.com ([198.182.60.75]:52755 "EHLO
+Received: from us02smtp1.synopsys.com ([198.182.60.75]:52765 "EHLO
 	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754074Ab2KGJ71 (ORCPT
+	with ESMTP id S1754087Ab2KGJ71 (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Nov 2012 04:59:27 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [RFC PATCH v1 09/31] ARC: spinlock/rwlock/mutex primitives
-Date: Wed,  7 Nov 2012 10:47:32 +0100
-Message-ID: <1352281674-2186-10-git-send-email-vgupta@synopsys.com>
+Subject: [RFC PATCH v1 30/31] ARC: switch to generic kernel_execve() and sys_execve()
+Date: Wed,  7 Nov 2012 10:47:53 +0100
+Message-ID: <1352281674-2186-31-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: tglx@linutronix.de, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20121107094732.pXNpTAtrAuJ4U56XIXiIAlMJOV29eo4Of2YDfMQKyr4@z>
+Message-ID: <20121107094753.SoZ-MjFI9-ZlvNdeqT00Wn7E6s_v0hrfOSIwkL7HcNY@z>
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/include/asm/mutex.h          |    9 ++
- arch/arc/include/asm/spinlock.h       |  144 +++++++++++++++++++++++++++++++++
- arch/arc/include/asm/spinlock_types.h |   35 ++++++++
- 3 files changed, 188 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/include/asm/mutex.h
- create mode 100644 arch/arc/include/asm/spinlock.h
- create mode 100644 arch/arc/include/asm/spinlock_types.h
+ arch/arc/include/asm/ptrace.h |    8 +++++++
+ arch/arc/include/asm/unistd.h |    2 +
+ arch/arc/kernel/entry.S       |   17 ++++++++-------
+ arch/arc/kernel/process.c     |   44 -----------------------------------------
+ arch/arc/kernel/sys.c         |    1 -
+ 5 files changed, 19 insertions(+), 53 deletions(-)
 
-diff --git a/arch/arc/include/asm/mutex.h b/arch/arc/include/asm/mutex.h
-new file mode 100644
-index 0000000..3be5e64
---- /dev/null
-+++ b/arch/arc/include/asm/mutex.h
-@@ -0,0 +1,9 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
+diff --git a/arch/arc/include/asm/ptrace.h b/arch/arc/include/asm/ptrace.h
+index ee31d8a..bc2229f 100644
+--- a/arch/arc/include/asm/ptrace.h
++++ b/arch/arc/include/asm/ptrace.h
+@@ -120,6 +120,14 @@ struct user_regs_struct {
+ #define in_syscall(regs) (((regs->orig_r8) >= 0 && \
+ 			   (regs->orig_r8 <= NR_syscalls)) ? 1 : 0)
+ 
++#define current_pt_regs()					\
++({								\
++	/* open-coded current_thread_info() */			\
++	register unsigned long sp asm ("sp");			\
++	unsigned long pg_start = (sp & ~(THREAD_SIZE - 1));	\
++	(struct pt_regs *)(pg_start + THREAD_SIZE - 4) - 1;	\
++})
 +
-+#include <asm-generic/mutex-xchg.h>
-diff --git a/arch/arc/include/asm/spinlock.h b/arch/arc/include/asm/spinlock.h
-new file mode 100644
-index 0000000..f158197
---- /dev/null
-+++ b/arch/arc/include/asm/spinlock.h
-@@ -0,0 +1,144 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ASM_SPINLOCK_H
-+#define __ASM_SPINLOCK_H
-+
-+#include <asm/spinlock_types.h>
-+#include <asm/processor.h>
-+#include <asm/barrier.h>
-+
-+#define arch_spin_is_locked(x)	((x)->slock != __ARCH_SPIN_LOCK_UNLOCKED__)
-+#define arch_spin_lock_flags(lock, flags)	arch_spin_lock(lock)
-+#define arch_spin_unlock_wait(x) \
-+	do { while (arch_spin_is_locked(x)) cpu_relax(); } while (0)
-+
-+static inline void arch_spin_lock(arch_spinlock_t *lock)
-+{
-+	unsigned int tmp = __ARCH_SPIN_LOCK_LOCKED__;
-+
-+	__asm__ __volatile__(
-+	"1:	ex  %0, [%1]		\n"
-+	"	breq  %0, %2, 1b	\n"
-+	: "+&r" (tmp)
-+	: "r"(&(lock->slock)), "ir"(__ARCH_SPIN_LOCK_LOCKED__)
-+	: "memory");
-+}
-+
-+static inline int arch_spin_trylock(arch_spinlock_t *lock)
-+{
-+	unsigned int tmp = __ARCH_SPIN_LOCK_LOCKED__;
-+
-+	__asm__ __volatile__(
-+	"1:	ex  %0, [%1]		\n"
-+	: "+r" (tmp)
-+	: "r"(&(lock->slock))
-+	: "memory");
-+
-+	return (tmp == __ARCH_SPIN_LOCK_UNLOCKED__);
-+}
-+
-+static inline void arch_spin_unlock(arch_spinlock_t *lock)
-+{
-+	lock->slock = __ARCH_SPIN_LOCK_UNLOCKED__;
-+	smp_mb();
-+}
-+
-+/*
-+ * Read-write spinlocks, allowing multiple readers but only one writer.
-+ *
-+ * The spinlock itself is contained in @counter and access to it is
-+ * serialized with @lock_mutex.
-+ *
-+ * Unfair locking as Writers could be starved indefinitely by Reader(s)
-+ */
-+
-+/* Would read_trylock() succeed? */
-+#define arch_read_can_lock(x)	((x)->counter > 0)
-+
-+/* Would write_trylock() succeed? */
-+#define arch_write_can_lock(x)	((x)->counter == __ARCH_RW_LOCK_UNLOCKED__)
-+
-+/* 1 - lock taken successfully */
-+static inline int arch_read_trylock(arch_rwlock_t *rw)
-+{
-+	int ret = 0;
-+
-+	arch_spin_lock(&(rw->lock_mutex));
-+
-+	/*
-+	 * zero means writer holds the lock exclusively, deny Reader.
-+	 * Otherwise grant lock to first/subseq reader
-+	 */
-+	if (rw->counter > 0) {
-+		rw->counter--;
-+		ret = 1;
-+	}
-+
-+	arch_spin_unlock(&(rw->lock_mutex));
-+
-+	smp_mb();
-+	return ret;
-+}
-+
-+/* 1 - lock taken successfully */
-+static inline int arch_write_trylock(arch_rwlock_t *rw)
-+{
-+	int ret = 0;
-+
-+	arch_spin_lock(&(rw->lock_mutex));
-+
-+	/*
-+	 * If reader(s) hold lock (lock < __ARCH_RW_LOCK_UNLOCKED__),
-+	 * deny writer. Otherwise if unlocked grant to writer
-+	 * Hence the claim that Linux rwlocks are unfair to writers.
-+	 * (can be starved for an indefinite time by readers).
-+	 */
-+	if (rw->counter == __ARCH_RW_LOCK_UNLOCKED__) {
-+		rw->counter = 0;
-+		ret = 1;
-+	}
-+	arch_spin_unlock(&(rw->lock_mutex));
-+
-+	return ret;
-+}
-+
-+static inline void arch_read_lock(arch_rwlock_t *rw)
-+{
-+	while (!arch_read_trylock(rw))
-+		cpu_relax();
-+}
-+
-+static inline void arch_write_lock(arch_rwlock_t *rw)
-+{
-+	while (!arch_write_trylock(rw))
-+		cpu_relax();
-+}
-+
-+static inline void arch_read_unlock(arch_rwlock_t *rw)
-+{
-+	arch_spin_lock(&(rw->lock_mutex));
-+	rw->counter++;
-+	arch_spin_unlock(&(rw->lock_mutex));
-+}
-+
-+static inline void arch_write_unlock(arch_rwlock_t *rw)
-+{
-+	arch_spin_lock(&(rw->lock_mutex));
-+	rw->counter = __ARCH_RW_LOCK_UNLOCKED__;
-+	arch_spin_unlock(&(rw->lock_mutex));
-+}
-+
-+#define arch_read_lock_flags(lock, flags)	arch_read_lock(lock)
-+#define arch_write_lock_flags(lock, flags)	arch_write_lock(lock)
-+
-+#define arch_spin_relax(lock)	cpu_relax()
-+#define arch_read_relax(lock)	cpu_relax()
-+#define arch_write_relax(lock)	cpu_relax()
-+
-+#endif /* __ASM_SPINLOCK_H */
-diff --git a/arch/arc/include/asm/spinlock_types.h b/arch/arc/include/asm/spinlock_types.h
-new file mode 100644
-index 0000000..8276bfd
---- /dev/null
-+++ b/arch/arc/include/asm/spinlock_types.h
-@@ -0,0 +1,35 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ASM_SPINLOCK_TYPES_H
-+#define __ASM_SPINLOCK_TYPES_H
-+
-+typedef struct {
-+	volatile unsigned int slock;
-+} arch_spinlock_t;
-+
-+#define __ARCH_SPIN_LOCK_UNLOCKED__	0
-+#define __ARCH_SPIN_LOCK_LOCKED__	1
-+
-+#define __ARCH_SPIN_LOCK_UNLOCKED	{ __ARCH_SPIN_LOCK_UNLOCKED__ }
-+#define __ARCH_SPIN_LOCK_LOCKED		{ __ARCH_SPIN_LOCK_LOCKED__ }
-+
-+/*
-+ * Unlocked:     0x01_00_00_00
-+ * Read lock(s): 0x00_FF_00_00 to say 0x01
-+ * Write lock:   0x0, but only possible if prior value "unlocked" 0x0100_0000
-+ */
-+typedef struct {
-+	volatile unsigned int	counter;
-+	arch_spinlock_t		lock_mutex;
-+} arch_rwlock_t;
-+
-+#define __ARCH_RW_LOCK_UNLOCKED__	0x01000000
-+#define __ARCH_RW_LOCK_UNLOCKED		{ .counter = __ARCH_RW_LOCK_UNLOCKED__ }
-+
-+#endif
+ #endif /* __ASSEMBLY__ */
+ 
+ #endif /* __ASM_PTRACE_H */
+diff --git a/arch/arc/include/asm/unistd.h b/arch/arc/include/asm/unistd.h
+index 754d588..09144a8 100644
+--- a/arch/arc/include/asm/unistd.h
++++ b/arch/arc/include/asm/unistd.h
+@@ -22,6 +22,8 @@
+ #define __ARCH_WANT_SYSCALL_NO_FLAGS
+ #define __ARCH_WANT_SYSCALL_OFF_T
+ #define __ARCH_WANT_SYSCALL_DEPRECATED
++#define __ARCH_WANT_KERNEL_EXECVE
++#define __ARCH_WANT_SYS_EXECVE
+ 
+ #define sys_mmap2 sys_mmap_pgoff
+ 
+diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
+index 46d0280..deb2652 100644
+--- a/arch/arc/kernel/entry.S
++++ b/arch/arc/kernel/entry.S
+@@ -588,15 +588,16 @@ ARC_ENTRY ret_from_kernel_thread
+ 	j   @sys_exit
+ ARC_EXIT ret_from_kernel_thread
+ 
+-;################### Special Sys Call Wrappers ##########################
+-
+-ARC_ENTRY sys_execve_wrapper
+-	; copy pointer to pt_regs as a parameter
+-	mov  r3, sp
+-	bl  @sys_execve
++; When we land here, pt_regs have already been updated in-place correctly
++; A pointer to them is also passed by kernel_execve, we just need to make sure
++; that SP is set to point to them.
++ARC_ENTRY ret_from_kernel_execve
++	; Force SP to "normal" pt_regs just populated.
++	b.d   ret_from_system_call
++	mov   sp, r0
++ARC_EXIT ret_from_kernel_execve
+ 
+-	b ret_from_system_call
+-ARC_EXIT sys_execve_wrapper
++;################### Special Sys Call Wrappers ##########################
+ 
+ ; TBD: call do_fork directly from here
+ ARC_ENTRY sys_fork_wrapper
+diff --git a/arch/arc/kernel/process.c b/arch/arc/kernel/process.c
+index d2bb27f..65dfa89 100644
+--- a/arch/arc/kernel/process.c
++++ b/arch/arc/kernel/process.c
+@@ -53,50 +53,6 @@ asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
+ 		       child_tidptr);
+ }
+ 
+-int sys_execve(const char __user *filenamei, const char __user *__user *argv,
+-	       const char __user *__user *envp, struct pt_regs *regs)
+-{
+-	long error;
+-	struct filename *filename;
+-
+-	filename = getname(filenamei);
+-	error = PTR_ERR(filename);
+-	if (IS_ERR(filename))
+-		goto out;
+-
+-	error = do_execve(filename->name, argv, envp, regs);
+-	putname(filename);
+-out:
+-	return error;
+-}
+-
+-int kernel_execve(const char *filename, const char *const argv[],
+-		  const char *const envp[])
+-{
+-	/*
+-	 * Although the arguments (order, number) to this function are
+-	 * same as sys call, we don't need to setup args in regs again.
+-	 * However in case mainline kernel changes the order of args to
+-	 * kernel_execve, that assumtion will break.
+-	 * So to be safe, let gcc know the args for sys call.
+-	 * If they match no extra code will be generated
+-	 */
+-	register int arg2 asm("r1") = (int)argv;
+-	register int arg3 asm("r2") = (int)envp;
+-
+-	register int filenm_n_ret asm("r0") = (int)filename;
+-
+-	__asm__ __volatile__(
+-		"mov   r8, %1	\n\t"
+-		"trap0		\n\t"
+-		: "+r"(filenm_n_ret)
+-		: "i"(__NR_execve), "r"(arg2), "r"(arg3)
+-		: "r8", "memory");
+-
+-	return filenm_n_ret;
+-}
+-EXPORT_SYMBOL(kernel_execve);
+-
+ SYSCALL_DEFINE1(arc_settls, void *, user_tls_data_ptr)
+ {
+ 	task_thread_info(current)->thr_ptr = (unsigned int)user_tls_data_ptr;
+diff --git a/arch/arc/kernel/sys.c b/arch/arc/kernel/sys.c
+index 4c30345..f6bdd07 100644
+--- a/arch/arc/kernel/sys.c
++++ b/arch/arc/kernel/sys.c
+@@ -5,7 +5,6 @@
+ 
+ #include <asm/syscalls.h>
+ 
+-#define sys_execve	sys_execve_wrapper
+ #define sys_clone	sys_clone_wrapper
+ #define sys_fork	sys_fork_wrapper
+ #define sys_vfork	sys_vfork_wrapper
 -- 
 1.7.4.1
 
