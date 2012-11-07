@@ -1,51 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:63194 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750768Ab2KGOQK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Nov 2012 09:16:10 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH v1 25/31] ARC: [plat-arcfpga] Hooking up platform to ARC UART
-Date: Wed, 7 Nov 2012 14:16:07 +0000
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-26-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <1352281674-2186-26-git-send-email-vgupta@synopsys.com>
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:45482 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751149Ab2KGUqV (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Nov 2012 15:46:21 -0500
+Received: by mail-lb0-f174.google.com with SMTP id n3so1635911lbo.19
+        for <linux-arch@vger.kernel.org>; Wed, 07 Nov 2012 12:46:19 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201211071416.08012.arnd@arndb.de>
+In-Reply-To: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
+Date: Wed, 7 Nov 2012 22:46:19 +0200
+Message-ID: <CAOtvUMfjApPtjcsqr+comm-k90YH3WHSqFXyNPwJYyUXOouTqw@mail.gmail.com>
+Subject: Re: [RFC Patch v1 00/31] Synopsys ARC Linux kernel Port
+From: Gilad Ben-Yossef <gilad@benyossef.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
-Message-ID: <20121107141607.RlE0-V_ere82NFiJO4EAaJoJ8NzRyJ0cdC3LbIBkdns@z>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, arnd@arndb.de
+Message-ID: <20121107204619.lJfvaRwY3LVZQlzsF0Jfbwfbx44iQThwIakBaUPhrN0@z>
 
-On Wednesday 07 November 2012, Vineet Gupta wrote:
-> +static struct platform_device arc_uart##n##_dev = {    \
-> +       .name = "arc-uart",                             \
-> +       .id = n,                                        \
-> +       .num_resources = ARRAY_SIZE(arc_uart##n##_res), \
-> +       .resource = arc_uart##n##_res,                  \
-> +       .dev = {                                        \
-> +               .platform_data = &arc_uart_info,        \
-> +       },                                              \
-> +}
-> +
-> +ARC_UART_DEV(0);
-> +#if CONFIG_SERIAL_ARC_NR_PORTS > 1
-> +ARC_UART_DEV(1);
-> +#endif
-> +
-> +static struct platform_device *fpga_early_devs[] __initdata = {
-> +#if defined(CONFIG_SERIAL_ARC_CONSOLE)
-> +       &arc_uart0_dev,
-> +#endif
-> +};
+On Wed, Nov 7, 2012 at 11:47 AM, Vineet Gupta
+<Vineet.Gupta1@synopsys.com> wrote:
+> Hi,
+>
+> This patchset based off-of 3.7-rc3, introduces the Linux kernel port to
+> ARC700 processor family (750D and 770D) from Synopsys.
 
-statically defining platform devices like this is considered very
-bad style, especially since it prevents you from doing proper
-boot-time configuration. Please get the available devices from
-the boot loader. Normally this is done using a flattened device
-tree blob that gets passed, unless you can probe the hardware
-directly.
 
-	Arnd
+We've been using the port for 6 month now at Ezchip running on top of
+FPGA in 4 way SMP configuration (support for which will no doubt
+follow later) and have subjected it to various stress tests (hackbench
+and such) and it is working up quite well over all.
+
+I realize some code style or organization changes might be in order
+but at the same time wanted to attest the nature of its good and
+behavior performance on real hardware; so for what it's worth:
+
+Tested-by: Gilad Ben-Yossef <gilad@benyossef.com>
+
+Cheers,
+Gilad
+
+-- 
+Gilad Ben-Yossef
+Chief Coffee Drinker
+gilad@benyossef.com
+Israel Cell: +972-52-8260388
+US Cell: +1-973-8260388
+http://benyossef.com
+
+"If you take a class in large-scale robotics, can you end up in a
+situation where the homework eats your dog?"
+ -- Jean-Baptiste Queru
