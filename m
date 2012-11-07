@@ -1,62 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from hermes.synopsys.com ([198.182.44.81]:53854 "EHLO
+Received: from hermes.synopsys.com ([198.182.44.81]:53870 "EHLO
 	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753987Ab2KGJsX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Nov 2012 04:48:23 -0500
+	with ESMTP id S1754250Ab2KGJst (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Nov 2012 04:48:49 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [RFC PATCH v1 07/31] ARC: checksum/byteorder/swab routines
-Date: Wed,  7 Nov 2012 10:47:30 +0100
-Message-ID: <1352281674-2186-8-git-send-email-vgupta@synopsys.com>
+Subject: [RFC PATCH v1 22/31] ARC: Page Fault handling (incl uaccess fixup)
+Date: Wed,  7 Nov 2012 10:47:45 +0100
+Message-ID: <1352281674-2186-23-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: tglx@linutronix.de, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20121107094730.JU0WbK_Fg6ipg4D9Kyy8zBZEE-plAfNdQMOelxQ_CuA@z>
+Message-ID: <20121107094745.yfzCGE8j2-Fr4I6XOkEVn79pKV-YhVF7S1oIsmWOcKU@z>
 
-TBD: do_csum still needs to be written in asm
+This includes recent changes to make handler "retry" and/or "killable"
+
+The killable (early exit) logic is loosely based on how SH implements it
+	return if SIGKILL + either of VM_FAULT_OOM or VM_FAULT_RETRY
+which is different from Hexagon implementation which would NOT early
+exit for
+	SIGKILL + VM_FAULT_OOM + !VM_FAULT_RETRY
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/include/asm/byteorder.h |   18 +++++++
- arch/arc/include/asm/checksum.h  |  101 ++++++++++++++++++++++++++++++++++++++
- arch/arc/include/asm/swab.h      |   99 +++++++++++++++++++++++++++++++++++++
- 3 files changed, 218 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/include/asm/byteorder.h
- create mode 100644 arch/arc/include/asm/checksum.h
- create mode 100644 arch/arc/include/asm/swab.h
+ arch/arc/mm/extable.c |   26 ++++++
+ arch/arc/mm/fault.c   |  228 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 254 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/mm/extable.c
+ create mode 100644 arch/arc/mm/fault.c
 
-diff --git a/arch/arc/include/asm/byteorder.h b/arch/arc/include/asm/byteorder.h
+diff --git a/arch/arc/mm/extable.c b/arch/arc/mm/extable.c
 new file mode 100644
-index 0000000..9da71d4
+index 0000000..f05b677
 --- /dev/null
-+++ b/arch/arc/include/asm/byteorder.h
-@@ -0,0 +1,18 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ASM_ARC_BYTEORDER_H
-+#define __ASM_ARC_BYTEORDER_H
-+
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+#include <linux/byteorder/big_endian.h>
-+#else
-+#include <linux/byteorder/little_endian.h>
-+#endif
-+
-+#endif /* ASM_ARC_BYTEORDER_H */
-diff --git a/arch/arc/include/asm/checksum.h b/arch/arc/include/asm/checksum.h
-new file mode 100644
-index 0000000..1095729
---- /dev/null
-+++ b/arch/arc/include/asm/checksum.h
-@@ -0,0 +1,101 @@
++++ b/arch/arc/mm/extable.c
+@@ -0,0 +1,26 @@
 +/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
@@ -64,205 +44,259 @@ index 0000000..1095729
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
 + *
-+ * Joern Rennecke  <joern.rennecke@embecosm.com>: Jan 2012
-+ *  -Insn Scheduling improvements to csum core routines.
-+ *      = csum_fold( ) largely derived from ARM version.
-+ *      = ip_fast_cum( ) to have module scheduling
-+ *  -gcc 4.4.x broke networking. Alias analysis needed to be primed.
-+ *   worked around by adding memory clobber to ip_fast_csum( )
-+ *
-+ * vineetg: May 2010
-+ *  -Rewrote ip_fast_cscum( ) and csum_fold( ) with fast inline asm
++ * Borrowed heavily from MIPS
 + */
 +
-+#ifndef _ASM_ARC_CHECKSUM_H
-+#define _ASM_ARC_CHECKSUM_H
++#include <linux/module.h>
++#include <linux/uaccess.h>
 +
-+/*
-+ *	Fold a partial checksum
-+ *
-+ *  The 2 swords comprising the 32bit sum are added, any carry to 16th bit
-+ *  added back and final sword result inverted.
-+ */
-+static inline __sum16 csum_fold(__wsum s)
++int fixup_exception(struct pt_regs *regs)
 +{
-+	unsigned r = s << 16 | s >> 16;	/* ror */
-+	s = ~s;
-+	s -= r;
-+	return s >> 16;
++	const struct exception_table_entry *fixup;
++
++	fixup = search_exception_tables(instruction_pointer(regs));
++	if (fixup) {
++		regs->ret = fixup->fixup;
++
++		return 1;
++	}
++
++	return 0;
 +}
-+
-+/*
-+ *	This is a version of ip_compute_csum() optimized for IP headers,
-+ *	which always checksum on 4 octet boundaries.
-+ */
-+static inline __sum16
-+ip_fast_csum(const void *iph, unsigned int ihl)
-+{
-+	const void *ptr = iph;
-+	unsigned int tmp, tmp2, sum;
-+
-+	__asm__(
-+	"	ld.ab  %0, [%3, 4]		\n"
-+	"	ld.ab  %2, [%3, 4]		\n"
-+	"	sub    %1, %4, 2		\n"
-+	"	lsr.f  lp_count, %1, 1		\n"
-+	"	bcc    0f			\n"
-+	"	add.f  %0, %0, %2		\n"
-+	"	ld.ab  %2, [%3, 4]		\n"
-+	"0:	lp     1f			\n"
-+	"	ld.ab  %1, [%3, 4]		\n"
-+	"	adc.f  %0, %0, %2		\n"
-+	"	ld.ab  %2, [%3, 4]		\n"
-+	"	adc.f  %0, %0, %1		\n"
-+	"1:	adc.f  %0, %0, %2		\n"
-+	"	add.cs %0,%0,1			\n"
-+	: "=&r"(sum), "=r"(tmp), "=&r"(tmp2), "+&r" (ptr)
-+	: "r"(ihl)
-+	: "cc", "lp_count", "memory");
-+
-+	return csum_fold(sum);
-+}
-+
-+/*
-+ * TCP pseudo Header is 12 bytes:
-+ * SA [4], DA [4], zeroes [1], Proto[1], TCP Seg(hdr+data) Len [2]
-+ */
-+static inline __wsum
-+csum_tcpudp_nofold(__be32 saddr, __be32 daddr, unsigned short len,
-+		   unsigned short proto, __wsum sum)
-+{
-+	__asm__ __volatile__(
-+	"	add.f %0, %0, %1	\n"
-+	"	adc.f %0, %0, %2	\n"
-+	"	adc.f %0, %0, %3	\n"
-+	"	adc.f %0, %0, %4	\n"
-+	"	adc   %0, %0, 0		\n"
-+	: "+&r"(sum)
-+	: "r"(saddr), "r"(daddr),
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+	  "r"(len),
-+#else
-+	  "r"(len << 8),
-+#endif
-+	  "r"(htons(proto))
-+	: "cc");
-+
-+	return sum;
-+}
-+
-+#define csum_fold csum_fold
-+#define ip_fast_csum ip_fast_csum
-+#define csum_tcpudp_nofold csum_tcpudp_nofold
-+
-+#include <asm-generic/checksum.h>
-+
-+#endif /* _ASM_ARC_CHECKSUM_H */
-diff --git a/arch/arc/include/asm/swab.h b/arch/arc/include/asm/swab.h
+diff --git a/arch/arc/mm/fault.c b/arch/arc/mm/fault.c
 new file mode 100644
-index 0000000..9f6dcbb
+index 0000000..af55aab
 --- /dev/null
-+++ b/arch/arc/include/asm/swab.h
-@@ -0,0 +1,99 @@
-+/*
++++ b/arch/arc/mm/fault.c
+@@ -0,0 +1,228 @@
++/* Page Fault Handling for ARC (TLB Miss / ProtV)
++ *
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
-+ *
-+ * vineetg: May 2011
-+ *  -Support single cycle endian-swap insn in ARC700 4.10
-+ *
-+ * vineetg: June 2009
-+ *  -Better htonl implementation (5 instead of 9 ALU instructions)
-+ *  -Hardware assisted single cycle bswap (Use Case of ARC custom instrn)
 + */
 +
-+#ifndef __ASM_ARC_SWAB_H
-+#define __ASM_ARC_SWAB_H
++#include <linux/signal.h>
++#include <linux/interrupt.h>
++#include <linux/sched.h>
++#include <linux/errno.h>
++#include <linux/ptrace.h>
++#include <linux/version.h>
++#include <linux/uaccess.h>
++#include <linux/kdebug.h>
++#include <asm/pgalloc.h>
 +
-+#include <linux/types.h>
++static int handle_vmalloc_fault(struct mm_struct *mm, unsigned long address)
++{
++	/*
++	 * Synchronize this task's top level page-table
++	 * with the 'reference' page table.
++	 */
++	pgd_t *pgd, *pgd_k;
++	pud_t *pud, *pud_k;
++	pmd_t *pmd, *pmd_k;
 +
-+/* Native single cycle endian swap insn */
-+#ifdef CONFIG_ARC_HAS_SWAPE
++	pgd = pgd_offset_fast(mm, address);
++	pgd_k = pgd_offset_k(address);
 +
-+#define __arch_swab32(x)		\
-+({					\
-+	unsigned int tmp = x;		\
-+	__asm__(			\
-+	"	swape	%0, %1	\n"	\
-+	: "=r" (tmp)			\
-+	: "r" (tmp));			\
-+	tmp;				\
-+})
++	if (!pgd_present(*pgd_k))
++		goto bad_area;
 +
-+#else
++	pud = pud_offset(pgd, address);
++	pud_k = pud_offset(pgd_k, address);
++	if (!pud_present(*pud_k))
++		goto bad_area;
 +
-+/* Several ways of Endian-Swap Emulation for ARC
-+ * 0: kernel generic
-+ * 1: ARC optimised "C"
-+ * 2: ARC Custom instruction
-+ */
-+#define ARC_BSWAP_TYPE	1
++	pmd = pmd_offset(pud, address);
++	pmd_k = pmd_offset(pud_k, address);
++	if (!pmd_present(*pmd_k))
++		goto bad_area;
 +
-+#if (ARC_BSWAP_TYPE == 1)		/******* Software only ********/
++	set_pmd(pmd, *pmd_k);
 +
-+/* The kernel default implementation of htonl is
-+ *		return  x<<24 | x>>24 |
-+ *		 (x & (__u32)0x0000ff00UL)<<8 | (x & (__u32)0x00ff0000UL)>>8;
-+ *
-+ * This generates 9 instructions on ARC (excluding the ld/st)
-+ *
-+ * 8051fd8c:	ld     r3,[r7,20]	; Mem op : Get the value to be swapped
-+ * 8051fd98:	asl    r5,r3,24		; get  3rd Byte
-+ * 8051fd9c:	lsr    r2,r3,24		; get  0th Byte
-+ * 8051fda0:	and    r4,r3,0xff00
-+ * 8051fda8:	asl    r4,r4,8		; get 1st Byte
-+ * 8051fdac:	and    r3,r3,0x00ff0000
-+ * 8051fdb4:	or     r2,r2,r5		; combine 0th and 3rd Bytes
-+ * 8051fdb8:	lsr    r3,r3,8		; 2nd Byte at correct place in Dst Reg
-+ * 8051fdbc:	or     r2,r2,r4		; combine 0,3 Bytes with 1st Byte
-+ * 8051fdc0:	or     r2,r2,r3		; combine 0,3,1 Bytes with 2nd Byte
-+ * 8051fdc4:	st     r2,[r1,20]	; Mem op : save result back to mem
-+ *
-+ * Joern suggested a better "C" algorithm which is great since
-+ * (1) It is portable to any architecure
-+ * (2) At the same time it takes advantage of ARC ISA (rotate intrns)
-+ */
++	/* XXX: create the TLB entry here */
++	return 0;
 +
-+#define __arch_swab32(x)					\
-+({	unsigned long __in = (x), __tmp;			\
-+	__tmp = __in << 8 | __in >> 24; /* ror tmp,in,24 */	\
-+	__in = __in << 24 | __in >> 8; /* ror in,in,8 */	\
-+	__tmp ^= __in;						\
-+	__tmp &= 0xff00ff;					\
-+	__tmp ^ __in;						\
-+})
++bad_area:
++	return 1;
++}
 +
-+#elif (ARC_BSWAP_TYPE == 2)	/* Custom single cycle bwap instruction */
++void do_page_fault(struct pt_regs *regs, int write, unsigned long address,
++		   unsigned long cause_code)
++{
++	struct vm_area_struct *vma = NULL;
++	struct task_struct *tsk = current;
++	struct mm_struct *mm = tsk->mm;
++	siginfo_t info;
++	int fault, ret;
++	unsigned int flags = FAULT_FLAG_ALLOW_RETRY | FAULT_FLAG_KILLABLE |
++				(write ? FAULT_FLAG_WRITE : 0);
 +
-+#define __arch_swab32(x)						\
-+({									\
-+	unsigned int tmp = x;						\
-+	__asm__(							\
-+	"	.extInstruction	bswap, 7, 0x00, SUFFIX_NONE, SYNTAX_2OP	\n"\
-+	"	bswap  %0, %1						\n"\
-+	: "=r" (tmp)							\
-+	: "r" (tmp));							\
-+	tmp;								\
-+})
++	/*
++	 * We fault-in kernel-space virtual memory on-demand. The
++	 * 'reference' page table is init_mm.pgd.
++	 *
++	 * NOTE! We MUST NOT take any locks for this case. We may
++	 * be in an interrupt or a critical region, and should
++	 * only copy the information from the master page table,
++	 * nothing more.
++	 */
++	if (address >= VMALLOC_START && address <= VMALLOC_END) {
++		ret = handle_vmalloc_fault(mm, address);
++		if (unlikely(ret))
++			goto bad_area_nosemaphore;
++		else
++			return;
++	}
 +
-+#endif /* ARC_BSWAP_TYPE=zzz */
++	info.si_code = SEGV_MAPERR;
 +
-+#endif /* CONFIG_ARC_HAS_SWAPE */
++	/*
++	 * If we're in an interrupt or have no user
++	 * context, we must not take the fault..
++	 */
++	if (in_atomic() || !mm)
++		goto no_context;
 +
-+#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
-+#define __BYTEORDER_HAS_U64__
-+#define __SWAB_64_THRU_32__
-+#endif
++retry:
++	down_read(&mm->mmap_sem);
++	vma = find_vma(mm, address);
++	if (!vma)
++		goto bad_area;
++	if (vma->vm_start <= address)
++		goto good_area;
++	if (!(vma->vm_flags & VM_GROWSDOWN))
++		goto bad_area;
++	if (expand_stack(vma, address))
++		goto bad_area;
 +
-+#endif
++	/*
++	 * Ok, we have a good vm_area for this memory access, so
++	 * we can handle it..
++	 */
++good_area:
++	info.si_code = SEGV_ACCERR;
++
++	/* Handle protection violation, execute on heap or stack */
++
++	if (cause_code == ((ECR_V_PROTV << 16) | ECR_C_PROTV_INST_FETCH))
++		goto bad_area;
++
++	if (write) {
++		if (!(vma->vm_flags & VM_WRITE))
++			goto bad_area;
++	} else {
++		if (!(vma->vm_flags & (VM_READ | VM_EXEC)))
++			goto bad_area;
++	}
++
++survive:
++	/*
++	 * If for any reason at all we couldn't handle the fault,
++	 * make sure we exit gracefully rather than endlessly redo
++	 * the fault.
++	 */
++	fault = handle_mm_fault(mm, vma, address, flags);
++
++	/* If Pagefault was interrupted by SIGKILL, exit page fault "early" */
++	if (unlikely(fatal_signal_pending(current))) {
++		if ((fault & VM_FAULT_ERROR) && !(fault & VM_FAULT_RETRY))
++			up_read(&mm->mmap_sem);
++		if (user_mode(regs))
++			return;
++	}
++
++	if (likely(!(fault & VM_FAULT_ERROR))) {
++		if (flags & FAULT_FLAG_ALLOW_RETRY) {
++			/* To avoid updating stats twice for retry case */
++			if (fault & VM_FAULT_MAJOR)
++				tsk->maj_flt++;
++			else
++				tsk->min_flt++;
++
++			if (fault & VM_FAULT_RETRY) {
++				flags &= ~FAULT_FLAG_ALLOW_RETRY;
++				flags |= FAULT_FLAG_TRIED;
++				goto retry;
++			}
++		}
++
++		/* Fault Handled Gracefully */
++		up_read(&mm->mmap_sem);
++		return;
++	}
++
++	/* TBD: switch to pagefault_out_of_memory() */
++	if (fault & VM_FAULT_OOM)
++		goto out_of_memory;
++	else if (fault & VM_FAULT_SIGBUS)
++		goto do_sigbus;
++
++	/* no man's land */
++	BUG();
++
++	/*
++	 * Something tried to access memory that isn't in our memory map..
++	 * Fix it, but check if it's kernel or user first..
++	 */
++bad_area:
++	up_read(&mm->mmap_sem);
++
++bad_area_nosemaphore:
++	/* User mode accesses just cause a SIGSEGV */
++	if (user_mode(regs)) {
++		tsk->thread.fault_address = address;
++		tsk->thread.cause_code = cause_code;
++		info.si_signo = SIGSEGV;
++		info.si_errno = 0;
++		/* info.si_code has been set above */
++		info.si_addr = (void __user *)address;
++		force_sig_info(SIGSEGV, &info, tsk);
++		return;
++	}
++
++no_context:
++	/* Are we prepared to handle this kernel fault?
++	 *
++	 * (The kernel has valid exception-points in the source
++	 *  when it acesses user-memory. When it fails in one
++	 *  of those points, we find it in a table and do a jump
++	 *  to some fixup code that loads an appropriate error
++	 *  code)
++	 */
++	if (fixup_exception(regs))
++		return;
++
++	die("Oops", regs, address, cause_code);
++
++out_of_memory:
++	if (is_global_init(tsk)) {
++		yield();
++		goto survive;
++	}
++	up_read(&mm->mmap_sem);
++
++	if (user_mode(regs))
++		do_group_exit(SIGKILL);	/* This will never return */
++
++	goto no_context;
++
++do_sigbus:
++	up_read(&mm->mmap_sem);
++
++	if (!user_mode(regs))
++		goto no_context;
++
++	tsk->thread.fault_address = address;
++	tsk->thread.cause_code = cause_code;
++	info.si_signo = SIGBUS;
++	info.si_errno = 0;
++	info.si_code = BUS_ADRERR;
++	info.si_addr = (void __user *)address;
++	force_sig_info(SIGBUS, &info, tsk);
++}
 -- 
 1.7.4.1
 
