@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [RFC PATCH v1 12/31] ARC: Interrupt Handling
-Date: Wed,  7 Nov 2012 10:47:35 +0100
-Message-ID: <1352281674-2186-13-git-send-email-vgupta@synopsys.com>
+Subject: [RFC PATCH v1 31/31] ARC: [plat-arcfpga] defconfig
+Date: Wed,  7 Nov 2012 10:47:54 +0100
+Message-ID: <1352281674-2186-32-git-send-email-vgupta@synopsys.com>
 References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
@@ -12,210 +12,622 @@ List-Id: linux-arch.vger.kernel.org
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/include/asm/arcregs.h |    3 ++
- arch/arc/include/asm/hw_irq.h  |    7 ++++
- arch/arc/include/asm/irq.h     |   25 +++++++++++++
- arch/arc/kernel/irq.c          |   79 +++++++++++++++++++++++++++++++++++++++-
- arch/arc/plat-arcfpga/irq.c    |   41 +++++++++++++++++++++
- 5 files changed, 153 insertions(+), 2 deletions(-)
- create mode 100644 arch/arc/include/asm/hw_irq.h
- create mode 100644 arch/arc/include/asm/irq.h
- create mode 100644 arch/arc/plat-arcfpga/irq.c
+ arch/arc/configs/fpga_defconfig |  607 +++++++++++++++++++++++++++++++++++++++
+ 1 files changed, 607 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/configs/fpga_defconfig
 
-diff --git a/arch/arc/include/asm/arcregs.h b/arch/arc/include/asm/arcregs.h
-index 8ca8faf..3fccb04 100644
---- a/arch/arc/include/asm/arcregs.h
-+++ b/arch/arc/include/asm/arcregs.h
-@@ -11,6 +11,9 @@
- 
- #ifdef __KERNEL__
- 
-+/* Build Configuration Registers */
-+#define ARC_REG_VECBASE_BCR	0x68
-+
- /* status32 Bits Positions */
- #define STATUS_H_BIT		0	/* CPU Halted */
- #define STATUS_E1_BIT		1	/* Int 1 enable */
-diff --git a/arch/arc/include/asm/hw_irq.h b/arch/arc/include/asm/hw_irq.h
+diff --git a/arch/arc/configs/fpga_defconfig b/arch/arc/configs/fpga_defconfig
 new file mode 100644
-index 0000000..fd565ab
+index 0000000..cfdca3c
 --- /dev/null
-+++ b/arch/arc/include/asm/hw_irq.h
-@@ -0,0 +1,7 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-diff --git a/arch/arc/include/asm/irq.h b/arch/arc/include/asm/irq.h
-new file mode 100644
-index 0000000..633416c
---- /dev/null
-+++ b/arch/arc/include/asm/irq.h
-@@ -0,0 +1,25 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
++++ b/arch/arc/configs/fpga_defconfig
+@@ -0,0 +1,607 @@
++#
++# Automatically generated file; DO NOT EDIT.
++# Linux/arc 3.7.0-rc3 Kernel Configuration
++#
++CONFIG_ARC=y
++CONFIG_SCHED_OMIT_FRAME_POINTER=y
++CONFIG_GENERIC_CSUM=y
++CONFIG_RWSEM_GENERIC_SPINLOCK=y
++CONFIG_UID16=y
++CONFIG_ARCH_FLATMEM_ENABLE=y
++CONFIG_MMU=y
++CONFIG_NO_IOPORT=y
++CONFIG_GENERIC_CALIBRATE_DELAY=y
++CONFIG_GENERIC_HWEIGHT=y
++CONFIG_BINFMT_ELF=y
++CONFIG_STACKTRACE_SUPPORT=y
++CONFIG_HAVE_LATENCYTOP_SUPPORT=y
++# CONFIG_NO_DMA is not set
++CONFIG_DEFCONFIG_LIST="/lib/modules/$UNAME_RELEASE/.config"
 +
-+#ifndef __ASM_ARC_IRQ_H
-+#define __ASM_ARC_IRQ_H
++#
++# General setup
++#
++# CONFIG_EXPERIMENTAL is not set
++CONFIG_BROKEN_ON_SMP=y
++CONFIG_INIT_ENV_ARG_LIMIT=32
++CONFIG_CROSS_COMPILE="arc-elf32-"
++CONFIG_LOCALVERSION=""
++# CONFIG_LOCALVERSION_AUTO is not set
++CONFIG_DEFAULT_HOSTNAME="(none)"
++# CONFIG_SWAP is not set
++# CONFIG_SYSVIPC is not set
++# CONFIG_FHANDLE is not set
++CONFIG_HAVE_GENERIC_HARDIRQS=y
 +
-+/* Platform Inependent IRQs */
-+#define TIMER0_IRQ      3
-+#define TIMER1_IRQ      4
++#
++# IRQ subsystem
++#
++CONFIG_GENERIC_HARDIRQS=y
++CONFIG_GENERIC_IRQ_SHOW=y
++CONFIG_GENERIC_CLOCKEVENTS=y
++CONFIG_GENERIC_CLOCKEVENTS_BUILD=y
 +
-+#include <asm-generic/irq.h>
++#
++# Timers subsystem
++#
++CONFIG_TICK_ONESHOT=y
++# CONFIG_NO_HZ is not set
++CONFIG_HIGH_RES_TIMERS=y
 +
-+extern void __init arc_init_IRQ(void);
-+extern void __init plat_init_IRQ(void);
-+extern int __init get_hw_config_num_irq(void);
++#
++# CPU/Task time and stats accounting
++#
++CONFIG_TICK_CPU_ACCOUNTING=y
++# CONFIG_BSD_PROCESS_ACCT is not set
 +
-+void __cpuinit arc_clockevent_init(void);
-+void __cpuinit arc_clock_counter_setup(void);
++#
++# RCU Subsystem
++#
++CONFIG_TINY_RCU=y
++# CONFIG_PREEMPT_RCU is not set
++# CONFIG_TREE_RCU_TRACE is not set
++# CONFIG_IKCONFIG is not set
++CONFIG_LOG_BUF_SHIFT=17
++# CONFIG_CHECKPOINT_RESTORE is not set
++CONFIG_NAMESPACES=y
++# CONFIG_UTS_NS is not set
++# CONFIG_PID_NS is not set
++CONFIG_UIDGID_CONVERTED=y
++# CONFIG_UIDGID_STRICT_TYPE_CHECKS is not set
++# CONFIG_SCHED_AUTOGROUP is not set
++# CONFIG_SYSFS_DEPRECATED is not set
++# CONFIG_RELAY is not set
++CONFIG_BLK_DEV_INITRD=y
++CONFIG_INITRAMFS_SOURCE="../arc_initramfs"
++CONFIG_INITRAMFS_ROOT_UID=0
++CONFIG_INITRAMFS_ROOT_GID=0
++CONFIG_RD_GZIP=y
++# CONFIG_RD_BZIP2 is not set
++# CONFIG_RD_LZMA is not set
++# CONFIG_RD_XZ is not set
++# CONFIG_RD_LZO is not set
++CONFIG_INITRAMFS_COMPRESSION_NONE=y
++# CONFIG_INITRAMFS_COMPRESSION_GZIP is not set
++# CONFIG_CC_OPTIMIZE_FOR_SIZE is not set
++CONFIG_SYSCTL=y
++CONFIG_EXPERT=y
++# CONFIG_SYSCTL_SYSCALL is not set
++CONFIG_KALLSYMS=y
++# CONFIG_KALLSYMS_ALL is not set
++CONFIG_HOTPLUG=y
++CONFIG_PRINTK=y
++CONFIG_BUG=y
++# CONFIG_BASE_FULL is not set
++# CONFIG_FUTEX is not set
++# CONFIG_EPOLL is not set
++# CONFIG_SIGNALFD is not set
++# CONFIG_TIMERFD is not set
++# CONFIG_EVENTFD is not set
++# CONFIG_SHMEM is not set
++# CONFIG_AIO is not set
++CONFIG_EMBEDDED=y
 +
-+#endif
-diff --git a/arch/arc/kernel/irq.c b/arch/arc/kernel/irq.c
-index 16fcbe8..03a125c 100644
---- a/arch/arc/kernel/irq.c
-+++ b/arch/arc/kernel/irq.c
-@@ -9,8 +9,83 @@
- 
- #include <linux/interrupt.h>
- #include <linux/module.h>
--#include <asm/irqflags.h>
--#include <asm/arcregs.h>
-+#include <asm/sections.h>
-+#include <asm/irq.h>
++#
++# Kernel Performance Events And Counters
++#
++# CONFIG_VM_EVENT_COUNTERS is not set
++# CONFIG_SLUB_DEBUG is not set
++# CONFIG_COMPAT_BRK is not set
++# CONFIG_SLAB is not set
++CONFIG_SLUB=y
++# CONFIG_SLOB is not set
++# CONFIG_PROFILING is not set
++CONFIG_GENERIC_SMP_IDLE_THREAD=y
++CONFIG_ARCH_WANT_IPC_PARSE_VERSION=y
++CONFIG_GENERIC_KERNEL_THREAD=y
++CONFIG_MODULES_USE_ELF_RELA=y
 +
-+/*
-+ * Early Interrupt sub-system setup
-+ * -Called very early (start_kernel -> setup_arch -> setup_processor)
-+ * -Platform Independent (must for any ARC700)
-+ * -Needed for each CPU (hence not foldable into init_IRQ)
-+ *
-+ * what it does ?
-+ * -setup Vector Table Base Reg - in case Linux not linked at 0x8000_0000
-+ * -Disable all IRQs (on CPU side)
-+ */
-+void __init arc_init_IRQ(void)
-+{
-+	int level_mask = level_mask;
++#
++# GCOV-based kernel profiling
++#
++# CONFIG_HAVE_GENERIC_DMA_COHERENT is not set
++CONFIG_BASE_SMALL=1
++# CONFIG_MODULES is not set
++CONFIG_BLOCK=y
++# CONFIG_LBDAF is not set
++# CONFIG_BLK_DEV_BSG is not set
++# CONFIG_BLK_DEV_BSGLIB is not set
++# CONFIG_BLK_DEV_INTEGRITY is not set
 +
-+	write_aux_reg(AUX_INTR_VEC_BASE, _int_vec_base_lds);
++#
++# Partition Types
++#
++# CONFIG_PARTITION_ADVANCED is not set
++CONFIG_MSDOS_PARTITION=y
 +
-+	/* Disable all IRQs: enable them as devices request */
-+	write_aux_reg(AUX_IENABLE, 0);
-+}
++#
++# IO Schedulers
++#
++CONFIG_IOSCHED_NOOP=y
++# CONFIG_IOSCHED_DEADLINE is not set
++# CONFIG_IOSCHED_CFQ is not set
++CONFIG_DEFAULT_NOOP=y
++CONFIG_DEFAULT_IOSCHED="noop"
++CONFIG_INLINE_SPIN_UNLOCK_IRQ=y
++CONFIG_INLINE_READ_UNLOCK=y
++CONFIG_INLINE_READ_UNLOCK_IRQ=y
++CONFIG_INLINE_WRITE_UNLOCK=y
++CONFIG_INLINE_WRITE_UNLOCK_IRQ=y
++# CONFIG_FREEZER is not set
 +
-+/*
-+ * Late Interrupt system init called from start_kernel for Boot CPU only
-+ *
-+ * Since slab must already be initialized, platforms can start doing any
-+ * needed request_irq( )s
-+ */
-+void __init init_IRQ(void)
-+{
-+	const int irq = TIMER0_IRQ;
++#
++# ARC Architecture Configuration
++#
++CONFIG_ARC_PLAT_FPGA_LEGACY=y
 +
-+	/*
-+	 * Each CPU needs to register irq of it's private TIMER0.
-+	 * The APIs request_percpu_irq()/enable_percpu_irq() will not be
-+	 * functional, if we don't "prep" the generic IRQ sub-system with
-+	 * the following:
-+	 * -Ensure that devid passed to request_percpu_irq() is indeed per cpu
-+	 * -disable NOAUTOEN, w/o which the device handler never gets called
-+	 */
-+	irq_set_percpu_devid(irq);
-+	irq_modify_status(irq, IRQ_NOAUTOEN, 0);
++#
++# ARC CPU Configuration
++#
++# CONFIG_ARC_CPU_750D is not set
++CONFIG_ARC_CPU_770=y
++# CONFIG_CPU_BIG_ENDIAN is not set
++CONFIG_ARC_CACHE=y
++CONFIG_ARC_CACHE_LINE_SHIFT=6
++CONFIG_ARC_HAS_ICACHE=y
++CONFIG_ARC_HAS_DCACHE=y
++CONFIG_ARC_CACHE_PAGES=y
++CONFIG_ARC_HAS_HW_MPY=y
++# CONFIG_ARC_MMU_V1 is not set
++# CONFIG_ARC_MMU_V2 is not set
++CONFIG_ARC_MMU_V3=y
++CONFIG_ARC_PAGE_SIZE_8K=y
++# CONFIG_ARC_PAGE_SIZE_16K is not set
++# CONFIG_ARC_PAGE_SIZE_4K is not set
++# CONFIG_ARC_FPU_SAVE_RESTORE is not set
++CONFIG_ARC_CPU_REL_4_10=y
++CONFIG_ARC_HAS_LLSC=y
++CONFIG_ARC_HAS_SWAPE=y
++CONFIG_ARC_HAS_RTSC=y
 +
-+	plat_init_IRQ();
-+}
++#
++# Platform Board Configuration
++#
++CONFIG_ARC_BOARD_ANGEL4=y
++# CONFIG_ARC_BOARD_ML509 is not set
++CONFIG_ARC_SERIAL_BAUD=115200
++CONFIG_ARC_PLAT_CLK=80000000
++CONFIG_LINUX_LINK_BASE=0x80000000
++CONFIG_ARC_PLAT_SDRAM_SIZE=0x10000000
++# CONFIG_ARC_STACK_NONEXEC is not set
++CONFIG_HZ=100
++# CONFIG_ARC_DBG is not set
++CONFIG_CMDLINE="print-fatal-signals=1"
++# CONFIG_CMDLINE_UBOOT is not set
++CONFIG_PREEMPT_NONE=y
++# CONFIG_PREEMPT_VOLUNTARY is not set
++# CONFIG_PREEMPT is not set
++CONFIG_FLATMEM=y
++CONFIG_FLAT_NODE_MEM_MAP=y
++CONFIG_PAGEFLAGS_EXTENDED=y
++CONFIG_SPLIT_PTLOCK_CPUS=4
++# CONFIG_COMPACTION is not set
++# CONFIG_PHYS_ADDR_T_64BIT is not set
++CONFIG_ZONE_DMA_FLAG=0
++CONFIG_VIRT_TO_BUS=y
++# CONFIG_KSM is not set
++CONFIG_DEFAULT_MMAP_MIN_ADDR=4096
++# CONFIG_CROSS_MEMORY_ATTACH is not set
++CONFIG_NEED_PER_CPU_KM=y
++# CONFIG_CLEANCACHE is not set
++# CONFIG_NET is not set
 +
-+/*
-+ * "C" Entry point for any ARC ISR, called from low level vector handler
-+ */
-+void arch_do_IRQ(unsigned int irq, struct pt_regs *regs)
-+{
-+	struct pt_regs *old_regs = set_irq_regs(regs);
++#
++# Device Drivers
++#
 +
-+	irq_enter();
-+	generic_handle_irq(irq);
-+	irq_exit();
-+	set_irq_regs(old_regs);
-+}
++#
++# Generic Driver Options
++#
++CONFIG_UEVENT_HELPER_PATH=""
++CONFIG_DEVTMPFS=y
++CONFIG_DEVTMPFS_MOUNT=y
++CONFIG_STANDALONE=y
++# CONFIG_PREVENT_FIRMWARE_BUILD is not set
++CONFIG_FW_LOADER=y
++# CONFIG_FIRMWARE_IN_KERNEL is not set
++CONFIG_EXTRA_FIRMWARE=""
++# CONFIG_DEBUG_DRIVER is not set
++# CONFIG_DEBUG_DEVRES is not set
++# CONFIG_SYS_HYPERVISOR is not set
++# CONFIG_GENERIC_CPU_DEVICES is not set
 +
-+int __init get_hw_config_num_irq(void)
-+{
-+	uint32_t val = read_aux_reg(ARC_REG_VECBASE_BCR);
++#
++# Bus devices
++#
++# CONFIG_OMAP_OCP2SCP is not set
++# CONFIG_MTD is not set
++# CONFIG_PARPORT is not set
++# CONFIG_BLK_DEV is not set
 +
-+	switch (val & 0x03) {
-+	case 0:
-+		return 16;
-+	case 1:
-+		return 32;
-+	case 2:
-+		return 8;
-+	default:
-+		return 0;
-+	}
++#
++# Misc devices
++#
++# CONFIG_SENSORS_LIS3LV02D is not set
++# CONFIG_ENCLOSURE_SERVICES is not set
++# CONFIG_C2PORT is not set
 +
-+	return 0;
-+}
- 
- void arch_local_irq_enable(void)
- {
-diff --git a/arch/arc/plat-arcfpga/irq.c b/arch/arc/plat-arcfpga/irq.c
-new file mode 100644
-index 0000000..a308057
---- /dev/null
-+++ b/arch/arc/plat-arcfpga/irq.c
-@@ -0,0 +1,41 @@
-+/*
-+ * ARC FPGA Platform IRQ hookups
-+ *
-+ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
++#
++# EEPROM support
++#
++# CONFIG_EEPROM_93CX6 is not set
 +
-+#include <linux/interrupt.h>
-+#include <asm/irq.h>
-+#include <plat/memmap.h>
++#
++# Texas Instruments shared transport line discipline
++#
 +
-+static void arc_mask_irq(struct irq_data *data)
-+{
-+	arch_mask_irq(data->irq);
-+}
++#
++# Altera FPGA firmware download module
++#
 +
-+static void arc_unmask_irq(struct irq_data *data)
-+{
-+	arch_unmask_irq(data->irq);
-+}
++#
++# SCSI device support
++#
++CONFIG_SCSI_MOD=y
++# CONFIG_RAID_ATTRS is not set
++# CONFIG_SCSI is not set
++# CONFIG_SCSI_DMA is not set
++# CONFIG_SCSI_NETLINK is not set
++# CONFIG_ATA is not set
++# CONFIG_MD is not set
 +
-+/*
-+ * There's no off-chip Interrupt Controller in the FPGA builds
-+ * Below sufficies a simple model for the on-chip controller, with
-+ * all interrupts being level triggered.
-+ */
-+static struct irq_chip fpga_chip = {
-+	.irq_mask	= arc_mask_irq,
-+	.irq_unmask	= arc_unmask_irq,
-+};
++#
++# Input device support
++#
++CONFIG_INPUT=y
++# CONFIG_INPUT_FF_MEMLESS is not set
++# CONFIG_INPUT_POLLDEV is not set
++# CONFIG_INPUT_SPARSEKMAP is not set
++# CONFIG_INPUT_MATRIXKMAP is not set
 +
-+void __init plat_init_IRQ(void)
-+{
-+	int i;
++#
++# Userland interfaces
++#
++# CONFIG_INPUT_MOUSEDEV is not set
++# CONFIG_INPUT_JOYDEV is not set
++# CONFIG_INPUT_EVDEV is not set
++# CONFIG_INPUT_EVBUG is not set
 +
-+	for (i = 0; i < NR_IRQS; i++)
-+		irq_set_chip_and_handler(i, &fpga_chip, handle_level_irq);
-+}
++#
++# Input Device Drivers
++#
++# CONFIG_INPUT_KEYBOARD is not set
++# CONFIG_INPUT_MOUSE is not set
++# CONFIG_INPUT_JOYSTICK is not set
++# CONFIG_INPUT_TABLET is not set
++# CONFIG_INPUT_TOUCHSCREEN is not set
++# CONFIG_INPUT_MISC is not set
++
++#
++# Hardware I/O ports
++#
++# CONFIG_SERIO is not set
++# CONFIG_GAMEPORT is not set
++
++#
++# Character devices
++#
++CONFIG_VT=y
++CONFIG_CONSOLE_TRANSLATIONS=y
++CONFIG_VT_CONSOLE=y
++CONFIG_HW_CONSOLE=y
++# CONFIG_VT_HW_CONSOLE_BINDING is not set
++CONFIG_UNIX98_PTYS=y
++# CONFIG_DEVPTS_MULTIPLE_INSTANCES is not set
++# CONFIG_LEGACY_PTYS is not set
++# CONFIG_SERIAL_NONSTANDARD is not set
++# CONFIG_TRACE_SINK is not set
++# CONFIG_DEVKMEM is not set
++
++#
++# Serial drivers
++#
++# CONFIG_SERIAL_8250 is not set
++
++#
++# Non-8250 serial port support
++#
++CONFIG_SERIAL_CORE=y
++CONFIG_SERIAL_CORE_CONSOLE=y
++# CONFIG_SERIAL_SCCNXP is not set
++# CONFIG_SERIAL_TIMBERDALE is not set
++# CONFIG_SERIAL_ALTERA_JTAGUART is not set
++# CONFIG_SERIAL_ALTERA_UART is not set
++# CONFIG_SERIAL_XILINX_PS_UART is not set
++CONFIG_SERIAL_ARC=y
++CONFIG_SERIAL_ARC_CONSOLE=y
++CONFIG_SERIAL_ARC_NR_PORTS=1
++# CONFIG_TTY_PRINTK is not set
++# CONFIG_IPMI_HANDLER is not set
++# CONFIG_HW_RANDOM is not set
++# CONFIG_RTC is not set
++# CONFIG_GEN_RTC is not set
++# CONFIG_R3964 is not set
++
++#
++# PCMCIA character devices
++#
++# CONFIG_RAW_DRIVER is not set
++# CONFIG_TCG_TPM is not set
++# CONFIG_I2C is not set
++# CONFIG_SPI is not set
++# CONFIG_HSI is not set
++
++#
++# PPS support
++#
++
++#
++# PPS generators support
++#
++
++#
++# PTP clock support
++#
++
++#
++# Enable Device Drivers -> PPS to see the PTP clock options.
++#
++# CONFIG_W1 is not set
++# CONFIG_POWER_SUPPLY is not set
++# CONFIG_POWER_AVS is not set
++# CONFIG_HWMON is not set
++# CONFIG_THERMAL is not set
++# CONFIG_WATCHDOG is not set
++CONFIG_SSB_POSSIBLE=y
++
++#
++# Sonics Silicon Backplane
++#
++# CONFIG_SSB is not set
++CONFIG_BCMA_POSSIBLE=y
++
++#
++# Broadcom specific AMBA
++#
++# CONFIG_BCMA is not set
++
++#
++# Multifunction device drivers
++#
++# CONFIG_MFD_CORE is not set
++# CONFIG_MFD_SM501 is not set
++# CONFIG_HTC_PASIC3 is not set
++# CONFIG_MFD_TMIO is not set
++# CONFIG_ABX500_CORE is not set
++# CONFIG_REGULATOR is not set
++# CONFIG_MEDIA_SUPPORT is not set
++
++#
++# Graphics support
++#
++# CONFIG_DRM is not set
++# CONFIG_VGASTATE is not set
++# CONFIG_VIDEO_OUTPUT_CONTROL is not set
++# CONFIG_FB is not set
++# CONFIG_EXYNOS_VIDEO is not set
++# CONFIG_BACKLIGHT_LCD_SUPPORT is not set
++
++#
++# Console display driver support
++#
++# CONFIG_VGA_CONSOLE is not set
++CONFIG_DUMMY_CONSOLE=y
++# CONFIG_SOUND is not set
++
++#
++# HID support
++#
++# CONFIG_HID is not set
++# CONFIG_USB_ARCH_HAS_OHCI is not set
++# CONFIG_USB_ARCH_HAS_EHCI is not set
++# CONFIG_USB_ARCH_HAS_XHCI is not set
++# CONFIG_USB_SUPPORT is not set
++# CONFIG_MMC is not set
++# CONFIG_MEMSTICK is not set
++# CONFIG_NEW_LEDS is not set
++# CONFIG_ACCESSIBILITY is not set
++# CONFIG_RTC_CLASS is not set
++# CONFIG_DMADEVICES is not set
++# CONFIG_AUXDISPLAY is not set
++# CONFIG_UIO is not set
++
++#
++# Virtio drivers
++#
++
++#
++# Microsoft Hyper-V guest support
++#
++# CONFIG_STAGING is not set
++
++#
++# Hardware Spinlock drivers
++#
++# CONFIG_IOMMU_SUPPORT is not set
++
++#
++# Remoteproc drivers (EXPERIMENTAL)
++#
++
++#
++# Rpmsg drivers (EXPERIMENTAL)
++#
++# CONFIG_VIRT_DRIVERS is not set
++# CONFIG_PM_DEVFREQ is not set
++# CONFIG_EXTCON is not set
++# CONFIG_MEMORY is not set
++# CONFIG_IIO is not set
++# CONFIG_PWM is not set
++
++#
++# File systems
++#
++# CONFIG_EXT2_FS is not set
++# CONFIG_EXT3_FS is not set
++# CONFIG_EXT4_FS is not set
++# CONFIG_REISERFS_FS is not set
++# CONFIG_JFS_FS is not set
++# CONFIG_XFS_FS is not set
++# CONFIG_FS_POSIX_ACL is not set
++CONFIG_FILE_LOCKING=y
++# CONFIG_FSNOTIFY is not set
++# CONFIG_DNOTIFY is not set
++# CONFIG_INOTIFY_USER is not set
++# CONFIG_FANOTIFY is not set
++# CONFIG_QUOTA is not set
++# CONFIG_QUOTACTL is not set
++# CONFIG_AUTOFS4_FS is not set
++# CONFIG_FUSE_FS is not set
++
++#
++# Caches
++#
++# CONFIG_FSCACHE is not set
++
++#
++# CD-ROM/DVD Filesystems
++#
++# CONFIG_ISO9660_FS is not set
++# CONFIG_UDF_FS is not set
++
++#
++# DOS/FAT/NT Filesystems
++#
++# CONFIG_MSDOS_FS is not set
++# CONFIG_VFAT_FS is not set
++# CONFIG_NTFS_FS is not set
++
++#
++# Pseudo filesystems
++#
++CONFIG_PROC_FS=y
++# CONFIG_PROC_KCORE is not set
++CONFIG_PROC_SYSCTL=y
++CONFIG_PROC_PAGE_MONITOR=y
++CONFIG_SYSFS=y
++# CONFIG_HUGETLB_PAGE is not set
++# CONFIG_CONFIGFS_FS is not set
++# CONFIG_MISC_FILESYSTEMS is not set
++# CONFIG_NLS is not set
++
++#
++# Kernel hacking
++#
++# CONFIG_PRINTK_TIME is not set
++CONFIG_DEFAULT_MESSAGE_LOGLEVEL=4
++CONFIG_ENABLE_WARN_DEPRECATED=y
++CONFIG_ENABLE_MUST_CHECK=y
++CONFIG_FRAME_WARN=1024
++# CONFIG_MAGIC_SYSRQ is not set
++# CONFIG_STRIP_ASM_SYMS is not set
++# CONFIG_READABLE_ASM is not set
++# CONFIG_UNUSED_SYMBOLS is not set
++# CONFIG_DEBUG_FS is not set
++# CONFIG_HEADERS_CHECK is not set
++# CONFIG_DEBUG_SECTION_MISMATCH is not set
++CONFIG_DEBUG_KERNEL=y
++# CONFIG_DEBUG_SHIRQ is not set
++# CONFIG_LOCKUP_DETECTOR is not set
++# CONFIG_PANIC_ON_OOPS is not set
++CONFIG_PANIC_ON_OOPS_VALUE=0
++# CONFIG_DETECT_HUNG_TASK is not set
++CONFIG_SCHED_DEBUG=y
++# CONFIG_SCHEDSTATS is not set
++# CONFIG_TIMER_STATS is not set
++# CONFIG_DEBUG_OBJECTS is not set
++# CONFIG_SLUB_STATS is not set
++# CONFIG_DEBUG_SPINLOCK is not set
++# CONFIG_DEBUG_MUTEXES is not set
++# CONFIG_SPARSE_RCU_POINTER is not set
++# CONFIG_DEBUG_ATOMIC_SLEEP is not set
++# CONFIG_DEBUG_LOCKING_API_SELFTESTS is not set
++CONFIG_STACKTRACE=y
++# CONFIG_DEBUG_STACK_USAGE is not set
++# CONFIG_DEBUG_KOBJECT is not set
++# CONFIG_DEBUG_INFO is not set
++# CONFIG_DEBUG_VM is not set
++# CONFIG_DEBUG_WRITECOUNT is not set
++# CONFIG_DEBUG_MEMORY_INIT is not set
++# CONFIG_DEBUG_LIST is not set
++# CONFIG_TEST_LIST_SORT is not set
++# CONFIG_DEBUG_SG is not set
++# CONFIG_DEBUG_NOTIFIERS is not set
++# CONFIG_DEBUG_CREDENTIALS is not set
++# CONFIG_BOOT_PRINTK_DELAY is not set
++# CONFIG_RCU_TORTURE_TEST is not set
++# CONFIG_RCU_TRACE is not set
++# CONFIG_BACKTRACE_SELF_TEST is not set
++# CONFIG_DEBUG_BLOCK_EXT_DEVT is not set
++# CONFIG_DEBUG_FORCE_WEAK_PER_CPU is not set
++# CONFIG_NOTIFIER_ERROR_INJECTION is not set
++# CONFIG_FAULT_INJECTION is not set
++# CONFIG_LATENCYTOP is not set
++# CONFIG_DEBUG_PAGEALLOC is not set
++# CONFIG_ATOMIC64_SELFTEST is not set
++# CONFIG_SAMPLES is not set
++# CONFIG_TEST_KSTRTOX is not set
++CONFIG_EARLY_PRINTK=y
++# CONFIG_DEBUG_STACKOVERFLOW is not set
++# CONFIG_16KSTACKS is not set
++
++#
++# Security options
++#
++# CONFIG_KEYS is not set
++# CONFIG_SECURITY_DMESG_RESTRICT is not set
++# CONFIG_SECURITY is not set
++# CONFIG_SECURITYFS is not set
++CONFIG_DEFAULT_SECURITY_DAC=y
++CONFIG_DEFAULT_SECURITY=""
++# CONFIG_CRYPTO is not set
++# CONFIG_BINARY_PRINTF is not set
++
++#
++# Library routines
++#
++CONFIG_GENERIC_FIND_FIRST_BIT=y
++CONFIG_GENERIC_IO=y
++# CONFIG_CRC_CCITT is not set
++# CONFIG_CRC16 is not set
++# CONFIG_CRC_T10DIF is not set
++# CONFIG_CRC_ITU_T is not set
++# CONFIG_CRC32 is not set
++# CONFIG_CRC7 is not set
++# CONFIG_LIBCRC32C is not set
++# CONFIG_CRC8 is not set
++CONFIG_ZLIB_INFLATE=y
++# CONFIG_XZ_DEC is not set
++# CONFIG_XZ_DEC_BCJ is not set
++CONFIG_DECOMPRESS_GZIP=y
++CONFIG_HAS_IOMEM=y
++CONFIG_HAS_DMA=y
++CONFIG_GENERIC_ATOMIC64=y
++CONFIG_ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE=y
++# CONFIG_AVERAGE is not set
++# CONFIG_CORDIC is not set
++# CONFIG_DDR is not set
 -- 
 1.7.4.1
