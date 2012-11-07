@@ -1,679 +1,807 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp2.synopsys.com ([198.182.60.77]:40394 "EHLO
+Received: from alvesta.synopsys.com ([198.182.60.77]:40392 "EHLO
 	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754321Ab2KGJ5f (ORCPT
+	with ESMTP id S1754345Ab2KGJ5f (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Nov 2012 04:57:35 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [RFC PATCH v1 18/31] ARC: Page Table Management
-Date: Wed,  7 Nov 2012 10:47:41 +0100
-Message-ID: <1352281674-2186-19-git-send-email-vgupta@synopsys.com>
+Subject: [RFC PATCH v1 08/31] ARC: Fundamental ARCH data-types/defines
+Date: Wed,  7 Nov 2012 10:47:31 +0100
+Message-ID: <1352281674-2186-9-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: tglx@linutronix.de, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20121107094741._XLueMevAx2Hpb-Dt1B18XVd0qBfTuuJaSFhTLCEw8k@z>
+Message-ID: <20121107094731.X4bMNjYLfnQgcFsdOtni9R8b_OSgCjPSmGKp6P6PF14@z>
+
+* L1_CACHE_SHIFT
+* PAGE_SIZE, PAGE_OFFSET
+* struct pt_regs, struct user_regs_struct
+* struct thread_struct, cpu_relax(), task_pt_regs(), start_thread(), ...
+* struct thread_info, THREAD_SIZE, INIT_THREAD_INFO(), TIF_*, ...
+* BUG()
+* ELF_*
+* Elf_*
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/include/asm/page.h    |   92 +++++++++
- arch/arc/include/asm/pgalloc.h |  134 +++++++++++++
- arch/arc/include/asm/pgtable.h |  401 ++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 627 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/include/asm/pgalloc.h
- create mode 100644 arch/arc/include/asm/pgtable.h
+ arch/arc/include/asm/bug.h         |   37 +++++++++
+ arch/arc/include/asm/cache.h       |   21 +++++
+ arch/arc/include/asm/elf.h         |   97 ++++++++++++++++++++++++
+ arch/arc/include/asm/exec.h        |   15 ++++
+ arch/arc/include/asm/kdebug.h      |   19 +++++
+ arch/arc/include/asm/linkage.h     |   30 ++++++++
+ arch/arc/include/asm/module.h      |   17 ++++
+ arch/arc/include/asm/page.h        |   42 +++++++++++
+ arch/arc/include/asm/processor.h   |  143 ++++++++++++++++++++++++++++++++++++
+ arch/arc/include/asm/ptrace.h      |  120 ++++++++++++++++++++++++++++++
+ arch/arc/include/asm/sections.h    |   17 ++++
+ arch/arc/include/asm/thread_info.h |  120 ++++++++++++++++++++++++++++++
+ 12 files changed, 678 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/include/asm/bug.h
+ create mode 100644 arch/arc/include/asm/cache.h
+ create mode 100644 arch/arc/include/asm/elf.h
+ create mode 100644 arch/arc/include/asm/exec.h
+ create mode 100644 arch/arc/include/asm/kdebug.h
+ create mode 100644 arch/arc/include/asm/linkage.h
+ create mode 100644 arch/arc/include/asm/module.h
+ create mode 100644 arch/arc/include/asm/page.h
+ create mode 100644 arch/arc/include/asm/processor.h
+ create mode 100644 arch/arc/include/asm/ptrace.h
+ create mode 100644 arch/arc/include/asm/sections.h
+ create mode 100644 arch/arc/include/asm/thread_info.h
 
-diff --git a/arch/arc/include/asm/page.h b/arch/arc/include/asm/page.h
-index 7cd1224..d111d0c 100644
---- a/arch/arc/include/asm/page.h
-+++ b/arch/arc/include/asm/page.h
-@@ -35,6 +35,98 @@
- 
- #define PAGE_MASK	(~(PAGE_SIZE-1))
- 
+diff --git a/arch/arc/include/asm/bug.h b/arch/arc/include/asm/bug.h
+new file mode 100644
+index 0000000..2ad8f9b
+--- /dev/null
++++ b/arch/arc/include/asm/bug.h
+@@ -0,0 +1,37 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef _ASM_ARC_BUG_H
++#define _ASM_ARC_BUG_H
++
++#ifndef __ASSEMBLY__
++
++#include <asm/ptrace.h>
++
++struct task_struct;
++
++void show_regs(struct pt_regs *regs);
++void show_stacktrace(struct task_struct *tsk, struct pt_regs *regs);
++void show_kernel_fault_diag(const char *str, struct pt_regs *regs,
++			    unsigned long address, unsigned long cause_reg);
++void die(const char *str, struct pt_regs *regs, unsigned long address,
++	 unsigned long cause_reg);
++
++#define BUG()	do {				\
++	dump_stack();					\
++	pr_warn("Kernel BUG in %s: %s: %d!\n",	\
++		__FILE__, __func__,  __LINE__);	\
++} while (0)
++
++#define HAVE_ARCH_BUG
++
++#include <asm-generic/bug.h>
++
++#endif	/* !__ASSEMBLY__ */
++
++#endif
+diff --git a/arch/arc/include/asm/cache.h b/arch/arc/include/asm/cache.h
+new file mode 100644
+index 0000000..30c72a4
+--- /dev/null
++++ b/arch/arc/include/asm/cache.h
+@@ -0,0 +1,21 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef __ARC_ASM_CACHE_H
++#define __ARC_ASM_CACHE_H
++
++/* In case $$ not config, setup a dummy number for rest of kernel */
++#ifndef CONFIG_ARC_CACHE_LINE_SHIFT
++#define L1_CACHE_SHIFT		6
++#else
++#define L1_CACHE_SHIFT		CONFIG_ARC_CACHE_LINE_SHIFT
++#endif
++
++#define L1_CACHE_BYTES		(1 << L1_CACHE_SHIFT)
++
++#endif /* _ASM_CACHE_H */
+diff --git a/arch/arc/include/asm/elf.h b/arch/arc/include/asm/elf.h
+new file mode 100644
+index 0000000..147284f
+--- /dev/null
++++ b/arch/arc/include/asm/elf.h
+@@ -0,0 +1,97 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef __ASM_ARC_ELF_H
++#define __ASM_ARC_ELF_H
++
++#include <asm/ptrace.h>
++
++#define EM_ARCOMPACT		93
++
++/* Machine specific ELF Hdr flags */
++#define EF_ARC_OSABI_MSK	0x00000f00
++#define EF_ARC_OSABI_ORIG	0x00000000   /* MUST be zero for back-compat */
++#define EF_ARC_OSABI_V2		0x00000200
++
++/* ARC Relocations (kernel Modules only) */
++#define  R_ARC_32		0x4
++#define  R_ARC_32_ME		0x1B
++#define  R_ARC_S25H_PCREL	0x10
++#define  R_ARC_S25W_PCREL	0x11
++
++typedef unsigned long elf_greg_t;
++typedef unsigned long elf_fpregset_t;
++
++
++/* core dump regs is in the order pt_regs, callee_regs, stop_pc (for gdb) */
++#define ELF_NGREG	((sizeof(struct pt_regs) + sizeof(struct callee_regs) \
++			  + sizeof(unsigned long)) / sizeof(elf_greg_t))
++
++typedef elf_greg_t elf_gregset_t[ELF_NGREG];
++
++/*
++ * To ensure that
++ *  -we don't load something for the wrong architecture.
++ *  -The userspace is using the correct syscall ABI
++ */
++struct elf32_hdr;
++extern int elf_check_arch(const struct elf32_hdr *);
++#define elf_check_arch	elf_check_arch
++
++/*
++ * These are used to set parameters in the core dumps.
++ */
++#define ELF_ARCH		EM_ARCOMPACT
++#define ELF_CLASS		ELFCLASS32
++
++#ifdef CONFIG_CPU_BIG_ENDIAN
++#define ELF_DATA		ELFDATA2MSB
++#else
++#define ELF_DATA		ELFDATA2LSB
++#endif
++
 +#ifdef __KERNEL__
 +
-+#ifndef __ASSEMBLY__
++#define CORE_DUMP_USE_REGSET
 +
-+#define get_user_page(vaddr)		__get_free_page(GFP_KERNEL)
-+#define free_user_page(page, addr)	free_page(addr)
-+
-+/* TBD: for now don't worry about VIPT D$ aliasing */
-+#define clear_page(paddr)		memset((paddr), 0, PAGE_SIZE)
-+#define copy_page(to, from)		memcpy((to), (from), PAGE_SIZE)
-+
-+#define clear_user_page(addr, vaddr, pg)	clear_page(addr)
-+#define copy_user_page(vto, vfrom, vaddr, pg)	copy_page(vto, vfrom)
-+
-+#undef STRICT_MM_TYPECHECKS
-+
-+#ifdef STRICT_MM_TYPECHECKS
-+/*
-+ * These are used to make use of C type-checking..
-+ */
-+typedef struct {
-+	unsigned long pte;
-+} pte_t;
-+typedef struct {
-+	unsigned long pgd;
-+} pgd_t;
-+typedef struct {
-+	unsigned long pgprot;
-+} pgprot_t;
-+typedef unsigned long pgtable_t;
-+
-+#define pte_val(x)      ((x).pte)
-+#define pgd_val(x)      ((x).pgd)
-+#define pgprot_val(x)   ((x).pgprot)
-+
-+#define __pte(x)        ((pte_t) { (x) })
-+#define __pgd(x)        ((pgd_t) { (x) })
-+#define __pgprot(x)     ((pgprot_t) { (x) })
-+
-+#else /* !STRICT_MM_TYPECHECKS */
-+
-+typedef unsigned long pte_t;
-+typedef unsigned long pgd_t;
-+typedef unsigned long pgprot_t;
-+typedef unsigned long pgtable_t;
-+
-+#define pte_val(x)	(x)
-+#define pgd_val(x)	(x)
-+#define pgprot_val(x)	(x)
-+#define __pte(x)	(x)
-+#define __pgprot(x)	(x)
-+
-+#endif
-+
-+#define ARCH_PFN_OFFSET     (CONFIG_LINUX_LINK_BASE >> PAGE_SHIFT)
-+
-+#define pfn_valid(pfn)      (((pfn) - ARCH_PFN_OFFSET) < max_mapnr)
++#define ELF_EXEC_PAGESIZE	PAGE_SIZE
 +
 +/*
-+ * __pa, __va, virt_to_page (ALERT: deprecated, don't use them)
-+ *
-+ * These macros have historically been misnamed
-+ * virt here means link-address/program-address as embedded in object code.
-+ * So if kernel img is linked at 0x8000_0000 onwards, 0x8010_0000 will be
-+ * 128th page, and virt_to_page( ) will return the struct page corresp to it.
-+ * mem_map[ ] is an array of struct page for each page frame in the system
-+ *
-+ * Independent of where linux is linked at, link-addr = physical address
-+ * So the old macro  __pa = vaddr + PAGE_OFFSET - CONFIG_LINUX_LINK_BASE
-+ * would have been wrong in case kernel is not at 0x8zs
++ * This is the location that an ET_DYN program is loaded if exec'ed.  Typical
++ * use of this is to invoke "./ld.so someprog" to test out a new version of
++ * the loader.  We need to make sure that it is out of the way of the program
++ * that it will "exec", and that there is sufficient room for the brk.
 + */
-+#define __pa(vaddr)  ((unsigned long)vaddr)
-+#define __va(paddr)  ((void *)((unsigned long)(paddr)))
++#define ELF_ET_DYN_BASE		(2 * TASK_SIZE / 3)
 +
-+#define virt_to_page(kaddr)	\
-+	(mem_map + ((__pa(kaddr) - CONFIG_LINUX_LINK_BASE) >> PAGE_SHIFT))
++/*
++ * When the program starts, a1 contains a pointer to a function to be
++ * registered with atexit, as per the SVR4 ABI.  A value of 0 means we
++ * have no such handler.
++ */
++#define ELF_PLAT_INIT(_r, load_addr)	((_r)->r0 = 0)
 +
-+#define virt_addr_valid(kaddr)  pfn_valid(__pa(kaddr) >> PAGE_SHIFT)
++/*
++ * This yields a mask that user programs can use to figure out what
++ * instruction set this cpu supports.
++ */
++#define ELF_HWCAP	(0)
 +
-+/* Default Permissions for page, used in mmap.c */
-+#ifdef CONFIG_ARC_STACK_NONEXEC
-+#define VM_DATA_DEFAULT_FLAGS   (VM_READ | VM_WRITE | VM_MAYREAD | VM_MAYWRITE)
-+#else
-+#define VM_DATA_DEFAULT_FLAGS   (VM_READ | VM_WRITE | VM_EXEC | \
-+				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
++/*
++ * This yields a string that ld.so will use to load implementation
++ * specific libraries for optimization.  This is more specific in
++ * intent than poking at uname or /proc/cpuinfo.
++ */
++#define ELF_PLATFORM	(NULL)
++
++#define SET_PERSONALITY(ex) \
++	set_personality(PER_LINUX | (current->personality & (~PER_MASK)))
++
++#endif  /* __KERNEL__ */
++
 +#endif
-+
-+#define WANT_PAGE_VIRTUAL   1
-+
-+#include <asm-generic/memory_model.h>   /* page_to_pfn, pfn_to_page */
-+#include <asm-generic/getorder.h>
-+
- #endif /* !__ASSEMBLY__ */
- 
- #endif /* __KERNEL__ */
-diff --git a/arch/arc/include/asm/pgalloc.h b/arch/arc/include/asm/pgalloc.h
+diff --git a/arch/arc/include/asm/exec.h b/arch/arc/include/asm/exec.h
 new file mode 100644
-index 0000000..36a9f20
+index 0000000..28abc69
 --- /dev/null
-+++ b/arch/arc/include/asm/pgalloc.h
-@@ -0,0 +1,134 @@
++++ b/arch/arc/include/asm/exec.h
+@@ -0,0 +1,15 @@
 +/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
-+ *
-+ * vineetg: June 2011
-+ *  -"/proc/meminfo | grep PageTables" kept on increasing
-+ *   Recently added pgtable dtor was not getting called.
-+ *
-+ * vineetg: May 2011
-+ *  -Variable pg-sz means that Page Tables could be variable sized themselves
-+ *    So calculate it based on addr traversal split [pgd-bits:pte-bits:xxx]
-+ *  -Page Table size capped to max 1 to save memory - hence verified.
-+ *  -Since these deal with constants, gcc compile-time optimizes them.
-+ *
-+ * vineetg: Nov 2010
-+ *  -Added pgtable ctor/dtor used for pgtable mem accounting
-+ *
-+ * vineetg: April 2010
-+ *  -Switched pgtable_t from being struct page * to unsigned long
-+ *      =Needed so that Page Table allocator (pte_alloc_one) is not forced to
-+ *       to deal with struct page. Thay way in future we can make it allocate
-+ *       multiple PG Tbls in one Page Frame
-+ *      =sweet side effect is avoiding calls to ugly page_address( ) from the
-+ *       pg-tlb allocator sub-sys (pte_alloc_one, ptr_free, pmd_populate
-+ *
-+ *  Amit Bhor, Sameer Dhavale: Codito Technologies 2004
 + */
 +
-+#ifndef _ASM_ARC_PGALLOC_H
-+#define _ASM_ARC_PGALLOC_H
++#ifndef __ASM_ARC_EXEC_H
++#define __ASM_ARC_EXEC_H
 +
-+#include <linux/mm.h>
-+#include <linux/log2.h>
++/* Align to 16b */
++#define arch_align_stack(p) ((unsigned long)(p) & ~0xf)
 +
-+static inline void
-+pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd, pte_t *pte)
-+{
-+	pmd_set(pmd, pte);
-+}
-+
-+static inline void
-+pmd_populate(struct mm_struct *mm, pmd_t *pmd, pgtable_t ptep)
-+{
-+	pmd_set(pmd, (pte_t *) ptep);
-+}
-+
-+static inline int __get_order_pgd(void)
-+{
-+	return get_order(PTRS_PER_PGD * 4);
-+}
-+
-+static inline pgd_t *pgd_alloc(struct mm_struct *mm)
-+{
-+	int num, num2;
-+	pgd_t *ret = (pgd_t *) __get_free_pages(GFP_KERNEL, __get_order_pgd());
-+
-+	if (ret) {
-+		num = USER_PTRS_PER_PGD + USER_KERNEL_GUTTER / PGDIR_SIZE;
-+		memzero(ret, num * sizeof(pgd_t));
-+
-+		num2 = VMALLOC_SIZE / PGDIR_SIZE;
-+		memcpy(ret + num, swapper_pg_dir + num, num2 * sizeof(pgd_t));
-+
-+		memzero(ret + num + num2,
-+			       (PTRS_PER_PGD - num - num2) * sizeof(pgd_t));
-+
-+	}
-+	return ret;
-+}
-+
-+static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
-+{
-+	free_pages((unsigned long)pgd, __get_order_pgd());
-+}
-+
-+
-+/*
-+ * With software-only page-tables, addr-split for traversal is tweakable and
-+ * that directly governs how big tables would be at each level.
-+ * Further, the MMU page size is configurable.
-+ * Thus we need to programatically assert the size constraint
-+ * All of this is const math, allowing gcc to do constant folding/propagation.
-+ */
-+
-+static inline int __get_order_pte(void)
-+{
-+	return get_order(PTRS_PER_PTE * 4);
-+}
-+
-+static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
-+					unsigned long address)
-+{
-+	pte_t *pte;
-+
-+	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO,
-+					 __get_order_pte());
-+
-+	return pte;
-+}
-+
-+static inline pgtable_t
-+pte_alloc_one(struct mm_struct *mm, unsigned long address)
-+{
-+	pgtable_t pte_pg;
-+
-+	pte_pg = __get_free_pages(GFP_KERNEL | __GFP_REPEAT, __get_order_pte());
-+	if (pte_pg) {
-+		memzero((void *)pte_pg, PTRS_PER_PTE * 4);
-+		pgtable_page_ctor(virt_to_page(pte_pg));
-+	}
-+
-+	return pte_pg;
-+}
-+
-+static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
-+{
-+	free_pages((unsigned long)pte, __get_order_pte()); /* takes phy addr */
-+}
-+
-+static inline void pte_free(struct mm_struct *mm, pgtable_t ptep)
-+{
-+	pgtable_page_dtor(virt_to_page(ptep));
-+	free_pages(ptep, __get_order_pte());
-+}
-+
-+#define __pte_free_tlb(tlb, pte, addr)  pte_free((tlb)->mm, pte)
-+
-+#define check_pgt_cache()   do { } while (0)
-+#define pmd_pgtable(pmd) pmd_page_vaddr(pmd)
-+
-+#endif /* _ASM_ARC_PGALLOC_H */
-diff --git a/arch/arc/include/asm/pgtable.h b/arch/arc/include/asm/pgtable.h
++#endif
+diff --git a/arch/arc/include/asm/kdebug.h b/arch/arc/include/asm/kdebug.h
 new file mode 100644
-index 0000000..dcb07015
+index 0000000..3fbe6c4
 --- /dev/null
-+++ b/arch/arc/include/asm/pgtable.h
-@@ -0,0 +1,401 @@
++++ b/arch/arc/include/asm/kdebug.h
+@@ -0,0 +1,19 @@
 +/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
-+ *
-+ * vineetg: May 2011
-+ *  -Folded PAGE_PRESENT (used by VM) and PAGE_VALID (used by MMU) into 1.
-+ *     They are semantically the same although in different contexts
-+ *     VALID marks a TLB entry exists and it will only happen if PRESENT
-+ *  - Utilise some unused free bits to confine PTE flags to 12 bits
-+ *     This is a must for 4k pg-sz
-+ *
-+ * vineetg: Mar 2011 - changes to accomodate MMU TLB Page Descriptor mods
-+ *  -TLB Locking never really existed, except for initial specs
-+ *  -SILENT_xxx not needed for our port
-+ *  -Per my request, MMU V3 changes the layout of some of the bits
-+ *     to avoid a few shifts in TLB Miss handlers.
-+ *
-+ * vineetg: April 2010
-+ *  -PGD entry no longer contains any flags. If empty it is 0, otherwise has
-+ *   Pg-Tbl ptr. Thus pmd_present(), pmd_valid(), pmd_set( ) become simpler
-+ *
-+ * vineetg: April 2010
-+ *  -Switched form 8:11:13 split for page table lookup to 11:8:13
-+ *  -this speeds up page table allocation itself as we now have to memset 1K
-+ *    instead of 8k per page table.
-+ * -TODO: Right now page table alloc is 8K and rest 7K is unused
-+ *    need to optimise it
-+ *
-+ * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
 + */
 +
-+#ifndef _ASM_ARC_PGTABLE_H
-+#define _ASM_ARC_PGTABLE_H
++#ifndef _ASM_ARC_KDEBUG_H
++#define _ASM_ARC_KDEBUG_H
 +
-+#include <asm/page.h>
-+#include <asm/mmu.h>
-+#include <asm-generic/pgtable-nopmd.h>
++enum die_val {
++	DIE_UNUSED,
++	DIE_TRAP,
++	DIE_IERR,
++	DIE_OOPS
++};
 +
-+/**************************************************************************
-+ * Page Table Flags
-+ *
-+ * ARC700 MMU only deals with softare managed TLB entries.
-+ * Page Tables are purely for Linux VM's consumption and the bits below are
-+ * suited to that (uniqueness). Hence some are not implemented in the TLB and
-+ * some have different value in TLB.
-+ * e.g. MMU v2: K_READ bit is 8 and so is GLOBAL (possible becoz they live in
-+ *      seperate PD0 and PD1, which combined forms a translation entry)
-+ *      while for PTE perspective, they are 8 and 9 respectively
-+ * with MMU v3: Most bits (except SHARED) represent the exact hardware pos
-+ *      (saves some bit shift ops in TLB Miss hdlrs)
-+ */
-+
-+#if (CONFIG_ARC_MMU_VER <= 2)
-+
-+#define _PAGE_ACCESSED      (1<<1)	/* Page is accessed (S) */
-+#define _PAGE_CACHEABLE     (1<<2)	/* Page is cached (H) */
-+#define _PAGE_EXECUTE       (1<<3)	/* Page has user execute perm (H) */
-+#define _PAGE_WRITE         (1<<4)	/* Page has user write perm (H) */
-+#define _PAGE_READ          (1<<5)	/* Page has user read perm (H) */
-+#define _PAGE_K_EXECUTE     (1<<6)	/* Page has kernel execute perm (H) */
-+#define _PAGE_K_WRITE       (1<<7)	/* Page has kernel write perm (H) */
-+#define _PAGE_K_READ        (1<<8)	/* Page has kernel perm (H) */
-+#define _PAGE_GLOBAL        (1<<9)	/* Page is global (H) */
-+#define _PAGE_MODIFIED      (1<<10)	/* Page modified (dirty) (S) */
-+#define _PAGE_FILE          (1<<10)	/* page cache/ swap (S) */
-+#define _PAGE_PRESENT       (1<<11)	/* TLB entry is valid (H) */
-+
-+#else
-+
-+/* PD1 */
-+#define _PAGE_CACHEABLE     (1<<0)	/* Page is cached (H) */
-+#define _PAGE_EXECUTE       (1<<1)	/* Page has user execute perm (H) */
-+#define _PAGE_WRITE         (1<<2)	/* Page has user write perm (H) */
-+#define _PAGE_READ          (1<<3)	/* Page has user read perm (H) */
-+#define _PAGE_K_EXECUTE     (1<<4)	/* Page has kernel execute perm (H) */
-+#define _PAGE_K_WRITE       (1<<5)	/* Page has kernel write perm (H) */
-+#define _PAGE_K_READ        (1<<6)	/* Page has kernel perm (H) */
-+#define _PAGE_ACCESSED      (1<<7)	/* Page is accessed (S) */
-+
-+/* PD0 */
-+#define _PAGE_GLOBAL        (1<<8)	/* Page is global (H) */
-+#define _PAGE_PRESENT       (1<<9)	/* TLB entry is valid (H) */
-+#define _PAGE_SHARED_CODE   (1<<10)	/* Shared Code page with cmn vaddr
-+					   usable for shared TLB entries (H) */
-+
-+#define _PAGE_MODIFIED      (1<<11)	/* Page modified (dirty) (S) */
-+#define _PAGE_FILE          (1<<12)	/* page cache/ swap (S) */
-+
-+#define _PAGE_SHARED_CODE_H (1<<31)	/* Hardware counterpart of above */
 +#endif
-+
-+/* Kernel allowed all permissions for all pages */
-+#define _K_PAGE_PERMS  (_PAGE_K_EXECUTE | _PAGE_K_WRITE | _PAGE_K_READ)
-+
-+#ifdef CONFIG_ARC_CACHE_PAGES
-+#define _PAGE_DEF_CACHEABLE _PAGE_CACHEABLE
-+#else
-+#define _PAGE_DEF_CACHEABLE (0)
-+#endif
-+
-+/* Helper for every "user" page
-+ * -kernel can R/W/X
-+ * -by default cached, unless config otherwise
-+ * -present in memory
-+ */
-+#define ___DEF (_PAGE_PRESENT | _K_PAGE_PERMS | _PAGE_DEF_CACHEABLE)
-+
-+/* Set of bits not changed in pte_modify */
-+#define _PAGE_CHG_MASK	(PAGE_MASK | _PAGE_ACCESSED | _PAGE_MODIFIED)
-+
-+/* More Abbrevaited helpers */
-+#define PAGE_U_NONE     __pgprot(___DEF)
-+#define PAGE_U_R        __pgprot(___DEF | _PAGE_READ)
-+#define PAGE_U_W_R      __pgprot(___DEF | _PAGE_READ | _PAGE_WRITE)
-+#define PAGE_U_X_R      __pgprot(___DEF | _PAGE_READ | _PAGE_EXECUTE)
-+#define PAGE_U_X_W_R    __pgprot(___DEF | _PAGE_READ | _PAGE_WRITE | \
-+						       _PAGE_EXECUTE)
-+
-+#define PAGE_SHARED	PAGE_U_W_R
-+
-+/* While kernel runs out of unstrslated space, vmalloc/modules use a chunk of
-+ * kernel vaddr space - visible in all addr spaces, but kernel mode only
-+ * Thus Global, all-kernel-access, no-user-access, cached
-+ */
-+#define PAGE_KERNEL          __pgprot(___DEF | _PAGE_GLOBAL)
-+
-+/* ioremap */
-+#define PAGE_KERNEL_NO_CACHE __pgprot(_PAGE_PRESENT | _K_PAGE_PERMS | \
-+						     _PAGE_GLOBAL)
-+
-+/**************************************************************************
-+ * Mapping of vm_flags (Generic VM) to PTE flags (arch specific)
+diff --git a/arch/arc/include/asm/linkage.h b/arch/arc/include/asm/linkage.h
+new file mode 100644
+index 0000000..a45d1bb
+--- /dev/null
++++ b/arch/arc/include/asm/linkage.h
+@@ -0,0 +1,30 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
-+ * Certain cases have 1:1 mapping
-+ *  e.g. __P101 means VM_READ, VM_EXEC and !VM_SHARED
-+ *       which directly corresponds to  PAGE_U_X_R
-+ *
-+ * Other rules which cause the divergence from 1:1 mapping
-+ *
-+ *  1. Although ARC700 can do exclusive execute/write protection (meaning R
-+ *     can be tracked independet of X/W unlike some other CPUs), still to
-+ *     keep things consistent with other archs:
-+ *      -Write implies Read:   W => R
-+ *      -Execute implies Read: X => R
-+ *
-+ *  2. Pvt Writable doesn't have Write Enabled initially: Pvt-W => !W
-+ *     This is to enable COW mechanism
-+ */
-+	/* xwr */
-+#define __P000  PAGE_U_NONE
-+#define __P001  PAGE_U_R
-+#define __P010  PAGE_U_R	/* Pvt-W => !W */
-+#define __P011  PAGE_U_R	/* Pvt-W => !W */
-+#define __P100  PAGE_U_X_R	/* X => R */
-+#define __P101  PAGE_U_X_R
-+#define __P110  PAGE_U_X_R	/* Pvt-W => !W and X => R */
-+#define __P111  PAGE_U_X_R	/* Pvt-W => !W */
-+
-+#define __S000  PAGE_U_NONE
-+#define __S001  PAGE_U_R
-+#define __S010  PAGE_U_W_R	/* W => R */
-+#define __S011  PAGE_U_W_R
-+#define __S100  PAGE_U_X_R	/* X => R */
-+#define __S101  PAGE_U_X_R
-+#define __S110  PAGE_U_X_W_R	/* X => R */
-+#define __S111  PAGE_U_X_W_R
-+
-+/****************************************************************
-+ * Page Table Lookup split
-+ *
-+ * We implement 2 tier paging and since this is all software, we are free
-+ * to customize the span of a PGD / PTE entry to suit us
-+ *
-+ *			32 bit virtual address
-+ * -------------------------------------------------------
-+ * | BITS_FOR_PGD    |  BITS_FOR_PTE    |  BITS_IN_PAGE  |
-+ * -------------------------------------------------------
-+ *       |                  |                |
-+ *       |                  |                --> off in page frame
-+ *       |		    |
-+ *       |                  ---> index into Page Table
-+ *       |
-+ *       ----> index into Page Directory
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
 + */
 +
-+#define BITS_IN_PAGE	PAGE_SHIFT
-+
-+/* Optimal Sizing of Pg Tbl - based on MMU page size */
-+#if defined(CONFIG_ARC_PAGE_SIZE_8K)
-+#define BITS_FOR_PTE	8
-+#elif defined(CONFIG_ARC_PAGE_SIZE_16K)
-+#define BITS_FOR_PTE	8
-+#elif defined(CONFIG_ARC_PAGE_SIZE_4K)
-+#define BITS_FOR_PTE	9
-+#endif
-+
-+#define BITS_FOR_PGD	(32 - BITS_FOR_PTE - BITS_IN_PAGE)
-+
-+#define PGDIR_SHIFT	(BITS_FOR_PTE + BITS_IN_PAGE)
-+#define PGDIR_SIZE	(1UL << PGDIR_SHIFT)	/* vaddr span, not PDG sz */
-+#define PGDIR_MASK	(~(PGDIR_SIZE-1))
++#ifndef __ASM_LINKAGE_H
++#define __ASM_LINKAGE_H
 +
 +#ifdef __ASSEMBLY__
-+#define	PTRS_PER_PTE	(1 << BITS_FOR_PTE)
-+#define	PTRS_PER_PGD	(1 << BITS_FOR_PGD)
-+#else
-+#define	PTRS_PER_PTE	(1UL << BITS_FOR_PTE)
-+#define	PTRS_PER_PGD	(1UL << BITS_FOR_PGD)
-+#endif
-+/*
-+ * Number of entries a user land program use.
-+ * TASK_SIZE is the maximum vaddr that can be used by a userland program.
++
++/* Can't use the ENTRY macro in linux/linkage.h
++ * gas considers ';' as comment vs. newline
 + */
-+#define	USER_PTRS_PER_PGD	(TASK_SIZE / PGDIR_SIZE)
++.macro ARC_ENTRY name
++	.global \name
++	.align 4
++	\name:
++.endm
 +
-+/*
-+ * No special requirements for lowest virtual address we permit any user space
-+ * mapping to be mapped at.
-+ */
-+#define FIRST_USER_ADDRESS      0
-+
-+
-+/****************************************************************
-+ * Bucket load of VM Helpers
-+ */
-+
-+#ifndef __ASSEMBLY__
-+
-+#define pte_ERROR(e) \
-+	pr_crit("%s:%d: bad pte %08lx.\n", __FILE__, __LINE__, pte_val(e))
-+#define pgd_ERROR(e) \
-+	pr_crit("%s:%d: bad pgd %08lx.\n", __FILE__, __LINE__, pgd_val(e))
-+
-+/* the zero page used for uninitialized and anonymous pages */
-+extern char empty_zero_page[PAGE_SIZE];
-+#define ZERO_PAGE(vaddr)	(virt_to_page(empty_zero_page))
-+
-+#define pte_unmap(pte)		do { } while (0)
-+#define pte_unmap_nested(pte)		do { } while (0)
-+
-+#define set_pte(pteptr, pteval)	((*(pteptr)) = (pteval))
-+#define set_pmd(pmdptr, pmdval)	(*(pmdptr) = pmdval)
-+
-+/* find the page descriptor of the Page Tbl ref by PMD entry */
-+#define pmd_page(pmd)		virt_to_page(pmd_val(pmd) & PAGE_MASK)
-+
-+/* find the logical addr (phy for ARC) of the Page Tbl ref by PMD entry */
-+#define pmd_page_vaddr(pmd)	(pmd_val(pmd) & PAGE_MASK)
-+
-+/* In a 2 level sys, setup the PGD entry with PTE value */
-+static inline void pmd_set(pmd_t *pmdp, pte_t *ptep)
-+{
-+	pmd_val(*pmdp) = (unsigned long)ptep;
-+}
-+
-+#define pte_none(x)			(!pte_val(x))
-+#define pte_present(x)			(pte_val(x) & _PAGE_PRESENT)
-+#define pte_clear(mm, addr, ptep)	set_pte_at(mm, addr, ptep, __pte(0))
-+
-+#define pmd_none(x)			(!pmd_val(x))
-+#define	pmd_bad(x)			((pmd_val(x) & ~PAGE_MASK))
-+#define pmd_present(x)			(pmd_val(x))
-+#define pmd_clear(xp)			do { pmd_val(*(xp)) = 0; } while (0)
-+
-+#define pte_page(x) (mem_map + \
-+		(unsigned long)(((pte_val(x) - PAGE_OFFSET) >> PAGE_SHIFT)))
-+
-+#define mk_pte(page, pgprot)						\
-+({									\
-+	pte_t pte;							\
-+	pte_val(pte) = __pa(page_address(page)) + pgprot_val(pgprot);	\
-+	pte;								\
-+})
-+
-+/* TBD: Non linear mapping stuff */
-+static inline int pte_file(pte_t pte)
-+{
-+	return pte_val(pte) & _PAGE_FILE;
-+}
-+
-+#define PTE_FILE_MAX_BITS	30
-+#define pgoff_to_pte(x)         __pte(x)
-+#define pte_to_pgoff(x)		(pte_val(x) >> 2)
-+#define pte_pfn(pte)		(pte_val(pte) >> PAGE_SHIFT)
-+#define pfn_pte(pfn, prot)	(__pte(((pfn) << PAGE_SHIFT) | pgprot_val(prot)))
-+#define __pte_index(addr)	(((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
-+
-+/*
-+ * pte_offset gets a @ptr to PMD entry (PGD in our 2-tier paging system)
-+ * and returns ptr to PTE entry corresponding to @addr
-+ */
-+#define pte_offset(dir, addr) ((pte_t *)(pmd_page_vaddr(*dir)) +\
-+					 __pte_index(addr))
-+
-+/* No mapping of Page Tables in high mem etc, so following same as above */
-+#define pte_offset_kernel(dir, addr)		pte_offset(dir, addr)
-+#define pte_offset_map(dir, addr)		pte_offset(dir, addr)
-+
-+/* Zoo of pte_xxx function */
-+#define pte_read(pte)		(pte_val(pte) & _PAGE_READ)
-+#define pte_write(pte)		(pte_val(pte) & _PAGE_WRITE)
-+#define pte_dirty(pte)		(pte_val(pte) & _PAGE_MODIFIED)
-+#define pte_young(pte)		(pte_val(pte) & _PAGE_ACCESSED)
-+#define pte_special(pte)	(0)
-+
-+#define PTE_BIT_FUNC(fn, op) \
-+	static inline pte_t pte_##fn(pte_t pte) { pte_val(pte) op; return pte; }
-+
-+PTE_BIT_FUNC(wrprotect,	&= ~(_PAGE_WRITE));
-+PTE_BIT_FUNC(mkwrite,	|= (_PAGE_WRITE));
-+PTE_BIT_FUNC(mkclean,	&= ~(_PAGE_MODIFIED));
-+PTE_BIT_FUNC(mkdirty,	|= (_PAGE_MODIFIED));
-+PTE_BIT_FUNC(mkold,	&= ~(_PAGE_ACCESSED));
-+PTE_BIT_FUNC(mkyoung,	|= (_PAGE_ACCESSED));
-+PTE_BIT_FUNC(exprotect,	&= ~(_PAGE_EXECUTE));
-+PTE_BIT_FUNC(mkexec,	|= (_PAGE_EXECUTE));
-+
-+static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
-+
-+static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
-+{
-+	return __pte((pte_val(pte) & _PAGE_CHG_MASK) | pgprot_val(newprot));
-+}
-+
-+/* Macro to mark a page protection as uncacheable */
-+#define pgprot_noncached(prot)	(__pgprot(pgprot_val(prot) & ~_PAGE_CACHEABLE))
-+
-+static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
-+			      pte_t *ptep, pte_t pteval)
-+{
-+	set_pte(ptep, pteval);
-+}
-+
-+/*
-+ * All kernel related VM pages are in init's mm.
-+ */
-+#define pgd_offset_k(address)	pgd_offset(&init_mm, address)
-+#define pgd_index(addr)		((addr) >> PGDIR_SHIFT)
-+#define pgd_offset(mm, addr)	(((mm)->pgd)+pgd_index(addr))
-+
-+/*
-+ * Macro to quickly access the PGD entry, utlising the fact that some
-+ * arch may cache the pointer to Page Directory of "current" task
-+ * in a MMU register
-+ *
-+ * Thus task->mm->pgd (3 pointer dereferences, cache misses etc simply
-+ * becomes read a register
-+ *
-+ * ********CAUTION*******:
-+ * Kernel code might be dealing with some mm_struct of NON "current"
-+ * Thus use this macro only when you are certain that "current" is current
-+ * e.g. when dealing with signal frame setup code etc
-+ */
-+#define pgd_offset_fast(mm, addr)	\
-+({					\
-+	pgd_t *pgd_base = (pgd_t *) read_aux_reg(ARC_REG_SCRATCH_DATA0);  \
-+	pgd_base + pgd_index(addr);	\
-+})
-+
-+extern void paging_init(void);
-+extern pgd_t swapper_pg_dir[] __aligned(PAGE_SIZE);
-+void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
-+		      pte_t *ptep);
-+
-+/* Encode swap {type,off} tuple into PTE
-+ * We reserve 13 bits for 5-bit @type, keeping bits 12-5 zero, ensuring that
-+ * both PAGE_FILE and PAGE_PRESENT are zero in a PTE holding swap "identifier"
-+ */
-+#define __swp_entry(type, off)	((swp_entry_t) { \
-+					((type) & 0x1f) | ((off) << 13) })
-+
-+/* Decode a PTE containing swap "identifier "into constituents */
-+#define __swp_type(pte_lookalike)	(((pte_lookalike).val) & 0x1f)
-+#define __swp_offset(pte_lookalike)	((pte_lookalike).val << 13)
-+
-+/* NOPs, to keep generic kernel happy */
-+#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
-+#define __swp_entry_to_pte(x)	((pte_t) { (x).val })
-+
-+#define kern_addr_valid(addr)	(1)
-+
-+/*
-+ * remap a physical page `pfn' of size `size' with page protection `prot'
-+ * into virtual address `from'
-+ */
-+#define io_remap_pfn_range(vma, from, pfn, size, prot) \
-+			remap_pfn_range(vma, from, pfn, size, prot)
-+
-+#include <asm-generic/pgtable.h>
-+
-+/*
-+ * No page table caches to initialise
-+ */
-+#define pgtable_cache_init()   do { } while (0)
++.macro ARC_EXIT name
++#define ASM_PREV_SYM_ADDR(name)  .-##name
++	.size \ name, ASM_PREV_SYM_ADDR(\name)
++.endm
 +
 +#endif /* __ASSEMBLY__ */
 +
 +#endif
+diff --git a/arch/arc/include/asm/module.h b/arch/arc/include/asm/module.h
+new file mode 100644
+index 0000000..165d768
+--- /dev/null
++++ b/arch/arc/include/asm/module.h
+@@ -0,0 +1,17 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
++
++ */
++
++#ifndef _ASM_ARC_MODULE_H
++#define _ASM_ARC_MODULE_H
++
++#include <asm-generic/module.h>
++
++#endif /* _ASM_ARC_MODULE_H */
+diff --git a/arch/arc/include/asm/page.h b/arch/arc/include/asm/page.h
+new file mode 100644
+index 0000000..7cd1224
+--- /dev/null
++++ b/arch/arc/include/asm/page.h
+@@ -0,0 +1,42 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef __ASM_ARC_PAGE_H
++#define __ASM_ARC_PAGE_H
++
++/* PAGE_SHIFT determines the page size */
++#if defined(CONFIG_ARC_PAGE_SIZE_16K)
++#define PAGE_SHIFT 14
++#elif defined(CONFIG_ARC_PAGE_SIZE_4K)
++#define PAGE_SHIFT 12
++#else
++/*
++ * Default 8k
++ * done this way (instead of under CONFIG_ARC_PAGE_SIZE_8K) because adhoc
++ * user code (busybox appletlib.h) expects PAGE_SHIFT to be defined w/o
++ * using the correct uClibc header and in their build our autoconf.h is
++ * not available
++ */
++#define PAGE_SHIFT 13
++#endif
++
++#ifdef __ASSEMBLY__
++#define PAGE_SIZE	(1 << PAGE_SHIFT)
++#define PAGE_OFFSET	(0x80000000)
++#else
++#define PAGE_SIZE	(1UL << PAGE_SHIFT)	/* Default 8K */
++#define PAGE_OFFSET	(0x80000000UL)	/* Kernel starts at 2G onwards */
++#endif
++
++#define PAGE_MASK	(~(PAGE_SIZE-1))
++
++#endif /* !__ASSEMBLY__ */
++
++#endif /* __KERNEL__ */
++
++#endif
+diff --git a/arch/arc/include/asm/processor.h b/arch/arc/include/asm/processor.h
+new file mode 100644
+index 0000000..e2445bc
+--- /dev/null
++++ b/arch/arc/include/asm/processor.h
+@@ -0,0 +1,143 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * vineetg: March 2009
++ *  -Implemented task_pt_regs( )
++ *
++ * Amit Bhor, Sameer Dhavale, Ashwin Chaugule: Codito Technologies 2004
++ */
++
++#ifndef __ASM_ARC_PROCESSOR_H
++#define __ASM_ARC_PROCESSOR_H
++
++#if defined(__KERNEL__)
++
++#if !defined(__ASSEMBLY__)
++
++#include <asm/arcregs.h>	/* for STATUS_E1_MASK et all */
++
++/* Arch specific stuff which needs to be saved per task.
++ * However these items are not so important so as to earn a place in
++ * struct thread_info
++ */
++struct thread_struct {
++	unsigned long ksp;	/* kernel mode stack pointer */
++	unsigned long callee_reg;	/* pointer to callee regs */
++	unsigned long fault_address;	/* dbls as brkpt holder as well */
++	unsigned long cause_code;	/* Exception Cause Code (ECR) */
++};
++
++#define INIT_THREAD  {                          \
++	.ksp = sizeof(init_stack) + (unsigned long) init_stack, \
++}
++
++/* Forward declaration, a strange C thing */
++struct task_struct;
++
++/*
++ * Return saved PC of a blocked thread.
++ */
++unsigned long thread_saved_pc(struct task_struct *t);
++
++#define task_pt_regs(p) \
++	((struct pt_regs *)(THREAD_SIZE - 4 + (void *)task_stack_page(p)) - 1)
++
++/* Free all resources held by a thread. */
++#define release_thread(thread) do { } while (0)
++
++/* Prepare to copy thread state - unlazy all lazy status */
++#define prepare_to_copy(tsk)    do { } while (0)
++
++#define cpu_relax()	do { } while (0)
++
++/*
++ * Create a new kernel thread
++ */
++
++extern int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags);
++
++#define copy_segments(tsk, mm)      do { } while (0)
++#define release_segments(mm)        do { } while (0)
++
++#define KSTK_EIP(tsk)   (task_pt_regs(tsk)->ret)
++
++/*
++ * Where abouts of Task's sp, fp, blink when it was last seen in kernel mode.
++ * These can't be derived from pt_regs as that would give correp user-mode val
++ */
++#define KSTK_ESP(tsk)   (tsk->thread.ksp)
++#define KSTK_BLINK(tsk) (*((unsigned int *)((KSTK_ESP(tsk)) + (13+1+1)*4)))
++#define KSTK_FP(tsk)    (*((unsigned int *)((KSTK_ESP(tsk)) + (13+1)*4)))
++
++/*
++ * Do necessary setup to start up a newly executed thread.
++ *
++ * E1,E2 so that Interrupts are enabled in user mode
++ * L set, so Loop inhibited to begin with
++ * lp_start and lp_end seeded with bogus non-zero values so to easily catch
++ * the ARC700 sr to lp_start hardware bug
++ */
++#define start_thread(_regs, _pc, _usp)				\
++do {								\
++	set_fs(USER_DS); /* reads from user space */		\
++	(_regs)->ret = (_pc);					\
++	/* Interrupts enabled in User Mode */			\
++	(_regs)->status32 = STATUS_U_MASK | STATUS_L_MASK	\
++		| STATUS_E1_MASK | STATUS_E2_MASK;		\
++	(_regs)->sp = (_usp);					\
++	/* bogus seed values for debugging */			\
++	(_regs)->lp_start = 0x10;				\
++	(_regs)->lp_end = 0x80;					\
++} while (0)
++
++extern unsigned int get_wchan(struct task_struct *p);
++
++/*
++ * Default implementation of macro that returns current
++ * instruction pointer ("program counter").
++ * Should the PC register be read instead ? This macro does not seem to
++ * be used in many places so this wont be all that bad.
++ */
++#define current_text_addr() ({ __label__ _l; _l: &&_l; })
++
++#endif /* !__ASSEMBLY__ */
++
++/* Kernels Virtual memory area.
++ * Unlike other architectures(MIPS, sh, cris ) ARC 700 does not have a
++ * "kernel translated" region (like KSEG2 in MIPS). So we use a upper part
++ * of the translated bottom 2GB for kernel virtual memory and protect
++ * these pages from user accesses by disabling Ru, Eu and Wu.
++ */
++#define VMALLOC_SIZE	(0x10000000)	/* 256M */
++#define VMALLOC_START	(PAGE_OFFSET - VMALLOC_SIZE)
++#define VMALLOC_END	(PAGE_OFFSET)
++
++/* Most of the architectures seem to be keeping some kind of padding between
++ * userspace TASK_SIZE and PAGE_OFFSET. i.e TASK_SIZE != PAGE_OFFSET.
++ */
++#define USER_KERNEL_GUTTER    0x10000000
++
++/* User address space:
++ * On ARC700, CPU allows the entire lower half of 32 bit address space to be
++ * translated. Thus potentially 2G (0:0x7FFF_FFFF) could be User vaddr space.
++ * However we steal 256M for kernel addr (0x7000_0000:0x7FFF_FFFF) and another
++ * 256M (0x6000_0000:0x6FFF_FFFF) is gutter between user/kernel spaces
++ * Thus total User vaddr space is (0:0x5FFF_FFFF)
++ */
++#define TASK_SIZE	(PAGE_OFFSET - VMALLOC_SIZE - USER_KERNEL_GUTTER)
++
++#define STACK_TOP       TASK_SIZE
++#define STACK_TOP_MAX   STACK_TOP
++
++/* This decides where the kernel will search for a free chunk of vm
++ * space during mmap's.
++ */
++#define TASK_UNMAPPED_BASE      (TASK_SIZE / 3)
++
++#endif /* __KERNEL__ */
++
++#endif /* __ASM_ARC_PROCESSOR_H */
+diff --git a/arch/arc/include/asm/ptrace.h b/arch/arc/include/asm/ptrace.h
+new file mode 100644
+index 0000000..c178357
+--- /dev/null
++++ b/arch/arc/include/asm/ptrace.h
+@@ -0,0 +1,120 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
++ */
++
++#ifndef __ASM_ARC_PTRACE_H
++#define __ASM_ARC_PTRACE_H
++
++/*
++ * XXX: ABI hack.
++ * The offset calc can be cleanly done in asm-offset.c, however gdb includes
++ * this header directly.
++ */
++#define PT_bta		4
++#define PT_lp_start	8
++#define PT_lp_end	12
++#define PT_lp_count	16
++#define PT_status32	20
++#define PT_ret		24
++#define PT_blink	28
++#define PT_fp		32
++#define PT_r26		36
++#define PT_r12		40
++#define PT_r11		44
++#define PT_r10		48
++#define PT_r9		52
++#define PT_r8		56
++#define PT_r7		60
++#define PT_r6		64
++#define PT_r5		68
++#define PT_r4		72
++#define PT_r3		76
++#define PT_r2		80
++#define PT_r1		84
++#define PT_r0		88
++#define PT_sp		92
++#define PT_orig_r0	96
++#define PT_orig_r8	100
++
++#ifndef __ASSEMBLY__
++
++/* THE pt_regs: Defines how regs are saved during entry into kernel */
++
++struct pt_regs {
++	/*
++	 * 1 word gutter after reg-file has been saved
++	 * Technically not needed, Since SP always points to a "full" location
++	 * (vs. "empty"). But pt_regs is shared with tools....
++	 */
++	long res;
++
++	/* Real registers */
++	long bta;	/* bta_l1, bta_l2, erbta */
++	long lp_start;
++	long lp_end;
++	long lp_count;
++	long status32;	/* status32_l1, status32_l2, erstatus */
++	long ret;	/* ilink1, ilink2 or eret */
++	long blink;
++	long fp;
++	long r26;	/* gp */
++	long r12;
++	long r11;
++	long r10;
++	long r9;
++	long r8;
++	long r7;
++	long r6;
++	long r5;
++	long r4;
++	long r3;
++	long r2;
++	long r1;
++	long r0;
++	long sp;	/* user/kernel sp depending on where we came from  */
++	long orig_r0;
++	long orig_r8;	/*to distinguish bet excp, sys call, int1 or int2 */
++};
++
++/* Callee saved registers - need to be saved only when you are scheduled out */
++
++struct callee_regs {
++	long res;	/* Again this is not needed */
++	long r25;
++	long r24;
++	long r23;
++	long r22;
++	long r21;
++	long r20;
++	long r19;
++	long r18;
++	long r17;
++	long r16;
++	long r15;
++	long r14;
++	long r13;
++};
++
++/* User mode registers, used for core dumps. */
++struct user_regs_struct {
++	struct pt_regs scratch;
++	struct callee_regs callee;
++	long efa;	/* break pt addr, for break points in delay slots */
++	long stop_pc;	/* give dbg stop_pc directly after checking orig_r8 */
++};
++
++#define instruction_pointer(regs)	((regs)->ret)
++#define profile_pc(regs)		instruction_pointer(regs)
++
++/* return 1 if user mode or 0 if kernel mode */
++#define user_mode(regs) (regs->status32 & STATUS_U_MASK)
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* __ASM_PTRACE_H */
+diff --git a/arch/arc/include/asm/sections.h b/arch/arc/include/asm/sections.h
+new file mode 100644
+index 0000000..fc15f2e
+--- /dev/null
++++ b/arch/arc/include/asm/sections.h
+@@ -0,0 +1,17 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef _ASM_ARC_SECTIONS_H
++#define _ASM_ARC_SECTIONS_H
++
++#include <asm-generic/sections.h>
++
++extern char _int_vec_base_lds[];
++extern char __arc_dccm_base[];
++
++#endif
+diff --git a/arch/arc/include/asm/thread_info.h b/arch/arc/include/asm/thread_info.h
+new file mode 100644
+index 0000000..937a818
+--- /dev/null
++++ b/arch/arc/include/asm/thread_info.h
+@@ -0,0 +1,120 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * Vineetg: Oct 2009
++ *  No need for ARC specific thread_info allocator (kmalloc/free). This is
++ *  anyways one page allocation, thus slab alloc can be short-circuited and
++ *  the generic version (get_free_page) would be loads better.
++ *
++ * Sameer Dhavale: Codito Technologies 2004
++ */
++
++#ifndef _ASM_THREAD_INFO_H
++#define _ASM_THREAD_INFO_H
++
++#ifdef __KERNEL__
++
++#include <asm/page.h>
++
++#ifdef CONFIG_16KSTACKS
++#define THREAD_SIZE_ORDER 1
++#else
++#define THREAD_SIZE_ORDER 0
++#endif
++
++#define THREAD_SIZE     (PAGE_SIZE << THREAD_SIZE_ORDER)
++
++#ifndef __ASSEMBLY__
++
++#include <linux/thread_info.h>
++#include <asm/segment.h>
++
++/*
++ * low level task data that entry.S needs immediate access to
++ * - this struct should fit entirely inside of one cache line
++ * - this struct shares the supervisor stack pages
++ * - if the contents of this structure are changed, the assembly constants
++ *   must also be changed
++ */
++struct thread_info {
++	unsigned long flags;		/* low level flags */
++	int preempt_count;		/* 0 => preemptable, <0 => BUG */
++	struct task_struct *task;	/* main task structure */
++	mm_segment_t addr_limit;	/* thread address space */
++	struct exec_domain *exec_domain;/* execution domain */
++	__u32 cpu;			/* current CPU */
++	unsigned long thr_ptr;		/* TLS ptr */
++	struct restart_block restart_block;
++};
++
++/*
++ * macros/functions for gaining access to the thread information structure
++ *
++ * preempt_count needs to be 1 initially, until the scheduler is functional.
++ */
++#define INIT_THREAD_INFO(tsk)			\
++{						\
++	.task       = &tsk,			\
++	.exec_domain    = &default_exec_domain,	\
++	.flags      = 0,			\
++	.cpu        = 0,			\
++	.preempt_count  = INIT_PREEMPT_COUNT,	\
++	.addr_limit = KERNEL_DS,		\
++	.restart_block  = {			\
++		.fn = do_no_restart_syscall,	\
++	},					\
++}
++
++#define init_thread_info    (init_thread_union.thread_info)
++#define init_stack          (init_thread_union.stack)
++
++static inline __attribute_const__ struct thread_info *current_thread_info(void)
++{
++	register unsigned long sp asm("sp");
++	return (struct thread_info *)(sp & ~(THREAD_SIZE - 1));
++}
++
++#endif /* !__ASSEMBLY__ */
++
++#define PREEMPT_ACTIVE      0x10000000
++
++/*
++ * thread information flags
++ * - these are process state flags that various assembly files may need to
++ *   access
++ * - pending work-to-be-done flags are in LSW
++ * - other flags in MSW
++ */
++#define TIF_RESTORE_SIGMASK	0	/* restore sig mask in do_signal() */
++#define TIF_NOTIFY_RESUME	1	/* resumption notification requested */
++#define TIF_SIGPENDING		2	/* signal pending */
++#define TIF_NEED_RESCHED	3	/* rescheduling necessary */
++#define TIF_SYSCALL_AUDIT	4	/* syscall auditing active */
++#define TIF_SYSCALL_TRACE	15	/* syscall trace active */
++
++/* true if poll_idle() is polling TIF_NEED_RESCHED */
++#define TIF_MEMDIE		16
++
++#define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
++#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
++#define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
++#define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
++#define _TIF_SYSCALL_AUDIT	(1<<TIF_SYSCALL_AUDIT)
++#define _TIF_MEMDIE		(1<<TIF_MEMDIE)
++
++/* work to do on interrupt/exception return */
++#define _TIF_WORK_MASK		(0x0000FFFF & ~_TIF_SYSCALL_TRACE)
++
++/*
++ * _TIF_ALLWORK_MASK includes SYSCALL_TRACE, but we don't need it.
++ * SYSCALL_TRACE is anways seperately/unconditionally tested right after a
++ * syscall, so all that reamins to be tested is _TIF_WORK_MASK
++ */
++
++#endif /* __KERNEL__ */
++
++#endif /* _ASM_THREAD_INFO_H */
 -- 
 1.7.4.1
 
