@@ -1,923 +1,679 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from alvesta.synopsys.com ([198.182.60.77]:40382 "EHLO
+Received: from us02smtp2.synopsys.com ([198.182.60.77]:40394 "EHLO
 	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753914Ab2KGJ5f (ORCPT
+	with ESMTP id S1754321Ab2KGJ5f (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Nov 2012 04:57:35 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [RFC PATCH v1 15/31] ARC: Process/scheduling/clock/Timers/Delay Management
-Date: Wed,  7 Nov 2012 10:47:38 +0100
-Message-ID: <1352281674-2186-16-git-send-email-vgupta@synopsys.com>
+Subject: [RFC PATCH v1 18/31] ARC: Page Table Management
+Date: Wed,  7 Nov 2012 10:47:41 +0100
+Message-ID: <1352281674-2186-19-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: tglx@linutronix.de, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20121107094738.nJ7yxl4e6QEZ_eS544KcT4Bgly1r1qMQl9aJIfxcSJs@z>
+Message-ID: <20121107094741._XLueMevAx2Hpb-Dt1B18XVd0qBfTuuJaSFhTLCEw8k@z>
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/include/asm/arcregs.h   |   31 +++++
- arch/arc/include/asm/delay.h     |   68 +++++++++++
- arch/arc/include/asm/processor.h |    3 +
- arch/arc/include/asm/switch_to.h |   41 +++++++
- arch/arc/include/asm/timex.h     |   18 +++
- arch/arc/kernel/ctx_sw.c         |   91 +++++++++++++++
- arch/arc/kernel/ctx_sw_asm.S     |   58 +++++++++
- arch/arc/kernel/fpu.c            |   55 +++++++++
- arch/arc/kernel/process.c        |  201 ++++++++++++++++++++++++++++++++
- arch/arc/kernel/time.c           |  237 ++++++++++++++++++++++++++++++++++++++
- 10 files changed, 803 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/include/asm/delay.h
- create mode 100644 arch/arc/include/asm/switch_to.h
- create mode 100644 arch/arc/include/asm/timex.h
- create mode 100644 arch/arc/kernel/ctx_sw.c
- create mode 100644 arch/arc/kernel/ctx_sw_asm.S
- create mode 100644 arch/arc/kernel/fpu.c
- create mode 100644 arch/arc/kernel/time.c
+ arch/arc/include/asm/page.h    |   92 +++++++++
+ arch/arc/include/asm/pgalloc.h |  134 +++++++++++++
+ arch/arc/include/asm/pgtable.h |  401 ++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 627 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/include/asm/pgalloc.h
+ create mode 100644 arch/arc/include/asm/pgtable.h
 
-diff --git a/arch/arc/include/asm/arcregs.h b/arch/arc/include/asm/arcregs.h
-index 3fccb04..5131bb3 100644
---- a/arch/arc/include/asm/arcregs.h
-+++ b/arch/arc/include/asm/arcregs.h
-@@ -47,6 +47,28 @@
- #define AUX_ITRIGGER		0x40d
- #define AUX_IPULSE		0x415
+diff --git a/arch/arc/include/asm/page.h b/arch/arc/include/asm/page.h
+index 7cd1224..d111d0c 100644
+--- a/arch/arc/include/asm/page.h
++++ b/arch/arc/include/asm/page.h
+@@ -35,6 +35,98 @@
  
-+/* Timer related Aux registers */
-+#define ARC_REG_TIMER0_LIMIT	0x23	/* timer 0 limit */
-+#define ARC_REG_TIMER0_CTRL	0x22	/* timer 0 control */
-+#define ARC_REG_TIMER0_CNT	0x21	/* timer 0 count */
-+#define ARC_REG_TIMER1_LIMIT	0x102	/* timer 1 limit */
-+#define ARC_REG_TIMER1_CTRL	0x101	/* timer 1 control */
-+#define ARC_REG_TIMER1_CNT	0x100	/* timer 1 count */
-+
-+#define TIMER_CTRL_IE		(1 << 0) /* Interupt when Count reachs limit */
-+#define TIMER_CTRL_NH		(1 << 1) /* Count only when CPU NOT halted */
-+
-+/*
-+ * Floating Pt Registers
-+ * Status regs are read-only (build-time) so need not be saved/restored
-+ */
-+#define ARC_AUX_FP_STAT         0x300
-+#define ARC_AUX_DPFP_1L         0x301
-+#define ARC_AUX_DPFP_1H         0x302
-+#define ARC_AUX_DPFP_2L         0x303
-+#define ARC_AUX_DPFP_2H         0x304
-+#define ARC_AUX_DPFP_STAT       0x305
-+
- #ifndef __ASSEMBLY__
+ #define PAGE_MASK	(~(PAGE_SIZE-1))
  
- /*
-@@ -110,6 +132,15 @@
- 
- #endif
- 
-+#ifdef CONFIG_ARC_FPU_SAVE_RESTORE
-+/* These DPFP regs need to be saved/restored across ctx-sw */
-+struct arc_fpu {
-+	struct {
-+		unsigned int l, h;
-+	} aux_dpfp[2];
-+};
-+#endif
-+
- #endif /* __ASEMBLY__ */
- 
- #endif /* __KERNEL__ */
-diff --git a/arch/arc/include/asm/delay.h b/arch/arc/include/asm/delay.h
-new file mode 100644
-index 0000000..442ce5d
---- /dev/null
-+++ b/arch/arc/include/asm/delay.h
-@@ -0,0 +1,68 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * Delay routines using pre computed loops_per_jiffy value.
-+ *
-+ * vineetg: Feb 2012
-+ *  -Rewrote in "C" to avoid dealing with availability of H/w MPY
-+ *  -Also reduced the num of MPY operations from 3 to 2
-+ *
-+ * Amit Bhor: Codito Technologies 2004
-+ */
-+
-+#ifndef __ASM_ARC_UDELAY_H
-+#define __ASM_ARC_UDELAY_H
-+
-+#include <asm/param.h>		/* HZ */
-+
-+static inline void __delay(unsigned long loops)
-+{
-+	__asm__ __volatile__(
-+	"1:	sub.f %0, %0, 1	\n"
-+	"	jpnz 1b		\n"
-+	: "+r"(loops)
-+	:
-+	: "cc");
-+}
-+
-+extern void __bad_udelay(void);
-+
-+/*
-+ * Normal Math for computing loops in "N" usecs
-+ *  -we have precomputed @loops_per_jiffy
-+ *  -1 sec has HZ jiffies
-+ * loops per "N" usecs = ((loops_per_jiffy * HZ / 1000000) * N)
-+ *
-+ * Approximate Division by multiplication:
-+ *  -Mathematically if we multiply and divide a number by same value the
-+ *   result remains unchanged:  In this case, we use 2^32
-+ *  -> (loops_per_N_usec * 2^32 ) / 2^32
-+ *  -> (((loops_per_jiffy * HZ / 1000000) * N) * 2^32) / 2^32
-+ *  -> (loops_per_jiffy * HZ * N * 4295) / 2^32
-+ *
-+ *  -Divide by 2^32 is very simply right shift by 32
-+ *  -We simply need to ensure that the multiply per above eqn happens in
-+ *   64-bit precision (if CPU doesn't support it - gcc can emaulate it)
-+ */
-+
-+static inline void __udelay(unsigned long usecs)
-+{
-+	unsigned long loops;
-+
-+	/* (long long) cast ensures 64 bit MPY - real or emulated
-+	 * HZ * 4295 is pre-evaluated by gcc - hence only 2 mpy ops
-+	 */
-+	loops = ((long long)(usecs * 4295 * HZ) *
-+		 (long long)(loops_per_jiffy)) >> 32;
-+
-+	__delay(loops);
-+}
-+
-+#define udelay(n) (__builtin_constant_p(n) ? ((n) > 20000 ? __bad_udelay() \
-+				: __udelay(n)) : __udelay(n))
-+
-+#endif /* __ASM_ARC_UDELAY_H */
-diff --git a/arch/arc/include/asm/processor.h b/arch/arc/include/asm/processor.h
-index e2445bc..38ea5fb 100644
---- a/arch/arc/include/asm/processor.h
-+++ b/arch/arc/include/asm/processor.h
-@@ -29,6 +29,9 @@ struct thread_struct {
- 	unsigned long callee_reg;	/* pointer to callee regs */
- 	unsigned long fault_address;	/* dbls as brkpt holder as well */
- 	unsigned long cause_code;	/* Exception Cause Code (ECR) */
-+#ifdef CONFIG_ARC_FPU_SAVE_RESTORE
-+	struct arc_fpu fpu;
-+#endif
- };
- 
- #define INIT_THREAD  {                          \
-diff --git a/arch/arc/include/asm/switch_to.h b/arch/arc/include/asm/switch_to.h
-new file mode 100644
-index 0000000..1b171ab
---- /dev/null
-+++ b/arch/arc/include/asm/switch_to.h
-@@ -0,0 +1,41 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef _ASM_ARC_SWITCH_TO_H
-+#define _ASM_ARC_SWITCH_TO_H
++#ifdef __KERNEL__
 +
 +#ifndef __ASSEMBLY__
 +
-+#include <linux/sched.h>
++#define get_user_page(vaddr)		__get_free_page(GFP_KERNEL)
++#define free_user_page(page, addr)	free_page(addr)
 +
-+#ifdef CONFIG_ARC_FPU_SAVE_RESTORE
++/* TBD: for now don't worry about VIPT D$ aliasing */
++#define clear_page(paddr)		memset((paddr), 0, PAGE_SIZE)
++#define copy_page(to, from)		memcpy((to), (from), PAGE_SIZE)
 +
-+extern void fpu_save_restore(struct task_struct *p, struct task_struct *n);
-+#define ARC_FPU_PREV(p, n)	fpu_save_restore(p, n)
-+#define ARC_FPU_NEXT(t)
++#define clear_user_page(addr, vaddr, pg)	clear_page(addr)
++#define copy_user_page(vto, vfrom, vaddr, pg)	copy_page(vto, vfrom)
++
++#undef STRICT_MM_TYPECHECKS
++
++#ifdef STRICT_MM_TYPECHECKS
++/*
++ * These are used to make use of C type-checking..
++ */
++typedef struct {
++	unsigned long pte;
++} pte_t;
++typedef struct {
++	unsigned long pgd;
++} pgd_t;
++typedef struct {
++	unsigned long pgprot;
++} pgprot_t;
++typedef unsigned long pgtable_t;
++
++#define pte_val(x)      ((x).pte)
++#define pgd_val(x)      ((x).pgd)
++#define pgprot_val(x)   ((x).pgprot)
++
++#define __pte(x)        ((pte_t) { (x) })
++#define __pgd(x)        ((pgd_t) { (x) })
++#define __pgprot(x)     ((pgprot_t) { (x) })
++
++#else /* !STRICT_MM_TYPECHECKS */
++
++typedef unsigned long pte_t;
++typedef unsigned long pgd_t;
++typedef unsigned long pgprot_t;
++typedef unsigned long pgtable_t;
++
++#define pte_val(x)	(x)
++#define pgd_val(x)	(x)
++#define pgprot_val(x)	(x)
++#define __pte(x)	(x)
++#define __pgprot(x)	(x)
++
++#endif
++
++#define ARCH_PFN_OFFSET     (CONFIG_LINUX_LINK_BASE >> PAGE_SHIFT)
++
++#define pfn_valid(pfn)      (((pfn) - ARCH_PFN_OFFSET) < max_mapnr)
++
++/*
++ * __pa, __va, virt_to_page (ALERT: deprecated, don't use them)
++ *
++ * These macros have historically been misnamed
++ * virt here means link-address/program-address as embedded in object code.
++ * So if kernel img is linked at 0x8000_0000 onwards, 0x8010_0000 will be
++ * 128th page, and virt_to_page( ) will return the struct page corresp to it.
++ * mem_map[ ] is an array of struct page for each page frame in the system
++ *
++ * Independent of where linux is linked at, link-addr = physical address
++ * So the old macro  __pa = vaddr + PAGE_OFFSET - CONFIG_LINUX_LINK_BASE
++ * would have been wrong in case kernel is not at 0x8zs
++ */
++#define __pa(vaddr)  ((unsigned long)vaddr)
++#define __va(paddr)  ((void *)((unsigned long)(paddr)))
++
++#define virt_to_page(kaddr)	\
++	(mem_map + ((__pa(kaddr) - CONFIG_LINUX_LINK_BASE) >> PAGE_SHIFT))
++
++#define virt_addr_valid(kaddr)  pfn_valid(__pa(kaddr) >> PAGE_SHIFT)
++
++/* Default Permissions for page, used in mmap.c */
++#ifdef CONFIG_ARC_STACK_NONEXEC
++#define VM_DATA_DEFAULT_FLAGS   (VM_READ | VM_WRITE | VM_MAYREAD | VM_MAYWRITE)
++#else
++#define VM_DATA_DEFAULT_FLAGS   (VM_READ | VM_WRITE | VM_EXEC | \
++				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
++#endif
++
++#define WANT_PAGE_VIRTUAL   1
++
++#include <asm-generic/memory_model.h>   /* page_to_pfn, pfn_to_page */
++#include <asm-generic/getorder.h>
++
+ #endif /* !__ASSEMBLY__ */
+ 
+ #endif /* __KERNEL__ */
+diff --git a/arch/arc/include/asm/pgalloc.h b/arch/arc/include/asm/pgalloc.h
+new file mode 100644
+index 0000000..36a9f20
+--- /dev/null
++++ b/arch/arc/include/asm/pgalloc.h
+@@ -0,0 +1,134 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * vineetg: June 2011
++ *  -"/proc/meminfo | grep PageTables" kept on increasing
++ *   Recently added pgtable dtor was not getting called.
++ *
++ * vineetg: May 2011
++ *  -Variable pg-sz means that Page Tables could be variable sized themselves
++ *    So calculate it based on addr traversal split [pgd-bits:pte-bits:xxx]
++ *  -Page Table size capped to max 1 to save memory - hence verified.
++ *  -Since these deal with constants, gcc compile-time optimizes them.
++ *
++ * vineetg: Nov 2010
++ *  -Added pgtable ctor/dtor used for pgtable mem accounting
++ *
++ * vineetg: April 2010
++ *  -Switched pgtable_t from being struct page * to unsigned long
++ *      =Needed so that Page Table allocator (pte_alloc_one) is not forced to
++ *       to deal with struct page. Thay way in future we can make it allocate
++ *       multiple PG Tbls in one Page Frame
++ *      =sweet side effect is avoiding calls to ugly page_address( ) from the
++ *       pg-tlb allocator sub-sys (pte_alloc_one, ptr_free, pmd_populate
++ *
++ *  Amit Bhor, Sameer Dhavale: Codito Technologies 2004
++ */
++
++#ifndef _ASM_ARC_PGALLOC_H
++#define _ASM_ARC_PGALLOC_H
++
++#include <linux/mm.h>
++#include <linux/log2.h>
++
++static inline void
++pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd, pte_t *pte)
++{
++	pmd_set(pmd, pte);
++}
++
++static inline void
++pmd_populate(struct mm_struct *mm, pmd_t *pmd, pgtable_t ptep)
++{
++	pmd_set(pmd, (pte_t *) ptep);
++}
++
++static inline int __get_order_pgd(void)
++{
++	return get_order(PTRS_PER_PGD * 4);
++}
++
++static inline pgd_t *pgd_alloc(struct mm_struct *mm)
++{
++	int num, num2;
++	pgd_t *ret = (pgd_t *) __get_free_pages(GFP_KERNEL, __get_order_pgd());
++
++	if (ret) {
++		num = USER_PTRS_PER_PGD + USER_KERNEL_GUTTER / PGDIR_SIZE;
++		memzero(ret, num * sizeof(pgd_t));
++
++		num2 = VMALLOC_SIZE / PGDIR_SIZE;
++		memcpy(ret + num, swapper_pg_dir + num, num2 * sizeof(pgd_t));
++
++		memzero(ret + num + num2,
++			       (PTRS_PER_PGD - num - num2) * sizeof(pgd_t));
++
++	}
++	return ret;
++}
++
++static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
++{
++	free_pages((unsigned long)pgd, __get_order_pgd());
++}
++
++
++/*
++ * With software-only page-tables, addr-split for traversal is tweakable and
++ * that directly governs how big tables would be at each level.
++ * Further, the MMU page size is configurable.
++ * Thus we need to programatically assert the size constraint
++ * All of this is const math, allowing gcc to do constant folding/propagation.
++ */
++
++static inline int __get_order_pte(void)
++{
++	return get_order(PTRS_PER_PTE * 4);
++}
++
++static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
++					unsigned long address)
++{
++	pte_t *pte;
++
++	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO,
++					 __get_order_pte());
++
++	return pte;
++}
++
++static inline pgtable_t
++pte_alloc_one(struct mm_struct *mm, unsigned long address)
++{
++	pgtable_t pte_pg;
++
++	pte_pg = __get_free_pages(GFP_KERNEL | __GFP_REPEAT, __get_order_pte());
++	if (pte_pg) {
++		memzero((void *)pte_pg, PTRS_PER_PTE * 4);
++		pgtable_page_ctor(virt_to_page(pte_pg));
++	}
++
++	return pte_pg;
++}
++
++static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
++{
++	free_pages((unsigned long)pte, __get_order_pte()); /* takes phy addr */
++}
++
++static inline void pte_free(struct mm_struct *mm, pgtable_t ptep)
++{
++	pgtable_page_dtor(virt_to_page(ptep));
++	free_pages(ptep, __get_order_pte());
++}
++
++#define __pte_free_tlb(tlb, pte, addr)  pte_free((tlb)->mm, pte)
++
++#define check_pgt_cache()   do { } while (0)
++#define pmd_pgtable(pmd) pmd_page_vaddr(pmd)
++
++#endif /* _ASM_ARC_PGALLOC_H */
+diff --git a/arch/arc/include/asm/pgtable.h b/arch/arc/include/asm/pgtable.h
+new file mode 100644
+index 0000000..dcb07015
+--- /dev/null
++++ b/arch/arc/include/asm/pgtable.h
+@@ -0,0 +1,401 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * vineetg: May 2011
++ *  -Folded PAGE_PRESENT (used by VM) and PAGE_VALID (used by MMU) into 1.
++ *     They are semantically the same although in different contexts
++ *     VALID marks a TLB entry exists and it will only happen if PRESENT
++ *  - Utilise some unused free bits to confine PTE flags to 12 bits
++ *     This is a must for 4k pg-sz
++ *
++ * vineetg: Mar 2011 - changes to accomodate MMU TLB Page Descriptor mods
++ *  -TLB Locking never really existed, except for initial specs
++ *  -SILENT_xxx not needed for our port
++ *  -Per my request, MMU V3 changes the layout of some of the bits
++ *     to avoid a few shifts in TLB Miss handlers.
++ *
++ * vineetg: April 2010
++ *  -PGD entry no longer contains any flags. If empty it is 0, otherwise has
++ *   Pg-Tbl ptr. Thus pmd_present(), pmd_valid(), pmd_set( ) become simpler
++ *
++ * vineetg: April 2010
++ *  -Switched form 8:11:13 split for page table lookup to 11:8:13
++ *  -this speeds up page table allocation itself as we now have to memset 1K
++ *    instead of 8k per page table.
++ * -TODO: Right now page table alloc is 8K and rest 7K is unused
++ *    need to optimise it
++ *
++ * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
++ */
++
++#ifndef _ASM_ARC_PGTABLE_H
++#define _ASM_ARC_PGTABLE_H
++
++#include <asm/page.h>
++#include <asm/mmu.h>
++#include <asm-generic/pgtable-nopmd.h>
++
++/**************************************************************************
++ * Page Table Flags
++ *
++ * ARC700 MMU only deals with softare managed TLB entries.
++ * Page Tables are purely for Linux VM's consumption and the bits below are
++ * suited to that (uniqueness). Hence some are not implemented in the TLB and
++ * some have different value in TLB.
++ * e.g. MMU v2: K_READ bit is 8 and so is GLOBAL (possible becoz they live in
++ *      seperate PD0 and PD1, which combined forms a translation entry)
++ *      while for PTE perspective, they are 8 and 9 respectively
++ * with MMU v3: Most bits (except SHARED) represent the exact hardware pos
++ *      (saves some bit shift ops in TLB Miss hdlrs)
++ */
++
++#if (CONFIG_ARC_MMU_VER <= 2)
++
++#define _PAGE_ACCESSED      (1<<1)	/* Page is accessed (S) */
++#define _PAGE_CACHEABLE     (1<<2)	/* Page is cached (H) */
++#define _PAGE_EXECUTE       (1<<3)	/* Page has user execute perm (H) */
++#define _PAGE_WRITE         (1<<4)	/* Page has user write perm (H) */
++#define _PAGE_READ          (1<<5)	/* Page has user read perm (H) */
++#define _PAGE_K_EXECUTE     (1<<6)	/* Page has kernel execute perm (H) */
++#define _PAGE_K_WRITE       (1<<7)	/* Page has kernel write perm (H) */
++#define _PAGE_K_READ        (1<<8)	/* Page has kernel perm (H) */
++#define _PAGE_GLOBAL        (1<<9)	/* Page is global (H) */
++#define _PAGE_MODIFIED      (1<<10)	/* Page modified (dirty) (S) */
++#define _PAGE_FILE          (1<<10)	/* page cache/ swap (S) */
++#define _PAGE_PRESENT       (1<<11)	/* TLB entry is valid (H) */
 +
 +#else
 +
-+#define ARC_FPU_PREV(p, n)
-+#define ARC_FPU_NEXT(n)
++/* PD1 */
++#define _PAGE_CACHEABLE     (1<<0)	/* Page is cached (H) */
++#define _PAGE_EXECUTE       (1<<1)	/* Page has user execute perm (H) */
++#define _PAGE_WRITE         (1<<2)	/* Page has user write perm (H) */
++#define _PAGE_READ          (1<<3)	/* Page has user read perm (H) */
++#define _PAGE_K_EXECUTE     (1<<4)	/* Page has kernel execute perm (H) */
++#define _PAGE_K_WRITE       (1<<5)	/* Page has kernel write perm (H) */
++#define _PAGE_K_READ        (1<<6)	/* Page has kernel perm (H) */
++#define _PAGE_ACCESSED      (1<<7)	/* Page is accessed (S) */
 +
-+#endif /* !CONFIG_ARC_FPU_SAVE_RESTORE */
++/* PD0 */
++#define _PAGE_GLOBAL        (1<<8)	/* Page is global (H) */
++#define _PAGE_PRESENT       (1<<9)	/* TLB entry is valid (H) */
++#define _PAGE_SHARED_CODE   (1<<10)	/* Shared Code page with cmn vaddr
++					   usable for shared TLB entries (H) */
 +
-+struct task_struct *__switch_to(struct task_struct *p, struct task_struct *n);
++#define _PAGE_MODIFIED      (1<<11)	/* Page modified (dirty) (S) */
++#define _PAGE_FILE          (1<<12)	/* page cache/ swap (S) */
 +
-+#define switch_to(prev, next, last)	\
-+do {					\
-+	ARC_FPU_PREV(prev, next);	\
-+	last = __switch_to(prev, next);\
-+	ARC_FPU_NEXT(next);		\
-+	mb();				\
-+} while (0)
-+
++#define _PAGE_SHARED_CODE_H (1<<31)	/* Hardware counterpart of above */
 +#endif
 +
++/* Kernel allowed all permissions for all pages */
++#define _K_PAGE_PERMS  (_PAGE_K_EXECUTE | _PAGE_K_WRITE | _PAGE_K_READ)
++
++#ifdef CONFIG_ARC_CACHE_PAGES
++#define _PAGE_DEF_CACHEABLE _PAGE_CACHEABLE
++#else
++#define _PAGE_DEF_CACHEABLE (0)
 +#endif
-diff --git a/arch/arc/include/asm/timex.h b/arch/arc/include/asm/timex.h
-new file mode 100644
-index 0000000..2c9bfb2
---- /dev/null
-+++ b/arch/arc/include/asm/timex.h
-@@ -0,0 +1,18 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++
++/* Helper for every "user" page
++ * -kernel can R/W/X
++ * -by default cached, unless config otherwise
++ * -present in memory
++ */
++#define ___DEF (_PAGE_PRESENT | _K_PAGE_PERMS | _PAGE_DEF_CACHEABLE)
++
++/* Set of bits not changed in pte_modify */
++#define _PAGE_CHG_MASK	(PAGE_MASK | _PAGE_ACCESSED | _PAGE_MODIFIED)
++
++/* More Abbrevaited helpers */
++#define PAGE_U_NONE     __pgprot(___DEF)
++#define PAGE_U_R        __pgprot(___DEF | _PAGE_READ)
++#define PAGE_U_W_R      __pgprot(___DEF | _PAGE_READ | _PAGE_WRITE)
++#define PAGE_U_X_R      __pgprot(___DEF | _PAGE_READ | _PAGE_EXECUTE)
++#define PAGE_U_X_W_R    __pgprot(___DEF | _PAGE_READ | _PAGE_WRITE | \
++						       _PAGE_EXECUTE)
++
++#define PAGE_SHARED	PAGE_U_W_R
++
++/* While kernel runs out of unstrslated space, vmalloc/modules use a chunk of
++ * kernel vaddr space - visible in all addr spaces, but kernel mode only
++ * Thus Global, all-kernel-access, no-user-access, cached
++ */
++#define PAGE_KERNEL          __pgprot(___DEF | _PAGE_GLOBAL)
++
++/* ioremap */
++#define PAGE_KERNEL_NO_CACHE __pgprot(_PAGE_PRESENT | _K_PAGE_PERMS | \
++						     _PAGE_GLOBAL)
++
++/**************************************************************************
++ * Mapping of vm_flags (Generic VM) to PTE flags (arch specific)
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
++ * Certain cases have 1:1 mapping
++ *  e.g. __P101 means VM_READ, VM_EXEC and !VM_SHARED
++ *       which directly corresponds to  PAGE_U_X_R
++ *
++ * Other rules which cause the divergence from 1:1 mapping
++ *
++ *  1. Although ARC700 can do exclusive execute/write protection (meaning R
++ *     can be tracked independet of X/W unlike some other CPUs), still to
++ *     keep things consistent with other archs:
++ *      -Write implies Read:   W => R
++ *      -Execute implies Read: X => R
++ *
++ *  2. Pvt Writable doesn't have Write Enabled initially: Pvt-W => !W
++ *     This is to enable COW mechanism
++ */
++	/* xwr */
++#define __P000  PAGE_U_NONE
++#define __P001  PAGE_U_R
++#define __P010  PAGE_U_R	/* Pvt-W => !W */
++#define __P011  PAGE_U_R	/* Pvt-W => !W */
++#define __P100  PAGE_U_X_R	/* X => R */
++#define __P101  PAGE_U_X_R
++#define __P110  PAGE_U_X_R	/* Pvt-W => !W and X => R */
++#define __P111  PAGE_U_X_R	/* Pvt-W => !W */
++
++#define __S000  PAGE_U_NONE
++#define __S001  PAGE_U_R
++#define __S010  PAGE_U_W_R	/* W => R */
++#define __S011  PAGE_U_W_R
++#define __S100  PAGE_U_X_R	/* X => R */
++#define __S101  PAGE_U_X_R
++#define __S110  PAGE_U_X_W_R	/* X => R */
++#define __S111  PAGE_U_X_W_R
++
++/****************************************************************
++ * Page Table Lookup split
++ *
++ * We implement 2 tier paging and since this is all software, we are free
++ * to customize the span of a PGD / PTE entry to suit us
++ *
++ *			32 bit virtual address
++ * -------------------------------------------------------
++ * | BITS_FOR_PGD    |  BITS_FOR_PTE    |  BITS_IN_PAGE  |
++ * -------------------------------------------------------
++ *       |                  |                |
++ *       |                  |                --> off in page frame
++ *       |		    |
++ *       |                  ---> index into Page Table
++ *       |
++ *       ----> index into Page Directory
 + */
 +
-+#ifndef _ASM_ARC_TIMEX_H
-+#define _ASM_ARC_TIMEX_H
++#define BITS_IN_PAGE	PAGE_SHIFT
 +
-+#define CLOCK_TICK_RATE	CONFIG_ARC_PLAT_CLK	/* Underlying HZ */
++/* Optimal Sizing of Pg Tbl - based on MMU page size */
++#if defined(CONFIG_ARC_PAGE_SIZE_8K)
++#define BITS_FOR_PTE	8
++#elif defined(CONFIG_ARC_PAGE_SIZE_16K)
++#define BITS_FOR_PTE	8
++#elif defined(CONFIG_ARC_PAGE_SIZE_4K)
++#define BITS_FOR_PTE	9
++#endif
 +
-+#include <asm-generic/timex.h>
++#define BITS_FOR_PGD	(32 - BITS_FOR_PTE - BITS_IN_PAGE)
 +
-+/* XXX: get_cycles() to be implemented with RTSC insn */
++#define PGDIR_SHIFT	(BITS_FOR_PTE + BITS_IN_PAGE)
++#define PGDIR_SIZE	(1UL << PGDIR_SHIFT)	/* vaddr span, not PDG sz */
++#define PGDIR_MASK	(~(PGDIR_SIZE-1))
 +
-+#endif /* _ASM_ARC_TIMEX_H */
-diff --git a/arch/arc/kernel/ctx_sw.c b/arch/arc/kernel/ctx_sw.c
-new file mode 100644
-index 0000000..647e37a
---- /dev/null
-+++ b/arch/arc/kernel/ctx_sw.c
-@@ -0,0 +1,91 @@
++#ifdef __ASSEMBLY__
++#define	PTRS_PER_PTE	(1 << BITS_FOR_PTE)
++#define	PTRS_PER_PGD	(1 << BITS_FOR_PGD)
++#else
++#define	PTRS_PER_PTE	(1UL << BITS_FOR_PTE)
++#define	PTRS_PER_PGD	(1UL << BITS_FOR_PGD)
++#endif
 +/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * Vineetg: Aug 2009
-+ *  -"C" version of lowest level context switch asm macro called by schedular
-+ *   gcc doesn't generate the dward CFI info for hand written asm, hence can't
-+ *   backtrace out of it (e.g. tasks sleeping in kernel).
-+ *   So we cheat a bit by writing almost similar code in inline-asm.
-+ *  -This is a hacky way of doing things, but there is no other simple way.
-+ *   I don't want/intend to extend unwinding code to understand raw asm
++ * Number of entries a user land program use.
++ * TASK_SIZE is the maximum vaddr that can be used by a userland program.
 + */
-+
-+#include <asm/asm-offsets.h>
-+#include <linux/sched.h>
-+
-+struct task_struct *__sched
-+__switch_to(struct task_struct *prev_task, struct task_struct *next_task)
-+{
-+	unsigned int tmp;
-+	unsigned int prev = (unsigned int)prev_task;
-+	unsigned int next = (unsigned int)next_task;
-+	int num_words_to_skip = 1;
-+
-+	__asm__ __volatile__(
-+		/* FP/BLINK save generated by gcc (standard function prologue */
-+		"st.a    r13, [sp, -4]   \n\t"
-+		"st.a    r14, [sp, -4]   \n\t"
-+		"st.a    r15, [sp, -4]   \n\t"
-+		"st.a    r16, [sp, -4]   \n\t"
-+		"st.a    r17, [sp, -4]   \n\t"
-+		"st.a    r18, [sp, -4]   \n\t"
-+		"st.a    r19, [sp, -4]   \n\t"
-+		"st.a    r20, [sp, -4]   \n\t"
-+		"st.a    r21, [sp, -4]   \n\t"
-+		"st.a    r22, [sp, -4]   \n\t"
-+		"st.a    r23, [sp, -4]   \n\t"
-+		"st.a    r24, [sp, -4]   \n\t"
-+		"st.a    r25, [sp, -4]   \n\t"
-+		"sub     sp, sp, %4      \n\t"	/* create gutter at top */
-+
-+		/* set ksp of outgoing task in tsk->thread.ksp */
-+		"st.as   sp, [%3, %1]    \n\t"
-+
-+		"sync   \n\t"
-+
-+		/*
-+		 * setup _current_task with incoming tsk.
-+		 * optionally, set r25 to that as well
-+		 * For SMP extra work to get to &_current_task[cpu]
-+		 * (open coded SET_CURR_TASK_ON_CPU)
-+		 */
-+		"st  %2, [@_current_task]	\n\t"
-+
-+		/* get ksp of incoming task from tsk->thread.ksp */
-+		"ld.as  sp, [%2, %1]   \n\t"
-+
-+		/* start loading it's CALLEE reg file */
-+
-+		"add    sp, sp, %4     \n\t"	/* skip gutter at top */
-+
-+		"ld.ab   r25, [sp, 4]   \n\t"
-+		"ld.ab   r24, [sp, 4]   \n\t"
-+		"ld.ab   r23, [sp, 4]   \n\t"
-+		"ld.ab   r22, [sp, 4]   \n\t"
-+		"ld.ab   r21, [sp, 4]   \n\t"
-+		"ld.ab   r20, [sp, 4]   \n\t"
-+		"ld.ab   r19, [sp, 4]   \n\t"
-+		"ld.ab   r18, [sp, 4]   \n\t"
-+		"ld.ab   r17, [sp, 4]   \n\t"
-+		"ld.ab   r16, [sp, 4]   \n\t"
-+		"ld.ab   r15, [sp, 4]   \n\t"
-+		"ld.ab   r14, [sp, 4]   \n\t"
-+		"ld.ab   r13, [sp, 4]   \n\t"
-+
-+		/* last (ret value) = prev : although for ARC it mov r0, r0 */
-+		"mov     %0, %3        \n\t"
-+
-+		/* FP/BLINK restore generated by gcc (standard func epilogue */
-+
-+		: "=r"(tmp)
-+		: "n"((TASK_THREAD + THREAD_KSP) / 4), "r"(next), "r"(prev),
-+		  "n"(num_words_to_skip * 4)
-+		: "blink"
-+	);
-+
-+	return (struct task_struct *)tmp;
-+}
-diff --git a/arch/arc/kernel/ctx_sw_asm.S b/arch/arc/kernel/ctx_sw_asm.S
-new file mode 100644
-index 0000000..d897234
---- /dev/null
-+++ b/arch/arc/kernel/ctx_sw_asm.S
-@@ -0,0 +1,58 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * Vineetg: Aug 2009
-+ *  -Moved core context switch macro out of entry.S into this file.
-+ *  -This is the more "natural" hand written assembler
-+ */
-+
-+#include <asm/entry.h>       /* For the SAVE_* macros */
-+#include <asm/asm-offsets.h>
-+#include <asm/linkage.h>
-+
-+;################### Low Level Context Switch ##########################
-+
-+	.section .sched.text,"ax",@progbits
-+	.align 4
-+	.global __switch_to
-+	.type   __switch_to, @function
-+__switch_to:
-+
-+	/* Save regs on kernel mode stack of task */
-+	st.a    blink, [sp, -4]
-+	st.a    fp, [sp, -4]
-+	SAVE_CALLEE_SAVED_KERNEL
-+
-+	/* Save the now KSP in task->thread.ksp */
-+	st.as  sp, [r0, (TASK_THREAD + THREAD_KSP)/4]
-+
-+	/*
-+	* Return last task in r0 (return reg)
-+	* On ARC, Return reg = First Arg reg = r0.
-+	* Since we already have last task in r0,
-+	* don't need to do anything special to return it
-+	*/
-+
-+	/* hardware memory barrier */
-+	sync
-+
-+	/*
-+	 * switch to new task, contained in r1
-+	 * Temp reg r3 is required to get the ptr to store val
-+	 */
-+	SET_CURR_TASK_ON_CPU  r1, r3
-+
-+	/* reload SP with kernel mode stack pointer in task->thread.ksp */
-+	ld.as  sp, [r1, (TASK_THREAD + THREAD_KSP)/4]
-+
-+	/* restore the registers */
-+	RESTORE_CALLEE_SAVED_KERNEL
-+	ld.ab   fp, [sp, 4]
-+	ld.ab   blink, [sp, 4]
-+	j       [blink]
-+
-+ARC_EXIT __switch_to
-diff --git a/arch/arc/kernel/fpu.c b/arch/arc/kernel/fpu.c
-new file mode 100644
-index 0000000..f352e51
---- /dev/null
-+++ b/arch/arc/kernel/fpu.c
-@@ -0,0 +1,55 @@
-+/*
-+ * fpu.c - save/restore of Floating Point Unit Registers on task switch
-+ *
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#include <linux/sched.h>
-+#include <asm/switch_to.h>
++#define	USER_PTRS_PER_PGD	(TASK_SIZE / PGDIR_SIZE)
 +
 +/*
-+ * To save/restore FPU regs, simplest scheme would use LR/SR insns.
-+ * However since SR serializes the pipeline, an alternate "hack" can be used
-+ * which uses the FPU Exchange insn (DEXCL) to r/w FPU regs.
-+ *
-+ * Store to 64bit dpfp1 reg from a pair of core regs:
-+ *   dexcl1 0, r1, r0  ; where r1:r0 is the 64 bit val
-+ *
-+ * Read from dpfp1 into pair of core regs (w/o clobbering dpfp1)
-+ *   mov_s    r3, 0
-+ *   daddh11  r1, r3, r3   ; get "hi" into r1 (dpfp1 unchanged)
-+ *   dexcl1   r0, r1, r3   ; get "low" into r0 (dpfp1 low clobbered)
-+ *   dexcl1    0, r1, r0   ; restore dpfp1 to orig value
-+ *
-+ * However we can tweak the read, so that read-out of outgoing task's FPU regs
-+ * and write of incoming task's regs happen in one shot. So all the work is
-+ * done before context switch
++ * No special requirements for lowest virtual address we permit any user space
++ * mapping to be mapped at.
++ */
++#define FIRST_USER_ADDRESS      0
++
++
++/****************************************************************
++ * Bucket load of VM Helpers
 + */
 +
-+void fpu_save_restore(struct task_struct *prev, struct task_struct *next)
++#ifndef __ASSEMBLY__
++
++#define pte_ERROR(e) \
++	pr_crit("%s:%d: bad pte %08lx.\n", __FILE__, __LINE__, pte_val(e))
++#define pgd_ERROR(e) \
++	pr_crit("%s:%d: bad pgd %08lx.\n", __FILE__, __LINE__, pgd_val(e))
++
++/* the zero page used for uninitialized and anonymous pages */
++extern char empty_zero_page[PAGE_SIZE];
++#define ZERO_PAGE(vaddr)	(virt_to_page(empty_zero_page))
++
++#define pte_unmap(pte)		do { } while (0)
++#define pte_unmap_nested(pte)		do { } while (0)
++
++#define set_pte(pteptr, pteval)	((*(pteptr)) = (pteval))
++#define set_pmd(pmdptr, pmdval)	(*(pmdptr) = pmdval)
++
++/* find the page descriptor of the Page Tbl ref by PMD entry */
++#define pmd_page(pmd)		virt_to_page(pmd_val(pmd) & PAGE_MASK)
++
++/* find the logical addr (phy for ARC) of the Page Tbl ref by PMD entry */
++#define pmd_page_vaddr(pmd)	(pmd_val(pmd) & PAGE_MASK)
++
++/* In a 2 level sys, setup the PGD entry with PTE value */
++static inline void pmd_set(pmd_t *pmdp, pte_t *ptep)
 +{
-+	unsigned int *saveto = &prev->thread.fpu.aux_dpfp[0].l;
-+	unsigned int *readfrom = &next->thread.fpu.aux_dpfp[0].l;
-+
-+	const unsigned int zero = 0;
-+
-+	__asm__ __volatile__(
-+		"daddh11  %0, %2, %2\n"
-+		"dexcl1   %1, %3, %4\n"
-+		: "=&r" (*(saveto + 1)), /* early clobber must here */
-+		  "=&r" (*(saveto))
-+		: "r" (zero), "r" (*(readfrom + 1)), "r" (*(readfrom))
-+	);
-+
-+	__asm__ __volatile__(
-+		"daddh22  %0, %2, %2\n"
-+		"dexcl2   %1, %3, %4\n"
-+		: "=&r"(*(saveto + 3)),	/* early clobber must here */
-+		  "=&r"(*(saveto + 2))
-+		: "r" (zero), "r" (*(readfrom + 3)), "r" (*(readfrom + 2))
-+	);
-+}
-diff --git a/arch/arc/kernel/process.c b/arch/arc/kernel/process.c
-index 21d1889..c116fa5 100644
---- a/arch/arc/kernel/process.c
-+++ b/arch/arc/kernel/process.c
-@@ -117,3 +117,204 @@ SYSCALL_DEFINE0(arc_gettls)
- {
- 	return task_thread_info(current)->thr_ptr;
- }
-+
-+static inline void arch_idle(void)
-+{
-+	__asm__("sleep");
++	pmd_val(*pmdp) = (unsigned long)ptep;
 +}
 +
-+void cpu_idle(void)
++#define pte_none(x)			(!pte_val(x))
++#define pte_present(x)			(pte_val(x) & _PAGE_PRESENT)
++#define pte_clear(mm, addr, ptep)	set_pte_at(mm, addr, ptep, __pte(0))
++
++#define pmd_none(x)			(!pmd_val(x))
++#define	pmd_bad(x)			((pmd_val(x) & ~PAGE_MASK))
++#define pmd_present(x)			(pmd_val(x))
++#define pmd_clear(xp)			do { pmd_val(*(xp)) = 0; } while (0)
++
++#define pte_page(x) (mem_map + \
++		(unsigned long)(((pte_val(x) - PAGE_OFFSET) >> PAGE_SHIFT)))
++
++#define mk_pte(page, pgprot)						\
++({									\
++	pte_t pte;							\
++	pte_val(pte) = __pa(page_address(page)) + pgprot_val(pgprot);	\
++	pte;								\
++})
++
++/* TBD: Non linear mapping stuff */
++static inline int pte_file(pte_t pte)
 +{
-+	/* Since we SLEEP in idle loop, TIF_POLLING_NRFLAG can't be set */
-+
-+	/* endless idle loop with no priority at all */
-+	while (1) {
-+		tick_nohz_idle_enter();
-+
-+		while (!need_resched())
-+			arch_idle();
-+
-+		tick_nohz_idle_exit();
-+
-+		preempt_enable_no_resched();
-+		schedule();
-+		preempt_disable();
-+	}
++	return pte_val(pte) & _PAGE_FILE;
 +}
 +
-+void kernel_thread_helper(void)
-+{
-+	__asm__ __volatile__(
-+		"mov   r0, r2	\n\t"
-+		"mov   r1, r3	\n\t"
-+		"j     [r1]	\n\t");
-+}
++#define PTE_FILE_MAX_BITS	30
++#define pgoff_to_pte(x)         __pte(x)
++#define pte_to_pgoff(x)		(pte_val(x) >> 2)
++#define pte_pfn(pte)		(pte_val(pte) >> PAGE_SHIFT)
++#define pfn_pte(pfn, prot)	(__pte(((pfn) << PAGE_SHIFT) | pgprot_val(prot)))
++#define __pte_index(addr)	(((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
 +
-+int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags)
-+{
-+	struct pt_regs regs;
-+
-+	memset(&regs, 0, sizeof(regs));
-+
-+	regs.r2 = (unsigned long)arg;
-+	regs.r3 = (unsigned long)fn;
-+	regs.blink = (unsigned long)do_exit;
-+	regs.ret = (unsigned long)kernel_thread_helper;
-+	regs.status32 = read_aux_reg(0xa);
-+
-+	/* Ok, create the new process.. */
-+	return do_fork(flags | CLONE_VM | CLONE_UNTRACED, 0, &regs, 0, NULL,
-+		       NULL);
-+
-+}
-+EXPORT_SYMBOL(kernel_thread);
-+
-+asmlinkage void ret_from_fork(void);
-+
-+/* Layout of Child kernel mode stack as setup at the end of this function is
-+ *
-+ * |     ...        |
-+ * |     ...        |
-+ * |    unused      |
-+ * |                |
-+ * ------------------  <==== top of Stack (thread.ksp)
-+ * |   UNUSED 1 word|
-+ * ------------------
-+ * |     r25        |
-+ * ~                ~
-+ * |    --to--      |   (CALLEE Regs of user mode)
-+ * |     r13        |
-+ * ------------------
-+ * |     fp         |
-+ * |    blink       |   @ret_from_fork
-+ * ------------------
-+ * |                |
-+ * ~                ~
-+ * ~                ~
-+ * |                |
-+ * ------------------
-+ * |     r12        |
-+ * ~                ~
-+ * |    --to--      |   (scratch Regs of user mode)
-+ * |     r0         |
-+ * ------------------
-+ * |   UNUSED 1 word|
-+ * ------------------  <===== END of PAGE
++/*
++ * pte_offset gets a @ptr to PMD entry (PGD in our 2-tier paging system)
++ * and returns ptr to PTE entry corresponding to @addr
 + */
-+int copy_thread(unsigned long clone_flags,
-+		unsigned long usp, unsigned long topstk,
-+		struct task_struct *p, struct pt_regs *regs)
++#define pte_offset(dir, addr) ((pte_t *)(pmd_page_vaddr(*dir)) +\
++					 __pte_index(addr))
++
++/* No mapping of Page Tables in high mem etc, so following same as above */
++#define pte_offset_kernel(dir, addr)		pte_offset(dir, addr)
++#define pte_offset_map(dir, addr)		pte_offset(dir, addr)
++
++/* Zoo of pte_xxx function */
++#define pte_read(pte)		(pte_val(pte) & _PAGE_READ)
++#define pte_write(pte)		(pte_val(pte) & _PAGE_WRITE)
++#define pte_dirty(pte)		(pte_val(pte) & _PAGE_MODIFIED)
++#define pte_young(pte)		(pte_val(pte) & _PAGE_ACCESSED)
++#define pte_special(pte)	(0)
++
++#define PTE_BIT_FUNC(fn, op) \
++	static inline pte_t pte_##fn(pte_t pte) { pte_val(pte) op; return pte; }
++
++PTE_BIT_FUNC(wrprotect,	&= ~(_PAGE_WRITE));
++PTE_BIT_FUNC(mkwrite,	|= (_PAGE_WRITE));
++PTE_BIT_FUNC(mkclean,	&= ~(_PAGE_MODIFIED));
++PTE_BIT_FUNC(mkdirty,	|= (_PAGE_MODIFIED));
++PTE_BIT_FUNC(mkold,	&= ~(_PAGE_ACCESSED));
++PTE_BIT_FUNC(mkyoung,	|= (_PAGE_ACCESSED));
++PTE_BIT_FUNC(exprotect,	&= ~(_PAGE_EXECUTE));
++PTE_BIT_FUNC(mkexec,	|= (_PAGE_EXECUTE));
++
++static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
++
++static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
 +{
-+	struct pt_regs *c_regs;        /* child's pt_regs */
-+	unsigned long *childksp;       /* to unwind out of __switch_to() */
-+	struct callee_regs *c_callee;  /* child's callee regs */
-+	struct callee_regs *parent_callee;  /* paren't callee */
++	return __pte((pte_val(pte) & _PAGE_CHG_MASK) | pgprot_val(newprot));
++}
 +
-+	/* Mark the specific anchors to begin with (see pic above) */
-+	c_regs = task_pt_regs(p);
-+	childksp = (unsigned long *)c_regs - 2;  /* 2 words for FP/BLINK */
-+	c_callee = ((struct callee_regs *)childksp) - 1;
++/* Macro to mark a page protection as uncacheable */
++#define pgprot_noncached(prot)	(__pgprot(pgprot_val(prot) & ~_PAGE_CACHEABLE))
 +
-+	/*
-+	 * At the end of this function, kernel SP is all set for
-+	 * switch_to to start unwinding.
-+	 * For kernel threads we don't have callee regs, but the stack
-+	 * layout nevertheless needs to remain the same
-+	 */
-+	p->thread.ksp = (unsigned long)c_callee;	/* THREAD_KSP */
-+
-+	/* Copy parents pt regs on child's kernel mode stack */
-+	*c_regs = *regs;
-+
-+	/* __switch_to expects FP(0), BLINK(return addr) at top of stack */
-+	childksp[0] = 0;				/* for POP fp */
-+	childksp[1] = (unsigned long)ret_from_fork;	/* for POP blink */
-+
-+	if (!(user_mode(regs))) {
-+		c_regs->sp =
-+		    (unsigned long)task_thread_info(p) + (THREAD_SIZE - 4);
-+		return 0;
-+	}
-+
-+	/*--------- User Task Only --------------*/
-+
-+	c_regs->sp = usp;
-+	c_regs->r0 = 0;		/* fork returns 0 in child */
-+
-+	parent_callee = ((struct callee_regs *)regs) - 1;
-+	*c_callee = *parent_callee;
-+
-+	if (unlikely(clone_flags & CLONE_SETTLS)) {
-+		/*
-+		 * set task's userland tls data ptr from 4th arg
-+		 * clone C-lib call is difft from clone sys-call
-+		 */
-+		task_thread_info(p)->thr_ptr = regs->r3;
-+	} else {
-+		/* Normal fork case: set parent's TLS ptr in child */
-+		task_thread_info(p)->thr_ptr =
-+		task_thread_info(current)->thr_ptr;
-+	}
-+
-+	return 0;
++static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
++			      pte_t *ptep, pte_t pteval)
++{
++	set_pte(ptep, pteval);
 +}
 +
 +/*
-+ * Some archs flush debug and FPU info here
++ * All kernel related VM pages are in init's mm.
 + */
-+void flush_thread(void)
-+{
-+}
++#define pgd_offset_k(address)	pgd_offset(&init_mm, address)
++#define pgd_index(addr)		((addr) >> PGDIR_SHIFT)
++#define pgd_offset(mm, addr)	(((mm)->pgd)+pgd_index(addr))
 +
 +/*
-+ * Free any architecture-specific thread data structures, etc.
-+ */
-+void exit_thread(void)
-+{
-+}
-+
-+int dump_fpu(struct pt_regs *regs, elf_fpregset_t *fpu)
-+{
-+	return 0;
-+}
-+
-+/*
-+ * API: expected by schedular Code: If thread is sleeping where is that.
-+ * What is this good for? it will be always the scheduler or ret_from_fork.
-+ * So we hard code that anyways.
-+ */
-+unsigned long thread_saved_pc(struct task_struct *t)
-+{
-+	struct pt_regs *regs = task_pt_regs(t);
-+	unsigned long blink = 0;
-+
-+	/*
-+	 * If the thread being queried for in not itself calling this, then it
-+	 * implies it is not executing, which in turn implies it is sleeping,
-+	 * which in turn implies it got switched OUT by the schedular.
-+	 * In that case, it's kernel mode blink can reliably retrieved as per
-+	 * the picture above (right above pt_regs).
-+	 */
-+	if (t != current && t->state != TASK_RUNNING)
-+		blink = *((unsigned int *)regs - 1);
-+
-+	return blink;
-+}
-+
-+int elf_check_arch(const struct elf32_hdr *x)
-+{
-+	unsigned int eflags;
-+
-+	if (x->e_machine != EM_ARCOMPACT)
-+		return 0;
-+
-+	eflags = x->e_flags;
-+	if ((eflags & EF_ARC_OSABI_MSK) < EF_ARC_OSABI_V2) {
-+		pr_err("ABI mismatch - you need newer toolchain\n");
-+		force_sigsegv(SIGSEGV, current);
-+		return 0;
-+	}
-+
-+	return 1;
-+}
-+EXPORT_SYMBOL(elf_check_arch);
-diff --git a/arch/arc/kernel/time.c b/arch/arc/kernel/time.c
-new file mode 100644
-index 0000000..a0aa884
---- /dev/null
-+++ b/arch/arc/kernel/time.c
-@@ -0,0 +1,237 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ * Macro to quickly access the PGD entry, utlising the fact that some
++ * arch may cache the pointer to Page Directory of "current" task
++ * in a MMU register
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
++ * Thus task->mm->pgd (3 pointer dereferences, cache misses etc simply
++ * becomes read a register
 + *
-+ * vineetg: Jan 1011
-+ *  -sched_clock( ) no longer jiffies based. Uses the same clocksource
-+ *   as gtod
-+ *
-+ * Rajeshwarr/Vineetg: Mar 2008
-+ *  -Implemented CONFIG_GENERIC_TIME (rather deleted arch specific code)
-+ *   for arch independent gettimeofday()
-+ *  -Implemented CONFIG_GENERIC_CLOCKEVENTS as base for hrtimers
-+ *
-+ * Vineetg: Mar 2008: Forked off from time.c which now is time-jiff.c
++ * ********CAUTION*******:
++ * Kernel code might be dealing with some mm_struct of NON "current"
++ * Thus use this macro only when you are certain that "current" is current
++ * e.g. when dealing with signal frame setup code etc
 + */
++#define pgd_offset_fast(mm, addr)	\
++({					\
++	pgd_t *pgd_base = (pgd_t *) read_aux_reg(ARC_REG_SCRATCH_DATA0);  \
++	pgd_base + pgd_index(addr);	\
++})
 +
-+#include <linux/spinlock.h>
-+#include <linux/interrupt.h>
-+#include <linux/module.h>
-+#include <linux/sched.h>
-+#include <linux/kernel.h>
-+#include <linux/interrupt.h>
-+#include <linux/time.h>
-+#include <linux/init.h>
-+#include <linux/timex.h>
-+#include <linux/profile.h>
-+#include <linux/clocksource.h>
-+#include <linux/clockchips.h>
-+#include <asm/irq.h>
-+#include <asm/arcregs.h>
++extern void paging_init(void);
++extern pgd_t swapper_pg_dir[] __aligned(PAGE_SIZE);
++void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
++		      pte_t *ptep);
 +
-+/* ARC700 has two 32bit independent prog Timers: TIMER0 and TIMER1
-+ * Each can programmed to go from @count to @limit and optionally
-+ * interrupt when that happens
-+ *
-+ * We've designated TIMER0 for events (clockevents)
-+ * while TIMER1 for free running (clocksource)
++/* Encode swap {type,off} tuple into PTE
++ * We reserve 13 bits for 5-bit @type, keeping bits 12-5 zero, ensuring that
++ * both PAGE_FILE and PAGE_PRESENT are zero in a PTE holding swap "identifier"
 + */
-+#define ARC_TIMER_MAX	0xFFFFFFFF
++#define __swp_entry(type, off)	((swp_entry_t) { \
++					((type) & 0x1f) | ((off) << 13) })
 +
-+/******************************************************************
-+ * Hardware Interface routines to program the ARC TIMERs
-+ ******************************************************************/
++/* Decode a PTE containing swap "identifier "into constituents */
++#define __swp_type(pte_lookalike)	(((pte_lookalike).val) & 0x1f)
++#define __swp_offset(pte_lookalike)	((pte_lookalike).val << 13)
++
++/* NOPs, to keep generic kernel happy */
++#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
++#define __swp_entry_to_pte(x)	((pte_t) { (x).val })
++
++#define kern_addr_valid(addr)	(1)
 +
 +/*
-+ * Arm the timer to interrupt after @limit cycles
++ * remap a physical page `pfn' of size `size' with page protection `prot'
++ * into virtual address `from'
 + */
-+static void arc_periodic_timer_setup(unsigned int limit)
-+{
-+	/* setup start and end markers */
-+	write_aux_reg(ARC_REG_TIMER0_LIMIT, limit);
-+	write_aux_reg(ARC_REG_TIMER0_CNT, 0);	/* start from 0 */
++#define io_remap_pfn_range(vma, from, pfn, size, prot) \
++			remap_pfn_range(vma, from, pfn, size, prot)
 +
-+	/* IE: Interrupt on count = limit,
-+	 * NH: Count cycles only when CPU running (NOT Halted)
-+	 */
-+	write_aux_reg(ARC_REG_TIMER0_CTRL, TIMER_CTRL_IE | TIMER_CTRL_NH);
-+}
++#include <asm-generic/pgtable.h>
 +
 +/*
-+ * Acknowledge the interrupt & enable/disable the interrupt
++ * No page table caches to initialise
 + */
-+static void arc_periodic_timer_ack(unsigned int irq_reenable)
-+{
-+	/* 1. Ack the interrupt by writing to CTRL reg.
-+	 *    Any write will cause intr to be ack, however it has to be one of
-+	 *    writable bits (NH: Count when not halted)
-+	 * 2. If required by caller, re-arm timer to Interrupt at the end of
-+	 *    next cycle.
-+	 *
-+	 * Small optimisation:
-+	 * Normal code would have been
-+	 *  if (irq_reenable) CTRL_REG = (IE | NH); else CTRL_REG = NH;
-+	 * However since IE is BIT0 we can fold the branch
-+	 */
-+	write_aux_reg(ARC_REG_TIMER0_CTRL, irq_reenable | TIMER_CTRL_NH);
-+}
++#define pgtable_cache_init()   do { } while (0)
 +
-+/*
-+ * Arm the timer to keep counting monotonically
-+ */
-+void __cpuinit arc_clock_counter_setup(void)
-+{
-+	unsigned int limit = ARC_TIMER_MAX;
++#endif /* __ASSEMBLY__ */
 +
-+	/* although for free flowing case, limit would alway be max 32 bits
-+	 * still we've kept the interface open, just in case ...
-+	 */
-+	write_aux_reg(ARC_REG_TIMER1_LIMIT, limit);
-+	write_aux_reg(ARC_REG_TIMER1_CNT, 0);
-+	write_aux_reg(ARC_REG_TIMER1_CTRL, TIMER_CTRL_NH);
-+}
-+
-+/********** Clock Source Device *********/
-+
-+static cycle_t cycle_read_t1(struct clocksource *cs)
-+{
-+	return (cycle_t) read_aux_reg(ARC_REG_TIMER1_CNT);
-+}
-+
-+static struct clocksource clocksource_t1 = {
-+	.name = "ARC Timer1",
-+	.rating = 300,
-+	.read = cycle_read_t1,
-+	.mask = CLOCKSOURCE_MASK(32),
-+	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
-+};
-+
-+void __cpuinit arc_clocksource_init(void)
-+{
-+	arc_clock_counter_setup();
-+
-+	/*
-+	 * CLK upto 4.29 GHz can be safely represented in 32 bits because
-+	 * Max 32 bit number is 4,294,967,295
-+	 */
-+	clocksource_register_hz(&clocksource_t1, CONFIG_ARC_PLAT_CLK);
-+}
-+
-+/********** Clock Event Device *********/
-+
-+static int arc_clkevent_set_next_event(unsigned long delta,
-+				    struct clock_event_device *dev)
-+{
-+	arc_periodic_timer_setup(delta);
-+	return 0;
-+}
-+
-+static void arc_clkevent_set_mode(enum clock_event_mode mode,
-+			       struct clock_event_device *dev)
-+{
-+	pr_info("Device [%s] clockevent mode now [%d]\n", dev->name, mode);
-+	switch (mode) {
-+	case CLOCK_EVT_MODE_PERIODIC:
-+		arc_periodic_timer_setup(CONFIG_ARC_PLAT_CLK / HZ);
-+		break;
-+	case CLOCK_EVT_MODE_ONESHOT:
-+		break;
-+	default:
-+		break;
-+	}
-+
-+	return;
-+}
-+
-+static DEFINE_PER_CPU(struct clock_event_device, arc_clockevent_device) = {
-+	.name		= "ARC Timer0",
-+	.features	= CLOCK_EVT_FEAT_ONESHOT | CLOCK_EVT_FEAT_PERIODIC,
-+	.mode		= CLOCK_EVT_MODE_UNUSED,
-+	.rating		= 300,
-+	.irq		= TIMER0_IRQ,	/* hardwired, no need for resources */
-+	.set_next_event = arc_clkevent_set_next_event,
-+	.set_mode	= arc_clkevent_set_mode,
-+};
-+
-+irqreturn_t timer_irq_handler(int irq, void *dev_id)
-+{
-+	unsigned int cpu = smp_processor_id();
-+	struct clock_event_device *evt = &per_cpu(arc_clockevent_device, cpu);
-+
-+	arc_periodic_timer_ack(evt->mode == CLOCK_EVT_MODE_PERIODIC);
-+	evt->event_handler(evt);
-+	return IRQ_HANDLED;
-+}
-+
-+void __cpuinit arc_clockevent_init(void)
-+{
-+	int rc;
-+	unsigned int cpu = smp_processor_id();
-+	struct clock_event_device *evt = &per_cpu(arc_clockevent_device, cpu);
-+
-+	clockevents_calc_mult_shift(evt, CONFIG_ARC_PLAT_CLK, 5);
-+
-+	evt->max_delta_ns = clockevent_delta2ns(ARC_TIMER_MAX, evt);
-+	evt->cpumask = cpumask_of(cpu);
-+
-+	clockevents_register_device(evt);
-+
-+	/*
-+	 * Done only on Boot CPU as it would fail on others.
-+	 * (Treated a re-registration for a !IRQF_SHARED irq)
-+	 */
-+	if (cpu == 0) {
-+		rc = request_percpu_irq(TIMER0_IRQ, timer_irq_handler,
-+					"Timer0 (clock-evt-dev)", evt);
-+
-+		if (rc)
-+			panic("TIMER0 IRQ reg failed on BOOT cpu\n");
-+	}
-+
-+	/* This is done on each CPU */
-+	enable_percpu_irq(TIMER0_IRQ, 0);
-+
-+}
-+
-+void __init time_init(void)
-+{
-+	arc_clocksource_init();
-+	arc_clockevent_init();
-+}
-+
-+static int arc_finished_booting;
-+
-+/*
-+ * Scheduler clock - returns current time in nanosec units.
-+ * It's return value must NOT wrap around.
-+ *
-+ * Although the return value is nanosec units based, what's more important
-+ * is whats the "source" of this value. The orig jiffies based computation
-+ * was only as granular as jiffies itself (10ms on ARC).
-+ * We need something that is more granular, so use the same mechanism as
-+ * gettimeofday(), which uses ARC Timer T1 wrapped as a clocksource.
-+ * Unfortunately the first call to sched_clock( ) is way before that subsys
-+ * is initialiased, thus use the jiffies based value in the interim.
-+ */
-+unsigned long long sched_clock(void)
-+{
-+	if (!arc_finished_booting) {
-+		return (unsigned long long)(jiffies - INITIAL_JIFFIES)
-+		    * (NSEC_PER_SEC / HZ);
-+	} else {
-+		struct timespec ts;
-+		getrawmonotonic(&ts);
-+		return (unsigned long long)timespec_to_ns(&ts);
-+	}
-+}
-+
-+static int __init arc_clocksource_done_booting(void)
-+{
-+	arc_finished_booting = 1;
-+	return 0;
-+}
-+
-+fs_initcall(arc_clocksource_done_booting);
++#endif
 -- 
 1.7.4.1
 
