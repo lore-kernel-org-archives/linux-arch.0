@@ -1,11 +1,13 @@
 From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: [RFC PATCH 00/11] arch_gettimeoffset and ARM timer rework
-Date: Thu,  8 Nov 2012 14:01:44 -0700
-Message-ID: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
+Subject: [PATCH 01/11] cris: move usec/nsec conversion to do_slow_gettimeoffset
+Date: Thu,  8 Nov 2012 14:01:46 -0700
+Message-ID: <1352408516-21988-3-git-send-email-swarren@wwwdotorg.org>
+References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+In-Reply-To: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
 List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
  <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
 List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
@@ -16,94 +18,52 @@ List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
 Sender: linux-arm-kernel-bounces@lists.infradead.org
 Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
+Cc: linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, Stephen Warren <swarren@nvidia.com>, linux-cris-kernel@axis.com, linux-kernel@vger.kernel.org, Mikael Starvik <starvik@axis.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
 From: Stephen Warren <swarren@nvidia.com>
 
-The overall aim of this series is to allow ARM (or indeed any) timer
-drivers to be moved into drivers/clocksource without requiring a
-struct or function prototype for each individual driver in include/linux.
-The intent is eventually to create a single e.g. of_clocksource_init()
-function that determines which timer driver to initialize by scanning
-the device dtree, much like the proposed irqchip_init() at:
-http://www.spinics.net/lists/arm-kernel/msg203686.html
+Move usec to nsec conversion from arch_gettimeoffset() to
+do_slow_gettimeoffset(); in a future patch, do_slow_gettimeoffset()
+will be used directly as the implementation of arch_gettimeoffset(),
+so needs to perform all required calculations.
 
-This requires some rework prior to implementing of_clocksource_init():
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: linux-cris-kernel@axis.com
+Signed-off-by: Stephen Warren <swarren@nvidia.com>
+---
+ arch/cris/arch-v10/kernel/time.c |    4 ++--
+ arch/cris/kernel/time.c          |    2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
 
-ARM uses struct sys_timer to represent the individual machine's timer
-driver. Many of the patches in this series are ARM-specific changes to
-get rid of this struct, leaving just a single init function instead.
-
-One function pointer in the struct provides the implementation of
-arch_gettimeoffset(). Removing the struct and moving drivers into the
-generic drivers/clocksource directory requires an arch-agnostic way of
-registering the implementation of this function. The first few patches
-in the series provide that, and rework various architectures to make use
-of this facility rather than implementing the same thing themselves.
-
-It would probably be easiest to merge this whole series through the
-arm-soc tree. Anything else would require some co-ordination.
-
-Stephen Warren (11):
-  cris: move usec/nsec conversion to do_slow_gettimeoffset
-  time: convert arch_gettimeoffset to a pointer
-  m68k: set arch_gettimeoffset directly
-  ARM: set arch_gettimeoffset directly
-  ARM: at91: convert timer suspend/resume to clock_event_device
-  ARM: pxa: convert timer suspend/resume to clock_event_device
-  ARM: sa1100: convert timer suspend/resume to clock_event_device
-  ARM: ux500: convert timer suspend/resume to clock_event_device
-  ARM: samsung: register syscore_ops for timer resume directly
-  ARM: remove struct sys_timer suspend and resume fields
-  ARM: delete struct sys_timer
-
- arch/arm/include/asm/mach/arch.h       |    3 +-
- arch/arm/include/asm/mach/time.h       |   30 ------------
- arch/arm/kernel/time.c                 |   53 +----------------------
- arch/arm/mach-at91/at91sam926x_time.c  |   47 +++++++++++---------
- arch/arm/mach-at91/at91x40_time.c      |    8 ++-
- arch/arm/mach-ebsa110/core.c           |    7 ++-
- arch/arm/mach-ep93xx/core.c            |   23 +++++-----
- arch/arm/mach-h720x/common.c           |    6 +-
- arch/arm/mach-h720x/common.h           |    2 +-
- arch/arm/mach-h720x/cpu-h7201.c        |    3 +-
- arch/arm/mach-h720x/cpu-h7202.c        |    3 +-
- arch/arm/mach-pxa/time.c               |   76 ++++++++++++++++----------------
- arch/arm/mach-rpc/time.c               |    6 +-
- arch/arm/mach-sa1100/time.c            |   66 ++++++++++++++--------------
- arch/arm/mach-tegra/board-dt-tegra20.c |    2 +-
- arch/arm/mach-tegra/board-dt-tegra30.c |    2 +-
- arch/arm/mach-tegra/board.h            |    2 +-
- arch/arm/mach-tegra/timer.c            |    6 +--
- arch/arm/mach-ux500/timer.c            |    7 ---
- arch/arm/plat-samsung/time.c           |   14 ++++--
- arch/blackfin/kernel/time.c            |    6 ++-
- arch/cris/arch-v10/kernel/time.c       |   10 +++--
- arch/cris/kernel/time.c                |   11 -----
- arch/m32r/kernel/time.c                |    4 +-
- arch/m68k/amiga/config.c               |   10 ++--
- arch/m68k/apollo/config.c              |    9 ++--
- arch/m68k/atari/config.c               |    4 +-
- arch/m68k/atari/time.c                 |    6 +-
- arch/m68k/bvme6000/config.c            |   10 ++--
- arch/m68k/hp300/config.c               |    2 +-
- arch/m68k/hp300/time.c                 |    4 +-
- arch/m68k/hp300/time.h                 |    2 +-
- arch/m68k/include/asm/machdep.h        |    2 +-
- arch/m68k/kernel/setup_mm.c            |    1 -
- arch/m68k/kernel/time.c                |   15 ++----
- arch/m68k/mac/config.c                 |    4 +-
- arch/m68k/mac/via.c                    |    4 +-
- arch/m68k/mvme147/config.c             |    8 ++--
- arch/m68k/mvme16x/config.c             |    8 ++--
- arch/m68k/q40/config.c                 |    8 ++--
- arch/m68k/sun3/config.c                |    4 +-
- arch/m68k/sun3/intersil.c              |    4 +-
- arch/m68k/sun3x/config.c               |    2 +-
- arch/m68k/sun3x/time.c                 |    2 +-
- arch/m68k/sun3x/time.h                 |    2 +-
- drivers/clocksource/nomadik-mtu.c      |   33 ++++++++-----
- include/linux/time.h                   |    4 +-
- kernel/time/timekeeping.c              |   20 +++++++-
- 48 files changed, 249 insertions(+), 316 deletions(-)
+diff --git a/arch/cris/arch-v10/kernel/time.c b/arch/cris/arch-v10/kernel/time.c
+index bcffcb6..162892f 100644
+--- a/arch/cris/arch-v10/kernel/time.c
++++ b/arch/cris/arch-v10/kernel/time.c
+@@ -65,8 +65,8 @@ unsigned long do_slow_gettimeoffset(void)
+ 	 */
+ 	count = *R_TIMER0_DATA;
+ 
+-	/* Convert timer value to usec */
+-	return (TIMER0_DIV - count) * ((NSEC_PER_SEC/1000)/HZ)/TIMER0_DIV;
++	/* Convert timer value to nsec */
++	return (TIMER0_DIV - count) * (NSEC_PER_SEC/HZ)/TIMER0_DIV;
+ }
+ 
+ /* Excerpt from the Etrax100 HSDD about the built-in watchdog:
+diff --git a/arch/cris/kernel/time.c b/arch/cris/kernel/time.c
+index 277ffc4..b063c92 100644
+--- a/arch/cris/kernel/time.c
++++ b/arch/cris/kernel/time.c
+@@ -46,7 +46,7 @@ static unsigned long (*do_gettimeoffset)(void) = do_slow_gettimeoffset;
+ 
+ u32 arch_gettimeoffset(void)
+ {
+-       return do_gettimeoffset() * 1000;
++	return do_gettimeoffset();
+ }
+ #endif
+ 
+-- 
+1.7.0.4
