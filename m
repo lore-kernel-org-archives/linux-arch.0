@@ -1,129 +1,275 @@
 From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: [PATCH 06/11] ARM: pxa: convert timer suspend/resume to clock_event_device
-Date: Thu,  8 Nov 2012 14:01:51 -0700
-Message-ID: <1352408516-21988-8-git-send-email-swarren@wwwdotorg.org>
+Subject: [PATCH 02/11] time: convert arch_gettimeoffset to a pointer
+Date: Thu,  8 Nov 2012 14:01:47 -0700
+Message-ID: <1352408516-21988-4-git-send-email-swarren@wwwdotorg.org>
 References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-kernel-owner@vger.kernel.org
-To: Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Eric Miao <eric.y.miao@gmail.com>, Russell King <linux@arm.linux.org.uk>, Haojian Zhuang <haojian.zhuang@gmail.com>
+To: Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Russell King <linux@arm.linux.org.uk>, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
 From: Stephen Warren <swarren@nvidia.com>
 
-Move PXA's timer suspend/resume functions from struct sys_timer
-pxa_timer into struct clock_event_device ckevt_pxa_osmr0. This
-will allow the sys_timer suspend/resume fields to be removed, and
-eventually lead to a complete removal of struct sys_timer.
+Currently, whenever CONFIG_ARCH_USES_GETTIMEOFFSET is enabled, each
+arch core provides a single implementation of arch_gettimeoffset(). In
+many cases, different sub-architectures, different machines, or
+different timer providers exist, and so the arch ends up implementing
+arch_gettimeoffset() as a call-through-pointer anyway. Examples are
+ARM, Cris, M68K, and it's arguable that the remaining architectures,
+M32R and Blackfin, should be doing this anyway.
 
-Cc: Eric Miao <eric.y.miao@gmail.com>
+Modify arch_gettimeoffset so that it itself is a function pointer, which
+the arch initializes. This will allow later changes to move the
+initialization of this function into individual machine support or timer
+drivers. This is particularly useful for code in drivers/clocksource
+which should rely on an arch-independant mechanism to register their
+implementation of arch_gettimeoffset().
+
+This patch also converts the Cris architecture to set arch_gettimeoffset
+directly to the final implementation in time_init(), because Cris already
+had separate time_init() functions per sub-architecture. M68K and ARM
+are converted to set arch_gettimeoffset the final implementation in later
+patches, because they already have function pointers in place for this
+purpose.
+
 Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Haojian Zhuang <haojian.zhuang@gmail.com>
+Cc: Mike Frysinger <vapier@gentoo.org>
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: John Stultz <johnstul@us.ibm.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
 Signed-off-by: Stephen Warren <swarren@nvidia.com>
 ---
- arch/arm/mach-pxa/time.c |   76 +++++++++++++++++++++++-----------------------
- 1 files changed, 38 insertions(+), 38 deletions(-)
+ arch/arm/kernel/time.c           |    6 +++++-
+ arch/blackfin/kernel/time.c      |    6 +++++-
+ arch/cris/arch-v10/kernel/time.c |    6 ++++--
+ arch/cris/kernel/time.c          |   11 -----------
+ arch/m32r/kernel/time.c          |    4 +++-
+ arch/m68k/kernel/time.c          |   16 ++++++++++------
+ include/linux/time.h             |    4 +---
+ kernel/time/timekeeping.c        |   20 +++++++++++++++++---
+ 8 files changed, 45 insertions(+), 28 deletions(-)
 
-diff --git a/arch/arm/mach-pxa/time.c b/arch/arm/mach-pxa/time.c
-index 4bc47d6..ce58bc9 100644
---- a/arch/arm/mach-pxa/time.c
-+++ b/arch/arm/mach-pxa/time.c
-@@ -89,12 +89,50 @@ pxa_osmr0_set_mode(enum clock_event_mode mode, struct clock_event_device *dev)
+diff --git a/arch/arm/kernel/time.c b/arch/arm/kernel/time.c
+index 09be0c3..b0190b4 100644
+--- a/arch/arm/kernel/time.c
++++ b/arch/arm/kernel/time.c
+@@ -70,7 +70,7 @@ EXPORT_SYMBOL(profile_pc);
+ #endif
+ 
+ #ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
+-u32 arch_gettimeoffset(void)
++static u32 arm_gettimeoffset(void)
+ {
+ 	if (system_timer->offset != NULL)
+ 		return system_timer->offset() * 1000;
+@@ -164,6 +164,10 @@ device_initcall(timer_init_syscore_ops);
+ 
+ void __init time_init(void)
+ {
++#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
++	arch_gettimeoffset = arm_gettimeoffset;
++#endif
++
+ 	system_timer = machine_desc->timer;
+ 	system_timer->init();
+ 	sched_clock_postinit();
+diff --git a/arch/blackfin/kernel/time.c b/arch/blackfin/kernel/time.c
+index 2310b24..3126b92 100644
+--- a/arch/blackfin/kernel/time.c
++++ b/arch/blackfin/kernel/time.c
+@@ -85,7 +85,7 @@ time_sched_init(irqreturn_t(*timer_routine) (int, void *))
+ /*
+  * Should return useconds since last timer tick
+  */
+-u32 arch_gettimeoffset(void)
++static u32 blackfin_gettimeoffset(void)
+ {
+ 	unsigned long offset;
+ 	unsigned long clocks_per_jiffy;
+@@ -141,6 +141,10 @@ void read_persistent_clock(struct timespec *ts)
+ 
+ void __init time_init(void)
+ {
++#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
++	arch_gettimeoffset = blackfin_gettimeoffset;
++#endif
++
+ #ifdef CONFIG_RTC_DRV_BFIN
+ 	/* [#2663] hack to filter junk RTC values that would cause
+ 	 * userspace to have to deal with time values greater than
+diff --git a/arch/cris/arch-v10/kernel/time.c b/arch/cris/arch-v10/kernel/time.c
+index 162892f..fce7c54 100644
+--- a/arch/cris/arch-v10/kernel/time.c
++++ b/arch/cris/arch-v10/kernel/time.c
+@@ -55,9 +55,9 @@ unsigned long get_ns_in_jiffie(void)
+ 	return ns;
+ }
+ 
+-unsigned long do_slow_gettimeoffset(void)
++static u32 cris_v10_gettimeoffset(void)
+ {
+-	unsigned long count;
++	u32 count;
+ 
+ 	/* The timer interrupt comes from Etrax timer 0. In order to get
+ 	 * better precision, we check the current value. It might have
+@@ -191,6 +191,8 @@ static struct irqaction irq2  = {
+ void __init
+ time_init(void)
+ {	
++	arch_gettimeoffset = cris_v10_gettimeoffset;
++
+ 	/* probe for the RTC and read it if it exists 
+ 	 * Before the RTC can be probed the loops_per_usec variable needs 
+ 	 * to be initialized to make usleep work. A better value for 
+diff --git a/arch/cris/kernel/time.c b/arch/cris/kernel/time.c
+index b063c92..fe6acda 100644
+--- a/arch/cris/kernel/time.c
++++ b/arch/cris/kernel/time.c
+@@ -39,17 +39,6 @@
+ extern unsigned long loops_per_jiffy; /* init/main.c */
+ unsigned long loops_per_usec;
+ 
+-
+-#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
+-extern unsigned long do_slow_gettimeoffset(void);
+-static unsigned long (*do_gettimeoffset)(void) = do_slow_gettimeoffset;
+-
+-u32 arch_gettimeoffset(void)
+-{
+-	return do_gettimeoffset();
+-}
+-#endif
+-
+ int set_rtc_mmss(unsigned long nowtime)
+ {
+ 	D(printk(KERN_DEBUG "set_rtc_mmss(%lu)\n", nowtime));
+diff --git a/arch/m32r/kernel/time.c b/arch/m32r/kernel/time.c
+index 84dd040..1a15f81 100644
+--- a/arch/m32r/kernel/time.c
++++ b/arch/m32r/kernel/time.c
+@@ -57,7 +57,7 @@ extern void smp_local_timer_interrupt(void);
+ 
+ static unsigned long latch;
+ 
+-u32 arch_gettimeoffset(void)
++static u32 m32r_gettimeoffset(void)
+ {
+ 	unsigned long  elapsed_time = 0;  /* [us] */
+ 
+@@ -165,6 +165,8 @@ void read_persistent_clock(struct timespec *ts)
+ 
+ void __init time_init(void)
+ {
++	arch_gettimeoffset = m32r_gettimeoffset;
++
+ #if defined(CONFIG_CHIP_M32102) || defined(CONFIG_CHIP_XNUX2) \
+ 	|| defined(CONFIG_CHIP_VDEC2) || defined(CONFIG_CHIP_M32700) \
+ 	|| defined(CONFIG_CHIP_OPSP) || defined(CONFIG_CHIP_M32104)
+diff --git a/arch/m68k/kernel/time.c b/arch/m68k/kernel/time.c
+index 5d0bcaa..c2994c8 100644
+--- a/arch/m68k/kernel/time.c
++++ b/arch/m68k/kernel/time.c
+@@ -80,14 +80,9 @@ void read_persistent_clock(struct timespec *ts)
  	}
  }
  
-+#ifdef CONFIG_PM
-+static unsigned long osmr[4], oier, oscr;
+-void __init time_init(void)
+-{
+-	mach_sched_init(timer_interrupt);
+-}
+-
+ #ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
+ 
+-u32 arch_gettimeoffset(void)
++static u32 m68k_gettimeoffset(void)
+ {
+ 	return mach_gettimeoffset() * 1000;
+ }
+@@ -106,3 +101,12 @@ static int __init rtc_init(void)
+ module_init(rtc_init);
+ 
+ #endif /* CONFIG_ARCH_USES_GETTIMEOFFSET */
 +
-+static void pxa_timer_suspend(struct clock_event_device *cedev)
++void __init time_init(void)
 +{
-+	osmr[0] = readl_relaxed(OSMR0);
-+	osmr[1] = readl_relaxed(OSMR1);
-+	osmr[2] = readl_relaxed(OSMR2);
-+	osmr[3] = readl_relaxed(OSMR3);
-+	oier = readl_relaxed(OIER);
-+	oscr = readl_relaxed(OSCR);
-+}
-+
-+static void pxa_timer_resume(struct clock_event_device *cedev)
-+{
-+	/*
-+	 * Ensure that we have at least MIN_OSCR_DELTA between match
-+	 * register 0 and the OSCR, to guarantee that we will receive
-+	 * the one-shot timer interrupt.  We adjust OSMR0 in preference
-+	 * to OSCR to guarantee that OSCR is monotonically incrementing.
-+	 */
-+	if (osmr[0] - oscr < MIN_OSCR_DELTA)
-+		osmr[0] += MIN_OSCR_DELTA;
-+
-+	writel_relaxed(osmr[0], OSMR0);
-+	writel_relaxed(osmr[1], OSMR1);
-+	writel_relaxed(osmr[2], OSMR2);
-+	writel_relaxed(osmr[3], OSMR3);
-+	writel_relaxed(oier, OIER);
-+	writel_relaxed(oscr, OSCR);
-+}
-+#else
-+#define pxa_timer_suspend NULL
-+#define pxa_timer_resume NULL
++#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
++	arch_gettimeoffset = m68k_gettimeoffset;
 +#endif
 +
- static struct clock_event_device ckevt_pxa_osmr0 = {
- 	.name		= "osmr0",
- 	.features	= CLOCK_EVT_FEAT_ONESHOT,
- 	.rating		= 200,
- 	.set_next_event	= pxa_osmr0_set_next_event,
- 	.set_mode	= pxa_osmr0_set_mode,
-+	.suspend	= pxa_timer_suspend,
-+	.resume		= pxa_timer_resume,
- };
++	mach_sched_init(timer_interrupt);
++}
+diff --git a/include/linux/time.h b/include/linux/time.h
+index 4d358e9..05e32a7 100644
+--- a/include/linux/time.h
++++ b/include/linux/time.h
+@@ -142,9 +142,7 @@ void timekeeping_inject_sleeptime(struct timespec *delta);
+  * finer then tick granular time.
+  */
+ #ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
+-extern u32 arch_gettimeoffset(void);
+-#else
+-static inline u32 arch_gettimeoffset(void) { return 0; }
++extern u32 (*arch_gettimeoffset)(void);
+ #endif
  
- static struct irqaction pxa_ost0_irq = {
-@@ -127,44 +165,6 @@ static void __init pxa_timer_init(void)
- 	clockevents_register_device(&ckevt_pxa_osmr0);
+ extern void do_gettimeofday(struct timeval *tv);
+diff --git a/kernel/time/timekeeping.c b/kernel/time/timekeeping.c
+index e424970..9d00ace 100644
+--- a/kernel/time/timekeeping.c
++++ b/kernel/time/timekeeping.c
+@@ -140,6 +140,20 @@ static void tk_setup_internals(struct timekeeper *tk, struct clocksource *clock)
  }
  
--#ifdef CONFIG_PM
--static unsigned long osmr[4], oier, oscr;
--
--static void pxa_timer_suspend(void)
--{
--	osmr[0] = readl_relaxed(OSMR0);
--	osmr[1] = readl_relaxed(OSMR1);
--	osmr[2] = readl_relaxed(OSMR2);
--	osmr[3] = readl_relaxed(OSMR3);
--	oier = readl_relaxed(OIER);
--	oscr = readl_relaxed(OSCR);
--}
--
--static void pxa_timer_resume(void)
--{
--	/*
--	 * Ensure that we have at least MIN_OSCR_DELTA between match
--	 * register 0 and the OSCR, to guarantee that we will receive
--	 * the one-shot timer interrupt.  We adjust OSMR0 in preference
--	 * to OSCR to guarantee that OSCR is monotonically incrementing.
--	 */
--	if (osmr[0] - oscr < MIN_OSCR_DELTA)
--		osmr[0] += MIN_OSCR_DELTA;
--
--	writel_relaxed(osmr[0], OSMR0);
--	writel_relaxed(osmr[1], OSMR1);
--	writel_relaxed(osmr[2], OSMR2);
--	writel_relaxed(osmr[3], OSMR3);
--	writel_relaxed(oier, OIER);
--	writel_relaxed(oscr, OSCR);
--}
--#else
--#define pxa_timer_suspend NULL
--#define pxa_timer_resume NULL
--#endif
--
- struct sys_timer pxa_timer = {
- 	.init		= pxa_timer_init,
--	.suspend	= pxa_timer_suspend,
--	.resume		= pxa_timer_resume,
- };
+ /* Timekeeper helper functions. */
++
++#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
++u32 (*arch_gettimeoffset)(void);
++
++u32 gettimeoffset(void)
++{
++	if (likely(arch_gettimeoffset))
++		return arch_gettimeoffset();
++	return 0;
++}
++#else
++static inline u32 gettimeoffset(void) { return 0; }
++#endif
++
+ static inline s64 timekeeping_get_ns(struct timekeeper *tk)
+ {
+ 	cycle_t cycle_now, cycle_delta;
+@@ -157,7 +171,7 @@ static inline s64 timekeeping_get_ns(struct timekeeper *tk)
+ 	nsec >>= tk->shift;
+ 
+ 	/* If arch requires, add in gettimeoffset() */
+-	return nsec + arch_gettimeoffset();
++	return nsec + gettimeoffset();
+ }
+ 
+ static inline s64 timekeeping_get_ns_raw(struct timekeeper *tk)
+@@ -177,7 +191,7 @@ static inline s64 timekeeping_get_ns_raw(struct timekeeper *tk)
+ 	nsec = clocksource_cyc2ns(cycle_delta, clock->mult, clock->shift);
+ 
+ 	/* If arch requires, add in gettimeoffset() */
+-	return nsec + arch_gettimeoffset();
++	return nsec + gettimeoffset();
+ }
+ 
+ /* must hold write on timekeeper.lock */
+@@ -211,7 +225,7 @@ static void timekeeping_forward_now(struct timekeeper *tk)
+ 	tk->xtime_nsec += cycle_delta * tk->mult;
+ 
+ 	/* If arch requires, add in gettimeoffset() */
+-	tk->xtime_nsec += (u64)arch_gettimeoffset() << tk->shift;
++	tk->xtime_nsec += (u64)gettimeoffset() << tk->shift;
+ 
+ 	tk_normalize_xtime(tk);
+ 
 -- 
 1.7.0.4
