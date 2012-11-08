@@ -1,54 +1,135 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:45482 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751149Ab2KGUqV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 7 Nov 2012 15:46:21 -0500
-Received: by mail-lb0-f174.google.com with SMTP id n3so1635911lbo.19
-        for <linux-arch@vger.kernel.org>; Wed, 07 Nov 2012 12:46:19 -0800 (PST)
-MIME-Version: 1.0
-In-Reply-To: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
-Date: Wed, 7 Nov 2012 22:46:19 +0200
-Message-ID: <CAOtvUMfjApPtjcsqr+comm-k90YH3WHSqFXyNPwJYyUXOouTqw@mail.gmail.com>
-Subject: Re: [RFC Patch v1 00/31] Synopsys ARC Linux kernel Port
-From: Gilad Ben-Yossef <gilad@benyossef.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from avon.wwwdotorg.org ([70.85.31.133]:48404 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S964789Ab2KHVCX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Nov 2012 16:02:23 -0500
+From: Stephen Warren <swarren@wwwdotorg.org>
+Subject: [PATCH 06/11] ARM: pxa: convert timer suspend/resume to clock_event_device
+Date: Thu,  8 Nov 2012 14:01:51 -0700
+Message-ID: <1352408516-21988-8-git-send-email-swarren@wwwdotorg.org>
+In-Reply-To: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
+References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, arnd@arndb.de
-Message-ID: <20121107204619.lJfvaRwY3LVZQlzsF0Jfbwfbx44iQThwIakBaUPhrN0@z>
+To: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Eric Miao <eric.y.miao@gmail.com>, Haojian Zhuang <haojian.zhuang@gmail.com>
+Message-ID: <20121108210151.lwLpEUZbjn1E144wFLaQ5YqOITknvLCB0yO0R86aw1I@z>
 
-On Wed, Nov 7, 2012 at 11:47 AM, Vineet Gupta
-<Vineet.Gupta1@synopsys.com> wrote:
-> Hi,
->
-> This patchset based off-of 3.7-rc3, introduces the Linux kernel port to
-> ARC700 processor family (750D and 770D) from Synopsys.
+From: Stephen Warren <swarren@nvidia.com>
 
+Move PXA's timer suspend/resume functions from struct sys_timer
+pxa_timer into struct clock_event_device ckevt_pxa_osmr0. This
+will allow the sys_timer suspend/resume fields to be removed, and
+eventually lead to a complete removal of struct sys_timer.
 
-We've been using the port for 6 month now at Ezchip running on top of
-FPGA in 4 way SMP configuration (support for which will no doubt
-follow later) and have subjected it to various stress tests (hackbench
-and such) and it is working up quite well over all.
+Cc: Eric Miao <eric.y.miao@gmail.com>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Haojian Zhuang <haojian.zhuang@gmail.com>
+Signed-off-by: Stephen Warren <swarren@nvidia.com>
+---
+ arch/arm/mach-pxa/time.c |   76 +++++++++++++++++++++++-----------------------
+ 1 files changed, 38 insertions(+), 38 deletions(-)
 
-I realize some code style or organization changes might be in order
-but at the same time wanted to attest the nature of its good and
-behavior performance on real hardware; so for what it's worth:
-
-Tested-by: Gilad Ben-Yossef <gilad@benyossef.com>
-
-Cheers,
-Gilad
-
+diff --git a/arch/arm/mach-pxa/time.c b/arch/arm/mach-pxa/time.c
+index 4bc47d6..ce58bc9 100644
+--- a/arch/arm/mach-pxa/time.c
++++ b/arch/arm/mach-pxa/time.c
+@@ -89,12 +89,50 @@ pxa_osmr0_set_mode(enum clock_event_mode mode, struct clock_event_device *dev)
+ 	}
+ }
+ 
++#ifdef CONFIG_PM
++static unsigned long osmr[4], oier, oscr;
++
++static void pxa_timer_suspend(struct clock_event_device *cedev)
++{
++	osmr[0] = readl_relaxed(OSMR0);
++	osmr[1] = readl_relaxed(OSMR1);
++	osmr[2] = readl_relaxed(OSMR2);
++	osmr[3] = readl_relaxed(OSMR3);
++	oier = readl_relaxed(OIER);
++	oscr = readl_relaxed(OSCR);
++}
++
++static void pxa_timer_resume(struct clock_event_device *cedev)
++{
++	/*
++	 * Ensure that we have at least MIN_OSCR_DELTA between match
++	 * register 0 and the OSCR, to guarantee that we will receive
++	 * the one-shot timer interrupt.  We adjust OSMR0 in preference
++	 * to OSCR to guarantee that OSCR is monotonically incrementing.
++	 */
++	if (osmr[0] - oscr < MIN_OSCR_DELTA)
++		osmr[0] += MIN_OSCR_DELTA;
++
++	writel_relaxed(osmr[0], OSMR0);
++	writel_relaxed(osmr[1], OSMR1);
++	writel_relaxed(osmr[2], OSMR2);
++	writel_relaxed(osmr[3], OSMR3);
++	writel_relaxed(oier, OIER);
++	writel_relaxed(oscr, OSCR);
++}
++#else
++#define pxa_timer_suspend NULL
++#define pxa_timer_resume NULL
++#endif
++
+ static struct clock_event_device ckevt_pxa_osmr0 = {
+ 	.name		= "osmr0",
+ 	.features	= CLOCK_EVT_FEAT_ONESHOT,
+ 	.rating		= 200,
+ 	.set_next_event	= pxa_osmr0_set_next_event,
+ 	.set_mode	= pxa_osmr0_set_mode,
++	.suspend	= pxa_timer_suspend,
++	.resume		= pxa_timer_resume,
+ };
+ 
+ static struct irqaction pxa_ost0_irq = {
+@@ -127,44 +165,6 @@ static void __init pxa_timer_init(void)
+ 	clockevents_register_device(&ckevt_pxa_osmr0);
+ }
+ 
+-#ifdef CONFIG_PM
+-static unsigned long osmr[4], oier, oscr;
+-
+-static void pxa_timer_suspend(void)
+-{
+-	osmr[0] = readl_relaxed(OSMR0);
+-	osmr[1] = readl_relaxed(OSMR1);
+-	osmr[2] = readl_relaxed(OSMR2);
+-	osmr[3] = readl_relaxed(OSMR3);
+-	oier = readl_relaxed(OIER);
+-	oscr = readl_relaxed(OSCR);
+-}
+-
+-static void pxa_timer_resume(void)
+-{
+-	/*
+-	 * Ensure that we have at least MIN_OSCR_DELTA between match
+-	 * register 0 and the OSCR, to guarantee that we will receive
+-	 * the one-shot timer interrupt.  We adjust OSMR0 in preference
+-	 * to OSCR to guarantee that OSCR is monotonically incrementing.
+-	 */
+-	if (osmr[0] - oscr < MIN_OSCR_DELTA)
+-		osmr[0] += MIN_OSCR_DELTA;
+-
+-	writel_relaxed(osmr[0], OSMR0);
+-	writel_relaxed(osmr[1], OSMR1);
+-	writel_relaxed(osmr[2], OSMR2);
+-	writel_relaxed(osmr[3], OSMR3);
+-	writel_relaxed(oier, OIER);
+-	writel_relaxed(oscr, OSCR);
+-}
+-#else
+-#define pxa_timer_suspend NULL
+-#define pxa_timer_resume NULL
+-#endif
+-
+ struct sys_timer pxa_timer = {
+ 	.init		= pxa_timer_init,
+-	.suspend	= pxa_timer_suspend,
+-	.resume		= pxa_timer_resume,
+ };
 -- 
-Gilad Ben-Yossef
-Chief Coffee Drinker
-gilad@benyossef.com
-Israel Cell: +972-52-8260388
-US Cell: +1-973-8260388
-http://benyossef.com
+1.7.0.4
 
-"If you take a class in large-scale robotics, can you end up in a
-situation where the homework eats your dog?"
- -- Jean-Baptiste Queru
