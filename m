@@ -1,134 +1,121 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:48404 "EHLO
+Received: from avon.wwwdotorg.org ([70.85.31.133]:46176 "EHLO
 	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S964789Ab2KHVCX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Nov 2012 16:02:23 -0500
+	with ESMTP id S964832Ab2KHVCZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Nov 2012 16:02:25 -0500
 From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: [PATCH 06/11] ARM: pxa: convert timer suspend/resume to clock_event_device
-Date: Thu,  8 Nov 2012 14:01:51 -0700
-Message-ID: <1352408516-21988-8-git-send-email-swarren@wwwdotorg.org>
+Subject: [PATCH 07/11] ARM: sa1100: convert timer suspend/resume to clock_event_device
+Date: Thu,  8 Nov 2012 14:01:52 -0700
+Message-ID: <1352408516-21988-9-git-send-email-swarren@wwwdotorg.org>
 In-Reply-To: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
 References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Eric Miao <eric.y.miao@gmail.com>, Haojian Zhuang <haojian.zhuang@gmail.com>
-Message-ID: <20121108210151.lwLpEUZbjn1E144wFLaQ5YqOITknvLCB0yO0R86aw1I@z>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>
+Message-ID: <20121108210152.xzaqq3FFSu9QKHuskU0joaml4NWuAaQKLpp5hiwGn1w@z>
 
 From: Stephen Warren <swarren@nvidia.com>
 
-Move PXA's timer suspend/resume functions from struct sys_timer
-pxa_timer into struct clock_event_device ckevt_pxa_osmr0. This
+Move sa1100's timer suspend/resume functions from struct sys_timer
+sa1100_timer into struct clock_event_device ckevt_sa1100_osmr0. This
 will allow the sys_timer suspend/resume fields to be removed, and
 eventually lead to a complete removal of struct sys_timer.
 
-Cc: Eric Miao <eric.y.miao@gmail.com>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Haojian Zhuang <haojian.zhuang@gmail.com>
 Signed-off-by: Stephen Warren <swarren@nvidia.com>
 ---
- arch/arm/mach-pxa/time.c |   76 +++++++++++++++++++++++-----------------------
- 1 files changed, 38 insertions(+), 38 deletions(-)
+ arch/arm/mach-sa1100/time.c |   66 +++++++++++++++++++++---------------------
+ 1 files changed, 33 insertions(+), 33 deletions(-)
 
-diff --git a/arch/arm/mach-pxa/time.c b/arch/arm/mach-pxa/time.c
-index 4bc47d6..ce58bc9 100644
---- a/arch/arm/mach-pxa/time.c
-+++ b/arch/arm/mach-pxa/time.c
-@@ -89,12 +89,50 @@ pxa_osmr0_set_mode(enum clock_event_mode mode, struct clock_event_device *dev)
+diff --git a/arch/arm/mach-sa1100/time.c b/arch/arm/mach-sa1100/time.c
+index 80702c9..164f827 100644
+--- a/arch/arm/mach-sa1100/time.c
++++ b/arch/arm/mach-sa1100/time.c
+@@ -69,12 +69,45 @@ sa1100_osmr0_set_mode(enum clock_event_mode mode, struct clock_event_device *c)
  	}
  }
  
 +#ifdef CONFIG_PM
-+static unsigned long osmr[4], oier, oscr;
++unsigned long osmr[4], oier;
 +
-+static void pxa_timer_suspend(struct clock_event_device *cedev)
++static void sa1100_timer_suspend(struct clock_event_device *cedev)
 +{
 +	osmr[0] = readl_relaxed(OSMR0);
 +	osmr[1] = readl_relaxed(OSMR1);
 +	osmr[2] = readl_relaxed(OSMR2);
 +	osmr[3] = readl_relaxed(OSMR3);
 +	oier = readl_relaxed(OIER);
-+	oscr = readl_relaxed(OSCR);
 +}
 +
-+static void pxa_timer_resume(struct clock_event_device *cedev)
++static void sa1100_timer_resume(struct clock_event_device *cedev)
 +{
-+	/*
-+	 * Ensure that we have at least MIN_OSCR_DELTA between match
-+	 * register 0 and the OSCR, to guarantee that we will receive
-+	 * the one-shot timer interrupt.  We adjust OSMR0 in preference
-+	 * to OSCR to guarantee that OSCR is monotonically incrementing.
-+	 */
-+	if (osmr[0] - oscr < MIN_OSCR_DELTA)
-+		osmr[0] += MIN_OSCR_DELTA;
-+
++	writel_relaxed(0x0f, OSSR);
 +	writel_relaxed(osmr[0], OSMR0);
 +	writel_relaxed(osmr[1], OSMR1);
 +	writel_relaxed(osmr[2], OSMR2);
 +	writel_relaxed(osmr[3], OSMR3);
 +	writel_relaxed(oier, OIER);
-+	writel_relaxed(oscr, OSCR);
++
++	/*
++	 * OSMR0 is the system timer: make sure OSCR is sufficiently behind
++	 */
++	writel_relaxed(OSMR0 - LATCH, OSCR);
 +}
 +#else
-+#define pxa_timer_suspend NULL
-+#define pxa_timer_resume NULL
++#define sa1100_timer_suspend NULL
++#define sa1100_timer_resume NULL
 +#endif
 +
- static struct clock_event_device ckevt_pxa_osmr0 = {
+ static struct clock_event_device ckevt_sa1100_osmr0 = {
  	.name		= "osmr0",
  	.features	= CLOCK_EVT_FEAT_ONESHOT,
  	.rating		= 200,
- 	.set_next_event	= pxa_osmr0_set_next_event,
- 	.set_mode	= pxa_osmr0_set_mode,
-+	.suspend	= pxa_timer_suspend,
-+	.resume		= pxa_timer_resume,
+ 	.set_next_event	= sa1100_osmr0_set_next_event,
+ 	.set_mode	= sa1100_osmr0_set_mode,
++	.suspend	= sa1100_timer_suspend,
++	.resume		= sa1100_timer_resume,
  };
  
- static struct irqaction pxa_ost0_irq = {
-@@ -127,44 +165,6 @@ static void __init pxa_timer_init(void)
- 	clockevents_register_device(&ckevt_pxa_osmr0);
+ static struct irqaction sa1100_timer_irq = {
+@@ -105,39 +138,6 @@ static void __init sa1100_timer_init(void)
+ 	clockevents_register_device(&ckevt_sa1100_osmr0);
  }
  
 -#ifdef CONFIG_PM
--static unsigned long osmr[4], oier, oscr;
+-unsigned long osmr[4], oier;
 -
--static void pxa_timer_suspend(void)
+-static void sa1100_timer_suspend(void)
 -{
 -	osmr[0] = readl_relaxed(OSMR0);
 -	osmr[1] = readl_relaxed(OSMR1);
 -	osmr[2] = readl_relaxed(OSMR2);
 -	osmr[3] = readl_relaxed(OSMR3);
 -	oier = readl_relaxed(OIER);
--	oscr = readl_relaxed(OSCR);
 -}
 -
--static void pxa_timer_resume(void)
+-static void sa1100_timer_resume(void)
 -{
--	/*
--	 * Ensure that we have at least MIN_OSCR_DELTA between match
--	 * register 0 and the OSCR, to guarantee that we will receive
--	 * the one-shot timer interrupt.  We adjust OSMR0 in preference
--	 * to OSCR to guarantee that OSCR is monotonically incrementing.
--	 */
--	if (osmr[0] - oscr < MIN_OSCR_DELTA)
--		osmr[0] += MIN_OSCR_DELTA;
--
+-	writel_relaxed(0x0f, OSSR);
 -	writel_relaxed(osmr[0], OSMR0);
 -	writel_relaxed(osmr[1], OSMR1);
 -	writel_relaxed(osmr[2], OSMR2);
 -	writel_relaxed(osmr[3], OSMR3);
 -	writel_relaxed(oier, OIER);
--	writel_relaxed(oscr, OSCR);
+-
+-	/*
+-	 * OSMR0 is the system timer: make sure OSCR is sufficiently behind
+-	 */
+-	writel_relaxed(OSMR0 - LATCH, OSCR);
 -}
 -#else
--#define pxa_timer_suspend NULL
--#define pxa_timer_resume NULL
+-#define sa1100_timer_suspend NULL
+-#define sa1100_timer_resume NULL
 -#endif
 -
- struct sys_timer pxa_timer = {
- 	.init		= pxa_timer_init,
--	.suspend	= pxa_timer_suspend,
--	.resume		= pxa_timer_resume,
+ struct sys_timer sa1100_timer = {
+ 	.init		= sa1100_timer_init,
+-	.suspend	= sa1100_timer_suspend,
+-	.resume		= sa1100_timer_resume,
  };
 -- 
 1.7.0.4
