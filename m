@@ -1,47 +1,40 @@
-From: Gilad Ben-Yossef <gilad@benyossef.com>
-Subject: Re: [RFC Patch v1 00/31] Synopsys ARC Linux kernel Port
-Date: Wed, 7 Nov 2012 22:46:19 +0200
-Message-ID: <CAOtvUMfjApPtjcsqr+comm-k90YH3WHSqFXyNPwJYyUXOouTqw@mail.gmail.com>
+From: Jonas Bonn <jonas.bonn@gmail.com>
+Subject: Re: [RFC PATCH v1 08/31] ARC: Fundamental ARCH data-types/defines
+Date: Thu, 8 Nov 2012 08:10:34 +0100
+Message-ID: <CACM3HyHYiuhGb6tcY0kS43y+kquWF11Du+g45pzoJukSpE0ANw@mail.gmail.com>
 References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
+	<1352281674-2186-9-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-bk0-f46.google.com ([209.85.214.46]:33060 "EHLO
+	mail-bk0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754993Ab2KHHKf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Nov 2012 02:10:35 -0500
+In-Reply-To: <1352281674-2186-9-git-send-email-vgupta@synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, arnd@arndb.de
-List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 7, 2012 at 11:47 AM, Vineet Gupta
-<Vineet.Gupta1@synopsys.com> wrote:
-> Hi,
->
-> This patchset based off-of 3.7-rc3, introduces the Linux kernel port to
-> ARC700 processor family (750D and 770D) from Synopsys.
+On 7 November 2012 10:47, Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
+> diff --git a/arch/arc/include/asm/ptrace.h b/arch/arc/include/asm/ptrace.h
+> new file mode 100644
+> index 0000000..c178357
+> --- /dev/null
+> +++ b/arch/arc/include/asm/ptrace.h
+> @@ -0,0 +1,120 @@
+> +/* THE pt_regs: Defines how regs are saved during entry into kernel */
+> +
+> +struct pt_regs {
 
+I'd recommend not exporting the pt_regs structure to userspace.  This
+struct is used heavily within the kernel and it's nice to have the
+leeway to be able to modify it as things evolve.  GDB doesn't need to
+know about this struct anymore as it should be using regset's for any
+recent architectures anyway, so it's the regset layout that should be
+ABI stable instead of pt_regs.
 
-We've been using the port for 6 month now at Ezchip running on top of
-FPGA in 4 way SMP configuration (support for which will no doubt
-follow later) and have subjected it to various stress tests (hackbench
-and such) and it is working up quite well over all.
+You can check the openrisc architecture as an example of how to do this.
 
-I realize some code style or organization changes might be in order
-but at the same time wanted to attest the nature of its good and
-behavior performance on real hardware; so for what it's worth:
-
-Tested-by: Gilad Ben-Yossef <gilad@benyossef.com>
-
-Cheers,
-Gilad
-
--- 
-Gilad Ben-Yossef
-Chief Coffee Drinker
-gilad@benyossef.com
-Israel Cell: +972-52-8260388
-US Cell: +1-973-8260388
-http://benyossef.com
-
-"If you take a class in large-scale robotics, can you end up in a
-situation where the homework eats your dog?"
- -- Jean-Baptiste Queru
+/Jonas
