@@ -1,22 +1,78 @@
-From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: Re: [PATCH] ARM: delete struct sys_timer
-Date: Thu, 08 Nov 2012 14:04:28 -0700
-Message-ID: <509C1E5C.3060306@wwwdotorg.org>
-References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org> <1352408516-21988-2-git-send-email-swarren@wwwdotorg.org>
+From: Ryan Mallon <rmallon@gmail.com>
+Subject: Re: [PATCH 04/11] ARM: set arch_gettimeoffset directly
+Date: Fri, 09 Nov 2012 10:06:15 +1100
+Message-ID: <509C3AE7.7030703@gmail.com>
+References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org> <1352408516-21988-6-git-send-email-swarren@wwwdotorg.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1352408516-21988-2-git-send-email-swarren@wwwdotorg.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, linux-kernel@vger.kernel.org, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-pb0-f46.google.com ([209.85.160.46]:38241 "EHLO
+	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756742Ab2KHXGY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Nov 2012 18:06:24 -0500
+In-Reply-To: <1352408516-21988-6-git-send-email-swarren@wwwdotorg.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Andrew Victor <linux@maxim.org.za>, Nicolas Ferre <nicolas.ferre@atmel.com>, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>, Hartley Sweeten <hsweeten@visionengravers.com>, Ben Dooks <ben-linux@fluff.org>, Kukjin Kim <kgene.kim@samsung.com>
 
-On 11/08/2012 02:01 PM, Stephen Warren wrote:
-> Now that the only field in struct sys_timer is .init, delete the struct,
-> and replace the machine descriptor .timer field with the initialization
-> function itself.
+On 09/11/12 08:01, Stephen Warren wrote:
+> From: Stephen Warren <swarren@nvidia.com>
+> 
+> remove ARM's struct sys_timer .offset function pointer, and instead
+> directly set the arch_gettimeoffset function pointer when the timer
+> driver is initialized. This requires multiplying all function results
+> by 1000, since the removed arm_gettimeoffset() did this. Also,
+> s/unsigned long/u32/ just to make the function prototypes exactly
+> match that of arch_gettimeoffset.
+> 
+> Cc: Russell King <linux@arm.linux.org.uk>
+> Cc: Andrew Victor <linux@maxim.org.za>
+> Cc: Nicolas Ferre <nicolas.ferre@atmel.com>
+> Cc: Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>
+> Cc: Hartley Sweeten <hsweeten@visionengravers.com>
+> Cc: Ryan Mallon <rmallon@gmail.com>
+> Cc: Ben Dooks <ben-linux@fluff.org>
+> Cc: Kukjin Kim <kgene.kim@samsung.com>
+> Signed-off-by: Stephen Warren <swarren@nvidia.com>
+> ---
+>  arch/arm/include/asm/mach/time.h  |    3 ---
+>  arch/arm/kernel/time.c            |   14 --------------
+>  arch/arm/mach-at91/at91x40_time.c |    8 +++++---
+>  arch/arm/mach-ebsa110/core.c      |    7 ++++---
+>  arch/arm/mach-ep93xx/core.c       |   23 ++++++++++++-----------
+>  arch/arm/mach-h720x/common.c      |    6 +++---
+>  arch/arm/mach-h720x/common.h      |    2 +-
+>  arch/arm/mach-h720x/cpu-h7201.c   |    3 ++-
+>  arch/arm/mach-h720x/cpu-h7202.c   |    3 ++-
+>  arch/arm/mach-rpc/time.c          |    6 +++---
+>  arch/arm/plat-samsung/time.c      |    7 ++++---
+>  11 files changed, 36 insertions(+), 46 deletions(-)
 
-Oops. This one patch is a duplicate of 11/11 in the series I just sent.
-Sorry.
+<snip>
+
+> +static u32 ep93xx_gettimeoffset(void)
+> +{
+> +	int offset;
+> +
+> +	offset = __raw_readl(EP93XX_TIMER4_VALUE_LOW) - last_jiffy_time;
+> +
+> +	/* Calculate (1000000 / 983040) * offset.  */
+
+This comment is now incorrect, it should say:
+
+	/* Calculate (1000000000 / 983040) * offset */
+
+or perhaps to better explain what is being done:
+
+	/*
+	 * Timer 4 is based on a 983.04 kHz reference clock,
+	 * so dividing by 983040 gives a milli-second value.
+	 * Refactor the calculation to avoid overflow.
+	 */
+
+> +	return (offset + (53 * offset / 3072)) * 1000;
+> +}
+
+~Ryan
