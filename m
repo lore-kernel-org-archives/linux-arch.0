@@ -1,78 +1,55 @@
-From: Ryan Mallon <rmallon@gmail.com>
-Subject: Re: [PATCH 04/11] ARM: set arch_gettimeoffset directly
-Date: Fri, 09 Nov 2012 10:06:15 +1100
-Message-ID: <509C3AE7.7030703@gmail.com>
-References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org> <1352408516-21988-6-git-send-email-swarren@wwwdotorg.org>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+From: David Howells <dhowells@redhat.com>
+Subject: Re: UAPI for new arches (was Re: [GIT PULL] User API Disintegrate: Preparatory patches)
+Date: Thu, 08 Nov 2012 23:19:48 +0000
+Message-ID: <14356.1352416788@warthog.procyon.org.uk>
+References: <C2D7FE5348E1B147BCA15975FBA230750D9832@in01wembx1.internal.synopsys.com> <509251CA.8050008@synopsys.com> <18137.1349203013@warthog.procyon.org.uk> <CAAG0J9_gYLn5+4j9WUnPmxWyJfQK_b8e5xjxZdRPG21euXoCFg@mail.gmail.com> <CAAG0J9_LZ5Q1fNdcbSOyieesabkqcTMT0ueEDLXmemV2C_+F=g@mail.gmail.com>,<8419.1352387261@warthog.procyon.org.uk>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f46.google.com ([209.85.160.46]:38241 "EHLO
-	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756742Ab2KHXGY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Nov 2012 18:06:24 -0500
-In-Reply-To: <1352408516-21988-6-git-send-email-swarren@wwwdotorg.org>
+Received: from mx1.redhat.com ([209.132.183.28]:63547 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751425Ab2KHXUd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 8 Nov 2012 18:20:33 -0500
+In-Reply-To: <C2D7FE5348E1B147BCA15975FBA230750D9832@in01wembx1.internal.synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Andrew Victor <linux@maxim.org.za>, Nicolas Ferre <nicolas.ferre@atmel.com>, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>, Hartley Sweeten <hsweeten@visionengravers.com>, Ben Dooks <ben-linux@fluff.org>, Kukjin Kim <kgene.kim@samsung.com>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: dhowells@redhat.com, James Hogan <james@albanarts.com>, "torvalds@osdl.org" <torvalds@osdl.org>, "arnd@arndb.de" <arnd@arndb.de>, "hpa@zytor.com" <hpa@zytor.com>, "alan@lxorguk.ukuu.org.uk" <alan@lxorguk.ukuu.org.uk>, "fengguang.wu@intel.com" <fengguang.wu@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "arc-linux-dev@synopsys.com" <arc-linux-dev@synopsys.com>
 
-On 09/11/12 08:01, Stephen Warren wrote:
-> From: Stephen Warren <swarren@nvidia.com>
-> 
-> remove ARM's struct sys_timer .offset function pointer, and instead
-> directly set the arch_gettimeoffset function pointer when the timer
-> driver is initialized. This requires multiplying all function results
-> by 1000, since the removed arm_gettimeoffset() did this. Also,
-> s/unsigned long/u32/ just to make the function prototypes exactly
-> match that of arch_gettimeoffset.
-> 
-> Cc: Russell King <linux@arm.linux.org.uk>
-> Cc: Andrew Victor <linux@maxim.org.za>
-> Cc: Nicolas Ferre <nicolas.ferre@atmel.com>
-> Cc: Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>
-> Cc: Hartley Sweeten <hsweeten@visionengravers.com>
-> Cc: Ryan Mallon <rmallon@gmail.com>
-> Cc: Ben Dooks <ben-linux@fluff.org>
-> Cc: Kukjin Kim <kgene.kim@samsung.com>
-> Signed-off-by: Stephen Warren <swarren@nvidia.com>
-> ---
->  arch/arm/include/asm/mach/time.h  |    3 ---
->  arch/arm/kernel/time.c            |   14 --------------
->  arch/arm/mach-at91/at91x40_time.c |    8 +++++---
->  arch/arm/mach-ebsa110/core.c      |    7 ++++---
->  arch/arm/mach-ep93xx/core.c       |   23 ++++++++++++-----------
->  arch/arm/mach-h720x/common.c      |    6 +++---
->  arch/arm/mach-h720x/common.h      |    2 +-
->  arch/arm/mach-h720x/cpu-h7201.c   |    3 ++-
->  arch/arm/mach-h720x/cpu-h7202.c   |    3 ++-
->  arch/arm/mach-rpc/time.c          |    6 +++---
->  arch/arm/plat-samsung/time.c      |    7 ++++---
->  11 files changed, 36 insertions(+), 46 deletions(-)
+Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
 
-<snip>
+> While I'd done some of the prep work in my code such as splitting __KERNEL__
+> && __ASSEMBLY__ into two separate lines, majority of orig headers didn't
+> have #ifdef __KERNEL__ guard despite the code not being meant for user-space
+> ABI. Is that fundamental to UAPI split scripting
 
-> +static u32 ep93xx_gettimeoffset(void)
-> +{
-> +	int offset;
-> +
-> +	offset = __raw_readl(EP93XX_TIMER4_VALUE_LOW) - last_jiffy_time;
-> +
-> +	/* Calculate (1000000 / 983040) * offset.  */
+Yes.  My scripts work purely along __KERNEL__ lines.  If there are no
+__KERNEL__ markers and the header is marked for export, it is simply moved.
 
-This comment is now incorrect, it should say:
+> because it seems to be causing setup.h to be in uapi despite seemingly being
+> kernel internal only.
 
-	/* Calculate (1000000000 / 983040) * offset */
+Check also include/uapi/asm-generic/Kbuild.asm.  That exports setup.h, whether
+you think it should be exported or not.
 
-or perhaps to better explain what is being done:
+Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
 
-	/*
-	 * Timer 4 is based on a 983.04 kHz reference clock,
-	 * so dividing by 983040 gives a milli-second value.
-	 * Refactor the calculation to avoid overflow.
-	 */
+> Per you email from last week, When I ran the disintergrate-one.pl script
+> myself I saw a whole bunch of empty UAPI files being generated with
+> references in orig header.  I'm not sure what I'm doing wrong.
 
-> +	return (offset + (53 * offset / 3072)) * 1000;
-> +}
+Can you give an example of such a header?
 
-~Ryan
+> For any ABI changes to headers per review of the new port on list
+> (e.g. don't export pt_regs) would mean moving the code manually from uapi to
+> orig header - right. And if the file becomes empty just nuke it completely.
+
+You can't necessarily remove a UAPI header completely.  Userspace may depend
+on its existence, even if it gets no content from there.
+
+> How do you reckon we go about fixing these. I don't want to bother you
+> multiple times hence it would be best if I could reproduce this at my end.
+
+The best advice I can give you without more specific examples is to compare
+what's in your arch's headers to those of, say, hexagon or arm64.  Those are
+recent additions and should be pretty clean as to what they contain.
+
+David
