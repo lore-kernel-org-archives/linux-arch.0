@@ -1,40 +1,31 @@
-From: Jonas Bonn <jonas.bonn@gmail.com>
-Subject: Re: [RFC PATCH v1 14/40] metag: Ptrace
-Date: Thu, 8 Nov 2012 08:17:20 +0100
-Message-ID: <CACM3HyFrzGXh0QMnw0OdxKu6PFzFacJma=0WH9LEYj3SCa=cJA@mail.gmail.com>
-References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com>
-	<1351700061-7203-15-git-send-email-james.hogan@imgtec.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+From: David Howells <dhowells@redhat.com>
+Subject: Re: UAPI for new arches (was Re: [GIT PULL] User API Disintegrate: Preparatory patches)
+Date: Thu, 08 Nov 2012 12:38:31 +0000
+Message-ID: <1171.1352378311@warthog.procyon.org.uk>
+References: <509251CA.8050008@synopsys.com> <18137.1349203013@warthog.procyon.org.uk> <CAAG0J9_gYLn5+4j9WUnPmxWyJfQK_b8e5xjxZdRPG21euXoCFg@mail.gmail.com> <CAAG0J9_LZ5Q1fNdcbSOyieesabkqcTMT0ueEDLXmemV2C_+F=g@mail.gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-bk0-f46.google.com ([209.85.214.46]:61359 "EHLO
-	mail-bk0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753716Ab2KHHRV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Nov 2012 02:17:21 -0500
-Received: by mail-bk0-f46.google.com with SMTP id jk13so1010441bkc.19
-        for <linux-arch@vger.kernel.org>; Wed, 07 Nov 2012 23:17:20 -0800 (PST)
-In-Reply-To: <1351700061-7203-15-git-send-email-james.hogan@imgtec.com>
+Received: from mx1.redhat.com ([209.132.183.28]:16516 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751118Ab2KHMix (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 8 Nov 2012 07:38:53 -0500
+In-Reply-To: <509251CA.8050008@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: linux-arch@vger.kernel.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: dhowells@redhat.com, James Hogan <james@albanarts.com>, torvalds@osdl.org, arnd@arndb.de, hpa@zytor.com, alan@lxorguk.ukuu.org.uk, fengguang.wu@intel.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On 31 October 2012 17:13, James Hogan <james.hogan@imgtec.com> wrote:
-> We use the non-generic interface at the moment (exposing the TBX context
-> structures to userland), pending conversion to the generic ptrace
-> interface.
->
+Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
 
-Hi James,
+> I'm planning to submit ARC Linux kernel port (from Synopsys) for review
+> on lkml and arch mailing lists. I already have a a 3.7-rc3 based kernel
+> (modulo the arch UAPI split). What would be the best way to get the UAPI
+> split done.
 
-Comment 1, as you already mentioned in the blurb, is to use the
-generic ptrace interface... a lot of your ptrace functions aren't need
-anymore.
-Comment 2, is to avoid exporting the struct pt_regs to userspace.  GDB
-should be using regsets for accessing the current context for new
-architectures and doesn't need to know about the pt_regs layout
-anymore.  Not exporting pt_regs gains you the flexibility to optimize
-context saving in the future if you figure out a better (e.g. cache
-friendlier) way of saving your registers at exception time.
+Do you want the headers to be split in the patches that add them, or would you
+be happy with one patch stacked on the end to do the whole lot?  The last is
+easiest for me to do.
 
-/Jonas
+However, I could 'uncommit' your patches using stgit, do the headers
+individually and recommit them if you'd prefer.
+
+David
