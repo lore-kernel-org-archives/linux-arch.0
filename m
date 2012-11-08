@@ -1,118 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:34675 "EHLO
+Received: from avon.wwwdotorg.org ([70.85.31.133]:33269 "EHLO
 	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S964813Ab2KHVCV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Nov 2012 16:02:21 -0500
+	with ESMTP id S964849Ab2KHVC1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Nov 2012 16:02:27 -0500
 From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: [PATCH 05/11] ARM: at91: convert timer suspend/resume to clock_event_device
-Date: Thu,  8 Nov 2012 14:01:50 -0700
-Message-ID: <1352408516-21988-7-git-send-email-swarren@wwwdotorg.org>
+Subject: [PATCH 08/11] ARM: ux500: convert timer suspend/resume to clock_event_device
+Date: Thu,  8 Nov 2012 14:01:53 -0700
+Message-ID: <1352408516-21988-10-git-send-email-swarren@wwwdotorg.org>
 In-Reply-To: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
 References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Andrew Victor <linux@maxim.org.za>, Nicolas Ferre <nicolas.ferre@atmel.com>, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>
-Message-ID: <20121108210150.GOs4K9ufoVoaMt-QePiXAiOPU1CKDNVg3FbwT7o5Cwc@z>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>, Linus Walleij <linus.walleij@linaro.org>
+Message-ID: <20121108210153.6xPUgwNX8_STSUFJ9JnoSgRiWcg0JwwqzwhO9cNfrts@z>
 
 From: Stephen Warren <swarren@nvidia.com>
 
-Move at91's timer suspend/resume functions from struct sys_timer
-at91sam926x_timer into struct clock_event_device pit_clkevt. This
+Move ux500's timer suspend/resume functions from struct sys_timer
+ux500_timer into struct clock_event_device nmdk_clkevt. This
 will allow the sys_timer suspend/resume fields to be removed, and
 eventually lead to a complete removal of struct sys_timer.
 
-Cc: Andrew Victor <linux@maxim.org.za>
-Cc: Nicolas Ferre <nicolas.ferre@atmel.com>
-Cc: Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>
+Cc: Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>
+Cc: Linus Walleij <linus.walleij@linaro.org>
 Signed-off-by: Stephen Warren <swarren@nvidia.com>
 ---
- arch/arm/mach-at91/at91sam926x_time.c |   47 ++++++++++++++++++--------------
- 1 files changed, 26 insertions(+), 21 deletions(-)
+ arch/arm/mach-ux500/timer.c       |    7 -------
+ drivers/clocksource/nomadik-mtu.c |   33 ++++++++++++++++++++-------------
+ 2 files changed, 20 insertions(+), 20 deletions(-)
 
-diff --git a/arch/arm/mach-at91/at91sam926x_time.c b/arch/arm/mach-at91/at91sam926x_time.c
-index ffc0957..2794882 100644
---- a/arch/arm/mach-at91/at91sam926x_time.c
-+++ b/arch/arm/mach-at91/at91sam926x_time.c
-@@ -94,12 +94,38 @@ pit_clkevt_mode(enum clock_event_mode mode, struct clock_event_device *dev)
+diff --git a/arch/arm/mach-ux500/timer.c b/arch/arm/mach-ux500/timer.c
+index 875309a..46a7244 100644
+--- a/arch/arm/mach-ux500/timer.c
++++ b/arch/arm/mach-ux500/timer.c
+@@ -100,13 +100,6 @@ dt_fail:
+ 	ux500_twd_init();
+ }
+ 
+-static void ux500_timer_reset(void)
+-{
+-	nmdk_clkevt_reset();
+-	nmdk_clksrc_reset();
+-}
+-
+ struct sys_timer ux500_timer = {
+ 	.init		= ux500_timer_init,
+-	.resume		= ux500_timer_reset,
+ };
+diff --git a/drivers/clocksource/nomadik-mtu.c b/drivers/clocksource/nomadik-mtu.c
+index 23c780b..a60b077 100644
+--- a/drivers/clocksource/nomadik-mtu.c
++++ b/drivers/clocksource/nomadik-mtu.c
+@@ -134,12 +134,32 @@ static void nmdk_clkevt_mode(enum clock_event_mode mode,
  	}
  }
  
-+static void at91sam926x_pit_suspend(struct clock_event_device *cedev)
++void nmdk_clksrc_reset(void)
 +{
-+	/* Disable timer */
-+	pit_write(AT91_PIT_MR, 0);
++	/* Disable */
++	writel(0, mtu_base + MTU_CR(0));
++
++	/* ClockSource: configure load and background-load, and fire it up */
++	writel(nmdk_cycle, mtu_base + MTU_LR(0));
++	writel(nmdk_cycle, mtu_base + MTU_BGLR(0));
++
++	writel(clk_prescale | MTU_CRn_32BITS | MTU_CRn_ENA,
++	       mtu_base + MTU_CR(0));
 +}
 +
-+static void at91sam926x_pit_reset(void)
++static void nmdk_clkevt_resume(struct clock_event_device *cedev)
 +{
-+	/* Disable timer and irqs */
-+	pit_write(AT91_PIT_MR, 0);
-+
-+	/* Clear any pending interrupts, wait for PIT to stop counting */
-+	while (PIT_CPIV(pit_read(AT91_PIT_PIVR)) != 0)
-+		cpu_relax();
-+
-+	/* Start PIT but don't enable IRQ */
-+	pit_write(AT91_PIT_MR, (pit_cycle - 1) | AT91_PIT_PITEN);
++	nmdk_clkevt_reset();
++	nmdk_clksrc_reset();
 +}
 +
-+static void at91sam926x_pit_resume(struct clock_event_device *cedev)
-+{
-+	at91sam926x_pit_reset();
-+}
-+
- static struct clock_event_device pit_clkevt = {
- 	.name		= "pit",
- 	.features	= CLOCK_EVT_FEAT_PERIODIC,
- 	.shift		= 32,
- 	.rating		= 100,
- 	.set_mode	= pit_clkevt_mode,
-+	.suspend	= at91sam926x_pit_suspend,
-+	.resume		= at91sam926x_pit_resume,
+ static struct clock_event_device nmdk_clkevt = {
+ 	.name		= "mtu_1",
+ 	.features	= CLOCK_EVT_FEAT_ONESHOT | CLOCK_EVT_FEAT_PERIODIC,
+ 	.rating		= 200,
+ 	.set_mode	= nmdk_clkevt_mode,
+ 	.set_next_event	= nmdk_clkevt_next,
++	.resume		= nmdk_clkevt_resume,
  };
  
- 
-@@ -140,19 +166,6 @@ static struct irqaction at91sam926x_pit_irq = {
- 	.irq		= NR_IRQS_LEGACY + AT91_ID_SYS,
+ /*
+@@ -161,19 +181,6 @@ static struct irqaction nmdk_timer_irq = {
+ 	.dev_id		= &nmdk_clkevt,
  };
  
--static void at91sam926x_pit_reset(void)
+-void nmdk_clksrc_reset(void)
 -{
--	/* Disable timer and irqs */
--	pit_write(AT91_PIT_MR, 0);
+-	/* Disable */
+-	writel(0, mtu_base + MTU_CR(0));
 -
--	/* Clear any pending interrupts, wait for PIT to stop counting */
--	while (PIT_CPIV(pit_read(AT91_PIT_PIVR)) != 0)
--		cpu_relax();
+-	/* ClockSource: configure load and background-load, and fire it up */
+-	writel(nmdk_cycle, mtu_base + MTU_LR(0));
+-	writel(nmdk_cycle, mtu_base + MTU_BGLR(0));
 -
--	/* Start PIT but don't enable IRQ */
--	pit_write(AT91_PIT_MR, (pit_cycle - 1) | AT91_PIT_PITEN);
+-	writel(clk_prescale | MTU_CRn_32BITS | MTU_CRn_ENA,
+-	       mtu_base + MTU_CR(0));
 -}
 -
- #ifdef CONFIG_OF
- static struct of_device_id pit_timer_ids[] = {
- 	{ .compatible = "atmel,at91sam9260-pit" },
-@@ -240,12 +253,6 @@ static void __init at91sam926x_pit_init(void)
- 	clockevents_register_device(&pit_clkevt);
- }
- 
--static void at91sam926x_pit_suspend(void)
--{
--	/* Disable timer */
--	pit_write(AT91_PIT_MR, 0);
--}
--
- void __init at91sam926x_ioremap_pit(u32 addr)
+ void __init nmdk_timer_init(void __iomem *base, int irq)
  {
- #if defined(CONFIG_OF)
-@@ -265,6 +272,4 @@ void __init at91sam926x_ioremap_pit(u32 addr)
- 
- struct sys_timer at91sam926x_timer = {
- 	.init		= at91sam926x_pit_init,
--	.suspend	= at91sam926x_pit_suspend,
--	.resume		= at91sam926x_pit_reset,
- };
+ 	unsigned long rate;
 -- 
 1.7.0.4
 
