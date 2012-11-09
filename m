@@ -1,97 +1,66 @@
 From: James Hogan <james.hogan@imgtec.com>
 Subject: Re: [RFC PATCH v1 00/40] Meta Linux Kernel Port
-Date: Fri, 9 Nov 2012 16:20:31 +0000
-Message-ID: <509D2D4F.20304@imgtec.com>
-References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <201211091506.14940.arnd@arndb.de> <509D1F8C.4040501@imgtec.com> <201211091558.48022.arnd@arndb.de>
+Date: Fri, 9 Nov 2012 16:52:07 +0000
+Message-ID: <509D34B7.1040300@imgtec.com>
+References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <20121031223331.GA2764@thor.bakeyournoodle.com> <50926014.1080804@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:56868 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:55568 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752420Ab2KIQUg (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 9 Nov 2012 11:20:36 -0500
-In-Reply-To: <201211091558.48022.arnd@arndb.de>
+	id S1753541Ab2KIQwK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 9 Nov 2012 11:52:10 -0500
+In-Reply-To: <50926014.1080804@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+To: Tony Breeds <tony@bakeyournoodle.com>
 Cc: linux-arch <linux-arch@vger.kernel.org>
 
-On 09/11/12 15:58, Arnd Bergmann wrote:
-> On Friday 09 November 2012, James Hogan wrote:
->> On 09/11/12 15:06, Arnd Bergmann wrote:
->>> On Wednesday 31 October 2012, James Hogan wrote:
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA1
+
+On 01/11/12 11:42, James Hogan wrote:
+> On 31/10/12 22:33, Tony Breeds wrote:
+>> On Wed, Oct 31, 2012 at 04:13:41PM +0000, James Hogan wrote:
+>>> This patchset adds core architecture support to Linux for 
+>>> Imagination's Meta ATP (Meta 1) and HTP (Meta 2) processor
+>>> cores. It is primarily an RFC patchset to get some early
+>>> feedback about what changes we need to make, although of course
+>>> all feedback is most welcome.
 > 
->>>> + * Despite being a 32bit architecture, Meta can do 64bit memory accesses
->>>> + * (assuming the bus supports it).
->>>> + */
->>>> +
->>>> +static inline u64 __raw_readq(const volatile void __iomem *addr)
->>>> +{
->>>> +	return *(const volatile u64 __force *) addr;
->>>> +}
->>>> +#define readq(addr) __raw_readq(addr)
->>>> +
->>>> +static inline void __raw_writeq(u64 b, volatile void __iomem *addr)
->>>> +{
->>>> +	*(volatile u64 __force *) addr = b;
->>>> +}
->>>> +#define writeq(b, addr) __raw_writeq(b, addr)
->>>
->>> These should be using an inline assembly to guarantee that it gets
->>> turned into an atomic access, at least of the architecture has
->>> an atomic 64-bit load/store from memory operation.
->>
->> Is there a particular case you have in mind where the compiler could be
->> expected not to generate an atomic memory op (I presume you mean e.g. 2
->> 32bit memory ops)? These are implemented the same as asm-generic/io.h
->> which only omits these ones because metag is 32bit.
->>
->> tbh I don't think the 64 bit accesses are ever actually used, so we
->> could probably drop these ones.
+>> Any chance there are patches out there to build a toolchain?
 > 
-> There is nothing forcing a compiler to turn a dereferece of a volatile
-> pointer into a single load or store. We've had issues in the past
-> where a such an access got turned into a series of byte accesses
-> when an mmio data structure gets marked as '__packed', but it could
-> happen in other occasions as well.
-
-Okay fair enough. We'll use inline asm here instead.
-
->>>> +#define DM3_BASE (LINSYSDIRECT_BASE + (MMCU_DIRECTMAPn_ADDR_SCALE * 3))
->>>
->>> Again, don't hardcode MMIO addresses like this, but instead get them
->>> from the device tree to make the code more portable to future systems.
->>
->> Even if the addresses are part of the core architecture? I guess DT
->> could provide the blocks of registers, but it seems like unnecessary
->> overhead for something that will never change.
+> Hi Tony,
 > 
-> The physical addresses might be part of the architecture, but it
-> looks like you are hardcoding the virtual address here, which is
-> the result of an ioremap operation or something similar (I have
-> not looked at this example). It's probably fine to put it into
-> fixmap if that provides a real advantage.
+> We're working on a buildroot release with toolchain patches etc 
+> included, which we hope to make available tomorrow, but which may
+> slip to late next week (ELC-E).
 
-Ah right, I see what you're getting at. Meta's virtual address space is
-a little non-conventional, which I think makes our approach valid:
+Hi,
 
-0x00000000-0x07ffffff and 0x80000000-0x87ffffff
-non-mmuable, always directly maps to physical addresses. These contains
-core registers, the io bus where SoC peripherals tend to go (so for
-generic peripherals in this region we do use ioremap), and core memories
-(same latency as L1 cache).
+A buildroot git tree with gcc, uClibc, and kernel header patches is
+now available here:
+git://github.com/img-meta/metag-buildroot.git
 
-0x08000000-0x7fffffff and 0x88000000-0xffffffff
-mmuable memory (but can't map the non-mmuable region)
+Use the meta2_defconfig.
 
-Therefore our ioremap() returns the input address for the non-mmuable
-regions, and creates an MMU mapping otherwise. So we could ioremap these
-addresses, but for such metag specific code it's faster and less
-complicated not to bother.
-
-Unfortunately this is also part of the reason we have a prevalence of
-readl/writel warnings when we remove the cast in io.h.
-
-Thanks
+Cheers
 James
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+iQIcBAEBAgAGBQJQnTS3AAoJEKHZs+irPybfL5MQAKNj1yK7H9PKB8ABS0plN/4i
+OW3GUcBjUiq4tk/avo2TGKVPrrw8b/d0do7bIyliucPKIlf9J71Ci3NMsaudvKID
+d1d6Jsz9y0qw7cBhe2wrcoAVvOCufuepV79OxJe6Z2uIhFZrwhaEbPnjraauswIp
+L0bEQYJpvpb8k5l0Lx6LH6nhGSkCZCGt5NeVkESv5idnbkcBEJjWhs4o3yEvA/al
+3Ceng1zwnjNPkdl5cJe7Zgsif6rcYxqVIMXs7mmMV0OGknHYD1qX+LBtFLkPiuU/
+nVuenVDfIJY+S+D3UFOgBd8r/FxpMZ5EC7S0yVETs3qptuaDyBMbt3O6+TQRZPD3
+AKQBi1tEpcG3AYTayp/2QkiXJwctYL3wgUuH4PgumxR6lP4X0dQWoLINZs1UJ61c
+TgGX8MHgXNaLWwGpmT9kHAZxmDtwh9hPfR+hMx/BHm8jW3B5LU+3OG2OnMfgBh6V
+RHaomIQsY93TqIQ96fo/NVMVHCvni+gGwEqaYgQxM2GPYGNpXeFfZaGTMFKZQ2Zo
+eE/wAHD7Jp0r+OCmqMRxhiTfcriw2Fbwv6kjjyE6/zZM0/4XjxWrpN7DcpZumhnC
+l5+m2x8MlfVrtGfZDbMnoKMfuMrVp2HH6yfgE2nzAWfAhjabXxmRLtHDJO21LCM4
+tbFZnzUsm51ZZZjF59uN
+=Uq2G
+-----END PGP SIGNATURE-----
