@@ -1,79 +1,35 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH v1 18/40] metag: System Calls
-Date: Fri, 9 Nov 2012 14:20:19 +0000
-Message-ID: <201211091420.19999.arnd@arndb.de>
-References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <1351700061-7203-19-git-send-email-james.hogan@imgtec.com>
+Subject: Re: [RFC PATCH v1 24/40] metag: DMA
+Date: Fri, 9 Nov 2012 14:25:13 +0000
+Message-ID: <201211091425.13492.arnd@arndb.de>
+References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <1351700061-7203-25-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
   charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:60046 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.171]:52754 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753841Ab2KIOUY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2012 09:20:24 -0500
-In-Reply-To: <1351700061-7203-19-git-send-email-james.hogan@imgtec.com>
+	with ESMTP id S1752877Ab2KIOZQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2012 09:25:16 -0500
+In-Reply-To: <1351700061-7203-25-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Hogan <james.hogan@imgtec.com>
 Cc: linux-arch@vger.kernel.org
 
 On Wednesday 31 October 2012, James Hogan wrote:
-
-> +/* kernel/signal.c */
-> +asmlinkage int sys_sigaltstack(const stack_t __user *, stack_t __user *,
-> +			       unsigned long, unsigned long,
-> +			       unsigned long, unsigned long,
-> +			       struct pt_regs *);
-> +asmlinkage int sys_rt_sigreturn(unsigned long, unsigned long,
-> +				unsigned long, unsigned long,
-> +				unsigned long, unsigned long,
-> +				struct pt_regs *);
-> +asmlinkage long sys_rt_sigaction(int sig,
-> +				 const struct sigaction __user *act,
-> +				 struct sigaction __user *oact,
-> +				 size_t sigsetsize);
-> +asmlinkage long sys_rt_sigsuspend(sigset_t __user *unewset,
-> +				  size_t sigsetsize);
-> +asmlinkage long sys_rt_tgsigqueueinfo(pid_t, pid_t, int, siginfo_t __user *);
-
-Can't you use the declarations from asm-generic/syscalls.h for these?
-
->> +asmlinkage long sys32_truncate64(const char __user *, unsigned long,
-> +				 unsigned long);
-> +asmlinkage long sys32_ftruncate64(unsigned int, unsigned long,
-> +				  unsigned long);
-> +asmlinkage long sys32_fadvise64_64(int, unsigned long, unsigned long,
-> +				   unsigned long, unsigned long, int);
-> +asmlinkage long sys32_readahead(int, unsigned long, unsigned long, size_t);
-> +asmlinkage ssize_t sys32_pread64(unsigned long, char __user *, size_t,
-> +				 unsigned long, unsigned long);
-> +asmlinkage ssize_t sys32_pwrite64(unsigned long, char __user *, size_t,
-> +				  unsigned long, unsigned long);
-> +asmlinkage long sys32_sync_file_range(int, unsigned long, unsigned long,
-> +				      unsigned long, unsigned long,
-> +				      unsigned int);
-
-These confused me a bit. The sys32_* notation is traditionally used for
-32 bit compatibility functions on 64 bit architectures. Maybe it's better
-to name these sys_meta_* instead.
-
-> +asmlinkage int sys_metag_spinlock(int __user *spinlock)
+> +static inline void
+> +dma_unmap_single(struct device *dev, dma_addr_t dma_addr, size_t size,
+> +                enum dma_data_direction direction)
 > +{
-> +	int ret = 0, tmp;
-> +
-> +	local_irq_disable();
-> +	get_user(tmp, spinlock);
-> +	if (tmp)
-> +		ret = 1;
-> +	tmp = 1;
-> +	put_user(tmp, spinlock);
-> +	local_irq_enable();
-> +	return ret;
+> +       BUG_ON(!valid_dma_direction(direction));
+> +       dma_sync_for_cpu((void *)bus_to_virt(dma_addr), size, direction);
 > +}
 
-This seems to be a specialization of a cmpxchg() function. How about
-implementing cmpxchg semantics instead? It should be more flexible
-for almost the same runtime cost.
+bus_to_virt is deprecated an should not be visible to device drivers
+any more for new stuff. Maybe you can remove the definition and introduce
+a __bus_to_virt() function for internal use that also returns a pointer
+type instead.
 
 	Arnd
