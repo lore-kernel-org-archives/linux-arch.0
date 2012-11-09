@@ -1,52 +1,87 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [RFC PATCH v1 14/31] ARC: syscall support
-Date: Fri, 9 Nov 2012 09:50:09 +0000
-Message-ID: <509CD1D1.3050105@imgtec.com>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-15-git-send-email-vgupta@synopsys.com> <201211071421.39523.arnd@arndb.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC PATCH v1 17/40] metag: IRQ handling
+Date: Fri, 9 Nov 2012 14:12:58 +0000
+Message-ID: <201211091412.58733.arnd@arndb.de>
+References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <1351700061-7203-18-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:54483 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751013Ab2KIJvJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 9 Nov 2012 04:51:09 -0500
-In-Reply-To: <201211071421.39523.arnd@arndb.de>
+Received: from moutng.kundenserver.de ([212.227.17.8]:50586 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753405Ab2KIONF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2012 09:13:05 -0500
+In-Reply-To: <1351700061-7203-18-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
+To: James Hogan <james.hogan@imgtec.com>
+Cc: linux-arch@vger.kernel.org
 
-On 07/11/12 14:21, Arnd Bergmann wrote:
-> On Wednesday 07 November 2012, Vineet Gupta wrote:
->> + * Being uClibc based we need some of the deprecated syscalls:
->> + * -Not emulated by uClibc at all
->> + *     unlink, mkdir,... (needed by Busybox, LTP etc)
->> + *     times (needed by LTP pan test harness)
->> + * -Not emulated efficiently
->> + *     select: emulated using pselect (but extra code to chk usec > 1sec)
->> + *
->> + * some (send/recv) correctly emulated using (recfrom/sendto) and
->> + * some arch specific ones (fork/vfork)can easily be emulated using clone but
->> + * thats the price of using common-denominator....
->> + */
->> +#define __ARCH_WANT_SYSCALL_NO_AT
->> +#define __ARCH_WANT_SYSCALL_NO_FLAGS
->> +#define __ARCH_WANT_SYSCALL_OFF_T
->> +#define __ARCH_WANT_SYSCALL_DEPRECATED
-> 
-> I'm pretty sure that this has been solved before, best get in contact with
-> the maintainers of the openrisc/c6x/hexagon platforms, that probably all
-> use uClibc without needing these.
-> 
-> You have to remove the legacy calls here.
+On Wednesday 31 October 2012, James Hogan wrote:
 
-Hi Vineet,
+> diff --git a/arch/metag/include/asm/irq.h b/arch/metag/include/asm/irq.h
+> new file mode 100644
+> index 0000000..da24886
+> --- /dev/null
+> +++ b/arch/metag/include/asm/irq.h
+> +#ifndef HW_IRQS
+> +#define HW_IRQS  (HWSTATMETA_OFFSET_MAX + HWSTATEXT_OFFSET_MAX + \
+> +		HWSTATEXT2_OFFSET_MAX + HWSTATEXT4_OFFSET_MAX + \
+> +		HWSTATEXT6_OFFSET_MAX)
+> +#endif
+> +
+> +#define META_IRQS 32
+> +
+> +#define NR_IRQS (META_IRQS + HW_IRQS)
 
-FYI, we'll soon be making some uClibc patches available so that it can
-work without these deprecated syscalls and with the newer IPC interface
-(the work was needed for metag too). It's based roughly on the OpenRisc
-patches from last year, but with a fair few changes.
+I think you should use sparse IRQs right from the start and avoid
+hardcoding interrupt numbers from the start.
 
-Thanks
-James
+> +/**
+> + * meta_intc_stat_addr() - Get the address of a HWSTATEXT register
+> + * @hw:		Hardware IRQ number (within external trigger block)
+> + *
+> + * Returns:	Address of a HWSTATEXT register containing the status bit for
+> + *		the specified hardware IRQ number
+> + */
+> +static void __iomem *meta_intc_stat_addr(irq_hw_number_t hw)
+> +{
+> +	return (void __iomem *)(HWSTATEXT +
+> +				HWSTAT_STRIDE * meta_intc_bank(hw));
+> +}
+
+Hardcoding register addresses like this is considered bad style, even for
+an interrupt controller. Better use ioremap to initialize a pointer
+dynamically at boot time.
+
+> +struct irq_chip meta_intc_edge_chip = {
+> +	.irq_startup		= meta_intc_startup_irq,
+> +	.irq_shutdown		= meta_intc_shutdown_irq,
+> +	.irq_ack		= meta_intc_ack_irq,
+> +	.irq_mask		= meta_intc_mask_irq,
+> +	.irq_unmask		= meta_intc_unmask_irq,
+> +	.irq_set_type		= meta_intc_irq_set_type,
+> +	.irq_set_affinity	= meta_intc_set_affinity,
+> +	.flags			= META_INTC_CHIP_FLAGS,
+> +};
+> +
+> +struct irq_chip meta_intc_level_chip = {
+> +	.irq_startup		= meta_intc_startup_irq,
+> +	.irq_shutdown		= meta_intc_shutdown_irq,
+> +	.irq_set_type		= meta_intc_irq_set_type,
+> +	.irq_mask		= meta_intc_mask_irq,
+> +	.irq_unmask		= meta_intc_unmask_irq,
+> +	.irq_set_affinity	= meta_intc_set_affinity,
+> +	.flags			= META_INTC_CHIP_FLAGS,
+> +};
+
+I would recommend trying to put the external irq_chip code into
+drivers/irqchip, which we are currently establishing. Right now,
+that directory is still a bit dependent on the ARM architecture,
+but IMHO that is an even stronger reason to use it for a new
+architecture, so we can make it arch independent in the process,
+without the fear of breaking existing users. After it works
+on multiple architectures, we can start migrating the others.
+
+	Arnd
