@@ -1,140 +1,45 @@
-From: Eric Miao <eric.y.miao@gmail.com>
-Subject: Re: [PATCH 06/11] ARM: pxa: convert timer suspend/resume to clock_event_device
-Date: Fri, 9 Nov 2012 10:05:41 +0800
-Message-ID: <CAMPhdO_B2LxbbUGFH2Z7z0NrC153Bn1NhopqAQNhKBxhWL-=LQ@mail.gmail.com>
-References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org> <1352408516-21988-8-git-send-email-swarren@wwwdotorg.org>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [RFC PATCH v1 14/40] metag: Ptrace
+Date: Fri, 9 Nov 2012 09:26:15 +0000
+Message-ID: <509CCC37.3080801@imgtec.com>
+References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <1351700061-7203-15-git-send-email-james.hogan@imgtec.com> <CACM3HyFrzGXh0QMnw0OdxKu6PFzFacJma=0WH9LEYj3SCa=cJA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f46.google.com ([209.85.215.46]:56194 "EHLO
-	mail-la0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753523Ab2KICGE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 8 Nov 2012 21:06:04 -0500
-In-Reply-To: <1352408516-21988-8-git-send-email-swarren@wwwdotorg.org>
+Received: from multi.imgtec.com ([194.200.65.239]:56753 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750942Ab2KIJ1X (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 9 Nov 2012 04:27:23 -0500
+In-Reply-To: <CACM3HyFrzGXh0QMnw0OdxKu6PFzFacJma=0WH9LEYj3SCa=cJA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel <linux-arm-kernel@lists.infradead.org>, linux-kernel <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Haojian Zhuang <haojian.zhuang@gmail.com>
+To: Jonas Bonn <jonas.bonn@gmail.com>
+Cc: linux-arch@vger.kernel.org
 
-On Fri, Nov 9, 2012 at 5:01 AM, Stephen Warren <swarren@wwwdotorg.org> wrote:
-> From: Stephen Warren <swarren@nvidia.com>
->
-> Move PXA's timer suspend/resume functions from struct sys_timer
-> pxa_timer into struct clock_event_device ckevt_pxa_osmr0. This
-> will allow the sys_timer suspend/resume fields to be removed, and
-> eventually lead to a complete removal of struct sys_timer.
->
-> Cc: Eric Miao <eric.y.miao@gmail.com>
-> Cc: Russell King <linux@arm.linux.org.uk>
-> Cc: Haojian Zhuang <haojian.zhuang@gmail.com>
-> Signed-off-by: Stephen Warren <swarren@nvidia.com>
+On 08/11/12 07:17, Jonas Bonn wrote:
+> On 31 October 2012 17:13, James Hogan <james.hogan@imgtec.com> wrote:
+>> We use the non-generic interface at the moment (exposing the TBX context
+>> structures to userland), pending conversion to the generic ptrace
+>> interface.
+>>
+> 
+> Hi James,
+> 
+> Comment 1, as you already mentioned in the blurb, is to use the
+> generic ptrace interface... a lot of your ptrace functions aren't need
+> anymore.
+> Comment 2, is to avoid exporting the struct pt_regs to userspace.  GDB
+> should be using regsets for accessing the current context for new
+> architectures and doesn't need to know about the pt_regs layout
+> anymore.  Not exporting pt_regs gains you the flexibility to optimize
+> context saving in the future if you figure out a better (e.g. cache
+> friendlier) way of saving your registers at exception time.
 
-Acked-by: Eric Miao <eric.y.miao@gmail.com>
+Thanks Jonas,
 
-> ---
->  arch/arm/mach-pxa/time.c |   76 +++++++++++++++++++++++-----------------------
->  1 files changed, 38 insertions(+), 38 deletions(-)
->
-> diff --git a/arch/arm/mach-pxa/time.c b/arch/arm/mach-pxa/time.c
-> index 4bc47d6..ce58bc9 100644
-> --- a/arch/arm/mach-pxa/time.c
-> +++ b/arch/arm/mach-pxa/time.c
-> @@ -89,12 +89,50 @@ pxa_osmr0_set_mode(enum clock_event_mode mode, struct clock_event_device *dev)
->         }
->  }
->
-> +#ifdef CONFIG_PM
-> +static unsigned long osmr[4], oier, oscr;
-> +
-> +static void pxa_timer_suspend(struct clock_event_device *cedev)
-> +{
-> +       osmr[0] = readl_relaxed(OSMR0);
-> +       osmr[1] = readl_relaxed(OSMR1);
-> +       osmr[2] = readl_relaxed(OSMR2);
-> +       osmr[3] = readl_relaxed(OSMR3);
-> +       oier = readl_relaxed(OIER);
-> +       oscr = readl_relaxed(OSCR);
-> +}
-> +
-> +static void pxa_timer_resume(struct clock_event_device *cedev)
-> +{
-> +       /*
-> +        * Ensure that we have at least MIN_OSCR_DELTA between match
-> +        * register 0 and the OSCR, to guarantee that we will receive
-> +        * the one-shot timer interrupt.  We adjust OSMR0 in preference
-> +        * to OSCR to guarantee that OSCR is monotonically incrementing.
-> +        */
-> +       if (osmr[0] - oscr < MIN_OSCR_DELTA)
-> +               osmr[0] += MIN_OSCR_DELTA;
-> +
-> +       writel_relaxed(osmr[0], OSMR0);
-> +       writel_relaxed(osmr[1], OSMR1);
-> +       writel_relaxed(osmr[2], OSMR2);
-> +       writel_relaxed(osmr[3], OSMR3);
-> +       writel_relaxed(oier, OIER);
-> +       writel_relaxed(oscr, OSCR);
-> +}
-> +#else
-> +#define pxa_timer_suspend NULL
-> +#define pxa_timer_resume NULL
-> +#endif
-> +
->  static struct clock_event_device ckevt_pxa_osmr0 = {
->         .name           = "osmr0",
->         .features       = CLOCK_EVT_FEAT_ONESHOT,
->         .rating         = 200,
->         .set_next_event = pxa_osmr0_set_next_event,
->         .set_mode       = pxa_osmr0_set_mode,
-> +       .suspend        = pxa_timer_suspend,
-> +       .resume         = pxa_timer_resume,
->  };
->
->  static struct irqaction pxa_ost0_irq = {
-> @@ -127,44 +165,6 @@ static void __init pxa_timer_init(void)
->         clockevents_register_device(&ckevt_pxa_osmr0);
->  }
->
-> -#ifdef CONFIG_PM
-> -static unsigned long osmr[4], oier, oscr;
-> -
-> -static void pxa_timer_suspend(void)
-> -{
-> -       osmr[0] = readl_relaxed(OSMR0);
-> -       osmr[1] = readl_relaxed(OSMR1);
-> -       osmr[2] = readl_relaxed(OSMR2);
-> -       osmr[3] = readl_relaxed(OSMR3);
-> -       oier = readl_relaxed(OIER);
-> -       oscr = readl_relaxed(OSCR);
-> -}
-> -
-> -static void pxa_timer_resume(void)
-> -{
-> -       /*
-> -        * Ensure that we have at least MIN_OSCR_DELTA between match
-> -        * register 0 and the OSCR, to guarantee that we will receive
-> -        * the one-shot timer interrupt.  We adjust OSMR0 in preference
-> -        * to OSCR to guarantee that OSCR is monotonically incrementing.
-> -        */
-> -       if (osmr[0] - oscr < MIN_OSCR_DELTA)
-> -               osmr[0] += MIN_OSCR_DELTA;
-> -
-> -       writel_relaxed(osmr[0], OSMR0);
-> -       writel_relaxed(osmr[1], OSMR1);
-> -       writel_relaxed(osmr[2], OSMR2);
-> -       writel_relaxed(osmr[3], OSMR3);
-> -       writel_relaxed(oier, OIER);
-> -       writel_relaxed(oscr, OSCR);
-> -}
-> -#else
-> -#define pxa_timer_suspend NULL
-> -#define pxa_timer_resume NULL
-> -#endif
-> -
->  struct sys_timer pxa_timer = {
->         .init           = pxa_timer_init,
-> -       .suspend        = pxa_timer_suspend,
-> -       .resume         = pxa_timer_resume,
->  };
-> --
-> 1.7.0.4
->
+Yes, this is definitely something we want to do as our pt_regs layout is
+rather convoluted and we'd like the flexibility to simplify it.
+
+Cheers
+James
