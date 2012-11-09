@@ -1,95 +1,91 @@
-From: John Stultz <johnstul@us.ibm.com>
-Subject: Re: [PATCH 02/11] time: convert arch_gettimeoffset to a pointer
-Date: Fri, 09 Nov 2012 15:02:53 -0800
-Message-ID: <509D8B9D.40608@us.ibm.com>
-References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
- <1352408516-21988-4-git-send-email-swarren@wwwdotorg.org>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [RFC PATCH v1 00/40] Meta Linux Kernel Port
+Date: Fri, 9 Nov 2012 23:28:58 +0000
+Message-ID: <509D91BA.7030309@imgtec.com>
+References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <201211091558.48022.arnd@arndb.de> <509D2D4F.20304@imgtec.com> <201211092155.36726.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"; Format="flowed"
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1352408516-21988-4-git-send-email-swarren@wwwdotorg.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: linux-arm-kernel-bounces@lists.infradead.org
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: linux-arch@vger.kernel.org, Jesper Nilsson <jesper.nilsson@axis.com>, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Hirokazu Takata <takata@linux-m32r.org>, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Mikael Starvik <starvik@axis.com>, Mike Frysinger <vapier@gentoo.org>, Olof Johansson <olof@lixom.net>, Stephen Warren <swarren@nvidia.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from multi.imgtec.com ([194.200.65.239]:56753 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751779Ab2KIXaV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 9 Nov 2012 18:30:21 -0500
+In-Reply-To: <201211092155.36726.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch <linux-arch@vger.kernel.org>
 
-On 11/08/2012 01:01 PM, Stephen Warren wrote:
-> From: Stephen Warren <swarren@nvidia.com>
->
-> Currently, whenever CONFIG_ARCH_USES_GETTIMEOFFSET is enabled, each
-> arch core provides a single implementation of arch_gettimeoffset(). In
-> many cases, different sub-architectures, different machines, or
-> different timer providers exist, and so the arch ends up implementing
-> arch_gettimeoffset() as a call-through-pointer anyway. Examples are
-> ARM, Cris, M68K, and it's arguable that the remaining architectures,
-> M32R and Blackfin, should be doing this anyway.
->
-> Modify arch_gettimeoffset so that it itself is a function pointer, which
-> the arch initializes. This will allow later changes to move the
-> initialization of this function into individual machine support or timer
-> drivers. This is particularly useful for code in drivers/clocksource
-> which should rely on an arch-independant mechanism to register their
-> implementation of arch_gettimeoffset().
->
-> This patch also converts the Cris architecture to set arch_gettimeoffset
-> directly to the final implementation in time_init(), because Cris already
-> had separate time_init() functions per sub-architecture. M68K and ARM
-> are converted to set arch_gettimeoffset the final implementation in later
-> patches, because they already have function pointers in place for this
-> purpose.
-[snip]
-> diff --git a/include/linux/time.h b/include/linux/time.h
-> index 4d358e9..05e32a7 100644
-> --- a/include/linux/time.h
-> +++ b/include/linux/time.h
-> @@ -142,9 +142,7 @@ void timekeeping_inject_sleeptime(struct timespec *delta);
->    * finer then tick granular time.
->    */
->   #ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
-> -extern u32 arch_gettimeoffset(void);
-> -#else
-> -static inline u32 arch_gettimeoffset(void) { return 0; }
-> +extern u32 (*arch_gettimeoffset)(void);
->   #endif
->
->   extern void do_gettimeofday(struct timeval *tv);
-> diff --git a/kernel/time/timekeeping.c b/kernel/time/timekeeping.c
-> index e424970..9d00ace 100644
-> --- a/kernel/time/timekeeping.c
-> +++ b/kernel/time/timekeeping.c
-> @@ -140,6 +140,20 @@ static void tk_setup_internals(struct timekeeper *tk, struct clocksource *clock)
->   }
->
->   /* Timekeeper helper functions. */
-> +
-> +#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
-> +u32 (*arch_gettimeoffset)(void);
-> +
-> +u32 gettimeoffset(void)
-> +{
-> +	if (likely(arch_gettimeoffset))
-> +		return arch_gettimeoffset();
-> +	return 0;
-> +}
-> +#else
-> +static inline u32 gettimeoffset(void) { return 0; }
-> +#endif
+On 09/11/12 21:55, Arnd Bergmann wrote:
+> On Friday 09 November 2012, James Hogan wrote:
+>> On 09/11/12 15:58, Arnd Bergmann wrote:
+>>> On Friday 09 November 2012, James Hogan wrote:
+>>>> On 09/11/12 15:06, Arnd Bergmann wrote:
+>>>>>> +#define DM3_BASE (LINSYSDIRECT_BASE + (MMCU_DIRECTMAPn_ADDR_SCALE * 3))
+>>>>>
+>>>>> Again, don't hardcode MMIO addresses like this, but instead get them
+>>>>> from the device tree to make the code more portable to future systems.
+>>>>
+>>>> Even if the addresses are part of the core architecture? I guess DT
+>>>> could provide the blocks of registers, but it seems like unnecessary
+>>>> overhead for something that will never change.
+>>>
+>>> The physical addresses might be part of the architecture, but it
+>>> looks like you are hardcoding the virtual address here, which is
+>>> the result of an ioremap operation or something similar (I have
+>>> not looked at this example). It's probably fine to put it into
+>>> fixmap if that provides a real advantage.
+>>
+>> Ah right, I see what you're getting at. Meta's virtual address space is
+>> a little non-conventional, which I think makes our approach valid:
+>>
+>> 0x00000000-0x07ffffff and 0x80000000-0x87ffffff
+>> non-mmuable, always directly maps to physical addresses. These contains
+>> core registers, the io bus where SoC peripherals tend to go (so for
+>> generic peripherals in this region we do use ioremap), and core memories
+>> (same latency as L1 cache).
+>>
+>> 0x08000000-0x7fffffff and 0x88000000-0xffffffff
+>> mmuable memory (but can't map the non-mmuable region)
+> 
+> Ah, interesting design. Do the two address ranges refer to the same
+> registers, or are these two distinct areas?
 
-Minor nit-pick here, but get_arch_timeoffset() or get_arch_tickoffset() 
-might be clearer, as gettimeoffset() sounds a little generic, and could 
-be confused with the higher-level timekeeping_inject_offset() call.
+No, the lower ones are the core/SoC registers, and the upper ones
+contain core code and data memories (3 cycle latency, around 64KB of
+each usually), and on some SoCs the boot ROM is included in there too.
 
-Otherwise this looks ok to me (disclaimer: I'm back from a 4 week leave, 
-so I may not have my brain plugged in all the way yet).
+> 
+>> Therefore our ioremap() returns the input address for the non-mmuable
+>> regions, and creates an MMU mapping otherwise. So we could ioremap these
+>> addresses, but for such metag specific code it's faster and less
+>> complicated not to bother.
+>>
+>> Unfortunately this is also part of the reason we have a prevalence of
+>> readl/writel warnings when we remove the cast in io.h.
+> 
+> On ARM, we have a (purely software) way to create static mappings using
+> huge pages for some of the I/O areas, which in effect comes down to
+> something similar to what you have: If some driver calls ioremap,
+> we just compute the right virtual address but don't install any new
+> page table entries for any devices that were already mapped at boot
+> time.
 
-thanks
--john
+Interesting, sounds sort of similar.
+
+> For any devices that may be used on other architectures, I would
+> ask you to do the same and still call ioremap in the device driver.
+
+Agreed.
+
+> For stuff that is purely meta specifc and also mapped to a fixed location,
+> it may be better to define your own I/O accessors, such as
+> meta_in32()/meta_out32 that follow the semantics and calling
+> conventions you need, rather than mixing them with the regular
+> readl/writel accessors, even if they share a common implementation.
+
+Yeh, that sounds like a good idea. Thanks.
+
+Cheers
+James
