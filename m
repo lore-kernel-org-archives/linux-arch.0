@@ -1,64 +1,40 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vb0-f46.google.com ([209.85.212.46]:39976 "EHLO
-	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750933Ab2KKKaZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 11 Nov 2012 05:30:25 -0500
-MIME-Version: 1.0
-In-Reply-To: <1351578277-31882-1-git-send-email-gerg@snapgear.com>
-References: <1351578277-31882-1-git-send-email-gerg@snapgear.com>
-Date: Sun, 11 Nov 2012 11:30:25 +0100
-Message-ID: <CAMuHMdXbwBLhryrcJ5Ln3uvBJL=_ZCYBErXyZzGznBirobU1kQ@mail.gmail.com>
-Subject: Re: [PATCH v3 00/11] m68k: use asm-generic headers when possible
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Received: from mail.pbcl.net ([88.198.119.4]:53473 "EHLO hetzner.pbcl.net"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752188Ab2KKMOo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Sun, 11 Nov 2012 07:14:44 -0500
+Message-ID: <1352634461.6869.106.camel@x121e.pbcl.net>
+Subject: Re: [PATCH 03/11] m68k: set arch_gettimeoffset directly
+From: Phil Blundell <philb@gnu.org>
+Date: Sun, 11 Nov 2012 11:47:41 +0000
+In-Reply-To: <1352408516-21988-5-git-send-email-swarren@wwwdotorg.org>
+References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
+	 <1352408516-21988-5-git-send-email-swarren@wwwdotorg.org>
+Content-Type: text/plain; charset="UTF-8"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: gerg@snapgear.com
-Cc: linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20121111103025.mF4zr08uVWiJKkO-91Gf5Pjj3fzfWI9eoTqDPQ2mKd0@z>
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Geert Uytterhoeven <geert@linux-m68k.org>, Joshua Thompson <funaho@jurai.org>, Sam Creasey <sammy@sammy.net>
+Message-ID: <20121111114741.P61RdhHwUjsEbgQEwNHl8ticf-OFBRL-VLpjLBbynE4@z>
 
-Hi Greg,
+On Thu, 2012-11-08 at 14:01 -0700, Stephen Warren wrote:
+> From: Stephen Warren <swarren@nvidia.com>
+> 
+> remove m68k's mach_gettimeoffset function pointer, and instead directly
+> set the arch_gettimeoffset function pointer. This requires multiplying
+> all function results by 1000, since the removed m68k_gettimeoffset() did
+> this. Also, s/unsigned long/u32/ just to make the function prototypes
+> exactly match that of arch_gettimeoffset.
+> 
+> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: Philip Blundell <philb@gnu.org>
 
-On Tue, Oct 30, 2012 at 7:24 AM,  <gerg@snapgear.com> wrote:
-> Quite a few of the m68k asm headers are identical to the asm-generic
-> versions. So switch to using them where ever we can.
->
-> v2 is rebased on top of 3.7-rc3.
-> v3 keep those in uapi/asm in uapi/asm (not moved to asm-generic)
->
-> All defconfigs build. Run tested on ColdFire (with and without MMU) and on
-> ArranyM.
+Acked-by: Phil Blundell <philb@gnu.org>
 
-Thanks!
+> Cc: Joshua Thompson <funaho@jurai.org>
+> Cc: Sam Creasey <sammy@sammy.net>
+> Signed-off-by: Stephen Warren <swarren@nvidia.com>
 
-Do you want me to queue these for 3.8, or take them yourselves?
-In the latter case:
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-> ---
->  arch/m68k/include/asm/Kbuild          |    4
->  arch/m68k/include/asm/hw_irq.h        |    6 -
->  arch/m68k/include/asm/shmparam.h      |    6 -
->  arch/m68k/include/asm/spinlock.h      |    6 -
->  arch/m68k/include/asm/termios.h       |   50 --------
->  arch/m68k/include/uapi/asm/Kbuild     |   17 +-
->  arch/m68k/include/uapi/asm/auxvec.h   |    4
->  arch/m68k/include/uapi/asm/msgbuf.h   |   31 -----
->  arch/m68k/include/uapi/asm/sembuf.h   |   25 ----
->  arch/m68k/include/uapi/asm/shmbuf.h   |   42 -------
->  arch/m68k/include/uapi/asm/socket.h   |   72 ------------
->  arch/m68k/include/uapi/asm/sockios.h  |   13 --
->  arch/m68k/include/uapi/asm/termbits.h |  201 ----------------------------------
->  arch/m68k/include/uapi/asm/termios.h  |   44 -------
->  14 files changed, 13 insertions(+), 508 deletions(-)
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
