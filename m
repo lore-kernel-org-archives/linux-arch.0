@@ -1,67 +1,68 @@
-From: Ryan Mallon <rmallon@gmail.com>
-Subject: Re: [PATCH 04/11] ARM: set arch_gettimeoffset directly
-Date: Sat, 10 Nov 2012 14:39:10 +1100
-Message-ID: <509DCC5E.7020804@gmail.com>
-References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org> <1352408516-21988-6-git-send-email-swarren@wwwdotorg.org> <509C3AE7.7030703@gmail.com> <509D708E.6080703@wwwdotorg.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 02/11] time: convert arch_gettimeoffset to a pointer
+Date: Sun, 11 Nov 2012 10:45:51 +0100
+Message-ID: <CAMuHMdWCFDk_DTs3T-h_8NvmsaQ1bbPyj1vJyN_y=fCeMT06sw@mail.gmail.com>
+References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
+	<1352408516-21988-4-git-send-email-swarren@wwwdotorg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f46.google.com ([209.85.160.46]:41483 "EHLO
-	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751005Ab2KJDio (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 9 Nov 2012 22:38:44 -0500
-In-Reply-To: <509D708E.6080703@wwwdotorg.org>
+Received: from mail-vb0-f46.google.com ([209.85.212.46]:43933 "EHLO
+	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750839Ab2KKJpw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 11 Nov 2012 04:45:52 -0500
+In-Reply-To: <1352408516-21988-4-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Andrew Victor <linux@maxim.org.za>, Nicolas Ferre <nicolas.ferre@atmel.com>, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>, Hartley Sweeten <hsweeten@visionengravers.com>, Ben Dooks <ben-linux@fluff.org>, Kukjin Kim <kgene.kim@samsung.com>
+Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Jesper Nilsson <jesper.nilsson@axis.com>, Hirokazu Takata <takata@linux-m32r.org>
 
-On 10/11/12 08:07, Stephen Warren wrote:
+On Thu, Nov 8, 2012 at 10:01 PM, Stephen Warren <swarren@wwwdotorg.org> wrote:
+> From: Stephen Warren <swarren@nvidia.com>
+>
+> Currently, whenever CONFIG_ARCH_USES_GETTIMEOFFSET is enabled, each
+> arch core provides a single implementation of arch_gettimeoffset(). In
+> many cases, different sub-architectures, different machines, or
+> different timer providers exist, and so the arch ends up implementing
+> arch_gettimeoffset() as a call-through-pointer anyway. Examples are
+> ARM, Cris, M68K, and it's arguable that the remaining architectures,
+> M32R and Blackfin, should be doing this anyway.
+>
+> Modify arch_gettimeoffset so that it itself is a function pointer, which
+> the arch initializes. This will allow later changes to move the
+> initialization of this function into individual machine support or timer
+> drivers. This is particularly useful for code in drivers/clocksource
+> which should rely on an arch-independant mechanism to register their
+> implementation of arch_gettimeoffset().
+>
+> This patch also converts the Cris architecture to set arch_gettimeoffset
+> directly to the final implementation in time_init(), because Cris already
+> had separate time_init() functions per sub-architecture. M68K and ARM
+> are converted to set arch_gettimeoffset the final implementation in later
+> patches, because they already have function pointers in place for this
+> purpose.
+>
+> Cc: Russell King <linux@arm.linux.org.uk>
+> Cc: Mike Frysinger <vapier@gentoo.org>
+> Cc: Mikael Starvik <starvik@axis.com>
+> Cc: Jesper Nilsson <jesper.nilsson@axis.com>
+> Cc: Hirokazu Takata <takata@linux-m32r.org>
+> Cc: Geert Uytterhoeven <geert@linux-m68k.org>
 
-> On 11/08/2012 04:06 PM, Ryan Mallon wrote:
->> On 09/11/12 08:01, Stephen Warren wrote:
->>> remove ARM's struct sys_timer .offset function pointer, and instead
->>> directly set the arch_gettimeoffset function pointer when the timer
->>> driver is initialized. This requires multiplying all function results
->>> by 1000, since the removed arm_gettimeoffset() did this. Also,
->>> s/unsigned long/u32/ just to make the function prototypes exactly
->>> match that of arch_gettimeoffset.
-> 
->>> +static u32 ep93xx_gettimeoffset(void)
->>> +{
->>> +	int offset;
->>> +
->>> +	offset = __raw_readl(EP93XX_TIMER4_VALUE_LOW) - last_jiffy_time;
->>> +
->>> +	/* Calculate (1000000 / 983040) * offset.  */
->>
->> This comment is now incorrect, it should say:
->>
->> 	/* Calculate (1000000000 / 983040) * offset */
->>
->> or perhaps to better explain what is being done:
->>
->> 	/*
->> 	 * Timer 4 is based on a 983.04 kHz reference clock,
->> 	 * so dividing by 983040 gives a milli-second value.
->> 	 * Refactor the calculation to avoid overflow.
->> 	 */
->>
->>> +	return (offset + (53 * offset / 3072)) * 1000;
-> 
-> Thanks. I expanded on that slightly and went for:
-> 
-> 	/*
-> 	 * Timer 4 is based on a 983.04 kHz reference clock,
-> 	 * so dividing by 983040 gives the fraction of a second,
-> 	 * so dividing by 0.983040 converts to uS.
-> 	 * Refactor the calculation to avoid overflow.
-> 	 * Finally, multiply by 1000 to give nS.
-> 	 */
-> 
+The m68k changes look ok, so
 
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+> Cc: John Stultz <johnstul@us.ibm.com>
+> Cc: Thomas Gleixner <tglx@linutronix.de>
+> Signed-off-by: Stephen Warren <swarren@nvidia.com>
 
-Looks good, thanks.
+Gr{oetje,eeting}s,
 
-~Ryan
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
