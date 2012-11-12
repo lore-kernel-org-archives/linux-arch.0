@@ -1,292 +1,213 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:43721 "EHLO
+Received: from avon.wwwdotorg.org ([70.85.31.133]:37965 "EHLO
 	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752754Ab2KLUvM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 15:51:12 -0500
+	with ESMTP id S1753408Ab2KLU6g (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 15:58:36 -0500
 From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: [PATCH V2 2/11] time: convert arch_gettimeoffset to a pointer
-Date: Mon, 12 Nov 2012 13:51:02 -0700
-Message-ID: <1352753462-2915-1-git-send-email-swarren@wwwdotorg.org>
+Subject: [PATCH V6 1/2] kbuild: centralize .dts->.dtb rule
+Date: Mon, 12 Nov 2012 13:58:26 -0700
+Message-ID: <1352753907-3316-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Hirokazu Takata <takata@linux-m32r.org>
-Message-ID: <20121112205102._-FjhXXkFJWk-Pv7JwBrzT9wYU5RCiKkqwQfYbUB6E0@z>
+To: Michal Marek <mmarek@suse.cz>
+Cc: David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20121112205826.hVvwDpojcwMgJoGLOXClA_hL10m2Rrx6_Xqy4Du084I@z>
 
 From: Stephen Warren <swarren@nvidia.com>
 
-Currently, whenever CONFIG_ARCH_USES_GETTIMEOFFSET is enabled, each
-arch core provides a single implementation of arch_gettimeoffset(). In
-many cases, different sub-architectures, different machines, or
-different timer providers exist, and so the arch ends up implementing
-arch_gettimeoffset() as a call-through-pointer anyway. Examples are
-ARM, Cris, M68K, and it's arguable that the remaining architectures,
-M32R and Blackfin, should be doing this anyway.
+All architectures that use cmd_dtc do so in the same way. Move the build
+rule to a central location to avoid duplication.
 
-Modify arch_gettimeoffset so that it itself is a function pointer, which
-the arch initializes. This will allow later changes to move the
-initialization of this function into individual machine support or timer
-drivers. This is particularly useful for code in drivers/clocksource
-which should rely on an arch-independant mechanism to register their
-implementation of arch_gettimeoffset().
+Update Documentation/kbuild to remove the explicit call to cmd_dtc from
+the example, now that the rule exists in a centralized location, and in
+fact replace the example with a couple that still exist.
 
-This patch also converts the Cris architecture to set arch_gettimeoffset
-directly to the final implementation in time_init(), because Cris already
-had separate time_init() functions per sub-architecture. M68K and ARM
-are converted to set arch_gettimeoffset the final implementation in later
-patches, because they already have function pointers in place for this
-purpose.
+arch/mips changes courtesy of Ralf Baechle.
 
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: John Stultz <johnstul@us.ibm.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
 Signed-off-by: Stephen Warren <swarren@nvidia.com>
+Acked-by: Sam Ravnborg <sam@ravnborg.org>
 ---
-v2:
-* s/gettimeoffset/get_arch_timeoffset/ to make the name less generic
-  and more arch-specific.
-
-(Note: I've only reposted patch 2/11 this time around, and I still hope
-to take it through the arm-soc tree due to dependencies, so I'm not
-requesting this be applied by the timekeeping maintainers)
+v6: Added arch/{arm64,microblaze,mips} updates.
+v5: Updated Documentation/kbuild.
+v4: No change.
+v3: No change.
+v2: New patch.
 ---
- arch/arm/kernel/time.c           |    6 +++++-
- arch/blackfin/kernel/time.c      |    6 +++++-
- arch/cris/arch-v10/kernel/time.c |    6 ++++--
- arch/cris/kernel/time.c          |   11 -----------
- arch/m32r/kernel/time.c          |    4 +++-
- arch/m68k/kernel/time.c          |   16 ++++++++++------
- include/linux/time.h             |    4 +---
- kernel/time/timekeeping.c        |   26 ++++++++++++++++++++------
- 8 files changed, 48 insertions(+), 31 deletions(-)
+ Documentation/kbuild/makefiles.txt |   21 +++++++++++++++------
+ arch/arm/boot/Makefile             |    4 ----
+ arch/arm64/boot/Makefile           |    3 ---
+ arch/c6x/boot/Makefile             |    3 ---
+ arch/microblaze/boot/Makefile      |    3 ---
+ arch/mips/cavium-octeon/Makefile   |    3 ---
+ arch/mips/lantiq/dts/Makefile      |    3 ---
+ arch/mips/netlogic/dts/Makefile    |    3 ---
+ arch/openrisc/boot/Makefile        |    3 ---
+ arch/powerpc/boot/Makefile         |    4 ----
+ scripts/Makefile.lib               |    3 +++
+ 11 files changed, 18 insertions(+), 35 deletions(-)
 
-diff --git a/arch/arm/kernel/time.c b/arch/arm/kernel/time.c
-index 09be0c3..b0190b4 100644
---- a/arch/arm/kernel/time.c
-+++ b/arch/arm/kernel/time.c
-@@ -70,7 +70,7 @@ EXPORT_SYMBOL(profile_pc);
- #endif
+diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+index ec9ae67..a0b0671 100644
+--- a/Documentation/kbuild/makefiles.txt
++++ b/Documentation/kbuild/makefiles.txt
+@@ -1175,15 +1175,24 @@ When kbuild executes, the following steps are followed (roughly):
+ 	in an init section in the image. Platform code *must* copy the
+ 	blob to non-init memory prior to calling unflatten_device_tree().
  
- #ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
--u32 arch_gettimeoffset(void)
-+static u32 arm_gettimeoffset(void)
- {
- 	if (system_timer->offset != NULL)
- 		return system_timer->offset() * 1000;
-@@ -164,6 +164,10 @@ device_initcall(timer_init_syscore_ops);
- 
- void __init time_init(void)
- {
-+#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
-+	arch_gettimeoffset = arm_gettimeoffset;
-+#endif
++	To use this command, simply add *.dtb into obj-y or targets, or make
++	some other target depend on %.dtb
 +
- 	system_timer = machine_desc->timer;
- 	system_timer->init();
- 	sched_clock_postinit();
-diff --git a/arch/blackfin/kernel/time.c b/arch/blackfin/kernel/time.c
-index 2310b24..3126b92 100644
---- a/arch/blackfin/kernel/time.c
-+++ b/arch/blackfin/kernel/time.c
-@@ -85,7 +85,7 @@ time_sched_init(irqreturn_t(*timer_routine) (int, void *))
- /*
-  * Should return useconds since last timer tick
-  */
--u32 arch_gettimeoffset(void)
-+static u32 blackfin_gettimeoffset(void)
- {
- 	unsigned long offset;
- 	unsigned long clocks_per_jiffy;
-@@ -141,6 +141,10 @@ void read_persistent_clock(struct timespec *ts)
- 
- void __init time_init(void)
- {
-+#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
-+	arch_gettimeoffset = blackfin_gettimeoffset;
-+#endif
++	A central rule exists to create $(obj)/%.dtb from $(src)/dts/%.dts;
++	architecture Makefiles do no need to explicitly write out that rule.
 +
- #ifdef CONFIG_RTC_DRV_BFIN
- 	/* [#2663] hack to filter junk RTC values that would cause
- 	 * userspace to have to deal with time values greater than
-diff --git a/arch/cris/arch-v10/kernel/time.c b/arch/cris/arch-v10/kernel/time.c
-index 162892f..fce7c54 100644
---- a/arch/cris/arch-v10/kernel/time.c
-+++ b/arch/cris/arch-v10/kernel/time.c
-@@ -55,9 +55,9 @@ unsigned long get_ns_in_jiffie(void)
- 	return ns;
- }
- 
--unsigned long do_slow_gettimeoffset(void)
-+static u32 cris_v10_gettimeoffset(void)
- {
--	unsigned long count;
-+	u32 count;
- 
- 	/* The timer interrupt comes from Etrax timer 0. In order to get
- 	 * better precision, we check the current value. It might have
-@@ -191,6 +191,8 @@ static struct irqaction irq2  = {
- void __init
- time_init(void)
- {	
-+	arch_gettimeoffset = cris_v10_gettimeoffset;
+ 	Example:
+-		#arch/x86/platform/ce4100/Makefile
+-		clean-files := *dtb.S
++		#arch/arm/boot/Makefile
++		targets += $(dtb-y)
++		clean-files := *.dtb
 +
- 	/* probe for the RTC and read it if it exists 
- 	 * Before the RTC can be probed the loops_per_usec variable needs 
- 	 * to be initialized to make usleep work. A better value for 
-diff --git a/arch/cris/kernel/time.c b/arch/cris/kernel/time.c
-index b063c92..fe6acda 100644
---- a/arch/cris/kernel/time.c
-+++ b/arch/cris/kernel/time.c
-@@ -39,17 +39,6 @@
- extern unsigned long loops_per_jiffy; /* init/main.c */
- unsigned long loops_per_usec;
++		#arch/powerpc/boot/Makefile
++		DTC_FLAGS       ?= -p 1024
  
+-		DTC_FLAGS := -p 1024
+-		obj-y += foo.dtb.o
++		$(obj)/dtbImage.%: vmlinux $(wrapperbits) $(obj)/%.dtb
++			$(call if_changed,wrap,$*,,$(obj)/$*.dtb)
+ 
+-		$(obj)/%.dtb: $(src)/%.dts
+-			$(call cmd,dtc)
++		clean-files += ... *.dtb
+ 
+ --- 6.8 Custom kbuild commands
+ 
+diff --git a/arch/arm/boot/Makefile b/arch/arm/boot/Makefile
+index f2aa09e..208bb4c 100644
+--- a/arch/arm/boot/Makefile
++++ b/arch/arm/boot/Makefile
+@@ -61,10 +61,6 @@ endif
+ 
+ targets += $(dtb-y)
+ 
+-# Rule to build device tree blobs
+-$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+-	$(call if_changed_dep,dtc)
 -
--#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
--extern unsigned long do_slow_gettimeoffset(void);
--static unsigned long (*do_gettimeoffset)(void) = do_slow_gettimeoffset;
+ $(obj)/dtbs: $(addprefix $(obj)/, $(dtb-y))
+ 
+ clean-files := *.dtb
+diff --git a/arch/arm64/boot/Makefile b/arch/arm64/boot/Makefile
+index eca209b..20048be 100644
+--- a/arch/arm64/boot/Makefile
++++ b/arch/arm64/boot/Makefile
+@@ -22,9 +22,6 @@ $(obj)/Image: vmlinux FORCE
+ $(obj)/Image.gz: $(obj)/Image FORCE
+ 	$(call if_changed,gzip)
+ 
+-$(obj)/%.dtb: $(src)/dts/%.dts
+-	$(call cmd,dtc)
 -
--u32 arch_gettimeoffset(void)
--{
--	return do_gettimeoffset();
--}
--#endif
+ install: $(obj)/Image
+ 	$(CONFIG_SHELL) $(srctree)/$(src)/install.sh $(KERNELRELEASE) \
+ 	$(obj)/Image System.map "$(INSTALL_PATH)"
+diff --git a/arch/c6x/boot/Makefile b/arch/c6x/boot/Makefile
+index 6891257..ad605fb 100644
+--- a/arch/c6x/boot/Makefile
++++ b/arch/c6x/boot/Makefile
+@@ -12,9 +12,6 @@ ifneq ($(DTB),)
+ obj-y += linked_dtb.o
+ endif
+ 
+-$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+-	$(call if_changed_dep,dtc)
 -
- int set_rtc_mmss(unsigned long nowtime)
- {
- 	D(printk(KERN_DEBUG "set_rtc_mmss(%lu)\n", nowtime));
-diff --git a/arch/m32r/kernel/time.c b/arch/m32r/kernel/time.c
-index 84dd040..1a15f81 100644
---- a/arch/m32r/kernel/time.c
-+++ b/arch/m32r/kernel/time.c
-@@ -57,7 +57,7 @@ extern void smp_local_timer_interrupt(void);
+ quiet_cmd_cp = CP      $< $@$2
+ 	cmd_cp = cat $< >$@$2 || (rm -f $@ && echo false)
  
- static unsigned long latch;
+diff --git a/arch/microblaze/boot/Makefile b/arch/microblaze/boot/Makefile
+index fa83ea4..226da18 100644
+--- a/arch/microblaze/boot/Makefile
++++ b/arch/microblaze/boot/Makefile
+@@ -48,7 +48,4 @@ $(obj)/simpleImage.%: vmlinux FORCE
+ # Rule to build device tree blobs
+ DTC_FLAGS := -p 1024
  
--u32 arch_gettimeoffset(void)
-+static u32 m32r_gettimeoffset(void)
- {
- 	unsigned long  elapsed_time = 0;  /* [us] */
- 
-@@ -165,6 +165,8 @@ void read_persistent_clock(struct timespec *ts)
- 
- void __init time_init(void)
- {
-+	arch_gettimeoffset = m32r_gettimeoffset;
-+
- #if defined(CONFIG_CHIP_M32102) || defined(CONFIG_CHIP_XNUX2) \
- 	|| defined(CONFIG_CHIP_VDEC2) || defined(CONFIG_CHIP_M32700) \
- 	|| defined(CONFIG_CHIP_OPSP) || defined(CONFIG_CHIP_M32104)
-diff --git a/arch/m68k/kernel/time.c b/arch/m68k/kernel/time.c
-index 5d0bcaa..c2994c8 100644
---- a/arch/m68k/kernel/time.c
-+++ b/arch/m68k/kernel/time.c
-@@ -80,14 +80,9 @@ void read_persistent_clock(struct timespec *ts)
- 	}
- }
- 
--void __init time_init(void)
--{
--	mach_sched_init(timer_interrupt);
--}
+-$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+-	$(call if_changed_dep,dtc)
 -
- #ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
+ clean-files += *.dtb simpleImage.*.unstrip linux.bin.ub
+diff --git a/arch/mips/cavium-octeon/Makefile b/arch/mips/cavium-octeon/Makefile
+index bc96e29..6e927cf 100644
+--- a/arch/mips/cavium-octeon/Makefile
++++ b/arch/mips/cavium-octeon/Makefile
+@@ -24,9 +24,6 @@ DTB_FILES = $(patsubst %.dts, %.dtb, $(DTS_FILES))
  
--u32 arch_gettimeoffset(void)
-+static u32 m68k_gettimeoffset(void)
- {
- 	return mach_gettimeoffset() * 1000;
- }
-@@ -106,3 +101,12 @@ static int __init rtc_init(void)
- module_init(rtc_init);
+ obj-y += $(patsubst %.dts, %.dtb.o, $(DTS_FILES))
  
- #endif /* CONFIG_ARCH_USES_GETTIMEOFFSET */
+-$(obj)/%.dtb: $(src)/%.dts FORCE
+-	$(call if_changed_dep,dtc)
+-
+ # Let's keep the .dtb files around in case we want to look at them.
+ .SECONDARY:  $(addprefix $(obj)/, $(DTB_FILES))
+ 
+diff --git a/arch/mips/lantiq/dts/Makefile b/arch/mips/lantiq/dts/Makefile
+index 674fca4..6fa72dd 100644
+--- a/arch/mips/lantiq/dts/Makefile
++++ b/arch/mips/lantiq/dts/Makefile
+@@ -1,4 +1 @@
+ obj-$(CONFIG_DT_EASY50712) := easy50712.dtb.o
+-
+-$(obj)/%.dtb: $(obj)/%.dts
+-	$(call if_changed,dtc)
+diff --git a/arch/mips/netlogic/dts/Makefile b/arch/mips/netlogic/dts/Makefile
+index 67ae3fe..d117d46 100644
+--- a/arch/mips/netlogic/dts/Makefile
++++ b/arch/mips/netlogic/dts/Makefile
+@@ -1,4 +1 @@
+ obj-$(CONFIG_DT_XLP_EVP) := xlp_evp.dtb.o
+-
+-$(obj)/%.dtb: $(obj)/%.dts
+-	$(call if_changed,dtc)
+diff --git a/arch/openrisc/boot/Makefile b/arch/openrisc/boot/Makefile
+index 0995835..fd329bd 100644
+--- a/arch/openrisc/boot/Makefile
++++ b/arch/openrisc/boot/Makefile
+@@ -10,6 +10,3 @@ obj-y += $(BUILTIN_DTB)
+ clean-files := *.dtb.S
+ 
+ #DTC_FLAGS ?= -p 1024
+-
+-$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+-	$(call if_changed_dep,dtc)
+diff --git a/arch/powerpc/boot/Makefile b/arch/powerpc/boot/Makefile
+index 6a15c96..90206f2 100644
+--- a/arch/powerpc/boot/Makefile
++++ b/arch/powerpc/boot/Makefile
+@@ -356,10 +356,6 @@ $(obj)/treeImage.initrd.%: vmlinux $(obj)/%.dtb $(wrapperbits)
+ $(obj)/treeImage.%: vmlinux $(obj)/%.dtb $(wrapperbits)
+ 	$(call if_changed,wrap,treeboot-$*,,$(obj)/$*.dtb)
+ 
+-# Rule to build device tree blobs
+-$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+-	$(call if_changed_dep,dtc)
+-
+ # If there isn't a platform selected then just strip the vmlinux.
+ ifeq (,$(image-y))
+ image-y := vmlinux.strip
+diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+index 0be6f11..425578e 100644
+--- a/scripts/Makefile.lib
++++ b/scripts/Makefile.lib
+@@ -266,6 +266,9 @@ $(obj)/%.dtb.S: $(obj)/%.dtb
+ quiet_cmd_dtc = DTC     $@
+ cmd_dtc = $(objtree)/scripts/dtc/dtc -O dtb -o $@ -b 0 $(DTC_FLAGS) -d $(depfile) $<
+ 
++$(obj)/%.dtb: $(src)/dts/%.dts FORCE
++	$(call if_changed_dep,dtc)
 +
-+void __init time_init(void)
-+{
-+#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
-+	arch_gettimeoffset = m68k_gettimeoffset;
-+#endif
-+
-+	mach_sched_init(timer_interrupt);
-+}
-diff --git a/include/linux/time.h b/include/linux/time.h
-index 4d358e9..05e32a7 100644
---- a/include/linux/time.h
-+++ b/include/linux/time.h
-@@ -142,9 +142,7 @@ void timekeeping_inject_sleeptime(struct timespec *delta);
-  * finer then tick granular time.
-  */
- #ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
--extern u32 arch_gettimeoffset(void);
--#else
--static inline u32 arch_gettimeoffset(void) { return 0; }
-+extern u32 (*arch_gettimeoffset)(void);
- #endif
- 
- extern void do_gettimeofday(struct timeval *tv);
-diff --git a/kernel/time/timekeeping.c b/kernel/time/timekeeping.c
-index e424970..00b58c7 100644
---- a/kernel/time/timekeeping.c
-+++ b/kernel/time/timekeeping.c
-@@ -140,6 +140,20 @@ static void tk_setup_internals(struct timekeeper *tk, struct clocksource *clock)
- }
- 
- /* Timekeeper helper functions. */
-+
-+#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
-+u32 (*arch_gettimeoffset)(void);
-+
-+u32 get_arch_timeoffset(void)
-+{
-+	if (likely(arch_gettimeoffset))
-+		return arch_gettimeoffset();
-+	return 0;
-+}
-+#else
-+static inline u32 get_arch_timeoffset(void) { return 0; }
-+#endif
-+
- static inline s64 timekeeping_get_ns(struct timekeeper *tk)
- {
- 	cycle_t cycle_now, cycle_delta;
-@@ -156,8 +170,8 @@ static inline s64 timekeeping_get_ns(struct timekeeper *tk)
- 	nsec = cycle_delta * tk->mult + tk->xtime_nsec;
- 	nsec >>= tk->shift;
- 
--	/* If arch requires, add in gettimeoffset() */
--	return nsec + arch_gettimeoffset();
-+	/* If arch requires, add in get_arch_timeoffset() */
-+	return nsec + get_arch_timeoffset();
- }
- 
- static inline s64 timekeeping_get_ns_raw(struct timekeeper *tk)
-@@ -176,8 +190,8 @@ static inline s64 timekeeping_get_ns_raw(struct timekeeper *tk)
- 	/* convert delta to nanoseconds. */
- 	nsec = clocksource_cyc2ns(cycle_delta, clock->mult, clock->shift);
- 
--	/* If arch requires, add in gettimeoffset() */
--	return nsec + arch_gettimeoffset();
-+	/* If arch requires, add in get_arch_timeoffset() */
-+	return nsec + get_arch_timeoffset();
- }
- 
- /* must hold write on timekeeper.lock */
-@@ -210,8 +224,8 @@ static void timekeeping_forward_now(struct timekeeper *tk)
- 
- 	tk->xtime_nsec += cycle_delta * tk->mult;
- 
--	/* If arch requires, add in gettimeoffset() */
--	tk->xtime_nsec += (u64)arch_gettimeoffset() << tk->shift;
-+	/* If arch requires, add in get_arch_timeoffset() */
-+	tk->xtime_nsec += (u64)get_arch_timeoffset() << tk->shift;
- 
- 	tk_normalize_xtime(tk);
+ # Bzip2
+ # ---------------------------------------------------------------------------
  
 -- 
 1.7.0.4
