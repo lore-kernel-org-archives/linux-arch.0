@@ -1,158 +1,291 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [RFC PATCH v1 15/31] ARC: Process/scheduling/clock/Timers/Delay
- Management
-Date: Mon, 12 Nov 2012 21:29:07 +0100 (CET)
-Message-ID: <alpine.LFD.2.02.1211122110230.10000@ionos>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-16-git-send-email-vgupta@synopsys.com>
-Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+From: Stephen Warren <swarren@wwwdotorg.org>
+Subject: [PATCH V2 2/11] time: convert arch_gettimeoffset to a pointer
+Date: Mon, 12 Nov 2012 13:51:02 -0700
+Message-ID: <1352753462-2915-1-git-send-email-swarren@wwwdotorg.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from www.linutronix.de ([62.245.132.108]:48874 "EHLO
-	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753253Ab2KLU3J (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 15:29:09 -0500
-In-Reply-To: <1352281674-2186-16-git-send-email-vgupta@synopsys.com>
+Received: from avon.wwwdotorg.org ([70.85.31.133]:43721 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752754Ab2KLUvM (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 15:51:12 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
+To: Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Russell King <linux@arm.linux.org.uk>, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Hirokazu Takata <takata@linux-m32r.org>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>
 
-On Wed, 7 Nov 2012, Vineet Gupta wrote:
-> +void cpu_idle(void)
-> +{
-> +	/* Since we SLEEP in idle loop, TIF_POLLING_NRFLAG can't be set */
-> +
-> +	/* endless idle loop with no priority at all */
-> +	while (1) {
-> +		tick_nohz_idle_enter();
-> +
-> +		while (!need_resched())
-> +			arch_idle();
-> +
-> +		tick_nohz_idle_exit();
-> +
-> +		preempt_enable_no_resched();
-> +		schedule();
-> +		preempt_disable();
+From: Stephen Warren <swarren@nvidia.com>
 
-  		schedule_preempt_disabled() please
+Currently, whenever CONFIG_ARCH_USES_GETTIMEOFFSET is enabled, each
+arch core provides a single implementation of arch_gettimeoffset(). In
+many cases, different sub-architectures, different machines, or
+different timer providers exist, and so the arch ends up implementing
+arch_gettimeoffset() as a call-through-pointer anyway. Examples are
+ARM, Cris, M68K, and it's arguable that the remaining architectures,
+M32R and Blackfin, should be doing this anyway.
 
-> +	}
+Modify arch_gettimeoffset so that it itself is a function pointer, which
+the arch initializes. This will allow later changes to move the
+initialization of this function into individual machine support or timer
+drivers. This is particularly useful for code in drivers/clocksource
+which should rely on an arch-independant mechanism to register their
+implementation of arch_gettimeoffset().
 
-> diff --git a/arch/arc/kernel/time.c b/arch/arc/kernel/time.c
-> 
-> +static void arc_periodic_timer_setup(unsigned int limit)
-> +{
-> +	/* setup start and end markers */
-> +	write_aux_reg(ARC_REG_TIMER0_LIMIT, limit);
-> +	write_aux_reg(ARC_REG_TIMER0_CNT, 0);	/* start from 0 */
-> +
-> +	/* IE: Interrupt on count = limit,
-> +	 * NH: Count cycles only when CPU running (NOT Halted)
-> +	 */
-> +	write_aux_reg(ARC_REG_TIMER0_CTRL, TIMER_CTRL_IE | TIMER_CTRL_NH);
-> +}
-> +
-> +/*
-> + * Acknowledge the interrupt & enable/disable the interrupt
-> + */
-> +static void arc_periodic_timer_ack(unsigned int irq_reenable)
-> +{
-> +	/* 1. Ack the interrupt by writing to CTRL reg.
-> +	 *    Any write will cause intr to be ack, however it has to be one of
-> +	 *    writable bits (NH: Count when not halted)
-> +	 * 2. If required by caller, re-arm timer to Interrupt at the end of
-> +	 *    next cycle.
-> +	 *
-> +	 * Small optimisation:
-> +	 * Normal code would have been
-> +	 *  if (irq_reenable) CTRL_REG = (IE | NH); else CTRL_REG = NH;
-> +	 * However since IE is BIT0 we can fold the branch
-> +	 */
-> +	write_aux_reg(ARC_REG_TIMER0_CTRL, irq_reenable | TIMER_CTRL_NH);
-> +}
+This patch also converts the Cris architecture to set arch_gettimeoffset
+directly to the final implementation in time_init(), because Cris already
+had separate time_init() functions per sub-architecture. M68K and ARM
+are converted to set arch_gettimeoffset the final implementation in later
+patches, because they already have function pointers in place for this
+purpose.
 
-....
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Mike Frysinger <vapier@gentoo.org>
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: John Stultz <johnstul@us.ibm.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+Signed-off-by: Stephen Warren <swarren@nvidia.com>
+---
+v2:
+* s/gettimeoffset/get_arch_timeoffset/ to make the name less generic
+  and more arch-specific.
 
-> +/********** Clock Event Device *********/
-> +
-> +static int arc_clkevent_set_next_event(unsigned long delta,
-> +				    struct clock_event_device *dev)
-> +{
-> +	arc_periodic_timer_setup(delta);
+(Note: I've only reposted patch 2/11 this time around, and I still hope
+to take it through the arm-soc tree due to dependencies, so I'm not
+requesting this be applied by the timekeeping maintainers)
+---
+ arch/arm/kernel/time.c           |    6 +++++-
+ arch/blackfin/kernel/time.c      |    6 +++++-
+ arch/cris/arch-v10/kernel/time.c |    6 ++++--
+ arch/cris/kernel/time.c          |   11 -----------
+ arch/m32r/kernel/time.c          |    4 +++-
+ arch/m68k/kernel/time.c          |   16 ++++++++++------
+ include/linux/time.h             |    4 +---
+ kernel/time/timekeeping.c        |   26 ++++++++++++++++++++------
+ 8 files changed, 48 insertions(+), 31 deletions(-)
 
-This is confusing. Is arc_periodic_timer_setup() setting up a periodic
-timer or a oneshot timer? It looks you use it for both and the
-differentiation happens in arc_periodic_timer_ack(). So I assume the
-timer only knows about periodic mode, but you trick it into oneshot
-with the ack function, right ? So it's just me being confused about
-the function names, but that could do with some explanatory comments.
-
-> +	return 0;
-> +}
-> +
-> +static void arc_clkevent_set_mode(enum clock_event_mode mode,
-> +			       struct clock_event_device *dev)
-> +{
-> +	pr_info("Device [%s] clockevent mode now [%d]\n", dev->name, mode);
-
-Please remove the debug leftover.
-
-> +	switch (mode) {
-> +	case CLOCK_EVT_MODE_PERIODIC:
-> +		arc_periodic_timer_setup(CONFIG_ARC_PLAT_CLK / HZ);
-> +		break;
-> +	case CLOCK_EVT_MODE_ONESHOT:
-> +		break;
-> +	default:
-> +		break;
-> +	}
-> +
-> +	return;
-> +}
-> +
-> +static DEFINE_PER_CPU(struct clock_event_device, arc_clockevent_device) = {
-> +	.name		= "ARC Timer0",
-> +	.features	= CLOCK_EVT_FEAT_ONESHOT | CLOCK_EVT_FEAT_PERIODIC,
-> +	.mode		= CLOCK_EVT_MODE_UNUSED,
-> +	.rating		= 300,
-> +	.irq		= TIMER0_IRQ,	/* hardwired, no need for resources */
-> +	.set_next_event = arc_clkevent_set_next_event,
-> +	.set_mode	= arc_clkevent_set_mode,
-> +};
-> +
-> +irqreturn_t timer_irq_handler(int irq, void *dev_id)
-
-static please
-
-> +static int arc_finished_booting;
-> +
-> +/*
-> + * Scheduler clock - returns current time in nanosec units.
-> + * It's return value must NOT wrap around.
-> + *
-> + * Although the return value is nanosec units based, what's more important
-> + * is whats the "source" of this value. The orig jiffies based computation
-> + * was only as granular as jiffies itself (10ms on ARC).
-> + * We need something that is more granular, so use the same mechanism as
-> + * gettimeofday(), which uses ARC Timer T1 wrapped as a clocksource.
-> + * Unfortunately the first call to sched_clock( ) is way before that subsys
-> + * is initialiased, thus use the jiffies based value in the interim.
-> + */
-> +unsigned long long sched_clock(void)
-> +{
-> +	if (!arc_finished_booting) {
-> +		return (unsigned long long)(jiffies - INITIAL_JIFFIES)
-> +		    * (NSEC_PER_SEC / HZ);
-> +	} else {
-> +		struct timespec ts;
-> +		getrawmonotonic(&ts);
-
-This can live lock. sched_clock() is used by the tracer. So assume you
-are function tracing and you trace a function called from within the
-timekeeping seqcount write "locked" region. You spin forever in
-getrawmonotonic(). Not what you want, right ?
-
-Thanks,
-
-	tglx
+diff --git a/arch/arm/kernel/time.c b/arch/arm/kernel/time.c
+index 09be0c3..b0190b4 100644
+--- a/arch/arm/kernel/time.c
++++ b/arch/arm/kernel/time.c
+@@ -70,7 +70,7 @@ EXPORT_SYMBOL(profile_pc);
+ #endif
+ 
+ #ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
+-u32 arch_gettimeoffset(void)
++static u32 arm_gettimeoffset(void)
+ {
+ 	if (system_timer->offset != NULL)
+ 		return system_timer->offset() * 1000;
+@@ -164,6 +164,10 @@ device_initcall(timer_init_syscore_ops);
+ 
+ void __init time_init(void)
+ {
++#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
++	arch_gettimeoffset = arm_gettimeoffset;
++#endif
++
+ 	system_timer = machine_desc->timer;
+ 	system_timer->init();
+ 	sched_clock_postinit();
+diff --git a/arch/blackfin/kernel/time.c b/arch/blackfin/kernel/time.c
+index 2310b24..3126b92 100644
+--- a/arch/blackfin/kernel/time.c
++++ b/arch/blackfin/kernel/time.c
+@@ -85,7 +85,7 @@ time_sched_init(irqreturn_t(*timer_routine) (int, void *))
+ /*
+  * Should return useconds since last timer tick
+  */
+-u32 arch_gettimeoffset(void)
++static u32 blackfin_gettimeoffset(void)
+ {
+ 	unsigned long offset;
+ 	unsigned long clocks_per_jiffy;
+@@ -141,6 +141,10 @@ void read_persistent_clock(struct timespec *ts)
+ 
+ void __init time_init(void)
+ {
++#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
++	arch_gettimeoffset = blackfin_gettimeoffset;
++#endif
++
+ #ifdef CONFIG_RTC_DRV_BFIN
+ 	/* [#2663] hack to filter junk RTC values that would cause
+ 	 * userspace to have to deal with time values greater than
+diff --git a/arch/cris/arch-v10/kernel/time.c b/arch/cris/arch-v10/kernel/time.c
+index 162892f..fce7c54 100644
+--- a/arch/cris/arch-v10/kernel/time.c
++++ b/arch/cris/arch-v10/kernel/time.c
+@@ -55,9 +55,9 @@ unsigned long get_ns_in_jiffie(void)
+ 	return ns;
+ }
+ 
+-unsigned long do_slow_gettimeoffset(void)
++static u32 cris_v10_gettimeoffset(void)
+ {
+-	unsigned long count;
++	u32 count;
+ 
+ 	/* The timer interrupt comes from Etrax timer 0. In order to get
+ 	 * better precision, we check the current value. It might have
+@@ -191,6 +191,8 @@ static struct irqaction irq2  = {
+ void __init
+ time_init(void)
+ {	
++	arch_gettimeoffset = cris_v10_gettimeoffset;
++
+ 	/* probe for the RTC and read it if it exists 
+ 	 * Before the RTC can be probed the loops_per_usec variable needs 
+ 	 * to be initialized to make usleep work. A better value for 
+diff --git a/arch/cris/kernel/time.c b/arch/cris/kernel/time.c
+index b063c92..fe6acda 100644
+--- a/arch/cris/kernel/time.c
++++ b/arch/cris/kernel/time.c
+@@ -39,17 +39,6 @@
+ extern unsigned long loops_per_jiffy; /* init/main.c */
+ unsigned long loops_per_usec;
+ 
+-
+-#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
+-extern unsigned long do_slow_gettimeoffset(void);
+-static unsigned long (*do_gettimeoffset)(void) = do_slow_gettimeoffset;
+-
+-u32 arch_gettimeoffset(void)
+-{
+-	return do_gettimeoffset();
+-}
+-#endif
+-
+ int set_rtc_mmss(unsigned long nowtime)
+ {
+ 	D(printk(KERN_DEBUG "set_rtc_mmss(%lu)\n", nowtime));
+diff --git a/arch/m32r/kernel/time.c b/arch/m32r/kernel/time.c
+index 84dd040..1a15f81 100644
+--- a/arch/m32r/kernel/time.c
++++ b/arch/m32r/kernel/time.c
+@@ -57,7 +57,7 @@ extern void smp_local_timer_interrupt(void);
+ 
+ static unsigned long latch;
+ 
+-u32 arch_gettimeoffset(void)
++static u32 m32r_gettimeoffset(void)
+ {
+ 	unsigned long  elapsed_time = 0;  /* [us] */
+ 
+@@ -165,6 +165,8 @@ void read_persistent_clock(struct timespec *ts)
+ 
+ void __init time_init(void)
+ {
++	arch_gettimeoffset = m32r_gettimeoffset;
++
+ #if defined(CONFIG_CHIP_M32102) || defined(CONFIG_CHIP_XNUX2) \
+ 	|| defined(CONFIG_CHIP_VDEC2) || defined(CONFIG_CHIP_M32700) \
+ 	|| defined(CONFIG_CHIP_OPSP) || defined(CONFIG_CHIP_M32104)
+diff --git a/arch/m68k/kernel/time.c b/arch/m68k/kernel/time.c
+index 5d0bcaa..c2994c8 100644
+--- a/arch/m68k/kernel/time.c
++++ b/arch/m68k/kernel/time.c
+@@ -80,14 +80,9 @@ void read_persistent_clock(struct timespec *ts)
+ 	}
+ }
+ 
+-void __init time_init(void)
+-{
+-	mach_sched_init(timer_interrupt);
+-}
+-
+ #ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
+ 
+-u32 arch_gettimeoffset(void)
++static u32 m68k_gettimeoffset(void)
+ {
+ 	return mach_gettimeoffset() * 1000;
+ }
+@@ -106,3 +101,12 @@ static int __init rtc_init(void)
+ module_init(rtc_init);
+ 
+ #endif /* CONFIG_ARCH_USES_GETTIMEOFFSET */
++
++void __init time_init(void)
++{
++#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
++	arch_gettimeoffset = m68k_gettimeoffset;
++#endif
++
++	mach_sched_init(timer_interrupt);
++}
+diff --git a/include/linux/time.h b/include/linux/time.h
+index 4d358e9..05e32a7 100644
+--- a/include/linux/time.h
++++ b/include/linux/time.h
+@@ -142,9 +142,7 @@ void timekeeping_inject_sleeptime(struct timespec *delta);
+  * finer then tick granular time.
+  */
+ #ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
+-extern u32 arch_gettimeoffset(void);
+-#else
+-static inline u32 arch_gettimeoffset(void) { return 0; }
++extern u32 (*arch_gettimeoffset)(void);
+ #endif
+ 
+ extern void do_gettimeofday(struct timeval *tv);
+diff --git a/kernel/time/timekeeping.c b/kernel/time/timekeeping.c
+index e424970..00b58c7 100644
+--- a/kernel/time/timekeeping.c
++++ b/kernel/time/timekeeping.c
+@@ -140,6 +140,20 @@ static void tk_setup_internals(struct timekeeper *tk, struct clocksource *clock)
+ }
+ 
+ /* Timekeeper helper functions. */
++
++#ifdef CONFIG_ARCH_USES_GETTIMEOFFSET
++u32 (*arch_gettimeoffset)(void);
++
++u32 get_arch_timeoffset(void)
++{
++	if (likely(arch_gettimeoffset))
++		return arch_gettimeoffset();
++	return 0;
++}
++#else
++static inline u32 get_arch_timeoffset(void) { return 0; }
++#endif
++
+ static inline s64 timekeeping_get_ns(struct timekeeper *tk)
+ {
+ 	cycle_t cycle_now, cycle_delta;
+@@ -156,8 +170,8 @@ static inline s64 timekeeping_get_ns(struct timekeeper *tk)
+ 	nsec = cycle_delta * tk->mult + tk->xtime_nsec;
+ 	nsec >>= tk->shift;
+ 
+-	/* If arch requires, add in gettimeoffset() */
+-	return nsec + arch_gettimeoffset();
++	/* If arch requires, add in get_arch_timeoffset() */
++	return nsec + get_arch_timeoffset();
+ }
+ 
+ static inline s64 timekeeping_get_ns_raw(struct timekeeper *tk)
+@@ -176,8 +190,8 @@ static inline s64 timekeeping_get_ns_raw(struct timekeeper *tk)
+ 	/* convert delta to nanoseconds. */
+ 	nsec = clocksource_cyc2ns(cycle_delta, clock->mult, clock->shift);
+ 
+-	/* If arch requires, add in gettimeoffset() */
+-	return nsec + arch_gettimeoffset();
++	/* If arch requires, add in get_arch_timeoffset() */
++	return nsec + get_arch_timeoffset();
+ }
+ 
+ /* must hold write on timekeeper.lock */
+@@ -210,8 +224,8 @@ static void timekeeping_forward_now(struct timekeeper *tk)
+ 
+ 	tk->xtime_nsec += cycle_delta * tk->mult;
+ 
+-	/* If arch requires, add in gettimeoffset() */
+-	tk->xtime_nsec += (u64)arch_gettimeoffset() << tk->shift;
++	/* If arch requires, add in get_arch_timeoffset() */
++	tk->xtime_nsec += (u64)get_arch_timeoffset() << tk->shift;
+ 
+ 	tk_normalize_xtime(tk);
+ 
+-- 
+1.7.0.4
