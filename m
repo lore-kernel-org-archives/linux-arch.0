@@ -1,63 +1,57 @@
-From: Thomas Gleixner <tglx@linutronix.de>
-Subject: Re: [RFC PATCH v1 12/31] ARC: Interrupt Handling
-Date: Mon, 12 Nov 2012 21:08:08 +0100 (CET)
-Message-ID: <alpine.LFD.2.02.1211122059101.10000@ionos>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-13-git-send-email-vgupta@synopsys.com>
+From: Josh Boyer <jwboyer@gmail.com>
+Subject: Re: [GIT PULL] UAPI: perf fixes
+Date: Mon, 12 Nov 2012 15:23:51 -0500
+Message-ID: <CA+5PVA5vMyNmQYCLX315Jc+kN9zQuZo_h0Devpjfr43TezE-qA@mail.gmail.com>
+References: <1378.1352379110@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1352281674-2186-13-git-send-email-vgupta@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-vb0-f46.google.com ([209.85.212.46]:65087 "EHLO
+	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753312Ab2KLUXw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 15:23:52 -0500
+In-Reply-To: <1378.1352379110@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: acme@ghostprotocols.net, mingo@kernel.org, tglx@linutronix.de, bp@alien8.de, namhyung@gmail.com, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
 
-On Wed, 7 Nov 2012, Vineet Gupta wrote:
-> +void __init init_IRQ(void)
-> +{
-> +	const int irq = TIMER0_IRQ;
-> +
-> +	/*
-> +	 * Each CPU needs to register irq of it's private TIMER0.
-> +	 * The APIs request_percpu_irq()/enable_percpu_irq() will not be
-> +	 * functional, if we don't "prep" the generic IRQ sub-system with
-> +	 * the following:
-> +	 * -Ensure that devid passed to request_percpu_irq() is indeed per cpu
-> +	 * -disable NOAUTOEN, w/o which the device handler never gets called
+On Thu, Nov 8, 2012 at 7:51 AM, David Howells <dhowells@redhat.com> wrote:
+>
+>  (6) Make perf work for x86 by adding -I flags and changing long #includes
+>      with "../../include" in them into short <asm/foo.h> type things.
 
-What sets NOAUTOEN in the first place? The core code definitely does
-not.
+This patch seems to break building perf on ppc64.  It fails with:
 
-> +	 */
-> +	irq_set_percpu_devid(irq);
-> +	irq_modify_status(irq, IRQ_NOAUTOEN, 0);
++ make -j16 -C tools/perf -s V=1 WERROR=0 HAVE_CPLUS_DEMANGLE=1 prefix=/usr all
 
-Aside of that we have irq_clear_status_flags() for this.
+<snip>
 
-> +	plat_init_IRQ();
-> +}
+builtin-kvm.c:25:21: fatal error: asm/svm.h: No such file or directory
+compilation terminated.
+make: *** [builtin-kvm.o] Error 1
+make: *** Waiting for unfinished jobs....
 
-> +int __init get_hw_config_num_irq(void)
+And that is indeed because arch/powerpc/include/asm/svm.h doesn't exist
+(and therefore can't be exported like the first patch for x86 in this
+series does).  You can find full build logs with this patch series
+applied here: http://ppc.koji.fedoraproject.org/koji/taskinfo?taskID=781782
 
-How is that function used ?
+However, without some form of fix for the ../.. includes, perf still
+fails to build on arches like ARM and powerpc with errors like this:
 
-> +{
-> +	uint32_t val = read_aux_reg(ARC_REG_VECBASE_BCR);
-> +
-> +	switch (val & 0x03) {
-> +	case 0:
-> +		return 16;
-> +	case 1:
-> +		return 32;
-> +	case 2:
-> +		return 8;
-> +	default:
-> +		return 0;
-> +	}
-> +
-> +	return 0;
-> +}
+In file included from util/../perf.h:29:0,
+                 from util/cache.h:7,
+                 from util/quote.c:1:
+util/../../../arch/powerpc/include/asm/unistd.h:12:29: fatal error:
+uapi/asm/unistd.h: No such file or directory
+compilation terminated.
+make: *** [util/parse-events-test.o] Error 1
 
-Thanks,
+Full build logs here:
+http://ppc.koji.fedoraproject.org/koji/taskinfo?taskID=781076
 
-	tglx
+So.  Something else might need to be done to fix perf builds for non-x86
+arches.
+
+josh
