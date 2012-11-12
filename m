@@ -1,52 +1,44 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:58552 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753116Ab2KLNvQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 08:51:16 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC Patch v1 33/55] ARC: ptrace support
-Date: Mon, 12 Nov 2012 13:51:05 +0000
-References: <1352720953-24321-1-git-send-email-vgupta@synopsys.com> <1352720953-24321-3-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <1352720953-24321-3-git-send-email-vgupta@synopsys.com>
+Received: from 7.mo2.mail-out.ovh.net ([188.165.48.182]:44218 "EHLO
+	mo2.mail-out.ovh.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1753414Ab2KLQJm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 11:09:42 -0500
+Received: from mail426.ha.ovh.net (b6.ovh.net [213.186.33.56])
+	by mo2.mail-out.ovh.net (Postfix) with SMTP id C0852DC3A0A
+	for <linux-arch@vger.kernel.org>; Mon, 12 Nov 2012 15:59:38 +0100 (CET)
+Date: Mon, 12 Nov 2012 15:49:36 +0100
+From: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
+Subject: Re: [PATCH 05/11] ARM: at91: convert timer suspend/resume to
+ clock_event_device
+Message-ID: <20121112144936.GL4576@game.jcrosoft.org>
+References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
+ <1352408516-21988-7-git-send-email-swarren@wwwdotorg.org>
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201211121351.06023.arnd@arndb.de>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <1352408516-21988-7-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet.Gupta1@synopsys.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
-Message-ID: <20121112135105.XVl0gAbD4m3X8MRbbnu8pY0UBjnFCbcQs0ZqXIp3rUw@z>
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Andrew Victor <linux@maxim.org.za>, Nicolas Ferre <nicolas.ferre@atmel.com>
+Message-ID: <20121112144936.N7ofYsGAcPuhINRUr_Y0GWUd6pyJuBeJoq0t2P8xWqY@z>
 
-On Monday 12 November 2012, Vineet.Gupta1@synopsys.com wrote:
-> +       case PTRACE_PEEKUSR:
-> +               pos = addr;     /* offset in struct user_regs_struct */
-> +               count = 4;      /* 1 register only */
-> +               u_addr = (unsigned int __user *)data;
-> +               kbuf = NULL;
-> +               ret = genregs_get(child, NULL, pos, count, kbuf, u_addr);
-> +               break;
-> +
-> +       case PTRACE_POKEUSR:
-> +               pos = addr;     /* offset in struct user_regs_struct */
-> +               count = 4;      /* 1 register only */
-> +
-> +               /* Ideally @data would have abeen a user space buffer, from
-> +                * where, we do a copy_from_user.
-> +                * However this request only involves one word, which courtesy
-> +                * our ABI can be passed in a reg.
-> +                * regset interface however expects some buffer to copyin from
-> +                */
-> +               kbuf = &data;
-> +               u_addr = NULL;
-> +
-> +               ret = genregs_set(child, NULL, pos, count, kbuf, u_addr);
-> +               break;
-> +
+On 14:01 Thu 08 Nov     , Stephen Warren wrote:
+> From: Stephen Warren <swarren@nvidia.com>
+> 
+> Move at91's timer suspend/resume functions from struct sys_timer
+> at91sam926x_timer into struct clock_event_device pit_clkevt. This
+> will allow the sys_timer suspend/resume fields to be removed, and
+> eventually lead to a complete removal of struct sys_timer.
+> 
+> Cc: Andrew Victor <linux@maxim.org.za>
+> Cc: Nicolas Ferre <nicolas.ferre@atmel.com>
+> Cc: Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>
+> Signed-off-by: Stephen Warren <swarren@nvidia.com>
+> ---
+look fine
 
-I think these should be moved into regsets, as we have done for all
-other new architectures. Your arch_ptrace then becomes a trivial wrapper
-around ptrace_request.
+Acked-by: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
 
-	Arnd
+Best Regards,
+J.
