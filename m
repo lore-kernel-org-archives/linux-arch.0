@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from kiruna.synopsys.com ([198.182.44.80]:35813 "EHLO
-	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752957Ab2KLLvF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 06:51:05 -0500
+Received: from vaxjo.synopsys.com ([198.182.60.75]:64701 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752934Ab2KLLuf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 06:50:35 -0500
 From: <Vineet.Gupta1@synopsys.com>
-Subject: [RFC Patch v1 41/55] ARC: dwarf2 stack unwinder
-Date: Mon, 12 Nov 2012 17:18:59 +0530
-Message-ID: <1352720953-24321-11-git-send-email-vgupta@synopsys.com>
+Subject: [RFC Patch v1 38/55] ARC: Low level event capture/logging
+Date: Mon, 12 Nov 2012 17:18:56 +0530
+Message-ID: <1352720953-24321-8-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1352720953-24321-1-git-send-email-vgupta@synopsys.com>
 References: <1352720953-24321-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -15,86 +15,74 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: tglx@linutronix.de, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20121112114859.-eoVGS9dQSekuiC3KZmVcpoSANywG6bEMxj8ZJXjkpo@z>
+Message-ID: <20121112114856.9LacXKwN71B_UR25NU4nUYBV7cH4ug0RrdPx2mK90NY@z>
 
 From: Vineet Gupta <vgupta@synopsys.com>
 
--Originally controbuted by Rajeshwar Range <rajeshwar.ranga>
--Derived off of generic unwinder in 2.6.19 and adapted to ARC
+Poorman's version of LTT
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/Kconfig              |   15 +
- arch/arc/include/asm/module.h |    7 +
- arch/arc/include/asm/unwind.h |  163 +++++
- arch/arc/kernel/Makefile      |    6 +
- arch/arc/kernel/entry.S       |    9 +
- arch/arc/kernel/module.c      |   42 ++
- arch/arc/kernel/setup.c       |    3 +
- arch/arc/kernel/unwind.c      | 1329 +++++++++++++++++++++++++++++++++++++++++
- arch/arc/kernel/vmlinux.lds.S |   23 +-
- 9 files changed, 1596 insertions(+), 1 deletions(-)
- create mode 100644 arch/arc/include/asm/unwind.h
- create mode 100644 arch/arc/kernel/unwind.c
+ arch/arc/Kconfig                     |    7 +
+ arch/arc/Makefile                    |    3 +
+ arch/arc/include/asm/event-log-asm.h |  185 +++++++++++++++++++++
+ arch/arc/include/asm/event-log.h     |  102 ++++++++++++
+ arch/arc/kernel/Makefile             |    1 +
+ arch/arc/kernel/asm-offsets.c        |   15 ++
+ arch/arc/kernel/entry.S              |   31 ++++
+ arch/arc/kernel/event-log.c          |  304 ++++++++++++++++++++++++++++++++++
+ arch/arc/kernel/signal.c             |    3 +
+ arch/arc/mm/tlb.c                    |    3 +
+ arch/arc/mm/tlbex.S                  |    7 +
+ 11 files changed, 661 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/include/asm/event-log-asm.h
+ create mode 100644 arch/arc/include/asm/event-log.h
+ create mode 100644 arch/arc/kernel/event-log.c
 
 diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 8d72ada..26609d6 100644
+index e096545..15d740c 100644
 --- a/arch/arc/Kconfig
 +++ b/arch/arc/Kconfig
-@@ -22,6 +22,7 @@ config ARC
- 	select GENERIC_SMP_IDLE_THREAD
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_GENERIC_HARDIRQS
-+	select HAVE_MOD_ARCH_SPECIFIC if ARC_DW2_UNWIND
- 	select HAVE_OPROFILE
- 	select HOTPLUG if !INITRAMFS_SOURCE=""
- 	select MODULES_USE_ELF_RELA
-@@ -355,6 +356,20 @@ menuconfig ARC_DBG
- 	bool "ARC debugging"
- 	default y
+@@ -323,6 +323,13 @@ config ARC_DBG_TLB_PARANOIA
+ 	depends on ARC_DBG
+ 	default n
  
-+config ARC_DW2_UNWIND
-+	bool "Enable DWARF specific kernel stack unwind"
++config ARC_DBG_EVENT_TIMELINE
++	bool "Low level event capture"
 +	depends on ARC_DBG
-+	default y
-+	select KALLSYMS
++	default n
 +	help
-+	  Compiles the kernel with DWARF unwind information and can be used
-+	  to get stack backtraces.
++	  Capture low level events: IRQ/Trap/Exception
 +
-+	  If you say Y here the resulting kernel image will be slightly larger
-+	  but not slower, and it will give very useful debugging information.
-+	  If you don't debug the kernel, you can say N, but we may not be able
-+	  to solve problems without frame unwind information
+ config ARC_DBG_TLB_MISS_COUNT
+ 	bool "Profile TLB Misses"
+ 	default n
+diff --git a/arch/arc/Makefile b/arch/arc/Makefile
+index 7ef6767..a533546 100644
+--- a/arch/arc/Makefile
++++ b/arch/arc/Makefile
+@@ -47,6 +47,9 @@ endif
+ disable_small_data := y
+ cflags-$(disable_small_data)		+= -mno-sdata -fcall-used-gp
+ 
++# Low level event tracing with Metaware debugger assist needs symbol info
++cflags-$(CONFIG_ARC_DBG_EVENT_TIMELINE) += -g
 +
- config ARC_DBG_TLB_PARANOIA
- 	bool "Paranoia Checks in Low Level TLB Handlers"
- 	depends on ARC_DBG && !SMP
-diff --git a/arch/arc/include/asm/module.h b/arch/arc/include/asm/module.h
-index 234b435..518222b 100644
---- a/arch/arc/include/asm/module.h
-+++ b/arch/arc/include/asm/module.h
-@@ -14,6 +14,13 @@
+ cflags-$(CONFIG_CPU_BIG_ENDIAN)		+= -mbig-endian
+ ldflags-$(CONFIG_CPU_BIG_ENDIAN)	+= -EB
  
- #include <asm-generic/module.h>
- 
-+#ifdef CONFIG_ARC_DW2_UNWIND
-+struct mod_arch_specific {
-+	void *unw_info;
-+	int unw_sec_idx;
-+};
-+#endif
-+
- #define MODULE_PROC_FAMILY "ARC700"
- 
- #define MODULE_ARCH_VERMAGIC MODULE_PROC_FAMILY
-diff --git a/arch/arc/include/asm/unwind.h b/arch/arc/include/asm/unwind.h
+diff --git a/arch/arc/include/asm/event-log-asm.h b/arch/arc/include/asm/event-log-asm.h
 new file mode 100644
-index 0000000..7ca628b
+index 0000000..bc29e7d
 --- /dev/null
-+++ b/arch/arc/include/asm/unwind.h
-@@ -0,0 +1,163 @@
++++ b/arch/arc/include/asm/event-log-asm.h
+@@ -0,0 +1,185 @@
 +/*
++ *  Low level Event Capture API callable from Assembly Code
++ *  vineetg: Feb 2008
++ *
++ *  TBD: SMP Safe
++ *
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
@@ -102,1675 +90,826 @@ index 0000000..7ca628b
 + * published by the Free Software Foundation.
 + */
 +
-+#ifndef _ASM_ARC_UNWIND_H
-+#define _ASM_ARC_UNWIND_H
++#ifndef __ASM_ARC_EVENT_LOG_ASM_H
++#define __ASM_ARC_EVENT_LOG_ASM_H
 +
-+#ifdef CONFIG_ARC_DW2_UNWIND
++#include <asm/event-log.h>
 +
-+#include <linux/sched.h>
++#ifdef __ASSEMBLY__
 +
-+struct arc700_regs {
-+	unsigned long r0;
-+	unsigned long r1;
-+	unsigned long r2;
-+	unsigned long r3;
-+	unsigned long r4;
-+	unsigned long r5;
-+	unsigned long r6;
-+	unsigned long r7;
-+	unsigned long r8;
-+	unsigned long r9;
-+	unsigned long r10;
-+	unsigned long r11;
-+	unsigned long r12;
-+	unsigned long r13;
-+	unsigned long r14;
-+	unsigned long r15;
-+	unsigned long r16;
-+	unsigned long r17;
-+	unsigned long r18;
-+	unsigned long r19;
-+	unsigned long r20;
-+	unsigned long r21;
-+	unsigned long r22;
-+	unsigned long r23;
-+	unsigned long r24;
-+	unsigned long r25;
-+	unsigned long r26;
-+	unsigned long r27;	/* fp */
-+	unsigned long r28;	/* sp */
-+	unsigned long r29;
-+	unsigned long r30;
-+	unsigned long r31;	/* blink */
-+	unsigned long r63;	/* pc */
-+};
++#ifndef CONFIG_ARC_DBG_EVENT_TIMELINE
 +
-+struct unwind_frame_info {
-+	struct arc700_regs regs;
-+	struct task_struct *task;
-+	unsigned call_frame:1;
-+};
++.macro TAKE_SNAP_ASM reg_scratch, reg_ptr, type
++.endm
 +
-+#define UNW_PC(frame)		((frame)->regs.r63)
-+#define UNW_SP(frame)		((frame)->regs.r28)
-+#define UNW_BLINK(frame)	((frame)->regs.r31)
-+
-+/* Rajesh FIXME */
-+#ifdef CONFIG_FRAME_POINTER
-+#define UNW_FP(frame)		((frame)->regs.r27)
-+#define FRAME_RETADDR_OFFSET	4
-+#define FRAME_LINK_OFFSET	0
-+#define STACK_BOTTOM_UNW(tsk)	STACK_LIMIT((tsk)->thread.ksp)
-+#define STACK_TOP_UNW(tsk)	((tsk)->thread.ksp)
-+#else
-+#define UNW_FP(frame)		((void)(frame), 0)
-+#endif
-+
-+#define STACK_LIMIT(ptr)	(((ptr) - 1) & ~(THREAD_SIZE - 1))
-+
-+#define UNW_REGISTER_INFO \
-+	PTREGS_INFO(r0), \
-+	PTREGS_INFO(r1), \
-+	PTREGS_INFO(r2), \
-+	PTREGS_INFO(r3), \
-+	PTREGS_INFO(r4), \
-+	PTREGS_INFO(r5), \
-+	PTREGS_INFO(r6), \
-+	PTREGS_INFO(r7), \
-+	PTREGS_INFO(r8), \
-+	PTREGS_INFO(r9), \
-+	PTREGS_INFO(r10), \
-+	PTREGS_INFO(r11), \
-+	PTREGS_INFO(r12), \
-+	PTREGS_INFO(r13), \
-+	PTREGS_INFO(r14), \
-+	PTREGS_INFO(r15), \
-+	PTREGS_INFO(r16), \
-+	PTREGS_INFO(r17), \
-+	PTREGS_INFO(r18), \
-+	PTREGS_INFO(r19), \
-+	PTREGS_INFO(r20), \
-+	PTREGS_INFO(r21), \
-+	PTREGS_INFO(r22), \
-+	PTREGS_INFO(r23), \
-+	PTREGS_INFO(r24), \
-+	PTREGS_INFO(r25), \
-+	PTREGS_INFO(r26), \
-+	PTREGS_INFO(r27), \
-+	PTREGS_INFO(r28), \
-+	PTREGS_INFO(r29), \
-+	PTREGS_INFO(r30), \
-+	PTREGS_INFO(r31), \
-+	PTREGS_INFO(r63)
-+
-+#define UNW_DEFAULT_RA(raItem, dataAlign) \
-+	((raItem).where == Memory && !((raItem).value * (dataAlign) + 4))
-+
-+extern int arc_unwind(struct unwind_frame_info *frame);
-+extern void arc_unwind_init(void);
-+extern void arc_unwind_setup(void);
-+extern void *unwind_add_table(struct module *module, const void *table_start,
-+			      unsigned long table_size);
-+extern void unwind_remove_table(void *handle, int init_only);
-+
-+static inline int
-+arch_unwind_init_running(struct unwind_frame_info *info,
-+			 int (*callback) (struct unwind_frame_info *info,
-+					  void *arg),
-+			 void *arg)
-+{
-+	return 0;
-+}
-+
-+static inline int arch_unw_user_mode(const struct unwind_frame_info *info)
-+{
-+	return 0;
-+}
-+
-+static inline void arch_unw_init_blocked(struct unwind_frame_info *info)
-+{
-+	return;
-+}
-+
-+static inline void arch_unw_init_frame_info(struct unwind_frame_info *info,
-+					    struct pt_regs *regs)
-+{
-+	return;
-+}
++.macro TAKE_SNAP_C_FROM_ASM type
++.endm
 +
 +#else
 +
-+#define UNW_PC(frame) ((void)(frame), 0)
-+#define UNW_SP(frame) ((void)(frame), 0)
-+#define UNW_FP(frame) ((void)(frame), 0)
++#include <asm/asm-offsets.h>
 +
-+static inline void arc_unwind_init(void)
-+{
-+}
-+
-+static inline void arc_unwind_setup(void)
-+{
-+}
-+#define unwind_add_table(a, b, c)
-+#define unwind_remove_table(a, b)
-+
-+#endif /* CONFIG_ARC_DW2_UNWIND */
-+
-+#endif /* _ASM_ARC_UNWIND_H */
-diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
-index b2cf444..86b159f 100644
---- a/arch/arc/kernel/Makefile
-+++ b/arch/arc/kernel/Makefile
-@@ -14,9 +14,15 @@ obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o \
- obj-$(CONFIG_MODULES)			+= arcksyms.o module.o
- obj-$(CONFIG_ARC_DBG_EVENT_TIMELINE)	+= event-log.o
- obj-$(CONFIG_SMP) 			+= smp.o
-+obj-$(CONFIG_ARC_DW2_UNWIND)		+= unwind.o
- obj-$(CONFIG_ARC_FPU_SAVE_RESTORE)	+= fpu.o
- CFLAGS_fpu.o   += -mdpfp
- 
-+ifdef CONFIG_ARC_DW2_UNWIND
-+CFLAGS_ctx_sw.o += -fno-omit-frame-pointer
-+obj-y += ctx_sw.o
-+else
- obj-y += ctx_sw_asm.o
-+endif
- 
- extra-y := vmlinux.lds head.o
-diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
-index 7b24a5a..13d6feb 100644
---- a/arch/arc/kernel/entry.S
-+++ b/arch/arc/kernel/entry.S
-@@ -868,3 +868,12 @@ ARC_ENTRY sys_clone_wrapper
- 
- 	b ret_from_system_call
- ARC_EXIT sys_clone_wrapper
-+
-+#ifdef CONFIG_ARC_DW2_UNWIND
-+; Workaround for bug 94179 (STAR ):
-+; Despite -fasynchronous-unwind-tables, linker is not making dwarf2 unwinder
-+; section (.debug_frame) as loadable. So we force it here.
-+; This also fixes STAR 9000487933 where the prev-workaround (objcopy --setflag)
-+; would not work after a clean build due to kernel build system dependencies.
-+.section .debug_frame, "wa",@progbits
-+#endif
-diff --git a/arch/arc/kernel/module.c b/arch/arc/kernel/module.c
-index cc13df4..fd38132 100644
---- a/arch/arc/kernel/module.c
-+++ b/arch/arc/kernel/module.c
-@@ -14,6 +14,7 @@
- #include <linux/slab.h>
- #include <linux/fs.h>
- #include <linux/string.h>
-+#include <asm/unwind.h>
- 
- static inline void arc_write_me(unsigned short *addr, unsigned long value)
- {
-@@ -35,14 +36,40 @@ void module_free(struct module *module, void *region)
- 	vfree(region);
- }
- 
-+/* ARC specific section quirks - before relocation loop in generic loader
-+ *
-+ * For dwarf unwinding out of modules, this needs to
-+ * 1. Ensure the .debug_frame is allocatable (ARC Linker bug: despite
-+ *    -fasynchronous-unwind-tables it doesn't).
-+ * 2. Since we are iterating thru sec hdr tbl anyways, make a note of
-+ *    the exact section index, for later use.
-+ */
- int module_frob_arch_sections(Elf_Ehdr *hdr, Elf_Shdr *sechdrs,
- 			      char *secstr, struct module *mod)
- {
-+#ifdef CONFIG_ARC_DW2_UNWIND
-+	int i;
-+
-+	mod->arch.unw_sec_idx = 0;
-+	mod->arch.unw_info = NULL;
-+
-+	for (i = 1; i < hdr->e_shnum; i++) {
-+		if (strcmp(secstr+sechdrs[i].sh_name, ".debug_frame") == 0) {
-+			sechdrs[i].sh_flags |= SHF_ALLOC;
-+			mod->arch.unw_sec_idx = i;
-+			break;
-+		}
-+	}
-+#endif
-     return 0;
- }
- 
- void module_arch_cleanup(struct module *mod)
- {
-+#ifdef CONFIG_ARC_DW2_UNWIND
-+	if (mod->arch.unw_info)
-+		unwind_remove_table(mod->arch.unw_info, 0);
-+#endif
- }
- 
- int apply_relocate_add(Elf32_Shdr *sechdrs,
-@@ -110,8 +137,23 @@ relo_err:
- 
- }
- 
-+/* Just before lift off: After sections have been relocated, we add the
-+ * dwarf section to unwinder table pool
-+ * This couldn't be done in module_frob_arch_sections() because
-+ * relocations had not been applied by then
-+ */
- int module_finalize(const Elf32_Ehdr *hdr, const Elf_Shdr *sechdrs,
- 		    struct module *mod)
- {
-+#ifdef CONFIG_ARC_DW2_UNWIND
-+	void *unw;
-+	int unwsec = mod->arch.unw_sec_idx;
-+
-+	if (unwsec) {
-+		unw = unwind_add_table(mod, (void *)sechdrs[unwsec].sh_addr,
-+				       sechdrs[unwsec].sh_size);
-+		mod->arch.unw_info = unw;
-+	}
-+#endif
-     return 0;
- }
-diff --git a/arch/arc/kernel/setup.c b/arch/arc/kernel/setup.c
-index 258b9ee..34a2ff5 100644
---- a/arch/arc/kernel/setup.c
-+++ b/arch/arc/kernel/setup.c
-@@ -20,6 +20,7 @@
- #include <asm/page.h>
- #include <asm/irq.h>
- #include <asm/arcregs.h>
-+#include <asm/unwind.h>
- 
- #define FIX_PTR(x)  __asm__ __volatile__(";" : "+r"(x))
- 
-@@ -96,6 +97,8 @@ void __init setup_arch(char **cmdline_p)
- 	conswitchp = &dummy_con;
- #endif
- 
-+	arc_unwind_init();
-+	arc_unwind_setup();
- }
- 
- /*
-diff --git a/arch/arc/kernel/unwind.c b/arch/arc/kernel/unwind.c
-new file mode 100644
-index 0000000..a8d0222
---- /dev/null
-+++ b/arch/arc/kernel/unwind.c
-@@ -0,0 +1,1329 @@
 +/*
-+ * Copyright (C) 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ * Copyright (C) 2002-2006 Novell, Inc.
-+ *	Jan Beulich <jbeulich@novell.com>
++ * Macro to invoke the ASM event logger routine from assmebly code
++ * This is generated in-place in caller.
++ *
++ * @reg_scratch and @reg_ptr:
++ *	Registers provided by caller for coding the macro itself.
++ *	At this point if call, say Low level ISR, the Reg-File might not have
++ *	been saved, so only use reg safe.
++ * @type:
++ *	The low level event, defined in event-log.h
++ */
++.macro TAKE_SNAP_ASM reg_scratch, reg_ptr, type
++
++	/*
++	 * Earlier we used to save only reg_scratch and clobber reg_ptr and rely
++	 * on caller to understand this. Too much trouble.
++	 * Now we save both
++	 */
++	st \reg_scratch, [tmp_save_reg]
++	st \reg_ptr, [tmp_save_reg2]
++
++	ld \reg_ptr, [timeline_ctr]
++
++	/* HACK to detect if the circular log buffer is being overflowed */
++	brne \reg_ptr, MAX_SNAPS, 1f
++	flag 1
++	nop
++1:
++#ifdef CONFIG_ARC_HAS_HW_MPY
++	mpyu \reg_ptr, \reg_ptr, EVLOG_RECORD_SZ
++#else
++#error "even logger broken for !CONFIG_ARC_HAS_HW_MPY
++#endif
++
++	add \reg_ptr, timeline_log, \reg_ptr
++
++	/*############ Common data ########## */
++
++	/* TIMER1 count in timeline_log[timeline_ctr].time */
++	lr \reg_scratch, [ARC_REG_TIMER1_CNT]
++	st \reg_scratch, [\reg_ptr, EVLOG_FIELD_TIME]
++
++	/* current task ptr in timeline_log[timeline_ctr].task */
++	ld \reg_scratch, [_current_task]
++	ld \reg_scratch, [\reg_scratch, TASK_TGID]
++	st \reg_scratch, [\reg_ptr, EVLOG_FIELD_TASK]
++
++	/* Type of event (Intr/Excp/Trap etc) */
++	mov \reg_scratch, \type
++	st \reg_scratch, [\reg_ptr, EVLOG_FIELD_EVENT_ID]
++
++	/* save SP at time of exception */
++	st sp, [\reg_ptr, EVLOG_FIELD_SP]
++
++	st 0, [\reg_ptr, EVLOG_FIELD_EXTRA]
++	st 0, [\reg_ptr, EVLOG_FIELD_CAUSE]
++	st 0, [\reg_ptr, EVLOG_FIELD_EXTRA3]
++
++	lr \reg_scratch, [status32]
++	st \reg_scratch, [\reg_ptr, EVLOG_FIELD_EXTRA2]
++
++	/* ############ Event specific data ########## */
++	mov \reg_scratch, \type
++	and.f 0, \reg_scratch, EVENT_CLASS_EXIT
++	bz 1f
++
++	/* Stuff to do for all kernel exit events */
++	ld \reg_scratch, [sp, PT_status32]
++	st \reg_scratch, [\reg_ptr, EVLOG_FIELD_EXTRA]
++
++	/* preempt count in log->sp */
++	and \reg_scratch, sp, ~(0x2000 - 1)
++	ld \reg_scratch, [\reg_scratch, THREAD_INFO_PREEMPT_COUNT]
++	st \reg_scratch, [\reg_ptr, EVLOG_FIELD_SP]
++
++	ld \reg_scratch, [sp, PT_ret]
++	st \reg_scratch, [\reg_ptr, EVLOG_FIELD_EFA]
++
++	mov \reg_scratch, \type
++1:
++2:
++	/* for Trap, Syscall number  */
++	cmp \reg_scratch, SNAP_TRAP_IN
++	bnz 3f
++	st r8, [\reg_ptr, EVLOG_FIELD_CAUSE]
++	lr \reg_scratch, [erstatus]
++	st \reg_scratch, [\reg_ptr, EVLOG_FIELD_EXTRA]
++	j 99f
++3:
++5:
++	/* For Exceptions (TLB/ProtV etc) */
++	cmp \reg_scratch, SNAP_EXCP_IN
++	bnz 6f
++
++	lr \reg_scratch, [ecr]
++	st \reg_scratch, [\reg_ptr, EVLOG_FIELD_CAUSE]
++	lr \reg_scratch, [eret]
++	st \reg_scratch, [\reg_ptr, EVLOG_FIELD_EFA]
++	lr \reg_scratch, [erstatus]
++	st \reg_scratch, [\reg_ptr, EVLOG_FIELD_EXTRA]
++	lr \reg_scratch, [efa]
++	st \reg_scratch, [\reg_ptr, EVLOG_FIELD_EXTRA3]
++	j 99f
++
++6:	/* for Interrupts, IRQ */
++	cmp \reg_scratch, SNAP_INTR_OUT
++	bnz 7f
++	lr \reg_scratch, [icause1]
++	st \reg_scratch, [\reg_ptr, EVLOG_FIELD_CAUSE]
++	j 99f
++
++7:
++	cmp \reg_scratch, SNAP_INTR_OUT2
++	bnz 8f
++	lr \reg_scratch, [icause2]
++	st \reg_scratch, [\reg_ptr, EVLOG_FIELD_CAUSE]
++	j 99f
++
++8:
++	cmp \reg_scratch, SNAP_EXCP_OUT_FAST
++	bnz 9f
++	lr \reg_scratch, [erstatus]
++	st \reg_scratch, [\reg_ptr, EVLOG_FIELD_EXTRA]
++	j 99f
++
++	/* place holder for next */
++9:
++
++99:
++	/* increment timeline_ctr  with mode on max */
++	ld \reg_scratch, [timeline_ctr]
++	add \reg_scratch, \reg_scratch, 1
++	and \reg_scratch, \reg_scratch, MAX_SNAPS_MASK
++	st \reg_scratch, [timeline_ctr]
++
++	/* Restore back orig scratch reg */
++	ld \reg_scratch, [tmp_save_reg]
++	ld \reg_ptr, [tmp_save_reg2]
++.endm
++
++/*
++ * Macro to invoke the "C" event logger routine from assmebly code
++ */
++.macro TAKE_SNAP_C_FROM_ASM type
++	mov r0, \type
++	bl take_snap2
++.endm
++
++#endif	/* CONFIG_ARC_DBG_EVENT_TIMELINE */
++
++#endif	/* __ASSEMBLY__ */
++
++#endif
+diff --git a/arch/arc/include/asm/event-log.h b/arch/arc/include/asm/event-log.h
+new file mode 100644
+index 0000000..423f549
+--- /dev/null
++++ b/arch/arc/include/asm/event-log.h
+@@ -0,0 +1,102 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
 + *
-+ * A simple API for unwinding kernel stacks.  This is used for
-+ * debugging and error reporting purposes.  The kernel doesn't need
-+ * full-blown stack unwinding with all the bells and whistles, so there
-+ * is not much point in implementing the full Dwarf2 unwind API.
++ *  vineetg: Dec 2009
++ *      Reworked the numbering scheme into Event Classes for making it easier to
++ *      do class specific things in the snapshot routines
++ *
++ *  vineetg: Feb 2008
++ *      System Event Logging APIs
 + */
 +
-+#include <linux/sched.h>
-+#include <linux/module.h>
-+#include <linux/bootmem.h>
++#ifndef __ASM_ARC_EVENT_LOG_H
++#define __ASM_ARC_EVENT_LOG_H
++
++/*######################################################################
++ *
++ *    Event Logging API
++ *
++ *#####################################################################*/
++
++/* Size of the log buffer */
++#define MAX_SNAPS	1024
++#define MAX_SNAPS_MASK	(MAX_SNAPS-1)
++
++/* Helpers to setup Event IDs:
++ * 8 classes of events possible
++ * 23 unique events for each Class
++ * Right now we have only 3 classes:
++ * Entry into kernel, exit from kernel and everything else is custom event
++ *
++ * Need for this fancy numbering scheme so that in event logger, class specific
++ * things, common for all events in class, could be easily done
++ */
++#define EVENT_ID(x)             (0x100 << x)
++#define EVENT_CLASS_ENTER       0x01	/* Need to start from 1, not 0 */
++#define EVENT_CLASS_EXIT        0x02
++#define EVENT_CLASS_CUSTOM      0x80
++
++#define KERNEL_ENTER_EVENT(x)   (EVENT_ID(x)|EVENT_CLASS_ENTER)
++#define KERNEL_EXIT_EVENT(x)    (EVENT_ID(x)|EVENT_CLASS_EXIT)
++#define CUSTOM_EVENT(x)         (EVENT_ID(x)|EVENT_CLASS_CUSTOM)
++
++/* Actual Event IDs used in kernel code */
++#define SNAP_INTR_IN            KERNEL_ENTER_EVENT(0)
++#define SNAP_EXCP_IN            KERNEL_ENTER_EVENT(1)
++#define SNAP_TRAP_IN            KERNEL_ENTER_EVENT(2)
++#define SNAP_INTR_IN2           KERNEL_ENTER_EVENT(3)
++
++#define SNAP_INTR_OUT           KERNEL_EXIT_EVENT(0)
++#define SNAP_EXCP_OUT           KERNEL_EXIT_EVENT(1)
++#define SNAP_TRAP_OUT           KERNEL_EXIT_EVENT(2)
++#define SNAP_INTR_OUT2          KERNEL_EXIT_EVENT(3)
++#define SNAP_EXCP_OUT_FAST      KERNEL_EXIT_EVENT(4)
++
++#define SNAP_PRE_CTXSW_2_U      CUSTOM_EVENT(0)
++#define SNAP_PRE_CTXSW_2_K      CUSTOM_EVENT(1)
++#define SNAP_DO_PF_ENTER        CUSTOM_EVENT(2)
++#define SNAP_DO_PF_EXIT         CUSTOM_EVENT(3)
++#define SNAP_TLB_FLUSH_ALL      CUSTOM_EVENT(4)
++#define SNAP_PREEMPT_SCH_IRQ    CUSTOM_EVENT(5)
++#define SNAP_PREEMPT_SCH        CUSTOM_EVENT(6)
++#define SNAP_SIGRETURN          CUSTOM_EVENT(7)
++#define SNAP_BEFORE_SIG         CUSTOM_EVENT(8)
++
++#define SNAP_SENTINEL           CUSTOM_EVENT(22)
++
++#ifndef CONFIG_ARC_DBG_EVENT_TIMELINE
++
++#define take_snap(type, extra, ptreg)
++#define sort_snaps(halt_after_sort)
++
++#else
++
++#ifndef __ASSEMBLY__
++
++typedef struct {
++
++	/*  0 */ char nm[16];
++	/* 16 */ unsigned int extra; /* Traps: Syscall num, Intr: IRQ, Excep */
++	/* 20 */ unsigned int fault_addr;
++	/* 24 */ unsigned int cause;
++	/* 28 */ unsigned int task;
++	/* 32 */ unsigned long time;
++	/* 36 */ unsigned int event;
++	/* 40 */ unsigned int sp;
++	/* 44 */ unsigned int extra2;
++	/* 40 */ unsigned int extra3;
++
++} timeline_log_t;
++
++void take_snap(int type, unsigned int extra, unsigned int extra2);
++void sort_snaps(int halt_after_sort);
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* CONFIG_ARC_DBG_EVENT_TIMELINE */
++
++#endif /* __ASM_ARC_EVENT_PROFILE_H */
+diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
+index 9151bbe..ec1f130 100644
+--- a/arch/arc/kernel/Makefile
++++ b/arch/arc/kernel/Makefile
+@@ -12,6 +12,7 @@ obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o \
+ 	   signal.o traps.o sys.o troubleshoot.o stacktrace.o
+ 
+ obj-$(CONFIG_MODULES)			+= arcksyms.o module.o
++obj-$(CONFIG_ARC_DBG_EVENT_TIMELINE)	+= event-log.o
+ obj-$(CONFIG_ARC_FPU_SAVE_RESTORE)	+= fpu.o
+ CFLAGS_fpu.o   += -mdpfp
+ 
+diff --git a/arch/arc/kernel/asm-offsets.c b/arch/arc/kernel/asm-offsets.c
+index b0e7254..0c06b7a 100644
+--- a/arch/arc/kernel/asm-offsets.c
++++ b/arch/arc/kernel/asm-offsets.c
+@@ -13,6 +13,7 @@
+ #include <linux/thread_info.h>
+ #include <asm/page.h>
+ #include <linux/kbuild.h>
++#include <asm/event-log.h>
+ 
+ int main(void)
+ {
+@@ -45,5 +46,19 @@ int main(void)
+ 
+ 	DEFINE(MM_CTXT_ASID, offsetof(mm_context_t, asid));
+ 
++#ifdef CONFIG_ARC_DBG_EVENT_TIMELINE
++	BLANK();
++	DEFINE(EVLOG_FIELD_EXTRA, offsetof(timeline_log_t, extra));
++	DEFINE(EVLOG_FIELD_EFA, offsetof(timeline_log_t, fault_addr));
++	DEFINE(EVLOG_FIELD_CAUSE, offsetof(timeline_log_t, cause));
++	DEFINE(EVLOG_FIELD_TASK, offsetof(timeline_log_t, task));
++	DEFINE(EVLOG_FIELD_TIME, offsetof(timeline_log_t, time));
++	DEFINE(EVLOG_FIELD_EVENT_ID, offsetof(timeline_log_t, event));
++	DEFINE(EVLOG_FIELD_SP, offsetof(timeline_log_t, sp));
++	DEFINE(EVLOG_RECORD_SZ, sizeof(timeline_log_t));
++	DEFINE(EVLOG_FIELD_EXTRA2, offsetof(timeline_log_t, extra2));
++	DEFINE(EVLOG_FIELD_EXTRA3, offsetof(timeline_log_t, extra3));
++#endif
++
+ 	return 0;
+ }
+diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
+index 13a0052..5babb8a 100644
+--- a/arch/arc/kernel/entry.S
++++ b/arch/arc/kernel/entry.S
+@@ -148,6 +148,7 @@ VECTOR   reserved                ; Reserved Exceptions
+ #include <asm/errno.h>
+ #include <asm/arcregs.h>
+ #include <asm/irqflags.h>
++#include <asm/event-log-asm.h>
+ 
+ ;##################### Scratch Mem for IRQ stack switching #############
+ 
+@@ -213,6 +214,8 @@ ARC_ENTRY handle_interrupt_level2
+ 	st      r9, [r10, THREAD_INFO_PREEMPT_COUNT]
+ 
+ 1:
++	TAKE_SNAP_C_FROM_ASM  SNAP_INTR_IN2
++
+ 	;------------------------------------------------------
+ 	; setup params for Linux common ISR and invoke it
+ 	;------------------------------------------------------
+@@ -245,6 +248,9 @@ ARC_ENTRY handle_interrupt_level1
+ 	SWITCH_TO_KERNEL_STK
+ 	SAVE_ALL_INT1
+ 
++	; snapshot routine takes care of disabling nested intr
++	TAKE_SNAP_C_FROM_ASM  SNAP_INTR_IN
++
+ 	lr  r0, [icause1]
+ 	and r0, r0, 0x1f
+ 
+@@ -267,6 +273,8 @@ ARC_ENTRY instr_service
+ 
+ 	EXCPN_PROLOG_FREEUP_REG r9
+ 
++	TAKE_SNAP_ASM r8, r9, SNAP_EXCP_IN
++
+ 	lr  r9, [erstatus]
+ 
+ 	SWITCH_TO_KERNEL_STK
+@@ -291,6 +299,8 @@ ARC_ENTRY mem_service
+ 
+ 	EXCPN_PROLOG_FREEUP_REG r9
+ 
++	TAKE_SNAP_ASM r8, r9, SNAP_EXCP_IN
++
+ 	lr  r9, [erstatus]
+ 
+ 	SWITCH_TO_KERNEL_STK
+@@ -342,6 +352,8 @@ ARC_ENTRY EV_TLBProtV
+ 
+ 	EXCPN_PROLOG_FREEUP_REG r9
+ 
++	TAKE_SNAP_ASM r8, r9, SNAP_EXCP_IN
++
+ 	;Which mode (user/kernel) was the system in when Exception occured
+ 	lr  r9, [erstatus]
+ 
+@@ -400,6 +412,8 @@ ARC_ENTRY EV_PrivilegeV
+ 
+ 	EXCPN_PROLOG_FREEUP_REG r9
+ 
++	TAKE_SNAP_ASM r8, r9, SNAP_EXCP_IN
++
+ 	lr  r9, [erstatus]
+ 
+ 	SWITCH_TO_KERNEL_STK
+@@ -526,6 +540,8 @@ ARC_ENTRY EV_Trap
+ 	; Need at least 1 reg to code the early exception prolog
+ 	EXCPN_PROLOG_FREEUP_REG r9
+ 
++	TAKE_SNAP_ASM r10, r9,  SNAP_TRAP_IN
++
+ 	;Which mode (user/kernel) was the system in when intr occured
+ 	lr  r9, [erstatus]
+ 
+@@ -733,6 +749,7 @@ not_exception:
+ 	st      r9, [r10, THREAD_INFO_PREEMPT_COUNT]
+ 
+ 149:
++	TAKE_SNAP_C_FROM_ASM SNAP_INTR_OUT2
+ 	;return from level 2
+ 	RESTORE_ALL_INT2
+ debug_marker_l2:
+@@ -745,6 +762,7 @@ not_level2_interrupt:
+ 	bbit0  r10, STATUS_A1_BIT, not_level1_interrupt
+ 
+ 	;return from level 1
++	TAKE_SNAP_C_FROM_ASM SNAP_INTR_OUT
+ 
+ 	RESTORE_ALL_INT1
+ debug_marker_l1:
+@@ -754,6 +772,19 @@ not_level1_interrupt:
+ 
+ 	;this case is for syscalls or Exceptions (with fake rtie)
+ 
++#ifdef CONFIG_ARC_DBG_EVENT_TIMELINE
++	ld r8, [sp, PT_orig_r8]
++	cmp r8, NR_syscalls+1
++	jeq  149f
++	TAKE_SNAP_ASM r9, r10, SNAP_TRAP_OUT
++	j 150f
++
++149:
++	TAKE_SNAP_ASM r9, r10, SNAP_EXCP_OUT
++150:
++
++#endif
++
+ 	RESTORE_ALL_SYS
+ debug_marker_syscall:
+ 	rtie
+diff --git a/arch/arc/kernel/event-log.c b/arch/arc/kernel/event-log.c
+new file mode 100644
+index 0000000..f8ab807
+--- /dev/null
++++ b/arch/arc/kernel/event-log.c
+@@ -0,0 +1,304 @@
++/*
++ * event-log.c : Poorman's version of LTT for low level event capturing
++ *
++ * captures IRQ/Exceptions/Sys-Calls/arbitrary function call
++ * XXX: Not SMP Safe
++ *
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ *  vineetg Jan 2009
++ *      -Converted strcpy to strncpy
++ *
++ *  vineetg: Feb 2008: Event capturing Framework
++ *      -Captures the event-id and related info in circular log buffer
++ *
++ *      -USAGE:
++ *          Events are defined in API file, include/asm-arc/event-log.h
++ *          To log the event, "C" code calls API
++ *              take_snap(event-id, event-specific-info)
++ *          To log the event, ASM caller calls a "asm" macro
++ *              TAKE_SNAP_ASM reg-x, reg-y, event-id
++ *          To stop the capture and sort the log buffer,
++ *              sort_snaps(halt-after-sort)
++ *
++ *      -The reason for 2 APIs is that in low level handlers
++ *          which we are interested in capturing, often don't have
++ *          stack switched, thus a "C" API wont work. Also there
++ *          is a very strict requirement of which registers are usable
++ *          hence the 2 regs
++ *
++ *      -Done primarily to chase the Random Segmentation Faults
++ *          when we switched from gcc 3.4 to 4.2
++ */
++
 +#include <linux/sort.h>
-+#include <linux/slab.h>
-+#include <linux/stop_machine.h>
-+#include <linux/uaccess.h>
-+#include <linux/ptrace.h>
-+#include <asm/sections.h>
-+#include <asm/unaligned.h>
-+#include <asm/unwind.h>
++#include <linux/sched.h>
++#include <linux/interrupt.h>
++#include <asm/current.h>
++#include <asm/event-log.h>
++#include <linux/module.h>
++#include <linux/reboot.h>
 +
-+extern char __start_unwind[], __end_unwind[];
-+/* extern const u8 __start_unwind_hdr[], __end_unwind_hdr[];*/
-+
-+/* #define UNWIND_DEBUG */
-+
-+#ifdef UNWIND_DEBUG
-+int dbg_unw;
-+#define unw_debug(fmt, ...)			\
-+do {						\
-+	if (dbg_unw)				\
-+		pr_info(fmt, ##__VA_ARGS__);	\
-+} while (0);
-+#else
-+#define unw_debug(fmt, ...)
++#ifdef CONFIG_ARC_CURR_IN_REG
++/*
++ * current on ARC is a register variable "r25" setup on entry to kernel and
++ * restored back to user value on return.
++ * However if the event snap shotting return is called very late from
++ * ISR/Exception return code, r25 might already have been restored to user
++ * value, hence would no longer point to current task. This can cause weird
++ * de-referencing crashes. Safest option is to undef it and instead define
++ * it in terms of current_thread_info() which is derived from SP
++ */
++#undef current
++#define current (current_thread_info()->task)
 +#endif
 +
-+#define MAX_STACK_DEPTH 8
++/*
++ * Log buffer which stores the event info
++ *
++ *  There is race condition when the counter goes 1 more than
++ *  max-value (if IRQ sneaks in in the logging routine. Since
++ *  we don't want to do fancy intr-enable-disable etc,
++ *  we keep 1 extra element in log buffer
++ */
++timeline_log_t timeline_log[MAX_SNAPS + 1];
 +
-+#define EXTRA_INFO(f) { \
-+		BUILD_BUG_ON_ZERO(offsetof(struct unwind_frame_info, f) \
-+				% FIELD_SIZEOF(struct unwind_frame_info, f)) \
-+				+ offsetof(struct unwind_frame_info, f) \
-+				/ FIELD_SIZEOF(struct unwind_frame_info, f), \
-+				FIELD_SIZEOF(struct unwind_frame_info, f) \
-+	}
-+#define PTREGS_INFO(f) EXTRA_INFO(regs.f)
++/* counter in log bugger for next entry */
++int timeline_ctr;
 +
-+static const struct {
-+	unsigned offs:BITS_PER_LONG / 2;
-+	unsigned width:BITS_PER_LONG / 2;
-+} reg_info[] = {
-+UNW_REGISTER_INFO};
++/* Used in the low level asm handler to free up a reg */
++int tmp_save_reg, tmp_save_reg2;
++int l2_ctr;
 +
-+#undef PTREGS_INFO
-+#undef EXTRA_INFO
-+
-+#ifndef REG_INVALID
-+#define REG_INVALID(r) (reg_info[r].width == 0)
-+#endif
-+
-+#define DW_CFA_nop                          0x00
-+#define DW_CFA_set_loc                      0x01
-+#define DW_CFA_advance_loc1                 0x02
-+#define DW_CFA_advance_loc2                 0x03
-+#define DW_CFA_advance_loc4                 0x04
-+#define DW_CFA_offset_extended              0x05
-+#define DW_CFA_restore_extended             0x06
-+#define DW_CFA_undefined                    0x07
-+#define DW_CFA_same_value                   0x08
-+#define DW_CFA_register                     0x09
-+#define DW_CFA_remember_state               0x0a
-+#define DW_CFA_restore_state                0x0b
-+#define DW_CFA_def_cfa                      0x0c
-+#define DW_CFA_def_cfa_register             0x0d
-+#define DW_CFA_def_cfa_offset               0x0e
-+#define DW_CFA_def_cfa_expression           0x0f
-+#define DW_CFA_expression                   0x10
-+#define DW_CFA_offset_extended_sf           0x11
-+#define DW_CFA_def_cfa_sf                   0x12
-+#define DW_CFA_def_cfa_offset_sf            0x13
-+#define DW_CFA_val_offset                   0x14
-+#define DW_CFA_val_offset_sf                0x15
-+#define DW_CFA_val_expression               0x16
-+#define DW_CFA_lo_user                      0x1c
-+#define DW_CFA_GNU_window_save              0x2d
-+#define DW_CFA_GNU_args_size                0x2e
-+#define DW_CFA_GNU_negative_offset_extended 0x2f
-+#define DW_CFA_hi_user                      0x3f
-+
-+#define DW_EH_PE_FORM     0x07
-+#define DW_EH_PE_native   0x00
-+#define DW_EH_PE_leb128   0x01
-+#define DW_EH_PE_data2    0x02
-+#define DW_EH_PE_data4    0x03
-+#define DW_EH_PE_data8    0x04
-+#define DW_EH_PE_signed   0x08
-+#define DW_EH_PE_ADJUST   0x70
-+#define DW_EH_PE_abs      0x00
-+#define DW_EH_PE_pcrel    0x10
-+#define DW_EH_PE_textrel  0x20
-+#define DW_EH_PE_datarel  0x30
-+#define DW_EH_PE_funcrel  0x40
-+#define DW_EH_PE_aligned  0x50
-+#define DW_EH_PE_indirect 0x80
-+#define DW_EH_PE_omit     0xff
-+
-+typedef unsigned long uleb128_t;
-+typedef signed long sleb128_t;
-+
-+static struct unwind_table {
-+	struct {
-+		unsigned long pc;
-+		unsigned long range;
-+	} core, init;
-+	const void *address;
-+	unsigned long size;
-+	const unsigned char *header;
-+	unsigned long hdrsz;
-+	struct unwind_table *link;
-+	const char *name;
-+} root_table;
-+
-+struct unwind_item {
-+	enum item_location {
-+		Nowhere,
-+		Memory,
-+		Register,
-+		Value
-+	} where;
-+	uleb128_t value;
-+};
-+
-+struct unwind_state {
-+	uleb128_t loc, org;
-+	const u8 *cieStart, *cieEnd;
-+	uleb128_t codeAlign;
-+	sleb128_t dataAlign;
-+	struct cfa {
-+		uleb128_t reg, offs;
-+	} cfa;
-+	struct unwind_item regs[ARRAY_SIZE(reg_info)];
-+	unsigned stackDepth:8;
-+	unsigned version:8;
-+	const u8 *label;
-+	const u8 *stack[MAX_STACK_DEPTH];
-+};
-+
-+static const struct cfa badCFA = { ARRAY_SIZE(reg_info), 1 };
-+
-+static struct unwind_table *find_table(unsigned long pc)
++/* Event capture API */
++void take_snap(int event, unsigned int arg1, unsigned int arg2)
 +{
-+	struct unwind_table *table;
++	timeline_log_t *entry = &timeline_log[timeline_ctr];
 +
-+	for (table = &root_table; table; table = table->link)
-+		if ((pc >= table->core.pc
-+		     && pc < table->core.pc + table->core.range)
-+		    || (pc >= table->init.pc
-+			&& pc < table->init.pc + table->init.range))
-+			break;
++	entry->time = read_aux_reg(ARC_REG_TIMER1_CNT);
++	entry->task = current->pid;
++	entry->event = event;
++	entry->extra2 = read_aux_reg(0xa);	/* status32 */
 +
-+	return table;
-+}
++	entry->cause = read_aux_reg(0x403);	/* ecr */
++	entry->fault_addr = read_aux_reg(0x404);	/* efa */
 +
-+static unsigned long read_pointer(const u8 **pLoc,
-+				  const void *end, signed ptrType);
++	entry->extra = arg1;
++	entry->sp = arg2;
 +
-+static void init_unwind_table(struct unwind_table *table, const char *name,
-+			      const void *core_start, unsigned long core_size,
-+			      const void *init_start, unsigned long init_size,
-+			      const void *table_start, unsigned long table_size,
-+			      const u8 *header_start, unsigned long header_size)
-+{
-+	const u8 *ptr = header_start + 4;
-+	const u8 *end = header_start + header_size;
++	entry->extra3 =
++	    (unsigned int)__builtin_return_address(0);
 +
-+	table->core.pc = (unsigned long)core_start;
-+	table->core.range = core_size;
-+	table->init.pc = (unsigned long)init_start;
-+	table->init.range = init_size;
-+	table->address = table_start;
-+	table->size = table_size;
-+
-+	/* See if the linker provided table looks valid. */
-+	if (header_size <= 4
-+	    || header_start[0] != 1
-+	    || (void *)read_pointer(&ptr, end, header_start[1]) != table_start
-+	    || header_start[2] == DW_EH_PE_omit
-+	    || read_pointer(&ptr, end, header_start[2]) <= 0
-+	    || header_start[3] == DW_EH_PE_omit)
-+		header_start = NULL;
-+
-+	table->hdrsz = header_size;
-+	smp_wmb();
-+	table->header = header_start;
-+	table->link = NULL;
-+	table->name = name;
-+}
-+
-+void __init arc_unwind_init(void)
-+{
-+	init_unwind_table(&root_table, "kernel", _text, _end - _text, NULL, 0,
-+			  __start_unwind, __end_unwind - __start_unwind,
-+			  NULL, 0);
-+	  /*__start_unwind_hdr, __end_unwind_hdr - __start_unwind_hdr);*/
-+}
-+
-+static const u32 bad_cie, not_fde;
-+static const u32 *cie_for_fde(const u32 *fde, const struct unwind_table *);
-+static signed fde_pointer_type(const u32 *cie);
-+
-+struct eh_frame_hdr_table_entry {
-+	unsigned long start, fde;
-+};
-+
-+static int cmp_eh_frame_hdr_table_entries(const void *p1, const void *p2)
-+{
-+	const struct eh_frame_hdr_table_entry *e1 = p1;
-+	const struct eh_frame_hdr_table_entry *e2 = p2;
-+
-+	return (e1->start > e2->start) - (e1->start < e2->start);
-+}
-+
-+static void swap_eh_frame_hdr_table_entries(void *p1, void *p2, int size)
-+{
-+	struct eh_frame_hdr_table_entry *e1 = p1;
-+	struct eh_frame_hdr_table_entry *e2 = p2;
-+	unsigned long v;
-+
-+	v = e1->start;
-+	e1->start = e2->start;
-+	e2->start = v;
-+	v = e1->fde;
-+	e1->fde = e2->fde;
-+	e2->fde = v;
-+}
-+
-+static void __init setup_unwind_table(struct unwind_table *table,
-+				      void *(*alloc) (unsigned long))
-+{
-+	const u8 *ptr;
-+	unsigned long tableSize = table->size, hdrSize;
-+	unsigned n;
-+	const u32 *fde;
-+	struct {
-+		u8 version;
-+		u8 eh_frame_ptr_enc;
-+		u8 fde_count_enc;
-+		u8 table_enc;
-+		unsigned long eh_frame_ptr;
-+		unsigned int fde_count;
-+		struct eh_frame_hdr_table_entry table[];
-+	} __attribute__ ((__packed__)) *header;
-+
-+	if (table->header)
-+		return;
-+
-+	if (table->hdrsz)
-+		pr_warn(".eh_frame_hdr for '%s' present but unusable\n",
-+			table->name);
-+
-+	if (tableSize & (sizeof(*fde) - 1))
-+		return;
-+
-+	for (fde = table->address, n = 0;
-+	     tableSize > sizeof(*fde) && tableSize - sizeof(*fde) >= *fde;
-+	     tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
-+		const u32 *cie = cie_for_fde(fde, table);
-+		signed ptrType;
-+
-+		if (cie == &not_fde)
-+			continue;
-+		if (cie == NULL || cie == &bad_cie)
-+			return;
-+		ptrType = fde_pointer_type(cie);
-+		if (ptrType < 0)
-+			return;
-+
-+		ptr = (const u8 *)(fde + 2);
-+		if (!read_pointer(&ptr, (const u8 *)(fde + 1) + *fde,
-+								ptrType)) {
-+			/* FIXME_Rajesh We have 4 instances of null addresses
-+			 * instead of the initial loc addr
-+			 * return;
-+			 */
-+		}
-+		++n;
-+	}
-+
-+	if (tableSize || !n)
-+		return;
-+
-+	hdrSize = 4 + sizeof(unsigned long) + sizeof(unsigned int)
-+	    + 2 * n * sizeof(unsigned long);
-+	header = alloc(hdrSize);
-+	if (!header)
-+		return;
-+	header->version = 1;
-+	header->eh_frame_ptr_enc = DW_EH_PE_abs | DW_EH_PE_native;
-+	header->fde_count_enc = DW_EH_PE_abs | DW_EH_PE_data4;
-+	header->table_enc = DW_EH_PE_abs | DW_EH_PE_native;
-+	put_unaligned((unsigned long)table->address, &header->eh_frame_ptr);
-+	BUILD_BUG_ON(offsetof(typeof(*header), fde_count)
-+		     % __alignof(typeof(header->fde_count)));
-+	header->fde_count = n;
-+
-+	BUILD_BUG_ON(offsetof(typeof(*header), table)
-+		     % __alignof(typeof(*header->table)));
-+	for (fde = table->address, tableSize = table->size, n = 0;
-+	     tableSize;
-+	     tableSize -= sizeof(*fde) + *fde, fde += 1 + *fde / sizeof(*fde)) {
-+		/* const u32 *cie = fde + 1 - fde[1] / sizeof(*fde); */
-+		const u32 *cie = (const u32 *)(fde[1]);
-+
-+		if (fde[1] == 0xffffffff)
-+			continue;	/* this is a CIE */
-+		ptr = (const u8 *)(fde + 2);
-+		header->table[n].start = read_pointer(&ptr,
-+						      (const u8 *)(fde + 1) +
-+						      *fde,
-+						      fde_pointer_type(cie));
-+		header->table[n].fde = (unsigned long)fde;
-+		++n;
-+	}
-+	WARN_ON(n != header->fde_count);
-+
-+	sort(header->table,
-+	     n,
-+	     sizeof(*header->table),
-+	     cmp_eh_frame_hdr_table_entries, swap_eh_frame_hdr_table_entries);
-+
-+	table->hdrsz = hdrSize;
-+	smp_wmb();
-+	table->header = (const void *)header;
-+}
-+
-+static void *__init balloc(unsigned long sz)
-+{
-+	return __alloc_bootmem_nopanic(sz,
-+				       sizeof(unsigned int),
-+				       __pa(MAX_DMA_ADDRESS));
-+}
-+
-+void __init arc_unwind_setup(void)
-+{
-+	setup_unwind_table(&root_table, balloc);
-+}
-+
-+#ifdef CONFIG_MODULES
-+
-+static struct unwind_table *last_table;
-+
-+/* Must be called with module_mutex held. */
-+void *unwind_add_table(struct module *module, const void *table_start,
-+		       unsigned long table_size)
-+{
-+	struct unwind_table *table;
-+
-+	if (table_size <= 0)
-+		return NULL;
-+
-+	table = kmalloc(sizeof(*table), GFP_KERNEL);
-+	if (!table)
-+		return NULL;
-+
-+	init_unwind_table(table, module->name,
-+			  module->module_core, module->core_size,
-+			  module->module_init, module->init_size,
-+			  table_start, table_size,
-+			  NULL, 0);
-+
-+#ifdef UNWIND_DEBUG
-+	unw_debug("Table added for [%s] %lx %lx\n",
-+		module->name, table->core.pc, table->core.range);
-+#endif
-+	if (last_table)
-+		last_table->link = table;
++	if (timeline_ctr == (MAX_SNAPS - 1))
++		timeline_ctr = 0;
 +	else
-+		root_table.link = table;
-+	last_table = table;
++		timeline_ctr++;
 +
-+	return table;
 +}
++EXPORT_SYMBOL(take_snap);
 +
-+struct unlink_table_info {
-+	struct unwind_table *table;
-+	int init_only;
-+};
-+
-+static int unlink_table(void *arg)
++void take_snap2(int event)
 +{
-+	struct unlink_table_info *info = arg;
-+	struct unwind_table *table = info->table, *prev;
++	unsigned long x, flags = 0, stat32;
++	timeline_log_t *entry = &timeline_log[timeline_ctr];
 +
-+	for (prev = &root_table; prev->link && prev->link != table;
-+	     prev = prev->link)
-+		;
++	stat32 = read_aux_reg(0xa);	/* status32 */
 +
-+	if (prev->link) {
-+		if (info->init_only) {
-+			table->init.pc = 0;
-+			table->init.range = 0;
-+			info->table = NULL;
-+		} else {
-+			prev->link = table->link;
-+			if (!prev->link)
-+				last_table = prev;
-+		}
-+	} else
-+		info->table = NULL;
-+
-+	return 0;
-+}
-+
-+/* Must be called with module_mutex held. */
-+void unwind_remove_table(void *handle, int init_only)
-+{
-+	struct unwind_table *table = handle;
-+	struct unlink_table_info info;
-+
-+	if (!table || table == &root_table)
-+		return;
-+
-+	if (init_only && table == last_table) {
-+		table->init.pc = 0;
-+		table->init.range = 0;
-+		return;
-+	}
-+
-+	info.table = table;
-+	info.init_only = init_only;
-+
-+	unlink_table(&info); /* XXX: SMP */
-+	kfree(table);
-+}
-+
-+#endif /* CONFIG_MODULES */
-+
-+static uleb128_t get_uleb128(const u8 **pcur, const u8 *end)
-+{
-+	const u8 *cur = *pcur;
-+	uleb128_t value;
-+	unsigned shift;
-+
-+	for (shift = 0, value = 0; cur < end; shift += 7) {
-+		if (shift + 7 > 8 * sizeof(value)
-+		    && (*cur & 0x7fU) >= (1U << (8 * sizeof(value) - shift))) {
-+			cur = end + 1;
-+			break;
-+		}
-+		value |= (uleb128_t) (*cur & 0x7f) << shift;
-+		if (!(*cur++ & 0x80))
-+			break;
-+	}
-+	*pcur = cur;
-+
-+	return value;
-+}
-+
-+static sleb128_t get_sleb128(const u8 **pcur, const u8 *end)
-+{
-+	const u8 *cur = *pcur;
-+	sleb128_t value;
-+	unsigned shift;
-+
-+	for (shift = 0, value = 0; cur < end; shift += 7) {
-+		if (shift + 7 > 8 * sizeof(value)
-+		    && (*cur & 0x7fU) >= (1U << (8 * sizeof(value) - shift))) {
-+			cur = end + 1;
-+			break;
-+		}
-+		value |= (sleb128_t) (*cur & 0x7f) << shift;
-+		if (!(*cur & 0x80)) {
-+			value |= -(*cur++ & 0x40) << shift;
-+			break;
-+		}
-+	}
-+	*pcur = cur;
-+
-+	return value;
-+}
-+
-+static const u32 *cie_for_fde(const u32 *fde, const struct unwind_table *table)
-+{
-+	const u32 *cie;
-+
-+	if (!*fde || (*fde & (sizeof(*fde) - 1)))
-+		return &bad_cie;
-+
-+	if (fde[1] == 0xffffffff)
-+		return &not_fde;	/* this is a CIE */
-+
-+	if ((fde[1] & (sizeof(*fde) - 1)))
-+/* || fde[1] > (unsigned long)(fde + 1) - (unsigned long)table->address) */
-+		return NULL;	/* this is not a valid FDE */
-+
-+	/* cie = fde + 1 - fde[1] / sizeof(*fde); */
-+	cie = (u32 *) fde[1];
-+
-+	if (*cie <= sizeof(*cie) + 4 || *cie >= fde[1] - sizeof(*fde)
-+	    || (*cie & (sizeof(*cie) - 1))
-+	    || (cie[1] != 0xffffffff))
-+		return NULL;	/* this is not a (valid) CIE */
-+	return cie;
-+}
-+
-+static unsigned long read_pointer(const u8 **pLoc, const void *end,
-+				  signed ptrType)
-+{
-+	unsigned long value = 0;
-+	union {
-+		const u8 *p8;
-+		const u16 *p16u;
-+		const s16 *p16s;
-+		const u32 *p32u;
-+		const s32 *p32s;
-+		const unsigned long *pul;
-+	} ptr;
-+
-+	if (ptrType < 0 || ptrType == DW_EH_PE_omit)
-+		return 0;
-+	ptr.p8 = *pLoc;
-+	switch (ptrType & DW_EH_PE_FORM) {
-+	case DW_EH_PE_data2:
-+		if (end < (const void *)(ptr.p16u + 1))
-+			return 0;
-+		if (ptrType & DW_EH_PE_signed)
-+			value = get_unaligned((u16 *) ptr.p16s++);
-+		else
-+			value = get_unaligned((u16 *) ptr.p16u++);
-+		break;
-+	case DW_EH_PE_data4:
-+#ifdef CONFIG_64BIT
-+		if (end < (const void *)(ptr.p32u + 1))
-+			return 0;
-+		if (ptrType & DW_EH_PE_signed)
-+			value = get_unaligned(ptr.p32s++);
-+		else
-+			value = get_unaligned(ptr.p32u++);
-+		break;
-+	case DW_EH_PE_data8:
-+		BUILD_BUG_ON(sizeof(u64) != sizeof(value));
-+#else
-+		BUILD_BUG_ON(sizeof(u32) != sizeof(value));
-+#endif
-+	case DW_EH_PE_native:
-+		if (end < (const void *)(ptr.pul + 1))
-+			return 0;
-+		value = get_unaligned((unsigned long *)ptr.pul++);
-+		break;
-+	case DW_EH_PE_leb128:
-+		BUILD_BUG_ON(sizeof(uleb128_t) > sizeof(value));
-+		value = ptrType & DW_EH_PE_signed ? get_sleb128(&ptr.p8, end)
-+		    : get_uleb128(&ptr.p8, end);
-+		if ((const void *)ptr.p8 > end)
-+			return 0;
-+		break;
-+	default:
-+		return 0;
-+	}
-+	switch (ptrType & DW_EH_PE_ADJUST) {
-+	case DW_EH_PE_abs:
-+		break;
-+	case DW_EH_PE_pcrel:
-+		value += (unsigned long)*pLoc;
-+		break;
-+	default:
-+		return 0;
-+	}
-+	if ((ptrType & DW_EH_PE_indirect)
-+	    && __get_user(value, (unsigned long __user *)value))
-+		return 0;
-+	*pLoc = ptr.p8;
-+
-+	return value;
-+}
-+
-+static signed fde_pointer_type(const u32 *cie)
-+{
-+	const u8 *ptr = (const u8 *)(cie + 2);
-+	unsigned version = *ptr;
-+
-+	if (version != 1)
-+		return -1;	/* unsupported */
-+
-+	if (*++ptr) {
-+		const char *aug;
-+		const u8 *end = (const u8 *)(cie + 1) + *cie;
-+		uleb128_t len;
-+
-+		/* check if augmentation size is first (and thus present) */
-+		if (*ptr != 'z')
-+			return -1;
-+
-+		/* check if augmentation string is nul-terminated */
-+		aug = (const void *)ptr;
-+		ptr = memchr(aug, 0, end - ptr);
-+		if (ptr == NULL)
-+			return -1;
-+
-+		++ptr;		/* skip terminator */
-+		get_uleb128(&ptr, end);	/* skip code alignment */
-+		get_sleb128(&ptr, end);	/* skip data alignment */
-+		/* skip return address column */
-+		version <= 1 ? (void) ++ptr : (void)get_uleb128(&ptr, end);
-+		len = get_uleb128(&ptr, end);	/* augmentation length */
-+
-+		if (ptr + len < ptr || ptr + len > end)
-+			return -1;
-+
-+		end = ptr + len;
-+		while (*++aug) {
-+			if (ptr >= end)
-+				return -1;
-+			switch (*aug) {
-+			case 'L':
-+				++ptr;
-+				break;
-+			case 'P':{
-+					signed ptrType = *ptr++;
-+
-+					if (!read_pointer(&ptr, end, ptrType)
-+					    || ptr > end)
-+						return -1;
-+				}
-+				break;
-+			case 'R':
-+				return *ptr;
-+			default:
-+				return -1;
-+			}
-+		}
-+	}
-+	return DW_EH_PE_native | DW_EH_PE_abs;
-+}
-+
-+static int advance_loc(unsigned long delta, struct unwind_state *state)
-+{
-+	state->loc += delta * state->codeAlign;
-+
-+	/* FIXME_Rajesh: Probably we are defining for the initial range as well;
-+	   return delta > 0;
++	/* In case this is for Level 1 ISR, disable further Interrupts
++	 * so that timeline_ctr is not clobbered
 +	 */
-+	unw_debug("delta %3lu => loc 0x%lx: ", delta, state->loc);
++	if (event == SNAP_INTR_IN)
++		local_irq_save(flags);
++
++	entry->time = read_aux_reg(ARC_REG_TIMER1_CNT);
++	entry->task = current->pid;
++	entry->event = event;
++	entry->extra2 = stat32;
++
++	entry->sp = current_thread_info()->preempt_count;
++
++	if (event == SNAP_INTR_IN2) {
++		entry->cause = read_aux_reg(0x40B);	/* icause2 */
++		entry->extra = read_aux_reg(0x0C);	/* statsu32_l2 */
++		__asm__ __volatile__("mov %0, ilink2   \r\n" : "=r"(x));
++		entry->fault_addr = x;
++	} else if (event == SNAP_INTR_IN) {
++		entry->cause = read_aux_reg(0x40A);	/* icause1 */
++		entry->extra = read_aux_reg(0x0B);	/* statsu32_l1 */
++		__asm__ __volatile__("mov %0, ilink1   \r\n" : "=r"(x));
++		entry->fault_addr = x;
++	}
++
++	if (timeline_ctr == (MAX_SNAPS - 1))
++		timeline_ctr = 0;
++	else
++		timeline_ctr++;
++
++	if (current_thread_info()->preempt_count == 0xFFFFFFFF)
++		sort_snaps(1);
++
++	if (event == SNAP_INTR_IN)
++		local_irq_restore(flags);
++}
++EXPORT_SYMBOL(take_snap2);
++
++/* CMP routine called by event sort
++ * When comparing the click time entries of @a to @b:
++ *  gt: returns 1
++ *  lt:  -1
++ *  eq: returns 0
++ */
++static int snap_cmp(const void *a, const void *b)
++{
++	timeline_log_t *click_a, *click_b;
++
++	click_a = (timeline_log_t *) a;
++	click_b = (timeline_log_t *) b;
++
++	if (click_a->time == click_b->time)
++		return 0;
++	else if (click_a->time < click_b->time)
++		return -1;
++
 +	return 1;
 +}
 +
-+static void set_rule(uleb128_t reg, enum item_location where, uleb128_t value,
-+		     struct unwind_state *state)
++/* Event Sort API, so that counter Rollover is not visibel to user */
++void sort_snaps(int halt_after_sort)
 +{
-+	if (reg < ARRAY_SIZE(state->regs)) {
-+		state->regs[reg].where = where;
-+		state->regs[reg].value = value;
++	int i;
++	unsigned int flags, tmp;
 +
-+#ifdef UNWIND_DEBUG
-+		unw_debug("r%lu: ", reg);
-+		switch (where) {
-+		case Nowhere:
-+			unw_debug("s ");
++	/* TODO SMP */
++	local_irq_save(flags);
++
++	take_snap(SNAP_SENTINEL, 0, 0);
++
++	sort(timeline_log, MAX_SNAPS, sizeof(timeline_log_t), snap_cmp, NULL);
++
++	for (i = 0; i < MAX_SNAPS; i++) {
++		memset(timeline_log[i].nm, 0, 16);
++
++		switch (timeline_log[i].event) {
++		case SNAP_TLB_FLUSH_ALL:
++			strcpy(timeline_log[i].nm, "TLB FLUSH ALL");
 +			break;
-+		case Memory:
-+			unw_debug("c(%lu) ", value);
++		case 85:
++			strcpy(timeline_log[i].nm, "FORK");
 +			break;
-+		case Register:
-+			unw_debug("r(%lu) ", value);
++		case 86:
++			strcpy(timeline_log[i].nm, "EXEC");
 +			break;
-+		case Value:
-+			unw_debug("v(%lu) ", value);
++		case 99:
++			strcpy(timeline_log[i].nm, "Slow-TLB-Write");
 +			break;
-+		default:
++		case SNAP_EXCP_IN:
++			switch (timeline_log[i].cause >> 16) {
++			case 0x21:
++				strcpy(timeline_log[i].nm, "I-TLB");
++				break;
++			case 0x22:
++				strcpy(timeline_log[i].nm, "D-TLB");
++				break;
++			case 0x23:
++				strcpy(timeline_log[i].nm, "PROT-V-TLB");
++				break;
++			default:
++				strcpy(timeline_log[i].nm, "?#?");
++				break;
++			}
++			break;
++		case SNAP_EXCP_OUT_FAST:
++			strcpy(timeline_log[i].nm, "TLB Refill");
++			break;
++		case SNAP_EXCP_OUT:
++			strcpy(timeline_log[i].nm, "Excp-RET");
++			break;
++		case SNAP_TRAP_IN:
++			strcpy(timeline_log[i].nm, "SyCall :");
++			switch (timeline_log[i].cause) {
++			case 1:
++				strcat(timeline_log[i].nm, "Exit");
++				break;
++			case 2:
++				strcat(timeline_log[i].nm, "fork");
++				break;
++			case 114:
++				strcat(timeline_log[i].nm, "wait4");
++				break;
++			default:
++				strcat(timeline_log[i].nm, "???");
++			}
++			break;
++		case SNAP_TRAP_OUT:
++			strcpy(timeline_log[i].nm, "SyCall-RET");
++			break;
++		case SNAP_PRE_CTXSW_2_U:
++			strcpy(timeline_log[i].nm, "2-U-Ctx-sw");
++			break;
++		case SNAP_SENTINEL:
++			memset(&timeline_log[i], 0, sizeof(timeline_log[i]));
++			strcpy(timeline_log[i].nm, "----------");
++			break;
++		case SNAP_PRE_CTXSW_2_K:
++			strcpy(timeline_log[i].nm, "2-K-Ctx-sw");
++			break;
++		case SNAP_INTR_OUT:
++			strcpy(timeline_log[i].nm, "IRQ-OUT");
++			break;
++		case SNAP_INTR_OUT2:
++			strcpy(timeline_log[i].nm, "IRQ(2)-OUT");
++			break;
++		case SNAP_INTR_IN:
++			strcpy(timeline_log[i].nm, "IRQ-in");
++			break;
++		case SNAP_INTR_IN2:
++			strcpy(timeline_log[i].nm, "IRQ(2)-in");
++			break;
++		case SNAP_DO_PF_EXIT:
++			strcpy(timeline_log[i].nm, "PF-RET");
++			break;
++		case SNAP_PREEMPT_SCH_IRQ:
++			strcpy(timeline_log[i].nm, "Prem-Sch IRQ");
++			break;
++		case SNAP_PREEMPT_SCH:
++			strcpy(timeline_log[i].nm, "Prem-Sch");
++			break;
++		case SNAP_DO_PF_ENTER:
++			tmp = timeline_log[i].cause >> 16;
++			switch (tmp) {
++			case 0x21:
++				strcpy(timeline_log[i].nm, "PF-in:I-TLB");
++				break;
++			case 0x22:
++				strcpy(timeline_log[i].nm, "PF-in:D-TLB");
++				break;
++			case 0x23:
++				strcpy(timeline_log[i].nm, "PF-in:PROTV");
++				break;
++			default:
++				strcpy(timeline_log[i].nm, "PF-in:???");
++				break;
++			}
++			break;
++		case SNAP_SIGRETURN:
++			strcpy(timeline_log[i].nm, "sigreturn");
++			break;
++		case SNAP_BEFORE_SIG:
++			strcpy(timeline_log[i].nm, "before sig");
 +			break;
 +		}
-+#endif
++
 +	}
++
++	if (halt_after_sort)
++		__asm__("flag 1");
++	else
++		local_irq_restore(flags);
++
 +}
-+
-+static int processCFI(const u8 *start, const u8 *end, unsigned long targetLoc,
-+		      signed ptrType, struct unwind_state *state)
-+{
-+	union {
-+		const u8 *p8;
-+		const u16 *p16;
-+		const u32 *p32;
-+	} ptr;
-+	int result = 1;
-+	u8 opcode;
-+
-+	if (start != state->cieStart) {
-+		state->loc = state->org;
-+		result =
-+		    processCFI(state->cieStart, state->cieEnd, 0, ptrType,
-+			       state);
-+		if (targetLoc == 0 && state->label == NULL)
-+			return result;
-+	}
-+	for (ptr.p8 = start; result && ptr.p8 < end;) {
-+		switch (*ptr.p8 >> 6) {
-+			uleb128_t value;
-+
-+		case 0:
-+			opcode = *ptr.p8++;
-+
-+			switch (opcode) {
-+			case DW_CFA_nop:
-+				unw_debug("cfa nop ");
-+				break;
-+			case DW_CFA_set_loc:
-+				state->loc = read_pointer(&ptr.p8, end,
-+							  ptrType);
-+				if (state->loc == 0)
-+					result = 0;
-+				unw_debug("cfa_set_loc: 0x%lx ", state->loc);
-+				break;
-+			case DW_CFA_advance_loc1:
-+				unw_debug("\ncfa advance loc1:");
-+				result = ptr.p8 < end
-+				    && advance_loc(*ptr.p8++, state);
-+				break;
-+			case DW_CFA_advance_loc2:
-+				value = *ptr.p8++;
-+				value += *ptr.p8++ << 8;
-+				unw_debug("\ncfa advance loc2:");
-+				result = ptr.p8 <= end + 2
-+				    /* && advance_loc(*ptr.p16++, state); */
-+				    && advance_loc(value, state);
-+				break;
-+			case DW_CFA_advance_loc4:
-+				unw_debug("\ncfa advance loc4:");
-+				result = ptr.p8 <= end + 4
-+				    && advance_loc(*ptr.p32++, state);
-+				break;
-+			case DW_CFA_offset_extended:
-+				value = get_uleb128(&ptr.p8, end);
-+				unw_debug("cfa_offset_extended: ");
-+				set_rule(value, Memory,
-+					 get_uleb128(&ptr.p8, end), state);
-+				break;
-+			case DW_CFA_val_offset:
-+				value = get_uleb128(&ptr.p8, end);
-+				set_rule(value, Value,
-+					 get_uleb128(&ptr.p8, end), state);
-+				break;
-+			case DW_CFA_offset_extended_sf:
-+				value = get_uleb128(&ptr.p8, end);
-+				set_rule(value, Memory,
-+					 get_sleb128(&ptr.p8, end), state);
-+				break;
-+			case DW_CFA_val_offset_sf:
-+				value = get_uleb128(&ptr.p8, end);
-+				set_rule(value, Value,
-+					 get_sleb128(&ptr.p8, end), state);
-+				break;
-+			case DW_CFA_restore_extended:
-+				unw_debug("cfa_restore_extended: ");
-+			case DW_CFA_undefined:
-+				unw_debug("cfa_undefined: ");
-+			case DW_CFA_same_value:
-+				unw_debug("cfa_same_value: ");
-+				set_rule(get_uleb128(&ptr.p8, end), Nowhere, 0,
-+					 state);
-+				break;
-+			case DW_CFA_register:
-+				unw_debug("cfa_register: ");
-+				value = get_uleb128(&ptr.p8, end);
-+				set_rule(value,
-+					 Register,
-+					 get_uleb128(&ptr.p8, end), state);
-+				break;
-+			case DW_CFA_remember_state:
-+				unw_debug("cfa_remember_state: ");
-+				if (ptr.p8 == state->label) {
-+					state->label = NULL;
-+					return 1;
-+				}
-+				if (state->stackDepth >= MAX_STACK_DEPTH)
-+					return 0;
-+				state->stack[state->stackDepth++] = ptr.p8;
-+				break;
-+			case DW_CFA_restore_state:
-+				unw_debug("cfa_restore_state: ");
-+				if (state->stackDepth) {
-+					const uleb128_t loc = state->loc;
-+					const u8 *label = state->label;
-+
-+					state->label =
-+					    state->stack[state->stackDepth - 1];
-+					memcpy(&state->cfa, &badCFA,
-+					       sizeof(state->cfa));
-+					memset(state->regs, 0,
-+					       sizeof(state->regs));
-+					state->stackDepth = 0;
-+					result =
-+					    processCFI(start, end, 0, ptrType,
-+						       state);
-+					state->loc = loc;
-+					state->label = label;
-+				} else
-+					return 0;
-+				break;
-+			case DW_CFA_def_cfa:
-+				state->cfa.reg = get_uleb128(&ptr.p8, end);
-+				unw_debug("cfa_def_cfa: r%lu ", state->cfa.reg);
-+				/*nobreak*/
-+			case DW_CFA_def_cfa_offset:
-+				state->cfa.offs = get_uleb128(&ptr.p8, end);
-+				unw_debug("cfa_def_cfa_offset: 0x%lx ",
-+					  state->cfa.offs);
-+				break;
-+			case DW_CFA_def_cfa_sf:
-+				state->cfa.reg = get_uleb128(&ptr.p8, end);
-+				/*nobreak */
-+			case DW_CFA_def_cfa_offset_sf:
-+				state->cfa.offs = get_sleb128(&ptr.p8, end)
-+				    * state->dataAlign;
-+				break;
-+			case DW_CFA_def_cfa_register:
-+				unw_debug("cfa_def_cfa_regsiter: ");
-+				state->cfa.reg = get_uleb128(&ptr.p8, end);
-+				break;
-+				/*todo case DW_CFA_def_cfa_expression: */
-+				/*todo case DW_CFA_expression: */
-+				/*todo case DW_CFA_val_expression: */
-+			case DW_CFA_GNU_args_size:
-+				get_uleb128(&ptr.p8, end);
-+				break;
-+			case DW_CFA_GNU_negative_offset_extended:
-+				value = get_uleb128(&ptr.p8, end);
-+				set_rule(value,
-+					 Memory,
-+					 (uleb128_t) 0 - get_uleb128(&ptr.p8,
-+								     end),
-+					 state);
-+				break;
-+			case DW_CFA_GNU_window_save:
-+			default:
-+				unw_debug("UNKNOW OPCODE 0x%x\n", opcode);
-+				result = 0;
-+				break;
-+			}
-+			break;
-+		case 1:
-+			unw_debug("\ncfa_adv_loc: ");
-+			result = advance_loc(*ptr.p8++ & 0x3f, state);
-+			break;
-+		case 2:
-+			unw_debug("cfa_offset: ");
-+			value = *ptr.p8++ & 0x3f;
-+			set_rule(value, Memory, get_uleb128(&ptr.p8, end),
-+				 state);
-+			break;
-+		case 3:
-+			unw_debug("cfa_restore: ");
-+			set_rule(*ptr.p8++ & 0x3f, Nowhere, 0, state);
-+			break;
-+		}
-+
-+		if (ptr.p8 > end)
-+			result = 0;
-+		if (result && targetLoc != 0 && targetLoc < state->loc)
-+			return 1;
-+	}
-+
-+	return result && ptr.p8 == end && (targetLoc == 0 || (
-+		/*todo While in theory this should apply, gcc in practice omits
-+		  everything past the function prolog, and hence the location
-+		  never reaches the end of the function.
-+		targetLoc < state->loc && */  state->label == NULL));
-+}
-+
-+/* Unwind to previous to frame.  Returns 0 if successful, negative
-+ * number in case of an error. */
-+int arc_unwind(struct unwind_frame_info *frame)
-+{
-+#define FRAME_REG(r, t) (((t *)frame)[reg_info[r].offs])
-+	const u32 *fde = NULL, *cie = NULL;
-+	const u8 *ptr = NULL, *end = NULL;
-+	unsigned long pc = UNW_PC(frame) - frame->call_frame;
-+	unsigned long startLoc = 0, endLoc = 0, cfa;
-+	unsigned i;
-+	signed ptrType = -1;
-+	uleb128_t retAddrReg = 0;
-+	const struct unwind_table *table;
-+	struct unwind_state state;
-+	unsigned long *fptr;
-+	unsigned long addr;
-+
-+	unw_debug("\n\nUNWIND FRAME:\n");
-+	unw_debug("PC: 0x%lx BLINK: 0x%lx, SP: 0x%lx, FP: 0x%x\n",
-+		  UNW_PC(frame), UNW_BLINK(frame), UNW_SP(frame),
-+		  UNW_FP(frame));
-+
-+	if (UNW_PC(frame) == 0)
-+		return -EINVAL;
-+
-+#ifdef UNWIND_DEBUG
-+	{
-+		unsigned long *sptr = (unsigned long *)UNW_SP(frame);
-+		unw_debug("\nStack Dump:\n");
-+		for (i = 0; i < 20; i++, sptr++)
-+			unw_debug("0x%p:  0x%lx\n", sptr, *sptr);
-+		unw_debug("\n");
-+	}
-+#endif
-+
-+	table = find_table(pc);
-+	if (table != NULL
-+	    && !(table->size & (sizeof(*fde) - 1))) {
-+		const u8 *hdr = table->header;
-+		unsigned long tableSize;
-+
-+		smp_rmb();
-+		if (hdr && hdr[0] == 1) {
-+			switch (hdr[3] & DW_EH_PE_FORM) {
-+			case DW_EH_PE_native:
-+				tableSize = sizeof(unsigned long);
-+				break;
-+			case DW_EH_PE_data2:
-+				tableSize = 2;
-+				break;
-+			case DW_EH_PE_data4:
-+				tableSize = 4;
-+				break;
-+			case DW_EH_PE_data8:
-+				tableSize = 8;
-+				break;
-+			default:
-+				tableSize = 0;
-+				break;
-+			}
-+			ptr = hdr + 4;
-+			end = hdr + table->hdrsz;
-+			if (tableSize && read_pointer(&ptr, end, hdr[1])
-+			    == (unsigned long)table->address
-+			    && (i = read_pointer(&ptr, end, hdr[2])) > 0
-+			    && i == (end - ptr) / (2 * tableSize)
-+			    && !((end - ptr) % (2 * tableSize))) {
-+				do {
-+					const u8 *cur =
-+					    ptr + (i / 2) * (2 * tableSize);
-+
-+					startLoc = read_pointer(&cur,
-+								cur + tableSize,
-+								hdr[3]);
-+					if (pc < startLoc)
-+						i /= 2;
-+					else {
-+						ptr = cur - tableSize;
-+						i = (i + 1) / 2;
-+					}
-+				} while (startLoc && i > 1);
-+				if (i == 1
-+				    && (startLoc = read_pointer(&ptr,
-+								ptr + tableSize,
-+								hdr[3])) != 0
-+				    && pc >= startLoc)
-+					fde = (void *)read_pointer(&ptr,
-+								   ptr +
-+								   tableSize,
-+								   hdr[3]);
-+			}
-+		}
-+
-+		if (fde != NULL) {
-+			cie = cie_for_fde(fde, table);
-+			ptr = (const u8 *)(fde + 2);
-+			if (cie != NULL
-+			    && cie != &bad_cie
-+			    && cie != &not_fde
-+			    && (ptrType = fde_pointer_type(cie)) >= 0
-+			    && read_pointer(&ptr,
-+					    (const u8 *)(fde + 1) + *fde,
-+					    ptrType) == startLoc) {
-+				if (!(ptrType & DW_EH_PE_indirect))
-+					ptrType &=
-+					    DW_EH_PE_FORM | DW_EH_PE_signed;
-+				endLoc =
-+				    startLoc + read_pointer(&ptr,
-+							    (const u8 *)(fde +
-+									 1) +
-+							    *fde, ptrType);
-+				if (pc >= endLoc)
-+					fde = NULL;
-+			} else
-+				fde = NULL;
-+		}
-+		if (fde == NULL) {
-+			for (fde = table->address, tableSize = table->size;
-+			     cie = NULL, tableSize > sizeof(*fde)
-+			     && tableSize - sizeof(*fde) >= *fde;
-+			     tableSize -= sizeof(*fde) + *fde,
-+			     fde += 1 + *fde / sizeof(*fde)) {
-+				cie = cie_for_fde(fde, table);
-+				if (cie == &bad_cie) {
-+					cie = NULL;
-+					break;
-+				}
-+				if (cie == NULL
-+				    || cie == &not_fde
-+				    || (ptrType = fde_pointer_type(cie)) < 0)
-+					continue;
-+				ptr = (const u8 *)(fde + 2);
-+				startLoc = read_pointer(&ptr,
-+							(const u8 *)(fde + 1) +
-+							*fde, ptrType);
-+				if (!startLoc)
-+					continue;
-+				if (!(ptrType & DW_EH_PE_indirect))
-+					ptrType &=
-+					    DW_EH_PE_FORM | DW_EH_PE_signed;
-+				endLoc =
-+				    startLoc + read_pointer(&ptr,
-+							    (const u8 *)(fde +
-+									 1) +
-+							    *fde, ptrType);
-+				if (pc >= startLoc && pc < endLoc)
-+					break;
-+			}
-+		}
-+	}
-+	if (cie != NULL) {
-+		memset(&state, 0, sizeof(state));
-+		state.cieEnd = ptr;	/* keep here temporarily */
-+		ptr = (const u8 *)(cie + 2);
-+		end = (const u8 *)(cie + 1) + *cie;
-+		frame->call_frame = 1;
-+		if ((state.version = *ptr) != 1)
-+			cie = NULL;	/* unsupported version */
-+		else if (*++ptr) {
-+			/* check if augmentation size is first (thus present) */
-+			if (*ptr == 'z') {
-+				while (++ptr < end && *ptr) {
-+					switch (*ptr) {
-+					/* chk for ignorable or already handled
-+					 * nul-terminated augmentation string */
-+					case 'L':
-+					case 'P':
-+					case 'R':
-+						continue;
-+					case 'S':
-+						frame->call_frame = 0;
-+						continue;
-+					default:
-+						break;
-+					}
-+					break;
-+				}
-+			}
-+			if (ptr >= end || *ptr)
-+				cie = NULL;
-+		}
-+		++ptr;
-+	}
-+	if (cie != NULL) {
-+		/* get code aligment factor */
-+		state.codeAlign = get_uleb128(&ptr, end);
-+		/* get data aligment factor */
-+		state.dataAlign = get_sleb128(&ptr, end);
-+		if (state.codeAlign == 0 || state.dataAlign == 0 || ptr >= end)
-+			cie = NULL;
-+		else {
-+			retAddrReg =
-+			    state.version <= 1 ? *ptr++ : get_uleb128(&ptr,
-+								      end);
-+			unw_debug("CIE Frame Info:\n");
-+			unw_debug("return Address register 0x%lx\n",
-+				  retAddrReg);
-+			unw_debug("data Align: %ld\n", state.dataAlign);
-+			unw_debug("code Align: %lu\n", state.codeAlign);
-+			/* skip augmentation */
-+			if (((const char *)(cie + 2))[1] == 'z') {
-+				uleb128_t augSize = get_uleb128(&ptr, end);
-+
-+				ptr += augSize;
-+			}
-+			if (ptr > end || retAddrReg >= ARRAY_SIZE(reg_info)
-+			    || REG_INVALID(retAddrReg)
-+			    || reg_info[retAddrReg].width !=
-+			    sizeof(unsigned long))
-+				cie = NULL;
-+		}
-+	}
-+	if (cie != NULL) {
-+		state.cieStart = ptr;
-+		ptr = state.cieEnd;
-+		state.cieEnd = end;
-+		end = (const u8 *)(fde + 1) + *fde;
-+		/* skip augmentation */
-+		if (((const char *)(cie + 2))[1] == 'z') {
-+			uleb128_t augSize = get_uleb128(&ptr, end);
-+
-+			if ((ptr += augSize) > end)
-+				fde = NULL;
-+		}
-+	}
-+	if (cie == NULL || fde == NULL) {
-+#ifdef CONFIG_FRAME_POINTER
-+		unsigned long top, bottom;
-+
-+		top = STACK_TOP_UNW(frame->task);
-+		bottom = STACK_BOTTOM_UNW(frame->task);
-+#if FRAME_RETADDR_OFFSET < 0
-+		if (UNW_SP(frame) < top && UNW_FP(frame) <= UNW_SP(frame)
-+		    && bottom < UNW_FP(frame)
-+#else
-+		if (UNW_SP(frame) > top && UNW_FP(frame) >= UNW_SP(frame)
-+		    && bottom > UNW_FP(frame)
-+#endif
-+		    && !((UNW_SP(frame) | UNW_FP(frame))
-+			 & (sizeof(unsigned long) - 1))) {
-+			unsigned long link;
-+
-+			if (!__get_user(link, (unsigned long *)
-+					(UNW_FP(frame) + FRAME_LINK_OFFSET))
-+#if FRAME_RETADDR_OFFSET < 0
-+			    && link > bottom && link < UNW_FP(frame)
-+#else
-+			    && link > UNW_FP(frame) && link < bottom
-+#endif
-+			    && !(link & (sizeof(link) - 1))
-+			    && !__get_user(UNW_PC(frame),
-+					   (unsigned long *)(UNW_FP(frame)
-+						+ FRAME_RETADDR_OFFSET)))
-+			{
-+				UNW_SP(frame) =
-+				    UNW_FP(frame) + FRAME_RETADDR_OFFSET
-+#if FRAME_RETADDR_OFFSET < 0
-+				    -
-+#else
-+				    +
-+#endif
-+				    sizeof(UNW_PC(frame));
-+				UNW_FP(frame) = link;
-+				return 0;
-+			}
-+		}
-+#endif
-+		return -ENXIO;
-+	}
-+	state.org = startLoc;
-+	memcpy(&state.cfa, &badCFA, sizeof(state.cfa));
-+
-+	unw_debug("\nProcess instructions\n");
-+
-+	/* process instructions
-+	 * For ARC, we optimize by having blink(retAddrReg) with
-+	 * the sameValue in the leaf function, so we should not check
-+	 * state.regs[retAddrReg].where == Nowhere
-+	 */
-+	if (!processCFI(ptr, end, pc, ptrType, &state)
-+	    || state.loc > endLoc
-+/*	   || state.regs[retAddrReg].where == Nowhere */
-+	    || state.cfa.reg >= ARRAY_SIZE(reg_info)
-+	    || reg_info[state.cfa.reg].width != sizeof(unsigned long)
-+	    || state.cfa.offs % sizeof(unsigned long))
-+		return -EIO;
-+
-+#ifdef UNWIND_DEBUG
-+	unw_debug("\n");
-+
-+	unw_debug("\nRegister State Based on the rules parsed from FDE:\n");
-+	for (i = 0; i < ARRAY_SIZE(state.regs); ++i) {
-+
-+		if (REG_INVALID(i))
-+			continue;
-+
-+		switch (state.regs[i].where) {
-+		case Nowhere:
-+			break;
-+		case Memory:
-+			unw_debug(" r%d: c(%lu),", i, state.regs[i].value);
-+			break;
-+		case Register:
-+			unw_debug(" r%d: r(%lu),", i, state.regs[i].value);
-+			break;
-+		case Value:
-+			unw_debug(" r%d: v(%lu),", i, state.regs[i].value);
-+			break;
-+		}
-+	}
-+
-+	unw_debug("\n");
-+#endif
-+
-+	/* update frame */
-+#ifndef CONFIG_AS_CFI_SIGNAL_FRAME
-+	if (frame->call_frame
-+	    && !UNW_DEFAULT_RA(state.regs[retAddrReg], state.dataAlign))
-+		frame->call_frame = 0;
-+#endif
-+	cfa = FRAME_REG(state.cfa.reg, unsigned long) + state.cfa.offs;
-+	startLoc = min_t(unsigned long, UNW_SP(frame), cfa);
-+	endLoc = max_t(unsigned long, UNW_SP(frame), cfa);
-+	if (STACK_LIMIT(startLoc) != STACK_LIMIT(endLoc)) {
-+		startLoc = min(STACK_LIMIT(cfa), cfa);
-+		endLoc = max(STACK_LIMIT(cfa), cfa);
-+	}
-+
-+	unw_debug("\nCFA reg: 0x%lx, offset: 0x%lx =>  0x%lx\n",
-+		  state.cfa.reg, state.cfa.offs, cfa);
-+
-+	for (i = 0; i < ARRAY_SIZE(state.regs); ++i) {
-+		if (REG_INVALID(i)) {
-+			if (state.regs[i].where == Nowhere)
-+				continue;
-+			return -EIO;
-+		}
-+		switch (state.regs[i].where) {
-+		default:
-+			break;
-+		case Register:
-+			if (state.regs[i].value >= ARRAY_SIZE(reg_info)
-+			    || REG_INVALID(state.regs[i].value)
-+			    || reg_info[i].width >
-+			    reg_info[state.regs[i].value].width)
-+				return -EIO;
-+			switch (reg_info[state.regs[i].value].width) {
-+			case sizeof(u8):
-+				state.regs[i].value =
-+				FRAME_REG(state.regs[i].value, const u8);
-+				break;
-+			case sizeof(u16):
-+				state.regs[i].value =
-+				FRAME_REG(state.regs[i].value, const u16);
-+				break;
-+			case sizeof(u32):
-+				state.regs[i].value =
-+				FRAME_REG(state.regs[i].value, const u32);
-+				break;
-+#ifdef CONFIG_64BIT
-+			case sizeof(u64):
-+				state.regs[i].value =
-+				FRAME_REG(state.regs[i].value, const u64);
-+				break;
-+#endif
-+			default:
-+				return -EIO;
-+			}
-+			break;
-+		}
-+	}
-+
-+	unw_debug("\nRegister state after evaluation with realtime Stack:\n");
-+	fptr = (unsigned long *)(&frame->regs);
-+	for (i = 0; i < ARRAY_SIZE(state.regs); ++i, fptr++) {
-+
-+		if (REG_INVALID(i))
-+			continue;
-+		switch (state.regs[i].where) {
-+		case Nowhere:
-+			if (reg_info[i].width != sizeof(UNW_SP(frame))
-+			    || &FRAME_REG(i, __typeof__(UNW_SP(frame)))
-+			    != &UNW_SP(frame))
-+				continue;
-+			UNW_SP(frame) = cfa;
-+			break;
-+		case Register:
-+			switch (reg_info[i].width) {
-+			case sizeof(u8):
-+				FRAME_REG(i, u8) = state.regs[i].value;
-+				break;
-+			case sizeof(u16):
-+				FRAME_REG(i, u16) = state.regs[i].value;
-+				break;
-+			case sizeof(u32):
-+				FRAME_REG(i, u32) = state.regs[i].value;
-+				break;
-+#ifdef CONFIG_64BIT
-+			case sizeof(u64):
-+				FRAME_REG(i, u64) = state.regs[i].value;
-+				break;
-+#endif
-+			default:
-+				return -EIO;
-+			}
-+			break;
-+		case Value:
-+			if (reg_info[i].width != sizeof(unsigned long))
-+				return -EIO;
-+			FRAME_REG(i, unsigned long) = cfa + state.regs[i].value
-+			    * state.dataAlign;
-+			break;
-+		case Memory:
-+			addr = cfa + state.regs[i].value * state.dataAlign;
-+
-+			if ((state.regs[i].value * state.dataAlign)
-+			    % sizeof(unsigned long)
-+			    || addr < startLoc
-+			    || addr + sizeof(unsigned long) < addr
-+			    || addr + sizeof(unsigned long) > endLoc)
-+					return -EIO;
-+
-+			switch (reg_info[i].width) {
-+			case sizeof(u8):
-+				__get_user(FRAME_REG(i, u8),
-+					   (u8 __user *)addr);
-+				break;
-+			case sizeof(u16):
-+				__get_user(FRAME_REG(i, u16),
-+					   (u16 __user *)addr);
-+				break;
-+			case sizeof(u32):
-+				__get_user(FRAME_REG(i, u32),
-+					   (u32 __user *)addr);
-+				break;
-+#ifdef CONFIG_64BIT
-+			case sizeof(u64):
-+				__get_user(FRAME_REG(i, u64),
-+					   (u64 __user *)addr);
-+				break;
-+#endif
-+			default:
-+				return -EIO;
-+			}
-+
-+			break;
-+		}
-+		unw_debug("r%d: 0x%lx ", i, *fptr);
-+	}
-+
-+	return 0;
-+#undef FRAME_REG
-+}
-+EXPORT_SYMBOL(arc_unwind);
-diff --git a/arch/arc/kernel/vmlinux.lds.S b/arch/arc/kernel/vmlinux.lds.S
-index 67c35bd..56c074e 100644
---- a/arch/arc/kernel/vmlinux.lds.S
-+++ b/arch/arc/kernel/vmlinux.lds.S
-@@ -101,17 +101,38 @@ SECTIONS
++EXPORT_SYMBOL(sort_snaps);
+diff --git a/arch/arc/kernel/signal.c b/arch/arc/kernel/signal.c
+index bc834da..2ec908b 100644
+--- a/arch/arc/kernel/signal.c
++++ b/arch/arc/kernel/signal.c
+@@ -54,6 +54,7 @@
+ #include <linux/syscalls.h>
+ #include <linux/tracehook.h>
+ #include <asm/ucontext.h>
++#include <asm/event-log.h>
  
- 	BSS_SECTION(0, 0, 0)
+ #define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
  
-+#ifdef CONFIG_ARC_DW2_UNWIND
-+	. = ALIGN(PAGE_SIZE);
-+	.debug_frame  : {
-+		__start_unwind = .;
-+		*(.debug_frame)
-+		__end_unwind = .;
-+	}
-+#else
-+	/DISCARD/ : {	*(.debug_frame) }
-+#endif
+@@ -137,6 +138,8 @@ SYSCALL_DEFINE0(rt_sigreturn)
+ 		if (do_sigaltstack(&sf->uc.uc_stack, NULL, regs->sp) == -EFAULT)
+ 			goto badframe;
+ 
++	take_snap(SNAP_SIGRETURN, 0, 0);
 +
- 	NOTES
+ 	return regs->r0;
  
- 	. = ALIGN(PAGE_SIZE);
- 	_end = . ;
+ badframe:
+diff --git a/arch/arc/mm/tlb.c b/arch/arc/mm/tlb.c
+index c10111d..0e5cb9f 100644
+--- a/arch/arc/mm/tlb.c
++++ b/arch/arc/mm/tlb.c
+@@ -56,6 +56,7 @@
+ #include <asm/setup.h>
+ #include <asm/mmu_context.h>
+ #include <asm/tlb.h>
++#include <asm/event-log.h>
  
- 	STABS_DEBUG
--	DWARF_DEBUG
- 	DISCARDS
+ /*			Need for ARC MMU v2
+  *
+@@ -191,6 +192,8 @@ noinline void local_flush_tlb_all(void)
+ 	unsigned int entry;
+ 	struct cpuinfo_arc_mmu *mmu = &cpuinfo_arc700[smp_processor_id()].mmu;
  
- 	.arcextmap 0 : {
- 		*(.gnu.linkonce.arcextmap.*)
- 		*(.arcextmap.*)
- 	}
++	take_snap(SNAP_TLB_FLUSH_ALL, 0, 0);
 +
-+	/* open-coded because we need .debug_frame seperately for unwinding */
-+	.debug_aranges 0 : { *(.debug_aranges) }
-+	.debug_pubnames 0 : { *(.debug_pubnames) }
-+	.debug_info 0 : { *(.debug_info) }
-+	.debug_abbrev 0 : { *(.debug_abbrev) }
-+	.debug_line 0 : { *(.debug_line) }
-+	.debug_str 0 : { *(.debug_str) }
-+	.debug_loc 0 : { *(.debug_loc) }
-+	.debug_macinfo 0 : { *(.debug_macinfo) }
+ 	local_irq_save(flags);
+ 
+ 	/* Load PD0 and PD1 with template for a Blank Entry */
+diff --git a/arch/arc/mm/tlbex.S b/arch/arc/mm/tlbex.S
+index fc5b971..86804d3 100644
+--- a/arch/arc/mm/tlbex.S
++++ b/arch/arc/mm/tlbex.S
+@@ -41,6 +41,7 @@
+ #include <asm/entry.h>
+ #include <asm/tlb.h>
+ #include <asm/pgtable.h>
++#include <asm/event-log-asm.h>
+ #include <asm/arcregs.h>
+ #include <asm/cache.h>
+ #include <asm/processor.h>
+@@ -194,6 +195,9 @@ ex_saved_reg1:
+ 	st_s  r2, [r0, 8]
+ 	st_s  r3, [r0, 12]
+ 
++	; take a snapshot of upon entering FAST Path TLB Hdlr
++	TAKE_SNAP_ASM r0, r1, SNAP_EXCP_IN
 +
- }
+ 	; VERIFY if the ASID in MMU-PID Reg is same as
+ 	; one in Linux data structures
+ 
+@@ -317,6 +321,9 @@ do_slow_path_pf:
+ 	; That requires freeing up r9
+ 	EXCPN_PROLOG_FREEUP_REG r9
+ 
++	; take a snapshot of upon entering SLOW Path TLB Hdlr
++	TAKE_SNAP_ASM r8, r9, SNAP_DO_PF_ENTER
++
+ 	lr  r9, [erstatus]
+ 
+ 	SWITCH_TO_KERNEL_STK
 -- 
 1.7.4.1
 
