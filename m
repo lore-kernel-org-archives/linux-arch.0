@@ -1,31 +1,45 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH v1 31/31] ARC: [plat-arcfpga] defconfig
-Date: Mon, 12 Nov 2012 14:21:51 +0000
-Message-ID: <201211121421.52020.arnd@arndb.de>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <201211071406.58304.arnd@arndb.de> <50A10540.3080005@imgtec.com>
+From: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
+Subject: Re: [PATCH 05/11] ARM: at91: convert timer suspend/resume to
+ clock_event_device
+Date: Mon, 12 Nov 2012 15:49:36 +0100
+Message-ID: <20121112144936.GL4576@game.jcrosoft.org>
+References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
+ <1352408516-21988-7-git-send-email-swarren@wwwdotorg.org>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
+Content-Type: text/plain; charset="us-ascii"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:56495 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751556Ab2KLOV6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 09:21:58 -0500
-In-Reply-To: <50A10540.3080005@imgtec.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <1352408516-21988-7-git-send-email-swarren@wwwdotorg.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: linux-arm-kernel-bounces@lists.infradead.org
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Nicolas Ferre <nicolas.ferre@atmel.com>, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>, Stephen Warren <swarren@nvidia.com>, Thomas Gleixner <tglx@linutronix.de>, Andrew Victor <linux@maxim.org.za>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-On Monday 12 November 2012, James Hogan wrote:
-> > 
-> > Please use "make defconfig" to generate minimal defconfig files, instead of
-> > copying the entire file here.
+On 14:01 Thu 08 Nov     , Stephen Warren wrote:
+> From: Stephen Warren <swarren@nvidia.com>
 > 
-> I think you mean "make savedefconfig"? (I think "make defconfig" loads
-> the default defconfig).
+> Move at91's timer suspend/resume functions from struct sys_timer
+> at91sam926x_timer into struct clock_event_device pit_clkevt. This
+> will allow the sys_timer suspend/resume fields to be removed, and
+> eventually lead to a complete removal of struct sys_timer.
+> 
+> Cc: Andrew Victor <linux@maxim.org.za>
+> Cc: Nicolas Ferre <nicolas.ferre@atmel.com>
+> Cc: Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>
+> Signed-off-by: Stephen Warren <swarren@nvidia.com>
+> ---
+look fine
 
-Yes, that's right. Sorry for the typo.
+Acked-by: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
 
-	Arnd
+Best Regards,
+J.
