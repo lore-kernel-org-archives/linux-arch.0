@@ -1,376 +1,462 @@
 From: <Vineet.Gupta1@synopsys.com>
-Subject: [RFC Patch v1 46/55] ARC: kgdb support
-Date: Mon, 12 Nov 2012 17:19:04 +0530
-Message-ID: <1352720953-24321-16-git-send-email-vgupta@synopsys.com>
+Subject: [RFC Patch v1 45/55] ARC: unaligned access emulation
+Date: Mon, 12 Nov 2012 17:19:03 +0530
+Message-ID: <1352720953-24321-15-git-send-email-vgupta@synopsys.com>
 References: <1352720953-24321-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtp3.synopsys.com ([198.182.44.81]:57570 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751225Ab2KLLvq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 06:51:46 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1352720953-24321-1-git-send-email-vgupta@synopsys.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: tglx@linutronix.de, arnd@arndb.de, Mischa Jonker <Mischa.Jonker@synopsys.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: tglx@linutronix.de, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+List-Id: linux-arch.vger.kernel.org
 
-From: Mischa Jonker <mjonker@synopsys.com>
+From: Vineet Gupta <vgupta@synopsys.com>
 
-Signed-off-by: Mischa Jonker <mjonker@synopsys.com>
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/Kconfig            |    5 +-
- arch/arc/include/asm/kgdb.h |   61 +++++++++++++
- arch/arc/kernel/Makefile    |    2 +
- arch/arc/kernel/kgdb.c      |  205 +++++++++++++++++++++++++++++++++++++++++++
- arch/arc/kernel/traps.c     |    6 ++
- 5 files changed, 277 insertions(+), 2 deletions(-)
- create mode 100644 arch/arc/include/asm/kgdb.h
- create mode 100644 arch/arc/kernel/kgdb.c
+ arch/arc/Kconfig                 |    9 ++
+ arch/arc/include/asm/Kbuild      |    1 -
+ arch/arc/include/asm/ptrace.h    |    3 +
+ arch/arc/include/asm/unaligned.h |   29 +++++
+ arch/arc/kernel/Makefile         |    3 +-
+ arch/arc/kernel/disasm.c         |    2 +-
+ arch/arc/kernel/entry.S          |   13 ++
+ arch/arc/kernel/traps.c          |   26 +++++
+ arch/arc/kernel/unaligned.c      |  225 ++++++++++++++++++++++++++++++++++++++
+ 9 files changed, 308 insertions(+), 3 deletions(-)
+ create mode 100644 arch/arc/include/asm/unaligned.h
+ create mode 100644 arch/arc/kernel/unaligned.c
 
 diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 81d78fc..b878d3e 100644
+index 3ef21be..81d78fc 100644
 --- a/arch/arc/Kconfig
 +++ b/arch/arc/Kconfig
-@@ -20,6 +20,7 @@ config ARC
- 	select GENERIC_KERNEL_THREAD
- 	select GENERIC_PENDING_IRQ if SMP
- 	select GENERIC_SMP_IDLE_THREAD
-+	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_GENERIC_HARDIRQS
- 	select HAVE_KPROBES
-@@ -383,12 +384,12 @@ config ARC_DW2_UNWIND
+@@ -343,6 +343,15 @@ config ARC_CURR_IN_REG
+ 	  This reserved Register R25 to point to Current Task in
+ 	  kernel mode. This saves memory access for each such access
  
- config ARC_DBG_TLB_PARANOIA
- 	bool "Paranoia Checks in Low Level TLB Handlers"
--	depends on ARC_DBG && !SMP
-+	depends on ARC_DBG
++
++config ARC_MISALIGN_ACCESS
++	bool "Emulate unaligned memory access (userspace only)"
++	default N
++	help
++	  This enables misaligned 16 & 32 bit memory access from user space.
++	  Use ONLY-IF-ABS-NECESSARY as it will be very slow and also can hide
++	  potential bugs in code
++
+ config ARC_STACK_NONEXEC
+ 	bool "Make stack non-executable"
  	default n
+diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
+index a246390..06ca702 100644
+--- a/arch/arc/include/asm/Kbuild
++++ b/arch/arc/include/asm/Kbuild
+@@ -51,7 +51,6 @@ generic-y += termios.h
+ generic-y += topology.h
+ generic-y += types.h
+ generic-y += ucontext.h
+-generic-y += unaligned.h
+ generic-y += user.h
+ generic-y += vga.h
+ generic-y += xor.h
+diff --git a/arch/arc/include/asm/ptrace.h b/arch/arc/include/asm/ptrace.h
+index bb621e8..2843dd4 100644
+--- a/arch/arc/include/asm/ptrace.h
++++ b/arch/arc/include/asm/ptrace.h
+@@ -117,6 +117,9 @@ struct user_regs_struct {
+ /* return 1 if user mode or 0 if kernel mode */
+ #define user_mode(regs) (regs->status32 & STATUS_U_MASK)
  
- config ARC_DBG_EVENT_TIMELINE
- 	bool "Low level event capture"
--	depends on ARC_DBG
-+	depends on ARC_DBG && !SMP
- 	default n
- 	help
- 	  Capture low level events: IRQ/Trap/Exception
-diff --git a/arch/arc/include/asm/kgdb.h b/arch/arc/include/asm/kgdb.h
++/* return 1 if PC in delay slot */
++#define delay_mode(regs) ((regs->status32 & STATUS_DE_MASK) == STATUS_DE_MASK)
++
+ /* return 1 if in syscall, 0 if Intr or Exception */
+ #define in_syscall(regs) (((regs->orig_r8) >= 0 && \
+ 			   (regs->orig_r8 <= NR_syscalls)) ? 1 : 0)
+diff --git a/arch/arc/include/asm/unaligned.h b/arch/arc/include/asm/unaligned.h
 new file mode 100644
-index 0000000..f3c4934
+index 0000000..5dbe63f
 --- /dev/null
-+++ b/arch/arc/include/asm/kgdb.h
-@@ -0,0 +1,61 @@
++++ b/arch/arc/include/asm/unaligned.h
+@@ -0,0 +1,29 @@
 +/*
-+ * kgdb support for ARC
-+ *
-+ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
 + */
 +
-+#ifndef __ARC_KGDB_H__
-+#define __ARC_KGDB_H__
++#ifndef _ASM_ARC_UNALIGNED_H
++#define _ASM_ARC_UNALIGNED_H
 +
-+#ifdef CONFIG_KGDB
++/* ARC700 can't handle unaligned Data accesses. */
 +
-+#include <asm/user.h>
++#include <asm-generic/unaligned.h>
++#include <asm/ptrace.h>
 +
-+/* to ensure compatibility with Linux 2.6.35, we don't implement the get/set
-+ * register API yet */
-+#undef DBG_MAX_REG_NUM
-+
-+#define GDB_MAX_REGS		39
-+
-+#define BREAK_INSTR_SIZE	2
-+#define CACHE_FLUSH_IS_SAFE	1
-+#define NUMREGBYTES		(GDB_MAX_REGS * 4)
-+#define BUFMAX			2048
-+
-+static inline void arch_kgdb_breakpoint(void)
-+{
-+	__asm__ __volatile__ ("trap_s	0x4\n");
-+}
-+
-+extern void kgdb_trap(struct pt_regs *regs, int param);
-+
-+enum arc700_linux_regnums {
-+	_R0		= 0,
-+	_R1, _R2, _R3, _R4, _R5, _R6, _R7, _R8, _R9, _R10, _R11, _R12, _R13,
-+	_R14, _R15, _R16, _R17, _R18, _R19, _R20, _R21, _R22, _R23, _R24,
-+	_R25, _R26,
-+	_BTA		= 27,
-+	_LP_START	= 28,
-+	_LP_END		= 29,
-+	_LP_COUNT	= 30,
-+	_STATUS32	= 31,
-+	_BLINK		= 32,
-+	_FP		= 33,
-+	__SP		= 34,
-+	_EFA		= 35,
-+	_RET		= 36,
-+	_ORIG_R8	= 37,
-+	_STOP_PC	= 38
-+};
-+
++#ifdef CONFIG_ARC_MISALIGN_ACCESS
++int misaligned_fixup(unsigned long address, struct pt_regs *regs,
++		     unsigned long cause, struct callee_regs *cregs);
 +#else
-+static inline void kgdb_trap(struct pt_regs *regs, int param)
++static inline int
++misaligned_fixup(unsigned long address, struct pt_regs *regs,
++		 unsigned long cause, struct callee_regs *cregs)
 +{
++	return 0;
 +}
 +#endif
 +
-+#endif	/* __ARC_KGDB_H__ */
++#endif /* _ASM_ARC_UNALIGNED_H */
 diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
-index 52ef6ce..a2b7493 100644
+index 442d024..52ef6ce 100644
 --- a/arch/arc/kernel/Makefile
 +++ b/arch/arc/kernel/Makefile
-@@ -17,6 +17,8 @@ obj-$(CONFIG_SMP) 			+= smp.o
+@@ -9,13 +9,14 @@
+ CFLAGS_ptrace.o		+= -DUTS_MACHINE='"$(UTS_MACHINE)"'
+ 
+ obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o \
+-	   signal.o traps.o sys.o troubleshoot.o stacktrace.o disasm.c
++	   signal.o traps.o sys.o troubleshoot.o stacktrace.o disasm.o
+ 
+ obj-$(CONFIG_MODULES)			+= arcksyms.o module.o
+ obj-$(CONFIG_ARC_DBG_EVENT_TIMELINE)	+= event-log.o
+ obj-$(CONFIG_SMP) 			+= smp.o
  obj-$(CONFIG_ARC_DW2_UNWIND)		+= unwind.o
  obj-$(CONFIG_KPROBES)      		+= kprobes.o
- obj-$(CONFIG_ARC_MISALIGN_ACCESS) 	+= unaligned.o
-+obj-$(CONFIG_KGDB)			+= kgdb.o
-+
++obj-$(CONFIG_ARC_MISALIGN_ACCESS) 	+= unaligned.o
  obj-$(CONFIG_ARC_FPU_SAVE_RESTORE)	+= fpu.o
  CFLAGS_fpu.o   += -mdpfp
  
-diff --git a/arch/arc/kernel/kgdb.c b/arch/arc/kernel/kgdb.c
-new file mode 100644
-index 0000000..2888ba5
---- /dev/null
-+++ b/arch/arc/kernel/kgdb.c
-@@ -0,0 +1,205 @@
-+/*
-+ * kgdb support for ARC
+diff --git a/arch/arc/kernel/disasm.c b/arch/arc/kernel/disasm.c
+index 51bad8f..2f39028 100644
+--- a/arch/arc/kernel/disasm.c
++++ b/arch/arc/kernel/disasm.c
+@@ -15,7 +15,7 @@
+ #include <asm/disasm.h>
+ #include <asm/uaccess.h>
+ 
+-#if defined(CONFIG_KGDB) || defined(CONFIG_MISALIGN_ACCESS) || \
++#if defined(CONFIG_KGDB) || defined(CONFIG_ARC_MISALIGN_ACCESS) || \
+ 	defined(CONFIG_KPROBES)
+ 
+ /* disasm_instr: Analyses instruction at addr, stores
+diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
+index 13d6feb..2ff15e0 100644
+--- a/arch/arc/kernel/entry.S
++++ b/arch/arc/kernel/entry.S
+@@ -12,6 +12,9 @@
+  *   needed before task_pt_regs was invented. This saves a branch per call
+  *   and more importantly allows clean invocation of post-syscall ptrace hook
+  *
++ * vineetg: May 2011
++ *  -Userspace unaligned access emulation
 + *
-+ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
+  * vineetg: Feb 2011 (ptrace low level code fixes)
+  *  -traced syscall return code (r0) was not saved into pt_regs for restoring
+  *   into user reg-file when traded task rets to user space.
+@@ -404,7 +407,17 @@ ARC_ENTRY EV_TLBProtV
+ 	mov r1, r4              ; faulting address
+ 	mov r2, sp              ; pt_regs
+ 
++#ifdef  CONFIG_ARC_MISALIGN_ACCESS
++	SAVE_CALLEE_SAVED_USER
++	mov r3, sp              ; callee_regs
++#endif
++
+ 	bl  do_misaligned_access
++
++#ifdef  CONFIG_ARC_MISALIGN_ACCESS
++	DISCARD_CALLEE_SAVED_USER
++#endif
++
+ 	b   ret_from_exception
+ 
+ ARC_EXIT EV_TLBProtV
+diff --git a/arch/arc/kernel/traps.c b/arch/arc/kernel/traps.c
+index c6396b4..d2bc5bd 100644
+--- a/arch/arc/kernel/traps.c
++++ b/arch/arc/kernel/traps.c
+@@ -7,6 +7,9 @@
+  * it under the terms of the GNU General Public License version 2 as
+  * published by the Free Software Foundation.
+  *
++ * vineetg: May 2011
++ *  -user-space unaligned access emulation
++ *
+  * Rahul Trivedi: Codito Technologies 2004
+  */
+ 
+@@ -16,6 +19,7 @@
+ #include <asm/ptrace.h>
+ #include <asm/setup.h>
+ #include <asm/kprobes.h>
++#include <asm/unaligned.h>
+ 
+ void __init trap_init(void)
+ {
+@@ -79,7 +83,29 @@ DO_ERROR_INFO(SIGILL, "Illegal Insn (or Seq)", insterror_is_error, ILL_ILLOPC)
+ DO_ERROR_INFO(SIGBUS, "Invalid Mem Access", do_memory_error, BUS_ADRERR)
+ DO_ERROR_INFO(SIGTRAP, "Breakpoint Set", trap_is_brkpt, TRAP_BRKPT)
+ 
++#ifdef CONFIG_ARC_MISALIGN_ACCESS
++/*
++ * Entry Point for Misaligned Data access Exception, for emulating in software
++ */
++int do_misaligned_access(unsigned long cause, unsigned long address,
++			 struct pt_regs *regs, struct callee_regs *cregs)
++{
++	if (misaligned_fixup(address, regs, cause, cregs) != 0) {
++		siginfo_t info;
++
++		info.si_signo = SIGSEGV;
++		info.si_errno = 0;
++		info.si_code = SEGV_ACCERR;
++		info.si_addr = (void __user *)address;
++		return handle_exception(cause, "Misaligned Access", regs,
++					  &info);
++	}
++	return 0;
++}
++
++#else
+ DO_ERROR_INFO(SIGSEGV, "Misaligned Access", do_misaligned_access, SEGV_ACCERR)
++#endif
+ 
+ /*
+  * Entry point for miscll errors such as Nested Exceptions
+diff --git a/arch/arc/kernel/unaligned.c b/arch/arc/kernel/unaligned.c
+new file mode 100644
+index 0000000..b41e218
+--- /dev/null
++++ b/arch/arc/kernel/unaligned.c
+@@ -0,0 +1,225 @@
++/*
++ * Copyright (C) 2011-2012 Synopsys (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
++ *
++ * vineetg : May 2011
++ *  -Adapted (from .26 to .35)
++ *  -original contribution by Tim.yao@amlogic.com
++ *
 + */
 +
-+#include <linux/kgdb.h>
++#include <linux/types.h>
++#include <linux/ptrace.h>
++#include <linux/uaccess.h>
 +#include <asm/disasm.h>
-+#include <asm/cacheflush.h>
 +
-+static void to_gdb_regs(unsigned long *gdb_regs, struct pt_regs *kernel_regs,
++#define __get8_unaligned_check(val, addr, err)		\
++	__asm__(					\
++	"1:	ldb.ab	%1, [%2, 1]\n"			\
++	"2:\n"						\
++	"	.section .fixup,\"ax\"\n"		\
++	"	.align	4\n"				\
++	"3:	mov	%0, 1\n"			\
++	"	b	2b\n"				\
++	"	.previous\n"				\
++	"	.section __ex_table,\"a\"\n"		\
++	"	.align	4\n"				\
++	"	.long	1b, 3b\n"			\
++	"	.previous\n"				\
++	: "=r" (err), "=&r" (val), "=r" (addr)		\
++	: "0" (err), "2" (addr))
++
++#define get16_unaligned_check(val, addr)		\
++	do {						\
++		unsigned int err = 0, v, a = addr;	\
++		__get8_unaligned_check(v, a, err);	\
++		val =  v ;				\
++		__get8_unaligned_check(v, a, err);	\
++		val |= v << 8;				\
++		if (err)				\
++			goto fault;			\
++	} while (0)
++
++#define get32_unaligned_check(val, addr)		\
++	do {						\
++		unsigned int err = 0, v, a = addr;	\
++		__get8_unaligned_check(v, a, err);	\
++		val =  v << 0;				\
++		__get8_unaligned_check(v, a, err);	\
++		val |= v << 8;				\
++		__get8_unaligned_check(v, a, err);	\
++		val |= v << 16;				\
++		__get8_unaligned_check(v, a, err);	\
++		val |= v << 24;				\
++		if (err)				\
++			goto fault;			\
++	} while (0)
++
++#define put16_unaligned_check(val, addr)		\
++	do {						\
++		unsigned int err = 0, v = val, a = addr;\
++							\
++		__asm__(				\
++		"1:	stb.ab	%1, [%2, 1]\n"		\
++		"	lsr %1, %1, 8\n"		\
++		"2:	stb	%1, [%2]\n"		\
++		"3:\n"					\
++		"	.section .fixup,\"ax\"\n"	\
++		"	.align	4\n"			\
++		"4:	mov	%0, 1\n"		\
++		"	b	3b\n"			\
++		"	.previous\n"			\
++		"	.section __ex_table,\"a\"\n"	\
++		"	.align	4\n"			\
++		"	.long	1b, 4b\n"		\
++		"	.long	2b, 4b\n"		\
++		"	.previous\n"			\
++		: "=r" (err), "=&r" (v), "=&r" (a)	\
++		: "0" (err), "1" (v), "2" (a));		\
++							\
++		if (err)				\
++			goto fault;			\
++	} while (0)
++
++#define put32_unaligned_check(val, addr)		\
++	do {						\
++		unsigned int err = 0, v = val, a = addr;\
++		__asm__(				\
++							\
++		"1:	stb.ab	%1, [%2, 1]\n"		\
++		"	lsr %1, %1, 8\n"		\
++		"2:	stb.ab	%1, [%2, 1]\n"		\
++		"	lsr %1, %1, 8\n"		\
++		"3:	stb.ab	%1, [%2, 1]\n"		\
++		"	lsr %1, %1, 8\n"		\
++		"4:	stb	%1, [%2]\n"		\
++		"5:\n"					\
++		"	.section .fixup,\"ax\"\n"	\
++		"	.align	4\n"			\
++		"6:	mov	%0, 1\n"		\
++		"	b	5b\n"			\
++		"	.previous\n"			\
++		"	.section __ex_table,\"a\"\n"	\
++		"	.align	4\n"			\
++		"	.long	1b, 6b\n"		\
++		"	.long	2b, 6b\n"		\
++		"	.long	3b, 6b\n"		\
++		"	.long	4b, 6b\n"		\
++		"	.previous\n"			\
++		: "=r" (err), "=&r" (v), "=&r" (a)	\
++		: "0" (err), "1" (v), "2" (a));		\
++							\
++		if (err)				\
++			goto fault;			\
++	} while (0)
++
++static void fixup_load(struct disasm_state *state, struct pt_regs *regs,
 +			struct callee_regs *cregs)
 +{
-+	int regno;
++	int val;
 +
-+	for (regno = 0; regno <= 26; regno++)
-+		gdb_regs[_R0 + regno] = get_reg(regno, kernel_regs, cregs);
++	/* register write back */
++	if ((state->aa == 1) || (state->aa == 2)) {
++		set_reg(state->wb_reg, state->src1 + state->src2, regs,
++				cregs);
 +
-+	for (regno = 27; regno < GDB_MAX_REGS; regno++)
-+		gdb_regs[regno] = 0;
++		if (state->aa == 2)
++			state->src2 = 0;
++	}
 +
-+	gdb_regs[_FP]		= kernel_regs->fp;
-+	gdb_regs[__SP]		= kernel_regs->sp;
-+	gdb_regs[_BLINK]	= kernel_regs->blink;
-+	gdb_regs[_RET]		= kernel_regs->ret;
-+	gdb_regs[_STATUS32]	= kernel_regs->status32;
-+	gdb_regs[_LP_COUNT]	= kernel_regs->lp_count;
-+	gdb_regs[_LP_END]	= kernel_regs->lp_end;
-+	gdb_regs[_LP_START]	= kernel_regs->lp_start;
-+	gdb_regs[_BTA]		= kernel_regs->bta;
-+	gdb_regs[_STOP_PC]	= kernel_regs->ret;
++	if (state->zz == 0) {
++		get32_unaligned_check(val, state->src1 + state->src2);
++	} else {
++		get16_unaligned_check(val, state->src1 + state->src2);
++
++		if (state->x)
++			val = (val << 16) >> 16;
++	}
++
++	if (state->pref == 0)
++		set_reg(state->dest, val, regs, cregs);
++
++	return;
++
++fault:	state->fault = 1;
 +}
 +
-+static void from_gdb_regs(unsigned long *gdb_regs, struct pt_regs *kernel_regs,
++static void fixup_store(struct disasm_state *state, struct pt_regs *regs,
 +			struct callee_regs *cregs)
 +{
-+	int regno;
++	/* register write back */
++	if ((state->aa == 1) || (state->aa == 2)) {
++		set_reg(state->wb_reg, state->src2 + state->src3, regs, cregs);
 +
-+	for (regno = 0; regno <= 26; regno++)
-+		set_reg(regno, gdb_regs[regno + _R0], kernel_regs, cregs);
-+
-+	kernel_regs->fp		= gdb_regs[_FP];
-+	kernel_regs->sp		= gdb_regs[__SP];
-+	kernel_regs->blink	= gdb_regs[_BLINK];
-+	kernel_regs->ret	= gdb_regs[_RET];
-+	kernel_regs->status32	= gdb_regs[_STATUS32];
-+	kernel_regs->lp_count	= gdb_regs[_LP_COUNT];
-+	kernel_regs->lp_end	= gdb_regs[_LP_END];
-+	kernel_regs->lp_start	= gdb_regs[_LP_START];
-+	kernel_regs->bta	= gdb_regs[_BTA];
-+}
-+
-+
-+void pt_regs_to_gdb_regs(unsigned long *gdb_regs, struct pt_regs *kernel_regs)
-+{
-+	to_gdb_regs(gdb_regs, kernel_regs, (struct callee_regs *)
-+		current->thread.callee_reg);
-+}
-+
-+void gdb_regs_to_pt_regs(unsigned long *gdb_regs, struct pt_regs *kernel_regs)
-+{
-+	from_gdb_regs(gdb_regs, kernel_regs, (struct callee_regs *)
-+		current->thread.callee_reg);
-+}
-+
-+void sleeping_thread_to_gdb_regs(unsigned long *gdb_regs,
-+				 struct task_struct *task)
-+{
-+	if (task)
-+		to_gdb_regs(gdb_regs, task_pt_regs(task),
-+			(struct callee_regs *) task->thread.callee_reg);
-+}
-+
-+struct single_step_data_t {
-+	uint16_t opcode[2];
-+	unsigned long address[2];
-+	int is_branch;
-+	int armed;
-+} single_step_data;
-+
-+static void undo_single_step(struct pt_regs *regs)
-+{
-+	if (single_step_data.armed) {
-+		int i;
-+
-+		for (i = 0; i < (single_step_data.is_branch ? 2 : 1); i++) {
-+			memcpy((void *) single_step_data.address[i],
-+				&single_step_data.opcode[i],
-+				BREAK_INSTR_SIZE);
-+
-+			flush_icache_range(single_step_data.address[i],
-+				single_step_data.address[i] +
-+				BREAK_INSTR_SIZE);
++		if (state->aa == 3)
++			state->src3 = 0;
++	} else if (state->aa == 3) {
++		if (state->zz == 2) {
++			set_reg(state->wb_reg, state->src2 +
++				(state->src3 << 1), regs, cregs);
++		} else if (!state->zz) {
++			set_reg(state->wb_reg, state->src2 +
++				(state->src3 << 2), regs, cregs);
++		} else {
++			goto fault;
 +		}
-+		single_step_data.armed = 0;
-+	}
-+}
-+
-+static void place_trap(unsigned long address, void *save)
-+{
-+	memcpy(save, (void *) address, BREAK_INSTR_SIZE);
-+	memcpy((void *) address, &arch_kgdb_ops.gdb_bpt_instr,
-+		BREAK_INSTR_SIZE);
-+	flush_icache_range(address, address + BREAK_INSTR_SIZE);
-+}
-+
-+static void do_single_step(struct pt_regs *regs)
-+{
-+	single_step_data.is_branch = disasm_next_pc((unsigned long)
-+		regs->ret, regs, (struct callee_regs *)
-+		current->thread.callee_reg,
-+		&single_step_data.address[0],
-+		&single_step_data.address[1]);
-+
-+	place_trap(single_step_data.address[0], &single_step_data.opcode[0]);
-+
-+	if (single_step_data.is_branch) {
-+		place_trap(single_step_data.address[1],
-+			&single_step_data.opcode[1]);
 +	}
 +
-+	single_step_data.armed++;
-+}
-+
-+int kgdb_arch_handle_exception(int e_vector, int signo, int err_code,
-+			       char *remcomInBuffer, char *remcomOutBuffer,
-+			       struct pt_regs *regs)
-+{
-+	unsigned long addr;
-+	char *ptr;
-+
-+	undo_single_step(regs);
-+
-+	switch (remcomInBuffer[0]) {
-+	case 's':
-+	case 'c':
-+		ptr = &remcomInBuffer[1];
-+		if (kgdb_hex2long(&ptr, &addr))
-+			regs->ret = addr;
-+
-+	case 'D':
-+	case 'k':
-+		atomic_set(&kgdb_cpu_doing_single_step, -1);
-+
-+		if (remcomInBuffer[0] == 's') {
-+			do_single_step(regs);
-+			atomic_set(&kgdb_cpu_doing_single_step,
-+				   smp_processor_id());
-+		}
-+
-+		return 0;
++	/* write fix-up */
++	if (!state->zz) {
++		put32_unaligned_check(state->src1, state->src2 +
++					state->src3);
++	} else {
++		put16_unaligned_check(state->src1, state->src2 +
++					state->src3);
 +	}
-+	return -1;
++
++	return;
++
++fault:	state->fault = 1;
 +}
 +
-+unsigned long kgdb_arch_pc(int exception, struct pt_regs *regs)
++int misaligned_fixup(unsigned long address, struct pt_regs *regs,
++		     unsigned long cause,  struct callee_regs *cregs)
 +{
-+	return instruction_pointer(regs);
-+}
++	struct disasm_state state;
 +
-+int kgdb_arch_init(void)
-+{
-+	single_step_data.armed = 0;
++	/* handle user mode only */
++	if (!user_mode(regs))
++		return 1;
++
++	disasm_instr(regs->ret, &state, 1, regs, cregs);
++
++	if (state.fault)
++		goto fault;
++
++	/* ldb/stb should not have unaligned exception */
++	if ((state.zz == 1) || (state.di))
++		goto fault;
++
++	if (!state.write)
++		fixup_load(&state, regs, cregs);
++	else
++		fixup_store(&state, regs, cregs);
++
++	if (state.fault)
++		goto fault;
++
++	if (delay_mode(regs)) {
++		regs->ret = regs->bta;
++		regs->status32 &= ~STATUS_DE_MASK;
++	} else {
++		regs->ret += state.instr_len;
++	}
++
 +	return 0;
++
++fault:
++	pr_err("Alignment trap: fault in fix-up %08lx at [<%08lx>]\n",
++		state.words[0], address);
++
++	return 1;
 +}
-+
-+void kgdb_trap(struct pt_regs *regs, int param)
-+{
-+	/* trap_s 3 is used for breakpoints that overwrite existing
-+	 * instructions, while trap_s 4 is used for compiled breakpoints.
-+	 *
-+	 * with trap_s 3 breakpoints the original instruction needs to be
-+	 * restored and continuation needs to start at the location of the
-+	 * breakpoint.
-+	 *
-+	 * with trap_s 4 (compiled) breakpoints, continuation needs to
-+	 * start after the breakpoint.
-+	 */
-+	if (param == 3)
-+		instruction_pointer(regs) -= BREAK_INSTR_SIZE;
-+
-+	kgdb_handle_exception(1, SIGTRAP, 0, regs);
-+}
-+
-+void kgdb_arch_exit(void)
-+{
-+}
-+
-+void kgdb_arch_set_pc(struct pt_regs *regs, unsigned long ip)
-+{
-+	instruction_pointer(regs) = ip;
-+}
-+
-+struct kgdb_arch arch_kgdb_ops = {
-+	/* breakpoint instruction: TRAP_S 0x3 */
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+	.gdb_bpt_instr		= {0x78, 0x7e},
-+#else
-+	.gdb_bpt_instr		= {0x7e, 0x78},
-+#endif
-+};
-diff --git a/arch/arc/kernel/traps.c b/arch/arc/kernel/traps.c
-index d2bc5bd..689c3fb 100644
---- a/arch/arc/kernel/traps.c
-+++ b/arch/arc/kernel/traps.c
-@@ -20,6 +20,7 @@
- #include <asm/setup.h>
- #include <asm/kprobes.h>
- #include <asm/unaligned.h>
-+#include <asm/kgdb.h>
- 
- void __init trap_init(void)
- {
-@@ -141,6 +142,11 @@ void do_non_swi_trap(unsigned long cause, unsigned long address,
- 		trap_is_kprobe(param, address, regs);
- 		break;
- 
-+	case 3:
-+	case 4:
-+		kgdb_trap(regs, param);
-+		break;
-+
- 	default:
- 		break;
- 	}
 -- 
 1.7.4.1
