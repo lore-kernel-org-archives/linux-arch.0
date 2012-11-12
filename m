@@ -1,88 +1,77 @@
-From: Greg Ungerer <gerg@snapgear.com>
-Subject: Re: [PATCH v3 00/11] m68k: use asm-generic headers when possible
-Date: Mon, 12 Nov 2012 14:19:24 +1000
-Message-ID: <50A078CC.7080406@snapgear.com>
-References: <1351578277-31882-1-git-send-email-gerg@snapgear.com> <CAMuHMdXbwBLhryrcJ5Ln3uvBJL=_ZCYBErXyZzGznBirobU1kQ@mail.gmail.com>
+From: Jesper Nilsson <jesper.nilsson@axis.com>
+Subject: Re: [PATCH 01/11] cris: move usec/nsec conversion to
+ do_slow_gettimeoffset
+Date: Mon, 12 Nov 2012 11:44:56 +0100
+Message-ID: <20121112104456.GM2834@axis.com>
+References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
+ <1352408516-21988-3-git-send-email-swarren@wwwdotorg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from dnvwsmailout1.mcafee.com ([161.69.31.173]:24185 "EHLO
-	DNVWSMAILOUT1.mcafee.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751526Ab2KLERD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 11 Nov 2012 23:17:03 -0500
-In-Reply-To: <CAMuHMdXbwBLhryrcJ5Ln3uvBJL=_ZCYBErXyZzGznBirobU1kQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <1352408516-21988-3-git-send-email-swarren@wwwdotorg.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Mikael Starvik <starvik@axis.com>, linux-cris-kernel@axis.com
+List-Id: linux-arch.vger.kernel.org
 
-Hi Geert,
+On Thu, Nov 08, 2012 at 02:01:46PM -0700, Stephen Warren wrote:
+> From: Stephen Warren <swarren@nvidia.com>
+> 
+> Move usec to nsec conversion from arch_gettimeoffset() to
+> do_slow_gettimeoffset(); in a future patch, do_slow_gettimeoffset()
+> will be used directly as the implementation of arch_gettimeoffset(),
+> so needs to perform all required calculations.
+> 
+> Cc: Mikael Starvik <starvik@axis.com>
+> Cc: Jesper Nilsson <jesper.nilsson@axis.com>
 
-On 11/11/12 20:30, Geert Uytterhoeven wrote:
-> Hi Greg,
->
-> On Tue, Oct 30, 2012 at 7:24 AM,  <gerg@snapgear.com> wrote:
->> Quite a few of the m68k asm headers are identical to the asm-generic
->> versions. So switch to using them where ever we can.
->>
->> v2 is rebased on top of 3.7-rc3.
->> v3 keep those in uapi/asm in uapi/asm (not moved to asm-generic)
->>
->> All defconfigs build. Run tested on ColdFire (with and without MMU) and on
->> ArranyM.
->
-> Thanks!
->
-> Do you want me to queue these for 3.8, or take them yourselves?
-> In the latter case:
-> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
 
-I don't really mind either way. Happy for you to take them
-if that is your preference.
-
-Same goes for the mm/init.c changes too. Happy for you to
-take them if you want.
-
-Regards
-Greg
-
-
->> ---
->>   arch/m68k/include/asm/Kbuild          |    4
->>   arch/m68k/include/asm/hw_irq.h        |    6 -
->>   arch/m68k/include/asm/shmparam.h      |    6 -
->>   arch/m68k/include/asm/spinlock.h      |    6 -
->>   arch/m68k/include/asm/termios.h       |   50 --------
->>   arch/m68k/include/uapi/asm/Kbuild     |   17 +-
->>   arch/m68k/include/uapi/asm/auxvec.h   |    4
->>   arch/m68k/include/uapi/asm/msgbuf.h   |   31 -----
->>   arch/m68k/include/uapi/asm/sembuf.h   |   25 ----
->>   arch/m68k/include/uapi/asm/shmbuf.h   |   42 -------
->>   arch/m68k/include/uapi/asm/socket.h   |   72 ------------
->>   arch/m68k/include/uapi/asm/sockios.h  |   13 --
->>   arch/m68k/include/uapi/asm/termbits.h |  201 ----------------------------------
->>   arch/m68k/include/uapi/asm/termios.h  |   44 -------
->>   14 files changed, 13 insertions(+), 508 deletions(-)
->
-> Gr{oetje,eeting}s,
->
->                          Geert
->
+> Cc: linux-cris-kernel@axis.com
+> Signed-off-by: Stephen Warren <swarren@nvidia.com>
+> ---
+>  arch/cris/arch-v10/kernel/time.c |    4 ++--
+>  arch/cris/kernel/time.c          |    2 +-
+>  2 files changed, 3 insertions(+), 3 deletions(-)
+> 
+> diff --git a/arch/cris/arch-v10/kernel/time.c b/arch/cris/arch-v10/kernel/time.c
+> index bcffcb6..162892f 100644
+> --- a/arch/cris/arch-v10/kernel/time.c
+> +++ b/arch/cris/arch-v10/kernel/time.c
+> @@ -65,8 +65,8 @@ unsigned long do_slow_gettimeoffset(void)
+>  	 */
+>  	count = *R_TIMER0_DATA;
+>  
+> -	/* Convert timer value to usec */
+> -	return (TIMER0_DIV - count) * ((NSEC_PER_SEC/1000)/HZ)/TIMER0_DIV;
+> +	/* Convert timer value to nsec */
+> +	return (TIMER0_DIV - count) * (NSEC_PER_SEC/HZ)/TIMER0_DIV;
+>  }
+>  
+>  /* Excerpt from the Etrax100 HSDD about the built-in watchdog:
+> diff --git a/arch/cris/kernel/time.c b/arch/cris/kernel/time.c
+> index 277ffc4..b063c92 100644
+> --- a/arch/cris/kernel/time.c
+> +++ b/arch/cris/kernel/time.c
+> @@ -46,7 +46,7 @@ static unsigned long (*do_gettimeoffset)(void) = do_slow_gettimeoffset;
+>  
+>  u32 arch_gettimeoffset(void)
+>  {
+> -       return do_gettimeoffset() * 1000;
+> +	return do_gettimeoffset();
+>  }
+>  #endif
+>  
+> -- 
+> 1.7.0.4
+> 
 > --
-> Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
->
-> In personal conversations with technical people, I call myself a hacker. But
-> when I'm talking to journalists I just say "programmer" or something like that.
->                                  -- Linus Torvalds
->
->
->
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
 
-
+/^JN - Jesper Nilsson
 -- 
-------------------------------------------------------------------------
-Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.com
-SnapGear Group, McAfee                      PHONE:       +61 7 3435 2888
-8 Gardner Close                             FAX:         +61 7 3217 5323
-Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.com
+               Jesper Nilsson -- jesper.nilsson@axis.com
