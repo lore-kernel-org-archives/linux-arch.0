@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp2.synopsys.com ([198.182.60.77]:51577 "EHLO
+Received: from us02smtp2.synopsys.com ([198.182.60.77]:51552 "EHLO
 	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751104Ab2KLLws (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 06:52:48 -0500
+	with ESMTP id S1750851Ab2KLLv2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 06:51:28 -0500
 From: <Vineet.Gupta1@synopsys.com>
-Subject: [RFC Patch v1 54/55] ARC: [plat-arcfpga] defconfig
-Date: Mon, 12 Nov 2012 17:19:12 +0530
-Message-ID: <1352720953-24321-24-git-send-email-vgupta@synopsys.com>
+Subject: [RFC Patch v1 44/55] ARC: kprobes support
+Date: Mon, 12 Nov 2012 17:19:02 +0530
+Message-ID: <1352720953-24321-14-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1352720953-24321-1-git-send-email-vgupta@synopsys.com>
 References: <1352720953-24321-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -15,299 +15,713 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: tglx@linutronix.de, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20121112114912.KJhCUiMf7XcTHS6DJqgufyLr916e_Jo7e33x77xUNZs@z>
+Message-ID: <20121112114902.JVnKAZJFDJ3xkTS2_pSF9LktbYw7jjjbokMVVvlJO0w@z>
 
 From: Vineet Gupta <vgupta@synopsys.com>
 
+Origin port done by Rajeshwar Ranga <rajeshwar.ranga@gmail.com>
+
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/configs/fpga_defconfig |  137 +++++++++++++++++++++++++++++++++++++--
- 1 files changed, 130 insertions(+), 7 deletions(-)
+ arch/arc/Kconfig               |    2 +
+ arch/arc/include/asm/kprobes.h |   62 +++++
+ arch/arc/kernel/Makefile       |    1 +
+ arch/arc/kernel/disasm.c       |    5 +-
+ arch/arc/kernel/kprobes.c      |  525 ++++++++++++++++++++++++++++++++++++++++
+ arch/arc/kernel/traps.c        |   13 +
+ 6 files changed, 605 insertions(+), 3 deletions(-)
+ create mode 100644 arch/arc/include/asm/kprobes.h
+ create mode 100644 arch/arc/kernel/kprobes.c
 
-diff --git a/arch/arc/configs/fpga_defconfig b/arch/arc/configs/fpga_defconfig
-index cfdca3c..d43e738 100644
---- a/arch/arc/configs/fpga_defconfig
-+++ b/arch/arc/configs/fpga_defconfig
-@@ -17,6 +17,7 @@ CONFIG_STACKTRACE_SUPPORT=y
- CONFIG_HAVE_LATENCYTOP_SUPPORT=y
- # CONFIG_NO_DMA is not set
- CONFIG_DEFCONFIG_LIST="/lib/modules/$UNAME_RELEASE/.config"
-+CONFIG_HAVE_IRQ_WORK=y
- 
- #
- # General setup
-@@ -31,6 +32,7 @@ CONFIG_DEFAULT_HOSTNAME="(none)"
- # CONFIG_SWAP is not set
- # CONFIG_SYSVIPC is not set
- # CONFIG_FHANDLE is not set
-+# CONFIG_AUDIT is not set
- CONFIG_HAVE_GENERIC_HARDIRQS=y
- 
- #
-@@ -53,6 +55,7 @@ CONFIG_HIGH_RES_TIMERS=y
- #
- CONFIG_TICK_CPU_ACCOUNTING=y
- # CONFIG_BSD_PROCESS_ACCT is not set
-+# CONFIG_TASKSTATS is not set
- 
- #
- # RCU Subsystem
-@@ -66,8 +69,7 @@ CONFIG_LOG_BUF_SHIFT=17
- CONFIG_NAMESPACES=y
- # CONFIG_UTS_NS is not set
- # CONFIG_PID_NS is not set
--CONFIG_UIDGID_CONVERTED=y
--# CONFIG_UIDGID_STRICT_TYPE_CHECKS is not set
-+CONFIG_NET_NS=y
- # CONFIG_SCHED_AUTOGROUP is not set
- # CONFIG_SYSFS_DEPRECATED is not set
- # CONFIG_RELAY is not set
-@@ -97,13 +99,16 @@ CONFIG_BUG=y
- # CONFIG_SIGNALFD is not set
- # CONFIG_TIMERFD is not set
- # CONFIG_EVENTFD is not set
--# CONFIG_SHMEM is not set
-+CONFIG_SHMEM=y
- # CONFIG_AIO is not set
- CONFIG_EMBEDDED=y
-+CONFIG_HAVE_PERF_EVENTS=y
-+CONFIG_PERF_USE_VMALLOC=y
- 
- #
- # Kernel Performance Events And Counters
- #
-+# CONFIG_PERF_EVENTS is not set
- # CONFIG_VM_EVENT_COUNTERS is not set
- # CONFIG_SLUB_DEBUG is not set
- # CONFIG_COMPAT_BRK is not set
-@@ -111,6 +116,11 @@ CONFIG_EMBEDDED=y
- CONFIG_SLUB=y
- # CONFIG_SLOB is not set
- # CONFIG_PROFILING is not set
-+CONFIG_HAVE_OPROFILE=y
-+# CONFIG_KPROBES is not set
-+CONFIG_HAVE_KPROBES=y
-+CONFIG_HAVE_KRETPROBES=y
-+CONFIG_HAVE_ARCH_TRACEHOOK=y
- CONFIG_GENERIC_SMP_IDLE_THREAD=y
- CONFIG_ARCH_WANT_IPC_PARSE_VERSION=y
- CONFIG_GENERIC_KERNEL_THREAD=y
-@@ -121,7 +131,12 @@ CONFIG_MODULES_USE_ELF_RELA=y
- #
- # CONFIG_HAVE_GENERIC_DMA_COHERENT is not set
- CONFIG_BASE_SMALL=1
--# CONFIG_MODULES is not set
-+CONFIG_MODULES=y
-+# CONFIG_MODULE_FORCE_LOAD is not set
-+# CONFIG_MODULE_UNLOAD is not set
-+# CONFIG_MODVERSIONS is not set
-+# CONFIG_MODULE_SRCVERSION_ALL is not set
-+# CONFIG_MODULE_SIG is not set
- CONFIG_BLOCK=y
- # CONFIG_LBDAF is not set
- # CONFIG_BLK_DEV_BSG is not set
-@@ -165,6 +180,8 @@ CONFIG_ARC_CACHE_LINE_SHIFT=6
- CONFIG_ARC_HAS_ICACHE=y
- CONFIG_ARC_HAS_DCACHE=y
- CONFIG_ARC_CACHE_PAGES=y
-+# CONFIG_ARC_HAS_ICCM is not set
-+# CONFIG_ARC_HAS_DCCM is not set
- CONFIG_ARC_HAS_HW_MPY=y
- # CONFIG_ARC_MMU_V1 is not set
- # CONFIG_ARC_MMU_V2 is not set
-@@ -172,6 +189,7 @@ CONFIG_ARC_MMU_V3=y
- CONFIG_ARC_PAGE_SIZE_8K=y
- # CONFIG_ARC_PAGE_SIZE_16K is not set
- # CONFIG_ARC_PAGE_SIZE_4K is not set
-+# CONFIG_ARC_COMPACT_IRQ_LEVELS is not set
- # CONFIG_ARC_FPU_SAVE_RESTORE is not set
- CONFIG_ARC_CPU_REL_4_10=y
- CONFIG_ARC_HAS_LLSC=y
-@@ -183,12 +201,17 @@ CONFIG_ARC_HAS_RTSC=y
- #
- CONFIG_ARC_BOARD_ANGEL4=y
- # CONFIG_ARC_BOARD_ML509 is not set
-+# CONFIG_ISS_SMP_EXTN is not set
- CONFIG_ARC_SERIAL_BAUD=115200
-+# CONFIG_ARC_HAS_BVCI_LAT_UNIT is not set
- CONFIG_ARC_PLAT_CLK=80000000
- CONFIG_LINUX_LINK_BASE=0x80000000
- CONFIG_ARC_PLAT_SDRAM_SIZE=0x10000000
-+CONFIG_ARC_CURR_IN_REG=y
-+# CONFIG_ARC_MISALIGN_ACCESS is not set
- # CONFIG_ARC_STACK_NONEXEC is not set
- CONFIG_HZ=100
-+# CONFIG_ARC_METAWARE_HLINK is not set
- # CONFIG_ARC_DBG is not set
- CONFIG_CMDLINE="print-fatal-signals=1"
- # CONFIG_CMDLINE_UBOOT is not set
-@@ -208,7 +231,71 @@ CONFIG_DEFAULT_MMAP_MIN_ADDR=4096
- # CONFIG_CROSS_MEMORY_ATTACH is not set
- CONFIG_NEED_PER_CPU_KM=y
- # CONFIG_CLEANCACHE is not set
--# CONFIG_NET is not set
-+CONFIG_NET=y
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index 26609d6..3ef21be 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -22,6 +22,8 @@ config ARC
+ 	select GENERIC_SMP_IDLE_THREAD
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_GENERIC_HARDIRQS
++	select HAVE_KPROBES
++	select HAVE_KRETPROBES
+ 	select HAVE_MOD_ARCH_SPECIFIC if ARC_DW2_UNWIND
+ 	select HAVE_OPROFILE
+ 	select HOTPLUG if !INITRAMFS_SOURCE=""
+diff --git a/arch/arc/include/asm/kprobes.h b/arch/arc/include/asm/kprobes.h
+new file mode 100644
+index 0000000..4d9c211
+--- /dev/null
++++ b/arch/arc/include/asm/kprobes.h
+@@ -0,0 +1,62 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
 +
-+#
-+# Networking options
-+#
-+CONFIG_PACKET=y
-+# CONFIG_PACKET_DIAG is not set
-+CONFIG_UNIX=y
-+# CONFIG_UNIX_DIAG is not set
-+# CONFIG_XFRM_USER is not set
-+# CONFIG_NET_KEY is not set
-+CONFIG_INET=y
-+# CONFIG_IP_MULTICAST is not set
-+# CONFIG_IP_ADVANCED_ROUTER is not set
-+# CONFIG_IP_PNP is not set
-+# CONFIG_NET_IPIP is not set
-+# CONFIG_NET_IPGRE_DEMUX is not set
-+# CONFIG_ARPD is not set
-+# CONFIG_SYN_COOKIES is not set
-+# CONFIG_INET_AH is not set
-+# CONFIG_INET_ESP is not set
-+# CONFIG_INET_IPCOMP is not set
-+# CONFIG_INET_XFRM_TUNNEL is not set
-+# CONFIG_INET_TUNNEL is not set
-+# CONFIG_INET_XFRM_MODE_TRANSPORT is not set
-+# CONFIG_INET_XFRM_MODE_TUNNEL is not set
-+# CONFIG_INET_XFRM_MODE_BEET is not set
-+# CONFIG_INET_LRO is not set
-+CONFIG_INET_DIAG=y
-+CONFIG_INET_TCP_DIAG=y
-+# CONFIG_INET_UDP_DIAG is not set
-+# CONFIG_TCP_CONG_ADVANCED is not set
-+CONFIG_TCP_CONG_CUBIC=y
-+CONFIG_DEFAULT_TCP_CONG="cubic"
-+# CONFIG_IPV6 is not set
-+# CONFIG_NETWORK_SECMARK is not set
-+# CONFIG_NETFILTER is not set
-+# CONFIG_ATM is not set
-+# CONFIG_L2TP is not set
-+# CONFIG_BRIDGE is not set
-+# CONFIG_VLAN_8021Q is not set
-+# CONFIG_DECNET is not set
-+# CONFIG_LLC2 is not set
-+# CONFIG_IPX is not set
-+# CONFIG_ATALK is not set
-+# CONFIG_PHONET is not set
-+# CONFIG_NET_SCHED is not set
-+# CONFIG_DCB is not set
-+# CONFIG_BATMAN_ADV is not set
-+# CONFIG_OPENVSWITCH is not set
-+CONFIG_BQL=y
++#ifndef _ARC_KPROBES_H
++#define _ARC_KPROBES_H
 +
-+#
-+# Network testing
-+#
-+# CONFIG_NET_PKTGEN is not set
-+# CONFIG_HAMRADIO is not set
-+# CONFIG_CAN is not set
-+# CONFIG_IRDA is not set
-+# CONFIG_BT is not set
-+# CONFIG_WIRELESS is not set
-+# CONFIG_WIMAX is not set
-+# CONFIG_RFKILL is not set
-+# CONFIG_NET_9P is not set
-+# CONFIG_CAIF is not set
++#ifdef CONFIG_KPROBES
++
++typedef u16 kprobe_opcode_t;
++
++#define UNIMP_S_INSTRUCTION 0x79e0
++#define TRAP_S_2_INSTRUCTION 0x785e
++
++#define MAX_INSN_SIZE   8
++#define MAX_STACK_SIZE  64
++
++struct arch_specific_insn {
++	int is_short;
++	kprobe_opcode_t *t1_addr, *t2_addr;
++	kprobe_opcode_t t1_opcode, t2_opcode;
++};
++
++#define flush_insn_slot(p)  do {  } while (0)
++
++#define kretprobe_blacklist_size    0
++
++struct kprobe;
++
++void arch_remove_kprobe(struct kprobe *p);
++
++int kprobe_exceptions_notify(struct notifier_block *self,
++			     unsigned long val, void *data);
++
++struct prev_kprobe {
++	struct kprobe *kp;
++	unsigned long status;
++};
++
++struct kprobe_ctlblk {
++	unsigned int kprobe_status;
++	struct pt_regs jprobe_saved_regs;
++	char jprobes_stack[MAX_STACK_SIZE];
++	struct prev_kprobe prev_kprobe;
++};
++
++int kprobe_fault_handler(struct pt_regs *regs, unsigned long cause);
++void kretprobe_trampoline(void);
++void trap_is_kprobe(unsigned long cause, unsigned long address,
++			   struct pt_regs *regs);
++#else
++static void trap_is_kprobe(unsigned long cause, unsigned long address,
++			   struct pt_regs *regs)
++{
++}
++#endif
++
++#endif
+diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
+index 1fc0461..442d024 100644
+--- a/arch/arc/kernel/Makefile
++++ b/arch/arc/kernel/Makefile
+@@ -15,6 +15,7 @@ obj-$(CONFIG_MODULES)			+= arcksyms.o module.o
+ obj-$(CONFIG_ARC_DBG_EVENT_TIMELINE)	+= event-log.o
+ obj-$(CONFIG_SMP) 			+= smp.o
+ obj-$(CONFIG_ARC_DW2_UNWIND)		+= unwind.o
++obj-$(CONFIG_KPROBES)      		+= kprobes.o
+ obj-$(CONFIG_ARC_FPU_SAVE_RESTORE)	+= fpu.o
+ CFLAGS_fpu.o   += -mdpfp
  
- #
- # Device Drivers
-@@ -234,6 +321,7 @@ CONFIG_EXTRA_FIRMWARE=""
- # Bus devices
- #
- # CONFIG_OMAP_OCP2SCP is not set
-+# CONFIG_CONNECTOR is not set
- # CONFIG_MTD is not set
- # CONFIG_PARPORT is not set
- # CONFIG_BLK_DEV is not set
-@@ -268,6 +356,8 @@ CONFIG_SCSI_MOD=y
- # CONFIG_SCSI_NETLINK is not set
- # CONFIG_ATA is not set
- # CONFIG_MD is not set
-+# CONFIG_NETDEVICES is not set
-+# CONFIG_ISDN is not set
+diff --git a/arch/arc/kernel/disasm.c b/arch/arc/kernel/disasm.c
+index 254d11a..51bad8f 100644
+--- a/arch/arc/kernel/disasm.c
++++ b/arch/arc/kernel/disasm.c
+@@ -497,9 +497,8 @@ void __kprobes set_reg(int reg, long val, struct pt_regs *regs,
+  * @pc +2/4/6 (ARCompact ISA allows free intermixing of 16/32 bit insns).
+  *
+  * If @pc is a branch
+- * 	-@tgt_if_br is set to branch target.
+- * 	-If branch has delay slot, @next_pc updated with actual next PC.
+- *
++ *	-@tgt_if_br is set to branch target.
++ *	-If branch has delay slot, @next_pc updated with actual next PC.
+  */
+ int __kprobes disasm_next_pc(unsigned long pc, struct pt_regs *regs,
+ 			     struct callee_regs *cregs,
+diff --git a/arch/arc/kernel/kprobes.c b/arch/arc/kernel/kprobes.c
+new file mode 100644
+index 0000000..47e42f2
+--- /dev/null
++++ b/arch/arc/kernel/kprobes.c
+@@ -0,0 +1,525 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <linux/types.h>
++#include <linux/kprobes.h>
++#include <linux/slab.h>
++#include <linux/module.h>
++#include <linux/kprobes.h>
++#include <linux/kdebug.h>
++#include <linux/sched.h>
++#include <linux/uaccess.h>
++#include <asm/cacheflush.h>
++#include <asm/current.h>
++#include <asm/disasm.h>
++
++#define MIN_STACK_SIZE(addr)	min((unsigned long)MAX_STACK_SIZE, \
++		(unsigned long)current_thread_info() + THREAD_SIZE - (addr))
++
++DEFINE_PER_CPU(struct kprobe *, current_kprobe) = NULL;
++DEFINE_PER_CPU(struct kprobe_ctlblk, kprobe_ctlblk);
++
++int __kprobes arch_prepare_kprobe(struct kprobe *p)
++{
++	/* Attempt to probe at unaligned address */
++	if ((unsigned long)p->addr & 0x01)
++		return -EINVAL;
++
++	/* Address should not be in exception handling code */
++
++	p->ainsn.is_short = is_short_instr((unsigned long)p->addr);
++	p->opcode = *p->addr;
++
++	return 0;
++}
++
++void __kprobes arch_arm_kprobe(struct kprobe *p)
++{
++	*p->addr = UNIMP_S_INSTRUCTION;
++
++	flush_icache_range((unsigned long)p->addr,
++			   (unsigned long)p->addr + sizeof(kprobe_opcode_t));
++}
++
++void __kprobes arch_disarm_kprobe(struct kprobe *p)
++{
++	*p->addr = p->opcode;
++
++	flush_icache_range((unsigned long)p->addr,
++			   (unsigned long)p->addr + sizeof(kprobe_opcode_t));
++}
++
++void __kprobes arch_remove_kprobe(struct kprobe *p)
++{
++	arch_disarm_kprobe(p);
++
++	/* Can we remove the kprobe in the middle of kprobe handling? */
++	if (p->ainsn.t1_addr) {
++		*(p->ainsn.t1_addr) = p->ainsn.t1_opcode;
++
++		flush_icache_range((unsigned long)p->ainsn.t1_addr,
++				   (unsigned long)p->ainsn.t1_addr +
++				   sizeof(kprobe_opcode_t));
++
++		p->ainsn.t1_addr = NULL;
++	}
++
++	if (p->ainsn.t2_addr) {
++		*(p->ainsn.t2_addr) = p->ainsn.t2_opcode;
++
++		flush_icache_range((unsigned long)p->ainsn.t2_addr,
++				   (unsigned long)p->ainsn.t2_addr +
++				   sizeof(kprobe_opcode_t));
++
++		p->ainsn.t2_addr = NULL;
++	}
++}
++
++static void __kprobes save_previous_kprobe(struct kprobe_ctlblk *kcb)
++{
++	kcb->prev_kprobe.kp = kprobe_running();
++	kcb->prev_kprobe.status = kcb->kprobe_status;
++}
++
++static void __kprobes restore_previous_kprobe(struct kprobe_ctlblk *kcb)
++{
++	__get_cpu_var(current_kprobe) = kcb->prev_kprobe.kp;
++	kcb->kprobe_status = kcb->prev_kprobe.status;
++}
++
++static inline void __kprobes set_current_kprobe(struct kprobe *p)
++{
++	__get_cpu_var(current_kprobe) = p;
++}
++
++static void __kprobes resume_execution(struct kprobe *p, unsigned long addr,
++				       struct pt_regs *regs)
++{
++	/* Remove the trap instructions inserted for single step and
++	 * restore the original instructions
++	 */
++	if (p->ainsn.t1_addr) {
++		*(p->ainsn.t1_addr) = p->ainsn.t1_opcode;
++
++		flush_icache_range((unsigned long)p->ainsn.t1_addr,
++				   (unsigned long)p->ainsn.t1_addr +
++				   sizeof(kprobe_opcode_t));
++
++		p->ainsn.t1_addr = NULL;
++	}
++
++	if (p->ainsn.t2_addr) {
++		*(p->ainsn.t2_addr) = p->ainsn.t2_opcode;
++
++		flush_icache_range((unsigned long)p->ainsn.t2_addr,
++				   (unsigned long)p->ainsn.t2_addr +
++				   sizeof(kprobe_opcode_t));
++
++		p->ainsn.t2_addr = NULL;
++	}
++
++	return;
++}
++
++static void __kprobes setup_singlestep(struct kprobe *p, struct pt_regs *regs)
++{
++	unsigned long next_pc;
++	unsigned long tgt_if_br = 0;
++	int is_branch;
++	unsigned long bta;
++
++	/* Copy the opcode back to the kprobe location and execute the
++	 * instruction. Because of this we will not be able to get into the
++	 * same kprobe until this kprobe is done
++	 */
++	*(p->addr) = p->opcode;
++
++	flush_icache_range((unsigned long)p->addr,
++			   (unsigned long)p->addr + sizeof(kprobe_opcode_t));
++
++	/* Now we insert the trap at the next location after this instruction to
++	 * single step. If it is a branch we insert the trap at possible branch
++	 * targets
++	 */
++
++	bta = regs->bta;
++
++	if (regs->status32 & 0x40) {
++		/* We are in a delay slot with the branch taken */
++
++		next_pc = bta & ~0x01;
++
++		if (!p->ainsn.is_short) {
++			if (bta & 0x01)
++				regs->blink += 2;
++			else {
++				/* Branch not taken */
++				next_pc += 2;
++
++				/* next pc is taken from bta after executing the
++				 * delay slot instruction
++				 */
++				regs->bta += 2;
++			}
++		}
++
++		is_branch = 0;
++	} else
++		is_branch =
++		    disasm_next_pc((unsigned long)p->addr, regs,
++			(struct callee_regs *) current->thread.callee_reg,
++			&next_pc, &tgt_if_br);
++
++	p->ainsn.t1_addr = (kprobe_opcode_t *) next_pc;
++	p->ainsn.t1_opcode = *(p->ainsn.t1_addr);
++	*(p->ainsn.t1_addr) = TRAP_S_2_INSTRUCTION;
++
++	flush_icache_range((unsigned long)p->ainsn.t1_addr,
++			   (unsigned long)p->ainsn.t1_addr +
++			   sizeof(kprobe_opcode_t));
++
++	if (is_branch) {
++		p->ainsn.t2_addr = (kprobe_opcode_t *) tgt_if_br;
++		p->ainsn.t2_opcode = *(p->ainsn.t2_addr);
++		*(p->ainsn.t2_addr) = TRAP_S_2_INSTRUCTION;
++
++		flush_icache_range((unsigned long)p->ainsn.t2_addr,
++				   (unsigned long)p->ainsn.t2_addr +
++				   sizeof(kprobe_opcode_t));
++	}
++}
++
++int __kprobes arc_kprobe_handler(unsigned long addr, struct pt_regs *regs)
++{
++	struct kprobe *p;
++	struct kprobe_ctlblk *kcb;
++
++	preempt_disable();
++
++	kcb = get_kprobe_ctlblk();
++	p = get_kprobe((unsigned long *)addr);
++
++	if (p) {
++		/*
++		 * We have reentered the kprobe_handler, since another kprobe
++		 * was hit while within the handler, we save the original
++		 * kprobes and single step on the instruction of the new probe
++		 * without calling any user handlers to avoid recursive
++		 * kprobes.
++		 */
++		if (kprobe_running()) {
++			save_previous_kprobe(kcb);
++			set_current_kprobe(p);
++			kprobes_inc_nmissed_count(p);
++			setup_singlestep(p, regs);
++			kcb->kprobe_status = KPROBE_REENTER;
++			return 1;
++		}
++
++		set_current_kprobe(p);
++		kcb->kprobe_status = KPROBE_HIT_ACTIVE;
++
++		/* If we have no pre-handler or it returned 0, we continue with
++		 * normal processing. If we have a pre-handler and it returned
++		 * non-zero - which is expected from setjmp_pre_handler for
++		 * jprobe, we return without single stepping and leave that to
++		 * the break-handler which is invoked by a kprobe from
++		 * jprobe_return
++		 */
++		if (!p->pre_handler || !p->pre_handler(p, regs)) {
++			setup_singlestep(p, regs);
++			kcb->kprobe_status = KPROBE_HIT_SS;
++		}
++
++		return 1;
++	} else if (kprobe_running()) {
++		p = __get_cpu_var(current_kprobe);
++		if (p->break_handler && p->break_handler(p, regs)) {
++			setup_singlestep(p, regs);
++			kcb->kprobe_status = KPROBE_HIT_SS;
++			return 1;
++		}
++	}
++
++	/* no_kprobe: */
++	preempt_enable_no_resched();
++	return 0;
++}
++
++static int __kprobes arc_post_kprobe_handler(unsigned long addr,
++					 struct pt_regs *regs)
++{
++	struct kprobe *cur = kprobe_running();
++	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
++
++	if (!cur)
++		return 0;
++
++	resume_execution(cur, addr, regs);
++
++	/* Rearm the kprobe */
++	arch_arm_kprobe(cur);
++
++	/*
++	 * When we return from trap instruction we go to the next instruction
++	 * We restored the actual instruction in resume_exectuiont and we to
++	 * return to the same address and execute it
++	 */
++	regs->ret = addr;
++
++	if ((kcb->kprobe_status != KPROBE_REENTER) && cur->post_handler) {
++		kcb->kprobe_status = KPROBE_HIT_SSDONE;
++		cur->post_handler(cur, regs, 0);
++	}
++
++	if (kcb->kprobe_status == KPROBE_REENTER) {
++		restore_previous_kprobe(kcb);
++		goto out;
++	}
++
++	reset_current_kprobe();
++
++out:
++	preempt_enable_no_resched();
++	return 1;
++}
++
++/*
++ * Fault can be for the instruction being single stepped or for the
++ * pre/post handlers in the module.
++ * This is applicable for applications like user probes, where we have the
++ * probe in user space and the handlers in the kernel
++ */
++
++int __kprobes kprobe_fault_handler(struct pt_regs *regs, unsigned long trapnr)
++{
++	struct kprobe *cur = kprobe_running();
++	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
++
++	switch (kcb->kprobe_status) {
++	case KPROBE_HIT_SS:
++	case KPROBE_REENTER:
++		/*
++		 * We are here because the instruction being single stepped
++		 * caused the fault. We reset the current kprobe and allow the
++		 * exception handler as if it is regular exception. In our
++		 * case it doesn't matter because the system will be halted
++		 */
++		resume_execution(cur, (unsigned long)cur->addr, regs);
++
++		if (kcb->kprobe_status == KPROBE_REENTER)
++			restore_previous_kprobe(kcb);
++		else
++			reset_current_kprobe();
++
++		preempt_enable_no_resched();
++		break;
++
++	case KPROBE_HIT_ACTIVE:
++	case KPROBE_HIT_SSDONE:
++		/*
++		 * We are here because the instructions in the pre/post handler
++		 * caused the fault.
++		 */
++
++		/* We increment the nmissed count for accounting,
++		 * we can also use npre/npostfault count for accouting
++		 * these specific fault cases.
++		 */
++		kprobes_inc_nmissed_count(cur);
++
++		/*
++		 * We come here because instructions in the pre/post
++		 * handler caused the page_fault, this could happen
++		 * if handler tries to access user space by
++		 * copy_from_user(), get_user() etc. Let the
++		 * user-specified handler try to fix it first.
++		 */
++		if (cur->fault_handler && cur->fault_handler(cur, regs, trapnr))
++			return 1;
++
++		/*
++		 * In case the user-specified fault handler returned zero,
++		 * try to fix up.
++		 */
++		if (fixup_exception(regs))
++			return 1;
++
++		/*
++		 * fixup_exception() could not handle it,
++		 * Let do_page_fault() fix it.
++		 */
++		break;
++
++	default:
++		break;
++	}
++	return 0;
++}
++
++int __kprobes kprobe_exceptions_notify(struct notifier_block *self,
++				       unsigned long val, void *data)
++{
++	struct die_args *args = data;
++	unsigned long addr = args->err;
++	int ret = NOTIFY_DONE;
++
++	switch (val) {
++	case DIE_IERR:
++		if (arc_kprobe_handler(addr, args->regs))
++			return NOTIFY_STOP;
++		break;
++
++	case DIE_TRAP:
++		if (arc_post_kprobe_handler(addr, args->regs))
++			return NOTIFY_STOP;
++		break;
++
++	default:
++		break;
++	}
++
++	return ret;
++}
++
++int __kprobes setjmp_pre_handler(struct kprobe *p, struct pt_regs *regs)
++{
++	struct jprobe *jp = container_of(p, struct jprobe, kp);
++	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
++	unsigned long sp_addr = regs->sp;
++
++	kcb->jprobe_saved_regs = *regs;
++	memcpy(kcb->jprobes_stack, (void *)sp_addr, MIN_STACK_SIZE(sp_addr));
++	regs->ret = (unsigned long)(jp->entry);
++
++	return 1;
++}
++
++void __kprobes jprobe_return(void)
++{
++	__asm__ __volatile__("unimp_s");
++	return;
++}
++
++int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
++{
++	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
++	unsigned long sp_addr;
++
++	*regs = kcb->jprobe_saved_regs;
++	sp_addr = regs->sp;
++	memcpy((void *)sp_addr, kcb->jprobes_stack, MIN_STACK_SIZE(sp_addr));
++	preempt_enable_no_resched();
++
++	return 1;
++}
++
++static void __used kretprobe_trampoline_holder(void)
++{
++	__asm__ __volatile__(".global kretprobe_trampoline\n"
++			     "kretprobe_trampoline:\n" "nop\n");
++}
++
++void __kprobes arch_prepare_kretprobe(struct kretprobe_instance *ri,
++				      struct pt_regs *regs)
++{
++
++	ri->ret_addr = (kprobe_opcode_t *) regs->blink;
++
++	/* Replace the return addr with trampoline addr */
++	regs->blink = (unsigned long)&kretprobe_trampoline;
++}
++
++static int __kprobes trampoline_probe_handler(struct kprobe *p,
++					      struct pt_regs *regs)
++{
++	struct kretprobe_instance *ri = NULL;
++	struct hlist_head *head, empty_rp;
++	struct hlist_node *node, *tmp;
++	unsigned long flags, orig_ret_address = 0;
++	unsigned long trampoline_address = (unsigned long)&kretprobe_trampoline;
++
++	INIT_HLIST_HEAD(&empty_rp);
++	kretprobe_hash_lock(current, &head, &flags);
++
++	/*
++	 * It is possible to have multiple instances associated with a given
++	 * task either because an multiple functions in the call path
++	 * have a return probe installed on them, and/or more than one return
++	 * return probe was registered for a target function.
++	 *
++	 * We can handle this because:
++	 *     - instances are always inserted at the head of the list
++	 *     - when multiple return probes are registered for the same
++	 *       function, the first instance's ret_addr will point to the
++	 *       real return address, and all the rest will point to
++	 *       kretprobe_trampoline
++	 */
++	hlist_for_each_entry_safe(ri, node, tmp, head, hlist) {
++		if (ri->task != current)
++			/* another task is sharing our hash bucket */
++			continue;
++
++		if (ri->rp && ri->rp->handler)
++			ri->rp->handler(ri, regs);
++
++		orig_ret_address = (unsigned long)ri->ret_addr;
++		recycle_rp_inst(ri, &empty_rp);
++
++		if (orig_ret_address != trampoline_address) {
++			/*
++			 * This is the real return address. Any other
++			 * instances associated with this task are for
++			 * other calls deeper on the call stack
++			 */
++			break;
++		}
++	}
++
++	kretprobe_assert(ri, orig_ret_address, trampoline_address);
++	regs->ret = orig_ret_address;
++
++	reset_current_kprobe();
++	kretprobe_hash_unlock(current, &flags);
++	preempt_enable_no_resched();
++
++	hlist_for_each_entry_safe(ri, node, tmp, &empty_rp, hlist) {
++		hlist_del(&ri->hlist);
++		kfree(ri);
++	}
++
++	/* By returning a non zero value, we are telling the kprobe handler
++	 * that we don't want the post_handler to run
++	 */
++	return 1;
++}
++
++static struct kprobe trampoline_p = {
++	.addr = (kprobe_opcode_t *) &kretprobe_trampoline,
++	.pre_handler = trampoline_probe_handler
++};
++
++int __init arch_init_kprobes(void)
++{
++	/* Registering the trampoline code for the kret probe */
++	return register_kprobe(&trampoline_p);
++}
++
++int __kprobes arch_trampoline_kprobe(struct kprobe *p)
++{
++	if (p->addr == (kprobe_opcode_t *) &kretprobe_trampoline)
++		return 1;
++
++	return 0;
++}
++
++void trap_is_kprobe(unsigned long cause, unsigned long address,
++		    struct pt_regs *regs)
++{
++	notify_die(DIE_TRAP, "kprobe_trap", regs, address, cause, SIGTRAP);
++}
+diff --git a/arch/arc/kernel/traps.c b/arch/arc/kernel/traps.c
+index fd2457c..c6396b4 100644
+--- a/arch/arc/kernel/traps.c
++++ b/arch/arc/kernel/traps.c
+@@ -15,6 +15,7 @@
+ #include <linux/uaccess.h>
+ #include <asm/ptrace.h>
+ #include <asm/setup.h>
++#include <asm/kprobes.h>
  
- #
- # Input device support
-@@ -314,6 +404,7 @@ CONFIG_UNIX98_PTYS=y
- # CONFIG_DEVPTS_MULTIPLE_INSTANCES is not set
- # CONFIG_LEGACY_PTYS is not set
- # CONFIG_SERIAL_NONSTANDARD is not set
-+# CONFIG_N_GSM is not set
- # CONFIG_TRACE_SINK is not set
- # CONFIG_DEVKMEM is not set
+ void __init trap_init(void)
+ {
+@@ -90,6 +91,7 @@ void do_machine_check_fault(unsigned long cause, unsigned long address,
+ 	die("Machine Check Exception", regs, address, cause);
+ }
  
-@@ -461,8 +552,16 @@ CONFIG_DUMMY_CONSOLE=y
- #
- # File systems
- #
--# CONFIG_EXT2_FS is not set
--# CONFIG_EXT3_FS is not set
-+CONFIG_EXT2_FS=y
-+CONFIG_EXT2_FS_XATTR=y
-+# CONFIG_EXT2_FS_POSIX_ACL is not set
-+# CONFIG_EXT2_FS_SECURITY is not set
-+# CONFIG_EXT2_FS_XIP is not set
-+CONFIG_EXT3_FS=y
-+CONFIG_EXT3_DEFAULTS_TO_ORDERED=y
-+CONFIG_EXT3_FS_XATTR=y
-+# CONFIG_EXT3_FS_POSIX_ACL is not set
-+# CONFIG_EXT3_FS_SECURITY is not set
- # CONFIG_EXT4_FS is not set
- # CONFIG_REISERFS_FS is not set
- # CONFIG_JFS_FS is not set
-@@ -504,9 +603,28 @@ CONFIG_PROC_FS=y
- CONFIG_PROC_SYSCTL=y
- CONFIG_PROC_PAGE_MONITOR=y
- CONFIG_SYSFS=y
-+CONFIG_TMPFS=y
-+# CONFIG_TMPFS_POSIX_ACL is not set
-+# CONFIG_TMPFS_XATTR is not set
- # CONFIG_HUGETLB_PAGE is not set
- # CONFIG_CONFIGFS_FS is not set
- # CONFIG_MISC_FILESYSTEMS is not set
-+CONFIG_NETWORK_FILESYSTEMS=y
-+CONFIG_NFS_FS=y
-+# CONFIG_NFS_V2 is not set
-+CONFIG_NFS_V3=y
-+# CONFIG_NFS_V3_ACL is not set
-+# CONFIG_NFS_V4 is not set
-+# CONFIG_NFS_SWAP is not set
-+# CONFIG_NFSD is not set
-+CONFIG_LOCKD=y
-+CONFIG_LOCKD_V4=y
-+CONFIG_NFS_COMMON=y
-+CONFIG_SUNRPC=y
-+# CONFIG_SUNRPC_DEBUG is not set
-+# CONFIG_CIFS is not set
-+# CONFIG_NCP_FS is not set
-+# CONFIG_CODA_FS is not set
- # CONFIG_NLS is not set
++
+ /*
+  * Entry point for traps induced by ARCompact TRAP_S <n> insn
+  * This is same family as TRAP0/SWI insn (use the same vector).
+@@ -109,6 +111,10 @@ void do_non_swi_trap(unsigned long cause, unsigned long address,
+ 		trap_is_brkpt(cause, address, regs);
+ 		break;
  
- #
-@@ -562,8 +680,11 @@ CONFIG_STACKTRACE=y
- # CONFIG_FAULT_INJECTION is not set
- # CONFIG_LATENCYTOP is not set
- # CONFIG_DEBUG_PAGEALLOC is not set
-+# CONFIG_RBTREE_TEST is not set
-+# CONFIG_INTERVAL_TREE_TEST is not set
- # CONFIG_ATOMIC64_SELFTEST is not set
- # CONFIG_SAMPLES is not set
-+CONFIG_HAVE_ARCH_KGDB=y
- # CONFIG_TEST_KSTRTOX is not set
- CONFIG_EARLY_PRINTK=y
- # CONFIG_DEBUG_STACKOVERFLOW is not set
-@@ -600,6 +721,8 @@ CONFIG_ZLIB_INFLATE=y
- CONFIG_DECOMPRESS_GZIP=y
- CONFIG_HAS_IOMEM=y
- CONFIG_HAS_DMA=y
-+CONFIG_DQL=y
-+CONFIG_NLATTR=y
- CONFIG_GENERIC_ATOMIC64=y
- CONFIG_ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE=y
- # CONFIG_AVERAGE is not set
++	case 2:
++		trap_is_kprobe(param, address, regs);
++		break;
++
+ 	default:
+ 		break;
+ 	}
+@@ -116,10 +122,17 @@ void do_non_swi_trap(unsigned long cause, unsigned long address,
+ 
+ /*
+  * Entry point for Instruction Error Exception
++ *  -For a corner case, ARC kprobes implementation resorts to using
++ *   this exception, hence the check
+  */
+ void do_insterror_or_kprobe(unsigned long cause,
+ 				       unsigned long address,
+ 				       struct pt_regs *regs)
+ {
++	/* Check if this exception is caused by kprobes */
++	if (notify_die(DIE_IERR, "kprobe_ierr", regs, address,
++		       cause, SIGILL) == NOTIFY_STOP)
++		return;
++
+ 	insterror_is_error(cause, address, regs);
+ }
 -- 
 1.7.4.1
 
