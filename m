@@ -1,79 +1,150 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [arc-linux-dev] Re: UAPI for new arches (was Re: [GIT PULL] User
- API Disintegrate: Preparatory patches)
-Date: Mon, 12 Nov 2012 16:27:56 +0530
-Message-ID: <50A0D634.20005@synopsys.com>
-References: <C2D7FE5348E1B147BCA15975FBA230750D9832@in01wembx1.internal.synopsys.com> <509251CA.8050008@synopsys.com> <18137.1349203013@warthog.procyon.org.uk> <CAAG0J9_gYLn5+4j9WUnPmxWyJfQK_b8e5xjxZdRPG21euXoCFg@mail.gmail.com> <CAAG0J9_LZ5Q1fNdcbSOyieesabkqcTMT0ueEDLXmemV2C_+F=g@mail.gmail.com>,<8419.1352387261@warthog.procyon.org.uk> <14356.1352416788@warthog.procyon.org.uk>
+From: <Vineet.Gupta1@synopsys.com>
+Subject: [RFC Patch v1 00/55] Addons to Synopsys ARC Linux kernel Port
+Date: Mon, 12 Nov 2012 17:18:49 +0530
+Message-ID: <1352720953-24321-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from kiruna.synopsys.com ([198.182.44.80]:35561 "EHLO
-	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751076Ab2KLK6O (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 05:58:14 -0500
-In-Reply-To: <14356.1352416788@warthog.procyon.org.uk>
+Received: from us02smtp2.synopsys.com ([198.182.60.77]:51518 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752590Ab2KLLtk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 06:49:40 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: arc-linux-dev@synopsys.com
-Cc: David Howells <dhowells@redhat.com>, James Hogan <james@albanarts.com>, "torvalds@osdl.org" <torvalds@osdl.org>, "arnd@arndb.de" <arnd@arndb.de>, "hpa@zytor.com" <hpa@zytor.com>, "alan@lxorguk.ukuu.org.uk" <alan@lxorguk.ukuu.org.uk>, "fengguang.wu@intel.com" <fengguang.wu@intel.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: tglx@linutronix.de, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
-On Friday 09 November 2012 04:49 AM, David Howells wrote:
-> Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
->
->> While I'd done some of the prep work in my code such as splitting __KERNEL__
->> && __ASSEMBLY__ into two separate lines, majority of orig headers didn't
->> have #ifdef __KERNEL__ guard despite the code not being meant for user-space
->> ABI. Is that fundamental to UAPI split scripting
-> Yes.  My scripts work purely along __KERNEL__ lines.  If there are no
-> __KERNEL__ markers and the header is marked for export, it is simply moved.
+From: Vineet Gupta <vgupta@synopsys.com>
 
-Understood.
+Hi,
 
->
->> because it seems to be causing setup.h to be in uapi despite seemingly being
->> kernel internal only.
-> Check also include/uapi/asm-generic/Kbuild.asm.  That exports setup.h, whether
-> you think it should be exported or not.
+This is a follow-up on ARC Linux port, whose #1 was posted last week.
+This is part #2 of the port containing optional features.
 
-Correct. And if there's nothing to export in there the script will not
-generate the empty uapi sibling.
+Kindly review and provide comments !
 
->> Per you email from last week, When I ran the disintergrate-one.pl script
->> myself I saw a whole bunch of empty UAPI files being generated with
->> references in orig header.  I'm not sure what I'm doing wrong.
-> Can you give an example of such a header?
+The v2 series incorporating the review comments will combine both #1 and #2.
 
-tlb.h - despite having __KERNEL__ guard in orig file. Here's how I did it.
+Thx,
+-Vineet
 
-1. In my orig tree, I created arch/arc/include/uapi/asm/Kbuild, with
-following 2 lines
+Mischa Jonker (1):
+  ARC: kgdb support
 
-# UAPI Header export list
-include include/uapi/asm-generic/Kbuild.asm
+Vineet Gupta (23):
+  ARC: [optim] Cache "current" in Register r25
+  ARC: ptrace support
+  ARC: futex
+  ARC: oprofile support
+  ARC: ARCompact 2 levels IRQ (high/low priority) Handling
+  ARC: dynamic loadable module support
+  ARC: Low level event capture/logging
+  ARC: kernel diagnostics: show_regs() etc
+  ARC: SMP support
+  ARC: dwarf2 stack unwinder
+  ARC: stacktracing APIs based on dw2 unwinder
+  ARC: disassembly (needed by kprobes/kgdb/unaligned-access-emul)
+  ARC: kprobes support
+  ARC: unaligned access emulation
+  ARC: startup #2: Verbose Boot reporting / feature verification
+  ARC: [plat-arfpga] BVCI Latency Unit setup
+  perf, ARC: Enable building perf tools for ARC
+  ARC: perf support (software counters only)
+  modpost: Ignore ARC specific non-alloc section
+  ARC: Support for single cycle Close Coupled Mem (CCM)
+  ARC: Hostlink Pseudo-Driver for Metaware Debugger
+  ARC: [plat-arcfpga] defconfig
+  ARC: Add self to MAINTAINERS
 
-2.  ./disintegrate-one.pl arch/arc/include/asm/tlb.h
-arch/arc/include/uapi/asm/tlb.h
+ MAINTAINERS                              |    6 +
+ arch/arc/Kconfig                         |  136 +++
+ arch/arc/Makefile                        |   19 +
+ arch/arc/configs/fpga_defconfig          |  137 +++-
+ arch/arc/include/asm/Kbuild              |    2 -
+ arch/arc/include/asm/arcregs.h           |  122 +++-
+ arch/arc/include/asm/current.h           |   32 +
+ arch/arc/include/asm/defines.h           |   56 ++
+ arch/arc/include/asm/disasm.h            |  116 +++
+ arch/arc/include/asm/entry.h             |  189 +++++
+ arch/arc/include/asm/event-log-asm.h     |  185 +++++
+ arch/arc/include/asm/event-log.h         |  102 +++
+ arch/arc/include/asm/futex.h             |  151 ++++
+ arch/arc/include/asm/irqflags.h          |    6 +-
+ arch/arc/include/asm/kgdb.h              |   61 ++
+ arch/arc/include/asm/kprobes.h           |   62 ++
+ arch/arc/include/asm/linkage.h           |   33 +
+ arch/arc/include/asm/mmu_context.h       |    4 +
+ arch/arc/include/asm/module.h            |   11 +
+ arch/arc/include/asm/mutex.h             |    9 +
+ arch/arc/include/asm/perf_event.h        |   19 +
+ arch/arc/include/asm/pgtable.h           |    4 +
+ arch/arc/include/asm/processor.h         |   11 +
+ arch/arc/include/asm/ptrace.h            |   19 +-
+ arch/arc/include/asm/setup.h             |   14 +
+ arch/arc/include/asm/smp.h               |  108 +++
+ arch/arc/include/asm/unaligned.h         |   29 +
+ arch/arc/include/asm/unwind.h            |  163 ++++
+ arch/arc/kernel/Makefile                 |   19 +-
+ arch/arc/kernel/arc_hostlink.c           |  114 +++
+ arch/arc/kernel/asm-offsets.c            |   18 +
+ arch/arc/kernel/ctx_sw.c                 |   18 +
+ arch/arc/kernel/disasm.c                 |  538 ++++++++++++
+ arch/arc/kernel/entry.S                  |  259 ++++++-
+ arch/arc/kernel/event-log.c              |  304 +++++++
+ arch/arc/kernel/head.S                   |   33 +
+ arch/arc/kernel/irq.c                    |  109 +++
+ arch/arc/kernel/kgdb.c                   |  205 +++++
+ arch/arc/kernel/kprobes.c                |  525 ++++++++++++
+ arch/arc/kernel/module.c                 |  159 ++++
+ arch/arc/kernel/ptrace.c                 |  164 ++++-
+ arch/arc/kernel/setup.c                  |  281 +++++++-
+ arch/arc/kernel/signal.c                 |    3 +
+ arch/arc/kernel/smp.c                    |  295 +++++++
+ arch/arc/kernel/stacktrace.c             |  215 +++++-
+ arch/arc/kernel/traps.c                  |   45 +
+ arch/arc/kernel/troubleshoot.c           |  304 +++++++
+ arch/arc/kernel/unaligned.c              |  225 +++++
+ arch/arc/kernel/unwind.c                 | 1329 ++++++++++++++++++++++++++++++
+ arch/arc/kernel/vmlinux.lds.S            |   44 +-
+ arch/arc/mm/cache_arc700.c               |   46 +
+ arch/arc/mm/tlb.c                        |   47 ++
+ arch/arc/mm/tlbex.S                      |   70 ++-
+ arch/arc/oprofile/Makefile               |    9 +
+ arch/arc/oprofile/common.c               |   22 +
+ arch/arc/plat-arcfpga/Kconfig            |   57 ++
+ arch/arc/plat-arcfpga/Makefile           |    1 +
+ arch/arc/plat-arcfpga/include/plat/irq.h |   10 +-
+ arch/arc/plat-arcfpga/include/plat/smp.h |  115 +++
+ arch/arc/plat-arcfpga/irq.c              |   10 +
+ arch/arc/plat-arcfpga/platform.c         |   56 ++
+ arch/arc/plat-arcfpga/smp.c              |  192 +++++
+ scripts/mod/modpost.c                    |    1 +
+ tools/perf/perf.h                        |    6 +
+ 64 files changed, 7621 insertions(+), 33 deletions(-)
+ create mode 100644 arch/arc/include/asm/current.h
+ create mode 100644 arch/arc/include/asm/defines.h
+ create mode 100644 arch/arc/include/asm/disasm.h
+ create mode 100644 arch/arc/include/asm/event-log-asm.h
+ create mode 100644 arch/arc/include/asm/event-log.h
+ create mode 100644 arch/arc/include/asm/futex.h
+ create mode 100644 arch/arc/include/asm/kgdb.h
+ create mode 100644 arch/arc/include/asm/kprobes.h
+ create mode 100644 arch/arc/include/asm/perf_event.h
+ create mode 100644 arch/arc/include/asm/unaligned.h
+ create mode 100644 arch/arc/include/asm/unwind.h
+ create mode 100644 arch/arc/kernel/arc_hostlink.c
+ create mode 100644 arch/arc/kernel/disasm.c
+ create mode 100644 arch/arc/kernel/event-log.c
+ create mode 100644 arch/arc/kernel/kgdb.c
+ create mode 100644 arch/arc/kernel/kprobes.c
+ create mode 100644 arch/arc/kernel/module.c
+ create mode 100644 arch/arc/kernel/smp.c
+ create mode 100644 arch/arc/kernel/unaligned.c
+ create mode 100644 arch/arc/kernel/unwind.c
+ create mode 100644 arch/arc/oprofile/Makefile
+ create mode 100644 arch/arc/oprofile/common.c
+ create mode 100644 arch/arc/plat-arcfpga/include/plat/smp.h
+ create mode 100644 arch/arc/plat-arcfpga/smp.c
 
-This generates a empty uapi/asm/tlb.h, a reference to it in asm/tlb.h
-and is also exported from Kbuild.asm - all 3 of which are wrong.
-
-But now that I think about it - I was wrong to call this script for
-all/any arch headers. It should be done only for the ones in
-include/uapi/asm-generic/Kbuild.asm or any specific ones that arch wants
-to export (cachectl.h for our case).
-
->
->> For any ABI changes to headers per review of the new port on list
->> (e.g. don't export pt_regs) would mean moving the code manually from uapi to
->> orig header - right. And if the file becomes empty just nuke it completely.
-> You can't necessarily remove a UAPI header completely.  Userspace may depend
-> on its existence, even if it gets no content from there.
->
->> How do you reckon we go about fixing these. I don't want to bother you
->> multiple times hence it would be best if I could reproduce this at my end.
-> The best advice I can give you without more specific examples is to compare
-> what's in your arch's headers to those of, say, hexagon or arm64.  Those are
-> recent additions and should be pretty clean as to what they contain.
->
-> David
+-- 
+1.7.4.1
