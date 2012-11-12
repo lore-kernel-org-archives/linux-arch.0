@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp2.synopsys.com ([198.182.60.77]:51552 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750851Ab2KLLv2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 06:51:28 -0500
+Received: from us01smtp3.synopsys.com ([198.182.44.81]:57531 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752590Ab2KLLts (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 06:49:48 -0500
 From: <Vineet.Gupta1@synopsys.com>
-Subject: [RFC Patch v1 44/55] ARC: kprobes support
-Date: Mon, 12 Nov 2012 17:19:02 +0530
-Message-ID: <1352720953-24321-14-git-send-email-vgupta@synopsys.com>
+Subject: [RFC Patch v1 32/55] ARC: [optim] Cache "current" in Register r25
+Date: Mon, 12 Nov 2012 17:18:50 +0530
+Message-ID: <1352720953-24321-2-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1352720953-24321-1-git-send-email-vgupta@synopsys.com>
 References: <1352720953-24321-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -15,713 +15,327 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: tglx@linutronix.de, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20121112114902.JVnKAZJFDJ3xkTS2_pSF9LktbYw7jjjbokMVVvlJO0w@z>
+Message-ID: <20121112114850.fHzTxJjcubhchkNn1pQwJu5uzRrX1hyFdIvMmBhsNqY@z>
 
 From: Vineet Gupta <vgupta@synopsys.com>
 
-Origin port done by Rajeshwar Ranga <rajeshwar.ranga@gmail.com>
-
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/Kconfig               |    2 +
- arch/arc/include/asm/kprobes.h |   62 +++++
- arch/arc/kernel/Makefile       |    1 +
- arch/arc/kernel/disasm.c       |    5 +-
- arch/arc/kernel/kprobes.c      |  525 ++++++++++++++++++++++++++++++++++++++++
- arch/arc/kernel/traps.c        |   13 +
- 6 files changed, 605 insertions(+), 3 deletions(-)
- create mode 100644 arch/arc/include/asm/kprobes.h
- create mode 100644 arch/arc/kernel/kprobes.c
+ arch/arc/Kconfig                 |    7 ++++++
+ arch/arc/Makefile                |    9 +++++++
+ arch/arc/include/asm/Kbuild      |    1 -
+ arch/arc/include/asm/current.h   |   32 +++++++++++++++++++++++++++
+ arch/arc/include/asm/entry.h     |   45 ++++++++++++++++++++++++++++++++++++++
+ arch/arc/include/asm/processor.h |    3 ++
+ arch/arc/kernel/asm-offsets.c    |    3 ++
+ arch/arc/kernel/ctx_sw.c         |    7 ++++++
+ arch/arc/kernel/entry.S          |   14 +++++++++++
+ 9 files changed, 120 insertions(+), 1 deletions(-)
+ create mode 100644 arch/arc/include/asm/current.h
 
 diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 26609d6..3ef21be 100644
+index f3aacfc..71e55c0 100644
 --- a/arch/arc/Kconfig
 +++ b/arch/arc/Kconfig
-@@ -22,6 +22,8 @@ config ARC
- 	select GENERIC_SMP_IDLE_THREAD
- 	select HAVE_ARCH_TRACEHOOK
- 	select HAVE_GENERIC_HARDIRQS
-+	select HAVE_KPROBES
-+	select HAVE_KRETPROBES
- 	select HAVE_MOD_ARCH_SPECIFIC if ARC_DW2_UNWIND
- 	select HAVE_OPROFILE
- 	select HOTPLUG if !INITRAMFS_SOURCE=""
-diff --git a/arch/arc/include/asm/kprobes.h b/arch/arc/include/asm/kprobes.h
+@@ -277,6 +277,13 @@ config ARC_PLAT_SDRAM_SIZE
+ 
+ endmenu # "Platform Board Configuration"
+ 
++config ARC_CURR_IN_REG
++	bool "Dedicate Register r25 for current_task pointer"
++	default y
++	help
++	  This reserved Register R25 to point to Current Task in
++	  kernel mode. This saves memory access for each such access
++
+ config ARC_STACK_NONEXEC
+ 	bool "Make stack non-executable"
+ 	default n
+diff --git a/arch/arc/Makefile b/arch/arc/Makefile
+index 4d52a3b..eeb64dd 100644
+--- a/arch/arc/Makefile
++++ b/arch/arc/Makefile
+@@ -20,6 +20,15 @@ export PLATFORM
+ cflags-y	+= -Iarch/arc/plat-$(PLATFORM)/include
+ cflags-y	+= -mA7 -fno-common -pipe -fno-builtin -D__linux__
+ 
++ifdef CONFIG_ARC_CURR_IN_REG
++# For a global register defintion, make sure it gets passed to every file
++# We had a customer reported bug where some code built in kernel was NOT using
++# any kernel headers, and missing the r25 global register
++# Can't do unconditionally (like above) because of recursive include issues
++# due to <linux/thread_info.h>
++LINUXINCLUDE	+=  -include ${src}/arch/arc/include/asm/current.h
++endif
++
+ atleast_gcc44 :=  $(call cc-ifversion, -gt, 0402, y)
+ cflags-$(atleast_gcc44)			+= -fsection-anchors
+ 
+diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
+index 148dfcf..a246390 100644
+--- a/arch/arc/include/asm/Kbuild
++++ b/arch/arc/include/asm/Kbuild
+@@ -11,7 +11,6 @@ generic-y += bugs.h
+ generic-y += bitsperlong.h
+ generic-y += clkdev.h
+ generic-y += cputime.h
+-generic-y += current.h
+ generic-y += device.h
+ generic-y += div64.h
+ generic-y += emergency-restart.h
+diff --git a/arch/arc/include/asm/current.h b/arch/arc/include/asm/current.h
 new file mode 100644
-index 0000000..4d9c211
+index 0000000..87b9185
 --- /dev/null
-+++ b/arch/arc/include/asm/kprobes.h
-@@ -0,0 +1,62 @@
++++ b/arch/arc/include/asm/current.h
+@@ -0,0 +1,32 @@
 +/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
++ *
++ * Vineetg: May 16th, 2008
++ *  - Current macro is now implemented as "global register" r25
 + */
 +
-+#ifndef _ARC_KPROBES_H
-+#define _ARC_KPROBES_H
++#ifndef _ASM_ARC_CURRENT_H
++#define _ASM_ARC_CURRENT_H
 +
-+#ifdef CONFIG_KPROBES
++#ifdef __KERNEL__
 +
-+typedef u16 kprobe_opcode_t;
++#ifndef __ASSEMBLY__
 +
-+#define UNIMP_S_INSTRUCTION 0x79e0
-+#define TRAP_S_2_INSTRUCTION 0x785e
++#ifdef CONFIG_ARC_CURR_IN_REG
 +
-+#define MAX_INSN_SIZE   8
-+#define MAX_STACK_SIZE  64
++register struct task_struct *curr_arc asm("r25");
++#define current (curr_arc)
 +
-+struct arch_specific_insn {
-+	int is_short;
-+	kprobe_opcode_t *t1_addr, *t2_addr;
-+	kprobe_opcode_t t1_opcode, t2_opcode;
-+};
-+
-+#define flush_insn_slot(p)  do {  } while (0)
-+
-+#define kretprobe_blacklist_size    0
-+
-+struct kprobe;
-+
-+void arch_remove_kprobe(struct kprobe *p);
-+
-+int kprobe_exceptions_notify(struct notifier_block *self,
-+			     unsigned long val, void *data);
-+
-+struct prev_kprobe {
-+	struct kprobe *kp;
-+	unsigned long status;
-+};
-+
-+struct kprobe_ctlblk {
-+	unsigned int kprobe_status;
-+	struct pt_regs jprobe_saved_regs;
-+	char jprobes_stack[MAX_STACK_SIZE];
-+	struct prev_kprobe prev_kprobe;
-+};
-+
-+int kprobe_fault_handler(struct pt_regs *regs, unsigned long cause);
-+void kretprobe_trampoline(void);
-+void trap_is_kprobe(unsigned long cause, unsigned long address,
-+			   struct pt_regs *regs);
 +#else
-+static void trap_is_kprobe(unsigned long cause, unsigned long address,
-+			   struct pt_regs *regs)
-+{
-+}
-+#endif
++#include <asm-generic/current.h>
++#endif /* ! CONFIG_ARC_CURR_IN_REG */
 +
-+#endif
-diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
-index 1fc0461..442d024 100644
---- a/arch/arc/kernel/Makefile
-+++ b/arch/arc/kernel/Makefile
-@@ -15,6 +15,7 @@ obj-$(CONFIG_MODULES)			+= arcksyms.o module.o
- obj-$(CONFIG_ARC_DBG_EVENT_TIMELINE)	+= event-log.o
- obj-$(CONFIG_SMP) 			+= smp.o
- obj-$(CONFIG_ARC_DW2_UNWIND)		+= unwind.o
-+obj-$(CONFIG_KPROBES)      		+= kprobes.o
- obj-$(CONFIG_ARC_FPU_SAVE_RESTORE)	+= fpu.o
- CFLAGS_fpu.o   += -mdpfp
- 
-diff --git a/arch/arc/kernel/disasm.c b/arch/arc/kernel/disasm.c
-index 254d11a..51bad8f 100644
---- a/arch/arc/kernel/disasm.c
-+++ b/arch/arc/kernel/disasm.c
-@@ -497,9 +497,8 @@ void __kprobes set_reg(int reg, long val, struct pt_regs *regs,
-  * @pc +2/4/6 (ARCompact ISA allows free intermixing of 16/32 bit insns).
++#endif /* ! __ASSEMBLY__ */
++
++#endif	/* __KERNEL__ */
++
++#endif /* _ASM_ARC_CURRENT_H */
+diff --git a/arch/arc/include/asm/entry.h b/arch/arc/include/asm/entry.h
+index 3e0a9f4..6113e1a 100644
+--- a/arch/arc/include/asm/entry.h
++++ b/arch/arc/include/asm/entry.h
+@@ -13,6 +13,8 @@
+  *   was being "CLEARED" rather then "SET". Actually "SET" clears ZOL context
   *
-  * If @pc is a branch
-- * 	-@tgt_if_br is set to branch target.
-- * 	-If branch has delay slot, @next_pc updated with actual next PC.
-- *
-+ *	-@tgt_if_br is set to branch target.
-+ *	-If branch has delay slot, @next_pc updated with actual next PC.
-  */
- int __kprobes disasm_next_pc(unsigned long pc, struct pt_regs *regs,
- 			     struct callee_regs *cregs,
-diff --git a/arch/arc/kernel/kprobes.c b/arch/arc/kernel/kprobes.c
-new file mode 100644
-index 0000000..47e42f2
---- /dev/null
-+++ b/arch/arc/kernel/kprobes.c
-@@ -0,0 +1,525 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#include <linux/types.h>
-+#include <linux/kprobes.h>
-+#include <linux/slab.h>
-+#include <linux/module.h>
-+#include <linux/kprobes.h>
-+#include <linux/kdebug.h>
-+#include <linux/sched.h>
-+#include <linux/uaccess.h>
-+#include <asm/cacheflush.h>
-+#include <asm/current.h>
-+#include <asm/disasm.h>
-+
-+#define MIN_STACK_SIZE(addr)	min((unsigned long)MAX_STACK_SIZE, \
-+		(unsigned long)current_thread_info() + THREAD_SIZE - (addr))
-+
-+DEFINE_PER_CPU(struct kprobe *, current_kprobe) = NULL;
-+DEFINE_PER_CPU(struct kprobe_ctlblk, kprobe_ctlblk);
-+
-+int __kprobes arch_prepare_kprobe(struct kprobe *p)
-+{
-+	/* Attempt to probe at unaligned address */
-+	if ((unsigned long)p->addr & 0x01)
-+		return -EINVAL;
-+
-+	/* Address should not be in exception handling code */
-+
-+	p->ainsn.is_short = is_short_instr((unsigned long)p->addr);
-+	p->opcode = *p->addr;
-+
-+	return 0;
-+}
-+
-+void __kprobes arch_arm_kprobe(struct kprobe *p)
-+{
-+	*p->addr = UNIMP_S_INSTRUCTION;
-+
-+	flush_icache_range((unsigned long)p->addr,
-+			   (unsigned long)p->addr + sizeof(kprobe_opcode_t));
-+}
-+
-+void __kprobes arch_disarm_kprobe(struct kprobe *p)
-+{
-+	*p->addr = p->opcode;
-+
-+	flush_icache_range((unsigned long)p->addr,
-+			   (unsigned long)p->addr + sizeof(kprobe_opcode_t));
-+}
-+
-+void __kprobes arch_remove_kprobe(struct kprobe *p)
-+{
-+	arch_disarm_kprobe(p);
-+
-+	/* Can we remove the kprobe in the middle of kprobe handling? */
-+	if (p->ainsn.t1_addr) {
-+		*(p->ainsn.t1_addr) = p->ainsn.t1_opcode;
-+
-+		flush_icache_range((unsigned long)p->ainsn.t1_addr,
-+				   (unsigned long)p->ainsn.t1_addr +
-+				   sizeof(kprobe_opcode_t));
-+
-+		p->ainsn.t1_addr = NULL;
-+	}
-+
-+	if (p->ainsn.t2_addr) {
-+		*(p->ainsn.t2_addr) = p->ainsn.t2_opcode;
-+
-+		flush_icache_range((unsigned long)p->ainsn.t2_addr,
-+				   (unsigned long)p->ainsn.t2_addr +
-+				   sizeof(kprobe_opcode_t));
-+
-+		p->ainsn.t2_addr = NULL;
-+	}
-+}
-+
-+static void __kprobes save_previous_kprobe(struct kprobe_ctlblk *kcb)
-+{
-+	kcb->prev_kprobe.kp = kprobe_running();
-+	kcb->prev_kprobe.status = kcb->kprobe_status;
-+}
-+
-+static void __kprobes restore_previous_kprobe(struct kprobe_ctlblk *kcb)
-+{
-+	__get_cpu_var(current_kprobe) = kcb->prev_kprobe.kp;
-+	kcb->kprobe_status = kcb->prev_kprobe.status;
-+}
-+
-+static inline void __kprobes set_current_kprobe(struct kprobe *p)
-+{
-+	__get_cpu_var(current_kprobe) = p;
-+}
-+
-+static void __kprobes resume_execution(struct kprobe *p, unsigned long addr,
-+				       struct pt_regs *regs)
-+{
-+	/* Remove the trap instructions inserted for single step and
-+	 * restore the original instructions
-+	 */
-+	if (p->ainsn.t1_addr) {
-+		*(p->ainsn.t1_addr) = p->ainsn.t1_opcode;
-+
-+		flush_icache_range((unsigned long)p->ainsn.t1_addr,
-+				   (unsigned long)p->ainsn.t1_addr +
-+				   sizeof(kprobe_opcode_t));
-+
-+		p->ainsn.t1_addr = NULL;
-+	}
-+
-+	if (p->ainsn.t2_addr) {
-+		*(p->ainsn.t2_addr) = p->ainsn.t2_opcode;
-+
-+		flush_icache_range((unsigned long)p->ainsn.t2_addr,
-+				   (unsigned long)p->ainsn.t2_addr +
-+				   sizeof(kprobe_opcode_t));
-+
-+		p->ainsn.t2_addr = NULL;
-+	}
-+
-+	return;
-+}
-+
-+static void __kprobes setup_singlestep(struct kprobe *p, struct pt_regs *regs)
-+{
-+	unsigned long next_pc;
-+	unsigned long tgt_if_br = 0;
-+	int is_branch;
-+	unsigned long bta;
-+
-+	/* Copy the opcode back to the kprobe location and execute the
-+	 * instruction. Because of this we will not be able to get into the
-+	 * same kprobe until this kprobe is done
-+	 */
-+	*(p->addr) = p->opcode;
-+
-+	flush_icache_range((unsigned long)p->addr,
-+			   (unsigned long)p->addr + sizeof(kprobe_opcode_t));
-+
-+	/* Now we insert the trap at the next location after this instruction to
-+	 * single step. If it is a branch we insert the trap at possible branch
-+	 * targets
-+	 */
-+
-+	bta = regs->bta;
-+
-+	if (regs->status32 & 0x40) {
-+		/* We are in a delay slot with the branch taken */
-+
-+		next_pc = bta & ~0x01;
-+
-+		if (!p->ainsn.is_short) {
-+			if (bta & 0x01)
-+				regs->blink += 2;
-+			else {
-+				/* Branch not taken */
-+				next_pc += 2;
-+
-+				/* next pc is taken from bta after executing the
-+				 * delay slot instruction
-+				 */
-+				regs->bta += 2;
-+			}
-+		}
-+
-+		is_branch = 0;
-+	} else
-+		is_branch =
-+		    disasm_next_pc((unsigned long)p->addr, regs,
-+			(struct callee_regs *) current->thread.callee_reg,
-+			&next_pc, &tgt_if_br);
-+
-+	p->ainsn.t1_addr = (kprobe_opcode_t *) next_pc;
-+	p->ainsn.t1_opcode = *(p->ainsn.t1_addr);
-+	*(p->ainsn.t1_addr) = TRAP_S_2_INSTRUCTION;
-+
-+	flush_icache_range((unsigned long)p->ainsn.t1_addr,
-+			   (unsigned long)p->ainsn.t1_addr +
-+			   sizeof(kprobe_opcode_t));
-+
-+	if (is_branch) {
-+		p->ainsn.t2_addr = (kprobe_opcode_t *) tgt_if_br;
-+		p->ainsn.t2_opcode = *(p->ainsn.t2_addr);
-+		*(p->ainsn.t2_addr) = TRAP_S_2_INSTRUCTION;
-+
-+		flush_icache_range((unsigned long)p->ainsn.t2_addr,
-+				   (unsigned long)p->ainsn.t2_addr +
-+				   sizeof(kprobe_opcode_t));
-+	}
-+}
-+
-+int __kprobes arc_kprobe_handler(unsigned long addr, struct pt_regs *regs)
-+{
-+	struct kprobe *p;
-+	struct kprobe_ctlblk *kcb;
-+
-+	preempt_disable();
-+
-+	kcb = get_kprobe_ctlblk();
-+	p = get_kprobe((unsigned long *)addr);
-+
-+	if (p) {
-+		/*
-+		 * We have reentered the kprobe_handler, since another kprobe
-+		 * was hit while within the handler, we save the original
-+		 * kprobes and single step on the instruction of the new probe
-+		 * without calling any user handlers to avoid recursive
-+		 * kprobes.
-+		 */
-+		if (kprobe_running()) {
-+			save_previous_kprobe(kcb);
-+			set_current_kprobe(p);
-+			kprobes_inc_nmissed_count(p);
-+			setup_singlestep(p, regs);
-+			kcb->kprobe_status = KPROBE_REENTER;
-+			return 1;
-+		}
-+
-+		set_current_kprobe(p);
-+		kcb->kprobe_status = KPROBE_HIT_ACTIVE;
-+
-+		/* If we have no pre-handler or it returned 0, we continue with
-+		 * normal processing. If we have a pre-handler and it returned
-+		 * non-zero - which is expected from setjmp_pre_handler for
-+		 * jprobe, we return without single stepping and leave that to
-+		 * the break-handler which is invoked by a kprobe from
-+		 * jprobe_return
-+		 */
-+		if (!p->pre_handler || !p->pre_handler(p, regs)) {
-+			setup_singlestep(p, regs);
-+			kcb->kprobe_status = KPROBE_HIT_SS;
-+		}
-+
-+		return 1;
-+	} else if (kprobe_running()) {
-+		p = __get_cpu_var(current_kprobe);
-+		if (p->break_handler && p->break_handler(p, regs)) {
-+			setup_singlestep(p, regs);
-+			kcb->kprobe_status = KPROBE_HIT_SS;
-+			return 1;
-+		}
-+	}
-+
-+	/* no_kprobe: */
-+	preempt_enable_no_resched();
-+	return 0;
-+}
-+
-+static int __kprobes arc_post_kprobe_handler(unsigned long addr,
-+					 struct pt_regs *regs)
-+{
-+	struct kprobe *cur = kprobe_running();
-+	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
-+
-+	if (!cur)
-+		return 0;
-+
-+	resume_execution(cur, addr, regs);
-+
-+	/* Rearm the kprobe */
-+	arch_arm_kprobe(cur);
-+
-+	/*
-+	 * When we return from trap instruction we go to the next instruction
-+	 * We restored the actual instruction in resume_exectuiont and we to
-+	 * return to the same address and execute it
-+	 */
-+	regs->ret = addr;
-+
-+	if ((kcb->kprobe_status != KPROBE_REENTER) && cur->post_handler) {
-+		kcb->kprobe_status = KPROBE_HIT_SSDONE;
-+		cur->post_handler(cur, regs, 0);
-+	}
-+
-+	if (kcb->kprobe_status == KPROBE_REENTER) {
-+		restore_previous_kprobe(kcb);
-+		goto out;
-+	}
-+
-+	reset_current_kprobe();
-+
-+out:
-+	preempt_enable_no_resched();
-+	return 1;
-+}
-+
-+/*
-+ * Fault can be for the instruction being single stepped or for the
-+ * pre/post handlers in the module.
-+ * This is applicable for applications like user probes, where we have the
-+ * probe in user space and the handlers in the kernel
-+ */
-+
-+int __kprobes kprobe_fault_handler(struct pt_regs *regs, unsigned long trapnr)
-+{
-+	struct kprobe *cur = kprobe_running();
-+	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
-+
-+	switch (kcb->kprobe_status) {
-+	case KPROBE_HIT_SS:
-+	case KPROBE_REENTER:
-+		/*
-+		 * We are here because the instruction being single stepped
-+		 * caused the fault. We reset the current kprobe and allow the
-+		 * exception handler as if it is regular exception. In our
-+		 * case it doesn't matter because the system will be halted
-+		 */
-+		resume_execution(cur, (unsigned long)cur->addr, regs);
-+
-+		if (kcb->kprobe_status == KPROBE_REENTER)
-+			restore_previous_kprobe(kcb);
-+		else
-+			reset_current_kprobe();
-+
-+		preempt_enable_no_resched();
-+		break;
-+
-+	case KPROBE_HIT_ACTIVE:
-+	case KPROBE_HIT_SSDONE:
-+		/*
-+		 * We are here because the instructions in the pre/post handler
-+		 * caused the fault.
-+		 */
-+
-+		/* We increment the nmissed count for accounting,
-+		 * we can also use npre/npostfault count for accouting
-+		 * these specific fault cases.
-+		 */
-+		kprobes_inc_nmissed_count(cur);
-+
-+		/*
-+		 * We come here because instructions in the pre/post
-+		 * handler caused the page_fault, this could happen
-+		 * if handler tries to access user space by
-+		 * copy_from_user(), get_user() etc. Let the
-+		 * user-specified handler try to fix it first.
-+		 */
-+		if (cur->fault_handler && cur->fault_handler(cur, regs, trapnr))
-+			return 1;
-+
-+		/*
-+		 * In case the user-specified fault handler returned zero,
-+		 * try to fix up.
-+		 */
-+		if (fixup_exception(regs))
-+			return 1;
-+
-+		/*
-+		 * fixup_exception() could not handle it,
-+		 * Let do_page_fault() fix it.
-+		 */
-+		break;
-+
-+	default:
-+		break;
-+	}
-+	return 0;
-+}
-+
-+int __kprobes kprobe_exceptions_notify(struct notifier_block *self,
-+				       unsigned long val, void *data)
-+{
-+	struct die_args *args = data;
-+	unsigned long addr = args->err;
-+	int ret = NOTIFY_DONE;
-+
-+	switch (val) {
-+	case DIE_IERR:
-+		if (arc_kprobe_handler(addr, args->regs))
-+			return NOTIFY_STOP;
-+		break;
-+
-+	case DIE_TRAP:
-+		if (arc_post_kprobe_handler(addr, args->regs))
-+			return NOTIFY_STOP;
-+		break;
-+
-+	default:
-+		break;
-+	}
-+
-+	return ret;
-+}
-+
-+int __kprobes setjmp_pre_handler(struct kprobe *p, struct pt_regs *regs)
-+{
-+	struct jprobe *jp = container_of(p, struct jprobe, kp);
-+	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
-+	unsigned long sp_addr = regs->sp;
-+
-+	kcb->jprobe_saved_regs = *regs;
-+	memcpy(kcb->jprobes_stack, (void *)sp_addr, MIN_STACK_SIZE(sp_addr));
-+	regs->ret = (unsigned long)(jp->entry);
-+
-+	return 1;
-+}
-+
-+void __kprobes jprobe_return(void)
-+{
-+	__asm__ __volatile__("unimp_s");
-+	return;
-+}
-+
-+int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
-+{
-+	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
-+	unsigned long sp_addr;
-+
-+	*regs = kcb->jprobe_saved_regs;
-+	sp_addr = regs->sp;
-+	memcpy((void *)sp_addr, kcb->jprobes_stack, MIN_STACK_SIZE(sp_addr));
-+	preempt_enable_no_resched();
-+
-+	return 1;
-+}
-+
-+static void __used kretprobe_trampoline_holder(void)
-+{
-+	__asm__ __volatile__(".global kretprobe_trampoline\n"
-+			     "kretprobe_trampoline:\n" "nop\n");
-+}
-+
-+void __kprobes arch_prepare_kretprobe(struct kretprobe_instance *ri,
-+				      struct pt_regs *regs)
-+{
-+
-+	ri->ret_addr = (kprobe_opcode_t *) regs->blink;
-+
-+	/* Replace the return addr with trampoline addr */
-+	regs->blink = (unsigned long)&kretprobe_trampoline;
-+}
-+
-+static int __kprobes trampoline_probe_handler(struct kprobe *p,
-+					      struct pt_regs *regs)
-+{
-+	struct kretprobe_instance *ri = NULL;
-+	struct hlist_head *head, empty_rp;
-+	struct hlist_node *node, *tmp;
-+	unsigned long flags, orig_ret_address = 0;
-+	unsigned long trampoline_address = (unsigned long)&kretprobe_trampoline;
-+
-+	INIT_HLIST_HEAD(&empty_rp);
-+	kretprobe_hash_lock(current, &head, &flags);
-+
-+	/*
-+	 * It is possible to have multiple instances associated with a given
-+	 * task either because an multiple functions in the call path
-+	 * have a return probe installed on them, and/or more than one return
-+	 * return probe was registered for a target function.
-+	 *
-+	 * We can handle this because:
-+	 *     - instances are always inserted at the head of the list
-+	 *     - when multiple return probes are registered for the same
-+	 *       function, the first instance's ret_addr will point to the
-+	 *       real return address, and all the rest will point to
-+	 *       kretprobe_trampoline
-+	 */
-+	hlist_for_each_entry_safe(ri, node, tmp, head, hlist) {
-+		if (ri->task != current)
-+			/* another task is sharing our hash bucket */
-+			continue;
-+
-+		if (ri->rp && ri->rp->handler)
-+			ri->rp->handler(ri, regs);
-+
-+		orig_ret_address = (unsigned long)ri->ret_addr;
-+		recycle_rp_inst(ri, &empty_rp);
-+
-+		if (orig_ret_address != trampoline_address) {
-+			/*
-+			 * This is the real return address. Any other
-+			 * instances associated with this task are for
-+			 * other calls deeper on the call stack
-+			 */
-+			break;
-+		}
-+	}
-+
-+	kretprobe_assert(ri, orig_ret_address, trampoline_address);
-+	regs->ret = orig_ret_address;
-+
-+	reset_current_kprobe();
-+	kretprobe_hash_unlock(current, &flags);
-+	preempt_enable_no_resched();
-+
-+	hlist_for_each_entry_safe(ri, node, tmp, &empty_rp, hlist) {
-+		hlist_del(&ri->hlist);
-+		kfree(ri);
-+	}
-+
-+	/* By returning a non zero value, we are telling the kprobe handler
-+	 * that we don't want the post_handler to run
-+	 */
-+	return 1;
-+}
-+
-+static struct kprobe trampoline_p = {
-+	.addr = (kprobe_opcode_t *) &kretprobe_trampoline,
-+	.pre_handler = trampoline_probe_handler
-+};
-+
-+int __init arch_init_kprobes(void)
-+{
-+	/* Registering the trampoline code for the kret probe */
-+	return register_kprobe(&trampoline_p);
-+}
-+
-+int __kprobes arch_trampoline_kprobe(struct kprobe *p)
-+{
-+	if (p->addr == (kprobe_opcode_t *) &kretprobe_trampoline)
-+		return 1;
-+
-+	return 0;
-+}
-+
-+void trap_is_kprobe(unsigned long cause, unsigned long address,
-+		    struct pt_regs *regs)
-+{
-+	notify_die(DIE_TRAP, "kprobe_trap", regs, address, cause, SIGTRAP);
-+}
-diff --git a/arch/arc/kernel/traps.c b/arch/arc/kernel/traps.c
-index fd2457c..c6396b4 100644
---- a/arch/arc/kernel/traps.c
-+++ b/arch/arc/kernel/traps.c
-@@ -15,6 +15,7 @@
- #include <linux/uaccess.h>
+  * Vineetg: May 5th 2008
++ *  -Modified CALLEE_REG save/restore macros to handle the fact that
++ *      r25 contains the kernel current task ptr
+  *  - Defined Stack Switching Macro to be reused in all intr/excp hdlrs
+  *  - Shaved off 11 instructions from RESTORE_ALL_INT1 by using the
+  *      address Write back load ld.ab instead of seperate ld/add instn
+@@ -28,6 +30,7 @@
+ #include <asm/asm-offsets.h>
+ #include <asm/arcregs.h>
  #include <asm/ptrace.h>
- #include <asm/setup.h>
-+#include <asm/kprobes.h>
++#include <asm/processor.h>	/* For VMALLOC_START */
+ #include <asm/thread_info.h>	/* For THREAD_SIZE */
  
- void __init trap_init(void)
- {
-@@ -90,6 +91,7 @@ void do_machine_check_fault(unsigned long cause, unsigned long address,
- 	die("Machine Check Exception", regs, address, cause);
- }
+ /* Note on the LD/ST addr modes with addr reg wback
+@@ -106,7 +109,14 @@
+ 	st.a    r22, [sp, -4]
+ 	st.a    r23, [sp, -4]
+ 	st.a    r24, [sp, -4]
++
++#ifdef CONFIG_ARC_CURR_IN_REG
++	; Retrieve orig r25 and save it on stack
++	ld      r12, [r25, TASK_THREAD + THREAD_USER_R25]
++	st.a    r12, [sp, -4]
++#else
+ 	st.a    r25, [sp, -4]
++#endif
+ 
+ 	/* move up by 1 word to "create" callee_regs->"stack_place_holder" */
+ 	sub sp, sp, 4
+@@ -131,8 +141,12 @@
+ 	st.a    r22, [sp, -4]
+ 	st.a    r23, [sp, -4]
+ 	st.a    r24, [sp, -4]
++#ifdef CONFIG_ARC_CURR_IN_REG
++	sub     sp, sp, 8
++#else
+ 	st.a    r25, [sp, -4]
+ 	sub     sp, sp, 4
++#endif
+ .endm
+ 
+ /*--------------------------------------------------------------
+@@ -148,8 +162,14 @@
+  *-------------------------------------------------------------*/
+ .macro RESTORE_CALLEE_SAVED_KERNEL
  
 +
- /*
-  * Entry point for traps induced by ARCompact TRAP_S <n> insn
-  * This is same family as TRAP0/SWI insn (use the same vector).
-@@ -109,6 +111,10 @@ void do_non_swi_trap(unsigned long cause, unsigned long address,
- 		trap_is_brkpt(cause, address, regs);
- 		break;
- 
-+	case 2:
-+		trap_is_kprobe(param, address, regs);
-+		break;
++#ifdef CONFIG_ARC_CURR_IN_REG
++	add     sp, sp, 8  /* skip callee_reg gutter and user r25 placeholder */
++#else
+ 	add     sp, sp, 4   /* skip "callee_regs->stack_place_holder" */
+ 	ld.ab   r25, [sp, 4]
++#endif
 +
- 	default:
- 		break;
- 	}
-@@ -116,10 +122,17 @@ void do_non_swi_trap(unsigned long cause, unsigned long address,
+ 	ld.ab   r24, [sp, 4]
+ 	ld.ab   r23, [sp, 4]
+ 	ld.ab   r22, [sp, 4]
+@@ -200,6 +220,7 @@
+  *
+  * Entry   : r9 contains pre-IRQ/exception/trap status32
+  * Exit    : SP is set to kernel mode stack pointer
++ *           If CURR_IN_REG, r25 set to "current" task pointer
+  * Clobbers: r9
+  *-------------------------------------------------------------*/
  
- /*
-  * Entry point for Instruction Error Exception
-+ *  -For a corner case, ARC kprobes implementation resorts to using
-+ *   this exception, hence the check
+@@ -224,6 +245,16 @@
+ 
+ 	GET_CURR_TASK_ON_CPU   r9
+ 
++#ifdef CONFIG_ARC_CURR_IN_REG
++
++	/* If current task pointer cached in r25, time to
++	 *  -safekeep USER r25 in task->thread_struct->user_r25
++	 *  -load r25 with current task ptr
++	 */
++	st.as	r25, [r9, (TASK_THREAD + THREAD_USER_R25)/4]
++	mov	r25, r9
++#endif
++
+ 	/* With current tsk in r9, get it's kernel mode stack base */
+ 	GET_TSK_STACK_BASE  r9, r9
+ 
+@@ -479,17 +510,31 @@
+ 
+ .macro  SET_CURR_TASK_ON_CPU    tsk, tmp
+ 	st  \tsk, [@_current_task]
++#ifdef CONFIG_ARC_CURR_IN_REG
++	mov r25, \tsk
++#endif
+ .endm
+ 
+ /* ------------------------------------------------------------------
+  * Get the ptr to some field of Current Task at @off in task struct
++ *  -Uses r25 for Current task ptr if that is enabled
   */
- void do_insterror_or_kprobe(unsigned long cause,
- 				       unsigned long address,
- 				       struct pt_regs *regs)
- {
-+	/* Check if this exception is caused by kprobes */
-+	if (notify_die(DIE_IERR, "kprobe_ierr", regs, address,
-+		       cause, SIGILL) == NOTIFY_STOP)
-+		return;
+ 
++#ifdef CONFIG_ARC_CURR_IN_REG
 +
- 	insterror_is_error(cause, address, regs);
- }
++.macro GET_CURR_TASK_FIELD_PTR  off,  reg
++	add \reg, r25, \off
++.endm
++
++#else
++
+ .macro GET_CURR_TASK_FIELD_PTR  off,  reg
+ 	GET_CURR_TASK_ON_CPU  \reg
+ 	add \reg, \reg, \off
+ .endm
+ 
++#endif	/* CONFIG_ARC_CURR_IN_REG */
++
+ #endif  /* __ASSEMBLY__ */
+ 
+ #endif  /* __ASM_ARC_ENTRY_H */
+diff --git a/arch/arc/include/asm/processor.h b/arch/arc/include/asm/processor.h
+index 38ea5fb..2fe9f22 100644
+--- a/arch/arc/include/asm/processor.h
++++ b/arch/arc/include/asm/processor.h
+@@ -29,6 +29,9 @@ struct thread_struct {
+ 	unsigned long callee_reg;	/* pointer to callee regs */
+ 	unsigned long fault_address;	/* dbls as brkpt holder as well */
+ 	unsigned long cause_code;	/* Exception Cause Code (ECR) */
++#ifdef CONFIG_ARC_CURR_IN_REG
++	unsigned long user_r25;
++#endif
+ #ifdef CONFIG_ARC_FPU_SAVE_RESTORE
+ 	struct arc_fpu fpu;
+ #endif
+diff --git a/arch/arc/kernel/asm-offsets.c b/arch/arc/kernel/asm-offsets.c
+index 7f3f611..b0e7254 100644
+--- a/arch/arc/kernel/asm-offsets.c
++++ b/arch/arc/kernel/asm-offsets.c
+@@ -23,6 +23,9 @@ int main(void)
+ 
+ 	DEFINE(THREAD_KSP, offsetof(struct thread_struct, ksp));
+ 	DEFINE(THREAD_CALLEE_REG, offsetof(struct thread_struct, callee_reg));
++#ifdef CONFIG_ARC_CURR_IN_REG
++	DEFINE(THREAD_USER_R25, offsetof(struct thread_struct, user_r25));
++#endif
+ 	DEFINE(THREAD_FAULT_ADDR,
+ 	       offsetof(struct thread_struct, fault_address));
+ 
+diff --git a/arch/arc/kernel/ctx_sw.c b/arch/arc/kernel/ctx_sw.c
+index 647e37a..fbf739c 100644
+--- a/arch/arc/kernel/ctx_sw.c
++++ b/arch/arc/kernel/ctx_sw.c
+@@ -24,6 +24,9 @@ __switch_to(struct task_struct *prev_task, struct task_struct *next_task)
+ 	unsigned int prev = (unsigned int)prev_task;
+ 	unsigned int next = (unsigned int)next_task;
+ 	int num_words_to_skip = 1;
++#ifdef CONFIG_ARC_CURR_IN_REG
++	num_words_to_skip++;
++#endif
+ 
+ 	__asm__ __volatile__(
+ 		/* FP/BLINK save generated by gcc (standard function prologue */
+@@ -39,7 +42,9 @@ __switch_to(struct task_struct *prev_task, struct task_struct *next_task)
+ 		"st.a    r22, [sp, -4]   \n\t"
+ 		"st.a    r23, [sp, -4]   \n\t"
+ 		"st.a    r24, [sp, -4]   \n\t"
++#ifndef CONFIG_ARC_CURR_IN_REG
+ 		"st.a    r25, [sp, -4]   \n\t"
++#endif
+ 		"sub     sp, sp, %4      \n\t"	/* create gutter at top */
+ 
+ 		/* set ksp of outgoing task in tsk->thread.ksp */
+@@ -62,7 +67,9 @@ __switch_to(struct task_struct *prev_task, struct task_struct *next_task)
+ 
+ 		"add    sp, sp, %4     \n\t"	/* skip gutter at top */
+ 
++#ifndef CONFIG_ARC_CURR_IN_REG
+ 		"ld.ab   r25, [sp, 4]   \n\t"
++#endif
+ 		"ld.ab   r24, [sp, 4]   \n\t"
+ 		"ld.ab   r23, [sp, 4]   \n\t"
+ 		"ld.ab   r22, [sp, 4]   \n\t"
+diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
+index deb2652..35406da 100644
+--- a/arch/arc/kernel/entry.S
++++ b/arch/arc/kernel/entry.S
+@@ -36,6 +36,9 @@
+  *   was being "CLEARED" rather then "SET". Since it is Loop INHIBIT Bit,
+  *   setting it and not clearing it clears ZOL context
+  *
++ * Vineetg: May 16th, 2008
++ *  - r25 now contains the Current Task when in kernel
++ *
+  * Vineetg: Dec 22, 2007
+  *    Minor Surgery of Low Level ISR to make it SMP safe
+  *    - MMU_SCRATCH0 Reg used for freeing up r9 in Level 1 ISR
+@@ -540,6 +543,17 @@ restore_regs :
+ 	; XXX can this be optimised out
+ 	IRQ_DISABLE_SAVE    r9, r10	;@r10 has prisitine (pre-disable) copy
+ 
++#ifdef CONFIG_ARC_CURR_IN_REG
++	; Restore User R25
++	; Earlier this used to be only for returning to user mode
++	; However with 2 levels of IRQ this can also happen even if
++	; in kernel mode
++	ld r9, [sp, PT_sp]
++	brhs r9, VMALLOC_START, 8f
++	RESTORE_USER_R25
++8:
++#endif
++
+ 	; Restore REG File. In case multiple Events outstanding,
+ 	; use the same priorty as rtie: EXCPN, L2 IRQ, L1 IRQ, None
+ 	; Note that we use realtime STATUS32 (not pt_regs->status32) to
 -- 
 1.7.4.1
 
