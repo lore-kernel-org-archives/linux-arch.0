@@ -1,165 +1,39 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [arc-linux-dev] Re: UAPI for new arches (was Re: [GIT PULL] User API Disintegrate: Preparatory patches)
-Date: Mon, 12 Nov 2012 13:14:00 +0000
-Message-ID: <9377.1352726040@warthog.procyon.org.uk>
-References: <50A0D634.20005@synopsys.com> <C2D7FE5348E1B147BCA15975FBA230750D9832@in01wembx1.internal.synopsys.com> <509251CA.8050008@synopsys.com> <18137.1349203013@warthog.procyon.org.uk> <CAAG0J9_gYLn5+4j9WUnPmxWyJfQK_b8e5xjxZdRPG21euXoCFg@mail.gmail.com> <CAAG0J9_LZ5Q1fNdcbSOyieesabkqcTMT0ueEDLXmemV2C_+F=g@mail.gmail.com>,<8419.1352387261@warthog.procyon.org.uk> <14356.1352416788@warthog.procyon.org.uk>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC Patch v1 32/55] ARC: [optim] Cache "current" in Register r25
+Date: Mon, 12 Nov 2012 13:50:12 +0000
+Message-ID: <201211121350.12810.arnd@arndb.de>
+References: <1352720953-24321-1-git-send-email-vgupta@synopsys.com> <1352720953-24321-2-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="=-=-="
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:1032 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751555Ab2KLNOK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 12 Nov 2012 08:14:10 -0500
-In-Reply-To: <50A0D634.20005@synopsys.com>
+Received: from moutng.kundenserver.de ([212.227.17.9]:53735 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752804Ab2KLNu0 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 08:50:26 -0500
+In-Reply-To: <1352720953-24321-2-git-send-email-vgupta@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: dhowells@redhat.com, arc-linux-dev@synopsys.com, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Vineet.Gupta1@synopsys.com
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
 
---=-=-=
-Content-Type: text/plain
-
-Vineet Gupta <Vineet.Gupta1@synopsys.com> wrote:
-
-> >> Per you email from last week, When I ran the disintergrate-one.pl script
-> >> myself I saw a whole bunch of empty UAPI files being generated with
-> >> references in orig header.  I'm not sure what I'm doing wrong.
-> > Can you give an example of such a header?
+On Monday 12 November 2012, Vineet.Gupta1@synopsys.com wrote:
 > 
-> tlb.h - despite having __KERNEL__ guard in orig file. Here's how I did it.
-> 
-> 1. In my orig tree, I created arch/arc/include/uapi/asm/Kbuild, with
-> following 2 lines
-> 
-> # UAPI Header export list
-> include include/uapi/asm-generic/Kbuild.asm
-> 
-> 2.  ./disintegrate-one.pl arch/arc/include/asm/tlb.h
-> arch/arc/include/uapi/asm/tlb.h
-> 
-> This generates a empty uapi/asm/tlb.h, a reference to it in asm/tlb.h
-> and is also exported from Kbuild.asm - all 3 of which are wrong.
+>  endmenu # "Platform Board Configuration"
+>  
+> +config ARC_CURR_IN_REG
+> +       bool "Dedicate Register r25 for current_task pointer"
+> +       default y
+> +       help
+> +         This reserved Register R25 to point to Current Task in
+> +         kernel mode. This saves memory access for each such access
+> +
 
-Actually, this is the correct operation - it's just that there's nothing in
-tlb.h to export.  (Note that Kbuild.asm is not modified, but rather
-uapi/asm/Kbuild.  asm/Kbuild would too, but there's no export line there to be
-removed.)
+This looks like a useful feature if you have 32 GPRs, but why make it
+optional? Are there cases where you would disable it?
 
-However... tlb.h isn't exported in Kbuild.asm - nor is it exported in arc's
-asm/Kbuild, so the script shouldn't be run on that.
+Another alternative to caching "current" would be to cache the per-cpu
+offset, and calculate current from that one.
 
-> But now that I think about it - I was wrong to call this script for
-> all/any arch headers. It should be done only for the ones in
-> include/uapi/asm-generic/Kbuild.asm or any specific ones that arch wants
-> to export (cachectl.h for our case).
-
-Exactly so.  I should probably have mentioned that, but I've had it automated
-for so long, that I don't think about it any more.  You should only call it
-for arch headers
-
-I've attached a script that I use to work out which files need disintegration
-in a directory.  Run as:
-
-	genfilelist.pl arch/arc/include/asm/
-
-I get:
-
-	byteorder.h
-	cachectl.h
-	page.h
-	ptrace.h
-	setup.h
-	sigcontext.h
-	signal.h
-	swab.h
-	unistd.h
-
-as being all that you need to disintegrate.  Almost everything seems to be
-generic.
-
-David
-
-
---=-=-=
-Content-Type: text/x-perl
-Content-Disposition: attachment; filename=genfilelist.pl
-
-#!/usr/bin/perl -w
-#
-# Find all the UAPI files in the nominated directory
-#
-
-die "Need directory argument\n"
-    if ($#ARGV == -1);
-
-my $dir = $ARGV[0];
-my $kbuild = $dir . "/Kbuild";
-
-die "$kbuild not present"
-    unless (-r "$dir/Kbuild");
-
-#
-# We assume that only Kbuild files in include directories are pertinent to
-# determining which headers are UAPI headers.
-#
-my %headers = ();
-
-opendir my $dh, $dir or die;
-foreach $_ (readdir($dh)) {
-    $headers{$_} = 1
-	if ($_ =~ /[.]h$/ || $_ =~ /[.]agh$/ || $_ =~ /[.]inc$/);
-}
-closedir($dh) or die;
-
-# Read the common arch list
-open FD, '<include/uapi/asm-generic/Kbuild.asm' or die "open Kbuild.asm: $!\n";
-my @kbuild_asm = <FD>;
-close FD or die;
-
-my %uapihdrs = ();
-
-open FD, '<', $kbuild or die "open $kbuild: $!\n";
-my @lines = <FD>;
-close FD or die;
-
-for (my $l = 0; $l <= $#lines; $l++) {
-    my $line = $lines[$l];
-
-    # parse out the blocks
-    # - this may be split over multiple lines using backslashes
-    my $block = $line;
-  restart:
-    $block =~ s@#.*$@@;
-    $block =~ s@\s+$@@g;
-    $block =~ s@\s+@ @g;
-
-    if ($block =~ /^(.*)[\\]$/) {
-	$l++;
-	$block = $1 . $lines[$l];
-	goto restart;
-    }
-
-    $block =~ s@\s+$@@g;
-    $block =~ s@\s\s+@ @g;
-
-    if ($block =~ m@^include include/asm-generic/Kbuild.asm@) {
-	push @lines, @kbuild_asm;
-    }
-
-    if ($block =~ m@^header-y\s*[+:]?=\s*(.*)@ ||
-	$block =~ m@^opt-header\s*[+:]?=\s*(.*)@ ||
-	$block =~ m@^asm-headers\s*[+:]?=\s*(.*)@
-	) {
-	my $files = $1;
-	next if ($block =~ m@[$][(]foreach@);
-	foreach $h (grep m@[^/]$@, split /\s+/, $files) {
-	    if (exists $headers{"$h"}) {
-		$uapihdrs{"$h"} = 1;
-	    }
-	}
-    }
-}
-
-print map { $_ . "\n"; } sort keys %uapihdrs;
-
---=-=-=--
+	Arnd
