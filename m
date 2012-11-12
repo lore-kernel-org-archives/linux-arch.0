@@ -1,106 +1,151 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:50094 "EHLO
-	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753408Ab2KLU6i (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 15:58:38 -0500
-From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: [PATCH V6 2/2] kbuild: run the pre-processor on *.dts files
-Date: Mon, 12 Nov 2012 13:58:27 -0700
-Message-ID: <1352753907-3316-2-git-send-email-swarren@wwwdotorg.org>
-In-Reply-To: <1352753907-3316-1-git-send-email-swarren@wwwdotorg.org>
-References: <1352753907-3316-1-git-send-email-swarren@wwwdotorg.org>
+Received: from haggis.pcug.org.au ([203.10.76.10]:59611 "EHLO
+	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754159Ab2KLV02 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 16:26:28 -0500
+Date: Tue, 13 Nov 2012 08:26:15 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: [PATCH] Centralise CONFIG_ARCH_NO_VIRT_TO_BUS
+Message-ID: <20121113082615.2f482eb8835daf46e1f27947@canb.auug.org.au>
+In-Reply-To: <CAErSpo6WG2R_8sa=rOmAOci-3iFpDs2NFzNkZYxDnD2oTiMQJg@mail.gmail.com>
+References: <ADE657CA350FB648AAC2C43247A983F00206B25884B1@AUSP01VMBX24.collaborationhost.net>
+	<CAErSpo6WG2R_8sa=rOmAOci-3iFpDs2NFzNkZYxDnD2oTiMQJg@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Tue__13_Nov_2012_08_26_15_+1100_Itf/8c4.wc_KVJZU"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Marek <mmarek@suse.cz>
-Cc: David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>
-Message-ID: <20121112205827.5RZNw2_ynQ8K-vSY0bC_uZcdOIi8AISJ81SgFv8p9fA@z>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, H Hartley Sweeten <hartleys@visionengravers.com>, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org
+Message-ID: <20121112212615.thKmWezQNHAa8t7R5xz0hx5i6qTBtUQTTYNOeZAwgJg@z>
 
-From: Stephen Warren <swarren@nvidia.com>
+--Signature=_Tue__13_Nov_2012_08_26_15_+1100_Itf/8c4.wc_KVJZU
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Modify cmd_dtc to run the C pre-processor on the input .dts file before
-passing it to dtc for final compilation. This allows the use of #define
-and #include within the .dts file.
+Make if easier for more architectures to select it and thus disable
+drivers that use virt_to_bus().
 
-Signed-off-by: Stephen Warren <swarren@nvidia.com>
-Acked-by: Sam Ravnborg <sam@ravnborg.org>
+Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
 ---
-v6: No change.
-v5:
-* Update Documentation/kbuild for the new command and rule.
-v4:
-* Use -x assembler-with-cpp so pre-defined macros are set up so that
-  #included header files know to only use cpp syntax, not C syntax.
-* Define __DTS__ for similar reasons.
-* use $(CPP) not $(CC) -E, and use $(cpp_flags).
-* Save the pre-processed results so they can be easily inspected when
-  debugging build issues.
-* The use of -x assembler-with-cpp causes cpp to recognize directives in
-  column 1 only. Hence, there's no need to escape property names that
-  begin with #. Hence, there's no need for separate skeleton.dtsi and
-  skeleton.dtsip. Maintain a separate file extension and build rule so that
-  CPP-usage is opt-in. In particular, when using CPP, #include must be used
-  rather than /include/ so that dependencies work.
-v3: Pass "-x c" not "-xc" to cpp.
-v2: Place make %.dtb: %.dtsp rule into Makefile.lib.
----
- Documentation/kbuild/makefiles.txt |   23 +++++++++++++++++++++++
- scripts/Makefile.lib               |    9 +++++++++
- 2 files changed, 32 insertions(+), 0 deletions(-)
+ arch/Kconfig         |    7 +++++++
+ arch/powerpc/Kconfig |    4 +---
+ arch/sh/Kconfig      |    4 +---
+ arch/sparc/Kconfig   |    4 +---
+ 4 files changed, 10 insertions(+), 9 deletions(-)
 
-diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
-index a0b0671..dfe6838 100644
---- a/Documentation/kbuild/makefiles.txt
-+++ b/Documentation/kbuild/makefiles.txt
-@@ -1194,6 +1194,29 @@ When kbuild executes, the following steps are followed (roughly):
- 
- 		clean-files += ... *.dtb
- 
-+    dtc_cpp
-+	This is just like dtc as describe above, except that the C pre-
-+	processor is invoked upon the .dtsp file before compiling the result
-+	with dtc.
+diff --git a/arch/Kconfig b/arch/Kconfig
+index 366ec06..9bc00e7 100644
+--- a/arch/Kconfig
++++ b/arch/Kconfig
+@@ -271,6 +271,13 @@ config ARCH_WANT_OLD_COMPAT_IPC
+ 	select ARCH_WANT_COMPAT_IPC_PARSE_VERSION
+ 	bool
+=20
++config ARCH_NO_VIRT_TO_BUS
++	bool
++	help
++	  An architecture should select this if it cannot (or will not)
++	  implement virt_to_bus().  All new architectures should probably
++	  select this.
 +
-+	In order for build dependencies to work, all files compiled using
-+	dtc_cpp must use the C pre-processor's #include functionality and not
-+	dtc's /include/ functionality.
-+
-+	Using the C pre-processor allows use of #define to create named
-+	constants. In turn, the #defines will typically appear in a header
-+	file, which may be shared with regular C code. Since the dtc language
-+	represents a data structure rather than code in C syntax, similar
-+	restrictions are placed on a header file included by a device tree
-+	file as for a header file included by an assembly language file.
-+	In particular, the C pre-processor is passed -x assembler-with-cpp,
-+	which sets macro __ASSEMBLY__. __DTS__ is also set. These allow header
-+	files to restrict their content to that compatible with device tree
-+	source.
-+
-+	A central rule exists to create $(obj)/%.dtb from $(src)/dts/%.dtsp;
-+	architecture Makefiles do no need to explicitly write out that rule.
-+
- --- 6.8 Custom kbuild commands
- 
- 	When kbuild is executing with KBUILD_VERBOSE=0, then only a shorthand
-diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
-index 425578e..33432f4 100644
---- a/scripts/Makefile.lib
-+++ b/scripts/Makefile.lib
-@@ -269,6 +269,15 @@ cmd_dtc = $(objtree)/scripts/dtc/dtc -O dtb -o $@ -b 0 $(DTC_FLAGS) -d $(depfile
- $(obj)/%.dtb: $(src)/dts/%.dts FORCE
- 	$(call if_changed_dep,dtc)
- 
-+dtc-tmp = $(subst $(comma),_,$(dot-target).dts)
-+
-+quiet_cmd_dtc_cpp = DTC+CPP $@
-+cmd_dtc_cpp = $(CPP) $(cpp_flags) -D__DTS__ -x assembler-with-cpp -o $(dtc-tmp) $< ; \
-+	$(objtree)/scripts/dtc/dtc -O dtb -o $@ -b 0 $(DTC_FLAGS) $(dtc-tmp)
-+
-+$(obj)/%.dtb: $(src)/dts/%.dtsp FORCE
-+	$(call if_changed_dep,dtc_cpp)
-+
- # Bzip2
- # ---------------------------------------------------------------------------
- 
--- 
-1.7.0.4
+ config GENERIC_KERNEL_THREAD
+ 	bool
+=20
+diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+index a902a5c..8c8fcba 100644
+--- a/arch/powerpc/Kconfig
++++ b/arch/powerpc/Kconfig
+@@ -87,9 +87,6 @@ config GENERIC_GPIO
+ 	help
+ 	  Generic GPIO API support
+=20
+-config ARCH_NO_VIRT_TO_BUS
+-	def_bool PPC64
+-
+ config PPC
+ 	bool
+ 	default y
+@@ -101,6 +98,7 @@ config PPC
+ 	select HAVE_FUNCTION_GRAPH_TRACER
+ 	select SYSCTL_EXCEPTION_TRACE
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
++	select ARCH_NO_VIRT_TO_BUS if PPC64
+ 	select HAVE_IDE
+ 	select HAVE_IOREMAP_PROT
+ 	select HAVE_EFFICIENT_UNALIGNED_ACCESS
+diff --git a/arch/sh/Kconfig b/arch/sh/Kconfig
+index babc2b8..9b28793 100644
+--- a/arch/sh/Kconfig
++++ b/arch/sh/Kconfig
+@@ -16,6 +16,7 @@ config SUPERH
+ 	select HAVE_DEBUG_BUGVERBOSE
+ 	select ARCH_HAVE_CUSTOM_GPIO_H
+ 	select ARCH_HAVE_NMI_SAFE_CMPXCHG if (GUSA_RB || CPU_SH4A)
++	select ARCH_NO_VIRT_TO_BUS
+ 	select PERF_USE_VMALLOC
+ 	select HAVE_DEBUG_KMEMLEAK
+ 	select HAVE_KERNEL_GZIP
+@@ -150,9 +151,6 @@ config ARCH_HAS_ILOG2_U32
+ config ARCH_HAS_ILOG2_U64
+ 	def_bool n
+=20
+-config ARCH_NO_VIRT_TO_BUS
+-	def_bool y
+-
+ config ARCH_HAS_DEFAULT_IDLE
+ 	def_bool y
+=20
+diff --git a/arch/sparc/Kconfig b/arch/sparc/Kconfig
+index 9f2edb5..594d9bc 100644
+--- a/arch/sparc/Kconfig
++++ b/arch/sparc/Kconfig
+@@ -21,6 +21,7 @@ config SPARC
+ 	select SYSCTL_EXCEPTION_TRACE
+ 	select ARCH_WANT_OPTIONAL_GPIOLIB
+ 	select ARCH_HAS_ATOMIC64_DEC_IF_POSITIVE
++	select ARCH_NO_VIRT_TO_BUS
+ 	select RTC_CLASS
+ 	select RTC_DRV_M48T59
+ 	select HAVE_IRQ_WORK
+@@ -143,9 +144,6 @@ config GENERIC_GPIO
+ 	help
+ 	  Generic GPIO API support
+=20
+-config ARCH_NO_VIRT_TO_BUS
+-	def_bool y
+-
+ config ARCH_SUPPORTS_DEBUG_PAGEALLOC
+ 	def_bool y if SPARC64
+=20
+--=20
+1.7.10.280.gaa39
 
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+
+--Signature=_Tue__13_Nov_2012_08_26_15_+1100_Itf/8c4.wc_KVJZU
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+iQIcBAEBCAAGBQJQoWl3AAoJEECxmPOUX5FETDAQAItH1ujjUafDGf+fTyszR6tX
+1AA9ZZFUv2OYSEWl3bmNNf0CpK+s3lSljc4A9e99+lB0fo2pG1zgBERHdqJ2a83V
+YcNCDx6mw2poqYzPJGL3l8eCIQ9JGvhhVBHO6WwiKhE7+QHdypaRePMxl7yn8N/y
+fTw1BlKBovCysjO+QZPfQhyAjC8nwMc+LIrSucdDnSuFYpTzxL2EX4pZUiHLl/M7
+mGp3+Kz+af7AMMmGyiFbmRpEul9CzU6dMoRV2uxX7SGXvzirntZWf4TMJ6L3U1qQ
+/vSb+MkE1cDSsDZJTnADzZla9OcRCGELc4hwmfzCkOlekbF4drb6xcnvjZQo5hFs
+PczMY0xXurZIoc7OgIB2sVuGFbgnZ2C0287iqBLj2bVtkrA8n/PKYhNvVrwo7BIA
+XM15gK7gQEczRFxPZc5EBf+YjuzZYr99uPzmSXp3Lu4d9A3L3AlfS7haqwA7LSih
+qHo7DtZz2s5/VJTBR/FXbRfScdiRDSwdMQZiwWKmSui1fkZg6u1Gy+CH+V8CCS0l
+tKNHZhkYNXc2o2uQ3YgN6ns5+b+NhOPAmR9xH6mQb73w1dVmq5BYZpmqrUiNYr7g
+0piaeNtxSei7KDbeiC3SYH/61Rlldnm9pf96upnxV6jS0P9wEqVBBu5r2UajuRXr
+FNWASGrrzjYOarqXxvY1
+=2ENX
+-----END PGP SIGNATURE-----
+
+--Signature=_Tue__13_Nov_2012_08_26_15_+1100_Itf/8c4.wc_KVJZU--
