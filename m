@@ -1,53 +1,123 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH v1 00/40] Meta Linux Kernel Port
-Date: Mon, 12 Nov 2012 19:10:08 +0000
-Message-ID: <201211121910.09395.arnd@arndb.de>
-References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <509D2D4F.20304@imgtec.com> <50A12AE3.4090404@imgtec.com>
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [RFC PATCH v1 02/31] ARC: irqflags
+Date: Mon, 12 Nov 2012 20:50:37 +0100 (CET)
+Message-ID: <alpine.LFD.2.02.1211122039100.10000@ionos>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-3-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:50500 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752614Ab2KLTKO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 14:10:14 -0500
-In-Reply-To: <50A12AE3.4090404@imgtec.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1352281674-2186-3-git-send-email-vgupta@synopsys.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
+List-Id: linux-arch.vger.kernel.org
 
-On Monday 12 November 2012, James Hogan wrote:
-> Using inline assembly actually causes us a few problems. There is no way
-> for inline assembly to allow the compiler to intelligently generate
-> [Reg+Reg] or [Reg+#imm] memory addressing like it can with volatile (and
-> even if it could, the constraints would be hard/impossible to express
-> due to the different encodings of GET and SET that have different
-> immediate lengths and restrictions on register units). This results in
-> extra code to do an ADD prior to the memory access, and will also
-> increase register pressure.
+On Wed, 7 Nov 2012, Vineet Gupta wrote:
+> + ******************************************************************
+> + *      Inline ASM macros to read/write AUX Regs
+> + *      Essentially invocation of lr/sr insns from "C"
+> + */
+> +
+> +#if 1
 
-Probably not something to do right away, but you should consider extending
-your gcc so you can express the more complex constraints. That will likely
-also improve the normal code that gcc generates.
+Leftover ???
 
-> Note that Meta doesn't support unaligned accesses anyway so use of
-> __packed on MMIO is likely broken from the outset.
+> +#define read_aux_reg(reg)	__builtin_arc_lr(reg)
+> +
+> +/* gcc builtin sr needs reg param to be long immediate */
+> +#define write_aux_reg(reg_immed, val)		\
+> +		__builtin_arc_sr((unsigned int)val, reg_immed)
+> +
+> +#else
+> +/*
+> + * Conditionally Enable IRQs
 
-The problem is actually the opposite: Some people incorrectly annotate
-structures that are always aligned to be __packed. This has no effect
-on architectures that support unaligned accesses, but causes the
-access to be split into byte sized loads and stores on architectures
-like Meta that cannot.
+  Unconditionally methinks
 
-Note also that gcc is free to split any accesses for whatever reason
-it deems necessary.
 
-> I'd like to therefore
-> keep using the <asm-generic/io.h> implementations of the __raw_* functions.
+The following two functions are related to irq chips I guess. So why
+would you want them here ?
 
-Ok, just be aware that if something breaks in device drivers because of
-this, it can be a problem that is very hard to debug.
+> +static inline void arch_mask_irq(unsigned int irq)
+> +{
+> +	unsigned int ienb;
+> +
+> +	ienb = read_aux_reg(AUX_IENABLE);
+> +	ienb &= ~(1 << irq);
+> +	write_aux_reg(AUX_IENABLE, ienb);
+> +}
+> +
+> +static inline void arch_unmask_irq(unsigned int irq)
+> +{
+> +	unsigned int ienb;
+> +
+> +	ienb = read_aux_reg(AUX_IENABLE);
+> +	ienb |= (1 << irq);
+> +	write_aux_reg(AUX_IENABLE, ienb);
+> +}
 
-	Arnd
+The only user is the interrupt controller code, right?
+
+> diff --git a/arch/arc/kernel/irq.c b/arch/arc/kernel/irq.c
+> new file mode 100644
+> index 0000000..16fcbe8
+> --- /dev/null
+> +++ b/arch/arc/kernel/irq.c
+> @@ -0,0 +1,32 @@
+> +/*
+> + * Copyright (C) 2011-12 Synopsys, Inc. (www.synopsys.com)
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License version 2 as
+> + * published by the Free Software Foundation.
+> + *
+> + */
+> +
+> +#include <linux/interrupt.h>
+> +#include <linux/module.h>
+> +#include <asm/irqflags.h>
+> +#include <asm/arcregs.h>
+> +
+> +void arch_local_irq_enable(void)
+> +{
+> +
+> +	unsigned long flags;
+> +	flags = arch_local_save_flags();
+> +	flags |= (STATUS_E1_MASK | STATUS_E2_MASK);
+> +
+> +	/*
+> +	 * If called from hard ISR (between irq_enter and irq_exit)
+> +	 * don't allow Level 1. In Soft ISR we allow further Level 1s
+> +	 */
+> +
+> +	if (in_irq())
+> +		flags &= ~(STATUS_E1_MASK | STATUS_E2_MASK);
+
+Hmm. This looks weird and the comment is not very helpful. So using my
+crystal ball you want to enforce, that nothing enables interrupts
+while a hard interrupt handler is running, right?
+
+Is there a chip limitation which you have to enforce here? If yes,
+then please explain it.
+
+Btw, all hard interrupt handlers in Linux run with interrupts disabled and
+they are not supposed to reenable interrupts, which is true for almost
+all drivers except for a few archaic IDE drivers. In fact you might
+even WARN about it at least once, so the offending code gets fixed.
+
+Also the code flow is backwards. What about:
+
+     unsigned long flags;
+
+     if (in_irq())
+	    return;
+
+     flags = ....	    
+
+
+> +	arch_local_irq_restore(flags);
+> +}
+
+Thanks,
+
+	tglx
