@@ -1,44 +1,128 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from 7.mo2.mail-out.ovh.net ([188.165.48.182]:44218 "EHLO
-	mo2.mail-out.ovh.net" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1753414Ab2KLQJm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 11:09:42 -0500
-Received: from mail426.ha.ovh.net (b6.ovh.net [213.186.33.56])
-	by mo2.mail-out.ovh.net (Postfix) with SMTP id C0852DC3A0A
-	for <linux-arch@vger.kernel.org>; Mon, 12 Nov 2012 15:59:38 +0100 (CET)
-Date: Mon, 12 Nov 2012 15:49:36 +0100
-From: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
-Subject: Re: [PATCH 05/11] ARM: at91: convert timer suspend/resume to
- clock_event_device
-Message-ID: <20121112144936.GL4576@game.jcrosoft.org>
-References: <1352408516-21988-1-git-send-email-swarren@wwwdotorg.org>
- <1352408516-21988-7-git-send-email-swarren@wwwdotorg.org>
+Received: from www.linutronix.de ([62.245.132.108]:48784 "EHLO
+	Galois.linutronix.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751888Ab2KLTuj (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 12 Nov 2012 14:50:39 -0500
+Date: Mon, 12 Nov 2012 20:50:37 +0100 (CET)
+From: Thomas Gleixner <tglx@linutronix.de>
+Subject: Re: [RFC PATCH v1 02/31] ARC: irqflags
+In-Reply-To: <1352281674-2186-3-git-send-email-vgupta@synopsys.com>
+Message-ID: <alpine.LFD.2.02.1211122039100.10000@ionos>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-3-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1352408516-21988-7-git-send-email-swarren@wwwdotorg.org>
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Andrew Victor <linux@maxim.org.za>, Nicolas Ferre <nicolas.ferre@atmel.com>
-Message-ID: <20121112144936.N7ofYsGAcPuhINRUr_Y0GWUd6pyJuBeJoq0t2P8xWqY@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
+Message-ID: <20121112195037.u8YBSkDC1IesfM-sLaBfci3x-w8RiGcd5ArfcKI9ruI@z>
 
-On 14:01 Thu 08 Nov     , Stephen Warren wrote:
-> From: Stephen Warren <swarren@nvidia.com>
-> 
-> Move at91's timer suspend/resume functions from struct sys_timer
-> at91sam926x_timer into struct clock_event_device pit_clkevt. This
-> will allow the sys_timer suspend/resume fields to be removed, and
-> eventually lead to a complete removal of struct sys_timer.
-> 
-> Cc: Andrew Victor <linux@maxim.org.za>
-> Cc: Nicolas Ferre <nicolas.ferre@atmel.com>
-> Cc: Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>
-> Signed-off-by: Stephen Warren <swarren@nvidia.com>
-> ---
-look fine
+On Wed, 7 Nov 2012, Vineet Gupta wrote:
+> + ******************************************************************
+> + *      Inline ASM macros to read/write AUX Regs
+> + *      Essentially invocation of lr/sr insns from "C"
+> + */
+> +
+> +#if 1
 
-Acked-by: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
+Leftover ???
 
-Best Regards,
-J.
+> +#define read_aux_reg(reg)	__builtin_arc_lr(reg)
+> +
+> +/* gcc builtin sr needs reg param to be long immediate */
+> +#define write_aux_reg(reg_immed, val)		\
+> +		__builtin_arc_sr((unsigned int)val, reg_immed)
+> +
+> +#else
+> +/*
+> + * Conditionally Enable IRQs
+
+  Unconditionally methinks
+
+
+The following two functions are related to irq chips I guess. So why
+would you want them here ?
+
+> +static inline void arch_mask_irq(unsigned int irq)
+> +{
+> +	unsigned int ienb;
+> +
+> +	ienb = read_aux_reg(AUX_IENABLE);
+> +	ienb &= ~(1 << irq);
+> +	write_aux_reg(AUX_IENABLE, ienb);
+> +}
+> +
+> +static inline void arch_unmask_irq(unsigned int irq)
+> +{
+> +	unsigned int ienb;
+> +
+> +	ienb = read_aux_reg(AUX_IENABLE);
+> +	ienb |= (1 << irq);
+> +	write_aux_reg(AUX_IENABLE, ienb);
+> +}
+
+The only user is the interrupt controller code, right?
+
+> diff --git a/arch/arc/kernel/irq.c b/arch/arc/kernel/irq.c
+> new file mode 100644
+> index 0000000..16fcbe8
+> --- /dev/null
+> +++ b/arch/arc/kernel/irq.c
+> @@ -0,0 +1,32 @@
+> +/*
+> + * Copyright (C) 2011-12 Synopsys, Inc. (www.synopsys.com)
+> + *
+> + * This program is free software; you can redistribute it and/or modify
+> + * it under the terms of the GNU General Public License version 2 as
+> + * published by the Free Software Foundation.
+> + *
+> + */
+> +
+> +#include <linux/interrupt.h>
+> +#include <linux/module.h>
+> +#include <asm/irqflags.h>
+> +#include <asm/arcregs.h>
+> +
+> +void arch_local_irq_enable(void)
+> +{
+> +
+> +	unsigned long flags;
+> +	flags = arch_local_save_flags();
+> +	flags |= (STATUS_E1_MASK | STATUS_E2_MASK);
+> +
+> +	/*
+> +	 * If called from hard ISR (between irq_enter and irq_exit)
+> +	 * don't allow Level 1. In Soft ISR we allow further Level 1s
+> +	 */
+> +
+> +	if (in_irq())
+> +		flags &= ~(STATUS_E1_MASK | STATUS_E2_MASK);
+
+Hmm. This looks weird and the comment is not very helpful. So using my
+crystal ball you want to enforce, that nothing enables interrupts
+while a hard interrupt handler is running, right?
+
+Is there a chip limitation which you have to enforce here? If yes,
+then please explain it.
+
+Btw, all hard interrupt handlers in Linux run with interrupts disabled and
+they are not supposed to reenable interrupts, which is true for almost
+all drivers except for a few archaic IDE drivers. In fact you might
+even WARN about it at least once, so the offending code gets fixed.
+
+Also the code flow is backwards. What about:
+
+     unsigned long flags;
+
+     if (in_irq())
+	    return;
+
+     flags = ....	    
+
+
+> +	arch_local_irq_restore(flags);
+> +}
+
+Thanks,
+
+	tglx
