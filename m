@@ -1,29 +1,59 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [GIT PULL] UAPI: perf fixes
-Date: Tue, 13 Nov 2012 11:12:30 +0000
-Message-ID: <14097.1352805150@warthog.procyon.org.uk>
-References: <14071.1352805065@warthog.procyon.org.uk> <CA+5PVA5vMyNmQYCLX315Jc+kN9zQuZo_h0Devpjfr43TezE-qA@mail.gmail.com> <1378.1352379110@warthog.procyon.org.uk>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [RFC PATCH v1 14/31] ARC: syscall support
+Date: Tue, 13 Nov 2012 11:41:34 +0000
+Message-ID: <50A231EE.7050204@imgtec.com>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-15-git-send-email-vgupta@synopsys.com> <201211071421.39523.arnd@arndb.de> <509CD1D1.3050105@imgtec.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ISO-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:26812 "EHLO mx1.redhat.com"
+Received: from multi.imgtec.com ([194.200.65.239]:56745 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752862Ab2KMLMu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 13 Nov 2012 06:12:50 -0500
-In-Reply-To: <14071.1352805065@warthog.procyon.org.uk>
+	id S1751698Ab2KMLmI (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 13 Nov 2012 06:42:08 -0500
+In-Reply-To: <509CD1D1.3050105@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: dhowells@redhat.com, Josh Boyer <jwboyer@gmail.com>, acme@ghostprotocols.net, mingo@kernel.org, tglx@linutronix.de, bp@alien8.de, namhyung@gmail.com, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
+To: Arnd Bergmann <arnd@arndb.de>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
 
-David Howells <dhowells@redhat.com> wrote:
+On 09/11/12 09:50, James Hogan wrote:
+> On 07/11/12 14:21, Arnd Bergmann wrote:
+>> On Wednesday 07 November 2012, Vineet Gupta wrote:
+>>> + * Being uClibc based we need some of the deprecated syscalls:
+>>> + * -Not emulated by uClibc at all
+>>> + *     unlink, mkdir,... (needed by Busybox, LTP etc)
+>>> + *     times (needed by LTP pan test harness)
+>>> + * -Not emulated efficiently
+>>> + *     select: emulated using pselect (but extra code to chk usec > 1sec)
+>>> + *
+>>> + * some (send/recv) correctly emulated using (recfrom/sendto) and
+>>> + * some arch specific ones (fork/vfork)can easily be emulated using clone but
+>>> + * thats the price of using common-denominator....
+>>> + */
+>>> +#define __ARCH_WANT_SYSCALL_NO_AT
+>>> +#define __ARCH_WANT_SYSCALL_NO_FLAGS
+>>> +#define __ARCH_WANT_SYSCALL_OFF_T
+>>> +#define __ARCH_WANT_SYSCALL_DEPRECATED
+>>
+>> I'm pretty sure that this has been solved before, best get in contact with
+>> the maintainers of the openrisc/c6x/hexagon platforms, that probably all
+>> use uClibc without needing these.
+>>
+>> You have to remove the legacy calls here.
 
-> Josh Boyer <jwboyer@gmail.com> wrote:
-> 
-> > This patch seems to break building perf on ppc64.  It fails with:
-> 
-> Hmmm...  Getting my hands on an ARM or ppc/ppc64 box running Fedora is a
-> problem, and as far as I know, this needs to be built natively or maybe
-> cross-compiled with a full environment (including graphics libs).
+> FYI, we'll soon be making some uClibc patches available so that it can
+> work without these deprecated syscalls and with the newer IPC interface
+> (the work was needed for metag too). It's based roughly on the OpenRisc
+> patches from last year, but with a fair few changes.
 
-Actually, having said that, it doesn't need to run Fedora specifically - only
-a sufficiently recent environment that it can build a cutting-edge kernel.
+Hi Vineet,
 
-David
+The uClibc patches I mentioned have been posted, see here:
+
+http://lists.busybox.net/pipermail/uclibc/2012-November/047110.html
+
+Please do try them out and provide any feedback.
+
+Cheers
+James
