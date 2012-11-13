@@ -1,67 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vb0-f46.google.com ([209.85.212.46]:54245 "EHLO
-	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752812Ab2KMPmD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Nov 2012 10:42:03 -0500
+Received: from avon.wwwdotorg.org ([70.85.31.133]:37693 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754907Ab2KMROg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Nov 2012 12:14:36 -0500
+Message-ID: <50A27FF8.3080905@wwwdotorg.org>
+Date: Tue, 13 Nov 2012 10:14:32 -0700
+From: Stephen Warren <swarren@wwwdotorg.org>
 MIME-Version: 1.0
-In-Reply-To: <18065.1352820271@warthog.procyon.org.uk>
-References: <1378.1352379110@warthog.procyon.org.uk>
-	<CA+5PVA5vMyNmQYCLX315Jc+kN9zQuZo_h0Devpjfr43TezE-qA@mail.gmail.com>
-	<18065.1352820271@warthog.procyon.org.uk>
-Date: Tue, 13 Nov 2012 10:42:02 -0500
-Message-ID: <CA+5PVA6qaxCzr8RBV616D3kEXyj9XjS3okeZXhJJL1R4+-Yv_A@mail.gmail.com>
-Subject: Re: [GIT PULL] UAPI: perf fixes
-From: Josh Boyer <jwboyer@gmail.com>
+Subject: Re: [PATCH V2 2/11] time: convert arch_gettimeoffset to a pointer
+References: <1352753462-2915-1-git-send-email-swarren@wwwdotorg.org> <50A16BD3.5010707@us.ibm.com>
+In-Reply-To: <50A16BD3.5010707@us.ibm.com>
 Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: acme@ghostprotocols.net, xiaoguangrong@linux.vnet.ibm.com, mingo@kernel.org, haodong@linux.vnet.ibm.com, runzhen@linux.vnet.ibm.com, dsahern@gmail.com, tglx@linutronix.de, bp@alien8.de, namhyung@gmail.com, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
-Message-ID: <20121113154202.zTbCYKlJV-1tzQNernie8L6-ByZuZDvRrdOy_Nmxmhk@z>
+To: John Stultz <johnstul@us.ibm.com>
+Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Hirokazu Takata <takata@linux-m32r.org>
+Message-ID: <20121113171432.tUqMA-q2xxx1avo-fdNwJb7tgH3IvtvbLbaVFW1BVOY@z>
 
-On Tue, Nov 13, 2012 at 10:24 AM, David Howells <dhowells@redhat.com> wrote:
-> Josh Boyer <jwboyer@gmail.com> wrote:
->
->> This patch seems to break building perf on ppc64.  It fails with:
+On 11/12/2012 02:36 PM, John Stultz wrote:
+> On 11/12/2012 12:51 PM, Stephen Warren wrote:
+>> Currently, whenever CONFIG_ARCH_USES_GETTIMEOFFSET is enabled, each
+>> arch core provides a single implementation of arch_gettimeoffset(). In
+>> many cases, different sub-architectures, different machines, or
+>> different timer providers exist, and so the arch ends up implementing
+>> arch_gettimeoffset() as a call-through-pointer anyway. Examples are
+>> ARM, Cris, M68K, and it's arguable that the remaining architectures,
+>> M32R and Blackfin, should be doing this anyway.
 >>
->> + make -j16 -C tools/perf -s V=1 WERROR=0 HAVE_CPLUS_DEMANGLE=1 prefix=/usr all
->>
->> <snip>
->>
->> builtin-kvm.c:25:21: fatal error: asm/svm.h: No such file or directory
->
-> tools/perf/builtin-kvm.c became x86-only with the following commit:
->
->         commit bcf6edcd6fdb8965290f0b635a530fa3c6c212e1
->         Author: Xiao Guangrong <xiaoguangrong@linux.vnet.ibm.com>
->         Date:   Mon Sep 17 16:31:15 2012 +0800
->         Subject: perf kvm: Events analysis tool
->
-> when it added:
->
->         +#include "../../arch/x86/include/asm/svm.h"
->         +#include "../../arch/x86/include/asm/vmx.h"
->         +#include "../../arch/x86/include/asm/kvm.h"
->
-> and my changing these to <asm/foo.h> doesn't matter because of this in the
-> same file:
->
->         +struct exit_reasons_table vmx_exit_reasons[] = {
->         +       VMX_EXIT_REASONS
->         +};
->         +
->         +struct exit_reasons_table svm_exit_reasons[] = {
->         +       SVM_EXIT_REASONS
->         +};
->
-> which use macros only x86 defines.
+>> Modify arch_gettimeoffset so that it itself is a function pointer, which
+>> the arch initializes. This will allow later changes to move the
+>> initialization of this function into individual machine support or timer
+>> drivers. This is particularly useful for code in drivers/clocksource
+>> which should rely on an arch-independant mechanism to register their
+>> implementation of arch_gettimeoffset().
+...
+> One last thing to watch out for: If you're trying to build a kernel that
+> mixes clocksource support with get_arch_timeoffset, you'll need to
+> rework the #ifdef in update_wall_time(), since we currently assume with
+> get_arch_timeoffset() that you're using tick + interpolation, so every
+> call to update_wall_time() only moves time forward by one jiffy.
 
-Ah.  You are quite right.  So your patches actually fix the unistd.h
-error we were seeing early and just got us far enough to hit this other
-unrelated problem.  My mistake.
+OK. I don't have any immediate plans to do that, although I wouldn't be
+surprised if we (the ARM community in general) end up wanting to do that
+at some point. It all depends on which ARM sub-architectures end up
+getting converted to the multi-platform zImage support I guess.
 
-> Should the exported parts of these files be moved to asm-generic?
+> Otherwise, thanks for the name tweak. Going through the arm-soc tree is
+> fine with me.
+> 
+> Acked-by: John Stultz <johnstul@us.ibm.com>
 
-Good question.
-
-josh
+Thanks.
