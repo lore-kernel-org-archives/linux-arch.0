@@ -1,73 +1,48 @@
-From: Gilad Ben-Yossef <gilad@benyossef.com>
-Subject: Re: [RFC PATCH v1 14/31] ARC: syscall support
-Date: Tue, 13 Nov 2012 12:13:23 +0200
-Message-ID: <CAOtvUMcc-7mBxYWEe7oypri7wxf58R8cph7EpdLYR_fLHO6eTg@mail.gmail.com>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
-	<1352281674-2186-15-git-send-email-vgupta@synopsys.com>
-	<201211071421.39523.arnd@arndb.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH] Centralise CONFIG_ARCH_NO_VIRT_TO_BUS
+Date: Tue, 13 Nov 2012 11:32:37 +0100
+Message-ID: <CAMuHMdXu2VJhB+1uFApeBrYS3t2cfpPMaTz12F=A_FNJB1Q60w@mail.gmail.com>
+References: <ADE657CA350FB648AAC2C43247A983F00206B25884B1@AUSP01VMBX24.collaborationhost.net>
+	<CAErSpo6WG2R_8sa=rOmAOci-3iFpDs2NFzNkZYxDnD2oTiMQJg@mail.gmail.com>
+	<20121113082615.2f482eb8835daf46e1f27947@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-lb0-f174.google.com ([209.85.217.174]:35897 "EHLO
-	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754436Ab2KMKNZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Nov 2012 05:13:25 -0500
-Received: by mail-lb0-f174.google.com with SMTP id gp3so41638lbb.19
-        for <linux-arch@vger.kernel.org>; Tue, 13 Nov 2012 02:13:23 -0800 (PST)
-In-Reply-To: <201211071421.39523.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-sh-owner@vger.kernel.org>
+In-Reply-To: <20121113082615.2f482eb8835daf46e1f27947@canb.auug.org.au>
+Sender: linux-sh-owner@vger.kernel.org
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Bjorn Helgaas <bhelgaas@google.com>, H Hartley Sweeten <hartleys@visionengravers.com>, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Wed, Nov 7, 2012 at 4:21 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Wednesday 07 November 2012, Vineet Gupta wrote:
->> + * Being uClibc based we need some of the deprecated syscalls:
->> + * -Not emulated by uClibc at all
->> + *     unlink, mkdir,... (needed by Busybox, LTP etc)
->> + *     times (needed by LTP pan test harness)
->> + * -Not emulated efficiently
->> + *     select: emulated using pselect (but extra code to chk usec > 1sec)
->> + *
-> ...
-> I'm pretty sure that this has been solved before, best get in contact with
-> the maintainers of the openrisc/c6x/hexagon platforms, that probably all
-> use uClibc without needing these.
+On Mon, Nov 12, 2012 at 10:26 PM, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+> diff --git a/arch/Kconfig b/arch/Kconfig
+> index 366ec06..9bc00e7 100644
+> --- a/arch/Kconfig
+> +++ b/arch/Kconfig
+> @@ -271,6 +271,13 @@ config ARCH_WANT_OLD_COMPAT_IPC
+>         select ARCH_WANT_COMPAT_IPC_PARSE_VERSION
+>         bool
 >
-> You have to remove the legacy calls here.
+> +config ARCH_NO_VIRT_TO_BUS
+> +       bool
+> +       help
+> +         An architecture should select this if it cannot (or will not)
+> +         implement virt_to_bus().  All new architectures should probably
+> +         select this.
 
-So, I completely agree about not adding more deprecated system call or
-ABIs (thinking about the ptrace regset issues in another patch in the
-same patchset), but on the other hand I have to wonder if having a
-port in the tree that doesn't have a working C library or a debugger
-makes sense.
+Don't we typically put the burden of selecting Kconfig flags for deprecated
+features on the existing architectures that provide the deprecated features?
 
-I mean, it is not quite the same thing as saying: "well, users of the
-old versions of the user tools will need to maintain out of tree
-patches". That makes sense - it puts the burden of maintenance on
-people clinging to new versions when newer one exists, but this is not
-what is happening with Arc. Right now, there are no working version of
-the tools for Arc, so everyone will need to use the out of tree
-patches.
+I.e. shouldn't it be ARCH_HAS_VIRT_TO_BUS, selected by the architectures
+that need it, instead?
 
-I wonder what is worse - having an in tree port that no one (can) use
-or adding some deprecated crap (sorry...), clearly marked for deletion
-the minute a version of the relevant user tools exists that can be
-used with the new mechanisms?
+Gr{oetje,eeting}s,
 
-Just my 2c as an Arc kernel port user,
-Gilad
+                        Geert
 
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-
--- 
-Gilad Ben-Yossef
-Chief Coffee Drinker
-gilad@benyossef.com
-Israel Cell: +972-52-8260388
-US Cell: +1-973-8260388
-http://benyossef.com
-
-"If you take a class in large-scale robotics, can you end up in a
-situation where the homework eats your dog?"
- -- Jean-Baptiste Queru
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
