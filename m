@@ -1,54 +1,28 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:37693 "EHLO
-	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754907Ab2KMROg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Nov 2012 12:14:36 -0500
-Message-ID: <50A27FF8.3080905@wwwdotorg.org>
-Date: Tue, 13 Nov 2012 10:14:32 -0700
-From: Stephen Warren <swarren@wwwdotorg.org>
+Received: from mga09.intel.com ([134.134.136.24]:61999 "EHLO mga09.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750832Ab2KMV2N convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Nov 2012 16:28:13 -0500
+From: "Luck, Tony" <tony.luck@intel.com>
+Subject: RE: [PATCH 1/1] arch Kconfig: remove references to IRQ_PER_CPU
+Date: Tue, 13 Nov 2012 21:28:11 +0000
+Message-ID: <3908561D78D1C84285E8C5FCA982C28F19D5F453@ORSMSX108.amr.corp.intel.com>
+References: <1352807948-26920-1-git-send-email-james.hogan@imgtec.com>
+In-Reply-To: <1352807948-26920-1-git-send-email-james.hogan@imgtec.com>
+Content-Language: en-US
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 8BIT
 MIME-Version: 1.0
-Subject: Re: [PATCH V2 2/11] time: convert arch_gettimeoffset to a pointer
-References: <1352753462-2915-1-git-send-email-swarren@wwwdotorg.org> <50A16BD3.5010707@us.ibm.com>
-In-Reply-To: <50A16BD3.5010707@us.ibm.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: John Stultz <johnstul@us.ibm.com>
-Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Mike Frysinger <vapier@gentoo.org>, Mikael Starvik <starvik@axis.com>, Hirokazu Takata <takata@linux-m32r.org>
-Message-ID: <20121113171432.tUqMA-q2xxx1avo-fdNwJb7tgH3IvtvbLbaVFW1BVOY@z>
+To: James Hogan <james.hogan@imgtec.com>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+Cc: "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, "linux-hexagon@vger.kernel.org" <linux-hexagon@vger.kernel.org>, "linux-ia64@vger.kernel.org" <linux-ia64@vger.kernel.org>, "linux-mips@linux-mips.org" <linux-mips@linux-mips.org>, "linux-parisc@vger.kernel.org" <linux-parisc@vger.kernel.org>, "linuxppc-dev@lists.ozlabs.org" <linuxppc-dev@lists.ozlabs.org>, "linux-sh@vger.kernel.org" <linux-sh@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Mike Frysinger <vapier@gentoo.org>, Richard Kuo <rkuo@codeaurora.org>, "Yu, Fenghua" <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Paul Mundt <lethal@linux-sh.org>
+Message-ID: <20121113212811.th3aSg7E9q-meEM30VM6h6KUieX-rRP45KQ_aWqgpHo@z>
 
-On 11/12/2012 02:36 PM, John Stultz wrote:
-> On 11/12/2012 12:51 PM, Stephen Warren wrote:
->> Currently, whenever CONFIG_ARCH_USES_GETTIMEOFFSET is enabled, each
->> arch core provides a single implementation of arch_gettimeoffset(). In
->> many cases, different sub-architectures, different machines, or
->> different timer providers exist, and so the arch ends up implementing
->> arch_gettimeoffset() as a call-through-pointer anyway. Examples are
->> ARM, Cris, M68K, and it's arguable that the remaining architectures,
->> M32R and Blackfin, should be doing this anyway.
->>
->> Modify arch_gettimeoffset so that it itself is a function pointer, which
->> the arch initializes. This will allow later changes to move the
->> initialization of this function into individual machine support or timer
->> drivers. This is particularly useful for code in drivers/clocksource
->> which should rely on an arch-independant mechanism to register their
->> implementation of arch_gettimeoffset().
-...
-> One last thing to watch out for: If you're trying to build a kernel that
-> mixes clocksource support with get_arch_timeoffset, you'll need to
-> rework the #ifdef in update_wall_time(), since we currently assume with
-> get_arch_timeoffset() that you're using tick + interpolation, so every
-> call to update_wall_time() only moves time forward by one jiffy.
+> But IRQ_PER_CPU wasn't removed from any of the architecture Kconfig
+> files where it was defined or selected. It's completely unused so remove
+> the remaining references.
 
-OK. I don't have any immediate plans to do that, although I wouldn't be
-surprised if we (the ARM community in general) end up wanting to do that
-at some point. It all depends on which ARM sub-architectures end up
-getting converted to the multi-platform zImage support I guess.
+Acked-by: Tony Luck <tony.luck@intel.com>
 
-> Otherwise, thanks for the name tweak. Going through the arm-soc tree is
-> fine with me.
-> 
-> Acked-by: John Stultz <johnstul@us.ibm.com>
-
-Thanks.
+[Hope someone picks up this whole patch ... otherwise I can take the ia64 hunk]
