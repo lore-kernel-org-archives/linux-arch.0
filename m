@@ -1,31 +1,73 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH v1 00/40] Meta Linux Kernel Port
-Date: Tue, 13 Nov 2012 09:55:52 +0000
-Message-ID: <201211130955.52429.arnd@arndb.de>
-References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <201211121910.09395.arnd@arndb.de> <50A2165F.4010202@imgtec.com>
+From: Gilad Ben-Yossef <gilad@benyossef.com>
+Subject: Re: [RFC PATCH v1 14/31] ARC: syscall support
+Date: Tue, 13 Nov 2012 12:13:23 +0200
+Message-ID: <CAOtvUMcc-7mBxYWEe7oypri7wxf58R8cph7EpdLYR_fLHO6eTg@mail.gmail.com>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
+	<1352281674-2186-15-git-send-email-vgupta@synopsys.com>
+	<201211071421.39523.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:57643 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753173Ab2KMJz4 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Nov 2012 04:55:56 -0500
-In-Reply-To: <50A2165F.4010202@imgtec.com>
+Received: from mail-lb0-f174.google.com ([209.85.217.174]:35897 "EHLO
+	mail-lb0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754436Ab2KMKNZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Nov 2012 05:13:25 -0500
+Received: by mail-lb0-f174.google.com with SMTP id gp3so41638lbb.19
+        for <linux-arch@vger.kernel.org>; Tue, 13 Nov 2012 02:13:23 -0800 (PST)
+In-Reply-To: <201211071421.39523.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: linux-arch <linux-arch@vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
 
-On Tuesday 13 November 2012, James Hogan wrote:
-> Hmm, I found the thread "ARM unaligned MMIO access with
-> attribute((packed))" which appears to be one of the problems you're
-> referring to. With some experimentation I can't reproduce this kind of
-> problem with our current compiler, but it's certainly cause for concern.
+On Wed, Nov 7, 2012 at 4:21 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Wednesday 07 November 2012, Vineet Gupta wrote:
+>> + * Being uClibc based we need some of the deprecated syscalls:
+>> + * -Not emulated by uClibc at all
+>> + *     unlink, mkdir,... (needed by Busybox, LTP etc)
+>> + *     times (needed by LTP pan test harness)
+>> + * -Not emulated efficiently
+>> + *     select: emulated using pselect (but extra code to chk usec > 1sec)
+>> + *
+> ...
+> I'm pretty sure that this has been solved before, best get in contact with
+> the maintainers of the openrisc/c6x/hexagon platforms, that probably all
+> use uClibc without needing these.
+>
+> You have to remove the legacy calls here.
 
-Right. The main problem for reproducing this is that it depends on
-undefined behavior in C (casting between pointers to types of different
-alignment), and what gcc does in this case has changed a couple of times.
+So, I completely agree about not adding more deprecated system call or
+ABIs (thinking about the ptrace regset issues in another patch in the
+same patchset), but on the other hand I have to wonder if having a
+port in the tree that doesn't have a working C library or a debugger
+makes sense.
 
-	Arnd
+I mean, it is not quite the same thing as saying: "well, users of the
+old versions of the user tools will need to maintain out of tree
+patches". That makes sense - it puts the burden of maintenance on
+people clinging to new versions when newer one exists, but this is not
+what is happening with Arc. Right now, there are no working version of
+the tools for Arc, so everyone will need to use the out of tree
+patches.
+
+I wonder what is worse - having an in tree port that no one (can) use
+or adding some deprecated crap (sorry...), clearly marked for deletion
+the minute a version of the relevant user tools exists that can be
+used with the new mechanisms?
+
+Just my 2c as an Arc kernel port user,
+Gilad
+
+
+
+-- 
+Gilad Ben-Yossef
+Chief Coffee Drinker
+gilad@benyossef.com
+Israel Cell: +972-52-8260388
+US Cell: +1-973-8260388
+http://benyossef.com
+
+"If you take a class in large-scale robotics, can you end up in a
+situation where the homework eats your dog?"
+ -- Jean-Baptiste Queru
