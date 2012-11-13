@@ -1,45 +1,54 @@
-From: Josh Boyer <jwboyer@gmail.com>
-Subject: Re: [GIT PULL] UAPI: perf fixes
-Date: Tue, 13 Nov 2012 07:51:25 -0500
-Message-ID: <CA+5PVA4jHJeE6nZeZyqHnE9QtMvUGW-xGeKrizwATm96QTxeXQ@mail.gmail.com>
-References: <CA+5PVA5vMyNmQYCLX315Jc+kN9zQuZo_h0Devpjfr43TezE-qA@mail.gmail.com>
-	<1378.1352379110@warthog.procyon.org.uk>
-	<14071.1352805065@warthog.procyon.org.uk>
-	<14097.1352805150@warthog.procyon.org.uk>
+From: David Howells <dhowells@redhat.com>
+Subject: [PATCH] UAPI: Strip the _UAPI prefix from header guards during
+ header installation
+Date: Tue, 13 Nov 2012 14:26:41 +0000
+Message-ID: <20121113142641.16744.72039.stgit@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f174.google.com ([209.85.220.174]:41648 "EHLO
-	mail-vc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753481Ab2KMMv0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Nov 2012 07:51:26 -0500
-In-Reply-To: <14097.1352805150@warthog.procyon.org.uk>
+Received: from mx1.redhat.com ([209.132.183.28]:33191 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1755160Ab2KMO06 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 13 Nov 2012 09:26:58 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: acme@ghostprotocols.net, mingo@kernel.org, tglx@linutronix.de, bp@alien8.de, namhyung@gmail.com, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
+To: torvalds@osdl.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tomasz Torcz <tomek@pipebreaker.pl>, Josh Boyer <jwboyer@redhat.com>
 
-On Tue, Nov 13, 2012 at 6:12 AM, David Howells <dhowells@redhat.com> wrote:
-> David Howells <dhowells@redhat.com> wrote:
->
->> Josh Boyer <jwboyer@gmail.com> wrote:
->>
->> > This patch seems to break building perf on ppc64.  It fails with:
->>
->> Hmmm...  Getting my hands on an ARM or ppc/ppc64 box running Fedora is a
->> problem, and as far as I know, this needs to be built natively or maybe
->> cross-compiled with a full environment (including graphics libs).
->
-> Actually, having said that, it doesn't need to run Fedora specifically - only
-> a sufficiently recent environment that it can build a cutting-edge kernel.
+Strip the _UAPI prefix from header guards during header installation so that
+any userspace dependencies aren't affected.  glibc, for example, checks for
+linux/types.h, linux/kernel.h, linux/compiler.h and linux/list.h by their
+guards - though the last two aren't actually exported.
 
-You can just use koji scratch builds if you want to test Fedora kernels
-Either arm-koji or ppc-koji should work.  If you want actual access to a
-machine, I'm sure we can find one.
+	libtool: compile:  gcc -std=gnu99 -DHAVE_CONFIG_H -I. -Wall -Werror -Wformat -Wformat-security -D_FORTIFY_SOURCE=2 -fno-delete-null-pointer-checks -fstack-protector -O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m32 -march=i686 -mtune=atom -fasynchronous-unwind-tables -c child.c  -fPIC -DPIC -o .libs/child.o
+	In file included from cli.c:20:0:
+	common.h:152:8: error: redefinition of 'struct sysinfo'
+	In file included from /usr/include/linux/kernel.h:4:0,
+			 from /usr/include/linux/sysctl.h:25,
+			 from /usr/include/sys/sysctl.h:43,
+			 from common.h:50,
+			 from cli.c:20:
+	/usr/include/linux/sysinfo.h:7:8: note: originally defined here
 
-The error that is hitting ARM and ppc before your patch seemed to also
-be hit with sparc and was fixed by David Miller with commit 776260818
-by just pointing to "../../arch/sparc/include/uapi/asm/unistd.h".  That
-might be a temporary solution.
+Reported-by: Tomasz Torcz <tomek@pipebreaker.pl>
+Signed-off-by: David Howells <dhowells@redhat.com>
+Acked-by: Josh Boyer <jwboyer@redhat.com>
+---
 
-josh
+ 0 files changed
+
+diff --git a/scripts/headers_install.pl b/scripts/headers_install.pl
+index 239d22d..6c353ae 100644
+--- a/scripts/headers_install.pl
++++ b/scripts/headers_install.pl
+@@ -42,6 +42,9 @@ foreach my $filename (@files) {
+ 		$line =~ s/(^|\s)(inline)\b/$1__$2__/g;
+ 		$line =~ s/(^|\s)(asm)\b(\s|[(]|$)/$1__$2__$3/g;
+ 		$line =~ s/(^|\s|[(])(volatile)\b(\s|[(]|$)/$1__$2__$3/g;
++		$line =~ s/#ifndef _UAPI/#ifndef /;
++		$line =~ s/#define _UAPI/#define /;
++		$line =~ s!#endif /[*] _UAPI!#endif /* !;
+ 		printf {$out} "%s", $line;
+ 	}
+ 	close $out;
