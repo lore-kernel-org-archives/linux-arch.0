@@ -1,46 +1,45 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [RFC PATCH v1 14/31] ARC: syscall support
-Date: Wed, 14 Nov 2012 12:31:14 +0000
-Message-ID: <50A38F12.8030501@imgtec.com>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <CACM3HyFE-S2NM75qVS2Fhhm8YoP1jH4mS41aZ5B1gW2wo-Q99g@mail.gmail.com> <50A23906.6010900@imgtec.com> <201211141223.05063.arnd@arndb.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: new architectures, time_t __kernel_long_t
+Date: Wed, 14 Nov 2012 13:48:22 +0100
+Message-ID: <CAMuHMdW3uBWgJfftFxnf8qySBmqSRDRhoivBdk6Zsc+cC2Sitg@mail.gmail.com>
+References: <201211141218.02105.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:54475 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1161219Ab2KNMcA (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Nov 2012 07:32:00 -0500
-In-Reply-To: <201211141223.05063.arnd@arndb.de>
+Received: from mail-la0-f46.google.com ([209.85.215.46]:43273 "EHLO
+	mail-la0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1422711Ab2KNMsY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2012 07:48:24 -0500
+In-Reply-To: <201211141218.02105.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Jonas Bonn <jonas.bonn@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, Markos <markos.chandras@imgtec.com>
+Cc: linux-arch@vger.kernel.org, Vineet.Gupta1@synopsys.com, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, "H. Peter Anvin" <hpa@zytor.com>
 
-On 14/11/12 12:23, Arnd Bergmann wrote:
-> On Tuesday 13 November 2012, James Hogan wrote:
->> Hopefully with several architecture maintainers asking for this it might
->> get somewhere, but indeed we're aware of the feedback problem on that list.
->>
->> The points that I've considered for defaulting to old syscalls:
->> * doesn't change existing behaviour of other architectures, so is simply
->> less risk of breaking them.
->> * could possibly make uClibc slightly smaller if it doesn't have to add
->> extra arguments.
-> 
-> The second argument is not very good when you consider that it means adding
-> the same wrapper into the kernel rather than into uClibc, where it can
-> be stripped out when unused (e.g. for static compilation) and doesn't
-> have to be present in memory since the library is in pageable user space
-> memory, while the kernel side implementation would always have to
-> present.
+On Wed, Nov 14, 2012 at 1:18 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> The other types that are used as 64 bit on x32 are ino_t, nlink_t,
+> size_t, ssize_t, ptrdiff_t, and off_t.
+>
+> Obviously, we want to use 64-bit off_t, but this is achieved already
+> through loff_t, which is used in all places in the asm-generic
+> ABI anyway (the syscalls using off_t are stripped out). I don't
 
-The context is existing architectures which already have to support the
-deprecated syscalls pretty much forever (in addition to the new ones),
-and therefore can't strip out the kernel side implementation anyway.
+Indeed.
 
-I don't see any of these arguments (either way) as holding too much
-weight to be honest though.
+> think we want to have the other ones set to 64 bit on ARC or Meta,
+> although I'm not 100% sure about ino_t and nlink_t.
 
-Cheers
-James
+Is ino_t related to inode numbers stored in on-disk file system metadata?
+
+Currently, nlink_t is unconditionally __u32, even on 64-bit.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
