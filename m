@@ -1,59 +1,36 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: new architectures, time_t __kernel_long_t
-Date: Wed, 14 Nov 2012 08:26:25 -0800
-Message-ID: <50A3C631.8010301@zytor.com>
-References: <201211141218.02105.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201211141218.02105.arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, Vineet.Gupta1@synopsys.com, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, "H.J. Lu" <hjl.tools@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [arc-linux-dev] Re: UAPI for new arches (was Re: [GIT PULL] User API Disintegrate: Preparatory patches)
+Date: Wed, 14 Nov 2012 16:28:57 +0000
+Message-ID: <17758.1352910537@warthog.procyon.org.uk>
+References: <50A39627.6020809@imgtec.com> <50A0D634.20005@synopsys.com> <C2D7FE5348E1B147BCA15975FBA230750D9832@in01wembx1.internal.synopsys.com> <509251CA.8050008@synopsys.com> <18137.1349203013@warthog.procyon.org.uk> <CAAG0J9_gYLn5+4j9WUnPmxWyJfQK_b8e5xjxZdRPG21euXoCFg@mail.gmail.com> <CAAG0J9_LZ5Q1fNdcbSOyieesabkqcTMT0ueEDLXmemV2C_+F=g@mail.gmail.com>,<8419.1352387261@warthog.procyon.org.uk> <14356.1352416788@warthog.procyon.org.uk> <9377.1352726040@warthog.procyon.org.uk>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mx1.redhat.com ([209.132.183.28]:24757 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S964820Ab2KNQ3H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 Nov 2012 11:29:07 -0500
+In-Reply-To: <50A39627.6020809@imgtec.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: dhowells@redhat.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On 11/14/2012 04:18 AM, Arnd Bergmann wrote:
-> Since we are in the review phase for two new architectures that we
-> should be merging into the mainline kernel, I think we need to
-> come up with a solution for making them use a proper 64-bit time_t.
->
-> Right now, the only 32-bit user space interface we have to use 64-bit
-> time_t is the x32 side of x86-64, and that works by overriding all
-> "long" sized types to be 64 bit at the ABI level, which we don't
-> want for pure 32 bit architectures.
+James Hogan <james.hogan@imgtec.com> wrote:
 
-Sort of.  Either way, the kernel headers aren't really x32-clean yet, so 
-we have an opportunity to do things more cleanly as we are implementing 
-this.
+> The disintegration scripts strip out the #ifdef __KERNEL__ from the
+> headers in both uapi/ and the old directories. However there are still a
+> bunch of unexported headers through the tree which have #ifdef
+> __KERNEL__ in them, usually guarding the entire file (just grep
+> __KERNEL__ in arch/).
+> 
+> Is this something that you're already planning to eliminate? We have a
+> few in the metag tree too, and now that uapi/ is nicely separated I'm
+> not sure if it's worth removing the __KERNEL__ guards or keeping them to
+> match other architectures.
 
-> I would suggest we make 64-bit time_t, clock_t and suseconds_t the
-> default in include/asm-generic/posix_types.h and change all existing
-> 32 bit users of that file to provide an override to define these
-> as "long".
+I would like to remove the __KERNEL__ guards from KAPI files - they should not
+be necessary there.
 
-We also need snseconds_t: POSIX stupidly enough demands that the 
-nanosecond field in struct timespec is "long", but that is really not 
-appropriate.  Unfortunately there are existing architectures (e.g. 
-SPARC) where we can't use suseconds_t either, so we are trying to push a 
-new snseconds_t type into POSIX.
+In the UAPI files, it will, unfortunately, be necessary to keep some of the
+__KERNEL__ guards that remain.
 
-> The other types that are used as 64 bit on x32 are ino_t, nlink_t,
-> size_t, ssize_t, ptrdiff_t, and off_t.
-
-ptrdiff_t obviously not... although __kernel_ptrdiff_t is (as the 
-pointers are 64 bits in kernel space.)  Similarly, size_t and ssize_t 
-are only 32 bits in user space and we override them for compatibility 
-with the native kernel.
-
-> Obviously, we want to use 64-bit off_t, but this is achieved already
-> through loff_t, which is used in all places in the asm-generic
-> ABI anyway (the syscalls using off_t are stripped out). I don't
-> think we want to have the other ones set to 64 bit on ARC or Meta,
-> although I'm not 100% sure about ino_t and nlink_t.
-
-	-hpa
-
--- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
+David
