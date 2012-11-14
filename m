@@ -1,42 +1,38 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: new architectures, time_t __kernel_long_t
-Date: Wed, 14 Nov 2012 12:18:01 +0000
-Message-ID: <201211141218.02105.arnd@arndb.de>
+Subject: Re: [RFC PATCH v1 14/31] ARC: syscall support
+Date: Wed, 14 Nov 2012 12:23:04 +0000
+Message-ID: <201211141223.05063.arnd@arndb.de>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <CACM3HyFE-S2NM75qVS2Fhhm8YoP1jH4mS41aZ5B1gW2wo-Q99g@mail.gmail.com> <50A23906.6010900@imgtec.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
-  charset="iso-8859-1"
+  charset="utf-8"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:60677 "EHLO
+Received: from moutng.kundenserver.de ([212.227.17.10]:63845 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1161189Ab2KNMSO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2012 07:18:14 -0500
+	with ESMTP id S1422673Ab2KNMXR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2012 07:23:17 -0500
+In-Reply-To: <50A23906.6010900@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: Vineet.Gupta1@synopsys.com, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, "H. Peter Anvin" <hpa@zytor.com>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: Jonas Bonn <jonas.bonn@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, Markos <markos.chandras@imgtec.com>
 
-Since we are in the review phase for two new architectures that we
-should be merging into the mainline kernel, I think we need to
-come up with a solution for making them use a proper 64-bit time_t.
+On Tuesday 13 November 2012, James Hogan wrote:
+> Hopefully with several architecture maintainers asking for this it might
+> get somewhere, but indeed we're aware of the feedback problem on that list.
+> 
+> The points that I've considered for defaulting to old syscalls:
+> * doesn't change existing behaviour of other architectures, so is simply
+> less risk of breaking them.
+> * could possibly make uClibc slightly smaller if it doesn't have to add
+> extra arguments.
 
-Right now, the only 32-bit user space interface we have to use 64-bit
-time_t is the x32 side of x86-64, and that works by overriding all
-"long" sized types to be 64 bit at the ABI level, which we don't
-want for pure 32 bit architectures.
- 
-I would suggest we make 64-bit time_t, clock_t and suseconds_t the
-default in include/asm-generic/posix_types.h and change all existing
-32 bit users of that file to provide an override to define these
-as "long".
-
-The other types that are used as 64 bit on x32 are ino_t, nlink_t,
-size_t, ssize_t, ptrdiff_t, and off_t.
-
-Obviously, we want to use 64-bit off_t, but this is achieved already
-through loff_t, which is used in all places in the asm-generic
-ABI anyway (the syscalls using off_t are stripped out). I don't
-think we want to have the other ones set to 64 bit on ARC or Meta,
-although I'm not 100% sure about ino_t and nlink_t.
+The second argument is not very good when you consider that it means adding
+the same wrapper into the kernel rather than into uClibc, where it can
+be stripped out when unused (e.g. for static compilation) and doesn't
+have to be present in memory since the library is in pageable user space
+memory, while the kernel side implementation would always have to
+present.
 
 	Arnd
