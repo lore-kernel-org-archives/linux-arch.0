@@ -1,65 +1,48 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mivwsmailout1.mcafee.com ([161.69.47.167]:15041 "EHLO
-	MIVWSMAILOUT1.mcafee.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932078Ab2KNKlv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2012 05:41:51 -0500
-Message-ID: <50A3728D.9010209@snapgear.com>
-Date: Wed, 14 Nov 2012 20:29:33 +1000
-From: Greg Ungerer <gerg@snapgear.com>
+Received: from mail-la0-f46.google.com ([209.85.215.46]:58301 "EHLO
+	mail-la0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751988Ab2KNOxx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2012 09:53:53 -0500
+Received: by mail-la0-f46.google.com with SMTP id h6so398463lag.19
+        for <linux-arch@vger.kernel.org>; Wed, 14 Nov 2012 06:53:52 -0800 (PST)
 MIME-Version: 1.0
-Subject: Re: [PATCH v3 00/11] m68k: use asm-generic headers when possible
-References: <1351578277-31882-1-git-send-email-gerg@snapgear.com> <CAMuHMdXbwBLhryrcJ5Ln3uvBJL=_ZCYBErXyZzGznBirobU1kQ@mail.gmail.com> <50A078CC.7080406@snapgear.com> <CAMuHMdVWaxjGYFXHwK6-CPUA3YFZ2x7k11FpPhMyudHt0xVa4g@mail.gmail.com>
-In-Reply-To: <CAMuHMdVWaxjGYFXHwK6-CPUA3YFZ2x7k11FpPhMyudHt0xVa4g@mail.gmail.com>
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <CAMuHMdXu2VJhB+1uFApeBrYS3t2cfpPMaTz12F=A_FNJB1Q60w@mail.gmail.com>
+References: <ADE657CA350FB648AAC2C43247A983F00206B25884B1@AUSP01VMBX24.collaborationhost.net>
+ <CAErSpo6WG2R_8sa=rOmAOci-3iFpDs2NFzNkZYxDnD2oTiMQJg@mail.gmail.com>
+ <20121113082615.2f482eb8835daf46e1f27947@canb.auug.org.au> <CAMuHMdXu2VJhB+1uFApeBrYS3t2cfpPMaTz12F=A_FNJB1Q60w@mail.gmail.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Wed, 14 Nov 2012 07:53:31 -0700
+Message-ID: <CAErSpo6p09BJo=3tFp7f8StLT9avYdqiecGm8FxyQnWUm+pfiw@mail.gmail.com>
+Subject: Re: [PATCH] Centralise CONFIG_ARCH_NO_VIRT_TO_BUS
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20121114102933.JfG9dt5lXYmCTVU_Vwi-tXu70GOudOcpp-WmByXDc38@z>
+Cc: Stephen Rothwell <sfr@canb.auug.org.au>, Andrew Morton <akpm@linux-foundation.org>, H Hartley Sweeten <hartleys@visionengravers.com>, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org
+Message-ID: <20121114145331.eNnkykS8mL1shW4TPeygl9qHnKPc0w0gXE8L9QUiW4o@z>
 
-Hi Geert,
-
-On 11/14/2012 05:56 PM, Geert Uytterhoeven wrote:
-> On Mon, Nov 12, 2012 at 5:19 AM, Greg Ungerer <gerg@snapgear.com> wrote:
->> On 11/11/12 20:30, Geert Uytterhoeven wrote:
->>> On Tue, Oct 30, 2012 at 7:24 AM,  <gerg@snapgear.com> wrote:
->>>> Quite a few of the m68k asm headers are identical to the asm-generic
->>>> versions. So switch to using them where ever we can.
->>>>
->>>> v2 is rebased on top of 3.7-rc3.
->>>> v3 keep those in uapi/asm in uapi/asm (not moved to asm-generic)
->>>>
->>>> All defconfigs build. Run tested on ColdFire (with and without MMU) and
->>>> on
->>>> ArranyM.
->>>
->>>
->>> Thanks!
->>>
->>> Do you want me to queue these for 3.8, or take them yourselves?
->>> In the latter case:
->>> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+On Tue, Nov 13, 2012 at 3:32 AM, Geert Uytterhoeven
+<geert@linux-m68k.org> wrote:
+> On Mon, Nov 12, 2012 at 10:26 PM, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
+>> diff --git a/arch/Kconfig b/arch/Kconfig
+>> index 366ec06..9bc00e7 100644
+>> --- a/arch/Kconfig
+>> +++ b/arch/Kconfig
+>> @@ -271,6 +271,13 @@ config ARCH_WANT_OLD_COMPAT_IPC
+>>         select ARCH_WANT_COMPAT_IPC_PARSE_VERSION
+>>         bool
 >>
->>
->> I don't really mind either way. Happy for you to take them
->> if that is your preference.
->>
->> Same goes for the mm/init.c changes too. Happy for you to
->> take them if you want.
+>> +config ARCH_NO_VIRT_TO_BUS
+>> +       bool
+>> +       help
+>> +         An architecture should select this if it cannot (or will not)
+>> +         implement virt_to_bus().  All new architectures should probably
+>> +         select this.
 >
-> I applied all of them to master, and queued them in for-3.8/for-next, so they
-> will be picked up by tomorrow's linux-next, which is the last one before
-> next-20121126.
+> Don't we typically put the burden of selecting Kconfig flags for deprecated
+> features on the existing architectures that provide the deprecated features?
+>
+> I.e. shouldn't it be ARCH_HAS_VIRT_TO_BUS, selected by the architectures
+> that need it, instead?
 
-Thanks!
-
-Regards
-Greg
-
-
-------------------------------------------------------------------------
-Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.com
-SnapGear Group, McAfee                      PHONE:       +61 7 3435 2888
-8 Gardner Close,                            FAX:         +61 7 3891 3630
-Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.com
+I like this idea.
