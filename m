@@ -1,36 +1,43 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [arc-linux-dev] Re: UAPI for new arches (was Re: [GIT PULL] User API Disintegrate: Preparatory patches)
-Date: Wed, 14 Nov 2012 16:28:57 +0000
-Message-ID: <17758.1352910537@warthog.procyon.org.uk>
-References: <50A39627.6020809@imgtec.com> <50A0D634.20005@synopsys.com> <C2D7FE5348E1B147BCA15975FBA230750D9832@in01wembx1.internal.synopsys.com> <509251CA.8050008@synopsys.com> <18137.1349203013@warthog.procyon.org.uk> <CAAG0J9_gYLn5+4j9WUnPmxWyJfQK_b8e5xjxZdRPG21euXoCFg@mail.gmail.com> <CAAG0J9_LZ5Q1fNdcbSOyieesabkqcTMT0ueEDLXmemV2C_+F=g@mail.gmail.com>,<8419.1352387261@warthog.procyon.org.uk> <14356.1352416788@warthog.procyon.org.uk> <9377.1352726040@warthog.procyon.org.uk>
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: [PATCH V6 1/2] kbuild: centralize .dts->.dtb rule
+Date: Wed, 14 Nov 2012 19:20:52 +0000
+Message-ID: <20121114192052.4A3EA3E0B7C@localhost>
+References: <1352753907-3316-1-git-send-email-swarren@wwwdotorg.org>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:24757 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S964820Ab2KNQ3H (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Nov 2012 11:29:07 -0500
-In-Reply-To: <50A39627.6020809@imgtec.com>
+Received: from mail-we0-f174.google.com ([74.125.82.174]:54625 "EHLO
+	mail-we0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754024Ab2KNTU5 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2012 14:20:57 -0500
+Received: by mail-we0-f174.google.com with SMTP id t9so272375wey.19
+        for <linux-arch@vger.kernel.org>; Wed, 14 Nov 2012 11:20:56 -0800 (PST)
+In-Reply-To: <1352753907-3316-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: dhowells@redhat.com, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
+To: Stephen Warren <swarren@wwwdotorg.org>, Michal Marek <mmarek@suse.cz>
+Cc: David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Ralf Baechle <ralf@linux-mips.org>
 
-James Hogan <james.hogan@imgtec.com> wrote:
-
-> The disintegration scripts strip out the #ifdef __KERNEL__ from the
-> headers in both uapi/ and the old directories. However there are still a
-> bunch of unexported headers through the tree which have #ifdef
-> __KERNEL__ in them, usually guarding the entire file (just grep
-> __KERNEL__ in arch/).
+On Mon, 12 Nov 2012 13:58:26 -0700, Stephen Warren <swarren@wwwdotorg.org> wrote:
+> From: Stephen Warren <swarren@nvidia.com>
 > 
-> Is this something that you're already planning to eliminate? We have a
-> few in the metag tree too, and now that uapi/ is nicely separated I'm
-> not sure if it's worth removing the __KERNEL__ guards or keeping them to
-> match other architectures.
+> All architectures that use cmd_dtc do so in the same way. Move the build
+> rule to a central location to avoid duplication.
+> 
+> Update Documentation/kbuild to remove the explicit call to cmd_dtc from
+> the example, now that the rule exists in a centralized location, and in
+> fact replace the example with a couple that still exist.
+> 
+> arch/mips changes courtesy of Ralf Baechle.
+> 
+> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+> Signed-off-by: Stephen Warren <swarren@nvidia.com>
+> Acked-by: Sam Ravnborg <sam@ravnborg.org>
+> ---
+> v6: Added arch/{arm64,microblaze,mips} updates.
+> v5: Updated Documentation/kbuild.
+> v4: No change.
+> v3: No change.
+> v2: New patch.
 
-I would like to remove the __KERNEL__ guards from KAPI files - they should not
-be necessary there.
+Merged, thanks.
 
-In the UAPI files, it will, unfortunately, be necessary to keep some of the
-__KERNEL__ guards that remain.
-
-David
+g.
