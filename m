@@ -1,60 +1,42 @@
-From: Greg Ungerer <gerg@snapgear.com>
-Subject: Re: [PATCH v3 00/11] m68k: use asm-generic headers when possible
-Date: Wed, 14 Nov 2012 20:29:33 +1000
-Message-ID: <50A3728D.9010209@snapgear.com>
-References: <1351578277-31882-1-git-send-email-gerg@snapgear.com> <CAMuHMdXbwBLhryrcJ5Ln3uvBJL=_ZCYBErXyZzGznBirobU1kQ@mail.gmail.com> <50A078CC.7080406@snapgear.com> <CAMuHMdVWaxjGYFXHwK6-CPUA3YFZ2x7k11FpPhMyudHt0xVa4g@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: new architectures, time_t __kernel_long_t
+Date: Wed, 14 Nov 2012 12:18:01 +0000
+Message-ID: <201211141218.02105.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdVWaxjGYFXHwK6-CPUA3YFZ2x7k11FpPhMyudHt0xVa4g@mail.gmail.com>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.171]:60677 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1161189Ab2KNMSO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2012 07:18:14 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
+Cc: Vineet.Gupta1@synopsys.com, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, "H. Peter Anvin" <hpa@zytor.com>
 
-Hi Geert,
+Since we are in the review phase for two new architectures that we
+should be merging into the mainline kernel, I think we need to
+come up with a solution for making them use a proper 64-bit time_t.
 
-On 11/14/2012 05:56 PM, Geert Uytterhoeven wrote:
-> On Mon, Nov 12, 2012 at 5:19 AM, Greg Ungerer <gerg@snapgear.com> wrote:
->> On 11/11/12 20:30, Geert Uytterhoeven wrote:
->>> On Tue, Oct 30, 2012 at 7:24 AM,  <gerg@snapgear.com> wrote:
->>>> Quite a few of the m68k asm headers are identical to the asm-generic
->>>> versions. So switch to using them where ever we can.
->>>>
->>>> v2 is rebased on top of 3.7-rc3.
->>>> v3 keep those in uapi/asm in uapi/asm (not moved to asm-generic)
->>>>
->>>> All defconfigs build. Run tested on ColdFire (with and without MMU) and
->>>> on
->>>> ArranyM.
->>>
->>>
->>> Thanks!
->>>
->>> Do you want me to queue these for 3.8, or take them yourselves?
->>> In the latter case:
->>> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
->>
->>
->> I don't really mind either way. Happy for you to take them
->> if that is your preference.
->>
->> Same goes for the mm/init.c changes too. Happy for you to
->> take them if you want.
->
-> I applied all of them to master, and queued them in for-3.8/for-next, so they
-> will be picked up by tomorrow's linux-next, which is the last one before
-> next-20121126.
+Right now, the only 32-bit user space interface we have to use 64-bit
+time_t is the x32 side of x86-64, and that works by overriding all
+"long" sized types to be 64 bit at the ABI level, which we don't
+want for pure 32 bit architectures.
+ 
+I would suggest we make 64-bit time_t, clock_t and suseconds_t the
+default in include/asm-generic/posix_types.h and change all existing
+32 bit users of that file to provide an override to define these
+as "long".
 
-Thanks!
+The other types that are used as 64 bit on x32 are ino_t, nlink_t,
+size_t, ssize_t, ptrdiff_t, and off_t.
 
-Regards
-Greg
+Obviously, we want to use 64-bit off_t, but this is achieved already
+through loff_t, which is used in all places in the asm-generic
+ABI anyway (the syscalls using off_t are stripped out). I don't
+think we want to have the other ones set to 64 bit on ARC or Meta,
+although I'm not 100% sure about ino_t and nlink_t.
 
-
-------------------------------------------------------------------------
-Greg Ungerer  --  Principal Engineer        EMAIL:     gerg@snapgear.com
-SnapGear Group, McAfee                      PHONE:       +61 7 3435 2888
-8 Gardner Close,                            FAX:         +61 7 3891 3630
-Milton, QLD, 4064, Australia                WEB: http://www.SnapGear.com
+	Arnd
