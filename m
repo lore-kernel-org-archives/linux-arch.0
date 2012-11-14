@@ -1,38 +1,32 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH v1 14/31] ARC: syscall support
-Date: Wed, 14 Nov 2012 12:23:04 +0000
-Message-ID: <201211141223.05063.arnd@arndb.de>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <CACM3HyFE-S2NM75qVS2Fhhm8YoP1jH4mS41aZ5B1gW2wo-Q99g@mail.gmail.com> <50A23906.6010900@imgtec.com>
+Subject: Re: [PATCH] Centralise CONFIG_ARCH_NO_VIRT_TO_BUS
+Date: Wed, 14 Nov 2012 12:23:21 +0000
+Message-ID: <201211141223.21696.arnd@arndb.de>
+References: <ADE657CA350FB648AAC2C43247A983F00206B25884B1@AUSP01VMBX24.collaborationhost.net> <CAErSpo6WG2R_8sa=rOmAOci-3iFpDs2NFzNkZYxDnD2oTiMQJg@mail.gmail.com> <20121113082615.2f482eb8835daf46e1f27947@canb.auug.org.au>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
-  charset="utf-8"
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:63845 "EHLO
+Received: from moutng.kundenserver.de ([212.227.17.8]:62180 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1422673Ab2KNMXR (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2012 07:23:17 -0500
-In-Reply-To: <50A23906.6010900@imgtec.com>
+	with ESMTP id S1422673Ab2KNMXr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2012 07:23:47 -0500
+In-Reply-To: <20121113082615.2f482eb8835daf46e1f27947@canb.auug.org.au>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: Jonas Bonn <jonas.bonn@gmail.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, Markos <markos.chandras@imgtec.com>
+To: Stephen Rothwell <sfr@canb.auug.org.au>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Bjorn Helgaas <bhelgaas@google.com>, H Hartley Sweeten <hartleys@visionengravers.com>, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org
 
-On Tuesday 13 November 2012, James Hogan wrote:
-> Hopefully with several architecture maintainers asking for this it might
-> get somewhere, but indeed we're aware of the feedback problem on that list.
+On Monday 12 November 2012, Stephen Rothwell wrote:
+>   Show Details
+>   Make if easier for more architectures to select it and thus disable
+> drivers that use virt_to_bus().
 > 
-> The points that I've considered for defaulting to old syscalls:
-> * doesn't change existing behaviour of other architectures, so is simply
-> less risk of breaking them.
-> * could possibly make uClibc slightly smaller if it doesn't have to add
-> extra arguments.
+> Signed-off-by: Stephen Rothwell <sfr@canb.auug.org.au>
 
-The second argument is not very good when you consider that it means adding
-the same wrapper into the kernel rather than into uClibc, where it can
-be stripped out when unused (e.g. for static compilation) and doesn't
-have to be present in memory since the library is in pageable user space
-memory, while the kernel side implementation would always have to
-present.
+Very nice, I was recently looking into enabling this for ARM
+as well, at least for the platforms that are known to not
+need virt_to_bus.
 
-	Arnd
+Acked-by: Arnd Bergmann <arnd@arndb.de>
