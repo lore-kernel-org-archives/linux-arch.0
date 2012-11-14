@@ -1,70 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from wolverine02.qualcomm.com ([199.106.114.251]:56669 "EHLO
-	wolverine02.qualcomm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756056Ab2KNAxp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 13 Nov 2012 19:53:45 -0500
-Date: Tue, 13 Nov 2012 18:53:41 -0600
-From: Richard Kuo <rkuo@codeaurora.org>
-Subject: Re: [PATCH 1/1] arch Kconfig: remove references to IRQ_PER_CPU
-Message-ID: <20121114005341.GA6917@codeaurora.org>
-References: <1352807948-26920-1-git-send-email-james.hogan@imgtec.com>
+Received: from mail-vb0-f46.google.com ([209.85.212.46]:61135 "EHLO
+	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751239Ab2KNH4p (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2012 02:56:45 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1352807948-26920-1-git-send-email-james.hogan@imgtec.com>
+In-Reply-To: <50A078CC.7080406@snapgear.com>
+References: <1351578277-31882-1-git-send-email-gerg@snapgear.com>
+	<CAMuHMdXbwBLhryrcJ5Ln3uvBJL=_ZCYBErXyZzGznBirobU1kQ@mail.gmail.com>
+	<50A078CC.7080406@snapgear.com>
+Date: Wed, 14 Nov 2012 08:56:43 +0100
+Message-ID: <CAMuHMdVWaxjGYFXHwK6-CPUA3YFZ2x7k11FpPhMyudHt0xVa4g@mail.gmail.com>
+Subject: Re: [PATCH v3 00/11] m68k: use asm-generic headers when possible
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: linux-kernel@vger.kernel.org, uclinux-dist-devel@blackfin.uclinux.org, linux-hexagon@vger.kernel.org, linux-ia64@vger.kernel.org, linux-mips@linux-mips.org, linux-parisc@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, linux-sh@vger.kernel.org, linux-arch@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Mike Frysinger <vapier@gentoo.org>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, Ralf Baechle <ralf@linux-mips.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Paul Mundt <lethal@linux-sh.org>
-Message-ID: <20121114005341.pRMiXyI51jyl3aLl7hgH5kr0x6XkPh7xRnK1ONj98Vw@z>
+To: Greg Ungerer <gerg@snapgear.com>
+Cc: linux-m68k@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20121114075643.5_E1recRE3k7KdUiao2hfT0-4heNstQKSb3BkKl2aVY@z>
 
-On Tue, Nov 13, 2012 at 11:59:08AM +0000, James Hogan wrote:
-> The IRQ_PER_CPU Kconfig symbol was removed in the following commit:
-> 
-> Commit 6a58fb3bad099076f36f0f30f44507bc3275cdb6 ("genirq: Remove
-> CONFIG_IRQ_PER_CPU") merged in v2.6.39-rc1.
-> 
-> But IRQ_PER_CPU wasn't removed from any of the architecture Kconfig
-> files where it was defined or selected. It's completely unused so remove
-> the remaining references.
-> 
-> Signed-off-by: James Hogan <james.hogan@imgtec.com>
-> Cc: Thomas Gleixner <tglx@linutronix.de>
-> Cc: Mike Frysinger <vapier@gentoo.org>
-> Cc: Richard Kuo <rkuo@codeaurora.org>
-> Cc: Tony Luck <tony.luck@intel.com>
-> Cc: Fenghua Yu <fenghua.yu@intel.com>
-> Cc: Ralf Baechle <ralf@linux-mips.org>
-> Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-> Cc: Helge Deller <deller@gmx.de>
-> Cc: Benjamin Herrenschmidt <benh@kernel.crashing.org>
-> Cc: Paul Mackerras <paulus@samba.org>
-> Cc: Paul Mundt <lethal@linux-sh.org>
-> ---
-> Based on v3.7-rc5.
-> 
-> Compile tested defconfigs for bfin, ia64, mips, parisc, powerpc, sh, but
-> not hexagon.
-> 
-> Grepped entire tree to check no references to CONFIG_IRQ_PER_CPU, and
-> grepped arch/ for Kconfig files referencing IRQ_PER_CPU.
-> 
->  arch/blackfin/Kconfig |    1 -
->  arch/hexagon/Kconfig  |    1 -
->  arch/ia64/Kconfig     |    1 -
->  arch/mips/Kconfig     |    1 -
->  arch/parisc/Kconfig   |    1 -
->  arch/powerpc/Kconfig  |    1 -
->  arch/sh/Kconfig       |    3 ---
->  7 files changed, 0 insertions(+), 9 deletions(-)
-> 
+Hi Greg,
 
-Hexagon's was commented out anyways, but thanks for pointing it out.
+On Mon, Nov 12, 2012 at 5:19 AM, Greg Ungerer <gerg@snapgear.com> wrote:
+> On 11/11/12 20:30, Geert Uytterhoeven wrote:
+>> On Tue, Oct 30, 2012 at 7:24 AM,  <gerg@snapgear.com> wrote:
+>>> Quite a few of the m68k asm headers are identical to the asm-generic
+>>> versions. So switch to using them where ever we can.
+>>>
+>>> v2 is rebased on top of 3.7-rc3.
+>>> v3 keep those in uapi/asm in uapi/asm (not moved to asm-generic)
+>>>
+>>> All defconfigs build. Run tested on ColdFire (with and without MMU) and
+>>> on
+>>> ArranyM.
+>>
+>>
+>> Thanks!
+>>
+>> Do you want me to queue these for 3.8, or take them yourselves?
+>> In the latter case:
+>> Acked-by: Geert Uytterhoeven <geert@linux-m68k.org>
+>
+>
+> I don't really mind either way. Happy for you to take them
+> if that is your preference.
+>
+> Same goes for the mm/init.c changes too. Happy for you to
+> take them if you want.
 
-Acked-by: Richard Kuo <rkuo@codeaurora.org>
+I applied all of them to master, and queued them in for-3.8/for-next, so they
+will be picked up by tomorrow's linux-next, which is the last one before
+next-20121126.
 
--- 
+Gr{oetje,eeting}s,
 
-Sent by an employee of the Qualcomm Innovation Center, Inc.
-The Qualcomm Innovation Center, Inc. is a member of the Code Aurora Forum,
-hosted by The Linux Foundation
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
