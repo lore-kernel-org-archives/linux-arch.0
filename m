@@ -1,48 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f46.google.com ([209.85.215.46]:58301 "EHLO
-	mail-la0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751988Ab2KNOxx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2012 09:53:53 -0500
-Received: by mail-la0-f46.google.com with SMTP id h6so398463lag.19
-        for <linux-arch@vger.kernel.org>; Wed, 14 Nov 2012 06:53:52 -0800 (PST)
+Received: from terminus.zytor.com ([198.137.202.10]:49404 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S932664Ab2KNQ0h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 Nov 2012 11:26:37 -0500
+Message-ID: <50A3C631.8010301@zytor.com>
+Date: Wed, 14 Nov 2012 08:26:25 -0800
+From: "H. Peter Anvin" <hpa@zytor.com>
 MIME-Version: 1.0
-In-Reply-To: <CAMuHMdXu2VJhB+1uFApeBrYS3t2cfpPMaTz12F=A_FNJB1Q60w@mail.gmail.com>
-References: <ADE657CA350FB648AAC2C43247A983F00206B25884B1@AUSP01VMBX24.collaborationhost.net>
- <CAErSpo6WG2R_8sa=rOmAOci-3iFpDs2NFzNkZYxDnD2oTiMQJg@mail.gmail.com>
- <20121113082615.2f482eb8835daf46e1f27947@canb.auug.org.au> <CAMuHMdXu2VJhB+1uFApeBrYS3t2cfpPMaTz12F=A_FNJB1Q60w@mail.gmail.com>
-From: Bjorn Helgaas <bhelgaas@google.com>
-Date: Wed, 14 Nov 2012 07:53:31 -0700
-Message-ID: <CAErSpo6p09BJo=3tFp7f8StLT9avYdqiecGm8FxyQnWUm+pfiw@mail.gmail.com>
-Subject: Re: [PATCH] Centralise CONFIG_ARCH_NO_VIRT_TO_BUS
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: new architectures, time_t __kernel_long_t
+References: <201211141218.02105.arnd@arndb.de>
+In-Reply-To: <201211141218.02105.arnd@arndb.de>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, Andrew Morton <akpm@linux-foundation.org>, H Hartley Sweeten <hartleys@visionengravers.com>, linux-kernel@vger.kernel.org, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, linuxppc-dev@lists.ozlabs.org, "David S. Miller" <davem@davemloft.net>, sparclinux@vger.kernel.org, linux-arch@vger.kernel.org, Paul Mundt <lethal@linux-sh.org>, linux-sh@vger.kernel.org
-Message-ID: <20121114145331.eNnkykS8mL1shW4TPeygl9qHnKPc0w0gXE8L9QUiW4o@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, Vineet.Gupta1@synopsys.com, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, "H.J. Lu" <hjl.tools@gmail.com>
+Message-ID: <20121114162625.AVhiTujAdOoLkShGhYmnVNAhqcXx6QEmtMTXI7JCyHk@z>
 
-On Tue, Nov 13, 2012 at 3:32 AM, Geert Uytterhoeven
-<geert@linux-m68k.org> wrote:
-> On Mon, Nov 12, 2012 at 10:26 PM, Stephen Rothwell <sfr@canb.auug.org.au> wrote:
->> diff --git a/arch/Kconfig b/arch/Kconfig
->> index 366ec06..9bc00e7 100644
->> --- a/arch/Kconfig
->> +++ b/arch/Kconfig
->> @@ -271,6 +271,13 @@ config ARCH_WANT_OLD_COMPAT_IPC
->>         select ARCH_WANT_COMPAT_IPC_PARSE_VERSION
->>         bool
->>
->> +config ARCH_NO_VIRT_TO_BUS
->> +       bool
->> +       help
->> +         An architecture should select this if it cannot (or will not)
->> +         implement virt_to_bus().  All new architectures should probably
->> +         select this.
+On 11/14/2012 04:18 AM, Arnd Bergmann wrote:
+> Since we are in the review phase for two new architectures that we
+> should be merging into the mainline kernel, I think we need to
+> come up with a solution for making them use a proper 64-bit time_t.
 >
-> Don't we typically put the burden of selecting Kconfig flags for deprecated
-> features on the existing architectures that provide the deprecated features?
->
-> I.e. shouldn't it be ARCH_HAS_VIRT_TO_BUS, selected by the architectures
-> that need it, instead?
+> Right now, the only 32-bit user space interface we have to use 64-bit
+> time_t is the x32 side of x86-64, and that works by overriding all
+> "long" sized types to be 64 bit at the ABI level, which we don't
+> want for pure 32 bit architectures.
 
-I like this idea.
+Sort of.  Either way, the kernel headers aren't really x32-clean yet, so 
+we have an opportunity to do things more cleanly as we are implementing 
+this.
+
+> I would suggest we make 64-bit time_t, clock_t and suseconds_t the
+> default in include/asm-generic/posix_types.h and change all existing
+> 32 bit users of that file to provide an override to define these
+> as "long".
+
+We also need snseconds_t: POSIX stupidly enough demands that the 
+nanosecond field in struct timespec is "long", but that is really not 
+appropriate.  Unfortunately there are existing architectures (e.g. 
+SPARC) where we can't use suseconds_t either, so we are trying to push a 
+new snseconds_t type into POSIX.
+
+> The other types that are used as 64 bit on x32 are ino_t, nlink_t,
+> size_t, ssize_t, ptrdiff_t, and off_t.
+
+ptrdiff_t obviously not... although __kernel_ptrdiff_t is (as the 
+pointers are 64 bits in kernel space.)  Similarly, size_t and ssize_t 
+are only 32 bits in user space and we override them for compatibility 
+with the native kernel.
+
+> Obviously, we want to use 64-bit off_t, but this is achieved already
+> through loff_t, which is used in all places in the asm-generic
+> ABI anyway (the syscalls using off_t are stripped out). I don't
+> think we want to have the other ones set to 64 bit on ARC or Meta,
+> although I'm not 100% sure about ino_t and nlink_t.
+
+	-hpa
+
+-- 
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
+
