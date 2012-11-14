@@ -1,45 +1,35 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: new architectures, time_t __kernel_long_t
-Date: Wed, 14 Nov 2012 13:48:22 +0100
-Message-ID: <CAMuHMdW3uBWgJfftFxnf8qySBmqSRDRhoivBdk6Zsc+cC2Sitg@mail.gmail.com>
-References: <201211141218.02105.arnd@arndb.de>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [arc-linux-dev] Re: UAPI for new arches (was Re: [GIT PULL] User
+ API Disintegrate: Preparatory patches)
+Date: Wed, 14 Nov 2012 13:01:27 +0000
+Message-ID: <50A39627.6020809@imgtec.com>
+References: <50A0D634.20005@synopsys.com> <C2D7FE5348E1B147BCA15975FBA230750D9832@in01wembx1.internal.synopsys.com> <509251CA.8050008@synopsys.com> <18137.1349203013@warthog.procyon.org.uk> <CAAG0J9_gYLn5+4j9WUnPmxWyJfQK_b8e5xjxZdRPG21euXoCFg@mail.gmail.com> <CAAG0J9_LZ5Q1fNdcbSOyieesabkqcTMT0ueEDLXmemV2C_+F=g@mail.gmail.com>,<8419.1352387261@warthog.procyon.org.uk> <14356.1352416788@warthog.procyon.org.uk> <9377.1352726040@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-la0-f46.google.com ([209.85.215.46]:43273 "EHLO
-	mail-la0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1422711Ab2KNMsY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2012 07:48:24 -0500
-In-Reply-To: <201211141218.02105.arnd@arndb.de>
+Received: from multi.imgtec.com ([194.200.65.239]:51627 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1422711Ab2KNNBa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 14 Nov 2012 08:01:30 -0500
+In-Reply-To: <9377.1352726040@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, Vineet.Gupta1@synopsys.com, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, "H. Peter Anvin" <hpa@zytor.com>
+To: David Howells <dhowells@redhat.com>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, "arnd@arndb.de" <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 
-On Wed, Nov 14, 2012 at 1:18 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> The other types that are used as 64 bit on x32 are ino_t, nlink_t,
-> size_t, ssize_t, ptrdiff_t, and off_t.
->
-> Obviously, we want to use 64-bit off_t, but this is achieved already
-> through loff_t, which is used in all places in the asm-generic
-> ABI anyway (the syscalls using off_t are stripped out). I don't
+Hi David,
 
-Indeed.
+The disintegration scripts strip out the #ifdef __KERNEL__ from the
+headers in both uapi/ and the old directories. However there are still a
+bunch of unexported headers through the tree which have #ifdef
+__KERNEL__ in them, usually guarding the entire file (just grep
+__KERNEL__ in arch/).
 
-> think we want to have the other ones set to 64 bit on ARC or Meta,
-> although I'm not 100% sure about ino_t and nlink_t.
+Is this something that you're already planning to eliminate? We have a
+few in the metag tree too, and now that uapi/ is nicely separated I'm
+not sure if it's worth removing the __KERNEL__ guards or keeping them to
+match other architectures.
 
-Is ino_t related to inode numbers stored in on-disk file system metadata?
-
-Currently, nlink_t is unconditionally __u32, even on 64-bit.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Thanks
+James
