@@ -1,65 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:49404 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S932664Ab2KNQ0h (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 14 Nov 2012 11:26:37 -0500
-Message-ID: <50A3C631.8010301@zytor.com>
-Date: Wed, 14 Nov 2012 08:26:25 -0800
-From: "H. Peter Anvin" <hpa@zytor.com>
-MIME-Version: 1.0
-Subject: Re: new architectures, time_t __kernel_long_t
-References: <201211141218.02105.arnd@arndb.de>
-In-Reply-To: <201211141218.02105.arnd@arndb.de>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Received: from mail-wi0-f178.google.com ([209.85.212.178]:60397 "EHLO
+	mail-wi0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1423505Ab2KNWZt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2012 17:25:49 -0500
+Received: by mail-wi0-f178.google.com with SMTP id hm14so571725wib.1
+        for <linux-arch@vger.kernel.org>; Wed, 14 Nov 2012 14:25:48 -0800 (PST)
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: [PATCH V6 2/2] kbuild: run the pre-processor on *.dts files
+In-Reply-To: <50A3FC90.7030105@wwwdotorg.org>
+References: <1352753907-3316-1-git-send-email-swarren@wwwdotorg.org> <1352753907-3316-2-git-send-email-swarren@wwwdotorg.org> <20121114192548.59F093E0B7C@localhost> <50A3FC90.7030105@wwwdotorg.org>
+Date: Wed, 14 Nov 2012 22:25:45 +0000
+Message-ID: <20121114222545.7E3943E0E2B@localhost>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, Vineet.Gupta1@synopsys.com, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, "H.J. Lu" <hjl.tools@gmail.com>
-Message-ID: <20121114162625.AVhiTujAdOoLkShGhYmnVNAhqcXx6QEmtMTXI7JCyHk@z>
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Michal Marek <mmarek@suse.cz>, David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>
+Message-ID: <20121114222545.DWx9ErkK92fcLOsyhnhugEmX06rGNDo5vy-uv9Ifa4k@z>
 
-On 11/14/2012 04:18 AM, Arnd Bergmann wrote:
-> Since we are in the review phase for two new architectures that we
-> should be merging into the mainline kernel, I think we need to
-> come up with a solution for making them use a proper 64-bit time_t.
->
-> Right now, the only 32-bit user space interface we have to use 64-bit
-> time_t is the x32 side of x86-64, and that works by overriding all
-> "long" sized types to be 64 bit at the ABI level, which we don't
-> want for pure 32 bit architectures.
+On Wed, 14 Nov 2012 13:18:24 -0700, Stephen Warren <swarren@wwwdotorg.org> wrote:
+> On 11/14/2012 12:25 PM, Grant Likely wrote:
+> > On Mon, 12 Nov 2012 13:58:27 -0700, Stephen Warren <swarren@wwwdotorg.org> wrote:
+> >> From: Stephen Warren <swarren@nvidia.com>
+> >>
+> >> Modify cmd_dtc to run the C pre-processor on the input .dts file before
+> >> passing it to dtc for final compilation. This allows the use of #define
+> >> and #include within the .dts file.
+> 
+> > Ugh, I'm definitely nervous about turning this on because of the long
+> > term implications so I'm going to punt on actually making a decision
+> > about it for the momemnt. However, I do have a question...
+> 
+> Hmmm. So how do we get to a decision on this then?
 
-Sort of.  Either way, the kernel headers aren't really x32-clean yet, so 
-we have an opportunity to do things more cleanly as we are implementing 
-this.
+I'm punting for the evening just because I'm mentally exhausted. I'll
+make a decision in the next couple of days.
 
-> I would suggest we make 64-bit time_t, clock_t and suseconds_t the
-> default in include/asm-generic/posix_types.h and change all existing
-> 32 bit users of that file to provide an override to define these
-> as "long".
-
-We also need snseconds_t: POSIX stupidly enough demands that the 
-nanosecond field in struct timespec is "long", but that is really not 
-appropriate.  Unfortunately there are existing architectures (e.g. 
-SPARC) where we can't use suseconds_t either, so we are trying to push a 
-new snseconds_t type into POSIX.
-
-> The other types that are used as 64 bit on x32 are ino_t, nlink_t,
-> size_t, ssize_t, ptrdiff_t, and off_t.
-
-ptrdiff_t obviously not... although __kernel_ptrdiff_t is (as the 
-pointers are 64 bits in kernel space.)  Similarly, size_t and ssize_t 
-are only 32 bits in user space and we override them for compatibility 
-with the native kernel.
-
-> Obviously, we want to use 64-bit off_t, but this is achieved already
-> through loff_t, which is used in all places in the asm-generic
-> ABI anyway (the syscalls using off_t are stripped out). I don't
-> think we want to have the other ones set to 64 bit on ARC or Meta,
-> although I'm not 100% sure about ino_t and nlink_t.
-
-	-hpa
-
--- 
-H. Peter Anvin, Intel Open Source Technology Center
-I work for Intel.  I don't speak on their behalf.
+g.
 
