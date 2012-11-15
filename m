@@ -1,86 +1,47 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-da0-f46.google.com ([209.85.210.46]:39068 "EHLO
-	mail-da0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1423250Ab2KOKPq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 05:15:46 -0500
-Received: by mail-da0-f46.google.com with SMTP id n41so608317dak.19
-        for <linux-arch@vger.kernel.org>; Thu, 15 Nov 2012 02:15:46 -0800 (PST)
+Received: from vaxjo.synopsys.com ([198.182.60.75]:35243 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S2993178Ab2KOKXT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 05:23:19 -0500
+Message-ID: <50A4C273.10102@synopsys.com>
+Date: Thu, 15 Nov 2012 15:52:43 +0530
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 MIME-Version: 1.0
-In-Reply-To: <20121102102335.GF2905@linux-mips.org>
-References: <1351721431-26220-1-git-send-email-swarren@wwwdotorg.org>
- <20121102095801.GC17860@linux-mips.org> <20121102102335.GF2905@linux-mips.org>
-From: Grant Likely <grant.likely@secretlab.ca>
-Date: Thu, 15 Nov 2012 10:15:25 +0000
-Message-ID: <CACxGe6vUGaRG-c3Vr5Zuuohhct6hEM-AhrZ6fmFfd6nyNZdo=Q@mail.gmail.com>
-Subject: Re: [PATCH V5 1/2] kbuild: centralize .dts->.dtb rule
-Content-Type: text/plain; charset=ISO-8859-1
+Subject: Re: [RFC Patch v1 32/55] ARC: [optim] Cache "current" in Register
+ r25
+References: <1352720953-24321-1-git-send-email-vgupta@synopsys.com> <1352720953-24321-2-git-send-email-vgupta@synopsys.com> <201211121350.12810.arnd@arndb.de>
+In-Reply-To: <201211121350.12810.arnd@arndb.de>
+Content-Type: text/plain; charset="ISO-8859-15"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Ralf Baechle <ralf@linux-mips.org>
-Cc: Stephen Warren <swarren@wwwdotorg.org>, Michal Marek <mmarek@suse.cz>, David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, linux-mips@linux-mips.org
-Message-ID: <20121115101525.6KIivQ8qHuRw3yT_iSh4RDYdmKeRgWOF9yVoRhzR0zQ@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
+Message-ID: <20121115102243.e40B55hgbGO0fN2UvSFXuWDinCUkh_hSfqjtxGgMU5I@z>
 
-On Fri, Nov 2, 2012 at 10:23 AM, Ralf Baechle <ralf@linux-mips.org> wrote:
-> On Fri, Nov 02, 2012 at 10:58:01AM +0100, Ralf Baechle wrote:
->
->> Can you fold these MIPS bits into your patch?
->
-> I missed Lantiq.
->
->   Ralf
->
-> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
->
->  arch/mips/cavium-octeon/Makefile | 3 ---
->  arch/mips/lantiq/dts/Makefile    | 3 ---
->  arch/mips/netlogic/dts/Makefile  | 3 ---
->  3 files changed, 9 deletions(-)
->
-> diff --git a/arch/mips/cavium-octeon/Makefile b/arch/mips/cavium-octeon/Makefile
-> index bc96e29..6e927cf 100644
-> --- a/arch/mips/cavium-octeon/Makefile
-> +++ b/arch/mips/cavium-octeon/Makefile
-> @@ -24,9 +24,6 @@ DTB_FILES = $(patsubst %.dts, %.dtb, $(DTS_FILES))
->
->  obj-y += $(patsubst %.dts, %.dtb.o, $(DTS_FILES))
->
-> -$(obj)/%.dtb: $(src)/%.dts FORCE
-> -       $(call if_changed_dep,dtc)
-> -
->  # Let's keep the .dtb files around in case we want to look at them.
->  .SECONDARY:  $(addprefix $(obj)/, $(DTB_FILES))
->
-> diff --git a/arch/mips/lantiq/dts/Makefile b/arch/mips/lantiq/dts/Makefile
-> index 674fca4..6fa72dd 100644
-> --- a/arch/mips/lantiq/dts/Makefile
-> +++ b/arch/mips/lantiq/dts/Makefile
-> @@ -1,4 +1 @@
->  obj-$(CONFIG_DT_EASY50712) := easy50712.dtb.o
-> -
-> -$(obj)/%.dtb: $(obj)/%.dts
-> -       $(call if_changed,dtc)
-> diff --git a/arch/mips/netlogic/dts/Makefile b/arch/mips/netlogic/dts/Makefile
-> index 67ae3fe2..d117d46 100644
-> --- a/arch/mips/netlogic/dts/Makefile
-> +++ b/arch/mips/netlogic/dts/Makefile
-> @@ -1,4 +1 @@
->  obj-$(CONFIG_DT_XLP_EVP) := xlp_evp.dtb.o
-> -
-> -$(obj)/%.dtb: $(obj)/%.dts
-> -       $(call if_changed,dtc)
+On Monday 12 November 2012 07:20 PM, Arnd Bergmann wrote:
+> On Monday 12 November 2012, Vineet.Gupta1@synopsys.com wrote:
+>>  endmenu # "Platform Board Configuration"
+>>  
+>> +config ARC_CURR_IN_REG
+>> +       bool "Dedicate Register r25 for current_task pointer"
+>> +       default y
+>> +       help
+>> +         This reserved Register R25 to point to Current Task in
+>> +         kernel mode. This saves memory access for each such access
+>> +
+> This looks like a useful feature if you have 32 GPRs, but why make it
+> optional? Are there cases where you would disable it?
 
-This actually breaks MIPS builds. MIPS builds the .dtbs in the same
-directory as the .dts files. Everyone else has a dts/ subdirectory,
-which is admittedly a bit insane, but until things are resolved I've
-dropped the above MIPS hunks.
+Since it touched the low level guts of port, it made sense to start with
+a config option in initial implementation. But I've kept it that way
+since it annotates the code nicely and implicitly documents how to do
+this for any other register + data structure.
 
-MIPS /could/ be changed to also use a dts directory, but I'd actually
-rather if someone could make all the other platforms build the dtbs in
-the same directory. I've looked at it briefly, but I haven't figured
-out all the make magic needed to do it nicely.
+> Another alternative to caching "current" would be to cache the per-cpu
+> offset, and calculate current from that one.
 
-g.
+Good tip - I'll add this to my TODO list -
 
--- 
-Grant Likely, B.Sc., P.Eng.
-Secret Lab Technologies Ltd.
+> 	Arnd
+
