@@ -1,47 +1,26 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC Patch v1 38/55] ARC: Low level event capture/logging
-Date: Thu, 15 Nov 2012 16:10:53 +0530
-Message-ID: <50A4C6B5.9010500@synopsys.com>
-References: <1352720953-24321-1-git-send-email-vgupta@synopsys.com> <1352720953-24321-8-git-send-email-vgupta@synopsys.com> <201211121355.23947.arnd@arndb.de>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: 7bit
+From: David Howells <dhowells@redhat.com>
+Subject: Re: [PATCH 2/2] perf kvm: fix building perf kvm on PowerPC
+Date: Thu, 15 Nov 2012 10:46:54 +0000
+Message-ID: <6764.1352976414@warthog.procyon.org.uk>
+References: <50A48912.20606@linux.vnet.ibm.com> <1378.1352379110@warthog.procyon.org.uk> <CA+5PVA5vMyNmQYCLX315Jc+kN9zQuZo_h0Devpjfr43TezE-qA@mail.gmail.com> <18065.1352820271@warthog.procyon.org.uk> <CA+5PVA6qaxCzr8RBV616D3kEXyj9XjS3okeZXhJJL1R4+-Yv_A@mail.gmail.com> <20121113163458.GA1023@ghostprotocols.net> <50A488DD.6090106@linux.vnet.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtp2.synopsys.com ([198.182.44.80]:39137 "EHLO
-	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S964838Ab2KOKnh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 05:43:37 -0500
-In-Reply-To: <201211121355.23947.arnd@arndb.de>
+Received: from mx1.redhat.com ([209.132.183.28]:63549 "EHLO mx1.redhat.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S2992442Ab2KOKrW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Nov 2012 05:47:22 -0500
+In-Reply-To: <50A48912.20606@linux.vnet.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
+To: Xiao Guangrong <xiaoguangrong@linux.vnet.ibm.com>
+Cc: dhowells@redhat.com, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, Josh Boyer <jwboyer@gmail.com>, mingo@kernel.org, haodong@linux.vnet.ibm.com, runzhen@linux.vnet.ibm.com, dsahern@gmail.com, tglx@linutronix.de, bp@alien8.de, namhyung@gmail.com, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
 
-On Monday 12 November 2012 07:25 PM, Arnd Bergmann wrote:
-> On Monday 12 November 2012, Vineet.Gupta1@synopsys.com wrote:
->> +EXPORT_SYMBOL(take_snap);
->> +
->> ...
->> +EXPORT_SYMBOL(take_snap2);
-> Where are these functions called?
+Xiao Guangrong <xiaoguangrong@linux.vnet.ibm.com> wrote:
 
-These are called from various parts of ARCH code, such as before
-handling signal or TLB flush etc.
+> Now, 'perf kvm stat' is only supported on x86, let its code depend
+> on ARCH_X86 to fix building it on other architectures
 
-> Shouldn't this all just be part of the perf module?
+Other parts of perf do this sort of thing:
 
-These are for low level ARCH specific event snapshotting. Maybe
-perf/ftrace already have some of these in the generic code which
-eventually call the ARCH APIs. Our current perf support is just husk of
-an implementation. Once we have the full perf / ftrace support this
-module - except for the even t capture part could just go away.
-OTOH, I've not seen much usage of this from loadable modules - so if you
-deem correct, I can even remove the export.
+	#if defined(__x86_64__) || defined(__i386__)
 
-> If not, can you make the exports GPL-only?
-
-Am I right in understanding that this is more related to discouraging
-non GPL modules "in general" than having to do with port itself.
-
->
-> 	Arnd
+David
