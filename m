@@ -1,51 +1,44 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH v1 14/31] ARC: syscall support
-Date: Thu, 15 Nov 2012 12:35:31 +0000
-Message-ID: <201211151235.31735.arnd@arndb.de>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <201211131037.43526.arnd@arndb.de> <50A48882.3030204@synopsys.com>
+From: "H.J. Lu" <hjl.tools@gmail.com>
+Subject: Re: new architectures, time_t __kernel_long_t
+Date: Thu, 15 Nov 2012 05:59:46 -0800
+Message-ID: <CAMe9rOpziKa6QLfjX9iXtfj_X2QAyDAV2p8NEd8Wd7yFwTrpNg@mail.gmail.com>
+References: <201211141218.02105.arnd@arndb.de>
+	<50A3C631.8010301@zytor.com>
+	<201211150914.22835.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:50808 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S2993283Ab2KOMfm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 07:35:42 -0500
-In-Reply-To: <50A48882.3030204@synopsys.com>
+Received: from mail-da0-f46.google.com ([209.85.210.46]:50310 "EHLO
+	mail-da0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1767850Ab2KON7r (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 08:59:47 -0500
+In-Reply-To: <201211150914.22835.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Gilad Ben-Yossef <gilad@benyossef.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, Vineet.Gupta1@synopsys.com, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>
 
-On Thursday 15 November 2012, Vineet Gupta wrote:
-> So the primary concern here is not breaking the userspace ABI - right ?
-> 
-> For syscalls I agree that we will indeed need to fix the ABI - by fixing
-> uClibc. And if uClibc doesn't merge the fixes we can stay out of tree
-> for uClibc - as we currently already are.
+On Thu, Nov 15, 2012 at 1:14 AM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Wednesday 14 November 2012, H. Peter Anvin wrote:
+>> On 11/14/2012 04:18 AM, Arnd Bergmann wrote:
+>> > Since we are in the review phase for two new architectures that we
+>> > should be merging into the mainline kernel, I think we need to
+>> > come up with a solution for making them use a proper 64-bit time_t.
+>> >
+>> > Right now, the only 32-bit user space interface we have to use 64-bit
+>> > time_t is the x32 side of x86-64, and that works by overriding all
+>> > "long" sized types to be 64 bit at the ABI level, which we don't
+>> > want for pure 32 bit architectures.
+>>
+>> Sort of.  Either way, the kernel headers aren't really x32-clean yet, so
+>> we have an opportunity to do things more cleanly as we are implementing
+>> this.
+>
+> Ah, I didn't know that. How does one build an x32 libc then?
 
-I'm sure we can find a solution for uClibc. We already have seven
-architectures using the generic syscalls, including at least one
-(arm64) that is going to run on a large number of installations
-in the future.
+Glibc has been providing its own types for years.
+Kernel provided types used to be wrong for ia32
+on x86-64.
 
-> For gdbserver, the kernel provides the complete regset ABI. However it
-> also provides a very limited version of old ABI - i.e. ptrace with
-> PEEKUSR/POKEUSR. Note that latter is just a shim layer and it reuses the
-> regset callbacks. This allows us to support the legacy gdbserver. If and
-> when gdbserver upgrades it can switch over to new interface. So all
-> along there will be NO ABI breakage at all. The cost is couple extra
-> functions in kernel which we might have to maintain for some foreseeable
-> future. Agree ?
-
-It's more a question of principle. The rule is that we don't break user
-space, and ptrace is just another user space interface is this. If
-we merge it now, we will keep it around forever, taking it out later
-is not an option IMHO. My preference would be not to merge the backwards
-compatibility layer for ptrace at all, but I'm willing to listen to
-other people that support your view if you want to keep it. In one
-way, ptrace is less critical than the other system calls, and that is
-because it's already architecture specific.
-
-	Arnd
+-- 
+H.J.
