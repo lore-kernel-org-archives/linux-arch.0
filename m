@@ -1,66 +1,73 @@
-From: Xiao Guangrong <xiaoguangrong@linux.vnet.ibm.com>
-Subject: Re: [GIT PULL] UAPI: perf fixes
-Date: Thu, 15 Nov 2012 10:23:36 +0800
-Message-ID: <50A45228.3060404@linux.vnet.ibm.com>
-References: <1378.1352379110@warthog.procyon.org.uk> <CA+5PVA5vMyNmQYCLX315Jc+kN9zQuZo_h0Devpjfr43TezE-qA@mail.gmail.com> <18065.1352820271@warthog.procyon.org.uk> <CA+5PVA6qaxCzr8RBV616D3kEXyj9XjS3okeZXhJJL1R4+-Yv_A@mail.gmail.com> <20121113163458.GA1023@ghostprotocols.net>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [RFC PATCH v1 14/31] ARC: syscall support
+Date: Thu, 15 Nov 2012 11:45:30 +0530
+Message-ID: <50A48882.3030204@synopsys.com>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <201211071421.39523.arnd@arndb.de> <CAOtvUMcc-7mBxYWEe7oypri7wxf58R8cph7EpdLYR_fLHO6eTg@mail.gmail.com> <201211131037.43526.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp08.in.ibm.com ([122.248.162.8]:46340 "EHLO
-	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S933159Ab2KOCXu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2012 21:23:50 -0500
-Received: from /spool/local
-	by e28smtp08.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <xiaoguangrong@linux.vnet.ibm.com>;
-	Thu, 15 Nov 2012 07:53:47 +0530
-In-Reply-To: <20121113163458.GA1023@ghostprotocols.net>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
-Cc: Josh Boyer <jwboyer@gmail.com>, David Howells <dhowells@redhat.com>, mingo@kernel.org, haodong@linux.vnet.ibm.com, runzhen@linux.vnet.ibm.com, dsahern@gmail.com, tglx@linutronix.de, bp@alien8.de, namhyung@gmail.com, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <201211131037.43526.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Gilad Ben-Yossef <gilad@benyossef.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
+List-Id: linux-arch.vger.kernel.org
 
-On 11/14/2012 12:34 AM, Arnaldo Carvalho de Melo wrote:
-> Em Tue, Nov 13, 2012 at 10:42:02AM -0500, Josh Boyer escreveu:
->> On Tue, Nov 13, 2012 at 10:24 AM, David Howells <dhowells@redhat.com> wrote:
->>> Josh Boyer <jwboyer@gmail.com> wrote:
->>> tools/perf/builtin-kvm.c became x86-only with the following commit:
->>>
->>>         commit bcf6edcd6fdb8965290f0b635a530fa3c6c212e1
->>>         Author: Xiao Guangrong <xiaoguangrong@linux.vnet.ibm.com>
->>>         Date:   Mon Sep 17 16:31:15 2012 +0800
->>>         Subject: perf kvm: Events analysis tool
->>>
->>> when it added:
->>>
->>>         +#include "../../arch/x86/include/asm/svm.h"
->>>         +#include "../../arch/x86/include/asm/vmx.h"
->>>         +#include "../../arch/x86/include/asm/kvm.h"
->>>
->>> and my changing these to <asm/foo.h> doesn't matter because of this in the
->>> same file:
->>>
->>>         +struct exit_reasons_table vmx_exit_reasons[] = {
->>>         +       VMX_EXIT_REASONS
->>>         +};
->>>         +
->>>         +struct exit_reasons_table svm_exit_reasons[] = {
->>>         +       SVM_EXIT_REASONS
->>>         +};
->>>
->>> which use macros only x86 defines.
+On Tuesday 13 November 2012 04:07 PM, Arnd Bergmann wrote:
+> On Tuesday 13 November 2012, Gilad Ben-Yossef wrote:
+>> So, I completely agree about not adding more deprecated system call or
+>> ABIs (thinking about the ptrace regset issues in another patch in the
+>> same patchset), but on the other hand I have to wonder if having a
+>> port in the tree that doesn't have a working C library or a debugger
+>> makes sense.
 >>
->> Ah.  You are quite right.  So your patches actually fix the unistd.h
->> error we were seeing early and just got us far enough to hit this other
->> unrelated problem.  My mistake.
+>> I mean, it is not quite the same thing as saying: "well, users of the
+>> old versions of the user tools will need to maintain out of tree
+>> patches". That makes sense - it puts the burden of maintenance on
+>> people clinging to new versions when newer one exists, but this is not
+>> what is happening with Arc. Right now, there are no working version of
+>> the tools for Arc, so everyone will need to use the out of tree
+>> patches.
 >>
->>> Should the exported parts of these files be moved to asm-generic?
->>
->> Good question.
-> 
-> Probably we should do Makefile changes to build 'perf kvm' only on the
-> platforms where it makes sense.
+>> I wonder what is worse - having an in tree port that no one (can) use
+>> or adding some deprecated crap (sorry...), clearly marked for deletion
+>> the minute a version of the relevant user tools exists that can be
+>> used with the new mechanisms?
+> The point is that all existing users already need to rebuild all their
+> user space since the upstream version is using the generic system call
+> numbers. What I want to avoid is breaking everything twice, and the most
+> logical point to do that is when moving from an out-of-tree kernel fork
+> to the mainline version.
 
-Only 'perf kvm stat' command is only supported on x86, how about add
-"#ifdef ARCH_X86_64" around these code?
+I completely agree.
+
+> If mainline doesn't work for you yet, the most logical choice is to
+> stay on whatever kernel you have working right now, and only change
+> over to the upstream version once it works with an ABI that we want
+> to maintain in the long term. Obviously I can't stop from using a
+> mix of the two while you are waiting for (or working on) getting
+> gdb and uclibc supported with the new interface, but my recommendation
+> is not to ship that in products to end-users that would suffer
+> from another ABI change later on. 
+>
+> What I'm trying to enforce here is that the upstream version follows
+> the exact same rules that we apply to all other ports, which is
+> that we don't break existing user space that was running with an
+> older upstream kernel.
+
+So the primary concern here is not breaking the userspace ABI - right ?
+
+For syscalls I agree that we will indeed need to fix the ABI - by fixing
+uClibc. And if uClibc doesn't merge the fixes we can stay out of tree
+for uClibc - as we currently already are.
+
+For gdbserver, the kernel provides the complete regset ABI. However it
+also provides a very limited version of old ABI - i.e. ptrace with
+PEEKUSR/POKEUSR. Note that latter is just a shim layer and it reuses the
+regset callbacks. This allows us to support the legacy gdbserver. If and
+when gdbserver upgrades it can switch over to new interface. So all
+along there will be NO ABI breakage at all. The cost is couple extra
+functions in kernel which we might have to maintain for some foreseeable
+future. Agree ?
+
+-Vineet
