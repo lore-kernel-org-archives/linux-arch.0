@@ -1,39 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f178.google.com ([209.85.212.178]:60397 "EHLO
-	mail-wi0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1423505Ab2KNWZt (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2012 17:25:49 -0500
-Received: by mail-wi0-f178.google.com with SMTP id hm14so571725wib.1
-        for <linux-arch@vger.kernel.org>; Wed, 14 Nov 2012 14:25:48 -0800 (PST)
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [PATCH V6 2/2] kbuild: run the pre-processor on *.dts files
-In-Reply-To: <50A3FC90.7030105@wwwdotorg.org>
-References: <1352753907-3316-1-git-send-email-swarren@wwwdotorg.org> <1352753907-3316-2-git-send-email-swarren@wwwdotorg.org> <20121114192548.59F093E0B7C@localhost> <50A3FC90.7030105@wwwdotorg.org>
-Date: Wed, 14 Nov 2012 22:25:45 +0000
-Message-ID: <20121114222545.7E3943E0E2B@localhost>
+Received: from mail-pa0-f46.google.com ([209.85.220.46]:57827 "EHLO
+	mail-pa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S2992548Ab2KOB2b (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 14 Nov 2012 20:28:31 -0500
+Received: by mail-pa0-f46.google.com with SMTP id hz1so714970pad.19
+        for <linux-arch@vger.kernel.org>; Wed, 14 Nov 2012 17:28:31 -0800 (PST)
+Date: Wed, 14 Nov 2012 17:28:29 -0800 (PST)
+From: David Rientjes <rientjes@google.com>
+Subject: Re: [PATCH 1/2] asm-generic: add __WARN() to bug.h
+In-Reply-To: <50A43E5E.9040905@xenotime.net>
+Message-ID: <alpine.DEB.2.00.1211141726380.4749@chino.kir.corp.google.com>
+References: <20121114163042.64f0c0495663331b9c2d60d6@canb.auug.org.au> <50A43E5E.9040905@xenotime.net>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Michal Marek <mmarek@suse.cz>, David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>
-Message-ID: <20121114222545.DWx9ErkK92fcLOsyhnhugEmX06rGNDo5vy-uv9Ifa4k@z>
+To: Randy Dunlap <rdunlap@xenotime.net>
+Cc: Arnd Bergmann <arnd@arndb.de>, Stephen Rothwell <sfr@canb.auug.org.au>, linux-next@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, linux-arch@vger.kernel.org, Rafael Aquini <aquini@redhat.com>, linux-mm@kvack.org
+Message-ID: <20121115012829.GOxqIEOATa1vus9iHktAk6NsbjBbxyLpoL_6lEzlS-U@z>
 
-On Wed, 14 Nov 2012 13:18:24 -0700, Stephen Warren <swarren@wwwdotorg.org> wrote:
-> On 11/14/2012 12:25 PM, Grant Likely wrote:
-> > On Mon, 12 Nov 2012 13:58:27 -0700, Stephen Warren <swarren@wwwdotorg.org> wrote:
-> >> From: Stephen Warren <swarren@nvidia.com>
-> >>
-> >> Modify cmd_dtc to run the C pre-processor on the input .dts file before
-> >> passing it to dtc for final compilation. This allows the use of #define
-> >> and #include within the .dts file.
-> 
-> > Ugh, I'm definitely nervous about turning this on because of the long
-> > term implications so I'm going to punt on actually making a decision
-> > about it for the momemnt. However, I do have a question...
-> 
-> Hmmm. So how do we get to a decision on this then?
+On Wed, 14 Nov 2012, Randy Dunlap wrote:
 
-I'm punting for the evening just because I'm mentally exhausted. I'll
-make a decision in the next couple of days.
+> --- linux-next-20121114.orig/include/asm-generic/bug.h
+> +++ linux-next-20121114/include/asm-generic/bug.h
+> @@ -129,6 +129,10 @@ extern void warn_slowpath_null(const cha
+>  })
+>  #endif
+>  
+> +#ifndef __WARN
+> +#define __WARN()	do {} while (0)
+> +#endif
+> +
+>  #define WARN_TAINT(condition, taint, format...) WARN_ON(condition)
+>  
+>  #endif
 
-g.
-
+__WARN() isn't supposed to be used by generic code, though.  The 
+mm/balloon_compaction.c error should be resolved by 
+mm-introduce-a-common-interface-for-balloon-pages-mobility-fix-fix-fix.patch 
+added to -mm today.  It converts the __WARN() there into WARN_ON(1) which 
+is defined appropriately for CONFIG_BUG=n.
