@@ -1,39 +1,50 @@
-From: Ralf Baechle <ralf@linux-mips.org>
-Subject: Re: [RFC PATCH v1 26/31] ARC: Build system: Makefiles, Kconfig,
- Linker script
-Date: Thu, 15 Nov 2012 20:30:50 +0100
-Message-ID: <20121115193050.GA1244@linux-mips.org>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
- <1352281674-2186-27-git-send-email-vgupta@synopsys.com>
- <50A52B45.6030907@imgtec.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: new execve/kernel_thread design
+Date: Thu, 15 Nov 2012 21:55:29 +0000
+Message-ID: <20121115215529.GU2616@ZenIV.linux.org.uk>
+References: <20121016223508.GR2616@ZenIV.linux.org.uk>
+ <CACM3HyEpypULRWUc5ZnLnZ=uOWf3_j=9PXZiJrT_BXyGcQe9yg@mail.gmail.com>
+ <CAHTX3dKDsOiUwtXxAUj-F4Y4rO+UZZDR4ufx_nxf+vuhmz46WA@mail.gmail.com>
+ <20121017160702.GY2616@ZenIV.linux.org.uk>
+ <20121017161953.GZ2616@ZenIV.linux.org.uk>
+ <CAHTX3dJN4Jun2KVXpda1wTrwkjT0mmH4fYmUUwq69d9sCTjXnA@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from arrakis.dune.hu ([78.24.191.176]:44186 "EHLO
-	eddie.linux-mips.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
-	with ESMTP id S1768775Ab2KOTbA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 14:31:00 -0500
+Received: from zeniv.linux.org.uk ([195.92.253.2]:56404 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751477Ab2KOVzq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 16:55:46 -0500
 Content-Disposition: inline
-In-Reply-To: <50A52B45.6030907@imgtec.com>
+In-Reply-To: <CAHTX3dJN4Jun2KVXpda1wTrwkjT0mmH4fYmUUwq69d9sCTjXnA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, arnd@arndb.de, linux-mips@linux-mips.org
+To: Michal Simek <monstr@monstr.eu>
+Cc: Jonas Bonn <jonas@southpole.se>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gx>
 
-On Thu, Nov 15, 2012 at 05:49:57PM +0000, James Hogan wrote:
-
-> On 07/11/12 09:47, Vineet Gupta wrote:
-> > +config ARC
+On Thu, Nov 15, 2012 at 05:41:16PM +0100, Michal Simek wrote:
+> Here is the branch based on rc5 (information below)
+> and here is giweb.
+> http://developer.petalogix.com/git/gitweb.cgi?p=linux-2.6-microblaze.git;a=shortlog;h=refs/heads/viro/arch-microblaze-rc5
 > 
-> I just came across arch/mips/Kconfig which also defines ARC (and ARC32).
-> It's only used within arch/mips/, however it's probably more likely that
-> your ARC/CONFIG_ARC will find it's way into the generic bits of the
-> kernel which could get hit when the other ARC is defined.
+> I have also looked at your sys_fork / sys_vfork / sys_clone unification
+> and I have fixed it for Microblaze.
 > 
-> Perhaps it's worth getting the other ARC renamed just in case?
+> Also I have done some tests on it for sure.
+> 
+> I would add sys_execve/kernel_execve/kernel_thread patches to my next branch.
+> Are you OK with that?
 
-The MIPS world surely isn't as attached to the CONFIG_ARC config symbol
-as Synopsis so I'm going to rename CONFIG_ARC and a few other firmware
-related config symbols to use a consistent prefix of CONFIG_FW_.
+Umm...  In principle - yes, but I've a couple of question abouts those.
 
-  Ralf
+1) What's that set_fs(USER_DS) in start_thread() for?  Note that we do the same
+thing in flush_old_exec(), at the same time we remove PF_KTHREAD from
+current->flags.
+
+While we are at it, if we *ever* hit do_signal() with KERNEL_DS, we are
+very deep in trouble.  set_fs(USER_DS) in setup_{rt_,}frame() is pointless.
+
+2) your definition of current_pt_regs() is an exact copy of on in
+include/linux/ptrace.h; why is "microblaze: Define current_pt_regs"
+needed at all?  IOW, I'd rather added #include <linux/ptrace.h> to
+arch/microblaze/kernel/process.c instead...
