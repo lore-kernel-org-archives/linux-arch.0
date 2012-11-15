@@ -1,26 +1,106 @@
-From: David Howells <dhowells@redhat.com>
-Subject: Re: [PATCH 2/2] perf kvm: fix building perf kvm on PowerPC
-Date: Thu, 15 Nov 2012 10:46:54 +0000
-Message-ID: <6764.1352976414@warthog.procyon.org.uk>
-References: <50A48912.20606@linux.vnet.ibm.com> <1378.1352379110@warthog.procyon.org.uk> <CA+5PVA5vMyNmQYCLX315Jc+kN9zQuZo_h0Devpjfr43TezE-qA@mail.gmail.com> <18065.1352820271@warthog.procyon.org.uk> <CA+5PVA6qaxCzr8RBV616D3kEXyj9XjS3okeZXhJJL1R4+-Yv_A@mail.gmail.com> <20121113163458.GA1023@ghostprotocols.net> <50A488DD.6090106@linux.vnet.ibm.com>
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: [PATCH V5 1/2] kbuild: centralize .dts->.dtb rule
+Date: Thu, 15 Nov 2012 11:51:24 +0000
+Message-ID: <1352980284-2819-1-git-send-email-grant.likely@secretlab.ca>
+References: <CACxGe6vhd_4rcBbYyqtvbySVaY6XpNE+HQq42PZhKe5yt=zcaA@mail.gmail.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:63549 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S2992442Ab2KOKrW (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 15 Nov 2012 05:47:22 -0500
-In-Reply-To: <50A48912.20606@linux.vnet.ibm.com>
+Received: from mail-wi0-f172.google.com ([209.85.212.172]:43669 "EHLO
+	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S2993257Ab2KOLve (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 06:51:34 -0500
+Received: by mail-wi0-f172.google.com with SMTP id hj6so1208321wib.1
+        for <linux-arch@vger.kernel.org>; Thu, 15 Nov 2012 03:51:33 -0800 (PST)
+In-Reply-To: <CACxGe6vhd_4rcBbYyqtvbySVaY6XpNE+HQq42PZhKe5yt=zcaA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Xiao Guangrong <xiaoguangrong@linux.vnet.ibm.com>
-Cc: dhowells@redhat.com, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>, Josh Boyer <jwboyer@gmail.com>, mingo@kernel.org, haodong@linux.vnet.ibm.com, runzhen@linux.vnet.ibm.com, dsahern@gmail.com, tglx@linutronix.de, bp@alien8.de, namhyung@gmail.com, torvalds@linux-foundation.org, paulus@samba.org, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, x86@kernel.org
+Cc: linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Grant Likely <grant.likely@secretlab.ca>, Stephen Warren <swarren@nvidia.com>, Sam Ravnborg <sam@ravnborg.org>
 
-Xiao Guangrong <xiaoguangrong@linux.vnet.ibm.com> wrote:
+Grant Likely wrote:
+> Or how about: I could pick up the patch with only the MIPS hunk and
+> every other user can be fixed up independently to use the new rule.
 
-> Now, 'perf kvm stat' is only supported on x86, let its code depend
-> on ARCH_X86 to fix building it on other architectures
+Here's a trial patch to fix up ARM. Does this look correct? This patch
+depends on the generic dtb build rule already being applied.
 
-Other parts of perf do this sort of thing:
+g.
 
-	#if defined(__x86_64__) || defined(__i386__)
+---
 
-David
+arm/of: Change .dtb build rules to build in dts directory
+
+The current rules have the .dtb files build in a different directory
+from the .dts files. The only reason for this is that it was what
+PowerPC has done historically. This patch changes ARM to use the generic
+dtb rule which builds .dtb files in the same directory as the source .dts.
+
+Signed-off-by: Grant Likely <grant.likely@secretlab.ca>
+Cc: Stephen Warren <swarren@nvidia.com>
+Cc: Sam Ravnborg <sam@ravnborg.org>
+---
+ arch/arm/Makefile          |    4 ++--
+ arch/arm/boot/Makefile     |   12 ------------
+ arch/arm/boot/dts/Makefile |    4 ++++
+ 3 files changed, 6 insertions(+), 14 deletions(-)
+
+diff --git a/arch/arm/Makefile b/arch/arm/Makefile
+index 5f914fc..c35baf1 100644
+--- a/arch/arm/Makefile
++++ b/arch/arm/Makefile
+@@ -292,10 +292,10 @@ zinstall uinstall install: vmlinux
+ 	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $@
+ 
+ %.dtb: scripts
+-	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
++	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $(boot)/dts/$@
+ 
+ dtbs: scripts
+-	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
++	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) dtbs
+ 
+ # We use MRPROPER_FILES and CLEAN_FILES now
+ archclean:
+diff --git a/arch/arm/boot/Makefile b/arch/arm/boot/Makefile
+index f2aa09e..801b92c 100644
+--- a/arch/arm/boot/Makefile
++++ b/arch/arm/boot/Makefile
+@@ -15,8 +15,6 @@ ifneq ($(MACHINE),)
+ include $(srctree)/$(MACHINE)/Makefile.boot
+ endif
+ 
+-include $(srctree)/arch/arm/boot/dts/Makefile
+-
+ # Note: the following conditions must always be true:
+ #   ZRELADDR == virt_to_phys(PAGE_OFFSET + TEXT_OFFSET)
+ #   PARAMS_PHYS must be within 4MB of ZRELADDR
+@@ -59,16 +57,6 @@ $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
+ 
+ endif
+ 
+-targets += $(dtb-y)
+-
+-# Rule to build device tree blobs
+-$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+-	$(call if_changed_dep,dtc)
+-
+-$(obj)/dtbs: $(addprefix $(obj)/, $(dtb-y))
+-
+-clean-files := *.dtb
+-
+ ifneq ($(LOADADDR),)
+   UIMAGE_LOADADDR=$(LOADADDR)
+ else
+diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+index f37cf9f..2aef042 100644
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -104,4 +104,8 @@ dtb-$(CONFIG_ARCH_VT8500) += vt8500-bv07.dtb \
+ 	wm8505-ref.dtb \
+ 	wm8650-mid.dtb
+ 
++targets += dtbs
+ endif
++
++dtbs: $(addprefix $(obj)/, $(dtb-y))
++clean-files := *.dtb
+-- 
+1.7.10.4
