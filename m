@@ -1,73 +1,86 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:60565 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756703Ab2KOJOa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 04:14:30 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: new architectures, time_t __kernel_long_t
-Date: Thu, 15 Nov 2012 09:14:22 +0000
-References: <201211141218.02105.arnd@arndb.de> <50A3C631.8010301@zytor.com>
-In-Reply-To: <50A3C631.8010301@zytor.com>
+Received: from mail-da0-f46.google.com ([209.85.210.46]:39068 "EHLO
+	mail-da0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1423250Ab2KOKPq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 05:15:46 -0500
+Received: by mail-da0-f46.google.com with SMTP id n41so608317dak.19
+        for <linux-arch@vger.kernel.org>; Thu, 15 Nov 2012 02:15:46 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201211150914.22835.arnd@arndb.de>
+In-Reply-To: <20121102102335.GF2905@linux-mips.org>
+References: <1351721431-26220-1-git-send-email-swarren@wwwdotorg.org>
+ <20121102095801.GC17860@linux-mips.org> <20121102102335.GF2905@linux-mips.org>
+From: Grant Likely <grant.likely@secretlab.ca>
+Date: Thu, 15 Nov 2012 10:15:25 +0000
+Message-ID: <CACxGe6vUGaRG-c3Vr5Zuuohhct6hEM-AhrZ6fmFfd6nyNZdo=Q@mail.gmail.com>
+Subject: Re: [PATCH V5 1/2] kbuild: centralize .dts->.dtb rule
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "H. Peter Anvin" <hpa@zytor.com>
-Cc: linux-arch@vger.kernel.org, Vineet.Gupta1@synopsys.com, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>, "H.J. Lu" <hjl.tools@gmail.com>
-Message-ID: <20121115091422.Dx4Vk--2PBzudbbY3w4Vv0oyo2ZslcqqriStSWJuVMY@z>
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: Stephen Warren <swarren@wwwdotorg.org>, Michal Marek <mmarek@suse.cz>, David Gibson <david@gibson.dropbear.id.au>, Jon Loeliger <jdl@jdl.com>, Rob Herring <rob.herring@calxeda.com>, Scott Wood <scottwood@freescale.com>, Mark Brown <broonie@opensource.wolfsonmicro.com>, Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, linux-mips@linux-mips.org
+Message-ID: <20121115101525.6KIivQ8qHuRw3yT_iSh4RDYdmKeRgWOF9yVoRhzR0zQ@z>
 
-On Wednesday 14 November 2012, H. Peter Anvin wrote:
-> On 11/14/2012 04:18 AM, Arnd Bergmann wrote:
-> > Since we are in the review phase for two new architectures that we
-> > should be merging into the mainline kernel, I think we need to
-> > come up with a solution for making them use a proper 64-bit time_t.
-> >
-> > Right now, the only 32-bit user space interface we have to use 64-bit
-> > time_t is the x32 side of x86-64, and that works by overriding all
-> > "long" sized types to be 64 bit at the ABI level, which we don't
-> > want for pure 32 bit architectures.
-> 
-> Sort of.  Either way, the kernel headers aren't really x32-clean yet, so 
-> we have an opportunity to do things more cleanly as we are implementing 
-> this.
+On Fri, Nov 2, 2012 at 10:23 AM, Ralf Baechle <ralf@linux-mips.org> wrote:
+> On Fri, Nov 02, 2012 at 10:58:01AM +0100, Ralf Baechle wrote:
+>
+>> Can you fold these MIPS bits into your patch?
+>
+> I missed Lantiq.
+>
+>   Ralf
+>
+> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+>
+>  arch/mips/cavium-octeon/Makefile | 3 ---
+>  arch/mips/lantiq/dts/Makefile    | 3 ---
+>  arch/mips/netlogic/dts/Makefile  | 3 ---
+>  3 files changed, 9 deletions(-)
+>
+> diff --git a/arch/mips/cavium-octeon/Makefile b/arch/mips/cavium-octeon/Makefile
+> index bc96e29..6e927cf 100644
+> --- a/arch/mips/cavium-octeon/Makefile
+> +++ b/arch/mips/cavium-octeon/Makefile
+> @@ -24,9 +24,6 @@ DTB_FILES = $(patsubst %.dts, %.dtb, $(DTS_FILES))
+>
+>  obj-y += $(patsubst %.dts, %.dtb.o, $(DTS_FILES))
+>
+> -$(obj)/%.dtb: $(src)/%.dts FORCE
+> -       $(call if_changed_dep,dtc)
+> -
+>  # Let's keep the .dtb files around in case we want to look at them.
+>  .SECONDARY:  $(addprefix $(obj)/, $(DTB_FILES))
+>
+> diff --git a/arch/mips/lantiq/dts/Makefile b/arch/mips/lantiq/dts/Makefile
+> index 674fca4..6fa72dd 100644
+> --- a/arch/mips/lantiq/dts/Makefile
+> +++ b/arch/mips/lantiq/dts/Makefile
+> @@ -1,4 +1 @@
+>  obj-$(CONFIG_DT_EASY50712) := easy50712.dtb.o
+> -
+> -$(obj)/%.dtb: $(obj)/%.dts
+> -       $(call if_changed,dtc)
+> diff --git a/arch/mips/netlogic/dts/Makefile b/arch/mips/netlogic/dts/Makefile
+> index 67ae3fe2..d117d46 100644
+> --- a/arch/mips/netlogic/dts/Makefile
+> +++ b/arch/mips/netlogic/dts/Makefile
+> @@ -1,4 +1 @@
+>  obj-$(CONFIG_DT_XLP_EVP) := xlp_evp.dtb.o
+> -
+> -$(obj)/%.dtb: $(obj)/%.dts
+> -       $(call if_changed,dtc)
 
-Ah, I didn't know that. How does one build an x32 libc then?
+This actually breaks MIPS builds. MIPS builds the .dtbs in the same
+directory as the .dts files. Everyone else has a dts/ subdirectory,
+which is admittedly a bit insane, but until things are resolved I've
+dropped the above MIPS hunks.
 
-> > I would suggest we make 64-bit time_t, clock_t and suseconds_t the
-> > default in include/asm-generic/posix_types.h and change all existing
-> > 32 bit users of that file to provide an override to define these
-> > as "long".
-> 
-> We also need snseconds_t: POSIX stupidly enough demands that the 
-> nanosecond field in struct timespec is "long", but that is really not 
-> appropriate.  Unfortunately there are existing architectures (e.g. 
-> SPARC) where we can't use suseconds_t either, so we are trying to push a 
-> new snseconds_t type into POSIX.
+MIPS /could/ be changed to also use a dts directory, but I'd actually
+rather if someone could make all the other platforms build the dtbs in
+the same directory. I've looked at it briefly, but I haven't figured
+out all the make magic needed to do it nicely.
 
-Right.
+g.
 
-> > The other types that are used as 64 bit on x32 are ino_t, nlink_t,
-> > size_t, ssize_t, ptrdiff_t, and off_t.
-> 
-> ptrdiff_t obviously not... although __kernel_ptrdiff_t is (as the 
-> pointers are 64 bits in kernel space.)  Similarly, size_t and ssize_t 
-> are only 32 bits in user space and we override them for compatibility 
-> with the native kernel.
-
-For ARC and Meta, the pointers in kernel space are never 64 bit. For x32,
-they could in theory be 32 bit if one was to do a native x32 kernel port
-(which I hope nobody will do).
-
-The __kernel_* types are never about what the kernel actually has (user space
-should not care), they are about what the ABI defines that are are using.
-
-We could in theory define all the above (and __kernel_ulong_t) to be 64 bit
-wide on all new architectures, which would allow doing 64 bit port later
-without a compat layer, but that benefit would be far outweighed by the
-complexity and cost of passing 64-bit arguments in two registers for a lot
-of syscalls.
-
-	Arnd
+-- 
+Grant Likely, B.Sc., P.Eng.
+Secret Lab Technologies Ltd.
