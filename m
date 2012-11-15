@@ -1,51 +1,58 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC Patch v1 33/55] ARC: ptrace support
-Date: Thu, 15 Nov 2012 15:54:05 +0530
-Message-ID: <50A4C2C5.90306@synopsys.com>
-References: <1352720953-24321-1-git-send-email-vgupta@synopsys.com> <1352720953-24321-3-git-send-email-vgupta@synopsys.com> <201211121351.06023.arnd@arndb.de>
+Subject: Re: [RFC Patch v1 37/55] ARC: dynamic loadable module support
+Date: Thu, 15 Nov 2012 15:58:55 +0530
+Message-ID: <50A4C3E7.8020304@synopsys.com>
+References: <1352720953-24321-1-git-send-email-vgupta@synopsys.com> <1352720953-24321-7-git-send-email-vgupta@synopsys.com> <201211121353.15314.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201211121351.06023.arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from vaxjo.synopsys.com ([198.182.60.75]:35295 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S2992442Ab2KOKaC (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 05:30:02 -0500
+In-Reply-To: <201211121353.15314.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
-List-Id: linux-arch.vger.kernel.org
 
-On Monday 12 November 2012 07:21 PM, Arnd Bergmann wrote:
+On Monday 12 November 2012 07:23 PM, Arnd Bergmann wrote:
 > On Monday 12 November 2012, Vineet.Gupta1@synopsys.com wrote:
->> +       case PTRACE_PEEKUSR:
->> +               pos = addr;     /* offset in struct user_regs_struct */
->> +               count = 4;      /* 1 register only */
->> +               u_addr = (unsigned int __user *)data;
->> +               kbuf = NULL;
->> +               ret = genregs_get(child, NULL, pos, count, kbuf, u_addr);
->> +               break;
+>> +void *module_alloc(unsigned long size)
+>> +{
+>> +       if (size == 0)
+>> +               return NULL;
 >> +
->> +       case PTRACE_POKEUSR:
->> +               pos = addr;     /* offset in struct user_regs_struct */
->> +               count = 4;      /* 1 register only */
+>> +       return vmalloc(size);
 >> +
->> +               /* Ideally @data would have abeen a user space buffer, from
->> +                * where, we do a copy_from_user.
->> +                * However this request only involves one word, which courtesy
->> +                * our ABI can be passed in a reg.
->> +                * regset interface however expects some buffer to copyin from
->> +                */
->> +               kbuf = &data;
->> +               u_addr = NULL;
+>> +}
 >> +
->> +               ret = genregs_set(child, NULL, pos, count, kbuf, u_addr);
->> +               break;
+>> +void module_free(struct module *module, void *region)
+>> +{
+>> +       vfree(region);
+>> +}
 >> +
-> I think these should be moved into regsets, as we have done for all
-> other new architectures. Your arch_ptrace then becomes a trivial wrapper
-> around ptrace_request.
+>> +int module_frob_arch_sections(Elf_Ehdr *hdr, Elf_Shdr *sechdrs,
+>> +                             char *secstr, struct module *mod)
+>> +{
+>> +    return 0;
+>> +}
+>> +
+>> +void module_arch_cleanup(struct module *mod)
+>> +{
+>> +}
+>> +
+>> +int module_finalize(const Elf32_Ehdr *hdr, const Elf_Shdr *sechdrs,
+>> +                   struct module *mod)
+>> +{
+>> +    return 0;
+>> +} 
+> All of these are identical to the default implementation in kernel/module.c
+> and you can simply drop your own definitions.
 
-The regset stuff is already complete - and even this code uses the reget
-callbacks. It's just that we need to carry on this dual ABI for some
-time for our legacy gdbserver.
+Alloc/free dropped. Rest 3 needed for ARC specific unwinding out of
+loadable modules.
 
 >
 > 	Arnd
