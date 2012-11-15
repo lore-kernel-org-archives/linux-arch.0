@@ -1,73 +1,51 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:54580 "EHLO
-	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1768673Ab2KOSbl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 13:31:41 -0500
-Message-ID: <50A5350A.3070109@wwwdotorg.org>
-Date: Thu, 15 Nov 2012 11:31:38 -0700
-From: Stephen Warren <swarren@wwwdotorg.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:56404 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751477Ab2KOVzq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 16:55:46 -0500
+Date: Thu, 15 Nov 2012 21:55:29 +0000
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: new execve/kernel_thread design
+Message-ID: <20121115215529.GU2616@ZenIV.linux.org.uk>
+References: <20121016223508.GR2616@ZenIV.linux.org.uk>
+ <CACM3HyEpypULRWUc5ZnLnZ=uOWf3_j=9PXZiJrT_BXyGcQe9yg@mail.gmail.com>
+ <CAHTX3dKDsOiUwtXxAUj-F4Y4rO+UZZDR4ufx_nxf+vuhmz46WA@mail.gmail.com>
+ <20121017160702.GY2616@ZenIV.linux.org.uk>
+ <20121017161953.GZ2616@ZenIV.linux.org.uk>
+ <CAHTX3dJN4Jun2KVXpda1wTrwkjT0mmH4fYmUUwq69d9sCTjXnA@mail.gmail.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH V5 1/2] kbuild: centralize .dts->.dtb rule
-References: <CACxGe6vhd_4rcBbYyqtvbySVaY6XpNE+HQq42PZhKe5yt=zcaA@mail.gmail.com> <1352980284-2819-1-git-send-email-grant.likely@secretlab.ca> <50A52FEC.4080409@wwwdotorg.org> <CACxGe6tZOjMXR6CNDzDTSUkcERLiX-2+Qoad0bcPum5Z-Jxaaw@mail.gmail.com>
-In-Reply-To: <CACxGe6tZOjMXR6CNDzDTSUkcERLiX-2+Qoad0bcPum5Z-Jxaaw@mail.gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <CAHTX3dJN4Jun2KVXpda1wTrwkjT0mmH4fYmUUwq69d9sCTjXnA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Grant Likely <grant.likely@secretlab.ca>
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Stephen Warren <swarren@nvidia.com>, devicetree-discuss@lists.ozlabs.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
-Message-ID: <20121115183138.R8HHYEwskFRmrIK8cn3aHiz1GqxygM2RxUHwL4ME7KI@z>
+To: Michal Simek <monstr@monstr.eu>
+Cc: Jonas Bonn <jonas@southpole.se>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan Xuetao <gxt@mprc.pku.edu.cn>
+Message-ID: <20121115215529.GP3IG8cLt1UF_P6ZkBN_-tqPv9vzfQzcOQpZUcFrYSU@z>
 
-On 11/15/2012 11:20 AM, Grant Likely wrote:
-> On Thu, Nov 15, 2012 at 6:09 PM, Stephen Warren <swarren@wwwdotorg.org> wrote:
->> On 11/15/2012 04:51 AM, Grant Likely wrote:
->>> Grant Likely wrote:
->>>> Or how about: I could pick up the patch with only the MIPS hunk and
->>>> every other user can be fixed up independently to use the new rule.
->>>
->>> Here's a trial patch to fix up ARM. Does this look correct? This patch
->>> depends on the generic dtb build rule already being applied.
->>
->> I think the patch looks OK technically, except for one minor comment below.
->>
->> One issue with this patch is that it moves *.dts from arch/arm/boot to
->> arch/arm/boot/dts, which means everyone has to adjust their scripts/...
->> that package/install/... the kernel. I guess it's an easy change for
->> people to make, but could easily catch people unawares if they do
->> incremental builds so that arch/arm/boot/*.dtb still exists but is stale.
+On Thu, Nov 15, 2012 at 05:41:16PM +0100, Michal Simek wrote:
+> Here is the branch based on rc5 (information below)
+> and here is giweb.
+> http://developer.petalogix.com/git/gitweb.cgi?p=linux-2.6-microblaze.git;a=shortlog;h=refs/heads/viro/arch-microblaze-rc5
 > 
-> True. We could temporarily remove or rename if the same file exists in
-> the directory below to help people catch that problem. I really would
-> like to clean up that build rule to be consistent though.
+> I have also looked at your sys_fork / sys_vfork / sys_clone unification
+> and I have fixed it for Microblaze.
 > 
-> The other option is to move all the .dts files into the boot
-> directory, but I don't think that is a good idea at all.
-
-Maybe we can just add "rm *.dtb" to the following rules in
-boot/Makefile, before calling the child make?
-
-%.dtb: scripts
--	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
-+	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $(boot)/dts/$@
-
- dtbs: scripts
--	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
-+	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) dtbs
-
->>> +targets += dtbs
->>
->> Doesn't that make the "dtbs" target always run by default? Perhaps
->> that's reasonable though, and doesn't actually affect anything since the
->> make command for this directory always specifies an explicit target?
->>
->> Or, was that meant to be the following that got removed from ../Makefile?
->>
->> targets += $(dtb-y)
+> Also I have done some tests on it for sure.
 > 
-> Yes it is supposed to be the same thing. Doesn't it effectively do the
-> same since dtbs depends on $(dtb-y)?
+> I would add sys_execve/kernel_execve/kernel_thread patches to my next branch.
+> Are you OK with that?
 
-Ah, I think so yes.
+Umm...  In principle - yes, but I've a couple of question abouts those.
 
-I guess anyway that $(targets) is presumably ignored if an explicit
-build target is requested from make.
+1) What's that set_fs(USER_DS) in start_thread() for?  Note that we do the same
+thing in flush_old_exec(), at the same time we remove PF_KTHREAD from
+current->flags.
+
+While we are at it, if we *ever* hit do_signal() with KERNEL_DS, we are
+very deep in trouble.  set_fs(USER_DS) in setup_{rt_,}frame() is pointless.
+
+2) your definition of current_pt_regs() is an exact copy of on in
+include/linux/ptrace.h; why is "microblaze: Define current_pt_regs"
+needed at all?  IOW, I'd rather added #include <linux/ptrace.h> to
+arch/microblaze/kernel/process.c instead...
