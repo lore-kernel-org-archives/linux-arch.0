@@ -1,106 +1,44 @@
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [PATCH V5 1/2] kbuild: centralize .dts->.dtb rule
-Date: Thu, 15 Nov 2012 11:51:24 +0000
-Message-ID: <1352980284-2819-1-git-send-email-grant.likely@secretlab.ca>
-References: <CACxGe6vhd_4rcBbYyqtvbySVaY6XpNE+HQq42PZhKe5yt=zcaA@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC Patch v1 33/55] ARC: ptrace support
+Date: Thu, 15 Nov 2012 11:56:51 +0000
+Message-ID: <201211151156.52033.arnd@arndb.de>
+References: <1352720953-24321-1-git-send-email-vgupta@synopsys.com> <201211121351.06023.arnd@arndb.de> <50A4C2C5.90306@synopsys.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f172.google.com ([209.85.212.172]:43669 "EHLO
-	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S2993257Ab2KOLve (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 06:51:34 -0500
-Received: by mail-wi0-f172.google.com with SMTP id hj6so1208321wib.1
-        for <linux-arch@vger.kernel.org>; Thu, 15 Nov 2012 03:51:33 -0800 (PST)
-In-Reply-To: <CACxGe6vhd_4rcBbYyqtvbySVaY6XpNE+HQq42PZhKe5yt=zcaA@mail.gmail.com>
+Received: from moutng.kundenserver.de ([212.227.17.10]:60728 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S2993257Ab2KOL4y (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 06:56:54 -0500
+In-Reply-To: <50A4C2C5.90306@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-Cc: linux-kernel@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Grant Likely <grant.likely@secretlab.ca>, Stephen Warren <swarren@nvidia.com>, Sam Ravnborg <sam@ravnborg.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
 
-Grant Likely wrote:
-> Or how about: I could pick up the patch with only the MIPS hunk and
-> every other user can be fixed up independently to use the new rule.
+On Thursday 15 November 2012, Vineet Gupta wrote:
+> On Monday 12 November 2012 07:21 PM, Arnd Bergmann wrote:
+>
+> > I think these should be moved into regsets, as we have done for all
+> > other new architectures. Your arch_ptrace then becomes a trivial wrapper
+> > around ptrace_request.
+> 
+> The regset stuff is already complete - and even this code uses the reget
+> callbacks. It's just that we need to carry on this dual ABI for some
+> time for our legacy gdbserver.
 
-Here's a trial patch to fix up ARM. Does this look correct? This patch
-depends on the generic dtb build rule already being applied.
+Ok, but please don't submit that patch upstream then. It's ok to
+keep it in your own tree for the transitional phase, I assume
+that you have other patches in there as well that are not submitted
+yet. Once the new gdb is in use everywhere, you can just drop that
+patch.
 
-g.
+The problem with having this upstream is that this would create
+a precedent for having the interface, and if people start relying
+on it being there, we can't remove from upstream any more. If you
+just have it in your private repository, we can just argue that it
+was never officially supported.
 
----
-
-arm/of: Change .dtb build rules to build in dts directory
-
-The current rules have the .dtb files build in a different directory
-from the .dts files. The only reason for this is that it was what
-PowerPC has done historically. This patch changes ARM to use the generic
-dtb rule which builds .dtb files in the same directory as the source .dts.
-
-Signed-off-by: Grant Likely <grant.likely@secretlab.ca>
-Cc: Stephen Warren <swarren@nvidia.com>
-Cc: Sam Ravnborg <sam@ravnborg.org>
----
- arch/arm/Makefile          |    4 ++--
- arch/arm/boot/Makefile     |   12 ------------
- arch/arm/boot/dts/Makefile |    4 ++++
- 3 files changed, 6 insertions(+), 14 deletions(-)
-
-diff --git a/arch/arm/Makefile b/arch/arm/Makefile
-index 5f914fc..c35baf1 100644
---- a/arch/arm/Makefile
-+++ b/arch/arm/Makefile
-@@ -292,10 +292,10 @@ zinstall uinstall install: vmlinux
- 	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $@
- 
- %.dtb: scripts
--	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
-+	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $(boot)/dts/$@
- 
- dtbs: scripts
--	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
-+	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) dtbs
- 
- # We use MRPROPER_FILES and CLEAN_FILES now
- archclean:
-diff --git a/arch/arm/boot/Makefile b/arch/arm/boot/Makefile
-index f2aa09e..801b92c 100644
---- a/arch/arm/boot/Makefile
-+++ b/arch/arm/boot/Makefile
-@@ -15,8 +15,6 @@ ifneq ($(MACHINE),)
- include $(srctree)/$(MACHINE)/Makefile.boot
- endif
- 
--include $(srctree)/arch/arm/boot/dts/Makefile
--
- # Note: the following conditions must always be true:
- #   ZRELADDR == virt_to_phys(PAGE_OFFSET + TEXT_OFFSET)
- #   PARAMS_PHYS must be within 4MB of ZRELADDR
-@@ -59,16 +57,6 @@ $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
- 
- endif
- 
--targets += $(dtb-y)
--
--# Rule to build device tree blobs
--$(obj)/%.dtb: $(src)/dts/%.dts FORCE
--	$(call if_changed_dep,dtc)
--
--$(obj)/dtbs: $(addprefix $(obj)/, $(dtb-y))
--
--clean-files := *.dtb
--
- ifneq ($(LOADADDR),)
-   UIMAGE_LOADADDR=$(LOADADDR)
- else
-diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-index f37cf9f..2aef042 100644
---- a/arch/arm/boot/dts/Makefile
-+++ b/arch/arm/boot/dts/Makefile
-@@ -104,4 +104,8 @@ dtb-$(CONFIG_ARCH_VT8500) += vt8500-bv07.dtb \
- 	wm8505-ref.dtb \
- 	wm8650-mid.dtb
- 
-+targets += dtbs
- endif
-+
-+dtbs: $(addprefix $(obj)/, $(dtb-y))
-+clean-files := *.dtb
--- 
-1.7.10.4
+	Arnd
