@@ -1,41 +1,51 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC Patch v1 32/55] ARC: [optim] Cache "current" in Register
- r25
-Date: Thu, 15 Nov 2012 15:52:43 +0530
-Message-ID: <50A4C273.10102@synopsys.com>
-References: <1352720953-24321-1-git-send-email-vgupta@synopsys.com> <1352720953-24321-2-git-send-email-vgupta@synopsys.com> <201211121350.12810.arnd@arndb.de>
+Subject: Re: [RFC Patch v1 33/55] ARC: ptrace support
+Date: Thu, 15 Nov 2012 15:54:05 +0530
+Message-ID: <50A4C2C5.90306@synopsys.com>
+References: <1352720953-24321-1-git-send-email-vgupta@synopsys.com> <1352720953-24321-3-git-send-email-vgupta@synopsys.com> <201211121351.06023.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201211121350.12810.arnd@arndb.de>
+In-Reply-To: <201211121351.06023.arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
 List-Id: linux-arch.vger.kernel.org
 
-On Monday 12 November 2012 07:20 PM, Arnd Bergmann wrote:
+On Monday 12 November 2012 07:21 PM, Arnd Bergmann wrote:
 > On Monday 12 November 2012, Vineet.Gupta1@synopsys.com wrote:
->>  endmenu # "Platform Board Configuration"
->>  
->> +config ARC_CURR_IN_REG
->> +       bool "Dedicate Register r25 for current_task pointer"
->> +       default y
->> +       help
->> +         This reserved Register R25 to point to Current Task in
->> +         kernel mode. This saves memory access for each such access
+>> +       case PTRACE_PEEKUSR:
+>> +               pos = addr;     /* offset in struct user_regs_struct */
+>> +               count = 4;      /* 1 register only */
+>> +               u_addr = (unsigned int __user *)data;
+>> +               kbuf = NULL;
+>> +               ret = genregs_get(child, NULL, pos, count, kbuf, u_addr);
+>> +               break;
 >> +
-> This looks like a useful feature if you have 32 GPRs, but why make it
-> optional? Are there cases where you would disable it?
+>> +       case PTRACE_POKEUSR:
+>> +               pos = addr;     /* offset in struct user_regs_struct */
+>> +               count = 4;      /* 1 register only */
+>> +
+>> +               /* Ideally @data would have abeen a user space buffer, from
+>> +                * where, we do a copy_from_user.
+>> +                * However this request only involves one word, which courtesy
+>> +                * our ABI can be passed in a reg.
+>> +                * regset interface however expects some buffer to copyin from
+>> +                */
+>> +               kbuf = &data;
+>> +               u_addr = NULL;
+>> +
+>> +               ret = genregs_set(child, NULL, pos, count, kbuf, u_addr);
+>> +               break;
+>> +
+> I think these should be moved into regsets, as we have done for all
+> other new architectures. Your arch_ptrace then becomes a trivial wrapper
+> around ptrace_request.
 
-Since it touched the low level guts of port, it made sense to start with
-a config option in initial implementation. But I've kept it that way
-since it annotates the code nicely and implicitly documents how to do
-this for any other register + data structure.
+The regset stuff is already complete - and even this code uses the reget
+callbacks. It's just that we need to carry on this dual ABI for some
+time for our legacy gdbserver.
 
-> Another alternative to caching "current" would be to cache the per-cpu
-> offset, and calculate current from that one.
-
-Good tip - I'll add this to my TODO list -
-
+>
 > 	Arnd
