@@ -1,43 +1,23 @@
-From: "H.J. Lu" <hjl.tools@gmail.com>
+From: "H. Peter Anvin" <hpa@zytor.com>
 Subject: Re: new architectures, time_t __kernel_long_t
-Date: Thu, 15 Nov 2012 06:42:16 -0800
-Message-ID: <CAMe9rOqvEFp=J-93WVgmF9K-hspq4z444a8PCJWC3tiSRkteOg@mail.gmail.com>
-References: <201211141218.02105.arnd@arndb.de>
-	<201211150914.22835.arnd@arndb.de>
-	<CAMe9rOpziKa6QLfjX9iXtfj_X2QAyDAV2p8NEd8Wd7yFwTrpNg@mail.gmail.com>
-	<201211151436.23088.arnd@arndb.de>
+Date: Thu, 15 Nov 2012 07:10:12 -0800
+Message-ID: <50A505D4.1080606@zytor.com>
+References: <201211141218.02105.arnd@arndb.de> <201211150914.22835.arnd@arndb.de> <CAMe9rOpziKa6QLfjX9iXtfj_X2QAyDAV2p8NEd8Wd7yFwTrpNg@mail.gmail.com> <201211151436.23088.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-da0-f46.google.com ([209.85.210.46]:58113 "EHLO
-	mail-da0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S2993440Ab2KOOmQ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 09:42:16 -0500
+Received: from terminus.zytor.com ([198.137.202.10]:51204 "EHLO mail.zytor.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1768222Ab2KOPKd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 15 Nov 2012 10:10:33 -0500
 In-Reply-To: <201211151436.23088.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, Vineet.Gupta1@synopsys.com, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>
+Cc: "H.J. Lu" <hjl.tools@gmail.com>, linux-arch@vger.kernel.org, Vineet.Gupta1@synopsys.com, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>
 
-On Thu, Nov 15, 2012 at 6:36 AM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Thursday 15 November 2012, H.J. Lu wrote:
->> On Thu, Nov 15, 2012 at 1:14 AM, Arnd Bergmann <arnd@arndb.de> wrote:
->> > On Wednesday 14 November 2012, H. Peter Anvin wrote:
->> >> On 11/14/2012 04:18 AM, Arnd Bergmann wrote:
->> >> > Since we are in the review phase for two new architectures that we
->> >> > should be merging into the mainline kernel, I think we need to
->> >> > come up with a solution for making them use a proper 64-bit time_t.
->> >> >
->> >> > Right now, the only 32-bit user space interface we have to use 64-bit
->> >> > time_t is the x32 side of x86-64, and that works by overriding all
->> >> > "long" sized types to be 64 bit at the ABI level, which we don't
->> >> > want for pure 32 bit architectures.
->> >>
->> >> Sort of.  Either way, the kernel headers aren't really x32-clean yet, so
->> >> we have an opportunity to do things more cleanly as we are implementing
->> >> this.
->> >
->> > Ah, I didn't know that. How does one build an x32 libc then?
+On 11/15/2012 06:36 AM, Arnd Bergmann wrote:
 >>
 >> Glibc has been providing its own types for years.
 >> Kernel provided types used to be wrong for ia32
@@ -47,7 +27,11 @@ On Thu, Nov 15, 2012 at 6:36 AM, Arnd Bergmann <arnd@arndb.de> wrote:
 > kernel headers and use the __kernel_*_t types?
 >
 
-Glibc defines __syscall_slong_t and __syscall_ulong_t.
+Now, glibc *shouldn't* have to do that... it is an indication of failure 
+on our part.
+
+	-hpa
 
 -- 
-H.J.
+H. Peter Anvin, Intel Open Source Technology Center
+I work for Intel.  I don't speak on their behalf.
