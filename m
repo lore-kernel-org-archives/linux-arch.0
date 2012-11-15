@@ -1,68 +1,39 @@
-From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: Re: [PATCH V5 1/2] kbuild: centralize .dts->.dtb rule
-Date: Thu, 15 Nov 2012 11:31:38 -0700
-Message-ID: <50A5350A.3070109@wwwdotorg.org>
-References: <CACxGe6vhd_4rcBbYyqtvbySVaY6XpNE+HQq42PZhKe5yt=zcaA@mail.gmail.com> <1352980284-2819-1-git-send-email-grant.likely@secretlab.ca> <50A52FEC.4080409@wwwdotorg.org> <CACxGe6tZOjMXR6CNDzDTSUkcERLiX-2+Qoad0bcPum5Z-Jxaaw@mail.gmail.com>
+From: Ralf Baechle <ralf@linux-mips.org>
+Subject: Re: [RFC PATCH v1 26/31] ARC: Build system: Makefiles, Kconfig,
+ Linker script
+Date: Thu, 15 Nov 2012 20:30:50 +0100
+Message-ID: <20121115193050.GA1244@linux-mips.org>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
+ <1352281674-2186-27-git-send-email-vgupta@synopsys.com>
+ <50A52B45.6030907@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CACxGe6tZOjMXR6CNDzDTSUkcERLiX-2+Qoad0bcPum5Z-Jxaaw@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Grant Likely <grant.likely@secretlab.ca>
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Stephen Warren <swarren@nvidia.com>, devicetree-discuss@lists.ozlabs.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from arrakis.dune.hu ([78.24.191.176]:44186 "EHLO
+	eddie.linux-mips.org" rhost-flags-OK-OK-OK-FAIL) by vger.kernel.org
+	with ESMTP id S1768775Ab2KOTbA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 15 Nov 2012 14:31:00 -0500
+Content-Disposition: inline
+In-Reply-To: <50A52B45.6030907@imgtec.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, arnd@arndb.de, linux-mips@linux-mips.org
 
-On 11/15/2012 11:20 AM, Grant Likely wrote:
-> On Thu, Nov 15, 2012 at 6:09 PM, Stephen Warren <swarren@wwwdotorg.org> wrote:
->> On 11/15/2012 04:51 AM, Grant Likely wrote:
->>> Grant Likely wrote:
->>>> Or how about: I could pick up the patch with only the MIPS hunk and
->>>> every other user can be fixed up independently to use the new rule.
->>>
->>> Here's a trial patch to fix up ARM. Does this look correct? This patch
->>> depends on the generic dtb build rule already being applied.
->>
->> I think the patch looks OK technically, except for one minor comment below.
->>
->> One issue with this patch is that it moves *.dts from arch/arm/boot to
->> arch/arm/boot/dts, which means everyone has to adjust their scripts/...
->> that package/install/... the kernel. I guess it's an easy change for
->> people to make, but could easily catch people unawares if they do
->> incremental builds so that arch/arm/boot/*.dtb still exists but is stale.
+On Thu, Nov 15, 2012 at 05:49:57PM +0000, James Hogan wrote:
+
+> On 07/11/12 09:47, Vineet Gupta wrote:
+> > +config ARC
 > 
-> True. We could temporarily remove or rename if the same file exists in
-> the directory below to help people catch that problem. I really would
-> like to clean up that build rule to be consistent though.
+> I just came across arch/mips/Kconfig which also defines ARC (and ARC32).
+> It's only used within arch/mips/, however it's probably more likely that
+> your ARC/CONFIG_ARC will find it's way into the generic bits of the
+> kernel which could get hit when the other ARC is defined.
 > 
-> The other option is to move all the .dts files into the boot
-> directory, but I don't think that is a good idea at all.
+> Perhaps it's worth getting the other ARC renamed just in case?
 
-Maybe we can just add "rm *.dtb" to the following rules in
-boot/Makefile, before calling the child make?
+The MIPS world surely isn't as attached to the CONFIG_ARC config symbol
+as Synopsis so I'm going to rename CONFIG_ARC and a few other firmware
+related config symbols to use a consistent prefix of CONFIG_FW_.
 
-%.dtb: scripts
--	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
-+	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $(boot)/dts/$@
-
- dtbs: scripts
--	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
-+	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) dtbs
-
->>> +targets += dtbs
->>
->> Doesn't that make the "dtbs" target always run by default? Perhaps
->> that's reasonable though, and doesn't actually affect anything since the
->> make command for this directory always specifies an explicit target?
->>
->> Or, was that meant to be the following that got removed from ../Makefile?
->>
->> targets += $(dtb-y)
-> 
-> Yes it is supposed to be the same thing. Doesn't it effectively do the
-> same since dtbs depends on $(dtb-y)?
-
-Ah, I think so yes.
-
-I guess anyway that $(targets) is presumably ignored if an explicit
-build target is requested from make.
+  Ralf
