@@ -1,42 +1,39 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [RFC PATCH v1 16/31] ARC: Signal handling
-Date: Fri, 16 Nov 2012 05:26:28 +0000
-Message-ID: <20121116052628.GC22671@ZenIV.linux.org.uk>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
- <1352281674-2186-17-git-send-email-vgupta@synopsys.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [RFC PATCH v1 26/31] ARC: Build system: Makefiles, Kconfig, Linker
+ script
+Date: Fri, 16 Nov 2012 12:06:02 +0530
+Message-ID: <50A5DED2.5030803@synopsys.com>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-27-git-send-email-vgupta@synopsys.com> <50A52B45.6030907@imgtec.com> <20121115193050.GA1244@linux-mips.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:58478 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750731Ab2KPF03 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Nov 2012 00:26:29 -0500
-Content-Disposition: inline
-In-Reply-To: <1352281674-2186-17-git-send-email-vgupta@synopsys.com>
+Received: from alvesta.synopsys.com ([198.182.60.77]:32921 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750765Ab2KPGhu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Nov 2012 01:37:50 -0500
+In-Reply-To: <20121115193050.GA1244@linux-mips.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, arnd@arndb.de
+To: Ralf Baechle <ralf@linux-mips.org>
+Cc: James Hogan <james.hogan@imgtec.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, arnd@arndb.de, linux-mips@linux-mips.org
 
-> +	if (insyscall) {
-> +		/* No handler for syscall: restart it */
-> +		if (regs->r0 == -ERESTARTNOHAND ||
-> +		    regs->r0 == -ERESTARTSYS || regs->r0 == -ERESTARTNOINTR) {
-> +			regs->r0 = regs->orig_r0;
-> +			regs->ret -= 4;
-> +		} else if (regs->r0 == -ERESTART_RESTARTBLOCK) {
-> +			regs->r8 = __NR_restart_syscall;
-> +			regs->ret -= 4;
-> +		}
+On Friday 16 November 2012 01:00 AM, Ralf Baechle wrote:
+> On Thu, Nov 15, 2012 at 05:49:57PM +0000, James Hogan wrote:
+>
+>> On 07/11/12 09:47, Vineet Gupta wrote:
+>>> +config ARC
+>> I just came across arch/mips/Kconfig which also defines ARC (and ARC32).
+>> It's only used within arch/mips/, however it's probably more likely that
+>> your ARC/CONFIG_ARC will find it's way into the generic bits of the
+>> kernel which could get hit when the other ARC is defined.
+>>
+>> Perhaps it's worth getting the other ARC renamed just in case?
+> The MIPS world surely isn't as attached to the CONFIG_ARC config symbol
+> as Synopsis so I'm going to rename CONFIG_ARC and a few other firmware
+> related config symbols to use a consistent prefix of CONFIG_FW_.
 
-What's to prevent double decrement on ->ret if two signals arrive?   Note
-that e.g. x86 gets away with similar code only because it uses the same
-register for syscall number and return value; since none of -ERESTART...
-is a valid syscall number, we either won't get into an analog of that code at
-all (-ENOSYS is not restart-worthy) or will revert to a value that is
-a valid syscall number, so all subsequent do_signal() calls will not hit
-that code.  This is subtle and unfortunately not spelled out in the
-architectures where it is enough.
+Thanks Ralf !
 
-You need to make sure that after the first restart in_syscall() will be false.
-Same ought to be done in sigreturn(), BTW...
+-Vineet
+>   Ralf
