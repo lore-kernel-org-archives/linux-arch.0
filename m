@@ -1,97 +1,79 @@
-From: Jonas Bonn <jonas@southpole.se>
-Subject: Re: [PATCH RFT RESEND linux-next] openrisc: dma-mapping: support
- debug_dma_mapping_error
-Date: Fri, 16 Nov 2012 08:03:13 +0100
-Message-ID: <1353049393.7748.156.camel@jerome.southpole.se>
-References: <1351208548.6851.19.camel@lorien2>
-	 <1351267555.4013.15.camel@lorien2> <1353002435.2532.39.camel@lorien2>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: new execve/kernel_thread design
+Date: Fri, 16 Nov 2012 08:59:25 +0100
+Message-ID: <CAHTX3d+Ou3_4tGqwyWFfNMSumPw2770_nhV_cTQa89k7+sxdHw@mail.gmail.com>
+References: <20121016223508.GR2616@ZenIV.linux.org.uk>
+	<CACM3HyEpypULRWUc5ZnLnZ=uOWf3_j=9PXZiJrT_BXyGcQe9yg@mail.gmail.com>
+	<CAHTX3dKDsOiUwtXxAUj-F4Y4rO+UZZDR4ufx_nxf+vuhmz46WA@mail.gmail.com>
+	<20121017160702.GY2616@ZenIV.linux.org.uk>
+	<20121017161953.GZ2616@ZenIV.linux.org.uk>
+	<CAHTX3dJN4Jun2KVXpda1wTrwkjT0mmH4fYmUUwq69d9sCTjXnA@mail.gmail.com>
+	<20121115215529.GU2616@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.southpole.se ([37.247.8.11]:37578 "EHLO mail.southpole.se"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750730Ab2KPHDV (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 16 Nov 2012 02:03:21 -0500
-In-Reply-To: <1353002435.2532.39.camel@lorien2>
+Received: from mail-ea0-f174.google.com ([209.85.215.174]:49761 "EHLO
+	mail-ea0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751215Ab2KPH71 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Nov 2012 02:59:27 -0500
+Received: by mail-ea0-f174.google.com with SMTP id e13so951896eaa.19
+        for <linux-arch@vger.kernel.org>; Thu, 15 Nov 2012 23:59:26 -0800 (PST)
+In-Reply-To: <20121115215529.GU2616@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: shuah.khan@hp.com
-Cc: Marek Szyprowski <m.szyprowski@samsung.com>, LKML <linux-kernel@vger.kernel.org>, shuahkhan@gmail.com, linux-arch@vger.kernel.org
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thu, 2012-11-15 at 11:00 -0700, Shuah Khan wrote:
-> On Fri, 2012-10-26 at 10:05 -0600, Shuah Khan wrote:
-> > Add support for debug_dma_mapping_error() call to avoid warning from
-> > debug_dma_unmap() interface when it checks for mapping error checked
-> > status. Without this patch, device driver failed to check map error
-> > warning is generated.
-> > 
-> > Signed-off-by: Shuah Khan <shuah.khan@hp.com>
-> > ---
-> >  arch/openrisc/include/asm/dma-mapping.h |    1 +
-> >  1 file changed, 1 insertion(+)
-> > 
-> > diff --git a/arch/openrisc/include/asm/dma-mapping.h b/arch/openrisc/include/asm/dma-mapping.h
-> > index fab8628..f12de49 100644
-> > --- a/arch/openrisc/include/asm/dma-mapping.h
-> > +++ b/arch/openrisc/include/asm/dma-mapping.h
-> > @@ -95,6 +95,7 @@ static inline int dma_supported(struct device *dev, u64 dma_mask)
-> >  
-> >  static inline int dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
-> >  {
-> > +	debug_dma_mapping_error(dev, dma_addr);
-> >  	return 0;
-> >  }
-> >  
-> 
-> Marek/Jonas,
-> 
-> This one is for openrisc to go through Marek's tree with the other arch
-> debug_dma_mapping_error() patches. Hoping it is ok with Jonas.
+2012/11/15 Al Viro <viro@zeniv.linux.org.uk>:
+> On Thu, Nov 15, 2012 at 05:41:16PM +0100, Michal Simek wrote:
+>> Here is the branch based on rc5 (information below)
+>> and here is giweb.
+>> http://developer.petalogix.com/git/gitweb.cgi?p=linux-2.6-microblaze.git;a=shortlog;h=refs/heads/viro/arch-microblaze-rc5
+>>
+>> I have also looked at your sys_fork / sys_vfork / sys_clone unification
+>> and I have fixed it for Microblaze.
+>>
+>> Also I have done some tests on it for sure.
+>>
+>> I would add sys_execve/kernel_execve/kernel_thread patches to my next branch.
+>> Are you OK with that?
+>
+> Umm...  In principle - yes, but I've a couple of question abouts those.
 
-NAK... for a bunch of reasons.
+sure.
+BTW: that generic sys_fork / sys_vfork / sys_clone will go through your tree.
 
-i)   You've sent this exact patch 4 times already... and this time
-you're trying to bypass me altogether by going through some other tree.
-First it was a PATCH, now it's an RFT... what do you want me to do with
-this?
 
-ii)  There isn't enough information in the commit message to understand
-what's going on here.  Why do I suddenly need this when I never needed
-it before?
+> 1) What's that set_fs(USER_DS) in start_thread() for?  Note that we do the same
+> thing in flush_old_exec(), at the same time we remove PF_KTHREAD from
+> current->flags.
 
-iii) This doesn't compile... but I figured out that it depends on other
-changes that seem to have snuck into linux-next already.  linux-arch was
-never included in that discussion, despite the fact that you have now
-introduced warnings for everybody
+ok. Will remove it.
 
-iv)  From what I can tell, you haven't even attempted to fix all
-architectures... but I could be wrong, see next comment.
+> While we are at it, if we *ever* hit do_signal() with KERNEL_DS, we are
+> very deep in trouble.  set_fs(USER_DS) in setup_{rt_,}frame() is pointless.
 
-v)  You've sent this patch series per-architecture which really only
-serves to fragment the discussion.  When a change is this
-straight-forward (exact same change in each architecture), then it's
-better to consolidate everything into a single patch to allow a single
-discussion to take place.  As it stands now, I have to go rummaging
-through the threads of all 30 architectures to see what others think of
-this; I'd say the silence is telling, but the few responses you did
-receive all show the same confusion and you're answering the same
-questions over and over.  I realize that you can't inflate your patch
-statistics this way and you'll probably just miss the top 10 of "Who
-wrote 3.8" because of it, but you can always try to write something
-witty in your commit message and hope to make "Quotes of the week"
-instead.
+I have seen that several your signal patches around signal are there.
 
-vi)  If you _had_ requested comment on your underlying dma-debug patch
-on linux-arch, I think you would have found that:
+Do you have set of tests which should run it?
 
-1)  introducing warnings without fixing them _at the same time_ isn't OK
-when the fix is this simple
-2)  if you make changes to core code, you make it optional until all
-arches have caught up
-3)  you are using get_dma_ops which isn't even implemented on every
-architecture
-4)  this change probably doesn't belong in every architecture but should
-be centralized in more generic code
 
-/Jonas
+> 2) your definition of current_pt_regs() is an exact copy of on in
+> include/linux/ptrace.h; why is "microblaze: Define current_pt_regs"
+> needed at all?  IOW, I'd rather added #include <linux/ptrace.h> to
+> arch/microblaze/kernel/process.c instead...
+
+Agree. Fixed.
+
+I have updated that branch or I can send you patches if you like.
+
+Thanks,
+Michal
+
+
+
+-- 
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
+Microblaze U-BOOT custodian
