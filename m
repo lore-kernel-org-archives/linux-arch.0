@@ -1,79 +1,117 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: new execve/kernel_thread design
-Date: Fri, 16 Nov 2012 08:59:25 +0100
-Message-ID: <CAHTX3d+Ou3_4tGqwyWFfNMSumPw2770_nhV_cTQa89k7+sxdHw@mail.gmail.com>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk>
-	<CACM3HyEpypULRWUc5ZnLnZ=uOWf3_j=9PXZiJrT_BXyGcQe9yg@mail.gmail.com>
-	<CAHTX3dKDsOiUwtXxAUj-F4Y4rO+UZZDR4ufx_nxf+vuhmz46WA@mail.gmail.com>
-	<20121017160702.GY2616@ZenIV.linux.org.uk>
-	<20121017161953.GZ2616@ZenIV.linux.org.uk>
-	<CAHTX3dJN4Jun2KVXpda1wTrwkjT0mmH4fYmUUwq69d9sCTjXnA@mail.gmail.com>
-	<20121115215529.GU2616@ZenIV.linux.org.uk>
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: Re: [next:akpm 205/376] mm/huge_memory.c:716:2: error: implicit
+ declaration of function 'pfn_pmd'
+Date: Fri, 16 Nov 2012 11:52:06 +0200
+Message-ID: <20121116095206.GA4043@otc-wbsnb-06>
+References: <50a4c285.wqKVmKLchrLESqoS%fengguang.wu@intel.com>
+ <20121115142728.190c5b3e.akpm@linux-foundation.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f174.google.com ([209.85.215.174]:49761 "EHLO
-	mail-ea0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751215Ab2KPH71 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 16 Nov 2012 02:59:27 -0500
-Received: by mail-ea0-f174.google.com with SMTP id e13so951896eaa.19
-        for <linux-arch@vger.kernel.org>; Thu, 15 Nov 2012 23:59:26 -0800 (PST)
-In-Reply-To: <20121115215529.GU2616@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-
-2012/11/15 Al Viro <viro@zeniv.linux.org.uk>:
-> On Thu, Nov 15, 2012 at 05:41:16PM +0100, Michal Simek wrote:
->> Here is the branch based on rc5 (information below)
->> and here is giweb.
->> http://developer.petalogix.com/git/gitweb.cgi?p=linux-2.6-microblaze.git;a=shortlog;h=refs/heads/viro/arch-microblaze-rc5
->>
->> I have also looked at your sys_fork / sys_vfork / sys_clone unification
->> and I have fixed it for Microblaze.
->>
->> Also I have done some tests on it for sure.
->>
->> I would add sys_execve/kernel_execve/kernel_thread patches to my next branch.
->> Are you OK with that?
->
-> Umm...  In principle - yes, but I've a couple of question abouts those.
-
-sure.
-BTW: that generic sys_fork / sys_vfork / sys_clone will go through your tree.
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="ibTvN161/egqYuK8"
+Return-path: <owner-linux-mm@kvack.org>
+Content-Disposition: inline
+In-Reply-To: <20121115142728.190c5b3e.akpm@linux-foundation.org>
+Sender: owner-linux-mm@kvack.org
+To: Andrew Morton <akpm@linux-foundation.org>, Ralf Baechle <ralf@linux-mips.org>
+Cc: linux-mm@kvack.org, linux-mips@linux-mips.org, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+List-Id: linux-arch.vger.kernel.org
 
 
-> 1) What's that set_fs(USER_DS) in start_thread() for?  Note that we do the same
-> thing in flush_old_exec(), at the same time we remove PF_KTHREAD from
-> current->flags.
+--ibTvN161/egqYuK8
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-ok. Will remove it.
+On Thu, Nov 15, 2012 at 02:27:28PM -0800, Andrew Morton wrote:
+> On Thu, 15 Nov 2012 18:23:01 +0800
+> kbuild test robot <fengguang.wu@intel.com> wrote:
+>=20
+> > tree:   git://git.kernel.org/pub/scm/linux/kernel/git/next/linux-next.g=
+it akpm
+> > head:   d3faae60d84f586ff8937b77c8476bca1b5f8ec6
+> > commit: 165a1669c89b5fa2f6c54bf609b408a592f024b3 [205/376] thp: copy_hu=
+ge_pmd(): copy huge zero page
+> > config: make ARCH=3Dmips allmodconfig
+> >=20
+> > All error/warnings:
+> >=20
+> > mm/huge_memory.c: In function 'set_huge_zero_page':
+> > mm/huge_memory.c:716:2: error: implicit declaration of function 'pfn_pm=
+d' [-Werror=3Dimplicit-function-declaration]
+> > mm/huge_memory.c:716:8: error: incompatible types when assigning to typ=
+e 'pmd_t' from type 'int'
+> > mm/huge_memory.c: In function 'do_huge_pmd_numa_page':
+> > mm/huge_memory.c:825:2: error: incompatible type for argument 3 of 'upd=
+ate_mmu_cache_pmd'
+> > In file included from include/linux/mm.h:44:0,
+> >                  from mm/huge_memory.c:8:
+> > arch/mips/include/asm/pgtable.h:385:20: note: expected 'struct pmd_t *'=
+ but argument is of type 'pmd_t'
+> > mm/huge_memory.c:895:2: error: incompatible type for argument 3 of 'upd=
+ate_mmu_cache_pmd'
+> > In file included from include/linux/mm.h:44:0,
+> >                  from mm/huge_memory.c:8:
+> > arch/mips/include/asm/pgtable.h:385:20: note: expected 'struct pmd_t *'=
+ but argument is of type 'pmd_t'
+> > cc1: some warnings being treated as errors
+> >=20
+> > vim +716 +/pfn_pmd mm/huge_memory.c
+> >=20
+> > 0bbbc0b3 Andrea Arcangeli   2011-01-13  710  #endif
+> > 71e3aac0 Andrea Arcangeli   2011-01-13  711 =20
+> > 165a1669 Kirill A. Shutemov 2012-11-15  712  static void set_huge_zero_=
+page(pgtable_t pgtable, struct mm_struct *mm,
+> > 165a1669 Kirill A. Shutemov 2012-11-15  713  		struct vm_area_struct *v=
+ma, unsigned long haddr, pmd_t *pmd)
+> > 165a1669 Kirill A. Shutemov 2012-11-15  714  {
+> > 165a1669 Kirill A. Shutemov 2012-11-15  715  	pmd_t entry;
+> > 165a1669 Kirill A. Shutemov 2012-11-15 @716  	entry =3D pfn_pmd(huge_ze=
+ro_pfn, vma->vm_page_prot);
+> > 165a1669 Kirill A. Shutemov 2012-11-15  717  	entry =3D pmd_wrprotect(e=
+ntry);
+> > 165a1669 Kirill A. Shutemov 2012-11-15  718  	entry =3D pmd_mkhuge(entr=
+y);
+> > 165a1669 Kirill A. Shutemov 2012-11-15  719  	set_pmd_at(mm, haddr, pmd=
+, entry);
+>=20
+> hm.  mips doesn't implement pfn_pmd() - quite a few architectures
+> don't.
 
-> While we are at it, if we *ever* hit do_signal() with KERNEL_DS, we are
-> very deep in trouble.  set_fs(USER_DS) in setup_{rt_,}frame() is pointless.
+I think it would be easier to fix it on arch side. Ralf?
 
-I have seen that several your signal patches around signal are there.
+> Not sure about the update_mmu_cache_pmd() thing.
 
-Do you have set of tests which should run it?
+I'll send a patchset to fix it. (it's not related to huge zero page)
 
+--=20
+ Kirill A. Shutemov
 
-> 2) your definition of current_pt_regs() is an exact copy of on in
-> include/linux/ptrace.h; why is "microblaze: Define current_pt_regs"
-> needed at all?  IOW, I'd rather added #include <linux/ptrace.h> to
-> arch/microblaze/kernel/process.c instead...
+--ibTvN161/egqYuK8
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
 
-Agree. Fixed.
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
 
-I have updated that branch or I can send you patches if you like.
+iQIcBAEBAgAGBQJQpgzGAAoJEAd+omnVudOMSgsP/i2Q3JaEN32QnJ7E4qbGC/05
+oJrGvfVxXkRRT//bLYG7zADB9ZhOcFHgyy82GLRH4GV4LNIHPs5VTIv/q85nbTYe
+SvWN8TazqmTmDwJQu43isU//Vi5SYN+p79dD9bM/K/Ol5O1kiDimcz2pKDkf4C85
+5Te5SyloKOVWWkpHmc8zARmG2PBlAtVa0laR4pIrSB4qQLrdhvtYhKMoqZQsB3z9
+Q5Wf2Q9zKJCEQpmBjC1Wosq6WEKJUs3ZfbONCFIEb6geDHUTr2g2/dm7QyQk8ucp
+W3/iYDPHlciTcnWik6pi2w0ZYaABGhpDVmlGs7lYk5uqeTIk+my18IdJ1G2IaxGn
+MAhdGzg55gRSjwQ+kmN3Icerz9eYm80HCZMhoGDJX5hhxqgH+TWf+DIyhVSpZY5h
+X0s0e9JOqhu6qA9wpungm1D6GdiFK1vtHx6ptjUgetqi+mbiT+hnobaaeCADSWOG
+cemHeF0BN7pwg+R47Rhfz27jeaBscwxCIhnFFGVIXIz0ctgcLzYk0UHXazu9ogrM
+sMec8s96WvxanwuvO+C3wQIzzhP77WznDrU7To/BaohD0WEQzdFGDldntUIzygKI
+E9LDnMiUO6iQZAB4dUX0vFWn2F0GgqLxqNdLHVwKgln6xY6d4mk1Qap7A2fDFcbQ
+RLb6+hl7ypvWeQZGzD9t
+=2YxA
+-----END PGP SIGNATURE-----
 
-Thanks,
-Michal
+--ibTvN161/egqYuK8--
 
-
-
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
-Microblaze U-BOOT custodian
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
