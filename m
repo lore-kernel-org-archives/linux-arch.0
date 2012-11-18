@@ -1,39 +1,48 @@
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Subject: Re: sigaltstack fun (was Re: new execve/kernel_thread design)
-Date: Sun, 18 Nov 2012 08:45:43 -1000
-Message-ID: <CA+55aFxncW2pEhsjg0AO9YKyvPaHyiXZMjoJZ1J8gA+8sH7HNw@mail.gmail.com>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk> <CACM3HyEpypULRWUc5ZnLnZ=uOWf3_j=9PXZiJrT_BXyGcQe9yg@mail.gmail.com>
- <CAHTX3dKDsOiUwtXxAUj-F4Y4rO+UZZDR4ufx_nxf+vuhmz46WA@mail.gmail.com>
- <20121017160702.GY2616@ZenIV.linux.org.uk> <20121017161953.GZ2616@ZenIV.linux.org.uk>
- <CAHTX3dJN4Jun2KVXpda1wTrwkjT0mmH4fYmUUwq69d9sCTjXnA@mail.gmail.com>
- <20121115215529.GU2616@ZenIV.linux.org.uk> <CAHTX3d+Ou3_4tGqwyWFfNMSumPw2770_nhV_cTQa89k7+sxdHw@mail.gmail.com>
- <20121118054510.GE16916@ZenIV.linux.org.uk>
+From: David Miller <davem@davemloft.net>
+Subject: Re: sigaltstack fun
+Date: Sun, 18 Nov 2012 14:03:32 -0500 (EST)
+Message-ID: <20121118.140332.1273544560009594278.davem@davemloft.net>
+References: <CAHTX3d+Ou3_4tGqwyWFfNMSumPw2770_nhV_cTQa89k7+sxdHw@mail.gmail.com>
+	<20121118054510.GE16916@ZenIV.linux.org.uk>
+	<CA+55aFxncW2pEhsjg0AO9YKyvPaHyiXZMjoJZ1J8gA+8sH7HNw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f172.google.com ([209.85.212.172]:56069 "EHLO
-	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752073Ab2KRSqG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 18 Nov 2012 13:46:06 -0500
-In-Reply-To: <20121118054510.GE16916@ZenIV.linux.org.uk>
+Received: from shards.monkeyblade.net ([149.20.54.216]:51839 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752142Ab2KRTDg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 18 Nov 2012 14:03:36 -0500
+In-Reply-To: <CA+55aFxncW2pEhsjg0AO9YKyvPaHyiXZMjoJZ1J8gA+8sH7HNw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Michal Simek <monstr@monstr.eu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: torvalds@linux-foundation.org
+Cc: viro@zeniv.linux.org.uk, monstr@monstr.eu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Sat, Nov 17, 2012 at 7:45 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
->
-> Linus, do you have any objections to the above?  FWIW, I've a tentative
-> patchset in that direction (most of it from the last cycle); right now
-> it + stuff currently in signal.git#for-next is at -3.4KLoC and I hadn't
-> dealt with the biarch side of things yet...
+From: Linus Torvalds <torvalds@linux-foundation.org>
+Date: Sun, 18 Nov 2012 08:45:43 -1000
 
-I have absolutely no objections. sigaltstack has always been kind of
-messy, and made worse by the fact that it gets effectively no testing
-(because it's generally not used by normal code and even code that
-uses it tends to use it only for very uncommon events). So forcing all
-the sigaltstack code into generic code and at least avoiding the
-"different architectures can get things subtly - or not so subtly -
-wrong in different ways" sounds like a good thing.
+> On Sat, Nov 17, 2012 at 7:45 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+>>
+>> Linus, do you have any objections to the above?  FWIW, I've a tentative
+>> patchset in that direction (most of it from the last cycle); right now
+>> it + stuff currently in signal.git#for-next is at -3.4KLoC and I hadn't
+>> dealt with the biarch side of things yet...
+> 
+> I have absolutely no objections. sigaltstack has always been kind of
+> messy, and made worse by the fact that it gets effectively no testing
+> (because it's generally not used by normal code and even code that
+> uses it tends to use it only for very uncommon events). So forcing all
+> the sigaltstack code into generic code and at least avoiding the
+> "different architectures can get things subtly - or not so subtly -
+> wrong in different ways" sounds like a good thing.
 
-                   Linus
+FWIW, if folks are looking for testcases there are a small number in
+glibc, a quick grep shows:
+
+nptl/tst-cancel20.c
+nptl/tst-cancel21.c
+nptl/tst-signal6.c
+debug/tst-longjmp_chk2.c
+
+LTP probably has a bunch too.
