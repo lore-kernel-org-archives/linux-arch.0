@@ -1,79 +1,125 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC PATCH v1 30/31] ARC: switch to generic kernel_execve() and
- sys_execve()
-Date: Sat, 17 Nov 2012 19:31:59 +0530
-Message-ID: <50A798D7.9040306@synopsys.com>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-31-git-send-email-vgupta@synopsys.com> <20121116040847.GA22671@ZenIV.linux.org.uk>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: sigaltstack fun (was Re: new execve/kernel_thread design)
+Date: Sun, 18 Nov 2012 05:45:10 +0000
+Message-ID: <20121118054510.GE16916@ZenIV.linux.org.uk>
+References: <20121016223508.GR2616@ZenIV.linux.org.uk>
+ <CACM3HyEpypULRWUc5ZnLnZ=uOWf3_j=9PXZiJrT_BXyGcQe9yg@mail.gmail.com>
+ <CAHTX3dKDsOiUwtXxAUj-F4Y4rO+UZZDR4ufx_nxf+vuhmz46WA@mail.gmail.com>
+ <20121017160702.GY2616@ZenIV.linux.org.uk>
+ <20121017161953.GZ2616@ZenIV.linux.org.uk>
+ <CAHTX3dJN4Jun2KVXpda1wTrwkjT0mmH4fYmUUwq69d9sCTjXnA@mail.gmail.com>
+ <20121115215529.GU2616@ZenIV.linux.org.uk>
+ <CAHTX3d+Ou3_4tGqwyWFfNMSumPw2770_nhV_cTQa89k7+sxdHw@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp1.synopsys.com ([198.182.60.75]:54308 "EHLO
-	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751585Ab2KQOF1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 17 Nov 2012 09:05:27 -0500
-In-Reply-To: <20121116040847.GA22671@ZenIV.linux.org.uk>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:46062 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750891Ab2KRFpP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 18 Nov 2012 00:45:15 -0500
+Content-Disposition: inline
+In-Reply-To: <CAHTX3d+Ou3_4tGqwyWFfNMSumPw2770_nhV_cTQa89k7+sxdHw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, arnd@arndb.de
+To: Michal Simek <monstr@monstr.eu>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Friday 16 November 2012 09:38 AM, Al Viro wrote:
-> On Wed, Nov 07, 2012 at 10:47:53AM +0100, Vineet Gupta wrote:
->> +; When we land here, pt_regs have already been updated in-place correctly
->> +; A pointer to them is also passed by kernel_execve, we just need to make sure
->> +; that SP is set to point to them.
->> +ARC_ENTRY ret_from_kernel_execve
->> +	; Force SP to "normal" pt_regs just populated.
->> +	b.d   ret_from_system_call
->> +	mov   sp, r0
-> won't that splatter crap into regs->r0?  IOW, why not branch to
-> ret_from_exception here?
+On Fri, Nov 16, 2012 at 08:59:25AM +0100, Michal Simek wrote:
+> Do you have set of tests which should run it?
+> 
+> 
+> > 2) your definition of current_pt_regs() is an exact copy of on in
+> > include/linux/ptrace.h; why is "microblaze: Define current_pt_regs"
+> > needed at all?  IOW, I'd rather added #include <linux/ptrace.h> to
+> > arch/microblaze/kernel/process.c instead...
+> 
+> Agree. Fixed.
+> 
+> I have updated that branch or I can send you patches if you like.
 
-Yes it does - although I didn't notice the ill-effect since execve as an
-API doesn't expect r0 to have a certain value (like fork for child).
-Fixed in next revision.
+Pulled; see #arch-microblaze in there (== beginning of your branch).
+As for the other things I'd like to see confirmed...  See #for-michal;
+4 commits in there had been hanging around for a long time and if
+you are OK with those, I'd like to see them gone into mainline,
+by whichever path you prefer.
 
->
->> +ARC_EXIT ret_from_kernel_execve
-> Another thing: why not fold that branch to ret_from_exception into the end of
-> ret_from_kernel_thread() (instead of calling sys_exit()), select
-> GENERIC_KERNEL_EXECVE and lose __ARCH_WANT_KERNEL_EXECVE.
+Another thing that looks like a bug - consider the following testcase:
 
-If you noticed I only had 3 patches and didn't have the equivalent of
-"switch to saner kernel_execve() semantics" which would achieve above
-because the bug you elucidate to below was giving me grief in bring up
-(and I couldn't spend enough time debugging it).
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+void handler(int n, siginfo_t *foo, void *bar)
+{
+	char *signame = n == SIGUSR1 ? "SIGUSR1" : "SIGUSR2";
+	stack_t stack;
+	sigaltstack(NULL, &stack);
+	printf("took %s%s\n", signame,
+		stack.ss_flags == SS_ONSTACK ? " on altstack" : "");
+	if (n == SIGUSR1)
+		raise(SIGUSR2);
+	printf("%s done\n", signame);
+}
 
-> Actually, now that I look at your ret_from_kernel_thread...  How the hell
-> will it cope with kernel_thread() payload trying to return?  AFAICS, this
-> j.d [r1] will lose the return address, won't it? 
+main()
+{
+	struct sigaction s = {
+		.sa_sigaction = handler,
+		.sa_flags = SA_ONSTACK | SA_SIGINFO
+	};
+	stack_t stack = {.ss_sp = malloc(16384), .ss_size = 16384};
+	sigaction(SIGUSR2, &s, NULL);
+	sigaction(SIGUSR1, &s, NULL);
+	sigaltstack(&stack, NULL);
+	raise(SIGUSR1);
+}
 
-Exactly so. I was missing the equivalent of following
+Should print
+took SIGUSR1 on altstack
+took SIGUSR2 on altstack
+SIGUSR2 done
+SIGUSR1 done
+- we raise SIGUSR1, it's marked onstack, we flip to altstack, raise SIGUSR2
+and we are still on altstack, obviously.  Now, think what happens on the
+way *out* - rt_sigreturn from the second handler will call do_sigaltstack(),
+passing it the saved altstack settings... and the user stack pointer we'll
+get once we return to caller.  I.e. something within the altstack.  Which
+will give you -EPERM.  Which will have microblaze sys_rt_sigreturn() force-feed
+you SIGSEGV, AFAICS.
 
-ARC_ENTRY ret_from_kernel_thread
-	bl  @schedule_tail
-	ld  r1, [sp, PT_r1]
--	j.d [r1]
-+	jl.d [r1]
-        ld  r0, [sp, PT_r0]
-	j   @sys_exit
-ARC_EXIT ret_from_kernel_thread
+IOW, there's a reason why rt_sigreturn implementations ignore -EPERM from
+do_sigaltstack().  A bad one, but...  FWIW, sigaltstack handling is a mess
+right now:
+	* every architecture has the sucker done separately, even though
+there's very little point doing so; worse yet, they tend to come with
+asm wrappers from hell, all for no good reason - we need to get userland
+stack pointer and that's done in all kinds of messy ways.
+	* biarch ones have compat versions that ought to be mergable as
+well.
+	* rt_sigreturn instances call do_sigaltstack() and ignore just
+about everything; -EFAULT is not ignored, but realistically it's impossible
+to hit - you'd need a race with munmap() ripping the stack page from under
+you just as you've almost finished with sigreturn.  Accesses on both sides
+of that stack_t had been done by that point, so nothing short of such munmap()
+would do.  Everything else *is* ignored, or we are screwed.  AFAICS, that's
+what microblaze has stepped into.
 
-And since none of the bootup kernel threads took the return path I had a
-working system - the problem only showed up when kernel_execve( )
-started returning to exercise the broken path above.
+As far as I can tell, the sane way to deal with that would be to introduce
+(mandatory) helper that would give you the current userland stack pointer.
+It's almost always either user_stack_pointer(current_pt_regs()) or rdusp().
+There are few exceptions - itanic has user_stack_pointer giving the backing
+store of register stack instead of desired r12 and several architectures
+lack user_stack_pointer() even though the stack pointer is saved in pt_regs
+and helper is trivial to add.  That dealt with, we can take sys_sigaltstack()
+to kernel/signal.c unconditionally.  And kill the wrappers on almost everything.
+The next step is unifying compat variants; AFAICS, that's also not a problem.
+Then we need bool restore_altstack(const stack_t __user *) and compat
+counterpart - originally with "call do_sigaltstack(), fail if and only if
+it has returned -EFAULT", then a saner behaviour ("if we are not asked to
+change the current settings, just succeed and to hell with on_sig_stack()
+check; any other error case means that sigframe had been deliberately messed
+with and deserves a failure").
 
->  And while we are at it,
-> I would suggest passing callback and its argument via callee-saved registers -
-> makes for simpler life in ret_from_kernel_thread(), since switch_to() itself
-> will take care of loading those...
-
-Absolutely - done that too !
-
-Would you prefer to take a look at the updated patches now or will you
-rather wait for v2 series which might take a week or two.
-
-Thanks for taking the time to review this stuff.
-
--Vineet
+Linus, do you have any objections to the above?  FWIW, I've a tentative
+patchset in that direction (most of it from the last cycle); right now
+it + stuff currently in signal.git#for-next is at -3.4KLoC and I hadn't
+dealt with the biarch side of things yet...
