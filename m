@@ -1,112 +1,43 @@
-From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: [PATCH V3 05/11] ARM: at91: convert timer suspend/resume to clock_event_device
-Date: Mon, 19 Nov 2012 11:31:01 -0700
-Message-ID: <1353349867-28494-6-git-send-email-swarren@wwwdotorg.org>
-References: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Russell King <linux@arm.linux.org.uk>
-Cc: Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Andrew Victor <linux@maxim.org.za>, Nicolas Ferre <nicolas.ferre@atmel.com>
-List-Id: linux-arch.vger.kernel.org
+From: Bill Pemberton <wfp5p@virginia.edu>
+Subject: [PATCH 291/493] asm-generic: remove use of __devinit
+Date: Mon, 19 Nov 2012 13:24:00 -0500
+Message-ID: <1353349642-3677-291-git-send-email-wfp5p@virginia.edu>
+References: <1353349642-3677-1-git-send-email-wfp5p@virginia.edu>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from viridian.itc.Virginia.EDU ([128.143.12.139]:41461 "EHLO
+	viridian.itc.virginia.edu" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754181Ab2KSSeS (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Nov 2012 13:34:18 -0500
+In-Reply-To: <1353349642-3677-1-git-send-email-wfp5p@virginia.edu>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: gregkh@linuxfoundation.org
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 
-From: Stephen Warren <swarren@nvidia.com>
+CONFIG_HOTPLUG is going away as an option so __devinit is no longer
+needed.
 
-Move at91's timer suspend/resume functions from struct sys_timer
-at91sam926x_timer into struct clock_event_device pit_clkevt. This
-will allow the sys_timer suspend/resume fields to be removed, and
-eventually lead to a complete removal of struct sys_timer.
-
-Cc: Andrew Victor <linux@maxim.org.za>
-Cc: Nicolas Ferre <nicolas.ferre@atmel.com>
-Acked-by: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
-Signed-off-by: Stephen Warren <swarren@nvidia.com>
+Signed-off-by: Bill Pemberton <wfp5p@virginia.edu>
+Cc: Arnd Bergmann <arnd@arndb.de> 
+Cc: linux-arch@vger.kernel.org 
 ---
- arch/arm/mach-at91/at91sam926x_time.c |   47 ++++++++++++++++++---------------
- 1 file changed, 26 insertions(+), 21 deletions(-)
+ include/asm-generic/parport.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arm/mach-at91/at91sam926x_time.c b/arch/arm/mach-at91/at91sam926x_time.c
-index 358412f..f7191e1 100644
---- a/arch/arm/mach-at91/at91sam926x_time.c
-+++ b/arch/arm/mach-at91/at91sam926x_time.c
-@@ -104,12 +104,38 @@ pit_clkevt_mode(enum clock_event_mode mode, struct clock_event_device *dev)
- 	}
- }
+diff --git a/include/asm-generic/parport.h b/include/asm-generic/parport.h
+index 40528cb..2c9f9d4 100644
+--- a/include/asm-generic/parport.h
++++ b/include/asm-generic/parport.h
+@@ -10,8 +10,8 @@
+  * to devices on the PCI bus.
+  */
  
-+static void at91sam926x_pit_suspend(struct clock_event_device *cedev)
-+{
-+	/* Disable timer */
-+	pit_write(AT91_PIT_MR, 0);
-+}
-+
-+static void at91sam926x_pit_reset(void)
-+{
-+	/* Disable timer and irqs */
-+	pit_write(AT91_PIT_MR, 0);
-+
-+	/* Clear any pending interrupts, wait for PIT to stop counting */
-+	while (PIT_CPIV(pit_read(AT91_PIT_PIVR)) != 0)
-+		cpu_relax();
-+
-+	/* Start PIT but don't enable IRQ */
-+	pit_write(AT91_PIT_MR, (pit_cycle - 1) | AT91_PIT_PITEN);
-+}
-+
-+static void at91sam926x_pit_resume(struct clock_event_device *cedev)
-+{
-+	at91sam926x_pit_reset();
-+}
-+
- static struct clock_event_device pit_clkevt = {
- 	.name		= "pit",
- 	.features	= CLOCK_EVT_FEAT_PERIODIC,
- 	.shift		= 32,
- 	.rating		= 100,
- 	.set_mode	= pit_clkevt_mode,
-+	.suspend	= at91sam926x_pit_suspend,
-+	.resume		= at91sam926x_pit_resume,
- };
- 
- 
-@@ -150,19 +176,6 @@ static struct irqaction at91sam926x_pit_irq = {
- 	.irq		= NR_IRQS_LEGACY + AT91_ID_SYS,
- };
- 
--static void at91sam926x_pit_reset(void)
--{
--	/* Disable timer and irqs */
--	pit_write(AT91_PIT_MR, 0);
--
--	/* Clear any pending interrupts, wait for PIT to stop counting */
--	while (PIT_CPIV(pit_read(AT91_PIT_PIVR)) != 0)
--		cpu_relax();
--
--	/* Start PIT but don't enable IRQ */
--	pit_write(AT91_PIT_MR, (pit_cycle - 1) | AT91_PIT_PITEN);
--}
--
- #ifdef CONFIG_OF
- static struct of_device_id pit_timer_ids[] = {
- 	{ .compatible = "atmel,at91sam9260-pit" },
-@@ -250,12 +263,6 @@ static void __init at91sam926x_pit_init(void)
- 	clockevents_register_device(&pit_clkevt);
- }
- 
--static void at91sam926x_pit_suspend(void)
--{
--	/* Disable timer */
--	pit_write(AT91_PIT_MR, 0);
--}
--
- void __init at91sam926x_ioremap_pit(u32 addr)
+-static int __devinit parport_pc_find_isa_ports(int autoirq, int autodma);
+-static int __devinit parport_pc_find_nonpci_ports(int autoirq, int autodma)
++static int parport_pc_find_isa_ports(int autoirq, int autodma);
++static int parport_pc_find_nonpci_ports(int autoirq, int autodma)
  {
- #if defined(CONFIG_OF)
-@@ -275,6 +282,4 @@ void __init at91sam926x_ioremap_pit(u32 addr)
- 
- struct sys_timer at91sam926x_timer = {
- 	.init		= at91sam926x_pit_init,
--	.suspend	= at91sam926x_pit_suspend,
--	.resume		= at91sam926x_pit_reset,
- };
+ #ifdef CONFIG_ISA
+ 	return parport_pc_find_isa_ports(autoirq, autodma);
 -- 
-1.7.10.4
+1.8.0
