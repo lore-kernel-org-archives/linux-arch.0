@@ -1,56 +1,110 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:54011 "EHLO
+Received: from avon.wwwdotorg.org ([70.85.31.133]:35407 "EHLO
 	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753975Ab2KSSbT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Nov 2012 13:31:19 -0500
+	with ESMTP id S1754024Ab2KSSbe (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Nov 2012 13:31:34 -0500
 From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: [PATCH V3 00/11] ARM: delete struct sys_timer
-Date: Mon, 19 Nov 2012 11:30:56 -0700
-Message-ID: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
+Subject: [PATCH V3 08/11] ARM: ux500: convert timer suspend/resume to clock_event_device
+Date: Mon, 19 Nov 2012 11:31:04 -0700
+Message-ID: <1353349867-28494-9-git-send-email-swarren@wwwdotorg.org>
+In-Reply-To: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
+References: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Russell King <linux@arm.linux.org.uk>
-Cc: Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Mikael Starvik <starvik@axis.com>, linux-cris-kernel@axis.com, Mike Frysinger <vapier@gentoo.org>, Hirokazu Takata <takata@linux-m32r.org>, Joshua Thompson <funaho@jurai.org>, Sam Creasey <sammy@sammy.net>, Andrew Victor <linux@maxim.org.za>, Nicolas Ferre <nicolas.ferre@atmel.com>, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>, Hartley Sweeten <hsweeten@visionengravers.com>, Ryan Mallon <rmallon@gmail.com>, Ben Dooks <ben-linux@fluff.org>, Kukjin Kim <kgene.kim@samsung.com>, Haojian Zhuang <haojian.zhuang@gmail.com>, Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>, Linus Walleij <linus.walleij@linaro.org>
-Message-ID: <20121119183056.i-AFUT1u-fT7KNkTcpMJvEMj9p5bluR1b5CmUwxJsEs@z>
+Cc: Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>, Linus Walleij <linus.walleij@linaro.org>
+Message-ID: <20121119183104.NantpjYknbZlrLEisvSd7LagQWAm1HRUl-yoKyCLNfo@z>
 
 From: Stephen Warren <swarren@nvidia.com>
 
-Russell, I'm mainly reposting this to see if you have any comments or
-opinion, in particular on the core ARM changes.
+Move ux500's timer suspend/resume functions from struct sys_timer
+ux500_timer into struct clock_event_device nmdk_clkevt. This
+will allow the sys_timer suspend/resume fields to be removed, and
+eventually lead to a complete removal of struct sys_timer.
 
-The aim of this series is to remove ARM's struct sys_timer. As a pre-
-cursor, this requires a little re-arrangement of arch_gettimeoffset and
-associated changes to other architectures.
-
-The full series can be found in git at:
-git://nv-tegra.nvidia.com/user/swarren/linux-2.6 arm_timer_rework
-
-This is based on next-20121115. The plan is to rebase it onto 3.8-rc1
-once it is released, and pull this series into arm-soc.git as a baseline
-for any future SoC additions.
-
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: linux-cris-kernel@axis.com
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: Mikael Starvik <starvik@axis.com>
-Cc: Hirokazu Takata <takata@linux-m32r.org>
-Cc: Thomas Gleixner <tglx@linutronix.de>
-Cc: Joshua Thompson <funaho@jurai.org>
-Cc: Sam Creasey <sammy@sammy.net>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Andrew Victor <linux@maxim.org.za>
-Cc: Nicolas Ferre <nicolas.ferre@atmel.com>
-Cc: Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>
-Cc: Hartley Sweeten <hsweeten@visionengravers.com>
-Cc: Ryan Mallon <rmallon@gmail.com>
-Cc: Ben Dooks <ben-linux@fluff.org>
-Cc: Kukjin Kim <kgene.kim@samsung.com>
-Cc: Andrew Victor <linux@maxim.org.za>
-Cc: Nicolas Ferre <nicolas.ferre@atmel.com>
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Haojian Zhuang <haojian.zhuang@gmail.com>
 Cc: Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>
 Cc: Linus Walleij <linus.walleij@linaro.org>
-Cc: Ben Dooks <ben-linux@fluff.org>
-Cc: Kukjin Kim <kgene.kim@samsung.com>
+Signed-off-by: Stephen Warren <swarren@nvidia.com>
+---
+ arch/arm/mach-ux500/timer.c       |    7 -------
+ drivers/clocksource/nomadik-mtu.c |   33 ++++++++++++++++++++-------------
+ 2 files changed, 20 insertions(+), 20 deletions(-)
+
+diff --git a/arch/arm/mach-ux500/timer.c b/arch/arm/mach-ux500/timer.c
+index 875309a..46a7244 100644
+--- a/arch/arm/mach-ux500/timer.c
++++ b/arch/arm/mach-ux500/timer.c
+@@ -100,13 +100,6 @@ dt_fail:
+ 	ux500_twd_init();
+ }
+ 
+-static void ux500_timer_reset(void)
+-{
+-	nmdk_clkevt_reset();
+-	nmdk_clksrc_reset();
+-}
+-
+ struct sys_timer ux500_timer = {
+ 	.init		= ux500_timer_init,
+-	.resume		= ux500_timer_reset,
+ };
+diff --git a/drivers/clocksource/nomadik-mtu.c b/drivers/clocksource/nomadik-mtu.c
+index 8914c3c..025afc6 100644
+--- a/drivers/clocksource/nomadik-mtu.c
++++ b/drivers/clocksource/nomadik-mtu.c
+@@ -134,12 +134,32 @@ static void nmdk_clkevt_mode(enum clock_event_mode mode,
+ 	}
+ }
+ 
++void nmdk_clksrc_reset(void)
++{
++	/* Disable */
++	writel(0, mtu_base + MTU_CR(0));
++
++	/* ClockSource: configure load and background-load, and fire it up */
++	writel(nmdk_cycle, mtu_base + MTU_LR(0));
++	writel(nmdk_cycle, mtu_base + MTU_BGLR(0));
++
++	writel(clk_prescale | MTU_CRn_32BITS | MTU_CRn_ENA,
++	       mtu_base + MTU_CR(0));
++}
++
++static void nmdk_clkevt_resume(struct clock_event_device *cedev)
++{
++	nmdk_clkevt_reset();
++	nmdk_clksrc_reset();
++}
++
+ static struct clock_event_device nmdk_clkevt = {
+ 	.name		= "mtu_1",
+ 	.features	= CLOCK_EVT_FEAT_ONESHOT | CLOCK_EVT_FEAT_PERIODIC,
+ 	.rating		= 200,
+ 	.set_mode	= nmdk_clkevt_mode,
+ 	.set_next_event	= nmdk_clkevt_next,
++	.resume		= nmdk_clkevt_resume,
+ };
+ 
+ /*
+@@ -161,19 +181,6 @@ static struct irqaction nmdk_timer_irq = {
+ 	.dev_id		= &nmdk_clkevt,
+ };
+ 
+-void nmdk_clksrc_reset(void)
+-{
+-	/* Disable */
+-	writel(0, mtu_base + MTU_CR(0));
+-
+-	/* ClockSource: configure load and background-load, and fire it up */
+-	writel(nmdk_cycle, mtu_base + MTU_LR(0));
+-	writel(nmdk_cycle, mtu_base + MTU_BGLR(0));
+-
+-	writel(clk_prescale | MTU_CRn_32BITS | MTU_CRn_ENA,
+-	       mtu_base + MTU_CR(0));
+-}
+-
+ void __init nmdk_timer_init(void __iomem *base, int irq)
+ {
+ 	unsigned long rate;
+-- 
+1.7.10.4
+
