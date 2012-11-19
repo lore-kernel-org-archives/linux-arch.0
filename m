@@ -1,88 +1,55 @@
-From: Bill Pemberton <wfp5p@virginia.edu>
-Subject: [PATCH 022/493] ARM: remove CONFIG_HOTPLUG ifdefs
-Date: Mon, 19 Nov 2012 13:19:31 -0500
-Message-ID: <1353349642-3677-22-git-send-email-wfp5p@virginia.edu>
-References: <1353349642-3677-1-git-send-email-wfp5p@virginia.edu>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-In-Reply-To: <1353349642-3677-1-git-send-email-wfp5p@virginia.edu>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: linux-arm-kernel-bounces@lists.infradead.org
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: gregkh@linuxfoundation.org
-Cc: linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, linux-arm-kernel@lists.infradead.org, Arnd Bergmann <arnd@arndb.de>
-List-Id: linux-arch.vger.kernel.org
+From: Stephen Warren <swarren@wwwdotorg.org>
+Subject: [PATCH V3 00/11] ARM: delete struct sys_timer
+Date: Mon, 19 Nov 2012 11:30:56 -0700
+Message-ID: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from avon.wwwdotorg.org ([70.85.31.133]:54011 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753975Ab2KSSbT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Nov 2012 13:31:19 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Russell King <linux@arm.linux.org.uk>
+Cc: Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Mikael Starvik <starvik@axis.com>, linux-cris-kernel@axis.com, Mike Frysinger <vapier@gentoo.org>, Hirokazu Takata <takata@linux-m32r.org>, Joshua Thompson <funaho@jurai.org>, Sam Creasey <sammy@sammy.net>, Andrew Victor <linux@maxim.org.za>, Nicolas Ferre <nicolas.ferre@atmel.com>, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>, Hartley Sweeten <hsweeten@visionengravers.com>, Ryan Mallon <rmallon@gmail.com>, Ben Dooks <ben-linux@fluff.org>, Kukjin Kim <kgene.kim@samsung.com>, Haojian Zhuang <haojian.zhuang@gmail.com>, Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>, Linus Walleij <linus>
 
-Remove conditional code based on CONFIG_HOTPLUG being false.  It's
-always on now in preparation of it going away as an option.
+From: Stephen Warren <swarren@nvidia.com>
 
-Signed-off-by: Bill Pemberton <wfp5p@virginia.edu>
-Cc: Russell King <linux@arm.linux.org.uk> 
-Cc: Arnd Bergmann <arnd@arndb.de> 
-Cc: linux-arm-kernel@lists.infradead.org 
-Cc: linux-arch@vger.kernel.org 
----
- arch/arm/kernel/bios32.c          | 4 ++--
- arch/arm/kernel/vmlinux.lds.S     | 2 --
- include/asm-generic/vmlinux.lds.h | 5 -----
- 3 files changed, 2 insertions(+), 9 deletions(-)
+Russell, I'm mainly reposting this to see if you have any comments or
+opinion, in particular on the core ARM changes.
 
-diff --git a/arch/arm/kernel/bios32.c b/arch/arm/kernel/bios32.c
-index 9b72261..f136307 100644
---- a/arch/arm/kernel/bios32.c
-+++ b/arch/arm/kernel/bios32.c
-@@ -361,9 +361,9 @@ void pcibios_fixup_bus(struct pci_bus *bus)
- 	printk(KERN_INFO "PCI: bus%d: Fast back to back transfers %sabled\n",
- 		bus->number, (features & PCI_COMMAND_FAST_BACK) ? "en" : "dis");
- }
--#ifdef CONFIG_HOTPLUG
-+
- EXPORT_SYMBOL(pcibios_fixup_bus);
--#endif
-+
- 
- /*
-  * Swizzle the device pin each time we cross a bridge.  If a platform does
-diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
-index b9f38e3..38279fe 100644
---- a/arch/arm/kernel/vmlinux.lds.S
-+++ b/arch/arm/kernel/vmlinux.lds.S
-@@ -66,10 +66,8 @@ SECTIONS
- 		ARM_EXIT_DISCARD(EXIT_TEXT)
- 		ARM_EXIT_DISCARD(EXIT_DATA)
- 		EXIT_CALL
--#ifndef CONFIG_HOTPLUG
- 		*(.ARM.exidx.devexit.text)
- 		*(.ARM.extab.devexit.text)
--#endif
- #ifndef CONFIG_MMU
- 		*(.fixup)
- 		*(__ex_table)
-diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
-index d1ea7ce..856b58d 100644
---- a/include/asm-generic/vmlinux.lds.h
-+++ b/include/asm-generic/vmlinux.lds.h
-@@ -74,13 +74,8 @@
-  * are handled as text/data or they can be discarded (which
-  * often happens at runtime)
-  */
--#ifdef CONFIG_HOTPLUG
- #define DEV_KEEP(sec)    *(.dev##sec)
- #define DEV_DISCARD(sec)
--#else
--#define DEV_KEEP(sec)
--#define DEV_DISCARD(sec) *(.dev##sec)
--#endif
- 
- #ifdef CONFIG_HOTPLUG_CPU
- #define CPU_KEEP(sec)    *(.cpu##sec)
--- 
-1.8.0
+The aim of this series is to remove ARM's struct sys_timer. As a pre-
+cursor, this requires a little re-arrangement of arch_gettimeoffset and
+associated changes to other architectures.
+
+The full series can be found in git at:
+git://nv-tegra.nvidia.com/user/swarren/linux-2.6 arm_timer_rework
+
+This is based on next-20121115. The plan is to rebase it onto 3.8-rc1
+once it is released, and pull this series into arm-soc.git as a baseline
+for any future SoC additions.
+
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: linux-cris-kernel@axis.com
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Mike Frysinger <vapier@gentoo.org>
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Joshua Thompson <funaho@jurai.org>
+Cc: Sam Creasey <sammy@sammy.net>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Andrew Victor <linux@maxim.org.za>
+Cc: Nicolas Ferre <nicolas.ferre@atmel.com>
+Cc: Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>
+Cc: Hartley Sweeten <hsweeten@visionengravers.com>
+Cc: Ryan Mallon <rmallon@gmail.com>
+Cc: Ben Dooks <ben-linux@fluff.org>
+Cc: Kukjin Kim <kgene.kim@samsung.com>
+Cc: Andrew Victor <linux@maxim.org.za>
+Cc: Nicolas Ferre <nicolas.ferre@atmel.com>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Haojian Zhuang <haojian.zhuang@gmail.com>
+Cc: Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>
+Cc: Linus Walleij <linus.walleij@linaro.org>
+Cc: Ben Dooks <ben-linux@fluff.org>
+Cc: Kukjin Kim <kgene.kim@samsung.com>
