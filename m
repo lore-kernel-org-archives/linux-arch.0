@@ -1,62 +1,56 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:52225 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752334Ab2KSCfK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 18 Nov 2012 21:35:10 -0500
-Date: Mon, 19 Nov 2012 02:35:07 +0000
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: sigaltstack fun
-Message-ID: <20121119023507.GK16916@ZenIV.linux.org.uk>
-References: <20121118210253.GI16916@ZenIV.linux.org.uk>
- <20121118.161833.985081954687473276.davem@davemloft.net>
- <20121119011013.GJ16916@ZenIV.linux.org.uk>
- <20121118.203005.151867624663051294.davem@davemloft.net>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20121118.203005.151867624663051294.davem@davemloft.net>
+Received: from avon.wwwdotorg.org ([70.85.31.133]:54011 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753975Ab2KSSbT (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Nov 2012 13:31:19 -0500
+From: Stephen Warren <swarren@wwwdotorg.org>
+Subject: [PATCH V3 00/11] ARM: delete struct sys_timer
+Date: Mon, 19 Nov 2012 11:30:56 -0700
+Message-ID: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Miller <davem@davemloft.net>
-Cc: torvalds@linux-foundation.org, monstr@monstr.eu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20121119023507.8UNlqwc-gXTSq6YGLIRb2O6yCH8LPaU339XUNNzJOKc@z>
+To: Russell King <linux@arm.linux.org.uk>
+Cc: Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Mikael Starvik <starvik@axis.com>, linux-cris-kernel@axis.com, Mike Frysinger <vapier@gentoo.org>, Hirokazu Takata <takata@linux-m32r.org>, Joshua Thompson <funaho@jurai.org>, Sam Creasey <sammy@sammy.net>, Andrew Victor <linux@maxim.org.za>, Nicolas Ferre <nicolas.ferre@atmel.com>, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>, Hartley Sweeten <hsweeten@visionengravers.com>, Ryan Mallon <rmallon@gmail.com>, Ben Dooks <ben-linux@fluff.org>, Kukjin Kim <kgene.kim@samsung.com>, Haojian Zhuang <haojian.zhuang@gmail.com>, Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>, Linus Walleij <linus.walleij@linaro.org>
+Message-ID: <20121119183056.i-AFUT1u-fT7KNkTcpMJvEMj9p5bluR1b5CmUwxJsEs@z>
 
-On Sun, Nov 18, 2012 at 08:30:05PM -0500, David Miller wrote:
-> > Er...  So which tree should that go through?  sparc or signal?  There's
-> > a similar microblaze patch and a few more of the "do_sigaltstack() takes
-> > userland pointer" variety, so I can put together a pile in
-> > signal.git#for-linus, but if you prefer that to go through sparc tree,
-> > I'm fine with that...
-> 
-> I'm happy to take it via my sparc tree, and I'll queue it up for
-> -stable as well. Can you resend it to me with a proper commit message?
+From: Stephen Warren <swarren@nvidia.com>
 
-sparc64: not any error from do_sigaltstack() should fail rt_sigreturn()
+Russell, I'm mainly reposting this to see if you have any comments or
+opinion, in particular on the core ARM changes.
 
-If a signal handler is executed on altstack and another signal comes,
-we will end up with rt_sigreturn() on return from the second handler
-getting -EPERM from do_sigaltstack().  It's perfectly OK, since we
-are not asking to change the settings; in fact, they couldn't have been
-changed during the second handler execution exactly because we'd been
-on altstack all along.  64bit sigreturn on sparc treats any error from
-do_sigaltstack() as "SIGSEGV now"; we need to switch to the same semantics
-we are using on other architectures.
+The aim of this series is to remove ARM's struct sys_timer. As a pre-
+cursor, this requires a little re-arrangement of arch_gettimeoffset and
+associated changes to other architectures.
 
-Cc: stable@vger.kernel.org
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
-diff --git a/arch/sparc/kernel/signal_64.c b/arch/sparc/kernel/signal_64.c
-index 867de2f..689e1ba 100644
---- a/arch/sparc/kernel/signal_64.c
-+++ b/arch/sparc/kernel/signal_64.c
-@@ -295,9 +295,7 @@ void do_rt_sigreturn(struct pt_regs *regs)
- 		err |= restore_fpu_state(regs, fpu_save);
- 
- 	err |= __copy_from_user(&set, &sf->mask, sizeof(sigset_t));
--	err |= do_sigaltstack(&sf->stack, NULL, (unsigned long)sf);
--
--	if (err)
-+	if (err || do_sigaltstack(&sf->stack, NULL, (unsigned long)sf) == -EFAULT)
- 		goto segv;
- 
- 	err |= __get_user(rwin_save, &sf->rwin_save);
+The full series can be found in git at:
+git://nv-tegra.nvidia.com/user/swarren/linux-2.6 arm_timer_rework
+
+This is based on next-20121115. The plan is to rebase it onto 3.8-rc1
+once it is released, and pull this series into arm-soc.git as a baseline
+for any future SoC additions.
+
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: linux-cris-kernel@axis.com
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Mike Frysinger <vapier@gentoo.org>
+Cc: Mikael Starvik <starvik@axis.com>
+Cc: Hirokazu Takata <takata@linux-m32r.org>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: Joshua Thompson <funaho@jurai.org>
+Cc: Sam Creasey <sammy@sammy.net>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Andrew Victor <linux@maxim.org.za>
+Cc: Nicolas Ferre <nicolas.ferre@atmel.com>
+Cc: Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>
+Cc: Hartley Sweeten <hsweeten@visionengravers.com>
+Cc: Ryan Mallon <rmallon@gmail.com>
+Cc: Ben Dooks <ben-linux@fluff.org>
+Cc: Kukjin Kim <kgene.kim@samsung.com>
+Cc: Andrew Victor <linux@maxim.org.za>
+Cc: Nicolas Ferre <nicolas.ferre@atmel.com>
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Haojian Zhuang <haojian.zhuang@gmail.com>
+Cc: Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>
+Cc: Linus Walleij <linus.walleij@linaro.org>
+Cc: Ben Dooks <ben-linux@fluff.org>
+Cc: Kukjin Kim <kgene.kim@samsung.com>
