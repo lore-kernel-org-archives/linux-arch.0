@@ -1,134 +1,117 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:33253 "EHLO
+Received: from avon.wwwdotorg.org ([70.85.31.133]:36917 "EHLO
 	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754083Ab2KSSba (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Nov 2012 13:31:30 -0500
+	with ESMTP id S1754060Ab2KSSb3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Nov 2012 13:31:29 -0500
 From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: [PATCH V3 06/11] ARM: pxa: convert timer suspend/resume to clock_event_device
-Date: Mon, 19 Nov 2012 11:31:02 -0700
-Message-ID: <1353349867-28494-7-git-send-email-swarren@wwwdotorg.org>
+Subject: [PATCH V3 05/11] ARM: at91: convert timer suspend/resume to clock_event_device
+Date: Mon, 19 Nov 2012 11:31:01 -0700
+Message-ID: <1353349867-28494-6-git-send-email-swarren@wwwdotorg.org>
 In-Reply-To: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
 References: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Russell King <linux@arm.linux.org.uk>
-Cc: Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Haojian Zhuang <haojian.zhuang@gmail.com>
-Message-ID: <20121119183102.ybV0UFqmfPK0ohcXzH9zAmB6MV7ChUaNF83M5flNCO8@z>
+Cc: Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Andrew Victor <linux@maxim.org.za>, Nicolas Ferre <nicolas.ferre@atmel.com>
+Message-ID: <20121119183101.0LlWILuhgJLZqg9Q2avPvki_TsLeh4BJeaZi2Mt21Yk@z>
 
 From: Stephen Warren <swarren@nvidia.com>
 
-Move PXA's timer suspend/resume functions from struct sys_timer
-pxa_timer into struct clock_event_device ckevt_pxa_osmr0. This
+Move at91's timer suspend/resume functions from struct sys_timer
+at91sam926x_timer into struct clock_event_device pit_clkevt. This
 will allow the sys_timer suspend/resume fields to be removed, and
 eventually lead to a complete removal of struct sys_timer.
 
-Cc: Russell King <linux@arm.linux.org.uk>
-Cc: Haojian Zhuang <haojian.zhuang@gmail.com>
-Acked-by: Eric Miao <eric.y.miao@gmail.com>
+Cc: Andrew Victor <linux@maxim.org.za>
+Cc: Nicolas Ferre <nicolas.ferre@atmel.com>
+Acked-by: Jean-Christophe PLAGNIOL-VILLARD <plagnioj@jcrosoft.com>
 Signed-off-by: Stephen Warren <swarren@nvidia.com>
 ---
- arch/arm/mach-pxa/time.c |   76 +++++++++++++++++++++++-----------------------
- 1 file changed, 38 insertions(+), 38 deletions(-)
+ arch/arm/mach-at91/at91sam926x_time.c |   47 ++++++++++++++++++---------------
+ 1 file changed, 26 insertions(+), 21 deletions(-)
 
-diff --git a/arch/arm/mach-pxa/time.c b/arch/arm/mach-pxa/time.c
-index 4bc47d6..ce58bc9 100644
---- a/arch/arm/mach-pxa/time.c
-+++ b/arch/arm/mach-pxa/time.c
-@@ -89,12 +89,50 @@ pxa_osmr0_set_mode(enum clock_event_mode mode, struct clock_event_device *dev)
+diff --git a/arch/arm/mach-at91/at91sam926x_time.c b/arch/arm/mach-at91/at91sam926x_time.c
+index 358412f..f7191e1 100644
+--- a/arch/arm/mach-at91/at91sam926x_time.c
++++ b/arch/arm/mach-at91/at91sam926x_time.c
+@@ -104,12 +104,38 @@ pit_clkevt_mode(enum clock_event_mode mode, struct clock_event_device *dev)
  	}
  }
  
-+#ifdef CONFIG_PM
-+static unsigned long osmr[4], oier, oscr;
-+
-+static void pxa_timer_suspend(struct clock_event_device *cedev)
++static void at91sam926x_pit_suspend(struct clock_event_device *cedev)
 +{
-+	osmr[0] = readl_relaxed(OSMR0);
-+	osmr[1] = readl_relaxed(OSMR1);
-+	osmr[2] = readl_relaxed(OSMR2);
-+	osmr[3] = readl_relaxed(OSMR3);
-+	oier = readl_relaxed(OIER);
-+	oscr = readl_relaxed(OSCR);
++	/* Disable timer */
++	pit_write(AT91_PIT_MR, 0);
 +}
 +
-+static void pxa_timer_resume(struct clock_event_device *cedev)
++static void at91sam926x_pit_reset(void)
 +{
-+	/*
-+	 * Ensure that we have at least MIN_OSCR_DELTA between match
-+	 * register 0 and the OSCR, to guarantee that we will receive
-+	 * the one-shot timer interrupt.  We adjust OSMR0 in preference
-+	 * to OSCR to guarantee that OSCR is monotonically incrementing.
-+	 */
-+	if (osmr[0] - oscr < MIN_OSCR_DELTA)
-+		osmr[0] += MIN_OSCR_DELTA;
++	/* Disable timer and irqs */
++	pit_write(AT91_PIT_MR, 0);
 +
-+	writel_relaxed(osmr[0], OSMR0);
-+	writel_relaxed(osmr[1], OSMR1);
-+	writel_relaxed(osmr[2], OSMR2);
-+	writel_relaxed(osmr[3], OSMR3);
-+	writel_relaxed(oier, OIER);
-+	writel_relaxed(oscr, OSCR);
++	/* Clear any pending interrupts, wait for PIT to stop counting */
++	while (PIT_CPIV(pit_read(AT91_PIT_PIVR)) != 0)
++		cpu_relax();
++
++	/* Start PIT but don't enable IRQ */
++	pit_write(AT91_PIT_MR, (pit_cycle - 1) | AT91_PIT_PITEN);
 +}
-+#else
-+#define pxa_timer_suspend NULL
-+#define pxa_timer_resume NULL
-+#endif
 +
- static struct clock_event_device ckevt_pxa_osmr0 = {
- 	.name		= "osmr0",
- 	.features	= CLOCK_EVT_FEAT_ONESHOT,
- 	.rating		= 200,
- 	.set_next_event	= pxa_osmr0_set_next_event,
- 	.set_mode	= pxa_osmr0_set_mode,
-+	.suspend	= pxa_timer_suspend,
-+	.resume		= pxa_timer_resume,
++static void at91sam926x_pit_resume(struct clock_event_device *cedev)
++{
++	at91sam926x_pit_reset();
++}
++
+ static struct clock_event_device pit_clkevt = {
+ 	.name		= "pit",
+ 	.features	= CLOCK_EVT_FEAT_PERIODIC,
+ 	.shift		= 32,
+ 	.rating		= 100,
+ 	.set_mode	= pit_clkevt_mode,
++	.suspend	= at91sam926x_pit_suspend,
++	.resume		= at91sam926x_pit_resume,
  };
  
- static struct irqaction pxa_ost0_irq = {
-@@ -127,44 +165,6 @@ static void __init pxa_timer_init(void)
- 	clockevents_register_device(&ckevt_pxa_osmr0);
+ 
+@@ -150,19 +176,6 @@ static struct irqaction at91sam926x_pit_irq = {
+ 	.irq		= NR_IRQS_LEGACY + AT91_ID_SYS,
+ };
+ 
+-static void at91sam926x_pit_reset(void)
+-{
+-	/* Disable timer and irqs */
+-	pit_write(AT91_PIT_MR, 0);
+-
+-	/* Clear any pending interrupts, wait for PIT to stop counting */
+-	while (PIT_CPIV(pit_read(AT91_PIT_PIVR)) != 0)
+-		cpu_relax();
+-
+-	/* Start PIT but don't enable IRQ */
+-	pit_write(AT91_PIT_MR, (pit_cycle - 1) | AT91_PIT_PITEN);
+-}
+-
+ #ifdef CONFIG_OF
+ static struct of_device_id pit_timer_ids[] = {
+ 	{ .compatible = "atmel,at91sam9260-pit" },
+@@ -250,12 +263,6 @@ static void __init at91sam926x_pit_init(void)
+ 	clockevents_register_device(&pit_clkevt);
  }
  
--#ifdef CONFIG_PM
--static unsigned long osmr[4], oier, oscr;
--
--static void pxa_timer_suspend(void)
+-static void at91sam926x_pit_suspend(void)
 -{
--	osmr[0] = readl_relaxed(OSMR0);
--	osmr[1] = readl_relaxed(OSMR1);
--	osmr[2] = readl_relaxed(OSMR2);
--	osmr[3] = readl_relaxed(OSMR3);
--	oier = readl_relaxed(OIER);
--	oscr = readl_relaxed(OSCR);
+-	/* Disable timer */
+-	pit_write(AT91_PIT_MR, 0);
 -}
 -
--static void pxa_timer_resume(void)
--{
--	/*
--	 * Ensure that we have at least MIN_OSCR_DELTA between match
--	 * register 0 and the OSCR, to guarantee that we will receive
--	 * the one-shot timer interrupt.  We adjust OSMR0 in preference
--	 * to OSCR to guarantee that OSCR is monotonically incrementing.
--	 */
--	if (osmr[0] - oscr < MIN_OSCR_DELTA)
--		osmr[0] += MIN_OSCR_DELTA;
--
--	writel_relaxed(osmr[0], OSMR0);
--	writel_relaxed(osmr[1], OSMR1);
--	writel_relaxed(osmr[2], OSMR2);
--	writel_relaxed(osmr[3], OSMR3);
--	writel_relaxed(oier, OIER);
--	writel_relaxed(oscr, OSCR);
--}
--#else
--#define pxa_timer_suspend NULL
--#define pxa_timer_resume NULL
--#endif
--
- struct sys_timer pxa_timer = {
- 	.init		= pxa_timer_init,
--	.suspend	= pxa_timer_suspend,
--	.resume		= pxa_timer_resume,
+ void __init at91sam926x_ioremap_pit(u32 addr)
+ {
+ #if defined(CONFIG_OF)
+@@ -275,6 +282,4 @@ void __init at91sam926x_ioremap_pit(u32 addr)
+ 
+ struct sys_timer at91sam926x_timer = {
+ 	.init		= at91sam926x_pit_init,
+-	.suspend	= at91sam926x_pit_suspend,
+-	.resume		= at91sam926x_pit_reset,
  };
 -- 
 1.7.10.4
