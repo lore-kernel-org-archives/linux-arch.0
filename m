@@ -1,110 +1,115 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:35407 "EHLO
+Received: from avon.wwwdotorg.org ([70.85.31.133]:46127 "EHLO
 	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754024Ab2KSSbe (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Nov 2012 13:31:34 -0500
+	with ESMTP id S1754024Ab2KSSbh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 19 Nov 2012 13:31:37 -0500
 From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: [PATCH V3 08/11] ARM: ux500: convert timer suspend/resume to clock_event_device
-Date: Mon, 19 Nov 2012 11:31:04 -0700
-Message-ID: <1353349867-28494-9-git-send-email-swarren@wwwdotorg.org>
+Subject: [PATCH V3 10/11] ARM: remove struct sys_timer suspend and resume fields
+Date: Mon, 19 Nov 2012 11:31:06 -0700
+Message-ID: <1353349867-28494-11-git-send-email-swarren@wwwdotorg.org>
 In-Reply-To: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
 References: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Russell King <linux@arm.linux.org.uk>
-Cc: Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>, Linus Walleij <linus.walleij@linaro.org>
-Message-ID: <20121119183104.NantpjYknbZlrLEisvSd7LagQWAm1HRUl-yoKyCLNfo@z>
+Cc: Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>
+Message-ID: <20121119183106.86JuIyrMqfJw8sPyRWTbsTbmLv0ZklUjkbgU76qqRVg@z>
 
 From: Stephen Warren <swarren@nvidia.com>
 
-Move ux500's timer suspend/resume functions from struct sys_timer
-ux500_timer into struct clock_event_device nmdk_clkevt. This
-will allow the sys_timer suspend/resume fields to be removed, and
-eventually lead to a complete removal of struct sys_timer.
+These fields duplicate e.g. struct clock_event_device's suspend and
+resume fields, so remove them now that nothing is using them. The aim
+is to remove all fields from struct sys_timer except .init, then replace
+the ARM machine descriptor's .timer field with a .init_time function
+instead, and delete struct sys_timer.
 
-Cc: Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>
 Signed-off-by: Stephen Warren <swarren@nvidia.com>
 ---
- arch/arm/mach-ux500/timer.c       |    7 -------
- drivers/clocksource/nomadik-mtu.c |   33 ++++++++++++++++++++-------------
- 2 files changed, 20 insertions(+), 20 deletions(-)
+ arch/arm/include/asm/mach/time.h |   11 -----------
+ arch/arm/kernel/time.c           |   34 ----------------------------------
+ 2 files changed, 45 deletions(-)
 
-diff --git a/arch/arm/mach-ux500/timer.c b/arch/arm/mach-ux500/timer.c
-index 875309a..46a7244 100644
---- a/arch/arm/mach-ux500/timer.c
-+++ b/arch/arm/mach-ux500/timer.c
-@@ -100,13 +100,6 @@ dt_fail:
- 	ux500_twd_init();
+diff --git a/arch/arm/include/asm/mach/time.h b/arch/arm/include/asm/mach/time.h
+index cac8d9c..d316d76 100644
+--- a/arch/arm/include/asm/mach/time.h
++++ b/arch/arm/include/asm/mach/time.h
+@@ -17,15 +17,6 @@
+  *   Initialise the kernels jiffy timer source, claim interrupt
+  *   using setup_irq.  This is called early on during initialisation
+  *   while interrupts are still disabled on the local CPU.
+- * - suspend
+- *   Suspend the kernel jiffy timer source, if necessary.  This
+- *   is called with interrupts disabled, after all normal devices
+- *   have been suspended.  If no action is required, set this to
+- *   NULL.
+- * - resume
+- *   Resume the kernel jiffy timer source, if necessary.  This
+- *   is called with interrupts disabled before any normal devices
+- *   are resumed.  If no action is required, set this to NULL.
+  * - offset
+  *   Return the timer offset in microseconds since the last timer
+  *   interrupt.  Note: this must take account of any unprocessed
+@@ -33,8 +24,6 @@
+  */
+ struct sys_timer {
+ 	void			(*init)(void);
+-	void			(*suspend)(void);
+-	void			(*resume)(void);
+ };
+ 
+ extern void timer_tick(void);
+diff --git a/arch/arm/kernel/time.c b/arch/arm/kernel/time.c
+index ea36bfa..0b51a7c 100644
+--- a/arch/arm/kernel/time.c
++++ b/arch/arm/kernel/time.c
+@@ -21,7 +21,6 @@
+ #include <linux/timex.h>
+ #include <linux/errno.h>
+ #include <linux/profile.h>
+-#include <linux/syscore_ops.h>
+ #include <linux/timer.h>
+ #include <linux/irq.h>
+ 
+@@ -119,39 +118,6 @@ int __init register_persistent_clock(clock_access_fn read_boot,
+ 	return -EINVAL;
  }
  
--static void ux500_timer_reset(void)
+-#if defined(CONFIG_PM) && !defined(CONFIG_GENERIC_CLOCKEVENTS)
+-static int timer_suspend(void)
 -{
--	nmdk_clkevt_reset();
--	nmdk_clksrc_reset();
+-	if (system_timer->suspend)
+-		system_timer->suspend();
+-
+-	return 0;
 -}
 -
- struct sys_timer ux500_timer = {
- 	.init		= ux500_timer_init,
--	.resume		= ux500_timer_reset,
- };
-diff --git a/drivers/clocksource/nomadik-mtu.c b/drivers/clocksource/nomadik-mtu.c
-index 8914c3c..025afc6 100644
---- a/drivers/clocksource/nomadik-mtu.c
-+++ b/drivers/clocksource/nomadik-mtu.c
-@@ -134,12 +134,32 @@ static void nmdk_clkevt_mode(enum clock_event_mode mode,
- 	}
- }
- 
-+void nmdk_clksrc_reset(void)
-+{
-+	/* Disable */
-+	writel(0, mtu_base + MTU_CR(0));
-+
-+	/* ClockSource: configure load and background-load, and fire it up */
-+	writel(nmdk_cycle, mtu_base + MTU_LR(0));
-+	writel(nmdk_cycle, mtu_base + MTU_BGLR(0));
-+
-+	writel(clk_prescale | MTU_CRn_32BITS | MTU_CRn_ENA,
-+	       mtu_base + MTU_CR(0));
-+}
-+
-+static void nmdk_clkevt_resume(struct clock_event_device *cedev)
-+{
-+	nmdk_clkevt_reset();
-+	nmdk_clksrc_reset();
-+}
-+
- static struct clock_event_device nmdk_clkevt = {
- 	.name		= "mtu_1",
- 	.features	= CLOCK_EVT_FEAT_ONESHOT | CLOCK_EVT_FEAT_PERIODIC,
- 	.rating		= 200,
- 	.set_mode	= nmdk_clkevt_mode,
- 	.set_next_event	= nmdk_clkevt_next,
-+	.resume		= nmdk_clkevt_resume,
- };
- 
- /*
-@@ -161,19 +181,6 @@ static struct irqaction nmdk_timer_irq = {
- 	.dev_id		= &nmdk_clkevt,
- };
- 
--void nmdk_clksrc_reset(void)
+-static void timer_resume(void)
 -{
--	/* Disable */
--	writel(0, mtu_base + MTU_CR(0));
+-	if (system_timer->resume)
+-		system_timer->resume();
+-}
+-#else
+-#define timer_suspend NULL
+-#define timer_resume NULL
+-#endif
 -
--	/* ClockSource: configure load and background-load, and fire it up */
--	writel(nmdk_cycle, mtu_base + MTU_LR(0));
--	writel(nmdk_cycle, mtu_base + MTU_BGLR(0));
+-static struct syscore_ops timer_syscore_ops = {
+-	.suspend	= timer_suspend,
+-	.resume		= timer_resume,
+-};
 -
--	writel(clk_prescale | MTU_CRn_32BITS | MTU_CRn_ENA,
--	       mtu_base + MTU_CR(0));
+-static int __init timer_init_syscore_ops(void)
+-{
+-	register_syscore_ops(&timer_syscore_ops);
+-
+-	return 0;
 -}
 -
- void __init nmdk_timer_init(void __iomem *base, int irq)
+-device_initcall(timer_init_syscore_ops);
+-
+ void __init time_init(void)
  {
- 	unsigned long rate;
+ 	system_timer = machine_desc->timer;
 -- 
 1.7.10.4
 
