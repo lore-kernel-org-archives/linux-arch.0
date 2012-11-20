@@ -1,85 +1,50 @@
-From: <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH 2/2] ARC: provide optimal __get_user_fn()
-Date: Tue, 20 Nov 2012 20:08:17 +0530
-Message-ID: <1353422297-29079-3-git-send-email-vgupta@synopsys.com>
-References: <1353422297-29079-1-git-send-email-vgupta@synopsys.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [RFC PATCH v1 12/40] metag: Build infrastructure
+Date: Tue, 20 Nov 2012 15:06:30 +0000
+Message-ID: <50AB9C76.1010107@imgtec.com>
+References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <1351700061-7203-13-git-send-email-james.hogan@imgtec.com> <201211091446.28068.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1353422297-29079-1-git-send-email-vgupta@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: arnd@arndb.de
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="ISO-8859-15"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from multi.imgtec.com ([194.200.65.239]:56733 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751595Ab2KTPHl (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 20 Nov 2012 10:07:41 -0500
+In-Reply-To: <201211091446.28068.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org
 
-From: Vineet Gupta <vgupta@synopsys.com>
+On 09/11/12 14:46, Arnd Bergmann wrote:
+> On Wednesday 31 October 2012, James Hogan wrote:
+>> +
+>> +define archhelp
+>> +  echo  '* vmlinux.bin	- Binary kernel image (arch/$(ARCH)/boot/vmlinux.bin)'
+>> +  @echo '  uImage  	- Alias to bootable U-Boot image'
+>> +  @echo '  uImage.bin	- Kernel-only image for U-Boot (bin)'
+>> +  @echo '  uImage.gz	- Kernel-only image for U-Boot (gzip)'
+>> +  @echo '  uImage.bz2	- Kernel-only image for U-Boot (bzip2)'
+>> +  @echo '  uImage.lzma	- Kernel-only image for U-Boot (lzma)'
+>> +  @echo '  uImage.xz	- Kernel-only image for U-Boot (xz)'
+>> +  @echo '  uImage.lzo	- Kernel-only image for U-Boot (lzo)'
+>> +endef
+> 
+> The uImage format is causing some trouble on ARM because it requires knowing
+> the load address at boot time, so we try to move people towards using just
+> zImage files there. You might want to consider the same.
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- arch/arc/include/asm/uaccess.h |   51 ++++++++++++++++++++++++++++++++++++++++
- 1 files changed, 51 insertions(+), 0 deletions(-)
+Could you point me at some info about this problem? I'm not clear why
+needing to know the load address at boot is a problem, or how zImage
+helps. Does this presume that the bootloader starts the kernel with the
+MMU bypassed?
 
-diff --git a/arch/arc/include/asm/uaccess.h b/arch/arc/include/asm/uaccess.h
-index 503c98d..d9cbae4 100644
---- a/arch/arc/include/asm/uaccess.h
-+++ b/arch/arc/include/asm/uaccess.h
-@@ -35,6 +35,57 @@
- #define __access_ok(addr, sz)	(unlikely(__kernel_ok) || \
- 				 likely(__user_ok((addr), (sz))))
- 
-+/*********** Single byte/s-word/word copies ******************/
-+
-+#define __get_user_fn(sz, u, k)					\
-+({								\
-+	long __ret = 0;	/* success by default */	\
-+	switch (sz) {						\
-+	case 1: __arc_get_user_one(*(k), u, "ldb", __ret); break;	\
-+	case 2: __arc_get_user_one(*(k), u, "ldw", __ret); break;	\
-+	case 4: __arc_get_user_one(*(k), u, "ld", __ret);  break;	\
-+	case 8: __arc_get_user_one_64(*(k), u, __ret);     break;	\
-+	}							\
-+	__ret;							\
-+})
-+
-+#define __arc_get_user_one(dst, src, op, ret)	\
-+	__asm__ __volatile__(                   \
-+	"1:	"op"    %1,[%2]\n"		\
-+	"2:	;nop\n"				\
-+	"	.section .fixup, \"ax\"\n"	\
-+	"	.align 4\n"			\
-+	"3:	mov %0, %3\n"			\
-+	"	j   2b\n"			\
-+	"	.previous\n"			\
-+	"	.section __ex_table, \"a\"\n"	\
-+	"	.align 4\n"			\
-+	"	.word 1b,3b\n"			\
-+	"	.previous\n"			\
-+						\
-+	: "+r" (ret), "=r" (dst)		\
-+	: "r" (src), "i" (-EFAULT))
-+
-+#define __arc_get_user_one_64(dst, src, ret)	\
-+	__asm__ __volatile__(                   \
-+	"1:	ld   %1,[%2]\n"			\
-+	"4:	ld  %R1,[%2, 4]\n"		\
-+	"2:	;nop\n"				\
-+	"	.section .fixup, \"ax\"\n"	\
-+	"	.align 4\n"			\
-+	"3:	mov %0, %3\n"			\
-+	"	j   2b\n"			\
-+	"	.previous\n"			\
-+	"	.section __ex_table, \"a\"\n"	\
-+	"	.align 4\n"			\
-+	"	.word 1b,3b\n"			\
-+	"	.word 4b,3b\n"			\
-+	"	.previous\n"			\
-+						\
-+	: "+r" (ret), "=r" (dst)		\
-+	: "r" (src), "i" (-EFAULT))
-+
-+
- static inline unsigned long
- __arc_copy_from_user(void *to, const void __user *from, unsigned long n)
- {
--- 
-1.7.4.1
+> It's probably not necessary to have both lzma and xz formats since they
+> are the same algorithm with different headers afaik.
+
+This was copied from arch/sh/boot/Makefile if I remember right. Is
+either of them preferred?
+
+Thanks
+James
