@@ -1,67 +1,81 @@
-From: Josh Boyer <jwboyer@gmail.com>
-Subject: Re: [PATCH] UAPI: Strip the _UAPI prefix from header guards during
- header installation
-Date: Tue, 20 Nov 2012 16:10:40 -0500
-Message-ID: <CA+5PVA6_qmbXpN5gsTFuo=nYMA+UoSi76+apW4EyXY1Wg83Myg@mail.gmail.com>
-References: <20121113142641.16744.72039.stgit@warthog.procyon.org.uk>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20121113142641.16744.72039.stgit@warthog.procyon.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: David Howells <dhowells@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-List-Id: linux-arch.vger.kernel.org
+From: Grant Likely <grant.likely@secretlab.ca>
+Subject: Re: [PATCH V5 1/2] kbuild: centralize .dts->.dtb rule
+Date: Tue, 20 Nov 2012 22:00:32 +0000
+Message-ID: <20121120220032.5C8943E1821@localhost>
+References: <CACxGe6vhd_4rcBbYyqtvbySVaY6XpNE+HQq42PZhKe5yt=zcaA@mail.gmail.com> <1352980284-2819-1-git-send-email-grant.likely@secretlab.ca> <50A52FEC.4080409@wwwdotorg.org> <CACxGe6tZOjMXR6CNDzDTSUkcERLiX-2+Qoad0bcPum5Z-Jxaaw@mail.gmail.com> <50A5350A.3070109@wwwdotorg.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-wi0-f172.google.com ([209.85.212.172]:46315 "EHLO
+	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752206Ab2KTWAl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Nov 2012 17:00:41 -0500
+Received: by mail-wi0-f172.google.com with SMTP id hm9so1334742wib.1
+        for <linux-arch@vger.kernel.org>; Tue, 20 Nov 2012 14:00:40 -0800 (PST)
+In-Reply-To: <50A5350A.3070109@wwwdotorg.org>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Stephen Warren <swarren@nvidia.com>, devicetree-discuss@lists.ozlabs.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
 
-On Tue, Nov 13, 2012 at 9:26 AM, David Howells <dhowells@redhat.com> wrote:
-> Strip the _UAPI prefix from header guards during header installation so that
-> any userspace dependencies aren't affected.  glibc, for example, checks for
-> linux/types.h, linux/kernel.h, linux/compiler.h and linux/list.h by their
-> guards - though the last two aren't actually exported.
->
->         libtool: compile:  gcc -std=gnu99 -DHAVE_CONFIG_H -I. -Wall -Werror -Wformat -Wformat-security -D_FORTIFY_SOURCE=2 -fno-delete-null-pointer-checks -fstack-protector -O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m32 -march=i686 -mtune=atom -fasynchronous-unwind-tables -c child.c  -fPIC -DPIC -o .libs/child.o
->         In file included from cli.c:20:0:
->         common.h:152:8: error: redefinition of 'struct sysinfo'
->         In file included from /usr/include/linux/kernel.h:4:0,
->                          from /usr/include/linux/sysctl.h:25,
->                          from /usr/include/sys/sysctl.h:43,
->                          from common.h:50,
->                          from cli.c:20:
->         /usr/include/linux/sysinfo.h:7:8: note: originally defined here
->
-> Reported-by: Tomasz Torcz <tomek@pipebreaker.pl>
-> Signed-off-by: David Howells <dhowells@redhat.com>
-> Acked-by: Josh Boyer <jwboyer@redhat.com>
+On Thu, 15 Nov 2012 11:31:38 -0700, Stephen Warren <swarren@wwwdotorg.org> wrote:
+> On 11/15/2012 11:20 AM, Grant Likely wrote:
+> > On Thu, Nov 15, 2012 at 6:09 PM, Stephen Warren <swarren@wwwdotorg.org> wrote:
+> >> On 11/15/2012 04:51 AM, Grant Likely wrote:
+> >>> Grant Likely wrote:
+> >>>> Or how about: I could pick up the patch with only the MIPS hunk and
+> >>>> every other user can be fixed up independently to use the new rule.
+> >>>
+> >>> Here's a trial patch to fix up ARM. Does this look correct? This patch
+> >>> depends on the generic dtb build rule already being applied.
+> >>
+> >> I think the patch looks OK technically, except for one minor comment below.
+> >>
+> >> One issue with this patch is that it moves *.dts from arch/arm/boot to
+> >> arch/arm/boot/dts, which means everyone has to adjust their scripts/...
+> >> that package/install/... the kernel. I guess it's an easy change for
+> >> people to make, but could easily catch people unawares if they do
+> >> incremental builds so that arch/arm/boot/*.dtb still exists but is stale.
+> > 
+> > True. We could temporarily remove or rename if the same file exists in
+> > the directory below to help people catch that problem. I really would
+> > like to clean up that build rule to be consistent though.
+> > 
+> > The other option is to move all the .dts files into the boot
+> > directory, but I don't think that is a good idea at all.
+> 
+> Maybe we can just add "rm *.dtb" to the following rules in
+> boot/Makefile, before calling the child make?
+> 
+> %.dtb: scripts
+> -	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
+> +	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $(boot)/dts/$@
+> 
+>  dtbs: scripts
+> -	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
+> +	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) dtbs
+> 
+> >>> +targets += dtbs
+> >>
+> >> Doesn't that make the "dtbs" target always run by default? Perhaps
+> >> that's reasonable though, and doesn't actually affect anything since the
+> >> make command for this directory always specifies an explicit target?
+> >>
+> >> Or, was that meant to be the following that got removed from ../Makefile?
+> >>
+> >> targets += $(dtb-y)
+> > 
+> > Yes it is supposed to be the same thing. Doesn't it effectively do the
+> > same since dtbs depends on $(dtb-y)?
+> 
+> Ah, I think so yes.
+> 
+> I guess anyway that $(targets) is presumably ignored if an explicit
+> build target is requested from make.
 
-It would be good to get this patch into 3.7 so that the installed
-headers aren't broken in subtle ways.
+Can you pull into your series and get it working. The merge window is
+going to open this week, so I have to push it back to v3.9 anyway.
 
-I've changed Linus' email address in the CC field because I'm fairly
-sure he doesn't look at the osdl.org one any longer.
+g.
 
-josh
-
-> ---
->
->  0 files changed
->
-> diff --git a/scripts/headers_install.pl b/scripts/headers_install.pl
-> index 239d22d..6c353ae 100644
-> --- a/scripts/headers_install.pl
-> +++ b/scripts/headers_install.pl
-> @@ -42,6 +42,9 @@ foreach my $filename (@files) {
->                 $line =~ s/(^|\s)(inline)\b/$1__$2__/g;
->                 $line =~ s/(^|\s)(asm)\b(\s|[(]|$)/$1__$2__$3/g;
->                 $line =~ s/(^|\s|[(])(volatile)\b(\s|[(]|$)/$1__$2__$3/g;
-> +               $line =~ s/#ifndef _UAPI/#ifndef /;
-> +               $line =~ s/#define _UAPI/#define /;
-> +               $line =~ s!#endif /[*] _UAPI!#endif /* !;
->                 printf {$out} "%s", $line;
->         }
->         close $out;
->
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+-- 
+Grant Likely, B.Sc, P.Eng.
+Secret Lab Technologies, Ltd.
