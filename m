@@ -1,81 +1,61 @@
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [PATCH V5 1/2] kbuild: centralize .dts->.dtb rule
-Date: Tue, 20 Nov 2012 22:00:32 +0000
-Message-ID: <20121120220032.5C8943E1821@localhost>
-References: <CACxGe6vhd_4rcBbYyqtvbySVaY6XpNE+HQq42PZhKe5yt=zcaA@mail.gmail.com> <1352980284-2819-1-git-send-email-grant.likely@secretlab.ca> <50A52FEC.4080409@wwwdotorg.org> <CACxGe6tZOjMXR6CNDzDTSUkcERLiX-2+Qoad0bcPum5Z-Jxaaw@mail.gmail.com> <50A5350A.3070109@wwwdotorg.org>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: sigaltstack fun (was Re: new execve/kernel_thread design)
+Date: Wed, 21 Nov 2012 01:53:02 +0000
+Message-ID: <20121121015302.GQ16916@ZenIV.linux.org.uk>
+References: <20121016223508.GR2616@ZenIV.linux.org.uk>
+ <CACM3HyEpypULRWUc5ZnLnZ=uOWf3_j=9PXZiJrT_BXyGcQe9yg@mail.gmail.com>
+ <CAHTX3dKDsOiUwtXxAUj-F4Y4rO+UZZDR4ufx_nxf+vuhmz46WA@mail.gmail.com>
+ <20121017160702.GY2616@ZenIV.linux.org.uk>
+ <20121017161953.GZ2616@ZenIV.linux.org.uk>
+ <CAHTX3dJN4Jun2KVXpda1wTrwkjT0mmH4fYmUUwq69d9sCTjXnA@mail.gmail.com>
+ <20121115215529.GU2616@ZenIV.linux.org.uk>
+ <CAHTX3d+Ou3_4tGqwyWFfNMSumPw2770_nhV_cTQa89k7+sxdHw@mail.gmail.com>
+ <20121118054510.GE16916@ZenIV.linux.org.uk>
+ <CA+55aFxncW2pEhsjg0AO9YKyvPaHyiXZMjoJZ1J8gA+8sH7HNw@mail.gmail.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f172.google.com ([209.85.212.172]:46315 "EHLO
-	mail-wi0-f172.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752206Ab2KTWAl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Nov 2012 17:00:41 -0500
-Received: by mail-wi0-f172.google.com with SMTP id hm9so1334742wib.1
-        for <linux-arch@vger.kernel.org>; Tue, 20 Nov 2012 14:00:40 -0800 (PST)
-In-Reply-To: <50A5350A.3070109@wwwdotorg.org>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:38776 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752312Ab2KUBxG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Nov 2012 20:53:06 -0500
+Content-Disposition: inline
+In-Reply-To: <CA+55aFxncW2pEhsjg0AO9YKyvPaHyiXZMjoJZ1J8gA+8sH7HNw@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: linux-arch@vger.kernel.org, linux-mips@linux-mips.org, Stephen Warren <swarren@nvidia.com>, devicetree-discuss@lists.ozlabs.org, linux-kernel@vger.kernel.org, Sam Ravnborg <sam@ravnborg.org>
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Michal Simek <monstr@monstr.eu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Thu, 15 Nov 2012 11:31:38 -0700, Stephen Warren <swarren@wwwdotorg.org> wrote:
-> On 11/15/2012 11:20 AM, Grant Likely wrote:
-> > On Thu, Nov 15, 2012 at 6:09 PM, Stephen Warren <swarren@wwwdotorg.org> wrote:
-> >> On 11/15/2012 04:51 AM, Grant Likely wrote:
-> >>> Grant Likely wrote:
-> >>>> Or how about: I could pick up the patch with only the MIPS hunk and
-> >>>> every other user can be fixed up independently to use the new rule.
-> >>>
-> >>> Here's a trial patch to fix up ARM. Does this look correct? This patch
-> >>> depends on the generic dtb build rule already being applied.
-> >>
-> >> I think the patch looks OK technically, except for one minor comment below.
-> >>
-> >> One issue with this patch is that it moves *.dts from arch/arm/boot to
-> >> arch/arm/boot/dts, which means everyone has to adjust their scripts/...
-> >> that package/install/... the kernel. I guess it's an easy change for
-> >> people to make, but could easily catch people unawares if they do
-> >> incremental builds so that arch/arm/boot/*.dtb still exists but is stale.
-> > 
-> > True. We could temporarily remove or rename if the same file exists in
-> > the directory below to help people catch that problem. I really would
-> > like to clean up that build rule to be consistent though.
-> > 
-> > The other option is to move all the .dts files into the boot
-> > directory, but I don't think that is a good idea at all.
+On Sun, Nov 18, 2012 at 08:45:43AM -1000, Linus Torvalds wrote:
+> On Sat, Nov 17, 2012 at 7:45 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> >
+> > Linus, do you have any objections to the above?  FWIW, I've a tentative
+> > patchset in that direction (most of it from the last cycle); right now
+> > it + stuff currently in signal.git#for-next is at -3.4KLoC and I hadn't
+> > dealt with the biarch side of things yet...
 > 
-> Maybe we can just add "rm *.dtb" to the following rules in
-> boot/Makefile, before calling the child make?
-> 
-> %.dtb: scripts
-> -	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
-> +	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $(boot)/dts/$@
-> 
->  dtbs: scripts
-> -	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
-> +	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) dtbs
-> 
-> >>> +targets += dtbs
-> >>
-> >> Doesn't that make the "dtbs" target always run by default? Perhaps
-> >> that's reasonable though, and doesn't actually affect anything since the
-> >> make command for this directory always specifies an explicit target?
-> >>
-> >> Or, was that meant to be the following that got removed from ../Makefile?
-> >>
-> >> targets += $(dtb-y)
-> > 
-> > Yes it is supposed to be the same thing. Doesn't it effectively do the
-> > same since dtbs depends on $(dtb-y)?
-> 
-> Ah, I think so yes.
-> 
-> I guess anyway that $(targets) is presumably ignored if an explicit
-> build target is requested from make.
+> I have absolutely no objections. sigaltstack has always been kind of
+> messy, and made worse by the fact that it gets effectively no testing
+> (because it's generally not used by normal code and even code that
+> uses it tends to use it only for very uncommon events). So forcing all
+> the sigaltstack code into generic code and at least avoiding the
+> "different architectures can get things subtly - or not so subtly -
+> wrong in different ways" sounds like a good thing.
 
-Can you pull into your series and get it working. The merge window is
-going to open this week, so I have to push it back to v3.9 anyway.
+OK...  Intermediate state (do_sigaltstack() guts still need to be cleaned up
+and distributed between the 4 callers) is in signal.git#master right now;
+_not_ for merge in that form.  Crap found in process:
+	* microblaze, sparc64 and tile (compat side) have the same bug (see
+above).  Fixed in that queue.
+	* score, sh64 and openrisc all tried call do do_sigaltstack() passing
+it an address of on-stack copy; no, set_fs() was not used.  Fixed in that queue.
+	* alpha and c6x do not bother to restore saved altstack settings on
+sigreturn.
+	* c6x, cris and hexagon don't bother *saving* altstack settings on
+signal arrival.  And yes, it does mean that cris and hexagon call
+do_sigaltstack() on an unitialized chunk of userland stack.  Needs to be
+fixed (and in a way that could go into -stable, unfortunately ;-/)
 
-g.
-
--- 
-Grant Likely, B.Sc, P.Eng.
-Secret Lab Technologies, Ltd.
+I hadn't done anything serious with altstack users yet; I'm afraid that
+this code (i.e. sigframe allocation logics) will also bring a lot of
+fun weirdness... ;-/
