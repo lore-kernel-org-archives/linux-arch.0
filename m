@@ -1,76 +1,42 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f46.google.com ([74.125.83.46]:59233 "EHLO
-	mail-ee0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752414Ab2KUEnF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Nov 2012 23:43:05 -0500
+Received: from mail-vb0-f46.google.com ([209.85.212.46]:54043 "EHLO
+	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753697Ab2KUIOW (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Nov 2012 03:14:22 -0500
+Received: by mail-vb0-f46.google.com with SMTP id ff1so1421556vbb.19
+        for <linux-arch@vger.kernel.org>; Wed, 21 Nov 2012 00:14:22 -0800 (PST)
 MIME-Version: 1.0
-In-Reply-To: <1353349867-28494-12-git-send-email-swarren@wwwdotorg.org>
+In-Reply-To: <1353349867-28494-9-git-send-email-swarren@wwwdotorg.org>
 References: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
-	<1353349867-28494-12-git-send-email-swarren@wwwdotorg.org>
-Date: Wed, 21 Nov 2012 12:43:02 +0800
-Message-ID: <CAN1soZxf=i9Z9zOpbE2zUW6q6CY9TfOsUB7bf+-K_oLcmFqeCQ@mail.gmail.com>
-Subject: Re: [PATCH V3 11/11] ARM: delete struct sys_timer
-From: Haojian Zhuang <haojian.zhuang@gmail.com>
+	<1353349867-28494-9-git-send-email-swarren@wwwdotorg.org>
+Date: Wed, 21 Nov 2012 09:14:22 +0100
+Message-ID: <CACRpkdacsHS42S=vbb0NOoTj=odxUVAoDu+E4RRULWwh1McKrg@mail.gmail.com>
+Subject: Re: [PATCH V3 08/11] ARM: ux500: convert timer suspend/resume to clock_event_device
+From: Linus Walleij <linus.walleij@linaro.org>
 Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>
-Message-ID: <20121121044302.uw2otoKpFhYkMxi_X8DmUc_4GhnUMqzzqmLdtKF9rKo@z>
+Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>
+Message-ID: <20121121081422.A808xZohPj84UlZ__LvBlnuF723VLEjwxKVkXzNviQA@z>
 
-On Tue, Nov 20, 2012 at 2:31 AM, Stephen Warren <swarren@wwwdotorg.org> wrote:
+On Mon, Nov 19, 2012 at 7:31 PM, Stephen Warren <swarren@wwwdotorg.org> wrote:
+
 > From: Stephen Warren <swarren@nvidia.com>
 >
-> Now that the only field in struct sys_timer is .init, delete the struct,
-> and replace the machine descriptor .timer field with the initialization
-> function itself.
+> Move ux500's timer suspend/resume functions from struct sys_timer
+> ux500_timer into struct clock_event_device nmdk_clkevt. This
+> will allow the sys_timer suspend/resume fields to be removed, and
+> eventually lead to a complete removal of struct sys_timer.
 >
-> This will enable moving timer drivers into drivers/clocksource without
-> having to place a public prototype of each struct sys_timer object into
-> include/linux; the intent is to create a single of_clocksource_init()
-> function that determines which timer driver to initialize by scanning
-> the device dtree, much like the proposed irqchip_init() at:
-> http://www.spinics.net/lists/arm-kernel/msg203686.html
->
+> Cc: Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>
+> Cc: Linus Walleij <linus.walleij@linaro.org>
 > Signed-off-by: Stephen Warren <swarren@nvidia.com>
-> Tested-by: Robert Jarzmik <robert.jarzmik@free.fr>
-> ---
-> v3: Minor merge conflicts due to rebasing onto next-20121115.
-> v2: Converted all platforms, not just Tegra.
->
-> The patch is very large, so I've trimmed it for the mailing list, leaving
-> only the core ARM changes, changes outside arch/arm, and a single machine
-> example. The full series can be found at:
->
-> git://nv-tegra.nvidia.com/user/swarren/linux-2.6 arm_timer_rework
-> ---
->  492 files changed, 622 insertions(+), 1199 deletions(-)
 
-I checked the patch for mach-mmp.
+Acked-by: Linus Walleij <linus.walleij@linaro.org>
 
-@@ -69,7 +65,7 @@ static const char *mmp_dt_board_compat[] __initdata = {
- DT_MACHINE_START(PXA168_DT, "Marvell PXA168 (Device Tree Support)")
-        .map_io         = mmp_map_io,
-        .init_irq       = mmp_dt_irq_init,
--       .timer          = &mmp_dt_timer,
-+       .init_time      = mmp_dt_init_timer,
-        .init_machine   = pxa168_dt_init,
-        .dt_compat      = mmp_dt_board_compat,
- MACHINE_END
-@@ -77,7 +73,7 @@ MACHINE_END
- DT_MACHINE_START(PXA910_DT, "Marvell PXA910 (Device Tree Support)")
-        .map_io         = mmp_map_io,
-        .init_irq       = mmp_dt_irq_init,
--       .timer          = &mmp_dt_timer,
-+       .init_time      = mmp_dt_timer_init,
-        .init_machine   = pxa910_dt_init,
-        .dt_compat      = mmp_dt_board_compat,
- MACHINE_END
+We have a comment on the .resume member but I'll find
+the right patch and comment there.
 
-This first init_time is assigned by mmp_dt_init_timer. But the second
-init_time is
-assigned by mmp_dt_timer_init. I think it's a typo error. Could you
-help to fix this?
-
-Regards
-Haojian
+Yours,
+Linus Walleij
