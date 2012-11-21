@@ -1,61 +1,71 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: sigaltstack fun (was Re: new execve/kernel_thread design)
-Date: Wed, 21 Nov 2012 01:53:02 +0000
-Message-ID: <20121121015302.GQ16916@ZenIV.linux.org.uk>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk>
- <CACM3HyEpypULRWUc5ZnLnZ=uOWf3_j=9PXZiJrT_BXyGcQe9yg@mail.gmail.com>
- <CAHTX3dKDsOiUwtXxAUj-F4Y4rO+UZZDR4ufx_nxf+vuhmz46WA@mail.gmail.com>
- <20121017160702.GY2616@ZenIV.linux.org.uk>
- <20121017161953.GZ2616@ZenIV.linux.org.uk>
- <CAHTX3dJN4Jun2KVXpda1wTrwkjT0mmH4fYmUUwq69d9sCTjXnA@mail.gmail.com>
- <20121115215529.GU2616@ZenIV.linux.org.uk>
- <CAHTX3d+Ou3_4tGqwyWFfNMSumPw2770_nhV_cTQa89k7+sxdHw@mail.gmail.com>
- <20121118054510.GE16916@ZenIV.linux.org.uk>
- <CA+55aFxncW2pEhsjg0AO9YKyvPaHyiXZMjoJZ1J8gA+8sH7HNw@mail.gmail.com>
+From: Haojian Zhuang <haojian.zhuang@gmail.com>
+Subject: Re: [PATCH V3 11/11] ARM: delete struct sys_timer
+Date: Wed, 21 Nov 2012 12:43:02 +0800
+Message-ID: <CAN1soZxf=i9Z9zOpbE2zUW6q6CY9TfOsUB7bf+-K_oLcmFqeCQ@mail.gmail.com>
+References: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
+	<1353349867-28494-12-git-send-email-swarren@wwwdotorg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:38776 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752312Ab2KUBxG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Nov 2012 20:53:06 -0500
-Content-Disposition: inline
-In-Reply-To: <CA+55aFxncW2pEhsjg0AO9YKyvPaHyiXZMjoJZ1J8gA+8sH7HNw@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Michal Simek <monstr@monstr.eu>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1353349867-28494-12-git-send-email-swarren@wwwdotorg.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>
+List-Id: linux-arch.vger.kernel.org
 
-On Sun, Nov 18, 2012 at 08:45:43AM -1000, Linus Torvalds wrote:
-> On Sat, Nov 17, 2012 at 7:45 PM, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> >
-> > Linus, do you have any objections to the above?  FWIW, I've a tentative
-> > patchset in that direction (most of it from the last cycle); right now
-> > it + stuff currently in signal.git#for-next is at -3.4KLoC and I hadn't
-> > dealt with the biarch side of things yet...
-> 
-> I have absolutely no objections. sigaltstack has always been kind of
-> messy, and made worse by the fact that it gets effectively no testing
-> (because it's generally not used by normal code and even code that
-> uses it tends to use it only for very uncommon events). So forcing all
-> the sigaltstack code into generic code and at least avoiding the
-> "different architectures can get things subtly - or not so subtly -
-> wrong in different ways" sounds like a good thing.
+On Tue, Nov 20, 2012 at 2:31 AM, Stephen Warren <swarren@wwwdotorg.org> wrote:
+> From: Stephen Warren <swarren@nvidia.com>
+>
+> Now that the only field in struct sys_timer is .init, delete the struct,
+> and replace the machine descriptor .timer field with the initialization
+> function itself.
+>
+> This will enable moving timer drivers into drivers/clocksource without
+> having to place a public prototype of each struct sys_timer object into
+> include/linux; the intent is to create a single of_clocksource_init()
+> function that determines which timer driver to initialize by scanning
+> the device dtree, much like the proposed irqchip_init() at:
+> http://www.spinics.net/lists/arm-kernel/msg203686.html
+>
+> Signed-off-by: Stephen Warren <swarren@nvidia.com>
+> Tested-by: Robert Jarzmik <robert.jarzmik@free.fr>
+> ---
+> v3: Minor merge conflicts due to rebasing onto next-20121115.
+> v2: Converted all platforms, not just Tegra.
+>
+> The patch is very large, so I've trimmed it for the mailing list, leaving
+> only the core ARM changes, changes outside arch/arm, and a single machine
+> example. The full series can be found at:
+>
+> git://nv-tegra.nvidia.com/user/swarren/linux-2.6 arm_timer_rework
+> ---
+>  492 files changed, 622 insertions(+), 1199 deletions(-)
 
-OK...  Intermediate state (do_sigaltstack() guts still need to be cleaned up
-and distributed between the 4 callers) is in signal.git#master right now;
-_not_ for merge in that form.  Crap found in process:
-	* microblaze, sparc64 and tile (compat side) have the same bug (see
-above).  Fixed in that queue.
-	* score, sh64 and openrisc all tried call do do_sigaltstack() passing
-it an address of on-stack copy; no, set_fs() was not used.  Fixed in that queue.
-	* alpha and c6x do not bother to restore saved altstack settings on
-sigreturn.
-	* c6x, cris and hexagon don't bother *saving* altstack settings on
-signal arrival.  And yes, it does mean that cris and hexagon call
-do_sigaltstack() on an unitialized chunk of userland stack.  Needs to be
-fixed (and in a way that could go into -stable, unfortunately ;-/)
+I checked the patch for mach-mmp.
 
-I hadn't done anything serious with altstack users yet; I'm afraid that
-this code (i.e. sigframe allocation logics) will also bring a lot of
-fun weirdness... ;-/
+@@ -69,7 +65,7 @@ static const char *mmp_dt_board_compat[] __initdata = {
+ DT_MACHINE_START(PXA168_DT, "Marvell PXA168 (Device Tree Support)")
+        .map_io         = mmp_map_io,
+        .init_irq       = mmp_dt_irq_init,
+-       .timer          = &mmp_dt_timer,
++       .init_time      = mmp_dt_init_timer,
+        .init_machine   = pxa168_dt_init,
+        .dt_compat      = mmp_dt_board_compat,
+ MACHINE_END
+@@ -77,7 +73,7 @@ MACHINE_END
+ DT_MACHINE_START(PXA910_DT, "Marvell PXA910 (Device Tree Support)")
+        .map_io         = mmp_map_io,
+        .init_irq       = mmp_dt_irq_init,
+-       .timer          = &mmp_dt_timer,
++       .init_time      = mmp_dt_timer_init,
+        .init_machine   = pxa910_dt_init,
+        .dt_compat      = mmp_dt_board_compat,
+ MACHINE_END
+
+This first init_time is assigned by mmp_dt_init_timer. But the second
+init_time is
+assigned by mmp_dt_timer_init. I think it's a typo error. Could you
+help to fix this?
+
+Regards
+Haojian
