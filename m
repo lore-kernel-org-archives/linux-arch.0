@@ -1,67 +1,66 @@
-From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [PATCH V3 10/11] ARM: remove struct sys_timer suspend and resume fields
-Date: Wed, 21 Nov 2012 09:28:12 +0100
-Message-ID: <CACRpkdb-cmwTH_7EJO02m2+CCZrJ2ycgtGpf8stoiFKSm8jqww@mail.gmail.com>
-References: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
-	<1353349867-28494-11-git-send-email-swarren@wwwdotorg.org>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 022/493] ARM: remove CONFIG_HOTPLUG ifdefs
+Date: Wed, 21 Nov 2012 11:44:19 +0000
+Message-ID: <20121121114419.GB3290@n2100.arm.linux.org.uk>
+References: <1353349642-3677-1-git-send-email-wfp5p@virginia.edu> <1353349642-3677-22-git-send-email-wfp5p@virginia.edu>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f174.google.com ([209.85.220.174]:42977 "EHLO
-	mail-vc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751876Ab2KUI2N (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Nov 2012 03:28:13 -0500
-Received: by mail-vc0-f174.google.com with SMTP id m18so3314330vcm.19
-        for <linux-arch@vger.kernel.org>; Wed, 21 Nov 2012 00:28:12 -0800 (PST)
-In-Reply-To: <1353349867-28494-11-git-send-email-swarren@wwwdotorg.org>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:47644 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751915Ab2KULoh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Nov 2012 06:44:37 -0500
+Content-Disposition: inline
+In-Reply-To: <1353349642-3677-22-git-send-email-wfp5p@virginia.edu>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Jonas ABERG <jonas.aberg@stericsson.com>
+To: Bill Pemberton <wfp5p@virginia.edu>
+Cc: gregkh@linuxfoundation.org, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, linux-arch@vger.kernel.org
 
-Oh and there was this comment/TODO:
+On Mon, Nov 19, 2012 at 01:19:31PM -0500, Bill Pemberton wrote:
+> diff --git a/arch/arm/kernel/bios32.c b/arch/arm/kernel/bios32.c
+> index 9b72261..f136307 100644
+> --- a/arch/arm/kernel/bios32.c
+> +++ b/arch/arm/kernel/bios32.c
+> @@ -361,9 +361,9 @@ void pcibios_fixup_bus(struct pci_bus *bus)
+>  	printk(KERN_INFO "PCI: bus%d: Fast back to back transfers %sabled\n",
+>  		bus->number, (features & PCI_COMMAND_FAST_BACK) ? "en" : "dis");
+>  }
+> -#ifdef CONFIG_HOTPLUG
+> +
+>  EXPORT_SYMBOL(pcibios_fixup_bus);
+> -#endif
+> +
 
-On Mon, Nov 19, 2012 at 7:31 PM, Stephen Warren <swarren@wwwdotorg.org> wrote:
+This looks fine.
 
-> @@ -17,15 +17,6 @@
->   *   Initialise the kernels jiffy timer source, claim interrupt
->   *   using setup_irq.  This is called early on during initialisation
->   *   while interrupts are still disabled on the local CPU.
-> - * - suspend
-> - *   Suspend the kernel jiffy timer source, if necessary.  This
-> - *   is called with interrupts disabled, after all normal devices
-> - *   have been suspended.  If no action is required, set this to
-> - *   NULL.
-> - * - resume
-> - *   Resume the kernel jiffy timer source, if necessary.  This
-> - *   is called with interrupts disabled before any normal devices
-> - *   are resumed.  If no action is required, set this to NULL.
->   * - offset
->   *   Return the timer offset in microseconds since the last timer
->   *   interrupt.  Note: this must take account of any unprocessed
-> @@ -33,8 +24,6 @@
+> diff --git a/arch/arm/kernel/vmlinux.lds.S b/arch/arm/kernel/vmlinux.lds.S
+> index b9f38e3..38279fe 100644
+> --- a/arch/arm/kernel/vmlinux.lds.S
+> +++ b/arch/arm/kernel/vmlinux.lds.S
+> @@ -66,10 +66,8 @@ SECTIONS
+>  		ARM_EXIT_DISCARD(EXIT_TEXT)
+>  		ARM_EXIT_DISCARD(EXIT_DATA)
+>  		EXIT_CALL
+> -#ifndef CONFIG_HOTPLUG
+>  		*(.ARM.exidx.devexit.text)
+>  		*(.ARM.extab.devexit.text)
+> -#endif
+
+This to me looks wrong.  Do we want to unconditionally discard devexit
+debugging?
+
+> diff --git a/include/asm-generic/vmlinux.lds.h b/include/asm-generic/vmlinux.lds.h
+> index d1ea7ce..856b58d 100644
+> --- a/include/asm-generic/vmlinux.lds.h
+> +++ b/include/asm-generic/vmlinux.lds.h
+> @@ -74,13 +74,8 @@
+>   * are handled as text/data or they can be discarded (which
+>   * often happens at runtime)
 >   */
->  struct sys_timer {
->         void                    (*init)(void);
-> -       void                    (*suspend)(void);
-> -       void                    (*resume)(void);
->  };
+> -#ifdef CONFIG_HOTPLUG
+>  #define DEV_KEEP(sec)    *(.dev##sec)
+>  #define DEV_DISCARD(sec)
 
-So from the above it is quite clear that the sys_timer is breaking
-the suspend_noirq/resume_noirq naming convention from
-runtime PM as IRQs are disabled on these paths.
-
-The same goes for struct clock_event_device ...
-
-So while this looks just as bad after as before the patch,
-we should take a mental notice to rename the .suspend
-and .resume hooks in the clock_event_device to
-.suspend_noirq and .resume_noirq at some point.
-
-I was thinking that if your patch set is introducing a
-plethora of new users of these hooks we should maybe
-stick a patch at the beginning of the series renaming the
-hooks to *_noirq, but if it's a major obstacle it can surely wait.
-
-Yours,
-Linus Walleij
+I hope there will be a follow-on patch to remove the DEV_KEEP() and
+DEV_DISCARD() stuff entirely?
