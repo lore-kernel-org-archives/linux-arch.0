@@ -1,72 +1,76 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vb0-f46.google.com ([209.85.212.46]:38128 "EHLO
-	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752206Ab2KTVKl convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Nov 2012 16:10:41 -0500
+Received: from mail-ee0-f46.google.com ([74.125.83.46]:59233 "EHLO
+	mail-ee0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752414Ab2KUEnF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 20 Nov 2012 23:43:05 -0500
 MIME-Version: 1.0
-In-Reply-To: <20121113142641.16744.72039.stgit@warthog.procyon.org.uk>
-References: <20121113142641.16744.72039.stgit@warthog.procyon.org.uk>
-Date: Tue, 20 Nov 2012 16:10:40 -0500
-Message-ID: <CA+5PVA6_qmbXpN5gsTFuo=nYMA+UoSi76+apW4EyXY1Wg83Myg@mail.gmail.com>
-Subject: Re: [PATCH] UAPI: Strip the _UAPI prefix from header guards during
- header installation
-From: Josh Boyer <jwboyer@gmail.com>
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7BIT
+In-Reply-To: <1353349867-28494-12-git-send-email-swarren@wwwdotorg.org>
+References: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
+	<1353349867-28494-12-git-send-email-swarren@wwwdotorg.org>
+Date: Wed, 21 Nov 2012 12:43:02 +0800
+Message-ID: <CAN1soZxf=i9Z9zOpbE2zUW6q6CY9TfOsUB7bf+-K_oLcmFqeCQ@mail.gmail.com>
+Subject: Re: [PATCH V3 11/11] ARM: delete struct sys_timer
+From: Haojian Zhuang <haojian.zhuang@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>
-Message-ID: <20121120211040.v2bG577mhZJOhezBt3BEvwyJVA4dK9tqTq_8kKU8ZDE@z>
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>
+Message-ID: <20121121044302.uw2otoKpFhYkMxi_X8DmUc_4GhnUMqzzqmLdtKF9rKo@z>
 
-On Tue, Nov 13, 2012 at 9:26 AM, David Howells <dhowells@redhat.com> wrote:
-> Strip the _UAPI prefix from header guards during header installation so that
-> any userspace dependencies aren't affected.  glibc, for example, checks for
-> linux/types.h, linux/kernel.h, linux/compiler.h and linux/list.h by their
-> guards - though the last two aren't actually exported.
+On Tue, Nov 20, 2012 at 2:31 AM, Stephen Warren <swarren@wwwdotorg.org> wrote:
+> From: Stephen Warren <swarren@nvidia.com>
 >
->         libtool: compile:  gcc -std=gnu99 -DHAVE_CONFIG_H -I. -Wall -Werror -Wformat -Wformat-security -D_FORTIFY_SOURCE=2 -fno-delete-null-pointer-checks -fstack-protector -O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m32 -march=i686 -mtune=atom -fasynchronous-unwind-tables -c child.c  -fPIC -DPIC -o .libs/child.o
->         In file included from cli.c:20:0:
->         common.h:152:8: error: redefinition of 'struct sysinfo'
->         In file included from /usr/include/linux/kernel.h:4:0,
->                          from /usr/include/linux/sysctl.h:25,
->                          from /usr/include/sys/sysctl.h:43,
->                          from common.h:50,
->                          from cli.c:20:
->         /usr/include/linux/sysinfo.h:7:8: note: originally defined here
+> Now that the only field in struct sys_timer is .init, delete the struct,
+> and replace the machine descriptor .timer field with the initialization
+> function itself.
 >
-> Reported-by: Tomasz Torcz <tomek@pipebreaker.pl>
-> Signed-off-by: David Howells <dhowells@redhat.com>
-> Acked-by: Josh Boyer <jwboyer@redhat.com>
-
-It would be good to get this patch into 3.7 so that the installed
-headers aren't broken in subtle ways.
-
-I've changed Linus' email address in the CC field because I'm fairly
-sure he doesn't look at the osdl.org one any longer.
-
-josh
-
+> This will enable moving timer drivers into drivers/clocksource without
+> having to place a public prototype of each struct sys_timer object into
+> include/linux; the intent is to create a single of_clocksource_init()
+> function that determines which timer driver to initialize by scanning
+> the device dtree, much like the proposed irqchip_init() at:
+> http://www.spinics.net/lists/arm-kernel/msg203686.html
+>
+> Signed-off-by: Stephen Warren <swarren@nvidia.com>
+> Tested-by: Robert Jarzmik <robert.jarzmik@free.fr>
 > ---
+> v3: Minor merge conflicts due to rebasing onto next-20121115.
+> v2: Converted all platforms, not just Tegra.
 >
->  0 files changed
+> The patch is very large, so I've trimmed it for the mailing list, leaving
+> only the core ARM changes, changes outside arch/arm, and a single machine
+> example. The full series can be found at:
 >
-> diff --git a/scripts/headers_install.pl b/scripts/headers_install.pl
-> index 239d22d..6c353ae 100644
-> --- a/scripts/headers_install.pl
-> +++ b/scripts/headers_install.pl
-> @@ -42,6 +42,9 @@ foreach my $filename (@files) {
->                 $line =~ s/(^|\s)(inline)\b/$1__$2__/g;
->                 $line =~ s/(^|\s)(asm)\b(\s|[(]|$)/$1__$2__$3/g;
->                 $line =~ s/(^|\s|[(])(volatile)\b(\s|[(]|$)/$1__$2__$3/g;
-> +               $line =~ s/#ifndef _UAPI/#ifndef /;
-> +               $line =~ s/#define _UAPI/#define /;
-> +               $line =~ s!#endif /[*] _UAPI!#endif /* !;
->                 printf {$out} "%s", $line;
->         }
->         close $out;
->
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> git://nv-tegra.nvidia.com/user/swarren/linux-2.6 arm_timer_rework
+> ---
+>  492 files changed, 622 insertions(+), 1199 deletions(-)
+
+I checked the patch for mach-mmp.
+
+@@ -69,7 +65,7 @@ static const char *mmp_dt_board_compat[] __initdata = {
+ DT_MACHINE_START(PXA168_DT, "Marvell PXA168 (Device Tree Support)")
+        .map_io         = mmp_map_io,
+        .init_irq       = mmp_dt_irq_init,
+-       .timer          = &mmp_dt_timer,
++       .init_time      = mmp_dt_init_timer,
+        .init_machine   = pxa168_dt_init,
+        .dt_compat      = mmp_dt_board_compat,
+ MACHINE_END
+@@ -77,7 +73,7 @@ MACHINE_END
+ DT_MACHINE_START(PXA910_DT, "Marvell PXA910 (Device Tree Support)")
+        .map_io         = mmp_map_io,
+        .init_irq       = mmp_dt_irq_init,
+-       .timer          = &mmp_dt_timer,
++       .init_time      = mmp_dt_timer_init,
+        .init_machine   = pxa910_dt_init,
+        .dt_compat      = mmp_dt_board_compat,
+ MACHINE_END
+
+This first init_time is assigned by mmp_dt_init_timer. But the second
+init_time is
+assigned by mmp_dt_timer_init. I think it's a typo error. Could you
+help to fix this?
+
+Regards
+Haojian
