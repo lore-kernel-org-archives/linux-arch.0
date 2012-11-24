@@ -1,42 +1,78 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vb0-f46.google.com ([209.85.212.46]:54043 "EHLO
-	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753697Ab2KUIOW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 21 Nov 2012 03:14:22 -0500
-Received: by mail-vb0-f46.google.com with SMTP id ff1so1421556vbb.19
-        for <linux-arch@vger.kernel.org>; Wed, 21 Nov 2012 00:14:22 -0800 (PST)
-MIME-Version: 1.0
-In-Reply-To: <1353349867-28494-9-git-send-email-swarren@wwwdotorg.org>
-References: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
-	<1353349867-28494-9-git-send-email-swarren@wwwdotorg.org>
-Date: Wed, 21 Nov 2012 09:14:22 +0100
-Message-ID: <CACRpkdacsHS42S=vbb0NOoTj=odxUVAoDu+E4RRULWwh1McKrg@mail.gmail.com>
-Subject: Re: [PATCH V3 08/11] ARM: ux500: convert timer suspend/resume to clock_event_device
-From: Linus Walleij <linus.walleij@linaro.org>
-Content-Type: text/plain; charset=ISO-8859-1
+Received: from casper.infradead.org ([85.118.1.10]:57935 "EHLO
+	casper.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932396Ab2KXAVY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 23 Nov 2012 19:21:24 -0500
+From: Arnaldo Carvalho de Melo <acme@infradead.org>
+Subject: [PATCH 8/8] perf kvm: Fix building perf kvm on non x86 arches
+Date: Fri, 23 Nov 2012 21:20:53 -0300
+Message-ID: <1353716453-9693-9-git-send-email-acme@infradead.org>
+In-Reply-To: <1353716453-9693-1-git-send-email-acme@infradead.org>
+References: <1353716453-9693-1-git-send-email-acme@infradead.org>
+Content-Type: text/plain; charset="utf-8"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>
-Message-ID: <20121121081422.A808xZohPj84UlZ__LvBlnuF723VLEjwxKVkXzNviQA@z>
+To: Ingo Molnar <mingo@kernel.org>
+Cc: linux-kernel@vger.kernel.org, Xiao Guangrong <xiaoguangrong@linux.vnet.ibm.com>, Borislav Petkov <bp@alien8.de>, David Ahern <dsahern@gmail.com>, David Howells <dhowells@redhat.com>, Dong Hao <haodong@linux.vnet.ibm.com>, Josh Boyer <jwboyer@gmail.com>, Linus Torvalds <torvalds@linux-foundation.org>, Namhyung Kim <namhyung@gmail.com>, Paul Mackerras <paulus@samba.org>, Runzhen Wang <runzhen@linux.vnet.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, x86@kernel.org, Arnaldo Carvalho de Melo <acme@redhat.com>
+Message-ID: <20121124002053.7DDU5bU6jY-UxJfJSLoU3ZkART_9spVaPFp1zq2ifT8@z>
 
-On Mon, Nov 19, 2012 at 7:31 PM, Stephen Warren <swarren@wwwdotorg.org> wrote:
+From: Xiao Guangrong <xiaoguangrong@linux.vnet.ibm.com>
 
-> From: Stephen Warren <swarren@nvidia.com>
->
-> Move ux500's timer suspend/resume functions from struct sys_timer
-> ux500_timer into struct clock_event_device nmdk_clkevt. This
-> will allow the sys_timer suspend/resume fields to be removed, and
-> eventually lead to a complete removal of struct sys_timer.
->
-> Cc: Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>
-> Cc: Linus Walleij <linus.walleij@linaro.org>
-> Signed-off-by: Stephen Warren <swarren@nvidia.com>
+Now, 'perf kvm stat' is only supported on x86, let its code depend on
+(__x86_64__ || __i386__) to fix building it on other architectures.
 
-Acked-by: Linus Walleij <linus.walleij@linaro.org>
+Reviewed-by: David Howells <dhowells@redhat.com>
+Signed-off-by: Xiao Guangrong <xiaoguangrong@linux.vnet.ibm.com>
+Cc: Borislav Petkov <bp@alien8.de>
+Cc: David Ahern <dsahern@gmail.com>
+Cc: David Howells <dhowells@redhat.com>
+Cc: Dong Hao <haodong@linux.vnet.ibm.com>
+Cc: Ingo Molnar <mingo@kernel.org>
+Cc: Josh Boyer <jwboyer@gmail.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: Namhyung Kim <namhyung@gmail.com>
+Cc: Paul Mackerras <paulus@samba.org>
+Cc: Runzhen Wang <runzhen@linux.vnet.ibm.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+Cc: linux-arch@vger.kernel.org
+Cc: x86@kernel.org
+Link: http://lkml.kernel.org/r/50A9EB89.70901@linux.vnet.ibm.com
+Signed-off-by: Arnaldo Carvalho de Melo <acme@redhat.com>
+---
+ tools/perf/builtin-kvm.c |    4 ++++
+ 1 file changed, 4 insertions(+)
 
-We have a comment on the .resume member but I'll find
-the right patch and comment there.
+diff --git a/tools/perf/builtin-kvm.c b/tools/perf/builtin-kvm.c
+index 9fa45fa..283b439 100644
+--- a/tools/perf/builtin-kvm.c
++++ b/tools/perf/builtin-kvm.c
+@@ -22,6 +22,7 @@
+ #include <pthread.h>
+ #include <math.h>
+ 
++#if defined(__i386__) || defined(__x86_64__)
+ #include <asm/svm.h>
+ #include <asm/vmx.h>
+ #include <asm/kvm.h>
+@@ -896,6 +897,7 @@ static int kvm_cmd_stat(const char *file_name, int argc, const char **argv)
+ perf_stat:
+ 	return cmd_stat(argc, argv, NULL);
+ }
++#endif
+ 
+ static int __cmd_record(const char *file_name, int argc, const char **argv)
+ {
+@@ -1018,8 +1020,10 @@ int cmd_kvm(int argc, const char **argv, const char *prefix __maybe_unused)
+ 		return cmd_top(argc, argv, NULL);
+ 	else if (!strncmp(argv[0], "buildid-list", 12))
+ 		return __cmd_buildid_list(file_name, argc, argv);
++#if defined(__i386__) || defined(__x86_64__)
+ 	else if (!strncmp(argv[0], "stat", 4))
+ 		return kvm_cmd_stat(file_name, argc, argv);
++#endif
+ 	else
+ 		usage_with_options(kvm_usage, kvm_options);
+ 
+-- 
+1.7.9.2.358.g22243
 
-Yours,
-Linus Walleij
