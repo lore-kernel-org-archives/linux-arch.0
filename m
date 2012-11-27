@@ -1,137 +1,80 @@
 From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: [PATCH V7 6/7] microblaze: use new common dtc rule
-Date: Tue, 27 Nov 2012 16:29:15 -0700
-Message-ID: <1354058956-7199-6-git-send-email-swarren@wwwdotorg.org>
+Subject: [PATCH V7 3/7] arm64: use new common dtc rule
+Date: Tue, 27 Nov 2012 16:29:12 -0700
+Message-ID: <1354058956-7199-3-git-send-email-swarren@wwwdotorg.org>
 References: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-kernel-owner@vger.kernel.org
 To: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>
-Cc: Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au
+Cc: Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Catalin Marinas <catalin.marinas@arm.com>, linux-arm-kernel@lists.infradead.org
 List-Id: linux-arch.vger.kernel.org
 
 From: Stephen Warren <swarren@nvidia.com>
 
 The current rules have the .dtb files build in a different directory
-from the .dts files. This patch changes microblaze to use the generic dtb
+from the .dts files. This patch changes arm64 to use the generic dtb
 rule which builds .dtb files in the same directory as the source .dts.
 
-This requires moving parts of arch/microblaze/boot/Makefile into newly
-created arch/microblaze/boot/dts/Makefile, and updating
-arch/microblaze/Makefile to call the new Makefile. linked_dtb.S is also
-moved into boot/dts/ since it's used by rules that were moved.
+This requires moving parts of arch/arm64/boot/Makefile into newly created
+arch/arm64/boot/dts/Makefile, and updating arch/arm64/Makefile to call the
+new Makefile.
 
-Cc: Michal Simek <monstr@monstr.eu>
-Cc: microblaze-uclinux@itee.uq.edu.au
+Cc: Catalin Marinas <catalin.marinas@arm.com>
+Cc: linux-arm-kernel@lists.infradead.org
 Signed-off-by: Stephen Warren <swarren@nvidia.com>
 ---
 v7: New patch.
 ---
- arch/microblaze/Makefile              |    2 +-
- arch/microblaze/boot/Makefile         |   19 +------------------
- arch/microblaze/boot/dts/Makefile     |   22 ++++++++++++++++++++++
- arch/microblaze/boot/dts/linked_dtb.S |    2 ++
- arch/microblaze/boot/linked_dtb.S     |    3 ---
- 5 files changed, 26 insertions(+), 22 deletions(-)
- create mode 100644 arch/microblaze/boot/dts/Makefile
- create mode 100644 arch/microblaze/boot/dts/linked_dtb.S
- delete mode 100644 arch/microblaze/boot/linked_dtb.S
+ arch/arm64/Makefile          |    2 +-
+ arch/arm64/boot/Makefile     |    5 -----
+ arch/arm64/boot/dts/Makefile |    5 +++++
+ 3 files changed, 6 insertions(+), 6 deletions(-)
+ create mode 100644 arch/arm64/boot/dts/Makefile
 
-diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
-index b23c40e..d26fb90 100644
---- a/arch/microblaze/Makefile
-+++ b/arch/microblaze/Makefile
-@@ -57,7 +57,7 @@ boot := arch/microblaze/boot
- DTB:=$(subst simpleImage.,,$(filter simpleImage.%, $(MAKECMDGOALS)))
+diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
+index 364191f..fd3d4a1 100644
+--- a/arch/arm64/Makefile
++++ b/arch/arm64/Makefile
+@@ -54,7 +54,7 @@ zinstall install: vmlinux
+ 	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $@
  
- ifneq ($(DTB),)
--	core-y	+= $(boot)/
-+	core-y	+= $(boot)/dts/
- endif
+ %.dtb:
+-	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
++	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $(boot)/dts/$@
  
- # defines filename extension depending memory management type
-diff --git a/arch/microblaze/boot/Makefile b/arch/microblaze/boot/Makefile
-index fa83ea4..80fe54f 100644
---- a/arch/microblaze/boot/Makefile
-+++ b/arch/microblaze/boot/Makefile
-@@ -2,21 +2,10 @@
- # arch/microblaze/boot/Makefile
- #
+ # We use MRPROPER_FILES and CLEAN_FILES now
+ archclean:
+diff --git a/arch/arm64/boot/Makefile b/arch/arm64/boot/Makefile
+index eca209b..5a0e3ab 100644
+--- a/arch/arm64/boot/Makefile
++++ b/arch/arm64/boot/Makefile
+@@ -22,9 +22,6 @@ $(obj)/Image: vmlinux FORCE
+ $(obj)/Image.gz: $(obj)/Image FORCE
+ 	$(call if_changed,gzip)
  
--obj-y += linked_dtb.o
+-$(obj)/%.dtb: $(src)/dts/%.dts
+-	$(call cmd,dtc)
 -
- targets := linux.bin linux.bin.gz simpleImage.%
- 
- OBJCOPYFLAGS := -R .note -R .comment -R .note.gnu.build-id -O binary
- 
--# Ensure system.dtb exists
--$(obj)/linked_dtb.o: $(obj)/system.dtb
+ install: $(obj)/Image
+ 	$(CONFIG_SHELL) $(srctree)/$(src)/install.sh $(KERNELRELEASE) \
+ 	$(obj)/Image System.map "$(INSTALL_PATH)"
+@@ -32,5 +29,3 @@ install: $(obj)/Image
+ zinstall: $(obj)/Image.gz
+ 	$(CONFIG_SHELL) $(srctree)/$(src)/install.sh $(KERNELRELEASE) \
+ 	$(obj)/Image.gz System.map "$(INSTALL_PATH)"
 -
--# Generate system.dtb from $(DTB).dtb
--ifneq ($(DTB),system)
--$(obj)/system.dtb: $(obj)/$(DTB).dtb
--	$(call if_changed,cp)
--endif
--
- $(obj)/linux.bin: vmlinux FORCE
- 	$(call if_changed,objcopy)
- 	$(call if_changed,uimage)
-@@ -45,10 +34,4 @@ $(obj)/simpleImage.%: vmlinux FORCE
- 	@echo 'Kernel: $@ is ready' ' (#'`cat .version`')'
- 
- 
--# Rule to build device tree blobs
--DTC_FLAGS := -p 1024
--
--$(obj)/%.dtb: $(src)/dts/%.dts FORCE
--	$(call if_changed_dep,dtc)
--
--clean-files += *.dtb simpleImage.*.unstrip linux.bin.ub
-+clean-files += simpleImage.*.unstrip linux.bin.ub
-diff --git a/arch/microblaze/boot/dts/Makefile b/arch/microblaze/boot/dts/Makefile
+-clean-files += *.dtb
+diff --git a/arch/arm64/boot/dts/Makefile b/arch/arm64/boot/dts/Makefile
 new file mode 100644
-index 0000000..c3b3a5d
+index 0000000..801e2d7
 --- /dev/null
-+++ b/arch/microblaze/boot/dts/Makefile
-@@ -0,0 +1,22 @@
-+#
-+# arch/microblaze/boot/Makefile
-+#
++++ b/arch/arm64/boot/dts/Makefile
+@@ -0,0 +1,5 @@
++targets += dtbs
 +
-+obj-y += linked_dtb.o
++dtbs: $(addprefix $(obj)/, $(dtb-y))
 +
-+# Ensure system.dtb exists
-+$(obj)/linked_dtb.o: $(obj)/system.dtb
-+
-+# Generate system.dtb from $(DTB).dtb
-+ifneq ($(DTB),system)
-+$(obj)/system.dtb: $(obj)/$(DTB).dtb
-+	$(call if_changed,cp)
-+endif
-+
-+quiet_cmd_cp = CP      $< $@$2
-+	cmd_cp = cat $< >$@$2 || (rm -f $@ && echo false)
-+
-+# Rule to build device tree blobs
-+DTC_FLAGS := -p 1024
-+
-+clean-files += *.dtb
-diff --git a/arch/microblaze/boot/dts/linked_dtb.S b/arch/microblaze/boot/dts/linked_dtb.S
-new file mode 100644
-index 0000000..23345af
---- /dev/null
-+++ b/arch/microblaze/boot/dts/linked_dtb.S
-@@ -0,0 +1,2 @@
-+.section __fdt_blob,"a"
-+.incbin "arch/microblaze/boot/dts/system.dtb"
-diff --git a/arch/microblaze/boot/linked_dtb.S b/arch/microblaze/boot/linked_dtb.S
-deleted file mode 100644
-index cb2b537..0000000
---- a/arch/microblaze/boot/linked_dtb.S
-+++ /dev/null
-@@ -1,3 +0,0 @@
--.section __fdt_blob,"a"
--.incbin "arch/microblaze/boot/system.dtb"
--
++clean-files := *.dtb
 -- 
 1.7.10.4
