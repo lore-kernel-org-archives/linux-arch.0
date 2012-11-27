@@ -1,62 +1,145 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:55120 "EHLO
+Received: from avon.wwwdotorg.org ([70.85.31.133]:43164 "EHLO
 	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754150Ab2KZTPX (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 26 Nov 2012 14:15:23 -0500
-Message-ID: <50B3BFC5.8070404@wwwdotorg.org>
-Date: Mon, 26 Nov 2012 12:15:17 -0700
+	with ESMTP id S1754274Ab2K0X3i (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Nov 2012 18:29:38 -0500
 From: Stephen Warren <swarren@wwwdotorg.org>
-MIME-Version: 1.0
-Subject: Re: [PATCH V3 11/11] ARM: delete struct sys_timer
-References: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org> <1353349867-28494-12-git-send-email-swarren@wwwdotorg.org> <CAN1soZxf=i9Z9zOpbE2zUW6q6CY9TfOsUB7bf+-K_oLcmFqeCQ@mail.gmail.com>
-In-Reply-To: <CAN1soZxf=i9Z9zOpbE2zUW6q6CY9TfOsUB7bf+-K_oLcmFqeCQ@mail.gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Subject: [PATCH V7 5/7] c6x: use new common dtc rule
+Date: Tue, 27 Nov 2012 16:29:14 -0700
+Message-ID: <1354058956-7199-5-git-send-email-swarren@wwwdotorg.org>
+In-Reply-To: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
+References: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Haojian Zhuang <haojian.zhuang@gmail.com>
-Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>
-Message-ID: <20121126191517.Jo9aWAyGtrRlhmlThOheDKN_qVELH_5ai1MpQ82uxtU@z>
+To: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>
+Cc: Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org
+Message-ID: <20121127232914.1cEGD_VsmqOFMBdbv5dkwRA4nNZs6dCj0OBrqvQ_zGI@z>
 
-On 11/20/2012 09:43 PM, Haojian Zhuang wrote:
-> On Tue, Nov 20, 2012 at 2:31 AM, Stephen Warren <swarren@wwwdotorg.org> wrote:
->> From: Stephen Warren <swarren@nvidia.com>
->>
->> Now that the only field in struct sys_timer is .init, delete the struct,
->> and replace the machine descriptor .timer field with the initialization
->> function itself.
->>
->> This will enable moving timer drivers into drivers/clocksource without
->> having to place a public prototype of each struct sys_timer object into
->> include/linux; the intent is to create a single of_clocksource_init()
->> function that determines which timer driver to initialize by scanning
->> the device dtree, much like the proposed irqchip_init() at:
->> http://www.spinics.net/lists/arm-kernel/msg203686.html
-...
-> I checked the patch for mach-mmp.
-> 
-> @@ -69,7 +65,7 @@ static const char *mmp_dt_board_compat[] __initdata = {
->  DT_MACHINE_START(PXA168_DT, "Marvell PXA168 (Device Tree Support)")
->         .map_io         = mmp_map_io,
->         .init_irq       = mmp_dt_irq_init,
-> -       .timer          = &mmp_dt_timer,
-> +       .init_time      = mmp_dt_init_timer,
->         .init_machine   = pxa168_dt_init,
->         .dt_compat      = mmp_dt_board_compat,
->  MACHINE_END
-> @@ -77,7 +73,7 @@ MACHINE_END
->  DT_MACHINE_START(PXA910_DT, "Marvell PXA910 (Device Tree Support)")
->         .map_io         = mmp_map_io,
->         .init_irq       = mmp_dt_irq_init,
-> -       .timer          = &mmp_dt_timer,
-> +       .init_time      = mmp_dt_timer_init,
->         .init_machine   = pxa910_dt_init,
->         .dt_compat      = mmp_dt_board_compat,
->  MACHINE_END
-> 
-> This first init_time is assigned by mmp_dt_init_timer. But the second
-> init_time is
-> assigned by mmp_dt_timer_init. I think it's a typo error. Could you
-> help to fix this?
+From: Stephen Warren <swarren@nvidia.com>
 
-Thanks, I've fixed that up locally.
+The current rules have the .dtb files build in a different directory
+from the .dts files. This patch changes c6x to use the generic dtb
+rule which builds .dtb files in the same directory as the source .dts.
+
+This requires moving parts of arch/c6x/boot/Makefile into newly created
+arch/c6x/boot/dts/Makefile, and updating arch/c6x/Makefile to call the
+new Makefile. linked_dtb.S is also moved into boot/dts/ since it's used
+by rules that were moved.
+
+Cc: Mark Salter <msalter@redhat.com>
+Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+Cc: linux-c6x-dev@linux-c6x.org
+Signed-off-by: Stephen Warren <swarren@nvidia.com>
+---
+v7: New patch.
+---
+ arch/c6x/Makefile                |    2 +-
+ arch/c6x/boot/Makefile           |   20 --------------------
+ arch/c6x/boot/{ => dts}/Makefile |   14 ++------------
+ arch/c6x/boot/dts/linked_dtb.S   |    2 ++
+ arch/c6x/boot/linked_dtb.S       |    2 --
+ 5 files changed, 5 insertions(+), 35 deletions(-)
+ copy arch/c6x/boot/{ => dts}/Makefile (50%)
+ create mode 100644 arch/c6x/boot/dts/linked_dtb.S
+ delete mode 100644 arch/c6x/boot/linked_dtb.S
+
+diff --git a/arch/c6x/Makefile b/arch/c6x/Makefile
+index a9eb959..e72eb34 100644
+--- a/arch/c6x/Makefile
++++ b/arch/c6x/Makefile
+@@ -41,7 +41,7 @@ DTB:=$(subst dtbImage.,,$(filter dtbImage.%, $(MAKECMDGOALS)))
+ export DTB
+ 
+ ifneq ($(DTB),)
+-core-y	+= $(boot)/
++core-y	+= $(boot)/dts/
+ endif
+ 
+ # With make 3.82 we cannot mix normal and wildcard targets
+diff --git a/arch/c6x/boot/Makefile b/arch/c6x/boot/Makefile
+index 6891257..8734abe 100644
+--- a/arch/c6x/boot/Makefile
++++ b/arch/c6x/boot/Makefile
+@@ -6,25 +6,5 @@ OBJCOPYFLAGS_vmlinux.bin := -O binary
+ $(obj)/vmlinux.bin: vmlinux FORCE
+ 	$(call if_changed,objcopy)
+ 
+-DTC_FLAGS ?= -p 1024
+-
+-ifneq ($(DTB),)
+-obj-y += linked_dtb.o
+-endif
+-
+-$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+-	$(call if_changed_dep,dtc)
+-
+-quiet_cmd_cp = CP      $< $@$2
+-	cmd_cp = cat $< >$@$2 || (rm -f $@ && echo false)
+-
+-# Generate builtin.dtb from $(DTB).dtb
+-$(obj)/builtin.dtb: $(obj)/$(DTB).dtb
+-	$(call if_changed,cp)
+-
+-$(obj)/linked_dtb.o: $(obj)/builtin.dtb
+-
+ $(obj)/dtbImage.%: vmlinux
+ 	$(call if_changed,objcopy)
+-
+-clean-files := $(obj)/*.dtb
+diff --git a/arch/c6x/boot/Makefile b/arch/c6x/boot/dts/Makefile
+similarity index 50%
+copy from arch/c6x/boot/Makefile
+copy to arch/c6x/boot/dts/Makefile
+index 6891257..c7528b0 100644
+--- a/arch/c6x/boot/Makefile
++++ b/arch/c6x/boot/dts/Makefile
+@@ -1,20 +1,13 @@
+ #
+-# Makefile for bootable kernel images
++# Makefile for device trees
+ #
+ 
+-OBJCOPYFLAGS_vmlinux.bin := -O binary
+-$(obj)/vmlinux.bin: vmlinux FORCE
+-	$(call if_changed,objcopy)
+-
+ DTC_FLAGS ?= -p 1024
+ 
+ ifneq ($(DTB),)
+ obj-y += linked_dtb.o
+ endif
+ 
+-$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+-	$(call if_changed_dep,dtc)
+-
+ quiet_cmd_cp = CP      $< $@$2
+ 	cmd_cp = cat $< >$@$2 || (rm -f $@ && echo false)
+ 
+@@ -24,7 +17,4 @@ $(obj)/builtin.dtb: $(obj)/$(DTB).dtb
+ 
+ $(obj)/linked_dtb.o: $(obj)/builtin.dtb
+ 
+-$(obj)/dtbImage.%: vmlinux
+-	$(call if_changed,objcopy)
+-
+-clean-files := $(obj)/*.dtb
++clean-files := *.dtb
+diff --git a/arch/c6x/boot/dts/linked_dtb.S b/arch/c6x/boot/dts/linked_dtb.S
+new file mode 100644
+index 0000000..cf347f1
+--- /dev/null
++++ b/arch/c6x/boot/dts/linked_dtb.S
+@@ -0,0 +1,2 @@
++.section __fdt_blob,"a"
++.incbin "arch/c6x/boot/dts/builtin.dtb"
+diff --git a/arch/c6x/boot/linked_dtb.S b/arch/c6x/boot/linked_dtb.S
+deleted file mode 100644
+index 57a4454..0000000
+--- a/arch/c6x/boot/linked_dtb.S
++++ /dev/null
+@@ -1,2 +0,0 @@
+-.section __fdt_blob,"a"
+-.incbin "arch/c6x/boot/builtin.dtb"
+-- 
+1.7.10.4
+
