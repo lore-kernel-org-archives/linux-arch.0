@@ -1,103 +1,112 @@
 From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: [PATCH V7 7/7] xtensa: use new common dtc rule
-Date: Tue, 27 Nov 2012 16:29:16 -0700
-Message-ID: <1354058956-7199-7-git-send-email-swarren@wwwdotorg.org>
+Subject: [PATCH V7 2/7] ARM: dt: change .dtb build rules to build in dts
+ directory
+Date: Tue, 27 Nov 2012 16:29:11 -0700
+Message-ID: <1354058956-7199-2-git-send-email-swarren@wwwdotorg.org>
 References: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:42325 "EHLO
-	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756833Ab2K0X3l (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Nov 2012 18:29:41 -0500
+Mime-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
 In-Reply-To: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: linux-arm-kernel-bounces@lists.infradead.org
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
 To: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>
-Cc: Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-xtensa@linux-xtensa.org
+Cc: linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>, Stephen Warren <swarren@nvidia.com>, Sam Ravnborg <sam@ravnborg.org>, linux-arm-kernel@lists.infradead.org
+List-Id: linux-arch.vger.kernel.org
 
-From: Stephen Warren <swarren@nvidia.com>
+From: Grant Likely <grant.likely@secretlab.ca>
 
 The current rules have the .dtb files build in a different directory
-from the .dts files. This patch changes xtensa to use the generic dtb
-rule which builds .dtb files in the same directory as the source .dts.
+from the .dts files. The only reason for this is that it was what
+PowerPC has done historically. This patch changes ARM to use the generic
+dtb rule which builds .dtb files in the same directory as the source .dts.
 
-This requires moving parts of arch/xtensa/boot/Makefile into newly
-created arch/xtensa/boot/dts/Makefile, and updating arch/xtensa/Makefile
-to call the new Makefile.
-
-Cc: Chris Zankel <chris@zankel.net>
-Cc: Max Filippov <jcmvbkbc@gmail.com>
-Cc: linux-xtensa@linux-xtensa.org
+Cc: Russell King <linux@arm.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Olof Johansson <olof@lixom.net>
+Cc: linux-arm-kernel@lists.infradead.org
+Signed-off-by: Grant Likely <grant.likely@secretlab.ca>
+[swarren: added rm command for old stale .dtb files]
 Signed-off-by: Stephen Warren <swarren@nvidia.com>
 ---
 v7: New patch.
 ---
- arch/xtensa/Makefile          |    4 ++--
- arch/xtensa/boot/Makefile     |   10 ----------
- arch/xtensa/boot/dts/Makefile |   13 +++++++++++++
- 3 files changed, 15 insertions(+), 12 deletions(-)
- create mode 100644 arch/xtensa/boot/dts/Makefile
+ arch/arm/Makefile          |    4 ++--
+ arch/arm/boot/Makefile     |   12 ------------
+ arch/arm/boot/dts/Makefile |    8 ++++++++
+ 3 files changed, 10 insertions(+), 14 deletions(-)
 
-diff --git a/arch/xtensa/Makefile b/arch/xtensa/Makefile
-index b8eb819..b0646fd 100644
---- a/arch/xtensa/Makefile
-+++ b/arch/xtensa/Makefile
-@@ -80,7 +80,7 @@ core-y		+= $(buildvar) $(buildplf)
+diff --git a/arch/arm/Makefile b/arch/arm/Makefile
+index 1ec5f67..5f92252 100644
+--- a/arch/arm/Makefile
++++ b/arch/arm/Makefile
+@@ -291,10 +291,10 @@ zinstall uinstall install: vmlinux
+ 	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $@
  
- libs-y		+= arch/xtensa/lib/ $(LIBGCC)
+ %.dtb: scripts
+-	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
++	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $(boot)/dts/$@
  
--core-$(CONFIG_BUILTIN_DTB_BOOL) += arch/xtensa/boot/
-+core-$(CONFIG_BUILTIN_DTB_BOOL) += arch/xtensa/boot/dts/
+ dtbs: scripts
+-	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
++	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) dtbs
  
- boot		:= arch/xtensa/boot
+ # We use MRPROPER_FILES and CLEAN_FILES now
+ archclean:
+diff --git a/arch/arm/boot/Makefile b/arch/arm/boot/Makefile
+index 9137df5..abfce28 100644
+--- a/arch/arm/boot/Makefile
++++ b/arch/arm/boot/Makefile
+@@ -15,8 +15,6 @@ ifneq ($(MACHINE),)
+ include $(srctree)/$(MACHINE)/Makefile.boot
+ endif
  
-@@ -92,7 +92,7 @@ zImage: vmlinux
- 	$(Q)$(MAKE) $(build)=$(boot) $@
- 
- %.dtb:
--	$(Q)$(MAKE) $(build)=$(boot) $(boot)/$@
-+	$(Q)$(MAKE) $(build)=$(boot)/dts $(boot)/dts/$@
- 
- define archhelp
-   @echo '* zImage      - Compressed kernel image (arch/xtensa/boot/images/zImage.*)'
-diff --git a/arch/xtensa/boot/Makefile b/arch/xtensa/boot/Makefile
-index 5d21c21..6be27fb 100644
---- a/arch/xtensa/boot/Makefile
-+++ b/arch/xtensa/boot/Makefile
-@@ -25,16 +25,6 @@ bootdir-$(CONFIG_XTENSA_PLATFORM_ISS)	 += boot-elf
- bootdir-$(CONFIG_XTENSA_PLATFORM_XT2000) += boot-redboot boot-elf boot-uboot
- bootdir-$(CONFIG_XTENSA_PLATFORM_XTAVNET)+= boot-redboot boot-elf boot-uboot
- 
+-include $(srctree)/arch/arm/boot/dts/Makefile
 -
--BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_BUILTIN_DTB)).dtb.o
--obj-$(CONFIG_BUILTIN_DTB_BOOL) += $(BUILTIN_DTB)
+ # Note: the following conditions must always be true:
+ #   ZRELADDR == virt_to_phys(PAGE_OFFSET + TEXT_OFFSET)
+ #   PARAMS_PHYS must be within 4MB of ZRELADDR
+@@ -59,16 +57,6 @@ $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
+ 
+ endif
+ 
+-targets += $(dtb-y)
 -
 -# Rule to build device tree blobs
 -$(obj)/%.dtb: $(src)/dts/%.dts FORCE
 -	$(call if_changed_dep,dtc)
 -
--clean-files := *.dtb.S
+-$(obj)/dtbs: $(addprefix $(obj)/, $(dtb-y))
 -
- zImage Image: $(bootdir-y)
+-clean-files := *.dtb
+-
+ ifneq ($(LOADADDR),)
+   UIMAGE_LOADADDR=$(LOADADDR)
+ else
+diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+index a17d5ab..cb217f8 100644
+--- a/arch/arm/boot/dts/Makefile
++++ b/arch/arm/boot/dts/Makefile
+@@ -136,4 +136,12 @@ dtb-$(CONFIG_ARCH_VT8500) += vt8500-bv07.dtb \
+ 	wm8650-mid.dtb
+ dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb
  
- $(bootdir-y): $(addprefix $(obj)/,$(subdir-y)) \
-diff --git a/arch/xtensa/boot/dts/Makefile b/arch/xtensa/boot/dts/Makefile
-new file mode 100644
-index 0000000..0b5581a
---- /dev/null
-+++ b/arch/xtensa/boot/dts/Makefile
-@@ -0,0 +1,13 @@
-+#
-+# arch/xtensa/boot/dts/Makefile
-+#
-+# This file is subject to the terms and conditions of the GNU General Public
-+# License.  See the file "COPYING" in the main directory of this archive
-+# for more details.
-+#
-+#
++targets += dtbs
+ endif
 +
-+BUILTIN_DTB := $(patsubst "%",%,$(CONFIG_BUILTIN_DTB)).dtb.o
-+obj-$(CONFIG_BUILTIN_DTB_BOOL) += $(BUILTIN_DTB)
++dtbs: $(addprefix $(obj)/, $(dtb-y))
++	# *.dtb used to be generated in the directory above. Clean out the
++	# old build results so people don't accidentally use them.
++	rm -f $(obj)/../*.dtb
 +
-+clean-files := *.dtb.S
++clean-files := *.dtb
 -- 
 1.7.10.4
