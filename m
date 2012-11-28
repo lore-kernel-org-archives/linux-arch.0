@@ -1,143 +1,57 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:35807 "EHLO
-	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755571Ab2K0X3j (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Nov 2012 18:29:39 -0500
-From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: [PATCH V7 6/7] microblaze: use new common dtc rule
-Date: Tue, 27 Nov 2012 16:29:15 -0700
-Message-ID: <1354058956-7199-6-git-send-email-swarren@wwwdotorg.org>
-In-Reply-To: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
+Received: from service88.mimecast.com ([195.130.217.12]:49979 "EHLO
+	service88.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755838Ab2K1Rom convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Nov 2012 12:44:42 -0500
+Date: Wed, 28 Nov 2012 17:44:26 +0000
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH V7 1/7] kbuild: centralize .dts->.dtb rule
+Message-ID: <20121128174426.GD17405@arm.com>
 References: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
+MIME-Version: 1.0
+In-Reply-To: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: 8BIT
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>
-Cc: Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au
-Message-ID: <20121127232915.ubO_JdK7PdSlGDGByPNqhKaZqierfrnkp_2aCCJJaOM@z>
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, "rob.herring@calxeda.com" <rob.herring@calxeda.com>, Sam Ravnborg <sam@ravnborg.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Stephen Warren <swarren@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Olof Johansson <olof@lixom.net>, Russell King <linux@arm.linux.org.uk>, Jonas Bonn <jonas@southpole.se>, "linux@openrisc.net" <linux@openrisc.net>, Aurelien Jacquiot <a-jacquiot@ti.com>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "msalter@redhat.com" <msalter@redhat.com>, Michal Simek <monstr@monstr.eu>, "microblaze-uclinux@itee.uq.edu.au" <microblaze-uclinux@itee.uq.edu.au>, Chris Zankel <chris@zankel.net>, "linux-xtensa@linux-xtensa.org" <linux-xtensa@linux-xtensa.org>, Max Filippov <jcmvbkbc@gmail.com>, Ralf Baechle <ralf@linux-mips.org>
+Message-ID: <20121128174426.2uKveOvhWk7LVfXZzrnHHeMEkjzkdlwvNP5NOmNG_p0@z>
 
-From: Stephen Warren <swarren@nvidia.com>
+On Tue, Nov 27, 2012 at 11:29:10PM +0000, Stephen Warren wrote:
+> From: Stephen Warren <swarren@nvidia.com>
+> 
+> All architectures that use cmd_dtc do so in almost the same way. Create
+> a central build rule to avoid duplication. The one difference is that
+> most current uses of dtc build $(obj)/%.dtb from $(src)/dts/%.dts rather
+> than building the .dtb in the same directory as the .dts file. This
+> difference will be eliminated arch-by-arch in future patches.
+> 
+> MIPS is the exception here; it already uses the exact same rule as the
+> new common rule, so the duplicate is removed in this patch to avoid any
+> conflict. arch/mips changes courtesy of Ralf Baechle.
+> 
+> Update Documentation/kbuild to remove the explicit call to cmd_dtc from
+> the example, now that the rule exists in a centralized location.
+> 
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: linux-arm-kernel@lists.infradead.org
+> Cc: Olof Johansson <olof@lixom.net>
+> Cc: Russell King <linux@arm.linux.org.uk>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Jonas Bonn <jonas@southpole.se>
+> Cc: linux@lists.openrisc.net
+> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+> Cc: linux-c6x-dev@linux-c6x.org
+> Cc: Mark Salter <msalter@redhat.com>
+> Cc: Michal Simek <monstr@monstr.eu>
+> Cc: microblaze-uclinux@itee.uq.edu.au
+> Cc: Chris Zankel <chris@zankel.net>
+> Cc: linux-xtensa@linux-xtensa.org
+> Cc: Max Filippov <jcmvbkbc@gmail.com>
+> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
+> Signed-off-by: Stephen Warren <swarren@nvidia.com>
 
-The current rules have the .dtb files build in a different directory
-from the .dts files. This patch changes microblaze to use the generic dtb
-rule which builds .dtb files in the same directory as the source .dts.
-
-This requires moving parts of arch/microblaze/boot/Makefile into newly
-created arch/microblaze/boot/dts/Makefile, and updating
-arch/microblaze/Makefile to call the new Makefile. linked_dtb.S is also
-moved into boot/dts/ since it's used by rules that were moved.
-
-Cc: Michal Simek <monstr@monstr.eu>
-Cc: microblaze-uclinux@itee.uq.edu.au
-Signed-off-by: Stephen Warren <swarren@nvidia.com>
----
-v7: New patch.
----
- arch/microblaze/Makefile              |    2 +-
- arch/microblaze/boot/Makefile         |   19 +------------------
- arch/microblaze/boot/dts/Makefile     |   22 ++++++++++++++++++++++
- arch/microblaze/boot/dts/linked_dtb.S |    2 ++
- arch/microblaze/boot/linked_dtb.S     |    3 ---
- 5 files changed, 26 insertions(+), 22 deletions(-)
- create mode 100644 arch/microblaze/boot/dts/Makefile
- create mode 100644 arch/microblaze/boot/dts/linked_dtb.S
- delete mode 100644 arch/microblaze/boot/linked_dtb.S
-
-diff --git a/arch/microblaze/Makefile b/arch/microblaze/Makefile
-index b23c40e..d26fb90 100644
---- a/arch/microblaze/Makefile
-+++ b/arch/microblaze/Makefile
-@@ -57,7 +57,7 @@ boot := arch/microblaze/boot
- DTB:=$(subst simpleImage.,,$(filter simpleImage.%, $(MAKECMDGOALS)))
- 
- ifneq ($(DTB),)
--	core-y	+= $(boot)/
-+	core-y	+= $(boot)/dts/
- endif
- 
- # defines filename extension depending memory management type
-diff --git a/arch/microblaze/boot/Makefile b/arch/microblaze/boot/Makefile
-index fa83ea4..80fe54f 100644
---- a/arch/microblaze/boot/Makefile
-+++ b/arch/microblaze/boot/Makefile
-@@ -2,21 +2,10 @@
- # arch/microblaze/boot/Makefile
- #
- 
--obj-y += linked_dtb.o
--
- targets := linux.bin linux.bin.gz simpleImage.%
- 
- OBJCOPYFLAGS := -R .note -R .comment -R .note.gnu.build-id -O binary
- 
--# Ensure system.dtb exists
--$(obj)/linked_dtb.o: $(obj)/system.dtb
--
--# Generate system.dtb from $(DTB).dtb
--ifneq ($(DTB),system)
--$(obj)/system.dtb: $(obj)/$(DTB).dtb
--	$(call if_changed,cp)
--endif
--
- $(obj)/linux.bin: vmlinux FORCE
- 	$(call if_changed,objcopy)
- 	$(call if_changed,uimage)
-@@ -45,10 +34,4 @@ $(obj)/simpleImage.%: vmlinux FORCE
- 	@echo 'Kernel: $@ is ready' ' (#'`cat .version`')'
- 
- 
--# Rule to build device tree blobs
--DTC_FLAGS := -p 1024
--
--$(obj)/%.dtb: $(src)/dts/%.dts FORCE
--	$(call if_changed_dep,dtc)
--
--clean-files += *.dtb simpleImage.*.unstrip linux.bin.ub
-+clean-files += simpleImage.*.unstrip linux.bin.ub
-diff --git a/arch/microblaze/boot/dts/Makefile b/arch/microblaze/boot/dts/Makefile
-new file mode 100644
-index 0000000..c3b3a5d
---- /dev/null
-+++ b/arch/microblaze/boot/dts/Makefile
-@@ -0,0 +1,22 @@
-+#
-+# arch/microblaze/boot/Makefile
-+#
-+
-+obj-y += linked_dtb.o
-+
-+# Ensure system.dtb exists
-+$(obj)/linked_dtb.o: $(obj)/system.dtb
-+
-+# Generate system.dtb from $(DTB).dtb
-+ifneq ($(DTB),system)
-+$(obj)/system.dtb: $(obj)/$(DTB).dtb
-+	$(call if_changed,cp)
-+endif
-+
-+quiet_cmd_cp = CP      $< $@$2
-+	cmd_cp = cat $< >$@$2 || (rm -f $@ && echo false)
-+
-+# Rule to build device tree blobs
-+DTC_FLAGS := -p 1024
-+
-+clean-files += *.dtb
-diff --git a/arch/microblaze/boot/dts/linked_dtb.S b/arch/microblaze/boot/dts/linked_dtb.S
-new file mode 100644
-index 0000000..23345af
---- /dev/null
-+++ b/arch/microblaze/boot/dts/linked_dtb.S
-@@ -0,0 +1,2 @@
-+.section __fdt_blob,"a"
-+.incbin "arch/microblaze/boot/dts/system.dtb"
-diff --git a/arch/microblaze/boot/linked_dtb.S b/arch/microblaze/boot/linked_dtb.S
-deleted file mode 100644
-index cb2b537..0000000
---- a/arch/microblaze/boot/linked_dtb.S
-+++ /dev/null
-@@ -1,3 +0,0 @@
--.section __fdt_blob,"a"
--.incbin "arch/microblaze/boot/system.dtb"
--
--- 
-1.7.10.4
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
 
