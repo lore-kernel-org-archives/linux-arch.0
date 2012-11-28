@@ -1,38 +1,51 @@
-From: Olof Johansson <olof@lixom.net>
-Subject: Re: [PATCH V7 2/7] ARM: dt: change .dtb build rules to build in dts directory
-Date: Tue, 27 Nov 2012 15:50:37 -0800
-Message-ID: <CAOesGMgg6oKHWkPaLxR96J0n5AGJqpx0MrTQQv0gW3szLhZ3+A@mail.gmail.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH V7 1/7] kbuild: centralize .dts->.dtb rule
+Date: Wed, 28 Nov 2012 17:44:26 +0000
+Message-ID: <20121128174426.GD17405@arm.com>
 References: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
-	<1354058956-7199-2-git-send-email-swarren@wwwdotorg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ia0-f174.google.com ([209.85.210.174]:56019 "EHLO
-	mail-ia0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756254Ab2K0Xui (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 27 Nov 2012 18:50:38 -0500
-Received: by mail-ia0-f174.google.com with SMTP id y25so9420947iay.19
-        for <linux-arch@vger.kernel.org>; Tue, 27 Nov 2012 15:50:38 -0800 (PST)
-In-Reply-To: <1354058956-7199-2-git-send-email-swarren@wwwdotorg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: 8BIT
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
+Content-Disposition: inline
+Sender: linux-kernel-owner@vger.kernel.org
 To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, Stephen Warren <swarren@nvidia.com>
+Cc: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, "rob.herring@calxeda.com" <rob.herring@calxeda.com>, Sam Ravnborg <sam@ravnborg.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Stephen Warren <swarren@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, Olof Johansson <olof@lixom.net>, Russell King <linux@arm.linux.org.uk>, Jonas Bonn <jonas@southpole.se>, "linux@openrisc.net" <linux@openrisc.net>, Aurelien Jacquiot <a-jacquiot@ti.com>, "linux-c6x-dev@linux-c6x.org" <linux-c6x-dev@linux-c6x.org>, "msalter@redhat.com" <msalter@redhat.com>, Michal Simek <monstr@monstr.eu>, "microblaze-uclinux@itee.uq.edu.au" <microblaze-uclinux@itee.uq.edu.au>, Chris Zankel <chris@zankel.net>, linux-xtensa@l
+List-Id: linux-arch.vger.kernel.org
 
-On Tue, Nov 27, 2012 at 3:29 PM, Stephen Warren <swarren@wwwdotorg.org> wrote:
-> From: Grant Likely <grant.likely@secretlab.ca>
->
-> The current rules have the .dtb files build in a different directory
-> from the .dts files. The only reason for this is that it was what
-> PowerPC has done historically. This patch changes ARM to use the generic
-> dtb rule which builds .dtb files in the same directory as the source .dts.
->
-> Cc: Russell King <linux@arm.linux.org.uk>
+On Tue, Nov 27, 2012 at 11:29:10PM +0000, Stephen Warren wrote:
+> From: Stephen Warren <swarren@nvidia.com>
+> 
+> All architectures that use cmd_dtc do so in almost the same way. Create
+> a central build rule to avoid duplication. The one difference is that
+> most current uses of dtc build $(obj)/%.dtb from $(src)/dts/%.dts rather
+> than building the .dtb in the same directory as the .dts file. This
+> difference will be eliminated arch-by-arch in future patches.
+> 
+> MIPS is the exception here; it already uses the exact same rule as the
+> new common rule, so the duplicate is removed in this patch to avoid any
+> conflict. arch/mips changes courtesy of Ralf Baechle.
+> 
+> Update Documentation/kbuild to remove the explicit call to cmd_dtc from
+> the example, now that the rule exists in a centralized location.
+> 
 > Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Olof Johansson <olof@lixom.net>
 > Cc: linux-arm-kernel@lists.infradead.org
-> Signed-off-by: Grant Likely <grant.likely@secretlab.ca>
-> [swarren: added rm command for old stale .dtb files]
+> Cc: Olof Johansson <olof@lixom.net>
+> Cc: Russell King <linux@arm.linux.org.uk>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Jonas Bonn <jonas@southpole.se>
+> Cc: linux@lists.openrisc.net
+> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+> Cc: linux-c6x-dev@linux-c6x.org
+> Cc: Mark Salter <msalter@redhat.com>
+> Cc: Michal Simek <monstr@monstr.eu>
+> Cc: microblaze-uclinux@itee.uq.edu.au
+> Cc: Chris Zankel <chris@zankel.net>
+> Cc: linux-xtensa@linux-xtensa.org
+> Cc: Max Filippov <jcmvbkbc@gmail.com>
+> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
 > Signed-off-by: Stephen Warren <swarren@nvidia.com>
 
-Acked-by: Olof Johansson <olof@lixom.net>
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
