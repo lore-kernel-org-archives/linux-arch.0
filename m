@@ -1,39 +1,48 @@
-From: Mark Salter <msalter@redhat.com>
-Subject: Re: [PATCH V7 5/7] c6x: use new common dtc rule
-Date: Wed, 28 Nov 2012 13:09:00 -0500
-Message-ID: <1354126140.1694.0.camel@t520.localdomain>
+From: Stephen Warren <swarren@wwwdotorg.org>
+Subject: Re: [PATCH V7 1/7] kbuild: centralize .dts->.dtb rule
+Date: Wed, 28 Nov 2012 11:33:39 -0700
+Message-ID: <50B65903.1050400@wwwdotorg.org>
 References: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
-	 <1354058956-7199-5-git-send-email-swarren@wwwdotorg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:24403 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1755556Ab2K1SJw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 28 Nov 2012 13:09:52 -0500
-In-Reply-To: <1354058956-7199-5-git-send-email-swarren@wwwdotorg.org>
+Received: from avon.wwwdotorg.org ([70.85.31.133]:35758 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753284Ab2K1Sdn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Nov 2012 13:33:43 -0500
+In-Reply-To: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org
+To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
+Cc: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
 
-On Tue, 2012-11-27 at 16:29 -0700, Stephen Warren wrote:
-> From: Stephen Warren <swarren@nvidia.com>
+On 11/27/2012 04:29 PM, Stephen Warren wrote:
+> All architectures that use cmd_dtc do so in almost the same way. Create
+> a central build rule to avoid duplication. The one difference is that
+> most current uses of dtc build $(obj)/%.dtb from $(src)/dts/%.dts rather
+> than building the .dtb in the same directory as the .dts file. This
+> difference will be eliminated arch-by-arch in future patches.
 > 
-> The current rules have the .dtb files build in a different directory
-> from the .dts files. This patch changes c6x to use the generic dtb
-> rule which builds .dtb files in the same directory as the source .dts.
+> MIPS is the exception here; it already uses the exact same rule as the
+> new common rule, so the duplicate is removed in this patch to avoid any
+> conflict. arch/mips changes courtesy of Ralf Baechle.
 > 
-> This requires moving parts of arch/c6x/boot/Makefile into newly created
-> arch/c6x/boot/dts/Makefile, and updating arch/c6x/Makefile to call the
-> new Makefile. linked_dtb.S is also moved into boot/dts/ since it's used
-> by rules that were moved.
-> 
-> Cc: Mark Salter <msalter@redhat.com>
-> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
-> Cc: linux-c6x-dev@linux-c6x.org
-> Signed-off-by: Stephen Warren <swarren@nvidia.com>
-> ---
+> Update Documentation/kbuild to remove the explicit call to cmd_dtc from
+> the example, now that the rule exists in a centralized location.
 
-Acked-by: Mark Salter <msalter@redhat.com>
+Ben, Paul,
+
+Following this patch (http://lkml.org/lkml/2012/11/27/555), I posted a
+series of patches to convert almost all architectures to using the
+centralized rule. The one architecture I didn't convert was PowerPC.
+
+I didn't convert it because arch/powerpc/boot/Makefile contains a large
+number of rules (to generate *Image.% where % is a board name) that
+depend on %.dtb, which is expected to be in arch/powerpc/boot rather
+than arch/powerpc/boot/dts. Now, I guess it's possible to convert them
+all to expect the .dtb files to be in dts/ and also have
+arch/powerpc/boot/Makefile call make in boot/dts/ to make each required
+.dtb file. However, the patch would be a bit larger than all the other
+architecture patches. Do you want me to do that conversion, or would you
+rather I leave PowerPC alone? Thanks for any feedback.
