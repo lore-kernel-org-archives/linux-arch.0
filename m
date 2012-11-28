@@ -1,48 +1,71 @@
-From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: Re: [PATCH V7 1/7] kbuild: centralize .dts->.dtb rule
-Date: Wed, 28 Nov 2012 11:33:39 -0700
-Message-ID: <50B65903.1050400@wwwdotorg.org>
-References: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
+From: Josh Boyer <jwboyer@gmail.com>
+Subject: Re: [GIT PULL 0/8] perf/urgent fixes
+Date: Wed, 28 Nov 2012 15:27:02 -0500
+Message-ID: <CA+5PVA4dMd8ZfN6OgDQXvFxSPSN3+Cim27ZypWni3ihErSE7tQ@mail.gmail.com>
+References: <1353716453-9693-1-git-send-email-acme@infradead.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:35758 "EHLO
-	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753284Ab2K1Sdn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 28 Nov 2012 13:33:43 -0500
-In-Reply-To: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>
-Cc: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1353716453-9693-1-git-send-email-acme@infradead.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Ingo Molnar <mingo@kernel.org>, Thomas Gleixner <tglx@linutronix.de>, Linus Torvalds <torvalds@linux-foundation.org>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
+Cc: linux-kernel@vger.kernel.org, Arnaldo Carvalho de Melo <acme@infradead.org>, Anton Blanchard <anton@au1.ibm.com>, Arnaldo Carvalho de Melo <acme@redhat.com>, Borislav Petkov <bp@alien8.de>, David Ahern <dsahern@gmail.com>, David Howells <dhowells@redhat.com>, Dong Hao <haodong@linux.vnet.ibm.com>, linux-arch@vger.kernel.org, linuxppc-dev@ozlabs.org, Namhyung Kim <namhyung@gmail.com>, Paul Mackerras <paulus@samba.org>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Robert Richter <robert.richter@amd.com>, Runzhen Wang <runzhen@linux.vnet.ibm.com>, Sukadev Bhattiprolu <sukadev@linux.vnet.ibm.com>, x86@kernel.org, Xiao Guangrong <xiaoguangrong@linux.vnet.ibm.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 11/27/2012 04:29 PM, Stephen Warren wrote:
-> All architectures that use cmd_dtc do so in almost the same way. Create
-> a central build rule to avoid duplication. The one difference is that
-> most current uses of dtc build $(obj)/%.dtb from $(src)/dts/%.dts rather
-> than building the .dtb in the same directory as the .dts file. This
-> difference will be eliminated arch-by-arch in future patches.
-> 
-> MIPS is the exception here; it already uses the exact same rule as the
-> new common rule, so the duplicate is removed in this patch to avoid any
-> conflict. arch/mips changes courtesy of Ralf Baechle.
-> 
-> Update Documentation/kbuild to remove the explicit call to cmd_dtc from
-> the example, now that the rule exists in a centralized location.
+On Fri, Nov 23, 2012 at 7:20 PM, Arnaldo Carvalho de Melo
+<acme@ghostprotocols.net> wrote:
+> Hi Ingo,
+>
+>         Tested using a cross-compiler and directly on a Raspberry pi (ARM) with
+> raspbian.
+>
+>         Please consider pulling.
+>
+> - Arnaldo
+>
+> The following changes since commit 18423d3562f396206e0928a71177eeb2edfed077:
+>
+>   Merge tag 'perf-urgent-for-mingo' of git://git.kernel.org/pub/scm/linux/kernel/git/acme/linux into perf/urgent (2012-11-13 18:51:51 +0100)
+>
+> are available in the git repository at:
+>
+>
+>   git://git.kernel.org/pub/scm/linux/kernel/git/acme/linux tags/perf-urgent-for-mingo
+>
+> for you to fetch changes up to 7321090f6751c9987c26a8c81c63680d16a614d7:
+>
+>   perf kvm: Fix building perf kvm on non x86 arches (2012-11-23 20:40:17 -0300)
+>
+> ----------------------------------------------------------------
+> perf/urgent fixes
+>
+> . Don't build 'perf kvm stat" on non-x86 arches, fix from Xiao Guangrong.
+>
+> . UAPI fixes to get perf building again in non-x86 arches, from David Howells.
+>
+> Signed-off-by: Arnaldo Carvalho de Melo <acme@redhat.com>
+>
+> ----------------------------------------------------------------
+> Arnaldo Carvalho de Melo (1):
+>       Merge tag 'perf-uapi-20121119' of git://git.infradead.org/users/dhowells/linux-headers into perf/urgent
+>
+> David Howells (6):
+>       x86: Export asm/{svm.h,vmx.h,perf_regs.h}
+>       Merge branch 'x86-pre-uapi' into perf-uapi
+>       tools: Define a Makefile function to do subdir processing
+>       tools: Honour the O= flag when tool build called from a higher Makefile
+>       tools: Pass the target in descend
+>       perf: Make perf build for x86 with UAPI disintegration applied
+>
+> Sukadev Bhattiprolu (1):
+>       perf powerpc: Use uapi/unistd.h to fix build error
+>
+> Xiao Guangrong (2):
+>       perf kvm: Rename perf_kvm to perf_kvm_stat
+>       perf kvm: Fix building perf kvm on non x86 arches
 
-Ben, Paul,
+I probably sound like a broken record at this point, but I've not seen
+this go into any tip branch, nor is it in Linus' tree.  Hopefully this
+gets pulled before 3.7 is released.
 
-Following this patch (http://lkml.org/lkml/2012/11/27/555), I posted a
-series of patches to convert almost all architectures to using the
-centralized rule. The one architecture I didn't convert was PowerPC.
-
-I didn't convert it because arch/powerpc/boot/Makefile contains a large
-number of rules (to generate *Image.% where % is a board name) that
-depend on %.dtb, which is expected to be in arch/powerpc/boot rather
-than arch/powerpc/boot/dts. Now, I guess it's possible to convert them
-all to expect the .dtb files to be in dts/ and also have
-arch/powerpc/boot/Makefile call make in boot/dts/ to make each required
-.dtb file. However, the patch would be a bit larger than all the other
-architecture patches. Do you want me to do that conversion, or would you
-rather I leave PowerPC alone? Thanks for any feedback.
+josh
