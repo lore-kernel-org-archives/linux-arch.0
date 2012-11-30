@@ -1,153 +1,156 @@
-From: Catalin Marinas <catalin.marinas@arm.com>
-Subject: Re: [PATCH V7 3/7] arm64: use new common dtc rule
-Date: Thu, 29 Nov 2012 14:30:41 +0000
-Message-ID: <20121129143041.GC30437@arm.com>
+From: Rob Herring <robherring2@gmail.com>
+Subject: Re: [PATCH V7 1/7] kbuild: centralize .dts->.dtb rule
+Date: Fri, 30 Nov 2012 10:01:50 -0600
+Message-ID: <50B8D86E.1080109@gmail.com>
 References: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
- <1354058956-7199-3-git-send-email-swarren@wwwdotorg.org>
 Mime-Version: 1.0
-Content-Type: multipart/mixed; boundary="wRRV7LY7NUeQGEoC"
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from service87.mimecast.com ([91.220.42.44]:58074 "EHLO
-	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754673Ab2K2Oas (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 29 Nov 2012 09:30:48 -0500
-In-Reply-To: <1354058956-7199-3-git-send-email-swarren@wwwdotorg.org>
-Content-Language: en-US
-Content-Disposition: inline
+Received: from mail-ob0-f174.google.com ([209.85.214.174]:59903 "EHLO
+	mail-ob0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932387Ab2K3QBx (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 Nov 2012 11:01:53 -0500
+In-Reply-To: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, "rob.herring@calxeda.com" <rob.herring@calxeda.com>, Sam Ravnborg <sam@ravnborg.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Stephen Warren <swarren@nvidia.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Cc: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, Olof Johansson <olof@lixom.net>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Jonas Bonn <jonas@southpole.se>, linux@lists.openrisc.net, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org, Mark Salter <msalter@redhat.com>, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au, Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org, Max Filippov <jcmvbkbc@gmail.com>, Ralf Baechle <ralf@linux-mips.org>
 
---wRRV7LY7NUeQGEoC
-Content-Type: text/plain; charset=WINDOWS-1252
-Content-Transfer-Encoding: quoted-printable
-Content-Disposition: inline
-
-On Tue, Nov 27, 2012 at 11:29:12PM +0000, Stephen Warren wrote:
+On 11/27/2012 05:29 PM, Stephen Warren wrote:
 > From: Stephen Warren <swarren@nvidia.com>
->=20
-> The current rules have the .dtb files build in a different directory
-> from the .dts files. This patch changes arm64 to use the generic dtb
-> rule which builds .dtb files in the same directory as the source .dts.
->=20
-> This requires moving parts of arch/arm64/boot/Makefile into newly created
-> arch/arm64/boot/dts/Makefile, and updating arch/arm64/Makefile to call th=
-e
-> new Makefile.
->=20
-> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> 
+> All architectures that use cmd_dtc do so in almost the same way. Create
+> a central build rule to avoid duplication. The one difference is that
+> most current uses of dtc build $(obj)/%.dtb from $(src)/dts/%.dts rather
+> than building the .dtb in the same directory as the .dts file. This
+> difference will be eliminated arch-by-arch in future patches.
+> 
+> MIPS is the exception here; it already uses the exact same rule as the
+> new common rule, so the duplicate is removed in this patch to avoid any
+> conflict. arch/mips changes courtesy of Ralf Baechle.
+> 
+> Update Documentation/kbuild to remove the explicit call to cmd_dtc from
+> the example, now that the rule exists in a centralized location.
+> 
+> Cc: Arnd Bergmann <arnd@arndb.de>
 > Cc: linux-arm-kernel@lists.infradead.org
+> Cc: Olof Johansson <olof@lixom.net>
+> Cc: Russell King <linux@arm.linux.org.uk>
+> Cc: Catalin Marinas <catalin.marinas@arm.com>
+> Cc: Jonas Bonn <jonas@southpole.se>
+> Cc: linux@lists.openrisc.net
+> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
+> Cc: linux-c6x-dev@linux-c6x.org
+> Cc: Mark Salter <msalter@redhat.com>
+> Cc: Michal Simek <monstr@monstr.eu>
+> Cc: microblaze-uclinux@itee.uq.edu.au
+> Cc: Chris Zankel <chris@zankel.net>
+> Cc: linux-xtensa@linux-xtensa.org
+> Cc: Max Filippov <jcmvbkbc@gmail.com>
+> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
 > Signed-off-by: Stephen Warren <swarren@nvidia.com>
+> ---
+> This is based on next-20121126.
+> 
 
-I had a bit more clean-up in a local patch (see attached). Depending on
-the timing, you can just fold it into your patch (basically removing the
-MACHINE argument, adding KBUILD_DTBS and dtbs target help). It's been
-derived from your arch/arm patch anyway ;).
+I'll apply the series but I need a stable base. Looks like xtensa has
+the dependency. Or I can just drop xtensa.
 
---=20
-Catalin
---wRRV7LY7NUeQGEoC
-Content-Type: text/x-diff; charset=WINDOWS-1252
-Content-Transfer-Encoding: quoted-printable
-Content-Disposition: attachment;
-	filename="0001-arm64-Add-dtbs-target-for-building-all-the-enabled-d.patch"
+Rob
 
-From 906ea5523f1a5c2fadea72b54d5d6a8e5fecdfe5 Mon Sep 17 00:00:00 2001
-From: Catalin Marinas <catalin.marinas@arm.com>
-Date: Wed, 21 Nov 2012 11:44:59 +0000
-Subject: [PATCH] arm64: Add dtbs target for building all the enabled dtb
- files
-
-Based on Rob Herring's patches for arch/arm, this patch adds a dtbs
-target to arch/arm64/boot/Makefile.
-
-Signed-off-by: Catalin Marinas <catalin.marinas@arm.com>
----
- arch/arm64/Makefile        | 17 +++++++++++------
- arch/arm64/boot/.gitignore |  1 +
- arch/arm64/boot/Makefile   |  6 ++++++
- 3 files changed, 18 insertions(+), 6 deletions(-)
- create mode 100644 arch/arm64/boot/dts/Makefile
-
-diff --git a/arch/arm64/Makefile b/arch/arm64/Makefile
-index 93e871e..ddadd27 100644
---- a/arch/arm64/Makefile
-+++ b/arch/arm64/Makefile
-@@ -42,20 +42,24 @@ libs-y=09=09:=3D arch/arm64/lib/ $(libs-y)
- libs-y=09=09+=3D $(LIBGCC)
-=20
- # Default target when executing plain make
--KBUILD_IMAGE :=3D Image.gz
-+KBUILD_IMAGE=09:=3D Image.gz
-+KBUILD_DTBS=09:=3D dtbs
-=20
--all:=09$(KBUILD_IMAGE)
-+all:=09$(KBUILD_IMAGE) $(KBUILD_DTBS)
-=20
- boot :=3D arch/arm64/boot
-=20
- Image Image.gz: vmlinux
--=09$(Q)$(MAKE) $(build)=3D$(boot) MACHINE=3D$(MACHINE) $(boot)/$@
-+=09$(Q)$(MAKE) $(build)=3D$(boot) $(boot)/$@
-=20
- zinstall install: vmlinux
--=09$(Q)$(MAKE) $(build)=3D$(boot) MACHINE=3D$(MACHINE) $@
-+=09$(Q)$(MAKE) $(build)=3D$(boot) $@
-=20
--%.dtb:
--=09$(Q)$(MAKE) $(build)=3D$(boot) MACHINE=3D$(MACHINE) $(boot)/$@
-+%.dtb: scripts
-+=09$(Q)$(MAKE) $(build)=3D$(boot) $(boot)/$@
-+
-+dtbs: scripts
-+=09$(Q)$(MAKE) $(build)=3D$(boot) $(boot)/$@
-=20
- # We use MRPROPER_FILES and CLEAN_FILES now
- archclean:
-@@ -64,6 +68,7 @@ archclean:
- define archhelp
-   echo  '* Image.gz      - Compressed kernel image (arch/$(ARCH)/boot/Imag=
-e.gz)'
-   echo  '  Image         - Uncompressed kernel image (arch/$(ARCH)/boot/Im=
-age)'
-+  echo  '* dtbs          - Build device tree blobs for enabled boards'
-   echo  '  install       - Install uncompressed kernel'
-   echo  '  zinstall      - Install compressed kernel'
-   echo  '                  Install using (your) ~/bin/installkernel or'
-diff --git a/arch/arm64/boot/.gitignore b/arch/arm64/boot/.gitignore
-index 8dab0bb..98af90a 100644
---- a/arch/arm64/boot/.gitignore
-+++ b/arch/arm64/boot/.gitignore
-@@ -1,2 +1,3 @@
- Image
- Image.gz
-+*.dtb
-diff --git a/arch/arm64/boot/Makefile b/arch/arm64/boot/Makefile
-index 20048be..ce8642e 100644
---- a/arch/arm64/boot/Makefile
-+++ b/arch/arm64/boot/Makefile
-@@ -14,6 +14,8 @@
- # Based on the ia64 boot/Makefile.
- #
-=20
-+include $(srctree)/arch/arm64/boot/dts/Makefile
-+
- targets :=3D Image Image.gz
-=20
- $(obj)/Image: vmlinux FORCE
-@@ -22,6 +24,10 @@ $(obj)/Image: vmlinux FORCE
- $(obj)/Image.gz: $(obj)/Image FORCE
- =09$(call if_changed,gzip)
-=20
-+targets +=3D $(dtb-y)
-+
-+$(obj)/dtbs: $(addprefix $(obj)/, $(dtb-y))
-+
- install: $(obj)/Image
- =09$(CONFIG_SHELL) $(srctree)/$(src)/install.sh $(KERNELRELEASE) \
- =09$(obj)/Image System.map "$(INSTALL_PATH)"
-diff --git a/arch/arm64/boot/dts/Makefile b/arch/arm64/boot/dts/Makefile
-new file mode 100644
-index 0000000..e69de29
---wRRV7LY7NUeQGEoC--
+> I've split out this dtc rule cleanup as a separate patch series.
+> Hopefully it can be applied without too much controversy, then I'll move
+> back to discussing running cpp over *.dts.
+> 
+> v7:
+> * Build *.dtb from *.dts not src/*.dts.
+> * Removed all arch/ updates except MIPS.
+> v6: Added arch/{arm64,microblaze,mips} updates.
+> v5: Updated Documentation/kbuild.
+> v4: No change.
+> v3: No change.
+> v2: New patch.
+> ---
+>  Documentation/kbuild/makefiles.txt |   15 ++++++++-------
+>  arch/mips/cavium-octeon/Makefile   |    3 ---
+>  arch/mips/lantiq/dts/Makefile      |    3 ---
+>  arch/mips/netlogic/dts/Makefile    |    3 ---
+>  scripts/Makefile.lib               |    3 +++
+>  5 files changed, 11 insertions(+), 16 deletions(-)
+> 
+> diff --git a/Documentation/kbuild/makefiles.txt b/Documentation/kbuild/makefiles.txt
+> index ec9ae67..14c3f4f 100644
+> --- a/Documentation/kbuild/makefiles.txt
+> +++ b/Documentation/kbuild/makefiles.txt
+> @@ -1175,15 +1175,16 @@ When kbuild executes, the following steps are followed (roughly):
+>  	in an init section in the image. Platform code *must* copy the
+>  	blob to non-init memory prior to calling unflatten_device_tree().
+>  
+> -	Example:
+> -		#arch/x86/platform/ce4100/Makefile
+> -		clean-files := *dtb.S
+> +	To use this command, simply add *.dtb into obj-y or targets, or make
+> +	some other target depend on %.dtb
+>  
+> -		DTC_FLAGS := -p 1024
+> -		obj-y += foo.dtb.o
+> +	A central rule exists to create $(obj)/%.dtb from $(src)/%.dts;
+> +	architecture Makefiles do no need to explicitly write out that rule.
+>  
+> -		$(obj)/%.dtb: $(src)/%.dts
+> -			$(call cmd,dtc)
+> +	Example:
+> +		targets += $(dtb-y)
+> +		clean-files += *.dtb
+> +		DTC_FLAGS ?= -p 1024
+>  
+>  --- 6.8 Custom kbuild commands
+>  
+> diff --git a/arch/mips/cavium-octeon/Makefile b/arch/mips/cavium-octeon/Makefile
+> index bc96e29..6e927cf 100644
+> --- a/arch/mips/cavium-octeon/Makefile
+> +++ b/arch/mips/cavium-octeon/Makefile
+> @@ -24,9 +24,6 @@ DTB_FILES = $(patsubst %.dts, %.dtb, $(DTS_FILES))
+>  
+>  obj-y += $(patsubst %.dts, %.dtb.o, $(DTS_FILES))
+>  
+> -$(obj)/%.dtb: $(src)/%.dts FORCE
+> -	$(call if_changed_dep,dtc)
+> -
+>  # Let's keep the .dtb files around in case we want to look at them.
+>  .SECONDARY:  $(addprefix $(obj)/, $(DTB_FILES))
+>  
+> diff --git a/arch/mips/lantiq/dts/Makefile b/arch/mips/lantiq/dts/Makefile
+> index 674fca4..6fa72dd 100644
+> --- a/arch/mips/lantiq/dts/Makefile
+> +++ b/arch/mips/lantiq/dts/Makefile
+> @@ -1,4 +1 @@
+>  obj-$(CONFIG_DT_EASY50712) := easy50712.dtb.o
+> -
+> -$(obj)/%.dtb: $(obj)/%.dts
+> -	$(call if_changed,dtc)
+> diff --git a/arch/mips/netlogic/dts/Makefile b/arch/mips/netlogic/dts/Makefile
+> index 67ae3fe2..d117d46 100644
+> --- a/arch/mips/netlogic/dts/Makefile
+> +++ b/arch/mips/netlogic/dts/Makefile
+> @@ -1,4 +1 @@
+>  obj-$(CONFIG_DT_XLP_EVP) := xlp_evp.dtb.o
+> -
+> -$(obj)/%.dtb: $(obj)/%.dts
+> -	$(call if_changed,dtc)
+> diff --git a/scripts/Makefile.lib b/scripts/Makefile.lib
+> index 0be6f11..bdf42fd 100644
+> --- a/scripts/Makefile.lib
+> +++ b/scripts/Makefile.lib
+> @@ -266,6 +266,9 @@ $(obj)/%.dtb.S: $(obj)/%.dtb
+>  quiet_cmd_dtc = DTC     $@
+>  cmd_dtc = $(objtree)/scripts/dtc/dtc -O dtb -o $@ -b 0 $(DTC_FLAGS) -d $(depfile) $<
+>  
+> +$(obj)/%.dtb: $(src)/%.dts FORCE
+> +	$(call if_changed_dep,dtc)
+> +
+>  # Bzip2
+>  # ---------------------------------------------------------------------------
+>  
+> 
