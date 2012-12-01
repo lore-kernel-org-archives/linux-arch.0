@@ -1,53 +1,53 @@
 From: Lars-Peter Clausen <lars@metafoo.de>
-Subject: [PATCH resend 4/5] h8300: Use generic asm/mmu.h
-Date: Sat,  1 Dec 2012 14:24:43 +0100
-Message-ID: <1354368284-11625-4-git-send-email-lars@metafoo.de>
+Subject: [PATCH resend 5/5] xtensa: Use generic asm/mmu.h for nommu
+Date: Sat,  1 Dec 2012 14:24:44 +0100
+Message-ID: <1354368284-11625-5-git-send-email-lars@metafoo.de>
 References: <1354368284-11625-1-git-send-email-lars@metafoo.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp-out-239.synserver.de ([212.40.185.239]:1213 "EHLO
+	smtp-out-239.synserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751427Ab2LANYR (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 1 Dec 2012 08:24:17 -0500
 In-Reply-To: <1354368284-11625-1-git-send-email-lars@metafoo.de>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Lars-Peter Clausen <lars@metafoo.de>
-List-Id: linux-arch.vger.kernel.org
 
-h8300's asm/mmu.h is basically identical to asm-generic/mmu.h, so use it instead
-of the custom version.
+The nommu portion of mmu.h of the extensa platform is basically the same as the
+asm-generic mmu.h. So use it instead.
 
 Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
 
 ---
 Note, due to lack of toolchain, etc this patch is completely untested.
 ---
- arch/h8300/include/asm/Kbuild |    1 +
- arch/h8300/include/asm/mmu.h  |   10 ----------
- 2 files changed, 1 insertions(+), 10 deletions(-)
- delete mode 100644 arch/h8300/include/asm/mmu.h
+ arch/xtensa/include/asm/mmu.h   |    2 +-
+ arch/xtensa/include/asm/nommu.h |    3 ---
+ 2 files changed, 1 insertions(+), 4 deletions(-)
+ delete mode 100644 arch/xtensa/include/asm/nommu.h
 
-diff --git a/arch/h8300/include/asm/Kbuild b/arch/h8300/include/asm/Kbuild
-index 50bbf38..173de77 100644
---- a/arch/h8300/include/asm/Kbuild
-+++ b/arch/h8300/include/asm/Kbuild
-@@ -2,4 +2,5 @@ include include/asm-generic/Kbuild.asm
+diff --git a/arch/xtensa/include/asm/mmu.h b/arch/xtensa/include/asm/mmu.h
+index 04890d6..8554b2c 100644
+--- a/arch/xtensa/include/asm/mmu.h
++++ b/arch/xtensa/include/asm/mmu.h
+@@ -12,7 +12,7 @@
+ #define _XTENSA_MMU_H
  
- generic-y += clkdev.h
- generic-y += exec.h
-+generic-y += mmu.h
- generic-y += module.h
-diff --git a/arch/h8300/include/asm/mmu.h b/arch/h8300/include/asm/mmu.h
+ #ifndef CONFIG_MMU
+-#include <asm/nommu.h>
++#include <asm-generic/mmu.h>
+ #else
+ 
+ /* Default "unsigned long" context */
+diff --git a/arch/xtensa/include/asm/nommu.h b/arch/xtensa/include/asm/nommu.h
 deleted file mode 100644
-index 3130996..0000000
---- a/arch/h8300/include/asm/mmu.h
+index dce2c43..0000000
+--- a/arch/xtensa/include/asm/nommu.h
 +++ /dev/null
-@@ -1,10 +0,0 @@
--#ifndef __MMU_H
--#define __MMU_H
--
--/* Copyright (C) 2002, David McCullough <davidm@snapgear.com> */
--
+@@ -1,3 +0,0 @@
 -typedef struct {
--	unsigned long		end_brk;
+-	unsigned long end_brk;
 -} mm_context_t;
--
--#endif
 -- 
 1.7.2.5
