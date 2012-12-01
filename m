@@ -1,64 +1,46 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:50125 "EHLO
-	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1759736Ab2K3Te2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 30 Nov 2012 14:34:28 -0500
-Message-ID: <50B90A3E.4080203@wwwdotorg.org>
-Date: Fri, 30 Nov 2012 12:34:22 -0700
-From: Stephen Warren <swarren@wwwdotorg.org>
-MIME-Version: 1.0
-Subject: Re: [PATCH V7 1/7] kbuild: centralize .dts->.dtb rule
-References: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org> <50B8D86E.1080109@gmail.com>
-In-Reply-To: <50B8D86E.1080109@gmail.com>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Received: from smtp-out-239.synserver.de ([212.40.185.239]:1059 "EHLO
+	smtp-out-239.synserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751661Ab2LANYN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 1 Dec 2012 08:24:13 -0500
+From: Lars-Peter Clausen <lars@metafoo.de>
+Subject: [PATCH resend 2/5] asm-generic/mmu.h: Add support for FDPIC
+Date: Sat,  1 Dec 2012 14:24:41 +0100
+Message-ID: <1354368284-11625-2-git-send-email-lars@metafoo.de>
+In-Reply-To: <1354368284-11625-1-git-send-email-lars@metafoo.de>
+References: <1354368284-11625-1-git-send-email-lars@metafoo.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Rob Herring <robherring2@gmail.com>
-Cc: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Stephen Warren <swarren@nvidia.com>, Arnd Bergmann <arnd@arndb.de>, linux-arm-kernel@lists.infradead.org, Olof Johansson <olof@lixom.net>, Russell King <linux@arm.linux.org.uk>, Catalin Marinas <catalin.marinas@arm.com>, Jonas Bonn <jonas@southpole.se>, linux@lists.openrisc.net, Aurelien Jacquiot <a-jacquiot@ti.com>, linux-c6x-dev@linux-c6x.org, Mark Salter <msalter@redhat.com>, Michal Simek <monstr@monstr.eu>, microblaze-uclinux@itee.uq.edu.au, Chris Zankel <chris@zankel.net>, linux-xtensa@linux-xtensa.org, Max Filippov <jcmvbkbc@gmail.com>, Ralf Baechle <ralf@linux-mips.org>
-Message-ID: <20121130193422.bdgwizN3yttLZfZQPepVSAuGGZ1PDzOkvSku-jewyeE@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Lars-Peter Clausen <lars@metafoo.de>
+Message-ID: <20121201132441.wQ_fU75thbl2iCM95cKrH1KUpOzv1zXIPrufNT03epU@z>
 
-On 11/30/2012 09:01 AM, Rob Herring wrote:
-> On 11/27/2012 05:29 PM, Stephen Warren wrote:
->> From: Stephen Warren <swarren@nvidia.com>
->>
->> All architectures that use cmd_dtc do so in almost the same way. Create
->> a central build rule to avoid duplication. The one difference is that
->> most current uses of dtc build $(obj)/%.dtb from $(src)/dts/%.dts rather
->> than building the .dtb in the same directory as the .dts file. This
->> difference will be eliminated arch-by-arch in future patches.
->>
->> MIPS is the exception here; it already uses the exact same rule as the
->> new common rule, so the duplicate is removed in this patch to avoid any
->> conflict. arch/mips changes courtesy of Ralf Baechle.
->>
->> Update Documentation/kbuild to remove the explicit call to cmd_dtc from
->> the example, now that the rule exists in a centralized location.
->>
->> Cc: Arnd Bergmann <arnd@arndb.de>
->> Cc: linux-arm-kernel@lists.infradead.org
->> Cc: Olof Johansson <olof@lixom.net>
->> Cc: Russell King <linux@arm.linux.org.uk>
->> Cc: Catalin Marinas <catalin.marinas@arm.com>
->> Cc: Jonas Bonn <jonas@southpole.se>
->> Cc: linux@lists.openrisc.net
->> Cc: Aurelien Jacquiot <a-jacquiot@ti.com>
->> Cc: linux-c6x-dev@linux-c6x.org
->> Cc: Mark Salter <msalter@redhat.com>
->> Cc: Michal Simek <monstr@monstr.eu>
->> Cc: microblaze-uclinux@itee.uq.edu.au
->> Cc: Chris Zankel <chris@zankel.net>
->> Cc: linux-xtensa@linux-xtensa.org
->> Cc: Max Filippov <jcmvbkbc@gmail.com>
->> Signed-off-by: Ralf Baechle <ralf@linux-mips.org>
->> Signed-off-by: Stephen Warren <swarren@nvidia.com>
->> ---
->> This is based on next-20121126.
->>
-> 
-> I'll apply the series but I need a stable base. Looks like xtensa has
-> the dependency. Or I can just drop xtensa.
+No-MMU architectures often have support for FDPIC binaries. FDPIC support
+requires two additional fields in the mm_context_t struct. This patch adds these
+fields to the generic mm_context_t definition if support for FDPIC binaries is
+enabled. This allows to use the generic mmu.h for a few more architectures.
 
-I was assuming this series would be applied for 3.9, hence hadn't
-rebased it onto anything stable yet. Are you wanting to apply it
-earlier? If so, I'll look into how it fits on top of 3.7-rc7.
+Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
+---
+ include/asm-generic/mmu.h |    5 +++++
+ 1 files changed, 5 insertions(+), 0 deletions(-)
+
+diff --git a/include/asm-generic/mmu.h b/include/asm-generic/mmu.h
+index a67ae0a9..0ed3f1c 100644
+--- a/include/asm-generic/mmu.h
++++ b/include/asm-generic/mmu.h
+@@ -8,6 +8,11 @@
+ #ifndef __ASSEMBLY__
+ typedef struct {
+ 	unsigned long		end_brk;
++
++#ifdef CONFIG_BINFMT_ELF_FDPIC
++	unsigned long		exec_fdpic_loadmap;
++	unsigned long		interp_fdpic_loadmap;
++#endif
+ } mm_context_t;
+ #endif
+ 
+-- 
+1.7.2.5
+
