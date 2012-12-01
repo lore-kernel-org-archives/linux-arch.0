@@ -1,40 +1,70 @@
 From: Lars-Peter Clausen <lars@metafoo.de>
-Subject: [PATCH resend 2/5] asm-generic/mmu.h: Add support for FDPIC
-Date: Sat,  1 Dec 2012 14:24:41 +0100
-Message-ID: <1354368284-11625-2-git-send-email-lars@metafoo.de>
+Subject: [PATCH resend 3/5] c6x: Use generic asm/mmu.h
+Date: Sat,  1 Dec 2012 14:24:42 +0100
+Message-ID: <1354368284-11625-3-git-send-email-lars@metafoo.de>
 References: <1354368284-11625-1-git-send-email-lars@metafoo.de>
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp-out-239.synserver.de ([212.40.185.239]:1391 "EHLO
+	smtp-out-239.synserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751796Ab2LANYO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 1 Dec 2012 08:24:14 -0500
 In-Reply-To: <1354368284-11625-1-git-send-email-lars@metafoo.de>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
 Cc: Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org, Lars-Peter Clausen <lars@metafoo.de>
-List-Id: linux-arch.vger.kernel.org
 
-No-MMU architectures often have support for FDPIC binaries. FDPIC support
-requires two additional fields in the mm_context_t struct. This patch adds these
-fields to the generic mm_context_t definition if support for FDPIC binaries is
-enabled. This allows to use the generic mmu.h for a few more architectures.
+c6x's asm/mmu.h is basically identical to asm-generic/mmu.h, so use it instead
+of the custom version.
 
 Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
+Acked-by: Mark Salter <msalter@redhat.com>
+Tested-by: Mark Salter <msalter@redhat.com>
 ---
- include/asm-generic/mmu.h |    5 +++++
- 1 files changed, 5 insertions(+), 0 deletions(-)
+ arch/c6x/include/asm/Kbuild |    1 +
+ arch/c6x/include/asm/mmu.h  |   22 ----------------------
+ 2 files changed, 1 insertions(+), 22 deletions(-)
+ delete mode 100644 arch/c6x/include/asm/mmu.h
 
-diff --git a/include/asm-generic/mmu.h b/include/asm-generic/mmu.h
-index a67ae0a9..0ed3f1c 100644
---- a/include/asm-generic/mmu.h
-+++ b/include/asm-generic/mmu.h
-@@ -8,6 +8,11 @@
- #ifndef __ASSEMBLY__
- typedef struct {
- 	unsigned long		end_brk;
-+
-+#ifdef CONFIG_BINFMT_ELF_FDPIC
-+	unsigned long		exec_fdpic_loadmap;
-+	unsigned long		interp_fdpic_loadmap;
-+#endif
- } mm_context_t;
- #endif
- 
+diff --git a/arch/c6x/include/asm/Kbuild b/arch/c6x/include/asm/Kbuild
+index 112a496..3c8b660 100644
+--- a/arch/c6x/include/asm/Kbuild
++++ b/arch/c6x/include/asm/Kbuild
+@@ -25,6 +25,7 @@ generic-y += kdebug.h
+ generic-y += kmap_types.h
+ generic-y += local.h
+ generic-y += mman.h
++generic-y += mmu.h
+ generic-y += mmu_context.h
+ generic-y += msgbuf.h
+ generic-y += param.h
+diff --git a/arch/c6x/include/asm/mmu.h b/arch/c6x/include/asm/mmu.h
+deleted file mode 100644
+index 4467e77..0000000
+--- a/arch/c6x/include/asm/mmu.h
++++ /dev/null
+@@ -1,22 +0,0 @@
+-/*
+- *  Port on Texas Instruments TMS320C6x architecture
+- *
+- *  Copyright (C) 2004, 2009, 2010 Texas Instruments Incorporated
+- *  Author: Aurelien Jacquiot (aurelien.jacquiot@jaluna.com)
+- *
+- *  This program is free software; you can redistribute it and/or modify
+- *  it under the terms of the GNU General Public License version 2 as
+- *  published by the Free Software Foundation.
+- */
+-#ifndef _ASM_C6X_MMU_H
+-#define _ASM_C6X_MMU_H
+-
+-typedef struct {
+-	unsigned long		end_brk;
+-#ifdef CONFIG_BINFMT_ELF_FDPIC
+-	unsigned long	exec_fdpic_loadmap;
+-	unsigned long	interp_fdpic_loadmap;
+-#endif
+-} mm_context_t;
+-
+-#endif /* _ASM_C6X_MMU_H */
 -- 
 1.7.2.5
