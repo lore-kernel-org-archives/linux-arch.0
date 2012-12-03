@@ -1,44 +1,35 @@
-From: Stephen Warren <swarren@wwwdotorg.org>
-Subject: Re: [PATCH V7 3/7] arm64: use new common dtc rule
-Date: Mon, 03 Dec 2012 10:27:46 -0700
-Message-ID: <50BCE112.3050203@wwwdotorg.org>
-References: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org> <1354058956-7199-3-git-send-email-swarren@wwwdotorg.org> <20121129143041.GC30437@arm.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/5] asm-generic/mmu.h: Remove unused vmlist field from mm_context_t
+Date: Mon, 3 Dec 2012 23:54:10 +0000
+Message-ID: <201212032354.10573.arnd@arndb.de>
+References: <1351765467-29244-1-git-send-email-lars@metafoo.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=windows-1252
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:59466 "EHLO
-	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755450Ab2LCR1t (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Dec 2012 12:27:49 -0500
-In-Reply-To: <20121129143041.GC30437@arm.com>
+Received: from moutng.kundenserver.de ([212.227.126.187]:61647 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751327Ab2LCXy2 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Dec 2012 18:54:28 -0500
+In-Reply-To: <1351765467-29244-1-git-send-email-lars@metafoo.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Catalin Marinas <catalin.marinas@arm.com>
-Cc: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, "rob.herring@calxeda.com" <rob.herring@calxeda.com>, Sam Ravnborg <sam@ravnborg.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Stephen Warren <swarren@nvidia.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+To: Lars-Peter Clausen <lars@metafoo.de>
+Cc: Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
 
-On 11/29/2012 07:30 AM, Catalin Marinas wrote:
-> On Tue, Nov 27, 2012 at 11:29:12PM +0000, Stephen Warren wrote:
->> From: Stephen Warren <swarren@nvidia.com>
->>
->> The current rules have the .dtb files build in a different directory
->> from the .dts files. This patch changes arm64 to use the generic dtb
->> rule which builds .dtb files in the same directory as the source .dts.
->>
->> This requires moving parts of arch/arm64/boot/Makefile into newly created
->> arch/arm64/boot/dts/Makefile, and updating arch/arm64/Makefile to call the
->> new Makefile.
->>
->> Cc: Catalin Marinas <catalin.marinas@arm.com>
->> Cc: linux-arm-kernel@lists.infradead.org
->> Signed-off-by: Stephen Warren <swarren@nvidia.com>
+On Thursday 01 November 2012, Lars-Peter Clausen wrote:
+> Nothing is using the vmlist field in mm_context_t anymore. It has been removed
+> from the non-generic versions over 3 years ago 8feae1311 ("NOMMU: Make VMAs per
+> MM as for MMU-mode linux").
 > 
-> I had a bit more clean-up in a local patch (see attached). Depending on
-> the timing, you can just fold it into your patch (basically removing the
-> MACHINE argument, adding KBUILD_DTBS and dtbs target help). It's been
-> derived from your arch/arm patch anyway ;).
+> Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
 
-Thanks. Just to follow up on this, Rob has applied the series (minus
-Xtensa) to a local tree, I believe intending to take it for 3.8(?), and
-has included a modified version of this patch there (i.e. rebased onto
-my series and hence slightly adjusted for it).
+Whole series:
+
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+
+Do you want to include the patches in a patch set of your own, or should I put them
+into the asm-generic tree?
+
+	Arnd
