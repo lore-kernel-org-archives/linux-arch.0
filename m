@@ -1,38 +1,56 @@
-From: czankel <chris@zankel.net>
-Subject: Re: [PATCH 5/5] xtensa: Use generic asm/mmu.h for nommu
-Date: Mon, 03 Dec 2012 00:55:01 -0800
-Message-ID: <50BC68E5.6070605@zankel.net>
-References: <1351765467-29244-1-git-send-email-lars@metafoo.de> <1351765467-29244-5-git-send-email-lars@metafoo.de> <50BC62BD.2060602@zankel.net> <50BC661C.6080002@metafoo.de>
+From: Rob Herring <robherring2@gmail.com>
+Subject: Re: [PATCH V7 2/7] ARM: dt: change .dtb build rules to build in dts
+ directory
+Date: Mon, 03 Dec 2012 10:15:44 -0600
+Message-ID: <50BCD030.7020908@gmail.com>
+References: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org> <1354058956-7199-2-git-send-email-swarren@wwwdotorg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-pb0-f46.google.com ([209.85.160.46]:50517 "EHLO
-	mail-pb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751008Ab2LCIyz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Dec 2012 03:54:55 -0500
-Received: by mail-pb0-f46.google.com with SMTP id wy7so1850754pbc.19
-        for <linux-arch@vger.kernel.org>; Mon, 03 Dec 2012 00:54:54 -0800 (PST)
-In-Reply-To: <50BC661C.6080002@metafoo.de>
+Received: from mail-oa0-f46.google.com ([209.85.219.46]:44587 "EHLO
+	mail-oa0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752651Ab2LCQPq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Dec 2012 11:15:46 -0500
+In-Reply-To: <1354058956-7199-2-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lars-Peter Clausen <lars@metafoo.de>
-Cc: Arnd Bergmann <arnd@arndb.de>, Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Max Filippov <jcmvbkbc@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, Olof Johansson <olof@lixom.net>, Stephen Warren <swarren@nvidia.com>, Sam Ravnborg <sam@ravnborg.org>, linux-arm-kernel@lists.infradead.org
 
-On 12/3/12 12:43 AM, Lars-Peter Clausen wrote:
-> On 12/03/2012 09:28 AM, czankel wrote:
->> Thanks Lars, I have added it to the Xtensa for_next tree.
->>
->> -Chris
-> Hi,
->
-> While the patch works standalone. It would be better if it'd go through the
-> same tree as the other patches in this series. Patch 1 removes the unused
-> vmlist field from the mm_context_t struct in asm-generic/mmu.h. So without that
-> patch this patch basically doubles the size of your mm_context_t.
-OK, reverted it. Regarding the Xtensa patch,
+On 11/27/2012 05:29 PM, Stephen Warren wrote:
+> From: Grant Likely <grant.likely@secretlab.ca>
+> 
+> The current rules have the .dtb files build in a different directory
+> from the .dts files. The only reason for this is that it was what
+> PowerPC has done historically. This patch changes ARM to use the generic
+> dtb rule which builds .dtb files in the same directory as the source .dts.
 
-Acked-by: Chris Zankel <chris@zankel.net>
+[snip]
 
-Thanks,
--Chris
+> diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+> index a17d5ab..cb217f8 100644
+> --- a/arch/arm/boot/dts/Makefile
+> +++ b/arch/arm/boot/dts/Makefile
+> @@ -136,4 +136,12 @@ dtb-$(CONFIG_ARCH_VT8500) += vt8500-bv07.dtb \
+>  	wm8650-mid.dtb
+>  dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb
+>  
+> +targets += dtbs
+>  endif
+> +
+> +dtbs: $(addprefix $(obj)/, $(dtb-y))
+> +	# *.dtb used to be generated in the directory above. Clean out the
+> +	# old build results so people don't accidentally use them.
+> +	rm -f $(obj)/../*.dtb
+
+Do you intend for this to print out? Seems a little noisy to me for a
+one-time problem. Are you trying to tell users the dtb files moved or
+just prevent them from using the old ones? Quietly removing them would
+still accomplish the latter.
+
+Rob
+
+> +
+> +clean-files := *.dtb
+> 
