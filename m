@@ -1,56 +1,72 @@
-From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH 4/4] x86: add CONFIG_X86_MOVBE option
-Date: Tue,  4 Dec 2012 10:15:30 +0000
-Message-ID: <1354616130-21587-5-git-send-email-dwmw2@infradead.org>
+From: Stephen Rothwell <sfr@canb.auug.org.au>
+Subject: Re: [PATCH 2/4] powerpc: enable ARCH_USE_BUILTIN_BSWAP
+Date: Tue, 4 Dec 2012 22:02:32 +1100
+Message-ID: <20121204220232.35c7ece1f96e20cd884106b6@canb.auug.org.au>
 References: <1354616130-21587-1-git-send-email-dwmw2@infradead.org>
+	<1354616130-21587-3-git-send-email-dwmw2@infradead.org>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Tue__4_Dec_2012_22_02_32_+1100_7M+YI0MirPs/RTAJ"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from 173-166-109-252-newengland.hfc.comcastbusiness.net ([173.166.109.252]:43790
-	"EHLO bombadil.infradead.org" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751523Ab2LDKPo (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Dec 2012 05:15:44 -0500
-In-Reply-To: <1354616130-21587-1-git-send-email-dwmw2@infradead.org>
+Received: from haggis.pcug.org.au ([203.10.76.10]:49799 "EHLO
+	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752466Ab2LDLCn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Dec 2012 06:02:43 -0500
+In-Reply-To: <1354616130-21587-3-git-send-email-dwmw2@infradead.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: dwmw2@infradead.org
+To: David Woodhouse <dwmw2@infradead.org>
 Cc: x86@kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
 
-From: David Woodhouse <David.Woodhouse@intel.com>
+--Signature=_Tue__4_Dec_2012_22_02_32_+1100_7M+YI0MirPs/RTAJ
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-Currently depends only on CONFIG_MATOM. This will change because big-core
-CPUs are getting movbe too...
+Hi David,
 
-Signed-off-by: David Woodhouse <David.Woodhouse@intel.com>
----
- arch/x86/Kconfig.cpu | 4 ++++
- arch/x86/Makefile    | 1 +
- 2 files changed, 5 insertions(+)
+On Tue,  4 Dec 2012 10:15:28 +0000 David Woodhouse <dwmw2@infradead.org> wr=
+ote:
+>
+> diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
+> index a902a5c..b4ea516 100644
+> --- a/arch/powerpc/Kconfig
+> +++ b/arch/powerpc/Kconfig
+> @@ -78,6 +78,9 @@ config ARCH_HAS_ILOG2_U64
+>  	bool
+>  	default y if 64BIT
+> =20
+> +config ARCH_USE_BUILTIN_BSWAP
+> +       def_bool y
+> +
 
-diff --git a/arch/x86/Kconfig.cpu b/arch/x86/Kconfig.cpu
-index f3b86d0..969f7a6 100644
---- a/arch/x86/Kconfig.cpu
-+++ b/arch/x86/Kconfig.cpu
-@@ -353,6 +353,10 @@ config X86_BSWAP
- 	def_bool y
- 	depends on X86_32 && !M386
- 
-+config X86_MOVBE
-+	def_bool y
-+	depends on MATOM
-+
- config X86_POPAD_OK
- 	def_bool y
- 	depends on X86_32 && !M386
-diff --git a/arch/x86/Makefile b/arch/x86/Makefile
-index 05afcca..0e71d76 100644
---- a/arch/x86/Makefile
-+++ b/arch/x86/Makefile
-@@ -64,6 +64,7 @@ else
-                 $(call cc-option,-march=core2,$(call cc-option,-mtune=generic))
- 	cflags-$(CONFIG_MATOM) += $(call cc-option,-march=atom) \
- 		$(call cc-option,-mtune=atom,$(call cc-option,-mtune=generic))
-+        cflags-$(CONFIG_X86_MOVBE) += $(call cc-option,-mmovbe)
-         cflags-$(CONFIG_GENERIC_CPU) += $(call cc-option,-mtune=generic)
-         KBUILD_CFLAGS += $(cflags-y)
- 
--- 
-1.8.0
+This should be defined as bool in arch/Kconfig (probably in the previous
+patch) and then selected from appropriate architectures.
+
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
+
+--Signature=_Tue__4_Dec_2012_22_02_32_+1100_7M+YI0MirPs/RTAJ
+Content-Type: application/pgp-signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+iQIcBAEBCAAGBQJQvdhIAAoJEECxmPOUX5FE5XQP/1Htprg35GkDr2wMNiY5sH6D
+5d+BlOeEvlEkWXew4ytPkyPWRuL5OSf01/dOPgVtrC1xhIZtH8dqHB+GlXGCUT+X
+WAr3zYABvHW/vFkjR5E26FFpN2VzwUlzZVl1RMbLajlFkm4dv8ORcW+nbfEQpONM
+S4FQ7t1bmG/8VVkGMX43o50uGgrNP0QfdGOnIEmCoI34F10viVNWlfyLtwXoFFWR
+/HP3riiLN9WNjtuTCbA+2W9v8doy7ZPtObrDR3/gAVrcJeo7zRcw7wwSLspCVK6U
+ZROQNfbNri8T5ZUp4hIH3/1Kvvs3CsCcBDR9/se+ythSOD9laV+HQyyCS+0zUHky
+sg6PrH8/+dpHwBYW7zHAJFTjNk7plbxluTw7VynQyvUc+42wg9pGglMkfChhKK1K
+A6YXmkgmWG9DKpuG2lplBziS96CKjQIVRsa1GOkofS9lvj/o4deh+oHYV2weiNG6
+OHe2NGQTpxnI6d07p9bZHyvcZmmmUTvddh1r1cdgzrmZiVWob42eIPZRC0252DSi
+B5AAncjilaw8Sb1TWKWl7LrE69thazqKIRDcyHDrgqm5RaSwtfojC80TJNa/ZoTq
+kmmj8W5M6zXA2c/SxxOxlDWyb+1ufMJhXDCYSr12aSLWy9FXYp+MxhCVUYr/vzle
+sPICbn+NO9O5rCwm+MoZ
+=k775
+-----END PGP SIGNATURE-----
+
+--Signature=_Tue__4_Dec_2012_22_02_32_+1100_7M+YI0MirPs/RTAJ--
