@@ -1,35 +1,55 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/5] asm-generic/mmu.h: Remove unused vmlist field from mm_context_t
-Date: Mon, 3 Dec 2012 23:54:10 +0000
-Message-ID: <201212032354.10573.arnd@arndb.de>
-References: <1351765467-29244-1-git-send-email-lars@metafoo.de>
+From: David Miller <davem@davemloft.net>
+Subject: Re: sigaltstack fun
+Date: Mon, 03 Dec 2012 21:58:46 -0500 (EST)
+Message-ID: <20121203.215846.206188196607010695.davem@davemloft.net>
+References: <20121119023507.GK16916@ZenIV.linux.org.uk>
+	<20121118.222724.1495808364736017374.davem@davemloft.net>
+	<20121126051002.GB4939@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
+Content-Type: Text/Plain; charset=us-ascii
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:61647 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751327Ab2LCXy2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Dec 2012 18:54:28 -0500
-In-Reply-To: <1351765467-29244-1-git-send-email-lars@metafoo.de>
+Received: from shards.monkeyblade.net ([149.20.54.216]:43219 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751340Ab2LDC6v (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Dec 2012 21:58:51 -0500
+In-Reply-To: <20121126051002.GB4939@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lars-Peter Clausen <lars@metafoo.de>
-Cc: Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+To: viro@ZenIV.linux.org.uk
+Cc: torvalds@linux-foundation.org, monstr@monstr.eu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-On Thursday 01 November 2012, Lars-Peter Clausen wrote:
-> Nothing is using the vmlist field in mm_context_t anymore. It has been removed
-> from the non-generic versions over 3 years ago 8feae1311 ("NOMMU: Make VMAs per
-> MM as for MMU-mode linux").
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Date: Mon, 26 Nov 2012 05:10:02 +0000
+
+> On Sun, Nov 18, 2012 at 10:27:24PM -0500, David Miller wrote:
+>> > Cc: stable@vger.kernel.org
+>> > Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
+>> 
+>> Applied, thanks.
 > 
-> Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
+> Hmm...  There's something odd going on with {rt_,}sigaction on sparc -
+> we *do* have sa_restorer in struct sigaction and struct old_sigaction,
+> but it's not used for anything whatsoever.  There's also a separately
+> passed restorer pointer for rt_sigaction() and *that* is used instead,
+> but not reported via *oact.
+> 
+> What's the reason for that weirdness?  I understand why we do that on
+> alpha (we have no sa_restorer in struct sigaction we'd inherited from
+> OSF/1), but sparc always had perfectly normal sigaction->sa_restorer
+> field all along - even for old sigaction(2)...
 
-Whole series:
+I have no idea how things got this way.
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+In the old sigaction() we do use the sa_restorer, and for both RT and
+non-RT sigaction, we do fill in the sa_restorer member for the old
+sigaction returned.
 
-Do you want to include the patches in a patch set of your own, or should I put them
-into the asm-generic tree?
+This special 'restorer' argument overrides the sigaction one.
 
-	Arnd
+GLIBC wraps calls to this system call, see:
+
+sysdeps/unix/sysv/linux/sparc/sparc32/sigaction.c
+sysdeps/unix/sysv/linux/sparc/sparc64/sigaction.c
+
+I wish I had more context and info, but I don't :-(
