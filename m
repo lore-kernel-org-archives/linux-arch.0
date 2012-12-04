@@ -1,71 +1,39 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: sigaltstack fun
-Date: Mon, 03 Dec 2012 22:03:02 -0500 (EST)
-Message-ID: <20121203.220302.468583955499233871.davem@davemloft.net>
-References: <20121118.222724.1495808364736017374.davem@davemloft.net>
-	<20121126051002.GB4939@ZenIV.linux.org.uk>
-	<20121126051544.GD4939@ZenIV.linux.org.uk>
+From: Lars-Peter Clausen <lars@metafoo.de>
+Subject: Re: [PATCH 1/5] asm-generic/mmu.h: Remove unused vmlist field from
+ mm_context_t
+Date: Tue, 04 Dec 2012 08:58:53 +0100
+Message-ID: <50BDAD3D.9020209@metafoo.de>
+References: <1351765467-29244-1-git-send-email-lars@metafoo.de> <201212032354.10573.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
+Content-Type: text/plain; charset=ISO-8859-15
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:43240 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751260Ab2LDDDE (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 3 Dec 2012 22:03:04 -0500
-In-Reply-To: <20121126051544.GD4939@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: viro@ZenIV.linux.org.uk
-Cc: torvalds@linux-foundation.org, monstr@monstr.eu, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <201212032354.10573.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Date: Mon, 26 Nov 2012 05:15:44 +0000
-
-> On Mon, Nov 26, 2012 at 05:10:02AM +0000, Al Viro wrote:
->> On Sun, Nov 18, 2012 at 10:27:24PM -0500, David Miller wrote:
->> > > Cc: stable@vger.kernel.org
->> > > Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
->> > 
->> > Applied, thanks.
->> 
->> Hmm...  There's something odd going on with {rt_,}sigaction on sparc -
->> we *do* have sa_restorer in struct sigaction and struct old_sigaction,
->> but it's not used for anything whatsoever.  There's also a separately
->> passed restorer pointer for rt_sigaction() and *that* is used instead,
->> but not reported via *oact.
->> 
->> What's the reason for that weirdness?  I understand why we do that on
->> alpha (we have no sa_restorer in struct sigaction we'd inherited from
->> OSF/1), but sparc always had perfectly normal sigaction->sa_restorer
->> field all along - even for old sigaction(2)...
+On 12/04/2012 12:54 AM, Arnd Bergmann wrote:
+> On Thursday 01 November 2012, Lars-Peter Clausen wrote:
+>> Nothing is using the vmlist field in mm_context_t anymore. It has been removed
+>> from the non-generic versions over 3 years ago 8feae1311 ("NOMMU: Make VMAs per
+>> MM as for MMU-mode linux").
+>>
+>> Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
 > 
-> PS: speaking of weirdness, what's the reason for sparc and ppc (and nothing
-> else) expecting the first argument of sigaction(2) to be minus signal
-> number?  ABI archaeology is fun...
+> Whole series:
+> 
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> 
+> Do you want to include the patches in a patch set of your own, or should I put them
+> into the asm-generic tree?
+> 
+> 	Arnd
 
-It's because of stupidity.
+Hi Arnd,
 
-We had two sigaction interpretations, and distinguished the two cases
-by whether the signal passed in was positive or negative.
+The plan was to let it go through the asm-generic tree.
 
-The positive code got phased out and simply deleted, leaving only
-the negative case.
-
-If you look into ancient trees (f.e. 2.4.x) you'll see stuff like
-this:
-
-	if (sig < 0) {
-		current->thread.new_signal = 1;
-		sig = -sig;
-	}
-
-in sparc_sigaction().
-
-The main problem is that, originally, I didn't pass a siginfo into the
-signal handler.  I didn't want to break applications that made use of
-the arguments I did provide.  So this was the compatability facility.
-
-If you passed in a negative signal number, I passed the signal()
-handler args as they are documented in sigaction(2).  Otherwise
-I passed in whatever I had passed previously.
+Thanks,
+- Lars
