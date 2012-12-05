@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:55549 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:54483 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753171Ab2LEQJf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 5 Dec 2012 11:09:35 -0500
+	id S1751997Ab2LEQJM (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 5 Dec 2012 11:09:12 -0500
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v2 20/44] metag: Device tree
-Date: Wed, 5 Dec 2012 16:08:38 +0000
-Message-ID: <1354723742-6195-21-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v2 01/44] asm-generic/io.h: remove asm/cacheflush.h include
+Date: Wed, 5 Dec 2012 16:08:19 +0000
+Message-ID: <1354723742-6195-2-git-send-email-james.hogan@imgtec.com>
 In-Reply-To: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
 References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
@@ -14,219 +14,60 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, James Hogan <james.hogan@imgtec.com>
-Message-ID: <20121205160838.gA-OSFDs9Ht-G_OHV8vtVtGWhpzMyfIyUSeOrNbLM10@z>
+Cc: Arnd Bergmann <arnd@arndb.de>, James Hogan <james.hogan@imgtec.com>, Chris Zankel <chris@zankel.net>, Mike Frysinger <vapier@gentoo.org>, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>
+Message-ID: <20121205160819.DJPzwXZGZqiBL5kMyJOd6e8wAZRB1CxfO_8CFE626m4@z>
 
-Add device tree files to arch/metag.
+Including <asm/cacheflush.h> from <asm-generic/io.h> prevents
+cacheflush.h being able to use I/O functions like readl and writel due
+to circular include dependencies. It doesn't appear as if anything from
+cacheflush.h is actually used by the generic io.h, so remove the
+include.
+
+I've compile tested a defconfig compilation of blackfin, openrisc (which
+needed <asm/pgtable.h> including from it's <asm/io.h> to get the PAGE_*
+definitions), and xtensa.
+
+Other architectures which use asm-generic/io.h are score and unicore32,
+and looking at their io.h I don't see any obvious problems.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Acked-by: Jonas Bonn <jonas@southpole.se>
+Acked-by: Max Filippov <jcmvbkbc@gmail.com>
+Acked-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
+Cc: Chris Zankel <chris@zankel.net>
+Cc: Mike Frysinger <vapier@gentoo.org>
+Cc: Chen Liqin <liqin.chen@sunplusct.com>
+Cc: Lennox Wu <lennox.wu@gmail.com>
+Signed-off-by: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/metag/boot/dtb/Makefile      |   17 ++++++
- arch/metag/boot/dts/skeleton.dts  |   10 ++++
- arch/metag/boot/dts/skeleton.dtsi |   14 +++++
- arch/metag/include/asm/prom.h     |   23 +++++++++
- arch/metag/kernel/devtree.c       |  100 +++++++++++++++++++++++++++++++++++++
- 5 files changed, 164 insertions(+), 0 deletions(-)
- create mode 100644 arch/metag/boot/dtb/Makefile
- create mode 100644 arch/metag/boot/dts/skeleton.dts
- create mode 100644 arch/metag/boot/dts/skeleton.dtsi
- create mode 100644 arch/metag/include/asm/prom.h
- create mode 100644 arch/metag/kernel/devtree.c
+ arch/openrisc/include/asm/io.h |    1 +
+ include/asm-generic/io.h       |    1 -
+ 2 files changed, 1 insertions(+), 1 deletions(-)
 
-diff --git a/arch/metag/boot/dtb/Makefile b/arch/metag/boot/dtb/Makefile
-new file mode 100644
-index 0000000..c024aec
---- /dev/null
-+++ b/arch/metag/boot/dtb/Makefile
-@@ -0,0 +1,17 @@
-+dtb-y	+= skeleton.dtb
-+
-+# Built-in dtb
-+builtindtb-y				:= skeleton
-+
-+ifneq ($(CONFIG_METAG_BUILTIN_DTB_NAME),"")
-+	builtindtb-y			:= $(CONFIG_METAG_BUILTIN_DTB_NAME)
-+endif
-+obj-$(CONFIG_METAG_BUILTIN_DTB)	+= $(patsubst "%",%,$(builtindtb-y)).dtb.o
-+
-+clean-files += $(obj)/$(dtb-y) $(obj)/*.dtb.S $(obj)/*.dtb.o
-+
-+# Rule to build device tree blobs
-+$(obj)/%.dtb: $(src)/../dts/%.dts FORCE
-+	$(call if_changed_dep,dtc)
-+
-+$(obj)/dtbs: $(addprefix $(obj)/, $(dtb-y))
-diff --git a/arch/metag/boot/dts/skeleton.dts b/arch/metag/boot/dts/skeleton.dts
-new file mode 100644
-index 0000000..7244d1f
---- /dev/null
-+++ b/arch/metag/boot/dts/skeleton.dts
-@@ -0,0 +1,10 @@
-+/*
-+ * Copyright (C) 2012 Imagination Technologies Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+/dts-v1/;
-+
-+/include/ "skeleton.dtsi"
-diff --git a/arch/metag/boot/dts/skeleton.dtsi b/arch/metag/boot/dts/skeleton.dtsi
-new file mode 100644
-index 0000000..78229ea
---- /dev/null
-+++ b/arch/metag/boot/dts/skeleton.dtsi
-@@ -0,0 +1,14 @@
-+/*
-+ * Skeleton device tree; the bare minimum needed to boot; just include and
-+ * add a compatible value.  The bootloader will typically populate the memory
-+ * node.
-+ */
-+
-+/ {
-+	compatible = "img,meta";
-+	#address-cells = <1>;
-+	#size-cells = <1>;
-+	chosen { };
-+	aliases { };
-+	memory { device_type = "memory"; reg = <0 0>; };
-+};
-diff --git a/arch/metag/include/asm/prom.h b/arch/metag/include/asm/prom.h
-new file mode 100644
-index 0000000..d881396
---- /dev/null
-+++ b/arch/metag/include/asm/prom.h
-@@ -0,0 +1,23 @@
-+/*
-+ *  arch/metag/include/asm/prom.h
-+ *
-+ *  Copyright (C) 2012 Imagination Technologies Ltd.
-+ *
-+ *  Based on ARM version:
-+ *  Copyright (C) 2009 Canonical Ltd. <jeremy.kerr@canonical.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ */
-+#ifndef __ASM_METAG_PROM_H
-+#define __ASM_METAG_PROM_H
-+
-+#include <asm/setup.h>
-+#define HAVE_ARCH_DEVTREE_FIXUPS
-+
-+extern struct machine_desc *setup_machine_fdt(void *dt);
-+extern void metag_dt_memblock_reserve(void);
-+
-+#endif /* __ASM_METAG_PROM_H */
-diff --git a/arch/metag/kernel/devtree.c b/arch/metag/kernel/devtree.c
-new file mode 100644
-index 0000000..251819c
---- /dev/null
-+++ b/arch/metag/kernel/devtree.c
-@@ -0,0 +1,100 @@
-+/*
-+ *  linux/arch/metag/kernel/devtree.c
-+ *
-+ *  Copyright (C) 2012 Imagination Technologies Ltd.
-+ *
-+ *  Based on ARM version:
-+ *  Copyright (C) 2009 Canonical Ltd. <jeremy.kerr@canonical.com>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/export.h>
-+#include <linux/errno.h>
-+#include <linux/types.h>
-+#include <linux/bootmem.h>
-+#include <linux/memblock.h>
-+#include <linux/of.h>
-+#include <linux/of_fdt.h>
-+#include <linux/of_irq.h>
-+#include <linux/of_platform.h>
-+
-+#include <asm/setup.h>
-+#include <asm/page.h>
-+#include <asm/mach/arch.h>
-+
-+void __init early_init_dt_add_memory_arch(u64 base, u64 size)
-+{
-+	pr_err("%s(%llx, %llx)\n",
-+	       __func__, base, size);
-+}
-+
-+void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
-+{
-+	return alloc_bootmem_align(size, align);
-+}
-+
-+/**
-+ * setup_machine_fdt - Machine setup when an dtb was passed to the kernel
-+ * @dt:		virtual address pointer to dt blob
-+ *
-+ * If a dtb was passed to the kernel, then use it to choose the correct
-+ * machine_desc and to setup the system.
-+ */
-+struct machine_desc * __init setup_machine_fdt(void *dt)
-+{
-+	struct boot_param_header *devtree = dt;
-+	struct machine_desc *mdesc, *mdesc_best = NULL;
-+	unsigned int score, mdesc_score = ~1;
-+	unsigned long dt_root;
-+	const char *model;
-+
-+	/* check device tree validity */
-+	if (be32_to_cpu(devtree->magic) != OF_DT_HEADER)
-+		return NULL;
-+
-+	/* Search the mdescs for the 'best' compatible value match */
-+	initial_boot_params = devtree;
-+	dt_root = of_get_flat_dt_root();
-+
-+	for_each_machine_desc(mdesc) {
-+		score = of_flat_dt_match(dt_root, mdesc->dt_compat);
-+		if (score > 0 && score < mdesc_score) {
-+			mdesc_best = mdesc;
-+			mdesc_score = score;
-+		}
-+	}
-+	if (!mdesc_best) {
-+		const char *prop;
-+		long size;
-+
-+		pr_err("\nError: unrecognized/unsupported device tree compatible list:\n[ ");
-+
-+		prop = of_get_flat_dt_prop(dt_root, "compatible", &size);
-+		if (prop) {
-+			while (size > 0) {
-+				printk("'%s' ", prop);
-+				size -= strlen(prop) + 1;
-+				prop += strlen(prop) + 1;
-+			}
-+		}
-+		printk("]\n\n");
-+
-+		dump_machine_table(); /* does not return */
-+	}
-+
-+	model = of_get_flat_dt_prop(dt_root, "model", NULL);
-+	if (!model)
-+		model = of_get_flat_dt_prop(dt_root, "compatible", NULL);
-+	if (!model)
-+		model = "<unknown>";
-+	pr_info("Machine: %s, model: %s\n", mdesc_best->name, model);
-+
-+	/* Retrieve various information from the /chosen node */
-+	of_scan_flat_dt(early_init_dt_scan_chosen, boot_command_line);
-+
-+	return mdesc_best;
-+}
+diff --git a/arch/openrisc/include/asm/io.h b/arch/openrisc/include/asm/io.h
+index 07f5299..7c69139 100644
+--- a/arch/openrisc/include/asm/io.h
++++ b/arch/openrisc/include/asm/io.h
+@@ -30,6 +30,7 @@
+ #define PIO_MASK		0
+ 
+ #include <asm-generic/io.h>
++#include <asm/pgtable.h>
+ 
+ extern void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
+ 				pgprot_t prot);
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 448303b..616eea5 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -12,7 +12,6 @@
+ #define __ASM_GENERIC_IO_H
+ 
+ #include <asm/page.h> /* I/O is all done through memory accesses */
+-#include <asm/cacheflush.h>
+ #include <linux/types.h>
+ 
+ #ifdef CONFIG_GENERIC_IOMAP
 -- 
 1.7.7.6
 
