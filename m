@@ -1,67 +1,62 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v2 01/44] asm-generic/io.h: remove asm/cacheflush.h include
-Date: Wed, 5 Dec 2012 16:08:19 +0000
-Message-ID: <1354723742-6195-2-git-send-email-james.hogan@imgtec.com>
+From: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
+Subject: [PATCH v2 06/44] of/vendor-prefixes: add Imagination Technologies
+Date: Wed, 5 Dec 2012 16:08:24 +0000
+Message-ID: <1354723742-6195-7-git-send-email-james.hogan@imgtec.com>
 References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, James Hogan <james.hogan@imgtec.com>, Chris Zankel <chris@zankel.net>, Mike Frysinger <vapier@gentoo.org>, Chen Liqin <liqin.chen@sunplusct.com>, Lennox Wu <lennox.wu@gmail.com>
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
+In-Reply-To: <1354723742-6195-1-git-send-email-james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
+List-Unsubscribe: <https://lists.ozlabs.org/options/devicetree-discuss>,
+ <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=unsubscribe>
+List-Archive: <http://lists.ozlabs.org/pipermail/devicetree-discuss/>
+List-Post: <mailto:devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
+List-Help: <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=help>
+List-Subscribe: <https://lists.ozlabs.org/listinfo/devicetree-discuss>,
+ <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=subscribe>
+Errors-To: devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
+Sender: "devicetree-discuss"
+ <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
+To: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+Cc: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>, devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>
 List-Id: linux-arch.vger.kernel.org
 
-Including <asm/cacheflush.h> from <asm-generic/io.h> prevents
-cacheflush.h being able to use I/O functions like readl and writel due
-to circular include dependencies. It doesn't appear as if anything from
-cacheflush.h is actually used by the generic io.h, so remove the
-include.
+The "powervr" prefix which is currently described as "Imagination
+Technologies" isn't really appropriate for non-PowerVR hardware, so
+deprecate it, changing the description of "powervr" to "PowerVR
+(deprecated, use img)", and add a separate "img" prefix for "Imagination
+Technologies Ltd.".
 
-I've compile tested a defconfig compilation of blackfin, openrisc (which
-needed <asm/pgtable.h> including from it's <asm/io.h> to get the PAGE_*
-definitions), and xtensa.
-
-Other architectures which use asm-generic/io.h are score and unicore32,
-and looking at their io.h I don't see any obvious problems.
-
-Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Acked-by: Jonas Bonn <jonas@southpole.se>
-Acked-by: Max Filippov <jcmvbkbc@gmail.com>
-Acked-by: Guan Xuetao <gxt@mprc.pku.edu.cn>
-Cc: Chris Zankel <chris@zankel.net>
-Cc: Mike Frysinger <vapier@gentoo.org>
-Cc: Chen Liqin <liqin.chen@sunplusct.com>
-Cc: Lennox Wu <lennox.wu@gmail.com>
-Signed-off-by: Arnd Bergmann <arnd@arndb.de>
+Signed-off-by: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
+Cc: Grant Likely <grant.likely-s3s/WqlpOiPyB63q8FvJNQ@public.gmane.org>
+Cc: Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>
+Cc: Rob Landley <rob-VoJi6FS/r0vR7s880joybQ@public.gmane.org>
+Cc: devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
 ---
- arch/openrisc/include/asm/io.h |    1 +
- include/asm-generic/io.h       |    1 -
- 2 files changed, 1 insertions(+), 1 deletions(-)
+ .../devicetree/bindings/vendor-prefixes.txt        |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
 
-diff --git a/arch/openrisc/include/asm/io.h b/arch/openrisc/include/asm/io.h
-index 07f5299..7c69139 100644
---- a/arch/openrisc/include/asm/io.h
-+++ b/arch/openrisc/include/asm/io.h
-@@ -30,6 +30,7 @@
- #define PIO_MASK		0
- 
- #include <asm-generic/io.h>
-+#include <asm/pgtable.h>
- 
- extern void __iomem *__ioremap(phys_addr_t offset, unsigned long size,
- 				pgprot_t prot);
-diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
-index 448303b..616eea5 100644
---- a/include/asm-generic/io.h
-+++ b/include/asm-generic/io.h
-@@ -12,7 +12,6 @@
- #define __ASM_GENERIC_IO_H
- 
- #include <asm/page.h> /* I/O is all done through memory accesses */
--#include <asm/cacheflush.h>
- #include <linux/types.h>
- 
- #ifdef CONFIG_GENERIC_IOMAP
+diff --git a/Documentation/devicetree/bindings/vendor-prefixes.txt b/Documentation/devicetree/bindings/vendor-prefixes.txt
+index 9de2b9f..aab2993 100644
+--- a/Documentation/devicetree/bindings/vendor-prefixes.txt
++++ b/Documentation/devicetree/bindings/vendor-prefixes.txt
+@@ -25,6 +25,7 @@ gef	GE Fanuc Intelligent Platforms Embedded Systems, Inc.
+ hp	Hewlett Packard
+ ibm	International Business Machines (IBM)
+ idt	Integrated Device Technologies, Inc.
++img	Imagination Technologies Ltd.
+ intercontrol	Inter Control Group
+ linux	Linux-specific binding
+ marvell	Marvell Technology Group Ltd.
+@@ -35,7 +36,7 @@ nintendo	Nintendo
+ nvidia	NVIDIA
+ nxp	NXP Semiconductors
+ picochip	Picochip Ltd
+-powervr	Imagination Technologies
++powervr	PowerVR (deprecated, use img)
+ qcom	Qualcomm, Inc.
+ ramtron	Ramtron International
+ realtek Realtek Semiconductor Corp.
 -- 
 1.7.7.6
