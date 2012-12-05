@@ -1,44 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from smtp-out-241.synserver.de ([212.40.185.241]:1161 "EHLO
-	smtp-out-239.synserver.de" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1752054Ab2LDH6l (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Dec 2012 02:58:41 -0500
-Message-ID: <50BDAD3D.9020209@metafoo.de>
-Date: Tue, 04 Dec 2012 08:58:53 +0100
-From: Lars-Peter Clausen <lars@metafoo.de>
+Received: from multi.imgtec.com ([194.200.65.239]:55566 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1752813Ab2LEQJZ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 5 Dec 2012 11:09:25 -0500
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH v2 06/44] of/vendor-prefixes: add Imagination Technologies
+Date: Wed, 5 Dec 2012 16:08:24 +0000
+Message-ID: <1354723742-6195-7-git-send-email-james.hogan@imgtec.com>
+In-Reply-To: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
+References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH 1/5] asm-generic/mmu.h: Remove unused vmlist field from
- mm_context_t
-References: <1351765467-29244-1-git-send-email-lars@metafoo.de> <201212032354.10573.arnd@arndb.de>
-In-Reply-To: <201212032354.10573.arnd@arndb.de>
-Content-Type: text/plain; charset=ISO-8859-15
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
-Message-ID: <20121204075853.mDsPynJSRgAbXM6pXTU-DZMX9fdZTmb2z8bGaStapmI@z>
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, James Hogan <james.hogan@imgtec.com>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Rob Landley <rob@landley.net>, devicetree-discuss@lists.ozlabs.org
+Message-ID: <20121205160824.hO5GLusohGm0Qugtk6gAI2ZMHmur9g0qziGmqt1UMM4@z>
 
-On 12/04/2012 12:54 AM, Arnd Bergmann wrote:
-> On Thursday 01 November 2012, Lars-Peter Clausen wrote:
->> Nothing is using the vmlist field in mm_context_t anymore. It has been removed
->> from the non-generic versions over 3 years ago 8feae1311 ("NOMMU: Make VMAs per
->> MM as for MMU-mode linux").
->>
->> Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
-> 
-> Whole series:
-> 
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-> 
-> Do you want to include the patches in a patch set of your own, or should I put them
-> into the asm-generic tree?
-> 
-> 	Arnd
+The "powervr" prefix which is currently described as "Imagination
+Technologies" isn't really appropriate for non-PowerVR hardware, so
+deprecate it, changing the description of "powervr" to "PowerVR
+(deprecated, use img)", and add a separate "img" prefix for "Imagination
+Technologies Ltd.".
 
-Hi Arnd,
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Grant Likely <grant.likely@secretlab.ca>
+Cc: Rob Herring <rob.herring@calxeda.com>
+Cc: Rob Landley <rob@landley.net>
+Cc: devicetree-discuss@lists.ozlabs.org
+---
+ .../devicetree/bindings/vendor-prefixes.txt        |    3 ++-
+ 1 files changed, 2 insertions(+), 1 deletions(-)
 
-The plan was to let it go through the asm-generic tree.
+diff --git a/Documentation/devicetree/bindings/vendor-prefixes.txt b/Documentation/devicetree/bindings/vendor-prefixes.txt
+index 9de2b9f..aab2993 100644
+--- a/Documentation/devicetree/bindings/vendor-prefixes.txt
++++ b/Documentation/devicetree/bindings/vendor-prefixes.txt
+@@ -25,6 +25,7 @@ gef	GE Fanuc Intelligent Platforms Embedded Systems, Inc.
+ hp	Hewlett Packard
+ ibm	International Business Machines (IBM)
+ idt	Integrated Device Technologies, Inc.
++img	Imagination Technologies Ltd.
+ intercontrol	Inter Control Group
+ linux	Linux-specific binding
+ marvell	Marvell Technology Group Ltd.
+@@ -35,7 +36,7 @@ nintendo	Nintendo
+ nvidia	NVIDIA
+ nxp	NXP Semiconductors
+ picochip	Picochip Ltd
+-powervr	Imagination Technologies
++powervr	PowerVR (deprecated, use img)
+ qcom	Qualcomm, Inc.
+ ramtron	Ramtron International
+ realtek Realtek Semiconductor Corp.
+-- 
+1.7.7.6
 
-Thanks,
-- Lars
+
