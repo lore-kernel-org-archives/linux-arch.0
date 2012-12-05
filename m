@@ -1,199 +1,53 @@
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Subject: Re: [PATCH v2 43/44] tty/metag_da: Add metag DA TTY driver
-Date: Wed, 5 Dec 2012 17:24:46 +0000
-Message-ID: <20121205172446.41aa464e@pyramind.ukuu.org.uk>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [PATCH v2 23/44] metag: Traps
+Date: Wed, 5 Dec 2012 17:40:35 +0000
+Message-ID: <20121205174035.GX4939@ZenIV.linux.org.uk>
 References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
-	<1354723742-6195-44-git-send-email-james.hogan@imgtec.com>
+ <1354723742-6195-24-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lxorguk.ukuu.org.uk ([81.2.110.251]:53743 "EHLO
-	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752280Ab2LERTa (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Dec 2012 12:19:30 -0500
-In-Reply-To: <1354723742-6195-44-git-send-email-james.hogan@imgtec.com>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:37067 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751766Ab2LERkg (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Dec 2012 12:40:36 -0500
+Content-Disposition: inline
+In-Reply-To: <1354723742-6195-24-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: James Hogan <james.hogan@imgtec.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 
-
-
-> +/* One struct dashtty exists per open channel. */
-> +struct dashtty {
-> +	struct tty_struct *tty;
-> +	struct tty_port *port;
-> +};
-
-We have tty->port as of 3.7 so you shouldn't need this any more
-
-> +
-> +static struct tty_port dashtty_ports[NUM_TTY_CHANNELS];
-> +
-> +struct dashbuf {
-> +	struct list_head entry;
-> +	struct dashtty *tty;
-> +	unsigned char *buf;
-> +	int count;
-> +	int chan;
-> +};
-
-> +/*
-> + * Attempts to fetch count bytes from channel channel and returns actual count.
-> + */
-> +static int fetch_data(int channel)
+On Wed, Dec 05, 2012 at 04:08:41PM +0000, James Hogan wrote:
+> +TBIRES tail_end(TBIRES State, unsigned long orig_syscall)
 > +{
-> +	struct dashtty *dashtty = dashtty_ttys[channel];
-
-krefs for the tty ?, what if the tty is closing at the same moment ?
-
+> +	struct pt_regs *regs = (struct pt_regs *)State.Sig.pCtx;
+> +	unsigned long flags;
 > +
-> +static int put_data(void *arg)
-> +{
-> +	struct dashbuf *dbuf;
-> +	int number_written;
-> +
-> +	__set_current_state(TASK_RUNNING);
-> +	while (!kthread_should_stop()) {
-> +		/*
-> +		 * Pick up all the output buffers and write them out.
-> +		 *
-> +		 * FIXME: should we check with ASE how much room we have?
-> +		 * Ideally, this will already have been done by write_room ??
+> +	if (user_mode(regs)) {
+> +		local_irq_enable();
+> +		/* This is actually a crucial little line - if the process
+> +		 * needs swapping out, then this is where it happens!
 > +		 */
-
-
-No because your writer is asynchronous to your query so you need to
-manage the difference yourself. You also need to get it right on the
-queue length for close to work right.
-
+> +		if (need_resched())
+> +			schedule();
 > +
-> +/*
-> + *	This gets called every DA_TTY_POLL and polls the channels for data
-> + */
-> +static void dashtty_timer(unsigned long ignored)
-> +{
-> +	struct dashtty *dtty;
-> +	int this_channel;
-> +
-> +	/* If there are no ports open do nothing and don't poll again. */
+> +		flags = current_thread_info()->flags;
+> +		if (flags & (_TIF_SIGPENDING | _TIF_NOTIFY_RESUME)) {
+> +			/* Note the passing in of the original syscall number.
+> +			 * This is used for implementing signal restart.
+> +			 */
+> +			do_notify_resume(regs, orig_syscall != 0,
+> +					 orig_syscall, flags);
 
-Why are we polling - is this just an architectural limit ?
-
-> +}
-> +
-> +static int dashtty_open(struct tty_struct *tty, struct file *filp)
-> +{
-> +	struct dashtty *dashtty;
-
-No - use the full helpers - your sematics are wrong otherwise.
-
-> +static void dashtty_close(struct tty_struct *tty, struct file *filp)
-
-No.. we have helpers - use them.
-
-> +	if (num_channels_need_poll <= 0)
-> +		del_timer(&poll_timer);
-
-_sync 
-
-This seems to be a repeated error so it may be worth checking your other
-drivers.
-> +}
-> +
-> +static int dashtty_write(struct tty_struct *tty, const unsigned char *buf,
-> +			 int count)
-> +{
-> +	struct dashtty *dtty;
-> +	struct dashbuf *dbuf;
-> +	int channel;
-> +
-> +	if (count <= 0)
-> +		return 0;
-
-How can it be <= 0 ?
-
-> +	/* Determine the channel */
-> +	channel = FIRST_TTY_CHANNEL + tty->index;
-> +	dtty = dashtty_ttys[channel];
-> +	BUG_ON(!dtty);
-
-What is your locking model to prevent this ?
-What is your reference counting model for the ttys - I don't see one.
-
-> +
-> +	dbuf = kzalloc(sizeof(*dbuf), GFP_KERNEL);
-> +	if (!dbuf)
-> +		return 0;
-> +
-> +	dbuf->buf = kzalloc(count, GFP_KERNEL);
-> +	if (!dbuf->buf) {
-> +		kfree(dbuf);
-> +		return 0;
-> +	}
-> +
-> +	memcpy(dbuf->buf, buf, count);
-
-So you'll spend all your CPU time doing itty bitty allocations. Just
-allocate a buffer at open (there's even a tty_port helper for buffer
-management), free it when you've finished using the port. (and don't
-report > the buffer size is write room)
-
-> +	/*
-> +	 * FIXME: This is slightly optimistic. Because we're deferring
-> +	 * the output until later it is impossible to predict whether we
-> +	 * will actually write "count" bytes.
-> +	 */
-> +	return count;
-
-Fair enough but is then your chars_in_buffer and write_room methods are
-both wrong (you need to avoid offering space you've queued into).
-
-> +}
-
-> +static const struct tty_operations dashtty_ops = {
-> +	.open = dashtty_open,
-> +	.close = dashtty_close,
-> +	.write = dashtty_write,
-
-You need a hangup method. You may need a termios method.
-
-> +	.write_room = dashtty_write_room,
-> +	.chars_in_buffer = dashtty_chars_in_buffer,
-> +};
-> +
-> +static int __init dashtty_init(void)
-> +{
-> +	int ret;
-> +	int nport;
-> +
-> +	if (!metag_da_enabled())
-> +		return -ENODEV;
-> +
-> +	channel_driver = tty_alloc_driver(NUM_TTY_CHANNELS, 0);
-> +	if (IS_ERR(channel_driver))
-> +		return PTR_ERR(channel_driver);
-> +
-> +	channel_driver->owner = THIS_MODULE;
-> +	channel_driver->driver_name = "ttyDA";
-> +	channel_driver->name = "ttyDA";
-> +	channel_driver->major = DA_TTY_MAJOR;
-> +	channel_driver->minor_start = 0;
-> +	channel_driver->type = TTY_DRIVER_TYPE_SERIAL;
-> +	channel_driver->subtype = SERIAL_TYPE_NORMAL;
-> +	channel_driver->init_termios = tty_std_termios;
-> +	channel_driver->init_termios.c_cflag =
-> +	    B38400 | CS8 | CREAD | HUPCL | CLOCAL;
-> +	channel_driver->flags = TTY_DRIVER_REAL_RAW;
-
-Need to set the speed flags
-
-> +static void dashtty_exit(void)
-> +{
-> +	kthread_stop(dashtty_thread);
-> +	del_timer(&poll_timer);
-
-
-del_timer_sync or your box will sometimes crash on exit as the timer is
-still running on another thread
+Owww....  So
+	a) you can't get there with !user_mode(regs)
+	b) you handle only one signal (what happens if you fail sigframe
+allocation, BTW?  Sure, you get SIGSEGV delivered.  And don't handle it.)
+	c) you read ->flags with no protection whatsoever.  It should be
+done *before* you enable interrupts, and rechecked after you've done
+do_notify_resume() and redisabled them.  The same for schedule().  It really
+should be a loop; take a look at how it's done on arm and alpha - there that
+loop is in C, not in asm glue.
+	d) looks like your sigreturn is, indeed, broken.  It should *not* have
+syscall restart logics triggered at all.
