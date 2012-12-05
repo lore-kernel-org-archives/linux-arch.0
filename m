@@ -1,53 +1,30 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:51617 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752326Ab2LEQJN (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 5 Dec 2012 11:09:13 -0500
-From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v2 02/44] asm-generic/unistd.h: handle symbol prefixes in cond_syscall
-Date: Wed, 5 Dec 2012 16:08:20 +0000
-Message-ID: <1354723742-6195-3-git-send-email-james.hogan@imgtec.com>
-In-Reply-To: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
+Received: from [206.117.179.246] ([206.117.179.246]:36404 "EHLO labridge.com"
+	rhost-flags-FAIL-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1751599Ab2LESxo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 5 Dec 2012 13:53:44 -0500
+Message-ID: <1354733607.8320.3.camel@joe-AO722>
+Subject: Re: [PATCH v2 12/44] metag: TBX source
+From: Joe Perches <joe@perches.com>
+Date: Wed, 05 Dec 2012 10:53:27 -0800
+In-Reply-To: <1354723742-6195-13-git-send-email-james.hogan@imgtec.com>
 References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
-MIME-Version: 1.0
-Content-Type: text/plain
+	 <1354723742-6195-13-git-send-email-james.hogan@imgtec.com>
+Content-Type: text/plain; charset="ISO-8859-1"
+Mime-Version: 1.0
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, James Hogan <james.hogan@imgtec.com>
-Message-ID: <20121205160820.LmE0CAyOuXh4t84wwV0o0BtXP2J6I2KPPmUT0B7Afho@z>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Message-ID: <20121205185327.mk6GvGMth4xd4PxKB7Lk5tDKVTFsTBvrO3t-NJiaACk@z>
 
-Some architectures have symbol prefixes and set CONFIG_SYMBOL_PREFIX,
-but this wasn't taken into account by the generic cond_syscall. It's
-easy enough to fix in a generic fashion, so add the symbol prefix to
-symbol names in cond_syscall when CONFIG_SYMBOL_PREFIX is set.
+On Wed, 2012-12-05 at 16:08 +0000, James Hogan wrote:
+> Add source files from the Thread Binary Interface (TBI) library which
+> provides useful low level operations and traps/context management.
+[]
+>  arch/metag/tbx/tbicache.c  |  462 ++++++++++++++++++++++++++++++++++++++++++++
 
-Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Acked-by: Mike Frysinger <vapier@gentoo.org>
----
- include/asm-generic/unistd.h |    9 ++++++++-
- 1 files changed, 8 insertions(+), 1 deletions(-)
-
-diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
-index a36991a..abc925d 100644
---- a/include/asm-generic/unistd.h
-+++ b/include/asm-generic/unistd.h
-@@ -20,5 +20,12 @@
-  * but it doesn't work on all toolchains, so we just do it by hand
-  */
- #ifndef cond_syscall
--#define cond_syscall(x) asm(".weak\t" #x "\n\t.set\t" #x ",sys_ni_syscall")
-+#ifdef CONFIG_SYMBOL_PREFIX
-+#define __SYMBOL_PREFIX CONFIG_SYMBOL_PREFIX
-+#else
-+#define __SYMBOL_PREFIX
-+#endif
-+#define cond_syscall(x) asm(".weak\t" __SYMBOL_PREFIX #x "\n\t" \
-+			    ".set\t" __SYMBOL_PREFIX #x "," \
-+			    __SYMBOL_PREFIX "sys_ni_syscall")
- #endif
--- 
-1.7.7.6
+Could you please run checkpatch on this file?
 
 
