@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:51591 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:55554 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752813Ab2LEQJd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1753018Ab2LEQJd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Wed, 5 Dec 2012 11:09:33 -0500
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v2 18/44] metag: TCM support
-Date: Wed, 5 Dec 2012 16:08:36 +0000
-Message-ID: <1354723742-6195-19-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v2 19/44] metag: Signal handling
+Date: Wed, 5 Dec 2012 16:08:37 +0000
+Message-ID: <1354723742-6195-20-git-send-email-james.hogan@imgtec.com>
 In-Reply-To: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
 References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
@@ -15,370 +15,421 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, James Hogan <james.hogan@imgtec.com>
-Message-ID: <20121205160836.dQhtAiLKyaQPEuLDBq0S1RtbGNOXj-olEG4K8Jfh33A@z>
+Message-ID: <20121205160837.CKHFzI0I4B33vcnI6rEErkUpMIjd9b483-pLk37LjCc@z>
 
-Add some TCM support
+Add signal handling code for metag.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
 ---
- arch/metag/include/asm/mmzone.h    |   42 ++++++++++
- arch/metag/include/asm/sparsemem.h |   13 +++
- arch/metag/include/asm/tcm.h       |   30 +++++++
- arch/metag/kernel/tcm.c            |  151 ++++++++++++++++++++++++++++++++++++
- arch/metag/mm/numa.c               |   81 +++++++++++++++++++
- 5 files changed, 317 insertions(+), 0 deletions(-)
- create mode 100644 arch/metag/include/asm/mmzone.h
- create mode 100644 arch/metag/include/asm/sparsemem.h
- create mode 100644 arch/metag/include/asm/tcm.h
- create mode 100644 arch/metag/kernel/tcm.c
- create mode 100644 arch/metag/mm/numa.c
+ arch/metag/include/uapi/asm/sigcontext.h |   31 +++
+ arch/metag/include/uapi/asm/siginfo.h    |    8 +
+ arch/metag/kernel/signal.c               |  345 ++++++++++++++++++++++++++++++
+ 3 files changed, 384 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/metag/include/uapi/asm/siginfo.h
+ create mode 100644 arch/metag/kernel/signal.c
 
-diff --git a/arch/metag/include/asm/mmzone.h b/arch/metag/include/asm/mmzone.h
+diff --git a/arch/metag/include/uapi/asm/sigcontext.h b/arch/metag/include/uapi/asm/sigcontext.h
 new file mode 100644
-index 0000000..9c88a9c
+index 0000000..ef79a91
 --- /dev/null
-+++ b/arch/metag/include/asm/mmzone.h
-@@ -0,0 +1,42 @@
-+#ifndef __ASM_METAG_MMZONE_H
-+#define __ASM_METAG_MMZONE_H
++++ b/arch/metag/include/uapi/asm/sigcontext.h
+@@ -0,0 +1,31 @@
++#ifndef _ASM_METAG_SIGCONTEXT_H
++#define _ASM_METAG_SIGCONTEXT_H
 +
-+#ifdef CONFIG_NEED_MULTIPLE_NODES
-+#include <linux/numa.h>
-+
-+extern struct pglist_data *node_data[];
-+#define NODE_DATA(nid)		(node_data[nid])
-+
-+static inline int pfn_to_nid(unsigned long pfn)
-+{
-+	int nid;
-+
-+	for (nid = 0; nid < MAX_NUMNODES; nid++)
-+		if (pfn >= node_start_pfn(nid) && pfn <= node_end_pfn(nid))
-+			break;
-+
-+	return nid;
-+}
-+
-+static inline struct pglist_data *pfn_to_pgdat(unsigned long pfn)
-+{
-+	return NODE_DATA(pfn_to_nid(pfn));
-+}
-+
-+/* arch/metag/mm/numa.c */
-+void __init setup_bootmem_node(int nid, unsigned long start, unsigned long end);
-+#else
-+static inline void
-+setup_bootmem_node(int nid, unsigned long start, unsigned long end)
-+{
-+}
-+#endif /* CONFIG_NEED_MULTIPLE_NODES */
-+
-+#ifdef CONFIG_NUMA
-+/* SoC specific mem init */
-+void __init soc_mem_setup(void);
-+#else
-+static inline void __init soc_mem_setup(void) {};
-+#endif
-+
-+#endif /* __ASM_METAG_MMZONE_H */
-diff --git a/arch/metag/include/asm/sparsemem.h b/arch/metag/include/asm/sparsemem.h
-new file mode 100644
-index 0000000..03fe255
---- /dev/null
-+++ b/arch/metag/include/asm/sparsemem.h
-@@ -0,0 +1,13 @@
-+#ifndef __ASM_METAG_SPARSEMEM_H
-+#define __ASM_METAG_SPARSEMEM_H
++#include <asm/ptrace.h>
 +
 +/*
-+ * SECTION_SIZE_BITS		2^N: how big each section will be
-+ * MAX_PHYSADDR_BITS		2^N: how much physical address space we have
-+ * MAX_PHYSMEM_BITS		2^N: how much memory we can have in that space
++ * In a sigcontext structure we need to store the active state of the
++ * user process so that it does not get trashed when we call the signal
++ * handler. That not really the same as a user context that we are
++ * going to store on syscall etc.
 + */
-+#define SECTION_SIZE_BITS	26
-+#define MAX_PHYSADDR_BITS	32
-+#define MAX_PHYSMEM_BITS	32
-+
-+#endif /* __ASM_METAG_SPARSEMEM_H */
-diff --git a/arch/metag/include/asm/tcm.h b/arch/metag/include/asm/tcm.h
-new file mode 100644
-index 0000000..7711c31
---- /dev/null
-+++ b/arch/metag/include/asm/tcm.h
-@@ -0,0 +1,30 @@
-+#ifndef __ASM_TCM_H__
-+#define __ASM_TCM_H__
-+
-+#include <linux/ioport.h>
-+#include <linux/list.h>
-+
-+struct tcm_allocation {
-+	struct list_head list;
-+	unsigned int tag;
-+	unsigned long addr;
-+	unsigned long size;
-+};
-+
-+/*
-+ * TCM memory region descriptor.
-+ */
-+struct tcm_region {
-+	unsigned int tag;
-+	struct resource res;
-+};
-+
-+#define TCM_INVALID_TAG	0xffffffff
-+
-+unsigned long tcm_alloc(unsigned int tag, size_t len);
-+void tcm_free(unsigned int tag, unsigned long addr, size_t len);
-+unsigned int tcm_lookup_tag(unsigned long p);
-+
-+int tcm_add_region(struct tcm_region *reg);
-+
-+#endif
-diff --git a/arch/metag/kernel/tcm.c b/arch/metag/kernel/tcm.c
-new file mode 100644
-index 0000000..5d102b3
---- /dev/null
-+++ b/arch/metag/kernel/tcm.c
-@@ -0,0 +1,151 @@
-+/*
-+ * Copyright (C) 2010 Imagination Technologies Ltd.
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/kernel.h>
-+#include <linux/spinlock.h>
-+#include <linux/stddef.h>
-+#include <linux/genalloc.h>
-+#include <linux/string.h>
-+#include <linux/list.h>
-+#include <linux/slab.h>
-+#include <asm/page.h>
-+#include <asm/tcm.h>
-+
-+struct tcm_pool {
-+	struct list_head list;
-+	unsigned int tag;
-+	unsigned long start;
-+	unsigned long end;
-+	struct gen_pool *pool;
-+};
-+
-+static LIST_HEAD(pool_list);
-+
-+static struct tcm_pool *find_pool(unsigned int tag)
-+{
-+	struct list_head *lh;
-+	struct tcm_pool *pool;
-+
-+	list_for_each(lh, &pool_list) {
-+		pool = list_entry(lh, struct tcm_pool, list);
-+		if (pool->tag == tag)
-+			return pool;
-+	}
-+
-+	return NULL;
-+}
-+
-+/**
-+ * tcm_alloc - allocate memory from a TCM pool
-+ * @tag: tag of the pool to allocate memory from
-+ * @len: number of bytes to be allocated
-+ *
-+ * Allocate the requested number of bytes from the pool matching
-+ * the specified tag. Returns the address of the allocated memory
-+ * or zero on failure.
-+ */
-+unsigned long tcm_alloc(unsigned int tag, size_t len)
-+{
-+	unsigned long vaddr;
-+	struct tcm_pool *pool;
-+
-+	pool = find_pool(tag);
-+	if (!pool)
-+		return 0;
-+
-+	vaddr = gen_pool_alloc(pool->pool, len);
-+	if (!vaddr)
-+		return 0;
-+
-+	return vaddr;
-+}
-+
-+/**
-+ * tcm_free - free a block of memory to a TCM pool
-+ * @tag: tag of the pool to free memory to
-+ * @addr: address of the memory to be freed
-+ * @len: number of bytes to be freed
-+ *
-+ * Free the requested number of bytes at a specific address to the
-+ * pool matching the specified tag.
-+ */
-+void tcm_free(unsigned int tag, unsigned long addr, size_t len)
-+{
-+	struct tcm_pool *pool;
-+
-+	pool = find_pool(tag);
-+	if (!pool)
-+		return;
-+	gen_pool_free(pool->pool, addr, len);
-+}
-+
-+/**
-+ * tcm_lookup_tag - find the tag matching an address
-+ * @p: memory address to lookup the tag for
-+ *
-+ * Find the tag of the tcm memory region that contains the
-+ * specified address. Returns %TCM_INVALID_TAG if no such
-+ * memory region could be found.
-+ */
-+unsigned int tcm_lookup_tag(unsigned long p)
-+{
-+	struct list_head *lh;
-+	struct tcm_pool *pool;
-+	unsigned long addr = (unsigned long) p;
-+
-+	list_for_each(lh, &pool_list) {
-+		pool = list_entry(lh, struct tcm_pool, list);
-+		if (addr >= pool->start && addr < pool->end)
-+			return pool->tag;
-+	}
-+
-+	return TCM_INVALID_TAG;
-+}
-+
-+/**
-+ * tcm_add_region - add a memory region to TCM pool list
-+ * @reg: descriptor of region to be added
-+ *
-+ * Add a region of memory to the TCM pool list. Returns 0 on success.
-+ */
-+int __init tcm_add_region(struct tcm_region *reg)
-+{
-+	struct tcm_pool *pool;
-+
-+	pool = kmalloc(sizeof(*pool), GFP_KERNEL);
-+	if (!pool) {
-+		pr_err("Failed to alloc memory for TCM pool!\n");
-+		return -ENOMEM;
-+	}
-+
-+	pool->tag = reg->tag;
-+	pool->start = reg->res.start;
-+	pool->end = reg->res.end;
++struct sigcontext {
++	struct user_gp_regs regs;	/* needs to be first */
 +
 +	/*
-+	 * 2^3 = 8 bytes granularity to allow for 64bit access alignment.
-+	 * -1 = NUMA node specifier.
++	 * Catch registers describing a memory fault.
++	 * If USER_GP_REGS_STATUS_CATCH_BIT is set in regs.status then catch
++	 * buffers have been saved and will be replayed on sigreturn.
++	 * Clear that bit to discard the catch state instead of replaying it.
 +	 */
-+	pool->pool = gen_pool_create(3, -1);
++	struct user_cb_regs cb;
 +
-+	if (!pool->pool) {
-+		pr_err("Failed to create TCM pool!\n");
-+		kfree(pool);
-+		return -ENOMEM;
-+	}
++	/*
++	 * Read pipeline state. This will get restored on sigreturn.
++	 */
++	struct user_rp_state rp;
 +
-+	if (gen_pool_add(pool->pool, reg->res.start,
-+			 reg->res.end - reg->res.start + 1, -1)) {
-+		pr_err("Failed to add memory to TCM pool!\n");
-+		return -ENOMEM;
-+	}
-+	pr_info("Added %s TCM pool (%08x bytes @ %08x)\n",
-+		reg->res.name, reg->res.end - reg->res.start + 1,
-+		reg->res.start);
++	unsigned long oldmask;
++};
 +
-+	list_add_tail(&pool->list, &pool_list);
++#endif
+diff --git a/arch/metag/include/uapi/asm/siginfo.h b/arch/metag/include/uapi/asm/siginfo.h
+new file mode 100644
+index 0000000..b2e0c8b
+--- /dev/null
++++ b/arch/metag/include/uapi/asm/siginfo.h
+@@ -0,0 +1,8 @@
++#ifndef _METAG_SIGINFO_H
++#define _METAG_SIGINFO_H
++
++#define __ARCH_SI_TRAPNO
++
++#include <asm-generic/siginfo.h>
++
++#endif
+diff --git a/arch/metag/kernel/signal.c b/arch/metag/kernel/signal.c
+new file mode 100644
+index 0000000..9d7065a
+--- /dev/null
++++ b/arch/metag/kernel/signal.c
+@@ -0,0 +1,345 @@
++/*
++ *  Copyright (C) 1991,1992  Linus Torvalds
++ *  Copyright (C) 2005,2006,2007,2008,2009  Imagination Technologies Ltd.
++ *
++ *  1997-11-28  Modified for POSIX.1b signals by Richard Henderson
++ *
++ */
++
++#include <linux/sched.h>
++#include <linux/mm.h>
++#include <linux/smp.h>
++#include <linux/kernel.h>
++#include <linux/signal.h>
++#include <linux/errno.h>
++#include <linux/wait.h>
++#include <linux/ptrace.h>
++#include <linux/unistd.h>
++#include <linux/stddef.h>
++#include <linux/personality.h>
++#include <linux/uaccess.h>
++#include <linux/tracehook.h>
++
++#include <asm/ucontext.h>
++#include <asm/cacheflush.h>
++#include <asm/switch.h>
++#include <asm/syscall.h>
++#include <asm/syscalls.h>
++
++#define REG_FLAGS	ctx.SaveMask
++#define REG_RETVAL	ctx.DX[0].U0
++#define REG_SYSCALL	ctx.DX[0].U1
++#define REG_SP		ctx.AX[0].U0
++#define REG_ARG1	ctx.DX[3].U1
++#define REG_ARG2	ctx.DX[3].U0
++#define REG_ARG3	ctx.DX[2].U1
++#define REG_PC		ctx.CurrPC
++#define REG_RTP		ctx.DX[4].U1
++
++int sys_sigaltstack(const stack_t __user *uss,
++		    stack_t __user *uoss,
++		    unsigned long arg3,
++		    unsigned long arg4,
++		    unsigned long arg5,
++		    unsigned long arg6,
++		    struct pt_regs *regs)
++{
++	return do_sigaltstack(uss, uoss, regs->REG_SP);
++}
++
++struct rt_sigframe {
++	struct siginfo info;
++	struct ucontext uc;
++	unsigned long retcode[2];
++};
++
++static int restore_sigcontext(struct pt_regs *regs,
++			      struct sigcontext __user *sc)
++{
++	int err;
++
++	/* Always make any pending restarted system calls return -EINTR */
++	current_thread_info()->restart_block.fn = do_no_restart_syscall;
++
++	err = metag_gp_regs_copyin(regs, 0, sizeof(struct user_gp_regs), NULL,
++				   &sc->regs);
++	if (!err)
++		err = metag_cb_regs_copyin(regs, 0,
++					   sizeof(struct user_cb_regs), NULL,
++					   &sc->cb);
++	if (!err)
++		err = metag_rp_state_copyin(regs, 0,
++					    sizeof(struct user_rp_state), NULL,
++					    &sc->rp);
++
++	/* This is a user-mode context. */
++	regs->REG_FLAGS |= TBICTX_PRIV_BIT;
++
++	return err;
++}
++
++int sys_rt_sigreturn(unsigned long arg1,
++		     unsigned long arg2,
++		     unsigned long arg3,
++		     unsigned long arg4,
++		     unsigned long arg5,
++		     unsigned long arg6,
++		     struct pt_regs *regs)    /* regs always arg7 on Meta */
++{
++	/* NOTE - Meta stack goes UPWARDS - so we wind the stack back */
++	struct rt_sigframe __user *frame;
++	sigset_t set;
++	stack_t st;
++
++	frame = (__force struct rt_sigframe __user *)(regs->REG_SP -
++						      sizeof(*frame));
++
++	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
++		goto badframe;
++
++	if (__copy_from_user(&set, &frame->uc.uc_sigmask, sizeof(set)))
++		goto badframe;
++
++	set_current_blocked(&set);
++
++	if (restore_sigcontext(regs, &frame->uc.uc_mcontext))
++		goto badframe;
++
++	if (__copy_from_user(&st, &frame->uc.uc_stack, sizeof(st)))
++		goto badframe;
++	/* It is more difficult to avoid calling this function than to
++	   call it and ignore errors.  */
++	do_sigaltstack((__force const stack_t __user *)&st, NULL, regs->REG_SP);
++
++	return regs->REG_RETVAL;
++
++badframe:
++	force_sig(SIGSEGV, current);
 +
 +	return 0;
 +}
-diff --git a/arch/metag/mm/numa.c b/arch/metag/mm/numa.c
-new file mode 100644
-index 0000000..9ae578c
---- /dev/null
-+++ b/arch/metag/mm/numa.c
-@@ -0,0 +1,81 @@
-+/*
-+ *  Multiple memory node support for Meta machines
-+ *
-+ *  Copyright (C) 2007  Paul Mundt
-+ *  Copyright (C) 2010  Imagination Technologies Ltd.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file "COPYING" in the main directory of this archive
-+ * for more details.
-+ */
-+#include <linux/export.h>
-+#include <linux/bootmem.h>
-+#include <linux/memblock.h>
-+#include <linux/mm.h>
-+#include <linux/numa.h>
-+#include <linux/pfn.h>
-+#include <asm/sections.h>
 +
-+struct pglist_data *node_data[MAX_NUMNODES] __read_mostly;
-+EXPORT_SYMBOL_GPL(node_data);
-+
-+extern char _heap_start[];
-+
-+/*
-+ * On Meta machines the conventional approach is to stash system RAM
-+ * in node 0, and other memory blocks in to node 1 and up, ordered by
-+ * latency. Each node's pgdat is node-local at the beginning of the node,
-+ * immediately followed by the node mem map.
-+ */
-+void __init setup_bootmem_node(int nid, unsigned long start, unsigned long end)
++static int setup_sigcontext(struct sigcontext __user *sc, struct pt_regs *regs,
++			    unsigned long mask)
 +{
-+	unsigned long bootmap_pages, bootmem_paddr;
-+	unsigned long start_pfn, end_pfn;
-+	unsigned long pgdat_paddr;
++	int err;
 +
-+	/* Don't allow bogus node assignment */
-+	BUG_ON(nid > MAX_NUMNODES || nid <= 0);
++	err = metag_gp_regs_copyout(regs, 0, sizeof(struct user_gp_regs), NULL,
++				    &sc->regs);
 +
-+	start_pfn = start >> PAGE_SHIFT;
-+	end_pfn = end >> PAGE_SHIFT;
++	if (!err)
++		err = metag_cb_regs_copyout(regs, 0,
++					    sizeof(struct user_cb_regs), NULL,
++					    &sc->cb);
++	if (!err)
++		err = metag_rp_state_copyout(regs, 0,
++					     sizeof(struct user_rp_state), NULL,
++					     &sc->rp);
 +
-+	memblock_add(start, end - start);
++	/* OK, clear that cbuf flag in the old context, or our stored
++	 * catch buffer will be restored when we go to call the signal
++	 * handler. Also clear out the CBRP RA/RD pipe bit incase
++	 * that is pending as well!
++	 * Note that as we have already stored this context, these
++	 * flags will get restored on sigreturn to their original
++	 * state.
++	 */
++	regs->REG_FLAGS &= ~(TBICTX_XCBF_BIT | TBICTX_CBUF_BIT |
++			     TBICTX_CBRP_BIT);
 +
-+	memblock_set_node(PFN_PHYS(start_pfn),
-+			  PFN_PHYS(end_pfn - start_pfn), nid);
++	/* Clear out the LSM_STEP bits in case we are in the middle of
++	 * and MSET/MGET.
++	 */
++	regs->ctx.Flags &= ~TXSTATUS_LSM_STEP_BITS;
 +
-+	/* Node-local pgdat */
-+	pgdat_paddr = memblock_alloc_base(sizeof(struct pglist_data),
-+					  SMP_CACHE_BYTES, end);
-+	NODE_DATA(nid) = __va(pgdat_paddr);
-+	memset(NODE_DATA(nid), 0, sizeof(struct pglist_data));
++	err |= __put_user(mask, &sc->oldmask);
 +
-+	NODE_DATA(nid)->bdata = &bootmem_node_data[nid];
-+	NODE_DATA(nid)->node_start_pfn = start_pfn;
-+	NODE_DATA(nid)->node_spanned_pages = end_pfn - start_pfn;
-+
-+	/* Node-local bootmap */
-+	bootmap_pages = bootmem_bootmap_pages(end_pfn - start_pfn);
-+	bootmem_paddr = memblock_alloc_base(bootmap_pages << PAGE_SHIFT,
-+					    PAGE_SIZE, end);
-+	init_bootmem_node(NODE_DATA(nid), bootmem_paddr >> PAGE_SHIFT,
-+			  start_pfn, end_pfn);
-+
-+	free_bootmem_with_active_regions(nid, end_pfn);
-+
-+	/* Reserve the pgdat and bootmap space with the bootmem allocator */
-+	reserve_bootmem_node(NODE_DATA(nid), pgdat_paddr & PAGE_MASK,
-+			     sizeof(struct pglist_data), BOOTMEM_DEFAULT);
-+	reserve_bootmem_node(NODE_DATA(nid), bootmem_paddr,
-+			     bootmap_pages << PAGE_SHIFT, BOOTMEM_DEFAULT);
-+
-+	/* It's up */
-+	node_set_online(nid);
-+
-+	/* Kick sparsemem */
-+	sparse_memory_present_with_active_regions(nid);
++	return err;
 +}
 +
-+void __init __weak soc_mem_setup(void)
++/*
++ * Determine which stack to use..
++ */
++static void __user *get_sigframe(struct k_sigaction *ka, unsigned long sp,
++				 size_t frame_size)
 +{
++	/* Meta stacks grows upwards */
++	if ((ka->sa.sa_flags & SA_ONSTACK) && (sas_ss_flags(sp) == 0))
++		sp = current->sas_ss_sp;
++
++	sp = (sp + 7) & ~7;			/* 8byte align stack */
++
++	return (void __user *)sp;
++}
++
++static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
++			  sigset_t *set, struct pt_regs *regs)
++{
++	struct rt_sigframe __user *frame;
++	int err = -EFAULT;
++	unsigned long code;
++
++	frame = get_sigframe(ka, regs->REG_SP, sizeof(*frame));
++	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
++		goto out;
++
++	err = copy_siginfo_to_user(&frame->info, info);
++
++	/* Create the ucontext.  */
++	err |= __put_user(0, &frame->uc.uc_flags);
++	err |= __put_user(0, (unsigned long __user *)&frame->uc.uc_link);
++	err |= __put_user(current->sas_ss_sp,
++			  (unsigned long __user *)&frame->uc.uc_stack.ss_sp);
++	err |= __put_user(sas_ss_flags(regs->REG_SP),
++			  &frame->uc.uc_stack.ss_flags);
++	err |= __put_user(current->sas_ss_size, &frame->uc.uc_stack.ss_size);
++	err |= setup_sigcontext(&frame->uc.uc_mcontext,
++				regs, set->sig[0]);
++	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
++
++	if (err)
++		goto out;
++
++	/* Set up to return from userspace.  */
++
++	/* MOV D1Re0 (D1.0), #__NR_rt_sigreturn */
++	code = 0x03000004 | (__NR_rt_sigreturn << 3);
++	err |= __put_user(code, (unsigned long __user *)(&frame->retcode[0]));
++
++	/* SWITCH #__METAG_SW_SYS */
++	code = __METAG_SW_ENCODING(SYS);
++	err |= __put_user(code, (unsigned long __user *)(&frame->retcode[1]));
++
++	if (err)
++		goto out;
++
++	/* Set up registers for signal handler */
++	regs->REG_RTP = (unsigned long) frame->retcode;
++	regs->REG_SP = (unsigned long) frame + sizeof(*frame);
++	regs->REG_ARG1 = sig;
++	regs->REG_ARG2 = (unsigned long) &frame->info;
++	regs->REG_ARG3 = (unsigned long) &frame->uc;
++	regs->REG_PC = (unsigned long) ka->sa.sa_handler;
++
++	pr_debug("SIG deliver (%s:%d): sp=%p pc=%08x pr=%08x\n",
++		 current->comm, current->pid, frame, regs->REG_PC,
++		 regs->REG_RTP);
++
++	/* Now pass size of 'new code' into sigtramp so we can do a more
++	 * effective cache flush - directed rather than 'full flush'.
++	 */
++	flush_cache_sigtramp(regs->REG_RTP, sizeof(frame->retcode));
++out:
++	if (err) {
++		force_sigsegv(sig, current);
++		return -EFAULT;
++	}
++	return 0;
++}
++
++static void handle_signal(unsigned long sig, siginfo_t *info,
++			  struct k_sigaction *ka, struct pt_regs *regs,
++			  int from_syscall, unsigned int orig_syscall)
++{
++	sigset_t *oldset = sigmask_to_save();
++
++	/* Are we from a system call? */
++	if (from_syscall) {
++		/* If so, check system call restarting.. */
++		switch (syscall_get_error(current, regs)) {
++		case -ERESTART_RESTARTBLOCK:
++		case -ERESTARTNOHAND:
++			regs->REG_RETVAL = -EINTR;
++			break;
++
++		case -ERESTARTSYS:
++			if (!(ka->sa.sa_flags & SA_RESTART)) {
++				regs->REG_RETVAL = -EINTR;
++				break;
++			}
++		/* fallthrough */
++		case -ERESTARTNOINTR:
++			regs->REG_SYSCALL = orig_syscall;
++			regs->REG_PC -= 4;
++			break;
++		}
++	}
++
++	/* Set up the stack frame */
++	if (setup_rt_frame(sig, ka, info, oldset, regs))
++		return;
++
++	signal_delivered(sig, info, ka, regs, test_thread_flag(TIF_SINGLESTEP));
++}
++
++ /* Notes for Meta.
++  * We have moved from the old 2.4.9 SH way of using syscall_nr (in the stored
++  * context) to passing in the syscall flag and orig_syscall on the stack.
++  * This is for two reasons:
++  * 1) having syscall_nr in our context does not fit with TBI, and corrupted
++  *    the stack.
++  * 2) We need to have orig_syscall and from_syscall to implement syscall
++  *    restarting.
++  */
++static void do_signal(struct pt_regs *regs, int from_syscall,
++		      unsigned int orig_syscall)
++{
++	struct k_sigaction ka;
++	siginfo_t info;
++	int signr;
++
++	/*
++	 * We want the common case to go fast, which
++	 * is why we may in certain cases get here from
++	 * kernel mode. Just return without doing anything
++	 * if so.
++	 */
++	if (!user_mode(regs))
++		return;
++
++	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
++	if (signr > 0) {
++		/* Whee! Actually deliver the signal.  */
++		handle_signal(signr, &info, &ka, regs, from_syscall,
++			      orig_syscall);
++		return;
++	}
++
++	/* Did we come from a system call? */
++	if (from_syscall) {
++		/* Restart the system call - no handlers present */
++		switch (syscall_get_error(current, regs)) {
++		case -ERESTARTNOHAND:
++		case -ERESTARTSYS:
++		case -ERESTARTNOINTR:
++			regs->REG_SYSCALL = orig_syscall;
++			regs->REG_PC -= 4;
++			break;
++
++		case -ERESTART_RESTARTBLOCK:
++			regs->REG_SYSCALL = __NR_restart_syscall;
++			regs->REG_PC -= 4;
++			break;
++		}
++	}
++
++	/*
++	 * If there's no signal to deliver, we just put the saved sigmask
++	 * back.
++	 */
++	restore_saved_sigmask();
++}
++
++void do_notify_resume(struct pt_regs *regs, int from_syscall,
++		      unsigned int orig_syscall,
++		      unsigned long thread_info_flags)
++{
++	/* deal with pending signal delivery */
++	if (thread_info_flags & _TIF_SIGPENDING)
++		do_signal(regs, from_syscall, orig_syscall);
++
++	if (thread_info_flags & _TIF_NOTIFY_RESUME) {
++		clear_thread_flag(TIF_NOTIFY_RESUME);
++		tracehook_notify_resume(regs);
++	}
 +}
 -- 
 1.7.7.6
