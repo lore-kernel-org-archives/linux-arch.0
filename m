@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:51616 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:55566 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752858Ab2LEQJb (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 5 Dec 2012 11:09:31 -0500
+	id S1751869Ab2LEQJa (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 5 Dec 2012 11:09:30 -0500
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v2 16/44] metag: Huge TLB
-Date: Wed, 5 Dec 2012 16:08:34 +0000
-Message-ID: <1354723742-6195-17-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v2 15/44] metag: Memory handling
+Date: Wed, 5 Dec 2012 16:08:33 +0000
+Message-ID: <1354723742-6195-16-git-send-email-james.hogan@imgtec.com>
 In-Reply-To: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
 References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
@@ -15,407 +15,637 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, James Hogan <james.hogan@imgtec.com>
-Message-ID: <20121205160834.zCwltvuFFWTKiFOPAPHsIsgbbvPB8OVs6GcgCAzDK5g@z>
+Message-ID: <20121205160833.fEAC6aFIpbvYSCFit-5tyl4Y6bAqlMGJBekuMj1fcP4@z>
 
-Add huge TLB support to the metag architecture.
+Meta has instructions for accessing:
+ - bytes        - GETB (1 byte)
+ - words        - GETW (2 bytes)
+ - doublewords  - GETD (4 bytes)
+ - longwords    - GETL (8 bytes)
+
+All accesses must be aligned. Unaligned accesses can be detected and
+made to fault on Meta2, however it isn't possible to fix up unaligned
+writes so we don't bother fixing up reads either.
+
+This patch adds metag memory handling code including:
+ - I/O memory (io.h, ioremap.c): Actually any virtual memory can be
+   accessed with these helpers. A part of the non-MMUable address space
+   is used for memory mapped I/O. The ioremap() function is implemented
+   one to one for non-MMUable addresses.
+ - User memory (uaccess.h): User memory is directly accessible from
+   privileged code.
+ - Kernel memory (maccess.c): probe_kernel_write() needs to be
+   overwridden to use the I/O functions when doing a simple aligned
+   write to non-writecombined memory, otherwise the write may be split
+   by the generic version.
+
+Note that due to the fact that a portion of the virtual address space is
+non-MMUable, and therefore always maps directly to the physical address
+space, metag specific I/O functions are made available (metag_in32,
+metag_out32 etc). These cast the address argument to a pointer so that
+they can be used with raw physical addresses. These accessors are only
+to be used for accessing fixed core Meta architecture registers in the
+non-MMU region, and not for any SoC/peripheral registers.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
 ---
- arch/metag/include/asm/hugetlb.h |   86 +++++++++++
- arch/metag/mm/hugetlbpage.c      |  291 ++++++++++++++++++++++++++++++++++++++
- 2 files changed, 377 insertions(+), 0 deletions(-)
- create mode 100644 arch/metag/include/asm/hugetlb.h
- create mode 100644 arch/metag/mm/hugetlbpage.c
+ arch/metag/include/asm/io.h      |  165 ++++++++++++++++++++++++++
+ arch/metag/include/asm/uaccess.h |  241 ++++++++++++++++++++++++++++++++++++++
+ arch/metag/mm/ioremap.c          |   89 ++++++++++++++
+ arch/metag/mm/maccess.c          |   68 +++++++++++
+ 4 files changed, 563 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/include/asm/io.h
+ create mode 100644 arch/metag/include/asm/uaccess.h
+ create mode 100644 arch/metag/mm/ioremap.c
+ create mode 100644 arch/metag/mm/maccess.c
 
-diff --git a/arch/metag/include/asm/hugetlb.h b/arch/metag/include/asm/hugetlb.h
+diff --git a/arch/metag/include/asm/io.h b/arch/metag/include/asm/io.h
 new file mode 100644
-index 0000000..f545477
+index 0000000..9359e50
 --- /dev/null
-+++ b/arch/metag/include/asm/hugetlb.h
-@@ -0,0 +1,86 @@
-+#ifndef _ASM_METAG_HUGETLB_H
-+#define _ASM_METAG_HUGETLB_H
++++ b/arch/metag/include/asm/io.h
+@@ -0,0 +1,165 @@
++#ifndef _ASM_METAG_IO_H
++#define _ASM_METAG_IO_H
 +
-+#include <asm/page.h>
++#include <linux/types.h>
 +
++#define IO_SPACE_LIMIT  0
 +
-+static inline int is_hugepage_only_range(struct mm_struct *mm,
-+					 unsigned long addr,
-+					 unsigned long len) {
-+	return 0;
-+}
++#define page_to_bus page_to_phys
++#define bus_to_page phys_to_page
 +
-+int prepare_hugepage_range(struct file *file, unsigned long addr,
-+						unsigned long len);
++/*
++ * Generic I/O
++ */
 +
-+static inline void hugetlb_prefault_arch_hook(struct mm_struct *mm)
++#define __raw_readb __raw_readb
++static inline u8 __raw_readb(const volatile void __iomem *addr)
 +{
++	u8 ret;
++	asm volatile("GETB %0,[%1]"
++		     : "=da" (ret)
++		     : "da" (addr)
++		     : "memory");
++	return ret;
 +}
 +
-+static inline void hugetlb_free_pgd_range(struct mmu_gather *tlb,
-+					  unsigned long addr, unsigned long end,
-+					  unsigned long floor,
-+					  unsigned long ceiling)
++#define __raw_readw __raw_readw
++static inline u16 __raw_readw(const volatile void __iomem *addr)
 +{
-+	free_pgd_range(tlb, addr, end, floor, ceiling);
++	u16 ret;
++	asm volatile("GETW %0,[%1]"
++		     : "=da" (ret)
++		     : "da" (addr)
++		     : "memory");
++	return ret;
 +}
 +
-+static inline void set_huge_pte_at(struct mm_struct *mm, unsigned long addr,
-+				   pte_t *ptep, pte_t pte)
++#define __raw_readl __raw_readl
++static inline u32 __raw_readl(const volatile void __iomem *addr)
 +{
-+	set_pte_at(mm, addr, ptep, pte);
++	u32 ret;
++	asm volatile("GETD %0,[%1]"
++		     : "=da" (ret)
++		     : "da" (addr)
++		     : "memory");
++	return ret;
 +}
 +
-+static inline pte_t huge_ptep_get_and_clear(struct mm_struct *mm,
-+					    unsigned long addr, pte_t *ptep)
++#define __raw_readq __raw_readq
++static inline u64 __raw_readq(const volatile void __iomem *addr)
 +{
-+	return ptep_get_and_clear(mm, addr, ptep);
++	u64 ret;
++	asm volatile("GETL %0,%t0,[%1]"
++		     : "=da" (ret)
++		     : "da" (addr)
++		     : "memory");
++	return ret;
 +}
 +
-+static inline void huge_ptep_clear_flush(struct vm_area_struct *vma,
-+					 unsigned long addr, pte_t *ptep)
++#define __raw_writeb __raw_writeb
++static inline void __raw_writeb(u8 b, volatile void __iomem *addr)
 +{
++	asm volatile("SETB [%0],%1"
++		     :
++		     : "da" (addr),
++		       "da" (b)
++		     : "memory");
 +}
 +
-+static inline int huge_pte_none(pte_t pte)
++#define __raw_writew __raw_writew
++static inline void __raw_writew(u16 b, volatile void __iomem *addr)
 +{
-+	return pte_none(pte);
++	asm volatile("SETW [%0],%1"
++		     :
++		     : "da" (addr),
++		       "da" (b)
++		     : "memory");
 +}
 +
-+static inline pte_t huge_pte_wrprotect(pte_t pte)
++#define __raw_writel __raw_writel
++static inline void __raw_writel(u32 b, volatile void __iomem *addr)
 +{
-+	return pte_wrprotect(pte);
++	asm volatile("SETD [%0],%1"
++		     :
++		     : "da" (addr),
++		       "da" (b)
++		     : "memory");
 +}
 +
-+static inline void huge_ptep_set_wrprotect(struct mm_struct *mm,
-+					   unsigned long addr, pte_t *ptep)
++#define __raw_writeq __raw_writeq
++static inline void __raw_writeq(u64 b, volatile void __iomem *addr)
 +{
-+	ptep_set_wrprotect(mm, addr, ptep);
++	asm volatile("SETL [%0],%1,%t1"
++		     :
++		     : "da" (addr),
++		       "da" (b)
++		     : "memory");
 +}
 +
-+static inline int huge_ptep_set_access_flags(struct vm_area_struct *vma,
-+					     unsigned long addr, pte_t *ptep,
-+					     pte_t pte, int dirty)
-+{
-+	return ptep_set_access_flags(vma, addr, ptep, pte, dirty);
-+}
++/*
++ * The generic io.h can define all the other generic accessors
++ */
 +
-+static inline pte_t huge_ptep_get(pte_t *ptep)
-+{
-+	return *ptep;
-+}
++#include <asm-generic/io.h>
 +
-+static inline int arch_prepare_hugepage(struct page *page)
-+{
-+	return 0;
-+}
++/*
++ * Despite being a 32bit architecture, Meta can do 64bit memory accesses
++ * (assuming the bus supports it).
++ */
 +
-+static inline void arch_release_hugepage(struct page *page)
-+{
-+}
++#define readq	__raw_readq
++#define writeq	__raw_writeq
 +
-+static inline void arch_clear_hugepage_flags(struct page *page)
-+{
-+}
++/*
++ * Meta specific I/O for accessing non-MMU areas.
++ *
++ * These can be provided with a physical address rather than an __iomem pointer
++ * and should only be used by core architecture code for accessing fixed core
++ * registers. Generic drivers should use ioremap and the generic I/O accessors.
++ */
 +
-+#endif /* _ASM_METAG_HUGETLB_H */
-diff --git a/arch/metag/mm/hugetlbpage.c b/arch/metag/mm/hugetlbpage.c
++#define metag_in8(addr)		__raw_readb((volatile void __iomem *)(addr))
++#define metag_in16(addr)	__raw_readw((volatile void __iomem *)(addr))
++#define metag_in32(addr)	__raw_readl((volatile void __iomem *)(addr))
++#define metag_in64(addr)	__raw_readq((volatile void __iomem *)(addr))
++
++#define metag_out8(b, addr)	__raw_writeb(b, (volatile void __iomem *)(addr))
++#define metag_out16(b, addr)	__raw_writew(b, (volatile void __iomem *)(addr))
++#define metag_out32(b, addr)	__raw_writel(b, (volatile void __iomem *)(addr))
++#define metag_out64(b, addr)	__raw_writeq(b, (volatile void __iomem *)(addr))
++
++/*
++ * io remapping functions
++ */
++
++extern void __iomem *__ioremap(unsigned long offset,
++			       size_t size, unsigned long flags);
++extern void __iounmap(void __iomem *addr);
++
++/**
++ *	ioremap		-	map bus memory into CPU space
++ *	@offset:	bus address of the memory
++ *	@size:		size of the resource to map
++ *
++ *	ioremap performs a platform specific sequence of operations to
++ *	make bus memory CPU accessible via the readb/readw/readl/writeb/
++ *	writew/writel functions and the other mmio helpers. The returned
++ *	address is not guaranteed to be usable directly as a virtual
++ *	address.
++ */
++#define ioremap(offset, size)                   \
++	__ioremap((offset), (size), 0)
++
++#define ioremap_nocache(offset, size)           \
++	__ioremap((offset), (size), 0)
++
++#define ioremap_cached(offset, size)            \
++	__ioremap((offset), (size), _PAGE_CACHEABLE)
++
++#define ioremap_wc(offset, size)                \
++	__ioremap((offset), (size), _PAGE_WR_COMBINE)
++
++#define iounmap(addr)                           \
++	__iounmap(addr)
++
++#endif  /* _ASM_METAG_IO_H */
+diff --git a/arch/metag/include/asm/uaccess.h b/arch/metag/include/asm/uaccess.h
 new file mode 100644
-index 0000000..24ceed4
+index 0000000..0748b0a
 --- /dev/null
-+++ b/arch/metag/mm/hugetlbpage.c
-@@ -0,0 +1,291 @@
-+/*
-+ * arch/metag/mm/hugetlbpage.c
-+ *
-+ * METAG HugeTLB page support.
-+ *
-+ * Cloned from SuperH
-+ *
-+ * Cloned from sparc64 by Paul Mundt.
-+ *
-+ * Copyright (C) 2002, 2003 David S. Miller (davem@redhat.com)
-+ */
-+
-+#include <linux/init.h>
-+#include <linux/fs.h>
-+#include <linux/mm.h>
-+#include <linux/hugetlb.h>
-+#include <linux/pagemap.h>
-+#include <linux/sysctl.h>
-+
-+#include <asm/mman.h>
-+#include <asm/pgalloc.h>
-+#include <asm/tlb.h>
-+#include <asm/tlbflush.h>
-+#include <asm/cacheflush.h>
++++ b/arch/metag/include/asm/uaccess.h
+@@ -0,0 +1,241 @@
++#ifndef __METAG_UACCESS_H
++#define __METAG_UACCESS_H
 +
 +/*
-+ * If the arch doesn't supply something else, assume that hugepage
-+ * size aligned regions are ok without further preparation.
++ * User space memory access functions
 + */
-+int prepare_hugepage_range(struct file *file, unsigned long addr,
-+						unsigned long len)
-+{
-+	struct mm_struct *mm = current->mm;
-+	struct hstate *h = hstate_file(file);
-+	struct vm_area_struct *vma;
++#include <linux/sched.h>
 +
-+	if (len & ~huge_page_mask(h))
-+		return -EINVAL;
-+	if (addr & ~huge_page_mask(h))
-+		return -EINVAL;
-+	if (TASK_SIZE - len < addr)
-+		return -EINVAL;
-+
-+	vma = find_vma(mm, ALIGN_HUGEPT(addr));
-+	if (vma && !(vma->vm_flags & MAP_HUGETLB))
-+		return -EINVAL;
-+
-+	vma = find_vma(mm, addr);
-+	if (vma) {
-+		if (addr + len > vma->vm_start)
-+			return -EINVAL;
-+		if (!(vma->vm_flags & MAP_HUGETLB) &&
-+		    (ALIGN_HUGEPT(addr + len) > vma->vm_start))
-+			return -EINVAL;
-+	}
-+	return 0;
-+}
-+
-+pte_t *huge_pte_alloc(struct mm_struct *mm,
-+			unsigned long addr, unsigned long sz)
-+{
-+	pgd_t *pgd;
-+	pud_t *pud;
-+	pmd_t *pmd;
-+	pte_t *pte;
-+
-+	pgd = pgd_offset(mm, addr);
-+	pud = pud_offset(pgd, addr);
-+	pmd = pmd_offset(pud, addr);
-+	pte = pte_alloc_map(mm, NULL, pmd, addr);
-+	pgd->pgd &= ~_PAGE_SZ_MASK;
-+	pgd->pgd |= _PAGE_SZHUGE;
-+
-+	return pte;
-+}
-+
-+pte_t *huge_pte_offset(struct mm_struct *mm, unsigned long addr)
-+{
-+	pgd_t *pgd;
-+	pud_t *pud;
-+	pmd_t *pmd;
-+	pte_t *pte = NULL;
-+
-+	pgd = pgd_offset(mm, addr);
-+	pud = pud_offset(pgd, addr);
-+	pmd = pmd_offset(pud, addr);
-+	pte = pte_offset_kernel(pmd, addr);
-+
-+	return pte;
-+}
-+
-+int huge_pmd_unshare(struct mm_struct *mm, unsigned long *addr, pte_t *ptep)
-+{
-+	return 0;
-+}
-+
-+struct page *follow_huge_addr(struct mm_struct *mm,
-+			      unsigned long address, int write)
-+{
-+	return ERR_PTR(-EINVAL);
-+}
-+
-+int pmd_huge(pmd_t pmd)
-+{
-+	return pmd_page_shift(pmd) > PAGE_SHIFT;
-+}
-+
-+int pud_huge(pud_t pud)
-+{
-+	return 0;
-+}
-+
-+struct page *follow_huge_pmd(struct mm_struct *mm, unsigned long address,
-+			     pmd_t *pmd, int write)
-+{
-+	return NULL;
-+}
-+
-+#ifdef HAVE_ARCH_HUGETLB_UNMAPPED_AREA
++#define VERIFY_READ	0
++#define VERIFY_WRITE	1
 +
 +/*
-+ * Look for an unmapped area starting after another hugetlb vma.
-+ * There are guaranteed to be no huge pte's spare if all the huge pages are
-+ * full size (4MB), so in that case compile out this search.
++ * The fs value determines whether argument validity checking should be
++ * performed or not.  If get_fs() == USER_DS, checking is performed, with
++ * get_fs() == KERNEL_DS, checking is bypassed.
++ *
++ * For historical reasons, these macros are grossly misnamed.
 + */
-+#if HPAGE_SHIFT == HUGEPT_SHIFT
++
++#define MAKE_MM_SEG(s)  ((mm_segment_t) { (s) })
++
++#define KERNEL_DS       MAKE_MM_SEG(0xFFFFFFFF)
++#define USER_DS		MAKE_MM_SEG(PAGE_OFFSET)
++
++#define get_ds()	(KERNEL_DS)
++#define get_fs()        (current_thread_info()->addr_limit)
++#define set_fs(x)       (current_thread_info()->addr_limit = (x))
++
++#define segment_eq(a, b)	((a).seg == (b).seg)
++
++#define __kernel_ok (segment_eq(get_fs(), KERNEL_DS))
++/*
++ * Explicitly allow NULL pointers here. Parts of the kernel such
++ * as readv/writev use access_ok to validate pointers, but want
++ * to allow NULL pointers for various reasons. NULL pointers are
++ * safe to allow through because the first page is not mappable on
++ * Meta.
++ *
++ * We also wish to avoid letting user code access the system area
++ * and the kernel half of the address space.
++ */
++#define __user_bad(addr, size) (((addr) > 0 && (addr) < META_MEMORY_BASE) || \
++				((addr) > PAGE_OFFSET &&		\
++				 (addr) < LINCORE_BASE))
++
++static inline int __access_ok(unsigned long addr, unsigned long size)
++{
++	return __kernel_ok || !__user_bad(addr, size);
++}
++
++#define access_ok(type, addr, size) __access_ok((unsigned long)(addr),	\
++						(unsigned long)(size))
++
++static inline int verify_area(int type, const void *addr, unsigned long size)
++{
++	return access_ok(type, addr, size) ? 0 : -EFAULT;
++}
++
++/*
++ * The exception table consists of pairs of addresses: the first is the
++ * address of an instruction that is allowed to fault, and the second is
++ * the address at which the program should continue.  No registers are
++ * modified, so it is entirely up to the continuation code to figure out
++ * what to do.
++ *
++ * All the routines below use bits of fixup code that are out of line
++ * with the main instruction path.  This means when everything is well,
++ * we don't even have to jump over them.  Further, they do not intrude
++ * on our cache or tlb entries.
++ */
++struct exception_table_entry {
++	unsigned long insn, fixup;
++};
++
++extern int fixup_exception(struct pt_regs *regs);
++
++/*
++ * These are the main single-value transfer routines.  They automatically
++ * use the right size if we just have the right pointer type.
++ */
++
++#define put_user(x, ptr) \
++	__put_user_check((__typeof__(*(ptr)))(x), (ptr), sizeof(*(ptr)))
++#define __put_user(x, ptr) \
++	__put_user_nocheck((__typeof__(*(ptr)))(x), (ptr), sizeof(*(ptr)))
++
++extern void __put_user_bad(void);
++
++#define __put_user_nocheck(x, ptr, size)		\
++({                                                      \
++	long __pu_err;                                  \
++	__put_user_size((x), (ptr), (size), __pu_err);	\
++	__pu_err;                                       \
++})
++
++#define __put_user_check(x, ptr, size)				\
++({                                                              \
++	long __pu_err = -EFAULT;                                \
++	__typeof__(*(ptr)) __user *__pu_addr = (ptr);           \
++	if (access_ok(VERIFY_WRITE, __pu_addr, size))		\
++		__put_user_size((x), __pu_addr, (size), __pu_err);	\
++	__pu_err;                                               \
++})
++
++extern long __put_user_asm_b(unsigned int x, void __user *addr);
++extern long __put_user_asm_w(unsigned int x, void __user *addr);
++extern long __put_user_asm_d(unsigned int x, void __user *addr);
++extern long __put_user_asm_l(unsigned long long x, void __user *addr);
++
++#define __put_user_size(x, ptr, size, retval)			\
++do {                                                            \
++	retval = 0;                                             \
++	switch (size) {                                         \
++	case 1:								\
++		retval = __put_user_asm_b((unsigned int)x, ptr); break;	\
++	case 2:								\
++		retval = __put_user_asm_w((unsigned int)x, ptr); break;	\
++	case 4:								\
++		retval = __put_user_asm_d((unsigned int)x, ptr); break;	\
++	case 8:								\
++		retval = __put_user_asm_l((unsigned long long)x, ptr); break; \
++	default:							\
++		__put_user_bad();					\
++	}								\
++} while (0)
++
++#define get_user(x, ptr) \
++	__get_user_check((x), (ptr), sizeof(*(ptr)))
++#define __get_user(x, ptr) \
++	__get_user_nocheck((x), (ptr), sizeof(*(ptr)))
++
++extern long __get_user_bad(void);
++
++#define __get_user_nocheck(x, ptr, size)			\
++({                                                              \
++	long __gu_err, __gu_val;                                \
++	__get_user_size(__gu_val, (ptr), (size), __gu_err);	\
++	(x) = (__typeof__(*(ptr)))__gu_val;                     \
++	__gu_err;                                               \
++})
++
++#define __get_user_check(x, ptr, size)					\
++({                                                                      \
++	long __gu_err = -EFAULT, __gu_val = 0;                          \
++	const __typeof__(*(ptr)) __user *__gu_addr = (ptr);		\
++	if (access_ok(VERIFY_READ, __gu_addr, size))			\
++		__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
++	(x) = (__typeof__(*(ptr)))__gu_val;                             \
++	__gu_err;                                                       \
++})
++
++extern unsigned char __get_user_asm_b(const void __user *addr, long *err);
++extern unsigned short __get_user_asm_w(const void __user *addr, long *err);
++extern unsigned int __get_user_asm_d(const void __user *addr, long *err);
++
++#define __get_user_size(x, ptr, size, retval)			\
++do {                                                            \
++	retval = 0;                                             \
++	switch (size) {                                         \
++	case 1:							\
++		x = __get_user_asm_b(ptr, &retval); break;	\
++	case 2:							\
++		x = __get_user_asm_w(ptr, &retval); break;	\
++	case 4:							\
++		x = __get_user_asm_d(ptr, &retval); break;	\
++	default:						\
++		(x) = __get_user_bad();				\
++	}                                                       \
++} while (0)
++
++/*
++ * Copy a null terminated string from userspace.
++ *
++ * Must return:
++ * -EFAULT		for an exception
++ * count		if we hit the buffer limit
++ * bytes copied		if we hit a null byte
++ * (without the null byte)
++ */
++
++extern long __must_check __strncpy_from_user(char *dst, const char __user *src,
++					     long count);
++
++#define strncpy_from_user(dst, src, count) __strncpy_from_user(dst, src, count)
++
++/*
++ * Return the size of a string (including the ending 0)
++ *
++ * Return 0 on exception, a value greater than N if too long
++ */
++extern long __must_check strnlen_user(const char __user *src, long count);
++
++#define strlen_user(str) strnlen_user(str, 32767)
++
++extern unsigned long __must_check __copy_user_zeroing(void *to,
++						      const void __user *from,
++						      unsigned long n);
++
 +static inline unsigned long
-+hugetlb_get_unmapped_area_existing(unsigned long len)
++copy_from_user(void *to, const void __user *from, unsigned long n)
 +{
++	if (access_ok(VERIFY_READ, from, n))
++		return __copy_user_zeroing(to, from, n);
++	return n;
++}
++
++#define __copy_from_user(to, from, n) __copy_user_zeroing(to, from, n)
++#define __copy_from_user_inatomic __copy_from_user
++
++extern unsigned long __must_check __copy_user(void __user *to,
++					      const void *from,
++					      unsigned long n);
++
++static inline unsigned long copy_to_user(void __user *to, const void *from,
++					 unsigned long n)
++{
++	if (access_ok(VERIFY_WRITE, to, n))
++		return __copy_user(to, from, n);
++	return n;
++}
++
++#define __copy_to_user(to, from, n) __copy_user(to, from, n)
++#define __copy_to_user_inatomic __copy_to_user
++
++/*
++ * Zero Userspace
++ */
++
++extern unsigned long __must_check __do_clear_user(void __user *to,
++						  unsigned long n);
++
++static inline unsigned long clear_user(void __user *to, unsigned long n)
++{
++	if (access_ok(VERIFY_WRITE, to, n))
++		return __do_clear_user(to, n);
++	return n;
++}
++
++#define __clear_user(to, n)            __do_clear_user(to, n)
++
++#endif /* _METAG_UACCESS_H */
+diff --git a/arch/metag/mm/ioremap.c b/arch/metag/mm/ioremap.c
+new file mode 100644
+index 0000000..a136a43
+--- /dev/null
++++ b/arch/metag/mm/ioremap.c
+@@ -0,0 +1,89 @@
++/*
++ * Re-map IO memory to kernel address space so that we can access it.
++ * Needed for memory-mapped I/O devices mapped outside our normal DRAM
++ * window (that is, all memory-mapped I/O devices).
++ *
++ * Copyright (C) 1995,1996 Linus Torvalds
++ *
++ * Meta port based on CRIS-port by Axis Communications AB
++ */
++
++#include <linux/vmalloc.h>
++#include <linux/io.h>
++#include <linux/export.h>
++#include <linux/slab.h>
++#include <linux/mm.h>
++
++#include <asm/pgtable.h>
++
++/*
++ * Remap an arbitrary physical address space into the kernel virtual
++ * address space. Needed when the kernel wants to access high addresses
++ * directly.
++ *
++ * NOTE! We need to allow non-page-aligned mappings too: we will obviously
++ * have to convert them into an offset in a page-aligned mapping, but the
++ * caller shouldn't need to know that small detail.
++ */
++void __iomem *__ioremap(unsigned long phys_addr, size_t size,
++			unsigned long flags)
++{
++	unsigned long addr;
++	struct vm_struct *area;
++	unsigned long offset, last_addr;
++	pgprot_t prot;
++
++	/* Don't allow wraparound or zero size */
++	last_addr = phys_addr + size - 1;
++	if (!size || last_addr < phys_addr)
++		return NULL;
++
++	/* Custom region addresses are accessible and uncached by default. */
++	if (phys_addr >= LINSYSCUSTOM_BASE &&
++	    phys_addr < (LINSYSCUSTOM_BASE + LINSYSCUSTOM_LIMIT))
++		return (__force void __iomem *) phys_addr;
++
++	/*
++	 * Mappings have to be page-aligned
++	 */
++	offset = phys_addr & ~PAGE_MASK;
++	phys_addr &= PAGE_MASK;
++	size = PAGE_ALIGN(last_addr+1) - phys_addr;
++	prot = __pgprot(_PAGE_PRESENT | _PAGE_WRITE | _PAGE_DIRTY |
++			_PAGE_ACCESSED | _PAGE_KERNEL | _PAGE_CACHE_WIN0 |
++			flags);
++
++	/*
++	 * Ok, go for it..
++	 */
++	area = get_vm_area(size, VM_IOREMAP);
++	if (!area)
++		return NULL;
++	area->phys_addr = phys_addr;
++	addr = (unsigned long) area->addr;
++	if (ioremap_page_range(addr, addr + size, phys_addr, prot)) {
++		vunmap((void *) addr);
++		return NULL;
++	}
++	return (__force void __iomem *) (offset + (char *)addr);
++}
++EXPORT_SYMBOL(__ioremap);
++
++void __iounmap(void __iomem *addr)
++{
++	struct vm_struct *p;
++
++	if ((__force unsigned long)addr >= LINSYSCUSTOM_BASE &&
++	    (__force unsigned long)addr < (LINSYSCUSTOM_BASE +
++					   LINSYSCUSTOM_LIMIT))
++		return;
++
++	p = remove_vm_area((void *)(PAGE_MASK & (unsigned long __force)addr));
++	if (unlikely(!p)) {
++		pr_err("iounmap: bad address %p\n", addr);
++		return;
++	}
++
++	kfree(p);
++}
++EXPORT_SYMBOL(__iounmap);
+diff --git a/arch/metag/mm/maccess.c b/arch/metag/mm/maccess.c
+new file mode 100644
+index 0000000..632b461
+--- /dev/null
++++ b/arch/metag/mm/maccess.c
+@@ -0,0 +1,68 @@
++/*
++ * safe read and write memory routines callable while atomic
++ *
++ * Copyright 2012 Imagination Technologies
++ */
++
++#include <linux/uaccess.h>
++#include <asm/io.h>
++
++/*
++ * The generic probe_kernel_write() uses the user copy code which can split the
++ * writes if the source is unaligned, and repeats writes to make exceptions
++ * precise. We override it here to avoid these things happening to memory mapped
++ * IO memory where they could have undesired effects.
++ * Due to the use of CACHERD instruction this only works on Meta2 onwards.
++ */
++#ifdef CONFIG_METAG_META21
++long probe_kernel_write(void *dst, const void *src, size_t size)
++{
++	unsigned long ldst = (unsigned long)dst;
++	void __iomem *iodst = (void __iomem *)dst;
++	unsigned long lsrc = (unsigned long)src;
++	const u8 *psrc = (u8 *)src;
++	unsigned int pte, i;
++	u8 bounce[8] __aligned(8);
++
++	if (!size)
++		return 0;
++
++	/* Use the write combine bit to decide is the destination is MMIO. */
++	pte = TBIXCACHE_RD(dst);
++
++	/* Check the mapping is valid and writeable. */
++	if ((pte & (MMCU_ENTRY_WR_BIT | MMCU_ENTRY_VAL_BIT))
++	    != (MMCU_ENTRY_WR_BIT | MMCU_ENTRY_VAL_BIT))
++		return -EFAULT;
++
++	/* Fall back to generic version for cases we're not interested in. */
++	if (pte & MMCU_ENTRY_WRC_BIT	|| /* write combined memory */
++	    (ldst & (size - 1))		|| /* destination unaligned */
++	    size > 8			|| /* more than max write size */
++	    (size & (size - 1)))	   /* non power of 2 size */
++		return __probe_kernel_write(dst, src, size);
++
++	/* If src is unaligned, copy to the aligned bounce buffer first. */
++	if (lsrc & (size - 1)) {
++		for (i = 0; i < size; ++i)
++			bounce[i] = psrc[i];
++		psrc = bounce;
++	}
++
++	switch (size) {
++	case 1:
++		writeb(*psrc, iodst);
++		break;
++	case 2:
++		writew(*(const u16 *)psrc, iodst);
++		break;
++	case 4:
++		writel(*(const u32 *)psrc, iodst);
++		break;
++	case 8:
++		writeq(*(const u64 *)psrc, iodst);
++		break;
++	}
 +	return 0;
 +}
-+#else
-+static unsigned long
-+hugetlb_get_unmapped_area_existing(unsigned long len)
-+{
-+	struct mm_struct *mm = current->mm;
-+	struct vm_area_struct *vma;
-+	unsigned long start_addr, addr;
-+	int after_huge;
-+
-+	if (mm->context.part_huge) {
-+		start_addr = mm->context.part_huge;
-+		after_huge = 1;
-+	} else {
-+		start_addr = TASK_UNMAPPED_BASE;
-+		after_huge = 0;
-+	}
-+new_search:
-+	addr = start_addr;
-+
-+	for (vma = find_vma(mm, addr); ; vma = vma->vm_next) {
-+		if ((!vma && !after_huge) || TASK_SIZE - len < addr) {
-+			/*
-+			 * Start a new search - just in case we missed
-+			 * some holes.
-+			 */
-+			if (start_addr != TASK_UNMAPPED_BASE) {
-+				start_addr = TASK_UNMAPPED_BASE;
-+				goto new_search;
-+			}
-+			return 0;
-+		}
-+		/* skip ahead if we've aligned right over some vmas */
-+		if (vma && vma->vm_end <= addr)
-+			continue;
-+		/* space before the next vma? */
-+		if (after_huge && (!vma || ALIGN_HUGEPT(addr + len)
-+			    <= vma->vm_start)) {
-+			unsigned long end = addr + len;
-+			if (end & HUGEPT_MASK)
-+				mm->context.part_huge = end;
-+			else if (addr == mm->context.part_huge)
-+				mm->context.part_huge = 0;
-+			return addr;
-+		}
-+		if (vma && (vma->vm_flags & MAP_HUGETLB)) {
-+			/* space after a huge vma in 2nd level page table? */
-+			if (vma->vm_end & HUGEPT_MASK) {
-+				after_huge = 1;
-+				/* no need to align to the next PT block */
-+				addr = vma->vm_end;
-+				continue;
-+			}
-+		}
-+		after_huge = 0;
-+		addr = ALIGN_HUGEPT(vma->vm_end);
-+	}
-+}
 +#endif
-+
-+/* Do a full search to find an area without any nearby normal pages. */
-+static unsigned long
-+hugetlb_get_unmapped_area_new_pmd(unsigned long len)
-+{
-+	struct mm_struct *mm = current->mm;
-+	struct vm_area_struct *vma;
-+	unsigned long start_addr, addr;
-+
-+	if (ALIGN_HUGEPT(len) > mm->cached_hole_size)
-+		start_addr = mm->free_area_cache;
-+	else
-+		start_addr = TASK_UNMAPPED_BASE;
-+
-+new_search:
-+	addr = ALIGN_HUGEPT(start_addr);
-+
-+	for (vma = find_vma(mm, addr); ; vma = vma->vm_next) {
-+		if (TASK_SIZE - len < addr) {
-+			/*
-+			 * Start a new search - just in case we missed
-+			 * some holes.
-+			 */
-+			if (start_addr != TASK_UNMAPPED_BASE) {
-+				start_addr = TASK_UNMAPPED_BASE;
-+				mm->cached_hole_size = 0;
-+				goto new_search;
-+			}
-+			return 0;
-+		}
-+		/* skip ahead if we've aligned right over some vmas */
-+		if (vma && vma->vm_end <= addr)
-+			continue;
-+		if (!vma || ALIGN_HUGEPT(addr + len) <= vma->vm_start) {
-+#if HPAGE_SHIFT < HUGEPT_SHIFT
-+			if (len & HUGEPT_MASK)
-+				mm->context.part_huge = addr + len;
-+#endif
-+			return addr;
-+		}
-+		addr = ALIGN_HUGEPT(vma->vm_end);
-+	}
-+}
-+
-+unsigned long
-+hugetlb_get_unmapped_area(struct file *file, unsigned long addr,
-+		unsigned long len, unsigned long pgoff, unsigned long flags)
-+{
-+	struct hstate *h = hstate_file(file);
-+
-+	if (len & ~huge_page_mask(h))
-+		return -EINVAL;
-+	if (len > TASK_SIZE)
-+		return -ENOMEM;
-+
-+	if (flags & MAP_FIXED) {
-+		if (prepare_hugepage_range(file, addr, len))
-+			return -EINVAL;
-+		return addr;
-+	}
-+
-+	if (addr) {
-+		addr = ALIGN(addr, huge_page_size(h));
-+		if (!prepare_hugepage_range(file, addr, len))
-+			return addr;
-+	}
-+
-+	/*
-+	 * Look for an existing hugetlb vma with space after it (this is to to
-+	 * minimise fragmentation caused by huge pages.
-+	 */
-+	addr = hugetlb_get_unmapped_area_existing(len);
-+	if (addr)
-+		return addr;
-+
-+	/*
-+	 * Find an unmapped naturally aligned set of 4MB blocks that we can use
-+	 * for huge pages.
-+	 */
-+	addr = hugetlb_get_unmapped_area_new_pmd(len);
-+	if (likely(addr))
-+		return addr;
-+
-+	return -EINVAL;
-+}
-+
-+#endif /*HAVE_ARCH_HUGETLB_UNMAPPED_AREA*/
-+
-+/* necessary for boot time 4MB huge page allocation */
-+static __init int setup_hugepagesz(char *opt)
-+{
-+	unsigned long ps = memparse(opt, &opt);
-+	if (ps == (1 << HPAGE_SHIFT)) {
-+		hugetlb_add_hstate(HPAGE_SHIFT - PAGE_SHIFT);
-+	} else {
-+		pr_err("hugepagesz: Unsupported page size %lu M\n",
-+		       ps >> 20);
-+		return 0;
-+	}
-+	return 1;
-+}
-+__setup("hugepagesz=", setup_hugepagesz);
 -- 
 1.7.7.6
 
