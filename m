@@ -1,7 +1,7 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v2 34/44] metag: Various other headers
-Date: Wed, 5 Dec 2012 16:08:52 +0000
-Message-ID: <1354723742-6195-35-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v2 31/44] metag: DMA
+Date: Wed, 5 Dec 2012 16:08:49 +0000
+Message-ID: <1354723742-6195-32-git-send-email-james.hogan@imgtec.com>
 References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,630 +12,717 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: Arnd Bergmann <arnd@arndb.de>, James Hogan <james.hogan@imgtec.com>
 List-Id: linux-arch.vger.kernel.org
 
-Add the remaining metag header files:
- - byteorder.h, swab.h (byte order and swapping)
- - barrier.h, cpu.h. hwthread.h, processor.h (hardware thread related)
- - bug.h, elf.h, gpio.h, linkage.h, resource.h (other)
+Add DMA mapping code.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
 ---
- arch/metag/include/asm/barrier.h        |   85 +++++++++++++
- arch/metag/include/asm/bug.h            |   12 ++
- arch/metag/include/asm/cpu.h            |   14 ++
- arch/metag/include/asm/elf.h            |  128 +++++++++++++++++++
- arch/metag/include/asm/gpio.h           |    4 +
- arch/metag/include/asm/hwthread.h       |   40 ++++++
- arch/metag/include/asm/linkage.h        |    7 +
- arch/metag/include/asm/processor.h      |  204 +++++++++++++++++++++++++++++++
- arch/metag/include/uapi/asm/byteorder.h |    1 +
- arch/metag/include/uapi/asm/resource.h  |    7 +
- arch/metag/include/uapi/asm/swab.h      |   26 ++++
- 11 files changed, 528 insertions(+), 0 deletions(-)
- create mode 100644 arch/metag/include/asm/barrier.h
- create mode 100644 arch/metag/include/asm/bug.h
- create mode 100644 arch/metag/include/asm/cpu.h
- create mode 100644 arch/metag/include/asm/elf.h
- create mode 100644 arch/metag/include/asm/gpio.h
- create mode 100644 arch/metag/include/asm/hwthread.h
- create mode 100644 arch/metag/include/asm/linkage.h
- create mode 100644 arch/metag/include/asm/processor.h
- create mode 100644 arch/metag/include/uapi/asm/byteorder.h
- create mode 100644 arch/metag/include/uapi/asm/resource.h
- create mode 100644 arch/metag/include/uapi/asm/swab.h
+ arch/metag/include/asm/dma-mapping.h |  183 ++++++++++++
+ arch/metag/kernel/dma.c              |  507 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 690 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/include/asm/dma-mapping.h
+ create mode 100644 arch/metag/kernel/dma.c
 
-diff --git a/arch/metag/include/asm/barrier.h b/arch/metag/include/asm/barrier.h
+diff --git a/arch/metag/include/asm/dma-mapping.h b/arch/metag/include/asm/dma-mapping.h
 new file mode 100644
-index 0000000..8794fca
+index 0000000..b5f80a6
 --- /dev/null
-+++ b/arch/metag/include/asm/barrier.h
-@@ -0,0 +1,85 @@
-+#ifndef _ASM_METAG_BARRIER_H
-+#define _ASM_METAG_BARRIER_H
++++ b/arch/metag/include/asm/dma-mapping.h
+@@ -0,0 +1,183 @@
++#ifndef _ASM_METAG_DMA_MAPPING_H
++#define _ASM_METAG_DMA_MAPPING_H
 +
-+#include <asm/metag_mem.h>
++#include <linux/mm.h>
 +
-+#define nop()		__asm__ __volatile__ ("NOP")
-+#define mb()		wmb()
-+#define rmb()		barrier()
++#include <asm/cache.h>
++#include <asm/io.h>
++#include <linux/scatterlist.h>
++#include <asm/bug.h>
 +
-+#ifdef CONFIG_METAG_META21
++#define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
++#define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
 +
-+/* HTP and above have a system event to fence writes */
-+static inline void wr_fence(void)
++void *dma_alloc_coherent(struct device *dev, size_t size,
++			 dma_addr_t *dma_handle, gfp_t flag);
++
++void dma_free_coherent(struct device *dev, size_t size,
++		       void *vaddr, dma_addr_t dma_handle);
++
++void dma_sync_for_device(void *vaddr, size_t size, int dma_direction);
++void dma_sync_for_cpu(void *vaddr, size_t size, int dma_direction);
++
++int dma_mmap_coherent(struct device *dev, struct vm_area_struct *vma,
++		      void *cpu_addr, dma_addr_t dma_addr, size_t size);
++
++int dma_mmap_writecombine(struct device *dev, struct vm_area_struct *vma,
++			  void *cpu_addr, dma_addr_t dma_addr, size_t size);
++
++static inline dma_addr_t
++dma_map_single(struct device *dev, void *ptr, size_t size,
++	       enum dma_data_direction direction)
 +{
-+	volatile int *flushptr = (volatile int *) LINSYSEVENT_WR_FENCE;
-+	barrier();
-+	*flushptr = 0;
++	BUG_ON(!valid_dma_direction(direction));
++	WARN_ON(size == 0);
++	dma_sync_for_device(ptr, size, direction);
++	return virt_to_phys(ptr);
 +}
 +
-+#else /* CONFIG_METAG_META21 */
-+
-+/*
-+ * ATP doesn't have system event to fence writes, so it is necessary to flush
-+ * the processor write queues as well as possibly the write combiner (depending
-+ * on the page being written).
-+ * To ensure the write queues are flushed we do 4 writes to a system event
-+ * register (in this case write combiner flush) which will also flush the write
-+ * combiner.
-+ */
-+static inline void wr_fence(void)
++static inline void
++dma_unmap_single(struct device *dev, dma_addr_t dma_addr, size_t size,
++		 enum dma_data_direction direction)
 +{
-+	volatile int *flushptr = (volatile int *) LINSYSEVENT_WR_COMBINE_FLUSH;
-+	barrier();
-+	*flushptr = 0;
-+	*flushptr = 0;
-+	*flushptr = 0;
-+	*flushptr = 0;
++	BUG_ON(!valid_dma_direction(direction));
++	dma_sync_for_cpu(phys_to_virt(dma_addr), size, direction);
 +}
 +
-+#endif /* !CONFIG_METAG_META21 */
-+
-+static inline void wmb(void)
++static inline int
++dma_map_sg(struct device *dev, struct scatterlist *sglist, int nents,
++	   enum dma_data_direction direction)
 +{
-+	/* flush writes through the write combiner */
-+	wr_fence();
++	struct scatterlist *sg;
++	int i;
++
++	BUG_ON(!valid_dma_direction(direction));
++	WARN_ON(nents == 0 || sglist[0].length == 0);
++
++	for_each_sg(sglist, sg, nents, i) {
++		BUG_ON(!sg_page(sg));
++
++		sg->dma_address = sg_phys(sg);
++		dma_sync_for_device(sg_virt(sg), sg->length, direction);
++	}
++
++	return nents;
 +}
 +
-+#define read_barrier_depends()  do { } while (0)
-+
-+#ifndef CONFIG_SMP
-+#define fence()		do { } while (0)
-+#define smp_mb()        barrier()
-+#define smp_rmb()       barrier()
-+#define smp_wmb()       barrier()
-+#else
-+
-+#ifdef CONFIG_METAG_SMP_WRITE_REORDERING
-+/*
-+ * Write to the atomic memory unlock system event register (command 0). This is
-+ * needed before a write to shared memory in a critical section, to prevent
-+ * external reordering of writes before the fence on other threads with writes
-+ * after the fence on this thread (and to prevent the ensuing cache-memory
-+ * incoherence). It is therefore ineffective if used after and on the same
-+ * thread as a write.
-+ */
-+static inline void fence(void)
++static inline dma_addr_t
++dma_map_page(struct device *dev, struct page *page, unsigned long offset,
++	     size_t size, enum dma_data_direction direction)
 +{
-+	volatile int *flushptr = (volatile int *) LINSYSEVENT_WR_ATOMIC_UNLOCK;
-+	barrier();
-+	*flushptr = 0;
++	BUG_ON(!valid_dma_direction(direction));
++	dma_sync_for_device((void *)(page_to_phys(page) + offset), size,
++			    direction);
++	return page_to_phys(page) + offset;
 +}
-+#define smp_mb()        fence()
-+#define smp_rmb()       fence()
-+#define smp_wmb()       barrier()
-+#else
-+#define fence()		do { } while (0)
-+#define smp_mb()        barrier()
-+#define smp_rmb()       barrier()
-+#define smp_wmb()       barrier()
-+#endif
-+#endif
-+#define smp_read_barrier_depends()     do { } while (0)
-+#define set_mb(var, value) do { var = value; smp_mb(); } while (0)
 +
-+#endif /* _ASM_METAG_BARRIER_H */
-diff --git a/arch/metag/include/asm/bug.h b/arch/metag/include/asm/bug.h
-new file mode 100644
-index 0000000..d04b48c
---- /dev/null
-+++ b/arch/metag/include/asm/bug.h
-@@ -0,0 +1,12 @@
-+#ifndef _ASM_METAG_BUG_H
-+#define _ASM_METAG_BUG_H
-+
-+#include <asm-generic/bug.h>
-+
-+struct pt_regs;
-+
-+extern const char *trap_name(int trapno);
-+extern void die(const char *str, struct pt_regs *regs, long err,
-+		unsigned long addr) __attribute__ ((noreturn));
-+
-+#endif
-diff --git a/arch/metag/include/asm/cpu.h b/arch/metag/include/asm/cpu.h
-new file mode 100644
-index 0000000..decf129
---- /dev/null
-+++ b/arch/metag/include/asm/cpu.h
-@@ -0,0 +1,14 @@
-+#ifndef _ASM_METAG_CPU_H
-+#define _ASM_METAG_CPU_H
-+
-+#include <linux/percpu.h>
-+
-+struct cpuinfo_metag {
-+	struct cpu cpu;
-+#ifdef CONFIG_SMP
-+	unsigned long loops_per_jiffy;
-+#endif
-+};
-+
-+DECLARE_PER_CPU(struct cpuinfo_metag, cpu_data);
-+#endif /* _ASM_METAG_CPU_H */
-diff --git a/arch/metag/include/asm/elf.h b/arch/metag/include/asm/elf.h
-new file mode 100644
-index 0000000..d63b9d0
---- /dev/null
-+++ b/arch/metag/include/asm/elf.h
-@@ -0,0 +1,128 @@
-+#ifndef __ASM_METAG_ELF_H
-+#define __ASM_METAG_ELF_H
-+
-+#define EM_METAG      174
-+
-+/* Meta relocations */
-+#define R_METAG_HIADDR16                 0
-+#define R_METAG_LOADDR16                 1
-+#define R_METAG_ADDR32                   2
-+#define R_METAG_NONE                     3
-+#define R_METAG_RELBRANCH                4
-+#define R_METAG_GETSETOFF                5
-+
-+/* Backward compatability */
-+#define R_METAG_REG32OP1                 6
-+#define R_METAG_REG32OP2                 7
-+#define R_METAG_REG32OP3                 8
-+#define R_METAG_REG16OP1                 9
-+#define R_METAG_REG16OP2                10
-+#define R_METAG_REG16OP3                11
-+#define R_METAG_REG32OP4                12
-+
-+#define R_METAG_HIOG                    13
-+#define R_METAG_LOOG                    14
-+
-+/* GNU */
-+#define R_METAG_GNU_VTINHERIT           30
-+#define R_METAG_GNU_VTENTRY             31
-+
-+/* PIC relocations */
-+#define R_METAG_HI16_GOTOFF             32
-+#define R_METAG_LO16_GOTOFF             33
-+#define R_METAG_GETSET_GOTOFF           34
-+#define R_METAG_GETSET_GOT              35
-+#define R_METAG_HI16_GOTPC              36
-+#define R_METAG_LO16_GOTPC              37
-+#define R_METAG_HI16_PLT                38
-+#define R_METAG_LO16_PLT                39
-+#define R_METAG_RELBRANCH_PLT           40
-+#define R_METAG_GOTOFF                  41
-+#define R_METAG_PLT                     42
-+#define R_METAG_COPY                    43
-+#define R_METAG_JMP_SLOT                44
-+#define R_METAG_RELATIVE                45
-+#define R_METAG_GLOB_DAT                46
-+
-+/*
-+ * ELF register definitions.
-+ */
-+
-+#include <asm/page.h>
-+#include <asm/processor.h>
-+#include <asm/ptrace.h>
-+#include <asm/user.h>
-+
-+typedef unsigned long elf_greg_t;
-+
-+#define ELF_NGREG (sizeof(struct user_gp_regs) / sizeof(elf_greg_t))
-+typedef elf_greg_t elf_gregset_t[ELF_NGREG];
-+
-+typedef unsigned long elf_fpregset_t;
-+
-+/*
-+ * This is used to ensure we don't load something for the wrong architecture.
-+ */
-+#define elf_check_arch(x) ((x)->e_machine == EM_METAG)
-+
-+/*
-+ * These are used to set parameters in the core dumps.
-+ */
-+#define ELF_CLASS	ELFCLASS32
-+#define ELF_DATA	ELFDATA2LSB
-+#define ELF_ARCH	EM_METAG
-+
-+#define ELF_PLAT_INIT(_r, load_addr)	\
-+	do { _r->ctx.AX[0].U0 = 0; } while (0)
-+
-+#define USE_ELF_CORE_DUMP
-+#define CORE_DUMP_USE_REGSET
-+#define ELF_EXEC_PAGESIZE	PAGE_SIZE
-+
-+/* This is the location that an ET_DYN program is loaded if exec'ed.  Typical
-+   use of this is to invoke "./ld.so someprog" to test out a new version of
-+   the loader.  We need to make sure that it is out of the way of the program
-+   that it will "exec", and that there is sufficient room for the brk.  */
-+
-+#define ELF_ET_DYN_BASE         0x08000000UL
-+
-+#define ELF_CORE_COPY_REGS(_dest, _regs)			\
-+	memcpy((char *)&_dest, (char *)_regs, sizeof(struct pt_regs));
-+
-+/* This yields a mask that user programs can use to figure out what
-+   instruction set this cpu supports.  */
-+
-+#define ELF_HWCAP	(0)
-+
-+/* This yields a string that ld.so will use to load implementation
-+   specific libraries for optimization.  This is more specific in
-+   intent than poking at uname or /proc/cpuinfo.  */
-+
-+#define ELF_PLATFORM  (NULL)
-+
-+#define SET_PERSONALITY(ex) \
-+	set_personality(PER_LINUX | (current->personality & (~PER_MASK)))
-+
-+#define STACK_RND_MASK (0)
-+
-+#ifdef CONFIG_METAG_USER_TCM
-+
-+struct elf32_phdr;
-+struct file;
-+
-+unsigned long __metag_elf_map(struct file *filep, unsigned long addr,
-+			      struct elf32_phdr *eppnt, int prot, int type,
-+			      unsigned long total_size);
-+
-+static inline unsigned long metag_elf_map(struct file *filep,
-+					  unsigned long addr,
-+					  struct elf32_phdr *eppnt, int prot,
-+					  int type, unsigned long total_size)
++static inline void
++dma_unmap_page(struct device *dev, dma_addr_t dma_address, size_t size,
++	       enum dma_data_direction direction)
 +{
-+	return __metag_elf_map(filep, addr, eppnt, prot, type, total_size);
++	BUG_ON(!valid_dma_direction(direction));
++	dma_sync_for_cpu(phys_to_virt(dma_address), size, direction);
 +}
-+#define elf_map metag_elf_map
 +
-+#endif
 +
-+#endif
-diff --git a/arch/metag/include/asm/gpio.h b/arch/metag/include/asm/gpio.h
-new file mode 100644
-index 0000000..b3799d8
---- /dev/null
-+++ b/arch/metag/include/asm/gpio.h
-@@ -0,0 +1,4 @@
-+#ifndef __LINUX_GPIO_H
-+#warning Include linux/gpio.h instead of asm/gpio.h
-+#include <linux/gpio.h>
-+#endif
-diff --git a/arch/metag/include/asm/hwthread.h b/arch/metag/include/asm/hwthread.h
-new file mode 100644
-index 0000000..8f97866
---- /dev/null
-+++ b/arch/metag/include/asm/hwthread.h
-@@ -0,0 +1,40 @@
++static inline void
++dma_unmap_sg(struct device *dev, struct scatterlist *sglist, int nhwentries,
++	     enum dma_data_direction direction)
++{
++	struct scatterlist *sg;
++	int i;
++
++	BUG_ON(!valid_dma_direction(direction));
++	WARN_ON(nhwentries == 0 || sglist[0].length == 0);
++
++	for_each_sg(sglist, sg, nhwentries, i) {
++		BUG_ON(!sg_page(sg));
++
++		sg->dma_address = sg_phys(sg);
++		dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
++	}
++}
++
++static inline void
++dma_sync_single_for_cpu(struct device *dev, dma_addr_t dma_handle, size_t size,
++			enum dma_data_direction direction)
++{
++	dma_sync_for_cpu(phys_to_virt(dma_handle), size, direction);
++}
++
++static inline void
++dma_sync_single_for_device(struct device *dev, dma_addr_t dma_handle,
++			   size_t size, enum dma_data_direction direction)
++{
++	dma_sync_for_device(phys_to_virt(dma_handle), size, direction);
++}
++
++static inline void
++dma_sync_single_range_for_cpu(struct device *dev, dma_addr_t dma_handle,
++			      unsigned long offset, size_t size,
++			      enum dma_data_direction direction)
++{
++	dma_sync_for_cpu(phys_to_virt(dma_handle)+offset, size,
++			 direction);
++}
++
++static inline void
++dma_sync_single_range_for_device(struct device *dev, dma_addr_t dma_handle,
++				 unsigned long offset, size_t size,
++				 enum dma_data_direction direction)
++{
++	dma_sync_for_device(phys_to_virt(dma_handle)+offset, size,
++			    direction);
++}
++
++static inline void
++dma_sync_sg_for_cpu(struct device *dev, struct scatterlist *sg, int nelems,
++		    enum dma_data_direction direction)
++{
++	int i;
++	for (i = 0; i < nelems; i++, sg++)
++		dma_sync_for_cpu(sg_virt(sg), sg->length, direction);
++}
++
++static inline void
++dma_sync_sg_for_device(struct device *dev, struct scatterlist *sg, int nelems,
++		       enum dma_data_direction direction)
++{
++	int i;
++	for (i = 0; i < nelems; i++, sg++)
++		dma_sync_for_device(sg_virt(sg), sg->length, direction);
++}
++
++static inline int
++dma_mapping_error(struct device *dev, dma_addr_t dma_addr)
++{
++	return 0;
++}
++
++#define dma_supported(dev, mask)        (1)
++
++static inline int
++dma_set_mask(struct device *dev, u64 mask)
++{
++	if (!dev->dma_mask || !dma_supported(dev, mask))
++		return -EIO;
++
++	*dev->dma_mask = mask;
++
++	return 0;
++}
++
 +/*
-+ * Copyright (C) 2008 Imagination Technologies
++ * dma_alloc_noncoherent() returns non-cacheable memory, so there's no need to
++ * do any flushing here.
 + */
-+#ifndef __METAG_HWTHREAD_H
-+#define __METAG_HWTHREAD_H
++static inline void
++dma_cache_sync(struct device *dev, void *vaddr, size_t size,
++	       enum dma_data_direction direction)
++{
++}
 +
-+#include <linux/bug.h>
-+#include <linux/io.h>
-+
-+#include <asm/metag_mem.h>
-+
-+#define BAD_HWTHREAD_ID		(0xFFU)
-+#define BAD_CPU_ID		(0xFFU)
-+
-+extern u8 cpu_2_hwthread_id[];
-+extern u8 hwthread_id_2_cpu[];
-+
++#endif
+diff --git a/arch/metag/kernel/dma.c b/arch/metag/kernel/dma.c
+new file mode 100644
+index 0000000..8c00ded
+--- /dev/null
++++ b/arch/metag/kernel/dma.c
+@@ -0,0 +1,507 @@
 +/*
-+ * Each hardware thread's Control Unit registers are memory-mapped
-+ * and can therefore be accessed by any other hardware thread.
++ *  Meta version derived from arch/powerpc/lib/dma-noncoherent.c
++ *    Copyright (C) 2008 Imagination Technologies Ltd.
 + *
-+ * This helper function returns the memory address where "thread"'s
-+ * register "regnum" is mapped.
-+ */
-+static inline
-+void __iomem *__CU_addr(unsigned int thread, unsigned int regnum)
-+{
-+	unsigned int base, thread_offset, thread_regnum;
-+
-+	WARN_ON(thread == BAD_HWTHREAD_ID);
-+
-+	base = T0UCTREG0;	/* Control unit base */
-+
-+	thread_offset = TnUCTRX_STRIDE * thread;
-+	thread_regnum = TXUCTREGn_STRIDE * regnum;
-+
-+	return (void __iomem *)(base + thread_offset + thread_regnum);
-+}
-+
-+#endif /* __METAG_HWTHREAD_H */
-diff --git a/arch/metag/include/asm/linkage.h b/arch/metag/include/asm/linkage.h
-new file mode 100644
-index 0000000..73bf25b
---- /dev/null
-+++ b/arch/metag/include/asm/linkage.h
-@@ -0,0 +1,7 @@
-+#ifndef __ASM_LINKAGE_H
-+#define __ASM_LINKAGE_H
-+
-+#define __ALIGN .p2align 2
-+#define __ALIGN_STR ".p2align 2"
-+
-+#endif
-diff --git a/arch/metag/include/asm/processor.h b/arch/metag/include/asm/processor.h
-new file mode 100644
-index 0000000..b7d3053
---- /dev/null
-+++ b/arch/metag/include/asm/processor.h
-@@ -0,0 +1,204 @@
-+/*
-+ * Copyright (C) 2005,2006,2007,2008 Imagination Technologies
-+ */
-+
-+#ifndef __ASM_METAG_PROCESSOR_H
-+#define __ASM_METAG_PROCESSOR_H
-+
-+#include <linux/atomic.h>
-+
-+#include <asm/page.h>
-+#include <asm/ptrace.h>
-+#include <asm/metag_regs.h>
-+
-+/*
-+ * Default implementation of macro that returns current
-+ * instruction pointer ("program counter").
-+ */
-+#define current_text_addr() ({ __label__ _l; _l: &&_l; })
-+
-+/* The task stops where the kernel starts */
-+#define TASK_SIZE	PAGE_OFFSET
-+/* Add an extra page of padding at the top of the stack for the guard page. */
-+#define STACK_TOP	(TASK_SIZE - PAGE_SIZE)
-+#define STACK_TOP_MAX	STACK_TOP
-+
-+/* This decides where the kernel will search for a free chunk of vm
-+ * space during mmap's.
-+ */
-+#define TASK_UNMAPPED_BASE	META_MEMORY_BASE
-+
-+typedef struct {
-+	unsigned long seg;
-+} mm_segment_t;
-+
-+#ifdef CONFIG_METAG_FPU
-+struct meta_fpu_context {
-+	TBICTXEXTFPU fpstate;
-+	union {
-+		struct {
-+			TBICTXEXTBB4 fx8_15;
-+			TBICTXEXTFPACC fpacc;
-+		} fx8_15;
-+		struct {
-+			TBICTXEXTFPACC fpacc;
-+			TBICTXEXTBB4 unused;
-+		} nofx8_15;
-+	} extfpstate;
-+	bool needs_restore;
-+};
-+#else
-+struct meta_fpu_context {};
-+#endif
-+
-+#ifdef CONFIG_METAG_DSP
-+struct meta_ext_context {
-+	struct {
-+		TBIEXTCTX ctx;
-+		TBICTXEXTBB8 bb8;
-+		TBIDUAL ax[TBICTXEXTAXX_BYTES / sizeof(TBIDUAL)];
-+		TBICTXEXTHL2 hl2;
-+		TBICTXEXTTDPR ext;
-+		TBICTXEXTRP6 rp;
-+	} regs;
-+
-+	/* DSPRAM A and B save areas. */
-+	void *ram[2];
-+
-+	/* ECH encoded size of DSPRAM save areas. */
-+	unsigned int ram_sz[2];
-+};
-+#else
-+struct meta_ext_context {};
-+#endif
-+
-+struct thread_struct {
-+	PTBICTX kernel_context;
-+	/* A copy of the user process Sig.SaveMask. */
-+	unsigned int user_flags;
-+	struct meta_fpu_context *fpu_context;
-+	void __user *tls_ptr;
-+	unsigned short int_depth;
-+	unsigned short txdefr_failure;
-+	struct meta_ext_context *dsp_context;
-+};
-+
-+#define INIT_THREAD  { \
-+	NULL,			/* kernel_context */	\
-+	0,			/* user_flags */	\
-+	NULL,			/* fpu_context */	\
-+	NULL,			/* tls_ptr */		\
-+	1,			/* int_depth - we start in kernel */	\
-+	0,			/* txdefr_failure */	\
-+	NULL,			/* dsp_context */	\
-+}
-+
-+/* Needed to make #define as we are referencing 'current', that is not visible
-+ * yet.
++ *  PowerPC version derived from arch/arm/mm/consistent.c
++ *    Copyright (C) 2001 Dan Malek (dmalek@jlc.net)
 + *
-+ * Stack layout is as below.
-+
-+      argc            argument counter (integer)
-+      argv[0]         program name (pointer)
-+      argv[1...N]     program args (pointers)
-+      argv[argc-1]    end of args (integer)
-+      NULL
-+      env[0...N]      environment variables (pointers)
-+      NULL
-+
++ *  Copyright (C) 2000 Russell King
++ *
++ * Consistent memory allocators.  Used for DMA devices that want to
++ * share uncached memory with the processor core.  The function return
++ * is the virtual address and 'dma_handle' is the physical address.
++ * Mostly stolen from the ARM port, with some changes for PowerPC.
++ *						-- Dan
++ *
++ * Reorganized to get rid of the arch-specific consistent_* functions
++ * and provide non-coherent implementations for the DMA API. -Matt
++ *
++ * Added in_interrupt() safe dma_alloc_coherent()/dma_free_coherent()
++ * implementation. This is pulled straight from ARM and barely
++ * modified. -Matt
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
 + */
-+#define start_thread(regs, pc, usp) do {				   \
-+	unsigned int *argc = (unsigned int *) bprm->exec;		   \
-+	set_fs(USER_DS);						   \
-+	current->thread.int_depth = 1;					   \
-+	/* Force this process down to user land */			   \
-+	regs->ctx.SaveMask = TBICTX_PRIV_BIT;				   \
-+	regs->ctx.CurrPC = pc;						   \
-+	regs->ctx.AX[0].U0 = usp;					   \
-+	regs->ctx.DX[3].U1 = *((int *)argc);			/* argc */ \
-+	regs->ctx.DX[3].U0 = (int)((int *)argc + 1);		/* argv */ \
-+	regs->ctx.DX[2].U1 = (int)((int *)argc +			   \
-+				   regs->ctx.DX[3].U1 + 2);	/* envp */ \
-+	regs->ctx.DX[2].U0 = 0;				   /* rtld_fini */ \
-+} while (0)
 +
-+/* Forward declaration, a strange C thing */
-+struct task_struct;
-+
-+/* Free all resources held by a thread. */
-+static inline void release_thread(struct task_struct *dead_task)
-+{
-+}
-+
-+#define copy_segments(tsk, mm)		do { } while (0)
-+#define release_segments(mm)		do { } while (0)
-+
-+extern void exit_thread(void);
-+
-+/*
-+ * Return saved PC of a blocked thread.
-+ */
-+#define	thread_saved_pc(tsk)	\
-+	((unsigned long)(tsk)->thread.kernel_context->CurrPC)
-+#define thread_saved_sp(tsk)	\
-+	((unsigned long)(tsk)->thread.kernel_context->AX[0].U0)
-+#define thread_saved_fp(tsk)	\
-+	((unsigned long)(tsk)->thread.kernel_context->AX[1].U0)
-+
-+unsigned long get_wchan(struct task_struct *p);
-+
-+#define	KSTK_EIP(tsk)	((tsk)->thread.kernel_context->CurrPC)
-+#define	KSTK_ESP(tsk)	((tsk)->thread.kernel_context->AX[0].U0)
-+
-+#define user_stack_pointer(regs)        ((regs)->ctx.AX[0].U0)
-+
-+int kernel_thread(int (*fn) (void *), void *arg, unsigned long flags);
-+
-+#define cpu_relax()     barrier()
-+
-+extern void setup_txprivext(void);
-+
-+static inline unsigned int hard_processor_id(void)
-+{
-+	unsigned int id;
-+
-+	__asm__ __volatile__(
-+			    "MOV	%0, TXENABLE\n"
-+			    "AND	%0, %0, %1\n"
-+			    "LSR	%0, %0, %2\n"
-+			    : "=&d" (id)
-+			    : "I" (TXENABLE_THREAD_BITS),
-+			      "K" (TXENABLE_THREAD_S)
-+	);
-+
-+	return id;
-+}
-+
-+#define OP3_EXIT	0
-+
-+#define HALT_OK		0
-+#define HALT_PANIC	-1
-+
-+/*
-+ * Halt (stop) the hardware thread. This instruction sequence is the
-+ * standard way to cause a Meta hardware thread to exit. The exit code
-+ * is pushed onto the stack which is interpreted by the debug adapter.
-+ */
-+static inline void hard_processor_halt(int exit_code)
-+{
-+	__asm__ __volatile__("MOV	D1Ar1, %0\n"
-+			     "MOV	D0Ar6, %1\n"
-+			     "MSETL	[A0StP],D0Ar6,D0Ar4,D0Ar2\n"
-+			     "1: SWITCH	#0xC30006\n"
-+			     "B		1b\n"
-+			     : : "r" (exit_code), "K" (OP3_EXIT));
-+}
-+
-+/* Set these hooks to call SoC specific code to restart/halt/power off. */
-+extern void (*soc_restart)(char *cmd);
-+extern void (*soc_halt)(void);
-+
-+extern void show_trace(struct task_struct *tsk, unsigned long *sp,
-+		       struct pt_regs *regs);
-+
-+#endif
-diff --git a/arch/metag/include/uapi/asm/byteorder.h b/arch/metag/include/uapi/asm/byteorder.h
-new file mode 100644
-index 0000000..9558416
---- /dev/null
-+++ b/arch/metag/include/uapi/asm/byteorder.h
-@@ -0,0 +1 @@
-+#include <linux/byteorder/little_endian.h>
-diff --git a/arch/metag/include/uapi/asm/resource.h b/arch/metag/include/uapi/asm/resource.h
-new file mode 100644
-index 0000000..526d23c
---- /dev/null
-+++ b/arch/metag/include/uapi/asm/resource.h
-@@ -0,0 +1,7 @@
-+#ifndef _UAPI_METAG_RESOURCE_H
-+#define _UAPI_METAG_RESOURCE_H
-+
-+#define _STK_LIM_MAX    (1 << 28)
-+#include <asm-generic/resource.h>
-+
-+#endif /* _UAPI_METAG_RESOURCE_H */
-diff --git a/arch/metag/include/uapi/asm/swab.h b/arch/metag/include/uapi/asm/swab.h
-new file mode 100644
-index 0000000..1076b3a
---- /dev/null
-+++ b/arch/metag/include/uapi/asm/swab.h
-@@ -0,0 +1,26 @@
-+#ifndef __ASM_METAG_SWAB_H
-+#define __ASM_METAG_SWAB_H
-+
-+#include <linux/compiler.h>
++#include <linux/sched.h>
++#include <linux/kernel.h>
++#include <linux/errno.h>
++#include <linux/export.h>
++#include <linux/string.h>
 +#include <linux/types.h>
-+#include <asm-generic/swab.h>
++#include <linux/highmem.h>
++#include <linux/dma-mapping.h>
++#include <linux/slab.h>
 +
-+static inline __attribute_const__ __u16 __arch_swab16(__u16 x)
++#include <asm/tlbflush.h>
++#include <asm/mmu.h>
++
++#define CONSISTENT_OFFSET(x)	(((unsigned long)(x) - CONSISTENT_START) \
++					>> PAGE_SHIFT)
++
++static u64 get_coherent_dma_mask(struct device *dev)
 +{
-+	return __builtin_metag_bswaps(x);
-+}
-+#define __arch_swab16 __arch_swab16
++	u64 mask = ~0ULL;
 +
-+static inline __attribute_const__ __u32 __arch_swab32(__u32 x)
++	if (dev) {
++		mask = dev->coherent_dma_mask;
++
++		/*
++		 * Sanity check the DMA mask - it must be non-zero, and
++		 * must be able to be satisfied by a DMA allocation.
++		 */
++		if (mask == 0) {
++			dev_warn(dev, "coherent DMA mask is unset\n");
++			return 0;
++		}
++	}
++
++	return mask;
++}
++/*
++ * This is the page table (2MB) covering uncached, DMA consistent allocations
++ */
++static pte_t *consistent_pte;
++static DEFINE_SPINLOCK(consistent_lock);
++
++/*
++ * VM region handling support.
++ *
++ * This should become something generic, handling VM region allocations for
++ * vmalloc and similar (ioremap, module space, etc).
++ *
++ * I envisage vmalloc()'s supporting vm_struct becoming:
++ *
++ *  struct vm_struct {
++ *    struct metag_vm_region	region;
++ *    unsigned long	flags;
++ *    struct page	**pages;
++ *    unsigned int	nr_pages;
++ *    unsigned long	phys_addr;
++ *  };
++ *
++ * get_vm_area() would then call metag_vm_region_alloc with an appropriate
++ * struct metag_vm_region head (eg):
++ *
++ *  struct metag_vm_region vmalloc_head = {
++ *	.vm_list	= LIST_HEAD_INIT(vmalloc_head.vm_list),
++ *	.vm_start	= VMALLOC_START,
++ *	.vm_end		= VMALLOC_END,
++ *  };
++ *
++ * However, vmalloc_head.vm_start is variable (typically, it is dependent on
++ * the amount of RAM found at boot time.)  I would imagine that get_vm_area()
++ * would have to initialise this each time prior to calling
++ * metag_vm_region_alloc().
++ */
++struct metag_vm_region {
++	struct list_head vm_list;
++	unsigned long vm_start;
++	unsigned long vm_end;
++	struct page		*vm_pages;
++	int			vm_active;
++};
++
++static struct metag_vm_region consistent_head = {
++	.vm_list = LIST_HEAD_INIT(consistent_head.vm_list),
++	.vm_start = CONSISTENT_START,
++	.vm_end = CONSISTENT_END,
++};
++
++static struct metag_vm_region *metag_vm_region_alloc(struct metag_vm_region
++						     *head, size_t size,
++						     gfp_t gfp)
 +{
-+	return __builtin_metag_bswap(x);
-+}
-+#define __arch_swab32 __arch_swab32
++	unsigned long addr = head->vm_start, end = head->vm_end - size;
++	unsigned long flags;
++	struct metag_vm_region *c, *new;
 +
-+static inline __attribute_const__ __u64 __arch_swab64(__u64 x)
++	new = kmalloc(sizeof(struct metag_vm_region), gfp);
++	if (!new)
++		goto out;
++
++	spin_lock_irqsave(&consistent_lock, flags);
++
++	list_for_each_entry(c, &head->vm_list, vm_list) {
++		if ((addr + size) < addr)
++			goto nospc;
++		if ((addr + size) <= c->vm_start)
++			goto found;
++		addr = c->vm_end;
++		if (addr > end)
++			goto nospc;
++	}
++
++found:
++	/*
++	 * Insert this entry _before_ the one we found.
++	 */
++	list_add_tail(&new->vm_list, &c->vm_list);
++	new->vm_start = addr;
++	new->vm_end = addr + size;
++	new->vm_active = 1;
++
++	spin_unlock_irqrestore(&consistent_lock, flags);
++	return new;
++
++nospc:
++	spin_unlock_irqrestore(&consistent_lock, flags);
++	kfree(new);
++out:
++	return NULL;
++}
++
++static struct metag_vm_region *metag_vm_region_find(struct metag_vm_region
++						    *head, unsigned long addr)
 +{
-+	return __builtin_metag_bswapll(x);
-+}
-+#define __arch_swab64 __arch_swab64
++	struct metag_vm_region *c;
 +
-+#endif /* __ASM_METAG_SWAB_H */
++	list_for_each_entry(c, &head->vm_list, vm_list) {
++		if (c->vm_active && c->vm_start == addr)
++			goto out;
++	}
++	c = NULL;
++out:
++	return c;
++}
++
++/*
++ * Allocate DMA-coherent memory space and return both the kernel remapped
++ * virtual and bus address for that space.
++ */
++void *dma_alloc_coherent(struct device *dev, size_t size,
++			 dma_addr_t *handle, gfp_t gfp)
++{
++	struct page *page;
++	struct metag_vm_region *c;
++	unsigned long order;
++	u64 mask = get_coherent_dma_mask(dev);
++	u64 limit;
++
++	if (!consistent_pte) {
++		pr_err("%s: not initialised\n", __func__);
++		dump_stack();
++		return NULL;
++	}
++
++	if (!mask)
++		goto no_page;
++	size = PAGE_ALIGN(size);
++	limit = (mask + 1) & ~mask;
++	if ((limit && size >= limit)
++	    || size >= (CONSISTENT_END - CONSISTENT_START)) {
++		pr_warn("coherent allocation too big (requested %#x mask %#Lx)\n",
++			size, mask);
++		return NULL;
++	}
++
++	order = get_order(size);
++
++	if (mask != 0xffffffff)
++		gfp |= GFP_DMA;
++
++	page = alloc_pages(gfp, order);
++	if (!page)
++		goto no_page;
++
++	/*
++	 * Invalidate any data that might be lurking in the
++	 * kernel direct-mapped region for device DMA.
++	 */
++	{
++		void *kaddr = page_address(page);
++		memset(kaddr, 0, size);
++		flush_dcache_region(kaddr, size);
++	}
++
++	/*
++	 * Allocate a virtual address in the consistent mapping region.
++	 */
++	c = metag_vm_region_alloc(&consistent_head, size,
++				  gfp & ~(__GFP_DMA | __GFP_HIGHMEM));
++	if (c) {
++		unsigned long vaddr = c->vm_start;
++		pte_t *pte = consistent_pte + CONSISTENT_OFFSET(vaddr);
++		struct page *end = page + (1 << order);
++
++		c->vm_pages = page;
++		split_page(page, order);
++
++		/*
++		 * Set the "dma handle"
++		 */
++		*handle = page_to_bus(page);
++
++		do {
++			BUG_ON(!pte_none(*pte));
++
++			SetPageReserved(page);
++			set_pte_at(&init_mm, vaddr,
++				   pte, mk_pte(page,
++					       pgprot_writecombine
++					       (PAGE_KERNEL)));
++			page++;
++			pte++;
++			vaddr += PAGE_SIZE;
++		} while (size -= PAGE_SIZE);
++
++		/*
++		 * Free the otherwise unused pages.
++		 */
++		while (page < end) {
++			__free_page(page);
++			page++;
++		}
++
++		return (void *)c->vm_start;
++	}
++
++	if (page)
++		__free_pages(page, order);
++no_page:
++	return NULL;
++}
++EXPORT_SYMBOL(dma_alloc_coherent);
++
++/*
++ * free a page as defined by the above mapping.
++ */
++void dma_free_coherent(struct device *dev, size_t size,
++		       void *vaddr, dma_addr_t dma_handle)
++{
++	struct metag_vm_region *c;
++	unsigned long flags, addr;
++	pte_t *ptep;
++
++	size = PAGE_ALIGN(size);
++
++	spin_lock_irqsave(&consistent_lock, flags);
++
++	c = metag_vm_region_find(&consistent_head, (unsigned long)vaddr);
++	if (!c)
++		goto no_area;
++
++	c->vm_active = 0;
++	if ((c->vm_end - c->vm_start) != size) {
++		pr_err("%s: freeing wrong coherent size (%ld != %d)\n",
++		       __func__, c->vm_end - c->vm_start, size);
++		dump_stack();
++		size = c->vm_end - c->vm_start;
++	}
++
++	ptep = consistent_pte + CONSISTENT_OFFSET(c->vm_start);
++	addr = c->vm_start;
++	do {
++		pte_t pte = ptep_get_and_clear(&init_mm, addr, ptep);
++		unsigned long pfn;
++
++		ptep++;
++		addr += PAGE_SIZE;
++
++		if (!pte_none(pte) && pte_present(pte)) {
++			pfn = pte_pfn(pte);
++
++			if (pfn_valid(pfn)) {
++				struct page *page = pfn_to_page(pfn);
++				ClearPageReserved(page);
++
++				__free_page(page);
++				continue;
++			}
++		}
++
++		pr_crit("%s: bad page in kernel page table\n",
++			__func__);
++	} while (size -= PAGE_SIZE);
++
++	flush_tlb_kernel_range(c->vm_start, c->vm_end);
++
++	list_del(&c->vm_list);
++
++	spin_unlock_irqrestore(&consistent_lock, flags);
++
++	kfree(c);
++	return;
++
++no_area:
++	spin_unlock_irqrestore(&consistent_lock, flags);
++	pr_err("%s: trying to free invalid coherent area: %p\n",
++	       __func__, vaddr);
++	dump_stack();
++}
++EXPORT_SYMBOL(dma_free_coherent);
++
++
++static int dma_mmap(struct device *dev, struct vm_area_struct *vma,
++		    void *cpu_addr, dma_addr_t dma_addr, size_t size)
++{
++	int ret = -ENXIO;
++
++	unsigned long flags, user_size, kern_size;
++	struct metag_vm_region *c;
++
++	user_size = (vma->vm_end - vma->vm_start) >> PAGE_SHIFT;
++
++	spin_lock_irqsave(&consistent_lock, flags);
++	c = metag_vm_region_find(&consistent_head, (unsigned long)cpu_addr);
++	spin_unlock_irqrestore(&consistent_lock, flags);
++
++	if (c) {
++		unsigned long off = vma->vm_pgoff;
++
++		kern_size = (c->vm_end - c->vm_start) >> PAGE_SHIFT;
++
++		if (off < kern_size &&
++		    user_size <= (kern_size - off)) {
++			ret = remap_pfn_range(vma, vma->vm_start,
++					      page_to_pfn(c->vm_pages) + off,
++					      user_size << PAGE_SHIFT,
++					      vma->vm_page_prot);
++		}
++	}
++
++
++	return ret;
++}
++
++int dma_mmap_coherent(struct device *dev, struct vm_area_struct *vma,
++		      void *cpu_addr, dma_addr_t dma_addr, size_t size)
++{
++	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
++	return dma_mmap(dev, vma, cpu_addr, dma_addr, size);
++}
++EXPORT_SYMBOL(dma_mmap_coherent);
++
++int dma_mmap_writecombine(struct device *dev, struct vm_area_struct *vma,
++			  void *cpu_addr, dma_addr_t dma_addr, size_t size)
++{
++	vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
++	return dma_mmap(dev, vma, cpu_addr, dma_addr, size);
++}
++EXPORT_SYMBOL(dma_mmap_writecombine);
++
++
++
++
++/*
++ * Initialise the consistent memory allocation.
++ */
++static int __init dma_alloc_init(void)
++{
++	pgd_t *pgd, *pgd_k;
++	pud_t *pud, *pud_k;
++	pmd_t *pmd, *pmd_k;
++	pte_t *pte;
++	int ret = 0;
++
++	do {
++		int offset = pgd_index(CONSISTENT_START);
++		pgd = pgd_offset(&init_mm, CONSISTENT_START);
++		pud = pud_alloc(&init_mm, pgd, CONSISTENT_START);
++		pmd = pmd_alloc(&init_mm, pud, CONSISTENT_START);
++		if (!pmd) {
++			pr_err("%s: no pmd tables\n", __func__);
++			ret = -ENOMEM;
++			break;
++		}
++		WARN_ON(!pmd_none(*pmd));
++
++		pte = pte_alloc_kernel(pmd, CONSISTENT_START);
++		if (!pte) {
++			pr_err("%s: no pte tables\n", __func__);
++			ret = -ENOMEM;
++			break;
++		}
++
++		pgd_k = ((pgd_t *) mmu_get_base()) + offset;
++		pud_k = pud_offset(pgd_k, CONSISTENT_START);
++		pmd_k = pmd_offset(pud_k, CONSISTENT_START);
++		set_pmd(pmd_k, *pmd);
++
++		consistent_pte = pte;
++	} while (0);
++
++	return ret;
++}
++early_initcall(dma_alloc_init);
++
++/*
++ * make an area consistent to devices.
++ */
++void dma_sync_for_device(void *vaddr, size_t size, int dma_direction)
++{
++	/*
++	 * Ensure any writes get through the write combiner. This is necessary
++	 * even with DMA_FROM_DEVICE, or the write may dirty the cache after
++	 * we've invalidated it and get written back during the DMA.
++	 */
++
++	barrier();
++
++	switch (dma_direction) {
++	case DMA_BIDIRECTIONAL:
++		/*
++		 * Writeback to ensure the device can see our latest changes and
++		 * so that we have no dirty lines, and invalidate the cache
++		 * lines too in preparation for receiving the buffer back
++		 * (dma_sync_for_cpu) later.
++		 */
++		flush_dcache_region(vaddr, size);
++		break;
++	case DMA_TO_DEVICE:
++		/*
++		 * Writeback to ensure the device can see our latest changes.
++		 * There's no need to invalidate as the device shouldn't write
++		 * to the buffer.
++		 */
++		writeback_dcache_region(vaddr, size);
++		break;
++	case DMA_FROM_DEVICE:
++		/*
++		 * Invalidate to ensure we have no dirty lines that could get
++		 * written back during the DMA. It's also safe to flush
++		 * (writeback) here if necessary.
++		 */
++		invalidate_dcache_region(vaddr, size);
++		break;
++	case DMA_NONE:
++		BUG();
++	}
++
++	wmb();
++}
++EXPORT_SYMBOL(dma_sync_for_device);
++
++/*
++ * make an area consistent to the core.
++ */
++void dma_sync_for_cpu(void *vaddr, size_t size, int dma_direction)
++{
++	/*
++	 * Hardware L2 cache prefetch doesn't occur across 4K physical
++	 * boundaries, however according to Documentation/DMA-API-HOWTO.txt
++	 * kmalloc'd memory is DMA'able, so accesses in nearby memory could
++	 * trigger a cache fill in the DMA buffer.
++	 *
++	 * This should never cause dirty lines, so a flush or invalidate should
++	 * be safe to allow us to see data from the device.
++	 */
++	if (_meta_l2c_pf_is_enabled()) {
++		switch (dma_direction) {
++		case DMA_BIDIRECTIONAL:
++		case DMA_FROM_DEVICE:
++			invalidate_dcache_region(vaddr, size);
++			break;
++		case DMA_TO_DEVICE:
++			/* The device shouldn't have written to the buffer */
++			break;
++		case DMA_NONE:
++			BUG();
++		}
++	}
++
++	rmb();
++}
++EXPORT_SYMBOL(dma_sync_for_cpu);
 -- 
 1.7.7.6
