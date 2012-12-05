@@ -1,163 +1,548 @@
-From: David Woodhouse <dwmw2@infradead.org>
-Subject: Re: [PATCH 2/4] powerpc: enable ARCH_USE_BUILTIN_BSWAP
-Date: Tue, 04 Dec 2012 14:32:34 +0000
-Message-ID: <1354631554.24281.133.camel@shinybook.infradead.org>
-References: <1354616130-21587-1-git-send-email-dwmw2@infradead.org>
-	 <1354616130-21587-3-git-send-email-dwmw2@infradead.org>
-	 <20121204220232.35c7ece1f96e20cd884106b6@canb.auug.org.au>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH v2 00/44] Meta Linux Kernel Port
+Date: Wed, 5 Dec 2012 16:08:18 +0000
+Message-ID: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg="sha1"; protocol="application/x-pkcs7-signature";
-	boundary="=-SA8BcwDRYzWNMxyZKQ2H"
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:35044 "EHLO
-	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751974Ab2LDOco (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 4 Dec 2012 09:32:44 -0500
-In-Reply-To: <20121204220232.35c7ece1f96e20cd884106b6@canb.auug.org.au>
+Received: from multi.imgtec.com ([194.200.65.239]:51617 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750803Ab2LEQJL (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 5 Dec 2012 11:09:11 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: x86@kernel.org, linux-arch@vger.kernel.org, linuxppc-dev@lists.ozlabs.org
+To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: Arnd Bergmann <arnd@arndb.de>, James Hogan <james.hogan@imgtec.com>
 
+This patchset adds core architecture support to Linux for Imagination's
+Meta ATP (Meta 1) and HTP (Meta 2) processor cores. Most of the feedback
+from the RFC patchset has now been addressed, although a few things
+remain to be done and will be addressed in a future version of the
+patchset (see below for details). All feedback is most welcome.
 
---=-SA8BcwDRYzWNMxyZKQ2H
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+The patches are based on v3.7-rc8, and can also be found in the
+following git tree:
+  git://github.com/jahogan/metag-linux.git metag-core
 
-On Tue, 2012-12-04 at 22:02 +1100, Stephen Rothwell wrote:
-> > +config ARCH_USE_BUILTIN_BSWAP
-> > +       def_bool y
-> > +
->=20
-> This should be defined as bool in arch/Kconfig (probably in the previous
-> patch) and then selected from appropriate architectures.
+Meta cores are 32-bit, hardware multithreaded, general purpose, embedded
+processors which also feature a DSP instruction set, and can be found in
+many digital radios. They are capable of running different operating
+systems on different hardware threads, for example a digital radio might
+run RTOSes for DAB decoding and audio decoding on 3 hardware threads,
+and run Linux on the 4th hardware thread to manage the user interface,
+networking etc. HTPs are also capable of running SMP Linux on multiple
+hardware threads.
 
-Thanks. Updated series at
+A buildroot tree containing toolchain patches can be found here (use
+meta2_defconfig):
+  git://github.com/img-meta/metag-buildroot.git metag-core
 
- git://git.infradead.org/users/dwmw2/byteswap.git
- http://git.infradead.org/users/dwmw2/byteswap.git
+Freely available instruction set and architecture overview documents can
+be found on the following page:
+  http://www.imgtec.com/downloads.asp
 
-I'll post them again in a day or so, incorporating any other feedback I
-get.
+---
+v2:
 
---=20
-dwmw2
+feedback not addressed in this version (to be addressed in a future
+version of the patchset):
+* purer use of sparse irqs (Arnd)
+* moving irq drivers into drivers/irqchip/ (Arnd)
+* proper inversion of Kconfig dependency lists (Greg, Arnd)
+* using generic CMDLINE Kconfig symbols (Sam Ravnborg)
 
+other work not included:
+* switch to generic kernel_{thread,execve} (will be posted separately to
+  aid review)
 
---=-SA8BcwDRYzWNMxyZKQ2H
-Content-Type: application/x-pkcs7-signature; name="smime.p7s"
-Content-Disposition: attachment; filename="smime.p7s"
-Content-Transfer-Encoding: base64
+changes based on rfc-v1 review feedback:
+* moved build infrastructure patch later (Sam Ravnborg)
+* various build system cleanups (Sam Ravnborg)
+* split generic build changes out of main build patch (Sam Ravnborg)
+* deprecate powervr DT vendor id (Rob Herring)
+* ftrace now uses recordmcount.c (Steven Rostedt)
+* fixed imgdafs fserrno problem (Al Viro)
+* io.h changes, inline asm, removed casts, added metag_in/out (Arnd)
+* remove bus_to_virt (Arnd)
+* use asm-generic/syscalls.h (Arnd)
+* remove superfluous metag_spinlock system call (Arnd)
+* renamed packed 64bit arg syscall wrappers (Arnd)
 
-MIAGCSqGSIb3DQEHAqCAMIACAQExCzAJBgUrDgMCGgUAMIAGCSqGSIb3DQEHAQAAoIIUbjCCBjQw
-ggQcoAMCAQICAR4wDQYJKoZIhvcNAQEFBQAwfTELMAkGA1UEBhMCSUwxFjAUBgNVBAoTDVN0YXJ0
-Q29tIEx0ZC4xKzApBgNVBAsTIlNlY3VyZSBEaWdpdGFsIENlcnRpZmljYXRlIFNpZ25pbmcxKTAn
-BgNVBAMTIFN0YXJ0Q29tIENlcnRpZmljYXRpb24gQXV0aG9yaXR5MB4XDTA3MTAyNDIxMDE1NVoX
-DTE3MTAyNDIxMDE1NVowgYwxCzAJBgNVBAYTAklMMRYwFAYDVQQKEw1TdGFydENvbSBMdGQuMSsw
-KQYDVQQLEyJTZWN1cmUgRGlnaXRhbCBDZXJ0aWZpY2F0ZSBTaWduaW5nMTgwNgYDVQQDEy9TdGFy
-dENvbSBDbGFzcyAxIFByaW1hcnkgSW50ZXJtZWRpYXRlIENsaWVudCBDQTCCASIwDQYJKoZIhvcN
-AQEBBQADggEPADCCAQoCggEBAMcJg8zOLdgasSmkLhOrlr6KMoOMpohBllVHrdRvEg/q6r8jR+EK
-75xCGhR8ToREoqe7zM9/UnC6TS2y9UKTpT1v7RSMzR0t6ndl0TWBuUr/UXBhPk+Kmy7bI4yW4urC
-+y7P3/1/X7U8ocb8VpH/Clt+4iq7nirMcNh6qJR+xjOhV+VHzQMALuGYn5KZmc1NbJQYclsGkDxD
-z2UbFqE2+6vIZoL+jb9x4Pa5gNf1TwSDkOkikZB1xtB4ZqtXThaABSONdfmv/Z1pua3FYxnCFmdr
-/+N2JLKutIxMYqQOJebr/f/h5t95m4JgrM3Y/w7YX9d7YAL9jvN4SydHsU6n65cCAwEAAaOCAa0w
-ggGpMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgEGMB0GA1UdDgQWBBRTcu2SnODaywFc
-fH6WNU7y1LhRgjAfBgNVHSMEGDAWgBROC+8apEBbpRdphzDKNGhD0EGu8jBmBggrBgEFBQcBAQRa
-MFgwJwYIKwYBBQUHMAGGG2h0dHA6Ly9vY3NwLnN0YXJ0c3NsLmNvbS9jYTAtBggrBgEFBQcwAoYh
-aHR0cDovL3d3dy5zdGFydHNzbC5jb20vc2ZzY2EuY3J0MFsGA1UdHwRUMFIwJ6AloCOGIWh0dHA6
-Ly93d3cuc3RhcnRzc2wuY29tL3Nmc2NhLmNybDAnoCWgI4YhaHR0cDovL2NybC5zdGFydHNzbC5j
-b20vc2ZzY2EuY3JsMIGABgNVHSAEeTB3MHUGCysGAQQBgbU3AQIBMGYwLgYIKwYBBQUHAgEWImh0
-dHA6Ly93d3cuc3RhcnRzc2wuY29tL3BvbGljeS5wZGYwNAYIKwYBBQUHAgEWKGh0dHA6Ly93d3cu
-c3RhcnRzc2wuY29tL2ludGVybWVkaWF0ZS5wZGYwDQYJKoZIhvcNAQEFBQADggIBAAqDCH14qywG
-XLhjjF6uHLkjd02hcdh9hrw+VUsv+q1eeQWB21jWj3kJ96AUlPCoEGZ/ynJNScWy6QMVQjbbMXlt
-UfO4n4bGGdKo3awPWp61tjAFgraLJgDk+DsSvUD6EowjMTNx25GQgyYJ5RPIzKKR9tQW8gGK+2+R
-HxkUCTbYFnL6kl8Ch507rUdPPipJ9CgJFws3kDS3gOS5WFMxcjO5DwKfKSETEPrHh7p5shuuNktv
-sv6hxHTLhiMKX893gxdT3XLS9OKmCv87vkINQcNEcIIoFWbP9HORz9v3vQwR4e3ksLc2JZOAFK+s
-sS5XMEoznzpihEP0PLc4dCBYjbvSD7kxgDwZ+Aj8Q9PkbvE9sIPP7ON0fz095HdThKjiVJe6vofq
-+n6b1NBc8XdrQvBmunwxD5nvtTW4vtN6VY7mUCmxsCieuoBJ9OlqmsVWQvifIYf40dJPZkk9YgGT
-zWLpXDSfLSplbY2LL9C9U0ptvjcDjefLTvqSFc7tw1sEhF0n/qpA2r0GpvkLRDmcSwVyPvmjFBGq
-Up/pNy8ZuPGQmHwFi2/14+xeSUDG2bwnsYJQG2EdJCB6luQ57GEnTA/yKZSTKI8dDQa8Sd3zfXb1
-9mOgSF0bBdXbuKhEpuP9wirslFe6fQ1t5j5R0xi72MZ8ikMu1RQZKCyDbMwazlHiMIIHFzCCBf+g
-AwIBAgIDBCZ6MA0GCSqGSIb3DQEBBQUAMIGMMQswCQYDVQQGEwJJTDEWMBQGA1UEChMNU3RhcnRD
-b20gTHRkLjErMCkGA1UECxMiU2VjdXJlIERpZ2l0YWwgQ2VydGlmaWNhdGUgU2lnbmluZzE4MDYG
-A1UEAxMvU3RhcnRDb20gQ2xhc3MgMSBQcmltYXJ5IEludGVybWVkaWF0ZSBDbGllbnQgQ0EwHhcN
-MTIwNTAxMTI1ODI3WhcNMTMwNTAzMTEzNzIwWjBdMRkwFwYDVQQNExA4Y1VOSzUzMTc0ODRYRjk3
-MRwwGgYDVQQDDBNkd213MkBpbmZyYWRlYWQub3JnMSIwIAYJKoZIhvcNAQkBFhNkd213MkBpbmZy
-YWRlYWQub3JnMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyYe7wo6MrtrB4uIGGbrY
-4IifY/Xsq22pSv605yganL0+uyUdd8rCjrYlH6Q/ra5TVJCQFTgzaepkuqPQc79DC/Cxmzm6Qo+s
-wLZy868oFsccsVokL2bPAWIPaRXfNPJKkYR1FTWQfZpWJVQmT+sPf1XFUullVBAK+d9RztopyacI
-xWoZ/W/Cmv7mseQbttYTtGKJa0btX73nsQRWl6SgErWXo59zg9friCLTy1GXMXJYB8H+PtnuwX0w
-MrAvWDdX1ABgIlA17W3FraCn0eW15ZM46eyu0/amGzJZNtemCWF73P7BAijzeV1jNmiJFXdZ0DT0
-w+hmtMO9PxdDUyt78QIDAQABo4IDrjCCA6owCQYDVR0TBAIwADALBgNVHQ8EBAMCBLAwHQYDVR0l
-BBYwFAYIKwYBBQUHAwIGCCsGAQUFBwMEMB0GA1UdDgQWBBTkfe5UOr3PcirsjApibyyUEfsyRzAf
-BgNVHSMEGDAWgBRTcu2SnODaywFcfH6WNU7y1LhRgjAeBgNVHREEFzAVgRNkd213MkBpbmZyYWRl
-YWQub3JnMIICIQYDVR0gBIICGDCCAhQwggIQBgsrBgEEAYG1NwECAjCCAf8wLgYIKwYBBQUHAgEW
-Imh0dHA6Ly93d3cuc3RhcnRzc2wuY29tL3BvbGljeS5wZGYwNAYIKwYBBQUHAgEWKGh0dHA6Ly93
-d3cuc3RhcnRzc2wuY29tL2ludGVybWVkaWF0ZS5wZGYwgfcGCCsGAQUFBwICMIHqMCcWIFN0YXJ0
-Q29tIENlcnRpZmljYXRpb24gQXV0aG9yaXR5MAMCAQEagb5UaGlzIGNlcnRpZmljYXRlIHdhcyBp
-c3N1ZWQgYWNjb3JkaW5nIHRvIHRoZSBDbGFzcyAxIFZhbGlkYXRpb24gcmVxdWlyZW1lbnRzIG9m
-IHRoZSBTdGFydENvbSBDQSBwb2xpY3ksIHJlbGlhbmNlIG9ubHkgZm9yIHRoZSBpbnRlbmRlZCBw
-dXJwb3NlIGluIGNvbXBsaWFuY2Ugb2YgdGhlIHJlbHlpbmcgcGFydHkgb2JsaWdhdGlvbnMuMIGc
-BggrBgEFBQcCAjCBjzAnFiBTdGFydENvbSBDZXJ0aWZpY2F0aW9uIEF1dGhvcml0eTADAgECGmRM
-aWFiaWxpdHkgYW5kIHdhcnJhbnRpZXMgYXJlIGxpbWl0ZWQhIFNlZSBzZWN0aW9uICJMZWdhbCBh
-bmQgTGltaXRhdGlvbnMiIG9mIHRoZSBTdGFydENvbSBDQSBwb2xpY3kuMDYGA1UdHwQvMC0wK6Ap
-oCeGJWh0dHA6Ly9jcmwuc3RhcnRzc2wuY29tL2NydHUxLWNybC5jcmwwgY4GCCsGAQUFBwEBBIGB
-MH8wOQYIKwYBBQUHMAGGLWh0dHA6Ly9vY3NwLnN0YXJ0c3NsLmNvbS9zdWIvY2xhc3MxL2NsaWVu
-dC9jYTBCBggrBgEFBQcwAoY2aHR0cDovL2FpYS5zdGFydHNzbC5jb20vY2VydHMvc3ViLmNsYXNz
-MS5jbGllbnQuY2EuY3J0MCMGA1UdEgQcMBqGGGh0dHA6Ly93d3cuc3RhcnRzc2wuY29tLzANBgkq
-hkiG9w0BAQUFAAOCAQEAqDU1FKifNtCFJbLnvOi1BLRfk7mut55PMtPSZLJ4/AnG7AjmJnbBI4U5
-DELwvVq3mIpwUpGqZUkqkZMEfBPIbfq517UZB3h4iANtqif+ULfTLhg5XgcK5eF8/T6EtX2c3epq
-ylARdleCbj/0FwiUDvPlTsA6PIN4SCekjRLgjKERrL3heFz+Hteq1rtMAvMkNuyL0/0ijyyg2y45
-NASAl2Afl9SLes/fnoh9nBwzfNQfb6qDYUFpnglfpGrq/0b1NtaOUb2z1SR+H1tKlb8bVJJIdvpu
-mEi27kSRIhzk3h30uTfKkKetgy++ouyldxZ7KZ0PuoLQrBy465EoQLosETCCBxcwggX/oAMCAQIC
-AwQmejANBgkqhkiG9w0BAQUFADCBjDELMAkGA1UEBhMCSUwxFjAUBgNVBAoTDVN0YXJ0Q29tIEx0
-ZC4xKzApBgNVBAsTIlNlY3VyZSBEaWdpdGFsIENlcnRpZmljYXRlIFNpZ25pbmcxODA2BgNVBAMT
-L1N0YXJ0Q29tIENsYXNzIDEgUHJpbWFyeSBJbnRlcm1lZGlhdGUgQ2xpZW50IENBMB4XDTEyMDUw
-MTEyNTgyN1oXDTEzMDUwMzExMzcyMFowXTEZMBcGA1UEDRMQOGNVTks1MzE3NDg0WEY5NzEcMBoG
-A1UEAwwTZHdtdzJAaW5mcmFkZWFkLm9yZzEiMCAGCSqGSIb3DQEJARYTZHdtdzJAaW5mcmFkZWFk
-Lm9yZzCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMmHu8KOjK7aweLiBhm62OCIn2P1
-7KttqUr+tOcoGpy9PrslHXfKwo62JR+kP62uU1SQkBU4M2nqZLqj0HO/QwvwsZs5ukKPrMC2cvOv
-KBbHHLFaJC9mzwFiD2kV3zTySpGEdRU1kH2aViVUJk/rD39VxVLpZVQQCvnfUc7aKcmnCMVqGf1v
-wpr+5rHkG7bWE7RiiWtG7V+957EEVpekoBK1l6Ofc4PX64gi08tRlzFyWAfB/j7Z7sF9MDKwL1g3
-V9QAYCJQNe1txa2gp9HlteWTOOnsrtP2phsyWTbXpglhe9z+wQIo83ldYzZoiRV3WdA09MPoZrTD
-vT8XQ1Mre/ECAwEAAaOCA64wggOqMAkGA1UdEwQCMAAwCwYDVR0PBAQDAgSwMB0GA1UdJQQWMBQG
-CCsGAQUFBwMCBggrBgEFBQcDBDAdBgNVHQ4EFgQU5H3uVDq9z3Iq7IwKYm8slBH7MkcwHwYDVR0j
-BBgwFoAUU3Ltkpzg2ssBXHx+ljVO8tS4UYIwHgYDVR0RBBcwFYETZHdtdzJAaW5mcmFkZWFkLm9y
-ZzCCAiEGA1UdIASCAhgwggIUMIICEAYLKwYBBAGBtTcBAgIwggH/MC4GCCsGAQUFBwIBFiJodHRw
-Oi8vd3d3LnN0YXJ0c3NsLmNvbS9wb2xpY3kucGRmMDQGCCsGAQUFBwIBFihodHRwOi8vd3d3LnN0
-YXJ0c3NsLmNvbS9pbnRlcm1lZGlhdGUucGRmMIH3BggrBgEFBQcCAjCB6jAnFiBTdGFydENvbSBD
-ZXJ0aWZpY2F0aW9uIEF1dGhvcml0eTADAgEBGoG+VGhpcyBjZXJ0aWZpY2F0ZSB3YXMgaXNzdWVk
-IGFjY29yZGluZyB0byB0aGUgQ2xhc3MgMSBWYWxpZGF0aW9uIHJlcXVpcmVtZW50cyBvZiB0aGUg
-U3RhcnRDb20gQ0EgcG9saWN5LCByZWxpYW5jZSBvbmx5IGZvciB0aGUgaW50ZW5kZWQgcHVycG9z
-ZSBpbiBjb21wbGlhbmNlIG9mIHRoZSByZWx5aW5nIHBhcnR5IG9ibGlnYXRpb25zLjCBnAYIKwYB
-BQUHAgIwgY8wJxYgU3RhcnRDb20gQ2VydGlmaWNhdGlvbiBBdXRob3JpdHkwAwIBAhpkTGlhYmls
-aXR5IGFuZCB3YXJyYW50aWVzIGFyZSBsaW1pdGVkISBTZWUgc2VjdGlvbiAiTGVnYWwgYW5kIExp
-bWl0YXRpb25zIiBvZiB0aGUgU3RhcnRDb20gQ0EgcG9saWN5LjA2BgNVHR8ELzAtMCugKaAnhiVo
-dHRwOi8vY3JsLnN0YXJ0c3NsLmNvbS9jcnR1MS1jcmwuY3JsMIGOBggrBgEFBQcBAQSBgTB/MDkG
-CCsGAQUFBzABhi1odHRwOi8vb2NzcC5zdGFydHNzbC5jb20vc3ViL2NsYXNzMS9jbGllbnQvY2Ew
-QgYIKwYBBQUHMAKGNmh0dHA6Ly9haWEuc3RhcnRzc2wuY29tL2NlcnRzL3N1Yi5jbGFzczEuY2xp
-ZW50LmNhLmNydDAjBgNVHRIEHDAahhhodHRwOi8vd3d3LnN0YXJ0c3NsLmNvbS8wDQYJKoZIhvcN
-AQEFBQADggEBAKg1NRSonzbQhSWy57zotQS0X5O5rreeTzLT0mSyePwJxuwI5iZ2wSOFOQxC8L1a
-t5iKcFKRqmVJKpGTBHwTyG36ude1GQd4eIgDbaon/lC30y4YOV4HCuXhfP0+hLV9nN3qaspQEXZX
-gm4/9BcIlA7z5U7AOjyDeEgnpI0S4IyhEay94Xhc/h7Xqta7TALzJDbsi9P9Io8soNsuOTQEgJdg
-H5fUi3rP356IfZwcM3zUH2+qg2FBaZ4JX6Rq6v9G9TbWjlG9s9Ukfh9bSpW/G1SSSHb6bphItu5E
-kSIc5N4d9Lk3ypCnrYMvvqLspXcWeymdD7qC0KwcuOuRKEC6LBExggNvMIIDawIBATCBlDCBjDEL
-MAkGA1UEBhMCSUwxFjAUBgNVBAoTDVN0YXJ0Q29tIEx0ZC4xKzApBgNVBAsTIlNlY3VyZSBEaWdp
-dGFsIENlcnRpZmljYXRlIFNpZ25pbmcxODA2BgNVBAMTL1N0YXJ0Q29tIENsYXNzIDEgUHJpbWFy
-eSBJbnRlcm1lZGlhdGUgQ2xpZW50IENBAgMEJnowCQYFKw4DAhoFAKCCAa8wGAYJKoZIhvcNAQkD
-MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMTIxMjA0MTQzMjM0WjAjBgkqhkiG9w0BCQQx
-FgQUaXdKTg5SnhmEBeIoF/6UNmT0dOUwgaUGCSsGAQQBgjcQBDGBlzCBlDCBjDELMAkGA1UEBhMC
-SUwxFjAUBgNVBAoTDVN0YXJ0Q29tIEx0ZC4xKzApBgNVBAsTIlNlY3VyZSBEaWdpdGFsIENlcnRp
-ZmljYXRlIFNpZ25pbmcxODA2BgNVBAMTL1N0YXJ0Q29tIENsYXNzIDEgUHJpbWFyeSBJbnRlcm1l
-ZGlhdGUgQ2xpZW50IENBAgMEJnowgacGCyqGSIb3DQEJEAILMYGXoIGUMIGMMQswCQYDVQQGEwJJ
-TDEWMBQGA1UEChMNU3RhcnRDb20gTHRkLjErMCkGA1UECxMiU2VjdXJlIERpZ2l0YWwgQ2VydGlm
-aWNhdGUgU2lnbmluZzE4MDYGA1UEAxMvU3RhcnRDb20gQ2xhc3MgMSBQcmltYXJ5IEludGVybWVk
-aWF0ZSBDbGllbnQgQ0ECAwQmejANBgkqhkiG9w0BAQEFAASCAQCoQ4mhRq84/1TzI87geAZfSY0J
-zyBPbRTM2a+eV05+hoB0rc7SFQexVmJ4GCuL5VA7mWv+Ll43KV+8ORALOBt/kCocTBjF9GFGN5sl
-cokaXvTQfJFf/iljEErwIoogopYLNAvVxunlu5KRBI2oCpEj2h+U0vr8K0IiUp8RnRZgW0tYFF7j
-KrFvMhZcLR7g9EKlHaa/zDj9AJ7itq7z9EIOZF3H1olLJPMIZQ9uwSPxhdPyDjqrOFxlf22Ct3Tz
-9n44ofeRYkavyrIj01mPu+2f8nC6RM1GuPPX9DRxXiNLoz6/bpMQCTOusEiLt6G8/q7/RyxnNnbW
-gALLDtLo5VppAAAAAAAA
+other changes:
+* rebased on v3.7-rc8
+  * changes based on v3.6..v3.7-rc8 patches
+  * uapi disintegration (thanks to David Howells for the assistance)
+* add cmpdi2/ucmpdi2 intrinsics and clean up lib Makefile
+* fix numa build
+* split memory management patch into 6 separate patches to make them
+  more manageable and stop them bouncing:
+  * cache/tlb handling
+  * memory management
+  * memory handling
+  * huge tlb
+  * highmem
+  * tcm
+* split architecture definitions out of TBX into asm/metag_*.h
+* merged remaining TBX header files into a single asm/tbx.h
+* split TBX patch into 2 separate patches to stop them bouncing
+* merge various similar Kconfig changes in generic code
+* dropped sysfs drivers from this patchset (we normally have them turned
+  off anyway so they're not a priority)
+* renamed dafs to imgdafs
+* implemented perf events
+* rewrote ptrace to use nicely abstracted regsets
+* removed non-standard hw_breakpoints/ptrace API
+* use ptrace abstracted context structs in sigcontext
+* update DA TTY to be more thread safe and use tty_ports
+* switch to generic sys_execve
 
+James Hogan (44):
+  asm-generic/io.h: remove asm/cacheflush.h include
+  asm-generic/unistd.h: handle symbol prefixes in cond_syscall
+  Add CONFIG_HAVE_64BIT_ALIGNED_STRUCT for taskstats
+  trace/ring_buffer: handle 64bit aligned structs
+  Revert some of "binfmt_elf: cleanups"
+  of/vendor-prefixes: add Imagination Technologies
+  metag: Add MAINTAINERS entry
+  metag: Headers for core arch constants
+  metag: Header for core memory mapped registers
+  metag: Boot
+  metag; TBX header
+  metag: TBX source
+  metag: Cache/TLB handling
+  metag: Memory management
+  metag: Memory handling
+  metag: Huge TLB
+  metag: Highmem support
+  metag: TCM support
+  metag: Signal handling
+  metag: Device tree
+  metag: ptrace
+  metag: Time keeping
+  metag: Traps
+  metag: IRQ handling
+  metag: System Calls
+  metag: Scheduling/Process management
+  metag: Module support
+  metag: Atomics, locks and bitops
+  metag: Basic documentation
+  metag: SMP support
+  metag: DMA
+  metag: Optimised library functions
+  metag: Stack unwinding
+  metag: Various other headers
+  mm: define VM_GROWSUP for CONFIG_METAG
+  Add metag to various Kconfig dependency lists
+  metag: Build infrastructure
+  metag: Perf
+  metag: ftrace support
+  scripts/checkstack.pl: Add metag support
+  metag: OProfile
+  metag: Add JTAG Debug Adapter (DA) support
+  tty/metag_da: Add metag DA TTY driver
+  fs: imgdafs: Add IMG DAFS filesystem for metag
 
---=-SA8BcwDRYzWNMxyZKQ2H--
+ Documentation/00-INDEX                             |    2 +
+ .../devicetree/bindings/metag/meta-intc.txt        |   92 ++
+ .../devicetree/bindings/vendor-prefixes.txt        |    3 +-
+ Documentation/kernel-parameters.txt                |    4 +
+ Documentation/metag/00-INDEX                       |    2 +
+ MAINTAINERS                                        |   10 +
+ arch/Kconfig                                       |   16 +
+ arch/metag/Kconfig                                 |  318 +++++
+ arch/metag/Kconfig.debug                           |   40 +
+ arch/metag/Kconfig.soc                             |   55 +
+ arch/metag/Makefile                                |   89 ++
+ arch/metag/boot/.gitignore                         |    4 +
+ arch/metag/boot/Makefile                           |   68 +
+ arch/metag/boot/dtb/Makefile                       |   17 +
+ arch/metag/boot/dts/skeleton.dts                   |   10 +
+ arch/metag/boot/dts/skeleton.dtsi                  |   14 +
+ arch/metag/configs/meta1_defconfig                 |   42 +
+ arch/metag/configs/meta2_defconfig                 |   43 +
+ arch/metag/configs/meta2_smp_defconfig             |   44 +
+ arch/metag/include/asm/Kbuild                      |   53 +
+ arch/metag/include/asm/atomic.h                    |   53 +
+ arch/metag/include/asm/atomic_lnkget.h             |  245 ++++
+ arch/metag/include/asm/atomic_lock1.h              |  160 +++
+ arch/metag/include/asm/barrier.h                   |   85 ++
+ arch/metag/include/asm/bitops.h                    |  132 ++
+ arch/metag/include/asm/bug.h                       |   12 +
+ arch/metag/include/asm/cache.h                     |   23 +
+ arch/metag/include/asm/cacheflush.h                |  228 ++++
+ arch/metag/include/asm/cachepart.h                 |   42 +
+ arch/metag/include/asm/checksum.h                  |   92 ++
+ arch/metag/include/asm/clock.h                     |   51 +
+ arch/metag/include/asm/cmpxchg.h                   |   65 +
+ arch/metag/include/asm/cmpxchg_irq.h               |   42 +
+ arch/metag/include/asm/cmpxchg_lnkget.h            |   86 ++
+ arch/metag/include/asm/cmpxchg_lock1.h             |   48 +
+ arch/metag/include/asm/core_reg.h                  |    7 +
+ arch/metag/include/asm/cpu.h                       |   14 +
+ arch/metag/include/asm/da.h                        |   43 +
+ arch/metag/include/asm/delay.h                     |   29 +
+ arch/metag/include/asm/div64.h                     |   12 +
+ arch/metag/include/asm/dma-mapping.h               |  183 +++
+ arch/metag/include/asm/elf.h                       |  128 ++
+ arch/metag/include/asm/fixmap.h                    |   99 ++
+ arch/metag/include/asm/ftrace.h                    |   23 +
+ arch/metag/include/asm/gpio.h                      |    4 +
+ arch/metag/include/asm/highmem.h                   |   62 +
+ arch/metag/include/asm/hugetlb.h                   |   86 ++
+ arch/metag/include/asm/hwthread.h                  |   40 +
+ arch/metag/include/asm/io.h                        |  165 +++
+ arch/metag/include/asm/irq.h                       |   79 ++
+ arch/metag/include/asm/irq_external.h              |   33 +
+ arch/metag/include/asm/irq_internal.h              |   16 +
+ arch/metag/include/asm/irqflags.h                  |   97 ++
+ arch/metag/include/asm/l2cache.h                   |  258 ++++
+ arch/metag/include/asm/linkage.h                   |    7 +
+ arch/metag/include/asm/lock.h                      |   14 +
+ arch/metag/include/asm/mach/arch.h                 |   81 ++
+ arch/metag/include/asm/metag_isa.h                 |   81 ++
+ arch/metag/include/asm/metag_mem.h                 | 1106 +++++++++++++++
+ arch/metag/include/asm/metag_regs.h                | 1180 ++++++++++++++++
+ arch/metag/include/asm/mman.h                      |   11 +
+ arch/metag/include/asm/mmu.h                       |   77 ++
+ arch/metag/include/asm/mmu_context.h               |  113 ++
+ arch/metag/include/asm/mmzone.h                    |   42 +
+ arch/metag/include/asm/module.h                    |   37 +
+ arch/metag/include/asm/page.h                      |  128 ++
+ arch/metag/include/asm/perf_event.h                |    4 +
+ arch/metag/include/asm/pgalloc.h                   |   79 ++
+ arch/metag/include/asm/pgtable.h                   |  370 +++++
+ arch/metag/include/asm/processor.h                 |  204 +++
+ arch/metag/include/asm/prom.h                      |   23 +
+ arch/metag/include/asm/ptrace.h                    |   60 +
+ arch/metag/include/asm/setup.h                     |    8 +
+ arch/metag/include/asm/smp.h                       |   31 +
+ arch/metag/include/asm/sparsemem.h                 |   13 +
+ arch/metag/include/asm/spinlock.h                  |   22 +
+ arch/metag/include/asm/spinlock_lnkget.h           |  261 ++++
+ arch/metag/include/asm/spinlock_lock1.h            |  184 +++
+ arch/metag/include/asm/spinlock_types.h            |   20 +
+ arch/metag/include/asm/stacktrace.h                |   20 +
+ arch/metag/include/asm/string.h                    |   13 +
+ arch/metag/include/asm/switch.h                    |   22 +
+ arch/metag/include/asm/syscall.h                   |  104 ++
+ arch/metag/include/asm/syscalls.h                  |   62 +
+ arch/metag/include/asm/tbx.h                       | 1437 ++++++++++++++++++++
+ arch/metag/include/asm/tcm.h                       |   30 +
+ arch/metag/include/asm/thread_info.h               |  155 +++
+ arch/metag/include/asm/tlb.h                       |   36 +
+ arch/metag/include/asm/tlbflush.h                  |   77 ++
+ arch/metag/include/asm/topology.h                  |   53 +
+ arch/metag/include/asm/traps.h                     |   43 +
+ arch/metag/include/asm/uaccess.h                   |  241 ++++
+ arch/metag/include/asm/unistd.h                    |   12 +
+ arch/metag/include/asm/user_gateway.h              |   44 +
+ arch/metag/include/uapi/asm/Kbuild                 |   13 +
+ arch/metag/include/uapi/asm/byteorder.h            |    1 +
+ arch/metag/include/uapi/asm/ptrace.h               |  113 ++
+ arch/metag/include/uapi/asm/resource.h             |    7 +
+ arch/metag/include/uapi/asm/sigcontext.h           |   31 +
+ arch/metag/include/uapi/asm/siginfo.h              |    8 +
+ arch/metag/include/uapi/asm/swab.h                 |   26 +
+ arch/metag/include/uapi/asm/unistd.h               |   21 +
+ arch/metag/kernel/.gitignore                       |    1 +
+ arch/metag/kernel/Makefile                         |   41 +
+ arch/metag/kernel/asm-offsets.c                    |   14 +
+ arch/metag/kernel/cachepart.c                      |  124 ++
+ arch/metag/kernel/clock.c                          |   53 +
+ arch/metag/kernel/core_reg.c                       |  117 ++
+ arch/metag/kernel/da.c                             |   23 +
+ arch/metag/kernel/devtree.c                        |  100 ++
+ arch/metag/kernel/dma.c                            |  507 +++++++
+ arch/metag/kernel/ftrace.c                         |  127 ++
+ arch/metag/kernel/ftrace_stub.S                    |   76 +
+ arch/metag/kernel/head.S                           |   57 +
+ arch/metag/kernel/irq.c                            |  277 ++++
+ arch/metag/kernel/irq_external.c                   |  886 ++++++++++++
+ arch/metag/kernel/irq_internal.c                   |  237 ++++
+ arch/metag/kernel/kick.c                           |   94 ++
+ arch/metag/kernel/machines.c                       |   21 +
+ arch/metag/kernel/metag_ksyms.c                    |   79 ++
+ arch/metag/kernel/module.c                         |  284 ++++
+ arch/metag/kernel/perf/Makefile                    |    3 +
+ arch/metag/kernel/perf/perf_event.c                |  859 ++++++++++++
+ arch/metag/kernel/perf/perf_event.h                |  106 ++
+ arch/metag/kernel/perf_callchain.c                 |   96 ++
+ arch/metag/kernel/process.c                        |  453 ++++++
+ arch/metag/kernel/ptrace.c                         |  380 ++++++
+ arch/metag/kernel/setup.c                          |  585 ++++++++
+ arch/metag/kernel/signal.c                         |  345 +++++
+ arch/metag/kernel/smp.c                            |  582 ++++++++
+ arch/metag/kernel/stacktrace.c                     |  187 +++
+ arch/metag/kernel/sys_metag.c                      |  198 +++
+ arch/metag/kernel/tbiunexp.S                       |   22 +
+ arch/metag/kernel/tcm.c                            |  151 ++
+ arch/metag/kernel/time.c                           |  163 +++
+ arch/metag/kernel/topology.c                       |   77 ++
+ arch/metag/kernel/traps.c                          |  964 +++++++++++++
+ arch/metag/kernel/user_gateway.S                   |   97 ++
+ arch/metag/kernel/vmlinux.lds.S                    |   71 +
+ arch/metag/lib/Makefile                            |   22 +
+ arch/metag/lib/ashldi3.S                           |   33 +
+ arch/metag/lib/ashrdi3.S                           |   33 +
+ arch/metag/lib/checksum.c                          |  169 +++
+ arch/metag/lib/clear_page.S                        |   17 +
+ arch/metag/lib/cmpdi2.S                            |   32 +
+ arch/metag/lib/copy_page.S                         |   20 +
+ arch/metag/lib/delay.c                             |   55 +
+ arch/metag/lib/div64.S                             |  108 ++
+ arch/metag/lib/divsi3.S                            |  100 ++
+ arch/metag/lib/ip_fast_csum.S                      |   32 +
+ arch/metag/lib/lshrdi3.S                           |   33 +
+ arch/metag/lib/memcpy.S                            |  185 +++
+ arch/metag/lib/memmove.S                           |  345 +++++
+ arch/metag/lib/memset.S                            |   86 ++
+ arch/metag/lib/modsi3.S                            |   38 +
+ arch/metag/lib/muldi3.S                            |   44 +
+ arch/metag/lib/ucmpdi2.S                           |   27 +
+ arch/metag/lib/usercopy.c                          | 1341 ++++++++++++++++++
+ arch/metag/mm/Kconfig                              |  153 +++
+ arch/metag/mm/Makefile                             |   18 +
+ arch/metag/mm/extable.c                            |   15 +
+ arch/metag/mm/fault.c                              |  239 ++++
+ arch/metag/mm/highmem.c                            |  133 ++
+ arch/metag/mm/hugetlbpage.c                        |  291 ++++
+ arch/metag/mm/init.c                               |  448 ++++++
+ arch/metag/mm/ioremap.c                            |   89 ++
+ arch/metag/mm/l2cache.c                            |  192 +++
+ arch/metag/mm/maccess.c                            |   68 +
+ arch/metag/mm/mmu-meta1.c                          |  157 +++
+ arch/metag/mm/mmu-meta2.c                          |  208 +++
+ arch/metag/mm/numa.c                               |   81 ++
+ arch/metag/oprofile/Makefile                       |   16 +
+ arch/metag/oprofile/backtrace.c                    |  134 ++
+ arch/metag/oprofile/backtrace.h                    |    6 +
+ arch/metag/oprofile/op_model_meta12.c              |  242 ++++
+ arch/metag/tbx/Makefile                            |   22 +
+ arch/metag/tbx/tbicache.c                          |  462 +++++++
+ arch/metag/tbx/tbicore.S                           |  136 ++
+ arch/metag/tbx/tbictx.S                            |  366 +++++
+ arch/metag/tbx/tbictxfpu.S                         |  190 +++
+ arch/metag/tbx/tbidefr.S                           |  175 +++
+ arch/metag/tbx/tbidspram.S                         |  161 +++
+ arch/metag/tbx/tbilogf.S                           |   48 +
+ arch/metag/tbx/tbipcx.S                            |  451 ++++++
+ arch/metag/tbx/tbiroot.S                           |   87 ++
+ arch/metag/tbx/tbisoft.S                           |  237 ++++
+ arch/metag/tbx/tbistring.c                         |  145 ++
+ arch/metag/tbx/tbitimer.S                          |  207 +++
+ arch/openrisc/include/asm/io.h                     |    1 +
+ drivers/char/Kconfig                               |    5 +-
+ drivers/input/serio/Kconfig                        |    2 +-
+ drivers/parport/Kconfig                            |    3 +-
+ drivers/tty/Kconfig                                |   13 +
+ drivers/tty/Makefile                               |    1 +
+ drivers/tty/metag_da.c                             |  523 +++++++
+ drivers/video/console/Kconfig                      |    2 +-
+ fs/Kconfig                                         |    1 +
+ fs/Makefile                                        |    1 +
+ fs/binfmt_elf.c                                    |    4 +
+ fs/imgdafs/Kconfig                                 |    6 +
+ fs/imgdafs/Makefile                                |    7 +
+ fs/imgdafs/imgdafs.h                               |   80 ++
+ fs/imgdafs/inode.c                                 |  840 ++++++++++++
+ include/asm-generic/io.h                           |    1 -
+ include/asm-generic/unistd.h                       |    9 +-
+ include/linux/mm.h                                 |    2 +
+ include/uapi/linux/elf.h                           |    2 +
+ kernel/taskstats.c                                 |    3 +-
+ kernel/trace/ring_buffer.c                         |    7 +-
+ lib/Kconfig.debug                                  |    4 +-
+ scripts/checkstack.pl                              |    8 +-
+ scripts/recordmcount.c                             |   13 +
+ 212 files changed, 28270 insertions(+), 15 deletions(-)
+ create mode 100644 Documentation/devicetree/bindings/metag/meta-intc.txt
+ create mode 100644 Documentation/metag/00-INDEX
+ create mode 100644 arch/metag/Kconfig
+ create mode 100644 arch/metag/Kconfig.debug
+ create mode 100644 arch/metag/Kconfig.soc
+ create mode 100644 arch/metag/Makefile
+ create mode 100644 arch/metag/boot/.gitignore
+ create mode 100644 arch/metag/boot/Makefile
+ create mode 100644 arch/metag/boot/dtb/Makefile
+ create mode 100644 arch/metag/boot/dts/skeleton.dts
+ create mode 100644 arch/metag/boot/dts/skeleton.dtsi
+ create mode 100644 arch/metag/configs/meta1_defconfig
+ create mode 100644 arch/metag/configs/meta2_defconfig
+ create mode 100644 arch/metag/configs/meta2_smp_defconfig
+ create mode 100644 arch/metag/include/asm/Kbuild
+ create mode 100644 arch/metag/include/asm/atomic.h
+ create mode 100644 arch/metag/include/asm/atomic_lnkget.h
+ create mode 100644 arch/metag/include/asm/atomic_lock1.h
+ create mode 100644 arch/metag/include/asm/barrier.h
+ create mode 100644 arch/metag/include/asm/bitops.h
+ create mode 100644 arch/metag/include/asm/bug.h
+ create mode 100644 arch/metag/include/asm/cache.h
+ create mode 100644 arch/metag/include/asm/cacheflush.h
+ create mode 100644 arch/metag/include/asm/cachepart.h
+ create mode 100644 arch/metag/include/asm/checksum.h
+ create mode 100644 arch/metag/include/asm/clock.h
+ create mode 100644 arch/metag/include/asm/cmpxchg.h
+ create mode 100644 arch/metag/include/asm/cmpxchg_irq.h
+ create mode 100644 arch/metag/include/asm/cmpxchg_lnkget.h
+ create mode 100644 arch/metag/include/asm/cmpxchg_lock1.h
+ create mode 100644 arch/metag/include/asm/core_reg.h
+ create mode 100644 arch/metag/include/asm/cpu.h
+ create mode 100644 arch/metag/include/asm/da.h
+ create mode 100644 arch/metag/include/asm/delay.h
+ create mode 100644 arch/metag/include/asm/div64.h
+ create mode 100644 arch/metag/include/asm/dma-mapping.h
+ create mode 100644 arch/metag/include/asm/elf.h
+ create mode 100644 arch/metag/include/asm/fixmap.h
+ create mode 100644 arch/metag/include/asm/ftrace.h
+ create mode 100644 arch/metag/include/asm/gpio.h
+ create mode 100644 arch/metag/include/asm/highmem.h
+ create mode 100644 arch/metag/include/asm/hugetlb.h
+ create mode 100644 arch/metag/include/asm/hwthread.h
+ create mode 100644 arch/metag/include/asm/io.h
+ create mode 100644 arch/metag/include/asm/irq.h
+ create mode 100644 arch/metag/include/asm/irq_external.h
+ create mode 100644 arch/metag/include/asm/irq_internal.h
+ create mode 100644 arch/metag/include/asm/irqflags.h
+ create mode 100644 arch/metag/include/asm/l2cache.h
+ create mode 100644 arch/metag/include/asm/linkage.h
+ create mode 100644 arch/metag/include/asm/lock.h
+ create mode 100644 arch/metag/include/asm/mach/arch.h
+ create mode 100644 arch/metag/include/asm/metag_isa.h
+ create mode 100644 arch/metag/include/asm/metag_mem.h
+ create mode 100644 arch/metag/include/asm/metag_regs.h
+ create mode 100644 arch/metag/include/asm/mman.h
+ create mode 100644 arch/metag/include/asm/mmu.h
+ create mode 100644 arch/metag/include/asm/mmu_context.h
+ create mode 100644 arch/metag/include/asm/mmzone.h
+ create mode 100644 arch/metag/include/asm/module.h
+ create mode 100644 arch/metag/include/asm/page.h
+ create mode 100644 arch/metag/include/asm/perf_event.h
+ create mode 100644 arch/metag/include/asm/pgalloc.h
+ create mode 100644 arch/metag/include/asm/pgtable.h
+ create mode 100644 arch/metag/include/asm/processor.h
+ create mode 100644 arch/metag/include/asm/prom.h
+ create mode 100644 arch/metag/include/asm/ptrace.h
+ create mode 100644 arch/metag/include/asm/setup.h
+ create mode 100644 arch/metag/include/asm/smp.h
+ create mode 100644 arch/metag/include/asm/sparsemem.h
+ create mode 100644 arch/metag/include/asm/spinlock.h
+ create mode 100644 arch/metag/include/asm/spinlock_lnkget.h
+ create mode 100644 arch/metag/include/asm/spinlock_lock1.h
+ create mode 100644 arch/metag/include/asm/spinlock_types.h
+ create mode 100644 arch/metag/include/asm/stacktrace.h
+ create mode 100644 arch/metag/include/asm/string.h
+ create mode 100644 arch/metag/include/asm/switch.h
+ create mode 100644 arch/metag/include/asm/syscall.h
+ create mode 100644 arch/metag/include/asm/syscalls.h
+ create mode 100644 arch/metag/include/asm/tbx.h
+ create mode 100644 arch/metag/include/asm/tcm.h
+ create mode 100644 arch/metag/include/asm/thread_info.h
+ create mode 100644 arch/metag/include/asm/tlb.h
+ create mode 100644 arch/metag/include/asm/tlbflush.h
+ create mode 100644 arch/metag/include/asm/topology.h
+ create mode 100644 arch/metag/include/asm/traps.h
+ create mode 100644 arch/metag/include/asm/uaccess.h
+ create mode 100644 arch/metag/include/asm/unistd.h
+ create mode 100644 arch/metag/include/asm/user_gateway.h
+ create mode 100644 arch/metag/include/uapi/asm/Kbuild
+ create mode 100644 arch/metag/include/uapi/asm/byteorder.h
+ create mode 100644 arch/metag/include/uapi/asm/ptrace.h
+ create mode 100644 arch/metag/include/uapi/asm/resource.h
+ create mode 100644 arch/metag/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/metag/include/uapi/asm/siginfo.h
+ create mode 100644 arch/metag/include/uapi/asm/swab.h
+ create mode 100644 arch/metag/include/uapi/asm/unistd.h
+ create mode 100644 arch/metag/kernel/.gitignore
+ create mode 100644 arch/metag/kernel/Makefile
+ create mode 100644 arch/metag/kernel/asm-offsets.c
+ create mode 100644 arch/metag/kernel/cachepart.c
+ create mode 100644 arch/metag/kernel/clock.c
+ create mode 100644 arch/metag/kernel/core_reg.c
+ create mode 100644 arch/metag/kernel/da.c
+ create mode 100644 arch/metag/kernel/devtree.c
+ create mode 100644 arch/metag/kernel/dma.c
+ create mode 100644 arch/metag/kernel/ftrace.c
+ create mode 100644 arch/metag/kernel/ftrace_stub.S
+ create mode 100644 arch/metag/kernel/head.S
+ create mode 100644 arch/metag/kernel/irq.c
+ create mode 100644 arch/metag/kernel/irq_external.c
+ create mode 100644 arch/metag/kernel/irq_internal.c
+ create mode 100644 arch/metag/kernel/kick.c
+ create mode 100644 arch/metag/kernel/machines.c
+ create mode 100644 arch/metag/kernel/metag_ksyms.c
+ create mode 100644 arch/metag/kernel/module.c
+ create mode 100644 arch/metag/kernel/perf/Makefile
+ create mode 100644 arch/metag/kernel/perf/perf_event.c
+ create mode 100644 arch/metag/kernel/perf/perf_event.h
+ create mode 100644 arch/metag/kernel/perf_callchain.c
+ create mode 100644 arch/metag/kernel/process.c
+ create mode 100644 arch/metag/kernel/ptrace.c
+ create mode 100644 arch/metag/kernel/setup.c
+ create mode 100644 arch/metag/kernel/signal.c
+ create mode 100644 arch/metag/kernel/smp.c
+ create mode 100644 arch/metag/kernel/stacktrace.c
+ create mode 100644 arch/metag/kernel/sys_metag.c
+ create mode 100644 arch/metag/kernel/tbiunexp.S
+ create mode 100644 arch/metag/kernel/tcm.c
+ create mode 100644 arch/metag/kernel/time.c
+ create mode 100644 arch/metag/kernel/topology.c
+ create mode 100644 arch/metag/kernel/traps.c
+ create mode 100644 arch/metag/kernel/user_gateway.S
+ create mode 100644 arch/metag/kernel/vmlinux.lds.S
+ create mode 100644 arch/metag/lib/Makefile
+ create mode 100644 arch/metag/lib/ashldi3.S
+ create mode 100644 arch/metag/lib/ashrdi3.S
+ create mode 100644 arch/metag/lib/checksum.c
+ create mode 100644 arch/metag/lib/clear_page.S
+ create mode 100644 arch/metag/lib/cmpdi2.S
+ create mode 100644 arch/metag/lib/copy_page.S
+ create mode 100644 arch/metag/lib/delay.c
+ create mode 100644 arch/metag/lib/div64.S
+ create mode 100644 arch/metag/lib/divsi3.S
+ create mode 100644 arch/metag/lib/ip_fast_csum.S
+ create mode 100644 arch/metag/lib/lshrdi3.S
+ create mode 100644 arch/metag/lib/memcpy.S
+ create mode 100644 arch/metag/lib/memmove.S
+ create mode 100644 arch/metag/lib/memset.S
+ create mode 100644 arch/metag/lib/modsi3.S
+ create mode 100644 arch/metag/lib/muldi3.S
+ create mode 100644 arch/metag/lib/ucmpdi2.S
+ create mode 100644 arch/metag/lib/usercopy.c
+ create mode 100644 arch/metag/mm/Kconfig
+ create mode 100644 arch/metag/mm/Makefile
+ create mode 100644 arch/metag/mm/extable.c
+ create mode 100644 arch/metag/mm/fault.c
+ create mode 100644 arch/metag/mm/highmem.c
+ create mode 100644 arch/metag/mm/hugetlbpage.c
+ create mode 100644 arch/metag/mm/init.c
+ create mode 100644 arch/metag/mm/ioremap.c
+ create mode 100644 arch/metag/mm/l2cache.c
+ create mode 100644 arch/metag/mm/maccess.c
+ create mode 100644 arch/metag/mm/mmu-meta1.c
+ create mode 100644 arch/metag/mm/mmu-meta2.c
+ create mode 100644 arch/metag/mm/numa.c
+ create mode 100644 arch/metag/oprofile/Makefile
+ create mode 100644 arch/metag/oprofile/backtrace.c
+ create mode 100644 arch/metag/oprofile/backtrace.h
+ create mode 100644 arch/metag/oprofile/op_model_meta12.c
+ create mode 100644 arch/metag/tbx/Makefile
+ create mode 100644 arch/metag/tbx/tbicache.c
+ create mode 100644 arch/metag/tbx/tbicore.S
+ create mode 100644 arch/metag/tbx/tbictx.S
+ create mode 100644 arch/metag/tbx/tbictxfpu.S
+ create mode 100644 arch/metag/tbx/tbidefr.S
+ create mode 100644 arch/metag/tbx/tbidspram.S
+ create mode 100644 arch/metag/tbx/tbilogf.S
+ create mode 100644 arch/metag/tbx/tbipcx.S
+ create mode 100644 arch/metag/tbx/tbiroot.S
+ create mode 100644 arch/metag/tbx/tbisoft.S
+ create mode 100644 arch/metag/tbx/tbistring.c
+ create mode 100644 arch/metag/tbx/tbitimer.S
+ create mode 100644 drivers/tty/metag_da.c
+ create mode 100644 fs/imgdafs/Kconfig
+ create mode 100644 fs/imgdafs/Makefile
+ create mode 100644 fs/imgdafs/imgdafs.h
+ create mode 100644 fs/imgdafs/inode.c
+
+-- 
+1.7.7.6
