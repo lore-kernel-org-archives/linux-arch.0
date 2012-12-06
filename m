@@ -1,17 +1,17 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v2 19/44] metag: Signal handling
-Date: Thu, 6 Dec 2012 11:17:34 +0000
-Message-ID: <50C07ECE.9070602@imgtec.com>
-References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com> <1354723742-6195-20-git-send-email-james.hogan@imgtec.com> <20121205171609.GW4939@ZenIV.linux.org.uk>
+Subject: Re: [PATCH v2 23/44] metag: Traps
+Date: Thu, 6 Dec 2012 11:43:56 +0000
+Message-ID: <50C084FC.8040104@imgtec.com>
+References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com> <1354723742-6195-24-git-send-email-james.hogan@imgtec.com> <20121205174035.GX4939@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:55596 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:56888 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S965097Ab2LFLRo (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 6 Dec 2012 06:17:44 -0500
-In-Reply-To: <20121205171609.GW4939@ZenIV.linux.org.uk>
+	id S1423208Ab2LFLn7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 6 Dec 2012 06:43:59 -0500
+In-Reply-To: <20121205174035.GX4939@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Al Viro <viro@ZenIV.linux.org.uk>
@@ -19,89 +19,57 @@ Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arn
 
 Hi Al,
 
-Thanks for reviewing.
-
-On 05/12/12 17:16, Al Viro wrote:
->> +	if (__copy_from_user(&st, &frame->uc.uc_stack, sizeof(st)))
->> +		goto badframe;
->> +	/* It is more difficult to avoid calling this function than to
->> +	   call it and ignore errors.  */
->> +	do_sigaltstack((__force const stack_t __user *)&st, NULL, regs->REG_SP);
-> 
-> "Dear sparse, please shut the fuck up.  This function might expect a userland
-> pointer for some reason, but I've just copied the damn thing on stack and
-> if I say that it's at userland address, at userland address it is".
-> 
-> 1) __force-cast will make sparse to STFU, indeed
-> 2) address of local variable is not a userland pointer.  In particular,
-> copy_from_user() will barf on it, unless you play with set_fs(), which
-> you don't do.
-> 3) do_sigaltstack() *does* copy_from_user(), so it'll simply fail and do
-> nothing; adding set_fs() games would have prevented that, but why the hell
-> bother creating a local copy in the first place?  Just give &frame->uc.uc_stack
-> to do_sigaltstack() and check that it hasn't returned -EFAULT.
-
-Agreed, it looks wrong. Looking at the sh version, is there a particular
-reason to only check for -EFAULT and not the other errors that
-do_sigaltstack can return (-EPERM, -EINVAL, and -ENOMEM)?
-
-> 4) sh et.al. were broken in exactly the same way.  Fixed in mainline now.
-> 5) if you need a force-cast, it might be worth figuring out what's going on.
-> 
->> +static void do_signal(struct pt_regs *regs, int from_syscall,
->> +		      unsigned int orig_syscall)
+On 05/12/12 17:40, Al Viro wrote:
+> On Wed, Dec 05, 2012 at 04:08:41PM +0000, James Hogan wrote:
+>> +TBIRES tail_end(TBIRES State, unsigned long orig_syscall)
 >> +{
->> +	struct k_sigaction ka;
->> +	siginfo_t info;
->> +	int signr;
+>> +	struct pt_regs *regs = (struct pt_regs *)State.Sig.pCtx;
+>> +	unsigned long flags;
 >> +
->> +	/*
->> +	 * We want the common case to go fast, which
->> +	 * is why we may in certain cases get here from
->> +	 * kernel mode. Just return without doing anything
->> +	 * if so.
->> +	 */
->> +	if (!user_mode(regs))
->> +		return;
+>> +	if (user_mode(regs)) {
+>> +		local_irq_enable();
+>> +		/* This is actually a crucial little line - if the process
+>> +		 * needs swapping out, then this is where it happens!
+>> +		 */
+>> +		if (need_resched())
+>> +			schedule();
+>> +
+>> +		flags = current_thread_info()->flags;
+>> +		if (flags & (_TIF_SIGPENDING | _TIF_NOTIFY_RESUME)) {
+>> +			/* Note the passing in of the original syscall number.
+>> +			 * This is used for implementing signal restart.
+>> +			 */
+>> +			do_notify_resume(regs, orig_syscall != 0,
+>> +					 orig_syscall, flags);
 > 
-> Can you really get here with !user_mode(regs)?  If so, you are very likely
-> screwed and badly.
+> Owww....  So
+> 	a) you can't get there with !user_mode(regs)
+> 	b) you handle only one signal (what happens if you fail sigframe
+> allocation, BTW?  Sure, you get SIGSEGV delivered.  And don't handle it.)
 
-Agreed, it's only called through do_notify_resume() from tail_end()
-which already checks user_mode(regs), so it's no longer relevant. I'll
-remove that check.
+I see, this indeed looks wrong.
 
-> 
->> +	if (from_syscall) {
->> +		/* Restart the system call - no handlers present */
->> +		switch (syscall_get_error(current, regs)) {
->> +		case -ERESTARTNOHAND:
->> +		case -ERESTARTSYS:
->> +		case -ERESTARTNOINTR:
->> +			regs->REG_SYSCALL = orig_syscall;
->> +			regs->REG_PC -= 4;
-> 
-> ... and what's to prevent getting here again?  Unless you only handle one
-> signal and bugger off to userland immediately, which is also quite broken.
+If I understand correctly the second go around the loop when it asked
+for the next signal should either stop process (SIGSEGV), or try to
+invoke signal handler for SIGSEGV, and if allocation failed again it
+would see it's already in a SIGSEGV (in force_sigsegv), change handler
+to default, so that on the third go around the loop the process would
+get stopped.
 
-Yes, by the looks of it we only got away with this due to the lack of
-the work loop, which as you say is a bit broken.
+> 	c) you read ->flags with no protection whatsoever.  It should be
+> done *before* you enable interrupts, and rechecked after you've done
+> do_notify_resume() and redisabled them.  The same for schedule().  It really
+> should be a loop; take a look at how it's done on arm and alpha - there that
+> loop is in C, not in asm glue.
 
-> BTW, what's to stop the syscall restart triggering if you catch a signal
-> while in rt_sigreturn(2)?
+Thanks for pointing to ARM/alpha versions. This definitely needs some work.
 
-I'm not sure I understand how that could cause a problem. Could you
-elaborate the sequence of events?
+> 	d) looks like your sigreturn is, indeed, broken.  It should *not* have
+> syscall restart logics triggered at all.
 
-The signal restart is triggered by the return value register, so
-rt_sigreturn would have to return -ERESTART*. This could happen if the
-signal handler overwrote the return value in the sigcontext (which as
-far as I can tell could also happen on ARM), or if the syscall that was
-originally interrupted by the signal has -ERESTARTNOINTR ||
-(-ERESTARTSYS && SA_RESTART), but in that case rt_sigreturn has already
-switched back to the context of the original syscall so that's the right
-thing to do isn't it? I've probably missed something important :-)
+I presume this is related to the other email about preventing syscall
+restart logic for sigreturn. I can't see how any other arches prevent it
+though.
 
-Thanks for your time,
-
+Thanks a lot
 James
