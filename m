@@ -1,75 +1,71 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v2 23/44] metag: Traps
-Date: Thu, 6 Dec 2012 11:43:56 +0000
-Message-ID: <50C084FC.8040104@imgtec.com>
-References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com> <1354723742-6195-24-git-send-email-james.hogan@imgtec.com> <20121205174035.GX4939@ZenIV.linux.org.uk>
+From: Joe Perches <joe@perches.com>
+Subject: Re: [PATCH v2 12/44] metag: TBX source
+Date: Thu, 06 Dec 2012 04:59:38 -0800
+Message-ID: <1354798778.17565.8.camel@joe-AO722>
+References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
+	 <1354723742-6195-13-git-send-email-james.hogan@imgtec.com>
+	 <1354733607.8320.3.camel@joe-AO722> <50C066D9.9010700@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:56888 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1423208Ab2LFLn7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 6 Dec 2012 06:43:59 -0500
-In-Reply-To: <20121205174035.GX4939@ZenIV.linux.org.uk>
+Received: from [206.117.179.246] ([206.117.179.246]:42272 "EHLO labridge.com"
+	rhost-flags-FAIL-FAIL-OK-FAIL) by vger.kernel.org with ESMTP
+	id S1755010Ab2LFM77 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 6 Dec 2012 07:59:59 -0500
+In-Reply-To: <50C066D9.9010700@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
+To: James Hogan <james.hogan@imgtec.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
 
-Hi Al,
-
-On 05/12/12 17:40, Al Viro wrote:
-> On Wed, Dec 05, 2012 at 04:08:41PM +0000, James Hogan wrote:
->> +TBIRES tail_end(TBIRES State, unsigned long orig_syscall)
->> +{
->> +	struct pt_regs *regs = (struct pt_regs *)State.Sig.pCtx;
->> +	unsigned long flags;
->> +
->> +	if (user_mode(regs)) {
->> +		local_irq_enable();
->> +		/* This is actually a crucial little line - if the process
->> +		 * needs swapping out, then this is where it happens!
->> +		 */
->> +		if (need_resched())
->> +			schedule();
->> +
->> +		flags = current_thread_info()->flags;
->> +		if (flags & (_TIF_SIGPENDING | _TIF_NOTIFY_RESUME)) {
->> +			/* Note the passing in of the original syscall number.
->> +			 * This is used for implementing signal restart.
->> +			 */
->> +			do_notify_resume(regs, orig_syscall != 0,
->> +					 orig_syscall, flags);
+On Thu, 2012-12-06 at 09:35 +0000, James Hogan wrote:
+> On 05/12/12 18:53, Joe Perches wrote:
+> > On Wed, 2012-12-05 at 16:08 +0000, James Hogan wrote:
+> >> Add source files from the Thread Binary Interface (TBI) library which
+> >> provides useful low level operations and traps/context management.
+> > []
+> >>  arch/metag/tbx/tbicache.c  |  462 ++++++++++++++++++++++++++++++++++++++++++++
+> > 
+> > Could you please run checkpatch on this file?
 > 
-> Owww....  So
-> 	a) you can't get there with !user_mode(regs)
-> 	b) you handle only one signal (what happens if you fail sigframe
-> allocation, BTW?  Sure, you get SIGSEGV delivered.  And don't handle it.)
+> Hi Joe,
+> 
+> Thanks for taking a look.
+> 
+> I'd prefer to avoid making style modifications to the tbx/ files if
+> possible to ease maintenance, as the code is shared with other projects
+> and maintained by a separate group.
+> 
+> Of course if cleaning up the style is deemed absolutely necessary then
+> so be it.
 
-I see, this indeed looks wrong.
+Your choice though the file looks to me to be linux
+specific as it uses #include <linux/stddef.h>
 
-If I understand correctly the second go around the loop when it asked
-for the next signal should either stop process (SIGSEGV), or try to
-invoke signal handler for SIGSEGV, and if allocation failed again it
-would see it's already in a SIGSEGV (in force_sigsegv), change handler
-to default, so that on the third go around the loop the process would
-get stopped.
+Also, two functions, __TBIDataCacheFlush and
+__TBICodeCacheFlush, have an unnecessary indentation
+level after a test and return.
 
-> 	c) you read ->flags with no protection whatsoever.  It should be
-> done *before* you enable interrupts, and rechecked after you've done
-> do_notify_resume() and redisabled them.  The same for schedule().  It really
-> should be a loop; take a look at how it's done on arm and alpha - there that
-> loop is in C, not in asm glue.
+void __TBICodeCacheFlush( const void *pStart, int Bytes )
+{
+	volatile int *pCtrl = (volatile int *) SYSC_CACHE_MMU_CONFIG;
 
-Thanks for pointing to ARM/alpha versions. This definitely needs some work.
+	if ( !__TBICacheDoneInit )
+		__TBICacheInit();
 
-> 	d) looks like your sigreturn is, indeed, broken.  It should *not* have
-> syscall restart logics triggered at all.
+	if ( (pCtrl[0] & SYSC_CMMUCFG_IC_ON_BIT) == 0 )
+	{
+		/* No need to flush the code cache it's not actually enabled */
+		return;
+	} 
 
-I presume this is related to the other email about preventing syscall
-restart logic for sigreturn. I can't see how any other arches prevent it
-though.
+	{
+		/* Use a sequence of writes to flush the cache region requested */	
+		int Loops, Step;
 
-Thanks a lot
-James
+		etc.
+
+I believe the automatics in the second blocks should
+be moved to the start of the function and the
+unnecessary braces and extra indentation removed.
