@@ -1,69 +1,35 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f42.google.com ([74.125.82.42]:52338 "EHLO
-	mail-wg0-f42.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S932239Ab2LEW22 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 5 Dec 2012 17:28:28 -0500
-Received: by mail-wg0-f42.google.com with SMTP id dr1so8118wgb.1
-        for <linux-arch@vger.kernel.org>; Wed, 05 Dec 2012 14:28:27 -0800 (PST)
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [PATCH v2 06/44] of/vendor-prefixes: add Imagination Technologies
-In-Reply-To: <1354723742-6195-7-git-send-email-james.hogan@imgtec.com>
-References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com> <1354723742-6195-7-git-send-email-james.hogan@imgtec.com>
-Date: Wed, 05 Dec 2012 22:28:23 +0000
-Message-ID: <20121205222824.005C53E0E22@localhost>
+Received: from mail-ee0-f46.google.com ([74.125.83.46]:65012 "EHLO
+	mail-ee0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751321Ab2LFOXP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Dec 2012 09:23:15 -0500
+Received: by mail-ee0-f46.google.com with SMTP id e53so3638080eek.19
+        for <linux-arch@vger.kernel.org>; Thu, 06 Dec 2012 06:23:14 -0800 (PST)
+MIME-Version: 1.0
+Date: Thu, 6 Dec 2012 15:23:14 +0100
+Message-ID: <CAHTX3dLxbVxn+D+AV7L0VsGYFOjas3AJ_3M_xncVfxp02FCy=Q@mail.gmail.com>
+Subject: Sharing PCIE driver between Microblaze and Arm zynq
+From: Michal Simek <michal.simek@xilinx.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: Arnd Bergmann <arnd@arndb.de>, Rob Herring <rob.herring@calxeda.com>, Rob Landley <rob@landley.net>, devicetree-discuss@lists.ozlabs.org
-Message-ID: <20121205222823.38t52WiuVJdPF_zZMed2PXIag-CzL7q819uYqBux2xc@z>
+To: LKML <linux-kernel@vger.kernel.org>, linux-arm <linux-arm-kernel@lists.infradead.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, linux-arch@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, Grant Likely <grant.likely@secretlab.ca>
+Cc: John Linn <John.Linn@xilinx.com>, John Williams <jwilliams@xilinx.com>
+Message-ID: <20121206142314.q92cDB85PXXiqMG1BxLV0maCOv-uCWVWaMLFEKMsrgk@z>
 
-On Wed, 5 Dec 2012 16:08:24 +0000, James Hogan <james.hogan@imgtec.com> wrote:
-> The "powervr" prefix which is currently described as "Imagination
-> Technologies" isn't really appropriate for non-PowerVR hardware, so
-> deprecate it, changing the description of "powervr" to "PowerVR
-> (deprecated, use img)", and add a separate "img" prefix for "Imagination
-> Technologies Ltd.".
-> 
-> Signed-off-by: James Hogan <james.hogan@imgtec.com>
-> Cc: Grant Likely <grant.likely@secretlab.ca>
-> Cc: Rob Herring <rob.herring@calxeda.com>
-> Cc: Rob Landley <rob@landley.net>
-> Cc: devicetree-discuss@lists.ozlabs.org
+Hi guys,
 
-Applied, thanks.
+I have a question regarding to sharing generic OF pcie driver between
+two architectures MB and ARM Zynq.
+Is drivers/pci/pcie location good for it?
+Make no sense to have the same driver in two locations.
+Is using readl/writel IO functions in this driver the best option
+which we can have?
+Or is there any other recommendation?
 
-g.
+Also just want to check if it is correct to use pcie device_type.
+The rest should be the same with pci description:
+(http://devicetree.org/MPC5200:PCI#PCI_Address_Translation).
 
-> ---
->  .../devicetree/bindings/vendor-prefixes.txt        |    3 ++-
->  1 files changed, 2 insertions(+), 1 deletions(-)
-> 
-> diff --git a/Documentation/devicetree/bindings/vendor-prefixes.txt b/Documentation/devicetree/bindings/vendor-prefixes.txt
-> index 9de2b9f..aab2993 100644
-> --- a/Documentation/devicetree/bindings/vendor-prefixes.txt
-> +++ b/Documentation/devicetree/bindings/vendor-prefixes.txt
-> @@ -25,6 +25,7 @@ gef	GE Fanuc Intelligent Platforms Embedded Systems, Inc.
->  hp	Hewlett Packard
->  ibm	International Business Machines (IBM)
->  idt	Integrated Device Technologies, Inc.
-> +img	Imagination Technologies Ltd.
->  intercontrol	Inter Control Group
->  linux	Linux-specific binding
->  marvell	Marvell Technology Group Ltd.
-> @@ -35,7 +36,7 @@ nintendo	Nintendo
->  nvidia	NVIDIA
->  nxp	NXP Semiconductors
->  picochip	Picochip Ltd
-> -powervr	Imagination Technologies
-> +powervr	PowerVR (deprecated, use img)
->  qcom	Qualcomm, Inc.
->  ramtron	Ramtron International
->  realtek Realtek Semiconductor Corp.
-> -- 
-> 1.7.7.6
-> 
-> 
-
--- 
-Grant Likely, B.Sc, P.Eng.
-Secret Lab Technologies, Ltd.
+Thanks,
+Michal
