@@ -1,78 +1,52 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wi0-f174.google.com ([209.85.212.174]:47052 "EHLO
-	mail-wi0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1423543Ab2LFOnG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Dec 2012 09:43:06 -0500
-Received: by mail-wi0-f174.google.com with SMTP id hm9so692040wib.1
-        for <linux-arch@vger.kernel.org>; Thu, 06 Dec 2012 06:43:04 -0800 (PST)
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [RFC] gpiolib: introduce descriptor-based GPIO interface
-In-Reply-To: <1354779918-4028-2-git-send-email-acourbot@nvidia.com>
-References: <1354779918-4028-1-git-send-email-acourbot@nvidia.com> <1354779918-4028-2-git-send-email-acourbot@nvidia.com>
-Date: Thu, 06 Dec 2012 14:42:59 +0000
-Message-ID: <20121206144259.136693E0950@localhost>
+Received: from mail-la0-f46.google.com ([209.85.215.46]:51090 "EHLO
+	mail-la0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755601Ab2LFV12 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 6 Dec 2012 16:27:28 -0500
+Received: by mail-la0-f46.google.com with SMTP id p5so5648126lag.19
+        for <linux-arch@vger.kernel.org>; Thu, 06 Dec 2012 13:27:27 -0800 (PST)
+MIME-Version: 1.0
+In-Reply-To: <CAHTX3dLxbVxn+D+AV7L0VsGYFOjas3AJ_3M_xncVfxp02FCy=Q@mail.gmail.com>
+References: <CAHTX3dLxbVxn+D+AV7L0VsGYFOjas3AJ_3M_xncVfxp02FCy=Q@mail.gmail.com>
+From: Bjorn Helgaas <bhelgaas@google.com>
+Date: Thu, 6 Dec 2012 14:27:06 -0700
+Message-ID: <CAErSpo6xRdwzTuPPqnmvmHSp7awnV7=Z85eWFfktb_hm9Aad_A@mail.gmail.com>
+Subject: Re: Sharing PCIE driver between Microblaze and Arm zynq
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexandre Courbot <acourbot@nvidia.com>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, gnurou@gmail.com
-Message-ID: <20121206144259.wNCkEVRt6_-S8L3gmVcShih0Vs9TF58vPsh8-owOKDI@z>
+To: Michal Simek <michal.simek@xilinx.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, linux-arm <linux-arm-kernel@lists.infradead.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, linux-arch@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, Grant Likely <grant.likely@secretlab.ca>, John Linn <John.Linn@xilinx.com>, John Williams <jwilliams@xilinx.com>, linux-pci@vger.kernel.org
+Message-ID: <20121206212706.BLu7D6Fc6644Y31MVUZzqSE7vaV-ZbAV7eacBxKBL30@z>
 
-On Thu, 6 Dec 2012 16:45:18 +0900, Alexandre Courbot <acourbot@nvidia.com> wrote:
-> With the current API, GPIOs are manipulated through an integer which
-> represents their unique number across the system. This poses problems in
-> terms of portability, scalability and flexibility: for instance, the
-> number of valid GPIOs for a given system is fixed at system time, and a
-> large array of that size is statically allocated to hold the GPIO
-> descriptors. Worse, GPIOs can be used without being properly allocated.
-> 
-> In order to improve the situation, the integer namespace must first get
-> away. This patch introduces an alternative GPIO API that uses opaque
-> handlers and refactor gpiolib's internals to work with these handlers
-> instead of GPIO numbers. The former integer-based API is still available
-> as a light wrapper around this new API.
-> 
-> This first step will then us to build more improvements for gpiolib,
-> like proper GPIO lookup functions per device and provider, and getting
-> rid of the static GPIO array and the ARCH_NR_GPIO configuration option.
-> 
-> Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
-> ---
->  drivers/gpio/gpiolib.c        | 302 ++++++++++++++++++++++--------------------
->  include/asm-generic/gpio.h    |  74 ++++++++---
->  include/linux/gpio/consumer.h |  45 +++++++
->  3 files changed, 261 insertions(+), 160 deletions(-)
->  create mode 100644 include/linux/gpio/consumer.h
-> 
-> diff --git a/drivers/gpio/gpiolib.c b/drivers/gpio/gpiolib.c
-> index 1c8d9e3..bf32511 100644
-> --- a/drivers/gpio/gpiolib.c
-> +++ b/drivers/gpio/gpiolib.c
-> @@ -83,6 +83,32 @@ static inline void desc_set_label(struct gpio_desc *d, const char *label)
->  #endif
->  }
->  
-> +/**
-> + * Convert a GPIO descriptor to the integer namespace.
-> + * This should disappear in the future but is needed since we still
-> + * use GPIO numbers for error messages and sysfs nodes
-> + */
-> +static inline int desc_to_gpio(struct gpio_desc *desc)
-> +{
-> +	return desc - &gpio_desc[0];
-> +}
-> +
-> +/**
-> + * Return the GPIO number of the passed descriptor relative to its chip
-> + */
-> +int gpio_chip_offset(struct gpio_desc *desc)
-> +{
-> +	return (desc - &gpio_desc[0]) - desc->chip->base;
-> +}
+[+cc linux-pci]
 
-how about "gpio_chip_hwnum()" to somewhat match irqdomain convention?
+On Thu, Dec 6, 2012 at 7:23 AM, Michal Simek <michal.simek@xilinx.com> wrote:
+> Hi guys,
+>
+> I have a question regarding to sharing generic OF pcie driver between
+> two architectures MB and ARM Zynq.
+> Is drivers/pci/pcie location good for it?
+> Make no sense to have the same driver in two locations.
 
-I've only lightly scanned this patch, but I like what I see. I would
-keep going with it.
+I think you're talking about a PCI host bridge driver.  It would
+definitely be nice to move toward a generic, shared driver.  Host
+bridge drivers are responsible for enumerating the PCI hierarchy below
+the bridge.  Enumeration is not really PCIe-specific, so I wouldn't
+put it in drivers/pci/pcie.
 
-g.
+> Is using readl/writel IO functions in this driver the best option
+> which we can have?
+> Or is there any other recommendation?
 
+I'm not really a driver person, but if you're writing a new driver,
+wouldn't you use the iomap interfaces (ioremap(), ioread32(), etc)
+rather than readl()?
+
+> Also just want to check if it is correct to use pcie device_type.
+
+I don't know what you're asking here.  Can you elaborate or give a
+specific example?
+
+> The rest should be the same with pci description:
+> (http://devicetree.org/MPC5200:PCI#PCI_Address_Translation).
