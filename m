@@ -1,87 +1,50 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v2 12/44] metag: TBX source
-Date: Thu, 6 Dec 2012 15:03:49 +0000
-Message-ID: <50C0B3D5.50707@imgtec.com>
-References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>  <1354723742-6195-13-git-send-email-james.hogan@imgtec.com>  <1354733607.8320.3.camel@joe-AO722> <50C066D9.9010700@imgtec.com> <1354798778.17565.8.camel@joe-AO722>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [RFC] gpiolib: introduce descriptor-based GPIO interface
+Date: Thu, 6 Dec 2012 21:19:47 +0100
+Message-ID: <CACRpkdY3mJL00e0Yq7RBRyHxR9AKMTj7um4Upq3Mh2kxMPqdww@mail.gmail.com>
+References: <1354779918-4028-1-git-send-email-acourbot@nvidia.com>
+	<1354779918-4028-2-git-send-email-acourbot@nvidia.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:56806 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1423662Ab2LFPDw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 6 Dec 2012 10:03:52 -0500
-In-Reply-To: <1354798778.17565.8.camel@joe-AO722>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Joe Perches <joe@perches.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1354779918-4028-2-git-send-email-acourbot@nvidia.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alexandre Courbot <acourbot@nvidia.com>
+Cc: Grant Likely <grant.likely@secretlab.ca>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, gnurou@gmail.com
+List-Id: linux-arch.vger.kernel.org
 
-On 06/12/12 12:59, Joe Perches wrote:
-> On Thu, 2012-12-06 at 09:35 +0000, James Hogan wrote:
->> On 05/12/12 18:53, Joe Perches wrote:
->>> On Wed, 2012-12-05 at 16:08 +0000, James Hogan wrote:
->>>> Add source files from the Thread Binary Interface (TBI) library which
->>>> provides useful low level operations and traps/context management.
->>> []
->>>>  arch/metag/tbx/tbicache.c  |  462 ++++++++++++++++++++++++++++++++++++++++++++
->>>
->>> Could you please run checkpatch on this file?
->>
->> Hi Joe,
->>
->> Thanks for taking a look.
->>
->> I'd prefer to avoid making style modifications to the tbx/ files if
->> possible to ease maintenance, as the code is shared with other projects
->> and maintained by a separate group.
->>
->> Of course if cleaning up the style is deemed absolutely necessary then
->> so be it.
-> 
-> Your choice though the file looks to me to be linux
-> specific as it uses #include <linux/stddef.h>
+On Thu, Dec 6, 2012 at 8:45 AM, Alexandre Courbot <acourbot@nvidia.com> wrote:
 
-Yes, I have rearranged the TBX headers and includes a bit, including
-this one to get the definition of NULL, but have avoided making changes
-to the actual code so far.
+> With the current API, GPIOs are manipulated through an integer which
+> represents their unique number across the system. This poses problems in
+> terms of portability, scalability and flexibility: for instance, the
+> number of valid GPIOs for a given system is fixed at system time, and a
+> large array of that size is statically allocated to hold the GPIO
+> descriptors. Worse, GPIOs can be used without being properly allocated.
+>
+> In order to improve the situation, the integer namespace must first get
+> away. This patch introduces an alternative GPIO API that uses opaque
+> handlers and refactor gpiolib's internals to work with these handlers
+> instead of GPIO numbers. The former integer-based API is still available
+> as a light wrapper around this new API.
+>
+> This first step will then us to build more improvements for gpiolib,
+> like proper GPIO lookup functions per device and provider, and getting
+> rid of the static GPIO array and the ARCH_NR_GPIO configuration option.
+>
+> Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
 
-> 
-> Also, two functions, __TBIDataCacheFlush and
-> __TBICodeCacheFlush, have an unnecessary indentation
-> level after a test and return.
+I really like this. It is looking very good.
 
-> void __TBICodeCacheFlush( const void *pStart, int Bytes )
-> {
-> 	volatile int *pCtrl = (volatile int *) SYSC_CACHE_MMU_CONFIG;
-> 
-> 	if ( !__TBICacheDoneInit )
-> 		__TBICacheInit();
-> 
-> 	if ( (pCtrl[0] & SYSC_CMMUCFG_IC_ON_BIT) == 0 )
-> 	{
-> 		/* No need to flush the code cache it's not actually enabled */
-> 		return;
-> 	} 
-> 
-> 	{
-> 		/* Use a sequence of writes to flush the cache region requested */	
-> 		int Loops, Step;
-> 
-> 		etc.
-> 
-> I believe the automatics in the second blocks should
-> be moved to the start of the function and the
-> unnecessary braces and extra indentation removed.
-> 
+Especially it's nice that it makes GPIO descriptors the norm
+rather than a bolt-on, and the old linear GPIO space is turned
+into a comaptibility layer using static inlines.
 
-TBI_GETREG reads a control register so the compiler won't be able to
-move it, so these should probably be kept in the same order, but yes I
-agree with moving the declarations to the top and getting rid of the
-extra indentation.
+I'd like to see some love for Documentation/gpio.txt to reflect
+the changes, plus considering Grants note, and I will be happy
+to add Reviewed-by on this.
 
-tbh since there are only 2 tbx/*.c files and they're both small, I'll
-clean them both up properly.
+Especially the lookups will be nice to see going forward!
 
-Thanks
-James
+Yours,
+Linus Walleij
