@@ -1,70 +1,42 @@
-From: Guenter Roeck <groeck-dsl@sbcglobal.net>
-Subject: Re: [RFC] gpiolib: introduce descriptor-based GPIO interface
-Date: Fri, 7 Dec 2012 07:07:44 -0800
-Message-ID: <20121207150744.GB28704@roeck-us.net>
-References: <1354779918-4028-1-git-send-email-acourbot@nvidia.com>
- <1354779918-4028-2-git-send-email-acourbot@nvidia.com>
- <20121207024947.GA25121@roeck-us.net>
- <2562815.JQOcF2Dmj3@percival>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: [PATCH, REBASED] asm-generic, mm: PTE_SPECIAL cleanup
+Date: Fri, 7 Dec 2012 15:50:18 +0000
+Message-ID: <20121207155018.GD21233@arm.com>
+References: <1354881321-29363-1-git-send-email-kirill.shutemov@linux.intel.com>
+ <20121207143002.GB21233@arm.com>
+ <20121207144112.GA17044@otc-wbsnb-06>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail.active-venture.com ([67.228.131.205]:52422 "EHLO
-	mail.active-venture.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756481Ab2LGPH1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2012 10:07:27 -0500
+Received: from service87.mimecast.com ([91.220.42.44]:48910 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1030409Ab2LGPu2 convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2012 10:50:28 -0500
+In-Reply-To: <20121207144112.GA17044@otc-wbsnb-06>
 Content-Disposition: inline
-In-Reply-To: <2562815.JQOcF2Dmj3@percival>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Courbot <acourbot@nvidia.com>
-Cc: Guenter Roeck <linux@roeck-us.net>, Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "gnurou@gmail.com" <gnurou@gmail.com>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Fri, Dec 07, 2012 at 04:02:02PM +0900, Alex Courbot wrote:
-> Hi Guenter,
-> 
-> On Friday 07 December 2012 10:49:47 Guenter Roeck wrote:
-> > My own idea for a solution was to keep integer based handles, but replace
-> > gpio_desc[] with a hash table. But ultimately I don't really care how
-> > it is done.
-> > 
-> > Do you have a solution for gpiochip_find_base() in mind, and how to handle
-> > reservations ? I had thought about using bit maps, but maybe there is
-> > a better solution.
-> 
-> My plan so far is to use a sorted linked list of gpio_chips. Each chip 
-> contains its base address and size, so this will make it possible to find 
-> usable areas through a single parse. Current gpiochip_find_base() start from 
+On Fri, Dec 07, 2012 at 02:41:12PM +0000, Kirill A. Shutemov wrote:
+> diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+> index ef90d61..2b823e5 100644
+> --- a/arch/arm64/Kconfig
+> +++ b/arch/arm64/Kconfig
+> @@ -33,6 +33,7 @@ config ARM64
+>  	select SPARSE_IRQ
+>  	select SYSCTL_EXCEPTION_TRACE
+>  	select CLONE_BACKWARDS
+> +	select HAVE_PTE_SPECIAL
+>  	help
+>  	  ARM 64-bit (AArch64) Linux support.
 
-Excellent idea.
+Another minor thing, please keep the arm64 Kconfig selects in
+alphabetical order. I know Al Viro's patch in -next didn't but I'll push
+a patch to correct this.
 
-> ARCH_NR_GPIOS and look backwards in the integer space to find a free range, a 
-> similar behavior can also be done if this is deemed better (GPIO numbers might 
-> become high, but since we want to hide them this should not matter).
-> 
-You can not completely hide them, I would guess - you'd still want to export
-them. Anyway, a simpler method would be to keep the list sorted in increasing
-order and simply search for a large enough gap. If there is none, add the new
-chip to the end of the list.
+Otherwise:
 
-> The counterpart of the list is that fetching the descriptor corresponding to a 
-> GPIO number is going to be linear instead of constant, but (1) the number of 
-> gpio_chips on the system should never grow very high and (2) this is a good 
-> incentive to use the descriptor-based API instead. :) Existing code could 
-> easily be converted - once a GPIO is acquired, its number should be converted 
-> immediatly to a descriptor and the gpiod_* functions used from them on. We can 
-> probably write a sed or Coccinelle rule to do that through the whole kernel.
-> 
-Since the current approach loops through all gpio pins, it is still much better
-than that - the complexity would be O(chips), not O(ngpios). As you said, there
-won't be many chips, so that should scale for a long time.
-
-> gpiochip_reserve() will require some more thinking using this model, but 
-> something like a dummy chip can probably be introduced in the list. It will 
-> need to be statically allocated however since memory allocation cannot be used 
-> there.
-> 
-Introducing a dummy chip sounds like a good idea, and would have very low overhead.
-
-Thanks,
-Guenter
+Acked-by: Catalin Marinas <catalin.marinas@arm.com>
