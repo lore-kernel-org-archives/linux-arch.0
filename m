@@ -1,30 +1,46 @@
-From: Andrew Morton <akpm@linux-foundation.org>
-Subject: Re: [PATCH, REBASED] asm-generic, mm: PTE_SPECIAL cleanup
-Date: Fri, 7 Dec 2012 12:35:17 -0800
-Message-ID: <20121207123517.3fc93a34.akpm@linux-foundation.org>
-References: <1354881321-29363-1-git-send-email-kirill.shutemov@linux.intel.com>
-	<20121207143002.GB21233@arm.com>
-	<20121207144112.GA17044@otc-wbsnb-06>
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Subject: Re: Using IO functions across ARM, PPC and Microblaze architectures
+Date: Fri, 7 Dec 2012 21:16:06 +0000
+Message-ID: <20121207211606.6c5d5bc8@pyramind.ukuu.org.uk>
+References: <CAHTX3d+VNDVQjnTnAB=Ywxo7odvNmCPu=wGZ03-xWLecSMsS9A@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
-Return-path: <owner-linux-mm@kvack.org>
-In-Reply-To: <20121207144112.GA17044@otc-wbsnb-06>
-Sender: owner-linux-mm@kvack.org
-To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from lxorguk.ukuu.org.uk ([81.2.110.251]:56971 "EHLO
+	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1424546Ab2LGVKk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2012 16:10:40 -0500
+In-Reply-To: <CAHTX3d+VNDVQjnTnAB=Ywxo7odvNmCPu=wGZ03-xWLecSMsS9A@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Michal Simek <monstr@monstr.eu>
+Cc: linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
 
-On Fri, 7 Dec 2012 16:41:12 +0200
-"Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> wrote:
+> Because I need to use IO functions which will behave
+> on arm as little endian and on powerpc as big endian
+> and on microblaze depends on endian setting.
+> I haven't found any IO function which I could use by 3 architectures
+> without using preprocessor macros or runtime detection
 
-> Advertise PTE_SPECIAL through Kconfig option and consolidate dummy
-> pte_special() and mkspecial() in <asm-generic/pgtable.h>
+Its a rather weird mix. We can do "always big" and "always little"
 
-why?
+> 1. Using helper function + preprocessor macros
+> (using static inline function also possible)
 
---
-To unsubscribe, send a message with 'unsubscribe linux-mm' in
-the body to majordomo@kvack.org.  For more info on Linux MM,
-see: http://www.linux-mm.org/ .
-Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
+Then someone comes along and sticks a daughterboard into the system with
+the same device the other way around and there are years
+
+> 2. Using function pointers
+
+Probably smarter. 8250.c works this way and it has to handle some
+extremely bizarre mappings.
+ 
+> b) Runtime initialization - here is the question if there is
+> any standard function which I could use.
+
+Set the pointers up and pass them as data with your platform device, that
+way the function definitions are buried in your platform code where they
+depend.
+
+Alan
