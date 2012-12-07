@@ -1,46 +1,41 @@
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Subject: Re: Using IO functions across ARM, PPC and Microblaze architectures
-Date: Fri, 7 Dec 2012 21:16:06 +0000
-Message-ID: <20121207211606.6c5d5bc8@pyramind.ukuu.org.uk>
-References: <CAHTX3d+VNDVQjnTnAB=Ywxo7odvNmCPu=wGZ03-xWLecSMsS9A@mail.gmail.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [update] Re: new execve/kernel_thread design
+Date: Fri, 7 Dec 2012 22:23:58 +0000
+Message-ID: <20121207222358.GB4939@ZenIV.linux.org.uk>
+References: <20121016223508.GR2616@ZenIV.linux.org.uk>
+ <20121026183107.GQ2616@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lxorguk.ukuu.org.uk ([81.2.110.251]:56971 "EHLO
-	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1424546Ab2LGVKk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2012 16:10:40 -0500
-In-Reply-To: <CAHTX3d+VNDVQjnTnAB=Ywxo7odvNmCPu=wGZ03-xWLecSMsS9A@mail.gmail.com>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:51439 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753971Ab2LGWYN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2012 17:24:13 -0500
+Content-Disposition: inline
+In-Reply-To: <20121026183107.GQ2616@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <monstr@monstr.eu>
-Cc: linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan
 
-> Because I need to use IO functions which will behave
-> on arm as little endian and on powerpc as big endian
-> and on microblaze depends on endian setting.
-> I haven't found any IO function which I could use by 3 architectures
-> without using preprocessor macros or runtime detection
+Current situation:
 
-Its a rather weird mix. We can do "always big" and "always little"
+* most of the architectures are OK - alpha arm arm64 c6x frv hexagon ia64 m68k
+microblaze mips openrisc parisc sparc s390 tile um unicore32 x86 xtensa
 
-> 1. Using helper function + preprocessor macros
-> (using static inline function also possible)
+* powerpc *still* awaits an ACK from maintainers; no reports of any breakage
+on linux-next and seems to be doing fine on my tests.
 
-Then someone comes along and sticks a daughterboard into the system with
-the same device the other way around and there are years
+* sh - still nothing from Paul; I'm going to assume that what we have in
+linux-next is OK
 
-> 2. Using function pointers
+* mn10300 - untested, AFAIK
+* avr32, blackfin, cris, h8300, score - maintainers seem to be MIA
+* m32r - maintainer is not MIA, but I'm not sure if anyone, including
+maintainer, has working m32r test boxen anymore...  Anyway, not a word on
+m32r patches in that pile.
 
-Probably smarter. 8250.c works this way and it has to handle some
-extremely bizarre mappings.
- 
-> b) Runtime initialization - here is the question if there is
-> any standard function which I could use.
-
-Set the pointers up and pass them as data with your platform device, that
-way the function definitions are buried in your platform code where they
-depend.
-
-Alan
+Folks, this is the final warning - I *will* send a pull request on the
+stuff currently in linux-next as soon as the merge window opens.  It had
+been sitting there for a long time by now and you've all been Cc'd on
+that thread all along.
