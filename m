@@ -1,64 +1,73 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ea0-f174.google.com ([209.85.215.174]:34164 "EHLO
-	mail-ea0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755729Ab2LGSwS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2012 13:52:18 -0500
-Received: by mail-ea0-f174.google.com with SMTP id e13so296731eaa.19
-        for <linux-arch@vger.kernel.org>; Fri, 07 Dec 2012 10:52:17 -0800 (PST)
-Message-ID: <50C23ADF.3060607@monstr.eu>
-Date: Fri, 07 Dec 2012 19:52:15 +0100
-From: Michal Simek <monstr@monstr.eu>
-Reply-To: monstr@monstr.eu
-MIME-Version: 1.0
+Received: from moutng.kundenserver.de ([212.227.126.187]:54469 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750739Ab2LGTHt (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2012 14:07:49 -0500
+From: Arnd Bergmann <arnd@arndb.de>
 Subject: Re: Sharing PCIE driver between Microblaze and Arm zynq
-References: <CAHTX3dLxbVxn+D+AV7L0VsGYFOjas3AJ_3M_xncVfxp02FCy=Q@mail.gmail.com> <20121207131706.EC9273E0B87@localhost>
-In-Reply-To: <20121207131706.EC9273E0B87@localhost>
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Date: Fri, 7 Dec 2012 19:07:38 +0000
+References: <CAHTX3dLxbVxn+D+AV7L0VsGYFOjas3AJ_3M_xncVfxp02FCy=Q@mail.gmail.com> <CAErSpo6xRdwzTuPPqnmvmHSp7awnV7=Z85eWFfktb_hm9Aad_A@mail.gmail.com> <50C1BA9D.5010406@monstr.eu>
+In-Reply-To: <50C1BA9D.5010406@monstr.eu>
+MIME-Version: 1.0
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
+Message-ID: <201212071907.38366.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Grant Likely <grant.likely@secretlab.ca>
-Cc: Michal Simek <michal.simek@xilinx.com>, LKML <linux-kernel@vger.kernel.org>, linux-arm <linux-arm-kernel@lists.infradead.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, linux-arch@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, John Williams <jwilliams@xilinx.com>
-Message-ID: <20121207185215.ENG3fVD0OYeSBvrrdVQ9ImXTHRJuTcpNAWees2hwb94@z>
+To: monstr@monstr.eu
+Cc: Bjorn Helgaas <bhelgaas@google.com>, Michal Simek <michal.simek@xilinx.com>, LKML <linux-kernel@vger.kernel.org>, linux-arm <linux-arm-kernel@lists.infradead.org>, Olof Johansson <olof@lixom.net>, linux-arch@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, Grant Likely <grant.likely@secretlab.ca>, John Linn <John.Linn@xilinx.com>, John Williams <jwilliams@xilinx.com>, linux-pci@vger.kernel.org
+Message-ID: <20121207190738.FCySTV6KJpQnyvkAdzz4q7g37oNvkL0fXf8s0lYjAYY@z>
 
-On 12/07/2012 02:17 PM, Grant Likely wrote:
-> On Thu, 6 Dec 2012 15:23:14 +0100, Michal Simek <michal.simek@xilinx.com> wrote:
->> Hi guys,
->>
->> I have a question regarding to sharing generic OF pcie driver between
->> two architectures MB and ARM Zynq.
->> Is drivers/pci/pcie location good for it?
->> Make no sense to have the same driver in two locations.
->> Is using readl/writel IO functions in this driver the best option
->> which we can have?
->> Or is there any other recommendation?
+On Friday 07 December 2012, Michal Simek wrote:
+> On 12/06/2012 10:27 PM, Bjorn Helgaas wrote:
+> > [+cc linux-pci]
+> >
+> > On Thu, Dec 6, 2012 at 7:23 AM, Michal Simek <michal.simek@xilinx.com> wrote:
+> >> Hi guys,
+> >>
+> >> I have a question regarding to sharing generic OF pcie driver between
+> >> two architectures MB and ARM Zynq.
+> >> Is drivers/pci/pcie location good for it?
+> >> Make no sense to have the same driver in two locations.
+> >
+> > I think you're talking about a PCI host bridge driver.  It would
+> > definitely be nice to move toward a generic, shared driver.  Host
+> > bridge drivers are responsible for enumerating the PCI hierarchy below
+> > the bridge.  Enumeration is not really PCIe-specific, so I wouldn't
+> > put it in drivers/pci/pcie.
+> 
+> Not a PCI expert, just trying to find out the proper location for this shared driver.
 
-Grant: What do you think about readl/iowrite usage in connection to PCI?
+I'd suggest creating a drivers/pci/host directory. We will have more of
+these in the future. AFAIK, there is no fully generic (architecture
+independent) way to interface a PCI host driver to the PCI subsystem,
+but I think we are getting closer to that. You are probably fairly
+free to modify the microblaze architecture specific code though if needed.
 
->> Also just want to check if it is correct to use pcie device_type.
->> The rest should be the same with pci description:
->> (http://devicetree.org/MPC5200:PCI#PCI_Address_Translation).
->
-> Yes. device_type may be deprecated, but the PCI binding predates that.
+> >> Is using readl/writel IO functions in this driver the best option
+> >> which we can have?
+> >> Or is there any other recommendation?
+> >
+> > I'm not really a driver person, but if you're writing a new driver,
+> > wouldn't you use the iomap interfaces (ioremap(), ioread32(), etc)
+> > rather than readl()?
+> 
+> That driver exists but it is not in mainline and it is better to directly
+> add it to proper location with correct io functions.
+> The question is if ioread/iowrite functions are correct one.
+> PowerPC io-defs.h suggests that readl/writel should be used for PCI.
 
-If it is deprecated, there could be probably problem with early_init_dt_scan_memory()
-which is checking memory device_type (drivers/of/fdt.c).
+ioread32/iowrite32 are defined to behave the same way readl/writel regarding
+addressing modes and barriers, but also allow operating on __iomem pointers
+that were returned from ioport_map(). You probably don't need that.
 
+Some architectures like powerpc have their own accessors for on-chip MMIO
+areas, but ARM does not. The PowerPC rule is that you must use either
+readl/writel or ioread32/iowrite32 to access devices connected to a PCI
+bus, but you would not necessarily do that for the PCI host controller
+itself on PowerPC.
 
-> PowerPC uses pcie in the device type. arch/powerpc/kernel/of_platform.c
+	Arnd
 
-ok. I see.
-
-> Some of that powerpc DT PCI support code really should be made generic.
-
-yep.
-
-Thanks,
-Michal
-
-
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
-Microblaze U-BOOT custodian
+	Arnd
