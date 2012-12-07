@@ -1,98 +1,30 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Using IO functions across ARM, PPC and Microblaze architectures
-Date: Fri, 7 Dec 2012 20:28:03 +0100
-Message-ID: <CAHTX3d+VNDVQjnTnAB=Ywxo7odvNmCPu=wGZ03-xWLecSMsS9A@mail.gmail.com>
+From: Andrew Morton <akpm@linux-foundation.org>
+Subject: Re: [PATCH, REBASED] asm-generic, mm: PTE_SPECIAL cleanup
+Date: Fri, 7 Dec 2012 12:35:17 -0800
+Message-ID: <20121207123517.3fc93a34.akpm@linux-foundation.org>
+References: <1354881321-29363-1-git-send-email-kirill.shutemov@linux.intel.com>
+	<20121207143002.GB21233@arm.com>
+	<20121207144112.GA17044@otc-wbsnb-06>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f46.google.com ([74.125.83.46]:51482 "EHLO
-	mail-ee0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751448Ab2LGT2F (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2012 14:28:05 -0500
-Received: by mail-ee0-f46.google.com with SMTP id e53so491021eek.19
-        for <linux-arch@vger.kernel.org>; Fri, 07 Dec 2012 11:28:03 -0800 (PST)
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
+Return-path: <owner-linux-mm@kvack.org>
+In-Reply-To: <20121207144112.GA17044@otc-wbsnb-06>
+Sender: owner-linux-mm@kvack.org
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+List-Id: linux-arch.vger.kernel.org
 
-Hi,
+On Fri, 7 Dec 2012 16:41:12 +0200
+"Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> wrote:
 
-I would like to get some advices what correct coding style is.
+> Advertise PTE_SPECIAL through Kconfig option and consolidate dummy
+> pte_special() and mkspecial() in <asm-generic/pgtable.h>
 
-I have one problem with some drivers (uartlite for example)
-which are shared across three architectures arm, powerpc and microblaze.
+why?
 
-Because I need to use IO functions which will behave
-on arm as little endian and on powerpc as big endian
-and on microblaze depends on endian setting.
-I haven't found any IO function which I could use by 3 architectures
-without using preprocessor macros or runtime detection
-
-Please correct me if there is any standard IO function which I could use
-for this case.
-
-I was looking at.
-readl - make no sense on PowerPC because I need big endian and it is
-little there
-ioread - is little endian on PPC(ioreadXXbe is big endain)
-ioreadXXbe - is always big endian
-in_be/in_le - is the same option as ioread/writebe
-
-Using __raw_readl function should be also problematic on ARM
-because doesn't prevent reordering or partial accesses.
-
-
-It means that I should use helper function.
-
-1. Using helper function + preprocessor macros
-(using static inline function also possible)
-
-#ifdef __LITTLE_ENDIAN
-# define driver_read ioread32
-#else
-# define driver_read ioread32be
-#endif
-
-fce() {
-      u32 val = driver_read(..);
-}
-
-2. Using function pointers
-a) initialization based on preprocesor macros
-
-fce() {
-      u32 val;
-
-#ifdef __LITTLE_ENDIAN
-      dev_data->read_fn = ioread32
-#else
-      dev_data->read_fn = ioread32be
-#endif
-
-      val = dev_data->read_fn(..);
-}
-
-b) Runtime initialization - here is the question if there is
-any standard function which I could use.
-
-fce() {
-	int num = 1;
-	/* run time endian detection */	
-	if (*(char *)&num == 1) {
-		dev_data->read_fn = ioread32
-	else
-		dev_data->read_fn = ioread32be
-
-	val = dev_data->read_fn(..);
-}
-
-Can you recommend me the best way I should use?
-
-Thanks,
-Michal
-
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
-Microblaze U-BOOT custodian
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
