@@ -1,119 +1,45 @@
-From: Alex Courbot <acourbot@nvidia.com>
+From: Linus Walleij <linus.walleij@linaro.org>
 Subject: Re: [RFC] gpiolib: introduce descriptor-based GPIO interface
-Date: Fri, 7 Dec 2012 16:02:02 +0900
-Message-ID: <2562815.JQOcF2Dmj3@percival>
-References: <1354779918-4028-1-git-send-email-acourbot@nvidia.com> <1354779918-4028-2-git-send-email-acourbot@nvidia.com> <20121207024947.GA25121@roeck-us.net>
+Date: Fri, 7 Dec 2012 09:24:06 +0100
+Message-ID: <CACRpkdYvsSqMrwY9UPLkDLat=tCn4+4t0nB37RmsM0-EGW-bJQ@mail.gmail.com>
+References: <1354779918-4028-1-git-send-email-acourbot@nvidia.com>
+	<1354779918-4028-2-git-send-email-acourbot@nvidia.com>
+	<20121206144259.136693E0950@localhost>
+	<1985305.LiOKDTFPq4@percival>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hqemgate04.nvidia.com ([216.228.121.35]:9861 "EHLO
-	hqemgate04.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751209Ab2LGHCF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2012 02:02:05 -0500
-In-Reply-To: <20121207024947.GA25121@roeck-us.net>
+Received: from mail-ee0-f46.google.com ([74.125.83.46]:58483 "EHLO
+	mail-ee0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753677Ab2LGIYI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2012 03:24:08 -0500
+Received: by mail-ee0-f46.google.com with SMTP id e53so116066eek.19
+        for <linux-arch@vger.kernel.org>; Fri, 07 Dec 2012 00:24:07 -0800 (PST)
+In-Reply-To: <1985305.LiOKDTFPq4@percival>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Guenter Roeck <linux@roeck-us.net>
-Cc: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "gnurou@gmail.com" <gnurou@gmail.com>
+To: Alex Courbot <acourbot@nvidia.com>
+Cc: Grant Likely <grant.likely@secretlab.ca>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "gnurou@gmail.com" <gnurou@gmail.com>
 
-Hi Guenter,
+On Fri, Dec 7, 2012 at 3:06 AM, Alex Courbot <acourbot@nvidia.com> wrote:
+> On Thursday 06 December 2012 22:42:59 Grant Likely wrote:
+>> how about "gpio_chip_hwnum()" to somewhat match irqdomain convention?
+>
+> Sure, matching existing interfaces is better. "git grep hwnum" does not seem
+> to reveal much related to irqdomain though?
 
-On Friday 07 December 2012 10:49:47 Guenter Roeck wrote:
-> My own idea for a solution was to keep integer based handles, but replace
-> gpio_desc[] with a hash table. But ultimately I don't really care how
-> it is done.
-> 
-> Do you have a solution for gpiochip_find_base() in mind, and how to handle
-> reservations ? I had thought about using bit maps, but maybe there is
-> a better solution.
+I think Grant is referring to the similarity with hwirq. Check:
+include/linux/irqdomain.h
 
-My plan so far is to use a sorted linked list of gpio_chips. Each chip 
-contains its base address and size, so this will make it possible to find 
-usable areas through a single parse. Current gpiochip_find_base() start from 
-ARCH_NR_GPIOS and look backwards in the integer space to find a free range, a 
-similar behavior can also be done if this is deemed better (GPIO numbers might 
-become high, but since we want to hide them this should not matter).
+For example GPIO drivers using irqdomain often look up the
+trigging local GPIO pin offset from the irqdomain descriptor
+passed with the interrupt like this:
 
-The counterpart of the list is that fetching the descriptor corresponding to a 
-GPIO number is going to be linear instead of constant, but (1) the number of 
-gpio_chips on the system should never grow very high and (2) this is a good 
-incentive to use the descriptor-based API instead. :) Existing code could 
-easily be converted - once a GPIO is acquired, its number should be converted 
-immediatly to a descriptor and the gpiod_* functions used from them on. We can 
-probably write a sed or Coccinelle rule to do that through the whole kernel.
+static void foo_gpio_irq_unmask(struct irq_data *d)
+    int offset = d->hwirq;
+    (...)
 
-gpiochip_reserve() will require some more thinking using this model, but 
-something like a dummy chip can probably be introduced in the list. It will 
-need to be statically allocated however since memory allocation cannot be used 
-there.
+Maybe "hwgpio" is an even better choice for the name of this.
 
-Actually the only user of gpiochip_reserve() seems to be Tosa, so I wonder if 
-there would be no way to simply get rid of it?
-
-> If/when you have some code to test, please let me know.
-
-Sure!
-
-> > +     mutex_lock(&sysfs_lock);
-> > 
-> >       /* can't export until sysfs is available ... */
-> >       if (!gpio_class.p) {
-> > 
-> > @@ -713,13 +743,7 @@ int gpio_export(unsigned gpio, bool
-> > direction_may_change)> 
-> >               return -ENOENT;
-> 
-> mutex is not released here.
-
-Oops.
-
-> > -     chip = gpio_to_chip(gpio);
-> > +     chip = desc->chip;
-> > +     gpio = gpio_chip_offset(desc);
-> 
-> Might be better to use a separate variable named 'offset' when dealing with
-> the offset, to avoid confusion and accidential bugs. You are doing it
-> below, so you might as well do it everywhere. This would also simplify the
-> code in a couple of places where gpio is first converted into an offset
-> only to use "chip->base + gpio" later on.
-
-Makes sense. Fixed, thanks.
-
-> > -                                     __func__, gpio, err);
-> > +                                     __func__, offset + chip->base, err);
-> 
-> I know I am nitpicking, but everywhere in the existing code it is
-> "chip->base + offset/gpio".
-
-Fixed.
-
-> >       return chip->to_irq ? chip->to_irq(chip, gpio - chip->base) :
-> >       -ENXIO;
-> 
-> s/gpio - chip->base/gpio_chip_offset(desc)/
-> 
-> then you don't need gpio at all.
-
-Done, thanks.
-
-> > -     chip = gpio_to_chip(gpio);
-> > +     chip = desc->chip;
-> > +     gpio = desc_to_gpio(desc);
-> > 
-> >       trace_gpio_value(gpio, 0, value);
-> >       if (test_bit(FLAG_OPEN_DRAIN,  &gpio_desc[gpio].flags))
-> 
-> Use desc directly.
-> 
-> > -             _gpio_set_open_drain_value(gpio, chip, value);
-> > +             _gpio_set_open_drain_value(desc, value);
-> > 
-> >       else if (test_bit(FLAG_OPEN_SOURCE,  &gpio_desc[gpio].flags))
-> 
-> Use desc directly.
-
-Right.
-
-Thanks,
-Alex.
+Yours,
+Linus Walleij
