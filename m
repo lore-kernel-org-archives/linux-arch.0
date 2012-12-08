@@ -1,61 +1,53 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: Using IO functions across ARM, PPC and Microblaze architectures
-Date: Sat, 8 Dec 2012 11:57:39 +0100
-Message-ID: <CAMuHMdVNszTFRjqiUoZ42+noaOcGjLZyZ9O30c5UVNNJhp0LMw@mail.gmail.com>
-References: <CAHTX3d+VNDVQjnTnAB=Ywxo7odvNmCPu=wGZ03-xWLecSMsS9A@mail.gmail.com>
-	<20121207211606.6c5d5bc8@pyramind.ukuu.org.uk>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [braindump][RFC] signals and syscall restarts (Re: [PATCH v2
+ 19/44] metag: Signal handling)
+Date: Sat, 8 Dec 2012 18:14:58 +0000
+Message-ID: <20121208181458.GD4939@ZenIV.linux.org.uk>
+References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
+ <1354723742-6195-20-git-send-email-james.hogan@imgtec.com>
+ <20121205171609.GW4939@ZenIV.linux.org.uk>
+ <50C07ECE.9070602@imgtec.com>
+ <20121206220955.GZ4939@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f174.google.com ([209.85.220.174]:62018 "EHLO
-	mail-vc0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753495Ab2LHK5l (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 Dec 2012 05:57:41 -0500
-In-Reply-To: <20121207211606.6c5d5bc8@pyramind.ukuu.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: Michal Simek <monstr@monstr.eu>, linux-arch@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, David Hinds <dahinds@users.sourceforge.net>
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20121206220955.GZ4939@ZenIV.linux.org.uk>
+Sender: linux-kernel-owner@vger.kernel.org
+To: James Hogan <james.hogan@imgtec.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Linus Torvalds <torvalds@linux-foundation.org>
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Dec 7, 2012 at 10:16 PM, Alan Cox <alan@lxorguk.ukuu.org.uk> wrote:
->> Because I need to use IO functions which will behave
->> on arm as little endian and on powerpc as big endian
->> and on microblaze depends on endian setting.
->> I haven't found any IO function which I could use by 3 architectures
->> without using preprocessor macros or runtime detection
->
-> Its a rather weird mix. We can do "always big" and "always little"
->
->> 1. Using helper function + preprocessor macros
->> (using static inline function also possible)
->
-> Then someone comes along and sticks a daughterboard into the system with
-> the same device the other way around and there are years
->
->> 2. Using function pointers
->
-> Probably smarter. 8250.c works this way and it has to handle some
-> extremely bizarre mappings.
->
->> b) Runtime initialization - here is the question if there is
->> any standard function which I could use.
->
-> Set the pointers up and pass them as data with your platform device, that
-> way the function definitions are buried in your platform code where they
-> depend.
+On Thu, Dec 06, 2012 at 10:09:55PM +0000, Al Viro wrote:
 
-Or embed a struct io_ops * in struct device, to be set up by the bus driver?
+> 	What we need to guarantee is
+> * restarts do not happen on signals caught in interrupts or exceptions
+> * restarts do not happen on signals caught in sigreturn()
+> * restart should happen only once, even if we get through do_signal() many
+> times.
 
-Wasn't David Hinds working on something like this in the context of PCMCIA
-a few decades ago?
+BTW, signal caught in sigreturn is *not* something requiring a narrow
+race.  It's perfectly normal to have some signals blocked for the
+duration of signal handler - the signal itself is blocked by default
+unless you have set SA_NODEFER in sa_flags and there's sa_mask allowing
+to block an arbitrary set of signals.  Upon return from signal handler
+we undo that and if any of the temporary blocked signals has arrived
+while we'd been in the handler (e.g. had been raised by the handler itself),
+it will be caught as soon as we unblock it, i.e. in sigreturn.
 
-Gr{oetje,eeting}s,
+Unfortunately, the testcases are somewhat architecture-dependent.  See, for
+example, arm one in commit 653d48b22166db2d8b1515ebe6f9f0f7c95dfc86; there
+might be a way to arrange for asm-free equivalent if one played with -O0,
+but it's probably not worth the trouble.  That one deals with sigreturn
+from signal caught in interrupt; sigreturn from signal caught in syscall
+is a bit trickier.  TBH, I don't understand your syscall calling conventions
+well enough to cook one up; your restart logics looks really strange.
+You leave ->DX[0].U0 modified - fair enough, it doesn't seem to be used
+by syscall entry path - *and* you revert ->DX[0].U1 to the state you
+used to have on entry.  The thing is, I don't see any place that would
+have changed it in between; why do you need that
+	regs->REG_SYSCALL = orig_syscall;
+in there at all?
 
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+BTW, could you (and other folks submitting ports) document the ABI?
+See e.g. Documentation/frv/kernel-ABI.txt for fairly decent example...
