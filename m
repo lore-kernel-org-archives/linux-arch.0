@@ -1,41 +1,71 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [update] Re: new execve/kernel_thread design
-Date: Fri, 7 Dec 2012 22:23:58 +0000
-Message-ID: <20121207222358.GB4939@ZenIV.linux.org.uk>
-References: <20121016223508.GR2616@ZenIV.linux.org.uk>
- <20121026183107.GQ2616@ZenIV.linux.org.uk>
+From: Steven Rostedt <rostedt@goodmis.org>
+Subject: Re: [PATCH v2 04/44] trace/ring_buffer: handle 64bit aligned structs
+Date: Fri, 07 Dec 2012 20:24:11 -0500
+Message-ID: <1354929851.17101.105.camel@gandalf.local.home>
+References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
+	 <1354723742-6195-5-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="ISO-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:51439 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753971Ab2LGWYN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2012 17:24:13 -0500
-Content-Disposition: inline
-In-Reply-To: <20121026183107.GQ2616@ZenIV.linux.org.uk>
+Received: from hrndva-omtalb.mail.rr.com ([71.74.56.122]:3351 "EHLO
+	hrndva-omtalb.mail.rr.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757465Ab2LHBYO (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 7 Dec 2012 20:24:14 -0500
+In-Reply-To: <1354723742-6195-5-git-send-email-james.hogan@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, Linus Torvalds <torvalds@linux-foundation.org>, Catalin Marinas <catalin.marinas@arm.com>, Haavard Skinnemoen <hskinnemoen@gmail.com>, Mike Frysinger <vapier@gentoo.org>, Jesper Nilsson <jesper.nilsson@axis.com>, David Howells <dhowells@redhat.com>, Tony Luck <tony.luck@intel.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Hirokazu Takata <takata@linux-m32r.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Michal Simek <monstr@monstr.eu>, Jonas Bonn <jonas@southpole.se>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Richard Kuo <rkuo@codeaurora.org>, Martin Schwidefsky <schwidefsky@de.ibm.com>, Lennox Wu <lennox.wu@gmail.com>, "David S. Miller" <davem@davemloft.net>, Paul Mundt <lethal@linux-sh.org>, Chris Zankel <chris@zankel.net>, Chris Metcalf <cmetcalf@tilera.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Guan
+To: James Hogan <james.hogan@imgtec.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@redhat.com>
 
-Current situation:
+On Wed, 2012-12-05 at 16:08 +0000, James Hogan wrote:
+> Some 32 bit architectures have 64 bit struct alignment (for example
+> Meta which has 64 bit read/write instructions). These require 8 byte
+> alignment of event data too, so use CONFIG_HAVE_64BIT_ALIGNED_STRUCT
+> instead of CONFIG_64BIT to decide alignment, and align
+> buffer_data_page::data accordingly.
+> 
+> Signed-off-by: James Hogan <james.hogan@imgtec.com>
 
-* most of the architectures are OK - alpha arm arm64 c6x frv hexagon ia64 m68k
-microblaze mips openrisc parisc sparc s390 tile um unicore32 x86 xtensa
+Acked-by: Steven Rostedt <rostedt@goodmis.org>
 
-* powerpc *still* awaits an ACK from maintainers; no reports of any breakage
-on linux-next and seems to be doing fine on my tests.
+-- Steve
 
-* sh - still nothing from Paul; I'm going to assume that what we have in
-linux-next is OK
-
-* mn10300 - untested, AFAIK
-* avr32, blackfin, cris, h8300, score - maintainers seem to be MIA
-* m32r - maintainer is not MIA, but I'm not sure if anyone, including
-maintainer, has working m32r test boxen anymore...  Anyway, not a word on
-m32r patches in that pile.
-
-Folks, this is the final warning - I *will* send a pull request on the
-stuff currently in linux-next as soon as the merge window opens.  It had
-been sitting there for a long time by now and you've all been Cc'd on
-that thread all along.
+> Cc: Frederic Weisbecker <fweisbec@gmail.com>
+> Cc: Ingo Molnar <mingo@redhat.com>
+> ---
+>  kernel/trace/ring_buffer.c |    7 +++++--
+>  1 files changed, 5 insertions(+), 2 deletions(-)
+> 
+> diff --git a/kernel/trace/ring_buffer.c b/kernel/trace/ring_buffer.c
+> index b979426..c4dc029 100644
+> --- a/kernel/trace/ring_buffer.c
+> +++ b/kernel/trace/ring_buffer.c
+> @@ -177,7 +177,8 @@ void tracing_off_permanent(void)
+>  #define RB_MAX_SMALL_DATA	(RB_ALIGNMENT * RINGBUF_TYPE_DATA_TYPE_LEN_MAX)
+>  #define RB_EVNT_MIN_SIZE	8U	/* two 32bit words */
+>  
+> -#if !defined(CONFIG_64BIT) || defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
+> +#if !defined(CONFIG_HAVE_64BIT_ALIGNED_STRUCT) || \
+> +	defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
+>  # define RB_FORCE_8BYTE_ALIGNMENT	0
+>  # define RB_ARCH_ALIGNMENT		RB_ALIGNMENT
+>  #else
+> @@ -185,6 +186,8 @@ void tracing_off_permanent(void)
+>  # define RB_ARCH_ALIGNMENT		8U
+>  #endif
+>  
+> +#define RB_ALIGN_DATA		__aligned(RB_ARCH_ALIGNMENT)
+> +
+>  /* define RINGBUF_TYPE_DATA for 'case RINGBUF_TYPE_DATA:' */
+>  #define RINGBUF_TYPE_DATA 0 ... RINGBUF_TYPE_DATA_TYPE_LEN_MAX
+>  
+> @@ -333,7 +336,7 @@ EXPORT_SYMBOL_GPL(ring_buffer_event_data);
+>  struct buffer_data_page {
+>  	u64		 time_stamp;	/* page time stamp */
+>  	local_t		 commit;	/* write committed index */
+> -	unsigned char	 data[];	/* data of buffer page */
+> +	unsigned char	 data[] RB_ALIGN_DATA;	/* data of buffer page */
+>  };
+>  
+>  /*
