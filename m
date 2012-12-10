@@ -1,64 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vb0-f46.google.com ([209.85.212.46]:47809 "EHLO
-	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751437Ab2LJMzm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Dec 2012 07:55:42 -0500
-MIME-Version: 1.0
-In-Reply-To: <50C5B7E3.2080909@imgtec.com>
-References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
-	<1354723742-6195-4-git-send-email-james.hogan@imgtec.com>
-	<50C2B751.5000507@zytor.com>
-	<50C5B7E3.2080909@imgtec.com>
-Date: Mon, 10 Dec 2012 13:55:39 +0100
-Message-ID: <CAMuHMdXpw+hWgcqDiFVdDTsFBEThjvB_Y0jcoZZHS-JGTBvYRg@mail.gmail.com>
-Subject: Re: [PATCH v2 03/44] Add CONFIG_HAVE_64BIT_ALIGNED_STRUCT for taskstats
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Content-Type: text/plain; charset=UTF-8
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:55665 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751916Ab2LJTMw (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 10 Dec 2012 14:12:52 -0500
+From: Will Deacon <will.deacon@arm.com>
+Subject: [PATCH v2 05/10] net: dm9000: use io{read,write}*_rep accessors
+Date: Mon, 10 Dec 2012 19:12:37 +0000
+Message-ID: <1355166762-15133-6-git-send-email-will.deacon@arm.com>
+In-Reply-To: <1355166762-15133-1-git-send-email-will.deacon@arm.com>
+References: <1355166762-15133-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Eric Paris <eparis@redhat.com>, Will Drewry <wad@chromium.org>, James Morris <james.l.morris@oracle.com>
-Message-ID: <20121210125539._rHbVq4ongrX90chpjQcsly1t0JWdgSFNpq_59VXuNY@z>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, benh@kernel.crashing.org, arnd@arndb.de, james.hogan@imgtec.com, Matthew Leach <matthew@mattleach.net>, David Miller <davem@davemloft.net>, netdev@vger.kernel.org, Will Deacon <will.deacon@arm.com>
+Message-ID: <20121210191237.nSZUSttB5x8-pWfPxmkEKrqRiZlmNkA0PiodeGI6jUw@z>
 
-On Mon, Dec 10, 2012 at 11:22 AM, James Hogan <james.hogan@imgtec.com> wrote:
-> On 08/12/12 03:43, H. Peter Anvin wrote:
->> On 12/05/2012 08:08 AM, James Hogan wrote:
->>> On 64 bit architectures with no efficient unaligned access, taskstats
->>> has to add some padding to a reply to prevent unaligned access warnings.
->>> However this also needs to apply to 32 bit architectures with 64 bit
->>> struct alignment such as metag (which has 64 bit memory accesses).
->>
->> Wait... 64-bit struct alignment on structures with only 32-bit members?
->>  That might be... interesting... in a number of places...
->
-> I'll rewrite the description as it's a bit misleading. On metag 64bit
-> struct alignment is required when it contains 64bit members, not if it
-> only contains 32bit members. Although metag is a 32bit arch, it can do
-> 64bit memory accesses which must be aligned.
+From: Matthew Leach <matthew@mattleach.net>
 
-The C alignment rules should take care of this automatically (struct alignment
-is the maximum alignment of its members).
+The {read,write}s{b,w,l} operations are not defined by all
+architectures and are being removed from the asm-generic/io.h
+interface.
 
-You only have to override this manually in cases like this, where
-64-bit quantities
-are stored in char arrays:
+This patch replaces the usage of these string functions in the default
+DM9000 accessors with io{read,write}{8,16,32}_rep calls instead. This
+is required as the dm9000 driver is in use by the blackfin
+architecture which uses the asm-generic io accessors.
 
- struct buffer_data_page {
-        u64              time_stamp;    /* page time stamp */
-        local_t          commit;        /* write committed index */
--       unsigned char    data[];        /* data of buffer page */
-+       unsigned char    data[] RB_ALIGN_DATA;  /* data of buffer page */
- };
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Ben Herrenschmidt <benh@kernel.crashing.org>
+Cc: David Miller <davem@davemloft.net>
+Cc: netdev@vger.kernel.org
+Signed-off-by: Matthew Leach <matthew@mattleach.net>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ drivers/net/ethernet/davicom/dm9000.c | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
-(cfr. your other patch).
+diff --git a/drivers/net/ethernet/davicom/dm9000.c b/drivers/net/ethernet/davicom/dm9000.c
+index 36499d5..61648a6 100644
+--- a/drivers/net/ethernet/davicom/dm9000.c
++++ b/drivers/net/ethernet/davicom/dm9000.c
+@@ -193,35 +193,35 @@ iow(board_info_t * db, int reg, int value)
+ 
+ static void dm9000_outblk_8bit(void __iomem *reg, void *data, int count)
+ {
+-	writesb(reg, data, count);
++	iowrite8_rep(reg, data, count);
+ }
+ 
+ static void dm9000_outblk_16bit(void __iomem *reg, void *data, int count)
+ {
+-	writesw(reg, data, (count+1) >> 1);
++	iowrite16_rep(reg, data, (count+1) >> 1);
+ }
+ 
+ static void dm9000_outblk_32bit(void __iomem *reg, void *data, int count)
+ {
+-	writesl(reg, data, (count+3) >> 2);
++	iowrite32_rep(reg, data, (count+3) >> 2);
+ }
+ 
+ /* input block from chip to memory */
+ 
+ static void dm9000_inblk_8bit(void __iomem *reg, void *data, int count)
+ {
+-	readsb(reg, data, count);
++	ioread8_rep(reg, data, count);
+ }
+ 
+ 
+ static void dm9000_inblk_16bit(void __iomem *reg, void *data, int count)
+ {
+-	readsw(reg, data, (count+1) >> 1);
++	ioread16_rep(reg, data, (count+1) >> 1);
+ }
+ 
+ static void dm9000_inblk_32bit(void __iomem *reg, void *data, int count)
+ {
+-	readsl(reg, data, (count+3) >> 2);
++	ioread32_rep(reg, data, (count+3) >> 2);
+ }
+ 
+ /* dump block from chip to null */
+-- 
+1.8.0
 
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
