@@ -1,65 +1,71 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 02/10] mmc: mmci: use io{read,write}*_rep accessors instead of string functions
-Date: Mon, 10 Dec 2012 19:12:34 +0000
-Message-ID: <1355166762-15133-3-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v2 10/10] asm-generic: io: remove {read,write} string functions
+Date: Mon, 10 Dec 2012 19:12:42 +0000
+Message-ID: <1355166762-15133-11-git-send-email-will.deacon@arm.com>
 References: <1355166762-15133-1-git-send-email-will.deacon@arm.com>
 Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1355166762-15133-1-git-send-email-will.deacon@arm.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, benh@kernel.crashing.org, arnd@arndb.de, james.hogan@imgtec.com, Will Deacon <will.deacon@arm.com>, Chris Ball <cjb@laptop.org>, Davide Ciminaghi <ciminaghi@gnudd.com>
+Cc: linux-arch@vger.kernel.org, benh@kernel.crashing.org, arnd@arndb.de, james.hogan@imgtec.com, Will Deacon <will.deacon@arm.com>, Mike Frysinger <vapier@gentoo.org>
 List-Id: linux-arch.vger.kernel.org
 
-The {read,write}s{b,w,l} operations are not defined by all architectures
-and are being removed from the asm-generic/io.h interface.
+The {read,write}s{b,w,l} functions are not defined across all
+architectures and therefore shouldn't be used by portable drivers. We
+should encourage driver writers to use the io{read,write}{8,16,32}_rep
+functions instead.
 
-This patch replaces the usage of these string functions with
-io{read,write}{8,16,32}_rep calls instead, which are defined for all
-architectures.
+This patch removes the {read,write} string functions for the generic IO
+header as they have no place in a new architecture port.
 
-Cc: Chris Ball <cjb@laptop.org>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Davide Ciminaghi <ciminaghi@gnudd.com>
+Cc: Mike Frysinger <vapier@gentoo.org>
 Cc: Ben Herrenschmidt <benh@kernel.crashing.org>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
+ include/asm-generic/io.h | 30 ------------------------------
+ 1 file changed, 30 deletions(-)
 
-I believe Davide is pushing an identical patch to this one via rmk, but
-I'm including it here for completeness.
-
- drivers/mmc/host/mmci.c | 8 ++++----
- 1 file changed, 4 insertions(+), 4 deletions(-)
-
-diff --git a/drivers/mmc/host/mmci.c b/drivers/mmc/host/mmci.c
-index edc3e9b..4f125b4 100644
---- a/drivers/mmc/host/mmci.c
-+++ b/drivers/mmc/host/mmci.c
-@@ -840,14 +840,14 @@ static int mmci_pio_read(struct mmci_host *host, char *buffer, unsigned int rema
- 		if (unlikely(count & 0x3)) {
- 			if (count < 4) {
- 				unsigned char buf[4];
--				readsl(base + MMCIFIFO, buf, 1);
-+				ioread32_rep(base + MMCIFIFO, buf, 1);
- 				memcpy(ptr, buf, count);
- 			} else {
--				readsl(base + MMCIFIFO, ptr, count >> 2);
-+				ioread32_rep(base + MMCIFIFO, ptr, count >> 2);
- 				count &= ~0x3;
- 			}
- 		} else {
--			readsl(base + MMCIFIFO, ptr, count >> 2);
-+			ioread32_rep(base + MMCIFIFO, ptr, count >> 2);
- 		}
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index b2600f3..403b861 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -217,36 +217,6 @@ static inline void outsl(unsigned long addr, const void *buffer, int count)
+ }
+ #endif
  
- 		ptr += count;
-@@ -900,7 +900,7 @@ static int mmci_pio_write(struct mmci_host *host, char *buffer, unsigned int rem
- 		 * byte become a 32bit write, 7 bytes will be two
- 		 * 32bit writes etc.
- 		 */
--		writesl(base + MMCIFIFO, ptr, (count + 3) >> 2);
-+		iowrite32_rep(base + MMCIFIFO, ptr, (count + 3) >> 2);
- 
- 		ptr += count;
- 		remain -= count;
+-static inline void readsl(const void __iomem *addr, void *buf, int len)
+-{
+-	insl(addr - PCI_IOBASE, buf, len);
+-}
+-
+-static inline void readsw(const void __iomem *addr, void *buf, int len)
+-{
+-	insw(addr - PCI_IOBASE, buf, len);
+-}
+-
+-static inline void readsb(const void __iomem *addr, void *buf, int len)
+-{
+-	insb(addr - PCI_IOBASE, buf, len);
+-}
+-
+-static inline void writesl(const void __iomem *addr, const void *buf, int len)
+-{
+-	outsl(addr - PCI_IOBASE, buf, len);
+-}
+-
+-static inline void writesw(const void __iomem *addr, const void *buf, int len)
+-{
+-	outsw(addr - PCI_IOBASE, buf, len);
+-}
+-
+-static inline void writesb(const void __iomem *addr, const void *buf, int len)
+-{
+-	outsb(addr - PCI_IOBASE, buf, len);
+-}
+-
+ #ifndef CONFIG_GENERIC_IOMAP
+ #define ioread8(addr)		readb(addr)
+ #define ioread16(addr)		readw(addr)
 -- 
 1.8.0
