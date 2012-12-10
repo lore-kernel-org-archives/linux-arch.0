@@ -1,20 +1,20 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:55667 "EHLO
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:55659 "EHLO
 	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751976Ab2LJTMx (ORCPT
+	by vger.kernel.org with ESMTP id S1751849Ab2LJTMu (ORCPT
 	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 Dec 2012 14:12:53 -0500
+	Mon, 10 Dec 2012 14:12:50 -0500
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 09/10] usb: musb: use io{read,write}*_rep accessors
-Date: Mon, 10 Dec 2012 19:12:41 +0000
-Message-ID: <1355166762-15133-10-git-send-email-will.deacon@arm.com>
+Subject: [PATCH v2 04/10] net: smc911x: use io{read,write}*_rep accessors
+Date: Mon, 10 Dec 2012 19:12:36 +0000
+Message-ID: <1355166762-15133-5-git-send-email-will.deacon@arm.com>
 In-Reply-To: <1355166762-15133-1-git-send-email-will.deacon@arm.com>
 References: <1355166762-15133-1-git-send-email-will.deacon@arm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, benh@kernel.crashing.org, arnd@arndb.de, james.hogan@imgtec.com, Matthew Leach <matthew@mattleach.net>, Felipe Balbi <balbi@ti.com>, linux-usb@vger.kernel.org, Will Deacon <will.deacon@arm.com>
-Message-ID: <20121210191241.mxq3JSq3mOypp917NMCdZK4n94T4EqRPVTzuRLJphK4@z>
+Cc: linux-arch@vger.kernel.org, benh@kernel.crashing.org, arnd@arndb.de, james.hogan@imgtec.com, Matthew Leach <matthew@mattleach.net>, netdev@vger.kernel.org, Will Deacon <will.deacon@arm.com>
+Message-ID: <20121210191236.sz7r2HzKlyw5UZkvh1fOsbGe2ByrLAH8VYwD4Wy1NuA@z>
 
 From: Matthew Leach <matthew@mattleach.net>
 
@@ -22,110 +22,71 @@ The {read,write}s{b,w,l} operations are not defined by all
 architectures and are being removed from the asm-generic/io.h
 interface.
 
-This patch replaces the usage of these string functions in the musb
+This patch replaces the usage of these string functions in the smc911x
 accessors with io{read,write}{8,16,32}_rep calls instead.
 
-Cc: Felipe Balbi <balbi@ti.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
 Cc: Ben Herrenschmidt <benh@kernel.crashing.org>
-Cc: linux-usb@vger.kernel.org
+Cc: netdev@vger.kernel.org
 Signed-off-by: Matthew Leach <matthew@mattleach.net>
 Signed-off-by: Will Deacon <will.deacon@arm.com>
 ---
- drivers/usb/musb/musb_core.c | 12 ++++++------
- drivers/usb/musb/musb_io.h   | 21 ---------------------
- 2 files changed, 6 insertions(+), 27 deletions(-)
+ drivers/net/ethernet/smsc/smc911x.h | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
 
-diff --git a/drivers/usb/musb/musb_core.c b/drivers/usb/musb/musb_core.c
-index bb56a0e..4f45e97 100644
---- a/drivers/usb/musb/musb_core.c
-+++ b/drivers/usb/musb/musb_core.c
-@@ -281,7 +281,7 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
- 		/* best case is 32bit-aligned source address */
- 		if ((0x02 & (unsigned long) src) == 0) {
- 			if (len >= 4) {
--				writesl(fifo, src + index, len >> 2);
-+				iowrite32_rep(fifo, src + index, len >> 2);
- 				index += len & ~0x03;
- 			}
- 			if (len & 0x02) {
-@@ -290,7 +290,7 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
- 			}
- 		} else {
- 			if (len >= 2) {
--				writesw(fifo, src + index, len >> 1);
-+				iowrite16_rep(fifo, src + index, len >> 1);
- 				index += len & ~0x01;
- 			}
- 		}
-@@ -298,7 +298,7 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *src)
- 			musb_writeb(fifo, 0, src[index]);
- 	} else  {
- 		/* byte aligned */
--		writesb(fifo, src, len);
-+		iowrite8_rep(fifo, src, len);
+diff --git a/drivers/net/ethernet/smsc/smc911x.h b/drivers/net/ethernet/smsc/smc911x.h
+index 3269292..d51261b 100644
+--- a/drivers/net/ethernet/smsc/smc911x.h
++++ b/drivers/net/ethernet/smsc/smc911x.h
+@@ -159,12 +159,12 @@ static inline void SMC_insl(struct smc911x_local *lp, int reg,
+ 	void __iomem *ioaddr = lp->base + reg;
+ 
+ 	if (lp->cfg.flags & SMC911X_USE_32BIT) {
+-		readsl(ioaddr, addr, count);
++		ioread32_rep(ioaddr, addr, count);
+ 		return;
  	}
- }
  
-@@ -324,7 +324,7 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
- 		/* best case is 32bit-aligned destination address */
- 		if ((0x02 & (unsigned long) dst) == 0) {
- 			if (len >= 4) {
--				readsl(fifo, dst, len >> 2);
-+				ioread32_rep(fifo, dst, len >> 2);
- 				index = len & ~0x03;
- 			}
- 			if (len & 0x02) {
-@@ -333,7 +333,7 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
- 			}
- 		} else {
- 			if (len >= 2) {
--				readsw(fifo, dst, len >> 1);
-+				ioread16_rep(fifo, dst, len >> 1);
- 				index = len & ~0x01;
- 			}
- 		}
-@@ -341,7 +341,7 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *dst)
- 			dst[index] = musb_readb(fifo, 0);
- 	} else  {
- 		/* byte aligned */
--		readsb(fifo, dst, len);
-+		ioread8_rep(fifo, dst, len);
+ 	if (lp->cfg.flags & SMC911X_USE_16BIT) {
+-		readsw(ioaddr, addr, count * 2);
++		ioread16_rep(ioaddr, addr, count * 2);
+ 		return;
  	}
- }
- #endif
-diff --git a/drivers/usb/musb/musb_io.h b/drivers/usb/musb/musb_io.h
-index 565ad16..eebeed7 100644
---- a/drivers/usb/musb/musb_io.h
-+++ b/drivers/usb/musb/musb_io.h
-@@ -37,27 +37,6 @@
  
- #include <linux/io.h>
+@@ -177,12 +177,12 @@ static inline void SMC_outsl(struct smc911x_local *lp, int reg,
+ 	void __iomem *ioaddr = lp->base + reg;
  
--#if !defined(CONFIG_ARM) && !defined(CONFIG_SUPERH) \
--	&& !defined(CONFIG_AVR32) && !defined(CONFIG_PPC32) \
--	&& !defined(CONFIG_PPC64) && !defined(CONFIG_BLACKFIN) \
--	&& !defined(CONFIG_MIPS) && !defined(CONFIG_M68K) \
--	&& !defined(CONFIG_XTENSA)
--static inline void readsl(const void __iomem *addr, void *buf, int len)
--	{ insl((unsigned long)addr, buf, len); }
--static inline void readsw(const void __iomem *addr, void *buf, int len)
--	{ insw((unsigned long)addr, buf, len); }
--static inline void readsb(const void __iomem *addr, void *buf, int len)
--	{ insb((unsigned long)addr, buf, len); }
--
--static inline void writesl(const void __iomem *addr, const void *buf, int len)
--	{ outsl((unsigned long)addr, buf, len); }
--static inline void writesw(const void __iomem *addr, const void *buf, int len)
--	{ outsw((unsigned long)addr, buf, len); }
--static inline void writesb(const void __iomem *addr, const void *buf, int len)
--	{ outsb((unsigned long)addr, buf, len); }
--
--#endif
--
- #ifndef CONFIG_BLACKFIN
+ 	if (lp->cfg.flags & SMC911X_USE_32BIT) {
+-		writesl(ioaddr, addr, count);
++		iowrite32_rep(ioaddr, addr, count);
+ 		return;
+ 	}
  
- /* NOTE:  these offsets are all in bytes */
+ 	if (lp->cfg.flags & SMC911X_USE_16BIT) {
+-		writesw(ioaddr, addr, count * 2);
++		iowrite16_rep(ioaddr, addr, count * 2);
+ 		return;
+ 	}
+ 
+@@ -196,14 +196,14 @@ static inline void SMC_outsl(struct smc911x_local *lp, int reg,
+ 		 writew(v & 0xFFFF, (lp)->base + (r));	 \
+ 		 writew(v >> 16, (lp)->base + (r) + 2); \
+ 	 } while (0)
+-#define SMC_insl(lp, r, p, l)	 readsw((short*)((lp)->base + (r)), p, l*2)
+-#define SMC_outsl(lp, r, p, l)	 writesw((short*)((lp)->base + (r)), p, l*2)
++#define SMC_insl(lp, r, p, l)	 ioread16_rep((short*)((lp)->base + (r)), p, l*2)
++#define SMC_outsl(lp, r, p, l)	 iowrite16_rep((short*)((lp)->base + (r)), p, l*2)
+ 
+ #elif	SMC_USE_32BIT
+ #define SMC_inl(lp, r)		 readl((lp)->base + (r))
+ #define SMC_outl(v, lp, r)	 writel(v, (lp)->base + (r))
+-#define SMC_insl(lp, r, p, l)	 readsl((int*)((lp)->base + (r)), p, l)
+-#define SMC_outsl(lp, r, p, l)	 writesl((int*)((lp)->base + (r)), p, l)
++#define SMC_insl(lp, r, p, l)	 ioread32_rep((int*)((lp)->base + (r)), p, l)
++#define SMC_outsl(lp, r, p, l)	 iowrite32_rep((int*)((lp)->base + (r)), p, l)
+ 
+ #endif /* SMC_USE_16BIT */
+ #endif /* SMC_DYNAMIC_BUS_CONFIG */
 -- 
 1.8.0
 
