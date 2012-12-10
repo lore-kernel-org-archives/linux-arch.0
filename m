@@ -1,58 +1,88 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:56480 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S965440Ab2LHSO7 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 8 Dec 2012 13:14:59 -0500
-Date: Sat, 8 Dec 2012 18:14:58 +0000
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [braindump][RFC] signals and syscall restarts (Re: [PATCH v2
- 19/44] metag: Signal handling)
-Message-ID: <20121208181458.GD4939@ZenIV.linux.org.uk>
-References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
- <1354723742-6195-20-git-send-email-james.hogan@imgtec.com>
- <20121205171609.GW4939@ZenIV.linux.org.uk>
- <50C07ECE.9070602@imgtec.com>
- <20121206220955.GZ4939@ZenIV.linux.org.uk>
+Received: from mail-ee0-f46.google.com ([74.125.83.46]:34243 "EHLO
+	mail-ee0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752054Ab2LJHgl (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Dec 2012 02:36:41 -0500
+Received: by mail-ee0-f46.google.com with SMTP id e53so1347539eek.19
+        for <linux-arch@vger.kernel.org>; Sun, 09 Dec 2012 23:36:40 -0800 (PST)
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20121206220955.GZ4939@ZenIV.linux.org.uk>
+In-Reply-To: <201212071907.38366.arnd@arndb.de>
+References: <CAHTX3dLxbVxn+D+AV7L0VsGYFOjas3AJ_3M_xncVfxp02FCy=Q@mail.gmail.com>
+	<CAErSpo6xRdwzTuPPqnmvmHSp7awnV7=Z85eWFfktb_hm9Aad_A@mail.gmail.com>
+	<50C1BA9D.5010406@monstr.eu>
+	<201212071907.38366.arnd@arndb.de>
+Date: Mon, 10 Dec 2012 08:36:40 +0100
+Message-ID: <CAHTX3dJ-x2ewDWjbSp0kOwJ5N0XtKa98gFOAKD_AiYeyJp4RYA@mail.gmail.com>
+Subject: Re: Sharing PCIE driver between Microblaze and Arm zynq
+From: Michal Simek <monstr@monstr.eu>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Linus Torvalds <torvalds@linux-foundation.org>
-Message-ID: <20121208181458.6EF8Qb4nx88EKK-hCk7arWgmoY2tDZfirMoB6tjKJU4@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, LKML <linux-kernel@vger.kernel.org>, linux-arm <linux-arm-kernel@lists.infradead.org>, Olof Johansson <olof@lixom.net>, linux-arch@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, Grant Likely <grant.likely@secretlab.ca>, John Linn <John.Linn@xilinx.com>, John Williams <jwilliams@xilinx.com>, linux-pci@vger.kernel.org
+Message-ID: <20121210073640.Rytoy0gXIj5jDi_D2LyHRFYK3p1kGtBd2hE9ImhWen0@z>
 
-On Thu, Dec 06, 2012 at 10:09:55PM +0000, Al Viro wrote:
+2012/12/7 Arnd Bergmann <arnd@arndb.de>:
+> On Friday 07 December 2012, Michal Simek wrote:
+>> On 12/06/2012 10:27 PM, Bjorn Helgaas wrote:
+>> > [+cc linux-pci]
+>> >
+>> > On Thu, Dec 6, 2012 at 7:23 AM, Michal Simek <michal.simek@xilinx.com> wrote:
+>> >> Hi guys,
+>> >>
+>> >> I have a question regarding to sharing generic OF pcie driver between
+>> >> two architectures MB and ARM Zynq.
+>> >> Is drivers/pci/pcie location good for it?
+>> >> Make no sense to have the same driver in two locations.
+>> >
+>> > I think you're talking about a PCI host bridge driver.  It would
+>> > definitely be nice to move toward a generic, shared driver.  Host
+>> > bridge drivers are responsible for enumerating the PCI hierarchy below
+>> > the bridge.  Enumeration is not really PCIe-specific, so I wouldn't
+>> > put it in drivers/pci/pcie.
+>>
+>> Not a PCI expert, just trying to find out the proper location for this shared driver.
+>
+> I'd suggest creating a drivers/pci/host directory. We will have more of
+> these in the future. AFAIK, there is no fully generic (architecture
+> independent) way to interface a PCI host driver to the PCI subsystem,
+> but I think we are getting closer to that. You are probably fairly
+> free to modify the microblaze architecture specific code though if needed.
 
-> 	What we need to guarantee is
-> * restarts do not happen on signals caught in interrupts or exceptions
-> * restarts do not happen on signals caught in sigreturn()
-> * restart should happen only once, even if we get through do_signal() many
-> times.
+yep.
 
-BTW, signal caught in sigreturn is *not* something requiring a narrow
-race.  It's perfectly normal to have some signals blocked for the
-duration of signal handler - the signal itself is blocked by default
-unless you have set SA_NODEFER in sa_flags and there's sa_mask allowing
-to block an arbitrary set of signals.  Upon return from signal handler
-we undo that and if any of the temporary blocked signals has arrived
-while we'd been in the handler (e.g. had been raised by the handler itself),
-it will be caught as soon as we unblock it, i.e. in sigreturn.
 
-Unfortunately, the testcases are somewhat architecture-dependent.  See, for
-example, arm one in commit 653d48b22166db2d8b1515ebe6f9f0f7c95dfc86; there
-might be a way to arrange for asm-free equivalent if one played with -O0,
-but it's probably not worth the trouble.  That one deals with sigreturn
-from signal caught in interrupt; sigreturn from signal caught in syscall
-is a bit trickier.  TBH, I don't understand your syscall calling conventions
-well enough to cook one up; your restart logics looks really strange.
-You leave ->DX[0].U0 modified - fair enough, it doesn't seem to be used
-by syscall entry path - *and* you revert ->DX[0].U1 to the state you
-used to have on entry.  The thing is, I don't see any place that would
-have changed it in between; why do you need that
-	regs->REG_SYSCALL = orig_syscall;
-in there at all?
+>> >> Is using readl/writel IO functions in this driver the best option
+>> >> which we can have?
+>> >> Or is there any other recommendation?
+>> >
+>> > I'm not really a driver person, but if you're writing a new driver,
+>> > wouldn't you use the iomap interfaces (ioremap(), ioread32(), etc)
+>> > rather than readl()?
+>>
+>> That driver exists but it is not in mainline and it is better to directly
+>> add it to proper location with correct io functions.
+>> The question is if ioread/iowrite functions are correct one.
+>> PowerPC io-defs.h suggests that readl/writel should be used for PCI.
+>
+> ioread32/iowrite32 are defined to behave the same way readl/writel regarding
+> addressing modes and barriers, but also allow operating on __iomem pointers
+> that were returned from ioport_map(). You probably don't need that.
+>
+> Some architectures like powerpc have their own accessors for on-chip MMIO
+> areas, but ARM does not. The PowerPC rule is that you must use either
+> readl/writel or ioread32/iowrite32 to access devices connected to a PCI
+> bus, but you would not necessarily do that for the PCI host controller
+> itself on PowerPC.
 
-BTW, could you (and other folks submitting ports) document the ABI?
-See e.g. Documentation/frv/kernel-ABI.txt for fairly decent example...
+ok.
+
+Thanks,
+Michal
+
+
+-- 
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
+Microblaze U-BOOT custodian
