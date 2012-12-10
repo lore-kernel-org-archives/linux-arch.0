@@ -1,59 +1,68 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH v2 03/44] Add CONFIG_HAVE_64BIT_ALIGNED_STRUCT for taskstats
-Date: Mon, 10 Dec 2012 13:55:39 +0100
-Message-ID: <CAMuHMdXpw+hWgcqDiFVdDTsFBEThjvB_Y0jcoZZHS-JGTBvYRg@mail.gmail.com>
-References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
-	<1354723742-6195-4-git-send-email-james.hogan@imgtec.com>
-	<50C2B751.5000507@zytor.com>
-	<50C5B7E3.2080909@imgtec.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <50C5B7E3.2080909@imgtec.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: James Hogan <james.hogan@imgtec.com>
-Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Eric Paris <eparis@redhat.com>, Will Drewry <wad@chromium.org>, James Morris <james.l.morris@oracle.com>
-List-Id: linux-arch.vger.kernel.org
+From: Will Deacon <will.deacon@arm.com>
+Subject: [PATCH v2 00/10] Fix endianness of generic I/O accessors
+Date: Mon, 10 Dec 2012 19:12:32 +0000
+Message-ID: <1355166762-15133-1-git-send-email-will.deacon@arm.com>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:55652 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1751845Ab2LJTMu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 10 Dec 2012 14:12:50 -0500
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, benh@kernel.crashing.org, arnd@arndb.de, james.hogan@imgtec.com, Will Deacon <will.deacon@arm.com>
 
-On Mon, Dec 10, 2012 at 11:22 AM, James Hogan <james.hogan@imgtec.com> wrote:
-> On 08/12/12 03:43, H. Peter Anvin wrote:
->> On 12/05/2012 08:08 AM, James Hogan wrote:
->>> On 64 bit architectures with no efficient unaligned access, taskstats
->>> has to add some padding to a reply to prevent unaligned access warnings.
->>> However this also needs to apply to 32 bit architectures with 64 bit
->>> struct alignment such as metag (which has 64 bit memory accesses).
->>
->> Wait... 64-bit struct alignment on structures with only 32-bit members?
->>  That might be... interesting... in a number of places...
->
-> I'll rewrite the description as it's a bit misleading. On metag 64bit
-> struct alignment is required when it contains 64bit members, not if it
-> only contains 32bit members. Although metag is a 32bit arch, it can do
-> 64bit memory accesses which must be aligned.
+Hello again,
 
-The C alignment rules should take care of this automatically (struct alignment
-is the maximum alignment of its members).
+This is version 2 of the patches originally posted here:
 
-You only have to override this manually in cases like this, where
-64-bit quantities
-are stored in char arrays:
+  http://lkml.indiana.edu/hypermail/linux/kernel/1210.2/00952.html
 
- struct buffer_data_page {
-        u64              time_stamp;    /* page time stamp */
-        local_t          commit;        /* write committed index */
--       unsigned char    data[];        /* data of buffer page */
-+       unsigned char    data[] RB_ALIGN_DATA;  /* data of buffer page */
- };
+Changes since then:
+	- Reordered the series to put the string function removal at the
+	  end.
+	- Matthew's had a crack at fixing up all the other drivers which
+	  rely on the generic I/O accessors after a request from James
+	  Hogan.
 
-(cfr. your other patch).
+Note that the mmc and smc changes are required in order to build their
+respective drivers for arm64, regardless of endianness and/or the rest
+of this series.
 
-Gr{oetje,eeting}s,
+Comments welcome, particularly regarding how on Earth this gets merged
+in a sane manner.
 
-                        Geert
+Will
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Matthew Leach (6):
+  net: smc911x: use io{read,write}*_rep accessors
+  net: dm9000: use io{read,write}*_rep accessors
+  net: 8390: use io{read,write}*_rep accessors
+  mtd: nand/gpio: use io{read,write}*_rep accessors
+  musb: tusb6010: use io{read,write}*_rep accessors
+  usb: musb: use io{read,write}*_rep accessors
+
+Will Deacon (4):
+  asm-generic: io: don't perform swab during {in,out} string functions
+  mmc: mmci: use io{read,write}*_rep accessors instead of string
+    functions
+  net: smc91x: use io{read,write}*_rep accessors instead of string
+    functions
+  asm-generic: io: remove {read,write} string functions
+
+ drivers/mmc/host/mmci.c               |  8 +++----
+ drivers/mtd/nand/gpio.c               |  8 +++----
+ drivers/net/ethernet/8390/ax88796.c   | 16 ++++++-------
+ drivers/net/ethernet/davicom/dm9000.c | 12 +++++-----
+ drivers/net/ethernet/smsc/smc911x.h   | 16 ++++++-------
+ drivers/net/ethernet/smsc/smc91x.h    | 20 ++++++++---------
+ drivers/usb/musb/musb_core.c          | 12 +++++-----
+ drivers/usb/musb/musb_io.h            | 21 ------------------
+ drivers/usb/musb/tusb6010.c           |  5 +++--
+ include/asm-generic/io.h              | 42 +++++------------------------------
+ 10 files changed, 55 insertions(+), 105 deletions(-)
+
+-- 
+1.8.0
