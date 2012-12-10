@@ -1,68 +1,63 @@
 From: Will Deacon <will.deacon@arm.com>
-Subject: [PATCH v2 00/10] Fix endianness of generic I/O accessors
-Date: Mon, 10 Dec 2012 19:12:32 +0000
-Message-ID: <1355166762-15133-1-git-send-email-will.deacon@arm.com>
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:55652 "EHLO
-	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1751845Ab2LJTMu (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 Dec 2012 14:12:50 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Subject: [PATCH v2 08/10] musb: tusb6010: use io{read,write}*_rep accessors
+Date: Mon, 10 Dec 2012 19:12:40 +0000
+Message-ID: <1355166762-15133-9-git-send-email-will.deacon@arm.com>
+References: <1355166762-15133-1-git-send-email-will.deacon@arm.com>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1355166762-15133-1-git-send-email-will.deacon@arm.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org
-Cc: linux-arch@vger.kernel.org, benh@kernel.crashing.org, arnd@arndb.de, james.hogan@imgtec.com, Will Deacon <will.deacon@arm.com>
+Cc: linux-arch@vger.kernel.org, benh@kernel.crashing.org, arnd@arndb.de, james.hogan@imgtec.com, Matthew Leach <matthew@mattleach.net>, Felipe Balbi <balbi@ti.com>, linux-usb@vger.kernel.org, Will Deacon <will.deacon@arm.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hello again,
+From: Matthew Leach <matthew@mattleach.net>
 
-This is version 2 of the patches originally posted here:
+The {read,write}s{b,w,l} operations are not defined by all
+architectures and are being removed from the asm-generic/io.h
+interface.
 
-  http://lkml.indiana.edu/hypermail/linux/kernel/1210.2/00952.html
+This patch replaces the usage of these string functions in the
+tusb6010 accessors with io{read,write}{8,16,32}_rep calls instead.
 
-Changes since then:
-	- Reordered the series to put the string function removal at the
-	  end.
-	- Matthew's had a crack at fixing up all the other drivers which
-	  rely on the generic I/O accessors after a request from James
-	  Hogan.
+Cc: Felipe Balbi <balbi@ti.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Ben Herrenschmidt <benh@kernel.crashing.org>
+Cc: linux-usb@vger.kernel.org
+Signed-off-by: Matthew Leach <matthew@mattleach.net>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ drivers/usb/musb/tusb6010.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-Note that the mmc and smc changes are required in order to build their
-respective drivers for arm64, regardless of endianness and/or the rest
-of this series.
-
-Comments welcome, particularly regarding how on Earth this gets merged
-in a sane manner.
-
-Will
-
-
-Matthew Leach (6):
-  net: smc911x: use io{read,write}*_rep accessors
-  net: dm9000: use io{read,write}*_rep accessors
-  net: 8390: use io{read,write}*_rep accessors
-  mtd: nand/gpio: use io{read,write}*_rep accessors
-  musb: tusb6010: use io{read,write}*_rep accessors
-  usb: musb: use io{read,write}*_rep accessors
-
-Will Deacon (4):
-  asm-generic: io: don't perform swab during {in,out} string functions
-  mmc: mmci: use io{read,write}*_rep accessors instead of string
-    functions
-  net: smc91x: use io{read,write}*_rep accessors instead of string
-    functions
-  asm-generic: io: remove {read,write} string functions
-
- drivers/mmc/host/mmci.c               |  8 +++----
- drivers/mtd/nand/gpio.c               |  8 +++----
- drivers/net/ethernet/8390/ax88796.c   | 16 ++++++-------
- drivers/net/ethernet/davicom/dm9000.c | 12 +++++-----
- drivers/net/ethernet/smsc/smc911x.h   | 16 ++++++-------
- drivers/net/ethernet/smsc/smc91x.h    | 20 ++++++++---------
- drivers/usb/musb/musb_core.c          | 12 +++++-----
- drivers/usb/musb/musb_io.h            | 21 ------------------
- drivers/usb/musb/tusb6010.c           |  5 +++--
- include/asm-generic/io.h              | 42 +++++------------------------------
- 10 files changed, 55 insertions(+), 105 deletions(-)
-
+diff --git a/drivers/usb/musb/tusb6010.c b/drivers/usb/musb/tusb6010.c
+index dc4d75e..0cc2f50 100644
+--- a/drivers/usb/musb/tusb6010.c
++++ b/drivers/usb/musb/tusb6010.c
+@@ -22,6 +22,7 @@
+ #include <linux/prefetch.h>
+ #include <linux/usb.h>
+ #include <linux/irq.h>
++#include <linux/io.h>
+ #include <linux/platform_device.h>
+ #include <linux/dma-mapping.h>
+ #include <linux/usb/nop-usb-xceiv.h>
+@@ -198,7 +199,7 @@ void musb_write_fifo(struct musb_hw_ep *hw_ep, u16 len, const u8 *buf)
+ 		/* Best case is 32bit-aligned destination address */
+ 		if ((0x02 & (unsigned long) buf) == 0) {
+ 			if (len >= 4) {
+-				writesl(fifo, buf, len >> 2);
++				iowrite32_rep(fifo, buf, len >> 2);
+ 				buf += (len & ~0x03);
+ 				len &= 0x03;
+ 			}
+@@ -245,7 +246,7 @@ void musb_read_fifo(struct musb_hw_ep *hw_ep, u16 len, u8 *buf)
+ 		/* Best case is 32bit-aligned destination address */
+ 		if ((0x02 & (unsigned long) buf) == 0) {
+ 			if (len >= 4) {
+-				readsl(fifo, buf, len >> 2);
++				ioread32_rep(fifo, buf, len >> 2);
+ 				buf += (len & ~0x03);
+ 				len &= 0x03;
+ 			}
 -- 
 1.8.0
