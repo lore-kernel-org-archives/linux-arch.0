@@ -1,37 +1,64 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:52782 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754127Ab2LJK2D (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 Dec 2012 05:28:03 -0500
-Message-ID: <50C5B8FC.3080003@imgtec.com>
-Date: Mon, 10 Dec 2012 10:27:08 +0000
-From: James Hogan <james.hogan@imgtec.com>
+Received: from mail-vb0-f46.google.com ([209.85.212.46]:47809 "EHLO
+	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751437Ab2LJMzm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Dec 2012 07:55:42 -0500
 MIME-Version: 1.0
-Subject: Re: [PATCH v2 04/44] trace/ring_buffer: handle 64bit aligned structs
-References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>  <1354723742-6195-5-git-send-email-james.hogan@imgtec.com> <1354929851.17101.105.camel@gandalf.local.home>
-In-Reply-To: <1354929851.17101.105.camel@gandalf.local.home>
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <50C5B7E3.2080909@imgtec.com>
+References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
+	<1354723742-6195-4-git-send-email-james.hogan@imgtec.com>
+	<50C2B751.5000507@zytor.com>
+	<50C5B7E3.2080909@imgtec.com>
+Date: Mon, 10 Dec 2012 13:55:39 +0100
+Message-ID: <CAMuHMdXpw+hWgcqDiFVdDTsFBEThjvB_Y0jcoZZHS-JGTBvYRg@mail.gmail.com>
+Subject: Re: [PATCH v2 03/44] Add CONFIG_HAVE_64BIT_ALIGNED_STRUCT for taskstats
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Steven Rostedt <rostedt@goodmis.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@redhat.com>
-Message-ID: <20121210102708.QnlOCGhhkSsBffRCfISWbOXagGJKKcJ-Y2V4jPWCow4@z>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Eric Paris <eparis@redhat.com>, Will Drewry <wad@chromium.org>, James Morris <james.l.morris@oracle.com>
+Message-ID: <20121210125539._rHbVq4ongrX90chpjQcsly1t0JWdgSFNpq_59VXuNY@z>
 
-On 08/12/12 01:24, Steven Rostedt wrote:
-> On Wed, 2012-12-05 at 16:08 +0000, James Hogan wrote:
->> Some 32 bit architectures have 64 bit struct alignment (for example
->> Meta which has 64 bit read/write instructions). These require 8 byte
->> alignment of event data too, so use CONFIG_HAVE_64BIT_ALIGNED_STRUCT
->> instead of CONFIG_64BIT to decide alignment, and align
->> buffer_data_page::data accordingly.
+On Mon, Dec 10, 2012 at 11:22 AM, James Hogan <james.hogan@imgtec.com> wrote:
+> On 08/12/12 03:43, H. Peter Anvin wrote:
+>> On 12/05/2012 08:08 AM, James Hogan wrote:
+>>> On 64 bit architectures with no efficient unaligned access, taskstats
+>>> has to add some padding to a reply to prevent unaligned access warnings.
+>>> However this also needs to apply to 32 bit architectures with 64 bit
+>>> struct alignment such as metag (which has 64 bit memory accesses).
 >>
->> Signed-off-by: James Hogan <james.hogan@imgtec.com>
-> 
-> Acked-by: Steven Rostedt <rostedt@goodmis.org>
+>> Wait... 64-bit struct alignment on structures with only 32-bit members?
+>>  That might be... interesting... in a number of places...
+>
+> I'll rewrite the description as it's a bit misleading. On metag 64bit
+> struct alignment is required when it contains 64bit members, not if it
+> only contains 32bit members. Although metag is a 32bit arch, it can do
+> 64bit memory accesses which must be aligned.
 
-Thanks Steven
+The C alignment rules should take care of this automatically (struct alignment
+is the maximum alignment of its members).
 
-Cheers
-James
+You only have to override this manually in cases like this, where
+64-bit quantities
+are stored in char arrays:
 
+ struct buffer_data_page {
+        u64              time_stamp;    /* page time stamp */
+        local_t          commit;        /* write committed index */
+-       unsigned char    data[];        /* data of buffer page */
++       unsigned char    data[] RB_ALIGN_DATA;  /* data of buffer page */
+ };
+
+(cfr. your other patch).
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
