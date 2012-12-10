@@ -1,57 +1,59 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [braindump][RFC] signals and syscall restarts (Re: [PATCH v2
- 19/44] metag: Signal handling)
-Date: Mon, 10 Dec 2012 10:40:05 +0000
-Message-ID: <50C5BC05.6020502@imgtec.com>
-References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com> <1354723742-6195-20-git-send-email-james.hogan@imgtec.com> <20121205171609.GW4939@ZenIV.linux.org.uk> <50C07ECE.9070602@imgtec.com> <20121206220955.GZ4939@ZenIV.linux.org.uk>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH v2 03/44] Add CONFIG_HAVE_64BIT_ALIGNED_STRUCT for taskstats
+Date: Mon, 10 Dec 2012 13:55:39 +0100
+Message-ID: <CAMuHMdXpw+hWgcqDiFVdDTsFBEThjvB_Y0jcoZZHS-JGTBvYRg@mail.gmail.com>
+References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
+	<1354723742-6195-4-git-send-email-james.hogan@imgtec.com>
+	<50C2B751.5000507@zytor.com>
+	<50C5B7E3.2080909@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:54488 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751880Ab2LJKlK (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 10 Dec 2012 05:41:10 -0500
-In-Reply-To: <20121206220955.GZ4939@ZenIV.linux.org.uk>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Linus Torvalds <torvalds@linux-foundation.org>
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <50C5B7E3.2080909@imgtec.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: James Hogan <james.hogan@imgtec.com>
+Cc: "H. Peter Anvin" <hpa@zytor.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Balbir Singh <bsingharora@gmail.com>, Ingo Molnar <mingo@kernel.org>, Andrew Morton <akpm@linux-foundation.org>, Eric Paris <eparis@redhat.com>, Will Drewry <wad@chromium.org>, James Morris <james.l.morris@oracle.com>
+List-Id: linux-arch.vger.kernel.org
 
-On 06/12/12 22:09, Al Viro wrote:
-> On Thu, Dec 06, 2012 at 11:17:34AM +0000, James Hogan wrote:
-> 
->> Agreed, it looks wrong. Looking at the sh version, is there a particular
->> reason to only check for -EFAULT and not the other errors that
->> do_sigaltstack can return (-EPERM, -EINVAL, and -ENOMEM)?
-> 
-> See commit fae2ae2a900a5c7bb385fe4075f343e7e2d5daa2
-
-Thanks :)
-
-> 
->>> BTW, what's to stop the syscall restart triggering if you catch a signal
->>> while in rt_sigreturn(2)?
+On Mon, Dec 10, 2012 at 11:22 AM, James Hogan <james.hogan@imgtec.com> wrote:
+> On 08/12/12 03:43, H. Peter Anvin wrote:
+>> On 12/05/2012 08:08 AM, James Hogan wrote:
+>>> On 64 bit architectures with no efficient unaligned access, taskstats
+>>> has to add some padding to a reply to prevent unaligned access warnings.
+>>> However this also needs to apply to 32 bit architectures with 64 bit
+>>> struct alignment such as metag (which has 64 bit memory accesses).
 >>
->> I'm not sure I understand how that could cause a problem. Could you
->> elaborate the sequence of events?
->>
->> The signal restart is triggered by the return value register, so
->> rt_sigreturn would have to return -ERESTART*. This could happen if the
->> signal handler overwrote the return value in the sigcontext (which as
->> far as I can tell could also happen on ARM), or if the syscall that was
->> originally interrupted by the signal has -ERESTARTNOINTR ||
->> (-ERESTARTSYS && SA_RESTART), but in that case rt_sigreturn has already
->> switched back to the context of the original syscall so that's the right
->> thing to do isn't it? I've probably missed something important :-)
-> 
-> [we probably need something along the lines of braindump below in 
-> somewhere in Documentation/*; comments and improvements are very
-> welcome - this is just a starting point.  We *do* need some coherent
-> explanation of signal semantics, judging by how often people step on
-> the same landmines...]
+>> Wait... 64-bit struct alignment on structures with only 32-bit members?
+>>  That might be... interesting... in a number of places...
+>
+> I'll rewrite the description as it's a bit misleading. On metag 64bit
+> struct alignment is required when it contains 64bit members, not if it
+> only contains 32bit members. Although metag is a 32bit arch, it can do
+> 64bit memory accesses which must be aligned.
 
-Thanks, this helps a lot.
+The C alignment rules should take care of this automatically (struct alignment
+is the maximum alignment of its members).
 
-Cheers
-James
+You only have to override this manually in cases like this, where
+64-bit quantities
+are stored in char arrays:
+
+ struct buffer_data_page {
+        u64              time_stamp;    /* page time stamp */
+        local_t          commit;        /* write committed index */
+-       unsigned char    data[];        /* data of buffer page */
++       unsigned char    data[] RB_ALIGN_DATA;  /* data of buffer page */
+ };
+
+(cfr. your other patch).
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
