@@ -1,45 +1,88 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/5] asm-generic/mmu.h: Remove unused vmlist field from mm_context_t
-Date: Sun, 9 Dec 2012 22:15:56 +0000
-Message-ID: <201212092215.56872.arnd@arndb.de>
-References: <1351765467-29244-1-git-send-email-lars@metafoo.de> <201212032354.10573.arnd@arndb.de> <50BDAD3D.9020209@metafoo.de>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: Sharing PCIE driver between Microblaze and Arm zynq
+Date: Mon, 10 Dec 2012 08:34:15 +0100
+Message-ID: <CAHTX3dJLa3e_za-wx8VY9FWqc-GMe_hB-hwzOZqyP-u3hD=3Mw@mail.gmail.com>
+References: <CAHTX3dLxbVxn+D+AV7L0VsGYFOjas3AJ_3M_xncVfxp02FCy=Q@mail.gmail.com>
+	<CAErSpo6xRdwzTuPPqnmvmHSp7awnV7=Z85eWFfktb_hm9Aad_A@mail.gmail.com>
+	<50C1BA9D.5010406@monstr.eu>
+	<20121207141115.EFC903E0B87@localhost>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.171]:50723 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752146Ab2LIWQS (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 9 Dec 2012 17:16:18 -0500
-In-Reply-To: <50BDAD3D.9020209@metafoo.de>
+Received: from mail-ee0-f46.google.com ([74.125.83.46]:53041 "EHLO
+	mail-ee0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752176Ab2LJHeQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Dec 2012 02:34:16 -0500
+Received: by mail-ee0-f46.google.com with SMTP id e53so1346436eek.19
+        for <linux-arch@vger.kernel.org>; Sun, 09 Dec 2012 23:34:15 -0800 (PST)
+In-Reply-To: <20121207141115.EFC903E0B87@localhost>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Lars-Peter Clausen <lars@metafoo.de>
-Cc: Mark Salter <msalter@redhat.com>, Aurelien Jacquiot <a-jacquiot@ti.com>, Yoshinori Sato <ysato@users.sourceforge.jp>, Chris Zankel <chris@zankel.net>, Max Filippov <jcmvbkbc@gmail.com>, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-xtensa@linux-xtensa.org, linux-arch@vger.kernel.org
+To: Grant Likely <grant.likely@secretlab.ca>
+Cc: Bjorn Helgaas <bhelgaas@google.com>, LKML <linux-kernel@vger.kernel.org>, linux-arm <linux-arm-kernel@lists.infradead.org>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, linux-arch@vger.kernel.org, devicetree-discuss@lists.ozlabs.org, John Linn <John.Linn@xilinx.com>, John Williams <jwilliams@xilinx.com>, linux-pci@vger.kernel.org
 
-On Tuesday 04 December 2012, Lars-Peter Clausen wrote:
-> On 12/04/2012 12:54 AM, Arnd Bergmann wrote:
-> > On Thursday 01 November 2012, Lars-Peter Clausen wrote:
-> >> Nothing is using the vmlist field in mm_context_t anymore. It has been removed
-> >> from the non-generic versions over 3 years ago 8feae1311 ("NOMMU: Make VMAs per
-> >> MM as for MMU-mode linux").
-> >>
-> >> Signed-off-by: Lars-Peter Clausen <lars@metafoo.de>
-> > 
-> > Whole series:
-> > 
-> > Acked-by: Arnd Bergmann <arnd@arndb.de>
-> > 
-> > Do you want to include the patches in a patch set of your own, or should I put them
-> > into the asm-generic tree?
-> > 
-> >       Arnd
-> 
-> Hi Arnd,
-> 
-> The plan was to let it go through the asm-generic tree.
+2012/12/7 Grant Likely <grant.likely@secretlab.ca>:
+> On Fri, 07 Dec 2012 10:45:01 +0100, Michal Simek <monstr@monstr.eu> wrote:
+>> On 12/06/2012 10:27 PM, Bjorn Helgaas wrote:
+>> > [+cc linux-pci]
+>> >
+>> > On Thu, Dec 6, 2012 at 7:23 AM, Michal Simek <michal.simek@xilinx.com> wrote:
+>> >> Hi guys,
+>> >>
+>> >> I have a question regarding to sharing generic OF pcie driver between
+>> >> two architectures MB and ARM Zynq.
+>> >> Is drivers/pci/pcie location good for it?
+>> >> Make no sense to have the same driver in two locations.
+>> >
+>> > I think you're talking about a PCI host bridge driver.  It would
+>> > definitely be nice to move toward a generic, shared driver.  Host
+>> > bridge drivers are responsible for enumerating the PCI hierarchy below
+>> > the bridge.  Enumeration is not really PCIe-specific, so I wouldn't
+>> > put it in drivers/pci/pcie.
+>>
+>> Not a PCI expert, just trying to find out the proper location for this shared driver.
+>>
+>>
+>> >> Is using readl/writel IO functions in this driver the best option
+>> >> which we can have?
+>> >> Or is there any other recommendation?
+>> >
+>> > I'm not really a driver person, but if you're writing a new driver,
+>> > wouldn't you use the iomap interfaces (ioremap(), ioread32(), etc)
+>> > rather than readl()?
+>>
+>> That driver exists but it is not in mainline and it is better to directly
+>> add it to proper location with correct io functions.
+>> The question is if ioread/iowrite functions are correct one.
+>> PowerPC io-defs.h suggests that readl/writel should be used for PCI.
+>>
+>>
+>> >> Also just want to check if it is correct to use pcie device_type.
+>> >
+>> > I don't know what you're asking here.  Can you elaborate or give a
+>> > specific example?
+>>
+>> If node property device_type pcie should be used.
+>> device_type = "pcie";
+>>
+>> For pci it is device_type = "pci";
+>> For network it is device_type = "network"
+>> the same for serial, watchdogs.
+>>
+>> Do we have any list of device_types which we should use?
+>
+> Don't use them unless a binding requires it. PCI address lookup code
+> uses it, so we put it in those nodes. Otherwise device_type is
+> deprecated and has been for a long time now. You should not be using it
+> in .dts files.
 
-Sorry for all the delay. I've applied it now.
 
-	Arnd
+Thanks,
+Michal
+
+
+-- 
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel 2.6 Microblaze Linux - http://www.monstr.eu/fdt/
+Microblaze U-BOOT custodian
