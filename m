@@ -1,31 +1,66 @@
-From: Grant Likely <grant.likely@secretlab.ca>
-Subject: Re: [RFC] gpiolib: introduce descriptor-based GPIO interface
-Date: Mon, 10 Dec 2012 22:34:25 +0000
-Message-ID: <20121210223425.DC2783E0796@localhost>
-References: <1354779918-4028-1-git-send-email-acourbot@nvidia.com> <1354779918-4028-2-git-send-email-acourbot@nvidia.com> <20121206144259.136693E0950@localhost> <1985305.LiOKDTFPq4@percival>
+From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Subject: Re: [PATCH, REBASED] asm-generic, mm: PTE_SPECIAL cleanup
+Date: Tue, 11 Dec 2012 10:53:00 +0200
+Message-ID: <20121211085300.GA32158@otc-wbsnb-06>
+References: <1354881321-29363-1-git-send-email-kirill.shutemov@linux.intel.com>
+ <20121207143002.GB21233@arm.com>
+ <20121207144112.GA17044@otc-wbsnb-06>
+ <20121207123517.3fc93a34.akpm@linux-foundation.org>
+Mime-Version: 1.0
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature"; boundary="YZ5djTAD1cGYuMQK"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-wg0-f46.google.com ([74.125.82.46]:33705 "EHLO
-	mail-wg0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752056Ab2LJWi1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Dec 2012 17:38:27 -0500
-Received: by mail-wg0-f46.google.com with SMTP id dr13so2063352wgb.1
-        for <linux-arch@vger.kernel.org>; Mon, 10 Dec 2012 14:38:26 -0800 (PST)
-In-Reply-To: <1985305.LiOKDTFPq4@percival>
+Received: from mga14.intel.com ([143.182.124.37]:65365 "EHLO mga14.intel.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751930Ab2LKIvf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 11 Dec 2012 03:51:35 -0500
+Content-Disposition: inline
+In-Reply-To: <20121207123517.3fc93a34.akpm@linux-foundation.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alex Courbot <acourbot@nvidia.com>
-Cc: Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "gnurou@gmail.com" <gnurou@gmail.com>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Catalin Marinas <catalin.marinas@arm.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
 
-On Fri, 7 Dec 2012 11:06:34 +0900, Alex Courbot <acourbot@nvidia.com> wrote:
-> On Thursday 06 December 2012 22:42:59 Grant Likely wrote:
-> > how about "gpio_chip_hwnum()" to somewhat match irqdomain convention?
-> 
-> Sure, matching existing interfaces is better. "git grep hwnum" does not seem 
-> to reveal much related to irqdomain though?
 
-irqdomain actually uses "hwirq". "hwgpio" would be a closer analog than
-'hwnum'.  At first I though hwgpio to be too goofy, but on further
-reflection it probably has the least likelyhood of getting used
-incorrectly.
+--YZ5djTAD1cGYuMQK
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+Content-Transfer-Encoding: quoted-printable
 
-g.
+On Fri, Dec 07, 2012 at 12:35:17PM -0800, Andrew Morton wrote:
+> On Fri, 7 Dec 2012 16:41:12 +0200
+> "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> wrote:
+>=20
+> > Advertise PTE_SPECIAL through Kconfig option and consolidate dummy
+> > pte_special() and mkspecial() in <asm-generic/pgtable.h>
+>=20
+> why?
+
+Just drop some amount of useless code. Do you think it's not reasonable?
+
+--=20
+ Kirill A. Shutemov
+
+--YZ5djTAD1cGYuMQK
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: Digital signature
+
+-----BEGIN PGP SIGNATURE-----
+Version: GnuPG v1.4.12 (GNU/Linux)
+
+iQIcBAEBAgAGBQJQxvRsAAoJEAd+omnVudOM8VsQAMu4u0bNE9Xv2f+RP68lYcZg
+NkjQFvNws7vYZjv3xtKN1kssbP4EF1WYU5XeV03vWla4+FJ6xnSAL/fq1MMXiLH/
+Id6iKjl2EwwxGY3jcGA8U6/6STszdvSg3ee4imsgVdpH9eYelsE8rqDD3BVF6Et2
+QS6i0iNmWyayvLE6jbwVl9/qR16QYraXMobjKEYe4aeWTlZGTqhgMQtbhm7K/heV
+3OVGHetiq+MOdr7KJYb+YZc/81kd6sMXDpEafyQlhdIHF8AMYVQA2Pm2AwvA0/RC
+CCZdGXd8J1jIetIcbJknp5Cg7pB5uEAVcNFGwPoa8i+LmRc74yNvqEg/KsyDJd3a
+NhPST97tzPss0VZGkX0A3P34d4jMIihEW7WOTXtgm0MjrGdOGWy7yAearmWTgtS+
+MEqul5QCmHf6te2if2ZUcOeJyRDcuDKPrnkjHS1CJSei2HuWSk7UQJd34uXil0m1
+BAD4+yWH+eR2ELTxsTljERlgombPETMkoZ2lP3ty5VWoH4k9DuNQ1QCyxoKem4hA
+0K3eanwMTNyz4nM1R5P21tzyGl9xwPJpyqZWNtQDhwn9qSKuIcrPQ5C45wBFFPky
+rQwqIHnMaquOUnbn+n7nrvvBzaeIp9xU6r1J86Ioza164q3aJQN1BRgx0Cfr1anc
+j7ojFfbWzkeJBbs4m4kr
+=mtam
+-----END PGP SIGNATURE-----
+
+--YZ5djTAD1cGYuMQK--
