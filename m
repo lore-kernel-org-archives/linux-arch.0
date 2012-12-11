@@ -1,66 +1,171 @@
-From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
-Subject: Re: [PATCH, REBASED] asm-generic, mm: PTE_SPECIAL cleanup
-Date: Tue, 11 Dec 2012 10:53:00 +0200
-Message-ID: <20121211085300.GA32158@otc-wbsnb-06>
-References: <1354881321-29363-1-git-send-email-kirill.shutemov@linux.intel.com>
- <20121207143002.GB21233@arm.com>
- <20121207144112.GA17044@otc-wbsnb-06>
- <20121207123517.3fc93a34.akpm@linux-foundation.org>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [PATCH v2 04/10] net: smc911x: use io{read,write}*_rep accessors
+Date: Tue, 11 Dec 2012 14:49:49 +0000
+Message-ID: <20121211144949.GD16759@mudshark.cambridge.arm.com>
+References: <1355166762-15133-1-git-send-email-will.deacon@arm.com>
+ <1355166762-15133-5-git-send-email-will.deacon@arm.com>
+ <20121210.154705.1773845547652835423.davem@davemloft.net>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="YZ5djTAD1cGYuMQK"
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mga14.intel.com ([143.182.124.37]:65365 "EHLO mga14.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751930Ab2LKIvf (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 11 Dec 2012 03:51:35 -0500
+Received: from cam-admin0.cambridge.arm.com ([217.140.96.50]:43289 "EHLO
+	cam-admin0.cambridge.arm.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752781Ab2LKOuQ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Tue, 11 Dec 2012 09:50:16 -0500
 Content-Disposition: inline
-In-Reply-To: <20121207123517.3fc93a34.akpm@linux-foundation.org>
+In-Reply-To: <20121210.154705.1773845547652835423.davem@davemloft.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Catalin Marinas <catalin.marinas@arm.com>, "linux-mm@kvack.org" <linux-mm@kvack.org>, Arnd Bergmann <arnd@arndb.de>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
+To: David Miller <davem@davemloft.net>
+Cc: "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "benh@kernel.crashing.org" <benh@kernel.crashing.org>, "arnd@arndb.de" <arnd@arndb.de>, "james.hogan@imgtec.com" <james.hogan@imgtec.com>, "matthew@mattleach.net" <matthew@mattleach.net>, "netdev@vger.kernel.org" <netdev@vger.kernel.org>
 
+Hi David,
 
---YZ5djTAD1cGYuMQK
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+On Mon, Dec 10, 2012 at 08:47:05PM +0000, David Miller wrote:
+> From: Will Deacon <will.deacon@arm.com>
+> Date: Mon, 10 Dec 2012 19:12:36 +0000
+> 
+> > From: Matthew Leach <matthew@mattleach.net>
+> > 
+> > The {read,write}s{b,w,l} operations are not defined by all
+> > architectures and are being removed from the asm-generic/io.h
+> > interface.
+> > 
+> > This patch replaces the usage of these string functions in the smc911x
+> > accessors with io{read,write}{8,16,32}_rep calls instead.
+> > 
+> > Cc: Arnd Bergmann <arnd@arndb.de>
+> > Cc: Ben Herrenschmidt <benh@kernel.crashing.org>
+> > Cc: netdev@vger.kernel.org
+> > Signed-off-by: Matthew Leach <matthew@mattleach.net>
+> > Signed-off-by: Will Deacon <will.deacon@arm.com>
+> 
+> This misses the two uses in smsc911x_tx_writefifo and
+> smsc911x_rx_readfifo.
 
-On Fri, Dec 07, 2012 at 12:35:17PM -0800, Andrew Morton wrote:
-> On Fri, 7 Dec 2012 16:41:12 +0200
-> "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> wrote:
->=20
-> > Advertise PTE_SPECIAL through Kconfig option and consolidate dummy
-> > pte_special() and mkspecial() in <asm-generic/pgtable.h>
->=20
-> why?
+Well spotted, updated patch below.
 
-Just drop some amount of useless code. Do you think it's not reasonable?
+Cheers,
 
---=20
- Kirill A. Shutemov
+Will
 
---YZ5djTAD1cGYuMQK
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: Digital signature
+--->8
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
+From b46e33465e755e945136d19938c9a8331cbafce7 Mon Sep 17 00:00:00 2001
+From: Matthew Leach <matthew@mattleach.net>
+Date: Tue, 6 Nov 2012 14:51:11 +0000
+Subject: [PATCH v3] net: smc911x: use io{read,write}*_rep accessors
 
-iQIcBAEBAgAGBQJQxvRsAAoJEAd+omnVudOM8VsQAMu4u0bNE9Xv2f+RP68lYcZg
-NkjQFvNws7vYZjv3xtKN1kssbP4EF1WYU5XeV03vWla4+FJ6xnSAL/fq1MMXiLH/
-Id6iKjl2EwwxGY3jcGA8U6/6STszdvSg3ee4imsgVdpH9eYelsE8rqDD3BVF6Et2
-QS6i0iNmWyayvLE6jbwVl9/qR16QYraXMobjKEYe4aeWTlZGTqhgMQtbhm7K/heV
-3OVGHetiq+MOdr7KJYb+YZc/81kd6sMXDpEafyQlhdIHF8AMYVQA2Pm2AwvA0/RC
-CCZdGXd8J1jIetIcbJknp5Cg7pB5uEAVcNFGwPoa8i+LmRc74yNvqEg/KsyDJd3a
-NhPST97tzPss0VZGkX0A3P34d4jMIihEW7WOTXtgm0MjrGdOGWy7yAearmWTgtS+
-MEqul5QCmHf6te2if2ZUcOeJyRDcuDKPrnkjHS1CJSei2HuWSk7UQJd34uXil0m1
-BAD4+yWH+eR2ELTxsTljERlgombPETMkoZ2lP3ty5VWoH4k9DuNQ1QCyxoKem4hA
-0K3eanwMTNyz4nM1R5P21tzyGl9xwPJpyqZWNtQDhwn9qSKuIcrPQ5C45wBFFPky
-rQwqIHnMaquOUnbn+n7nrvvBzaeIp9xU6r1J86Ioza164q3aJQN1BRgx0Cfr1anc
-j7ojFfbWzkeJBbs4m4kr
-=mtam
------END PGP SIGNATURE-----
+The {read,write}s{b,w,l} operations are not defined by all
+architectures and are being removed from the asm-generic/io.h
+interface.
 
---YZ5djTAD1cGYuMQK--
+This patch replaces the usage of these string functions in the smc911x
+accessors with io{read,write}{8,16,32}_rep calls instead.
+
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Ben Herrenschmidt <benh@kernel.crashing.org>
+Cc: netdev@vger.kernel.org
+Signed-off-by: Matthew Leach <matthew@mattleach.net>
+Signed-off-by: Will Deacon <will.deacon@arm.com>
+---
+ drivers/net/ethernet/smsc/smc911x.h  | 16 ++++++++--------
+ drivers/net/ethernet/smsc/smsc911x.c |  8 ++++----
+ 2 files changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/net/ethernet/smsc/smc911x.h b/drivers/net/ethernet/smsc/smc911x.h
+index 3269292..d51261b 100644
+--- a/drivers/net/ethernet/smsc/smc911x.h
++++ b/drivers/net/ethernet/smsc/smc911x.h
+@@ -159,12 +159,12 @@ static inline void SMC_insl(struct smc911x_local *lp, int reg,
+ 	void __iomem *ioaddr = lp->base + reg;
+ 
+ 	if (lp->cfg.flags & SMC911X_USE_32BIT) {
+-		readsl(ioaddr, addr, count);
++		ioread32_rep(ioaddr, addr, count);
+ 		return;
+ 	}
+ 
+ 	if (lp->cfg.flags & SMC911X_USE_16BIT) {
+-		readsw(ioaddr, addr, count * 2);
++		ioread16_rep(ioaddr, addr, count * 2);
+ 		return;
+ 	}
+ 
+@@ -177,12 +177,12 @@ static inline void SMC_outsl(struct smc911x_local *lp, int reg,
+ 	void __iomem *ioaddr = lp->base + reg;
+ 
+ 	if (lp->cfg.flags & SMC911X_USE_32BIT) {
+-		writesl(ioaddr, addr, count);
++		iowrite32_rep(ioaddr, addr, count);
+ 		return;
+ 	}
+ 
+ 	if (lp->cfg.flags & SMC911X_USE_16BIT) {
+-		writesw(ioaddr, addr, count * 2);
++		iowrite16_rep(ioaddr, addr, count * 2);
+ 		return;
+ 	}
+ 
+@@ -196,14 +196,14 @@ static inline void SMC_outsl(struct smc911x_local *lp, int reg,
+ 		 writew(v & 0xFFFF, (lp)->base + (r));	 \
+ 		 writew(v >> 16, (lp)->base + (r) + 2); \
+ 	 } while (0)
+-#define SMC_insl(lp, r, p, l)	 readsw((short*)((lp)->base + (r)), p, l*2)
+-#define SMC_outsl(lp, r, p, l)	 writesw((short*)((lp)->base + (r)), p, l*2)
++#define SMC_insl(lp, r, p, l)	 ioread16_rep((short*)((lp)->base + (r)), p, l*2)
++#define SMC_outsl(lp, r, p, l)	 iowrite16_rep((short*)((lp)->base + (r)), p, l*2)
+ 
+ #elif	SMC_USE_32BIT
+ #define SMC_inl(lp, r)		 readl((lp)->base + (r))
+ #define SMC_outl(v, lp, r)	 writel(v, (lp)->base + (r))
+-#define SMC_insl(lp, r, p, l)	 readsl((int*)((lp)->base + (r)), p, l)
+-#define SMC_outsl(lp, r, p, l)	 writesl((int*)((lp)->base + (r)), p, l)
++#define SMC_insl(lp, r, p, l)	 ioread32_rep((int*)((lp)->base + (r)), p, l)
++#define SMC_outsl(lp, r, p, l)	 iowrite32_rep((int*)((lp)->base + (r)), p, l)
+ 
+ #endif /* SMC_USE_16BIT */
+ #endif /* SMC_DYNAMIC_BUS_CONFIG */
+diff --git a/drivers/net/ethernet/smsc/smsc911x.c b/drivers/net/ethernet/smsc/smsc911x.c
+index c53c0f4..9d46167 100644
+--- a/drivers/net/ethernet/smsc/smsc911x.c
++++ b/drivers/net/ethernet/smsc/smsc911x.c
+@@ -253,7 +253,7 @@ smsc911x_tx_writefifo(struct smsc911x_data *pdata, unsigned int *buf,
+ 	}
+ 
+ 	if (pdata->config.flags & SMSC911X_USE_32BIT) {
+-		writesl(pdata->ioaddr + TX_DATA_FIFO, buf, wordcount);
++		iowrite32_rep(pdata->ioaddr + TX_DATA_FIFO, buf, wordcount);
+ 		goto out;
+ 	}
+ 
+@@ -285,7 +285,7 @@ smsc911x_tx_writefifo_shift(struct smsc911x_data *pdata, unsigned int *buf,
+ 	}
+ 
+ 	if (pdata->config.flags & SMSC911X_USE_32BIT) {
+-		writesl(pdata->ioaddr + __smsc_shift(pdata,
++		iowrite32_rep(pdata->ioaddr + __smsc_shift(pdata,
+ 						TX_DATA_FIFO), buf, wordcount);
+ 		goto out;
+ 	}
+@@ -319,7 +319,7 @@ smsc911x_rx_readfifo(struct smsc911x_data *pdata, unsigned int *buf,
+ 	}
+ 
+ 	if (pdata->config.flags & SMSC911X_USE_32BIT) {
+-		readsl(pdata->ioaddr + RX_DATA_FIFO, buf, wordcount);
++		ioread32_rep(pdata->ioaddr + RX_DATA_FIFO, buf, wordcount);
+ 		goto out;
+ 	}
+ 
+@@ -351,7 +351,7 @@ smsc911x_rx_readfifo_shift(struct smsc911x_data *pdata, unsigned int *buf,
+ 	}
+ 
+ 	if (pdata->config.flags & SMSC911X_USE_32BIT) {
+-		readsl(pdata->ioaddr + __smsc_shift(pdata,
++		ioread32_rep(pdata->ioaddr + __smsc_shift(pdata,
+ 						RX_DATA_FIFO), buf, wordcount);
+ 		goto out;
+ 	}
+-- 
+1.8.0
