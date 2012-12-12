@@ -1,43 +1,36 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:59796 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751472Ab2LJUra (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 10 Dec 2012 15:47:30 -0500
-Date: Mon, 10 Dec 2012 15:47:28 -0500 (EST)
-Message-ID: <20121210.154728.1064961726249039464.davem@davemloft.net>
-Subject: Re: [PATCH v2 05/10] net: dm9000: use io{read,write}*_rep accessors
-From: David Miller <davem@davemloft.net>
-In-Reply-To: <1355166762-15133-6-git-send-email-will.deacon@arm.com>
-References: <1355166762-15133-1-git-send-email-will.deacon@arm.com>
-	<1355166762-15133-6-git-send-email-will.deacon@arm.com>
-Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
+Received: from mail-da0-f49.google.com ([209.85.210.49]:46750 "EHLO
+	mail-da0-f49.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753593Ab2LLDeL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 11 Dec 2012 22:34:11 -0500
+Received: by mail-da0-f49.google.com with SMTP id v40so73042dad.36
+        for <linux-arch@vger.kernel.org>; Tue, 11 Dec 2012 19:34:10 -0800 (PST)
+Date: Tue, 11 Dec 2012 19:07:14 -0800 (PST)
+From: David Rientjes <rientjes@google.com>
+Subject: Re: [PATCH, RESEND] asm-generic, mm: pgtable: consolidate zero page
+ helpers
+In-Reply-To: <1354881215-26257-1-git-send-email-kirill.shutemov@linux.intel.com>
+Message-ID: <alpine.DEB.2.00.1212111906270.18872@chino.kir.corp.google.com>
+References: <1354881215-26257-1-git-send-email-kirill.shutemov@linux.intel.com>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: will.deacon@arm.com
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, benh@kernel.crashing.org, arnd@arndb.de, james.hogan@imgtec.com, matthew@mattleach.net, netdev@vger.kernel.org
-Message-ID: <20121210204728.mudUOst796cLDRQD7p7cbnzpfragxfwZ1jizVzIwKgw@z>
+To: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, linux-mm@kvack.org, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, linux-s390@vger.kernel.org, Martin Schwidefsky <schwidefsky@de.ibm.com>, Heiko Carstens <heiko.carstens@de.ibm.com>, linux-mips@linux-mips.org, Ralf Baechle <ralf@linux-mips.org>, John Crispin <blogic@openwrt.org>
+Message-ID: <20121212030714.5ghHthkhsn4qPj6kFBfIFCRsJeSQymJooq_x4w4Vc5U@z>
 
-From: Will Deacon <will.deacon@arm.com>
-Date: Mon, 10 Dec 2012 19:12:37 +0000
+On Fri, 7 Dec 2012, Kirill A. Shutemov wrote:
 
-> From: Matthew Leach <matthew@mattleach.net>
+> From: "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com>
 > 
-> The {read,write}s{b,w,l} operations are not defined by all
-> architectures and are being removed from the asm-generic/io.h
-> interface.
+> We have two different implementation of is_zero_pfn() and
+> my_zero_pfn() helpers: for architectures with and without zero page
+> coloring.
 > 
-> This patch replaces the usage of these string functions in the default
-> DM9000 accessors with io{read,write}{8,16,32}_rep calls instead. This
-> is required as the dm9000 driver is in use by the blackfin
-> architecture which uses the asm-generic io accessors.
+> Let's consolidate them in <asm-generic/pgtable.h>.
 > 
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Ben Herrenschmidt <benh@kernel.crashing.org>
-> Cc: David Miller <davem@davemloft.net>
-> Cc: netdev@vger.kernel.org
-> Signed-off-by: Matthew Leach <matthew@mattleach.net>
-> Signed-off-by: Will Deacon <will.deacon@arm.com>
 
-Applied.
+What's the benefit from doing this other than generalizing some per-arch 
+code?  It simply adds on more layer of redirection to try to find the 
+implementation that matters for the architecture you're hacking on.
