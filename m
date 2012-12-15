@@ -1,63 +1,63 @@
-From: Artem Bityutskiy <dedekind1@gmail.com>
-Subject: Re: [PATCH v2 07/10] mtd: nand/gpio: use io{read,write}*_rep
- accessors
-Date: Thu, 13 Dec 2012 13:28:40 +0200
-Message-ID: <1355398120.3400.46.camel@sauron.fi.intel.com>
-References: <1355166762-15133-1-git-send-email-will.deacon@arm.com>
-	 <1355166762-15133-8-git-send-email-will.deacon@arm.com>
-Reply-To: dedekind1@gmail.com
+From: Jonas Bonn <jonas.bonn@gmail.com>
+Subject: Re: [braindump][RFC] signals and syscall restarts (Re: [PATCH v2
+ 19/44] metag: Signal handling)
+Date: Sat, 15 Dec 2012 17:26:30 +0100
+Message-ID: <CACM3HyGHQRkqyqV=X8HKGhh-x3izA9Utr2F_C9nJjPvrxd85+A@mail.gmail.com>
+References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
+	<1354723742-6195-20-git-send-email-james.hogan@imgtec.com>
+	<20121205171609.GW4939@ZenIV.linux.org.uk>
+	<50C07ECE.9070602@imgtec.com>
+	<20121206220955.GZ4939@ZenIV.linux.org.uk>
+	<20121208074429.GC4939@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg="pgp-sha1"; protocol="application/pgp-signature";
-	boundary="=-LSJehB3qcSwBLeZbc8kf"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <1355166762-15133-8-git-send-email-will.deacon@arm.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, benh@kernel.crashing.org, arnd@arndb.de, james.hogan@imgtec.com, Matthew Leach <matthew@mattleach.net>, David Woodhouse <dwmw2@infradead.org>, linux-mtd@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-la0-f46.google.com ([209.85.215.46]:41266 "EHLO
+	mail-la0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751640Ab2LOQ0c (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 15 Dec 2012 11:26:32 -0500
+In-Reply-To: <20121208074429.GC4939@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: James Hogan <james.hogan@imgtec.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Linus Torvalds <torvalds@linux-foundation.org>
 
+On 8 December 2012 08:44, Al Viro <viro@zeniv.linux.org.uk> wrote:
+> On Thu, Dec 06, 2012 at 10:09:55PM +0000, Al Viro wrote:
+>>       What we need to guarantee is
+>> * restarts do not happen on signals caught in interrupts or exceptions
+>> * restarts do not happen on signals caught in sigreturn()
+>> * restart should happen only once, even if we get through do_signal() many
+>> times.
+>
+> FWIW, here's the current situation:
+>
 
---=-LSJehB3qcSwBLeZbc8kf
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+> openrisc: broken.  regs->orig_gpr11 can be easily used to fix - it fits the
+> usual model, but isn't set by sigreturn/restarts.  BTW, the comment around
+> the call of do_notify_resume() in the asm glue is deeply confused - we *do*
+> want the userspace pt_regs; fortunately, there can't be any on top of those
+> at that point.
+>
 
-On Mon, 2012-12-10 at 19:12 +0000, Will Deacon wrote:
-> From: Matthew Leach <matthew@mattleach.net>
->=20
-> The {read,write}s{b,w,l} operations are not defined by all
-> architectures and are being removed from the asm-generic/io.h
-> interface.
->=20
-> This patch replaces the usage of these string functions in the mtd
-> gpio accessors with io{read,write}{8,16,32}_rep calls instead.
+Right, I've known about this for a while and have even had a patch for
+this lying about in a side-branch.  I got side-tracked while fixing
+this into trying to make the restart logic more generic, and the
+openrisc fix never got merged upstream.  I'll need to revisit this.
 
-Pushed this one to l2-mtd.git, thanks!
+That said, let me point again to the series I posted for review a year
+ago that attempts to make the restart logic more generic:
 
---=20
-Best Regards,
-Artem Bityutskiy
+https://lkml.org/lkml/2011/10/23/80
 
---=-LSJehB3qcSwBLeZbc8kf
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
+The entires patch series, which doesn't necessarily even apply to
+Linux master anymore due to other changes along the way, can be found
+at:
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
+git://openrisc.net/~jonas/linux  ('signal-arch' branch)
 
-iQIcBAABAgAGBQJQybvpAAoJECmIfjd9wqK0vtcQAKliGYZyOYPGvbM1we/D6O44
-hq2RBr01Aa7/3R/NmqSxkMmWEeET0zP88/FMIKVS/dEx1xF2ZYMSJPuMhMjchWzV
-xkChUg1nbkr5Nh5WTCSjVwk4LYcichcqifsgTsDsLGPuNqJqTmiZtUCnPoAMfn6Z
-AT2gzcJUMWglkB1YbaznEShBlsq575GBKKEfjp/jqwyO3uneOdVtuOu+L5wtL8Of
-XCXsaYdE0f0+hQft3m5fbTv9MRtRONKHKCmVR8Cai1FZ53j0fRQZi0Z2K31Gdrko
-/jaJKiVcEpiBS8WCzkDbhcsbeSIDaS7t7FeGCdKfwp5X21aGS09c74tURrz1wbyG
-bzEu2HEpP9sMxS2gMeKwpSDjdBnlLQOjw++1a7KtiGGDkhA+GdpD8bOG9/x0ynm9
-HsutjqmkW+JapFVqlueHqEVNyRuen2ig34MFNIVjaKnMnDY1bk9pI/9VgqWRQ4N1
-zZDAMUvPH+JyJz7JDdMW8mmYnoJkKCPh2DZE1VxHzU7BLdmJZOG164vvhpGLnVee
-KRBpX2d5M1vLAWQ1IjfqU74c5BJCJ0b/Xj7Rhl89jBkPdjYhEYzM2MHZsPmSm6ai
-D9gcm5CmBve6cf/0/iKff44089r1EtPJycc27sLY/iu43+IwMqtmMG7txV7b5Fs0
-EGyxq227AKhkU02Iiaj6
-=SDm3
------END PGP SIGNATURE-----
+Commit 4aa1797d978fe2d45ececceee535257e19374df8 is the interesting one there.
 
---=-LSJehB3qcSwBLeZbc8kf--
+Al, what do you think?
+
+/Jonas
