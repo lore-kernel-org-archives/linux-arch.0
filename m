@@ -1,69 +1,62 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mga09.intel.com ([134.134.136.24]:50039 "EHLO mga09.intel.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753436Ab2LML2G (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 13 Dec 2012 06:28:06 -0500
-Message-ID: <1355398120.3400.46.camel@sauron.fi.intel.com>
-Subject: Re: [PATCH v2 07/10] mtd: nand/gpio: use io{read,write}*_rep
- accessors
-From: Artem Bityutskiy <dedekind1@gmail.com>
-Reply-To: dedekind1@gmail.com
-Date: Thu, 13 Dec 2012 13:28:40 +0200
-In-Reply-To: <1355166762-15133-8-git-send-email-will.deacon@arm.com>
-References: <1355166762-15133-1-git-send-email-will.deacon@arm.com>
-	 <1355166762-15133-8-git-send-email-will.deacon@arm.com>
-Content-Type: multipart/signed; micalg="pgp-sha1"; protocol="application/pgp-signature";
-	boundary="=-LSJehB3qcSwBLeZbc8kf"
-Mime-Version: 1.0
+Received: from gerard.telenet-ops.be ([195.130.132.48]:46137 "EHLO
+	gerard.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752081Ab2LPRiu (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Dec 2012 12:38:50 -0500
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: [PATCH 2/2] asm-generic/dma-mapping-broken.h: Provide dma_alloc_attrs()/dma_free_attrs()
+Date: Sun, 16 Dec 2012 18:38:47 +0100
+Message-ID: <1355679527-1207-2-git-send-email-geert@linux-m68k.org>
+In-Reply-To: <1355679527-1207-1-git-send-email-geert@linux-m68k.org>
+References: <1355679527-1207-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Will Deacon <will.deacon@arm.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, benh@kernel.crashing.org, arnd@arndb.de, james.hogan@imgtec.com, Matthew Leach <matthew@mattleach.net>, David Woodhouse <dwmw2@infradead.org>, linux-mtd@lists.infradead.org
-Message-ID: <20121213112840.qF7v9kYh9EjEj4XCHxjSwGmXpefChNuvzydFXvI4mHQ@z>
+To: linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>
+Cc: linux-m68k@lists.linux-m68k.org, linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
+Message-ID: <20121216173847.-mSw-SmgCr1jeL_jlQS0hhmh0jsH-JtI-gmtikO891o@z>
 
+Since commit 0049fb2603b7afb1080776ee691dfa5a3d282357 ("OMAPFB: use
+dma_alloc_attrs to allocate memory") we have one non-arch user of
+dma_{alloc,free}_attrs().
 
---=-LSJehB3qcSwBLeZbc8kf
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Hence provide these functions, as wrappers around
+dma_{alloc,free}_coherent().
 
-On Mon, 2012-12-10 at 19:12 +0000, Will Deacon wrote:
-> From: Matthew Leach <matthew@mattleach.net>
->=20
-> The {read,write}s{b,w,l} operations are not defined by all
-> architectures and are being removed from the asm-generic/io.h
-> interface.
->=20
-> This patch replaces the usage of these string functions in the mtd
-> gpio accessors with io{read,write}{8,16,32}_rep calls instead.
+Note that most architectures do it the other way around. But as these are
+dummy functions, we don't care.
 
-Pushed this one to l2-mtd.git, thanks!
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+---
+ include/asm-generic/dma-mapping-broken.h |   16 ++++++++++++++++
+ 1 files changed, 16 insertions(+), 0 deletions(-)
 
---=20
-Best Regards,
-Artem Bityutskiy
-
---=-LSJehB3qcSwBLeZbc8kf
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: This is a digitally signed message part
-Content-Transfer-Encoding: 7bit
-
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
-
-iQIcBAABAgAGBQJQybvpAAoJECmIfjd9wqK0vtcQAKliGYZyOYPGvbM1we/D6O44
-hq2RBr01Aa7/3R/NmqSxkMmWEeET0zP88/FMIKVS/dEx1xF2ZYMSJPuMhMjchWzV
-xkChUg1nbkr5Nh5WTCSjVwk4LYcichcqifsgTsDsLGPuNqJqTmiZtUCnPoAMfn6Z
-AT2gzcJUMWglkB1YbaznEShBlsq575GBKKEfjp/jqwyO3uneOdVtuOu+L5wtL8Of
-XCXsaYdE0f0+hQft3m5fbTv9MRtRONKHKCmVR8Cai1FZ53j0fRQZi0Z2K31Gdrko
-/jaJKiVcEpiBS8WCzkDbhcsbeSIDaS7t7FeGCdKfwp5X21aGS09c74tURrz1wbyG
-bzEu2HEpP9sMxS2gMeKwpSDjdBnlLQOjw++1a7KtiGGDkhA+GdpD8bOG9/x0ynm9
-HsutjqmkW+JapFVqlueHqEVNyRuen2ig34MFNIVjaKnMnDY1bk9pI/9VgqWRQ4N1
-zZDAMUvPH+JyJz7JDdMW8mmYnoJkKCPh2DZE1VxHzU7BLdmJZOG164vvhpGLnVee
-KRBpX2d5M1vLAWQ1IjfqU74c5BJCJ0b/Xj7Rhl89jBkPdjYhEYzM2MHZsPmSm6ai
-D9gcm5CmBve6cf/0/iKff44089r1EtPJycc27sLY/iu43+IwMqtmMG7txV7b5Fs0
-EGyxq227AKhkU02Iiaj6
-=SDm3
------END PGP SIGNATURE-----
-
---=-LSJehB3qcSwBLeZbc8kf--
+diff --git a/include/asm-generic/dma-mapping-broken.h b/include/asm-generic/dma-mapping-broken.h
+index ccf7b4f..6c32af9 100644
+--- a/include/asm-generic/dma-mapping-broken.h
++++ b/include/asm-generic/dma-mapping-broken.h
+@@ -16,6 +16,22 @@ extern void
+ dma_free_coherent(struct device *dev, size_t size, void *cpu_addr,
+ 		    dma_addr_t dma_handle);
+ 
++static inline void *dma_alloc_attrs(struct device *dev, size_t size,
++				    dma_addr_t *dma_handle, gfp_t flag,
++				    struct dma_attrs *attrs)
++{
++	/* attrs is not supported and ignored */
++	return dma_alloc_coherent(dev, size, dma_handle, flag);
++}
++
++static inline void dma_free_attrs(struct device *dev, size_t size,
++				  void *cpu_addr, dma_addr_t dma_handle,
++				  struct dma_attrs *attrs)
++{
++	/* attrs is not supported and ignored */
++	dma_free_coherent(dev, size, cpu_addr, dma_handle);
++}
++
+ #define dma_alloc_noncoherent(d, s, h, f) dma_alloc_coherent(d, s, h, f)
+ #define dma_free_noncoherent(d, s, v, h) dma_free_coherent(d, s, v, h)
+ 
+-- 
+1.7.0.4
 
