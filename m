@@ -1,43 +1,96 @@
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: possible breakage with the >= 020 bfset et al bitops
-Date: Sun, 16 Dec 2012 16:21:37 +0100
-Message-ID: <CAMuHMdUsu-=K1rjPVAtZmj154KEjfQE1zHtO6FjVGLXii8zL+g@mail.gmail.com>
-References: <20685.58177.575315.650990@pilspetsen.it.uu.se>
+Subject: dma_mmap_coherent / ARCH_HAS_DMA_MMAP_COHERENT
+Date: Sun, 16 Dec 2012 17:03:18 +0100
+Message-ID: <CAMuHMdVPBUzN8fsNHFzrEqev9BsvVCVR2fWySCOecjVA-J1qjg@mail.gmail.com>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vb0-f46.google.com ([209.85.212.46]:33766 "EHLO
+Received: from mail-vb0-f46.google.com ([209.85.212.46]:47417 "EHLO
 	mail-vb0-f46.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752988Ab2LPPVi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Dec 2012 10:21:38 -0500
-In-Reply-To: <20685.58177.575315.650990@pilspetsen.it.uu.se>
+	with ESMTP id S1753164Ab2LPQDT convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 16 Dec 2012 11:03:19 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Mikael Pettersson <mikpe@it.uu.se>
-Cc: linux-m68k@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Linux-Arch <linux-arch@vger.kernel.org>
+To: Linux-Arch <linux-arch@vger.kernel.org>
+Cc: linux-media@vger.kernel.org, alsa-devel@alsa-project.org, linux-kernel@vger.kernel.org
 
-On Sun, Dec 16, 2012 at 4:05 PM, Mikael Pettersson <mikpe@it.uu.se> wrote:
-> Side note: in arch/m68k/include/asm/bitops.h, shouldn't the bit
-> number parameter 'nr' be 'unsigned int' for consistency with
-> Documentation/atomic_ops.txt?  Surely nothing expects to be able
-> to use negative bit numbers...?
+drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98vb=
+2_dc_mmap=E2=80=99:
+drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit
+declaration of function =E2=80=98dma_mmap_coherent=E2=80=99
+drivers/media/v4l2-core/videobuf2-dma-contig.c: In function
+=E2=80=98vb2_dc_get_base_sgt=E2=80=99:
+drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit
+declaration of function =E2=80=98dma_get_sgtable=E2=80=99
+make[6]: *** [drivers/media/v4l2-core/videobuf2-dma-contig.o] Error 1
+make[6]: Target `__build' not remade because of errors.
+make[5]: *** [drivers/media/v4l2-core] Error 2
 
-Haven't check all archs, but:
+Both dma_mmap_coherent() and dma_get_sgtable() are defined in
+include/asm-generic/dma-mapping-common.h only, which is included by
+<asm/dma-mapping.h> on alpha, arm, arm64, hexagon, ia64, microblaze, mi=
+ps,
+openrisc, powerpc, s390, sh, sparc, tile, unicore32, x86.
+Should the remaining architectures include this, too?
+Should it be moved to <linux/dma-mapping.h>?
 
-m68k: int
-x86: mix of signed and unsigned int
-Documentation/atomic_ops.txt: unsigned long
-asm-generic: int
+=46urthermore, there's ARCH_HAS_DMA_MMAP_COHERENT, which is defined
+by powerpc only:
+arch/powerpc/include/asm/dma-mapping.h:#define ARCH_HAS_DMA_MMAP_COHERE=
+NT
 
-So at least we're consistent with asm-generic...
+and handled in some fishy way in sound/core/pcm_native.c:
+
+#ifndef ARCH_HAS_DMA_MMAP_COHERENT
+/* This should be defined / handled globally! */
+#ifdef CONFIG_ARM
+#define ARCH_HAS_DMA_MMAP_COHERENT
+#endif
+#endif
+
+/*
+ * mmap the DMA buffer on RAM
+ */
+int snd_pcm_lib_default_mmap(struct snd_pcm_substream *substream,
+                             struct vm_area_struct *area)
+{
+        area->vm_flags |=3D VM_DONTEXPAND | VM_DONTDUMP;
+#ifdef ARCH_HAS_DMA_MMAP_COHERENT
+        if (!substream->ops->page &&
+            substream->dma_buffer.dev.type =3D=3D SNDRV_DMA_TYPE_DEV)
+                return dma_mmap_coherent(substream->dma_buffer.dev.dev,
+                                         area,
+                                         substream->runtime->dma_area,
+                                         substream->runtime->dma_addr,
+                                         area->vm_end - area->vm_start)=
+;
+#elif defined(CONFIG_MIPS) && defined(CONFIG_DMA_NONCOHERENT)
+        if (substream->dma_buffer.dev.type =3D=3D SNDRV_DMA_TYPE_DEV &&
+            !plat_device_is_coherent(substream->dma_buffer.dev.dev))
+                area->vm_page_prot =3D pgprot_noncached(area->vm_page_p=
+rot);
+#endif /* ARCH_HAS_DMA_MMAP_COHERENT */
+        /* mmap with fault handler */
+        area->vm_ops =3D &snd_pcm_vm_ops_data_fault;
+        return 0;
+}
+EXPORT_SYMBOL_GPL(snd_pcm_lib_default_mmap);
+
+What's up here?
+
+Thx!
 
 Gr{oetje,eeting}s,
 
                         Geert
 
 --
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
 
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
                                 -- Linus Torvalds
