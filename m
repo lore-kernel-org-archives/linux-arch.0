@@ -1,17 +1,17 @@
 From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: [PATCH 1/7] move debugfs to filesystems menu (fs/Kconfig)
-Date: Mon, 17 Dec 2012 13:22:07 -0500
-Message-ID: <20121217182207.4CF51258@kernel.stglabs.ibm.com>
+Subject: [PATCH 7/7] group locking debugging options
+Date: Mon, 17 Dec 2012 13:22:14 -0500
+Message-ID: <20121217182214.479F942A@kernel.stglabs.ibm.com>
 References: <20121217182206.91AA150A@kernel.stglabs.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e7.ny.us.ibm.com ([32.97.182.137]:45512 "EHLO e7.ny.us.ibm.com"
+Received: from e9.ny.us.ibm.com ([32.97.182.139]:60497 "EHLO e9.ny.us.ibm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753412Ab2LQSXS (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 17 Dec 2012 13:23:18 -0500
+	id S1753570Ab2LQSWU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Mon, 17 Dec 2012 13:22:20 -0500
 Received: from /spool/local
-	by e7.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e9.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <dave@linux.vnet.ibm.com>;
-	Mon, 17 Dec 2012 13:23:18 -0500
+	Mon, 17 Dec 2012 13:22:18 -0500
 In-Reply-To: <20121217182206.91AA150A@kernel.stglabs.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
@@ -19,66 +19,164 @@ To: torvalds@linux-foundation.org
 Cc: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Dave Hansen <dave@linux.vnet.ibm.com>
 
 
-debugfs may have started out as a kernel hacking kind of option.  But,
-today, it is an integral part of lots of facilities like tracing that
-are far from kernel hacking.  Let's move it out of the very cluttered
-"Kernel Hacking" menu and but it next to its real family: other
-filesystems like sysfs, configfs, or /proc.
-
-Also, "Debug filesystem" sounds like a debugging option _for_
-filesystems code, not a filesystem for debugging.  We also never call
-it "the debug filesystem."  We always say "debugfs", so reflect the
-fact that we _call_ it debugfs in the menu text.
+There are quite a few of these, and we want to make sure that
+there is one-stop-shopping for lock debugging.  
 
 Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
 ---
 
- linux-2.6.git-dave/fs/Kconfig        |   12 ++++++++++++
- linux-2.6.git-dave/lib/Kconfig.debug |   12 ------------
- 2 files changed, 12 insertions(+), 12 deletions(-)
+ linux-2.6.git-dave/lib/Kconfig.debug |  120 ++++++++++++++++++-----------------
+ 1 file changed, 62 insertions(+), 58 deletions(-)
 
-diff -puN fs/Kconfig~be-clear-about-debugfs fs/Kconfig
---- linux-2.6.git/fs/Kconfig~be-clear-about-debugfs	2012-12-17 12:34:03.955929278 -0500
-+++ linux-2.6.git-dave/fs/Kconfig	2012-12-17 12:34:03.963929345 -0500
-@@ -176,6 +176,18 @@ config HUGETLBFS
- config HUGETLB_PAGE
- 	def_bool HUGETLBFS
+diff -puN lib/Kconfig.debug~order-lock-debugging-options lib/Kconfig.debug
+--- linux-2.6.git/lib/Kconfig.debug~order-lock-debugging-options	2012-12-17 12:36:54.393387876 -0500
++++ linux-2.6.git-dave/lib/Kconfig.debug	2012-12-17 12:36:54.401387943 -0500
+@@ -694,6 +694,8 @@ config DEBUG_PREEMPT
+ 	  if kernel code uses it in a preemption-unsafe way. Also, the kernel
+ 	  will detect preemption count underflows.
  
-+config DEBUG_FS
-+	bool "Debug Filesystem (debugfs)"
++menu "Lock Debugging (spinlocks, mutexes, etc...)"
++
+ config DEBUG_RT_MUTEXES
+ 	bool "RT Mutex debugging, deadlock detection"
+ 	depends on DEBUG_KERNEL && RT_MUTEXES
+@@ -786,6 +788,66 @@ config PROVE_LOCKING
+ 
+ 	 For more details, see Documentation/lockdep-design.txt.
+ 
++config LOCKDEP
++	bool
++	depends on DEBUG_KERNEL && TRACE_IRQFLAGS_SUPPORT && STACKTRACE_SUPPORT && LOCKDEP_SUPPORT
++	select STACKTRACE
++	select FRAME_POINTER if !MIPS && !PPC && !ARM_UNWIND && !S390 && !MICROBLAZE
++	select KALLSYMS
++	select KALLSYMS_ALL
++
++config LOCK_STAT
++	bool "Lock usage statistics"
++	depends on DEBUG_KERNEL && TRACE_IRQFLAGS_SUPPORT && STACKTRACE_SUPPORT && LOCKDEP_SUPPORT
++	select LOCKDEP
++	select DEBUG_SPINLOCK
++	select DEBUG_MUTEXES
++	select DEBUG_LOCK_ALLOC
++	default n
 +	help
-+	  debugfs is a virtual file system that kernel developers use to put
-+	  debugging files into.  Enable this option to be able to read and
-+	  write to these files.
++	 This feature enables tracking lock contention points
 +
-+	  For detailed documentation on the debugfs API, see
-+	  Documentation/DocBook/filesystems.
++	 For more details, see Documentation/lockstat.txt
 +
-+	  If unsure, say N.
++	 This also enables lock events required by "perf lock",
++	 subcommand of perf.
++	 If you want to use "perf lock", you also need to turn on
++	 CONFIG_EVENT_TRACING.
 +
- source "fs/configfs/Kconfig"
++	 CONFIG_LOCK_STAT defines "contended" and "acquired" lock events.
++	 (CONFIG_LOCKDEP defines "acquire" and "release" events.)
++
++config DEBUG_LOCKDEP
++	bool "Lock dependency engine debugging"
++	depends on DEBUG_KERNEL && LOCKDEP
++	help
++	  If you say Y here, the lock dependency engine will do
++	  additional runtime checks to debug itself, at the price
++	  of more runtime overhead.
++
++config DEBUG_ATOMIC_SLEEP
++	bool "Sleep inside atomic section checking"
++	select PREEMPT_COUNT
++	depends on DEBUG_KERNEL
++	help
++	  If you say Y here, various routines which may sleep will become very
++	  noisy if they are called inside atomic sections: when a spinlock is
++	  held, inside an rcu read side critical section, inside preempt disabled
++	  sections, inside an interrupt, etc...
++
++config DEBUG_KERNEL_API_SELFTESTS
++	bool "Locking API boot-time self-tests"
++	depends on DEBUG_KERNEL
++	help
++	  Say Y here if you want the kernel to run a short self-test during
++	  bootup. The self-test checks whether common types of locking bugs
++	  are detected by debugging mechanisms or not. (if you disable
++	  lock debugging then those bugs wont be detected of course.)
++	  The following locking APIs are covered: spinlocks, rwlocks,
++	  mutexes and rwsems.
++
++endmenu # lock debugging
++
+ menu "RCU Debugging"
  
- endmenu
-diff -puN lib/Kconfig.debug~be-clear-about-debugfs lib/Kconfig.debug
---- linux-2.6.git/lib/Kconfig.debug~be-clear-about-debugfs	2012-12-17 12:34:03.959929312 -0500
-+++ linux-2.6.git-dave/lib/Kconfig.debug	2012-12-17 12:34:03.963929345 -0500
-@@ -99,18 +99,6 @@ config UNUSED_SYMBOLS
- 	  you really need it, and what the merge plan to the mainline kernel for
- 	  your module is.
+ config PROVE_RCU
+@@ -923,70 +985,12 @@ config RCU_TRACE
  
--config DEBUG_FS
--	bool "Debug Filesystem"
+ endmenu # RCU Debugging
+ 
+-config LOCKDEP
+-	bool
+-	depends on DEBUG_KERNEL && TRACE_IRQFLAGS_SUPPORT && STACKTRACE_SUPPORT && LOCKDEP_SUPPORT
+-	select STACKTRACE
+-	select FRAME_POINTER if !MIPS && !PPC && !ARM_UNWIND && !S390 && !MICROBLAZE
+-	select KALLSYMS
+-	select KALLSYMS_ALL
+-
+-config LOCK_STAT
+-	bool "Lock usage statistics"
+-	depends on DEBUG_KERNEL && TRACE_IRQFLAGS_SUPPORT && STACKTRACE_SUPPORT && LOCKDEP_SUPPORT
+-	select LOCKDEP
+-	select DEBUG_SPINLOCK
+-	select DEBUG_MUTEXES
+-	select DEBUG_LOCK_ALLOC
+-	default n
 -	help
--	  debugfs is a virtual file system that kernel developers use to put
--	  debugging files into.  Enable this option to be able to read and
--	  write to these files.
+-	 This feature enables tracking lock contention points
 -
--	  For detailed documentation on the debugfs API, see
--	  Documentation/DocBook/filesystems.
+-	 For more details, see Documentation/lockstat.txt
 -
--	  If unsure, say N.
+-	 This also enables lock events required by "perf lock",
+-	 subcommand of perf.
+-	 If you want to use "perf lock", you also need to turn on
+-	 CONFIG_EVENT_TRACING.
 -
- config HEADERS_CHECK
- 	bool "Run 'make headers_check' when building vmlinux"
- 	depends on !UML
+-	 CONFIG_LOCK_STAT defines "contended" and "acquired" lock events.
+-	 (CONFIG_LOCKDEP defines "acquire" and "release" events.)
+-
+-config DEBUG_LOCKDEP
+-	bool "Lock dependency engine debugging"
+-	depends on DEBUG_KERNEL && LOCKDEP
+-	help
+-	  If you say Y here, the lock dependency engine will do
+-	  additional runtime checks to debug itself, at the price
+-	  of more runtime overhead.
+-
+ config TRACE_IRQFLAGS
+ 	bool
+ 	help
+ 	  Enables hooks to interrupt enabling and disabling for
+ 	  either tracing or lock debugging.
+ 
+-config DEBUG_ATOMIC_SLEEP
+-	bool "Sleep inside atomic section checking"
+-	select PREEMPT_COUNT
+-	depends on DEBUG_KERNEL
+-	help
+-	  If you say Y here, various routines which may sleep will become very
+-	  noisy if they are called inside atomic sections: when a spinlock is
+-	  held, inside an rcu read side critical section, inside preempt disabled
+-	  sections, inside an interrupt, etc...
+-
+-config DEBUG_LOCKING_API_SELFTESTS
+-	bool "Locking API boot-time self-tests"
+-	depends on DEBUG_KERNEL
+-	help
+-	  Say Y here if you want the kernel to run a short self-test during
+-	  bootup. The self-test checks whether common types of locking bugs
+-	  are detected by debugging mechanisms or not. (if you disable
+-	  lock debugging then those bugs wont be detected of course.)
+-	  The following locking APIs are covered: spinlocks, rwlocks,
+-	  mutexes and rwsems.
+-
+ config STACKTRACE
+ 	bool
+ 	depends on STACKTRACE_SUPPORT
+diff -puN MAINTAINERS~order-lock-debugging-options MAINTAINERS
 _
