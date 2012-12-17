@@ -1,49 +1,208 @@
 From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: [PATCH 0/7] Put "Kernel hacking" Kconfig menu on a diet
-Date: Mon, 17 Dec 2012 13:22:06 -0500
-Message-ID: <20121217182206.91AA150A@kernel.stglabs.ibm.com>
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Sender: linux-kernel-owner@vger.kernel.org
+Subject: [PATCH 4/7] consolidate RCU debugging Kconfig options
+Date: Mon, 17 Dec 2012 13:22:11 -0500
+Message-ID: <20121217182211.F300A6BF@kernel.stglabs.ibm.com>
+References: <20121217182206.91AA150A@kernel.stglabs.ibm.com>
+Return-path: <linux-kbuild-owner@vger.kernel.org>
+In-Reply-To: <20121217182206.91AA150A@kernel.stglabs.ibm.com>
+Sender: linux-kbuild-owner@vger.kernel.org
 To: torvalds@linux-foundation.org
 Cc: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Dave Hansen <dave@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-I think the "Kernel Hacking" menu has gotten a bit out of hand.  It
-is over 120 lines long on my system with everything enabled and
-options are scattered around it haphazardly.
 
-	http://sr71.net/~dave/linux/kconfig-horror.png
+These were in two different places, and taking up too much of my
+valuable screen real-estate.  Banish them to their own menu.
 
-Let's try to introduce some sanity.
+Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
+---
 
-I believe the risk of a series like this is pretty low, so I'd like
-to see these make it in to 3.8 if there are no major objections.
+ linux-2.6.git-dave/lib/Kconfig.debug |  160 +++++++++++++++++------------------
+ 1 file changed, 82 insertions(+), 78 deletions(-)
 
-This set stands on its own, but there is plenty of room for follow-up
-patches.  The arch-specific debug options still end up getting stuck
-in the top-level "kernel hacking" menu.  OPTIMIZE_INLINING, for
-instance, could obviously go in to the "compiler options" menu, but
-the fact that it is defined in arch/ in a separate Kconfig file keeps
-it on its own.
+diff -puN lib/Kconfig.debug~consolidat-rcu-debugging-configs lib/Kconfig.debug
+--- linux-2.6.git/lib/Kconfig.debug~consolidat-rcu-debugging-configs	2012-12-14 13:32:32.474878413 -0500
++++ linux-2.6.git-dave/lib/Kconfig.debug	2012-12-14 13:32:49.219018930 -0500
+@@ -720,6 +720,8 @@ config PROVE_LOCKING
+ 
+ 	 For more details, see Documentation/lockdep-design.txt.
+ 
++menu "RCU Debugging"
++
+ config PROVE_RCU
+ 	bool "RCU debugging: prove RCU correctness"
+ 	depends on PROVE_LOCKING
+@@ -775,6 +777,86 @@ config SPARSE_RCU_POINTER
+ 
+ 	 Say N if you are unsure.
+ 
++config RCU_TORTURE_TEST
++	tristate "torture tests for RCU"
++	depends on DEBUG_KERNEL
++	default n
++	help
++	  This option provides a kernel module that runs torture tests
++	  on the RCU infrastructure.  The kernel module may be built
++	  after the fact on the running kernel to be tested, if desired.
++
++	  Say Y here if you want RCU torture tests to be built into
++	  the kernel.
++	  Say M if you want the RCU torture tests to build as a module.
++	  Say N if you are unsure.
++
++config RCU_TORTURE_TEST_RUNNABLE
++	bool "torture tests for RCU runnable by default"
++	depends on RCU_TORTURE_TEST = y
++	default n
++	help
++	  This option provides a way to build the RCU torture tests
++	  directly into the kernel without them starting up at boot
++	  time.  You can use /proc/sys/kernel/rcutorture_runnable
++	  to manually override this setting.  This /proc file is
++	  available only when the RCU torture tests have been built
++	  into the kernel.
++
++	  Say Y here if you want the RCU torture tests to start during
++	  boot (you probably don't).
++	  Say N here if you want the RCU torture tests to start only
++	  after being manually enabled via /proc.
++
++config RCU_CPU_STALL_TIMEOUT
++	int "RCU CPU stall timeout in seconds"
++	depends on TREE_RCU || TREE_PREEMPT_RCU
++	range 3 300
++	default 60
++	help
++	  If a given RCU grace period extends more than the specified
++	  number of seconds, a CPU stall warning is printed.  If the
++	  RCU grace period persists, additional CPU stall warnings are
++	  printed at more widely spaced intervals.
++
++config RCU_CPU_STALL_VERBOSE
++	bool "Print additional per-task information for RCU_CPU_STALL_DETECTOR"
++	depends on TREE_PREEMPT_RCU
++	default y
++	help
++	  This option causes RCU to printk detailed per-task information
++	  for any tasks that are stalling the current RCU grace period.
++
++	  Say N if you are unsure.
++
++	  Say Y if you want to enable such checks.
++
++config RCU_CPU_STALL_INFO
++	bool "Print additional diagnostics on RCU CPU stall"
++	depends on (TREE_RCU || TREE_PREEMPT_RCU) && DEBUG_KERNEL
++	default n
++	help
++	  For each stalled CPU that is aware of the current RCU grace
++	  period, print out additional per-CPU diagnostic information
++	  regarding scheduling-clock ticks, idle state, and,
++	  for RCU_FAST_NO_HZ kernels, idle-entry state.
++
++	  Say N if you are unsure.
++
++	  Say Y if you want to enable such diagnostics.
++
++config RCU_TRACE
++	bool "Enable tracing for RCU"
++	depends on DEBUG_KERNEL
++	help
++	  This option provides tracing in RCU which presents stats
++	  in debugfs for debugging RCU implementation.
++
++	  Say Y here if you want to enable RCU tracing
++	  Say N if you are unsure.
++
++endmenu # RCU Debugging
++
+ config LOCKDEP
+ 	bool
+ 	depends on DEBUG_KERNEL && TRACE_IRQFLAGS_SUPPORT && STACKTRACE_SUPPORT && LOCKDEP_SUPPORT
+@@ -990,84 +1072,6 @@ config BOOT_PRINTK_DELAY
+ 	  BOOT_PRINTK_DELAY also may cause LOCKUP_DETECTOR to detect
+ 	  what it believes to be lockup conditions.
+ 
+-config RCU_TORTURE_TEST
+-	tristate "torture tests for RCU"
+-	depends on DEBUG_KERNEL
+-	default n
+-	help
+-	  This option provides a kernel module that runs torture tests
+-	  on the RCU infrastructure.  The kernel module may be built
+-	  after the fact on the running kernel to be tested, if desired.
+-
+-	  Say Y here if you want RCU torture tests to be built into
+-	  the kernel.
+-	  Say M if you want the RCU torture tests to build as a module.
+-	  Say N if you are unsure.
+-
+-config RCU_TORTURE_TEST_RUNNABLE
+-	bool "torture tests for RCU runnable by default"
+-	depends on RCU_TORTURE_TEST = y
+-	default n
+-	help
+-	  This option provides a way to build the RCU torture tests
+-	  directly into the kernel without them starting up at boot
+-	  time.  You can use /proc/sys/kernel/rcutorture_runnable
+-	  to manually override this setting.  This /proc file is
+-	  available only when the RCU torture tests have been built
+-	  into the kernel.
+-
+-	  Say Y here if you want the RCU torture tests to start during
+-	  boot (you probably don't).
+-	  Say N here if you want the RCU torture tests to start only
+-	  after being manually enabled via /proc.
+-
+-config RCU_CPU_STALL_TIMEOUT
+-	int "RCU CPU stall timeout in seconds"
+-	depends on TREE_RCU || TREE_PREEMPT_RCU
+-	range 3 300
+-	default 21
+-	help
+-	  If a given RCU grace period extends more than the specified
+-	  number of seconds, a CPU stall warning is printed.  If the
+-	  RCU grace period persists, additional CPU stall warnings are
+-	  printed at more widely spaced intervals.
+-
+-config RCU_CPU_STALL_VERBOSE
+-	bool "Print additional per-task information for RCU_CPU_STALL_DETECTOR"
+-	depends on TREE_PREEMPT_RCU
+-	default y
+-	help
+-	  This option causes RCU to printk detailed per-task information
+-	  for any tasks that are stalling the current RCU grace period.
+-
+-	  Say N if you are unsure.
+-
+-	  Say Y if you want to enable such checks.
+-
+-config RCU_CPU_STALL_INFO
+-	bool "Print additional diagnostics on RCU CPU stall"
+-	depends on (TREE_RCU || TREE_PREEMPT_RCU) && DEBUG_KERNEL
+-	default n
+-	help
+-	  For each stalled CPU that is aware of the current RCU grace
+-	  period, print out additional per-CPU diagnostic information
+-	  regarding scheduling-clock ticks, idle state, and,
+-	  for RCU_FAST_NO_HZ kernels, idle-entry state.
+-
+-	  Say N if you are unsure.
+-
+-	  Say Y if you want to enable such diagnostics.
+-
+-config RCU_TRACE
+-	bool "Enable tracing for RCU"
+-	depends on DEBUG_KERNEL
+-	help
+-	  This option provides tracing in RCU which presents stats
+-	  in debugfs for debugging RCU implementation.
+-
+-	  Say Y here if you want to enable RCU tracing
+-	  Say N if you are unsure.
+-
+ config KPROBES_SANITY_TEST
+ 	bool "Kprobes sanity tests"
+ 	depends on DEBUG_KERNEL
+_
 
-Any thoughts on how we could address this going forward?
-
-1. Define all arch-specific debugging options in lib/Kconfig.debug
-   Have the architectures 'select' them.
-
-2. Introduce some Kconfig language changes that allow menu
-   position to be specified independently of where the "config"
-   text occurs, like an "appears_in":
-
-config DEBUG_INFO
-	bool "Compile the kernel with debug info"
-	depends on DEBUG_KERNEL
-	appears_in "Kernel Hacking/Compiler Options"
-	...
-
-   or, perhaps have a directive that says "do not place the
-   menu item now, I will specify a place for it later"
-
-3. Stick all of the arch-specific kernel hacking options under
-   an arch-specific submenu, despite if they would fit better
-   in the "Memory Debugging" or compiler menu.
