@@ -1,12 +1,12 @@
 From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: [PATCH 7/7] group locking debugging options
-Date: Mon, 17 Dec 2012 13:22:14 -0500
-Message-ID: <20121217182214.479F942A@kernel.stglabs.ibm.com>
+Subject: [PATCH 6/7] consolidate compilation option configs
+Date: Mon, 17 Dec 2012 13:22:13 -0500
+Message-ID: <20121217182213.4BCFD764@kernel.stglabs.ibm.com>
 References: <20121217182206.91AA150A@kernel.stglabs.ibm.com>
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e9.ny.us.ibm.com ([32.97.182.139]:60497 "EHLO e9.ny.us.ibm.com"
+Received: from e9.ny.us.ibm.com ([32.97.182.139]:60492 "EHLO e9.ny.us.ibm.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753570Ab2LQSWU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1753514Ab2LQSWU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Mon, 17 Dec 2012 13:22:20 -0500
 Received: from /spool/local
 	by e9.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
@@ -19,164 +19,220 @@ To: torvalds@linux-foundation.org
 Cc: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Dave Hansen <dave@linux.vnet.ibm.com>
 
 
-There are quite a few of these, and we want to make sure that
-there is one-stop-shopping for lock debugging.  
+Again, trying to come up with some common themes of the stuff in
+the kernel hacking menu...  There are quite a few options to
+tweak compilation in some way, or perform extra compile-time
+checks.  Give them their own menu.
+
+The diff here looks a bit funny... makes it look like I'm
+moving debugfs even though I'm actually moving the options on
+either side of it.
 
 Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
 ---
 
- linux-2.6.git-dave/lib/Kconfig.debug |  120 ++++++++++++++++++-----------------
- 1 file changed, 62 insertions(+), 58 deletions(-)
+ linux-2.6.git-dave/lib/Kconfig.debug |  156 +++++++++++++++++------------------
+ 1 file changed, 80 insertions(+), 76 deletions(-)
 
-diff -puN lib/Kconfig.debug~order-lock-debugging-options lib/Kconfig.debug
---- linux-2.6.git/lib/Kconfig.debug~order-lock-debugging-options	2012-12-17 12:36:54.393387876 -0500
-+++ linux-2.6.git-dave/lib/Kconfig.debug	2012-12-17 12:36:54.401387943 -0500
-@@ -694,6 +694,8 @@ config DEBUG_PREEMPT
- 	  if kernel code uses it in a preemption-unsafe way. Also, the kernel
- 	  will detect preemption count underflows.
+diff -puN lib/Kconfig.debug~consolidate-compilation-configs lib/Kconfig.debug
+--- linux-2.6.git/lib/Kconfig.debug~consolidate-compilation-configs	2012-12-17 12:17:38.603555173 -0500
++++ linux-2.6.git-dave/lib/Kconfig.debug	2012-12-17 12:19:02.100263746 -0500
+@@ -25,6 +25,34 @@ config DEFAULT_MESSAGE_LOGLEVEL
+ 	  that are auditing their logs closely may want to set it to a lower
+ 	  priority.
  
-+menu "Lock Debugging (spinlocks, mutexes, etc...)"
++menu "Compile-time checks and compiler options"
 +
- config DEBUG_RT_MUTEXES
- 	bool "RT Mutex debugging, deadlock detection"
- 	depends on DEBUG_KERNEL && RT_MUTEXES
-@@ -786,6 +788,66 @@ config PROVE_LOCKING
++config DEBUG_INFO
++	bool "Compile the kernel with debug info"
++	depends on DEBUG_KERNEL
++	help
++          If you say Y here the resulting kernel image will include
++	  debugging info resulting in a larger kernel image.
++	  This adds debug symbols to the kernel and modules (gcc -g), and
++	  is needed if you intend to use kernel crashdump or binary object
++	  tools like crash, kgdb, LKCD, gdb, etc on the kernel.
++	  Say Y here only if you plan to debug the kernel.
++
++	  If unsure, say N.
++
++config DEBUG_INFO_REDUCED
++	bool "Reduce debugging information"
++	depends on DEBUG_INFO
++	help
++	  If you say Y here gcc is instructed to generate less debugging
++	  information for structure types. This means that tools that
++	  need full debugging information (like kgdb or systemtap) won't
++	  be happy. But if you merely need debugging information to
++	  resolve line numbers there is no loss. Advantage is that
++	  build directory object sizes shrink dramatically over a full
++	  DEBUG_INFO build and compile times are reduced too.
++	  Only works with newer gcc versions.
++
+ config ENABLE_WARN_DEPRECATED
+ 	bool "Enable __deprecated logic"
+ 	default y
+@@ -52,20 +80,6 @@ config FRAME_WARN
+ 	  Setting it to 0 disables the warning.
+ 	  Requires gcc 4.4
  
- 	 For more details, see Documentation/lockdep-design.txt.
+-config MAGIC_SYSRQ
+-	bool "Magic SysRq key"
+-	depends on !UML
+-	help
+-	  If you say Y here, you will have some control over the system even
+-	  if the system crashes for example during kernel debugging (e.g., you
+-	  will be able to flush the buffer cache to disk, reboot the system
+-	  immediately or dump some status information). This is accomplished
+-	  by pressing various keys while holding SysRq (Alt+PrintScreen). It
+-	  also works on a serial console (on PC hardware at least), if you
+-	  send a BREAK and then within 5 seconds a command keypress. The
+-	  keys are documented in <file:Documentation/sysrq.txt>. Don't say Y
+-	  unless you really know what this hack does.
+-
+ config STRIP_ASM_SYMS
+ 	bool "Strip assembler-generated symbols during link"
+ 	default n
+@@ -144,6 +158,58 @@ config DEBUG_SECTION_MISMATCH
+ 	  - Enable verbose reporting from modpost in order to help resolve
+ 	    the section mismatches that are reported.
  
-+config LOCKDEP
++#
++# Select this config option from the architecture Kconfig, if it
++# is preferred to always offer frame pointers as a config
++# option on the architecture (regardless of KERNEL_DEBUG):
++#
++config ARCH_WANT_FRAME_POINTERS
 +	bool
-+	depends on DEBUG_KERNEL && TRACE_IRQFLAGS_SUPPORT && STACKTRACE_SUPPORT && LOCKDEP_SUPPORT
-+	select STACKTRACE
-+	select FRAME_POINTER if !MIPS && !PPC && !ARM_UNWIND && !S390 && !MICROBLAZE
-+	select KALLSYMS
-+	select KALLSYMS_ALL
-+
-+config LOCK_STAT
-+	bool "Lock usage statistics"
-+	depends on DEBUG_KERNEL && TRACE_IRQFLAGS_SUPPORT && STACKTRACE_SUPPORT && LOCKDEP_SUPPORT
-+	select LOCKDEP
-+	select DEBUG_SPINLOCK
-+	select DEBUG_MUTEXES
-+	select DEBUG_LOCK_ALLOC
-+	default n
 +	help
-+	 This feature enables tracking lock contention points
 +
-+	 For more details, see Documentation/lockstat.txt
-+
-+	 This also enables lock events required by "perf lock",
-+	 subcommand of perf.
-+	 If you want to use "perf lock", you also need to turn on
-+	 CONFIG_EVENT_TRACING.
-+
-+	 CONFIG_LOCK_STAT defines "contended" and "acquired" lock events.
-+	 (CONFIG_LOCKDEP defines "acquire" and "release" events.)
-+
-+config DEBUG_LOCKDEP
-+	bool "Lock dependency engine debugging"
-+	depends on DEBUG_KERNEL && LOCKDEP
++config FRAME_POINTER
++	bool "Compile the kernel with frame pointers"
++	depends on DEBUG_KERNEL && \
++		(CRIS || M68K || FRV || UML || \
++		 AVR32 || SUPERH || BLACKFIN || MN10300) || \
++		ARCH_WANT_FRAME_POINTERS
++	default y if (DEBUG_INFO && UML) || ARCH_WANT_FRAME_POINTERS
 +	help
-+	  If you say Y here, the lock dependency engine will do
-+	  additional runtime checks to debug itself, at the price
-+	  of more runtime overhead.
++	  If you say Y here the resulting kernel image will be slightly
++	  larger and slower, but it gives very useful debugging information
++	  in case of kernel bugs. (precise oopses/stacktraces/warnings)
 +
-+config DEBUG_ATOMIC_SLEEP
-+	bool "Sleep inside atomic section checking"
-+	select PREEMPT_COUNT
++	config DEBUG_FORCE_WEAK_PER_CPU
++	bool "Force weak per-cpu definitions"
 +	depends on DEBUG_KERNEL
 +	help
-+	  If you say Y here, various routines which may sleep will become very
-+	  noisy if they are called inside atomic sections: when a spinlock is
-+	  held, inside an rcu read side critical section, inside preempt disabled
-+	  sections, inside an interrupt, etc...
++	  s390 and alpha require percpu variables in modules to be
++	  defined weak to work around addressing range issue which
++	  puts the following two restrictions on percpu variable
++	  definitions.
 +
-+config DEBUG_KERNEL_API_SELFTESTS
-+	bool "Locking API boot-time self-tests"
-+	depends on DEBUG_KERNEL
++	  1. percpu symbols must be unique whether static or not
++	  2. percpu variables can't be defined inside a function
++
++	  To ensure that generic code follows the above rules, this
++	  option forces all percpu variables to be defined as weak.
++
++endmenu # "Compiler options"
++
++config MAGIC_SYSRQ
++	bool "Magic SysRq key"
++	depends on !UML
 +	help
-+	  Say Y here if you want the kernel to run a short self-test during
-+	  bootup. The self-test checks whether common types of locking bugs
-+	  are detected by debugging mechanisms or not. (if you disable
-+	  lock debugging then those bugs wont be detected of course.)
-+	  The following locking APIs are covered: spinlocks, rwlocks,
-+	  mutexes and rwsems.
++	  If you say Y here, you will have some control over the system even
++	  if the system crashes for example during kernel debugging (e.g., you
++	  will be able to flush the buffer cache to disk, reboot the system
++	  immediately or dump some status information). This is accomplished
++	  by pressing various keys while holding SysRq (Alt+PrintScreen). It
++	  also works on a serial console (on PC hardware at least), if you
++	  send a BREAK and then within 5 seconds a command keypress. The
++	  keys are documented in <file:Documentation/sysrq.txt>. Don't say Y
++	  unless you really know what this hack does.
 +
-+endmenu # lock debugging
-+
- menu "RCU Debugging"
- 
- config PROVE_RCU
-@@ -923,70 +985,12 @@ config RCU_TRACE
- 
- endmenu # RCU Debugging
- 
--config LOCKDEP
--	bool
--	depends on DEBUG_KERNEL && TRACE_IRQFLAGS_SUPPORT && STACKTRACE_SUPPORT && LOCKDEP_SUPPORT
--	select STACKTRACE
--	select FRAME_POINTER if !MIPS && !PPC && !ARM_UNWIND && !S390 && !MICROBLAZE
--	select KALLSYMS
--	select KALLSYMS_ALL
--
--config LOCK_STAT
--	bool "Lock usage statistics"
--	depends on DEBUG_KERNEL && TRACE_IRQFLAGS_SUPPORT && STACKTRACE_SUPPORT && LOCKDEP_SUPPORT
--	select LOCKDEP
--	select DEBUG_SPINLOCK
--	select DEBUG_MUTEXES
--	select DEBUG_LOCK_ALLOC
--	default n
--	help
--	 This feature enables tracking lock contention points
--
--	 For more details, see Documentation/lockstat.txt
--
--	 This also enables lock events required by "perf lock",
--	 subcommand of perf.
--	 If you want to use "perf lock", you also need to turn on
--	 CONFIG_EVENT_TRACING.
--
--	 CONFIG_LOCK_STAT defines "contended" and "acquired" lock events.
--	 (CONFIG_LOCKDEP defines "acquire" and "release" events.)
--
--config DEBUG_LOCKDEP
--	bool "Lock dependency engine debugging"
--	depends on DEBUG_KERNEL && LOCKDEP
--	help
--	  If you say Y here, the lock dependency engine will do
--	  additional runtime checks to debug itself, at the price
--	  of more runtime overhead.
--
- config TRACE_IRQFLAGS
- 	bool
+ config DEBUG_KERNEL
+ 	bool "Kernel debugging"
  	help
- 	  Enables hooks to interrupt enabling and disabling for
- 	  either tracing or lock debugging.
+@@ -944,32 +1010,6 @@ config DEBUG_BUGVERBOSE
+ 	  of the BUG call as well as the EIP and oops trace.  This aids
+ 	  debugging but costs about 70-100K of memory.
  
--config DEBUG_ATOMIC_SLEEP
--	bool "Sleep inside atomic section checking"
--	select PREEMPT_COUNT
+-config DEBUG_INFO
+-	bool "Compile the kernel with debug info"
 -	depends on DEBUG_KERNEL
 -	help
--	  If you say Y here, various routines which may sleep will become very
--	  noisy if they are called inside atomic sections: when a spinlock is
--	  held, inside an rcu read side critical section, inside preempt disabled
--	  sections, inside an interrupt, etc...
+-          If you say Y here the resulting kernel image will include
+-	  debugging info resulting in a larger kernel image.
+-	  This adds debug symbols to the kernel and modules (gcc -g), and
+-	  is needed if you intend to use kernel crashdump or binary object
+-	  tools like crash, kgdb, LKCD, gdb, etc on the kernel.
+-	  Say Y here only if you plan to debug the kernel.
 -
--config DEBUG_LOCKING_API_SELFTESTS
--	bool "Locking API boot-time self-tests"
+-	  If unsure, say N.
+-
+-config DEBUG_INFO_REDUCED
+-	bool "Reduce debugging information"
+-	depends on DEBUG_INFO
+-	help
+-	  If you say Y here gcc is instructed to generate less debugging
+-	  information for structure types. This means that tools that
+-	  need full debugging information (like kgdb or systemtap) won't
+-	  be happy. But if you merely need debugging information to
+-	  resolve line numbers there is no loss. Advantage is that
+-	  build directory object sizes shrink dramatically over a full
+-	  DEBUG_INFO build and compile times are reduced too.
+-	  Only works with newer gcc versions.
+-
+ config DEBUG_WRITECOUNT
+ 	bool "Debug filesystem writers count"
+ 	depends on DEBUG_KERNEL
+@@ -1024,27 +1064,6 @@ config DEBUG_CREDENTIALS
+ 
+ 	  If unsure, say N.
+ 
+-#
+-# Select this config option from the architecture Kconfig, if it
+-# is preferred to always offer frame pointers as a config
+-# option on the architecture (regardless of KERNEL_DEBUG):
+-#
+-config ARCH_WANT_FRAME_POINTERS
+-	bool
+-	help
+-
+-config FRAME_POINTER
+-	bool "Compile the kernel with frame pointers"
+-	depends on DEBUG_KERNEL && \
+-		(CRIS || M68K || FRV || UML || \
+-		 AVR32 || SUPERH || BLACKFIN || MN10300) || \
+-		ARCH_WANT_FRAME_POINTERS
+-	default y if (DEBUG_INFO && UML) || ARCH_WANT_FRAME_POINTERS
+-	help
+-	  If you say Y here the resulting kernel image will be slightly
+-	  larger and slower, but it gives very useful debugging information
+-	  in case of kernel bugs. (precise oopses/stacktraces/warnings)
+-
+ config BOOT_PRINTK_DELAY
+ 	bool "Delay each boot printk message by N milliseconds"
+ 	depends on DEBUG_KERNEL && PRINTK && GENERIC_CALIBRATE_DELAY
+@@ -1090,21 +1109,6 @@ config DEBUG_BLOCK_EXT_DEVT
+ 
+ 	  Say N if you are unsure.
+ 
+-config DEBUG_FORCE_WEAK_PER_CPU
+-	bool "Force weak per-cpu definitions"
 -	depends on DEBUG_KERNEL
 -	help
--	  Say Y here if you want the kernel to run a short self-test during
--	  bootup. The self-test checks whether common types of locking bugs
--	  are detected by debugging mechanisms or not. (if you disable
--	  lock debugging then those bugs wont be detected of course.)
--	  The following locking APIs are covered: spinlocks, rwlocks,
--	  mutexes and rwsems.
+-	  s390 and alpha require percpu variables in modules to be
+-	  defined weak to work around addressing range issue which
+-	  puts the following two restrictions on percpu variable
+-	  definitions.
 -
- config STACKTRACE
- 	bool
- 	depends on STACKTRACE_SUPPORT
-diff -puN MAINTAINERS~order-lock-debugging-options MAINTAINERS
+-	  1. percpu symbols must be unique whether static or not
+-	  2. percpu variables can't be defined inside a function
+-
+-	  To ensure that generic code follows the above rules, this
+-	  option forces all percpu variables to be defined as weak.
+-
+ config NOTIFIER_ERROR_INJECTION
+ 	tristate "Notifier error injection"
+ 	depends on DEBUG_KERNEL
 _
