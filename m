@@ -1,229 +1,56 @@
-From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: [PATCH 5/7] consolidate runtime testing configs
-Date: Mon, 17 Dec 2012 13:22:12 -0500
-Message-ID: <20121217182212.AF532CDD@kernel.stglabs.ibm.com>
-References: <20121217182206.91AA150A@kernel.stglabs.ibm.com>
-Return-path: <linux-kbuild-owner@vger.kernel.org>
-In-Reply-To: <20121217182206.91AA150A@kernel.stglabs.ibm.com>
-Sender: linux-kbuild-owner@vger.kernel.org
-To: torvalds@linux-foundation.org
-Cc: linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org, Dave Hansen <dave@linux.vnet.ibm.com>
-List-Id: linux-arch.vger.kernel.org
+From: David Miller <davem@davemloft.net>
+Subject: Re: [PATCH v2 03/44] Add CONFIG_HAVE_64BIT_ALIGNED_STRUCT for
+ taskstats
+Date: Mon, 17 Dec 2012 11:11:30 -0800 (PST)
+Message-ID: <20121217.111130.2269537365220391186.davem@davemloft.net>
+References: <50C5B7E3.2080909@imgtec.com>
+	<CAMuHMdXpw+hWgcqDiFVdDTsFBEThjvB_Y0jcoZZHS-JGTBvYRg@mail.gmail.com>
+	<50CEEB08.1080707@imgtec.com>
+Mime-Version: 1.0
+Content-Type: Text/Plain; charset=us-ascii
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from shards.monkeyblade.net ([149.20.54.216]:51534 "EHLO
+	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753699Ab2LQTLd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Dec 2012 14:11:33 -0500
+In-Reply-To: <50CEEB08.1080707@imgtec.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: james.hogan@imgtec.com
+Cc: geert@linux-m68k.org, hpa@zytor.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, bsingharora@gmail.com, mingo@kernel.org, akpm@linux-foundation.org, eparis@redhat.com, wad@chromium.org, james.l.morris@oracle.com, netdev@vger.kernel.org
 
+From: James Hogan <james.hogan@imgtec.com>
+Date: Mon, 17 Dec 2012 09:51:04 +0000
 
-These runtime tests are great, except that there are a lot of them,
-and they are very rarely needed.  Give them their own menu so that
-only the folks who need them will have to go looking for them.
+> On 10/12/12 12:55, Geert Uytterhoeven wrote:
+>> On Mon, Dec 10, 2012 at 11:22 AM, James Hogan <james.hogan@imgtec.com> wrote:
+>>> On 08/12/12 03:43, H. Peter Anvin wrote:
+>>>> On 12/05/2012 08:08 AM, James Hogan wrote:
+>>>>> On 64 bit architectures with no efficient unaligned access, taskstats
+>>>>> has to add some padding to a reply to prevent unaligned access warnings.
+>>>>> However this also needs to apply to 32 bit architectures with 64 bit
+>>>>> struct alignment such as metag (which has 64 bit memory accesses).
+>>>>
+>>>> Wait... 64-bit struct alignment on structures with only 32-bit members?
+>>>>  That might be... interesting... in a number of places...
+>>>
+>>> I'll rewrite the description as it's a bit misleading. On metag 64bit
+>>> struct alignment is required when it contains 64bit members, not if it
+>>> only contains 32bit members. Although metag is a 32bit arch, it can do
+>>> 64bit memory accesses which must be aligned.
+>> 
+>> The C alignment rules should take care of this automatically (struct alignment
+>> is the maximum alignment of its members).
+> 
+> Hi Geert,
+> 
+> Please see the comment in mk_reply in kernel/taskstats.c. The structure
+> is being serialised after 2 NLA headers and a pid which is why the extra
+> padding needs to be added manually.
 
-Note that there are some other runtime tests that are not in here,
-like for RCU or locking.  This menu should only be used for tests
-that do not have a more appropriate home.
+Please solve netlink attribute 64-bit alignment issues fundamentally
+rather on a case-by-case basis.
 
-Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
----
-
- linux-2.6.git-dave/lib/Kconfig.debug |  151 ++++++++++++++++++-----------------
- 1 file changed, 78 insertions(+), 73 deletions(-)
-
-diff -puN lib/Kconfig.debug~consolidat-runtime-testing-configs lib/Kconfig.debug
---- linux-2.6.git/lib/Kconfig.debug~consolidat-runtime-testing-configs	2012-12-17 12:36:49.525346221 -0500
-+++ linux-2.6.git-dave/lib/Kconfig.debug	2012-12-17 12:36:49.545346392 -0500
-@@ -989,15 +989,6 @@ config DEBUG_LIST
- 
- 	  If unsure, say N.
- 
--config TEST_LIST_SORT
--	bool "Linked list sorting test"
--	depends on DEBUG_KERNEL
--	help
--	  Enable this to turn on 'list_sort()' function test. This test is
--	  executed only once during system boot, so affects only boot time.
--
--	  If unsure, say N.
--
- config DEBUG_SG
- 	bool "Debug SG table operations"
- 	depends on DEBUG_KERNEL
-@@ -1072,33 +1063,6 @@ config BOOT_PRINTK_DELAY
- 	  BOOT_PRINTK_DELAY also may cause LOCKUP_DETECTOR to detect
- 	  what it believes to be lockup conditions.
- 
--config KPROBES_SANITY_TEST
--	bool "Kprobes sanity tests"
--	depends on DEBUG_KERNEL
--	depends on KPROBES
--	default n
--	help
--	  This option provides for testing basic kprobes functionality on
--	  boot. A sample kprobe, jprobe and kretprobe are inserted and
--	  verified for functionality.
--
--	  Say N if you are unsure.
--
--config BACKTRACE_SELF_TEST
--	tristate "Self test for the backtrace code"
--	depends on DEBUG_KERNEL
--	default n
--	help
--	  This option provides a kernel module that can be used to test
--	  the kernel stack backtrace code. This option is not useful
--	  for distributions or general kernels, but only for kernel
--	  developers working on architecture code.
--
--	  Note that if you want to also test saved backtraces, you will
--	  have to enable STACKTRACE as well.
--
--	  Say N if you are unsure.
--
- config DEBUG_BLOCK_EXT_DEVT
-         bool "Force extended block device numbers and spread them"
- 	depends on DEBUG_KERNEL
-@@ -1141,21 +1105,6 @@ config DEBUG_FORCE_WEAK_PER_CPU
- 	  To ensure that generic code follows the above rules, this
- 	  option forces all percpu variables to be defined as weak.
- 
--config LKDTM
--	tristate "Linux Kernel Dump Test Tool Module"
--	depends on DEBUG_FS
--	depends on BLOCK
--	default n
--	help
--	This module enables testing of the different dumping mechanisms by
--	inducing system failures at predefined crash points.
--	If you don't need it: say N
--	Choose M here to compile this code as a module. The module will be
--	called lkdtm.
--
--	Documentation on how to use the module can be found in
--	Documentation/fault-injection/provoke-crashes.txt
--
- config NOTIFIER_ERROR_INJECTION
- 	tristate "Notifier error injection"
- 	depends on DEBUG_KERNEL
-@@ -1313,6 +1262,59 @@ config LATENCYTOP
- 
- source kernel/trace/Kconfig
- 
-+menu "Runtime Testing"
-+
-+config LKDTM
-+	tristate "Linux Kernel Dump Test Tool Module"
-+	depends on DEBUG_FS
-+	depends on BLOCK
-+	default n
-+	help
-+	This module enables testing of the different dumping mechanisms by
-+	inducing system failures at predefined crash points.
-+	If you don't need it: say N
-+	Choose M here to compile this code as a module. The module will be
-+	called lkdtm.
-+
-+	Documentation on how to use the module can be found in
-+	Documentation/fault-injection/provoke-crashes.txt
-+
-+config TEST_LIST_SORT
-+	bool "Linked list sorting test"
-+	depends on DEBUG_KERNEL
-+	help
-+	  Enable this to turn on 'list_sort()' function test. This test is
-+	  executed only once during system boot, so affects only boot time.
-+
-+	  If unsure, say N.
-+
-+config KPROBES_SANITY_TEST
-+	bool "Kprobes sanity tests"
-+	depends on DEBUG_KERNEL
-+	depends on KPROBES
-+	default n
-+	help
-+	  This option provides for testing basic kprobes functionality on
-+	  boot. A sample kprobe, jprobe and kretprobe are inserted and
-+	  verified for functionality.
-+
-+	  Say N if you are unsure.
-+
-+config BACKTRACE_SELF_TEST
-+	tristate "Self test for the backtrace code"
-+	depends on DEBUG_KERNEL
-+	default n
-+	help
-+	  This option provides a kernel module that can be used to test
-+	  the kernel stack backtrace code. This option is not useful
-+	  for distributions or general kernels, but only for kernel
-+	  developers working on architecture code.
-+
-+	  Note that if you want to also test saved backtraces, you will
-+	  have to enable STACKTRACE as well.
-+
-+	  Say N if you are unsure.
-+
- config RBTREE_TEST
- 	tristate "Red-Black tree test"
- 	depends on m && DEBUG_KERNEL
-@@ -1326,6 +1328,31 @@ config INTERVAL_TREE_TEST
- 	help
- 	  A benchmark measuring the performance of the interval tree library
- 
-+config ATOMIC64_SELFTEST
-+	bool "Perform an atomic64_t self-test at boot"
-+	help
-+	  Enable this option to test the atomic64_t functions at boot.
-+
-+	  If unsure, say N.
-+
-+config ASYNC_RAID6_TEST
-+	tristate "Self test for hardware accelerated raid6 recovery"
-+	depends on ASYNC_RAID6_RECOV
-+	select ASYNC_MEMCPY
-+	---help---
-+	  This is a one-shot self test that permutes through the
-+	  recovery of all the possible two disk failure scenarios for a
-+	  N-disk array.  Recovery is performed with the asynchronous
-+	  raid6 recovery routines, and will optionally use an offload
-+	  engine if one is available.
-+
-+	  If unsure, say N.
-+
-+config TEST_KSTRTOX
-+	tristate "Test kstrto*() family of functions at runtime"
-+
-+endmenu # runtime tests
-+
- config PROVIDE_OHCI1394_DMA_INIT
- 	bool "Remote debugging over FireWire early on boot"
- 	depends on PCI && X86
-@@ -1455,26 +1482,6 @@ config DMA_API_DEBUG
- 	  This option causes a performance degredation.  Use only if you want
- 	  to debug device drivers. If unsure, say N.
- 
--config ATOMIC64_SELFTEST
--	bool "Perform an atomic64_t self-test at boot"
--	help
--	  Enable this option to test the atomic64_t functions at boot.
--
--	  If unsure, say N.
--
--config ASYNC_RAID6_TEST
--	tristate "Self test for hardware accelerated raid6 recovery"
--	depends on ASYNC_RAID6_RECOV
--	select ASYNC_MEMCPY
--	---help---
--	  This is a one-shot self test that permutes through the
--	  recovery of all the possible two disk failure scenarios for a
--	  N-disk array.  Recovery is performed with the asynchronous
--	  raid6 recovery routines, and will optionally use an offload
--	  engine if one is available.
--
--	  If unsure, say N.
--
- config HAVE_DEBUG_STACKOVERFLOW
- 	bool
- 
-@@ -1482,5 +1489,3 @@ source "samples/Kconfig"
- 
- source "lib/Kconfig.kgdb"
- 
--config TEST_KSTRTOX
--	tristate "Test kstrto*() family of functions at runtime"
-_
-
+We were just discussing this very issue on the netdev list recently,
+CC:'d
