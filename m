@@ -1,56 +1,32 @@
-From: David Miller <davem@davemloft.net>
-Subject: Re: [PATCH v2 03/44] Add CONFIG_HAVE_64BIT_ALIGNED_STRUCT for
- taskstats
-Date: Mon, 17 Dec 2012 11:11:30 -0800 (PST)
-Message-ID: <20121217.111130.2269537365220391186.davem@davemloft.net>
-References: <50C5B7E3.2080909@imgtec.com>
-	<CAMuHMdXpw+hWgcqDiFVdDTsFBEThjvB_Y0jcoZZHS-JGTBvYRg@mail.gmail.com>
-	<50CEEB08.1080707@imgtec.com>
+From: Greg KH <gregkh@linuxfoundation.org>
+Subject: Re: [PATCH 1/7] move debugfs to filesystems menu (fs/Kconfig)
+Date: Mon, 17 Dec 2012 18:21:30 -0800
+Message-ID: <20121218022130.GA16839@kroah.com>
+References: <20121217182206.91AA150A@kernel.stglabs.ibm.com>
+ <20121217182207.4CF51258@kernel.stglabs.ibm.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain; charset=us-ascii
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from shards.monkeyblade.net ([149.20.54.216]:51534 "EHLO
-	shards.monkeyblade.net" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753699Ab2LQTLd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Dec 2012 14:11:33 -0500
-In-Reply-To: <50CEEB08.1080707@imgtec.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: james.hogan@imgtec.com
-Cc: geert@linux-m68k.org, hpa@zytor.com, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, bsingharora@gmail.com, mingo@kernel.org, akpm@linux-foundation.org, eparis@redhat.com, wad@chromium.org, james.l.morris@oracle.com, netdev@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+Content-Disposition: inline
+In-Reply-To: <20121217182207.4CF51258@kernel.stglabs.ibm.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Dave Hansen <dave@linux.vnet.ibm.com>
+Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-From: James Hogan <james.hogan@imgtec.com>
-Date: Mon, 17 Dec 2012 09:51:04 +0000
-
-> On 10/12/12 12:55, Geert Uytterhoeven wrote:
->> On Mon, Dec 10, 2012 at 11:22 AM, James Hogan <james.hogan@imgtec.com> wrote:
->>> On 08/12/12 03:43, H. Peter Anvin wrote:
->>>> On 12/05/2012 08:08 AM, James Hogan wrote:
->>>>> On 64 bit architectures with no efficient unaligned access, taskstats
->>>>> has to add some padding to a reply to prevent unaligned access warnings.
->>>>> However this also needs to apply to 32 bit architectures with 64 bit
->>>>> struct alignment such as metag (which has 64 bit memory accesses).
->>>>
->>>> Wait... 64-bit struct alignment on structures with only 32-bit members?
->>>>  That might be... interesting... in a number of places...
->>>
->>> I'll rewrite the description as it's a bit misleading. On metag 64bit
->>> struct alignment is required when it contains 64bit members, not if it
->>> only contains 32bit members. Although metag is a 32bit arch, it can do
->>> 64bit memory accesses which must be aligned.
->> 
->> The C alignment rules should take care of this automatically (struct alignment
->> is the maximum alignment of its members).
+On Mon, Dec 17, 2012 at 01:22:07PM -0500, Dave Hansen wrote:
 > 
-> Hi Geert,
+> debugfs may have started out as a kernel hacking kind of option.  But,
+> today, it is an integral part of lots of facilities like tracing that
+> are far from kernel hacking.  Let's move it out of the very cluttered
+> "Kernel Hacking" menu and but it next to its real family: other
+> filesystems like sysfs, configfs, or /proc.
 > 
-> Please see the comment in mk_reply in kernel/taskstats.c. The structure
-> is being serialised after 2 NLA headers and a pid which is why the extra
-> padding needs to be added manually.
+> Also, "Debug filesystem" sounds like a debugging option _for_
+> filesystems code, not a filesystem for debugging.  We also never call
+> it "the debug filesystem."  We always say "debugfs", so reflect the
+> fact that we _call_ it debugfs in the menu text.
+> 
+> Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
 
-Please solve netlink attribute 64-bit alignment issues fundamentally
-rather on a case-by-case basis.
-
-We were just discussing this very issue on the netdev list recently,
-CC:'d
+Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
