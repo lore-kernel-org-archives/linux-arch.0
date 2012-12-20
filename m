@@ -1,52 +1,55 @@
 From: David Woodhouse <dwmw2@infradead.org>
-Subject: [PATCH] powerpc: enable ARCH_USE_BUILTIN_BSWAP
-Date: Thu, 20 Dec 2012 01:14:17 +0000
-Message-ID: <1355966057.18919.100.camel@shinybook.infradead.org>
+Subject: [PATCH] x86: enable ARCH_USE_BUILTIN_BSWAP
+Date: Thu, 20 Dec 2012 01:16:20 +0000
+Message-ID: <1355966180.18919.102.camel@shinybook.infradead.org>
 Mime-Version: 1.0
 Content-Type: multipart/signed; micalg="sha1"; protocol="application/x-pkcs7-signature";
-	boundary="=-gmKADGha7TeRGObZu8Gj"
+	boundary="=-S6FYMsuGC5xQ8nuH7gYT"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from merlin.infradead.org ([205.233.59.134]:56418 "EHLO
+Received: from merlin.infradead.org ([205.233.59.134]:56434 "EHLO
 	merlin.infradead.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752207Ab2LTBO3 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Dec 2012 20:14:29 -0500
+	with ESMTP id S1752217Ab2LTBQX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 19 Dec 2012 20:16:23 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: benh@kernel.crashing.org
-Cc: linuxppc-dev@lists.ozlabs.org, linux-arch@vger.kernel.org
+To: x86@kernel.org
+Cc: linux-arch@vger.kernel.org
 
 
---=-gmKADGha7TeRGObZu8Gj
+--=-S6FYMsuGC5xQ8nuH7gYT
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
-By using the compiler intrinsics instead of hand-crafted opaque inline
-assembler for byte-swapping, we let the compiler see what's actually
-happening and it gets to use lwbrx/stwbrx instructions instead of a
-normal load/store coupled with a sequence of rlwimi instructions to
-move bits around.
+With -mmovbe enabled (implicit with -march=3Datom), this allows the
+compiler to use the movbe instruction. This doesn't have a significant
+effect on code size (unlike on PowerPC), because the movbe instruction
+actually takes as many bytes to encode as a simple mov and a bswap. But
+for Atom in particular I believe it should give a performance win over
+the mov+bswap alternative. That was kind of why movbe was invented in
+the first place, after all...
 
-Compiled-tested only. It gave a code size reduction of almost 4% for
-ext2, and more like 2.5% for ext3/ext4.
+I've done basic functionality testing with IPv6 and Legacy IP, but no
+performance testing. The EFI firmware on my test box unfortunately no
+longer starts up.
 
 Signed-off-by: David Woodhouse <David.Woodhouse@intel.com>
 Acked-by: H. Peter Anvin <hpa@linux.intel.com>
 ---
- arch/powerpc/Kconfig | 1 +
+ arch/x86/Kconfig | 1 +
  1 file changed, 1 insertion(+)
 
-diff --git a/arch/powerpc/Kconfig b/arch/powerpc/Kconfig
-index 951a517..064e418 100644
---- a/arch/powerpc/Kconfig
-+++ b/arch/powerpc/Kconfig
-@@ -146,6 +146,7 @@ config PPC
- 	select MODULES_USE_ELF_RELA
- 	select GENERIC_KERNEL_EXECVE
- 	select CLONE_BACKWARDS
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 97f8c5a..2ab0f0c 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -115,6 +115,7 @@ config X86
+ 	select MODULES_USE_ELF_REL if X86_32
+ 	select MODULES_USE_ELF_RELA if X86_64
+ 	select CLONE_BACKWARDS if X86_32
 +	select ARCH_USE_BUILTIN_BSWAP
 =20
- config EARLY_PRINTK
- 	bool
+ config INSTRUCTION_DECODER
+ 	def_bool y
 --=20
 1.8.0.1
 
@@ -55,7 +58,7 @@ index 951a517..064e418 100644
 dwmw2
 
 
---=-gmKADGha7TeRGObZu8Gj
+--=-S6FYMsuGC5xQ8nuH7gYT
 Content-Type: application/x-pkcs7-signature; name="smime.p7s"
 Content-Disposition: attachment; filename="smime.p7s"
 Content-Transfer-Encoding: base64
@@ -156,19 +159,19 @@ kSIc5N4d9Lk3ypCnrYMvvqLspXcWeymdD7qC0KwcuOuRKEC6LBExggNvMIIDawIBATCBlDCBjDEL
 MAkGA1UEBhMCSUwxFjAUBgNVBAoTDVN0YXJ0Q29tIEx0ZC4xKzApBgNVBAsTIlNlY3VyZSBEaWdp
 dGFsIENlcnRpZmljYXRlIFNpZ25pbmcxODA2BgNVBAMTL1N0YXJ0Q29tIENsYXNzIDEgUHJpbWFy
 eSBJbnRlcm1lZGlhdGUgQ2xpZW50IENBAgMEJnowCQYFKw4DAhoFAKCCAa8wGAYJKoZIhvcNAQkD
-MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMTIxMjIwMDExNDE3WjAjBgkqhkiG9w0BCQQx
-FgQURMZ5L5BKZt6xdH/CQW+/I3it5kcwgaUGCSsGAQQBgjcQBDGBlzCBlDCBjDELMAkGA1UEBhMC
+MQsGCSqGSIb3DQEHATAcBgkqhkiG9w0BCQUxDxcNMTIxMjIwMDExNjIwWjAjBgkqhkiG9w0BCQQx
+FgQUcbqA1duHi7BWILIIpTw2alRszjwwgaUGCSsGAQQBgjcQBDGBlzCBlDCBjDELMAkGA1UEBhMC
 SUwxFjAUBgNVBAoTDVN0YXJ0Q29tIEx0ZC4xKzApBgNVBAsTIlNlY3VyZSBEaWdpdGFsIENlcnRp
 ZmljYXRlIFNpZ25pbmcxODA2BgNVBAMTL1N0YXJ0Q29tIENsYXNzIDEgUHJpbWFyeSBJbnRlcm1l
 ZGlhdGUgQ2xpZW50IENBAgMEJnowgacGCyqGSIb3DQEJEAILMYGXoIGUMIGMMQswCQYDVQQGEwJJ
 TDEWMBQGA1UEChMNU3RhcnRDb20gTHRkLjErMCkGA1UECxMiU2VjdXJlIERpZ2l0YWwgQ2VydGlm
 aWNhdGUgU2lnbmluZzE4MDYGA1UEAxMvU3RhcnRDb20gQ2xhc3MgMSBQcmltYXJ5IEludGVybWVk
-aWF0ZSBDbGllbnQgQ0ECAwQmejANBgkqhkiG9w0BAQEFAASCAQCgsvGf8WkrDoIhEX3xRN752FK2
-XAVBWNTw+PdBvdsnMb2p+2mzhuz0McyuQ37xmXm2N8hekzcSK0g58kKGc4/WcugbAGZ7RCbxH6h2
-i3mVSOMlZbmAL9j5Qnbl7DWbQkxV+JE+KcmwJ+faJgiplsuBuhtTH0m83w7JTAYJaSsDkLjdwOgF
-yPXZUYfu19yGeBfM+9XscbkvekBVCMV0mIkrJsaTHR6jZ4Y+mlSD8gAzNcTEJXdv5QKCV6p7p04T
-B5YmzV6LrDdc7V72m7ao4VrOO0T+X5MSMUUBRfaiv/W6D2KjElzjbFkk2s1LHkG4jwxdOmisyF9L
-7l7rYQoa8yUaAAAAAAAA
+aWF0ZSBDbGllbnQgQ0ECAwQmejANBgkqhkiG9w0BAQEFAASCAQBGInlRr/SAJvoXk9uDcFMHAwUz
+/xsZL2edBmWp0rg6JcD3YI9R0hGWtMoS4VZThCN5wDWVvM6xWVVDvmYUgV+U7mkt4JSFFPQoDUK5
+dQccYMUzhzIz/oEjHKwebsBb05/BFsPi7c7KwUjbPP1BA0XDEUB4Be3YF+3JgiapSDEs3CfTQWeP
+lKy/ZcVRGdtG49d5EcncZmXboqZzqL/3M/XRyxJld7pd+jLxp0ZapNCTe8e1ScbAiCooumGWFapv
+eHQL6vErph6XP1uBz3uoF9S2ul7Un2WDCydKoVm/RLn4PI3Ov2PzQk9taZN1Hxr6l6P/fdVc1ySl
+/W3coU+EcylwAAAAAAAA
 
 
---=-gmKADGha7TeRGObZu8Gj--
+--=-S6FYMsuGC5xQ8nuH7gYT--
