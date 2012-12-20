@@ -1,33 +1,35 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC Patch v1 45/55] ARC: unaligned access emulation
-Date: Thu, 20 Dec 2012 08:51:14 +0000
-Message-ID: <201212200851.15350.arnd@arndb.de>
-References: <1352720953-24321-1-git-send-email-vgupta@synopsys.com> <201211121400.13046.arnd@arndb.de> <50D2C78B.4060109@synopsys.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [RFC PATCH v1 17/40] metag: IRQ handling
+Date: Thu, 20 Dec 2012 10:14:37 +0000
+Message-ID: <50D2E50D.5080605@imgtec.com>
+References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <201211201615.30481.arnd@arndb.de> <50D06EAF.4050200@imgtec.com> <201212191558.57271.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
+Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:50024 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751108Ab2LTIvW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Dec 2012 03:51:22 -0500
-In-Reply-To: <50D2C78B.4060109@synopsys.com>
+Received: from multi.imgtec.com ([194.200.65.239]:56709 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751326Ab2LTKPX (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 20 Dec 2012 05:15:23 -0500
+In-Reply-To: <201212191558.57271.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, Grant <grant.likely@secretlab.ca>
 
-On Thursday 20 December 2012, Vineet Gupta wrote:
-> Are you OK if we keep this support build time - provided that once it is
-> build time enabled - we have the additional runtime sysctl based
-> toggle-ability as you suggested.
+On 19/12/12 15:58, Arnd Bergmann wrote:
+> On Tuesday 18 December 2012, James Hogan wrote:
+>> So what would be the expected way to do that with linear irq domains?
+> 
+> I think the best answer to that is "you're screwed".  There may be
+> a way to change the interfaces to just EXPORT_SYMBOL if you can make
+> a good case about a specific driver needing it, but my suspicion is
+> that that's not likely to be successful when coming from an imgtec.com
+> address or without details about the driver that needs it ;-)
 
-Yes, sounds good.
+:-)
+Well after further research it appears all the drivers I had in mind
+will be GPL anyway, so it shouldn't be a problem after all.
 
-> Only one of our customers need this feature and this gives people
-> reasons to moan about the kernel .text size and such.
-
-Ok.
-
-	Arnd
+Thanks
+James
