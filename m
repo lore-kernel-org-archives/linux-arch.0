@@ -1,67 +1,53 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC Patch v1 38/55] ARC: Low level event capture/logging
-Date: Thu, 20 Dec 2012 11:52:23 +0530
-Message-ID: <50D2AE9F.2080001@synopsys.com>
-References: <1352720953-24321-1-git-send-email-vgupta@synopsys.com> <201211121355.23947.arnd@arndb.de> <50A4C6B5.9010500@synopsys.com> <201211151204.13203.arnd@arndb.de>
+Subject: Re: [RFC Patch v1 45/55] ARC: unaligned access emulation
+Date: Thu, 20 Dec 2012 12:29:38 +0530
+Message-ID: <50D2B75A.3000208@synopsys.com>
+References: <1352720953-24321-1-git-send-email-vgupta@synopsys.com> <1352720953-24321-15-git-send-email-vgupta@synopsys.com> <201211121400.13046.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp1.synopsys.com ([198.182.60.75]:33773 "EHLO
+Received: from vaxjo.synopsys.com ([198.182.60.75]:34046 "EHLO
 	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750908Ab2LTGZi (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Dec 2012 01:25:38 -0500
-In-Reply-To: <201211151204.13203.arnd@arndb.de>
+	with ESMTP id S1750776Ab2LTHAF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Dec 2012 02:00:05 -0500
+In-Reply-To: <201211121400.13046.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, Doug Chapman <doug.chapman@hp.com>, Tony <tony.luck@intel.com>, Kyle McMartin <kyle@redhat.com>
 
-On Thursday 15 November 2012 05:34 PM, Arnd Bergmann wrote:
-> On Thursday 15 November 2012, Vineet Gupta wrote:
->> On Monday 12 November 2012 07:25 PM, Arnd Bergmann wrote:
->>> On Monday 12 November 2012, Vineet.Gupta1@synopsys.com wrote:
->>>> +EXPORT_SYMBOL(take_snap);
->>>> +
->>>> ...
->>>> +EXPORT_SYMBOL(take_snap2);
->>> Where are these functions called?
->> These are called from various parts of ARCH code, such as before
->> handling signal or TLB flush etc.
->>
->>> Shouldn't this all just be part of the perf module?
->> These are for low level ARCH specific event snapshotting. Maybe
->> perf/ftrace already have some of these in the generic code which
->> eventually call the ARCH APIs. Our current perf support is just husk of
->> an implementation. Once we have the full perf / ftrace support this
->> module - except for the even t capture part could just go away.
->> OTOH, I've not seen much usage of this from loadable modules - so if you
->> deem correct, I can even remove the export.
->>
->>> If not, can you make the exports GPL-only?
->> Am I right in understanding that this is more related to discouraging
->> non GPL modules "in general" than having to do with port itself.
-> Mostly yes. I understand that there are some reasons why people want
-> to mark symbols as generally available, e.g. for standard interfaces
-> that have traditionally been available to every module. My rule is
-> usually that any newly introduced symbols should be EXPORT_SYMBOL_GPL
-> by default, unless there is a (documented) reason to use EXPORT_SYMBOL
-> instead. This is particularly true for low-level interfaces like the
-> one here.
->
-> If you can just remove the export, that is probably the best solution.
+On Monday 12 November 2012 07:30 PM, Arnd Bergmann wrote:
+> On Monday 12 November 2012, Vineet.Gupta1@synopsys.com wrote:
+>> +
+>> +config ARC_MISALIGN_ACCESS
+>> +       bool "Emulate unaligned memory access (userspace only)"
+>> +       default N
+>> +       help
+>> +         This enables misaligned 16 & 32 bit memory access from user space.
+>> +         Use ONLY-IF-ABS-NECESSARY as it will be very slow and also can hide
+>> +         potential bugs in code
+> 
+> parisc and ia64 both have the same feature, and they use sysctl to configure
+> it at run-time. Maybe you should pick one of the two sysctl implementations
+> and hook that up to your implementation as well.
 
-Will do !
+Sounds like a good idea.
 
-> On a related note, any global symbol (exported or not) should normally
-> have a prefix that identifies the subsystem it belongs to. A global
-> identifier like "take_snap" can potentially conflict with symbols in
-> other parts of the kernel.
+Looking at your suggestion, the sysctl interface in both of those is for
+slightly different semantics and ARC would possibly need a bit from
+both. So to avoid duplication, I'm proposing following changes to
+kernel/sysctl.c and the generic options selected by respective arches.
 
-Agreed - this contraption anyways was a quick hack to debug the "rooky"
-issues we had initially - things are pretty stable now - so I'm planning
-to drop this patch entirely. When we do something like LTTng etc we'll
-revisit the low level instrumentation.
+* no_unaligned_warning:CONFIG_IA64 => CONFIG_SYSCTL_ARCH_UNALIGN_NO_WARN
+*unaligned_enabled: __hppa__ => CONFIG_SYSCTL_ARCH_UNALIGN_ALLOW
+
+If you can think of better(smaller) names, please do let me know :-)
+
+If we agree in principle, I'll cookup the patches and seek the ACKs from
+ARCH maintainers (assuming my CC list above is right). And to keep
+things simple, we can route the kernel/sysctl.c changes via the ARC
+submission tree.
 
 Thx,
--Vineet
+Vineet
