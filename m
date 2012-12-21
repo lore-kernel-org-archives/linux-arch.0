@@ -1,154 +1,160 @@
-From: <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH] sysctl: convert arch specific unaligned access regulators to generic ones
-Date: Thu, 20 Dec 2012 16:41:38 +0530
-Message-ID: <1356001898-2960-2-git-send-email-vgupta@synopsys.com>
-References: <50D2B75A.3000208@synopsys.com>
- <1356001898-2960-1-git-send-email-vgupta@synopsys.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: [git pull] signal.git pile 2
+Date: Fri, 21 Dec 2012 00:21:00 +0000
+Message-ID: <20121221002100.GM4939@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtp2.synopsys.com ([198.182.44.80]:34803 "EHLO
-	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751666Ab2LTLNv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Dec 2012 06:13:51 -0500
-In-Reply-To: <1356001898-2960-1-git-send-email-vgupta@synopsys.com>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:48966 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751387Ab2LUAVD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 20 Dec 2012 19:21:03 -0500
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, "Eric W. Biederman" <ebiederm@xmission.com>, Serge Hallyn <serge.hallyn@canonical.com>, "David S. Miller" <davem@davemloft.net>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>, linux-ia64@vger.kernel.org, linux-parisc@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-From: Vineet Gupta <vgupta@synopsys.com>
+sigaltstack infrastructure + conversion for x86, alpha and um,
+COMPAT_SYSCALL_DEFINE infrastructure.  Note that there are several
+conflicts between "unify SS_ONSTACK/SS_DISABLE definitions" and
+UAPI patches in mainline; resolution is trivial - just remove definitions
+of SS_ONSTACK and SS_DISABLED from arch/*/uapi/asm/signal.h; they are
+all identical and include/uapi/linux/signal.h contains the unified
+variant.  Please, pull from
+git://git.kernel.org/pub/scm/linux/kernel/git/viro/signal for-linus
 
-* parisc: /proc/sys/kernel/unaligned-trap => SYSCTL_ARCH_UNALIGN_ALLOW
+Shortlog:
+Al Viro (11):
+      COMPAT_SYSCALL_DEFINE: infrastructure
+      Bury the conditionals from kernel_thread/kernel_execve series
+      missing user_stack_pointer() instances
+      new helper: current_user_stack_pointer()
+      unify SS_ONSTACK/SS_DISABLE definitions
+      new helper: restore_altstack()
+      new helper: compat_user_stack_pointer()
+      introduce generic sys_sigaltstack(), switch x86 and um to it
+      generic compat_sys_sigaltstack()
+      new helpers: __save_altstack/__compat_save_altstack, switch x86 and um to those
+      alpha: switch to generic sigaltstack
 
-* ia64: /proc/sys/kernel/ignore-unaligned-usertrap =>
-					SYSCTL_ARCH_UNALIGN_NO_WARN
-
-This allows other architectures, specifically ARC to reuse these sysctl
-knobs.
-
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Serge Hallyn <serge.hallyn@canonical.com>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Cc: linux-ia64@vger.kernel.org
-Cc: linux-parisc@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org
----
- arch/ia64/Kconfig   |    1 +
- arch/parisc/Kconfig |    1 +
- init/Kconfig        |   16 ++++++++++++++++
- kernel/sysctl.c     |   16 +++++++++++++---
- 4 files changed, 31 insertions(+), 3 deletions(-)
-
-diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
-index 3279646..5fb1064 100644
---- a/arch/ia64/Kconfig
-+++ b/arch/ia64/Kconfig
-@@ -40,6 +40,7 @@ config IA64
- 	select ARCH_THREAD_INFO_ALLOCATOR
- 	select ARCH_CLOCKSOURCE_DATA
- 	select GENERIC_TIME_VSYSCALL_OLD
-+	select SYSCTL_ARCH_UNALIGN_NO_WARN
- 	select HAVE_MOD_ARCH_SPECIFIC
- 	select MODULES_USE_ELF_RELA
- 	default y
-diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
-index 11def45..7d9de54 100644
---- a/arch/parisc/Kconfig
-+++ b/arch/parisc/Kconfig
-@@ -20,6 +20,7 @@ config PARISC
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select GENERIC_SMP_IDLE_THREAD
- 	select GENERIC_STRNCPY_FROM_USER
-+	select SYSCTL_ARCH_UNALIGN_ALLOW
- 	select HAVE_MOD_ARCH_SPECIFIC
- 	select MODULES_USE_ELF_RELA
- 
-diff --git a/init/Kconfig b/init/Kconfig
-index 6fdd6e3..de4b184 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1169,6 +1169,22 @@ config SYSCTL_EXCEPTION_TRACE
- 	help
- 	  Enable support for /proc/sys/debug/exception-trace.
- 
-+config SYSCTL_ARCH_UNALIGN_NO_WARN
-+	bool
-+	help
-+	  Enable support for /proc/sys/kernel/ignore-unaligned-usertrap
-+	  Allows arch to define/use @no_unaligned_warning to possbly warn about
-+	  unaligned access emulation going on under the hood.
-+	  see arch/ia64/kernel/unaligned.c for reference
-+
-+config SYSCTL_ARCH_UNALIGN_ALLOW
-+	bool
-+	help
-+	  Enable support for /proc/sys/kernel/unaligned-trap
-+	  Allows arches to define/use @unaligned_enabled to runtime toggle
-+	  the unaligned access emulation.
-+	  see arch/parisc/kernel/unaligned.c for reference
-+
- config KALLSYMS
- 	 bool "Load all symbols for debugging/ksymoops" if EXPERT
- 	 default y
-diff --git a/kernel/sysctl.c b/kernel/sysctl.c
-index 26f65ea..9c618bf 100644
---- a/kernel/sysctl.c
-+++ b/kernel/sysctl.c
-@@ -157,14 +157,20 @@ extern int sysctl_tsb_ratio;
- 
- #ifdef __hppa__
- extern int pwrsw_enabled;
--extern int unaligned_enabled;
- #endif
- 
- #ifdef CONFIG_IA64
--extern int no_unaligned_warning;
- extern int unaligned_dump_stack;
- #endif
- 
-+#ifdef CONFIG_SYSCTL_ARCH_UNALIGN_ALLOW
-+extern int unaligned_enabled;
-+#endif
-+
-+#ifdef CONFIG_SYSCTL_ARCH_UNALIGN_NO_WARN
-+extern int no_unaligned_warning;
-+#endif
-+
- #ifdef CONFIG_PROC_SYSCTL
- static int proc_do_cad_pid(struct ctl_table *table, int write,
- 		  void __user *buffer, size_t *lenp, loff_t *ppos);
-@@ -504,6 +510,8 @@ static struct ctl_table kern_table[] = {
- 	 	.mode		= 0644,
- 		.proc_handler	= proc_dointvec,
- 	},
-+#endif
-+#ifdef CONFIG_SYSCTL_ARCH_UNALIGN_ALLOW
- 	{
- 		.procname	= "unaligned-trap",
- 		.data		= &unaligned_enabled,
-@@ -870,7 +878,7 @@ static struct ctl_table kern_table[] = {
- 		.proc_handler	= proc_doulongvec_minmax,
- 	},
- #endif
--#ifdef CONFIG_IA64
-+#ifdef CONFIG_SYSCTL_ARCH_UNALIGN_NO_WARN
- 	{
- 		.procname	= "ignore-unaligned-usertrap",
- 		.data		= &no_unaligned_warning,
-@@ -878,6 +886,8 @@ static struct ctl_table kern_table[] = {
- 	 	.mode		= 0644,
- 		.proc_handler	= proc_dointvec,
- 	},
-+#endif
-+#ifdef CONFIG_IA64
- 	{
- 		.procname	= "unaligned-dump-stack",
- 		.data		= &unaligned_dump_stack,
--- 
-1.7.4.1
+Diffstat:
+ arch/Kconfig                             |    9 +--
+ arch/alpha/Kconfig                       |    3 +-
+ arch/alpha/include/asm/ptrace.h          |    1 +
+ arch/alpha/include/asm/signal.h          |    6 --
+ arch/alpha/include/asm/unistd.h          |    1 -
+ arch/alpha/kernel/signal.c               |   10 +----
+ arch/arm/Kconfig                         |    2 -
+ arch/arm/include/asm/unistd.h            |    1 -
+ arch/arm/include/uapi/asm/signal.h       |    7 ---
+ arch/arm64/Kconfig                       |    2 -
+ arch/arm64/include/asm/compat.h          |    5 +-
+ arch/arm64/include/asm/unistd.h          |    1 -
+ arch/avr32/Kconfig                       |    2 -
+ arch/avr32/include/asm/ptrace.h          |    1 +
+ arch/avr32/include/asm/unistd.h          |    1 -
+ arch/avr32/include/uapi/asm/signal.h     |    6 --
+ arch/blackfin/Kconfig                    |    2 -
+ arch/blackfin/include/asm/ptrace.h       |    1 +
+ arch/blackfin/include/asm/unistd.h       |    1 -
+ arch/c6x/Kconfig                         |    2 -
+ arch/c6x/include/uapi/asm/unistd.h       |    1 -
+ arch/cris/Kconfig                        |    2 -
+ arch/cris/include/asm/ptrace.h           |    1 +
+ arch/cris/include/asm/signal.h           |    6 --
+ arch/cris/include/asm/unistd.h           |    1 -
+ arch/frv/Kconfig                         |    2 -
+ arch/frv/include/asm/unistd.h            |    1 -
+ arch/h8300/Kconfig                       |    2 -
+ arch/h8300/include/asm/ptrace.h          |    1 +
+ arch/h8300/include/asm/signal.h          |    6 --
+ arch/h8300/include/asm/unistd.h          |    1 -
+ arch/hexagon/Kconfig                     |    2 -
+ arch/hexagon/include/uapi/asm/unistd.h   |    1 -
+ arch/ia64/Kconfig                        |    2 -
+ arch/ia64/include/asm/ptrace.h           |    5 ++
+ arch/ia64/include/asm/unistd.h           |    1 -
+ arch/ia64/include/uapi/asm/signal.h      |    6 --
+ arch/m32r/Kconfig                        |    2 -
+ arch/m32r/include/asm/ptrace.h           |    1 +
+ arch/m32r/include/asm/signal.h           |    6 --
+ arch/m32r/include/asm/unistd.h           |    1 -
+ arch/m68k/Kconfig                        |    2 -
+ arch/m68k/include/asm/ptrace.h           |    1 +
+ arch/m68k/include/asm/unistd.h           |    1 -
+ arch/m68k/include/uapi/asm/signal.h      |    6 --
+ arch/microblaze/Kconfig                  |    2 -
+ arch/microblaze/include/asm/ptrace.h     |    1 +
+ arch/microblaze/include/asm/unistd.h     |    1 -
+ arch/mips/Kconfig                        |    2 -
+ arch/mips/include/asm/ptrace.h           |    1 +
+ arch/mips/include/asm/unistd.h           |    1 -
+ arch/mips/include/uapi/asm/signal.h      |    6 --
+ arch/mn10300/Kconfig                     |    2 -
+ arch/mn10300/include/asm/unistd.h        |    1 -
+ arch/mn10300/include/uapi/asm/signal.h   |    6 --
+ arch/openrisc/Kconfig                    |    2 -
+ arch/openrisc/include/uapi/asm/unistd.h  |    1 -
+ arch/parisc/Kconfig                      |    2 -
+ arch/parisc/include/asm/unistd.h         |    1 -
+ arch/parisc/include/uapi/asm/signal.h    |    6 --
+ arch/powerpc/Kconfig                     |    2 -
+ arch/powerpc/include/asm/unistd.h        |    1 -
+ arch/powerpc/include/uapi/asm/signal.h   |    6 --
+ arch/s390/Kconfig                        |    2 -
+ arch/s390/include/asm/compat.h           |    3 +
+ arch/s390/include/asm/unistd.h           |    1 -
+ arch/s390/include/uapi/asm/signal.h      |    6 --
+ arch/score/Kconfig                       |    2 -
+ arch/score/include/asm/ptrace.h          |    1 +
+ arch/score/include/asm/unistd.h          |    1 -
+ arch/sh/Kconfig                          |    2 -
+ arch/sh/include/asm/unistd.h             |    1 -
+ arch/sparc/Kconfig                       |    2 -
+ arch/sparc/include/asm/unistd.h          |    1 -
+ arch/sparc/include/uapi/asm/signal.h     |    6 --
+ arch/tile/Kconfig                        |    2 -
+ arch/tile/include/asm/ptrace.h           |    1 +
+ arch/tile/include/asm/unistd.h           |    1 -
+ arch/um/kernel/signal.c                  |    5 --
+ arch/unicore32/Kconfig                   |    2 -
+ arch/unicore32/include/asm/ptrace.h      |    1 +
+ arch/unicore32/include/uapi/asm/unistd.h |    1 -
+ arch/x86/Kconfig                         |    3 +-
+ arch/x86/ia32/ia32_signal.c              |   55 +---------------------
+ arch/x86/ia32/ia32entry.S                |    1 -
+ arch/x86/include/asm/ia32.h              |   10 +---
+ arch/x86/include/asm/ptrace.h            |    7 +++
+ arch/x86/include/asm/signal.h            |    6 --
+ arch/x86/include/asm/sys_ia32.h          |    2 -
+ arch/x86/include/asm/syscalls.h          |    3 -
+ arch/x86/include/asm/unistd.h            |    1 -
+ arch/x86/kernel/entry_32.S               |    1 -
+ arch/x86/kernel/entry_64.S               |    3 -
+ arch/x86/kernel/signal.c                 |   29 ++----------
+ arch/x86/syscalls/syscall_32.tbl         |    2 +-
+ arch/x86/syscalls/syscall_64.tbl         |    4 +-
+ arch/x86/um/Kconfig                      |    3 +-
+ arch/x86/um/asm/ptrace.h                 |    1 +
+ arch/x86/um/signal.c                     |    9 +---
+ arch/x86/um/sys_call_table_32.c          |    1 -
+ arch/x86/um/sys_call_table_64.c          |    1 -
+ arch/xtensa/Kconfig                      |    2 -
+ arch/xtensa/include/asm/ptrace.h         |    2 +
+ arch/xtensa/include/asm/unistd.h         |    1 -
+ arch/xtensa/include/uapi/asm/signal.h    |    6 --
+ fs/exec.c                                |   21 --------
+ include/linux/binfmts.h                  |    4 --
+ include/linux/compat.h                   |   62 +++++++++++++++++++++++++
+ include/linux/ptrace.h                   |    4 ++
+ include/linux/sched.h                    |    2 -
+ include/linux/signal.h                   |    3 +
+ include/linux/syscalls.h                 |   15 ++----
+ include/uapi/asm-generic/signal.h        |    6 --
+ include/uapi/linux/signal.h              |    2 +
+ init/main.c                              |    4 +-
+ kernel/fork.c                            |    2 -
+ kernel/kmod.c                            |    6 +-
+ kernel/signal.c                          |   74 ++++++++++++++++++++++++++++++
+ 118 files changed, 211 insertions(+), 357 deletions(-)
