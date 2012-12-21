@@ -1,50 +1,63 @@
-From: "H. Peter Anvin" <hpa@zytor.com>
-Subject: Re: new architectures, time_t __kernel_long_t
-Date: Thu, 20 Dec 2012 21:47:45 -0800
-Message-ID: <2a8cf990-8197-4a8f-854f-14b8fb65e9c2@email.android.com>
-References: <201211141218.02105.arnd@arndb.de> <20121221045731.GO4939@ZenIV.linux.org.uk> <50D3ECEB.1070401@zytor.com> <20121221050202.GP4939@ZenIV.linux.org.uk> <50D3EE1A.7020703@zytor.com> <20121221051921.GQ4939@ZenIV.linux.org.uk>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: CONFIG_GENERIC_SIGALTSTACK with asm-generic/syscalls.h (was Re: [git
+ pull] signal.git pile 2)
+Date: Fri, 21 Dec 2012 11:54:08 +0530
+Message-ID: <50D40088.3030304@synopsys.com>
+References: <20121221002100.GM4939@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain;
- charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from terminus.zytor.com ([198.137.202.10]:60861 "EHLO mail.zytor.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1750908Ab2LUFsC (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 21 Dec 2012 00:48:02 -0500
-In-Reply-To: <20121221051921.GQ4939@ZenIV.linux.org.uk>
+Received: from kiruna.synopsys.com ([198.182.44.80]:43526 "EHLO
+	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750712Ab2LUGYY (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Dec 2012 01:24:24 -0500
+In-Reply-To: <20121221002100.GM4939@ZenIV.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Vineet.Gupta1@synopsys.com, linux-kernel@vger.kernel.org, James Hogan <james.hogan@imgtec.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>, Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 
-Fair enough.
+On Friday 21 December 2012 05:51 AM, Al Viro wrote:
+> sigaltstack infrastructure + conversion for x86, alpha and um,
+> COMPAT_SYSCALL_DEFINE infrastructure.  Note that there are several
+> conflicts between "unify SS_ONSTACK/SS_DISABLE definitions" and
+> UAPI patches in mainline; resolution is trivial - just remove definitions
+> of SS_ONSTACK and SS_DISABLED from arch/*/uapi/asm/signal.h; they are
+> all identical and include/uapi/linux/signal.h contains the unified
+> variant.  Please, pull from
+> git://git.kernel.org/pub/scm/linux/kernel/git/viro/signal for-linus
+> 
 
-Al Viro <viro@ZenIV.linux.org.uk> wrote:
+Hi Arnd,
 
->On Thu, Dec 20, 2012 at 09:05:30PM -0800, H. Peter Anvin wrote:
->> >... as long as we do not have typedef __kernel_foo_t foo_t in
->linux/types.h.
->> >
->> 
->> In the case of things like nlink_t and dev_t I would suggest we
->> explicitly call out the types as kernel and user.  I would suggest
->> knlink_t and unlink_t but the latter made me want to stab my eyes
->> out due to its confusion potential, so I wonder if we should
->> establish a new convention with _kt (kernel type) and _ut (user
->> type) suffixes, so nlink_kt and nlink_ut, alternatively one could
->> consider k_nlink_t and u_nlink_t.
->
->What the hell for?  _Which_ userland nlink_t, anyway?  We have quite a
->few
->struct stat variants in there.  Sorry, but I really don't see any point
->in that, and a lot of potential for confusion.  Marshalling is about
->the
->only thing we need the userland ones for and the code doing it is just
->fine
->with the only object of that type in sight being the field of e.g.
->struct stat
->with given name...
+In Linus' tree with above merged, selecting CONFIG_GENERIC_SIGALTSTACK
+is causing build issues for ARC port (and possibly others as well) which
+use asm-generic/syscalls.h due to a different prototype for
+sys_sigaltstack coming in from linux/syscalls.h
 
--- 
-Sent from my mobile phone. Please excuse brevity and lack of formatting.
+While I can band-aid ARC port by #define sys_sigaltstack before
+including asm-generic, it might be better if we conditional-ize one of
+the prototypes. Following works for me.
+
+diff --git a/include/asm-generic/syscalls.h b/include/asm-generic/syscalls.h
+index 58f466f..1db51b8 100644
+--- a/include/asm-generic/syscalls.h
++++ b/include/asm-generic/syscalls.h
+@@ -21,10 +21,12 @@ asmlinkage long sys_mmap(unsigned long addr, unsigned long len,
+                        unsigned long fd, off_t pgoff);
+ #endif
+
++#ifndef CONFIG_GENERIC_SIGALTSTACK
+ #ifndef sys_sigaltstack
+ asmlinkage long sys_sigaltstack(const stack_t __user *, stack_t __user *,
+                        struct pt_regs *);
+ #endif
++#endif
+
+ #ifndef sys_rt_sigreturn
+ asmlinkage long sys_rt_sigreturn(struct pt_regs *regs);
+
+
+Thx,
+-Vineet
