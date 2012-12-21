@@ -1,26 +1,67 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 1/2] asm-generic: uaccess: allow arch to over-ride __get_user_fn()
-Date: Fri, 21 Dec 2012 19:43:32 +0000
-Message-ID: <201212211943.32199.arnd@arndb.de>
-References: <1353422297-29079-1-git-send-email-vgupta@synopsys.com> <1353422297-29079-2-git-send-email-vgupta@synopsys.com>
+Subject: [GIT PULL] asm-generic cleanups
+Date: Fri, 21 Dec 2012 20:43:57 +0000
+Message-ID: <201212212043.57929.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
-  charset="iso-8859-15"
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:65532 "EHLO
+Received: from moutng.kundenserver.de ([212.227.17.9]:58453 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750748Ab2LUTnf (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Dec 2012 14:43:35 -0500
-In-Reply-To: <1353422297-29079-2-git-send-email-vgupta@synopsys.com>
+	with ESMTP id S1750876Ab2LUUoD (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Dec 2012 15:44:03 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet.Gupta1@synopsys.com
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, lars@metafoo.de, will.deacon@arm.com, james.hogan@imgtec.com
 
-On Tuesday 20 November 2012, Vineet.Gupta1@synopsys.com wrote:
-> From: Vineet Gupta <vgupta@synopsys.com>
-> 
-> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+The following changes since commit 6f0c0580b70c89094b3422ba81118c7b959c7556:
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+  Linux 3.7-rc2 (2012-10-20 12:11:32 -0700)
+
+are available in the git repository at:
+
+  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic
+
+for you to fetch changes up to fb9de7ebc3a2eb7ddb83c92e288447a0c313bced:
+
+  xtensa: Use generic asm/mmu.h for nommu (2012-12-09 23:14:19 +0100)
+
+----------------------------------------------------------------
+warning: refname 'asm-generic' is ambiguous.
+These are a few cleanups for asm-generic:
+
+* a set of patches from Lars-Peter Clausen to generalize asm/mmu.h
+  and use it in the architectures that don't need any special handling.
+* A patch from Will Deacon to remove the {read,write}s{b,w,l} as
+  discussed during the arm64 review
+* A patch from James Hogan that helps with the meta architecture
+  series.
+
+----------------------------------------------------------------
+James Hogan (1):
+      asm-generic/io.h: remove asm/cacheflush.h include
+
+Lars-Peter Clausen (5):
+      asm-generic/mmu.h: Remove unused vmlist field from mm_context_t
+      asm-generic/mmu.h: Add support for FDPIC
+      c6x: Use generic asm/mmu.h
+      h8300: Use generic asm/mmu.h
+      xtensa: Use generic asm/mmu.h for nommu
+
+Will Deacon (1):
+      asm-generic: io: remove {read,write} string functions
+
+ arch/c6x/include/asm/Kbuild     |  1 +
+ arch/c6x/include/asm/mmu.h      | 22 ----------------------
+ arch/h8300/include/asm/Kbuild   |  1 +
+ arch/h8300/include/asm/mmu.h    | 10 ----------
+ arch/openrisc/include/asm/io.h  |  1 +
+ arch/xtensa/include/asm/mmu.h   |  2 +-
+ arch/xtensa/include/asm/nommu.h |  3 ---
+ include/asm-generic/io.h        | 31 -------------------------------
+ include/asm-generic/mmu.h       |  6 +++++-
+ 9 files changed, 9 insertions(+), 68 deletions(-)
+ delete mode 100644 arch/c6x/include/asm/mmu.h
+ delete mode 100644 arch/h8300/include/asm/mmu.h
+ delete mode 100644 arch/xtensa/include/asm/nommu.h
