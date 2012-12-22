@@ -1,39 +1,59 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-da0-f51.google.com ([209.85.210.51]:55504 "EHLO
-	mail-da0-f51.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754278Ab2LRCnT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 17 Dec 2012 21:43:19 -0500
-Received: by mail-da0-f51.google.com with SMTP id i30so57193dad.38
-        for <linux-arch@vger.kernel.org>; Mon, 17 Dec 2012 18:43:19 -0800 (PST)
-Date: Mon, 17 Dec 2012 18:21:30 -0800
-From: Greg KH <gregkh@linuxfoundation.org>
-Subject: Re: [PATCH 1/7] move debugfs to filesystems menu (fs/Kconfig)
-Message-ID: <20121218022130.GA16839@kroah.com>
-References: <20121217182206.91AA150A@kernel.stglabs.ibm.com>
- <20121217182207.4CF51258@kernel.stglabs.ibm.com>
+Received: from mail-vc0-f176.google.com ([209.85.220.176]:64015 "EHLO
+	mail-vc0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751059Ab2LVMvf (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 22 Dec 2012 07:51:35 -0500
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20121217182207.4CF51258@kernel.stglabs.ibm.com>
+In-Reply-To: <201212171612.44126.arnd@arndb.de>
+References: <1355679527-1207-1-git-send-email-geert@linux-m68k.org>
+	<1355679527-1207-2-git-send-email-geert@linux-m68k.org>
+	<201212171612.44126.arnd@arndb.de>
+Date: Sat, 22 Dec 2012 13:51:32 +0100
+Message-ID: <CAMuHMdXhi_dA9Q04YoQ9yDRrJRpH8mNsLgU88oCdhAgcsQLpyg@mail.gmail.com>
+Subject: Re: [PATCH 2/2] asm-generic/dma-mapping-broken.h: Provide dma_alloc_attrs()/dma_free_attrs()
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Content-Type: text/plain; charset=UTF-8
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Dave Hansen <dave@linux.vnet.ibm.com>
-Cc: torvalds@linux-foundation.org, linux-kernel@vger.kernel.org, linux-kbuild@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20121218022130.PjnKaOfw7wuE3eGLAJa9ZRB0VqA9kdH3QVCdDCjwBP8@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-kernel@vger.kernel.org
+Message-ID: <20121222125132.46OKdOAYdv6upmR6pUSjwnGGqgmfLYpu8nnXPp_TVJs@z>
 
-On Mon, Dec 17, 2012 at 01:22:07PM -0500, Dave Hansen wrote:
-> 
-> debugfs may have started out as a kernel hacking kind of option.  But,
-> today, it is an integral part of lots of facilities like tracing that
-> are far from kernel hacking.  Let's move it out of the very cluttered
-> "Kernel Hacking" menu and but it next to its real family: other
-> filesystems like sysfs, configfs, or /proc.
-> 
-> Also, "Debug filesystem" sounds like a debugging option _for_
-> filesystems code, not a filesystem for debugging.  We also never call
-> it "the debug filesystem."  We always say "debugfs", so reflect the
-> fact that we _call_ it debugfs in the menu text.
-> 
-> Signed-off-by: Dave Hansen <dave@linux.vnet.ibm.com>
+Hi Arnd,
 
-Acked-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+On Mon, Dec 17, 2012 at 5:12 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Sunday 16 December 2012, Geert Uytterhoeven wrote:
+>> Since commit 0049fb2603b7afb1080776ee691dfa5a3d282357 ("OMAPFB: use
+>> dma_alloc_attrs to allocate memory") we have one non-arch user of
+>> dma_{alloc,free}_attrs().
+>>
+>> Hence provide these functions, as wrappers around
+>> dma_{alloc,free}_coherent().
+>>
+>> Note that most architectures do it the other way around. But as these are
+>> dummy functions, we don't care.
+>>
+>> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+>> ---
+>>  include/asm-generic/dma-mapping-broken.h |   16 ++++++++++++++++
+>>  1 files changed, 16 insertions(+), 0 deletions(-)
+>
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+
+Thanks!
+
+> Maybe you can put this one in your m68k tree along with your other
+> patch.
+
+Will do.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
+
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
