@@ -1,67 +1,54 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: [GIT PULL] asm-generic cleanups
-Date: Fri, 21 Dec 2012 20:43:57 +0000
-Message-ID: <201212212043.57929.arnd@arndb.de>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH 2/2] asm-generic/dma-mapping-broken.h: Provide dma_alloc_attrs()/dma_free_attrs()
+Date: Sat, 22 Dec 2012 13:51:32 +0100
+Message-ID: <CAMuHMdXhi_dA9Q04YoQ9yDRrJRpH8mNsLgU88oCdhAgcsQLpyg@mail.gmail.com>
+References: <1355679527-1207-1-git-send-email-geert@linux-m68k.org>
+	<1355679527-1207-2-git-send-email-geert@linux-m68k.org>
+	<201212171612.44126.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.9]:58453 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750876Ab2LUUoD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 21 Dec 2012 15:44:03 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, lars@metafoo.de, will.deacon@arm.com, james.hogan@imgtec.com
+Content-Type: text/plain; charset=UTF-8
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <201212171612.44126.arnd@arndb.de>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-The following changes since commit 6f0c0580b70c89094b3422ba81118c7b959c7556:
+Hi Arnd,
 
-  Linux 3.7-rc2 (2012-10-20 12:11:32 -0700)
+On Mon, Dec 17, 2012 at 5:12 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> On Sunday 16 December 2012, Geert Uytterhoeven wrote:
+>> Since commit 0049fb2603b7afb1080776ee691dfa5a3d282357 ("OMAPFB: use
+>> dma_alloc_attrs to allocate memory") we have one non-arch user of
+>> dma_{alloc,free}_attrs().
+>>
+>> Hence provide these functions, as wrappers around
+>> dma_{alloc,free}_coherent().
+>>
+>> Note that most architectures do it the other way around. But as these are
+>> dummy functions, we don't care.
+>>
+>> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+>> ---
+>>  include/asm-generic/dma-mapping-broken.h |   16 ++++++++++++++++
+>>  1 files changed, 16 insertions(+), 0 deletions(-)
+>
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
 
-are available in the git repository at:
+Thanks!
 
-  git://git.kernel.org/pub/scm/linux/kernel/git/arnd/asm-generic.git tags/asm-generic
+> Maybe you can put this one in your m68k tree along with your other
+> patch.
 
-for you to fetch changes up to fb9de7ebc3a2eb7ddb83c92e288447a0c313bced:
+Will do.
 
-  xtensa: Use generic asm/mmu.h for nommu (2012-12-09 23:14:19 +0100)
+Gr{oetje,eeting}s,
 
-----------------------------------------------------------------
-warning: refname 'asm-generic' is ambiguous.
-These are a few cleanups for asm-generic:
+                        Geert
 
-* a set of patches from Lars-Peter Clausen to generalize asm/mmu.h
-  and use it in the architectures that don't need any special handling.
-* A patch from Will Deacon to remove the {read,write}s{b,w,l} as
-  discussed during the arm64 review
-* A patch from James Hogan that helps with the meta architecture
-  series.
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
 
-----------------------------------------------------------------
-James Hogan (1):
-      asm-generic/io.h: remove asm/cacheflush.h include
-
-Lars-Peter Clausen (5):
-      asm-generic/mmu.h: Remove unused vmlist field from mm_context_t
-      asm-generic/mmu.h: Add support for FDPIC
-      c6x: Use generic asm/mmu.h
-      h8300: Use generic asm/mmu.h
-      xtensa: Use generic asm/mmu.h for nommu
-
-Will Deacon (1):
-      asm-generic: io: remove {read,write} string functions
-
- arch/c6x/include/asm/Kbuild     |  1 +
- arch/c6x/include/asm/mmu.h      | 22 ----------------------
- arch/h8300/include/asm/Kbuild   |  1 +
- arch/h8300/include/asm/mmu.h    | 10 ----------
- arch/openrisc/include/asm/io.h  |  1 +
- arch/xtensa/include/asm/mmu.h   |  2 +-
- arch/xtensa/include/asm/nommu.h |  3 ---
- include/asm-generic/io.h        | 31 -------------------------------
- include/asm-generic/mmu.h       |  6 +++++-
- 9 files changed, 9 insertions(+), 68 deletions(-)
- delete mode 100644 arch/c6x/include/asm/mmu.h
- delete mode 100644 arch/h8300/include/asm/mmu.h
- delete mode 100644 arch/xtensa/include/asm/nommu.h
+In personal conversations with technical people, I call myself a hacker. But
+when I'm talking to journalists I just say "programmer" or something like that.
+                                -- Linus Torvalds
