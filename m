@@ -1,54 +1,46 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [PATCH 2/2] asm-generic/dma-mapping-broken.h: Provide dma_alloc_attrs()/dma_free_attrs()
-Date: Sat, 22 Dec 2012 13:51:32 +0100
-Message-ID: <CAMuHMdXhi_dA9Q04YoQ9yDRrJRpH8mNsLgU88oCdhAgcsQLpyg@mail.gmail.com>
-References: <1355679527-1207-1-git-send-email-geert@linux-m68k.org>
-	<1355679527-1207-2-git-send-email-geert@linux-m68k.org>
-	<201212171612.44126.arnd@arndb.de>
+From: Will Deacon <will.deacon@arm.com>
+Subject: Re: [RFC PATCH 0/6] ARM: mm: HugeTLB + THP support.
+Date: Sun, 23 Dec 2012 11:11:18 +0000
+Message-ID: <20121223111118.GC16237@mudshark.cambridge.arm.com>
+References: <1350576942-25299-1-git-send-email-steve.capper@arm.com>
+ <50D4671F.1010003@free-electrons.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-m68k-owner@vger.kernel.org>
-In-Reply-To: <201212171612.44126.arnd@arndb.de>
-Sender: linux-m68k-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-m68k@lists.linux-m68k.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
+Content-Disposition: inline
+In-Reply-To: <50D4671F.1010003@free-electrons.com>
+List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
+List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
+List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
+List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
+List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
+ <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
+Sender: linux-arm-kernel-bounces@lists.infradead.org
+Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
+To: Gregory CLEMENT <gregory.clement@free-electrons.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "aarcange@redhat.com" <aarcange@redhat.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>, "tawfik@marvell.com" <tawfik@marvell.com>, "bill4carson@gmail.com" <bill4carson@gmail.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Steve Capper <Steve.Capper@arm.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "mhocko@suse.cz" <mhocko@suse.cz>, "maen@marvell.com" <maen@marvell.com>, Lior Amsalem <alior@marvell.com>, "hoffman@marvell.com" <hoffman@marvell.com>, "notasas@gmail.com" <notasas@gmail.com>, "kirill@shutemov.name" <kirill@shutemov.name>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "shadi@marvell.com" <shadi@marvell.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 List-Id: linux-arch.vger.kernel.org
 
-Hi Arnd,
+On Fri, Dec 21, 2012 at 01:41:51PM +0000, Gregory CLEMENT wrote:
+> On 10/18/2012 06:15 PM, Steve Capper wrote:
+> > Hello,
+> Hi Steve,
 
-On Mon, Dec 17, 2012 at 5:12 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Sunday 16 December 2012, Geert Uytterhoeven wrote:
->> Since commit 0049fb2603b7afb1080776ee691dfa5a3d282357 ("OMAPFB: use
->> dma_alloc_attrs to allocate memory") we have one non-arch user of
->> dma_{alloc,free}_attrs().
->>
->> Hence provide these functions, as wrappers around
->> dma_{alloc,free}_coherent().
->>
->> Note that most architectures do it the other way around. But as these are
->> dummy functions, we don't care.
->>
->> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
->> ---
->>  include/asm-generic/dma-mapping-broken.h |   16 ++++++++++++++++
->>  1 files changed, 16 insertions(+), 0 deletions(-)
->
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
+Hi Gregory,
 
-Thanks!
+> I resurrected this old thread to have some news about this subject.
+> We are interested to get this support for the Armada 370/XP based boards.
+> 
+> I am surprised that there wasn't any feedback on this series. We are
+> willing to help this feature being merge in the kernel.
+> 
+> Testing your series on the board we have could help you?
 
-> Maybe you can put this one in your m68k tree along with your other
-> patch.
+Whilst testing is always welcome, the thing this code *really* needs is some
+proper review, especially for the implementation for 3-level page tables. We
+tested pretty extensively on v6, v7 and v7+lpae platforms ourselves but, of
+course, if you do uncover an issue then please shout.
 
-Will do.
-
-Gr{oetje,eeting}s,
-
-                        Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+Will
