@@ -1,43 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from fw-tnat.cambridge.arm.com ([217.140.96.21]:46915 "EHLO
-	cam-smtp0.cambridge.arm.com" rhost-flags-OK-OK-OK-FAIL)
-	by vger.kernel.org with ESMTP id S1751174Ab2LWLvc (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Sun, 23 Dec 2012 06:51:32 -0500
-Date: Sun, 23 Dec 2012 11:11:18 +0000
-From: Will Deacon <will.deacon@arm.com>
-Subject: Re: [RFC PATCH 0/6] ARM: mm: HugeTLB + THP support.
-Message-ID: <20121223111118.GC16237@mudshark.cambridge.arm.com>
-References: <1350576942-25299-1-git-send-email-steve.capper@arm.com>
- <50D4671F.1010003@free-electrons.com>
+Received: from avon.wwwdotorg.org ([70.85.31.133]:50618 "EHLO
+	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753137Ab2LXQkz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Dec 2012 11:40:55 -0500
+Message-ID: <50D88594.6060601@nvidia.com>
+Date: Mon, 24 Dec 2012 09:40:52 -0700
+From: Stephen Warren <swarren@nvidia.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <50D4671F.1010003@free-electrons.com>
+Subject: Re: [PATCH V3 00/11] ARM: delete struct sys_timer
+References: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
+In-Reply-To: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
+Content-Type: text/plain; charset=ISO-8859-1
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Gregory CLEMENT <gregory.clement@free-electrons.com>
-Cc: Steve Capper <Steve.Capper@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "aarcange@redhat.com" <aarcange@redhat.com>, "bill4carson@gmail.com" <bill4carson@gmail.com>, "tawfik@marvell.com" <tawfik@marvell.com>, Catalin Marinas <Catalin.Marinas@arm.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "mhocko@suse.cz" <mhocko@suse.cz>, "maen@marvell.com" <maen@marvell.com>, "hoffman@marvell.com" <hoffman@marvell.com>, "notasas@gmail.com" <notasas@gmail.com>, "kirill@shutemov.name" <kirill@shutemov.name>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "shadi@marvell.com" <shadi@marvell.com>, Lior Amsalem <alior@marvell.com>, Thomas Petazzoni <thomas.petazzoni@free-electrons.com>
-Message-ID: <20121223111118.4C5pV32FB9x-U1tFtydjwSNpvubXI8wnwlenGkvg9L0@z>
+To: Stephen Warren <swarren@wwwdotorg.org>
+Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mikael Starvik <starvik@axis.com>, linux-cris-kernel@axis.com, Mike Frysinger <vapier@gentoo.org>, Hirokazu Takata <takata@linux-m32r.org>, Joshua Thompson <funaho@jurai.org>, Sam Creasey <sammy@sammy.net>, Andrew Victor <linux@maxim.org.za>, Nicolas Ferre <nicolas.ferre@atmel.com>, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>, Hartley Sweeten <hsweeten@visionengravers.com>, Ryan Mallon <rmallon@gmail.com>, Ben Dooks <ben-linux@fluff.org>, Kukjin Kim <kgene.kim@samsung.com>, Haojian Zhuang <haojian.zhuang@gmail.com>, Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>, Linus Walleij <linus.walleij@linaro.org>
+Message-ID: <20121224164052.fhO9OqtUOMmHcdS4TeY9uyldkcEfu2dBMZjCLIA-vk8@z>
 
-On Fri, Dec 21, 2012 at 01:41:51PM +0000, Gregory CLEMENT wrote:
-> On 10/18/2012 06:15 PM, Steve Capper wrote:
-> > Hello,
-> Hi Steve,
-
-Hi Gregory,
-
-> I resurrected this old thread to have some news about this subject.
-> We are interested to get this support for the Armada 370/XP based boards.
+On 11/19/2012 11:30 AM, Stephen Warren wrote:
+> Russell, I'm mainly reposting this to see if you have any comments or
+> opinion, in particular on the core ARM changes.
 > 
-> I am surprised that there wasn't any feedback on this series. We are
-> willing to help this feature being merge in the kernel.
+> The aim of this series is to remove ARM's struct sys_timer. As a pre-
+> cursor, this requires a little re-arrangement of arch_gettimeoffset and
+> associated changes to other architectures.
 > 
-> Testing your series on the board we have could help you?
+> The full series can be found in git at:
 
-Whilst testing is always welcome, the thing this code *really* needs is some
-proper review, especially for the implementation for 3-level page tables. We
-tested pretty extensively on v6, v7 and v7+lpae platforms ourselves but, of
-course, if you do uncover an issue then please shout.
+(now at):
+git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git
+arm-timer-rework
 
-Will
+I have put this branch into the Tegra tree's for-next branch. Once the
+holidays are over, I'll send a pull request to get this into arm-soc as
+a baseline branch for others to build on.
