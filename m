@@ -1,37 +1,125 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from avon.wwwdotorg.org ([70.85.31.133]:50618 "EHLO
-	avon.wwwdotorg.org" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753137Ab2LXQkz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 24 Dec 2012 11:40:55 -0500
-Message-ID: <50D88594.6060601@nvidia.com>
-Date: Mon, 24 Dec 2012 09:40:52 -0700
-From: Stephen Warren <swarren@nvidia.com>
+Received: from [65.55.88.13] ([65.55.88.13]:44810 "EHLO
+	tx2outboundpool.messaging.microsoft.com" rhost-flags-FAIL-FAIL-OK-OK)
+	by vger.kernel.org with ESMTP id S1751492Ab2LZO2u (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 26 Dec 2012 09:28:50 -0500
+Date: Wed, 26 Dec 2012 22:27:42 +0800
+From: Shawn Guo <shawn.guo@linaro.org>
+Subject: Re: [PATCH V7 2/7] ARM: dt: change .dtb build rules to build in dts
+ directory
+Message-ID: <20121226142739.GA28980@S2101-09.ap.freescale.net>
+References: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
+ <1354058956-7199-2-git-send-email-swarren@wwwdotorg.org>
 MIME-Version: 1.0
-Subject: Re: [PATCH V3 00/11] ARM: delete struct sys_timer
-References: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
-In-Reply-To: <1353349867-28494-1-git-send-email-swarren@wwwdotorg.org>
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="us-ascii"
+Content-Disposition: inline
+In-Reply-To: <1354058956-7199-2-git-send-email-swarren@wwwdotorg.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Russell King <linux@arm.linux.org.uk>, Olof Johansson <olof@lixom.net>, Arnd Bergmann <arnd@arndb.de>, John Stultz <johnstul@us.ibm.com>, Thomas Gleixner <tglx@linutronix.de>, linux-arm-kernel@lists.infradead.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mikael Starvik <starvik@axis.com>, linux-cris-kernel@axis.com, Mike Frysinger <vapier@gentoo.org>, Hirokazu Takata <takata@linux-m32r.org>, Joshua Thompson <funaho@jurai.org>, Sam Creasey <sammy@sammy.net>, Andrew Victor <linux@maxim.org.za>, Nicolas Ferre <nicolas.ferre@atmel.com>, Jean-Christophe Plagniol-Villard <plagnioj@jcrosoft.com>, Hartley Sweeten <hsweeten@visionengravers.com>, Ryan Mallon <rmallon@gmail.com>, Ben Dooks <ben-linux@fluff.org>, Kukjin Kim <kgene.kim@samsung.com>, Haojian Zhuang <haojian.zhuang@gmail.com>, Srinidhi Kasagar <srinidhi.kasagar@stericsson.com>, Linus Walleij <linus.walleij@linaro.org>
-Message-ID: <20121224164052.fhO9OqtUOMmHcdS4TeY9uyldkcEfu2dBMZjCLIA-vk8@z>
+Cc: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, linux-arm-kernel@lists.infradead.org, Stephen Warren <swarren@nvidia.com>
+Message-ID: <20121226142742.kknEYyQ-u1YCmyuLuPPspeZ380WjtKZLsPxdBDgmGhs@z>
 
-On 11/19/2012 11:30 AM, Stephen Warren wrote:
-> Russell, I'm mainly reposting this to see if you have any comments or
-> opinion, in particular on the core ARM changes.
+On Tue, Nov 27, 2012 at 04:29:11PM -0700, Stephen Warren wrote:
+> From: Grant Likely <grant.likely@secretlab.ca>
 > 
-> The aim of this series is to remove ARM's struct sys_timer. As a pre-
-> cursor, this requires a little re-arrangement of arch_gettimeoffset and
-> associated changes to other architectures.
+> The current rules have the .dtb files build in a different directory
+> from the .dts files. The only reason for this is that it was what
+> PowerPC has done historically. This patch changes ARM to use the generic
+> dtb rule which builds .dtb files in the same directory as the source .dts.
 > 
-> The full series can be found in git at:
+It's a pity that after merging the patch, all the enabled dts files
+will be rebuilt anyway no matter whether they are actually changed
+or not.
 
-(now at):
-git://git.kernel.org/pub/scm/linux/kernel/git/swarren/linux-tegra.git
-arm-timer-rework
+Shawn
 
-I have put this branch into the Tegra tree's for-next branch. Once the
-holidays are over, I'll send a pull request to get this into arm-soc as
-a baseline branch for others to build on.
+> Cc: Russell King <linux@arm.linux.org.uk>
+> Cc: Arnd Bergmann <arnd@arndb.de>
+> Cc: Olof Johansson <olof@lixom.net>
+> Cc: linux-arm-kernel@lists.infradead.org
+> Signed-off-by: Grant Likely <grant.likely@secretlab.ca>
+> [swarren: added rm command for old stale .dtb files]
+> Signed-off-by: Stephen Warren <swarren@nvidia.com>
+> ---
+> v7: New patch.
+> ---
+>  arch/arm/Makefile          |    4 ++--
+>  arch/arm/boot/Makefile     |   12 ------------
+>  arch/arm/boot/dts/Makefile |    8 ++++++++
+>  3 files changed, 10 insertions(+), 14 deletions(-)
+> 
+> diff --git a/arch/arm/Makefile b/arch/arm/Makefile
+> index 1ec5f67..5f92252 100644
+> --- a/arch/arm/Makefile
+> +++ b/arch/arm/Makefile
+> @@ -291,10 +291,10 @@ zinstall uinstall install: vmlinux
+>  	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $@
+>  
+>  %.dtb: scripts
+> -	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
+> +	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $(boot)/dts/$@
+>  
+>  dtbs: scripts
+> -	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
+> +	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) dtbs
+>  
+>  # We use MRPROPER_FILES and CLEAN_FILES now
+>  archclean:
+> diff --git a/arch/arm/boot/Makefile b/arch/arm/boot/Makefile
+> index 9137df5..abfce28 100644
+> --- a/arch/arm/boot/Makefile
+> +++ b/arch/arm/boot/Makefile
+> @@ -15,8 +15,6 @@ ifneq ($(MACHINE),)
+>  include $(srctree)/$(MACHINE)/Makefile.boot
+>  endif
+>  
+> -include $(srctree)/arch/arm/boot/dts/Makefile
+> -
+>  # Note: the following conditions must always be true:
+>  #   ZRELADDR == virt_to_phys(PAGE_OFFSET + TEXT_OFFSET)
+>  #   PARAMS_PHYS must be within 4MB of ZRELADDR
+> @@ -59,16 +57,6 @@ $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
+>  
+>  endif
+>  
+> -targets += $(dtb-y)
+> -
+> -# Rule to build device tree blobs
+> -$(obj)/%.dtb: $(src)/dts/%.dts FORCE
+> -	$(call if_changed_dep,dtc)
+> -
+> -$(obj)/dtbs: $(addprefix $(obj)/, $(dtb-y))
+> -
+> -clean-files := *.dtb
+> -
+>  ifneq ($(LOADADDR),)
+>    UIMAGE_LOADADDR=$(LOADADDR)
+>  else
+> diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
+> index a17d5ab..cb217f8 100644
+> --- a/arch/arm/boot/dts/Makefile
+> +++ b/arch/arm/boot/dts/Makefile
+> @@ -136,4 +136,12 @@ dtb-$(CONFIG_ARCH_VT8500) += vt8500-bv07.dtb \
+>  	wm8650-mid.dtb
+>  dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb
+>  
+> +targets += dtbs
+>  endif
+> +
+> +dtbs: $(addprefix $(obj)/, $(dtb-y))
+> +	# *.dtb used to be generated in the directory above. Clean out the
+> +	# old build results so people don't accidentally use them.
+> +	rm -f $(obj)/../*.dtb
+> +
+> +clean-files := *.dtb
+> -- 
+> 1.7.10.4
+> 
+> --
+> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
+> the body of a message to majordomo@vger.kernel.org
+> More majordomo info at  http://vger.kernel.org/majordomo-info.html
+> Please read the FAQ at  http://www.tux.org/lkml/
+
