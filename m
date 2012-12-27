@@ -1,125 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from [65.55.88.13] ([65.55.88.13]:44810 "EHLO
-	tx2outboundpool.messaging.microsoft.com" rhost-flags-FAIL-FAIL-OK-OK)
-	by vger.kernel.org with ESMTP id S1751492Ab2LZO2u (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 26 Dec 2012 09:28:50 -0500
-Date: Wed, 26 Dec 2012 22:27:42 +0800
-From: Shawn Guo <shawn.guo@linaro.org>
-Subject: Re: [PATCH V7 2/7] ARM: dt: change .dtb build rules to build in dts
- directory
-Message-ID: <20121226142739.GA28980@S2101-09.ap.freescale.net>
-References: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
- <1354058956-7199-2-git-send-email-swarren@wwwdotorg.org>
+Received: from vaxjo.synopsys.com ([198.182.60.75]:46126 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751633Ab2L0Krz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Dec 2012 05:47:55 -0500
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [RESEND PATCH] modpost: For ARC Port submission
+Date: Thu, 27 Dec 2012 16:17:19 +0530
+Message-ID: <1356605240-4555-1-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1352720953-24321-21-git-send-email-vgupta@synopsys.com>
+References: <1352720953-24321-21-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Disposition: inline
-In-Reply-To: <1354058956-7199-2-git-send-email-swarren@wwwdotorg.org>
+Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Michal Marek <mmarek@suse.cz>, Grant Likely <grant.likely@secretlab.ca>, Rob Herring <rob.herring@calxeda.com>, Sam Ravnborg <sam@ravnborg.org>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, Olof Johansson <olof@lixom.net>, linux-arm-kernel@lists.infradead.org, Stephen Warren <swarren@nvidia.com>
-Message-ID: <20121226142742.kknEYyQ-u1YCmyuLuPPspeZ380WjtKZLsPxdBDgmGhs@z>
+To: Michal Marek <mmarek@suse.cz>, Rusty Russell <rusty@rustcorp.com.au>
+Cc: Tony Lindgren <tony@atomide.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20121227104719.nWSx2G2tOtRq1KjjSxO6yGdsp10dVqKqwtHWripXRwM@z>
 
-On Tue, Nov 27, 2012 at 04:29:11PM -0700, Stephen Warren wrote:
-> From: Grant Likely <grant.likely@secretlab.ca>
-> 
-> The current rules have the .dtb files build in a different directory
-> from the .dts files. The only reason for this is that it was what
-> PowerPC has done historically. This patch changes ARM to use the generic
-> dtb rule which builds .dtb files in the same directory as the source .dts.
-> 
-It's a pity that after merging the patch, all the enabled dts files
-will be rebuilt anyway no matter whether they are actually changed
-or not.
+Hi,
 
-Shawn
+This is following up on ARC Linux Port submission bits:
+Basic Port: https://lkml.org/lkml/2012/11/7/114
+Addons:     https://lkml.org/lkml/2012/11/12/121
 
-> Cc: Russell King <linux@arm.linux.org.uk>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Olof Johansson <olof@lixom.net>
-> Cc: linux-arm-kernel@lists.infradead.org
-> Signed-off-by: Grant Likely <grant.likely@secretlab.ca>
-> [swarren: added rm command for old stale .dtb files]
-> Signed-off-by: Stephen Warren <swarren@nvidia.com>
-> ---
-> v7: New patch.
-> ---
->  arch/arm/Makefile          |    4 ++--
->  arch/arm/boot/Makefile     |   12 ------------
->  arch/arm/boot/dts/Makefile |    8 ++++++++
->  3 files changed, 10 insertions(+), 14 deletions(-)
-> 
-> diff --git a/arch/arm/Makefile b/arch/arm/Makefile
-> index 1ec5f67..5f92252 100644
-> --- a/arch/arm/Makefile
-> +++ b/arch/arm/Makefile
-> @@ -291,10 +291,10 @@ zinstall uinstall install: vmlinux
->  	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $@
->  
->  %.dtb: scripts
-> -	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
-> +	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $(boot)/dts/$@
->  
->  dtbs: scripts
-> -	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
-> +	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) dtbs
->  
->  # We use MRPROPER_FILES and CLEAN_FILES now
->  archclean:
-> diff --git a/arch/arm/boot/Makefile b/arch/arm/boot/Makefile
-> index 9137df5..abfce28 100644
-> --- a/arch/arm/boot/Makefile
-> +++ b/arch/arm/boot/Makefile
-> @@ -15,8 +15,6 @@ ifneq ($(MACHINE),)
->  include $(srctree)/$(MACHINE)/Makefile.boot
->  endif
->  
-> -include $(srctree)/arch/arm/boot/dts/Makefile
-> -
->  # Note: the following conditions must always be true:
->  #   ZRELADDR == virt_to_phys(PAGE_OFFSET + TEXT_OFFSET)
->  #   PARAMS_PHYS must be within 4MB of ZRELADDR
-> @@ -59,16 +57,6 @@ $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
->  
->  endif
->  
-> -targets += $(dtb-y)
-> -
-> -# Rule to build device tree blobs
-> -$(obj)/%.dtb: $(src)/dts/%.dts FORCE
-> -	$(call if_changed_dep,dtc)
-> -
-> -$(obj)/dtbs: $(addprefix $(obj)/, $(dtb-y))
-> -
-> -clean-files := *.dtb
-> -
->  ifneq ($(LOADADDR),)
->    UIMAGE_LOADADDR=$(LOADADDR)
->  else
-> diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-> index a17d5ab..cb217f8 100644
-> --- a/arch/arm/boot/dts/Makefile
-> +++ b/arch/arm/boot/dts/Makefile
-> @@ -136,4 +136,12 @@ dtb-$(CONFIG_ARCH_VT8500) += vt8500-bv07.dtb \
->  	wm8650-mid.dtb
->  dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb
->  
-> +targets += dtbs
->  endif
-> +
-> +dtbs: $(addprefix $(obj)/, $(dtb-y))
-> +	# *.dtb used to be generated in the directory above. Clean out the
-> +	# old build results so people don't accidentally use them.
-> +	rm -f $(obj)/../*.dtb
-> +
-> +clean-files := *.dtb
-> -- 
-> 1.7.10.4
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+I'm resending this single patch to hopefully get ACK on simple modpost change.
+
+Thx,
+-Vineet
+
+Vineet Gupta (1):
+  modpost: Ignore ARC specific non-alloc sections
+
+ scripts/mod/modpost.c |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
+
+-- 
+1.7.4.1
 
