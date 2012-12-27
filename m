@@ -1,127 +1,72 @@
-From: Shawn Guo <shawn.guo@linaro.org>
-Subject: Re: [PATCH V7 2/7] ARM: dt: change .dtb build rules to build in dts
- directory
-Date: Wed, 26 Dec 2012 22:27:42 +0800
-Message-ID: <20121226142739.GA28980@S2101-09.ap.freescale.net>
-References: <1354058956-7199-1-git-send-email-swarren@wwwdotorg.org>
- <1354058956-7199-2-git-send-email-swarren@wwwdotorg.org>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [RFC PATCH v1 11/31] ARC: Low level IRQ/Trap/Exception(non-MMU)
+ Handling
+Date: Thu, 27 Dec 2012 14:30:17 +0530
+Message-ID: <50DC0E21.90503@synopsys.com>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-12-git-send-email-vgupta@synopsys.com> <20121116045828.GB22671@ZenIV.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org>
-Content-Disposition: inline
-In-Reply-To: <1354058956-7199-2-git-send-email-swarren@wwwdotorg.org>
-List-Unsubscribe: <http://lists.infradead.org/mailman/options/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=unsubscribe>
-List-Archive: <http://lists.infradead.org/pipermail/linux-arm-kernel/>
-List-Post: <mailto:linux-arm-kernel@lists.infradead.org>
-List-Help: <mailto:linux-arm-kernel-request@lists.infradead.org?subject=help>
-List-Subscribe: <http://lists.infradead.org/mailman/listinfo/linux-arm-kernel>,
- <mailto:linux-arm-kernel-request@lists.infradead.org?subject=subscribe>
-Sender: linux-arm-kernel-bounces@lists.infradead.org
-Errors-To: linux-arm-kernel-bounces+linux-arm-kernel=m.gmane.org@lists.infradead.org
-To: Stephen Warren <swarren@wwwdotorg.org>
-Cc: Michal Marek <mmarek@suse.cz>, linux-arch@vger.kernel.org, Russell King <linux@arm.linux.org.uk>, Arnd Bergmann <arnd@arndb.de>, linux-kernel@vger.kernel.org, Rob Herring <rob.herring@calxeda.com>, Grant Likely <grant.likely@secretlab.ca>, Olof Johansson <olof@lixom.net>, Stephen Warren <swarren@nvidia.com>, Sam Ravnborg <sam@ravnborg.org>, linux-arm-kernel@lists.infradead.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from hermes.synopsys.com ([198.182.44.81]:49628 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750980Ab2L0JAb (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 27 Dec 2012 04:00:31 -0500
+In-Reply-To: <20121116045828.GB22671@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Tue, Nov 27, 2012 at 04:29:11PM -0700, Stephen Warren wrote:
-> From: Grant Likely <grant.likely@secretlab.ca>
-> 
-> The current rules have the .dtb files build in a different directory
-> from the .dts files. The only reason for this is that it was what
-> PowerPC has done historically. This patch changes ARM to use the generic
-> dtb rule which builds .dtb files in the same directory as the source .dts.
-> 
-It's a pity that after merging the patch, all the enabled dts files
-will be rebuilt anyway no matter whether they are actually changed
-or not.
+On Friday 16 November 2012 10:28 AM, Al Viro wrote:
+>> +	; --------- check for signals/restore-sigmask ------------
+>> +	bbit0  r9, TIF_SIGPENDING, chk_next_work
+>> +
+>> +	; save CALLEE Regs.
+>> +	; (i)  If this signal causes coredump - full regfile needed
+>> +	; (ii) If signal is SIGTRAP/SIGSTOP, task is being traced thus
+>> +	;      tracer might call PEEKUSR for a CALLEE reg
+>> +	;
+>> +	; NOTE: SP will grow up by size of CALLEE Reg-File
+>> +	SAVE_CALLEE_SAVED_USER		; clobbers r12
+>> +
+>> +	; save location of saved Callee Regs @ thread_struct->callee
+>> +	GET_CURR_TASK_FIELD_PTR   TASK_THREAD, r10
+>> +	st  sp, [r10, THREAD_CALLEE_REG]
+>> +
+>> +	bl  @do_signal
+>> +
+>> +	; unwind SP for cheap discard of Callee saved Regs
+>> +	DISCARD_CALLEE_SAVED_USER
+> Uh-oh...  And what if tracer wanted to modify callee-saved regs?
 
-Shawn
+So the solution would be to either unconditionally restore all the 13 callee regs
+- or add additional state (struct thread) where ptrace makes a note that it wrote
+to a callee reg which is used here to conditional-ize the restore. Former is
+simpler to do - although it might ill-affect micro-benchmarks such as LMBench
+lat_sig. Anyhow correctness comes before optimization.
 
-> Cc: Russell King <linux@arm.linux.org.uk>
-> Cc: Arnd Bergmann <arnd@arndb.de>
-> Cc: Olof Johansson <olof@lixom.net>
-> Cc: linux-arm-kernel@lists.infradead.org
-> Signed-off-by: Grant Likely <grant.likely@secretlab.ca>
-> [swarren: added rm command for old stale .dtb files]
-> Signed-off-by: Stephen Warren <swarren@nvidia.com>
-> ---
-> v7: New patch.
-> ---
->  arch/arm/Makefile          |    4 ++--
->  arch/arm/boot/Makefile     |   12 ------------
->  arch/arm/boot/dts/Makefile |    8 ++++++++
->  3 files changed, 10 insertions(+), 14 deletions(-)
-> 
-> diff --git a/arch/arm/Makefile b/arch/arm/Makefile
-> index 1ec5f67..5f92252 100644
-> --- a/arch/arm/Makefile
-> +++ b/arch/arm/Makefile
-> @@ -291,10 +291,10 @@ zinstall uinstall install: vmlinux
->  	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $@
->  
->  %.dtb: scripts
-> -	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
-> +	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) $(boot)/dts/$@
->  
->  dtbs: scripts
-> -	$(Q)$(MAKE) $(build)=$(boot) MACHINE=$(MACHINE) $(boot)/$@
-> +	$(Q)$(MAKE) $(build)=$(boot)/dts MACHINE=$(MACHINE) dtbs
->  
->  # We use MRPROPER_FILES and CLEAN_FILES now
->  archclean:
-> diff --git a/arch/arm/boot/Makefile b/arch/arm/boot/Makefile
-> index 9137df5..abfce28 100644
-> --- a/arch/arm/boot/Makefile
-> +++ b/arch/arm/boot/Makefile
-> @@ -15,8 +15,6 @@ ifneq ($(MACHINE),)
->  include $(srctree)/$(MACHINE)/Makefile.boot
->  endif
->  
-> -include $(srctree)/arch/arm/boot/dts/Makefile
-> -
->  # Note: the following conditions must always be true:
->  #   ZRELADDR == virt_to_phys(PAGE_OFFSET + TEXT_OFFSET)
->  #   PARAMS_PHYS must be within 4MB of ZRELADDR
-> @@ -59,16 +57,6 @@ $(obj)/zImage:	$(obj)/compressed/vmlinux FORCE
->  
->  endif
->  
-> -targets += $(dtb-y)
-> -
-> -# Rule to build device tree blobs
-> -$(obj)/%.dtb: $(src)/dts/%.dts FORCE
-> -	$(call if_changed_dep,dtc)
-> -
-> -$(obj)/dtbs: $(addprefix $(obj)/, $(dtb-y))
-> -
-> -clean-files := *.dtb
-> -
->  ifneq ($(LOADADDR),)
->    UIMAGE_LOADADDR=$(LOADADDR)
->  else
-> diff --git a/arch/arm/boot/dts/Makefile b/arch/arm/boot/dts/Makefile
-> index a17d5ab..cb217f8 100644
-> --- a/arch/arm/boot/dts/Makefile
-> +++ b/arch/arm/boot/dts/Makefile
-> @@ -136,4 +136,12 @@ dtb-$(CONFIG_ARCH_VT8500) += vt8500-bv07.dtb \
->  	wm8650-mid.dtb
->  dtb-$(CONFIG_ARCH_ZYNQ) += zynq-zc702.dtb
->  
-> +targets += dtbs
->  endif
-> +
-> +dtbs: $(addprefix $(obj)/, $(dtb-y))
-> +	# *.dtb used to be generated in the directory above. Clean out the
-> +	# old build results so people don't accidentally use them.
-> +	rm -f $(obj)/../*.dtb
-> +
-> +clean-files := *.dtb
-> -- 
-> 1.7.10.4
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-kernel" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> Please read the FAQ at  http://www.tux.org/lkml/
+>
+>> +	b      resume_user_mode_begin	; loop back to start of U mode ret
+>> +
+>> +	; --- notify_resume ---
+>> +chk_next_work:
+>> +	btst   r9, TIF_NOTIFY_RESUME
+>> +	blnz   @do_notify_resume
+>> +
+>> +	;--------- All things done, go back to Userland ------
+>> +
+>> +	b restore_regs
+> No.  After NOTIFY_RESUME stuff you need to recheck SIGPENDING.  This should
+> go to resume_user_mode_begin, not restore regs.  
+
+Thanks for pointing this - fixed in v2 series.
+
+> Another problem here is
+> IRQ handling - you hit do_signal()/do_notify_resume() with IRQs disabled,
+> which is broken - you need to re-enable it before going into either.
+
+Thanks - fixed that as well. I presume it is broken for "interrupt latency
+reasons" and not because IRQs could remain disabled all the way into usermode -
+since given the way RTIE insn works - that won't happen. Although independently
+this was indeed cause of a WARN_ON_ONCE when bh were enabled with IRQs disabled.
