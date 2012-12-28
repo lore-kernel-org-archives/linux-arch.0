@@ -1,72 +1,65 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtp2.synopsys.com ([198.182.44.80]:54754 "EHLO
-	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751685Ab2L1MeY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Dec 2012 07:34:24 -0500
-Message-ID: <50DD91C1.3000809@synopsys.com>
-Date: Fri, 28 Dec 2012 18:04:09 +0530
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-MIME-Version: 1.0
-Subject: Re: [RFC PATCH v1 16/31] ARC: Signal handling
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-17-git-send-email-vgupta@synopsys.com> <20121116052628.GC22671@ZenIV.linux.org.uk>
-In-Reply-To: <20121116052628.GC22671@ZenIV.linux.org.uk>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Received: from georges.telenet-ops.be ([195.130.137.68]:44884 "EHLO
+	georges.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754827Ab2L1TXp (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 28 Dec 2012 14:23:45 -0500
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: [PATCH 1/4] m68k: Sort out !CONFIG_MMU_SUN3 vs. CONFIG_HAS_DMA
+Date: Fri, 28 Dec 2012 20:23:31 +0100
+Message-ID: <1356722614-18224-2-git-send-email-geert@linux-m68k.org>
+In-Reply-To: <CAMuHMdVPBUzN8fsNHFzrEqev9BsvVCVR2fWySCOecjVA-J1qjg@mail.gmail.com>
+References: <CAMuHMdVPBUzN8fsNHFzrEqev9BsvVCVR2fWySCOecjVA-J1qjg@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20121228123409.nH9uBuxbm22l7a-HON21qZKvNt9hxkPsXE3xxZSBDA8@z>
+To: linux-arch@vger.kernel.org, Marek Szyprowski <m.szyprowski@samsung.com>, linux-kernel@vger.kernel.org, linux-media@vger.kernel.org
+Cc: linux-m68k@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>
+Message-ID: <20121228192331.lIlVxEYfjgBwjqtBVhuKDe_9ScfOAKjIoyt32x9X-60@z>
 
-On Friday 16 November 2012 10:56 AM, Al Viro wrote:
->> +	if (insyscall) {
->> +		/* No handler for syscall: restart it */
->> +		if (regs->r0 == -ERESTARTNOHAND ||
->> +		    regs->r0 == -ERESTARTSYS || regs->r0 == -ERESTARTNOINTR) {
->> +			regs->r0 = regs->orig_r0;
->> +			regs->ret -= 4;
->> +		} else if (regs->r0 == -ERESTART_RESTARTBLOCK) {
->> +			regs->r8 = __NR_restart_syscall;
->> +			regs->ret -= 4;
->> +		}
-> 
-> What's to prevent double decrement on ->ret if two signals arrive?   Note
-> that e.g. x86 gets away with similar code only because it uses the same
-> register for syscall number and return value; since none of -ERESTART...
-> is a valid syscall number, we either won't get into an analog of that code at
-> all (-ENOSYS is not restart-worthy) or will revert to a value that is
-> a valid syscall number, so all subsequent do_signal() calls will not hit
-> that code.  This is subtle and unfortunately not spelled out in the
-> architectures where it is enough.
+In two places, we check !CONFIG_MMU_SUN3 while we should check
+CONFIG_HAS_DMA instead.
+While fixing this, the check in <asm/dma-mapping.h> became redundant
+(<linux/dma-mapping.h> already handles this case), so just remove it.
 
-Ok that is fixed now, by saving additional state in pt_regs->orig_r8 (which
-required redoing how we kept information in it).
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+---
+ arch/m68k/include/asm/dma-mapping.h |    5 -----
+ arch/m68k/kernel/Makefile           |    4 +---
+ 2 files changed, 1 insertions(+), 8 deletions(-)
 
--       long orig_r8;   /*to distinguish bet excp, sys call, int1 or int2
--                         * syscalls   -> 1 to NR_SYSCALLS
--                         * Exceptions -> NR_SYSCALLS + 1
--                         * Break-point-> NR_SYSCALLS + 2
--                         */
-+       unsigned long event_type:16, orig_r8:16;
+diff --git a/arch/m68k/include/asm/dma-mapping.h b/arch/m68k/include/asm/dma-mapping.h
+index 3e6b844..c68cdb4 100644
+--- a/arch/m68k/include/asm/dma-mapping.h
++++ b/arch/m68k/include/asm/dma-mapping.h
+@@ -5,7 +5,6 @@
+ 
+ struct scatterlist;
+ 
+-#ifndef CONFIG_MMU_SUN3
+ static inline int dma_supported(struct device *dev, u64 mask)
+ {
+ 	return 1;
+@@ -111,8 +110,4 @@ static inline int dma_mapping_error(struct device *dev, dma_addr_t handle)
+ 	return 0;
+ }
+ 
+-#else
+-#include <asm-generic/dma-mapping-broken.h>
+-#endif
+-
+ #endif  /* _M68K_DMA_MAPPING_H */
+diff --git a/arch/m68k/kernel/Makefile b/arch/m68k/kernel/Makefile
+index 068ad49..655347d 100644
+--- a/arch/m68k/kernel/Makefile
++++ b/arch/m68k/kernel/Makefile
+@@ -20,7 +20,5 @@ obj-$(CONFIG_MMU_MOTOROLA) += ints.o vectors.o
+ obj-$(CONFIG_MMU_SUN3) += ints.o vectors.o
+ obj-$(CONFIG_PCI) += pcibios.o
+ 
+-ifndef CONFIG_MMU_SUN3
+-obj-y	+= dma.o
+-endif
++obj-$(CONFIG_HAS_DMA)	+= dma.o
+ 
+-- 
+1.7.0.4
 
-Alternately, I could have set orig_r8 to a special value, that would have been
-simpler, but it would have meant potential breakage if one of the intermediate
-signals was tracing related - leading to a ptrace(peekxxx) which relies on orig_r8
-to have correct state. Also there's tracehook stuff which could enquire for orig
-syscall number in orig_r8.
-
-
-> You need to make sure that after the first restart in_syscall() will be false.
-> Same ought to be done in sigreturn(), BTW...
-> 
-
-Sure, this becomes very simple given the infrastructure above - patches follow for
-you to take a quick peek.
-
-Also on the topic, it seems the altstack handling is done unconditionally by most
-of arches - while ARC Port does it based on a magic value. The reason being to
-avoid needless calling (only to return) in sigreturn path. What's the
-recommendation there.
-
-Thx,
-Vineet
