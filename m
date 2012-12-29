@@ -1,21 +1,39 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH/RFC 0/4] Re: dma_mmap_coherent / ARCH_HAS_DMA_MMAP_COHERENT
-Date: Fri, 28 Dec 2012 20:23:30 +0100
-Message-ID: <1356722614-18224-1-git-send-email-geert@linux-m68k.org>
+From: Mauro Carvalho Chehab <mchehab@redhat.com>
+Subject: Re: [PATCH/RFC 4/4] common: dma-mapping: Move dma_common_*() to
+ <linux/dma-mapping.h>
+Date: Fri, 28 Dec 2012 22:09:42 -0200
+Message-ID: <20121228220942.5e6a5361@redhat.com>
 References: <CAMuHMdVPBUzN8fsNHFzrEqev9BsvVCVR2fWySCOecjVA-J1qjg@mail.gmail.com>
+	<1356722614-18224-5-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <CAMuHMdVPBUzN8fsNHFzrEqev9BsvVCVR2fWySCOecjVA-J1qjg@mail.gmail.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: linux-arch@vger.kernel.org, Marek Szyprowski <m.szyprowski@samsung.com>, linux-kernel@vger.kernel.org, linux-media@vger.kernel.org
-Cc: linux-m68k@vger.kernel.org
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <1356722614-18224-5-git-send-email-geert@linux-m68k.org>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-arch@vger.kernel.org, Marek Szyprowski <m.szyprowski@samsung.com>, linux-kernel@vger.kernel.org, linux-media@vger.kernel.org, linux-m68k@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-On Sun, Dec 16, 2012 at 5:03 PM, Geert Uytterhoeven <geert@linux-m68k.o=
-rg>
-wrote:
+Em Fri, 28 Dec 2012 20:23:34 +0100
+Geert Uytterhoeven <geert@linux-m68k.org> escreveu:
+
+> dma_common_mmap() and dma_common_get_sgtable() are defined in
+> drivers/base/dma-mapping.c, and always compiled if CONFIG_HAS_DMA=3Dy=
+=2E
+>=20
+> However, their forward declarations and the inline functions defined =
+on top
+> of them (dma_mmap_attrs(), dma_mmap_coherent(), dma_mmap_writecombine=
+(),
+> dma_get_sgtable_attrs()), dma_get_sgtable()) are in
+> <asm-generic/dma-mapping-common.h>, which is not included by all
+> architectures supporting CONFIG_HAS_DMA=3Dy.  There exist no alternat=
+ive
+> implementations.
+>=20
+> Hence for e.g. m68k allmodconfig, I get:
+>=20
 > drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98=
 vb2_dc_mmap=E2=80=99:
 > drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit d=
@@ -24,102 +42,189 @@ eclaration of function =E2=80=98dma_mmap_coherent=E2=80=99
 vb2_dc_get_base_sgt=E2=80=99:
 > drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit d=
 eclaration of function =E2=80=98dma_get_sgtable=E2=80=99
-> make[6]: *** [drivers/media/v4l2-core/videobuf2-dma-contig.o] Error 1
-> make[6]: Target `__build' not remade because of errors.
-> make[5]: *** [drivers/media/v4l2-core] Error 2
->
-> Both dma_mmap_coherent() and dma_get_sgtable() are defined in
-> include/asm-generic/dma-mapping-common.h only, which is included by
-> <asm/dma-mapping.h> on alpha, arm, arm64, hexagon, ia64, microblaze, =
-mips,
-> openrisc, powerpc, s390, sh, sparc, tile, unicore32, x86.
-> Should the remaining architectures include this, too?
-> Should it be moved to <linux/dma-mapping.h>?
+>=20
+> To fix this
+>   - Move the forward declarations and inline definitions to
+>     <linux/dma-mapping.h>, so all CONFIG_HAS_DMA=3Dy architectures ca=
+n use
+>     them,
+>   - Replace the hard "BUG_ON(!ops)" checks for dma_map_ops by soft ch=
+ecks,
+>     so architectures can fall back to the common code by returning NU=
+LL
+>     from their get_dma_ops(). Note that there are no "BUG_ON(!ops)" c=
+hecks
+>     in other functions in <asm-generic/dma-mapping-common.h>,
+>   - Make "struct dma_map_ops *ops" const while we're at it.
+>=20
+> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 
-I came up with an RFC-solution for this in [PATCH/RFC 3/4]
-("avr32/bfin/c6x/cris/frv/m68k/mn10300/parisc/xtensa: Add dummy get_dma=
-_ops()")
-and [PATCH/RFC 4/4] ("common: dma-mapping: Move dma_common_*() to
-<linux/dma-mapping.h>") of this series.
+=46rom my side:
 
-> Furthermore, there's ARCH_HAS_DMA_MMAP_COHERENT, which is defined
-> by powerpc only:
-> arch/powerpc/include/asm/dma-mapping.h:#define ARCH_HAS_DMA_MMAP_COHE=
-RENT
->
-> and handled in some fishy way in sound/core/pcm_native.c:
->
-> #ifndef ARCH_HAS_DMA_MMAP_COHERENT
-> /* This should be defined / handled globally! */
-> #ifdef CONFIG_ARM
-> #define ARCH_HAS_DMA_MMAP_COHERENT
-> #endif
-> #endif
->
-> /*
->  * mmap the DMA buffer on RAM
->  */
-> int snd_pcm_lib_default_mmap(struct snd_pcm_substream *substream,
->                              struct vm_area_struct *area)
-> {
->         area->vm_flags |=3D VM_DONTEXPAND | VM_DONTDUMP;
-> #ifdef ARCH_HAS_DMA_MMAP_COHERENT
->         if (!substream->ops->page &&
->             substream->dma_buffer.dev.type =3D=3D SNDRV_DMA_TYPE_DEV)
->                 return dma_mmap_coherent(substream->dma_buffer.dev.de=
-v,
->                                          area,
->                                          substream->runtime->dma_area=
-,
->                                          substream->runtime->dma_addr=
-,
->                                          area->vm_end - area->vm_star=
-t);
-> #elif defined(CONFIG_MIPS) && defined(CONFIG_DMA_NONCOHERENT)
->         if (substream->dma_buffer.dev.type =3D=3D SNDRV_DMA_TYPE_DEV =
-&&
->             !plat_device_is_coherent(substream->dma_buffer.dev.dev))
->                 area->vm_page_prot =3D pgprot_noncached(area->vm_page=
-_prot);
-> #endif /* ARCH_HAS_DMA_MMAP_COHERENT */
->         /* mmap with fault handler */
->         area->vm_ops =3D &snd_pcm_vm_ops_data_fault;
->         return 0;
-> }
-> EXPORT_SYMBOL_GPL(snd_pcm_lib_default_mmap);
->
-> What's up here?
+Acked-by: Mauro Carvalho Chehab <mchehab@redhat.com>
 
-Probably an easy solution here is to kill ARCH_HAS_DMA_MMAP_COHERENT an=
-d
-change the code to
+> ---
+>  include/asm-generic/dma-mapping-common.h |   55 --------------------=
+----------
+>  include/linux/dma-mapping.h              |   54 ++++++++++++++++++++=
++++++++++
+>  2 files changed, 54 insertions(+), 55 deletions(-)
+>=20
+> diff --git a/include/asm-generic/dma-mapping-common.h b/include/asm-g=
+eneric/dma-mapping-common.h
+> index de8bf89..2e248d8 100644
+> --- a/include/asm-generic/dma-mapping-common.h
+> +++ b/include/asm-generic/dma-mapping-common.h
+> @@ -176,59 +176,4 @@ dma_sync_sg_for_device(struct device *dev, struc=
+t scatterlist *sg,
+>  #define dma_map_sg(d, s, n, r) dma_map_sg_attrs(d, s, n, r, NULL)
+>  #define dma_unmap_sg(d, s, n, r) dma_unmap_sg_attrs(d, s, n, r, NULL=
+)
+> =20
+> -extern int dma_common_mmap(struct device *dev, struct vm_area_struct=
+ *vma,
+> -			   void *cpu_addr, dma_addr_t dma_addr, size_t size);
+> -
+> -/**
+> - * dma_mmap_attrs - map a coherent DMA allocation into user space
+> - * @dev: valid struct device pointer, or NULL for ISA and EISA-like =
+devices
+> - * @vma: vm_area_struct describing requested user mapping
+> - * @cpu_addr: kernel CPU-view address returned from dma_alloc_attrs
+> - * @handle: device-view address returned from dma_alloc_attrs
+> - * @size: size of memory originally requested in dma_alloc_attrs
+> - * @attrs: attributes of mapping properties requested in dma_alloc_a=
+ttrs
+> - *
+> - * Map a coherent DMA buffer previously allocated by dma_alloc_attrs
+> - * into user space.  The coherent DMA buffer must not be freed by th=
+e
+> - * driver until the user space mapping has been released.
+> - */
+> -static inline int
+> -dma_mmap_attrs(struct device *dev, struct vm_area_struct *vma, void =
+*cpu_addr,
+> -	       dma_addr_t dma_addr, size_t size, struct dma_attrs *attrs)
+> -{
+> -	struct dma_map_ops *ops =3D get_dma_ops(dev);
+> -	BUG_ON(!ops);
+> -	if (ops->mmap)
+> -		return ops->mmap(dev, vma, cpu_addr, dma_addr, size, attrs);
+> -	return dma_common_mmap(dev, vma, cpu_addr, dma_addr, size);
+> -}
+> -
+> -#define dma_mmap_coherent(d, v, c, h, s) dma_mmap_attrs(d, v, c, h, =
+s, NULL)
+> -
+> -static inline int dma_mmap_writecombine(struct device *dev, struct v=
+m_area_struct *vma,
+> -		      void *cpu_addr, dma_addr_t dma_addr, size_t size)
+> -{
+> -	DEFINE_DMA_ATTRS(attrs);
+> -	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
+> -	return dma_mmap_attrs(dev, vma, cpu_addr, dma_addr, size, &attrs);
+> -}
+> -
+> -int
+> -dma_common_get_sgtable(struct device *dev, struct sg_table *sgt,
+> -		       void *cpu_addr, dma_addr_t dma_addr, size_t size);
+> -
+> -static inline int
+> -dma_get_sgtable_attrs(struct device *dev, struct sg_table *sgt, void=
+ *cpu_addr,
+> -		      dma_addr_t dma_addr, size_t size, struct dma_attrs *attrs)
+> -{
+> -	struct dma_map_ops *ops =3D get_dma_ops(dev);
+> -	BUG_ON(!ops);
+> -	if (ops->get_sgtable)
+> -		return ops->get_sgtable(dev, sgt, cpu_addr, dma_addr, size,
+> -					attrs);
+> -	return dma_common_get_sgtable(dev, sgt, cpu_addr, dma_addr, size);
+> -}
+> -
+> -#define dma_get_sgtable(d, t, v, h, s) dma_get_sgtable_attrs(d, t, v=
+, h, s, NULL)
+> -
+>  #endif
+> diff --git a/include/linux/dma-mapping.h b/include/linux/dma-mapping.=
+h
+> index 94af418..4b47150 100644
+> --- a/include/linux/dma-mapping.h
+> +++ b/include/linux/dma-mapping.h
+> @@ -74,6 +74,60 @@ static inline int is_device_dma_capable(struct dev=
+ice *dev)
+> =20
+>  #ifdef CONFIG_HAS_DMA
+>  #include <asm/dma-mapping.h>
+> +
+> +extern int dma_common_mmap(struct device *dev, struct vm_area_struct=
+ *vma,
+> +			   void *cpu_addr, dma_addr_t dma_addr, size_t size);
+> +
+> +/**
+> + * dma_mmap_attrs - map a coherent DMA allocation into user space
+> + * @dev: valid struct device pointer, or NULL for ISA and EISA-like =
+devices
+> + * @vma: vm_area_struct describing requested user mapping
+> + * @cpu_addr: kernel CPU-view address returned from dma_alloc_attrs
+> + * @handle: device-view address returned from dma_alloc_attrs
+> + * @size: size of memory originally requested in dma_alloc_attrs
+> + * @attrs: attributes of mapping properties requested in dma_alloc_a=
+ttrs
+> + *
+> + * Map a coherent DMA buffer previously allocated by dma_alloc_attrs
+> + * into user space.  The coherent DMA buffer must not be freed by th=
+e
+> + * driver until the user space mapping has been released.
+> + */
+> +static inline int
+> +dma_mmap_attrs(struct device *dev, struct vm_area_struct *vma, void =
+*cpu_addr,
+> +	       dma_addr_t dma_addr, size_t size, struct dma_attrs *attrs)
+> +{
+> +	const struct dma_map_ops *ops =3D get_dma_ops(dev);
+> +	if (ops && ops->mmap)
+> +		return ops->mmap(dev, vma, cpu_addr, dma_addr, size, attrs);
+> +	return dma_common_mmap(dev, vma, cpu_addr, dma_addr, size);
+> +}
+> +
+> +#define dma_mmap_coherent(d, v, c, h, s) dma_mmap_attrs(d, v, c, h, =
+s, NULL)
+> +
+> +static inline int dma_mmap_writecombine(struct device *dev, struct v=
+m_area_struct *vma,
+> +		      void *cpu_addr, dma_addr_t dma_addr, size_t size)
+> +{
+> +	DEFINE_DMA_ATTRS(attrs);
+> +	dma_set_attr(DMA_ATTR_WRITE_COMBINE, &attrs);
+> +	return dma_mmap_attrs(dev, vma, cpu_addr, dma_addr, size, &attrs);
+> +}
+> +
+> +int
+> +dma_common_get_sgtable(struct device *dev, struct sg_table *sgt,
+> +		       void *cpu_addr, dma_addr_t dma_addr, size_t size);
+> +
+> +static inline int
+> +dma_get_sgtable_attrs(struct device *dev, struct sg_table *sgt, void=
+ *cpu_addr,
+> +		      dma_addr_t dma_addr, size_t size, struct dma_attrs *attrs)
+> +{
+> +	const struct dma_map_ops *ops =3D get_dma_ops(dev);
+> +	if (ops && ops->get_sgtable)
+> +		return ops->get_sgtable(dev, sgt, cpu_addr, dma_addr, size,
+> +					attrs);
+> +	return dma_common_get_sgtable(dev, sgt, cpu_addr, dma_addr, size);
+> +}
+> +
+> +#define dma_get_sgtable(d, t, v, h, s) dma_get_sgtable_attrs(d, t, v=
+, h, s, NULL)
+> +
+>  #else
+>  #include <asm-generic/dma-mapping-broken.h>
+>  #endif
 
-    #if defined(CONFIG_MIPS) && defined(CONFIG_DMA_NONCOHERENT)
-	    if (substream->dma_buffer.dev.type =3D=3D SNDRV_DMA_TYPE_DEV &&
-		!plat_device_is_coherent(substream->dma_buffer.dev.dev))
-		    area->vm_page_prot =3D pgprot_noncached(area->vm_page_prot);
-    #else
-	    if (!substream->ops->page &&
-		substream->dma_buffer.dev.type =3D=3D SNDRV_DMA_TYPE_DEV)
-		    return dma_mmap_coherent(substream->dma_buffer.dev.dev,
-					     area,
-					     substream->runtime->dma_area,
-					     substream->runtime->dma_addr,
-					     area->vm_end - area->vm_start);
-    #endif
 
-but obviously I don't like the test for CONFIG_MIPS in generic code...
+--=20
 
-Gr{oetje,eeting}s,
-
-						Geert
-
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-							    -- Linus Torvalds
+Cheers,
+Mauro
