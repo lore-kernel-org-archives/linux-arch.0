@@ -1,69 +1,83 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC PATCH v1 15/31] ARC: Process/scheduling/clock/Timers/Delay
- Management
-Date: Wed, 2 Jan 2013 14:15:56 +0530
-Message-ID: <50E3F3C4.3030706@synopsys.com>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-16-git-send-email-vgupta@synopsys.com> <alpine.LFD.2.02.1211122110230.10000@ionos> <50E3DE29.6020403@synopsys.com>
+From: Marek Szyprowski <m.szyprowski@samsung.com>
+Subject: Re: [PATCH/RFC 4/4] common: dma-mapping: Move dma_common_*() to
+ <linux/dma-mapping.h>
+Date: Wed, 02 Jan 2013 15:22:31 +0100
+Message-ID: <50E442A7.3010002@samsung.com>
+References: <CAMuHMdVPBUzN8fsNHFzrEqev9BsvVCVR2fWySCOecjVA-J1qjg@mail.gmail.com>
+ <1356722614-18224-5-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=UTF-8;
+	format=flowed
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from hermes.synopsys.com ([198.182.44.81]:43289 "EHLO
-	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750825Ab3ABIqN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jan 2013 03:46:13 -0500
-In-Reply-To: <50E3DE29.6020403@synopsys.com>
+Received: from mailout4.w1.samsung.com ([210.118.77.14]:42855 "EHLO
+	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752627Ab3ABOWm (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jan 2013 09:22:42 -0500
+In-reply-to: <1356722614-18224-5-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, Frederic Weisbecker <fweisbec@gmail.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, James Hogan <james.hogan@imgtec.com>, John Stultz <john.stultz@linaro.org>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-media@vger.kernel.org, linux-m68k@vger.kernel.org
 
-On Wednesday 02 January 2013 12:43 PM, Vineet Gupta wrote:
-> On Tuesday 13 November 2012 01:59 AM, Thomas Gleixner wrote:
->> On Wed, 7 Nov 2012, Vineet Gupta wrote:
->>> +static int arc_finished_booting;
->>> +
->>> +/*
->>> + * Scheduler clock - returns current time in nanosec units.
->>> + * It's return value must NOT wrap around.
->>> + *
->>> + * Although the return value is nanosec units based, what's more important
->>> + * is whats the "source" of this value. The orig jiffies based computation
->>> + * was only as granular as jiffies itself (10ms on ARC).
->>> + * We need something that is more granular, so use the same mechanism as
->>> + * gettimeofday(), which uses ARC Timer T1 wrapped as a clocksource.
->>> + * Unfortunately the first call to sched_clock( ) is way before that subsys
->>> + * is initialiased, thus use the jiffies based value in the interim.
->>> + */
->>> +unsigned long long sched_clock(void)
->>> +{
->>> +	if (!arc_finished_booting) {
->>> +		return (unsigned long long)(jiffies - INITIAL_JIFFIES)
->>> +		    * (NSEC_PER_SEC / HZ);
->>> +	} else {
->>> +		struct timespec ts;
->>> +		getrawmonotonic(&ts);
->>
->> This can live lock. sched_clock() is used by the tracer. So assume you
->> are function tracing and you trace a function called from within the
->> timekeeping seqcount write "locked" region. You spin forever in
->> getrawmonotonic(). Not what you want, right ?
-> 
-> Correct- so that means we need an equivalent of partially open-code
-> getrawmonotonic w/o any locks here - read the clocksource directly just as other
-> arches.
+Hello,
 
-Spoke too soon. The desired semantics here are monotonically increasing value
-using a 32-bit overflowing hardware counter (and not Jiffies based since Android
-CTS has a test case which requires that back-back calls to
-clock_gettime(CLOCK_THREAD_CPUTIME_ID)  - which simply use sched_clock( ) return
-different values.
+On 12/28/2012 8:23 PM, Geert Uytterhoeven wrote:
+> dma_common_mmap() and dma_common_get_sgtable() are defined in
+> drivers/base/dma-mapping.c, and always compiled if CONFIG_HAS_DMA=3Dy=
+=2E
+>
+> However, their forward declarations and the inline functions defined =
+on top
+> of them (dma_mmap_attrs(), dma_mmap_coherent(), dma_mmap_writecombine=
+(),
+> dma_get_sgtable_attrs()), dma_get_sgtable()) are in
+> <asm-generic/dma-mapping-common.h>, which is not included by all
+> architectures supporting CONFIG_HAS_DMA=3Dy.  There exist no alternat=
+ive
+> implementations.
+>
+> Hence for e.g. m68k allmodconfig, I get:
+>
+> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98=
+vb2_dc_mmap=E2=80=99:
+> drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit d=
+eclaration of function =E2=80=98dma_mmap_coherent=E2=80=99
+> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98=
+vb2_dc_get_base_sgt=E2=80=99:
+> drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit d=
+eclaration of function =E2=80=98dma_get_sgtable=E2=80=99
+>
+> To fix this
+>    - Move the forward declarations and inline definitions to
+>      <linux/dma-mapping.h>, so all CONFIG_HAS_DMA=3Dy architectures c=
+an use
+>      them,
+>    - Replace the hard "BUG_ON(!ops)" checks for dma_map_ops by soft c=
+hecks,
+>      so architectures can fall back to the common code by returning N=
+ULL
+>      from their get_dma_ops(). Note that there are no "BUG_ON(!ops)" =
+checks
+>      in other functions in <asm-generic/dma-mapping-common.h>,
+>    - Make "struct dma_map_ops *ops" const while we're at it.
 
-Since counter is overflowing, we need additional state (last snapshot) provided by
-likes of clocksource. But IMHO, opencoding clocksource code w/o xtime seqlock will
-be wrong.
+I think that more appropriate way of handling it is to avoid dma_map_op=
+s=20
+based
+calls (those archs probably have some reasons why they don't use it at=20
+all) and
+provide static inline stubs which call dma_common_mmap and=20
+dma_common_get_sgtable.
 
-I don't see a way out - except to keep using jiffies based versions and use the 64
-bit Time-stamp counter available in newer ARC CPUs.
+It is definitely my fault that I missed the case of non-dma-map-ops=20
+based archs
+while I was adding support for dma_mmap_coherent and dma_get_sgt calls.=
+=2E.
 
--Vineet
+ > (snipped)
+
+Best regards
+--=20
+Marek Szyprowski
+Samsung Poland R&D Center
