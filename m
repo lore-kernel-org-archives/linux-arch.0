@@ -1,76 +1,34 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC PATCH v1 12/31] ARC: Interrupt Handling
-Date: Tue, 1 Jan 2013 16:16:09 +0530
-Message-ID: <50E2BE71.6010100@synopsys.com>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-13-git-send-email-vgupta@synopsys.com> <alpine.LFD.2.02.1211122059101.10000@ionos>
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH] modpost: Ignore ARC specific non-alloc sections
+Date: Wed, 02 Jan 2013 11:19:13 +1030
+Message-ID: <8738yk76k6.fsf@rustcorp.com.au>
+References: <1352720953-24321-21-git-send-email-vgupta@synopsys.com> <1356605240-4555-1-git-send-email-vgupta@synopsys.com> <1356605240-4555-2-git-send-email-vgupta@synopsys.com> <20121227204816.GA2068@merkur.ravnborg.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp2.synopsys.com ([198.182.60.77]:40851 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751219Ab3AAKqW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jan 2013 05:46:22 -0500
-In-Reply-To: <alpine.LFD.2.02.1211122059101.10000@ionos>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20121227204816.GA2068@merkur.ravnborg.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Sam Ravnborg <sam@ravnborg.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Michal Marek <mmarek@suse.cz>, Tony Lindgren <tony@atomide.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 13 November 2012 01:38 AM, Thomas Gleixner wrote:
-> On Wed, 7 Nov 2012, Vineet Gupta wrote:
->> +void __init init_IRQ(void)
->> +{
->> +	const int irq = TIMER0_IRQ;
->> +
->> +	/*
->> +	 * Each CPU needs to register irq of it's private TIMER0.
->> +	 * The APIs request_percpu_irq()/enable_percpu_irq() will not be
->> +	 * functional, if we don't "prep" the generic IRQ sub-system with
->> +	 * the following:
->> +	 * -Ensure that devid passed to request_percpu_irq() is indeed per cpu
->> +	 * -disable NOAUTOEN, w/o which the device handler never gets called
-> 
-> What sets NOAUTOEN in the first place? The core code definitely does
-> not.
+Sam Ravnborg <sam@ravnborg.org> writes:
 
-So this is based off of my orig 3.2 port and I can see similar flow even in 3.7
+> On Thu, Dec 27, 2012 at 04:17:20PM +0530, Vineet Gupta wrote:
+>> ARC relocatable object files contain one/more .gnu.linkonce.arcextmap.*
+>> sections (collated by kernel/vmlinux.lds into .arcextmap in final link).
+>> This section is used by debuggers to display the extension instructions
+>> and need-not be loaded by target (hence !SHF_ALLOC)
+>> 
+>> The final kernel binary only needs .arcextmap entry in modpost's ignore
+>> list (section_white_list[]). However when building modules, modpost scans
+>> each object file individually, hence tripping on non-aggregated
+>> .gnu.linkonce.arcextmap.* entries as well.
+>
+> The list exist for this particular purpose.
+> So acked.
 
-(1) start_kernel
-     early_irq_initd
-       desc_set_defaults
-         irqd_set(IRQD_IRQ_DISAB)
+Applied, thanks!
 
-(2) For setting up IRQ dev to be per-cpu
-     irq_set_percpu_devid
-         irq_set_percpu_devid_flags
-                irq_set_status_flags(IRQ_NOAUTOEN | ....)  <----
-
-Am I missing/overlooking something ?
-
-
-> 
->> +	 */
->> +	irq_set_percpu_devid(irq);
->> +	irq_modify_status(irq, IRQ_NOAUTOEN, 0);
-> 
-> Aside of that we have irq_clear_status_flags() for this.
-
-OK ! I can use that.
-
-
-> 
->> +	plat_init_IRQ();
->> +}
-> 
->> +int __init get_hw_config_num_irq(void)
-> 
-> How is that function used ?
-
-
-This is used in the SMP port patch to verify that number of IRQs have been
-configured properly in hardware. This is again in mini-series #2 of v1 patchset
-https://lkml.org/lkml/2012/11/12/160
-
-Thx,
--Vineet
+Cheers,
+Rusty.
