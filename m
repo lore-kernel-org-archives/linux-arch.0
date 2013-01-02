@@ -1,20 +1,19 @@
 From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: Re: [PATCH/RFC 4/4] common: dma-mapping: Move dma_common_*() to
- <linux/dma-mapping.h>
-Date: Wed, 02 Jan 2013 15:22:31 +0100
-Message-ID: <50E442A7.3010002@samsung.com>
+Subject: Re: [PATCH/RFC 0/4] Re: dma_mmap_coherent / ARCH_HAS_DMA_MMAP_COHERENT
+Date: Wed, 02 Jan 2013 15:39:55 +0100
+Message-ID: <50E446BB.7090609@samsung.com>
 References: <CAMuHMdVPBUzN8fsNHFzrEqev9BsvVCVR2fWySCOecjVA-J1qjg@mail.gmail.com>
- <1356722614-18224-5-git-send-email-geert@linux-m68k.org>
+ <1356722614-18224-1-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=UTF-8;
 	format=flowed
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout4.w1.samsung.com ([210.118.77.14]:42855 "EHLO
-	mailout4.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752627Ab3ABOWm (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jan 2013 09:22:42 -0500
-In-reply-to: <1356722614-18224-5-git-send-email-geert@linux-m68k.org>
+Received: from mailout1.w1.samsung.com ([210.118.77.11]:31142 "EHLO
+	mailout1.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752677Ab3ABOkA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jan 2013 09:40:00 -0500
+In-reply-to: <1356722614-18224-1-git-send-email-geert@linux-m68k.org>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Geert Uytterhoeven <geert@linux-m68k.org>
@@ -23,59 +22,110 @@ Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-media@vger.k
 Hello,
 
 On 12/28/2012 8:23 PM, Geert Uytterhoeven wrote:
-> dma_common_mmap() and dma_common_get_sgtable() are defined in
-> drivers/base/dma-mapping.c, and always compiled if CONFIG_HAS_DMA=3Dy=
-=2E
->
-> However, their forward declarations and the inline functions defined =
-on top
-> of them (dma_mmap_attrs(), dma_mmap_coherent(), dma_mmap_writecombine=
-(),
-> dma_get_sgtable_attrs()), dma_get_sgtable()) are in
-> <asm-generic/dma-mapping-common.h>, which is not included by all
-> architectures supporting CONFIG_HAS_DMA=3Dy.  There exist no alternat=
-ive
-> implementations.
->
-> Hence for e.g. m68k allmodconfig, I get:
->
-> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98=
+> On Sun, Dec 16, 2012 at 5:03 PM, Geert Uytterhoeven <geert@linux-m68k=
+=2Eorg>
+> wrote:
+> > drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98=
 vb2_dc_mmap=E2=80=99:
-> drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit d=
-eclaration of function =E2=80=98dma_mmap_coherent=E2=80=99
-> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98=
+> > drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit=
+ declaration of function =E2=80=98dma_mmap_coherent=E2=80=99
+> > drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98=
 vb2_dc_get_base_sgt=E2=80=99:
-> drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit d=
-eclaration of function =E2=80=98dma_get_sgtable=E2=80=99
+> > drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit=
+ declaration of function =E2=80=98dma_get_sgtable=E2=80=99
+> > make[6]: *** [drivers/media/v4l2-core/videobuf2-dma-contig.o] Error=
+ 1
+> > make[6]: Target `__build' not remade because of errors.
+> > make[5]: *** [drivers/media/v4l2-core] Error 2
+> >
+> > Both dma_mmap_coherent() and dma_get_sgtable() are defined in
+> > include/asm-generic/dma-mapping-common.h only, which is included by
+> > <asm/dma-mapping.h> on alpha, arm, arm64, hexagon, ia64, microblaze=
+, mips,
+> > openrisc, powerpc, s390, sh, sparc, tile, unicore32, x86.
+> > Should the remaining architectures include this, too?
+> > Should it be moved to <linux/dma-mapping.h>?
 >
-> To fix this
->    - Move the forward declarations and inline definitions to
->      <linux/dma-mapping.h>, so all CONFIG_HAS_DMA=3Dy architectures c=
-an use
->      them,
->    - Replace the hard "BUG_ON(!ops)" checks for dma_map_ops by soft c=
-hecks,
->      so architectures can fall back to the common code by returning N=
-ULL
->      from their get_dma_ops(). Note that there are no "BUG_ON(!ops)" =
-checks
->      in other functions in <asm-generic/dma-mapping-common.h>,
->    - Make "struct dma_map_ops *ops" const while we're at it.
+> I came up with an RFC-solution for this in [PATCH/RFC 3/4]
+> ("avr32/bfin/c6x/cris/frv/m68k/mn10300/parisc/xtensa: Add dummy get_d=
+ma_ops()")
+> and [PATCH/RFC 4/4] ("common: dma-mapping: Move dma_common_*() to
+> <linux/dma-mapping.h>") of this series.
+>
+> > Furthermore, there's ARCH_HAS_DMA_MMAP_COHERENT, which is defined
+> > by powerpc only:
+> > arch/powerpc/include/asm/dma-mapping.h:#define ARCH_HAS_DMA_MMAP_CO=
+HERENT
+> >
+> > and handled in some fishy way in sound/core/pcm_native.c:
+> >
+> > #ifndef ARCH_HAS_DMA_MMAP_COHERENT
+> > /* This should be defined / handled globally! */
+> > #ifdef CONFIG_ARM
+> > #define ARCH_HAS_DMA_MMAP_COHERENT
+> > #endif
+> > #endif
+> >
+> > /*
+> >  * mmap the DMA buffer on RAM
+> >  */
+> > int snd_pcm_lib_default_mmap(struct snd_pcm_substream *substream,
+> >                              struct vm_area_struct *area)
+> > {
+> >         area->vm_flags |=3D VM_DONTEXPAND | VM_DONTDUMP;
+> > #ifdef ARCH_HAS_DMA_MMAP_COHERENT
+> >         if (!substream->ops->page &&
+> >             substream->dma_buffer.dev.type =3D=3D SNDRV_DMA_TYPE_DE=
+V)
+> >                 return dma_mmap_coherent(substream->dma_buffer.dev.=
+dev,
+> >                                          area,
+> >                                          substream->runtime->dma_ar=
+ea,
+> >                                          substream->runtime->dma_ad=
+dr,
+> >                                          area->vm_end - area->vm_st=
+art);
+> > #elif defined(CONFIG_MIPS) && defined(CONFIG_DMA_NONCOHERENT)
+> >         if (substream->dma_buffer.dev.type =3D=3D SNDRV_DMA_TYPE_DE=
+V &&
+> >             !plat_device_is_coherent(substream->dma_buffer.dev.dev)=
+)
+> >                 area->vm_page_prot =3D pgprot_noncached(area->vm_pa=
+ge_prot);
+> > #endif /* ARCH_HAS_DMA_MMAP_COHERENT */
+> >         /* mmap with fault handler */
+> >         area->vm_ops =3D &snd_pcm_vm_ops_data_fault;
+> >         return 0;
+> > }
+> > EXPORT_SYMBOL_GPL(snd_pcm_lib_default_mmap);
+> >
+> > What's up here?
+>
+> Probably an easy solution here is to kill ARCH_HAS_DMA_MMAP_COHERENT =
+and
+> change the code to
+>
+>      #if defined(CONFIG_MIPS) && defined(CONFIG_DMA_NONCOHERENT)
+> 	    if (substream->dma_buffer.dev.type =3D=3D SNDRV_DMA_TYPE_DEV &&
+> 		!plat_device_is_coherent(substream->dma_buffer.dev.dev))
+> 		    area->vm_page_prot =3D pgprot_noncached(area->vm_page_prot);
+>      #else
+> 	    if (!substream->ops->page &&
+> 		substream->dma_buffer.dev.type =3D=3D SNDRV_DMA_TYPE_DEV)
+> 		    return dma_mmap_coherent(substream->dma_buffer.dev.dev,
+> 					     area,
+> 					     substream->runtime->dma_area,
+> 					     substream->runtime->dma_addr,
+> 					     area->vm_end - area->vm_start);
+>      #endif
+>
+> but obviously I don't like the test for CONFIG_MIPS in generic code..=
+=2E
 
-I think that more appropriate way of handling it is to avoid dma_map_op=
-s=20
-based
-calls (those archs probably have some reasons why they don't use it at=20
-all) and
-provide static inline stubs which call dma_common_mmap and=20
-dma_common_get_sgtable.
-
-It is definitely my fault that I missed the case of non-dma-map-ops=20
-based archs
-while I was adding support for dma_mmap_coherent and dma_get_sgt calls.=
-=2E.
-
- > (snipped)
+I think that the best way of handling it would be to move this code to =
+MIPS
+specific dma_mmap_coherent() implementation.
 
 Best regards
 --=20
