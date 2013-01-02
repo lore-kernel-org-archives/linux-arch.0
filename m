@@ -1,185 +1,39 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from kiruna.synopsys.com ([198.182.44.80]:37304 "EHLO
-	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751951Ab3AAHo2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 1 Jan 2013 02:44:28 -0500
-Message-ID: <50E293CD.8040004@synopsys.com>
-Date: Tue, 1 Jan 2013 13:14:13 +0530
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Received: from ozlabs.org ([203.10.76.45]:50491 "EHLO ozlabs.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750783Ab3ABFMU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 2 Jan 2013 00:12:20 -0500
+From: Rusty Russell <rusty@rustcorp.com.au>
+Subject: Re: [PATCH] modpost: Ignore ARC specific non-alloc sections
+In-Reply-To: <20121227204816.GA2068@merkur.ravnborg.org>
+References: <1352720953-24321-21-git-send-email-vgupta@synopsys.com> <1356605240-4555-1-git-send-email-vgupta@synopsys.com> <1356605240-4555-2-git-send-email-vgupta@synopsys.com> <20121227204816.GA2068@merkur.ravnborg.org>
+Date: Wed, 02 Jan 2013 11:19:13 +1030
+Message-ID: <8738yk76k6.fsf@rustcorp.com.au>
 MIME-Version: 1.0
-Subject: Re: [RFC PATCH v1 02/31] ARC: irqflags
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-3-git-send-email-vgupta@synopsys.com> <alpine.LFD.2.02.1211122039100.10000@ionos>
-In-Reply-To: <alpine.LFD.2.02.1211122039100.10000@ionos>
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Thomas Gleixner <tglx@linutronix.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
-Message-ID: <20130101074413.1RTr3vQkZZV_17Mm1VLALDxHvHktjJkQby3JGhWC0YE@z>
+To: Sam Ravnborg <sam@ravnborg.org>, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Michal Marek <mmarek@suse.cz>, Tony Lindgren <tony@atomide.com>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20130102004913.Qg94iZrwMVQeK_NesOdmqUOqFGu_ITzUO-WXjcpKgy4@z>
 
-On Tuesday 13 November 2012 01:20 AM, Thomas Gleixner wrote:
-> On Wed, 7 Nov 2012, Vineet Gupta wrote:
->> + ******************************************************************
->> + *      Inline ASM macros to read/write AUX Regs
->> + *      Essentially invocation of lr/sr insns from "C"
->> + */
->> +
->> +#if 1
-> 
-> Leftover ???
+Sam Ravnborg <sam@ravnborg.org> writes:
 
-Kind of -  the gcc builtins sometimes tend to generate good code and sometimes
-they don't. I wanted to retain the inline asm version for experimenting sake. But
-if it's too ugly, I can get rid of one of them.
+> On Thu, Dec 27, 2012 at 04:17:20PM +0530, Vineet Gupta wrote:
+>> ARC relocatable object files contain one/more .gnu.linkonce.arcextmap.*
+>> sections (collated by kernel/vmlinux.lds into .arcextmap in final link).
+>> This section is used by debuggers to display the extension instructions
+>> and need-not be loaded by target (hence !SHF_ALLOC)
+>> 
+>> The final kernel binary only needs .arcextmap entry in modpost's ignore
+>> list (section_white_list[]). However when building modules, modpost scans
+>> each object file individually, hence tripping on non-aggregated
+>> .gnu.linkonce.arcextmap.* entries as well.
+>
+> The list exist for this particular purpose.
+> So acked.
 
-> 
->> +#define read_aux_reg(reg)	__builtin_arc_lr(reg)
->> +
->> +/* gcc builtin sr needs reg param to be long immediate */
->> +#define write_aux_reg(reg_immed, val)		\
->> +		__builtin_arc_sr((unsigned int)val, reg_immed)
->> +
->> +#else
->> +/*
->> + * Conditionally Enable IRQs
-> 
->   Unconditionally methinks
+Applied, thanks!
 
-ofcourse - fixed !
-
-
-> The following two functions are related to irq chips I guess. So why
-> would you want them here ?
-> 
->> +static inline void arch_mask_irq(unsigned int irq)
->> +{
->> +	unsigned int ienb;
->> +
->> +	ienb = read_aux_reg(AUX_IENABLE);
->> +	ienb &= ~(1 << irq);
->> +	write_aux_reg(AUX_IENABLE, ienb);
->> +}
->> +
->> +static inline void arch_unmask_irq(unsigned int irq)
->> +{
->> +	unsigned int ienb;
->> +
->> +	ienb = read_aux_reg(AUX_IENABLE);
->> +	ienb |= (1 << irq);
->> +	write_aux_reg(AUX_IENABLE, ienb);
->> +}
-> 
-> The only user is the interrupt controller code, right?
-
-These are the platform agnostic routines which handle the in-core interrupt
-controller, hence provided as helpers. The simpler plat-arcfpga (PATCH 12/31) uses
-them as it is while a bunch of other platforms (yet to be submitted) might
-conditionally use depending upon whether a IRQ is cascaded or not.
-
-
->> diff --git a/arch/arc/kernel/irq.c b/arch/arc/kernel/irq.c
->> new file mode 100644
->> index 0000000..16fcbe8
->> --- /dev/null
->> +++ b/arch/arc/kernel/irq.c
->> @@ -0,0 +1,32 @@
->> +/*
->> + * Copyright (C) 2011-12 Synopsys, Inc. (www.synopsys.com)
->> + *
->> + * This program is free software; you can redistribute it and/or modify
->> + * it under the terms of the GNU General Public License version 2 as
->> + * published by the Free Software Foundation.
->> + *
->> + */
->> +
->> +#include <linux/interrupt.h>
->> +#include <linux/module.h>
->> +#include <asm/irqflags.h>
->> +#include <asm/arcregs.h>
->> +
->> +void arch_local_irq_enable(void)
->> +{
->> +
->> +	unsigned long flags;
->> +	flags = arch_local_save_flags();
->> +	flags |= (STATUS_E1_MASK | STATUS_E2_MASK);
->> +
->> +	/*
->> +	 * If called from hard ISR (between irq_enter and irq_exit)
->> +	 * don't allow Level 1. In Soft ISR we allow further Level 1s
->> +	 */
->> +
->> +	if (in_irq())
->> +		flags &= ~(STATUS_E1_MASK | STATUS_E2_MASK);
-> 
-> Hmm. This looks weird and the comment is not very helpful. So using my
-> crystal ball you want to enforce, that nothing enables interrupts
-> while a hard interrupt handler is running, right?
-
-Correct. I'll fix the comment.
-
-> 
-> Is there a chip limitation which you have to enforce here? If yes,
-> then please explain it.
-
-Yes and No. This is from our 2.6.26 days and AFAIKR, it was indeed ARC IDE driver
-enabling IRQ from within hard ISR context. The issue however became critical when
-I added support for the ARC700 in-core interrupt controller which provides 2
-levels of interrupts per IRQ (kind of ARM FIQ): L2 (High priority) could interrupt
-L1 (low). The priority management (among other - don't allow L1 if L2 active) is
-done with 2 pairs of bits in STATUS32 (CPU flags) register
-* A1/A2 (Level-n active)
-* E1/E2 (Level-n enabled)
-
-However since the OS is allowed to write to E1/E2 bits, independent of A1/A2, it
-is possible to re-enable interrupts even from hard-isr context. When IDE driver
-re-enabled L1 interrupts in L2 ISR - we had the basic low level irq handling
-messed by because of L1-L2-L1 scenarion
-
-The patch which implements the 2 intc priorities support is separate. It probably
-fell of your radar since it was in mini-series #2 of v1 patchset @
-https://lkml.org/lkml/2012/11/12/125). Once I respin v2 series for review, would
-request you to please take a look at that one as well (currently has a bad hack of
-disabling task preemption in a corner case - which of all people, you, would
-certainly loathe seeing)
-
-
-> Btw, all hard interrupt handlers in Linux run with interrupts disabled and
-> they are not supposed to reenable interrupts, which is true for almost
-> all drivers except for a few archaic IDE drivers. In fact you might
-> even WARN about it at least once, so the offending code gets fixed.
-
-Sure - did that in next version.
-
-
-> Also the code flow is backwards. What about:
-> 
->      unsigned long flags;
-> 
->      if (in_irq())
-> 	    return;
-> 
->      flags = ....	    
-> 
-> 
->> +	arch_local_irq_restore(flags);
->> +}
-> 
-
-Indeed fixed in v2. Actually the prev version would *disable* the IRQs if
-in_irq(), now we leave status quo and return - but given that we return - they
-will not be enabled in first place - so there's no semantical change - assuming
-everything goes via local_irq_xxx friends.
-
-Honestly I'm a bit ashamed for having had above crappy snippet for years. Thanks
-for taking time to review this and sincere apologies for coming back to you so
-late - I was held up with other things including a big ticket item pointed by Arnd
-in review (no-legacy syscalls).
-
-
-> Thanks,
-> 
-> 	tglx
-> 
-
+Cheers,
+Rusty.
