@@ -1,53 +1,79 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp2.synopsys.com ([198.182.60.77]:44695 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751792Ab3ACGsO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2013 01:48:14 -0500
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [RESEND PATCH] Convert IA64 sysctl to generic
-Date: Thu, 3 Jan 2013 12:17:32 +0530
-Message-ID: <1357195653-998-1-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <50D2B75A.3000208@synopsys.com>
-References: <50D2B75A.3000208@synopsys.com>
+Received: from moutng.kundenserver.de ([212.227.17.10]:60704 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752765Ab3ACI0A (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2013 03:26:00 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [RFC PATCH v1 26/31] ARC: Build system: Makefiles, Kconfig, Linker script
+Date: Thu, 3 Jan 2013 08:25:45 +0000
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <201301021448.20119.arnd@arndb.de> <50E53A15.8040007@synopsys.com>
+In-Reply-To: <50E53A15.8040007@synopsys.com>
 MIME-Version: 1.0
-Content-Type: text/plain
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201301030825.45867.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20130103064732.tQhNC0Aoi9ktStCTziRq7Cw405Q1TbBXiHnGze47tlU@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Gilad Ben Yossef <giladb@ezchip.com>, Noam Camus <noamc@ezchip.com>, linux-kernel@vger.kernel.org
+Message-ID: <20130103082545.DirZ2lzHrVykxNowIptDszeMR05gHBLjDOBtEwKA2Ic@z>
 
-Hi,
+On Thursday 03 January 2013, Vineet Gupta wrote:
+> On Wednesday 02 January 2013 08:18 PM, Arnd Bergmann wrote:
+> > On Wednesday 02 January 2013, Vineet Gupta wrote:
+> >> On Wednesday 07 November 2012 07:43 PM, Arnd Bergmann wrote:
 
-This came out ARC Port's review by Arnd where he suggested using the existing
-sysctl knobs in parisc and/or ia64 for runtime controlling unaligned access
-emulation.
+> > So a kernel built for ARC750 could potentially run on an ARC770, but not use
+> > all the features, right?
+> 
+> Only for features which are non conflicting - so even now a CONFIG_ARC_CPU_750
+> built kernel (so no LLOCK/SCOND support) will run fine on 770 hardware (which has
+> LLOCK/SCOND)- assuming everything else being constant. However MMUv3 (770 only)
+> has a different programming model vs. MMUv2 (e.g. TLB descriptor layout among
+> others) hence a kernel for MMU v2 "simply" can't run on MMUv3 w/o making
+> runtime-checks or runtime-overrides (akin to function pointers) in things like TLB
+> refill handlers and such.
 
-Turns out that ARC port needs bit of both.
+Ok.
 
-The common sysctl knobs are now #ifdef based on init/Kconfig options which
-the corresponding arches now select in their Kconfigs.
-No other arch code is touched (although code has not been compile tested).
+> > If ARC770 cannot actually run the MMU_V2 code, that would mean that they
+> > are indeed mutually exclusive by design,
+> 
+> Given the immense hardware configurability of ARC, all crazy combinations are
+> possible - how many are practically used is a different topic. So someone could in
+> theory build 770 with MMUv2 and infact the current build system even allows that.
+> See ARC_CPU_{750,770} are only about selecting a bunch of defaults (MMU ver,
+> LLOCK)  - to prevent the user from hand doing that. So lets say we rip off both of
+> these (to emulate kernel built for one running on other) - then it would boil down
+> to letting support for both v2 and v3 co-exist (not to forget there's also an
+> arcane historic v1). Now these fellows really are mutually exclusive by design:
+> * code written for v3 won't work on v2 (e.g. ARC_REG_IC_PTAG doesn't exist)
+> * code written for v2 won't work on v3 (e.g ARC_REG_IC_PTAG needs to be written
+> for correct behaviour)
 
-If this patch is ACKable, I would request you to please take this patch
-via your arch tree - to avoid any merge-hassles and other interdependencies
-later.
+I think in a case like this, it's pretty clearly not worth supporting both
+in the same kernel. This is very similar to the difference between ARMv5 and
+ARMv6, or between PowerPC Classic (6xx) and BookE (4xx), which are never
+supported in a single kernel because the cost of doing it would be much
+bigger than the benefit.
 
-P.S. I've deliberately NOT added the new items at the end of arch/*/Kconfig,
-to avoid any merge conflicts going further - anyhow both the ia64/parisc
-Kconfigs are not sorted either.
+> > unless you also support a NOMMU
+> > kernel. In that case you could only build a kernel for both 750 and 770
+> > if you don't use the MMU. That would be much less interesting for actually
+> > running things, but it could still make sense for build testing.
+> >
+> > If you don't need NOMMU support otherwise (I forgot whether or not you
+> > have this), you should of course not implement it just for this.
+> 
+> NOMMU is not supported yet.
+> 
+> So how do we conclude on this topic - given the caveats above ?
 
-Thx,
--Vineet
+For the CPU options, you should leave 750 and 770 mutually exclusive,
+but for each other option, you should first see if it can reasonably
+be a run-time option. It may not be possible to eliminate incompatible
+compile-time options, but you should reduce the number of those options
+as much as possible.
 
-Vineet Gupta (1):
-  sysctl: Enable IA64 "ignore-unaligned-usertrap" to be used cross-arch
-
- arch/ia64/Kconfig |    1 +
- init/Kconfig      |    8 ++++++++
- kernel/sysctl.c   |    9 +++++++--
- 3 files changed, 16 insertions(+), 2 deletions(-)
-
--- 
-1.7.4.1
-
+	Arnd
