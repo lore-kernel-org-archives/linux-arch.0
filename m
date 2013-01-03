@@ -1,100 +1,104 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [RESEND PATCH] sysctl: Enable PARISC "unaligned-trap" to be used cross-arch
-Date: Thu, 3 Jan 2013 12:29:48 +0530
-Message-ID: <1357196388-1247-2-git-send-email-vgupta@synopsys.com>
-References: <50D2B75A.3000208@synopsys.com>
- <1357196388-1247-1-git-send-email-vgupta@synopsys.com>
+Subject: Re: [RFC PATCH v1 26/31] ARC: Build system: Makefiles, Kconfig, Linker
+ script
+Date: Thu, 3 Jan 2013 13:28:13 +0530
+Message-ID: <50E53A15.8040007@synopsys.com>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <201211071413.49178.arnd@arndb.de> <50E4449A.7010606@synopsys.com> <201301021448.20119.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain
+Content-Type: text/plain; charset="ISO-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from alvesta.synopsys.com ([198.182.60.77]:44903 "EHLO
+Received: from alvesta.synopsys.com ([198.182.60.77]:45632 "EHLO
 	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751365Ab3ACHA6 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2013 02:00:58 -0500
-In-Reply-To: <1357196388-1247-1-git-send-email-vgupta@synopsys.com>
+	with ESMTP id S1753027Ab3ACH6n (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2013 02:58:43 -0500
+In-Reply-To: <201301021448.20119.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>
-Cc: linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Serge Hallyn <serge.hallyn@canonical.com>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Gilad Ben Yossef <giladb@ezchip.com>, Noam Camus <noamc@ezchip.com>, linux-kernel@vger.kernel.org
 
-PARISC defines /proc/sys/kernel/unaligned-trap to runtime toggle
-unaligned access emulation.
+On Wednesday 02 January 2013 08:18 PM, Arnd Bergmann wrote:
+> On Wednesday 02 January 2013, Vineet Gupta wrote:
+>> On Wednesday 07 November 2012 07:43 PM, Arnd Bergmann wrote:
+>>> On Wednesday 07 November 2012, Vineet Gupta wrote:
+>>> +menu "ARC CPU Configuration"
+>>> +
+>>> +choice
+>>> +	prompt "ARC Core"
+>>> +	default ARC_CPU_770
+>>> +
+>>> +config ARC_CPU_750D
+>>> +	bool "ARC750D"
+>>> +	help
+>>> +	  Support for ARC750 core
+>>> +
+>>> +config ARC_CPU_770
+>>> +	bool "ARC770"
+>>> +	select ARC_CPU_REL_4_10
+>>> +	help
+>>> +	  Support for ARC770 core introduced with Rel 4.10 (Summer 2011)
+>>> +	  This core has a bunch of cool new features:
+>>> +	  -MMU-v3: Variable Page Sz (4k, 8k, 16k), bigger J-TLB (128x4)
+>>> +                   Shared Address Spaces (for sharing TLB entires in MMU)
+>>> +	  -Caches: New Prog Model, Region Flush
+>>> +	  -Insns: endian swap, load-locked/store-conditional, time-stamp-ctr
+>>> +
+>>> +endchoice
+>>> Same thing here: If the different CPUs can in theory run the same kernel
+>>> code, they should allow that. It doesn't stop you from making the default
+>>> to enable only one of them and optimize for that case.
+>> Background: ARC770 supports newer instructions (LOCK/SCOND) + MMUv3 which are not
+>> available on ARC750. So code needs to be built differently for each. Having said
+>> that above config items don't have any code under them - they are just high level
+>> selectors for correct MMU versions and e.g. whether we allow the usage of new insns.
+> So a kernel built for ARC750 could potentially run on an ARC770, but not use
+> all the features, right?
 
-The exact mechanics of enablig/disabling are still arch specific, we can
-make the sysctl usable by other arches.
+Only for features which are non conflicting - so even now a CONFIG_ARC_CPU_750
+built kernel (so no LLOCK/SCOND support) will run fine on 770 hardware (which has
+LLOCK/SCOND)- assuming everything else being constant. However MMUv3 (770 only)
+has a different programming model vs. MMUv2 (e.g. TLB descriptor layout among
+others) hence a kernel for MMU v2 "simply" can't run on MMUv3 w/o making
+runtime-checks or runtime-overrides (akin to function pointers) in things like TLB
+refill handlers and such.
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-Cc: Helge Deller <deller@gmx.de>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Serge Hallyn <serge.hallyn@canonical.com>
----
- arch/parisc/Kconfig |    1 +
- init/Kconfig        |    8 ++++++++
- kernel/sysctl.c     |    7 ++++++-
- 3 files changed, 15 insertions(+), 1 deletions(-)
+> The way we handle this on ARM and PowerPC is to allow selecting each CPU
+> individually,
 
-diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
-index b77feff..8c76095 100644
---- a/arch/parisc/Kconfig
-+++ b/arch/parisc/Kconfig
-@@ -20,6 +20,7 @@ config PARISC
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select GENERIC_SMP_IDLE_THREAD
- 	select GENERIC_STRNCPY_FROM_USER
-+	select SYSCTL_ARCH_UNALIGN_ALLOW
- 	select HAVE_MOD_ARCH_SPECIFIC
- 	select MODULES_USE_ELF_RELA
- 	select CLONE_BACKWARDS
-diff --git a/init/Kconfig b/init/Kconfig
-index e188f9f..e64bb18 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1240,6 +1240,14 @@ config SYSCTL_ARCH_UNALIGN_NO_WARN
- 	  unaligned access emulation going on under the hood.
- 	  see arch/ia64/kernel/unaligned.c for reference
- 
-+config SYSCTL_ARCH_UNALIGN_ALLOW
-+	bool
-+	help
-+	  Enable support for /proc/sys/kernel/unaligned-trap
-+	  Allows arches to define/use @unaligned_enabled to runtime toggle
-+	  the unaligned access emulation.
-+	  see arch/parisc/kernel/unaligned.c for reference
-+
- config KALLSYMS
- 	 bool "Load all symbols for debugging/ksymoops" if EXPERT
- 	 default y
-diff --git a/kernel/sysctl.c b/kernel/sysctl.c
-index 840fd5e..c4cd655 100644
---- a/kernel/sysctl.c
-+++ b/kernel/sysctl.c
-@@ -157,13 +157,16 @@ extern int sysctl_tsb_ratio;
- 
- #ifdef __hppa__
- extern int pwrsw_enabled;
--extern int unaligned_enabled;
- #endif
- 
- #ifdef CONFIG_IA64
- extern int unaligned_dump_stack;
- #endif
- 
-+#ifdef CONFIG_SYSCTL_ARCH_UNALIGN_ALLOW
-+extern int unaligned_enabled;
-+#endif
-+
- #ifdef CONFIG_SYSCTL_ARCH_UNALIGN_NO_WARN
- extern int no_unaligned_warning;
- #endif
-@@ -548,6 +551,8 @@ static struct ctl_table kern_table[] = {
- 	 	.mode		= 0644,
- 		.proc_handler	= proc_dointvec,
- 	},
-+#endif
-+#ifdef CONFIG_SYSCTL_ARCH_UNALIGN_ALLOW
- 	{
- 		.procname	= "unaligned-trap",
- 		.data		= &unaligned_enabled,
--- 
-1.7.4.1
+> but falling back on the common subset. So you could build
+> a kernel that supports running on ARC750 and on ARC770, but that would 
+> make it impossible to use SMP, so on an ARC770 SMP machine, it would
+> only run on the first CPU.
+
+Good for pre-built distros and such ! Nice concept - I like it.
+
+> If ARC770 cannot actually run the MMU_V2 code, that would mean that they
+> are indeed mutually exclusive by design,
+
+Given the immense hardware configurability of ARC, all crazy combinations are
+possible - how many are practically used is a different topic. So someone could in
+theory build 770 with MMUv2 and infact the current build system even allows that.
+See ARC_CPU_{750,770} are only about selecting a bunch of defaults (MMU ver,
+LLOCK)  - to prevent the user from hand doing that. So lets say we rip off both of
+these (to emulate kernel built for one running on other) - then it would boil down
+to letting support for both v2 and v3 co-exist (not to forget there's also an
+arcane historic v1). Now these fellows really are mutually exclusive by design:
+* code written for v3 won't work on v2 (e.g. ARC_REG_IC_PTAG doesn't exist)
+* code written for v2 won't work on v3 (e.g ARC_REG_IC_PTAG needs to be written
+for correct behaviour)
+
+> unless you also support a NOMMU
+> kernel. In that case you could only build a kernel for both 750 and 770
+> if you don't use the MMU. That would be much less interesting for actually
+> running things, but it could still make sense for build testing.
+>
+> If you don't need NOMMU support otherwise (I forgot whether or not you
+> have this), you should of course not implement it just for this.
+
+NOMMU is not supported yet.
+
+So how do we conclude on this topic - given the caveats above ?
+
+Thx,
+-Vineet
