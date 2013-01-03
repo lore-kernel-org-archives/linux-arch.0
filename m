@@ -1,133 +1,103 @@
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: Re: [PATCH/RFC 0/4] Re: dma_mmap_coherent / ARCH_HAS_DMA_MMAP_COHERENT
-Date: Wed, 02 Jan 2013 15:39:55 +0100
-Message-ID: <50E446BB.7090609@samsung.com>
-References: <CAMuHMdVPBUzN8fsNHFzrEqev9BsvVCVR2fWySCOecjVA-J1qjg@mail.gmail.com>
- <1356722614-18224-1-git-send-email-geert@linux-m68k.org>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: [RESEND PATCH] sysctl: Enable IA64 "ignore-unaligned-usertrap" to be used cross-arch
+Date: Thu, 3 Jan 2013 12:17:33 +0530
+Message-ID: <1357195653-998-2-git-send-email-vgupta@synopsys.com>
+References: <50D2B75A.3000208@synopsys.com>
+ <1357195653-998-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8;
-	format=flowed
-Content-Transfer-Encoding: QUOTED-PRINTABLE
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout1.w1.samsung.com ([210.118.77.11]:31142 "EHLO
-	mailout1.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752677Ab3ABOkA (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 2 Jan 2013 09:40:00 -0500
-In-reply-to: <1356722614-18224-1-git-send-email-geert@linux-m68k.org>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-media@vger.kernel.org, linux-m68k@vger.kernel.org
+Content-Type: text/plain
+Return-path: <linux-ia64-owner@vger.kernel.org>
+In-Reply-To: <1357195653-998-1-git-send-email-vgupta@synopsys.com>
+Sender: linux-ia64-owner@vger.kernel.org
+To: Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
+Cc: linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Serge Hallyn <serge.hallyn@canonical.com>
+List-Id: linux-arch.vger.kernel.org
 
-Hello,
+IA64 defines /proc/sys/kernel/ignore-unaligned-usertrap to control
+verbosw warnings on unaligned access emaultion.
 
-On 12/28/2012 8:23 PM, Geert Uytterhoeven wrote:
-> On Sun, Dec 16, 2012 at 5:03 PM, Geert Uytterhoeven <geert@linux-m68k=
-=2Eorg>
-> wrote:
-> > drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98=
-vb2_dc_mmap=E2=80=99:
-> > drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit=
- declaration of function =E2=80=98dma_mmap_coherent=E2=80=99
-> > drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98=
-vb2_dc_get_base_sgt=E2=80=99:
-> > drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit=
- declaration of function =E2=80=98dma_get_sgtable=E2=80=99
-> > make[6]: *** [drivers/media/v4l2-core/videobuf2-dma-contig.o] Error=
- 1
-> > make[6]: Target `__build' not remade because of errors.
-> > make[5]: *** [drivers/media/v4l2-core] Error 2
-> >
-> > Both dma_mmap_coherent() and dma_get_sgtable() are defined in
-> > include/asm-generic/dma-mapping-common.h only, which is included by
-> > <asm/dma-mapping.h> on alpha, arm, arm64, hexagon, ia64, microblaze=
-, mips,
-> > openrisc, powerpc, s390, sh, sparc, tile, unicore32, x86.
-> > Should the remaining architectures include this, too?
-> > Should it be moved to <linux/dma-mapping.h>?
->
-> I came up with an RFC-solution for this in [PATCH/RFC 3/4]
-> ("avr32/bfin/c6x/cris/frv/m68k/mn10300/parisc/xtensa: Add dummy get_d=
-ma_ops()")
-> and [PATCH/RFC 4/4] ("common: dma-mapping: Move dma_common_*() to
-> <linux/dma-mapping.h>") of this series.
->
-> > Furthermore, there's ARCH_HAS_DMA_MMAP_COHERENT, which is defined
-> > by powerpc only:
-> > arch/powerpc/include/asm/dma-mapping.h:#define ARCH_HAS_DMA_MMAP_CO=
-HERENT
-> >
-> > and handled in some fishy way in sound/core/pcm_native.c:
-> >
-> > #ifndef ARCH_HAS_DMA_MMAP_COHERENT
-> > /* This should be defined / handled globally! */
-> > #ifdef CONFIG_ARM
-> > #define ARCH_HAS_DMA_MMAP_COHERENT
-> > #endif
-> > #endif
-> >
-> > /*
-> >  * mmap the DMA buffer on RAM
-> >  */
-> > int snd_pcm_lib_default_mmap(struct snd_pcm_substream *substream,
-> >                              struct vm_area_struct *area)
-> > {
-> >         area->vm_flags |=3D VM_DONTEXPAND | VM_DONTDUMP;
-> > #ifdef ARCH_HAS_DMA_MMAP_COHERENT
-> >         if (!substream->ops->page &&
-> >             substream->dma_buffer.dev.type =3D=3D SNDRV_DMA_TYPE_DE=
-V)
-> >                 return dma_mmap_coherent(substream->dma_buffer.dev.=
-dev,
-> >                                          area,
-> >                                          substream->runtime->dma_ar=
-ea,
-> >                                          substream->runtime->dma_ad=
-dr,
-> >                                          area->vm_end - area->vm_st=
-art);
-> > #elif defined(CONFIG_MIPS) && defined(CONFIG_DMA_NONCOHERENT)
-> >         if (substream->dma_buffer.dev.type =3D=3D SNDRV_DMA_TYPE_DE=
-V &&
-> >             !plat_device_is_coherent(substream->dma_buffer.dev.dev)=
-)
-> >                 area->vm_page_prot =3D pgprot_noncached(area->vm_pa=
-ge_prot);
-> > #endif /* ARCH_HAS_DMA_MMAP_COHERENT */
-> >         /* mmap with fault handler */
-> >         area->vm_ops =3D &snd_pcm_vm_ops_data_fault;
-> >         return 0;
-> > }
-> > EXPORT_SYMBOL_GPL(snd_pcm_lib_default_mmap);
-> >
-> > What's up here?
->
-> Probably an easy solution here is to kill ARCH_HAS_DMA_MMAP_COHERENT =
-and
-> change the code to
->
->      #if defined(CONFIG_MIPS) && defined(CONFIG_DMA_NONCOHERENT)
-> 	    if (substream->dma_buffer.dev.type =3D=3D SNDRV_DMA_TYPE_DEV &&
-> 		!plat_device_is_coherent(substream->dma_buffer.dev.dev))
-> 		    area->vm_page_prot =3D pgprot_noncached(area->vm_page_prot);
->      #else
-> 	    if (!substream->ops->page &&
-> 		substream->dma_buffer.dev.type =3D=3D SNDRV_DMA_TYPE_DEV)
-> 		    return dma_mmap_coherent(substream->dma_buffer.dev.dev,
-> 					     area,
-> 					     substream->runtime->dma_area,
-> 					     substream->runtime->dma_addr,
-> 					     area->vm_end - area->vm_start);
->      #endif
->
-> but obviously I don't like the test for CONFIG_MIPS in generic code..=
-=2E
+While the exact menchaincs (ignore/shout) are still arch specific, we
+can make the sysctl usable by other arches.
 
-I think that the best way of handling it would be to move this code to =
-MIPS
-specific dma_mmap_coherent() implementation.
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+Cc: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>
+Cc: "Eric W. Biederman" <ebiederm@xmission.com>
+Cc: Serge Hallyn <serge.hallyn@canonical.com>
+---
+ arch/ia64/Kconfig |    1 +
+ init/Kconfig      |    8 ++++++++
+ kernel/sysctl.c   |    9 +++++++--
+ 3 files changed, 16 insertions(+), 2 deletions(-)
 
-Best regards
---=20
-Marek Szyprowski
-Samsung Poland R&D Center
+diff --git a/arch/ia64/Kconfig b/arch/ia64/Kconfig
+index 3279646..5fb1064 100644
+--- a/arch/ia64/Kconfig
++++ b/arch/ia64/Kconfig
+@@ -40,6 +40,7 @@ config IA64
+ 	select ARCH_THREAD_INFO_ALLOCATOR
+ 	select ARCH_CLOCKSOURCE_DATA
+ 	select GENERIC_TIME_VSYSCALL_OLD
++	select SYSCTL_ARCH_UNALIGN_NO_WARN
+ 	select HAVE_MOD_ARCH_SPECIFIC
+ 	select MODULES_USE_ELF_RELA
+ 	default y
+diff --git a/init/Kconfig b/init/Kconfig
+index 7d30240..e188f9f 100644
+--- a/init/Kconfig
++++ b/init/Kconfig
+@@ -1232,6 +1232,14 @@ config SYSCTL_EXCEPTION_TRACE
+ 	help
+ 	  Enable support for /proc/sys/debug/exception-trace.
+ 
++config SYSCTL_ARCH_UNALIGN_NO_WARN
++	bool
++	help
++	  Enable support for /proc/sys/kernel/ignore-unaligned-usertrap
++	  Allows arch to define/use @no_unaligned_warning to possbly warn about
++	  unaligned access emulation going on under the hood.
++	  see arch/ia64/kernel/unaligned.c for reference
++
+ config KALLSYMS
+ 	 bool "Load all symbols for debugging/ksymoops" if EXPERT
+ 	 default y
+diff --git a/kernel/sysctl.c b/kernel/sysctl.c
+index c88878d..840fd5e 100644
+--- a/kernel/sysctl.c
++++ b/kernel/sysctl.c
+@@ -161,10 +161,13 @@ extern int unaligned_enabled;
+ #endif
+ 
+ #ifdef CONFIG_IA64
+-extern int no_unaligned_warning;
+ extern int unaligned_dump_stack;
+ #endif
+ 
++#ifdef CONFIG_SYSCTL_ARCH_UNALIGN_NO_WARN
++extern int no_unaligned_warning;
++#endif
++
+ #ifdef CONFIG_PROC_SYSCTL
+ static int proc_do_cad_pid(struct ctl_table *table, int write,
+ 		  void __user *buffer, size_t *lenp, loff_t *ppos);
+@@ -911,7 +914,7 @@ static struct ctl_table kern_table[] = {
+ 		.proc_handler	= proc_doulongvec_minmax,
+ 	},
+ #endif
+-#ifdef CONFIG_IA64
++#ifdef CONFIG_SYSCTL_ARCH_UNALIGN_NO_WARN
+ 	{
+ 		.procname	= "ignore-unaligned-usertrap",
+ 		.data		= &no_unaligned_warning,
+@@ -919,6 +922,8 @@ static struct ctl_table kern_table[] = {
+ 	 	.mode		= 0644,
+ 		.proc_handler	= proc_dointvec,
+ 	},
++#endif
++#ifdef CONFIG_IA64
+ 	{
+ 		.procname	= "unaligned-dump-stack",
+ 		.data		= &unaligned_dump_stack,
+-- 
+1.7.4.1
+
