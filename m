@@ -1,16 +1,20 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [RESEND PATCH] Convert IA64 sysctl to generic
-Date: Thu, 3 Jan 2013 12:17:32 +0530
-Message-ID: <1357195653-998-1-git-send-email-vgupta@synopsys.com>
+Subject: [RESEND PATCH] Convert PARISC sysctl to be generic
+Date: Thu, 3 Jan 2013 12:29:47 +0530
+Message-ID: <1357196388-1247-1-git-send-email-vgupta@synopsys.com>
 References: <50D2B75A.3000208@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-ia64-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from alvesta.synopsys.com ([198.182.60.77]:44881 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751365Ab3ACHAX (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2013 02:00:23 -0500
 In-Reply-To: <50D2B75A.3000208@synopsys.com>
-Sender: linux-ia64-owner@vger.kernel.org
-To: Tony Luck <tony.luck@intel.com>, Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-List-Id: linux-arch.vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>
+Cc: linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
 Hi,
 
@@ -35,14 +39,14 @@ Kconfigs are not sorted either.
 Thx,
 -Vineet
 
-Vineet Gupta (1):
-  sysctl: Enable IA64 "ignore-unaligned-usertrap" to be used cross-arch
 
- arch/ia64/Kconfig |    1 +
- init/Kconfig      |    8 ++++++++
- kernel/sysctl.c   |    9 +++++++--
- 3 files changed, 16 insertions(+), 2 deletions(-)
+Vineet Gupta (1):
+  sysctl: Enable PARISC "unaligned-trap" to be used cross-arch
+
+ arch/parisc/Kconfig |    1 +
+ init/Kconfig        |    8 ++++++++
+ kernel/sysctl.c     |    7 ++++++-
+ 3 files changed, 15 insertions(+), 1 deletions(-)
 
 -- 
 1.7.4.1
-
