@@ -1,74 +1,42 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH v1 26/31] ARC: Build system: Makefiles, Kconfig, Linker script
-Date: Thu, 3 Jan 2013 08:25:45 +0000
-Message-ID: <201301030825.45867.arnd@arndb.de>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <201301021448.20119.arnd@arndb.de> <50E53A15.8040007@synopsys.com>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: uapi __NR_syscalls for microblaze
+Date: Thu, 3 Jan 2013 15:06:59 +0100
+Message-ID: <CAHTX3d+C6_Vr-Q-UH8y9F_7=8GwBxzd8eECPN6tNBpxwr10=cQ@mail.gmail.com>
+References: <CAHTX3d+bwTNEhzB78mqoz6prk0nw0U_-1YFR3Tje_-uQLyTMBQ@mail.gmail.com>
+	<26599.1357221783@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <50E53A15.8040007@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Gilad Ben Yossef <giladb@ezchip.com>, Noam Camus <noamc@ezchip.com>, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from mail-ia0-f182.google.com ([209.85.210.182]:35329 "EHLO
+	mail-ia0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753251Ab3ACOHA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2013 09:07:00 -0500
+Received: by mail-ia0-f182.google.com with SMTP id x2so12708728iad.41
+        for <linux-arch@vger.kernel.org>; Thu, 03 Jan 2013 06:07:00 -0800 (PST)
+In-Reply-To: <26599.1357221783@warthog.procyon.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: David Howells <dhowells@redhat.com>
+Cc: LKML <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org
 
-On Thursday 03 January 2013, Vineet Gupta wrote:
-> On Wednesday 02 January 2013 08:18 PM, Arnd Bergmann wrote:
-> > On Wednesday 02 January 2013, Vineet Gupta wrote:
-> >> On Wednesday 07 November 2012 07:43 PM, Arnd Bergmann wrote:
+2013/1/3 David Howells <dhowells@redhat.com>:
+> Michal Simek <monstr@monstr.eu> wrote:
+>
+>> just want to check with you if __NR_syscalls is necessary for user space. I
+>> see that powerpc and arm have this macro in asm not in uapi like Microblaze.
+>> If is not needed by user space, I should move it to asm/unistd.h
+>
+> It isn't as far as I know...  I recommend putting your question on the
+> linux-arch mailing list.
 
-> > So a kernel built for ARC750 could potentially run on an ARC770, but not use
-> > all the features, right?
-> 
-> Only for features which are non conflicting - so even now a CONFIG_ARC_CPU_750
-> built kernel (so no LLOCK/SCOND support) will run fine on 770 hardware (which has
-> LLOCK/SCOND)- assuming everything else being constant. However MMUv3 (770 only)
-> has a different programming model vs. MMUv2 (e.g. TLB descriptor layout among
-> others) hence a kernel for MMU v2 "simply" can't run on MMUv3 w/o making
-> runtime-checks or runtime-overrides (akin to function pointers) in things like TLB
-> refill handlers and such.
+I have add linux-arch to CC.
 
-Ok.
+Thanks,
+Michal
 
-> > If ARC770 cannot actually run the MMU_V2 code, that would mean that they
-> > are indeed mutually exclusive by design,
-> 
-> Given the immense hardware configurability of ARC, all crazy combinations are
-> possible - how many are practically used is a different topic. So someone could in
-> theory build 770 with MMUv2 and infact the current build system even allows that.
-> See ARC_CPU_{750,770} are only about selecting a bunch of defaults (MMU ver,
-> LLOCK)  - to prevent the user from hand doing that. So lets say we rip off both of
-> these (to emulate kernel built for one running on other) - then it would boil down
-> to letting support for both v2 and v3 co-exist (not to forget there's also an
-> arcane historic v1). Now these fellows really are mutually exclusive by design:
-> * code written for v3 won't work on v2 (e.g. ARC_REG_IC_PTAG doesn't exist)
-> * code written for v2 won't work on v3 (e.g ARC_REG_IC_PTAG needs to be written
-> for correct behaviour)
-
-I think in a case like this, it's pretty clearly not worth supporting both
-in the same kernel. This is very similar to the difference between ARMv5 and
-ARMv6, or between PowerPC Classic (6xx) and BookE (4xx), which are never
-supported in a single kernel because the cost of doing it would be much
-bigger than the benefit.
-
-> > unless you also support a NOMMU
-> > kernel. In that case you could only build a kernel for both 750 and 770
-> > if you don't use the MMU. That would be much less interesting for actually
-> > running things, but it could still make sense for build testing.
-> >
-> > If you don't need NOMMU support otherwise (I forgot whether or not you
-> > have this), you should of course not implement it just for this.
-> 
-> NOMMU is not supported yet.
-> 
-> So how do we conclude on this topic - given the caveats above ?
-
-For the CPU options, you should leave 750 and 770 mutually exclusive,
-but for each other option, you should first see if it can reasonably
-be a run-time option. It may not be possible to eliminate incompatible
-compile-time options, but you should reduce the number of those options
-as much as possible.
-
-	Arnd
+-- 
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
+Maintainer of Linux kernel - Xilinx Zynq ARM architecture
+Microblaze U-BOOT custodian
