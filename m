@@ -1,79 +1,54 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:60704 "EHLO
+Received: from moutng.kundenserver.de ([212.227.126.186]:59290 "EHLO
 	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752765Ab3ACI0A (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2013 03:26:00 -0500
+	with ESMTP id S1754190Ab3ACW1M (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 3 Jan 2013 17:27:12 -0500
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH v1 26/31] ARC: Build system: Makefiles, Kconfig, Linker script
-Date: Thu, 3 Jan 2013 08:25:45 +0000
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <201301021448.20119.arnd@arndb.de> <50E53A15.8040007@synopsys.com>
-In-Reply-To: <50E53A15.8040007@synopsys.com>
+Subject: Re: uapi __NR_syscalls for microblaze
+Date: Thu, 3 Jan 2013 22:27:05 +0000
+References: <CAHTX3d+bwTNEhzB78mqoz6prk0nw0U_-1YFR3Tje_-uQLyTMBQ@mail.gmail.com> <201301031601.00594.arnd@arndb.de> <CAHTX3dKra4vNsYPzQJbaU4jNmDT_rh-XViBD7yp3k7Ty0GsYog@mail.gmail.com>
+In-Reply-To: <CAHTX3dKra4vNsYPzQJbaU4jNmDT_rh-XViBD7yp3k7Ty0GsYog@mail.gmail.com>
 MIME-Version: 1.0
 Content-Type: Text/Plain;
-  charset="iso-8859-15"
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
-Message-ID: <201301030825.45867.arnd@arndb.de>
+Message-ID: <201301032227.05553.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, Gilad Ben Yossef <giladb@ezchip.com>, Noam Camus <noamc@ezchip.com>, linux-kernel@vger.kernel.org
-Message-ID: <20130103082545.DirZ2lzHrVykxNowIptDszeMR05gHBLjDOBtEwKA2Ic@z>
+To: Michal Simek <monstr@monstr.eu>
+Cc: David Howells <dhowells@redhat.com>, LKML <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, linux-arch@vger.kernel.org
+Message-ID: <20130103222705.LXi6UHppaRUTVBh-mvOt2XgFiPU4XTfFsM4oxxfgfqM@z>
 
-On Thursday 03 January 2013, Vineet Gupta wrote:
-> On Wednesday 02 January 2013 08:18 PM, Arnd Bergmann wrote:
-> > On Wednesday 02 January 2013, Vineet Gupta wrote:
-> >> On Wednesday 07 November 2012 07:43 PM, Arnd Bergmann wrote:
-
-> > So a kernel built for ARC750 could potentially run on an ARC770, but not use
-> > all the features, right?
+On Thursday 03 January 2013, Michal Simek wrote:
 > 
-> Only for features which are non conflicting - so even now a CONFIG_ARC_CPU_750
-> built kernel (so no LLOCK/SCOND support) will run fine on 770 hardware (which has
-> LLOCK/SCOND)- assuming everything else being constant. However MMUv3 (770 only)
-> has a different programming model vs. MMUv2 (e.g. TLB descriptor layout among
-> others) hence a kernel for MMU v2 "simply" can't run on MMUv3 w/o making
-> runtime-checks or runtime-overrides (akin to function pointers) in things like TLB
-> refill handlers and such.
-
-Ok.
-
-> > If ARC770 cannot actually run the MMU_V2 code, that would mean that they
-> > are indeed mutually exclusive by design,
-> 
-> Given the immense hardware configurability of ARC, all crazy combinations are
-> possible - how many are practically used is a different topic. So someone could in
-> theory build 770 with MMUv2 and infact the current build system even allows that.
-> See ARC_CPU_{750,770} are only about selecting a bunch of defaults (MMU ver,
-> LLOCK)  - to prevent the user from hand doing that. So lets say we rip off both of
-> these (to emulate kernel built for one running on other) - then it would boil down
-> to letting support for both v2 and v3 co-exist (not to forget there's also an
-> arcane historic v1). Now these fellows really are mutually exclusive by design:
-> * code written for v3 won't work on v2 (e.g. ARC_REG_IC_PTAG doesn't exist)
-> * code written for v2 won't work on v3 (e.g ARC_REG_IC_PTAG needs to be written
-> for correct behaviour)
-
-I think in a case like this, it's pretty clearly not worth supporting both
-in the same kernel. This is very similar to the difference between ARMv5 and
-ARMv6, or between PowerPC Classic (6xx) and BookE (4xx), which are never
-supported in a single kernel because the cost of doing it would be much
-bigger than the benefit.
-
-> > unless you also support a NOMMU
-> > kernel. In that case you could only build a kernel for both 750 and 770
-> > if you don't use the MMU. That would be much less interesting for actually
-> > running things, but it could still make sense for build testing.
+> 2013/1/3 Arnd Bergmann <arnd@arndb.de>:
+> > On Thursday 03 January 2013, Michal Simek wrote:
+> >> 2013/1/3 David Howells <dhowells@redhat.com>:
+> >> > Michal Simek <monstr@monstr.eu> wrote:
+> >> >
+> >> >> just want to check with you if __NR_syscalls is necessary for user space. I
+> >> >> see that powerpc and arm have this macro in asm not in uapi like Microblaze.
+> >> >> If is not needed by user space, I should move it to asm/unistd.h
+> >> >
+> >> > It isn't as far as I know...  I recommend putting your question on the
+> >> > linux-arch mailing list.
+> >>
+> >> I have add linux-arch to CC.
 > >
-> > If you don't need NOMMU support otherwise (I forgot whether or not you
-> > have this), you should of course not implement it just for this.
+> > Right, I'm pretty sure it's not needed, but it has traditionally been
+> > exported on a lot of platforms, so you can keep it in UAPI to be
+> > on the safe side.
 > 
-> NOMMU is not supported yet.
-> 
-> So how do we conclude on this topic - given the caveats above ?
+> Isn't it better to be consistent across all architectures?
 
-For the CPU options, you should leave 750 and 770 mutually exclusive,
-but for each other option, you should first see if it can reasonably
-be a run-time option. It may not be possible to eliminate incompatible
-compile-time options, but you should reduce the number of those options
-as much as possible.
+Yes, certainly.
+
+> If it is wrong to exported and there is no reason to use it in userspace
+> then all architecture should move it out of uapi.
+> If there is any reason then it is should be in uapi.
+
+I don't really care which way we do it, I think you can rightfully argue
+either way. AFAICT x86 doesn't even define __NR_syscalls at all, so
+it's clearly not part of the ABI.
 
 	Arnd
