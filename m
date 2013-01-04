@@ -1,273 +1,128 @@
-From: James Hogan <james.hogan@imgtec.com>
+From: Alan Cox <alan@lxorguk.ukuu.org.uk>
 Subject: Re: [PATCH v2 43/44] tty/metag_da: Add metag DA TTY driver
-Date: Fri, 4 Jan 2013 14:11:46 +0000
-Message-ID: <50E6E322.8070108@imgtec.com>
-References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com> <1354723742-6195-44-git-send-email-james.hogan@imgtec.com> <20121205172446.41aa464e@pyramind.ukuu.org.uk>
+Date: Fri, 4 Jan 2013 17:00:13 +0000
+Message-ID: <20130104170013.74b6dbe2@pyramind.ukuu.org.uk>
+References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
+	<1354723742-6195-44-git-send-email-james.hogan@imgtec.com>
+	<20121205172446.41aa464e@pyramind.ukuu.org.uk>
+	<50E6E322.8070108@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:55567 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754738Ab3ADOMU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 4 Jan 2013 09:12:20 -0500
-In-Reply-To: <20121205172446.41aa464e@pyramind.ukuu.org.uk>
+Received: from lxorguk.ukuu.org.uk ([81.2.110.251]:37761 "EHLO
+	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755056Ab3ADQxa (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Jan 2013 11:53:30 -0500
+In-Reply-To: <50E6E322.8070108@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alan Cox <alan@lxorguk.ukuu.org.uk>
+To: James Hogan <james.hogan@imgtec.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
-Hi Alan,
 
-Thanks for your feedback, and sorry for the delay responding. I'll send
-an updated (i.e. largely rewritten) driver soon.
+> >> +static int put_data(void *arg)
+> >> +{
+> >> +	struct dashbuf *dbuf;
+> >> +	int number_written;
+> >> +
+> >> +	__set_current_state(TASK_RUNNING);
+> >> +	while (!kthread_should_stop()) {
+> >> +		/*
+> >> +		 * Pick up all the output buffers and write them out.
+> >> +		 *
+> >> +		 * FIXME: should we check with ASE how much room we have?
+> >> +		 * Ideally, this will already have been done by write_room ??
+> >> +		 */
+> > 
+> > 
+> > No because your writer is asynchronous to your query so you need to
+> > manage the difference yourself. You also need to get it right on the
+> > queue length for close to work right.
+> 
+> Regarding closing working right, do you mean making sure that all data
+> in the asynchronous output buffer is written out by the final close
+> (e.g. port_shutdown before freeing it)? Is that something the driver
+> needs to do itself? (at the moment it does seem to be necessary, however
+> I could be missing something)
 
-On 05/12/12 17:24, Alan Cox wrote:
->> +/* One struct dashtty exists per open channel. */
->> +struct dashtty {
->> +	struct tty_struct *tty;
->> +	struct tty_port *port;
->> +};
-> 
-> We have tty->port as of 3.7 so you shouldn't need this any more
+You have no locking guaranteeing that the write_room is correct any given
+put while put_data is running - both threads of execution can end up
+changing it at the same time.
 
-Thanks, I've converted the driver to make use of this
+> >> +	/* Determine the channel */
+> >> +	channel = FIRST_TTY_CHANNEL + tty->index;
+> >> +	dtty = dashtty_ttys[channel];
+> >> +	BUG_ON(!dtty);
+> > 
+> > What is your locking model to prevent this ?
+> > What is your reference counting model for the ttys - I don't see one.
+> 
+> The new version has an array of dashtty_ports (not pointers, each
+> containing a tty_port) and uses that to get at the output buffer.
+> 
+> Would it need to ensure that the tty isn't hung up though, or is a write
+> prevented from occurring in that case?
 
-> 
->> +
->> +static struct tty_port dashtty_ports[NUM_TTY_CHANNELS];
->> +
->> +struct dashbuf {
->> +	struct list_head entry;
->> +	struct dashtty *tty;
->> +	unsigned char *buf;
->> +	int count;
->> +	int chan;
->> +};
-> 
->> +/*
->> + * Attempts to fetch count bytes from channel channel and returns actual count.
->> + */
->> +static int fetch_data(int channel)
->> +{
->> +	struct dashtty *dashtty = dashtty_ttys[channel];
-> 
-> krefs for the tty ?, what if the tty is closing at the same moment ?
+The core tty code will hold a reference to the tty object when calling
+your methods which pass a "tty" pointer, so it won't vanish itself under
+those conditions. For any other way of accessing you need to handle any
+locking between write and hangup yourself - eg by deferring any clearing
+down of the array until the tty_port itself is destroyed.
 
-Thanks, I've fixed that now.
+> Agreed and done. I didn't realise the TTY layer was so prone to
+> providing lots of itty bitty fragments (even with a single 4k write from
+> userland). The thing that really hurt was not the allocations but that
+> each one was written out to the DA separately each incurring it's own
+> large latency. Using a write buffer makes it a lot faster :)
 
-> 
->> +
->> +static int put_data(void *arg)
->> +{
->> +	struct dashbuf *dbuf;
->> +	int number_written;
->> +
->> +	__set_current_state(TASK_RUNNING);
->> +	while (!kthread_should_stop()) {
->> +		/*
->> +		 * Pick up all the output buffers and write them out.
->> +		 *
->> +		 * FIXME: should we check with ASE how much room we have?
->> +		 * Ideally, this will already have been done by write_room ??
->> +		 */
-> 
-> 
-> No because your writer is asynchronous to your query so you need to
-> manage the difference yourself. You also need to get it right on the
-> queue length for close to work right.
+Think about typing a command and the echo - you get a lot of very small
+writes !
 
-Regarding closing working right, do you mean making sure that all data
-in the asynchronous output buffer is written out by the final close
-(e.g. port_shutdown before freeing it)? Is that something the driver
-needs to do itself? (at the moment it does seem to be necessary, however
-I could be missing something)
+> It's still possible that the debugger isn't draining the DA buffers in
+> which case they'll fill up, and the output buffer in the driver will
+> fill and then the space reported to the tty layer will drop to 0.
 
-> 
->> +
->> +/*
->> + *	This gets called every DA_TTY_POLL and polls the channels for data
->> + */
->> +static void dashtty_timer(unsigned long ignored)
->> +{
->> +	struct dashtty *dtty;
->> +	int this_channel;
->> +
->> +	/* If there are no ports open do nothing and don't poll again. */
-> 
-> Why are we polling - is this just an architectural limit ?
-
-Yes, the only way to know whether the debugger has written anything to
-the buffer in the debug pod is to ask it, hence the polling. Actually
-it's more like halt the hardware thread with a SWITCH instruction and
-wait patiently for the DA to notice and to handle it.
+At that point the tty layer will throttle.
 
 > 
->> +}
->> +
->> +static int dashtty_open(struct tty_struct *tty, struct file *filp)
->> +{
->> +	struct dashtty *dashtty;
+> > 
+> >> +}
+> > 
+> >> +static const struct tty_operations dashtty_ops = {
+> >> +	.open = dashtty_open,
+> >> +	.close = dashtty_close,
+> >> +	.write = dashtty_write,
+> > 
+> > You need a hangup method. You may need a termios method.
 > 
-> No - use the full helpers - your sematics are wrong otherwise.
+> Is it sufficient for a hangup method to just call tty_port_hangup or
+> should it drop the contents of the output buffer too? (as opposed to
+> waiting for it to drain in port_shutdown).
 
-I presume you're referring to tty_port_open. I've converted to use that now.
+The behaviour there is undefined - up to you, whatever makes sense.
 
-> 
->> +static void dashtty_close(struct tty_struct *tty, struct file *filp)
-> 
-> No.. we have helpers - use them.
-> 
->> +	if (num_channels_need_poll <= 0)
->> +		del_timer(&poll_timer);
-> 
-> _sync 
-> 
-> This seems to be a repeated error so it may be worth checking your other
-> drivers.
+> As far as I can tell none of the termios stuff is really relevant to
+> this driver.
 
-Ok
+In which case the default behaviour will be fine - and it will allow non
+hardware parameters to change but not hardware ones like baud rates.
 
->> +}
->> +
->> +static int dashtty_write(struct tty_struct *tty, const unsigned char *buf,
->> +			 int count)
->> +{
->> +	struct dashtty *dtty;
->> +	struct dashbuf *dbuf;
->> +	int channel;
->> +
->> +	if (count <= 0)
->> +		return 0;
+> >> +	channel_driver->init_termios = tty_std_termios;
+> >> +	channel_driver->init_termios.c_cflag =
+> >> +	    B38400 | CS8 | CREAD | HUPCL | CLOCAL;
+> >> +	channel_driver->flags = TTY_DRIVER_REAL_RAW;
+> > 
+> > Need to set the speed flags
 > 
-> How can it be <= 0 ?
+> Do you mean c_ispeed, and c_ospeed? These are set in tty_std_termios,
+> and they aren't meaningful in the context of this driver anyway, so are
+> they still necessary?
 
-It probably can't. I've removed it now (and the new version is safe even
-if it was 0 anyway).
+You update c_cflag to B38400 so you should set c_ispeed/c_ospeed
+accordingly. For a virtual interface it really only exists so that
+applications have an answer. You want a higher speed like 38400 so that
+apps don't try and do clever stuff for low speed links, that is all
+really.
 
-> 
->> +	/* Determine the channel */
->> +	channel = FIRST_TTY_CHANNEL + tty->index;
->> +	dtty = dashtty_ttys[channel];
->> +	BUG_ON(!dtty);
-> 
-> What is your locking model to prevent this ?
-> What is your reference counting model for the ttys - I don't see one.
-
-The new version has an array of dashtty_ports (not pointers, each
-containing a tty_port) and uses that to get at the output buffer.
-
-Would it need to ensure that the tty isn't hung up though, or is a write
-prevented from occurring in that case?
-
-> 
->> +
->> +	dbuf = kzalloc(sizeof(*dbuf), GFP_KERNEL);
->> +	if (!dbuf)
->> +		return 0;
->> +
->> +	dbuf->buf = kzalloc(count, GFP_KERNEL);
->> +	if (!dbuf->buf) {
->> +		kfree(dbuf);
->> +		return 0;
->> +	}
->> +
->> +	memcpy(dbuf->buf, buf, count);
-> 
-> So you'll spend all your CPU time doing itty bitty allocations. Just
-> allocate a buffer at open (there's even a tty_port helper for buffer
-> management), free it when you've finished using the port. (and don't
-> report > the buffer size is write room)
-
-Agreed and done. I didn't realise the TTY layer was so prone to
-providing lots of itty bitty fragments (even with a single 4k write from
-userland). The thing that really hurt was not the allocations but that
-each one was written out to the DA separately each incurring it's own
-large latency. Using a write buffer makes it a lot faster :)
-
-> 
->> +	/*
->> +	 * FIXME: This is slightly optimistic. Because we're deferring
->> +	 * the output until later it is impossible to predict whether we
->> +	 * will actually write "count" bytes.
->> +	 */
->> +	return count;
-> 
-> Fair enough but is then your chars_in_buffer and write_room methods are
-> both wrong (you need to avoid offering space you've queued into).
-
-This is now rewritten so that the deferred write takes note of the
-number of bytes written out to the DA and doesn't discard any data. The
-chars_in_buffer and write_room methods now return the size/space in the
-output buffer.
-
-It's still possible that the debugger isn't draining the DA buffers in
-which case they'll fill up, and the output buffer in the driver will
-fill and then the space reported to the tty layer will drop to 0.
-
-> 
->> +}
-> 
->> +static const struct tty_operations dashtty_ops = {
->> +	.open = dashtty_open,
->> +	.close = dashtty_close,
->> +	.write = dashtty_write,
-> 
-> You need a hangup method. You may need a termios method.
-
-Is it sufficient for a hangup method to just call tty_port_hangup or
-should it drop the contents of the output buffer too? (as opposed to
-waiting for it to drain in port_shutdown).
-
-As far as I can tell none of the termios stuff is really relevant to
-this driver.
-
-> 
->> +	.write_room = dashtty_write_room,
->> +	.chars_in_buffer = dashtty_chars_in_buffer,
->> +};
->> +
->> +static int __init dashtty_init(void)
->> +{
->> +	int ret;
->> +	int nport;
->> +
->> +	if (!metag_da_enabled())
->> +		return -ENODEV;
->> +
->> +	channel_driver = tty_alloc_driver(NUM_TTY_CHANNELS, 0);
->> +	if (IS_ERR(channel_driver))
->> +		return PTR_ERR(channel_driver);
->> +
->> +	channel_driver->owner = THIS_MODULE;
->> +	channel_driver->driver_name = "ttyDA";
->> +	channel_driver->name = "ttyDA";
->> +	channel_driver->major = DA_TTY_MAJOR;
->> +	channel_driver->minor_start = 0;
->> +	channel_driver->type = TTY_DRIVER_TYPE_SERIAL;
->> +	channel_driver->subtype = SERIAL_TYPE_NORMAL;
->> +	channel_driver->init_termios = tty_std_termios;
->> +	channel_driver->init_termios.c_cflag =
->> +	    B38400 | CS8 | CREAD | HUPCL | CLOCAL;
->> +	channel_driver->flags = TTY_DRIVER_REAL_RAW;
-> 
-> Need to set the speed flags
-
-Do you mean c_ispeed, and c_ospeed? These are set in tty_std_termios,
-and they aren't meaningful in the context of this driver anyway, so are
-they still necessary?
-
-> 
->> +static void dashtty_exit(void)
->> +{
->> +	kthread_stop(dashtty_thread);
->> +	del_timer(&poll_timer);
-> 
-> 
-> del_timer_sync or your box will sometimes crash on exit as the timer is
-> still running on another thread
-> 
-
-Thanks again for taking the time to review it
-
-James
+Alan
