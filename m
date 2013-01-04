@@ -1,60 +1,126 @@
-From: Michal Simek <monstr@monstr.eu>
-Subject: Re: Add #includes needed to permit the removal of asm/system.h - sha1 96f951edb1f1bdbbc99b0cd458f9808bb83d58ae
-Date: Fri, 4 Jan 2013 12:41:39 +0100
-Message-ID: <CAHTX3d+BhEaTW8=0=bKQZSVQbfHtAf_fa9WDe2gsCVEnA0uxkw@mail.gmail.com>
-References: <CAHTX3d+P_UQK8nPfN8BKLdTkVY2VMKhty1rkCKbfHCrQBa+Nyw@mail.gmail.com>
-	<14685.1357230917@warthog.procyon.org.uk>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH v2 22/44] metag: Time keeping
+Date: Fri, 4 Jan 2013 12:21:53 +0000
+Message-ID: <50E6C961.40009@imgtec.com>
+References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com> <1354723742-6195-23-git-send-email-james.hogan@imgtec.com> <50E6A987.207@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f177.google.com ([209.85.223.177]:49210 "EHLO
-	mail-ie0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753801Ab3ADLlk (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Jan 2013 06:41:40 -0500
-Received: by mail-ie0-f177.google.com with SMTP id k13so18975507iea.8
-        for <linux-arch@vger.kernel.org>; Fri, 04 Jan 2013 03:41:39 -0800 (PST)
-In-Reply-To: <14685.1357230917@warthog.procyon.org.uk>
+Received: from multi.imgtec.com ([194.200.65.239]:54483 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751103Ab3ADMV6 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 4 Jan 2013 07:21:58 -0500
+In-Reply-To: <50E6A987.207@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: David Howells <dhowells@redhat.com>
-Cc: linux-next@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>
 
-2013/1/3 David Howells <dhowells@redhat.com>:
-> Michal Simek <monstr@monstr.eu> wrote:
->
->> It is because microblaze uses cmpxchg_local which is defined
->> asm-generic/atomic.h file.
->> Arnds patch has added it to atomic.h
->> asm-generic: add generic atomic.h and io.h
->> (sha1: 3f7e212df82ca0459d44c91d9e019efd1b5f936c)
->>
->> What about to move cmpxchg_local and cmpxchg64_local from atomic.h to
->> cmpxchg-local.h?
->
-> Hmmm...  cmpxchg_local() should be obtained through asm/cmpxchg.h, not
-> asm/atomic.h.  See:
->
->         grep -r define\\s*cmpxchg_local arch
+On 04/01/13 10:05, Vineet Gupta wrote:
+> Hi James,
+> 
+> On Wednesday 05 December 2012 09:38 PM, James Hogan wrote:
+> 
+>> +static unsigned int hwtimer_freq = HARDWARE_FREQ;
+>> +static DEFINE_PER_CPU(struct clock_event_device, local_clockevent);
+>> +static DEFINE_PER_CPU(char [11], local_clockevent_name);
+> 
+>> +void __cpuinit local_timer_setup(unsigned int cpu)
+>> +{
+>> +	unsigned int txdivtime;
+>> +	struct clock_event_device *clk = &per_cpu(local_clockevent, cpu);
+>> +	char *name = per_cpu(local_clockevent_name, cpu);
+>> +
+>> +	txdivtime = TBI_GETREG(TXDIVTIME);
+>> +
+>> +	txdivtime &= ~TXDIVTIME_DIV_BITS;
+>> +	txdivtime |= (HARDWARE_DIV & TXDIVTIME_DIV_BITS);
+>> +
+>> +	TBI_SETREG(TXDIVTIME, txdivtime);
+>> +
+>> +	sprintf(name, "META %d", cpu);
+>> +	clk->name = name;
+>> +	clk->features = CLOCK_EVT_FEAT_ONESHOT,
+>> +
+>> +	clk->rating = 200,
+>> +	clk->shift = 12,
+>> +	clk->irq = TBID_SIGNUM_TRT,
+>> +	clk->set_mode = metag_timer_set_mode,
+>> +	clk->set_next_event = metag_timer_set_next_event,
+>> +
+>> +	clk->mult = div_sc(hwtimer_freq, NSEC_PER_SEC, clk->shift);
+>> +	clk->max_delta_ns = clockevent_delta2ns(0x7fffffff, clk);
+>> +	clk->min_delta_ns = clockevent_delta2ns(0xf, clk);
+>> +	clk->cpumask = cpumask_of(cpu);
+>> +
+>> +	clockevents_register_device(clk);
+>> +
+>> +	/*
+>> +	 * For all non-boot CPUs we need to synchronize our free
+>> +	 * running clock (TXTIMER) with the boot CPU's clock.
+>> +	 *
+>> +	 * While this won't be accurate, it should be close enough.
+>> +	 */
+>> +	if (cpu) {
+>> +		unsigned int thread0 = cpu_2_hwthread_id[0];
+>> +		unsigned long val;
+>> +
+>> +		val = core_reg_read(TXUCT_ID, TXTIMER_REGNUM, thread0);
+>> +
+>> +		asm volatile("MOV TXTIMER, %0\n" : : "r" (val));
+>> +	}
+>> +}
+>> +
+>> +void __init time_init(void)
+>> +{
+>> +	/*
+>> +	 * On Meta 2 SoCs, the actual frequency of the timer is based on the
+>> +	 * Meta core clock speed divided by an integer, so it is only
+>> +	 * approximately 1MHz. Calculating the real frequency here drastically
+>> +	 * reduces clock skew on these SoCs.
+>> +	 */
+>> +#ifdef CONFIG_METAG_META21
+>> +	hwtimer_freq = get_coreclock() / (metag_in32(EXPAND_TIMER_DIV) + 1);
+>> +#endif
+>> +	clocksource_register_hz(&clocksource_metag, hwtimer_freq);
+>> +
+>> +	setup_irq(TBID_SIGNUM_TRT, &metag_timer_irq);
+>> +
+>> +	local_timer_setup(smp_processor_id());
+>> +}
+> 
+> I have a kludge in ARC port in this subsystem - which I hope you could help clear.
+> 
+> ARC also has a local timer device used for clockevent on each CPU. A one-time
+> setup_irq() with IRQF_PERCPU - would indeed setup the generic IRQ subsystem - for
+> making registration effective for all CPUs. However don't you need some per-cpu
+> magic - say enabling the IRQ at cpu or embedded interrupt controller level -
+> assuming you starts off with all IRQs disabled (which ARC Linux does).
 
-But it is also here which Microblaze uses.
+Hi Vineet,
 
-[linux-2.6.x]$ grep -r define\\s*cmpxchg_local include/asm-generic/
-include/asm-generic/atomic.h:#define cmpxchg_local(ptr, o, n)				  	       \
+For Meta this is done in secondary_start_kernel in
+arch/metag/kernel/smp.c (see
+https://github.com/jahogan/metag-linux/blob/metag-core/arch/metag/kernel/smp.c#L276).
+It uses tbi_startup_interrupt which is also called by the irq_startup
+callback for the root irq_chip.
 
-(not checked on the latest but probably it is the same)
-m68k, arm contains the same copy for one case
-c6x, unicore, cris, blackfin, h8300, sparc32
+> So we end up using different APIs - request_percpu_irq() as equivalent of
+> setup_irq() on boot-cpu only and then each CPU calling enable_percpu_irq() to do
+> the local magic. request_percpu_irq() in turn requires an apriori call to
+> irq_set_percpu_devid().
 
-Probably make sense to move these two macros
-cmpxchg64_local and cmpxchg_local to asm-generic/cmpxchg-local.h
-with #ifndef cmpxchg_local ...etc. and remove it from architectures above.
+For Meta we could probably do something similar if we moved it's root
+irq_startup irq_chip callback code into irq_enable or irq_unmask.
 
-Thanks,
-Michal
+Cheers
+James
 
--- 
-Michal Simek, Ing. (M.Eng)
-w: www.monstr.eu p: +42-0-721842854
-Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
-Maintainer of Linux kernel - Xilinx Zynq ARM architecture
-Microblaze U-BOOT custodian
+> 
+> https://lkml.org/lkml/2012/11/7/128
+> 
+> Do don't seem to be requiring all of this hence I'm wondering how it works for you!
+> 
+> -Vineet
+> 
