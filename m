@@ -1,71 +1,60 @@
-From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: What's the deal with the different boot command lines?
-Date: Fri, 4 Jan 2013 10:26:42 +0000
-Message-ID: <50E6AE62.7020501@imgtec.com>
-References: <50BCDC93.4080100@imgtec.com>
+From: Michal Simek <monstr@monstr.eu>
+Subject: Re: Add #includes needed to permit the removal of asm/system.h - sha1 96f951edb1f1bdbbc99b0cd458f9808bb83d58ae
+Date: Fri, 4 Jan 2013 12:41:39 +0100
+Message-ID: <CAHTX3d+BhEaTW8=0=bKQZSVQbfHtAf_fa9WDe2gsCVEnA0uxkw@mail.gmail.com>
+References: <CAHTX3d+P_UQK8nPfN8BKLdTkVY2VMKhty1rkCKbfHCrQBa+Nyw@mail.gmail.com>
+	<14685.1357230917@warthog.procyon.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:51624 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752719Ab3ADK1W (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 4 Jan 2013 05:27:22 -0500
-In-Reply-To: <50BCDC93.4080100@imgtec.com>
+Received: from mail-ie0-f177.google.com ([209.85.223.177]:49210 "EHLO
+	mail-ie0-f177.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753801Ab3ADLlk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Jan 2013 06:41:40 -0500
+Received: by mail-ie0-f177.google.com with SMTP id k13so18975507iea.8
+        for <linux-arch@vger.kernel.org>; Fri, 04 Jan 2013 03:41:39 -0800 (PST)
+In-Reply-To: <14685.1357230917@warthog.procyon.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>, Jonas Bonn <jonas.bonn@gmail.com>, Ralf Baechle <ralf@linux-mips.org>, Grant Likely <grant.likely@secretlab.ca>
-Cc: linux-arch <linux-arch@vger.kernel.org>, Will <will.newton@imgtec.com>
+To: David Howells <dhowells@redhat.com>
+Cc: linux-next@vger.kernel.org, LKML <linux-kernel@vger.kernel.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org
 
-Ping. Any comments on this?
+2013/1/3 David Howells <dhowells@redhat.com>:
+> Michal Simek <monstr@monstr.eu> wrote:
+>
+>> It is because microblaze uses cmpxchg_local which is defined
+>> asm-generic/atomic.h file.
+>> Arnds patch has added it to atomic.h
+>> asm-generic: add generic atomic.h and io.h
+>> (sha1: 3f7e212df82ca0459d44c91d9e019efd1b5f936c)
+>>
+>> What about to move cmpxchg_local and cmpxchg64_local from atomic.h to
+>> cmpxchg-local.h?
+>
+> Hmmm...  cmpxchg_local() should be obtained through asm/cmpxchg.h, not
+> asm/atomic.h.  See:
+>
+>         grep -r define\\s*cmpxchg_local arch
 
-On 03/12/12 17:08, James Hogan wrote:
-> Hi,
-> 
-> I've been trying to figure out how the various copies of the command
-> line are handled and what they're for, to figure out what the best thing
-> to do is to avoid getting the same cmdline twice when
-> early_init_dt_scan_chosen falls back to CONFIG_CMDLINE. As far as I can
-> tell from the generic code:
-> 
-> setup_arch() is expected to set
-> * boot_command_line
-> * the pointer pointed to by it's argument (which goes into
-> start_kernel()'s command_line variable).
-> 
-> What is the intention of both of these command lines? Are they supposed
-> to be the same, or different, or what?
-> 
-> boot_command_line:
-> * passed to parse_args("early options", ...)
-> * gets printed
-> * copied to saved_command_line, which is copied to static_command_line
-> and used for parsing args at each init level
-> 
-> command_line:
-> * copied to static_command_line first, and passed to parse_args("Booting
-> kernel", ...)
-> 
-> Some interesting architecture's setup_arch() behaviour that I've noticed:
-> 
-> Openrisc appears to set command_line to CONFIG_CMDLINE, but gets
-> boot_command_line from the devicetree chosen.bootargs, which defaults to
-> CONFIG_CMDLINE. So it appears that it provides different values. Was
-> this intentional?
-> 
-> MIPS appears to use of_scan_flat_dt to set arcs_cmdline from the
-> devicetree (this will default to CONFIG_CMDLINE). CONFIG_CMDLINE may
-> then be appended again in arch_mem_init. This is the same problem we
-> have with metag. I'm of the opinion that of_scan_flat_dt is doing the
-> wrong thing in falling back to CONFIG_CMDLINE, but maybe I misunderstand
-> and it just doesn't matter if command line options are repeated. Any
-> thoughts?
-> 
-> Thanks
-> James
-> 
-> --
-> To unsubscribe from this list: send the line "unsubscribe linux-arch" in
-> the body of a message to majordomo@vger.kernel.org
-> More majordomo info at  http://vger.kernel.org/majordomo-info.html
-> 
+But it is also here which Microblaze uses.
+
+[linux-2.6.x]$ grep -r define\\s*cmpxchg_local include/asm-generic/
+include/asm-generic/atomic.h:#define cmpxchg_local(ptr, o, n)				  	       \
+
+(not checked on the latest but probably it is the same)
+m68k, arm contains the same copy for one case
+c6x, unicore, cris, blackfin, h8300, sparc32
+
+Probably make sense to move these two macros
+cmpxchg64_local and cmpxchg_local to asm-generic/cmpxchg-local.h
+with #ifndef cmpxchg_local ...etc. and remove it from architectures above.
+
+Thanks,
+Michal
+
+-- 
+Michal Simek, Ing. (M.Eng)
+w: www.monstr.eu p: +42-0-721842854
+Maintainer of Linux kernel - Microblaze cpu - http://www.monstr.eu/fdt/
+Maintainer of Linux kernel - Xilinx Zynq ARM architecture
+Microblaze U-BOOT custodian
