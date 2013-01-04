@@ -1,64 +1,38 @@
-From: Frederic Weisbecker <fweisbec@gmail.com>
-Subject: Re: [RFC PATCH v1 15/31] ARC: Process/scheduling/clock/Timers/Delay Management
-Date: Fri, 4 Jan 2013 14:01:42 +0100
-Message-ID: <CAFTL4hz95LF0qetu+tjR3ZyHf0PWKwc40Sx-puJaUdrsSXgvKw@mail.gmail.com>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
-	<1352281674-2186-16-git-send-email-vgupta@synopsys.com>
-	<alpine.LFD.2.02.1211122110230.10000@ionos>
-	<50E3DE29.6020403@synopsys.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: Re: [PATCH v2 22/44] metag: Time keeping
+Date: Fri, 4 Jan 2013 13:11:06 +0000
+Message-ID: <50E6D4EA.4090307@imgtec.com>
+References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com> <1354723742-6195-23-git-send-email-james.hogan@imgtec.com> <50E6A987.207@synopsys.com> <50E6C961.40009@imgtec.com> <50E6CF87.4070802@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vb0-f52.google.com ([209.85.212.52]:60836 "EHLO
-	mail-vb0-f52.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753469Ab3ADNBn (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 4 Jan 2013 08:01:43 -0500
-In-Reply-To: <50E3DE29.6020403@synopsys.com>
+Received: from multi.imgtec.com ([194.200.65.239]:56735 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1754558Ab3ADNLJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 4 Jan 2013 08:11:09 -0500
+In-Reply-To: <50E6CF87.4070802@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Thomas Gleixner <tglx@linutronix.de>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Thomas Gleixner <tglx@linutronix.de>
 
-2013/1/2 Vineet Gupta <Vineet.Gupta1@synopsys.com>:
-> On Tuesday 13 November 2012 01:59 AM, Thomas Gleixner wrote:
->> On Wed, 7 Nov 2012, Vineet Gupta wrote:
->>> +void cpu_idle(void)
->>> +{
->>> +    /* Since we SLEEP in idle loop, TIF_POLLING_NRFLAG can't be set */
->>> +
->>> +    /* endless idle loop with no priority at all */
->>> +    while (1) {
->>> +            tick_nohz_idle_enter();
->>> +
->>> +            while (!need_resched())
->>> +                    arch_idle();
->>> +
->>> +            tick_nohz_idle_exit();
->>> +
->>> +            preempt_enable_no_resched();
->>> +            schedule();
->>> +            preempt_disable();
->>
->>               schedule_preempt_disabled() please
->
->
-> OK ! And it seems I was also missing the calls to rcu_idle_enter()/exit() to track
-> commit 1268fbc746ea  "nohz: Remove tick_nohz_idle_enter_norcu() / ..."
+On 04/01/13 12:48, Vineet Gupta wrote:
+> Another question if you don't mind. In our setup we have a UART (non-standard ARC
+> specific) which is wired up to the boot CPU (only). Now if the init/rcS happens to
+> run on non-boot CPU, the setup/request_irq( ) and hence consequential low level
+> cpu irq unmasking will only happen on *that* cpu. Now if user were to type a
+> key-stroke, the interrupt will be asserted on boot-cpu, which has interrupt
+> masked. How is this handled.
 
-Right!
+I'm guessing the best way would be to set the affinity of the irq from
+the serial driver, and implement the irq_set_affinity callback for the
+relevant irq_chip to do the necessary work, but others may have better
+ideas.
 
-They must be placed around the code that sets the low power mode, when
-you know there is no use of RCU between rcu_idle_enter() /
-rcu_idle_exit(). Here this would be likely:
+Meta has something similar for output via jtag debug pod, but it doesn't
+use interrupts so it has to poll from an add_timer_on()'d timer and
+output from a kthread_bind()'d kthread.
 
-while (1) {
-        tick_nohz_idle_enter();
-
-+      rcu_idle_enter();
-        while (!need_resched())
-                arch_idle();
-+      rcu_idle_exit()
-
-        tick_nohz_idle_exit();
-        schedule_preempt_disabled();
-}
+Cheers
+James
