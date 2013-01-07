@@ -1,44 +1,140 @@
-From: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Subject: Re: [PATCH v2 43/44] tty/metag_da: Add metag DA TTY driver
-Date: Mon, 7 Jan 2013 11:54:25 +0000
-Message-ID: <20130107115425.7a1c9176@pyramind.ukuu.org.uk>
-References: <1354723742-6195-1-git-send-email-james.hogan@imgtec.com>
-	<1354723742-6195-44-git-send-email-james.hogan@imgtec.com>
-	<20121205172446.41aa464e@pyramind.ukuu.org.uk>
-	<50E6E322.8070108@imgtec.com>
-	<20130104170013.74b6dbe2@pyramind.ukuu.org.uk>
-	<50EAB1C1.9050808@imgtec.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [RFC PATCH v1 25/31] ARC: [plat-arcfpga] Hooking up platform
+ to ARC UART
+Date: Mon, 7 Jan 2013 18:40:45 +0530
+Message-ID: <50EAC955.6010109@synopsys.com>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-26-git-send-email-vgupta@synopsys.com> <201211071416.08012.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from lxorguk.ukuu.org.uk ([81.2.110.251]:40205 "EHLO
-	lxorguk.ukuu.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753744Ab3AGLrl (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jan 2013 06:47:41 -0500
-In-Reply-To: <50EAB1C1.9050808@imgtec.com>
+Received: from kiruna.synopsys.com ([198.182.44.80]:43384 "EHLO
+	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754183Ab3AGNK6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jan 2013 08:10:58 -0500
+In-Reply-To: <201211071416.08012.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Grant Likely <grant.likely@secretlab.ca>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-> Yes. The case I tried was a large write (strace cat /etc/somefile >
-> /dev/ttyDA2) and strace showed a single large write, but it got to the
-> driver in chunks of a dozen or so characters. Is that expected to happen?
-
-Yes it is - the tty mid layer code could do better on this but it's never
-been much of a priority.
-
-> @@ -613,8 +613,7 @@ static int __init dashtty_init(void)
->  	channel_driver->type = TTY_DRIVER_TYPE_SERIAL;
->  	channel_driver->subtype = SERIAL_TYPE_NORMAL;
->  	channel_driver->init_termios = tty_std_termios;
-> -	channel_driver->init_termios.c_cflag =
-> -	    B38400 | CS8 | CREAD | HUPCL | CLOCAL;
-> +	channel_driver->init_termios.c_cflag |= CLOCAL;
->  	channel_driver->flags = TTY_DRIVER_REAL_RAW;
+On Wednesday 07 November 2012 07:46 PM, Arnd Bergmann wrote:
+> On Wednesday 07 November 2012, Vineet Gupta wrote:
+>> +static struct platform_device arc_uart##n##_dev = {    \
+>> +       .name = "arc-uart",                             \
+>> +       .id = n,                                        \
+>> +       .num_resources = ARRAY_SIZE(arc_uart##n##_res), \
+>> +       .resource = arc_uart##n##_res,                  \
+>> +       .dev = {                                        \
+>> +               .platform_data = &arc_uart_info,        \
+>> +       },                                              \
+>> +}
+>> +
+>> +ARC_UART_DEV(0);
+>> +#if CONFIG_SERIAL_ARC_NR_PORTS > 1
+>> +ARC_UART_DEV(1);
+>> +#endif
+>> +
+>> +static struct platform_device *fpga_early_devs[] __initdata = {
+>> +#if defined(CONFIG_SERIAL_ARC_CONSOLE)
+>> +       &arc_uart0_dev,
+>> +#endif
+>> +};
 > 
->  	tty_set_operations(channel_driver, &dashtty_ops);
+> statically defining platform devices like this is considered very
+> bad style, especially since it prevents you from doing proper
+> boot-time configuration. Please get the available devices from
+> the boot loader. Normally this is done using a flattened device
+> tree blob that gets passed, unless you can probe the hardware
+> directly.
+> 
+> 	Arnd
+> 
 
+I have a first pass at device tree implementation: extracting plat-clk and
+sdram-size as runtime values was relatively easy. However adding arc-uart device
+is turning out to be non-trivial and I'm hitting a bunch of blockers which I hope
+you and/or Grant will help me with. Please rest assured that I'm only seeking help
+after enough grepping and debuggign this for whole day (with -DDEBUG) in much of
+device model code.
 
-Ok
+I used following as refs:
+[1] http://www.devicetree.org/Device_Tree_Usage
+[2] Documentation/devicetrre/usage_model.txt
+[3] metag's implementation which helped to some extent.
+[4] drivers/tty/serial/arc_uart.c (merged in 3.8)
+[5] lots and lots of grep in arch/*
+
+I have a very minimal device tree file for Angel4 board with just arc-uart device.
+
+---------------------->8--------------------------------
+/ {
+	compatible = "snps,angel4";
+	clock-frequency = <80000000>;	/* 80 MHZ */
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	chosen {
+		bootargs = "console=ttyARC0,115200n8";
+	};
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu@0 {
+			device_type = "cpu";
+			compatible = "snps,arc770d";
+			reg = <0>;
+		};
+	};
+
+	memory {
+		device_type = "memory";
+		reg = <0x00000000 0x20000000>;	/* 512M */
+	};
+
+	fpga {
+		compatible = "simple-bus";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		serial@c0fc1000 {
+			compatible = "snps,arc-uart";
+			reg = <0xc0fc1000 0x100>;
+			interrupts = <5>;
+			status = "okay";
+		};
+	};
+};
+---------------------->8--------------------------------
+
+(1) Although I don't need the container "fpga" I'm forced to - because
+of_platform_populate( ) -> of_match_node( ) expects the @match arg to be NOT NULL.
+So we pass of_default_bus_match_table and have the compat string "simple-bus" in
+the container. Per [1] it seemed it was possible to add the serial device directly
+w/o the container.
+
+(2) I need the following OF_DEV_AUXDATA to be able to "name" the device correctly
+so that the registered driver [4] can bind with device. How do I match the driver
+and devicetree node w/o this glue - it seems compatible="<manuf>,<model>" is not
+enough. This also requires the uart base address to be specified (otherwise
+of_dev_lookup() fails to identify the auxdata) which IMHO defeats the purpose of
+devicetree in first place.
+
+static struct of_dev_auxdata arcuart_auxdata_lookup[] __initdata = {
+	OF_DEV_AUXDATA("snps,arc-uart", UART0_BASE, "arc-uart", arc_uart_info),
+	{}
+};
+
+(3) After above, driver's probe routine is getting called with platform_device->id
+= -1 and it seems of_device_add() is doing that purposely. How do I handle that.
+
+(4) Is above standalone "interrupts" string OK, or do I have to explicitly
+instantiate the in-core intc as well. Since it is integral part of cpu, I really
+don't need any support code to explicitly instantiate it. Also it is not accessed
+via mem map - but special ARC instructions in aux address space of cpu.
+
+TIA,
+-Vineet
