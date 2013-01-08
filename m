@@ -1,77 +1,64 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [RFC PATCH v1 25/31] ARC: [plat-arcfpga] Hooking up platform to ARC UART
-Date: Mon, 07 Jan 2013 14:36:47 +0000
-Message-ID: <2626403.I2tzc2MAVY@wuerfel>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <201301071346.01620.arnd@arndb.de> <50EAD5F3.7030204@synopsys.com>
+From: Alexandre Courbot <acourbot@nvidia.com>
+Subject: [PATCH 0/4] gpio: introduce descriptor-based interface
+Date: Tue, 8 Jan 2013 16:18:51 +0900
+Message-ID: <1357629535-26033-1-git-send-email-acourbot@nvidia.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7Bit
+Content-Type: text/plain
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.186]:55072 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751292Ab3AGOhK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 7 Jan 2013 09:37:10 -0500
-In-Reply-To: <50EAD5F3.7030204@synopsys.com>
+Received: from hqemgate03.nvidia.com ([216.228.121.140]:11556 "EHLO
+	hqemgate03.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751084Ab3AHHTU (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jan 2013 02:19:20 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-serial@vger.kernel.org
-Cc: Grant Likely <grant.likely@secretlab.ca>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>
+Cc: Guenter Roeck <linux@roeck-us.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, devicetree-discuss@lists.ozlabs.org, Alexandre Courbot <gnurou@gmail.com>, Alexandre Courbot <acourbot@nvidia.com>
 
-On Monday 07 January 2013 19:34:35 Vineet Gupta wrote:
-> On Monday 07 January 2013 07:16 PM, Arnd Bergmann wrote:
+This series introduce a first take at implementing the RFC for the new GPIO API
+that I submitted last month. It proposes a new, opaque descriptor-based GPIO API
+that becomes available when GPIOlib is compiled, and provides a safer, more
+abstract alternative to the current integer-based interface. GPIOlib internals
+are also switched to use the descriptor logic, and the former integer API
+becomes a lightweight wrapper around the new descriptor-based API.
 
-> >> static struct of_dev_auxdata arcuart_auxdata_lookup[] __initdata = {
-> >> 	OF_DEV_AUXDATA("snps,arc-uart", UART0_BASE, "arc-uart", arc_uart_info),
-> >> 	{}
-> >> };
-> > It should be enough to fill the drv->of_match_table member of the
-> > platform_driver with the match table.
-> 
-> Not sure if I understand. My concern is the #define UART0_BASE (=0xc0fc1000) which
-> needs to be defined in code despite that value being present in the device tree.
-> And this is needed so that framework could match the device against the driver. I
-> would have thought that some device property (in device tree) could enable the
-> matching with Linux name (actually DRIVER_NAME defined in the uart driver).  Am I
-> missing something ?
+Functionally speaking the new API is identical to the integer-based API, with
+only the prefix changing from gpio_ to gpiod_. However, the second patch
+introduces new functions for obtaining GPIOs from a device and a consumer name,
+in a fashion similar to what is done with e.g. regulators and PWMs.
 
-I mean you should not need the auxdata entry if the driver does everything
-right, and you get rid of the platform_data.
+GPIOs can then be provided either by board-specific lookup tables, or through
+the device tree. Device tree lookup might require some attention as it does not
+handle properties with multiple descriptors yet. Also, there is currently no
+equivalent of gpio_request_array() and GPIOs can only be allocated one-by-one.
+Feedback about the relevancy of batch requesting GPIOs is welcome.
 
-> >> (3) After above, driver's probe routine is getting called with platform_device->id
-> >> = -1 and it seems of_device_add() is doing that purposely. How do I handle that.
-> > What do you need the id for?
-> 
-> In case of multiple instances of UART, driver uses this value to index into struct
-> arc_uart_port [ ]
-> 
-> struct arc_uart_port {
->     struct uart_port port;
->     unsigned long baud;
->     int is_emulated;
-> };
-> 
-> static struct arc_uart_port arc_uart_ports[CONFIG_SERIAL_ARC_NR_PORTS];
-> 
-> arc_serial_probe(struct platform_device *pdev)
->     uart = &arc_uart_ports[pdev->id];
->     arc_uart_init_one(pdev, ..)
->           if (pdev->id < 0 ...)
->                   return -ENOENT;
->  
-> Although the current driver is flawed in that it checks for -ve value after
-> already indexing into the array :-(
-> I'll send a patch to serial list to fix that.
+This patch series also prepares GPIOlib for the next step, which is getting rid
+of ARCH_NR_GPIOS and of the static array in GPIOlib and replace the latter with
+per-chip arrays that are allocated when the chip is added. Some challenge may
+arise from the fact that gpiochip_add is potentially called before kmalloc is
+available.
 
-(adding linux-serial to Cc)
+Anyway, I expect this patchset to go through several iterations in order to
+address the points mentioned above (and of course the ones I missed). As usual,
+your valuable feedback is most welcome.
 
-Generally speaking, drivers should not have static or fixed-size arrays of
-devices in them. What you should do instead is to allocate the arc_uart_port
-at from arc_serial_probe() and remove all the references to the global
-array. I'm not completely sure if that's possible with the uart_port yet,
-maybe someone else can comment on that.
+Alexandre Courbot (4):
+  gpiolib: introduce descriptor-based GPIO interface
+  gpiolib: add gpiod_get and gpiod_put functions
+  gpiolib: of: convert OF helpers to descriptor API
+  gpiolib: add documentation for new gpiod_ API
 
-For the id value, have a look at the drivers/tty/serial/mxs-auart.c and how
-it gets the id from the /aliases node in the device tree using
-of_alias_get_id().
+ Documentation/gpio.txt        |  94 +++++-
+ drivers/gpio/devres.c         |  59 +++-
+ drivers/gpio/gpiolib-of.c     |  26 +-
+ drivers/gpio/gpiolib.c        | 648 ++++++++++++++++++++++++++++--------------
+ include/asm-generic/gpio.h    | 176 ++++--------
+ include/linux/gpio/consumer.h | 128 +++++++++
+ include/linux/gpio/driver.h   | 171 +++++++++++
+ include/linux/of_gpio.h       |  73 +----
+ 8 files changed, 956 insertions(+), 419 deletions(-)
+ create mode 100644 include/linux/gpio/consumer.h
+ create mode 100644 include/linux/gpio/driver.h
 
-	Arnd
+-- 
+1.8.1
