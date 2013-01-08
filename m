@@ -1,32 +1,87 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 2/4] gpiolib: add gpiod_get and gpiod_put functions
-Date: Tue, 8 Jan 2013 13:07:04 +0000
-Message-ID: <201301081307.04229.arnd@arndb.de>
-References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com> <1357629535-26033-3-git-send-email-acourbot@nvidia.com>
+From: Steve Capper <steve.capper@arm.com>
+Subject: Re: [RFC PATCH 1/6] ARM: mm: correct pte_same behaviour for LPAE.
+Date: Tue, 8 Jan 2013 17:56:30 +0000
+Message-ID: <20130108175630.GA18347@e103986-lin>
+References: <1350576942-25299-1-git-send-email-steve.capper@arm.com>
+ <1350576942-25299-2-git-send-email-steve.capper@arm.com>
+ <CANM98qJEigKksbv5QdGLWzCdaSj9NipJ-RYrouzWPRn6XVCw0Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=WINDOWS-1252
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:51412 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755153Ab3AHNHW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jan 2013 08:07:22 -0500
-In-Reply-To: <1357629535-26033-3-git-send-email-acourbot@nvidia.com>
+Received: from service87.mimecast.com ([91.220.42.44]:54315 "EHLO
+	service87.mimecast.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756231Ab3AHR4g convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jan 2013 12:56:36 -0500
+In-Reply-To: <CANM98qJEigKksbv5QdGLWzCdaSj9NipJ-RYrouzWPRn6XVCw0Q@mail.gmail.com>
+Content-Language: en-US
+Content-Disposition: inline
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexandre Courbot <acourbot@nvidia.com>
-Cc: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Guenter Roeck <linux@roeck-us.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, devicetree-discuss@lists.ozlabs.org, Alexandre Courbot <gnurou@gmail.com>
+To: Christoffer Dall <c.dall@virtualopensystems.com>
+Cc: Steve Capper <Steve.Capper@arm.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "aarcange@redhat.com" <aarcange@redhat.com>, "bill4carson@gmail.com" <bill4carson@gmail.com>, "tawfik@marvell.com" <tawfik@marvell.com>, Catalin Marinas <Catalin.Marinas@arm.com>, Will Deacon <Will.Deacon@arm.com>, "cmetcalf@tilera.com" <cmetcalf@tilera.com>, "mhocko@suse.cz" <mhocko@suse.cz>, "maen@marvell.com" <maen@marvell.com>, "hoffman@marvell.com" <hoffman@marvell.com>, "notasas@gmail.com" <notasas@gmail.com>, "kirill@shutemov.name" <kirill@shutemov.name>, "akpm@linux-foundation.org" <akpm@linux-foundation.org>, "shadi@marvell.com" <shadi@marvell.com>
 
-On Tuesday 08 January 2013, Alexandre Courbot wrote:
+On Fri, Jan 04, 2013 at 05:03:26AM +0000, Christoffer Dall wrote:
+> On Thu, Oct 18, 2012 at 12:15 PM, Steve Capper <steve.capper@arm.com> wrote:
+
+> >
+> >  /*
+> > + * For 3 levels of paging the PTE_EXT_NG bit will be set for user address ptes
+> > + * that are written to a page table but not for ptes created with mk_pte.
+> > + *
 > 
-> Adds new GPIO allocation functions that work with the opaque descriptor
-> interface.
+> Why is this not the case for 2 levels of paging as well?
 > 
-> Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
+> Is that because it's always checked against the Linux version, or?
+> 
+> 
 
-I think you need to reorder the patches slightly, since the gpiod_get
-function introduced here is already being used in the first patch, which
-breaks bisection.
+Yes that's the case, I'll update the comment to reflect that.
 
-	Arnd
+> > + * This can cause some comparison tests made by pte_same to fail spuriously and
+> > + * lead to other problems.
+> > + *
+> > + * To correct this behaviour, we mask off PTE_EXT_NG for any pte that is
+> > + * present before running the comparison.
+> 
+> nit: This comment doesn't really explain the rationale, I'm assuming
+> that pte_same is used to compare only which page gets mapped, assuming
+> the attributes etc. remain the same? or also the attributes should be
+> the same, only mk_pte sets all of these except the NG bit.
+> 
+
+I'll expand the comment to include the actual case. Essentially hugetlb_nopage
+calls mk_pte to give new_pte and passes this to hugetlb_cow which then performs
+a pte_same test against a pte that has already been written out to a page
+table; the test fails erroneously due to the mismatch in NG bit.
+
+Unfortunately this then causes a memory leak. 
+
+> > + */
+> > +#define __HAVE_ARCH_PTE_SAME
+> > +static inline int pte_same(pte_t pte_a, pte_t pte_b)
+> > +{
+> > +       pteval_t vala = pte_val(pte_a), valb = pte_val(pte_b);
+> > +       if (pte_present(pte_a))
+> > +               vala &= ~L_PTE_CMP_MASKOFF;
+> > +
+> > +       if (pte_present(pte_b))
+> > +               valb &= ~L_PTE_CMP_MASKOFF;
+> > +
+> > +       return vala == valb;
+> > +}
+> > +
+> > +/*
+> >   * Encode and decode a swap entry.  Swap entries are stored in the Linux
+> >   * page tables as follows:
+> >   *
+> > --
+> > 1.7.9.5
+> >
+> >
+> >
+> > _______________________________________________
+> > linux-arm-kernel mailing list
+> > linux-arm-kernel@lists.infradead.org
+> > http://lists.infradead.org/mailman/listinfo/linux-arm-kernel
+> 
