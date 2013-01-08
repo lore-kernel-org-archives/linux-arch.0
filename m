@@ -1,7 +1,7 @@
 From: Alexandre Courbot <acourbot@nvidia.com>
-Subject: [PATCH 2/4] gpiolib: add gpiod_get and gpiod_put functions
-Date: Tue, 8 Jan 2013 16:18:53 +0900
-Message-ID: <1357629535-26033-3-git-send-email-acourbot@nvidia.com>
+Subject: [PATCH 3/4] gpiolib: of: convert OF helpers to descriptor API
+Date: Tue, 8 Jan 2013 16:18:54 +0900
+Message-ID: <1357629535-26033-4-git-send-email-acourbot@nvidia.com>
 References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,289 +12,315 @@ To: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linar
 Cc: Guenter Roeck <linux@roeck-us.net>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, devicetree-discuss@lists.ozlabs.org, Alexandre Courbot <gnurou@gmail.com>, Alexandre Courbot <acourbot@nvidia.com>
 List-Id: linux-arch.vger.kernel.org
 
-Adds new GPIO allocation functions that work with the opaque descriptor
-interface.
+Convert gpiolib-of.c's internals to rely on descriptors instead of
+integers and add the gpiod_ counterparts of existing OF functions.
 
 Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
 ---
- drivers/gpio/gpiolib.c        | 164 ++++++++++++++++++++++++++++++++++++++++++
- include/linux/gpio/consumer.h |   8 +++
- include/linux/gpio/driver.h   |  21 ++++++
- 3 files changed, 193 insertions(+)
+ drivers/gpio/gpiolib-of.c     | 26 +++++++++------
+ include/linux/gpio/consumer.h | 56 +++++++++++++++++++++++++++++++++
+ include/linux/gpio/driver.h   | 38 ++++++++++++++++++++++
+ include/linux/of_gpio.h       | 73 ++++++-------------------------------------
+ 4 files changed, 120 insertions(+), 73 deletions(-)
 
-diff --git a/drivers/gpio/gpiolib.c b/drivers/gpio/gpiolib.c
-index d04b90b..06ffadb 100644
---- a/drivers/gpio/gpiolib.c
-+++ b/drivers/gpio/gpiolib.c
-@@ -3,6 +3,7 @@
- #include <linux/interrupt.h>
- #include <linux/irq.h>
- #include <linux/spinlock.h>
-+#include <linux/list.h>
+diff --git a/drivers/gpio/gpiolib-of.c b/drivers/gpio/gpiolib-of.c
+index d542a14..8c9f8c5 100644
+--- a/drivers/gpio/gpiolib-of.c
++++ b/drivers/gpio/gpiolib-of.c
+@@ -13,6 +13,7 @@
+ 
  #include <linux/device.h>
- #include <linux/err.h>
- #include <linux/debugfs.h>
-@@ -74,6 +75,11 @@ struct gpio_desc {
+ #include <linux/errno.h>
++#include <linux/err.h>
+ #include <linux/module.h>
+ #include <linux/io.h>
+ #include <linux/gpio.h>
+@@ -22,12 +23,14 @@
+ #include <linux/pinctrl/pinctrl.h>
+ #include <linux/slab.h>
+ 
++struct gpio_desc;
++
+ /* Private data structure for of_gpiochip_find_and_xlate */
+ struct gg_data {
+ 	enum of_gpio_flags *flags;
+ 	struct of_phandle_args gpiospec;
+ 
+-	int out_gpio;
++	struct gpio_desc *out_gpio;
  };
- static struct gpio_desc gpio_desc[ARCH_NR_GPIOS];
  
-+/* protects both gpio_lookup_list and gpio_chips */
-+static DEFINE_MUTEX(gpio_lookup_lock);
-+static LIST_HEAD(gpio_lookup_list);
-+static LIST_HEAD(gpio_chips);
-+
- #ifdef CONFIG_GPIO_SYSFS
- static DEFINE_IDR(dirent_idr);
- #endif
-@@ -1162,6 +1168,11 @@ int gpiochip_add(struct gpio_chip *chip)
+ /* Private function for resolving node pointer to gpio_chip */
+@@ -45,28 +48,31 @@ static int of_gpiochip_find_and_xlate(struct gpio_chip *gc, void *data)
+ 	if (ret < 0)
+ 		return false;
  
- 	of_gpiochip_add(chip);
- 
-+	INIT_LIST_HEAD(&chip->list);
-+	mutex_lock(&gpio_lookup_lock);
-+	list_add(&chip->list, &gpio_chips);
-+	mutex_unlock(&gpio_lookup_lock);
-+
- unlock:
- 	spin_unlock_irqrestore(&gpio_lock, flags);
- 
-@@ -1200,6 +1211,10 @@ int gpiochip_remove(struct gpio_chip *chip)
- 
- 	spin_lock_irqsave(&gpio_lock, flags);
- 
-+	mutex_lock(&gpio_lookup_lock);
-+	list_del_init(&chip->list);
-+	mutex_unlock(&gpio_lookup_lock);
-+
- 	gpiochip_remove_pin_ranges(chip);
- 	of_gpiochip_remove(chip);
- 
-@@ -1924,6 +1939,155 @@ void gpiod_set_value_cansleep(struct gpio_desc *desc, int value)
+-	gg_data->out_gpio = ret + gc->base;
++	gg_data->out_gpio = gpio_to_desc(ret + gc->base);
+ 	return true;
  }
- EXPORT_SYMBOL_GPL(gpiod_set_value_cansleep);
- 
-+
-+/**
-+ * gpioh_add_table() - register GPIO device consumers
-+ * @table: array of consumers to register
-+ * @num: number of consumers in table
-+ */
-+void gpiod_add_table(struct gpiod_lookup *table, size_t size)
-+{
-+	mutex_lock(&gpio_lookup_lock);
-+
-+	while (size--) {
-+		list_add_tail(&table->list, &gpio_lookup_list);
-+		table++;
-+	}
-+
-+	mutex_unlock(&gpio_lookup_lock);
-+}
-+
-+/*
-+ * Caller must have a acquired gpio_lookup_lock
-+ */
-+static struct gpio_chip *find_chip_by_name(const char *name)
-+{
-+	struct gpio_chip *chip = NULL;
-+
-+	list_for_each_entry(chip, &gpio_lookup_list, list) {
-+		if (chip->label == NULL)
-+			continue;
-+		if (!strcmp(chip->label, name))
-+			break;
-+	}
-+
-+	return chip;
-+}
-+
-+#ifdef CONFIG_OF
-+static struct gpio_desc *of_find_gpio(struct device *dev, const char *con_id)
-+{
-+	char prop_name[32]; /* 32 is max size of property name */
-+
-+	if (con_id)
-+		snprintf(prop_name, 32, "%s-gpios", con_id);
-+	else
-+		snprintf(prop_name, 32, "gpios");
-+
-+	return of_get_named_gpiod_flags(dev->of_node, prop_name, 0, NULL);
-+}
-+#else
-+static struct device_node *of_find_gpio(struct device *dev, const char *id)
-+{
-+	return NULL;
-+}
-+#endif
-+
-+static struct gpio_desc *gpiod_find(struct device *dev, const char *con_id)
-+{
-+	const char *dev_id = dev ? dev_name(dev) : NULL;
-+	struct gpio_desc *desc = ERR_PTR(-ENODEV);
-+	unsigned int match, best = 0;
-+	struct gpiod_lookup *p;
-+
-+	mutex_lock(&gpio_lookup_lock);
-+
-+	list_for_each_entry(p, &gpio_lookup_list, list) {
-+		match = 0;
-+
-+		if (p->dev_id) {
-+			if (!dev_id || strcmp(p->dev_id, dev_id))
-+				continue;
-+
-+			match += 2;
-+		}
-+
-+		if (p->con_id) {
-+			if (!con_id || strcmp(p->con_id, con_id))
-+				continue;
-+
-+			match += 1;
-+		}
-+
-+		if (match > best) {
-+			struct gpio_chip *chip;
-+
-+			chip = find_chip_by_name(p->chip_label);
-+			if (!chip) {
-+				dev_warn(dev, "cannot find GPIO chip %s\n",
-+					 p->chip_label);
-+				continue;
-+			}
-+
-+			if (chip->ngpio >= p->chip_hwnum) {
-+				dev_warn(dev, "GPIO chip %s has %d GPIOs\n",
-+					 chip->label, chip->ngpio);
-+				continue;
-+			}
-+
-+			desc = gpio_to_desc(chip->base + p->chip_hwnum);
-+
-+			if (match != 3)
-+				best = match;
-+			else
-+				break;
-+		}
-+	}
-+
-+	mutex_unlock(&gpio_lookup_lock);
-+
-+	return desc;
-+}
-+
-+/**
-+ *
-+ */
-+struct gpio_desc *__must_check gpiod_get(struct device *dev, const char *con_id)
-+{
-+	struct gpio_desc *desc;
-+	int status;
-+
-+	dev_dbg(dev, "GPIO lookup for consumer %s\n", con_id);
-+
-+	/* Using device tree? */
-+	if (IS_ENABLED(CONFIG_OF) && dev && dev->of_node) {
-+		dev_dbg(dev, "using device tree for GPIO lookup\n");
-+		desc = of_find_gpio(dev, con_id);
-+	} else {
-+		dev_dbg(dev, "using lookup tables for GPIO lookup");
-+		desc = gpiod_find(dev, con_id);
-+	}
-+
-+	if (IS_ERR(desc)) {
-+		dev_warn(dev, "lookup for GPIO %s failed\n", con_id);
-+		return desc;
-+	}
-+
-+	status = gpiod_request(desc, con_id);
-+
-+	if (status < 0)
-+		return ERR_PTR(status);
-+
-+	return desc;
-+}
-+EXPORT_SYMBOL_GPL(gpiod_get);
-+
-+void gpiod_put(struct gpio_desc *desc)
-+{
-+	gpiod_free(desc);
-+}
-+EXPORT_SYMBOL_GPL(gpiod_put);
-+
- #ifdef CONFIG_DEBUG_FS
- 
- static void gpiolib_dbg_show(struct seq_file *s, struct gpio_chip *chip)
-diff --git a/include/linux/gpio/consumer.h b/include/linux/gpio/consumer.h
-index 0ce96cf..2f30761 100644
---- a/include/linux/gpio/consumer.h
-+++ b/include/linux/gpio/consumer.h
-@@ -15,6 +15,14 @@ struct gpio_chip;
-  */
- struct gpio_desc;
- 
-+struct gpio_desc *__must_check gpiod_get(struct device *dev,
-+					 const char *con_id);
-+void gpiod_put(struct gpio_desc *desc);
-+
-+struct gpio_desc *__must_check devm_gpiod_get(struct device *dev,
-+					      const char *con_id);
-+void devm_gpiod_put(struct device *dev, struct gpio_desc *desc);
-+
- struct gpio_desc *gpio_to_desc(unsigned gpio);
- int desc_to_gpio(const struct gpio_desc *desc);
- struct gpio_chip *gpiod_to_chip(struct gpio_desc *desc);
-diff --git a/include/linux/gpio/driver.h b/include/linux/gpio/driver.h
-index d42f941..d43d671 100644
---- a/include/linux/gpio/driver.h
-+++ b/include/linux/gpio/driver.h
-@@ -4,12 +4,14 @@
- #ifdef CONFIG_GPIOLIB
- 
- #include <linux/types.h>
-+#include <linux/list.h>
  
  /**
-  * struct gpio_chip - abstract a GPIO controller
-  * @label: for diagnostics
-  * @dev: optional device providing the GPIOs
-  * @owner: helps prevent removal of modules exporting active GPIOs
-+ * @list: links gpio_chips together for traversal
-  * @request: optional hook for chip-specific activation, such as
-  *	enabling module power and clock; may sleep
-  * @free: optional hook for chip-specific deactivation, such as
-@@ -55,6 +57,7 @@ struct gpio_chip {
- 	const char		*label;
- 	struct device		*dev;
- 	struct module		*owner;
-+	struct list_head	list;
+- * of_get_named_gpio_flags() - Get a GPIO number and flags to use with GPIO API
++ * of_get_named_gpiod_flags() - Get a GPIO descriptor and flags for GPIO API
+  * @np:		device node to get GPIO from
+  * @propname:	property name containing gpio specifier(s)
+  * @index:	index of the GPIO
+  * @flags:	a flags pointer to fill in
+  *
+- * Returns GPIO number to use with Linux generic GPIO API, or one of the errno
++ * Returns GPIO descriptor to use with Linux GPIO API, or one of the errno
+  * value on the error condition. If @flags is not NULL the function also fills
+  * in flags for the GPIO.
+  */
+-int of_get_named_gpio_flags(struct device_node *np, const char *propname,
+-                           int index, enum of_gpio_flags *flags)
++struct gpio_desc *of_get_named_gpiod_flags(struct device_node *np,
++		const char *propname, int index, enum of_gpio_flags *flags)
+ {
+ 	/* Return -EPROBE_DEFER to support probe() functions to be called
+ 	 * later when the GPIO actually becomes available
+ 	 */
+-	struct gg_data gg_data = { .flags = flags, .out_gpio = -EPROBE_DEFER };
++	struct gg_data gg_data = {
++		.flags = flags,
++		.out_gpio = ERR_PTR(-EPROBE_DEFER),
++	};
+ 	int ret;
  
- 	int			(*request)(struct gpio_chip *chip,
- 						unsigned offset);
-@@ -107,6 +110,24 @@ struct gpio_chip {
- #endif
- };
+ 	/* .of_xlate might decide to not fill in the flags, so clear it. */
+@@ -77,13 +83,15 @@ int of_get_named_gpio_flags(struct device_node *np, const char *propname,
+ 					 &gg_data.gpiospec);
+ 	if (ret) {
+ 		pr_debug("%s: can't parse gpios property\n", __func__);
+-		return ret;
++		return ERR_PTR(ret);
+ 	}
  
-+struct gpiod_lookup {
-+	struct list_head list;
-+	const char *chip_label;
-+	u16 chip_hwnum;
-+	const char *dev_id;
-+	const char *con_id;
+ 	gpiochip_find(&gg_data, of_gpiochip_find_and_xlate);
+ 
+ 	of_node_put(gg_data.gpiospec.np);
+-	pr_debug("%s exited with status %d\n", __func__, gg_data.out_gpio);
++
++	ret = PTR_RET(gg_data.out_gpio);
++	pr_debug("%s exited with status %d\n", __func__, ret);
+ 	return gg_data.out_gpio;
+ }
+ EXPORT_SYMBOL(of_get_named_gpio_flags);
+diff --git a/include/linux/gpio/consumer.h b/include/linux/gpio/consumer.h
+index 2f30761..b6a3bc8 100644
+--- a/include/linux/gpio/consumer.h
++++ b/include/linux/gpio/consumer.h
+@@ -3,6 +3,8 @@
+ 
+ #ifdef CONFIG_GPIOLIB
+ 
++#include <linux/kernel.h>
++
+ struct device;
+ struct gpio_chip;
+ 
+@@ -67,6 +69,60 @@ static inline void gpiod_unexport(struct gpio_desc *desc)
+ 
+ #endif	/* CONFIG_GPIO_SYSFS */
+ 
++
++struct device_node;
++
++/*
++ * This is Linux-specific flags. By default controllers' and Linux' mapping
++ * match, but GPIO controllers are free to translate their own flags to
++ * Linux-specific in their .xlate callback. Though, 1:1 mapping is recommended.
++ */
++enum of_gpio_flags {
++	OF_GPIO_ACTIVE_LOW = 0x1,
 +};
 +
-+#define GPIO_LOOKUP(_chip_label, _chip_hwnum, _dev_id, _con_id)	\
-+{								\
-+	.chip_label = _chip_label,				\
-+	.chip_hwnum = _chip_hwnum,				\
-+	.dev_id = _dev_id,					\
-+	.con_id = _con_id,					\
++#ifdef CONFIG_OF_GPIO
++
++extern unsigned int of_gpio_named_count(struct device_node *np,
++					const char *propname);
++
++extern struct gpio_desc *of_get_named_gpiod_flags(struct device_node *np,
++		const char *list_name, int index, enum of_gpio_flags *flags);
++
++#else
++
++/* Drivers may not strictly depend on the GPIO support, so let them link. */
++static inline unsigned int of_gpio_named_count(struct device_node *np,
++					       const char *propname)
++{
++	return 0;
 +}
 +
-+void gpiod_add_table(struct gpiod_lookup *table, size_t size);
++static inline struct gpio_desc *of_get_named_gpiod_flags(struct device_node *np,
++		const char *list_name, int index, enum of_gpio_flags *flags)
++{
++	return ERR_PTR(-ENOSYS);
++}
++
++#endif /* CONFIG_OF_GPIO */
++
++static inline struct gpio_desc *of_get_gpiod_flags(struct device_node *np,
++					int index, enum of_gpio_flags *flags)
++{
++	return of_get_named_gpiod_flags(np, "gpios", index, flags);
++}
++
++static inline struct gpio_desc *of_get_named_gpiod(struct device_node *np,
++					const char *propname, int index)
++{
++	return of_get_named_gpiod_flags(np, propname, index, NULL);
++}
++
++static inline struct gpio_desc *of_get_gpiod(struct device_node *np, int index)
++{
++	return of_get_gpiod_flags(np, index, NULL);
++}
 +
  #endif /* CONFIG_GPIOLIB */
  
  #endif
+diff --git a/include/linux/gpio/driver.h b/include/linux/gpio/driver.h
+index d43d671..84447a5 100644
+--- a/include/linux/gpio/driver.h
++++ b/include/linux/gpio/driver.h
+@@ -128,6 +128,44 @@ struct gpiod_lookup {
+ 
+ void gpiod_add_table(struct gpiod_lookup *table, size_t size);
+ 
++#ifdef CONFIG_OF_GPIO
++
++/*
++ * OF GPIO chip for memory mapped banks
++ */
++struct of_mm_gpio_chip {
++	struct gpio_chip gc;
++	void (*save_regs)(struct of_mm_gpio_chip *mm_gc);
++	void __iomem *regs;
++};
++
++static inline struct of_mm_gpio_chip *to_of_mm_gpio_chip(struct gpio_chip *gc)
++{
++	return container_of(gc, struct of_mm_gpio_chip, gc);
++}
++
++extern int of_mm_gpiochip_add(struct device_node *np,
++			      struct of_mm_gpio_chip *mm_gc);
++extern void of_gpiochip_add(struct gpio_chip *gc);
++extern void of_gpiochip_remove(struct gpio_chip *gc);
++extern int of_gpio_simple_xlate(struct gpio_chip *gc,
++				const struct of_phandle_args *gpiospec,
++				u32 *flags);
++
++#else
++
++static inline int of_gpio_simple_xlate(struct gpio_chip *gc,
++				       const struct of_phandle_args *gpiospec,
++				       u32 *flags)
++{
++	return -ENOSYS;
++}
++
++static inline void of_gpiochip_add(struct gpio_chip *gc) { }
++static inline void of_gpiochip_remove(struct gpio_chip *gc) { }
++
++#endif /* CONFIG_OF_GPIO */
++
+ #endif /* CONFIG_GPIOLIB */
+ 
+ #endif
+diff --git a/include/linux/of_gpio.h b/include/linux/of_gpio.h
+index c454f57..f703707 100644
+--- a/include/linux/of_gpio.h
++++ b/include/linux/of_gpio.h
+@@ -17,78 +17,23 @@
+ #include <linux/compiler.h>
+ #include <linux/kernel.h>
+ #include <linux/errno.h>
++#include <linux/err.h>
+ #include <linux/gpio.h>
+ #include <linux/of.h>
++#include <linux/gpio/consumer.h>
++#include <linux/gpio/driver.h>
+ 
+-struct device_node;
+-
+-/*
+- * This is Linux-specific flags. By default controllers' and Linux' mapping
+- * match, but GPIO controllers are free to translate their own flags to
+- * Linux-specific in their .xlate callback. Though, 1:1 mapping is recommended.
+- */
+-enum of_gpio_flags {
+-	OF_GPIO_ACTIVE_LOW = 0x1,
+-};
+-
+-#ifdef CONFIG_OF_GPIO
+-
+-/*
+- * OF GPIO chip for memory mapped banks
+- */
+-struct of_mm_gpio_chip {
+-	struct gpio_chip gc;
+-	void (*save_regs)(struct of_mm_gpio_chip *mm_gc);
+-	void __iomem *regs;
+-};
+-
+-static inline struct of_mm_gpio_chip *to_of_mm_gpio_chip(struct gpio_chip *gc)
+-{
+-	return container_of(gc, struct of_mm_gpio_chip, gc);
+-}
+-
+-extern int of_get_named_gpio_flags(struct device_node *np,
+-		const char *list_name, int index, enum of_gpio_flags *flags);
+-
+-extern unsigned int of_gpio_named_count(struct device_node *np,
+-					const char* propname);
+-
+-extern int of_mm_gpiochip_add(struct device_node *np,
+-			      struct of_mm_gpio_chip *mm_gc);
+-
+-extern void of_gpiochip_add(struct gpio_chip *gc);
+-extern void of_gpiochip_remove(struct gpio_chip *gc);
+-extern int of_gpio_simple_xlate(struct gpio_chip *gc,
+-				const struct of_phandle_args *gpiospec,
+-				u32 *flags);
+-
+-#else /* CONFIG_OF_GPIO */
+-
+-/* Drivers may not strictly depend on the GPIO support, so let them link. */
+ static inline int of_get_named_gpio_flags(struct device_node *np,
+ 		const char *list_name, int index, enum of_gpio_flags *flags)
+ {
+-	return -ENOSYS;
+-}
+-
+-static inline unsigned int of_gpio_named_count(struct device_node *np,
+-					const char* propname)
+-{
+-	return 0;
+-}
+-
+-static inline int of_gpio_simple_xlate(struct gpio_chip *gc,
+-				       const struct of_phandle_args *gpiospec,
+-				       u32 *flags)
+-{
+-	return -ENOSYS;
++	struct gpio_desc *desc;
++	desc = of_get_named_gpiod_flags(np, list_name, index, flags);
++	if (IS_ERR(desc))
++		return PTR_ERR(desc);
++	else
++		return desc_to_gpio(desc);
+ }
+ 
+-static inline void of_gpiochip_add(struct gpio_chip *gc) { }
+-static inline void of_gpiochip_remove(struct gpio_chip *gc) { }
+-
+-#endif /* CONFIG_OF_GPIO */
+-
+ /**
+  * of_gpio_count - Count GPIOs for a device
+  * @np:		device node to count GPIOs for
 -- 
 1.8.1
