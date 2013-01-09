@@ -1,111 +1,45 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f48.google.com ([209.85.216.48]:56958 "EHLO
-	mail-qa0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756835Ab3AIPet (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jan 2013 10:34:49 -0500
-Received: by mail-qa0-f48.google.com with SMTP id l8so762905qaq.14
-        for <linux-arch@vger.kernel.org>; Wed, 09 Jan 2013 07:34:48 -0800 (PST)
-Date: Wed, 9 Jan 2013 10:27:53 -0500 (EST)
-From: Nicolas Pitre <nicolas.pitre@linaro.org>
-Subject: Re: [PATCH] Proposed removal of IS_ERR_OR_NULL() (was: Re: [PATCH
- 1/4] gpiolib: introduce descriptor-based GPIO interface)
-In-Reply-To: <20130109150427.GL3931@n2100.arm.linux.org.uk>
-Message-ID: <alpine.LFD.2.02.1301091020580.6300@xanadu.home>
-References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com> <201301081259.29839.arnd@arndb.de> <CAAVeFu+4VbCbj9TaeMm+NMDJ9_M4-j4O0ONF7Yh_un63wS38+Q@mail.gmail.com> <201301091035.23206.arnd@arndb.de> <20130109104414.GF3931@n2100.arm.linux.org.uk>
- <20130109111055.GG3931@n2100.arm.linux.org.uk> <alpine.LFD.2.02.1301090932400.6300@xanadu.home> <20130109150427.GL3931@n2100.arm.linux.org.uk>
+Received: from multi.imgtec.com ([194.200.65.239]:56774 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1757857Ab3AIQF7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 9 Jan 2013 11:05:59 -0500
+Message-ID: <50ED9525.9040806@imgtec.com>
+Date: Wed, 9 Jan 2013 16:04:53 +0000
+From: James Hogan <james.hogan@imgtec.com>
 MIME-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Subject: Re: [RFC PATCH v1 24/40] metag: DMA
+References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <50AF9C06.3010705@imgtec.com> <50AFA24D.4030501@imgtec.com> <201211231647.27260.arnd@arndb.de>
+In-Reply-To: <201211231647.27260.arnd@arndb.de>
+Content-Type: text/plain; charset="ISO-8859-15"
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Linus Walleij <linus.walleij@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Alexandre Courbot <acourbot@nvidia.com>, Guenter Roeck <linux@roeck-us.net>, "devicetree-discuss@lists.ozlabs.org" <devicetree-discuss@lists.ozlabs.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
-Message-ID: <20130109152753.aUSCRxwIZ33xje9LwXW2nazVY0l3yPLmEmiXkAS7tJ4@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>
+Message-ID: <20130109160453.o2hC7kNMoWPaXfWNTI34ahS8IZwsnS7EWRHYpW0NNWA@z>
 
-On Wed, 9 Jan 2013, Russell King - ARM Linux wrote:
+On 23/11/12 16:47, Arnd Bergmann wrote:
+> On Friday 23 November 2012, James Hogan wrote:
+>> Subject: [PATCH 1/1] asm-generic/io.h: check CONFIG_VIRT_TO_BUS
+>>
+>> Make asm-generic/io.h check CONFIG_VIRT_TO_BUS before defining
+>> virt_to_bus() and bus_to_virt(), otherwise it's easy to accidentally
+>> have a silently failing incorrect direct mapped definition rather then
+>> no definition at all.
+>>
+>> Signed-off-by: James Hogan <james.hogan@imgtec.com>
+> 
+> Good catch!
+> 
+> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> 
 
-> So, it seems there's some concensus building here, and it seems that
-> I've become the chosen victi^wvolunteer for this.  So, here's a patch.
-> It's missing a Guns-supplied-by: tag though.
+Hi Arnd,
 
-Guns-supplied-by: NRA (obviously)
+Would you like me to include this in the meta patchset or is it okay for
+you to take it through the asm-generic tree? (I can resend separately if
+you like)
 
-> From: Russell King <rmk+kernel@arm.linux.org.uk>
-> Subject: Mark IS_ERR_OR_NULL() deprecated
-> 
-> IS_ERR_OR_NULL() attracts a lot of abuse: people use it without much
-> thought about it's effects.  Common errors include:
->  1. checking the returned pointer for functions defined as only
->     returning errno-pointer values, rather than using IS_ERR().
->     This leads to: ptr = foo(); if (IS_ERR_OR_NULL(ptr)) return
->      PTR_ERR(ptr);
->  2. using it to check functions which only ever return NULL on error,
->     thereby leading to another zero-error value return.
-> In the case of debugfs functions, these return errno-pointer values when
-> debugfs is configured out, which means code which blindly checks using 
-> IS_ERR_OR_NULL() ends up returning errors, which is rather perverse for
-> something that's not implemented.
-> 
-> Therefore, let's schedule it for removal in a few releases.
-> 
-> Nicolas Pitre comments:
-> > I do agree with Russell here.  Despite the original intentions behind
-> > IS_ERR_OR_NULL() which were certainly legitimate, the end result in
-> > practice is less reliable code with increased maintenance costs.
-> > Unlike other convenience macros in the kernel, this one is giving a
-> > false sense of correctness with too many people falling in the trap
-> > of using it just because it is available.
-> > 
-> > I strongly think this macro should simply be removed from the source
-> > tree entirely and the code reverted to explicit tests against NULL
-> > when appropriate.
-> 
-> Suggested-by: David Howells <dhowells@redhat.com>
-> Tape-measuring-service-offered-by: Will Deacon <will.deacon@arm.com>
-> Victim-for-firing-sqad: Russell King <rmk+kernel@arm.linux.org.uk>
-> Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
+Thanks
+James
 
-Acked-by: Nicolas Pitre <nico@linaro.org>
-
-Anyone with good coccinelle skills around to deal with the users?
-
-
-> ---
-> Ok, so I'm in the firing line for suggesting this, but it appears
-> several people wish this to happen.
-> 
-> I'm not intending to push this patch forwards _just_ yet: we need to
-> sort out the existing users _first_ to prevent the kernel turning into
-> one hell of a mess of warnings.
-> 
->  include/linux/err.h |   17 ++++++++++++++++-
->  1 files changed, 16 insertions(+), 1 deletions(-)
-> 
-> diff --git a/include/linux/err.h b/include/linux/err.h
-> index f2edce2..d5a85df 100644
-> --- a/include/linux/err.h
-> +++ b/include/linux/err.h
-> @@ -34,7 +34,22 @@ static inline long __must_check IS_ERR(const void *ptr)
->  	return IS_ERR_VALUE((unsigned long)ptr);
->  }
->  
-> -static inline long __must_check IS_ERR_OR_NULL(const void *ptr)
-> +/*
-> + * IS_ERR_OR_NULL() attracts a lot of abuse: people use it without much
-> + * thought about it's effects.  Common errors include:
-> + *  1. checking the returned pointer for functions defined as only returning
-> + *     errno-pointer values, rather than using IS_ERR().
-> + *     This leads to: ptr = foo(); if (IS_ERR_OR_NULL(ptr)) return PTR_ERR(ptr);
-> + *  2. using it to check functions which only ever return NULL on error,
-> + *     thereby leading to another zero-error value return.
-> + * In the case of debugfs functions, these return errno-pointer values when
-> + * debugfs is configured out, which means code which blindly checks using
-> + * IS_ERR_OR_NULL() ends up returning errors, which is rather perverse for
-> + * something that's not implemented.
-> + *
-> + * Therefore, let's schedule it for removal in a few releases.
-> + */
-> +static inline long __must_check __deprecated IS_ERR_OR_NULL(const void *ptr)
->  {
->  	return !ptr || IS_ERR_VALUE((unsigned long)ptr);
->  }
-> 
