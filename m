@@ -1,44 +1,37 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f181.google.com ([209.85.220.181]:44218 "EHLO
-	mail-vc0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757009Ab3AHXne (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jan 2013 18:43:34 -0500
+Received: from moutng.kundenserver.de ([212.227.126.186]:62070 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756635Ab3AILwn (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jan 2013 06:52:43 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 1/4] gpiolib: introduce descriptor-based GPIO interface
+Date: Wed, 9 Jan 2013 11:52:29 +0000
+References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com> <20130109104414.GF3931@n2100.arm.linux.org.uk> <20130109111055.GG3931@n2100.arm.linux.org.uk>
+In-Reply-To: <20130109111055.GG3931@n2100.arm.linux.org.uk>
 MIME-Version: 1.0
-In-Reply-To: <1357195653-998-2-git-send-email-vgupta@synopsys.com>
-References: <50D2B75A.3000208@synopsys.com>
-	<1357195653-998-1-git-send-email-vgupta@synopsys.com>
-	<1357195653-998-2-git-send-email-vgupta@synopsys.com>
-Date: Tue, 8 Jan 2013 15:43:32 -0800
-Message-ID: <CA+8MBbKk0Gd98KBxPY9QNw7wHGAEx8K6+iKzxDAcO-s7Py9_HA@mail.gmail.com>
-Subject: Re: [RESEND PATCH] sysctl: Enable IA64 "ignore-unaligned-usertrap" to
- be used cross-arch
-From: Tony Luck <tony.luck@intel.com>
-Content-Type: text/plain; charset=ISO-8859-1
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Message-ID: <201301091152.30047.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, "Eric W. Biederman" <ebiederm@xmission.com>, Serge Hallyn <serge.hallyn@canonical.com>
-Message-ID: <20130108234332.70d3HEX0Jo-6ZiEyiXA0cTGn4mN1dkEPypw6o224Ikw@z>
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: linux-arch@vger.kernel.org, Linus Walleij <linus.walleij@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Alexandre Courbot <acourbot@nvidia.com>, Guenter Roeck <linux@roeck-us.net>, "devicetree-discuss@lists.ozlabs.org" <devicetree-discuss@lists.ozlabs.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
+Message-ID: <20130109115229.dCqQomMH8OmcWFs_kuvQnz8yhcJfU27nWagLnx04joM@z>
 
-On Wed, Jan 2, 2013 at 10:47 PM, Vineet Gupta
-<Vineet.Gupta1@synopsys.com> wrote:
+On Wednesday 09 January 2013, Russell King - ARM Linux wrote:
+>         d = debugfs_create_dir("pm_debug", NULL);
+>         if (IS_ERR_OR_NULL(d))
+>                 return PTR_ERR(d);
+> 
+> Well, covered above.  NULL is success here.
 
-> verbosw warnings on unaligned access emaultion.
-"verbose", "emulation"
+This one is actually worse, because in case of debugfs_create_dir,
+a negative error code is documented to mean "success": The debugfs
+functions intentionally return ERR_PTR(-ENODEV) when debugfs is
+disabled so that any code checking for NULL pretends it is a valid
+pointer, but that code is only allowed to pass this pointer into
+other debugfs functions that are also stubbed out and never
+dereference it.
 
-> While the exact menchaincs (ignore/shout) are still arch specific, we
-"mechanics"
-
-> +config SYSCTL_ARCH_UNALIGN_NO_WARN
-> +       bool
-> +       help
-> +         Enable support for /proc/sys/kernel/ignore-unaligned-usertrap
-> +         Allows arch to define/use @no_unaligned_warning to possbly warn about
-"possibly"
-> +         unaligned access emulation going on under the hood.
-> +         see arch/ia64/kernel/unaligned.c for reference
-
-It doesn't seem right to point users at an ia64 specific file now
-that you are making this available to all arches.
-
--Tony
+	Arnd
