@@ -1,45 +1,27 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:56774 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757857Ab3AIQF7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Wed, 9 Jan 2013 11:05:59 -0500
-Message-ID: <50ED9525.9040806@imgtec.com>
-Date: Wed, 9 Jan 2013 16:04:53 +0000
-From: James Hogan <james.hogan@imgtec.com>
+Received: from mail-vc0-f182.google.com ([209.85.220.182]:40170 "EHLO
+	mail-vc0-f182.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932303Ab3AISza (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jan 2013 13:55:30 -0500
 MIME-Version: 1.0
-Subject: Re: [RFC PATCH v1 24/40] metag: DMA
-References: <1351700061-7203-1-git-send-email-james.hogan@imgtec.com> <50AF9C06.3010705@imgtec.com> <50AFA24D.4030501@imgtec.com> <201211231647.27260.arnd@arndb.de>
-In-Reply-To: <201211231647.27260.arnd@arndb.de>
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: 7bit
+In-Reply-To: <1357742188-8941-1-git-send-email-vgupta@synopsys.com>
+References: <50ED7B4B.7080603@synopsys.com>
+	<1357742188-8941-1-git-send-email-vgupta@synopsys.com>
+Date: Wed, 9 Jan 2013 10:55:27 -0800
+Message-ID: <CA+8MBbJNrJYeZoGXt37ki_YCpb7kqiE1toFoBBHrtmnY8a75VA@mail.gmail.com>
+Subject: Re: [PATCH v2] sysctl: Enable IA64 "ignore-unaligned-usertrap" to be
+ used cross-arch
+From: Tony Luck <tony.luck@gmail.com>
+Content-Type: text/plain; charset=ISO-8859-1
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel <linux-kernel@vger.kernel.org>
-Message-ID: <20130109160453.o2hC7kNMoWPaXfWNTI34ahS8IZwsnS7EWRHYpW0NNWA@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>, "Eric W. Biederman" <ebiederm@xmission.com>, Serge Hallyn <serge.hallyn@canonical.com>, linux-ia64@vger.kernel.org, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Message-ID: <20130109185527.dLi1_5lP6o5_sC-uDqsTya_N65qxEtte7AWOc9I7fQQ@z>
 
-On 23/11/12 16:47, Arnd Bergmann wrote:
-> On Friday 23 November 2012, James Hogan wrote:
->> Subject: [PATCH 1/1] asm-generic/io.h: check CONFIG_VIRT_TO_BUS
->>
->> Make asm-generic/io.h check CONFIG_VIRT_TO_BUS before defining
->> virt_to_bus() and bus_to_virt(), otherwise it's easy to accidentally
->> have a silently failing incorrect direct mapped definition rather then
->> no definition at all.
->>
->> Signed-off-by: James Hogan <james.hogan@imgtec.com>
-> 
-> Good catch!
-> 
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-> 
+Ok. Queued for 3.9 merge window.  It should show up in linux-next in
+the next day or two.  We'll see if anyone complains about the name
+SYSCTL_ARCH_UNALIGN_NO_WARN (every time I touch the Kconfig
+bits it seems that there is some other, better way that we do this now).
 
-Hi Arnd,
-
-Would you like me to include this in the meta patchset or is it okay for
-you to take it through the asm-generic tree? (I can resend separately if
-you like)
-
-Thanks
-James
-
+-Tony
