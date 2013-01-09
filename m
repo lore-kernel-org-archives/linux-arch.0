@@ -1,103 +1,146 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH 0/4] gpio: introduce descriptor-based interface
-Date: Wed, 9 Jan 2013 10:46:12 +0000
-Message-ID: <201301091046.13020.arnd@arndb.de>
-References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com> <201301081306.02942.arnd@arndb.de> <CAAVeFu+vWe+ZGBPy2MMEv=7n-ob=F65rfz+b6ND9zk1d16LbEA@mail.gmail.com>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 1/4] gpiolib: introduce descriptor-based GPIO interface
+Date: Wed, 9 Jan 2013 11:10:55 +0000
+Message-ID: <20130109111055.GG3931@n2100.arm.linux.org.uk>
+References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com> <201301081259.29839.arnd@arndb.de> <CAAVeFu+4VbCbj9TaeMm+NMDJ9_M4-j4O0ONF7Yh_un63wS38+Q@mail.gmail.com> <201301091035.23206.arnd@arndb.de> <20130109104414.GF3931@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.9]:62080 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752199Ab3AIKqV (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jan 2013 05:46:21 -0500
-In-Reply-To: <CAAVeFu+vWe+ZGBPy2MMEv=7n-ob=F65rfz+b6ND9zk1d16LbEA@mail.gmail.com>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:42646 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752359Ab3AILLF (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jan 2013 06:11:05 -0500
+Content-Disposition: inline
+In-Reply-To: <20130109104414.GF3931@n2100.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Alexandre Courbot <acourbot@nvidia.com>
-Cc: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Guenter Roeck <linux@roeck-us.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree-discuss@lists.ozlabs.org" <devicetree-discuss@lists.ozlabs.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, Linus Walleij <linus.walleij@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Alexandre Courbot <acourbot@nvidia.com>, Guenter Roeck <linux@roeck-us.net>, "devicetree-discuss@lists.ozlabs.org" <devicetree-discuss@lists.ozlabs.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-On Wednesday 09 January 2013, Alexandre Courbot wrote:
-> On Tue, Jan 8, 2013 at 10:06 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > I like the interface, good idea!
+On Wed, Jan 09, 2013 at 10:44:14AM +0000, Russell King - ARM Linux wrote:
+> On Wed, Jan 09, 2013 at 10:35:22AM +0000, Arnd Bergmann wrote:
+> > On Wednesday 09 January 2013, Alexandre Courbot wrote:
+> > > On Tue, Jan 8, 2013 at 9:59 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > > > Please avoid the use of IS_ERR_OR_NULL(), especially on interfaces you
+> > > > introduce yourself. AFAICT, gpiod_get cannot return NULL, so you
+> > > > should not check for that.
+> > > 
+> > > Sure - you sound like IS_ERR_OR_NULL() is generally considered evil,
+> > 
+> > Correct.
+> > 
+> > > may I ask why this is the case?
+> > 
+> > It's very hard to get right: either you are interested in the error code,
+> > and then you don't have one in some cases, or you don't care but have
+> > to check for it anyway. When you define a function, just make it clear
+> > what the expected return values are, either NULL for error or a negative
+> > ERR_PTR value, but not both.
 > 
-> Great! This was initially suggested by Linus W.
+> Indeed, and any code which does this:
 > 
-> > A few questions:
-> >
-> > Is there a plan for migrating all the existing users of the current GPIO
-> > interface?
+> 	if (IS_ERR_OR_NULL(ptr))
+> 		return PTR_ERR(ptr);
 > 
-> Nothing specifically planned for now, as we need to make sure the new
-> interface covers all needs first. There would be a lot of drivers to
-> change if we decide to deprecate the integer interface, but Coccinelle
-> could probably help here.
+> is buggy because on NULL it returns 0, which is generally accepted as being
+> "success".
 
-Right.
+                oh = omap_hwmod_lookup(oh_name);
+                if (!oh) {
 
-> The question is, do we want to totally get rid of the integer
-> namespace? That would be the ultimate step, but would require another
-> way to identify GPIOs (controller_device:offset might be such a way),
-> and also to reorganize sysfs nodes. Wouldn't that be considered
-> breaking user-space? 'cause we all know what happens to those who
-> break user-space.
+        oh = omap_hwmod_lookup(oh_name);
+        if (IS_ERR_OR_NULL(oh)) {
 
-The user interface could eventually be the only part of the kernel that
-uses the numbers, but you are right that we cannot change that.
+Does this function return NULL on errors or an errno-encoded-pointer on
+errors?
 
-> > How do you want to deal with drivers that work on platforms that currently
-> > don't use gpiolib but have their own implementation of asm/gpio.h? Are
-> > we going to phase them out?
-> 
-> With the current code, a driver should depend on gpiolib being
-> compiled if it uses the new interface. It is not even declared if
-> gpiolib is not used.
-> 
-> Given that both interfaces are quite close, one could imagine having a
-> gpiod wrapper around the integer namespace (the "opaque descriptors"
-> would then just be casted integers). This way drivers would only need
-> to depend on GENERIC_GPIO. It's a little bit weird to have gpiod
-> wrapping around gpio in one case and the opposite in another though -
-> I'd rather have these platforms convert to GPIO descriptors internally
-> (or even better, to gpiolib), but this is probably asking too much.
+        d = debugfs_create_dir("pm_debug", NULL);
+        if (IS_ERR_OR_NULL(d))
+                return PTR_ERR(d);
 
-I think it would be reasonable to force everybody to use gpiolib,
-that's much easier than converting everyone to the descriptor based
-interface.
+Well, covered above.  NULL is success here.
 
-> I do not know all the details of gpiolib's history, but why would
-> anyone want to implement the generic gpio interface and not use
-> gpiolib anyways?
+        err = gpio_request(en_vdd_1v05, "EN_VDD_1V05");
+        if (err) {
+                pr_err("%s: gpio_request failed: %d\n", __func__, err);
+                return err;
+        }
 
-Only legacy users did this. Initially there was only the header file,
-with the API declared but several different implementations of it.
-gpiolib was introduced later to reduce code duplication and allow having
-multiple implementations in the same kernel.
+        gpio_direction_output(en_vdd_1v05, 1);
 
-> Then there are platforms who do not follow generic gpios and implement
-> their own sauce. I don't think we need to care here, as these are not
-> supposed to be used with generic drivers anyway.
+        regulator = regulator_get(NULL, "vdd_ldo0,vddio_pex_clk");
+        if (IS_ERR_OR_NULL(regulator)) {
+                pr_err("%s: regulator_get failed: %d\n", __func__,
+                       (int)PTR_ERR(regulator));
+                goto err_reg;
+        }
+...
+err_reg:
+        gpio_free(en_vdd_1v05);
 
-I agree. Ideally we would convert them over as well, but there is no
-need to rush that, or force it on anybody. We should just make sure
-we don't grow any new platforms doing this.
+        return err;
+}
 
-> > If we are adding a new way to deal with GPIOs, would it make sense to
-> > have that more closely integrated into pinctrl in one form or another?
-> > My feeling is that there is already a significant overlap between the
-> > two, and while the addition of the gpiod_* functions doesn't necessarily
-> > make this worse, it could be a chance to improve the current situation
-> > to make the interface more consistent with pinctrl.
-> 
-> That may be a chance to introduce deeper changes indeed - what do you
-> have in mind exactly?
+So 'err' here is never set.  when IS_ERR_OR_NULL evaluates true.
+Setting 'err' to PTR_ERR(regulator) is not correct because a NULL return
+sets 'err' to zero.  Same here:
 
-I don't know enough about pinctrl to have a specific idea yet, but maybe
-someone else has ideas. Regarding the integration of pinctrl with gpio,
-I was thinking in the past that we could make pinctrl provide everything
-that gpiolib does, and have a generic gpiolib driver on top of pinctrl
-so that platforms don't need to implement both interfaces but only need
-to provide a pure pinctrl driver. Not sure if this makes any sense.
+        /* create property id */
+        ret = ipp_create_id(&ctx->prop_idr, &ctx->prop_lock, c_node,
+                &property->prop_id);
+        if (ret) {
+                DRM_ERROR("failed to create id.\n");
+                goto err_clear;
+        }
+...
+        c_node->start_work = ipp_create_cmd_work();
+        if (IS_ERR_OR_NULL(c_node->start_work)) {
+                DRM_ERROR("failed to create start work.\n");
+                goto err_clear;
+        }
+        c_node->stop_work = ipp_create_cmd_work();
+        if (IS_ERR_OR_NULL(c_node->stop_work)) {
+                DRM_ERROR("failed to create stop work.\n");
+                goto err_free_start;
+        }
+        c_node->event_work = ipp_create_event_work();
+        if (IS_ERR_OR_NULL(c_node->event_work)) {
+                DRM_ERROR("failed to create event work.\n");
+                goto err_free_stop;
+        }
 
-	Arnd
+We also have it cropping up as a way to 'verify' function arguments
+are correct:
+
+int __pm_genpd_add_device(struct generic_pm_domain *genpd, struct device *dev,
+                          struct gpd_timing_data *td)
+{
+        if (IS_ERR_OR_NULL(genpd) || IS_ERR_OR_NULL(dev))
+                return -EINVAL;
+
+And then we have this beauty in USB code:
+
+        if (!IS_ERR_OR_NULL(udc->transceiver))
+                (void) otg_set_peripheral(udc->transceiver->otg, NULL);
+        else
+                pullup_disable(udc);
+...
+        seq_printf(s,
+                "UDC rev %d.%d, fifo mode %d, gadget %s\n"
+                "hmc %d, transceiver %s\n",
+                tmp >> 4, tmp & 0xf,
+                fifo_mode,
+                udc->driver ? udc->driver->driver.name : "(none)",
+                HMC,
+                udc->transceiver
+                        ? udc->transceiver->label
+                        : (cpu_is_omap1710()
+                                ? "external" : "(none)"));
+
+If udc->transceiver were to be an error code, the above will segfault or
+access memory at the top of memory space.
+
+These are just a few of the issues I've picked out at random from grepping
+the kernel source for IS_ERR_OR_NULL().  Yes, there's some valid use cases
+but the above are all horrid, buggy or down right wrong, and I wouldn't be
+at all surprised if that was all too common.
