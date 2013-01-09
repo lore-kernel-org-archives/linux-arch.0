@@ -1,72 +1,97 @@
-From: Nicolas Pitre <nicolas.pitre@linaro.org>
-Subject: Re: [PATCH 1/4] gpiolib: introduce descriptor-based GPIO interface
-Date: Wed, 9 Jan 2013 09:44:16 -0500 (EST)
-Message-ID: <alpine.LFD.2.02.1301090932400.6300@xanadu.home>
-References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com> <201301081259.29839.arnd@arndb.de> <CAAVeFu+4VbCbj9TaeMm+NMDJ9_M4-j4O0ONF7Yh_un63wS38+Q@mail.gmail.com> <201301091035.23206.arnd@arndb.de> <20130109104414.GF3931@n2100.arm.linux.org.uk>
- <20130109111055.GG3931@n2100.arm.linux.org.uk>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: [PATCH] Proposed removal of IS_ERR_OR_NULL() (was: Re: [PATCH 1/4]
+	gpiolib: introduce descriptor-based GPIO interface)
+Date: Wed, 9 Jan 2013 15:04:28 +0000
+Message-ID: <20130109150427.GL3931@n2100.arm.linux.org.uk>
+References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com> <201301081259.29839.arnd@arndb.de> <CAAVeFu+4VbCbj9TaeMm+NMDJ9_M4-j4O0ONF7Yh_un63wS38+Q@mail.gmail.com> <201301091035.23206.arnd@arndb.de> <20130109104414.GF3931@n2100.arm.linux.org.uk> <20130109111055.GG3931@n2100.arm.linux.org.uk> <alpine.LFD.2.02.1301090932400.6300@xanadu.home>
 Mime-Version: 1.0
-Content-Type: TEXT/PLAIN; charset=US-ASCII
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-qa0-f50.google.com ([209.85.216.50]:53448 "EHLO
-	mail-qa0-f50.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757917Ab3AIOoT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jan 2013 09:44:19 -0500
-Received: by mail-qa0-f50.google.com with SMTP id cr7so718607qab.9
-        for <linux-arch@vger.kernel.org>; Wed, 09 Jan 2013 06:44:19 -0800 (PST)
-In-Reply-To: <20130109111055.GG3931@n2100.arm.linux.org.uk>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:42814 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S932073Ab3AIPEq (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jan 2013 10:04:46 -0500
+Content-Disposition: inline
+In-Reply-To: <alpine.LFD.2.02.1301090932400.6300@xanadu.home>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+To: Nicolas Pitre <nicolas.pitre@linaro.org>
 Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Linus Walleij <linus.walleij@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Alexandre Courbot <acourbot@nvidia.com>, Guenter Roeck <linux@roeck-us.net>, "devicetree-discuss@lists.ozlabs.org" <devicetree-discuss@lists.ozlabs.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-On Wed, 9 Jan 2013, Russell King - ARM Linux wrote:
+So, it seems there's some concensus building here, and it seems that
+I've become the chosen victi^wvolunteer for this.  So, here's a patch.
+It's missing a Guns-supplied-by: tag though.
 
-> On Wed, Jan 09, 2013 at 10:44:14AM +0000, Russell King - ARM Linux wrote:
-> > On Wed, Jan 09, 2013 at 10:35:22AM +0000, Arnd Bergmann wrote:
-> > > On Wednesday 09 January 2013, Alexandre Courbot wrote:
-> > > > On Tue, Jan 8, 2013 at 9:59 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> > > > > Please avoid the use of IS_ERR_OR_NULL(), especially on interfaces you
-> > > > > introduce yourself. AFAICT, gpiod_get cannot return NULL, so you
-> > > > > should not check for that.
-> > > > 
-> > > > Sure - you sound like IS_ERR_OR_NULL() is generally considered evil,
-> > > 
-> > > Correct.
-> > > 
-> > > > may I ask why this is the case?
-> > > 
-> > > It's very hard to get right: either you are interested in the error code,
-> > > and then you don't have one in some cases, or you don't care but have
-> > > to check for it anyway. When you define a function, just make it clear
-> > > what the expected return values are, either NULL for error or a negative
-> > > ERR_PTR value, but not both.
-> > 
-> > Indeed, and any code which does this:
-> > 
-> > 	if (IS_ERR_OR_NULL(ptr))
-> > 		return PTR_ERR(ptr);
-> > 
-> > is buggy because on NULL it returns 0, which is generally accepted as being
-> > "success".
->
+From: Russell King <rmk+kernel@arm.linux.org.uk>
+Subject: Mark IS_ERR_OR_NULL() deprecated
 
-[ examples of broken code skipped ]
+IS_ERR_OR_NULL() attracts a lot of abuse: people use it without much
+thought about it's effects.  Common errors include:
+ 1. checking the returned pointer for functions defined as only
+    returning errno-pointer values, rather than using IS_ERR().
+    This leads to: ptr = foo(); if (IS_ERR_OR_NULL(ptr)) return
+     PTR_ERR(ptr);
+ 2. using it to check functions which only ever return NULL on error,
+    thereby leading to another zero-error value return.
+In the case of debugfs functions, these return errno-pointer values when
+debugfs is configured out, which means code which blindly checks using 
+IS_ERR_OR_NULL() ends up returning errors, which is rather perverse for
+something that's not implemented.
 
-> These are just a few of the issues I've picked out at random from grepping
-> the kernel source for IS_ERR_OR_NULL().  Yes, there's some valid use cases
-> but the above are all horrid, buggy or down right wrong, and I wouldn't be
-> at all surprised if that was all too common.
+Therefore, let's schedule it for removal in a few releases.
 
-I do agree with Russell here.  Despite the original intentions behind 
-IS_ERR_OR_NULL() which were certainly legitimate, the end result in 
-practice is less reliable code with increased maintenance costs.  Unlike 
-other convenience macros in the kernel, this one is giving a false sense 
-of correctness with too many people falling in the trap of using it just 
-because it is available.
+Nicolas Pitre comments:
+> I do agree with Russell here.  Despite the original intentions behind
+> IS_ERR_OR_NULL() which were certainly legitimate, the end result in
+> practice is less reliable code with increased maintenance costs.
+> Unlike other convenience macros in the kernel, this one is giving a
+> false sense of correctness with too many people falling in the trap
+> of using it just because it is available.
+> 
+> I strongly think this macro should simply be removed from the source
+> tree entirely and the code reverted to explicit tests against NULL
+> when appropriate.
 
-I strongly think this macro should simply be removed from the source 
-tree entirely and the code reverted to explicit tests against NULL when 
-appropriate.
+Suggested-by: David Howells <dhowells@redhat.com>
+Tape-measuring-service-offered-by: Will Deacon <will.deacon@arm.com>
+Victim-for-firing-sqad: Russell King <rmk+kernel@arm.linux.org.uk>
+Signed-off-by: Russell King <rmk+kernel@arm.linux.org.uk>
+---
+Ok, so I'm in the firing line for suggesting this, but it appears
+several people wish this to happen.
 
+I'm not intending to push this patch forwards _just_ yet: we need to
+sort out the existing users _first_ to prevent the kernel turning into
+one hell of a mess of warnings.
 
-Nicolas
+ include/linux/err.h |   17 ++++++++++++++++-
+ 1 files changed, 16 insertions(+), 1 deletions(-)
+
+diff --git a/include/linux/err.h b/include/linux/err.h
+index f2edce2..d5a85df 100644
+--- a/include/linux/err.h
++++ b/include/linux/err.h
+@@ -34,7 +34,22 @@ static inline long __must_check IS_ERR(const void *ptr)
+ 	return IS_ERR_VALUE((unsigned long)ptr);
+ }
+ 
+-static inline long __must_check IS_ERR_OR_NULL(const void *ptr)
++/*
++ * IS_ERR_OR_NULL() attracts a lot of abuse: people use it without much
++ * thought about it's effects.  Common errors include:
++ *  1. checking the returned pointer for functions defined as only returning
++ *     errno-pointer values, rather than using IS_ERR().
++ *     This leads to: ptr = foo(); if (IS_ERR_OR_NULL(ptr)) return PTR_ERR(ptr);
++ *  2. using it to check functions which only ever return NULL on error,
++ *     thereby leading to another zero-error value return.
++ * In the case of debugfs functions, these return errno-pointer values when
++ * debugfs is configured out, which means code which blindly checks using
++ * IS_ERR_OR_NULL() ends up returning errors, which is rather perverse for
++ * something that's not implemented.
++ *
++ * Therefore, let's schedule it for removal in a few releases.
++ */
++static inline long __must_check __deprecated IS_ERR_OR_NULL(const void *ptr)
+ {
+ 	return !ptr || IS_ERR_VALUE((unsigned long)ptr);
+ }
