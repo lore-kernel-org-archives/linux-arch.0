@@ -1,42 +1,44 @@
-From: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Subject: Re: [PATCH 1/4] gpiolib: introduce descriptor-based GPIO interface
-Date: Wed, 9 Jan 2013 11:52:29 +0000
-Message-ID: <201301091152.30047.arnd@arndb.de>
-References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com>
- <20130109104414.GF3931@n2100.arm.linux.org.uk>
- <20130109111055.GG3931@n2100.arm.linux.org.uk>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [RESEND PATCH] sysctl: Enable IA64 "ignore-unaligned-usertrap"
+ to be used cross-arch
+Date: Wed, 9 Jan 2013 19:44:35 +0530
+Message-ID: <50ED7B4B.7080603@synopsys.com>
+References: <50D2B75A.3000208@synopsys.com> <1357195653-998-1-git-send-email-vgupta@synopsys.com> <1357195653-998-2-git-send-email-vgupta@synopsys.com> <CA+8MBbKk0Gd98KBxPY9QNw7wHGAEx8K6+iKzxDAcO-s7Py9_HA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
+Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-In-Reply-To: <20130109111055.GG3931-l+eeeJia6m9vn6HldHNs0ANdhmdF6hFW@public.gmane.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/devicetree-discuss>,
- <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/devicetree-discuss/>
-List-Post: <mailto:devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-List-Help: <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/devicetree-discuss>,
- <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=subscribe>
-Errors-To: devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
-Sender: "devicetree-discuss"
- <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-To: Russell King - ARM Linux <linux-lFZ/pmaqli7XmaaqVzeoHQ@public.gmane.org>
-Cc: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Linux Kernel Mailing List <linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org>, Alexandre Courbot <acourbot-DDmLM1+adcrQT0dZR+AlfA@public.gmane.org>, "linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org" <linux-arm-kernel-IAPFreCvJWM7uuMidbF8XUB+6BGkLq7r@public.gmane.org>, "devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org" <devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>, Guenter Roeck <linux-0h96xk9xTtrk1uMJSBkQmQ@public.gmane.org>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from us01smtp2.synopsys.com ([198.182.44.80]:43442 "EHLO
+	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1757667Ab3AIORL (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jan 2013 09:17:11 -0500
+In-Reply-To: <CA+8MBbKk0Gd98KBxPY9QNw7wHGAEx8K6+iKzxDAcO-s7Py9_HA@mail.gmail.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Tony Luck <tony.luck@intel.com>
+Cc: Fenghua Yu <fenghua.yu@intel.com>, linux-kernel@vger.kernel.org, linux-ia64@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, "Eric W. Biederman" <ebiederm@xmission.com>, Serge Hallyn <serge.hallyn@canonical.com>
 
-On Wednesday 09 January 2013, Russell King - ARM Linux wrote:
->         d = debugfs_create_dir("pm_debug", NULL);
->         if (IS_ERR_OR_NULL(d))
->                 return PTR_ERR(d);
-> 
-> Well, covered above.  NULL is success here.
+On Wednesday 09 January 2013 05:13 AM, Tony Luck wrote:
+> On Wed, Jan 2, 2013 at 10:47 PM, Vineet Gupta
+> <Vineet.Gupta1@synopsys.com> wrote:
+>
+>
+>> +config SYSCTL_ARCH_UNALIGN_NO_WARN
+>> +       bool
+>> +       help
+>> +         Enable support for /proc/sys/kernel/ignore-unaligned-usertrap
+>> +         Allows arch to define/use @no_unaligned_warning to possbly warn about
+> "possibly"
+>> +         unaligned access emulation going on under the hood.
+>> +         see arch/ia64/kernel/unaligned.c for reference
+> It doesn't seem right to point users at an ia64 specific file now
+> that you are making this available to all arches.
 
-This one is actually worse, because in case of debugfs_create_dir,
-a negative error code is documented to mean "success": The debugfs
-functions intentionally return ERR_PTR(-ENODEV) when debugfs is
-disabled so that any code checking for NULL pretends it is a valid
-pointer, but that code is only allowed to pass this pointer into
-other debugfs functions that are also stubbed out and never
-dereference it.
+The ia64 "reference" is for how the sysctl knob is used - since all we are doing
+is moving just the sysctl out of #ifdef ARCH_XYZ.
+At any rate, I've removed the line from help. Revised patch to follow.
+And as initially requested this will need to go thru IA64-next tree to avoid any
+merge dependencies.
 
-	Arnd
+TIA,
+-Vineet
