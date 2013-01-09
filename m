@@ -1,35 +1,52 @@
-From: Alexandre Courbot <acourbot@nvidia.com>
-Subject: Re: [PATCH 2/4] gpiolib: add gpiod_get and gpiod_put functions
-Date: Wed, 9 Jan 2013 10:49:33 +0900
-Message-ID: <CAAVeFu+1jYVTH7+cgRHb8LjQCJhSMZ9vR1=m+AH06bp+7Z4+fw@mail.gmail.com>
-References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com>
- <1357629535-26033-3-git-send-email-acourbot@nvidia.com> <201301081307.04229.arnd@arndb.de>
+From: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Subject: Re: [PATCH 1/4] gpiolib: introduce descriptor-based GPIO interface
+Date: Wed, 9 Jan 2013 10:25:48 +0000
+Message-ID: <20130109102548.GD3931@n2100.arm.linux.org.uk>
+References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com> <1357629535-26033-2-git-send-email-acourbot@nvidia.com> <201301081259.29839.arnd@arndb.de> <CAAVeFu+4VbCbj9TaeMm+NMDJ9_M4-j4O0ONF7Yh_un63wS38+Q@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ie0-f174.google.com ([209.85.223.174]:51296 "EHLO
-	mail-ie0-f174.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756193Ab3AIBtz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 8 Jan 2013 20:49:55 -0500
-In-Reply-To: <201301081307.04229.arnd@arndb.de>
+Received: from caramon.arm.linux.org.uk ([78.32.30.218]:42598 "EHLO
+	caramon.arm.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755703Ab3AIK0C (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 9 Jan 2013 05:26:02 -0500
+Content-Disposition: inline
+In-Reply-To: <CAAVeFu+4VbCbj9TaeMm+NMDJ9_M4-j4O0ONF7Yh_un63wS38+Q@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Guenter Roeck <linux@roeck-us.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree-discuss@lists.ozlabs.org" <devicetree-discuss@lists.ozlabs.org>
+To: Alexandre Courbot <acourbot@nvidia.com>
+Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Linus Walleij <linus.walleij@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree-discuss@lists.ozlabs.org" <devicetree-discuss@lists.ozlabs.org>, Guenter Roeck <linux@roeck-us.net>
 
-On Tue, Jan 8, 2013 at 10:07 PM, Arnd Bergmann <arnd@arndb.de> wrote:
-> On Tuesday 08 January 2013, Alexandre Courbot wrote:
->>
->> Adds new GPIO allocation functions that work with the opaque descriptor
->> interface.
->>
->> Signed-off-by: Alexandre Courbot <acourbot@nvidia.com>
->
-> I think you need to reorder the patches slightly, since the gpiod_get
-> function introduced here is already being used in the first patch, which
-> breaks bisection.
+On Wed, Jan 09, 2013 at 10:06:16AM +0900, Alexandre Courbot wrote:
+> On Tue, Jan 8, 2013 at 9:59 PM, Arnd Bergmann <arnd@arndb.de> wrote:
+> > Please avoid the use of IS_ERR_OR_NULL(), especially on interfaces you
+> > introduce yourself. AFAICT, gpiod_get cannot return NULL, so you
+> > should not check for that.
+> 
+> Sure - you sound like IS_ERR_OR_NULL() is generally considered evil,
+> may I ask why this is the case?
 
-Yes, gpiod_get and gpiod_put should only appear from the second patch
-on. Thanks for pointing that out.
+I think I've explained that in the past; many people just do not think.
+They just use whatever macro they feel like is the right one.  We keep
+seeing this, and this is a persistent problem. It's getting to be more
+of a problem because people are starting to argue back when you point
+out that they're wrong.
 
-Alex.
+People are even starting to believe that documentation which specifies
+explicitly "values where IS_ERR() is true are considered errors,
+everything else is valid" means that the use of IS_ERR_OR_NULL() in such
+cases is permissible.  (I've had such an argument with two people
+recently.)
+
+So, interfaces which have well defined return values and even interfaces
+which specify _how_ errors should be checked end up being checked with
+the wrong macros.  People constantly translate IS_ERR() to IS_ERR_OR_NULL()
+even when it's inappropriate.
+
+People don't think and people don't read documentation.  People don't
+remember this level of detail.  Whatever the excuse, the problem remains.
+IS_ERR_OR_NULL() always gets used inappropriately and without any regard
+to whether it's correct or not.
+
+So yes, IS_ERR_OR_NULL() _is_ pure evil.  IMHO this macro is doing more
+harm than good.
