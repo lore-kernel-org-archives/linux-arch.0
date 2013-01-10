@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:52769 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:56708 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754011Ab3AJPdB (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Jan 2013 10:33:01 -0500
+	id S1754492Ab3AJPcy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Jan 2013 10:32:54 -0500
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v3 44/44] fs: imgdafs: Add IMG DAFS filesystem for metag
-Date: Thu, 10 Jan 2013 15:31:12 +0000
-Message-ID: <1357831872-29451-45-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v3 20/44] metag: ptrace
+Date: Thu, 10 Jan 2013 15:30:48 +0000
+Message-ID: <1357831872-29451-21-git-send-email-james.hogan@imgtec.com>
 In-Reply-To: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
@@ -14,1038 +14,633 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: James Hogan <james.hogan@imgtec.com>, Alexander Viro <viro@zeniv.linux.org.uk>, Andrew Morton <akpm@linux-foundation.org>, Mauro Carvalho Chehab <mchehab@redhat.com>, Cesar Eduardo Barros <cesarb@cesarb.net>, Joe Perches <joe@perches.com>, "David S. Miller" <davem@davemloft.net>, linux-fsdevel@vger.kernel.org
-Message-ID: <20130110153112.BvuVSF77wk6br_dmmlsPUZ53lgoRNjH6jxbdzQX7Fq0@z>
+Cc: James Hogan <james.hogan@imgtec.com>, Andrew Morton <akpm@linux-foundation.org>, Denys Vlasenko <vda.linux@googlemail.com>, Arnd Bergmann <arnd@arndb.de>, Tony Lindgren <tony@atomide.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
+Message-ID: <20130110153048.xTML-peFlr6BTnXHybcg9w8AjIENwzJ70cWKHkkrwhk@z>
 
-Add the IMG Debug Adapter File System (DAFS) for metag, which uses
-SWITCH operations to communicate with a file server on a host computer
-via a JTAG debug adapter.
+The ptrace interface for metag provides access to some core register
+sets using the PTRACE_GETREGSET and PTRACE_SETREGSET operations. The
+details of the internal context structures is abstracted into user API
+structures to both ease use and allow flexibility to change the internal
+context layouts. Copyin and copyout functions for these register sets
+are exposed to allow signal handling code to use them to copy to and
+from the signal context.
+
+struct user_gp_regs (NT_PRSTATUS) provides access to the core general
+purpose register context.
+
+struct user_cb_regs (NT_METAG_CBUF) provides access to the TXCATCH*
+registers which contains information abuot a memory fault, unaligned
+access error or watchpoint. This can be modified to alter the way the
+fault is replayed on resume ("catch replay"), or to prevent the replay
+taking place.
+
+struct user_rp_state (NT_METAG_RPIPE) provides access to the state of
+the Meta read pipeline which can be used to hide memory latencies in
+hand optimised data loops.
+
+Extended DSP register state, DSP RAM, and hardware breakpoint registers
+aren't yet exposed through ptrace.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Cc: Alexander Viro <viro@zeniv.linux.org.uk>
 Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Mauro Carvalho Chehab <mchehab@redhat.com>
-Cc: Cesar Eduardo Barros <cesarb@cesarb.net>
-Cc: Joe Perches <joe@perches.com>
-Cc: "David S. Miller" <davem@davemloft.net>
-Cc: linux-fsdevel@vger.kernel.org
+Cc: Denys Vlasenko <vda.linux@googlemail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Tony Lindgren <tony@atomide.com>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 ---
- MAINTAINERS          |    1 +
- arch/metag/Kconfig   |    1 +
- fs/Kconfig           |    1 +
- fs/Makefile          |    1 +
- fs/imgdafs/Kconfig   |    6 +
- fs/imgdafs/Makefile  |    7 +
- fs/imgdafs/imgdafs.h |   80 +++++
- fs/imgdafs/inode.c   |  840 ++++++++++++++++++++++++++++++++++++++++++++++++++
- 8 files changed, 937 insertions(+), 0 deletions(-)
- create mode 100644 fs/imgdafs/Kconfig
- create mode 100644 fs/imgdafs/Makefile
- create mode 100644 fs/imgdafs/imgdafs.h
- create mode 100644 fs/imgdafs/inode.c
+ arch/metag/include/asm/ptrace.h      |   60 ++++++
+ arch/metag/include/uapi/asm/ptrace.h |  113 ++++++++++
+ arch/metag/kernel/ptrace.c           |  380 ++++++++++++++++++++++++++++++++++
+ include/uapi/linux/elf.h             |    2 +
+ 4 files changed, 555 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/include/asm/ptrace.h
+ create mode 100644 arch/metag/include/uapi/asm/ptrace.h
+ create mode 100644 arch/metag/kernel/ptrace.c
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 5a364ed..f634249 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -5158,6 +5158,7 @@ F:	arch/metag/
- F:	Documentation/metag/
- F:	Documentation/devicetree/bindings/metag/
- F:	drivers/tty/metag_da.c
-+F:	fs/imgdafs/
- 
- MICROBLAZE ARCHITECTURE
- M:	Michal Simek <monstr@monstr.eu>
-diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
-index 70678ec..76a9bf1 100644
---- a/arch/metag/Kconfig
-+++ b/arch/metag/Kconfig
-@@ -223,6 +223,7 @@ config METAG_DA
- 	  This enables support for services provided by DA JTAG debug adapters,
- 	  such as:
- 	  - communication over DA channels (such as the console driver).
-+	  - use of the DA filesystem.
- 
- menu "Boot options"
- 
-diff --git a/fs/Kconfig b/fs/Kconfig
-index 780725a..6deefc1 100644
---- a/fs/Kconfig
-+++ b/fs/Kconfig
-@@ -211,6 +211,7 @@ source "fs/sysv/Kconfig"
- source "fs/ufs/Kconfig"
- source "fs/exofs/Kconfig"
- source "fs/f2fs/Kconfig"
-+source "fs/imgdafs/Kconfig"
- 
- endif # MISC_FILESYSTEMS
- 
-diff --git a/fs/Makefile b/fs/Makefile
-index 9d53192..b070fca 100644
---- a/fs/Makefile
-+++ b/fs/Makefile
-@@ -127,3 +127,4 @@ obj-$(CONFIG_F2FS_FS)		+= f2fs/
- obj-y				+= exofs/ # Multiple modules
- obj-$(CONFIG_CEPH_FS)		+= ceph/
- obj-$(CONFIG_PSTORE)		+= pstore/
-+obj-$(CONFIG_IMGDAFS_FS)	+= imgdafs/
-diff --git a/fs/imgdafs/Kconfig b/fs/imgdafs/Kconfig
+diff --git a/arch/metag/include/asm/ptrace.h b/arch/metag/include/asm/ptrace.h
 new file mode 100644
-index 0000000..5293adb
+index 0000000..fcabc18
 --- /dev/null
-+++ b/fs/imgdafs/Kconfig
-@@ -0,0 +1,6 @@
-+config IMGDAFS_FS
-+	bool "Meta DA filesystem support"
-+	depends on METAG_DA
-+	help
-+	  This enables the DA filesystem, which allows Linux to
-+	  to access files on a system attached via a debug adapter.
-diff --git a/fs/imgdafs/Makefile b/fs/imgdafs/Makefile
-new file mode 100644
-index 0000000..169a3c6
---- /dev/null
-+++ b/fs/imgdafs/Makefile
-@@ -0,0 +1,7 @@
-+#
-+# Makefile for DAfs the Debug Adapter filesystem.
-+#
++++ b/arch/metag/include/asm/ptrace.h
+@@ -0,0 +1,60 @@
++#ifndef _METAG_PTRACE_H
++#define _METAG_PTRACE_H
 +
-+obj-$(CONFIG_IMGDAFS_FS) += imgdafs.o
++#include <linux/compiler.h>
++#include <uapi/asm/ptrace.h>
++#include <asm/tbx.h>
 +
-+imgdafs-objs := inode.o
-diff --git a/fs/imgdafs/imgdafs.h b/fs/imgdafs/imgdafs.h
-new file mode 100644
-index 0000000..6c1da13
---- /dev/null
-+++ b/fs/imgdafs/imgdafs.h
-@@ -0,0 +1,80 @@
-+#ifndef _IMGDAFS_H_
-+#define _IMGDAFS_H_
++#ifndef __ASSEMBLY__
 +
-+#define DA_OP_OPEN 0
-+#define DA_OP_CREAT 1
-+#define DA_OP_READ 2
-+#define DA_OP_WRITE 3
-+#define DA_OP_CLOSE 4
-+#define DA_OP_LINK 5
-+#define DA_OP_LSEEK 6
-+#define DA_OP_UNLINK 7
-+#define DA_OP_ISATTY 8
-+#define DA_OP_FCNTL 9
-+#define DA_OP_STAT 10
-+#define DA_OP_FSTAT 11
-+#define DA_OP_GETCWD 12
-+#define DA_OP_CHDIR 13
-+#define DA_OP_MKDIR 14
-+#define DA_OP_RMDIR 15
-+#define DA_OP_FINDFIRST 16
-+#define DA_OP_FINDNEXT 17
-+#define DA_OP_FINDCLOSE 18
-+#define DA_OP_CHMOD 19
-+#define DA_OP_PREAD 20
-+#define DA_OP_PWRITE 21
++/* this struct defines the way the registers are stored on the
++   stack during a system call. */
 +
-+#define OS_TYPE_FILE 1
-+#define OS_TYPE_DIR 2
-+#define OS_TYPE_SYMLINK 3
-+#define OS_TYPE_CHARDEV 4
-+#define OS_TYPE_BLOCKDEV 5
-+#define OS_TYPE_FIFO 6
-+#define OS_TYPE_SOCK 7
-+
-+#define DA_O_RDONLY 0
-+#define DA_O_WRONLY 1
-+#define DA_O_RDWR 2
-+#define DA_O_APPEND 8
-+#define DA_O_CREAT 0x0200
-+#define DA_O_TRUNC 0x0400
-+#define DA_O_EXCL 0x0800
-+
-+#define DA_O_AFFINITY_THREAD_0 0x10000
-+#define DA_O_AFFINITY_THREAD_1 0x20000
-+#define DA_O_AFFINITY_THREAD_2 0x40000
-+#define DA_O_AFFINITY_THREAD_3 0x80000
-+#define DA_O_AFFINITY_SHIFT 16
-+
-+#define DA_S_IWUSR	0200	/* 0x80 */
-+#define DA_S_IRUSR	0400	/* 0x100 */
-+
-+struct da_stat {
-+	short st_dev;
-+	unsigned short st_ino;
-+	unsigned st_mode;
-+	unsigned short st_nlink;
-+	unsigned short st_uid;
-+	unsigned short st_gid;
-+	short st_rdev;
-+	int st_size;
-+	int st_atime;
-+	int st_spare1;
-+	int st_mtime;
-+	int st_spare2;
-+	int st_ctime;
-+	int st_spare3;
-+	int st_blksize;
-+	int st_blocks;
-+	int st_spare4[2];
++struct pt_regs {
++	TBICTX ctx;
++	TBICTXEXTCB0 extcb0[5];
 +};
 +
-+#define _A_SUBDIR 0x10
++#define user_mode(regs) (((regs)->ctx.SaveMask & TBICTX_PRIV_BIT) > 0)
 +
-+struct da_finddata {
-+	unsigned long size;
-+	unsigned long attrib;
-+	char name[260];
-+};
++#define instruction_pointer(regs) ((unsigned long)(regs)->ctx.CurrPC)
++#define profile_pc(regs) instruction_pointer(regs)
 +
-+#endif
-diff --git a/fs/imgdafs/inode.c b/fs/imgdafs/inode.c
++#define task_pt_regs(task) \
++	((struct pt_regs *)(task_stack_page(task) + \
++			    sizeof(struct thread_info)))
++
++#define current_pt_regs() \
++	((struct pt_regs *)((char *)current_thread_info() + \
++			    sizeof(struct thread_info)))
++
++int syscall_trace_enter(struct pt_regs *regs);
++void syscall_trace_leave(struct pt_regs *regs);
++
++/* copy a struct user_gp_regs out to user */
++int metag_gp_regs_copyout(const struct pt_regs *regs,
++			  unsigned int pos, unsigned int count,
++			  void *kbuf, void __user *ubuf);
++/* copy a struct user_gp_regs in from user */
++int metag_gp_regs_copyin(struct pt_regs *regs,
++			 unsigned int pos, unsigned int count,
++			 const void *kbuf, const void __user *ubuf);
++/* copy a struct user_cb_regs out to user */
++int metag_cb_regs_copyout(const struct pt_regs *regs,
++			  unsigned int pos, unsigned int count,
++			  void *kbuf, void __user *ubuf);
++/* copy a struct user_cb_regs in from user */
++int metag_cb_regs_copyin(struct pt_regs *regs,
++			 unsigned int pos, unsigned int count,
++			 const void *kbuf, const void __user *ubuf);
++/* copy a struct user_rp_state out to user */
++int metag_rp_state_copyout(const struct pt_regs *regs,
++			   unsigned int pos, unsigned int count,
++			   void *kbuf, void __user *ubuf);
++/* copy a struct user_rp_state in from user */
++int metag_rp_state_copyin(struct pt_regs *regs,
++			  unsigned int pos, unsigned int count,
++			  const void *kbuf, const void __user *ubuf);
++
++#endif /* __ASSEMBLY__ */
++#endif /* _METAG_PTRACE_H */
+diff --git a/arch/metag/include/uapi/asm/ptrace.h b/arch/metag/include/uapi/asm/ptrace.h
 new file mode 100644
-index 0000000..b7d7199
+index 0000000..45d9780
 --- /dev/null
-+++ b/fs/imgdafs/inode.c
-@@ -0,0 +1,840 @@
++++ b/arch/metag/include/uapi/asm/ptrace.h
+@@ -0,0 +1,113 @@
++#ifndef _UAPI_METAG_PTRACE_H
++#define _UAPI_METAG_PTRACE_H
++
++#ifndef __ASSEMBLY__
++
 +/*
-+ * Copyright (C) 2008,2009,2010 Imagination Technologies Ltd.
-+ * Licensed under the GPL
-+ *
-+ * Based on hostfs for UML.
-+ *
++ * These are the layouts of the regsets returned by the GETREGSET ptrace call
 + */
 +
-+#include <linux/fs.h>
-+#include <linux/module.h>
++/* user_gp_regs::status */
++
++/* CBMarker bit (indicates catch state / catch replay) */
++#define USER_GP_REGS_STATUS_CATCH_BIT		(1 << 22)
++#define USER_GP_REGS_STATUS_CATCH_S		22
++/* LSM_STEP field (load/store multiple step) */
++#define USER_GP_REGS_STATUS_LSM_STEP_BITS	(0x7 << 8)
++#define USER_GP_REGS_STATUS_LSM_STEP_S		8
++/* SCC bit (indicates split 16x16 condition flags) */
++#define USER_GP_REGS_STATUS_SCC_BIT		(1 << 4)
++#define USER_GP_REGS_STATUS_SCC_S		4
++
++/* normal condition flags */
++/* CF_Z bit (Zero flag) */
++#define USER_GP_REGS_STATUS_CF_Z_BIT		(1 << 3)
++#define USER_GP_REGS_STATUS_CF_Z_S		3
++/* CF_N bit (Negative flag) */
++#define USER_GP_REGS_STATUS_CF_N_BIT		(1 << 2)
++#define USER_GP_REGS_STATUS_CF_N_S		2
++/* CF_V bit (oVerflow flag) */
++#define USER_GP_REGS_STATUS_CF_V_BIT		(1 << 1)
++#define USER_GP_REGS_STATUS_CF_V_S		1
++/* CF_C bit (Carry flag) */
++#define USER_GP_REGS_STATUS_CF_C_BIT		(1 << 0)
++#define USER_GP_REGS_STATUS_CF_C_S		0
++
++/* split 16x16 condition flags */
++/* SCF_LZ bit (Low Zero flag) */
++#define USER_GP_REGS_STATUS_SCF_LZ_BIT		(1 << 3)
++#define USER_GP_REGS_STATUS_SCF_LZ_S		3
++/* SCF_HZ bit (High Zero flag) */
++#define USER_GP_REGS_STATUS_SCF_HZ_BIT		(1 << 2)
++#define USER_GP_REGS_STATUS_SCF_HZ_S		2
++/* SCF_HC bit (High Carry flag) */
++#define USER_GP_REGS_STATUS_SCF_HC_BIT		(1 << 1)
++#define USER_GP_REGS_STATUS_SCF_HC_S		1
++/* SCF_LC bit (Low Carry flag) */
++#define USER_GP_REGS_STATUS_SCF_LC_BIT		(1 << 0)
++#define USER_GP_REGS_STATUS_SCF_LC_S		0
++
++/**
++ * struct user_gp_regs - User general purpose registers
++ * @dx:		GP data unit regs (dx[reg][unit] = D{unit:0-1}.{reg:0-7})
++ * @ax:		GP address unit regs (ax[reg][unit] = A{unit:0-1}.{reg:0-3})
++ * @pc:		PC register
++ * @status:	TXSTATUS register (condition flags, LSM_STEP etc)
++ * @rpt:	TXRPT registers (branch repeat counter)
++ * @bpobits:	TXBPOBITS register ("branch prediction other" bits)
++ * @mode:	TXMODE register
++ * @_pad1:	Reserved padding to make sizeof obviously 64bit aligned
++ *
++ * This is the user-visible general purpose register state structure.
++ *
++ * It can be accessed through PTRACE_GETREGSET with NT_PRSTATUS.
++ *
++ * It is also used in the signal context.
++ */
++struct user_gp_regs {
++	unsigned long dx[8][2];
++	unsigned long ax[4][2];
++	unsigned long pc;
++	unsigned long status;
++	unsigned long rpt;
++	unsigned long bpobits;
++	unsigned long mode;
++	unsigned long _pad1;
++};
++
++/**
++ * struct user_cb_regs - User catch buffer registers
++ * @flags:	TXCATCH0 register (fault flags)
++ * @addr:	TXCATCH1 register (fault address)
++ * @data:	TXCATCH2 and TXCATCH3 registers (low and high data word)
++ *
++ * This is the user-visible catch buffer register state structure containing
++ * information about a failed memory access, and allowing the access to be
++ * modified and replayed.
++ *
++ * It can be accessed through PTRACE_GETREGSET with NT_METAG_CBUF.
++ */
++struct user_cb_regs {
++	unsigned long flags;
++	unsigned long addr;
++	unsigned long long data;
++};
++
++/**
++ * struct user_rp_state - User read pipeline state
++ * @entries:	Read pipeline entries
++ * @mask:	Mask of valid pipeline entries (RPMask from TXDIVTIME register)
++ *
++ * This is the user-visible read pipeline state structure containing the entries
++ * currently in the read pipeline and the mask of valid entries.
++ *
++ * It can be accessed through PTRACE_GETREGSET with NT_METAG_RPIPE.
++ */
++struct user_rp_state {
++	unsigned long long entries[6];
++	unsigned long mask;
++};
++
++#endif /* __ASSEMBLY__ */
++
++#endif /* _UAPI_METAG_PTRACE_H */
+diff --git a/arch/metag/kernel/ptrace.c b/arch/metag/kernel/ptrace.c
+new file mode 100644
+index 0000000..47a8828
+--- /dev/null
++++ b/arch/metag/kernel/ptrace.c
+@@ -0,0 +1,380 @@
++/*
++ *  Copyright (C) 2005-2012 Imagination Technologies Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License.  See the file COPYING in the main directory of
++ * this archive for more details.
++ */
++
++#include <linux/kernel.h>
 +#include <linux/mm.h>
-+#include <linux/pagemap.h>
-+#include <linux/seq_file.h>
-+#include <linux/mount.h>
-+#include <linux/slab.h>
++#include <linux/errno.h>
++#include <linux/ptrace.h>
++#include <linux/user.h>
++#include <linux/regset.h>
++#include <linux/tracehook.h>
++#include <linux/elf.h>
++#include <linux/uaccess.h>
++#include <trace/syscall.h>
 +
-+#include <asm/da.h>
-+#include <asm/hwthread.h>
++#define CREATE_TRACE_POINTS
++#include <trace/events/syscalls.h>
 +
-+#include "imgdafs.h"
++/*
++ * user_regset definitions.
++ */
 +
-+static int fscall(int system_call, int arg1, int arg2, int arg3, int arg4,
-+		  int arg5, int *fserrno)
++int metag_gp_regs_copyout(const struct pt_regs *regs,
++			  unsigned int pos, unsigned int count,
++			  void *kbuf, void __user *ubuf)
 +{
-+	register int arg1_           __asm__("D1Ar1") = arg1;
-+	register int arg2_           __asm__("D0Ar2") = arg2;
-+	register int arg3_           __asm__("D1Ar3") = arg3;
-+	register int arg4_           __asm__("D0Ar4") = arg4;
-+	register int arg5_           __asm__("D1Ar5") = arg5;
-+	register int system_call_    __asm__("D0Ar6") = system_call;
-+	register int result          __asm__("D0Re0");
-+	register int errno           __asm__("D1Re0");
++	const void *ptr;
++	unsigned long data;
++	int ret;
 +
-+	__asm__ volatile (
-+		"SETL   [A0StP++], %7,%6\n\t"
-+		"SETL   [A0StP++], %5,%4\n\t"
-+		"SETL   [A0StP++], %3,%2\n\t"
-+		"ADD    A0StP, A0StP, #8\n\t"
-+		"SWITCH #0x0C00208\n\t"
-+		"GETL   %0, %1, [A0StP+#-8]\n\t"
-+		"SUB    A0StP, A0StP, #(4*6)+8\n\t"
-+		: "=r" (result), "=r" (errno)
-+		: "r" (arg1_), "r" (arg2_), "r" (arg3_),
-+		  "r" (arg4_), "r" (arg5_), "r" (system_call_)
-+		: "memory");
-+
-+	if (fserrno)
-+		*fserrno = errno;
-+
-+	return result;
++	/* D{0-1}.{0-7} */
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  regs->ctx.DX, 0, 4*16);
++	if (ret)
++		goto out;
++	/* A{0-1}.{0-1} */
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  regs->ctx.AX, 4*16, 4*20);
++	if (ret)
++		goto out;
++	/* A{0-1}.2 */
++	if (regs->ctx.SaveMask & TBICTX_XEXT_BIT)
++		ptr = regs->ctx.Ext.Ctx.pExt;
++	else
++		ptr = &regs->ctx.Ext.AX2;
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  ptr, 4*20, 4*22);
++	if (ret)
++		goto out;
++	/* A{0-1}.3 */
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  &regs->ctx.AX3, 4*22, 4*24);
++	if (ret)
++		goto out;
++	/* PC */
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  &regs->ctx.CurrPC, 4*24, 4*25);
++	if (ret)
++		goto out;
++	/* TXSTATUS */
++	data = (unsigned long)regs->ctx.Flags;
++	if (regs->ctx.SaveMask & TBICTX_CBUF_BIT)
++		data |= USER_GP_REGS_STATUS_CATCH_BIT;
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  &data, 4*25, 4*26);
++	if (ret)
++		goto out;
++	/* TXRPT, TXBPOBITS, TXMODE */
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  &regs->ctx.CurrRPT, 4*26, 4*29);
++	if (ret)
++		goto out;
++	/* Padding */
++	ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
++				       4*29, 4*30);
++out:
++	return ret;
 +}
 +
-+struct dafs_inode_info {
-+	int fd;
-+	int mode;
-+	struct inode vfs_inode;
-+};
-+
-+static inline struct dafs_inode_info *DAFS_I(struct inode *inode)
++int metag_gp_regs_copyin(struct pt_regs *regs,
++			 unsigned int pos, unsigned int count,
++			 const void *kbuf, const void __user *ubuf)
 +{
-+	return container_of(inode, struct dafs_inode_info, vfs_inode);
++	void *ptr;
++	unsigned long data;
++	int ret;
++
++	/* D{0-1}.{0-7} */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 regs->ctx.DX, 0, 4*16);
++	if (ret)
++		goto out;
++	/* A{0-1}.{0-1} */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 regs->ctx.AX, 4*16, 4*20);
++	if (ret)
++		goto out;
++	/* A{0-1}.2 */
++	if (regs->ctx.SaveMask & TBICTX_XEXT_BIT)
++		ptr = regs->ctx.Ext.Ctx.pExt;
++	else
++		ptr = &regs->ctx.Ext.AX2;
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 ptr, 4*20, 4*22);
++	if (ret)
++		goto out;
++	/* A{0-1}.3 */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 &regs->ctx.AX3, 4*22, 4*24);
++	if (ret)
++		goto out;
++	/* PC */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 &regs->ctx.CurrPC, 4*24, 4*25);
++	if (ret)
++		goto out;
++	/* TXSTATUS */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 &data, 4*25, 4*26);
++	if (ret)
++		goto out;
++	regs->ctx.Flags = data & 0xffff;
++	if (data & USER_GP_REGS_STATUS_CATCH_BIT)
++		regs->ctx.SaveMask |= TBICTX_XCBF_BIT | TBICTX_CBUF_BIT;
++	else
++		regs->ctx.SaveMask &= ~TBICTX_CBUF_BIT;
++	/* TXRPT, TXBPOBITS, TXMODE */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 &regs->ctx.CurrRPT, 4*26, 4*29);
++out:
++	return ret;
 +}
 +
-+#define FILE_DAFS_I(file) DAFS_I((file)->f_path.dentry->d_inode)
-+
-+static int dafs_d_delete(const struct dentry *dentry)
++static int metag_gp_regs_get(struct task_struct *target,
++			     const struct user_regset *regset,
++			     unsigned int pos, unsigned int count,
++			     void *kbuf, void __user *ubuf)
 +{
-+	return 1;
++	const struct pt_regs *regs = task_pt_regs(target);
++	return metag_gp_regs_copyout(regs, pos, count, kbuf, ubuf);
 +}
 +
-+static const struct dentry_operations dafs_dentry_ops = {
-+	.d_delete		= dafs_d_delete,
-+};
-+
-+#define DAFS_SUPER_MAGIC 0xdadadaf5
-+
-+static const struct inode_operations dafs_iops;
-+static const struct inode_operations dafs_dir_iops;
-+
-+static char *__dentry_name(struct dentry *dentry, char *name)
++static int metag_gp_regs_set(struct task_struct *target,
++			     const struct user_regset *regset,
++			     unsigned int pos, unsigned int count,
++			     const void *kbuf, const void __user *ubuf)
 +{
-+	char *p = dentry_path_raw(dentry, name, PATH_MAX);
-+	char *root;
-+	size_t len;
-+
-+	root = dentry->d_sb->s_fs_info;
-+	len = strlen(root);
-+	if (IS_ERR(p)) {
-+		__putname(name);
-+		return NULL;
-+	}
-+
-+	strlcpy(name, root, PATH_MAX);
-+	if (len > p - name) {
-+		__putname(name);
-+		return NULL;
-+	}
-+	if (p > name + len) {
-+		char *s = name + len;
-+		while ((*s++ = *p++) != '\0')
-+			;
-+	}
-+	return name;
++	struct pt_regs *regs = task_pt_regs(target);
++	return metag_gp_regs_copyin(regs, pos, count, kbuf, ubuf);
 +}
 +
-+static char *dentry_name(struct dentry *dentry)
-+{
-+	char *name = __getname();
-+	if (!name)
-+		return NULL;
-+
-+	return __dentry_name(dentry, name); /* will unlock */
-+}
-+
-+static int stat_file(const char *path, struct da_stat *p, int fd)
++int metag_cb_regs_copyout(const struct pt_regs *regs,
++			  unsigned int pos, unsigned int count,
++			  void *kbuf, void __user *ubuf)
 +{
 +	int ret;
-+	int fserrno;
-+	memset(p, 0, sizeof(*p));
 +
-+	if (fd >= 0) {
-+		ret = fscall(DA_OP_FSTAT, fd, (int)p, 0, 0, 0, &fserrno);
-+		if (ret < 0) {
-+			/* Some versions of Codescape do not fill out errno. */
-+			if (ret < 0 && fserrno == 0)
-+				fserrno = ENOENT;
-+			return -fserrno;
-+		}
-+	} else {
-+		ret = fscall(DA_OP_STAT, (int)path, (int)p, strlen(path), 0, 0,
-+			     &fserrno);
-+		if (ret < 0) {
-+			/* Some versions of Codescape do not fill out errno. */
-+			if (ret < 0 && fserrno == 0)
-+				fserrno = ENOENT;
-+			return -fserrno;
-+		}
-+	}
-+
-+	return 0;
-+}
-+
-+static struct inode *dafs_iget(struct super_block *sb)
-+{
-+	struct inode *inode = new_inode(sb);
-+	if (!inode)
-+		return ERR_PTR(-ENOMEM);
-+	return inode;
-+}
-+
-+static struct inode *dafs_alloc_inode(struct super_block *sb)
-+{
-+	struct dafs_inode_info *hi;
-+
-+	hi = kzalloc(sizeof(*hi), GFP_KERNEL);
-+	if (hi == NULL)
-+		return NULL;
-+
-+	hi->fd = -1;
-+	inode_init_once(&hi->vfs_inode);
-+	return &hi->vfs_inode;
-+}
-+
-+static void close_file(void *stream)
-+{
-+	int fd = *((int *) stream);
-+
-+	fscall(DA_OP_CLOSE, fd, 0, 0, 0, 0, NULL);
-+}
-+
-+static void dafs_evict_inode(struct inode *inode)
-+{
-+	truncate_inode_pages(&inode->i_data, 0);
-+	clear_inode(inode);
-+	if (DAFS_I(inode)->fd != -1) {
-+		close_file(&DAFS_I(inode)->fd);
-+		DAFS_I(inode)->fd = -1;
-+	}
-+}
-+
-+static void dafs_i_callback(struct rcu_head *head)
-+{
-+	struct inode *inode = container_of(head, struct inode, i_rcu);
-+	kfree(DAFS_I(inode));
-+}
-+
-+static void dafs_destroy_inode(struct inode *inode)
-+{
-+	call_rcu(&inode->i_rcu, dafs_i_callback);
-+}
-+
-+static const struct super_operations dafs_sbops = {
-+	.alloc_inode	= dafs_alloc_inode,
-+	.drop_inode	= generic_delete_inode,
-+	.evict_inode	= dafs_evict_inode,
-+	.destroy_inode	= dafs_destroy_inode,
-+};
-+
-+static int open_dir(char *path, struct da_finddata *finddata, int *fserrno)
-+{
-+	int len = strlen(path);
-+	char buf[len + 3];
-+
-+	strcpy(buf, path);
-+	if (buf[len - 1] != '/')
-+		strcat(buf, "/*");
++	/* TXCATCH{0-3} */
++	if (regs->ctx.SaveMask & TBICTX_XCBF_BIT)
++		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++					  regs->extcb0, 0, 4*4);
 +	else
-+		strcat(buf, "*");
-+
-+	return fscall(DA_OP_FINDFIRST, (int)buf, (int)finddata, 0, 0, 0,
-+		      fserrno);
++		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
++					       0, 4*4);
++	return ret;
 +}
 +
-+static void close_dir(int handle)
++int metag_cb_regs_copyin(struct pt_regs *regs,
++			 unsigned int pos, unsigned int count,
++			 const void *kbuf, const void __user *ubuf)
 +{
-+	fscall(DA_OP_FINDCLOSE, handle, 0, 0, 0, 0, NULL);
++	int ret;
++
++	/* TXCATCH{0-3} */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 regs->extcb0, 0, 4*4);
++	return ret;
 +}
 +
-+static int read_dir(int handle, struct da_finddata *finddata)
++static int metag_cb_regs_get(struct task_struct *target,
++			     const struct user_regset *regset,
++			     unsigned int pos, unsigned int count,
++			     void *kbuf, void __user *ubuf)
 +{
-+	return fscall(DA_OP_FINDNEXT, handle, (int)finddata, 0, 0, 0, NULL);
++	const struct pt_regs *regs = task_pt_regs(target);
++	return metag_cb_regs_copyout(regs, pos, count, kbuf, ubuf);
 +}
 +
-+static int dafs_readdir(struct file *file, void *ent, filldir_t filldir)
++static int metag_cb_regs_set(struct task_struct *target,
++			     const struct user_regset *regset,
++			     unsigned int pos, unsigned int count,
++			     const void *kbuf, const void __user *ubuf)
 +{
-+	struct inode *inode = file->f_path.dentry->d_inode;
-+	struct super_block *sb = inode->i_sb;
-+	char *name;
-+	int handle;
-+	int fserrno;
-+	unsigned long long next, ino;
-+	int error = 0;
-+	struct da_finddata finddata;
++	struct pt_regs *regs = task_pt_regs(target);
++	return metag_cb_regs_copyin(regs, pos, count, kbuf, ubuf);
++}
 +
-+	name = dentry_name(file->f_path.dentry);
-+	if (name == NULL)
-+		return -ENOMEM;
-+	handle = open_dir(name, &finddata, &fserrno);
-+	__putname(name);
-+	if (handle == -1)
-+		return -fserrno;
++int metag_rp_state_copyout(const struct pt_regs *regs,
++			   unsigned int pos, unsigned int count,
++			   void *kbuf, void __user *ubuf)
++{
++	unsigned long mask;
++	u64 *ptr;
++	int ret, i;
 +
-+	next = 1;
++	/* Empty read pipeline */
++	if (!(regs->ctx.SaveMask & TBICTX_CBRP_BIT)) {
++		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
++					       0, 4*13);
++		goto out;
++	}
 +
-+	if (file->f_pos == 0) {
-+		error = (*filldir)(ent, ".", file->f_pos + 1,
-+				   file->f_pos, inode->i_ino,
-+				   DT_DIR);
-+		if (error < 0)
++	mask = (regs->ctx.CurrDIVTIME & TXDIVTIME_RPMASK_BITS) >>
++		TXDIVTIME_RPMASK_S;
++
++	/* Read pipeline entries */
++	ptr = (void *)&regs->extcb0[1];
++	for (i = 0; i < 6; ++i, ++ptr) {
++		if (mask & (1 << i))
++			ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++						  ptr, 8*i, 8*(i + 1));
++		else
++			ret = user_regset_copyout_zero(&pos, &count, &kbuf,
++						       &ubuf, 8*i, 8*(i + 1));
++		if (ret)
 +			goto out;
-+		file->f_pos++;
 +	}
-+
-+	while (1) {
-+		error = read_dir(handle, &finddata);
-+		if (error)
-+			break;
-+
-+		if (next >= file->f_pos) {
-+			size_t len = strlen(finddata.name);
-+			ino = iunique(sb, 100);
-+			error = (*filldir)(ent, finddata.name, len,
-+					   file->f_pos, ino,
-+					   (finddata.attrib & _A_SUBDIR) ?
-+					    DT_DIR : DT_REG);
-+			if (error)
-+				break;
-+			file->f_pos++;
-+		}
-+		next++;
-+	}
++	/* Mask of entries */
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  &mask, 4*12, 4*13);
 +out:
-+	close_dir(handle);
-+	return 0;
++	return ret;
 +}
 +
-+static int dafs_file_open(struct inode *ino, struct file *file)
++int metag_rp_state_copyin(struct pt_regs *regs,
++			  unsigned int pos, unsigned int count,
++			  const void *kbuf, const void __user *ubuf)
 +{
-+	static DEFINE_MUTEX(open_mutex);
-+	char *name;
-+	int mode, fmode, flags = 0, r = 0, w = 0, fd;
-+	int cpu;
++	struct user_rp_state rp;
++	unsigned long long *ptr;
++	int ret, i;
 +
-+	fmode = file->f_mode & (FMODE_READ | FMODE_WRITE);
-+	if ((fmode & DAFS_I(ino)->mode) == fmode)
-+		return 0;
-+
-+	mode = ino->i_mode & (DA_S_IWUSR | DA_S_IRUSR);
-+
-+	mode |= DAFS_I(ino)->mode;
-+
-+	DAFS_I(ino)->mode |= fmode;
-+	if (DAFS_I(ino)->mode & FMODE_READ)
-+		r = 1;
-+	if (DAFS_I(ino)->mode & FMODE_WRITE) {
-+		w = 1;
-+		r = 1;
-+	}
-+
-+retry:
-+	if (r && !w)
-+		flags |= DA_O_RDONLY;
-+	else if (!r && w)
-+		flags |= DA_O_WRONLY;
-+	else if (r && w)
-+		flags |= DA_O_RDWR;
-+
-+	if (file->f_flags & O_CREAT)
-+		flags |= DA_O_CREAT;
-+
-+	if (file->f_flags & O_TRUNC)
-+		flags |= DA_O_TRUNC;
-+
-+	/*
-+	 * Set the affinity for this file handle to all CPUs. If we
-+	 * don't do this then, if the process that opened the file
-+	 * migrates to a different cpu, the FileServer will not accept
-+	 * the file handle.
-+	 */
-+	for_each_possible_cpu(cpu) {
-+		u8 hwthread = cpu_2_hwthread_id[cpu];
-+		flags |= (1 << (DA_O_AFFINITY_SHIFT + hwthread));
-+	}
-+
-+	name = dentry_name(file->f_path.dentry);
-+	if (name == NULL)
-+		return -ENOMEM;
-+
-+	fd = fscall(DA_OP_OPEN, (int)name, flags, mode, strlen(name), 0, NULL);
-+	__putname(name);
-+	if (fd < 0)
-+		return fd;
-+
-+	mutex_lock(&open_mutex);
-+	/* somebody else had handled it first? */
-+	if ((mode & DAFS_I(ino)->mode) == mode) {
-+		mutex_unlock(&open_mutex);
-+		return 0;
-+	}
-+	if ((mode | DAFS_I(ino)->mode) != mode) {
-+		mode |= DAFS_I(ino)->mode;
-+		mutex_unlock(&open_mutex);
-+		close_file(&fd);
-+		goto retry;
-+	}
-+	DAFS_I(ino)->fd = fd;
-+	DAFS_I(ino)->mode = mode;
-+	mutex_unlock(&open_mutex);
-+
-+	return 0;
-+}
-+
-+static const struct file_operations dafs_file_fops = {
-+	.llseek		= generic_file_llseek,
-+	.read		= do_sync_read,
-+	.splice_read	= generic_file_splice_read,
-+	.aio_read	= generic_file_aio_read,
-+	.aio_write	= generic_file_aio_write,
-+	.write		= do_sync_write,
-+	.mmap		= generic_file_mmap,
-+	.open		= dafs_file_open,
-+	.release	= NULL,
-+};
-+
-+static const struct file_operations dafs_dir_fops = {
-+	.llseek		= generic_file_llseek,
-+	.readdir	= dafs_readdir,
-+	.read		= generic_read_dir,
-+};
-+
-+static int read_file(int fd, unsigned long long *offset, const char *buf,
-+		     int len)
-+{
-+	int n;
-+	int fserrno;
-+
-+	n = fscall(DA_OP_PREAD, fd, (int)buf, len, (int)*offset, 0, &fserrno);
-+
-+	if (n < 0)
-+		return -fserrno;
-+
-+	return n;
-+}
-+
-+static int write_file(int fd, unsigned long long *offset, const char *buf,
-+		      int len)
-+{
-+	int n;
-+	int fserrno;
-+
-+	n = fscall(DA_OP_PWRITE, fd, (int)buf, len, (int)*offset, 0, &fserrno);
-+
-+	if (n < 0)
-+		return -fserrno;
-+
-+	return n;
-+}
-+
-+static int dafs_writepage(struct page *page, struct writeback_control *wbc)
-+{
-+	struct address_space *mapping = page->mapping;
-+	struct inode *inode = mapping->host;
-+	char *buffer;
-+	unsigned long long base;
-+	int count = PAGE_CACHE_SIZE;
-+	int end_index = inode->i_size >> PAGE_CACHE_SHIFT;
-+	int err;
-+
-+	if (page->index >= end_index)
-+		count = inode->i_size & (PAGE_CACHE_SIZE-1);
-+
-+	buffer = kmap(page);
-+	base = ((unsigned long long) page->index) << PAGE_CACHE_SHIFT;
-+
-+	err = write_file(DAFS_I(inode)->fd, &base, buffer, count);
-+	if (err != count) {
-+		ClearPageUptodate(page);
-+		goto out;
-+	}
-+
-+	if (base > inode->i_size)
-+		inode->i_size = base;
-+
-+	if (PageError(page))
-+		ClearPageError(page);
-+	err = 0;
-+
-+ out:
-+	kunmap(page);
-+
-+	unlock_page(page);
-+	return err;
-+}
-+
-+static int dafs_readpage(struct file *file, struct page *page)
-+{
-+	char *buffer;
-+	long long start;
-+	int err = 0;
-+
-+	start = (long long) page->index << PAGE_CACHE_SHIFT;
-+	buffer = kmap(page);
-+	err = read_file(FILE_DAFS_I(file)->fd, &start, buffer,
-+			PAGE_CACHE_SIZE);
-+	if (err < 0)
++	/* Read the entire pipeline before making any changes */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 &rp, 0, 4*13);
++	if (ret)
 +		goto out;
 +
-+	memset(&buffer[err], 0, PAGE_CACHE_SIZE - err);
++	/* Write pipeline entries */
++	ptr = (void *)&regs->extcb0[1];
++	for (i = 0; i < 6; ++i, ++ptr)
++		if (rp.mask & (1 << i))
++			*ptr = rp.entries[i];
 +
-+	flush_dcache_page(page);
-+	SetPageUptodate(page);
-+	if (PageError(page))
-+		ClearPageError(page);
-+	err = 0;
-+ out:
-+	kunmap(page);
-+	unlock_page(page);
-+	return err;
-+}
++	/* Update RPMask in TXDIVTIME */
++	regs->ctx.CurrDIVTIME &= ~TXDIVTIME_RPMASK_BITS;
++	regs->ctx.CurrDIVTIME |= (rp.mask << TXDIVTIME_RPMASK_S)
++				 & TXDIVTIME_RPMASK_BITS;
 +
-+static int dafs_write_begin(struct file *file, struct address_space *mapping,
-+			loff_t pos, unsigned len, unsigned flags,
-+			struct page **pagep, void **fsdata)
-+{
-+	pgoff_t index = pos >> PAGE_CACHE_SHIFT;
-+
-+	*pagep = grab_cache_page_write_begin(mapping, index, flags);
-+	if (!*pagep)
-+		return -ENOMEM;
-+	return 0;
-+}
-+
-+static int dafs_write_end(struct file *file, struct address_space *mapping,
-+			loff_t pos, unsigned len, unsigned copied,
-+			struct page *page, void *fsdata)
-+{
-+	struct inode *inode = mapping->host;
-+	void *buffer;
-+	unsigned from = pos & (PAGE_CACHE_SIZE - 1);
-+	int err;
-+
-+	buffer = kmap(page);
-+	err = write_file(FILE_DAFS_I(file)->fd, &pos, buffer + from, copied);
-+	kunmap(page);
-+
-+	if (!PageUptodate(page) && err == PAGE_CACHE_SIZE)
-+		SetPageUptodate(page);
-+
-+	/*
-+	 * If err > 0, write_file has added err to pos, so we are comparing
-+	 * i_size against the last byte written.
-+	 */
-+	if (err > 0 && (pos > inode->i_size))
-+		inode->i_size = pos;
-+	unlock_page(page);
-+	page_cache_release(page);
-+
-+	return err;
-+}
-+
-+static const struct address_space_operations dafs_aops = {
-+	.writepage	= dafs_writepage,
-+	.readpage	= dafs_readpage,
-+	.set_page_dirty	= __set_page_dirty_nobuffers,
-+	.write_begin	= dafs_write_begin,
-+	.write_end	= dafs_write_end,
-+};
-+
-+static int read_name(struct inode *ino, char *name)
-+{
-+	dev_t rdev;
-+	struct da_stat st;
-+	int err = stat_file(name, &st, -1);
-+	if (err)
-+		return err;
-+
-+	/* No valid maj and min from DA.*/
-+	rdev = MKDEV(0, 0);
-+
-+	switch (st.st_mode & S_IFMT) {
-+	case S_IFDIR:
-+		ino->i_op = &dafs_dir_iops;
-+		ino->i_fop = &dafs_dir_fops;
-+		break;
-+	case S_IFCHR:
-+	case S_IFBLK:
-+	case S_IFIFO:
-+	case S_IFSOCK:
-+		init_special_inode(ino, st.st_mode & S_IFMT, rdev);
-+		ino->i_op = &dafs_iops;
-+		break;
-+
-+	case S_IFLNK:
-+	default:
-+		ino->i_op = &dafs_iops;
-+		ino->i_fop = &dafs_file_fops;
-+		ino->i_mapping->a_ops = &dafs_aops;
-+	}
-+
-+	ino->i_ino = st.st_ino;
-+	ino->i_mode = st.st_mode;
-+	set_nlink(ino, st.st_nlink);
-+
-+	i_uid_write(ino, st.st_uid);
-+	i_gid_write(ino, st.st_gid);
-+	ino->i_atime.tv_sec = st.st_atime;
-+	ino->i_atime.tv_nsec = 0;
-+	ino->i_mtime.tv_sec = st.st_mtime;
-+	ino->i_mtime.tv_nsec = 0;
-+	ino->i_ctime.tv_sec = st.st_ctime;
-+	ino->i_ctime.tv_nsec = 0;
-+	ino->i_size = st.st_size;
-+	ino->i_blocks = st.st_blocks;
-+	return 0;
-+}
-+
-+static int dafs_create(struct inode *dir, struct dentry *dentry, umode_t mode,
-+		       bool excl)
-+{
-+	struct inode *inode;
-+	char *name;
-+	int error, fd;
-+	int damode;
-+	int creat_flags = DA_O_TRUNC | DA_O_CREAT | DA_O_WRONLY;
-+	int cpu;
-+
-+	inode = dafs_iget(dir->i_sb);
-+	if (IS_ERR(inode)) {
-+		error = PTR_ERR(inode);
-+		goto out;
-+	}
-+
-+	damode = mode & (DA_S_IWUSR | DA_S_IRUSR);
-+
-+	error = -ENOMEM;
-+	name = dentry_name(dentry);
-+	if (name == NULL)
-+		goto out_put;
-+
-+	/*
-+	 * creat() will only create text mode files on a Windows host
-+	 * at present.  Replicate the creat() functionality with an
-+	 * open() call, which always creates binary files. Set the
-+	 * affinity to all hardware threads.
-+	 */
-+	for_each_possible_cpu(cpu) {
-+		u8 hwthread = cpu_2_hwthread_id[cpu];
-+		creat_flags |= (1 << (DA_O_AFFINITY_SHIFT + hwthread));
-+	}
-+
-+	fd = fscall(DA_OP_OPEN, (int)name, creat_flags, damode, strlen(name),
-+		    0, NULL);
-+	if (fd < 0)
-+		error = fd;
++	/* Set/clear flags to indicate catch/read pipeline state */
++	if (rp.mask)
++		regs->ctx.SaveMask |= TBICTX_XCBF_BIT | TBICTX_CBRP_BIT;
 +	else
-+		error = read_name(inode, name);
-+
-+	kfree(name);
-+	if (error)
-+		goto out_put;
-+
-+	DAFS_I(inode)->fd = fd;
-+	DAFS_I(inode)->mode = FMODE_READ | FMODE_WRITE;
-+	d_instantiate(dentry, inode);
-+	return 0;
-+
-+ out_put:
-+	iput(inode);
-+ out:
-+	return error;
-+}
-+
-+static struct dentry *dafs_lookup(struct inode *ino, struct dentry *dentry,
-+				  unsigned int flags)
-+{
-+	struct inode *inode;
-+	char *name;
-+	int err;
-+
-+	inode = dafs_iget(ino->i_sb);
-+	if (IS_ERR(inode)) {
-+		err = PTR_ERR(inode);
-+		goto out;
-+	}
-+
-+	err = -ENOMEM;
-+	name = dentry_name(dentry);
-+	if (name == NULL)
-+		goto out_put;
-+
-+	err = read_name(inode, name);
-+
-+	__putname(name);
-+	if (err == -ENOENT) {
-+		iput(inode);
-+		inode = NULL;
-+	} else if (err)
-+		goto out_put;
-+
-+	d_add(dentry, inode);
-+	return NULL;
-+
-+ out_put:
-+	iput(inode);
-+ out:
-+	return ERR_PTR(err);
-+}
-+
-+static int dafs_link(struct dentry *to, struct inode *ino, struct dentry *from)
-+{
-+	char *from_name, *to_name;
-+	int err;
-+
-+	from_name = dentry_name(from);
-+	if (from_name == NULL)
-+		return -ENOMEM;
-+	to_name = dentry_name(to);
-+	if (to_name == NULL) {
-+		__putname(from_name);
-+		return -ENOMEM;
-+	}
-+	err = -EINVAL;
-+	__putname(from_name);
-+	__putname(to_name);
-+	return err;
-+}
-+
-+static int dafs_unlink(struct inode *ino, struct dentry *dentry)
-+{
-+	char *file;
-+	int err;
-+	int fserrno;
-+
-+	file = dentry_name(dentry);
-+	if (file == NULL)
-+		return -ENOMEM;
-+
-+	err = fscall(DA_OP_UNLINK, (int)file, 0, 0, 0, 0, &fserrno);
-+	__putname(file);
-+	if (err)
-+		return -fserrno;
-+	return 0;
-+}
-+
-+static int do_mkdir(const char *file, int mode)
-+{
-+	int err;
-+	int fserrno;
-+
-+	err = fscall(DA_OP_MKDIR, (int)file, mode, strlen(file), 0, 0,
-+		     &fserrno);
-+	if (err)
-+		return -fserrno;
-+	return 0;
-+}
-+
-+static int dafs_mkdir(struct inode *ino, struct dentry *dentry, umode_t mode)
-+{
-+	char *file;
-+	int err;
-+
-+	file = dentry_name(dentry);
-+	if (file == NULL)
-+		return -ENOMEM;
-+	err = do_mkdir(file, mode);
-+	__putname(file);
-+	return err;
-+}
-+
-+static int do_rmdir(const char *file)
-+{
-+	int err;
-+	int fserrno;
-+
-+	err = fscall(DA_OP_RMDIR, (int)file, strlen(file), 0, 0, 0, &fserrno);
-+	if (err)
-+		return -fserrno;
-+	return 0;
-+}
-+
-+static int dafs_rmdir(struct inode *ino, struct dentry *dentry)
-+{
-+	char *file;
-+	int err;
-+
-+	file = dentry_name(dentry);
-+	if (file == NULL)
-+		return -ENOMEM;
-+	err = do_rmdir(file);
-+	__putname(file);
-+	return err;
-+}
-+
-+static int dafs_rename(struct inode *from_ino, struct dentry *from,
-+		  struct inode *to_ino, struct dentry *to)
-+{
-+	char *from_name, *to_name;
-+	int err;
-+
-+	from_name = dentry_name(from);
-+	if (from_name == NULL)
-+		return -ENOMEM;
-+	to_name = dentry_name(to);
-+	if (to_name == NULL) {
-+		__putname(from_name);
-+		return -ENOMEM;
-+	}
-+	err = -EINVAL;
-+	__putname(from_name);
-+	__putname(to_name);
-+	return err;
-+}
-+
-+static const struct inode_operations dafs_iops = {
-+	.create		= dafs_create,
-+	.link		= dafs_link,
-+	.unlink		= dafs_unlink,
-+	.mkdir		= dafs_mkdir,
-+	.rmdir		= dafs_rmdir,
-+	.rename		= dafs_rename,
-+};
-+
-+static const struct inode_operations dafs_dir_iops = {
-+	.create		= dafs_create,
-+	.lookup		= dafs_lookup,
-+	.link		= dafs_link,
-+	.unlink		= dafs_unlink,
-+	.mkdir		= dafs_mkdir,
-+	.rmdir		= dafs_rmdir,
-+	.rename		= dafs_rename,
-+};
-+
-+static char *host_root_path = ".";
-+
-+static int dafs_fill_sb_common(struct super_block *sb, void *d, int silent)
-+{
-+	struct inode *root_inode;
-+	int err;
-+
-+	sb->s_blocksize = 1024;
-+	sb->s_blocksize_bits = 10;
-+	sb->s_magic = DAFS_SUPER_MAGIC;
-+	sb->s_op = &dafs_sbops;
-+	sb->s_d_op = &dafs_dentry_ops;
-+	sb->s_maxbytes = MAX_LFS_FILESIZE;
-+
-+	err = -ENOMEM;
-+
-+	root_inode = new_inode(sb);
-+	if (!root_inode)
-+		goto out;
-+
-+	err = read_name(root_inode, host_root_path);
-+	if (err)
-+		goto out_put;
-+
-+	err = -ENOMEM;
-+	sb->s_fs_info = host_root_path;
-+	sb->s_root = d_make_root(root_inode);
-+	if (sb->s_root == NULL)
-+		goto out;
-+
-+	return 0;
-+
-+out_put:
-+	iput(root_inode);
++		regs->ctx.SaveMask &= ~TBICTX_CBRP_BIT;
 +out:
-+	return err;
++	return ret;
 +}
 +
-+static struct dentry *dafs_read_sb(struct file_system_type *type,
-+				   int flags, const char *dev_name,
-+				   void *data)
++static int metag_rp_state_get(struct task_struct *target,
++			      const struct user_regset *regset,
++			      unsigned int pos, unsigned int count,
++			      void *kbuf, void __user *ubuf)
 +{
-+	if (!metag_da_enabled())
-+		return ERR_PTR(-ENODEV);
-+	return mount_nodev(type, flags, data, dafs_fill_sb_common);
++	const struct pt_regs *regs = task_pt_regs(target);
++	return metag_rp_state_copyout(regs, pos, count, kbuf, ubuf);
 +}
 +
-+static struct file_system_type dafs_type = {
-+	.owner		= THIS_MODULE,
-+	.name		= "imgdafs",
-+	.mount		= dafs_read_sb,
-+	.kill_sb	= kill_anon_super,
-+	.fs_flags	= 0,
++static int metag_rp_state_set(struct task_struct *target,
++			      const struct user_regset *regset,
++			      unsigned int pos, unsigned int count,
++			      const void *kbuf, const void __user *ubuf)
++{
++	struct pt_regs *regs = task_pt_regs(target);
++	return metag_rp_state_copyin(regs, pos, count, kbuf, ubuf);
++}
++
++enum metag_regset {
++	REGSET_GENERAL,
++	REGSET_CBUF,
++	REGSET_READPIPE,
 +};
 +
-+static int __init init_dafs(void)
++static const struct user_regset metag_regsets[] = {
++	[REGSET_GENERAL] = {
++		.core_note_type = NT_PRSTATUS,
++		.n = ELF_NGREG,
++		.size = sizeof(long),
++		.align = sizeof(long long),
++		.get = metag_gp_regs_get,
++		.set = metag_gp_regs_set,
++	},
++	[REGSET_CBUF] = {
++		.core_note_type = NT_METAG_CBUF,
++		.n = sizeof(struct user_cb_regs) / sizeof(long),
++		.size = sizeof(long),
++		.align = sizeof(long long),
++		.get = metag_cb_regs_get,
++		.set = metag_cb_regs_set,
++	},
++	[REGSET_READPIPE] = {
++		.core_note_type = NT_METAG_RPIPE,
++		.n = sizeof(struct user_rp_state) / sizeof(long),
++		.size = sizeof(long),
++		.align = sizeof(long long),
++		.get = metag_rp_state_get,
++		.set = metag_rp_state_set,
++	},
++};
++
++static const struct user_regset_view user_metag_view = {
++	.name = "metag",
++	.e_machine = EM_METAG,
++	.regsets = metag_regsets,
++	.n = ARRAY_SIZE(metag_regsets)
++};
++
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
 +{
-+	return register_filesystem(&dafs_type);
++	return &user_metag_view;
 +}
 +
-+static void __exit exit_dafs(void)
++/*
++ * Called by kernel/ptrace.c when detaching..
++ *
++ * Make sure single step bits etc are not set.
++ */
++void ptrace_disable(struct task_struct *child)
 +{
-+	unregister_filesystem(&dafs_type);
++	/* nothing to do.. */
 +}
 +
-+module_init(init_dafs)
-+module_exit(exit_dafs)
-+MODULE_LICENSE("GPL");
++long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
++		 unsigned long data)
++{
++	int ret;
++
++	switch (request) {
++	default:
++		ret = ptrace_request(child, request, addr, data);
++		break;
++	}
++
++	return ret;
++}
++
++int syscall_trace_enter(struct pt_regs *regs)
++{
++	int ret = 0;
++
++	if (test_thread_flag(TIF_SYSCALL_TRACE))
++		ret = tracehook_report_syscall_entry(regs);
++
++	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
++		trace_sys_enter(regs, regs->ctx.DX[0].U1);
++
++	return ret ? -1 : regs->ctx.DX[0].U1;
++}
++
++void syscall_trace_leave(struct pt_regs *regs)
++{
++	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
++		trace_sys_exit(regs, regs->ctx.DX[0].U1);
++
++	if (test_thread_flag(TIF_SYSCALL_TRACE))
++		tracehook_report_syscall_exit(regs, 0);
++}
+diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+index 126a817..eb164a2 100644
+--- a/include/uapi/linux/elf.h
++++ b/include/uapi/linux/elf.h
+@@ -395,6 +395,8 @@ typedef struct elf64_shdr {
+ #define NT_ARM_TLS	0x401		/* ARM TLS register */
+ #define NT_ARM_HW_BREAK	0x402		/* ARM hardware breakpoint registers */
+ #define NT_ARM_HW_WATCH	0x403		/* ARM hardware watchpoint registers */
++#define NT_METAG_CBUF	0x500		/* Metag catch buffer registers */
++#define NT_METAG_RPIPE	0x501		/* Metag read pipeline state */
+ 
+ 
+ /* Note header in a PT_NOTE section */
 -- 
 1.7.7.6
 
