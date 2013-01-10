@@ -1,1541 +1,1163 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v3 28/44] metag: Atomics, locks and bitops
-Date: Thu, 10 Jan 2013 15:30:56 +0000
-Message-ID: <1357831872-29451-29-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v3 30/44] metag: SMP support
+Date: Thu, 10 Jan 2013 15:30:58 +0000
+Message-ID: <1357831872-29451-31-git-send-email-james.hogan@imgtec.com>
 References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:54492 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754441Ab3AJPct (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Jan 2013 10:32:49 -0500
+Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: James Hogan <james.hogan@imgtec.com>
+List-Id: linux-arch.vger.kernel.org
 
-Add header files to implement Meta hardware thread locks (used by some
-other atomic operations), atomics, spinlocks, and bitops.
-
-There are 2 main types of atomic primitives for metag (in addition to
-IRQs off on UP):
- - LOCK instructions provide locking between hardware threads.
- - LNKGET/LNKSET instructions provide load-linked/store-conditional
-   operations allowing for lighter weight atomics on Meta2
-
-LOCK instructions allow for hardware threads to acquire voluntary or
-exclusive hardware thread locks:
- - LOCK0 releases exclusive and voluntary lock from the running hardware
-   thread.
- - LOCK1 acquires the voluntary hardware lock, blocking until it becomes
-   available.
- - LOCK2 implies LOCK1, and additionally acquires the exclusive hardware
-   lock, blocking all other hardware threads from executing.
+Add SMP support for metag. This allows Linux to take control of multiple
+hardware threads on a single Meta core, treating them as separate Linux
+CPUs.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
 ---
- arch/metag/include/asm/atomic.h          |   53 +++++++
- arch/metag/include/asm/atomic_lnkget.h   |  234 ++++++++++++++++++++++++++++
- arch/metag/include/asm/atomic_lock1.h    |  160 +++++++++++++++++++
- arch/metag/include/asm/bitops.h          |  132 ++++++++++++++++
- arch/metag/include/asm/cmpxchg.h         |   65 ++++++++
- arch/metag/include/asm/cmpxchg_irq.h     |   42 +++++
- arch/metag/include/asm/cmpxchg_lnkget.h  |   86 ++++++++++
- arch/metag/include/asm/cmpxchg_lock1.h   |   48 ++++++
- arch/metag/include/asm/global_lock.h     |  100 ++++++++++++
- arch/metag/include/asm/spinlock.h        |   22 +++
- arch/metag/include/asm/spinlock_lnkget.h |  249 ++++++++++++++++++++++++++++++
- arch/metag/include/asm/spinlock_lock1.h  |  184 ++++++++++++++++++++++
- arch/metag/include/asm/spinlock_types.h  |   20 +++
- 13 files changed, 1395 insertions(+), 0 deletions(-)
- create mode 100644 arch/metag/include/asm/atomic.h
- create mode 100644 arch/metag/include/asm/atomic_lnkget.h
- create mode 100644 arch/metag/include/asm/atomic_lock1.h
- create mode 100644 arch/metag/include/asm/bitops.h
- create mode 100644 arch/metag/include/asm/cmpxchg.h
- create mode 100644 arch/metag/include/asm/cmpxchg_irq.h
- create mode 100644 arch/metag/include/asm/cmpxchg_lnkget.h
- create mode 100644 arch/metag/include/asm/cmpxchg_lock1.h
- create mode 100644 arch/metag/include/asm/global_lock.h
- create mode 100644 arch/metag/include/asm/spinlock.h
- create mode 100644 arch/metag/include/asm/spinlock_lnkget.h
- create mode 100644 arch/metag/include/asm/spinlock_lock1.h
- create mode 100644 arch/metag/include/asm/spinlock_types.h
+ arch/metag/include/asm/cachepart.h |   42 +++
+ arch/metag/include/asm/core_reg.h  |   28 ++
+ arch/metag/include/asm/smp.h       |   31 ++
+ arch/metag/include/asm/topology.h  |   53 ++++
+ arch/metag/kernel/cachepart.c      |  124 ++++++++
+ arch/metag/kernel/core_reg.c       |  117 +++++++
+ arch/metag/kernel/head.S           |   12 +
+ arch/metag/kernel/smp.c            |  582 ++++++++++++++++++++++++++++++++++++
+ arch/metag/kernel/topology.c       |   77 +++++
+ 9 files changed, 1066 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/include/asm/cachepart.h
+ create mode 100644 arch/metag/include/asm/core_reg.h
+ create mode 100644 arch/metag/include/asm/smp.h
+ create mode 100644 arch/metag/include/asm/topology.h
+ create mode 100644 arch/metag/kernel/cachepart.c
+ create mode 100644 arch/metag/kernel/core_reg.c
+ create mode 100644 arch/metag/kernel/smp.c
+ create mode 100644 arch/metag/kernel/topology.c
 
-diff --git a/arch/metag/include/asm/atomic.h b/arch/metag/include/asm/atomic.h
+diff --git a/arch/metag/include/asm/cachepart.h b/arch/metag/include/asm/cachepart.h
 new file mode 100644
-index 0000000..307ecd2
+index 0000000..cf6b44e
 --- /dev/null
-+++ b/arch/metag/include/asm/atomic.h
-@@ -0,0 +1,53 @@
-+#ifndef __ASM_METAG_ATOMIC_H
-+#define __ASM_METAG_ATOMIC_H
-+
-+#include <linux/compiler.h>
-+#include <linux/types.h>
-+#include <asm/cmpxchg.h>
-+
-+#if defined(CONFIG_METAG_ATOMICITY_IRQSOFF)
-+/* The simple UP case. */
-+#include <asm-generic/atomic.h>
-+#else
-+
-+#if defined(CONFIG_METAG_ATOMICITY_LOCK1)
-+#include <asm/atomic_lock1.h>
-+#else
-+#include <asm/atomic_lnkget.h>
-+#endif
-+
-+#define atomic_add_negative(a, v)       (atomic_add_return((a), (v)) < 0)
-+
-+#define atomic_dec_return(v) atomic_sub_return(1, (v))
-+#define atomic_inc_return(v) atomic_add_return(1, (v))
-+
++++ b/arch/metag/include/asm/cachepart.h
+@@ -0,0 +1,42 @@
 +/*
-+ * atomic_inc_and_test - increment and test
-+ * @v: pointer of type atomic_t
++ * Meta cache partition manipulation.
 + *
-+ * Atomically increments @v by 1
-+ * and returns true if the result is zero, or false for all
-+ * other cases.
++ * Copyright 2010 Imagination Technologies Ltd.
 + */
-+#define atomic_inc_and_test(v) (atomic_inc_return(v) == 0)
 +
-+#define atomic_sub_and_test(i, v) (atomic_sub_return((i), (v)) == 0)
-+#define atomic_dec_and_test(v) (atomic_sub_return(1, (v)) == 0)
++#ifndef _METAG_CACHEPART_H_
++#define _METAG_CACHEPART_H_
 +
-+#define atomic_inc(v) atomic_add(1, (v))
-+#define atomic_dec(v) atomic_sub(1, (v))
++/**
++ * get_dcache_size() - Get size of data cache.
++ */
++unsigned int get_dcache_size(void);
 +
-+#define atomic_inc_not_zero(v) atomic_add_unless((v), 1, 0)
++/**
++ * get_icache_size() - Get size of code cache.
++ */
++unsigned int get_icache_size(void);
 +
-+#define smp_mb__before_atomic_dec()	barrier()
-+#define smp_mb__after_atomic_dec()	barrier()
-+#define smp_mb__before_atomic_inc()	barrier()
-+#define smp_mb__after_atomic_inc()	barrier()
++/**
++ * get_global_dcache_size() - Get the thread's global dcache.
++ *
++ * Returns the size of the current thread's global dcache partition.
++ */
++unsigned int get_global_dcache_size(void);
++
++/**
++ * get_global_icache_size() - Get the thread's global icache.
++ *
++ * Returns the size of the current thread's global icache partition.
++ */
++unsigned int get_global_icache_size(void);
++
++/**
++ * check_for_dache_aliasing() - Ensure that the bootloader has configured the
++ * dache and icache properly to avoid aliasing
++ * @thread_id: Hardware thread ID
++ *
++ */
++void check_for_cache_aliasing(int thread_id);
 +
 +#endif
-+
-+#define atomic_dec_if_positive(v)       atomic_sub_if_positive(1, v)
-+
-+#include <asm-generic/atomic64.h>
-+
-+#endif /* __ASM_METAG_ATOMIC_H */
-diff --git a/arch/metag/include/asm/atomic_lnkget.h b/arch/metag/include/asm/atomic_lnkget.h
+diff --git a/arch/metag/include/asm/core_reg.h b/arch/metag/include/asm/core_reg.h
 new file mode 100644
-index 0000000..d2e60a1
+index 0000000..f585d11
 --- /dev/null
-+++ b/arch/metag/include/asm/atomic_lnkget.h
-@@ -0,0 +1,234 @@
-+#ifndef __ASM_METAG_ATOMIC_LNKGET_H
-+#define __ASM_METAG_ATOMIC_LNKGET_H
++++ b/arch/metag/include/asm/core_reg.h
+@@ -0,0 +1,28 @@
++#ifndef __ASM_METAG_CORE_REG_H_
++#define __ASM_METAG_CORE_REG_H_
 +
-+#define ATOMIC_INIT(i)	{ (i) }
++#include <asm/metag_regs.h>
 +
-+#define atomic_set(v, i)		((v)->counter = (i))
-+
-+#include <linux/compiler.h>
-+
-+#include <asm/barrier.h>
++extern void core_reg_write(int unit, int reg, int thread, unsigned int val);
++extern unsigned int core_reg_read(int unit, int reg, int thread);
 +
 +/*
-+ * None of these asm statements clobber memory as LNKSET writes around
-+ * the cache so the memory it modifies cannot safely be read by any means
-+ * other than these accessors.
++ * These macros allow direct access from C to any register known to the
++ * assembler. Example candidates are TXTACTCYC, TXIDLECYC, and TXPRIVEXT.
 + */
 +
-+static inline int atomic_read(const atomic_t *v)
-+{
-+	int temp;
-+
-+	asm volatile (
-+		"LNKGETD %0, [%1]\n"
-+		: "=da" (temp)
-+		: "da" (&v->counter));
-+
-+	return temp;
-+}
-+
-+static inline void atomic_add(int i, atomic_t *v)
-+{
-+	int temp;
-+
-+	asm volatile (
-+		"1:	LNKGETD %0, [%1]\n"
-+		"	ADD	%0, %0, %2\n"
-+		"	LNKSETD [%1], %0\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ	1b\n"
-+		: "=&d" (temp)
-+		: "da" (&v->counter), "bd" (i)
-+		: "cc");
-+}
-+
-+static inline void atomic_sub(int i, atomic_t *v)
-+{
-+	int temp;
-+
-+	asm volatile (
-+		"1:	LNKGETD %0, [%1]\n"
-+		"	SUB	%0, %0, %2\n"
-+		"	LNKSETD [%1], %0\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ 1b\n"
-+		: "=&d" (temp)
-+		: "da" (&v->counter), "bd" (i)
-+		: "cc");
-+}
-+
-+static inline int atomic_add_return(int i, atomic_t *v)
-+{
-+	int result, temp;
-+
-+	smp_mb();
-+
-+	asm volatile (
-+		"1:	LNKGETD %1, [%2]\n"
-+		"	ADD	%1, %1, %3\n"
-+		"	LNKSETD [%2], %1\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ 1b\n"
-+		: "=&d" (temp), "=&da" (result)
-+		: "da" (&v->counter), "bd" (i)
-+		: "cc");
-+
-+	smp_mb();
-+
-+	return result;
-+}
-+
-+static inline int atomic_sub_return(int i, atomic_t *v)
-+{
-+	int result, temp;
-+
-+	smp_mb();
-+
-+	asm volatile (
-+		"1:	LNKGETD %1, [%2]\n"
-+		"	SUB	%1, %1, %3\n"
-+		"	LNKSETD [%2], %1\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ	1b\n"
-+		: "=&d" (temp), "=&da" (result)
-+		: "da" (&v->counter), "bd" (i)
-+		: "cc");
-+
-+	smp_mb();
-+
-+	return result;
-+}
-+
-+static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
-+{
-+	int temp;
-+
-+	asm volatile (
-+		"1:	LNKGETD %0, [%1]\n"
-+		"	AND	%0, %0, %2\n"
-+		"	LNKSETD	[%1] %0\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ	1b\n"
-+		: "=&d" (temp)
-+		: "da" (&v->counter), "bd" (~mask)
-+		: "cc");
-+}
-+
-+static inline void atomic_set_mask(unsigned int mask, atomic_t *v)
-+{
-+	int temp;
-+
-+	asm volatile (
-+		"1:	LNKGETD %0, [%1]\n"
-+		"	OR	%0, %0, %2\n"
-+		"	LNKSETD	[%1], %0\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ	1b\n"
-+		: "=&d" (temp)
-+		: "da" (&v->counter), "bd" (mask)
-+		: "cc");
-+}
-+
-+static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
-+{
-+	int result, temp;
-+
-+	smp_mb();
-+
-+	asm volatile (
-+		"1:	LNKGETD	%1, [%2]\n"
-+		"	CMP	%1, %3\n"
-+		"	LNKSETDEQ [%2], %4\n"
-+		"	BNE	2f\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ	1b\n"
-+		"2:\n"
-+		: "=&d" (temp), "=&d" (result)
-+		: "da" (&v->counter), "bd" (old), "da" (new)
-+		: "cc");
-+
-+	smp_mb();
-+
-+	return result;
-+}
-+
-+static inline int atomic_xchg(atomic_t *v, int new)
-+{
-+	int temp, old;
-+
-+	asm volatile (
-+		"1:	LNKGETD %1, [%2]\n"
-+		"	LNKSETD	[%2], %3\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ	1b\n"
-+		: "=&d" (temp), "=&d" (old)
-+		: "da" (&v->counter), "da" (new)
-+		: "cc");
-+
-+	return old;
-+}
-+
-+static inline int __atomic_add_unless(atomic_t *v, int a, int u)
-+{
-+	int result, temp;
-+
-+	smp_mb();
-+
-+	asm volatile (
-+		"1:	LNKGETD %1, [%2]\n"
-+		"	CMP	%1, %3\n"
-+		"	ADD	%0, %1, %4\n"
-+		"	LNKSETDNE [%2], %0\n"
-+		"	BEQ	2f\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ	1b\n"
-+		"2:\n"
-+		: "=&d" (temp), "=&d" (result)
-+		: "da" (&v->counter), "bd" (u), "bd" (a)
-+		: "cc");
-+
-+	smp_mb();
-+
-+	return result;
-+}
-+
-+static inline int atomic_sub_if_positive(int i, atomic_t *v)
-+{
-+	int result, temp;
-+
-+	asm volatile (
-+		"1:	LNKGETD %1, [%2]\n"
-+		"	SUBS	%1, %1, %3\n"
-+		"	LNKSETDGE [%2], %1\n"
-+		"	BLT	2f\n"
-+		"	DEFR	%0, TXSTAT\n"
-+		"	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		"	CMPT	%0, #HI(0x02000000)\n"
-+		"	BNZ	1b\n"
-+		"2:\n"
-+		: "=&d" (temp), "=&da" (result)
-+		: "da" (&v->counter), "bd" (i)
-+		: "cc");
-+
-+	return result;
-+}
-+
-+#endif /* __ASM_METAG_ATOMIC_LNKGET_H */
-diff --git a/arch/metag/include/asm/atomic_lock1.h b/arch/metag/include/asm/atomic_lock1.h
-new file mode 100644
-index 0000000..e578955
---- /dev/null
-+++ b/arch/metag/include/asm/atomic_lock1.h
-@@ -0,0 +1,160 @@
-+#ifndef __ASM_METAG_ATOMIC_LOCK1_H
-+#define __ASM_METAG_ATOMIC_LOCK1_H
-+
-+#define ATOMIC_INIT(i)	{ (i) }
-+
-+#include <linux/compiler.h>
-+
-+#include <asm/barrier.h>
-+#include <asm/global_lock.h>
-+
-+static inline int atomic_read(const atomic_t *v)
-+{
-+	return (v)->counter;
-+}
-+
-+/*
-+ * atomic_set needs to be take the lock to protect atomic_add_unless from a
-+ * possible race, as it reads the counter twice:
-+ *
-+ *  CPU0                               CPU1
-+ *  atomic_add_unless(1, 0)
-+ *    ret = v->counter (non-zero)
-+ *    if (ret != u)                    v->counter = 0
-+ *      v->counter += 1 (counter set to 1)
-+ *
-+ * Making atomic_set take the lock ensures that ordering and logical
-+ * consistency is preserved.
-+ */
-+static inline int atomic_set(atomic_t *v, int i)
-+{
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	fence();
-+	v->counter = i;
-+	__global_unlock1(flags);
-+	return i;
-+}
-+
-+static inline void atomic_add(int i, atomic_t *v)
-+{
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	fence();
-+	v->counter += i;
-+	__global_unlock1(flags);
-+}
-+
-+static inline void atomic_sub(int i, atomic_t *v)
-+{
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	fence();
-+	v->counter -= i;
-+	__global_unlock1(flags);
-+}
-+
-+static inline int atomic_add_return(int i, atomic_t *v)
-+{
-+	unsigned long result;
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	result = v->counter;
-+	result += i;
-+	fence();
-+	v->counter = result;
-+	__global_unlock1(flags);
-+
-+	return result;
-+}
-+
-+static inline int atomic_sub_return(int i, atomic_t *v)
-+{
-+	unsigned long result;
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	result = v->counter;
-+	result -= i;
-+	fence();
-+	v->counter = result;
-+	__global_unlock1(flags);
-+
-+	return result;
-+}
-+
-+static inline void atomic_clear_mask(unsigned int mask, atomic_t *v)
-+{
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	fence();
-+	v->counter &= ~mask;
-+	__global_unlock1(flags);
-+}
-+
-+static inline void atomic_set_mask(unsigned int mask, atomic_t *v)
-+{
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	fence();
-+	v->counter |= mask;
-+	__global_unlock1(flags);
-+}
-+
-+static inline int atomic_cmpxchg(atomic_t *v, int old, int new)
-+{
-+	int ret;
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	ret = v->counter;
-+	if (ret == old) {
-+		fence();
-+		v->counter = new;
-+	}
-+	__global_unlock1(flags);
-+
-+	return ret;
-+}
-+
-+#define atomic_xchg(v, new) (xchg(&((v)->counter), new))
-+
-+static inline int __atomic_add_unless(atomic_t *v, int a, int u)
-+{
-+	int ret;
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	ret = v->counter;
-+	if (ret != u) {
-+		fence();
-+		v->counter += a;
-+	}
-+	__global_unlock1(flags);
-+
-+	return ret;
-+}
-+
-+static inline int atomic_sub_if_positive(int i, atomic_t *v)
-+{
-+	int ret;
-+	unsigned long flags;
-+
-+	__global_lock1(flags);
-+	ret = v->counter - 1;
-+	if (ret >= 0) {
-+		fence();
-+		v->counter = ret;
-+	}
-+	__global_unlock1(flags);
-+
-+	return ret;
-+}
-+
-+#endif /* __ASM_METAG_ATOMIC_LOCK1_H */
-diff --git a/arch/metag/include/asm/bitops.h b/arch/metag/include/asm/bitops.h
-new file mode 100644
-index 0000000..c0d0df0
---- /dev/null
-+++ b/arch/metag/include/asm/bitops.h
-@@ -0,0 +1,132 @@
-+#ifndef __ASM_METAG_BITOPS_H
-+#define __ASM_METAG_BITOPS_H
-+
-+#include <linux/compiler.h>
-+#include <asm/barrier.h>
-+#include <asm/global_lock.h>
-+
-+/*
-+ * clear_bit() doesn't provide any barrier for the compiler.
-+ */
-+#define smp_mb__before_clear_bit()	barrier()
-+#define smp_mb__after_clear_bit()	barrier()
-+
-+#ifdef CONFIG_SMP
-+/*
-+ * These functions are the basis of our bit ops.
-+ */
-+static inline void set_bit(unsigned int bit, volatile unsigned long *p)
-+{
-+	unsigned long flags;
-+	unsigned long mask = 1UL << (bit & 31);
-+
-+	p += bit >> 5;
-+
-+	__global_lock1(flags);
-+	fence();
-+	*p |= mask;
-+	__global_unlock1(flags);
-+}
-+
-+static inline void clear_bit(unsigned int bit, volatile unsigned long *p)
-+{
-+	unsigned long flags;
-+	unsigned long mask = 1UL << (bit & 31);
-+
-+	p += bit >> 5;
-+
-+	__global_lock1(flags);
-+	fence();
-+	*p &= ~mask;
-+	__global_unlock1(flags);
-+}
-+
-+static inline void change_bit(unsigned int bit, volatile unsigned long *p)
-+{
-+	unsigned long flags;
-+	unsigned long mask = 1UL << (bit & 31);
-+
-+	p += bit >> 5;
-+
-+	__global_lock1(flags);
-+	fence();
-+	*p ^= mask;
-+	__global_unlock1(flags);
-+}
-+
-+static inline int test_and_set_bit(unsigned int bit, volatile unsigned long *p)
-+{
-+	unsigned long flags;
-+	unsigned long old;
-+	unsigned long mask = 1UL << (bit & 31);
-+
-+	p += bit >> 5;
-+
-+	__global_lock1(flags);
-+	old = *p;
-+	if (!(old & mask)) {
-+		fence();
-+		*p = old | mask;
-+	}
-+	__global_unlock1(flags);
-+
-+	return (old & mask) != 0;
-+}
-+
-+static inline int test_and_clear_bit(unsigned int bit,
-+				     volatile unsigned long *p)
-+{
-+	unsigned long flags;
-+	unsigned long old;
-+	unsigned long mask = 1UL << (bit & 31);
-+
-+	p += bit >> 5;
-+
-+	__global_lock1(flags);
-+	old = *p;
-+	if (old & mask) {
-+		fence();
-+		*p = old & ~mask;
-+	}
-+	__global_unlock1(flags);
-+
-+	return (old & mask) != 0;
-+}
-+
-+static inline int test_and_change_bit(unsigned int bit,
-+				      volatile unsigned long *p)
-+{
-+	unsigned long flags;
-+	unsigned long old;
-+	unsigned long mask = 1UL << (bit & 31);
-+
-+	p += bit >> 5;
-+
-+	__global_lock1(flags);
-+	fence();
-+	old = *p;
-+	*p = old ^ mask;
-+	__global_unlock1(flags);
-+
-+	return (old & mask) != 0;
-+}
-+
-+#else
-+#include <asm-generic/bitops/atomic.h>
-+#endif /* CONFIG_SMP */
-+
-+#include <asm-generic/bitops/non-atomic.h>
-+#include <asm-generic/bitops/find.h>
-+#include <asm-generic/bitops/ffs.h>
-+#include <asm-generic/bitops/__ffs.h>
-+#include <asm-generic/bitops/ffz.h>
-+#include <asm-generic/bitops/fls.h>
-+#include <asm-generic/bitops/__fls.h>
-+#include <asm-generic/bitops/fls64.h>
-+#include <asm-generic/bitops/hweight.h>
-+#include <asm-generic/bitops/lock.h>
-+#include <asm-generic/bitops/sched.h>
-+#include <asm-generic/bitops/le.h>
-+#include <asm-generic/bitops/ext2-atomic.h>
-+
-+#endif /* __ASM_METAG_BITOPS_H */
-diff --git a/arch/metag/include/asm/cmpxchg.h b/arch/metag/include/asm/cmpxchg.h
-new file mode 100644
-index 0000000..b1bc1be
---- /dev/null
-+++ b/arch/metag/include/asm/cmpxchg.h
-@@ -0,0 +1,65 @@
-+#ifndef __ASM_METAG_CMPXCHG_H
-+#define __ASM_METAG_CMPXCHG_H
-+
-+#include <asm/barrier.h>
-+
-+#if defined(CONFIG_METAG_ATOMICITY_IRQSOFF)
-+#include <asm/cmpxchg_irq.h>
-+#elif defined(CONFIG_METAG_ATOMICITY_LOCK1)
-+#include <asm/cmpxchg_lock1.h>
-+#elif defined(CONFIG_METAG_ATOMICITY_LNKGET)
-+#include <asm/cmpxchg_lnkget.h>
-+#endif
-+
-+extern void __xchg_called_with_bad_pointer(void);
-+
-+#define __xchg(ptr, x, size)				\
-+({							\
-+	unsigned long __xchg__res;			\
-+	volatile void *__xchg_ptr = (ptr);		\
-+	switch (size) {					\
-+	case 4:						\
-+		__xchg__res = xchg_u32(__xchg_ptr, x);	\
-+		break;					\
-+	case 1:						\
-+		__xchg__res = xchg_u8(__xchg_ptr, x);	\
-+		break;					\
-+	default:					\
-+		__xchg_called_with_bad_pointer();	\
-+		__xchg__res = x;			\
-+		break;					\
-+	}						\
-+							\
-+	__xchg__res;					\
++#define __core_reg_get(reg) ({						\
++	unsigned int __grvalue;						\
++	asm volatile("MOV	%0," #reg				\
++		     : "=r" (__grvalue));				\
++	__grvalue;							\
 +})
 +
-+#define xchg(ptr, x)	\
-+	((__typeof__(*(ptr)))__xchg((ptr), (unsigned long)(x), sizeof(*(ptr))))
++#define __core_reg_set(reg, value) do {					\
++	unsigned int __srvalue = (value);				\
++	asm volatile("MOV	" #reg ",%0"				\
++		     :							\
++		     : "r" (__srvalue));				\
++} while (0)
 +
-+/* This function doesn't exist, so you'll get a linker error
-+ * if something tries to do an invalid cmpxchg(). */
-+extern void __cmpxchg_called_with_bad_pointer(void);
-+
-+static inline unsigned long __cmpxchg(volatile void *ptr, unsigned long old,
-+				      unsigned long new, int size)
-+{
-+	switch (size) {
-+	case 4:
-+		return __cmpxchg_u32(ptr, old, new);
-+	}
-+	__cmpxchg_called_with_bad_pointer();
-+	return old;
-+}
-+
-+#define __HAVE_ARCH_CMPXCHG 1
-+
-+#define cmpxchg(ptr, o, n)						\
-+	({								\
-+		__typeof__(*(ptr)) _o_ = (o);				\
-+		__typeof__(*(ptr)) _n_ = (n);				\
-+		(__typeof__(*(ptr))) __cmpxchg((ptr), (unsigned long)_o_, \
-+					       (unsigned long)_n_,	\
-+					       sizeof(*(ptr)));		\
-+	})
-+
-+#endif /* __ASM_METAG_CMPXCHG_H */
-diff --git a/arch/metag/include/asm/cmpxchg_irq.h b/arch/metag/include/asm/cmpxchg_irq.h
-new file mode 100644
-index 0000000..6495731
---- /dev/null
-+++ b/arch/metag/include/asm/cmpxchg_irq.h
-@@ -0,0 +1,42 @@
-+#ifndef __ASM_METAG_CMPXCHG_IRQ_H
-+#define __ASM_METAG_CMPXCHG_IRQ_H
-+
-+#include <linux/irqflags.h>
-+
-+static inline unsigned long xchg_u32(volatile u32 *m, unsigned long val)
-+{
-+	unsigned long flags, retval;
-+
-+	local_irq_save(flags);
-+	retval = *m;
-+	*m = val;
-+	local_irq_restore(flags);
-+	return retval;
-+}
-+
-+static inline unsigned long xchg_u8(volatile u8 *m, unsigned long val)
-+{
-+	unsigned long flags, retval;
-+
-+	local_irq_save(flags);
-+	retval = *m;
-+	*m = val & 0xff;
-+	local_irq_restore(flags);
-+	return retval;
-+}
-+
-+static inline unsigned long __cmpxchg_u32(volatile int *m, unsigned long old,
-+					  unsigned long new)
-+{
-+	__u32 retval;
-+	unsigned long flags;
-+
-+	local_irq_save(flags);
-+	retval = *m;
-+	if (retval == old)
-+		*m = new;
-+	local_irq_restore(flags);       /* implies memory barrier  */
-+	return retval;
-+}
-+
-+#endif /* __ASM_METAG_CMPXCHG_IRQ_H */
-diff --git a/arch/metag/include/asm/cmpxchg_lnkget.h b/arch/metag/include/asm/cmpxchg_lnkget.h
-new file mode 100644
-index 0000000..0154e28
---- /dev/null
-+++ b/arch/metag/include/asm/cmpxchg_lnkget.h
-@@ -0,0 +1,86 @@
-+#ifndef __ASM_METAG_CMPXCHG_LNKGET_H
-+#define __ASM_METAG_CMPXCHG_LNKGET_H
-+
-+static inline unsigned long xchg_u32(volatile u32 *m, unsigned long val)
-+{
-+	int temp, old;
-+
-+	smp_mb();
-+
-+	asm volatile (
-+		      "1:	LNKGETD %1, [%2]\n"
-+		      "	LNKSETD	[%2], %3\n"
-+		      "	DEFR	%0, TXSTAT\n"
-+		      "	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		      "	CMPT	%0, #HI(0x02000000)\n"
-+		      "	BNZ	1b\n"
-+#ifdef CONFIG_METAG_LNKGET_AROUND_CACHE
-+		      "	DCACHE	[%2], %0\n"
 +#endif
-+		      : "=&d" (temp), "=&d" (old)
-+		      : "da" (m), "da" (val)
-+		      : "cc"
-+		      );
-+
-+	smp_mb();
-+
-+	return old;
-+}
-+
-+static inline unsigned long xchg_u8(volatile u8 *m, unsigned long val)
-+{
-+	int temp, old;
-+
-+	smp_mb();
-+
-+	asm volatile (
-+		      "1:	LNKGETD %1, [%2]\n"
-+		      "	LNKSETD	[%2], %3\n"
-+		      "	DEFR	%0, TXSTAT\n"
-+		      "	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		      "	CMPT	%0, #HI(0x02000000)\n"
-+		      "	BNZ	1b\n"
-+#ifdef CONFIG_METAG_LNKGET_AROUND_CACHE
-+		      "	DCACHE	[%2], %0\n"
-+#endif
-+		      : "=&d" (temp), "=&d" (old)
-+		      : "da" (m), "da" (val & 0xff)
-+		      : "cc"
-+		      );
-+
-+	smp_mb();
-+
-+	return old;
-+}
-+
-+static inline unsigned long __cmpxchg_u32(volatile int *m, unsigned long old,
-+					  unsigned long new)
-+{
-+	__u32 retval, temp;
-+
-+	smp_mb();
-+
-+	asm volatile (
-+		      "1:	LNKGETD	%1, [%2]\n"
-+		      "	CMP	%1, %3\n"
-+		      "	LNKSETDEQ [%2], %4\n"
-+		      "	BNE	2f\n"
-+		      "	DEFR	%0, TXSTAT\n"
-+		      "	ANDT	%0, %0, #HI(0x3f000000)\n"
-+		      "	CMPT	%0, #HI(0x02000000)\n"
-+		      "	BNZ	1b\n"
-+#ifdef CONFIG_METAG_LNKGET_AROUND_CACHE
-+		      "	DCACHE	[%2], %0\n"
-+#endif
-+		      "2:\n"
-+		      : "=&d" (temp), "=&da" (retval)
-+		      : "da" (m), "bd" (old), "da" (new)
-+		      : "cc"
-+		      );
-+
-+	smp_mb();
-+
-+	return retval;
-+}
-+
-+#endif /* __ASM_METAG_CMPXCHG_LNKGET_H */
-diff --git a/arch/metag/include/asm/cmpxchg_lock1.h b/arch/metag/include/asm/cmpxchg_lock1.h
+diff --git a/arch/metag/include/asm/smp.h b/arch/metag/include/asm/smp.h
 new file mode 100644
-index 0000000..fd68504
+index 0000000..b35fa84
 --- /dev/null
-+++ b/arch/metag/include/asm/cmpxchg_lock1.h
-@@ -0,0 +1,48 @@
-+#ifndef __ASM_METAG_CMPXCHG_LOCK1_H
-+#define __ASM_METAG_CMPXCHG_LOCK1_H
++++ b/arch/metag/include/asm/smp.h
+@@ -0,0 +1,31 @@
++#ifndef __ASM_SMP_H
++#define __ASM_SMP_H
 +
-+#include <asm/global_lock.h>
++#include <linux/cpumask.h>
 +
-+/* Use LOCK2 as these have to be atomic w.r.t. ordinary accesses. */
++#define raw_smp_processor_id() (current_thread_info()->cpu)
 +
-+static inline unsigned long xchg_u32(volatile u32 *m, unsigned long val)
-+{
-+	unsigned long flags, retval;
++extern void local_timer_setup(unsigned int cpu);
 +
-+	__global_lock2(flags);
-+	fence();
-+	retval = *m;
-+	*m = val;
-+	__global_unlock2(flags);
-+	return retval;
-+}
++enum ipi_msg_type {
++	IPI_CALL_FUNC,
++	IPI_CALL_FUNC_SINGLE,
++	IPI_RESCHEDULE,
++};
 +
-+static inline unsigned long xchg_u8(volatile u8 *m, unsigned long val)
-+{
-+	unsigned long flags, retval;
++extern void arch_send_call_function_single_ipi(int cpu);
++extern void arch_send_call_function_ipi_mask(const struct cpumask *mask);
++#define arch_send_call_function_ipi_mask arch_send_call_function_ipi_mask
 +
-+	__global_lock2(flags);
-+	fence();
-+	retval = *m;
-+	*m = val & 0xff;
-+	__global_unlock2(flags);
-+	return retval;
-+}
++asmlinkage void secondary_start_kernel(void);
 +
-+static inline unsigned long __cmpxchg_u32(volatile int *m, unsigned long old,
-+					  unsigned long new)
-+{
-+	__u32 retval;
-+	unsigned long flags;
++extern void secondary_startup(void);
 +
-+	__global_lock2(flags);
-+	retval = *m;
-+	if (retval == old) {
-+		fence();
-+		*m = new;
-+	}
-+	__global_unlock2(flags);
-+	return retval;
-+}
++#ifdef CONFIG_HOTPLUG_CPU
++extern void __cpu_die(unsigned int cpu);
++extern int __cpu_disable(void);
++extern void cpu_die(void);
++#endif
 +
-+#endif /* __ASM_METAG_CMPXCHG_LOCK1_H */
-diff --git a/arch/metag/include/asm/global_lock.h b/arch/metag/include/asm/global_lock.h
++extern void smp_init_cpus(void);
++#endif /* __ASM_SMP_H */
+diff --git a/arch/metag/include/asm/topology.h b/arch/metag/include/asm/topology.h
 new file mode 100644
-index 0000000..fc831c8
+index 0000000..23f5118
 --- /dev/null
-+++ b/arch/metag/include/asm/global_lock.h
-@@ -0,0 +1,100 @@
-+#ifndef __ASM_METAG_GLOBAL_LOCK_H
-+#define __ASM_METAG_GLOBAL_LOCK_H
++++ b/arch/metag/include/asm/topology.h
+@@ -0,0 +1,53 @@
++#ifndef _ASM_METAG_TOPOLOGY_H
++#define _ASM_METAG_TOPOLOGY_H
 +
++#ifdef CONFIG_NUMA
++
++/* sched_domains SD_NODE_INIT for Meta machines */
++#define SD_NODE_INIT (struct sched_domain) {		\
++	.parent			= NULL,			\
++	.child			= NULL,			\
++	.groups			= NULL,			\
++	.min_interval		= 8,			\
++	.max_interval		= 32,			\
++	.busy_factor		= 32,			\
++	.imbalance_pct		= 125,			\
++	.cache_nice_tries	= 2,			\
++	.busy_idx		= 3,			\
++	.idle_idx		= 2,			\
++	.newidle_idx		= 0,			\
++	.wake_idx		= 0,			\
++	.forkexec_idx		= 0,			\
++	.flags			= SD_LOAD_BALANCE	\
++				| SD_BALANCE_FORK	\
++				| SD_BALANCE_EXEC	\
++				| SD_BALANCE_NEWIDLE	\
++				| SD_SERIALIZE,		\
++	.last_balance		= jiffies,		\
++	.balance_interval	= 1,			\
++	.nr_balance_failed	= 0,			\
++}
++
++#define cpu_to_node(cpu)	((void)(cpu), 0)
++#define parent_node(node)	((void)(node), 0)
++
++#define cpumask_of_node(node)	((void)node, cpu_online_mask)
++
++#define pcibus_to_node(bus)	((void)(bus), -1)
++#define cpumask_of_pcibus(bus)	(pcibus_to_node(bus) == -1 ? \
++					cpu_all_mask : \
++					cpumask_of_node(pcibus_to_node(bus)))
++
++#endif
++
++#define mc_capable()    (1)
++
++const struct cpumask *cpu_coregroup_mask(unsigned int cpu);
++
++extern cpumask_t cpu_core_map[NR_CPUS];
++
++#define topology_core_cpumask(cpu)	(&cpu_core_map[cpu])
++
++#include <asm-generic/topology.h>
++
++#endif /* _ASM_METAG_TOPOLOGY_H */
+diff --git a/arch/metag/kernel/cachepart.c b/arch/metag/kernel/cachepart.c
+new file mode 100644
+index 0000000..3a589dfb
+--- /dev/null
++++ b/arch/metag/kernel/cachepart.c
+@@ -0,0 +1,124 @@
++/*
++ * Meta cache partition manipulation.
++ *
++ * Copyright 2010 Imagination Technologies Ltd.
++ */
++
++#include <linux/kernel.h>
++#include <linux/io.h>
++#include <linux/errno.h>
++#include <asm/processor.h>
++#include <asm/cachepart.h>
++#include <asm/metag_isa.h>
 +#include <asm/metag_mem.h>
 +
-+/**
-+ * __global_lock1() - Acquire global voluntary lock (LOCK1).
-+ * @flags:	Variable to store flags into.
-+ *
-+ * Acquires the Meta global voluntary lock (LOCK1), also taking care to disable
-+ * all triggers so we cannot be interrupted, and to enforce a compiler barrier
-+ * so that the compiler cannot reorder memory accesses across the lock.
-+ *
-+ * No other hardware thread will be able to acquire the voluntary or exclusive
-+ * locks until the voluntary lock is released with @__global_unlock1, but they
-+ * may continue to execute as long as they aren't trying to acquire either of
-+ * the locks.
-+ */
-+#define __global_lock1(flags) do {					\
-+	unsigned int __trval;						\
-+	asm volatile("MOV	%0,#0\n\t"				\
-+		     "SWAP	%0,TXMASKI\n\t"				\
-+		     "LOCK1"						\
-+		     : "=r" (__trval)					\
-+		     :							\
-+		     : "memory");					\
-+	(flags) = __trval;						\
-+} while (0)
++#define SYSC_DCPART(n)	(SYSC_DCPART0 + SYSC_xCPARTn_STRIDE * (n))
++#define SYSC_ICPART(n)	(SYSC_ICPART0 + SYSC_xCPARTn_STRIDE * (n))
 +
-+/**
-+ * __global_unlock1() - Release global voluntary lock (LOCK1).
-+ * @flags:	Variable to restore flags from.
-+ *
-+ * Releases the Meta global voluntary lock (LOCK1) acquired with
-+ * @__global_lock1, also taking care to re-enable triggers, and to enforce a
-+ * compiler barrier so that the compiler cannot reorder memory accesses across
-+ * the unlock.
-+ *
-+ * This immediately allows another hardware thread to acquire the voluntary or
-+ * exclusive locks.
-+ */
-+#define __global_unlock1(flags) do {					\
-+	unsigned int __trval = (flags);					\
-+	asm volatile("LOCK0\n\t"					\
-+		     "MOV	TXMASKI,%0"				\
-+		     :							\
-+		     : "r" (__trval)					\
-+		     : "memory");					\
-+} while (0)
++#define CACHE_ASSOCIATIVITY 4 /* 4 way set-assosiative */
++#define ICACHE 0
++#define DCACHE 1
 +
-+/**
-+ * __global_lock2() - Acquire global exclusive lock (LOCK2).
-+ * @flags:	Variable to store flags into.
-+ *
-+ * Acquires the Meta global voluntary lock and global exclusive lock (LOCK2),
-+ * also taking care to disable all triggers so we cannot be interrupted, to take
-+ * the atomic lock (system event) and to enforce a compiler barrier so that the
-+ * compiler cannot reorder memory accesses across the lock.
-+ *
-+ * No other hardware thread will be able to execute code until the locks are
-+ * released with @__global_unlock2.
-+ */
-+#define __global_lock2(flags) do {					\
-+	unsigned int __trval;						\
-+	unsigned int __aloc_hi = LINSYSEVENT_WR_ATOMIC_LOCK & 0xFFFF0000; \
-+	asm volatile("MOV	%0,#0\n\t"				\
-+		     "SWAP	%0,TXMASKI\n\t"				\
-+		     "LOCK2\n\t"					\
-+		     "SETD	[%1+#0x40],D1RtP"			\
-+		     : "=r&" (__trval)					\
-+		     : "u" (__aloc_hi)					\
-+		     : "memory");					\
-+	(flags) = __trval;						\
-+} while (0)
++/* The CORE_CONFIG2 register is not available on Meta 1 */
++#ifdef CONFIG_METAG_META21
++unsigned int get_dcache_size(void)
++{
++	unsigned int config2 = metag_in32(METAC_CORE_CONFIG2);
++	return 0x1000 << ((config2 & METAC_CORECFG2_DCSZ_BITS)
++				>> METAC_CORECFG2_DCSZ_S);
++}
 +
-+/**
-+ * __global_unlock2() - Release global exclusive lock (LOCK2).
-+ * @flags:	Variable to restore flags from.
-+ *
-+ * Releases the Meta global exclusive lock (LOCK2) and global voluntary lock
-+ * acquired with @__global_lock2, also taking care to release the atomic lock
-+ * (system event), re-enable triggers, and to enforce a compiler barrier so that
-+ * the compiler cannot reorder memory accesses across the unlock.
-+ *
-+ * This immediately allows other hardware threads to continue executing and one
-+ * of them to acquire locks.
-+ */
-+#define __global_unlock2(flags) do {					\
-+	unsigned int __trval = (flags);					\
-+	unsigned int __alock_hi = LINSYSEVENT_WR_ATOMIC_LOCK & 0xFFFF0000; \
-+	asm volatile("SETD	[%1+#0x00],D1RtP\n\t"			\
-+		     "LOCK0\n\t"					\
-+		     "MOV	TXMASKI,%0"				\
-+		     :							\
-+		     : "r" (__trval),					\
-+		       "u" (__alock_hi)					\
-+		     : "memory");					\
-+} while (0)
++unsigned int get_icache_size(void)
++{
++	unsigned int config2 = metag_in32(METAC_CORE_CONFIG2);
++	return 0x1000 << ((config2 & METAC_CORE_C2ICSZ_BITS)
++				>> METAC_CORE_C2ICSZ_S);
++}
 +
-+#endif /* __ASM_METAG_GLOBAL_LOCK_H */
-diff --git a/arch/metag/include/asm/spinlock.h b/arch/metag/include/asm/spinlock.h
-new file mode 100644
-index 0000000..86a7cf3
---- /dev/null
-+++ b/arch/metag/include/asm/spinlock.h
-@@ -0,0 +1,22 @@
-+#ifndef __ASM_SPINLOCK_H
-+#define __ASM_SPINLOCK_H
++unsigned int get_global_dcache_size(void)
++{
++	unsigned int cpart = metag_in32(SYSC_DCPART(hard_processor_id()));
++	unsigned int temp = cpart & SYSC_xCPARTG_AND_BITS;
++	return (get_dcache_size() * ((temp >> SYSC_xCPARTG_AND_S) + 1)) >> 4;
++}
 +
-+#ifdef CONFIG_METAG_ATOMICITY_LOCK1
-+#include <asm/spinlock_lock1.h>
++unsigned int get_global_icache_size(void)
++{
++	unsigned int cpart = metag_in32(SYSC_ICPART(hard_processor_id()));
++	unsigned int temp = cpart & SYSC_xCPARTG_AND_BITS;
++	return (get_icache_size() * ((temp >> SYSC_xCPARTG_AND_S) + 1)) >> 4;
++}
++
++static unsigned int get_thread_cache_size(unsigned int cache, int thread_id)
++{
++	unsigned int cache_size;
++	unsigned int t_cache_part;
++	unsigned int isEnabled;
++	unsigned int offset = 0;
++	isEnabled = (cache == DCACHE ? metag_in32(MMCU_DCACHE_CTRL_ADDR) & 0x1 :
++		metag_in32(MMCU_ICACHE_CTRL_ADDR) & 0x1);
++	if (!isEnabled)
++		return 0;
++#if PAGE_OFFSET >= LINGLOBAL_BASE
++	/* Checking for global cache */
++	cache_size = (cache == DCACHE ? get_global_dache_size() :
++		get_global_icache_size());
++	offset = 8;
 +#else
-+#include <asm/spinlock_lnkget.h>
++	cache_size = (cache == DCACHE ? get_dcache_size() :
++		get_icache_size());
 +#endif
++	t_cache_part = (cache == DCACHE ?
++		(metag_in32(SYSC_DCPART(thread_id)) >> offset) & 0xF :
++		(metag_in32(SYSC_ICPART(thread_id)) >> offset) & 0xF);
++	switch (t_cache_part) {
++	case 0xF:
++		return cache_size;
++	case 0x7:
++		return cache_size / 2;
++	case 0x3:
++		return cache_size / 4;
++	case 0x1:
++		return cache_size / 8;
++	case 0:
++		return cache_size / 16;
++	}
++	return -1;
++}
 +
-+#define arch_spin_unlock_wait(lock) \
-+	do { while (arch_spin_is_locked(lock)) cpu_relax(); } while (0)
++void check_for_cache_aliasing(int thread_id)
++{
++	unsigned int thread_cache_size;
++	unsigned int cache_type;
++	for (cache_type = ICACHE; cache_type <= DCACHE; cache_type++) {
++		thread_cache_size =
++				get_thread_cache_size(cache_type, thread_id);
++		if (thread_cache_size < 0)
++			pr_emerg("Can't read %s cache size", \
++				 cache_type ? "DCACHE" : "ICACHE");
++		else if (thread_cache_size == 0)
++			/* Cache is off. No need to check for aliasing */
++			continue;
++		if (thread_cache_size / CACHE_ASSOCIATIVITY > PAGE_SIZE) {
++			pr_emerg("Cache aliasing detected in %s on Thread %d",
++				 cache_type ? "DCACHE" : "ICACHE", thread_id);
++			pr_warn("Total %s size: %u bytes",
++				cache_type ? "DCACHE" : "ICACHE ",
++				cache_type ? get_dcache_size()
++				: get_icache_size());
++			pr_warn("Thread %s size: %d bytes",
++				cache_type ? "CACHE" : "ICACHE",
++				thread_cache_size);
++			pr_warn("Page Size: %lu bytes", PAGE_SIZE);
++		}
++	}
++}
 +
-+#define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
++#else
 +
-+#define	arch_read_lock_flags(lock, flags) arch_read_lock(lock)
-+#define	arch_write_lock_flags(lock, flags) arch_write_lock(lock)
++void check_for_cache_aliasing(int thread_id)
++{
++	return;
++}
 +
-+#define arch_spin_relax(lock)	cpu_relax()
-+#define arch_read_relax(lock)	cpu_relax()
-+#define arch_write_relax(lock)	cpu_relax()
-+
-+#endif /* __ASM_SPINLOCK_H */
-diff --git a/arch/metag/include/asm/spinlock_lnkget.h b/arch/metag/include/asm/spinlock_lnkget.h
++#endif
+diff --git a/arch/metag/kernel/core_reg.c b/arch/metag/kernel/core_reg.c
 new file mode 100644
-index 0000000..ad8436f
+index 0000000..671cce8
 --- /dev/null
-+++ b/arch/metag/include/asm/spinlock_lnkget.h
-@@ -0,0 +1,249 @@
-+#ifndef __ASM_SPINLOCK_LNKGET_H
-+#define __ASM_SPINLOCK_LNKGET_H
-+
++++ b/arch/metag/kernel/core_reg.c
+@@ -0,0 +1,117 @@
 +/*
-+ * None of these asm statements clobber memory as LNKSET writes around
-+ * the cache so the memory it modifies cannot safely be read by any means
-+ * other than these accessors.
-+ */
-+
-+static inline int arch_spin_is_locked(arch_spinlock_t *lock)
-+{
-+	int ret;
-+
-+	asm volatile ("LNKGETD	%0, [%1]\n"
-+		      "TST	%0, #1\n"
-+		      "MOV	%0, #1\n"
-+		      "XORZ      %0, %0, %0\n"
-+		      : "=&d" (ret)
-+		      : "da" (&lock->lock)
-+		      : "cc");
-+	return ret;
-+}
-+
-+static inline void arch_spin_lock(arch_spinlock_t *lock)
-+{
-+	int tmp;
-+
-+	asm volatile ("1:     LNKGETD %0,[%1]\n"
-+		      "       TST     %0, #1\n"
-+		      "       ADD     %0, %0, #1\n"
-+		      "       LNKSETDZ [%1], %0\n"
-+		      "       BNZ     1b\n"
-+		      "       DEFR    %0, TXSTAT\n"
-+		      "       ANDT    %0, %0, #HI(0x3f000000)\n"
-+		      "       CMPT    %0, #HI(0x02000000)\n"
-+		      "       BNZ     1b\n"
-+		      : "=&d" (tmp)
-+		      : "da" (&lock->lock)
-+		      : "cc");
-+
-+	smp_mb();
-+}
-+
-+/* Returns 0 if failed to acquire lock */
-+static inline int arch_spin_trylock(arch_spinlock_t *lock)
-+{
-+	int tmp;
-+
-+	asm volatile ("       LNKGETD %0,[%1]\n"
-+		      "       TST     %0, #1\n"
-+		      "       ADD     %0, %0, #1\n"
-+		      "       LNKSETDZ [%1], %0\n"
-+		      "       BNZ     1f\n"
-+		      "       DEFR    %0, TXSTAT\n"
-+		      "       ANDT    %0, %0, #HI(0x3f000000)\n"
-+		      "       CMPT    %0, #HI(0x02000000)\n"
-+		      "       MOV     %0, #1\n"
-+		      "1:     XORNZ   %0, %0, %0\n"
-+		      : "=&d" (tmp)
-+		      : "da" (&lock->lock)
-+		      : "cc");
-+
-+	smp_mb();
-+
-+	return tmp;
-+}
-+
-+static inline void arch_spin_unlock(arch_spinlock_t *lock)
-+{
-+	smp_mb();
-+
-+	asm volatile ("       SETD    [%0], %1\n"
-+		      :
-+		      : "da" (&lock->lock), "da" (0)
-+		      : "memory");
-+}
-+
-+/*
-+ * RWLOCKS
++ *  Support for reading and writing Meta core internal registers.
 + *
++ *  Copyright (C) 2011 Imagination Technologies Ltd.
 + *
-+ * Write locks are easy - we just set bit 31.  When unlocking, we can
-+ * just write zero since the lock is exclusively held.
 + */
 +
-+static inline void arch_write_lock(arch_rwlock_t *rw)
-+{
-+	int tmp;
++#include <linux/delay.h>
++#include <linux/export.h>
 +
-+	asm volatile ("1:     LNKGETD %0,[%1]\n"
-+		      "       CMP     %0, #0\n"
-+		      "       ADD     %0, %0, %2\n"
-+		      "       LNKSETDZ [%1], %0\n"
-+		      "       BNZ     1b\n"
-+		      "       DEFR    %0, TXSTAT\n"
-+		      "       ANDT    %0, %0, #HI(0x3f000000)\n"
-+		      "       CMPT    %0, #HI(0x02000000)\n"
-+		      "       BNZ     1b\n"
-+		      : "=&d" (tmp)
-+		      : "da" (&rw->lock), "bd" (0x80000000)
-+		      : "cc");
-+
-+	smp_mb();
-+}
-+
-+static inline int arch_write_trylock(arch_rwlock_t *rw)
-+{
-+	int tmp;
-+
-+	asm volatile ("       LNKGETD %0,[%1]\n"
-+		      "       CMP     %0, #0\n"
-+		      "       ADD     %0, %0, %2\n"
-+		      "       LNKSETDZ [%1], %0\n"
-+		      "       BNZ     1f\n"
-+		      "       DEFR    %0, TXSTAT\n"
-+		      "       ANDT    %0, %0, #HI(0x3f000000)\n"
-+		      "       CMPT    %0, #HI(0x02000000)\n"
-+		      "       MOV     %0,#1\n"
-+		      "1:     XORNZ   %0, %0, %0\n"
-+		      : "=&d" (tmp)
-+		      : "da" (&rw->lock), "bd" (0x80000000)
-+		      : "cc");
-+
-+	smp_mb();
-+
-+	return tmp;
-+}
-+
-+static inline void arch_write_unlock(arch_rwlock_t *rw)
-+{
-+	smp_mb();
-+
-+	asm volatile ("       SETD    [%0], %1\n"
-+		      :
-+		      : "da" (&rw->lock), "da" (0)
-+		      : "memory");
-+}
-+
-+/* write_can_lock - would write_trylock() succeed? */
-+static inline int arch_write_can_lock(arch_rwlock_t *rw)
-+{
-+	int ret;
-+
-+	asm volatile ("LNKGETD	%0, [%1]\n"
-+		      "CMP	%0, #0\n"
-+		      "MOV	%0, #1\n"
-+		      "XORNZ     %0, %0, %0\n"
-+		      : "=&d" (ret)
-+		      : "da" (&rw->lock)
-+		      : "cc");
-+	return ret;
-+}
-+
-+/*
-+ * Read locks are a bit more hairy:
-+ *  - Exclusively load the lock value.
-+ *  - Increment it.
-+ *  - Store new lock value if positive, and we still own this location.
-+ *    If the value is negative, we've already failed.
-+ *  - If we failed to store the value, we want a negative result.
-+ *  - If we failed, try again.
-+ * Unlocking is similarly hairy.  We may have multiple read locks
-+ * currently active.  However, we know we won't have any write
-+ * locks.
-+ */
-+static inline void arch_read_lock(arch_rwlock_t *rw)
-+{
-+	int tmp;
-+
-+	asm volatile ("1:     LNKGETD %0,[%1]\n"
-+		      "       ADDS    %0, %0, #1\n"
-+		      "       LNKSETDPL [%1], %0\n"
-+		      "       BMI     1b\n"
-+		      "       DEFR    %0, TXSTAT\n"
-+		      "       ANDT    %0, %0, #HI(0x3f000000)\n"
-+		      "       CMPT    %0, #HI(0x02000000)\n"
-+		      "       BNZ     1b\n"
-+		      : "=&d" (tmp)
-+		      : "da" (&rw->lock)
-+		      : "cc");
-+
-+	smp_mb();
-+}
-+
-+static inline void arch_read_unlock(arch_rwlock_t *rw)
-+{
-+	int tmp;
-+
-+	smp_mb();
-+
-+	asm volatile ("1:     LNKGETD %0,[%1]\n"
-+		      "       SUB     %0, %0, #1\n"
-+		      "       LNKSETD [%1], %0\n"
-+		      "       DEFR    %0, TXSTAT\n"
-+		      "       ANDT    %0, %0, #HI(0x3f000000)\n"
-+		      "       CMPT    %0, #HI(0x02000000)\n"
-+		      "       BNZ     1b\n"
-+		      : "=&d" (tmp)
-+		      : "da" (&rw->lock)
-+		      : "cc", "memory");
-+}
-+
-+static inline int arch_read_trylock(arch_rwlock_t *rw)
-+{
-+	int tmp;
-+
-+	asm volatile ("       LNKGETD %0,[%1]\n"
-+		      "       ADDS    %0, %0, #1\n"
-+		      "       LNKSETDPL [%1], %0\n"
-+		      "       BMI     1f\n"
-+		      "       DEFR    %0, TXSTAT\n"
-+		      "       ANDT    %0, %0, #HI(0x3f000000)\n"
-+		      "       CMPT    %0, #HI(0x02000000)\n"
-+		      "       MOV     %0,#1\n"
-+		      "       BZ      2f\n"
-+		      "1:     MOV     %0,#0\n"
-+		      "2:\n"
-+		      : "=&d" (tmp)
-+		      : "da" (&rw->lock)
-+		      : "cc");
-+
-+	smp_mb();
-+
-+	return tmp;
-+}
-+
-+/* read_can_lock - would read_trylock() succeed? */
-+static inline int arch_read_can_lock(arch_rwlock_t *rw)
-+{
-+	int tmp;
-+
-+	asm volatile ("LNKGETD	%0, [%1]\n"
-+		      "CMP	%0, %2\n"
-+		      "MOV	%0, #1\n"
-+		      "XORZ	%0, %0, %0\n"
-+		      : "=&d" (tmp)
-+		      : "da" (&rw->lock), "bd" (0x80000000)
-+		      : "cc");
-+	return tmp;
-+}
-+
-+#define	arch_read_lock_flags(lock, flags) arch_read_lock(lock)
-+#define	arch_write_lock_flags(lock, flags) arch_write_lock(lock)
-+
-+#define arch_spin_relax(lock)	cpu_relax()
-+#define arch_read_relax(lock)	cpu_relax()
-+#define arch_write_relax(lock)	cpu_relax()
-+
-+#endif /* __ASM_SPINLOCK_LNKGET_H */
-diff --git a/arch/metag/include/asm/spinlock_lock1.h b/arch/metag/include/asm/spinlock_lock1.h
-new file mode 100644
-index 0000000..c630444
---- /dev/null
-+++ b/arch/metag/include/asm/spinlock_lock1.h
-@@ -0,0 +1,184 @@
-+#ifndef __ASM_SPINLOCK_LOCK1_H
-+#define __ASM_SPINLOCK_LOCK1_H
-+
-+#include <asm/bug.h>
++#include <asm/core_reg.h>
 +#include <asm/global_lock.h>
++#include <asm/hwthread.h>
++#include <asm/io.h>
++#include <asm/metag_mem.h>
++#include <asm/metag_regs.h>
 +
-+static inline int arch_spin_is_locked(arch_spinlock_t *lock)
++#define UNIT_BIT_MASK		TXUXXRXRQ_UXX_BITS
++#define REG_BIT_MASK		TXUXXRXRQ_RX_BITS
++#define THREAD_BIT_MASK		TXUXXRXRQ_TX_BITS
++
++#define UNIT_SHIFTS		TXUXXRXRQ_UXX_S
++#define REG_SHIFTS		TXUXXRXRQ_RX_S
++#define THREAD_SHIFTS		TXUXXRXRQ_TX_S
++
++#define UNIT_VAL(x)		(((x) << UNIT_SHIFTS) & UNIT_BIT_MASK)
++#define REG_VAL(x)		(((x) << REG_SHIFTS) & REG_BIT_MASK)
++#define THREAD_VAL(x)		(((x) << THREAD_SHIFTS) & THREAD_BIT_MASK)
++
++/*
++ * core_reg_write() - modify the content of a register in a core unit.
++ * @unit:	The unit to be modified.
++ * @reg:	Register number within the unit.
++ * @thread:	The thread we want to access.
++ * @val:	The new value to write.
++ *
++ * Check asm/metag_regs.h for a list/defines of supported units (ie: TXUPC_ID,
++ * TXUTR_ID, etc), and regnums within the units (ie: TXMASKI_REGNUM,
++ * TXPOLLI_REGNUM, etc).
++ */
++void core_reg_write(int unit, int reg, int thread, unsigned int val)
 +{
++	unsigned long flags;
++
++	/* TXUCT_ID has its own memory mapped registers */
++	if (unit == TXUCT_ID) {
++		void __iomem *cu_reg = __CU_addr(thread, reg);
++		metag_out32(val, cu_reg);
++		return;
++	}
++
++	__global_lock2(flags);
++
++	/* wait for ready */
++	while (!(metag_in32(TXUXXRXRQ) & TXUXXRXRQ_DREADY_BIT))
++		udelay(10);
++
++	/* set the value to write */
++	metag_out32(val, TXUXXRXDT);
++
++	/* set the register to write */
++	val = UNIT_VAL(unit) | REG_VAL(reg) | THREAD_VAL(thread);
++	metag_out32(val, TXUXXRXRQ);
++
++	/* wait for finish */
++	while (!(metag_in32(TXUXXRXRQ) & TXUXXRXRQ_DREADY_BIT))
++		udelay(10);
++
++	__global_unlock2(flags);
++}
++EXPORT_SYMBOL(core_reg_write);
++
++/*
++ * core_reg_read() - read the content of a register in a core unit.
++ * @unit:	The unit to be modified.
++ * @reg:	Register number within the unit.
++ * @thread:	The thread we want to access.
++ *
++ * Check asm/metag_regs.h for a list/defines of supported units (ie: TXUPC_ID,
++ * TXUTR_ID, etc), and regnums within the units (ie: TXMASKI_REGNUM,
++ * TXPOLLI_REGNUM, etc).
++ */
++unsigned int core_reg_read(int unit, int reg, int thread)
++{
++	unsigned long flags;
++	unsigned int val;
++
++	/* TXUCT_ID has its own memory mapped registers */
++	if (unit == TXUCT_ID) {
++		void __iomem *cu_reg = __CU_addr(thread, reg);
++		val = metag_in32(cu_reg);
++		return val;
++	}
++
++	__global_lock2(flags);
++
++	/* wait for ready */
++	while (!(metag_in32(TXUXXRXRQ) & TXUXXRXRQ_DREADY_BIT))
++		udelay(10);
++
++	/* set the register to read */
++	val = (UNIT_VAL(unit) | REG_VAL(reg) | THREAD_VAL(thread) |
++							TXUXXRXRQ_RDnWR_BIT);
++	metag_out32(val, TXUXXRXRQ);
++
++	/* wait for finish */
++	while (!(metag_in32(TXUXXRXRQ) & TXUXXRXRQ_DREADY_BIT))
++		udelay(10);
++
++	/* read the register value */
++	val = metag_in32(TXUXXRXDT);
++
++	__global_unlock2(flags);
++
++	return val;
++}
++EXPORT_SYMBOL(core_reg_read);
+diff --git a/arch/metag/kernel/head.S b/arch/metag/kernel/head.S
+index 8b13886..969dffa 100644
+--- a/arch/metag/kernel/head.S
++++ b/arch/metag/kernel/head.S
+@@ -43,3 +43,15 @@ __start:
+ __exit:
+ 	XOR     TXENABLE,D0Re0,D0Re0
+ 	.size	__exit,.-__exit
++
++#ifdef CONFIG_SMP
++	.global _secondary_startup
++	.type _secondary_startup,function
++_secondary_startup:
++	MOVT	A0StP,#HI(_secondary_data_stack)
++	ADD	A0StP,A0StP,#LO(_secondary_data_stack)
++	GETD	A0StP,[A0StP]
++	ADD	A0StP,A0StP,#THREAD_INFO_SIZE
++	B	_secondary_start_kernel
++	.size	_secondary_startup,.-_secondary_startup
++#endif
+diff --git a/arch/metag/kernel/smp.c b/arch/metag/kernel/smp.c
+new file mode 100644
+index 0000000..4adbead
+--- /dev/null
++++ b/arch/metag/kernel/smp.c
+@@ -0,0 +1,582 @@
++/*
++ *  Copyright (C) 2009,2010,2011 Imagination Technologies Ltd.
++ *
++ *  Copyright (C) 2002 ARM Limited, All Rights Reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++#include <linux/atomic.h>
++#include <linux/delay.h>
++#include <linux/init.h>
++#include <linux/spinlock.h>
++#include <linux/sched.h>
++#include <linux/interrupt.h>
++#include <linux/cache.h>
++#include <linux/profile.h>
++#include <linux/errno.h>
++#include <linux/mm.h>
++#include <linux/err.h>
++#include <linux/cpu.h>
++#include <linux/smp.h>
++#include <linux/seq_file.h>
++#include <linux/irq.h>
++#include <linux/bootmem.h>
++
++#include <asm/cacheflush.h>
++#include <asm/cachepart.h>
++#include <asm/core_reg.h>
++#include <asm/cpu.h>
++#include <asm/mmu_context.h>
++#include <asm/pgtable.h>
++#include <asm/pgalloc.h>
++#include <asm/processor.h>
++#include <asm/setup.h>
++#include <asm/tlbflush.h>
++#include <asm/hwthread.h>
++#include <asm/traps.h>
++
++DECLARE_PER_CPU(PTBI, pTBI);
++
++void *secondary_data_stack;
++
++/*
++ * structures for inter-processor calls
++ * - A collection of single bit ipi messages.
++ */
++struct ipi_data {
++	spinlock_t lock;
++	unsigned long ipi_count;
++	unsigned long bits;
++};
++
++static DEFINE_PER_CPU(struct ipi_data, ipi_data) = {
++	.lock	= __SPIN_LOCK_UNLOCKED(ipi_data.lock),
++};
++
++static DEFINE_SPINLOCK(boot_lock);
++
++/*
++ * "thread" is assumed to be a valid Meta hardware thread ID.
++ */
++int __cpuinit boot_secondary(unsigned int thread, struct task_struct *idle)
++{
++	u32 val;
++
++	/*
++	 * set synchronisation state between this boot processor
++	 * and the secondary one
++	 */
++	spin_lock(&boot_lock);
++
++	core_reg_write(TXUPC_ID, 0, thread, (unsigned int)secondary_startup);
++	core_reg_write(TXUPC_ID, 1, thread, 0);
++
++	/*
++	 * Give the thread privilege (PSTAT) and clear potentially problematic
++	 * bits in the process (namely ISTAT, CBMarker, CBMarkerI, LSM_STEP).
++	 */
++	core_reg_write(TXUCT_ID, TXSTATUS_REGNUM, thread, TXSTATUS_PSTAT_BIT);
++
++	/* Clear the minim enable bit. */
++	val = core_reg_read(TXUCT_ID, TXPRIVEXT_REGNUM, thread);
++	core_reg_write(TXUCT_ID, TXPRIVEXT_REGNUM, thread, val & ~0x80);
++
++	/*
++	 * set the ThreadEnable bit (0x1) in the TXENABLE register
++	 * for the specified thread - off it goes!
++	 */
++	val = core_reg_read(TXUCT_ID, TXENABLE_REGNUM, thread);
++	core_reg_write(TXUCT_ID, TXENABLE_REGNUM, thread, val | 0x1);
++
++	/*
++	 * now the secondary core is starting up let it run its
++	 * calibrations, then wait for it to finish
++	 */
++	spin_unlock(&boot_lock);
++
++	return 0;
++}
++
++int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *idle)
++{
++	unsigned int thread = cpu_2_hwthread_id[cpu];
 +	int ret;
 +
-+	barrier();
-+	ret = lock->lock;
-+	WARN_ON(ret != 0 && ret != 1);
++	load_pgd(swapper_pg_dir, thread);
++
++	flush_tlb_all();
++
++	/*
++	 * Tell the secondary CPU where to find its idle thread's stack.
++	 */
++	secondary_data_stack = task_stack_page(idle);
++
++	wmb();
++
++	/*
++	 * Now bring the CPU into our world.
++	 */
++	ret = boot_secondary(thread, idle);
++	if (ret == 0) {
++		unsigned long timeout;
++
++		/*
++		 * CPU was successfully started, wait for it
++		 * to come online or time out.
++		 */
++		timeout = jiffies + HZ;
++		while (time_before(jiffies, timeout)) {
++			if (cpu_online(cpu))
++				break;
++
++			udelay(10);
++			barrier();
++		}
++
++		if (!cpu_online(cpu))
++			ret = -EIO;
++	}
++
++	secondary_data_stack = NULL;
++
++	if (ret) {
++		pr_crit("CPU%u: processor failed to boot\n", cpu);
++
++		/*
++		 * FIXME: We need to clean up the new idle thread. --rmk
++		 */
++	}
++
 +	return ret;
 +}
 +
-+static inline void arch_spin_lock(arch_spinlock_t *lock)
-+{
-+	unsigned int we_won = 0;
-+	unsigned long flags;
++#ifdef CONFIG_HOTPLUG_CPU
++static DECLARE_COMPLETION(cpu_killed);
 +
-+again:
-+	__global_lock1(flags);
-+	if (lock->lock == 0) {
-+		fence();
-+		lock->lock = 1;
-+		we_won = 1;
++/*
++ * __cpu_disable runs on the processor to be shutdown.
++ */
++int __cpuexit __cpu_disable(void)
++{
++	unsigned int cpu = smp_processor_id();
++	struct task_struct *p;
++
++	/*
++	 * Take this CPU offline.  Once we clear this, we can't return,
++	 * and we must not schedule until we're ready to give up the cpu.
++	 */
++	set_cpu_online(cpu, false);
++
++	/*
++	 * OK - migrate IRQs away from this CPU
++	 */
++	migrate_irqs();
++
++	/*
++	 * Flush user cache and TLB mappings, and then remove this CPU
++	 * from the vm mask set of all processes.
++	 */
++	flush_cache_all();
++	local_flush_tlb_all();
++
++	read_lock(&tasklist_lock);
++	for_each_process(p) {
++		if (p->mm)
++			cpumask_clear_cpu(cpu, mm_cpumask(p->mm));
 +	}
-+	__global_unlock1(flags);
-+	if (we_won == 0)
-+		goto again;
-+	WARN_ON(lock->lock != 1);
-+}
++	read_unlock(&tasklist_lock);
 +
-+/* Returns 0 if failed to acquire lock */
-+static inline int arch_spin_trylock(arch_spinlock_t *lock)
-+{
-+	unsigned long flags;
-+	unsigned int ret;
-+
-+	__global_lock1(flags);
-+	ret = lock->lock;
-+	if (ret == 0) {
-+		fence();
-+		lock->lock = 1;
-+	}
-+	__global_unlock1(flags);
-+	return (ret == 0);
-+}
-+
-+static inline void arch_spin_unlock(arch_spinlock_t *lock)
-+{
-+	barrier();
-+	WARN_ON(!lock->lock);
-+	lock->lock = 0;
++	return 0;
 +}
 +
 +/*
-+ * RWLOCKS
-+ *
-+ *
-+ * Write locks are easy - we just set bit 31.  When unlocking, we can
-+ * just write zero since the lock is exclusively held.
++ * called on the thread which is asking for a CPU to be shutdown -
++ * waits until shutdown has completed, or it is timed out.
 + */
-+
-+static inline void arch_write_lock(arch_rwlock_t *rw)
++void __cpuexit __cpu_die(unsigned int cpu)
 +{
-+	unsigned long flags;
-+	unsigned int we_won = 0;
-+
-+again:
-+	__global_lock1(flags);
-+	if (rw->lock == 0) {
-+		fence();
-+		rw->lock = 0x80000000;
-+		we_won = 1;
-+	}
-+	__global_unlock1(flags);
-+	if (we_won == 0)
-+		goto again;
-+	WARN_ON(rw->lock != 0x80000000);
-+}
-+
-+static inline int arch_write_trylock(arch_rwlock_t *rw)
-+{
-+	unsigned long flags;
-+	unsigned int ret;
-+
-+	__global_lock1(flags);
-+	ret = rw->lock;
-+	if (ret == 0) {
-+		fence();
-+		rw->lock = 0x80000000;
-+	}
-+	__global_unlock1(flags);
-+
-+	return (ret == 0);
-+}
-+
-+static inline void arch_write_unlock(arch_rwlock_t *rw)
-+{
-+	barrier();
-+	WARN_ON(rw->lock != 0x80000000);
-+	rw->lock = 0;
-+}
-+
-+/* write_can_lock - would write_trylock() succeed? */
-+static inline int arch_write_can_lock(arch_rwlock_t *rw)
-+{
-+	unsigned int ret;
-+
-+	barrier();
-+	ret = rw->lock;
-+	return (ret == 0);
++	if (!wait_for_completion_timeout(&cpu_killed, msecs_to_jiffies(1)))
++		pr_err("CPU%u: unable to kill\n", cpu);
 +}
 +
 +/*
-+ * Read locks are a bit more hairy:
-+ *  - Exclusively load the lock value.
-+ *  - Increment it.
-+ *  - Store new lock value if positive, and we still own this location.
-+ *    If the value is negative, we've already failed.
-+ *  - If we failed to store the value, we want a negative result.
-+ *  - If we failed, try again.
-+ * Unlocking is similarly hairy.  We may have multiple read locks
-+ * currently active.  However, we know we won't have any write
-+ * locks.
++ * Called from the idle thread for the CPU which has been shutdown.
++ *
++ * Note that we do not return from this function. If this cpu is
++ * brought online again it will need to run secondary_startup().
 + */
-+static inline void arch_read_lock(arch_rwlock_t *rw)
++void __cpuexit cpu_die(void)
++{
++	local_irq_disable();
++	idle_task_exit();
++
++	complete(&cpu_killed);
++
++	asm ("XOR	TXENABLE, D0Re0,D0Re0\n");
++}
++#endif /* CONFIG_HOTPLUG_CPU */
++
++/*
++ * Called by both boot and secondaries to move global data into
++ * per-processor storage.
++ */
++void __cpuinit smp_store_cpu_info(unsigned int cpuid)
++{
++	struct cpuinfo_metag *cpu_info = &per_cpu(cpu_data, cpuid);
++
++	cpu_info->loops_per_jiffy = loops_per_jiffy;
++}
++
++/*
++ * This is the secondary CPU boot entry.  We're using this CPUs
++ * idle thread stack and the global page tables.
++ */
++asmlinkage void secondary_start_kernel(void)
++{
++	struct mm_struct *mm = &init_mm;
++	unsigned int cpu = smp_processor_id();
++
++	/*
++	 * All kernel threads share the same mm context; grab a
++	 * reference and switch to it.
++	 */
++	atomic_inc(&mm->mm_users);
++	atomic_inc(&mm->mm_count);
++	current->active_mm = mm;
++	cpumask_set_cpu(cpu, mm_cpumask(mm));
++	enter_lazy_tlb(mm, current);
++	local_flush_tlb_all();
++
++	/*
++	 * TODO: Some day it might be useful for each Linux CPU to
++	 * have its own TBI structure. That would allow each Linux CPU
++	 * to run different interrupt handlers for the same IRQ
++	 * number.
++	 *
++	 * For now, simply copying the pointer to the boot CPU's TBI
++	 * structure is sufficient because we always want to run the
++	 * same interrupt handler whatever CPU takes the interrupt.
++	 */
++	per_cpu(pTBI, cpu) = __TBI(TBID_ISTAT_BIT);
++
++	if (!per_cpu(pTBI, cpu))
++		panic("No TBI found!");
++
++	per_cpu_trap_init(cpu);
++
++	preempt_disable();
++
++	setup_txprivext();
++
++	/*
++	 * Enable local interrupts.
++	 */
++	tbi_startup_interrupt(TBID_SIGNUM_TRT);
++	notify_cpu_starting(cpu);
++	local_irq_enable();
++
++	/*
++	 * Start local timers for this CPU.
++	 */
++	local_timer_setup(cpu);
++
++	pr_info("CPU%u (thread %u): Booted secondary processor\n",
++		cpu, cpu_2_hwthread_id[cpu]);
++
++	calibrate_delay();
++	smp_store_cpu_info(cpu);
++
++	/*
++	 * OK, now it's safe to let the boot CPU continue
++	 */
++	notify_cpu_starting(cpu);
++
++	set_cpu_online(cpu, true);
++
++	/*
++	 * Check for cache aliasing.
++	 * Preemption is disabled
++	 */
++	check_for_cache_aliasing(cpu);
++
++	/*
++	 * OK, it's off to the idle thread for us
++	 */
++	cpu_idle();
++}
++
++void __init smp_cpus_done(unsigned int max_cpus)
++{
++	int cpu;
++	unsigned long bogosum = 0;
++
++	for_each_online_cpu(cpu)
++		bogosum += per_cpu(cpu_data, cpu).loops_per_jiffy;
++
++	pr_info("SMP: Total of %d processors activated (%lu.%02lu BogoMIPS).\n",
++		num_online_cpus(),
++		bogosum / (500000/HZ),
++		(bogosum / (5000/HZ)) % 100);
++}
++
++void __init smp_prepare_cpus(unsigned int max_cpus)
++{
++	unsigned int cpu = smp_processor_id();
++
++	init_new_context(current, &init_mm);
++	current_thread_info()->cpu = cpu;
++
++	smp_store_cpu_info(cpu);
++	init_cpu_present(cpu_possible_mask);
++}
++
++void __init smp_prepare_boot_cpu(void)
++{
++	unsigned int cpu = smp_processor_id();
++
++	per_cpu(pTBI, cpu) = __TBI(TBID_ISTAT_BIT);
++
++	if (!per_cpu(pTBI, cpu))
++		panic("No TBI found!");
++}
++
++static void smp_cross_call(cpumask_t callmap, enum ipi_msg_type msg);
++
++static void send_ipi_message(const struct cpumask *mask, enum ipi_msg_type msg)
 +{
 +	unsigned long flags;
-+	unsigned int we_won = 0, ret;
++	unsigned int cpu;
++	cpumask_t map;
 +
-+again:
-+	__global_lock1(flags);
-+	ret = rw->lock;
-+	if (ret < 0x80000000) {
-+		fence();
-+		rw->lock = ret + 1;
-+		we_won = 1;
++	cpumask_clear(&map);
++	local_irq_save(flags);
++
++	for_each_cpu(cpu, mask) {
++		struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
++
++		spin_lock(&ipi->lock);
++
++		/*
++		 * KICK interrupts are queued in hardware so we'll get
++		 * multiple interrupts if we call smp_cross_call()
++		 * multiple times for one msg. The problem is that we
++		 * only have one bit for each message - we can't queue
++		 * them in software.
++		 *
++		 * The first time through ipi_handler() we'll clear
++		 * the msg bit, having done all the work. But when we
++		 * return we'll get _another_ interrupt (and another,
++		 * and another until we've handled all the queued
++		 * KICKs). Running ipi_handler() when there's no work
++		 * to do is bad because that's how kick handler
++		 * chaining detects who the KICK was intended for.
++		 * See arch/metag/kernel/kick.c for more details.
++		 *
++		 * So only add 'cpu' to 'map' if we haven't already
++		 * queued a KICK interrupt for 'msg'.
++		 */
++		if (!(ipi->bits & (1 << msg))) {
++			ipi->bits |= 1 << msg;
++			cpumask_set_cpu(cpu, &map);
++		}
++
++		spin_unlock(&ipi->lock);
 +	}
-+	__global_unlock1(flags);
-+	if (!we_won)
-+		goto again;
++
++	/*
++	 * Call the platform specific cross-CPU call function.
++	 */
++	smp_cross_call(map, msg);
++
++	local_irq_restore(flags);
 +}
 +
-+static inline void arch_read_unlock(arch_rwlock_t *rw)
++void arch_send_call_function_ipi_mask(const struct cpumask *mask)
 +{
-+	unsigned long flags;
-+	unsigned int ret;
-+
-+	__global_lock1(flags);
-+	fence();
-+	ret = rw->lock--;
-+	__global_unlock1(flags);
-+	WARN_ON(ret == 0);
++	send_ipi_message(mask, IPI_CALL_FUNC);
 +}
 +
-+static inline int arch_read_trylock(arch_rwlock_t *rw)
++void arch_send_call_function_single_ipi(int cpu)
 +{
-+	unsigned long flags;
-+	unsigned int ret;
++	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
++}
 +
-+	__global_lock1(flags);
-+	ret = rw->lock;
-+	if (ret < 0x80000000) {
-+		fence();
-+		rw->lock = ret + 1;
++void show_ipi_list(struct seq_file *p)
++{
++	unsigned int cpu;
++
++	seq_puts(p, "IPI:");
++
++	for_each_present_cpu(cpu)
++		seq_printf(p, " %10lu", per_cpu(ipi_data, cpu).ipi_count);
++
++	seq_putc(p, '\n');
++}
++
++static DEFINE_SPINLOCK(stop_lock);
++
++/*
++ * Main handler for inter-processor interrupts
++ *
++ * For Meta, the ipimask now only identifies a single
++ * category of IPI (Bit 1 IPIs have been replaced by a
++ * different mechanism):
++ *
++ *  Bit 0 - Inter-processor function call
++ */
++static int do_IPI(struct pt_regs *regs)
++{
++	unsigned int cpu = smp_processor_id();
++	struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
++	struct pt_regs *old_regs = set_irq_regs(regs);
++	unsigned long msgs, nextmsg;
++	int handled = 0;
++
++	ipi->ipi_count++;
++
++	spin_lock(&ipi->lock);
++	msgs = ipi->bits;
++	nextmsg = msgs & -msgs;
++	ipi->bits &= ~nextmsg;
++	spin_unlock(&ipi->lock);
++
++	if (nextmsg) {
++		handled = 1;
++
++		nextmsg = ffz(~nextmsg);
++		switch (nextmsg) {
++		case IPI_RESCHEDULE:
++			scheduler_ipi();
++			break;
++
++		case IPI_CALL_FUNC:
++			generic_smp_call_function_interrupt();
++			break;
++
++		case IPI_CALL_FUNC_SINGLE:
++			generic_smp_call_function_single_interrupt();
++			break;
++
++		default:
++			pr_crit("CPU%u: Unknown IPI message 0x%lx\n",
++				cpu, nextmsg);
++			break;
++		}
 +	}
-+	__global_unlock1(flags);
-+	return (ret < 0x80000000);
++
++	set_irq_regs(old_regs);
++
++	return handled;
 +}
 +
-+/* read_can_lock - would read_trylock() succeed? */
-+static inline int arch_read_can_lock(arch_rwlock_t *rw)
++void smp_send_reschedule(int cpu)
 +{
-+	unsigned int ret;
-+
-+	barrier();
-+	ret = rw->lock;
-+	return (ret < 0x80000000);
++	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
 +}
 +
-+#endif /* __ASM_SPINLOCK_LOCK1_H */
-diff --git a/arch/metag/include/asm/spinlock_types.h b/arch/metag/include/asm/spinlock_types.h
++static void stop_this_cpu(void *data)
++{
++	unsigned int cpu = smp_processor_id();
++
++	if (system_state == SYSTEM_BOOTING ||
++	    system_state == SYSTEM_RUNNING) {
++		spin_lock(&stop_lock);
++		pr_crit("CPU%u: stopping\n", cpu);
++		dump_stack();
++		spin_unlock(&stop_lock);
++	}
++
++	set_cpu_online(cpu, false);
++
++	local_irq_disable();
++
++	hard_processor_halt(HALT_OK);
++}
++
++void smp_send_stop(void)
++{
++	smp_call_function(stop_this_cpu, NULL, 0);
++}
++
++/*
++ * not supported here
++ */
++int setup_profiling_timer(unsigned int multiplier)
++{
++	return -EINVAL;
++}
++
++/*
++ * We use KICKs for inter-processor interrupts.
++ *
++ * For every CPU in "callmap" the IPI data must already have been
++ * stored in that CPU's "ipi_data" member prior to calling this
++ * function.
++ */
++static void kick_raise_softirq(cpumask_t callmap, unsigned int irq)
++{
++	int cpu;
++
++	for_each_cpu(cpu, &callmap) {
++		unsigned int thread;
++
++		thread = cpu_2_hwthread_id[cpu];
++
++		BUG_ON(thread == BAD_HWTHREAD_ID);
++
++		metag_out32(1, T0KICKI + (thread * TnXKICK_STRIDE));
++	}
++}
++
++static TBIRES ipi_handler(TBIRES State, int SigNum, int Triggers,
++		   int Inst, PTBI pTBI, int *handled)
++{
++	*handled = do_IPI((struct pt_regs *)State.Sig.pCtx);
++
++	return State;
++}
++
++static struct kick_irq_handler ipi_irq = {
++	.func = ipi_handler,
++};
++
++static void smp_cross_call(cpumask_t callmap, enum ipi_msg_type msg)
++{
++	kick_raise_softirq(callmap, 1);
++}
++
++static inline unsigned int get_core_count(void)
++{
++	int i;
++	unsigned int ret = 0;
++
++	for (i = 0; i < CONFIG_NR_CPUS; i++) {
++		if (core_reg_read(TXUCT_ID, TXENABLE_REGNUM, i))
++			ret++;
++	}
++
++	return ret;
++}
++
++/*
++ * Initialise the CPU possible map early - this describes the CPUs
++ * which may be present or become present in the system.
++ */
++void __init smp_init_cpus(void)
++{
++	unsigned int i, ncores = get_core_count();
++
++	/* If no hwthread_map early param was set use default mapping */
++	for (i = 0; i < NR_CPUS; i++)
++		if (cpu_2_hwthread_id[i] == BAD_HWTHREAD_ID) {
++			cpu_2_hwthread_id[i] = i;
++			hwthread_id_2_cpu[i] = i;
++		}
++
++	for (i = 0; i < ncores; i++)
++		set_cpu_possible(i, true);
++
++	kick_register_func(&ipi_irq);
++}
+diff --git a/arch/metag/kernel/topology.c b/arch/metag/kernel/topology.c
 new file mode 100644
-index 0000000..b763914
+index 0000000..bec3dec
 --- /dev/null
-+++ b/arch/metag/include/asm/spinlock_types.h
-@@ -0,0 +1,20 @@
-+#ifndef _ASM_METAG_SPINLOCK_TYPES_H
-+#define _ASM_METAG_SPINLOCK_TYPES_H
++++ b/arch/metag/kernel/topology.c
+@@ -0,0 +1,77 @@
++/*
++ *  Copyright (C) 2007  Paul Mundt
++ *  Copyright (C) 2010  Imagination Technolohies Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++#include <linux/cpu.h>
++#include <linux/cpumask.h>
++#include <linux/init.h>
++#include <linux/percpu.h>
++#include <linux/node.h>
++#include <linux/nodemask.h>
++#include <linux/topology.h>
 +
-+#ifndef __LINUX_SPINLOCK_TYPES_H
-+# error "please don't include this file directly"
++#include <asm/cpu.h>
++
++DEFINE_PER_CPU(struct cpuinfo_metag, cpu_data);
++
++cpumask_t cpu_core_map[NR_CPUS];
++
++static cpumask_t cpu_coregroup_map(unsigned int cpu)
++{
++	return *cpu_possible_mask;
++}
++
++const struct cpumask *cpu_coregroup_mask(unsigned int cpu)
++{
++	return &cpu_core_map[cpu];
++}
++
++int arch_update_cpu_topology(void)
++{
++	unsigned int cpu;
++
++	for_each_possible_cpu(cpu)
++		cpu_core_map[cpu] = cpu_coregroup_map(cpu);
++
++	return 0;
++}
++
++static int __init topology_init(void)
++{
++	int i, ret;
++
++#ifdef CONFIG_NEED_MULTIPLE_NODES
++	for_each_online_node(i)
++		register_one_node(i);
 +#endif
 +
-+typedef struct {
-+	volatile unsigned int lock;
-+} arch_spinlock_t;
++	for_each_present_cpu(i) {
++		struct cpuinfo_metag *cpuinfo = &per_cpu(cpu_data, i);
++#ifdef CONFIG_HOTPLUG_CPU
++		cpuinfo->cpu.hotpluggable = 1;
++#endif
++		ret = register_cpu(&cpuinfo->cpu, i);
++		if (unlikely(ret))
++			pr_warn("%s: register_cpu %d failed (%d)\n",
++				__func__, i, ret);
++	}
 +
-+#define __ARCH_SPIN_LOCK_UNLOCKED	{ 0 }
++#if defined(CONFIG_NUMA) && !defined(CONFIG_SMP)
++	/*
++	 * In the UP case, make sure the CPU association is still
++	 * registered under each node. Without this, sysfs fails
++	 * to make the connection between nodes other than node0
++	 * and cpu0.
++	 */
++	for_each_online_node(i)
++		if (i != numa_node_id())
++			register_cpu_under_node(raw_smp_processor_id(), i);
++#endif
 +
-+typedef struct {
-+	volatile unsigned int lock;
-+} arch_rwlock_t;
-+
-+#define __ARCH_RW_LOCK_UNLOCKED		{ 0 }
-+
-+#endif /* _ASM_METAG_SPINLOCK_TYPES_H */
++	return 0;
++}
++subsys_initcall(topology_init);
 -- 
 1.7.7.6
