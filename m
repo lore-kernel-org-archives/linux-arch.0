@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:51611 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:54492 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754435Ab3AJPcr (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Jan 2013 10:32:47 -0500
+	id S1754539Ab3AJPc7 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Jan 2013 10:32:59 -0500
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v3 26/44] metag: Scheduling/Process management
-Date: Thu, 10 Jan 2013 15:30:54 +0000
-Message-ID: <1357831872-29451-27-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v3 43/44] tty/metag_da: Add metag DA TTY driver
+Date: Thu, 10 Jan 2013 15:31:11 +0000
+Message-ID: <1357831872-29451-44-git-send-email-james.hogan@imgtec.com>
 In-Reply-To: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
@@ -14,605 +14,863 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: James Hogan <james.hogan@imgtec.com>
-Message-ID: <20130110153054.iOtyFKtML-cTkZ72nzHeJ6sVjTKOqg4JdIIzc9wD3HY@z>
+Cc: James Hogan <james.hogan@imgtec.com>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Mauro Carvalho Chehab <mchehab@redhat.com>, Cesar Eduardo Barros <cesarb@cesarb.net>, Joe Perches <joe@perches.com>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20130110153111.0uz8kwjpGAGdZmaN2GdyvqoYQedpiM8NopTTpboFiRE@z>
+
+Add a TTY driver for communicating over a Meta DA (Debug Adapter)
+channel using the bios channel SWITCH operation.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>
+Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
+Cc: Jiri Slaby <jslaby@suse.cz>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Mauro Carvalho Chehab <mchehab@redhat.com>
+Cc: Cesar Eduardo Barros <cesarb@cesarb.net>
+Cc: Joe Perches <joe@perches.com>
+Cc: "David S. Miller" <davem@davemloft.net>
 ---
- arch/metag/include/asm/thread_info.h |  155 +++++++++++++
- arch/metag/kernel/process.c          |  422 ++++++++++++++++++++++++++++++++++
- 2 files changed, 577 insertions(+), 0 deletions(-)
- create mode 100644 arch/metag/include/asm/thread_info.h
- create mode 100644 arch/metag/kernel/process.c
+ MAINTAINERS                            |    1 +
+ arch/metag/Kconfig                     |    4 +-
+ arch/metag/configs/meta1_defconfig     |    2 +
+ arch/metag/configs/meta2_defconfig     |    2 +
+ arch/metag/configs/meta2_smp_defconfig |    2 +
+ arch/metag/kernel/setup.c              |   12 +
+ drivers/tty/Kconfig                    |   13 +
+ drivers/tty/Makefile                   |    1 +
+ drivers/tty/metag_da.c                 |  696 ++++++++++++++++++++++++++++++++
+ 9 files changed, 732 insertions(+), 1 deletions(-)
+ create mode 100644 drivers/tty/metag_da.c
 
-diff --git a/arch/metag/include/asm/thread_info.h b/arch/metag/include/asm/thread_info.h
-new file mode 100644
-index 0000000..0ecd34d
---- /dev/null
-+++ b/arch/metag/include/asm/thread_info.h
-@@ -0,0 +1,155 @@
-+/* thread_info.h: Meta low-level thread information
-+ *
-+ * Copyright (C) 2002  David Howells (dhowells@redhat.com)
-+ * - Incorporating suggestions made by Linus Torvalds and Dave Miller
-+ *
-+ * Meta port by Imagination Technologies
-+ */
-+
-+#ifndef _ASM_THREAD_INFO_H
-+#define _ASM_THREAD_INFO_H
-+
-+#include <linux/compiler.h>
-+#include <asm/page.h>
-+
-+#ifndef __ASSEMBLY__
-+#include <asm/processor.h>
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 122ae6a..5a364ed 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -5157,6 +5157,7 @@ S:	Supported
+ F:	arch/metag/
+ F:	Documentation/metag/
+ F:	Documentation/devicetree/bindings/metag/
++F:	drivers/tty/metag_da.c
+ 
+ MICROBLAZE ARCHITECTURE
+ M:	Michal Simek <monstr@monstr.eu>
+diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
+index 72147ed..70678ec 100644
+--- a/arch/metag/Kconfig
++++ b/arch/metag/Kconfig
+@@ -220,7 +220,9 @@ config METAG_DA
+ 	  of the DA will be detected automatically at boot, so it is safe to say
+ 	  Y to this option even when booting without a DA.
+ 
+-	  This enables support for services provided by DA JTAG debug adapters.
++	  This enables support for services provided by DA JTAG debug adapters,
++	  such as:
++	  - communication over DA channels (such as the console driver).
+ 
+ menu "Boot options"
+ 
+diff --git a/arch/metag/configs/meta1_defconfig b/arch/metag/configs/meta1_defconfig
+index 58d114a..c35a75e 100644
+--- a/arch/metag/configs/meta1_defconfig
++++ b/arch/metag/configs/meta1_defconfig
+@@ -27,6 +27,8 @@ CONFIG_BLK_DEV_RAM_SIZE=16384
+ # CONFIG_SERIO is not set
+ # CONFIG_VT is not set
+ # CONFIG_LEGACY_PTYS is not set
++CONFIG_DA_TTY=y
++CONFIG_DA_CONSOLE=y
+ # CONFIG_DEVKMEM is not set
+ # CONFIG_HW_RANDOM is not set
+ # CONFIG_HWMON is not set
+diff --git a/arch/metag/configs/meta2_defconfig b/arch/metag/configs/meta2_defconfig
+index 30afdbd..fb31484 100644
+--- a/arch/metag/configs/meta2_defconfig
++++ b/arch/metag/configs/meta2_defconfig
+@@ -28,6 +28,8 @@ CONFIG_BLK_DEV_RAM_SIZE=16384
+ # CONFIG_SERIO is not set
+ # CONFIG_VT is not set
+ # CONFIG_LEGACY_PTYS is not set
++CONFIG_DA_TTY=y
++CONFIG_DA_CONSOLE=y
+ # CONFIG_DEVKMEM is not set
+ # CONFIG_HW_RANDOM is not set
+ # CONFIG_HWMON is not set
+diff --git a/arch/metag/configs/meta2_smp_defconfig b/arch/metag/configs/meta2_smp_defconfig
+index 82189a2..6c7b777 100644
+--- a/arch/metag/configs/meta2_smp_defconfig
++++ b/arch/metag/configs/meta2_smp_defconfig
+@@ -29,6 +29,8 @@ CONFIG_BLK_DEV_RAM_SIZE=16384
+ # CONFIG_SERIO is not set
+ # CONFIG_VT is not set
+ # CONFIG_LEGACY_PTYS is not set
++CONFIG_DA_TTY=y
++CONFIG_DA_CONSOLE=y
+ # CONFIG_DEVKMEM is not set
+ # CONFIG_HW_RANDOM is not set
+ # CONFIG_HWMON is not set
+diff --git a/arch/metag/kernel/setup.c b/arch/metag/kernel/setup.c
+index 1410db0..0d46334 100644
+--- a/arch/metag/kernel/setup.c
++++ b/arch/metag/kernel/setup.c
+@@ -61,6 +61,11 @@ extern char _heap_start[];
+ extern u32 __dtb_start[];
+ #endif
+ 
++#ifdef CONFIG_DA_CONSOLE
++/* Our early channel based console driver */
++extern struct console dash_console;
 +#endif
 +
+ struct machine_desc *machine_desc __initdata;
+ 
+ /*
+@@ -182,6 +187,13 @@ void __init setup_arch(char **cmdline_p)
+ 	metag_cache_probe();
+ 
+ 	metag_da_probe();
++#ifdef CONFIG_DA_CONSOLE
++	if (metag_da_enabled()) {
++		/* An early channel based console driver */
++		register_console(&dash_console);
++		add_preferred_console("ttyDA", 1, NULL);
++	}
++#endif
+ 
+ 	/* try interpreting the argument as a device tree */
+ 	machine_desc = setup_machine_fdt(original_cmd_line);
+diff --git a/drivers/tty/Kconfig b/drivers/tty/Kconfig
+index 0ecf22b..5eef53d 100644
+--- a/drivers/tty/Kconfig
++++ b/drivers/tty/Kconfig
+@@ -388,3 +388,16 @@ config PPC_EARLY_DEBUG_EHV_BC_HANDLE
+ 	  If the number you specify is not a valid byte channel handle, then
+ 	  there simply will be no early console output.  This is true also
+ 	  if you don't boot under a hypervisor at all.
++
++config DA_TTY
++	bool "DA TTY"
++	depends on METAG_DA
++	select SERIAL_NONSTANDARD
++	help
++	  This enables a TTY on a Dash channel.
++
++config DA_CONSOLE
++	bool "DA Console"
++	depends on DA_TTY
++	help
++	  This enables a console on a Dash channel.
+diff --git a/drivers/tty/Makefile b/drivers/tty/Makefile
+index 2953059..dbd7745 100644
+--- a/drivers/tty/Makefile
++++ b/drivers/tty/Makefile
+@@ -27,5 +27,6 @@ obj-$(CONFIG_SYNCLINK_GT)	+= synclink_gt.o
+ obj-$(CONFIG_SYNCLINKMP)	+= synclinkmp.o
+ obj-$(CONFIG_SYNCLINK)		+= synclink.o
+ obj-$(CONFIG_PPC_EPAPR_HV_BYTECHAN) += ehv_bytechan.o
++obj-$(CONFIG_DA_TTY)	+= metag_da.o
+ 
+ obj-y += ipwireless/
+diff --git a/drivers/tty/metag_da.c b/drivers/tty/metag_da.c
+new file mode 100644
+index 0000000..9f8b0d5
+--- /dev/null
++++ b/drivers/tty/metag_da.c
+@@ -0,0 +1,696 @@
 +/*
-+ * low level task data that entry.S needs immediate access to
-+ * - this struct should fit entirely inside of one cache line
-+ * - this struct shares the supervisor stack pages
-+ * - if the contents of this structure are changed, the assembly constants must
-+ *   also be changed
++ *  dashtty.c - tty driver for Dash channels interface.
++ *
++ *  Copyright (C) 2007,2008,2012 Imagination Technologies
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file COPYING in the main directory of this archive
++ * for more details.
++ *
 + */
-+#ifndef __ASSEMBLY__
 +
-+/* This must be 8 byte aligned so we can ensure stack alignment. */
-+struct thread_info {
-+	struct task_struct *task;	/* main task structure */
-+	struct exec_domain *exec_domain;	/* execution domain */
-+	unsigned long flags;	/* low level flags */
-+	unsigned long status;	/* thread-synchronous flags */
-+	u32 cpu;		/* current CPU */
-+	int preempt_count;	/* 0 => preemptable, <0 => BUG */
++#include <linux/atomic.h>
++#include <linux/completion.h>
++#include <linux/console.h>
++#include <linux/delay.h>
++#include <linux/export.h>
++#include <linux/init.h>
++#include <linux/kernel.h>
++#include <linux/kthread.h>
++#include <linux/mutex.h>
++#include <linux/sched.h>
++#include <linux/serial.h>
++#include <linux/slab.h>
++#include <linux/spinlock.h>
++#include <linux/string.h>
++#include <linux/timer.h>
++#include <linux/tty.h>
++#include <linux/tty_driver.h>
++#include <linux/tty_flip.h>
++#include <linux/uaccess.h>
 +
-+	mm_segment_t addr_limit;	/* thread address space */
-+	struct restart_block restart_block;
++#include <asm/da.h>
 +
-+	u8 supervisor_stack[0];
++/* Channel error codes */
++#define CONAOK	0
++#define CONERR	1
++#define CONBAD	2
++#define CONPRM	3
++#define CONADR	4
++#define CONCNT	5
++#define CONCBF	6
++#define CONCBE	7
++#define CONBSY	8
++
++/* Default channel for the console */
++#define CONSOLE_CHANNEL      1
++
++/* First channel available for tty use. */
++#define FIRST_TTY_CHANNEL    0
++
++#define NUM_TTY_CHANNELS     6
++
++/* Auto allocate */
++#define DA_TTY_MAJOR        0
++
++/* A speedy poll rate helps the userland debug process connection response.
++ * But, if you set it too high then no other userland processes get much
++ * of a look in.
++ */
++#define DA_TTY_POLL (HZ / 50)
++
++/*
++ * A short put delay improves latency but has a high throughput overhead
++ */
++#define DA_TTY_PUT_DELAY (HZ / 100)
++
++static atomic_t num_channels_need_poll = ATOMIC_INIT(0);
++
++static struct timer_list poll_timer;
++
++static struct tty_driver *channel_driver;
++
++static struct timer_list put_timer;
++static struct task_struct *dashtty_thread;
++
++#define RX_BUF_SIZE 1024
++
++enum {
++	INCHR = 1,
++	OUTCHR,
++	RDBUF,
++	WRBUF,
++	RDSTAT
 +};
 +
-+#else /* !__ASSEMBLY__ */
-+
-+#include <generated/asm-offsets.h>
-+
-+#endif
-+
-+#define PREEMPT_ACTIVE		0x10000000
-+
-+#ifdef CONFIG_4KSTACKS
-+#define THREAD_SHIFT		12
-+#else
-+#define THREAD_SHIFT		13
-+#endif
-+
-+#if THREAD_SHIFT >= PAGE_SHIFT
-+#define THREAD_SIZE_ORDER	(THREAD_SHIFT - PAGE_SHIFT)
-+#else
-+#define THREAD_SIZE_ORDER	0
-+#endif
-+
-+#define THREAD_SIZE		(PAGE_SIZE << THREAD_SIZE_ORDER)
-+
-+#define STACK_WARN		(THREAD_SIZE/8)
-+/*
-+ * macros/functions for gaining access to the thread information structure
++/**
++ * struct dashtty_port - Wrapper struct for dashtty tty_port.
++ * @port:		TTY port data
++ * @rx_lock:		Lock for rx_buf.
++ *			This protects between the poll timer and user context.
++ *			It's also held during read SWITCH operations.
++ * @rx_buf:		Read buffer
++ * @xmit_lock:		Lock for xmit_*, and port.xmit_buf.
++ *			This protects between user context and kernel thread.
++ *			It's also held during write SWITCH operations.
++ * @xmit_cnt:		Size of xmit buffer contents
++ * @xmit_head:		Head of xmit buffer where data is written
++ * @xmit_tail:		Tail of xmit buffer where data is read
++ * @xmit_empty:		Completion for xmit buffer being empty
 + */
-+#ifndef __ASSEMBLY__
++struct dashtty_port {
++	struct tty_port		 port;
++	spinlock_t		 rx_lock;
++	void			*rx_buf;
++	struct mutex		 xmit_lock;
++	unsigned int		 xmit_cnt;
++	unsigned int		 xmit_head;
++	unsigned int		 xmit_tail;
++	struct completion	 xmit_empty;
++};
 +
-+#define INIT_THREAD_INFO(tsk)			\
-+{						\
-+	.task		= &tsk,			\
-+	.exec_domain	= &default_exec_domain,	\
-+	.flags		= 0,			\
-+	.cpu		= 0,			\
-+	.preempt_count	= INIT_PREEMPT_COUNT,	\
-+	.addr_limit	= KERNEL_DS,		\
-+	.restart_block = {			\
-+		.fn = do_no_restart_syscall,	\
-+	},					\
-+}
++static struct dashtty_port dashtty_ports[NUM_TTY_CHANNELS];
 +
-+#define init_thread_info	(init_thread_union.thread_info)
-+#define init_stack		(init_thread_union.stack)
-+
-+/* how to get the current stack pointer from C */
-+register unsigned long current_stack_pointer asm("A0StP") __used;
-+
-+/* how to get the thread information struct from C */
-+static inline struct thread_info *current_thread_info(void)
-+{
-+	return (struct thread_info *)(current_stack_pointer &
-+				      ~(THREAD_SIZE - 1));
-+}
-+
-+#define __HAVE_ARCH_KSTACK_END
-+static inline int kstack_end(void *addr)
-+{
-+	return addr == (void *) (((unsigned long) addr & ~(THREAD_SIZE - 1))
-+				 + sizeof(struct thread_info));
-+}
-+
-+#endif
++static atomic_t dashtty_xmit_cnt = ATOMIC_INIT(0);
++static wait_queue_head_t dashtty_waitqueue;
 +
 +/*
-+ * thread information flags
-+ * - these are process state flags that various assembly files may need to
-+ *   access
-+ * - pending work-to-be-done flags are in LSW
-+ * - other flags in MSW
++ * Low-level DA channel access routines
 + */
-+#define TIF_SYSCALL_TRACE	0	/* syscall trace active */
-+#define TIF_SIGPENDING		1	/* signal pending */
-+#define TIF_NEED_RESCHED	2	/* rescheduling necessary */
-+#define TIF_SINGLESTEP		3	/* restore singlestep on return to user
-+					   mode */
-+#define TIF_SYSCALL_AUDIT	4	/* syscall auditing active */
-+#define TIF_SECCOMP		5	/* secure computing */
-+#define TIF_RESTORE_SIGMASK	6	/* restore signal mask in do_signal() */
-+#define TIF_NOTIFY_RESUME	7	/* callback before returning to user */
-+#define TIF_POLLING_NRFLAG      8	/* true if poll_idle() is polling
-+					   TIF_NEED_RESCHED */
-+#define TIF_MEMDIE		9	/* is terminating due to OOM killer */
-+#define TIF_SYSCALL_TRACEPOINT  10	/* syscall tracepoint instrumentation */
-+
-+
-+#define _TIF_SYSCALL_TRACE	(1<<TIF_SYSCALL_TRACE)
-+#define _TIF_SIGPENDING		(1<<TIF_SIGPENDING)
-+#define _TIF_NEED_RESCHED	(1<<TIF_NEED_RESCHED)
-+#define _TIF_SINGLESTEP		(1<<TIF_SINGLESTEP)
-+#define _TIF_SYSCALL_AUDIT	(1<<TIF_SYSCALL_AUDIT)
-+#define _TIF_SECCOMP		(1<<TIF_SECCOMP)
-+#define _TIF_NOTIFY_RESUME	(1<<TIF_NOTIFY_RESUME)
-+#define _TIF_RESTORE_SIGMASK	(1<<TIF_RESTORE_SIGMASK)
-+#define _TIF_SYSCALL_TRACEPOINT	(1<<TIF_SYSCALL_TRACEPOINT)
-+
-+/* work to do in syscall trace */
-+#define _TIF_WORK_SYSCALL_MASK	(_TIF_SYSCALL_TRACE | _TIF_SINGLESTEP | \
-+				 _TIF_SYSCALL_AUDIT | _TIF_SECCOMP | \
-+				 _TIF_SYSCALL_TRACEPOINT)
-+
-+/* work to do on any return to u-space */
-+#define _TIF_ALLWORK_MASK	(_TIF_SYSCALL_TRACE | _TIF_SIGPENDING      | \
-+				 _TIF_NEED_RESCHED  | _TIF_SYSCALL_AUDIT   | \
-+				 _TIF_SINGLESTEP    | _TIF_RESTORE_SIGMASK | \
-+				 _TIF_NOTIFY_RESUME)
-+
-+/* work to do on interrupt/exception return */
-+#define _TIF_WORK_MASK		(_TIF_ALLWORK_MASK & ~(_TIF_SYSCALL_TRACE | \
-+				 _TIF_SYSCALL_AUDIT | _TIF_SINGLESTEP))
-+
-+#define tsk_is_polling(t) test_tsk_thread_flag(t, TIF_POLLING_NRFLAG)
-+
-+#endif /* _ASM_THREAD_INFO_H */
-diff --git a/arch/metag/kernel/process.c b/arch/metag/kernel/process.c
-new file mode 100644
-index 0000000..bff8da0
---- /dev/null
-+++ b/arch/metag/kernel/process.c
-@@ -0,0 +1,422 @@
-+/*
-+ * Copyright (C) 2005,2006,2007,2008,2009,2010,2011 Imagination Technologies
-+ *
-+ * This file contains the architecture-dependent parts of process handling.
-+ *
-+ */
-+
-+#include <linux/errno.h>
-+#include <linux/export.h>
-+#include <linux/sched.h>
-+#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/unistd.h>
-+#include <linux/ptrace.h>
-+#include <linux/user.h>
-+#include <linux/reboot.h>
-+#include <linux/elfcore.h>
-+#include <linux/fs.h>
-+#include <linux/tick.h>
-+#include <linux/slab.h>
-+#include <linux/mman.h>
-+#include <linux/pm.h>
-+#include <linux/syscalls.h>
-+#include <linux/uaccess.h>
-+#include <asm/core_reg.h>
-+#include <asm/user_gateway.h>
-+#include <asm/tcm.h>
-+#include <asm/traps.h>
-+#include <asm/switch_to.h>
-+
-+void cpu_idle(void)
++static int chancall(int bios_function, int channel, int arg2, void *arg3,
++			void *arg4)
 +{
-+	set_thread_flag(TIF_POLLING_NRFLAG);
++	register int   bios_function__ __asm__("D1Ar1") = bios_function;
++	register int   channel__       __asm__("D0Ar2") = channel;
++	register int   arg2__          __asm__("D1Ar3") = arg2;
++	register void *arg3__          __asm__("D0Ar4") = arg3;
++	register void *arg4__          __asm__("D1Ar5") = arg4;
++	register int   bios_call       __asm__("D0Ar6") = 3;
++	register int   result          __asm__("D0Re0");
 +
-+	while (1) {
-+		tick_nohz_idle_enter();
-+		rcu_idle_enter();
++	__asm__ volatile (
++		"SETL   [A0StP++], %6,%5\n\t"
++		"SETL   [A0StP++], %4,%3\n\t"
++		"SETL   [A0StP++], %2,%1\n\t"
++		"ADD    A0StP, A0StP, #8\n\t"
++		"SWITCH #0x0C30208\n\t"
++		"GETD   %0, [A0StP+#-8]\n\t"
++		"SUB    A0StP, A0StP, #(4*6)+8\n\t"
++		: "=r" (result)/* outs */
++		: "r" (bios_function__), "r" (channel__), "r" (arg2__),
++		  "r" (arg3__), "r" (arg4__), "r" (bios_call) /* ins */
++		: "memory");
 +
-+		while (!need_resched()) {
-+#ifdef CONFIG_HOTPLUG_CPU
-+			if (cpu_is_offline(smp_processor_id()))
-+				cpu_die();
-+#endif
-+			asm volatile ("SWITCH #0x400000\n"
-+				      : : : "memory");
++	return result;
++}
++
++/*
++ * Attempts to fetch count bytes from channel and returns actual count.
++ */
++static int fetch_data(struct tty_struct *tty)
++{
++	unsigned int channel = tty->index;
++	struct dashtty_port *dport = &dashtty_ports[channel];
++	int received = 0;
++
++	spin_lock_bh(&dport->rx_lock);
++	/* check the port isn't being shut down */
++	if (!dport->rx_buf)
++		goto unlock;
++	if (chancall(RDBUF, channel, RX_BUF_SIZE,
++		     (void *)dport->rx_buf, &received) == CONAOK) {
++		if (received) {
++			int space;
++			unsigned char *cbuf;
++
++			space = tty_prepare_flip_string(tty, &cbuf, received);
++
++			if (space <= 0)
++				goto unlock;
++
++			memcpy(cbuf, dport->rx_buf, space);
++			tty_flip_buffer_push(tty);
++		}
++	}
++unlock:
++	spin_unlock_bh(&dport->rx_lock);
++
++	return received;
++}
++
++/**
++ * find_channel_to_poll() - Returns kref to the next channel tty to poll.
++ * Returns:	The TTY of the next channel to poll, or NULL if no TTY needs
++ *		polling. Release with tty_kref_put().
++ */
++static struct tty_struct *find_channel_to_poll(void)
++{
++	static int last_polled_channel = FIRST_TTY_CHANNEL;
++	int last = last_polled_channel;
++	int chan;
++	struct tty_struct *tty = NULL;
++
++	for (chan = last + 1; ; ++chan) {
++		if (chan >= NUM_TTY_CHANNELS)
++			chan = 0;
++
++		tty = tty_port_tty_get(&dashtty_ports[chan].port);
++		if (tty) {
++			last_polled_channel = chan;
++			return tty;
 +		}
 +
-+		rcu_idle_exit();
-+		tick_nohz_idle_exit();
-+		schedule_preempt_disabled();
-+	 }
++		if (chan == last)
++			break;
++	}
++	return tty;
 +}
 +
-+void (*pm_power_off)(void);
-+EXPORT_SYMBOL(pm_power_off);
-+
-+void (*soc_restart)(char *cmd);
-+void (*soc_halt)(void);
-+
-+void machine_restart(char *cmd)
++/**
++ * put_channel_data() - Write out a block of channel data.
++ * @chan:	DA channel number.
++ *
++ * Write a single block of data out to the debug adapter. If the circular buffer
++ * is wrapped then only the first block is written.
++ *
++ * Returns:	1 if the remote buffer was too full to accept data.
++ *		0 otherwise.
++ */
++static int put_channel_data(unsigned int chan)
 +{
-+	if (soc_restart)
-+		soc_restart(cmd);
-+	hard_processor_halt(HALT_OK);
-+}
++	struct dashtty_port *dport;
++	struct tty_struct *tty;
++	int number_written;
++	unsigned int count = 0;
 +
-+void machine_halt(void)
-+{
-+	if (soc_halt)
-+		soc_halt();
-+	smp_send_stop();
-+	hard_processor_halt(HALT_OK);
-+}
++	dport = &dashtty_ports[chan];
++	mutex_lock(&dport->xmit_lock);
++	if (dport->xmit_cnt) {
++		count = min((unsigned int)(SERIAL_XMIT_SIZE - dport->xmit_tail),
++			    dport->xmit_cnt);
++		chancall(WRBUF, chan, count,
++			 dport->port.xmit_buf + dport->xmit_tail,
++			 &number_written);
++		dport->xmit_cnt -= number_written;
++		if (!dport->xmit_cnt) {
++			/* reset pointers to avoid wraps */
++			dport->xmit_head = 0;
++			dport->xmit_tail = 0;
++			complete(&dport->xmit_empty);
++		} else {
++			dport->xmit_tail += number_written;
++			if (dport->xmit_tail >= SERIAL_XMIT_SIZE)
++				dport->xmit_tail -= SERIAL_XMIT_SIZE;
++		}
++		atomic_sub(number_written, &dashtty_xmit_cnt);
++	}
++	mutex_unlock(&dport->xmit_lock);
 +
-+void machine_power_off(void)
-+{
-+	if (pm_power_off)
-+		pm_power_off();
-+	smp_send_stop();
-+	hard_processor_halt(HALT_OK);
-+}
-+
-+#define FLAG_Z 0x8
-+#define FLAG_N 0x4
-+#define FLAG_O 0x2
-+#define FLAG_C 0x1
-+
-+void show_regs(struct pt_regs *regs)
-+{
-+	int i;
-+	const char *AX0_names[] = {"A0StP", "A0FrP"};
-+	const char *AX1_names[] = {"A1GbP", "A1LbP"};
-+
-+	const char *DX0_names[] = {
-+		"D0Re0",
-+		"D0Ar6",
-+		"D0Ar4",
-+		"D0Ar2",
-+		"D0FrT",
-+		"D0.5 ",
-+		"D0.6 ",
-+		"D0.7 "
-+	};
-+
-+	const char *DX1_names[] = {
-+		"D1Re0",
-+		"D1Ar5",
-+		"D1Ar3",
-+		"D1Ar1",
-+		"D1RtP",
-+		"D1.5 ",
-+		"D1.6 ",
-+		"D1.7 "
-+	};
-+
-+	pr_info(" pt_regs @ %p\n", regs);
-+	pr_info(" SaveMask = 0x%04hx\n", regs->ctx.SaveMask);
-+	pr_info(" Flags = 0x%04hx (%c%c%c%c)\n", regs->ctx.Flags,
-+		regs->ctx.Flags & FLAG_Z ? 'Z' : 'z',
-+		regs->ctx.Flags & FLAG_N ? 'N' : 'n',
-+		regs->ctx.Flags & FLAG_O ? 'O' : 'o',
-+		regs->ctx.Flags & FLAG_C ? 'C' : 'c');
-+	pr_info(" TXRPT = 0x%08x\n", regs->ctx.CurrRPT);
-+	pr_info(" PC = 0x%08x\n", regs->ctx.CurrPC);
-+
-+	/* AX regs */
-+	for (i = 0; i < 2; i++) {
-+		pr_info(" %s = 0x%08x    ",
-+			AX0_names[i],
-+			regs->ctx.AX[i].U0);
-+		printk(" %s = 0x%08x\n",
-+			AX1_names[i],
-+			regs->ctx.AX[i].U1);
++	/* if we've made more data available, wake up tty */
++	if (count && number_written) {
++		tty = tty_port_tty_get(&dport->port);
++		if (tty) {
++			tty_wakeup(tty);
++			tty_kref_put(tty);
++		}
 +	}
 +
-+	if (regs->ctx.SaveMask & TBICTX_XEXT_BIT)
-+		pr_warn(" Extended state present - AX2.[01] will be WRONG\n");
-+
-+	/* Special place with AXx.2 */
-+	pr_info(" A0.2  = 0x%08x    ",
-+		regs->ctx.Ext.AX2.U0);
-+	printk(" A1.2  = 0x%08x\n",
-+		regs->ctx.Ext.AX2.U1);
-+
-+	/* 'extended' AX regs (nominally, just AXx.3) */
-+	for (i = 0; i < (TBICTX_AX_REGS - 3); i++) {
-+		pr_info(" A0.%d  = 0x%08x    ", i + 3, regs->ctx.AX3[i].U0);
-+		printk(" A1.%d  = 0x%08x\n", i + 3, regs->ctx.AX3[i].U1);
-+	}
-+
-+	for (i = 0; i < 8; i++) {
-+		pr_info(" %s = 0x%08x    ", DX0_names[i], regs->ctx.DX[i].U0);
-+		printk(" %s = 0x%08x\n", DX1_names[i], regs->ctx.DX[i].U1);
-+	}
-+
-+	show_trace(NULL, (unsigned long *)regs->ctx.AX[0].U0, regs);
++	/* did the write fail? */
++	return count && !number_written;
 +}
 +
-+int copy_thread(unsigned long clone_flags, unsigned long usp,
-+		unsigned long arg, struct task_struct *tsk)
++/**
++ * put_data() - Kernel thread to write out blocks of channel data to DA.
++ * @arg:	Unused.
++ *
++ * This kernel thread runs while @dashtty_xmit_cnt != 0, and loops over the
++ * channels to write out any buffered data. If any of the channels stall due to
++ * the remote buffer being full, a hold off happens to allow the debugger to
++ * drain the buffer.
++ */
++static int put_data(void *arg)
 +{
-+	struct pt_regs *childregs = task_pt_regs(tsk);
-+	void *kernel_context = ((void *) childregs +
-+				sizeof(struct pt_regs));
-+	unsigned long global_base;
++	unsigned int chan, stall;
 +
-+	BUG_ON(((unsigned long)childregs) & 0x7);
-+	BUG_ON(((unsigned long)kernel_context) & 0x7);
-+
-+	memset(&tsk->thread.kernel_context, 0,
-+			sizeof(tsk->thread.kernel_context));
-+
-+	tsk->thread.kernel_context = __TBISwitchInit(kernel_context,
-+						     ret_from_fork,
-+						     0, 0);
-+
-+	if (unlikely(tsk->flags & PF_KTHREAD)) {
++	__set_current_state(TASK_RUNNING);
++	while (!kthread_should_stop()) {
 +		/*
-+		 * Make sure we don't leak any kernel data to child's regs
-+		 * if kernel thread becomes a userspace thread in the future
++		 * For each channel see if there's anything to transmit in the
++		 * port's xmit_buf.
 +		 */
-+		memset(childregs, 0 , sizeof(struct pt_regs));
++		stall = 0;
++		for (chan = 0; chan < NUM_TTY_CHANNELS; ++chan)
++			stall += put_channel_data(chan);
 +
-+		asm volatile ("MOV %0,A1GbP\n" : "=r" (global_base));
-+		childregs->ctx.AX[0].U1 = (unsigned long) global_base;
-+		childregs->ctx.AX[0].U0 = (unsigned long) kernel_context;
-+		/* Set D1Ar1=arg and D1RtP=usp (fn) */
-+		childregs->ctx.DX[4].U1 = usp;
-+		childregs->ctx.DX[3].U1 = arg;
-+		tsk->thread.int_depth = 2;
-+		return 0;
++		/*
++		 * If some of the buffers are full, hold off for a short while
++		 * to allow them to empty.
++		 */
++		if (stall)
++			msleep(25);
++
++		wait_event_interruptible(dashtty_waitqueue,
++					 atomic_read(&dashtty_xmit_cnt));
 +	}
-+	/*
-+	 * Get a pointer to where the new child's register block should have
-+	 * been pushed.
-+	 * The Meta's stack grows upwards, and the context is the the first
-+	 * thing to be pushed by TBX (phew)
-+	 */
-+	*childregs = *current_pt_regs();
-+	/* Set the correct stack for the clone mode */
-+	if (usp)
-+		childregs->ctx.AX[0].U0 = ALIGN(usp, 8);
-+	tsk->thread.int_depth = 1;
-+
-+	/* set return value for child process */
-+	childregs->ctx.DX[0].U0 = 0;
-+
-+	/* The TLS pointer is passed as an argument to sys_clone. */
-+	if (clone_flags & CLONE_SETTLS)
-+		tsk->thread.tls_ptr =
-+				(__force void __user *)childregs->ctx.DX[1].U1;
-+
-+#ifdef CONFIG_METAG_FPU
-+	if (tsk->thread.fpu_context) {
-+		struct meta_fpu_context *ctx;
-+
-+		ctx = kmemdup(tsk->thread.fpu_context,
-+			      sizeof(struct meta_fpu_context), GFP_ATOMIC);
-+		tsk->thread.fpu_context = ctx;
-+	}
-+#endif
-+
-+#ifdef CONFIG_METAG_DSP
-+	if (tsk->thread.dsp_context) {
-+		struct meta_ext_context *ctx;
-+		int i;
-+
-+		ctx = kmemdup(tsk->thread.dsp_context,
-+			      sizeof(struct meta_ext_context), GFP_ATOMIC);
-+		for (i = 0; i < 2; i++)
-+			ctx->ram[i] = kmemdup(ctx->ram[i], ctx->ram_sz[i],
-+					      GFP_ATOMIC);
-+		tsk->thread.dsp_context = ctx;
-+	}
-+#endif
 +
 +	return 0;
-+}
-+
-+#ifdef CONFIG_METAG_FPU
-+static void alloc_fpu_context(struct thread_struct *thread)
-+{
-+	thread->fpu_context = kzalloc(sizeof(struct meta_fpu_context),
-+				      GFP_ATOMIC);
-+}
-+
-+static void clear_fpu(struct thread_struct *thread)
-+{
-+	thread->user_flags &= ~TBICTX_FPAC_BIT;
-+	kfree(thread->fpu_context);
-+	thread->fpu_context = NULL;
-+}
-+#else
-+static void clear_fpu(struct thread_struct *thread)
-+{
-+}
-+#endif
-+
-+#ifdef CONFIG_METAG_DSP
-+static void clear_dsp(struct thread_struct *thread)
-+{
-+	if (thread->dsp_context) {
-+		kfree(thread->dsp_context->ram[0]);
-+		kfree(thread->dsp_context->ram[1]);
-+
-+		kfree(thread->dsp_context);
-+
-+		thread->dsp_context = NULL;
-+	}
-+
-+	__core_reg_set(D0.8, 0);
-+}
-+#else
-+static void clear_dsp(struct thread_struct *thread)
-+{
-+}
-+#endif
-+
-+struct task_struct *__sched __switch_to(struct task_struct *prev,
-+					struct task_struct *next)
-+{
-+	TBIRES to, from;
-+
-+	to.Switch.pCtx = next->thread.kernel_context;
-+	to.Switch.pPara = prev;
-+
-+#ifdef CONFIG_METAG_FPU
-+	if (prev->thread.user_flags & TBICTX_FPAC_BIT) {
-+		struct pt_regs *regs = task_pt_regs(prev);
-+		TBIRES state;
-+
-+		state.Sig.SaveMask = prev->thread.user_flags;
-+		state.Sig.pCtx = &regs->ctx;
-+
-+		if (!prev->thread.fpu_context)
-+			alloc_fpu_context(&prev->thread);
-+		if (prev->thread.fpu_context)
-+			__TBICtxFPUSave(state, prev->thread.fpu_context);
-+	}
-+	/*
-+	 * Force a restore of the FPU context next time this process is
-+	 * scheduled.
-+	 */
-+	if (prev->thread.fpu_context)
-+		prev->thread.fpu_context->needs_restore = true;
-+#endif
-+
-+
-+	from = __TBISwitch(to, &prev->thread.kernel_context);
-+
-+	/* Restore TLS pointer for this process. */
-+	set_gateway_tls(current->thread.tls_ptr);
-+
-+	return (struct task_struct *) from.Switch.pPara;
-+}
-+
-+void flush_thread(void)
-+{
-+	clear_fpu(&current->thread);
-+	clear_dsp(&current->thread);
 +}
 +
 +/*
-+ * Free current thread data structures etc.
++ *	This gets called every DA_TTY_POLL and polls the channels for data
 + */
-+void exit_thread(void)
++static void dashtty_timer(unsigned long ignored)
 +{
-+	clear_fpu(&current->thread);
-+	clear_dsp(&current->thread);
-+}
++	struct tty_struct *tty;
 +
-+/* TODO: figure out how to unwind the kernel stack here to figure out
-+ * where we went to sleep. */
-+unsigned long get_wchan(struct task_struct *p)
-+{
-+	return 0;
-+}
++	/* If there are no ports open do nothing and don't poll again. */
++	if (!atomic_read(&num_channels_need_poll))
++		return;
 +
-+int dump_fpu(struct pt_regs *regs, elf_fpregset_t *fpu)
-+{
-+	/* Returning 0 indicates that the FPU state was not stored (as it was
-+	 * not in use) */
-+	return 0;
-+}
++	tty = find_channel_to_poll();
 +
-+#ifdef CONFIG_METAG_USER_TCM
-+
-+#define ELF_MIN_ALIGN	PAGE_SIZE
-+
-+#define ELF_PAGESTART(_v) ((_v) & ~(unsigned long)(ELF_MIN_ALIGN-1))
-+#define ELF_PAGEOFFSET(_v) ((_v) & (ELF_MIN_ALIGN-1))
-+#define ELF_PAGEALIGN(_v) (((_v) + ELF_MIN_ALIGN - 1) & ~(ELF_MIN_ALIGN - 1))
-+
-+#define BAD_ADDR(x) ((unsigned long)(x) >= TASK_SIZE)
-+
-+unsigned long __metag_elf_map(struct file *filep, unsigned long addr,
-+			      struct elf_phdr *eppnt, int prot, int type,
-+			      unsigned long total_size)
-+{
-+	unsigned long map_addr, size;
-+	unsigned long page_off = ELF_PAGEOFFSET(eppnt->p_vaddr);
-+	unsigned long raw_size = eppnt->p_filesz + page_off;
-+	unsigned long off = eppnt->p_offset - page_off;
-+	unsigned int tcm_tag;
-+	addr = ELF_PAGESTART(addr);
-+	size = ELF_PAGEALIGN(raw_size);
-+
-+	/* mmap() will return -EINVAL if given a zero size, but a
-+	 * segment with zero filesize is perfectly valid */
-+	if (!size)
-+		return addr;
-+
-+	tcm_tag = tcm_lookup_tag(addr);
-+
-+	if (tcm_tag != TCM_INVALID_TAG)
-+		type &= ~MAP_FIXED;
-+
-+	/*
-+	* total_size is the size of the ELF (interpreter) image.
-+	* The _first_ mmap needs to know the full size, otherwise
-+	* randomization might put this image into an overlapping
-+	* position with the ELF binary image. (since size < total_size)
-+	* So we first map the 'big' image - and unmap the remainder at
-+	* the end. (which unmap is needed for ELF images with holes.)
-+	*/
-+	if (total_size) {
-+		total_size = ELF_PAGEALIGN(total_size);
-+		map_addr = vm_mmap(filep, addr, total_size, prot, type, off);
-+		if (!BAD_ADDR(map_addr))
-+			vm_munmap(map_addr+size, total_size-size);
-+	} else
-+		map_addr = vm_mmap(filep, addr, size, prot, type, off);
-+
-+	if (!BAD_ADDR(map_addr) && tcm_tag != TCM_INVALID_TAG) {
-+		struct tcm_allocation *tcm;
-+		unsigned long tcm_addr;
-+
-+		tcm = kmalloc(sizeof(*tcm), GFP_KERNEL);
-+		if (!tcm)
-+			return -ENOMEM;
-+
-+		tcm_addr = tcm_alloc(tcm_tag, raw_size);
-+		if (tcm_addr != addr) {
-+			kfree(tcm);
-+			return -ENOMEM;
-+		}
-+
-+		tcm->tag = tcm_tag;
-+		tcm->addr = tcm_addr;
-+		tcm->size = raw_size;
-+
-+		list_add(&tcm->list, &current->mm->context.tcm);
-+
-+		eppnt->p_vaddr = map_addr;
-+		if (copy_from_user((void *) addr, (void __user *) map_addr,
-+				   raw_size))
-+			return -EFAULT;
++	/* Did we find a channel to poll? */
++	if (tty) {
++		fetch_data(tty);
++		tty_kref_put(tty);
 +	}
 +
-+	return map_addr;
++	mod_timer_pinned(&poll_timer, jiffies + DA_TTY_POLL);
 +}
++
++static void add_poll_timer(struct timer_list *poll_timer)
++{
++	init_timer(poll_timer);
++
++	poll_timer->function = dashtty_timer;
++	poll_timer->expires = jiffies + DA_TTY_POLL;
++
++	/*
++	 * Always attach the timer to the boot CPU.
++	 */
++	add_timer_on(poll_timer, 0);
++}
++
++static int dashtty_port_activate(struct tty_port *port, struct tty_struct *tty)
++{
++	struct dashtty_port *dport = container_of(port, struct dashtty_port,
++						  port);
++	void *rx_buf;
++
++	/* Allocate the buffer we use for writing data */
++	if (tty_port_alloc_xmit_buf(port) < 0)
++		goto err;
++
++	/* Allocate the buffer we use for reading data */
++	rx_buf = kzalloc(RX_BUF_SIZE, GFP_KERNEL);
++	if (!rx_buf)
++		goto err_free_xmit;
++
++	spin_lock_bh(&dport->rx_lock);
++	dport->rx_buf = rx_buf;
++	spin_unlock_bh(&dport->rx_lock);
++
++	return 0;
++err_free_xmit:
++	tty_port_free_xmit_buf(port);
++err:
++	return -ENOMEM;
++}
++
++static void dashtty_port_shutdown(struct tty_port *port)
++{
++	struct dashtty_port *dport = container_of(port, struct dashtty_port,
++						  port);
++	void *rx_buf;
++	unsigned int count;
++
++	mutex_lock(&dport->xmit_lock);
++	count = dport->xmit_cnt;
++	mutex_unlock(&dport->xmit_lock);
++	if (count) {
++		/*
++		 * There's still data to write out, so wake and wait for the
++		 * writer thread to drain the buffer.
++		 */
++		del_timer(&put_timer);
++		wake_up_interruptible(&dashtty_waitqueue);
++		wait_for_completion(&dport->xmit_empty);
++	}
++
++	/* Null the read buffer (timer could still be running!) */
++	spin_lock_bh(&dport->rx_lock);
++	rx_buf = dport->rx_buf;
++	dport->rx_buf = NULL;
++	spin_unlock_bh(&dport->rx_lock);
++	/* Free the read buffer */
++	kfree(rx_buf);
++
++	/* Free the write buffer */
++	tty_port_free_xmit_buf(port);
++}
++
++static const struct tty_port_operations dashtty_port_ops = {
++	.activate	= dashtty_port_activate,
++	.shutdown	= dashtty_port_shutdown,
++};
++
++static int dashtty_install(struct tty_driver *driver, struct tty_struct *tty)
++{
++	struct dashtty_port *port;
++	int ret, line;
++
++	if (!tty)
++		return -ENODEV;
++
++	line = tty->index;
++
++	if (line < 0 || line >= NUM_TTY_CHANNELS)
++		return -ENODEV;
++	port = &dashtty_ports[line];
++
++	port->port.ops = &dashtty_port_ops;
++	ret = tty_port_install(&port->port, driver, tty);
++	if (ret)
++		return ret;
++
++	/*
++	 * Don't add the poll timer if we're opening a console. This
++	 * avoids the overhead of polling the Dash but means it is not
++	 * possible to have a login on /dev/console.
++	 *
++	 */
++	if (line != CONSOLE_CHANNEL)
++		if (atomic_inc_return(&num_channels_need_poll) == 1)
++			add_poll_timer(&poll_timer);
++
++	return 0;
++}
++
++static void dashtty_cleanup(struct tty_struct *tty)
++{
++	int line;
++
++	if (!tty)
++		return;
++
++	line = tty->index;
++
++	if (line < 0 || line >= NUM_TTY_CHANNELS)
++		return;
++
++	if (line != CONSOLE_CHANNEL)
++		if (atomic_dec_and_test(&num_channels_need_poll))
++			del_timer_sync(&poll_timer);
++}
++
++static int dashtty_open(struct tty_struct *tty, struct file *filp)
++{
++	return tty_port_open(tty->port, tty, filp);
++}
++
++static void dashtty_close(struct tty_struct *tty, struct file *filp)
++{
++	return tty_port_close(tty->port, tty, filp);
++}
++
++static void dashtty_hangup(struct tty_struct *tty)
++{
++	int channel;
++	struct dashtty_port *dport;
++
++	channel = FIRST_TTY_CHANNEL + tty->index;
++	dport = &dashtty_ports[channel];
++
++	/* drop any data in the xmit buffer */
++	mutex_lock(&dport->xmit_lock);
++	if (dport->xmit_cnt) {
++		atomic_sub(dport->xmit_cnt, &dashtty_xmit_cnt);
++		dport->xmit_cnt = 0;
++		dport->xmit_head = 0;
++		dport->xmit_tail = 0;
++		complete(&dport->xmit_empty);
++	}
++	mutex_unlock(&dport->xmit_lock);
++
++	tty_port_hangup(tty->port);
++}
++
++/**
++ * dashtty_put_timer() - Delayed wake up of kernel thread.
++ * @ignored:	unused
++ *
++ * This timer function wakes up the kernel thread if any data exists in the
++ * buffers. It is used to delay the expensive writeout until the writer has
++ * stopped writing.
++ */
++static void dashtty_put_timer(unsigned long ignored)
++{
++	if (atomic_read(&dashtty_xmit_cnt))
++		wake_up_interruptible(&dashtty_waitqueue);
++}
++
++static int dashtty_write(struct tty_struct *tty, const unsigned char *buf,
++			 int total)
++{
++	int channel, count, block;
++	struct dashtty_port *dport;
++
++	/* Determine the channel */
++	channel = FIRST_TTY_CHANNEL + tty->index;
++	dport = &dashtty_ports[channel];
++
++	/*
++	 * Write to output buffer.
++	 *
++	 * The reason that we asynchronously write the buffer is because
++	 * there's no way to tell what CPU we're currently executing on.
++	 * If we were to write the buffer synchornously then because dash
++	 * channels are per-CPU the buffer would be written to the channel
++	 * of whatever CPU we're running on.
++	 *
++	 * What we actually want to happen is have all input and output
++	 * done on one CPU.
++	 */
++	mutex_lock(&dport->xmit_lock);
++	/* work out how many bytes we can write to the xmit buffer */
++	total = min(total, (int)(SERIAL_XMIT_SIZE - dport->xmit_cnt));
++	atomic_add(total, &dashtty_xmit_cnt);
++	dport->xmit_cnt += total;
++	/* write the actual bytes (may need splitting if it wraps) */
++	for (count = total; count; count -= block) {
++		block = min(count, (int)(SERIAL_XMIT_SIZE - dport->xmit_head));
++		memcpy(dport->port.xmit_buf + dport->xmit_head, buf, block);
++		dport->xmit_head += block;
++		if (dport->xmit_head >= SERIAL_XMIT_SIZE)
++			dport->xmit_head -= SERIAL_XMIT_SIZE;
++		buf += block;
++	}
++	count = dport->xmit_cnt;
++	/* xmit buffer no longer empty? */
++	if (count)
++		INIT_COMPLETION(dport->xmit_empty);
++	mutex_unlock(&dport->xmit_lock);
++
++	if (total) {
++		/*
++		 * If the buffer is full, wake up the kthread, otherwise allow
++		 * some more time for the buffer to fill up a bit before waking
++		 * it.
++		 */
++		if (count == SERIAL_XMIT_SIZE) {
++			del_timer(&put_timer);
++			wake_up_interruptible(&dashtty_waitqueue);
++		} else {
++			mod_timer(&put_timer, jiffies + DA_TTY_PUT_DELAY);
++		}
++	}
++	return total;
++}
++
++static int dashtty_write_room(struct tty_struct *tty)
++{
++	struct dashtty_port *dport;
++	int channel;
++	int room;
++
++	channel = FIRST_TTY_CHANNEL + tty->index;
++	dport = &dashtty_ports[channel];
++
++	/* report the space in the xmit buffer */
++	mutex_lock(&dport->xmit_lock);
++	room = SERIAL_XMIT_SIZE - dport->xmit_cnt;
++	mutex_unlock(&dport->xmit_lock);
++
++	return room;
++}
++
++static int dashtty_chars_in_buffer(struct tty_struct *tty)
++{
++	struct dashtty_port *dport;
++	int channel;
++	int chars;
++
++	channel = FIRST_TTY_CHANNEL + tty->index;
++	dport = &dashtty_ports[channel];
++
++	/* report the number of bytes in the xmit buffer */
++	mutex_lock(&dport->xmit_lock);
++	chars = dport->xmit_cnt;
++	mutex_unlock(&dport->xmit_lock);
++
++	return chars;
++}
++
++static const struct tty_operations dashtty_ops = {
++	.install		= dashtty_install,
++	.cleanup		= dashtty_cleanup,
++	.open			= dashtty_open,
++	.close			= dashtty_close,
++	.hangup			= dashtty_hangup,
++	.write			= dashtty_write,
++	.write_room		= dashtty_write_room,
++	.chars_in_buffer	= dashtty_chars_in_buffer,
++};
++
++static int __init dashtty_init(void)
++{
++	int ret;
++	int nport;
++	struct dashtty_port *dport;
++
++	if (!metag_da_enabled())
++		return -ENODEV;
++
++	channel_driver = tty_alloc_driver(NUM_TTY_CHANNELS, 0);
++	if (IS_ERR(channel_driver))
++		return PTR_ERR(channel_driver);
++
++	channel_driver->owner = THIS_MODULE;
++	channel_driver->driver_name = "ttyDA";
++	channel_driver->name = "ttyDA";
++	channel_driver->major = DA_TTY_MAJOR;
++	channel_driver->minor_start = 0;
++	channel_driver->type = TTY_DRIVER_TYPE_SERIAL;
++	channel_driver->subtype = SERIAL_TYPE_NORMAL;
++	channel_driver->init_termios = tty_std_termios;
++	channel_driver->init_termios.c_cflag |= CLOCAL;
++	channel_driver->flags = TTY_DRIVER_REAL_RAW;
++
++	tty_set_operations(channel_driver, &dashtty_ops);
++	for (nport = 0; nport < NUM_TTY_CHANNELS; nport++) {
++		dport = &dashtty_ports[nport];
++		tty_port_init(&dport->port);
++		spin_lock_init(&dport->rx_lock);
++		mutex_init(&dport->xmit_lock);
++		/* the xmit buffer starts empty, i.e. completely written */
++		init_completion(&dport->xmit_empty);
++		complete(&dport->xmit_empty);
++	}
++
++	init_timer(&put_timer);
++	put_timer.function = dashtty_put_timer;
++
++	init_waitqueue_head(&dashtty_waitqueue);
++	dashtty_thread = kthread_create(put_data, NULL, "ttyDA");
++	if (IS_ERR(dashtty_thread)) {
++		pr_err("Couldn't create dashtty thread\n");
++		ret = PTR_ERR(dashtty_thread);
++		goto err_free_driver;
++	}
++	kthread_bind(dashtty_thread, 0);
++	wake_up_process(dashtty_thread);
++
++	ret = tty_register_driver(channel_driver);
++
++	if (ret < 0) {
++		pr_err("Couldn't install dashtty driver: err %d\n",
++		       ret);
++		goto err_stop_kthread;
++	}
++
++	return 0;
++
++err_stop_kthread:
++	kthread_stop(dashtty_thread);
++err_free_driver:
++	put_tty_driver(channel_driver);
++	return ret;
++}
++
++static void dashtty_exit(void)
++{
++	del_timer_sync(&put_timer);
++	kthread_stop(dashtty_thread);
++	del_timer_sync(&poll_timer);
++	tty_unregister_driver(channel_driver);
++	put_tty_driver(channel_driver);
++}
++
++module_init(dashtty_init);
++module_exit(dashtty_exit);
++
++#ifdef CONFIG_DA_CONSOLE
++
++static void dash_console_write(struct console *co, const char *s,
++			       unsigned int count)
++{
++	int actually_written;
++
++	chancall(WRBUF, CONSOLE_CHANNEL, count, (void *)s, &actually_written);
++}
++
++static struct tty_driver *dash_console_device(struct console *c, int *index)
++{
++	*index = c->index;
++	return channel_driver;
++}
++
++struct console dash_console = {
++	.name = "ttyDA",
++	.write = dash_console_write,
++	.device = dash_console_device,
++	.flags = CON_PRINTBUFFER,
++	.index = 1,
++};
++
 +#endif
 -- 
 1.7.7.6
