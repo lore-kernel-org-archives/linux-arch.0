@@ -1,595 +1,1169 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:52711 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:54498 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754149Ab3AJPcd (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Jan 2013 10:32:33 -0500
+	id S1754446Ab3AJPcv (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Jan 2013 10:32:51 -0500
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v3 00/44] Meta Linux Kernel Port
-Date: Thu, 10 Jan 2013 15:30:28 +0000
-Message-ID: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v3 30/44] metag: SMP support
+Date: Thu, 10 Jan 2013 15:30:58 +0000
+Message-ID: <1357831872-29451-31-git-send-email-james.hogan@imgtec.com>
+In-Reply-To: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
+References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: James Hogan <james.hogan@imgtec.com>
-Message-ID: <20130110153028.g85zgNtpRlmeIuvC_R7mnODAz1PbvfltKg8HAu8S-MM@z>
+Message-ID: <20130110153058.18DLhCfewyVz1VcErBfpYKuxL6t5peZgWSbqPpMLGOc@z>
 
-This patchset adds core architecture support to Linux for Imagination's
-Meta ATP (Meta 1) and HTP (Meta 2) processor cores. Most of the feedback
-from the RFC and v2 patchsets has now been addressed. All further
-feedback is most welcome.
+Add SMP support for metag. This allows Linux to take control of multiple
+hardware threads on a single Meta core, treating them as separate Linux
+CPUs.
 
-The patches are based on next-20130110, and can also be found in the
-following git tree:
-  git://github.com/jahogan/metag-linux.git metag-core
-
-Meta cores are 32-bit, hardware multithreaded, general purpose, embedded
-processors which also feature a DSP instruction set, and can be found in
-many digital radios. They are capable of running different operating
-systems on different hardware threads, for example a digital radio might
-run RTOSes for DAB decoding and audio decoding on 3 hardware threads,
-and run Linux on the 4th hardware thread to manage the user interface,
-networking etc. HTPs are also capable of running SMP Linux on multiple
-hardware threads.
-
-A buildroot tree containing toolchain patches can be found here (use
-meta2_defconfig):
-  git://github.com/img-meta/metag-buildroot.git metag-core
-
-Freely available instruction set and architecture overview documents can
-be found on the following page:
-  http://www.imgtec.com/downloads.asp
-
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
 ---
-v3 (tag: metag-core-v3):
-
-changes since v2
-* tree:
-  * rebased on linux-next and related changes
-  * integrated generic kernel_thread/kernel_execve into patches
-* signals:
-  * replace do_notify_resume with do_work_pending containing signal
-    handling loop (Al Viro)
-  * handlerless local syscall restart (Al Viro)
-  * fix rt_sigreturn's do_sigaltstack handling (Al Viro)
-  * explicitly detect rt_sigreturn and treat as non-syscall for purposes
-    of syscall restart (Al Viro)
-  * refactor syscall restart code based on arm
-  * use generic sigaltstack
-* irq handling:
-  * move irq drivers into drivers/irqchip/ (Arnd)
-  * switch to sparse irq (Arnd)
-  * allow per machine override of nr_irqs
-  * switch root TBI, internal, and external interrupt drivers to linear
-    irqdomain
-  * implement masking in internal interrupt driver
-* system calls:
-  * remove magic pt_regs 7th syscall argument (Al Viro)
-  * use generic sys_clone (Al Viro)
-  * fix use of 0 for invalid syscall number (use -1 instead)
-* documentation
-  * added Documentation/kernel-ABI.txt describing various ABIs (Al Viro)
-* tbx:
-  * move tbx/tbicache.c to mm/cache.c and refactor / clean up (Joe
-    Perches)
-  * clean up tbx/tbistring.c
-  * rename asm/lock.h->asm/global_lock.h, remove dependence on tbx
-  * update all lock users to use asm/global_lock.h rather than tbx
-    macros
-  * add and use __core_reg_[gs]et macros to replace TBI_[GS]ETREG
-  * make use of compiler builtins for cache/tlb handling instructions
-    rather than tbx macros
-* tty/metag_da:
-  * mostly rewritten to address Alan Cox' feedback
-  * use del_timer_sync() where appropriate (Alan Cox)
-  * convert to use tty_port helpers (Alan Cox)
-  * fix tty kref safety (Alan Cox)
-  * implement proper output buffering (Alan Cox)
-  * fix init error handling
-  * implement hangup (Alan Cox)
-  * omit specific baud rate (Alan Cox)
-* boot:
-  * switch to generic CMDLINE Kconfig symbols (Sam Ravnborg)
-* alignment patches
-  * removed taskstats changes (see "netlink: align attributes on
-    64-bits" patches)
-  * rework CONFIG_HAVE_64BIT_ALIGNED_ACCESS patch for clarity
-
-feedback not addressed:
-* proper inversion of Kconfig dependency lists (Greg, Arnd)
-  I'll do this as a separate patch set as arch/metag doesn't directly
-  depend on it.
-
-
-v2 (tag: metag-core-v2):
-
-changes based on rfc-v1 review feedback:
-* moved build infrastructure patch later (Sam Ravnborg)
-* various build system cleanups (Sam Ravnborg)
-* split generic build changes out of main build patch (Sam Ravnborg)
-* deprecate powervr DT vendor id (Rob Herring)
-* ftrace now uses recordmcount.c (Steven Rostedt)
-* fixed imgdafs fserrno problem (Al Viro)
-* io.h changes, inline asm, removed casts, added metag_in/out (Arnd)
-* remove bus_to_virt (Arnd)
-* use asm-generic/syscalls.h (Arnd)
-* remove superfluous metag_spinlock system call (Arnd)
-* renamed packed 64bit arg syscall wrappers (Arnd)
-
-other changes:
-* rebased on v3.7-rc8
-  * changes based on v3.6..v3.7-rc8 patches
-  * uapi disintegration (thanks to David Howells for the assistance)
-* add cmpdi2/ucmpdi2 intrinsics and clean up lib Makefile
-* fix numa build
-* split memory management patch into 6 separate patches to make them
-  more manageable and stop them bouncing:
-  * cache/tlb handling
-  * memory management
-  * memory handling
-  * huge tlb
-  * highmem
-  * tcm
-* split architecture definitions out of TBX into asm/metag_*.h
-* merged remaining TBX header files into a single asm/tbx.h
-* split TBX patch into 2 separate patches to stop them bouncing
-* merge various similar Kconfig changes in generic code
-* dropped sysfs drivers from this patchset (we normally have them turned
-  off anyway so they're not a priority)
-* renamed dafs to imgdafs
-* implemented perf events
-* rewrote ptrace to use nicely abstracted regsets
-* removed non-standard hw_breakpoints/ptrace API
-* use ptrace abstracted context structs in sigcontext
-* update DA TTY to be more thread safe and use tty_ports
-* switch to generic sys_execve
-
-
-James Hogan (44):
-  asm-generic/io.h: check CONFIG_VIRT_TO_BUS
-  asm-generic/unistd.h: handle symbol prefixes in cond_syscall
-  Revert some of "binfmt_elf: cleanups"
-  Add HAVE_64BIT_ALIGNED_ACCESS
-  trace/ring_buffer: handle 64bit aligned structs
-  metag: Add MAINTAINERS entry
-  metag: Headers for core arch constants
-  metag: Header for core memory mapped registers
-  metag: Boot
-  metag: TBX header
-  metag: TBX source
-  metag: Cache/TLB handling
-  metag: Memory management
-  metag: Memory handling
-  metag: Huge TLB
-  metag: Highmem support
-  metag: TCM support
-  metag: Signal handling
-  metag: Device tree
-  metag: ptrace
-  metag: Time keeping
-  metag: Traps
-  metag: IRQ handling
-  metag: Internal and external irqchips
-  metag: System Calls
-  metag: Scheduling/Process management
-  metag: Module support
-  metag: Atomics, locks and bitops
-  metag: Basic documentation
-  metag: SMP support
-  metag: DMA
-  metag: Optimised library functions
-  metag: Stack unwinding
-  metag: Various other headers
-  mm: define VM_GROWSUP for CONFIG_METAG
-  Kconfig.debug: add METAG to dependency lists
-  metag: Build infrastructure
-  metag: Perf
-  metag: ftrace support
-  scripts/checkstack.pl: Add metag support
-  metag: OProfile
-  metag: Add JTAG Debug Adapter (DA) support
-  tty/metag_da: Add metag DA TTY driver
-  fs: imgdafs: Add IMG DAFS filesystem for metag
-
- Documentation/00-INDEX                             |    2 +
- .../devicetree/bindings/metag/meta-intc.txt        |   82 ++
- Documentation/kernel-parameters.txt                |    4 +
- Documentation/metag/00-INDEX                       |    4 +
- Documentation/metag/kernel-ABI.txt                 |  256 ++++
- MAINTAINERS                                        |    9 +
- arch/Kconfig                                       |   16 +
- arch/metag/Kconfig                                 |  294 ++++
- arch/metag/Kconfig.debug                           |   40 +
- arch/metag/Kconfig.soc                             |   55 +
- arch/metag/Makefile                                |   89 ++
- arch/metag/boot/.gitignore                         |    4 +
- arch/metag/boot/Makefile                           |   68 +
- arch/metag/boot/dtb/Makefile                       |   17 +
- arch/metag/boot/dts/skeleton.dts                   |   10 +
- arch/metag/boot/dts/skeleton.dtsi                  |   14 +
- arch/metag/configs/meta1_defconfig                 |   40 +
- arch/metag/configs/meta2_defconfig                 |   41 +
- arch/metag/configs/meta2_smp_defconfig             |   42 +
- arch/metag/include/asm/Kbuild                      |   54 +
- arch/metag/include/asm/atomic.h                    |   53 +
- arch/metag/include/asm/atomic_lnkget.h             |  234 ++++
- arch/metag/include/asm/atomic_lock1.h              |  160 +++
- arch/metag/include/asm/barrier.h                   |   85 ++
- arch/metag/include/asm/bitops.h                    |  132 ++
- arch/metag/include/asm/bug.h                       |   12 +
- arch/metag/include/asm/cache.h                     |   23 +
- arch/metag/include/asm/cacheflush.h                |  250 ++++
- arch/metag/include/asm/cachepart.h                 |   42 +
- arch/metag/include/asm/checksum.h                  |   92 ++
- arch/metag/include/asm/clock.h                     |   51 +
- arch/metag/include/asm/cmpxchg.h                   |   65 +
- arch/metag/include/asm/cmpxchg_irq.h               |   42 +
- arch/metag/include/asm/cmpxchg_lnkget.h            |   86 ++
- arch/metag/include/asm/cmpxchg_lock1.h             |   48 +
- arch/metag/include/asm/core_reg.h                  |   28 +
- arch/metag/include/asm/cpu.h                       |   14 +
- arch/metag/include/asm/da.h                        |   43 +
- arch/metag/include/asm/delay.h                     |   29 +
- arch/metag/include/asm/div64.h                     |   12 +
- arch/metag/include/asm/dma-mapping.h               |  183 +++
- arch/metag/include/asm/elf.h                       |  128 ++
- arch/metag/include/asm/fixmap.h                    |   99 ++
- arch/metag/include/asm/ftrace.h                    |   23 +
- arch/metag/include/asm/global_lock.h               |  100 ++
- arch/metag/include/asm/gpio.h                      |    4 +
- arch/metag/include/asm/highmem.h                   |   62 +
- arch/metag/include/asm/hugetlb.h                   |   86 ++
- arch/metag/include/asm/hwthread.h                  |   40 +
- arch/metag/include/asm/io.h                        |  165 +++
- arch/metag/include/asm/irq.h                       |   32 +
- arch/metag/include/asm/irqflags.h                  |   97 ++
- arch/metag/include/asm/l2cache.h                   |  258 ++++
- arch/metag/include/asm/linkage.h                   |    7 +
- arch/metag/include/asm/mach/arch.h                 |   86 ++
- arch/metag/include/asm/metag_isa.h                 |   81 ++
- arch/metag/include/asm/metag_mem.h                 | 1106 +++++++++++++++
- arch/metag/include/asm/metag_regs.h                | 1180 ++++++++++++++++
- arch/metag/include/asm/mman.h                      |   11 +
- arch/metag/include/asm/mmu.h                       |   77 ++
- arch/metag/include/asm/mmu_context.h               |  113 ++
- arch/metag/include/asm/mmzone.h                    |   42 +
- arch/metag/include/asm/module.h                    |   37 +
- arch/metag/include/asm/page.h                      |  128 ++
- arch/metag/include/asm/perf_event.h                |    4 +
- arch/metag/include/asm/pgalloc.h                   |   79 ++
- arch/metag/include/asm/pgtable.h                   |  370 +++++
- arch/metag/include/asm/processor.h                 |  202 +++
- arch/metag/include/asm/prom.h                      |   23 +
- arch/metag/include/asm/ptrace.h                    |   60 +
- arch/metag/include/asm/setup.h                     |    8 +
- arch/metag/include/asm/smp.h                       |   31 +
- arch/metag/include/asm/sparsemem.h                 |   13 +
- arch/metag/include/asm/spinlock.h                  |   22 +
- arch/metag/include/asm/spinlock_lnkget.h           |  249 ++++
- arch/metag/include/asm/spinlock_lock1.h            |  184 +++
- arch/metag/include/asm/spinlock_types.h            |   20 +
- arch/metag/include/asm/stacktrace.h                |   20 +
- arch/metag/include/asm/string.h                    |   13 +
- arch/metag/include/asm/switch.h                    |   22 +
- arch/metag/include/asm/syscall.h                   |  104 ++
- arch/metag/include/asm/syscalls.h                  |   39 +
- arch/metag/include/asm/tbx.h                       | 1425 ++++++++++++++++++++
- arch/metag/include/asm/tcm.h                       |   30 +
- arch/metag/include/asm/thread_info.h               |  155 +++
- arch/metag/include/asm/tlb.h                       |   36 +
- arch/metag/include/asm/tlbflush.h                  |   77 ++
- arch/metag/include/asm/topology.h                  |   53 +
- arch/metag/include/asm/traps.h                     |   47 +
- arch/metag/include/asm/uaccess.h                   |  241 ++++
- arch/metag/include/asm/unistd.h                    |   12 +
- arch/metag/include/asm/user_gateway.h              |   44 +
- arch/metag/include/uapi/asm/Kbuild                 |   13 +
- arch/metag/include/uapi/asm/byteorder.h            |    1 +
- arch/metag/include/uapi/asm/ptrace.h               |  113 ++
- arch/metag/include/uapi/asm/resource.h             |    7 +
- arch/metag/include/uapi/asm/sigcontext.h           |   31 +
- arch/metag/include/uapi/asm/siginfo.h              |    8 +
- arch/metag/include/uapi/asm/swab.h                 |   26 +
- arch/metag/include/uapi/asm/unistd.h               |   21 +
- arch/metag/kernel/.gitignore                       |    1 +
- arch/metag/kernel/Makefile                         |   39 +
- arch/metag/kernel/asm-offsets.c                    |   14 +
- arch/metag/kernel/cachepart.c                      |  124 ++
- arch/metag/kernel/clock.c                          |   53 +
- arch/metag/kernel/core_reg.c                       |  117 ++
- arch/metag/kernel/da.c                             |   23 +
- arch/metag/kernel/devtree.c                        |  100 ++
- arch/metag/kernel/dma.c                            |  507 +++++++
- arch/metag/kernel/ftrace.c                         |  127 ++
- arch/metag/kernel/ftrace_stub.S                    |   76 ++
- arch/metag/kernel/head.S                           |   57 +
- arch/metag/kernel/irq.c                            |  322 +++++
- arch/metag/kernel/kick.c                           |   94 ++
- arch/metag/kernel/machines.c                       |   20 +
- arch/metag/kernel/metag_ksyms.c                    |   80 ++
- arch/metag/kernel/module.c                         |  284 ++++
- arch/metag/kernel/perf/Makefile                    |    3 +
- arch/metag/kernel/perf/perf_event.c                |  867 ++++++++++++
- arch/metag/kernel/perf/perf_event.h                |  106 ++
- arch/metag/kernel/perf_callchain.c                 |   96 ++
- arch/metag/kernel/process.c                        |  422 ++++++
- arch/metag/kernel/ptrace.c                         |  380 ++++++
- arch/metag/kernel/setup.c                          |  571 ++++++++
- arch/metag/kernel/signal.c                         |  344 +++++
- arch/metag/kernel/smp.c                            |  582 ++++++++
- arch/metag/kernel/stacktrace.c                     |  187 +++
- arch/metag/kernel/sys_metag.c                      |  181 +++
- arch/metag/kernel/tbiunexp.S                       |   22 +
- arch/metag/kernel/tcm.c                            |  151 +++
- arch/metag/kernel/time.c                           |  163 +++
- arch/metag/kernel/topology.c                       |   77 ++
- arch/metag/kernel/traps.c                          |  983 ++++++++++++++
- arch/metag/kernel/user_gateway.S                   |   97 ++
- arch/metag/kernel/vmlinux.lds.S                    |   71 +
- arch/metag/lib/Makefile                            |   22 +
- arch/metag/lib/ashldi3.S                           |   33 +
- arch/metag/lib/ashrdi3.S                           |   33 +
- arch/metag/lib/checksum.c                          |  168 +++
- arch/metag/lib/clear_page.S                        |   17 +
- arch/metag/lib/cmpdi2.S                            |   32 +
- arch/metag/lib/copy_page.S                         |   20 +
- arch/metag/lib/delay.c                             |   55 +
- arch/metag/lib/div64.S                             |  108 ++
- arch/metag/lib/divsi3.S                            |  100 ++
- arch/metag/lib/ip_fast_csum.S                      |   32 +
- arch/metag/lib/lshrdi3.S                           |   33 +
- arch/metag/lib/memcpy.S                            |  185 +++
- arch/metag/lib/memmove.S                           |  345 +++++
- arch/metag/lib/memset.S                            |   86 ++
- arch/metag/lib/modsi3.S                            |   38 +
- arch/metag/lib/muldi3.S                            |   44 +
- arch/metag/lib/ucmpdi2.S                           |   27 +
- arch/metag/lib/usercopy.c                          | 1341 ++++++++++++++++++
- arch/metag/mm/Kconfig                              |  153 +++
- arch/metag/mm/Makefile                             |   19 +
- arch/metag/mm/cache.c                              |  441 ++++++
- arch/metag/mm/extable.c                            |   15 +
- arch/metag/mm/fault.c                              |  239 ++++
- arch/metag/mm/highmem.c                            |  133 ++
- arch/metag/mm/hugetlbpage.c                        |  291 ++++
- arch/metag/mm/init.c                               |  448 ++++++
- arch/metag/mm/ioremap.c                            |   89 ++
- arch/metag/mm/l2cache.c                            |  192 +++
- arch/metag/mm/maccess.c                            |   68 +
- arch/metag/mm/mmu-meta1.c                          |  157 +++
- arch/metag/mm/mmu-meta2.c                          |  207 +++
- arch/metag/mm/numa.c                               |   81 ++
- arch/metag/oprofile/Makefile                       |   16 +
- arch/metag/oprofile/backtrace.c                    |  134 ++
- arch/metag/oprofile/backtrace.h                    |    6 +
- arch/metag/oprofile/op_model_meta12.c              |  242 ++++
- arch/metag/tbx/Makefile                            |   21 +
- arch/metag/tbx/tbicore.S                           |  136 ++
- arch/metag/tbx/tbictx.S                            |  366 +++++
- arch/metag/tbx/tbictxfpu.S                         |  190 +++
- arch/metag/tbx/tbidefr.S                           |  175 +++
- arch/metag/tbx/tbidspram.S                         |  161 +++
- arch/metag/tbx/tbilogf.S                           |   48 +
- arch/metag/tbx/tbipcx.S                            |  451 +++++++
- arch/metag/tbx/tbiroot.S                           |   87 ++
- arch/metag/tbx/tbisoft.S                           |  237 ++++
- arch/metag/tbx/tbistring.c                         |  114 ++
- arch/metag/tbx/tbitimer.S                          |  207 +++
- drivers/irqchip/Makefile                           |    2 +
- drivers/irqchip/irq-meta-ext.c                     |  868 ++++++++++++
- drivers/irqchip/irq-meta.c                         |  343 +++++
- drivers/tty/Kconfig                                |   13 +
- drivers/tty/Makefile                               |    1 +
- drivers/tty/metag_da.c                             |  696 ++++++++++
- fs/Kconfig                                         |    1 +
- fs/Makefile                                        |    1 +
- fs/binfmt_elf.c                                    |    4 +
- fs/imgdafs/Kconfig                                 |    6 +
- fs/imgdafs/Makefile                                |    7 +
- fs/imgdafs/imgdafs.h                               |   80 ++
- fs/imgdafs/inode.c                                 |  840 ++++++++++++
- include/asm-generic/io.h                           |    2 +
- include/asm-generic/unistd.h                       |    9 +-
- include/linux/irqchip/meta-ext.h                   |   33 +
- include/linux/irqchip/meta.h                       |   24 +
- include/linux/mm.h                                 |    2 +
- include/uapi/linux/elf.h                           |    2 +
- kernel/trace/ring_buffer.c                         |    6 +-
- lib/Kconfig.debug                                  |    4 +-
- scripts/checkstack.pl                              |    8 +-
- scripts/recordmcount.c                             |   13 +
- 207 files changed, 28732 insertions(+), 7 deletions(-)
- create mode 100644 Documentation/devicetree/bindings/metag/meta-intc.txt
- create mode 100644 Documentation/metag/00-INDEX
- create mode 100644 Documentation/metag/kernel-ABI.txt
- create mode 100644 arch/metag/Kconfig
- create mode 100644 arch/metag/Kconfig.debug
- create mode 100644 arch/metag/Kconfig.soc
- create mode 100644 arch/metag/Makefile
- create mode 100644 arch/metag/boot/.gitignore
- create mode 100644 arch/metag/boot/Makefile
- create mode 100644 arch/metag/boot/dtb/Makefile
- create mode 100644 arch/metag/boot/dts/skeleton.dts
- create mode 100644 arch/metag/boot/dts/skeleton.dtsi
- create mode 100644 arch/metag/configs/meta1_defconfig
- create mode 100644 arch/metag/configs/meta2_defconfig
- create mode 100644 arch/metag/configs/meta2_smp_defconfig
- create mode 100644 arch/metag/include/asm/Kbuild
- create mode 100644 arch/metag/include/asm/atomic.h
- create mode 100644 arch/metag/include/asm/atomic_lnkget.h
- create mode 100644 arch/metag/include/asm/atomic_lock1.h
- create mode 100644 arch/metag/include/asm/barrier.h
- create mode 100644 arch/metag/include/asm/bitops.h
- create mode 100644 arch/metag/include/asm/bug.h
- create mode 100644 arch/metag/include/asm/cache.h
- create mode 100644 arch/metag/include/asm/cacheflush.h
+ arch/metag/include/asm/cachepart.h |   42 +++
+ arch/metag/include/asm/core_reg.h  |   28 ++
+ arch/metag/include/asm/smp.h       |   31 ++
+ arch/metag/include/asm/topology.h  |   53 ++++
+ arch/metag/kernel/cachepart.c      |  124 ++++++++
+ arch/metag/kernel/core_reg.c       |  117 +++++++
+ arch/metag/kernel/head.S           |   12 +
+ arch/metag/kernel/smp.c            |  582 ++++++++++++++++++++++++++++++++++++
+ arch/metag/kernel/topology.c       |   77 +++++
+ 9 files changed, 1066 insertions(+), 0 deletions(-)
  create mode 100644 arch/metag/include/asm/cachepart.h
- create mode 100644 arch/metag/include/asm/checksum.h
- create mode 100644 arch/metag/include/asm/clock.h
- create mode 100644 arch/metag/include/asm/cmpxchg.h
- create mode 100644 arch/metag/include/asm/cmpxchg_irq.h
- create mode 100644 arch/metag/include/asm/cmpxchg_lnkget.h
- create mode 100644 arch/metag/include/asm/cmpxchg_lock1.h
  create mode 100644 arch/metag/include/asm/core_reg.h
- create mode 100644 arch/metag/include/asm/cpu.h
- create mode 100644 arch/metag/include/asm/da.h
- create mode 100644 arch/metag/include/asm/delay.h
- create mode 100644 arch/metag/include/asm/div64.h
- create mode 100644 arch/metag/include/asm/dma-mapping.h
- create mode 100644 arch/metag/include/asm/elf.h
- create mode 100644 arch/metag/include/asm/fixmap.h
- create mode 100644 arch/metag/include/asm/ftrace.h
- create mode 100644 arch/metag/include/asm/global_lock.h
- create mode 100644 arch/metag/include/asm/gpio.h
- create mode 100644 arch/metag/include/asm/highmem.h
- create mode 100644 arch/metag/include/asm/hugetlb.h
- create mode 100644 arch/metag/include/asm/hwthread.h
- create mode 100644 arch/metag/include/asm/io.h
- create mode 100644 arch/metag/include/asm/irq.h
- create mode 100644 arch/metag/include/asm/irqflags.h
- create mode 100644 arch/metag/include/asm/l2cache.h
- create mode 100644 arch/metag/include/asm/linkage.h
- create mode 100644 arch/metag/include/asm/mach/arch.h
- create mode 100644 arch/metag/include/asm/metag_isa.h
- create mode 100644 arch/metag/include/asm/metag_mem.h
- create mode 100644 arch/metag/include/asm/metag_regs.h
- create mode 100644 arch/metag/include/asm/mman.h
- create mode 100644 arch/metag/include/asm/mmu.h
- create mode 100644 arch/metag/include/asm/mmu_context.h
- create mode 100644 arch/metag/include/asm/mmzone.h
- create mode 100644 arch/metag/include/asm/module.h
- create mode 100644 arch/metag/include/asm/page.h
- create mode 100644 arch/metag/include/asm/perf_event.h
- create mode 100644 arch/metag/include/asm/pgalloc.h
- create mode 100644 arch/metag/include/asm/pgtable.h
- create mode 100644 arch/metag/include/asm/processor.h
- create mode 100644 arch/metag/include/asm/prom.h
- create mode 100644 arch/metag/include/asm/ptrace.h
- create mode 100644 arch/metag/include/asm/setup.h
  create mode 100644 arch/metag/include/asm/smp.h
- create mode 100644 arch/metag/include/asm/sparsemem.h
- create mode 100644 arch/metag/include/asm/spinlock.h
- create mode 100644 arch/metag/include/asm/spinlock_lnkget.h
- create mode 100644 arch/metag/include/asm/spinlock_lock1.h
- create mode 100644 arch/metag/include/asm/spinlock_types.h
- create mode 100644 arch/metag/include/asm/stacktrace.h
- create mode 100644 arch/metag/include/asm/string.h
- create mode 100644 arch/metag/include/asm/switch.h
- create mode 100644 arch/metag/include/asm/syscall.h
- create mode 100644 arch/metag/include/asm/syscalls.h
- create mode 100644 arch/metag/include/asm/tbx.h
- create mode 100644 arch/metag/include/asm/tcm.h
- create mode 100644 arch/metag/include/asm/thread_info.h
- create mode 100644 arch/metag/include/asm/tlb.h
- create mode 100644 arch/metag/include/asm/tlbflush.h
  create mode 100644 arch/metag/include/asm/topology.h
- create mode 100644 arch/metag/include/asm/traps.h
- create mode 100644 arch/metag/include/asm/uaccess.h
- create mode 100644 arch/metag/include/asm/unistd.h
- create mode 100644 arch/metag/include/asm/user_gateway.h
- create mode 100644 arch/metag/include/uapi/asm/Kbuild
- create mode 100644 arch/metag/include/uapi/asm/byteorder.h
- create mode 100644 arch/metag/include/uapi/asm/ptrace.h
- create mode 100644 arch/metag/include/uapi/asm/resource.h
- create mode 100644 arch/metag/include/uapi/asm/sigcontext.h
- create mode 100644 arch/metag/include/uapi/asm/siginfo.h
- create mode 100644 arch/metag/include/uapi/asm/swab.h
- create mode 100644 arch/metag/include/uapi/asm/unistd.h
- create mode 100644 arch/metag/kernel/.gitignore
- create mode 100644 arch/metag/kernel/Makefile
- create mode 100644 arch/metag/kernel/asm-offsets.c
  create mode 100644 arch/metag/kernel/cachepart.c
- create mode 100644 arch/metag/kernel/clock.c
  create mode 100644 arch/metag/kernel/core_reg.c
- create mode 100644 arch/metag/kernel/da.c
- create mode 100644 arch/metag/kernel/devtree.c
- create mode 100644 arch/metag/kernel/dma.c
- create mode 100644 arch/metag/kernel/ftrace.c
- create mode 100644 arch/metag/kernel/ftrace_stub.S
- create mode 100644 arch/metag/kernel/head.S
- create mode 100644 arch/metag/kernel/irq.c
- create mode 100644 arch/metag/kernel/kick.c
- create mode 100644 arch/metag/kernel/machines.c
- create mode 100644 arch/metag/kernel/metag_ksyms.c
- create mode 100644 arch/metag/kernel/module.c
- create mode 100644 arch/metag/kernel/perf/Makefile
- create mode 100644 arch/metag/kernel/perf/perf_event.c
- create mode 100644 arch/metag/kernel/perf/perf_event.h
- create mode 100644 arch/metag/kernel/perf_callchain.c
- create mode 100644 arch/metag/kernel/process.c
- create mode 100644 arch/metag/kernel/ptrace.c
- create mode 100644 arch/metag/kernel/setup.c
- create mode 100644 arch/metag/kernel/signal.c
  create mode 100644 arch/metag/kernel/smp.c
- create mode 100644 arch/metag/kernel/stacktrace.c
- create mode 100644 arch/metag/kernel/sys_metag.c
- create mode 100644 arch/metag/kernel/tbiunexp.S
- create mode 100644 arch/metag/kernel/tcm.c
- create mode 100644 arch/metag/kernel/time.c
  create mode 100644 arch/metag/kernel/topology.c
- create mode 100644 arch/metag/kernel/traps.c
- create mode 100644 arch/metag/kernel/user_gateway.S
- create mode 100644 arch/metag/kernel/vmlinux.lds.S
- create mode 100644 arch/metag/lib/Makefile
- create mode 100644 arch/metag/lib/ashldi3.S
- create mode 100644 arch/metag/lib/ashrdi3.S
- create mode 100644 arch/metag/lib/checksum.c
- create mode 100644 arch/metag/lib/clear_page.S
- create mode 100644 arch/metag/lib/cmpdi2.S
- create mode 100644 arch/metag/lib/copy_page.S
- create mode 100644 arch/metag/lib/delay.c
- create mode 100644 arch/metag/lib/div64.S
- create mode 100644 arch/metag/lib/divsi3.S
- create mode 100644 arch/metag/lib/ip_fast_csum.S
- create mode 100644 arch/metag/lib/lshrdi3.S
- create mode 100644 arch/metag/lib/memcpy.S
- create mode 100644 arch/metag/lib/memmove.S
- create mode 100644 arch/metag/lib/memset.S
- create mode 100644 arch/metag/lib/modsi3.S
- create mode 100644 arch/metag/lib/muldi3.S
- create mode 100644 arch/metag/lib/ucmpdi2.S
- create mode 100644 arch/metag/lib/usercopy.c
- create mode 100644 arch/metag/mm/Kconfig
- create mode 100644 arch/metag/mm/Makefile
- create mode 100644 arch/metag/mm/cache.c
- create mode 100644 arch/metag/mm/extable.c
- create mode 100644 arch/metag/mm/fault.c
- create mode 100644 arch/metag/mm/highmem.c
- create mode 100644 arch/metag/mm/hugetlbpage.c
- create mode 100644 arch/metag/mm/init.c
- create mode 100644 arch/metag/mm/ioremap.c
- create mode 100644 arch/metag/mm/l2cache.c
- create mode 100644 arch/metag/mm/maccess.c
- create mode 100644 arch/metag/mm/mmu-meta1.c
- create mode 100644 arch/metag/mm/mmu-meta2.c
- create mode 100644 arch/metag/mm/numa.c
- create mode 100644 arch/metag/oprofile/Makefile
- create mode 100644 arch/metag/oprofile/backtrace.c
- create mode 100644 arch/metag/oprofile/backtrace.h
- create mode 100644 arch/metag/oprofile/op_model_meta12.c
- create mode 100644 arch/metag/tbx/Makefile
- create mode 100644 arch/metag/tbx/tbicore.S
- create mode 100644 arch/metag/tbx/tbictx.S
- create mode 100644 arch/metag/tbx/tbictxfpu.S
- create mode 100644 arch/metag/tbx/tbidefr.S
- create mode 100644 arch/metag/tbx/tbidspram.S
- create mode 100644 arch/metag/tbx/tbilogf.S
- create mode 100644 arch/metag/tbx/tbipcx.S
- create mode 100644 arch/metag/tbx/tbiroot.S
- create mode 100644 arch/metag/tbx/tbisoft.S
- create mode 100644 arch/metag/tbx/tbistring.c
- create mode 100644 arch/metag/tbx/tbitimer.S
- create mode 100644 drivers/irqchip/irq-meta-ext.c
- create mode 100644 drivers/irqchip/irq-meta.c
- create mode 100644 drivers/tty/metag_da.c
- create mode 100644 fs/imgdafs/Kconfig
- create mode 100644 fs/imgdafs/Makefile
- create mode 100644 fs/imgdafs/imgdafs.h
- create mode 100644 fs/imgdafs/inode.c
- create mode 100644 include/linux/irqchip/meta-ext.h
- create mode 100644 include/linux/irqchip/meta.h
 
+diff --git a/arch/metag/include/asm/cachepart.h b/arch/metag/include/asm/cachepart.h
+new file mode 100644
+index 0000000..cf6b44e
+--- /dev/null
++++ b/arch/metag/include/asm/cachepart.h
+@@ -0,0 +1,42 @@
++/*
++ * Meta cache partition manipulation.
++ *
++ * Copyright 2010 Imagination Technologies Ltd.
++ */
++
++#ifndef _METAG_CACHEPART_H_
++#define _METAG_CACHEPART_H_
++
++/**
++ * get_dcache_size() - Get size of data cache.
++ */
++unsigned int get_dcache_size(void);
++
++/**
++ * get_icache_size() - Get size of code cache.
++ */
++unsigned int get_icache_size(void);
++
++/**
++ * get_global_dcache_size() - Get the thread's global dcache.
++ *
++ * Returns the size of the current thread's global dcache partition.
++ */
++unsigned int get_global_dcache_size(void);
++
++/**
++ * get_global_icache_size() - Get the thread's global icache.
++ *
++ * Returns the size of the current thread's global icache partition.
++ */
++unsigned int get_global_icache_size(void);
++
++/**
++ * check_for_dache_aliasing() - Ensure that the bootloader has configured the
++ * dache and icache properly to avoid aliasing
++ * @thread_id: Hardware thread ID
++ *
++ */
++void check_for_cache_aliasing(int thread_id);
++
++#endif
+diff --git a/arch/metag/include/asm/core_reg.h b/arch/metag/include/asm/core_reg.h
+new file mode 100644
+index 0000000..f585d11
+--- /dev/null
++++ b/arch/metag/include/asm/core_reg.h
+@@ -0,0 +1,28 @@
++#ifndef __ASM_METAG_CORE_REG_H_
++#define __ASM_METAG_CORE_REG_H_
++
++#include <asm/metag_regs.h>
++
++extern void core_reg_write(int unit, int reg, int thread, unsigned int val);
++extern unsigned int core_reg_read(int unit, int reg, int thread);
++
++/*
++ * These macros allow direct access from C to any register known to the
++ * assembler. Example candidates are TXTACTCYC, TXIDLECYC, and TXPRIVEXT.
++ */
++
++#define __core_reg_get(reg) ({						\
++	unsigned int __grvalue;						\
++	asm volatile("MOV	%0," #reg				\
++		     : "=r" (__grvalue));				\
++	__grvalue;							\
++})
++
++#define __core_reg_set(reg, value) do {					\
++	unsigned int __srvalue = (value);				\
++	asm volatile("MOV	" #reg ",%0"				\
++		     :							\
++		     : "r" (__srvalue));				\
++} while (0)
++
++#endif
+diff --git a/arch/metag/include/asm/smp.h b/arch/metag/include/asm/smp.h
+new file mode 100644
+index 0000000..b35fa84
+--- /dev/null
++++ b/arch/metag/include/asm/smp.h
+@@ -0,0 +1,31 @@
++#ifndef __ASM_SMP_H
++#define __ASM_SMP_H
++
++#include <linux/cpumask.h>
++
++#define raw_smp_processor_id() (current_thread_info()->cpu)
++
++extern void local_timer_setup(unsigned int cpu);
++
++enum ipi_msg_type {
++	IPI_CALL_FUNC,
++	IPI_CALL_FUNC_SINGLE,
++	IPI_RESCHEDULE,
++};
++
++extern void arch_send_call_function_single_ipi(int cpu);
++extern void arch_send_call_function_ipi_mask(const struct cpumask *mask);
++#define arch_send_call_function_ipi_mask arch_send_call_function_ipi_mask
++
++asmlinkage void secondary_start_kernel(void);
++
++extern void secondary_startup(void);
++
++#ifdef CONFIG_HOTPLUG_CPU
++extern void __cpu_die(unsigned int cpu);
++extern int __cpu_disable(void);
++extern void cpu_die(void);
++#endif
++
++extern void smp_init_cpus(void);
++#endif /* __ASM_SMP_H */
+diff --git a/arch/metag/include/asm/topology.h b/arch/metag/include/asm/topology.h
+new file mode 100644
+index 0000000..23f5118
+--- /dev/null
++++ b/arch/metag/include/asm/topology.h
+@@ -0,0 +1,53 @@
++#ifndef _ASM_METAG_TOPOLOGY_H
++#define _ASM_METAG_TOPOLOGY_H
++
++#ifdef CONFIG_NUMA
++
++/* sched_domains SD_NODE_INIT for Meta machines */
++#define SD_NODE_INIT (struct sched_domain) {		\
++	.parent			= NULL,			\
++	.child			= NULL,			\
++	.groups			= NULL,			\
++	.min_interval		= 8,			\
++	.max_interval		= 32,			\
++	.busy_factor		= 32,			\
++	.imbalance_pct		= 125,			\
++	.cache_nice_tries	= 2,			\
++	.busy_idx		= 3,			\
++	.idle_idx		= 2,			\
++	.newidle_idx		= 0,			\
++	.wake_idx		= 0,			\
++	.forkexec_idx		= 0,			\
++	.flags			= SD_LOAD_BALANCE	\
++				| SD_BALANCE_FORK	\
++				| SD_BALANCE_EXEC	\
++				| SD_BALANCE_NEWIDLE	\
++				| SD_SERIALIZE,		\
++	.last_balance		= jiffies,		\
++	.balance_interval	= 1,			\
++	.nr_balance_failed	= 0,			\
++}
++
++#define cpu_to_node(cpu)	((void)(cpu), 0)
++#define parent_node(node)	((void)(node), 0)
++
++#define cpumask_of_node(node)	((void)node, cpu_online_mask)
++
++#define pcibus_to_node(bus)	((void)(bus), -1)
++#define cpumask_of_pcibus(bus)	(pcibus_to_node(bus) == -1 ? \
++					cpu_all_mask : \
++					cpumask_of_node(pcibus_to_node(bus)))
++
++#endif
++
++#define mc_capable()    (1)
++
++const struct cpumask *cpu_coregroup_mask(unsigned int cpu);
++
++extern cpumask_t cpu_core_map[NR_CPUS];
++
++#define topology_core_cpumask(cpu)	(&cpu_core_map[cpu])
++
++#include <asm-generic/topology.h>
++
++#endif /* _ASM_METAG_TOPOLOGY_H */
+diff --git a/arch/metag/kernel/cachepart.c b/arch/metag/kernel/cachepart.c
+new file mode 100644
+index 0000000..3a589dfb
+--- /dev/null
++++ b/arch/metag/kernel/cachepart.c
+@@ -0,0 +1,124 @@
++/*
++ * Meta cache partition manipulation.
++ *
++ * Copyright 2010 Imagination Technologies Ltd.
++ */
++
++#include <linux/kernel.h>
++#include <linux/io.h>
++#include <linux/errno.h>
++#include <asm/processor.h>
++#include <asm/cachepart.h>
++#include <asm/metag_isa.h>
++#include <asm/metag_mem.h>
++
++#define SYSC_DCPART(n)	(SYSC_DCPART0 + SYSC_xCPARTn_STRIDE * (n))
++#define SYSC_ICPART(n)	(SYSC_ICPART0 + SYSC_xCPARTn_STRIDE * (n))
++
++#define CACHE_ASSOCIATIVITY 4 /* 4 way set-assosiative */
++#define ICACHE 0
++#define DCACHE 1
++
++/* The CORE_CONFIG2 register is not available on Meta 1 */
++#ifdef CONFIG_METAG_META21
++unsigned int get_dcache_size(void)
++{
++	unsigned int config2 = metag_in32(METAC_CORE_CONFIG2);
++	return 0x1000 << ((config2 & METAC_CORECFG2_DCSZ_BITS)
++				>> METAC_CORECFG2_DCSZ_S);
++}
++
++unsigned int get_icache_size(void)
++{
++	unsigned int config2 = metag_in32(METAC_CORE_CONFIG2);
++	return 0x1000 << ((config2 & METAC_CORE_C2ICSZ_BITS)
++				>> METAC_CORE_C2ICSZ_S);
++}
++
++unsigned int get_global_dcache_size(void)
++{
++	unsigned int cpart = metag_in32(SYSC_DCPART(hard_processor_id()));
++	unsigned int temp = cpart & SYSC_xCPARTG_AND_BITS;
++	return (get_dcache_size() * ((temp >> SYSC_xCPARTG_AND_S) + 1)) >> 4;
++}
++
++unsigned int get_global_icache_size(void)
++{
++	unsigned int cpart = metag_in32(SYSC_ICPART(hard_processor_id()));
++	unsigned int temp = cpart & SYSC_xCPARTG_AND_BITS;
++	return (get_icache_size() * ((temp >> SYSC_xCPARTG_AND_S) + 1)) >> 4;
++}
++
++static unsigned int get_thread_cache_size(unsigned int cache, int thread_id)
++{
++	unsigned int cache_size;
++	unsigned int t_cache_part;
++	unsigned int isEnabled;
++	unsigned int offset = 0;
++	isEnabled = (cache == DCACHE ? metag_in32(MMCU_DCACHE_CTRL_ADDR) & 0x1 :
++		metag_in32(MMCU_ICACHE_CTRL_ADDR) & 0x1);
++	if (!isEnabled)
++		return 0;
++#if PAGE_OFFSET >= LINGLOBAL_BASE
++	/* Checking for global cache */
++	cache_size = (cache == DCACHE ? get_global_dache_size() :
++		get_global_icache_size());
++	offset = 8;
++#else
++	cache_size = (cache == DCACHE ? get_dcache_size() :
++		get_icache_size());
++#endif
++	t_cache_part = (cache == DCACHE ?
++		(metag_in32(SYSC_DCPART(thread_id)) >> offset) & 0xF :
++		(metag_in32(SYSC_ICPART(thread_id)) >> offset) & 0xF);
++	switch (t_cache_part) {
++	case 0xF:
++		return cache_size;
++	case 0x7:
++		return cache_size / 2;
++	case 0x3:
++		return cache_size / 4;
++	case 0x1:
++		return cache_size / 8;
++	case 0:
++		return cache_size / 16;
++	}
++	return -1;
++}
++
++void check_for_cache_aliasing(int thread_id)
++{
++	unsigned int thread_cache_size;
++	unsigned int cache_type;
++	for (cache_type = ICACHE; cache_type <= DCACHE; cache_type++) {
++		thread_cache_size =
++				get_thread_cache_size(cache_type, thread_id);
++		if (thread_cache_size < 0)
++			pr_emerg("Can't read %s cache size", \
++				 cache_type ? "DCACHE" : "ICACHE");
++		else if (thread_cache_size == 0)
++			/* Cache is off. No need to check for aliasing */
++			continue;
++		if (thread_cache_size / CACHE_ASSOCIATIVITY > PAGE_SIZE) {
++			pr_emerg("Cache aliasing detected in %s on Thread %d",
++				 cache_type ? "DCACHE" : "ICACHE", thread_id);
++			pr_warn("Total %s size: %u bytes",
++				cache_type ? "DCACHE" : "ICACHE ",
++				cache_type ? get_dcache_size()
++				: get_icache_size());
++			pr_warn("Thread %s size: %d bytes",
++				cache_type ? "CACHE" : "ICACHE",
++				thread_cache_size);
++			pr_warn("Page Size: %lu bytes", PAGE_SIZE);
++		}
++	}
++}
++
++#else
++
++void check_for_cache_aliasing(int thread_id)
++{
++	return;
++}
++
++#endif
+diff --git a/arch/metag/kernel/core_reg.c b/arch/metag/kernel/core_reg.c
+new file mode 100644
+index 0000000..671cce8
+--- /dev/null
++++ b/arch/metag/kernel/core_reg.c
+@@ -0,0 +1,117 @@
++/*
++ *  Support for reading and writing Meta core internal registers.
++ *
++ *  Copyright (C) 2011 Imagination Technologies Ltd.
++ *
++ */
++
++#include <linux/delay.h>
++#include <linux/export.h>
++
++#include <asm/core_reg.h>
++#include <asm/global_lock.h>
++#include <asm/hwthread.h>
++#include <asm/io.h>
++#include <asm/metag_mem.h>
++#include <asm/metag_regs.h>
++
++#define UNIT_BIT_MASK		TXUXXRXRQ_UXX_BITS
++#define REG_BIT_MASK		TXUXXRXRQ_RX_BITS
++#define THREAD_BIT_MASK		TXUXXRXRQ_TX_BITS
++
++#define UNIT_SHIFTS		TXUXXRXRQ_UXX_S
++#define REG_SHIFTS		TXUXXRXRQ_RX_S
++#define THREAD_SHIFTS		TXUXXRXRQ_TX_S
++
++#define UNIT_VAL(x)		(((x) << UNIT_SHIFTS) & UNIT_BIT_MASK)
++#define REG_VAL(x)		(((x) << REG_SHIFTS) & REG_BIT_MASK)
++#define THREAD_VAL(x)		(((x) << THREAD_SHIFTS) & THREAD_BIT_MASK)
++
++/*
++ * core_reg_write() - modify the content of a register in a core unit.
++ * @unit:	The unit to be modified.
++ * @reg:	Register number within the unit.
++ * @thread:	The thread we want to access.
++ * @val:	The new value to write.
++ *
++ * Check asm/metag_regs.h for a list/defines of supported units (ie: TXUPC_ID,
++ * TXUTR_ID, etc), and regnums within the units (ie: TXMASKI_REGNUM,
++ * TXPOLLI_REGNUM, etc).
++ */
++void core_reg_write(int unit, int reg, int thread, unsigned int val)
++{
++	unsigned long flags;
++
++	/* TXUCT_ID has its own memory mapped registers */
++	if (unit == TXUCT_ID) {
++		void __iomem *cu_reg = __CU_addr(thread, reg);
++		metag_out32(val, cu_reg);
++		return;
++	}
++
++	__global_lock2(flags);
++
++	/* wait for ready */
++	while (!(metag_in32(TXUXXRXRQ) & TXUXXRXRQ_DREADY_BIT))
++		udelay(10);
++
++	/* set the value to write */
++	metag_out32(val, TXUXXRXDT);
++
++	/* set the register to write */
++	val = UNIT_VAL(unit) | REG_VAL(reg) | THREAD_VAL(thread);
++	metag_out32(val, TXUXXRXRQ);
++
++	/* wait for finish */
++	while (!(metag_in32(TXUXXRXRQ) & TXUXXRXRQ_DREADY_BIT))
++		udelay(10);
++
++	__global_unlock2(flags);
++}
++EXPORT_SYMBOL(core_reg_write);
++
++/*
++ * core_reg_read() - read the content of a register in a core unit.
++ * @unit:	The unit to be modified.
++ * @reg:	Register number within the unit.
++ * @thread:	The thread we want to access.
++ *
++ * Check asm/metag_regs.h for a list/defines of supported units (ie: TXUPC_ID,
++ * TXUTR_ID, etc), and regnums within the units (ie: TXMASKI_REGNUM,
++ * TXPOLLI_REGNUM, etc).
++ */
++unsigned int core_reg_read(int unit, int reg, int thread)
++{
++	unsigned long flags;
++	unsigned int val;
++
++	/* TXUCT_ID has its own memory mapped registers */
++	if (unit == TXUCT_ID) {
++		void __iomem *cu_reg = __CU_addr(thread, reg);
++		val = metag_in32(cu_reg);
++		return val;
++	}
++
++	__global_lock2(flags);
++
++	/* wait for ready */
++	while (!(metag_in32(TXUXXRXRQ) & TXUXXRXRQ_DREADY_BIT))
++		udelay(10);
++
++	/* set the register to read */
++	val = (UNIT_VAL(unit) | REG_VAL(reg) | THREAD_VAL(thread) |
++							TXUXXRXRQ_RDnWR_BIT);
++	metag_out32(val, TXUXXRXRQ);
++
++	/* wait for finish */
++	while (!(metag_in32(TXUXXRXRQ) & TXUXXRXRQ_DREADY_BIT))
++		udelay(10);
++
++	/* read the register value */
++	val = metag_in32(TXUXXRXDT);
++
++	__global_unlock2(flags);
++
++	return val;
++}
++EXPORT_SYMBOL(core_reg_read);
+diff --git a/arch/metag/kernel/head.S b/arch/metag/kernel/head.S
+index 8b13886..969dffa 100644
+--- a/arch/metag/kernel/head.S
++++ b/arch/metag/kernel/head.S
+@@ -43,3 +43,15 @@ __start:
+ __exit:
+ 	XOR     TXENABLE,D0Re0,D0Re0
+ 	.size	__exit,.-__exit
++
++#ifdef CONFIG_SMP
++	.global _secondary_startup
++	.type _secondary_startup,function
++_secondary_startup:
++	MOVT	A0StP,#HI(_secondary_data_stack)
++	ADD	A0StP,A0StP,#LO(_secondary_data_stack)
++	GETD	A0StP,[A0StP]
++	ADD	A0StP,A0StP,#THREAD_INFO_SIZE
++	B	_secondary_start_kernel
++	.size	_secondary_startup,.-_secondary_startup
++#endif
+diff --git a/arch/metag/kernel/smp.c b/arch/metag/kernel/smp.c
+new file mode 100644
+index 0000000..4adbead
+--- /dev/null
++++ b/arch/metag/kernel/smp.c
+@@ -0,0 +1,582 @@
++/*
++ *  Copyright (C) 2009,2010,2011 Imagination Technologies Ltd.
++ *
++ *  Copyright (C) 2002 ARM Limited, All Rights Reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++#include <linux/atomic.h>
++#include <linux/delay.h>
++#include <linux/init.h>
++#include <linux/spinlock.h>
++#include <linux/sched.h>
++#include <linux/interrupt.h>
++#include <linux/cache.h>
++#include <linux/profile.h>
++#include <linux/errno.h>
++#include <linux/mm.h>
++#include <linux/err.h>
++#include <linux/cpu.h>
++#include <linux/smp.h>
++#include <linux/seq_file.h>
++#include <linux/irq.h>
++#include <linux/bootmem.h>
++
++#include <asm/cacheflush.h>
++#include <asm/cachepart.h>
++#include <asm/core_reg.h>
++#include <asm/cpu.h>
++#include <asm/mmu_context.h>
++#include <asm/pgtable.h>
++#include <asm/pgalloc.h>
++#include <asm/processor.h>
++#include <asm/setup.h>
++#include <asm/tlbflush.h>
++#include <asm/hwthread.h>
++#include <asm/traps.h>
++
++DECLARE_PER_CPU(PTBI, pTBI);
++
++void *secondary_data_stack;
++
++/*
++ * structures for inter-processor calls
++ * - A collection of single bit ipi messages.
++ */
++struct ipi_data {
++	spinlock_t lock;
++	unsigned long ipi_count;
++	unsigned long bits;
++};
++
++static DEFINE_PER_CPU(struct ipi_data, ipi_data) = {
++	.lock	= __SPIN_LOCK_UNLOCKED(ipi_data.lock),
++};
++
++static DEFINE_SPINLOCK(boot_lock);
++
++/*
++ * "thread" is assumed to be a valid Meta hardware thread ID.
++ */
++int __cpuinit boot_secondary(unsigned int thread, struct task_struct *idle)
++{
++	u32 val;
++
++	/*
++	 * set synchronisation state between this boot processor
++	 * and the secondary one
++	 */
++	spin_lock(&boot_lock);
++
++	core_reg_write(TXUPC_ID, 0, thread, (unsigned int)secondary_startup);
++	core_reg_write(TXUPC_ID, 1, thread, 0);
++
++	/*
++	 * Give the thread privilege (PSTAT) and clear potentially problematic
++	 * bits in the process (namely ISTAT, CBMarker, CBMarkerI, LSM_STEP).
++	 */
++	core_reg_write(TXUCT_ID, TXSTATUS_REGNUM, thread, TXSTATUS_PSTAT_BIT);
++
++	/* Clear the minim enable bit. */
++	val = core_reg_read(TXUCT_ID, TXPRIVEXT_REGNUM, thread);
++	core_reg_write(TXUCT_ID, TXPRIVEXT_REGNUM, thread, val & ~0x80);
++
++	/*
++	 * set the ThreadEnable bit (0x1) in the TXENABLE register
++	 * for the specified thread - off it goes!
++	 */
++	val = core_reg_read(TXUCT_ID, TXENABLE_REGNUM, thread);
++	core_reg_write(TXUCT_ID, TXENABLE_REGNUM, thread, val | 0x1);
++
++	/*
++	 * now the secondary core is starting up let it run its
++	 * calibrations, then wait for it to finish
++	 */
++	spin_unlock(&boot_lock);
++
++	return 0;
++}
++
++int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *idle)
++{
++	unsigned int thread = cpu_2_hwthread_id[cpu];
++	int ret;
++
++	load_pgd(swapper_pg_dir, thread);
++
++	flush_tlb_all();
++
++	/*
++	 * Tell the secondary CPU where to find its idle thread's stack.
++	 */
++	secondary_data_stack = task_stack_page(idle);
++
++	wmb();
++
++	/*
++	 * Now bring the CPU into our world.
++	 */
++	ret = boot_secondary(thread, idle);
++	if (ret == 0) {
++		unsigned long timeout;
++
++		/*
++		 * CPU was successfully started, wait for it
++		 * to come online or time out.
++		 */
++		timeout = jiffies + HZ;
++		while (time_before(jiffies, timeout)) {
++			if (cpu_online(cpu))
++				break;
++
++			udelay(10);
++			barrier();
++		}
++
++		if (!cpu_online(cpu))
++			ret = -EIO;
++	}
++
++	secondary_data_stack = NULL;
++
++	if (ret) {
++		pr_crit("CPU%u: processor failed to boot\n", cpu);
++
++		/*
++		 * FIXME: We need to clean up the new idle thread. --rmk
++		 */
++	}
++
++	return ret;
++}
++
++#ifdef CONFIG_HOTPLUG_CPU
++static DECLARE_COMPLETION(cpu_killed);
++
++/*
++ * __cpu_disable runs on the processor to be shutdown.
++ */
++int __cpuexit __cpu_disable(void)
++{
++	unsigned int cpu = smp_processor_id();
++	struct task_struct *p;
++
++	/*
++	 * Take this CPU offline.  Once we clear this, we can't return,
++	 * and we must not schedule until we're ready to give up the cpu.
++	 */
++	set_cpu_online(cpu, false);
++
++	/*
++	 * OK - migrate IRQs away from this CPU
++	 */
++	migrate_irqs();
++
++	/*
++	 * Flush user cache and TLB mappings, and then remove this CPU
++	 * from the vm mask set of all processes.
++	 */
++	flush_cache_all();
++	local_flush_tlb_all();
++
++	read_lock(&tasklist_lock);
++	for_each_process(p) {
++		if (p->mm)
++			cpumask_clear_cpu(cpu, mm_cpumask(p->mm));
++	}
++	read_unlock(&tasklist_lock);
++
++	return 0;
++}
++
++/*
++ * called on the thread which is asking for a CPU to be shutdown -
++ * waits until shutdown has completed, or it is timed out.
++ */
++void __cpuexit __cpu_die(unsigned int cpu)
++{
++	if (!wait_for_completion_timeout(&cpu_killed, msecs_to_jiffies(1)))
++		pr_err("CPU%u: unable to kill\n", cpu);
++}
++
++/*
++ * Called from the idle thread for the CPU which has been shutdown.
++ *
++ * Note that we do not return from this function. If this cpu is
++ * brought online again it will need to run secondary_startup().
++ */
++void __cpuexit cpu_die(void)
++{
++	local_irq_disable();
++	idle_task_exit();
++
++	complete(&cpu_killed);
++
++	asm ("XOR	TXENABLE, D0Re0,D0Re0\n");
++}
++#endif /* CONFIG_HOTPLUG_CPU */
++
++/*
++ * Called by both boot and secondaries to move global data into
++ * per-processor storage.
++ */
++void __cpuinit smp_store_cpu_info(unsigned int cpuid)
++{
++	struct cpuinfo_metag *cpu_info = &per_cpu(cpu_data, cpuid);
++
++	cpu_info->loops_per_jiffy = loops_per_jiffy;
++}
++
++/*
++ * This is the secondary CPU boot entry.  We're using this CPUs
++ * idle thread stack and the global page tables.
++ */
++asmlinkage void secondary_start_kernel(void)
++{
++	struct mm_struct *mm = &init_mm;
++	unsigned int cpu = smp_processor_id();
++
++	/*
++	 * All kernel threads share the same mm context; grab a
++	 * reference and switch to it.
++	 */
++	atomic_inc(&mm->mm_users);
++	atomic_inc(&mm->mm_count);
++	current->active_mm = mm;
++	cpumask_set_cpu(cpu, mm_cpumask(mm));
++	enter_lazy_tlb(mm, current);
++	local_flush_tlb_all();
++
++	/*
++	 * TODO: Some day it might be useful for each Linux CPU to
++	 * have its own TBI structure. That would allow each Linux CPU
++	 * to run different interrupt handlers for the same IRQ
++	 * number.
++	 *
++	 * For now, simply copying the pointer to the boot CPU's TBI
++	 * structure is sufficient because we always want to run the
++	 * same interrupt handler whatever CPU takes the interrupt.
++	 */
++	per_cpu(pTBI, cpu) = __TBI(TBID_ISTAT_BIT);
++
++	if (!per_cpu(pTBI, cpu))
++		panic("No TBI found!");
++
++	per_cpu_trap_init(cpu);
++
++	preempt_disable();
++
++	setup_txprivext();
++
++	/*
++	 * Enable local interrupts.
++	 */
++	tbi_startup_interrupt(TBID_SIGNUM_TRT);
++	notify_cpu_starting(cpu);
++	local_irq_enable();
++
++	/*
++	 * Start local timers for this CPU.
++	 */
++	local_timer_setup(cpu);
++
++	pr_info("CPU%u (thread %u): Booted secondary processor\n",
++		cpu, cpu_2_hwthread_id[cpu]);
++
++	calibrate_delay();
++	smp_store_cpu_info(cpu);
++
++	/*
++	 * OK, now it's safe to let the boot CPU continue
++	 */
++	notify_cpu_starting(cpu);
++
++	set_cpu_online(cpu, true);
++
++	/*
++	 * Check for cache aliasing.
++	 * Preemption is disabled
++	 */
++	check_for_cache_aliasing(cpu);
++
++	/*
++	 * OK, it's off to the idle thread for us
++	 */
++	cpu_idle();
++}
++
++void __init smp_cpus_done(unsigned int max_cpus)
++{
++	int cpu;
++	unsigned long bogosum = 0;
++
++	for_each_online_cpu(cpu)
++		bogosum += per_cpu(cpu_data, cpu).loops_per_jiffy;
++
++	pr_info("SMP: Total of %d processors activated (%lu.%02lu BogoMIPS).\n",
++		num_online_cpus(),
++		bogosum / (500000/HZ),
++		(bogosum / (5000/HZ)) % 100);
++}
++
++void __init smp_prepare_cpus(unsigned int max_cpus)
++{
++	unsigned int cpu = smp_processor_id();
++
++	init_new_context(current, &init_mm);
++	current_thread_info()->cpu = cpu;
++
++	smp_store_cpu_info(cpu);
++	init_cpu_present(cpu_possible_mask);
++}
++
++void __init smp_prepare_boot_cpu(void)
++{
++	unsigned int cpu = smp_processor_id();
++
++	per_cpu(pTBI, cpu) = __TBI(TBID_ISTAT_BIT);
++
++	if (!per_cpu(pTBI, cpu))
++		panic("No TBI found!");
++}
++
++static void smp_cross_call(cpumask_t callmap, enum ipi_msg_type msg);
++
++static void send_ipi_message(const struct cpumask *mask, enum ipi_msg_type msg)
++{
++	unsigned long flags;
++	unsigned int cpu;
++	cpumask_t map;
++
++	cpumask_clear(&map);
++	local_irq_save(flags);
++
++	for_each_cpu(cpu, mask) {
++		struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
++
++		spin_lock(&ipi->lock);
++
++		/*
++		 * KICK interrupts are queued in hardware so we'll get
++		 * multiple interrupts if we call smp_cross_call()
++		 * multiple times for one msg. The problem is that we
++		 * only have one bit for each message - we can't queue
++		 * them in software.
++		 *
++		 * The first time through ipi_handler() we'll clear
++		 * the msg bit, having done all the work. But when we
++		 * return we'll get _another_ interrupt (and another,
++		 * and another until we've handled all the queued
++		 * KICKs). Running ipi_handler() when there's no work
++		 * to do is bad because that's how kick handler
++		 * chaining detects who the KICK was intended for.
++		 * See arch/metag/kernel/kick.c for more details.
++		 *
++		 * So only add 'cpu' to 'map' if we haven't already
++		 * queued a KICK interrupt for 'msg'.
++		 */
++		if (!(ipi->bits & (1 << msg))) {
++			ipi->bits |= 1 << msg;
++			cpumask_set_cpu(cpu, &map);
++		}
++
++		spin_unlock(&ipi->lock);
++	}
++
++	/*
++	 * Call the platform specific cross-CPU call function.
++	 */
++	smp_cross_call(map, msg);
++
++	local_irq_restore(flags);
++}
++
++void arch_send_call_function_ipi_mask(const struct cpumask *mask)
++{
++	send_ipi_message(mask, IPI_CALL_FUNC);
++}
++
++void arch_send_call_function_single_ipi(int cpu)
++{
++	send_ipi_message(cpumask_of(cpu), IPI_CALL_FUNC_SINGLE);
++}
++
++void show_ipi_list(struct seq_file *p)
++{
++	unsigned int cpu;
++
++	seq_puts(p, "IPI:");
++
++	for_each_present_cpu(cpu)
++		seq_printf(p, " %10lu", per_cpu(ipi_data, cpu).ipi_count);
++
++	seq_putc(p, '\n');
++}
++
++static DEFINE_SPINLOCK(stop_lock);
++
++/*
++ * Main handler for inter-processor interrupts
++ *
++ * For Meta, the ipimask now only identifies a single
++ * category of IPI (Bit 1 IPIs have been replaced by a
++ * different mechanism):
++ *
++ *  Bit 0 - Inter-processor function call
++ */
++static int do_IPI(struct pt_regs *regs)
++{
++	unsigned int cpu = smp_processor_id();
++	struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
++	struct pt_regs *old_regs = set_irq_regs(regs);
++	unsigned long msgs, nextmsg;
++	int handled = 0;
++
++	ipi->ipi_count++;
++
++	spin_lock(&ipi->lock);
++	msgs = ipi->bits;
++	nextmsg = msgs & -msgs;
++	ipi->bits &= ~nextmsg;
++	spin_unlock(&ipi->lock);
++
++	if (nextmsg) {
++		handled = 1;
++
++		nextmsg = ffz(~nextmsg);
++		switch (nextmsg) {
++		case IPI_RESCHEDULE:
++			scheduler_ipi();
++			break;
++
++		case IPI_CALL_FUNC:
++			generic_smp_call_function_interrupt();
++			break;
++
++		case IPI_CALL_FUNC_SINGLE:
++			generic_smp_call_function_single_interrupt();
++			break;
++
++		default:
++			pr_crit("CPU%u: Unknown IPI message 0x%lx\n",
++				cpu, nextmsg);
++			break;
++		}
++	}
++
++	set_irq_regs(old_regs);
++
++	return handled;
++}
++
++void smp_send_reschedule(int cpu)
++{
++	send_ipi_message(cpumask_of(cpu), IPI_RESCHEDULE);
++}
++
++static void stop_this_cpu(void *data)
++{
++	unsigned int cpu = smp_processor_id();
++
++	if (system_state == SYSTEM_BOOTING ||
++	    system_state == SYSTEM_RUNNING) {
++		spin_lock(&stop_lock);
++		pr_crit("CPU%u: stopping\n", cpu);
++		dump_stack();
++		spin_unlock(&stop_lock);
++	}
++
++	set_cpu_online(cpu, false);
++
++	local_irq_disable();
++
++	hard_processor_halt(HALT_OK);
++}
++
++void smp_send_stop(void)
++{
++	smp_call_function(stop_this_cpu, NULL, 0);
++}
++
++/*
++ * not supported here
++ */
++int setup_profiling_timer(unsigned int multiplier)
++{
++	return -EINVAL;
++}
++
++/*
++ * We use KICKs for inter-processor interrupts.
++ *
++ * For every CPU in "callmap" the IPI data must already have been
++ * stored in that CPU's "ipi_data" member prior to calling this
++ * function.
++ */
++static void kick_raise_softirq(cpumask_t callmap, unsigned int irq)
++{
++	int cpu;
++
++	for_each_cpu(cpu, &callmap) {
++		unsigned int thread;
++
++		thread = cpu_2_hwthread_id[cpu];
++
++		BUG_ON(thread == BAD_HWTHREAD_ID);
++
++		metag_out32(1, T0KICKI + (thread * TnXKICK_STRIDE));
++	}
++}
++
++static TBIRES ipi_handler(TBIRES State, int SigNum, int Triggers,
++		   int Inst, PTBI pTBI, int *handled)
++{
++	*handled = do_IPI((struct pt_regs *)State.Sig.pCtx);
++
++	return State;
++}
++
++static struct kick_irq_handler ipi_irq = {
++	.func = ipi_handler,
++};
++
++static void smp_cross_call(cpumask_t callmap, enum ipi_msg_type msg)
++{
++	kick_raise_softirq(callmap, 1);
++}
++
++static inline unsigned int get_core_count(void)
++{
++	int i;
++	unsigned int ret = 0;
++
++	for (i = 0; i < CONFIG_NR_CPUS; i++) {
++		if (core_reg_read(TXUCT_ID, TXENABLE_REGNUM, i))
++			ret++;
++	}
++
++	return ret;
++}
++
++/*
++ * Initialise the CPU possible map early - this describes the CPUs
++ * which may be present or become present in the system.
++ */
++void __init smp_init_cpus(void)
++{
++	unsigned int i, ncores = get_core_count();
++
++	/* If no hwthread_map early param was set use default mapping */
++	for (i = 0; i < NR_CPUS; i++)
++		if (cpu_2_hwthread_id[i] == BAD_HWTHREAD_ID) {
++			cpu_2_hwthread_id[i] = i;
++			hwthread_id_2_cpu[i] = i;
++		}
++
++	for (i = 0; i < ncores; i++)
++		set_cpu_possible(i, true);
++
++	kick_register_func(&ipi_irq);
++}
+diff --git a/arch/metag/kernel/topology.c b/arch/metag/kernel/topology.c
+new file mode 100644
+index 0000000..bec3dec
+--- /dev/null
++++ b/arch/metag/kernel/topology.c
+@@ -0,0 +1,77 @@
++/*
++ *  Copyright (C) 2007  Paul Mundt
++ *  Copyright (C) 2010  Imagination Technolohies Ltd.
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++#include <linux/cpu.h>
++#include <linux/cpumask.h>
++#include <linux/init.h>
++#include <linux/percpu.h>
++#include <linux/node.h>
++#include <linux/nodemask.h>
++#include <linux/topology.h>
++
++#include <asm/cpu.h>
++
++DEFINE_PER_CPU(struct cpuinfo_metag, cpu_data);
++
++cpumask_t cpu_core_map[NR_CPUS];
++
++static cpumask_t cpu_coregroup_map(unsigned int cpu)
++{
++	return *cpu_possible_mask;
++}
++
++const struct cpumask *cpu_coregroup_mask(unsigned int cpu)
++{
++	return &cpu_core_map[cpu];
++}
++
++int arch_update_cpu_topology(void)
++{
++	unsigned int cpu;
++
++	for_each_possible_cpu(cpu)
++		cpu_core_map[cpu] = cpu_coregroup_map(cpu);
++
++	return 0;
++}
++
++static int __init topology_init(void)
++{
++	int i, ret;
++
++#ifdef CONFIG_NEED_MULTIPLE_NODES
++	for_each_online_node(i)
++		register_one_node(i);
++#endif
++
++	for_each_present_cpu(i) {
++		struct cpuinfo_metag *cpuinfo = &per_cpu(cpu_data, i);
++#ifdef CONFIG_HOTPLUG_CPU
++		cpuinfo->cpu.hotpluggable = 1;
++#endif
++		ret = register_cpu(&cpuinfo->cpu, i);
++		if (unlikely(ret))
++			pr_warn("%s: register_cpu %d failed (%d)\n",
++				__func__, i, ret);
++	}
++
++#if defined(CONFIG_NUMA) && !defined(CONFIG_SMP)
++	/*
++	 * In the UP case, make sure the CPU association is still
++	 * registered under each node. Without this, sysfs fails
++	 * to make the connection between nodes other than node0
++	 * and cpu0.
++	 */
++	for_each_online_node(i)
++		if (i != numa_node_id())
++			register_cpu_under_node(raw_smp_processor_id(), i);
++#endif
++
++	return 0;
++}
++subsys_initcall(topology_init);
 -- 
 1.7.7.6
 
