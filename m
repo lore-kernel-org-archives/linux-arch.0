@@ -1,7 +1,7 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v3 39/44] metag: ftrace support
-Date: Thu, 10 Jan 2013 15:31:07 +0000
-Message-ID: <1357831872-29451-40-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v3 41/44] metag: OProfile
+Date: Thu, 10 Jan 2013 15:31:09 +0000
+Message-ID: <1357831872-29451-42-git-send-email-james.hogan@imgtec.com>
 References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -9,351 +9,473 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: James Hogan <james.hogan@imgtec.com>, Steven Rostedt <rostedt@goodmis.org>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@redhat.com>
+Cc: James Hogan <james.hogan@imgtec.com>, Robert Richter <rric@kernel.org>, oprofile-list@lists.sf.net
 List-Id: linux-arch.vger.kernel.org
 
-Add ftrace support for metag.
+Add oprofile support for metag.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Cc: Steven Rostedt <rostedt@goodmis.org>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Ingo Molnar <mingo@redhat.com>
+Cc: Robert Richter <rric@kernel.org>
+Cc: oprofile-list@lists.sf.net
 ---
- arch/metag/Kconfig              |    5 ++
- arch/metag/include/asm/Kbuild   |    1 -
- arch/metag/include/asm/ftrace.h |   23 +++++++
- arch/metag/kernel/ftrace.c      |  127 +++++++++++++++++++++++++++++++++++++++
- arch/metag/kernel/ftrace_stub.S |   76 +++++++++++++++++++++++
- arch/metag/kernel/metag_ksyms.c |    5 ++
- scripts/recordmcount.c          |   13 ++++
- 7 files changed, 249 insertions(+), 1 deletions(-)
- create mode 100644 arch/metag/include/asm/ftrace.h
- create mode 100644 arch/metag/kernel/ftrace.c
- create mode 100644 arch/metag/kernel/ftrace_stub.S
+ arch/metag/Kconfig                    |    1 +
+ arch/metag/Makefile                   |    2 +
+ arch/metag/oprofile/Makefile          |   16 ++
+ arch/metag/oprofile/backtrace.c       |  134 ++++++++++++++++++
+ arch/metag/oprofile/backtrace.h       |    6 +
+ arch/metag/oprofile/op_model_meta12.c |  242 +++++++++++++++++++++++++++++++++
+ 6 files changed, 401 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/oprofile/Makefile
+ create mode 100644 arch/metag/oprofile/backtrace.c
+ create mode 100644 arch/metag/oprofile/backtrace.h
+ create mode 100644 arch/metag/oprofile/op_model_meta12.c
 
 diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
-index d60de2b..e2235e3 100644
+index e2235e3..98433e5 100644
 --- a/arch/metag/Kconfig
 +++ b/arch/metag/Kconfig
-@@ -11,7 +11,12 @@ config METAG
- 	select GENERIC_SMP_IDLE_THREAD
- 	select HAVE_64BIT_ALIGNED_ACCESS
- 	select HAVE_ARCH_TRACEHOOK
-+	select HAVE_C_RECORDMCOUNT
- 	select HAVE_DEBUG_KMEMLEAK
-+	select HAVE_DYNAMIC_FTRACE
-+	select HAVE_FTRACE_MCOUNT_RECORD
-+	select HAVE_FUNCTION_TRACER
-+	select HAVE_FUNCTION_TRACE_MCOUNT_TEST
- 	select HAVE_GENERIC_HARDIRQS
- 	select HAVE_KERNEL_BZIP2
- 	select HAVE_KERNEL_GZIP
-diff --git a/arch/metag/include/asm/Kbuild b/arch/metag/include/asm/Kbuild
-index 3a13981..6ae0ccb 100644
---- a/arch/metag/include/asm/Kbuild
-+++ b/arch/metag/include/asm/Kbuild
-@@ -11,7 +11,6 @@ generic-y += errno.h
- generic-y += exec.h
- generic-y += fb.h
- generic-y += fcntl.h
--generic-y += ftrace.h
- generic-y += futex.h
- generic-y += hardirq.h
- generic-y += hw_irq.h
-diff --git a/arch/metag/include/asm/ftrace.h b/arch/metag/include/asm/ftrace.h
+@@ -25,6 +25,7 @@ config METAG
+ 	select HAVE_MEMBLOCK
+ 	select HAVE_MEMBLOCK_NODE_MAP
+ 	select HAVE_MOD_ARCH_SPECIFIC
++	select HAVE_OPROFILE
+ 	select HAVE_PERF_EVENTS
+ 	select HAVE_SYSCALL_TRACEPOINTS
+ 	select IRQ_DOMAIN
+diff --git a/arch/metag/Makefile b/arch/metag/Makefile
+index d455140..53fc094 100644
+--- a/arch/metag/Makefile
++++ b/arch/metag/Makefile
+@@ -49,6 +49,8 @@ core-y					+= arch/metag/mm/
+ libs-y					+= arch/metag/lib/
+ libs-y					+= arch/metag/tbx/
+ 
++drivers-$(CONFIG_OPROFILE)		+= arch/metag/oprofile/
++
+ boot					:= arch/metag/boot
+ 
+ boot_targets				+= uImage
+diff --git a/arch/metag/oprofile/Makefile b/arch/metag/oprofile/Makefile
 new file mode 100644
-index 0000000..2901f0f
+index 0000000..4b4ceee
 --- /dev/null
-+++ b/arch/metag/include/asm/ftrace.h
-@@ -0,0 +1,23 @@
-+#ifndef _ASM_METAG_FTRACE
-+#define _ASM_METAG_FTRACE
++++ b/arch/metag/oprofile/Makefile
+@@ -0,0 +1,16 @@
++obj-y		+= oprofile.o
 +
-+#ifdef CONFIG_FUNCTION_TRACER
-+#define MCOUNT_INSN_SIZE	8 /* sizeof mcount call */
++oprofile-core-y	+= buffer_sync.o
++oprofile-core-y	+= cpu_buffer.o
++oprofile-core-y	+= event_buffer.o
++oprofile-core-y	+= oprof.o
++oprofile-core-y	+= oprofile_files.o
++oprofile-core-y	+= oprofile_stats.o
++oprofile-core-y	+= oprofilefs.o
++oprofile-core-y	+= timer_int.o
 +
-+#ifndef __ASSEMBLY__
-+extern void mcount_wrapper(void);
-+#define MCOUNT_ADDR		((long)(mcount_wrapper))
++oprofile-y	+= backtrace.o
++oprofile-y	+= op_model_meta12.o
++oprofile-y	+= $(addprefix ../../../drivers/oprofile/,$(oprofile-core-y))
 +
-+static inline unsigned long ftrace_call_adjust(unsigned long addr)
-+{
-+	return addr;
-+}
-+
-+struct dyn_arch_ftrace {
-+	/* No extra data needed on metag */
-+};
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* CONFIG_FUNCTION_TRACER */
-+
-+#endif /* _ASM_METAG_FTRACE */
-diff --git a/arch/metag/kernel/ftrace.c b/arch/metag/kernel/ftrace.c
++ccflags-y	+= -Werror
+diff --git a/arch/metag/oprofile/backtrace.c b/arch/metag/oprofile/backtrace.c
 new file mode 100644
-index 0000000..8cbeb53
+index 0000000..0ae7489
 --- /dev/null
-+++ b/arch/metag/kernel/ftrace.c
-@@ -0,0 +1,127 @@
++++ b/arch/metag/oprofile/backtrace.c
+@@ -0,0 +1,134 @@
 +/*
-+ * Copyright (C) 2008 Imagination Technologies Ltd.
-+ * Licensed under the GPL
++ * Copyright (C) 2010 Imagination Technologies Ltd.
 + *
-+ * Dynamic ftrace support.
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
 + */
 +
-+#include <linux/ftrace.h>
++#include <linux/oprofile.h>
++#include <linux/sched.h>
++#include <linux/mm.h>
 +#include <linux/io.h>
 +#include <linux/uaccess.h>
-+#include <linux/ftrace.h>
++#include "backtrace.h"
 +
-+#include <asm/cacheflush.h>
++#ifdef CONFIG_FRAME_POINTER
 +
-+#define D04_MOVT_TEMPLATE	0x02200005
-+#define D04_CALL_TEMPLATE	0xAC200005
-+#define D1RTP_MOVT_TEMPLATE	0x03200005
-+#define D1RTP_CALL_TEMPLATE	0xAC200006
++#ifdef CONFIG_KALLSYMS
++#include <linux/kallsyms.h>
++#include <linux/module.h>
 +
-+static const unsigned long NOP[2] = {0xa0fffffe, 0xa0fffffe};
-+static unsigned long movt_and_call_insn[2];
++static unsigned long tbi_boing_addr;
++static unsigned long tbi_boing_size;
++#endif
 +
-+static unsigned char *ftrace_nop_replace(void)
++static void user_backtrace_fp(unsigned long __user *fp, unsigned int depth)
 +{
-+	return (char *)&NOP[0];
-+}
++	while (depth-- && access_ok(VERIFY_READ, fp, 8)) {
++		unsigned long addr;
++		unsigned long __user *fpnew;
++		if (__copy_from_user_inatomic(&addr, fp + 1, sizeof(addr)))
++			break;
++		addr -= 4;
 +
-+static unsigned char *ftrace_call_replace(unsigned long pc, unsigned long addr)
-+{
-+	unsigned long hi16, low16;
++		oprofile_add_trace(addr);
 +
-+	hi16 = (addr & 0xffff0000) >> 13;
-+	low16 = (addr & 0x0000ffff) << 3;
-+
-+	/*
-+	 * The compiler makes the call to mcount_wrapper()
-+	 * (Meta's wrapper around mcount()) through the register
-+	 * D0.4. So whenever we're patching one of those compiler-generated
-+	 * calls we also need to go through D0.4. Otherwise use D1RtP.
-+	 */
-+	if (pc == (unsigned long)&ftrace_call) {
-+		writel(D1RTP_MOVT_TEMPLATE | hi16, &movt_and_call_insn[0]);
-+		writel(D1RTP_CALL_TEMPLATE | low16, &movt_and_call_insn[1]);
-+	} else {
-+		writel(D04_MOVT_TEMPLATE | hi16, &movt_and_call_insn[0]);
-+		writel(D04_CALL_TEMPLATE | low16, &movt_and_call_insn[1]);
++		/* stack grows up, so frame pointers must decrease */
++		if (__copy_from_user_inatomic(&fpnew, fp + 0, sizeof(fpnew)))
++			break;
++		if (fpnew > fp)
++			break;
++		fp = fpnew;
 +	}
-+
-+	return (unsigned char *)&movt_and_call_insn[0];
 +}
 +
-+static int ftrace_modify_code(unsigned long pc, unsigned char *old_code,
-+			      unsigned char *new_code)
++static void kernel_backtrace_fp(unsigned long *fp, unsigned long *stack,
++				unsigned int depth)
 +{
-+	unsigned char replaced[MCOUNT_INSN_SIZE];
-+
-+	/*
-+	 * Note: Due to modules and __init, code can
-+	 *  disappear and change, we need to protect against faulting
-+	 *  as well as code changing.
-+	 *
-+	 * No real locking needed, this code is run through
-+	 * kstop_machine.
++#ifdef CONFIG_KALLSYMS
++	/* We need to know where TBIBoingVec is and it's size */
++	if (!tbi_boing_addr) {
++		unsigned long size;
++		unsigned long offset;
++		char modname[MODULE_NAME_LEN];
++		char name[KSYM_NAME_LEN];
++		tbi_boing_addr = kallsyms_lookup_name("___TBIBoingVec");
++		if (!tbi_boing_addr)
++			tbi_boing_addr = 1;
++		else if (!lookup_symbol_attrs(tbi_boing_addr, &size,
++						&offset, modname, name))
++			tbi_boing_size = size;
++	}
++#endif
++	/* detect when the frame pointer has been used for other purposes and
++	 * doesn't point to the stack (it may point completely elsewhere which
++	 * kstack_end may not detect).
 +	 */
++	while (depth-- && fp >= stack && fp + 8 <= stack + THREAD_SIZE) {
++		unsigned long addr;
++		unsigned long *fpnew;
 +
-+	/* read the text we want to modify */
-+	if (probe_kernel_read(replaced, (void *)pc, MCOUNT_INSN_SIZE))
-+		return -EFAULT;
++		addr = fp[1] - 4;
++		if (!__kernel_text_address(addr))
++			break;
 +
-+	/* Make sure it is what we expect it to be */
-+	if (memcmp(replaced, old_code, MCOUNT_INSN_SIZE) != 0)
-+		return -EINVAL;
++		oprofile_add_trace(addr);
 +
-+	/* replace the text with the new text */
-+	if (probe_kernel_write((void *)pc, new_code, MCOUNT_INSN_SIZE))
-+		return -EPERM;
++		/* stack grows up, so frame pointers must decrease */
++		fpnew = (unsigned long *)fp[0];
++		if (fpnew > fp)
++			break;
++		fp = fpnew;
 +
-+	flush_icache_range(pc, pc + MCOUNT_INSN_SIZE);
-+
-+	return 0;
++#ifdef CONFIG_KALLSYMS
++		/* If we've reached TBIBoingVec then we're at an interrupt
++		 * entry point or a syscall entry point. The frame pointer
++		 * points to a pt_regs which can be used to continue tracing on
++		 * the other side of the boing.
++		 */
++		if (tbi_boing_size && addr >= tbi_boing_addr &&
++				addr < tbi_boing_addr + tbi_boing_size) {
++			struct pt_regs *regs = (struct pt_regs *)fp;
++			/* OProfile doesn't understand backtracing into
++			 * userland.
++			 */
++			if (!user_mode(regs) && --depth) {
++				oprofile_add_trace(regs->ctx.CurrPC);
++				metag_backtrace(regs, depth);
++			}
++			break;
++		}
++#endif
++	}
 +}
-+
-+int ftrace_update_ftrace_func(ftrace_func_t func)
++#else
++static void kernel_backtrace_sp(unsigned long *sp, unsigned int depth)
 +{
-+	int ret;
-+	unsigned long pc;
-+	unsigned char old[MCOUNT_INSN_SIZE], *new;
++	while (!kstack_end(sp)) {
++		unsigned long addr = *sp--;
 +
-+	pc = (unsigned long)&ftrace_call;
-+	memcpy(old, &ftrace_call, MCOUNT_INSN_SIZE);
-+	new = ftrace_call_replace(pc, (unsigned long)func);
-+	ret = ftrace_modify_code(pc, old, new);
-+
-+	return ret;
++		if (!__kernel_text_address(addr - 4))
++			continue;
++		if (!depth--)
++			break;
++		oprofile_add_trace(addr);
++	}
 +}
++#endif
 +
-+int ftrace_make_nop(struct module *mod,
-+		    struct dyn_ftrace *rec, unsigned long addr)
++void metag_backtrace(struct pt_regs * const regs, unsigned int depth)
 +{
-+	unsigned char *new, *old;
-+	unsigned long ip = rec->ip;
-+
-+	old = ftrace_call_replace(ip, addr);
-+	new = ftrace_nop_replace();
-+
-+	return ftrace_modify_code(ip, old, new);
++#ifdef CONFIG_FRAME_POINTER
++	unsigned long *fp = (unsigned long *)regs->ctx.AX[1].U0;
++	if (user_mode(regs))
++		user_backtrace_fp((unsigned long __user __force *)fp, depth);
++	else
++		kernel_backtrace_fp(fp, task_stack_page(current), depth);
++#else
++	if (!user_mode(regs)) {
++		unsigned long *sp = (unsigned long *)regs->ctx.AX[0].U0;
++		kernel_backtrace_sp(sp, depth);
++	}
++#endif
 +}
-+
-+int ftrace_make_call(struct dyn_ftrace *rec, unsigned long addr)
-+{
-+	unsigned char *new, *old;
-+	unsigned long ip = rec->ip;
-+
-+	old = ftrace_nop_replace();
-+	new = ftrace_call_replace(ip, addr);
-+
-+	return ftrace_modify_code(ip, old, new);
-+}
-+
-+/* run from kstop_machine */
-+int __init ftrace_dyn_arch_init(void *data)
-+{
-+	/* The return code is returned via data */
-+	writel(0, data);
-+
-+	return 0;
-+}
-diff --git a/arch/metag/kernel/ftrace_stub.S b/arch/metag/kernel/ftrace_stub.S
+diff --git a/arch/metag/oprofile/backtrace.h b/arch/metag/oprofile/backtrace.h
 new file mode 100644
-index 0000000..e70bff7
+index 0000000..c0fcc42
 --- /dev/null
-+++ b/arch/metag/kernel/ftrace_stub.S
-@@ -0,0 +1,76 @@
++++ b/arch/metag/oprofile/backtrace.h
+@@ -0,0 +1,6 @@
++#ifndef _METAG_OPROFILE_BACKTRACE_H
++#define _METAG_OPROFILE_BACKTRACE_H
++
++void metag_backtrace(struct pt_regs * const regs, unsigned int depth);
++
++#endif
+diff --git a/arch/metag/oprofile/op_model_meta12.c b/arch/metag/oprofile/op_model_meta12.c
+new file mode 100644
+index 0000000..0cb103c
+--- /dev/null
++++ b/arch/metag/oprofile/op_model_meta12.c
+@@ -0,0 +1,242 @@
 +/*
-+ * Copyright (C) 2008 Imagination Technologies Ltd.
-+ * Licensed under the GPL
++ *  Meta version derived from arch/sh/oprofile/op_model_sh7750.c
++ *    Copyright (C) 2008 Imagination Technologies Ltd.
 + *
++ * arch/sh/oprofile/op_model_sh7750.c
++ *
++ * OProfile support for SH7750/SH7750S Performance Counters
++ *
++ * Copyright (C) 2003, 2004  Paul Mundt
++ *
++ * This file is subject to the terms and conditions of the GNU General Public
++ * License.  See the file "COPYING" in the main directory of this archive
++ * for more details.
++ */
++#include <linux/kernel.h>
++#include <linux/oprofile.h>
++#include <linux/profile.h>
++#include <linux/init.h>
++#include <linux/errno.h>
++#include <linux/interrupt.h>
++#include <linux/fs.h>
++#include <asm/uaccess.h>
++#include <asm/io.h>
++#include <asm/metag_mem.h>
++
++#include "backtrace.h"
++
++/*
++ * Meta has 2 perf counters
++ */
++#define NR_CNTRS	2
++
++struct op_counter_config {
++	unsigned long enabled;
++	unsigned long event;
++	unsigned long count;
++	unsigned long unit_mask;
++
++	/* Dummy values for userspace tool compliance */
++	unsigned long kernel;
++	unsigned long user;
++};
++
++static struct op_counter_config ctr[NR_CNTRS];
++
++static u32 meta_read_counter(int counter)
++{
++	u32 val = metag_in32(counter ? PERF_COUNT0 : PERF_COUNT1);
++	return val;
++}
++
++static void meta_write_counter(int counter, u32 val)
++{
++	metag_out32(val, counter ? PERF_COUNT0 : PERF_COUNT1);
++}
++
++/*
++ * Unfortunately we don't have a native exception or interrupt for counter
++ * overflow.
++ *
++ * OProfile on the other hand likes to have samples taken periodically, so
++ * for now we just piggyback the timer interrupt to get the expected
++ * behavior.
 + */
 +
-+#include <asm/ftrace.h>
++static int meta_timer_notify(struct pt_regs *regs)
++{
++	int i;
++	u32 val, total_val, sub_val;
++	u32 enabled_threads;
 +
-+	.text
-+#ifdef CONFIG_DYNAMIC_FTRACE
-+	.global	_mcount_wrapper
-+	.type	_mcount_wrapper,function
-+_mcount_wrapper:
-+	MOV	PC,D0.4
++	for (i = 0; i < NR_CNTRS; i++) {
++		if (!ctr[i].enabled)
++			continue;
 +
-+	.global _ftrace_caller
-+	.type	_ftrace_caller,function
-+_ftrace_caller:
-+	MOVT    D0Re0,#HI(_function_trace_stop)
-+	ADD	D0Re0,D0Re0,#LO(_function_trace_stop)
-+	GETD	D0Re0,[D0Re0]
-+	CMP	D0Re0,#0
-+	BEQ	$Lcall_stub
-+	MOV	PC,D0.4
-+$Lcall_stub:
-+	MSETL   [A0StP], D0Ar6, D0Ar4, D0Ar2, D0.4
-+	MOV     D1Ar1, D0.4
-+	MOV     D0Ar2, D1RtP
-+	SUB	D1Ar1,D1Ar1,#MCOUNT_INSN_SIZE
++		/* Disable performance monitoring. */
++		enabled_threads = meta_read_counter(i);
++		meta_write_counter(i, 0);
 +
-+	.global _ftrace_call
-+_ftrace_call:
-+	MOVT	D1RtP,#HI(_ftrace_stub)
-+	CALL	D1RtP,#LO(_ftrace_stub)
-+	GETL    D0.4,  D1RtP, [A0StP++#(-8)]
-+	GETL    D0Ar2, D1Ar1, [A0StP++#(-8)]
-+	GETL    D0Ar4, D1Ar3, [A0StP++#(-8)]
-+	GETL    D0Ar6, D1Ar5, [A0StP++#(-8)]
-+	MOV     PC, D0.4
-+#else
++		sub_val = total_val = val = enabled_threads & PERF_COUNT_BITS;
 +
-+	.global	_mcount_wrapper
-+	.type	_mcount_wrapper,function
-+_mcount_wrapper:
-+	MOVT    D0Re0,#HI(_function_trace_stop)
-+	ADD	D0Re0,D0Re0,#LO(_function_trace_stop)
-+	GETD	D0Re0,[D0Re0]
-+	CMP	D0Re0,#0
-+	BEQ	$Lcall_mcount
-+	MOV	PC,D0.4
-+$Lcall_mcount:
-+	MSETL   [A0StP], D0Ar6, D0Ar4, D0Ar2, D0.4
-+	MOV     D1Ar1, D0.4
-+	MOV     D0Ar2, D1RtP
-+	MOVT    D0Re0,#HI(_ftrace_trace_function)
-+	ADD	D0Re0,D0Re0,#LO(_ftrace_trace_function)
-+	GET	D1Ar3,[D0Re0]
-+	MOVT	D1Re0,#HI(_ftrace_stub)
-+	ADD	D1Re0,D1Re0,#LO(_ftrace_stub)
-+	CMP	D1Ar3,D1Re0
-+	BEQ	$Ltrace_exit
-+	MOV	D1RtP,D1Ar3
-+	SUB	D1Ar1,D1Ar1,#MCOUNT_INSN_SIZE
-+	SWAP	PC,D1RtP
-+$Ltrace_exit:
-+	GETL    D0.4,  D1RtP, [A0StP++#(-8)]
-+	GETL    D0Ar2, D1Ar1, [A0StP++#(-8)]
-+	GETL    D0Ar4, D1Ar3, [A0StP++#(-8)]
-+	GETL    D0Ar6, D1Ar5, [A0StP++#(-8)]
-+	MOV     PC, D0.4
++		if (val >= ctr[i].count) {
++			while (val > ctr[i].count) {
++				oprofile_add_sample(regs, i);
++				val -= ctr[i].count;
++			}
++			/* val may be < ctr[i].count but > 0 */
++			sub_val -= val;
++			total_val -= sub_val;
++		}
 +
-+#endif	/* CONFIG_DYNAMIC_FTRACE */
++		/* Enable performance monitoring. */
++		enabled_threads &= (PERF_CTRL_BITS | PERF_THREAD_BITS);
++		enabled_threads = enabled_threads | total_val;
++		meta_write_counter(i, enabled_threads);
++	}
 +
-+	.global _ftrace_stub
-+_ftrace_stub:
-+	MOV 	PC,D1RtP
-diff --git a/arch/metag/kernel/metag_ksyms.c b/arch/metag/kernel/metag_ksyms.c
-index c73ebd3..3cc4d1d 100644
---- a/arch/metag/kernel/metag_ksyms.c
-+++ b/arch/metag/kernel/metag_ksyms.c
-@@ -10,6 +10,7 @@
- #include <asm/checksum.h>
- #include <asm/uaccess.h>
- #include <asm/traps.h>
-+#include <asm/ftrace.h>
- #include <asm/tbx.h>
- 
- /* uaccess symbols */
-@@ -73,3 +74,7 @@ EXPORT_SYMBOL(div_s64);
- EXPORT_SYMBOL(memcpy);
- EXPORT_SYMBOL(memset);
- EXPORT_SYMBOL(memmove);
++	return 0;
++}
 +
-+#ifdef CONFIG_FUNCTION_TRACER
-+EXPORT_SYMBOL(mcount_wrapper);
-+#endif
-diff --git a/scripts/recordmcount.c b/scripts/recordmcount.c
-index ee52cb8..9c22317 100644
---- a/scripts/recordmcount.c
-+++ b/scripts/recordmcount.c
-@@ -33,6 +33,13 @@
- #include <string.h>
- #include <unistd.h>
- 
-+#ifndef EM_METAG
-+/* Remove this when these make it to the standard system elf.h. */
-+#define EM_METAG      174
-+#define R_METAG_ADDR32                   2
-+#define R_METAG_NONE                     3
-+#endif
++/*
++ * Files will be in a path like:
++ *
++ *  /<oprofilefs mount point>/<counter number>/<file>
++ *
++ * So when dealing with <file>, we look to the parent dentry for the counter
++ * number.
++ */
++static inline int to_counter(struct file *file)
++{
++	long val;
++	const unsigned char *name = file->f_path.dentry->d_parent->d_name.name;
 +
- static int fd_map;	/* File descriptor for file being modified. */
- static int mmap_failed; /* Boolean flag. */
- static void *ehdr_curr; /* current ElfXX_Ehdr *  for resource cleanup */
-@@ -341,6 +348,12 @@ do_file(char const *const fname)
- 			 altmcount = "__gnu_mcount_nc";
- 			 break;
- 	case EM_IA_64:	 reltype = R_IA64_IMM64;   gpfx = '_'; break;
-+	case EM_METAG:	 reltype = R_METAG_ADDR32;
-+			 altmcount = "_mcount_wrapper";
-+			 rel_type_nop = R_METAG_NONE;
-+			 /* We happen to have the same requirement as MIPS */
-+			 is_fake_mcount32 = MIPS32_is_fake_mcount;
-+			 break;
- 	case EM_MIPS:	 /* reltype: e_class    */ gpfx = '_'; break;
- 	case EM_PPC:	 reltype = R_PPC_ADDR32;   gpfx = '_'; break;
- 	case EM_PPC64:	 reltype = R_PPC64_ADDR64; gpfx = '_'; break;
++	if (kstrtol(name, 10, &val))
++		return 0;
++
++	return val;
++}
++
++static ssize_t meta_write(struct file *file, const char __user *buf,
++				size_t count, loff_t *ppos, int mask, int shift)
++{
++	int counter = to_counter(file);
++	unsigned long write_val;
++	u32 read_val;
++
++	if (oprofilefs_ulong_from_user(&write_val, buf, count))
++		return -EFAULT;
++
++	read_val = meta_read_counter(counter) & ~mask;
++	write_val <<= shift;
++
++	write_val = read_val | (write_val & mask);
++	meta_write_counter(counter, write_val);
++
++	return count;
++}
++
++/*
++ * These functions handle turning perfomance counters on for particular
++ * threads by writing to files.
++ */
++static ssize_t meta_read_thread(struct file *file, char __user *buf,
++				 size_t count, loff_t *ppos)
++{
++	int counter = to_counter(file);
++	u32 val = meta_read_counter(counter);
++
++	val &= PERF_THREAD_BITS;
++	val >>= PERF_THREAD_S;
++
++	return oprofilefs_ulong_to_user((unsigned long)val, buf, count, ppos);
++}
++
++static ssize_t meta_write_thread(struct file *file, const char __user *buf,
++				  size_t count, loff_t *ppos)
++{
++	meta_write(file, buf, count, ppos, PERF_THREAD_BITS, PERF_THREAD_S);
++	return count;
++}
++
++static const struct file_operations thread_fops = {
++	.read		= meta_read_thread,
++	.write		= meta_write_thread,
++};
++
++static int meta_perf_counter_create_files(struct super_block *sb,
++					  struct dentry *root)
++{
++	int i;
++
++	for (i = 0; i < NR_CNTRS; i++) {
++		struct dentry *dir;
++		char buf[4];
++
++		snprintf(buf, sizeof(buf), "%d", i);
++		dir = oprofilefs_mkdir(sb, root, buf);
++
++		oprofilefs_create_ulong(sb, dir, "enabled", &ctr[i].enabled);
++		oprofilefs_create_ulong(sb, dir, "event", &ctr[i].event);
++		oprofilefs_create_ulong(sb, dir, "count", &ctr[i].count);
++		oprofilefs_create_file(sb, dir, "unit_mask", &thread_fops);
++
++		/* Dummy entries */
++		oprofilefs_create_ulong(sb, dir, "kernel", &ctr[i].kernel);
++		oprofilefs_create_ulong(sb, dir, "user", &ctr[i].user);
++	}
++
++	return 0;
++}
++
++static int meta_perf_counter_start(void)
++{
++	int i;
++	u32 event, read_val;
++
++	for (i = 0; i < NR_CNTRS; i++) {
++		if (!ctr[i].enabled)
++			continue;
++
++		event = ctr[i].event << PERF_CTRL_S;
++		read_val = meta_read_counter(i) & ~PERF_CTRL_BITS;
++		meta_write_counter(i, read_val | event);
++	}
++
++	return register_timer_hook(meta_timer_notify);
++}
++
++static void meta_perf_counter_stop(void)
++{
++	u32 val;
++
++	val = meta_read_counter(0) & ~PERF_THREAD_BITS;
++	meta_write_counter(0, val);
++
++	val = meta_read_counter(1) & ~PERF_THREAD_BITS;
++	meta_write_counter(1, val);
++
++	unregister_timer_hook(meta_timer_notify);
++}
++
++int __init oprofile_arch_init(struct oprofile_operations *ops)
++{
++	ops->cpu_type = "metag";
++	ops->create_files = meta_perf_counter_create_files;
++	ops->start = meta_perf_counter_start;
++	ops->stop = meta_perf_counter_stop;
++	ops->backtrace = metag_backtrace;
++
++	pr_info("oprofile: using %s performance monitoring.\n", ops->cpu_type);
++
++	/* Clear the counters. */
++	meta_write_counter(0, 0);
++	meta_write_counter(1, 0);
++
++	return 0;
++}
++
++void oprofile_arch_exit(void)
++{
++}
++
 -- 
 1.7.7.6
