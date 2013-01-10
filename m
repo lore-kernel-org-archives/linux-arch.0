@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:52690 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:52711 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754419Ab3AJPcq (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Jan 2013 10:32:46 -0500
+	id S1753679Ab3AJPco (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Jan 2013 10:32:44 -0500
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v3 21/44] metag: Time keeping
-Date: Thu, 10 Jan 2013 15:30:49 +0000
-Message-ID: <1357831872-29451-22-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v3 18/44] metag: Signal handling
+Date: Thu, 10 Jan 2013 15:30:46 +0000
+Message-ID: <1357831872-29451-19-git-send-email-james.hogan@imgtec.com>
 In-Reply-To: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
@@ -14,372 +14,422 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: James Hogan <james.hogan@imgtec.com>
-Message-ID: <20130110153049.Z-Lljx6keytKx1HttsWiBTQyBgwf48kOR7eyCNImZKU@z>
+Cc: James Hogan <james.hogan@imgtec.com>, Al Viro <viro@zeniv.linux.org.uk>
+Message-ID: <20130110153046.EXs7jtuTeXctB1zHmg_eHE_HbrkyN_PI0xHGpHdp73k@z>
 
-Add time keeping code for metag. Meta hardware threads have 2 timers.
-The background timer (TXTIMER) is used as a free-running time base, and
-the interrupt timer (TXTIMERI) is used for the timer interrupt. Both
-counters traditionally count at approximately 1MHz.
+Add signal handling code for metag.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/metag/include/asm/clock.h     |   51 +++++++++++
- arch/metag/include/asm/delay.h     |   29 +++++++
- arch/metag/include/asm/mach/arch.h |    4 +
- arch/metag/kernel/clock.c          |   53 ++++++++++++
- arch/metag/kernel/time.c           |  163 ++++++++++++++++++++++++++++++++++++
- 5 files changed, 300 insertions(+), 0 deletions(-)
- create mode 100644 arch/metag/include/asm/clock.h
- create mode 100644 arch/metag/include/asm/delay.h
- create mode 100644 arch/metag/kernel/clock.c
- create mode 100644 arch/metag/kernel/time.c
+ arch/metag/include/uapi/asm/sigcontext.h |   31 +++
+ arch/metag/include/uapi/asm/siginfo.h    |    8 +
+ arch/metag/kernel/signal.c               |  344 ++++++++++++++++++++++++++++++
+ 3 files changed, 383 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/include/uapi/asm/sigcontext.h
+ create mode 100644 arch/metag/include/uapi/asm/siginfo.h
+ create mode 100644 arch/metag/kernel/signal.c
 
-diff --git a/arch/metag/include/asm/clock.h b/arch/metag/include/asm/clock.h
+diff --git a/arch/metag/include/uapi/asm/sigcontext.h b/arch/metag/include/uapi/asm/sigcontext.h
 new file mode 100644
-index 0000000..3e2915a
+index 0000000..ef79a91
 --- /dev/null
-+++ b/arch/metag/include/asm/clock.h
-@@ -0,0 +1,51 @@
++++ b/arch/metag/include/uapi/asm/sigcontext.h
+@@ -0,0 +1,31 @@
++#ifndef _ASM_METAG_SIGCONTEXT_H
++#define _ASM_METAG_SIGCONTEXT_H
++
++#include <asm/ptrace.h>
++
 +/*
-+ * arch/metag/include/asm/clock.h
-+ *
-+ * Copyright (C) 2012 Imagination Technologies Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
++ * In a sigcontext structure we need to store the active state of the
++ * user process so that it does not get trashed when we call the signal
++ * handler. That not really the same as a user context that we are
++ * going to store on syscall etc.
 + */
++struct sigcontext {
++	struct user_gp_regs regs;	/* needs to be first */
 +
-+#ifndef _METAG_CLOCK_H_
-+#define _METAG_CLOCK_H_
++	/*
++	 * Catch registers describing a memory fault.
++	 * If USER_GP_REGS_STATUS_CATCH_BIT is set in regs.status then catch
++	 * buffers have been saved and will be replayed on sigreturn.
++	 * Clear that bit to discard the catch state instead of replaying it.
++	 */
++	struct user_cb_regs cb;
 +
-+#include <asm/mach/arch.h>
++	/*
++	 * Read pipeline state. This will get restored on sigreturn.
++	 */
++	struct user_rp_state rp;
 +
-+/**
-+ * struct meta_clock_desc - Meta Core clock callbacks.
-+ * @get_core_freq:	Get the frequency of the Meta core. If this is NULL, the
-+ *			core frequency will be determined like this:
-+ *			Meta 1: based on loops_per_jiffy.
-+ *			Meta 2: (EXPAND_TIMER_DIV + 1) MHz.
-+ */
-+struct meta_clock_desc {
-+	unsigned long		(*get_core_freq)(void);
++	unsigned long oldmask;
 +};
 +
-+extern struct meta_clock_desc _meta_clock;
-+
-+/*
-+ * Set up the default clock, ensuring all callbacks are valid - only accessible
-+ * during boot.
-+ */
-+void setup_meta_clocks(struct meta_clock_desc *desc);
-+
-+/**
-+ * get_coreclock() - Get the frequency of the Meta core clock.
-+ *
-+ * Returns:	The Meta core clock frequency in Hz.
-+ */
-+static inline unsigned long get_coreclock(void)
-+{
-+	/*
-+	 * Use the current clock callback. If set correctly this will provide
-+	 * the most accurate frequency as it can be calculated directly from the
-+	 * PLL configuration. otherwise a default callback will have been set
-+	 * instead.
-+	 */
-+	return _meta_clock.get_core_freq();
-+}
-+
-+#endif /* _METAG_CLOCK_H_ */
-diff --git a/arch/metag/include/asm/delay.h b/arch/metag/include/asm/delay.h
-new file mode 100644
-index 0000000..9c92f99
---- /dev/null
-+++ b/arch/metag/include/asm/delay.h
-@@ -0,0 +1,29 @@
-+#ifndef _METAG_DELAY_H
-+#define _METAG_DELAY_H
-+
-+/*
-+ * Copyright (C) 1993 Linus Torvalds
-+ *
-+ * Delay routines calling functions in arch/metag/lib/delay.c
-+ */
-+
-+/* Undefined functions to get compile-time errors */
-+extern void __bad_udelay(void);
-+extern void __bad_ndelay(void);
-+
-+extern void __udelay(unsigned long usecs);
-+extern void __ndelay(unsigned long nsecs);
-+extern void __const_udelay(unsigned long xloops);
-+extern void __delay(unsigned long loops);
-+
-+/* 0x10c7 is 2**32 / 1000000 (rounded up) */
-+#define udelay(n) (__builtin_constant_p(n) ? \
-+	((n) > 20000 ? __bad_udelay() : __const_udelay((n) * 0x10c7ul)) : \
-+	__udelay(n))
-+
-+/* 0x5 is 2**32 / 1000000000 (rounded up) */
-+#define ndelay(n) (__builtin_constant_p(n) ? \
-+	((n) > 20000 ? __bad_ndelay() : __const_udelay((n) * 5ul)) : \
-+	__ndelay(n))
-+
-+#endif /* _METAG_DELAY_H */
-diff --git a/arch/metag/include/asm/mach/arch.h b/arch/metag/include/asm/mach/arch.h
-index 6845d80..12c5664 100644
---- a/arch/metag/include/asm/mach/arch.h
-+++ b/arch/metag/include/asm/mach/arch.h
-@@ -16,10 +16,13 @@
- 
- #include <linux/stddef.h>
- 
-+#include <asm/clock.h>
-+
- /**
-  * struct machine_desc - Describes a board controlled by a Meta.
-  * @name:		Board/SoC name.
-  * @dt_compat:		Array of device tree 'compatible' strings.
-+ * @clocks:		Clock callbacks.
-  *
-  * @nr_irqs:		Maximum number of IRQs.
-  *			If 0, defaults to NR_IRQS in asm-generic/irq.h.
-@@ -37,6 +40,7 @@
- struct machine_desc {
- 	const char		*name;
- 	const char		**dt_compat;
-+	struct meta_clock_desc	*clocks;
- 
- 	unsigned int		nr_irqs;
- 
-diff --git a/arch/metag/kernel/clock.c b/arch/metag/kernel/clock.c
-new file mode 100644
-index 0000000..defc840
---- /dev/null
-+++ b/arch/metag/kernel/clock.c
-@@ -0,0 +1,53 @@
-+/*
-+ * arch/metag/kernel/clock.c
-+ *
-+ * Copyright (C) 2012 Imagination Technologies Ltd.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#include <linux/delay.h>
-+#include <linux/io.h>
-+
-+#include <asm/param.h>
-+#include <asm/clock.h>
-+
-+struct meta_clock_desc _meta_clock;
-+
-+/* Default machine get_core_freq callback. */
-+static unsigned long get_core_freq_default(void)
-+{
-+#ifdef CONFIG_METAG_META21
-+	/*
-+	 * Meta 2 cores divide down the core clock for the Meta timers, so we
-+	 * can estimate the core clock from the divider.
-+	 */
-+	return (metag_in32(EXPAND_TIMER_DIV) + 1) * 1000000;
-+#else
-+	/*
-+	 * On Meta 1 we don't know the core clock, but assuming the Meta timer
-+	 * is correct it can be estimated based on loops_per_jiffy.
-+	 */
-+	return (loops_per_jiffy * HZ * 5) >> 1;
 +#endif
-+}
-+
-+/**
-+ * setup_meta_clocks() - Set up the Meta clock.
-+ * @desc:	Clock descriptor usually provided by machine description
-+ *
-+ * Ensures all callbacks are valid.
-+ */
-+void __init setup_meta_clocks(struct meta_clock_desc *desc)
-+{
-+	/* copy callbacks */
-+	if (desc)
-+		_meta_clock = *desc;
-+
-+	/* set fallback functions */
-+	if (!_meta_clock.get_core_freq)
-+		_meta_clock.get_core_freq = get_core_freq_default;
-+}
-+
-diff --git a/arch/metag/kernel/time.c b/arch/metag/kernel/time.c
+diff --git a/arch/metag/include/uapi/asm/siginfo.h b/arch/metag/include/uapi/asm/siginfo.h
 new file mode 100644
-index 0000000..40c2f4a
+index 0000000..b2e0c8b
 --- /dev/null
-+++ b/arch/metag/kernel/time.c
-@@ -0,0 +1,163 @@
++++ b/arch/metag/include/uapi/asm/siginfo.h
+@@ -0,0 +1,8 @@
++#ifndef _METAG_SIGINFO_H
++#define _METAG_SIGINFO_H
++
++#define __ARCH_SI_TRAPNO
++
++#include <asm-generic/siginfo.h>
++
++#endif
+diff --git a/arch/metag/kernel/signal.c b/arch/metag/kernel/signal.c
+new file mode 100644
+index 0000000..3be61cf
+--- /dev/null
++++ b/arch/metag/kernel/signal.c
+@@ -0,0 +1,344 @@
 +/*
-+ * Copyright (C) 2005,2006,2007,2008 Imagination Technologies Ltd.
++ *  Copyright (C) 1991,1992  Linus Torvalds
++ *  Copyright (C) 2005-2012  Imagination Technologies Ltd.
 + *
-+ * This file contains the Meta-specific time handling details.
++ *  1997-11-28  Modified for POSIX.1b signals by Richard Henderson
 + *
 + */
 +
-+#include <linux/errno.h>
 +#include <linux/sched.h>
++#include <linux/mm.h>
++#include <linux/smp.h>
 +#include <linux/kernel.h>
-+#include <linux/param.h>
-+#include <linux/time.h>
-+#include <linux/init.h>
-+#include <linux/proc_fs.h>
-+#include <linux/clocksource.h>
-+#include <linux/clockchips.h>
-+#include <linux/interrupt.h>
++#include <linux/signal.h>
++#include <linux/errno.h>
++#include <linux/wait.h>
++#include <linux/ptrace.h>
++#include <linux/unistd.h>
++#include <linux/stddef.h>
++#include <linux/personality.h>
++#include <linux/uaccess.h>
++#include <linux/tracehook.h>
 +
-+#include <asm/clock.h>
-+#include <asm/hwthread.h>
-+#include <asm/core_reg.h>
-+#include <asm/metag_mem.h>
-+#include <asm/tbx.h>
++#include <asm/ucontext.h>
++#include <asm/cacheflush.h>
++#include <asm/switch.h>
++#include <asm/syscall.h>
++#include <asm/syscalls.h>
 +
-+#define HARDWARE_FREQ		1000000	/* 1MHz */
-+#define HARDWARE_DIV		1	/* divide by 1 = 1MHz clock */
-+#define HARDWARE_TO_NS_SHIFT	10	/* convert ticks to ns */
++#define REG_FLAGS	ctx.SaveMask
++#define REG_RETVAL	ctx.DX[0].U0
++#define REG_SYSCALL	ctx.DX[0].U1
++#define REG_SP		ctx.AX[0].U0
++#define REG_ARG1	ctx.DX[3].U1
++#define REG_ARG2	ctx.DX[3].U0
++#define REG_ARG3	ctx.DX[2].U1
++#define REG_PC		ctx.CurrPC
++#define REG_RTP		ctx.DX[4].U1
 +
-+static unsigned int hwtimer_freq = HARDWARE_FREQ;
-+static DEFINE_PER_CPU(struct clock_event_device, local_clockevent);
-+static DEFINE_PER_CPU(char [11], local_clockevent_name);
++struct rt_sigframe {
++	struct siginfo info;
++	struct ucontext uc;
++	unsigned long retcode[2];
++};
 +
-+static int metag_timer_set_next_event(unsigned long delta,
-+				      struct clock_event_device *dev)
++static int restore_sigcontext(struct pt_regs *regs,
++			      struct sigcontext __user *sc)
 +{
-+	__core_reg_set(TXTIMERI, -delta);
++	int err;
++
++	/* Always make any pending restarted system calls return -EINTR */
++	current_thread_info()->restart_block.fn = do_no_restart_syscall;
++
++	err = metag_gp_regs_copyin(regs, 0, sizeof(struct user_gp_regs), NULL,
++				   &sc->regs);
++	if (!err)
++		err = metag_cb_regs_copyin(regs, 0,
++					   sizeof(struct user_cb_regs), NULL,
++					   &sc->cb);
++	if (!err)
++		err = metag_rp_state_copyin(regs, 0,
++					    sizeof(struct user_rp_state), NULL,
++					    &sc->rp);
++
++	/* This is a user-mode context. */
++	regs->REG_FLAGS |= TBICTX_PRIV_BIT;
++
++	return err;
++}
++
++long sys_rt_sigreturn(void)
++{
++	/* NOTE - Meta stack goes UPWARDS - so we wind the stack back */
++	struct pt_regs *regs = current_pt_regs();
++	struct rt_sigframe __user *frame;
++	sigset_t set;
++
++	frame = (__force struct rt_sigframe __user *)(regs->REG_SP -
++						      sizeof(*frame));
++
++	if (!access_ok(VERIFY_READ, frame, sizeof(*frame)))
++		goto badframe;
++
++	if (__copy_from_user(&set, &frame->uc.uc_sigmask, sizeof(set)))
++		goto badframe;
++
++	set_current_blocked(&set);
++
++	if (restore_sigcontext(regs, &frame->uc.uc_mcontext))
++		goto badframe;
++
++	if (restore_altstack(&frame->uc.uc_stack))
++		goto badframe;
++
++	return regs->REG_RETVAL;
++
++badframe:
++	force_sig(SIGSEGV, current);
++
 +	return 0;
 +}
 +
-+static void metag_timer_set_mode(enum clock_event_mode mode,
-+				 struct clock_event_device *evt)
++static int setup_sigcontext(struct sigcontext __user *sc, struct pt_regs *regs,
++			    unsigned long mask)
 +{
-+	switch (mode) {
-+	case CLOCK_EVT_MODE_ONESHOT:
-+	case CLOCK_EVT_MODE_RESUME:
-+		break;
++	int err;
 +
-+	case CLOCK_EVT_MODE_SHUTDOWN:
-+		/* We should disable the IRQ here */
-+		break;
++	err = metag_gp_regs_copyout(regs, 0, sizeof(struct user_gp_regs), NULL,
++				    &sc->regs);
 +
-+	case CLOCK_EVT_MODE_PERIODIC:
-+	case CLOCK_EVT_MODE_UNUSED:
-+		WARN_ON(1);
-+		break;
-+	};
-+}
++	if (!err)
++		err = metag_cb_regs_copyout(regs, 0,
++					    sizeof(struct user_cb_regs), NULL,
++					    &sc->cb);
++	if (!err)
++		err = metag_rp_state_copyout(regs, 0,
++					     sizeof(struct user_rp_state), NULL,
++					     &sc->rp);
 +
-+static inline cycle_t txtimer_read(void)
-+{
-+	unsigned int ret;
-+
-+	asm volatile ("MOV %0, TXTIMER\n" : "=r" (ret));
-+	return ret;
-+}
-+
-+static cycle_t metag_clocksource_read(struct clocksource *cs)
-+{
-+	return txtimer_read();
-+}
-+
-+static struct clocksource clocksource_metag = {
-+	.name = "META",
-+	.rating = 200,
-+	.mask = CLOCKSOURCE_MASK(32),
-+	.read = metag_clocksource_read,
-+	.flags = CLOCK_SOURCE_IS_CONTINUOUS,
-+};
-+
-+static irqreturn_t metag_timer_interrupt(int irq, void *dummy)
-+{
-+	struct clock_event_device *evt = &__get_cpu_var(local_clockevent);
-+
-+	evt->event_handler(evt);
-+
-+	return IRQ_HANDLED;
-+}
-+
-+static struct irqaction metag_timer_irq = {
-+	.name = "META core timer",
-+	.handler = metag_timer_interrupt,
-+	.flags = IRQF_TIMER | IRQF_IRQPOLL | IRQF_PERCPU,
-+};
-+
-+unsigned long long sched_clock(void)
-+{
-+	unsigned long long ticks = txtimer_read();
-+	return ticks << HARDWARE_TO_NS_SHIFT;
-+}
-+
-+void __cpuinit local_timer_setup(unsigned int cpu)
-+{
-+	unsigned int txdivtime;
-+	struct clock_event_device *clk = &per_cpu(local_clockevent, cpu);
-+	char *name = per_cpu(local_clockevent_name, cpu);
-+
-+	txdivtime = __core_reg_get(TXDIVTIME);
-+
-+	txdivtime &= ~TXDIVTIME_DIV_BITS;
-+	txdivtime |= (HARDWARE_DIV & TXDIVTIME_DIV_BITS);
-+
-+	__core_reg_set(TXDIVTIME, txdivtime);
-+
-+	sprintf(name, "META %d", cpu);
-+	clk->name = name;
-+	clk->features = CLOCK_EVT_FEAT_ONESHOT,
-+
-+	clk->rating = 200,
-+	clk->shift = 12,
-+	clk->irq = tbisig_map(TBID_SIGNUM_TRT),
-+	clk->set_mode = metag_timer_set_mode,
-+	clk->set_next_event = metag_timer_set_next_event,
-+
-+	clk->mult = div_sc(hwtimer_freq, NSEC_PER_SEC, clk->shift);
-+	clk->max_delta_ns = clockevent_delta2ns(0x7fffffff, clk);
-+	clk->min_delta_ns = clockevent_delta2ns(0xf, clk);
-+	clk->cpumask = cpumask_of(cpu);
-+
-+	clockevents_register_device(clk);
-+
-+	/*
-+	 * For all non-boot CPUs we need to synchronize our free
-+	 * running clock (TXTIMER) with the boot CPU's clock.
-+	 *
-+	 * While this won't be accurate, it should be close enough.
++	/* OK, clear that cbuf flag in the old context, or our stored
++	 * catch buffer will be restored when we go to call the signal
++	 * handler. Also clear out the CBRP RA/RD pipe bit incase
++	 * that is pending as well!
++	 * Note that as we have already stored this context, these
++	 * flags will get restored on sigreturn to their original
++	 * state.
 +	 */
-+	if (cpu) {
-+		unsigned int thread0 = cpu_2_hwthread_id[0];
-+		unsigned long val;
++	regs->REG_FLAGS &= ~(TBICTX_XCBF_BIT | TBICTX_CBUF_BIT |
++			     TBICTX_CBRP_BIT);
 +
-+		val = core_reg_read(TXUCT_ID, TXTIMER_REGNUM, thread0);
++	/* Clear out the LSM_STEP bits in case we are in the middle of
++	 * and MSET/MGET.
++	 */
++	regs->ctx.Flags &= ~TXSTATUS_LSM_STEP_BITS;
 +
-+		asm volatile ("MOV TXTIMER, %0\n" : : "r" (val));
++	err |= __put_user(mask, &sc->oldmask);
++
++	return err;
++}
++
++/*
++ * Determine which stack to use..
++ */
++static void __user *get_sigframe(struct k_sigaction *ka, unsigned long sp,
++				 size_t frame_size)
++{
++	/* Meta stacks grows upwards */
++	if ((ka->sa.sa_flags & SA_ONSTACK) && (sas_ss_flags(sp) == 0))
++		sp = current->sas_ss_sp;
++
++	sp = (sp + 7) & ~7;			/* 8byte align stack */
++
++	return (void __user *)sp;
++}
++
++static int setup_rt_frame(int sig, struct k_sigaction *ka, siginfo_t *info,
++			  sigset_t *set, struct pt_regs *regs)
++{
++	struct rt_sigframe __user *frame;
++	int err = -EFAULT;
++	unsigned long code;
++
++	frame = get_sigframe(ka, regs->REG_SP, sizeof(*frame));
++	if (!access_ok(VERIFY_WRITE, frame, sizeof(*frame)))
++		goto out;
++
++	err = copy_siginfo_to_user(&frame->info, info);
++
++	/* Create the ucontext.  */
++	err |= __put_user(0, &frame->uc.uc_flags);
++	err |= __put_user(0, (unsigned long __user *)&frame->uc.uc_link);
++	err |= __save_altstack(&frame->uc.uc_stack, regs->REG_SP);
++	err |= setup_sigcontext(&frame->uc.uc_mcontext,
++				regs, set->sig[0]);
++	err |= __copy_to_user(&frame->uc.uc_sigmask, set, sizeof(*set));
++
++	if (err)
++		goto out;
++
++	/* Set up to return from userspace.  */
++
++	/* MOV D1Re0 (D1.0), #__NR_rt_sigreturn */
++	code = 0x03000004 | (__NR_rt_sigreturn << 3);
++	err |= __put_user(code, (unsigned long __user *)(&frame->retcode[0]));
++
++	/* SWITCH #__METAG_SW_SYS */
++	code = __METAG_SW_ENCODING(SYS);
++	err |= __put_user(code, (unsigned long __user *)(&frame->retcode[1]));
++
++	if (err)
++		goto out;
++
++	/* Set up registers for signal handler */
++	regs->REG_RTP = (unsigned long) frame->retcode;
++	regs->REG_SP = (unsigned long) frame + sizeof(*frame);
++	regs->REG_ARG1 = sig;
++	regs->REG_ARG2 = (unsigned long) &frame->info;
++	regs->REG_ARG3 = (unsigned long) &frame->uc;
++	regs->REG_PC = (unsigned long) ka->sa.sa_handler;
++
++	pr_debug("SIG deliver (%s:%d): sp=%p pc=%08x pr=%08x\n",
++		 current->comm, current->pid, frame, regs->REG_PC,
++		 regs->REG_RTP);
++
++	/* Now pass size of 'new code' into sigtramp so we can do a more
++	 * effective cache flush - directed rather than 'full flush'.
++	 */
++	flush_cache_sigtramp(regs->REG_RTP, sizeof(frame->retcode));
++out:
++	if (err) {
++		force_sigsegv(sig, current);
++		return -EFAULT;
 +	}
++	return 0;
 +}
 +
-+void __init time_init(void)
++static void handle_signal(unsigned long sig, siginfo_t *info,
++			  struct k_sigaction *ka, struct pt_regs *regs)
 +{
++	sigset_t *oldset = sigmask_to_save();
++
++	/* Set up the stack frame */
++	if (setup_rt_frame(sig, ka, info, oldset, regs))
++		return;
++
++	signal_delivered(sig, info, ka, regs, test_thread_flag(TIF_SINGLESTEP));
++}
++
++ /*
++  * Notes for Meta.
++  * We have moved from the old 2.4.9 SH way of using syscall_nr (in the stored
++  * context) to passing in the syscall flag on the stack.
++  * This is because having syscall_nr in our context does not fit with TBX, and
++  * corrupted the stack.
++  */
++static int do_signal(struct pt_regs *regs, int syscall)
++{
++	unsigned int retval = 0, continue_addr = 0, restart_addr = 0;
++	struct k_sigaction ka;
++	siginfo_t info;
++	int signr;
++	int restart = 0;
++
 +	/*
-+	 * On Meta 2 SoCs, the actual frequency of the timer is based on the
-+	 * Meta core clock speed divided by an integer, so it is only
-+	 * approximately 1MHz. Calculating the real frequency here drastically
-+	 * reduces clock skew on these SoCs.
++	 * By the end of rt_sigreturn the context describes the point that the
++	 * signal was taken (which may happen to be just before a syscall if
++	 * it's already been restarted). This should *never* be mistaken for a
++	 * system call in need of restarting.
 +	 */
-+#ifdef CONFIG_METAG_META21
-+	hwtimer_freq = get_coreclock() / (metag_in32(EXPAND_TIMER_DIV) + 1);
-+#endif
-+	clocksource_register_hz(&clocksource_metag, hwtimer_freq);
++	if (syscall == __NR_rt_sigreturn)
++		syscall = -1;
 +
-+	setup_irq(tbisig_map(TBID_SIGNUM_TRT), &metag_timer_irq);
++	/* Did we come from a system call? */
++	if (syscall >= 0) {
++		continue_addr = regs->REG_PC;
++		restart_addr = continue_addr - 4;
++		retval = regs->REG_RETVAL;
 +
-+	local_timer_setup(smp_processor_id());
++		/*
++		 * Prepare for system call restart. We do this here so that a
++		 * debugger will see the already changed PC.
++		 */
++		switch (retval) {
++		case -ERESTART_RESTARTBLOCK:
++			restart = -2;
++		case -ERESTARTNOHAND:
++		case -ERESTARTSYS:
++		case -ERESTARTNOINTR:
++			++restart;
++			regs->REG_PC = restart_addr;
++			break;
++		}
++	}
++
++	/*
++	 * Get the signal to deliver. When running under ptrace, at this point
++	 * the debugger may change all our registers ...
++	 */
++	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
++	/*
++	 * Depending on the signal settings we may need to revert the decision
++	 * to restart the system call. But skip this if a debugger has chosen to
++	 * restart at a different PC.
++	 */
++	if (regs->REG_PC != restart_addr)
++		restart = 0;
++	if (signr > 0) {
++		if (unlikely(restart)) {
++			if (retval == -ERESTARTNOHAND
++			    || retval == -ERESTART_RESTARTBLOCK
++			    || (retval == -ERESTARTSYS
++				&& !(ka.sa.sa_flags & SA_RESTART))) {
++				regs->REG_RETVAL = -EINTR;
++				regs->REG_PC = continue_addr;
++			}
++		}
++
++		/* Whee! Actually deliver the signal.  */
++		handle_signal(signr, &info, &ka, regs);
++		return 0;
++	}
++
++	/* Handlerless -ERESTART_RESTARTBLOCK re-enters via restart_syscall */
++	if (unlikely(restart < 0))
++		regs->REG_SYSCALL = __NR_restart_syscall;
++
++	/*
++	 * If there's no signal to deliver, we just put the saved sigmask back.
++	 */
++	restore_saved_sigmask();
++
++	return restart;
++}
++
++int do_work_pending(struct pt_regs *regs, unsigned int thread_flags,
++		    int syscall)
++{
++	do {
++		if (likely(thread_flags & _TIF_NEED_RESCHED)) {
++			schedule();
++		} else {
++			if (unlikely(!user_mode(regs)))
++				return 0;
++			local_irq_enable();
++			if (thread_flags & _TIF_SIGPENDING) {
++				int restart = do_signal(regs, syscall);
++				if (unlikely(restart)) {
++					/*
++					 * Restart without handlers.
++					 * Deal with it without leaving
++					 * the kernel space.
++					 */
++					return restart;
++				}
++				syscall = -1;
++			} else {
++				clear_thread_flag(TIF_NOTIFY_RESUME);
++				tracehook_notify_resume(regs);
++			}
++		}
++		local_irq_disable();
++		thread_flags = current_thread_info()->flags;
++	} while (thread_flags & _TIF_WORK_MASK);
++	return 0;
 +}
 -- 
 1.7.7.6
