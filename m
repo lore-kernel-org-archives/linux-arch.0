@@ -1,1476 +1,640 @@
-From: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
-Subject: [PATCH v3 24/44] metag: Internal and external irqchips
-Date: Thu, 10 Jan 2013 15:30:52 +0000
-Message-ID: <1357831872-29451-25-git-send-email-james.hogan@imgtec.com>
+From: James Hogan <james.hogan@imgtec.com>
+Subject: [PATCH v3 20/44] metag: ptrace
+Date: Thu, 10 Jan 2013 15:30:48 +0000
+Message-ID: <1357831872-29451-21-git-send-email-james.hogan@imgtec.com>
 References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Return-path: <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-In-Reply-To: <1357831872-29451-1-git-send-email-james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
-List-Unsubscribe: <https://lists.ozlabs.org/options/devicetree-discuss>,
- <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://lists.ozlabs.org/pipermail/devicetree-discuss/>
-List-Post: <mailto:devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-List-Help: <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=help>
-List-Subscribe: <https://lists.ozlabs.org/listinfo/devicetree-discuss>,
- <mailto:devicetree-discuss-request-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org?subject=subscribe>
-Errors-To: devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
-Sender: "devicetree-discuss"
- <devicetree-discuss-bounces+gldd-devicetree-discuss=m.gmane.org-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org>
-To: linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>, linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Simon Arlott <simon-A6De1vDTPLDsq35pWSNszA@public.gmane.org>, devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org, Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>, Viresh Kumar <viresh.kumar-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>, Dom Cobley <popcornmix-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
+Content-Type: text/plain
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+Cc: James Hogan <james.hogan@imgtec.com>, Andrew Morton <akpm@linux-foundation.org>, Denys Vlasenko <vda.linux@googlemail.com>, Arnd Bergmann <arnd@arndb.de>, Tony Lindgren <tony@atomide.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 List-Id: linux-arch.vger.kernel.org
 
-Meta core internal interrupts (from HWSTATMETA and friends) are vectored
-onto the TR1 core trigger for the current thread. This is demultiplexed
-in irq-meta.c to individual Linux IRQs for each internal interrupt.
+The ptrace interface for metag provides access to some core register
+sets using the PTRACE_GETREGSET and PTRACE_SETREGSET operations. The
+details of the internal context structures is abstracted into user API
+structures to both ease use and allow flexibility to change the internal
+context layouts. Copyin and copyout functions for these register sets
+are exposed to allow signal handling code to use them to copy to and
+from the signal context.
 
-External SoC interrupts (from HWSTATEXT and friends) are vectored onto
-the TR2 core trigger for the current thread. This is demultiplexed in
-irq-meta-ext.c to individual Linux IRQs for each external SoC interrupt.
-The external irqchip has devicetree bindings for configuring the number
-of irq banks and the type of masking available.
+struct user_gp_regs (NT_PRSTATUS) provides access to the core general
+purpose register context.
 
-Signed-off-by: James Hogan <james.hogan-1AXoQHu6uovQT0dZR+AlfA@public.gmane.org>
-Cc: Arnd Bergmann <arnd-r2nGTMty4D4@public.gmane.org>
-Cc: Grant Likely <grant.likely-s3s/WqlpOiPyB63q8FvJNQ@public.gmane.org>
-Cc: Rob Herring <rob.herring-bsGFqQB8/DxBDgjK7y7TUQ@public.gmane.org>
-Cc: Rob Landley <rob-VoJi6FS/r0vR7s880joybQ@public.gmane.org>
-Cc: Dom Cobley <popcornmix-Re5JQEeQqe8AvxtiuMwx3w@public.gmane.org>
-Cc: Simon Arlott <simon-A6De1vDTPLDsq35pWSNszA@public.gmane.org>
-Cc: Viresh Kumar <viresh.kumar-QSEj5FYQhm4dnm+yROfE0A@public.gmane.org>
-Cc: Maxime Ripard <maxime.ripard-wi1+55ScJUtKEb57/3fJTNBPR1lH4CV8@public.gmane.org>
-Cc: devicetree-discuss-uLR06cmDAlY/bJ5BZ2RsiQ@public.gmane.org
-Cc: linux-doc-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
+struct user_cb_regs (NT_METAG_CBUF) provides access to the TXCATCH*
+registers which contains information abuot a memory fault, unaligned
+access error or watchpoint. This can be modified to alter the way the
+fault is replayed on resume ("catch replay"), or to prevent the replay
+taking place.
+
+struct user_rp_state (NT_METAG_RPIPE) provides access to the state of
+the Meta read pipeline which can be used to hide memory latencies in
+hand optimised data loops.
+
+Extended DSP register state, DSP RAM, and hardware breakpoint registers
+aren't yet exposed through ptrace.
+
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Denys Vlasenko <vda.linux@googlemail.com>
+Cc: Arnd Bergmann <arnd@arndb.de>
+Cc: Tony Lindgren <tony@atomide.com>
+Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 ---
- .../devicetree/bindings/metag/meta-intc.txt        |   82 ++
- arch/metag/kernel/irq.c                            |    5 +
- drivers/irqchip/Makefile                           |    2 +
- drivers/irqchip/irq-meta-ext.c                     |  868 ++++++++++++++++++++
- drivers/irqchip/irq-meta.c                         |  343 ++++++++
- include/linux/irqchip/meta-ext.h                   |   33 +
- include/linux/irqchip/meta.h                       |   24 +
- 7 files changed, 1357 insertions(+), 0 deletions(-)
- create mode 100644 Documentation/devicetree/bindings/metag/meta-intc.txt
- create mode 100644 drivers/irqchip/irq-meta-ext.c
- create mode 100644 drivers/irqchip/irq-meta.c
- create mode 100644 include/linux/irqchip/meta-ext.h
- create mode 100644 include/linux/irqchip/meta.h
+ arch/metag/include/asm/ptrace.h      |   60 ++++++
+ arch/metag/include/uapi/asm/ptrace.h |  113 ++++++++++
+ arch/metag/kernel/ptrace.c           |  380 ++++++++++++++++++++++++++++++++++
+ include/uapi/linux/elf.h             |    2 +
+ 4 files changed, 555 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/include/asm/ptrace.h
+ create mode 100644 arch/metag/include/uapi/asm/ptrace.h
+ create mode 100644 arch/metag/kernel/ptrace.c
 
-diff --git a/Documentation/devicetree/bindings/metag/meta-intc.txt b/Documentation/devicetree/bindings/metag/meta-intc.txt
+diff --git a/arch/metag/include/asm/ptrace.h b/arch/metag/include/asm/ptrace.h
 new file mode 100644
-index 0000000..8c47dcb
+index 0000000..fcabc18
 --- /dev/null
-+++ b/Documentation/devicetree/bindings/metag/meta-intc.txt
-@@ -0,0 +1,82 @@
-+* Meta External Trigger Controller Binding
++++ b/arch/metag/include/asm/ptrace.h
+@@ -0,0 +1,60 @@
++#ifndef _METAG_PTRACE_H
++#define _METAG_PTRACE_H
 +
-+This binding specifies what properties must be available in the device tree
-+representation of a Meta external trigger controller.
++#include <linux/compiler.h>
++#include <uapi/asm/ptrace.h>
++#include <asm/tbx.h>
 +
-+Required properties:
++#ifndef __ASSEMBLY__
 +
-+    - compatible: Specifies the compatibility list for the interrupt controller.
-+      The type shall be <string> and the value shall include "img,meta-intc".
++/* this struct defines the way the registers are stored on the
++   stack during a system call. */
 +
-+    - num-banks: Specifies the number of interrupt banks (each of which can
-+      handle 32 interrupt sources).
++struct pt_regs {
++	TBICTX ctx;
++	TBICTXEXTCB0 extcb0[5];
++};
 +
-+    - interrupt-controller: The presence of this property identifies the node
-+      as an interupt controller. No property value shall be defined.
++#define user_mode(regs) (((regs)->ctx.SaveMask & TBICTX_PRIV_BIT) > 0)
 +
-+    - #interrupt-cells: Specifies the number of cells needed to encode an
-+      interrupt source. The type shall be a <u32> and the value shall be 2.
++#define instruction_pointer(regs) ((unsigned long)(regs)->ctx.CurrPC)
++#define profile_pc(regs) instruction_pointer(regs)
 +
-+    - #address-cells: Specifies the number of cells needed to encode an
-+      address. The type shall be <u32> and the value shall be 0. As such,
-+      'interrupt-map' nodes do not have to specify a parent unit address.
++#define task_pt_regs(task) \
++	((struct pt_regs *)(task_stack_page(task) + \
++			    sizeof(struct thread_info)))
 +
-+Optional properties:
++#define current_pt_regs() \
++	((struct pt_regs *)((char *)current_thread_info() + \
++			    sizeof(struct thread_info)))
 +
-+    - no-mask: The controller doesn't have any mask registers.
++int syscall_trace_enter(struct pt_regs *regs);
++void syscall_trace_leave(struct pt_regs *regs);
 +
-+* Interrupt Specifier Definition
++/* copy a struct user_gp_regs out to user */
++int metag_gp_regs_copyout(const struct pt_regs *regs,
++			  unsigned int pos, unsigned int count,
++			  void *kbuf, void __user *ubuf);
++/* copy a struct user_gp_regs in from user */
++int metag_gp_regs_copyin(struct pt_regs *regs,
++			 unsigned int pos, unsigned int count,
++			 const void *kbuf, const void __user *ubuf);
++/* copy a struct user_cb_regs out to user */
++int metag_cb_regs_copyout(const struct pt_regs *regs,
++			  unsigned int pos, unsigned int count,
++			  void *kbuf, void __user *ubuf);
++/* copy a struct user_cb_regs in from user */
++int metag_cb_regs_copyin(struct pt_regs *regs,
++			 unsigned int pos, unsigned int count,
++			 const void *kbuf, const void __user *ubuf);
++/* copy a struct user_rp_state out to user */
++int metag_rp_state_copyout(const struct pt_regs *regs,
++			   unsigned int pos, unsigned int count,
++			   void *kbuf, void __user *ubuf);
++/* copy a struct user_rp_state in from user */
++int metag_rp_state_copyin(struct pt_regs *regs,
++			  unsigned int pos, unsigned int count,
++			  const void *kbuf, const void __user *ubuf);
 +
-+  Interrupt specifiers consists of 2 cells encoded as follows:
-+
-+    - <1st-cell>: The interrupt-number that identifies the interrupt source.
-+
-+    - <2nd-cell>: The Linux interrupt flags containing level-sense information,
-+                  encoded as follows:
-+                    1 = edge triggered
-+                    4 = level-sensitive
-+
-+* Examples
-+
-+Example 1:
-+
-+	/*
-+	 * Meta external trigger block
-+	 */
-+	intc: intc {
-+		// This is an interrupt controller node.
-+		interrupt-controller;
-+
-+		// No address cells so that 'interrupt-map' nodes which
-+		// reference this interrupt controller node do not need a parent
-+		// address specifier.
-+		#address-cells = <0>;
-+
-+		// Two cells to encode interrupt sources.
-+		#interrupt-cells = <2>;
-+
-+		// Number of interrupt banks
-+		num-banks = <2>;
-+
-+		// No HWMASKEXT is available (specify on Chorus2 and Comet ES1)
-+		no-mask;
-+
-+		// Compatible with Meta hardware trigger block.
-+		compatible = "img,meta-intc";
-+	};
-+
-+Example 2:
-+
-+	/*
-+	 * An interrupt generating device that is wired to a Meta external
-+	 * trigger block.
-+	 */
-+	uart1: uart@0x02004c00 {
-+		// Interrupt source '5' that is level-sensitive.
-+		// Note that there are only two cells as specified in the
-+		// interrupt parent's '#interrupt-cells' property.
-+		interrupts = <5 4 /* level */>;
-+
-+		// The interrupt controller that this device is wired to.
-+		interrupt-parent = <&intc>;
-+	};
-diff --git a/arch/metag/kernel/irq.c b/arch/metag/kernel/irq.c
-index 769bd74..f8d1291 100644
---- a/arch/metag/kernel/irq.c
-+++ b/arch/metag/kernel/irq.c
-@@ -6,6 +6,8 @@
- #include <linux/kernel.h>
- #include <linux/interrupt.h>
- #include <linux/init.h>
-+#include <linux/irqchip/meta-ext.h>
-+#include <linux/irqchip/meta.h>
- #include <linux/irqdomain.h>
- #include <linux/ratelimit.h>
- 
-@@ -257,6 +259,9 @@ void __init init_IRQ(void)
- 
- 	irq_ctx_init(smp_processor_id());
- 
-+	init_internal_IRQ();
-+	init_external_IRQ();
-+
- 	if (machine_desc->init_irq)
- 		machine_desc->init_irq();
- }
-diff --git a/drivers/irqchip/Makefile b/drivers/irqchip/Makefile
-index bf4609a..a6f97a0 100644
---- a/drivers/irqchip/Makefile
-+++ b/drivers/irqchip/Makefile
-@@ -1,4 +1,6 @@
- obj-$(CONFIG_ARCH_BCM2835)		+= irq-bcm2835.o
-+obj-$(CONFIG_METAG)			+= irq-meta-ext.o
-+obj-$(CONFIG_METAG_PERFCOUNTER_IRQS)	+= irq-meta.o
- obj-$(CONFIG_ARCH_SUNXI)		+= irq-sunxi.o
- obj-$(CONFIG_VERSATILE_FPGA_IRQ)	+= irq-versatile-fpga.o
- obj-$(CONFIG_ARCH_SPEAR3XX)		+= spear-shirq.o
-diff --git a/drivers/irqchip/irq-meta-ext.c b/drivers/irqchip/irq-meta-ext.c
++#endif /* __ASSEMBLY__ */
++#endif /* _METAG_PTRACE_H */
+diff --git a/arch/metag/include/uapi/asm/ptrace.h b/arch/metag/include/uapi/asm/ptrace.h
 new file mode 100644
-index 0000000..4f27d23
+index 0000000..45d9780
 --- /dev/null
-+++ b/drivers/irqchip/irq-meta-ext.c
-@@ -0,0 +1,868 @@
-+/*
-+ * Meta External interrupt code.
-+ *
-+ * Copyright (C) 2005-2012 Imagination Technologies Ltd.
-+ *
-+ * External interrupts on Meta are configured at two-levels, in the CPU core and
-+ * in the external trigger block. Interrupts from SoC peripherals are
-+ * multiplexed onto a single Meta CPU "trigger" - traditionally it has always
-+ * been trigger 2 (TR2). For info on how de-multiplexing happens check out
-+ * meta_intc_irq_demux().
-+ */
++++ b/arch/metag/include/uapi/asm/ptrace.h
+@@ -0,0 +1,113 @@
++#ifndef _UAPI_METAG_PTRACE_H
++#define _UAPI_METAG_PTRACE_H
 +
-+#include <linux/interrupt.h>
-+#include <linux/irqchip/meta-ext.h>
-+#include <linux/irqdomain.h>
-+#include <linux/io.h>
-+#include <linux/of.h>
-+#include <linux/slab.h>
-+#include <linux/syscore_ops.h>
-+
-+#include <asm/irq.h>
-+#include <asm/hwthread.h>
-+
-+#define HWSTAT_STRIDE 8
-+#define HWVEC_BLK_STRIDE 0x1000
-+
-+/**
-+ * struct meta_intc_priv - private meta external interrupt data
-+ * @nr_banks:		Number of interrupt banks
-+ * @domain:		IRQ domain for all banks of external IRQs
-+ * @unmasked:		Record of unmasked IRQs
-+ * @levels_altered:	Record of altered level bits
-+ */
-+struct meta_intc_priv {
-+	unsigned int		nr_banks;
-+	struct irq_domain	*domain;
-+
-+	unsigned long		unmasked[4];
-+
-+#ifdef CONFIG_METAG_SUSPEND_MEM
-+	unsigned long		levels_altered[4];
-+#endif
-+};
-+
-+/* Private data for the one and only external interrupt controller */
-+static struct meta_intc_priv meta_intc_priv;
-+
-+/**
-+ * meta_intc_offset() - Get the offset into the bank of a hardware IRQ number
-+ * @hw:		Hardware IRQ number (within external trigger block)
-+ *
-+ * Returns:	Bit offset into the IRQ's bank registers
-+ */
-+static unsigned int meta_intc_offset(irq_hw_number_t hw)
-+{
-+	return hw & 0x1f;
-+}
-+
-+/**
-+ * meta_intc_bank() - Get the bank number of a hardware IRQ number
-+ * @hw:		Hardware IRQ number (within external trigger block)
-+ *
-+ * Returns:	Bank number indicating which register the IRQ's bits are
-+ */
-+static unsigned int meta_intc_bank(irq_hw_number_t hw)
-+{
-+	return hw >> 5;
-+}
-+
-+/**
-+ * meta_intc_stat_addr() - Get the address of a HWSTATEXT register
-+ * @hw:		Hardware IRQ number (within external trigger block)
-+ *
-+ * Returns:	Address of a HWSTATEXT register containing the status bit for
-+ *		the specified hardware IRQ number
-+ */
-+static void __iomem *meta_intc_stat_addr(irq_hw_number_t hw)
-+{
-+	return (void __iomem *)(HWSTATEXT +
-+				HWSTAT_STRIDE * meta_intc_bank(hw));
-+}
-+
-+/**
-+ * meta_intc_level_addr() - Get the address of a HWLEVELEXT register
-+ * @hw:		Hardware IRQ number (within external trigger block)
-+ *
-+ * Returns:	Address of a HWLEVELEXT register containing the sense bit for
-+ *		the specified hardware IRQ number
-+ */
-+static void __iomem *meta_intc_level_addr(irq_hw_number_t hw)
-+{
-+	return (void __iomem *)(HWLEVELEXT +
-+				HWSTAT_STRIDE * meta_intc_bank(hw));
-+}
-+
-+/**
-+ * meta_intc_mask_addr() - Get the address of a HWMASKEXT register
-+ * @hw:		Hardware IRQ number (within external trigger block)
-+ *
-+ * Returns:	Address of a HWMASKEXT register containing the mask bit for the
-+ *		specified hardware IRQ number
-+ */
-+static void __iomem *meta_intc_mask_addr(irq_hw_number_t hw)
-+{
-+	return (void __iomem *)(HWMASKEXT +
-+				HWSTAT_STRIDE * meta_intc_bank(hw));
-+}
-+
-+/**
-+ * meta_intc_vec_addr() - Get the vector address of a hardware interrupt
-+ * @hw:		Hardware IRQ number (within external trigger block)
-+ *
-+ * Returns:	Address of a HWVECEXT register controlling the core trigger to
-+ *		vector the IRQ onto
-+ */
-+static inline void __iomem *meta_intc_vec_addr(irq_hw_number_t hw)
-+{
-+	return (void __iomem *)(HWVEC0EXT +
-+				HWVEC_BLK_STRIDE * meta_intc_bank(hw) +
-+				HWVECnEXT_STRIDE * meta_intc_offset(hw));
-+}
-+
-+/**
-+ * meta_intc_startup_irq() - set up an external irq
-+ * @data:	data for the external irq to start up
-+ *
-+ * Multiplex interrupts for irq onto TR2. Clear any pending interrupts and
-+ * unmask irq, both using the appropriate callbacks.
-+ */
-+static unsigned int meta_intc_startup_irq(struct irq_data *data)
-+{
-+	irq_hw_number_t hw = data->hwirq;
-+	void __iomem *vec_addr = meta_intc_vec_addr(hw);
-+	int thread = hard_processor_id();
-+
-+	/* Perform any necessary acking. */
-+	if (data->chip->irq_ack)
-+		data->chip->irq_ack(data);
-+
-+	/* Wire up this interrupt to the core with HWVECxEXT. */
-+	metag_out32(TBI_TRIG_VEC(TBID_SIGNUM_TR2(thread)), vec_addr);
-+
-+	/* Perform any necessary unmasking. */
-+	data->chip->irq_unmask(data);
-+
-+	return 0;
-+}
-+
-+/**
-+ * meta_intc_shutdown_irq() - turn off an external irq
-+ * @data:	data for the external irq to turn off
-+ *
-+ * Mask irq using the appropriate callback and stop muxing it onto TR2.
-+ */
-+static void meta_intc_shutdown_irq(struct irq_data *data)
-+{
-+	irq_hw_number_t hw = data->hwirq;
-+	void __iomem *vec_addr = meta_intc_vec_addr(hw);
-+
-+	/* Mask the IRQ */
-+	data->chip->irq_mask(data);
-+
-+	/*
-+	 * Disable the IRQ at the core by removing the interrupt from
-+	 * the HW vector mapping.
-+	 */
-+	metag_out32(0, vec_addr);
-+}
-+
-+/**
-+ * meta_intc_ack_irq() - acknowledge an external irq
-+ * @data:	data for the external irq to ack
-+ *
-+ * Clear down an edge interrupt in the status register.
-+ */
-+static void meta_intc_ack_irq(struct irq_data *data)
-+{
-+	irq_hw_number_t hw = data->hwirq;
-+	unsigned int bit = 1 << meta_intc_offset(hw);
-+	void __iomem *stat_addr = meta_intc_stat_addr(hw);
-+
-+	/* Ack the int, if it is still 'on'.
-+	 * NOTE - this only works for edge triggered interrupts.
-+	 */
-+	if (metag_in32(stat_addr) & bit)
-+		metag_out32(bit, stat_addr);
-+}
-+
-+/**
-+ * record_irq_is_masked() - record the IRQ masked so it doesn't get handled
-+ * @data:	data for the external irq to record
-+ *
-+ * This should get called whenever an external IRQ is masked (by whichever
-+ * callback is used). It records the IRQ masked so that it doesn't get handled
-+ * if it still shows up in the status register.
-+ */
-+static void record_irq_is_masked(struct irq_data *data)
-+{
-+	struct meta_intc_priv *priv = &meta_intc_priv;
-+	irq_hw_number_t hw = data->hwirq;
-+
-+	clear_bit(meta_intc_offset(hw), &priv->unmasked[meta_intc_bank(hw)]);
-+}
-+
-+/**
-+ * record_irq_is_unmasked() - record the IRQ unmasked so it can be handled
-+ * @data:	data for the external irq to record
-+ *
-+ * This should get called whenever an external IRQ is unmasked (by whichever
-+ * callback is used). It records the IRQ unmasked so that it gets handled if it
-+ * shows up in the status register.
-+ */
-+static void record_irq_is_unmasked(struct irq_data *data)
-+{
-+	struct meta_intc_priv *priv = &meta_intc_priv;
-+	irq_hw_number_t hw = data->hwirq;
-+
-+	set_bit(meta_intc_offset(hw), &priv->unmasked[meta_intc_bank(hw)]);
-+}
++#ifndef __ASSEMBLY__
 +
 +/*
-+ * For use by wrapper IRQ drivers
++ * These are the layouts of the regsets returned by the GETREGSET ptrace call
 + */
++
++/* user_gp_regs::status */
++
++/* CBMarker bit (indicates catch state / catch replay) */
++#define USER_GP_REGS_STATUS_CATCH_BIT		(1 << 22)
++#define USER_GP_REGS_STATUS_CATCH_S		22
++/* LSM_STEP field (load/store multiple step) */
++#define USER_GP_REGS_STATUS_LSM_STEP_BITS	(0x7 << 8)
++#define USER_GP_REGS_STATUS_LSM_STEP_S		8
++/* SCC bit (indicates split 16x16 condition flags) */
++#define USER_GP_REGS_STATUS_SCC_BIT		(1 << 4)
++#define USER_GP_REGS_STATUS_SCC_S		4
++
++/* normal condition flags */
++/* CF_Z bit (Zero flag) */
++#define USER_GP_REGS_STATUS_CF_Z_BIT		(1 << 3)
++#define USER_GP_REGS_STATUS_CF_Z_S		3
++/* CF_N bit (Negative flag) */
++#define USER_GP_REGS_STATUS_CF_N_BIT		(1 << 2)
++#define USER_GP_REGS_STATUS_CF_N_S		2
++/* CF_V bit (oVerflow flag) */
++#define USER_GP_REGS_STATUS_CF_V_BIT		(1 << 1)
++#define USER_GP_REGS_STATUS_CF_V_S		1
++/* CF_C bit (Carry flag) */
++#define USER_GP_REGS_STATUS_CF_C_BIT		(1 << 0)
++#define USER_GP_REGS_STATUS_CF_C_S		0
++
++/* split 16x16 condition flags */
++/* SCF_LZ bit (Low Zero flag) */
++#define USER_GP_REGS_STATUS_SCF_LZ_BIT		(1 << 3)
++#define USER_GP_REGS_STATUS_SCF_LZ_S		3
++/* SCF_HZ bit (High Zero flag) */
++#define USER_GP_REGS_STATUS_SCF_HZ_BIT		(1 << 2)
++#define USER_GP_REGS_STATUS_SCF_HZ_S		2
++/* SCF_HC bit (High Carry flag) */
++#define USER_GP_REGS_STATUS_SCF_HC_BIT		(1 << 1)
++#define USER_GP_REGS_STATUS_SCF_HC_S		1
++/* SCF_LC bit (Low Carry flag) */
++#define USER_GP_REGS_STATUS_SCF_LC_BIT		(1 << 0)
++#define USER_GP_REGS_STATUS_SCF_LC_S		0
 +
 +/**
-+ * meta_intc_mask_irq_simple() - minimal mask used by wrapper IRQ drivers
-+ * @data:	data for the external irq being masked
++ * struct user_gp_regs - User general purpose registers
++ * @dx:		GP data unit regs (dx[reg][unit] = D{unit:0-1}.{reg:0-7})
++ * @ax:		GP address unit regs (ax[reg][unit] = A{unit:0-1}.{reg:0-3})
++ * @pc:		PC register
++ * @status:	TXSTATUS register (condition flags, LSM_STEP etc)
++ * @rpt:	TXRPT registers (branch repeat counter)
++ * @bpobits:	TXBPOBITS register ("branch prediction other" bits)
++ * @mode:	TXMODE register
++ * @_pad1:	Reserved padding to make sizeof obviously 64bit aligned
 + *
-+ * This should be called by any wrapper IRQ driver mask functions. it doesn't do
-+ * any masking but records the IRQ as masked so that the core code knows the
-+ * mask has taken place. It is the callers responsibility to ensure that the IRQ
-+ * won't trigger an interrupt to the core.
++ * This is the user-visible general purpose register state structure.
++ *
++ * It can be accessed through PTRACE_GETREGSET with NT_PRSTATUS.
++ *
++ * It is also used in the signal context.
 + */
-+void meta_intc_mask_irq_simple(struct irq_data *data)
-+{
-+	record_irq_is_masked(data);
-+}
-+
-+/**
-+ * meta_intc_unmask_irq_simple() - minimal unmask used by wrapper IRQ drivers
-+ * @data:	data for the external irq being unmasked
-+ *
-+ * This should be called by any wrapper IRQ driver unmask functions. it doesn't
-+ * do any unmasking but records the IRQ as unmasked so that the core code knows
-+ * the unmask has taken place. It is the callers responsibility to ensure that
-+ * the IRQ can now trigger an interrupt to the core.
-+ */
-+void meta_intc_unmask_irq_simple(struct irq_data *data)
-+{
-+	record_irq_is_unmasked(data);
-+}
-+
-+
-+/**
-+ * meta_intc_mask_irq() - mask an external irq using HWMASKEXT
-+ * @data:	data for the external irq to mask
-+ *
-+ * This is a default implementation of a mask function which makes use of the
-+ * HWMASKEXT registers available in newer versions.
-+ *
-+ * Earlier versions without these registers should use SoC level IRQ masking
-+ * which call the meta_intc_*_simple() functions above, or if that isn't
-+ * available should use the fallback meta_intc_*_nomask() functions below.
-+ */
-+static void meta_intc_mask_irq(struct irq_data *data)
-+{
-+	irq_hw_number_t hw = data->hwirq;
-+	unsigned int bit = 1 << meta_intc_offset(hw);
-+	void __iomem *mask_addr = meta_intc_mask_addr(hw);
-+	unsigned long flags;
-+
-+	record_irq_is_masked(data);
-+
-+	/* update the interrupt mask */
-+	__global_lock2(flags);
-+	metag_out32(metag_in32(mask_addr) & ~bit, mask_addr);
-+	__global_unlock2(flags);
-+}
-+
-+/**
-+ * meta_intc_unmask_irq() - unmask an external irq using HWMASKEXT
-+ * @data:	data for the external irq to unmask
-+ *
-+ * This is a default implementation of an unmask function which makes use of the
-+ * HWMASKEXT registers available on new versions. It should be paired with
-+ * meta_intc_mask_irq() above.
-+ */
-+static void meta_intc_unmask_irq(struct irq_data *data)
-+{
-+	irq_hw_number_t hw = data->hwirq;
-+	unsigned int bit = 1 << meta_intc_offset(hw);
-+	void __iomem *mask_addr = meta_intc_mask_addr(hw);
-+	unsigned long flags;
-+
-+	record_irq_is_unmasked(data);
-+
-+	/* update the interrupt mask */
-+	__global_lock2(flags);
-+	metag_out32(metag_in32(mask_addr) | bit, mask_addr);
-+	__global_unlock2(flags);
-+}
-+
-+/**
-+ * meta_intc_mask_irq_nomask() - mask an external irq by unvectoring
-+ * @data:	data for the external irq to mask
-+ *
-+ * This is the version of the mask function for older versions which don't have
-+ * HWMASKEXT registers, or a SoC level means of masking IRQs. Instead the IRQ is
-+ * unvectored from the core and retriggered if necessary later.
-+ */
-+static void meta_intc_mask_irq_nomask(struct irq_data *data)
-+{
-+	irq_hw_number_t hw = data->hwirq;
-+	void __iomem *vec_addr = meta_intc_vec_addr(hw);
-+
-+	record_irq_is_masked(data);
-+
-+	/* there is no interrupt mask, so unvector the interrupt */
-+	metag_out32(0, vec_addr);
-+}
-+
-+/**
-+ * meta_intc_unmask_edge_irq_nomask() - unmask an edge irq by revectoring
-+ * @data:	data for the external irq to unmask
-+ *
-+ * This is the version of the unmask function for older versions which don't
-+ * have HWMASKEXT registers, or a SoC level means of masking IRQs. Instead the
-+ * IRQ is revectored back to the core and retriggered if necessary.
-+ *
-+ * The retriggering done by this function is specific to edge interrupts.
-+ */
-+static void meta_intc_unmask_edge_irq_nomask(struct irq_data *data)
-+{
-+	irq_hw_number_t hw = data->hwirq;
-+	unsigned int bit = 1 << meta_intc_offset(hw);
-+	void __iomem *stat_addr = meta_intc_stat_addr(hw);
-+	void __iomem *vec_addr = meta_intc_vec_addr(hw);
-+	unsigned int thread = hard_processor_id();
-+
-+	record_irq_is_unmasked(data);
-+
-+	/* there is no interrupt mask, so revector the interrupt */
-+	metag_out32(TBI_TRIG_VEC(TBID_SIGNUM_TR2(thread)), vec_addr);
-+
-+	/*
-+	 * Re-trigger interrupt
-+	 *
-+	 * Writing a 1 toggles, and a 0->1 transition triggers. We only
-+	 * retrigger if the status bit is already set, which means we
-+	 * need to clear it first. Retriggering is fundamentally racy
-+	 * because if the interrupt fires again after we clear it we
-+	 * could end up clearing it again and the interrupt handler
-+	 * thinking it hasn't fired. Therefore we need to keep trying to
-+	 * retrigger until the bit is set.
-+	 */
-+	if (metag_in32(stat_addr) & bit) {
-+		metag_out32(bit, stat_addr);
-+		while (!(metag_in32(stat_addr) & bit))
-+			metag_out32(bit, stat_addr);
-+	}
-+}
-+
-+/**
-+ * meta_intc_unmask_level_irq_nomask() - unmask a level irq by revectoring
-+ * @data:	data for the external irq to unmask
-+ *
-+ * This is the version of the unmask function for older versions which don't
-+ * have HWMASKEXT registers, or a SoC level means of masking IRQs. Instead the
-+ * IRQ is revectored back to the core and retriggered if necessary.
-+ *
-+ * The retriggering done by this function is specific to level interrupts.
-+ */
-+static void meta_intc_unmask_level_irq_nomask(struct irq_data *data)
-+{
-+	irq_hw_number_t hw = data->hwirq;
-+	unsigned int bit = 1 << meta_intc_offset(hw);
-+	void __iomem *stat_addr = meta_intc_stat_addr(hw);
-+	void __iomem *vec_addr = meta_intc_vec_addr(hw);
-+	unsigned int thread = hard_processor_id();
-+
-+	record_irq_is_unmasked(data);
-+
-+	/* there is no interrupt mask, so revector the interrupt */
-+	metag_out32(TBI_TRIG_VEC(TBID_SIGNUM_TR2(thread)), vec_addr);
-+
-+	/* Re-trigger interrupt */
-+	/* Writing a 1 triggers interrupt */
-+	if (metag_in32(stat_addr) & bit)
-+		metag_out32(bit, stat_addr);
-+}
-+
-+/**
-+ * meta_intc_irq_set_type() - set the type of an external irq
-+ * @data:	data for the external irq to set the type of
-+ * @flow_type:	new irq flow type
-+ *
-+ * Set the flow type of an external interrupt. This updates the irq chip and irq
-+ * handler depending on whether the irq is edge or level sensitive (the polarity
-+ * is ignored), and also sets up the bit in HWLEVELEXT so the hardware knows
-+ * when to trigger.
-+ */
-+static int meta_intc_irq_set_type(struct irq_data *data, unsigned int flow_type)
-+{
-+#ifdef CONFIG_METAG_SUSPEND_MEM
-+	struct meta_intc_priv *priv = &meta_intc_priv;
-+#endif
-+	unsigned int irq = data->irq;
-+	irq_hw_number_t hw = data->hwirq;
-+	unsigned int bit = 1 << meta_intc_offset(hw);
-+	void __iomem *level_addr = meta_intc_level_addr(hw);
-+	unsigned long flags;
-+	unsigned int level;
-+
-+	/* update the chip/handler */
-+	if (flow_type & IRQ_TYPE_LEVEL_MASK)
-+		__irq_set_chip_handler_name_locked(irq, &meta_intc_level_chip,
-+						   handle_level_irq, NULL);
-+	else
-+		__irq_set_chip_handler_name_locked(irq, &meta_intc_edge_chip,
-+						   handle_edge_irq, NULL);
-+
-+	/* and clear/set the bit in HWLEVELEXT */
-+	__global_lock2(flags);
-+	level = metag_in32(level_addr);
-+	if (flow_type & IRQ_TYPE_LEVEL_MASK)
-+		level |= bit;
-+	else
-+		level &= ~bit;
-+	metag_out32(level, level_addr);
-+#ifdef CONFIG_METAG_SUSPEND_MEM
-+	priv->levels_altered[meta_intc_bank(hw)] |= bit;
-+#endif
-+	__global_unlock2(flags);
-+
-+	return 0;
-+}
-+
-+/**
-+ * meta_intc_irq_demux() - external irq de-multiplexer
-+ * @irq:	the virtual interrupt number
-+ * @desc:	the interrupt description structure for this irq
-+ *
-+ * The cpu receives an interrupt on TR2 when a SoC interrupt has occurred. It is
-+ * this function's job to demux this irq and figure out exactly which external
-+ * irq needs servicing.
-+ *
-+ * Whilst using TR2 to detect external interrupts is a software convention it is
-+ * (hopefully) unlikely to change.
-+ */
-+static void meta_intc_irq_demux(unsigned int irq, struct irq_desc *desc)
-+{
-+	struct meta_intc_priv *priv = &meta_intc_priv;
-+	irq_hw_number_t hw;
-+	unsigned int bank, irq_no, status;
-+	void __iomem *stat_addr = meta_intc_stat_addr(0);
-+
-+	/*
-+	 * Locate which interrupt has caused our handler to run.
-+	 */
-+	for (bank = 0; bank < priv->nr_banks; ++bank) {
-+		/* Which interrupts are currently pending in this bank? */
-+recalculate:
-+		status = metag_in32(stat_addr) & priv->unmasked[bank];
-+
-+		for (hw = bank*32; status; status >>= 1, ++hw) {
-+			if (status & 0x1) {
-+				/*
-+				 * Map the hardware IRQ number to a virtual
-+				 * Linux IRQ number.
-+				 */
-+				irq_no = irq_linear_revmap(priv->domain, hw);
-+
-+				/*
-+				 * Only fire off external interrupts that are
-+				 * registered to be handled by the kernel.
-+				 * Other external interrupts are probably being
-+				 * handled by other Meta hardware threads.
-+				 */
-+				generic_handle_irq(irq_no);
-+
-+				/*
-+				 * The handler may have re-enabled interrupts
-+				 * which could have caused a nested invocation
-+				 * of this code and make the copy of the
-+				 * status register we are using invalid.
-+				 */
-+				goto recalculate;
-+			}
-+		}
-+		stat_addr += HWSTAT_STRIDE;
-+	}
-+}
-+
-+#ifdef CONFIG_SMP
-+/**
-+ * meta_intc_set_affinity() - set the affinity for an interrupt
-+ * @data:	data for the external irq to set the affinity of
-+ * @cpumask:	cpu mask representing cpus which can handle the interrupt
-+ * @force:	whether to force (ignored)
-+ *
-+ * Revector the specified external irq onto a specific cpu's TR2 trigger, so
-+ * that that cpu tends to be the one who handles it.
-+ */
-+static int meta_intc_set_affinity(struct irq_data *data,
-+				  const struct cpumask *cpumask, bool force)
-+{
-+	irq_hw_number_t hw = data->hwirq;
-+	void __iomem *vec_addr = meta_intc_vec_addr(hw);
-+	unsigned int cpu, thread;
-+
-+	/*
-+	 * Wire up this interrupt from HWVECxEXT to the Meta core.
-+	 *
-+	 * Note that we can't wire up HWVECxEXT to interrupt more than
-+	 * one cpu (the interrupt code doesn't support it), so we just
-+	 * pick the first cpu we find in 'cpumask'.
-+	 */
-+	cpu = cpumask_any(cpumask);
-+	thread = cpu_2_hwthread_id[cpu];
-+
-+	metag_out32(TBI_TRIG_VEC(TBID_SIGNUM_TR2(thread)), vec_addr);
-+
-+	return 0;
-+}
-+#else
-+#define meta_intc_set_affinity	NULL
-+#endif
-+
-+#ifdef CONFIG_PM_SLEEP
-+#define META_INTC_CHIP_FLAGS	(IRQCHIP_MASK_ON_SUSPEND \
-+				| IRQCHIP_SKIP_SET_WAKE)
-+#else
-+#define META_INTC_CHIP_FLAGS	0
-+#endif
-+
-+/* public edge/level irq chips which SoCs can override */
-+
-+struct irq_chip meta_intc_edge_chip = {
-+	.irq_startup		= meta_intc_startup_irq,
-+	.irq_shutdown		= meta_intc_shutdown_irq,
-+	.irq_ack		= meta_intc_ack_irq,
-+	.irq_mask		= meta_intc_mask_irq,
-+	.irq_unmask		= meta_intc_unmask_irq,
-+	.irq_set_type		= meta_intc_irq_set_type,
-+	.irq_set_affinity	= meta_intc_set_affinity,
-+	.flags			= META_INTC_CHIP_FLAGS,
-+};
-+
-+struct irq_chip meta_intc_level_chip = {
-+	.irq_startup		= meta_intc_startup_irq,
-+	.irq_shutdown		= meta_intc_shutdown_irq,
-+	.irq_set_type		= meta_intc_irq_set_type,
-+	.irq_mask		= meta_intc_mask_irq,
-+	.irq_unmask		= meta_intc_unmask_irq,
-+	.irq_set_affinity	= meta_intc_set_affinity,
-+	.flags			= META_INTC_CHIP_FLAGS,
++struct user_gp_regs {
++	unsigned long dx[8][2];
++	unsigned long ax[4][2];
++	unsigned long pc;
++	unsigned long status;
++	unsigned long rpt;
++	unsigned long bpobits;
++	unsigned long mode;
++	unsigned long _pad1;
 +};
 +
 +/**
-+ * meta_intc_map() - map an external irq
-+ * @d:		irq domain of external trigger block
-+ * @irq:	virtual irq number
-+ * @hw:		hardware irq number within external trigger block
++ * struct user_cb_regs - User catch buffer registers
++ * @flags:	TXCATCH0 register (fault flags)
++ * @addr:	TXCATCH1 register (fault address)
++ * @data:	TXCATCH2 and TXCATCH3 registers (low and high data word)
 + *
-+ * This sets up a virtual irq for a specified hardware interrupt. The irq chip
-+ * and handler is configured, using the HWLEVELEXT registers to determine
-+ * edge/level flow type. These registers will have been set when the irq type is
-+ * set (or set to a default at init time).
-+ */
-+static int meta_intc_map(struct irq_domain *d, unsigned int irq,
-+			 irq_hw_number_t hw)
-+{
-+	unsigned int bit = 1 << meta_intc_offset(hw);
-+	void __iomem *level_addr = meta_intc_level_addr(hw);
-+
-+	/* Go by the current sense in the HWLEVELEXT register */
-+	if (metag_in32(level_addr) & bit)
-+		irq_set_chip_and_handler(irq, &meta_intc_level_chip,
-+					 handle_level_irq);
-+	else
-+		irq_set_chip_and_handler(irq, &meta_intc_edge_chip,
-+					 handle_edge_irq);
-+	return 0;
-+}
-+
-+static const struct irq_domain_ops meta_intc_domain_ops = {
-+	.map = meta_intc_map,
-+	.xlate = irq_domain_xlate_twocell,
-+};
-+
-+#ifdef CONFIG_METAG_SUSPEND_MEM
-+
-+/**
-+ * struct meta_intc_context - suspend context
-+ * @levels:	State of HWLEVELEXT registers
-+ * @masks:	State of HWMASKEXT registers
-+ * @vectors:	State of HWVECEXT registers
-+ * @txvecint:	State of TxVECINT registers
++ * This is the user-visible catch buffer register state structure containing
++ * information about a failed memory access, and allowing the access to be
++ * modified and replayed.
 + *
-+ * This structure stores the IRQ state across suspend.
++ * It can be accessed through PTRACE_GETREGSET with NT_METAG_CBUF.
 + */
-+struct meta_intc_context {
-+	u32 levels[4];
-+	u32 masks[4];
-+	u8 vectors[4*32];
-+
-+	u8 txvecint[4][4];
-+};
-+
-+/* suspend context */
-+static struct meta_intc_context *meta_intc_context;
-+
-+/**
-+ * meta_intc_suspend() - store irq state
-+ *
-+ * To avoid interfering with other threads we only save the IRQ state of IRQs in
-+ * use by Linux.
-+ */
-+static int meta_intc_suspend(void)
-+{
-+	struct meta_intc_priv *priv = &meta_intc_priv;
-+	int i, j;
-+	irq_hw_number_t hw;
-+	unsigned int bank;
++struct user_cb_regs {
 +	unsigned long flags;
-+	struct meta_intc_context *context;
-+	void __iomem *level_addr, *mask_addr, *vec_addr;
-+	u32 mask, bit;
-+
-+	context = kzalloc(sizeof(*context), GFP_ATOMIC);
-+	if (!context)
-+		return -ENOMEM;
-+
-+	hw = 0;
-+	level_addr = meta_intc_level_addr(0);
-+	mask_addr = meta_intc_mask_addr(0);
-+	for (bank = 0; bank < priv->nr_banks; ++bank) {
-+		vec_addr = meta_intc_vec_addr(hw);
-+
-+		/* create mask of interrupts in use */
-+		mask = 0;
-+		for (bit = 1; bit; bit <<= 1) {
-+			i = irq_linear_revmap(priv->domain, hw);
-+			/* save mapped irqs which are enabled or have actions */
-+			if (i && (!irqd_irq_disabled(irq_get_irq_data(i)) ||
-+				  irq_has_action(i))) {
-+				mask |= bit;
-+
-+				/* save trigger vector */
-+				context->vectors[hw] = metag_in32(vec_addr);
-+			}
-+
-+			++hw;
-+			vec_addr += HWVECnEXT_STRIDE;
-+		}
-+
-+		/* save level state if any IRQ levels altered */
-+		if (priv->levels_altered[bank])
-+			context->levels[bank] = metag_in32(level_addr);
-+		/* save mask state if any IRQs in use */
-+		if (mask)
-+			context->masks[bank] = metag_in32(mask_addr);
-+
-+		level_addr += HWSTAT_STRIDE;
-+		mask_addr += HWSTAT_STRIDE;
-+	}
-+
-+	/* save trigger matrixing */
-+	__global_lock2(flags);
-+	for (i = 0; i < 4; ++i)
-+		for (j = 0; j < 4; ++j)
-+			context->txvecint[i][j] = metag_in32(T0VECINT_BHALT +
-+							     TnVECINT_STRIDE*i +
-+							     8*j);
-+	__global_unlock2(flags);
-+
-+	meta_intc_context = context;
-+	return 0;
-+}
-+
-+/**
-+ * meta_intc_resume() - restore saved irq state
-+ *
-+ * Restore the saved IRQ state and drop it.
-+ */
-+static void meta_intc_resume(void)
-+{
-+	struct meta_intc_priv *priv = &meta_intc_priv;
-+	int i, j;
-+	irq_hw_number_t hw;
-+	unsigned int bank;
-+	unsigned long flags;
-+	struct meta_intc_context *context = meta_intc_context;
-+	void __iomem *level_addr, *mask_addr, *vec_addr;
-+	u32 mask, bit, tmp;
-+
-+	meta_intc_context = NULL;
-+
-+	hw = 0;
-+	level_addr = meta_intc_level_addr(0);
-+	mask_addr = meta_intc_mask_addr(0);
-+	for (bank = 0; bank < priv->nr_banks; ++bank) {
-+		vec_addr = meta_intc_vec_addr(hw);
-+
-+		/* create mask of interrupts in use */
-+		mask = 0;
-+		for (bit = 1; bit; bit <<= 1) {
-+			i = irq_linear_revmap(priv->domain, hw);
-+			/* restore mapped irqs, enabled or with actions */
-+			if (i && (!irqd_irq_disabled(irq_get_irq_data(i)) ||
-+				  irq_has_action(i))) {
-+				mask |= bit;
-+
-+				/* restore trigger vector */
-+				metag_out32(context->vectors[hw], vec_addr);
-+			}
-+
-+			++hw;
-+			vec_addr += HWVECnEXT_STRIDE;
-+		}
-+
-+		if (mask) {
-+			/* restore mask state */
-+			__global_lock2(flags);
-+			tmp = metag_in32(mask_addr);
-+			tmp = (tmp & ~mask) | (context->masks[bank] & mask);
-+			metag_out32(tmp, mask_addr);
-+			__global_unlock2(flags);
-+		}
-+
-+		mask = priv->levels_altered[bank];
-+		if (mask) {
-+			/* restore level state */
-+			__global_lock2(flags);
-+			tmp = metag_in32(level_addr);
-+			tmp = (tmp & ~mask) | (context->levels[bank] & mask);
-+			metag_out32(tmp, level_addr);
-+			__global_unlock2(flags);
-+		}
-+
-+		level_addr += HWSTAT_STRIDE;
-+		mask_addr += HWSTAT_STRIDE;
-+	}
-+
-+	/* restore trigger matrixing */
-+	__global_lock2(flags);
-+	for (i = 0; i < 4; ++i) {
-+		for (j = 0; j < 4; ++j) {
-+			metag_out32(context->txvecint[i][j],
-+				    T0VECINT_BHALT +
-+				    TnVECINT_STRIDE*i +
-+				    8*j);
-+		}
-+	}
-+	__global_unlock2(flags);
-+
-+	kfree(context);
-+}
-+
-+static struct syscore_ops meta_intc_syscore_ops = {
-+	.suspend = meta_intc_suspend,
-+	.resume = meta_intc_resume,
++	unsigned long addr;
++	unsigned long long data;
 +};
 +
-+static void __init meta_intc_init_syscore_ops(struct meta_intc_priv *priv)
-+{
-+	register_syscore_ops(&meta_intc_syscore_ops);
-+}
-+#else
-+#define meta_intc_init_syscore_ops(priv) do {} while (0)
-+#endif
-+
 +/**
-+ * meta_intc_init_cpu() - register with a Meta cpu
-+ * @priv:	private interrupt controller data
-+ * @cpu:	the CPU to register on
++ * struct user_rp_state - User read pipeline state
++ * @entries:	Read pipeline entries
++ * @mask:	Mask of valid pipeline entries (RPMask from TXDIVTIME register)
 + *
-+ * Configure @cpu's TR2 irq so that we can demux external irqs.
-+ */
-+static void __init meta_intc_init_cpu(struct meta_intc_priv *priv, int cpu)
-+{
-+	unsigned int thread = cpu_2_hwthread_id[cpu];
-+	unsigned int signum = TBID_SIGNUM_TR2(thread);
-+	int irq = tbisig_map(signum);
-+
-+	/* Register the multiplexed IRQ handler */
-+	irq_set_chained_handler(irq, meta_intc_irq_demux);
-+	irq_set_irq_type(irq, IRQ_TYPE_LEVEL_LOW);
-+}
-+
-+/**
-+ * meta_intc_no_mask() - indicate lack of HWMASKEXT registers
++ * This is the user-visible read pipeline state structure containing the entries
++ * currently in the read pipeline and the mask of valid entries.
 + *
-+ * Called from SoC code (or init code below) to dynamically indicate the lack of
-+ * HWMASKEXT registers (for example depending on some SoC revision register).
-+ * This alters the irq mask and unmask callbacks to use the fallback
-+ * unvectoring/retriggering technique instead of using HWMASKEXT registers.
++ * It can be accessed through PTRACE_GETREGSET with NT_METAG_RPIPE.
 + */
-+void __init meta_intc_no_mask(void)
-+{
-+	meta_intc_edge_chip.irq_mask	= meta_intc_mask_irq_nomask;
-+	meta_intc_edge_chip.irq_unmask	= meta_intc_unmask_edge_irq_nomask;
-+	meta_intc_level_chip.irq_mask	= meta_intc_mask_irq_nomask;
-+	meta_intc_level_chip.irq_unmask	= meta_intc_unmask_level_irq_nomask;
-+}
++struct user_rp_state {
++	unsigned long long entries[6];
++	unsigned long mask;
++};
 +
-+/**
-+ * init_external_IRQ() - initialise the external irq controller
-+ *
-+ * Set up the external irq controller using device tree properties. This is
-+ * called from init_IRQ().
-+ */
-+int __init init_external_IRQ(void)
-+{
-+	struct meta_intc_priv *priv = &meta_intc_priv;
-+	struct device_node *node;
-+	int ret, cpu;
-+	u32 val;
-+	bool no_masks = false;
++#endif /* __ASSEMBLY__ */
 +
-+	node = of_find_compatible_node(NULL, NULL, "img,meta-intc");
-+	if (!node)
-+		return -ENOENT;
-+
-+	/* Get number of banks */
-+	ret = of_property_read_u32(node, "num-banks", &val);
-+	if (ret) {
-+		pr_err("meta-intc: No num-banks property found\n");
-+		return ret;
-+	}
-+	if (val < 1 || val > 4) {
-+		pr_err("meta-intc: num-banks (%u) out of range\n", val);
-+		return -EINVAL;
-+	}
-+	priv->nr_banks = val;
-+
-+	/* Are any mask registers present? */
-+	if (of_get_property(node, "no-mask", NULL))
-+		no_masks = true;
-+
-+	/* No HWMASKEXT registers present? */
-+	if (no_masks)
-+		meta_intc_no_mask();
-+
-+	/* Set up an IRQ domain */
-+	/*
-+	 * This is a legacy IRQ domain for now until all the platform setup code
-+	 * has been converted to devicetree.
-+	 */
-+	priv->domain = irq_domain_add_linear(node, priv->nr_banks*32,
-+					     &meta_intc_domain_ops, priv);
-+	if (unlikely(!priv->domain)) {
-+		pr_err("meta-intc: cannot add IRQ domain\n");
-+		return -ENOMEM;
-+	}
-+
-+	/* Setup TR2 for all cpus. */
-+	for_each_possible_cpu(cpu)
-+		meta_intc_init_cpu(priv, cpu);
-+
-+	/* Set up system suspend/resume callbacks */
-+	meta_intc_init_syscore_ops(priv);
-+
-+	pr_info("meta-intc: External IRQ controller initialised (%u IRQs)\n",
-+		priv->nr_banks*32);
-+
-+	return 0;
-+}
-diff --git a/drivers/irqchip/irq-meta.c b/drivers/irqchip/irq-meta.c
++#endif /* _UAPI_METAG_PTRACE_H */
+diff --git a/arch/metag/kernel/ptrace.c b/arch/metag/kernel/ptrace.c
 new file mode 100644
-index 0000000..8e94d7a
+index 0000000..47a8828
 --- /dev/null
-+++ b/drivers/irqchip/irq-meta.c
-@@ -0,0 +1,343 @@
++++ b/arch/metag/kernel/ptrace.c
+@@ -0,0 +1,380 @@
 +/*
-+ * Meta internal (HWSTATMETA) interrupt code.
++ *  Copyright (C) 2005-2012 Imagination Technologies Ltd.
 + *
-+ * Copyright (C) 2011-2012 Imagination Technologies Ltd.
-+ *
-+ * This code is based on the code in SoC/common/irq.c and SoC/comet/irq.c
-+ * The code base could be generalised/merged as a lot of the functionality is
-+ * similar. Until this is done, we try to keep the code simple here.
++ * This file is subject to the terms and conditions of the GNU General
++ * Public License.  See the file COPYING in the main directory of
++ * this archive for more details.
 + */
 +
-+#include <linux/interrupt.h>
-+#include <linux/io.h>
-+#include <linux/irqdomain.h>
-+
-+#include <asm/irq.h>
-+#include <asm/hwthread.h>
-+
-+#define PERF0VECINT		0x04820580
-+#define PERF1VECINT		0x04820588
-+#define PERF0TRIG_OFFSET	16
-+#define PERF1TRIG_OFFSET	17
-+
-+/**
-+ * struct metag_internal_irq_priv - private meta internal interrupt data
-+ * @domain:		IRQ domain for all internal Meta IRQs (HWSTATMETA)
-+ * @unmasked:		Record of unmasked IRQs
-+ */
-+struct metag_internal_irq_priv {
-+	struct irq_domain	*domain;
-+
-+	unsigned long		unmasked;
-+};
-+
-+/* Private data for the one and only internal interrupt controller */
-+static struct metag_internal_irq_priv metag_internal_irq_priv;
-+
-+static unsigned int metag_internal_irq_startup(struct irq_data *data);
-+static void metag_internal_irq_shutdown(struct irq_data *data);
-+static void metag_internal_irq_ack(struct irq_data *data);
-+static void metag_internal_irq_mask(struct irq_data *data);
-+static void metag_internal_irq_unmask(struct irq_data *data);
-+#ifdef CONFIG_SMP
-+static int metag_internal_irq_set_affinity(struct irq_data *data,
-+			const struct cpumask *cpumask, bool force);
-+#endif
-+
-+static struct irq_chip internal_irq_edge_chip = {
-+	.name = "HWSTATMETA-IRQ",
-+	.irq_startup = metag_internal_irq_startup,
-+	.irq_shutdown = metag_internal_irq_shutdown,
-+	.irq_ack = metag_internal_irq_ack,
-+	.irq_mask = metag_internal_irq_mask,
-+	.irq_unmask = metag_internal_irq_unmask,
-+#ifdef CONFIG_SMP
-+	.irq_set_affinity = metag_internal_irq_set_affinity,
-+#endif
-+};
-+
-+/*
-+ *	metag_hwvec_addr - get the address of *VECINT regs of irq
-+ *
-+ *	This function is a table of supported triggers on HWSTATMETA
-+ *	Could do with a structure, but better keep it simple. Changes
-+ *	in this code should be rare.
-+ */
-+static inline void __iomem *metag_hwvec_addr(irq_hw_number_t hw)
-+{
-+	void __iomem *addr;
-+
-+	switch (hw) {
-+	case PERF0TRIG_OFFSET:
-+		addr = (void __iomem *)PERF0VECINT;
-+		break;
-+	case PERF1TRIG_OFFSET:
-+		addr = (void __iomem *)PERF1VECINT;
-+		break;
-+	default:
-+		addr = NULL;
-+		break;
-+	}
-+	return addr;
-+}
-+
-+/*
-+ *	metag_internal_startup - setup an internal irq
-+ *	@irq:	the irq to startup
-+ *
-+ *	Multiplex interrupts for @irq onto TR1. Clear any pending
-+ *	interrupts.
-+ */
-+static unsigned int metag_internal_irq_startup(struct irq_data *data)
-+{
-+	/* Clear (toggle) the bit in HWSTATMETA for our interrupt. */
-+	metag_internal_irq_ack(data);
-+
-+	/* Enable the interrupt by unmasking it */
-+	metag_internal_irq_unmask(data);
-+
-+	return 0;
-+}
-+
-+/*
-+ *	metag_internal_irq_shutdown - turn off the irq
-+ *	@irq:	the irq number to turn off
-+ *
-+ *	Mask @irq and clear any pending interrupts.
-+ *	Stop muxing @irq onto TR1.
-+ */
-+static void metag_internal_irq_shutdown(struct irq_data *data)
-+{
-+	/* Disable the IRQ at the core by masking it. */
-+	metag_internal_irq_mask(data);
-+
-+	/* Clear (toggle) the bit in HWSTATMETA for our interrupt. */
-+	metag_internal_irq_ack(data);
-+}
-+
-+/*
-+ *	metag_internal_irq_ack - acknowledge irq
-+ *	@irq:	the irq to ack
-+ */
-+static void metag_internal_irq_ack(struct irq_data *data)
-+{
-+	irq_hw_number_t hw = data->hwirq;
-+	unsigned int bit = 1 << hw;
-+
-+	if (metag_in32(HWSTATMETA) & bit)
-+		metag_out32(bit, HWSTATMETA);
-+}
-+
-+/**
-+ * metag_internal_irq_mask() - mask an internal irq by unvectoring
-+ * @data:	data for the internal irq to mask
-+ *
-+ * HWSTATMETA has no mask register. Instead the IRQ is unvectored from the core
-+ * and retriggered if necessary later.
-+ */
-+static void metag_internal_irq_mask(struct irq_data *data)
-+{
-+	struct metag_internal_irq_priv *priv = &metag_internal_irq_priv;
-+	irq_hw_number_t hw = data->hwirq;
-+	void __iomem *vec_addr = metag_hwvec_addr(hw);
-+
-+	clear_bit(hw, &priv->unmasked);
-+
-+	/* there is no interrupt mask, so unvector the interrupt */
-+	metag_out32(0, vec_addr);
-+}
-+
-+/**
-+ * meta_intc_unmask_edge_irq_nomask() - unmask an edge irq by revectoring
-+ * @data:	data for the internal irq to unmask
-+ *
-+ * HWSTATMETA has no mask register. Instead the IRQ is revectored back to the
-+ * core and retriggered if necessary.
-+ */
-+static void metag_internal_irq_unmask(struct irq_data *data)
-+{
-+	struct metag_internal_irq_priv *priv = &metag_internal_irq_priv;
-+	irq_hw_number_t hw = data->hwirq;
-+	unsigned int bit = 1 << hw;
-+	void __iomem *vec_addr = metag_hwvec_addr(hw);
-+	unsigned int thread = hard_processor_id();
-+
-+	set_bit(hw, &priv->unmasked);
-+
-+	/* there is no interrupt mask, so revector the interrupt */
-+	metag_out32(TBI_TRIG_VEC(TBID_SIGNUM_TR1(thread)), vec_addr);
-+
-+	/*
-+	 * Re-trigger interrupt
-+	 *
-+	 * Writing a 1 toggles, and a 0->1 transition triggers. We only
-+	 * retrigger if the status bit is already set, which means we
-+	 * need to clear it first. Retriggering is fundamentally racy
-+	 * because if the interrupt fires again after we clear it we
-+	 * could end up clearing it again and the interrupt handler
-+	 * thinking it hasn't fired. Therefore we need to keep trying to
-+	 * retrigger until the bit is set.
-+	 */
-+	if (metag_in32(HWSTATMETA) & bit) {
-+		metag_out32(bit, HWSTATMETA);
-+		while (!(metag_in32(HWSTATMETA) & bit))
-+			metag_out32(bit, HWSTATMETA);
-+	}
-+}
-+
-+#ifdef CONFIG_SMP
-+/*
-+ *	metag_internal_irq_set_affinity - set the affinity for an interrupt
-+ */
-+static int metag_internal_irq_set_affinity(struct irq_data *data,
-+			const struct cpumask *cpumask, bool force)
-+{
-+	unsigned int cpu, thread;
-+	irq_hw_number_t hw = data->hwirq;
-+	/*
-+	 * Wire up this interrupt from *VECINT to the Meta core.
-+	 *
-+	 * Note that we can't wire up *VECINT to interrupt more than
-+	 * one cpu (the interrupt code doesn't support it), so we just
-+	 * pick the first cpu we find in 'cpumask'.
-+	 */
-+	cpu = cpumask_any(cpumask);
-+	thread = cpu_2_hwthread_id[cpu];
-+
-+	metag_out32(TBI_TRIG_VEC(TBID_SIGNUM_TR1(thread)),
-+		    metag_hwvec_addr(hw));
-+
-+	return 0;
-+}
-+#endif
-+
-+/*
-+ *	metag_internal_irq_demux - irq de-multiplexer
-+ *	@irq:	the interrupt number
-+ *	@desc:	the interrupt description structure for this irq
-+ *
-+ *	The cpu receives an interrupt on TR1 when an interrupt has
-+ *	occurred. It is this function's job to demux this irq and
-+ *	figure out exactly which trigger needs servicing.
-+ */
-+static void metag_internal_irq_demux(unsigned int irq, struct irq_desc *desc)
-+{
-+	struct metag_internal_irq_priv *priv = irq_desc_get_handler_data(desc);
-+	irq_hw_number_t hw;
-+	unsigned int irq_no;
-+	u32 status;
-+
-+recalculate:
-+	status = metag_in32(HWSTATMETA) & priv->unmasked;
-+
-+	for (hw = 0; status != 0; status >>= 1, ++hw) {
-+		if (status & 0x1) {
-+			/*
-+			 * Map the hardware IRQ number to a virtual Linux IRQ
-+			 * number.
-+			 */
-+			irq_no = irq_linear_revmap(priv->domain, hw);
-+
-+			/*
-+			 * Only fire off interrupts that are
-+			 * registered to be handled by the kernel.
-+			 * Other interrupts are probably being
-+			 * handled by other Meta hardware threads.
-+			 */
-+			generic_handle_irq(irq_no);
-+
-+			/*
-+			 * The handler may have re-enabled interrupts
-+			 * which could have caused a nested invocation
-+			 * of this code and make the copy of the
-+			 * status register we are using invalid.
-+			 */
-+			goto recalculate;
-+		}
-+	}
-+}
-+
-+/**
-+ * internal_irq_map() - Map an internal meta IRQ to a virtual IRQ number.
-+ * @hw:		Number of the internal IRQ. Must be in range.
-+ *
-+ * Returns:	The virtual IRQ number of the Meta internal IRQ specified by
-+ *		@hw.
-+ */
-+int internal_irq_map(unsigned int hw)
-+{
-+	struct metag_internal_irq_priv *priv = &metag_internal_irq_priv;
-+	if (!priv->domain)
-+		return -ENODEV;
-+	return irq_create_mapping(priv->domain, hw);
-+}
-+
-+/**
-+ *	metag_internal_irq_init_cpu - regsister with the Meta cpu
-+ *	@cpu:	the CPU to register on
-+ *
-+ *	Configure @cpu's TR1 irq so that we can demux irqs.
-+ */
-+static void metag_internal_irq_init_cpu(struct metag_internal_irq_priv *priv,
-+					int cpu)
-+{
-+	unsigned int thread = cpu_2_hwthread_id[cpu];
-+	unsigned int signum = TBID_SIGNUM_TR1(thread);
-+	int irq = tbisig_map(signum);
-+
-+	/* Register the multiplexed IRQ handler */
-+	irq_set_handler_data(irq, priv);
-+	irq_set_chained_handler(irq, metag_internal_irq_demux);
-+	irq_set_irq_type(irq, IRQ_TYPE_LEVEL_LOW);
-+}
-+
-+/**
-+ * metag_internal_intc_map() - map an internal irq
-+ * @d:		irq domain of internal trigger block
-+ * @irq:	virtual irq number
-+ * @hw:		hardware irq number within internal trigger block
-+ *
-+ * This sets up a virtual irq for a specified hardware interrupt. The irq chip
-+ * and handler is configured.
-+ */
-+static int metag_internal_intc_map(struct irq_domain *d, unsigned int irq,
-+				   irq_hw_number_t hw)
-+{
-+	/* only register interrupt if it is mapped */
-+	if (!metag_hwvec_addr(hw))
-+		return -EINVAL;
-+
-+	irq_set_chip_and_handler(irq, &internal_irq_edge_chip,
-+				 handle_edge_irq);
-+	return 0;
-+}
-+
-+static const struct irq_domain_ops metag_internal_intc_domain_ops = {
-+	.map	= metag_internal_intc_map,
-+};
-+
-+/**
-+ *	metag_internal_irq_register - register internal IRQs
-+ *
-+ *	Register the irq chip and handler function for all internal IRQs
-+ */
-+int __init init_internal_IRQ(void)
-+{
-+	struct metag_internal_irq_priv *priv = &metag_internal_irq_priv;
-+	unsigned int cpu;
-+
-+	/* Set up an IRQ domain */
-+	priv->domain = irq_domain_add_linear(NULL, 32,
-+					     &metag_internal_intc_domain_ops,
-+					     priv);
-+	if (unlikely(!priv->domain)) {
-+		pr_err("meta-internal-intc: cannot add IRQ domain\n");
-+		return -ENOMEM;
-+	}
-+
-+	/* Setup TR1 for all cpus. */
-+	for_each_possible_cpu(cpu)
-+		metag_internal_irq_init_cpu(priv, cpu);
-+
-+	return 0;
-+};
-diff --git a/include/linux/irqchip/meta-ext.h b/include/linux/irqchip/meta-ext.h
-new file mode 100644
-index 0000000..cbe2888
---- /dev/null
-+++ b/include/linux/irqchip/meta-ext.h
-@@ -0,0 +1,33 @@
-+/*
-+ * Copyright (C) 2012 Imagination Technologies
-+ */
-+
-+#ifndef _LINUX_IRQCHIP_META_EXT_H_
-+#define _LINUX_IRQCHIP_META_EXT_H_
-+
-+struct irq_data;
-+struct platform_device;
-+
-+/* called from core irq code at init */
-+int init_external_IRQ(void);
-+
-+/*
-+ * called from SoC init_irq() callback to dynamically indicate the lack of
-+ * HWMASKEXT registers.
-+ */
-+void meta_intc_no_mask(void);
-+
-+/*
-+ * These allow SoCs to specialise the interrupt controller from their init_irq
-+ * callbacks.
-+ */
-+
-+extern struct irq_chip meta_intc_edge_chip;
-+extern struct irq_chip meta_intc_level_chip;
-+
-+/* this should be called in the mask callback */
-+void meta_intc_mask_irq_simple(struct irq_data *data);
-+/* this should be called in the unmask callback */
-+void meta_intc_unmask_irq_simple(struct irq_data *data);
-+
-+#endif /* _LINUX_IRQCHIP_META_EXT_H_ */
-diff --git a/include/linux/irqchip/meta.h b/include/linux/irqchip/meta.h
-new file mode 100644
-index 0000000..372be18
---- /dev/null
-+++ b/include/linux/irqchip/meta.h
-@@ -0,0 +1,24 @@
-+/*
-+ * Copyright (C) 2011 Imagination Technologies
-+ */
-+
-+#ifndef _LINUX_IRQCHIP_META_H_
-+#define _LINUX_IRQCHIP_META_H_
-+
++#include <linux/kernel.h>
++#include <linux/mm.h>
 +#include <linux/errno.h>
++#include <linux/ptrace.h>
++#include <linux/user.h>
++#include <linux/regset.h>
++#include <linux/tracehook.h>
++#include <linux/elf.h>
++#include <linux/uaccess.h>
++#include <trace/syscall.h>
 +
-+#ifdef CONFIG_METAG_PERFCOUNTER_IRQS
-+extern int init_internal_IRQ(void);
-+extern int internal_irq_map(unsigned int hw);
-+#else
-+static inline int init_internal_IRQ(void)
-+{
-+	return 0;
-+}
-+static inline int internal_irq_map(unsigned int hw)
-+{
-+	return -EINVAL;
-+}
-+#endif
++#define CREATE_TRACE_POINTS
++#include <trace/events/syscalls.h>
 +
-+#endif /* _LINUX_IRQCHIP_META_H_ */
++/*
++ * user_regset definitions.
++ */
++
++int metag_gp_regs_copyout(const struct pt_regs *regs,
++			  unsigned int pos, unsigned int count,
++			  void *kbuf, void __user *ubuf)
++{
++	const void *ptr;
++	unsigned long data;
++	int ret;
++
++	/* D{0-1}.{0-7} */
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  regs->ctx.DX, 0, 4*16);
++	if (ret)
++		goto out;
++	/* A{0-1}.{0-1} */
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  regs->ctx.AX, 4*16, 4*20);
++	if (ret)
++		goto out;
++	/* A{0-1}.2 */
++	if (regs->ctx.SaveMask & TBICTX_XEXT_BIT)
++		ptr = regs->ctx.Ext.Ctx.pExt;
++	else
++		ptr = &regs->ctx.Ext.AX2;
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  ptr, 4*20, 4*22);
++	if (ret)
++		goto out;
++	/* A{0-1}.3 */
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  &regs->ctx.AX3, 4*22, 4*24);
++	if (ret)
++		goto out;
++	/* PC */
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  &regs->ctx.CurrPC, 4*24, 4*25);
++	if (ret)
++		goto out;
++	/* TXSTATUS */
++	data = (unsigned long)regs->ctx.Flags;
++	if (regs->ctx.SaveMask & TBICTX_CBUF_BIT)
++		data |= USER_GP_REGS_STATUS_CATCH_BIT;
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  &data, 4*25, 4*26);
++	if (ret)
++		goto out;
++	/* TXRPT, TXBPOBITS, TXMODE */
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  &regs->ctx.CurrRPT, 4*26, 4*29);
++	if (ret)
++		goto out;
++	/* Padding */
++	ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
++				       4*29, 4*30);
++out:
++	return ret;
++}
++
++int metag_gp_regs_copyin(struct pt_regs *regs,
++			 unsigned int pos, unsigned int count,
++			 const void *kbuf, const void __user *ubuf)
++{
++	void *ptr;
++	unsigned long data;
++	int ret;
++
++	/* D{0-1}.{0-7} */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 regs->ctx.DX, 0, 4*16);
++	if (ret)
++		goto out;
++	/* A{0-1}.{0-1} */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 regs->ctx.AX, 4*16, 4*20);
++	if (ret)
++		goto out;
++	/* A{0-1}.2 */
++	if (regs->ctx.SaveMask & TBICTX_XEXT_BIT)
++		ptr = regs->ctx.Ext.Ctx.pExt;
++	else
++		ptr = &regs->ctx.Ext.AX2;
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 ptr, 4*20, 4*22);
++	if (ret)
++		goto out;
++	/* A{0-1}.3 */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 &regs->ctx.AX3, 4*22, 4*24);
++	if (ret)
++		goto out;
++	/* PC */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 &regs->ctx.CurrPC, 4*24, 4*25);
++	if (ret)
++		goto out;
++	/* TXSTATUS */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 &data, 4*25, 4*26);
++	if (ret)
++		goto out;
++	regs->ctx.Flags = data & 0xffff;
++	if (data & USER_GP_REGS_STATUS_CATCH_BIT)
++		regs->ctx.SaveMask |= TBICTX_XCBF_BIT | TBICTX_CBUF_BIT;
++	else
++		regs->ctx.SaveMask &= ~TBICTX_CBUF_BIT;
++	/* TXRPT, TXBPOBITS, TXMODE */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 &regs->ctx.CurrRPT, 4*26, 4*29);
++out:
++	return ret;
++}
++
++static int metag_gp_regs_get(struct task_struct *target,
++			     const struct user_regset *regset,
++			     unsigned int pos, unsigned int count,
++			     void *kbuf, void __user *ubuf)
++{
++	const struct pt_regs *regs = task_pt_regs(target);
++	return metag_gp_regs_copyout(regs, pos, count, kbuf, ubuf);
++}
++
++static int metag_gp_regs_set(struct task_struct *target,
++			     const struct user_regset *regset,
++			     unsigned int pos, unsigned int count,
++			     const void *kbuf, const void __user *ubuf)
++{
++	struct pt_regs *regs = task_pt_regs(target);
++	return metag_gp_regs_copyin(regs, pos, count, kbuf, ubuf);
++}
++
++int metag_cb_regs_copyout(const struct pt_regs *regs,
++			  unsigned int pos, unsigned int count,
++			  void *kbuf, void __user *ubuf)
++{
++	int ret;
++
++	/* TXCATCH{0-3} */
++	if (regs->ctx.SaveMask & TBICTX_XCBF_BIT)
++		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++					  regs->extcb0, 0, 4*4);
++	else
++		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
++					       0, 4*4);
++	return ret;
++}
++
++int metag_cb_regs_copyin(struct pt_regs *regs,
++			 unsigned int pos, unsigned int count,
++			 const void *kbuf, const void __user *ubuf)
++{
++	int ret;
++
++	/* TXCATCH{0-3} */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 regs->extcb0, 0, 4*4);
++	return ret;
++}
++
++static int metag_cb_regs_get(struct task_struct *target,
++			     const struct user_regset *regset,
++			     unsigned int pos, unsigned int count,
++			     void *kbuf, void __user *ubuf)
++{
++	const struct pt_regs *regs = task_pt_regs(target);
++	return metag_cb_regs_copyout(regs, pos, count, kbuf, ubuf);
++}
++
++static int metag_cb_regs_set(struct task_struct *target,
++			     const struct user_regset *regset,
++			     unsigned int pos, unsigned int count,
++			     const void *kbuf, const void __user *ubuf)
++{
++	struct pt_regs *regs = task_pt_regs(target);
++	return metag_cb_regs_copyin(regs, pos, count, kbuf, ubuf);
++}
++
++int metag_rp_state_copyout(const struct pt_regs *regs,
++			   unsigned int pos, unsigned int count,
++			   void *kbuf, void __user *ubuf)
++{
++	unsigned long mask;
++	u64 *ptr;
++	int ret, i;
++
++	/* Empty read pipeline */
++	if (!(regs->ctx.SaveMask & TBICTX_CBRP_BIT)) {
++		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
++					       0, 4*13);
++		goto out;
++	}
++
++	mask = (regs->ctx.CurrDIVTIME & TXDIVTIME_RPMASK_BITS) >>
++		TXDIVTIME_RPMASK_S;
++
++	/* Read pipeline entries */
++	ptr = (void *)&regs->extcb0[1];
++	for (i = 0; i < 6; ++i, ++ptr) {
++		if (mask & (1 << i))
++			ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++						  ptr, 8*i, 8*(i + 1));
++		else
++			ret = user_regset_copyout_zero(&pos, &count, &kbuf,
++						       &ubuf, 8*i, 8*(i + 1));
++		if (ret)
++			goto out;
++	}
++	/* Mask of entries */
++	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
++				  &mask, 4*12, 4*13);
++out:
++	return ret;
++}
++
++int metag_rp_state_copyin(struct pt_regs *regs,
++			  unsigned int pos, unsigned int count,
++			  const void *kbuf, const void __user *ubuf)
++{
++	struct user_rp_state rp;
++	unsigned long long *ptr;
++	int ret, i;
++
++	/* Read the entire pipeline before making any changes */
++	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
++				 &rp, 0, 4*13);
++	if (ret)
++		goto out;
++
++	/* Write pipeline entries */
++	ptr = (void *)&regs->extcb0[1];
++	for (i = 0; i < 6; ++i, ++ptr)
++		if (rp.mask & (1 << i))
++			*ptr = rp.entries[i];
++
++	/* Update RPMask in TXDIVTIME */
++	regs->ctx.CurrDIVTIME &= ~TXDIVTIME_RPMASK_BITS;
++	regs->ctx.CurrDIVTIME |= (rp.mask << TXDIVTIME_RPMASK_S)
++				 & TXDIVTIME_RPMASK_BITS;
++
++	/* Set/clear flags to indicate catch/read pipeline state */
++	if (rp.mask)
++		regs->ctx.SaveMask |= TBICTX_XCBF_BIT | TBICTX_CBRP_BIT;
++	else
++		regs->ctx.SaveMask &= ~TBICTX_CBRP_BIT;
++out:
++	return ret;
++}
++
++static int metag_rp_state_get(struct task_struct *target,
++			      const struct user_regset *regset,
++			      unsigned int pos, unsigned int count,
++			      void *kbuf, void __user *ubuf)
++{
++	const struct pt_regs *regs = task_pt_regs(target);
++	return metag_rp_state_copyout(regs, pos, count, kbuf, ubuf);
++}
++
++static int metag_rp_state_set(struct task_struct *target,
++			      const struct user_regset *regset,
++			      unsigned int pos, unsigned int count,
++			      const void *kbuf, const void __user *ubuf)
++{
++	struct pt_regs *regs = task_pt_regs(target);
++	return metag_rp_state_copyin(regs, pos, count, kbuf, ubuf);
++}
++
++enum metag_regset {
++	REGSET_GENERAL,
++	REGSET_CBUF,
++	REGSET_READPIPE,
++};
++
++static const struct user_regset metag_regsets[] = {
++	[REGSET_GENERAL] = {
++		.core_note_type = NT_PRSTATUS,
++		.n = ELF_NGREG,
++		.size = sizeof(long),
++		.align = sizeof(long long),
++		.get = metag_gp_regs_get,
++		.set = metag_gp_regs_set,
++	},
++	[REGSET_CBUF] = {
++		.core_note_type = NT_METAG_CBUF,
++		.n = sizeof(struct user_cb_regs) / sizeof(long),
++		.size = sizeof(long),
++		.align = sizeof(long long),
++		.get = metag_cb_regs_get,
++		.set = metag_cb_regs_set,
++	},
++	[REGSET_READPIPE] = {
++		.core_note_type = NT_METAG_RPIPE,
++		.n = sizeof(struct user_rp_state) / sizeof(long),
++		.size = sizeof(long),
++		.align = sizeof(long long),
++		.get = metag_rp_state_get,
++		.set = metag_rp_state_set,
++	},
++};
++
++static const struct user_regset_view user_metag_view = {
++	.name = "metag",
++	.e_machine = EM_METAG,
++	.regsets = metag_regsets,
++	.n = ARRAY_SIZE(metag_regsets)
++};
++
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++{
++	return &user_metag_view;
++}
++
++/*
++ * Called by kernel/ptrace.c when detaching..
++ *
++ * Make sure single step bits etc are not set.
++ */
++void ptrace_disable(struct task_struct *child)
++{
++	/* nothing to do.. */
++}
++
++long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
++		 unsigned long data)
++{
++	int ret;
++
++	switch (request) {
++	default:
++		ret = ptrace_request(child, request, addr, data);
++		break;
++	}
++
++	return ret;
++}
++
++int syscall_trace_enter(struct pt_regs *regs)
++{
++	int ret = 0;
++
++	if (test_thread_flag(TIF_SYSCALL_TRACE))
++		ret = tracehook_report_syscall_entry(regs);
++
++	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
++		trace_sys_enter(regs, regs->ctx.DX[0].U1);
++
++	return ret ? -1 : regs->ctx.DX[0].U1;
++}
++
++void syscall_trace_leave(struct pt_regs *regs)
++{
++	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
++		trace_sys_exit(regs, regs->ctx.DX[0].U1);
++
++	if (test_thread_flag(TIF_SYSCALL_TRACE))
++		tracehook_report_syscall_exit(regs, 0);
++}
+diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
+index 126a817..eb164a2 100644
+--- a/include/uapi/linux/elf.h
++++ b/include/uapi/linux/elf.h
+@@ -395,6 +395,8 @@ typedef struct elf64_shdr {
+ #define NT_ARM_TLS	0x401		/* ARM TLS register */
+ #define NT_ARM_HW_BREAK	0x402		/* ARM hardware breakpoint registers */
+ #define NT_ARM_HW_WATCH	0x403		/* ARM hardware watchpoint registers */
++#define NT_METAG_CBUF	0x500		/* Metag catch buffer registers */
++#define NT_METAG_RPIPE	0x501		/* Metag read pipeline state */
+ 
+ 
+ /* Note header in a PT_NOTE section */
 -- 
 1.7.7.6
