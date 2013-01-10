@@ -1,46 +1,56 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v3 02/44] asm-generic/unistd.h: handle symbol prefixes in cond_syscall
-Date: Thu, 10 Jan 2013 15:30:30 +0000
-Message-ID: <1357831872-29451-3-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v3 35/44] mm: define VM_GROWSUP for CONFIG_METAG
+Date: Thu, 10 Jan 2013 15:31:03 +0000
+Message-ID: <1357831872-29451-36-git-send-email-james.hogan@imgtec.com>
 References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <owner-linux-mm@kvack.org>
 In-Reply-To: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: owner-linux-mm@kvack.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: James Hogan <james.hogan@imgtec.com>
+Cc: James Hogan <james.hogan@imgtec.com>, Konstantin Khlebnikov <khlebnikov@openvz.org>, Andrew Morton <akpm@linux-foundation.org>, Mel
+ Gorman <mgorman@suse.de>, Michel Lespinasse <walken@google.com>, Al Viro <viro@zeniv.linux.org.uk>, linux-mm@kvack.org
 List-Id: linux-arch.vger.kernel.org
 
-Some architectures have symbol prefixes and set CONFIG_SYMBOL_PREFIX,
-but this wasn't taken into account by the generic cond_syscall. It's
-easy enough to fix in a generic fashion, so add the symbol prefix to
-symbol names in cond_syscall when CONFIG_SYMBOL_PREFIX is set.
+Commit cc2383ec06be093789469852e1fe96e1148e9a2c ("mm: introduce
+arch-specific vma flag VM_ARCH_1") merged in v3.7-rc1.
+
+The above commit combined several arch-specific vma flags into one, and
+in the process it changed the VM_GROWSUP definition to depend on
+specific architectures rather than CONFIG_STACK_GROWSUP. Therefore add
+an ifdef for CONFIG_METAG to also set VM_GROWSUP.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Acked-by: Arnd Bergmann <arnd@arndb.de>
-Acked-by: Mike Frysinger <vapier@gentoo.org>
+Cc: Konstantin Khlebnikov <khlebnikov@openvz.org>
+Cc: Andrew Morton <akpm@linux-foundation.org>
+Cc: Mel Gorman <mgorman@suse.de>
+Cc: Michel Lespinasse <walken@google.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-mm@kvack.org
 ---
- include/asm-generic/unistd.h |    9 ++++++++-
- 1 files changed, 8 insertions(+), 1 deletions(-)
+ include/linux/mm.h |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
 
-diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
-index 257c55e..4077b5d 100644
---- a/include/asm-generic/unistd.h
-+++ b/include/asm-generic/unistd.h
-@@ -17,5 +17,12 @@
-  * but it doesn't work on all toolchains, so we just do it by hand
-  */
- #ifndef cond_syscall
--#define cond_syscall(x) asm(".weak\t" #x "\n\t.set\t" #x ",sys_ni_syscall")
-+#ifdef CONFIG_SYMBOL_PREFIX
-+#define __SYMBOL_PREFIX CONFIG_SYMBOL_PREFIX
-+#else
-+#define __SYMBOL_PREFIX
-+#endif
-+#define cond_syscall(x) asm(".weak\t" __SYMBOL_PREFIX #x "\n\t" \
-+			    ".set\t" __SYMBOL_PREFIX #x "," \
-+			    __SYMBOL_PREFIX "sys_ni_syscall")
- #endif
+diff --git a/include/linux/mm.h b/include/linux/mm.h
+index 6320407..f71abc6 100644
+--- a/include/linux/mm.h
++++ b/include/linux/mm.h
+@@ -114,6 +114,8 @@ extern unsigned int kobjsize(const void *objp);
+ # define VM_SAO		VM_ARCH_1	/* Strong Access Ordering (powerpc) */
+ #elif defined(CONFIG_PARISC)
+ # define VM_GROWSUP	VM_ARCH_1
++#elif defined(CONFIG_METAG)
++# define VM_GROWSUP	VM_ARCH_1
+ #elif defined(CONFIG_IA64)
+ # define VM_GROWSUP	VM_ARCH_1
+ #elif !defined(CONFIG_MMU)
 -- 
 1.7.7.6
+
+
+--
+To unsubscribe, send a message with 'unsubscribe linux-mm' in
+the body to majordomo@kvack.org.  For more info on Linux MM,
+see: http://www.linux-mm.org/ .
+Don't email: <a href=mailto:"dont@kvack.org"> email@kvack.org </a>
