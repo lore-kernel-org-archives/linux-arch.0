@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:56857 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:56708 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754149Ab3AJPcj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1754302Ab3AJPcj (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Thu, 10 Jan 2013 10:32:39 -0500
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v3 14/44] metag: Memory handling
-Date: Thu, 10 Jan 2013 15:30:42 +0000
-Message-ID: <1357831872-29451-15-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v3 11/44] metag: TBX source
+Date: Thu, 10 Jan 2013 15:30:39 +0000
+Message-ID: <1357831872-29451-12-git-send-email-james.hogan@imgtec.com>
 In-Reply-To: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
@@ -15,1986 +15,2278 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: James Hogan <james.hogan@imgtec.com>
-Message-ID: <20130110153042.dIOoWjEkt-wWZT25DmuSPPgoHkRYaMvvMxIWpXfekrA@z>
+Message-ID: <20130110153039.Bn7GYpJ2R722BRRv6PKVJWtsQXr7NBVzIsceoNbf51Y@z>
 
-Meta has instructions for accessing:
- - bytes        - GETB (1 byte)
- - words        - GETW (2 bytes)
- - doublewords  - GETD (4 bytes)
- - longwords    - GETL (8 bytes)
+Add source files from the Thread Binary Interface (TBI) library which
+provides useful low level operations and traps/context management.
 
-All accesses must be aligned. Unaligned accesses can be detected and
-made to fault on Meta2, however it isn't possible to fix up unaligned
-writes so we don't bother fixing up reads either.
-
-This patch adds metag memory handling code including:
- - I/O memory (io.h, ioremap.c): Actually any virtual memory can be
-   accessed with these helpers. A part of the non-MMUable address space
-   is used for memory mapped I/O. The ioremap() function is implemented
-   one to one for non-MMUable addresses.
- - User memory (uaccess.h, usercopy.c): User memory is directly
-   accessible from privileged code.
- - Kernel memory (maccess.c): probe_kernel_write() needs to be
-   overwridden to use the I/O functions when doing a simple aligned
-   write to non-writecombined memory, otherwise the write may be split
-   by the generic version.
-
-Note that due to the fact that a portion of the virtual address space is
-non-MMUable, and therefore always maps directly to the physical address
-space, metag specific I/O functions are made available (metag_in32,
-metag_out32 etc). These cast the address argument to a pointer so that
-they can be used with raw physical addresses. These accessors are only
-to be used for accessing fixed core Meta architecture registers in the
-non-MMU region, and not for any SoC/peripheral registers.
+Among other things it handles interrupt/exception/syscall entry (in
+tbipcx.S).
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
 ---
- arch/metag/include/asm/io.h      |  165 +++++
- arch/metag/include/asm/uaccess.h |  241 +++++++
- arch/metag/lib/usercopy.c        | 1341 ++++++++++++++++++++++++++++++++++++++
- arch/metag/mm/ioremap.c          |   89 +++
- arch/metag/mm/maccess.c          |   68 ++
- 5 files changed, 1904 insertions(+), 0 deletions(-)
- create mode 100644 arch/metag/include/asm/io.h
- create mode 100644 arch/metag/include/asm/uaccess.h
- create mode 100644 arch/metag/lib/usercopy.c
- create mode 100644 arch/metag/mm/ioremap.c
- create mode 100644 arch/metag/mm/maccess.c
+ arch/metag/tbx/tbicore.S   |  136 +++++++++++++
+ arch/metag/tbx/tbictx.S    |  366 +++++++++++++++++++++++++++++++++++
+ arch/metag/tbx/tbictxfpu.S |  190 +++++++++++++++++++
+ arch/metag/tbx/tbidefr.S   |  175 +++++++++++++++++
+ arch/metag/tbx/tbidspram.S |  161 ++++++++++++++++
+ arch/metag/tbx/tbilogf.S   |   48 +++++
+ arch/metag/tbx/tbipcx.S    |  451 ++++++++++++++++++++++++++++++++++++++++++++
+ arch/metag/tbx/tbiroot.S   |   87 +++++++++
+ arch/metag/tbx/tbisoft.S   |  237 +++++++++++++++++++++++
+ arch/metag/tbx/tbistring.c |  114 +++++++++++
+ arch/metag/tbx/tbitimer.S  |  207 ++++++++++++++++++++
+ 11 files changed, 2172 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/tbx/tbicore.S
+ create mode 100644 arch/metag/tbx/tbictx.S
+ create mode 100644 arch/metag/tbx/tbictxfpu.S
+ create mode 100644 arch/metag/tbx/tbidefr.S
+ create mode 100644 arch/metag/tbx/tbidspram.S
+ create mode 100644 arch/metag/tbx/tbilogf.S
+ create mode 100644 arch/metag/tbx/tbipcx.S
+ create mode 100644 arch/metag/tbx/tbiroot.S
+ create mode 100644 arch/metag/tbx/tbisoft.S
+ create mode 100644 arch/metag/tbx/tbistring.c
+ create mode 100644 arch/metag/tbx/tbitimer.S
 
-diff --git a/arch/metag/include/asm/io.h b/arch/metag/include/asm/io.h
+diff --git a/arch/metag/tbx/tbicore.S b/arch/metag/tbx/tbicore.S
 new file mode 100644
-index 0000000..9359e50
+index 0000000..a0838eb
 --- /dev/null
-+++ b/arch/metag/include/asm/io.h
-@@ -0,0 +1,165 @@
-+#ifndef _ASM_METAG_IO_H
-+#define _ASM_METAG_IO_H
-+
-+#include <linux/types.h>
-+
-+#define IO_SPACE_LIMIT  0
-+
-+#define page_to_bus page_to_phys
-+#define bus_to_page phys_to_page
-+
++++ b/arch/metag/tbx/tbicore.S
+@@ -0,0 +1,136 @@
 +/*
-+ * Generic I/O
-+ */
-+
-+#define __raw_readb __raw_readb
-+static inline u8 __raw_readb(const volatile void __iomem *addr)
-+{
-+	u8 ret;
-+	asm volatile("GETB %0,[%1]"
-+		     : "=da" (ret)
-+		     : "da" (addr)
-+		     : "memory");
-+	return ret;
-+}
-+
-+#define __raw_readw __raw_readw
-+static inline u16 __raw_readw(const volatile void __iomem *addr)
-+{
-+	u16 ret;
-+	asm volatile("GETW %0,[%1]"
-+		     : "=da" (ret)
-+		     : "da" (addr)
-+		     : "memory");
-+	return ret;
-+}
-+
-+#define __raw_readl __raw_readl
-+static inline u32 __raw_readl(const volatile void __iomem *addr)
-+{
-+	u32 ret;
-+	asm volatile("GETD %0,[%1]"
-+		     : "=da" (ret)
-+		     : "da" (addr)
-+		     : "memory");
-+	return ret;
-+}
-+
-+#define __raw_readq __raw_readq
-+static inline u64 __raw_readq(const volatile void __iomem *addr)
-+{
-+	u64 ret;
-+	asm volatile("GETL %0,%t0,[%1]"
-+		     : "=da" (ret)
-+		     : "da" (addr)
-+		     : "memory");
-+	return ret;
-+}
-+
-+#define __raw_writeb __raw_writeb
-+static inline void __raw_writeb(u8 b, volatile void __iomem *addr)
-+{
-+	asm volatile("SETB [%0],%1"
-+		     :
-+		     : "da" (addr),
-+		       "da" (b)
-+		     : "memory");
-+}
-+
-+#define __raw_writew __raw_writew
-+static inline void __raw_writew(u16 b, volatile void __iomem *addr)
-+{
-+	asm volatile("SETW [%0],%1"
-+		     :
-+		     : "da" (addr),
-+		       "da" (b)
-+		     : "memory");
-+}
-+
-+#define __raw_writel __raw_writel
-+static inline void __raw_writel(u32 b, volatile void __iomem *addr)
-+{
-+	asm volatile("SETD [%0],%1"
-+		     :
-+		     : "da" (addr),
-+		       "da" (b)
-+		     : "memory");
-+}
-+
-+#define __raw_writeq __raw_writeq
-+static inline void __raw_writeq(u64 b, volatile void __iomem *addr)
-+{
-+	asm volatile("SETL [%0],%1,%t1"
-+		     :
-+		     : "da" (addr),
-+		       "da" (b)
-+		     : "memory");
-+}
-+
-+/*
-+ * The generic io.h can define all the other generic accessors
-+ */
-+
-+#include <asm-generic/io.h>
-+
-+/*
-+ * Despite being a 32bit architecture, Meta can do 64bit memory accesses
-+ * (assuming the bus supports it).
-+ */
-+
-+#define readq	__raw_readq
-+#define writeq	__raw_writeq
-+
-+/*
-+ * Meta specific I/O for accessing non-MMU areas.
++ * tbicore.S
 + *
-+ * These can be provided with a physical address rather than an __iomem pointer
-+ * and should only be used by core architecture code for accessing fixed core
-+ * registers. Generic drivers should use ioremap and the generic I/O accessors.
++ * Copyright (C) 2001, 2002, 2007, 2012 Imagination Technologies.
++ *
++ * This program is free software; you can redistribute it and/or modify it under
++ * the terms of the GNU General Public License version 2 as published by the
++ * Free Software Foundation.
++ *
++ * Core functions needed to support use of the thread binary interface for META
++ * processors
 + */
 +
-+#define metag_in8(addr)		__raw_readb((volatile void __iomem *)(addr))
-+#define metag_in16(addr)	__raw_readw((volatile void __iomem *)(addr))
-+#define metag_in32(addr)	__raw_readl((volatile void __iomem *)(addr))
-+#define metag_in64(addr)	__raw_readq((volatile void __iomem *)(addr))
++	.file	"tbicore.S"
++/* Get data structures and defines from the TBI C header */
++#include <asm/metag_mem.h>
++#include <asm/metag_regs.h>
++#include <asm/tbx.h>
 +
-+#define metag_out8(b, addr)	__raw_writeb(b, (volatile void __iomem *)(addr))
-+#define metag_out16(b, addr)	__raw_writew(b, (volatile void __iomem *)(addr))
-+#define metag_out32(b, addr)	__raw_writel(b, (volatile void __iomem *)(addr))
-+#define metag_out64(b, addr)	__raw_writeq(b, (volatile void __iomem *)(addr))
++	.data
++	.balign	8
++	.global	___pTBISegs
++	.type	___pTBISegs,object
++___pTBISegs:
++	.quad	0		/* Segment list pointer with it's */
++	.size	___pTBISegs,.-___pTBISegs
++					/* own id or spin-lock location */
++/*
++ * Return ___pTBISegs value specific to privilege level - not very complicated
++ * at the moment
++ *
++ * Register Usage: D0Re0 is the result, D1Re0 is used as a scratch
++ */
++	.text
++	.balign	4
++	.global	___TBISegList
++	.type	___TBISegList,function
++___TBISegList:
++	MOVT	A1LbP,#HI(___pTBISegs)
++	ADD	A1LbP,A1LbP,#LO(___pTBISegs)
++	GETL	D0Re0,D1Re0,[A1LbP]
++	MOV	PC,D1RtP
++	.size	___TBISegList,.-___TBISegList
 +
 +/*
-+ * io remapping functions
-+ */
-+
-+extern void __iomem *__ioremap(unsigned long offset,
-+			       size_t size, unsigned long flags);
-+extern void __iounmap(void __iomem *addr);
-+
-+/**
-+ *	ioremap		-	map bus memory into CPU space
-+ *	@offset:	bus address of the memory
-+ *	@size:		size of the resource to map
++ * Search the segment list for a match given Id, pStart can be NULL
 + *
-+ *	ioremap performs a platform specific sequence of operations to
-+ *	make bus memory CPU accessible via the readb/readw/readl/writeb/
-+ *	writew/writel functions and the other mmio helpers. The returned
-+ *	address is not guaranteed to be usable directly as a virtual
-+ *	address.
++ * Register Usage: D1Ar1 is pSeg, D0Ar2 is Id, D0Re0 is the result
++ *                 D0Ar4, D1Ar3 are used as a scratch
++ *                 NB: The PSTAT bit if Id in D0Ar2 may be toggled
 + */
-+#define ioremap(offset, size)                   \
-+	__ioremap((offset), (size), 0)
++	.text
++	.balign	4
++	.global	___TBIFindSeg
++	.type	___TBIFindSeg,function
++___TBIFindSeg:
++	MOVT	A1LbP,#HI(___pTBISegs)
++	ADD	A1LbP,A1LbP,#LO(___pTBISegs)
++	GETL	D1Ar3,D0Ar4,[A1LbP]	/* Read segment list head */
++	MOV	D0Re0,TXSTATUS		/* What priv level are we at? */
++	CMP	D1Ar1,#0		/* Is pStart provided? */
++/* Disable privilege adaption for now */
++	ANDT	D0Re0,D0Re0,#0	/*HI(TXSTATUS_PSTAT_BIT)  ; Is PSTAT set? Zero if not */
++	LSL	D0Re0,D0Re0,#(TBID_PSTAT_S-TXSTATUS_PSTAT_S)
++	XOR	D0Ar2,D0Ar2,D0Re0	/* Toggle Id PSTAT if privileged */
++	MOVNZ	D1Ar3,D1Ar1		/* Use pStart if provided */
++$LFindSegLoop:			
++	ADDS	D0Re0,D1Ar3,#0		/* End of list? Load result into D0Re0 */
++	MOVZ	PC,D1RtP		/* If result is NULL we leave */
++	GETL	D1Ar3,D0Ar4,[D1Ar3]	/* Read pLink and Id */
++	CMP	D0Ar4,D0Ar2		/* Does it match? */
++	BNZ	$LFindSegLoop		/* Loop if there is no match */
++	TST	D0Re0,D0Re0		/* Clear zero flag - we found it! */
++	MOV	PC,D1RtP		/* Return */
++	.size	___TBIFindSeg,.-___TBIFindSeg
 +
-+#define ioremap_nocache(offset, size)           \
-+	__ioremap((offset), (size), 0)
++/* Useful offsets to encode the lower bits of the lock/unlock addresses */
++#define UON  (LINSYSEVENT_WR_ATOMIC_LOCK   & 0xFFF8)
++#define UOFF (LINSYSEVENT_WR_ATOMIC_UNLOCK & 0xFFF8)
 +
-+#define ioremap_cached(offset, size)            \
-+	__ioremap((offset), (size), _PAGE_CACHEABLE)
++/*
++ * Perform a whole spin-lock sequence as used by the TBISignal routine
++ *
++ * Register Usage: D1Ar1 is pLock, D0Ar2 is Mask, D0Re0 is the result
++ *                 (All other usage due to ___TBIPoll - D0Ar6, D1Re0)
++ */
++	.text
++	.balign	4
++	.global	___TBISpin
++	.type	___TBISpin,function
++___TBISpin:
++	SETL	[A0StP++],D0FrT,D1RtP	/* Save our return address */
++	ORS	D0Re0,D0Re0,#1		/* Clear zero flag */
++	MOV	D1RtP,PC		/* Setup return address to form loop */
++$LSpinLoop:
++	BNZ	___TBIPoll		/* Keep repeating if fail to set */
++	GETL	D0FrT,D1RtP,[--A0StP]	/* Restore return address */
++	MOV	PC,D1RtP		/* Return */
++	.size	___TBISpin,.-___TBISpin
 +
-+#define ioremap_wc(offset, size)                \
-+	__ioremap((offset), (size), _PAGE_WR_COMBINE)
++/*
++ * Perform an attempt to gain access to a spin-lock and set some bits
++ * 
++ * Register Usage: D1Ar1 is pLock, D0Ar2 is Mask, D0Re0 is the result
++ *                 !!On return Zero flag is SET if we are sucessfull!!
++ *                 A0.3 is used to hold base address of system event region
++ *                 D1Re0 use to hold TXMASKI while interrupts are off
++ */
++	.text
++	.balign	4
++	.global	___TBIPoll
++	.type	___TBIPoll,function
++___TBIPoll:
++	MOV	D1Re0,#0		/* Prepare to disable ints */
++	MOVT	A0.3,#HI(LINSYSEVENT_WR_ATOMIC_LOCK)
++	SWAP	D1Re0,TXMASKI		/* Really stop ints */
++	LOCK2				/* Gain all locks */
++	SET	[A0.3+#UON],D1RtP	/* Stop shared memory access too */
++	DCACHE	[D1Ar1],A0.3		/* Flush Cache line */
++	GETD	D0Re0,[D1Ar1]		/* Get new state from memory or hit */
++	DCACHE	[D1Ar1],A0.3		/* Flush Cache line */
++	GETD	D0Re0,[D1Ar1]		/* Get current state */
++	TST	D0Re0,D0Ar2		/* Are we clear to send? */
++	ORZ	D0Re0,D0Re0,D0Ar2	/* Yes: So set bits and */
++	SETDZ	[D1Ar1],D0Re0		/*      transmit new state */
++	SET	[A0.3+#UOFF],D1RtP	/* Allow shared memory access */
++	LOCK0				/* Release all locks */
++	MOV	TXMASKI,D1Re0		/* Allow ints */
++$LPollEnd:
++	XORNZ	D0Re0,D0Re0,D0Re0	/* No: Generate zero result */
++	MOV	PC,D1RtP		/* Return (NZ indicates failure) */
++	.size	___TBIPoll,.-___TBIPoll
 +
-+#define iounmap(addr)                           \
-+	__iounmap(addr)
-+
-+#endif  /* _ASM_METAG_IO_H */
-diff --git a/arch/metag/include/asm/uaccess.h b/arch/metag/include/asm/uaccess.h
++/*
++ * End of tbicore.S
++ */
+diff --git a/arch/metag/tbx/tbictx.S b/arch/metag/tbx/tbictx.S
 new file mode 100644
-index 0000000..0748b0a
+index 0000000..19af983
 --- /dev/null
-+++ b/arch/metag/include/asm/uaccess.h
-@@ -0,0 +1,241 @@
-+#ifndef __METAG_UACCESS_H
-+#define __METAG_UACCESS_H
-+
++++ b/arch/metag/tbx/tbictx.S
+@@ -0,0 +1,366 @@
 +/*
-+ * User space memory access functions
-+ */
-+#include <linux/sched.h>
-+
-+#define VERIFY_READ	0
-+#define VERIFY_WRITE	1
-+
-+/*
-+ * The fs value determines whether argument validity checking should be
-+ * performed or not.  If get_fs() == USER_DS, checking is performed, with
-+ * get_fs() == KERNEL_DS, checking is bypassed.
++ * tbictx.S
 + *
-+ * For historical reasons, these macros are grossly misnamed.
++ * Copyright (C) 2001, 2002, 2007, 2012 Imagination Technologies.
++ *
++ * This program is free software; you can redistribute it and/or modify it under
++ * the terms of the GNU General Public License version 2 as published by the
++ * Free Software Foundation.
++ *
++ * Explicit state save and restore routines forming part of the thread binary
++ * interface for META processors
 + */
 +
-+#define MAKE_MM_SEG(s)  ((mm_segment_t) { (s) })
-+
-+#define KERNEL_DS       MAKE_MM_SEG(0xFFFFFFFF)
-+#define USER_DS		MAKE_MM_SEG(PAGE_OFFSET)
-+
-+#define get_ds()	(KERNEL_DS)
-+#define get_fs()        (current_thread_info()->addr_limit)
-+#define set_fs(x)       (current_thread_info()->addr_limit = (x))
-+
-+#define segment_eq(a, b)	((a).seg == (b).seg)
-+
-+#define __kernel_ok (segment_eq(get_fs(), KERNEL_DS))
-+/*
-+ * Explicitly allow NULL pointers here. Parts of the kernel such
-+ * as readv/writev use access_ok to validate pointers, but want
-+ * to allow NULL pointers for various reasons. NULL pointers are
-+ * safe to allow through because the first page is not mappable on
-+ * Meta.
-+ *
-+ * We also wish to avoid letting user code access the system area
-+ * and the kernel half of the address space.
-+ */
-+#define __user_bad(addr, size) (((addr) > 0 && (addr) < META_MEMORY_BASE) || \
-+				((addr) > PAGE_OFFSET &&		\
-+				 (addr) < LINCORE_BASE))
-+
-+static inline int __access_ok(unsigned long addr, unsigned long size)
-+{
-+	return __kernel_ok || !__user_bad(addr, size);
-+}
-+
-+#define access_ok(type, addr, size) __access_ok((unsigned long)(addr),	\
-+						(unsigned long)(size))
-+
-+static inline int verify_area(int type, const void *addr, unsigned long size)
-+{
-+	return access_ok(type, addr, size) ? 0 : -EFAULT;
-+}
-+
-+/*
-+ * The exception table consists of pairs of addresses: the first is the
-+ * address of an instruction that is allowed to fault, and the second is
-+ * the address at which the program should continue.  No registers are
-+ * modified, so it is entirely up to the continuation code to figure out
-+ * what to do.
-+ *
-+ * All the routines below use bits of fixup code that are out of line
-+ * with the main instruction path.  This means when everything is well,
-+ * we don't even have to jump over them.  Further, they do not intrude
-+ * on our cache or tlb entries.
-+ */
-+struct exception_table_entry {
-+	unsigned long insn, fixup;
-+};
-+
-+extern int fixup_exception(struct pt_regs *regs);
-+
-+/*
-+ * These are the main single-value transfer routines.  They automatically
-+ * use the right size if we just have the right pointer type.
-+ */
-+
-+#define put_user(x, ptr) \
-+	__put_user_check((__typeof__(*(ptr)))(x), (ptr), sizeof(*(ptr)))
-+#define __put_user(x, ptr) \
-+	__put_user_nocheck((__typeof__(*(ptr)))(x), (ptr), sizeof(*(ptr)))
-+
-+extern void __put_user_bad(void);
-+
-+#define __put_user_nocheck(x, ptr, size)		\
-+({                                                      \
-+	long __pu_err;                                  \
-+	__put_user_size((x), (ptr), (size), __pu_err);	\
-+	__pu_err;                                       \
-+})
-+
-+#define __put_user_check(x, ptr, size)				\
-+({                                                              \
-+	long __pu_err = -EFAULT;                                \
-+	__typeof__(*(ptr)) __user *__pu_addr = (ptr);           \
-+	if (access_ok(VERIFY_WRITE, __pu_addr, size))		\
-+		__put_user_size((x), __pu_addr, (size), __pu_err);	\
-+	__pu_err;                                               \
-+})
-+
-+extern long __put_user_asm_b(unsigned int x, void __user *addr);
-+extern long __put_user_asm_w(unsigned int x, void __user *addr);
-+extern long __put_user_asm_d(unsigned int x, void __user *addr);
-+extern long __put_user_asm_l(unsigned long long x, void __user *addr);
-+
-+#define __put_user_size(x, ptr, size, retval)			\
-+do {                                                            \
-+	retval = 0;                                             \
-+	switch (size) {                                         \
-+	case 1:								\
-+		retval = __put_user_asm_b((unsigned int)x, ptr); break;	\
-+	case 2:								\
-+		retval = __put_user_asm_w((unsigned int)x, ptr); break;	\
-+	case 4:								\
-+		retval = __put_user_asm_d((unsigned int)x, ptr); break;	\
-+	case 8:								\
-+		retval = __put_user_asm_l((unsigned long long)x, ptr); break; \
-+	default:							\
-+		__put_user_bad();					\
-+	}								\
-+} while (0)
-+
-+#define get_user(x, ptr) \
-+	__get_user_check((x), (ptr), sizeof(*(ptr)))
-+#define __get_user(x, ptr) \
-+	__get_user_nocheck((x), (ptr), sizeof(*(ptr)))
-+
-+extern long __get_user_bad(void);
-+
-+#define __get_user_nocheck(x, ptr, size)			\
-+({                                                              \
-+	long __gu_err, __gu_val;                                \
-+	__get_user_size(__gu_val, (ptr), (size), __gu_err);	\
-+	(x) = (__typeof__(*(ptr)))__gu_val;                     \
-+	__gu_err;                                               \
-+})
-+
-+#define __get_user_check(x, ptr, size)					\
-+({                                                                      \
-+	long __gu_err = -EFAULT, __gu_val = 0;                          \
-+	const __typeof__(*(ptr)) __user *__gu_addr = (ptr);		\
-+	if (access_ok(VERIFY_READ, __gu_addr, size))			\
-+		__get_user_size(__gu_val, __gu_addr, (size), __gu_err);	\
-+	(x) = (__typeof__(*(ptr)))__gu_val;                             \
-+	__gu_err;                                                       \
-+})
-+
-+extern unsigned char __get_user_asm_b(const void __user *addr, long *err);
-+extern unsigned short __get_user_asm_w(const void __user *addr, long *err);
-+extern unsigned int __get_user_asm_d(const void __user *addr, long *err);
-+
-+#define __get_user_size(x, ptr, size, retval)			\
-+do {                                                            \
-+	retval = 0;                                             \
-+	switch (size) {                                         \
-+	case 1:							\
-+		x = __get_user_asm_b(ptr, &retval); break;	\
-+	case 2:							\
-+		x = __get_user_asm_w(ptr, &retval); break;	\
-+	case 4:							\
-+		x = __get_user_asm_d(ptr, &retval); break;	\
-+	default:						\
-+		(x) = __get_user_bad();				\
-+	}                                                       \
-+} while (0)
-+
-+/*
-+ * Copy a null terminated string from userspace.
-+ *
-+ * Must return:
-+ * -EFAULT		for an exception
-+ * count		if we hit the buffer limit
-+ * bytes copied		if we hit a null byte
-+ * (without the null byte)
-+ */
-+
-+extern long __must_check __strncpy_from_user(char *dst, const char __user *src,
-+					     long count);
-+
-+#define strncpy_from_user(dst, src, count) __strncpy_from_user(dst, src, count)
-+
-+/*
-+ * Return the size of a string (including the ending 0)
-+ *
-+ * Return 0 on exception, a value greater than N if too long
-+ */
-+extern long __must_check strnlen_user(const char __user *src, long count);
-+
-+#define strlen_user(str) strnlen_user(str, 32767)
-+
-+extern unsigned long __must_check __copy_user_zeroing(void *to,
-+						      const void __user *from,
-+						      unsigned long n);
-+
-+static inline unsigned long
-+copy_from_user(void *to, const void __user *from, unsigned long n)
-+{
-+	if (access_ok(VERIFY_READ, from, n))
-+		return __copy_user_zeroing(to, from, n);
-+	return n;
-+}
-+
-+#define __copy_from_user(to, from, n) __copy_user_zeroing(to, from, n)
-+#define __copy_from_user_inatomic __copy_from_user
-+
-+extern unsigned long __must_check __copy_user(void __user *to,
-+					      const void *from,
-+					      unsigned long n);
-+
-+static inline unsigned long copy_to_user(void __user *to, const void *from,
-+					 unsigned long n)
-+{
-+	if (access_ok(VERIFY_WRITE, to, n))
-+		return __copy_user(to, from, n);
-+	return n;
-+}
-+
-+#define __copy_to_user(to, from, n) __copy_user(to, from, n)
-+#define __copy_to_user_inatomic __copy_to_user
-+
-+/*
-+ * Zero Userspace
-+ */
-+
-+extern unsigned long __must_check __do_clear_user(void __user *to,
-+						  unsigned long n);
-+
-+static inline unsigned long clear_user(void __user *to, unsigned long n)
-+{
-+	if (access_ok(VERIFY_WRITE, to, n))
-+		return __do_clear_user(to, n);
-+	return n;
-+}
-+
-+#define __clear_user(to, n)            __do_clear_user(to, n)
-+
-+#endif /* _METAG_UACCESS_H */
-diff --git a/arch/metag/lib/usercopy.c b/arch/metag/lib/usercopy.c
-new file mode 100644
-index 0000000..92f6dbb
---- /dev/null
-+++ b/arch/metag/lib/usercopy.c
-@@ -0,0 +1,1341 @@
-+/*
-+ * User address space access functions.
-+ * The non-inlined parts of asm-metag/uaccess.h are here.
-+ *
-+ * Copyright (C) 2006, Imagination Technologies.
-+ * Copyright (C) 2000, Axis Communications AB.
-+ *
-+ * Written by Hans-Peter Nilsson.
-+ * Pieces used from memcpy, originally by Kenny Ranerup long time ago.
-+ * Modified for Meta by Will Newton.
-+ */
-+
-+#include <linux/uaccess.h>
-+#include <asm/cache.h>			/* def of L1_CACHE_BYTES */
-+
-+#define USE_RAPF
-+#define RAPF_MIN_BUF_SIZE	(3*L1_CACHE_BYTES)
-+
-+
-+/* The "double write" in this code is because the Meta will not fault
-+ * immediately unless the memory pipe is forced to by e.g. a data stall or
-+ * another memory op. The second write should be discarded by the write
-+ * combiner so should have virtually no cost.
-+ */
-+
-+#define __asm_copy_user_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	asm volatile (						 \
-+		COPY						 \
-+		"1:\n"						 \
-+		"	.section .fixup,\"ax\"\n"		 \
-+		"	MOV D1Ar1,#0\n"				 \
-+		FIXUP						 \
-+		"	MOVT    D1Ar1,#HI(1b)\n"		 \
-+		"	JUMP    D1Ar1,#LO(1b)\n"		 \
-+		"	.previous\n"				 \
-+		"	.section __ex_table,\"a\"\n"		 \
-+		TENTRY						 \
-+		"	.previous\n"				 \
-+		: "=r" (to), "=r" (from), "=r" (ret)		 \
-+		: "0" (to), "1" (from), "2" (ret)		 \
-+		: "D1Ar1", "memory")
-+
-+
-+#define __asm_copy_to_user_1(to, from, ret)	\
-+	__asm_copy_user_cont(to, from, ret,	\
-+		"	GETB D1Ar1,[%1++]\n"	\
-+		"	SETB [%0],D1Ar1\n"	\
-+		"2:	SETB [%0++],D1Ar1\n",	\
-+		"3:	ADD  %2,%2,#1\n",	\
-+		"	.long 2b,3b\n")
-+
-+#define __asm_copy_to_user_2x_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	__asm_copy_user_cont(to, from, ret,		\
-+		"	GETW D1Ar1,[%1++]\n"		\
-+		"	SETW [%0],D1Ar1\n"		\
-+		"2:	SETW [%0++],D1Ar1\n" COPY,	\
-+		"3:	ADD  %2,%2,#2\n" FIXUP,		\
-+		"	.long 2b,3b\n" TENTRY)
-+
-+#define __asm_copy_to_user_2(to, from, ret) \
-+	__asm_copy_to_user_2x_cont(to, from, ret, "", "", "")
-+
-+#define __asm_copy_to_user_3(to, from, ret) \
-+	__asm_copy_to_user_2x_cont(to, from, ret,	\
-+		"	GETB D1Ar1,[%1++]\n"		\
-+		"	SETB [%0],D1Ar1\n"		\
-+		"4:	SETB [%0++],D1Ar1\n",		\
-+		"5:	ADD  %2,%2,#1\n",		\
-+		"	.long 4b,5b\n")
-+
-+#define __asm_copy_to_user_4x_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	__asm_copy_user_cont(to, from, ret,		\
-+		"	GETD D1Ar1,[%1++]\n"		\
-+		"	SETD [%0],D1Ar1\n"		\
-+		"2:	SETD [%0++],D1Ar1\n" COPY,	\
-+		"3:	ADD  %2,%2,#4\n" FIXUP,		\
-+		"	.long 2b,3b\n" TENTRY)
-+
-+#define __asm_copy_to_user_4(to, from, ret) \
-+	__asm_copy_to_user_4x_cont(to, from, ret, "", "", "")
-+
-+#define __asm_copy_to_user_5(to, from, ret) \
-+	__asm_copy_to_user_4x_cont(to, from, ret,	\
-+		"	GETB D1Ar1,[%1++]\n"		\
-+		"	SETB [%0],D1Ar1\n"		\
-+		"4:	SETB [%0++],D1Ar1\n",		\
-+		"5:	ADD  %2,%2,#1\n",		\
-+		"	.long 4b,5b\n")
-+
-+#define __asm_copy_to_user_6x_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	__asm_copy_to_user_4x_cont(to, from, ret,	\
-+		"	GETW D1Ar1,[%1++]\n"		\
-+		"	SETW [%0],D1Ar1\n"		\
-+		"4:	SETW [%0++],D1Ar1\n" COPY,	\
-+		"5:	ADD  %2,%2,#2\n" FIXUP,		\
-+		"	.long 4b,5b\n" TENTRY)
-+
-+#define __asm_copy_to_user_6(to, from, ret) \
-+	__asm_copy_to_user_6x_cont(to, from, ret, "", "", "")
-+
-+#define __asm_copy_to_user_7(to, from, ret) \
-+	__asm_copy_to_user_6x_cont(to, from, ret,	\
-+		"	GETB D1Ar1,[%1++]\n"		\
-+		"	SETB [%0],D1Ar1\n"		\
-+		"6:	SETB [%0++],D1Ar1\n",		\
-+		"7:	ADD  %2,%2,#1\n",		\
-+		"	.long 6b,7b\n")
-+
-+#define __asm_copy_to_user_8x_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	__asm_copy_to_user_4x_cont(to, from, ret,	\
-+		"	GETD D1Ar1,[%1++]\n"		\
-+		"	SETD [%0],D1Ar1\n"		\
-+		"4:	SETD [%0++],D1Ar1\n" COPY,	\
-+		"5:	ADD  %2,%2,#4\n"  FIXUP,	\
-+		"	.long 4b,5b\n" TENTRY)
-+
-+#define __asm_copy_to_user_8(to, from, ret) \
-+	__asm_copy_to_user_8x_cont(to, from, ret, "", "", "")
-+
-+#define __asm_copy_to_user_9(to, from, ret) \
-+	__asm_copy_to_user_8x_cont(to, from, ret,	\
-+		"	GETB D1Ar1,[%1++]\n"		\
-+		"	SETB [%0],D1Ar1\n"		\
-+		"6:	SETB [%0++],D1Ar1\n",		\
-+		"7:	ADD  %2,%2,#1\n",		\
-+		"	.long 6b,7b\n")
-+
-+#define __asm_copy_to_user_10x_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	__asm_copy_to_user_8x_cont(to, from, ret,	\
-+		"	GETW D1Ar1,[%1++]\n"		\
-+		"	SETW [%0],D1Ar1\n"		\
-+		"6:	SETW [%0++],D1Ar1\n" COPY,	\
-+		"7:	ADD  %2,%2,#2\n" FIXUP,		\
-+		"	.long 6b,7b\n" TENTRY)
-+
-+#define __asm_copy_to_user_10(to, from, ret) \
-+	__asm_copy_to_user_10x_cont(to, from, ret, "", "", "")
-+
-+#define __asm_copy_to_user_11(to, from, ret) \
-+	__asm_copy_to_user_10x_cont(to, from, ret,	\
-+		"	GETB D1Ar1,[%1++]\n"		\
-+		"	SETB [%0],D1Ar1\n"		\
-+		"8:	SETB [%0++],D1Ar1\n",		\
-+		"9:	ADD  %2,%2,#1\n",		\
-+		"	.long 8b,9b\n")
-+
-+#define __asm_copy_to_user_12x_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	__asm_copy_to_user_8x_cont(to, from, ret,	\
-+		"	GETD D1Ar1,[%1++]\n"		\
-+		"	SETD [%0],D1Ar1\n"		\
-+		"6:	SETD [%0++],D1Ar1\n" COPY,	\
-+		"7:	ADD  %2,%2,#4\n" FIXUP,		\
-+		"	.long 6b,7b\n" TENTRY)
-+#define __asm_copy_to_user_12(to, from, ret) \
-+	__asm_copy_to_user_12x_cont(to, from, ret, "", "", "")
-+
-+#define __asm_copy_to_user_13(to, from, ret) \
-+	__asm_copy_to_user_12x_cont(to, from, ret,	\
-+		"	GETB D1Ar1,[%1++]\n"		\
-+		"	SETB [%0],D1Ar1\n"		\
-+		"8:	SETB [%0++],D1Ar1\n",		\
-+		"9:	ADD  %2,%2,#1\n",		\
-+		"	.long 8b,9b\n")
-+
-+#define __asm_copy_to_user_14x_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	__asm_copy_to_user_12x_cont(to, from, ret,	\
-+		"	GETW D1Ar1,[%1++]\n"		\
-+		"	SETW [%0],D1Ar1\n"		\
-+		"8:	SETW [%0++],D1Ar1\n" COPY,	\
-+		"9:	ADD  %2,%2,#2\n" FIXUP,		\
-+		"	.long 8b,9b\n" TENTRY)
-+
-+#define __asm_copy_to_user_14(to, from, ret) \
-+	__asm_copy_to_user_14x_cont(to, from, ret, "", "", "")
-+
-+#define __asm_copy_to_user_15(to, from, ret) \
-+	__asm_copy_to_user_14x_cont(to, from, ret,	\
-+		"	GETB D1Ar1,[%1++]\n"		\
-+		"	SETB [%0],D1Ar1\n"		\
-+		"10:	SETB [%0++],D1Ar1\n",		\
-+		"11:	ADD  %2,%2,#1\n",		\
-+		"	.long 10b,11b\n")
-+
-+#define __asm_copy_to_user_16x_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	__asm_copy_to_user_12x_cont(to, from, ret,	\
-+		"	GETD D1Ar1,[%1++]\n"		\
-+		"	SETD [%0],D1Ar1\n"		\
-+		"8:	SETD [%0++],D1Ar1\n" COPY,	\
-+		"9:	ADD  %2,%2,#4\n" FIXUP,		\
-+		"	.long 8b,9b\n" TENTRY)
-+
-+#define __asm_copy_to_user_16(to, from, ret) \
-+		__asm_copy_to_user_16x_cont(to, from, ret, "", "", "")
-+
-+#define __asm_copy_to_user_8x64(to, from, ret) \
-+	asm volatile (					\
-+		"	GETL D0Ar2,D1Ar1,[%1++]\n"	\
-+		"	SETL [%0],D0Ar2,D1Ar1\n"	\
-+		"2:	SETL [%0++],D0Ar2,D1Ar1\n"	\
-+		"1:\n"					\
-+		"	.section .fixup,\"ax\"\n"	\
-+		"3:	ADD  %2,%2,#8\n"		\
-+		"	MOVT    D0Ar2,#HI(1b)\n"	\
-+		"	JUMP    D0Ar2,#LO(1b)\n"	\
-+		"	.previous\n"			\
-+		"	.section __ex_table,\"a\"\n"	\
-+		"	.long 2b,3b\n"			\
-+		"	.previous\n"			\
-+		: "=r" (to), "=r" (from), "=r" (ret)	\
-+		: "0" (to), "1" (from), "2" (ret)	\
-+		: "D1Ar1", "D0Ar2", "memory")
-+
-+/*
-+ *	optimized copying loop using RAPF when 64 bit aligned
-+ *
-+ *	n		will be automatically decremented inside the loop
-+ *	ret		will be left intact. if error occurs we will rewind
-+ *			so that the original non optimized code will fill up
-+ *			this value correctly.
-+ *
-+ *	on fault:
-+ *		>	n will hold total number of uncopied bytes
-+ *
-+ *		>	{'to','from'} will be rewind back so that
-+ *			the non-optimized code will do the proper fix up
-+ *
-+ *	DCACHE drops the cacheline which helps in reducing cache
-+ *	pollution.
-+ *
-+ *	We introduce an extra SETL at the end of the loop to
-+ *	ensure we don't fall off the loop before we catch all
-+ *	erros.
-+ *
-+ *	NOTICE:
-+ *		LSM_STEP in TXSTATUS must be cleared in fix up code.
-+ *		since we're using M{S,G}ETL, a fault might happen at
-+ *		any address in the middle of M{S,G}ETL causing
-+ *		the value of LSM_STEP to be incorrect which can
-+ *		cause subsequent use of M{S,G}ET{L,D} to go wrong.
-+ *		ie: if LSM_STEP was 1 when a fault occurs, the
-+ *		next call to M{S,G}ET{L,D} will skip the first
-+ *		copy/getting as it think that the first 1 has already
-+ *		been done.
-+ *
-+ */
-+#define __asm_copy_user_64bit_rapf_loop(				\
-+		to, from, ret, n, id, FIXUP)				\
-+	asm volatile (							\
-+		".balign 8\n"						\
-+		"MOV	RAPF, %1\n"					\
-+		"MSETL	[A0StP++], D0Ar6, D0FrT, D0.5, D0.6, D0.7\n"	\
-+		"MOV	D0Ar6, #0\n"					\
-+		"LSR	D1Ar5, %3, #6\n"				\
-+		"SUB	TXRPT, D1Ar5, #2\n"				\
-+		"MOV	RAPF, %1\n"					\
-+		"$Lloop"id":\n"						\
-+		"ADD	RAPF, %1, #64\n"				\
-+		"21:\n"							\
-+		"MGETL	D0FrT, D0.5, D0.6, D0.7, [%1++]\n"		\
-+		"22:\n"							\
-+		"MSETL	[%0++], D0FrT, D0.5, D0.6, D0.7\n"		\
-+		"SUB	%3, %3, #32\n"					\
-+		"23:\n"							\
-+		"MGETL	D0FrT, D0.5, D0.6, D0.7, [%1++]\n"		\
-+		"24:\n"							\
-+		"MSETL	[%0++], D0FrT, D0.5, D0.6, D0.7\n"		\
-+		"SUB	%3, %3, #32\n"					\
-+		"DCACHE	[%1+#-64], D0Ar6\n"				\
-+		"BR	$Lloop"id"\n"					\
-+									\
-+		"MOV	RAPF, %1\n"					\
-+		"25:\n"							\
-+		"MGETL	D0FrT, D0.5, D0.6, D0.7, [%1++]\n"		\
-+		"26:\n"							\
-+		"MSETL	[%0++], D0FrT, D0.5, D0.6, D0.7\n"		\
-+		"SUB	%3, %3, #32\n"					\
-+		"27:\n"							\
-+		"MGETL	D0FrT, D0.5, D0.6, D0.7, [%1++]\n"		\
-+		"28:\n"							\
-+		"MSETL	[%0++], D0FrT, D0.5, D0.6, D0.7\n"		\
-+		"SUB	%0, %0, #8\n"					\
-+		"29:\n"							\
-+		"SETL	[%0++], D0.7, D1.7\n"				\
-+		"SUB	%3, %3, #32\n"					\
-+		"1:"							\
-+		"DCACHE	[%1+#-64], D0Ar6\n"				\
-+		"GETL    D0Ar6, D1Ar5, [A0StP+#-40]\n"			\
-+		"GETL    D0FrT, D1RtP, [A0StP+#-32]\n"			\
-+		"GETL    D0.5, D1.5, [A0StP+#-24]\n"			\
-+		"GETL    D0.6, D1.6, [A0StP+#-16]\n"			\
-+		"GETL    D0.7, D1.7, [A0StP+#-8]\n"			\
-+		"SUB A0StP, A0StP, #40\n"				\
-+		"	.section .fixup,\"ax\"\n"			\
-+		"4:\n"							\
-+		"	ADD	%0, %0, #8\n"				\
-+		"3:\n"							\
-+		"	MOV	D0Ar2, TXSTATUS\n"			\
-+		"	MOV	D1Ar1, TXSTATUS\n"			\
-+		"	AND	D1Ar1, D1Ar1, #0xFFFFF8FF\n"		\
-+		"	MOV	TXSTATUS, D1Ar1\n"			\
-+			FIXUP						\
-+		"	MOVT    D0Ar2,#HI(1b)\n"			\
-+		"	JUMP    D0Ar2,#LO(1b)\n"			\
-+		"	.previous\n"					\
-+		"	.section __ex_table,\"a\"\n"			\
-+		"	.long 21b,3b\n"					\
-+		"	.long 22b,3b\n"					\
-+		"	.long 23b,3b\n"					\
-+		"	.long 24b,3b\n"					\
-+		"	.long 25b,3b\n"					\
-+		"	.long 26b,3b\n"					\
-+		"	.long 27b,3b\n"					\
-+		"	.long 28b,3b\n"					\
-+		"	.long 29b,4b\n"					\
-+		"	.previous\n"					\
-+		: "=r" (to), "=r" (from), "=r" (ret), "=d" (n)		\
-+		: "0" (to), "1" (from), "2" (ret), "3" (n)		\
-+		: "D1Ar1", "D0Ar2", "memory")
-+
-+/*	rewind 'to' and 'from'  pointers when a fault occurs
-+ *
-+ *	Rationale:
-+ *		A fault always occurs on writing to user buffer. A fault
-+ *		is at a single address, so we need to rewind by only 4
-+ *		bytes.
-+ *		Since we do a complete read from kernel buffer before
-+ *		writing, we need to rewind it also. The amount to be
-+ *		rewind equals the number of faulty writes in MSETD
-+ *		which is: [4 - (LSM_STEP-1)]*8
-+ *		LSM_STEP is bits 10:8 in TXSTATUS which is already read
-+ *		and stored in D0Ar2
-+ *
-+ *		NOTE: If a fault occurs at the last operation in M{G,S}ETL
-+ *			LSM_STEP will be 0. ie: we do 4 writes in our case, if
-+ *			a fault happens at the 4th write, LSM_STEP will be 0
-+ *			instead of 4. The code copes with that.
-+ *
-+ *		n is updated by the number of successful writes, which is:
-+ *		n = n - (LSM_STEP-1)*8
-+ */
-+#define __asm_copy_to_user_64bit_rapf_loop(to,	from, ret, n, id)\
-+	__asm_copy_user_64bit_rapf_loop(to, from, ret, n, id,		\
-+		"LSR	D0Ar2, D0Ar2, #8\n"				\
-+		"AND	D0Ar2, D0Ar2, #0x7\n"				\
-+		"ADDZ	D0Ar2, D0Ar2, #4\n"				\
-+		"SUB	D0Ar2, D0Ar2, #1\n"				\
-+		"MOV	D1Ar1, #4\n"					\
-+		"SUB	D0Ar2, D1Ar1, D0Ar2\n"				\
-+		"LSL	D0Ar2, D0Ar2, #3\n"				\
-+		"LSL	D1Ar1, D1Ar1, #3\n"				\
-+		"SUB	D1Ar1, D1Ar1, D0Ar2\n"				\
-+		"SUB	%0, %0, #8\n"					\
-+		"SUB	%1,	%1,D0Ar2\n"				\
-+		"SUB	%3, %3, D1Ar1\n")
-+
-+/*
-+ *	optimized copying loop using RAPF when 32 bit aligned
-+ *
-+ *	n		will be automatically decremented inside the loop
-+ *	ret		will be left intact. if error occurs we will rewind
-+ *			so that the original non optimized code will fill up
-+ *			this value correctly.
-+ *
-+ *	on fault:
-+ *		>	n will hold total number of uncopied bytes
-+ *
-+ *		>	{'to','from'} will be rewind back so that
-+ *			the non-optimized code will do the proper fix up
-+ *
-+ *	DCACHE drops the cacheline which helps in reducing cache
-+ *	pollution.
-+ *
-+ *	We introduce an extra SETD at the end of the loop to
-+ *	ensure we don't fall off the loop before we catch all
-+ *	erros.
-+ *
-+ *	NOTICE:
-+ *		LSM_STEP in TXSTATUS must be cleared in fix up code.
-+ *		since we're using M{S,G}ETL, a fault might happen at
-+ *		any address in the middle of M{S,G}ETL causing
-+ *		the value of LSM_STEP to be incorrect which can
-+ *		cause subsequent use of M{S,G}ET{L,D} to go wrong.
-+ *		ie: if LSM_STEP was 1 when a fault occurs, the
-+ *		next call to M{S,G}ET{L,D} will skip the first
-+ *		copy/getting as it think that the first 1 has already
-+ *		been done.
-+ *
-+ */
-+#define __asm_copy_user_32bit_rapf_loop(				\
-+			to,	from, ret, n, id, FIXUP)		\
-+	asm volatile (							\
-+		".balign 8\n"						\
-+		"MOV	RAPF, %1\n"					\
-+		"MSETL	[A0StP++], D0Ar6, D0FrT, D0.5, D0.6, D0.7\n"	\
-+		"MOV	D0Ar6, #0\n"					\
-+		"LSR	D1Ar5, %3, #6\n"				\
-+		"SUB	TXRPT, D1Ar5, #2\n"				\
-+		"MOV	RAPF, %1\n"					\
-+	"$Lloop"id":\n"							\
-+		"ADD	RAPF, %1, #64\n"				\
-+		"21:\n"							\
-+		"MGETD	D0FrT, D0.5, D0.6, D0.7, [%1++]\n"		\
-+		"22:\n"							\
-+		"MSETD	[%0++], D0FrT, D0.5, D0.6, D0.7\n"		\
-+		"SUB	%3, %3, #16\n"					\
-+		"23:\n"							\
-+		"MGETD	D0FrT, D0.5, D0.6, D0.7, [%1++]\n"		\
-+		"24:\n"							\
-+		"MSETD	[%0++], D0FrT, D0.5, D0.6, D0.7\n"		\
-+		"SUB	%3, %3, #16\n"					\
-+		"25:\n"							\
-+		"MGETD	D0FrT, D0.5, D0.6, D0.7, [%1++]\n"		\
-+		"26:\n"							\
-+		"MSETD	[%0++], D0FrT, D0.5, D0.6, D0.7\n"		\
-+		"SUB	%3, %3, #16\n"					\
-+		"27:\n"							\
-+		"MGETD	D0FrT, D0.5, D0.6, D0.7, [%1++]\n"		\
-+		"28:\n"							\
-+		"MSETD	[%0++], D0FrT, D0.5, D0.6, D0.7\n"		\
-+		"SUB	%3, %3, #16\n"					\
-+		"DCACHE	[%1+#-64], D0Ar6\n"				\
-+		"BR	$Lloop"id"\n"					\
-+									\
-+		"MOV	RAPF, %1\n"					\
-+		"29:\n"							\
-+		"MGETD	D0FrT, D0.5, D0.6, D0.7, [%1++]\n"		\
-+		"30:\n"							\
-+		"MSETD	[%0++], D0FrT, D0.5, D0.6, D0.7\n"		\
-+		"SUB	%3, %3, #16\n"					\
-+		"31:\n"							\
-+		"MGETD	D0FrT, D0.5, D0.6, D0.7, [%1++]\n"		\
-+		"32:\n"							\
-+		"MSETD	[%0++], D0FrT, D0.5, D0.6, D0.7\n"		\
-+		"SUB	%3, %3, #16\n"					\
-+		"33:\n"							\
-+		"MGETD	D0FrT, D0.5, D0.6, D0.7, [%1++]\n"		\
-+		"34:\n"							\
-+		"MSETD	[%0++], D0FrT, D0.5, D0.6, D0.7\n"		\
-+		"SUB	%3, %3, #16\n"					\
-+		"35:\n"							\
-+		"MGETD	D0FrT, D0.5, D0.6, D0.7, [%1++]\n"		\
-+		"36:\n"							\
-+		"MSETD	[%0++], D0FrT, D0.5, D0.6, D0.7\n"		\
-+		"SUB	%0, %0, #4\n"					\
-+		"37:\n"							\
-+		"SETD	[%0++], D0.7\n"					\
-+		"SUB	%3, %3, #16\n"					\
-+		"1:"							\
-+		"DCACHE	[%1+#-64], D0Ar6\n"				\
-+		"GETL    D0Ar6, D1Ar5, [A0StP+#-40]\n"			\
-+		"GETL    D0FrT, D1RtP, [A0StP+#-32]\n"			\
-+		"GETL    D0.5, D1.5, [A0StP+#-24]\n"			\
-+		"GETL    D0.6, D1.6, [A0StP+#-16]\n"			\
-+		"GETL    D0.7, D1.7, [A0StP+#-8]\n"			\
-+		"SUB A0StP, A0StP, #40\n"				\
-+		"	.section .fixup,\"ax\"\n"			\
-+		"4:\n"							\
-+		"	ADD		%0, %0, #4\n"			\
-+		"3:\n"							\
-+		"	MOV	D0Ar2, TXSTATUS\n"			\
-+		"	MOV	D1Ar1, TXSTATUS\n"			\
-+		"	AND	D1Ar1, D1Ar1, #0xFFFFF8FF\n"		\
-+		"	MOV	TXSTATUS, D1Ar1\n"			\
-+			FIXUP						\
-+		"	MOVT    D0Ar2,#HI(1b)\n"			\
-+		"	JUMP    D0Ar2,#LO(1b)\n"			\
-+		"	.previous\n"					\
-+		"	.section __ex_table,\"a\"\n"			\
-+		"	.long 21b,3b\n"					\
-+		"	.long 22b,3b\n"					\
-+		"	.long 23b,3b\n"					\
-+		"	.long 24b,3b\n"					\
-+		"	.long 25b,3b\n"					\
-+		"	.long 26b,3b\n"					\
-+		"	.long 27b,3b\n"					\
-+		"	.long 28b,3b\n"					\
-+		"	.long 29b,3b\n"					\
-+		"	.long 30b,3b\n"					\
-+		"	.long 31b,3b\n"					\
-+		"	.long 32b,3b\n"					\
-+		"	.long 33b,3b\n"					\
-+		"	.long 34b,3b\n"					\
-+		"	.long 35b,3b\n"					\
-+		"	.long 36b,3b\n"					\
-+		"	.long 37b,4b\n"					\
-+		"	.previous\n"					\
-+		: "=r" (to), "=r" (from), "=r" (ret), "=d" (n)		\
-+		: "0" (to), "1" (from), "2" (ret), "3" (n)		\
-+		: "D1Ar1", "D0Ar2", "memory")
-+
-+/*	rewind 'to' and 'from'  pointers when a fault occurs
-+ *
-+ *	Rationale:
-+ *		A fault always occurs on writing to user buffer. A fault
-+ *		is at a single address, so we need to rewind by only 4
-+ *		bytes.
-+ *		Since we do a complete read from kernel buffer before
-+ *		writing, we need to rewind it also. The amount to be
-+ *		rewind equals the number of faulty writes in MSETD
-+ *		which is: [4 - (LSM_STEP-1)]*4
-+ *		LSM_STEP is bits 10:8 in TXSTATUS which is already read
-+ *		and stored in D0Ar2
-+ *
-+ *		NOTE: If a fault occurs at the last operation in M{G,S}ETL
-+ *			LSM_STEP will be 0. ie: we do 4 writes in our case, if
-+ *			a fault happens at the 4th write, LSM_STEP will be 0
-+ *			instead of 4. The code copes with that.
-+ *
-+ *		n is updated by the number of successful writes, which is:
-+ *		n = n - (LSM_STEP-1)*4
-+ */
-+#define __asm_copy_to_user_32bit_rapf_loop(to, from, ret, n, id)\
-+	__asm_copy_user_32bit_rapf_loop(to, from, ret, n, id,		\
-+		"LSR	D0Ar2, D0Ar2, #8\n"				\
-+		"AND	D0Ar2, D0Ar2, #0x7\n"				\
-+		"ADDZ	D0Ar2, D0Ar2, #4\n"				\
-+		"SUB	D0Ar2, D0Ar2, #1\n"				\
-+		"MOV	D1Ar1, #4\n"					\
-+		"SUB	D0Ar2, D1Ar1, D0Ar2\n"				\
-+		"LSL	D0Ar2, D0Ar2, #2\n"				\
-+		"LSL	D1Ar1, D1Ar1, #2\n"				\
-+		"SUB	D1Ar1, D1Ar1, D0Ar2\n"				\
-+		"SUB	%0, %0, #4\n"					\
-+		"SUB	%1,	%1,	D0Ar2\n"			\
-+		"SUB	%3, %3, D1Ar1\n")
-+
-+unsigned long __copy_user(void __user *pdst, const void *psrc,
-+			  unsigned long n)
-+{
-+	register char __user *dst asm ("A0.2") = pdst;
-+	register const char *src asm ("A1.2") = psrc;
-+	unsigned long retn = 0;
-+
-+	if (n == 0)
-+		return 0;
-+
-+	if ((unsigned long) src & 1) {
-+		__asm_copy_to_user_1(dst, src, retn);
-+		n--;
-+	}
-+	if ((unsigned long) dst & 1) {
-+		/* Worst case - byte copy */
-+		while (n > 0) {
-+			__asm_copy_to_user_1(dst, src, retn);
-+			n--;
-+		}
-+	}
-+	if (((unsigned long) src & 2) && n >= 2) {
-+		__asm_copy_to_user_2(dst, src, retn);
-+		n -= 2;
-+	}
-+	if ((unsigned long) dst & 2) {
-+		/* Second worst case - word copy */
-+		while (n >= 2) {
-+			__asm_copy_to_user_2(dst, src, retn);
-+			n -= 2;
-+		}
-+	}
-+
-+#ifdef USE_RAPF
-+	/* 64 bit copy loop */
-+	if (!(((unsigned long) src | (__force unsigned long) dst) & 7)) {
-+		if (n >= RAPF_MIN_BUF_SIZE) {
-+			/* copy user using 64 bit rapf copy */
-+			__asm_copy_to_user_64bit_rapf_loop(dst, src, retn,
-+							n, "64cu");
-+		}
-+		while (n >= 8) {
-+			__asm_copy_to_user_8x64(dst, src, retn);
-+			n -= 8;
-+		}
-+	}
-+	if (n >= RAPF_MIN_BUF_SIZE) {
-+		/* copy user using 32 bit rapf copy */
-+		__asm_copy_to_user_32bit_rapf_loop(dst, src, retn, n, "32cu");
-+	}
++	.file	"tbictx.S"
++#include <asm/metag_regs.h>
++#include <asm/tbx.h>
++
++#ifdef METAC_1_0
++/* Ax.4 is NOT saved in XAX3 */
++#define A0_4
 +#else
-+	/* 64 bit copy loop */
-+	if (!(((unsigned long) src | (__force unsigned long) dst) & 7)) {
-+		while (n >= 8) {
-+			__asm_copy_to_user_8x64(dst, src, retn);
-+			n -= 8;
-+		}
-+	}
++/* Ax.4 is saved in XAX4 */
++#define A0_4 A0.4,
 +#endif
 +
-+	while (n >= 16) {
-+		__asm_copy_to_user_16(dst, src, retn);
-+		n -= 16;
-+	}
 +
-+	while (n >= 4) {
-+		__asm_copy_to_user_4(dst, src, retn);
-+		n -= 4;
-+	}
++/* Size of the TBICTX structure */
++#define TBICTX_BYTES ((TBICTX_AX_REGS*8)+TBICTX_AX)
 +
-+	switch (n) {
-+	case 0:
-+		break;
-+	case 1:
-+		__asm_copy_to_user_1(dst, src, retn);
-+		break;
-+	case 2:
-+		__asm_copy_to_user_2(dst, src, retn);
-+		break;
-+	case 3:
-+		__asm_copy_to_user_3(dst, src, retn);
-+		break;
-+	}
-+
-+	return retn;
-+}
-+
-+#define __asm_copy_from_user_1(to, from, ret) \
-+	__asm_copy_user_cont(to, from, ret,	\
-+		"	GETB D1Ar1,[%1++]\n"	\
-+		"2:	SETB [%0++],D1Ar1\n",	\
-+		"3:	ADD  %2,%2,#1\n"	\
-+		"	SETB [%0++],D1Ar1\n",	\
-+		"	.long 2b,3b\n")
-+
-+#define __asm_copy_from_user_2x_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	__asm_copy_user_cont(to, from, ret,		\
-+		"	GETW D1Ar1,[%1++]\n"		\
-+		"2:	SETW [%0++],D1Ar1\n" COPY,	\
-+		"3:	ADD  %2,%2,#2\n"		\
-+		"	SETW [%0++],D1Ar1\n" FIXUP,	\
-+		"	.long 2b,3b\n" TENTRY)
-+
-+#define __asm_copy_from_user_2(to, from, ret) \
-+	__asm_copy_from_user_2x_cont(to, from, ret, "", "", "")
-+
-+#define __asm_copy_from_user_3(to, from, ret)		\
-+	__asm_copy_from_user_2x_cont(to, from, ret,	\
-+		"	GETB D1Ar1,[%1++]\n"		\
-+		"4:	SETB [%0++],D1Ar1\n",		\
-+		"5:	ADD  %2,%2,#1\n"		\
-+		"	SETB [%0++],D1Ar1\n",		\
-+		"	.long 4b,5b\n")
-+
-+#define __asm_copy_from_user_4x_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	__asm_copy_user_cont(to, from, ret,		\
-+		"	GETD D1Ar1,[%1++]\n"		\
-+		"2:	SETD [%0++],D1Ar1\n" COPY,	\
-+		"3:	ADD  %2,%2,#4\n"		\
-+		"	SETD [%0++],D1Ar1\n" FIXUP,	\
-+		"	.long 2b,3b\n" TENTRY)
-+
-+#define __asm_copy_from_user_4(to, from, ret) \
-+	__asm_copy_from_user_4x_cont(to, from, ret, "", "", "")
-+
-+#define __asm_copy_from_user_5(to, from, ret) \
-+	__asm_copy_from_user_4x_cont(to, from, ret,	\
-+		"	GETB D1Ar1,[%1++]\n"		\
-+		"4:	SETB [%0++],D1Ar1\n",		\
-+		"5:	ADD  %2,%2,#1\n"		\
-+		"	SETB [%0++],D1Ar1\n",		\
-+		"	.long 4b,5b\n")
-+
-+#define __asm_copy_from_user_6x_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	__asm_copy_from_user_4x_cont(to, from, ret,	\
-+		"	GETW D1Ar1,[%1++]\n"		\
-+		"4:	SETW [%0++],D1Ar1\n" COPY,	\
-+		"5:	ADD  %2,%2,#2\n"		\
-+		"	SETW [%0++],D1Ar1\n" FIXUP,	\
-+		"	.long 4b,5b\n" TENTRY)
-+
-+#define __asm_copy_from_user_6(to, from, ret) \
-+	__asm_copy_from_user_6x_cont(to, from, ret, "", "", "")
-+
-+#define __asm_copy_from_user_7(to, from, ret) \
-+	__asm_copy_from_user_6x_cont(to, from, ret,	\
-+		"	GETB D1Ar1,[%1++]\n"		\
-+		"6:	SETB [%0++],D1Ar1\n",		\
-+		"7:	ADD  %2,%2,#1\n"		\
-+		"	SETB [%0++],D1Ar1\n",		\
-+		"	.long 6b,7b\n")
-+
-+#define __asm_copy_from_user_8x_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	__asm_copy_from_user_4x_cont(to, from, ret,	\
-+		"	GETD D1Ar1,[%1++]\n"		\
-+		"4:	SETD [%0++],D1Ar1\n" COPY,	\
-+		"5:	ADD  %2,%2,#4\n"			\
-+		"	SETD [%0++],D1Ar1\n" FIXUP,		\
-+		"	.long 4b,5b\n" TENTRY)
-+
-+#define __asm_copy_from_user_8(to, from, ret) \
-+	__asm_copy_from_user_8x_cont(to, from, ret, "", "", "")
-+
-+#define __asm_copy_from_user_9(to, from, ret) \
-+	__asm_copy_from_user_8x_cont(to, from, ret,	\
-+		"	GETB D1Ar1,[%1++]\n"		\
-+		"6:	SETB [%0++],D1Ar1\n",		\
-+		"7:	ADD  %2,%2,#1\n"		\
-+		"	SETB [%0++],D1Ar1\n",		\
-+		"	.long 6b,7b\n")
-+
-+#define __asm_copy_from_user_10x_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	__asm_copy_from_user_8x_cont(to, from, ret,	\
-+		"	GETW D1Ar1,[%1++]\n"		\
-+		"6:	SETW [%0++],D1Ar1\n" COPY,	\
-+		"7:	ADD  %2,%2,#2\n"		\
-+		"	SETW [%0++],D1Ar1\n" FIXUP,	\
-+		"	.long 6b,7b\n" TENTRY)
-+
-+#define __asm_copy_from_user_10(to, from, ret) \
-+	__asm_copy_from_user_10x_cont(to, from, ret, "", "", "")
-+
-+#define __asm_copy_from_user_11(to, from, ret)		\
-+	__asm_copy_from_user_10x_cont(to, from, ret,	\
-+		"	GETB D1Ar1,[%1++]\n"		\
-+		"8:	SETB [%0++],D1Ar1\n",		\
-+		"9:	ADD  %2,%2,#1\n"		\
-+		"	SETB [%0++],D1Ar1\n",		\
-+		"	.long 8b,9b\n")
-+
-+#define __asm_copy_from_user_12x_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	__asm_copy_from_user_8x_cont(to, from, ret,	\
-+		"	GETD D1Ar1,[%1++]\n"		\
-+		"6:	SETD [%0++],D1Ar1\n" COPY,	\
-+		"7:	ADD  %2,%2,#4\n"		\
-+		"	SETD [%0++],D1Ar1\n" FIXUP,	\
-+		"	.long 6b,7b\n" TENTRY)
-+
-+#define __asm_copy_from_user_12(to, from, ret) \
-+	__asm_copy_from_user_12x_cont(to, from, ret, "", "", "")
-+
-+#define __asm_copy_from_user_13(to, from, ret) \
-+	__asm_copy_from_user_12x_cont(to, from, ret,	\
-+		"	GETB D1Ar1,[%1++]\n"		\
-+		"8:	SETB [%0++],D1Ar1\n",		\
-+		"9:	ADD  %2,%2,#1\n"		\
-+		"	SETB [%0++],D1Ar1\n",		\
-+		"	.long 8b,9b\n")
-+
-+#define __asm_copy_from_user_14x_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	__asm_copy_from_user_12x_cont(to, from, ret,	\
-+		"	GETW D1Ar1,[%1++]\n"		\
-+		"8:	SETW [%0++],D1Ar1\n" COPY,	\
-+		"9:	ADD  %2,%2,#2\n"		\
-+		"	SETW [%0++],D1Ar1\n" FIXUP,	\
-+		"	.long 8b,9b\n" TENTRY)
-+
-+#define __asm_copy_from_user_14(to, from, ret) \
-+	__asm_copy_from_user_14x_cont(to, from, ret, "", "", "")
-+
-+#define __asm_copy_from_user_15(to, from, ret) \
-+	__asm_copy_from_user_14x_cont(to, from, ret,	\
-+		"	GETB D1Ar1,[%1++]\n"		\
-+		"10:	SETB [%0++],D1Ar1\n",		\
-+		"11:	ADD  %2,%2,#1\n"		\
-+		"	SETB [%0++],D1Ar1\n",		\
-+		"	.long 10b,11b\n")
-+
-+#define __asm_copy_from_user_16x_cont(to, from, ret, COPY, FIXUP, TENTRY) \
-+	__asm_copy_from_user_12x_cont(to, from, ret,	\
-+		"	GETD D1Ar1,[%1++]\n"		\
-+		"8:	SETD [%0++],D1Ar1\n" COPY,	\
-+		"9:	ADD  %2,%2,#4\n"		\
-+		"	SETD [%0++],D1Ar1\n" FIXUP,	\
-+		"	.long 8b,9b\n" TENTRY)
-+
-+#define __asm_copy_from_user_16(to, from, ret) \
-+	__asm_copy_from_user_16x_cont(to, from, ret, "", "", "")
-+
-+#define __asm_copy_from_user_8x64(to, from, ret) \
-+	asm volatile (				\
-+		"	GETL D0Ar2,D1Ar1,[%1++]\n"	\
-+		"2:	SETL [%0++],D0Ar2,D1Ar1\n"	\
-+		"1:\n"					\
-+		"	.section .fixup,\"ax\"\n"	\
-+		"	MOV D1Ar1,#0\n"			\
-+		"	MOV D0Ar2,#0\n"			\
-+		"3:	ADD  %2,%2,#8\n"		\
-+		"	SETL [%0++],D0Ar2,D1Ar1\n"	\
-+		"	MOVT    D0Ar2,#HI(1b)\n"	\
-+		"	JUMP    D0Ar2,#LO(1b)\n"	\
-+		"	.previous\n"			\
-+		"	.section __ex_table,\"a\"\n"	\
-+		"	.long 2b,3b\n"			\
-+		"	.previous\n"			\
-+		: "=a" (to), "=r" (from), "=r" (ret)	\
-+		: "0" (to), "1" (from), "2" (ret)	\
-+		: "D1Ar1", "D0Ar2", "memory")
-+
-+/*	rewind 'from' pointer when a fault occurs
-+ *
-+ *	Rationale:
-+ *		A fault occurs while reading from user buffer, which is the
-+ *		source. Since the fault is at a single address, we only
-+ *		need to rewind by 8 bytes.
-+ *		Since we don't write to kernel buffer until we read first,
-+ *		the kernel buffer is at the right state and needn't be
-+ *		corrected.
++/*
++ * TBIRES __TBINestInts( TBIRES State, void *pExt, int NoNestMask )
 + */
-+#define __asm_copy_from_user_64bit_rapf_loop(to, from, ret, n, id)	\
-+	__asm_copy_user_64bit_rapf_loop(to, from, ret, n, id,		\
-+		"SUB	%1, %1, #8\n")
-+
-+/*	rewind 'from' pointer when a fault occurs
-+ *
-+ *	Rationale:
-+ *		A fault occurs while reading from user buffer, which is the
-+ *		source. Since the fault is at a single address, we only
-+ *		need to rewind by 4 bytes.
-+ *		Since we don't write to kernel buffer until we read first,
-+ *		the kernel buffer is at the right state and needn't be
-+ *		corrected.
++	.text
++	.balign	4
++	.global	___TBINestInts
++	.type	___TBINestInts,function
++___TBINestInts:
++	XOR	D0Ar4,D0Ar4,#-1			/* D0Ar4 = ~TrigBit */
++	AND	D0Ar4,D0Ar4,#0xFFFF		/* D0Ar4 &= 0xFFFF */
++	MOV	D0Ar6,TXMASKI			/* BGNDHALT currently enabled? */
++	TSTT	D0Ar2,#TBICTX_XDX8_BIT+TBICTX_XAXX_BIT+TBICTX_XHL2_BIT+TBICTX_XTDP_BIT+TBICTX_XCBF_BIT
++	AND	D0Ar4,D0Ar2,D0Ar4		/* D0Ar4 = Ints to allow */
++	XOR	D0Ar2,D0Ar2,D0Ar4		/* Less Ints in TrigMask */
++	BNZ	___TBINestInts2			/* Jump if ctx save required! */
++	TSTT	D0Ar2,#TBICTX_CBUF_BIT+TBICTX_CBRP_BIT	/* Is catch state dirty? */
++	OR	D0Ar4,D0Ar4,D0Ar6		/* Or in TXMASKI BGNDHALT if set */
++	TSTNZ	D0Ar4,D0Ar4			/* Yes: AND triggers enabled */
++	MOV	D0Re0,D0Ar2			/* Update State argument */
++	MOV	D1Re0,D1Ar1			/*  with less Ints in TrigMask */
++	MOVZ	TXMASKI,D0Ar4			/* Early return: Enable Ints */
++	MOVZ	PC,D1RtP			/* Early return */
++	.size	___TBINestInts,.-___TBINestInts
++/*
++ * Drop thru into sub-function-
 + */
-+#define __asm_copy_from_user_32bit_rapf_loop(to, from, ret, n, id)	\
-+	__asm_copy_user_32bit_rapf_loop(to, from, ret, n, id,		\
-+		"SUB	%1, %1, #4\n")
++	.global	___TBINestInts2
++	.type	___TBINestInts2,function
++___TBINestInts2:
++	MOV	D0FrT,A0FrP			/* Full entry sequence so we */
++	ADD	A0FrP,A0StP,#0			/*     can make sub-calls */
++	MSETL	[A0StP],D0FrT,D0.5,D0.6		/*     and preserve our result */
++	ORT	D0Ar2,D0Ar2,#TBICTX_XCBF_BIT	/* Add in XCBF save request */
++	MOV	D0.5,D0Ar2			/* Save State in DX.5 */
++	MOV	D1.5,D1Ar1
++	OR	D0.6,D0Ar4,D0Ar6		/* Save TrigMask in D0.6 */
++	MOVT	D1RtP,#HI(___TBICtxSave)	/* Save catch buffer */
++	CALL	D1RtP,#LO(___TBICtxSave)
++	MOV	TXMASKI,D0.6			/* Allow Ints */
++	MOV	D0Re0,D0.5			/* Return State */
++	MOV	D1Re0,D1.5
++	MGETL	D0FrT,D0.5,D0.6,[A0FrP]		/* Full exit sequence */
++	SUB	A0StP,A0FrP,#(8*3)
++	MOV	A0FrP,D0FrT
++	MOV	PC,D1RtP
++	.size	___TBINestInts2,.-___TBINestInts2
 +
-+
-+/* Copy from user to kernel, zeroing the bytes that were inaccessible in
-+   userland.  The return-value is the number of bytes that were
-+   inaccessible.  */
-+unsigned long __copy_user_zeroing(void *pdst, const void __user *psrc,
-+				  unsigned long n)
-+{
-+	register char *dst asm ("A0.2") = pdst;
-+	register const char __user *src asm ("A1.2") = psrc;
-+	unsigned long retn = 0;
-+
-+	if (n == 0)
-+		return 0;
-+
-+	if ((unsigned long) src & 1) {
-+		__asm_copy_from_user_1(dst, src, retn);
-+		n--;
-+	}
-+	if ((unsigned long) dst & 1) {
-+		/* Worst case - byte copy */
-+		while (n > 0) {
-+			__asm_copy_from_user_1(dst, src, retn);
-+			n--;
-+			if (retn)
-+				goto copy_exception_bytes;
-+		}
-+	}
-+	if (((unsigned long) src & 2) && n >= 2) {
-+		__asm_copy_from_user_2(dst, src, retn);
-+		n -= 2;
-+	}
-+	if ((unsigned long) dst & 2) {
-+		/* Second worst case - word copy */
-+		while (n >= 2) {
-+			__asm_copy_from_user_2(dst, src, retn);
-+			n -= 2;
-+			if (retn)
-+				goto copy_exception_bytes;
-+		}
-+	}
-+
-+	/* We only need one check after the unalignment-adjustments,
-+	   because if both adjustments were done, either both or
-+	   neither reference had an exception.  */
-+	if (retn != 0)
-+		goto copy_exception_bytes;
-+
-+#ifdef USE_RAPF
-+	/* 64 bit copy loop */
-+	if (!(((unsigned long) src | (unsigned long) dst) & 7)) {
-+		if (n >= RAPF_MIN_BUF_SIZE) {
-+			/* Copy using fast 64bit rapf */
-+			__asm_copy_from_user_64bit_rapf_loop(dst, src, retn,
-+							n, "64cuz");
-+		}
-+		while (n >= 8) {
-+			__asm_copy_from_user_8x64(dst, src, retn);
-+			n -= 8;
-+			if (retn)
-+				goto copy_exception_bytes;
-+		}
-+	}
-+
-+	if (n >= RAPF_MIN_BUF_SIZE) {
-+		/* Copy using fast 32bit rapf */
-+		__asm_copy_from_user_32bit_rapf_loop(dst, src, retn,
-+						n, "32cuz");
-+	}
++/*
++ * void *__TBICtxSave( TBIRES State, void *pExt )
++ *
++ *       D0Ar2 contains TBICTX_*_BIT values that control what
++ *          extended data is to be saved beyond the end of D1Ar1.
++ *       These bits must be ored into the SaveMask of this structure.
++ *
++ *       Virtually all possible scratch registers are used.
++ *
++ *       The D1Ar1 parameter is only used as the basis for saving
++ *       CBUF state.
++ */
++/*
++ *       If TBICTX_XEXT_BIT is specified in State. then State.pCtx->Ext is
++ *       utilised to save the base address of the context save area and
++ *       the extended states saved. The XEXT flag then indicates that the
++ *       original state of the A0.2 and A1.2 registers from TBICTX.Ext.AX2
++ *       are stored as the first part of the extended state structure.
++ */
++	.balign	4
++	.global	___TBICtxSave
++	.type	___TBICtxSave,function
++___TBICtxSave:
++	GETD	D0Re0,[D1Ar1+#TBICTX_SaveMask-2]	/* Get SaveMask */
++	TSTT	D0Ar2,#TBICTX_XDX8_BIT+TBICTX_XAXX_BIT+TBICTX_XHL2_BIT+TBICTX_XTDP_BIT+TBICTX_XEXT_BIT
++						/* Just XCBF to save? */
++	MOV	A0.2,D1Ar3			/* Save pointer into A0.2 */
++	MOV	A1.2,D1RtP			/* Free off D0FrT:D1RtP pair */
++	BZ	$LCtxSaveCBUF			/* Yes: Only XCBF may be saved */
++	TSTT	D0Ar2,#TBICTX_XEXT_BIT		/* Extended base-state model? */
++	BZ	$LCtxSaveXDX8
++	GETL	D0Ar6,D1Ar5,[D1Ar1+#TBICTX_Ext_AX2]	/* Get A0.2, A1.2 state */
++	MOV	D0Ar4,D0Ar2			/* Extract Ctx.SaveFlags value */
++	ANDMT	D0Ar4,D0Ar4,#TBICTX_XDX8_BIT+TBICTX_XAXX_BIT+TBICTX_XHL2_BIT+TBICTX_XTDP_BIT+TBICTX_XEXT_BIT
++	SETD	[D1Ar1+#TBICTX_Ext_Ctx_pExt],A0.2
++	SETD	[D1Ar1+#TBICTX_Ext_Ctx_SaveMask-2],D0Ar4
++	SETL	[A0.2++],D0Ar6,D1Ar5		/* Save A0.2, A1.2 state */
++$LCtxSaveXDX8:
++	TSTT	D0Ar2,#TBICTX_XDX8_BIT		/* Save extended DX regs? */
++	BZ	$LCtxSaveXAXX
++/*
++ * Save 8 extra DX registers
++ */
++	MSETL	[A0.2],D0.8,D0.9,D0.10,D0.11,D0.12,D0.13,D0.14,D0.15
++$LCtxSaveXAXX:
++	TSTT	D0Ar2,#TBICTX_XAXX_BIT		/* Save extended AX regs? */
++	SWAP	D0Re0,A0.2			/* pDst into D0Re0 */
++	BZ	$LCtxSaveXHL2
++/*
++ * Save 4 extra AX registers
++ */
++	MSETL	[D0Re0], A0_4 A0.5,A0.6,A0.7	/* Save 8*3 bytes */
++$LCtxSaveXHL2:
++	TSTT	D0Ar2,#TBICTX_XHL2_BIT		/* Save hardware-loop regs? */
++	SWAP	D0Re0,A0.2			/* pDst back into A0.2 */
++	MOV	D0Ar6,TXL1START
++	MOV	D1Ar5,TXL2START
++	BZ	$LCtxSaveXTDP
++/*
++ * Save hardware loop registers
++ */
++	SETL	[A0.2++],D0Ar6,D1Ar5		/* Save 8*1 bytes */
++	MOV	D0Ar6,TXL1END
++	MOV	D1Ar5,TXL2END
++	MOV	D0FrT,TXL1COUNT
++	MOV	D1RtP,TXL2COUNT
++	MSETL	[A0.2],D0Ar6,D0FrT		/* Save 8*2 bytes */
++/*
++ * Clear loop counters to disable any current loops
++ */
++	XOR	TXL1COUNT,D0FrT,D0FrT
++	XOR	TXL2COUNT,D1RtP,D1RtP
++$LCtxSaveXTDP:
++	TSTT	D0Ar2,#TBICTX_XTDP_BIT		/* Save per-thread DSP regs? */
++	BZ	$LCtxSaveCBUF
++/*
++ * Save per-thread DSP registers; ACC.0, PR.0, PI.1-3 (PI.0 is zero)
++ */
++#ifndef CTX_NO_DSP
++D	SETL	[A0.2++],AC0.0,AC1.0		/* Save ACx.0 lower 32-bits */
++DH	SETL	[A0.2++],AC0.0,AC1.0		/* Save ACx.0 upper 32-bits */
++D	SETL	[A0.2++],D0AR.0,D1AR.0		/* Save DSP RAM registers */
++D	SETL	[A0.2++],D0AR.1,D1AR.1
++D	SETL	[A0.2++],D0AW.0,D1AW.0
++D	SETL	[A0.2++],D0AW.1,D1AW.1
++D	SETL	[A0.2++],D0BR.0,D1BR.0
++D	SETL	[A0.2++],D0BR.1,D1BR.1
++D	SETL	[A0.2++],D0BW.0,D1BW.0
++D	SETL	[A0.2++],D0BW.1,D1BW.1
++D	SETL	[A0.2++],D0ARI.0,D1ARI.0
++D	SETL	[A0.2++],D0ARI.1,D1ARI.1
++D	SETL	[A0.2++],D0AWI.0,D1AWI.0
++D	SETL	[A0.2++],D0AWI.1,D1AWI.1
++D	SETL	[A0.2++],D0BRI.0,D1BRI.0
++D	SETL	[A0.2++],D0BRI.1,D1BRI.1
++D	SETL	[A0.2++],D0BWI.0,D1BWI.0
++D	SETL	[A0.2++],D0BWI.1,D1BWI.1
++D	SETD	[A0.2++],T0
++D	SETD	[A0.2++],T1
++D	SETD	[A0.2++],T2
++D	SETD	[A0.2++],T3
++D	SETD	[A0.2++],T4
++D	SETD	[A0.2++],T5
++D	SETD	[A0.2++],T6
++D	SETD	[A0.2++],T7
++D	SETD	[A0.2++],T8
++D	SETD	[A0.2++],T9
++D	SETD	[A0.2++],TA
++D	SETD	[A0.2++],TB
++D	SETD	[A0.2++],TC
++D	SETD	[A0.2++],TD
++D	SETD	[A0.2++],TE
++D	SETD	[A0.2++],TF
 +#else
-+	/* 64 bit copy loop */
-+	if (!(((unsigned long) src | (unsigned long) dst) & 7)) {
-+		while (n >= 8) {
-+			__asm_copy_from_user_8x64(dst, src, retn);
-+			n -= 8;
-+			if (retn)
-+				goto copy_exception_bytes;
-+		}
-+	}
++	ADD	A0.2,A0.2,#(8*18+4*16)
 +#endif
++	MOV	D0Ar6,TXMRSIZE
++	MOV	D1Ar5,TXDRSIZE
++	SETL	[A0.2++],D0Ar6,D1Ar5		/* Save 8*1 bytes */
++	
++$LCtxSaveCBUF:
++#ifdef TBI_1_3
++	MOV	D0Ar4,D0Re0			/* Copy Ctx Flags */
++	ANDT	D0Ar4,D0Ar4,#TBICTX_XCBF_BIT	/*   mask XCBF if already set */
++	XOR	D0Ar4,D0Ar4,#-1
++	AND	D0Ar2,D0Ar2,D0Ar4		/*   remove XCBF if already set */
++#endif
++	TSTT	D0Ar2,#TBICTX_XCBF_BIT		/* Want to save CBUF? */
++	ANDT	D0Ar2,D0Ar2,#TBICTX_XDX8_BIT+TBICTX_XAXX_BIT+TBICTX_XHL2_BIT+TBICTX_XTDP_BIT+TBICTX_XEXT_BIT
++	OR	D0Ar2,D0Ar2,D0Re0		/* Generate new SaveMask */
++	SETD	[D1Ar1+#TBICTX_SaveMask-2],D0Ar2/* Add in bits saved to TBICTX */
++	MOV	D0Re0,A0.2			/* Return end of save area */
++	MOV	D0Ar4,TXDIVTIME			/* Get TXDIVTIME */
++	MOVZ	PC,A1.2				/* No: Early return */
++	TSTT	D0Ar2,#TBICTX_CBUF_BIT+TBICTX_CBRP_BIT	/* Need to save CBUF? */
++	MOVZ	PC,A1.2				/* No: Early return */
++	ORT	D0Ar2,D0Ar2,#TBICTX_XCBF_BIT
++	SETD	[D1Ar1+#TBICTX_SaveMask-2],D0Ar2/* Add in XCBF bit to TBICTX */
++	ADD	A0.2,D1Ar1,#TBICTX_BYTES	/* Dump CBUF state after TBICTX */
++/*
++ * Save CBUF
++ */
++	SETD	[A0.2+# 0],TXCATCH0		/* Restore TXCATCHn */
++	SETD	[A0.2+# 4],TXCATCH1
++	TSTT	D0Ar2,#TBICTX_CBRP_BIT		/* ... RDDIRTY was/is set */
++	SETD	[A0.2+# 8],TXCATCH2
++	SETD	[A0.2+#12],TXCATCH3
++	BZ	$LCtxSaveComplete
++	SETL	[A0.2+#(2*8)],RD		/* Save read pipeline */
++	SETL	[A0.2+#(3*8)],RD		/* Save read pipeline */
++	SETL	[A0.2+#(4*8)],RD		/* Save read pipeline */
++	SETL	[A0.2+#(5*8)],RD		/* Save read pipeline */
++	SETL	[A0.2+#(6*8)],RD		/* Save read pipeline */
++	SETL	[A0.2+#(7*8)],RD		/* Save read pipeline */
++	AND	TXDIVTIME,D0Ar4,#TXDIVTIME_DIV_BITS /* Clear RPDIRTY */
++$LCtxSaveComplete:
++	MOV	PC,A1.2				/* Return */
++	.size	___TBICtxSave,.-___TBICtxSave
 +
-+	while (n >= 4) {
-+		__asm_copy_from_user_4(dst, src, retn);
-+		n -= 4;
++/*
++ * void *__TBICtxRestore( TBIRES State, void *pExt )
++ *
++ *                 D0Ar2 contains TBICTX_*_BIT values that control what
++ *                    extended data is to be recovered from D1Ar3 (pExt).
++ *
++ *                 Virtually all possible scratch registers are used.
++ */
++/*
++ *	If TBICTX_XEXT_BIT is specified in State. Then the saved state of
++ *       the orginal A0.2 and A1.2 is restored from pExt and the XEXT
++ *       related flags are removed from State.pCtx->SaveMask.
++ *
++ */
++	.balign	4
++	.global	___TBICtxRestore
++	.type	___TBICtxRestore,function
++___TBICtxRestore:
++	GETD	D0Ar6,[D1Ar1+#TBICTX_CurrMODE]	/* Get TXMODE Value */
++	ANDST	D0Ar2,D0Ar2,#TBICTX_XDX8_BIT+TBICTX_XAXX_BIT+TBICTX_XHL2_BIT+TBICTX_XTDP_BIT+TBICTX_XEXT_BIT
++	MOV	D1Re0,D0Ar2			/* Keep flags in D1Re0 */
++	MOV	D0Re0,D1Ar3			/* D1Ar3 is default result */
++	MOVZ	PC,D1RtP			/* Early return, nothing to do */
++	ANDT	D0Ar6,D0Ar6,#0xE000		/* Top bits of TXMODE required */
++	MOV	A0.3,D0Ar6			/* Save TXMODE for later */
++	TSTT	D1Re0,#TBICTX_XEXT_BIT		/* Check for XEXT bit */
++	BZ	$LCtxRestXDX8
++	GETD	D0Ar4,[D1Ar1+#TBICTX_SaveMask-2]/* Get current SaveMask */
++	GETL	D0Ar6,D1Ar5,[D0Re0++]		/* Restore A0.2, A1.2 state */
++	ANDMT	D0Ar4,D0Ar4,#(0xFFFF-(TBICTX_XDX8_BIT+TBICTX_XAXX_BIT+TBICTX_XHL2_BIT+TBICTX_XTDP_BIT+TBICTX_XEXT_BIT))
++	SETD	[D1Ar1+#TBICTX_SaveMask-2],D0Ar4/* New SaveMask */
++#ifdef METAC_1_0
++	SETD	[D1Ar1+#TBICTX_Ext_AX2_U0],D0Ar6
++	MOV	D0Ar6,D1Ar1
++	SETD	[D0Ar6+#TBICTX_Ext_AX2_U1],D1Ar5
++#else
++	SETL	[D1Ar1+#TBICTX_Ext_AX2],D0Ar6,D1Ar5
++#endif
++$LCtxRestXDX8:
++	TSTT	D1Re0,#TBICTX_XDX8_BIT		/* Get extended DX regs? */
++	MOV	A1.2,D1RtP			/* Free off D1RtP register */
++	BZ	$LCtxRestXAXX
++/*
++ * Restore 8 extra DX registers
++ */
++	MGETL	D0.8,D0.9,D0.10,D0.11,D0.12,D0.13,D0.14,D0.15,[D0Re0]
++$LCtxRestXAXX:
++	TSTT	D1Re0,#TBICTX_XAXX_BIT		/* Get extended AX regs? */
++	BZ	$LCtxRestXHL2
++/*
++ * Restore 3 extra AX registers
++ */
++	MGETL	A0_4 A0.5,A0.6,A0.7,[D0Re0]	/* Get 8*3 bytes */
++$LCtxRestXHL2:
++	TSTT	D1Re0,#TBICTX_XHL2_BIT		/* Get hardware-loop regs? */
++	BZ	$LCtxRestXTDP
++/*
++ * Get hardware loop registers
++ */
++	MGETL	D0Ar6,D0Ar4,D0Ar2,[D0Re0]	/* Get 8*3 bytes */
++	MOV	TXL1START,D0Ar6
++	MOV	TXL2START,D1Ar5
++	MOV	TXL1END,D0Ar4
++	MOV	TXL2END,D1Ar3
++	MOV	TXL1COUNT,D0Ar2
++	MOV	TXL2COUNT,D1Ar1
++$LCtxRestXTDP:
++	TSTT	D1Re0,#TBICTX_XTDP_BIT		/* Get per-thread DSP regs? */
++	MOVZ	PC,A1.2				/* No: Early return */
++/*
++ * Get per-thread DSP registers; ACC.0, PR.0, PI.1-3 (PI.0 is zero)
++ */
++	MOV	A0.2,D0Re0
++	GETL	D0Ar6,D1Ar5,[D0Re0++#((16*4)+(18*8))]
++#ifndef CTX_NO_DSP
++D	GETL	AC0.0,AC1.0,[A0.2++]		/* Restore ACx.0 lower 32-bits */
++DH	GETL	AC0.0,AC1.0,[A0.2++]		/* Restore ACx.0 upper 32-bits */
++#else
++	ADD	A0.2,A0.2,#(2*8)
++#endif
++	ADD	D0Re0,D0Re0,#(2*4)
++	MOV	TXMODE,A0.3			/* Some TXMODE bits needed */
++	MOV	TXMRSIZE,D0Ar6
++	MOV	TXDRSIZE,D1Ar5
++#ifndef CTX_NO_DSP
++D	GETL	D0AR.0,D1AR.0,[A0.2++]		/* Restore DSP RAM registers */
++D	GETL	D0AR.1,D1AR.1,[A0.2++]
++D	GETL	D0AW.0,D1AW.0,[A0.2++]
++D	GETL	D0AW.1,D1AW.1,[A0.2++]
++D	GETL	D0BR.0,D1BR.0,[A0.2++]
++D	GETL	D0BR.1,D1BR.1,[A0.2++]
++D	GETL	D0BW.0,D1BW.0,[A0.2++]
++D	GETL	D0BW.1,D1BW.1,[A0.2++]
++#else
++	ADD	A0.2,A0.2,#(8*8)
++#endif
++	MOV	TXMODE,#0			/* Restore TXMODE */
++#ifndef CTX_NO_DSP
++D	GETL	D0ARI.0,D1ARI.0,[A0.2++]
++D	GETL	D0ARI.1,D1ARI.1,[A0.2++]
++D	GETL	D0AWI.0,D1AWI.0,[A0.2++]
++D	GETL	D0AWI.1,D1AWI.1,[A0.2++]
++D	GETL	D0BRI.0,D1BRI.0,[A0.2++]
++D	GETL	D0BRI.1,D1BRI.1,[A0.2++]
++D	GETL	D0BWI.0,D1BWI.0,[A0.2++]
++D	GETL	D0BWI.1,D1BWI.1,[A0.2++]
++D	GETD	T0,[A0.2++]
++D	GETD	T1,[A0.2++]
++D	GETD	T2,[A0.2++]
++D	GETD	T3,[A0.2++]
++D	GETD	T4,[A0.2++]
++D	GETD	T5,[A0.2++]
++D	GETD	T6,[A0.2++]
++D	GETD	T7,[A0.2++]
++D	GETD	T8,[A0.2++]
++D	GETD	T9,[A0.2++]
++D	GETD	TA,[A0.2++]
++D	GETD	TB,[A0.2++]
++D	GETD	TC,[A0.2++]
++D	GETD	TD,[A0.2++]
++D	GETD	TE,[A0.2++]
++D	GETD	TF,[A0.2++]
++#else
++	ADD	A0.2,A0.2,#(8*8+4*16)
++#endif
++	MOV	PC,A1.2				/* Return */
++	.size	___TBICtxRestore,.-___TBICtxRestore
 +
-+		if (retn)
-+			goto copy_exception_bytes;
-+	}
++/*
++ * End of tbictx.S
++ */
+diff --git a/arch/metag/tbx/tbictxfpu.S b/arch/metag/tbx/tbictxfpu.S
+new file mode 100644
+index 0000000..e773bea
+--- /dev/null
++++ b/arch/metag/tbx/tbictxfpu.S
+@@ -0,0 +1,190 @@
++/*
++ * tbictxfpu.S
++ *
++ * Copyright (C) 2009, 2012 Imagination Technologies.
++ *
++ * This program is free software; you can redistribute it and/or modify it under
++ * the terms of the GNU General Public License version 2 as published by the
++ * Free Software Foundation.
++ *
++ * Explicit state save and restore routines forming part of the thread binary
++ * interface for META processors
++ */
 +
-+	/* If we get here, there were no memory read faults.  */
-+	switch (n) {
-+		/* These copies are at least "naturally aligned" (so we don't
-+		   have to check each byte), due to the src alignment code.
-+		   The *_3 case *will* get the correct count for retn.  */
-+	case 0:
-+		/* This case deliberately left in (if you have doubts check the
-+		   generated assembly code).  */
-+		break;
-+	case 1:
-+		__asm_copy_from_user_1(dst, src, retn);
-+		break;
-+	case 2:
-+		__asm_copy_from_user_2(dst, src, retn);
-+		break;
-+	case 3:
-+		__asm_copy_from_user_3(dst, src, retn);
-+		break;
-+	}
++	.file	"tbifpuctx.S"
 +
-+	/* If we get here, retn correctly reflects the number of failing
-+	   bytes.  */
-+	return retn;
++#include <asm/metag_regs.h>
++#include <asm/tbx.h>
 +
-+ copy_exception_bytes:
-+	/* We already have "retn" bytes cleared, and need to clear the
-+	   remaining "n" bytes.  A non-optimized simple byte-for-byte in-line
-+	   memset is preferred here, since this isn't speed-critical code and
-+	   we'd rather have this a leaf-function than calling memset.  */
-+	{
-+		char *endp;
-+		for (endp = dst + n; dst < endp; dst++)
-+			*dst = 0;
-+	}
++#ifdef TBI_1_4
++/*
++ * void *__TBICtxFPUSave( TBIRES State, void *pExt )
++ *
++ *                 D0Ar2 contains TBICTX_*_BIT values that control what
++ *                    extended data is to be saved.
++ *                 These bits must be ored into the SaveMask of this structure.
++ *
++ *                 Virtually all possible scratch registers are used.
++ */
++	.text
++	.balign	4
++	.global	___TBICtxFPUSave
++	.type	___TBICtxFPUSave,function
++___TBICtxFPUSave:
 +
-+	return retn + n;
-+}
++	/* D1Ar1:D0Ar2 - State
++	 * D1Ar3       - pExt
++	 * D0Ar4       - Value of METAC_CORE_ID
++	 * D1Ar5       - Scratch
++	 * D0Ar6       - Scratch
++	 */
++	
++	/* If the FPAC bit isnt set then there is nothing to do */
++	TSTT	D0Ar2,#TBICTX_FPAC_BIT
++	MOVZ	PC, D1RtP
 +
-+#define __asm_clear_8x64(to, ret) \
-+	asm volatile (					\
-+		"	MOV  D0Ar2,#0\n"		\
-+		"	MOV  D1Ar1,#0\n"		\
-+		"	SETL [%0],D0Ar2,D1Ar1\n"	\
-+		"2:	SETL [%0++],D0Ar2,D1Ar1\n"	\
-+		"1:\n"					\
-+		"	.section .fixup,\"ax\"\n"	\
-+		"3:	ADD  %1,%1,#8\n"		\
-+		"	MOVT    D0Ar2,#HI(1b)\n"	\
-+		"	JUMP    D0Ar2,#LO(1b)\n"	\
-+		"	.previous\n"			\
-+		"	.section __ex_table,\"a\"\n"	\
-+		"	.long 2b,3b\n"			\
-+		"	.previous\n"			\
-+		: "=r" (to), "=r" (ret)	\
-+		: "0" (to), "1" (ret)	\
-+		: "D1Ar1", "D0Ar2", "memory")
++	/* Obtain the Core config */
++	MOVT	D0Ar4,        #HI(METAC_CORE_ID)
++	ADD	D0Ar4, D0Ar4, #LO(METAC_CORE_ID)
++	GETD	D0Ar4, [D0Ar4]
 +
-+/* Zero userspace.  */
++	/* Detect FX.8 - FX.15 and add to core config */
++	MOV	D0Ar6, TXENABLE
++	AND	D0Ar6, D0Ar6, #(TXENABLE_CLASSALT_FPUR8 << TXENABLE_CLASS_S)
++	AND	D0Ar4, D0Ar4, #LO(0x0000FFFF)
++	ORT	D0Ar4, D0Ar4, #HI(TBICTX_CFGFPU_FX16_BIT)
++	XOR	D0Ar4, D0Ar4, D0Ar6
 +
-+#define __asm_clear(to, ret, CLEAR, FIXUP, TENTRY) \
-+	asm volatile (					\
-+		"	MOV D1Ar1,#0\n"			\
-+			CLEAR				\
-+		"1:\n"					\
-+		"	.section .fixup,\"ax\"\n"	\
-+			FIXUP				\
-+		"	MOVT    D1Ar1,#HI(1b)\n"	\
-+		"	JUMP    D1Ar1,#LO(1b)\n"	\
-+		"	.previous\n"			\
-+		"	.section __ex_table,\"a\"\n"	\
-+			TENTRY				\
-+		"	.previous"			\
-+		: "=r" (to), "=r" (ret)			\
-+		: "0" (to), "1" (ret)			\
-+		: "D1Ar1", "memory")
++	/* Save the relevant bits to the buffer */
++	SETD	[D1Ar3++], D0Ar4
 +
-+#define __asm_clear_1(to, ret) \
-+	__asm_clear(to, ret,			\
-+		"	SETB [%0],D1Ar1\n"	\
-+		"2:	SETB [%0++],D1Ar1\n",	\
-+		"3:	ADD  %1,%1,#1\n",	\
-+		"	.long 2b,3b\n")
++	/* Save the relevant bits of TXDEFR (Assumes TXDEFR is coherent) ... */
++	MOV	D0Ar6, TXDEFR
++	LSR	D0Re0, D0Ar6, #8
++	AND	D0Re0, D0Re0, #LO(TXDEFR_FPE_FE_BITS>>8)
++	AND	D0Ar6, D0Ar6, #LO(TXDEFR_FPE_ICTRL_BITS)
++	OR	D0Re0, D0Re0, D0Ar6
 +
-+#define __asm_clear_2(to, ret) \
-+	__asm_clear(to, ret,			\
-+		"	SETW [%0],D1Ar1\n"	\
-+		"2:	SETW [%0++],D1Ar1\n",	\
-+		"3:	ADD  %1,%1,#2\n",	\
-+		"	.long 2b,3b\n")
++	/* ... along with relevant bits of TXMODE to buffer */
++	MOV	D0Ar6, TXMODE
++	ANDT	D0Ar6, D0Ar6, #HI(TXMODE_FPURMODE_BITS)
++	ORT	D0Ar6, D0Ar6, #HI(TXMODE_FPURMODEWRITE_BIT)
++	OR	D0Ar6, D0Ar6, D0Re0
++	SETD	[D1Ar3++], D0Ar6
 +
-+#define __asm_clear_3(to, ret) \
-+	__asm_clear(to, ret,			\
-+		 "2:	SETW [%0++],D1Ar1\n"	\
-+		 "	SETB [%0],D1Ar1\n"	\
-+		 "3:	SETB [%0++],D1Ar1\n",	\
-+		 "4:	ADD  %1,%1,#2\n"	\
-+		 "5:	ADD  %1,%1,#1\n",	\
-+		 "	.long 2b,4b\n"		\
-+		 "	.long 3b,5b\n")
++	GETD	D0Ar6,[D1Ar1+#TBICTX_SaveMask-2] /* Get the current SaveMask */
++	/* D0Ar6       - pCtx->SaveMask */
 +
-+#define __asm_clear_4x_cont(to, ret, CLEAR, FIXUP, TENTRY) \
-+	__asm_clear(to, ret,				\
-+		"	SETD [%0],D1Ar1\n"		\
-+		"2:	SETD [%0++],D1Ar1\n" CLEAR,	\
-+		"3:	ADD  %1,%1,#4\n" FIXUP,		\
-+		"	.long 2b,3b\n" TENTRY)
++	TSTT	D0Ar4, #HI(TBICTX_CFGFPU_FX16_BIT) /* Perform test here for extended FPU registers
++	    	                                    * to avoid stalls
++	    	                                    */
++	/* Save the standard FPU registers */
++F	MSETL	[D1Ar3++], FX.0, FX.2, FX.4, FX.6
 +
-+#define __asm_clear_4(to, ret) \
-+	__asm_clear_4x_cont(to, ret, "", "", "")
++	/* Save the extended FPU registers if they are present */
++	BZ	$Lskip_save_fx8_fx16
++F	MSETL	[D1Ar3++], FX.8, FX.10, FX.12, FX.14
++$Lskip_save_fx8_fx16:
 +
-+#define __asm_clear_8x_cont(to, ret, CLEAR, FIXUP, TENTRY) \
-+	__asm_clear_4x_cont(to, ret,			\
-+		"	SETD [%0],D1Ar1\n"		\
-+		"4:	SETD [%0++],D1Ar1\n" CLEAR,	\
-+		"5:	ADD  %1,%1,#4\n" FIXUP,		\
-+		"	.long 4b,5b\n" TENTRY)
++	/* Save the FPU Accumulator if it is present */
++	TST	D0Ar4, #METAC_COREID_NOFPACC_BIT
++	BNZ	$Lskip_save_fpacc
++F	SETL	[D1Ar3++], ACF.0
++F	SETL	[D1Ar3++], ACF.1
++F	SETL	[D1Ar3++], ACF.2
++$Lskip_save_fpacc:
 +
-+#define __asm_clear_8(to, ret) \
-+	__asm_clear_8x_cont(to, ret, "", "", "")
++	/* Update pCtx->SaveMask */
++	ANDT	D0Ar2, D0Ar2, #TBICTX_FPAC_BIT
++	OR	D0Ar6, D0Ar6, D0Ar2
++	SETD	[D1Ar1+#TBICTX_SaveMask-2],D0Ar6/* Add in XCBF bit to TBICTX */
 +
-+#define __asm_clear_12x_cont(to, ret, CLEAR, FIXUP, TENTRY) \
-+	__asm_clear_8x_cont(to, ret,			\
-+		"	SETD [%0],D1Ar1\n"		\
-+		"6:	SETD [%0++],D1Ar1\n" CLEAR,	\
-+		"7:	ADD  %1,%1,#4\n" FIXUP,		\
-+		"	.long 6b,7b\n" TENTRY)
++	MOV	D0Re0, D1Ar3 /* Return end of save area */
++	MOV	PC, D1RtP
 +
-+#define __asm_clear_12(to, ret) \
-+	__asm_clear_12x_cont(to, ret, "", "", "")
++	.size	___TBICtxFPUSave,.-___TBICtxFPUSave
 +
-+#define __asm_clear_16x_cont(to, ret, CLEAR, FIXUP, TENTRY) \
-+	__asm_clear_12x_cont(to, ret,			\
-+		"	SETD [%0],D1Ar1\n"		\
-+		"8:	SETD [%0++],D1Ar1\n" CLEAR,	\
-+		"9:	ADD  %1,%1,#4\n" FIXUP,		\
-+		"	.long 8b,9b\n" TENTRY)
++/*
++ * void *__TBICtxFPURestore( TBIRES State, void *pExt )
++ *
++ *                 D0Ar2 contains TBICTX_*_BIT values that control what
++ *                    extended data is to be recovered from D1Ar3 (pExt).
++ *
++ *                 Virtually all possible scratch registers are used.
++ */
++/*
++ * If TBICTX_XEXT_BIT is specified in State. Then the saved state of
++ *       the orginal A0.2 and A1.2 is restored from pExt and the XEXT
++ *       related flags are removed from State.pCtx->SaveMask.
++ *
++ */
++	.balign	4
++	.global	___TBICtxFPURestore
++	.type	___TBICtxFPURestore,function
++___TBICtxFPURestore:
 +
-+#define __asm_clear_16(to, ret) \
-+	__asm_clear_16x_cont(to, ret, "", "", "")
-+
-+unsigned long __do_clear_user(void __user *pto, unsigned long pn)
-+{
-+	register char __user *dst asm ("D0Re0") = pto;
-+	register unsigned long n asm ("D1Re0") = pn;
-+	register unsigned long retn asm ("D0Ar6") = 0;
-+
-+	if ((unsigned long) dst & 1) {
-+		__asm_clear_1(dst, retn);
-+		n--;
-+	}
-+
-+	if ((unsigned long) dst & 2) {
-+		__asm_clear_2(dst, retn);
-+		n -= 2;
-+	}
-+
-+	/* 64 bit copy loop */
-+	if (!((__force unsigned long) dst & 7)) {
-+		while (n >= 8) {
-+			__asm_clear_8x64(dst, retn);
-+			n -= 8;
-+		}
-+	}
-+
-+	while (n >= 16) {
-+		__asm_clear_16(dst, retn);
-+		n -= 16;
-+	}
-+
-+	while (n >= 4) {
-+		__asm_clear_4(dst, retn);
-+		n -= 4;
-+	}
-+
-+	switch (n) {
-+	case 0:
-+		break;
-+	case 1:
-+		__asm_clear_1(dst, retn);
-+		break;
-+	case 2:
-+		__asm_clear_2(dst, retn);
-+		break;
-+	case 3:
-+		__asm_clear_3(dst, retn);
-+		break;
-+	}
-+
-+	return retn;
-+}
-+
-+unsigned char __get_user_asm_b(const void __user *addr, long *err)
-+{
-+	register unsigned char x asm ("D0Re0") = 0;
-+	asm volatile (
-+		"	GETB %0,[%2]\n"
-+		"1:\n"
-+		"	GETB %0,[%2]\n"
-+		"2:\n"
-+		"	.section .fixup,\"ax\"\n"
-+		"3:	MOV     D0FrT,%3\n"
-+		"	SETD    [%1],D0FrT\n"
-+		"	MOVT    D0FrT,#HI(2b)\n"
-+		"	JUMP    D0FrT,#LO(2b)\n"
-+		"	.previous\n"
-+		"	.section __ex_table,\"a\"\n"
-+		"	.long 1b,3b\n"
-+		"	.previous\n"
-+		: "=r" (x)
-+		: "r" (err), "r" (addr), "P" (-EFAULT)
-+		: "D0FrT");
-+	return x;
-+}
-+
-+unsigned short __get_user_asm_w(const void __user *addr, long *err)
-+{
-+	register unsigned short x asm ("D0Re0") = 0;
-+	asm volatile (
-+		"	GETW %0,[%2]\n"
-+		"1:\n"
-+		"	GETW %0,[%2]\n"
-+		"2:\n"
-+		"	.section .fixup,\"ax\"\n"
-+		"3:	MOV     D0FrT,%3\n"
-+		"	SETD    [%1],D0FrT\n"
-+		"	MOVT    D0FrT,#HI(2b)\n"
-+		"	JUMP    D0FrT,#LO(2b)\n"
-+		"	.previous\n"
-+		"	.section __ex_table,\"a\"\n"
-+		"	.long 1b,3b\n"
-+		"	.previous\n"
-+		: "=r" (x)
-+		: "r" (err), "r" (addr), "P" (-EFAULT)
-+		: "D0FrT");
-+	return x;
-+}
-+
-+unsigned int __get_user_asm_d(const void __user *addr, long *err)
-+{
-+	register unsigned int x asm ("D0Re0") = 0;
-+	asm volatile (
-+		"	GETD %0,[%2]\n"
-+		"1:\n"
-+		"	GETD %0,[%2]\n"
-+		"2:\n"
-+		"	.section .fixup,\"ax\"\n"
-+		"3:	MOV     D0FrT,%3\n"
-+		"	SETD    [%1],D0FrT\n"
-+		"	MOVT    D0FrT,#HI(2b)\n"
-+		"	JUMP    D0FrT,#LO(2b)\n"
-+		"	.previous\n"
-+		"	.section __ex_table,\"a\"\n"
-+		"	.long 1b,3b\n"
-+		"	.previous\n"
-+		: "=r" (x)
-+		: "r" (err), "r" (addr), "P" (-EFAULT)
-+		: "D0FrT");
-+	return x;
-+}
-+
-+long __put_user_asm_b(unsigned int x, void __user *addr)
-+{
-+	register unsigned int err asm ("D0Re0") = 0;
-+	asm volatile (
-+		"	MOV  %0,#0\n"
-+		"	SETB [%2],%1\n"
-+		"1:\n"
-+		"	SETB [%2],%1\n"
-+		"2:\n"
-+		".section .fixup,\"ax\"\n"
-+		"3:	MOV     %0,%3\n"
-+		"	MOVT    D0FrT,#HI(2b)\n"
-+		"	JUMP    D0FrT,#LO(2b)\n"
-+		".previous\n"
-+		".section __ex_table,\"a\"\n"
-+		"	.long 1b,3b\n"
-+		".previous"
-+		: "=r"(err)
-+		: "d" (x), "a" (addr), "P"(-EFAULT)
-+		: "D0FrT");
-+	return err;
-+}
-+
-+long __put_user_asm_w(unsigned int x, void __user *addr)
-+{
-+	register unsigned int err asm ("D0Re0") = 0;
-+	asm volatile (
-+		"	MOV  %0,#0\n"
-+		"	SETW [%2],%1\n"
-+		"1:\n"
-+		"	SETW [%2],%1\n"
-+		"2:\n"
-+		".section .fixup,\"ax\"\n"
-+		"3:	MOV     %0,%3\n"
-+		"	MOVT    D0FrT,#HI(2b)\n"
-+		"	JUMP    D0FrT,#LO(2b)\n"
-+		".previous\n"
-+		".section __ex_table,\"a\"\n"
-+		"	.long 1b,3b\n"
-+		".previous"
-+		: "=r"(err)
-+		: "d" (x), "a" (addr), "P"(-EFAULT)
-+		: "D0FrT");
-+	return err;
-+}
-+
-+long __put_user_asm_d(unsigned int x, void __user *addr)
-+{
-+	register unsigned int err asm ("D0Re0") = 0;
-+	asm volatile (
-+		"	MOV  %0,#0\n"
-+		"	SETD [%2],%1\n"
-+		"1:\n"
-+		"	SETD [%2],%1\n"
-+		"2:\n"
-+		".section .fixup,\"ax\"\n"
-+		"3:	MOV     %0,%3\n"
-+		"	MOVT    D0FrT,#HI(2b)\n"
-+		"	JUMP    D0FrT,#LO(2b)\n"
-+		".previous\n"
-+		".section __ex_table,\"a\"\n"
-+		"	.long 1b,3b\n"
-+		".previous"
-+		: "=r"(err)
-+		: "d" (x), "a" (addr), "P"(-EFAULT)
-+		: "D0FrT");
-+	return err;
-+}
-+
-+long __put_user_asm_l(unsigned long long x, void __user *addr)
-+{
-+	register unsigned int err asm ("D0Re0") = 0;
-+	asm volatile (
-+		"	MOV  %0,#0\n"
-+		"	SETL [%2],%1,%t1\n"
-+		"1:\n"
-+		"	SETL [%2],%1,%t1\n"
-+		"2:\n"
-+		".section .fixup,\"ax\"\n"
-+		"3:	MOV     %0,%3\n"
-+		"	MOVT    D0FrT,#HI(2b)\n"
-+		"	JUMP    D0FrT,#LO(2b)\n"
-+		".previous\n"
-+		".section __ex_table,\"a\"\n"
-+		"	.long 1b,3b\n"
-+		".previous"
-+		: "=r"(err)
-+		: "d" (x), "a" (addr), "P"(-EFAULT)
-+		: "D0FrT");
-+	return err;
-+}
-+
-+long strnlen_user(const char __user *src, long count)
-+{
-+	long res;
-+
-+	if (!access_ok(VERIFY_READ, src, 0))
-+		return 0;
-+
-+	asm volatile ("	MOV     D0Ar4, %1\n"
-+		      "	MOV     D0Ar6, %2\n"
-+		      "0:\n"
-+		      "	SUBS    D0FrT, D0Ar6, #0\n"
-+		      "	SUB     D0Ar6, D0Ar6, #1\n"
-+		      "	BLE     2f\n"
-+		      "	GETB    D0FrT, [D0Ar4+#1++]\n"
-+		      "1:\n"
-+		      "	TST     D0FrT, #255\n"
-+		      "	BNE     0b\n"
-+		      "2:\n"
-+		      "	SUB     %0, %2, D0Ar6\n"
-+		      "3:\n"
-+		      "	.section .fixup,\"ax\"\n"
-+		      "4:\n"
-+		      "	MOV     %0, #0\n"
-+		      "	MOVT    D0FrT,#HI(3b)\n"
-+		      "	JUMP    D0FrT,#LO(3b)\n"
-+		      "	.previous\n"
-+		      "	.section __ex_table,\"a\"\n"
-+		      "	.long 1b,4b\n"
-+		      "	.previous\n"
-+		      : "=r" (res)
-+		      : "r" (src), "r" (count)
-+		      : "D0FrT", "D0Ar4", "D0Ar6", "cc");
-+
-+	return res;
-+}
-+
-+long __strncpy_from_user(char *dst, const char __user *src, long count)
-+{
-+	long res;
-+
-+	if (count == 0)
-+		return 0;
-+
-+	/*
-+	 * Currently, in 2.4.0-test9, most ports use a simple byte-copy loop.
-+	 *  So do we.
-+	 *
-+	 *  This code is deduced from:
-+	 *
-+	 *      char tmp2;
-+	 *      long tmp1, tmp3;
-+	 *      tmp1 = count;
-+	 *      while ((*dst++ = (tmp2 = *src++)) != 0
-+	 *             && --tmp1)
-+	 *        ;
-+	 *
-+	 *      res = count - tmp1;
-+	 *
-+	 *  with tweaks.
++	/* D1Ar1:D0Ar2 - State
++	 * D1Ar3       - pExt
++	 * D0Ar4       - Value of METAC_CORE_ID
++	 * D1Ar5       - Scratch
++	 * D0Ar6       - Scratch
++	 * D1Re0       - Scratch
 +	 */
 +
-+	asm volatile ("	MOV  %0,%3\n"
-+		      "1:\n"
-+		      "	GETB D0FrT,[%2++]\n"
-+		      "2:\n"
-+		      "	CMP  D0FrT,#0\n"
-+		      "	SETB [%1++],D0FrT\n"
-+		      "	BEQ  3f\n"
-+		      "	SUBS %0,%0,#1\n"
-+		      "	BNZ  1b\n"
-+		      "3:\n"
-+		      "	SUB  %0,%3,%0\n"
-+		      "4:\n"
-+		      "	.section .fixup,\"ax\"\n"
-+		      "5:\n"
-+		      "	MOV  %0,%7\n"
-+		      "	MOVT    D0FrT,#HI(4b)\n"
-+		      "	JUMP    D0FrT,#LO(4b)\n"
-+		      "	.previous\n"
-+		      "	.section __ex_table,\"a\"\n"
-+		      "	.long 2b,5b\n"
-+		      "	.previous"
-+		      : "=r" (res), "=r" (dst), "=r" (src), "=r" (count)
-+		      : "3" (count), "1" (dst), "2" (src), "P" (-EFAULT)
-+		      : "D0FrT", "memory", "cc");
++	/* If the FPAC bit isnt set then there is nothing to do */
++	TSTT	D0Ar2,#TBICTX_FPAC_BIT
++	MOVZ	PC, D1RtP
 +
-+	return res;
-+}
-diff --git a/arch/metag/mm/ioremap.c b/arch/metag/mm/ioremap.c
-new file mode 100644
-index 0000000..a136a43
---- /dev/null
-+++ b/arch/metag/mm/ioremap.c
-@@ -0,0 +1,89 @@
++	/* Obtain the relevant bits of the Core config */
++	GETD	D0Ar4, [D1Ar3++]
++
++	/* Restore FPU related parts of TXDEFR. Assumes TXDEFR is coherent */
++	GETD	D1Ar5, [D1Ar3++]
++	MOV	D0Ar6, D1Ar5
++	LSL	D1Re0, D1Ar5, #8
++	ANDT	D1Re0, D1Re0, #HI(TXDEFR_FPE_FE_BITS|TXDEFR_FPE_ICTRL_BITS)
++	AND	D1Ar5, D1Ar5, #LO(TXDEFR_FPE_FE_BITS|TXDEFR_FPE_ICTRL_BITS)
++	OR	D1Re0, D1Re0, D1Ar5
++
++	MOV	D1Ar5, TXDEFR
++	ANDMT	D1Ar5, D1Ar5, #HI(~(TXDEFR_FPE_FE_BITS|TXDEFR_FPE_ICTRL_BITS))
++	ANDMB	D1Ar5, D1Ar5, #LO(~(TXDEFR_FPE_FE_BITS|TXDEFR_FPE_ICTRL_BITS))
++	OR	D1Re0, D1Re0, D1Ar5
++	MOV	TXDEFR, D1Re0
++
++	/* Restore relevant bits of TXMODE */
++	MOV	D1Ar5, TXMODE
++	ANDMT	D1Ar5, D1Ar5, #HI(~TXMODE_FPURMODE_BITS)
++	ANDT	D0Ar6, D0Ar6, #HI(TXMODE_FPURMODE_BITS|TXMODE_FPURMODEWRITE_BIT)
++	OR	D0Ar6, D0Ar6, D1Ar5
++	MOV	TXMODE, D0Ar6
++
++	TSTT	D0Ar4, #HI(TBICTX_CFGFPU_FX16_BIT) /* Perform test here for extended FPU registers
++	    	                                    * to avoid stalls
++	    	                                    */
++	/* Save the standard FPU registers */
++F	MGETL	FX.0, FX.2, FX.4, FX.6, [D1Ar3++]
++
++	/* Save the extended FPU registers if they are present */
++	BZ	$Lskip_restore_fx8_fx16
++F	MGETL	FX.8, FX.10, FX.12, FX.14, [D1Ar3++]
++$Lskip_restore_fx8_fx16:
++
++	/* Save the FPU Accumulator if it is present */
++	TST	D0Ar4, #METAC_COREID_NOFPACC_BIT
++	BNZ	$Lskip_restore_fpacc
++F	GETL	ACF.0, [D1Ar3++]
++F	GETL	ACF.1, [D1Ar3++]
++F	GETL	ACF.2, [D1Ar3++]
++$Lskip_restore_fpacc:
++
++	MOV	D0Re0, D1Ar3 /* Return end of save area */
++	MOV	PC, D1RtP
++
++	.size	___TBICtxFPURestore,.-___TBICtxFPURestore
++
++#endif /* TBI_1_4 */
++
 +/*
-+ * Re-map IO memory to kernel address space so that we can access it.
-+ * Needed for memory-mapped I/O devices mapped outside our normal DRAM
-+ * window (that is, all memory-mapped I/O devices).
++ * End of tbictx.S
++ */
+diff --git a/arch/metag/tbx/tbidefr.S b/arch/metag/tbx/tbidefr.S
+new file mode 100644
+index 0000000..3eb165e
+--- /dev/null
++++ b/arch/metag/tbx/tbidefr.S
+@@ -0,0 +1,175 @@
++/*
++ * tbidefr.S
 + *
-+ * Copyright (C) 1995,1996 Linus Torvalds
++ * Copyright (C) 2009, 2012 Imagination Technologies.
 + *
-+ * Meta port based on CRIS-port by Axis Communications AB
++ * This program is free software; you can redistribute it and/or modify it under
++ * the terms of the GNU General Public License version 2 as published by the
++ * Free Software Foundation.
++ *
++ * Routing deferred exceptions
 + */
 +
-+#include <linux/vmalloc.h>
-+#include <linux/io.h>
++#include <asm/metag_regs.h>
++#include <asm/tbx.h>
++
++	.text
++	.balign	4
++	.global	___TBIHandleDFR
++	.type	___TBIHandleDFR,function
++/* D1Ar1:D0Ar2 -- State
++ * D0Ar3       -- SigNum
++ * D0Ar4       -- Triggers
++ * D1Ar5       -- InstOrSWSId
++ * D0Ar6       -- pTBI (volatile)
++ */
++___TBIHandleDFR:
++#ifdef META_BUG_MBN100212
++	MSETL	[A0StP++], D0FrT, D0.5
++
++	/* D1Ar1,D0Ar2,D1Ar5,D0Ar6 -- Arguments to handler, must be preserved
++	 * D0Ar4       -- The deferred exceptions
++	 * D1Ar3       -- As per D0Ar4 but just the trigger bits
++	 * D0.5        -- The bgnd deferred exceptions
++	 * D1.5        -- TXDEFR with bgnd re-added
++	 */
++
++	/* - Collect the pending deferred exceptions using TXSTAT,
++	 *   (ack's the bgnd exceptions as a side-effect)
++	 * - Manually collect remaining (interrupt) deferred exceptions
++	 *   using TXDEFR
++	 * - Replace the triggers (from TXSTATI) with the int deferred
++	 *   exceptions DEFR ..., TXSTATI would have returned if it was valid
++	 *   from bgnd code
++	 * - Reconstruct TXDEFR by or'ing bgnd deferred exceptions (except
++	 *   the DEFER bit) and the int deferred exceptions. This will be
++	 *   restored later
++	 */
++	DEFR	D0.5,  TXSTAT
++	MOV	D1.5,  TXDEFR
++	ANDT	D0.5,  D0.5, #HI(0xFFFF0000)
++	MOV	D1Ar3, D1.5
++	ANDT	D1Ar3, D1Ar3, #HI(0xFFFF0000)
++	OR	D0Ar4, D1Ar3, #TXSTAT_DEFER_BIT
++	OR	D1.5, D1.5, D0.5
++
++	/* Mask off anything unrelated to the deferred exception triggers */
++	ANDT	D1Ar3, D1Ar3, #HI(TXSTAT_BUSERR_BIT | TXSTAT_FPE_BITS)
++
++	/* Can assume that at least one exception happened since this
++	 * handler wouldnt have been called otherwise.
++	 * 
++	 * Replace the signal number and at the same time, prepare
++	 * the mask to acknowledge the exception
++	 *
++	 * D1Re0 -- The bits to acknowledge
++	 * D1Ar3 -- The signal number
++	 * D1RtP -- Scratch to deal with non-conditional insns
++	 */
++	MOVT	D1Re0, #HI(TXSTAT_FPE_BITS & ~TXSTAT_FPE_DENORMAL_BIT)
++	MOV	D1RtP, #TXSTAT_FPE_INVALID_S
++	FFB	D1Ar3, D1Ar3
++	CMP	D1Ar3, #TXSTAT_FPE_INVALID_S
++	MOVLE	D1Ar3, D1RtP /* Collapse FPE triggers to a single signal */
++	MOV	D1RtP, #1
++	LSLGT	D1Re0, D1RtP, D1Ar3
++
++	/* Get the handler using the signal number
++	 *
++	 * D1Ar3 -- The signal number
++	 * D0Re0 -- Offset into TBI struct containing handler address
++	 * D1Re0 -- Mask of triggers to keep
++	 * D1RtP -- Address of handler
++	 */
++	SUB	D1Ar3, D1Ar3, #(TXSTAT_FPE_INVALID_S - TBID_SIGNUM_FPE)
++	LSL	D0Re0, D1Ar3, #2
++	XOR	D1Re0, D1Re0, #-1   /* Prepare mask for acknowledge (avoids stall) */
++	ADD	D0Re0,D0Re0,#TBI_fnSigs
++	GETD	D1RtP, [D0Ar6+D0Re0]
++
++	/* Acknowledge triggers */
++	AND	D1.5, D1.5, D1Re0
++
++	/* Restore remaining exceptions
++	 * Do this here in case the handler enables nested interrupts
++	 *
++	 * D1.5 -- TXDEFR with this exception ack'd
++	 */
++	MOV	TXDEFR, D1.5
++
++	/* Call the handler */
++	SWAP	D1RtP, PC
++
++	GETL	D0.5,  D1.5,  [--A0StP]
++	GETL	D0FrT, D1RtP, [--A0StP]
++	MOV	PC,D1RtP
++#else  /* META_BUG_MBN100212 */
++
++	/* D1Ar1,D0Ar2,D1Ar5,D0Ar6 -- Arguments to handler, must be preserved
++	 * D0Ar4       -- The deferred exceptions
++	 * D1Ar3       -- As per D0Ar4 but just the trigger bits
++	 */
++
++	/* - Collect the pending deferred exceptions using TXSTAT,
++	 *   (ack's the interrupt exceptions as a side-effect)
++	 */
++	DEFR	D0Ar4, TXSTATI
++
++	/* Mask off anything unrelated to the deferred exception triggers */
++	MOV	D1Ar3, D0Ar4
++	ANDT	D1Ar3, D1Ar3, #HI(TXSTAT_BUSERR_BIT | TXSTAT_FPE_BITS)
++
++	/* Can assume that at least one exception happened since this
++	 * handler wouldnt have been called otherwise.
++	 * 
++	 * Replace the signal number and at the same time, prepare
++	 * the mask to acknowledge the exception
++	 *
++	 * The unusual code for 1<<D1Ar3 may need explanation.
++	 * Normally this would be done using 'MOV rs,#1' and 'LSL rd,rs,D1Ar3'
++	 * but only D1Re0 is available in D1 and no crossunit insns are available
++	 * Even worse, there is no conditional 'MOV r,#uimm8'.
++	 * Since the CMP proves that D1Ar3 >= 20, we can reuse the bottom 12-bits
++	 * of D1Re0 (using 'ORGT r,#1') in the knowledge that the top 20-bits will
++	 * be discarded without affecting the result.
++	 *
++	 * D1Re0 -- The bits to acknowledge
++	 * D1Ar3 -- The signal number
++	 */
++	MOVT	D1Re0, #HI(TXSTAT_FPE_BITS & ~TXSTAT_FPE_DENORMAL_BIT)
++	MOV	D0Re0, #TXSTAT_FPE_INVALID_S
++	FFB	D1Ar3, D1Ar3
++	CMP	D1Ar3, #TXSTAT_FPE_INVALID_S
++	MOVLE	D1Ar3, D0Re0 /* Collapse FPE triggers to a single signal */
++	ORGT	D1Re0, D1Re0, #1
++	LSLGT	D1Re0, D1Re0, D1Ar3
++
++	SUB	D1Ar3, D1Ar3, #(TXSTAT_FPE_INVALID_S - TBID_SIGNUM_FPE)
++
++	/* Acknowledge triggers and restore remaining exceptions
++	 * Do this here in case the handler enables nested interrupts
++	 *
++	 * (x | y) ^ y == x & ~y. It avoids the restrictive XOR ...,#-1 insn
++	 * and is the same length
++	 */
++	MOV	D0Re0, TXDEFR
++	OR	D0Re0, D0Re0, D1Re0
++	XOR	TXDEFR, D0Re0, D1Re0
++
++	/* Get the handler using the signal number
++	 *
++	 * D1Ar3 -- The signal number
++	 * D0Re0 -- Address of handler
++	 */
++	LSL	D0Re0, D1Ar3, #2
++	ADD	D0Re0,D0Re0,#TBI_fnSigs
++	GETD	D0Re0, [D0Ar6+D0Re0]
++
++	/* Tailcall the handler */
++	MOV	PC,D0Re0
++
++#endif /* META_BUG_MBN100212 */
++	.size	___TBIHandleDFR,.-___TBIHandleDFR
++/*
++ * End of tbidefr.S
++ */
+diff --git a/arch/metag/tbx/tbidspram.S b/arch/metag/tbx/tbidspram.S
+new file mode 100644
+index 0000000..2f27c03
+--- /dev/null
++++ b/arch/metag/tbx/tbidspram.S
+@@ -0,0 +1,161 @@
++/*
++ * tbidspram.S
++ *
++ * Copyright (C) 2009, 2012 Imagination Technologies.
++ *
++ * This program is free software; you can redistribute it and/or modify it under
++ * the terms of the GNU General Public License version 2 as published by the
++ * Free Software Foundation.
++ *
++ * Explicit state save and restore routines forming part of the thread binary
++ * interface for META processors
++ */
++
++	.file	"tbidspram.S"
++
++/* These aren't generally useful to a user so for now, they arent publically available */
++#define _TBIECH_DSPRAM_DUA_S    8
++#define _TBIECH_DSPRAM_DUA_BITS 0x7f00
++#define _TBIECH_DSPRAM_DUB_S    0
++#define _TBIECH_DSPRAM_DUB_BITS 0x007f
++
++/*
++ * void *__TBIDspramSaveA( short DspramSizes, void *pExt )
++ */
++	.text
++	.balign	4
++	.global	___TBIDspramSaveA
++	.type	___TBIDspramSaveA,function
++___TBIDspramSaveA:
++
++	SETL	[A0StP++], D0.5, D1.5
++	MOV	A0.3, D0Ar2
++
++	/* D1Ar1 - Dspram Sizes
++	 * A0.4  - Pointer to buffer
++	 */
++
++	/* Save the specified amount of dspram DUA */
++DL	MOV	D0AR.0, #0
++	LSR	D1Ar1, D1Ar1, #_TBIECH_DSPRAM_DUA_S
++	AND	D1Ar1, D1Ar1, #(_TBIECH_DSPRAM_DUA_BITS >> _TBIECH_DSPRAM_DUA_S)
++	SUB	TXRPT, D1Ar1, #1
++$L1:
++DL	MOV	D0Re0, [D0AR.0++]
++DL	MOV	D0Ar6, [D0AR.0++]
++DL	MOV	D0Ar4, [D0AR.0++]
++DL	MOV	D0.5,  [D0AR.0++]
++	MSETL	[A0.3++], D0Re0, D0Ar6, D0Ar4, D0.5
++
++	BR	$L1
++
++	GETL	D0.5, D1.5, [--A0StP]
++	MOV	PC, D1RtP
++
++	.size	___TBIDspramSaveA,.-___TBIDspramSaveA
++
++/*
++ * void *__TBIDspramSaveB( short DspramSizes, void *pExt )
++ */
++	.balign	4
++	.global	___TBIDspramSaveB
++	.type	___TBIDspramSaveB,function
++___TBIDspramSaveB:
++
++	SETL	[A0StP++], D0.5, D1.5
++	MOV	A0.3, D0Ar2
++
++	/* D1Ar1 - Dspram Sizes
++	 * A0.3  - Pointer to buffer
++	 */
++
++	/* Save the specified amount of dspram DUA */
++DL	MOV	D0BR.0, #0
++	LSR	D1Ar1, D1Ar1, #_TBIECH_DSPRAM_DUB_S
++	AND	D1Ar1, D1Ar1, #(_TBIECH_DSPRAM_DUB_BITS >> _TBIECH_DSPRAM_DUB_S)
++	SUB	TXRPT, D1Ar1, #1
++$L2:
++DL	MOV	D0Re0, [D0BR.0++]
++DL	MOV	D0Ar6, [D0BR.0++]
++DL	MOV	D0Ar4, [D0BR.0++]
++DL	MOV	D0.5,  [D0BR.0++]
++	MSETL	[A0.3++], D0Re0, D0Ar6, D0Ar4, D0.5
++
++	BR	$L2
++
++	GETL	D0.5, D1.5, [--A0StP]
++	MOV	PC, D1RtP
++
++	.size	___TBIDspramSaveB,.-___TBIDspramSaveB
++
++/*
++ * void *__TBIDspramRestoreA( short DspramSizes, void *pExt )
++ */
++	.balign	4
++	.global	___TBIDspramRestoreA
++	.type	___TBIDspramRestoreA,function
++___TBIDspramRestoreA:
++
++	SETL	[A0StP++], D0.5, D1.5
++	MOV	A0.3, D0Ar2
++
++	/* D1Ar1 - Dspram Sizes
++	 * A0.3 - Pointer to buffer
++	 */
++
++	/* Restore the specified amount of dspram DUA */
++DL	MOV	D0AW.0, #0
++	LSR	D1Ar1, D1Ar1, #_TBIECH_DSPRAM_DUA_S
++	AND	D1Ar1, D1Ar1, #(_TBIECH_DSPRAM_DUA_BITS >> _TBIECH_DSPRAM_DUA_S)
++	SUB	TXRPT, D1Ar1, #1
++$L3:
++	MGETL	D0Re0, D0Ar6, D0Ar4, D0.5, [A0.3++]
++DL	MOV	[D0AW.0++], D0Re0
++DL	MOV	[D0AW.0++], D0Ar6
++DL	MOV	[D0AW.0++], D0Ar4
++DL	MOV	[D0AW.0++], D0.5
++
++	BR	$L3
++
++	GETL	D0.5, D1.5, [--A0StP]
++	MOV	PC, D1RtP
++
++	.size	___TBIDspramRestoreA,.-___TBIDspramRestoreA
++
++/*
++ * void *__TBIDspramRestoreB( short DspramSizes, void *pExt )
++ */
++	.balign	4
++	.global	___TBIDspramRestoreB
++	.type	___TBIDspramRestoreB,function
++___TBIDspramRestoreB:
++
++	SETL	[A0StP++], D0.5, D1.5
++	MOV	A0.3, D0Ar2
++
++	/* D1Ar1 - Dspram Sizes
++	 * A0.3 - Pointer to buffer
++	 */
++
++	/* Restore the specified amount of dspram DUA */
++DL	MOV	D0BW.0, #0
++	LSR	D1Ar1, D1Ar1, #_TBIECH_DSPRAM_DUB_S
++	AND	D1Ar1, D1Ar1, #(_TBIECH_DSPRAM_DUB_BITS >> _TBIECH_DSPRAM_DUB_S)
++	SUB	TXRPT, D1Ar1, #1
++$L4:
++	MGETL	D0Re0, D0Ar6, D0Ar4, D0.5, [A0.3++]
++DL	MOV	[D0BW.0++], D0Re0
++DL	MOV	[D0BW.0++], D0Ar6
++DL	MOV	[D0BW.0++], D0Ar4
++DL	MOV	[D0BW.0++], D0.5
++
++	BR	$L4
++
++	GETL	D0.5, D1.5, [--A0StP]
++	MOV	PC, D1RtP
++
++	.size	___TBIDspramRestoreB,.-___TBIDspramRestoreB
++
++/*
++ * End of tbidspram.S
++ */
+diff --git a/arch/metag/tbx/tbilogf.S b/arch/metag/tbx/tbilogf.S
+new file mode 100644
+index 0000000..4a34d80
+--- /dev/null
++++ b/arch/metag/tbx/tbilogf.S
+@@ -0,0 +1,48 @@
++/*
++ * tbilogf.S
++ *
++ * Copyright (C) 2001, 2002, 2007, 2012 Imagination Technologies.
++ *
++ * This program is free software; you can redistribute it and/or modify it under
++ * the terms of the GNU General Public License version 2 as published by the
++ * Free Software Foundation.
++ *
++ * Defines __TBILogF trap code for debugging messages and __TBICont for debug
++ * assert to be implemented on.
++ */
++
++	.file	"tbilogf.S"
++
++/*
++ * Perform console printf using external debugger or host support
++ */
++	.text
++	.balign	4
++	.global	___TBILogF
++	.type	___TBILogF,function
++___TBILogF:
++	MSETL 	[A0StP],D0Ar6,D0Ar4,D0Ar2
++	SWITCH 	#0xC10020
++	MOV	D0Re0,#0
++	SUB 	A0StP,A0StP,#24
++	MOV	PC,D1RtP
++	.size	___TBILogF,.-___TBILogF
++
++/*
++ * Perform wait for continue under control of the debugger
++ */
++	.text
++	.balign	4
++	.global	___TBICont
++	.type	___TBICont,function
++___TBICont:
++	MOV 	D0Ar6,#1
++	MSETL 	[A0StP],D0Ar6,D0Ar4,D0Ar2
++	SWITCH 	#0xC30006 	/* Returns if we are to continue */
++	SUB	A0StP,A0StP,#(8*3)
++	MOV	PC,D1RtP	/* Return */
++	.size	___TBICont,.-___TBICont
++
++/*
++ * End of tbilogf.S
++ */
+diff --git a/arch/metag/tbx/tbipcx.S b/arch/metag/tbx/tbipcx.S
+new file mode 100644
+index 0000000..de0626f
+--- /dev/null
++++ b/arch/metag/tbx/tbipcx.S
+@@ -0,0 +1,451 @@
++/*
++ * tbipcx.S
++ *
++ * Copyright (C) 2001, 2002, 2007, 2009, 2012 Imagination Technologies.
++ *
++ * This program is free software; you can redistribute it and/or modify it under
++ * the terms of the GNU General Public License version 2 as published by the
++ * Free Software Foundation.
++ *
++ * Asyncronous trigger handling including exceptions
++ */
++
++	.file	"tbipcx.S"
++#include <asm/metag_regs.h>
++#include <asm/tbx.h>
++
++/* BEGIN HACK */
++/* define these for now while doing inital conversion to GAS 
++   will fix properly later */
++
++/* Signal identifiers always have the TBID_SIGNAL_BIT set and contain the
++   following related bit-fields */
++#define TBID_SIGNUM_S       2
++
++/* END HACK */
++
++#ifdef METAC_1_0
++/* Ax.4 is saved in TBICTX */
++#define A0_4  ,A0.4
++#else
++/* Ax.4 is NOT saved in TBICTX */
++#define A0_4
++#endif
++
++/* Size of the TBICTX structure */
++#define TBICTX_BYTES ((TBICTX_AX_REGS*8)+TBICTX_AX)
++
++#ifdef METAC_1_1
++#ifndef BOOTROM
++#ifndef SPECIAL_BUILD
++/* Jump straight into the boot ROM version of this code */
++#define CODE_USES_BOOTROM
++#endif
++#endif
++#endif
++
++/* Define space needed for CATCH buffer state in traditional units */
++#define CATCH_ENTRIES      5
++#define CATCH_ENTRY_BYTES 16
++
++#ifndef CODE_USES_BOOTROM
++#define A0GblIStP	A0.15  /* PTBICTX for current thread in PRIV system */
++#define A1GblIGbP 	A1.15  /* Interrupt A1GbP value in PRIV system */
++#endif
++
++/*
++ * TBIRES __TBIASyncTrigger( TBIRES State )
++ */
++	.text
++	.balign	4
++	.global	___TBIASyncTrigger
++	.type	___TBIASyncTrigger,function
++___TBIASyncTrigger:
++#ifdef CODE_USES_BOOTROM
++	MOVT	D0Re0,#HI(LINCORE_BASE)
++	JUMP	D0Re0,#0xA0
++#else
++	MOV	D0FrT,A0FrP			/* Boing entry sequence */
++	ADD	A0FrP,A0StP,#0
++	SETL	[A0StP++],D0FrT,D1RtP
++	MOV	D0Re0,PCX			/* Check for repeat call */
++	MOVT	D0FrT,#HI(___TBIBoingRTI+4)
++	ADD	D0FrT,D0FrT,#LO(___TBIBoingRTI+4)
++	CMP	D0Re0,D0FrT
++	BEQ	___TBIBoingExit			/* Already set up - come out */
++	ADD	D1Ar1,D1Ar1,#7			/* PRIV system stack here */
++	MOV	A0.2,A0StP			/*  else push context here */
++	MOVS	D0Re0,D0Ar2			/* Return in user mode? */
++	ANDMB	D1Ar1,D1Ar1,#0xfff8		/*  align priv stack to 64-bit */
++	MOV	D1Re0,D1Ar1			/*   and set result to arg */
++	MOVMI	A0.2,D1Ar1			/*  use priv stack if PRIV set			 */
++/*
++ * Generate an initial TBICTX to return to our own current call context
++ */
++	MOVT	D1Ar5,#HI(___TBIBoingExit)	/* Go here to return */
++	ADD	D1Ar5,D1Ar5,#LO(___TBIBoingExit)
++	ADD	A0.3,A0.2,#TBICTX_DX		/* DX Save area */
++	ANDT	D0Ar2,D0Ar2,#TBICTX_PRIV_BIT	/* Extract PRIV bit */
++	MOVT	D0Ar6,#TBICTX_SOFT_BIT		/* Only soft thread state */
++	ADD	D0Ar6,D0Ar6,D0Ar2		/* Add in PRIV bit if requested */
++	SETL	[A0.2],D0Ar6,D1Ar5		/* Push header fields */
++	ADD	D0FrT,A0.2,#TBICTX_AX		/* Address AX save area */
++	MSETL	[A0.3],D0Re0,D0Ar6,D0Ar4,D0Ar2,D0FrT,D0.5,D0.6,D0.7
++	MOV	D0Ar6,#0
++	MOV	D1Ar5,#0
++	SETL	[A0.3++],D0Ar6,D1Ar5		/* Zero CT register states */
++	SETL	[A0.3++],D0Ar6,D1Ar5
++	MSETL	[D0FrT],A0StP,A0FrP,A0.2,A0.3 A0_4 /* Save AX regs */
++	MOV	A0FrP,A0.2			/* Restore me! */
++	B	___TBIResume
++	.size	___TBIASyncTrigger,.-___TBIASyncTrigger
++
++/*
++ * Optimised return to handler for META Core
++ */
++___TBIBoingRTH:
++	RTH					/* Go to background level */
++	MOVT	A0.2,     #HI($Lpcx_target)
++	ADD	A0.2,A0.2,#LO($Lpcx_target)
++	MOV	PCX,A0.2                        /* Setup PCX for interrupts */
++	MOV	PC,D1Re0			/* Jump to handler */
++/*
++ * This is where the code below needs to jump to wait for outermost interrupt
++ * event in a non-privilege mode system (single shared interrupt stack).
++ */
++___TBIBoingPCX:
++	MGETL	A0StP,A0FrP,A0.2,A0.3 A0_4,[D1Re0] /* Restore AX regs */
++	MOV	TXSTATUS,D0Re0			/* Restore flags */
++	GETL	D0Re0,D1Re0,[D1Re0+#TBICTX_DX-TBICTX_BYTES]
++___TBIBoingRTI:
++	RTI					/* Wait for interrupt */
++$Lpcx_target:
++/*
++ * Save initial interrupt state on current stack
++ */
++	SETL	[A0StP+#TBICTX_DX],D0Re0,D1Re0	/* Save key registers */
++	ADD	D1Re0,A0StP,#TBICTX_AX		/* Address AX save area */
++	MOV	D0Re0,TXSTATUS			/* Read TXSTATUS into D0Re0 */
++	MOV	TXSTATUS,#0			/* Clear TXSTATUS */
++	MSETL	[D1Re0],A0StP,A0FrP,A0.2,A0.3 A0_4 /* Save AX critical regs */
++/*
++ * Register state at this point is-
++ *
++ *	D0Re0 - Old TXSTATUS with PRIV and CBUF bits set if appropriate
++ *	A0StP - Is call stack frame and base of TBICTX being generated
++ *	A1GbP - Is valid static access link
++ */
++___TBIBoing:
++	LOCK0					/* Make sure we have no locks! */
++	ADD	A1.2,A0StP,#TBICTX_DX+(8*1)	/* Address DX.1 save area */
++	MOV	A0FrP,A0StP			/* Setup frame pointer */
++	MSETL	[A1.2],D0Ar6,D0Ar4,D0Ar2,D0FrT,D0.5,D0.6,D0.7
++	MOV	D0Ar4,TXRPT			/* Save critical CT regs */
++	MOV	D1Ar3,TXBPOBITS
++	MOV	D1Ar1,TXDIVTIME			/* Calc catch buffer pSrc */
++	MOV	D0Ar2,TXMODE
++	MOV	TXMODE,#0			/* Clear TXMODE */
++#ifdef TXDIVTIME_RPDIRTY_BIT
++	TSTT	D1Ar1,#HI(TXDIVTIME_RPDIRTY_BIT)/* NZ = RPDIRTY */
++	MOVT	D0Ar6,#TBICTX_CBRP_BIT
++	ORNZ	D0Re0,D0Re0,D0Ar6		/* Set CBRP if RPDIRTY set */
++#endif
++	MSETL	[A1.2],D0Ar4,D0Ar2		/* Save CT regs state */
++	MOV	D0Ar2,D0Re0			/* Copy TXSTATUS */
++	ANDMT	D0Ar2,D0Ar2,#TBICTX_CBUF_BIT+TBICTX_CBRP_BIT
++#ifdef TBI_1_4
++	MOVT	D1Ar1,#TBICTX_FPAC_BIT		/* Copy FPActive into FPAC */
++	TSTT	D0Re0,#HI(TXSTATUS_FPACTIVE_BIT)
++	ORNZ	D0Ar2,D0Ar2,D1Ar1
++#endif
++	MOV	D1Ar1,PCX			/* Read CurrPC */
++	ORT	D0Ar2,D0Ar2,#TBICTX_CRIT_BIT	/* SaveMask + CRIT bit */
++	SETL	[A0FrP+#TBICTX_Flags],D0Ar2,D1Ar1 /* Set pCtx header fields */
++/*
++ * Completed context save, now we need to make a call to an interrupt handler
++ *
++ *	D0Re0 - holds PRIV, WAIT, CBUF flags, HALT reason if appropriate
++ *	A0FrP - interrupt stack frame and base of TBICTX being generated
++ *	A0StP - same as A0FrP
++ */
++___TBIBoingWait:
++				/* Reserve space for TBICTX and CBUF */
++	ADD	A0StP,A0StP,#TBICTX_BYTES+(CATCH_ENTRY_BYTES*CATCH_ENTRIES)
++	MOV	D0Ar4,TXSTATI			/* Read the Triggers data */
++	MOV	D1Ar3,TXDIVTIME			/* Read IRQEnc bits */
++	MOV	D0Ar2,D0Re0			/* Copy PRIV and WAIT flags */
++	ANDT	D0Ar2,D0Ar2,#TBICTX_PRIV_BIT+TBICTX_WAIT_BIT+TBICTX_CBUF_BIT
++#ifdef TBI_1_4
++	MOVT	D1Ar5,#TBICTX_FPAC_BIT		/* Copy FPActive into FPAC */
++	TSTT	D0Re0,#HI(TXSTATUS_FPACTIVE_BIT)
++	ORNZ	D0Ar2,D0Ar2,D1Ar5
++#endif
++	ANDT	D1Ar3,D1Ar3,#HI(TXDIVTIME_IRQENC_BITS)
++	LSR	D1Ar3,D1Ar3,#TXDIVTIME_IRQENC_S
++	AND	TXSTATI,D0Ar4,#TXSTATI_BGNDHALT_BIT/* Ack any HALT seen */
++	ANDS	D0Ar4,D0Ar4,#0xFFFF-TXSTATI_BGNDHALT_BIT /* Only seen HALT? */
++	ORT	D0Ar2,D0Ar2,#TBICTX_CRIT_BIT	/* Set CRIT */
++#ifndef BOOTROM
++	MOVT	A1LbP,#HI(___pTBIs)
++	ADD	A1LbP,A1LbP,#LO(___pTBIs)
++	GETL	D1Ar5,D0Ar6,[A1LbP]		/* D0Ar6 = ___pTBIs[1] */
++#else
++/*
++ * For BOOTROM support ___pTBIs must be allocated at offset 0 vs A1GbP
++ */
++	GETL	D1Ar5,D0Ar6,[A1GbP]			/* D0Ar6 = ___pTBIs[1] */
++#endif
++	BZ	___TBIBoingHalt			/* Yes: Service HALT */
++/*
++ * Encode interrupt as signal vector, strip away same/lower TXMASKI bits
++ */
++	MOV	D1Ar1,#1			/* Generate mask for this bit */
++	MOV	D0Re0,TXMASKI			/* Get interrupt mask */
++	LSL	TXSTATI,D1Ar1,D1Ar3		/* Acknowledge trigger */
++	AND	TXMASKI,D0Re0,#TXSTATI_BGNDHALT_BIT	/* Only allow HALTs */
++	OR	D0Ar2,D0Ar2,D0Re0		/* Set TBIRES.Sig.TrigMask */
++	ADD	D1Ar3,D1Ar3,#TBID_SIGNUM_TRT	/* Offset into interrupt sigs */
++	LSL	D0Re0,D1Ar3,#TBID_SIGNUM_S	/* Generate offset from SigNum */
++/*
++ * This is a key moment we are about to call the handler, register state is
++ * as follows-
++ *
++ *	D0Re0 - Handler vector (SigNum<<TBID_SIGNUM_S)
++ *	D0Ar2 - TXMASKI:TBICTX_CRIT_BIT with optional CBUF and PRIV bits
++ *	D1Ar3 - SigNum
++ *	D0Ar4 - State read from TXSTATI
++ *	D1Ar5 - Inst for SWITCH trigger case only, otherwise undefined
++ *	D0Ar6 - pTBI
++ */
++___TBIBoingVec:
++	ADD	D0Re0,D0Re0,#TBI_fnSigs		/* Offset into signal table */
++	GETD	D1Re0,[D0Ar6+D0Re0]		/* Get address for Handler */
++/*
++ * Call handler at interrupt level, when it returns simply resume execution
++ * of state indicated by D1Re0.
++ */
++	MOV	D1Ar1,A0FrP			/* Pass in pCtx */
++	CALLR	D1RtP,___TBIBoingRTH		/* Use RTH to invoke handler */
++	
++/*
++ * Perform critical state restore and execute background thread.
++ *
++ *	A0FrP - is pointer to TBICTX structure to resume
++ *	D0Re0 - contains additional TXMASKI triggers
++ */
++	.text
++	.balign	4
++#ifdef BOOTROM
++	.global	___TBIResume
++#endif
++___TBIResume:
++/*
++ * New META IP method
++ */
++	RTH					/* Go to interrupt level */
++	MOV	D0Ar4,TXMASKI			/* Read TXMASKI */
++	OR	TXMASKI,D0Ar4,D0Re0		/* -Write-Modify TXMASKI */
++	GETL	D0Re0,D1Re0,[A0FrP+#TBICTX_Flags]/* Get Flags:SaveMask, CurrPC */
++	MOV	A0StP,A0FrP			/* Position stack pointer */
++	MOV	D0Ar2,TXPOLLI			/* Read pending triggers */
++	MOV	PCX,D1Re0			/* Set resumption PC */
++	TST	D0Ar2,#0xFFFF			/* Any pending triggers? */
++	BNZ	___TBIBoingWait			/* Yes: Go for triggers */
++	TSTT	D0Re0,#TBICTX_WAIT_BIT		/* Do we WAIT anyway? */
++	BNZ	___TBIBoingWait			/* Yes: Go for triggers */
++	LSLS	D1Ar5,D0Re0,#1			/* Test XCBF (MI) & PRIV (CS)? */
++	ADD	D1Re0,A0FrP,#TBICTX_CurrRPT	/* Address CT save area */
++	ADD	A0StP,A0FrP,#TBICTX_DX+(8*1)	/* Address DX.1 save area */
++	MGETL	A0.2,A0.3,[D1Re0]		/* Get CT reg states */
++	MOV	D1Ar3,A1.3			/* Copy old TXDIVTIME */
++	BPL	___TBIResCrit			/* No: Skip logic */
++	ADD	D0Ar4,A0FrP,#TBICTX_BYTES	/* Source is after TBICTX */
++	ANDST	D1Ar3,D1Ar3,#HI(TXDIVTIME_RPMASK_BITS)/* !Z if RPDIRTY */
++	MGETL	D0.5,D0.6,[D0Ar4]		/* Read Catch state */
++	MOV	TXCATCH0,D0.5			/* Restore TXCATCHn */
++	MOV	TXCATCH1,D1.5
++	MOV	TXCATCH2,D0.6
++	MOV	TXCATCH3,D1.6
++	BZ	___TBIResCrit
++	MOV	D0Ar2,#(1*8)
++	LSRS	D1Ar3,D1Ar3,#TXDIVTIME_RPMASK_S+1 /* 2nd RPMASK bit -> bit 0 */
++	ADD	RA,D0Ar4,#(0*8)			/* Re-read read pipeline */
++	ADDNZ	RA,D0Ar4,D0Ar2			/* If Bit 0 set issue RA */
++	LSRS	D1Ar3,D1Ar3,#2			/* Bit 1 -> C, Bit 2 -> Bit 0 */
++	ADD	D0Ar2,D0Ar2,#8
++	ADDCS	RA,D0Ar4,D0Ar2			/* If C issue RA */
++	ADD	D0Ar2,D0Ar2,#8
++	ADDNZ	RA,D0Ar4,D0Ar2			/* If Bit 0 set issue RA */
++	LSRS	D1Ar3,D1Ar3,#2			/* Bit 1 -> C, Bit 2 -> Bit 0 */
++	ADD	D0Ar2,D0Ar2,#8
++	ADDCS	RA,D0Ar4,D0Ar2			/* If C issue RA */
++	ADD	D0Ar2,D0Ar2,#8
++	ADDNZ	RA,D0Ar4,D0Ar2			/* If Bit 0 set issue RA */
++	MOV	TXDIVTIME,A1.3			/* Set RPDIRTY again */
++___TBIResCrit:
++	LSLS	D1Ar5,D0Re0,#1			/* Test XCBF (MI) & PRIV (CS)? */
++#ifdef TBI_1_4
++	ANDT	D1Ar5,D1Ar5,#(TBICTX_FPAC_BIT*2)
++	LSL	D0Ar6,D1Ar5,#3			/* Convert FPAC into FPACTIVE */
++#endif
++ 	ANDMT	D0Re0,D0Re0,#TBICTX_CBUF_BIT	/* Keep CBUF bit from SaveMask */
++#ifdef TBI_1_4
++	OR	D0Re0,D0Re0,D0Ar6		/* Combine FPACTIVE with others */
++#endif
++	MGETL	D0Ar6,D0Ar4,D0Ar2,D0FrT,D0.5,D0.6,D0.7,[A0StP] /* Restore DX */
++	MOV	TXRPT,A0.2			/* Restore CT regs */
++	MOV	TXBPOBITS,A1.2
++	MOV	TXMODE,A0.3
++	BCC	___TBIBoingPCX			/* Do non-PRIV wait! */
++	MOV	A1GblIGbP,A1GbP			/* Save A1GbP too */
++	MGETL	A0StP,A0FrP,A0.2,A0.3 A0_4,[D1Re0] /* Restore AX regs */
++/*
++ * Wait for the first interrupt/exception trigger in a privilege mode system
++ * (interrupt stack area for current TASK to be pointed to by A0GblIStP
++ * or per_cpu__stack_save[hwthread_id]).
++ */
++	MOV	TXSTATUS,D0Re0			/* Restore flags */
++	MOV	D0Re0,TXPRIVEXT			/* Set TXPRIVEXT_TXTOGGLEI_BIT */
++	SUB	D1Re0,D1Re0,#TBICTX_BYTES	/* TBICTX is top of int stack */
++#ifdef TBX_PERCPU_SP_SAVE
++	SWAP	D1Ar3,A1GbP
++	MOV	D1Ar3,TXENABLE			/* Which thread are we? */
++	AND	D1Ar3,D1Ar3,#TXENABLE_THREAD_BITS
++	LSR	D1Ar3,D1Ar3,#TXENABLE_THREAD_S-2
++	ADDT	D1Ar3,D1Ar3,#HI(_per_cpu__stack_save)
++	ADD	D1Ar3,D1Ar3,#LO(_per_cpu__stack_save)
++	SETD	[D1Ar3],D1Re0
++	SWAP	D1Ar3,A1GbP
++#else
++	MOV	A0GblIStP, D1Re0
++#endif
++	OR	D0Re0,D0Re0,#TXPRIVEXT_TXTOGGLEI_BIT
++	MOV	TXPRIVEXT,D0Re0			/* Cannot set TXPRIVEXT if !priv */
++	GETL	D0Re0,D1Re0,[D1Re0+#TBICTX_DX]
++	RTI					/* Wait for interrupt */
++/*
++ * Save initial interrupt state on A0GblIStP, switch to A0GblIStP if
++ * BOOTROM code, save and switch to [A1GbP] otherwise.
++ */
++___TBIBoingPCXP:
++#ifdef TBX_PERCPU_SP_SAVE
++	SWAP	D1Ar3,A1GbP			/* Get PRIV stack base */
++	MOV	D1Ar3,TXENABLE			/* Which thread are we? */
++	AND	D1Ar3,D1Ar3,#TXENABLE_THREAD_BITS
++	LSR	D1Ar3,D1Ar3,#TXENABLE_THREAD_S-2
++	ADDT	D1Ar3,D1Ar3,#HI(_per_cpu__stack_save)
++	ADD	D1Ar3,D1Ar3,#LO(_per_cpu__stack_save)
++	GETD	D1Ar3,[D1Ar3]
++#else
++	SWAP	D1Ar3,A0GblIStP			/* Get PRIV stack base */
++#endif
++	SETL	[D1Ar3+#TBICTX_DX],D0Re0,D1Re0 /* Save key registers */
++	MOV	D0Re0,TXPRIVEXT			/* Clear TXPRIVEXT_TXTOGGLEI_BIT */
++	ADD	D1Re0,D1Ar3,#TBICTX_AX	/* Address AX save area */
++	ANDMB	D0Re0,D0Re0,#0xFFFF-TXPRIVEXT_TXTOGGLEI_BIT
++	MOV	TXPRIVEXT,D0Re0			/* Cannot set TXPRIVEXT if !priv */
++	MOV	D0Re0,TXSTATUS			/* Read TXSTATUS into D0Re0 */
++	MOV	TXSTATUS,#0			/* Clear TXSTATUS */
++	MSETL	[D1Re0],A0StP,A0FrP,A0.2,A0.3 A0_4 /* Save AX critical regs */
++	MOV	A0StP,D1Ar3			/* Switch stacks */
++#ifdef TBX_PERCPU_SP_SAVE
++	MOV	D1Ar3,A1GbP			/* Get D1Ar2 back */
++#else
++	MOV	D1Ar3,A0GblIStP			/* Get D1Ar2 back */
++#endif
++	ORT	D0Re0,D0Re0,#TBICTX_PRIV_BIT	/* Add PRIV to TXSTATUS */
++	MOV	A1GbP,A1GblIGbP			/* Restore A1GbP */
++	B	___TBIBoing			/* Enter common handler code */
++/*
++ * At this point we know it's a background HALT case we are handling.
++ * The restored TXSTATUS always needs to have zero in the reason bits.
++ */
++___TBIBoingHalt:
++	MOV	D0Ar4,TXMASKI			/* Get interrupt mask */
++	ANDST	D0Re0,D0Re0,#HI(TXSTATUS_MAJOR_HALT_BITS+TXSTATUS_MEM_FAULT_BITS)
++	AND	TXMASKI,D0Ar4,#TXSTATI_BGNDHALT_BIT /* Only allow HALTs */
++	AND	D0Ar4,D0Ar4,#0xFFFF-TXSTATI_BGNDHALT_BIT /* What ints are off? */
++	OR	D0Ar2,D0Ar2,D0Ar4		/* Set TBIRES.Sig.TrigMask */
++	MOV	D0Ar4,#TXSTATI_BGNDHALT_BIT	/* This was the trigger state */
++	LSR	D1Ar3,D0Re0,#TXSTATUS_MAJOR_HALT_S
++	MOV	D0Re0,#TBID_SIGNUM_XXF<<TBID_SIGNUM_S
++	BNZ	___TBIBoingVec			/* Jump to XXF exception handler */
++/*
++ * Only the SWITCH cases are left, PCX must be valid
++ */
++#ifdef TBI_1_4
++	MOV	D1Ar5,TXPRIVEXT
++	TST	D1Ar5,#TXPRIVEXT_MINIMON_BIT
++	LSR	D1Ar3,D1Ar1,#1                  /* Shift needed for MINIM paths (fill stall) */
++	BZ	$Lmeta                          /* If META only, skip */
++	TSTT	D1Ar1,#HI(0x00800000)
++	ANDMT	D1Ar3,D1Ar3,#HI(0x007FFFFF >> 1)/* Shifted mask for large MINIM */
++	ANDT	D1Ar1,D1Ar1,#HI(0xFFE00000)     /* Static mask for small MINIM */
++	BZ	$Llarge_minim                   /* If large MINIM */
++$Lsmall_minim:
++	TSTT	D1Ar3,#HI(0x00100000 >> 1)
++	ANDMT	D1Ar3,D1Ar3,#HI(0x001FFFFF >> 1)/* Correct shifted mask for large MINIM */
++	ADDZ	D1Ar1,D1Ar1,D1Ar3               /* If META rgn, add twice to undo LSR #1 */
++	B	$Lrecombine
++$Llarge_minim:
++	ANDST	D1Ar1,D1Ar1,#HI(0xFF800000)     /* Correct static mask for small MINIM */
++	                                        /* Z=0 (Cannot place code at NULL) */
++$Lrecombine:
++	ADD	D1Ar1,D1Ar1,D1Ar3               /* Combine static and shifted parts */
++$Lmeta:
++	GETW	D1Ar5,[D1Ar1++]			/* META: lo-16, MINIM: lo-16 (all-16 if short) */
++	GETW	D1Ar3,[D1Ar1]			/* META: hi-16, MINIM: hi-16 (only if long) */
++	MOV	D1Re0,D1Ar5
++	XOR	D1Re0,D1Re0,#0x4000
++	LSLSNZ	D1Re0,D1Re0,#(32-14)		/* MINIM: If long C=0, if short C=1 */
++	LSLCC	D1Ar3,D1Ar3,#16			/* META/MINIM long: Move hi-16 up */
++	LSLCS	D1Ar3,D1Ar5,#16			/* MINIM short: Dup all-16 */
++	ADD	D1Ar5,D1Ar5,D1Ar3		/* ALL: Combine both 16-bit parts */
++#else
++	GETD	D1Ar5,[D1Ar1]			/* Read instruction for switch */
++#endif
++	LSR	D1Ar3,D1Ar5,#22			/* Convert into signal number */
++	AND	D1Ar3,D1Ar3,#TBID_SIGNUM_SW3-TBID_SIGNUM_SW0
++	LSL	D0Re0,D1Ar3,#TBID_SIGNUM_S	/* Generate offset from SigNum */
++	B	___TBIBoingVec			/* Jump to switch handler */
++/*
++ * Exit from TBIASyncTrigger call
++ */
++___TBIBoingExit:
++	GETL	D0FrT,D1RtP,[A0FrP++] 		/* Restore state from frame */
++	SUB	A0StP,A0FrP,#8			/* Unwind stack */
++	MOV	A0FrP,D0FrT			/* Last memory read completes */
++	MOV	PC,D1RtP			/* Return to caller */
++#endif /* ifdef CODE_USES_BOOTROM */
++	.size	___TBIResume,.-___TBIResume
++
++#ifndef BOOTROM
++/*
++ * void __TBIASyncResume( TBIRES State )
++ */
++	.text
++	.balign	4
++	.global	___TBIASyncResume
++	.type	___TBIASyncResume,function
++___TBIASyncResume:
++/*
++ * Perform CRIT|SOFT state restore and execute background thread.
++ */
++	MOV	D1Ar3,D1Ar1			/* Restore this context */
++	MOV	D0Re0,D0Ar2			/* Carry in additional triggers */
++						/* Reserve space for TBICTX */
++	ADD	D1Ar3,D1Ar3,#TBICTX_BYTES+(CATCH_ENTRY_BYTES*CATCH_ENTRIES)
++	MOV	A0StP,D1Ar3			/* Enter with protection of */
++	MOV	A0FrP,D1Ar1			/*   TBICTX on our stack */
++#ifdef CODE_USES_BOOTROM
++	MOVT	D1Ar1,#HI(LINCORE_BASE)
++	JUMP	D1Ar1,#0xA4
++#else
++	B	___TBIResume
++#endif
++	.size	___TBIASyncResume,.-___TBIASyncResume
++#endif /* ifndef BOOTROM */
++
++/*
++ * End of tbipcx.S
++ */
+diff --git a/arch/metag/tbx/tbiroot.S b/arch/metag/tbx/tbiroot.S
+new file mode 100644
+index 0000000..7d84daf
+--- /dev/null
++++ b/arch/metag/tbx/tbiroot.S
+@@ -0,0 +1,87 @@
++/*
++ * tbiroot.S
++ *
++ * Copyright (C) 2001, 2002, 2012 Imagination Technologies.
++ *
++ * This program is free software; you can redistribute it and/or modify it under
++ * the terms of the GNU General Public License version 2 as published by the
++ * Free Software Foundation.
++ *
++ * Module that creates and via ___TBI function returns a TBI Root Block for
++ * interrupt and background processing on the current thread.
++ */
++
++	.file	"tbiroot.S"
++#include <asm/metag_regs.h>
++
++/*
++ * Get data structures and defines from the TBI C header
++ */
++#include <asm/tbx.h>
++
++
++/* If signals need to be exchanged we must create a TBI Root Block */
++
++	.data
++	.balign	8
++	.global	___pTBIs
++	.type	___pTBIs,object
++___pTBIs:
++	.long	0 /* Bgnd+Int root block ptrs */
++	.long	0
++	.size	___pTBIs,.-___pTBIs
++
++
++/*
++ * Return ___pTBIs value specific to execution level with promotion/demotion
++ *
++ * Register Usage: D1Ar1 is Id, D0Re0 is the primary result
++ *                 D1Re0 is secondary result (___pTBIs for other exec level)
++ */
++	.text
++	.balign	4
++	.global	___TBI
++	.type	___TBI,function
++___TBI:
++	TSTT	D1Ar1,#HI(TBID_ISTAT_BIT)	/* Bgnd or Int level? */
++	MOVT	A1LbP,#HI(___pTBIs)
++	ADD	A1LbP,A1LbP,#LO(___pTBIs)
++	GETL	D0Re0,D1Re0,[A1LbP] /* Base of root block table */
++	SWAPNZ	D0Re0,D1Re0			/* Swap if asked */
++	MOV	PC,D1RtP
++	.size	___TBI,.-___TBI
++
++
++/*
++ * Return identifier of the current thread in TBI segment or signal format with
++ * secondary mask to indicate privilege and interrupt level of thread
++ */
++	.text
++	.balign	4
++	.global	___TBIThrdPrivId
++	.type	___TBIThrdPrivId,function
++___TBIThrdPrivId:
++	.global	___TBIThreadId
++	.type	___TBIThreadId,function
++___TBIThreadId:
++#ifndef METAC_0_1
++	MOV	D1Re0,TXSTATUS			/* Are we privileged or int? */
++	MOV	D0Re0,TXENABLE			/* Which thread are we? */
++/* Disable privilege adaption for now */
++	ANDT	D1Re0,D1Re0,#HI(TXSTATUS_ISTAT_BIT) /* +TXSTATUS_PSTAT_BIT) */
++	LSL	D1Re0,D1Re0,#TBID_ISTAT_S-TXSTATUS_ISTAT_S
++	AND	D0Re0,D0Re0,#TXENABLE_THREAD_BITS
++	LSL	D0Re0,D0Re0,#TBID_THREAD_S-TXENABLE_THREAD_S
++#else
++/* Thread 0 only */
++	XOR	D0Re0,D0Re0,D0Re0
++	XOR	D1Re0,D1Re0,D1Re0
++#endif
++	MOV 	PC,D1RtP			/* Return */
++	.size	___TBIThrdPrivId,.-___TBIThrdPrivId
++	.size	___TBIThreadId,.-___TBIThreadId 
++
++
++/*
++ * End of tbiroot.S
++ */
+diff --git a/arch/metag/tbx/tbisoft.S b/arch/metag/tbx/tbisoft.S
+new file mode 100644
+index 0000000..0346fe8
+--- /dev/null
++++ b/arch/metag/tbx/tbisoft.S
+@@ -0,0 +1,237 @@
++/*
++ * tbisoft.S
++ *
++ * Copyright (C) 2001, 2002, 2007, 2012 Imagination Technologies.
++ *
++ * This program is free software; you can redistribute it and/or modify it under
++ * the terms of the GNU General Public License version 2 as published by the
++ * Free Software Foundation.
++ *
++ * Support for soft threads and soft context switches
++ */
++
++	.file	"tbisoft.S"
++
++#include <asm/tbx.h>
++
++#ifdef METAC_1_0
++/* Ax.4 is saved in TBICTX */
++#define A0_4  ,A0.4
++#define D0_5  ,D0.5
++#else
++/* Ax.4 is NOT saved in TBICTX */
++#define A0_4
++#define D0_5
++#endif
++
++/* Size of the TBICTX structure */
++#define TBICTX_BYTES ((TBICTX_AX_REGS*8)+TBICTX_AX)
++
++	.text
++	.balign	4
++	.global	___TBISwitchTail
++	.type	___TBISwitchTail,function
++___TBISwitchTail:
++	B	$LSwitchTail
++	.size	___TBISwitchTail,.-___TBISwitchTail
++
++/* 
++ * TBIRES __TBIJumpX( TBIX64 ArgsA, PTBICTX *rpSaveCtx, int TrigsMask,
++ *                                    void (*fnMain)(), void *pStack );
++ *
++ * This is a combination of __TBISwitch and __TBIJump with the context of
++ * the calling thread being saved in the rpSaveCtx location with a drop-thru
++ *  effect into the __TBIJump logic. ArgsB passes via __TBIJump to the
++ *  routine eventually invoked will reflect the rpSaveCtx value specified.
++ */
++	.text
++	.balign	4
++	.global	___TBIJumpX
++	.type	___TBIJumpX,function
++___TBIJumpX:
++	CMP	D1RtP,#-1
++	B	$LSwitchStart
++	.size	___TBIJumpX,.-___TBIJumpX
++
++/*
++ * TBIRES __TBISwitch( TBIRES Switch, PTBICTX *rpSaveCtx )
++ *
++ * Software syncronous context switch between soft threads, save only the
++ * registers which are actually valid on call entry.
++ *
++ *	A0FrP, D0RtP, D0.5, D0.6, D0.7      - Saved on stack
++ *	A1GbP is global to all soft threads so not virtualised
++ *	A0StP is then saved as the base of the TBICTX of the thread
++ *	
++ */
++	.text
++	.balign	4
++	.global	___TBISwitch
++	.type	___TBISwitch,function
++___TBISwitch:
++	XORS	D0Re0,D0Re0,D0Re0		/* Set ZERO flag */
++$LSwitchStart:
++	MOV	D0FrT,A0FrP			/* Boing entry sequence */
++	ADD	A0FrP,A0StP,#0			
++	SETL	[A0StP+#8++],D0FrT,D1RtP
++/*
++ * Save current frame state - we save all regs because we don't want
++ * uninitialised crap in the TBICTX structure that the asyncronous resumption
++ * of a thread will restore.
++ */
++	MOVT	D1Re0,#HI($LSwitchExit)		/* ASync resume point here */
++	ADD	D1Re0,D1Re0,#LO($LSwitchExit)
++	SETD	[D1Ar3],A0StP			/* Record pCtx of this thread */
++	MOVT	D0Re0,#TBICTX_SOFT_BIT		/* Only soft thread state */
++	SETL	[A0StP++],D0Re0,D1Re0		/* Push header fields */
++	ADD	D0FrT,A0StP,#TBICTX_AX-TBICTX_DX /* Address AX save area */
++	MOV	D0Re0,#0			/* Setup 0:0 result for ASync */
++	MOV	D1Re0,#0			/* resume of the thread */
++	MSETL	[A0StP],D0Re0,D0Ar6,D0Ar4,D0Ar2,D0FrT,D0.5,D0.6,D0.7
++	SETL	[A0StP++],D0Re0,D1Re0		/* Zero CurrRPT, CurrBPOBITS, */
++	SETL	[A0StP++],D0Re0,D1Re0		/* Zero CurrMODE, CurrDIVTIME */
++	ADD	A0StP,A0StP,#(TBICTX_AX_REGS*8)	/* Reserve AX save space */
++	MSETL	[D0FrT],A0StP,A0FrP,A0.2,A0.3 A0_4 /* Save AX regs */
++	BNZ	___TBIJump
++/*
++ * NextThread MUST be in TBICTX_SOFT_BIT state!
++ */
++$LSwitchTail:
++	MOV	D0Re0,D0Ar2			/* Result from args */
++	MOV	D1Re0,D1Ar1
++	ADD	D1RtP,D1Ar1,#TBICTX_AX
++	MGETL	A0StP,A0FrP,[D1RtP]		/* Get frame values */
++$LSwitchCmn:
++	ADD	A0.2,D1Ar1,#TBICTX_DX+(8*5)
++	MGETL	D0.5,D0.6,D0.7,[A0.2]		/* Get caller-saved DX regs */
++$LSwitchExit:
++	GETL	D0FrT,D1RtP,[A0FrP++] 		/* Restore state from frame */
++	SUB	A0StP,A0FrP,#8			/* Unwind stack */
++	MOV	A0FrP,D0FrT			/* Last memory read completes */
++	MOV	PC,D1RtP			/* Return to caller */
++	.size	___TBISwitch,.-___TBISwitch
++
++/*
++ * void __TBISyncResume( TBIRES State, int TrigMask );
++ *
++ * This routine causes the TBICTX structure specified in State.Sig.pCtx to
++ * be restored. This implies that execution will not return to the caller.
++ * The State.Sig.TrigMask field will be ored into TXMASKI during the
++ * context switch such that any immediately occuring interrupts occur in
++ * the context of the newly specified task. The State.Sig.SaveMask parameter
++ * is ignored.
++ */
++	.text
++	.balign	4
++	.global	___TBISyncResume
++	.type	___TBISyncResume,function
++___TBISyncResume:
++	MOV	D0Re0,D0Ar2			/* Result from args */
++	MOV	D1Re0,D1Ar1
++	XOR	D1Ar5,D1Ar5,D1Ar5		/* D1Ar5 = 0 */
++	ADD	D1RtP,D1Ar1,#TBICTX_AX
++	SWAP	D1Ar5,TXMASKI			/* D1Ar5 <-> TXMASKI */
++	MGETL	A0StP,A0FrP,[D1RtP]		/* Get frame values */
++	OR	TXMASKI,D1Ar5,D1Ar3		/* New TXMASKI */
++	B 	$LSwitchCmn
++	.size	___TBISyncResume,.-___TBISyncResume
++
++/*
++ * void __TBIJump( TBIX64 ArgsA, TBIX32 ArgsB, int TrigsMask,
++ *                               void (*fnMain)(), void *pStack );
++ *
++ * Jump directly to a new routine on an arbitrary stack with arbitrary args
++ * oring bits back into TXMASKI on route.
++ */
++	.text
++	.balign	4
++	.global	___TBIJump
++	.type	___TBIJump,function
++___TBIJump:
++	XOR	D0Re0,D0Re0,D0Re0		/* D0Re0 = 0 */
++	MOV	A0StP,D0Ar6			/* Stack = Frame */
++	SWAP	D0Re0,TXMASKI			/* D0Re0 <-> TXMASKI */
++	MOV	A0FrP,D0Ar6			
++	MOVT	A1LbP,#HI(__exit)
++	ADD	A1LbP,A1LbP,#LO(__exit)
++	MOV	D1RtP,A1LbP			/* D1RtP = __exit */
++	OR	TXMASKI,D0Re0,D0Ar4		/* New TXMASKI */
++	MOV	PC,D1Ar5			/* Jump to fnMain */
++	.size	___TBIJump,.-___TBIJump
++
++/*
++ *	PTBICTX __TBISwitchInit( void *pStack, int (*fnMain)(),
++ *                             .... 4 extra 32-bit args .... );
++ *                             
++ * Generate a new soft thread context ready for it's first outing.
++ *
++ *	D1Ar1 - Region of memory to be used as the new soft thread stack
++ *	D0Ar2 - Main line routine for new soft thread
++ *	D1Ar3, D0Ar4, D1Ar5, D0Ar6 - arguments to be passed on stack
++ *	The routine returns the initial PTBICTX value for the new thread
++ */
++	.text
++	.balign	4
++	.global	___TBISwitchInit
++	.type	___TBISwitchInit,function
++___TBISwitchInit:
++	MOV	D0FrT,A0FrP			/* Need save return point */
++	ADD	A0FrP,A0StP,#0
++	SETL	[A0StP++],D0FrT,D1RtP		/* Save return to caller */
++	MOVT	A1LbP,#HI(__exit)
++	ADD	A1LbP,A1LbP,#LO(__exit)
++	MOV	D1RtP,A1LbP			/* Get address of __exit */
++	ADD	D1Ar1,D1Ar1,#7			/* Align stack to 64-bits */
++	ANDMB	D1Ar1,D1Ar1,#0xfff8		/*   by rounding base up */
++	MOV	A0.2,D1Ar1			/* A0.2 is new stack */
++	MOV	D0FrT,D1Ar1			/* Initial puesdo-frame pointer */
++	SETL	[A0.2++],D0FrT,D1RtP		/* Save return to __exit */
++	MOV	D1RtP,D0Ar2
++	SETL	[A0.2++],D0FrT,D1RtP		/* Save return to fnMain */
++	ADD	D0FrT,D0FrT,#8			/* Advance puesdo-frame pointer */
++	MSETL	[A0.2],D0Ar6,D0Ar4		/* Save extra initial args */
++	MOVT	D1RtP,#HI(___TBIStart)		/* Start up code for new stack */
++	ADD	D1RtP,D1RtP,#LO(___TBIStart)
++	SETL	[A0.2++],D0FrT,D1RtP		/* Save return to ___TBIStart */
++	ADD	D0FrT,D0FrT,#(8*3)		/* Advance puesdo-frame pointer */
++	MOV	D0Re0,A0.2			/* Return pCtx for new thread */
++	MOV	D1Re0,#0			/* pCtx:0 is default Arg1:Arg2 */
++/*
++ * Generate initial TBICTX state
++ */
++	MOVT	D1Ar1,#HI($LSwitchExit)		/* Async restore code */
++	ADD	D1Ar1,D1Ar1,#LO($LSwitchExit)
++	MOVT	D0Ar2,#TBICTX_SOFT_BIT		/* Only soft thread state */
++	ADD	D0Ar6,A0.2,#TBICTX_BYTES	/* New A0StP */
++	MOV	D1Ar5,A1GbP			/* Same A1GbP */
++	MOV	D0Ar4,D0FrT			/* Initial A0FrP */
++	MOV	D1Ar3,A1LbP			/* Same A1LbP */
++	SETL	[A0.2++],D0Ar2,D1Ar1		/* Set header fields */
++	MSETL	[A0.2],D0Re0,D0Ar6,D0Ar4,D0Ar2,D0FrT,D0.5,D0.6,D0.7
++	MOV	D0Ar2,#0			/* Zero values */
++	MOV	D1Ar1,#0
++	SETL	[A0.2++],D0Ar2,D1Ar1		/* Zero CurrRPT, CurrBPOBITS, */
++	SETL	[A0.2++],D0Ar2,D1Ar1		/*      CurrMODE, and pCurrCBuf */
++	MSETL	[A0.2],D0Ar6,D0Ar4,D0Ar2,D0FrT D0_5 /* Set DX and then AX regs */
++	B	$LSwitchExit			/* All done! */
++	.size	___TBISwitchInit,.-___TBISwitchInit
++
++	.text
++	.balign	4
++	.global	___TBIStart
++	.type	___TBIStart,function
++___TBIStart:
++	MOV	D1Ar1,D1Re0			/* Pass TBIRES args to call */
++	MOV	D0Ar2,D0Re0
++	MGETL	D0Re0,D0Ar6,D0Ar4,[A0FrP]	/* Get hidden args */
++	SUB	A0StP,A0FrP,#(8*3)		/* Entry stack pointer */
++	MOV	A0FrP,D0Re0			/* Entry frame pointer */
++	MOVT	A1LbP,#HI(__exit)
++	ADD	A1LbP,A1LbP,#LO(__exit)
++	MOV	D1RtP,A1LbP			/* D1RtP = __exit */
++	MOV	PC,D1Re0			/* Jump into fnMain */
++	.size	___TBIStart,.-___TBIStart
++
++/*
++ * End of tbisoft.S
++ */
+diff --git a/arch/metag/tbx/tbistring.c b/arch/metag/tbx/tbistring.c
+new file mode 100644
+index 0000000..f90cd08
+--- /dev/null
++++ b/arch/metag/tbx/tbistring.c
+@@ -0,0 +1,114 @@
++/*
++ * tbistring.c
++ *
++ * Copyright (C) 2001, 2002, 2003, 2005, 2007, 2012 Imagination Technologies.
++ *
++ * This program is free software; you can redistribute it and/or modify it under
++ * the terms of the GNU General Public License version 2 as published by the
++ * Free Software Foundation.
++ *
++ * String table functions provided as part of the thread binary interface for
++ * Meta processors
++ */
++
 +#include <linux/export.h>
-+#include <linux/slab.h>
-+#include <linux/mm.h>
-+
-+#include <asm/pgtable.h>
++#include <linux/string.h>
++#include <asm/tbx.h>
 +
 +/*
-+ * Remap an arbitrary physical address space into the kernel virtual
-+ * address space. Needed when the kernel wants to access high addresses
-+ * directly.
-+ *
-+ * NOTE! We need to allow non-page-aligned mappings too: we will obviously
-+ * have to convert them into an offset in a page-aligned mapping, but the
-+ * caller shouldn't need to know that small detail.
++ * There are not any functions to modify the string table currently, if these
++ * are required at some later point I suggest having a seperate module and
++ * ensuring that creating new entries does not interfere with reading old
++ * entries in any way.
 + */
-+void __iomem *__ioremap(unsigned long phys_addr, size_t size,
-+			unsigned long flags)
++
++const TBISTR *__TBIFindStr(const TBISTR *start,
++			   const char *str, int match_len)
 +{
-+	unsigned long addr;
-+	struct vm_struct *area;
-+	unsigned long offset, last_addr;
-+	pgprot_t prot;
++	const TBISTR *search = start;
++	bool exact = true;
++	const TBISEG *seg;
 +
-+	/* Don't allow wraparound or zero size */
-+	last_addr = phys_addr + size - 1;
-+	if (!size || last_addr < phys_addr)
-+		return NULL;
-+
-+	/* Custom region addresses are accessible and uncached by default. */
-+	if (phys_addr >= LINSYSCUSTOM_BASE &&
-+	    phys_addr < (LINSYSCUSTOM_BASE + LINSYSCUSTOM_LIMIT))
-+		return (__force void __iomem *) phys_addr;
-+
-+	/*
-+	 * Mappings have to be page-aligned
-+	 */
-+	offset = phys_addr & ~PAGE_MASK;
-+	phys_addr &= PAGE_MASK;
-+	size = PAGE_ALIGN(last_addr+1) - phys_addr;
-+	prot = __pgprot(_PAGE_PRESENT | _PAGE_WRITE | _PAGE_DIRTY |
-+			_PAGE_ACCESSED | _PAGE_KERNEL | _PAGE_CACHE_WIN0 |
-+			flags);
-+
-+	/*
-+	 * Ok, go for it..
-+	 */
-+	area = get_vm_area(size, VM_IOREMAP);
-+	if (!area)
-+		return NULL;
-+	area->phys_addr = phys_addr;
-+	addr = (unsigned long) area->addr;
-+	if (ioremap_page_range(addr, addr + size, phys_addr, prot)) {
-+		vunmap((void *) addr);
-+		return NULL;
-+	}
-+	return (__force void __iomem *) (offset + (char *)addr);
-+}
-+EXPORT_SYMBOL(__ioremap);
-+
-+void __iounmap(void __iomem *addr)
-+{
-+	struct vm_struct *p;
-+
-+	if ((__force unsigned long)addr >= LINSYSCUSTOM_BASE &&
-+	    (__force unsigned long)addr < (LINSYSCUSTOM_BASE +
-+					   LINSYSCUSTOM_LIMIT))
-+		return;
-+
-+	p = remove_vm_area((void *)(PAGE_MASK & (unsigned long __force)addr));
-+	if (unlikely(!p)) {
-+		pr_err("iounmap: bad address %p\n", addr);
-+		return;
++	if (match_len < 0) {
++		/* Make match_len always positive for the inner loop */
++		match_len = -match_len;
++		exact = false;
++	} else {
++		/*
++		 * Also support historic behaviour, which expected match_len to
++		 * include null terminator
++		 */
++		if (match_len && str[match_len-1] == '\0')
++			match_len--;
 +	}
 +
-+	kfree(p);
++	if (!search) {
++		/* Find global string table segment */
++		seg = __TBIFindSeg(NULL, TBID_SEG(TBID_THREAD_GLOBAL,
++						  TBID_SEGSCOPE_GLOBAL,
++						  TBID_SEGTYPE_STRING));
++
++		if (!seg || seg->Bytes < sizeof(TBISTR))
++			/* No string table! */
++			return NULL;
++
++		/* Start of string table */
++		search = seg->pGAddr;
++	}
++
++	for (;;) {
++		while (!search->Tag)
++			/* Allow simple gaps which are just zero initialised */
++			search = (const TBISTR *)((const char *)search + 8);
++
++		if (search->Tag == METAG_TBI_STRE) {
++			/* Reached the end of the table */
++			search = NULL;
++			break;
++		}
++
++		if ((search->Len >= match_len) &&
++		    (!exact || (search->Len == match_len + 1)) &&
++		    (search->Tag != METAG_TBI_STRG)) {
++			/* Worth searching */
++			if (!strncmp(str, (const char *)search->String,
++				     match_len))
++				break;
++		}
++
++		/* Next entry */
++		search = (const TBISTR *)((const char *)search + search->Bytes);
++	}
++
++	return search;
 +}
-+EXPORT_SYMBOL(__iounmap);
-diff --git a/arch/metag/mm/maccess.c b/arch/metag/mm/maccess.c
++
++const void *__TBITransStr(const char *str, int len)
++{
++	const TBISTR *search = NULL;
++	const void *res = NULL;
++
++	for (;;) {
++		/* Search onwards */
++		search = __TBIFindStr(search, str, len);
++
++		/* No translation returns NULL */
++		if (!search)
++			break;
++
++		/* Skip matching entries with no translation data */
++		if (search->TransLen != METAG_TBI_STRX) {
++			/* Calculate base of translation string */
++			res = (const char *)search->String +
++				((search->Len + 7) & ~7);
++			break;
++		}
++
++		/* Next entry */
++		search = (const TBISTR *)((const char *)search + search->Bytes);
++	}
++
++	/* Return base address of translation data or NULL */
++	return res;
++}
++EXPORT_SYMBOL(__TBITransStr);
+diff --git a/arch/metag/tbx/tbitimer.S b/arch/metag/tbx/tbitimer.S
 new file mode 100644
-index 0000000..eba2cfc
+index 0000000..5dbedde
 --- /dev/null
-+++ b/arch/metag/mm/maccess.c
-@@ -0,0 +1,68 @@
++++ b/arch/metag/tbx/tbitimer.S
+@@ -0,0 +1,207 @@
 +/*
-+ * safe read and write memory routines callable while atomic
++ * tbitimer.S
 + *
-+ * Copyright 2012 Imagination Technologies
++ * Copyright (C) 2001, 2002, 2007, 2012 Imagination Technologies.
++ *
++ * This program is free software; you can redistribute it and/or modify it under
++ * the terms of the GNU General Public License version 2 as published by the
++ * Free Software Foundation.
++ *
++ * TBI timer support routines and data values
 + */
 +
-+#include <linux/uaccess.h>
-+#include <asm/io.h>
++	.file	"tbitimer.S"
++/*
++ * Get data structures and defines from the main C header
++ */
++#include <asm/tbx.h>
++
++	.data
++	.balign	8
++	.global	___TBITimeB
++	.type	___TBITimeB,object
++___TBITimeB:
++	.quad	0		/* Background 'lost' ticks */
++	.size	___TBITimeB,.-___TBITimeB
++
++	.data
++	.balign	8
++	.global	___TBITimeI
++	.type	___TBITimeI,object
++___TBITimeI:
++	.quad	0		/* Interrupt 'lost' ticks */
++	.size	___TBITimeI,.-___TBITimeI
++
++	.data
++	.balign	8
++	.global	___TBITimes
++	.type	___TBITimes,object
++___TBITimes:
++	.long	___TBITimeB	/* Table of 'lost' tick values */
++	.long	___TBITimeI
++	.size	___TBITimes,.-___TBITimes
 +
 +/*
-+ * The generic probe_kernel_write() uses the user copy code which can split the
-+ * writes if the source is unaligned, and repeats writes to make exceptions
-+ * precise. We override it here to avoid these things happening to memory mapped
-+ * IO memory where they could have undesired effects.
-+ * Due to the use of CACHERD instruction this only works on Meta2 onwards.
++ * Flag bits for control of ___TBITimeCore
 + */
-+#ifdef CONFIG_METAG_META21
-+long probe_kernel_write(void *dst, const void *src, size_t size)
-+{
-+	unsigned long ldst = (unsigned long)dst;
-+	void __iomem *iodst = (void __iomem *)dst;
-+	unsigned long lsrc = (unsigned long)src;
-+	const u8 *psrc = (u8 *)src;
-+	unsigned int pte, i;
-+	u8 bounce[8] __aligned(8);
++#define TIMER_SET_BIT  1
++#define TIMER_ADD_BIT  2
 +
-+	if (!size)
-+		return 0;
++/*
++ * Initialise or stop timer support
++ *
++ * Register Usage: D1Ar1 holds Id, D1Ar2 is initial delay or 0
++ *                 D0FrT is used to call ___TBITimeCore
++ *                 D0Re0 is used for the result which is TXSTAT_TIMER_BIT
++ *                 D0Ar4, D1Ar5, D0Ar6 are all used as scratch
++ *		  Other registers are those set by ___TBITimeCore
++ *			A0.3 is assumed to point at ___TBITime(I/B)
++ */
++	.text
++	.balign	4
++	.global	___TBITimerCtrl
++	.type	___TBITimerCtrl,function
++___TBITimerCtrl:
++	MOV	D1Ar5,#TIMER_SET_BIT		/* Timer SET request */
++	MOVT	D0FrT,#HI(___TBITimeCore)	/* Get timer core reg values */
++	CALL	D0FrT,#LO(___TBITimeCore)	/* and perform register update */
++	NEGS	D0Ar6,D0Ar2			/* Set flags from time-stamp */
++	ASR	D1Ar5,D0Ar6,#31			/* Sign extend D0Ar6 into D1Ar5 */
++	SETLNZ	[A0.3],D0Ar6,D1Ar5		/* ___TBITime(B/I)=-Start if enable */
++	MOV	PC,D1RtP			/* Return */
++	.size	___TBITimerCtrl,.-___TBITimerCtrl
++	
++/*
++ * Return ___TBITimeStamp value
++ *
++ * Register Usage: D1Ar1 holds Id
++ *                 D0FrT is used to call ___TBITimeCore
++ *                 D0Re0, D1Re0 is used for the result
++ *                 D1Ar3, D0Ar4, D1Ar5
++ *		  Other registers are those set by ___TBITimeCore
++ *			D0Ar6 is assumed to be the timer value read
++ *			A0.3 is assumed to point at ___TBITime(I/B)
++ */
++	.text
++	.balign	4
++	.global	___TBITimeStamp
++	.type	___TBITimeStamp,function
++___TBITimeStamp:
++	MOV	D1Ar5,#0			/* Timer GET request */
++	MOVT	D0FrT,#HI(___TBITimeCore)	/* Get timer core reg values */
++	CALL	D0FrT,#LO(___TBITimeCore)	/* with no register update */
++	ADDS	D0Re0,D0Ar4,D0Ar6		/* Add current time value */
++	ADD	D1Re0,D1Ar3,D1Ar5		/*  to 64-bit signed extend time */
++	ADDCS	D1Re0,D1Re0,#1			/* Support borrow too */
++	MOV	PC,D1RtP			/* Return */
++	.size	___TBITimeStamp,.-___TBITimeStamp
 +
-+	/* Use the write combine bit to decide is the destination is MMIO. */
-+	pte = __builtin_meta2_cacherd(dst);
++/*
++ * Perform ___TBITimerAdd logic
++ *
++ * Register Usage: D1Ar1 holds Id, D0Ar2 holds value to be added to the timer
++ *                 D0Re0 is used for the result - new TIMER value
++ *                 D1Ar5, D0Ar6 are used as scratch
++ *		  Other registers are those set by ___TBITimeCore
++ *			D0Ar6 is assumed to be the timer value read
++ *			D0Ar4, D1Ar3 is the current value of ___TBITime(B/I)
++ */
++	.text
++	.balign	4
++	.global	___TBITimerAdd
++	.type	___TBITimerAdd,function
++___TBITimerAdd:
++	MOV	D1Ar5,#TIMER_ADD_BIT		/* Timer ADD request */
++	MOVT	D0FrT,#HI(___TBITimeCore)	/* Get timer core reg values */
++	CALL	D0FrT,#LO(___TBITimeCore)	/* with no register update */
++	ADD	D0Re0,D0Ar2,D0Ar6		/* Regenerate new value = result */
++	NEG	D0Ar2,D0Ar2			/* Negate delta */
++	ASR	D1Re0,D0Ar2,#31			/* Sign extend negated delta */
++	ADDS	D0Ar4,D0Ar4,D0Ar2		/* Add time added to ... */
++	ADD	D1Ar3,D1Ar3,D1Re0		/* ... real timer ... */
++	ADDCS	D1Ar3,D1Ar3,#1			/* ... with carry */
++	SETL	[A0.3],D0Ar4,D1Ar3		/* Update ___TBITime(B/I) */
++	MOV	PC,D1RtP			/* Return */
++	.size	___TBITimerAdd,.-___TBITimerAdd
 +
-+	/* Check the mapping is valid and writeable. */
-+	if ((pte & (MMCU_ENTRY_WR_BIT | MMCU_ENTRY_VAL_BIT))
-+	    != (MMCU_ENTRY_WR_BIT | MMCU_ENTRY_VAL_BIT))
-+		return -EFAULT;
++#ifdef TBI_1_4
++/*
++ * Perform ___TBITimerDeadline logic
++ *    NB: Delays are positive compared to the Wait values which are -ive
++ *
++ * Register Usage: D1Ar1 holds Id
++ *                 D0Ar2 holds Delay requested
++ *                 D0Re0 is used for the result - old TIMER Delay value
++ *                 D1Ar5, D0Ar6 are used as scratch
++ *                 Other registers are those set by ___TBITimeCore
++ *                 D0Ar6 is assumed to be the timer value read
++ *                 D0Ar4, D1Ar3 is the current value of ___TBITime(B/I)
++ *
++ */
++        .text
++        .type   ___TBITimerDeadline,function
++        .global ___TBITimerDeadline
++        .align  2
++___TBITimerDeadline:
++	MOV	D1Ar5,#TIMER_SET_BIT		/* Timer SET request */
++	MOVT	D0FrT,#HI(___TBITimeCore)	/* Get timer core reg values */
++	CALL	D0FrT,#LO(___TBITimeCore)	/* with no register update */
++	MOV	D0Re0,D0Ar6			/* Old value read = result */
++	SUB	D0Ar2,D0Ar6,D0Ar2		/* Delta from (old - new) */
++	ASR	D1Re0,D0Ar2,#31			/* Sign extend delta */
++	ADDS	D0Ar4,D0Ar4,D0Ar2		/* Add time added to ... */
++	ADD	D1Ar3,D1Ar3,D1Re0		/* ... real timer ... */
++	ADDCS	D1Ar3,D1Ar3,#1			/* ... with carry */
++	SETL	[A0.3],D0Ar4,D1Ar3		/* Update ___TBITime(B/I) */
++	MOV	PC,D1RtP			/* Return */
++        .size   ___TBITimerDeadline,.-___TBITimerDeadline
++#endif /* TBI_1_4 */
 +
-+	/* Fall back to generic version for cases we're not interested in. */
-+	if (pte & MMCU_ENTRY_WRC_BIT	|| /* write combined memory */
-+	    (ldst & (size - 1))		|| /* destination unaligned */
-+	    size > 8			|| /* more than max write size */
-+	    (size & (size - 1)))	   /* non power of 2 size */
-+		return __probe_kernel_write(dst, src, size);
-+
-+	/* If src is unaligned, copy to the aligned bounce buffer first. */
-+	if (lsrc & (size - 1)) {
-+		for (i = 0; i < size; ++i)
-+			bounce[i] = psrc[i];
-+		psrc = bounce;
-+	}
-+
-+	switch (size) {
-+	case 1:
-+		writeb(*psrc, iodst);
-+		break;
-+	case 2:
-+		writew(*(const u16 *)psrc, iodst);
-+		break;
-+	case 4:
-+		writel(*(const u32 *)psrc, iodst);
-+		break;
-+	case 8:
-+		writeq(*(const u64 *)psrc, iodst);
-+		break;
-+	}
-+	return 0;
-+}
++/*
++ * Perform core timer access logic
++ *
++ * Register Usage: D1Ar1 holds Id, D0Ar2 holds input value for SET and
++ *                                             input value for ADD
++ *                 D1Ar5 controls op as SET or ADD as bit values
++ *                 On return D0Ar6, D1Ar5 holds the old 64-bit timer value
++ *                 A0.3 is setup to point at ___TBITime(I/B)
++ *                 A1.3 is setup to point at ___TBITimes
++ *                 D0Ar4, D1Ar3 is setup to value of ___TBITime(I/B)
++ */
++	.text
++	.balign	4
++	.global	___TBITimeCore
++	.type	___TBITimeCore,function
++___TBITimeCore:
++#ifndef METAC_0_1
++	TSTT	D1Ar1,#HI(TBID_ISTAT_BIT)	/* Interrupt level timer? */
 +#endif
++	MOVT	A1LbP,#HI(___TBITimes)
++	ADD	A1LbP,A1LbP,#LO(___TBITimes)
++	MOV	A1.3,A1LbP			/* Get ___TBITimes address */
++#ifndef METAC_0_1
++	BNZ	$LTimeCoreI			/* Yes: Service TXTIMERI! */
++#endif
++	LSRS	D1Ar5,D1Ar5,#1			/* Carry = SET, Zero = !ADD */
++	GETD	A0.3,[A1.3+#0]			/* A0.3 == &___TBITimeB */
++	MOV	D0Ar6,TXTIMER			/* Always GET old value */
++	MOVCS	TXTIMER,D0Ar2			/* Conditional SET operation */
++	ADDNZ	TXTIMER,D0Ar2,D0Ar6		/* Conditional ADD operation */
++#ifndef METAC_0_1
++	B	$LTimeCoreEnd
++$LTimeCoreI:
++	LSRS	D1Ar5,D1Ar5,#1			/* Carry = SET, Zero = !ADD */
++	GETD	A0.3,[A1.3+#4]			/* A0.3 == &___TBITimeI */
++	MOV	D0Ar6,TXTIMERI			/* Always GET old value */
++	MOVCS	TXTIMERI,D0Ar2			/* Conditional SET operation */
++	ADDNZ	TXTIMERI,D0Ar2,D0Ar6		/* Conditional ADD operation */
++$LTimeCoreEnd:
++#endif
++	ASR	D1Ar5,D0Ar6,#31			/* Sign extend D0Ar6 into D1Ar5 */
++	GETL	D0Ar4,D1Ar3,[A0.3]		/* Read ___TBITime(B/I) */
++	MOV	PC,D0FrT			/* Return quickly */
++	.size	___TBITimeCore,.-___TBITimeCore
++
++/*
++ * End of tbitimer.S
++ */
 -- 
 1.7.7.6
 
