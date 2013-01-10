@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:56708 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:56706 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754492Ab3AJPcy (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Jan 2013 10:32:54 -0500
+	id S1754440Ab3AJPct (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Jan 2013 10:32:49 -0500
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v3 20/44] metag: ptrace
-Date: Thu, 10 Jan 2013 15:30:48 +0000
-Message-ID: <1357831872-29451-21-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v3 27/44] metag: Module support
+Date: Thu, 10 Jan 2013 15:30:55 +0000
+Message-ID: <1357831872-29451-28-git-send-email-james.hogan@imgtec.com>
 In-Reply-To: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
@@ -14,633 +14,350 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: James Hogan <james.hogan@imgtec.com>, Andrew Morton <akpm@linux-foundation.org>, Denys Vlasenko <vda.linux@googlemail.com>, Arnd Bergmann <arnd@arndb.de>, Tony Lindgren <tony@atomide.com>, "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
-Message-ID: <20130110153048.xTML-peFlr6BTnXHybcg9w8AjIENwzJ70cWKHkkrwhk@z>
-
-The ptrace interface for metag provides access to some core register
-sets using the PTRACE_GETREGSET and PTRACE_SETREGSET operations. The
-details of the internal context structures is abstracted into user API
-structures to both ease use and allow flexibility to change the internal
-context layouts. Copyin and copyout functions for these register sets
-are exposed to allow signal handling code to use them to copy to and
-from the signal context.
-
-struct user_gp_regs (NT_PRSTATUS) provides access to the core general
-purpose register context.
-
-struct user_cb_regs (NT_METAG_CBUF) provides access to the TXCATCH*
-registers which contains information abuot a memory fault, unaligned
-access error or watchpoint. This can be modified to alter the way the
-fault is replayed on resume ("catch replay"), or to prevent the replay
-taking place.
-
-struct user_rp_state (NT_METAG_RPIPE) provides access to the state of
-the Meta read pipeline which can be used to hide memory latencies in
-hand optimised data loops.
-
-Extended DSP register state, DSP RAM, and hardware breakpoint registers
-aren't yet exposed through ptrace.
+Cc: James Hogan <james.hogan@imgtec.com>
+Message-ID: <20130110153055.BokyucVC2ydv6YSdRmGnIaDEsJUJvVYF4XSEVOWNC_o@z>
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Denys Vlasenko <vda.linux@googlemail.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Tony Lindgren <tony@atomide.com>
-Cc: "Paul E. McKenney" <paulmck@linux.vnet.ibm.com>
 ---
- arch/metag/include/asm/ptrace.h      |   60 ++++++
- arch/metag/include/uapi/asm/ptrace.h |  113 ++++++++++
- arch/metag/kernel/ptrace.c           |  380 ++++++++++++++++++++++++++++++++++
- include/uapi/linux/elf.h             |    2 +
- 4 files changed, 555 insertions(+), 0 deletions(-)
- create mode 100644 arch/metag/include/asm/ptrace.h
- create mode 100644 arch/metag/include/uapi/asm/ptrace.h
- create mode 100644 arch/metag/kernel/ptrace.c
+ arch/metag/include/asm/module.h |   37 +++++
+ arch/metag/kernel/module.c      |  284 +++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 321 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/include/asm/module.h
+ create mode 100644 arch/metag/kernel/module.c
 
-diff --git a/arch/metag/include/asm/ptrace.h b/arch/metag/include/asm/ptrace.h
+diff --git a/arch/metag/include/asm/module.h b/arch/metag/include/asm/module.h
 new file mode 100644
-index 0000000..fcabc18
+index 0000000..e47e609
 --- /dev/null
-+++ b/arch/metag/include/asm/ptrace.h
-@@ -0,0 +1,60 @@
-+#ifndef _METAG_PTRACE_H
-+#define _METAG_PTRACE_H
++++ b/arch/metag/include/asm/module.h
+@@ -0,0 +1,37 @@
++#ifndef _ASM_METAG_MODULE_H
++#define _ASM_METAG_MODULE_H
 +
-+#include <linux/compiler.h>
-+#include <uapi/asm/ptrace.h>
-+#include <asm/tbx.h>
++#include <asm-generic/module.h>
 +
-+#ifndef __ASSEMBLY__
-+
-+/* this struct defines the way the registers are stored on the
-+   stack during a system call. */
-+
-+struct pt_regs {
-+	TBICTX ctx;
-+	TBICTXEXTCB0 extcb0[5];
++struct metag_plt_entry {
++	/* Indirect jump instruction sequence. */
++	unsigned long tramp[2];
 +};
 +
-+#define user_mode(regs) (((regs)->ctx.SaveMask & TBICTX_PRIV_BIT) > 0)
++struct mod_arch_specific {
++	/* Indices of PLT sections within module. */
++	unsigned int core_plt_section, init_plt_section;
++};
 +
-+#define instruction_pointer(regs) ((unsigned long)(regs)->ctx.CurrPC)
-+#define profile_pc(regs) instruction_pointer(regs)
++#if defined CONFIG_METAG_META12
++#define MODULE_PROC_FAMILY "META 1.2 "
++#elif defined CONFIG_METAG_META21
++#define MODULE_PROC_FAMILY "META 2.1 "
++#else
++#define MODULE_PROC_FAMILY ""
++#endif
 +
-+#define task_pt_regs(task) \
-+	((struct pt_regs *)(task_stack_page(task) + \
-+			    sizeof(struct thread_info)))
++#ifdef CONFIG_4KSTACKS
++#define MODULE_STACKSIZE "4KSTACKS "
++#else
++#define MODULE_STACKSIZE ""
++#endif
 +
-+#define current_pt_regs() \
-+	((struct pt_regs *)((char *)current_thread_info() + \
-+			    sizeof(struct thread_info)))
++#define MODULE_ARCH_VERMAGIC MODULE_PROC_FAMILY MODULE_STACKSIZE
 +
-+int syscall_trace_enter(struct pt_regs *regs);
-+void syscall_trace_leave(struct pt_regs *regs);
++#ifdef MODULE
++asm(".section .plt,\"ax\",@progbits; .balign 8; .previous");
++asm(".section .init.plt,\"ax\",@progbits; .balign 8; .previous");
++#endif
 +
-+/* copy a struct user_gp_regs out to user */
-+int metag_gp_regs_copyout(const struct pt_regs *regs,
-+			  unsigned int pos, unsigned int count,
-+			  void *kbuf, void __user *ubuf);
-+/* copy a struct user_gp_regs in from user */
-+int metag_gp_regs_copyin(struct pt_regs *regs,
-+			 unsigned int pos, unsigned int count,
-+			 const void *kbuf, const void __user *ubuf);
-+/* copy a struct user_cb_regs out to user */
-+int metag_cb_regs_copyout(const struct pt_regs *regs,
-+			  unsigned int pos, unsigned int count,
-+			  void *kbuf, void __user *ubuf);
-+/* copy a struct user_cb_regs in from user */
-+int metag_cb_regs_copyin(struct pt_regs *regs,
-+			 unsigned int pos, unsigned int count,
-+			 const void *kbuf, const void __user *ubuf);
-+/* copy a struct user_rp_state out to user */
-+int metag_rp_state_copyout(const struct pt_regs *regs,
-+			   unsigned int pos, unsigned int count,
-+			   void *kbuf, void __user *ubuf);
-+/* copy a struct user_rp_state in from user */
-+int metag_rp_state_copyin(struct pt_regs *regs,
-+			  unsigned int pos, unsigned int count,
-+			  const void *kbuf, const void __user *ubuf);
-+
-+#endif /* __ASSEMBLY__ */
-+#endif /* _METAG_PTRACE_H */
-diff --git a/arch/metag/include/uapi/asm/ptrace.h b/arch/metag/include/uapi/asm/ptrace.h
++#endif /* _ASM_METAG_MODULE_H */
+diff --git a/arch/metag/kernel/module.c b/arch/metag/kernel/module.c
 new file mode 100644
-index 0000000..45d9780
+index 0000000..986331c
 --- /dev/null
-+++ b/arch/metag/include/uapi/asm/ptrace.h
-@@ -0,0 +1,113 @@
-+#ifndef _UAPI_METAG_PTRACE_H
-+#define _UAPI_METAG_PTRACE_H
++++ b/arch/metag/kernel/module.c
+@@ -0,0 +1,284 @@
++/*  Kernel module help for Meta.
 +
-+#ifndef __ASSEMBLY__
++    This program is free software; you can redistribute it and/or modify
++    it under the terms of the GNU General Public License as published by
++    the Free Software Foundation; either version 2 of the License, or
++    (at your option) any later version.
 +
-+/*
-+ * These are the layouts of the regsets returned by the GETREGSET ptrace call
-+ */
-+
-+/* user_gp_regs::status */
-+
-+/* CBMarker bit (indicates catch state / catch replay) */
-+#define USER_GP_REGS_STATUS_CATCH_BIT		(1 << 22)
-+#define USER_GP_REGS_STATUS_CATCH_S		22
-+/* LSM_STEP field (load/store multiple step) */
-+#define USER_GP_REGS_STATUS_LSM_STEP_BITS	(0x7 << 8)
-+#define USER_GP_REGS_STATUS_LSM_STEP_S		8
-+/* SCC bit (indicates split 16x16 condition flags) */
-+#define USER_GP_REGS_STATUS_SCC_BIT		(1 << 4)
-+#define USER_GP_REGS_STATUS_SCC_S		4
-+
-+/* normal condition flags */
-+/* CF_Z bit (Zero flag) */
-+#define USER_GP_REGS_STATUS_CF_Z_BIT		(1 << 3)
-+#define USER_GP_REGS_STATUS_CF_Z_S		3
-+/* CF_N bit (Negative flag) */
-+#define USER_GP_REGS_STATUS_CF_N_BIT		(1 << 2)
-+#define USER_GP_REGS_STATUS_CF_N_S		2
-+/* CF_V bit (oVerflow flag) */
-+#define USER_GP_REGS_STATUS_CF_V_BIT		(1 << 1)
-+#define USER_GP_REGS_STATUS_CF_V_S		1
-+/* CF_C bit (Carry flag) */
-+#define USER_GP_REGS_STATUS_CF_C_BIT		(1 << 0)
-+#define USER_GP_REGS_STATUS_CF_C_S		0
-+
-+/* split 16x16 condition flags */
-+/* SCF_LZ bit (Low Zero flag) */
-+#define USER_GP_REGS_STATUS_SCF_LZ_BIT		(1 << 3)
-+#define USER_GP_REGS_STATUS_SCF_LZ_S		3
-+/* SCF_HZ bit (High Zero flag) */
-+#define USER_GP_REGS_STATUS_SCF_HZ_BIT		(1 << 2)
-+#define USER_GP_REGS_STATUS_SCF_HZ_S		2
-+/* SCF_HC bit (High Carry flag) */
-+#define USER_GP_REGS_STATUS_SCF_HC_BIT		(1 << 1)
-+#define USER_GP_REGS_STATUS_SCF_HC_S		1
-+/* SCF_LC bit (Low Carry flag) */
-+#define USER_GP_REGS_STATUS_SCF_LC_BIT		(1 << 0)
-+#define USER_GP_REGS_STATUS_SCF_LC_S		0
-+
-+/**
-+ * struct user_gp_regs - User general purpose registers
-+ * @dx:		GP data unit regs (dx[reg][unit] = D{unit:0-1}.{reg:0-7})
-+ * @ax:		GP address unit regs (ax[reg][unit] = A{unit:0-1}.{reg:0-3})
-+ * @pc:		PC register
-+ * @status:	TXSTATUS register (condition flags, LSM_STEP etc)
-+ * @rpt:	TXRPT registers (branch repeat counter)
-+ * @bpobits:	TXBPOBITS register ("branch prediction other" bits)
-+ * @mode:	TXMODE register
-+ * @_pad1:	Reserved padding to make sizeof obviously 64bit aligned
-+ *
-+ * This is the user-visible general purpose register state structure.
-+ *
-+ * It can be accessed through PTRACE_GETREGSET with NT_PRSTATUS.
-+ *
-+ * It is also used in the signal context.
-+ */
-+struct user_gp_regs {
-+	unsigned long dx[8][2];
-+	unsigned long ax[4][2];
-+	unsigned long pc;
-+	unsigned long status;
-+	unsigned long rpt;
-+	unsigned long bpobits;
-+	unsigned long mode;
-+	unsigned long _pad1;
-+};
-+
-+/**
-+ * struct user_cb_regs - User catch buffer registers
-+ * @flags:	TXCATCH0 register (fault flags)
-+ * @addr:	TXCATCH1 register (fault address)
-+ * @data:	TXCATCH2 and TXCATCH3 registers (low and high data word)
-+ *
-+ * This is the user-visible catch buffer register state structure containing
-+ * information about a failed memory access, and allowing the access to be
-+ * modified and replayed.
-+ *
-+ * It can be accessed through PTRACE_GETREGSET with NT_METAG_CBUF.
-+ */
-+struct user_cb_regs {
-+	unsigned long flags;
-+	unsigned long addr;
-+	unsigned long long data;
-+};
-+
-+/**
-+ * struct user_rp_state - User read pipeline state
-+ * @entries:	Read pipeline entries
-+ * @mask:	Mask of valid pipeline entries (RPMask from TXDIVTIME register)
-+ *
-+ * This is the user-visible read pipeline state structure containing the entries
-+ * currently in the read pipeline and the mask of valid entries.
-+ *
-+ * It can be accessed through PTRACE_GETREGSET with NT_METAG_RPIPE.
-+ */
-+struct user_rp_state {
-+	unsigned long long entries[6];
-+	unsigned long mask;
-+};
-+
-+#endif /* __ASSEMBLY__ */
-+
-+#endif /* _UAPI_METAG_PTRACE_H */
-diff --git a/arch/metag/kernel/ptrace.c b/arch/metag/kernel/ptrace.c
-new file mode 100644
-index 0000000..47a8828
---- /dev/null
-+++ b/arch/metag/kernel/ptrace.c
-@@ -0,0 +1,380 @@
-+/*
-+ *  Copyright (C) 2005-2012 Imagination Technologies Ltd.
-+ *
-+ * This file is subject to the terms and conditions of the GNU General
-+ * Public License.  See the file COPYING in the main directory of
-+ * this archive for more details.
-+ */
-+
-+#include <linux/kernel.h>
-+#include <linux/mm.h>
-+#include <linux/errno.h>
-+#include <linux/ptrace.h>
-+#include <linux/user.h>
-+#include <linux/regset.h>
-+#include <linux/tracehook.h>
++    This program is distributed in the hope that it will be useful,
++    but WITHOUT ANY WARRANTY; without even the implied warranty of
++    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++    GNU General Public License for more details.
++*/
++#include <linux/moduleloader.h>
 +#include <linux/elf.h>
-+#include <linux/uaccess.h>
-+#include <trace/syscall.h>
++#include <linux/vmalloc.h>
++#include <linux/fs.h>
++#include <linux/string.h>
++#include <linux/kernel.h>
++#include <linux/sort.h>
 +
-+#define CREATE_TRACE_POINTS
-+#include <trace/events/syscalls.h>
++#include <asm/unaligned.h>
 +
-+/*
-+ * user_regset definitions.
-+ */
-+
-+int metag_gp_regs_copyout(const struct pt_regs *regs,
-+			  unsigned int pos, unsigned int count,
-+			  void *kbuf, void __user *ubuf)
++/* Count how many different relocations (different symbol, different
++   addend) */
++static unsigned int count_relocs(const Elf32_Rela *rela, unsigned int num)
 +{
-+	const void *ptr;
-+	unsigned long data;
-+	int ret;
++	unsigned int i, r_info, r_addend, _count_relocs;
 +
-+	/* D{0-1}.{0-7} */
-+	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				  regs->ctx.DX, 0, 4*16);
-+	if (ret)
-+		goto out;
-+	/* A{0-1}.{0-1} */
-+	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				  regs->ctx.AX, 4*16, 4*20);
-+	if (ret)
-+		goto out;
-+	/* A{0-1}.2 */
-+	if (regs->ctx.SaveMask & TBICTX_XEXT_BIT)
-+		ptr = regs->ctx.Ext.Ctx.pExt;
++	_count_relocs = 0;
++	r_info = 0;
++	r_addend = 0;
++	for (i = 0; i < num; i++)
++		/* Only count relbranch relocs, others don't need stubs */
++		if (ELF32_R_TYPE(rela[i].r_info) == R_METAG_RELBRANCH &&
++		    (r_info != ELF32_R_SYM(rela[i].r_info) ||
++		     r_addend != rela[i].r_addend)) {
++			_count_relocs++;
++			r_info = ELF32_R_SYM(rela[i].r_info);
++			r_addend = rela[i].r_addend;
++		}
++
++	return _count_relocs;
++}
++
++static int relacmp(const void *_x, const void *_y)
++{
++	const Elf32_Rela *x, *y;
++
++	y = (Elf32_Rela *)_x;
++	x = (Elf32_Rela *)_y;
++
++	/* Compare the entire r_info (as opposed to ELF32_R_SYM(r_info) only) to
++	 * make the comparison cheaper/faster. It won't affect the sorting or
++	 * the counting algorithms' performance
++	 */
++	if (x->r_info < y->r_info)
++		return -1;
++	else if (x->r_info > y->r_info)
++		return 1;
++	else if (x->r_addend < y->r_addend)
++		return -1;
++	else if (x->r_addend > y->r_addend)
++		return 1;
 +	else
-+		ptr = &regs->ctx.Ext.AX2;
-+	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				  ptr, 4*20, 4*22);
-+	if (ret)
-+		goto out;
-+	/* A{0-1}.3 */
-+	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				  &regs->ctx.AX3, 4*22, 4*24);
-+	if (ret)
-+		goto out;
-+	/* PC */
-+	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				  &regs->ctx.CurrPC, 4*24, 4*25);
-+	if (ret)
-+		goto out;
-+	/* TXSTATUS */
-+	data = (unsigned long)regs->ctx.Flags;
-+	if (regs->ctx.SaveMask & TBICTX_CBUF_BIT)
-+		data |= USER_GP_REGS_STATUS_CATCH_BIT;
-+	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				  &data, 4*25, 4*26);
-+	if (ret)
-+		goto out;
-+	/* TXRPT, TXBPOBITS, TXMODE */
-+	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				  &regs->ctx.CurrRPT, 4*26, 4*29);
-+	if (ret)
-+		goto out;
-+	/* Padding */
-+	ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-+				       4*29, 4*30);
-+out:
-+	return ret;
++		return 0;
 +}
 +
-+int metag_gp_regs_copyin(struct pt_regs *regs,
-+			 unsigned int pos, unsigned int count,
-+			 const void *kbuf, const void __user *ubuf)
++static void relaswap(void *_x, void *_y, int size)
 +{
-+	void *ptr;
-+	unsigned long data;
-+	int ret;
++	uint32_t *x, *y, tmp;
++	int i;
 +
-+	/* D{0-1}.{0-7} */
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 regs->ctx.DX, 0, 4*16);
-+	if (ret)
-+		goto out;
-+	/* A{0-1}.{0-1} */
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 regs->ctx.AX, 4*16, 4*20);
-+	if (ret)
-+		goto out;
-+	/* A{0-1}.2 */
-+	if (regs->ctx.SaveMask & TBICTX_XEXT_BIT)
-+		ptr = regs->ctx.Ext.Ctx.pExt;
-+	else
-+		ptr = &regs->ctx.Ext.AX2;
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 ptr, 4*20, 4*22);
-+	if (ret)
-+		goto out;
-+	/* A{0-1}.3 */
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 &regs->ctx.AX3, 4*22, 4*24);
-+	if (ret)
-+		goto out;
-+	/* PC */
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 &regs->ctx.CurrPC, 4*24, 4*25);
-+	if (ret)
-+		goto out;
-+	/* TXSTATUS */
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 &data, 4*25, 4*26);
-+	if (ret)
-+		goto out;
-+	regs->ctx.Flags = data & 0xffff;
-+	if (data & USER_GP_REGS_STATUS_CATCH_BIT)
-+		regs->ctx.SaveMask |= TBICTX_XCBF_BIT | TBICTX_CBUF_BIT;
-+	else
-+		regs->ctx.SaveMask &= ~TBICTX_CBUF_BIT;
-+	/* TXRPT, TXBPOBITS, TXMODE */
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 &regs->ctx.CurrRPT, 4*26, 4*29);
-+out:
-+	return ret;
++	y = (uint32_t *)_x;
++	x = (uint32_t *)_y;
++
++	for (i = 0; i < sizeof(Elf32_Rela) / sizeof(uint32_t); i++) {
++		tmp = x[i];
++		x[i] = y[i];
++		y[i] = tmp;
++	}
 +}
 +
-+static int metag_gp_regs_get(struct task_struct *target,
-+			     const struct user_regset *regset,
-+			     unsigned int pos, unsigned int count,
-+			     void *kbuf, void __user *ubuf)
++/* Get the potential trampolines size required of the init and
++   non-init sections */
++static unsigned long get_plt_size(const Elf32_Ehdr *hdr,
++				  const Elf32_Shdr *sechdrs,
++				  const char *secstrings,
++				  int is_init)
 +{
-+	const struct pt_regs *regs = task_pt_regs(target);
-+	return metag_gp_regs_copyout(regs, pos, count, kbuf, ubuf);
-+}
++	unsigned long ret = 0;
++	unsigned i;
 +
-+static int metag_gp_regs_set(struct task_struct *target,
-+			     const struct user_regset *regset,
-+			     unsigned int pos, unsigned int count,
-+			     const void *kbuf, const void __user *ubuf)
-+{
-+	struct pt_regs *regs = task_pt_regs(target);
-+	return metag_gp_regs_copyin(regs, pos, count, kbuf, ubuf);
-+}
++	/* Everything marked ALLOC (this includes the exported
++	   symbols) */
++	for (i = 1; i < hdr->e_shnum; i++) {
++		/* If it's called *.init*, and we're not init, we're
++		   not interested */
++		if ((strstr(secstrings + sechdrs[i].sh_name, ".init") != NULL)
++		    != is_init)
++			continue;
 +
-+int metag_cb_regs_copyout(const struct pt_regs *regs,
-+			  unsigned int pos, unsigned int count,
-+			  void *kbuf, void __user *ubuf)
-+{
-+	int ret;
++		/* We don't want to look at debug sections. */
++		if (strstr(secstrings + sechdrs[i].sh_name, ".debug") != NULL)
++			continue;
 +
-+	/* TXCATCH{0-3} */
-+	if (regs->ctx.SaveMask & TBICTX_XCBF_BIT)
-+		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+					  regs->extcb0, 0, 4*4);
-+	else
-+		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-+					       0, 4*4);
-+	return ret;
-+}
++		if (sechdrs[i].sh_type == SHT_RELA) {
++			pr_debug("Found relocations in section %u\n", i);
++			pr_debug("Ptr: %p.  Number: %u\n",
++				 (void *)hdr + sechdrs[i].sh_offset,
++				 sechdrs[i].sh_size / sizeof(Elf32_Rela));
 +
-+int metag_cb_regs_copyin(struct pt_regs *regs,
-+			 unsigned int pos, unsigned int count,
-+			 const void *kbuf, const void __user *ubuf)
-+{
-+	int ret;
++			/* Sort the relocation information based on a symbol and
++			 * addend key. This is a stable O(n*log n) complexity
++			 * alogrithm but it will reduce the complexity of
++			 * count_relocs() to linear complexity O(n)
++			 */
++			sort((void *)hdr + sechdrs[i].sh_offset,
++			     sechdrs[i].sh_size / sizeof(Elf32_Rela),
++			     sizeof(Elf32_Rela), relacmp, relaswap);
 +
-+	/* TXCATCH{0-3} */
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 regs->extcb0, 0, 4*4);
-+	return ret;
-+}
-+
-+static int metag_cb_regs_get(struct task_struct *target,
-+			     const struct user_regset *regset,
-+			     unsigned int pos, unsigned int count,
-+			     void *kbuf, void __user *ubuf)
-+{
-+	const struct pt_regs *regs = task_pt_regs(target);
-+	return metag_cb_regs_copyout(regs, pos, count, kbuf, ubuf);
-+}
-+
-+static int metag_cb_regs_set(struct task_struct *target,
-+			     const struct user_regset *regset,
-+			     unsigned int pos, unsigned int count,
-+			     const void *kbuf, const void __user *ubuf)
-+{
-+	struct pt_regs *regs = task_pt_regs(target);
-+	return metag_cb_regs_copyin(regs, pos, count, kbuf, ubuf);
-+}
-+
-+int metag_rp_state_copyout(const struct pt_regs *regs,
-+			   unsigned int pos, unsigned int count,
-+			   void *kbuf, void __user *ubuf)
-+{
-+	unsigned long mask;
-+	u64 *ptr;
-+	int ret, i;
-+
-+	/* Empty read pipeline */
-+	if (!(regs->ctx.SaveMask & TBICTX_CBRP_BIT)) {
-+		ret = user_regset_copyout_zero(&pos, &count, &kbuf, &ubuf,
-+					       0, 4*13);
-+		goto out;
++			ret += count_relocs((void *)hdr
++					     + sechdrs[i].sh_offset,
++					     sechdrs[i].sh_size
++					     / sizeof(Elf32_Rela))
++				* sizeof(struct metag_plt_entry);
++		}
 +	}
 +
-+	mask = (regs->ctx.CurrDIVTIME & TXDIVTIME_RPMASK_BITS) >>
-+		TXDIVTIME_RPMASK_S;
++	return ret;
++}
 +
-+	/* Read pipeline entries */
-+	ptr = (void *)&regs->extcb0[1];
-+	for (i = 0; i < 6; ++i, ++ptr) {
-+		if (mask & (1 << i))
-+			ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+						  ptr, 8*i, 8*(i + 1));
++int module_frob_arch_sections(Elf32_Ehdr *hdr,
++			      Elf32_Shdr *sechdrs,
++			      char *secstrings,
++			      struct module *me)
++{
++	unsigned int i;
++
++	/* Find .plt and .init.plt sections */
++	for (i = 0; i < hdr->e_shnum; i++) {
++		if (strcmp(secstrings + sechdrs[i].sh_name, ".init.plt") == 0)
++			me->arch.init_plt_section = i;
++		else if (strcmp(secstrings + sechdrs[i].sh_name, ".plt") == 0)
++			me->arch.core_plt_section = i;
++	}
++	if (!me->arch.core_plt_section || !me->arch.init_plt_section) {
++		pr_err("Module doesn't contain .plt or .init.plt sections.\n");
++		return -ENOEXEC;
++	}
++
++	/* Override their sizes */
++	sechdrs[me->arch.core_plt_section].sh_size
++		= get_plt_size(hdr, sechdrs, secstrings, 0);
++	sechdrs[me->arch.core_plt_section].sh_type = SHT_NOBITS;
++	sechdrs[me->arch.init_plt_section].sh_size
++		= get_plt_size(hdr, sechdrs, secstrings, 1);
++	sechdrs[me->arch.init_plt_section].sh_type = SHT_NOBITS;
++	return 0;
++}
++
++/* Set up a trampoline in the PLT to bounce us to the distant function */
++static uint32_t do_plt_call(void *location, Elf32_Addr val,
++			    Elf32_Shdr *sechdrs, struct module *mod)
++{
++	struct metag_plt_entry *entry;
++	/* Instructions used to do the indirect jump.  */
++	uint32_t tramp[2];
++
++	/* We have to trash a register, so we assume that any control
++	   transfer more than 21-bits away must be a function call
++	   (so we can use a call-clobbered register).  */
++
++	/* MOVT D0Re0,#HI(v) */
++	tramp[0] = 0x02000005 | (((val & 0xffff0000) >> 16) << 3);
++	/* JUMP D0Re0,#LO(v) */
++	tramp[1] = 0xac000001 | ((val & 0x0000ffff) << 3);
++
++	/* Init, or core PLT? */
++	if (location >= mod->module_core
++	    && location < mod->module_core + mod->core_size)
++		entry = (void *)sechdrs[mod->arch.core_plt_section].sh_addr;
++	else
++		entry = (void *)sechdrs[mod->arch.init_plt_section].sh_addr;
++
++	/* Find this entry, or if that fails, the next avail. entry */
++	while (entry->tramp[0])
++		if (entry->tramp[0] == tramp[0] && entry->tramp[1] == tramp[1])
++			return (uint32_t)entry;
 +		else
-+			ret = user_regset_copyout_zero(&pos, &count, &kbuf,
-+						       &ubuf, 8*i, 8*(i + 1));
-+		if (ret)
-+			goto out;
++			entry++;
++
++	entry->tramp[0] = tramp[0];
++	entry->tramp[1] = tramp[1];
++
++	return (uint32_t)entry;
++}
++
++int apply_relocate_add(Elf32_Shdr *sechdrs,
++		   const char *strtab,
++		   unsigned int symindex,
++		   unsigned int relsec,
++		   struct module *me)
++{
++	unsigned int i;
++	Elf32_Rela *rel = (void *)sechdrs[relsec].sh_addr;
++	Elf32_Sym *sym;
++	Elf32_Addr relocation;
++	uint32_t *location;
++	int32_t value;
++
++	pr_debug("Applying relocate section %u to %u\n", relsec,
++		 sechdrs[relsec].sh_info);
++	for (i = 0; i < sechdrs[relsec].sh_size / sizeof(*rel); i++) {
++		/* This is where to make the change */
++		location = (void *)sechdrs[sechdrs[relsec].sh_info].sh_addr
++			+ rel[i].r_offset;
++		/* This is the symbol it is referring to.  Note that all
++		   undefined symbols have been resolved.  */
++		sym = (Elf32_Sym *)sechdrs[symindex].sh_addr
++			+ ELF32_R_SYM(rel[i].r_info);
++		relocation = sym->st_value + rel[i].r_addend;
++
++		switch (ELF32_R_TYPE(rel[i].r_info)) {
++		case R_METAG_NONE:
++			break;
++		case R_METAG_HIADDR16:
++			relocation >>= 16;
++		case R_METAG_LOADDR16:
++			*location = (*location & 0xfff80007) |
++				((relocation & 0xffff) << 3);
++			break;
++		case R_METAG_ADDR32:
++			/*
++			 * Packed data structures may cause a misaligned
++			 * R_METAG_ADDR32 to be emitted.
++			 */
++			put_unaligned(relocation, location);
++			break;
++		case R_METAG_GETSETOFF:
++			*location += ((relocation & 0xfff) << 7);
++			break;
++		case R_METAG_RELBRANCH:
++			if (*location & (0x7ffff << 5)) {
++				pr_err("bad relbranch relocation\n");
++				break;
++			}
++
++			/* This jump is too big for the offset slot. Build
++			 * a PLT to jump through to get to where we want to go.
++			 * NB: 21bit check - not scaled to 19bit yet
++			 */
++			if (((int32_t)(relocation -
++				       (uint32_t)location) > 0xfffff) ||
++			    ((int32_t)(relocation -
++				       (uint32_t)location) < -0xfffff)) {
++				relocation = do_plt_call(location, relocation,
++							 sechdrs, me);
++			}
++
++			value = relocation - (uint32_t)location;
++
++			/* branch instruction aligned */
++			value /= 4;
++
++			if ((value > 0x7ffff) || (value < -0x7ffff)) {
++				/*
++				 * this should have been caught by the code
++				 * above!
++				 */
++				pr_err("overflow of relbranch reloc\n");
++			}
++
++			*location = (*location & (~(0x7ffff << 5))) |
++				((value & 0x7ffff) << 5);
++			break;
++
++		default:
++			pr_err("module %s: Unknown relocation: %u\n",
++			       me->name, ELF32_R_TYPE(rel[i].r_info));
++			return -ENOEXEC;
++		}
 +	}
-+	/* Mask of entries */
-+	ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf,
-+				  &mask, 4*12, 4*13);
-+out:
-+	return ret;
++	return 0;
 +}
-+
-+int metag_rp_state_copyin(struct pt_regs *regs,
-+			  unsigned int pos, unsigned int count,
-+			  const void *kbuf, const void __user *ubuf)
-+{
-+	struct user_rp_state rp;
-+	unsigned long long *ptr;
-+	int ret, i;
-+
-+	/* Read the entire pipeline before making any changes */
-+	ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf,
-+				 &rp, 0, 4*13);
-+	if (ret)
-+		goto out;
-+
-+	/* Write pipeline entries */
-+	ptr = (void *)&regs->extcb0[1];
-+	for (i = 0; i < 6; ++i, ++ptr)
-+		if (rp.mask & (1 << i))
-+			*ptr = rp.entries[i];
-+
-+	/* Update RPMask in TXDIVTIME */
-+	regs->ctx.CurrDIVTIME &= ~TXDIVTIME_RPMASK_BITS;
-+	regs->ctx.CurrDIVTIME |= (rp.mask << TXDIVTIME_RPMASK_S)
-+				 & TXDIVTIME_RPMASK_BITS;
-+
-+	/* Set/clear flags to indicate catch/read pipeline state */
-+	if (rp.mask)
-+		regs->ctx.SaveMask |= TBICTX_XCBF_BIT | TBICTX_CBRP_BIT;
-+	else
-+		regs->ctx.SaveMask &= ~TBICTX_CBRP_BIT;
-+out:
-+	return ret;
-+}
-+
-+static int metag_rp_state_get(struct task_struct *target,
-+			      const struct user_regset *regset,
-+			      unsigned int pos, unsigned int count,
-+			      void *kbuf, void __user *ubuf)
-+{
-+	const struct pt_regs *regs = task_pt_regs(target);
-+	return metag_rp_state_copyout(regs, pos, count, kbuf, ubuf);
-+}
-+
-+static int metag_rp_state_set(struct task_struct *target,
-+			      const struct user_regset *regset,
-+			      unsigned int pos, unsigned int count,
-+			      const void *kbuf, const void __user *ubuf)
-+{
-+	struct pt_regs *regs = task_pt_regs(target);
-+	return metag_rp_state_copyin(regs, pos, count, kbuf, ubuf);
-+}
-+
-+enum metag_regset {
-+	REGSET_GENERAL,
-+	REGSET_CBUF,
-+	REGSET_READPIPE,
-+};
-+
-+static const struct user_regset metag_regsets[] = {
-+	[REGSET_GENERAL] = {
-+		.core_note_type = NT_PRSTATUS,
-+		.n = ELF_NGREG,
-+		.size = sizeof(long),
-+		.align = sizeof(long long),
-+		.get = metag_gp_regs_get,
-+		.set = metag_gp_regs_set,
-+	},
-+	[REGSET_CBUF] = {
-+		.core_note_type = NT_METAG_CBUF,
-+		.n = sizeof(struct user_cb_regs) / sizeof(long),
-+		.size = sizeof(long),
-+		.align = sizeof(long long),
-+		.get = metag_cb_regs_get,
-+		.set = metag_cb_regs_set,
-+	},
-+	[REGSET_READPIPE] = {
-+		.core_note_type = NT_METAG_RPIPE,
-+		.n = sizeof(struct user_rp_state) / sizeof(long),
-+		.size = sizeof(long),
-+		.align = sizeof(long long),
-+		.get = metag_rp_state_get,
-+		.set = metag_rp_state_set,
-+	},
-+};
-+
-+static const struct user_regset_view user_metag_view = {
-+	.name = "metag",
-+	.e_machine = EM_METAG,
-+	.regsets = metag_regsets,
-+	.n = ARRAY_SIZE(metag_regsets)
-+};
-+
-+const struct user_regset_view *task_user_regset_view(struct task_struct *task)
-+{
-+	return &user_metag_view;
-+}
-+
-+/*
-+ * Called by kernel/ptrace.c when detaching..
-+ *
-+ * Make sure single step bits etc are not set.
-+ */
-+void ptrace_disable(struct task_struct *child)
-+{
-+	/* nothing to do.. */
-+}
-+
-+long arch_ptrace(struct task_struct *child, long request, unsigned long addr,
-+		 unsigned long data)
-+{
-+	int ret;
-+
-+	switch (request) {
-+	default:
-+		ret = ptrace_request(child, request, addr, data);
-+		break;
-+	}
-+
-+	return ret;
-+}
-+
-+int syscall_trace_enter(struct pt_regs *regs)
-+{
-+	int ret = 0;
-+
-+	if (test_thread_flag(TIF_SYSCALL_TRACE))
-+		ret = tracehook_report_syscall_entry(regs);
-+
-+	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
-+		trace_sys_enter(regs, regs->ctx.DX[0].U1);
-+
-+	return ret ? -1 : regs->ctx.DX[0].U1;
-+}
-+
-+void syscall_trace_leave(struct pt_regs *regs)
-+{
-+	if (unlikely(test_thread_flag(TIF_SYSCALL_TRACEPOINT)))
-+		trace_sys_exit(regs, regs->ctx.DX[0].U1);
-+
-+	if (test_thread_flag(TIF_SYSCALL_TRACE))
-+		tracehook_report_syscall_exit(regs, 0);
-+}
-diff --git a/include/uapi/linux/elf.h b/include/uapi/linux/elf.h
-index 126a817..eb164a2 100644
---- a/include/uapi/linux/elf.h
-+++ b/include/uapi/linux/elf.h
-@@ -395,6 +395,8 @@ typedef struct elf64_shdr {
- #define NT_ARM_TLS	0x401		/* ARM TLS register */
- #define NT_ARM_HW_BREAK	0x402		/* ARM hardware breakpoint registers */
- #define NT_ARM_HW_WATCH	0x403		/* ARM hardware watchpoint registers */
-+#define NT_METAG_CBUF	0x500		/* Metag catch buffer registers */
-+#define NT_METAG_RPIPE	0x501		/* Metag read pipeline state */
- 
- 
- /* Note header in a PT_NOTE section */
 -- 
 1.7.7.6
 
