@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:52711 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:54492 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753765Ab3AJPcc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	id S1754090Ab3AJPcc (ORCPT <rfc822;linux-arch@vger.kernel.org>);
 	Thu, 10 Jan 2013 10:32:32 -0500
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v3 05/44] trace/ring_buffer: handle 64bit aligned structs
-Date: Thu, 10 Jan 2013 15:30:33 +0000
-Message-ID: <1357831872-29451-6-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v3 01/44] asm-generic/io.h: check CONFIG_VIRT_TO_BUS
+Date: Thu, 10 Jan 2013 15:30:29 +0000
+Message-ID: <1357831872-29451-2-git-send-email-james.hogan@imgtec.com>
 In-Reply-To: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
@@ -14,55 +14,40 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: James Hogan <james.hogan@imgtec.com>, Frederic Weisbecker <fweisbec@gmail.com>, Ingo Molnar <mingo@redhat.com>
-Message-ID: <20130110153033.4jM-IQhP2xoLBP8IhdB6T7_iD3Ix2nuxUpYXkxIiFOI@z>
+Cc: James Hogan <james.hogan@imgtec.com>
+Message-ID: <20130110153029.Gg3dJddoJTt8s_KtnELFUmpmdXY1rQppGDSb72dh3l8@z>
 
-Some 32 bit architectures require 64 bit values to be aligned (for
-example Meta which has 64 bit read/write instructions). These require 8
-byte alignment of event data too, so use
-!CONFIG_HAVE_64BIT_ALIGNED_ACCESS instead of !CONFIG_64BIT ||
-CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS to decide alignment, and align
-buffer_data_page::data accordingly.
+Make asm-generic/io.h check CONFIG_VIRT_TO_BUS before defining
+virt_to_bus() and bus_to_virt(), otherwise it's easy to accidentally
+have a silently failing incorrect direct mapped definition rather then
+no definition at all.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Cc: Frederic Weisbecker <fweisbec@gmail.com>
-Cc: Ingo Molnar <mingo@redhat.com>
-Acked-by: Steven Rostedt <rostedt@goodmis.org> (previous version subtly different)
+Acked-by: Arnd Bergmann <arnd@arndb.de>
 ---
- kernel/trace/ring_buffer.c |    6 ++++--
- 1 files changed, 4 insertions(+), 2 deletions(-)
+ include/asm-generic/io.h |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
 
-diff --git a/kernel/trace/ring_buffer.c b/kernel/trace/ring_buffer.c
-index ce8514f..cb4524f 100644
---- a/kernel/trace/ring_buffer.c
-+++ b/kernel/trace/ring_buffer.c
-@@ -177,7 +177,7 @@ void tracing_off_permanent(void)
- #define RB_MAX_SMALL_DATA	(RB_ALIGNMENT * RINGBUF_TYPE_DATA_TYPE_LEN_MAX)
- #define RB_EVNT_MIN_SIZE	8U	/* two 32bit words */
+diff --git a/include/asm-generic/io.h b/include/asm-generic/io.h
+index 8e260cf..6b58e23 100644
+--- a/include/asm-generic/io.h
++++ b/include/asm-generic/io.h
+@@ -346,6 +346,7 @@ extern void ioport_unmap(void __iomem *p);
+ #define xlate_dev_kmem_ptr(p)	p
+ #define xlate_dev_mem_ptr(p)	__va(p)
  
--#if !defined(CONFIG_64BIT) || defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)
-+#ifndef CONFIG_HAVE_64BIT_ALIGNED_ACCESS
- # define RB_FORCE_8BYTE_ALIGNMENT	0
- # define RB_ARCH_ALIGNMENT		RB_ALIGNMENT
- #else
-@@ -185,6 +185,8 @@ void tracing_off_permanent(void)
- # define RB_ARCH_ALIGNMENT		8U
++#ifdef CONFIG_VIRT_TO_BUS
+ #ifndef virt_to_bus
+ static inline unsigned long virt_to_bus(volatile void *address)
+ {
+@@ -357,6 +358,7 @@ static inline void *bus_to_virt(unsigned long address)
+ 	return (void *) address;
+ }
  #endif
++#endif
  
-+#define RB_ALIGN_DATA		__aligned(RB_ARCH_ALIGNMENT)
-+
- /* define RINGBUF_TYPE_DATA for 'case RINGBUF_TYPE_DATA:' */
- #define RINGBUF_TYPE_DATA 0 ... RINGBUF_TYPE_DATA_TYPE_LEN_MAX
- 
-@@ -333,7 +335,7 @@ EXPORT_SYMBOL_GPL(ring_buffer_event_data);
- struct buffer_data_page {
- 	u64		 time_stamp;	/* page time stamp */
- 	local_t		 commit;	/* write committed index */
--	unsigned char	 data[];	/* data of buffer page */
-+	unsigned char	 data[] RB_ALIGN_DATA;	/* data of buffer page */
- };
- 
- /*
+ #ifndef memset_io
+ #define memset_io(a, b, c)	memset(__io_virt(a), (b), (c))
 -- 
 1.7.7.6
 
