@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
 Received: from multi.imgtec.com ([194.200.65.239]:52690 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1754535Ab3AJPc5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Thu, 10 Jan 2013 10:32:57 -0500
+	id S1754450Ab3AJPcw (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Thu, 10 Jan 2013 10:32:52 -0500
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v3 42/44] metag: Add JTAG Debug Adapter (DA) support
-Date: Thu, 10 Jan 2013 15:31:10 +0000
-Message-ID: <1357831872-29451-43-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v3 33/44] metag: Stack unwinding
+Date: Thu, 10 Jan 2013 15:31:01 +0000
+Message-ID: <1357831872-29451-34-git-send-email-james.hogan@imgtec.com>
 In-Reply-To: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 MIME-Version: 1.0
@@ -15,193 +15,237 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
 Cc: James Hogan <james.hogan@imgtec.com>
-Message-ID: <20130110153110.Unrb3XDvXfAqJdH598iaVKKAs3hOF__RrTbDpfly034@z>
+Message-ID: <20130110153101.3sOnwki3vNXqd2uyBvXBkTj6G98xt6-h3ue6-tu5SEY@z>
 
-Add basic JTAG Debug Adapter (DA) support so that drivers which
-communicate with the DA can detect whether one is actually present
-(otherwise the target will halt indefinitely).
+Add stack unwinding support for metag.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
 ---
- arch/metag/Kconfig                     |    9 ++++++
- arch/metag/configs/meta1_defconfig     |    1 +
- arch/metag/configs/meta2_defconfig     |    1 +
- arch/metag/configs/meta2_smp_defconfig |    1 +
- arch/metag/include/asm/da.h            |   43 ++++++++++++++++++++++++++++++++
- arch/metag/kernel/Makefile             |    1 +
- arch/metag/kernel/da.c                 |   23 +++++++++++++++++
- arch/metag/kernel/setup.c              |    3 ++
- 8 files changed, 82 insertions(+), 0 deletions(-)
- create mode 100644 arch/metag/include/asm/da.h
- create mode 100644 arch/metag/kernel/da.c
+ arch/metag/include/asm/stacktrace.h |   20 ++++
+ arch/metag/kernel/stacktrace.c      |  187 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 207 insertions(+), 0 deletions(-)
+ create mode 100644 arch/metag/include/asm/stacktrace.h
+ create mode 100644 arch/metag/kernel/stacktrace.c
 
-diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
-index 98433e5..72147ed 100644
---- a/arch/metag/Kconfig
-+++ b/arch/metag/Kconfig
-@@ -213,6 +213,15 @@ config METAG_PERFCOUNTER_IRQS
- 	  When disabled, Performance Counters information will be collected
- 	  based on Timer Interrupt.
- 
-+config METAG_DA
-+	bool "DA support"
-+	help
-+	  Say Y if you plan to use a DA debug adapter with Linux. The presence
-+	  of the DA will be detected automatically at boot, so it is safe to say
-+	  Y to this option even when booting without a DA.
-+
-+	  This enables support for services provided by DA JTAG debug adapters.
-+
- menu "Boot options"
- 
- config METAG_BUILTIN_DTB
-diff --git a/arch/metag/configs/meta1_defconfig b/arch/metag/configs/meta1_defconfig
-index 28b5d63..58d114a 100644
---- a/arch/metag/configs/meta1_defconfig
-+++ b/arch/metag/configs/meta1_defconfig
-@@ -13,6 +13,7 @@ CONFIG_PARTITION_ADVANCED=y
- # CONFIG_IOSCHED_CFQ is not set
- CONFIG_FLATMEM_MANUAL=y
- CONFIG_META12_FPGA=y
-+CONFIG_METAG_DA=y
- CONFIG_HZ_100=y
- CONFIG_DEVTMPFS=y
- CONFIG_DEVTMPFS_MOUNT=y
-diff --git a/arch/metag/configs/meta2_defconfig b/arch/metag/configs/meta2_defconfig
-index 6c96f17..30afdbd 100644
---- a/arch/metag/configs/meta2_defconfig
-+++ b/arch/metag/configs/meta2_defconfig
-@@ -15,6 +15,7 @@ CONFIG_PARTITION_ADVANCED=y
- CONFIG_METAG_L2C=y
- CONFIG_FLATMEM_MANUAL=y
- CONFIG_METAG_HALT_ON_PANIC=y
-+CONFIG_METAG_DA=y
- CONFIG_HZ_100=y
- CONFIG_DEVTMPFS=y
- # CONFIG_STANDALONE is not set
-diff --git a/arch/metag/configs/meta2_smp_defconfig b/arch/metag/configs/meta2_smp_defconfig
-index c5c7ace..82189a2 100644
---- a/arch/metag/configs/meta2_smp_defconfig
-+++ b/arch/metag/configs/meta2_smp_defconfig
-@@ -16,6 +16,7 @@ CONFIG_METAG_L2C=y
- CONFIG_FLATMEM_MANUAL=y
- CONFIG_METAG_HALT_ON_PANIC=y
- CONFIG_SMP=y
-+CONFIG_METAG_DA=y
- CONFIG_HZ_100=y
- CONFIG_DEVTMPFS=y
- # CONFIG_STANDALONE is not set
-diff --git a/arch/metag/include/asm/da.h b/arch/metag/include/asm/da.h
+diff --git a/arch/metag/include/asm/stacktrace.h b/arch/metag/include/asm/stacktrace.h
 new file mode 100644
-index 0000000..81bd521
+index 0000000..2830a0f
 --- /dev/null
-+++ b/arch/metag/include/asm/da.h
-@@ -0,0 +1,43 @@
-+/*
-+ * Meta DA JTAG debugger control.
-+ *
-+ * Copyright 2012 Imagination Technologies Ltd.
-+ */
++++ b/arch/metag/include/asm/stacktrace.h
+@@ -0,0 +1,20 @@
++#ifndef __ASM_STACKTRACE_H
++#define __ASM_STACKTRACE_H
 +
-+#ifndef _METAG_DA_H_
-+#define _METAG_DA_H_
++struct stackframe {
++	unsigned long fp;
++	unsigned long sp;
++	unsigned long lr;
++	unsigned long pc;
++};
 +
-+#ifdef CONFIG_METAG_DA
++struct metag_frame {
++	unsigned long fp;
++	unsigned long lr;
++};
 +
-+#include <linux/init.h>
-+#include <linux/types.h>
++extern int unwind_frame(struct stackframe *frame);
++extern void walk_stackframe(struct stackframe *frame,
++			    int (*fn)(struct stackframe *, void *), void *data);
 +
-+extern bool _metag_da_present;
++#endif	/* __ASM_STACKTRACE_H */
+diff --git a/arch/metag/kernel/stacktrace.c b/arch/metag/kernel/stacktrace.c
+new file mode 100644
+index 0000000..5510361
+--- /dev/null
++++ b/arch/metag/kernel/stacktrace.c
+@@ -0,0 +1,187 @@
++#include <linux/export.h>
++#include <linux/sched.h>
++#include <linux/stacktrace.h>
 +
-+/**
-+ * metag_da_enabled() - Find whether a DA is currently enabled.
-+ *
-+ * Returns:	true if a DA was detected, false if not.
-+ */
-+static inline bool metag_da_enabled(void)
++#include <asm/stacktrace.h>
++
++#if defined(CONFIG_FRAME_POINTER)
++
++#ifdef CONFIG_KALLSYMS
++#include <linux/kallsyms.h>
++#include <linux/module.h>
++
++static unsigned long tbi_boing_addr;
++static unsigned long tbi_boing_size;
++
++static void tbi_boing_init(void)
 +{
-+	return _metag_da_present;
++	/* We need to know where TBIBoingVec is and it's size */
++	unsigned long size;
++	unsigned long offset;
++	char modname[MODULE_NAME_LEN];
++	char name[KSYM_NAME_LEN];
++	tbi_boing_addr = kallsyms_lookup_name("___TBIBoingVec");
++	if (!tbi_boing_addr)
++		tbi_boing_addr = 1;
++	else if (!lookup_symbol_attrs(tbi_boing_addr, &size,
++				      &offset, modname, name))
++		tbi_boing_size = size;
 +}
-+
-+/**
-+ * metag_da_probe() - Try and detect a connected DA.
-+ *
-+ * This is used at start up to detect whether a DA is active.
-+ *
-+ * Returns:	0 on detection, -err otherwise.
-+ */
-+int __init metag_da_probe(void);
-+
-+#else /* !CONFIG_METAG_DA */
-+
-+#define metag_da_enabled() false
-+#define metag_da_probe() do {} while (0)
-+
 +#endif
 +
-+#endif /* _METAG_DA_H_ */
-diff --git a/arch/metag/kernel/Makefile b/arch/metag/kernel/Makefile
-index a5e4ba6..d7675f4 100644
---- a/arch/metag/kernel/Makefile
-+++ b/arch/metag/kernel/Makefile
-@@ -28,6 +28,7 @@ obj-y	+= user_gateway.o
- obj-$(CONFIG_PERF_EVENTS)		+= perf/
- 
- obj-$(CONFIG_METAG_COREMEM)		+= coremem.o
-+obj-$(CONFIG_METAG_DA)			+= da.o
- obj-$(CONFIG_DYNAMIC_FTRACE)		+= ftrace.o
- obj-$(CONFIG_FUNCTION_TRACER)		+= ftrace_stub.o
- obj-$(CONFIG_MODULES)			+= metag_ksyms.o
-diff --git a/arch/metag/kernel/da.c b/arch/metag/kernel/da.c
-new file mode 100644
-index 0000000..52aabb6
---- /dev/null
-+++ b/arch/metag/kernel/da.c
-@@ -0,0 +1,23 @@
++#define ALIGN_DOWN(addr, size)  ((addr)&(~((size)-1)))
++
 +/*
-+ * Meta DA JTAG debugger control.
-+ *
-+ * Copyright 2012 Imagination Technologies Ltd.
++ * Unwind the current stack frame and store the new register values in the
++ * structure passed as argument. Unwinding is equivalent to a function return,
++ * hence the new PC value rather than LR should be used for backtrace.
 + */
-+
-+
-+#include <linux/io.h>
-+#include <linux/kernel.h>
-+#include <asm/da.h>
-+#include <asm/metag_mem.h>
-+
-+bool _metag_da_present;
-+
-+int __init metag_da_probe(void)
++int notrace unwind_frame(struct stackframe *frame)
 +{
-+	_metag_da_present = (metag_in32(T0VECINT_BHALT) == 1);
-+	if (_metag_da_present)
-+		pr_info("DA present\n");
-+	else
-+		pr_info("DA not present\n");
++	struct metag_frame *fp = (struct metag_frame *)frame->fp;
++	unsigned long lr;
++	unsigned long fpnew;
++
++	if (frame->fp & 0x7)
++		return -EINVAL;
++
++	fpnew = fp->fp;
++	lr = fp->lr - 4;
++
++#ifdef CONFIG_KALLSYMS
++	/* If we've reached TBIBoingVec then we're at an interrupt
++	 * entry point or a syscall entry point. The frame pointer
++	 * points to a pt_regs which can be used to continue tracing on
++	 * the other side of the boing.
++	 */
++	if (!tbi_boing_addr)
++		tbi_boing_init();
++	if (tbi_boing_size && lr >= tbi_boing_addr &&
++	    lr < tbi_boing_addr + tbi_boing_size) {
++		struct pt_regs *regs = (struct pt_regs *)fpnew;
++		if (user_mode(regs))
++			return -EINVAL;
++		fpnew = regs->ctx.AX[1].U0;
++		lr = regs->ctx.DX[4].U1;
++	}
++#endif
++
++	/* stack grows up, so frame pointers must decrease */
++	if (fpnew < (ALIGN_DOWN((unsigned long)fp, THREAD_SIZE) +
++		     sizeof(struct thread_info)) || fpnew >= (unsigned long)fp)
++		return -EINVAL;
++
++	/* restore the registers from the stack frame */
++	frame->fp = fpnew;
++	frame->pc = lr;
++
 +	return 0;
 +}
-diff --git a/arch/metag/kernel/setup.c b/arch/metag/kernel/setup.c
-index 139b109..1410db0 100644
---- a/arch/metag/kernel/setup.c
-+++ b/arch/metag/kernel/setup.c
-@@ -37,6 +37,7 @@
- #include <asm/hwthread.h>
- #include <asm/mmzone.h>
- #include <asm/l2cache.h>
-+#include <asm/da.h>
- #include <asm/prom.h>
- #include <asm/mach/arch.h>
- #include <asm/core_reg.h>
-@@ -180,6 +181,8 @@ void __init setup_arch(char **cmdline_p)
- 
- 	metag_cache_probe();
- 
-+	metag_da_probe();
++#else
++int notrace unwind_frame(struct stackframe *frame)
++{
++	struct metag_frame *sp = (struct metag_frame *)frame->sp;
 +
- 	/* try interpreting the argument as a device tree */
- 	machine_desc = setup_machine_fdt(original_cmd_line);
- 	/* if it doesn't look like a device tree it must be a command line */
++	if (frame->sp & 0x7)
++		return -EINVAL;
++
++	while (!kstack_end(sp)) {
++		unsigned long addr = sp->lr - 4;
++		sp--;
++
++		if (__kernel_text_address(addr)) {
++			frame->sp = (unsigned long)sp;
++			frame->pc = addr;
++			return 0;
++		}
++	}
++	return -EINVAL;
++}
++#endif
++
++void notrace walk_stackframe(struct stackframe *frame,
++		     int (*fn)(struct stackframe *, void *), void *data)
++{
++	while (1) {
++		int ret;
++
++		if (fn(frame, data))
++			break;
++		ret = unwind_frame(frame);
++		if (ret < 0)
++			break;
++	}
++}
++EXPORT_SYMBOL(walk_stackframe);
++
++#ifdef CONFIG_STACKTRACE
++struct stack_trace_data {
++	struct stack_trace *trace;
++	unsigned int no_sched_functions;
++	unsigned int skip;
++};
++
++static int save_trace(struct stackframe *frame, void *d)
++{
++	struct stack_trace_data *data = d;
++	struct stack_trace *trace = data->trace;
++	unsigned long addr = frame->pc;
++
++	if (data->no_sched_functions && in_sched_functions(addr))
++		return 0;
++	if (data->skip) {
++		data->skip--;
++		return 0;
++	}
++
++	trace->entries[trace->nr_entries++] = addr;
++
++	return trace->nr_entries >= trace->max_entries;
++}
++
++void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
++{
++	struct stack_trace_data data;
++	struct stackframe frame;
++
++	data.trace = trace;
++	data.skip = trace->skip;
++
++	if (tsk != current) {
++#ifdef CONFIG_SMP
++		/*
++		 * What guarantees do we have here that 'tsk' is not
++		 * running on another CPU?  For now, ignore it as we
++		 * can't guarantee we won't explode.
++		 */
++		if (trace->nr_entries < trace->max_entries)
++			trace->entries[trace->nr_entries++] = ULONG_MAX;
++		return;
++#else
++		data.no_sched_functions = 1;
++		frame.fp = thread_saved_fp(tsk);
++		frame.sp = thread_saved_sp(tsk);
++		frame.lr = 0;		/* recovered from the stack */
++		frame.pc = thread_saved_pc(tsk);
++#endif
++	} else {
++		register unsigned long current_sp asm ("A0StP");
++
++		data.no_sched_functions = 0;
++		frame.fp = (unsigned long)__builtin_frame_address(0);
++		frame.sp = current_sp;
++		frame.lr = (unsigned long)__builtin_return_address(0);
++		frame.pc = (unsigned long)save_stack_trace_tsk;
++	}
++
++	walk_stackframe(&frame, save_trace, &data);
++	if (trace->nr_entries < trace->max_entries)
++		trace->entries[trace->nr_entries++] = ULONG_MAX;
++}
++
++void save_stack_trace(struct stack_trace *trace)
++{
++	save_stack_trace_tsk(current, trace);
++}
++EXPORT_SYMBOL_GPL(save_stack_trace);
++#endif
 -- 
 1.7.7.6
 
