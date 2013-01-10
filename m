@@ -1,7 +1,7 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: [PATCH v3 43/44] tty/metag_da: Add metag DA TTY driver
-Date: Thu, 10 Jan 2013 15:31:11 +0000
-Message-ID: <1357831872-29451-44-git-send-email-james.hogan@imgtec.com>
+Subject: [PATCH v3 29/44] metag: Basic documentation
+Date: Thu, 10 Jan 2013 15:30:57 +0000
+Message-ID: <1357831872-29451-30-git-send-email-james.hogan@imgtec.com>
 References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -9,863 +9,325 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Cc: James Hogan <james.hogan@imgtec.com>, Alan Cox <alan@lxorguk.ukuu.org.uk>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Jiri Slaby <jslaby@suse.cz>, Andrew Morton <akpm@linux-foundation.org>, Mauro Carvalho Chehab <mchehab@redhat.com>, Cesar Eduardo Barros <cesarb@cesarb.net>, Joe Perches <joe@perches.com>, "David S. Miller" <davem@davemloft.net>
+Cc: James Hogan <james.hogan@imgtec.com>, Rob Landley <rob@landley.net>, Al Viro <viro@ZenIV.linux.org.uk>, linux-doc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Add a TTY driver for communicating over a Meta DA (Debug Adapter)
-channel using the bios channel SWITCH operation.
+Add basic metag documentation. This includes an outline description of
+the ABIs (including syscall ABI) and calling conventions, similar to the
+one in Documentation/frv/.
 
 Signed-off-by: James Hogan <james.hogan@imgtec.com>
-Cc: Alan Cox <alan@lxorguk.ukuu.org.uk>
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: Jiri Slaby <jslaby@suse.cz>
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Cc: Mauro Carvalho Chehab <mchehab@redhat.com>
-Cc: Cesar Eduardo Barros <cesarb@cesarb.net>
-Cc: Joe Perches <joe@perches.com>
-Cc: "David S. Miller" <davem@davemloft.net>
+Cc: Rob Landley <rob@landley.net>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: linux-doc@vger.kernel.org
 ---
- MAINTAINERS                            |    1 +
- arch/metag/Kconfig                     |    4 +-
- arch/metag/configs/meta1_defconfig     |    2 +
- arch/metag/configs/meta2_defconfig     |    2 +
- arch/metag/configs/meta2_smp_defconfig |    2 +
- arch/metag/kernel/setup.c              |   12 +
- drivers/tty/Kconfig                    |   13 +
- drivers/tty/Makefile                   |    1 +
- drivers/tty/metag_da.c                 |  696 ++++++++++++++++++++++++++++++++
- 9 files changed, 732 insertions(+), 1 deletions(-)
- create mode 100644 drivers/tty/metag_da.c
+ Documentation/00-INDEX              |    2 +
+ Documentation/kernel-parameters.txt |    4 +
+ Documentation/metag/00-INDEX        |    4 +
+ Documentation/metag/kernel-ABI.txt  |  256 +++++++++++++++++++++++++++++++++++
+ 4 files changed, 266 insertions(+), 0 deletions(-)
+ create mode 100644 Documentation/metag/00-INDEX
+ create mode 100644 Documentation/metag/kernel-ABI.txt
 
-diff --git a/MAINTAINERS b/MAINTAINERS
-index 122ae6a..5a364ed 100644
---- a/MAINTAINERS
-+++ b/MAINTAINERS
-@@ -5157,6 +5157,7 @@ S:	Supported
- F:	arch/metag/
- F:	Documentation/metag/
- F:	Documentation/devicetree/bindings/metag/
-+F:	drivers/tty/metag_da.c
+diff --git a/Documentation/00-INDEX b/Documentation/00-INDEX
+index 8afe64f..f61be4a 100644
+--- a/Documentation/00-INDEX
++++ b/Documentation/00-INDEX
+@@ -226,6 +226,8 @@ memory-hotplug.txt
+ 	- Hotpluggable memory support, how to use and current status.
+ memory.txt
+ 	- info on typical Linux memory problems.
++metag/
++	- directory with info about Linux on Meta architecture.
+ mips/
+ 	- directory with info about Linux on MIPS architecture.
+ mmc/
+diff --git a/Documentation/kernel-parameters.txt b/Documentation/kernel-parameters.txt
+index 363e348..2e9bfb7 100644
+--- a/Documentation/kernel-parameters.txt
++++ b/Documentation/kernel-parameters.txt
+@@ -970,6 +970,10 @@ bytes respectively. Such letter suffixes can also be entirely omitted.
+ 			       If specified, z/VM IUCV HVC accepts connections
+ 			       from listed z/VM user IDs only.
  
- MICROBLAZE ARCHITECTURE
- M:	Michal Simek <monstr@monstr.eu>
-diff --git a/arch/metag/Kconfig b/arch/metag/Kconfig
-index 72147ed..70678ec 100644
---- a/arch/metag/Kconfig
-+++ b/arch/metag/Kconfig
-@@ -220,7 +220,9 @@ config METAG_DA
- 	  of the DA will be detected automatically at boot, so it is safe to say
- 	  Y to this option even when booting without a DA.
- 
--	  This enables support for services provided by DA JTAG debug adapters.
-+	  This enables support for services provided by DA JTAG debug adapters,
-+	  such as:
-+	  - communication over DA channels (such as the console driver).
- 
- menu "Boot options"
- 
-diff --git a/arch/metag/configs/meta1_defconfig b/arch/metag/configs/meta1_defconfig
-index 58d114a..c35a75e 100644
---- a/arch/metag/configs/meta1_defconfig
-+++ b/arch/metag/configs/meta1_defconfig
-@@ -27,6 +27,8 @@ CONFIG_BLK_DEV_RAM_SIZE=16384
- # CONFIG_SERIO is not set
- # CONFIG_VT is not set
- # CONFIG_LEGACY_PTYS is not set
-+CONFIG_DA_TTY=y
-+CONFIG_DA_CONSOLE=y
- # CONFIG_DEVKMEM is not set
- # CONFIG_HW_RANDOM is not set
- # CONFIG_HWMON is not set
-diff --git a/arch/metag/configs/meta2_defconfig b/arch/metag/configs/meta2_defconfig
-index 30afdbd..fb31484 100644
---- a/arch/metag/configs/meta2_defconfig
-+++ b/arch/metag/configs/meta2_defconfig
-@@ -28,6 +28,8 @@ CONFIG_BLK_DEV_RAM_SIZE=16384
- # CONFIG_SERIO is not set
- # CONFIG_VT is not set
- # CONFIG_LEGACY_PTYS is not set
-+CONFIG_DA_TTY=y
-+CONFIG_DA_CONSOLE=y
- # CONFIG_DEVKMEM is not set
- # CONFIG_HW_RANDOM is not set
- # CONFIG_HWMON is not set
-diff --git a/arch/metag/configs/meta2_smp_defconfig b/arch/metag/configs/meta2_smp_defconfig
-index 82189a2..6c7b777 100644
---- a/arch/metag/configs/meta2_smp_defconfig
-+++ b/arch/metag/configs/meta2_smp_defconfig
-@@ -29,6 +29,8 @@ CONFIG_BLK_DEV_RAM_SIZE=16384
- # CONFIG_SERIO is not set
- # CONFIG_VT is not set
- # CONFIG_LEGACY_PTYS is not set
-+CONFIG_DA_TTY=y
-+CONFIG_DA_CONSOLE=y
- # CONFIG_DEVKMEM is not set
- # CONFIG_HW_RANDOM is not set
- # CONFIG_HWMON is not set
-diff --git a/arch/metag/kernel/setup.c b/arch/metag/kernel/setup.c
-index 1410db0..0d46334 100644
---- a/arch/metag/kernel/setup.c
-+++ b/arch/metag/kernel/setup.c
-@@ -61,6 +61,11 @@ extern char _heap_start[];
- extern u32 __dtb_start[];
- #endif
- 
-+#ifdef CONFIG_DA_CONSOLE
-+/* Our early channel based console driver */
-+extern struct console dash_console;
-+#endif
++	hwthread_map=	[METAG] Comma-separated list of Linux cpu id to
++			        hardware thread id mappings.
++				Format: <cpu>:<hwthread>
 +
- struct machine_desc *machine_desc __initdata;
- 
- /*
-@@ -182,6 +187,13 @@ void __init setup_arch(char **cmdline_p)
- 	metag_cache_probe();
- 
- 	metag_da_probe();
-+#ifdef CONFIG_DA_CONSOLE
-+	if (metag_da_enabled()) {
-+		/* An early channel based console driver */
-+		register_console(&dash_console);
-+		add_preferred_console("ttyDA", 1, NULL);
-+	}
-+#endif
- 
- 	/* try interpreting the argument as a device tree */
- 	machine_desc = setup_machine_fdt(original_cmd_line);
-diff --git a/drivers/tty/Kconfig b/drivers/tty/Kconfig
-index 0ecf22b..5eef53d 100644
---- a/drivers/tty/Kconfig
-+++ b/drivers/tty/Kconfig
-@@ -388,3 +388,16 @@ config PPC_EARLY_DEBUG_EHV_BC_HANDLE
- 	  If the number you specify is not a valid byte channel handle, then
- 	  there simply will be no early console output.  This is true also
- 	  if you don't boot under a hypervisor at all.
-+
-+config DA_TTY
-+	bool "DA TTY"
-+	depends on METAG_DA
-+	select SERIAL_NONSTANDARD
-+	help
-+	  This enables a TTY on a Dash channel.
-+
-+config DA_CONSOLE
-+	bool "DA Console"
-+	depends on DA_TTY
-+	help
-+	  This enables a console on a Dash channel.
-diff --git a/drivers/tty/Makefile b/drivers/tty/Makefile
-index 2953059..dbd7745 100644
---- a/drivers/tty/Makefile
-+++ b/drivers/tty/Makefile
-@@ -27,5 +27,6 @@ obj-$(CONFIG_SYNCLINK_GT)	+= synclink_gt.o
- obj-$(CONFIG_SYNCLINKMP)	+= synclinkmp.o
- obj-$(CONFIG_SYNCLINK)		+= synclink.o
- obj-$(CONFIG_PPC_EPAPR_HV_BYTECHAN) += ehv_bytechan.o
-+obj-$(CONFIG_DA_TTY)	+= metag_da.o
- 
- obj-y += ipwireless/
-diff --git a/drivers/tty/metag_da.c b/drivers/tty/metag_da.c
+ 	keep_bootcon	[KNL]
+ 			Do not unregister boot console at start. This is only
+ 			useful for debugging when something happens in the window
+diff --git a/Documentation/metag/00-INDEX b/Documentation/metag/00-INDEX
 new file mode 100644
-index 0000000..9f8b0d5
+index 0000000..db11c51
 --- /dev/null
-+++ b/drivers/tty/metag_da.c
-@@ -0,0 +1,696 @@
-+/*
-+ *  dashtty.c - tty driver for Dash channels interface.
-+ *
-+ *  Copyright (C) 2007,2008,2012 Imagination Technologies
-+ *
-+ * This file is subject to the terms and conditions of the GNU General Public
-+ * License.  See the file COPYING in the main directory of this archive
-+ * for more details.
-+ *
-+ */
-+
-+#include <linux/atomic.h>
-+#include <linux/completion.h>
-+#include <linux/console.h>
-+#include <linux/delay.h>
-+#include <linux/export.h>
-+#include <linux/init.h>
-+#include <linux/kernel.h>
-+#include <linux/kthread.h>
-+#include <linux/mutex.h>
-+#include <linux/sched.h>
-+#include <linux/serial.h>
-+#include <linux/slab.h>
-+#include <linux/spinlock.h>
-+#include <linux/string.h>
-+#include <linux/timer.h>
-+#include <linux/tty.h>
-+#include <linux/tty_driver.h>
-+#include <linux/tty_flip.h>
-+#include <linux/uaccess.h>
-+
-+#include <asm/da.h>
-+
-+/* Channel error codes */
-+#define CONAOK	0
-+#define CONERR	1
-+#define CONBAD	2
-+#define CONPRM	3
-+#define CONADR	4
-+#define CONCNT	5
-+#define CONCBF	6
-+#define CONCBE	7
-+#define CONBSY	8
-+
-+/* Default channel for the console */
-+#define CONSOLE_CHANNEL      1
-+
-+/* First channel available for tty use. */
-+#define FIRST_TTY_CHANNEL    0
-+
-+#define NUM_TTY_CHANNELS     6
-+
-+/* Auto allocate */
-+#define DA_TTY_MAJOR        0
-+
-+/* A speedy poll rate helps the userland debug process connection response.
-+ * But, if you set it too high then no other userland processes get much
-+ * of a look in.
-+ */
-+#define DA_TTY_POLL (HZ / 50)
-+
-+/*
-+ * A short put delay improves latency but has a high throughput overhead
-+ */
-+#define DA_TTY_PUT_DELAY (HZ / 100)
-+
-+static atomic_t num_channels_need_poll = ATOMIC_INIT(0);
-+
-+static struct timer_list poll_timer;
-+
-+static struct tty_driver *channel_driver;
-+
-+static struct timer_list put_timer;
-+static struct task_struct *dashtty_thread;
-+
-+#define RX_BUF_SIZE 1024
-+
-+enum {
-+	INCHR = 1,
-+	OUTCHR,
-+	RDBUF,
-+	WRBUF,
-+	RDSTAT
-+};
-+
-+/**
-+ * struct dashtty_port - Wrapper struct for dashtty tty_port.
-+ * @port:		TTY port data
-+ * @rx_lock:		Lock for rx_buf.
-+ *			This protects between the poll timer and user context.
-+ *			It's also held during read SWITCH operations.
-+ * @rx_buf:		Read buffer
-+ * @xmit_lock:		Lock for xmit_*, and port.xmit_buf.
-+ *			This protects between user context and kernel thread.
-+ *			It's also held during write SWITCH operations.
-+ * @xmit_cnt:		Size of xmit buffer contents
-+ * @xmit_head:		Head of xmit buffer where data is written
-+ * @xmit_tail:		Tail of xmit buffer where data is read
-+ * @xmit_empty:		Completion for xmit buffer being empty
-+ */
-+struct dashtty_port {
-+	struct tty_port		 port;
-+	spinlock_t		 rx_lock;
-+	void			*rx_buf;
-+	struct mutex		 xmit_lock;
-+	unsigned int		 xmit_cnt;
-+	unsigned int		 xmit_head;
-+	unsigned int		 xmit_tail;
-+	struct completion	 xmit_empty;
-+};
-+
-+static struct dashtty_port dashtty_ports[NUM_TTY_CHANNELS];
-+
-+static atomic_t dashtty_xmit_cnt = ATOMIC_INIT(0);
-+static wait_queue_head_t dashtty_waitqueue;
-+
-+/*
-+ * Low-level DA channel access routines
-+ */
-+static int chancall(int bios_function, int channel, int arg2, void *arg3,
-+			void *arg4)
-+{
-+	register int   bios_function__ __asm__("D1Ar1") = bios_function;
-+	register int   channel__       __asm__("D0Ar2") = channel;
-+	register int   arg2__          __asm__("D1Ar3") = arg2;
-+	register void *arg3__          __asm__("D0Ar4") = arg3;
-+	register void *arg4__          __asm__("D1Ar5") = arg4;
-+	register int   bios_call       __asm__("D0Ar6") = 3;
-+	register int   result          __asm__("D0Re0");
-+
-+	__asm__ volatile (
-+		"SETL   [A0StP++], %6,%5\n\t"
-+		"SETL   [A0StP++], %4,%3\n\t"
-+		"SETL   [A0StP++], %2,%1\n\t"
-+		"ADD    A0StP, A0StP, #8\n\t"
-+		"SWITCH #0x0C30208\n\t"
-+		"GETD   %0, [A0StP+#-8]\n\t"
-+		"SUB    A0StP, A0StP, #(4*6)+8\n\t"
-+		: "=r" (result)/* outs */
-+		: "r" (bios_function__), "r" (channel__), "r" (arg2__),
-+		  "r" (arg3__), "r" (arg4__), "r" (bios_call) /* ins */
-+		: "memory");
-+
-+	return result;
-+}
-+
-+/*
-+ * Attempts to fetch count bytes from channel and returns actual count.
-+ */
-+static int fetch_data(struct tty_struct *tty)
-+{
-+	unsigned int channel = tty->index;
-+	struct dashtty_port *dport = &dashtty_ports[channel];
-+	int received = 0;
-+
-+	spin_lock_bh(&dport->rx_lock);
-+	/* check the port isn't being shut down */
-+	if (!dport->rx_buf)
-+		goto unlock;
-+	if (chancall(RDBUF, channel, RX_BUF_SIZE,
-+		     (void *)dport->rx_buf, &received) == CONAOK) {
-+		if (received) {
-+			int space;
-+			unsigned char *cbuf;
-+
-+			space = tty_prepare_flip_string(tty, &cbuf, received);
-+
-+			if (space <= 0)
-+				goto unlock;
-+
-+			memcpy(cbuf, dport->rx_buf, space);
-+			tty_flip_buffer_push(tty);
-+		}
-+	}
-+unlock:
-+	spin_unlock_bh(&dport->rx_lock);
-+
-+	return received;
-+}
-+
-+/**
-+ * find_channel_to_poll() - Returns kref to the next channel tty to poll.
-+ * Returns:	The TTY of the next channel to poll, or NULL if no TTY needs
-+ *		polling. Release with tty_kref_put().
-+ */
-+static struct tty_struct *find_channel_to_poll(void)
-+{
-+	static int last_polled_channel = FIRST_TTY_CHANNEL;
-+	int last = last_polled_channel;
-+	int chan;
-+	struct tty_struct *tty = NULL;
-+
-+	for (chan = last + 1; ; ++chan) {
-+		if (chan >= NUM_TTY_CHANNELS)
-+			chan = 0;
-+
-+		tty = tty_port_tty_get(&dashtty_ports[chan].port);
-+		if (tty) {
-+			last_polled_channel = chan;
-+			return tty;
-+		}
-+
-+		if (chan == last)
-+			break;
-+	}
-+	return tty;
-+}
-+
-+/**
-+ * put_channel_data() - Write out a block of channel data.
-+ * @chan:	DA channel number.
-+ *
-+ * Write a single block of data out to the debug adapter. If the circular buffer
-+ * is wrapped then only the first block is written.
-+ *
-+ * Returns:	1 if the remote buffer was too full to accept data.
-+ *		0 otherwise.
-+ */
-+static int put_channel_data(unsigned int chan)
-+{
-+	struct dashtty_port *dport;
-+	struct tty_struct *tty;
-+	int number_written;
-+	unsigned int count = 0;
-+
-+	dport = &dashtty_ports[chan];
-+	mutex_lock(&dport->xmit_lock);
-+	if (dport->xmit_cnt) {
-+		count = min((unsigned int)(SERIAL_XMIT_SIZE - dport->xmit_tail),
-+			    dport->xmit_cnt);
-+		chancall(WRBUF, chan, count,
-+			 dport->port.xmit_buf + dport->xmit_tail,
-+			 &number_written);
-+		dport->xmit_cnt -= number_written;
-+		if (!dport->xmit_cnt) {
-+			/* reset pointers to avoid wraps */
-+			dport->xmit_head = 0;
-+			dport->xmit_tail = 0;
-+			complete(&dport->xmit_empty);
-+		} else {
-+			dport->xmit_tail += number_written;
-+			if (dport->xmit_tail >= SERIAL_XMIT_SIZE)
-+				dport->xmit_tail -= SERIAL_XMIT_SIZE;
-+		}
-+		atomic_sub(number_written, &dashtty_xmit_cnt);
-+	}
-+	mutex_unlock(&dport->xmit_lock);
-+
-+	/* if we've made more data available, wake up tty */
-+	if (count && number_written) {
-+		tty = tty_port_tty_get(&dport->port);
-+		if (tty) {
-+			tty_wakeup(tty);
-+			tty_kref_put(tty);
-+		}
-+	}
-+
-+	/* did the write fail? */
-+	return count && !number_written;
-+}
-+
-+/**
-+ * put_data() - Kernel thread to write out blocks of channel data to DA.
-+ * @arg:	Unused.
-+ *
-+ * This kernel thread runs while @dashtty_xmit_cnt != 0, and loops over the
-+ * channels to write out any buffered data. If any of the channels stall due to
-+ * the remote buffer being full, a hold off happens to allow the debugger to
-+ * drain the buffer.
-+ */
-+static int put_data(void *arg)
-+{
-+	unsigned int chan, stall;
-+
-+	__set_current_state(TASK_RUNNING);
-+	while (!kthread_should_stop()) {
-+		/*
-+		 * For each channel see if there's anything to transmit in the
-+		 * port's xmit_buf.
-+		 */
-+		stall = 0;
-+		for (chan = 0; chan < NUM_TTY_CHANNELS; ++chan)
-+			stall += put_channel_data(chan);
-+
-+		/*
-+		 * If some of the buffers are full, hold off for a short while
-+		 * to allow them to empty.
-+		 */
-+		if (stall)
-+			msleep(25);
-+
-+		wait_event_interruptible(dashtty_waitqueue,
-+					 atomic_read(&dashtty_xmit_cnt));
-+	}
-+
-+	return 0;
-+}
-+
-+/*
-+ *	This gets called every DA_TTY_POLL and polls the channels for data
-+ */
-+static void dashtty_timer(unsigned long ignored)
-+{
-+	struct tty_struct *tty;
-+
-+	/* If there are no ports open do nothing and don't poll again. */
-+	if (!atomic_read(&num_channels_need_poll))
-+		return;
-+
-+	tty = find_channel_to_poll();
-+
-+	/* Did we find a channel to poll? */
-+	if (tty) {
-+		fetch_data(tty);
-+		tty_kref_put(tty);
-+	}
-+
-+	mod_timer_pinned(&poll_timer, jiffies + DA_TTY_POLL);
-+}
-+
-+static void add_poll_timer(struct timer_list *poll_timer)
-+{
-+	init_timer(poll_timer);
-+
-+	poll_timer->function = dashtty_timer;
-+	poll_timer->expires = jiffies + DA_TTY_POLL;
-+
-+	/*
-+	 * Always attach the timer to the boot CPU.
-+	 */
-+	add_timer_on(poll_timer, 0);
-+}
-+
-+static int dashtty_port_activate(struct tty_port *port, struct tty_struct *tty)
-+{
-+	struct dashtty_port *dport = container_of(port, struct dashtty_port,
-+						  port);
-+	void *rx_buf;
-+
-+	/* Allocate the buffer we use for writing data */
-+	if (tty_port_alloc_xmit_buf(port) < 0)
-+		goto err;
-+
-+	/* Allocate the buffer we use for reading data */
-+	rx_buf = kzalloc(RX_BUF_SIZE, GFP_KERNEL);
-+	if (!rx_buf)
-+		goto err_free_xmit;
-+
-+	spin_lock_bh(&dport->rx_lock);
-+	dport->rx_buf = rx_buf;
-+	spin_unlock_bh(&dport->rx_lock);
-+
-+	return 0;
-+err_free_xmit:
-+	tty_port_free_xmit_buf(port);
-+err:
-+	return -ENOMEM;
-+}
-+
-+static void dashtty_port_shutdown(struct tty_port *port)
-+{
-+	struct dashtty_port *dport = container_of(port, struct dashtty_port,
-+						  port);
-+	void *rx_buf;
-+	unsigned int count;
-+
-+	mutex_lock(&dport->xmit_lock);
-+	count = dport->xmit_cnt;
-+	mutex_unlock(&dport->xmit_lock);
-+	if (count) {
-+		/*
-+		 * There's still data to write out, so wake and wait for the
-+		 * writer thread to drain the buffer.
-+		 */
-+		del_timer(&put_timer);
-+		wake_up_interruptible(&dashtty_waitqueue);
-+		wait_for_completion(&dport->xmit_empty);
-+	}
-+
-+	/* Null the read buffer (timer could still be running!) */
-+	spin_lock_bh(&dport->rx_lock);
-+	rx_buf = dport->rx_buf;
-+	dport->rx_buf = NULL;
-+	spin_unlock_bh(&dport->rx_lock);
-+	/* Free the read buffer */
-+	kfree(rx_buf);
-+
-+	/* Free the write buffer */
-+	tty_port_free_xmit_buf(port);
-+}
-+
-+static const struct tty_port_operations dashtty_port_ops = {
-+	.activate	= dashtty_port_activate,
-+	.shutdown	= dashtty_port_shutdown,
-+};
-+
-+static int dashtty_install(struct tty_driver *driver, struct tty_struct *tty)
-+{
-+	struct dashtty_port *port;
-+	int ret, line;
-+
-+	if (!tty)
-+		return -ENODEV;
-+
-+	line = tty->index;
-+
-+	if (line < 0 || line >= NUM_TTY_CHANNELS)
-+		return -ENODEV;
-+	port = &dashtty_ports[line];
-+
-+	port->port.ops = &dashtty_port_ops;
-+	ret = tty_port_install(&port->port, driver, tty);
-+	if (ret)
-+		return ret;
-+
-+	/*
-+	 * Don't add the poll timer if we're opening a console. This
-+	 * avoids the overhead of polling the Dash but means it is not
-+	 * possible to have a login on /dev/console.
-+	 *
-+	 */
-+	if (line != CONSOLE_CHANNEL)
-+		if (atomic_inc_return(&num_channels_need_poll) == 1)
-+			add_poll_timer(&poll_timer);
-+
-+	return 0;
-+}
-+
-+static void dashtty_cleanup(struct tty_struct *tty)
-+{
-+	int line;
-+
-+	if (!tty)
-+		return;
-+
-+	line = tty->index;
-+
-+	if (line < 0 || line >= NUM_TTY_CHANNELS)
-+		return;
-+
-+	if (line != CONSOLE_CHANNEL)
-+		if (atomic_dec_and_test(&num_channels_need_poll))
-+			del_timer_sync(&poll_timer);
-+}
-+
-+static int dashtty_open(struct tty_struct *tty, struct file *filp)
-+{
-+	return tty_port_open(tty->port, tty, filp);
-+}
-+
-+static void dashtty_close(struct tty_struct *tty, struct file *filp)
-+{
-+	return tty_port_close(tty->port, tty, filp);
-+}
-+
-+static void dashtty_hangup(struct tty_struct *tty)
-+{
-+	int channel;
-+	struct dashtty_port *dport;
-+
-+	channel = FIRST_TTY_CHANNEL + tty->index;
-+	dport = &dashtty_ports[channel];
-+
-+	/* drop any data in the xmit buffer */
-+	mutex_lock(&dport->xmit_lock);
-+	if (dport->xmit_cnt) {
-+		atomic_sub(dport->xmit_cnt, &dashtty_xmit_cnt);
-+		dport->xmit_cnt = 0;
-+		dport->xmit_head = 0;
-+		dport->xmit_tail = 0;
-+		complete(&dport->xmit_empty);
-+	}
-+	mutex_unlock(&dport->xmit_lock);
-+
-+	tty_port_hangup(tty->port);
-+}
-+
-+/**
-+ * dashtty_put_timer() - Delayed wake up of kernel thread.
-+ * @ignored:	unused
-+ *
-+ * This timer function wakes up the kernel thread if any data exists in the
-+ * buffers. It is used to delay the expensive writeout until the writer has
-+ * stopped writing.
-+ */
-+static void dashtty_put_timer(unsigned long ignored)
-+{
-+	if (atomic_read(&dashtty_xmit_cnt))
-+		wake_up_interruptible(&dashtty_waitqueue);
-+}
-+
-+static int dashtty_write(struct tty_struct *tty, const unsigned char *buf,
-+			 int total)
-+{
-+	int channel, count, block;
-+	struct dashtty_port *dport;
-+
-+	/* Determine the channel */
-+	channel = FIRST_TTY_CHANNEL + tty->index;
-+	dport = &dashtty_ports[channel];
-+
-+	/*
-+	 * Write to output buffer.
-+	 *
-+	 * The reason that we asynchronously write the buffer is because
-+	 * there's no way to tell what CPU we're currently executing on.
-+	 * If we were to write the buffer synchornously then because dash
-+	 * channels are per-CPU the buffer would be written to the channel
-+	 * of whatever CPU we're running on.
-+	 *
-+	 * What we actually want to happen is have all input and output
-+	 * done on one CPU.
-+	 */
-+	mutex_lock(&dport->xmit_lock);
-+	/* work out how many bytes we can write to the xmit buffer */
-+	total = min(total, (int)(SERIAL_XMIT_SIZE - dport->xmit_cnt));
-+	atomic_add(total, &dashtty_xmit_cnt);
-+	dport->xmit_cnt += total;
-+	/* write the actual bytes (may need splitting if it wraps) */
-+	for (count = total; count; count -= block) {
-+		block = min(count, (int)(SERIAL_XMIT_SIZE - dport->xmit_head));
-+		memcpy(dport->port.xmit_buf + dport->xmit_head, buf, block);
-+		dport->xmit_head += block;
-+		if (dport->xmit_head >= SERIAL_XMIT_SIZE)
-+			dport->xmit_head -= SERIAL_XMIT_SIZE;
-+		buf += block;
-+	}
-+	count = dport->xmit_cnt;
-+	/* xmit buffer no longer empty? */
-+	if (count)
-+		INIT_COMPLETION(dport->xmit_empty);
-+	mutex_unlock(&dport->xmit_lock);
-+
-+	if (total) {
-+		/*
-+		 * If the buffer is full, wake up the kthread, otherwise allow
-+		 * some more time for the buffer to fill up a bit before waking
-+		 * it.
-+		 */
-+		if (count == SERIAL_XMIT_SIZE) {
-+			del_timer(&put_timer);
-+			wake_up_interruptible(&dashtty_waitqueue);
-+		} else {
-+			mod_timer(&put_timer, jiffies + DA_TTY_PUT_DELAY);
-+		}
-+	}
-+	return total;
-+}
-+
-+static int dashtty_write_room(struct tty_struct *tty)
-+{
-+	struct dashtty_port *dport;
-+	int channel;
-+	int room;
-+
-+	channel = FIRST_TTY_CHANNEL + tty->index;
-+	dport = &dashtty_ports[channel];
-+
-+	/* report the space in the xmit buffer */
-+	mutex_lock(&dport->xmit_lock);
-+	room = SERIAL_XMIT_SIZE - dport->xmit_cnt;
-+	mutex_unlock(&dport->xmit_lock);
-+
-+	return room;
-+}
-+
-+static int dashtty_chars_in_buffer(struct tty_struct *tty)
-+{
-+	struct dashtty_port *dport;
-+	int channel;
-+	int chars;
-+
-+	channel = FIRST_TTY_CHANNEL + tty->index;
-+	dport = &dashtty_ports[channel];
-+
-+	/* report the number of bytes in the xmit buffer */
-+	mutex_lock(&dport->xmit_lock);
-+	chars = dport->xmit_cnt;
-+	mutex_unlock(&dport->xmit_lock);
-+
-+	return chars;
-+}
-+
-+static const struct tty_operations dashtty_ops = {
-+	.install		= dashtty_install,
-+	.cleanup		= dashtty_cleanup,
-+	.open			= dashtty_open,
-+	.close			= dashtty_close,
-+	.hangup			= dashtty_hangup,
-+	.write			= dashtty_write,
-+	.write_room		= dashtty_write_room,
-+	.chars_in_buffer	= dashtty_chars_in_buffer,
-+};
-+
-+static int __init dashtty_init(void)
-+{
-+	int ret;
-+	int nport;
-+	struct dashtty_port *dport;
-+
-+	if (!metag_da_enabled())
-+		return -ENODEV;
-+
-+	channel_driver = tty_alloc_driver(NUM_TTY_CHANNELS, 0);
-+	if (IS_ERR(channel_driver))
-+		return PTR_ERR(channel_driver);
-+
-+	channel_driver->owner = THIS_MODULE;
-+	channel_driver->driver_name = "ttyDA";
-+	channel_driver->name = "ttyDA";
-+	channel_driver->major = DA_TTY_MAJOR;
-+	channel_driver->minor_start = 0;
-+	channel_driver->type = TTY_DRIVER_TYPE_SERIAL;
-+	channel_driver->subtype = SERIAL_TYPE_NORMAL;
-+	channel_driver->init_termios = tty_std_termios;
-+	channel_driver->init_termios.c_cflag |= CLOCAL;
-+	channel_driver->flags = TTY_DRIVER_REAL_RAW;
-+
-+	tty_set_operations(channel_driver, &dashtty_ops);
-+	for (nport = 0; nport < NUM_TTY_CHANNELS; nport++) {
-+		dport = &dashtty_ports[nport];
-+		tty_port_init(&dport->port);
-+		spin_lock_init(&dport->rx_lock);
-+		mutex_init(&dport->xmit_lock);
-+		/* the xmit buffer starts empty, i.e. completely written */
-+		init_completion(&dport->xmit_empty);
-+		complete(&dport->xmit_empty);
-+	}
-+
-+	init_timer(&put_timer);
-+	put_timer.function = dashtty_put_timer;
-+
-+	init_waitqueue_head(&dashtty_waitqueue);
-+	dashtty_thread = kthread_create(put_data, NULL, "ttyDA");
-+	if (IS_ERR(dashtty_thread)) {
-+		pr_err("Couldn't create dashtty thread\n");
-+		ret = PTR_ERR(dashtty_thread);
-+		goto err_free_driver;
-+	}
-+	kthread_bind(dashtty_thread, 0);
-+	wake_up_process(dashtty_thread);
-+
-+	ret = tty_register_driver(channel_driver);
-+
-+	if (ret < 0) {
-+		pr_err("Couldn't install dashtty driver: err %d\n",
-+		       ret);
-+		goto err_stop_kthread;
-+	}
-+
-+	return 0;
-+
-+err_stop_kthread:
-+	kthread_stop(dashtty_thread);
-+err_free_driver:
-+	put_tty_driver(channel_driver);
-+	return ret;
-+}
-+
-+static void dashtty_exit(void)
-+{
-+	del_timer_sync(&put_timer);
-+	kthread_stop(dashtty_thread);
-+	del_timer_sync(&poll_timer);
-+	tty_unregister_driver(channel_driver);
-+	put_tty_driver(channel_driver);
-+}
-+
-+module_init(dashtty_init);
-+module_exit(dashtty_exit);
-+
-+#ifdef CONFIG_DA_CONSOLE
-+
-+static void dash_console_write(struct console *co, const char *s,
-+			       unsigned int count)
-+{
-+	int actually_written;
-+
-+	chancall(WRBUF, CONSOLE_CHANNEL, count, (void *)s, &actually_written);
-+}
-+
-+static struct tty_driver *dash_console_device(struct console *c, int *index)
-+{
-+	*index = c->index;
-+	return channel_driver;
-+}
-+
-+struct console dash_console = {
-+	.name = "ttyDA",
-+	.write = dash_console_write,
-+	.device = dash_console_device,
-+	.flags = CON_PRINTBUFFER,
-+	.index = 1,
-+};
-+
-+#endif
++++ b/Documentation/metag/00-INDEX
+@@ -0,0 +1,4 @@
++00-INDEX
++	- this file
++kernel-ABI.txt
++	- Documents metag ABI details
+diff --git a/Documentation/metag/kernel-ABI.txt b/Documentation/metag/kernel-ABI.txt
+new file mode 100644
+index 0000000..7b8dee8
+--- /dev/null
++++ b/Documentation/metag/kernel-ABI.txt
+@@ -0,0 +1,256 @@
++			==========================
++			KERNEL ABIS FOR METAG ARCH
++			==========================
++
++This document describes the Linux ABIs for the metag architecture, and has the
++following sections:
++
++ (*) Outline of registers
++ (*) Userland registers
++ (*) Kernel registers
++ (*) System call ABI
++ (*) Calling conventions
++
++
++====================
++OUTLINE OF REGISTERS
++====================
++
++The main Meta core registers are arranged in units:
++
++	UNIT	Type	DESCRIPTION	GP	EXT	PRIV	GLOBAL
++	=======	=======	===============	=======	=======	=======	=======
++	CT	Special	Control unit
++	D0	General	Data unit 0	0-7	8-15	16-31	16-31
++	D1	General	Data unit 1	0-7	8-15	16-31	16-31
++	A0	General	Address unit 0	0-3	4-7	 8-15	 8-15
++	A1	General	Address unit 1	0-3	4-7	 8-15	 8-15
++	PC	Special	PC unit		0		 1
++	PORT	Special	Ports
++	TR	Special	Trigger unit			 0-7
++	TT	Special	Trace unit			 0-5
++	FX	General	FP unit			0-15
++
++GP registers form part of the main context.
++
++Extended context registers (EXT) may not be present on all hardware threads and
++can be context switched if support is enabled and the appropriate bits are set
++in e.g. the D0.8 register to indicate what extended state to preserve.
++
++Global registers are shared between threads and are privilege protected.
++
++See arch/metag/include/asm/metag_regs.h for definitions relating to core
++registers and the fields and bits they contain. See the TRMs for further details
++about special registers.
++
++Several special registers are preserved in the main context, these are the
++interesting ones:
++
++	REG	(ALIAS)		PURPOSE
++	=======================	===============================================
++	CT.1	(TXMODE)	Processor mode bits (particularly for DSP)
++	CT.2	(TXSTATUS)	Condition flags and LSM_STEP (MGET/MSET step)
++	CT.3	(TXRPT)		Branch repeat counter
++	PC.0	(PC)		Program counter
++
++Some of the general registers have special purposes in the ABI and therefore
++have aliases:
++
++	D0 REG	(ALIAS)	PURPOSE		D1 REG	(ALIAS)	PURPOSE
++	===============	===============	===============	=======================
++	D0.0	(D0Re0)	32bit result	D1.0	(D1Re0)	Top half of 64bit result
++	D0.1	(D0Ar6)	Argument 6	D1.1	(D1Ar5)	Argument 5
++	D0.2	(D0Ar4)	Argument 4	D1.2	(D1Ar3)	Argument 3
++	D0.3	(D0Ar2)	Argument 2	D1.3	(D1Ar1)	Argument 1
++	D0.4	(D0FrT)	Frame temp	D1.4	(D1RtP)	Return pointer
++	D0.5		Call preserved	D1.5		Call preserved
++	D0.6		Call preserved	D1.6		Call preserved
++	D0.7		Call preserved	D1.7		Call preserved
++
++	A0 REG	(ALIAS)	PURPOSE		A1 REG	(ALIAS)	PURPOSE
++	===============	===============	===============	=======================
++	A0.0	(A0StP)	Stack pointer	A1.0	(A1GbP)	Global base pointer
++	A0.1	(A0FrP)	Frame pointer	A1.1	(A1LbP)	Local base pointer
++	A0.2				A1.2
++	A0.3				A1.3
++
++
++==================
++USERLAND REGISTERS
++==================
++
++All the general purpose D0, D1, A0, A1 registers are preserved when entering the
++kernel (including asynchronous events such as interrupts and timer ticks) except
++the following which have special purposes in the ABI:
++
++	REGISTERS	WHEN	STATUS		PURPOSE
++	===============	=======	===============	===============================
++	D0.8		DSP	Preserved	ECH, determines what extended
++						DSP state to preserve.
++	A0.0	(A0StP)	ALWAYS	Preserved	Stack >= A0StP may be clobbered
++						at any time by the creation of a
++						signal frame.
++	A1.0	(A1GbP)	SMP	Clobbered	Used as temporary for loading
++						kernel stack pointer and saving
++						core context.
++	A0.15		!SMP	Protected	Stores kernel stack pointer.
++	A1.15		ALWAYS	Protected	Stores kernel base pointer.
++
++On UP A0.15 is used to store the kernel stack pointer for storing the userland
++context. A0.15 is global between hardware threads though which means it cannot
++be used on SMP for this purpose. Since no protected local registers are
++available A1GbP is reserved for use as a temporary to allow a percpu stack
++pointer to be loaded for storing the rest of the context.
++
++
++================
++KERNEL REGISTERS
++================
++
++When in the kernel the following registers have special purposes in the ABI:
++
++	REGISTERS	WHEN	STATUS		PURPOSE
++	===============	=======	===============	===============================
++	A0.0	(A0StP)	ALWAYS	Preserved	Stack >= A0StP may be clobbered
++						at any time by the creation of
++						an irq signal frame.
++	A1.0	(A1GbP)	ALWAYS	Preserved	Reserved (kernel base pointer).
++
++
++===============
++SYSTEM CALL ABI
++===============
++
++When a system call is made, the following registers are effective:
++
++	REGISTERS	CALL			RETURN
++	===============	=======================	===============================
++	D0.0	(D0Re0)				Return value (or -errno)
++	D1.0	(D1Re0)	System call number	Clobbered
++	D0.1	(D0Ar6)	Syscall arg #6		Preserved
++	D1.1	(D1Ar5)	Syscall arg #5		Preserved
++	D0.2	(D0Ar4)	Syscall arg #4		Preserved
++	D1.2	(D1Ar3)	Syscall arg #3		Preserved
++	D0.3	(D0Ar2)	Syscall arg #2		Preserved
++	D1.3	(D1Ar1)	Syscall arg #1		Preserved
++
++Due to the limited number of argument registers and some system calls with badly
++aligned 64-bit arguments, 64-bit values are always packed in consecutive
++arguments, even if this is contrary to the normal calling conventions (where the
++two halves would go in a matching pair of data registers).
++
++For example fadvise64_64 usually has the signature:
++
++	long sys_fadvise64_64(i32 fd, i64 offs, i64 len, i32 advice);
++
++But for metag fadvise64_64 is wrapped so that the 64-bit arguments are packed:
++
++	long sys_fadvise64_64_metag(i32 fd,      i32 offs_lo,
++				    i32 offs_hi, i32 len_lo,
++				    i32 len_hi,  i32 advice)
++
++So the arguments are packed in the registers like this:
++
++	D0 REG	(ALIAS)	VALUE		D1 REG	(ALIAS)	VALUE
++	===============	===============	===============	=======================
++	D0.1	(D0Ar6)	advice		D1.1	(D1Ar5)	hi(len)
++	D0.2	(D0Ar4)	lo(len)		D1.2	(D1Ar3)	hi(offs)
++	D0.3	(D0Ar2)	lo(offs)	D1.3	(D1Ar1)	fd
++
++
++===================
++CALLING CONVENTIONS
++===================
++
++These calling conventions apply to both user and kernel code. The stack grows
++from low addresses to high addresses in the metag ABI. The stack pointer (A0StP)
++should always point to the next free address on the stack and should at all
++times be 64-bit aligned. The following registers are effective at the point of a
++call:
++
++	REGISTERS	CALL			RETURN
++	===============	=======================	===============================
++	D0.0	(D0Re0)				32bit return value
++	D1.0	(D1Re0)				Upper half of 64bit return value
++	D0.1	(D0Ar6)	32bit argument #6	Clobbered
++	D1.1	(D1Ar5)	32bit argument #5	Clobbered
++	D0.2	(D0Ar4)	32bit argument #4	Clobbered
++	D1.2	(D1Ar3)	32bit argument #3	Clobbered
++	D0.3	(D0Ar2)	32bit argument #2	Clobbered
++	D1.3	(D1Ar1)	32bit argument #1	Clobbered
++	D0.4	(D0FrT)				Clobbered
++	D1.4	(D1RtP)	Return pointer		Clobbered
++	D{0-1}.{5-7}				Preserved
++	A0.0	(A0StP)	Stack pointer		Preserved
++	A1.0	(A0GbP)				Preserved
++	A0.1	(A0FrP)	Frame pointer		Preserved
++	A1.1	(A0LbP)				Preserved
++	A{0-1},{2-3}				Clobbered
++
++64-bit arguments are placed in matching pairs of registers (i.e. the same
++register number in both D0 and D1 units), with the least significant half in D0
++and the most significant half in D1, leaving a gap where necessary. Futher
++arguments are stored on the stack in reverse order (earlier arguments at higher
++addresses):
++
++	ADDRESS		0     1     2     3	4     5     6     7
++	===============	===== ===== ===== =====	===== ===== ===== =====
++	A0StP       -->
++	A0StP-0x08	32bit argument #8	32bit argument #7
++	A0StP-0x10	32bit argument #10	32bit argument #9
++
++Function prologues tend to look a bit like this:
++
++	/* If frame pointer in use, move it to frame temp register so it can be
++	   easily pushed onto stack */
++	MOV	D0FrT,A0FrP
++
++	/* If frame pointer in use, set it to stack pointer */
++	ADD	A0FrP,A0StP,#0
++
++	/* Preserve D0FrT, D1RtP, D{0-1}.{5-7} on stack, incrementing A0StP */
++	MSETL	[A0StP++],D0FrT,D0.5,D0.6,D0.7
++
++	/* Allocate some stack space for local variables */
++	ADD	A0StP,A0StP,#0x10
++
++At this point the stack would look like this:
++
++	ADDRESS		0     1     2     3	4     5     6     7
++	===============	===== ===== ===== =====	===== ===== ===== =====
++	A0StP       -->
++	A0StP-0x08
++	A0StP-0x10
++	A0StP-0x18	Old D0.7		Old D1.7
++	A0StP-0x20	Old D0.6		Old D1.6
++	A0StP-0x28	Old D0.5		Old D1.5
++	A0FrP       -->	Old A0FrP (frame ptr)	Old D1RtP (return ptr)
++	A0FrP-0x08	32bit argument #8	32bit argument #7
++	A0FrP-0x10	32bit argument #10	32bit argument #9
++
++Function epilogues tend to differ depending on the use of a frame pointer. An
++example of a frame pointer epilogue:
++
++	/* Restore D0FrT, D1RtP, D{0-1}.{5-7} from stack, incrementing A0FrP */
++	MGETL	D0FrT,D0.5,D0.6,D0.7,[A0FrP++]
++	/* Restore stack pointer to where frame pointer was before increment */
++	SUB	A0StP,A0FrP,#0x20
++	/* Restore frame pointer from frame temp */
++	MOV	A0FrP,D0FrT
++	/* Return to caller via restored return pointer */
++	MOV	PC,D1RtP
++
++If the function hasn't touched the frame pointer, MGETL cannot be safely used
++with A0StP as it always increments and that would expose the stack to clobbering
++by interrupts (kernel) or signals (user). Therefore it's common to see the MGETL
++split into separate GETL instructions:
++
++	/* Restore D0FrT, D1RtP, D{0-1}.{5-7} from stack */
++	GETL	D0FrT,D1RtP,[A0StP+#-0x30]
++	GETL	D0.5,D1.5,[A0StP+#-0x28]
++	GETL	D0.6,D1.6,[A0StP+#-0x20]
++	GETL	D0.7,D1.7,[A0StP+#-0x18]
++	/* Restore stack pointer */
++	SUB	A0StP,A0StP,#0x30
++	/* Return to caller via restored return pointer */
++	MOV	PC,D1RtP
 -- 
 1.7.7.6
