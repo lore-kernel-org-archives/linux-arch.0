@@ -1,80 +1,75 @@
-From: Thierry Reding <thierry.reding@avionic-design.de>
-Subject: Re: [PATCH 1/4] gpiolib: introduce descriptor-based GPIO interface
-Date: Thu, 10 Jan 2013 09:36:47 +0100
-Message-ID: <20130110083647.GA26256@avionic-0098.adnet.avionic-design.de>
-References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com>
- <201301081259.29839.arnd@arndb.de>
- <CAAVeFu+4VbCbj9TaeMm+NMDJ9_M4-j4O0ONF7Yh_un63wS38+Q@mail.gmail.com>
- <201301091035.23206.arnd@arndb.de>
- <20130109104414.GF3931@n2100.arm.linux.org.uk>
- <20130109111055.GG3931@n2100.arm.linux.org.uk>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 0/4] gpio: introduce descriptor-based interface
+Date: Thu, 10 Jan 2013 10:08:44 +0000
+Message-ID: <201301101008.45091.arnd@arndb.de>
+References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com> <201301091046.13020.arnd@arndb.de> <2270940.DTxEYMZtED@percival>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature"; boundary="1yeeQ81UyVL57Vl7"
-Return-path: <linux-kernel-owner@vger.kernel.org>
-Content-Disposition: inline
-In-Reply-To: <20130109111055.GG3931@n2100.arm.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Russell King - ARM Linux <linux@arm.linux.org.uk>
-Cc: Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Linus Walleij <linus.walleij@linaro.org>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Alexandre Courbot <acourbot@nvidia.com>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree-discuss@lists.ozlabs.org" <devicetree-discuss@lists.ozlabs.org>, Guenter Roeck <linux@roeck-us.net>
-List-Id: linux-arch.vger.kernel.org
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.126.171]:58409 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751577Ab3AJKJG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 10 Jan 2013 05:09:06 -0500
+In-Reply-To: <2270940.DTxEYMZtED@percival>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Alex Courbot <acourbot@nvidia.com>
+Cc: Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Guenter Roeck <linux@roeck-us.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree-discuss@lists.ozlabs.org" <devicetree-discuss@lists.ozlabs.org>
 
+On Thursday 10 January 2013, Alex Courbot wrote:
+> On Wednesday 09 January 2013 18:46:12 Arnd Bergmann wrote:
+> > 
+> > Only legacy users did this. Initially there was only the header file,
+> > with the API declared but several different implementations of it.
+> > gpiolib was introduced later to reduce code duplication and allow having
+> > multiple implementations in the same kernel.
+> 
+> Does the following sound reasonable?
+> 1) Make sure every target that uses GENERIC_GPIO also implements its drivers 
+> using gpiolib, convert the (hopefully) few ones that don't to use gpiolib
+> 2) Make GENERIC_GPIO require GPIOLIB or just merge both options into a single 
+> one
+> 3) Turn gpio into a full subsystem (like pinctrl)
+> 
+> This should make things less blurry and easier to maintain (less header files, 
+> only one interface, etc.) GPIO controllers would also be better integrated 
+> into the driver model.
 
---1yeeQ81UyVL57Vl7
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Yes, I think that would be good.
 
-On Wed, Jan 09, 2013 at 11:10:55AM +0000, Russell King - ARM Linux wrote:
-[...]
->         err =3D gpio_request(en_vdd_1v05, "EN_VDD_1V05");
->         if (err) {
->                 pr_err("%s: gpio_request failed: %d\n", __func__, err);
->                 return err;
->         }
->=20
->         gpio_direction_output(en_vdd_1v05, 1);
->=20
->         regulator =3D regulator_get(NULL, "vdd_ldo0,vddio_pex_clk");
->         if (IS_ERR_OR_NULL(regulator)) {
->                 pr_err("%s: regulator_get failed: %d\n", __func__,
->                        (int)PTR_ERR(regulator));
->                 goto err_reg;
->         }
-> ...
-> err_reg:
->         gpio_free(en_vdd_1v05);
->=20
->         return err;
-> }
->=20
-> So 'err' here is never set.  when IS_ERR_OR_NULL evaluates true.
-> Setting 'err' to PTR_ERR(regulator) is not correct because a NULL return
-> sets 'err' to zero.
+I've tried to find platforms that don't yet use GPIOLIB and fortunately
+there are very few left:
 
-FWIW, this one is fixed in the Tegra PCIe series I posted yesterday.
+I found two that provide the generic gpio interfaces when gpiolib
+is disabled, but use gpiolib otherwise for the same hardware,
+arch/m68k/include/asm/mcfgpio.h and arch/blackfin/include/asm/gpio.h.
+I would assume that we can simply remove the non-gpiolib shortcut
+here at cost of a small overhead.
 
-Thierry
+Then there are a bunch that use gpiolib but have a nontrivial
+implementation of gpio_get_value and other functions. I'm not sure
+if these are a problematic with your code.
 
---1yeeQ81UyVL57Vl7
-Content-Type: application/pgp-signature
+> > Regarding the integration of pinctrl with gpio,
+> > I was thinking in the past that we could make pinctrl provide everything
+> > that gpiolib does, and have a generic gpiolib driver on top of pinctrl
+> > so that platforms don't need to implement both interfaces but only need
+> > to provide a pure pinctrl driver. Not sure if this makes any sense.
+> 
+> That would work if all GPIOs were connected to a ball, but how about GPIO 
+> expanders that are external to the chip? They have no use for pinctrl AFAICT. 
+> On the other hand, maybe we can have one pinctrl-gpio driver for those chips 
+> where pinctrl alone can emulate all the functionality of a GPIO controller. 
+> Maybe such a driver exists already?
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v2.0.19 (GNU/Linux)
+I don't think we have that yet, but it would be another option: rather
+than putting a generic gpiolib driver on top of pinctrl, we could have
+pinctrl support for all gpios that go through gpiolib, and move device
+drivers over to use pinctrl as the way to manage gpios rather than the
+classic gpio drivers. That would be a larger change though, and require
+that we pull in the pinctrl subsystem on a lot of machines that don't
+need it today.
 
-iQIcBAEBAgAGBQJQ7n2fAAoJEN0jrNd/PrOhtWoQAIsub3xEWnrISfzqdxi0DgBM
-BLYxCMLkSmhXzNdhhvRKVE/G1O/YaH/vGwR/NsawCEm5/LzCIiqa8qLwUlkcslfV
-KpojQmCqR7ajIDC4YhPC4BZHoTbOSZiDWPjEuYnu7cY42lWLlYLpUrIuj1EPpej4
-SYAk2giYo+r1j+Ysp5875zCR+RusWLnKe6np+3ZdglFLOS33g4AjI2a9BTDZhEZN
-Pe3JLvGbE0r5/5DXicHkHqQ1e+YnqW5M7LoVBSBG+52RQtZN13gzS1AKmi+pLlS6
-syA5SJjZyfuAT9PFOE7g67kQDhmwSu6P5Ea+hgeGWOJeDMtdILw9g9BF1P9DgIxp
-Rhn0pK2lCIqamGj1i2on5kehxvvuUbZ+A9h4aF1uQ//GLUI609jhHJGuV2qJsJVk
-imK8ujvR44foHd50rcag1XJbiVzcnpMJ9hrVX1cqqrCMzmtsNVLYGZsnVCH8G0Yk
-4TTAtijQbRJWJq8TC0tt0UzDdQ35PIOa3WJf+bqad1fpVONbqBHpzax5/xbBW9KR
-TEW/lfukgEF2Vz+KU5k6cUnonJypGWp+DXuTKBT2BNoacZRuBoy1TwxmDkiNsptm
-rckwDHaz5NsmFmziXJwuyvXqcs0tvdeJcdrTdn6LZ05xxJa8inYMUFTjDPv9CXp3
-UxWTJMbu2DgYrcw51W9l
-=9ho0
------END PGP SIGNATURE-----
-
---1yeeQ81UyVL57Vl7--
+	Arnd
