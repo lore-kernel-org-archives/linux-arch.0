@@ -1,74 +1,81 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
+From: James Hogan <james.hogan@imgtec.com>
 Subject: Re: [PATCH v3 00/44] Meta Linux Kernel Port
-Date: Sat, 12 Jan 2013 00:03:36 +1100
-Message-ID: <20130112000336.1f24c42237fab4fe0c305ff6@canb.auug.org.au>
-References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
-	<20130111103442.b80ddbfb11ef322ed28ca3b3@canb.auug.org.au>
-	<50EFD824.3010502@imgtec.com>
+Date: Fri, 11 Jan 2013 13:16:26 +0000
+Message-ID: <50F010AA.2010708@imgtec.com>
+References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com> <20130111103442.b80ddbfb11ef322ed28ca3b3@canb.auug.org.au> <50EFD824.3010502@imgtec.com> <20130112000336.1f24c42237fab4fe0c305ff6@canb.auug.org.au>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Sat__12_Jan_2013_00_03_36_+1100_88aUAhPAZ.vJ83S1"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from haggis.pcug.org.au ([203.10.76.10]:38362 "EHLO
-	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753137Ab3AKNDs (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Jan 2013 08:03:48 -0500
-In-Reply-To: <50EFD824.3010502@imgtec.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
+Content-Type: multipart/signed; micalg=pgp-sha1;
+	protocol="application/pgp-signature";
+	boundary="------------enig823A3CD30027C9D3E2467A1F"
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20130112000336.1f24c42237fab4fe0c305ff6@canb.auug.org.au>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Stephen Rothwell <sfr@canb.auug.org.au>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
---Signature=_Sat__12_Jan_2013_00_03_36_+1100_88aUAhPAZ.vJ83S1
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
+--------------enig823A3CD30027C9D3E2467A1F
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: quoted-printable
 
-Hi James,
+Hi Stephen,
 
-On Fri, 11 Jan 2013 09:15:16 +0000 James Hogan <james.hogan@imgtec.com> wro=
-te:
->
-> On 10/01/13 23:34, Stephen Rothwell wrote:
-> > You really should not base development work on linux-next and before I
-> > can include it there you will need to rebase it onto Linus' tree (or so=
-me
-> > other tree that does not rebase).  Its OK to test by doing a merge with
-> > linux-next ...
+On 11/01/13 13:03, Stephen Rothwell wrote:
+> On Fri, 11 Jan 2013 09:15:16 +0000 James Hogan <james.hogan@imgtec.com>=
+ wrote:
+>>
+>> On 10/01/13 23:34, Stephen Rothwell wrote:
+>>> You really should not base development work on linux-next and before =
+I
+>>> can include it there you will need to rebase it onto Linus' tree (or =
+some
+>>> other tree that does not rebase).  Its OK to test by doing a merge wi=
+th
+>>> linux-next ...
+>>
+>> Thanks for the info Stephen. So I suppose if the patchset depended on
+>> things in -next the normal way to do it would be to merge in the
+>> individual trees I needed first?
 >=20
-> Thanks for the info Stephen. So I suppose if the patchset depended on
-> things in -next the normal way to do it would be to merge in the
-> individual trees I needed first?
+> Yep, but please let the maintainers of those trees know that you expect=
 
-Yep, but please let the maintainers of those trees know that you expect
-their tree to not be rebased.  Or, if if they aren't really dependencies
-just conflicts, then leave the other tree out and let me and Linus fix
-the conflicts when we merge your tree.
+> their tree to not be rebased.  Or, if if they aren't really dependencie=
+s
+> just conflicts, then leave the other tree out and let me and Linus fix
+> the conflicts when we merge your tree.
+>=20
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
+Okay, thanks. Due to the recent merge window the dependencies are
+trivial at the moment, and it wouldn't introduce build breakage to
+exclude them (i.e. it's just removing selects from Kconfig files and
+defconfigs that have been removed in linux-next), so I'll exclude those
+changes for now and deal with them later.
 
---Signature=_Sat__12_Jan_2013_00_03_36_+1100_88aUAhPAZ.vJ83S1
-Content-Type: application/pgp-signature
+Cheers
+James
+
+
+--------------enig823A3CD30027C9D3E2467A1F
+Content-Type: application/pgp-signature; name="signature.asc"
+Content-Description: OpenPGP digital signature
+Content-Disposition: attachment; filename="signature.asc"
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.12 (GNU/Linux)
 
-iQIcBAEBCAAGBQJQ8A2oAAoJEECxmPOUX5FEy0kP/0KXjBA9LnJ9I0fed4BdYHMM
-RhldOvQWyOdqIzG4JwGvOdDeZxlv1lRE7hdeyyC5O+WSDR9XTjj3HcrvtOo0GhUU
-30ulvxpQvhzHago7c0guAWfrxcPWGidWBU8K7W8HfeR4/le8MlrBSaRU+YmJFoFY
-00QRWcMbyt/CobtwcklqxQb0HJYyN/WieHu7BOi3oskPZh+UA2UEov1CXJVlyT9G
-lsx82U2e1OO77CBUurMLYKnGn8trP6YIVyEFTRu0/IyP7knBO7w4GOarCqhiXQ18
-nedZzOKTNAps/Z3fukkzeLuZ0L8rHF17MaPvlOSRPnrhfmtQP0P1eyS02tcZDDCU
-UZn8HMVWTgfJ+iGvioDpeUrB0Jh5MoiNELxcqHSZXsYvozpRdkRW6W5Xq/B61npr
-jGk/VlKHKnDS8tQhw6i9EunmbsajZJNszO4Ondz6JTtNznrlB/OPfYGJa/4f5UEV
-r6uS0YrloCHe+axo6Vmbk9A7yOzVlVhMIea39RRKz1N3v13nDpExB2+e48slz1qV
-A37ESt6zE0yAX0Cs4G6N5ZhU4PPOGKO9DmlTKbirk0Sgt5geYlRFW+UWvXy9o5aG
-5bLHwrMA5RXjWnfyI3IHklgEaWjGdnPsdsGzSFCPvpTdQpyOZ4P4hqLHBqQDpvUb
-v2U++lfqxTmcXRT4NJLm
-=Pszm
+iQIcBAEBAgAGBQJQ8BC8AAoJEKHZs+irPybfYfAP/jY3PVHNZdb4SHsvUII13uIR
+/8mhNdpuIMMWSKHdXwCsu/A/AhbjIT77ubwtIQoZgfI6d3RIdzEKV3eyr0UcP0lW
+JwG++P1wuSLSQTu9/pZVLR7LJsydFj2qsyQhnBNt1ApdjrkoEW+0nDrSfk6Wy0vY
+5Wb0hSLft/CZRa5iWcXBt5JEI0VWPXwQBOXanrEfGCGFk97yB1Ysjj24PjJXaeJG
+6/Ue3Dns2abEK1O+anzbYT/BrHEo9C+LtcxooNgD9G4NfjoNgJ+ZAFq1xRdmicqQ
+19/wg99m7HfSLcf+GQhzSX7vi8wfvN/VQx1uf8/HlDoE5fiNNfqTM/tyeu7p2oRT
+tgVGNuQSAqnT8Lr2hUExETHoS1lXJsyIuhxgDdEStROgexIWYDNflD5n2Z8/6aOl
+cQ3UTsIY56+K2td5br3BX96RzuTniYNMSl4q1Q5QGsePwhLQBM++72txx3qhVKJY
+FVn02bBGIqKd4vyVEJ0mCn8oLgv/PAGtP5Xjp3sZ92+kHyLVPvoFR7Wtc/sJyICy
+zzR1Y1UW5STSJKqs9BvHbydpCzEFQ/8ulix8F6GlLeGJNfqDoWow0NSPOuWkxA8x
+/3+oEbg81IeqFC0/98hnxmslJ9yxy07Q9JF9s5kNtT6c6ZJJmRK/xnQItrMqR1H3
+Lcs+RmlKm8D3N0Lfb/+h
+=tEmQ
 -----END PGP SIGNATURE-----
 
---Signature=_Sat__12_Jan_2013_00_03_36_+1100_88aUAhPAZ.vJ83S1--
+--------------enig823A3CD30027C9D3E2467A1F--
