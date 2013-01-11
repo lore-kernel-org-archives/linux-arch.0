@@ -1,64 +1,210 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v3 00/44] Meta Linux Kernel Port
-Date: Fri, 11 Jan 2013 09:15:16 +0000
-Message-ID: <50EFD824.3010502@imgtec.com>
-References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com> <20130111103442.b80ddbfb11ef322ed28ca3b3@canb.auug.org.au>
+Subject: Re: [PATCH v3 41/44] metag: OProfile
+Date: Fri, 11 Jan 2013 09:43:04 +0000
+Message-ID: <50EFDEA8.2070505@imgtec.com>
+References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com> <1357831872-29451-42-git-send-email-james.hogan@imgtec.com> <50EEF67F.4010703@us.ibm.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature";
-	boundary="------------enig9A398C600C74AEA053665CC8"
+Content-Type: multipart/mixed;
+	boundary="------------050702080800020604030507"
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:56801 "EHLO multi.imgtec.com"
+Received: from multi.imgtec.com ([194.200.65.239]:56883 "EHLO multi.imgtec.com"
 	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753217Ab3AKJQE (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 11 Jan 2013 04:16:04 -0500
-In-Reply-To: <20130111103442.b80ddbfb11ef322ed28ca3b3@canb.auug.org.au>
+	id S1752596Ab3AKJnJ (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 11 Jan 2013 04:43:09 -0500
+In-Reply-To: <50EEF67F.4010703@us.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Maynard Johnson <maynardj@us.ibm.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, oprofile-list@lists.sf.net
 
---------------enig9A398C600C74AEA053665CC8
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: quoted-printable
+--------------050702080800020604030507
+Content-Type: text/plain; charset="ISO-8859-1"
+Content-Transfer-Encoding: 7bit
 
-On 10/01/13 23:34, Stephen Rothwell wrote:
-> You really should not base development work on linux-next and before I
-> can include it there you will need to rebase it onto Linus' tree (or so=
-me
-> other tree that does not rebase).  Its OK to test by doing a merge with=
+Hi Maynard,
 
-> linux-next ...
+On 10/01/13 17:12, Maynard Johnson wrote:
+>> +static void kernel_backtrace_fp(unsigned long *fp, unsigned long *stack,
+>> +				unsigned int depth)
+>> +{
+...
+>> +#ifdef CONFIG_KALLSYMS
+>> +		/* If we've reached TBIBoingVec then we're at an interrupt
+>> +		 * entry point or a syscall entry point. The frame pointer
+>> +		 * points to a pt_regs which can be used to continue tracing on
+>> +		 * the other side of the boing.
+>> +		 */
+>> +		if (tbi_boing_size && addr >= tbi_boing_addr &&
+>> +				addr < tbi_boing_addr + tbi_boing_size) {
+>> +			struct pt_regs *regs = (struct pt_regs *)fp;
+>> +			/* OProfile doesn't understand backtracing into
+>> +			 * userland.
+>> +			 */
+> Since we can only get into kernel_backtrace_fp if user_mode(regs) == 0, why the if-statement?
 
-Thanks for the info Stephen. So I suppose if the patchset depended on
-things in -next the normal way to do it would be to merge in the
-individual trees I needed first?
+Because this regs comes from the stack, so it could be a userland
+context from the point of entry into the kernel.
+
+>> +			if (!user_mode(regs) && --depth) {
+>> +				oprofile_add_trace(regs->ctx.CurrPC);
+>> +				metag_backtrace(regs, depth);
+>> +			}
+...
+>> +
+>> +/*
+>> + * Unfortunately we don't have a native exception or interrupt for counter
+>> + * overflow.
+>> + *
+>> + * OProfile on the other hand likes to have samples taken periodically, so
+>> + * for now we just piggyback the timer interrupt to get the expected
+>> + * behavior.
+>> + */
+>> +
+> I presume an oprofile userspace patch is forthcoming.
+
+Yes, unfortunately it's not included in our public buildroot tree yet,
+but there's a slightly older patch (semantically identical) available in
+the Pure ONE Flow release from http://www.pure.com/gpl/ in
+metag-buildroot2/package/oprofile/oprofile-0.9.4-003-metag.patch and
+also attached to this email.
+
+It could probably do with some updating tbh though...
+
+> As you probably know already, each event definition in oprofile
+userspace requires a minimum 'count' value, which is the number of
+events to occur before taking a sample.  With your userspace patch, you
+should try to set min count values such that the fastest arrival rate
+for the given event can be caught within (or near) one timer tick.
+
+Yes, it appears the values are all left at 1000 in the patch which is
+likely suboptimal.
+
+>> +static int meta_timer_notify(struct pt_regs *regs)
+>> +{
+>> +	int i;
+>> +	u32 val, total_val, sub_val;
+>> +	u32 enabled_threads;
+>> +
+>> +	for (i = 0; i < NR_CNTRS; i++) {
+>> +		if (!ctr[i].enabled)
+>> +			continue;
+>> +
+>> +		/* Disable performance monitoring. */
+>> +		enabled_threads = meta_read_counter(i);
+>> +		meta_write_counter(i, 0);
+>> +
+>> +		sub_val = total_val = val = enabled_threads & PERF_COUNT_BITS;
+>> +
+>> +		if (val >= ctr[i].count) {
+>> +			while (val > ctr[i].count) {
+>> +				oprofile_add_sample(regs, i);
+> I don't see a good reason for adding multiple samples using the same regs values.  As a matter of fact, it could really skew results under certain conditions.
+
+I suspect the reasoning was to give more weight if the count is higher.
+If that's not the usual way I'll change it.
+
+Thanks for giving it a look.
 
 Cheers
 James
 
+--------------050702080800020604030507
+Content-Type: text/x-patch; name="oprofile-0.9.4-003-metag.patch"
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment; filename="oprofile-0.9.4-003-metag.patch"
 
---------------enig9A398C600C74AEA053665CC8
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
+diff -ruNP oprofile-0.9.4.orig/daemon/opd_cookie.c oprofile-0.9.4/daemon/opd_cookie.c
+--- oprofile-0.9.4.orig/daemon/opd_cookie.c	2008-05-21 13:30:15.000000000 +0100
++++ oprofile-0.9.4/daemon/opd_cookie.c	2009-12-01 17:10:37.000000000 +0000
+@@ -64,7 +64,8 @@
+ 	|| (defined(__mips__) && (_MIPS_SIM == _MIPS_SIM_ABI32) \
+ 	    && defined(__MIPSEB__)) \
+         || (defined(__arm__) && defined(__ARM_EABI__) \
+-            && defined(__ARMEB__))
++            && defined(__ARMEB__)) \
++		|| (defined(__metag__))
+ static inline int lookup_dcookie(cookie_t cookie, char * buf, size_t size)
+ {
+ 	return syscall(__NR_lookup_dcookie, (unsigned long)(cookie >> 32),
+diff -ruNP oprofile-0.9.4.orig/events/metag/events oprofile-0.9.4/events/metag/events
+--- oprofile-0.9.4.orig/events/metag/events	1970-01-01 01:00:00.000000000 +0100
++++ oprofile-0.9.4/events/metag/events	2009-12-01 17:09:35.000000000 +0000
+@@ -0,0 +1,12 @@
++# metag events
++#
++event:0x00 counters:0,1 um:threads minimum:1000 name:CYCLES_SUPERTHREADS : cycles with superthreads
++event:0x01 counters:0,1 um:threads minimum:1000 name:DCACHE_MISS : data cache misses
++event:0x02 counters:0,1 um:threads minimum:1000 name:CYCLES_WITH_REWINDS : cycles with rewinds and superthreads (for all threads)
++event:0x03 counters:0,1 um:threads minimum:1000 name:CYCLES_SINCE_START : cycles since execution start (for all threads)
++event:0x08 counters:0,1 um:threads minimum:1000 name:DCACHE_HITS : data cache hits
++event:0x09 counters:0,1 um:threads minimum:1000 name:ICACHE_HITS : instruction cache hits
++event:0x0a counters:0,1 um:threads minimum:1000 name:ICACHE_MISS : instruction cache misses
++event:0x0b counters:0,1 um:threads minimum:1000 name:CYCLES_DCACHE_STALLED : cycles data cache stalled at MMU
++event:0x0c counters:0,1 um:threads minimum:1000 name:CYCLES_ICACHE_STALLED : cycles instruction cache stalled at MMU
++event:0x0f counters:0,1 um:threads minimum:1000 name:EXTERNAL_EVENTS : external events selected by crossbar performance channel 0 register
+diff -ruNP oprofile-0.9.4.orig/events/metag/unit_masks oprofile-0.9.4/events/metag/unit_masks
+--- oprofile-0.9.4.orig/events/metag/unit_masks	1970-01-01 01:00:00.000000000 +0100
++++ oprofile-0.9.4/events/metag/unit_masks	2009-12-01 17:09:35.000000000 +0000
+@@ -0,0 +1,10 @@
++# metag performance counters possible unit masks
++#
++# These are used to turn on performance counting for
++# particular threads.
++name:threads type:bitmask default:0x0f
++	0x01 Monitor Thread 1
++	0x02 Monitor Thread 2
++	0x03 Monitor Thread 3
++	0x04 Monitor Thread 4
++	0x0f Monitor all threads
+diff -ruNP oprofile-0.9.4.orig/libop/op_cpu_type.c oprofile-0.9.4/libop/op_cpu_type.c
+--- oprofile-0.9.4.orig/libop/op_cpu_type.c	2008-02-22 16:17:48.000000000 +0000
++++ oprofile-0.9.4/libop/op_cpu_type.c	2009-12-01 17:09:35.000000000 +0000
+@@ -74,6 +74,7 @@
+ 	{ "ppc64 POWER5++", "ppc64/power5++", CPU_PPC64_POWER5pp, 6 },
+ 	{ "e300", "ppc/e300", CPU_PPC_E300, 4 },
+ 	{ "AVR32", "avr32", CPU_AVR32, 3 },
++	{ "metag", "metag", CPU_META, 2 },
+ };
+  
+ static size_t const nr_cpu_descrs = sizeof(cpu_descrs) / sizeof(struct cpu_descr);
+diff -ruNP oprofile-0.9.4.orig/libop/op_cpu_type.h oprofile-0.9.4/libop/op_cpu_type.h
+--- oprofile-0.9.4.orig/libop/op_cpu_type.h	2008-02-22 16:17:48.000000000 +0000
++++ oprofile-0.9.4/libop/op_cpu_type.h	2009-12-01 17:09:35.000000000 +0000
+@@ -72,6 +72,7 @@
+ 	CPU_PPC64_POWER5pp,  /**< ppc64 Power5++ family */
+ 	CPU_PPC_E300, /**< e300 */
+ 	CPU_AVR32, /**< AVR32 */
++	CPU_META, /**< META */
+ 	MAX_CPU_TYPE
+ } op_cpu;
+ 
+diff -ruNP oprofile-0.9.4.orig/libop/op_events.c oprofile-0.9.4/libop/op_events.c
+--- oprofile-0.9.4.orig/libop/op_events.c	2008-02-22 16:17:48.000000000 +0000
++++ oprofile-0.9.4/libop/op_events.c	2009-12-01 17:09:35.000000000 +0000
+@@ -852,6 +852,11 @@
+ 			descr->name = "CPU_CLK";
+ 			break;
+ 
++		case CPU_META:
++			descr->name = "CYCLES_SINCE_START";
++			descr->um = 0x01;	// Monitor thread 1 perf
++			break;
++
+ 		// don't use default, if someone add a cpu he wants a compiler
+ 		// warning if he forgets to handle it here.
+ 		case CPU_TIMER_INT:
+diff -ruNP oprofile-0.9.4.orig/libutil/op_cpufreq.c oprofile-0.9.4/libutil/op_cpufreq.c
+--- oprofile-0.9.4.orig/libutil/op_cpufreq.c	2003-11-04 04:26:45.000000000 +0000
++++ oprofile-0.9.4/libutil/op_cpufreq.c	2009-12-02 10:19:20.000000000 +0000
+@@ -51,6 +51,9 @@
+ 			fval = uval / 1E6;
+ 			break;
+ 		}
++		/* metag */
++		if (sscanf(line, "Clocking: %lfMHz", &fval) == 1)
++			break;
+ 		/* s390 doesn't provide cpu freq, checked up to 2.6-test4 */
+ 
+ 		free(line);
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
-
-iQIcBAEBAgAGBQJQ79grAAoJEKHZs+irPybfUNIP/A3vfrCBCfUULMGteFjFOqgv
-F7EY5et8Xw9OnZemgEzayjBxeVSJMul7FiSoo+O8YNHNZt9MGamWdl2uCL2FZjgL
-KIVq6yP3yPfhXb/+i9uVn/ZJU55PV+4nFfd0Z0JYBMoJ/6sD2Lgw7VGfn4nGK7kN
-AiMAosshoP4TuJkkxpmQRV3wbXtjmd3+GMshX7y3TRZO7zhoy+FpeMKFa3/Q3b+u
-Npjfq9YWZmoVo/9oHnv7AV4dZlINmrJl335VPjxQQG1gbKg5TaXo3A7cNkD6ygBI
-BjSbwWU57ajW+R+Y8WyIQM/6sfEdXeVEcy3kNw4o0ge88qXcNdsAsCAPHS0Zs+SC
-uTFoue/6dAIgC7HUgLFZDnx9B7zn1RjeZkQ14082wZ0hP/g6hTfr7bSop0BuFW9W
-k08l4O2TV2nsXQ1gk4r9Vr1zfL2iBJUNgjXfl8dwi1IbW46Qcf/6JsTZwUImw01F
-/gdIhMCtOJet1HMmw937K2Sg4PVTbRKoKy5+O4yUnn4td1Mz9k5xLsnsfDfwU63I
-UxLu5e/m3qEciEjWRCsb/Ko1V6l4ioXfaKy7BOAOjlixTeOcSCxeyuMo1T1TE2V0
-xk7CvW/iQvukH40bgmc98AcEvIJyGve1XldDj4BzXJd6uvtHYVW2mn18RjTo7Lci
-4lg7hz20B81ZlWKdWnMr
-=Kuri
------END PGP SIGNATURE-----
-
---------------enig9A398C600C74AEA053665CC8--
+--------------050702080800020604030507--
