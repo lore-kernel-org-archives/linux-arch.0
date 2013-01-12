@@ -1,89 +1,74 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:56755 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1753787Ab3AKPCP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Fri, 11 Jan 2013 10:02:15 -0500
-Message-ID: <50F0296E.2000704@imgtec.com>
-Date: Fri, 11 Jan 2013 15:02:06 +0000
-From: James Hogan <james.hogan@imgtec.com>
-MIME-Version: 1.0
+Received: from haggis.pcug.org.au ([203.10.76.10]:39973 "EHLO
+	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754845Ab3ALBJ7 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 11 Jan 2013 20:09:59 -0500
+Date: Sat, 12 Jan 2013 12:09:57 +1100
+From: Stephen Rothwell <sfr@canb.auug.org.au>
 Subject: Re: [PATCH v3 00/44] Meta Linux Kernel Port
-References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com> <20130111103442.b80ddbfb11ef322ed28ca3b3@canb.auug.org.au> <50EFD824.3010502@imgtec.com> <20130112000336.1f24c42237fab4fe0c305ff6@canb.auug.org.au>
-In-Reply-To: <20130112000336.1f24c42237fab4fe0c305ff6@canb.auug.org.au>
-Content-Type: multipart/signed; micalg=pgp-sha1;
-	protocol="application/pgp-signature";
-	boundary="------------enigAEBAD9ED7F3CBF3A8415926C"
+Message-ID: <20130112120957.36df3412c9d6cca089a0340a@canb.auug.org.au>
+In-Reply-To: <50F0296E.2000704@imgtec.com>
+References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
+	<20130111103442.b80ddbfb11ef322ed28ca3b3@canb.auug.org.au>
+	<50EFD824.3010502@imgtec.com>
+	<20130112000336.1f24c42237fab4fe0c305ff6@canb.auug.org.au>
+	<50F0296E.2000704@imgtec.com>
+Mime-Version: 1.0
+Content-Type: multipart/signed; protocol="application/pgp-signature";
+ micalg="PGP-SHA256";
+ boundary="Signature=_Sat__12_Jan_2013_12_09_57_+1100_POYultyISUFo+wkQ"
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
+To: James Hogan <james.hogan@imgtec.com>
 Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
-Message-ID: <20130111150206.0TlUuxyXz_udvtQhEewPtoblx6jnkSDPxUN_SIwT1l8@z>
+Message-ID: <20130112010957.ZE89K--Q2znhnmhxNSUhaEOGcCVBIcRCJ7emApuD4Hs@z>
 
---------------enigAEBAD9ED7F3CBF3A8415926C
-Content-Type: text/plain; charset=ISO-8859-1
+--Signature=_Sat__12_Jan_2013_12_09_57_+1100_POYultyISUFo+wkQ
+Content-Type: text/plain; charset=US-ASCII
+Content-Disposition: inline
 Content-Transfer-Encoding: quoted-printable
 
-Hi,
+Hi James,
 
-On 11/01/13 13:03, Stephen Rothwell wrote:
-> On Fri, 11 Jan 2013 09:15:16 +0000 James Hogan <james.hogan@imgtec.com>=
- wrote:
->>
->> On 10/01/13 23:34, Stephen Rothwell wrote:
->>> You really should not base development work on linux-next and before =
-I
->>> can include it there you will need to rebase it onto Linus' tree (or =
-some
->>> other tree that does not rebase).  Its OK to test by doing a merge wi=
-th
->>> linux-next ...
->>
->> Thanks for the info Stephen. So I suppose if the patchset depended on
->> things in -next the normal way to do it would be to merge in the
->> individual trees I needed first?
->=20
-> Yep, but please let the maintainers of those trees know that you expect=
+On Fri, 11 Jan 2013 15:02:06 +0000 James Hogan <james.hogan@imgtec.com> wro=
+te:
+>
+> Okay, I've rebased the metag tree from linux-next onto the master branch
+> of Al's signal tree (to get Vineet's GENERIC_SIGALTSTACK fix and
+> GENERIC_SIGALTSTACK's eventual removal).
 
-> their tree to not be rebased.  Or, if if they aren't really dependencie=
-s
-> just conflicts, then leave the other tree out and let me and Linus fix
-> the conflicts when we merge your tree.
->=20
+OK, but I hope you mentioned not rebasing to Al.
 
-Okay, I've rebased the metag tree from linux-next onto the master branch
-of Al's signal tree (to get Vineet's GENERIC_SIGALTSTACK fix and
-GENERIC_SIGALTSTACK's eventual removal).
+> git://github.com/jahogan/metag-linux.git
+> branch: metag-core
+> tag: metag-core-v3.1
 
-git://github.com/jahogan/metag-linux.git
-branch: metag-core
-tag: metag-core-v3.1
+When you think it is sufficiently ready (and I am guessing that it is
+getting pretty close), please send me a request to add it to linux-next.
 
-Cheers
-James
+--=20
+Cheers,
+Stephen Rothwell                    sfr@canb.auug.org.au
 
-
---------------enigAEBAD9ED7F3CBF3A8415926C
-Content-Type: application/pgp-signature; name="signature.asc"
-Content-Description: OpenPGP digital signature
-Content-Disposition: attachment; filename="signature.asc"
+--Signature=_Sat__12_Jan_2013_12_09_57_+1100_POYultyISUFo+wkQ
+Content-Type: application/pgp-signature
 
 -----BEGIN PGP SIGNATURE-----
 Version: GnuPG v1.4.12 (GNU/Linux)
 
-iQIcBAEBAgAGBQJQ8Cl0AAoJEKHZs+irPybf2hAP/AiKST0JbqNY2uCwBakkFyIt
-iwsqU7B5RZG1R9ExEdyGE69V8PK3FS1OMt3cja5G8bppsopjzcHR1mW/r0hJ4rlu
-hZ25+yABlZUxctmxIsxXzcerNLQ/Fd7IUjpOEMlroR/7o2UooF1C0wykVgMcB0za
-B1DUQlArTtYKthYDtzMeXEHgrBWM6yRy0tbnDLZB9eJgbvxET9mL6X95tnJxwrjD
-UDA0bbOyleJa5LyGsx6+L2RCgvgbxc4Ys77PvnSU52Tzs0qdIxqhyblsiuNRPGyq
-SPC+MxvCZRrq66EG6yDLQcVhyZXLj56GvseLE2NsTqIgmzUGz7uDDIXRiM/xP7N8
-pdNBJUlKwvkR4ztbScS2oUYuzzqf7xhodCbNVM6Jdp82uLOXbrISgYiXkJ/5UDIi
-M7PQa70DKuaZtXUYaSxvIw0DH3zyQCaSg/M0y7ivfo+AuO2MHFpaZQapY6uoxKCA
-n+YIJAg07/lpw26SWqAWrKCiyHNUB4y6A1I1INOADMIbxOLzBNzVPVRuqdRysLQj
-cWozwOWQ/zA2RDoJ5cHe65CAqEyNn1DkiZR96OaCoST3X+oEahuwTV2G3E431gZa
-JBJu2lLsHlUuxgcn7PaYwo0dzLNvfHJr/nxIO2r2DAmPIhgArTmPw+GXp92g/RaY
-yMYaEhJWnMSupoG3zHi2
-=vMXK
+iQIcBAEBCAAGBQJQ8LflAAoJEECxmPOUX5FE3jEP/jRXJJcnTY7KXZm8grr0N17U
+IME1m838orRa+zHtSt05KbWkGdULKaKfWq4R85ZHTKrmmE0yqbW94fkNL9Fri7c1
+8nC8qeWdg54Kvjbl5l/mYbpjyXwYAcqLRp02el7iH9C5FYRTrxJNAeUG42l4eSpo
+LDsp9sR/nvmk0/jUy2ksNNbS0U23OaQ4og0YGaFbLsg0fHS98acs/RPGPs+y/r47
+RgeCVEAu47qjbLlQE4TzM7he8YKyhg93c9udeFsNwDj/HyCpIzkQB7Quyg4V58tQ
+hJgVMTnL2vqUnzj+tVOLqAKr625MyzBnB9apROj1j9DSIrW1Ksn4gD8QfIkSQlPX
+J1hZhmUURC61Oz2p0FNAn/qdMV/uhQkQfwi1ucDN+S6p2FUzohLQ2utadCT3U4T5
+HVF36Fvb46/e0xM/ZcbqiCHF0/924MSRaAOgVAupcn3qV09yJXOPit+UgKX8kWmX
+LdDwnu3CeHKPXuM0Fsj9MYrl2mcMRVcLHMubfWADHxA4cqtu5NoylCtIFajz8cva
+aB3WKntzVt6UoQvOl+oA0YpuR1qn9JjqcSk87BI+B1VPF4RSMZ6vSLuMb5GyO8qs
+nKXeaS9XdpWQJvo2S86WN1GwR7pwir7SAU6TF8uqVqVvVYdWyjr6/hdX+1CMCvqi
+u7FqKfnm0oEImup24idn
+=+H2d
 -----END PGP SIGNATURE-----
 
---------------enigAEBAD9ED7F3CBF3A8415926C--
-
+--Signature=_Sat__12_Jan_2013_12_09_57_+1100_POYultyISUFo+wkQ--
