@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from juliette.telenet-ops.be ([195.130.137.74]:51236 "EHLO
+Received: from juliette.telenet-ops.be ([195.130.137.74]:51235 "EHLO
 	juliette.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754617Ab3AMKpD (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 13 Jan 2013 05:45:03 -0500
+	with ESMTP id S1754239Ab3AMKpE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 13 Jan 2013 05:45:04 -0500
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 6/9] m68k: Provide dma_mmap_coherent() and dma_get_sgtable()
-Date: Sun, 13 Jan 2013 11:44:47 +0100
-Message-ID: <1358073890-3610-6-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 7/9] mn10300: Provide dma_mmap_coherent() and dma_get_sgtable()
+Date: Sun, 13 Jan 2013 11:44:48 +0100
+Message-ID: <1358073890-3610-7-git-send-email-geert@linux-m68k.org>
 In-Reply-To: <1358073890-3610-1-git-send-email-geert@linux-m68k.org>
 References: <1358073890-3610-1-git-send-email-geert@linux-m68k.org>
 MIME-Version: 1.0
@@ -15,10 +15,10 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-m68k@lists.linux-m68k.org
-Message-ID: <20130113104447.AAfzEgyU4KiHlzegEeOsf65GFa3WCmPjlx-BFhR65Hc@z>
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-am33-list@redhat.com
+Message-ID: <20130113104448.iC_3Zcz2KO43MYC4SRaHwvoKNL836Fyes8dJkb5zeXA@z>
 
-m68k/allmodconfig:
+mn10300/allmodconfig:
 
 drivers/media/v4l2-core/videobuf2-dma-contig.c: In function ‘vb2_dc_mmap’:
 drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit declaration of function ‘dma_mmap_coherent’
@@ -28,22 +28,22 @@ drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit declaration 
 For architectures using dma_map_ops, dma_mmap_coherent() and
 dma_get_sgtable() are provided in <asm-generic/dma-mapping-common.h>.
 
-M68k does not use dma_map_ops, hence it should implement them as inline
+Mn10300 does not use dma_map_ops, hence it should implement them as inline
 stubs using dma_common_mmap() and dma_common_get_sgtable().
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: linux-m68k@lists.linux-m68k.org
+Cc: linux-am33-list@redhat.com
 ---
- arch/m68k/include/asm/dma-mapping.h |   10 ++++++++++
+ arch/mn10300/include/asm/dma-mapping.h |   10 ++++++++++
  1 files changed, 10 insertions(+), 0 deletions(-)
 
-diff --git a/arch/m68k/include/asm/dma-mapping.h b/arch/m68k/include/asm/dma-mapping.h
-index c68cdb4..05aa535 100644
---- a/arch/m68k/include/asm/dma-mapping.h
-+++ b/arch/m68k/include/asm/dma-mapping.h
-@@ -110,4 +110,14 @@ static inline int dma_mapping_error(struct device *dev, dma_addr_t handle)
- 	return 0;
+diff --git a/arch/mn10300/include/asm/dma-mapping.h b/arch/mn10300/include/asm/dma-mapping.h
+index c1be439..f7a4311 100644
+--- a/arch/mn10300/include/asm/dma-mapping.h
++++ b/arch/mn10300/include/asm/dma-mapping.h
+@@ -168,4 +168,14 @@ void dma_cache_sync(void *vaddr, size_t size,
+ 	mn10300_dcache_flush_inv();
  }
  
 +/* drivers/base/dma-mapping.c */
@@ -56,7 +56,7 @@ index c68cdb4..05aa535 100644
 +#define dma_mmap_coherent(d, v, c, h, s) dma_common_mmap(d, v, c, h, s)
 +#define dma_get_sgtable(d, t, v, h, s) dma_common_get_sgtable(d, t, v, h, s)
 +
- #endif  /* _M68K_DMA_MAPPING_H */
+ #endif
 -- 
 1.7.0.4
 
