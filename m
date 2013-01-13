@@ -1,67 +1,87 @@
-From: Stephen Rothwell <sfr@canb.auug.org.au>
-Subject: Re: [PATCH v3 00/44] Meta Linux Kernel Port
-Date: Sun, 13 Jan 2013 01:56:13 +1100
-Message-ID: <20130113015613.80043d6b51cb13cfcf8f09fe@canb.auug.org.au>
-References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
-	<20130111103442.b80ddbfb11ef322ed28ca3b3@canb.auug.org.au>
-	<50EFD824.3010502@imgtec.com>
-	<20130112000336.1f24c42237fab4fe0c305ff6@canb.auug.org.au>
-	<50F0296E.2000704@imgtec.com>
-	<20130112120957.36df3412c9d6cca089a0340a@canb.auug.org.au>
-	<20130112095507.GA1738@balrog>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [PATCH/RFC 4/4] common: dma-mapping: Move dma_common_*() to <linux/dma-mapping.h>
+Date: Sun, 13 Jan 2013 11:40:12 +0100
+Message-ID: <CAMuHMdVequkKT96i+7mhZnvogZrMPQDkd3d4EQxwZcvj5gSbWw@mail.gmail.com>
+References: <CAMuHMdVPBUzN8fsNHFzrEqev9BsvVCVR2fWySCOecjVA-J1qjg@mail.gmail.com>
+	<1356722614-18224-5-git-send-email-geert@linux-m68k.org>
+	<50E442A7.3010002@samsung.com>
 Mime-Version: 1.0
-Content-Type: multipart/signed; protocol="application/pgp-signature";
- micalg="PGP-SHA256";
- boundary="Signature=_Sun__13_Jan_2013_01_56_13_+1100_Nl0R0yNpjdUSz8TM"
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from haggis.pcug.org.au ([203.10.76.10]:58517 "EHLO
-	members.tip.net.au" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751220Ab3ALO42 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 12 Jan 2013 09:56:28 -0500
-In-Reply-To: <20130112095507.GA1738@balrog>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alexander Viro <viro@zeniv.linux.org.uk>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-m68k-owner@vger.kernel.org>
+In-Reply-To: <50E442A7.3010002@samsung.com>
+Sender: linux-m68k-owner@vger.kernel.org
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, linux-media@vger.kernel.org, linux-m68k@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
---Signature=_Sun__13_Jan_2013_01_56_13_+1100_Nl0R0yNpjdUSz8TM
-Content-Type: text/plain; charset=US-ASCII
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
+Hi Marek,
 
-Hi James,
-
-On Sat, 12 Jan 2013 09:55:07 +0000 James Hogan <james.hogan@imgtec.com> wro=
-te:
+On Wed, Jan 2, 2013 at 3:22 PM, Marek Szyprowski
+<m.szyprowski@samsung.com> wrote:
+> On 12/28/2012 8:23 PM, Geert Uytterhoeven wrote:
+>> dma_common_mmap() and dma_common_get_sgtable() are defined in
+>> drivers/base/dma-mapping.c, and always compiled if CONFIG_HAS_DMA=3D=
+y.
+>>
+>> However, their forward declarations and the inline functions defined=
+ on
+>> top
+>> of them (dma_mmap_attrs(), dma_mmap_coherent(), dma_mmap_writecombin=
+e(),
+>> dma_get_sgtable_attrs()), dma_get_sgtable()) are in
+>> <asm-generic/dma-mapping-common.h>, which is not included by all
+>> architectures supporting CONFIG_HAS_DMA=3Dy.  There exist no alterna=
+tive
+>> implementations.
+>>
+>> Hence for e.g. m68k allmodconfig, I get:
+>>
+>> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98=
+vb2_dc_mmap=E2=80=99:
+>> drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit
+>> declaration of function =E2=80=98dma_mmap_coherent=E2=80=99
+>> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function
+>> =E2=80=98vb2_dc_get_base_sgt=E2=80=99:
+>> drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit
+>> declaration of function =E2=80=98dma_get_sgtable=E2=80=99
+>>
+>> To fix this
+>>    - Move the forward declarations and inline definitions to
+>>      <linux/dma-mapping.h>, so all CONFIG_HAS_DMA=3Dy architectures =
+can use
+>>      them,
+>>    - Replace the hard "BUG_ON(!ops)" checks for dma_map_ops by soft
+>> checks,
+>>      so architectures can fall back to the common code by returning =
+NULL
+>>      from their get_dma_ops(). Note that there are no "BUG_ON(!ops)"
+>> checks
+>>      in other functions in <asm-generic/dma-mapping-common.h>,
+>>    - Make "struct dma_map_ops *ops" const while we're at it.
 >
-> Would "sufficiently ready" normally mean "in a state ready to send a
-> pull request to Linus"?
+>
+> I think that more appropriate way of handling it is to avoid dma_map_=
+ops
+> based
+> calls (those archs probably have some reasons why they don't use it a=
+t all)
+> and
+> provide static inline stubs which call dma_common_mmap and
+> dma_common_get_sgtable.
 
-That is the usual criteria.
+OK, I'll do that.
 
---=20
-Cheers,
-Stephen Rothwell                    sfr@canb.auug.org.au
+Gr{oetje,eeting}s,
 
---Signature=_Sun__13_Jan_2013_01_56_13_+1100_Nl0R0yNpjdUSz8TM
-Content-Type: application/pgp-signature
+                        Geert
 
------BEGIN PGP SIGNATURE-----
-Version: GnuPG v1.4.12 (GNU/Linux)
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
 
-iQIcBAEBCAAGBQJQ8XmNAAoJEECxmPOUX5FEDXgP/A5MAF5c6pl7+ghQiwhCYBnD
-rHuY38Mr6jZzfYnKOWX0piJM6Dw4M+uVU8zoNYsBWxEWxqERyvuA4vPMM3twyxk9
-mEPozpgKwNq50/wjJxvMtaOvaGuEH3Z3u29AK8ey6WJxAsjKKEm71Lb+RhxYLbDO
-xy7uy8XL2g8Ej3gbgERvKzlXGX2MkOkoiqxtU5SdKfYYWZS14ywRTezBGAlQcFsy
-jQqBJIKQhYaEgXQrvuY74R9mj98jbqr3phmj6OqEl7DEuJbRhG0Qvgt1wD1HDyDe
-RB0MQwsju+1kWktorM5aj6XZ8cAKRoNiv8VbQrKRVrL97wDlPKqjEOD1XdZ3BXZl
-f0Xa/z21MGZdjy3qt9iALLfOXSEobnf4HZ9nQHTE5wfPzcPrTHJULSTFZAXXmtD0
-YePeUQbOO5LB04z4dZ2ErTXhPfYLgYVAX0oIEh7Tr6+X3x3HVI+nsMRtO2dFsuVq
-7+9Zc2BBDmCDcwAp98iHY4kMFtzFVkmHEgi6BxEeCd0SJr6Ny9BjMvWj7snpUA33
-cUNtJGDpozRkZRfwzJd4FvfOmy4Bu3TAZYpDf+tApH/disUTl83AOdIS7E6F9sF3
-ifXgEepnC+E4DjE6r2kgoCn6fXm6i1zAIT9/Fjpnu5x80pBAQQBPZaWmqCS5PSAP
-UOHWNNd5e1JtVY8yFtxb
-=qdKe
------END PGP SIGNATURE-----
-
---Signature=_Sun__13_Jan_2013_01_56_13_+1100_Nl0R0yNpjdUSz8TM--
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+                                -- Linus Torvalds
