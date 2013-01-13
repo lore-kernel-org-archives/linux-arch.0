@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from juliette.telenet-ops.be ([195.130.137.74]:51235 "EHLO
+Received: from juliette.telenet-ops.be ([195.130.137.74]:51172 "EHLO
 	juliette.telenet-ops.be" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754594Ab3AMKpC (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sun, 13 Jan 2013 05:45:02 -0500
+	with ESMTP id S1754582Ab3AMKpB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 13 Jan 2013 05:45:01 -0500
 From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: [PATCH 5/9] frv: Provide dma_mmap_coherent() and dma_get_sgtable()
-Date: Sun, 13 Jan 2013 11:44:46 +0100
-Message-ID: <1358073890-3610-5-git-send-email-geert@linux-m68k.org>
+Subject: [PATCH 4/9] cris: Provide dma_mmap_coherent() and dma_get_sgtable()
+Date: Sun, 13 Jan 2013 11:44:45 +0100
+Message-ID: <1358073890-3610-4-git-send-email-geert@linux-m68k.org>
 In-Reply-To: <1358073890-3610-1-git-send-email-geert@linux-m68k.org>
 References: <1358073890-3610-1-git-send-email-geert@linux-m68k.org>
 MIME-Version: 1.0
@@ -15,10 +15,10 @@ Content-Transfer-Encoding: 8bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org
-Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, David Howells <dhowells@redhat.com>
-Message-ID: <20130113104446.eEeR-HAehzkri4QeYNgT8ymZvoKLkrQzfWw3FT3tyfQ@z>
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-cris-kernel@axis.com
+Message-ID: <20130113104445.arE-8pObKOnDt-FYCseCYSzRJQSRb5kWPb9F1t4yNAI@z>
 
-frv/allmodconfig:
+cris/allmodconfig:
 
 drivers/media/v4l2-core/videobuf2-dma-contig.c: In function ‘vb2_dc_mmap’:
 drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit declaration of function ‘dma_mmap_coherent’
@@ -28,22 +28,22 @@ drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit declaration 
 For architectures using dma_map_ops, dma_mmap_coherent() and
 dma_get_sgtable() are provided in <asm-generic/dma-mapping-common.h>.
 
-Frv does not use dma_map_ops, hence it should implement them as inline
+Cris does not use dma_map_ops, hence it should implement them as inline
 stubs using dma_common_mmap() and dma_common_get_sgtable().
 
 Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
 Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: David Howells <dhowells@redhat.com>
+Cc: linux-cris-kernel@axis.com
 ---
- arch/frv/include/asm/dma-mapping.h |   10 ++++++++++
+ arch/cris/include/asm/dma-mapping.h |   10 ++++++++++
  1 files changed, 10 insertions(+), 0 deletions(-)
 
-diff --git a/arch/frv/include/asm/dma-mapping.h b/arch/frv/include/asm/dma-mapping.h
-index dfb8110..e8142b0 100644
---- a/arch/frv/include/asm/dma-mapping.h
-+++ b/arch/frv/include/asm/dma-mapping.h
-@@ -132,4 +132,14 @@ void dma_cache_sync(struct device *dev, void *vaddr, size_t size,
- 	flush_write_buffers();
+diff --git a/arch/cris/include/asm/dma-mapping.h b/arch/cris/include/asm/dma-mapping.h
+index 8588b2c..2f0f654 100644
+--- a/arch/cris/include/asm/dma-mapping.h
++++ b/arch/cris/include/asm/dma-mapping.h
+@@ -158,5 +158,15 @@ dma_cache_sync(struct device *dev, void *vaddr, size_t size,
+ {
  }
  
 +/* drivers/base/dma-mapping.c */
@@ -56,7 +56,8 @@ index dfb8110..e8142b0 100644
 +#define dma_mmap_coherent(d, v, c, h, s) dma_common_mmap(d, v, c, h, s)
 +#define dma_get_sgtable(d, t, v, h, s) dma_common_get_sgtable(d, t, v, h, s)
 +
- #endif  /* _ASM_DMA_MAPPING_H */
+ 
+ #endif
 -- 
 1.7.0.4
 
