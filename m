@@ -1,60 +1,66 @@
-From: Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
-Subject: [PATCH 2/9] blackfin: Provide
-	dma_mmap_coherent() and dma_get_sgtable()
-Date: Sun, 13 Jan 2013 11:44:43 +0100
-Message-ID: <1358073890-3610-2-git-send-email-geert@linux-m68k.org>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: [PATCH 8/9] parisc: Provide dma_mmap_coherent() and dma_get_sgtable()
+Date: Sun, 13 Jan 2013 11:44:49 +0100
+Message-ID: <1358073890-3610-8-git-send-email-geert@linux-m68k.org>
 References: <1358073890-3610-1-git-send-email-geert@linux-m68k.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
-Return-path: <uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
-In-Reply-To: <1358073890-3610-1-git-send-email-geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>
-List-Unsubscribe: <https://blackfin.uclinux.org/mailman/options/uclinux-dist-devel>,
-	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=unsubscribe>
-List-Archive: <http://blackfin.uclinux.org/pipermail/uclinux-dist-devel>
-List-Post: <mailto:uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org>
-List-Help: <mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=help>
-List-Subscribe: <https://blackfin.uclinux.org/mailman/listinfo/uclinux-dist-devel>,
-	<mailto:uclinux-dist-devel-request-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org?subject=subscribe>
-Sender: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
-Errors-To: uclinux-dist-devel-bounces-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org
-To: linux-arch-u79uwXL29TY76Z2rM5mHXA@public.gmane.org
-Cc: uclinux-dist-devel-ZG0+EudsQA8dtHy/vicBwGD2FQJk+8+b@public.gmane.org, Geert Uytterhoeven <geert-Td1EMuHUCqxL1ZNQvxDV9g@public.gmane.org>, linux-kernel-u79uwXL29TY76Z2rM5mHXA@public.gmane.org, Marek Szyprowski <m.szyprowski-Sze3O3UU22JBDgjK7y7TUQ@public.gmane.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1358073890-3610-1-git-send-email-geert@linux-m68k.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: linux-arch@vger.kernel.org
+Cc: linux-kernel@vger.kernel.org, Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, linux-parisc@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-YmxhY2tmaW4vYWxsbW9kY29uZmlnOgoKZHJpdmVycy9tZWRpYS92NGwyLWNvcmUvdmlkZW9idWYy
-LWRtYS1jb250aWcuYzogSW4gZnVuY3Rpb24g4oCYdmIyX2RjX21tYXDigJk6CmRyaXZlcnMvbWVk
-aWEvdjRsMi1jb3JlL3ZpZGVvYnVmMi1kbWEtY29udGlnLmM6MjA0OiBlcnJvcjogaW1wbGljaXQg
-ZGVjbGFyYXRpb24gb2YgZnVuY3Rpb24g4oCYZG1hX21tYXBfY29oZXJlbnTigJkKZHJpdmVycy9t
-ZWRpYS92NGwyLWNvcmUvdmlkZW9idWYyLWRtYS1jb250aWcuYzogSW4gZnVuY3Rpb24g4oCYdmIy
-X2RjX2dldF9iYXNlX3NndOKAmToKZHJpdmVycy9tZWRpYS92NGwyLWNvcmUvdmlkZW9idWYyLWRt
-YS1jb250aWcuYzozODc6IGVycm9yOiBpbXBsaWNpdCBkZWNsYXJhdGlvbiBvZiBmdW5jdGlvbiDi
-gJhkbWFfZ2V0X3NndGFibGXigJkKCkZvciBhcmNoaXRlY3R1cmVzIHVzaW5nIGRtYV9tYXBfb3Bz
-LCBkbWFfbW1hcF9jb2hlcmVudCgpIGFuZApkbWFfZ2V0X3NndGFibGUoKSBhcmUgcHJvdmlkZWQg
-aW4gPGFzbS1nZW5lcmljL2RtYS1tYXBwaW5nLWNvbW1vbi5oPi4KCkJsYWNrZmluIGRvZXMgbm90
-IHVzZSBkbWFfbWFwX29wcywgaGVuY2UgaXQgc2hvdWxkIGltcGxlbWVudCB0aGVtIGFzIGlubGlu
-ZQpzdHVicyB1c2luZyBkbWFfY29tbW9uX21tYXAoKSBhbmQgZG1hX2NvbW1vbl9nZXRfc2d0YWJs
-ZSgpLgoKU2lnbmVkLW9mZi1ieTogR2VlcnQgVXl0dGVyaG9ldmVuIDxnZWVydEBsaW51eC1tNjhr
-Lm9yZz4KQ2M6IE1hcmVrIFN6eXByb3dza2kgPG0uc3p5cHJvd3NraUBzYW1zdW5nLmNvbT4KQ2M6
-IHVjbGludXgtZGlzdC1kZXZlbEBibGFja2Zpbi51Y2xpbnV4Lm9yZwotLS0KIGFyY2gvYmxhY2tm
-aW4vaW5jbHVkZS9hc20vZG1hLW1hcHBpbmcuaCB8ICAgMTAgKysrKysrKysrKwogMSBmaWxlcyBj
-aGFuZ2VkLCAxMCBpbnNlcnRpb25zKCspLCAwIGRlbGV0aW9ucygtKQoKZGlmZiAtLWdpdCBhL2Fy
-Y2gvYmxhY2tmaW4vaW5jbHVkZS9hc20vZG1hLW1hcHBpbmcuaCBiL2FyY2gvYmxhY2tmaW4vaW5j
-bHVkZS9hc20vZG1hLW1hcHBpbmcuaAppbmRleCBiYmY0NjEwLi4wNTRkOWVjIDEwMDY0NAotLS0g
-YS9hcmNoL2JsYWNrZmluL2luY2x1ZGUvYXNtL2RtYS1tYXBwaW5nLmgKKysrIGIvYXJjaC9ibGFj
-a2Zpbi9pbmNsdWRlL2FzbS9kbWEtbWFwcGluZy5oCkBAIC0xNTQsNCArMTU0LDE0IEBAIGRtYV9j
-YWNoZV9zeW5jKHN0cnVjdCBkZXZpY2UgKmRldiwgdm9pZCAqdmFkZHIsIHNpemVfdCBzaXplLAog
-CV9kbWFfc3luYygoZG1hX2FkZHJfdCl2YWRkciwgc2l6ZSwgZGlyKTsKIH0KIAorLyogZHJpdmVy
-cy9iYXNlL2RtYS1tYXBwaW5nLmMgKi8KK2V4dGVybiBpbnQgZG1hX2NvbW1vbl9tbWFwKHN0cnVj
-dCBkZXZpY2UgKmRldiwgc3RydWN0IHZtX2FyZWFfc3RydWN0ICp2bWEsCisJCQkgICB2b2lkICpj
-cHVfYWRkciwgZG1hX2FkZHJfdCBkbWFfYWRkciwgc2l6ZV90IHNpemUpOworZXh0ZXJuIGludCBk
-bWFfY29tbW9uX2dldF9zZ3RhYmxlKHN0cnVjdCBkZXZpY2UgKmRldiwgc3RydWN0IHNnX3RhYmxl
-ICpzZ3QsCisJCQkJICB2b2lkICpjcHVfYWRkciwgZG1hX2FkZHJfdCBkbWFfYWRkciwKKwkJCQkg
-IHNpemVfdCBzaXplKTsKKworI2RlZmluZSBkbWFfbW1hcF9jb2hlcmVudChkLCB2LCBjLCBoLCBz
-KSBkbWFfY29tbW9uX21tYXAoZCwgdiwgYywgaCwgcykKKyNkZWZpbmUgZG1hX2dldF9zZ3RhYmxl
-KGQsIHQsIHYsIGgsIHMpIGRtYV9jb21tb25fZ2V0X3NndGFibGUoZCwgdCwgdiwgaCwgcykKKwog
-I2VuZGlmCQkJCS8qIF9CTEFDS0ZJTl9ETUFfTUFQUElOR19IICovCi0tIAoxLjcuMC40CgpfX19f
-X19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fXwpVY2xpbnV4LWRpc3Qt
-ZGV2ZWwgbWFpbGluZyBsaXN0ClVjbGludXgtZGlzdC1kZXZlbEBibGFja2Zpbi51Y2xpbnV4Lm9y
-ZwpodHRwczovL2JsYWNrZmluLnVjbGludXgub3JnL21haWxtYW4vbGlzdGluZm8vdWNsaW51eC1k
-aXN0LWRldmVs
+parisc/allmodconfig:
+
+drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98vb=
+2_dc_mmap=E2=80=99:
+drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit dec=
+laration of function =E2=80=98dma_mmap_coherent=E2=80=99
+drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98vb=
+2_dc_get_base_sgt=E2=80=99:
+drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit dec=
+laration of function =E2=80=98dma_get_sgtable=E2=80=99
+
+=46or architectures using dma_map_ops, dma_mmap_coherent() and
+dma_get_sgtable() are provided in <asm-generic/dma-mapping-common.h>.
+
+Parisc does not use dma_map_ops, hence it should implement them as inli=
+ne
+stubs using dma_common_mmap() and dma_common_get_sgtable().
+
+Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: linux-parisc@vger.kernel.org
+---
+ arch/parisc/include/asm/dma-mapping.h |   10 ++++++++++
+ 1 files changed, 10 insertions(+), 0 deletions(-)
+
+diff --git a/arch/parisc/include/asm/dma-mapping.h b/arch/parisc/includ=
+e/asm/dma-mapping.h
+index 467bbd5..1fac0bf 100644
+--- a/arch/parisc/include/asm/dma-mapping.h
++++ b/arch/parisc/include/asm/dma-mapping.h
+@@ -238,4 +238,14 @@ void * sba_get_iommu(struct parisc_device *dev);
+ /* At the moment, we panic on error for IOMMU resource exaustion */
+ #define dma_mapping_error(dev, x)	0
+=20
++/* drivers/base/dma-mapping.c */
++extern int dma_common_mmap(struct device *dev, struct vm_area_struct *=
+vma,
++			   void *cpu_addr, dma_addr_t dma_addr, size_t size);
++extern int dma_common_get_sgtable(struct device *dev, struct sg_table =
+*sgt,
++				  void *cpu_addr, dma_addr_t dma_addr,
++				  size_t size);
++
++#define dma_mmap_coherent(d, v, c, h, s) dma_common_mmap(d, v, c, h, s=
+)
++#define dma_get_sgtable(d, t, v, h, s) dma_common_get_sgtable(d, t, v,=
+ h, s)
++
+ #endif
+--=20
+1.7.0.4
