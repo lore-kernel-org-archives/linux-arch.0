@@ -1,46 +1,55 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from ra.se.axis.com ([195.60.68.13]:55254 "EHLO ra.se.axis.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1756477Ab3ANIo5 (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Jan 2013 03:44:57 -0500
-Date: Mon, 14 Jan 2013 09:38:02 +0100
-From: Jesper Nilsson <jesper.nilsson@axis.com>
-Subject: Re: [PATCH 4/9] cris: Provide dma_mmap_coherent() and
- dma_get_sgtable()
-Message-ID: <20130114083802.GA23529@axis.com>
-References: <1358073890-3610-1-git-send-email-geert@linux-m68k.org>
- <1358073890-3610-4-git-send-email-geert@linux-m68k.org>
+Received: from mail-ee0-f43.google.com ([74.125.83.43]:64434 "EHLO
+	mail-ee0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751877Ab3ANKVG (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jan 2013 05:21:06 -0500
+Message-ID: <50F3DAA5.50709@suse.cz>
+Date: Mon, 14 Jan 2013 11:15:01 +0100
+From: Jiri Slaby <jslaby@suse.cz>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <1358073890-3610-4-git-send-email-geert@linux-m68k.org>
+Subject: Re: [PATCH v3 43/44] tty/metag_da: Add metag DA TTY driver
+References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com> <1357831872-29451-44-git-send-email-james.hogan@imgtec.com> <50EEE642.20608@suse.cz> <50EFEE71.4000706@imgtec.com>
+In-Reply-To: <50EFEE71.4000706@imgtec.com>
+Content-Type: text/plain; charset=ISO-8859-2
+Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Marek Szyprowski <m.szyprowski@samsung.com>, linux-cris-kernel@axis.com
-Message-ID: <20130114083802.auIZa_VAZGo7sdu-fTWmL1oIqgb1PjyH4xljgl4BCEA@z>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Cox <alan@lxorguk.ukuu.org.uk>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Mauro Carvalho Chehab <mchehab@redhat.com>, Cesar Eduardo Barros <cesarb@cesarb.net>, Joe Perches <joe@perches.com>, "David S. Miller" <davem@davemloft.net>
+Message-ID: <20130114101501.zmF-bln_HLt9OUg23UiUYJYMLTf6ACZpGxnd_w1tuD0@z>
 
-On Sun, Jan 13, 2013 at 11:44:45AM +0100, Geert Uytterhoeven wrote:
-> cris/allmodconfig:
-> 
-> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function ‘vb2_dc_mmap’:
-> drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit declaration of function ‘dma_mmap_coherent’
-> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function ‘vb2_dc_get_base_sgt’:
-> drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit declaration of function ‘dma_get_sgtable’
-> 
-> For architectures using dma_map_ops, dma_mmap_coherent() and
-> dma_get_sgtable() are provided in <asm-generic/dma-mapping-common.h>.
-> 
-> Cris does not use dma_map_ops, hence it should implement them as inline
-> stubs using dma_common_mmap() and dma_common_get_sgtable().
-> 
-> Signed-off-by: Geert Uytterhoeven <geert@linux-m68k.org>
-> Cc: Marek Szyprowski <m.szyprowski@samsung.com>
-> Cc: linux-cris-kernel@axis.com
+Hi,
 
-Acked-by: Jesper Nilsson <jesper.nilsson@axis.com>
+On 01/11/2013 11:50 AM, James Hogan wrote:
+>>> +	channel_driver->driver_name = "ttyDA";
+>> 
+>> This should be rather "metag".
+> 
+> Yes, I'll set to "metag_da" if that's okay since the transport is
+> the DA. I presume this is pretty much just to appear in
+> /proc/tty/drivers?
 
-/^JN - Jesper Nilsson
+Yes.
+
+>>> +static void dashtty_exit(void) +{ +
+>>> del_timer_sync(&put_timer); +	kthread_stop(dashtty_thread); +
+>>> del_timer_sync(&poll_timer); +
+>>> tty_unregister_driver(channel_driver); +
+>>> put_tty_driver(channel_driver);
+>> 
+>> No tty_port_destroy anywhere?
+> 
+> Ah yes, I've added a loop to do this before put_tty_driver() both
+> here and in the error handling of dashtty_init().
+> 
+> This driver isn't actually buildable as a module at the moment, but
+> if it was, would the module owner being set ensure that the
+> ttys/ports are closed down prior to dashtty_exit being called?
+> (i.e. is it racy?)
+
+Yeah, dashtty_exit won't be called until all openers are gone.
+
+regards,
 -- 
-               Jesper Nilsson -- jesper.nilsson@axis.com
+js
+suse labs
