@@ -1,43 +1,32 @@
-From: Dave Hansen <dave@linux.vnet.ibm.com>
-Subject: Re: [PATCH] consolidate per-arch stack overflow debugging options
-Date: Mon, 14 Jan 2013 09:11:58 -0800
-Message-ID: <50F43C5E.8030408@linux.vnet.ibm.com>
-References: <20130111170043.D7CC39DC@kernel.stglabs.ibm.com> <20130112120053.3362ae67bf2d3b2cc6042aa4@canb.auug.org.au>
+From: =?ISO-8859-15?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
+Subject: arm64: Request to add error code
+Date: Tue, 15 Jan 2013 00:34:44 +0100
+Message-ID: <50F49614.3040403@dawncrow.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-15
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from e9.ny.us.ibm.com ([32.97.182.139]:60682 "EHLO e9.ny.us.ibm.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1757677Ab3ANRMu (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Mon, 14 Jan 2013 12:12:50 -0500
-Received: from /spool/local
-	by e9.ny.us.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <dave@linux.vnet.ibm.com>;
-	Mon, 14 Jan 2013 12:12:49 -0500
-In-Reply-To: <20130112120053.3362ae67bf2d3b2cc6042aa4@canb.auug.org.au>
+Received: from moutng.kundenserver.de ([212.227.17.8]:54519 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755659Ab3ANXer (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jan 2013 18:34:47 -0500
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Stephen Rothwell <sfr@canb.auug.org.au>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Mike Frysinger <vapier@gentoo.org>, David Howells <dhowells@redhat.com>, Hirokazu Takata <takata@linux-m32r.org>, Ralf Baechle <ralf@linux-mips.org>, Koichi Yasutake <yasutake.koichi@jp.panasonic.com>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Paul Mackerras <paulus@samba.org>, Chris Metcalf <cmetcalf@tilera.com>, Thomas Gleixner <tglx@linutronix.de>, Ingo Molnar <mingo@redhat.com>, "H. Peter Anvin" <hpa@zytor.com>, x86@kernel.org, uclinux-dist-devel@blackfin.uclinux.org
+To: linux-arch@vger.kernel.org
 
-On 01/11/2013 05:00 PM, Stephen Rothwell wrote:
-> On Fri, 11 Jan 2013 09:00:43 -0800 Dave Hansen <dave@linux.vnet.ibm.com> wrote:
->>
->> I'm looking for some Acked-bys on this from the various arch
->> maintainers that it affects.  I'd like to send it up to Linus
->> in the next merge window.  This is part of a larger series to
->> clean up the "Kernel Hacking" menu:
->>
->> 	https://lkml.org/lkml/2012/12/17/306
-> 
-> This should be added to linux-next soon, if possible.  Either directly (if
-> you have a tree I can fetch) or via some other maintainer's tree.
+Hi,
+i'm new to the list (my first kernel mailing list).
+I'd like to request to add a way to distinguish a read from a write pag=
+efault in userspace on arm64(aarch64).
+(That's e.g. in a SIGSEGV handler attached with sigaction and SA_SIGINF=
+O)
+On arm you can use the bit at 0x800 in uc_mcontext.error_code to know w=
+hich kind it is, but on arm64 i can't find a way.
+(On most other popular architectures you can get that information, too)
+I'd suggest to add a flag to siginfo.si_errno, or to make the esr avail=
+able to the SIGSEGV handler.
+Any hints or suggestions?
 
-Hi Stephen,
+--=20
 
-I've got it stashed in here for the moment:
-
-	https://github.com/hansendc/linux/tree/kconfig-reorg
-
-It was forked off 3.8-rc2.
+Best Regards, Andr=E9 Hentschel
