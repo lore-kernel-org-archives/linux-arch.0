@@ -1,55 +1,49 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-ee0-f43.google.com ([74.125.83.43]:64434 "EHLO
-	mail-ee0-f43.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751877Ab3ANKVG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jan 2013 05:21:06 -0500
-Message-ID: <50F3DAA5.50709@suse.cz>
-Date: Mon, 14 Jan 2013 11:15:01 +0100
-From: Jiri Slaby <jslaby@suse.cz>
+Received: from moutng.kundenserver.de ([212.227.17.10]:61641 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756073Ab3ANKqv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jan 2013 05:46:51 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH 0/4] gpio: introduce descriptor-based interface
+Date: Mon, 14 Jan 2013 10:46:12 +0000
+References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com> <201301101008.45091.arnd@arndb.de> <50F3DC2B.6000603@nvidia.com>
+In-Reply-To: <50F3DC2B.6000603@nvidia.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v3 43/44] tty/metag_da: Add metag DA TTY driver
-References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com> <1357831872-29451-44-git-send-email-james.hogan@imgtec.com> <50EEE642.20608@suse.cz> <50EFEE71.4000706@imgtec.com>
-In-Reply-To: <50EFEE71.4000706@imgtec.com>
-Content-Type: text/plain; charset=ISO-8859-2
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
 Content-Transfer-Encoding: 7bit
+Message-ID: <201301141046.12976.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org, Alan Cox <alan@lxorguk.ukuu.org.uk>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, Andrew Morton <akpm@linux-foundation.org>, Mauro Carvalho Chehab <mchehab@redhat.com>, Cesar Eduardo Barros <cesarb@cesarb.net>, Joe Perches <joe@perches.com>, "David S. Miller" <davem@davemloft.net>
-Message-ID: <20130114101501.zmF-bln_HLt9OUg23UiUYJYMLTf6ACZpGxnd_w1tuD0@z>
+To: Alex Courbot <acourbot@nvidia.com>
+Cc: Mike Frysinger <vapier@gentoo.org>, Geert Uytterhoeven <geert@linux-m68k.org>, Grant Likely <grant.likely@secretlab.ca>, Linus Walleij <linus.walleij@linaro.org>, Guenter Roeck <linux@roeck-us.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree-discuss@lists.ozlabs.org" <devicetree-discuss@lists.ozlabs.org>, gnurou@gmail.com, linux-m68k@lists.linux-m68k.org, uclinux-dist-devel@blackfin.uclinux.org
+Message-ID: <20130114104612.1ajD-i5m-qG4VAEHoLuQUspPPMjUWBKltAdM55f_TJc@z>
 
-Hi,
-
-On 01/11/2013 11:50 AM, James Hogan wrote:
->>> +	channel_driver->driver_name = "ttyDA";
->> 
->> This should be rather "metag".
+On Monday 14 January 2013, Alex Courbot wrote:
+> On 01/10/2013 07:08 PM, Arnd Bergmann wrote:
+> > I found two that provide the generic gpio interfaces when gpiolib
+> > is disabled, but use gpiolib otherwise for the same hardware,
+> > arch/m68k/include/asm/mcfgpio.h and arch/blackfin/include/asm/gpio.h.
+> > I would assume that we can simply remove the non-gpiolib shortcut
+> > here at cost of a small overhead.
 > 
-> Yes, I'll set to "metag_da" if that's okay since the transport is
-> the DA. I presume this is pretty much just to appear in
-> /proc/tty/drivers?
+> I performed a search on my side too (checking configurations options 
+> which select GENERIC_GPIO but not ARCH_REQUIRE_GPIOLIB) and found the 
+> same list. This takes some time btw - many platforms use this combo to 
+> make GPIO support optional. Can I ask how you figured out these two archs?
 
-Yes.
+I basically grepped for GENERIC_GPIO and looked at
+the individual implementations.
 
->>> +static void dashtty_exit(void) +{ +
->>> del_timer_sync(&put_timer); +	kthread_stop(dashtty_thread); +
->>> del_timer_sync(&poll_timer); +
->>> tty_unregister_driver(channel_driver); +
->>> put_tty_driver(channel_driver);
->> 
->> No tty_port_destroy anywhere?
+> > Then there are a bunch that use gpiolib but have a nontrivial
+> > implementation of gpio_get_value and other functions. I'm not sure
+> > if these are a problematic with your code.
 > 
-> Ah yes, I've added a loop to do this before put_tty_driver() both
-> here and in the error handling of dashtty_init().
-> 
-> This driver isn't actually buildable as a module at the moment, but
-> if it was, would the module owner being set ensure that the
-> ttys/ports are closed down prior to dashtty_exit being called?
-> (i.e. is it racy?)
+> AFAICT these all implement an inline path that bypasses GPIOlib when the 
+> GPIO number is known at compile time, for faster bitbanging I presume. 
+> It should be totally harmless to keep them. Unfortunately, I don't think 
+> it would be possible to have a similar trick using handlers.
 
-Yeah, dashtty_exit won't be called until all openers are gone.
+Right, makes sense.
 
-regards,
--- 
-js
-suse labs
+	Arnd
