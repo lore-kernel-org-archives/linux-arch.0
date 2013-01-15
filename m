@@ -1,79 +1,47 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: [Linux-c6x-dev] [PATCH 3/9] c6x: Provide dma_mmap_coherent() and dma_get_sgtable()
-Date: Tue, 15 Jan 2013 10:13:46 +0100
-Message-ID: <CAMuHMdWjZAY19GPpjoXKfWb3pOp2RbZXDvb4nr5pMmjEMFuB4w@mail.gmail.com>
-References: <1358073890-3610-1-git-send-email-geert@linux-m68k.org>
-	<1358073890-3610-3-git-send-email-geert@linux-m68k.org>
-	<1358177872.4357.53.camel@t520.localdomain>
-	<50F4D83A.7020803@synopsys.com>
+From: Catalin Marinas <catalin.marinas@arm.com>
+Subject: Re: arm64: Request to add error code
+Date: Tue, 15 Jan 2013 10:47:25 +0000
+Message-ID: <CAHkRjk459Evdt-PQB+ZF_q3Ui58G4t3ApiKDb4RDPaBF320iKA@mail.gmail.com>
+References: <50F49614.3040403@dawncrow.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=ISO-8859-1
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f181.google.com ([209.85.220.181]:42338 "EHLO
-	mail-vc0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753996Ab3AOJNr convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jan 2013 04:13:47 -0500
-In-Reply-To: <50F4D83A.7020803@synopsys.com>
+Received: from mail-qc0-f169.google.com ([209.85.216.169]:35957 "EHLO
+	mail-qc0-f169.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752767Ab3AOKrq convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jan 2013 05:47:46 -0500
+Received: by mail-qc0-f169.google.com with SMTP id t2so3182457qcq.28
+        for <linux-arch@vger.kernel.org>; Tue, 15 Jan 2013 02:47:45 -0800 (PST)
+In-Reply-To: <50F49614.3040403@dawncrow.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Marek Szyprowski <m.szyprowski@samsung.com>
-Cc: Mark Salter <msalter@redhat.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org
+To: =?ISO-8859-1?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
+Cc: linux-arch@vger.kernel.org
 
-Marek?
+Hi Andr=E9,
 
-On Tue, Jan 15, 2013 at 5:16 AM, Vineet Gupta
-<Vineet.Gupta1@synopsys.com> wrote:
-> On Monday 14 January 2013 09:07 PM, Mark Salter wrote:
->> On Sun, 2013-01-13 at 11:44 +0100, Geert Uytterhoeven wrote:
->>> c6x/allmodconfig (assumed):
->>>
->>> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98=
-vb2_dc_mmap=E2=80=99:
->>> drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit=
- declaration of function =E2=80=98dma_mmap_coherent=E2=80=99
->>> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98=
-vb2_dc_get_base_sgt=E2=80=99:
->>> drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit=
- declaration of function =E2=80=98dma_get_sgtable=E2=80=99
->>>
->>> For architectures using dma_map_ops, dma_mmap_coherent() and
->>> dma_get_sgtable() are provided in <asm-generic/dma-mapping-common.h=
->.
->>>
->>> C6x does not use dma_map_ops, hence it should implement them as inl=
-ine
->>> stubs using dma_common_mmap() and dma_common_get_sgtable().
->>>
->>
->> So are dma_mmap_coherent() and dma_get_sgtable() part of the DMA API
->> now? I don't them in Documentation/DMA*.txt anywhere.
->>
->> Why does the default dma_common_mmap() for !CONFIG_MMU return an
->> error?
->>
->> Wouldn't it be better to provide default implementations that an arc=
-h
->> could override rather than having to patch all "no dma_map_ops"
->> architectures?
->>
->> --Mark
->>
->>
->
-> Speaking for the still-reviewed ARC Port, I completely agree with Mar=
-k.
+On 14 January 2013 23:34, Andr=E9 Hentschel <nerv@dawncrow.de> wrote:
+> i'm new to the list (my first kernel mailing list).
+> I'd like to request to add a way to distinguish a read from a write p=
+agefault in userspace on arm64(aarch64).
+> (That's e.g. in a SIGSEGV handler attached with sigaction and SA_SIGI=
+NFO)
+> On arm you can use the bit at 0x800 in uc_mcontext.error_code to know=
+ which kind it is, but on arm64 i can't find a way.
+> (On most other popular architectures you can get that information, to=
+o)
+> I'd suggest to add a flag to siginfo.si_errno, or to make the esr ava=
+ilable to the SIGSEGV handler.
 
-Gr{oetje,eeting}s,
+The problem with exposing ESR directly to user is that it depends on
+the MMU configuration (e.g. on Cortex-A15 (32-bit) you have different
+formats based on whether you have LPAE enabled or not, though the
+'write' bit happens to be in the same position).
 
-                        Geert
+siginfo for SIGSEGV gives the fault address and type information but,
+as you noticed, doesn't say whether it's a read or write. What do you
+need this information for?
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
-m68k.org
-
-In personal conversations with technical people, I call myself a hacker=
-=2E But
-when I'm talking to journalists I just say "programmer" or something li=
-ke that.
-                                -- Linus Torvalds
+--=20
+Catalin
