@@ -1,32 +1,59 @@
-From: =?ISO-8859-15?Q?Andr=E9_Hentschel?= <nerv@dawncrow.de>
-Subject: arm64: Request to add error code
-Date: Tue, 15 Jan 2013 00:34:44 +0100
-Message-ID: <50F49614.3040403@dawncrow.de>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [Linux-c6x-dev] [PATCH 3/9] c6x: Provide dma_mmap_coherent()
+ and dma_get_sgtable()
+Date: Tue, 15 Jan 2013 09:46:58 +0530
+Message-ID: <50F4D83A.7020803@synopsys.com>
+References: <1358073890-3610-1-git-send-email-geert@linux-m68k.org>  <1358073890-3610-3-git-send-email-geert@linux-m68k.org> <1358177872.4357.53.camel@t520.localdomain>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-15
+Content-Type: text/plain; charset=ISO-8859-7
 Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.8]:54519 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755659Ab3ANXer (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jan 2013 18:34:47 -0500
+Received: from hermes.synopsys.com ([198.182.44.81]:58183 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752011Ab3AOERN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 14 Jan 2013 23:17:13 -0500
+In-Reply-To: <1358177872.4357.53.camel@t520.localdomain>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Mark Salter <msalter@redhat.com>
+Cc: Geert Uytterhoeven <geert@linux-m68k.org>, linux-arch@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, Marek Szyprowski <m.szyprowski@samsung.com>
 
-Hi,
-i'm new to the list (my first kernel mailing list).
-I'd like to request to add a way to distinguish a read from a write pag=
-efault in userspace on arm64(aarch64).
-(That's e.g. in a SIGSEGV handler attached with sigaction and SA_SIGINF=
-O)
-On arm you can use the bit at 0x800 in uc_mcontext.error_code to know w=
-hich kind it is, but on arm64 i can't find a way.
-(On most other popular architectures you can get that information, too)
-I'd suggest to add a flag to siginfo.si_errno, or to make the esr avail=
-able to the SIGSEGV handler.
-Any hints or suggestions?
+On Monday 14 January 2013 09:07 PM, Mark Salter wrote:
+> On Sun, 2013-01-13 at 11:44 +0100, Geert Uytterhoeven wrote:
+>> c6x/allmodconfig (assumed):
+>>
+>> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =A1vb2_d=
+c_mmap=A2:
+>> drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit =
+declaration of function =A1dma_mmap_coherent=A2
+>> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =A1vb2_d=
+c_get_base_sgt=A2:
+>> drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit =
+declaration of function =A1dma_get_sgtable=A2
+>>
+>> For architectures using dma_map_ops, dma_mmap_coherent() and
+>> dma_get_sgtable() are provided in <asm-generic/dma-mapping-common.h>=
+=2E
+>>
+>> C6x does not use dma_map_ops, hence it should implement them as inli=
+ne
+>> stubs using dma_common_mmap() and dma_common_get_sgtable().
+>>
+>=20
+> So are dma_mmap_coherent() and dma_get_sgtable() part of the DMA API
+> now? I don't them in Documentation/DMA*.txt anywhere.
+>=20
+> Why does the default dma_common_mmap() for !CONFIG_MMU return an
+> error?
+>=20
+> Wouldn't it be better to provide default implementations that an arch
+> could override rather than having to patch all "no dma_map_ops"
+> architectures?
+>=20
+> --Mark
+>=20
+>=20
 
---=20
+Speaking for the still-reviewed ARC Port, I completely agree with Mark.
 
-Best Regards, Andr=E9 Hentschel
+-Vineet
