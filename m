@@ -1,65 +1,79 @@
-From: "Jiang, Scott" <Scott.Jiang@analog.com>
-Subject: RE: [uclinux-dist-devel] [PATCH 2/9] blackfin: Provide
-	dma_mmap_coherent() and dma_get_sgtable()
-Date: Tue, 15 Jan 2013 03:12:41 -0500
-Message-ID: <E43657A3F2E26048BB0EBCA7C4CB6941DD86B7AE3D@NWD2CMBX1.ad.analog.com>
+From: Geert Uytterhoeven <geert@linux-m68k.org>
+Subject: Re: [Linux-c6x-dev] [PATCH 3/9] c6x: Provide dma_mmap_coherent() and dma_get_sgtable()
+Date: Tue, 15 Jan 2013 10:13:46 +0100
+Message-ID: <CAMuHMdWjZAY19GPpjoXKfWb3pOp2RbZXDvb4nr5pMmjEMFuB4w@mail.gmail.com>
 References: <1358073890-3610-1-git-send-email-geert@linux-m68k.org>
- <1358073890-3610-2-git-send-email-geert@linux-m68k.org>
+	<1358073890-3610-3-git-send-email-geert@linux-m68k.org>
+	<1358177872.4357.53.camel@t520.localdomain>
+	<50F4D83A.7020803@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from ch1ehsobe003.messaging.microsoft.com ([216.32.181.183]:1183
-	"EHLO ch1outboundpool.messaging.microsoft.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S1754758Ab3AOIMx (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Tue, 15 Jan 2013 03:12:53 -0500
-In-Reply-To: <1358073890-3610-2-git-send-email-geert@linux-m68k.org>
-Content-Language: en-US
+Received: from mail-vc0-f181.google.com ([209.85.220.181]:42338 "EHLO
+	mail-vc0-f181.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753996Ab3AOJNr convert rfc822-to-8bit (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 15 Jan 2013 04:13:47 -0500
+In-Reply-To: <50F4D83A.7020803@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Geert Uytterhoeven <geert@linux-m68k.org>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>
-Cc: "uclinux-dist-devel@blackfin.uclinux.org" <uclinux-dist-devel@blackfin.uclinux.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Marek Szyprowski <m.szyprowski@samsung.com>
+To: Marek Szyprowski <m.szyprowski@samsung.com>
+Cc: Mark Salter <msalter@redhat.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org
 
-DQpGcm9tOiB1Y2xpbnV4LWRpc3QtZGV2ZWwtYm91bmNlc0BibGFja2Zpbi51Y2xpbnV4Lm9yZyBb
-bWFpbHRvOnVjbGludXgtZGlzdC1kZXZlbC1ib3VuY2VzQGJsYWNrZmluLnVjbGludXgub3JnXSBP
-biBCZWhhbGYgT2YgR2VlcnQgVXl0dGVyaG9ldmVuDQpTZW50OiBTdW5kYXksIEphbnVhcnkgMTMs
-IDIwMTMgNjo0NSBQTQ0KVG86IGxpbnV4LWFyY2hAdmdlci5rZXJuZWwub3JnDQpDYzogdWNsaW51
-eC1kaXN0LWRldmVsQGJsYWNrZmluLnVjbGludXgub3JnOyBHZWVydCBVeXR0ZXJob2V2ZW47IGxp
-bnV4LWtlcm5lbEB2Z2VyLmtlcm5lbC5vcmc7IE1hcmVrIFN6eXByb3dza2kNClN1YmplY3Q6IFt1
-Y2xpbnV4LWRpc3QtZGV2ZWxdIFtQQVRDSCAyLzldIGJsYWNrZmluOiBQcm92aWRlIGRtYV9tbWFw
-X2NvaGVyZW50KCkgYW5kIGRtYV9nZXRfc2d0YWJsZSgpDQoNCmJsYWNrZmluL2FsbG1vZGNvbmZp
-ZzoNCg0KZHJpdmVycy9tZWRpYS92NGwyLWNvcmUvdmlkZW9idWYyLWRtYS1jb250aWcuYzogSW4g
-ZnVuY3Rpb24g4oCYdmIyX2RjX21tYXDigJk6DQpkcml2ZXJzL21lZGlhL3Y0bDItY29yZS92aWRl
-b2J1ZjItZG1hLWNvbnRpZy5jOjIwNDogZXJyb3I6IGltcGxpY2l0IGRlY2xhcmF0aW9uIG9mIGZ1
-bmN0aW9uIOKAmGRtYV9tbWFwX2NvaGVyZW504oCZDQpkcml2ZXJzL21lZGlhL3Y0bDItY29yZS92
-aWRlb2J1ZjItZG1hLWNvbnRpZy5jOiBJbiBmdW5jdGlvbiDigJh2YjJfZGNfZ2V0X2Jhc2Vfc2d0
-4oCZOg0KZHJpdmVycy9tZWRpYS92NGwyLWNvcmUvdmlkZW9idWYyLWRtYS1jb250aWcuYzozODc6
-IGVycm9yOiBpbXBsaWNpdCBkZWNsYXJhdGlvbiBvZiBmdW5jdGlvbiDigJhkbWFfZ2V0X3NndGFi
-bGXigJkNCg0KRm9yIGFyY2hpdGVjdHVyZXMgdXNpbmcgZG1hX21hcF9vcHMsIGRtYV9tbWFwX2Nv
-aGVyZW50KCkgYW5kDQpkbWFfZ2V0X3NndGFibGUoKSBhcmUgcHJvdmlkZWQgaW4gPGFzbS1nZW5l
-cmljL2RtYS1tYXBwaW5nLWNvbW1vbi5oPi4NCg0KQmxhY2tmaW4gZG9lcyBub3QgdXNlIGRtYV9t
-YXBfb3BzLCBoZW5jZSBpdCBzaG91bGQgaW1wbGVtZW50IHRoZW0gYXMgaW5saW5lIHN0dWJzIHVz
-aW5nIGRtYV9jb21tb25fbW1hcCgpIGFuZCBkbWFfY29tbW9uX2dldF9zZ3RhYmxlKCkuDQoNClNp
-Z25lZC1vZmYtYnk6IEdlZXJ0IFV5dHRlcmhvZXZlbiA8Z2VlcnRAbGludXgtbTY4ay5vcmc+DQpB
-Y2tlZC1ieTogU2NvdHQgSmlhbmcgPHNjb3R0LmppYW5nLmxpbnV4QGdtYWlsLmNvbT4NCg0KLS0t
-DQogYXJjaC9ibGFja2Zpbi9pbmNsdWRlL2FzbS9kbWEtbWFwcGluZy5oIHwgICAxMCArKysrKysr
-KysrDQogMSBmaWxlcyBjaGFuZ2VkLCAxMCBpbnNlcnRpb25zKCspLCAwIGRlbGV0aW9ucygtKQ0K
-DQpkaWZmIC0tZ2l0IGEvYXJjaC9ibGFja2Zpbi9pbmNsdWRlL2FzbS9kbWEtbWFwcGluZy5oIGIv
-YXJjaC9ibGFja2Zpbi9pbmNsdWRlL2FzbS9kbWEtbWFwcGluZy5oDQppbmRleCBiYmY0NjEwLi4w
-NTRkOWVjIDEwMDY0NA0KLS0tIGEvYXJjaC9ibGFja2Zpbi9pbmNsdWRlL2FzbS9kbWEtbWFwcGlu
-Zy5oDQorKysgYi9hcmNoL2JsYWNrZmluL2luY2x1ZGUvYXNtL2RtYS1tYXBwaW5nLmgNCkBAIC0x
-NTQsNCArMTU0LDE0IEBAIGRtYV9jYWNoZV9zeW5jKHN0cnVjdCBkZXZpY2UgKmRldiwgdm9pZCAq
-dmFkZHIsIHNpemVfdCBzaXplLA0KICAgICAgICBfZG1hX3N5bmMoKGRtYV9hZGRyX3QpdmFkZHIs
-IHNpemUsIGRpcik7ICB9DQoNCisvKiBkcml2ZXJzL2Jhc2UvZG1hLW1hcHBpbmcuYyAqLw0KK2V4
-dGVybiBpbnQgZG1hX2NvbW1vbl9tbWFwKHN0cnVjdCBkZXZpY2UgKmRldiwgc3RydWN0IHZtX2Fy
-ZWFfc3RydWN0ICp2bWEsDQorICAgICAgICAgICAgICAgICAgICAgICAgICB2b2lkICpjcHVfYWRk
-ciwgZG1hX2FkZHJfdCBkbWFfYWRkciwgc2l6ZV90IHNpemUpOyBleHRlcm4gaW50DQorZG1hX2Nv
-bW1vbl9nZXRfc2d0YWJsZShzdHJ1Y3QgZGV2aWNlICpkZXYsIHN0cnVjdCBzZ190YWJsZSAqc2d0
-LA0KKyAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHZvaWQgKmNwdV9hZGRyLCBkbWFf
-YWRkcl90IGRtYV9hZGRyLA0KKyAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHNpemVf
-dCBzaXplKTsNCisNCisjZGVmaW5lIGRtYV9tbWFwX2NvaGVyZW50KGQsIHYsIGMsIGgsIHMpIGRt
-YV9jb21tb25fbW1hcChkLCB2LCBjLCBoLCBzKQ0KKyNkZWZpbmUgZG1hX2dldF9zZ3RhYmxlKGQs
-IHQsIHYsIGgsIHMpIGRtYV9jb21tb25fZ2V0X3NndGFibGUoZCwgdCwgdiwNCitoLCBzKQ0KKw0K
-ICNlbmRpZiAgICAgICAgICAgICAgICAgICAgICAgICAvKiBfQkxBQ0tGSU5fRE1BX01BUFBJTkdf
-SCAqLw0KLS0NCjEuNy4wLjQNCg0K
+Marek?
+
+On Tue, Jan 15, 2013 at 5:16 AM, Vineet Gupta
+<Vineet.Gupta1@synopsys.com> wrote:
+> On Monday 14 January 2013 09:07 PM, Mark Salter wrote:
+>> On Sun, 2013-01-13 at 11:44 +0100, Geert Uytterhoeven wrote:
+>>> c6x/allmodconfig (assumed):
+>>>
+>>> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98=
+vb2_dc_mmap=E2=80=99:
+>>> drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit=
+ declaration of function =E2=80=98dma_mmap_coherent=E2=80=99
+>>> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =E2=80=98=
+vb2_dc_get_base_sgt=E2=80=99:
+>>> drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit=
+ declaration of function =E2=80=98dma_get_sgtable=E2=80=99
+>>>
+>>> For architectures using dma_map_ops, dma_mmap_coherent() and
+>>> dma_get_sgtable() are provided in <asm-generic/dma-mapping-common.h=
+>.
+>>>
+>>> C6x does not use dma_map_ops, hence it should implement them as inl=
+ine
+>>> stubs using dma_common_mmap() and dma_common_get_sgtable().
+>>>
+>>
+>> So are dma_mmap_coherent() and dma_get_sgtable() part of the DMA API
+>> now? I don't them in Documentation/DMA*.txt anywhere.
+>>
+>> Why does the default dma_common_mmap() for !CONFIG_MMU return an
+>> error?
+>>
+>> Wouldn't it be better to provide default implementations that an arc=
+h
+>> could override rather than having to patch all "no dma_map_ops"
+>> architectures?
+>>
+>> --Mark
+>>
+>>
+>
+> Speaking for the still-reviewed ARC Port, I completely agree with Mar=
+k.
+
+Gr{oetje,eeting}s,
+
+                        Geert
+
+--
+Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-=
+m68k.org
+
+In personal conversations with technical people, I call myself a hacker=
+=2E But
+when I'm talking to journalists I just say "programmer" or something li=
+ke that.
+                                -- Linus Torvalds
