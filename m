@@ -1,104 +1,59 @@
-From: Helge Deller <deller@gmx.de>
-Subject: Re: [RESEND PATCH] sysctl: Enable PARISC "unaligned-trap" to be used
- cross-arch
-Date: Tue, 15 Jan 2013 23:03:14 +0100
-Message-ID: <50F5D222.8070208@gmx.de>
-References: <50D2B75A.3000208@synopsys.com> <1357196388-1247-1-git-send-email-vgupta@synopsys.com> <1357196388-1247-2-git-send-email-vgupta@synopsys.com>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: architecture problems with SPARSEMEM and page iteration functions
+Date: Wed, 16 Jan 2013 16:09:24 +0000
+Message-ID: <1358352564.2384.48.camel@dabdike.int.hansenpartnership.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1; format=flowed
+Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-parisc-owner@vger.kernel.org>
-In-Reply-To: <1357196388-1247-2-git-send-email-vgupta@synopsys.com>
-Sender: linux-parisc-owner@vger.kernel.org
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>, linux-kernel@vger.kernel.org, linux-parisc@vger.kernel.org, linux-arch@vger.kernel.org, arnd@arndb.de, "Eric W. Biederman" <ebiederm@xmission.com>, Serge Hallyn <serge.hallyn@canonical.com>
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:54453 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S932739Ab3APQJ1 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Wed, 16 Jan 2013 11:09:27 -0500
+Received: from localhost (localhost [127.0.0.1])
+	by bedivere.hansenpartnership.com (Postfix) with ESMTP id 003C18EE0DF
+	for <linux-arch@vger.kernel.org>; Wed, 16 Jan 2013 08:09:27 -0800 (PST)
+Received: from bedivere.hansenpartnership.com ([127.0.0.1])
+	by localhost (bedivere.hansenpartnership.com [127.0.0.1]) (amavisd-new, port 10024)
+	with ESMTP id InwPnkPik_AU for <linux-arch@vger.kernel.org>;
+	Wed, 16 Jan 2013 08:09:26 -0800 (PST)
+Received: from [153.66.254.224] (accolon.hansenpartnership.com [46.65.52.191])
+	by bedivere.hansenpartnership.com (Postfix) with ESMTPSA id 4C7948EE0C9
+	for <linux-arch@vger.kernel.org>; Wed, 16 Jan 2013 08:09:26 -0800 (PST)
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: linux-arch@vger.kernel.org
 
-On 01/03/2013 07:59 AM, Vineet Gupta wrote:
-> PARISC defines /proc/sys/kernel/unaligned-trap to runtime toggle
-> unaligned access emulation.
->
-> The exact mechanics of enablig/disabling are still arch specific, we can
-> make the sysctl usable by other arches.
->
-> Signed-off-by: Vineet Gupta<vgupta@synopsys.com>
-> Cc: "James E.J. Bottomley"<jejb@parisc-linux.org>
-> Cc: Helge Deller<deller@gmx.de>
-> Cc: "Eric W. Biederman"<ebiederm@xmission.com>
-> Cc: Serge Hallyn<serge.hallyn@canonical.com>
+A cursory grep indicates the architectures which may be affected by this
+bug are:
 
-Acked-by: Helge Deller <deller@gmx.de>
+arm, avr32, m32r, microblaze, mips, powerpc, s390, sparc, x86
 
-Vineet, as discussed, please push it through the ARC architecture tree...
+The problem is the assumption that if you have a piece of contiguous
+physical memory, you can iterate over it by starting with the first
+struct page *page and doing page++.
 
-Helge
+The page++ trick works with FLATMEM and DISCONTIGMEM, but not SPARSEMEM.
+The reason is that the SPARSEMEM section arrays have arbitrary power of
+2 boundaries, so you can end up with physically adjacent pieces of
+memory which are in different section arrays, meaning that page++
+doesn't work, because it doesn't move from the end of the old section
+array to the beginning of the new one.
 
-> ---
->   arch/parisc/Kconfig |    1 +
->   init/Kconfig        |    8 ++++++++
->   kernel/sysctl.c     |    7 ++++++-
->   3 files changed, 15 insertions(+), 1 deletions(-)
->
-> diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
-> index b77feff..8c76095 100644
-> --- a/arch/parisc/Kconfig
-> +++ b/arch/parisc/Kconfig
-> @@ -20,6 +20,7 @@ config PARISC
->   	select ARCH_HAVE_NMI_SAFE_CMPXCHG
->   	select GENERIC_SMP_IDLE_THREAD
->   	select GENERIC_STRNCPY_FROM_USER
-> +	select SYSCTL_ARCH_UNALIGN_ALLOW
->   	select HAVE_MOD_ARCH_SPECIFIC
->   	select MODULES_USE_ELF_RELA
->   	select CLONE_BACKWARDS
-> diff --git a/init/Kconfig b/init/Kconfig
-> index e188f9f..e64bb18 100644
-> --- a/init/Kconfig
-> +++ b/init/Kconfig
-> @@ -1240,6 +1240,14 @@ config SYSCTL_ARCH_UNALIGN_NO_WARN
->   	  unaligned access emulation going on under the hood.
->   	  see arch/ia64/kernel/unaligned.c for reference
->
-> +config SYSCTL_ARCH_UNALIGN_ALLOW
-> +	bool
-> +	help
-> +	  Enable support for /proc/sys/kernel/unaligned-trap
-> +	  Allows arches to define/use @unaligned_enabled to runtime toggle
-> +	  the unaligned access emulation.
-> +	  see arch/parisc/kernel/unaligned.c for reference
-> +
->   config KALLSYMS
->   	 bool "Load all symbols for debugging/ksymoops" if EXPERT
->   	 default y
-> diff --git a/kernel/sysctl.c b/kernel/sysctl.c
-> index 840fd5e..c4cd655 100644
-> --- a/kernel/sysctl.c
-> +++ b/kernel/sysctl.c
-> @@ -157,13 +157,16 @@ extern int sysctl_tsb_ratio;
->
->   #ifdef __hppa__
->   extern int pwrsw_enabled;
-> -extern int unaligned_enabled;
->   #endif
->
->   #ifdef CONFIG_IA64
->   extern int unaligned_dump_stack;
->   #endif
->
-> +#ifdef CONFIG_SYSCTL_ARCH_UNALIGN_ALLOW
-> +extern int unaligned_enabled;
-> +#endif
-> +
->   #ifdef CONFIG_SYSCTL_ARCH_UNALIGN_NO_WARN
->   extern int no_unaligned_warning;
->   #endif
-> @@ -548,6 +551,8 @@ static struct ctl_table kern_table[] = {
->   	 	.mode		= 0644,
->   		.proc_handler	= proc_dointvec,
->   	},
-> +#endif
-> +#ifdef CONFIG_SYSCTL_ARCH_UNALIGN_ALLOW
->   	{
->   		.procname	= "unaligned-trap",
->   		.data		=&unaligned_enabled,
+The fix is to iterate by means of the pfn instead (the pfn_to_page()
+functions do the right thing with respect to the section arrays) or
+simply replace
 
+page++
+
+with
+
+page = pfn_to_page(page_to_pfn(page) + 1);
+
+A large number of the architectures seem to pick up the problem through
+huge pages, so I note that as long as your SECTION_SIZE_BITS is large
+enough (i.e. huge page size < 1 << (SECTION_SIZE_BITS + PAGE_SIZE)) you
+should be OK.
+
+James
