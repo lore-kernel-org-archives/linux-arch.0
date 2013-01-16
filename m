@@ -1,59 +1,62 @@
-From: James Bottomley <James.Bottomley@HansenPartnership.com>
-Subject: architecture problems with SPARSEMEM and page iteration functions
-Date: Wed, 16 Jan 2013 16:09:24 +0000
-Message-ID: <1358352564.2384.48.camel@dabdike.int.hansenpartnership.com>
-Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: 7bit
+From: Wilson & Cassie <griscruf@comcast.net>
+Subject: [PATCH] iomux-mx25: add UART3 and UART5 PAD macros
+Date: Wed, 16 Jan 2013 14:07:23 -0500
+Message-ID: <835D9903-E12E-44CF-A49A-687CA3205593@comcast.net>
+References: <2070846367.78202.1358362878536.JavaMail.root@sz0071a.westchester.pa.mail.comcast.net>
+Mime-Version: 1.0 (Apple Message framework v1084)
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: 8BIT
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from bedivere.hansenpartnership.com ([66.63.167.143]:54453 "EHLO
-	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
-	by vger.kernel.org with ESMTP id S932739Ab3APQJ1 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>);
-	Wed, 16 Jan 2013 11:09:27 -0500
-Received: from localhost (localhost [127.0.0.1])
-	by bedivere.hansenpartnership.com (Postfix) with ESMTP id 003C18EE0DF
-	for <linux-arch@vger.kernel.org>; Wed, 16 Jan 2013 08:09:27 -0800 (PST)
-Received: from bedivere.hansenpartnership.com ([127.0.0.1])
-	by localhost (bedivere.hansenpartnership.com [127.0.0.1]) (amavisd-new, port 10024)
-	with ESMTP id InwPnkPik_AU for <linux-arch@vger.kernel.org>;
-	Wed, 16 Jan 2013 08:09:26 -0800 (PST)
-Received: from [153.66.254.224] (accolon.hansenpartnership.com [46.65.52.191])
-	by bedivere.hansenpartnership.com (Postfix) with ESMTPSA id 4C7948EE0C9
-	for <linux-arch@vger.kernel.org>; Wed, 16 Jan 2013 08:09:26 -0800 (PST)
+Received: from qmta04.westchester.pa.mail.comcast.net ([76.96.62.40]:44041
+	"EHLO qmta04.westchester.pa.mail.comcast.net" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1756707Ab3APTOb convert rfc822-to-8bit
+	(ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Wed, 16 Jan 2013 14:14:31 -0500
+In-Reply-To: <2070846367.78202.1358362878536.JavaMail.root@sz0071a.westchester.pa.mail.comcast.net>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: linux-arch@vger.kernel.org
+To: Lothar Wassmann <LW@KARO-electronics.de>
+Cc: Sascha Hauer <s.hauer@pengutronix.de>, linux-arch@vger.kernel.org
 
-A cursory grep indicates the architectures which may be affected by this
-bug are:
+Patch to add macros needed for UART3 and UART5.  I tested UART3 TXD/RXD and UART5 TXD/RXD/RTS/CTS.
 
-arm, avr32, m32r, microblaze, mips, powerpc, s390, sparc, x86
+Signed-off-by: Wilson Callan <wilson.callan at savantsystems.com>
 
-The problem is the assumption that if you have a piece of contiguous
-physical memory, you can iterate over it by starting with the first
-struct page *page and doing page++.
+--- linux-3.8-rc3/arch/arm/mach-imx/iomux-mx25.h.orig	2013-01-09 21:59:55.000000000 -0500
++++ linux-3.8-rc3/arch/arm/mach-imx/iomux-mx25.h	2013-01-16 13:32:55.619008205 -0500
+@@ -268,6 +268,7 @@
+#define MX25_PAD_CSI_D2__CSPI3_MOSI	IOMUX_PAD(0x318, 0x120, 0x17, 0, 0, NO_PAD_CTRL)
 
-The page++ trick works with FLATMEM and DISCONTIGMEM, but not SPARSEMEM.
-The reason is that the SPARSEMEM section arrays have arbitrary power of
-2 boundaries, so you can end up with physically adjacent pieces of
-memory which are in different section arrays, meaning that page++
-doesn't work, because it doesn't move from the end of the old section
-array to the beginning of the new one.
+#define MX25_PAD_CSI_D3__CSI_D3		IOMUX_PAD(0x31c, 0x124, 0x10, 0, 0, NO_PAD_CTRL)
++#define MX25_PAD_CSI_D3__UART5_TXD_MUX	IOMUX_PAD(0x31c, 0x124, 0x11, 0, 0, NO_PAD_CTRL)
+#define MX25_PAD_CSI_D3__GPIO_1_28	IOMUX_PAD(0x31c, 0x124, 0x15, 0, 0, NO_PAD_CTRL)
+#define MX25_PAD_CSI_D3__CSPI3_MISO	IOMUX_PAD(0x31c, 0x124, 0x17, 0x4b4, 1, NO_PAD_CTRL)
 
-The fix is to iterate by means of the pfn instead (the pfn_to_page()
-functions do the right thing with respect to the section arrays) or
-simply replace
+@@ -277,6 +278,7 @@
+#define MX25_PAD_CSI_D4__CSPI3_SCLK	IOMUX_PAD(0x320, 0x128, 0x17, 0, 0, NO_PAD_CTRL)
 
-page++
+#define MX25_PAD_CSI_D5__CSI_D5		IOMUX_PAD(0x324, 0x12c, 0x10, 0, 0, NO_PAD_CTRL)
++#define MX25_PAD_CSI_D5__UART5_CTS	IOMUX_PAD(0x324, 0x12c, 0x11, 0, 0, NO_PAD_CTRL)
+#define MX25_PAD_CSI_D5__GPIO_1_30	IOMUX_PAD(0x324, 0x12c, 0x15, 0, 0, NO_PAD_CTRL)
+#define MX25_PAD_CSI_D5__CSPI3_RDY	IOMUX_PAD(0x324, 0x12c, 0x17, 0, 0, NO_PAD_CTRL)
 
-with
+@@ -383,16 +385,20 @@
+#define KPP_CTL_COL	(PAD_CTL_PKE | PAD_CTL_PUE | PAD_CTL_PUS_100K_UP | PAD_CTL_ODE)
 
-page = pfn_to_page(page_to_pfn(page) + 1);
+#define MX25_PAD_KPP_ROW0__KPP_ROW0	IOMUX_PAD(0x3a0, 0x1a8, 0x10, 0, 0, KPP_CTL_ROW)
++#define MX25_PAD_KPP_ROW0__UART3_RXD_MUX IOMUX_PAD(0x3a0, 0x1a8, 0x11, 0x568, 1, NO_PAD_CTRL)
+#define MX25_PAD_KPP_ROW0__GPIO_2_29	IOMUX_PAD(0x3a0, 0x1a8, 0x15, 0, 0, NO_PAD_CTRL)
 
-A large number of the architectures seem to pick up the problem through
-huge pages, so I note that as long as your SECTION_SIZE_BITS is large
-enough (i.e. huge page size < 1 << (SECTION_SIZE_BITS + PAGE_SIZE)) you
-should be OK.
+#define MX25_PAD_KPP_ROW1__KPP_ROW1	IOMUX_PAD(0x3a4, 0x1ac, 0x10, 0, 0, KPP_CTL_ROW)
++#define MX25_PAD_KPP_ROW1__UART3_TXD_MUX IOMUX_PAD(0x3a4, 0x1ac, 0x11, 0, 0, NO_PAD_CTRL)
+#define MX25_PAD_KPP_ROW1__GPIO_2_30	IOMUX_PAD(0x3a4, 0x1ac, 0x15, 0, 0, NO_PAD_CTRL)
 
-James
+#define MX25_PAD_KPP_ROW2__KPP_ROW2	IOMUX_PAD(0x3a8, 0x1b0, 0x10, 0, 0, KPP_CTL_ROW)
++#define MX25_PAD_KPP_ROW2__UART3_RTS IOMUX_PAD(0x3a8, 0x1b0, 0x11, 0x564, 1, NO_PAD_CTRL)
+#define MX25_PAD_KPP_ROW2__CSI_D0	IOMUX_PAD(0x3a8, 0x1b0, 0x13, 0x488, 2, NO_PAD_CTRL)
+#define MX25_PAD_KPP_ROW2__GPIO_2_31	IOMUX_PAD(0x3a8, 0x1b0, 0x15, 0, 0, NO_PAD_CTRL)
+
+#define MX25_PAD_KPP_ROW3__KPP_ROW3	IOMUX_PAD(0x3ac, 0x1b4, 0x10, 0, 0, KPP_CTL_ROW)
++#define MX25_PAD_KPP_ROW3__UART3_CTS IOMUX_PAD(0x3ac, 0x1b4, 0x11, 0, 0, NO_PAD_CTRL)
+#define MX25_PAD_KPP_ROW3__CSI_LD1	IOMUX_PAD(0x3ac, 0x1b4, 0x13, 0x48c, 2, NO_PAD_CTRL)
+#define MX25_PAD_KPP_ROW3__GPIO_3_0	IOMUX_PAD(0x3ac, 0x1b4, 0x15, 0, 0, NO_PAD_CTRL)
