@@ -1,58 +1,65 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC PATCH v1 14/31] ARC: syscall support
-Date: Thu, 17 Jan 2013 10:43:50 +0530
-Message-ID: <50F7888E.8000307@synopsys.com>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <201211131037.43526.arnd@arndb.de> <50A48882.3030204@synopsys.com> <201211151235.31735.arnd@arndb.de>
+Subject: Re: [RFC PATCH v1 25/31] ARC: [plat-arcfpga] Hooking up platform
+ to ARC UART
+Date: Thu, 17 Jan 2013 12:59:38 +0530
+Message-ID: <50F7A862.4050006@synopsys.com>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-26-git-send-email-vgupta@synopsys.com> <201211071416.08012.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from alvesta.synopsys.com ([198.182.60.77]:39391 "EHLO
+Received: from us02smtp2.synopsys.com ([198.182.60.77]:42453 "EHLO
 	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1758341Ab3AQFRP (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jan 2013 00:17:15 -0500
-In-Reply-To: <201211151235.31735.arnd@arndb.de>
+	with ESMTP id S1754466Ab3AQH3z (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jan 2013 02:29:55 -0500
+In-Reply-To: <201211071416.08012.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Gilad Ben-Yossef <gilad@benyossef.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Thursday 15 November 2012 06:05 PM, Arnd Bergmann wrote:
-> On Thursday 15 November 2012, Vineet Gupta wrote:
->> So the primary concern here is not breaking the userspace ABI - right ?
->>
->> For syscalls I agree that we will indeed need to fix the ABI - by fixing
->> uClibc. And if uClibc doesn't merge the fixes we can stay out of tree
->> for uClibc - as we currently already are.
+On Wednesday 07 November 2012 07:46 PM, Arnd Bergmann wrote:
+> On Wednesday 07 November 2012, Vineet Gupta wrote:
+>> +static struct platform_device arc_uart##n##_dev = {    \
+>> +       .name = "arc-uart",                             \
+>> +       .id = n,                                        \
+>> +       .num_resources = ARRAY_SIZE(arc_uart##n##_res), \
+>> +       .resource = arc_uart##n##_res,                  \
+>> +       .dev = {                                        \
+>> +               .platform_data = &arc_uart_info,        \
+>> +       },                                              \
+>> +}
+>> +
+>> +ARC_UART_DEV(0);
+>> +#if CONFIG_SERIAL_ARC_NR_PORTS > 1
+>> +ARC_UART_DEV(1);
+>> +#endif
+>> +
+>> +static struct platform_device *fpga_early_devs[] __initdata = {
+>> +#if defined(CONFIG_SERIAL_ARC_CONSOLE)
+>> +       &arc_uart0_dev,
+>> +#endif
+>> +};
 > 
-> I'm sure we can find a solution for uClibc. We already have seven
-> architectures using the generic syscalls, including at least one
-> (arm64) that is going to run on a large number of installations
-> in the future.
-> 
->> For gdbserver, the kernel provides the complete regset ABI. However it
->> also provides a very limited version of old ABI - i.e. ptrace with
->> PEEKUSR/POKEUSR. Note that latter is just a shim layer and it reuses the
->> regset callbacks. This allows us to support the legacy gdbserver. If and
->> when gdbserver upgrades it can switch over to new interface. So all
->> along there will be NO ABI breakage at all. The cost is couple extra
->> functions in kernel which we might have to maintain for some foreseeable
->> future. Agree ?
-> 
-> It's more a question of principle. The rule is that we don't break user
-> space, and ptrace is just another user space interface is this. If
-> we merge it now, we will keep it around forever, taking it out later
-> is not an option IMHO. My preference would be not to merge the backwards
-> compatibility layer for ptrace at all, but I'm willing to listen to
-> other people that support your view if you want to keep it. In one
-> way, ptrace is less critical than the other system calls, and that is
-> because it's already architecture specific.
+> statically defining platform devices like this is considered very
+> bad style, especially since it prevents you from doing proper
+> boot-time configuration. Please get the available devices from
+> the boot loader. Normally this is done using a flattened device
+> tree blob that gets passed, unless you can probe the hardware
+> directly.
 > 
 > 	Arnd
 > 
 
-OK as of now the legacy syscall ABI and ptrace PEEKUSR/POKEUSR are taken out of
-submissions tree - we'll carry these out-of-tree for sometime before eventually
-moving to newer uClibc/gdbserver which don't need these O-O-T patches.
+So my strategy for v2 series (based off 3.8-rcx) is to introduce devicetree,
+multi-platform-image support (and other key fixes such as syscall restart issues)
+as slap-on patches on top of old code. This is not to avoid any chop-n-dice of
+fixing patches (I've done that in plenty between v1 and v2). Its just that, in
+absence of revision history for ARC port (in upstream later on) - it helps capture
+the evolution of some key features and also for the community it serves as a live
+documentation of bad designs and how they can be fixed.
 
+Is that a reasonable approach for new port which is non-bisectable anyways ?
+
+Thx,
 -Vineet
