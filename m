@@ -1,65 +1,45 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [RFC PATCH v1 25/31] ARC: [plat-arcfpga] Hooking up platform
- to ARC UART
-Date: Thu, 17 Jan 2013 12:59:38 +0530
-Message-ID: <50F7A862.4050006@synopsys.com>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com> <1352281674-2186-26-git-send-email-vgupta@synopsys.com> <201211071416.08012.arnd@arndb.de>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH] Proposed removal of IS_ERR_OR_NULL() (was: Re: [PATCH
+ 1/4] gpiolib: introduce descriptor-based GPIO interface)
+Date: Thu, 17 Jan 2013 11:28:04 +0100
+Message-ID: <CACRpkdYgD67OA-gmxdwZJXhtjwk1sRnntCzh4Q2RHbhoQ6TUhw@mail.gmail.com>
+References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com>
+	<201301081259.29839.arnd@arndb.de>
+	<CAAVeFu+4VbCbj9TaeMm+NMDJ9_M4-j4O0ONF7Yh_un63wS38+Q@mail.gmail.com>
+	<201301091035.23206.arnd@arndb.de>
+	<20130109104414.GF3931@n2100.arm.linux.org.uk>
+	<20130109111055.GG3931@n2100.arm.linux.org.uk>
+	<alpine.LFD.2.02.1301090932400.6300@xanadu.home>
+	<20130109150427.GL3931@n2100.arm.linux.org.uk>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=ISO-8859-1
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp2.synopsys.com ([198.182.60.77]:42453 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754466Ab3AQH3z (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jan 2013 02:29:55 -0500
-In-Reply-To: <201211071416.08012.arnd@arndb.de>
+Received: from mail-ie0-f178.google.com ([209.85.223.178]:60756 "EHLO
+	mail-ie0-f178.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1759499Ab3AQK2F (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Thu, 17 Jan 2013 05:28:05 -0500
+Received: by mail-ie0-f178.google.com with SMTP id c12so4567471ieb.9
+        for <linux-arch@vger.kernel.org>; Thu, 17 Jan 2013 02:28:04 -0800 (PST)
+In-Reply-To: <20130109150427.GL3931@n2100.arm.linux.org.uk>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Russell King - ARM Linux <linux@arm.linux.org.uk>
+Cc: Nicolas Pitre <nicolas.pitre@linaro.org>, Arnd Bergmann <arnd@arndb.de>, linux-arch@vger.kernel.org, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, Grant Likely <grant.likely@secretlab.ca>, Alexandre Courbot <acourbot@nvidia.com>, Guenter Roeck <linux@roeck-us.net>, "devicetree-discuss@lists.ozlabs.org" <devicetree-discuss@lists.ozlabs.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>
 
-On Wednesday 07 November 2012 07:46 PM, Arnd Bergmann wrote:
-> On Wednesday 07 November 2012, Vineet Gupta wrote:
->> +static struct platform_device arc_uart##n##_dev = {    \
->> +       .name = "arc-uart",                             \
->> +       .id = n,                                        \
->> +       .num_resources = ARRAY_SIZE(arc_uart##n##_res), \
->> +       .resource = arc_uart##n##_res,                  \
->> +       .dev = {                                        \
->> +               .platform_data = &arc_uart_info,        \
->> +       },                                              \
->> +}
->> +
->> +ARC_UART_DEV(0);
->> +#if CONFIG_SERIAL_ARC_NR_PORTS > 1
->> +ARC_UART_DEV(1);
->> +#endif
->> +
->> +static struct platform_device *fpga_early_devs[] __initdata = {
->> +#if defined(CONFIG_SERIAL_ARC_CONSOLE)
->> +       &arc_uart0_dev,
->> +#endif
->> +};
-> 
-> statically defining platform devices like this is considered very
-> bad style, especially since it prevents you from doing proper
-> boot-time configuration. Please get the available devices from
-> the boot loader. Normally this is done using a flattened device
-> tree blob that gets passed, unless you can probe the hardware
-> directly.
-> 
-> 	Arnd
-> 
+On Wed, Jan 9, 2013 at 4:04 PM, Russell King - ARM Linux
+<linux@arm.linux.org.uk> wrote:
 
-So my strategy for v2 series (based off 3.8-rcx) is to introduce devicetree,
-multi-platform-image support (and other key fixes such as syscall restart issues)
-as slap-on patches on top of old code. This is not to avoid any chop-n-dice of
-fixing patches (I've done that in plenty between v1 and v2). Its just that, in
-absence of revision history for ARC port (in upstream later on) - it helps capture
-the evolution of some key features and also for the community it serves as a live
-documentation of bad designs and how they can be fixed.
+> So, it seems there's some concensus building here, and it seems that
+> I've become the chosen victi^wvolunteer for this.  So, here's a patch.
+> It's missing a Guns-supplied-by: tag though.
+>
+> From: Russell King <rmk+kernel@arm.linux.org.uk>
+> Subject: Mark IS_ERR_OR_NULL() deprecated
 
-Is that a reasonable approach for new port which is non-bisectable anyways ?
+Acked-by: Linus Walleij <linus.walleij@linaro.org>
 
-Thx,
--Vineet
+Following the tradition of computer science an alternate title of
+the patch could be "IS_ERR_OR_NULL() considered harmful".
+
+Yours,
+Linus Walleij
