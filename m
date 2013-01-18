@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from kiruna.synopsys.com ([198.182.44.80]:61743 "EHLO
+Received: from kiruna.synopsys.com ([198.182.44.80]:61750 "EHLO
 	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755607Ab3ARMc0 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:32:26 -0500
+	with ESMTP id S1751402Ab3ARMcz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:32:55 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 49/76] ARC: Diagnostics: show_regs() etc
-Date: Fri, 18 Jan 2013 17:55:03 +0530
-Message-ID: <1358511930-7424-50-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 52/76] ARC: stacktracing APIs based on dw2 unwinder
+Date: Fri, 18 Jan 2013 17:55:06 +0530
+Message-ID: <1358511930-7424-53-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -15,381 +15,274 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20130118122503.FEfr9JhG3-5WKDj2_YvV379QNLx_Qef6p6VBTuPqVMM@z>
+Message-ID: <20130118122506.Z5BXkK2J9OuA_-umTaRl7TRJXQpXNkw0vqk_dXws3sI@z>
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/kernel/troubleshoot.c |  305 ++++++++++++++++++++++++++++++++++++++++
- arch/arc/mm/tlbex.S            |   20 +++
- 2 files changed, 325 insertions(+), 0 deletions(-)
+ arch/arc/Kconfig             |    4 +
+ arch/arc/kernel/stacktrace.c |  215 +++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 217 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arc/kernel/troubleshoot.c b/arch/arc/kernel/troubleshoot.c
-index 80bfe2a..7c10873 100644
---- a/arch/arc/kernel/troubleshoot.c
-+++ b/arch/arc/kernel/troubleshoot.c
-@@ -6,12 +6,317 @@
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index cd99825..86fc0c9 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -60,6 +60,10 @@ config GENERIC_HWEIGHT
+ config BINFMT_ELF
+ 	def_bool y
+ 
++config STACKTRACE_SUPPORT
++	def_bool y
++	select STACKTRACE
++
+ config HAVE_LATENCYTOP_SUPPORT
+ 	def_bool y
+ 
+diff --git a/arch/arc/kernel/stacktrace.c b/arch/arc/kernel/stacktrace.c
+index b9d1646..a63ff84 100644
+--- a/arch/arc/kernel/stacktrace.c
++++ b/arch/arc/kernel/stacktrace.c
+@@ -1,13 +1,206 @@
+ /*
++ *	stacktrace.c : stacktracing APIs needed by rest of kernel
++ *			(wrappers over ARC dwarf based unwinder)
++ *
+  * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
+  *
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License version 2 as
+  * published by the Free Software Foundation.
++ *
++ *  vineetg: aug 2009
++ *  -Implemented CONFIG_STACKTRACE APIs, primarily save_stack_trace_tsk( )
++ *   for displaying task's kernel mode call stack in /proc/<pid>/stack
++ *  -Iterator based approach to have single copy of unwinding core and APIs
++ *   needing unwinding, implement the logic in iterator regarding:
++ *      = which frame onwards to start capture
++ *      = which frame to stop capturing (wchan)
++ *      = specifics of data structs where trace is saved(CONFIG_STACKTRACE etc)
++ *
++ *  vineetg: March 2009
++ *  -Implemented correct versions of thread_saved_pc() and get_wchan()
++ *
++ *  rajeshwarr: 2008
++ *  -Initial implementation
   */
  
  #include <linux/ptrace.h>
-+#include <linux/module.h>
-+#include <linux/mm.h>
-+#include <linux/fs.h>
-+#include <linux/kdev_t.h>
-+#include <linux/fs_struct.h>
-+#include <linux/proc_fs.h>
-+#include <linux/file.h>
+ #include <linux/export.h>
++#include <linux/stacktrace.h>
++#include <linux/kallsyms.h>
 +#include <asm/arcregs.h>
++#include <asm/unwind.h>
++#include <asm/switch_to.h>
 +
-+/*
-+ * Common routine to print scratch regs (r0-r12) or callee regs (r13-r25)
-+ *   -Prints 3 regs per line and a CR.
-+ *   -To continue, callee regs right after scratch, special handling of CR
++/*-------------------------------------------------------------------------
++ *              Unwinder Iterator
++ *-------------------------------------------------------------------------
 + */
-+static noinline void print_reg_file(long *reg_rev, int start_num)
++
++#ifdef CONFIG_ARC_DW2_UNWIND
++
++static void seed_unwind_frame_info(struct task_struct *tsk,
++				   struct pt_regs *regs,
++				   struct unwind_frame_info *frame_info)
 +{
-+	unsigned int i;
-+	char buf[512];
-+	int n = 0, len = sizeof(buf);
++	if (tsk == NULL && regs == NULL) {
++		unsigned long fp, sp, blink, ret;
++		frame_info->task = current;
 +
-+	/* weird loop because pt_regs regs rev r12..r0, r25..r13 */
-+	for (i = start_num; i < start_num + 13; i++) {
-+		n += scnprintf(buf + n, len - n, "r%02u: 0x%08lx\t",
-+			       i, (unsigned long)*reg_rev);
++		__asm__ __volatile__(
++			"mov %0,r27\n\t"
++			"mov %1,r28\n\t"
++			"mov %2,r31\n\t"
++			"mov %3,r63\n\t"
++			: "=r"(fp), "=r"(sp), "=r"(blink), "=r"(ret)
++		);
 +
-+		if (((i + 1) % 3) == 0)
-+			n += scnprintf(buf + n, len - n, "\n");
++		frame_info->regs.r27 = fp;
++		frame_info->regs.r28 = sp;
++		frame_info->regs.r31 = blink;
++		frame_info->regs.r63 = ret;
++		frame_info->call_frame = 0;
++	} else if (regs == NULL) {
 +
-+		reg_rev--;
-+	}
++		frame_info->task = tsk;
 +
-+	if (start_num != 0)
-+		n += scnprintf(buf + n, len - n, "\n\n");
++		frame_info->regs.r27 = KSTK_FP(tsk);
++		frame_info->regs.r28 = KSTK_ESP(tsk);
++		frame_info->regs.r31 = KSTK_BLINK(tsk);
++		frame_info->regs.r63 = (unsigned int)__switch_to;
 +
-+	pr_info("%s", buf);
-+}
++		/* In the prologue of __switch_to, first FP is saved on stack
++		 * and then SP is copied to FP. Dwarf assumes cfa as FP based
++		 * but we didn't save FP. The value retrieved above is FP's
++		 * state in previous frame.
++		 * As a work around for this, we unwind from __switch_to start
++		 * and adjust SP accordingly. The other limitation is that
++		 * __switch_to macro is dwarf rules are not generated for inline
++		 * assembly code
++		 */
++		frame_info->regs.r27 = 0;
++		frame_info->regs.r28 += 64;
++		frame_info->call_frame = 0;
 +
-+static void show_callee_regs(struct callee_regs *cregs)
-+{
-+	print_reg_file(&(cregs->r13), 13);
-+}
-+
-+void print_task_path_n_nm(struct task_struct *tsk, char *buf)
-+{
-+	struct path path;
-+	char *path_nm = NULL;
-+	struct mm_struct *mm;
-+	struct file *exe_file;
-+
-+	mm = get_task_mm(tsk);
-+	if (!mm)
-+		goto done;
-+
-+	exe_file = get_mm_exe_file(mm);
-+	mmput(mm);
-+
-+	if (exe_file) {
-+		path = exe_file->f_path;
-+		path_get(&exe_file->f_path);
-+		fput(exe_file);
-+		path_nm = d_path(&path, buf, 255);
-+		path_put(&path);
-+	}
-+
-+done:
-+	pr_info("%s, TGID %u\n", path_nm, tsk->tgid);
-+}
-+EXPORT_SYMBOL(print_task_path_n_nm);
-+
-+static void show_faulting_vma(unsigned long address, char *buf)
-+{
-+	struct vm_area_struct *vma;
-+	struct inode *inode;
-+	unsigned long ino = 0;
-+	dev_t dev = 0;
-+	char *nm = buf;
-+
-+	vma = find_vma(current->active_mm, address);
-+
-+	/* check against the find_vma( ) behaviour which returns the next VMA
-+	 * if the container VMA is not found
-+	 */
-+	if (vma && (vma->vm_start <= address)) {
-+		struct file *file = vma->vm_file;
-+		if (file) {
-+			struct path *path = &file->f_path;
-+			nm = d_path(path, buf, PAGE_SIZE - 1);
-+			inode = vma->vm_file->f_path.dentry->d_inode;
-+			dev = inode->i_sb->s_dev;
-+			ino = inode->i_ino;
-+		}
-+		pr_info("    @off 0x%lx in [%s]\n"
-+			"    VMA: 0x%08lx to 0x%08lx\n\n",
-+		       address - vma->vm_start, nm, vma->vm_start, vma->vm_end);
-+	} else
-+		pr_info("    @No matching VMA found\n");
-+}
-+
-+static void show_ecr_verbose(struct pt_regs *regs)
-+{
-+	unsigned int vec, cause_code, cause_reg;
-+	unsigned long address;
-+
-+	cause_reg = current->thread.cause_code;
-+	pr_info("\n[ECR]: 0x%08x => ", cause_reg);
-+
-+	/* For Data fault, this is data address not instruction addr */
-+	address = current->thread.fault_address;
-+
-+	vec = cause_reg >> 16;
-+	cause_code = (cause_reg >> 8) & 0xFF;
-+
-+	/* For DTLB Miss or ProtV, display the memory involved too */
-+	if (vec == ECR_V_DTLB_MISS) {
-+		pr_cont("Invalid (%s) @ 0x%08lx by insn @ 0x%08lx\n",
-+		       (cause_code == 0x01) ? "Read From" :
-+		       ((cause_code == 0x02) ? "Write to" : "EX"),
-+		       address, regs->ret);
-+	} else if (vec == ECR_V_ITLB_MISS) {
-+		pr_cont("Insn could not be fetched\n");
-+	} else if (vec == ECR_V_MACH_CHK) {
-+		pr_cont("%s\n", (cause_code == 0x0) ?
-+					"Double Fault" : "Other Fatal Err");
-+
-+	} else if (vec == ECR_V_PROTV) {
-+		if (cause_code == ECR_C_PROTV_INST_FETCH)
-+			pr_cont("Execute from Non-exec Page\n");
-+		else if (cause_code == ECR_C_PROTV_LOAD)
-+			pr_cont("Read from Non-readable Page\n");
-+		else if (cause_code == ECR_C_PROTV_STORE)
-+			pr_cont("Write to Non-writable Page\n");
-+		else if (cause_code == ECR_C_PROTV_XCHG)
-+			pr_cont("Data exchange protection violation\n");
-+		else if (cause_code == ECR_C_PROTV_MISALIG_DATA)
-+			pr_cont("Misaligned r/w from 0x%08lx\n", address);
-+	} else if (vec == ECR_V_INSN_ERR) {
-+		pr_cont("Illegal Insn\n");
 +	} else {
-+		pr_cont("Check Programmer's Manual\n");
++		frame_info->task = tsk;
++
++		frame_info->regs.r27 = regs->fp;
++		frame_info->regs.r28 = regs->sp;
++		frame_info->regs.r31 = regs->blink;
++		frame_info->regs.r63 = regs->ret;
++		frame_info->call_frame = 0;
 +	}
 +}
 +
-+/************************************************************************
-+ *  API called by rest of kernel
-+ ***********************************************************************/
- 
- void show_regs(struct pt_regs *regs)
- {
-+	struct task_struct *tsk = current;
-+	struct callee_regs *cregs;
-+	char *buf;
++#endif
 +
-+	buf = (char *)__get_free_page(GFP_TEMPORARY);
-+	if (!buf)
-+		return;
-+
-+	print_task_path_n_nm(tsk, buf);
-+
-+	if (current->thread.cause_code)
-+		show_ecr_verbose(regs);
-+
-+	pr_info("[EFA]: 0x%08lx\n", current->thread.fault_address);
-+	pr_info("[ERET]: 0x%08lx (PC of Faulting Instr)\n", regs->ret);
-+
-+	show_faulting_vma(regs->ret, buf);	/* faulting code, not data */
-+
-+	/* can't use print_vma_addr() yet as it doesn't check for
-+	 * non-inclusive vma
-+	 */
-+
-+	/* print special regs */
-+	pr_info("status32: 0x%08lx\n", regs->status32);
-+	pr_info(" SP: 0x%08lx\tFP: 0x%08lx\n", regs->sp, regs->fp);
-+	pr_info("BTA: 0x%08lx\tBLINK: 0x%08lx\n",
-+		regs->bta, regs->blink);
-+	pr_info("LPS: 0x%08lx\tLPE: 0x%08lx\tLPC: 0x%08lx\n",
-+	       regs->lp_start, regs->lp_end, regs->lp_count);
-+
-+	/* print regs->r0 thru regs->r12
-+	 * Sequential printing was generating horrible code
-+	 */
-+	print_reg_file(&(regs->r0), 0);
-+
-+	/* If Callee regs were saved, display them too */
-+	cregs = (struct callee_regs *)current->thread.callee_reg;
-+	if (cregs)
-+		show_callee_regs(cregs);
-+
-+	free_page((unsigned long)buf);
- }
- 
- void show_kernel_fault_diag(const char *str, struct pt_regs *regs,
- 			    unsigned long address, unsigned long cause_reg)
- {
-+	current->thread.fault_address = address;
-+	current->thread.cause_code = cause_reg;
-+
-+	/* Caller and Callee regs */
-+	show_regs(regs);
-+
-+	/* Show stack trace if this Fatality happened in kernel mode */
-+	if (!user_mode(regs))
-+		show_stacktrace(current, regs);
- }
-+
-+#ifdef CONFIG_DEBUG_FS
-+
-+#include <linux/module.h>
-+#include <linux/fs.h>
-+#include <linux/mount.h>
-+#include <linux/pagemap.h>
-+#include <linux/init.h>
-+#include <linux/namei.h>
-+#include <linux/debugfs.h>
-+
-+static struct dentry *test_dentry;
-+static struct dentry *test_dir;
-+static struct dentry *test_u32_dentry;
-+
-+static u32 clr_on_read = 1;
-+
-+#ifdef CONFIG_ARC_DBG_TLB_MISS_COUNT
-+u32 numitlb, numdtlb, num_pte_not_present;
-+
-+static int fill_display_data(char *kbuf)
++static noinline unsigned int
++arc_unwind_core(struct task_struct *tsk, struct pt_regs *regs,
++		int (*consumer_fn) (unsigned int, void *), void *arg)
 +{
-+	size_t num = 0;
-+	num += sprintf(kbuf + num, "I-TLB Miss %x\n", numitlb);
-+	num += sprintf(kbuf + num, "D-TLB Miss %x\n", numdtlb);
-+	num += sprintf(kbuf + num, "PTE not present %x\n", num_pte_not_present);
++#ifdef CONFIG_ARC_DW2_UNWIND
++	int ret = 0;
++	unsigned int address;
++	struct unwind_frame_info frame_info;
 +
-+	if (clr_on_read)
-+		numitlb = numdtlb = num_pte_not_present = 0;
++	seed_unwind_frame_info(tsk, regs, &frame_info);
 +
-+	return num;
++	while (1) {
++		address = UNW_PC(&frame_info);
++
++		if (address && __kernel_text_address(address)) {
++			if (consumer_fn(address, arg) == -1)
++				break;
++		}
++
++		ret = arc_unwind(&frame_info);
++
++		if (ret == 0) {
++			frame_info.regs.r63 = frame_info.regs.r31;
++			continue;
++		} else {
++			break;
++		}
++	}
++
++	return address;		/* return the last address it saw */
++#else
++	/* On ARC, only Dward based unwinder works. fp based backtracing is
++	 * not possible (-fno-omit-frame-pointer) because of the way function
++	 * prelogue is setup (callee regs saved and then fp set and not other
++	 * way around
++	 */
++	pr_warn("CONFIG_ARC_DW2_UNWIND needs to be enabled\n");
++	return 0;
++
++#endif
 +}
 +
-+static int tlb_stats_open(struct inode *inode, struct file *file)
++/*-------------------------------------------------------------------------
++ * callbacks called by unwinder iterator to implement kernel APIs
++ *
++ * The callback can return -1 to force the iterator to stop, which by default
++ * keeps going till the bottom-most frame.
++ *-------------------------------------------------------------------------
++ */
++
++/* Call-back which plugs into unwinding core to dump the stack in
++ * case of panic/OOPs/BUG etc
++ */
++static int __print_sym(unsigned int address, void *unused)
 +{
-+	file->private_data = (void *)__get_free_page(GFP_KERNEL);
++	__print_symbol("  %s\n", address);
 +	return 0;
 +}
 +
-+/* called on user read(): display the couters */
-+static ssize_t tlb_stats_output(struct file *file,	/* file descriptor */
-+				char __user *user_buf,	/* user buffer */
-+				size_t len,		/* length of buffer */
-+				loff_t *offset)		/* offset in the file */
-+{
-+	size_t num;
-+	char *kbuf = (char *)file->private_data;
++#ifdef CONFIG_STACKTRACE
 +
-+	/* All of the data can he shoved in one iteration */
-+	if (*offset != 0)
++/* Call-back which plugs into unwinding core to capture the
++ * traces needed by kernel on /proc/<pid>/stack
++ */
++static int __collect_all(unsigned int address, void *arg)
++{
++	struct stack_trace *trace = arg;
++
++	if (trace->skip > 0)
++		trace->skip--;
++	else
++		trace->entries[trace->nr_entries++] = address;
++
++	if (trace->nr_entries >= trace->max_entries)
++		return -1;
++
++	return 0;
++}
++
++static int __collect_all_but_sched(unsigned int address, void *arg)
++{
++	struct stack_trace *trace = arg;
++
++	if (in_sched_functions(address))
 +		return 0;
 +
-+	num = fill_display_data(kbuf);
++	if (trace->skip > 0)
++		trace->skip--;
++	else
++		trace->entries[trace->nr_entries++] = address;
 +
-+	/* simple_read_from_buffer() is helper for copy to user space
-+	   It copies up to @2 (num) bytes from kernel buffer @4 (kbuf) at offset
-+	   @3 (offset) into the user space address starting at @1 (user_buf).
-+	   @5 (len) is max size of user buffer
-+	 */
-+	return simple_read_from_buffer(user_buf, num, offset, kbuf, len);
-+}
-+
-+/* called on user write : clears the counters */
-+static ssize_t tlb_stats_clear(struct file *file, const char __user *user_buf,
-+			       size_t length, loff_t *offset)
-+{
-+	numitlb = numdtlb = num_pte_not_present = 0;
-+	return length;
-+}
-+
-+static int tlb_stats_close(struct inode *inode, struct file *file)
-+{
-+	free_page((unsigned long)(file->private_data));
-+	return 0;
-+}
-+
-+static const struct file_operations tlb_stats_file_ops = {
-+	.read = tlb_stats_output,
-+	.write = tlb_stats_clear,
-+	.open = tlb_stats_open,
-+	.release = tlb_stats_close
-+};
-+#endif
-+
-+static int __init arc_debugfs_init(void)
-+{
-+	test_dir = debugfs_create_dir("arc", NULL);
-+
-+#ifdef CONFIG_ARC_DBG_TLB_MISS_COUNT
-+	test_dentry = debugfs_create_file("tlb_stats", 0444, test_dir, NULL,
-+					  &tlb_stats_file_ops);
-+#endif
-+
-+	test_u32_dentry =
-+	    debugfs_create_u32("clr_on_read", 0444, test_dir, &clr_on_read);
++	if (trace->nr_entries >= trace->max_entries)
++		return -1;
 +
 +	return 0;
 +}
 +
-+module_init(arc_debugfs_init);
++#endif
 +
-+static void __exit arc_debugfs_exit(void)
++static int __get_first_nonsched(unsigned int address, void *unused)
 +{
-+	debugfs_remove(test_u32_dentry);
-+	debugfs_remove(test_dentry);
-+	debugfs_remove(test_dir);
++	if (in_sched_functions(address))
++		return 0;
++
++	return -1;
 +}
-+module_exit(arc_debugfs_exit);
+ 
+ /*-------------------------------------------------------------------------
+  *              APIs expected by various kernel sub-systems
+@@ -16,7 +209,8 @@
+ 
+ noinline void show_stacktrace(struct task_struct *tsk, struct pt_regs *regs)
+ {
+-	pr_info("\nStack Trace: NOT Available\n");
++	pr_info("\nStack Trace:\n");
++	arc_unwind_core(tsk, regs, __print_sym, NULL);
+ }
+ EXPORT_SYMBOL(show_stacktrace);
+ 
+@@ -39,5 +233,22 @@ EXPORT_SYMBOL(dump_stack);
+  */
+ unsigned int get_wchan(struct task_struct *tsk)
+ {
+-	return 0;
++	return arc_unwind_core(tsk, NULL, __get_first_nonsched, NULL);
++}
 +
-+#endif
-diff --git a/arch/arc/mm/tlbex.S b/arch/arc/mm/tlbex.S
-index fc5b971..164b021 100644
---- a/arch/arc/mm/tlbex.S
-+++ b/arch/arc/mm/tlbex.S
-@@ -133,6 +133,14 @@ ex_saved_reg1:
- 	lsr     r0, r2, (PAGE_SHIFT - 2)
- 	and     r0, r0, ( (PTRS_PER_PTE - 1) << 2)
- 	ld.aw   r0, [r1, r0]            ; get PTE and PTE ptr for fault addr
-+#ifdef CONFIG_ARC_DBG_TLB_MISS_COUNT
-+	and.f 0, r0, _PAGE_PRESENT
-+	bz   1f
-+	ld   r2, [num_pte_not_present]
-+	add  r2, r2, 1
-+	st   r2, [num_pte_not_present]
-+1:
-+#endif
- 
- .endm
- 
-@@ -219,6 +227,12 @@ ARC_ENTRY EV_TLBMissI
- 
- 	TLBMISS_FREEUP_REGS
- 
-+#ifdef CONFIG_ARC_DBG_TLB_MISS_COUNT
-+	ld  r0, [@numitlb]
-+	add r0, r0, 1
-+	st  r0, [@numitlb]
-+#endif
++#ifdef CONFIG_STACKTRACE
 +
- 	;----------------------------------------------------------------
- 	; Get the PTE corresponding to V-addr accessed
- 	LOAD_FAULT_PTE
-@@ -252,6 +266,12 @@ ARC_ENTRY EV_TLBMissD
- 
- 	TLBMISS_FREEUP_REGS
- 
-+#ifdef CONFIG_ARC_DBG_TLB_MISS_COUNT
-+	ld  r0, [@numdtlb]
-+	add r0, r0, 1
-+	st  r0, [@numdtlb]
-+#endif
++/*
++ * API required by CONFIG_STACKTRACE, CONFIG_LATENCYTOP.
++ * A typical use is when /proc/<pid>/stack is queried by userland
++ */
++void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
++{
++	arc_unwind_core(tsk, NULL, __collect_all_but_sched, trace);
++}
 +
- 	;----------------------------------------------------------------
- 	; Get the PTE corresponding to V-addr accessed
- 	; If PTE exists, it will setup, r0 = PTE, r1 = Ptr to PTE
++void save_stack_trace(struct stack_trace *trace)
++{
++	arc_unwind_core(current, NULL, __collect_all, trace);
+ }
++#endif
 -- 
 1.7.4.1
 
