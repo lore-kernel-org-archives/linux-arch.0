@@ -1,98 +1,147 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from vaxjo.synopsys.com ([198.182.60.75]:59289 "EHLO
+Received: from us02smtp1.synopsys.com ([198.182.60.75]:59369 "EHLO
 	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756379Ab3ARMbK (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:31:10 -0500
+	with ESMTP id S1751374Ab3ARMlK (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:41:10 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 39/76] ARC: Switch to saner kernel_execve() semantics #2
-Date: Fri, 18 Jan 2013 17:54:53 +0530
-Message-ID: <1358511930-7424-40-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 74/76] ARC: [Review] Multi-platform image #7: SMP common code to use callbacks
+Date: Fri, 18 Jan 2013 18:10:25 +0530
+Message-ID: <1358512827-7694-3-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1358512827-7694-1-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
+ <1358512827-7694-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Al Viro <viro@ZenIV.linux.org.uk>
-Message-ID: <20130118122453.tTQ8e42pcQJxWaemXaM1gbMjy2oGQOISQ8NgL2J1md4@z>
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20130118124025.aqSDkPFV2igjmvdlaXZwBj8TbcnP0hTof8Ed6_Ae3YY@z>
 
-fold ret_from_kernel_thread into ret_from_fork
+This again is for switch from singleton platform SMP API to
+multi-platform paradigm
 
-The only difference is former needs to call thread entry point which can
-be detected inside ret_from_fork too.
+Platform code is not yet setup to populate the callbacks, that happens
+in next commit
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arc/kernel/entry.S   |   18 +++++++++++-------
- arch/arc/kernel/process.c |    8 ++++----
- 2 files changed, 15 insertions(+), 11 deletions(-)
+ arch/arc/include/asm/smp.h |   36 +++++++++++++++---------------------
+ arch/arc/kernel/smp.c      |   16 +++++++++++++---
+ 2 files changed, 28 insertions(+), 24 deletions(-)
 
-diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
-index b2291fc..69a0c9f 100644
---- a/arch/arc/kernel/entry.S
-+++ b/arch/arc/kernel/entry.S
-@@ -575,16 +575,20 @@ ARC_ENTRY ret_from_fork
- 	; when the forked child comes here from the __switch_to function
- 	; r0 has the last task pointer.
- 	; put last task in scheduler queue
--	bl  @schedule_tail
--	b @ret_from_exception
--ARC_EXIT ret_from_fork
-+	bl   @schedule_tail
+diff --git a/arch/arc/include/asm/smp.h b/arch/arc/include/asm/smp.h
+index 0cff3a5..c4fb211 100644
+--- a/arch/arc/include/asm/smp.h
++++ b/arch/arc/include/asm/smp.h
+@@ -31,6 +31,7 @@ extern void arch_send_call_function_ipi_mask(const struct cpumask *mask);
+  */
+ extern void __init smp_init_cpus(void);
+ extern void __init first_lines_of_secondary(void);
++extern const char *arc_platform_smp_cpuinfo(void);
+ 
+ /*
+  * API expected BY platform smp code (FROM arch smp code)
+@@ -41,29 +42,22 @@ extern void __init first_lines_of_secondary(void);
+ extern int smp_ipi_irq_setup(int cpu, int irq);
+ 
+ /*
+- * APIs expected FROM platform smp code
+- *
+- * arc_platform_smp_cpuinfo:
+- *	returns a string containing info for /proc/cpuinfo
+- *
+- * arc_platform_smp_wait_to_boot:
+- *	Called from early bootup code for non-Master CPUs to "park" them
++ * struct plat_smp_ops	- SMP callbacks provided by platform to ARC SMP
+  *
+- * arc_platform_smp_wakeup_cpu:
+- *	Called from __cpu_up (Master CPU) to kick start another one
+- *
+- * arc_platform_ipi_send:
+- *	Takes @cpumask to which IPI(s) would be sent.
+- *	The actual msg-id/buffer is manager in arch-common code
+- *
+- * arc_platform_ipi_clear:
+- *	Takes @cpu which got IPI at @irq to do any IPI clearing
++ * @info:		SoC SMP specific info for /proc/cpuinfo etc
++ * @cpu_kick:		For Master to kickstart a cpu (optionally at a PC)
++ * @ipi_send:		To send IPI to a @cpumask
++ * @ips_clear:		To clear IPI received by @cpu at @irq
+  */
+-extern const char *arc_platform_smp_cpuinfo(void);
+-extern void arc_platform_smp_wait_to_boot(int cpu);
+-extern void arc_platform_smp_wakeup_cpu(int cpu, unsigned long pc);
+-extern void arc_platform_ipi_send(const struct cpumask *callmap);
+-extern void arc_platform_ipi_clear(int cpu, int irq);
++struct plat_smp_ops {
++	const char 	*info;
++	void		(*cpu_kick)(int cpu, unsigned long pc);
++	void		(*ipi_send)(void *callmap);
++	void		(*ipi_clear)(int cpu, int irq);
++};
 +
-+	; If kernel thread, jump to it's entry-point
-+	ld   r9, [sp, PT_status32]
-+	brne r9, 0, 1f
++/* TBD: stop exporting it for direct population by platform */
++extern struct plat_smp_ops  plat_smp_ops;
  
--ARC_ENTRY ret_from_kernel_thread
--	bl  @schedule_tail
--	jl.d [r14]		; kernel_thread "payload"
-+	jl.d [r14]
- 	mov  r0, r13		; arg to payload
+ #endif  /* CONFIG_SMP */
+ 
+diff --git a/arch/arc/kernel/smp.c b/arch/arc/kernel/smp.c
+index 6843846..89f1687 100644
+--- a/arch/arc/kernel/smp.c
++++ b/arch/arc/kernel/smp.c
+@@ -37,6 +37,8 @@
+ arch_spinlock_t smp_atomic_ops_lock = __ARCH_SPIN_LOCK_UNLOCKED;
+ arch_spinlock_t smp_bitops_lock = __ARCH_SPIN_LOCK_UNLOCKED;
+ 
++struct plat_smp_ops  plat_smp_ops;
 +
-+1:
-+	; special case of kernel_thread entry point returning back due to
-+	; kernel_execve() - pretend return from syscall to ret to userland
- 	b    ret_from_exception
--ARC_EXIT ret_from_kernel_thread
-+ARC_EXIT ret_from_fork
+ /* XXX: per cpu ? Only needed once in early seconday boot */
+ struct task_struct *secondary_idle_tsk;
  
- ;################### Special Sys Call Wrappers ##########################
- 
-diff --git a/arch/arc/kernel/process.c b/arch/arc/kernel/process.c
-index 20d8b4d..403de7e 100644
---- a/arch/arc/kernel/process.c
-+++ b/arch/arc/kernel/process.c
-@@ -99,7 +99,6 @@ void cpu_idle(void)
+@@ -105,6 +107,11 @@ void __attribute__((weak)) arc_platform_smp_wait_to_boot(int cpu)
+ 	"	b 1b	\n");
  }
  
- asmlinkage void ret_from_fork(void);
--asmlinkage void ret_from_kernel_thread(void) __attribute__((noreturn));
- 
- /* Layout of Child kernel mode stack as setup at the end of this function is
-  *
-@@ -155,15 +154,16 @@ int copy_thread(unsigned long clone_flags,
- 	 */
- 	p->thread.ksp = (unsigned long)c_callee;	/* THREAD_KSP */
- 
-+	/* __switch_to expects FP(0), BLINK(return addr) at top */
-+	childksp[0] = 0;			/* fp */
-+	childksp[1] = (unsigned long)ret_from_fork; /* blink */
++const char *arc_platform_smp_cpuinfo(void)
++{
++	return plat_smp_ops.info;
++}
 +
- 	if (unlikely(p->flags & PF_KTHREAD)) {
- 		memset(c_regs, 0, sizeof(struct pt_regs));
+ /*
+  * The very first "C" code executed by secondary
+  * Called from asm stub in head.S
+@@ -155,7 +162,8 @@ int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *idle)
+ 	pr_info("Idle Task [%d] %p", cpu, idle);
+ 	pr_info("Trying to bring up CPU%u ...\n", cpu);
  
- 		c_callee->r13 = arg; /* argument to kernel thread */
- 		c_callee->r14 = usp;  /* function */
+-	arc_platform_smp_wakeup_cpu(cpu,
++	if (plat_smp_ops.cpu_kick)
++		plat_smp_ops.cpu_kick(cpu,
+ 				(unsigned long)first_lines_of_secondary);
  
--		/* __switch_to expects FP(0), BLINK(return addr) at top */
--		childksp[0] = 0;			/* fp */
--		childksp[1] = (unsigned long)ret_from_kernel_thread; /* blink */
- 		return 0;
+ 	/* wait for 1 sec after kicking the secondary */
+@@ -224,7 +232,8 @@ static void ipi_send_msg(const struct cpumask *callmap, enum ipi_msg_type msg)
  	}
  
+ 	/* Call the platform specific cross-CPU call function  */
+-	arc_platform_ipi_send(callmap);
++	if (plat_smp_ops.ipi_send)
++		plat_smp_ops.ipi_send((void *)callmap);
+ 
+ 	local_irq_restore(flags);
+ }
+@@ -298,7 +307,8 @@ irqreturn_t do_IPI(int irq, void *dev_id)
+ 	struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
+ 	unsigned long ops;
+ 
+-	arc_platform_ipi_clear(cpu, irq);
++	if (plat_smp_ops.ipi_clear)
++		plat_smp_ops.ipi_clear(cpu, irq);
+ 
+ 	/*
+ 	 * XXX: is this loop really needed
 -- 
 1.7.4.1
 
