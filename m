@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from vaxjo.synopsys.com ([198.182.60.75]:59254 "EHLO
+Received: from vaxjo.synopsys.com ([198.182.60.75]:59259 "EHLO
 	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751833Ab3ARM0d (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:26:33 -0500
+	with ESMTP id S1752798Ab3ARM1V (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:27:21 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 05/76] ARC: uaccess friends
-Date: Fri, 18 Jan 2013 17:54:19 +0530
-Message-ID: <1358511930-7424-6-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 11/76] ARC: Spinlock/rwlock/mutex primitives
+Date: Fri, 18 Jan 2013 17:54:25 +0530
+Message-ID: <1358511930-7424-12-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -15,24 +15,24 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20130118122419.i1BoJzO4TTRqPDFN32Bk7-SGCZOd4H8n4ZGQHVGJdlk@z>
+Message-ID: <20130118122425.rduuKeaDYL867vvQijiNNZ6zk1Et84K_fUAnHO57xRs@z>
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/include/asm/segment.h |   24 ++
- arch/arc/include/asm/uaccess.h |  646 ++++++++++++++++++++++++++++++++++++++++
- arch/arc/mm/extable.c          |   63 ++++
- 3 files changed, 733 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/include/asm/segment.h
- create mode 100644 arch/arc/include/asm/uaccess.h
- create mode 100644 arch/arc/mm/extable.c
+ arch/arc/include/asm/mutex.h          |    9 ++
+ arch/arc/include/asm/spinlock.h       |  144 +++++++++++++++++++++++++++++++++
+ arch/arc/include/asm/spinlock_types.h |   35 ++++++++
+ 3 files changed, 188 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/include/asm/mutex.h
+ create mode 100644 arch/arc/include/asm/spinlock.h
+ create mode 100644 arch/arc/include/asm/spinlock_types.h
 
-diff --git a/arch/arc/include/asm/segment.h b/arch/arc/include/asm/segment.h
+diff --git a/arch/arc/include/asm/mutex.h b/arch/arc/include/asm/mutex.h
 new file mode 100644
-index 0000000..da2c459
+index 0000000..3be5e64
 --- /dev/null
-+++ b/arch/arc/include/asm/segment.h
-@@ -0,0 +1,24 @@
++++ b/arch/arc/include/asm/mutex.h
+@@ -0,0 +1,9 @@
 +/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
@@ -41,742 +41,197 @@ index 0000000..da2c459
 + * published by the Free Software Foundation.
 + */
 +
-+#ifndef __ASMARC_SEGMENT_H
-+#define __ASMARC_SEGMENT_H
-+
-+#ifndef __ASSEMBLY__
-+
-+typedef unsigned long mm_segment_t;
-+
-+#define MAKE_MM_SEG(s)	((mm_segment_t) { (s) })
-+
-+#define KERNEL_DS		MAKE_MM_SEG(0)
-+#define USER_DS			MAKE_MM_SEG(TASK_SIZE)
-+
-+#define segment_eq(a, b)	((a) == (b))
-+
-+#endif /* __ASSEMBLY__ */
-+#endif /* __ASMARC_SEGMENT_H */
-diff --git a/arch/arc/include/asm/uaccess.h b/arch/arc/include/asm/uaccess.h
++#include <asm-generic/mutex-xchg.h>
+diff --git a/arch/arc/include/asm/spinlock.h b/arch/arc/include/asm/spinlock.h
 new file mode 100644
-index 0000000..f13bca4
+index 0000000..f158197
 --- /dev/null
-+++ b/arch/arc/include/asm/uaccess.h
-@@ -0,0 +1,646 @@
++++ b/arch/arc/include/asm/spinlock.h
+@@ -0,0 +1,144 @@
 +/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
-+ *
-+ * vineetg: June 2010
-+ *    -__clear_user( ) called multiple times during elf load was byte loop
-+ *    converted to do as much word clear as possible.
-+ *
-+ * vineetg: Dec 2009
-+ *    -Hand crafted constant propagation for "constant" copy sizes
-+ *    -stock kernel shrunk by 33K at -O3
-+ *
-+ * vineetg: Sept 2009
-+ *    -Added option to (UN)inline copy_(to|from)_user to reduce code sz
-+ *    -kernel shrunk by 200K even at -O3 (gcc 4.2.1)
-+ *    -Enabled when doing -Os
-+ *
-+ * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
 + */
 +
-+#ifndef _ASM_ARC_UACCESS_H
-+#define _ASM_ARC_UACCESS_H
++#ifndef __ASM_SPINLOCK_H
++#define __ASM_SPINLOCK_H
 +
-+#include <linux/sched.h>
-+#include <asm/errno.h>
-+#include <linux/string.h>	/* for generic string functions */
++#include <asm/spinlock_types.h>
++#include <asm/processor.h>
++#include <asm/barrier.h>
 +
++#define arch_spin_is_locked(x)	((x)->slock != __ARCH_SPIN_LOCK_UNLOCKED__)
++#define arch_spin_lock_flags(lock, flags)	arch_spin_lock(lock)
++#define arch_spin_unlock_wait(x) \
++	do { while (arch_spin_is_locked(x)) cpu_relax(); } while (0)
 +
-+#define __kernel_ok		(segment_eq(get_fs(), KERNEL_DS))
-+
-+/*
-+ * Algorthmically, for __user_ok() we want do:
-+ * 	(start < TASK_SIZE) && (start+len < TASK_SIZE)
-+ * where TASK_SIZE could either be retrieved from thread_info->addr_limit or
-+ * emitted directly in code.
-+ *
-+ * This can however be rewritten as follows:
-+ *	(len <= TASK_SIZE) && (start+len < TASK_SIZE)
-+ *
-+ * Because it essentially checks if buffer end is within limit and @len is
-+ * non-ngeative, which implies that buffer start will be within limit too.
-+ *
-+ * The reason for rewriting being, for majorit yof cases, @len is generally
-+ * compile time constant, causing first sub-expression to be compile time
-+ * subsumed.
-+ *
-+ * The second part would generate weird large LIMMs e.g. (0x6000_0000 - 0x10),
-+ * so we check for TASK_SIZE using get_fs() since the addr_limit load from mem
-+ * would already have been done at this call site for __kernel_ok()
-+ *
-+ */
-+#define __user_ok(addr, sz)	(((sz) <= TASK_SIZE) && \
-+				 (((addr)+(sz)) <= get_fs()))
-+#define __access_ok(addr, sz)	(unlikely(__kernel_ok) || \
-+				 likely(__user_ok((addr), (sz))))
-+
-+static inline unsigned long
-+__arc_copy_from_user(void *to, const void __user *from, unsigned long n)
++static inline void arch_spin_lock(arch_spinlock_t *lock)
 +{
-+	long res = 0;
-+	char val;
-+	unsigned long tmp1, tmp2, tmp3, tmp4;
-+	unsigned long orig_n = n;
++	unsigned int tmp = __ARCH_SPIN_LOCK_LOCKED__;
 +
-+	if (n == 0)
-+		return 0;
++	__asm__ __volatile__(
++	"1:	ex  %0, [%1]		\n"
++	"	breq  %0, %2, 1b	\n"
++	: "+&r" (tmp)
++	: "r"(&(lock->slock)), "ir"(__ARCH_SPIN_LOCK_LOCKED__)
++	: "memory");
++}
 +
-+	/* unaligned */
-+	if (((unsigned long)to & 0x3) || ((unsigned long)from & 0x3)) {
++static inline int arch_spin_trylock(arch_spinlock_t *lock)
++{
++	unsigned int tmp = __ARCH_SPIN_LOCK_LOCKED__;
 +
-+		unsigned char tmp;
++	__asm__ __volatile__(
++	"1:	ex  %0, [%1]		\n"
++	: "+r" (tmp)
++	: "r"(&(lock->slock))
++	: "memory");
 +
-+		__asm__ __volatile__ (
-+		"	mov.f   lp_count, %0		\n"
-+		"	lpnz 2f				\n"
-+		"1:	ldb.ab  %1, [%3, 1]		\n"
-+		"	stb.ab  %1, [%2, 1]		\n"
-+		"	sub     %0,%0,1			\n"
-+		"2:	;nop				\n"
-+		"	.section .fixup, \"ax\"		\n"
-+		"	.align 4			\n"
-+		"3:	j   2b				\n"
-+		"	.previous			\n"
-+		"	.section __ex_table, \"a\"	\n"
-+		"	.align 4			\n"
-+		"	.word   1b, 3b			\n"
-+		"	.previous			\n"
++	return (tmp == __ARCH_SPIN_LOCK_UNLOCKED__);
++}
 +
-+		: "+r" (n),
-+		/*
-+		 * Note as an '&' earlyclobber operand to make sure the
-+		 * temporary register inside the loop is not the same as
-+		 *  FROM or TO.
-+		*/
-+		  "=&r" (tmp), "+r" (to), "+r" (from)
-+		:
-+		: "lp_count", "lp_start", "lp_end", "memory");
++static inline void arch_spin_unlock(arch_spinlock_t *lock)
++{
++	lock->slock = __ARCH_SPIN_LOCK_UNLOCKED__;
++	smp_mb();
++}
 +
-+		return n;
-+	}
++/*
++ * Read-write spinlocks, allowing multiple readers but only one writer.
++ *
++ * The spinlock itself is contained in @counter and access to it is
++ * serialized with @lock_mutex.
++ *
++ * Unfair locking as Writers could be starved indefinitely by Reader(s)
++ */
++
++/* Would read_trylock() succeed? */
++#define arch_read_can_lock(x)	((x)->counter > 0)
++
++/* Would write_trylock() succeed? */
++#define arch_write_can_lock(x)	((x)->counter == __ARCH_RW_LOCK_UNLOCKED__)
++
++/* 1 - lock taken successfully */
++static inline int arch_read_trylock(arch_rwlock_t *rw)
++{
++	int ret = 0;
++
++	arch_spin_lock(&(rw->lock_mutex));
 +
 +	/*
-+	 * Hand-crafted constant propagation to reduce code sz of the
-+	 * laddered copy 16x,8,4,2,1
++	 * zero means writer holds the lock exclusively, deny Reader.
++	 * Otherwise grant lock to first/subseq reader
 +	 */
-+	if (__builtin_constant_p(orig_n)) {
-+		res = orig_n;
-+
-+		if (orig_n / 16) {
-+			orig_n = orig_n % 16;
-+
-+			__asm__ __volatile__(
-+			"	lsr   lp_count, %7,4		\n"
-+			"	lp    3f			\n"
-+			"1:	ld.ab   %3, [%2, 4]		\n"
-+			"11:	ld.ab   %4, [%2, 4]		\n"
-+			"12:	ld.ab   %5, [%2, 4]		\n"
-+			"13:	ld.ab   %6, [%2, 4]		\n"
-+			"	st.ab   %3, [%1, 4]		\n"
-+			"	st.ab   %4, [%1, 4]		\n"
-+			"	st.ab   %5, [%1, 4]		\n"
-+			"	st.ab   %6, [%1, 4]		\n"
-+			"	sub     %0,%0,16		\n"
-+			"3:	;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   3b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   1b, 4b			\n"
-+			"	.word   11b,4b			\n"
-+			"	.word   12b,4b			\n"
-+			"	.word   13b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from),
-+			  "=r"(tmp1), "=r"(tmp2), "=r"(tmp3), "=r"(tmp4)
-+			: "ir"(n)
-+			: "lp_count", "memory");
-+		}
-+		if (orig_n / 8) {
-+			orig_n = orig_n % 8;
-+
-+			__asm__ __volatile__(
-+			"14:	ld.ab   %3, [%2,4]		\n"
-+			"15:	ld.ab   %4, [%2,4]		\n"
-+			"	st.ab   %3, [%1,4]		\n"
-+			"	st.ab   %4, [%1,4]		\n"
-+			"	sub     %0,%0,8			\n"
-+			"31:	;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   31b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   14b,4b			\n"
-+			"	.word   15b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from),
-+			  "=r"(tmp1), "=r"(tmp2)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n / 4) {
-+			orig_n = orig_n % 4;
-+
-+			__asm__ __volatile__(
-+			"16:	ld.ab   %3, [%2,4]		\n"
-+			"	st.ab   %3, [%1,4]		\n"
-+			"	sub     %0,%0,4			\n"
-+			"32:	;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   32b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   16b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n / 2) {
-+			orig_n = orig_n % 2;
-+
-+			__asm__ __volatile__(
-+			"17:	ldw.ab   %3, [%2,2]		\n"
-+			"	stw.ab   %3, [%1,2]		\n"
-+			"	sub      %0,%0,2		\n"
-+			"33:	;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   33b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   17b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n & 1) {
-+			__asm__ __volatile__(
-+			"18:	ldb.ab   %3, [%2,2]		\n"
-+			"	stb.ab   %3, [%1,2]		\n"
-+			"	sub      %0,%0,1		\n"
-+			"34:	; nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   34b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   18b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+	} else {  /* n is NOT constant, so laddered copy of 16x,8,4,2,1  */
-+
-+		__asm__ __volatile__(
-+		"	mov %0,%3			\n"
-+		"	lsr.f   lp_count, %3,4		\n"  /* 16x bytes */
-+		"	lpnz    3f			\n"
-+		"1:	ld.ab   %5, [%2, 4]		\n"
-+		"11:	ld.ab   %6, [%2, 4]		\n"
-+		"12:	ld.ab   %7, [%2, 4]		\n"
-+		"13:	ld.ab   %8, [%2, 4]		\n"
-+		"	st.ab   %5, [%1, 4]		\n"
-+		"	st.ab   %6, [%1, 4]		\n"
-+		"	st.ab   %7, [%1, 4]		\n"
-+		"	st.ab   %8, [%1, 4]		\n"
-+		"	sub     %0,%0,16		\n"
-+		"3:	and.f   %3,%3,0xf		\n"  /* stragglers */
-+		"	bz      34f			\n"
-+		"	bbit0   %3,3,31f		\n"  /* 8 bytes left */
-+		"14:	ld.ab   %5, [%2,4]		\n"
-+		"15:	ld.ab   %6, [%2,4]		\n"
-+		"	st.ab   %5, [%1,4]		\n"
-+		"	st.ab   %6, [%1,4]		\n"
-+		"	sub.f   %0,%0,8			\n"
-+		"31:	bbit0   %3,2,32f		\n"  /* 4 bytes left */
-+		"16:	ld.ab   %5, [%2,4]		\n"
-+		"	st.ab   %5, [%1,4]		\n"
-+		"	sub.f   %0,%0,4			\n"
-+		"32:	bbit0   %3,1,33f		\n"  /* 2 bytes left */
-+		"17:	ldw.ab  %5, [%2,2]		\n"
-+		"	stw.ab  %5, [%1,2]		\n"
-+		"	sub.f   %0,%0,2			\n"
-+		"33:	bbit0   %3,0,34f		\n"
-+		"18:	ldb.ab  %5, [%2,1]		\n"  /* 1 byte left */
-+		"	stb.ab  %5, [%1,1]		\n"
-+		"	sub.f   %0,%0,1			\n"
-+		"34:	;nop				\n"
-+		"	.section .fixup, \"ax\"		\n"
-+		"	.align 4			\n"
-+		"4:	j   34b				\n"
-+		"	.previous			\n"
-+		"	.section __ex_table, \"a\"	\n"
-+		"	.align 4			\n"
-+		"	.word   1b, 4b			\n"
-+		"	.word   11b,4b			\n"
-+		"	.word   12b,4b			\n"
-+		"	.word   13b,4b			\n"
-+		"	.word   14b,4b			\n"
-+		"	.word   15b,4b			\n"
-+		"	.word   16b,4b			\n"
-+		"	.word   17b,4b			\n"
-+		"	.word   18b,4b			\n"
-+		"	.previous			\n"
-+		: "=r" (res), "+r"(to), "+r"(from), "+r"(n), "=r"(val),
-+		  "=r"(tmp1), "=r"(tmp2), "=r"(tmp3), "=r"(tmp4)
-+		:
-+		: "lp_count", "memory");
++	if (rw->counter > 0) {
++		rw->counter--;
++		ret = 1;
 +	}
 +
-+	return res;
++	arch_spin_unlock(&(rw->lock_mutex));
++
++	smp_mb();
++	return ret;
 +}
 +
-+extern unsigned long slowpath_copy_to_user(void __user *to, const void *from,
-+					   unsigned long n);
-+
-+static inline unsigned long
-+__arc_copy_to_user(void __user *to, const void *from, unsigned long n)
++/* 1 - lock taken successfully */
++static inline int arch_write_trylock(arch_rwlock_t *rw)
 +{
-+	long res = 0;
-+	char val;
-+	unsigned long tmp1, tmp2, tmp3, tmp4;
-+	unsigned long orig_n = n;
++	int ret = 0;
 +
-+	if (n == 0)
-+		return 0;
++	arch_spin_lock(&(rw->lock_mutex));
 +
-+	/* unaligned */
-+	if (((unsigned long)to & 0x3) || ((unsigned long)from & 0x3)) {
-+
-+		unsigned char tmp;
-+
-+		__asm__ __volatile__(
-+		"	mov.f   lp_count, %0		\n"
-+		"	lpnz 3f				\n"
-+		"	ldb.ab  %1, [%3, 1]		\n"
-+		"1:	stb.ab  %1, [%2, 1]		\n"
-+		"	sub     %0, %0, 1		\n"
-+		"3:	;nop				\n"
-+		"	.section .fixup, \"ax\"		\n"
-+		"	.align 4			\n"
-+		"4:	j   3b				\n"
-+		"	.previous			\n"
-+		"	.section __ex_table, \"a\"	\n"
-+		"	.align 4			\n"
-+		"	.word   1b, 4b			\n"
-+		"	.previous			\n"
-+
-+		: "+r" (n),
-+		/* Note as an '&' earlyclobber operand to make sure the
-+		 * temporary register inside the loop is not the same as
-+		 * FROM or TO.
-+		 */
-+		  "=&r" (tmp), "+r" (to), "+r" (from)
-+		:
-+		: "lp_count", "lp_start", "lp_end", "memory");
-+
-+		return n;
++	/*
++	 * If reader(s) hold lock (lock < __ARCH_RW_LOCK_UNLOCKED__),
++	 * deny writer. Otherwise if unlocked grant to writer
++	 * Hence the claim that Linux rwlocks are unfair to writers.
++	 * (can be starved for an indefinite time by readers).
++	 */
++	if (rw->counter == __ARCH_RW_LOCK_UNLOCKED__) {
++		rw->counter = 0;
++		ret = 1;
 +	}
++	arch_spin_unlock(&(rw->lock_mutex));
 +
-+	if (__builtin_constant_p(orig_n)) {
-+		res = orig_n;
-+
-+		if (orig_n / 16) {
-+			orig_n = orig_n % 16;
-+
-+			__asm__ __volatile__(
-+			"	lsr lp_count, %7,4		\n"
-+			"	lp  3f				\n"
-+			"	ld.ab %3, [%2, 4]		\n"
-+			"	ld.ab %4, [%2, 4]		\n"
-+			"	ld.ab %5, [%2, 4]		\n"
-+			"	ld.ab %6, [%2, 4]		\n"
-+			"1:	st.ab %3, [%1, 4]		\n"
-+			"11:	st.ab %4, [%1, 4]		\n"
-+			"12:	st.ab %5, [%1, 4]		\n"
-+			"13:	st.ab %6, [%1, 4]		\n"
-+			"	sub   %0, %0, 16		\n"
-+			"3:;nop					\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   3b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   1b, 4b			\n"
-+			"	.word   11b,4b			\n"
-+			"	.word   12b,4b			\n"
-+			"	.word   13b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from),
-+			  "=r"(tmp1), "=r"(tmp2), "=r"(tmp3), "=r"(tmp4)
-+			: "ir"(n)
-+			: "lp_count", "memory");
-+		}
-+		if (orig_n / 8) {
-+			orig_n = orig_n % 8;
-+
-+			__asm__ __volatile__(
-+			"	ld.ab   %3, [%2,4]		\n"
-+			"	ld.ab   %4, [%2,4]		\n"
-+			"14:	st.ab   %3, [%1,4]		\n"
-+			"15:	st.ab   %4, [%1,4]		\n"
-+			"	sub     %0, %0, 8		\n"
-+			"31:;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   31b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   14b,4b			\n"
-+			"	.word   15b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from),
-+			  "=r"(tmp1), "=r"(tmp2)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n / 4) {
-+			orig_n = orig_n % 4;
-+
-+			__asm__ __volatile__(
-+			"	ld.ab   %3, [%2,4]		\n"
-+			"16:	st.ab   %3, [%1,4]		\n"
-+			"	sub     %0, %0, 4		\n"
-+			"32:;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   32b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   16b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n / 2) {
-+			orig_n = orig_n % 2;
-+
-+			__asm__ __volatile__(
-+			"	ldw.ab    %3, [%2,2]		\n"
-+			"17:	stw.ab    %3, [%1,2]		\n"
-+			"	sub       %0, %0, 2		\n"
-+			"33:;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   33b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   17b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+		if (orig_n & 1) {
-+			__asm__ __volatile__(
-+			"	ldb.ab  %3, [%2,1]		\n"
-+			"18:	stb.ab  %3, [%1,1]		\n"
-+			"	sub     %0, %0, 1		\n"
-+			"34:	;nop				\n"
-+			"	.section .fixup, \"ax\"		\n"
-+			"	.align 4			\n"
-+			"4:	j   34b				\n"
-+			"	.previous			\n"
-+			"	.section __ex_table, \"a\"	\n"
-+			"	.align 4			\n"
-+			"	.word   18b,4b			\n"
-+			"	.previous			\n"
-+			: "+r" (res), "+r"(to), "+r"(from), "=r"(tmp1)
-+			:
-+			: "memory");
-+		}
-+	} else {  /* n is NOT constant, so laddered copy of 16x,8,4,2,1  */
-+
-+		__asm__ __volatile__(
-+		"	mov   %0,%3			\n"
-+		"	lsr.f lp_count, %3,4		\n"  /* 16x bytes */
-+		"	lpnz  3f			\n"
-+		"	ld.ab %5, [%2, 4]		\n"
-+		"	ld.ab %6, [%2, 4]		\n"
-+		"	ld.ab %7, [%2, 4]		\n"
-+		"	ld.ab %8, [%2, 4]		\n"
-+		"1:	st.ab %5, [%1, 4]		\n"
-+		"11:	st.ab %6, [%1, 4]		\n"
-+		"12:	st.ab %7, [%1, 4]		\n"
-+		"13:	st.ab %8, [%1, 4]		\n"
-+		"	sub   %0, %0, 16		\n"
-+		"3:	and.f %3,%3,0xf			\n" /* stragglers */
-+		"	bz 34f				\n"
-+		"	bbit0   %3,3,31f		\n" /* 8 bytes left */
-+		"	ld.ab   %5, [%2,4]		\n"
-+		"	ld.ab   %6, [%2,4]		\n"
-+		"14:	st.ab   %5, [%1,4]		\n"
-+		"15:	st.ab   %6, [%1,4]		\n"
-+		"	sub.f   %0, %0, 8		\n"
-+		"31:	bbit0   %3,2,32f		\n"  /* 4 bytes left */
-+		"	ld.ab   %5, [%2,4]		\n"
-+		"16:	st.ab   %5, [%1,4]		\n"
-+		"	sub.f   %0, %0, 4		\n"
-+		"32:	bbit0 %3,1,33f			\n"  /* 2 bytes left */
-+		"	ldw.ab    %5, [%2,2]		\n"
-+		"17:	stw.ab    %5, [%1,2]		\n"
-+		"	sub.f %0, %0, 2			\n"
-+		"33:	bbit0 %3,0,34f			\n"
-+		"	ldb.ab    %5, [%2,1]		\n"  /* 1 byte left */
-+		"18:	stb.ab  %5, [%1,1]		\n"
-+		"	sub.f %0, %0, 1			\n"
-+		"34:	;nop				\n"
-+		"	.section .fixup, \"ax\"		\n"
-+		"	.align 4			\n"
-+		"4:	j   34b				\n"
-+		"	.previous			\n"
-+		"	.section __ex_table, \"a\"	\n"
-+		"	.align 4			\n"
-+		"	.word   1b, 4b			\n"
-+		"	.word   11b,4b			\n"
-+		"	.word   12b,4b			\n"
-+		"	.word   13b,4b			\n"
-+		"	.word   14b,4b			\n"
-+		"	.word   15b,4b			\n"
-+		"	.word   16b,4b			\n"
-+		"	.word   17b,4b			\n"
-+		"	.word   18b,4b			\n"
-+		"	.previous			\n"
-+		: "=r" (res), "+r"(to), "+r"(from), "+r"(n), "=r"(val),
-+		  "=r"(tmp1), "=r"(tmp2), "=r"(tmp3), "=r"(tmp4)
-+		:
-+		: "lp_count", "memory");
-+	}
-+
-+	return res;
++	return ret;
 +}
 +
-+static inline unsigned long __arc_clear_user(void __user *to, unsigned long n)
++static inline void arch_read_lock(arch_rwlock_t *rw)
 +{
-+	long res = n;
-+	unsigned char *d_char = to;
-+
-+	__asm__ __volatile__(
-+	"	bbit0   %0, 0, 1f		\n"
-+	"75:	stb.ab  %2, [%0,1]		\n"
-+	"	sub %1, %1, 1			\n"
-+	"1:	bbit0   %0, 1, 2f		\n"
-+	"76:	stw.ab  %2, [%0,2]		\n"
-+	"	sub %1, %1, 2			\n"
-+	"2:	asr.f   lp_count, %1, 2		\n"
-+	"	lpnz    3f			\n"
-+	"77:	st.ab   %2, [%0,4]		\n"
-+	"	sub %1, %1, 4			\n"
-+	"3:	bbit0   %1, 1, 4f		\n"
-+	"78:	stw.ab  %2, [%0,2]		\n"
-+	"	sub %1, %1, 2			\n"
-+	"4:	bbit0   %1, 0, 5f		\n"
-+	"79:	stb.ab  %2, [%0,1]		\n"
-+	"	sub %1, %1, 1			\n"
-+	"5:					\n"
-+	"	.section .fixup, \"ax\"		\n"
-+	"	.align 4			\n"
-+	"3:	j   5b				\n"
-+	"	.previous			\n"
-+	"	.section __ex_table, \"a\"	\n"
-+	"	.align 4			\n"
-+	"	.word   75b, 3b			\n"
-+	"	.word   76b, 3b			\n"
-+	"	.word   77b, 3b			\n"
-+	"	.word   78b, 3b			\n"
-+	"	.word   79b, 3b			\n"
-+	"	.previous			\n"
-+	: "+r"(d_char), "+r"(res)
-+	: "i"(0)
-+	: "lp_count", "lp_start", "lp_end", "memory");
-+
-+	return res;
++	while (!arch_read_trylock(rw))
++		cpu_relax();
 +}
 +
-+static inline long
-+__arc_strncpy_from_user(char *dst, const char __user *src, long count)
++static inline void arch_write_lock(arch_rwlock_t *rw)
 +{
-+	long res = count;
-+	char val;
-+	unsigned int hw_count;
-+
-+	if (count == 0)
-+		return 0;
-+
-+	__asm__ __volatile__(
-+	"	lp 2f		\n"
-+	"1:	ldb.ab  %3, [%2, 1]		\n"
-+	"	breq.d  %3, 0, 2f		\n"
-+	"	stb.ab  %3, [%1, 1]		\n"
-+	"2:	sub %0, %6, %4			\n"
-+	"3:	;nop				\n"
-+	"	.section .fixup, \"ax\"		\n"
-+	"	.align 4			\n"
-+	"4:	mov %0, %5			\n"
-+	"	j   3b				\n"
-+	"	.previous			\n"
-+	"	.section __ex_table, \"a\"	\n"
-+	"	.align 4			\n"
-+	"	.word   1b, 4b			\n"
-+	"	.previous			\n"
-+	: "=r"(res), "+r"(dst), "+r"(src), "=&r"(val), "=l"(hw_count)
-+	: "g"(-EFAULT), "ir"(count), "4"(count)	/* this "4" seeds lp_count */
-+	: "memory");
-+
-+	return res;
++	while (!arch_write_trylock(rw))
++		cpu_relax();
 +}
 +
-+static inline long __arc_strnlen_user(const char __user *s, long n)
++static inline void arch_read_unlock(arch_rwlock_t *rw)
 +{
-+	long res, tmp1, cnt;
-+	char val;
-+
-+	__asm__ __volatile__(
-+	"	mov %2, %1			\n"
-+	"1:	ldb.ab  %3, [%0, 1]		\n"
-+	"	breq.d  %3, 0, 2f		\n"
-+	"	sub.f   %2, %2, 1		\n"
-+	"	bnz 1b				\n"
-+	"	sub %2, %2, 1			\n"
-+	"2:	sub %0, %1, %2			\n"
-+	"3:	;nop				\n"
-+	"	.section .fixup, \"ax\"		\n"
-+	"	.align 4			\n"
-+	"4:	mov %0, 0			\n"
-+	"	j   3b				\n"
-+	"	.previous			\n"
-+	"	.section __ex_table, \"a\"	\n"
-+	"	.align 4			\n"
-+	"	.word 1b, 4b			\n"
-+	"	.previous			\n"
-+	: "=r"(res), "=r"(tmp1), "=r"(cnt), "=r"(val)
-+	: "0"(s), "1"(n)
-+	: "memory");
-+
-+	return res;
++	arch_spin_lock(&(rw->lock_mutex));
++	rw->counter++;
++	arch_spin_unlock(&(rw->lock_mutex));
 +}
 +
-+#ifndef CONFIG_CC_OPTIMIZE_FOR_SIZE
-+#define __copy_from_user(t, f, n)	__arc_copy_from_user(t, f, n)
-+#define __copy_to_user(t, f, n)		__arc_copy_to_user(t, f, n)
-+#define __clear_user(d, n)		__arc_clear_user(d, n)
-+#define __strncpy_from_user(d, s, n)	__arc_strncpy_from_user(d, s, n)
-+#define __strnlen_user(s, n)		__arc_strnlen_user(s, n)
-+#else
-+extern long arc_copy_from_user_noinline(void *to, const void __user * from,
-+		unsigned long n);
-+extern long arc_copy_to_user_noinline(void __user *to, const void *from,
-+		unsigned long n);
-+extern unsigned long arc_clear_user_noinline(void __user *to,
-+		unsigned long n);
-+extern long arc_strncpy_from_user_noinline (char *dst, const char __user *src,
-+		long count);
-+extern long arc_strnlen_user_noinline(const char __user *src, long n);
++static inline void arch_write_unlock(arch_rwlock_t *rw)
++{
++	arch_spin_lock(&(rw->lock_mutex));
++	rw->counter = __ARCH_RW_LOCK_UNLOCKED__;
++	arch_spin_unlock(&(rw->lock_mutex));
++}
 +
-+#define __copy_from_user(t, f, n)	arc_copy_from_user_noinline(t, f, n)
-+#define __copy_to_user(t, f, n)		arc_copy_to_user_noinline(t, f, n)
-+#define __clear_user(d, n)		arc_clear_user_noinline(d, n)
-+#define __strncpy_from_user(d, s, n)	arc_strncpy_from_user_noinline(d, s, n)
-+#define __strnlen_user(s, n)		arc_strnlen_user_noinline(s, n)
++#define arch_read_lock_flags(lock, flags)	arch_read_lock(lock)
++#define arch_write_lock_flags(lock, flags)	arch_write_lock(lock)
 +
-+#endif
++#define arch_spin_relax(lock)	cpu_relax()
++#define arch_read_relax(lock)	cpu_relax()
++#define arch_write_relax(lock)	cpu_relax()
 +
-+#include <asm-generic/uaccess.h>
-+
-+extern int fixup_exception(struct pt_regs *regs);
-+
-+#endif
-diff --git a/arch/arc/mm/extable.c b/arch/arc/mm/extable.c
++#endif /* __ASM_SPINLOCK_H */
+diff --git a/arch/arc/include/asm/spinlock_types.h b/arch/arc/include/asm/spinlock_types.h
 new file mode 100644
-index 0000000..6d99aea
+index 0000000..8276bfd
 --- /dev/null
-+++ b/arch/arc/mm/extable.c
-@@ -0,0 +1,63 @@
++++ b/arch/arc/include/asm/spinlock_types.h
+@@ -0,0 +1,35 @@
 +/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
 + * published by the Free Software Foundation.
-+ *
-+ * Borrowed heavily from MIPS
 + */
 +
-+#include <linux/module.h>
-+#include <linux/uaccess.h>
++#ifndef __ASM_SPINLOCK_TYPES_H
++#define __ASM_SPINLOCK_TYPES_H
 +
-+int fixup_exception(struct pt_regs *regs)
-+{
-+	const struct exception_table_entry *fixup;
++typedef struct {
++	volatile unsigned int slock;
++} arch_spinlock_t;
 +
-+	fixup = search_exception_tables(instruction_pointer(regs));
-+	if (fixup) {
-+		regs->ret = fixup->fixup;
++#define __ARCH_SPIN_LOCK_UNLOCKED__	0
++#define __ARCH_SPIN_LOCK_LOCKED__	1
 +
-+		return 1;
-+	}
++#define __ARCH_SPIN_LOCK_UNLOCKED	{ __ARCH_SPIN_LOCK_UNLOCKED__ }
++#define __ARCH_SPIN_LOCK_LOCKED		{ __ARCH_SPIN_LOCK_LOCKED__ }
 +
-+	return 0;
-+}
++/*
++ * Unlocked:     0x01_00_00_00
++ * Read lock(s): 0x00_FF_00_00 to say 0x01
++ * Write lock:   0x0, but only possible if prior value "unlocked" 0x0100_0000
++ */
++typedef struct {
++	volatile unsigned int	counter;
++	arch_spinlock_t		lock_mutex;
++} arch_rwlock_t;
 +
-+#ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
++#define __ARCH_RW_LOCK_UNLOCKED__	0x01000000
++#define __ARCH_RW_LOCK_UNLOCKED		{ .counter = __ARCH_RW_LOCK_UNLOCKED__ }
 +
-+long arc_copy_from_user_noinline(void *to, const void __user * from,
-+		unsigned long n)
-+{
-+	return __arc_copy_from_user(to, from, n);
-+}
-+EXPORT_SYMBOL(arc_copy_from_user_noinline)
-+
-+long arc_copy_to_user_noinline(void __user *to, const void *from,
-+		unsigned long n)
-+{
-+	return __arc_copy_to_user(to, from, n);
-+}
-+EXPORT_SYMBOL(arc_copy_to_user_noinline)
-+
-+unsigned long arc_clear_user_noinline(void __user *to,
-+		unsigned long n)
-+{
-+	return __arc_clear_user(to, n);
-+}
-+EXPORT_SYMBOL(arc_clear_user_noinline)
-+
-+long arc_strncpy_from_user_noinline (char *dst, const char __user *src,
-+		long count)
-+{
-+	return __arc_strncpy_from_user(dst, src, count);
-+}
-+EXPORT_SYMBOL(arc_strncpy_from_user_noinline)
-+
-+long arc_strnlen_user_noinline(const char __user *src, long n)
-+{
-+	return __arc_strnlen_user(src, n);
-+}
-+EXPORT_SYMBOL(arc_strnlen_user_noinline)
 +#endif
 -- 
 1.7.4.1
