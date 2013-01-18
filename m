@@ -1,44 +1,42 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 60/76] perf, ARC: Enable building perf tools for ARC
-Date: Fri, 18 Jan 2013 17:55:14 +0530
-Message-ID: <1358511930-7424-61-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 64/76] ARC: Add self to MAINTAINERS
+Date: Fri, 18 Jan 2013 17:55:18 +0530
+Message-ID: <1358511930-7424-65-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from us02smtp2.synopsys.com ([198.182.60.77]:58907 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755967Ab3ARMee (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:34:34 -0500
 In-Reply-To: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Peter Zijlstra <a.p.zijlstra@chello.nl>, Paul Mackerras <paulus@samba.org>, Ingo Molnar <mingo@redhat.com>, Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
-List-Id: linux-arch.vger.kernel.org
-
-Although with uClibc there's more we need to do
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Peter Zijlstra <a.p.zijlstra@chello.nl>
-Cc: Paul Mackerras <paulus@samba.org>
-Cc: Ingo Molnar <mingo@redhat.com>
-Cc: Arnaldo Carvalho de Melo <acme@ghostprotocols.net>
 ---
- tools/perf/perf.h |    6 ++++++
+ MAINTAINERS |    6 ++++++
  1 files changed, 6 insertions(+), 0 deletions(-)
 
-diff --git a/tools/perf/perf.h b/tools/perf/perf.h
-index 2c340e7..8a68ad3 100644
---- a/tools/perf/perf.h
-+++ b/tools/perf/perf.h
-@@ -98,6 +98,12 @@ void get_term_dimensions(struct winsize *ws);
- #define CPUINFO_PROC	"cpu model"
- #endif
+diff --git a/MAINTAINERS b/MAINTAINERS
+index 3105c48..05cdc99 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -7418,6 +7418,12 @@ F:	lib/swiotlb.c
+ F:	arch/*/kernel/pci-swiotlb.c
+ F:	include/linux/swiotlb.h
  
-+#ifdef __arc__
-+#define rmb()		asm volatile("" ::: "memory")
-+#define cpu_relax()	rmb()
-+#define CPUINFO_PROC	"Processor"
-+#endif
++SYNOPSYS ARC ARCHITECTURE
++M:	Vineet Gupta <vgupta@synopsys.com>
++L:	linux-snps-arc@vger.kernel.org
++S:	Supported
++F:	arch/arc/
 +
- #include <time.h>
- #include <unistd.h>
- #include <sys/types.h>
+ SYSV FILESYSTEM
+ M:	Christoph Hellwig <hch@infradead.org>
+ S:	Maintained
 -- 
 1.7.4.1
