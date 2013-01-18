@@ -1,43 +1,56 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 31/76] ARC: Build system: Makefiles, Kconfig, Linker script
-Date: Fri, 18 Jan 2013 19:25:36 +0000
-Message-ID: <201301181925.36466.arnd@arndb.de>
-References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-32-git-send-email-vgupta@synopsys.com> <20130118190452.GA14433@merkur.ravnborg.org>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [RFC Patch v1 00/31] Synopsys ARC Linux kernel Port
+Date: Fri, 18 Jan 2013 20:46:31 +0100
+Message-ID: <20130118194631.GA5119@amd.pavel.ucw.cz>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
+ <20121120134737.GB8111@elf.ucw.cz>
+ <20121120135901.GA9227@elf.ucw.cz>
+ <50AB9116.3090401@synopsys.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.17.10]:63182 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751863Ab3ARTZq (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 14:25:46 -0500
-In-Reply-To: <20130118190452.GA14433@merkur.ravnborg.org>
+Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:36831 "EHLO
+	atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753698Ab3ARTqd (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 14:46:33 -0500
+Content-Disposition: inline
+In-Reply-To: <50AB9116.3090401@synopsys.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Sam Ravnborg <sam@ravnborg.org>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, arnd@arndb.de
 
-On Friday 18 January 2013, Sam Ravnborg wrote:
-> > +obj-y        := arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o \
-> > +        signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
+On Tue 2012-11-20 19:47:58, Vineet Gupta wrote:
+> On Tuesday 20 November 2012 07:29 PM, Pavel Machek wrote:
+> > On Tue 2012-11-20 14:47:37, Pavel Machek wrote:
+> >> Hi!
+> >>
+> >>>     https://raw.github.com/vineetgarc/publish/master/ELCE-2012-ARC-Linux.pdf
+> >>>
+> >>> All comments/criticisms are welcome !
+> >> Huh. arch/arc is very similar to arch/arm. So similar that it took me
+> >> 10 minutes to figure out. I guess theres no alternate name arc could
+> >> use?
+> > Hmm... "Advanced Risc"... :-(.
+> >
+> > Ok, plus there's already computing standard called "arc".
+> >
+> > https://www.linux-mips.org/wiki/ARC
+> >
+> > What about calling the architecture "sarc" or "syarc" ?
 > 
-> For new stuff I usually recommend to drop line continuation using \
-> 
-> Just do the much prettier:
-> obj-y := arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o
-> obj-y += signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
+> I think it would be best use of everybody's time if you could focus on
+> the technical content of the port rather than the name. It has been like
+> that for +10 years and I don't intend to make the kernel port name
+> different from THE arch name itself.
 
-Agreed, although we are moving some files to the more verbose
+Yeah, and it is best use of reviewers time to confuse them with
+one-letter difference to very popular architecture... and use three
+letter acronym that was already taken.
 
-obj-y += arcksyms.o
-obj-y += clk.o
-obj-y += entry.o
-obj-y += ...
-
-and use alphabetical order, both of which help avoid merge conflicts
-when Makefile changes come in through separate branches. This 
-particular Makefile is likely to remain rather stable though, so
-it's not necessary to go this far.
-
-	Arnd
+In this state, I hope your port never gets merged. Yes, I got used to
+do cd a<tab>/ar<tab>.
+									Pavel
+-- 
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
