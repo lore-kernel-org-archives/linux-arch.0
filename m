@@ -1,35 +1,31 @@
 From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 50/76] ARC: SMP support
-Date: Fri, 18 Jan 2013 14:53:29 +0000
-Message-ID: <201301181453.29243.arnd@arndb.de>
-References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-51-git-send-email-vgupta@synopsys.com>
+Subject: Re: [PATCH v2 56/76] ARC: Unaligned access emulation
+Date: Fri, 18 Jan 2013 14:54:36 +0000
+Message-ID: <201301181454.36279.arnd@arndb.de>
+References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-57-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: Text/Plain;
   charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:58235 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753930Ab3AROxd (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 09:53:33 -0500
-In-Reply-To: <1358511930-7424-51-git-send-email-vgupta@synopsys.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1358511930-7424-57-git-send-email-vgupta@synopsys.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Rajeshwar Ranga <rajeshwar.ranga@gmail.com>, Noam Camus <noamc@ezchip.com>, Gilad Ben-Yossef <gilad@benyossef.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Tim Yao <tim.yao@amlogic.com>
+List-Id: linux-arch.vger.kernel.org
 
 On Friday 18 January 2013, Vineet Gupta wrote:
-> +# If a plat can do IPI, same core(s) can do minimal SMP
-> +config ARC_HAS_IPI
-> +       bool
-> +
+> ARC700 doesn't natively support unaligned access, but can be emulated
+> -Unaligned Access Exception
+> -Disassembly at the Fault address to find the exact insn (long/short)
+> 
+> Also per Arnd's comment, we runtime control it using 2 sysctl knobs:
+> * SYSCTL_ARCH_UNALIGN_ALLOW: Runtime enable/disble
+> * SYSCTL_ARCH_UNALIGN_NO_WARN: Warn on each emulation attempt
+> 
+> Originally contributed by Tim Yao <tim.yao@amlogic.com>
+> 
+> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+> Cc: Tim Yao <tim.yao@amlogic.com>
 
-I think it would be better to turn the logic around here,
-otherwise you get into trouble when enabling multiple
-platforms, out of which some have IPI support and others
-don't.
-
-Instead, you can mark the platforms that lack IPI support
-(or multiple CPUs) as 'depends on !SMP'.
-
-	Arnd
+Acked-by: Arnd Bergmann <arnd@arndb.de>
