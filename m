@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp1.synopsys.com ([198.182.60.75]:59336 "EHLO
+Received: from us02smtp1.synopsys.com ([198.182.60.75]:59316 "EHLO
 	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1757071Ab3ARMfT (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:35:19 -0500
+	with ESMTP id S1756798Ab3ARMd3 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:33:29 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 57/76] ARC: kgdb support
-Date: Fri, 18 Jan 2013 17:55:11 +0530
-Message-ID: <1358511930-7424-58-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 44/76] ARC: ptrace support
+Date: Fri, 18 Jan 2013 17:54:58 +0530
+Message-ID: <1358511930-7424-45-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -14,359 +14,314 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Mischa Jonker <Mischa.Jonker@synopsys.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Jason Wessel <jason.wessel@windriver.com>
-Message-ID: <20130118122511.EK_2O2zOa-mgvoEEtqIGSys7ApaXsMuErc-K3y34CdY@z>
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20130118122458.j9yhxuRomEgEpTkgGld1Cmk6YcdehmGb3BGZ2F8CVvU@z>
 
-From: Mischa Jonker <mjonker@synopsys.com>
-
-Signed-off-by: Mischa Jonker <mjonker@synopsys.com>
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Jason Wessel <jason.wessel@windriver.com>
 ---
- arch/arc/Kconfig            |    3 +-
- arch/arc/include/asm/kgdb.h |   61 +++++++++++++
- arch/arc/kernel/Makefile    |    1 +
- arch/arc/kernel/kgdb.c      |  205 +++++++++++++++++++++++++++++++++++++++++++
- arch/arc/kernel/traps.c     |    6 ++
- 5 files changed, 275 insertions(+), 1 deletions(-)
- create mode 100644 arch/arc/include/asm/kgdb.h
- create mode 100644 arch/arc/kernel/kgdb.c
+ arch/arc/Kconfig         |    1 +
+ arch/arc/kernel/Makefile |    3 +
+ arch/arc/kernel/entry.S  |   69 +++++++++++++++++++++++
+ arch/arc/kernel/ptrace.c |  136 +++++++++++++++++++++++++++++++++++++++++++++-
+ 4 files changed, 207 insertions(+), 2 deletions(-)
 
 diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index d735de8..b954387 100644
+index 7e191b9..0224fd0 100644
 --- a/arch/arc/Kconfig
 +++ b/arch/arc/Kconfig
 @@ -23,6 +23,7 @@ config ARC
  	select GENERIC_PENDING_IRQ if SMP
  	select GENERIC_SIGALTSTACK
  	select GENERIC_SMP_IDLE_THREAD
-+	select HAVE_ARCH_KGDB
- 	select HAVE_ARCH_TRACEHOOK
++	select HAVE_ARCH_TRACEHOOK
  	select HAVE_GENERIC_HARDIRQS
- 	select HAVE_KPROBES
-@@ -383,7 +384,7 @@ config ARC_DW2_UNWIND
- 
- config ARC_DBG_TLB_PARANOIA
- 	bool "Paranoia Checks in Low Level TLB Handlers"
--	depends on ARC_DBG && !SMP
-+	depends on ARC_DBG
- 	default n
- 
- config ARC_DBG_TLB_MISS_COUNT
-diff --git a/arch/arc/include/asm/kgdb.h b/arch/arc/include/asm/kgdb.h
-new file mode 100644
-index 0000000..f3c4934
---- /dev/null
-+++ b/arch/arc/include/asm/kgdb.h
-@@ -0,0 +1,61 @@
-+/*
-+ * kgdb support for ARC
-+ *
-+ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ARC_KGDB_H__
-+#define __ARC_KGDB_H__
-+
-+#ifdef CONFIG_KGDB
-+
-+#include <asm/user.h>
-+
-+/* to ensure compatibility with Linux 2.6.35, we don't implement the get/set
-+ * register API yet */
-+#undef DBG_MAX_REG_NUM
-+
-+#define GDB_MAX_REGS		39
-+
-+#define BREAK_INSTR_SIZE	2
-+#define CACHE_FLUSH_IS_SAFE	1
-+#define NUMREGBYTES		(GDB_MAX_REGS * 4)
-+#define BUFMAX			2048
-+
-+static inline void arch_kgdb_breakpoint(void)
-+{
-+	__asm__ __volatile__ ("trap_s	0x4\n");
-+}
-+
-+extern void kgdb_trap(struct pt_regs *regs, int param);
-+
-+enum arc700_linux_regnums {
-+	_R0		= 0,
-+	_R1, _R2, _R3, _R4, _R5, _R6, _R7, _R8, _R9, _R10, _R11, _R12, _R13,
-+	_R14, _R15, _R16, _R17, _R18, _R19, _R20, _R21, _R22, _R23, _R24,
-+	_R25, _R26,
-+	_BTA		= 27,
-+	_LP_START	= 28,
-+	_LP_END		= 29,
-+	_LP_COUNT	= 30,
-+	_STATUS32	= 31,
-+	_BLINK		= 32,
-+	_FP		= 33,
-+	__SP		= 34,
-+	_EFA		= 35,
-+	_RET		= 36,
-+	_ORIG_R8	= 37,
-+	_STOP_PC	= 38
-+};
-+
-+#else
-+static inline void kgdb_trap(struct pt_regs *regs, int param)
-+{
-+}
-+#endif
-+
-+#endif	/* __ARC_KGDB_H__ */
+ 	select HOTPLUG if !INITRAMFS_SOURCE=""
+ 	select IRQ_DOMAIN
 diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
-index eda40d7..8a8518e 100644
+index 5fefb7d..a3c4a31 100644
 --- a/arch/arc/kernel/Makefile
 +++ b/arch/arc/kernel/Makefile
-@@ -17,6 +17,7 @@ obj-$(CONFIG_SMP) 			+= smp.o
- obj-$(CONFIG_ARC_DW2_UNWIND)		+= unwind.o
- obj-$(CONFIG_KPROBES)      		+= kprobes.o
- obj-$(CONFIG_ARC_MISALIGN_ACCESS) 	+= unaligned.o
-+obj-$(CONFIG_KGDB)			+= kgdb.o
+@@ -5,6 +5,9 @@
+ # it under the terms of the GNU General Public License version 2 as
+ # published by the Free Software Foundation.
  
- obj-$(CONFIG_ARC_FPU_SAVE_RESTORE)	+= fpu.o
- CFLAGS_fpu.o   += -mdpfp
-diff --git a/arch/arc/kernel/kgdb.c b/arch/arc/kernel/kgdb.c
-new file mode 100644
-index 0000000..2888ba5
---- /dev/null
-+++ b/arch/arc/kernel/kgdb.c
-@@ -0,0 +1,205 @@
-+/*
-+ * kgdb support for ARC
++# Pass UTS_MACHINE for user_regset definition
++CFLAGS_ptrace.o		+= -DUTS_MACHINE='"$(UTS_MACHINE)"'
++
+ obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o \
+ 	   signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
+ 
+diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
+index 6566e66..703c5ff 100644
+--- a/arch/arc/kernel/entry.S
++++ b/arch/arc/kernel/entry.S
+@@ -10,6 +10,14 @@
+  * TBD:
+  *  -remove the low level wrappers for execve/fork/vfork
+  *   needed before task_pt_regs was invented. This saves a branch per call
++ *   and more importantly allows clean invocation of post-syscall ptrace hook
 + *
-+ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
++ * vineetg: Feb 2011 (ptrace low level code fixes)
++ *  -traced syscall return code (r0) was not saved into pt_regs for restoring
++ *   into user reg-file when traded task rets to user space.
++ *  -syscalls needing arch-wrappers (mainly for passing sp as pt_regs)
++ *   were not invoking post-syscall trace hook (jumping directly into
++ *   ret_from_system_call)
+  *
+  * vineetg: Nov 2010:
+  *  -Vector table jumps (@8 bytes) converted into branches (@4 bytes)
+@@ -351,6 +359,50 @@ ARC_ENTRY EV_Extension
+ 	b   ret_from_exception
+ ARC_EXIT EV_Extension
+ 
++;######################### System Call Tracing #########################
 +
-+#include <linux/kgdb.h>
-+#include <asm/disasm.h>
-+#include <asm/cacheflush.h>
++tracesys:
++	; save EFA in case tracer wants the PC of traced task
++	; using ERET won't work since next-PC has already committed
++	lr  r12, [efa]
++	GET_CURR_TASK_FIELD_PTR   TASK_THREAD, r11
++	st  r12, [r11, THREAD_FAULT_ADDR]
 +
-+static void to_gdb_regs(unsigned long *gdb_regs, struct pt_regs *kernel_regs,
-+			struct callee_regs *cregs)
++	; PRE Sys Call Ptrace hook
++	mov r0, sp			; pt_regs needed
++	bl  @syscall_trace_entry
++
++	; Tracing code now returns the syscall num (orig or modif)
++	mov r8, r0
++
++	; Do the Sys Call as we normally would.
++	; Validate the Sys Call number
++	cmp     r8,  NR_syscalls
++	mov.hi  r0, -ENOSYS
++	bhi     tracesys_exit
++
++	; Restore the sys-call args. Mere invocation of the hook abv could have
++	; clobbered them (since they are in scratch regs). The tracer could also
++	; have deliberately changed the syscall args: r0-r7
++	ld  r0, [sp, PT_r0]
++	ld  r1, [sp, PT_r1]
++	ld  r2, [sp, PT_r2]
++	ld  r3, [sp, PT_r3]
++	ld  r4, [sp, PT_r4]
++	ld  r5, [sp, PT_r5]
++	ld  r6, [sp, PT_r6]
++	ld  r7, [sp, PT_r7]
++	ld.as   r9, [sys_call_table, r8]
++	jl      [r9]        ; Entry into Sys Call Handler
++
++tracesys_exit:
++	st  r0, [sp, PT_r0]     ; sys call return value in pt_regs
++
++	;POST Sys Call Ptrace Hook
++	bl  @syscall_trace_exit
++	b   ret_from_exception ; NOT ret_from_system_call at is saves r0 which
++	; we'd done before calling post hook above
++
+ ;################### Break Point TRAP ##########################
+ 
+ 	; ======= (5b) Trap is due to Break-Point =========
+@@ -416,6 +468,11 @@ ARC_ENTRY EV_Trap
+ 	; Before doing anything, return from CPU Exception Mode
+ 	FAKE_RET_FROM_EXCPN r11
+ 
++	; If syscall tracing ongoing, invoke pre-pos-hooks
++	GET_CURR_THR_INFO_FLAGS   r10
++	btst r10, TIF_SYSCALL_TRACE
++	bnz tracesys  ; this never comes back
++
+ 	;============ This is normal System Call case ==========
+ 	; Sys-call num shd not exceed the total system calls avail
+ 	cmp     r8,  NR_syscalls
+@@ -612,6 +669,10 @@ ARC_ENTRY sys_fork_wrapper
+ 	bl  @sys_fork
+ 	DISCARD_CALLEE_SAVED_USER
+ 
++	GET_CURR_THR_INFO_FLAGS   r10
++	btst r10, TIF_SYSCALL_TRACE
++	bnz  tracesys_exit
++
+ 	b ret_from_system_call
+ ARC_EXIT sys_fork_wrapper
+ 
+@@ -620,6 +681,10 @@ ARC_ENTRY sys_vfork_wrapper
+ 	bl  @sys_vfork
+ 	DISCARD_CALLEE_SAVED_USER
+ 
++	GET_CURR_THR_INFO_FLAGS   r10
++	btst r10, TIF_SYSCALL_TRACE
++	bnz  tracesys_exit
++
+ 	b ret_from_system_call
+ ARC_EXIT sys_vfork_wrapper
+ 
+@@ -628,5 +693,9 @@ ARC_ENTRY sys_clone_wrapper
+ 	bl  @sys_clone
+ 	DISCARD_CALLEE_SAVED_USER
+ 
++	GET_CURR_THR_INFO_FLAGS   r10
++	btst r10, TIF_SYSCALL_TRACE
++	bnz  tracesys_exit
++
+ 	b ret_from_system_call
+ ARC_EXIT sys_clone_wrapper
+diff --git a/arch/arc/kernel/ptrace.c b/arch/arc/kernel/ptrace.c
+index 1cf944a..c6a81c5 100644
+--- a/arch/arc/kernel/ptrace.c
++++ b/arch/arc/kernel/ptrace.c
+@@ -7,6 +7,122 @@
+  */
+ 
+ #include <linux/ptrace.h>
++#include <linux/tracehook.h>
++#include <linux/regset.h>
++#include <linux/unistd.h>
++#include <linux/elf.h>
++
++static struct callee_regs *task_callee_regs(struct task_struct *tsk)
 +{
-+	int regno;
-+
-+	for (regno = 0; regno <= 26; regno++)
-+		gdb_regs[_R0 + regno] = get_reg(regno, kernel_regs, cregs);
-+
-+	for (regno = 27; regno < GDB_MAX_REGS; regno++)
-+		gdb_regs[regno] = 0;
-+
-+	gdb_regs[_FP]		= kernel_regs->fp;
-+	gdb_regs[__SP]		= kernel_regs->sp;
-+	gdb_regs[_BLINK]	= kernel_regs->blink;
-+	gdb_regs[_RET]		= kernel_regs->ret;
-+	gdb_regs[_STATUS32]	= kernel_regs->status32;
-+	gdb_regs[_LP_COUNT]	= kernel_regs->lp_count;
-+	gdb_regs[_LP_END]	= kernel_regs->lp_end;
-+	gdb_regs[_LP_START]	= kernel_regs->lp_start;
-+	gdb_regs[_BTA]		= kernel_regs->bta;
-+	gdb_regs[_STOP_PC]	= kernel_regs->ret;
++	struct callee_regs *tmp = (struct callee_regs *)tsk->thread.callee_reg;
++	return tmp;
 +}
 +
-+static void from_gdb_regs(unsigned long *gdb_regs, struct pt_regs *kernel_regs,
-+			struct callee_regs *cregs)
++static int genregs_get(struct task_struct *target,
++		       const struct user_regset *regset,
++		       unsigned int pos, unsigned int count,
++		       void *kbuf, void __user *ubuf)
 +{
-+	int regno;
++	const struct pt_regs *ptregs = task_pt_regs(target);
++	const struct callee_regs *cregs = task_callee_regs(target);
++	int ret = 0;
++	unsigned int stop_pc_val;
 +
-+	for (regno = 0; regno <= 26; regno++)
-+		set_reg(regno, gdb_regs[regno + _R0], kernel_regs, cregs);
++#define REG_O_CHUNK(START, END, PTR)	\
++	if (!ret)	\
++		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
++			offsetof(struct user_regs_struct, START), \
++			offsetof(struct user_regs_struct, END));
 +
-+	kernel_regs->fp		= gdb_regs[_FP];
-+	kernel_regs->sp		= gdb_regs[__SP];
-+	kernel_regs->blink	= gdb_regs[_BLINK];
-+	kernel_regs->ret	= gdb_regs[_RET];
-+	kernel_regs->status32	= gdb_regs[_STATUS32];
-+	kernel_regs->lp_count	= gdb_regs[_LP_COUNT];
-+	kernel_regs->lp_end	= gdb_regs[_LP_END];
-+	kernel_regs->lp_start	= gdb_regs[_LP_START];
-+	kernel_regs->bta	= gdb_regs[_BTA];
-+}
++#define REG_O_ONE(LOC, PTR)	\
++	if (!ret)		\
++		ret = user_regset_copyout(&pos, &count, &kbuf, &ubuf, PTR, \
++			offsetof(struct user_regs_struct, LOC), \
++			offsetof(struct user_regs_struct, LOC) + 4);
 +
++	REG_O_CHUNK(scratch, callee, ptregs);
++	REG_O_CHUNK(callee, efa, cregs);
++	REG_O_CHUNK(efa, stop_pc, &target->thread.fault_address);
 +
-+void pt_regs_to_gdb_regs(unsigned long *gdb_regs, struct pt_regs *kernel_regs)
-+{
-+	to_gdb_regs(gdb_regs, kernel_regs, (struct callee_regs *)
-+		current->thread.callee_reg);
-+}
-+
-+void gdb_regs_to_pt_regs(unsigned long *gdb_regs, struct pt_regs *kernel_regs)
-+{
-+	from_gdb_regs(gdb_regs, kernel_regs, (struct callee_regs *)
-+		current->thread.callee_reg);
-+}
-+
-+void sleeping_thread_to_gdb_regs(unsigned long *gdb_regs,
-+				 struct task_struct *task)
-+{
-+	if (task)
-+		to_gdb_regs(gdb_regs, task_pt_regs(task),
-+			(struct callee_regs *) task->thread.callee_reg);
-+}
-+
-+struct single_step_data_t {
-+	uint16_t opcode[2];
-+	unsigned long address[2];
-+	int is_branch;
-+	int armed;
-+} single_step_data;
-+
-+static void undo_single_step(struct pt_regs *regs)
-+{
-+	if (single_step_data.armed) {
-+		int i;
-+
-+		for (i = 0; i < (single_step_data.is_branch ? 2 : 1); i++) {
-+			memcpy((void *) single_step_data.address[i],
-+				&single_step_data.opcode[i],
-+				BREAK_INSTR_SIZE);
-+
-+			flush_icache_range(single_step_data.address[i],
-+				single_step_data.address[i] +
-+				BREAK_INSTR_SIZE);
++	if (!ret) {
++		if (in_brkpt_trap(ptregs)) {
++			stop_pc_val = target->thread.fault_address;
++			pr_debug("\t\tstop_pc (brk-pt)\n");
++		} else {
++			stop_pc_val = ptregs->ret;
++			pr_debug("\t\tstop_pc (others)\n");
 +		}
-+		single_step_data.armed = 0;
-+	}
-+}
 +
-+static void place_trap(unsigned long address, void *save)
-+{
-+	memcpy(save, (void *) address, BREAK_INSTR_SIZE);
-+	memcpy((void *) address, &arch_kgdb_ops.gdb_bpt_instr,
-+		BREAK_INSTR_SIZE);
-+	flush_icache_range(address, address + BREAK_INSTR_SIZE);
-+}
-+
-+static void do_single_step(struct pt_regs *regs)
-+{
-+	single_step_data.is_branch = disasm_next_pc((unsigned long)
-+		regs->ret, regs, (struct callee_regs *)
-+		current->thread.callee_reg,
-+		&single_step_data.address[0],
-+		&single_step_data.address[1]);
-+
-+	place_trap(single_step_data.address[0], &single_step_data.opcode[0]);
-+
-+	if (single_step_data.is_branch) {
-+		place_trap(single_step_data.address[1],
-+			&single_step_data.opcode[1]);
++		REG_O_ONE(stop_pc, &stop_pc_val);
 +	}
 +
-+	single_step_data.armed++;
++	return ret;
 +}
 +
-+int kgdb_arch_handle_exception(int e_vector, int signo, int err_code,
-+			       char *remcomInBuffer, char *remcomOutBuffer,
-+			       struct pt_regs *regs)
++static int genregs_set(struct task_struct *target,
++		       const struct user_regset *regset,
++		       unsigned int pos, unsigned int count,
++		       const void *kbuf, const void __user *ubuf)
 +{
-+	unsigned long addr;
-+	char *ptr;
++	const struct pt_regs *ptregs = task_pt_regs(target);
++	const struct callee_regs *cregs = task_callee_regs(target);
++	int ret = 0;
 +
-+	undo_single_step(regs);
++#define REG_IN_CHUNK(FIRST, NEXT, PTR)	\
++	if (!ret)			\
++		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
++			(void *)(PTR), \
++			offsetof(struct user_regs_struct, FIRST), \
++			offsetof(struct user_regs_struct, NEXT));
 +
-+	switch (remcomInBuffer[0]) {
-+	case 's':
-+	case 'c':
-+		ptr = &remcomInBuffer[1];
-+		if (kgdb_hex2long(&ptr, &addr))
-+			regs->ret = addr;
++#define REG_IN_ONE(LOC, PTR)		\
++	if (!ret)			\
++		ret = user_regset_copyin(&pos, &count, &kbuf, &ubuf, \
++			(void *)(PTR), \
++			offsetof(struct user_regs_struct, LOC), \
++			offsetof(struct user_regs_struct, LOC) + 4);
 +
-+	case 'D':
-+	case 'k':
-+		atomic_set(&kgdb_cpu_doing_single_step, -1);
++#define REG_IGNORE_ONE(LOC)		\
++	if (!ret)			\
++		ret = user_regset_copyin_ignore(&pos, &count, &kbuf, &ubuf, \
++			offsetof(struct user_regs_struct, LOC), \
++			offsetof(struct user_regs_struct, LOC) + 4);
 +
-+		if (remcomInBuffer[0] == 's') {
-+			do_single_step(regs);
-+			atomic_set(&kgdb_cpu_doing_single_step,
-+				   smp_processor_id());
-+		}
++	/* TBD: disallow updates to STATUS32, orig_r8 etc*/
++	REG_IN_CHUNK(scratch, callee, ptregs);	/* pt_regs[bta..orig_r8] */
++	REG_IN_CHUNK(callee, efa, cregs);	/* callee_regs[r25..r13] */
++	REG_IGNORE_ONE(efa);			/* efa update invalid */
++	REG_IN_ONE(stop_pc, &ptregs->ret);	/* stop_pc: PC update */
 +
-+		return 0;
-+	}
-+	return -1;
++	return ret;
 +}
 +
-+unsigned long kgdb_arch_pc(int exception, struct pt_regs *regs)
-+{
-+	return instruction_pointer(regs);
-+}
-+
-+int kgdb_arch_init(void)
-+{
-+	single_step_data.armed = 0;
-+	return 0;
-+}
-+
-+void kgdb_trap(struct pt_regs *regs, int param)
-+{
-+	/* trap_s 3 is used for breakpoints that overwrite existing
-+	 * instructions, while trap_s 4 is used for compiled breakpoints.
-+	 *
-+	 * with trap_s 3 breakpoints the original instruction needs to be
-+	 * restored and continuation needs to start at the location of the
-+	 * breakpoint.
-+	 *
-+	 * with trap_s 4 (compiled) breakpoints, continuation needs to
-+	 * start after the breakpoint.
-+	 */
-+	if (param == 3)
-+		instruction_pointer(regs) -= BREAK_INSTR_SIZE;
-+
-+	kgdb_handle_exception(1, SIGTRAP, 0, regs);
-+}
-+
-+void kgdb_arch_exit(void)
-+{
-+}
-+
-+void kgdb_arch_set_pc(struct pt_regs *regs, unsigned long ip)
-+{
-+	instruction_pointer(regs) = ip;
-+}
-+
-+struct kgdb_arch arch_kgdb_ops = {
-+	/* breakpoint instruction: TRAP_S 0x3 */
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+	.gdb_bpt_instr		= {0x78, 0x7e},
-+#else
-+	.gdb_bpt_instr		= {0x7e, 0x78},
-+#endif
++enum arc_getset {
++	REGSET_GENERAL,
 +};
-diff --git a/arch/arc/kernel/traps.c b/arch/arc/kernel/traps.c
-index ec802c5..7496995 100644
---- a/arch/arc/kernel/traps.c
-+++ b/arch/arc/kernel/traps.c
-@@ -20,6 +20,7 @@
- #include <asm/setup.h>
- #include <asm/kprobes.h>
- #include <asm/unaligned.h>
-+#include <asm/kgdb.h>
- 
- void __init trap_init(void)
- {
-@@ -141,6 +142,11 @@ void do_non_swi_trap(unsigned long cause, unsigned long address,
- 		trap_is_kprobe(param, address, regs);
- 		break;
- 
-+	case 3:
-+	case 4:
-+		kgdb_trap(regs, param);
-+		break;
 +
- 	default:
- 		break;
- 	}
++static const struct user_regset arc_regsets[] = {
++	[REGSET_GENERAL] = {
++	       .core_note_type = NT_PRSTATUS,
++	       .n = ELF_NGREG,
++	       .size = sizeof(unsigned long),
++	       .align = sizeof(unsigned long),
++	       .get = genregs_get,
++	       .set = genregs_set,
++	}
++};
++
++static const struct user_regset_view user_arc_view = {
++	.name		= UTS_MACHINE,
++	.e_machine	= EM_ARCOMPACT,
++	.regsets	= arc_regsets,
++	.n		= ARRAY_SIZE(arc_regsets)
++};
++
++const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++{
++	return &user_arc_view;
++}
+ 
+ void ptrace_disable(struct task_struct *child)
+ {
+@@ -16,11 +132,27 @@ long arch_ptrace(struct task_struct *child, long request,
+ 		 unsigned long addr, unsigned long data)
+ {
+ 	int ret = -EIO;
++
++	pr_debug("REQ=%ld: ADDR =0x%lx, DATA=0x%lx)\n", request, addr, data);
++
++	switch (request) {
++	default:
++		ret = ptrace_request(child, request, addr, data);
++		break;
++	}
++
+ 	return ret;
+ }
+ 
++asmlinkage int syscall_trace_entry(struct pt_regs *regs)
++{
++	if (tracehook_report_syscall_entry(regs))
++		return ULONG_MAX;
+ 
+-const struct user_regset_view *task_user_regset_view(struct task_struct *task)
++	return regs->r8;
++}
++
++asmlinkage void syscall_trace_exit(struct pt_regs *regs)
+ {
+-	return (const struct user_regset_view *)NULL;
++	tracehook_report_syscall_exit(regs, 0);
+ }
 -- 
 1.7.4.1
 
