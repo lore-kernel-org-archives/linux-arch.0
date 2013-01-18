@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us01smtp2.synopsys.com ([198.182.44.80]:61720 "EHLO
-	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756287Ab3ARM3E (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:29:04 -0500
+Received: from us02smtp2.synopsys.com ([198.182.60.77]:58727 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756164Ab3ARM3K (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:29:10 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 23/76] ARC: Page Table Management
-Date: Fri, 18 Jan 2013 17:54:37 +0530
-Message-ID: <1358511930-7424-24-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 24/76] ARC: MMU Context Management
+Date: Fri, 18 Jan 2013 17:54:38 +0530
+Message-ID: <1358511930-7424-25-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -15,266 +15,80 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20130118122437.d3iWN85xFcK9c6ya27078vmCmtlUvj0-XVvT52CYX2k@z>
+Message-ID: <20130118122438.1OWephysavEmSXX3dv6hcpFBgVzr9hF4TS9qSSzlBWg@z>
+
+ARC700 MMU provides for tagging TLB entries with a 8-bit ASID to avoid
+having to flush the TLB every task switch.
+
+It also allows for a quick way to invalidate all the TLB entries for
+task useful for:
+* COW sementics during fork()
+* task exit()ing
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/include/asm/page.h    |   92 +++++++++
- arch/arc/include/asm/pgalloc.h |  134 +++++++++++++
- arch/arc/include/asm/pgtable.h |  401 ++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 627 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/include/asm/pgalloc.h
- create mode 100644 arch/arc/include/asm/pgtable.h
+ arch/arc/include/asm/arcregs.h     |    7 ++
+ arch/arc/include/asm/mmu.h         |   23 ++++
+ arch/arc/include/asm/mmu_context.h |  209 ++++++++++++++++++++++++++++++++++++
+ arch/arc/mm/tlb.c                  |   23 ++++
+ 4 files changed, 262 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/include/asm/mmu.h
+ create mode 100644 arch/arc/include/asm/mmu_context.h
+ create mode 100644 arch/arc/mm/tlb.c
 
-diff --git a/arch/arc/include/asm/page.h b/arch/arc/include/asm/page.h
-index 7cd1224..d111d0c 100644
---- a/arch/arc/include/asm/page.h
-+++ b/arch/arc/include/asm/page.h
-@@ -35,6 +35,98 @@
+diff --git a/arch/arc/include/asm/arcregs.h b/arch/arc/include/asm/arcregs.h
+index c6e2805..c12eb9b 100644
+--- a/arch/arc/include/asm/arcregs.h
++++ b/arch/arc/include/asm/arcregs.h
+@@ -85,6 +85,13 @@
+ #define DC_CTRL_INV_MODE_FLUSH  0x40
+ #define DC_CTRL_FLUSH_STATUS    0x100
  
- #define PAGE_MASK	(~(PAGE_SIZE-1))
- 
-+#ifdef __KERNEL__
++/* MMU Management regs */
++#define ARC_REG_PID		0x409
++#define ARC_REG_SCRATCH_DATA0	0x418
++
++/* Bits in MMU PID register */
++#define MMU_ENABLE		(1 << 31)	/* Enable MMU for process */
++
+ /*
+  * Floating Pt Registers
+  * Status regs are read-only (build-time) so need not be saved/restored
+diff --git a/arch/arc/include/asm/mmu.h b/arch/arc/include/asm/mmu.h
+new file mode 100644
+index 0000000..56b0232
+--- /dev/null
++++ b/arch/arc/include/asm/mmu.h
+@@ -0,0 +1,23 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#ifndef _ASM_ARC_MMU_H
++#define _ASM_ARC_MMU_H
 +
 +#ifndef __ASSEMBLY__
 +
-+#define get_user_page(vaddr)		__get_free_page(GFP_KERNEL)
-+#define free_user_page(page, addr)	free_page(addr)
-+
-+/* TBD: for now don't worry about VIPT D$ aliasing */
-+#define clear_page(paddr)		memset((paddr), 0, PAGE_SIZE)
-+#define copy_page(to, from)		memcpy((to), (from), PAGE_SIZE)
-+
-+#define clear_user_page(addr, vaddr, pg)	clear_page(addr)
-+#define copy_user_page(vto, vfrom, vaddr, pg)	copy_page(vto, vfrom)
-+
-+#undef STRICT_MM_TYPECHECKS
-+
-+#ifdef STRICT_MM_TYPECHECKS
-+/*
-+ * These are used to make use of C type-checking..
-+ */
 +typedef struct {
-+	unsigned long pte;
-+} pte_t;
-+typedef struct {
-+	unsigned long pgd;
-+} pgd_t;
-+typedef struct {
-+	unsigned long pgprot;
-+} pgprot_t;
-+typedef unsigned long pgtable_t;
-+
-+#define pte_val(x)      ((x).pte)
-+#define pgd_val(x)      ((x).pgd)
-+#define pgprot_val(x)   ((x).pgprot)
-+
-+#define __pte(x)        ((pte_t) { (x) })
-+#define __pgd(x)        ((pgd_t) { (x) })
-+#define __pgprot(x)     ((pgprot_t) { (x) })
-+
-+#else /* !STRICT_MM_TYPECHECKS */
-+
-+typedef unsigned long pte_t;
-+typedef unsigned long pgd_t;
-+typedef unsigned long pgprot_t;
-+typedef unsigned long pgtable_t;
-+
-+#define pte_val(x)	(x)
-+#define pgd_val(x)	(x)
-+#define pgprot_val(x)	(x)
-+#define __pte(x)	(x)
-+#define __pgprot(x)	(x)
++	unsigned long asid;	/* Pvt Addr-Space ID for mm */
++#ifdef CONFIG_ARC_TLB_DBG
++	struct task_struct *tsk;
++#endif
++} mm_context_t;
 +
 +#endif
 +
-+#define ARCH_PFN_OFFSET     (CONFIG_LINUX_LINK_BASE >> PAGE_SHIFT)
-+
-+#define pfn_valid(pfn)      (((pfn) - ARCH_PFN_OFFSET) < max_mapnr)
-+
-+/*
-+ * __pa, __va, virt_to_page (ALERT: deprecated, don't use them)
-+ *
-+ * These macros have historically been misnamed
-+ * virt here means link-address/program-address as embedded in object code.
-+ * So if kernel img is linked at 0x8000_0000 onwards, 0x8010_0000 will be
-+ * 128th page, and virt_to_page( ) will return the struct page corresp to it.
-+ * mem_map[ ] is an array of struct page for each page frame in the system
-+ *
-+ * Independent of where linux is linked at, link-addr = physical address
-+ * So the old macro  __pa = vaddr + PAGE_OFFSET - CONFIG_LINUX_LINK_BASE
-+ * would have been wrong in case kernel is not at 0x8zs
-+ */
-+#define __pa(vaddr)  ((unsigned long)vaddr)
-+#define __va(paddr)  ((void *)((unsigned long)(paddr)))
-+
-+#define virt_to_page(kaddr)	\
-+	(mem_map + ((__pa(kaddr) - CONFIG_LINUX_LINK_BASE) >> PAGE_SHIFT))
-+
-+#define virt_addr_valid(kaddr)  pfn_valid(__pa(kaddr) >> PAGE_SHIFT)
-+
-+/* Default Permissions for page, used in mmap.c */
-+#ifdef CONFIG_ARC_STACK_NONEXEC
-+#define VM_DATA_DEFAULT_FLAGS   (VM_READ | VM_WRITE | VM_MAYREAD | VM_MAYWRITE)
-+#else
-+#define VM_DATA_DEFAULT_FLAGS   (VM_READ | VM_WRITE | VM_EXEC | \
-+				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
 +#endif
-+
-+#define WANT_PAGE_VIRTUAL   1
-+
-+#include <asm-generic/memory_model.h>   /* page_to_pfn, pfn_to_page */
-+#include <asm-generic/getorder.h>
-+
- #endif /* !__ASSEMBLY__ */
- 
- #endif /* __KERNEL__ */
-diff --git a/arch/arc/include/asm/pgalloc.h b/arch/arc/include/asm/pgalloc.h
+diff --git a/arch/arc/include/asm/mmu_context.h b/arch/arc/include/asm/mmu_context.h
 new file mode 100644
-index 0000000..36a9f20
+index 0000000..d12f3de
 --- /dev/null
-+++ b/arch/arc/include/asm/pgalloc.h
-@@ -0,0 +1,134 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * vineetg: June 2011
-+ *  -"/proc/meminfo | grep PageTables" kept on increasing
-+ *   Recently added pgtable dtor was not getting called.
-+ *
-+ * vineetg: May 2011
-+ *  -Variable pg-sz means that Page Tables could be variable sized themselves
-+ *    So calculate it based on addr traversal split [pgd-bits:pte-bits:xxx]
-+ *  -Page Table size capped to max 1 to save memory - hence verified.
-+ *  -Since these deal with constants, gcc compile-time optimizes them.
-+ *
-+ * vineetg: Nov 2010
-+ *  -Added pgtable ctor/dtor used for pgtable mem accounting
-+ *
-+ * vineetg: April 2010
-+ *  -Switched pgtable_t from being struct page * to unsigned long
-+ *      =Needed so that Page Table allocator (pte_alloc_one) is not forced to
-+ *       to deal with struct page. Thay way in future we can make it allocate
-+ *       multiple PG Tbls in one Page Frame
-+ *      =sweet side effect is avoiding calls to ugly page_address( ) from the
-+ *       pg-tlb allocator sub-sys (pte_alloc_one, ptr_free, pmd_populate
-+ *
-+ *  Amit Bhor, Sameer Dhavale: Codito Technologies 2004
-+ */
-+
-+#ifndef _ASM_ARC_PGALLOC_H
-+#define _ASM_ARC_PGALLOC_H
-+
-+#include <linux/mm.h>
-+#include <linux/log2.h>
-+
-+static inline void
-+pmd_populate_kernel(struct mm_struct *mm, pmd_t *pmd, pte_t *pte)
-+{
-+	pmd_set(pmd, pte);
-+}
-+
-+static inline void
-+pmd_populate(struct mm_struct *mm, pmd_t *pmd, pgtable_t ptep)
-+{
-+	pmd_set(pmd, (pte_t *) ptep);
-+}
-+
-+static inline int __get_order_pgd(void)
-+{
-+	return get_order(PTRS_PER_PGD * 4);
-+}
-+
-+static inline pgd_t *pgd_alloc(struct mm_struct *mm)
-+{
-+	int num, num2;
-+	pgd_t *ret = (pgd_t *) __get_free_pages(GFP_KERNEL, __get_order_pgd());
-+
-+	if (ret) {
-+		num = USER_PTRS_PER_PGD + USER_KERNEL_GUTTER / PGDIR_SIZE;
-+		memzero(ret, num * sizeof(pgd_t));
-+
-+		num2 = VMALLOC_SIZE / PGDIR_SIZE;
-+		memcpy(ret + num, swapper_pg_dir + num, num2 * sizeof(pgd_t));
-+
-+		memzero(ret + num + num2,
-+			       (PTRS_PER_PGD - num - num2) * sizeof(pgd_t));
-+
-+	}
-+	return ret;
-+}
-+
-+static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
-+{
-+	free_pages((unsigned long)pgd, __get_order_pgd());
-+}
-+
-+
-+/*
-+ * With software-only page-tables, addr-split for traversal is tweakable and
-+ * that directly governs how big tables would be at each level.
-+ * Further, the MMU page size is configurable.
-+ * Thus we need to programatically assert the size constraint
-+ * All of this is const math, allowing gcc to do constant folding/propagation.
-+ */
-+
-+static inline int __get_order_pte(void)
-+{
-+	return get_order(PTRS_PER_PTE * 4);
-+}
-+
-+static inline pte_t *pte_alloc_one_kernel(struct mm_struct *mm,
-+					unsigned long address)
-+{
-+	pte_t *pte;
-+
-+	pte = (pte_t *) __get_free_pages(GFP_KERNEL | __GFP_REPEAT | __GFP_ZERO,
-+					 __get_order_pte());
-+
-+	return pte;
-+}
-+
-+static inline pgtable_t
-+pte_alloc_one(struct mm_struct *mm, unsigned long address)
-+{
-+	pgtable_t pte_pg;
-+
-+	pte_pg = __get_free_pages(GFP_KERNEL | __GFP_REPEAT, __get_order_pte());
-+	if (pte_pg) {
-+		memzero((void *)pte_pg, PTRS_PER_PTE * 4);
-+		pgtable_page_ctor(virt_to_page(pte_pg));
-+	}
-+
-+	return pte_pg;
-+}
-+
-+static inline void pte_free_kernel(struct mm_struct *mm, pte_t *pte)
-+{
-+	free_pages((unsigned long)pte, __get_order_pte()); /* takes phy addr */
-+}
-+
-+static inline void pte_free(struct mm_struct *mm, pgtable_t ptep)
-+{
-+	pgtable_page_dtor(virt_to_page(ptep));
-+	free_pages(ptep, __get_order_pte());
-+}
-+
-+#define __pte_free_tlb(tlb, pte, addr)  pte_free((tlb)->mm, pte)
-+
-+#define check_pgt_cache()   do { } while (0)
-+#define pmd_pgtable(pmd) pmd_page_vaddr(pmd)
-+
-+#endif /* _ASM_ARC_PGALLOC_H */
-diff --git a/arch/arc/include/asm/pgtable.h b/arch/arc/include/asm/pgtable.h
-new file mode 100644
-index 0000000..dcb07015
---- /dev/null
-+++ b/arch/arc/include/asm/pgtable.h
-@@ -0,0 +1,401 @@
++++ b/arch/arc/include/asm/mmu_context.h
+@@ -0,0 +1,209 @@
 +/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
@@ -283,399 +97,236 @@ index 0000000..dcb07015
 + * published by the Free Software Foundation.
 + *
 + * vineetg: May 2011
-+ *  -Folded PAGE_PRESENT (used by VM) and PAGE_VALID (used by MMU) into 1.
-+ *     They are semantically the same although in different contexts
-+ *     VALID marks a TLB entry exists and it will only happen if PRESENT
-+ *  - Utilise some unused free bits to confine PTE flags to 12 bits
-+ *     This is a must for 4k pg-sz
++ *  -Refactored get_new_mmu_context( ) to only handle live-mm.
++ *   retiring-mm handled in other hooks
 + *
-+ * vineetg: Mar 2011 - changes to accomodate MMU TLB Page Descriptor mods
-+ *  -TLB Locking never really existed, except for initial specs
-+ *  -SILENT_xxx not needed for our port
-+ *  -Per my request, MMU V3 changes the layout of some of the bits
-+ *     to avoid a few shifts in TLB Miss handlers.
-+ *
-+ * vineetg: April 2010
-+ *  -PGD entry no longer contains any flags. If empty it is 0, otherwise has
-+ *   Pg-Tbl ptr. Thus pmd_present(), pmd_valid(), pmd_set( ) become simpler
-+ *
-+ * vineetg: April 2010
-+ *  -Switched form 8:11:13 split for page table lookup to 11:8:13
-+ *  -this speeds up page table allocation itself as we now have to memset 1K
-+ *    instead of 8k per page table.
-+ * -TODO: Right now page table alloc is 8K and rest 7K is unused
-+ *    need to optimise it
++ * Vineetg: March 25th, 2008: Bug #92690
++ *  -Major rewrite of Core ASID allocation routine get_new_mmu_context
 + *
 + * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
 + */
 +
-+#ifndef _ASM_ARC_PGTABLE_H
-+#define _ASM_ARC_PGTABLE_H
++#ifndef _ASM_ARC_MMU_CONTEXT_H
++#define _ASM_ARC_MMU_CONTEXT_H
 +
-+#include <asm/page.h>
-+#include <asm/mmu.h>
-+#include <asm-generic/pgtable-nopmd.h>
++#include <asm/arcregs.h>
++#include <asm/tlb.h>
 +
-+/**************************************************************************
-+ * Page Table Flags
++#include <asm-generic/mm_hooks.h>
++
++/*		ARC700 ASID Management
 + *
-+ * ARC700 MMU only deals with softare managed TLB entries.
-+ * Page Tables are purely for Linux VM's consumption and the bits below are
-+ * suited to that (uniqueness). Hence some are not implemented in the TLB and
-+ * some have different value in TLB.
-+ * e.g. MMU v2: K_READ bit is 8 and so is GLOBAL (possible becoz they live in
-+ *      seperate PD0 and PD1, which combined forms a translation entry)
-+ *      while for PTE perspective, they are 8 and 9 respectively
-+ * with MMU v3: Most bits (except SHARED) represent the exact hardware pos
-+ *      (saves some bit shift ops in TLB Miss hdlrs)
++ * ARC MMU provides 8-bit ASID (0..255) to TAG TLB entries, allowing entries
++ * with same vaddr (different tasks) to co-exit. This provides for
++ * "Fast Context Switch" i.e. no TLB flush on ctxt-switch
++ *
++ * Linux assigns each task a unique ASID. A simple round-robin allocation
++ * of H/w ASID is done using software tracker @asid_cache.
++ * When it reaches max 255, the allocation cycle starts afresh by flushing
++ * the entire TLB and wrapping ASID back to zero.
++ *
++ * For book-keeping, Linux uses a couple of data-structures:
++ *  -mm_struct has an @asid field to keep a note of task's ASID (needed at the
++ *   time of say switch_mm( )
++ *  -An array of mm structs @asid_mm_map[] for asid->mm the reverse mapping,
++ *  given an ASID, finding the mm struct associated.
++ *
++ * The round-robin allocation algorithm allows for ASID stealing.
++ * If asid tracker is at "x-1", a new req will allocate "x", even if "x" was
++ * already assigned to another (switched-out) task. Obviously the prev owner
++ * is marked with an invalid ASID to make it request for a new ASID when it
++ * gets scheduled next time. However its TLB entries (with ASID "x") could
++ * exist, which must be cleared before the same ASID is used by the new owner.
++ * Flushing them would be plausible but costly solution. Instead we force a
++ * allocation policy quirk, which ensures that a stolen ASID won't have any
++ * TLB entries associates, alleviating the need to flush.
++ * The quirk essentially is not allowing ASID allocated in prev cycle
++ * to be used past a roll-over in the next cycle.
++ * When this happens (i.e. task ASID > asid tracker), task needs to refresh
++ * its ASID, aligning it to current value of tracker. If the task doesn't get
++ * scheduled past a roll-over, hence its ASID is not yet realigned with
++ * tracker, such ASID is anyways safely reusable because it is
++ * gauranteed that TLB entries with that ASID wont exist.
 + */
 +
-+#if (CONFIG_ARC_MMU_VER <= 2)
++#define FIRST_ASID  0
++#define MAX_ASID    255			/* 8 bit PID field in PID Aux reg */
++#define NO_ASID     (MAX_ASID + 1)	/* ASID Not alloc to mmu ctxt */
++#define NUM_ASID    ((MAX_ASID - FIRST_ASID) + 1)
 +
-+#define _PAGE_ACCESSED      (1<<1)	/* Page is accessed (S) */
-+#define _PAGE_CACHEABLE     (1<<2)	/* Page is cached (H) */
-+#define _PAGE_EXECUTE       (1<<3)	/* Page has user execute perm (H) */
-+#define _PAGE_WRITE         (1<<4)	/* Page has user write perm (H) */
-+#define _PAGE_READ          (1<<5)	/* Page has user read perm (H) */
-+#define _PAGE_K_EXECUTE     (1<<6)	/* Page has kernel execute perm (H) */
-+#define _PAGE_K_WRITE       (1<<7)	/* Page has kernel write perm (H) */
-+#define _PAGE_K_READ        (1<<8)	/* Page has kernel perm (H) */
-+#define _PAGE_GLOBAL        (1<<9)	/* Page is global (H) */
-+#define _PAGE_MODIFIED      (1<<10)	/* Page modified (dirty) (S) */
-+#define _PAGE_FILE          (1<<10)	/* page cache/ swap (S) */
-+#define _PAGE_PRESENT       (1<<11)	/* TLB entry is valid (H) */
++/* ASID to mm struct mapping */
++extern struct mm_struct *asid_mm_map[NUM_ASID + 1];
 +
-+#else
-+
-+/* PD1 */
-+#define _PAGE_CACHEABLE     (1<<0)	/* Page is cached (H) */
-+#define _PAGE_EXECUTE       (1<<1)	/* Page has user execute perm (H) */
-+#define _PAGE_WRITE         (1<<2)	/* Page has user write perm (H) */
-+#define _PAGE_READ          (1<<3)	/* Page has user read perm (H) */
-+#define _PAGE_K_EXECUTE     (1<<4)	/* Page has kernel execute perm (H) */
-+#define _PAGE_K_WRITE       (1<<5)	/* Page has kernel write perm (H) */
-+#define _PAGE_K_READ        (1<<6)	/* Page has kernel perm (H) */
-+#define _PAGE_ACCESSED      (1<<7)	/* Page is accessed (S) */
-+
-+/* PD0 */
-+#define _PAGE_GLOBAL        (1<<8)	/* Page is global (H) */
-+#define _PAGE_PRESENT       (1<<9)	/* TLB entry is valid (H) */
-+#define _PAGE_SHARED_CODE   (1<<10)	/* Shared Code page with cmn vaddr
-+					   usable for shared TLB entries (H) */
-+
-+#define _PAGE_MODIFIED      (1<<11)	/* Page modified (dirty) (S) */
-+#define _PAGE_FILE          (1<<12)	/* page cache/ swap (S) */
-+
-+#define _PAGE_SHARED_CODE_H (1<<31)	/* Hardware counterpart of above */
-+#endif
-+
-+/* Kernel allowed all permissions for all pages */
-+#define _K_PAGE_PERMS  (_PAGE_K_EXECUTE | _PAGE_K_WRITE | _PAGE_K_READ)
-+
-+#ifdef CONFIG_ARC_CACHE_PAGES
-+#define _PAGE_DEF_CACHEABLE _PAGE_CACHEABLE
-+#else
-+#define _PAGE_DEF_CACHEABLE (0)
-+#endif
-+
-+/* Helper for every "user" page
-+ * -kernel can R/W/X
-+ * -by default cached, unless config otherwise
-+ * -present in memory
-+ */
-+#define ___DEF (_PAGE_PRESENT | _K_PAGE_PERMS | _PAGE_DEF_CACHEABLE)
-+
-+/* Set of bits not changed in pte_modify */
-+#define _PAGE_CHG_MASK	(PAGE_MASK | _PAGE_ACCESSED | _PAGE_MODIFIED)
-+
-+/* More Abbrevaited helpers */
-+#define PAGE_U_NONE     __pgprot(___DEF)
-+#define PAGE_U_R        __pgprot(___DEF | _PAGE_READ)
-+#define PAGE_U_W_R      __pgprot(___DEF | _PAGE_READ | _PAGE_WRITE)
-+#define PAGE_U_X_R      __pgprot(___DEF | _PAGE_READ | _PAGE_EXECUTE)
-+#define PAGE_U_X_W_R    __pgprot(___DEF | _PAGE_READ | _PAGE_WRITE | \
-+						       _PAGE_EXECUTE)
-+
-+#define PAGE_SHARED	PAGE_U_W_R
-+
-+/* While kernel runs out of unstrslated space, vmalloc/modules use a chunk of
-+ * kernel vaddr space - visible in all addr spaces, but kernel mode only
-+ * Thus Global, all-kernel-access, no-user-access, cached
-+ */
-+#define PAGE_KERNEL          __pgprot(___DEF | _PAGE_GLOBAL)
-+
-+/* ioremap */
-+#define PAGE_KERNEL_NO_CACHE __pgprot(_PAGE_PRESENT | _K_PAGE_PERMS | \
-+						     _PAGE_GLOBAL)
-+
-+/**************************************************************************
-+ * Mapping of vm_flags (Generic VM) to PTE flags (arch specific)
-+ *
-+ * Certain cases have 1:1 mapping
-+ *  e.g. __P101 means VM_READ, VM_EXEC and !VM_SHARED
-+ *       which directly corresponds to  PAGE_U_X_R
-+ *
-+ * Other rules which cause the divergence from 1:1 mapping
-+ *
-+ *  1. Although ARC700 can do exclusive execute/write protection (meaning R
-+ *     can be tracked independet of X/W unlike some other CPUs), still to
-+ *     keep things consistent with other archs:
-+ *      -Write implies Read:   W => R
-+ *      -Execute implies Read: X => R
-+ *
-+ *  2. Pvt Writable doesn't have Write Enabled initially: Pvt-W => !W
-+ *     This is to enable COW mechanism
-+ */
-+	/* xwr */
-+#define __P000  PAGE_U_NONE
-+#define __P001  PAGE_U_R
-+#define __P010  PAGE_U_R	/* Pvt-W => !W */
-+#define __P011  PAGE_U_R	/* Pvt-W => !W */
-+#define __P100  PAGE_U_X_R	/* X => R */
-+#define __P101  PAGE_U_X_R
-+#define __P110  PAGE_U_X_R	/* Pvt-W => !W and X => R */
-+#define __P111  PAGE_U_X_R	/* Pvt-W => !W */
-+
-+#define __S000  PAGE_U_NONE
-+#define __S001  PAGE_U_R
-+#define __S010  PAGE_U_W_R	/* W => R */
-+#define __S011  PAGE_U_W_R
-+#define __S100  PAGE_U_X_R	/* X => R */
-+#define __S101  PAGE_U_X_R
-+#define __S110  PAGE_U_X_W_R	/* X => R */
-+#define __S111  PAGE_U_X_W_R
-+
-+/****************************************************************
-+ * Page Table Lookup split
-+ *
-+ * We implement 2 tier paging and since this is all software, we are free
-+ * to customize the span of a PGD / PTE entry to suit us
-+ *
-+ *			32 bit virtual address
-+ * -------------------------------------------------------
-+ * | BITS_FOR_PGD    |  BITS_FOR_PTE    |  BITS_IN_PAGE  |
-+ * -------------------------------------------------------
-+ *       |                  |                |
-+ *       |                  |                --> off in page frame
-+ *       |		    |
-+ *       |                  ---> index into Page Table
-+ *       |
-+ *       ----> index into Page Directory
-+ */
-+
-+#define BITS_IN_PAGE	PAGE_SHIFT
-+
-+/* Optimal Sizing of Pg Tbl - based on MMU page size */
-+#if defined(CONFIG_ARC_PAGE_SIZE_8K)
-+#define BITS_FOR_PTE	8
-+#elif defined(CONFIG_ARC_PAGE_SIZE_16K)
-+#define BITS_FOR_PTE	8
-+#elif defined(CONFIG_ARC_PAGE_SIZE_4K)
-+#define BITS_FOR_PTE	9
-+#endif
-+
-+#define BITS_FOR_PGD	(32 - BITS_FOR_PTE - BITS_IN_PAGE)
-+
-+#define PGDIR_SHIFT	(BITS_FOR_PTE + BITS_IN_PAGE)
-+#define PGDIR_SIZE	(1UL << PGDIR_SHIFT)	/* vaddr span, not PDG sz */
-+#define PGDIR_MASK	(~(PGDIR_SIZE-1))
-+
-+#ifdef __ASSEMBLY__
-+#define	PTRS_PER_PTE	(1 << BITS_FOR_PTE)
-+#define	PTRS_PER_PGD	(1 << BITS_FOR_PGD)
-+#else
-+#define	PTRS_PER_PTE	(1UL << BITS_FOR_PTE)
-+#define	PTRS_PER_PGD	(1UL << BITS_FOR_PGD)
-+#endif
-+/*
-+ * Number of entries a user land program use.
-+ * TASK_SIZE is the maximum vaddr that can be used by a userland program.
-+ */
-+#define	USER_PTRS_PER_PGD	(TASK_SIZE / PGDIR_SIZE)
++extern int asid_cache;
 +
 +/*
-+ * No special requirements for lowest virtual address we permit any user space
-+ * mapping to be mapped at.
++ * Assign a new ASID to task. If the task already has an ASID, it is
++ * relinquished.
 + */
-+#define FIRST_USER_ADDRESS      0
-+
-+
-+/****************************************************************
-+ * Bucket load of VM Helpers
-+ */
-+
-+#ifndef __ASSEMBLY__
-+
-+#define pte_ERROR(e) \
-+	pr_crit("%s:%d: bad pte %08lx.\n", __FILE__, __LINE__, pte_val(e))
-+#define pgd_ERROR(e) \
-+	pr_crit("%s:%d: bad pgd %08lx.\n", __FILE__, __LINE__, pgd_val(e))
-+
-+/* the zero page used for uninitialized and anonymous pages */
-+extern char empty_zero_page[PAGE_SIZE];
-+#define ZERO_PAGE(vaddr)	(virt_to_page(empty_zero_page))
-+
-+#define pte_unmap(pte)		do { } while (0)
-+#define pte_unmap_nested(pte)		do { } while (0)
-+
-+#define set_pte(pteptr, pteval)	((*(pteptr)) = (pteval))
-+#define set_pmd(pmdptr, pmdval)	(*(pmdptr) = pmdval)
-+
-+/* find the page descriptor of the Page Tbl ref by PMD entry */
-+#define pmd_page(pmd)		virt_to_page(pmd_val(pmd) & PAGE_MASK)
-+
-+/* find the logical addr (phy for ARC) of the Page Tbl ref by PMD entry */
-+#define pmd_page_vaddr(pmd)	(pmd_val(pmd) & PAGE_MASK)
-+
-+/* In a 2 level sys, setup the PGD entry with PTE value */
-+static inline void pmd_set(pmd_t *pmdp, pte_t *ptep)
++static inline void get_new_mmu_context(struct mm_struct *mm)
 +{
-+	pmd_val(*pmdp) = (unsigned long)ptep;
-+}
++	struct mm_struct *prev_owner;
++	unsigned long flags;
 +
-+#define pte_none(x)			(!pte_val(x))
-+#define pte_present(x)			(pte_val(x) & _PAGE_PRESENT)
-+#define pte_clear(mm, addr, ptep)	set_pte_at(mm, addr, ptep, __pte(0))
++	local_irq_save(flags);
 +
-+#define pmd_none(x)			(!pmd_val(x))
-+#define	pmd_bad(x)			((pmd_val(x) & ~PAGE_MASK))
-+#define pmd_present(x)			(pmd_val(x))
-+#define pmd_clear(xp)			do { pmd_val(*(xp)) = 0; } while (0)
++	/*
++	 * Relinquish the currently owned ASID (if any).
++	 * Doing unconditionally saves a cmp-n-branch; for already unused
++	 * ASID slot, the value was/remains NULL
++	 */
++	asid_mm_map[mm->context.asid] = (struct mm_struct *)NULL;
 +
-+#define pte_page(x) (mem_map + \
-+		(unsigned long)(((pte_val(x) - PAGE_OFFSET) >> PAGE_SHIFT)))
++	/* move to new ASID */
++	if (++asid_cache > MAX_ASID) {	/* ASID roll-over */
++		asid_cache = FIRST_ASID;
++		flush_tlb_all();
++	}
 +
-+#define mk_pte(page, pgprot)						\
-+({									\
-+	pte_t pte;							\
-+	pte_val(pte) = __pa(page_address(page)) + pgprot_val(pgprot);	\
-+	pte;								\
-+})
++	/*
++	 * Is next ASID already owned by some-one else (we are stealing it).
++	 * If so, let the orig owner be aware of this, so when it runs, it
++	 * asks for a brand new ASID. This would only happen for a long-lived
++	 * task with ASID from prev allocation cycle (before ASID roll-over).
++	 *
++	 * This might look wrong - if we are re-using some other task's ASID,
++	 * won't we use it's stale TLB entries too. Actually switch_mm( ) takes
++	 * care of such a case: it ensures that task with ASID from prev alloc
++	 * cycle, when scheduled will refresh it's ASID: see switch_mm( ) below
++	 * The stealing scenario described here will only happen if that task
++	 * didn't get a chance to refresh it's ASID - implying stale entries
++	 * won't exist.
++	 */
++	prev_owner = asid_mm_map[asid_cache];
++	if (prev_owner)
++		prev_owner->context.asid = NO_ASID;
 +
-+/* TBD: Non linear mapping stuff */
-+static inline int pte_file(pte_t pte)
-+{
-+	return pte_val(pte) & _PAGE_FILE;
-+}
++	/* Assign new ASID to tsk */
++	asid_mm_map[asid_cache] = mm;
++	mm->context.asid = asid_cache;
 +
-+#define PTE_FILE_MAX_BITS	30
-+#define pgoff_to_pte(x)         __pte(x)
-+#define pte_to_pgoff(x)		(pte_val(x) >> 2)
-+#define pte_pfn(pte)		(pte_val(pte) >> PAGE_SHIFT)
-+#define pfn_pte(pfn, prot)	(__pte(((pfn) << PAGE_SHIFT) | pgprot_val(prot)))
-+#define __pte_index(addr)	(((addr) >> PAGE_SHIFT) & (PTRS_PER_PTE - 1))
++#ifdef CONFIG_ARC_TLB_DBG
++	pr_info("ARC_TLB_DBG: NewMM=0x%x OldMM=0x%x task_struct=0x%x Task: %s,"
++	       " pid:%u, assigned asid:%lu\n",
++	       (unsigned int)mm, (unsigned int)prev_owner,
++	       (unsigned int)(mm->context.tsk), (mm->context.tsk)->comm,
++	       (mm->context.tsk)->pid, mm->context.asid);
++#endif
 +
-+/*
-+ * pte_offset gets a @ptr to PMD entry (PGD in our 2-tier paging system)
-+ * and returns ptr to PTE entry corresponding to @addr
-+ */
-+#define pte_offset(dir, addr) ((pte_t *)(pmd_page_vaddr(*dir)) +\
-+					 __pte_index(addr))
++	write_aux_reg(ARC_REG_PID, asid_cache | MMU_ENABLE);
 +
-+/* No mapping of Page Tables in high mem etc, so following same as above */
-+#define pte_offset_kernel(dir, addr)		pte_offset(dir, addr)
-+#define pte_offset_map(dir, addr)		pte_offset(dir, addr)
-+
-+/* Zoo of pte_xxx function */
-+#define pte_read(pte)		(pte_val(pte) & _PAGE_READ)
-+#define pte_write(pte)		(pte_val(pte) & _PAGE_WRITE)
-+#define pte_dirty(pte)		(pte_val(pte) & _PAGE_MODIFIED)
-+#define pte_young(pte)		(pte_val(pte) & _PAGE_ACCESSED)
-+#define pte_special(pte)	(0)
-+
-+#define PTE_BIT_FUNC(fn, op) \
-+	static inline pte_t pte_##fn(pte_t pte) { pte_val(pte) op; return pte; }
-+
-+PTE_BIT_FUNC(wrprotect,	&= ~(_PAGE_WRITE));
-+PTE_BIT_FUNC(mkwrite,	|= (_PAGE_WRITE));
-+PTE_BIT_FUNC(mkclean,	&= ~(_PAGE_MODIFIED));
-+PTE_BIT_FUNC(mkdirty,	|= (_PAGE_MODIFIED));
-+PTE_BIT_FUNC(mkold,	&= ~(_PAGE_ACCESSED));
-+PTE_BIT_FUNC(mkyoung,	|= (_PAGE_ACCESSED));
-+PTE_BIT_FUNC(exprotect,	&= ~(_PAGE_EXECUTE));
-+PTE_BIT_FUNC(mkexec,	|= (_PAGE_EXECUTE));
-+
-+static inline pte_t pte_mkspecial(pte_t pte) { return pte; }
-+
-+static inline pte_t pte_modify(pte_t pte, pgprot_t newprot)
-+{
-+	return __pte((pte_val(pte) & _PAGE_CHG_MASK) | pgprot_val(newprot));
-+}
-+
-+/* Macro to mark a page protection as uncacheable */
-+#define pgprot_noncached(prot)	(__pgprot(pgprot_val(prot) & ~_PAGE_CACHEABLE))
-+
-+static inline void set_pte_at(struct mm_struct *mm, unsigned long addr,
-+			      pte_t *ptep, pte_t pteval)
-+{
-+	set_pte(ptep, pteval);
++	local_irq_restore(flags);
 +}
 +
 +/*
-+ * All kernel related VM pages are in init's mm.
++ * Initialize the context related info for a new mm_struct
++ * instance.
 + */
-+#define pgd_offset_k(address)	pgd_offset(&init_mm, address)
-+#define pgd_index(addr)		((addr) >> PGDIR_SHIFT)
-+#define pgd_offset(mm, addr)	(((mm)->pgd)+pgd_index(addr))
-+
-+/*
-+ * Macro to quickly access the PGD entry, utlising the fact that some
-+ * arch may cache the pointer to Page Directory of "current" task
-+ * in a MMU register
-+ *
-+ * Thus task->mm->pgd (3 pointer dereferences, cache misses etc simply
-+ * becomes read a register
-+ *
-+ * ********CAUTION*******:
-+ * Kernel code might be dealing with some mm_struct of NON "current"
-+ * Thus use this macro only when you are certain that "current" is current
-+ * e.g. when dealing with signal frame setup code etc
-+ */
-+#define pgd_offset_fast(mm, addr)	\
-+({					\
-+	pgd_t *pgd_base = (pgd_t *) read_aux_reg(ARC_REG_SCRATCH_DATA0);  \
-+	pgd_base + pgd_index(addr);	\
-+})
-+
-+extern void paging_init(void);
-+extern pgd_t swapper_pg_dir[] __aligned(PAGE_SIZE);
-+void update_mmu_cache(struct vm_area_struct *vma, unsigned long address,
-+		      pte_t *ptep);
-+
-+/* Encode swap {type,off} tuple into PTE
-+ * We reserve 13 bits for 5-bit @type, keeping bits 12-5 zero, ensuring that
-+ * both PAGE_FILE and PAGE_PRESENT are zero in a PTE holding swap "identifier"
-+ */
-+#define __swp_entry(type, off)	((swp_entry_t) { \
-+					((type) & 0x1f) | ((off) << 13) })
-+
-+/* Decode a PTE containing swap "identifier "into constituents */
-+#define __swp_type(pte_lookalike)	(((pte_lookalike).val) & 0x1f)
-+#define __swp_offset(pte_lookalike)	((pte_lookalike).val << 13)
-+
-+/* NOPs, to keep generic kernel happy */
-+#define __pte_to_swp_entry(pte)	((swp_entry_t) { pte_val(pte) })
-+#define __swp_entry_to_pte(x)	((pte_t) { (x).val })
-+
-+#define kern_addr_valid(addr)	(1)
-+
-+/*
-+ * remap a physical page `pfn' of size `size' with page protection `prot'
-+ * into virtual address `from'
-+ */
-+#define io_remap_pfn_range(vma, from, pfn, size, prot) \
-+			remap_pfn_range(vma, from, pfn, size, prot)
-+
-+#include <asm-generic/pgtable.h>
-+
-+/*
-+ * No page table caches to initialise
-+ */
-+#define pgtable_cache_init()   do { } while (0)
-+
-+#endif /* __ASSEMBLY__ */
-+
++static inline int
++init_new_context(struct task_struct *tsk, struct mm_struct *mm)
++{
++	mm->context.asid = NO_ASID;
++#ifdef CONFIG_ARC_TLB_DBG
++	mm->context.tsk = tsk;
 +#endif
++	return 0;
++}
++
++/* Prepare the MMU for task: setup PID reg with allocated ASID
++    If task doesn't have an ASID (never alloc or stolen, get a new ASID)
++*/
++static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
++			     struct task_struct *tsk)
++{
++	/* PGD cached in MMU reg to avoid 3 mem lookups: task->mm->pgd */
++	write_aux_reg(ARC_REG_SCRATCH_DATA0, next->pgd);
++
++	/*
++	 * Get a new ASID if task doesn't have a valid one. Possible when
++	 *  -task never had an ASID (fresh after fork)
++	 *  -it's ASID was stolen - past an ASID roll-over.
++	 *  -There's a third obscure scenario (if this task is running for the
++	 *   first time afer an ASID rollover), where despite having a valid
++	 *   ASID, we force a get for new ASID - see comments at top.
++	 *
++	 * Both the non-alloc scenario and first-use-after-rollover can be
++	 * detected using the single condition below:  NO_ASID = 256
++	 * while asid_cache is always a valid ASID value (0-255).
++	 */
++	if (next->context.asid > asid_cache) {
++		get_new_mmu_context(next);
++	} else {
++		/*
++		 * XXX: This will never happen given the chks above
++		 * BUG_ON(next->context.asid > MAX_ASID);
++		 */
++		write_aux_reg(ARC_REG_PID, next->context.asid | MMU_ENABLE);
++	}
++
++}
++
++static inline void destroy_context(struct mm_struct *mm)
++{
++	unsigned long flags;
++
++	local_irq_save(flags);
++
++	asid_mm_map[mm->context.asid] = NULL;
++	mm->context.asid = NO_ASID;
++
++	local_irq_restore(flags);
++}
++
++/* it seemed that deactivate_mm( ) is a reasonable place to do book-keeping
++ * for retiring-mm. However destroy_context( ) still needs to do that because
++ * between mm_release( ) = >deactive_mm( ) and
++ * mmput => .. => __mmdrop( ) => destroy_context( )
++ * there is a good chance that task gets sched-out/in, making it's ASID valid
++ * again (this teased me for a whole day).
++ */
++#define deactivate_mm(tsk, mm)   do { } while (0)
++
++static inline void activate_mm(struct mm_struct *prev, struct mm_struct *next)
++{
++	write_aux_reg(ARC_REG_SCRATCH_DATA0, next->pgd);
++
++	/* Unconditionally get a new ASID */
++	get_new_mmu_context(next);
++
++}
++
++#define enter_lazy_tlb(mm, tsk)
++
++#endif /* __ASM_ARC_MMU_CONTEXT_H */
+diff --git a/arch/arc/mm/tlb.c b/arch/arc/mm/tlb.c
+new file mode 100644
+index 0000000..f1edae2
+--- /dev/null
++++ b/arch/arc/mm/tlb.c
+@@ -0,0 +1,23 @@
++/*
++ * TLB Management (flush/create/diagnostics) for ARC700
++ *
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <linux/module.h>
++#include <asm/arcregs.h>
++#include <asm/mmu_context.h>
++#include <asm/tlb.h>
++
++/* A copy of the ASID from the PID reg is kept in asid_cache */
++int asid_cache = FIRST_ASID;
++
++/* ASID to mm struct mapping. We have one extra entry corresponding to
++ * NO_ASID to save us a compare when clearing the mm entry for old asid
++ * see get_new_mmu_context (asm-arc/mmu_context.h)
++ */
++struct mm_struct *asid_mm_map[NUM_ASID + 1];
 -- 
 1.7.4.1
 
