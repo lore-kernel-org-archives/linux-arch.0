@@ -1,48 +1,106 @@
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 28/76] ARC: I/O and DMA Mappings
-Date: Fri, 18 Jan 2013 16:18:11 +0000
-Message-ID: <201301181618.11736.arnd@arndb.de>
-References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <201301181555.43487.arnd@arndb.de> <20130118160106.GD14019@linux-sh.org>
+From: Sam Ravnborg <sam@ravnborg.org>
+Subject: Re: [PATCH v2 31/76] ARC: Build system: Makefiles, Kconfig, Linker
+	script
+Date: Fri, 18 Jan 2013 20:04:52 +0100
+Message-ID: <20130118190452.GA14433@merkur.ravnborg.org>
+References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-32-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-1"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20130118160106.GD14019@linux-sh.org>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Paul Mundt <lethal@linux-sh.org>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset=us-ascii
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from smtp.snhosting.dk ([87.238.248.203]:56543 "EHLO
+	smtp.domainteam.dk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751838Ab3ARTEz (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 14:04:55 -0500
+Content-Disposition: inline
+In-Reply-To: <1358511930-7424-32-git-send-email-vgupta@synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de
 
-On Friday 18 January 2013, Paul Mundt wrote:
-> On Fri, Jan 18, 2013 at 03:55:43PM +0000, Arnd Bergmann wrote:
-> > On Friday 18 January 2013, Vineet Gupta wrote:
-> > > TBD: Do we need early ioremap support like openrisc
-> > > 
-> > > Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-> > 
-> > Can you explain why early ioremap is necessary for you?
-> > 
-> > I wasn't aware that openrisc has it. In a lot of cases,
-> > you can use fixmap as a replacement.
-> > 
-> The two don't need to be mutually exclusive, either. sh implements early
-> ioremap transparently via fixmaps for example:
-> 
->         arch/sh/mm/ioremap.c
->         arch/sh/mm/ioremap_fixed.c
+> +#
+> +
+> +config ARC
+> +	def_bool y
+> +	select ARCH_NO_VIRT_TO_BUS
+> +	# ARC Busybox based initramfs absolutely relies on DEVTMPFS for /dev
+> +	# DEVTMPS in turn needs HOTPLUG
+> +	select DEVTMPFS if !INITRAMFS_SOURCE=""
+> +	select GENERIC_ATOMIC64
+> +	select GENERIC_CLOCKEVENTS
+> +	select GENERIC_FIND_FIRST_BIT
+> +	# for now, we don't need GENERIC_IRQ_PROBE, CONFIG_GENERIC_IRQ_CHIP
+> +	select GENERIC_IRQ_SHOW
+> +	select GENERIC_PENDING_IRQ if SMP
+> +	select GENERIC_SMP_IDLE_THREAD
+> +	select HAVE_GENERIC_HARDIRQS
+> +	select HOTPLUG if !INITRAMFS_SOURCE=""
 
-Ah, right. It also seems that openrisc uses the same approach
-for its early ioremap.
+HOTPLUG is alwyas y now.
 
-I usually recommend doing as few things as possible "early"
-though, that's why I was asking. If it's only one or two drivers
-that need an early mapping and can't be moved to a later stage
-of bootup, using only hardcoded fixmaps would make it harder
-to add more users, which one might consider a good thing.
+> +# Hacks to enable final link due to absence of link-time branch relexation
+> +# and gcc choosing optimal(shorter) branches at -O3
+> +#
+> +# vineetg Feb 2010: -mlong-calls switched off for overall kernel build
+> +# However lib/decompress_inflate.o (.init.text) calls
+> +# zlib_inflate_workspacesize (.text) causing relocation errors.
+> +# Thus forcing all exten calls in this file to be long calls
+> +export CFLAGS_decompress_inflate.o = -mmedium-calls
+> +export CFLAGS_initramfs.o = -mmedium-calls
+This is gross..
+But I see no better way to do this for now.
 
-Allowing ioremap to be used before memory_init() adds flexibility
-but could lead to code being moved into an early stage by accident
-rather than by necessity.
+> +++ b/arch/arc/kernel/Makefile
+> @@ -0,0 +1,16 @@
+> +#
+> +# Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
+> +#
+> +# This program is free software; you can redistribute it and/or modify
+> +# it under the terms of the GNU General Public License version 2 as
+> +# published by the Free Software Foundation.
+> +
+> +obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o \
+> +	   signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
 
-	Arnd
+For new stuff I usually recommend to drop line continuation using \
+
+Just do the much prettier:
+obj-y := arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o
+obj-y += signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
+
+> +++ b/arch/arc/lib/Makefile
+> @@ -0,0 +1,9 @@
+> +#
+> +# Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
+> +#
+> +# This program is free software; you can redistribute it and/or modify
+> +# it under the terms of the GNU General Public License version 2 as
+> +# published by the Free Software Foundation.
+> +
+> +lib-y	:= strchr-700.o strcmp.o strcpy-700.o strlen.o \
+> +	   memcmp.o memcpy-700.o memset.o
+
+Avoid '\'
+
+> diff --git a/arch/arc/mm/Makefile b/arch/arc/mm/Makefile
+> new file mode 100644
+> index 0000000..9e2c1ca
+> --- /dev/null
+> +++ b/arch/arc/mm/Makefile
+> @@ -0,0 +1,10 @@
+> +#
+> +# Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
+> +#
+> +# This program is free software; you can redistribute it and/or modify
+> +# it under the terms of the GNU General Public License version 2 as
+> +# published by the Free Software Foundation.
+> +#
+> +
+> +obj-y	:= extable.o ioremap.o dma.o fault.o init.o \
+> +	   tlb.o tlbex.o cache_arc700.o
+Avoid '\'
+
+Other these small nits I did not notice anything.
+General impression is that this looks good!
+
+	Sam
