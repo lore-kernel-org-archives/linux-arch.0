@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from vaxjo.synopsys.com ([198.182.60.75]:59268 "EHLO
-	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755727Ab3ARM2g (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:28:36 -0500
+Received: from us01smtp3.synopsys.com ([198.182.44.81]:55823 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755727Ab3ARM2b (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:28:31 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 03/76] ARC: Atomic/bitops/cmpxchg/barriers
-Date: Fri, 18 Jan 2013 17:54:17 +0530
-Message-ID: <1358511930-7424-4-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 19/76] ARC: Signal handling
+Date: Fri, 18 Jan 2013 17:54:33 +0530
+Message-ID: <1358511930-7424-20-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -14,32 +14,88 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20130118122417.SaiRvRjjV_AwQ5Q4SIS_Dfx8tNcUoPgABnRqUB90ZNg@z>
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Al Viro <viro@ZenIV.linux.org.uk>
+Message-ID: <20130118122433.WugARHzmWtFwRw740wh-D8f3fza6KsBPqbpyEim6kmI@z>
 
-This covers the UP / SMP (with no hardware assist for atomic r-m-w) as
-well as ARC700 LLOCK/SCOND insns based.
+Includes following fixes courtesy review by Al-Viro
+
+* Tracer poke to Callee-regs were lost
+
+  Before going off into do_signal( ) we save the user-mode callee regs
+  (as they are not saved by default as part of pt_regs). This is to make
+  sure that that a Tracer (if tracing related signal) is able to do likes
+  of PEEKUSR(callee-reg).
+
+  However in return path we were simply discarding the user-mode callee
+  regs, which would break a POKEUSR(callee-reg) from a tracer.
+
+* Issue related to multiple syscall restarts are addressed in next patch
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>
 ---
- arch/arc/include/asm/atomic.h  |  232 ++++++++++++++++++
- arch/arc/include/asm/barrier.h |   42 ++++
- arch/arc/include/asm/bitops.h  |  516 ++++++++++++++++++++++++++++++++++++++++
- arch/arc/include/asm/cmpxchg.h |  143 +++++++++++
- arch/arc/include/asm/smp.h     |   34 +++
- 5 files changed, 967 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/include/asm/atomic.h
- create mode 100644 arch/arc/include/asm/barrier.h
- create mode 100644 arch/arc/include/asm/bitops.h
- create mode 100644 arch/arc/include/asm/cmpxchg.h
- create mode 100644 arch/arc/include/asm/smp.h
+ arch/arc/include/asm/entry.h      |   35 ++++
+ arch/arc/include/asm/sigcontext.h |   23 +++
+ arch/arc/include/asm/signal.h     |   27 +++
+ arch/arc/kernel/entry.S           |   11 +-
+ arch/arc/kernel/signal.c          |  369 +++++++++++++++++++++++++++++++++++++
+ 5 files changed, 462 insertions(+), 3 deletions(-)
+ create mode 100644 arch/arc/include/asm/sigcontext.h
+ create mode 100644 arch/arc/include/asm/signal.h
+ create mode 100644 arch/arc/kernel/signal.c
 
-diff --git a/arch/arc/include/asm/atomic.h b/arch/arc/include/asm/atomic.h
+diff --git a/arch/arc/include/asm/entry.h b/arch/arc/include/asm/entry.h
+index 63705b1..6b42bf5 100644
+--- a/arch/arc/include/asm/entry.h
++++ b/arch/arc/include/asm/entry.h
+@@ -166,6 +166,41 @@
+ .endm
+ 
+ /*--------------------------------------------------------------
++ * RESTORE_CALLEE_SAVED_USER:
++ * This is called after do_signal where tracer might have changed callee regs
++ * thus we need to restore the reg file.
++ * Special case handling is required for r25 in case it is used by kernel
++ *  for caching task ptr. Ptrace would have modified on-kernel-stack value of
++ *  r25, which needs to be shoved back into task->thread.user_r25 where from
++ *  Low level exception/ISR return code will retrieve to populate with rest of
++ *  callee reg-file.
++ *-------------------------------------------------------------*/
++.macro RESTORE_CALLEE_SAVED_USER
++
++	add     sp, sp, 4   /* skip "callee_regs->stack_place_holder" */
++
++#ifdef CONFIG_ARC_CURR_IN_REG
++	ld.ab   r12, [sp, 4]
++	st      r12, [r25, TASK_THREAD + THREAD_USER_R25]
++#else
++	ld.ab   r25, [sp, 4]
++#endif
++
++	ld.ab   r24, [sp, 4]
++	ld.ab   r23, [sp, 4]
++	ld.ab   r22, [sp, 4]
++	ld.ab   r21, [sp, 4]
++	ld.ab   r20, [sp, 4]
++	ld.ab   r19, [sp, 4]
++	ld.ab   r18, [sp, 4]
++	ld.ab   r17, [sp, 4]
++	ld.ab   r16, [sp, 4]
++	ld.ab   r15, [sp, 4]
++	ld.ab   r14, [sp, 4]
++	ld.ab   r13, [sp, 4]
++.endm
++
++/*--------------------------------------------------------------
+  * Super FAST Restore callee saved regs by simply re-adjusting SP
+  *-------------------------------------------------------------*/
+ .macro DISCARD_CALLEE_SAVED_USER
+diff --git a/arch/arc/include/asm/sigcontext.h b/arch/arc/include/asm/sigcontext.h
 new file mode 100644
-index 0000000..83f03ca
+index 0000000..f21b541
 --- /dev/null
-+++ b/arch/arc/include/asm/atomic.h
-@@ -0,0 +1,232 @@
++++ b/arch/arc/include/asm/sigcontext.h
+@@ -0,0 +1,23 @@
 +/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
@@ -48,989 +104,458 @@ index 0000000..83f03ca
 + * published by the Free Software Foundation.
 + */
 +
-+#ifndef _ASM_ARC_ATOMIC_H
-+#define _ASM_ARC_ATOMIC_H
++#ifndef _ASM_ARC_SIGCONTEXT_H
++#define _ASM_ARC_SIGCONTEXT_H
 +
-+#ifdef __KERNEL__
++#include <asm/ptrace.h>
 +
-+#ifndef __ASSEMBLY__
++/*
++ * Signal context structure - contains all info to do with the state
++ * before the signal handler was invoked.  Note: only add new entries
++ * to the end of the structure.
++ */
++struct sigcontext {
++	struct pt_regs regs;
++};
 +
-+#include <linux/types.h>
-+#include <linux/compiler.h>
-+#include <asm/cmpxchg.h>
-+#include <asm/barrier.h>
-+#include <asm/smp.h>
++#endif /* _ASM_ARC_SIGCONTEXT_H */
+diff --git a/arch/arc/include/asm/signal.h b/arch/arc/include/asm/signal.h
+new file mode 100644
+index 0000000..fad62f7
+--- /dev/null
++++ b/arch/arc/include/asm/signal.h
+@@ -0,0 +1,27 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
++ */
 +
-+#define atomic_read(v)  ((v)->counter)
++#ifndef _ASM_ARC_SIGNAL_H
++#define _ASM_ARC_SIGNAL_H
 +
-+#ifdef CONFIG_ARC_HAS_LLSC
++/*
++ * This is much needed for ARC sigreturn optimization.
++ * This allows uClibc to piggback the addr of a sigreturn stub in sigaction,
++ * which allows sigreturn based re-entry into kernel after handling signal.
++ * W/o this kernel needs to "synthesize" the sigreturn trampoline on user
++ * mode stack which in turn forces the following:
++ * -TLB Flush (after making the stack page executable)
++ * -Cache line Flush (to make I/D Cache lines coherent)
++ */
++#define SA_RESTORER	0x04000000
 +
-+#define atomic_set(v, i) (((v)->counter) = (i))
++#include <asm-generic/signal.h>
 +
-+static inline void atomic_add(int i, atomic_t *v)
++#endif /* _ASM_ARC_SIGNAL_H */
+diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
+index d378c8e..efaf3de 100644
+--- a/arch/arc/kernel/entry.S
++++ b/arch/arc/kernel/entry.S
+@@ -474,7 +474,11 @@ resume_user_mode_begin:
+ 
+ 	bbit0  r9, TIF_SIGPENDING, .Lchk_notify_resume
+ 
+-	; save CALLEE Regs.
++	; Normal Trap/IRQ entry only saves Scratch (caller-saved) regs
++	; in pt_reg since the "C" ABI (kernel code) will automatically
++	; save/restore callee-saved regs.
++	;
++	; However, here we need to explicitly save callee regs because
+ 	; (i)  If this signal causes coredump - full regfile needed
+ 	; (ii) If signal is SIGTRAP/SIGSTOP, task is being traced thus
+ 	;      tracer might call PEEKUSR(CALLEE reg)
+@@ -488,8 +492,9 @@ resume_user_mode_begin:
+ 
+ 	bl  @do_signal
+ 
+-	; unwind SP for cheap discard of Callee saved Regs
+-	DISCARD_CALLEE_SAVED_USER
++	; Ideally we want to discard the Callee reg above, however if this was
++	; a tracing signal, tracer could have done a POKEUSR(CALLEE reg)
++	RESTORE_CALLEE_SAVED_USER
+ 
+ 	b      resume_user_mode_begin	; loop back to start of U mode ret
+ 
+diff --git a/arch/arc/kernel/signal.c b/arch/arc/kernel/signal.c
+new file mode 100644
+index 0000000..464af3f
+--- /dev/null
++++ b/arch/arc/kernel/signal.c
+@@ -0,0 +1,369 @@
++/*
++ * Signal Handling for ARC
++ *
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * vineetg: Jan 2010 (Restarting of timer related syscalls)
++ *
++ * vineetg: Nov 2009 (Everything needed for TIF_RESTORE_SIGMASK)
++ *  -do_signal() supports TIF_RESTORE_SIGMASK
++ *  -do_signal() no loner needs oldset, required by OLD sys_sigsuspend
++ *  -sys_rt_sigsuspend() now comes from generic code, so discard arch implemen
++ *  -sys_sigsuspend() no longer needs to fudge ptregs, hence that arg removed
++ *  -sys_sigsuspend() no longer loops for do_signal(), sets TIF_xxx and leaves
++ *   the job to do_signal()
++ *
++ * vineetg: July 2009
++ *  -Modified Code to support the uClibc provided userland sigreturn stub
++ *   to avoid kernel synthesing it on user stack at runtime, costing TLB
++ *   probes and Cache line flushes.
++ *
++ * vineetg: July 2009
++ *  -In stash_usr_regs( ) and restore_usr_regs( ), save/restore of user regs
++ *   in done in block copy rather than one word at a time.
++ *   This saves around 2K of code and improves LMBench lat_sig <catch>
++ *
++ * rajeshwarr: Feb 2009
++ *  - Support for Realtime Signals
++ *
++ * vineetg: Aug 11th 2008: Bug #94183
++ *  -ViXS were still seeing crashes when using insmod to load drivers.
++ *   It turned out that the code to change Execute permssions for TLB entries
++ *   of user was not guarded for interrupts (mod_tlb_permission)
++ *   This was cauing TLB entries to be overwritten on unrelated indexes
++ *
++ * Vineetg: July 15th 2008: Bug #94183
++ *  -Exception happens in Delay slot of a JMP, and before user space resumes,
++ *   Signal is delivered (Ctrl + C) = >SIGINT.
++ *   setup_frame( ) sets up PC,SP,BLINK to enable user space signal handler
++ *   to run, but doesn't clear the Delay slot bit from status32. As a result,
++ *   on resuming user mode, signal handler branches off to BTA of orig JMP
++ *  -FIX: clear the DE bit from status32 in setup_frame( )
++ *
++ * Rahul Trivedi, Kanika Nema: Codito Technologies 2004
++ */
++
++#include <linux/signal.h>
++#include <linux/ptrace.h>
++#include <linux/personality.h>
++#include <linux/uaccess.h>
++#include <linux/syscalls.h>
++#include <linux/tracehook.h>
++#include <asm/ucontext.h>
++
++#define _BLOCKABLE (~(sigmask(SIGKILL) | sigmask(SIGSTOP)))
++
++asmlinkage int sys_sigaltstack(const stack_t __user *uss, stack_t __user *uoss)
 +{
-+	unsigned int temp;
-+
-+	__asm__ __volatile__(
-+	"1:	llock   %0, [%1]	\n"
-+	"	add     %0, %0, %2	\n"
-+	"	scond   %0, [%1]	\n"
-+	"	bnz     1b		\n"
-+	: "=&r"(temp)	/* Early clobber, to prevent reg reuse */
-+	: "r"(&v->counter), "ir"(i)
-+	: "cc");
++	struct pt_regs *regs = task_pt_regs(current);
++	return do_sigaltstack(uss, uoss, regs->sp);
 +}
 +
-+static inline void atomic_sub(int i, atomic_t *v)
-+{
-+	unsigned int temp;
++struct rt_sigframe {
++	struct siginfo info;
++	struct ucontext uc;
++#define MAGIC_SIGALTSTK		0x07302004
++	unsigned int sigret_magic;
++};
 +
-+	__asm__ __volatile__(
-+	"1:	llock   %0, [%1]	\n"
-+	"	sub     %0, %0, %2	\n"
-+	"	scond   %0, [%1]	\n"
-+	"	bnz     1b		\n"
-+	: "=&r"(temp)
-+	: "r"(&v->counter), "ir"(i)
-+	: "cc");
++static int
++stash_usr_regs(struct rt_sigframe __user *sf, struct pt_regs *regs,
++	       sigset_t *set)
++{
++	int err;
++	err = __copy_to_user(&(sf->uc.uc_mcontext.regs), regs, sizeof(*regs));
++	err |= __copy_to_user(&sf->uc.uc_sigmask, set, sizeof(sigset_t));
++
++	return err;
 +}
 +
-+/* add and also return the new value */
-+static inline int atomic_add_return(int i, atomic_t *v)
++static int restore_usr_regs(struct pt_regs *regs, struct rt_sigframe __user *sf)
 +{
-+	unsigned int temp;
++	sigset_t set;
++	int err;
 +
-+	__asm__ __volatile__(
-+	"1:	llock   %0, [%1]	\n"
-+	"	add     %0, %0, %2	\n"
-+	"	scond   %0, [%1]	\n"
-+	"	bnz     1b		\n"
-+	: "=&r"(temp)
-+	: "r"(&v->counter), "ir"(i)
-+	: "cc");
++	err = __copy_from_user(&set, &sf->uc.uc_sigmask, sizeof(set));
++	if (err == 0) {
++		sigdelsetmask(&set, ~_BLOCKABLE);
++		set_current_blocked(&set);
++	}
 +
-+	return temp;
++	err |= __copy_from_user(regs, &(sf->uc.uc_mcontext.regs),
++				sizeof(*regs));
++
++	return err;
 +}
 +
-+static inline int atomic_sub_return(int i, atomic_t *v)
++static inline int is_do_ss_needed(unsigned int magic)
 +{
-+	unsigned int temp;
-+
-+	__asm__ __volatile__(
-+	"1:	llock   %0, [%1]	\n"
-+	"	sub     %0, %0, %2	\n"
-+	"	scond   %0, [%1]	\n"
-+	"	bnz     1b		\n"
-+	: "=&r"(temp)
-+	: "r"(&v->counter), "ir"(i)
-+	: "cc");
-+
-+	return temp;
++	if (MAGIC_SIGALTSTK == magic)
++		return 1;
++	else
++		return 0;
 +}
 +
-+static inline void atomic_clear_mask(unsigned long mask, unsigned long *addr)
++SYSCALL_DEFINE0(rt_sigreturn)
 +{
-+	unsigned int temp;
++	struct rt_sigframe __user *sf;
++	unsigned int magic;
++	int err;
++	struct pt_regs *regs = task_pt_regs(current);
 +
-+	__asm__ __volatile__(
-+	"1:	llock   %0, [%1]	\n"
-+	"	bic     %0, %0, %2	\n"
-+	"	scond   %0, [%1]	\n"
-+	"	bnz     1b		\n"
-+	: "=&r"(temp)
-+	: "r"(addr), "ir"(mask)
-+	: "cc");
++	/* Always make any pending restarted system calls return -EINTR */
++	current_thread_info()->restart_block.fn = do_no_restart_syscall;
++
++	/* Since we stacked the signal on a word boundary,
++	 * then 'sp' should be word aligned here.  If it's
++	 * not, then the user is trying to mess with us.
++	 */
++	if (regs->sp & 3)
++		goto badframe;
++
++	sf = (struct rt_sigframe __force __user *)(regs->sp);
++
++	if (!access_ok(VERIFY_READ, sf, sizeof(*sf)))
++		goto badframe;
++
++	err = restore_usr_regs(regs, sf);
++	err |= __get_user(magic, &sf->sigret_magic);
++	if (err)
++		goto badframe;
++
++	if (unlikely(is_do_ss_needed(magic)))
++		if (do_sigaltstack(&sf->uc.uc_stack, NULL, regs->sp) == -EFAULT)
++			goto badframe;
++
++	return regs->r0;
++
++badframe:
++	force_sig(SIGSEGV, current);
++	return 0;
 +}
 +
-+#else	/* !CONFIG_ARC_HAS_LLSC */
++/*
++ * Determine which stack to use..
++ */
++static inline void __user *get_sigframe(struct k_sigaction *ka,
++					struct pt_regs *regs,
++					unsigned long framesize)
++{
++	unsigned long sp = regs->sp;
++	void __user *frame;
 +
-+#ifndef CONFIG_SMP
++	/* This is the X/Open sanctioned signal stack switching */
++	if ((ka->sa.sa_flags & SA_ONSTACK) && !sas_ss_flags(sp))
++		sp = current->sas_ss_sp + current->sas_ss_size;
 +
-+ /* violating atomic_xxx API locking protocol in UP for optimization sake */
-+#define atomic_set(v, i) (((v)->counter) = (i))
++	/* No matter what happens, 'sp' must be word
++	 * aligned otherwise nasty things could happen
++	 */
 +
-+#else
++	/* ATPCS B01 mandates 8-byte alignment */
++	frame = (void __user *)((sp - framesize) & ~7);
 +
-+static inline void atomic_set(atomic_t *v, int i)
++	/* Check that we can actually write to the signal frame */
++	if (!access_ok(VERIFY_WRITE, frame, framesize))
++		frame = NULL;
++
++	return frame;
++}
++
++/*
++ * translate the signal
++ */
++static inline int map_sig(int sig)
++{
++	struct thread_info *thread = current_thread_info();
++	if (thread->exec_domain && thread->exec_domain->signal_invmap
++	    && sig < 32)
++		sig = thread->exec_domain->signal_invmap[sig];
++	return sig;
++}
++
++static int
++setup_rt_frame(int signo, struct k_sigaction *ka, siginfo_t *info,
++	       sigset_t *set, struct pt_regs *regs)
++{
++	struct rt_sigframe __user *sf;
++	unsigned int magic = 0;
++	stack_t stk;
++	int err = 0;
++
++	sf = get_sigframe(ka, regs, sizeof(struct rt_sigframe));
++	if (!sf)
++		return 1;
++
++	/*
++	 * SA_SIGINFO requires 3 args to signal handler:
++	 *  #1: sig-no (common to any handler)
++	 *  #2: struct siginfo
++	 *  #3: struct ucontext (completely populated)
++	 */
++	if (unlikely(ka->sa.sa_flags & SA_SIGINFO)) {
++		err |= copy_siginfo_to_user(&sf->info, info);
++		err |= __put_user(0, &sf->uc.uc_flags);
++		err |= __put_user(NULL, &sf->uc.uc_link);
++		stk.ss_sp = (void __user *)current->sas_ss_sp;
++		stk.ss_flags = sas_ss_flags(regs->sp);
++		stk.ss_size = current->sas_ss_size;
++		err |= __copy_to_user(&sf->uc.uc_stack, &stk, sizeof(stk));
++
++		/* setup args 2 and 3 fo ruse rmode handler */
++		regs->r1 = (unsigned long)&sf->info;
++		regs->r2 = (unsigned long)&sf->uc;
++
++		/*
++		 * small optim to avoid unconditonally calling do_sigaltstack
++		 * in sigreturn path, now that we only have rt_sigreturn
++		 */
++		magic = MAGIC_SIGALTSTK;
++	}
++
++	/*
++	 * w/o SA_SIGINFO, struct ucontext is partially populated (only
++	 * uc_mcontext/uc_sigmask) for kernel's normal user state preservation
++	 * during signal handler execution. This works for SA_SIGINFO as well
++	 * although the semantics are now overloaded (the same reg state can be
++	 * inspected by userland: but are they allowed to fiddle with it ?
++	 */
++	err |= stash_usr_regs(sf, regs, set);
++	err |= __put_user(magic, &sf->sigret_magic);
++	if (err)
++		return err;
++
++	/* #1 arg to the user Signal handler */
++	regs->r0 = map_sig(signo);
++
++	/* setup PC of user space signal handler */
++	regs->ret = (unsigned long)ka->sa.sa_handler;
++
++	/*
++	 * handler returns using sigreturn stub provided already by userpsace
++	 */
++	BUG_ON(!(ka->sa.sa_flags & SA_RESTORER));
++	regs->blink = (unsigned long)ka->sa.sa_restorer;
++
++	/* User Stack for signal handler will be above the frame just carved */
++	regs->sp = (unsigned long)sf;
++
++	/*
++	 * Bug 94183, Clear the DE bit, so that when signal handler
++	 * starts to run, it doesn't use BTA
++	 */
++	regs->status32 &= ~STATUS_DE_MASK;
++	regs->status32 |= STATUS_L_MASK;
++
++	return err;
++}
++
++static void arc_restart_syscall(struct k_sigaction *ka, struct pt_regs *regs)
++{
++	switch (regs->r0) {
++	case -ERESTART_RESTARTBLOCK:
++	case -ERESTARTNOHAND:
++		/*
++		 * ERESTARTNOHAND means that the syscall should
++		 * only be restarted if there was no handler for
++		 * the signal, and since we only get here if there
++		 * is a handler, we don't restart
++		 */
++		regs->r0 = -EINTR;   /* ERESTART_xxx is internal */
++		break;
++
++	case -ERESTARTSYS:
++		/*
++		 * ERESTARTSYS means to restart the syscall if
++		 * there is no handler or the handler was
++		 * registered with SA_RESTART
++		 */
++		if (!(ka->sa.sa_flags & SA_RESTART)) {
++			regs->r0 = -EINTR;
++			break;
++		}
++		/* fallthrough */
++
++	case -ERESTARTNOINTR:
++		/*
++		 * ERESTARTNOINTR means that the syscall should
++		 * be called again after the signal handler returns.
++		 * Setup reg state just as it was before doing the trap
++		 * r0 has been clobbered with sys call ret code thus it
++		 * needs to be reloaded with orig first arg to syscall
++		 * in orig_r0. Rest of relevant reg-file:
++		 * r8 (syscall num) and (r1 - r7) will be reset to
++		 * their orig user space value when we ret from kernel
++		 */
++		regs->r0 = regs->orig_r0;
++		regs->ret -= 4;
++		break;
++	}
++}
++
++/*
++ * OK, we're invoking a handler
++ */
++static void
++handle_signal(unsigned long sig, struct k_sigaction *ka, siginfo_t *info,
++	      struct pt_regs *regs)
++{
++	sigset_t *oldset = sigmask_to_save();
++	int ret;
++
++	/* Set up the stack frame */
++	ret = setup_rt_frame(sig, ka, info, oldset, regs);
++
++	if (ret)
++		force_sigsegv(sig, current);
++	else
++		signal_delivered(sig, info, ka, regs, 0);
++}
++
++void do_signal(struct pt_regs *regs)
++{
++	struct k_sigaction ka;
++	siginfo_t info;
++	int signr;
++	int restart_scall;
++
++	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
++
++	/* Are we from a system call? */
++	restart_scall = in_syscall(regs);
++
++	if (signr > 0) {
++		if (restart_scall)
++			arc_restart_syscall(&ka, regs);
++
++		handle_signal(signr, &ka, &info, regs);
++		return;
++	}
++
++	if (restart_scall) {
++		/* No handler for syscall: restart it */
++		if (regs->r0 == -ERESTARTNOHAND ||
++		    regs->r0 == -ERESTARTSYS || regs->r0 == -ERESTARTNOINTR) {
++			regs->r0 = regs->orig_r0;
++			regs->ret -= 4;
++		} else if (regs->r0 == -ERESTART_RESTARTBLOCK) {
++			regs->r8 = __NR_restart_syscall;
++			regs->ret -= 4;
++		}
++	}
++
++	/* If there's no signal to deliver, restore the saved sigmask back */
++	restore_saved_sigmask();
++}
++
++void do_notify_resume(struct pt_regs *regs)
 +{
 +	/*
-+	 * Independent of hardware support, all of the atomic_xxx() APIs need
-+	 * to follow the same locking rules to make sure that a "hardware"
-+	 * atomic insn (e.g. LD) doesn't clobber an "emulated" atomic insn
-+	 * sequence
-+	 *
-+	 * Thus atomic_set() despite being 1 insn (and seemingly atomic)
-+	 * requires the locking.
++	 * ASM glue gaurantees that this is only called when returning to
++	 * user mode
 +	 */
-+	unsigned long flags;
-+
-+	atomic_ops_lock(flags);
-+	v->counter = i;
-+	atomic_ops_unlock(flags);
++	if (test_and_clear_thread_flag(TIF_NOTIFY_RESUME))
++		tracehook_notify_resume(regs);
 +}
-+#endif
-+
-+/*
-+ * Non hardware assisted Atomic-R-M-W
-+ * Locking would change to irq-disabling only (UP) and spinlocks (SMP)
-+ */
-+
-+static inline void atomic_add(int i, atomic_t *v)
-+{
-+	unsigned long flags;
-+
-+	atomic_ops_lock(flags);
-+	v->counter += i;
-+	atomic_ops_unlock(flags);
-+}
-+
-+static inline void atomic_sub(int i, atomic_t *v)
-+{
-+	unsigned long flags;
-+
-+	atomic_ops_lock(flags);
-+	v->counter -= i;
-+	atomic_ops_unlock(flags);
-+}
-+
-+static inline int atomic_add_return(int i, atomic_t *v)
-+{
-+	unsigned long flags;
-+	unsigned long temp;
-+
-+	atomic_ops_lock(flags);
-+	temp = v->counter;
-+	temp += i;
-+	v->counter = temp;
-+	atomic_ops_unlock(flags);
-+
-+	return temp;
-+}
-+
-+static inline int atomic_sub_return(int i, atomic_t *v)
-+{
-+	unsigned long flags;
-+	unsigned long temp;
-+
-+	atomic_ops_lock(flags);
-+	temp = v->counter;
-+	temp -= i;
-+	v->counter = temp;
-+	atomic_ops_unlock(flags);
-+
-+	return temp;
-+}
-+
-+static inline void atomic_clear_mask(unsigned long mask, unsigned long *addr)
-+{
-+	unsigned long flags;
-+
-+	atomic_ops_lock(flags);
-+	*addr &= ~mask;
-+	atomic_ops_unlock(flags);
-+}
-+
-+#endif /* !CONFIG_ARC_HAS_LLSC */
-+
-+/**
-+ * __atomic_add_unless - add unless the number is a given value
-+ * @v: pointer of type atomic_t
-+ * @a: the amount to add to v...
-+ * @u: ...unless v is equal to u.
-+ *
-+ * Atomically adds @a to @v, so long as it was not @u.
-+ * Returns the old value of @v
-+ */
-+#define __atomic_add_unless(v, a, u)					\
-+({									\
-+	int c, old;							\
-+	c = atomic_read(v);						\
-+	while (c != (u) && (old = atomic_cmpxchg((v), c, c + (a))) != c)\
-+		c = old;						\
-+	c;								\
-+})
-+
-+#define atomic_inc_not_zero(v)		atomic_add_unless((v), 1, 0)
-+
-+#define atomic_inc(v)			atomic_add(1, v)
-+#define atomic_dec(v)			atomic_sub(1, v)
-+
-+#define atomic_inc_and_test(v)		(atomic_add_return(1, v) == 0)
-+#define atomic_dec_and_test(v)		(atomic_sub_return(1, v) == 0)
-+#define atomic_inc_return(v)		atomic_add_return(1, (v))
-+#define atomic_dec_return(v)		atomic_sub_return(1, (v))
-+#define atomic_sub_and_test(i, v)	(atomic_sub_return(i, v) == 0)
-+
-+#define atomic_add_negative(i, v)	(atomic_add_return(i, v) < 0)
-+
-+#define ATOMIC_INIT(i)			{ (i) }
-+
-+#include <asm-generic/atomic64.h>
-+
-+#endif
-+
-+#endif
-+
-+#endif
-diff --git a/arch/arc/include/asm/barrier.h b/arch/arc/include/asm/barrier.h
-new file mode 100644
-index 0000000..f6cb7c4
---- /dev/null
-+++ b/arch/arc/include/asm/barrier.h
-@@ -0,0 +1,42 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ASM_BARRIER_H
-+#define __ASM_BARRIER_H
-+
-+#ifndef __ASSEMBLY__
-+
-+/* TODO-vineetg: Need to see what this does, don't we need sync anywhere */
-+#define mb() __asm__ __volatile__ ("" : : : "memory")
-+#define rmb() mb()
-+#define wmb() mb()
-+#define set_mb(var, value)  do { var = value; mb(); } while (0)
-+#define set_wmb(var, value) do { var = value; wmb(); } while (0)
-+#define read_barrier_depends()  mb()
-+
-+/* TODO-vineetg verify the correctness of macros here */
-+#ifdef CONFIG_SMP
-+#define smp_mb()        mb()
-+#define smp_rmb()       rmb()
-+#define smp_wmb()       wmb()
-+#else
-+#define smp_mb()        barrier()
-+#define smp_rmb()       barrier()
-+#define smp_wmb()       barrier()
-+#endif
-+
-+#define smp_mb__before_atomic_dec()	barrier()
-+#define smp_mb__after_atomic_dec()	barrier()
-+#define smp_mb__before_atomic_inc()	barrier()
-+#define smp_mb__after_atomic_inc()	barrier()
-+
-+#define smp_read_barrier_depends()      do { } while (0)
-+
-+#endif
-+
-+#endif
-diff --git a/arch/arc/include/asm/bitops.h b/arch/arc/include/asm/bitops.h
-new file mode 100644
-index 0000000..647a83a
---- /dev/null
-+++ b/arch/arc/include/asm/bitops.h
-@@ -0,0 +1,516 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef _ASM_BITOPS_H
-+#define _ASM_BITOPS_H
-+
-+#ifndef _LINUX_BITOPS_H
-+#error only <linux/bitops.h> can be included directly
-+#endif
-+
-+#ifdef __KERNEL__
-+
-+#ifndef __ASSEMBLY__
-+
-+#include <linux/types.h>
-+#include <linux/compiler.h>
-+
-+/*
-+ * Hardware assisted read-modify-write using ARC700 LLOCK/SCOND insns.
-+ * The Kconfig glue ensures that in SMP, this is only set if the container
-+ * SoC/platform has cross-core coherent LLOCK/SCOND
-+ */
-+#if defined(CONFIG_ARC_HAS_LLSC)
-+
-+static inline void set_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned int temp;
-+
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	__asm__ __volatile__(
-+	"1:	llock   %0, [%1]	\n"
-+	"	bset    %0, %0, %2	\n"
-+	"	scond   %0, [%1]	\n"
-+	"	bnz     1b	\n"
-+	: "=&r"(temp)
-+	: "r"(m), "ir"(nr)
-+	: "cc");
-+}
-+
-+static inline void clear_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned int temp;
-+
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	__asm__ __volatile__(
-+	"1:	llock   %0, [%1]	\n"
-+	"	bclr    %0, %0, %2	\n"
-+	"	scond   %0, [%1]	\n"
-+	"	bnz     1b	\n"
-+	: "=&r"(temp)
-+	: "r"(m), "ir"(nr)
-+	: "cc");
-+}
-+
-+static inline void change_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned int temp;
-+
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	__asm__ __volatile__(
-+	"1:	llock   %0, [%1]	\n"
-+	"	bxor    %0, %0, %2	\n"
-+	"	scond   %0, [%1]	\n"
-+	"	bnz     1b		\n"
-+	: "=&r"(temp)
-+	: "r"(m), "ir"(nr)
-+	: "cc");
-+}
-+
-+/*
-+ * Semantically:
-+ *    Test the bit
-+ *    if clear
-+ *        set it and return 0 (old value)
-+ *    else
-+ *        return 1 (old value).
-+ *
-+ * Since ARC lacks a equivalent h/w primitive, the bit is set unconditionally
-+ * and the old value of bit is returned
-+ */
-+static inline int test_and_set_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned long old, temp;
-+
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	__asm__ __volatile__(
-+	"1:	llock   %0, [%2]	\n"
-+	"	bset    %1, %0, %3	\n"
-+	"	scond   %1, [%2]	\n"
-+	"	bnz     1b		\n"
-+	: "=&r"(old), "=&r"(temp)
-+	: "r"(m), "ir"(nr)
-+	: "cc");
-+
-+	return (old & (1 << nr)) != 0;
-+}
-+
-+static inline int
-+test_and_clear_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned int old, temp;
-+
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	__asm__ __volatile__(
-+	"1:	llock   %0, [%2]	\n"
-+	"	bclr    %1, %0, %3	\n"
-+	"	scond   %1, [%2]	\n"
-+	"	bnz     1b		\n"
-+	: "=&r"(old), "=&r"(temp)
-+	: "r"(m), "ir"(nr)
-+	: "cc");
-+
-+	return (old & (1 << nr)) != 0;
-+}
-+
-+static inline int
-+test_and_change_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned int old, temp;
-+
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	__asm__ __volatile__(
-+	"1:	llock   %0, [%2]	\n"
-+	"	bxor    %1, %0, %3	\n"
-+	"	scond   %1, [%2]	\n"
-+	"	bnz     1b		\n"
-+	: "=&r"(old), "=&r"(temp)
-+	: "r"(m), "ir"(nr)
-+	: "cc");
-+
-+	return (old & (1 << nr)) != 0;
-+}
-+
-+#else	/* !CONFIG_ARC_HAS_LLSC */
-+
-+#include <asm/smp.h>
-+
-+/*
-+ * Non hardware assisted Atomic-R-M-W
-+ * Locking would change to irq-disabling only (UP) and spinlocks (SMP)
-+ *
-+ * There's "significant" micro-optimization in writing our own variants of
-+ * bitops (over generic variants)
-+ *
-+ * (1) The generic APIs have "signed" @nr while we have it "unsigned"
-+ *     This avoids extra code to be generated for pointer arithmatic, since
-+ *     is "not sure" that index is NOT -ve
-+ * (2) Utilize the fact that ARCompact bit fidding insn (BSET/BCLR/ASL) etc
-+ *     only consider bottom 5 bits of @nr, so NO need to mask them off.
-+ *     (GCC Quirk: however for constant @nr we still need to do the masking
-+ *             at compile time)
-+ */
-+
-+static inline void set_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned long temp, flags;
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	bitops_lock(flags);
-+
-+	temp = *m;
-+	*m = temp | (1UL << nr);
-+
-+	bitops_unlock(flags);
-+}
-+
-+static inline void clear_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned long temp, flags;
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	bitops_lock(flags);
-+
-+	temp = *m;
-+	*m = temp & ~(1UL << nr);
-+
-+	bitops_unlock(flags);
-+}
-+
-+static inline void change_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned long temp, flags;
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	bitops_lock(flags);
-+
-+	temp = *m;
-+	*m = temp ^ (1UL << nr);
-+
-+	bitops_unlock(flags);
-+}
-+
-+static inline int test_and_set_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned long old, flags;
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	bitops_lock(flags);
-+
-+	old = *m;
-+	*m = old | (1 << nr);
-+
-+	bitops_unlock(flags);
-+
-+	return (old & (1 << nr)) != 0;
-+}
-+
-+static inline int
-+test_and_clear_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned long old, flags;
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	bitops_lock(flags);
-+
-+	old = *m;
-+	*m = old & ~(1 << nr);
-+
-+	bitops_unlock(flags);
-+
-+	return (old & (1 << nr)) != 0;
-+}
-+
-+static inline int
-+test_and_change_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned long old, flags;
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	bitops_lock(flags);
-+
-+	old = *m;
-+	*m = old ^ (1 << nr);
-+
-+	bitops_unlock(flags);
-+
-+	return (old & (1 << nr)) != 0;
-+}
-+
-+#endif /* CONFIG_ARC_HAS_LLSC */
-+
-+/***************************************
-+ * Non atomic variants
-+ **************************************/
-+
-+static inline void __set_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned long temp;
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	temp = *m;
-+	*m = temp | (1UL << nr);
-+}
-+
-+static inline void __clear_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned long temp;
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	temp = *m;
-+	*m = temp & ~(1UL << nr);
-+}
-+
-+static inline void __change_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned long temp;
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	temp = *m;
-+	*m = temp ^ (1UL << nr);
-+}
-+
-+static inline int
-+__test_and_set_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned long old;
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	old = *m;
-+	*m = old | (1 << nr);
-+
-+	return (old & (1 << nr)) != 0;
-+}
-+
-+static inline int
-+__test_and_clear_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned long old;
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	old = *m;
-+	*m = old & ~(1 << nr);
-+
-+	return (old & (1 << nr)) != 0;
-+}
-+
-+static inline int
-+__test_and_change_bit(unsigned long nr, volatile unsigned long *m)
-+{
-+	unsigned long old;
-+	m += nr >> 5;
-+
-+	if (__builtin_constant_p(nr))
-+		nr &= 0x1f;
-+
-+	old = *m;
-+	*m = old ^ (1 << nr);
-+
-+	return (old & (1 << nr)) != 0;
-+}
-+
-+/*
-+ * This routine doesn't need to be atomic.
-+ */
-+static inline int
-+__constant_test_bit(unsigned int nr, const volatile unsigned long *addr)
-+{
-+	return ((1UL << (nr & 31)) &
-+		(((const volatile unsigned int *)addr)[nr >> 5])) != 0;
-+}
-+
-+static inline int
-+__test_bit(unsigned int nr, const volatile unsigned long *addr)
-+{
-+	unsigned long mask;
-+
-+	addr += nr >> 5;
-+
-+	/* ARC700 only considers 5 bits in bit-fiddling insn */
-+	mask = 1 << nr;
-+
-+	return ((mask & *addr) != 0);
-+}
-+
-+#define test_bit(nr, addr)	(__builtin_constant_p(nr) ? \
-+					__constant_test_bit((nr), (addr)) : \
-+					__test_bit((nr), (addr)))
-+
-+/*
-+ * Count the number of zeros, starting from MSB
-+ * Helper for fls( ) friends
-+ * This is a pure count, so (1-32) or (0-31) doesn't apply
-+ * It could be 0 to 32, based on num of 0's in there
-+ * clz(0x8000_0000) = 0, clz(0xFFFF_FFFF)=0, clz(0) = 32, clz(1) = 31
-+ */
-+static inline __attribute__ ((const)) int clz(unsigned int x)
-+{
-+	unsigned int res;
-+
-+	__asm__ __volatile__(
-+	"	norm.f  %0, %1		\n"
-+	"	mov.n   %0, 0		\n"
-+	"	add.p   %0, %0, 1	\n"
-+	: "=r"(res)
-+	: "r"(x)
-+	: "cc");
-+
-+	return res;
-+}
-+
-+static inline int constant_fls(int x)
-+{
-+	int r = 32;
-+
-+	if (!x)
-+		return 0;
-+	if (!(x & 0xffff0000u)) {
-+		x <<= 16;
-+		r -= 16;
-+	}
-+	if (!(x & 0xff000000u)) {
-+		x <<= 8;
-+		r -= 8;
-+	}
-+	if (!(x & 0xf0000000u)) {
-+		x <<= 4;
-+		r -= 4;
-+	}
-+	if (!(x & 0xc0000000u)) {
-+		x <<= 2;
-+		r -= 2;
-+	}
-+	if (!(x & 0x80000000u)) {
-+		x <<= 1;
-+		r -= 1;
-+	}
-+	return r;
-+}
-+
-+/*
-+ * fls = Find Last Set in word
-+ * @result: [1-32]
-+ * fls(1) = 1, fls(0x80000000) = 32, fls(0) = 0
-+ */
-+static inline __attribute__ ((const)) int fls(unsigned long x)
-+{
-+	if (__builtin_constant_p(x))
-+	       return constant_fls(x);
-+
-+	return 32 - clz(x);
-+}
-+
-+/*
-+ * __fls: Similar to fls, but zero based (0-31)
-+ */
-+static inline __attribute__ ((const)) int __fls(unsigned long x)
-+{
-+	if (!x)
-+		return 0;
-+	else
-+		return fls(x) - 1;
-+}
-+
-+/*
-+ * ffs = Find First Set in word (LSB to MSB)
-+ * @result: [1-32], 0 if all 0's
-+ */
-+#define ffs(x)	({ unsigned long __t = (x); fls(__t & -__t); })
-+
-+/*
-+ * __ffs: Similar to ffs, but zero based (0-31)
-+ */
-+static inline __attribute__ ((const)) int __ffs(unsigned long word)
-+{
-+	if (!word)
-+		return word;
-+
-+	return ffs(word) - 1;
-+}
-+
-+/*
-+ * ffz = Find First Zero in word.
-+ * @return:[0-31], 32 if all 1's
-+ */
-+#define ffz(x)	__ffs(~(x))
-+
-+/* TODO does this affect uni-processor code */
-+#define smp_mb__before_clear_bit()  barrier()
-+#define smp_mb__after_clear_bit()   barrier()
-+
-+#include <asm-generic/bitops/hweight.h>
-+#include <asm-generic/bitops/fls64.h>
-+#include <asm-generic/bitops/sched.h>
-+#include <asm-generic/bitops/lock.h>
-+
-+#include <asm-generic/bitops/find.h>
-+#include <asm-generic/bitops/le.h>
-+#include <asm-generic/bitops/ext2-atomic-setbit.h>
-+
-+#endif /* !__ASSEMBLY__ */
-+
-+#endif /* __KERNEL__ */
-+
-+#endif
-diff --git a/arch/arc/include/asm/cmpxchg.h b/arch/arc/include/asm/cmpxchg.h
-new file mode 100644
-index 0000000..03cd689
---- /dev/null
-+++ b/arch/arc/include/asm/cmpxchg.h
-@@ -0,0 +1,143 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ASM_ARC_CMPXCHG_H
-+#define __ASM_ARC_CMPXCHG_H
-+
-+#include <linux/types.h>
-+#include <asm/smp.h>
-+
-+#ifdef CONFIG_ARC_HAS_LLSC
-+
-+static inline unsigned long
-+__cmpxchg(volatile void *ptr, unsigned long expected, unsigned long new)
-+{
-+	unsigned long prev;
-+
-+	__asm__ __volatile__(
-+	"1:	llock   %0, [%1]	\n"
-+	"	brne    %0, %2, 2f	\n"
-+	"	scond   %3, [%1]	\n"
-+	"	bnz     1b		\n"
-+	"2:				\n"
-+	: "=&r"(prev)
-+	: "r"(ptr), "ir"(expected),
-+	  "r"(new) /* can't be "ir". scond can't take limm for "b" */
-+	: "cc");
-+
-+	return prev;
-+}
-+
-+#else
-+
-+static inline unsigned long
-+__cmpxchg(volatile void *ptr, unsigned long expected, unsigned long new)
-+{
-+	unsigned long flags;
-+	int prev;
-+	volatile unsigned long *p = ptr;
-+
-+	atomic_ops_lock(flags);
-+	prev = *p;
-+	if (prev == expected)
-+		*p = new;
-+	atomic_ops_unlock(flags);
-+	return prev;
-+}
-+
-+#endif /* CONFIG_ARC_HAS_LLSC */
-+
-+#define cmpxchg(ptr, o, n) ((typeof(*(ptr)))__cmpxchg((ptr), \
-+				(unsigned long)(o), (unsigned long)(n)))
-+
-+/*
-+ * Since not supported natively, ARC cmpxchg() uses atomic_ops_lock (UP/SMP)
-+ * just to gaurantee semantics.
-+ * atomic_cmpxchg() needs to use the same locks as it's other atomic siblings
-+ * which also happens to be atomic_ops_lock.
-+ *
-+ * Thus despite semantically being different, implementation of atomic_cmpxchg()
-+ * is same as cmpxchg().
-+ */
-+#define atomic_cmpxchg(v, o, n) ((int)cmpxchg(&((v)->counter), (o), (n)))
-+
-+
-+/*
-+ * xchg (reg with memory) based on "Native atomic" EX insn
-+ */
-+static inline unsigned long __xchg(unsigned long val, volatile void *ptr,
-+				   int size)
-+{
-+	extern unsigned long __xchg_bad_pointer(void);
-+
-+	switch (size) {
-+	case 4:
-+		__asm__ __volatile__(
-+		"	ex  %0, [%1]	\n"
-+		: "+r"(val)
-+		: "r"(ptr)
-+		: "memory");
-+
-+		return val;
-+	}
-+	return __xchg_bad_pointer();
-+}
-+
-+#define _xchg(ptr, with) ((typeof(*(ptr)))__xchg((unsigned long)(with), (ptr), \
-+						 sizeof(*(ptr))))
-+
-+/*
-+ * On ARC700, EX insn is inherently atomic, so by default "vanilla" xchg() need
-+ * not require any locking. However there's a quirk.
-+ * ARC lacks native CMPXCHG, thus emulated (see above), using external locking -
-+ * incidently it "reuses" the same atomic_ops_lock used by atomic APIs.
-+ * Now, llist code uses cmpxchg() and xchg() on same data, so xchg() needs to
-+ * abide by same serializing rules, thus ends up using atomic_ops_lock as well.
-+ *
-+ * This however is only relevant if SMP and/or ARC lacks LLSC
-+ *   if (UP or LLSC)
-+ *      xchg doesn't need serialization
-+ *   else <==> !(UP or LLSC) <==> (!UP and !LLSC) <==> (SMP and !LLSC)
-+ *      xchg needs serialization
-+ */
-+
-+#if !defined(CONFIG_ARC_HAS_LLSC) && defined(CONFIG_SMP)
-+
-+#define xchg(ptr, with)			\
-+({					\
-+	unsigned long flags;		\
-+	typeof(*(ptr)) old_val;		\
-+					\
-+	atomic_ops_lock(flags);		\
-+	old_val = _xchg(ptr, with);	\
-+	atomic_ops_unlock(flags);	\
-+	old_val;			\
-+})
-+
-+#else
-+
-+#define xchg(ptr, with)  _xchg(ptr, with)
-+
-+#endif
-+
-+/*
-+ * "atomic" variant of xchg()
-+ * REQ: It needs to follow the same serialization rules as other atomic_xxx()
-+ * Since xchg() doesn't always do that, it would seem that following defintion
-+ * is incorrect. But here's the rationale:
-+ *   SMP : Even xchg() takes the atomic_ops_lock, so OK.
-+ *   LLSC: atomic_ops_lock are not relevent at all (even if SMP, since LLSC
-+ *         is natively "SMP safe", no serialization required).
-+ *   UP  : other atomics disable IRQ, so no way a difft ctxt atomic_xchg()
-+ *         could clobber them. atomic_xchg() itself would be 1 insn, so it
-+ *         can't be clobbered by others. Thus no serialization required when
-+ *         atomic_xchg is involved.
-+ */
-+#define atomic_xchg(v, new) (xchg(&((v)->counter), new))
-+
-+#endif
-diff --git a/arch/arc/include/asm/smp.h b/arch/arc/include/asm/smp.h
-new file mode 100644
-index 0000000..4341f3b
---- /dev/null
-+++ b/arch/arc/include/asm/smp.h
-@@ -0,0 +1,34 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ASM_ARC_SMP_H
-+#define __ASM_ARC_SMP_H
-+
-+/*
-+ * ARC700 doesn't support atomic Read-Modify-Write ops.
-+ * Originally Interrupts had to be disabled around code to gaurantee atomicity.
-+ * The LLOCK/SCOND insns allow writing interrupt-hassle-free based atomic ops
-+ * based on retry-if-irq-in-atomic (with hardware assist).
-+ * However despite these, we provide the IRQ disabling variant
-+ *
-+ * (1) These insn were introduced only in 4.10 release. So for older released
-+ *	support needed.
-+ */
-+#ifndef CONFIG_ARC_HAS_LLSC
-+
-+#include <linux/irqflags.h>
-+
-+#define atomic_ops_lock(flags)		local_irq_save(flags)
-+#define atomic_ops_unlock(flags)	local_irq_restore(flags)
-+
-+#define bitops_lock(flags)		local_irq_save(flags)
-+#define bitops_unlock(flags)		local_irq_restore(flags)
-+
-+#endif	/* !CONFIG_ARC_HAS_LLSC */
-+
-+#endif
 -- 
 1.7.4.1
 
