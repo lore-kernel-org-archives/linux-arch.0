@@ -1,173 +1,141 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 37/76] ARC: Switch to generic kernel_execve() and sys_execve()
-Date: Fri, 18 Jan 2013 17:54:51 +0530
-Message-ID: <1358511930-7424-38-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 74/76] ARC: [Review] Multi-platform image #7: SMP common code to use callbacks
+Date: Fri, 18 Jan 2013 18:10:25 +0530
+Message-ID: <1358512827-7694-3-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
+ <1358512827-7694-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from vaxjo.synopsys.com ([198.182.60.75]:59286 "EHLO
-	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756692Ab3ARMbG (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:31:06 -0500
-In-Reply-To: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1358512827-7694-1-git-send-email-vgupta@synopsys.com>
+Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Al Viro <viro@ZenIV.linux.org.uk>
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+List-Id: linux-arch.vger.kernel.org
+
+This again is for switch from singleton platform SMP API to
+multi-platform paradigm
+
+Platform code is not yet setup to populate the callbacks, that happens
+in next commit
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Al Viro <viro@ZenIV.linux.org.uk>
+Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arc/include/asm/ptrace.h   |    8 +++++++
- arch/arc/include/asm/syscalls.h |    1 -
- arch/arc/include/asm/unistd.h   |    3 ++
- arch/arc/kernel/entry.S         |   18 ++++++++-------
- arch/arc/kernel/process.c       |   44 ---------------------------------------
- arch/arc/kernel/sys.c           |    1 -
- 6 files changed, 21 insertions(+), 54 deletions(-)
+ arch/arc/include/asm/smp.h |   36 +++++++++++++++---------------------
+ arch/arc/kernel/smp.c      |   16 +++++++++++++---
+ 2 files changed, 28 insertions(+), 24 deletions(-)
 
-diff --git a/arch/arc/include/asm/ptrace.h b/arch/arc/include/asm/ptrace.h
-index 92ef198..e4e1ac6 100644
---- a/arch/arc/include/asm/ptrace.h
-+++ b/arch/arc/include/asm/ptrace.h
-@@ -133,6 +133,14 @@ struct user_regs_struct {
- #define syscall_wont_restart(regs) (regs->orig_r8 |= orig_r8_IS_SCALL_RESTARTED)
- #define syscall_restartable(regs) !(regs->orig_r8 & orig_r8_IS_SCALL_RESTARTED)
+diff --git a/arch/arc/include/asm/smp.h b/arch/arc/include/asm/smp.h
+index 0cff3a5..c4fb211 100644
+--- a/arch/arc/include/asm/smp.h
++++ b/arch/arc/include/asm/smp.h
+@@ -31,6 +31,7 @@ extern void arch_send_call_function_ipi_mask(const struct cpumask *mask);
+  */
+ extern void __init smp_init_cpus(void);
+ extern void __init first_lines_of_secondary(void);
++extern const char *arc_platform_smp_cpuinfo(void);
  
-+#define current_pt_regs()					\
-+({								\
-+	/* open-coded current_thread_info() */			\
-+	register unsigned long sp asm ("sp");			\
-+	unsigned long pg_start = (sp & ~(THREAD_SIZE - 1));	\
-+	(struct pt_regs *)(pg_start + THREAD_SIZE - 4) - 1;	\
-+})
+ /*
+  * API expected BY platform smp code (FROM arch smp code)
+@@ -41,29 +42,22 @@ extern void __init first_lines_of_secondary(void);
+ extern int smp_ipi_irq_setup(int cpu, int irq);
+ 
+ /*
+- * APIs expected FROM platform smp code
+- *
+- * arc_platform_smp_cpuinfo:
+- *	returns a string containing info for /proc/cpuinfo
+- *
+- * arc_platform_smp_wait_to_boot:
+- *	Called from early bootup code for non-Master CPUs to "park" them
++ * struct plat_smp_ops	- SMP callbacks provided by platform to ARC SMP
+  *
+- * arc_platform_smp_wakeup_cpu:
+- *	Called from __cpu_up (Master CPU) to kick start another one
+- *
+- * arc_platform_ipi_send:
+- *	Takes @cpumask to which IPI(s) would be sent.
+- *	The actual msg-id/buffer is manager in arch-common code
+- *
+- * arc_platform_ipi_clear:
+- *	Takes @cpu which got IPI at @irq to do any IPI clearing
++ * @info:		SoC SMP specific info for /proc/cpuinfo etc
++ * @cpu_kick:		For Master to kickstart a cpu (optionally at a PC)
++ * @ipi_send:		To send IPI to a @cpumask
++ * @ips_clear:		To clear IPI received by @cpu at @irq
+  */
+-extern const char *arc_platform_smp_cpuinfo(void);
+-extern void arc_platform_smp_wait_to_boot(int cpu);
+-extern void arc_platform_smp_wakeup_cpu(int cpu, unsigned long pc);
+-extern void arc_platform_ipi_send(const struct cpumask *callmap);
+-extern void arc_platform_ipi_clear(int cpu, int irq);
++struct plat_smp_ops {
++	const char 	*info;
++	void		(*cpu_kick)(int cpu, unsigned long pc);
++	void		(*ipi_send)(void *callmap);
++	void		(*ipi_clear)(int cpu, int irq);
++};
 +
- #endif /* !__ASSEMBLY__ */
++/* TBD: stop exporting it for direct population by platform */
++extern struct plat_smp_ops  plat_smp_ops;
  
- #define orig_r8_IS_SCALL		0x0001
-diff --git a/arch/arc/include/asm/syscalls.h b/arch/arc/include/asm/syscalls.h
-index cf5d2f5..e53a534 100644
---- a/arch/arc/include/asm/syscalls.h
-+++ b/arch/arc/include/asm/syscalls.h
-@@ -15,7 +15,6 @@
- #include <linux/linkage.h>
- #include <linux/types.h>
+ #endif  /* CONFIG_SMP */
  
--int sys_execve_wrapper(int, int, int);
- int sys_clone_wrapper(int, int, int, int, int);
- int sys_fork_wrapper(void);
- int sys_vfork_wrapper(void);
-diff --git a/arch/arc/include/asm/unistd.h b/arch/arc/include/asm/unistd.h
-index 6a2d101..003b2cf 100644
---- a/arch/arc/include/asm/unistd.h
-+++ b/arch/arc/include/asm/unistd.h
-@@ -8,6 +8,9 @@
+diff --git a/arch/arc/kernel/smp.c b/arch/arc/kernel/smp.c
+index 6843846..89f1687 100644
+--- a/arch/arc/kernel/smp.c
++++ b/arch/arc/kernel/smp.c
+@@ -37,6 +37,8 @@
+ arch_spinlock_t smp_atomic_ops_lock = __ARCH_SPIN_LOCK_UNLOCKED;
+ arch_spinlock_t smp_bitops_lock = __ARCH_SPIN_LOCK_UNLOCKED;
  
- /******** no-legacy-syscalls-ABI *******/
- 
-+#define __ARCH_WANT_KERNEL_EXECVE
-+#define __ARCH_WANT_SYS_EXECVE
++struct plat_smp_ops  plat_smp_ops;
 +
- #define sys_mmap2 sys_mmap_pgoff
+ /* XXX: per cpu ? Only needed once in early seconday boot */
+ struct task_struct *secondary_idle_tsk;
  
- #include <asm-generic/unistd.h>
-diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
-index e76b432..d2cad3c 100644
---- a/arch/arc/kernel/entry.S
-+++ b/arch/arc/kernel/entry.S
-@@ -586,15 +586,17 @@ ARC_ENTRY ret_from_kernel_thread
- 	j   @sys_exit
- ARC_EXIT ret_from_kernel_thread
- 
--;################### Special Sys Call Wrappers ##########################
--
--ARC_ENTRY sys_execve_wrapper
--	; copy pointer to pt_regs as a parameter
--	mov  r3, sp
--	bl  @sys_execve
-+; When we land here, pt_regs have already been updated in-place correctly
-+; for return to user mode.
-+; However the call stack leading to kernel_execve() from say
-+; ____call_usermodehelper() would make SP != pt_regs.
-+; Thus we need to set SP to pt_regs as passed by kernel_execve() to us.
-+ARC_ENTRY ret_from_kernel_execve
-+	b.d   ret_from_exception
-+	mov   sp, r0
-+ARC_EXIT ret_from_kernel_execve
- 
--	b ret_from_system_call
--ARC_EXIT sys_execve_wrapper
-+;################### Special Sys Call Wrappers ##########################
- 
- ; TBD: call do_fork directly from here
- ARC_ENTRY sys_fork_wrapper
-diff --git a/arch/arc/kernel/process.c b/arch/arc/kernel/process.c
-index a468205..20d8b4d 100644
---- a/arch/arc/kernel/process.c
-+++ b/arch/arc/kernel/process.c
-@@ -53,50 +53,6 @@ asmlinkage int sys_clone(unsigned long clone_flags, unsigned long newsp,
- 		       child_tidptr);
+@@ -105,6 +107,11 @@ void __attribute__((weak)) arc_platform_smp_wait_to_boot(int cpu)
+ 	"	b 1b	\n");
  }
  
--int sys_execve(const char __user *filenamei, const char __user *__user *argv,
--	       const char __user *__user *envp, struct pt_regs *regs)
--{
--	long error;
--	struct filename *filename;
--
--	filename = getname(filenamei);
--	error = PTR_ERR(filename);
--	if (IS_ERR(filename))
--		goto out;
--
--	error = do_execve(filename->name, argv, envp, regs);
--	putname(filename);
--out:
--	return error;
--}
--
--int kernel_execve(const char *filename, const char *const argv[],
--		  const char *const envp[])
--{
--	/*
--	 * Although the arguments (order, number) to this function are
--	 * same as sys call, we don't need to setup args in regs again.
--	 * However in case mainline kernel changes the order of args to
--	 * kernel_execve, that assumtion will break.
--	 * So to be safe, let gcc know the args for sys call.
--	 * If they match no extra code will be generated
--	 */
--	register int arg2 asm("r1") = (int)argv;
--	register int arg3 asm("r2") = (int)envp;
--
--	register int filenm_n_ret asm("r0") = (int)filename;
--
--	__asm__ __volatile__(
--		"mov   r8, %1	\n\t"
--		"trap0		\n\t"
--		: "+r"(filenm_n_ret)
--		: "i"(__NR_execve), "r"(arg2), "r"(arg3)
--		: "r8", "memory");
--
--	return filenm_n_ret;
--}
--EXPORT_SYMBOL(kernel_execve);
--
- SYSCALL_DEFINE1(arc_settls, void *, user_tls_data_ptr)
- {
- 	task_thread_info(current)->thr_ptr = (unsigned int)user_tls_data_ptr;
-diff --git a/arch/arc/kernel/sys.c b/arch/arc/kernel/sys.c
-index 4c30345..f6bdd07 100644
---- a/arch/arc/kernel/sys.c
-+++ b/arch/arc/kernel/sys.c
-@@ -5,7 +5,6 @@
++const char *arc_platform_smp_cpuinfo(void)
++{
++	return plat_smp_ops.info;
++}
++
+ /*
+  * The very first "C" code executed by secondary
+  * Called from asm stub in head.S
+@@ -155,7 +162,8 @@ int __cpuinit __cpu_up(unsigned int cpu, struct task_struct *idle)
+ 	pr_info("Idle Task [%d] %p", cpu, idle);
+ 	pr_info("Trying to bring up CPU%u ...\n", cpu);
  
- #include <asm/syscalls.h>
+-	arc_platform_smp_wakeup_cpu(cpu,
++	if (plat_smp_ops.cpu_kick)
++		plat_smp_ops.cpu_kick(cpu,
+ 				(unsigned long)first_lines_of_secondary);
  
--#define sys_execve	sys_execve_wrapper
- #define sys_clone	sys_clone_wrapper
- #define sys_fork	sys_fork_wrapper
- #define sys_vfork	sys_vfork_wrapper
+ 	/* wait for 1 sec after kicking the secondary */
+@@ -224,7 +232,8 @@ static void ipi_send_msg(const struct cpumask *callmap, enum ipi_msg_type msg)
+ 	}
+ 
+ 	/* Call the platform specific cross-CPU call function  */
+-	arc_platform_ipi_send(callmap);
++	if (plat_smp_ops.ipi_send)
++		plat_smp_ops.ipi_send((void *)callmap);
+ 
+ 	local_irq_restore(flags);
+ }
+@@ -298,7 +307,8 @@ irqreturn_t do_IPI(int irq, void *dev_id)
+ 	struct ipi_data *ipi = &per_cpu(ipi_data, cpu);
+ 	unsigned long ops;
+ 
+-	arc_platform_ipi_clear(cpu, irq);
++	if (plat_smp_ops.ipi_clear)
++		plat_smp_ops.ipi_clear(cpu, irq);
+ 
+ 	/*
+ 	 * XXX: is this loop really needed
 -- 
 1.7.4.1
