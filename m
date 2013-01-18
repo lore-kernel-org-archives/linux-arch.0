@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 52/76] ARC: stacktracing APIs based on dw2 unwinder
-Date: Fri, 18 Jan 2013 17:55:06 +0530
-Message-ID: <1358511930-7424-53-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 54/76] ARC: kprobes support
+Date: Fri, 18 Jan 2013 17:55:08 +0530
+Message-ID: <1358511930-7424-55-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,271 +12,708 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
+Origin port done by Rajeshwar Ranga <rajeshwar.ranga@gmail.com>
+
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/Kconfig             |    4 +
- arch/arc/kernel/stacktrace.c |  215 +++++++++++++++++++++++++++++++++++++++++-
- 2 files changed, 217 insertions(+), 2 deletions(-)
+ arch/arc/Kconfig               |    2 +
+ arch/arc/include/asm/kprobes.h |   62 +++++
+ arch/arc/kernel/Makefile       |    1 +
+ arch/arc/kernel/disasm.c       |    5 +-
+ arch/arc/kernel/kprobes.c      |  525 ++++++++++++++++++++++++++++++++++++++++
+ arch/arc/kernel/traps.c        |   13 +
+ 6 files changed, 605 insertions(+), 3 deletions(-)
+ create mode 100644 arch/arc/include/asm/kprobes.h
+ create mode 100644 arch/arc/kernel/kprobes.c
 
 diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index cd99825..86fc0c9 100644
+index 86fc0c9..c34f3c3 100644
 --- a/arch/arc/Kconfig
 +++ b/arch/arc/Kconfig
-@@ -60,6 +60,10 @@ config GENERIC_HWEIGHT
- config BINFMT_ELF
- 	def_bool y
- 
-+config STACKTRACE_SUPPORT
-+	def_bool y
-+	select STACKTRACE
-+
- config HAVE_LATENCYTOP_SUPPORT
- 	def_bool y
- 
-diff --git a/arch/arc/kernel/stacktrace.c b/arch/arc/kernel/stacktrace.c
-index b9d1646..a63ff84 100644
---- a/arch/arc/kernel/stacktrace.c
-+++ b/arch/arc/kernel/stacktrace.c
-@@ -1,13 +1,206 @@
- /*
-+ *	stacktrace.c : stacktracing APIs needed by rest of kernel
-+ *			(wrappers over ARC dwarf based unwinder)
+@@ -25,6 +25,8 @@ config ARC
+ 	select GENERIC_SMP_IDLE_THREAD
+ 	select HAVE_ARCH_TRACEHOOK
+ 	select HAVE_GENERIC_HARDIRQS
++	select HAVE_KPROBES
++	select HAVE_KRETPROBES
+ 	select HAVE_MOD_ARCH_SPECIFIC if ARC_DW2_UNWIND
+ 	select HAVE_OPROFILE
+ 	select HOTPLUG if !INITRAMFS_SOURCE=""
+diff --git a/arch/arc/include/asm/kprobes.h b/arch/arc/include/asm/kprobes.h
+new file mode 100644
+index 0000000..4d9c211
+--- /dev/null
++++ b/arch/arc/include/asm/kprobes.h
+@@ -0,0 +1,62 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
-  * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-  *
-  * This program is free software; you can redistribute it and/or modify
-  * it under the terms of the GNU General Public License version 2 as
-  * published by the Free Software Foundation.
-+ *
-+ *  vineetg: aug 2009
-+ *  -Implemented CONFIG_STACKTRACE APIs, primarily save_stack_trace_tsk( )
-+ *   for displaying task's kernel mode call stack in /proc/<pid>/stack
-+ *  -Iterator based approach to have single copy of unwinding core and APIs
-+ *   needing unwinding, implement the logic in iterator regarding:
-+ *      = which frame onwards to start capture
-+ *      = which frame to stop capturing (wchan)
-+ *      = specifics of data structs where trace is saved(CONFIG_STACKTRACE etc)
-+ *
-+ *  vineetg: March 2009
-+ *  -Implemented correct versions of thread_saved_pc() and get_wchan()
-+ *
-+ *  rajeshwarr: 2008
-+ *  -Initial implementation
-  */
- 
- #include <linux/ptrace.h>
- #include <linux/export.h>
-+#include <linux/stacktrace.h>
-+#include <linux/kallsyms.h>
-+#include <asm/arcregs.h>
-+#include <asm/unwind.h>
-+#include <asm/switch_to.h>
-+
-+/*-------------------------------------------------------------------------
-+ *              Unwinder Iterator
-+ *-------------------------------------------------------------------------
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
 + */
 +
-+#ifdef CONFIG_ARC_DW2_UNWIND
++#ifndef _ARC_KPROBES_H
++#define _ARC_KPROBES_H
 +
-+static void seed_unwind_frame_info(struct task_struct *tsk,
-+				   struct pt_regs *regs,
-+				   struct unwind_frame_info *frame_info)
++#ifdef CONFIG_KPROBES
++
++typedef u16 kprobe_opcode_t;
++
++#define UNIMP_S_INSTRUCTION 0x79e0
++#define TRAP_S_2_INSTRUCTION 0x785e
++
++#define MAX_INSN_SIZE   8
++#define MAX_STACK_SIZE  64
++
++struct arch_specific_insn {
++	int is_short;
++	kprobe_opcode_t *t1_addr, *t2_addr;
++	kprobe_opcode_t t1_opcode, t2_opcode;
++};
++
++#define flush_insn_slot(p)  do {  } while (0)
++
++#define kretprobe_blacklist_size    0
++
++struct kprobe;
++
++void arch_remove_kprobe(struct kprobe *p);
++
++int kprobe_exceptions_notify(struct notifier_block *self,
++			     unsigned long val, void *data);
++
++struct prev_kprobe {
++	struct kprobe *kp;
++	unsigned long status;
++};
++
++struct kprobe_ctlblk {
++	unsigned int kprobe_status;
++	struct pt_regs jprobe_saved_regs;
++	char jprobes_stack[MAX_STACK_SIZE];
++	struct prev_kprobe prev_kprobe;
++};
++
++int kprobe_fault_handler(struct pt_regs *regs, unsigned long cause);
++void kretprobe_trampoline(void);
++void trap_is_kprobe(unsigned long cause, unsigned long address,
++			   struct pt_regs *regs);
++#else
++static void trap_is_kprobe(unsigned long cause, unsigned long address,
++			   struct pt_regs *regs)
 +{
-+	if (tsk == NULL && regs == NULL) {
-+		unsigned long fp, sp, blink, ret;
-+		frame_info->task = current;
++}
++#endif
 +
-+		__asm__ __volatile__(
-+			"mov %0,r27\n\t"
-+			"mov %1,r28\n\t"
-+			"mov %2,r31\n\t"
-+			"mov %3,r63\n\t"
-+			: "=r"(fp), "=r"(sp), "=r"(blink), "=r"(ret)
-+		);
++#endif
+diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
+index 899642b..f11318f 100644
+--- a/arch/arc/kernel/Makefile
++++ b/arch/arc/kernel/Makefile
+@@ -15,6 +15,7 @@ obj-$(CONFIG_OF)			+= devtree.o
+ obj-$(CONFIG_MODULES)			+= arcksyms.o module.o
+ obj-$(CONFIG_SMP) 			+= smp.o
+ obj-$(CONFIG_ARC_DW2_UNWIND)		+= unwind.o
++obj-$(CONFIG_KPROBES)      		+= kprobes.o
+ 
+ obj-$(CONFIG_ARC_FPU_SAVE_RESTORE)	+= fpu.o
+ CFLAGS_fpu.o   += -mdpfp
+diff --git a/arch/arc/kernel/disasm.c b/arch/arc/kernel/disasm.c
+index 254d11a..51bad8f 100644
+--- a/arch/arc/kernel/disasm.c
++++ b/arch/arc/kernel/disasm.c
+@@ -497,9 +497,8 @@ void __kprobes set_reg(int reg, long val, struct pt_regs *regs,
+  * @pc +2/4/6 (ARCompact ISA allows free intermixing of 16/32 bit insns).
+  *
+  * If @pc is a branch
+- * 	-@tgt_if_br is set to branch target.
+- * 	-If branch has delay slot, @next_pc updated with actual next PC.
+- *
++ *	-@tgt_if_br is set to branch target.
++ *	-If branch has delay slot, @next_pc updated with actual next PC.
+  */
+ int __kprobes disasm_next_pc(unsigned long pc, struct pt_regs *regs,
+ 			     struct callee_regs *cregs,
+diff --git a/arch/arc/kernel/kprobes.c b/arch/arc/kernel/kprobes.c
+new file mode 100644
+index 0000000..47e42f2
+--- /dev/null
++++ b/arch/arc/kernel/kprobes.c
+@@ -0,0 +1,525 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
 +
-+		frame_info->regs.r27 = fp;
-+		frame_info->regs.r28 = sp;
-+		frame_info->regs.r31 = blink;
-+		frame_info->regs.r63 = ret;
-+		frame_info->call_frame = 0;
-+	} else if (regs == NULL) {
++#include <linux/types.h>
++#include <linux/kprobes.h>
++#include <linux/slab.h>
++#include <linux/module.h>
++#include <linux/kprobes.h>
++#include <linux/kdebug.h>
++#include <linux/sched.h>
++#include <linux/uaccess.h>
++#include <asm/cacheflush.h>
++#include <asm/current.h>
++#include <asm/disasm.h>
 +
-+		frame_info->task = tsk;
++#define MIN_STACK_SIZE(addr)	min((unsigned long)MAX_STACK_SIZE, \
++		(unsigned long)current_thread_info() + THREAD_SIZE - (addr))
 +
-+		frame_info->regs.r27 = KSTK_FP(tsk);
-+		frame_info->regs.r28 = KSTK_ESP(tsk);
-+		frame_info->regs.r31 = KSTK_BLINK(tsk);
-+		frame_info->regs.r63 = (unsigned int)__switch_to;
++DEFINE_PER_CPU(struct kprobe *, current_kprobe) = NULL;
++DEFINE_PER_CPU(struct kprobe_ctlblk, kprobe_ctlblk);
 +
-+		/* In the prologue of __switch_to, first FP is saved on stack
-+		 * and then SP is copied to FP. Dwarf assumes cfa as FP based
-+		 * but we didn't save FP. The value retrieved above is FP's
-+		 * state in previous frame.
-+		 * As a work around for this, we unwind from __switch_to start
-+		 * and adjust SP accordingly. The other limitation is that
-+		 * __switch_to macro is dwarf rules are not generated for inline
-+		 * assembly code
-+		 */
-+		frame_info->regs.r27 = 0;
-+		frame_info->regs.r28 += 64;
-+		frame_info->call_frame = 0;
++int __kprobes arch_prepare_kprobe(struct kprobe *p)
++{
++	/* Attempt to probe at unaligned address */
++	if ((unsigned long)p->addr & 0x01)
++		return -EINVAL;
 +
-+	} else {
-+		frame_info->task = tsk;
++	/* Address should not be in exception handling code */
 +
-+		frame_info->regs.r27 = regs->fp;
-+		frame_info->regs.r28 = regs->sp;
-+		frame_info->regs.r31 = regs->blink;
-+		frame_info->regs.r63 = regs->ret;
-+		frame_info->call_frame = 0;
++	p->ainsn.is_short = is_short_instr((unsigned long)p->addr);
++	p->opcode = *p->addr;
++
++	return 0;
++}
++
++void __kprobes arch_arm_kprobe(struct kprobe *p)
++{
++	*p->addr = UNIMP_S_INSTRUCTION;
++
++	flush_icache_range((unsigned long)p->addr,
++			   (unsigned long)p->addr + sizeof(kprobe_opcode_t));
++}
++
++void __kprobes arch_disarm_kprobe(struct kprobe *p)
++{
++	*p->addr = p->opcode;
++
++	flush_icache_range((unsigned long)p->addr,
++			   (unsigned long)p->addr + sizeof(kprobe_opcode_t));
++}
++
++void __kprobes arch_remove_kprobe(struct kprobe *p)
++{
++	arch_disarm_kprobe(p);
++
++	/* Can we remove the kprobe in the middle of kprobe handling? */
++	if (p->ainsn.t1_addr) {
++		*(p->ainsn.t1_addr) = p->ainsn.t1_opcode;
++
++		flush_icache_range((unsigned long)p->ainsn.t1_addr,
++				   (unsigned long)p->ainsn.t1_addr +
++				   sizeof(kprobe_opcode_t));
++
++		p->ainsn.t1_addr = NULL;
++	}
++
++	if (p->ainsn.t2_addr) {
++		*(p->ainsn.t2_addr) = p->ainsn.t2_opcode;
++
++		flush_icache_range((unsigned long)p->ainsn.t2_addr,
++				   (unsigned long)p->ainsn.t2_addr +
++				   sizeof(kprobe_opcode_t));
++
++		p->ainsn.t2_addr = NULL;
 +	}
 +}
 +
-+#endif
-+
-+static noinline unsigned int
-+arc_unwind_core(struct task_struct *tsk, struct pt_regs *regs,
-+		int (*consumer_fn) (unsigned int, void *), void *arg)
++static void __kprobes save_previous_kprobe(struct kprobe_ctlblk *kcb)
 +{
-+#ifdef CONFIG_ARC_DW2_UNWIND
-+	int ret = 0;
-+	unsigned int address;
-+	struct unwind_frame_info frame_info;
++	kcb->prev_kprobe.kp = kprobe_running();
++	kcb->prev_kprobe.status = kcb->kprobe_status;
++}
 +
-+	seed_unwind_frame_info(tsk, regs, &frame_info);
++static void __kprobes restore_previous_kprobe(struct kprobe_ctlblk *kcb)
++{
++	__get_cpu_var(current_kprobe) = kcb->prev_kprobe.kp;
++	kcb->kprobe_status = kcb->prev_kprobe.status;
++}
 +
-+	while (1) {
-+		address = UNW_PC(&frame_info);
++static inline void __kprobes set_current_kprobe(struct kprobe *p)
++{
++	__get_cpu_var(current_kprobe) = p;
++}
 +
-+		if (address && __kernel_text_address(address)) {
-+			if (consumer_fn(address, arg) == -1)
-+				break;
++static void __kprobes resume_execution(struct kprobe *p, unsigned long addr,
++				       struct pt_regs *regs)
++{
++	/* Remove the trap instructions inserted for single step and
++	 * restore the original instructions
++	 */
++	if (p->ainsn.t1_addr) {
++		*(p->ainsn.t1_addr) = p->ainsn.t1_opcode;
++
++		flush_icache_range((unsigned long)p->ainsn.t1_addr,
++				   (unsigned long)p->ainsn.t1_addr +
++				   sizeof(kprobe_opcode_t));
++
++		p->ainsn.t1_addr = NULL;
++	}
++
++	if (p->ainsn.t2_addr) {
++		*(p->ainsn.t2_addr) = p->ainsn.t2_opcode;
++
++		flush_icache_range((unsigned long)p->ainsn.t2_addr,
++				   (unsigned long)p->ainsn.t2_addr +
++				   sizeof(kprobe_opcode_t));
++
++		p->ainsn.t2_addr = NULL;
++	}
++
++	return;
++}
++
++static void __kprobes setup_singlestep(struct kprobe *p, struct pt_regs *regs)
++{
++	unsigned long next_pc;
++	unsigned long tgt_if_br = 0;
++	int is_branch;
++	unsigned long bta;
++
++	/* Copy the opcode back to the kprobe location and execute the
++	 * instruction. Because of this we will not be able to get into the
++	 * same kprobe until this kprobe is done
++	 */
++	*(p->addr) = p->opcode;
++
++	flush_icache_range((unsigned long)p->addr,
++			   (unsigned long)p->addr + sizeof(kprobe_opcode_t));
++
++	/* Now we insert the trap at the next location after this instruction to
++	 * single step. If it is a branch we insert the trap at possible branch
++	 * targets
++	 */
++
++	bta = regs->bta;
++
++	if (regs->status32 & 0x40) {
++		/* We are in a delay slot with the branch taken */
++
++		next_pc = bta & ~0x01;
++
++		if (!p->ainsn.is_short) {
++			if (bta & 0x01)
++				regs->blink += 2;
++			else {
++				/* Branch not taken */
++				next_pc += 2;
++
++				/* next pc is taken from bta after executing the
++				 * delay slot instruction
++				 */
++				regs->bta += 2;
++			}
 +		}
 +
-+		ret = arc_unwind(&frame_info);
++		is_branch = 0;
++	} else
++		is_branch =
++		    disasm_next_pc((unsigned long)p->addr, regs,
++			(struct callee_regs *) current->thread.callee_reg,
++			&next_pc, &tgt_if_br);
 +
-+		if (ret == 0) {
-+			frame_info.regs.r63 = frame_info.regs.r31;
++	p->ainsn.t1_addr = (kprobe_opcode_t *) next_pc;
++	p->ainsn.t1_opcode = *(p->ainsn.t1_addr);
++	*(p->ainsn.t1_addr) = TRAP_S_2_INSTRUCTION;
++
++	flush_icache_range((unsigned long)p->ainsn.t1_addr,
++			   (unsigned long)p->ainsn.t1_addr +
++			   sizeof(kprobe_opcode_t));
++
++	if (is_branch) {
++		p->ainsn.t2_addr = (kprobe_opcode_t *) tgt_if_br;
++		p->ainsn.t2_opcode = *(p->ainsn.t2_addr);
++		*(p->ainsn.t2_addr) = TRAP_S_2_INSTRUCTION;
++
++		flush_icache_range((unsigned long)p->ainsn.t2_addr,
++				   (unsigned long)p->ainsn.t2_addr +
++				   sizeof(kprobe_opcode_t));
++	}
++}
++
++int __kprobes arc_kprobe_handler(unsigned long addr, struct pt_regs *regs)
++{
++	struct kprobe *p;
++	struct kprobe_ctlblk *kcb;
++
++	preempt_disable();
++
++	kcb = get_kprobe_ctlblk();
++	p = get_kprobe((unsigned long *)addr);
++
++	if (p) {
++		/*
++		 * We have reentered the kprobe_handler, since another kprobe
++		 * was hit while within the handler, we save the original
++		 * kprobes and single step on the instruction of the new probe
++		 * without calling any user handlers to avoid recursive
++		 * kprobes.
++		 */
++		if (kprobe_running()) {
++			save_previous_kprobe(kcb);
++			set_current_kprobe(p);
++			kprobes_inc_nmissed_count(p);
++			setup_singlestep(p, regs);
++			kcb->kprobe_status = KPROBE_REENTER;
++			return 1;
++		}
++
++		set_current_kprobe(p);
++		kcb->kprobe_status = KPROBE_HIT_ACTIVE;
++
++		/* If we have no pre-handler or it returned 0, we continue with
++		 * normal processing. If we have a pre-handler and it returned
++		 * non-zero - which is expected from setjmp_pre_handler for
++		 * jprobe, we return without single stepping and leave that to
++		 * the break-handler which is invoked by a kprobe from
++		 * jprobe_return
++		 */
++		if (!p->pre_handler || !p->pre_handler(p, regs)) {
++			setup_singlestep(p, regs);
++			kcb->kprobe_status = KPROBE_HIT_SS;
++		}
++
++		return 1;
++	} else if (kprobe_running()) {
++		p = __get_cpu_var(current_kprobe);
++		if (p->break_handler && p->break_handler(p, regs)) {
++			setup_singlestep(p, regs);
++			kcb->kprobe_status = KPROBE_HIT_SS;
++			return 1;
++		}
++	}
++
++	/* no_kprobe: */
++	preempt_enable_no_resched();
++	return 0;
++}
++
++static int __kprobes arc_post_kprobe_handler(unsigned long addr,
++					 struct pt_regs *regs)
++{
++	struct kprobe *cur = kprobe_running();
++	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
++
++	if (!cur)
++		return 0;
++
++	resume_execution(cur, addr, regs);
++
++	/* Rearm the kprobe */
++	arch_arm_kprobe(cur);
++
++	/*
++	 * When we return from trap instruction we go to the next instruction
++	 * We restored the actual instruction in resume_exectuiont and we to
++	 * return to the same address and execute it
++	 */
++	regs->ret = addr;
++
++	if ((kcb->kprobe_status != KPROBE_REENTER) && cur->post_handler) {
++		kcb->kprobe_status = KPROBE_HIT_SSDONE;
++		cur->post_handler(cur, regs, 0);
++	}
++
++	if (kcb->kprobe_status == KPROBE_REENTER) {
++		restore_previous_kprobe(kcb);
++		goto out;
++	}
++
++	reset_current_kprobe();
++
++out:
++	preempt_enable_no_resched();
++	return 1;
++}
++
++/*
++ * Fault can be for the instruction being single stepped or for the
++ * pre/post handlers in the module.
++ * This is applicable for applications like user probes, where we have the
++ * probe in user space and the handlers in the kernel
++ */
++
++int __kprobes kprobe_fault_handler(struct pt_regs *regs, unsigned long trapnr)
++{
++	struct kprobe *cur = kprobe_running();
++	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
++
++	switch (kcb->kprobe_status) {
++	case KPROBE_HIT_SS:
++	case KPROBE_REENTER:
++		/*
++		 * We are here because the instruction being single stepped
++		 * caused the fault. We reset the current kprobe and allow the
++		 * exception handler as if it is regular exception. In our
++		 * case it doesn't matter because the system will be halted
++		 */
++		resume_execution(cur, (unsigned long)cur->addr, regs);
++
++		if (kcb->kprobe_status == KPROBE_REENTER)
++			restore_previous_kprobe(kcb);
++		else
++			reset_current_kprobe();
++
++		preempt_enable_no_resched();
++		break;
++
++	case KPROBE_HIT_ACTIVE:
++	case KPROBE_HIT_SSDONE:
++		/*
++		 * We are here because the instructions in the pre/post handler
++		 * caused the fault.
++		 */
++
++		/* We increment the nmissed count for accounting,
++		 * we can also use npre/npostfault count for accouting
++		 * these specific fault cases.
++		 */
++		kprobes_inc_nmissed_count(cur);
++
++		/*
++		 * We come here because instructions in the pre/post
++		 * handler caused the page_fault, this could happen
++		 * if handler tries to access user space by
++		 * copy_from_user(), get_user() etc. Let the
++		 * user-specified handler try to fix it first.
++		 */
++		if (cur->fault_handler && cur->fault_handler(cur, regs, trapnr))
++			return 1;
++
++		/*
++		 * In case the user-specified fault handler returned zero,
++		 * try to fix up.
++		 */
++		if (fixup_exception(regs))
++			return 1;
++
++		/*
++		 * fixup_exception() could not handle it,
++		 * Let do_page_fault() fix it.
++		 */
++		break;
++
++	default:
++		break;
++	}
++	return 0;
++}
++
++int __kprobes kprobe_exceptions_notify(struct notifier_block *self,
++				       unsigned long val, void *data)
++{
++	struct die_args *args = data;
++	unsigned long addr = args->err;
++	int ret = NOTIFY_DONE;
++
++	switch (val) {
++	case DIE_IERR:
++		if (arc_kprobe_handler(addr, args->regs))
++			return NOTIFY_STOP;
++		break;
++
++	case DIE_TRAP:
++		if (arc_post_kprobe_handler(addr, args->regs))
++			return NOTIFY_STOP;
++		break;
++
++	default:
++		break;
++	}
++
++	return ret;
++}
++
++int __kprobes setjmp_pre_handler(struct kprobe *p, struct pt_regs *regs)
++{
++	struct jprobe *jp = container_of(p, struct jprobe, kp);
++	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
++	unsigned long sp_addr = regs->sp;
++
++	kcb->jprobe_saved_regs = *regs;
++	memcpy(kcb->jprobes_stack, (void *)sp_addr, MIN_STACK_SIZE(sp_addr));
++	regs->ret = (unsigned long)(jp->entry);
++
++	return 1;
++}
++
++void __kprobes jprobe_return(void)
++{
++	__asm__ __volatile__("unimp_s");
++	return;
++}
++
++int __kprobes longjmp_break_handler(struct kprobe *p, struct pt_regs *regs)
++{
++	struct kprobe_ctlblk *kcb = get_kprobe_ctlblk();
++	unsigned long sp_addr;
++
++	*regs = kcb->jprobe_saved_regs;
++	sp_addr = regs->sp;
++	memcpy((void *)sp_addr, kcb->jprobes_stack, MIN_STACK_SIZE(sp_addr));
++	preempt_enable_no_resched();
++
++	return 1;
++}
++
++static void __used kretprobe_trampoline_holder(void)
++{
++	__asm__ __volatile__(".global kretprobe_trampoline\n"
++			     "kretprobe_trampoline:\n" "nop\n");
++}
++
++void __kprobes arch_prepare_kretprobe(struct kretprobe_instance *ri,
++				      struct pt_regs *regs)
++{
++
++	ri->ret_addr = (kprobe_opcode_t *) regs->blink;
++
++	/* Replace the return addr with trampoline addr */
++	regs->blink = (unsigned long)&kretprobe_trampoline;
++}
++
++static int __kprobes trampoline_probe_handler(struct kprobe *p,
++					      struct pt_regs *regs)
++{
++	struct kretprobe_instance *ri = NULL;
++	struct hlist_head *head, empty_rp;
++	struct hlist_node *node, *tmp;
++	unsigned long flags, orig_ret_address = 0;
++	unsigned long trampoline_address = (unsigned long)&kretprobe_trampoline;
++
++	INIT_HLIST_HEAD(&empty_rp);
++	kretprobe_hash_lock(current, &head, &flags);
++
++	/*
++	 * It is possible to have multiple instances associated with a given
++	 * task either because an multiple functions in the call path
++	 * have a return probe installed on them, and/or more than one return
++	 * return probe was registered for a target function.
++	 *
++	 * We can handle this because:
++	 *     - instances are always inserted at the head of the list
++	 *     - when multiple return probes are registered for the same
++	 *       function, the first instance's ret_addr will point to the
++	 *       real return address, and all the rest will point to
++	 *       kretprobe_trampoline
++	 */
++	hlist_for_each_entry_safe(ri, node, tmp, head, hlist) {
++		if (ri->task != current)
++			/* another task is sharing our hash bucket */
 +			continue;
-+		} else {
++
++		if (ri->rp && ri->rp->handler)
++			ri->rp->handler(ri, regs);
++
++		orig_ret_address = (unsigned long)ri->ret_addr;
++		recycle_rp_inst(ri, &empty_rp);
++
++		if (orig_ret_address != trampoline_address) {
++			/*
++			 * This is the real return address. Any other
++			 * instances associated with this task are for
++			 * other calls deeper on the call stack
++			 */
 +			break;
 +		}
 +	}
 +
-+	return address;		/* return the last address it saw */
-+#else
-+	/* On ARC, only Dward based unwinder works. fp based backtracing is
-+	 * not possible (-fno-omit-frame-pointer) because of the way function
-+	 * prelogue is setup (callee regs saved and then fp set and not other
-+	 * way around
++	kretprobe_assert(ri, orig_ret_address, trampoline_address);
++	regs->ret = orig_ret_address;
++
++	reset_current_kprobe();
++	kretprobe_hash_unlock(current, &flags);
++	preempt_enable_no_resched();
++
++	hlist_for_each_entry_safe(ri, node, tmp, &empty_rp, hlist) {
++		hlist_del(&ri->hlist);
++		kfree(ri);
++	}
++
++	/* By returning a non zero value, we are telling the kprobe handler
++	 * that we don't want the post_handler to run
 +	 */
-+	pr_warn("CONFIG_ARC_DW2_UNWIND needs to be enabled\n");
-+	return 0;
-+
-+#endif
++	return 1;
 +}
 +
-+/*-------------------------------------------------------------------------
-+ * callbacks called by unwinder iterator to implement kernel APIs
-+ *
-+ * The callback can return -1 to force the iterator to stop, which by default
-+ * keeps going till the bottom-most frame.
-+ *-------------------------------------------------------------------------
-+ */
++static struct kprobe trampoline_p = {
++	.addr = (kprobe_opcode_t *) &kretprobe_trampoline,
++	.pre_handler = trampoline_probe_handler
++};
 +
-+/* Call-back which plugs into unwinding core to dump the stack in
-+ * case of panic/OOPs/BUG etc
-+ */
-+static int __print_sym(unsigned int address, void *unused)
++int __init arch_init_kprobes(void)
 +{
-+	__print_symbol("  %s\n", address);
-+	return 0;
++	/* Registering the trampoline code for the kret probe */
++	return register_kprobe(&trampoline_p);
 +}
 +
-+#ifdef CONFIG_STACKTRACE
-+
-+/* Call-back which plugs into unwinding core to capture the
-+ * traces needed by kernel on /proc/<pid>/stack
-+ */
-+static int __collect_all(unsigned int address, void *arg)
++int __kprobes arch_trampoline_kprobe(struct kprobe *p)
 +{
-+	struct stack_trace *trace = arg;
-+
-+	if (trace->skip > 0)
-+		trace->skip--;
-+	else
-+		trace->entries[trace->nr_entries++] = address;
-+
-+	if (trace->nr_entries >= trace->max_entries)
-+		return -1;
++	if (p->addr == (kprobe_opcode_t *) &kretprobe_trampoline)
++		return 1;
 +
 +	return 0;
 +}
 +
-+static int __collect_all_but_sched(unsigned int address, void *arg)
++void trap_is_kprobe(unsigned long cause, unsigned long address,
++		    struct pt_regs *regs)
 +{
-+	struct stack_trace *trace = arg;
-+
-+	if (in_sched_functions(address))
-+		return 0;
-+
-+	if (trace->skip > 0)
-+		trace->skip--;
-+	else
-+		trace->entries[trace->nr_entries++] = address;
-+
-+	if (trace->nr_entries >= trace->max_entries)
-+		return -1;
-+
-+	return 0;
++	notify_die(DIE_TRAP, "kprobe_trap", regs, address, cause, SIGTRAP);
 +}
-+
-+#endif
-+
-+static int __get_first_nonsched(unsigned int address, void *unused)
-+{
-+	if (in_sched_functions(address))
-+		return 0;
-+
-+	return -1;
-+}
+diff --git a/arch/arc/kernel/traps.c b/arch/arc/kernel/traps.c
+index fd2457c..c6396b4 100644
+--- a/arch/arc/kernel/traps.c
++++ b/arch/arc/kernel/traps.c
+@@ -15,6 +15,7 @@
+ #include <linux/uaccess.h>
+ #include <asm/ptrace.h>
+ #include <asm/setup.h>
++#include <asm/kprobes.h>
  
- /*-------------------------------------------------------------------------
-  *              APIs expected by various kernel sub-systems
-@@ -16,7 +209,8 @@
- 
- noinline void show_stacktrace(struct task_struct *tsk, struct pt_regs *regs)
+ void __init trap_init(void)
  {
--	pr_info("\nStack Trace: NOT Available\n");
-+	pr_info("\nStack Trace:\n");
-+	arc_unwind_core(tsk, regs, __print_sym, NULL);
+@@ -90,6 +91,7 @@ void do_machine_check_fault(unsigned long cause, unsigned long address,
+ 	die("Machine Check Exception", regs, address, cause);
  }
- EXPORT_SYMBOL(show_stacktrace);
  
-@@ -39,5 +233,22 @@ EXPORT_SYMBOL(dump_stack);
++
+ /*
+  * Entry point for traps induced by ARCompact TRAP_S <n> insn
+  * This is same family as TRAP0/SWI insn (use the same vector).
+@@ -109,6 +111,10 @@ void do_non_swi_trap(unsigned long cause, unsigned long address,
+ 		trap_is_brkpt(cause, address, regs);
+ 		break;
+ 
++	case 2:
++		trap_is_kprobe(param, address, regs);
++		break;
++
+ 	default:
+ 		break;
+ 	}
+@@ -116,10 +122,17 @@ void do_non_swi_trap(unsigned long cause, unsigned long address,
+ 
+ /*
+  * Entry point for Instruction Error Exception
++ *  -For a corner case, ARC kprobes implementation resorts to using
++ *   this exception, hence the check
   */
- unsigned int get_wchan(struct task_struct *tsk)
+ void do_insterror_or_kprobe(unsigned long cause,
+ 				       unsigned long address,
+ 				       struct pt_regs *regs)
  {
--	return 0;
-+	return arc_unwind_core(tsk, NULL, __get_first_nonsched, NULL);
-+}
++	/* Check if this exception is caused by kprobes */
++	if (notify_die(DIE_IERR, "kprobe_ierr", regs, address,
++		       cause, SIGILL) == NOTIFY_STOP)
++		return;
 +
-+#ifdef CONFIG_STACKTRACE
-+
-+/*
-+ * API required by CONFIG_STACKTRACE, CONFIG_LATENCYTOP.
-+ * A typical use is when /proc/<pid>/stack is queried by userland
-+ */
-+void save_stack_trace_tsk(struct task_struct *tsk, struct stack_trace *trace)
-+{
-+	arc_unwind_core(tsk, NULL, __collect_all_but_sched, trace);
-+}
-+
-+void save_stack_trace(struct stack_trace *trace)
-+{
-+	arc_unwind_core(current, NULL, __collect_all, trace);
+ 	insterror_is_error(cause, address, regs);
  }
-+#endif
 -- 
 1.7.4.1
