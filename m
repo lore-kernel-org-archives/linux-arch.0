@@ -1,40 +1,48 @@
-From: Geert Uytterhoeven <geert@linux-m68k.org>
-Subject: Re: request_mem_region() for noPCI devices
-Date: Fri, 18 Jan 2013 17:04:36 +0100
-Message-ID: <CAMuHMdUbTVMpYGrweXjXQrhd4U6yyGGRHmzZHBL2v_GbHRHF6w@mail.gmail.com>
-References: <CAHTX3dJ2Qqs6QxJEcd24KW5y2DSumLy82jvVUxBjjMWQULrxdQ@mail.gmail.com>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 28/76] ARC: I/O and DMA Mappings
+Date: Fri, 18 Jan 2013 16:18:11 +0000
+Message-ID: <201301181618.11736.arnd@arndb.de>
+References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <201301181555.43487.arnd@arndb.de> <20130118160106.GD14019@linux-sh.org>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mail-vc0-f176.google.com ([209.85.220.176]:45062 "EHLO
-	mail-vc0-f176.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751010Ab3ARQEh (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 11:04:37 -0500
-In-Reply-To: <CAHTX3dJ2Qqs6QxJEcd24KW5y2DSumLy82jvVUxBjjMWQULrxdQ@mail.gmail.com>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Michal Simek <monstr@monstr.eu>
-Cc: LKML <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org
+Content-Type: Text/Plain;
+  charset="iso-8859-1"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <20130118160106.GD14019@linux-sh.org>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Paul Mundt <lethal@linux-sh.org>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Fri, Jan 18, 2013 at 3:46 PM, Michal Simek <monstr@monstr.eu> wrote:
-> just want to check with you usage of request_mem_region for noPCI devices.
-> kernel/resource.c suggests that it should be used just for PCI iomem
-> (iomem_resource uses name PCI mem).
->
-> If I grep architectures I see several usage for noPCI devices.
->
-> Does it mean that request_mem_region should be used for all devices
-> which request io memory? Or just for PCI iomem?
+On Friday 18 January 2013, Paul Mundt wrote:
+> On Fri, Jan 18, 2013 at 03:55:43PM +0000, Arnd Bergmann wrote:
+> > On Friday 18 January 2013, Vineet Gupta wrote:
+> > > TBD: Do we need early ioremap support like openrisc
+> > > 
+> > > Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+> > 
+> > Can you explain why early ioremap is necessary for you?
+> > 
+> > I wasn't aware that openrisc has it. In a lot of cases,
+> > you can use fixmap as a replacement.
+> > 
+> The two don't need to be mutually exclusive, either. sh implements early
+> ioremap transparently via fixmaps for example:
+> 
+>         arch/sh/mm/ioremap.c
+>         arch/sh/mm/ioremap_fixed.c
 
-It's meant for all types of memory mapped I/O.
+Ah, right. It also seems that openrisc uses the same approach
+for its early ioremap.
 
-Gr{oetje,eeting}s,
+I usually recommend doing as few things as possible "early"
+though, that's why I was asking. If it's only one or two drivers
+that need an early mapping and can't be moved to a later stage
+of bootup, using only hardcoded fixmaps would make it harder
+to add more users, which one might consider a good thing.
 
-                        Geert
+Allowing ioremap to be used before memory_init() adds flexibility
+but could lead to code being moved into an early stage by accident
+rather than by necessity.
 
---
-Geert Uytterhoeven -- There's lots of Linux beyond ia32 -- geert@linux-m68k.org
-
-In personal conversations with technical people, I call myself a hacker. But
-when I'm talking to journalists I just say "programmer" or something like that.
-                                -- Linus Torvalds
+	Arnd
