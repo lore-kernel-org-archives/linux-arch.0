@@ -1,178 +1,140 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp2.synopsys.com ([198.182.60.77]:58791 "EHLO
+Received: from alvesta.synopsys.com ([198.182.60.77]:59013 "EHLO
 	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756685Ab3ARMbF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:31:05 -0500
+	with ESMTP id S1751866Ab3ARMlB (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:41:01 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 33/76] ARC: [DeviceTree] Convert some Kconfig items to runtime values
-Date: Fri, 18 Jan 2013 17:54:47 +0530
-Message-ID: <1358511930-7424-34-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 73/76] ARC: [Review] Multi-platform image #6: cpu-to-dma-addr optional
+Date: Fri, 18 Jan 2013 18:10:24 +0530
+Message-ID: <1358512827-7694-2-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1358512827-7694-1-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
+ <1358512827-7694-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
 Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Grant Likely <grant.likely@secretlab.ca>
-Message-ID: <20130118122447.Kez8U6013jbyBZ_l3EljJqGXps4P77I-MUgAiKopG6g@z>
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20130118124024.b6rfAL1n2Qibb2mvnhQCNJov-MC_xBVNbdj3hywbfQE@z>
 
-* mem size now runtime configured (prev CONFIG_ARC_PLAT_SDRAM_SIZE)
-* core cpu clk runtime configured (prev CONFIG_ARC_PLAT_CLK)
+All the current platforms can work with 0x8000_0000 based dma_addr_t
+since the Bus Bridges typically ignore the top bit (the only excpetion
+was Angel4 PCI-AHM bridge which we no longer care for).
+That way we don't need plat-specific cpu-addr to bus-addr conversion.
+
+Hooks still provided - just in case a platform has an obscure device
+which say needs 0 based bus address.
+
+That way <asm/dma_mapping.h> no longer needs to unconditinally include
+<plat/dma_addr.h>
+
+Also verfied that on Angel4 board, other peripherals (IDE-disk / EMAC)
+work fine with 0x8000_0000 based dma addresses.
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 Cc: Arnd Bergmann <arnd@arndb.de>
-Cc: Grant Likely <grant.likely@secretlab.ca>
 ---
- arch/arc/Kconfig                |   12 ------------
- arch/arc/boot/dts/skeleton.dtsi |    6 +++++-
- arch/arc/include/asm/clk.h      |    2 ++
- arch/arc/kernel/clk.c           |   12 +++++++++++-
- arch/arc/kernel/devtree.c       |   13 +++++++++++++
- arch/arc/mm/init.c              |    5 +++--
- 6 files changed, 34 insertions(+), 16 deletions(-)
+ arch/arc/Kconfig                              |    4 ++
+ arch/arc/include/asm/dma-mapping.h            |   16 +++++++++
+ arch/arc/plat-arcfpga/include/plat/dma_addr.h |   45 -------------------------
+ 3 files changed, 20 insertions(+), 45 deletions(-)
+ delete mode 100644 arch/arc/plat-arcfpga/include/plat/dma_addr.h
 
 diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 5175cf7..548b89e 100644
+index 21ecd2a..18b91d6 100644
 --- a/arch/arc/Kconfig
 +++ b/arch/arc/Kconfig
-@@ -245,10 +245,6 @@ source "arch/arc/plat-arcfpga/Kconfig"
+@@ -119,6 +119,10 @@ config CPU_BIG_ENDIAN
+ 	help
+ 	  Build kernel for Big Endian Mode of ARC CPU
  
- #New platform adds here
- 
--config ARC_PLAT_CLK
--	int "Clk speed in Hz"
--	default "80000000"
--
- config LINUX_LINK_BASE
- 	hex "Linux Link Address"
- 	default "0x80000000"
-@@ -262,14 +258,6 @@ config LINUX_LINK_BASE
- 	  Linux needs to be scooted a bit.
- 	  If you don't know what the above means, leave this setting alone.
- 
--config ARC_PLAT_SDRAM_SIZE
--	hex "SD RAM Size"
--	default "0x10000000"
--	help
--	  Implies the amount of SDRAM/DRAM Linux is going to claim/own.
--	  The actual memory itself could be larger than this number. But for
--	  all software purposes, this is the amt of memory.
--
- endmenu # "Platform Board Configuration"
- 
- config ARC_STACK_NONEXEC
-diff --git a/arch/arc/boot/dts/skeleton.dtsi b/arch/arc/boot/dts/skeleton.dtsi
-index f6a457a..8e4ec00 100644
---- a/arch/arc/boot/dts/skeleton.dtsi
-+++ b/arch/arc/boot/dts/skeleton.dtsi
-@@ -13,9 +13,13 @@
- 
- / {
- 	compatible = "snps,arc-angel4", "snps,arc-ml509";
-+	clock-frequency = <80000000>;	/* 80 MHZ */
- 	#address-cells = <1>;
- 	#size-cells = <1>;
- 	chosen { };
- 	aliases { };
--	memory { device_type = "memory"; reg = <0 0>; };
-+	memory {
-+		device_type = "memory";
-+		reg = <0x00000000 0x10000000>;	/* 256M */
-+	};
- };
-diff --git a/arch/arc/include/asm/clk.h b/arch/arc/include/asm/clk.h
-index 6195643..bf9d29f 100644
---- a/arch/arc/include/asm/clk.h
-+++ b/arch/arc/include/asm/clk.h
-@@ -17,4 +17,6 @@ static inline unsigned long arc_get_core_freq(void)
- 	return core_freq;
- }
- 
-+extern int arc_set_core_freq(unsigned long);
++# If a platform can't work with 0x8000_0000 based dma_addr_t
++config ARC_PLAT_NEEDS_CPU_TO_DMA
++	bool
 +
- #endif
-diff --git a/arch/arc/kernel/clk.c b/arch/arc/kernel/clk.c
-index 64925db..66ce0dc 100644
---- a/arch/arc/kernel/clk.c
-+++ b/arch/arc/kernel/clk.c
-@@ -8,4 +8,14 @@
+ # If a plat can do IPI, same core(s) can do minimal SMP
+ config ARC_HAS_IPI
+ 	bool
+diff --git a/arch/arc/include/asm/dma-mapping.h b/arch/arc/include/asm/dma-mapping.h
+index 96e4316..8a0a266 100644
+--- a/arch/arc/include/asm/dma-mapping.h
++++ b/arch/arc/include/asm/dma-mapping.h
+@@ -13,7 +13,23 @@
  
- #include <asm/clk.h>
- 
--unsigned long core_freq = CONFIG_ARC_PLAT_CLK;
-+unsigned long core_freq = 800000000;
+ #include <asm-generic/dma-coherent.h>
+ #include <asm/cacheflush.h>
 +
++#ifndef CONFIG_ARC_PLAT_NEEDS_CPU_TO_DMA
 +/*
-+ * As of now we default to device-tree provided clock
-+ * In future we can determine this in early boot
++ * dma_map_* API take cpu addresses, which is kernel logical address in the
++ * untranslated address space (0x8000_0000) based. The dma address (bus addr)
++ * ideally needs to be 0x0000_0000 based hence these glue routines.
++ * However given that intermediate bus bridges can ignore the high bit, we can
++ * do with these routines being no-ops.
++ * If a platform/device comes up which sriclty requires 0 based bus addr
++ * (e.g. AHB-PCI bridge on Angel4 board), then it can provide it's own versions
 + */
-+int arc_set_core_freq(unsigned long freq)
-+{
-+	core_freq = freq;
-+	return 0;
-+}
-diff --git a/arch/arc/kernel/devtree.c b/arch/arc/kernel/devtree.c
-index 021293d..fd49394 100644
---- a/arch/arc/kernel/devtree.c
-+++ b/arch/arc/kernel/devtree.c
-@@ -20,6 +20,7 @@
- #include <linux/of_irq.h>
- #include <linux/of_platform.h>
- #include <asm/prom.h>
-+#include <asm/clk.h>
- 
- /* called from unflatten_device_tree() to bootstrap devicetree itself */
- void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
-@@ -39,7 +40,9 @@ int __init setup_machine_fdt(void *dt)
- 	struct boot_param_header *devtree = dt;
- 	unsigned long dt_root;
- 	char *model, *compat;
-+	void *clk;
- 	char manufacturer[16];
-+	unsigned long len;
- 
- 	/* check device tree validity */
- 	if (be32_to_cpu(devtree->magic) != OF_DT_HEADER)
-@@ -65,5 +68,15 @@ int __init setup_machine_fdt(void *dt)
- 	/* Retrieve various information from the /chosen node */
- 	of_scan_flat_dt(early_init_dt_scan_chosen, boot_command_line);
- 
-+	/* Initialize {size,address}-cells info */
-+	of_scan_flat_dt(early_init_dt_scan_root, NULL);
++#define plat_dma_addr_to_kernel(dev, addr) ((unsigned long)(addr))
++#define plat_kernel_addr_to_dma(dev, ptr) ((dma_addr_t)(ptr))
 +
-+	/* Setup memory, calling early_init_dt_add_memory_arch */
-+	of_scan_flat_dt(early_init_dt_scan_memory, NULL);
-+
-+	clk = of_get_flat_dt_prop(dt_root, "clock-frequency", &len);
-+	if (clk)
-+		arc_set_core_freq(of_read_ulong(clk, len/4));
-+
- 	return 0;
- }
-diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
-index 1087a97..8c173f9 100644
---- a/arch/arc/mm/init.c
-+++ b/arch/arc/mm/init.c
-@@ -24,7 +24,7 @@ char empty_zero_page[PAGE_SIZE] __aligned(PAGE_SIZE);
- EXPORT_SYMBOL(empty_zero_page);
++#else
+ #include <plat/dma_addr.h>
++#endif
  
- /* Default tot mem from .config */
--static unsigned long arc_mem_sz = CONFIG_ARC_PLAT_SDRAM_SIZE;
-+static unsigned long arc_mem_sz = 0x20000000;  /* some default */
- 
- /* User can over-ride above with "mem=nnn[KkMm]" in cmdline */
- static int __init setup_mem_sz(char *str)
-@@ -40,7 +40,8 @@ early_param("mem", setup_mem_sz);
- 
- void __init early_init_dt_add_memory_arch(u64 base, u64 size)
- {
--	pr_err("%s(%llx, %llx)\n", __func__, base, size);
-+	arc_mem_sz = size & PAGE_MASK;
-+	pr_info("Memory size set via devicetree %ldM\n", TO_MB(arc_mem_sz));
- }
- 
- /*
+ void *dma_alloc_noncoherent(struct device *dev, size_t size,
+ 			    dma_addr_t *dma_handle, gfp_t gfp);
+diff --git a/arch/arc/plat-arcfpga/include/plat/dma_addr.h b/arch/arc/plat-arcfpga/include/plat/dma_addr.h
+deleted file mode 100644
+index 0e96343..0000000
+--- a/arch/arc/plat-arcfpga/include/plat/dma_addr.h
++++ /dev/null
+@@ -1,45 +0,0 @@
+-/*
+- * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
+- *
+- * This program is free software; you can redistribute it and/or modify
+- * it under the terms of the GNU General Public License version 2 as
+- * published by the Free Software Foundation.
+- *
+- * vineetg: Feb 2009
+- *  -For AA4 board, kernel to DMA address APIs
+- */
+-
+-/*
+- * kernel addresses are 0x800_000 based, while Bus addr are 0 based
+- */
+-
+-#ifndef __PLAT_DMA_ADDR_H
+-#define __PLAT_DMA_ADDR_H
+-
+-#include <linux/device.h>
+-
+-static inline unsigned long plat_dma_addr_to_kernel(struct device *dev,
+-						    dma_addr_t dma_addr)
+-{
+-	return dma_addr + PAGE_OFFSET;
+-}
+-
+-static inline dma_addr_t plat_kernel_addr_to_dma(struct device *dev, void *ptr)
+-{
+-	unsigned long addr = (unsigned long)ptr;
+-	/*
+-	 * To Catch buggy drivers which can call DMA map API with kernel vaddr
+-	 * i.e. for buffers alloc via vmalloc or ioremap which are not
+-	 * gaurnateed to be PHY contiguous and hence unfit for DMA anyways.
+-	 * On ARC kernel virtual address is 0x7000_0000 to 0x7FFF_FFFF, so
+-	 * ideally we want to check this range here, but our implementation is
+-	 * better as it checks for even worse user virtual address as well.
+-	 */
+-	if (likely(addr >= PAGE_OFFSET))
+-		return addr - PAGE_OFFSET;
+-
+-	BUG();
+-	return addr;
+-}
+-
+-#endif
 -- 
 1.7.4.1
 
