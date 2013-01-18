@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 11/76] ARC: Spinlock/rwlock/mutex primitives
-Date: Fri, 18 Jan 2013 17:54:25 +0530
-Message-ID: <1358511930-7424-12-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 14/76] ARC: Interrupt Handling
+Date: Fri, 18 Jan 2013 17:54:28 +0530
+Message-ID: <1358511930-7424-15-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -9,25 +9,60 @@ Return-path: <linux-kernel-owner@vger.kernel.org>
 In-Reply-To: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 Sender: linux-kernel-owner@vger.kernel.org
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Thomas Gleixner <tglx@linutronix.de>
 List-Id: linux-arch.vger.kernel.org
 
-Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
----
- arch/arc/include/asm/mutex.h          |    9 ++
- arch/arc/include/asm/spinlock.h       |  144 +++++++++++++++++++++++++++++++++
- arch/arc/include/asm/spinlock_types.h |   35 ++++++++
- 3 files changed, 188 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/include/asm/mutex.h
- create mode 100644 arch/arc/include/asm/spinlock.h
- create mode 100644 arch/arc/include/asm/spinlock_types.h
+This contains:
+-bootup arch IRQ init: init_IRQ(), arc_init_IRQ()
+-generic IRQ subsystem glue: arch_do_IRQ()
+-basic IRQ chip setup for in-core intc
 
-diff --git a/arch/arc/include/asm/mutex.h b/arch/arc/include/asm/mutex.h
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+Cc: Thomas Gleixner <tglx@linutronix.de>
+---
+ arch/arc/include/asm/arcregs.h |    3 +
+ arch/arc/include/asm/hw_irq.h  |    7 +++
+ arch/arc/include/asm/irq.h     |   22 ++++++++
+ arch/arc/kernel/irq.c          |  107 +++++++++++++++++++++++++++++++++++++++-
+ arch/arc/plat-arcfpga/irq.c    |   15 ++++++
+ 5 files changed, 152 insertions(+), 2 deletions(-)
+ create mode 100644 arch/arc/include/asm/hw_irq.h
+ create mode 100644 arch/arc/include/asm/irq.h
+ create mode 100644 arch/arc/plat-arcfpga/irq.c
+
+diff --git a/arch/arc/include/asm/arcregs.h b/arch/arc/include/asm/arcregs.h
+index 8ca8faf..3fccb04 100644
+--- a/arch/arc/include/asm/arcregs.h
++++ b/arch/arc/include/asm/arcregs.h
+@@ -11,6 +11,9 @@
+ 
+ #ifdef __KERNEL__
+ 
++/* Build Configuration Registers */
++#define ARC_REG_VECBASE_BCR	0x68
++
+ /* status32 Bits Positions */
+ #define STATUS_H_BIT		0	/* CPU Halted */
+ #define STATUS_E1_BIT		1	/* Int 1 enable */
+diff --git a/arch/arc/include/asm/hw_irq.h b/arch/arc/include/asm/hw_irq.h
 new file mode 100644
-index 0000000..3be5e64
+index 0000000..fd565ab
 --- /dev/null
-+++ b/arch/arc/include/asm/mutex.h
-@@ -0,0 +1,9 @@
++++ b/arch/arc/include/asm/hw_irq.h
+@@ -0,0 +1,7 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
+diff --git a/arch/arc/include/asm/irq.h b/arch/arc/include/asm/irq.h
+new file mode 100644
+index 0000000..ca4aeba
+--- /dev/null
++++ b/arch/arc/include/asm/irq.h
+@@ -0,0 +1,22 @@
 +/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
@@ -36,197 +71,158 @@ index 0000000..3be5e64
 + * published by the Free Software Foundation.
 + */
 +
-+#include <asm-generic/mutex-xchg.h>
-diff --git a/arch/arc/include/asm/spinlock.h b/arch/arc/include/asm/spinlock.h
-new file mode 100644
-index 0000000..f158197
---- /dev/null
-+++ b/arch/arc/include/asm/spinlock.h
-@@ -0,0 +1,144 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
++#ifndef __ASM_ARC_IRQ_H
++#define __ASM_ARC_IRQ_H
 +
-+#ifndef __ASM_SPINLOCK_H
-+#define __ASM_SPINLOCK_H
++/* Platform Independent IRQs */
++#define TIMER0_IRQ      3
++#define TIMER1_IRQ      4
 +
-+#include <asm/spinlock_types.h>
-+#include <asm/processor.h>
-+#include <asm/barrier.h>
++#include <asm-generic/irq.h>
 +
-+#define arch_spin_is_locked(x)	((x)->slock != __ARCH_SPIN_LOCK_UNLOCKED__)
-+#define arch_spin_lock_flags(lock, flags)	arch_spin_lock(lock)
-+#define arch_spin_unlock_wait(x) \
-+	do { while (arch_spin_is_locked(x)) cpu_relax(); } while (0)
-+
-+static inline void arch_spin_lock(arch_spinlock_t *lock)
-+{
-+	unsigned int tmp = __ARCH_SPIN_LOCK_LOCKED__;
-+
-+	__asm__ __volatile__(
-+	"1:	ex  %0, [%1]		\n"
-+	"	breq  %0, %2, 1b	\n"
-+	: "+&r" (tmp)
-+	: "r"(&(lock->slock)), "ir"(__ARCH_SPIN_LOCK_LOCKED__)
-+	: "memory");
-+}
-+
-+static inline int arch_spin_trylock(arch_spinlock_t *lock)
-+{
-+	unsigned int tmp = __ARCH_SPIN_LOCK_LOCKED__;
-+
-+	__asm__ __volatile__(
-+	"1:	ex  %0, [%1]		\n"
-+	: "+r" (tmp)
-+	: "r"(&(lock->slock))
-+	: "memory");
-+
-+	return (tmp == __ARCH_SPIN_LOCK_UNLOCKED__);
-+}
-+
-+static inline void arch_spin_unlock(arch_spinlock_t *lock)
-+{
-+	lock->slock = __ARCH_SPIN_LOCK_UNLOCKED__;
-+	smp_mb();
-+}
-+
-+/*
-+ * Read-write spinlocks, allowing multiple readers but only one writer.
-+ *
-+ * The spinlock itself is contained in @counter and access to it is
-+ * serialized with @lock_mutex.
-+ *
-+ * Unfair locking as Writers could be starved indefinitely by Reader(s)
-+ */
-+
-+/* Would read_trylock() succeed? */
-+#define arch_read_can_lock(x)	((x)->counter > 0)
-+
-+/* Would write_trylock() succeed? */
-+#define arch_write_can_lock(x)	((x)->counter == __ARCH_RW_LOCK_UNLOCKED__)
-+
-+/* 1 - lock taken successfully */
-+static inline int arch_read_trylock(arch_rwlock_t *rw)
-+{
-+	int ret = 0;
-+
-+	arch_spin_lock(&(rw->lock_mutex));
-+
-+	/*
-+	 * zero means writer holds the lock exclusively, deny Reader.
-+	 * Otherwise grant lock to first/subseq reader
-+	 */
-+	if (rw->counter > 0) {
-+		rw->counter--;
-+		ret = 1;
-+	}
-+
-+	arch_spin_unlock(&(rw->lock_mutex));
-+
-+	smp_mb();
-+	return ret;
-+}
-+
-+/* 1 - lock taken successfully */
-+static inline int arch_write_trylock(arch_rwlock_t *rw)
-+{
-+	int ret = 0;
-+
-+	arch_spin_lock(&(rw->lock_mutex));
-+
-+	/*
-+	 * If reader(s) hold lock (lock < __ARCH_RW_LOCK_UNLOCKED__),
-+	 * deny writer. Otherwise if unlocked grant to writer
-+	 * Hence the claim that Linux rwlocks are unfair to writers.
-+	 * (can be starved for an indefinite time by readers).
-+	 */
-+	if (rw->counter == __ARCH_RW_LOCK_UNLOCKED__) {
-+		rw->counter = 0;
-+		ret = 1;
-+	}
-+	arch_spin_unlock(&(rw->lock_mutex));
-+
-+	return ret;
-+}
-+
-+static inline void arch_read_lock(arch_rwlock_t *rw)
-+{
-+	while (!arch_read_trylock(rw))
-+		cpu_relax();
-+}
-+
-+static inline void arch_write_lock(arch_rwlock_t *rw)
-+{
-+	while (!arch_write_trylock(rw))
-+		cpu_relax();
-+}
-+
-+static inline void arch_read_unlock(arch_rwlock_t *rw)
-+{
-+	arch_spin_lock(&(rw->lock_mutex));
-+	rw->counter++;
-+	arch_spin_unlock(&(rw->lock_mutex));
-+}
-+
-+static inline void arch_write_unlock(arch_rwlock_t *rw)
-+{
-+	arch_spin_lock(&(rw->lock_mutex));
-+	rw->counter = __ARCH_RW_LOCK_UNLOCKED__;
-+	arch_spin_unlock(&(rw->lock_mutex));
-+}
-+
-+#define arch_read_lock_flags(lock, flags)	arch_read_lock(lock)
-+#define arch_write_lock_flags(lock, flags)	arch_write_lock(lock)
-+
-+#define arch_spin_relax(lock)	cpu_relax()
-+#define arch_read_relax(lock)	cpu_relax()
-+#define arch_write_relax(lock)	cpu_relax()
-+
-+#endif /* __ASM_SPINLOCK_H */
-diff --git a/arch/arc/include/asm/spinlock_types.h b/arch/arc/include/asm/spinlock_types.h
-new file mode 100644
-index 0000000..8276bfd
---- /dev/null
-+++ b/arch/arc/include/asm/spinlock_types.h
-@@ -0,0 +1,35 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
-+
-+#ifndef __ASM_SPINLOCK_TYPES_H
-+#define __ASM_SPINLOCK_TYPES_H
-+
-+typedef struct {
-+	volatile unsigned int slock;
-+} arch_spinlock_t;
-+
-+#define __ARCH_SPIN_LOCK_UNLOCKED__	0
-+#define __ARCH_SPIN_LOCK_LOCKED__	1
-+
-+#define __ARCH_SPIN_LOCK_UNLOCKED	{ __ARCH_SPIN_LOCK_UNLOCKED__ }
-+#define __ARCH_SPIN_LOCK_LOCKED		{ __ARCH_SPIN_LOCK_LOCKED__ }
-+
-+/*
-+ * Unlocked:     0x01_00_00_00
-+ * Read lock(s): 0x00_FF_00_00 to say 0x01
-+ * Write lock:   0x0, but only possible if prior value "unlocked" 0x0100_0000
-+ */
-+typedef struct {
-+	volatile unsigned int	counter;
-+	arch_spinlock_t		lock_mutex;
-+} arch_rwlock_t;
-+
-+#define __ARCH_RW_LOCK_UNLOCKED__	0x01000000
-+#define __ARCH_RW_LOCK_UNLOCKED		{ .counter = __ARCH_RW_LOCK_UNLOCKED__ }
++extern void __init arc_init_IRQ(void);
++extern void __init plat_init_IRQ(void);
++extern int __init get_hw_config_num_irq(void);
 +
 +#endif
+diff --git a/arch/arc/kernel/irq.c b/arch/arc/kernel/irq.c
+index c4e9b25..2f399eb 100644
+--- a/arch/arc/kernel/irq.c
++++ b/arch/arc/kernel/irq.c
+@@ -9,8 +9,111 @@
+ 
+ #include <linux/interrupt.h>
+ #include <linux/module.h>
+-#include <asm/irqflags.h>
+-#include <asm/arcregs.h>
++#include <asm/sections.h>
++#include <asm/irq.h>
++
++/*
++ * Early Hardware specific Interrupt setup
++ * -Called very early (start_kernel -> setup_arch -> setup_processor)
++ * -Platform Independent (must for any ARC700)
++ * -Needed for each CPU (hence not foldable into init_IRQ)
++ *
++ * what it does ?
++ * -setup Vector Table Base Reg - in case Linux not linked at 0x8000_0000
++ * -Disable all IRQs (on CPU side)
++ */
++void __init arc_init_IRQ(void)
++{
++	int level_mask = level_mask;
++
++	write_aux_reg(AUX_INTR_VEC_BASE, _int_vec_base_lds);
++
++	/* Disable all IRQs: enable them as devices request */
++	write_aux_reg(AUX_IENABLE, 0);
++}
++
++/*
++ * ARC700 core includes a simple on-chip intc supporting
++ * -per IRQ enable/disable
++ * -2 levels of interrupts (high/low)
++ * -all interrupts being level triggered
++ *
++ * To reduce platform code, we assume all IRQs directly hooked-up into intc.
++ * Platforms with external intc, hence cascaded IRQs, are free to over-ride
++ * below, per IRQ.
++ */
++
++static void arc_mask_irq(struct irq_data *data)
++{
++	arch_mask_irq(data->irq);
++}
++
++static void arc_unmask_irq(struct irq_data *data)
++{
++	arch_unmask_irq(data->irq);
++}
++
++static struct irq_chip onchip_intc = {
++	.name           = "ARC In-core Intc",
++	.irq_mask	= arc_mask_irq,
++	.irq_unmask	= arc_unmask_irq,
++};
++
++void __init init_onchip_IRQ(void)
++{
++	int i;
++
++	for (i = 0; i < NR_IRQS; i++)
++		irq_set_chip_and_handler(i, &onchip_intc, handle_level_irq);
++
++#ifdef CONFIG_SMP
++	irq_set_chip_and_handler(TIMER0_IRQ, &onchip_intc, handle_percpu_irq);
++#endif
++}
++
++/*
++ * Late Interrupt system init called from start_kernel for Boot CPU only
++ *
++ * Since slab must already be initialized, platforms can start doing any
++ * needed request_irq( )s
++ */
++void __init init_IRQ(void)
++{
++	init_onchip_IRQ();
++	plat_init_IRQ();
++}
++
++/*
++ * "C" Entry point for any ARC ISR, called from low level vector handler
++ * @irq is the vector number read from ICAUSE reg of on-chip intc
++ */
++void arch_do_IRQ(unsigned int irq, struct pt_regs *regs)
++{
++	struct pt_regs *old_regs = set_irq_regs(regs);
++
++	irq_enter();
++	generic_handle_irq(irq);
++	irq_exit();
++	set_irq_regs(old_regs);
++}
++
++int __init get_hw_config_num_irq(void)
++{
++	uint32_t val = read_aux_reg(ARC_REG_VECBASE_BCR);
++
++	switch (val & 0x03) {
++	case 0:
++		return 16;
++	case 1:
++		return 32;
++	case 2:
++		return 8;
++	default:
++		return 0;
++	}
++
++	return 0;
++}
+ 
+ void arch_local_irq_enable(void)
+ {
+diff --git a/arch/arc/plat-arcfpga/irq.c b/arch/arc/plat-arcfpga/irq.c
+new file mode 100644
+index 0000000..ed72636
+--- /dev/null
++++ b/arch/arc/plat-arcfpga/irq.c
+@@ -0,0 +1,15 @@
++/*
++ * ARC FPGA Platform IRQ hookups
++ *
++ * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <linux/interrupt.h>
++
++void __init plat_init_IRQ(void)
++{
++}
 -- 
 1.7.4.1
