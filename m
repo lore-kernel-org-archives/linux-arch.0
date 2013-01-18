@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp1.synopsys.com ([198.182.60.75]:59310 "EHLO
-	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751815Ab3ARMdY (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:33:24 -0500
+Received: from us02smtp2.synopsys.com ([198.182.60.77]:58887 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751859Ab3ARMd4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:33:56 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 55/76] sysctl: Enable PARISC "unaligned-trap" to be used cross-arch
-Date: Fri, 18 Jan 2013 17:55:09 +0530
-Message-ID: <1358511930-7424-56-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 59/76] ARC: [plat-arfpga] BVCI Latency Unit setup
+Date: Fri, 18 Jan 2013 17:55:13 +0530
+Message-ID: <1358511930-7424-60-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -14,89 +14,137 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, "James E.J. Bottomley" <jejb@parisc-linux.org>, Helge Deller <deller@gmx.de>, "Eric W. Biederman" <ebiederm@xmission.com>, Serge Hallyn <serge.hallyn@canonical.com>
-Message-ID: <20130118122509.9Ayow9LUikJsc40L8Kh5oY6MeBD50wV4ErgLtyYeRXw@z>
-
-PARISC defines /proc/sys/kernel/unaligned-trap to runtime toggle
-unaligned access emulation.
-
-The exact mechanics of enablig/disabling are still arch specific, we can
-make the sysctl usable by other arches.
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Message-ID: <20130118122513.skyGP2uzyeqGpeZGK3Cf02TyIuabTN8qFp-TtVTZ3MA@z>
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Acked-by: Helge Deller <deller@gmx.de>
-Cc: "James E.J. Bottomley" <jejb@parisc-linux.org>
-Cc: Helge Deller <deller@gmx.de>
-Cc: "Eric W. Biederman" <ebiederm@xmission.com>
-Cc: Serge Hallyn <serge.hallyn@canonical.com>
 ---
- arch/parisc/Kconfig |    1 +
- init/Kconfig        |    8 ++++++++
- kernel/sysctl.c     |    7 ++++++-
- 3 files changed, 15 insertions(+), 1 deletions(-)
+ arch/arc/plat-arcfpga/Kconfig    |   32 +++++++++++++++++++++
+ arch/arc/plat-arcfpga/platform.c |   56 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 88 insertions(+), 0 deletions(-)
 
-diff --git a/arch/parisc/Kconfig b/arch/parisc/Kconfig
-index b77feff..8c76095 100644
---- a/arch/parisc/Kconfig
-+++ b/arch/parisc/Kconfig
-@@ -20,6 +20,7 @@ config PARISC
- 	select ARCH_HAVE_NMI_SAFE_CMPXCHG
- 	select GENERIC_SMP_IDLE_THREAD
- 	select GENERIC_STRNCPY_FROM_USER
-+	select SYSCTL_ARCH_UNALIGN_ALLOW
- 	select HAVE_MOD_ARCH_SPECIFIC
- 	select MODULES_USE_ELF_RELA
- 	select CLONE_BACKWARDS
-diff --git a/init/Kconfig b/init/Kconfig
-index a733964..325df23 100644
---- a/init/Kconfig
-+++ b/init/Kconfig
-@@ -1240,6 +1240,14 @@ config SYSCTL_ARCH_UNALIGN_NO_WARN
- 	  unaligned access emulation going on under the hood.
- 	  see arch/ia64/kernel/unaligned.c for reference
+diff --git a/arch/arc/plat-arcfpga/Kconfig b/arch/arc/plat-arcfpga/Kconfig
+index 8a1334c..86b7377 100644
+--- a/arch/arc/plat-arcfpga/Kconfig
++++ b/arch/arc/plat-arcfpga/Kconfig
+@@ -43,4 +43,36 @@ config ARC_SERIAL_BAUD
+ 	help
+ 	  Baud rate for the ARC UART
  
-+config SYSCTL_ARCH_UNALIGN_ALLOW
-+	bool
++menuconfig ARC_HAS_BVCI_LAT_UNIT
++	bool "BVCI Bus Latency Unit"
++	depends on ARC_BOARD_ML509 || ARC_BOARD_ANGEL4
 +	help
-+	  Enable support for /proc/sys/kernel/unaligned-trap
-+	  Allows arches to define/use @unaligned_enabled to runtime toggle
-+	  the unaligned access emulation.
-+	  see arch/parisc/kernel/unaligned.c for reference
++	  IP to add artifical latency to BVCI Bus Based FPGA builds.
++	  The default latency (even worst case) for FPGA is non-realistic
++	  (~10 SDRAM, ~5 SSRAM).
 +
- config KALLSYMS
- 	 bool "Load all symbols for debugging/ksymoops" if EXPERT
- 	 default y
-diff --git a/kernel/sysctl.c b/kernel/sysctl.c
-index 840fd5e..c4cd655 100644
---- a/kernel/sysctl.c
-+++ b/kernel/sysctl.c
-@@ -157,13 +157,16 @@ extern int sysctl_tsb_ratio;
++config BVCI_LAT_UNITS
++	hex "Latency Unit(s) Bitmap"
++	default "0x0"
++	depends on ARC_HAS_BVCI_LAT_UNIT
++	help
++	  There are multiple Latency Units corresponding to the many
++	  interfaces of the system bus arbiter (both CPU side as well as
++	  the peripheral side).
++	  To add latency to ALL memory transaction, choose Unit 0, otherwise
++	  for finer grainer - interface wise latency, specify a bitmap (1 bit
++	  per unit) of all units. e.g. 1,2,12 will be 0x1003
++
++	  Unit  0 - System Arb and Mem Controller
++	  Unit  1 - I$ and System Bus
++	  Unit  2 - D$ and System Bus
++	  ..
++	  Unit 12 - IDE Disk controller and System Bus
++
++config BVCI_LAT_CYCLES
++	int "Latency Value in cycles"
++	range 0 63
++	default "30"
++	depends on ARC_HAS_BVCI_LAT_UNIT
++
+ endif
+diff --git a/arch/arc/plat-arcfpga/platform.c b/arch/arc/plat-arcfpga/platform.c
+index d98028c..c07636e 100644
+--- a/arch/arc/plat-arcfpga/platform.c
++++ b/arch/arc/plat-arcfpga/platform.c
+@@ -12,6 +12,7 @@
+ #include <linux/init.h>
+ #include <linux/device.h>
+ #include <linux/platform_device.h>
++#include <linux/io.h>
+ #include <linux/console.h>
+ #include <linux/of_platform.h>
+ #include <asm/setup.h>
+@@ -19,6 +20,59 @@
+ #include <asm/clk.h>
+ #include <plat/memmap.h>
  
- #ifdef __hppa__
- extern int pwrsw_enabled;
--extern int unaligned_enabled;
- #endif
- 
- #ifdef CONFIG_IA64
- extern int unaligned_dump_stack;
- #endif
- 
-+#ifdef CONFIG_SYSCTL_ARCH_UNALIGN_ALLOW
-+extern int unaligned_enabled;
++/*-----------------------BVCI Latency Unit -----------------------------*/
++
++#ifdef CONFIG_ARC_HAS_BVCI_LAT_UNIT
++
++int lat_cycles = CONFIG_BVCI_LAT_CYCLES;
++
++/* BVCI Bus Profiler: Latency Unit */
++static void __init setup_bvci_lat_unit(void)
++{
++#define MAX_BVCI_UNITS 12
++
++	unsigned int i;
++	unsigned int *base = (unsigned int *)BVCI_LAT_UNIT_BASE;
++	const unsigned long units_req = CONFIG_BVCI_LAT_UNITS;
++	const unsigned int REG_UNIT = 21;
++	const unsigned int REG_VAL = 22;
++
++	/*
++	 * There are multiple Latency Units corresponding to the many
++	 * interfaces of the system bus arbiter (both CPU side as well as
++	 * the peripheral side).
++	 *
++	 * Unit  0 - System Arb and Mem Controller - adds latency to all
++	 *	    memory trasactions
++	 * Unit  1 - I$ and System Bus
++	 * Unit  2 - D$ and System Bus
++	 * ..
++	 * Unit 12 - IDE Disk controller and System Bus
++	 *
++	 * The programmers model requires writing to lat_unit reg first
++	 * and then the latency value (cycles) to lat_value reg
++	 */
++
++	if (CONFIG_BVCI_LAT_UNITS == 0) {
++		writel(0, base + REG_UNIT);
++		writel(lat_cycles, base + REG_VAL);
++		pr_info("BVCI Latency for all Memory Transactions %d cycles\n",
++			lat_cycles);
++	} else {
++		for_each_set_bit(i, &units_req, MAX_BVCI_UNITS) {
++			writel(i + 1, base + REG_UNIT); /* loop is 0 based */
++			writel(lat_cycles, base + REG_VAL);
++			pr_info("BVCI Latency for Unit[%d] = %d cycles\n",
++				(i + 1), lat_cycles);
++		}
++	}
++}
++#else
++static void __init setup_bvci_lat_unit(void)
++{
++}
 +#endif
 +
- #ifdef CONFIG_SYSCTL_ARCH_UNALIGN_NO_WARN
- extern int no_unaligned_warning;
- #endif
-@@ -548,6 +551,8 @@ static struct ctl_table kern_table[] = {
- 	 	.mode		= 0644,
- 		.proc_handler	= proc_dointvec,
- 	},
-+#endif
-+#ifdef CONFIG_SYSCTL_ARCH_UNALIGN_ALLOW
- 	{
- 		.procname	= "unaligned-trap",
- 		.data		= &unaligned_enabled,
+ /*----------------------- Platform Devices -----------------------------*/
+ 
+ #if defined(CONFIG_SERIAL_ARC) || defined(CONFIG_SERIAL_ARC_MODULE)
+@@ -115,6 +169,8 @@ void __init arc_platform_early_init(void)
+ {
+ 	pr_info("[plat-arcfpga]: registering early dev resources\n");
+ 
++	setup_bvci_lat_unit();
++
+ 	arc_fpga_serial_init();
+ }
+ 
 -- 
 1.7.4.1
 
