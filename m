@@ -1,60 +1,63 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 24/76] ARC: MMU Context Management
-Date: Fri, 18 Jan 2013 17:54:38 +0530
-Message-ID: <1358511930-7424-25-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 26/76] ARC: TLB flush Handling
+Date: Fri, 18 Jan 2013 17:54:40 +0530
+Message-ID: <1358511930-7424-27-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from alvesta.synopsys.com ([198.182.60.77]:58733 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756209Ab3ARM31 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:29:27 -0500
 In-Reply-To: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-List-Id: linux-arch.vger.kernel.org
-
-ARC700 MMU provides for tagging TLB entries with a 8-bit ASID to avoid
-having to flush the TLB every task switch.
-
-It also allows for a quick way to invalidate all the TLB entries for
-task useful for:
-* COW sementics during fork()
-* task exit()ing
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/include/asm/arcregs.h     |    7 ++
- arch/arc/include/asm/mmu.h         |   23 ++++
- arch/arc/include/asm/mmu_context.h |  209 ++++++++++++++++++++++++++++++++++++
- arch/arc/mm/tlb.c                  |   23 ++++
- 4 files changed, 262 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/include/asm/mmu.h
- create mode 100644 arch/arc/include/asm/mmu_context.h
- create mode 100644 arch/arc/mm/tlb.c
+ arch/arc/include/asm/tlb.h      |   17 ++
+ arch/arc/include/asm/tlbflush.h |   28 ++++
+ arch/arc/mm/tlb.c               |  311 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 356 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/include/asm/tlbflush.h
 
-diff --git a/arch/arc/include/asm/arcregs.h b/arch/arc/include/asm/arcregs.h
-index c6e2805..c12eb9b 100644
---- a/arch/arc/include/asm/arcregs.h
-+++ b/arch/arc/include/asm/arcregs.h
-@@ -85,6 +85,13 @@
- #define DC_CTRL_INV_MODE_FLUSH  0x40
- #define DC_CTRL_FLUSH_STATUS    0x100
+diff --git a/arch/arc/include/asm/tlb.h b/arch/arc/include/asm/tlb.h
+index b571e12..3eb2ce0 100644
+--- a/arch/arc/include/asm/tlb.h
++++ b/arch/arc/include/asm/tlb.h
+@@ -21,6 +21,23 @@
  
-+/* MMU Management regs */
-+#define ARC_REG_PID		0x409
-+#define ARC_REG_SCRATCH_DATA0	0x418
+ #ifndef __ASSEMBLY__
+ 
++#define tlb_flush(tlb) local_flush_tlb_mm((tlb)->mm)
 +
-+/* Bits in MMU PID register */
-+#define MMU_ENABLE		(1 << 31)	/* Enable MMU for process */
++/*
++ * This pair is called at time of munmap/exit to flush cache and TLB entries
++ * for mappings being torn down.
++ * 1) cache-flush part -implemented via tlb_start_vma( ) can be NOP (for now)
++ *    as we don't support aliasing configs in our VIPT D$.
++ * 2) tlb-flush part - implemted via tlb_end_vma( ) can be NOP as well-
++ *    albiet for difft reasons - its better handled by moving to new ASID
++ *
++ * Note, read http://lkml.org/lkml/2004/1/15/6
++ */
++#define tlb_start_vma(tlb, vma)
++#define tlb_end_vma(tlb, vma)
 +
- /*
-  * Floating Pt Registers
-  * Status regs are read-only (build-time) so need not be saved/restored
-diff --git a/arch/arc/include/asm/mmu.h b/arch/arc/include/asm/mmu.h
++#define __tlb_remove_tlb_entry(tlb, ptep, address)
++
+ #include <linux/pagemap.h>
+ #include <asm-generic/tlb.h>
+ 
+diff --git a/arch/arc/include/asm/tlbflush.h b/arch/arc/include/asm/tlbflush.h
 new file mode 100644
-index 0000000..56b0232
+index 0000000..b2f9bc7
 --- /dev/null
-+++ b/arch/arc/include/asm/mmu.h
-@@ -0,0 +1,23 @@
++++ b/arch/arc/include/asm/tlbflush.h
+@@ -0,0 +1,28 @@
 +/*
 + * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
 + *
@@ -63,264 +66,361 @@ index 0000000..56b0232
 + * published by the Free Software Foundation.
 + */
 +
-+#ifndef _ASM_ARC_MMU_H
-+#define _ASM_ARC_MMU_H
++#ifndef __ASM_ARC_TLBFLUSH__
++#define __ASM_ARC_TLBFLUSH__
 +
-+#ifndef __ASSEMBLY__
++#include <linux/mm.h>
 +
-+typedef struct {
-+	unsigned long asid;	/* Pvt Addr-Space ID for mm */
-+#ifdef CONFIG_ARC_TLB_DBG
-+	struct task_struct *tsk;
++void local_flush_tlb_all(void);
++void local_flush_tlb_mm(struct mm_struct *mm);
++void local_flush_tlb_page(struct vm_area_struct *vma, unsigned long page);
++void local_flush_tlb_kernel_range(unsigned long start, unsigned long end);
++void local_flush_tlb_range(struct vm_area_struct *vma,
++			   unsigned long start, unsigned long end);
++
++/* XXX: Revisit for SMP */
++#define flush_tlb_range(vma, s, e)	local_flush_tlb_range(vma, s, e)
++#define flush_tlb_page(vma, page)	local_flush_tlb_page(vma, page)
++#define flush_tlb_kernel_range(s, e)	local_flush_tlb_kernel_range(s, e)
++#define flush_tlb_all()			local_flush_tlb_all()
++#define flush_tlb_mm(mm)		local_flush_tlb_mm(mm)
++
 +#endif
-+} mm_context_t;
-+
-+#endif
-+
-+#endif
-diff --git a/arch/arc/include/asm/mmu_context.h b/arch/arc/include/asm/mmu_context.h
-new file mode 100644
-index 0000000..d12f3de
---- /dev/null
-+++ b/arch/arc/include/asm/mmu_context.h
-@@ -0,0 +1,209 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
+diff --git a/arch/arc/mm/tlb.c b/arch/arc/mm/tlb.c
+index 404e5be..232a0ff 100644
+--- a/arch/arc/mm/tlb.c
++++ b/arch/arc/mm/tlb.c
+@@ -6,13 +6,97 @@
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License version 2 as
+  * published by the Free Software Foundation.
 + *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
++ * vineetg: Aug 2011
++ *  -Reintroduce duplicate PD fixup - some customer chips still have the issue
 + *
 + * vineetg: May 2011
-+ *  -Refactored get_new_mmu_context( ) to only handle live-mm.
-+ *   retiring-mm handled in other hooks
++ *  -No need to flush_cache_page( ) for each call to update_mmu_cache()
++ *   some of the LMBench tests improved amazingly
++ *      = page-fault thrice as fast (75 usec to 28 usec)
++ *      = mmap twice as fast (9.6 msec to 4.6 msec),
++ *      = fork (5.3 msec to 3.7 msec)
 + *
-+ * Vineetg: March 25th, 2008: Bug #92690
-+ *  -Major rewrite of Core ASID allocation routine get_new_mmu_context
++ * vineetg: April 2011 :
++ *  -MMU v3: PD{0,1} bits layout changed: They don't overlap anymore,
++ *      helps avoid a shift when preparing PD0 from PTE
 + *
-+ * Amit Bhor, Sameer Dhavale: Codito Technologies 2004
++ * vineetg: April 2011 : Preparing for MMU V3
++ *  -MMU v2/v3 BCRs decoded differently
++ *  -Remove TLB_SIZE hardcoding as it's variable now: 256 or 512
++ *  -tlb_entry_erase( ) can be void
++ *  -local_flush_tlb_range( ):
++ *      = need not "ceil" @end
++ *      = walks MMU only if range spans < 32 entries, as opposed to 256
++ *
++ * Vineetg: Sept 10th 2008
++ *  -Changes related to MMU v2 (Rel 4.8)
++ *
++ * Vineetg: Aug 29th 2008
++ *  -In TLB Flush operations (Metal Fix MMU) there is a explict command to
++ *    flush Micro-TLBS. If TLB Index Reg is invalid prior to TLBIVUTLB cmd,
++ *    it fails. Thus need to load it with ANY valid value before invoking
++ *    TLBIVUTLB cmd
++ *
++ * Vineetg: Aug 21th 2008:
++ *  -Reduced the duration of IRQ lockouts in TLB Flush routines
++ *  -Multiple copies of TLB erase code seperated into a "single" function
++ *  -In TLB Flush routines, interrupt disabling moved UP to retrieve ASID
++ *       in interrupt-safe region.
++ *
++ * Vineetg: April 23rd Bug #93131
++ *    Problem: tlb_flush_kernel_range() doesnt do anything if the range to
++ *              flush is more than the size of TLB itself.
++ *
++ * Rahul Trivedi : Codito Technologies 2004
+  */
+ 
+ #include <linux/module.h>
+ #include <asm/arcregs.h>
++#include <asm/setup.h>
+ #include <asm/mmu_context.h>
+ #include <asm/tlb.h>
+ 
++/*			Need for ARC MMU v2
++ *
++ * ARC700 MMU-v1 had a Joint-TLB for Code and Data and is 2 way set-assoc.
++ * For a memcpy operation with 3 players (src/dst/code) such that all 3 pages
++ * map into same set, there would be contention for the 2 ways causing severe
++ * Thrashing.
++ *
++ * Although J-TLB is 2 way set assoc, ARC700 caches J-TLB into uTLBS which has
++ * much higher associativity. u-D-TLB is 8 ways, u-I-TLB is 4 ways.
++ * Given this, the thrasing problem should never happen because once the 3
++ * J-TLB entries are created (even though 3rd will knock out one of the prev
++ * two), the u-D-TLB and u-I-TLB will have what is required to accomplish memcpy
++ *
++ * Yet we still see the Thrashing because a J-TLB Write cause flush of u-TLBs.
++ * This is a simple design for keeping them in sync. So what do we do?
++ * The solution which James came up was pretty neat. It utilised the assoc
++ * of uTLBs by not invalidating always but only when absolutely necessary.
++ *
++ * - Existing TLB commands work as before
++ * - New command (TLBWriteNI) for TLB write without clearing uTLBs
++ * - New command (TLBIVUTLB) to invalidate uTLBs.
++ *
++ * The uTLBs need only be invalidated when pages are being removed from the
++ * OS page table. If a 'victim' TLB entry is being overwritten in the main TLB
++ * as a result of a miss, the removed entry is still allowed to exist in the
++ * uTLBs as it is still valid and present in the OS page table. This allows the
++ * full associativity of the uTLBs to hide the limited associativity of the main
++ * TLB.
++ *
++ * During a miss handler, the new "TLBWriteNI" command is used to load
++ * entries without clearing the uTLBs.
++ *
++ * When the OS page table is updated, TLB entries that may be associated with a
++ * removed page are removed (flushed) from the TLB using TLBWrite. In this
++ * circumstance, the uTLBs must also be cleared. This is done by using the
++ * existing TLBWrite command. An explicit IVUTLB is also required for those
++ * corner cases when TLBWrite was not executed at all because the corresp
++ * J-TLB entry got evicted/replaced.
 + */
 +
-+#ifndef _ASM_ARC_MMU_CONTEXT_H
-+#define _ASM_ARC_MMU_CONTEXT_H
-+
-+#include <asm/arcregs.h>
-+#include <asm/tlb.h>
-+
-+#include <asm-generic/mm_hooks.h>
-+
-+/*		ARC700 ASID Management
-+ *
-+ * ARC MMU provides 8-bit ASID (0..255) to TAG TLB entries, allowing entries
-+ * with same vaddr (different tasks) to co-exit. This provides for
-+ * "Fast Context Switch" i.e. no TLB flush on ctxt-switch
-+ *
-+ * Linux assigns each task a unique ASID. A simple round-robin allocation
-+ * of H/w ASID is done using software tracker @asid_cache.
-+ * When it reaches max 255, the allocation cycle starts afresh by flushing
-+ * the entire TLB and wrapping ASID back to zero.
-+ *
-+ * For book-keeping, Linux uses a couple of data-structures:
-+ *  -mm_struct has an @asid field to keep a note of task's ASID (needed at the
-+ *   time of say switch_mm( )
-+ *  -An array of mm structs @asid_mm_map[] for asid->mm the reverse mapping,
-+ *  given an ASID, finding the mm struct associated.
-+ *
-+ * The round-robin allocation algorithm allows for ASID stealing.
-+ * If asid tracker is at "x-1", a new req will allocate "x", even if "x" was
-+ * already assigned to another (switched-out) task. Obviously the prev owner
-+ * is marked with an invalid ASID to make it request for a new ASID when it
-+ * gets scheduled next time. However its TLB entries (with ASID "x") could
-+ * exist, which must be cleared before the same ASID is used by the new owner.
-+ * Flushing them would be plausible but costly solution. Instead we force a
-+ * allocation policy quirk, which ensures that a stolen ASID won't have any
-+ * TLB entries associates, alleviating the need to flush.
-+ * The quirk essentially is not allowing ASID allocated in prev cycle
-+ * to be used past a roll-over in the next cycle.
-+ * When this happens (i.e. task ASID > asid tracker), task needs to refresh
-+ * its ASID, aligning it to current value of tracker. If the task doesn't get
-+ * scheduled past a roll-over, hence its ASID is not yet realigned with
-+ * tracker, such ASID is anyways safely reusable because it is
-+ * gauranteed that TLB entries with that ASID wont exist.
+ /* A copy of the ASID from the PID reg is kept in asid_cache */
+ int asid_cache = FIRST_ASID;
+ 
+@@ -22,6 +106,233 @@ int asid_cache = FIRST_ASID;
+  */
+ struct mm_struct *asid_mm_map[NUM_ASID + 1];
+ 
++/*
++ * Utility Routine to erase a J-TLB entry
++ * The procedure is to look it up in the MMU. If found, ERASE it by
++ *  issuing a TlbWrite CMD with PD0 = PD1 = 0
 + */
 +
-+#define FIRST_ASID  0
-+#define MAX_ASID    255			/* 8 bit PID field in PID Aux reg */
-+#define NO_ASID     (MAX_ASID + 1)	/* ASID Not alloc to mmu ctxt */
-+#define NUM_ASID    ((MAX_ASID - FIRST_ASID) + 1)
++static void __tlb_entry_erase(void)
++{
++	write_aux_reg(ARC_REG_TLBPD1, 0);
++	write_aux_reg(ARC_REG_TLBPD0, 0);
++	write_aux_reg(ARC_REG_TLBCOMMAND, TLBWrite);
++}
 +
-+/* ASID to mm struct mapping */
-+extern struct mm_struct *asid_mm_map[NUM_ASID + 1];
++static void tlb_entry_erase(unsigned int vaddr_n_asid)
++{
++	unsigned int idx;
 +
-+extern int asid_cache;
++	/* Locate the TLB entry for this vaddr + ASID */
++	write_aux_reg(ARC_REG_TLBPD0, vaddr_n_asid);
++	write_aux_reg(ARC_REG_TLBCOMMAND, TLBProbe);
++	idx = read_aux_reg(ARC_REG_TLBINDEX);
++
++	/* No error means entry found, zero it out */
++	if (likely(!(idx & TLB_LKUP_ERR))) {
++		__tlb_entry_erase();
++	} else {		/* Some sort of Error */
++
++		/* Duplicate entry error */
++		if (idx & 0x1) {
++			/* TODO we need to handle this case too */
++			pr_emerg("unhandled Duplicate flush for %x\n",
++			       vaddr_n_asid);
++		}
++		/* else entry not found so nothing to do */
++	}
++}
++
++/****************************************************************************
++ * ARC700 MMU caches recently used J-TLB entries (RAM) as uTLBs (FLOPs)
++ *
++ * New IVUTLB cmd in MMU v2 explictly invalidates the uTLB
++ *
++ * utlb_invalidate ( )
++ *  -For v2 MMU calls Flush uTLB Cmd
++ *  -For v1 MMU does nothing (except for Metal Fix v1 MMU)
++ *      This is because in v1 TLBWrite itself invalidate uTLBs
++ ***************************************************************************/
++
++static void utlb_invalidate(void)
++{
++#if (CONFIG_ARC_MMU_VER >= 2)
++
++#if (CONFIG_ARC_MMU_VER < 3)
++	/* MMU v2 introduced the uTLB Flush command.
++	 * There was however an obscure hardware bug, where uTLB flush would
++	 * fail when a prior probe for J-TLB (both totally unrelated) would
++	 * return lkup err - because the entry didnt exist in MMU.
++	 * The Workround was to set Index reg with some valid value, prior to
++	 * flush. This was fixed in MMU v3 hence not needed any more
++	 */
++	unsigned int idx;
++
++	/* make sure INDEX Reg is valid */
++	idx = read_aux_reg(ARC_REG_TLBINDEX);
++
++	/* If not write some dummy val */
++	if (unlikely(idx & TLB_LKUP_ERR))
++		write_aux_reg(ARC_REG_TLBINDEX, 0xa);
++#endif
++
++	write_aux_reg(ARC_REG_TLBCOMMAND, TLBIVUTLB);
++#endif
++
++}
 +
 +/*
-+ * Assign a new ASID to task. If the task already has an ASID, it is
-+ * relinquished.
++ * Un-conditionally (without lookup) erase the entire MMU contents
 + */
-+static inline void get_new_mmu_context(struct mm_struct *mm)
++
++noinline void local_flush_tlb_all(void)
 +{
-+	struct mm_struct *prev_owner;
 +	unsigned long flags;
++	unsigned int entry;
++	struct cpuinfo_arc_mmu *mmu = &cpuinfo_arc700[smp_processor_id()].mmu;
 +
 +	local_irq_save(flags);
 +
-+	/*
-+	 * Relinquish the currently owned ASID (if any).
-+	 * Doing unconditionally saves a cmp-n-branch; for already unused
-+	 * ASID slot, the value was/remains NULL
-+	 */
-+	asid_mm_map[mm->context.asid] = (struct mm_struct *)NULL;
++	/* Load PD0 and PD1 with template for a Blank Entry */
++	write_aux_reg(ARC_REG_TLBPD1, 0);
++	write_aux_reg(ARC_REG_TLBPD0, 0);
 +
-+	/* move to new ASID */
-+	if (++asid_cache > MAX_ASID) {	/* ASID roll-over */
-+		asid_cache = FIRST_ASID;
-+		flush_tlb_all();
++	for (entry = 0; entry < mmu->num_tlb; entry++) {
++		/* write this entry to the TLB */
++		write_aux_reg(ARC_REG_TLBINDEX, entry);
++		write_aux_reg(ARC_REG_TLBCOMMAND, TLBWrite);
 +	}
 +
-+	/*
-+	 * Is next ASID already owned by some-one else (we are stealing it).
-+	 * If so, let the orig owner be aware of this, so when it runs, it
-+	 * asks for a brand new ASID. This would only happen for a long-lived
-+	 * task with ASID from prev allocation cycle (before ASID roll-over).
-+	 *
-+	 * This might look wrong - if we are re-using some other task's ASID,
-+	 * won't we use it's stale TLB entries too. Actually switch_mm( ) takes
-+	 * care of such a case: it ensures that task with ASID from prev alloc
-+	 * cycle, when scheduled will refresh it's ASID: see switch_mm( ) below
-+	 * The stealing scenario described here will only happen if that task
-+	 * didn't get a chance to refresh it's ASID - implying stale entries
-+	 * won't exist.
-+	 */
-+	prev_owner = asid_mm_map[asid_cache];
-+	if (prev_owner)
-+		prev_owner->context.asid = NO_ASID;
-+
-+	/* Assign new ASID to tsk */
-+	asid_mm_map[asid_cache] = mm;
-+	mm->context.asid = asid_cache;
-+
-+#ifdef CONFIG_ARC_TLB_DBG
-+	pr_info("ARC_TLB_DBG: NewMM=0x%x OldMM=0x%x task_struct=0x%x Task: %s,"
-+	       " pid:%u, assigned asid:%lu\n",
-+	       (unsigned int)mm, (unsigned int)prev_owner,
-+	       (unsigned int)(mm->context.tsk), (mm->context.tsk)->comm,
-+	       (mm->context.tsk)->pid, mm->context.asid);
-+#endif
-+
-+	write_aux_reg(ARC_REG_PID, asid_cache | MMU_ENABLE);
++	utlb_invalidate();
 +
 +	local_irq_restore(flags);
 +}
 +
 +/*
-+ * Initialize the context related info for a new mm_struct
-+ * instance.
++ * Flush the entrie MM for userland. The fastest way is to move to Next ASID
 + */
-+static inline int
-+init_new_context(struct task_struct *tsk, struct mm_struct *mm)
++noinline void local_flush_tlb_mm(struct mm_struct *mm)
 +{
-+	mm->context.asid = NO_ASID;
-+#ifdef CONFIG_ARC_TLB_DBG
-+	mm->context.tsk = tsk;
-+#endif
-+	return 0;
-+}
-+
-+/* Prepare the MMU for task: setup PID reg with allocated ASID
-+    If task doesn't have an ASID (never alloc or stolen, get a new ASID)
-+*/
-+static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
-+			     struct task_struct *tsk)
-+{
-+	/* PGD cached in MMU reg to avoid 3 mem lookups: task->mm->pgd */
-+	write_aux_reg(ARC_REG_SCRATCH_DATA0, next->pgd);
++	/*
++	 * Small optimisation courtesy IA64
++	 * flush_mm called during fork,exit,munmap etc, multiple times as well.
++	 * Only for fork( ) do we need to move parent to a new MMU ctxt,
++	 * all other cases are NOPs, hence this check.
++	 */
++	if (atomic_read(&mm->mm_users) == 0)
++		return;
 +
 +	/*
-+	 * Get a new ASID if task doesn't have a valid one. Possible when
-+	 *  -task never had an ASID (fresh after fork)
-+	 *  -it's ASID was stolen - past an ASID roll-over.
-+	 *  -There's a third obscure scenario (if this task is running for the
-+	 *   first time afer an ASID rollover), where despite having a valid
-+	 *   ASID, we force a get for new ASID - see comments at top.
-+	 *
-+	 * Both the non-alloc scenario and first-use-after-rollover can be
-+	 * detected using the single condition below:  NO_ASID = 256
-+	 * while asid_cache is always a valid ASID value (0-255).
++	 * Workaround for Android weirdism:
++	 * A binder VMA could end up in a task such that vma->mm != tsk->mm
++	 * old code would cause h/w - s/w ASID to get out of sync
 +	 */
-+	if (next->context.asid > asid_cache) {
-+		get_new_mmu_context(next);
-+	} else {
-+		/*
-+		 * XXX: This will never happen given the chks above
-+		 * BUG_ON(next->context.asid > MAX_ASID);
-+		 */
-+		write_aux_reg(ARC_REG_PID, next->context.asid | MMU_ENABLE);
-+	}
-+
++	if (current->mm != mm)
++		destroy_context(mm);
++	else
++		get_new_mmu_context(mm);
 +}
 +
-+static inline void destroy_context(struct mm_struct *mm)
++/*
++ * Flush a Range of TLB entries for userland.
++ * @start is inclusive, while @end is exclusive
++ * Difference between this and Kernel Range Flush is
++ *  -Here the fastest way (if range is too large) is to move to next ASID
++ *      without doing any explicit Shootdown
++ *  -In case of kernel Flush, entry has to be shot down explictly
++ */
++void local_flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
++			   unsigned long end)
 +{
 +	unsigned long flags;
++	unsigned int asid;
++
++	/* If range @start to @end is more than 32 TLB entries deep,
++	 * its better to move to a new ASID rather than searching for
++	 * individual entries and then shooting them down
++	 *
++	 * The calc above is rough, doesn't account for unaligned parts,
++	 * since this is heuristics based anyways
++	 */
++	if (unlikely((end - start) >= PAGE_SIZE * 32)) {
++		local_flush_tlb_mm(vma->vm_mm);
++		return;
++	}
++
++	/*
++	 * @start moved to page start: this alone suffices for checking
++	 * loop end condition below, w/o need for aligning @end to end
++	 * e.g. 2000 to 4001 will anyhow loop twice
++	 */
++	start &= PAGE_MASK;
 +
 +	local_irq_save(flags);
++	asid = vma->vm_mm->context.asid;
 +
-+	asid_mm_map[mm->context.asid] = NULL;
-+	mm->context.asid = NO_ASID;
++	if (asid != NO_ASID) {
++		while (start < end) {
++			tlb_entry_erase(start | (asid & 0xff));
++			start += PAGE_SIZE;
++		}
++	}
++
++	utlb_invalidate();
 +
 +	local_irq_restore(flags);
 +}
 +
-+/* it seemed that deactivate_mm( ) is a reasonable place to do book-keeping
-+ * for retiring-mm. However destroy_context( ) still needs to do that because
-+ * between mm_release( ) = >deactive_mm( ) and
-+ * mmput => .. => __mmdrop( ) => destroy_context( )
-+ * there is a good chance that task gets sched-out/in, making it's ASID valid
-+ * again (this teased me for a whole day).
++/* Flush the kernel TLB entries - vmalloc/modules (Global from MMU perspective)
++ *  @start, @end interpreted as kvaddr
++ * Interestingly, shared TLB entries can also be flushed using just
++ * @start,@end alone (interpreted as user vaddr), although technically SASID
++ * is also needed. However our smart TLbProbe lookup takes care of that.
 + */
-+#define deactivate_mm(tsk, mm)   do { } while (0)
-+
-+static inline void activate_mm(struct mm_struct *prev, struct mm_struct *next)
++void local_flush_tlb_kernel_range(unsigned long start, unsigned long end)
 +{
-+	write_aux_reg(ARC_REG_SCRATCH_DATA0, next->pgd);
++	unsigned long flags;
 +
-+	/* Unconditionally get a new ASID */
-+	get_new_mmu_context(next);
++	/* exactly same as above, except for TLB entry not taking ASID */
 +
++	if (unlikely((end - start) >= PAGE_SIZE * 32)) {
++		local_flush_tlb_all();
++		return;
++	}
++
++	start &= PAGE_MASK;
++
++	local_irq_save(flags);
++	while (start < end) {
++		tlb_entry_erase(start);
++		start += PAGE_SIZE;
++	}
++
++	utlb_invalidate();
++
++	local_irq_restore(flags);
 +}
 +
-+#define enter_lazy_tlb(mm, tsk)
-+
-+#endif /* __ASM_ARC_MMU_CONTEXT_H */
-diff --git a/arch/arc/mm/tlb.c b/arch/arc/mm/tlb.c
-new file mode 100644
-index 0000000..f1edae2
---- /dev/null
-+++ b/arch/arc/mm/tlb.c
-@@ -0,0 +1,23 @@
 +/*
-+ * TLB Management (flush/create/diagnostics) for ARC700
-+ *
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
++ * Delete TLB entry in MMU for a given page (??? address)
++ * NOTE One TLB entry contains translation for single PAGE
 + */
 +
-+#include <linux/module.h>
-+#include <asm/arcregs.h>
-+#include <asm/mmu_context.h>
-+#include <asm/tlb.h>
++void local_flush_tlb_page(struct vm_area_struct *vma, unsigned long page)
++{
++	unsigned long flags;
 +
-+/* A copy of the ASID from the PID reg is kept in asid_cache */
-+int asid_cache = FIRST_ASID;
++	/* Note that it is critical that interrupts are DISABLED between
++	 * checking the ASID and using it flush the TLB entry
++	 */
++	local_irq_save(flags);
 +
-+/* ASID to mm struct mapping. We have one extra entry corresponding to
-+ * NO_ASID to save us a compare when clearing the mm entry for old asid
-+ * see get_new_mmu_context (asm-arc/mmu_context.h)
-+ */
-+struct mm_struct *asid_mm_map[NUM_ASID + 1];
++	if (vma->vm_mm->context.asid != NO_ASID) {
++		tlb_entry_erase((page & PAGE_MASK) |
++				(vma->vm_mm->context.asid & 0xff));
++		utlb_invalidate();
++	}
++
++	local_irq_restore(flags);
++}
+ 
+ /*
+  * Routine to create a TLB entry
 -- 
 1.7.4.1
