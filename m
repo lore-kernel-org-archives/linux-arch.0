@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 67/76] ARC: [Review] Multi-platform image #1: Kconfig enablement
-Date: Fri, 18 Jan 2013 17:55:21 +0530
-Message-ID: <1358511930-7424-68-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 48/76] ARC: Module support
+Date: Fri, 18 Jan 2013 17:55:02 +0530
+Message-ID: <1358511930-7424-49-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,71 +12,147 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-This mini patchseries addresses the lack of multi-platform-image support
-in ARC port.
-
-Older build system only supported one platform(soc) to build at a time
-and further only one board of that platform could be built. There was no
-technical reason for that - we just didn't have the need.
-
-So the first step towards multi-platform (and multi-board) builds it to
-allow build system to do that.
-
-So as applicable, <choice .. endchoice> => <menu .. endmenu>
-
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arc/Kconfig              |    6 ++----
- arch/arc/plat-arcfpga/Kconfig |    5 ++---
- 2 files changed, 4 insertions(+), 7 deletions(-)
+ arch/arc/include/asm/module.h |    4 ++
+ arch/arc/kernel/Makefile      |    1 +
+ arch/arc/kernel/module.c      |  103 +++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 108 insertions(+), 0 deletions(-)
+ create mode 100644 arch/arc/kernel/module.c
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index d73e69b..414e53d 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -82,9 +82,7 @@ source "kernel/Kconfig.freezer"
+diff --git a/arch/arc/include/asm/module.h b/arch/arc/include/asm/module.h
+index 165d768..234b435 100644
+--- a/arch/arc/include/asm/module.h
++++ b/arch/arc/include/asm/module.h
+@@ -14,4 +14,8 @@
  
- menu "ARC Architecture Configuration"
+ #include <asm-generic/module.h>
  
--choice
--	prompt "ARC Platform"
--	default ARC_PLAT_FPGA_LEGACY
-+menu "ARC Platform/SoC"
++#define MODULE_PROC_FAMILY "ARC700"
++
++#define MODULE_ARCH_VERMAGIC MODULE_PROC_FAMILY
++
+ #endif /* _ASM_ARC_MODULE_H */
+diff --git a/arch/arc/kernel/Makefile b/arch/arc/kernel/Makefile
+index a3c4a31..b4b9ab6 100644
+--- a/arch/arc/kernel/Makefile
++++ b/arch/arc/kernel/Makefile
+@@ -12,6 +12,7 @@ obj-y	:= arcksyms.o setup.o irq.o time.o reset.o ptrace.o entry.o process.o \
+ 	   signal.o traps.o sys.o troubleshoot.o stacktrace.o clk.o
  
- config ARC_PLAT_FPGA_LEGACY
- 	bool "\"Legacy\" ARC FPGA dev platform"
-@@ -96,7 +94,7 @@ config ARC_PLAT_FPGA_LEGACY
- 	  - MetaWare ISS
+ obj-$(CONFIG_OF)			+= devtree.o
++obj-$(CONFIG_MODULES)			+= arcksyms.o module.o
  
- #New platform adds here
--endchoice
-+endmenu
- 
- menu "ARC CPU Configuration"
- 
-diff --git a/arch/arc/plat-arcfpga/Kconfig b/arch/arc/plat-arcfpga/Kconfig
-index 86b7377..4b6c042 100644
---- a/arch/arc/plat-arcfpga/Kconfig
-+++ b/arch/arc/plat-arcfpga/Kconfig
-@@ -8,8 +8,7 @@
- 
- if ARC_PLAT_FPGA_LEGACY
- 
--choice
--	prompt "FPGA Board"
-+menu "FPGA Board"
- 
- config ARC_BOARD_ANGEL4
- 	bool "ARC Angel4"
-@@ -34,7 +33,7 @@ config ISS_SMP_EXTN
- 	  -XTL (To enable CPU start/stop/set-PC for another CPU)
- 	  It doesn't provide coherent Caches and/or Atomic Ops (LLOCK/SCOND)
- 
--endchoice
-+endmenu
- 
- config ARC_SERIAL_BAUD
- 	int "UART Baud rate"
+ obj-$(CONFIG_ARC_FPU_SAVE_RESTORE)	+= fpu.o
+ CFLAGS_fpu.o   += -mdpfp
+diff --git a/arch/arc/kernel/module.c b/arch/arc/kernel/module.c
+new file mode 100644
+index 0000000..723ad35
+--- /dev/null
++++ b/arch/arc/kernel/module.c
+@@ -0,0 +1,103 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <linux/module.h>
++#include <linux/moduleloader.h>
++#include <linux/kernel.h>
++#include <linux/elf.h>
++#include <linux/vmalloc.h>
++#include <linux/slab.h>
++#include <linux/fs.h>
++#include <linux/string.h>
++
++static inline void arc_write_me(unsigned short *addr, unsigned long value)
++{
++	*addr = (value & 0xffff0000) >> 16;
++	*(addr + 1) = (value & 0xffff);
++}
++
++int module_frob_arch_sections(Elf_Ehdr *hdr, Elf_Shdr *sechdrs,
++			      char *secstr, struct module *mod)
++{
++    return 0;
++}
++
++void module_arch_cleanup(struct module *mod)
++{
++}
++
++int apply_relocate_add(Elf32_Shdr *sechdrs,
++		       const char *strtab,
++		       unsigned int symindex,	/* sec index for sym tbl */
++		       unsigned int relsec,	/* sec index for relo sec */
++		       struct module *module)
++{
++	int i, n;
++	Elf32_Rela *rel_entry = (void *)sechdrs[relsec].sh_addr;
++	Elf32_Sym *sym_entry, *sym_sec;
++	Elf32_Addr relocation;
++	Elf32_Addr location;
++	Elf32_Addr sec_to_patch;
++	int relo_type;
++
++	sec_to_patch = sechdrs[sechdrs[relsec].sh_info].sh_addr;
++	sym_sec = (Elf32_Sym *) sechdrs[symindex].sh_addr;
++	n = sechdrs[relsec].sh_size / sizeof(*rel_entry);
++
++	pr_debug("\n========== Module Sym reloc ===========================\n");
++	pr_debug("Section to fixup %x\n", sec_to_patch);
++	pr_debug("=========================================================\n");
++	pr_debug("rela->r_off | rela->addend | sym->st_value | ADDR | VALUE\n");
++	pr_debug("=========================================================\n");
++
++	/* Loop thru entries in relocation section */
++	for (i = 0; i < n; i++) {
++
++		/* This is where to make the change */
++		location = sec_to_patch + rel_entry[i].r_offset;
++
++		/* This is the symbol it is referring to.  Note that all
++		   undefined symbols have been resolved.  */
++		sym_entry = sym_sec + ELF32_R_SYM(rel_entry[i].r_info);
++
++		relocation = sym_entry->st_value + rel_entry[i].r_addend;
++
++		pr_debug("\t%x\t\t%x\t\t%x  %x %x [%s]\n",
++			rel_entry[i].r_offset, rel_entry[i].r_addend,
++			sym_entry->st_value, location, relocation,
++			strtab + sym_entry->st_name);
++
++		/* This assumes modules are built with -mlong-calls
++		 * so any branches/jumps are absolute 32 bit jmps
++		 * global data access again is abs 32 bit.
++		 * Both of these are handled by same relocation type
++		 */
++		relo_type = ELF32_R_TYPE(rel_entry[i].r_info);
++
++		if (likely(R_ARC_32_ME == relo_type))
++			arc_write_me((unsigned short *)location, relocation);
++		else if (R_ARC_32 == relo_type)
++			*((Elf32_Addr *) location) = relocation;
++		else
++			goto relo_err;
++
++	}
++	return 0;
++
++relo_err:
++	pr_err("%s: unknown relocation: %u\n",
++		module->name, ELF32_R_TYPE(rel_entry[i].r_info));
++	return -ENOEXEC;
++
++}
++
++int module_finalize(const Elf32_Ehdr *hdr, const Elf_Shdr *sechdrs,
++		    struct module *mod)
++{
++    return 0;
++}
 -- 
 1.7.4.1
