@@ -1,12 +1,12 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from alvesta.synopsys.com ([198.182.60.77]:58777 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756221Ab3ARMay (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:30:54 -0500
+Received: from us01smtp3.synopsys.com ([198.182.44.81]:55827 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756211Ab3ARM2h (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:28:37 -0500
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 09/76] ARC: Checksum/byteorder/swab routines
-Date: Fri, 18 Jan 2013 17:54:23 +0530
-Message-ID: <1358511930-7424-10-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 20/76] ARC: [Review] Preparing to fix incorrect syscall restarts due to signals
+Date: Fri, 18 Jan 2013 17:54:34 +0530
+Message-ID: <1358511930-7424-21-git-send-email-vgupta@synopsys.com>
 In-Reply-To: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
@@ -14,256 +14,150 @@ Content-Type: text/plain
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Message-ID: <20130118122423.Fll1LHdbbsdMe_q_863nAC4ttxPEUS8d0zpYIrTexD8@z>
+Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Al Viro <viro@ZenIV.linux.org.uk>
+Message-ID: <20130118122434.SUsz_SoyQuQpniH4neIkxpz7Lhk4SWglma29QocB4kI@z>
 
-TBD: do_csum still needs to be written in asm
+To avoid multiple syscall restarts (multiple signals) or no restart at
+all (sigreturn), we need just an extra bit of state "literally 1 bit" in
+struct pt_regs. orig_r8 is the best place to do this, however given the
+way it is encoded currently, we can't add anything simplistically.
+
+Current orig_r8:
+* syscalls   -> 1 to NR_SYSCALLS
+* Exceptions -> NR_SYSCALLS + 1
+* Break-point-> NR_SYSCALLS + 2
+
+In new scheme it is a bit-field
+* lower short word contains the  exact event type (and a new bit to represent
+   restart semantics : if syscall was already / can't be restarted)
+* upper short word optionally containing the syscall num - needed by
+  likes of tracehooks etc
+
+This patch only changes how orig_r8 is organised and nothing should
+change behaviourily.
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+Cc: Al Viro <viro@ZenIV.linux.org.uk>
 ---
- arch/arc/include/asm/byteorder.h |   18 +++++++
- arch/arc/include/asm/checksum.h  |  101 ++++++++++++++++++++++++++++++++++++++
- arch/arc/include/asm/swab.h      |   98 ++++++++++++++++++++++++++++++++++++
- 3 files changed, 217 insertions(+), 0 deletions(-)
- create mode 100644 arch/arc/include/asm/byteorder.h
- create mode 100644 arch/arc/include/asm/checksum.h
- create mode 100644 arch/arc/include/asm/swab.h
+ arch/arc/include/asm/entry.h  |   29 +++++++++++++++++------------
+ arch/arc/include/asm/ptrace.h |   15 +++++++++++----
+ arch/arc/kernel/entry.S       |    4 ++--
+ 3 files changed, 30 insertions(+), 18 deletions(-)
 
-diff --git a/arch/arc/include/asm/byteorder.h b/arch/arc/include/asm/byteorder.h
-new file mode 100644
-index 0000000..9da71d4
---- /dev/null
-+++ b/arch/arc/include/asm/byteorder.h
-@@ -0,0 +1,18 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ */
+diff --git a/arch/arc/include/asm/entry.h b/arch/arc/include/asm/entry.h
+index 6b42bf5..d72995b 100644
+--- a/arch/arc/include/asm/entry.h
++++ b/arch/arc/include/asm/entry.h
+@@ -343,18 +343,12 @@
+  *-------------------------------------------------------------*/
+ .macro SAVE_ALL_EXCEPTION   marker
+ 
++	st      \marker, [sp, 8]
++	st      r0, [sp, 4]    /* orig_r0, needed only for sys calls */
 +
-+#ifndef __ASM_ARC_BYTEORDER_H
-+#define __ASM_ARC_BYTEORDER_H
-+
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+#include <linux/byteorder/big_endian.h>
+ 	/* Restore r9 used to code the early prologue */
+ 	EXCPN_PROLOG_RESTORE_REG  r9
+ 
+-	/* Save the complete regfile now */
+-
+-	/* orig_r8 marker:
+-	 * syscalls   -> 1 to NR_SYSCALLS
+-	 * Exceptions -> NR_SYSCALLS + 1
+-	 * Break-point-> NR_SYSCALLS + 2
+-	 */
+-	st      \marker, [sp, 8]
+-	st      r0, [sp, 4]    /* orig_r0, needed only for sys calls */
+ 	SAVE_CALLER_SAVED
+ 	st.a    r26, [sp, -4]   /* gp */
+ 	st.a    fp, [sp, -4]
+@@ -384,14 +378,25 @@
+  * Save scratch regs for exceptions
+  *-------------------------------------------------------------*/
+ .macro SAVE_ALL_SYS
+-	SAVE_ALL_EXCEPTION  (NR_syscalls + 1)
++	SAVE_ALL_EXCEPTION  orig_r8_IS_EXCPN
+ .endm
+ 
+ /*--------------------------------------------------------------
+  * Save scratch regs for sys calls
+  *-------------------------------------------------------------*/
+ .macro SAVE_ALL_TRAP
+-	SAVE_ALL_EXCEPTION  r8
++	/*
++	 * Encode syscall number (r8) in upper short word of event type (r9)
++	 * (r9 is already clobbered when we land here)
++	 */
++#ifndef CONFIG_CPU_BIG_ENDIAN
++	lsl  r9, r8, 16
++	or   r9, r9, orig_r8_IS_SCALL
 +#else
-+#include <linux/byteorder/little_endian.h>
++	lsl  r9, orig_r8_IS_SCALL, 16
++	or   r9, r9, r8
 +#endif
++	SAVE_ALL_EXCEPTION  r9
+ .endm
+ 
+ /*--------------------------------------------------------------
+@@ -442,7 +447,7 @@
+ 	ld  r9, [@int1_saved_reg]
+ 
+ 	/* now we are ready to save the remaining context :) */
+-	st     -1, [sp, 8]    /* orig_r8, -1 for interuppt level one */
++	st      orig_r8_IS_IRQ1, [sp, 8]    /* Event Type */
+ 	st      0, [sp, 4]    /* orig_r0 , N/A for IRQ */
+ 	SAVE_CALLER_SAVED
+ 	st.a    r26, [sp, -4]   /* gp */
+diff --git a/arch/arc/include/asm/ptrace.h b/arch/arc/include/asm/ptrace.h
+index 9abbb7c..ddb9ce7 100644
+--- a/arch/arc/include/asm/ptrace.h
++++ b/arch/arc/include/asm/ptrace.h
+@@ -81,7 +81,8 @@ struct pt_regs {
+ 	long r0;
+ 	long sp;	/* user/kernel sp depending on where we came from  */
+ 	long orig_r0;
+-	long orig_r8;	/*to distinguish bet excp, sys call, int1 or int2 */
++	/*to distinguish bet excp, syscall, irq */
++	unsigned long event_type:16, orig_r8:16;
+ };
+ 
+ /* Callee saved registers - need to be saved only when you are scheduled out */
+@@ -126,12 +127,18 @@ struct user_regs_struct {
+ 	sp;			\
+ })
+ 
+-/* return 1 if in syscall, 0 if Intr or Exception */
+-#define in_syscall(regs) (((regs->orig_r8) >= 0 && \
+-			   (regs->orig_r8 <= NR_syscalls)) ? 1 : 0)
++#define in_syscall(regs) (regs->orig_r8 & orig_r8_IS_SCALL)
++#define in_brkpt_trap(regs) (regs->orig_r8 & orig_r8_IS_BRKPT)
+ 
+ #endif /* !__ASSEMBLY__ */
+ 
++#define orig_r8_IS_SCALL		0x0001
++#define orig_r8_IS_SCALL_RESTARTED	0x0002
++#define orig_r8_IS_BRKPT		0x0004
++#define orig_r8_IS_EXCPN		0x0004
++#define orig_r8_IS_IRQ1			0x0010
++#define orig_r8_IS_IRQ2			0x0020
 +
-+#endif /* ASM_ARC_BYTEORDER_H */
-diff --git a/arch/arc/include/asm/checksum.h b/arch/arc/include/asm/checksum.h
-new file mode 100644
-index 0000000..1095729
---- /dev/null
-+++ b/arch/arc/include/asm/checksum.h
-@@ -0,0 +1,101 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * Joern Rennecke  <joern.rennecke@embecosm.com>: Jan 2012
-+ *  -Insn Scheduling improvements to csum core routines.
-+ *      = csum_fold( ) largely derived from ARM version.
-+ *      = ip_fast_cum( ) to have module scheduling
-+ *  -gcc 4.4.x broke networking. Alias analysis needed to be primed.
-+ *   worked around by adding memory clobber to ip_fast_csum( )
-+ *
-+ * vineetg: May 2010
-+ *  -Rewrote ip_fast_cscum( ) and csum_fold( ) with fast inline asm
-+ */
-+
-+#ifndef _ASM_ARC_CHECKSUM_H
-+#define _ASM_ARC_CHECKSUM_H
-+
-+/*
-+ *	Fold a partial checksum
-+ *
-+ *  The 2 swords comprising the 32bit sum are added, any carry to 16th bit
-+ *  added back and final sword result inverted.
-+ */
-+static inline __sum16 csum_fold(__wsum s)
-+{
-+	unsigned r = s << 16 | s >> 16;	/* ror */
-+	s = ~s;
-+	s -= r;
-+	return s >> 16;
-+}
-+
-+/*
-+ *	This is a version of ip_compute_csum() optimized for IP headers,
-+ *	which always checksum on 4 octet boundaries.
-+ */
-+static inline __sum16
-+ip_fast_csum(const void *iph, unsigned int ihl)
-+{
-+	const void *ptr = iph;
-+	unsigned int tmp, tmp2, sum;
-+
-+	__asm__(
-+	"	ld.ab  %0, [%3, 4]		\n"
-+	"	ld.ab  %2, [%3, 4]		\n"
-+	"	sub    %1, %4, 2		\n"
-+	"	lsr.f  lp_count, %1, 1		\n"
-+	"	bcc    0f			\n"
-+	"	add.f  %0, %0, %2		\n"
-+	"	ld.ab  %2, [%3, 4]		\n"
-+	"0:	lp     1f			\n"
-+	"	ld.ab  %1, [%3, 4]		\n"
-+	"	adc.f  %0, %0, %2		\n"
-+	"	ld.ab  %2, [%3, 4]		\n"
-+	"	adc.f  %0, %0, %1		\n"
-+	"1:	adc.f  %0, %0, %2		\n"
-+	"	add.cs %0,%0,1			\n"
-+	: "=&r"(sum), "=r"(tmp), "=&r"(tmp2), "+&r" (ptr)
-+	: "r"(ihl)
-+	: "cc", "lp_count", "memory");
-+
-+	return csum_fold(sum);
-+}
-+
-+/*
-+ * TCP pseudo Header is 12 bytes:
-+ * SA [4], DA [4], zeroes [1], Proto[1], TCP Seg(hdr+data) Len [2]
-+ */
-+static inline __wsum
-+csum_tcpudp_nofold(__be32 saddr, __be32 daddr, unsigned short len,
-+		   unsigned short proto, __wsum sum)
-+{
-+	__asm__ __volatile__(
-+	"	add.f %0, %0, %1	\n"
-+	"	adc.f %0, %0, %2	\n"
-+	"	adc.f %0, %0, %3	\n"
-+	"	adc.f %0, %0, %4	\n"
-+	"	adc   %0, %0, 0		\n"
-+	: "+&r"(sum)
-+	: "r"(saddr), "r"(daddr),
-+#ifdef CONFIG_CPU_BIG_ENDIAN
-+	  "r"(len),
-+#else
-+	  "r"(len << 8),
-+#endif
-+	  "r"(htons(proto))
-+	: "cc");
-+
-+	return sum;
-+}
-+
-+#define csum_fold csum_fold
-+#define ip_fast_csum ip_fast_csum
-+#define csum_tcpudp_nofold csum_tcpudp_nofold
-+
-+#include <asm-generic/checksum.h>
-+
-+#endif /* _ASM_ARC_CHECKSUM_H */
-diff --git a/arch/arc/include/asm/swab.h b/arch/arc/include/asm/swab.h
-new file mode 100644
-index 0000000..095599a
---- /dev/null
-+++ b/arch/arc/include/asm/swab.h
-@@ -0,0 +1,98 @@
-+/*
-+ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * vineetg: May 2011
-+ *  -Support single cycle endian-swap insn in ARC700 4.10
-+ *
-+ * vineetg: June 2009
-+ *  -Better htonl implementation (5 instead of 9 ALU instructions)
-+ *  -Hardware assisted single cycle bswap (Use Case of ARC custom instrn)
-+ */
-+
-+#ifndef __ASM_ARC_SWAB_H
-+#define __ASM_ARC_SWAB_H
-+
-+#include <linux/types.h>
-+
-+/* Native single cycle endian swap insn */
-+#ifdef CONFIG_ARC_HAS_SWAPE
-+
-+#define __arch_swab32(x)		\
-+({					\
-+	unsigned int tmp = x;		\
-+	__asm__(			\
-+	"	swape	%0, %1	\n"	\
-+	: "=r" (tmp)			\
-+	: "r" (tmp));			\
-+	tmp;				\
-+})
-+
-+#else
-+
-+/* Several ways of Endian-Swap Emulation for ARC
-+ * 0: kernel generic
-+ * 1: ARC optimised "C"
-+ * 2: ARC Custom instruction
-+ */
-+#define ARC_BSWAP_TYPE	1
-+
-+#if (ARC_BSWAP_TYPE == 1)		/******* Software only ********/
-+
-+/* The kernel default implementation of htonl is
-+ *		return  x<<24 | x>>24 |
-+ *		 (x & (__u32)0x0000ff00UL)<<8 | (x & (__u32)0x00ff0000UL)>>8;
-+ *
-+ * This generates 9 instructions on ARC (excluding the ld/st)
-+ *
-+ * 8051fd8c:	ld     r3,[r7,20]	; Mem op : Get the value to be swapped
-+ * 8051fd98:	asl    r5,r3,24		; get  3rd Byte
-+ * 8051fd9c:	lsr    r2,r3,24		; get  0th Byte
-+ * 8051fda0:	and    r4,r3,0xff00
-+ * 8051fda8:	asl    r4,r4,8		; get 1st Byte
-+ * 8051fdac:	and    r3,r3,0x00ff0000
-+ * 8051fdb4:	or     r2,r2,r5		; combine 0th and 3rd Bytes
-+ * 8051fdb8:	lsr    r3,r3,8		; 2nd Byte at correct place in Dst Reg
-+ * 8051fdbc:	or     r2,r2,r4		; combine 0,3 Bytes with 1st Byte
-+ * 8051fdc0:	or     r2,r2,r3		; combine 0,3,1 Bytes with 2nd Byte
-+ * 8051fdc4:	st     r2,[r1,20]	; Mem op : save result back to mem
-+ *
-+ * Joern suggested a better "C" algorithm which is great since
-+ * (1) It is portable to any architecure
-+ * (2) At the same time it takes advantage of ARC ISA (rotate intrns)
-+ */
-+
-+#define __arch_swab32(x)					\
-+({	unsigned long __in = (x), __tmp;			\
-+	__tmp = __in << 8 | __in >> 24; /* ror tmp,in,24 */	\
-+	__in = __in << 24 | __in >> 8; /* ror in,in,8 */	\
-+	__tmp ^= __in;						\
-+	__tmp &= 0xff00ff;					\
-+	__tmp ^ __in;						\
-+})
-+
-+#elif (ARC_BSWAP_TYPE == 2)	/* Custom single cycle bwap instruction */
-+
-+#define __arch_swab32(x)						\
-+({									\
-+	unsigned int tmp = x;						\
-+	__asm__(							\
-+	"	.extInstruction	bswap, 7, 0x00, SUFFIX_NONE, SYNTAX_2OP	\n"\
-+	"	bswap  %0, %1						\n"\
-+	: "=r" (tmp)							\
-+	: "r" (tmp));							\
-+	tmp;								\
-+})
-+
-+#endif /* ARC_BSWAP_TYPE=zzz */
-+
-+#endif /* CONFIG_ARC_HAS_SWAPE */
-+
-+#if !defined(__STRICT_ANSI__) || defined(__KERNEL__)
-+#define __SWAB_64_THRU_32__
-+#endif
-+
-+#endif
+ #endif /* __KERNEL__ */
+ 
+ #endif /* __ASM_PTRACE_H */
+diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
+index efaf3de..0324ad1 100644
+--- a/arch/arc/kernel/entry.S
++++ b/arch/arc/kernel/entry.S
+@@ -354,8 +354,8 @@ ARC_EXIT EV_Extension
+ 
+ trap_with_param:
+ 
+-	;make sure orig_r8 is a positive value
+-	st  NR_syscalls + 2, [sp, PT_orig_r8]
++	; stop_pc info by gdb needs this info
++	st  orig_r8_IS_BRKPT, [sp, PT_orig_r8]
+ 
+ 	mov r0, r12
+ 	lr  r1, [efa]
 -- 
 1.7.4.1
 
