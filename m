@@ -1,502 +1,337 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 47/76] ARC: Support for high priority interrupts in the in-core intc
-Date: Fri, 18 Jan 2013 17:55:01 +0530
-Message-ID: <1358511930-7424-48-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 43/76] ARC: [optim] Cache "current" in Register r25
+Date: Fri, 18 Jan 2013 17:54:57 +0530
+Message-ID: <1358511930-7424-44-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
-Return-path: <linux-kernel-owner@vger.kernel.org>
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from us02smtp1.synopsys.com ([198.182.60.75]:59295 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1756454Ab3ARMbk (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 07:31:40 -0500
 In-Reply-To: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
-Sender: linux-kernel-owner@vger.kernel.org
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
-List-Id: linux-arch.vger.kernel.org
-
-There is a bit of hack/kludge right now where we disable preemption if a
-L2 (High prio) IRQ is taken while L1 (Low prio) is active.
-
-Need to revisit this
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
- arch/arc/Kconfig                |   19 ++++++
- arch/arc/include/asm/entry.h    |   95 +++++++++++++++++++++++++++++++
- arch/arc/include/asm/irqflags.h |    6 ++-
- arch/arc/kernel/entry.S         |  117 +++++++++++++++++++++++++++++++++++++++
- arch/arc/kernel/irq.c           |  104 ++++++++++++++++++++++++++++++++++-
- 5 files changed, 339 insertions(+), 2 deletions(-)
+ arch/arc/Kconfig                 |    7 ++++++
+ arch/arc/Makefile                |    9 +++++++
+ arch/arc/include/asm/Kbuild      |    1 -
+ arch/arc/include/asm/current.h   |   32 +++++++++++++++++++++++++++
+ arch/arc/include/asm/entry.h     |   45 ++++++++++++++++++++++++++++++++++++++
+ arch/arc/include/asm/processor.h |    3 ++
+ arch/arc/kernel/asm-offsets.c    |    3 ++
+ arch/arc/kernel/ctx_sw.c         |    7 ++++++
+ arch/arc/kernel/entry.S          |   14 +++++++++++
+ 9 files changed, 120 insertions(+), 1 deletions(-)
+ create mode 100644 arch/arc/include/asm/current.h
 
 diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index ae126a7..20f3c4a 100644
+index 3adc87b..7e191b9 100644
 --- a/arch/arc/Kconfig
 +++ b/arch/arc/Kconfig
-@@ -208,6 +208,25 @@ config ARC_PAGE_SIZE_4K
+@@ -264,6 +264,13 @@ config LINUX_LINK_BASE
  
- endchoice
+ endmenu # "Platform Board Configuration"
  
-+config ARC_COMPACT_IRQ_LEVELS
-+	bool "ARCompact IRQ Priorities: High(2)/Low(1)"
-+	default n
-+	# Timer HAS to be high priority, for any other high priority config
-+	select ARC_IRQ3_LV2
++config ARC_CURR_IN_REG
++	bool "Dedicate Register r25 for current_task pointer"
++	default y
++	help
++	  This reserved Register R25 to point to Current Task in
++	  kernel mode. This saves memory access for each such access
 +
-+if ARC_COMPACT_IRQ_LEVELS
-+
-+config ARC_IRQ3_LV2
-+	bool
-+
-+config ARC_IRQ5_LV2
-+	bool
-+
-+config ARC_IRQ6_LV2
-+	bool
-+
+ config ARC_STACK_NONEXEC
+ 	bool "Make stack non-executable"
+ 	default n
+diff --git a/arch/arc/Makefile b/arch/arc/Makefile
+index d697e9c..49460cc 100644
+--- a/arch/arc/Makefile
++++ b/arch/arc/Makefile
+@@ -20,6 +20,15 @@ export PLATFORM
+ cflags-y	+= -Iarch/arc/plat-$(PLATFORM)/include
+ cflags-y	+= -mA7 -fno-common -pipe -fno-builtin -D__linux__
+ 
++ifdef CONFIG_ARC_CURR_IN_REG
++# For a global register defintion, make sure it gets passed to every file
++# We had a customer reported bug where some code built in kernel was NOT using
++# any kernel headers, and missing the r25 global register
++# Can't do unconditionally (like above) because of recursive include issues
++# due to <linux/thread_info.h>
++LINUXINCLUDE	+=  -include ${src}/arch/arc/include/asm/current.h
 +endif
 +
- config ARC_FPU_SAVE_RESTORE
- 	bool "Enable FPU state persistence across context switch"
- 	default n
+ atleast_gcc44 :=  $(call cc-ifversion, -gt, 0402, y)
+ cflags-$(atleast_gcc44)			+= -fsection-anchors
+ 
+diff --git a/arch/arc/include/asm/Kbuild b/arch/arc/include/asm/Kbuild
+index 105ec11..78e982d 100644
+--- a/arch/arc/include/asm/Kbuild
++++ b/arch/arc/include/asm/Kbuild
+@@ -11,7 +11,6 @@ generic-y += bugs.h
+ generic-y += bitsperlong.h
+ generic-y += clkdev.h
+ generic-y += cputime.h
+-generic-y += current.h
+ generic-y += device.h
+ generic-y += div64.h
+ generic-y += emergency-restart.h
+diff --git a/arch/arc/include/asm/current.h b/arch/arc/include/asm/current.h
+new file mode 100644
+index 0000000..87b9185
+--- /dev/null
++++ b/arch/arc/include/asm/current.h
+@@ -0,0 +1,32 @@
++/*
++ * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * Vineetg: May 16th, 2008
++ *  - Current macro is now implemented as "global register" r25
++ */
++
++#ifndef _ASM_ARC_CURRENT_H
++#define _ASM_ARC_CURRENT_H
++
++#ifdef __KERNEL__
++
++#ifndef __ASSEMBLY__
++
++#ifdef CONFIG_ARC_CURR_IN_REG
++
++register struct task_struct *curr_arc asm("r25");
++#define current (curr_arc)
++
++#else
++#include <asm-generic/current.h>
++#endif /* ! CONFIG_ARC_CURR_IN_REG */
++
++#endif /* ! __ASSEMBLY__ */
++
++#endif	/* __KERNEL__ */
++
++#endif /* _ASM_ARC_CURRENT_H */
 diff --git a/arch/arc/include/asm/entry.h b/arch/arc/include/asm/entry.h
-index 6b491d1..89e6583 100644
+index d72995b..6b491d1 100644
 --- a/arch/arc/include/asm/entry.h
 +++ b/arch/arc/include/asm/entry.h
-@@ -5,6 +5,12 @@
-  * it under the terms of the GNU General Public License version 2 as
-  * published by the Free Software Foundation.
+@@ -13,6 +13,8 @@
+  *   was being "CLEARED" rather then "SET". Actually "SET" clears ZOL context
   *
-+ * Vineetg: March 2009 (Supporting 2 levels of Interrupts)
-+ *  Stack switching code can no longer reliably rely on the fact that
-+ *  if we are NOT in user mode, stack is switched to kernel mode.
-+ *  e.g. L2 IRQ interrupted a L1 ISR which had not yet completed
-+ *  it's prologue including stack switching from user mode
-+ *
-  * Vineetg: Aug 28th 2008: Bug #94984
-  *  -Zero Overhead Loop Context shd be cleared when entering IRQ/EXcp/Trap
-  *   Normally CPU does this automatically, however when doing FAKE rtie,
-@@ -268,6 +274,33 @@
- 	 * assume SP is kernel mode SP. _NO_ need to do any stack switching
- 	 */
+  * Vineetg: May 5th 2008
++ *  -Modified CALLEE_REG save/restore macros to handle the fact that
++ *      r25 contains the kernel current task ptr
+  *  - Defined Stack Switching Macro to be reused in all intr/excp hdlrs
+  *  - Shaved off 11 instructions from RESTORE_ALL_INT1 by using the
+  *      address Write back load ld.ab instead of seperate ld/add instn
+@@ -28,6 +30,7 @@
+ #include <asm/asm-offsets.h>
+ #include <asm/arcregs.h>
+ #include <asm/ptrace.h>
++#include <asm/processor.h>	/* For VMALLOC_START */
+ #include <asm/thread_info.h>	/* For THREAD_SIZE */
  
-+#ifdef CONFIG_ARC_COMPACT_IRQ_LEVELS
-+	/* However....
-+	 * If Level 2 Interrupts enabled, we may end up with a corner case:
-+	 * 1. User Task executing
-+	 * 2. L1 IRQ taken, ISR starts (CPU auto-switched to KERNEL mode)
-+	 * 3. But before it could switch SP from USER to KERNEL stack
-+	 *      a L2 IRQ "Interrupts" L1
-+	 * Thay way although L2 IRQ happened in Kernel mode, stack is still
-+	 * not switched.
-+	 * To handle this, we may need to switch stack even if in kernel mode
-+	 * provided SP has values in range of USER mode stack ( < 0x7000_0000 )
-+	 */
-+	brlo sp, VMALLOC_START, 88f
+ /* Note on the LD/ST addr modes with addr reg wback
+@@ -106,7 +109,14 @@
+ 	st.a    r22, [sp, -4]
+ 	st.a    r23, [sp, -4]
+ 	st.a    r24, [sp, -4]
 +
-+	/* TODO: vineetg:
-+	 * We need to be a bit more cautious here. What if a kernel bug in
-+	 * L1 ISR, caused SP to go whaco (some small value which looks like
-+	 * USER stk) and then we take L2 ISR.
-+	 * Above brlo alone would treat it as a valid L1-L2 sceanrio
-+	 * instead of shouting alound
-+	 * The only feasible way is to make sure this L2 happened in
-+	 * L1 prelogue ONLY i.e. ilink2 is less than a pre-set marker in
-+	 * L1 ISR before it switches stack
-+	 */
-+
++#ifdef CONFIG_ARC_CURR_IN_REG
++	; Retrieve orig r25 and save it on stack
++	ld      r12, [r25, TASK_THREAD + THREAD_USER_R25]
++	st.a    r12, [sp, -4]
++#else
+ 	st.a    r25, [sp, -4]
 +#endif
-+
- 	/* Save Pre Intr/Exception KERNEL MODE SP on kernel stack
- 	 * safe-keeping not really needed, but it keeps the epilogue code
- 	 * (SP restore) simpler/uniform.
-@@ -503,6 +536,42 @@
+ 
+ 	/* move up by 1 word to "create" callee_regs->"stack_place_holder" */
  	sub sp, sp, 4
+@@ -131,8 +141,12 @@
+ 	st.a    r22, [sp, -4]
+ 	st.a    r23, [sp, -4]
+ 	st.a    r24, [sp, -4]
++#ifdef CONFIG_ARC_CURR_IN_REG
++	sub     sp, sp, 8
++#else
+ 	st.a    r25, [sp, -4]
+ 	sub     sp, sp, 4
++#endif
  .endm
  
-+.macro SAVE_ALL_INT2
-+
-+	/* TODO-vineetg: SMP we can't use global nor can we use
-+	*   SCRATCH0 as we do for int1 because while int1 is using
-+	*   it, int2 can come
-+	*/
-+	/* retsore original r9 , saved in sys_saved_r9 */
-+	ld  r9, [@int2_saved_reg]
-+
-+	/* now we are ready to save the remaining context :) */
-+	st      orig_r8_IS_IRQ2, [sp, 8]    /* Event Type */
-+	st      0, [sp, 4]    /* orig_r0 , N/A for IRQ */
-+	SAVE_CALLER_SAVED
-+	st.a    r26, [sp, -4]   /* gp */
-+	st.a    fp, [sp, -4]
-+	st.a    blink, [sp, -4]
-+	st.a    ilink2, [sp, -4]
-+	lr	r9, [status32_l2]
-+	st.a    r9, [sp, -4]
-+	st.a    lp_count, [sp, -4]
-+	lr	r9, [lp_end]
-+	st.a    r9, [sp, -4]
-+	lr	r9, [lp_start]
-+	st.a    r9, [sp, -4]
-+	lr	r9, [bta_l2]
-+	st.a    r9, [sp, -4]
-+
-+#ifdef PT_REGS_CANARY
-+	mov   r9, 0xdeadbee2
-+	st    r9, [sp, -4]
-+#endif
-+
-+	/* move up by 1 word to "create" pt_regs->"stack_place_holder" */
-+	sub sp, sp, 4
-+.endm
-+
  /*--------------------------------------------------------------
-  * Restore all registers used by interrupt handlers.
+@@ -148,8 +162,14 @@
+  *-------------------------------------------------------------*/
+ .macro RESTORE_CALLEE_SAVED_KERNEL
+ 
++
++#ifdef CONFIG_ARC_CURR_IN_REG
++	add     sp, sp, 8  /* skip callee_reg gutter and user r25 placeholder */
++#else
+ 	add     sp, sp, 4   /* skip "callee_regs->stack_place_holder" */
+ 	ld.ab   r25, [sp, 4]
++#endif
++
+ 	ld.ab   r24, [sp, 4]
+ 	ld.ab   r23, [sp, 4]
+ 	ld.ab   r22, [sp, 4]
+@@ -235,6 +255,7 @@
   *
-@@ -537,6 +606,32 @@
- 	/* orig_r0 and orig_r8 skipped automatically */
+  * Entry   : r9 contains pre-IRQ/exception/trap status32
+  * Exit    : SP is set to kernel mode stack pointer
++ *           If CURR_IN_REG, r25 set to "current" task pointer
+  * Clobbers: r9
+  *-------------------------------------------------------------*/
+ 
+@@ -259,6 +280,16 @@
+ 
+ 	GET_CURR_TASK_ON_CPU   r9
+ 
++#ifdef CONFIG_ARC_CURR_IN_REG
++
++	/* If current task pointer cached in r25, time to
++	 *  -safekeep USER r25 in task->thread_struct->user_r25
++	 *  -load r25 with current task ptr
++	 */
++	st.as	r25, [r9, (TASK_THREAD + THREAD_USER_R25)/4]
++	mov	r25, r9
++#endif
++
+ 	/* With current tsk in r9, get it's kernel mode stack base */
+ 	GET_TSK_STACK_BASE  r9, r9
+ 
+@@ -519,17 +550,31 @@
+ 
+ .macro  SET_CURR_TASK_ON_CPU    tsk, tmp
+ 	st  \tsk, [@_current_task]
++#ifdef CONFIG_ARC_CURR_IN_REG
++	mov r25, \tsk
++#endif
  .endm
  
-+.macro RESTORE_ALL_INT2
-+	add sp, sp, 4       /* hop over unused "pt_regs->stack_place_holder" */
+ /* ------------------------------------------------------------------
+  * Get the ptr to some field of Current Task at @off in task struct
++ *  -Uses r25 for Current task ptr if that is enabled
+  */
+ 
++#ifdef CONFIG_ARC_CURR_IN_REG
 +
-+	ld.ab   r9, [sp, 4]
-+	sr	r9, [bta_l2]
-+	ld.ab   r9, [sp, 4]
-+	sr	r9, [lp_start]
-+	ld.ab   r9, [sp, 4]
-+	sr	r9, [lp_end]
-+	ld.ab   r9, [sp, 4]
-+	mov	lp_count, r9
-+	ld.ab   r9, [sp, 4]
-+	sr	r9, [status32_l2]
-+	ld.ab   r9, [sp, 4]
-+	mov	ilink2, r9
-+	ld.ab   blink, [sp, 4]
-+	ld.ab   fp, [sp, 4]
-+	ld.ab   r26, [sp, 4]    /* gp */
-+	RESTORE_CALLER_SAVED
-+
-+	ld  sp, [sp] /* restore original sp */
-+	/* orig_r0 and orig_r8 skipped automatically */
-+
++.macro GET_CURR_TASK_FIELD_PTR  off,  reg
++	add \reg, r25, \off
 +.endm
 +
++#else
 +
- /* Get CPU-ID of this core */
- .macro  GET_CPU_ID  reg
- 	lr  \reg, [identity]
-diff --git a/arch/arc/include/asm/irqflags.h b/arch/arc/include/asm/irqflags.h
-index 5cc1080..ccd8480 100644
---- a/arch/arc/include/asm/irqflags.h
-+++ b/arch/arc/include/asm/irqflags.h
-@@ -95,7 +95,11 @@ static inline long arch_local_save_flags(void)
-  */
- static inline int arch_irqs_disabled_flags(unsigned long flags)
- {
--	return !(flags & (STATUS_E1_MASK));
-+	return !(flags & (STATUS_E1_MASK
-+#ifdef CONFIG_ARC_COMPACT_IRQ_LEVELS
-+			| STATUS_E2_MASK
-+#endif
-+		));
- }
+ .macro GET_CURR_TASK_FIELD_PTR  off,  reg
+ 	GET_CURR_TASK_ON_CPU  \reg
+ 	add \reg, \reg, \off
+ .endm
  
- static inline int arch_irqs_disabled(void)
++#endif	/* CONFIG_ARC_CURR_IN_REG */
++
+ #endif  /* __ASSEMBLY__ */
+ 
+ #endif  /* __ASM_ARC_ENTRY_H */
+diff --git a/arch/arc/include/asm/processor.h b/arch/arc/include/asm/processor.h
+index 860252e..b7b1556 100644
+--- a/arch/arc/include/asm/processor.h
++++ b/arch/arc/include/asm/processor.h
+@@ -29,6 +29,9 @@ struct thread_struct {
+ 	unsigned long callee_reg;	/* pointer to callee regs */
+ 	unsigned long fault_address;	/* dbls as brkpt holder as well */
+ 	unsigned long cause_code;	/* Exception Cause Code (ECR) */
++#ifdef CONFIG_ARC_CURR_IN_REG
++	unsigned long user_r25;
++#endif
+ #ifdef CONFIG_ARC_FPU_SAVE_RESTORE
+ 	struct arc_fpu fpu;
+ #endif
+diff --git a/arch/arc/kernel/asm-offsets.c b/arch/arc/kernel/asm-offsets.c
+index 7f3f611..b0e7254 100644
+--- a/arch/arc/kernel/asm-offsets.c
++++ b/arch/arc/kernel/asm-offsets.c
+@@ -23,6 +23,9 @@ int main(void)
+ 
+ 	DEFINE(THREAD_KSP, offsetof(struct thread_struct, ksp));
+ 	DEFINE(THREAD_CALLEE_REG, offsetof(struct thread_struct, callee_reg));
++#ifdef CONFIG_ARC_CURR_IN_REG
++	DEFINE(THREAD_USER_R25, offsetof(struct thread_struct, user_r25));
++#endif
+ 	DEFINE(THREAD_FAULT_ADDR,
+ 	       offsetof(struct thread_struct, fault_address));
+ 
+diff --git a/arch/arc/kernel/ctx_sw.c b/arch/arc/kernel/ctx_sw.c
+index 647e37a..fbf739c 100644
+--- a/arch/arc/kernel/ctx_sw.c
++++ b/arch/arc/kernel/ctx_sw.c
+@@ -24,6 +24,9 @@ __switch_to(struct task_struct *prev_task, struct task_struct *next_task)
+ 	unsigned int prev = (unsigned int)prev_task;
+ 	unsigned int next = (unsigned int)next_task;
+ 	int num_words_to_skip = 1;
++#ifdef CONFIG_ARC_CURR_IN_REG
++	num_words_to_skip++;
++#endif
+ 
+ 	__asm__ __volatile__(
+ 		/* FP/BLINK save generated by gcc (standard function prologue */
+@@ -39,7 +42,9 @@ __switch_to(struct task_struct *prev_task, struct task_struct *next_task)
+ 		"st.a    r22, [sp, -4]   \n\t"
+ 		"st.a    r23, [sp, -4]   \n\t"
+ 		"st.a    r24, [sp, -4]   \n\t"
++#ifndef CONFIG_ARC_CURR_IN_REG
+ 		"st.a    r25, [sp, -4]   \n\t"
++#endif
+ 		"sub     sp, sp, %4      \n\t"	/* create gutter at top */
+ 
+ 		/* set ksp of outgoing task in tsk->thread.ksp */
+@@ -62,7 +67,9 @@ __switch_to(struct task_struct *prev_task, struct task_struct *next_task)
+ 
+ 		"add    sp, sp, %4     \n\t"	/* skip gutter at top */
+ 
++#ifndef CONFIG_ARC_CURR_IN_REG
+ 		"ld.ab   r25, [sp, 4]   \n\t"
++#endif
+ 		"ld.ab   r24, [sp, 4]   \n\t"
+ 		"ld.ab   r23, [sp, 4]   \n\t"
+ 		"ld.ab   r22, [sp, 4]   \n\t"
 diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
-index 703c5ff..36172a4 100644
+index 6823f30..6566e66 100644
 --- a/arch/arc/kernel/entry.S
 +++ b/arch/arc/kernel/entry.S
-@@ -36,6 +36,8 @@
-  *   exception. Thus FAKE RTIE needed in low level Priv-Violation handler.
-  *   Instr Error could also cause similar scenario, so same there as well.
+@@ -36,6 +36,9 @@
+  *   was being "CLEARED" rather then "SET". Since it is Loop INHIBIT Bit,
+  *   setting it and not clearing it clears ZOL context
   *
-+ * Vineetg: March 2009 (Supporting 2 levels of Interrupts)
++ * Vineetg: May 16th, 2008
++ *  - r25 now contains the Current Task when in kernel
 + *
-  * Vineetg: Aug 28th 2008: Bug #94984
-  *  -Zero Overhead Loop Context shd be cleared when entering IRQ/EXcp/Trap
-  *   Normally CPU does this automatically, however when doing FAKE rtie,
-@@ -101,13 +103,25 @@ VECTOR   mem_service             ; 0x8, Mem exception   (0x1)
- VECTOR   instr_service           ; 0x10, Instrn Error   (0x2)
+  * Vineetg: Dec 22, 2007
+  *    Minor Surgery of Low Level ISR to make it SMP safe
+  *    - MMU_SCRATCH0 Reg used for freeing up r9 in Level 1 ISR
+@@ -539,6 +542,17 @@ restore_regs :
+ 	; XXX can this be optimised out
+ 	IRQ_DISABLE_SAVE    r9, r10	;@r10 has prisitine (pre-disable) copy
  
- ; ******************** Device ISRs **********************
-+#ifdef CONFIG_ARC_IRQ3_LV2
-+VECTOR   handle_interrupt_level2
-+#else
- VECTOR   handle_interrupt_level1
-+#endif
- 
- VECTOR   handle_interrupt_level1
- 
-+#ifdef CONFIG_ARC_IRQ5_LV2
-+VECTOR   handle_interrupt_level2
-+#else
- VECTOR   handle_interrupt_level1
-+#endif
- 
-+#ifdef CONFIG_ARC_IRQ6_LV2
-+VECTOR   handle_interrupt_level2
-+#else
- VECTOR   handle_interrupt_level1
-+#endif
- 
- .rept   25
- VECTOR   handle_interrupt_level1 ; Other devices
-@@ -144,6 +158,17 @@ VECTOR   reserved                ; Reserved Exceptions
- int1_saved_reg:
- 	.zero 4
- 
-+/* Each Interrupt level needs it's own scratch */
-+#ifdef CONFIG_ARC_COMPACT_IRQ_LEVELS
-+
-+	.section .data		; NOT .global
-+	.type   int2_saved_reg, @object
-+	.size   int2_saved_reg, 4
-+int2_saved_reg:
-+	.zero 4
-+
++#ifdef CONFIG_ARC_CURR_IN_REG
++	; Restore User R25
++	; Earlier this used to be only for returning to user mode
++	; However with 2 levels of IRQ this can also happen even if
++	; in kernel mode
++	ld r9, [sp, PT_sp]
++	brhs r9, VMALLOC_START, 8f
++	RESTORE_USER_R25
++8:
 +#endif
 +
- ; ---------------------------------------------
- 	.section .text, "ax",@progbits
- 
-@@ -157,6 +182,55 @@ reserved:		; processor restart
- 
- ;##################### Interrupt Handling ##############################
- 
-+#ifdef CONFIG_ARC_COMPACT_IRQ_LEVELS
-+; ---------------------------------------------
-+;  Level 2 ISR: Can interrupt a Level 1 ISR
-+; ---------------------------------------------
-+ARC_ENTRY handle_interrupt_level2
-+
-+	; TODO-vineetg for SMP this wont work
-+	; free up r9 as scratchpad
-+	st  r9, [@int2_saved_reg]
-+
-+	;Which mode (user/kernel) was the system in when intr occured
-+	lr  r9, [status32_l2]
-+
-+	SWITCH_TO_KERNEL_STK
-+	SAVE_ALL_INT2
-+
-+	;------------------------------------------------------
-+	; if L2 IRQ interrupted a L1 ISR, disable preemption
-+	;------------------------------------------------------
-+
-+	ld r9, [sp, PT_status32]        ; get statu32_l2 (saved in pt_regs)
-+	bbit0 r9, STATUS_A1_BIT, 1f     ; L1 not active when L2 IRQ, so normal
-+
-+	; A1 is set in status32_l2
-+	; bump thread_info->preempt_count (Disable preemption)
-+	GET_CURR_THR_INFO_FROM_SP   r10
-+	ld      r9, [r10, THREAD_INFO_PREEMPT_COUNT]
-+	add     r9, r9, 1
-+	st      r9, [r10, THREAD_INFO_PREEMPT_COUNT]
-+
-+1:
-+	;------------------------------------------------------
-+	; setup params for Linux common ISR and invoke it
-+	;------------------------------------------------------
-+	lr  r0, [icause2]
-+	and r0, r0, 0x1f
-+
-+	bl.d  @arch_do_IRQ
-+	mov r1, sp
-+
-+	mov r8,0x2
-+	sr r8, [AUX_IRQ_LV12]       ; clear bit in Sticky Status Reg
-+
-+	b   ret_from_exception
-+
-+ARC_EXIT handle_interrupt_level2
-+
-+#endif
-+
- ; ---------------------------------------------
- ;  Level 1 ISR
- ; ---------------------------------------------
-@@ -624,6 +698,49 @@ restore_regs :
- 
- not_exception:
- 
-+#ifdef CONFIG_ARC_COMPACT_IRQ_LEVELS
-+
-+	bbit0  r10, STATUS_A2_BIT, not_level2_interrupt
-+
-+	;------------------------------------------------------------------
-+	; if L2 IRQ interrupted a L1 ISR,  we'd disbaled preemption earlier
-+	; so that sched doesnt move to new task, causing L1 to be delayed
-+	; undeterministically. Now that we've achieved that, lets reset
-+	; things to what they were, before returning from L2 context
-+	;----------------------------------------------------------------
-+
-+	ld r9, [sp, PT_orig_r8]        ; get orig_r8 to make sure it is
-+	brne r9, orig_r8_IS_IRQ2, 149f ; infact a L2 ISR ret path
-+
-+	ld r9, [sp, PT_status32]       ; get statu32_l2 (saved in pt_regs)
-+	bbit0 r9, STATUS_A1_BIT, 149f  ; L1 not active when L2 IRQ, so normal
-+
-+	; A1 is set in status32_l2
-+	; decrement thread_info->preempt_count (re-enable preemption)
-+	GET_CURR_THR_INFO_FROM_SP   r10
-+	ld      r9, [r10, THREAD_INFO_PREEMPT_COUNT]
-+
-+	; paranoid check, given A1 was active when A2 happened, preempt count
-+	; must not be 0 beccause we would have incremented it.
-+	; If this does happen we simply HALT as it means a BUG !!!
-+	cmp     r9, 0
-+	bnz     2f
-+	flag 1
-+
-+2:
-+	sub     r9, r9, 1
-+	st      r9, [r10, THREAD_INFO_PREEMPT_COUNT]
-+
-+149:
-+	;return from level 2
-+	RESTORE_ALL_INT2
-+debug_marker_l2:
-+	rtie
-+
-+not_level2_interrupt:
-+
-+#endif
-+
- 	bbit0  r10, STATUS_A1_BIT, not_level1_interrupt
- 
- 	;return from level 1
-diff --git a/arch/arc/kernel/irq.c b/arch/arc/kernel/irq.c
-index 3c18e66..ca70894 100644
---- a/arch/arc/kernel/irq.c
-+++ b/arch/arc/kernel/irq.c
-@@ -23,15 +23,32 @@
-  * what it does ?
-  * -setup Vector Table Base Reg - in case Linux not linked at 0x8000_0000
-  * -Disable all IRQs (on CPU side)
-+ * -Optionally, setup the High priority Interrupts as Level 2 IRQs
-  */
- void __init arc_init_IRQ(void)
- {
--	int level_mask = level_mask;
-+	int level_mask = 0;
- 
- 	write_aux_reg(AUX_INTR_VEC_BASE, _int_vec_base_lds);
- 
- 	/* Disable all IRQs: enable them as devices request */
- 	write_aux_reg(AUX_IENABLE, 0);
-+
-+       /* setup any high priority Interrupts (Level2 in ARCompact jargon) */
-+#ifdef CONFIG_ARC_IRQ3_LV2
-+	level_mask |= (1 << 3);
-+#endif
-+#ifdef CONFIG_ARC_IRQ5_LV2
-+	level_mask |= (1 << 5);
-+#endif
-+#ifdef CONFIG_ARC_IRQ6_LV2
-+	level_mask |= (1 << 6);
-+#endif
-+
-+	if (level_mask) {
-+		pr_info("Level-2 interrupts bitset %x\n", level_mask);
-+		write_aux_reg(AUX_IRQ_LEV, level_mask);
-+	}
- }
- 
- /*
-@@ -141,6 +158,90 @@ int __init get_hw_config_num_irq(void)
- 	return 0;
- }
- 
-+/*
-+ * arch_local_irq_enable - Enable interrupts.
-+ *
-+ * 1. Explicitly called to re-enable interrupts
-+ * 2. Implicitly called from spin_unlock_irq, write_unlock_irq etc
-+ *    which maybe in hard ISR itself
-+ *
-+ * Semantics of this function change depending on where it is called from:
-+ *
-+ * -If called from hard-ISR, it must not invert interrupt priorities
-+ *  e.g. suppose TIMER is high priority (Level 2) IRQ
-+ *    Time hard-ISR, timer_interrupt( ) calls spin_unlock_irq several times.
-+ *    Here local_irq_enable( ) shd not re-enable lower priority interrupts
-+ * -If called from soft-ISR, it must re-enable all interrupts
-+ *    soft ISR are low prioity jobs which can be very slow, thus all IRQs
-+ *    must be enabled while they run.
-+ *    Now hardware context wise we may still be in L2 ISR (not done rtie)
-+ *    still we must re-enable both L1 and L2 IRQs
-+ *  Another twist is prev scenario with flow being
-+ *     L1 ISR ==> interrupted by L2 ISR  ==> L2 soft ISR
-+ *     here we must not re-enable Ll as prev Ll Interrupt's h/w context will get
-+ *     over-written (this is deficiency in ARC700 Interrupt mechanism)
-+ */
-+
-+#ifdef CONFIG_ARC_COMPACT_IRQ_LEVELS	/* Complex version for 2 IRQ levels */
-+
-+void arch_local_irq_enable(void)
-+{
-+
-+	unsigned long flags;
-+	flags = arch_local_save_flags();
-+
-+	/* Allow both L1 and L2 at the onset */
-+	flags |= (STATUS_E1_MASK | STATUS_E2_MASK);
-+
-+	/* Called from hard ISR (between irq_enter and irq_exit) */
-+	if (in_irq()) {
-+
-+		/* If in L2 ISR, don't re-enable any further IRQs as this can
-+		 * cause IRQ priorities to get upside down. e.g. it could allow
-+		 * L1 be taken while in L2 hard ISR which is wrong not only in
-+		 * theory, it can also cause the dreaded L1-L2-L1 scenario
-+		 */
-+		if (flags & STATUS_A2_MASK)
-+			flags &= ~(STATUS_E1_MASK | STATUS_E2_MASK);
-+
-+		/* Even if in L1 ISR, allowe Higher prio L2 IRQs */
-+		else if (flags & STATUS_A1_MASK)
-+			flags &= ~(STATUS_E1_MASK);
-+	}
-+
-+	/* called from soft IRQ, ideally we want to re-enable all levels */
-+
-+	else if (in_softirq()) {
-+
-+		/* However if this is case of L1 interrupted by L2,
-+		 * re-enabling both may cause whaco L1-L2-L1 scenario
-+		 * because ARC700 allows level 1 to interrupt an active L2 ISR
-+		 * Thus we disable both
-+		 * However some code, executing in soft ISR wants some IRQs
-+		 * to be enabled so we re-enable L2 only
-+		 *
-+		 * How do we determine L1 intr by L2
-+		 *  -A2 is set (means in L2 ISR)
-+		 *  -E1 is set in this ISR's pt_regs->status32 which is
-+		 *      saved copy of status32_l2 when l2 ISR happened
-+		 */
-+		struct pt_regs *pt = get_irq_regs();
-+		if ((flags & STATUS_A2_MASK) && pt &&
-+		    (pt->status32 & STATUS_A1_MASK)) {
-+			/*flags &= ~(STATUS_E1_MASK | STATUS_E2_MASK); */
-+			flags &= ~(STATUS_E1_MASK);
-+		}
-+	}
-+
-+	arch_local_irq_restore(flags);
-+}
-+
-+#else /* ! CONFIG_ARC_COMPACT_IRQ_LEVELS */
-+
-+/*
-+ * Simpler version for only 1 level of interrupt
-+ * Here we only Worry about Level 1 Bits
-+ */
- void arch_local_irq_enable(void)
- {
- 	unsigned long flags;
-@@ -158,4 +259,5 @@ void arch_local_irq_enable(void)
- 	flags |= (STATUS_E1_MASK | STATUS_E2_MASK);
- 	arch_local_irq_restore(flags);
- }
-+#endif
- EXPORT_SYMBOL(arch_local_irq_enable);
+ 	; Restore REG File. In case multiple Events outstanding,
+ 	; use the same priorty as rtie: EXCPN, L2 IRQ, L1 IRQ, None
+ 	; Note that we use realtime STATUS32 (not pt_regs->status32) to
 -- 
 1.7.4.1
