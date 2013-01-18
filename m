@@ -1,104 +1,32 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from alvesta.synopsys.com ([198.182.60.77]:59959 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751542Ab3ARNcF (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 08:32:05 -0500
-Message-ID: <50F94EC5.9070905@synopsys.com>
-Date: Fri, 18 Jan 2013 19:01:49 +0530
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Received: from moutng.kundenserver.de ([212.227.17.8]:55801 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755387Ab3AROVN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 09:21:13 -0500
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 09/76] ARC: Checksum/byteorder/swab routines
+Date: Fri, 18 Jan 2013 14:21:09 +0000
+References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-10-git-send-email-vgupta@synopsys.com>
+In-Reply-To: <1358511930-7424-10-git-send-email-vgupta@synopsys.com>
 MIME-Version: 1.0
-Subject: Re: [PATCH v2 57/76] ARC: kgdb support
-References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-58-git-send-email-vgupta@synopsys.com> <50F94AFF.9010801@windriver.com>
-In-Reply-To: <50F94AFF.9010801@windriver.com>
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
+Message-ID: <201301181421.09458.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Jason Wessel <jason.wessel@windriver.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, arnd@arndb.de, Mischa Jonker <Mischa.Jonker@synopsys.com>
-Message-ID: <20130118133149.hnJcj11-37SU_Ke-o7kDtpODQx2LQLpBH5LmVmzry2U@z>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130118142109.uVWO5xUv9PGjobk6JUWOcy_p1LDSwyKmGgQdW4xrZoA@z>
 
-On Friday 18 January 2013 06:45 PM, Jason Wessel wrote:
-> On 01/18/2013 06:25 AM, Vineet Gupta wrote:
->> From: Mischa Jonker <mjonker@synopsys.com>
->>
->> Signed-off-by: Mischa Jonker <mjonker@synopsys.com>
->> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
->> Cc: Jason Wessel <jason.wessel@windriver.com>
-> Acked-by: Jason Wessel <jason.wessel@windriver.com>
->
->> ---
->>  arch/arc/Kconfig            |    3 +-
->>  arch/arc/include/asm/kgdb.h |   61 +++++++++++++
->>  arch/arc/kernel/Makefile    |    1 +
->>  arch/arc/kernel/kgdb.c      |  205 +++++++++++++++++++++++++++++++++++++++++++
->>  arch/arc/kernel/traps.c     |    6 ++
->>  5 files changed, 275 insertions(+), 1 deletions(-)
->>  create mode 100644 arch/arc/include/asm/kgdb.h
->>  create mode 100644 arch/arc/kernel/kgdb.c
->>
->> diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
->> index d735de8..b954387 100644
->> --- a/arch/arc/Kconfig
->> +++ b/arch/arc/Kconfig
->> @@ -23,6 +23,7 @@ config ARC
->>  	select GENERIC_PENDING_IRQ if SMP
->>  	select GENERIC_SIGALTSTACK
->>  	select GENERIC_SMP_IDLE_THREAD
->> +	select HAVE_ARCH_KGDB
->>  	select HAVE_ARCH_TRACEHOOK
->>  	select HAVE_GENERIC_HARDIRQS
->>  	select HAVE_KPROBES
->> @@ -383,7 +384,7 @@ config ARC_DW2_UNWIND
->>  
->>  config ARC_DBG_TLB_PARANOIA
->>  	bool "Paranoia Checks in Low Level TLB Handlers"
->> -	depends on ARC_DBG && !SMP
->> +	depends on ARC_DBG
->>  	default n
->>  
->>  config ARC_DBG_TLB_MISS_COUNT
->> diff --git a/arch/arc/include/asm/kgdb.h b/arch/arc/include/asm/kgdb.h
->> new file mode 100644
->> index 0000000..f3c4934
->> --- /dev/null
->> +++ b/arch/arc/include/asm/kgdb.h
->> @@ -0,0 +1,61 @@
->> +/*
->> + * kgdb support for ARC
->> + *
->> + * Copyright (C) 2012 Synopsys, Inc. (www.synopsys.com)
->> + *
->> + * This program is free software; you can redistribute it and/or modify
->> + * it under the terms of the GNU General Public License version 2 as
->> + * published by the Free Software Foundation.
->> + */
->> +
->> +#ifndef __ARC_KGDB_H__
->> +#define __ARC_KGDB_H__
->> +
->> +#ifdef CONFIG_KGDB
->> +
->> +#include <asm/user.h>
->> +
->> +/* to ensure compatibility with Linux 2.6.35, we don't implement the get/set
->> + * register API yet */
->
-> I did think this note was slightly odd.   Is this mainly because you have some kind of out of tree version of this code against an older kernel?
+On Friday 18 January 2013, Vineet Gupta wrote:
+> TBD: do_csum still needs to be written in asm
 
-Thanks for your review and ACK, Jason. We did the initial port against 2.6.35 and
-later moved over to 3.2 - both of which were out-of-tree. We will take a look at
-it again and clean this up.
+Do you actually expect a lot of improvement in do_csum?
+I would hope that gcc can actually generate a pretty
+good version of it, unless you have some 64-bit add-with-carry
+instruction or something else that you could make use of.
 
-> The main thing that you lose by not doing this the ability to display and set registers from the kdb shell.
->
-> From the pure gdb only end of things, gdb operates more efficiently for doing things like setting or reading the program counter, frame pointer or variable mapped registers when using a rs232 connection.  There is no loss or gain in actual functionality by not implementing the individual get/set register method if you only intend to use gdb.
->
-> Cheers,
-> Jason.
+> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 
-OK - we will fix this up - but I presume it is not a gating item for the port
-submission.
-
-Thx,
--Vineet
+Acked-by: Arnd Bergmann <arnd@arndb.de>
