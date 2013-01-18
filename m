@@ -1,37 +1,43 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2 09/76] ARC: Checksum/byteorder/swab routines
-Date: Fri, 18 Jan 2013 19:56:12 +0530
-Message-ID: <50F95B84.2010802@synopsys.com>
-References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-10-git-send-email-vgupta@synopsys.com> <201301181421.09458.arnd@arndb.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 07/76] ARC: [optim] uaccess __{get,put}_user() optimised
+Date: Fri, 18 Jan 2013 14:30:15 +0000
+Message-ID: <201301181430.16142.arnd@arndb.de>
+References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-8-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from us02smtp2.synopsys.com ([198.182.60.77]:61247 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751915Ab3ARO15 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 09:27:57 -0500
-In-Reply-To: <201301181421.09458.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <1358511930-7424-8-git-send-email-vgupta@synopsys.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-On Friday 18 January 2013 07:51 PM, Arnd Bergmann wrote:
-> On Friday 18 January 2013, Vineet Gupta wrote:
->> TBD: do_csum still needs to be written in asm
-> Do you actually expect a lot of improvement in do_csum?
-> I would hope that gcc can actually generate a pretty
-> good version of it, unless you have some 64-bit add-with-carry
-> instruction or something else that you could make use of.
+On Friday 18 January 2013, Vineet Gupta wrote:
+> Override asm-generic implementations. We basically gain on 2 fronts
+> 
+> * checks for alignment no longer needed as we are only doing "unit"
+>   sized copies.
+> 
+>   (Careful observer could argue that While the kernel buffers are aligned,
+>    the user buffer in theory might not be - however in that case the
+>    user space is already broken when it tries to deref a hword/word
+>    straddling word boundary - so we are not making it any worse).
+> 
+> * __copy_{to,from}_user( ) returns bytes that couldn't be copied,
+>   whereas get_user() returns 0 for success or -EFAULT (not size). Thus
+>   the code to do leftover bytes calculation can be avoided as well.
 
-We do have 32bit add-with-carry and it has it's own set of micro-architectural
-hazards and stalls which deserve careful insn scheduling. So yes the mileage would
-vary but certainly deserves a try.
+Interesting. I had thought that the compiler would be able to simplify
+the calculation of the return value inline, but of course it cannot
+because it has to be done inside the asm fixup.
 
->
->> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
+> The savings were significant: ~17k of code.
+> 
+> bloat-o-meter vmlinux_uaccess_pre vmlinux_uaccess_post
+> add/remove: 0/4 grow/shrink: 8/118 up/down: 1262/-18758 (-17496)
+>                                                         ^^^^^^^^^
+> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 
-Thanks,
--Vineet
+Acked-by: Arnd Bergmann <arnd@arndb.de>
