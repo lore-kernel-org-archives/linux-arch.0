@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 73/76] ARC: [Review] Multi-platform image #6: cpu-to-dma-addr optional
-Date: Fri, 18 Jan 2013 18:10:24 +0530
-Message-ID: <1358512827-7694-2-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 76/76] ARC: [plat-arcfpga] defconfig for fully loaded ARC Linux
+Date: Fri, 18 Jan 2013 18:10:27 +0530
+Message-ID: <1358512827-7694-5-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
  <1358512827-7694-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
@@ -13,122 +13,35 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>
 List-Id: linux-arch.vger.kernel.org
 
-All the current platforms can work with 0x8000_0000 based dma_addr_t
-since the Bus Bridges typically ignore the top bit (the only excpetion
-was Angel4 PCI-AHM bridge which we no longer care for).
-That way we don't need plat-specific cpu-addr to bus-addr conversion.
-
-Hooks still provided - just in case a platform has an obscure device
-which say needs 0 based bus address.
-
-That way <asm/dma_mapping.h> no longer needs to unconditinally include
-<plat/dma_addr.h>
-
-Also verfied that on Angel4 board, other peripherals (IDE-disk / EMAC)
-work fine with 0x8000_0000 based dma addresses.
-
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-Cc: Arnd Bergmann <arnd@arndb.de>
 ---
- arch/arc/Kconfig                              |    4 ++
- arch/arc/include/asm/dma-mapping.h            |   16 +++++++++
- arch/arc/plat-arcfpga/include/plat/dma_addr.h |   45 -------------------------
- 3 files changed, 20 insertions(+), 45 deletions(-)
- delete mode 100644 arch/arc/plat-arcfpga/include/plat/dma_addr.h
+ arch/arc/configs/fpga_defconfig |    9 +++++++--
+ 1 files changed, 7 insertions(+), 2 deletions(-)
 
-diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
-index 21ecd2a..18b91d6 100644
---- a/arch/arc/Kconfig
-+++ b/arch/arc/Kconfig
-@@ -119,6 +119,10 @@ config CPU_BIG_ENDIAN
- 	help
- 	  Build kernel for Big Endian Mode of ARC CPU
- 
-+# If a platform can't work with 0x8000_0000 based dma_addr_t
-+config ARC_PLAT_NEEDS_CPU_TO_DMA
-+	bool
-+
- # If a plat can do IPI, same core(s) can do minimal SMP
- config ARC_HAS_IPI
- 	bool
-diff --git a/arch/arc/include/asm/dma-mapping.h b/arch/arc/include/asm/dma-mapping.h
-index 96e4316..8a0a266 100644
---- a/arch/arc/include/asm/dma-mapping.h
-+++ b/arch/arc/include/asm/dma-mapping.h
-@@ -13,7 +13,23 @@
- 
- #include <asm-generic/dma-coherent.h>
- #include <asm/cacheflush.h>
-+
-+#ifndef CONFIG_ARC_PLAT_NEEDS_CPU_TO_DMA
-+/*
-+ * dma_map_* API take cpu addresses, which is kernel logical address in the
-+ * untranslated address space (0x8000_0000) based. The dma address (bus addr)
-+ * ideally needs to be 0x0000_0000 based hence these glue routines.
-+ * However given that intermediate bus bridges can ignore the high bit, we can
-+ * do with these routines being no-ops.
-+ * If a platform/device comes up which sriclty requires 0 based bus addr
-+ * (e.g. AHB-PCI bridge on Angel4 board), then it can provide it's own versions
-+ */
-+#define plat_dma_addr_to_kernel(dev, addr) ((unsigned long)(addr))
-+#define plat_kernel_addr_to_dma(dev, ptr) ((dma_addr_t)(ptr))
-+
-+#else
- #include <plat/dma_addr.h>
-+#endif
- 
- void *dma_alloc_noncoherent(struct device *dev, size_t size,
- 			    dma_addr_t *dma_handle, gfp_t gfp);
-diff --git a/arch/arc/plat-arcfpga/include/plat/dma_addr.h b/arch/arc/plat-arcfpga/include/plat/dma_addr.h
-deleted file mode 100644
-index 0e96343..0000000
---- a/arch/arc/plat-arcfpga/include/plat/dma_addr.h
-+++ /dev/null
-@@ -1,45 +0,0 @@
--/*
-- * Copyright (C) 2004, 2007-2010, 2011-2012 Synopsys, Inc. (www.synopsys.com)
-- *
-- * This program is free software; you can redistribute it and/or modify
-- * it under the terms of the GNU General Public License version 2 as
-- * published by the Free Software Foundation.
-- *
-- * vineetg: Feb 2009
-- *  -For AA4 board, kernel to DMA address APIs
-- */
--
--/*
-- * kernel addresses are 0x800_000 based, while Bus addr are 0 based
-- */
--
--#ifndef __PLAT_DMA_ADDR_H
--#define __PLAT_DMA_ADDR_H
--
--#include <linux/device.h>
--
--static inline unsigned long plat_dma_addr_to_kernel(struct device *dev,
--						    dma_addr_t dma_addr)
--{
--	return dma_addr + PAGE_OFFSET;
--}
--
--static inline dma_addr_t plat_kernel_addr_to_dma(struct device *dev, void *ptr)
--{
--	unsigned long addr = (unsigned long)ptr;
--	/*
--	 * To Catch buggy drivers which can call DMA map API with kernel vaddr
--	 * i.e. for buffers alloc via vmalloc or ioremap which are not
--	 * gaurnateed to be PHY contiguous and hence unfit for DMA anyways.
--	 * On ARC kernel virtual address is 0x7000_0000 to 0x7FFF_FFFF, so
--	 * ideally we want to check this range here, but our implementation is
--	 * better as it checks for even worse user virtual address as well.
--	 */
--	if (likely(addr >= PAGE_OFFSET))
--		return addr - PAGE_OFFSET;
--
--	BUG();
--	return addr;
--}
--
--#endif
+diff --git a/arch/arc/configs/fpga_defconfig b/arch/arc/configs/fpga_defconfig
+index 8638e101f..52a3ae1 100644
+--- a/arch/arc/configs/fpga_defconfig
++++ b/arch/arc/configs/fpga_defconfig
+@@ -10,13 +10,18 @@ CONFIG_NAMESPACES=y
+ # CONFIG_PID_NS is not set
+ CONFIG_BLK_DEV_INITRD=y
+ CONFIG_INITRAMFS_SOURCE="../arc_initramfs"
+-CONFIG_EXPERT=y
+-# CONFIG_FUTEX is not set
++CONFIG_KALLSYMS_ALL=y
++CONFIG_EMBEDDED=y
++# CONFIG_SLUB_DEBUG is not set
+ # CONFIG_COMPAT_BRK is not set
++CONFIG_KPROBES=y
++CONFIG_MODULES=y
+ # CONFIG_LBDAF is not set
+ # CONFIG_BLK_DEV_BSG is not set
+ # CONFIG_IOSCHED_DEADLINE is not set
+ # CONFIG_IOSCHED_CFQ is not set
++CONFIG_ARC_PLAT_FPGA_LEGACY=y
++CONFIG_ARC_BOARD_ML509=y
+ CONFIG_ARC_BUILTIN_DTB_NAME="angel4"
+ # CONFIG_COMPACTION is not set
+ # CONFIG_CROSS_MEMORY_ATTACH is not set
 -- 
 1.7.4.1
