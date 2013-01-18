@@ -1,7 +1,7 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: [PATCH v2 39/76] ARC: Switch to saner kernel_execve() semantics #2
-Date: Fri, 18 Jan 2013 17:54:53 +0530
-Message-ID: <1358511930-7424-40-git-send-email-vgupta@synopsys.com>
+Subject: [PATCH v2 21/76] ARC: [Review] Prevent incorrect syscall restarts
+Date: Fri, 18 Jan 2013 17:54:35 +0530
+Message-ID: <1358511930-7424-22-git-send-email-vgupta@synopsys.com>
 References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
 Mime-Version: 1.0
 Content-Type: text/plain
@@ -12,81 +12,82 @@ To: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 Cc: arnd@arndb.de, Vineet Gupta <Vineet.Gupta1@synopsys.com>, Al Viro <viro@ZenIV.linux.org.uk>
 List-Id: linux-arch.vger.kernel.org
 
-fold ret_from_kernel_thread into ret_from_fork
+Per Al Viro's "signals for dummies" https://lkml.org/lkml/2012/12/6/366
+there are 3 golden rules for (not) restarting syscalls:
 
-The only difference is former needs to call thread entry point which can
-be detected inside ret_from_fork too.
+"	What we need to guarantee is
+* restarts do not happen on signals caught in interrupts or exceptions
+* restarts do not happen on signals caught in sigreturn()
+* restart should happen only once, even if we get through do_signal()
+  many times."
+
+ARC Port already handled #1, this patch fixes #2 and #3.
+
+We use the additional state in pt_regs->orig_r8 to ckh if restarting
+has already been done once.
+
+Thanks to Al Viro for spotting this.
 
 Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 Cc: Al Viro <viro@ZenIV.linux.org.uk>
 ---
- arch/arc/kernel/entry.S   |   18 +++++++++++-------
- arch/arc/kernel/process.c |    8 ++++----
- 2 files changed, 15 insertions(+), 11 deletions(-)
+ arch/arc/include/asm/ptrace.h |    3 +++
+ arch/arc/kernel/signal.c      |   12 ++++++++----
+ 2 files changed, 11 insertions(+), 4 deletions(-)
 
-diff --git a/arch/arc/kernel/entry.S b/arch/arc/kernel/entry.S
-index b2291fc..69a0c9f 100644
---- a/arch/arc/kernel/entry.S
-+++ b/arch/arc/kernel/entry.S
-@@ -575,16 +575,20 @@ ARC_ENTRY ret_from_fork
- 	; when the forked child comes here from the __switch_to function
- 	; r0 has the last task pointer.
- 	; put last task in scheduler queue
--	bl  @schedule_tail
--	b @ret_from_exception
--ARC_EXIT ret_from_fork
-+	bl   @schedule_tail
+diff --git a/arch/arc/include/asm/ptrace.h b/arch/arc/include/asm/ptrace.h
+index ddb9ce7..92ef198 100644
+--- a/arch/arc/include/asm/ptrace.h
++++ b/arch/arc/include/asm/ptrace.h
+@@ -130,6 +130,9 @@ struct user_regs_struct {
+ #define in_syscall(regs) (regs->orig_r8 & orig_r8_IS_SCALL)
+ #define in_brkpt_trap(regs) (regs->orig_r8 & orig_r8_IS_BRKPT)
+ 
++#define syscall_wont_restart(regs) (regs->orig_r8 |= orig_r8_IS_SCALL_RESTARTED)
++#define syscall_restartable(regs) !(regs->orig_r8 & orig_r8_IS_SCALL_RESTARTED)
 +
-+	; If kernel thread, jump to it's entry-point
-+	ld   r9, [sp, PT_status32]
-+	brne r9, 0, 1f
+ #endif /* !__ASSEMBLY__ */
  
--ARC_ENTRY ret_from_kernel_thread
--	bl  @schedule_tail
--	jl.d [r14]		; kernel_thread "payload"
-+	jl.d [r14]
- 	mov  r0, r13		; arg to payload
+ #define orig_r8_IS_SCALL		0x0001
+diff --git a/arch/arc/kernel/signal.c b/arch/arc/kernel/signal.c
+index 464af3f..6671968 100644
+--- a/arch/arc/kernel/signal.c
++++ b/arch/arc/kernel/signal.c
+@@ -137,6 +137,9 @@ SYSCALL_DEFINE0(rt_sigreturn)
+ 		if (do_sigaltstack(&sf->uc.uc_stack, NULL, regs->sp) == -EFAULT)
+ 			goto badframe;
+ 
++	/* Don't restart from sigreturn */
++	syscall_wont_restart(regs);
 +
-+1:
-+	; special case of kernel_thread entry point returning back due to
-+	; kernel_execve() - pretend return from syscall to ret to userland
- 	b    ret_from_exception
--ARC_EXIT ret_from_kernel_thread
-+ARC_EXIT ret_from_fork
+ 	return regs->r0;
  
- ;################### Special Sys Call Wrappers ##########################
+ badframe:
+@@ -331,13 +334,13 @@ void do_signal(struct pt_regs *regs)
  
-diff --git a/arch/arc/kernel/process.c b/arch/arc/kernel/process.c
-index 20d8b4d..403de7e 100644
---- a/arch/arc/kernel/process.c
-+++ b/arch/arc/kernel/process.c
-@@ -99,7 +99,6 @@ void cpu_idle(void)
- }
+ 	signr = get_signal_to_deliver(&info, &ka, regs, NULL);
  
- asmlinkage void ret_from_fork(void);
--asmlinkage void ret_from_kernel_thread(void) __attribute__((noreturn));
+-	/* Are we from a system call? */
+-	restart_scall = in_syscall(regs);
++	restart_scall = in_syscall(regs) && syscall_restartable(regs);
  
- /* Layout of Child kernel mode stack as setup at the end of this function is
-  *
-@@ -155,15 +154,16 @@ int copy_thread(unsigned long clone_flags,
- 	 */
- 	p->thread.ksp = (unsigned long)c_callee;	/* THREAD_KSP */
- 
-+	/* __switch_to expects FP(0), BLINK(return addr) at top */
-+	childksp[0] = 0;			/* fp */
-+	childksp[1] = (unsigned long)ret_from_fork; /* blink */
-+
- 	if (unlikely(p->flags & PF_KTHREAD)) {
- 		memset(c_regs, 0, sizeof(struct pt_regs));
- 
- 		c_callee->r13 = arg; /* argument to kernel thread */
- 		c_callee->r14 = usp;  /* function */
- 
--		/* __switch_to expects FP(0), BLINK(return addr) at top */
--		childksp[0] = 0;			/* fp */
--		childksp[1] = (unsigned long)ret_from_kernel_thread; /* blink */
- 		return 0;
+ 	if (signr > 0) {
+-		if (restart_scall)
++		if (restart_scall) {
+ 			arc_restart_syscall(&ka, regs);
+-
++			syscall_wont_restart(regs);	/* No more restarts */
++		}
+ 		handle_signal(signr, &ka, &info, regs);
+ 		return;
+ 	}
+@@ -352,6 +355,7 @@ void do_signal(struct pt_regs *regs)
+ 			regs->r8 = __NR_restart_syscall;
+ 			regs->ret -= 4;
+ 		}
++		syscall_wont_restart(regs);	/* No more restarts */
  	}
  
+ 	/* If there's no signal to deliver, restore the saved sigmask back */
 -- 
 1.7.4.1
