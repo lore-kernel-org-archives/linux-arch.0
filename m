@@ -1,34 +1,38 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from moutng.kundenserver.de ([212.227.126.187]:58075 "EHLO
-	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1756399Ab3ARPGg (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Fri, 18 Jan 2013 10:06:36 -0500
-From: Arnd Bergmann <arnd@arndb.de>
-Subject: Re: [PATCH v2 71/76] ARC: [Review] Multi-platform image #4: Isolate platform headers
-Date: Fri, 18 Jan 2013 15:06:31 +0000
-References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-72-git-send-email-vgupta@synopsys.com>
-In-Reply-To: <1358511930-7424-72-git-send-email-vgupta@synopsys.com>
+Received: from linux-sh.org ([111.68.239.195]:51647 "EHLO linux-sh.org"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1750998Ab3ARQMF (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Fri, 18 Jan 2013 11:12:05 -0500
+Date: Sat, 19 Jan 2013 01:01:07 +0900
+From: Paul Mundt <lethal@linux-sh.org>
+Subject: Re: [PATCH v2 28/76] ARC: I/O and DMA Mappings
+Message-ID: <20130118160106.GD14019@linux-sh.org>
+References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com>
+ <1358511930-7424-29-git-send-email-vgupta@synopsys.com>
+ <201301181555.43487.arnd@arndb.de>
 MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="iso-8859-15"
-Content-Transfer-Encoding: 7bit
-Message-ID: <201301181506.31438.arnd@arndb.de>
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <201301181555.43487.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130118150631.uXcZAk7Z1jKojCWdC5dTNUMJnjez_Gv_O3uyrfykeMw@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130118160107.bCEfeAUTgXCnFnc1FXF5lHN5r9ycy1e25zqlpYBjeuw@z>
 
-On Friday 18 January 2013, Vineet Gupta wrote:
-> -Top level ARC makefile removes -I for platform headers
-> -asm/irq.h no longer includes plat/irq.h
+On Fri, Jan 18, 2013 at 03:55:43PM +0000, Arnd Bergmann wrote:
+> On Friday 18 January 2013, Vineet Gupta wrote:
+> > TBD: Do we need early ioremap support like openrisc
+> > 
+> > Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 > 
-> -platform makefile adds -I for it's specfic platform headers
-> -platform code to directly include it's plat/irq.h
+> Can you explain why early ioremap is necessary for you?
 > 
-> -Linker script needed plat/memmap.h for CCM info, already in .config
+> I wasn't aware that openrisc has it. In a lot of cases,
+> you can use fixmap as a replacement.
 > 
-> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
-> Cc: Arnd Bergmann <arnd@arndb.de>
+The two don't need to be mutually exclusive, either. sh implements early
+ioremap transparently via fixmaps for example:
 
-Acked-by: Arnd Bergmann <arnd@arndb.de>
+	arch/sh/mm/ioremap.c
+	arch/sh/mm/ioremap_fixed.c
