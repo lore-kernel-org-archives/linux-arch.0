@@ -1,51 +1,52 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: Re: [PATCH v3 00/44] Meta Linux Kernel Port
-Date: Sat, 19 Jan 2013 05:55:01 +0000
-Message-ID: <20130119055501.GA2802@ZenIV.linux.org.uk>
-References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com>
- <20130111103442.b80ddbfb11ef322ed28ca3b3@canb.auug.org.au>
- <50EFD824.3010502@imgtec.com>
- <20130112000336.1f24c42237fab4fe0c305ff6@canb.auug.org.au>
- <50F0296E.2000704@imgtec.com>
- <20130112120957.36df3412c9d6cca089a0340a@canb.auug.org.au>
- <20130112095507.GA1738@balrog>
+From: Pavel Machek <pavel@ucw.cz>
+Subject: Re: [RFC Patch v1 00/31] Synopsys ARC Linux kernel Port
+Date: Sat, 19 Jan 2013 11:15:49 +0100
+Message-ID: <20130119101549.GA5774@amd.pavel.ucw.cz>
+References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
+ <50AB9116.3090401@synopsys.com>
+ <20130118194631.GA5119@amd.pavel.ucw.cz>
+ <201301182217.46142.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:47459 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1750756Ab3ASFzH (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 Jan 2013 00:55:07 -0500
+Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:43929 "EHLO
+	atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751707Ab3ASKPv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 Jan 2013 05:15:51 -0500
 Content-Disposition: inline
-In-Reply-To: <20130112095507.GA1738@balrog>
+In-Reply-To: <201301182217.46142.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Hogan <james.hogan@imgtec.com>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
 
-On Sat, Jan 12, 2013 at 09:55:07AM +0000, James Hogan wrote:
-> Hi Stephen, Al,
-> 
-> On Sat, Jan 12, 2013 at 12:09:57PM +1100, Stephen Rothwell wrote:
-> > On Fri, 11 Jan 2013 15:02:06 +0000 James Hogan <james.hogan@imgtec.com> wrote:
-> > >
-> > > Okay, I've rebased the metag tree from linux-next onto the master branch
-> > > of Al's signal tree (to get Vineet's GENERIC_SIGALTSTACK fix and
-> > > GENERIC_SIGALTSTACK's eventual removal).
+Hi!
+
+> > Yeah, and it is best use of reviewers time to confuse them with
+> > one-letter difference to very popular architecture... and use three
+> > letter acronym that was already taken.
 > > 
-> > OK, but I hope you mentioned not rebasing to Al.
+> > In this state, I hope your port never gets merged. Yes, I got used to
+> > do cd a<tab>/ar<tab>.
 > 
-> I'm still rebasing the metag tree, and it's not quite ready for -next so
-> I don't mind if Al's tree rebases at this stage tbh.
-> 
-> Al: I don't know if you normally rebase your tree, but if it's okay with
-> you I'll let you know when I need it not to be rebased.
+> You already lost that capability with the addition of arm64. As you
+> may remember, that one was proposed to be called arch/aarch64 at first,
+> which wasn't very popular ;-)
 
-Umm...  
-	1) #master is definitely bad for base; #for-linus is much safer (and
-sufficient for your case)
-	2) I'm a couple of fix folds away from opening #no-rebase (and yes,
-it'll be a superset of #for-linus)
+Actually, with arm26, which is older IIRC. But tab still works there,
+just will not fill the last /, and you can't mistake arm64 with arm in
+filenames etc -- different length.
 
-FWIW, I'd suggest a rebase on top of signal.git#for-linus.  Noting in
-the stem is visibly relevant in your case, AFAICS...
+> A lot of people are familiar with the ARC name, it's been around
+> for decades and has sold billions of CPUs under that name, likely
+> more than x86 or mips (still dwarfed by ARM of course). They've just
+
+Well, it seems that mips people were aware of the ARC name, it just
+meant something different:
+
+https://www.linux-mips.org/wiki/ARC
+
+									Pavel
+-- 
+(english) http://www.livejournal.com/~pavelmachek
+(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
