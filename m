@@ -1,52 +1,48 @@
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: [RFC Patch v1 00/31] Synopsys ARC Linux kernel Port
-Date: Sat, 19 Jan 2013 11:15:49 +0100
-Message-ID: <20130119101549.GA5774@amd.pavel.ucw.cz>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
- <50AB9116.3090401@synopsys.com>
- <20130118194631.GA5119@amd.pavel.ucw.cz>
- <201301182217.46142.arnd@arndb.de>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH v2 48/76] ARC: Module support
+Date: Sat, 19 Jan 2013 17:26:36 +0530
+Message-ID: <50FA89F4.9090203@synopsys.com>
+References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-49-git-send-email-vgupta@synopsys.com> <201301181450.33444.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="ISO-8859-15"
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:43929 "EHLO
-	atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751707Ab3ASKPv (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 Jan 2013 05:15:51 -0500
-Content-Disposition: inline
-In-Reply-To: <201301182217.46142.arnd@arndb.de>
+Received: from us01smtp3.synopsys.com ([198.182.44.81]:47982 "EHLO
+	hermes.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751909Ab3ASL5s (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 Jan 2013 06:57:48 -0500
+In-Reply-To: <201301181450.33444.arnd@arndb.de>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-Hi!
+On Friday 18 January 2013 08:20 PM, Arnd Bergmann wrote:
+> On Friday 18 January 2013, Vineet Gupta wrote:
+>
+>> +int module_frob_arch_sections(Elf_Ehdr *hdr, Elf_Shdr *sechdrs,
+>> +			      char *secstr, struct module *mod)
+>> +{
+>> +    return 0;
+>> +}
+>> +
+>> +void module_arch_cleanup(struct module *mod)
+>> +{
+>> +}
+>> +
+>> +int module_finalize(const Elf32_Ehdr *hdr, const Elf_Shdr *sechdrs,
+>> +		    struct module *mod)
+>> +{
+>> +    return 0;
+>> +}
+> These three empty functions are already defined __weak in kernel/module.c
+> so you can simply omit them here.
+>
+> 	Arnd
 
-> > Yeah, and it is best use of reviewers time to confuse them with
-> > one-letter difference to very popular architecture... and use three
-> > letter acronym that was already taken.
-> > 
-> > In this state, I hope your port never gets merged. Yes, I got used to
-> > do cd a<tab>/ar<tab>.
-> 
-> You already lost that capability with the addition of arm64. As you
-> may remember, that one was proposed to be called arch/aarch64 at first,
-> which wasn't very popular ;-)
+Actually a subsequent patch to do dwarf unwinding out of modules has valid code in
+those. But yes I can take them out from this patch and introduce in the the one
+which really needs it.
 
-Actually, with arm26, which is older IIRC. But tab still works there,
-just will not fill the last /, and you can't mistake arm64 with arm in
-filenames etc -- different length.
-
-> A lot of people are familiar with the ARC name, it's been around
-> for decades and has sold billions of CPUs under that name, likely
-> more than x86 or mips (still dwarfed by ARM of course). They've just
-
-Well, it seems that mips people were aware of the ARC name, it just
-meant something different:
-
-https://www.linux-mips.org/wiki/ARC
-
-									Pavel
--- 
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+Thx,
+-Vineet
