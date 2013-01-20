@@ -1,61 +1,68 @@
-From: Pavel Machek <pavel@ucw.cz>
-Subject: Re: [RFC Patch v1 00/31] Synopsys ARC Linux kernel Port
-Date: Sat, 19 Jan 2013 18:02:04 +0100
-Message-ID: <20130119170204.GA2956@amd.pavel.ucw.cz>
-References: <1352281674-2186-1-git-send-email-vgupta@synopsys.com>
- <20121120134737.GB8111@elf.ucw.cz>
- <20121120135901.GA9227@elf.ucw.cz>
- <50AB9116.3090401@synopsys.com>
- <20130118194631.GA5119@amd.pavel.ucw.cz>
- <50FA9277.8030509@synopsys.com>
+From: Alex Courbot <acourbot@nvidia.com>
+Subject: Re: [PATCH 0/4] gpio: introduce descriptor-based interface
+Date: Sun, 20 Jan 2013 15:07:02 +0900
+Message-ID: <50FB8986.9010205@nvidia.com>
+References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com> <CACRpkda6dqAj+DzrMCnKET7Z9PtuW0+k9ea3YDL8Z1D=oFVRpQ@mail.gmail.com> <50F7E83E.8000105@uclinux.org> <201301170850.43655.sfking@fdwdc.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset="ISO-8859-1"; format=flowed
+Content-Transfer-Encoding: 7bit
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from atrey.karlin.mff.cuni.cz ([195.113.26.193]:57657 "EHLO
-	atrey.karlin.mff.cuni.cz" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1751941Ab3ASRCM (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Sat, 19 Jan 2013 12:02:12 -0500
-Content-Disposition: inline
-In-Reply-To: <50FA9277.8030509@synopsys.com>
+Received: from hqemgate03.nvidia.com ([216.228.121.140]:16682 "EHLO
+	hqemgate03.nvidia.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1750793Ab3ATGFP (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Sun, 20 Jan 2013 01:05:15 -0500
+In-Reply-To: <201301170850.43655.sfking@fdwdc.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, tglx@linutronix.de, arnd@arndb.de
+To: Steven King <sfking@fdwdc.com>
+Cc: Greg Ungerer <gerg@uclinux.org>, Linus Walleij <linus.walleij@linaro.org>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Grant Likely <grant.likely@secretlab.ca>, Guenter Roeck <linux@roeck-us.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree-discuss@lists.ozlabs.org" <devicetree-discuss@lists.ozlabs.org>, gnurou@gmail.com
 
-Hi!
+Hi Steven,
 
-> >>> Ok, plus there's already computing standard called "arc".
-> >>>
-> >>> https://www.linux-mips.org/wiki/ARC
-> >>>
-> >>> What about calling the architecture "sarc" or "syarc" ?
-> >> I think it would be best use of everybody's time if you could focus on
-> >> the technical content of the port rather than the name. It has been like
-> >> that for +10 years and I don't intend to make the kernel port name
-> >> different from THE arch name itself.
-> > Yeah, and it is best use of reviewers time to confuse them with
-> > one-letter difference to very popular architecture... and use three
-> > letter acronym that was already taken.
-> >
-> > In this state, I hope your port never gets merged. Yes, I got used to
-> > do cd a<tab>/ar<tab>.
-> 
-> Although I really don't want to spend time arguing with you but still ...... if
-> you had a neighbor with same name as your friend your strategy most likely would
-> be to force one of them to change names - kind of seems funny and
-> stupid.
+On 01/18/2013 01:50 AM, Steven King wrote:
+> Well, my concern is the small, single chip platforms with limited ram and
+> speeds measured in MHz.  My goal was that these platforms that had very basic
+> gpio needs, no offboard gpio, just toggling a few pins for spi or whatever,
+> could do that without pulling in a bunch of code they dont need.  I realize
+> that for x86 or arm people with their giga Hz cpus with gigabytes of ram, its
+> no big deal, but my little 60 MHz coldfire v2s with only 16 megs of ram (and
+> even more constraining, 2 megs of flash) need all the help they can get.
 
-Yeah, imagine creating "/bin/mr" that would be du equivalent. How many
-people would delete their files by mistake? 
+Running readelf on gpiolib.o built for Tegra, here are the footprints:
 
-> Having said that, despite all the ranting so far, you've not managed to comment on
-> a single line of the actual code, which is more funny and stupid. So
+.text: 9412B
+.data: 260B
+.bss: 12312B
+.rodata: 268B
 
-Yeah, you tricked me into reviewing your code. No, I will not do more
-reviews for you. Yes, I bet I'm not the only one, and I bet that
-mistake will happen about once per developer.
+Total: 22252B or 22KB.
 
-									Pavel
--- 
-(english) http://www.livejournal.com/~pavelmachek
-(cesky, pictures) http://atrey.karlin.mff.cuni.cz/~pavel/picture/horses/blog.html
+... of which more than half is the BSS section which consists of a 
+static array of 1024 GPIO descriptors, an arbitrary number that you can 
+tune and is way too large even for Tegra (but we have to use these 
+gigabytes somehow). Say you only need to use 256 GPIOs and .bss is down 
+to ~3KB, for a total overhead of 15kB or 0.09% of your 16MB which, in 
+perspective, suddenly seem gigantic. :)
+
+If you are concerned about the additional indirection that GPIOlib 
+introduces and the potential slowdown for bitbanging, you can always 
+define custom gpio_set_value() and gpio_get_value() macros to shortcut 
+GPIOlib when the GPIO is in the range you want performance for.
+
+> I haven't been keeping up with the kernel list of late, can someone point me
+> to what''s being discussed so I can see what were talking about here?
+
+Arnd explained it already, but basically we'd like to consolidate the 
+GPIO subsystem around GPIOlib and introduce safer interfaces (while 
+preserving backward compatibility). Good progress in that direction 
+would be achieved if all users of the GENERIC_GPIO interface relied on 
+GPIOlib (making GENERIC_GPIO require GPIOLIB).
+
+Actually the question of switching to GPIOlib is only worth being asked 
+if you are making use of drivers that require GENERIC_GPIO. If this is 
+not the case and your GPIOs are only used by your own platform code, you 
+can always give up using defining GENERIC_GPIO and continue implementing 
+them your own way.
+
+Thanks,
+Alex.
