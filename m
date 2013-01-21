@@ -1,62 +1,35 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2 69/76] ARC: [Review] Multi-platform image #2: Board
- callback Infrastructure
-Date: Mon, 21 Jan 2013 19:40:15 +0530
-Message-ID: <50FD4C47.8080805@synopsys.com>
-References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-70-git-send-email-vgupta@synopsys.com> <201301181505.10350.arnd@arndb.de>
+From: Arnd Bergmann <arnd@arndb.de>
+Subject: Re: [PATCH v2 17/76] ARC: Process-creation/scheduling/idle-loop
+Date: Mon, 21 Jan 2013 14:21:23 +0000
+Message-ID: <201301211421.23794.arnd@arndb.de>
+References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <201301181435.15491.arnd@arndb.de> <50FD2432.8010201@synopsys.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
+Content-Type: Text/Plain;
+  charset="iso-8859-15"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201301181505.10350.arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from moutng.kundenserver.de ([212.227.17.10]:53624 "EHLO
+	moutng.kundenserver.de" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755295Ab3AUOVh (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jan 2013 09:21:37 -0500
+In-Reply-To: <50FD2432.8010201@synopsys.com>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Frederic Weisbecker <fweisbec@gmail.com>
 
-On Friday 18 January 2013 08:35 PM, Arnd Bergmann wrote:
-> On Friday 18 January 2013, Vineet Gupta wrote:
->> +struct machine_desc {
->> +	const char		*name;
->> +	const char		**dt_compat;
->> +
->> +	void			(*init_early)(void);
->> +	void			(*init_irq)(void);
->> +	void			(*init_time)(void);
->> +	void			(*init_machine)(void);
->> +	void			(*init_late)(void);
->> +
->> +#ifdef CONFIG_SMP
->> +	void			(*init_smp)(unsigned int);
->> +#endif
-> On ARM, it turned out helpful to list these in the order in 
-> which they get called. I assume that at least init_smp
-> is currently not in that order.
+On Monday 21 January 2013, Vineet Gupta wrote:
+> -               while (!need_resched())
+> +doze:
+> +               local_irq_disable();
+> +               if (!need_resched()) {
+>                         arch_idle();
+> +                       goto doze;
+> +               } else {
+> +                       local_irq_enable();
+> +               }
+> 
 
-Rightly so, which is fixed now. I also kept forgetting hence the big comment above
-actually describes the exact location from where the callback is invoked. Note
-that init_smp is called for each cpu.
+Ok, that looks like it will work.
 
-> Also, we are slowly making some of these obsolete on
-> ARM: For platforms that at DT-only, the timer and
-> irq code is now in drivers/irqchip and drivers/clocksource
-> and can get automatically initialized.
-
-OK - I'll make a note. BTW init_time was a recent addition, the reason being it's
-timing. For registering a clocksource, init_irq and init_smp are too early
-(timekeeping not yet up) while init_machine (arch initcall) seemed too late - but
-thinking again, it could well be done in there. I need to check with the relevant
-platform folks.
-
-> It probably makese sense for you to keep the above structure
-> for now, but you can also think about obsoleting some
-> of the calls in the future. It may be a good idea to have
-> a default version for each of these but still allow overriding
-> them for maximum flexibility in the platform.
->
-> 	Arnd
-
-IMHO the default has to be NULL, unless the platform has a quirk. It would be
-cleaner (and easier to read) if any default was factored out into ARC common code.
-
--Vineet
+	Arnd
