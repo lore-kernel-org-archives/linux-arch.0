@@ -1,99 +1,148 @@
-From: Al Viro <viro@ZenIV.linux.org.uk>
-Subject: [RFC] making HAVE_SYSCALL_WRAPPERS universal (Re: Issues with "x86,
- um: switch to generic fork/vfork/clone" commit)
-Date: Mon, 21 Jan 2013 22:55:17 +0000
-Message-ID: <20130121225517.GV4939@ZenIV.linux.org.uk>
-References: <50F3D2F2.3080200@6wind.com>
- <20130119063808.GN4939@ZenIV.linux.org.uk>
- <20130120031253.GO4939@ZenIV.linux.org.uk>
- <CA+55aFyRMC43_H1hL5goAQxX4EdTuXOu5A9CoBk9fpGoJT_nig@mail.gmail.com>
- <20130121012217.GQ4939@ZenIV.linux.org.uk>
- <CA+55aFwG2j_+2pjUJuZqT1yk0xDEyeFMgCxHmxAzfGXHO5qCXQ@mail.gmail.com>
- <20130121023010.GR4939@ZenIV.linux.org.uk>
+From: James Bottomley <James.Bottomley@HansenPartnership.com>
+Subject: Re: [Linux-c6x-dev] [PATCH 3/9] c6x: Provide dma_mmap_coherent()
+ and dma_get_sgtable()
+Date: Mon, 21 Jan 2013 22:59:19 +0000
+Message-ID: <1358809159.3975.63.camel@dabdike.int.hansenpartnership.com>
+References: <1358073890-3610-1-git-send-email-geert@linux-m68k.org>
+	 <1358073890-3610-3-git-send-email-geert@linux-m68k.org>
+	 <1358177872.4357.53.camel@t520.localdomain> <50F4D83A.7020803@synopsys.com>
+	 <CAMuHMdWjZAY19GPpjoXKfWb3pOp2RbZXDvb4nr5pMmjEMFuB4w@mail.gmail.com>
+	 <50F56286.8070200@samsung.com>
+	 <1358269008.10591.11.camel@dabdike.int.hansenpartnership.com>
+	 <CAMuHMdXk1mdkMViYqypvnXO0_1LdjbH8S7z8FNe97yDUW6BYRA@mail.gmail.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: QUOTED-PRINTABLE
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from zeniv.linux.org.uk ([195.92.253.2]:37444 "EHLO
-	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752241Ab3AUWzW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jan 2013 17:55:22 -0500
-Content-Disposition: inline
-In-Reply-To: <20130121023010.GR4939@ZenIV.linux.org.uk>
+Received: from bedivere.hansenpartnership.com ([66.63.167.143]:49873 "EHLO
+	bedivere.hansenpartnership.com" rhost-flags-OK-OK-OK-OK)
+	by vger.kernel.org with ESMTP id S1752421Ab3AUW7X (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>);
+	Mon, 21 Jan 2013 17:59:23 -0500
+In-Reply-To: <CAMuHMdXk1mdkMViYqypvnXO0_1LdjbH8S7z8FNe97yDUW6BYRA@mail.gmail.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Nicolas Dichtel <nicolas.dichtel@6wind.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Tony Luck <tony.luck@intel.com>
+To: Geert Uytterhoeven <geert@linux-m68k.org>
+Cc: Marek Szyprowski <m.szyprowski@samsung.com>, Mark Salter <msalter@redhat.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org
 
-[linux-arch Cc'd]
-On Mon, Jan 21, 2013 at 02:30:11AM +0000, Al Viro wrote:
+On Mon, 2013-01-21 at 21:00 +0100, Geert Uytterhoeven wrote:
+> On Tue, Jan 15, 2013 at 5:56 PM, James Bottomley
+> <James.Bottomley@hansenpartnership.com> wrote:
+> > On Tue, 2013-01-15 at 15:07 +0100, Marek Szyprowski wrote:
+> >> On 1/15/2013 10:13 AM, Geert Uytterhoeven wrote:
+> >> > Marek?
+> >> >
+> >> > On Tue, Jan 15, 2013 at 5:16 AM, Vineet Gupta
+> >> > <Vineet.Gupta1@synopsys.com> wrote:
+> >> > > On Monday 14 January 2013 09:07 PM, Mark Salter wrote:
+> >> > >> On Sun, 2013-01-13 at 11:44 +0100, Geert Uytterhoeven wrote:
+> >> > >>> c6x/allmodconfig (assumed):
+> >> > >>>
+> >> > >>> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =
+=E2=80=98vb2_dc_mmap=E2=80=99:
+> >> > >>> drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: i=
+mplicit declaration of function =E2=80=98dma_mmap_coherent=E2=80=99
+> >> > >>> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function =
+=E2=80=98vb2_dc_get_base_sgt=E2=80=99:
+> >> > >>> drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: i=
+mplicit declaration of function =E2=80=98dma_get_sgtable=E2=80=99
+> >> > >>>
+> >> > >>> For architectures using dma_map_ops, dma_mmap_coherent() and
+> >> > >>> dma_get_sgtable() are provided in <asm-generic/dma-mapping-c=
+ommon.h>.
+> >> > >>>
+> >> > >>> C6x does not use dma_map_ops, hence it should implement them=
+ as inline
+> >> > >>> stubs using dma_common_mmap() and dma_common_get_sgtable().
+> >> > >>>
+> >> > >> So are dma_mmap_coherent() and dma_get_sgtable() part of the =
+DMA API
+> >> > >> now? I don't them in Documentation/DMA*.txt anywhere.
+> >> > >>
+> >> > >> Why does the default dma_common_mmap() for !CONFIG_MMU return=
+ an
+> >> > >> error?
+> >> > >>
+> >> > >> Wouldn't it be better to provide default implementations that=
+ an arch
+> >> > >> could override rather than having to patch all "no dma_map_op=
+s"
+> >> > >> architectures?
+> >> > >>
+> >> > > Speaking for the still-reviewed ARC Port, I completely agree w=
+ith Mark.
+> >>
+> >> dma_mmap_coherent() was partially in the DMA mapping API for some =
+time, but
+> >> it was available only on a few architectures (afair ARM, powerpc a=
+nd avr32).
+> >> This caused significant problems for writing unified device driver=
+s or some
+> >> device helper modules which were aimed to work on more than one
+> >> architecture.
+> >>
+> >> dma_get_sgtable() is an extension discussed during the Linaro meet=
+ings. It
+> >> is required to correctly implement buffer sharing between device d=
+river
+> >> without hacks or any assumptions about memory layout in the device=
+ drivers.
+> >>
+> >> I have implemented some generic code for both of those two functio=
+ns,
+> >> keeping
+> >> in mind that on some hardware architectures (like already mentione=
+d VIVT)
+> >> it might be not possible to provide coherent mapping to userspace.=
+ It is
+> >> perfectly fine for those functions to return an error in such case=
+=2E
+> >
+> > It's not possible on VIPT either.  This means that the API is unusa=
+ble
+> > on quite a large number of architectures.  Surely, if we're startin=
+g to
+> > write drivers using this, we need to fix the API before more people=
+ try
+> > to use it.
+> >
+> > For PA-RISC (and all other VIPT, I assume) I need an API which allo=
+ws me
+> > to remap the virtual address of the kernel component (probably usin=
+g the
+> > kmap area) so the user space and kernel space addresses are congrue=
+nt.
+>=20
+> So what are we gonna do for 3.8? I'd like to get my allmodconfig buil=
+d
+> green again ;-)
+>=20
+> Change the API?
 
-> Neither do I, to be honest.  It might be saving us a few cycles on
-> some architectures, but I'd like to see examples of that.  amd64
-> doesn't seem to be one, at least...
+Well, if we want the API to work universally, we have to.  As I said,
+for VIPT systems, the only coherency mechanism we have is the virtual
+address ... we have to fix that in the kernel to be congruent with the
+userspace virtual address if we want coherency between the kernel and
+userspace.
 
-*grumble*
+However, if it only needs to work on ARM and x86, it can stay the way i=
+t
+is and we could just pull it out of the generic core.
 
-OK, there is one problem - SYSCALL_ALIAS() is as arch-dependent as
-cond_syscall().  As far as I can tell, with cond_syscall() we have
-the following variants:
-	1) alpha, mips
-.weak foo
-foo = sys_ni_syscall
-	2) itanic, ppc
-asmlinkage long x (void) __attribute__((weak,alias("sys_ni_syscall")))
-	3) very common - most of the architectures
-.weak foo
-.set foo sys_ni_syscall
-	3a) blackfin, h8300 - same as (3), except that asm symbols get
-underscore prepended.
-.weak _foo
-.set _foo _sys_ni_syscall
+Who actually wants to use this API, and what for?
 
-For SYSCALL_ALIAS(foo,bar):
-	1) alpha, mips
-foo = bar
-.globl foo
-	2) ppc64
-.globl foo
-.set foo bar
-.globl .foo
-.set .foo .bar
-[note that ppc64 cond_syscall ends up generating similar pair, only with
-.globl replaced with .weak]
-	3) s390, sparc, tile
-.globl foo
-.set foo bar
+> Keep the API but do a best-effort fix to unbreak the builds?
+>   - Apply my patches that got acks (avr32/blackfin/cris/m68k),
+>   - Use static inlines that return -EINVAL for the rest
+> (c6x/frv/mn10300/parisc/xtensa).
+> I still have a few m68k fixes queued for 3.8, for which I've been pos=
+tponing the
+> pull request to get this sorted out, so I could include the above.
+>=20
+> Any other solution?
 
-I suspect that (3) here should cover the same things as (3,3a) for
-cond_syscalls(), with the same "prepend _" variation on blackfin/h8300.
-I really wonder what's going on with ppc64, though - as far as I can
-tell, .foo is the real function there, while foo is a OPD entry refering
-to it.  Do we have anything similar on other architectures?  And what
-about itanic?  After looking at the assembler generated by cond_syscall
-there, I suspect that
-foo# = bar#
-.globl foo#
-would be the right answer there, but I'd really like somebody familiar with
-ia64 to confirm that...
+If it's an API that only works on ARM and x86, there's not much point
+pretending it's universal, so we should remove it from the generic arch
+code and allow only those architectures which can use it.
 
-Another question: what's the following comment from spu_callbacks.c about?
- * 4. They are optional and we can't rely on them being
- *    linked into the kernel. Unfortunately, the cond_syscall
- *    helper does not work here as it does not add the necessary
- *    opd symbols:
- *      mbind, mq_open, ipc, ...
-What isn't added?  sys_ni_syscall is an OPD entry and weak aliases for it
-*are* created.  That comment predates the conversion of cond_syscall()
-definition to the current one; it used to be
-.weak .foo
-.set .foo .sys_ni_syscall
-and that wouldn't have created the second alias; is it simply obsolete?
-Note that mbind and friends still are not available to SPU; should that
-be changed now that we can do that?
-
-I've tried to sanitize cond_syscall/SYSCALL_ALIAS situation; the tree is in
-git.kernel.org/pub/scm/linux/kernel/git/viro/signal experimental-syscalls
-NOTE: this is absolutely untested and might very well blow up
-on any number of architectures.
-
-Review and comments would be very welcome.
+James
