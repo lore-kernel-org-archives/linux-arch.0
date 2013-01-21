@@ -1,33 +1,28 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Query on I/O accessors used by Xilinx SystemACE Driver
-Date: Mon, 21 Jan 2013 18:50:51 +0530
-Message-ID: <50FD40B3.804@synopsys.com>
+Subject: Re: [PATCH v2 63/76] ARC: Hostlink Pseudo-Driver for Metaware Debugger
+Date: Mon, 21 Jan 2013 19:21:06 +0530
+Message-ID: <50FD47CA.5050806@synopsys.com>
+References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-64-git-send-email-vgupta@synopsys.com> <201301181458.26891.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-1"
+Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from kiruna.synopsys.com ([198.182.44.80]:45127 "EHLO
-	kiruna.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1752612Ab3AUNVN (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jan 2013 08:21:13 -0500
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Grant Likely <grant.likely@secretlab.ca>
-Cc: Alexey Brodkin <Alexey.Brodkin@synopsys.com>, "linux-arch@vger.kernel.org" <linux-arch@vger.kernel.org>, "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, Benjamin Herrenschmidt <benh@kernel.crashing.org>, Michal Simek <monstr@monstr.eu>, Geert Uytterhoeven <geert@linux-m68k.org>
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <201301181458.26891.arnd@arndb.de>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+List-Id: linux-arch.vger.kernel.org
 
-Synopsys has Xilinx ML50x boards with our internal FPGA workflows, which we
-sometimes use for internal development and customer evaluations. In that light
-Alexey has been working on getting the stock systemACE driver to work with ARC
-Linux Port.
-One of things that he wants me to fix is introduce the PPC/m68k/microblaze style
-in_8, in_le16, .... I/O accessors in ARC port, used specifically by driver.
+On Friday 18 January 2013 08:28 PM, Arnd Bergmann wrote:
+> On Friday 18 January 2013, Vineet Gupta wrote:
+>> +static int arc_hl_nr_devs = 1;
+> This seems to be read-only and hardcoded to 1. If this is true, you could
+> simplify the driver significantly by just using misc_register, rather
+> than registering your own major device number.
+>
+> 	Arnd
 
-I'm not an expert in that driver or the specific needs of those accessors on
-respective arches, but was wondering, if it would be possible to convert the
-driver to use the vanilla IO accessors (read{b,w,l}. Microblaze at least,  seem to
-be defining them as straight wrappers over the standard raw accessors.
-
-Ben, Geert could you please comment ?
+:-) Indeed virtually there's nothing left in there after misc_register
 
 Thx,
 -Vineet
