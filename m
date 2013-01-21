@@ -1,75 +1,93 @@
 From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2 17/76] ARC: Process-creation/scheduling/idle-loop
-Date: Mon, 21 Jan 2013 16:49:14 +0530
-Message-ID: <50FD2432.8010201@synopsys.com>
-References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-18-git-send-email-vgupta@synopsys.com> <201301181435.15491.arnd@arndb.de>
+Subject: Re: [PATCH v2 28/76] ARC: I/O and DMA Mappings
+Date: Mon, 21 Jan 2013 18:08:39 +0530
+Message-ID: <50FD36CF.1000702@synopsys.com>
+References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-29-git-send-email-vgupta@synopsys.com> <201301181555.43487.arnd@arndb.de>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <201301181435.15491.arnd@arndb.de>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from us02smtp1.synopsys.com ([198.182.60.75]:42011 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752852Ab3AUMiv (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Mon, 21 Jan 2013 07:38:51 -0500
+In-Reply-To: <201301181555.43487.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Al Viro <viro@zeniv.linux.org.uk>, Thomas Gleixner <tglx@linutronix.de>, Frederic Weisbecker <fweisbec@gmail.com>
-List-Id: linux-arch.vger.kernel.org
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 
-On Friday 18 January 2013 08:05 PM, Arnd Bergmann wrote:
+On Friday 18 January 2013 09:25 PM, Arnd Bergmann wrote:
 > On Friday 18 January 2013, Vineet Gupta wrote:
->> +void cpu_idle(void)
->> +{
->> +       /* Since we SLEEP in idle loop, TIF_POLLING_NRFLAG can't be set */
->> +
->> +       /* endless idle loop with no priority at all */
->> +       while (1) {
->> +               tick_nohz_idle_enter();
->> +               rcu_idle_enter();
->> +
->> +               while (!need_resched())
->> +                       arch_idle();
->> +
->> +               rcu_idle_exit();
->> +               tick_nohz_idle_exit();
->> +
->> +               schedule_preempt_disabled();
->> +       }
->> +}
-> Unless I'm mistaken, you have introduced the classic sleep race
-> here, where an interrupt can happen between the check for
-> need_resched() and the sleep instruction in arch_idle().
-
-Hmm... there is indeed a race - so we could end up missing a reschedule
-opportunity, for until next interrupt (so next tick, if NOHZ is not enabled, and
-indefinitely if system has no other interrupting sources).
-
-
-> To avoid that, you need to disable interrupts around
-> the inner loop. The sleep instruction should return with
-> interrupts implicitly enabled if ARC behaves like most
-> other architectures doing this.
+>> TBD: Do we need early ioremap support like openrisc
+>>
+>> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
+> Can you explain why early ioremap is necessary for you?
 >
-> 	Arnd
+> I wasn't aware that openrisc has it. In a lot of cases,
+> you can use fixmap as a replacement.
 
-Indeed sleep has option to turn on interrupts before it commits - so this is
-certainly doable.
+This came about when enabling the early console of arc uart using the early param
+registration. I prefer console to be up as early as possible because the high
+configurability of ARC means you get early panics if hardware and software don't
+match (cache geom, mmu ver, ....) and it's good if we could print it out via uart.
 
- static inline void arch_idle(void)
- {
--       __asm__("sleep");
-+       /* sleep, but enable all interrupts before committing */
-+       __asm__("sleep 0x3");
- }
+So we do end up calling ioremap very early
 
+setup_arch
+   machine_desc->init_early
+   plat_fpga_early_init
+       arc_fpga_serial_init
+             early_platform_add_devices
+             early_platform_driver_probe
+                  arc_serial_probe_earlyprintk
+                        ioremap_nocache()
 
--               while (!need_resched())
-+doze:
-+               local_irq_disable();
-+               if (!need_resched()) {
-                        arch_idle();
-+                       goto doze;
-+               } else {
-+                       local_irq_enable();
-+               }
+However, ioremap on ARC typically avoids MMU mappings (hence need for paging_init
+etc to have run apriori) because memory mapped peripherals are typically wired up
+in ARC's dedicated uncached address space. So unless the driver needs special
+access permissions (in addition to uncached semantics), we can simply
+short-circuit all of MMU routing.
 
+So the comment above can be deleted, and we probably need a check in
+ioremap_prot() so that early ioremap bails out if called early - probably using
+slab_is_available()
 
-Thx,
+>
+>> +
+>> +#ifndef _ASM_ARC_IO_H
+>> +#define _ASM_ARC_IO_H
+>> +
+>> +#include <asm/byteorder.h>
+>> +#include <asm/page.h>
+>> +
+>> +extern void __iomem *ioremap(unsigned long physaddr, unsigned long size);
+>> +extern void iounmap(const void __iomem *addr);
+>> +
+>> +#define ioremap_nocache(phy, sz)	ioremap(phy, sz)
+>> +#define ioremap_wc(phy, sz)		ioremap(phy, sz)
+>> +
+>> +/* Change struct page to physical address */
+>> +#define page_to_phys(page)		(page_to_pfn(page) << PAGE_SHIFT)
+>> +
+>> +#include <asm-generic/io.h>
+> I think I commented before that asm-generic/io.h has a number of
+> problems and you should at least override the __raw_{read,write}{b,w,l,q}
+> functions with your own ones using inline assembly.
+>
+> You should also define a non-NULL PCI_IOBASE.
+
+Sorry for missing out on this one - this was indeed suggested in the private
+pre-list review you did. The 64-bit version certainly needs to be wrapped in a irq
+safe block.
+
+However others will be exactly same as generic ones. Given that these routines
+operate on __iomem memory which has to be uncached: either wired in uncached
+address space, or goes via an uncached MMU mapping, IMHO the inline-asm or 'C'
+version won't add any value. We do have uncached LD/ST, I've tried to avoid them
+so far as they have certain micro-architectural quirks and per previous argument
+it seems they would be redundant.
+
+Having said that I might be over-looking something important - so please let me know.
+
 -Vineet
