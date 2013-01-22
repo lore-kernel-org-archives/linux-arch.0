@@ -1,65 +1,177 @@
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v5 45/45] Documentation/cpu-hotplug: Remove references to
- stop_machine()
-Date: Tue, 22 Jan 2013 13:15:48 +0530
-Message-ID: <20130122074543.13822.44724.stgit@srivatsabhat.in.ibm.com>
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH v2 29/76] ARC: Boot #1: low-level, setup_arch(), /proc/cpuinfo,
+ mem init
+Date: Tue, 22 Jan 2013 13:19:43 +0530
+Message-ID: <50FE4497.3050306@synopsys.com>
+References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-30-git-send-email-vgupta@synopsys.com> <201301181445.39050.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
 Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
+In-Reply-To: <201301181445.39050.arnd@arndb.de>
 Sender: linux-kernel-owner@vger.kernel.org
-To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
 List-Id: linux-arch.vger.kernel.org
 
-Since stop_machine() is no longer used in the CPU offline path, we cannot
-disable CPU hotplug using preempt_disable()/local_irq_disable() etc. We
-need to use the newly introduced get/put_online_cpus_atomic() APIs.
-Reflect this in the documentation.
+On Friday 18 January 2013 08:15 PM, Arnd Bergmann wrote:
+> On Friday 18 January 2013, Vineet Gupta wrote:
+>> +       /* setup bootmem allocator */
+>> +       bootmap_sz = init_bootmem_node(NODE_DATA(0),
+>> +                                      first_free_pfn,/* bitmap start */
+>> +                                      min_low_pfn,   /* First pg to track */
+>> +                                      max_low_pfn);  /* Last pg to track */
+>> +
+>> +       /*
+>> +        * init_bootmem above marks all tracked Page-frames as inuse "allocated"
+>> +        * This includes pages occupied by kernel's elf segments.
+>> +        * Beyond that, excluding bootmem bitmap itself, mark the rest of
+>> +        * free-mem as "allocatable"
+>> +        */
+>> +       alloc_start = kernel_img_end + bootmap_sz;
+>> +       free_bootmem(alloc_start, end_mem - alloc_start);
+>> +
+>> +       memset(zones_size, 0, sizeof(zones_size));
+>> +       zones_size[ZONE_NORMAL] = num_physpages;
+>> +
+> IIRC, the bootmem allocator is no longer recommended for new architecture.
+> You should use the "memblock" interface instead, as arm64 and tile do.
+>
+> I just saw that this is still listed as TODO for openrisc, sorry if I
+> put you on the wrong track there by recommending to copy from openrisc.
+>
+> 	Arnd
 
-Cc: Rob Landley <rob@landley.net>
-Cc: linux-doc@vger.kernel.org
-Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+How does the following look like. This is RFC only and I'll squash it into Boot #1
+patch.
+
+From: Vineet Gupta <vgupta@synopsys.com>
+Date: Tue, 22 Jan 2013 13:03:50 +0530
+Subject: [PATCH] RFC: Convert ARC port from bootmem to memblock
+
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
+ arch/arc/Kconfig          |    2 ++
+ arch/arc/kernel/devtree.c |    4 ++--
+ arch/arc/mm/init.c        |   35 +++++++++--------------------------
+ 3 files changed, 13 insertions(+), 28 deletions(-)
 
- Documentation/cpu-hotplug.txt |   17 +++++++++++------
- 1 file changed, 11 insertions(+), 6 deletions(-)
-
-diff --git a/Documentation/cpu-hotplug.txt b/Documentation/cpu-hotplug.txt
-index 9f40135..7f907ec 100644
---- a/Documentation/cpu-hotplug.txt
-+++ b/Documentation/cpu-hotplug.txt
-@@ -113,13 +113,15 @@ Never use anything other than cpumask_t to represent bitmap of CPUs.
- 	#include <linux/cpu.h>
- 	get_online_cpus() and put_online_cpus():
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index e8947c7..76ead56 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -29,11 +29,13 @@ config ARC
+     select HAVE_IRQ_WORK
+     select HAVE_KPROBES
+     select HAVE_KRETPROBES
++    select HAVE_MEMBLOCK
+     select HAVE_MOD_ARCH_SPECIFIC if ARC_DW2_UNWIND
+     select HAVE_OPROFILE
+     select HAVE_PERF_EVENTS
+     select IRQ_DOMAIN
+     select MODULES_USE_ELF_RELA
++    select NO_BOOTMEM
+     select OF
+     select OF_EARLY_FLATTREE
+     select PERF_USE_VMALLOC
+diff --git a/arch/arc/kernel/devtree.c b/arch/arc/kernel/devtree.c
+index 626fba14..051ec8b 100644
+--- a/arch/arc/kernel/devtree.c
++++ b/arch/arc/kernel/devtree.c
+@@ -14,7 +14,7 @@
+ #include <linux/errno.h>
+ #include <linux/types.h>
+ #include <linux/reboot.h>
+-#include <linux/bootmem.h>
++#include <linux/memblock.h>
+ #include <linux/of.h>
+ #include <linux/of_fdt.h>
+ #include <linux/of_irq.h>
+@@ -26,7 +26,7 @@
+ /* called from unflatten_device_tree() to bootstrap devicetree itself */
+ void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
+ {
+-    return alloc_bootmem_align(size, align);
++    return __va(memblock_alloc(size, align));
+ }
  
--The above calls are used to inhibit cpu hotplug operations. While the
-+The above calls are used to inhibit cpu hotplug operations, when invoked from
-+non-atomic context (because the above functions can sleep). While the
- cpu_hotplug.refcount is non zero, the cpu_online_mask will not change.
--If you merely need to avoid cpus going away, you could also use
--preempt_disable() and preempt_enable() for those sections.
--Just remember the critical section cannot call any
--function that can sleep or schedule this process away. The preempt_disable()
--will work as long as stop_machine_run() is used to take a cpu down.
-+
-+However, if you are executing in atomic context (ie., you can't afford to
-+sleep), and you merely need to avoid cpus going offline, you can use
-+get_online_cpus_atomic() and put_online_cpus_atomic() for those sections.
-+Just remember the critical section cannot call any function that can sleep or
-+schedule this process away.
+ /**
+diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
+index 8c173f9..80dbdc7 100644
+--- a/arch/arc/mm/init.c
++++ b/arch/arc/mm/init.c
+@@ -9,6 +9,7 @@
+ #include <linux/kernel.h>
+ #include <linux/mm.h>
+ #include <linux/bootmem.h>
++#include <linux/memblock.h>
+ #ifdef CONFIG_BLOCK_DEV_RAM
+ #include <linux/blk.h>
+ #endif
+@@ -42,6 +43,7 @@ void __init early_init_dt_add_memory_arch(u64 base, u64 size)
+ {
+     arc_mem_sz = size & PAGE_MASK;
+     pr_info("Memory size set via devicetree %ldM\n", TO_MB(arc_mem_sz));
++    memblock_add(CONFIG_LINUX_LINK_BASE, arc_mem_sz);
+ }
  
- CPU Hotplug - Frequently Asked Questions.
+ /*
+@@ -52,9 +54,6 @@ void __init early_init_dt_add_memory_arch(u64 base, u64 size)
+  */
+ void __init setup_arch_memory(void)
+ {
+-    int bootmap_sz;
+-    unsigned int first_free_pfn;
+-    unsigned long kernel_img_end, alloc_start;
+     unsigned long zones_size[MAX_NR_ZONES] = { 0, 0 };
+     unsigned long end_mem = CONFIG_LINUX_LINK_BASE + arc_mem_sz;
  
-@@ -360,6 +362,9 @@ A: There are two ways.  If your code can be run in interrupt context, use
- 		return err;
- 	}
+@@ -63,39 +62,23 @@ void __init setup_arch_memory(void)
+     init_mm.end_data = (unsigned long)_edata;
+     init_mm.brk = (unsigned long)_end;
  
-+   If my_func_on_cpu() itself cannot block, use get/put_online_cpus_atomic()
-+   instead of get/put_online_cpus() to prevent CPUs from going offline.
-+
- Q: How do we determine how many CPUs are available for hotplug.
- A: There is no clear spec defined way from ACPI that can give us that
-    information today. Based on some input from Natalie of Unisys,
+-    /* _end needs to be page aligned */
+-    kernel_img_end = (unsigned long)_end;
+-    BUG_ON(kernel_img_end & ~PAGE_MASK);
++    /*------------- externs in mm need setting up ---------------*/
+ 
+     /* first page of system - kernel .vector starts here */
+     min_low_pfn = PFN_DOWN(CONFIG_LINUX_LINK_BASE);
+ 
+-    /* First free page beyond kernel image */
+-    first_free_pfn = PFN_DOWN(kernel_img_end);
+-
+-    /*
+-     * Last usable page of low mem (no HIGHMEM yet for ARC port)
+-     * -must be BASE + SIZE
+-     */
++    /* Last usable page of low mem (no HIGHMEM yet for ARC port) */
+     max_low_pfn = max_pfn = PFN_DOWN(end_mem);
+ 
+     max_mapnr = num_physpages = max_low_pfn - min_low_pfn;
+ 
+-    /* setup bootmem allocator */
+-    bootmap_sz = init_bootmem_node(NODE_DATA(0),
+-                       first_free_pfn,/* bitmap start */
+-                       min_low_pfn,   /* First pg to track */
+-                       max_low_pfn);  /* Last pg to track */
++    /*------------- reserve kernel image -----------------------*/
++    memblock_reserve(CONFIG_LINUX_LINK_BASE,
++             __pa(_end) - CONFIG_LINUX_LINK_BASE);
+ 
+-    /*
+-     * init_bootmem above marks all tracked Page-frames as inuse "allocated"
+-     * This includes pages occupied by kernel's elf segments.
+-     * Beyond that, excluding bootmem bitmap itself, mark the rest of
+-     * free-mem as "allocatable"
+-     */
+-    alloc_start = kernel_img_end + bootmap_sz;
+-    free_bootmem(alloc_start, end_mem - alloc_start);
++    memblock_dump_all();
+ 
++    /*-------------- node setup --------------------------------*/
+     memset(zones_size, 0, sizeof(zones_size));
+     zones_size[ZONE_NORMAL] = num_physpages;
+ 
+-- 
+1.7.4.1
