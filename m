@@ -1,305 +1,186 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp02.in.ibm.com ([122.248.162.2]:52217 "EHLO
-	e28smtp02.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1755516Ab3AVHoW (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 02:44:22 -0500
-Received: from /spool/local
-	by e28smtp02.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
-	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 22 Jan 2013 13:12:18 +0530
-From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v5 34/45] ia64: Use get/put_online_cpus_atomic() to prevent
- CPU offline
-Date: Tue, 22 Jan 2013 13:12:28 +0530
-Message-ID: <20130122074222.13822.84246.stgit@srivatsabhat.in.ibm.com>
-In-Reply-To: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
-References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
+Received: from alvesta.synopsys.com ([198.182.60.77]:49458 "EHLO
+	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755086Ab3AVHt4 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 02:49:56 -0500
+Message-ID: <50FE4497.3050306@synopsys.com>
+Date: Tue, 22 Jan 2013 13:19:43 +0530
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
+Subject: Re: [PATCH v2 29/76] ARC: Boot #1: low-level, setup_arch(), /proc/cpuinfo,
+ mem init
+References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-30-git-send-email-vgupta@synopsys.com> <201301181445.39050.arnd@arndb.de>
+In-Reply-To: <201301181445.39050.arnd@arndb.de>
+Content-Type: text/plain; charset="ISO-8859-15"
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org
-Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130122074228.zSpi9Z_wp8DjtPVrb7zG0yzzlE_hTGqF_wg8dSJCnmc@z>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130122074943.ZPdg7e-arhCwhQk3OkwHWuSiXClodHqdGzwysCdot9Q@z>
 
-Once stop_machine() is gone from the CPU offline path, we won't be able to
-depend on preempt_disable() or local_irq_disable() to prevent CPUs from
-going offline from under us.
+On Friday 18 January 2013 08:15 PM, Arnd Bergmann wrote:
+> On Friday 18 January 2013, Vineet Gupta wrote:
+>> +       /* setup bootmem allocator */
+>> +       bootmap_sz = init_bootmem_node(NODE_DATA(0),
+>> +                                      first_free_pfn,/* bitmap start */
+>> +                                      min_low_pfn,   /* First pg to track */
+>> +                                      max_low_pfn);  /* Last pg to track */
+>> +
+>> +       /*
+>> +        * init_bootmem above marks all tracked Page-frames as inuse "allocated"
+>> +        * This includes pages occupied by kernel's elf segments.
+>> +        * Beyond that, excluding bootmem bitmap itself, mark the rest of
+>> +        * free-mem as "allocatable"
+>> +        */
+>> +       alloc_start = kernel_img_end + bootmap_sz;
+>> +       free_bootmem(alloc_start, end_mem - alloc_start);
+>> +
+>> +       memset(zones_size, 0, sizeof(zones_size));
+>> +       zones_size[ZONE_NORMAL] = num_physpages;
+>> +
+> IIRC, the bootmem allocator is no longer recommended for new architecture.
+> You should use the "memblock" interface instead, as arm64 and tile do.
+>
+> I just saw that this is still listed as TODO for openrisc, sorry if I
+> put you on the wrong track there by recommending to copy from openrisc.
+>
+> 	Arnd
 
-Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going offline,
-while invoking from atomic context.
+How does the following look like. This is RFC only and I'll squash it into Boot #1
+patch.
 
-Cc: Tony Luck <tony.luck@intel.com>
-Cc: Fenghua Yu <fenghua.yu@intel.com>
-Cc: linux-ia64@vger.kernel.org
-Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+From: Vineet Gupta <vgupta@synopsys.com>
+Date: Tue, 22 Jan 2013 13:03:50 +0530
+Subject: [PATCH] RFC: Convert ARC port from bootmem to memblock
+
+Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
 ---
+ arch/arc/Kconfig          |    2 ++
+ arch/arc/kernel/devtree.c |    4 ++--
+ arch/arc/mm/init.c        |   35 +++++++++--------------------------
+ 3 files changed, 13 insertions(+), 28 deletions(-)
 
- arch/ia64/kernel/irq_ia64.c |   13 +++++++++++++
- arch/ia64/kernel/perfmon.c  |    6 ++++++
- arch/ia64/kernel/smp.c      |   23 ++++++++++++++++-------
- arch/ia64/mm/tlb.c          |    6 ++++--
- 4 files changed, 39 insertions(+), 9 deletions(-)
-
-diff --git a/arch/ia64/kernel/irq_ia64.c b/arch/ia64/kernel/irq_ia64.c
-index 1034884..d0b4478 100644
---- a/arch/ia64/kernel/irq_ia64.c
-+++ b/arch/ia64/kernel/irq_ia64.c
-@@ -31,6 +31,7 @@
- #include <linux/ratelimit.h>
- #include <linux/acpi.h>
- #include <linux/sched.h>
-+#include <linux/cpu.h>
- 
- #include <asm/delay.h>
- #include <asm/intrinsics.h>
-@@ -190,9 +191,11 @@ static void clear_irq_vector(int irq)
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index e8947c7..76ead56 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -29,11 +29,13 @@ config ARC
+     select HAVE_IRQ_WORK
+     select HAVE_KPROBES
+     select HAVE_KRETPROBES
++    select HAVE_MEMBLOCK
+     select HAVE_MOD_ARCH_SPECIFIC if ARC_DW2_UNWIND
+     select HAVE_OPROFILE
+     select HAVE_PERF_EVENTS
+     select IRQ_DOMAIN
+     select MODULES_USE_ELF_RELA
++    select NO_BOOTMEM
+     select OF
+     select OF_EARLY_FLATTREE
+     select PERF_USE_VMALLOC
+diff --git a/arch/arc/kernel/devtree.c b/arch/arc/kernel/devtree.c
+index 626fba14..051ec8b 100644
+--- a/arch/arc/kernel/devtree.c
++++ b/arch/arc/kernel/devtree.c
+@@ -14,7 +14,7 @@
+ #include <linux/errno.h>
+ #include <linux/types.h>
+ #include <linux/reboot.h>
+-#include <linux/bootmem.h>
++#include <linux/memblock.h>
+ #include <linux/of.h>
+ #include <linux/of_fdt.h>
+ #include <linux/of_irq.h>
+@@ -26,7 +26,7 @@
+ /* called from unflatten_device_tree() to bootstrap devicetree itself */
+ void * __init early_init_dt_alloc_memory_arch(u64 size, u64 align)
  {
- 	unsigned long flags;
- 
-+	get_online_cpus_atomic();
- 	spin_lock_irqsave(&vector_lock, flags);
- 	__clear_irq_vector(irq);
- 	spin_unlock_irqrestore(&vector_lock, flags);
-+	put_online_cpus_atomic();
+-    return alloc_bootmem_align(size, align);
++    return __va(memblock_alloc(size, align));
  }
  
- int
-@@ -204,6 +207,7 @@ ia64_native_assign_irq_vector (int irq)
- 
- 	vector = -ENOSPC;
- 
-+	get_online_cpus_atomic();
- 	spin_lock_irqsave(&vector_lock, flags);
- 	for_each_online_cpu(cpu) {
- 		domain = vector_allocation_domain(cpu);
-@@ -218,6 +222,7 @@ ia64_native_assign_irq_vector (int irq)
- 	BUG_ON(__bind_irq_vector(irq, vector, domain));
-  out:
- 	spin_unlock_irqrestore(&vector_lock, flags);
-+	put_online_cpus_atomic();
- 	return vector;
- }
- 
-@@ -302,9 +307,11 @@ int irq_prepare_move(int irq, int cpu)
- 	unsigned long flags;
- 	int ret;
- 
-+	get_online_cpus_atomic();
- 	spin_lock_irqsave(&vector_lock, flags);
- 	ret = __irq_prepare_move(irq, cpu);
- 	spin_unlock_irqrestore(&vector_lock, flags);
-+	put_online_cpus_atomic();
- 	return ret;
- }
- 
-@@ -320,11 +327,13 @@ void irq_complete_move(unsigned irq)
- 	if (unlikely(cpu_isset(smp_processor_id(), cfg->old_domain)))
- 		return;
- 
-+	get_online_cpus_atomic();
- 	cpumask_and(&cleanup_mask, &cfg->old_domain, cpu_online_mask);
- 	cfg->move_cleanup_count = cpus_weight(cleanup_mask);
- 	for_each_cpu_mask(i, cleanup_mask)
- 		platform_send_ipi(i, IA64_IRQ_MOVE_VECTOR, IA64_IPI_DM_INT, 0);
- 	cfg->move_in_progress = 0;
-+	put_online_cpus_atomic();
- }
- 
- static irqreturn_t smp_irq_move_cleanup_interrupt(int irq, void *dev_id)
-@@ -409,6 +418,8 @@ int create_irq(void)
- 	cpumask_t domain = CPU_MASK_NONE;
- 
- 	irq = vector = -ENOSPC;
-+
-+	get_online_cpus_atomic();
- 	spin_lock_irqsave(&vector_lock, flags);
- 	for_each_online_cpu(cpu) {
- 		domain = vector_allocation_domain(cpu);
-@@ -424,6 +435,8 @@ int create_irq(void)
- 	BUG_ON(__bind_irq_vector(irq, vector, domain));
-  out:
- 	spin_unlock_irqrestore(&vector_lock, flags);
-+	put_online_cpus_atomic();
-+
- 	if (irq >= 0)
- 		dynamic_irq_init(irq);
- 	return irq;
-diff --git a/arch/ia64/kernel/perfmon.c b/arch/ia64/kernel/perfmon.c
-index ea39eba..6c6a029 100644
---- a/arch/ia64/kernel/perfmon.c
-+++ b/arch/ia64/kernel/perfmon.c
-@@ -34,6 +34,7 @@
- #include <linux/poll.h>
- #include <linux/vfs.h>
- #include <linux/smp.h>
-+#include <linux/cpu.h>
- #include <linux/pagemap.h>
- #include <linux/mount.h>
- #include <linux/bitops.h>
-@@ -6485,6 +6486,7 @@ pfm_install_alt_pmu_interrupt(pfm_intr_handler_desc_t *hdl)
- 	}
- 
- 	/* reserve our session */
-+	get_online_cpus_atomic();
- 	for_each_online_cpu(reserve_cpu) {
- 		ret = pfm_reserve_session(NULL, 1, reserve_cpu);
- 		if (ret) goto cleanup_reserve;
-@@ -6500,6 +6502,7 @@ pfm_install_alt_pmu_interrupt(pfm_intr_handler_desc_t *hdl)
- 	/* officially change to the alternate interrupt handler */
- 	pfm_alt_intr_handler = hdl;
- 
-+	put_online_cpus_atomic();
- 	spin_unlock(&pfm_alt_install_check);
- 
- 	return 0;
-@@ -6512,6 +6515,7 @@ cleanup_reserve:
- 		pfm_unreserve_session(NULL, 1, i);
- 	}
- 
-+	put_online_cpus_atomic();
- 	spin_unlock(&pfm_alt_install_check);
- 
- 	return ret;
-@@ -6536,6 +6540,7 @@ pfm_remove_alt_pmu_interrupt(pfm_intr_handler_desc_t *hdl)
- 
- 	pfm_alt_intr_handler = NULL;
- 
-+	get_online_cpus_atomic();
- 	ret = on_each_cpu(pfm_alt_restore_pmu_state, NULL, 1);
- 	if (ret) {
- 		DPRINT(("on_each_cpu() failed: %d\n", ret));
-@@ -6545,6 +6550,7 @@ pfm_remove_alt_pmu_interrupt(pfm_intr_handler_desc_t *hdl)
- 		pfm_unreserve_session(NULL, 1, i);
- 	}
- 
-+	put_online_cpus_atomic();
- 	spin_unlock(&pfm_alt_install_check);
- 
- 	return 0;
-diff --git a/arch/ia64/kernel/smp.c b/arch/ia64/kernel/smp.c
-index 9fcd4e6..d9a4636 100644
---- a/arch/ia64/kernel/smp.c
-+++ b/arch/ia64/kernel/smp.c
-@@ -24,6 +24,7 @@
- #include <linux/init.h>
- #include <linux/interrupt.h>
- #include <linux/smp.h>
-+#include <linux/cpu.h>
- #include <linux/kernel_stat.h>
- #include <linux/mm.h>
- #include <linux/cache.h>
-@@ -154,12 +155,15 @@ send_IPI_single (int dest_cpu, int op)
- static inline void
- send_IPI_allbutself (int op)
- {
--	unsigned int i;
-+	unsigned int i, cpu;
- 
-+	get_online_cpus_atomic();
-+	cpu = smp_processor_id();
- 	for_each_online_cpu(i) {
--		if (i != smp_processor_id())
-+		if (i != cpu)
- 			send_IPI_single(i, op);
- 	}
-+	put_online_cpus_atomic();
- }
- 
- /*
-@@ -170,9 +174,11 @@ send_IPI_mask(const struct cpumask *mask, int op)
- {
- 	unsigned int cpu;
- 
-+	get_online_cpus_atomic();
- 	for_each_cpu(cpu, mask) {
- 			send_IPI_single(cpu, op);
- 	}
-+	put_online_cpus_atomic();
- }
- 
- /*
-@@ -183,9 +189,11 @@ send_IPI_all (int op)
- {
- 	int i;
- 
-+	get_online_cpus_atomic();
- 	for_each_online_cpu(i) {
- 		send_IPI_single(i, op);
- 	}
-+	put_online_cpus_atomic();
- }
- 
- /*
-@@ -259,7 +267,7 @@ smp_flush_tlb_cpumask(cpumask_t xcpumask)
- 	cpumask_t cpumask = xcpumask;
- 	int mycpu, cpu, flush_mycpu = 0;
- 
--	preempt_disable();
-+	get_online_cpus_atomic();
- 	mycpu = smp_processor_id();
- 
- 	for_each_cpu_mask(cpu, cpumask)
-@@ -280,7 +288,7 @@ smp_flush_tlb_cpumask(cpumask_t xcpumask)
- 		while(counts[cpu] == (local_tlb_flush_counts[cpu].count & 0xffff))
- 			udelay(FLUSH_DELAY);
- 
--	preempt_enable();
-+	put_online_cpus_atomic();
- }
- 
- void
-@@ -293,12 +301,13 @@ void
- smp_flush_tlb_mm (struct mm_struct *mm)
- {
- 	cpumask_var_t cpus;
--	preempt_disable();
-+
-+	get_online_cpus_atomic();
- 	/* this happens for the common case of a single-threaded fork():  */
- 	if (likely(mm == current->active_mm && atomic_read(&mm->mm_users) == 1))
- 	{
- 		local_finish_flush_tlb_mm(mm);
--		preempt_enable();
-+		put_online_cpus_atomic();
- 		return;
- 	}
- 	if (!alloc_cpumask_var(&cpus, GFP_ATOMIC)) {
-@@ -313,7 +322,7 @@ smp_flush_tlb_mm (struct mm_struct *mm)
- 	local_irq_disable();
- 	local_finish_flush_tlb_mm(mm);
- 	local_irq_enable();
--	preempt_enable();
-+	put_online_cpus_atomic();
- }
- 
- void arch_send_call_function_single_ipi(int cpu)
-diff --git a/arch/ia64/mm/tlb.c b/arch/ia64/mm/tlb.c
-index ed61297..8f03b58 100644
---- a/arch/ia64/mm/tlb.c
-+++ b/arch/ia64/mm/tlb.c
-@@ -20,6 +20,7 @@
+ /**
+diff --git a/arch/arc/mm/init.c b/arch/arc/mm/init.c
+index 8c173f9..80dbdc7 100644
+--- a/arch/arc/mm/init.c
++++ b/arch/arc/mm/init.c
+@@ -9,6 +9,7 @@
  #include <linux/kernel.h>
- #include <linux/sched.h>
- #include <linux/smp.h>
-+#include <linux/cpu.h>
  #include <linux/mm.h>
  #include <linux/bootmem.h>
- #include <linux/slab.h>
-@@ -87,11 +88,12 @@ wrap_mmu_context (struct mm_struct *mm)
- 	 * can't call flush_tlb_all() here because of race condition
- 	 * with O(1) scheduler [EF]
- 	 */
--	cpu = get_cpu(); /* prevent preemption/migration */
-+	get_online_cpus_atomic(); /* prevent preemption/migration */
-+	cpu = smp_processor_id();
- 	for_each_online_cpu(i)
- 		if (i != cpu)
- 			per_cpu(ia64_need_tlb_flush, i) = 1;
--	put_cpu();
-+	put_online_cpus_atomic();
- 	local_flush_tlb_all();
++#include <linux/memblock.h>
+ #ifdef CONFIG_BLOCK_DEV_RAM
+ #include <linux/blk.h>
+ #endif
+@@ -42,6 +43,7 @@ void __init early_init_dt_add_memory_arch(u64 base, u64 size)
+ {
+     arc_mem_sz = size & PAGE_MASK;
+     pr_info("Memory size set via devicetree %ldM\n", TO_MB(arc_mem_sz));
++    memblock_add(CONFIG_LINUX_LINK_BASE, arc_mem_sz);
  }
  
+ /*
+@@ -52,9 +54,6 @@ void __init early_init_dt_add_memory_arch(u64 base, u64 size)
+  */
+ void __init setup_arch_memory(void)
+ {
+-    int bootmap_sz;
+-    unsigned int first_free_pfn;
+-    unsigned long kernel_img_end, alloc_start;
+     unsigned long zones_size[MAX_NR_ZONES] = { 0, 0 };
+     unsigned long end_mem = CONFIG_LINUX_LINK_BASE + arc_mem_sz;
+ 
+@@ -63,39 +62,23 @@ void __init setup_arch_memory(void)
+     init_mm.end_data = (unsigned long)_edata;
+     init_mm.brk = (unsigned long)_end;
+ 
+-    /* _end needs to be page aligned */
+-    kernel_img_end = (unsigned long)_end;
+-    BUG_ON(kernel_img_end & ~PAGE_MASK);
++    /*------------- externs in mm need setting up ---------------*/
+ 
+     /* first page of system - kernel .vector starts here */
+     min_low_pfn = PFN_DOWN(CONFIG_LINUX_LINK_BASE);
+ 
+-    /* First free page beyond kernel image */
+-    first_free_pfn = PFN_DOWN(kernel_img_end);
+-
+-    /*
+-     * Last usable page of low mem (no HIGHMEM yet for ARC port)
+-     * -must be BASE + SIZE
+-     */
++    /* Last usable page of low mem (no HIGHMEM yet for ARC port) */
+     max_low_pfn = max_pfn = PFN_DOWN(end_mem);
+ 
+     max_mapnr = num_physpages = max_low_pfn - min_low_pfn;
+ 
+-    /* setup bootmem allocator */
+-    bootmap_sz = init_bootmem_node(NODE_DATA(0),
+-                       first_free_pfn,/* bitmap start */
+-                       min_low_pfn,   /* First pg to track */
+-                       max_low_pfn);  /* Last pg to track */
++    /*------------- reserve kernel image -----------------------*/
++    memblock_reserve(CONFIG_LINUX_LINK_BASE,
++             __pa(_end) - CONFIG_LINUX_LINK_BASE);
+ 
+-    /*
+-     * init_bootmem above marks all tracked Page-frames as inuse "allocated"
+-     * This includes pages occupied by kernel's elf segments.
+-     * Beyond that, excluding bootmem bitmap itself, mark the rest of
+-     * free-mem as "allocatable"
+-     */
+-    alloc_start = kernel_img_end + bootmap_sz;
+-    free_bootmem(alloc_start, end_mem - alloc_start);
++    memblock_dump_all();
+ 
++    /*-------------- node setup --------------------------------*/
+     memset(zones_size, 0, sizeof(zones_size));
+     zones_size[ZONE_NORMAL] = num_physpages;
+ 
+-- 
+1.7.4.1
+
+
+
 
