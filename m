@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp03.au.ibm.com ([202.81.31.145]:41077 "EHLO
-	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754231Ab3AVHiI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 02:38:08 -0500
+Received: from e23smtp07.au.ibm.com ([202.81.31.140]:49611 "EHLO
+	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754072Ab3AVHik (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 02:38:40 -0500
 Received: from /spool/local
-	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 22 Jan 2013 17:32:56 +1000
+	Tue, 22 Jan 2013 17:32:18 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v5 12/45] sched/migration: Use raw_spin_lock/unlock since
- interrupts are already disabled
-Date: Tue, 22 Jan 2013 13:05:59 +0530
-Message-ID: <20130122073557.13822.60411.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v5 14/45] rcu,
+ CPU hotplug: Fix comment referring to stop_machine()
+Date: Tue, 22 Jan 2013 13:06:34 +0530
+Message-ID: <20130122073630.13822.99359.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
 References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -21,59 +21,43 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org
 Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130122073559.hmrKByCGhMdGEffpQXn7UDs8AclvyuvTCIAF0mVyeNk@z>
+Message-ID: <20130122073634.rTwfFpZln18VKNGan0oixbg0-hgGEeC7bgKnTo_IRQU@z>
 
-We need not use the raw_spin_lock_irqsave/restore primitives because
-all CPU_DYING notifiers run with interrupts disabled. So just use
-raw_spin_lock/unlock.
+Don't refer to stop_machine() in the CPU hotplug path, since we are going
+to get rid of it. Also, move the comment referring to callback adoption
+to the CPU_DEAD case, because that's where it happens now.
 
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/sched/core.c |   12 +++++-------
- 1 file changed, 5 insertions(+), 7 deletions(-)
+ kernel/rcutree.c |    9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
 
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index c1596ac..c2cec88 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -4869,9 +4869,7 @@ static void calc_load_migrate(struct rq *rq)
-  * Migrate all tasks from the rq, sleeping tasks will be migrated by
-  * try_to_wake_up()->select_task_rq().
-  *
-- * Called with rq->lock held even though we'er in stop_machine() and
-- * there's no concurrency possible, we hold the required locks anyway
-- * because of lock validation efforts.
-+ * Called with rq->lock held.
-  */
- static void migrate_tasks(unsigned int dead_cpu)
- {
-@@ -4883,8 +4881,8 @@ static void migrate_tasks(unsigned int dead_cpu)
- 	 * Fudge the rq selection such that the below task selection loop
- 	 * doesn't get stuck on the currently eligible stop task.
- 	 *
--	 * We're currently inside stop_machine() and the rq is either stuck
--	 * in the stop_machine_cpu_stop() loop, or we're executing this code,
-+	 * We're currently inside stop_one_cpu() and the rq is either stuck
-+	 * in the cpu_stopper_thread(), or we're executing this code,
- 	 * either way we should never end up calling schedule() until we're
- 	 * done here.
- 	 */
-@@ -5153,14 +5151,14 @@ migration_call(struct notifier_block *nfb, unsigned long action, void *hcpu)
- 	case CPU_DYING:
- 		sched_ttwu_pending();
- 		/* Update our root-domain */
--		raw_spin_lock_irqsave(&rq->lock, flags);
-+		raw_spin_lock(&rq->lock); /* Interrupts already disabled */
- 		if (rq->rd) {
- 			BUG_ON(!cpumask_test_cpu(cpu, rq->rd->span));
- 			set_rq_offline(rq);
- 		}
- 		migrate_tasks(cpu);
- 		BUG_ON(rq->nr_running != 1); /* the migration thread */
--		raw_spin_unlock_irqrestore(&rq->lock, flags);
-+		raw_spin_unlock(&rq->lock);
+diff --git a/kernel/rcutree.c b/kernel/rcutree.c
+index e441b77..ac94474 100644
+--- a/kernel/rcutree.c
++++ b/kernel/rcutree.c
+@@ -2827,11 +2827,6 @@ static int __cpuinit rcu_cpu_notify(struct notifier_block *self,
  		break;
- 
- 	case CPU_DEAD:
+ 	case CPU_DYING:
+ 	case CPU_DYING_FROZEN:
+-		/*
+-		 * The whole machine is "stopped" except this CPU, so we can
+-		 * touch any data without introducing corruption. We send the
+-		 * dying CPU's callbacks to an arbitrarily chosen online CPU.
+-		 */
+ 		for_each_rcu_flavor(rsp)
+ 			rcu_cleanup_dying_cpu(rsp);
+ 		rcu_cleanup_after_idle(cpu);
+@@ -2840,6 +2835,10 @@ static int __cpuinit rcu_cpu_notify(struct notifier_block *self,
+ 	case CPU_DEAD_FROZEN:
+ 	case CPU_UP_CANCELED:
+ 	case CPU_UP_CANCELED_FROZEN:
++		/*
++		 * We send the dead CPU's callbacks to an arbitrarily chosen
++		 * online CPU.
++		 */
+ 		for_each_rcu_flavor(rsp)
+ 			rcu_cleanup_dead_cpu(cpu, rsp);
+ 		break;
 
