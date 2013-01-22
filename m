@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp03.au.ibm.com ([202.81.31.145]:40959 "EHLO
-	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753887Ab3AVHhZ (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 02:37:25 -0500
+Received: from e28smtp03.in.ibm.com ([122.248.162.3]:39451 "EHLO
+	e28smtp03.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754486Ab3AVHhE (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 02:37:04 -0500
 Received: from /spool/local
-	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp03.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 22 Jan 2013 17:32:11 +1000
+	Tue, 22 Jan 2013 13:05:28 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v5 10/45] smp,
- cpu hotplug: Fix on_each_cpu_*() to prevent CPU offline properly
-Date: Tue, 22 Jan 2013 13:05:17 +0530
-Message-ID: <20130122073515.13822.80220.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v5 09/45] smp,
+ cpu hotplug: Fix smp_call_function_*() to prevent CPU offline properly
+Date: Tue, 22 Jan 2013 13:05:10 +0530
+Message-ID: <20130122073508.13822.12784.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
 References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -21,7 +21,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org
 Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130122073517.STEeCjDEW8_pZkSAB1WnC1lgypQBTw62yH_fdulHQEE@z>
+Message-ID: <20130122073510.lVHyHPrr4rFjBqK4aeCPynDugMPHpsgvyrGlJRKU2_c@z>
 
 Once stop_machine() is gone from the CPU offline path, we won't be able to
 depend on preempt_disable() to prevent CPUs from going offline from under us.
@@ -32,91 +32,146 @@ while invoking from atomic context.
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/smp.c |   25 +++++++++++++++----------
- 1 file changed, 15 insertions(+), 10 deletions(-)
+ kernel/smp.c |   40 ++++++++++++++++++++++++++--------------
+ 1 file changed, 26 insertions(+), 14 deletions(-)
 
 diff --git a/kernel/smp.c b/kernel/smp.c
-index f421bcc..d870bfe 100644
+index 29dd40a..f421bcc 100644
 --- a/kernel/smp.c
 +++ b/kernel/smp.c
-@@ -688,12 +688,12 @@ int on_each_cpu(void (*func) (void *info), void *info, int wait)
- 	unsigned long flags;
- 	int ret = 0;
- 
--	preempt_disable();
+@@ -310,7 +310,8 @@ int smp_call_function_single(int cpu, smp_call_func_t func, void *info,
+ 	 * prevent preemption and reschedule on another processor,
+ 	 * as well as CPU removal
+ 	 */
+-	this_cpu = get_cpu();
 +	get_online_cpus_atomic();
- 	ret = smp_call_function(func, info, wait);
- 	local_irq_save(flags);
- 	func(info);
- 	local_irq_restore(flags);
--	preempt_enable();
++	this_cpu = smp_processor_id();
+ 
+ 	/*
+ 	 * Can deadlock when called with interrupts disabled.
+@@ -342,7 +343,7 @@ int smp_call_function_single(int cpu, smp_call_func_t func, void *info,
+ 		}
+ 	}
+ 
+-	put_cpu();
++	put_online_cpus_atomic();
+ 
+ 	return err;
+ }
+@@ -371,8 +372,10 @@ int smp_call_function_any(const struct cpumask *mask,
+ 	const struct cpumask *nodemask;
+ 	int ret;
+ 
++	get_online_cpus_atomic();
+ 	/* Try for same CPU (cheapest) */
+-	cpu = get_cpu();
++	cpu = smp_processor_id();
++
+ 	if (cpumask_test_cpu(cpu, mask))
+ 		goto call;
+ 
+@@ -388,7 +391,7 @@ int smp_call_function_any(const struct cpumask *mask,
+ 	cpu = cpumask_any_and(mask, cpu_online_mask);
+ call:
+ 	ret = smp_call_function_single(cpu, func, info, wait);
+-	put_cpu();
 +	put_online_cpus_atomic();
  	return ret;
  }
- EXPORT_SYMBOL(on_each_cpu);
-@@ -715,7 +715,11 @@ EXPORT_SYMBOL(on_each_cpu);
- void on_each_cpu_mask(const struct cpumask *mask, smp_call_func_t func,
- 			void *info, bool wait)
- {
--	int cpu = get_cpu();
-+	int cpu;
-+
+ EXPORT_SYMBOL_GPL(smp_call_function_any);
+@@ -409,25 +412,28 @@ void __smp_call_function_single(int cpu, struct call_single_data *data,
+ 	unsigned int this_cpu;
+ 	unsigned long flags;
+ 
+-	this_cpu = get_cpu();
 +	get_online_cpus_atomic();
 +
-+	cpu = smp_processor_id();
++	this_cpu = smp_processor_id();
++
+ 	/*
+ 	 * Can deadlock when called with interrupts disabled.
+ 	 * We allow cpu's that are not yet online though, as no one else can
+ 	 * send smp call function interrupt to this cpu and as such deadlocks
+ 	 * can't happen.
+ 	 */
+-	WARN_ON_ONCE(cpu_online(smp_processor_id()) && wait && irqs_disabled()
++	WARN_ON_ONCE(cpu_online(this_cpu) && wait && irqs_disabled()
+ 		     && !oops_in_progress);
  
- 	smp_call_function_many(mask, func, info, wait);
- 	if (cpumask_test_cpu(cpu, mask)) {
-@@ -723,7 +727,7 @@ void on_each_cpu_mask(const struct cpumask *mask, smp_call_func_t func,
- 		func(info);
- 		local_irq_enable();
+ 	if (cpu == this_cpu) {
+ 		local_irq_save(flags);
+ 		data->func(data->info);
+ 		local_irq_restore(flags);
+-	} else {
++	} else if ((unsigned)cpu < nr_cpu_ids && cpu_online(cpu)) {
+ 		csd_lock(data);
+ 		generic_exec_single(cpu, data, wait);
  	}
 -	put_cpu();
 +	put_online_cpus_atomic();
  }
- EXPORT_SYMBOL(on_each_cpu_mask);
  
-@@ -748,8 +752,9 @@ EXPORT_SYMBOL(on_each_cpu_mask);
-  * The function might sleep if the GFP flags indicates a non
-  * atomic allocation is allowed.
-  *
-- * Preemption is disabled to protect against CPUs going offline but not online.
-- * CPUs going online during the call will not be seen or sent an IPI.
-+ * We use get/put_online_cpus_atomic() to prevent CPUs from going
-+ * offline in-between our operation. CPUs coming online during the
-+ * call will not be seen or sent an IPI.
-  *
-  * You must not call this function with disabled interrupts or
-  * from a hardware interrupt handler or from a bottom half handler.
-@@ -764,26 +769,26 @@ void on_each_cpu_cond(bool (*cond_func)(int cpu, void *info),
- 	might_sleep_if(gfp_flags & __GFP_WAIT);
+ /**
+@@ -451,6 +457,8 @@ void smp_call_function_many(const struct cpumask *mask,
+ 	unsigned long flags;
+ 	int refs, cpu, next_cpu, this_cpu = smp_processor_id();
  
- 	if (likely(zalloc_cpumask_var(&cpus, (gfp_flags|__GFP_NOWARN)))) {
--		preempt_disable();
-+		get_online_cpus_atomic();
- 		for_each_online_cpu(cpu)
- 			if (cond_func(cpu, info))
- 				cpumask_set_cpu(cpu, cpus);
- 		on_each_cpu_mask(cpus, func, info, wait);
--		preempt_enable();
-+		put_online_cpus_atomic();
- 		free_cpumask_var(cpus);
- 	} else {
- 		/*
- 		 * No free cpumask, bother. No matter, we'll
- 		 * just have to IPI them one by one.
- 		 */
--		preempt_disable();
-+		get_online_cpus_atomic();
- 		for_each_online_cpu(cpu)
- 			if (cond_func(cpu, info)) {
- 				ret = smp_call_function_single(cpu, func,
- 								info, wait);
- 				WARN_ON_ONCE(!ret);
- 			}
--		preempt_enable();
-+		put_online_cpus_atomic();
++	get_online_cpus_atomic();
++
+ 	/*
+ 	 * Can deadlock when called with interrupts disabled.
+ 	 * We allow cpu's that are not yet online though, as no one else can
+@@ -467,17 +475,18 @@ void smp_call_function_many(const struct cpumask *mask,
+ 
+ 	/* No online cpus?  We're done. */
+ 	if (cpu >= nr_cpu_ids)
+-		return;
++		goto out_unlock;
+ 
+ 	/* Do we have another CPU which isn't us? */
+ 	next_cpu = cpumask_next_and(cpu, mask, cpu_online_mask);
+ 	if (next_cpu == this_cpu)
+-		next_cpu = cpumask_next_and(next_cpu, mask, cpu_online_mask);
++		next_cpu = cpumask_next_and(next_cpu, mask,
++						cpu_online_mask);
+ 
+ 	/* Fastpath: do that cpu by itself. */
+ 	if (next_cpu >= nr_cpu_ids) {
+ 		smp_call_function_single(cpu, func, info, wait);
+-		return;
++		goto out_unlock;
  	}
+ 
+ 	data = &__get_cpu_var(cfd_data);
+@@ -523,7 +532,7 @@ void smp_call_function_many(const struct cpumask *mask,
+ 	/* Some callers race with other cpus changing the passed mask */
+ 	if (unlikely(!refs)) {
+ 		csd_unlock(&data->csd);
+-		return;
++		goto out_unlock;
+ 	}
+ 
+ 	raw_spin_lock_irqsave(&call_function.lock, flags);
+@@ -554,6 +563,9 @@ void smp_call_function_many(const struct cpumask *mask,
+ 	/* Optionally wait for the CPUs to complete */
+ 	if (wait)
+ 		csd_lock_wait(&data->csd);
++
++out_unlock:
++	put_online_cpus_atomic();
  }
- EXPORT_SYMBOL(on_each_cpu_cond);
+ EXPORT_SYMBOL(smp_call_function_many);
+ 
+@@ -574,9 +586,9 @@ EXPORT_SYMBOL(smp_call_function_many);
+  */
+ int smp_call_function(smp_call_func_t func, void *info, int wait)
+ {
+-	preempt_disable();
++	get_online_cpus_atomic();
+ 	smp_call_function_many(cpu_online_mask, func, info, wait);
+-	preempt_enable();
++	put_online_cpus_atomic();
+ 
+ 	return 0;
+ }
 
