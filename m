@@ -1,49 +1,133 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from multi.imgtec.com ([194.200.65.239]:2174 "EHLO multi.imgtec.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1752747Ab3AVLfP (ORCPT <rfc822;linux-arch@vger.kernel.org>);
-	Tue, 22 Jan 2013 06:35:15 -0500
-Message-ID: <50FE796D.5070608@imgtec.com>
-Date: Tue, 22 Jan 2013 11:35:09 +0000
-From: James Hogan <james.hogan@imgtec.com>
-MIME-Version: 1.0
-Subject: Re: [PATCH v3 00/44] Meta Linux Kernel Port
-References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com> <20130111103442.b80ddbfb11ef322ed28ca3b3@canb.auug.org.au> <50EFD824.3010502@imgtec.com> <20130112000336.1f24c42237fab4fe0c305ff6@canb.auug.org.au> <50F0296E.2000704@imgtec.com> <20130112120957.36df3412c9d6cca089a0340a@canb.auug.org.au> <20130112095507.GA1738@balrog> <20130119055501.GA2802@ZenIV.linux.org.uk>
-In-Reply-To: <20130119055501.GA2802@ZenIV.linux.org.uk>
-Content-Type: text/plain; charset="ISO-8859-1"
+Received: from mail-da0-f48.google.com ([209.85.210.48]:36281 "EHLO
+	mail-da0-f48.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753780Ab3AVSpN (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 13:45:13 -0500
+Received: by mail-da0-f48.google.com with SMTP id k18so3395695dae.7
+        for <linux-arch@vger.kernel.org>; Tue, 22 Jan 2013 10:45:13 -0800 (PST)
+Date: Tue, 22 Jan 2013 10:45:06 -0800
+From: Stephen Hemminger <stephen@networkplumber.org>
+Subject: Re: [PATCH v5 01/45] percpu_rwlock: Introduce the global
+ reader-writer lock backend
+Message-ID: <20130122104506.32b4e581@nehalam.linuxnetplumber.net>
+In-Reply-To: <20130122073315.13822.27093.stgit@srivatsabhat.in.ibm.com>
+References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
+	<20130122073315.13822.27093.stgit@srivatsabhat.in.ibm.com>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-Message-ID: <20130122113509.F7zCqQV32SsiWMDTauRlEeLURUZZBrZGvd9ARF_668g@z>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130122184506.zSSk5QMBHXvRQocrl-80Hgdi_trFOrnVsQw7cJZuMHE@z>
 
-On 19/01/13 05:55, Al Viro wrote:
-> On Sat, Jan 12, 2013 at 09:55:07AM +0000, James Hogan wrote:
->> Hi Stephen, Al,
->>
->> On Sat, Jan 12, 2013 at 12:09:57PM +1100, Stephen Rothwell wrote:
->>> On Fri, 11 Jan 2013 15:02:06 +0000 James Hogan <james.hogan@imgtec.com> wrote:
->>>>
->>>> Okay, I've rebased the metag tree from linux-next onto the master branch
->>>> of Al's signal tree (to get Vineet's GENERIC_SIGALTSTACK fix and
->>>> GENERIC_SIGALTSTACK's eventual removal).
->>>
->>> OK, but I hope you mentioned not rebasing to Al.
->>
->> I'm still rebasing the metag tree, and it's not quite ready for -next so
->> I don't mind if Al's tree rebases at this stage tbh.
->>
->> Al: I don't know if you normally rebase your tree, but if it's okay with
->> you I'll let you know when I need it not to be rebased.
+On Tue, 22 Jan 2013 13:03:22 +0530
+"Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com> wrote:
+
+> A straight-forward (and obvious) algorithm to implement Per-CPU Reader-Writer
+> locks can also lead to too many deadlock possibilities which can make it very
+> hard/impossible to use. This is explained in the example below, which helps
+> justify the need for a different algorithm to implement flexible Per-CPU
+> Reader-Writer locks.
 > 
-> Umm...  
-> 	1) #master is definitely bad for base; #for-linus is much safer (and
-> sufficient for your case)
+> We can use global rwlocks as shown below safely, without fear of deadlocks:
+> 
+> Readers:
+> 
+>          CPU 0                                CPU 1
+>          ------                               ------
+> 
+> 1.    spin_lock(&random_lock);             read_lock(&my_rwlock);
+> 
+> 
+> 2.    read_lock(&my_rwlock);               spin_lock(&random_lock);
+> 
+> 
+> Writer:
+> 
+>          CPU 2:
+>          ------
+> 
+>        write_lock(&my_rwlock);
+> 
+> 
+> We can observe that there is no possibility of deadlocks or circular locking
+> dependencies here. Its perfectly safe.
+> 
+> Now consider a blind/straight-forward conversion of global rwlocks to per-CPU
+> rwlocks like this:
+> 
+> The reader locks its own per-CPU rwlock for read, and proceeds.
+> 
+> Something like: read_lock(per-cpu rwlock of this cpu);
+> 
+> The writer acquires all per-CPU rwlocks for write and only then proceeds.
+> 
+> Something like:
+> 
+>   for_each_online_cpu(cpu)
+> 	write_lock(per-cpu rwlock of 'cpu');
+> 
+> 
+> Now let's say that for performance reasons, the above scenario (which was
+> perfectly safe when using global rwlocks) was converted to use per-CPU rwlocks.
+> 
+> 
+>          CPU 0                                CPU 1
+>          ------                               ------
+> 
+> 1.    spin_lock(&random_lock);             read_lock(my_rwlock of CPU 1);
+> 
+> 
+> 2.    read_lock(my_rwlock of CPU 0);       spin_lock(&random_lock);
+> 
+> 
+> Writer:
+> 
+>          CPU 2:
+>          ------
+> 
+>       for_each_online_cpu(cpu)
+>         write_lock(my_rwlock of 'cpu');
+> 
+> 
+> Consider what happens if the writer begins his operation in between steps 1
+> and 2 at the reader side. It becomes evident that we end up in a (previously
+> non-existent) deadlock due to a circular locking dependency between the 3
+> entities, like this:
+> 
+> 
+> (holds              Waiting for
+>  random_lock) CPU 0 -------------> CPU 2  (holds my_rwlock of CPU 0
+>                                                for write)
+>                ^                   |
+>                |                   |
+>         Waiting|                   | Waiting
+>           for  |                   |  for
+>                |                   V
+>                 ------ CPU 1 <------
+> 
+>                 (holds my_rwlock of
+>                  CPU 1 for read)
+> 
+> 
+> 
+> So obviously this "straight-forward" way of implementing percpu rwlocks is
+> deadlock-prone. One simple measure for (or characteristic of) safe percpu
+> rwlock should be that if a user replaces global rwlocks with per-CPU rwlocks
+> (for performance reasons), he shouldn't suddenly end up in numerous deadlock
+> possibilities which never existed before. The replacement should continue to
+> remain safe, and perhaps improve the performance.
+> 
+> Observing the robustness of global rwlocks in providing a fair amount of
+> deadlock safety, we implement per-CPU rwlocks as nothing but global rwlocks,
+> as a first step.
+> 
+> 
+> Cc: David Howells <dhowells@redhat.com>
+> Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 
-Thanks for that, and I see it's now merged into Linus' tree so I'll
-rebase onto that instead.
-
-Cheers
-James
+We got rid of brlock years ago, do we have to reintroduce it like this?
+The problem was that brlock caused starvation.
 
