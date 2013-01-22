@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp07.au.ibm.com ([202.81.31.140]:49533 "EHLO
-	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754519Ab3AVHhp (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 02:37:45 -0500
+Received: from e23smtp06.au.ibm.com ([202.81.31.148]:36235 "EHLO
+	e23smtp06.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754312Ab3AVHge (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 02:36:34 -0500
 Received: from /spool/local
-	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp06.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 22 Jan 2013 17:31:22 +1000
+	Tue, 22 Jan 2013 17:32:33 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v5 11/45] sched/timer: Use get/put_online_cpus_atomic() to
- prevent CPU offline
-Date: Tue, 22 Jan 2013 13:05:38 +0530
-Message-ID: <20130122073535.13822.10055.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v5 06/45] percpu_rwlock: Allow writers to be readers,
+ and add lockdep annotations
+Date: Tue, 22 Jan 2013 13:04:23 +0530
+Message-ID: <20130122073416.13822.96504.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
 References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -21,187 +21,95 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org
 Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130122073538.2pWfzypPeOEc60p6CqE3J3l638HUDi5PFMiQ494e-ng@z>
+Message-ID: <20130122073423.2n3qs63QKaTAPeuj3-POjt02YrlnPHFYg7SObxEnhPQ@z>
 
-Once stop_machine() is gone from the CPU offline path, we won't be able to
-depend on preempt_disable() or local_irq_disable() to prevent CPUs from going
-offline from under us.
+CPU hotplug (which will be the first user of per-CPU rwlocks) has a special
+requirement with respect to locking: the writer, after acquiring the per-CPU
+rwlock for write, must be allowed to take the same lock for read, without
+deadlocking and without getting complaints from lockdep. In comparison, this
+is similar to what get_online_cpus()/put_online_cpus() does today: it allows
+a hotplug writer (who holds the cpu_hotplug.lock mutex) to invoke it without
+locking issues, because it silently returns if the caller is the hotplug
+writer itself.
 
-Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going offline,
-while invoking from atomic context.
+This can be easily achieved with per-CPU rwlocks as well (even without a
+"is this a writer?" check) by incrementing the per-CPU refcount of the writer
+immediately after taking the global rwlock for write, and then decrementing
+the per-CPU refcount before releasing the global rwlock.
+This ensures that any reader that comes along on that CPU while the writer is
+active (on that same CPU), notices the non-zero value of the nested counter
+and assumes that it is a nested read-side critical section and proceeds by
+just incrementing the refcount. Thus we prevent the reader from taking the
+global rwlock for read, which prevents the writer from deadlocking itself.
 
+Add that support and teach lockdep about this special locking scheme so
+that it knows that this sort of usage is valid. Also add the required lockdep
+annotations to enable it to detect common locking problems with per-CPU
+rwlocks.
+
+Cc: David Howells <dhowells@redhat.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- kernel/sched/core.c |   24 +++++++++++++++++++++---
- kernel/sched/fair.c |    5 ++++-
- kernel/timer.c      |    2 ++
- 3 files changed, 27 insertions(+), 4 deletions(-)
+ lib/percpu-rwlock.c |   21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
 
-diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 257002c..c1596ac 100644
---- a/kernel/sched/core.c
-+++ b/kernel/sched/core.c
-@@ -1117,11 +1117,11 @@ void kick_process(struct task_struct *p)
- {
- 	int cpu;
+diff --git a/lib/percpu-rwlock.c b/lib/percpu-rwlock.c
+index a8d177a..054a50a 100644
+--- a/lib/percpu-rwlock.c
++++ b/lib/percpu-rwlock.c
+@@ -84,6 +84,10 @@ void percpu_read_lock_irqsafe(struct percpu_rwlock *pcpu_rwlock)
  
--	preempt_disable();
-+	get_online_cpus_atomic();
- 	cpu = task_cpu(p);
- 	if ((cpu != smp_processor_id()) && task_curr(p))
- 		smp_send_reschedule(cpu);
--	preempt_enable();
-+	put_online_cpus_atomic();
+ 		if (likely(!writer_active(pcpu_rwlock))) {
+ 			this_cpu_inc(*pcpu_rwlock->reader_refcnt);
++
++			/* Pretend that we take global_rwlock for lockdep */
++			rwlock_acquire_read(&pcpu_rwlock->global_rwlock.dep_map,
++					    0, 0, _RET_IP_);
+ 		} else {
+ 			/* Writer is active, so switch to global rwlock. */
+ 
+@@ -108,6 +112,12 @@ void percpu_read_lock_irqsafe(struct percpu_rwlock *pcpu_rwlock)
+ 			if (!writer_active(pcpu_rwlock)) {
+ 				this_cpu_inc(*pcpu_rwlock->reader_refcnt);
+ 				read_unlock(&pcpu_rwlock->global_rwlock);
++
++				/*
++				 * Pretend that we take global_rwlock for lockdep
++				 */
++				rwlock_acquire_read(&pcpu_rwlock->global_rwlock.dep_map,
++						    0, 0, _RET_IP_);
+ 			}
+ 		}
+ 	}
+@@ -128,6 +138,14 @@ void percpu_read_unlock_irqsafe(struct percpu_rwlock *pcpu_rwlock)
+ 	if (reader_nested_percpu(pcpu_rwlock)) {
+ 		this_cpu_dec(*pcpu_rwlock->reader_refcnt);
+ 		smp_wmb(); /* Paired with smp_rmb() in sync_reader() */
++
++		/*
++		 * If this is the last decrement, then it is time to pretend
++		 * to lockdep that we are releasing the read lock.
++		 */
++		if (!reader_nested_percpu(pcpu_rwlock))
++			rwlock_release(&pcpu_rwlock->global_rwlock.dep_map,
++				       1, _RET_IP_);
+ 	} else {
+ 		read_unlock(&pcpu_rwlock->global_rwlock);
+ 	}
+@@ -205,11 +223,14 @@ void percpu_write_lock_irqsave(struct percpu_rwlock *pcpu_rwlock,
+ 	announce_writer_active(pcpu_rwlock);
+ 	sync_all_readers(pcpu_rwlock);
+ 	write_lock_irqsave(&pcpu_rwlock->global_rwlock, *flags);
++	this_cpu_inc(*pcpu_rwlock->reader_refcnt);
  }
- EXPORT_SYMBOL_GPL(kick_process);
- #endif /* CONFIG_SMP */
-@@ -1129,6 +1129,10 @@ EXPORT_SYMBOL_GPL(kick_process);
- #ifdef CONFIG_SMP
- /*
-  * ->cpus_allowed is protected by both rq->lock and p->pi_lock
-+ *
-+ *  Must be called under get/put_online_cpus_atomic() or
-+ *  equivalent, to avoid CPUs from going offline from underneath
-+ *  us.
-  */
- static int select_fallback_rq(int cpu, struct task_struct *p)
+ 
+ void percpu_write_unlock_irqrestore(struct percpu_rwlock *pcpu_rwlock,
+ 			 unsigned long *flags)
  {
-@@ -1192,6 +1196,9 @@ out:
- 
- /*
-  * The caller (fork, wakeup) owns p->pi_lock, ->cpus_allowed is stable.
-+ *
-+ * Must be called under get/put_online_cpus_atomic(), to prevent
-+ * CPUs from going offline from underneath us.
-  */
- static inline
- int select_task_rq(struct task_struct *p, int sd_flags, int wake_flags)
-@@ -1432,6 +1439,7 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
- 	int cpu, success = 0;
- 
- 	smp_wmb();
-+	get_online_cpus_atomic();
- 	raw_spin_lock_irqsave(&p->pi_lock, flags);
- 	if (!(p->state & state))
- 		goto out;
-@@ -1472,6 +1480,7 @@ stat:
- 	ttwu_stat(p, cpu, wake_flags);
- out:
- 	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
-+	put_online_cpus_atomic();
- 
- 	return success;
- }
-@@ -1692,6 +1701,7 @@ void wake_up_new_task(struct task_struct *p)
- 	unsigned long flags;
- 	struct rq *rq;
- 
-+	get_online_cpus_atomic();
- 	raw_spin_lock_irqsave(&p->pi_lock, flags);
- #ifdef CONFIG_SMP
++	this_cpu_dec(*pcpu_rwlock->reader_refcnt);
++
  	/*
-@@ -1712,6 +1722,7 @@ void wake_up_new_task(struct task_struct *p)
- 		p->sched_class->task_woken(rq, p);
- #endif
- 	task_rq_unlock(rq, p, &flags);
-+	put_online_cpus_atomic();
- }
- 
- #ifdef CONFIG_PREEMPT_NOTIFIERS
-@@ -2609,6 +2620,7 @@ void sched_exec(void)
- 	unsigned long flags;
- 	int dest_cpu;
- 
-+	get_online_cpus_atomic();
- 	raw_spin_lock_irqsave(&p->pi_lock, flags);
- 	dest_cpu = p->sched_class->select_task_rq(p, SD_BALANCE_EXEC, 0);
- 	if (dest_cpu == smp_processor_id())
-@@ -2618,11 +2630,13 @@ void sched_exec(void)
- 		struct migration_arg arg = { p, dest_cpu };
- 
- 		raw_spin_unlock_irqrestore(&p->pi_lock, flags);
-+		put_online_cpus_atomic();
- 		stop_one_cpu(task_cpu(p), migration_cpu_stop, &arg);
- 		return;
- 	}
- unlock:
- 	raw_spin_unlock_irqrestore(&p->pi_lock, flags);
-+	put_online_cpus_atomic();
- }
- 
- #endif
-@@ -4372,6 +4386,7 @@ bool __sched yield_to(struct task_struct *p, bool preempt)
- 	unsigned long flags;
- 	bool yielded = 0;
- 
-+	get_online_cpus_atomic();
- 	local_irq_save(flags);
- 	rq = this_rq();
- 
-@@ -4399,13 +4414,14 @@ again:
- 		 * Make p's CPU reschedule; pick_next_entity takes care of
- 		 * fairness.
- 		 */
--		if (preempt && rq != p_rq)
-+		if (preempt && rq != p_rq && cpu_online(task_cpu(p)))
- 			resched_task(p_rq->curr);
- 	}
- 
- out:
- 	double_rq_unlock(rq, p_rq);
- 	local_irq_restore(flags);
-+	put_online_cpus_atomic();
- 
- 	if (yielded)
- 		schedule();
-@@ -4810,9 +4826,11 @@ static int migration_cpu_stop(void *data)
- 	 * The original target cpu might have gone down and we might
- 	 * be on another cpu but it doesn't matter.
- 	 */
-+	get_online_cpus_atomic();
- 	local_irq_disable();
- 	__migrate_task(arg->task, raw_smp_processor_id(), arg->dest_cpu);
- 	local_irq_enable();
-+	put_online_cpus_atomic();
- 	return 0;
- }
- 
-diff --git a/kernel/sched/fair.c b/kernel/sched/fair.c
-index 5eea870..a846028 100644
---- a/kernel/sched/fair.c
-+++ b/kernel/sched/fair.c
-@@ -5695,8 +5695,11 @@ void trigger_load_balance(struct rq *rq, int cpu)
- 	    likely(!on_null_domain(cpu)))
- 		raise_softirq(SCHED_SOFTIRQ);
- #ifdef CONFIG_NO_HZ
--	if (nohz_kick_needed(rq, cpu) && likely(!on_null_domain(cpu)))
-+	if (nohz_kick_needed(rq, cpu) && likely(!on_null_domain(cpu))) {
-+		get_online_cpus_atomic();
- 		nohz_balancer_kick(cpu);
-+		put_online_cpus_atomic();
-+	}
- #endif
- }
- 
-diff --git a/kernel/timer.c b/kernel/timer.c
-index 367d008..b1820e3 100644
---- a/kernel/timer.c
-+++ b/kernel/timer.c
-@@ -924,6 +924,7 @@ void add_timer_on(struct timer_list *timer, int cpu)
- 
- 	timer_stats_timer_set_start_info(timer);
- 	BUG_ON(timer_pending(timer) || !timer->function);
-+	get_online_cpus_atomic();
- 	spin_lock_irqsave(&base->lock, flags);
- 	timer_set_base(timer, base);
- 	debug_activate(timer, timer->expires);
-@@ -938,6 +939,7 @@ void add_timer_on(struct timer_list *timer, int cpu)
- 	 */
- 	wake_up_idle_cpu(cpu);
- 	spin_unlock_irqrestore(&base->lock, flags);
-+	put_online_cpus_atomic();
- }
- EXPORT_SYMBOL_GPL(add_timer_on);
- 
+ 	 * Inform all readers that we are done, so that they can switch back
+ 	 * to their per-cpu refcounts. (We don't need to wait for them to
 
