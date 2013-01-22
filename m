@@ -1,243 +1,58 @@
-From: Mauro Carvalho Chehab <mchehab@redhat.com>
-Subject: Re: [Linux-c6x-dev] [PATCH 3/9] c6x: Provide dma_mmap_coherent()
- and dma_get_sgtable()
-Date: Tue, 22 Jan 2013 11:42:21 -0200
-Message-ID: <20130122114221.02bb54b3@redhat.com>
-References: <1358073890-3610-1-git-send-email-geert@linux-m68k.org>
-	<1358073890-3610-3-git-send-email-geert@linux-m68k.org>
-	<1358177872.4357.53.camel@t520.localdomain>
-	<50F4D83A.7020803@synopsys.com>
-	<CAMuHMdWjZAY19GPpjoXKfWb3pOp2RbZXDvb4nr5pMmjEMFuB4w@mail.gmail.com>
-	<50F56286.8070200@samsung.com>
-	<1358269008.10591.11.camel@dabdike.int.hansenpartnership.com>
-	<CAMuHMdXk1mdkMViYqypvnXO0_1LdjbH8S7z8FNe97yDUW6BYRA@mail.gmail.com>
-	<1358809159.3975.63.camel@dabdike.int.hansenpartnership.com>
-	<1358849633.2387.11.camel@dabdike.int.hansenpartnership.com>
-	<1358849808.2387.13.camel@dabdike.int.hansenpartnership.com>
-	<1358850727.2387.21.camel@dabdike.int.hansenpartnership.com>
+From: Al Viro <viro@ZenIV.linux.org.uk>
+Subject: Re: [RFC] making HAVE_SYSCALL_WRAPPERS universal (Re: Issues with
+ "x86, um: switch to generic fork/vfork/clone" commit)
+Date: Tue, 22 Jan 2013 14:23:41 +0000
+Message-ID: <20130122142341.GW4939@ZenIV.linux.org.uk>
+References: <50F3D2F2.3080200@6wind.com>
+ <20130119063808.GN4939@ZenIV.linux.org.uk>
+ <20130120031253.GO4939@ZenIV.linux.org.uk>
+ <CA+55aFyRMC43_H1hL5goAQxX4EdTuXOu5A9CoBk9fpGoJT_nig@mail.gmail.com>
+ <20130121012217.GQ4939@ZenIV.linux.org.uk>
+ <CA+55aFwG2j_+2pjUJuZqT1yk0xDEyeFMgCxHmxAzfGXHO5qCXQ@mail.gmail.com>
+ <20130121023010.GR4939@ZenIV.linux.org.uk>
+ <20130121225517.GV4939@ZenIV.linux.org.uk>
+ <50FE8A55.2000703@imgtec.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: QUOTED-PRINTABLE
+Content-Type: text/plain; charset=us-ascii
 Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from mx1.redhat.com ([209.132.183.28]:22178 "EHLO mx1.redhat.com"
-	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
-	id S1751138Ab3AVNnF convert rfc822-to-8bit (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 08:43:05 -0500
-In-Reply-To: <1358850727.2387.21.camel@dabdike.int.hansenpartnership.com>
+Received: from zeniv.linux.org.uk ([195.92.253.2]:35859 "EHLO
+	ZenIV.linux.org.uk" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752987Ab3AVOXr (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 09:23:47 -0500
+Content-Disposition: inline
+In-Reply-To: <50FE8A55.2000703@imgtec.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Marek Szyprowski <m.szyprowski@samsung.com>, Mark Salter <msalter@redhat.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org, linux-media@vger.kernel.org, Tomasz Stanislawski <t.stanislaws@samsung.com>
+To: James Hogan <james.hogan@imgtec.com>
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Nicolas Dichtel <nicolas.dichtel@6wind.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Tony Luck <tony.luck@intel.com>
 
-Em Tue, 22 Jan 2013 10:32:07 +0000
-James Bottomley <James.Bottomley@HansenPartnership.com> escreveu:
+On Tue, Jan 22, 2013 at 12:47:17PM +0000, James Hogan wrote:
+> On 21/01/13 22:55, Al Viro wrote:
+> > I've tried to sanitize cond_syscall/SYSCALL_ALIAS situation; the tree is in
+> > git.kernel.org/pub/scm/linux/kernel/git/viro/signal experimental-syscalls
+> > NOTE: this is absolutely untested and might very well blow up
+> > on any number of architectures.
+> > 
+> > Review and comments would be very welcome.
+> 
+> Looking at "consolidate cond_syscall and SYSCALL_ALIAS declarations",
+> is it worth having the default __SYMBOL_NAME declaration in
+> include/linux/linkage.h make use of CONFIG_SYMBOL_PREFIX?
+> 
+> E.g. in the metag patchset we currently have the patch below.
+> 
+> Admittedly CONFIG_SYMBOL_PREFIX is a string which would make it's use in
+> SYMBOL_NAME a bit awkward.
 
-> On Tue, 2013-01-22 at 10:16 +0000, James Bottomley wrote:
-> > [adding Mauro and v4l since they're the only non-arm consumers]
-> > On Tue, 2013-01-22 at 10:13 +0000, James Bottomley wrote:
-> > > On Mon, 2013-01-21 at 22:59 +0000, James Bottomley wrote:
-> > > > On Mon, 2013-01-21 at 21:00 +0100, Geert Uytterhoeven wrote:
-> > > > > On Tue, Jan 15, 2013 at 5:56 PM, James Bottomley
-> > > > > <James.Bottomley@hansenpartnership.com> wrote:
-> > > > > > On Tue, 2013-01-15 at 15:07 +0100, Marek Szyprowski wrote:
-> > > > > >> On 1/15/2013 10:13 AM, Geert Uytterhoeven wrote:
-> > > > > >> > Marek?
-> > > > > >> >
-> > > > > >> > On Tue, Jan 15, 2013 at 5:16 AM, Vineet Gupta
-> > > > > >> > <Vineet.Gupta1@synopsys.com> wrote:
-> > > > > >> > > On Monday 14 January 2013 09:07 PM, Mark Salter wrote:
-> > > > > >> > >> On Sun, 2013-01-13 at 11:44 +0100, Geert Uytterhoeven=
- wrote:
-> > > > > >> > >>> c6x/allmodconfig (assumed):
-> > > > > >> > >>>
-> > > > > >> > >>> drivers/media/v4l2-core/videobuf2-dma-contig.c: In f=
-unction =E2=80=98vb2_dc_mmap=E2=80=99:
-> > > > > >> > >>> drivers/media/v4l2-core/videobuf2-dma-contig.c:204: =
-error: implicit declaration of function =E2=80=98dma_mmap_coherent=E2=80=
-=99
-> > > > > >> > >>> drivers/media/v4l2-core/videobuf2-dma-contig.c: In f=
-unction =E2=80=98vb2_dc_get_base_sgt=E2=80=99:
-> > > > > >> > >>> drivers/media/v4l2-core/videobuf2-dma-contig.c:387: =
-error: implicit declaration of function =E2=80=98dma_get_sgtable=E2=80=99
-> > > > > >> > >>>
-> > > > > >> > >>> For architectures using dma_map_ops, dma_mmap_cohere=
-nt() and
-> > > > > >> > >>> dma_get_sgtable() are provided in <asm-generic/dma-m=
-apping-common.h>.
-> > > > > >> > >>>
-> > > > > >> > >>> C6x does not use dma_map_ops, hence it should implem=
-ent them as inline
-> > > > > >> > >>> stubs using dma_common_mmap() and dma_common_get_sgt=
-able().
-> > > > > >> > >>>
-> > > > > >> > >> So are dma_mmap_coherent() and dma_get_sgtable() part=
- of the DMA API
-> > > > > >> > >> now? I don't them in Documentation/DMA*.txt anywhere.
-> > > > > >> > >>
-> > > > > >> > >> Why does the default dma_common_mmap() for !CONFIG_MM=
-U return an
-> > > > > >> > >> error?
-> > > > > >> > >>
-> > > > > >> > >> Wouldn't it be better to provide default implementati=
-ons that an arch
-> > > > > >> > >> could override rather than having to patch all "no dm=
-a_map_ops"
-> > > > > >> > >> architectures?
-> > > > > >> > >>
-> > > > > >> > > Speaking for the still-reviewed ARC Port, I completely=
- agree with Mark.
-> > > > > >>
-> > > > > >> dma_mmap_coherent() was partially in the DMA mapping API f=
-or some time, but
-> > > > > >> it was available only on a few architectures (afair ARM, p=
-owerpc and avr32).
-> > > > > >> This caused significant problems for writing unified devic=
-e drivers or some
-> > > > > >> device helper modules which were aimed to work on more tha=
-n one
-> > > > > >> architecture.
-> > > > > >>
-> > > > > >> dma_get_sgtable() is an extension discussed during the Lin=
-aro meetings. It
-> > > > > >> is required to correctly implement buffer sharing between =
-device driver
-> > > > > >> without hacks or any assumptions about memory layout in th=
-e device drivers.
-> > > > > >>
-> > > > > >> I have implemented some generic code for both of those two=
- functions,
-> > > > > >> keeping
-> > > > > >> in mind that on some hardware architectures (like already =
-mentioned VIVT)
-> > > > > >> it might be not possible to provide coherent mapping to us=
-erspace. It is
-> > > > > >> perfectly fine for those functions to return an error in s=
-uch case.
-> > > > > >
-> > > > > > It's not possible on VIPT either.  This means that the API =
-is unusable
-> > > > > > on quite a large number of architectures.  Surely, if we're=
- starting to
-> > > > > > write drivers using this, we need to fix the API before mor=
-e people try
-> > > > > > to use it.
-> > > > > >
-> > > > > > For PA-RISC (and all other VIPT, I assume) I need an API wh=
-ich allows me
-> > > > > > to remap the virtual address of the kernel component (proba=
-bly using the
-> > > > > > kmap area) so the user space and kernel space addresses are=
- congruent.
-> > > > >=20
-> > > > > So what are we gonna do for 3.8? I'd like to get my allmodcon=
-fig build
-> > > > > green again ;-)
-> > > > >=20
-> > > > > Change the API?
-> > > >=20
-> > > > Well, if we want the API to work universally, we have to.  As I=
- said,
-> > > > for VIPT systems, the only coherency mechanism we have is the v=
-irtual
-> > > > address ... we have to fix that in the kernel to be congruent w=
-ith the
-> > > > userspace virtual address if we want coherency between the kern=
-el and
-> > > > userspace.
-> > > >=20
-> > > > However, if it only needs to work on ARM and x86, it can stay t=
-he way it
-> > > > is and we could just pull it out of the generic core.
-> > > >=20
-> > > > Who actually wants to use this API, and what for?
-> > > >=20
-> > > > > Keep the API but do a best-effort fix to unbreak the builds?
-> > > > >   - Apply my patches that got acks (avr32/blackfin/cris/m68k)=
-,
-> > > > >   - Use static inlines that return -EINVAL for the rest
-> > > > > (c6x/frv/mn10300/parisc/xtensa).
-> > > > > I still have a few m68k fixes queued for 3.8, for which I've =
-been postponing the
-> > > > > pull request to get this sorted out, so I could include the a=
-bove.
-> > > > >=20
-> > > > > Any other solution?
-> > > >=20
-> > > > If it's an API that only works on ARM and x86, there's not much=
- point
-> > > > pretending it's universal, so we should remove it from the gene=
-ric arch
-> > > > code and allow only those architectures which can use it.
-> > >=20
-> > > There might be a simple solution:  just replace void *cpu_addr wi=
-th void
-> > > **cpu_addr in the API.  This is a bit nasty since compilers think=
- that
-> > > void ** to void * conversion is quite legal, so it would be hard =
-to pick
-> > > up misuse of this (uint8_t ** would be better).  That way VIPT co=
-uld
-> > > remap the kernel pages to a coherent address.  This would probabl=
-y have
-> > > to change in the dma_mmap_attr() and dma_ops structures.
-> > >=20
-> > > All consumers would have to expect cpu_addr might change, but tha=
-t seems
-> > > doable.
-> >=20
-> > Mauro, will this work for you and the v4l guys?  You've got a use
-> > embedded in=20
-> >=20
-> > drivers/media/v4l2-core/videobuf2-dma-contig.c
-> >=20
-> > Which I can't tell how extensive it might be.
->=20
-> Also, this implementation is really not done well.
->=20
-> ppc has this:
->=20
-> arch/powerpc/include/asm/dma-mapping.h:#define ARCH_HAS_DMA_MMAP_COHE=
-RENT
->=20
-> But no other architecture does.
->=20
-> Nothing is gated on this except pcm_native.c which has this wonderful
-> snippet:
->=20
-> #ifndef ARCH_HAS_DMA_MMAP_COHERENT
-> /* This should be defined / handled globally! */
-> #ifdef CONFIG_ARM
-> #define ARCH_HAS_DMA_MMAP_COHERENT
-> #endif
-> #endif
->=20
-> Since there's no documentation at all, it's hard to tell what's going
-> on.
->=20
-> However, I'd suggest
->=20
->      1. Move to an API that is at least capable of implementation on =
-all
->         architectures
->      2. Utilize ARCH_HAS_DMA_MMAP_COHERENT to fix the compile problem=
-s
->         within the architectures
->      3. Document whatever is chosen so we don't end up in this mess
->         again.
+Umm...  TBH, I simply followed the existing macro (from h8300), but I really
+suspect that it's better than your approach - sure, you leave populating the
+syscall table to cc(1) and generally have fewer things in asm glue, but
+you still have things like _clear_page, _ip_fast_csum, ___ashldi3, etc.
+Having a macro converting C identifier to asm one might be a win for such
+situations; if nothing else, it helps with grep - blackfin is a constant
+source of annoyance, since e.g. git grep -n -w do_notify_resume will miss
+things like
+        pseudo_long_call _do_notify_resume, p5;
 
-Agreed.
-
-I remember some efforts were done in the past years moving toward a com=
-mon
-interface, when DMABUF were introduced (and people explicitly mentioned
-ARCH_HAS_DMA_MMAP_COHERENT on such discussions), like on this thread:
-	http://www.mail-archive.com/linux-media@vger.kernel.org/msg30487.html
-
-While I followed part of that discussion, I didn't actually track the
-arm-specific patches. So, I'm not sure why ARCH_HAS_DMA_MMAP_COHERENT
-is not defined on arm.
-
-Maybe Tomasz or Marek may have more details.
-
-Regards,
-Mauro
+I'm not saying that SYMBOL_NAME is particulary good as identifiers go,
+but the functionality is more useful than CONFIG_SYMBOL_PREFIX, IMO...
