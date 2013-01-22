@@ -1,46 +1,38 @@
-From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
-Subject: Re: [PATCH v2 29/76] ARC: Boot #1: low-level, setup_arch(), /proc/cpuinfo,
- mem init
-Date: Tue, 22 Jan 2013 14:01:42 +0530
-Message-ID: <50FE4E6E.3090708@synopsys.com>
-References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <201301181445.39050.arnd@arndb.de> <50FE4497.3050306@synopsys.com> <201301220823.44872.arnd@arndb.de>
+From: Linus Walleij <linus.walleij@linaro.org>
+Subject: Re: [PATCH 0/4] gpio: introduce descriptor-based interface
+Date: Tue, 22 Jan 2013 09:55:32 +0100
+Message-ID: <CACRpkdZHgEQRwKZXS6Juk763z+AAXB3SnG=wLdX+aJY0X=nYKQ@mail.gmail.com>
+References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com>
+	<CACRpkda6dqAj+DzrMCnKET7Z9PtuW0+k9ea3YDL8Z1D=oFVRpQ@mail.gmail.com>
+	<50F7E83E.8000105@uclinux.org>
+	<201301170850.43655.sfking@fdwdc.com>
+	<50FB8986.9010205@nvidia.com>
 Mime-Version: 1.0
-Content-Type: text/plain; charset="ISO-8859-15"
-Content-Transfer-Encoding: 7bit
-Return-path: <linux-arch-owner@vger.kernel.org>
-Received: from alvesta.synopsys.com ([198.182.60.77]:50548 "EHLO
-	alvesta.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753864Ab3AVIbz (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 03:31:55 -0500
-In-Reply-To: <201301220823.44872.arnd@arndb.de>
-Sender: linux-arch-owner@vger.kernel.org
-List-ID: <linux-arch.vger.kernel.org>
-To: Arnd Bergmann <arnd@arndb.de>
-Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset=ISO-8859-1
+Return-path: <linux-kernel-owner@vger.kernel.org>
+In-Reply-To: <50FB8986.9010205@nvidia.com>
+Sender: linux-kernel-owner@vger.kernel.org
+To: Alex Courbot <acourbot@nvidia.com>, Steven King <sfking@fdwdc.com>
+Cc: Greg Ungerer <gerg@uclinux.org>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Grant Likely <grant.likely@secretlab.ca>, Guenter Roeck <linux@roeck-us.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree-discuss@lists.ozlabs.org" <devicetree-discuss@lists.ozlabs.org>, gnurou@gmail.com
+List-Id: linux-arch.vger.kernel.org
 
-On Tuesday 22 January 2013 01:53 PM, Arnd Bergmann wrote:
-> On Tuesday 22 January 2013, Vineet Gupta wrote:
->> How does the following look like. This is RFC only and I'll squash it into Boot #1
->> patch.
->>
->> From: Vineet Gupta <vgupta@synopsys.com>
->> Date: Tue, 22 Jan 2013 13:03:50 +0530
->> Subject: [PATCH] RFC: Convert ARC port from bootmem to memblock
->>
->> Signed-off-by: Vineet Gupta <vgupta@synopsys.com>
->> ---
-> 
-> Looks good to me, although I might be missing some details.
-> 
-> Given that everything still seems to work for you,
-> 
-> Acked-by: Arnd Bergmann <arnd@arndb.de>
-> 
-> on the combined patch.
-> 
+On Sun, Jan 20, 2013 at 7:07 AM, Alex Courbot <acourbot@nvidia.com> wrote:
 
-I haven't done heavy testing on this (just basic boot) and no_bootmem/memblock is
-not a well-known turf form me yet. But should be sufficient for now ;-)
+> Actually the question of switching to GPIOlib is only worth being asked if
+> you are making use of drivers that require GENERIC_GPIO. If this is not the
+> case and your GPIOs are only used by your own platform code, you can always
+> give up using defining GENERIC_GPIO and continue implementing them your own
+> way.
 
-Thx,
--Vineet
+Agreed. The problem can be summed up like this:
+
+#include <linux/gpio.h>
+
+Considered ambiguous.
+
+#include <asm/foo/bar/baz-gpio.h>
+
+OK with me.
+
+Yours,
+Linus Walleij
