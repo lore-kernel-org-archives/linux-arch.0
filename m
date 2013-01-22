@@ -1,38 +1,82 @@
-From: Linus Walleij <linus.walleij@linaro.org>
-Subject: Re: [PATCH 0/4] gpio: introduce descriptor-based interface
-Date: Tue, 22 Jan 2013 09:55:32 +0100
-Message-ID: <CACRpkdZHgEQRwKZXS6Juk763z+AAXB3SnG=wLdX+aJY0X=nYKQ@mail.gmail.com>
-References: <1357629535-26033-1-git-send-email-acourbot@nvidia.com>
-	<CACRpkda6dqAj+DzrMCnKET7Z9PtuW0+k9ea3YDL8Z1D=oFVRpQ@mail.gmail.com>
-	<50F7E83E.8000105@uclinux.org>
-	<201301170850.43655.sfking@fdwdc.com>
-	<50FB8986.9010205@nvidia.com>
+From: Vineet Gupta <Vineet.Gupta1@synopsys.com>
+Subject: Re: [PATCH v2 50/76] ARC: SMP support
+Date: Tue, 22 Jan 2013 14:27:03 +0530
+Message-ID: <50FE545F.80306@synopsys.com>
+References: <1358511930-7424-1-git-send-email-vgupta@synopsys.com> <1358511930-7424-51-git-send-email-vgupta@synopsys.com> <201301181453.29243.arnd@arndb.de>
 Mime-Version: 1.0
-Content-Type: text/plain; charset=ISO-8859-1
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <50FB8986.9010205@nvidia.com>
-Sender: linux-kernel-owner@vger.kernel.org
-To: Alex Courbot <acourbot@nvidia.com>, Steven King <sfking@fdwdc.com>
-Cc: Greg Ungerer <gerg@uclinux.org>, Arnd Bergmann <arnd@arndb.de>, Geert Uytterhoeven <geert@linux-m68k.org>, Grant Likely <grant.likely@secretlab.ca>, Guenter Roeck <linux@roeck-us.net>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch <linux-arch@vger.kernel.org>, "linux-arm-kernel@lists.infradead.org" <linux-arm-kernel@lists.infradead.org>, "devicetree-discuss@lists.ozlabs.org" <devicetree-discuss@lists.ozlabs.org>, gnurou@gmail.com
-List-Id: linux-arch.vger.kernel.org
+Content-Type: text/plain; charset="ISO-8859-15"
+Content-Transfer-Encoding: 7bit
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from us02smtp1.synopsys.com ([198.182.60.75]:51352 "EHLO
+	vaxjo.synopsys.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1752221Ab3AVI5R (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 03:57:17 -0500
+In-Reply-To: <201301181453.29243.arnd@arndb.de>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
+To: Arnd Bergmann <arnd@arndb.de>
+Cc: linux-arch@vger.kernel.org, linux-kernel@vger.kernel.org, Thomas Gleixner <tglx@linutronix.de>, Rajeshwar Ranga <rajeshwar.ranga@gmail.com>, Noam Camus <noamc@ezchip.com>, Gilad Ben-Yossef <gilad@benyossef.com>
 
-On Sun, Jan 20, 2013 at 7:07 AM, Alex Courbot <acourbot@nvidia.com> wrote:
+On Friday 18 January 2013 08:23 PM, Arnd Bergmann wrote:
+> On Friday 18 January 2013, Vineet Gupta wrote:
+>> +# If a plat can do IPI, same core(s) can do minimal SMP
+>> +config ARC_HAS_IPI
+>> +       bool
+>> +
+> I think it would be better to turn the logic around here,
+> otherwise you get into trouble when enabling multiple
+> platforms, out of which some have IPI support and others
+> don't.
+>
+> Instead, you can mark the platforms that lack IPI support
+> (or multiple CPUs) as 'depends on !SMP'.
 
-> Actually the question of switching to GPIOlib is only worth being asked if
-> you are making use of drivers that require GENERIC_GPIO. If this is not the
-> case and your GPIOs are only used by your own platform code, you can always
-> give up using defining GENERIC_GPIO and continue implementing them your own
-> way.
+Or slightly different way - something like below:
 
-Agreed. The problem can be summed up like this:
+The only issue is platform specific SMP extensions - instead of helping enable
+CONFIG_SMP are now dependent on it (so hidden if SMP is not enabled at top level)
+- but given that CONFIG_SMP is the only common denominator across platforms,
+that's how it will work in multi-platform-img paradigm.
 
-#include <linux/gpio.h>
 
-Considered ambiguous.
-
-#include <asm/foo/bar/baz-gpio.h>
-
-OK with me.
-
-Yours,
-Linus Walleij
+diff --git a/arch/arc/Kconfig b/arch/arc/Kconfig
+index 6729480..ab854af 100644
+--- a/arch/arc/Kconfig
++++ b/arch/arc/Kconfig
+@@ -126,14 +126,9 @@ config CPU_BIG_ENDIAN
+ config ARC_PLAT_NEEDS_CPU_TO_DMA
+        bool
+ 
+-# If a plat can do IPI, same core(s) can do minimal SMP
+-config ARC_HAS_IPI
+-       bool
+-
+ config SMP
+        bool "Symmetric Multi-Processing (Incomplete)"
+        default y
+-       depends on ARC_HAS_IPI
+        select USE_GENERIC_SMP_HELPERS
+        help
+          This enables support for systems with more than one CPU. If you have
+diff --git a/arch/arc/plat-arcfpga/Kconfig b/arch/arc/plat-arcfpga/Kconfig
+index 6001784..526cdfe 100644
+--- a/arch/arc/plat-arcfpga/Kconfig
++++ b/arch/arc/plat-arcfpga/Kconfig
+@@ -8,6 +8,7 @@
+ 
+ menuconfig ARC_PLAT_FPGA_LEGACY
+        bool "\"Legacy\" ARC FPGA dev Boards"
++       select ISS_SMP_EXTN if SMP
+        help
+          Support for ARC development boards, provided by Synopsys.
+          These are based on FPGA or ISS. e.g.
+@@ -30,8 +31,7 @@ config ARC_BOARD_ML509
+ 
+ config ISS_SMP_EXTN
+        bool "ARC SMP Extensions (ISS Models only)"
+-       default n
+-       select ARC_HAS_IPI
++       depends on SMP
+        select ARC_HAS_COH_RTSC
+        help
+          SMP Extensions to ARC700, in a "simulation only" Model, supported in
