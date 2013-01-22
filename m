@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e23smtp06.au.ibm.com ([202.81.31.148]:36235 "EHLO
-	e23smtp06.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754312Ab3AVHge (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 02:36:34 -0500
+Received: from e23smtp03.au.ibm.com ([202.81.31.145]:41077 "EHLO
+	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754231Ab3AVHiI (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 02:38:08 -0500
 Received: from /spool/local
-	by e23smtp06.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 22 Jan 2013 17:32:33 +1000
+	Tue, 22 Jan 2013 17:32:56 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v5 06/45] percpu_rwlock: Allow writers to be readers,
- and add lockdep annotations
-Date: Tue, 22 Jan 2013 13:04:23 +0530
-Message-ID: <20130122073416.13822.96504.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v5 12/45] sched/migration: Use raw_spin_lock/unlock since
+ interrupts are already disabled
+Date: Tue, 22 Jan 2013 13:05:59 +0530
+Message-ID: <20130122073557.13822.60411.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
 References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -21,95 +21,59 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org
 Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130122073423.2n3qs63QKaTAPeuj3-POjt02YrlnPHFYg7SObxEnhPQ@z>
+Message-ID: <20130122073559.hmrKByCGhMdGEffpQXn7UDs8AclvyuvTCIAF0mVyeNk@z>
 
-CPU hotplug (which will be the first user of per-CPU rwlocks) has a special
-requirement with respect to locking: the writer, after acquiring the per-CPU
-rwlock for write, must be allowed to take the same lock for read, without
-deadlocking and without getting complaints from lockdep. In comparison, this
-is similar to what get_online_cpus()/put_online_cpus() does today: it allows
-a hotplug writer (who holds the cpu_hotplug.lock mutex) to invoke it without
-locking issues, because it silently returns if the caller is the hotplug
-writer itself.
+We need not use the raw_spin_lock_irqsave/restore primitives because
+all CPU_DYING notifiers run with interrupts disabled. So just use
+raw_spin_lock/unlock.
 
-This can be easily achieved with per-CPU rwlocks as well (even without a
-"is this a writer?" check) by incrementing the per-CPU refcount of the writer
-immediately after taking the global rwlock for write, and then decrementing
-the per-CPU refcount before releasing the global rwlock.
-This ensures that any reader that comes along on that CPU while the writer is
-active (on that same CPU), notices the non-zero value of the nested counter
-and assumes that it is a nested read-side critical section and proceeds by
-just incrementing the refcount. Thus we prevent the reader from taking the
-global rwlock for read, which prevents the writer from deadlocking itself.
-
-Add that support and teach lockdep about this special locking scheme so
-that it knows that this sort of usage is valid. Also add the required lockdep
-annotations to enable it to detect common locking problems with per-CPU
-rwlocks.
-
-Cc: David Howells <dhowells@redhat.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- lib/percpu-rwlock.c |   21 +++++++++++++++++++++
- 1 file changed, 21 insertions(+)
+ kernel/sched/core.c |   12 +++++-------
+ 1 file changed, 5 insertions(+), 7 deletions(-)
 
-diff --git a/lib/percpu-rwlock.c b/lib/percpu-rwlock.c
-index a8d177a..054a50a 100644
---- a/lib/percpu-rwlock.c
-+++ b/lib/percpu-rwlock.c
-@@ -84,6 +84,10 @@ void percpu_read_lock_irqsafe(struct percpu_rwlock *pcpu_rwlock)
- 
- 		if (likely(!writer_active(pcpu_rwlock))) {
- 			this_cpu_inc(*pcpu_rwlock->reader_refcnt);
-+
-+			/* Pretend that we take global_rwlock for lockdep */
-+			rwlock_acquire_read(&pcpu_rwlock->global_rwlock.dep_map,
-+					    0, 0, _RET_IP_);
- 		} else {
- 			/* Writer is active, so switch to global rwlock. */
- 
-@@ -108,6 +112,12 @@ void percpu_read_lock_irqsafe(struct percpu_rwlock *pcpu_rwlock)
- 			if (!writer_active(pcpu_rwlock)) {
- 				this_cpu_inc(*pcpu_rwlock->reader_refcnt);
- 				read_unlock(&pcpu_rwlock->global_rwlock);
-+
-+				/*
-+				 * Pretend that we take global_rwlock for lockdep
-+				 */
-+				rwlock_acquire_read(&pcpu_rwlock->global_rwlock.dep_map,
-+						    0, 0, _RET_IP_);
- 			}
- 		}
- 	}
-@@ -128,6 +138,14 @@ void percpu_read_unlock_irqsafe(struct percpu_rwlock *pcpu_rwlock)
- 	if (reader_nested_percpu(pcpu_rwlock)) {
- 		this_cpu_dec(*pcpu_rwlock->reader_refcnt);
- 		smp_wmb(); /* Paired with smp_rmb() in sync_reader() */
-+
-+		/*
-+		 * If this is the last decrement, then it is time to pretend
-+		 * to lockdep that we are releasing the read lock.
-+		 */
-+		if (!reader_nested_percpu(pcpu_rwlock))
-+			rwlock_release(&pcpu_rwlock->global_rwlock.dep_map,
-+				       1, _RET_IP_);
- 	} else {
- 		read_unlock(&pcpu_rwlock->global_rwlock);
- 	}
-@@ -205,11 +223,14 @@ void percpu_write_lock_irqsave(struct percpu_rwlock *pcpu_rwlock,
- 	announce_writer_active(pcpu_rwlock);
- 	sync_all_readers(pcpu_rwlock);
- 	write_lock_irqsave(&pcpu_rwlock->global_rwlock, *flags);
-+	this_cpu_inc(*pcpu_rwlock->reader_refcnt);
- }
- 
- void percpu_write_unlock_irqrestore(struct percpu_rwlock *pcpu_rwlock,
- 			 unsigned long *flags)
+diff --git a/kernel/sched/core.c b/kernel/sched/core.c
+index c1596ac..c2cec88 100644
+--- a/kernel/sched/core.c
++++ b/kernel/sched/core.c
+@@ -4869,9 +4869,7 @@ static void calc_load_migrate(struct rq *rq)
+  * Migrate all tasks from the rq, sleeping tasks will be migrated by
+  * try_to_wake_up()->select_task_rq().
+  *
+- * Called with rq->lock held even though we'er in stop_machine() and
+- * there's no concurrency possible, we hold the required locks anyway
+- * because of lock validation efforts.
++ * Called with rq->lock held.
+  */
+ static void migrate_tasks(unsigned int dead_cpu)
  {
-+	this_cpu_dec(*pcpu_rwlock->reader_refcnt);
-+
- 	/*
- 	 * Inform all readers that we are done, so that they can switch back
- 	 * to their per-cpu refcounts. (We don't need to wait for them to
+@@ -4883,8 +4881,8 @@ static void migrate_tasks(unsigned int dead_cpu)
+ 	 * Fudge the rq selection such that the below task selection loop
+ 	 * doesn't get stuck on the currently eligible stop task.
+ 	 *
+-	 * We're currently inside stop_machine() and the rq is either stuck
+-	 * in the stop_machine_cpu_stop() loop, or we're executing this code,
++	 * We're currently inside stop_one_cpu() and the rq is either stuck
++	 * in the cpu_stopper_thread(), or we're executing this code,
+ 	 * either way we should never end up calling schedule() until we're
+ 	 * done here.
+ 	 */
+@@ -5153,14 +5151,14 @@ migration_call(struct notifier_block *nfb, unsigned long action, void *hcpu)
+ 	case CPU_DYING:
+ 		sched_ttwu_pending();
+ 		/* Update our root-domain */
+-		raw_spin_lock_irqsave(&rq->lock, flags);
++		raw_spin_lock(&rq->lock); /* Interrupts already disabled */
+ 		if (rq->rd) {
+ 			BUG_ON(!cpumask_test_cpu(cpu, rq->rd->span));
+ 			set_rq_offline(rq);
+ 		}
+ 		migrate_tasks(cpu);
+ 		BUG_ON(rq->nr_running != 1); /* the migration thread */
+-		raw_spin_unlock_irqrestore(&rq->lock, flags);
++		raw_spin_unlock(&rq->lock);
+ 		break;
+ 
+ 	case CPU_DEAD:
 
