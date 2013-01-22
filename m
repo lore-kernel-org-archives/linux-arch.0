@@ -1,43 +1,76 @@
 From: James Hogan <james.hogan@imgtec.com>
-Subject: Re: [PATCH v3 00/44] Meta Linux Kernel Port
-Date: Tue, 22 Jan 2013 11:35:09 +0000
-Message-ID: <50FE796D.5070608@imgtec.com>
-References: <1357831872-29451-1-git-send-email-james.hogan@imgtec.com> <20130111103442.b80ddbfb11ef322ed28ca3b3@canb.auug.org.au> <50EFD824.3010502@imgtec.com> <20130112000336.1f24c42237fab4fe0c305ff6@canb.auug.org.au> <50F0296E.2000704@imgtec.com> <20130112120957.36df3412c9d6cca089a0340a@canb.auug.org.au> <20130112095507.GA1738@balrog> <20130119055501.GA2802@ZenIV.linux.org.uk>
+Subject: Re: [RFC] making HAVE_SYSCALL_WRAPPERS universal (Re: Issues with
+ "x86, um: switch to generic fork/vfork/clone" commit)
+Date: Tue, 22 Jan 2013 12:47:17 +0000
+Message-ID: <50FE8A55.2000703@imgtec.com>
+References: <50F3D2F2.3080200@6wind.com> <20130119063808.GN4939@ZenIV.linux.org.uk> <20130120031253.GO4939@ZenIV.linux.org.uk> <CA+55aFyRMC43_H1hL5goAQxX4EdTuXOu5A9CoBk9fpGoJT_nig@mail.gmail.com> <20130121012217.GQ4939@ZenIV.linux.org.uk> <CA+55aFwG2j_+2pjUJuZqT1yk0xDEyeFMgCxHmxAzfGXHO5qCXQ@mail.gmail.com> <20130121023010.GR4939@ZenIV.linux.org.uk> <20130121225517.GV4939@ZenIV.linux.org.uk>
 Mime-Version: 1.0
 Content-Type: text/plain; charset="ISO-8859-1"
 Content-Transfer-Encoding: 7bit
-Return-path: <linux-kernel-owner@vger.kernel.org>
-In-Reply-To: <20130119055501.GA2802@ZenIV.linux.org.uk>
-Sender: linux-kernel-owner@vger.kernel.org
+Return-path: <linux-arch-owner@vger.kernel.org>
+Received: from multi.imgtec.com ([194.200.65.239]:9590 "EHLO multi.imgtec.com"
+	rhost-flags-OK-OK-OK-OK) by vger.kernel.org with ESMTP
+	id S1751138Ab3AVMrU (ORCPT <rfc822;linux-arch@vger.kernel.org>);
+	Tue, 22 Jan 2013 07:47:20 -0500
+In-Reply-To: <20130121225517.GV4939@ZenIV.linux.org.uk>
+Sender: linux-arch-owner@vger.kernel.org
+List-ID: <linux-arch.vger.kernel.org>
 To: Al Viro <viro@ZenIV.linux.org.uk>
-Cc: Stephen Rothwell <sfr@canb.auug.org.au>, linux-kernel@vger.kernel.org, linux-arch@vger.kernel.org
-List-Id: linux-arch.vger.kernel.org
+Cc: Linus Torvalds <torvalds@linux-foundation.org>, Nicolas Dichtel <nicolas.dichtel@6wind.com>, Linux Kernel Mailing List <linux-kernel@vger.kernel.org>, linux-arch@vger.kernel.org, Arnd Bergmann <arnd@arndb.de>, Tony Luck <tony.luck@intel.com>
 
-On 19/01/13 05:55, Al Viro wrote:
-> On Sat, Jan 12, 2013 at 09:55:07AM +0000, James Hogan wrote:
->> Hi Stephen, Al,
->>
->> On Sat, Jan 12, 2013 at 12:09:57PM +1100, Stephen Rothwell wrote:
->>> On Fri, 11 Jan 2013 15:02:06 +0000 James Hogan <james.hogan@imgtec.com> wrote:
->>>>
->>>> Okay, I've rebased the metag tree from linux-next onto the master branch
->>>> of Al's signal tree (to get Vineet's GENERIC_SIGALTSTACK fix and
->>>> GENERIC_SIGALTSTACK's eventual removal).
->>>
->>> OK, but I hope you mentioned not rebasing to Al.
->>
->> I'm still rebasing the metag tree, and it's not quite ready for -next so
->> I don't mind if Al's tree rebases at this stage tbh.
->>
->> Al: I don't know if you normally rebase your tree, but if it's okay with
->> you I'll let you know when I need it not to be rebased.
+On 21/01/13 22:55, Al Viro wrote:
+> I've tried to sanitize cond_syscall/SYSCALL_ALIAS situation; the tree is in
+> git.kernel.org/pub/scm/linux/kernel/git/viro/signal experimental-syscalls
+> NOTE: this is absolutely untested and might very well blow up
+> on any number of architectures.
 > 
-> Umm...  
-> 	1) #master is definitely bad for base; #for-linus is much safer (and
-> sufficient for your case)
+> Review and comments would be very welcome.
 
-Thanks for that, and I see it's now merged into Linus' tree so I'll
-rebase onto that instead.
+Looking at "consolidate cond_syscall and SYSCALL_ALIAS declarations",
+is it worth having the default __SYMBOL_NAME declaration in
+include/linux/linkage.h make use of CONFIG_SYMBOL_PREFIX?
+
+E.g. in the metag patchset we currently have the patch below.
+
+Admittedly CONFIG_SYMBOL_PREFIX is a string which would make it's use in
+SYMBOL_NAME a bit awkward.
 
 Cheers
 James
+
+
+Subject: [PATCH v3 02/44] asm-generic/unistd.h: handle symbol prefixes in
+ cond_syscall
+
+Some architectures have symbol prefixes and set CONFIG_SYMBOL_PREFIX,
+but this wasn't taken into account by the generic cond_syscall. It's
+easy enough to fix in a generic fashion, so add the symbol prefix to
+symbol names in cond_syscall when CONFIG_SYMBOL_PREFIX is set.
+
+Signed-off-by: James Hogan <james.hogan@imgtec.com>
+Acked-by: Arnd Bergmann <arnd@arndb.de>
+Acked-by: Mike Frysinger <vapier@gentoo.org>
+---
+ include/asm-generic/unistd.h |    9 ++++++++-
+ 1 files changed, 8 insertions(+), 1 deletions(-)
+
+diff --git a/include/asm-generic/unistd.h b/include/asm-generic/unistd.h
+index 257c55e..4077b5d 100644
+--- a/include/asm-generic/unistd.h
++++ b/include/asm-generic/unistd.h
+@@ -17,5 +17,12 @@
+  * but it doesn't work on all toolchains, so we just do it by hand
+  */
+ #ifndef cond_syscall
+-#define cond_syscall(x) asm(".weak\t" #x "\n\t.set\t" #x ",sys_ni_syscall")
++#ifdef CONFIG_SYMBOL_PREFIX
++#define __SYMBOL_PREFIX CONFIG_SYMBOL_PREFIX
++#else
++#define __SYMBOL_PREFIX
++#endif
++#define cond_syscall(x) asm(".weak\t" __SYMBOL_PREFIX #x "\n\t" \
++			    ".set\t" __SYMBOL_PREFIX #x "," \
++			    __SYMBOL_PREFIX "sys_ni_syscall")
+ #endif
+-- 
+1.7.7.6
