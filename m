@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp01.in.ibm.com ([122.248.162.1]:51467 "EHLO
-	e28smtp01.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754200Ab3AVHgI (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 02:36:08 -0500
+Received: from e23smtp03.au.ibm.com ([202.81.31.145]:40959 "EHLO
+	e23smtp03.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1753887Ab3AVHhZ (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 02:37:25 -0500
 Received: from /spool/local
-	by e28smtp01.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp03.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 22 Jan 2013 13:04:18 +0530
+	Tue, 22 Jan 2013 17:32:11 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v5 05/45] percpu_rwlock: Make percpu-rwlocks IRQ-safe,
- optimally
-Date: Tue, 22 Jan 2013 13:04:11 +0530
-Message-ID: <20130122073400.13822.52336.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v5 10/45] smp,
+ cpu hotplug: Fix on_each_cpu_*() to prevent CPU offline properly
+Date: Tue, 22 Jan 2013 13:05:17 +0530
+Message-ID: <20130122073515.13822.80220.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
 References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -21,226 +21,102 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org
 Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130122073411.tGn1QfyOd9OPBjGTcW3gLyEDahj1I4wukmDTkPaXMcU@z>
+Message-ID: <20130122073517.STEeCjDEW8_pZkSAB1WnC1lgypQBTw62yH_fdulHQEE@z>
 
-If interrupt handlers can also be readers, then one of the ways to make
-per-CPU rwlocks safe, is to disable interrupts at the reader side before
-trying to acquire the per-CPU rwlock and keep it disabled throughout the
-duration of the read-side critical section.
+Once stop_machine() is gone from the CPU offline path, we won't be able to
+depend on preempt_disable() to prevent CPUs from going offline from under us.
 
-The goal is to avoid cases such as:
+Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going offline,
+while invoking from atomic context.
 
-  1. writer is active and it holds the global rwlock for write
-
-  2. a regular reader comes in and marks itself as present (by incrementing
-     its per-CPU refcount) before checking whether writer is active.
-
-  3. an interrupt hits the reader;
-     [If it had not hit, the reader would have noticed that the writer is
-      active and would have decremented its refcount and would have tried
-      to acquire the global rwlock for read].
-     Since the interrupt handler also happens to be a reader, it notices
-     the non-zero refcount (which was due to the reader who got interrupted)
-     and thinks that this is a nested read-side critical section and
-     proceeds to take the fastpath, which is wrong. The interrupt handler
-     should have noticed that the writer is active and taken the rwlock
-     for read.
-
-So, disabling interrupts can help avoid this problem (at the cost of keeping
-the interrupts disabled for quite long).
-
-But Oleg had a brilliant idea by which we can do much better than that:
-we can manage with disabling interrupts _just_ during the updates (writes to
-per-CPU refcounts) to safe-guard against races with interrupt handlers.
-Beyond that, we can keep the interrupts enabled and still be safe w.r.t
-interrupt handlers that can act as readers.
-
-Basically the idea is that we differentiate between the *part* of the
-per-CPU refcount that we use for reference counting vs the part that we use
-merely to make the writer wait for us to switch over to the right
-synchronization scheme.
-
-The scheme involves splitting the per-CPU refcounts into 2 parts:
-eg: the lower 16 bits are used to track the nesting depth of the reader
-(a "nested-counter"), and the remaining (upper) bits are used to merely mark
-the presence of the reader.
-
-As long as the overall reader_refcnt is non-zero, the writer waits for the
-reader (assuming that the reader is still actively using per-CPU refcounts for
-synchronization).
-
-The reader first sets one of the higher bits to mark its presence, and then
-uses the lower 16 bits to manage the nesting depth. So, an interrupt handler
-coming in as illustrated above will be able to distinguish between "this is
-a nested read-side critical section" vs "we have merely marked our presence
-to make the writer wait for us to switch" by looking at the same refcount.
-Thus, it makes it unnecessary to keep interrupts disabled throughout the
-read-side critical section, despite having the possibility of interrupt
-handlers being readers themselves.
-
-
-Implement this logic and rename the locking functions appropriately, to
-reflect what they do.
-
-Based-on-idea-by: Oleg Nesterov <oleg@redhat.com>
-Cc: David Howells <dhowells@redhat.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- include/linux/percpu-rwlock.h |   15 ++++++++++-----
- lib/percpu-rwlock.c           |   41 +++++++++++++++++++++++++++--------------
- 2 files changed, 37 insertions(+), 19 deletions(-)
+ kernel/smp.c |   25 +++++++++++++++----------
+ 1 file changed, 15 insertions(+), 10 deletions(-)
 
-diff --git a/include/linux/percpu-rwlock.h b/include/linux/percpu-rwlock.h
-index 6819bb8..856ba6b 100644
---- a/include/linux/percpu-rwlock.h
-+++ b/include/linux/percpu-rwlock.h
-@@ -34,11 +34,13 @@ struct percpu_rwlock {
- 	rwlock_t		global_rwlock;
- };
+diff --git a/kernel/smp.c b/kernel/smp.c
+index f421bcc..d870bfe 100644
+--- a/kernel/smp.c
++++ b/kernel/smp.c
+@@ -688,12 +688,12 @@ int on_each_cpu(void (*func) (void *info), void *info, int wait)
+ 	unsigned long flags;
+ 	int ret = 0;
  
--extern void percpu_read_lock(struct percpu_rwlock *);
--extern void percpu_read_unlock(struct percpu_rwlock *);
-+extern void percpu_read_lock_irqsafe(struct percpu_rwlock *);
-+extern void percpu_read_unlock_irqsafe(struct percpu_rwlock *);
- 
--extern void percpu_write_lock(struct percpu_rwlock *);
--extern void percpu_write_unlock(struct percpu_rwlock *);
-+extern void percpu_write_lock_irqsave(struct percpu_rwlock *,
-+				      unsigned long *flags);
-+extern void percpu_write_unlock_irqrestore(struct percpu_rwlock *,
-+					   unsigned long *flags);
- 
- extern int __percpu_init_rwlock(struct percpu_rwlock *,
- 				const char *, struct lock_class_key *);
-@@ -68,11 +70,14 @@ extern void percpu_free_rwlock(struct percpu_rwlock *);
- 	__percpu_init_rwlock(pcpu_rwlock, #pcpu_rwlock, &rwlock_key);	\
- })
- 
-+#define READER_PRESENT		(1UL << 16)
-+#define READER_REFCNT_MASK	(READER_PRESENT - 1)
-+
- #define reader_uses_percpu_refcnt(pcpu_rwlock, cpu)			\
- 		(ACCESS_ONCE(per_cpu(*((pcpu_rwlock)->reader_refcnt), cpu)))
- 
- #define reader_nested_percpu(pcpu_rwlock)				\
--			(__this_cpu_read(*((pcpu_rwlock)->reader_refcnt)) > 1)
-+	(__this_cpu_read(*((pcpu_rwlock)->reader_refcnt)) & READER_REFCNT_MASK)
- 
- #define writer_active(pcpu_rwlock)					\
- 			(__this_cpu_read(*((pcpu_rwlock)->writer_signal)))
-diff --git a/lib/percpu-rwlock.c b/lib/percpu-rwlock.c
-index 992da5c..a8d177a 100644
---- a/lib/percpu-rwlock.c
-+++ b/lib/percpu-rwlock.c
-@@ -62,19 +62,19 @@ void percpu_free_rwlock(struct percpu_rwlock *pcpu_rwlock)
- 	pcpu_rwlock->writer_signal = NULL;
+-	preempt_disable();
++	get_online_cpus_atomic();
+ 	ret = smp_call_function(func, info, wait);
+ 	local_irq_save(flags);
+ 	func(info);
+ 	local_irq_restore(flags);
+-	preempt_enable();
++	put_online_cpus_atomic();
+ 	return ret;
  }
- 
--void percpu_read_lock(struct percpu_rwlock *pcpu_rwlock)
-+void percpu_read_lock_irqsafe(struct percpu_rwlock *pcpu_rwlock)
+ EXPORT_SYMBOL(on_each_cpu);
+@@ -715,7 +715,11 @@ EXPORT_SYMBOL(on_each_cpu);
+ void on_each_cpu_mask(const struct cpumask *mask, smp_call_func_t func,
+ 			void *info, bool wait)
  {
- 	preempt_disable();
+-	int cpu = get_cpu();
++	int cpu;
++
++	get_online_cpus_atomic();
++
++	cpu = smp_processor_id();
  
- 	/* First and foremost, let the writer know that a reader is active */
--	this_cpu_inc(*pcpu_rwlock->reader_refcnt);
-+	this_cpu_add(*pcpu_rwlock->reader_refcnt, READER_PRESENT);
+ 	smp_call_function_many(mask, func, info, wait);
+ 	if (cpumask_test_cpu(cpu, mask)) {
+@@ -723,7 +727,7 @@ void on_each_cpu_mask(const struct cpumask *mask, smp_call_func_t func,
+ 		func(info);
+ 		local_irq_enable();
+ 	}
+-	put_cpu();
++	put_online_cpus_atomic();
+ }
+ EXPORT_SYMBOL(on_each_cpu_mask);
  
- 	/*
- 	 * If we are already using per-cpu refcounts, it is not safe to switch
- 	 * the synchronization scheme. So continue using the refcounts.
- 	 */
- 	if (reader_nested_percpu(pcpu_rwlock)) {
--		goto out;
-+		this_cpu_inc(*pcpu_rwlock->reader_refcnt);
+@@ -748,8 +752,9 @@ EXPORT_SYMBOL(on_each_cpu_mask);
+  * The function might sleep if the GFP flags indicates a non
+  * atomic allocation is allowed.
+  *
+- * Preemption is disabled to protect against CPUs going offline but not online.
+- * CPUs going online during the call will not be seen or sent an IPI.
++ * We use get/put_online_cpus_atomic() to prevent CPUs from going
++ * offline in-between our operation. CPUs coming online during the
++ * call will not be seen or sent an IPI.
+  *
+  * You must not call this function with disabled interrupts or
+  * from a hardware interrupt handler or from a bottom half handler.
+@@ -764,26 +769,26 @@ void on_each_cpu_cond(bool (*cond_func)(int cpu, void *info),
+ 	might_sleep_if(gfp_flags & __GFP_WAIT);
+ 
+ 	if (likely(zalloc_cpumask_var(&cpus, (gfp_flags|__GFP_NOWARN)))) {
+-		preempt_disable();
++		get_online_cpus_atomic();
+ 		for_each_online_cpu(cpu)
+ 			if (cond_func(cpu, info))
+ 				cpumask_set_cpu(cpu, cpus);
+ 		on_each_cpu_mask(cpus, func, info, wait);
+-		preempt_enable();
++		put_online_cpus_atomic();
+ 		free_cpumask_var(cpus);
  	} else {
  		/*
- 		 * The write to 'reader_refcnt' must be visible before we
-@@ -83,9 +83,19 @@ void percpu_read_lock(struct percpu_rwlock *pcpu_rwlock)
- 		smp_mb(); /* Paired with smp_rmb() in sync_reader() */
- 
- 		if (likely(!writer_active(pcpu_rwlock))) {
--			goto out;
-+			this_cpu_inc(*pcpu_rwlock->reader_refcnt);
- 		} else {
- 			/* Writer is active, so switch to global rwlock. */
-+
-+			/*
-+			 * While we are spinning on ->global_rwlock, an
-+			 * interrupt can hit us, and the interrupt handler
-+			 * might call this function. The distinction between
-+			 * READER_PRESENT and the refcnt helps ensure that the
-+			 * interrupt handler also takes this branch and spins
-+			 * on the ->global_rwlock, as long as the writer is
-+			 * active.
-+			 */
- 			read_lock(&pcpu_rwlock->global_rwlock);
- 
- 			/*
-@@ -95,26 +105,27 @@ void percpu_read_lock(struct percpu_rwlock *pcpu_rwlock)
- 			 * back to per-cpu refcounts. (This also helps avoid
- 			 * heterogeneous nesting of readers).
- 			 */
--			if (writer_active(pcpu_rwlock))
--				this_cpu_dec(*pcpu_rwlock->reader_refcnt);
--			else
-+			if (!writer_active(pcpu_rwlock)) {
-+				this_cpu_inc(*pcpu_rwlock->reader_refcnt);
- 				read_unlock(&pcpu_rwlock->global_rwlock);
-+			}
- 		}
+ 		 * No free cpumask, bother. No matter, we'll
+ 		 * just have to IPI them one by one.
+ 		 */
+-		preempt_disable();
++		get_online_cpus_atomic();
+ 		for_each_online_cpu(cpu)
+ 			if (cond_func(cpu, info)) {
+ 				ret = smp_call_function_single(cpu, func,
+ 								info, wait);
+ 				WARN_ON_ONCE(!ret);
+ 			}
+-		preempt_enable();
++		put_online_cpus_atomic();
  	}
- 
--out:
-+	this_cpu_sub(*pcpu_rwlock->reader_refcnt, READER_PRESENT);
-+
- 	/* Prevent reordering of any subsequent reads */
- 	smp_rmb();
  }
- 
--void percpu_read_unlock(struct percpu_rwlock *pcpu_rwlock)
-+void percpu_read_unlock_irqsafe(struct percpu_rwlock *pcpu_rwlock)
- {
- 	/*
- 	 * We never allow heterogeneous nesting of readers. So it is trivial
- 	 * to find out the kind of reader we are, and undo the operation
- 	 * done by our corresponding percpu_read_lock().
- 	 */
--	if (__this_cpu_read(*pcpu_rwlock->reader_refcnt)) {
-+	if (reader_nested_percpu(pcpu_rwlock)) {
- 		this_cpu_dec(*pcpu_rwlock->reader_refcnt);
- 		smp_wmb(); /* Paired with smp_rmb() in sync_reader() */
- 	} else {
-@@ -184,7 +195,8 @@ static void sync_all_readers(struct percpu_rwlock *pcpu_rwlock)
- 		sync_reader(pcpu_rwlock, cpu);
- }
- 
--void percpu_write_lock(struct percpu_rwlock *pcpu_rwlock)
-+void percpu_write_lock_irqsave(struct percpu_rwlock *pcpu_rwlock,
-+			       unsigned long *flags)
- {
- 	/*
- 	 * Tell all readers that a writer is becoming active, so that they
-@@ -192,10 +204,11 @@ void percpu_write_lock(struct percpu_rwlock *pcpu_rwlock)
- 	 */
- 	announce_writer_active(pcpu_rwlock);
- 	sync_all_readers(pcpu_rwlock);
--	write_lock(&pcpu_rwlock->global_rwlock);
-+	write_lock_irqsave(&pcpu_rwlock->global_rwlock, *flags);
- }
- 
--void percpu_write_unlock(struct percpu_rwlock *pcpu_rwlock)
-+void percpu_write_unlock_irqrestore(struct percpu_rwlock *pcpu_rwlock,
-+			 unsigned long *flags)
- {
- 	/*
- 	 * Inform all readers that we are done, so that they can switch back
-@@ -203,6 +216,6 @@ void percpu_write_unlock(struct percpu_rwlock *pcpu_rwlock)
- 	 * see it).
- 	 */
- 	announce_writer_inactive(pcpu_rwlock);
--	write_unlock(&pcpu_rwlock->global_rwlock);
-+	write_unlock_irqrestore(&pcpu_rwlock->global_rwlock, *flags);
- }
- 
+ EXPORT_SYMBOL(on_each_cpu_cond);
 
