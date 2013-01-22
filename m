@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp08.in.ibm.com ([122.248.162.8]:41099 "EHLO
-	e28smtp08.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754794Ab3AVHl2 (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 02:41:28 -0500
+Received: from e23smtp07.au.ibm.com ([202.81.31.140]:59450 "EHLO
+	e23smtp07.au.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1755306Ab3AVHnA (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 02:43:00 -0500
 Received: from /spool/local
-	by e28smtp08.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e23smtp07.au.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 22 Jan 2013 13:09:15 +0530
+	Tue, 22 Jan 2013 17:36:38 +1000
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v5 24/45] staging: octeon: Use get/put_online_cpus_atomic() to
- prevent CPU offline
-Date: Tue, 22 Jan 2013 13:09:31 +0530
-Message-ID: <20130122073928.13822.79334.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v5 29/45] x86/xen: Use get/put_online_cpus_atomic() to prevent
+ CPU offline
+Date: Tue, 22 Jan 2013 13:10:51 +0530
+Message-ID: <20130122074046.13822.61950.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
 References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -21,7 +21,7 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org
 Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130122073931.i1T_0K2i7BtPWTk0j3d47p5-_KKMNACWFuf_w_G2ooM@z>
+Message-ID: <20130122074051.RPvbnmpaAHhU5vTOl0Np4nrUU7I4YhAgtM4T3KebJnk@z>
 
 Once stop_machine() is gone from the CPU offline path, we won't be able to
 depend on preempt_disable() or local_irq_disable() to prevent CPUs from
@@ -30,40 +30,120 @@ going offline from under us.
 Use the get/put_online_cpus_atomic() APIs to prevent CPUs from going offline,
 while invoking from atomic context.
 
-Cc: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
-Cc: David Daney <david.daney@cavium.com>
+Cc: Konrad Rzeszutek Wilk <konrad.wilk@oracle.com>
+Cc: Jeremy Fitzhardinge <jeremy@goop.org>
+Cc: "H. Peter Anvin" <hpa@zytor.com>
+Cc: x86@kernel.org
+Cc: xen-devel@lists.xensource.com
+Cc: virtualization@lists.linux-foundation.org
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- drivers/staging/octeon/ethernet-rx.c |    3 +++
- 1 file changed, 3 insertions(+)
+ arch/x86/xen/mmu.c |   11 +++++++++--
+ arch/x86/xen/smp.c |    9 +++++++++
+ 2 files changed, 18 insertions(+), 2 deletions(-)
 
-diff --git a/drivers/staging/octeon/ethernet-rx.c b/drivers/staging/octeon/ethernet-rx.c
-index 34afc16..8588b4d 100644
---- a/drivers/staging/octeon/ethernet-rx.c
-+++ b/drivers/staging/octeon/ethernet-rx.c
-@@ -36,6 +36,7 @@
- #include <linux/prefetch.h>
- #include <linux/ratelimit.h>
+diff --git a/arch/x86/xen/mmu.c b/arch/x86/xen/mmu.c
+index 01de35c..6a95a15 100644
+--- a/arch/x86/xen/mmu.c
++++ b/arch/x86/xen/mmu.c
+@@ -39,6 +39,7 @@
+  * Jeremy Fitzhardinge <jeremy@xensource.com>, XenSource Inc, 2007
+  */
+ #include <linux/sched.h>
++#include <linux/cpu.h>
+ #include <linux/highmem.h>
+ #include <linux/debugfs.h>
+ #include <linux/bug.h>
+@@ -1163,9 +1164,13 @@ static void xen_drop_mm_ref(struct mm_struct *mm)
+  */
+ static void xen_exit_mmap(struct mm_struct *mm)
+ {
+-	get_cpu();		/* make sure we don't move around */
++	/*
++	 * Make sure we don't move around, and prevent CPUs from going
++	 * offline.
++	 */
++	get_online_cpus_atomic();
+ 	xen_drop_mm_ref(mm);
+-	put_cpu();
++	put_online_cpus_atomic();
+ 
+ 	spin_lock(&mm->page_table_lock);
+ 
+@@ -1371,6 +1376,7 @@ static void xen_flush_tlb_others(const struct cpumask *cpus,
+ 	args->op.arg2.vcpumask = to_cpumask(args->mask);
+ 
+ 	/* Remove us, and any offline CPUS. */
++	get_online_cpus_atomic();
+ 	cpumask_and(to_cpumask(args->mask), cpus, cpu_online_mask);
+ 	cpumask_clear_cpu(smp_processor_id(), to_cpumask(args->mask));
+ 
+@@ -1383,6 +1389,7 @@ static void xen_flush_tlb_others(const struct cpumask *cpus,
+ 	MULTI_mmuext_op(mcs.mc, &args->op, 1, NULL, DOMID_SELF);
+ 
+ 	xen_mc_issue(PARAVIRT_LAZY_MMU);
++	put_online_cpus_atomic();
+ }
+ 
+ static unsigned long xen_read_cr3(void)
+diff --git a/arch/x86/xen/smp.c b/arch/x86/xen/smp.c
+index 4f7d259..7d753ae 100644
+--- a/arch/x86/xen/smp.c
++++ b/arch/x86/xen/smp.c
+@@ -16,6 +16,7 @@
+ #include <linux/err.h>
+ #include <linux/slab.h>
  #include <linux/smp.h>
 +#include <linux/cpu.h>
- #include <linux/interrupt.h>
- #include <net/dst.h>
- #ifdef CONFIG_XFRM
-@@ -97,6 +98,7 @@ static void cvm_oct_enable_one_cpu(void)
+ #include <linux/irq_work.h>
+ 
+ #include <asm/paravirt.h>
+@@ -487,8 +488,10 @@ static void __xen_send_IPI_mask(const struct cpumask *mask,
+ {
+ 	unsigned cpu;
+ 
++	get_online_cpus_atomic();
+ 	for_each_cpu_and(cpu, mask, cpu_online_mask)
+ 		xen_send_IPI_one(cpu, vector);
++	put_online_cpus_atomic();
+ }
+ 
+ static void xen_smp_send_call_function_ipi(const struct cpumask *mask)
+@@ -551,8 +554,10 @@ void xen_send_IPI_all(int vector)
+ {
+ 	int xen_vector = xen_map_vector(vector);
+ 
++	get_online_cpus_atomic();
+ 	if (xen_vector >= 0)
+ 		__xen_send_IPI_mask(cpu_online_mask, xen_vector);
++	put_online_cpus_atomic();
+ }
+ 
+ void xen_send_IPI_self(int vector)
+@@ -572,20 +577,24 @@ void xen_send_IPI_mask_allbutself(const struct cpumask *mask,
+ 	if (!(num_online_cpus() > 1))
  		return;
  
- 	/* ... if a CPU is available, Turn on NAPI polling for that CPU.  */
 +	get_online_cpus_atomic();
- 	for_each_online_cpu(cpu) {
- 		if (!cpu_test_and_set(cpu, core_state.cpu_state)) {
- 			v = smp_call_function_single(cpu, cvm_oct_enable_napi,
-@@ -106,6 +108,7 @@ static void cvm_oct_enable_one_cpu(void)
- 			break;
- 		}
+ 	for_each_cpu_and(cpu, mask, cpu_online_mask) {
+ 		if (this_cpu == cpu)
+ 			continue;
+ 
+ 		xen_smp_send_call_function_single_ipi(cpu);
  	}
 +	put_online_cpus_atomic();
  }
  
- static void cvm_oct_no_more_work(void)
+ void xen_send_IPI_allbutself(int vector)
+ {
+ 	int xen_vector = xen_map_vector(vector);
+ 
++	get_online_cpus_atomic();
+ 	if (xen_vector >= 0)
+ 		xen_send_IPI_mask_allbutself(cpu_online_mask, xen_vector);
++	put_online_cpus_atomic();
+ }
+ 
+ static irqreturn_t xen_call_function_interrupt(int irq, void *dev_id)
 
