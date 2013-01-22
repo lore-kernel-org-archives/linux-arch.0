@@ -1,17 +1,17 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from e28smtp07.in.ibm.com ([122.248.162.7]:51144 "EHLO
-	e28smtp07.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1753801Ab3AVHfU (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 02:35:20 -0500
+Received: from e28smtp09.in.ibm.com ([122.248.162.9]:33417 "EHLO
+	e28smtp09.in.ibm.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1754064Ab3AVHg6 (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Tue, 22 Jan 2013 02:36:58 -0500
 Received: from /spool/local
-	by e28smtp07.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
+	by e28smtp09.in.ibm.com with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted
 	for <linux-arch@vger.kernel.org> from <srivatsa.bhat@linux.vnet.ibm.com>;
-	Tue, 22 Jan 2013 13:03:29 +0530
+	Tue, 22 Jan 2013 13:05:44 +0530
 From: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
-Subject: [PATCH v5 01/45] percpu_rwlock: Introduce the global reader-writer
- lock backend
-Date: Tue, 22 Jan 2013 13:03:22 +0530
-Message-ID: <20130122073315.13822.27093.stgit@srivatsabhat.in.ibm.com>
+Subject: [PATCH v5 08/45] CPU hotplug: Convert preprocessor macros to static
+ inline functions
+Date: Tue, 22 Jan 2013 13:05:02 +0530
+Message-ID: <20130122073500.13822.11469.stgit@srivatsabhat.in.ibm.com>
 In-Reply-To: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
 References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
 MIME-Version: 1.0
@@ -21,268 +21,37 @@ Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
 To: tglx@linutronix.de, peterz@infradead.org, tj@kernel.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org
 Cc: rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, srivatsa.bhat@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
-Message-ID: <20130122073322.Fsau9ac9hvMdcEJUgSjjXOetKSC95Oo0BBLqbiiJoe8@z>
+Message-ID: <20130122073502.lTrbHeEqcDFJ_eG6n_o_c0OxaoM4L1FkFFq282TI89g@z>
 
-A straight-forward (and obvious) algorithm to implement Per-CPU Reader-Writer
-locks can also lead to too many deadlock possibilities which can make it very
-hard/impossible to use. This is explained in the example below, which helps
-justify the need for a different algorithm to implement flexible Per-CPU
-Reader-Writer locks.
+On 12/05/2012 06:10 AM, Andrew Morton wrote:
+"static inline C functions would be preferred if possible.  Feel free to
+fix up the wrong crufty surrounding code as well ;-)"
 
-We can use global rwlocks as shown below safely, without fear of deadlocks:
+Convert the macros in the CPU hotplug code to static inline C functions.
 
-Readers:
-
-         CPU 0                                CPU 1
-         ------                               ------
-
-1.    spin_lock(&random_lock);             read_lock(&my_rwlock);
-
-
-2.    read_lock(&my_rwlock);               spin_lock(&random_lock);
-
-
-Writer:
-
-         CPU 2:
-         ------
-
-       write_lock(&my_rwlock);
-
-
-We can observe that there is no possibility of deadlocks or circular locking
-dependencies here. Its perfectly safe.
-
-Now consider a blind/straight-forward conversion of global rwlocks to per-CPU
-rwlocks like this:
-
-The reader locks its own per-CPU rwlock for read, and proceeds.
-
-Something like: read_lock(per-cpu rwlock of this cpu);
-
-The writer acquires all per-CPU rwlocks for write and only then proceeds.
-
-Something like:
-
-  for_each_online_cpu(cpu)
-	write_lock(per-cpu rwlock of 'cpu');
-
-
-Now let's say that for performance reasons, the above scenario (which was
-perfectly safe when using global rwlocks) was converted to use per-CPU rwlocks.
-
-
-         CPU 0                                CPU 1
-         ------                               ------
-
-1.    spin_lock(&random_lock);             read_lock(my_rwlock of CPU 1);
-
-
-2.    read_lock(my_rwlock of CPU 0);       spin_lock(&random_lock);
-
-
-Writer:
-
-         CPU 2:
-         ------
-
-      for_each_online_cpu(cpu)
-        write_lock(my_rwlock of 'cpu');
-
-
-Consider what happens if the writer begins his operation in between steps 1
-and 2 at the reader side. It becomes evident that we end up in a (previously
-non-existent) deadlock due to a circular locking dependency between the 3
-entities, like this:
-
-
-(holds              Waiting for
- random_lock) CPU 0 -------------> CPU 2  (holds my_rwlock of CPU 0
-                                               for write)
-               ^                   |
-               |                   |
-        Waiting|                   | Waiting
-          for  |                   |  for
-               |                   V
-                ------ CPU 1 <------
-
-                (holds my_rwlock of
-                 CPU 1 for read)
-
-
-
-So obviously this "straight-forward" way of implementing percpu rwlocks is
-deadlock-prone. One simple measure for (or characteristic of) safe percpu
-rwlock should be that if a user replaces global rwlocks with per-CPU rwlocks
-(for performance reasons), he shouldn't suddenly end up in numerous deadlock
-possibilities which never existed before. The replacement should continue to
-remain safe, and perhaps improve the performance.
-
-Observing the robustness of global rwlocks in providing a fair amount of
-deadlock safety, we implement per-CPU rwlocks as nothing but global rwlocks,
-as a first step.
-
-
-Cc: David Howells <dhowells@redhat.com>
 Signed-off-by: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
 ---
 
- include/linux/percpu-rwlock.h |   49 ++++++++++++++++++++++++++++++++
- lib/Kconfig                   |    3 ++
- lib/Makefile                  |    1 +
- lib/percpu-rwlock.c           |   63 +++++++++++++++++++++++++++++++++++++++++
- 4 files changed, 116 insertions(+)
- create mode 100644 include/linux/percpu-rwlock.h
- create mode 100644 lib/percpu-rwlock.c
+ include/linux/cpu.h |    8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
 
-diff --git a/include/linux/percpu-rwlock.h b/include/linux/percpu-rwlock.h
-new file mode 100644
-index 0000000..45620d0
---- /dev/null
-+++ b/include/linux/percpu-rwlock.h
-@@ -0,0 +1,49 @@
-+/*
-+ * Flexible Per-CPU Reader-Writer Locks
-+ * (with relaxed locking rules and reduced deadlock-possibilities)
-+ *
-+ * Copyright (C) IBM Corporation, 2012-2013
-+ * Author: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
-+ *
-+ * With lots of invaluable suggestions from:
-+ * 	   Oleg Nesterov <oleg@redhat.com>
-+ * 	   Tejun Heo <tj@kernel.org>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ */
-+
-+#ifndef _LINUX_PERCPU_RWLOCK_H
-+#define _LINUX_PERCPU_RWLOCK_H
-+
-+#include <linux/percpu.h>
-+#include <linux/lockdep.h>
-+#include <linux/spinlock.h>
-+
-+struct percpu_rwlock {
-+	rwlock_t		global_rwlock;
-+};
-+
-+extern void percpu_read_lock(struct percpu_rwlock *);
-+extern void percpu_read_unlock(struct percpu_rwlock *);
-+
-+extern void percpu_write_lock(struct percpu_rwlock *);
-+extern void percpu_write_unlock(struct percpu_rwlock *);
-+
-+extern int __percpu_init_rwlock(struct percpu_rwlock *,
-+				const char *, struct lock_class_key *);
-+
-+#define percpu_init_rwlock(pcpu_rwlock)					\
-+({	static struct lock_class_key rwlock_key;			\
-+	__percpu_init_rwlock(pcpu_rwlock, #pcpu_rwlock, &rwlock_key);	\
-+})
-+
-+#endif
-diff --git a/lib/Kconfig b/lib/Kconfig
-index 75cdb77..32fb0b9 100644
---- a/lib/Kconfig
-+++ b/lib/Kconfig
-@@ -45,6 +45,9 @@ config STMP_DEVICE
- config PERCPU_RWSEM
- 	boolean
+diff --git a/include/linux/cpu.h b/include/linux/cpu.h
+index cf24da1..eb79f47 100644
+--- a/include/linux/cpu.h
++++ b/include/linux/cpu.h
+@@ -198,10 +198,10 @@ static inline void cpu_hotplug_driver_unlock(void)
  
-+config PERCPU_RWLOCK
-+	boolean
-+
- config CRC_CCITT
- 	tristate "CRC-CCITT functions"
- 	help
-diff --git a/lib/Makefile b/lib/Makefile
-index 02ed6c0..1854b5e 100644
---- a/lib/Makefile
-+++ b/lib/Makefile
-@@ -41,6 +41,7 @@ obj-$(CONFIG_DEBUG_SPINLOCK) += spinlock_debug.o
- lib-$(CONFIG_RWSEM_GENERIC_SPINLOCK) += rwsem-spinlock.o
- lib-$(CONFIG_RWSEM_XCHGADD_ALGORITHM) += rwsem.o
- lib-$(CONFIG_PERCPU_RWSEM) += percpu-rwsem.o
-+lib-$(CONFIG_PERCPU_RWLOCK) += percpu-rwlock.o
+ #else		/* CONFIG_HOTPLUG_CPU */
  
- CFLAGS_hweight.o = $(subst $(quote),,$(CONFIG_ARCH_HWEIGHT_CFLAGS))
- obj-$(CONFIG_GENERIC_HWEIGHT) += hweight.o
-diff --git a/lib/percpu-rwlock.c b/lib/percpu-rwlock.c
-new file mode 100644
-index 0000000..af0c714
---- /dev/null
-+++ b/lib/percpu-rwlock.c
-@@ -0,0 +1,63 @@
-+/*
-+ * Flexible Per-CPU Reader-Writer Locks
-+ * (with relaxed locking rules and reduced deadlock-possibilities)
-+ *
-+ * Copyright (C) IBM Corporation, 2012-2013
-+ * Author: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
-+ *
-+ * With lots of invaluable suggestions from:
-+ * 	   Oleg Nesterov <oleg@redhat.com>
-+ * 	   Tejun Heo <tj@kernel.org>
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License as published by
-+ * the Free Software Foundation; either version 2 of the License, or
-+ * (at your option) any later version.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-+ * GNU General Public License for more details.
-+ *
-+ */
-+
-+#include <linux/spinlock.h>
-+#include <linux/percpu.h>
-+#include <linux/lockdep.h>
-+#include <linux/percpu-rwlock.h>
-+#include <linux/errno.h>
-+
-+
-+int __percpu_init_rwlock(struct percpu_rwlock *pcpu_rwlock,
-+			 const char *name, struct lock_class_key *rwlock_key)
-+{
-+	/* ->global_rwlock represents the whole percpu_rwlock for lockdep */
-+#ifdef CONFIG_DEBUG_SPINLOCK
-+	__rwlock_init(&pcpu_rwlock->global_rwlock, name, rwlock_key);
-+#else
-+	pcpu_rwlock->global_rwlock =
-+			__RW_LOCK_UNLOCKED(&pcpu_rwlock->global_rwlock);
-+#endif
-+	return 0;
-+}
-+
-+void percpu_read_lock(struct percpu_rwlock *pcpu_rwlock)
-+{
-+	read_lock(&pcpu_rwlock->global_rwlock);
-+}
-+
-+void percpu_read_unlock(struct percpu_rwlock *pcpu_rwlock)
-+{
-+	read_unlock(&pcpu_rwlock->global_rwlock);
-+}
-+
-+void percpu_write_lock(struct percpu_rwlock *pcpu_rwlock)
-+{
-+	write_lock(&pcpu_rwlock->global_rwlock);
-+}
-+
-+void percpu_write_unlock(struct percpu_rwlock *pcpu_rwlock)
-+{
-+	write_unlock(&pcpu_rwlock->global_rwlock);
-+}
-+
+-#define get_online_cpus()	do { } while (0)
+-#define put_online_cpus()	do { } while (0)
+-#define get_online_cpus_atomic()	do { } while (0)
+-#define put_online_cpus_atomic()	do { } while (0)
++static inline void get_online_cpus(void) {}
++static inline void put_online_cpus(void) {}
++static inline void get_online_cpus_atomic(void) {}
++static inline void put_online_cpus_atomic(void) {}
+ #define hotcpu_notifier(fn, pri)	do { (void)(fn); } while (0)
+ /* These aren't inline functions due to a GCC bug. */
+ #define register_hotcpu_notifier(nb)	({ (void)(nb); 0; })
 
