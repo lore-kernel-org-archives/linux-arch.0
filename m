@@ -1,145 +1,102 @@
 Return-Path: <linux-arch-owner@vger.kernel.org>
-Received: from mailout3.w1.samsung.com ([210.118.77.13]:36124 "EHLO
-	mailout3.w1.samsung.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
-	with ESMTP id S1754642Ab3AWJrO (ORCPT
-	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Jan 2013 04:47:14 -0500
-MIME-version: 1.0
-Content-transfer-encoding: 8BIT
-Content-type: text/plain; charset=UTF-8; format=flowed
-Message-ID: <50FFB19E.3020901@samsung.com>
-Date: Wed, 23 Jan 2013 10:47:10 +0100
-From: Marek Szyprowski <m.szyprowski@samsung.com>
-Subject: Re: [Linux-c6x-dev] [PATCH 3/9] c6x: Provide dma_mmap_coherent() and
- dma_get_sgtable()
-References: <1358073890-3610-1-git-send-email-geert@linux-m68k.org>
- <1358073890-3610-3-git-send-email-geert@linux-m68k.org>
- <1358177872.4357.53.camel@t520.localdomain> <50F4D83A.7020803@synopsys.com>
- <CAMuHMdWjZAY19GPpjoXKfWb3pOp2RbZXDvb4nr5pMmjEMFuB4w@mail.gmail.com>
- <50F56286.8070200@samsung.com>
- <1358269008.10591.11.camel@dabdike.int.hansenpartnership.com>
- <CAMuHMdXk1mdkMViYqypvnXO0_1LdjbH8S7z8FNe97yDUW6BYRA@mail.gmail.com>
- <1358809159.3975.63.camel@dabdike.int.hansenpartnership.com>
- <1358849633.2387.11.camel@dabdike.int.hansenpartnership.com>
-In-reply-to: <1358849633.2387.11.camel@dabdike.int.hansenpartnership.com>
+Received: from mail-qa0-f44.google.com ([209.85.216.44]:36584 "EHLO
+	mail-qa0-f44.google.com" rhost-flags-OK-OK-OK-OK) by vger.kernel.org
+	with ESMTP id S1751267Ab3AWS4E (ORCPT
+	<rfc822;linux-arch@vger.kernel.org>); Wed, 23 Jan 2013 13:56:04 -0500
+Date: Wed, 23 Jan 2013 10:55:22 -0800
+From: Tejun Heo <tj@kernel.org>
+Subject: Re: [PATCH v5 04/45] percpu_rwlock: Implement the core design of
+ Per-CPU Reader-Writer Locks
+Message-ID: <20130123185522.GG2373@mtj.dyndns.org>
+References: <20130122073210.13822.50434.stgit@srivatsabhat.in.ibm.com>
+ <20130122073347.13822.85876.stgit@srivatsabhat.in.ibm.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20130122073347.13822.85876.stgit@srivatsabhat.in.ibm.com>
 Sender: linux-arch-owner@vger.kernel.org
 List-ID: <linux-arch.vger.kernel.org>
-To: James Bottomley <James.Bottomley@HansenPartnership.com>
-Cc: Geert Uytterhoeven <geert@linux-m68k.org>, Mark Salter <msalter@redhat.com>, Vineet Gupta <Vineet.Gupta1@synopsys.com>, linux-arch@vger.kernel.org, linux-c6x-dev@linux-c6x.org, linux-kernel@vger.kernel.org
-Message-ID: <20130123094710.906MHrHpnUEQkzclnjBRNtkVLOsZ_7lZIhMPbLTpXw0@z>
+To: "Srivatsa S. Bhat" <srivatsa.bhat@linux.vnet.ibm.com>
+Cc: tglx@linutronix.de, peterz@infradead.org, oleg@redhat.com, paulmck@linux.vnet.ibm.com, rusty@rustcorp.com.au, mingo@kernel.org, akpm@linux-foundation.org, namhyung@kernel.org, rostedt@goodmis.org, wangyun@linux.vnet.ibm.com, xiaoguangrong@linux.vnet.ibm.com, rjw@sisk.pl, sbw@mit.edu, fweisbec@gmail.com, linux@arm.linux.org.uk, nikunj@linux.vnet.ibm.com, linux-pm@vger.kernel.org, linux-arch@vger.kernel.org, linux-arm-kernel@lists.infradead.org, linuxppc-dev@lists.ozlabs.org, netdev@vger.kernel.org, linux-doc@vger.kernel.org, linux-kernel@vger.kernel.org
+Message-ID: <20130123185522.kKKTs8LJ2EbyloY5kZDEzcPeBwSrqmEMRGIhp3fHR9Q@z>
 
+Hello, Srivatsa.
 
-On 1/22/2013 11:13 AM, James Bottomley wrote:
-> On Mon, 2013-01-21 at 22:59 +0000, James Bottomley wrote:
-> > On Mon, 2013-01-21 at 21:00 +0100, Geert Uytterhoeven wrote:
-> > > On Tue, Jan 15, 2013 at 5:56 PM, James Bottomley
-> > > <James.Bottomley@hansenpartnership.com> wrote:
-> > > > On Tue, 2013-01-15 at 15:07 +0100, Marek Szyprowski wrote:
-> > > >> On 1/15/2013 10:13 AM, Geert Uytterhoeven wrote:
-> > > >> > Marek?
-> > > >> >
-> > > >> > On Tue, Jan 15, 2013 at 5:16 AM, Vineet Gupta
-> > > >> > <Vineet.Gupta1@synopsys.com> wrote:
-> > > >> > > On Monday 14 January 2013 09:07 PM, Mark Salter wrote:
-> > > >> > >> On Sun, 2013-01-13 at 11:44 +0100, Geert Uytterhoeven wrote:
-> > > >> > >>> c6x/allmodconfig (assumed):
-> > > >> > >>>
-> > > >> > >>> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function ‘vb2_dc_mmap’:
-> > > >> > >>> drivers/media/v4l2-core/videobuf2-dma-contig.c:204: error: implicit declaration of function ‘dma_mmap_coherent’
-> > > >> > >>> drivers/media/v4l2-core/videobuf2-dma-contig.c: In function ‘vb2_dc_get_base_sgt’:
-> > > >> > >>> drivers/media/v4l2-core/videobuf2-dma-contig.c:387: error: implicit declaration of function ‘dma_get_sgtable’
-> > > >> > >>>
-> > > >> > >>> For architectures using dma_map_ops, dma_mmap_coherent() and
-> > > >> > >>> dma_get_sgtable() are provided in <asm-generic/dma-mapping-common.h>.
-> > > >> > >>>
-> > > >> > >>> C6x does not use dma_map_ops, hence it should implement them as inline
-> > > >> > >>> stubs using dma_common_mmap() and dma_common_get_sgtable().
-> > > >> > >>>
-> > > >> > >> So are dma_mmap_coherent() and dma_get_sgtable() part of the DMA API
-> > > >> > >> now? I don't them in Documentation/DMA*.txt anywhere.
-> > > >> > >>
-> > > >> > >> Why does the default dma_common_mmap() for !CONFIG_MMU return an
-> > > >> > >> error?
-> > > >> > >>
-> > > >> > >> Wouldn't it be better to provide default implementations that an arch
-> > > >> > >> could override rather than having to patch all "no dma_map_ops"
-> > > >> > >> architectures?
-> > > >> > >>
-> > > >> > > Speaking for the still-reviewed ARC Port, I completely agree with Mark.
-> > > >>
-> > > >> dma_mmap_coherent() was partially in the DMA mapping API for some time, but
-> > > >> it was available only on a few architectures (afair ARM, powerpc and avr32).
-> > > >> This caused significant problems for writing unified device drivers or some
-> > > >> device helper modules which were aimed to work on more than one
-> > > >> architecture.
-> > > >>
-> > > >> dma_get_sgtable() is an extension discussed during the Linaro meetings. It
-> > > >> is required to correctly implement buffer sharing between device driver
-> > > >> without hacks or any assumptions about memory layout in the device drivers.
-> > > >>
-> > > >> I have implemented some generic code for both of those two functions,
-> > > >> keeping
-> > > >> in mind that on some hardware architectures (like already mentioned VIVT)
-> > > >> it might be not possible to provide coherent mapping to userspace. It is
-> > > >> perfectly fine for those functions to return an error in such case.
-> > > >
-> > > > It's not possible on VIPT either.  This means that the API is unusable
-> > > > on quite a large number of architectures.  Surely, if we're starting to
-> > > > write drivers using this, we need to fix the API before more people try
-> > > > to use it.
-> > > >
-> > > > For PA-RISC (and all other VIPT, I assume) I need an API which allows me
-> > > > to remap the virtual address of the kernel component (probably using the
-> > > > kmap area) so the user space and kernel space addresses are congruent.
-> > >
-> > > So what are we gonna do for 3.8? I'd like to get my allmodconfig build
-> > > green again ;-)
-> > >
-> > > Change the API?
-> >
-> > Well, if we want the API to work universally, we have to.  As I said,
-> > for VIPT systems, the only coherency mechanism we have is the virtual
-> > address ... we have to fix that in the kernel to be congruent with the
-> > userspace virtual address if we want coherency between the kernel and
-> > userspace.
-> >
-> > However, if it only needs to work on ARM and x86, it can stay the way it
-> > is and we could just pull it out of the generic core.
-> >
-> > Who actually wants to use this API, and what for?
-> >
-> > > Keep the API but do a best-effort fix to unbreak the builds?
-> > >   - Apply my patches that got acks (avr32/blackfin/cris/m68k),
-> > >   - Use static inlines that return -EINVAL for the rest
-> > > (c6x/frv/mn10300/parisc/xtensa).
-> > > I still have a few m68k fixes queued for 3.8, for which I've been postponing the
-> > > pull request to get this sorted out, so I could include the above.
-> > >
-> > > Any other solution?
-> >
-> > If it's an API that only works on ARM and x86, there's not much point
-> > pretending it's universal, so we should remove it from the generic arch
-> > code and allow only those architectures which can use it.
->
-> There might be a simple solution:  just replace void *cpu_addr with void
-> **cpu_addr in the API.  This is a bit nasty since compilers think that
-> void ** to void * conversion is quite legal, so it would be hard to pick
-> up misuse of this (uint8_t ** would be better).  That way VIPT could
-> remap the kernel pages to a coherent address.  This would probably have
-> to change in the dma_mmap_attr() and dma_ops structures.
->
-> All consumers would have to expect cpu_addr might change, but that seems
-> doable.
+First of all, I'm not sure whether we need to be this step-by-step
+when introducing something new.  It's not like we're transforming an
+existing implementation and it doesn't seem to help understanding the
+series that much either.
 
-I still don't get how this can help having a coherent buffer between DMA
-(devices) and CPU (kernel and user space mappings). The main purpose of
-the dma_mmap_coherent() call is to provide a common API for mapping a
-coherent buffer between DMA (device) and userspace. It is not about
-creating a coherent mapping for sharing memory between userspace and
-kernel space.
+On Tue, Jan 22, 2013 at 01:03:53PM +0530, Srivatsa S. Bhat wrote:
+> Using global rwlocks as the backend for per-CPU rwlocks helps us avoid many
+> lock-ordering related problems (unlike per-cpu locks). However, global
 
-Best regards
+So, unfortunately, this already seems broken, right?  The problem here
+seems to be that previously, say, read_lock() implied
+preempt_disable() but as this series aims to move away from it, it
+introduces the problem of locking order between such locks and the new
+contruct.
+
+The only two options are either punishing writers or identifying and
+updating all such possible deadlocks.  percpu_rwsem does the former,
+right?  I don't know how feasible the latter would be.  Srivatsa,
+you've been looking at all the places which would require conversion,
+how difficult would doing the latter be?
+
+> +#define reader_uses_percpu_refcnt(pcpu_rwlock, cpu)			\
+> +		(ACCESS_ONCE(per_cpu(*((pcpu_rwlock)->reader_refcnt), cpu)))
+> +
+> +#define reader_nested_percpu(pcpu_rwlock)				\
+> +			(__this_cpu_read(*((pcpu_rwlock)->reader_refcnt)) > 1)
+> +
+> +#define writer_active(pcpu_rwlock)					\
+> +			(__this_cpu_read(*((pcpu_rwlock)->writer_signal)))
+
+Why are these in the public header file?  Are they gonna be used to
+inline something?
+
+> +static inline void raise_writer_signal(struct percpu_rwlock *pcpu_rwlock,
+> +				       unsigned int cpu)
+> +{
+> +	per_cpu(*pcpu_rwlock->writer_signal, cpu) = true;
+> +}
+> +
+> +static inline void drop_writer_signal(struct percpu_rwlock *pcpu_rwlock,
+> +				      unsigned int cpu)
+> +{
+> +	per_cpu(*pcpu_rwlock->writer_signal, cpu) = false;
+> +}
+> +
+> +static void announce_writer_active(struct percpu_rwlock *pcpu_rwlock)
+> +{
+> +	unsigned int cpu;
+> +
+> +	for_each_online_cpu(cpu)
+> +		raise_writer_signal(pcpu_rwlock, cpu);
+> +
+> +	smp_mb(); /* Paired with smp_rmb() in percpu_read_[un]lock() */
+> +}
+> +
+> +static void announce_writer_inactive(struct percpu_rwlock *pcpu_rwlock)
+> +{
+> +	unsigned int cpu;
+> +
+> +	drop_writer_signal(pcpu_rwlock, smp_processor_id());
+> +
+> +	for_each_online_cpu(cpu)
+> +		drop_writer_signal(pcpu_rwlock, cpu);
+> +
+> +	smp_mb(); /* Paired with smp_rmb() in percpu_read_[un]lock() */
+> +}
+
+It could be just personal preference but I find the above one line
+wrappers more obfuscating than anything else.  What's the point of
+wrapping writer_signal = true/false into a separate function?  These
+simple wrappers just add layers that people have to dig through to
+figure out what's going on without adding anything of value.  I'd much
+prefer collapsing these into the percpu_write_[un]lock().
+
+Thanks.
+
 -- 
-Marek Szyprowski
-Samsung Poland R&D Center
-
-
+tejun
